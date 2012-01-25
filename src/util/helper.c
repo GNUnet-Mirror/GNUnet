@@ -216,14 +216,14 @@ restart_task (void *cls,
  */
 static void
 helper_read (void *cls,
-	     const struct GNUNET_SCHEDULER_TaskContext *tsdkctx)
+	     const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_HELPER_Handle *h = cls;
   char buf[GNUNET_SERVER_MAX_MESSAGE_SIZE];
   ssize_t t;
 
   h->read_task = GNUNET_SCHEDULER_NO_TASK;
-  if (0 != (tsdkctx->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
     /* try again */
     h->read_task = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
@@ -404,7 +404,7 @@ GNUNET_HELPER_stop (struct GNUNET_HELPER_Handle *h)
  */
 static void
 helper_write (void *cls,
-	     const struct GNUNET_SCHEDULER_TaskContext *tsdkctx)
+	     const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_HELPER_Handle *h = cls;
   struct HelperMessageQueueEntry *qe;
@@ -412,7 +412,7 @@ helper_write (void *cls,
   ssize_t t;
 
   h->write_task = GNUNET_SCHEDULER_NO_TASK;
-  if (0 != (tsdkctx->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
     /* try again */
     h->write_task = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,

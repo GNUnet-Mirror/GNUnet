@@ -1263,6 +1263,7 @@ setup_state_record (struct TunnelState *state)
  *                TCP header, depending on protocol)
  * @param payload_length number of bytes in 'payload'
  * @param protocol IPPROTO_UDP or IPPROTO_TCP
+ * @param tcp_header skeleton of the TCP header, NULL for UDP
  * @param src_address source address to use (IP and port)
  * @param dst_address destination address to use (IP and port)
  * @param pkt6 where to write the assembled packet; must
@@ -1439,7 +1440,7 @@ prepare_ipv6_packet (const void *payload, size_t payload_length,
  *
  * @param destination_address IP and port to use for the TCP packet's destination
  * @param source_address IP and port to use for the TCP packet's source
- * @param tcp header template to use
+ * @param tcp_header header template to use
  * @param payload payload of the TCP packet
  * @param payload_length number of bytes in 'payload'
  */
@@ -1541,7 +1542,7 @@ send_tcp_packet_via_tun (const struct SocketAddress *destination_address,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
 static int
-receive_tcp_service (void *unused GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
+receive_tcp_service (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
                      void **tunnel_ctx GNUNET_UNUSED,
                      const struct GNUNET_PeerIdentity *sender GNUNET_UNUSED,
                      const struct GNUNET_MessageHeader *message,

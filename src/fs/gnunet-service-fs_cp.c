@@ -875,6 +875,7 @@ get_randomized_delay ()
  * @param pr handle to the original pending request
  * @param reply_anonymity_level anonymity level for the reply, UINT32_MAX for "unknown"
  * @param expiration when does 'data' expire?
+ * @param last_transmission when did we last transmit a request for this block
  * @param type type of the block
  * @param data response data, NULL on request expiration
  * @param data_len number of bytes in data

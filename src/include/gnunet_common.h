@@ -507,7 +507,7 @@ GNUNET_htonll (uint64_t n);
  * @return the same value in host byte order
  */
 double 
-GNUNET_hton_double (double in);
+GNUNET_hton_double (double d);
 
 /**
  * Convert double to host-byte-order
@@ -515,7 +515,7 @@ GNUNET_hton_double (double in);
  * @return the same value in host byte order
  */
 double 
-GNUNET_ntoh_double (double in);
+GNUNET_ntoh_double (double d);
 
 /* ************************* allocation functions ****************** */
 

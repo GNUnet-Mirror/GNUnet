@@ -701,12 +701,12 @@ GSF_plan_notify_peer_disconnect_ (const struct GSF_ConnectedPeer *cp)
 
 /**
  * Get the last transmission attempt time for the request plan list
- * referenced by @rpr_head, that was sent to @sender
+ * referenced by 'rpr_head', that was sent to 'sender'
  *
  * @param rpr_head request plan reference list to check.
  * @param sender the peer that we've sent the request to.
  * @param result the timestamp to fill.
- * @return GNUNET_YES if @result was changed, GNUNET_NO otherwise.
+ * @return GNUNET_YES if 'result' was changed, GNUNET_NO otherwise.
  */
 int
 GSF_request_plan_reference_get_last_transmission_ (

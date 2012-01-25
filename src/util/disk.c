@@ -1252,7 +1252,7 @@ GNUNET_DISK_directory_iterator_next (struct GNUNET_DISK_DirectoryIterator *iter,
  * @param dirName the name of the directory
  * @param callback the method to call for each file
  * @param callback_cls closure for callback
- * @return GNUNET_YES if directory is not empty and @callback
+ * @return GNUNET_YES if directory is not empty and 'callback'
  *         will be called later, GNUNET_NO otherwise, GNUNET_SYSERR on error.
  */
 int
@@ -2113,10 +2113,10 @@ create_selectable_pipe (PHANDLE read_pipe_ptr, PHANDLE write_pipe_ptr,
 /**
  * Creates an interprocess channel
  *
- * @param blocking creates an asynchronous pipe if set to GNUNET_NO
+ * @param blocking_read creates an asynchronous pipe for reading if set to GNUNET_NO
+ * @param blocking_write creates an asynchronous pipe for writing if set to GNUNET_NO
  * @param inherit_read inherit the parent processes stdin (only for windows)
  * @param inherit_write inherit the parent processes stdout (only for windows)
- *
  * @return handle to the new pipe, NULL on error
  */
 struct GNUNET_DISK_PipeHandle *

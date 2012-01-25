@@ -119,9 +119,9 @@ display_query (const struct GNUNET_DNSPARSER_Query *query)
 
 
 /**
- * Output the given DNS query to stdout.
+ * Output the given DNS record to stdout.
  *
- * @param query query to display.
+ * @param record record to display.
  */
 static void
 display_record (const struct GNUNET_DNSPARSER_Record *record)

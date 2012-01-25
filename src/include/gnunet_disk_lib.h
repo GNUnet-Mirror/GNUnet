@@ -389,7 +389,9 @@ GNUNET_DISK_file_handle_size (struct GNUNET_DISK_FileHandle *fh,
 
 /**
  * Creates an interprocess channel
- * @param blocking creates an asynchronous pipe if set to GNUNET_NO
+ *
+ * @param blocking_read creates an asynchronous pipe for reading if set to GNUNET_NO
+ * @param blocking_write creates an asynchronous pipe for writing if set to GNUNET_NO
  * @param inherit_read 1 to make read handle inheritable, 0 otherwise (NT only)
  * @param inherit_write 1 to make write handle inheritable, 0 otherwise (NT only)
  * @return handle to the new pipe, NULL on error

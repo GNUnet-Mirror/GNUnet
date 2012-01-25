@@ -341,7 +341,7 @@ should_stop (struct AddDirContext *adc)
 /**
  * Write progress message.
  * Format is:
- * <reason><filename length><filename><directory flag>
+ * "reason", "filename length", "filename", "directory flag"
  * If filename is NULL, filename is not written, and its length
  * is written as 0, and nothing else is written. It signals the initiator
  * thread that the scanner is finished, and that it can now join its thread.
@@ -540,7 +540,7 @@ make_item (struct GNUNET_FS_ShareTreeItem *parent)
 /**
  * Extract metadata from a file and add it to the share tree
  *
- * @param adc context to modify
+ * @param ads context to modify
  * @param filename name of the file to process
  */
 static void

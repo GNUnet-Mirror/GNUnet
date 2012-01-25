@@ -19,7 +19,7 @@
  */
 
 /**
- * @file dns/dns_api_new.c
+ * @file dns/dns_api.c
  * @brief API to access the DNS service. 
  * @author Christian Grothoff
  */

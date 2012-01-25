@@ -565,7 +565,7 @@ free_tunnel_state (struct TunnelState *ts)
  * Destroy the mesh tunnel.
  *
  * @param cls the 'struct TunnelState' with the tunnel to destroy
- * @param ts schedule context
+ * @param tc scheduler context
  */
 static void
 destroy_tunnel_task (void *cls,
@@ -751,6 +751,7 @@ send_to_tunnel (struct TunnelMessageQueueEntry *tnq,
  *
  * @param de destination entry for which we need to setup a tunnel
  * @param client client to notify on successful tunnel setup, or NULL for none
+ * @param client_af address family of the address returned to the client
  * @param request_id request ID to send in client notification (unused if client is NULL)
  * @return tunnel state of the tunnel that was created
  */

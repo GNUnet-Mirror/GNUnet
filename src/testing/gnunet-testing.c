@@ -19,7 +19,7 @@
 */
 
 /**
- * @file template/gnunet-testing.c
+ * @file testing/gnunet-testing.c
  * @brief tool to use testing functionality from cmd line
  * @author Christian Grothoff
  */

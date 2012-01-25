@@ -19,7 +19,7 @@
  */
 
 /**
- * @file include/gnunet_dns_service-new.h
+ * @file include/gnunet_dns_service.h
  * @brief API to access the DNS service. 
  * @author Christian Grothoff
  */

@@ -52,7 +52,7 @@ GNUNET_htonll (uint64_t n)
 
 /**
  * Convert double to network-byte-order.
- * @param n the value in network byte order
+ * @param d the value in network byte order
  * @return the same value in host byte order
  */
 double 

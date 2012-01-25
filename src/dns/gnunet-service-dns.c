@@ -1373,7 +1373,7 @@ receive_dns_request (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
  * @param cls closure
  * @param tunnel new handle to the tunnel
  * @param initiator peer that started the tunnel
- * @param atsi performance information for the tunnel
+ * @param ats performance information for the tunnel
  * @return initial tunnel context for the tunnel
  */
 static void *

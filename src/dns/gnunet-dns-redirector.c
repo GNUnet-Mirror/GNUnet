@@ -56,9 +56,9 @@ static int verbosity;
 
 
 /**
- * Output the given DNS query to stdout.
+ * Modify the given DNS record.
  *
- * @param query query to display.
+ * @param record record to modify
  */
 static void
 modify_record (const struct GNUNET_DNSPARSER_Record *record)

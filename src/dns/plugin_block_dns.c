@@ -19,7 +19,7 @@
 */
 
 /**
- * @file vpn/plugin_block_dns.c
+ * @file dns/plugin_block_dns.c
  * @brief block plugin for storing .gnunet-bindings
  * @author Philipp Tölke
  */

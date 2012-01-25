@@ -99,7 +99,7 @@ GNUNET_TUN_initialize_ipv6_header (struct GNUNET_TUN_IPv6Header *ip,
 /**
  * Calculate IPv4 TCP checksum.
  *
- * @param ipv4 header fully initialized
+ * @param ip ipv4 header fully initialized
  * @param tcp TCP header (initialized except for CRC)
  * @param payload the TCP payload
  * @param payload_length number of bytes of TCP payload
@@ -132,7 +132,7 @@ GNUNET_TUN_calculate_tcp4_checksum (const struct GNUNET_TUN_IPv4Header *ip,
 /**
  * Calculate IPv6 TCP checksum.
  *
- * @param ipv6 header fully initialized
+ * @param ip ipv6 header fully initialized
  * @param tcp header (initialized except for CRC)
  * @param payload the TCP payload
  * @param payload_length number of bytes of TCP payload
@@ -165,7 +165,7 @@ GNUNET_TUN_calculate_tcp6_checksum (const struct GNUNET_TUN_IPv6Header *ip,
 /**
  * Calculate IPv4 UDP checksum.
  *
- * @param ipv4 header fully initialized
+ * @param ip ipv4 header fully initialized
  * @param udp UDP header (initialized except for CRC)
  * @param payload the UDP payload
  * @param payload_length number of bytes of UDP payload
@@ -208,7 +208,7 @@ GNUNET_TUN_calculate_udp4_checksum (const struct GNUNET_TUN_IPv4Header *ip,
 /**
  * Calculate IPv6 UDP checksum.
  *
- * @param ipv6 header fully initialized
+ * @param ip ipv6 header fully initialized
  * @param udp UDP header (initialized except for CRC)
  * @param payload the UDP payload
  * @param payload_length number of bytes of UDP payload
