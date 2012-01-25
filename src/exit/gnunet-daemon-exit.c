@@ -1002,6 +1002,7 @@ message_token (void *cls GNUNET_UNUSED, void *client GNUNET_UNUSED,
 			 AF_INET,
 			 &pkt4->destination_address, 
 			 &pkt4->source_address);
+	break;
       case IPPROTO_TCP:
 	tcp_from_helper ((const struct GNUNET_TUN_TcpHeader *) &pkt4[1], size,
 			 AF_INET,
