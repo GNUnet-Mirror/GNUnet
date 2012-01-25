@@ -285,6 +285,11 @@ struct TunnelState
 
 
 /**
+ * Return value from 'main'.
+ */
+static int global_ret;
+
+/**
  * Configuration we use.
  */
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
@@ -3002,6 +3007,15 @@ run (void *cls,
   struct in_addr v4;
   struct in6_addr v6;
 
+  if (GNUNET_YES !=
+      GNUNET_OS_check_helper_binary ("gnunet-helper-vpn"))
+  {
+    fprintf (stderr,
+	     "`%s' is not SUID, refusing to run.\n",
+	     "gnunet-helper-vpn");
+    global_ret = 1;
+    return;
+  }
   cfg = cfg_;
   stats = GNUNET_STATISTICS_create ("vpn", cfg);
   if (GNUNET_OK !=
@@ -3112,7 +3126,7 @@ main (int argc, char *const *argv)
   return (GNUNET_OK ==
           GNUNET_SERVICE_run (argc, argv, "vpn", 
 			      GNUNET_SERVICE_OPTION_NONE,
-                              &run, NULL)) ? 0 : 1;
+                              &run, NULL)) ? global_ret : 1;
 }
 
 /* end of gnunet-service-vpn.c */

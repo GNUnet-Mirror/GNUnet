@@ -35,6 +35,8 @@
 
 #define VERBOSE GNUNET_NO
 
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 45)
+
 struct PeerContext
 {
   struct GNUNET_CONFIGURATION_Handle *cfg;
@@ -387,7 +389,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 				  GNUNET_YES,
 				  GNUNET_TIME_UNIT_FOREVER_ABS,
 				  &allocation_cb, NULL);
-  ctrl_c_task_id = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
+  ctrl_c_task_id = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
 						 &ctrl_c_shutdown,
 						 NULL);
 }

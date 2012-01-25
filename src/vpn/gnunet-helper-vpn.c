@@ -45,6 +45,12 @@
 #include "gnunet_protocols.h"
 
 /**
+ * Should we print (interesting|debug) messages that can happen during
+ * normal operation?
+ */
+#define DEBUG GNUNET_NO
+
+/**
  * Maximum size of a GNUnet message (GNUNET_SERVER_MAX_MESSAGE_SIZE)
  */
 #define MAX_SIZE 65536
@@ -420,7 +426,10 @@ run (int fd_tun)
 
         if (-1 == written)
         {
-          fprintf (stderr, "write-error to stdout: %s\n", strerror (errno));
+#if !DEBUG
+	  if (errno != EPIPE)
+#endif
+	    fprintf (stderr, "write-error to stdout: %s\n", strerror (errno));
           shutdown (fd_tun, SHUT_RD);
           shutdown (1, SHUT_WR);
           read_open = 0;
@@ -451,7 +460,9 @@ run (int fd_tun)
         }
         else if (0 == bufin_size)
         {
+#if DEBUG
           fprintf (stderr, "EOF on stdin\n");
+#endif
           shutdown (0, SHUT_RD);
           shutdown (fd_tun, SHUT_WR);
           write_open = 0;
