@@ -468,7 +468,7 @@ run (int fd_tun)
   unsigned char bufin[MAX_SIZE];
   ssize_t bufin_size = 0;
   size_t bufin_rpos = 0;
-  unsigned char *bufin_read;
+  unsigned char *bufin_read = NULL;
   fd_set fds_w;
   fd_set fds_r;
   int max;
@@ -477,7 +477,6 @@ run (int fd_tun)
   {
     FD_ZERO (&fds_w);
     FD_ZERO (&fds_r);
-    bufin_read = NULL;
 
     /*
      * We are supposed to read and the buffer is empty
@@ -578,6 +577,7 @@ run (int fd_tun)
         bufin_size = read (0, bufin + bufin_rpos, MAX_SIZE - bufin_rpos);
         if (-1 == bufin_size)
         {
+	  bufin_read = NULL;
 	  if ( (errno == EINTR) ||
 	       (errno == EAGAIN) )
 	    continue;
@@ -586,6 +586,7 @@ run (int fd_tun)
         }
 	if (0 == bufin_size)
         {
+	  bufin_read = NULL;
           fprintf (stderr, "EOF on stdin\n");
 	  return;
         }
