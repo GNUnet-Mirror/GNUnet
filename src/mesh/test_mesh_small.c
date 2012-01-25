@@ -22,11 +22,12 @@
  *
  * @brief Test for the mesh service: retransmission of traffic.
  */
+#include <stdio.h>
 #include "platform.h"
 #include "gnunet_testing_lib.h"
 #include "gnunet_mesh_service.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_NO
 #define REMOVE_DIR GNUNET_YES
 
 struct MeshPeer
@@ -171,6 +172,8 @@ static struct GNUNET_MESH_Tunnel *incoming_t2;
 static struct GNUNET_TIME_Absolute start_time;
 
 static struct GNUNET_TIME_Absolute end_time;
+
+static struct GNUNET_TIME_Relative total_time;
 
 
 static uint16_t *mesh_peers;
@@ -359,9 +362,12 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
       if (data_ack < 1000)
         return GNUNET_OK;
       end_time = GNUNET_TIME_absolute_get();
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "***************** test time %u ms\n",
-                  GNUNET_TIME_absolute_get_difference(start_time, end_time).rel_value);
+      total_time = GNUNET_TIME_absolute_get_difference(start_time, end_time);
+      FPRINTF (stderr, "\nTest time %lu ms\n", total_time.rel_value);
+      FPRINTF (stderr, "Test bandwidth: %f kb/s\n",
+               4000.0 / total_time.rel_value);
+      FPRINTF (stderr, "Test throughput: %f packets/s\n",
+               1000000.0 / total_time.rel_value);
     }
     GNUNET_MESH_tunnel_destroy (tunnel);
     if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
@@ -1008,7 +1014,9 @@ main (int argc, char *argv[])
     test = SPEED_ACK;
     ok_goal = 2003;
     argv2 [3] = NULL; // remove -L DEBUG
+#if VERBOSE
     argc2 -= 2;
+#endif
   }
   else if (strstr (argv[0], "test_mesh_small_speed") != NULL)
   {
