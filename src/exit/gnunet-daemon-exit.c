@@ -1379,12 +1379,7 @@ prepare_ipv6_packet (const void *payload, size_t payload_length,
     len += sizeof (struct GNUNET_TUN_UdpHeader);
     break;
   case IPPROTO_TCP:
-    /* tcp_header (with port/crc not set) must be part of payload! */
-    if (len < sizeof (struct GNUNET_TUN_TcpHeader))
-    {
-      GNUNET_break (0);
-      return;
-    }
+    len += sizeof (struct GNUNET_TUN_TcpHeader);
     break;
   default:
     GNUNET_break (0);
