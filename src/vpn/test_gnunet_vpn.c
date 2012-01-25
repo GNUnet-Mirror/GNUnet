@@ -381,7 +381,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 			  MHD_OPTION_END);
   GNUNET_assert (NULL != mhd);
   mhd_main ();
-  GNUNET_assert (1 == inet_pton (AF_INET, "10.10.1.1", &v4));
+  GNUNET_assert (1 == inet_pton (AF_INET, "169.254.86.1", &v4));
   rr = GNUNET_VPN_redirect_to_ip (vpn,
 				  AF_INET,
 				  AF_INET,
