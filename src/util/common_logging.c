@@ -429,7 +429,6 @@ parse_definitions (const char *constname, int force)
   if (tmp == NULL)
     return 0;
   def = GNUNET_strdup (tmp);
-  level = -1;
   from_line = 0;
   to_line = INT_MAX;
   for (p = def, state = 0, start = def; keep_looking; p++)
