@@ -407,8 +407,11 @@ server_lookup_session (struct Plugin *plugin,
 
   if (0 == strcmp (MHD_HTTP_METHOD_PUT, method))
     direction = _RECEIVE;
-  if (0 == strcmp (MHD_HTTP_METHOD_GET, method))
+  else if (0 == strcmp (MHD_HTTP_METHOD_GET, method))
     direction = _SEND;
+  else
+    GNUNET_break_op (0);
+
 
   if (check == GNUNET_NO)
     goto error;
@@ -672,7 +675,7 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
     response =
         MHD_create_response_from_callback (-1, 32 * 1024, &server_send_callback,
                                            s, NULL);
-    res = MHD_queue_response (mhd_connection, MHD_HTTP_OK, response);
+    MHD_queue_response (mhd_connection, MHD_HTTP_OK, response);
     MHD_destroy_response (response);
     return MHD_YES;
   }
@@ -714,7 +717,6 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
         {
           s->msg_tk = GNUNET_SERVER_mst_create (&server_receive_mst_cb, s);
         }
-        res =
             GNUNET_SERVER_mst_receive (s->msg_tk, s, upload_data,
                                        *upload_data_size, GNUNET_NO, GNUNET_NO);
 
@@ -781,7 +783,7 @@ server_disconnect_cb (void *cls, struct MHD_Connection *connection,
                       void **httpSessionCache)
 {
   struct ServerConnection *sc = *httpSessionCache;
-  struct ServerConnection *tc = *httpSessionCache;
+  struct ServerConnection *tc = NULL;
   struct Session *s = NULL;
   struct Session *t = NULL;
   struct Plugin *plugin = NULL;
@@ -1250,7 +1252,7 @@ server_stop (struct Plugin *plugin)
 #endif
     t = s->next;
     struct HTTP_Message *msg = s->msg_head;
-    struct HTTP_Message *tmp = s->msg_head;
+    struct HTTP_Message *tmp = NULL;
 
     while (msg != NULL)
     {

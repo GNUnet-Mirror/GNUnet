@@ -723,7 +723,7 @@ http_plugin_disconnect (void *cls, const struct GNUNET_PeerIdentity *target)
       GNUNET_CONTAINER_DLL_remove (plugin->head, plugin->tail, s);
 
       struct HTTP_Message *msg = s->msg_head;
-      struct HTTP_Message *tmp = s->msg_head;
+      struct HTTP_Message *tmp = NULL;
 
       while (msg != NULL)
       {
@@ -1495,7 +1495,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
     GNUNET_CONTAINER_DLL_remove (plugin->head, plugin->tail, s);
 
     struct HTTP_Message *msg = s->msg_head;
-    struct HTTP_Message *tmp = s->msg_head;
+    struct HTTP_Message *tmp = NULL;
 
     while (msg != NULL)
     {
