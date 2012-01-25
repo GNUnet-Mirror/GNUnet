@@ -89,7 +89,7 @@ GNUNET_TUN_initialize_ipv6_header (struct GNUNET_TUN_IPv6Header *ip,
   ip->traffic_class_l = 0;
   ip->flow_label = 0;
   ip->next_header = protocol;
-  ip->payload_length = htons ((uint16_t) (payload_length + sizeof (struct GNUNET_TUN_IPv6Header)));
+  ip->payload_length = htons ((uint16_t) payload_length);
   ip->hop_limit = FRESH_TTL;
   ip->destination_address = *dst;
   ip->source_address = *src;  
@@ -146,7 +146,7 @@ GNUNET_TUN_calculate_tcp6_checksum (const struct GNUNET_TUN_IPv6Header *ip,
   uint32_t sum;
   uint32_t tmp;
 
-  GNUNET_assert (payload_length + sizeof (struct GNUNET_TUN_IPv6Header) + sizeof (struct GNUNET_TUN_TcpHeader) ==
+  GNUNET_assert (payload_length + sizeof (struct GNUNET_TUN_TcpHeader) ==
 		 ntohs (ip->payload_length));
   GNUNET_assert (IPPROTO_TCP == ip->next_header);
   tcp->crc = 0;
@@ -222,7 +222,7 @@ GNUNET_TUN_calculate_udp6_checksum (const struct GNUNET_TUN_IPv6Header *ip,
   uint32_t sum;
   uint32_t tmp;
 
-  GNUNET_assert (payload_length + sizeof (struct GNUNET_TUN_IPv6Header) + sizeof (struct GNUNET_TUN_UdpHeader) ==
+  GNUNET_assert (payload_length + sizeof (struct GNUNET_TUN_UdpHeader) ==
 		 ntohs (ip->payload_length));
   GNUNET_assert (payload_length + sizeof (struct GNUNET_TUN_UdpHeader) ==
 		 ntohs (udp->len));
