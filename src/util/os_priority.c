@@ -1399,9 +1399,15 @@ GNUNET_OS_process_wait (struct GNUNET_OS_Process *proc)
 
 #ifndef MINGW
   pid_t pid = proc->pid;
+  pid_t ret;
 
-  if (pid != waitpid (pid, NULL, 0))
+  while ( (pid != (ret = waitpid (pid, NULL, 0))) &&
+	  (EINTR == errno) ) ;
+  if (pid != ret) 
+  {
+    LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "waitpid");
     return GNUNET_SYSERR;
+  }
   return GNUNET_OK;
 #else
   HANDLE h;
