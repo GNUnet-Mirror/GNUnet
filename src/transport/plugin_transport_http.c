@@ -181,7 +181,7 @@ http_plugin_address_pretty_printer (void *cls, const char *type,
   size_t sbs;
   uint16_t port = 0;
 
-  if (addrlen == sizeof (struct IPv6HttpAddress))
+  if ((addrlen == sizeof (struct IPv6HttpAddress))  && (addr != NULL))
   {
     struct IPv6HttpAddress *a6 = (struct IPv6HttpAddress *) addr;
     s6.sin6_family = AF_INET6;
@@ -195,7 +195,7 @@ http_plugin_address_pretty_printer (void *cls, const char *type,
     port = ntohs (a6->u6_port);
 
   }
-  else if (addrlen == sizeof (struct IPv4HttpAddress))
+  else if ((addrlen == sizeof (struct IPv4HttpAddress))  && (addr != NULL))
   {
     struct IPv4HttpAddress *a4 = (struct IPv4HttpAddress *) addr;
 
@@ -607,7 +607,7 @@ http_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
 #endif
     int res = GNUNET_OK;
     struct GNUNET_ATS_Information ats;
-    if (addrlen == sizeof (struct IPv4HttpAddress))
+    if ((addrlen == sizeof (struct IPv4HttpAddress)) && (addr != NULL))
     {
       struct IPv4HttpAddress *a4 = (struct IPv4HttpAddress *) addr;
       struct sockaddr_in s4;
@@ -623,7 +623,7 @@ http_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
       if ((ntohs (a4->u4_port) == 0) || (plugin->ipv4 == GNUNET_NO))
         res = GNUNET_SYSERR;
     }
-    if (addrlen == sizeof (struct IPv6HttpAddress))
+    if ((addrlen == sizeof (struct IPv6HttpAddress)) && (addr != NULL))
     {
       struct IPv6HttpAddress *a6 = (struct IPv6HttpAddress *) addr;
       struct sockaddr_in6 s6;
