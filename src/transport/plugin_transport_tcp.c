@@ -1326,7 +1326,7 @@ const void * tcp_plugin_create_session (void *cls,
   struct sockaddr_in6 a6;
   const struct IPv4TcpAddress *t4;
   const struct IPv6TcpAddress *t6;
-  unsigned int is_natd;
+  unsigned int is_natd = GNUNET_NO;
 
   if (addrlen == sizeof (struct IPv6TcpAddress))
   {
