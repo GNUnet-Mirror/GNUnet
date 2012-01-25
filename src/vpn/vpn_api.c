@@ -64,6 +64,11 @@ struct GNUNET_VPN_Handle
   GNUNET_SCHEDULER_TaskIdentifier rt;
 
   /**
+   * How long do we wait until we try to reconnect?
+   */
+  struct GNUNET_TIME_Relative backoff;
+
+  /**
    * ID of the last request that was submitted to the service.
    */
   uint64_t request_id_gen;
@@ -402,7 +407,10 @@ reconnect (struct GNUNET_VPN_Handle *vh)
   vh->request_id_gen = 0;
   for (rr = vh->rr_head; NULL != rr; rr = rr->next)
     rr->request_id = 0;
-  vh->rt = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+  vh->backoff = GNUNET_TIME_relative_max (GNUNET_TIME_UNIT_MILLISECONDS,
+					  GNUNET_TIME_relative_min (GNUNET_TIME_relative_multiply (vh->backoff, 2),
+								    GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)));
+  vh->rt = GNUNET_SCHEDULER_add_delayed (vh->backoff,
 					 &connect_task, 
 					 vh);
 }
