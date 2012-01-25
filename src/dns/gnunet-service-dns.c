@@ -1226,40 +1226,41 @@ process_helper_messages (void *cls GNUNET_UNUSED, void *client,
   switch (ntohs (tun->proto))
   {
   case ETH_P_IPV4:
-  {
-    srca4 = (struct sockaddr_in*) &rr->src_addr;
-    dsta4 = (struct sockaddr_in*) &rr->dst_addr;
-    memset (srca4, 0, sizeof (struct sockaddr_in));
-    memset (dsta4, 0, sizeof (struct sockaddr_in));
-    srca4->sin_family = AF_INET;
-    dsta4->sin_family = AF_INET;
-    srca4->sin_addr = ip4->source_address;
-    dsta4->sin_addr = ip4->destination_address;
-    srca4->sin_port = udp->spt;
-    dsta4->sin_port = udp->dpt;
+    {
+      srca4 = (struct sockaddr_in*) &rr->src_addr;
+      dsta4 = (struct sockaddr_in*) &rr->dst_addr;
+      memset (srca4, 0, sizeof (struct sockaddr_in));
+      memset (dsta4, 0, sizeof (struct sockaddr_in));
+      srca4->sin_family = AF_INET;
+      dsta4->sin_family = AF_INET;
+      srca4->sin_addr = ip4->source_address;
+      dsta4->sin_addr = ip4->destination_address;
+      srca4->sin_port = udp->spt;
+      dsta4->sin_port = udp->dpt;
 #if HAVE_SOCKADDR_IN_SIN_LEN
-    srca4->sin_len = sizeof (sizeof (struct sockaddr_in));
-    dsta4->sin_len = sizeof (sizeof (struct sockaddr_in));
+      srca4->sin_len = sizeof (sizeof (struct sockaddr_in));
+      dsta4->sin_len = sizeof (sizeof (struct sockaddr_in));
 #endif
-  }
-  break;
-  case ETH_P_IPV6:
-  {
-    srca6 = (struct sockaddr_in6*) &rr->src_addr;
-    dsta6 = (struct sockaddr_in6*) &rr->dst_addr;
-    memset (srca6, 0, sizeof (struct sockaddr_in6));
-    memset (dsta6, 0, sizeof (struct sockaddr_in6));
-    srca6->sin6_family = AF_INET6;
-    dsta6->sin6_family = AF_INET6;
-    srca6->sin6_addr = ip6->source_address;
-    dsta6->sin6_addr = ip6->destination_address;
-    srca6->sin6_port = udp->spt;
-    dsta6->sin6_port = udp->dpt;
-#if HAVE_SOCKADDR_IN_SIN_LEN
-    srca6->sin6_len = sizeof (sizeof (struct sockaddr_in6));
-    dsta6->sin6_len = sizeof (sizeof (struct sockaddr_in6));
-#endif
+    }
     break;
+  case ETH_P_IPV6:
+    {
+      srca6 = (struct sockaddr_in6*) &rr->src_addr;
+      dsta6 = (struct sockaddr_in6*) &rr->dst_addr;
+      memset (srca6, 0, sizeof (struct sockaddr_in6));
+      memset (dsta6, 0, sizeof (struct sockaddr_in6));
+      srca6->sin6_family = AF_INET6;
+      dsta6->sin6_family = AF_INET6;
+      srca6->sin6_addr = ip6->source_address;
+      dsta6->sin6_addr = ip6->destination_address;
+      srca6->sin6_port = udp->spt;
+      dsta6->sin6_port = udp->dpt;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+      srca6->sin6_len = sizeof (sizeof (struct sockaddr_in6));
+      dsta6->sin6_len = sizeof (sizeof (struct sockaddr_in6));
+#endif
+    }
+  break;
   default:
     GNUNET_assert (0);
   }
