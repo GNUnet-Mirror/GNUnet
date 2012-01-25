@@ -420,11 +420,9 @@ database_shutdown (struct Plugin *plugin)
                        "Closing statement %p\n", stmt);
 #endif
       result = sqlite3_finalize (stmt);
-#if DEBUG_SQLITE
       if (result != SQLITE_OK)
-        GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "sqlite",
+        GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, "sqlite",
                          "Failed to close statement %p: %d\n", stmt, result);
-#endif
       stmt = sqlite3_next_stmt (plugin->dbh, NULL);
     }
     result = sqlite3_close (plugin->dbh);
