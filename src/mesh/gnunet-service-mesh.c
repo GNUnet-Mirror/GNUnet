@@ -966,7 +966,7 @@ send_clients_tunnel_destroy (struct MeshTunnel *t)
 
 
 /**
- * Notify clients f tunnel disconnections, if needed.
+ * Notify clients of tunnel disconnections, if needed.
  * In case the origin disconnects, the destination clients get a tunnel destroy
  * notification. If the last destination disconnects (only one remaining client
  * in tunnel), the origin gets a (local ID) peer disconnected.
@@ -3907,7 +3907,6 @@ handle_local_tunnel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
                                                            &my_full_id.hashPubKey,
                                                            t));
     }
-    t->local_tid_dest = 0;
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
