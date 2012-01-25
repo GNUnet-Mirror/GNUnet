@@ -233,7 +233,6 @@ transmit_ready (void *cls, size_t size, void *buf)
     process_queue (n);
     return 0;
   }
-  ret = 0;
   cbuf = buf;
   GNUNET_assert (size >= m->size);
   memcpy (cbuf, &m[1], m->size);
