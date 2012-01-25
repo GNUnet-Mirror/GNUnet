@@ -839,6 +839,7 @@ expire_tunnel (struct TunnelState *except)
   struct TunnelState *ts;
 
   ts = GNUNET_CONTAINER_heap_peek (tunnel_heap);
+  GNUNET_assert (NULL != ts);
   if (except == ts)
     return; /* can't do this */
   free_tunnel_state (ts);
@@ -2436,6 +2437,7 @@ expire_destination (struct DestinationEntry *except)
   struct DestinationEntry *de;
 
   de = GNUNET_CONTAINER_heap_peek (destination_heap);
+  GNUNET_assert (NULL != de);
   if (except == de)
     return; /* can't do this */
   free_destination_entry (de);
