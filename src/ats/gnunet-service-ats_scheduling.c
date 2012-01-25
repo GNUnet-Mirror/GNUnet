@@ -299,7 +299,8 @@ GAS_handle_address_in_use (void *cls, struct GNUNET_SERVER_Client *client,
 
   if ((address_length + plugin_name_length +
        sizeof (struct AddressUseMessage) != ntohs (message->size)) ||
-      (plugin_name[plugin_name_length - 1] != '\0'))
+      ((plugin_name_length > 0) &&
+      (plugin_name[plugin_name_length - 1] != '\0')))
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
