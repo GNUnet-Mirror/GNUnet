@@ -347,7 +347,6 @@ postgres_plugin_get (void *cls, const GNUNET_HashCode * key,
   unsigned int i;
   PGresult *res;
 
-  cnt = 0;
   res =
       PQexecPrepared (plugin->dbh, (type == 0) ? "getk" : "getkt",
                       (type == 0) ? 1 : 2, paramValues, paramLengths,
