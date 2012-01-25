@@ -2761,7 +2761,7 @@ cleanup (void *cls GNUNET_UNUSED,
   }
   if (stats != NULL)
   {
-    GNUNET_STATISTICS_destroy (stats, GNUNET_YES);
+    GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
     stats = NULL;
   }
   for (i=0;i<8;i++)

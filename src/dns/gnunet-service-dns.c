@@ -363,7 +363,7 @@ cleanup_task (void *cls GNUNET_UNUSED,
   nc = NULL;
   if (stats != NULL)
   {
-    GNUNET_STATISTICS_destroy (stats, GNUNET_YES);
+    GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
     stats = NULL;
   }
   if (NULL != dns_exit)

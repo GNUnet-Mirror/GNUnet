@@ -461,7 +461,9 @@ main (int argc, char *const *argv)
                     NULL);
   GNUNET_PROGRAM_run ((sizeof (argvx) / sizeof (char *)) - 1, argvx,
                       "test_gnunet_vpn", "nohelp", options, &run, NULL);
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stopping Peer\n");
   stop_peer (&p1);
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "DONE\n");
   GNUNET_DISK_directory_remove ("/tmp/gnunet-test-vpn");
   return global_ret;
 }
