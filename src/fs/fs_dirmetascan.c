@@ -765,6 +765,8 @@ scan_directory (void *cls, const char *filename)
   {
     do_stop = write_progress (adc, filename, S_ISDIR (sbuf.st_mode),
       GNUNET_DIR_SCANNER_DOES_NOT_EXIST);
+    if (do_stop)
+      return GNUNET_SYSERR;
     return GNUNET_OK;
   }
 
@@ -774,7 +776,7 @@ scan_directory (void *cls, const char *filename)
   if (do_stop)
   {
     /* We were asked to stop, acknowledge that and return */
-    do_stop = write_progress (adc, filename, S_ISDIR (sbuf.st_mode),
+    (void) write_progress (adc, filename, S_ISDIR (sbuf.st_mode),
       GNUNET_DIR_SCANNER_ASKED_TO_STOP);
     return GNUNET_SYSERR;
   }
