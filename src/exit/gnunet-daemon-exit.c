@@ -1038,7 +1038,7 @@ message_token (void *cls GNUNET_UNUSED, void *client GNUNET_UNUSED,
 	return;
       }
       pkt6 = (struct GNUNET_TUN_IPv6Header *) &pkt_tun[1];
-      if (size != ntohs (pkt6->payload_length))
+      if (size != ntohs (pkt6->payload_length) + sizeof (struct GNUNET_TUN_IPv6Header))
       {
 	/* Kernel to blame? */
 	GNUNET_break (0);
