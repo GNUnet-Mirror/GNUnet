@@ -379,7 +379,7 @@ server_lookup_session (struct Plugin *plugin,
   struct GNUNET_PeerIdentity target;
   int check = GNUNET_NO;
   uint32_t tag = 0;
-  int direction;
+  int direction = GNUNET_SYSERR;
 
   conn_info =
       MHD_get_connection_info (mhd_connection,
@@ -410,7 +410,10 @@ server_lookup_session (struct Plugin *plugin,
   else if (0 == strcmp (MHD_HTTP_METHOD_GET, method))
     direction = _SEND;
   else
+  {
     GNUNET_break_op (0);
+    goto error;
+  }
 
 
   if (check == GNUNET_NO)

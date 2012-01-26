@@ -532,7 +532,7 @@ notify_session_end (void *cls, const struct GNUNET_PeerIdentity *peer,
 }
 
 /**
- * Creates a new session the transport service will use to send data to the
+ * Creates a new outbound session the transport service will use to send data to the
  * peer
  *
  * @param cls the plugin
@@ -579,7 +579,7 @@ http_get_session (void *cls,
   s->addrlen = addrlen;
   s->next = NULL;
   s->next_receive = GNUNET_TIME_absolute_get_zero ();
-
+  s->inbound = GNUNET_NO;
   s->ats_address_network_type = htonl (GNUNET_ATS_NET_UNSPECIFIED);
 
   /* Get ATS type */
@@ -616,11 +616,12 @@ http_get_session (void *cls,
   /* initiate new connection */
   if (GNUNET_SYSERR == client_connect (s))
   {
-    if (s != NULL)
-    {
-      GNUNET_CONTAINER_DLL_remove (plugin->head, plugin->tail, s);
-      delete_session (s);
-    }
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+                     "Cannot connect to peer `%s' address `%s''\n",
+                     http_plugin_address_to_string(NULL, s->addr, s->addrlen),
+                     GNUNET_i2s (&s->target));
+    GNUNET_CONTAINER_DLL_remove (plugin->head, plugin->tail, s);
+    delete_session (s);
     return NULL;
   }
 
@@ -676,8 +677,8 @@ http_plugin_send (void *cls,
   {
     if ((tmp == session) &&
        (0 == memcmp (&session->target, &tmp->target, sizeof (struct GNUNET_PeerIdentity))) &&
-       (session->addrlen != tmp->addrlen) &&
-       (0 != memcmp (session->addr, tmp->addr, tmp->addrlen)))
+       (session->addrlen == tmp->addrlen) &&
+       (0 == memcmp (session->addr, tmp->addr, tmp->addrlen)))
       break;
     tmp = tmp->next;
   }
