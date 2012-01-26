@@ -189,7 +189,8 @@ stop_helper (struct GNUNET_HELPER_Handle *h)
     GNUNET_CONTAINER_DLL_remove (h->mq_head,
 				 h->mq_tail,
 				 qe);
-    qe->cont (qe->cont_cls, GNUNET_NO);
+    if (NULL != qe->cont)
+      qe->cont (qe->cont_cls, GNUNET_NO);
     GNUNET_free (qe);
   }
   /* purge MST buffer */
@@ -387,7 +388,8 @@ GNUNET_HELPER_stop (struct GNUNET_HELPER_Handle *h)
     GNUNET_CONTAINER_DLL_remove (h->mq_head,
 				 h->mq_tail,
 				 qe);
-    qe->cont (qe->cont_cls, GNUNET_SYSERR);
+    if (NULL != qe->cont)
+      qe->cont (qe->cont_cls, GNUNET_SYSERR);
     GNUNET_free (qe);
   }
   stop_helper (h);
