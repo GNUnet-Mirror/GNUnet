@@ -1231,16 +1231,11 @@ tcp_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
  */
 static ssize_t
 tcp_plugin_send_new (void *cls,
-    const struct
-    GNUNET_PeerIdentity *
-    target,
-    const char *msg,
-    size_t msgbuf_size,
-    uint32_t priority,
-    struct GNUNET_TIME_Relative timeout,
-    struct Session * session,
-    GNUNET_TRANSPORT_TransmitContinuation
-    cont, void *cont_cls)
+    struct Session *session,
+    const char *msgbuf, size_t msgbuf_size,
+    unsigned int priority,
+    struct GNUNET_TIME_Relative to,
+    GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls)
 {
   struct Plugin * plugin = cls;
   struct PendingMessage *pm;
@@ -1256,9 +1251,9 @@ tcp_plugin_send_new (void *cls,
   /* create new message entry */
   pm = GNUNET_malloc (sizeof (struct PendingMessage) + msgbuf_size);
   pm->msg = (const char *) &pm[1];
-  memcpy (&pm[1], msg, msgbuf_size);
+  memcpy (&pm[1], msgbuf, msgbuf_size);
   pm->message_size = msgbuf_size;
-  pm->timeout = GNUNET_TIME_relative_to_absolute (timeout);
+  pm->timeout = GNUNET_TIME_relative_to_absolute (to);
   pm->transmit_cont = cont;
   pm->transmit_cont_cls = cont_cls;
 
@@ -1310,10 +1305,8 @@ int session_it (void *cls,
  * @param addrlen length of addr
  * @return the session if the address is valid, NULL otherwise
  */
-const void * tcp_plugin_create_session (void *cls,
-                                        const struct GNUNET_PeerIdentity *target,
-                                        const void *addr,
-                                        size_t addrlen)
+const const struct Session * tcp_plugin_create_session (void *cls,
+                      const struct GNUNET_HELLO_Address *address)
 {
   struct Plugin * plugin = cls;
   struct Session * session = NULL;
@@ -1327,11 +1320,15 @@ const void * tcp_plugin_create_session (void *cls,
   const struct IPv4TcpAddress *t4;
   const struct IPv6TcpAddress *t6;
   unsigned int is_natd = GNUNET_NO;
+  size_t addrlen = address->address_length;
+
+  GNUNET_assert (plugin != NULL);
+  GNUNET_assert (address != NULL);
 
   if (addrlen == sizeof (struct IPv6TcpAddress))
   {
-    GNUNET_assert (NULL != addr);     /* make static analysis happy */
-    t6 = addr;
+    GNUNET_assert (NULL != address->address);     /* make static analysis happy */
+    t6 = address->address;
     af = AF_INET6;
     memset (&a6, 0, sizeof (a6));
 #if HAVE_SOCKADDR_IN_SIN_LEN
@@ -1347,8 +1344,8 @@ const void * tcp_plugin_create_session (void *cls,
   }
   else if (addrlen == sizeof (struct IPv4TcpAddress))
   {
-    GNUNET_assert (NULL != addr);     /* make static analysis happy */
-    t4 = addr;
+    GNUNET_assert (NULL != address->address);     /* make static analysis happy */
+    t4 = address->address;
     af = AF_INET;
     memset (&a4, 0, sizeof (a4));
 #if HAVE_SOCKADDR_IN_SIN_LEN
@@ -1371,12 +1368,12 @@ const void * tcp_plugin_create_session (void *cls,
   }
 
   /* look for existing session */
-  if (GNUNET_CONTAINER_multihashmap_contains(plugin->sessionmap, &target->hashPubKey))
+  if (GNUNET_CONTAINER_multihashmap_contains(plugin->sessionmap, &address->peer.hashPubKey))
   {
     struct SessionItCtx si_ctx;
     si_ctx.addr = &sbs;
     si_ctx.addrlen = sbs;
-    GNUNET_CONTAINER_multihashmap_get_multiple(plugin->sessionmap, &target->hashPubKey, &session_it, &si_ctx);
+    GNUNET_CONTAINER_multihashmap_get_multiple(plugin->sessionmap, &address->peer.hashPubKey, &session_it, &si_ctx);
     if (si_ctx.result != NULL)
       session = si_ctx.result;
     return session;
@@ -1391,23 +1388,23 @@ const void * tcp_plugin_create_session (void *cls,
   if ((is_natd == GNUNET_YES) &&
       (GNUNET_YES ==
        GNUNET_CONTAINER_multihashmap_contains (plugin->nat_wait_conns,
-                                               &target->hashPubKey)))
+                                               &address->peer.hashPubKey)))
      return NULL;             /* Only do one NAT punch attempt per peer identity */
 
   if ((is_natd == GNUNET_YES) && (NULL != plugin->nat) &&
       (GNUNET_NO ==
        GNUNET_CONTAINER_multihashmap_contains (plugin->nat_wait_conns,
-                                               &target->hashPubKey)))
+                                               &address->peer.hashPubKey)))
   {
 #if DEBUG_TCP_NAT
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
                      _("Found valid IPv4 NAT address (creating session)!\n"));
 #endif
-    session = create_session (plugin, target, NULL, GNUNET_YES);
+    session = create_session (plugin, &address->peer, NULL, GNUNET_YES);
     GNUNET_assert (session != NULL);
 
     GNUNET_assert (GNUNET_CONTAINER_multihashmap_put
-                   (plugin->nat_wait_conns, &target->hashPubKey, session,
+                   (plugin->nat_wait_conns, &address->peer.hashPubKey, session,
                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY) == GNUNET_OK);
 #if DEBUG_TCP_NAT
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
@@ -1437,11 +1434,11 @@ const void * tcp_plugin_create_session (void *cls,
                    GNUNET_i2s (target), GNUNET_a2s (sb, sbs));
 #endif
   session = create_session (plugin,
-                            target,
+                            &address->peer,
                             GNUNET_SERVER_connect_socket (plugin->server, sa),
                             GNUNET_NO);
   session->connect_addr = GNUNET_malloc (addrlen);
-  memcpy (session->connect_addr, addr, addrlen);
+  memcpy (session->connect_addr, address->address, addrlen);
   session->connect_alen = addrlen;
   if (addrlen != 0)
   {
@@ -1452,7 +1449,7 @@ const void * tcp_plugin_create_session (void *cls,
   else
     GNUNET_break (0);
 
-  GNUNET_CONTAINER_multihashmap_put(plugin->sessionmap, &target->hashPubKey, session, GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+  GNUNET_CONTAINER_multihashmap_put(plugin->sessionmap, &address->peer.hashPubKey, session, GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
 
   /* Send TCP Welcome */
   process_pending_messages (session);
@@ -2286,7 +2283,7 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   api->send = &tcp_plugin_send;
 
   api->send_with_session = &tcp_plugin_send_new;
-  api->create_session = &tcp_plugin_create_session;
+  api->get_session = &tcp_plugin_create_session;
 
   api->disconnect = &tcp_plugin_disconnect;
   api->address_pretty_printer = &tcp_plugin_address_pretty_printer;

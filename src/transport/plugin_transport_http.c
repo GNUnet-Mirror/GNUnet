@@ -386,7 +386,7 @@ http_plugin_address_to_string (void *cls, const void *addr, size_t addrlen)
 }
 
 struct Session *
-lookup_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
+lookup_session_old (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
                 struct Session *session, const void *addr, size_t addrlen,
                 int force_address)
 {
@@ -462,6 +462,29 @@ lookup_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
   return s;
 }
 
+struct Session *
+lookup_session (struct Plugin *plugin,
+                const struct GNUNET_HELLO_Address *address)
+{
+  struct Session *tmp = NULL;
+
+  tmp = plugin->head;
+  if (tmp == NULL)
+    return NULL;
+  while (tmp != NULL)
+  {
+    if (0 != memcmp (&address->peer, &tmp->target, sizeof (struct GNUNET_PeerIdentity)))
+      continue;
+    if ((address->address_length != tmp->addrlen) &&
+        (0 != memcmp (address->address, tmp->addr, tmp->addrlen)))
+      continue;
+
+    return tmp;
+  }
+  return NULL;
+}
+
+
 void
 delete_session (struct Session *s)
 {
@@ -508,6 +531,198 @@ notify_session_end (void *cls, const struct GNUNET_PeerIdentity *peer,
   delete_session (s);
 }
 
+/**
+ * Creates a new session the transport service will use to send data to the
+ * peer
+ *
+ * @param cls the plugin
+ * @param address the address
+ * @return the session or NULL of max connections exceeded
+ */
+
+static const struct Session *
+http_get_session (void *cls,
+                  const struct GNUNET_HELLO_Address *address)
+{
+  struct Plugin *plugin = cls;
+  struct Session * s = NULL;
+  struct GNUNET_ATS_Information ats;
+  size_t addrlen;
+
+  GNUNET_assert (plugin != NULL);
+  GNUNET_assert (address != NULL);
+
+  /* find existing session */
+  s = lookup_session (plugin, address);
+  if (s != NULL)
+    return s;
+
+  if (plugin->max_connections <= plugin->cur_connections)
+  {
+    GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, plugin->name,
+                     "Maximum number of connections reached, "
+                     "cannot connect to peer `%s'\n", GNUNET_i2s (&address->peer));
+    return NULL;
+  }
+
+  /* create new session */
+  addrlen = address->address_length;
+
+  GNUNET_assert ((addrlen == sizeof (struct IPv6HttpAddress)) ||
+                 (addrlen == sizeof (struct IPv4HttpAddress)));
+
+  s = GNUNET_malloc (sizeof (struct Session));
+  memcpy (&s->target, &address->peer, sizeof (struct GNUNET_PeerIdentity));
+  s->plugin = plugin;
+  s->addr = GNUNET_malloc (address->address_length);
+  memcpy (s->addr, address->address, address->address_length);
+  s->addrlen = addrlen;
+  s->next = NULL;
+  s->next_receive = GNUNET_TIME_absolute_get_zero ();
+
+  s->ats_address_network_type = htonl (GNUNET_ATS_NET_UNSPECIFIED);
+
+  /* Get ATS type */
+  if ((addrlen == sizeof (struct IPv4HttpAddress)) && (address->address != NULL))
+  {
+    struct IPv4HttpAddress *a4 = (struct IPv4HttpAddress *) address->address;
+    struct sockaddr_in s4;
+
+    s4.sin_family = AF_INET;
+    s4.sin_addr.s_addr = a4->ipv4_addr;
+    s4.sin_port = a4->u4_port;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+    s4.sin_len = sizeof (struct sockaddr_in);
+#endif
+    ats = plugin->env->get_address_type (plugin->env->cls, (const struct sockaddr *) &s4, sizeof (struct sockaddr_in));
+  }
+  if ((addrlen == sizeof (struct IPv6HttpAddress)) && (address->address != NULL))
+  {
+    struct IPv6HttpAddress *a6 = (struct IPv6HttpAddress *) address->address;
+    struct sockaddr_in6 s6;
+
+    s6.sin6_family = AF_INET6;
+    s6.sin6_addr = a6->ipv6_addr;
+    s6.sin6_port = a6->u6_port;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+    s6.sin6_len = sizeof (struct sockaddr_in6);
+#endif
+    ats = plugin->env->get_address_type (plugin->env->cls, (const struct sockaddr *) &s6, sizeof (struct sockaddr_in6));
+  }
+  s->ats_address_network_type = ats.value;
+
+  /* add new session */
+  GNUNET_CONTAINER_DLL_insert (plugin->head, plugin->tail, s);
+  /* initiate new connection */
+  if (GNUNET_SYSERR == client_connect (s))
+  {
+    if (s != NULL)
+    {
+      GNUNET_CONTAINER_DLL_remove (plugin->head, plugin->tail, s);
+      delete_session (s);
+    }
+    return NULL;
+  }
+
+  return s;
+}
+
+/**
+ * Function that can be used by the transport service to transmit
+ * a message using the plugin.   Note that in the case of a
+ * peer disconnecting, the continuation MUST be called
+ * prior to the disconnect notification itself.  This function
+ * will be called with this peer's HELLO message to initiate
+ * a fresh connection to another peer.
+ *
+ * @param cls closure
+ * @param session which session must be used
+ * @param msgbuf the message to transmit
+ * @param msgbuf_size number of bytes in 'msgbuf'
+ * @param priority how important is the message (most plugins will
+ *                 ignore message priority and just FIFO)
+ * @param to how long to wait at most for the transmission (does not
+ *                require plugins to discard the message after the timeout,
+ *                just advisory for the desired delay; most plugins will ignore
+ *                this as well)
+ * @param cont continuation to call once the message has
+ *        been transmitted (or if the transport is ready
+ *        for the next transmission call; or if the
+ *        peer disconnected...); can be NULL
+ * @param cont_cls closure for cont
+ * @return number of bytes used (on the physical network, with overheads);
+ *         -1 on hard errors (i.e. address invalid); 0 is a legal value
+ *         and does NOT mean that the message was not transmitted (DV)
+ */
+static ssize_t
+http_plugin_send (void *cls,
+                  struct Session *session,
+                  const char *msgbuf, size_t msgbuf_size,
+                  unsigned int priority,
+                  struct GNUNET_TIME_Relative to,
+                  GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls)
+{
+  struct Plugin *plugin = cls;
+  struct HTTP_Message *msg;
+  struct Session *tmp;
+  size_t res = -1;
+
+  GNUNET_assert (plugin != NULL);
+  GNUNET_assert (session != NULL);
+
+  /* lookup if session is really existing */
+  tmp = plugin->head;
+  while (tmp != NULL)
+  {
+    if ((tmp == session) &&
+       (0 == memcmp (&session->target, &tmp->target, sizeof (struct GNUNET_PeerIdentity))) &&
+       (session->addrlen != tmp->addrlen) &&
+       (0 != memcmp (session->addr, tmp->addr, tmp->addrlen)))
+      break;
+    tmp = tmp->next;
+  }
+  if (tmp == NULL)
+  {
+    GNUNET_break_op (0);
+    return res;
+  }
+
+  /* create new message and schedule */
+
+  msg = GNUNET_malloc (sizeof (struct HTTP_Message) + msgbuf_size);
+  msg->next = NULL;
+  msg->size = msgbuf_size;
+  msg->pos = 0;
+  msg->buf = (char *) &msg[1];
+  msg->transmit_cont = cont;
+  msg->transmit_cont_cls = cont_cls;
+  memcpy (msg->buf, msgbuf, msgbuf_size);
+
+  if (session->inbound == GNUNET_NO)
+  {
+#if DEBUG_HTTP
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                     "Using outbound client session %p to send to `%session'\n", session,
+                     GNUNET_i2s (&session->target));
+#endif
+
+    client_send (session, msg);
+    res = msgbuf_size;
+  }
+  if (session->inbound == GNUNET_YES)
+  {
+#if DEBUG_HTTP
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                     "Using inbound server %p session to send to `%session'\n", session,
+                     GNUNET_i2s (&session->target));
+#endif
+
+    server_send (session, msg);
+    res = msgbuf_size;
+  }
+  return res;
+
+}
 
 /**
  * Function that can be used by the transport service to transmit
@@ -546,7 +761,7 @@ notify_session_end (void *cls, const struct GNUNET_PeerIdentity *peer,
  *         and does NOT mean that the message was not transmitted (DV)
  */
 static ssize_t
-http_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
+http_plugin_send_old (void *cls, const struct GNUNET_PeerIdentity *target,
                   const char *msgbuf, size_t msgbuf_size, unsigned int priority,
                   struct GNUNET_TIME_Relative to, struct Session *session,
                   const void *addr, size_t addrlen, int force_address,
@@ -576,10 +791,8 @@ http_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
   if (addrlen != 0)
     GNUNET_assert ((addrlen == sizeof (struct IPv4HttpAddress)) ||
                    (addrlen == sizeof (struct IPv6HttpAddress)));
-
-
   /* look for existing connection */
-  s = lookup_session (plugin, target, session, addr, addrlen, 1);
+  s = lookup_session_old (plugin, target, session, addr, addrlen, 1);
 #if DEBUG_HTTP
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                    "%s existing session: %s\n",
@@ -588,7 +801,6 @@ http_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
                                                           GNUNET_YES)) ?
                    "inbound" : "outbound");
 #endif
-
   /* create new outbound connection */
   if (s == NULL)
   {
@@ -605,6 +817,7 @@ http_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
                      "Initiiating new connection to peer `%s'\n",
                      GNUNET_i2s (target));
 #endif
+/* AAAAAAAAAAAAAAAAAAA */
     int res = GNUNET_OK;
     struct GNUNET_ATS_Information ats;
     if ((addrlen == sizeof (struct IPv4HttpAddress)) && (addr != NULL))
@@ -657,6 +870,8 @@ http_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
       return GNUNET_SYSERR;
     }
   }
+
+  /* real sending */
 
   msg = GNUNET_malloc (sizeof (struct HTTP_Message) + msgbuf_size);
   msg->next = NULL;
@@ -1380,11 +1595,13 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   plugin->env = env;
   api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
   api->cls = plugin;
-  api->send = &http_plugin_send;
+  api->send = &http_plugin_send_old;
   api->disconnect = &http_plugin_disconnect;
   api->address_pretty_printer = &http_plugin_address_pretty_printer;
   api->check_address = &http_plugin_address_suggested;
   api->address_to_string = &http_plugin_address_to_string;
+  api->get_session = &http_get_session;
+  api->send_with_session =   &http_plugin_send;
 
 #if BUILD_HTTPS
   plugin->name = "transport-https";
