@@ -2377,7 +2377,7 @@ allocate_v6_address (struct in6_addr *v6)
   /* Given ABCD::/96, we want a mask of 'ABCD::FFFF:FFFF,
      thus: */
   mask = addr;
-  for (i=127;i>=128-ipv6prefix;i--)
+  for (i=127;i>=ipv6prefix;i--)
     mask.s6_addr[i / 8] |= (1 << (i % 8));
   
   /* Pick random IPv6 address within the subnet, except 'addr' or 'mask' itself */
