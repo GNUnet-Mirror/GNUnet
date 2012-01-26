@@ -131,7 +131,9 @@ mhd_ahc (void *cls,
     return MHD_YES;
   }
   *unused = NULL;
+#if VERBOSE
   fprintf (stderr, "MHD sends respose for request to URL `%s'\n", url);
+#endif
   response = MHD_create_response_from_buffer (strlen (url),
 					      (void *) url,
 					      MHD_RESPMEM_MUST_COPY);
@@ -239,7 +241,9 @@ curl_main ()
       global_ret = 2;
     if (0 != strncmp ("/hello_world", cbc.buf, strlen ("/hello_world")))
       global_ret = 3;
+#if VERBOSE
     fprintf (stderr, "Download complete, shutting down!\n");
+#endif
     do_shutdown ();
     return;    
   }
@@ -309,8 +313,9 @@ allocation_cb (void *cls,
   multi = curl_multi_init ();
   GNUNET_assert (multi != NULL);
   GNUNET_assert (CURLM_OK == curl_multi_add_handle (multi, curl));
-
+#if VERBOSE
   fprintf (stderr, "Beginning HTTP download from `%s'\n", url);
+#endif
   curl_main ();
 }
 
