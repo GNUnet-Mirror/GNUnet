@@ -1573,6 +1573,11 @@ receive_tcp_service (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
+  if (start->tcp_header.off * 4 < sizeof (struct GNUNET_TUN_TcpHeader))
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
   GNUNET_break_op (ntohl (start->reserved) == 0);
   /* setup fresh connection */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1649,6 +1654,11 @@ receive_tcp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
+  if (start->tcp_header.off * 4 < sizeof (struct GNUNET_TUN_TcpHeader))
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
   af = (int) ntohl (start->af);
   state->ri.remote_address.af = af;
   switch (af)
@@ -1699,7 +1709,6 @@ receive_tcp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
 			   buf, sizeof (buf)),
 		(unsigned int) ntohs (start->tcp_header.dpt));  
   }
-
   state->ri.remote_address.proto = IPPROTO_TCP;
   state->ri.remote_address.port = ntohs (start->tcp_header.dpt);
   setup_state_record (state);
@@ -1755,6 +1764,11 @@ receive_tcp_data (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
     GNUNET_STATISTICS_update (stats,
 			      gettext_noop ("# TCP DATA requests dropped (no session)"),
 			      1, GNUNET_NO);
+    return GNUNET_SYSERR;
+  }
+  if (data->tcp_header.off * 4 < sizeof (struct GNUNET_TUN_TcpHeader))
+  {
+    GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
   GNUNET_break_op (ntohl (data->reserved) == 0);
