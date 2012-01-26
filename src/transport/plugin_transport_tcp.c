@@ -1305,7 +1305,8 @@ int session_it (void *cls,
  * @param addrlen length of addr
  * @return the session if the address is valid, NULL otherwise
  */
-const const struct Session * tcp_plugin_create_session (void *cls,
+static struct Session *
+tcp_plugin_create_session (void *cls,
                       const struct GNUNET_HELLO_Address *address)
 {
   struct Plugin * plugin = cls;

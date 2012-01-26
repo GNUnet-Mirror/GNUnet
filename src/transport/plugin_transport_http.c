@@ -540,7 +540,7 @@ notify_session_end (void *cls, const struct GNUNET_PeerIdentity *peer,
  * @return the session or NULL of max connections exceeded
  */
 
-static const struct Session *
+static struct Session *
 http_get_session (void *cls,
                   const struct GNUNET_HELLO_Address *address)
 {

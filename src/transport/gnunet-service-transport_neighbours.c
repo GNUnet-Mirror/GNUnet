@@ -1363,7 +1363,8 @@ send_connect_ack_continuation (void *cls,
 int
 GST_neighbours_switch_to_address_3way (const struct GNUNET_PeerIdentity *peer,
                                        const struct GNUNET_HELLO_Address
-                                       *address, struct Session *session,
+                                       *address,
+                                       struct Session *session,
                                        const struct GNUNET_ATS_Information *ats,
                                        uint32_t ats_count,
                                        struct GNUNET_BANDWIDTH_Value32NBO
@@ -1442,13 +1443,58 @@ GST_neighbours_switch_to_address_3way (const struct GNUNET_PeerIdentity *peer,
     GNUNET_HELLO_address_free (n->address);
   n->address = GNUNET_HELLO_address_copy (address);
   n->address_state = FRESH;
-  n->session = session;
   n->bandwidth_in = bandwidth_in;
   n->bandwidth_out = bandwidth_out;
   GNUNET_SCHEDULER_cancel (n->timeout_task);
   n->timeout_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
                                     &neighbour_timeout_task, n);
+
+#if TEST_NEW_CODE
+  /* Obtain an session for this address from plugin */
+  papi = GST_plugins_find (address->transport_name);
+  GNUNET_assert (papi != NULL);
+  if (session == NULL)
+  {
+    struct GNUNET_TRANSPORT_PluginFunctions *papi;
+    n->session = papi->get_session (papi->cls, address);
+    /* Session could not be initiated */
+    if (n->session == NULL)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Failed to obtain new session %p for peer `%s' and  address '%s'\n",
+                  n->session, GNUNET_i2s (&n->id), GST_plugins_a2s (n->address));
+
+      GNUNET_ATS_address_destroyed (GST_ats, n->address, NULL);
+
+      if (n->ats_suggest != GNUNET_SCHEDULER_NO_TASK)
+        GNUNET_SCHEDULER_cancel (n->ats_suggest);
+      n->ats_suggest =  GNUNET_SCHEDULER_add_delayed (ATS_RESPONSE_TIMEOUT,
+                                        ats_suggest_cancel,
+                                        n);
+      GNUNET_ATS_suggest_address (GST_ats, &n->id);
+      GNUNET_HELLO_address_free (n->address);
+      n->address = NULL;
+      return GNUNET_NO;
+    }
+    else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Obtained new session %p for peer `%s' and  address '%s'\n",
+                  n->session, GNUNET_i2s (&n->id), GST_plugins_a2s (n->address));
+    }
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Using existing session %p for peer `%s' and  address '%s'\n",
+                n->session, GNUNET_i2s (&n->id), GST_plugins_a2s (n->address));
+    n->session = session;
+  }
+#else
+  n->session = session;
+#endif
+
   switch (n->state)
   {
   case S_NOT_CONNECTED:
