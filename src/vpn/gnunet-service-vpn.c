@@ -2286,8 +2286,11 @@ receive_tcp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
 	tcp->dpt = htons (ts->source_port);
 	GNUNET_TUN_calculate_tcp6_checksum (ipv6,
 					    tcp,
-					    &tcp[1],
+					    &data[1],
 					    mlen);
+	memcpy (&tcp[1],
+		&data[1],
+		mlen);
 	(void) GNUNET_HELPER_send (helper_handle,
 				   msg,
 				   GNUNET_YES,
