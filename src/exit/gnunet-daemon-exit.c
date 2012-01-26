@@ -1329,7 +1329,7 @@ prepare_ipv4_packet (const void *payload, size_t payload_length,
     {
       struct GNUNET_TUN_TcpHeader *pkt4_tcp = (struct GNUNET_TUN_TcpHeader *) &pkt4[1];
       
-      memcpy (pkt4_tcp, tcp_header, sizeof (struct GNUNET_TUN_TcpHeader));
+      *pkt4_tcp = *tcp_header;
       pkt4_tcp->spt = htons (src_address->port);
       pkt4_tcp->dpt = htons (dst_address->port);
       GNUNET_TUN_calculate_tcp4_checksum (pkt4,
@@ -1406,12 +1406,11 @@ prepare_ipv6_packet (const void *payload, size_t payload_length,
       pkt6_udp->spt = htons (src_address->port);
       pkt6_udp->dpt = htons (dst_address->port);
       pkt6_udp->len = htons ((uint16_t) payload_length);
-      pkt6_udp->crc = 0;
       GNUNET_TUN_calculate_udp6_checksum (pkt6,
 					  pkt6_udp,
 					  payload,
 					  payload_length);
-      memcpy (&pkt6[1], payload, payload_length);
+      memcpy (&pkt6_udp[1], payload, payload_length);
     }
     break;
   case IPPROTO_TCP:
@@ -1419,13 +1418,14 @@ prepare_ipv6_packet (const void *payload, size_t payload_length,
       struct GNUNET_TUN_TcpHeader *pkt6_tcp = (struct GNUNET_TUN_TcpHeader *) &pkt6[1];
 
       /* memcpy first here as some TCP header fields are initialized this way! */
-      memcpy (pkt6_tcp, payload, payload_length);
+      *pkt6_tcp = *tcp_header;
       pkt6_tcp->spt = htons (src_address->port);
       pkt6_tcp->dpt = htons (dst_address->port);
       GNUNET_TUN_calculate_tcp6_checksum (pkt6,
 					  pkt6_tcp,
 					  payload,
 					  payload_length);
+      memcpy (&pkt6_tcp[1], payload, payload_length);
     }
     break;
   default:
@@ -1771,6 +1771,7 @@ receive_tcp_data (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
+
   GNUNET_break_op (ntohl (data->reserved) == 0);
   {
     char buf[INET6_ADDRSTRLEN];
