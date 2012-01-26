@@ -895,6 +895,11 @@ route_packet (struct DestinationEntry *destination,
 	return;
       }
       udp = payload;
+      if (udp->len < sizeof (struct GNUNET_TUN_UdpHeader))
+      {
+	GNUNET_break_op (0);
+	return GNUNET_SYSERR;
+      }
       spt = ntohs (udp->spt);
       dpt = ntohs (udp->dpt);
       get_tunnel_key_from_ips (af,
@@ -915,6 +920,11 @@ route_packet (struct DestinationEntry *destination,
 	return;
       }
       tcp = payload;
+      if (tcp->off * 4 < sizeof (struct GNUNET_TUN_TcpHeader))
+      {
+	GNUNET_break_op (0);
+	return GNUNET_SYSERR;
+      }
       spt = ntohs (tcp->spt);
       dpt = ntohs (tcp->dpt);
       get_tunnel_key_from_ips (af,
@@ -2202,6 +2212,11 @@ receive_tcp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
 		ts->destination_port,
 		inet_ntop (ts->af, &ts->source_ip, dbuf, sizeof (dbuf)),
 		ts->source_port);
+  }
+  if (data->tcp_header.off * 4 < sizeof (struct GNUNET_TUN_TcpHeader))
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
   }
   switch (ts->af)
   {
