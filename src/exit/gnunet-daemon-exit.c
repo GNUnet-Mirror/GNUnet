@@ -1416,7 +1416,7 @@ prepare_ipv6_packet (const void *payload, size_t payload_length,
     break;
   case IPPROTO_TCP:
     {
-      struct GNUNET_TUN_TcpHeader *pkt6_tcp = (struct GNUNET_TUN_TcpHeader *) pkt6;
+      struct GNUNET_TUN_TcpHeader *pkt6_tcp = (struct GNUNET_TUN_TcpHeader *) &pkt6[1];
 
       /* memcpy first here as some TCP header fields are initialized this way! */
       memcpy (pkt6_tcp, payload, payload_length);
