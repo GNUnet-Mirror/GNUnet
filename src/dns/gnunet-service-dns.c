@@ -1238,8 +1238,8 @@ process_helper_messages (void *cls GNUNET_UNUSED, void *client,
       srca4->sin_port = udp->spt;
       dsta4->sin_port = udp->dpt;
 #if HAVE_SOCKADDR_IN_SIN_LEN
-      srca4->sin_len = sizeof (sizeof (struct sockaddr_in));
-      dsta4->sin_len = sizeof (sizeof (struct sockaddr_in));
+      srca4->sin_len = sizeof (struct sockaddr_in))
+      dsta4->sin_len = sizeof (struct sockaddr_in);
 #endif
     }
     break;
@@ -1256,8 +1256,8 @@ process_helper_messages (void *cls GNUNET_UNUSED, void *client,
       srca6->sin6_port = udp->spt;
       dsta6->sin6_port = udp->dpt;
 #if HAVE_SOCKADDR_IN_SIN_LEN
-      srca6->sin6_len = sizeof (sizeof (struct sockaddr_in6));
-      dsta6->sin6_len = sizeof (sizeof (struct sockaddr_in6));
+      srca6->sin6_len = sizeof (struct sockaddr_in6);
+      dsta6->sin6_len = sizeof (struct sockaddr_in6);
 #endif
     }
   break;
