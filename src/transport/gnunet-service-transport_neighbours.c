@@ -64,6 +64,8 @@
 #define SETUP_CONNECTION_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15)
 
 
+#define  TEST_NEW_CODE GNUNET_NO
+
 /**
  * Entry in neighbours.
  */
@@ -587,6 +589,39 @@ change (struct NeighbourMapEntry *n, int state, int line)
 
   return GNUNET_OK;
 }
+
+static ssize_t
+send_with_session (struct NeighbourMapEntry *n,
+                   struct Session *session,
+                   const char *msgbuf, size_t msgbuf_size,
+                   uint32_t priority,
+                   struct GNUNET_TIME_Relative timeout,
+                   GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls)
+{
+  struct GNUNET_TRANSPORT_PluginFunctions *papi;
+  size_t ret = GNUNET_SYSERR;
+
+  papi = GST_plugins_find (n->address->transport_name);
+  if (papi == NULL)
+  {
+    if (cont != NULL)
+      cont (cont_cls, &n->id, GNUNET_SYSERR);
+    return GNUNET_SYSERR;
+  }
+
+  ret = papi->send_with_session (papi->cls,
+                                 session,
+                                 msgbuf, msgbuf_size,
+                                 0,
+                                 timeout,
+                                 cont, cont_cls);
+
+  if ((ret == -1) && (cont != NULL))
+      cont (cont_cls, &n->id, GNUNET_SYSERR);
+  return ret;
+}
+
+
 
 static ssize_t
 send_with_plugin (const struct GNUNET_PeerIdentity *target, const char *msgbuf,
@@ -1452,11 +1487,11 @@ GST_neighbours_switch_to_address_3way (const struct GNUNET_PeerIdentity *peer,
 
 #if TEST_NEW_CODE
   /* Obtain an session for this address from plugin */
+  struct GNUNET_TRANSPORT_PluginFunctions *papi;
   papi = GST_plugins_find (address->transport_name);
   GNUNET_assert (papi != NULL);
   if (session == NULL)
   {
-    struct GNUNET_TRANSPORT_PluginFunctions *papi;
     n->session = papi->get_session (papi->cls, address);
     /* Session could not be initiated */
     if (n->session == NULL)
@@ -1493,6 +1528,9 @@ GST_neighbours_switch_to_address_3way (const struct GNUNET_PeerIdentity *peer,
   }
 #else
   n->session = session;
+
+  /* dummy */
+  if (NULL != NULL) send_with_session(NULL, NULL, NULL, 0, 0, GNUNET_TIME_relative_get_zero(), NULL, NULL);
 #endif
 
   switch (n->state)
@@ -1527,11 +1565,19 @@ GST_neighbours_switch_to_address_3way (const struct GNUNET_PeerIdentity *peer,
     cc = GNUNET_malloc (sizeof (struct ContinutionContext));
     cc->session = session;
     cc->address = GNUNET_HELLO_address_copy (address);
+#if TEST_NEW_CODE
+    ret = send_with_session(n, n->session,
+                            (const void *) &connect_msg, msg_len,
+                            UINT32_MAX, GNUNET_TIME_UNIT_FOREVER_REL,
+                            &send_connect_ack_continuation,
+                            cc);
+#else
     ret =
         send_with_plugin (&n->id, (const void *) &connect_msg, msg_len,
                           UINT32_MAX, GNUNET_TIME_UNIT_FOREVER_REL, session,
                           address, GNUNET_YES, &send_connect_ack_continuation,
                           cc);
+#endif
     return GNUNET_NO;
   case S_CONNECTED:
   case S_FAST_RECONNECT:
