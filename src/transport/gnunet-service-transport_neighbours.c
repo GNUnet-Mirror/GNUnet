@@ -64,7 +64,7 @@
 #define SETUP_CONNECTION_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15)
 
 
-#define  TEST_NEW_CODE GNUNET_NO
+#define  TEST_NEW_CODE GNUNET_YES
 
 /**
  * Entry in neighbours.
@@ -592,7 +592,6 @@ change (struct NeighbourMapEntry *n, int state, int line)
 
 static ssize_t
 send_with_session (struct NeighbourMapEntry *n,
-                   struct Session *session,
                    const char *msgbuf, size_t msgbuf_size,
                    uint32_t priority,
                    struct GNUNET_TIME_Relative timeout,
@@ -600,6 +599,9 @@ send_with_session (struct NeighbourMapEntry *n,
 {
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
   size_t ret = GNUNET_SYSERR;
+
+  GNUNET_assert (n != NULL);
+  GNUNET_assert (n->session != NULL);
 
   papi = GST_plugins_find (n->address->transport_name);
   if (papi == NULL)
@@ -610,7 +612,7 @@ send_with_session (struct NeighbourMapEntry *n,
   }
 
   ret = papi->send_with_session (papi->cls,
-                                 session,
+                                 n->session,
                                  msgbuf, msgbuf_size,
                                  0,
                                  timeout,
@@ -793,7 +795,7 @@ try_transmission_to_peer (struct NeighbourMapEntry *n)
   }
 
 #if TEST_NEW_CODE
-  ret = send_with_session(n, n->session,
+  ret = send_with_session(n,
               mq->message_buf, mq->message_buf_size,
               0, timeout,
               &transmit_send_continuation, mq);
@@ -893,7 +895,7 @@ send_disconnect (struct NeighbourMapEntry * n)
                                          &disconnect_msg.signature));
 
 #if TEST_NEW_CODE
-  ret = send_with_session (n,n->session,
+  ret = send_with_session (n,
             (const char *) &disconnect_msg, sizeof (disconnect_msg),
             UINT32_MAX, GNUNET_TIME_UNIT_FOREVER_REL,
             &send_disconnect_cont, NULL);
@@ -1080,7 +1082,7 @@ neighbour_keepalive_task (void *cls,
   m.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_KEEPALIVE);
 
 #if TEST_NEW_CODE
-  ret = send_with_session (n,n->session,
+  ret = send_with_session (n,
             (const void *) &m, sizeof (m),
             UINT32_MAX /* priority */ ,
             GNUNET_TIME_UNIT_FOREVER_REL,
@@ -1421,7 +1423,7 @@ send_connect_ack_continuation (void *cls,
  *         connection is not up (yet)
  */
 int
-GST_neighbours_switch_to_address_3way (const struct GNUNET_PeerIdentity *peer,
+GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
                                        const struct GNUNET_HELLO_Address
                                        *address,
                                        struct Session *session,
@@ -1559,7 +1561,7 @@ GST_neighbours_switch_to_address_3way (const struct GNUNET_PeerIdentity *peer,
   n->session = session;
 
   /* dummy */
-  if (NULL != NULL) send_with_session(NULL, NULL, NULL, 0, 0, GNUNET_TIME_relative_get_zero(), NULL, NULL);
+  if (NULL != NULL) send_with_session( NULL, NULL, 0, 0, GNUNET_TIME_relative_get_zero(), NULL, NULL);
 #endif
 
   switch (n->state)
@@ -1579,7 +1581,7 @@ GST_neighbours_switch_to_address_3way (const struct GNUNET_PeerIdentity *peer,
     cc->address = GNUNET_HELLO_address_copy (address);
 
 #if TEST_NEW_CODE
-  ret = send_with_session (n,n->session,
+  ret = send_with_session (n,
       (const char *) &connect_msg, msg_len,
       UINT32_MAX, GNUNET_TIME_UNIT_FOREVER_REL,
       &send_connect_continuation, cc);
@@ -1604,7 +1606,7 @@ GST_neighbours_switch_to_address_3way (const struct GNUNET_PeerIdentity *peer,
     cc->session = session;
     cc->address = GNUNET_HELLO_address_copy (address);
 #if TEST_NEW_CODE
-    ret = send_with_session(n, n->session,
+    ret = send_with_session(n,
                             (const void *) &connect_msg, msg_len,
                             UINT32_MAX, GNUNET_TIME_UNIT_FOREVER_REL,
                             &send_connect_ack_continuation,
@@ -1632,7 +1634,7 @@ GST_neighbours_switch_to_address_3way (const struct GNUNET_PeerIdentity *peer,
     cc->address = GNUNET_HELLO_address_copy (address);
 
 #if TEST_NEW_CODE
-    ret = send_with_session(n, n->session,
+    ret = send_with_session(n,
                             (const void *) &connect_msg, msg_len,
                             UINT32_MAX, GNUNET_TIME_UNIT_FOREVER_REL,
                             &send_switch_address_continuation, cc);
@@ -2109,7 +2111,7 @@ GST_neighbours_keepalive (const struct GNUNET_PeerIdentity *neighbour)
   m.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_KEEPALIVE_RESPONSE);
 
 #if TEST_NEW_CODE
-  send_with_session(n, n->session,
+  send_with_session(n,
       (const void *) &m, sizeof (m),
       UINT32_MAX,
       GNUNET_TIME_UNIT_FOREVER_REL,
@@ -2487,14 +2489,12 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
   }
   GNUNET_ATS_address_update (GST_ats, address, session, ats, ats_count);
   GNUNET_assert (NULL != n->address);
+//LOOKAT
   if ((n->address_state == FRESH) && (0 == GNUNET_HELLO_address_cmp(address, n->address)))
   {
-    if (n->session == NULL)
-      n->session = session;
     GST_validation_set_address_use (n->address, n->session, GNUNET_YES);
     GNUNET_ATS_address_in_use (GST_ats, n->address, n->session, GNUNET_YES);
     n->address_state = USED;
-
   }
 
   GST_neighbours_set_incoming_quota (&n->id, n->bandwidth_in);
@@ -2505,7 +2505,7 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
   msg.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_ACK);
 
 #if TEST_NEW_CODE
-  ret = send_with_session(n, n->session,
+  ret = send_with_session(n,
             (const char *) &msg, msg_len,
             UINT32_MAX, GNUNET_TIME_UNIT_FOREVER_REL,
             NULL, NULL);
@@ -2585,14 +2585,14 @@ GST_neighbours_handle_ack (const struct GNUNET_MessageHeader *message,
                      session, address->transport_name, GNUNET_i2s (peer));
   GNUNET_ATS_address_update (GST_ats, address, session, ats, ats_count);
   GNUNET_assert (n->address != NULL);
+// LOOKAT
   if ((n->address_state == FRESH) && (0 == GNUNET_HELLO_address_cmp(address, n->address)))
   {
-    if (n->session == NULL)
-      n->session = session;
     GST_validation_set_address_use (n->address, n->session, GNUNET_YES);
     GNUNET_ATS_address_in_use (GST_ats, n->address, n->session, GNUNET_YES);
     n->address_state = USED;
   }
+
 
   neighbours_connected++;
   GNUNET_STATISTICS_update (GST_stats, gettext_noop ("# peers connected"), 1,

@@ -213,7 +213,7 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
  *         connection is not up (yet)
  */
 int
-GST_neighbours_switch_to_address_3way (const struct GNUNET_PeerIdentity *peer,
+GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
                                        const struct GNUNET_HELLO_Address
                                        *address, struct Session *session,
                                        const struct GNUNET_ATS_Information *ats,

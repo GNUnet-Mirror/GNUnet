@@ -434,7 +434,7 @@ ats_request_address_change (void *cls,
     return;
   }
   /* will never return GNUNET_YES since connection is to be established */
-  GST_neighbours_switch_to_address_3way (&address->peer, address, session, ats,
+  GST_neighbours_switch_to_address (&address->peer, address, session, ats,
                                          ats_count, bandwidth_in,
                                          bandwidth_out);
 }
