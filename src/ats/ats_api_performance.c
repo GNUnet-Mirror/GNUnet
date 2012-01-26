@@ -390,7 +390,6 @@ process_ats_message (void *cls, const struct GNUNET_MessageHeader *msg)
   default:
     GNUNET_break (0);
     goto reconnect;
-    return;
   }
   GNUNET_CLIENT_receive (ph->client, &process_ats_message, ph,
                          GNUNET_TIME_UNIT_FOREVER_REL);
