@@ -892,7 +892,7 @@ route_packet (struct DestinationEntry *destination,
       {
 	/* blame kernel? */
 	GNUNET_break (0);
-	return;
+	return GNUNET_SYSERR;
       }
       udp = payload;
       if (udp->len < sizeof (struct GNUNET_TUN_UdpHeader))
@@ -917,7 +917,7 @@ route_packet (struct DestinationEntry *destination,
       {
 	/* blame kernel? */
 	GNUNET_break (0);
-	return;
+	return GNUNET_SYSERR;
       }
       tcp = payload;
       if (tcp->off * 4 < sizeof (struct GNUNET_TUN_TcpHeader))
