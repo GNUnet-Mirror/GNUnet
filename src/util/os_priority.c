@@ -305,7 +305,7 @@ extern GNUNET_SIGNAL_Handler w32_sigchld_handler;
  * @param proc pointer to process structure
  */
 static DWORD_WINAPI
-ChildWaitThread (void *arg)
+child_wait_thread (void *arg)
 {
   struct GNUNET_OS_Process *proc = (struct GNUNET_OS_Process *) arg;
 
@@ -788,7 +788,7 @@ GNUNET_OS_start_process_vap (struct GNUNET_DISK_PipeHandle *pipe_stdin,
   gnunet_proc->handle = proc.hProcess;
   gnunet_proc->control_pipe = control_pipe;
 
-  CreateThread (NULL, 64000, ChildWaitThread, (void *) gnunet_proc, 0, NULL);
+  CreateThread (NULL, 64000, &child_wait_thread, (void *) gnunet_proc, 0, NULL);
 
   ResumeThread (proc.hThread);
   CloseHandle (proc.hThread);
@@ -1199,7 +1199,7 @@ GNUNET_OS_start_process_v (const SOCKTYPE *lsocks,
   gnunet_proc->handle = proc.hProcess;
   gnunet_proc->control_pipe = control_pipe;
 
-  CreateThread (NULL, 64000, ChildWaitThread, (void *) gnunet_proc, 0, NULL);
+  CreateThread (NULL, 64000, &child_wait_thread, (void *) gnunet_proc, 0, NULL);
 
   ResumeThread (proc.hThread);
   CloseHandle (proc.hThread);
