@@ -30,7 +30,7 @@
 /**
  * IP TTL we use for packets that we assemble (8 bit unsigned integer)
  */
-#define FRESH_TTL 255
+#define FRESH_TTL 64
 
 
 /**
