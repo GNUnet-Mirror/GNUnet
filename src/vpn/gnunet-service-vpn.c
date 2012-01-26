@@ -892,13 +892,13 @@ route_packet (struct DestinationEntry *destination,
       {
 	/* blame kernel? */
 	GNUNET_break (0);
-	return GNUNET_SYSERR;
+	return;
       }
       udp = payload;
       if (udp->len < sizeof (struct GNUNET_TUN_UdpHeader))
       {
 	GNUNET_break_op (0);
-	return GNUNET_SYSERR;
+	return;
       }
       spt = ntohs (udp->spt);
       dpt = ntohs (udp->dpt);
@@ -917,13 +917,13 @@ route_packet (struct DestinationEntry *destination,
       {
 	/* blame kernel? */
 	GNUNET_break (0);
-	return GNUNET_SYSERR;
-      }
+	return;
+      }      
       tcp = payload;
       if (tcp->off * 4 < sizeof (struct GNUNET_TUN_TcpHeader))
       {
 	GNUNET_break_op (0);
-	return GNUNET_SYSERR;
+	return;
       }
       spt = ntohs (tcp->spt);
       dpt = ntohs (tcp->dpt);
