@@ -739,7 +739,7 @@ hexdump (const void *mem, unsigned length)
       else
         t += sprintf (t, "  ");
 
-      t += sprintf (t, j % 2 ? " " : "-");
+      t += sprintf (t, (j % 2) ? " " : "-");
     }
 
     t += sprintf (t, "  ");
