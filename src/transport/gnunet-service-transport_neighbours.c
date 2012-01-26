@@ -63,7 +63,7 @@
 
 #define SETUP_CONNECTION_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15)
 
-#define  TEST_NEW_CODE GNUNET_YES
+#define  TEST_NEW_CODE GNUNET_NO
 
 /**
  * Entry in neighbours.

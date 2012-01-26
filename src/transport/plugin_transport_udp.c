@@ -618,6 +618,67 @@ udp_disconnect (void *cls, const struct GNUNET_PeerIdentity *target)
 
 
 /**
+ * Creates a new outbound session the transport service will use to send data to the
+ * peer
+ *
+ * @param cls the plugin
+ * @param address the address
+ * @return the session or NULL of max connections exceeded
+ */
+
+static struct Session *
+udp_plugin_get_session (void *cls,
+                  const struct GNUNET_HELLO_Address *address)
+{
+  struct Session * s = NULL;
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "To be implemented\n");
+  GNUNET_break (0);
+  return s;
+}
+
+/**
+ * Function that can be used by the transport service to transmit
+ * a message using the plugin.   Note that in the case of a
+ * peer disconnecting, the continuation MUST be called
+ * prior to the disconnect notification itself.  This function
+ * will be called with this peer's HELLO message to initiate
+ * a fresh connection to another peer.
+ *
+ * @param cls closure
+ * @param session which session must be used
+ * @param msgbuf the message to transmit
+ * @param msgbuf_size number of bytes in 'msgbuf'
+ * @param priority how important is the message (most plugins will
+ *                 ignore message priority and just FIFO)
+ * @param to how long to wait at most for the transmission (does not
+ *                require plugins to discard the message after the timeout,
+ *                just advisory for the desired delay; most plugins will ignore
+ *                this as well)
+ * @param cont continuation to call once the message has
+ *        been transmitted (or if the transport is ready
+ *        for the next transmission call; or if the
+ *        peer disconnected...); can be NULL
+ * @param cont_cls closure for cont
+ * @return number of bytes used (on the physical network, with overheads);
+ *         -1 on hard errors (i.e. address invalid); 0 is a legal value
+ *         and does NOT mean that the message was not transmitted (DV)
+ */
+static ssize_t
+udp_plugin_send (void *cls,
+                  struct Session *session,
+                  const char *msgbuf, size_t msgbuf_size,
+                  unsigned int priority,
+                  struct GNUNET_TIME_Relative to,
+                  GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls)
+{
+  ssize_t sent = -1;
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "To be implemented\n");
+  GNUNET_break (0);
+  return sent;
+}
+
+
+/**
  * Actually send out the message.
  *
  * @param plugin the plugin
@@ -799,7 +860,7 @@ udp_call_continuation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  *         still be transmitted later!)
  */
 static ssize_t
-udp_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
+udp_plugin_send_old (void *cls, const struct GNUNET_PeerIdentity *target,
                  const char *msgbuf, size_t msgbuf_size, unsigned int priority,
                  struct GNUNET_TIME_Relative timeout, struct Session *session,
                  const void *addr, size_t addrlen, int force_address,
@@ -2122,11 +2183,14 @@ libgnunet_plugin_transport_udp_init (void *cls)
   api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
   api->cls = plugin;
 
-  api->send = &udp_plugin_send;
+  api->send = &udp_plugin_send_old;
   api->disconnect = &udp_disconnect;
   api->address_pretty_printer = &udp_plugin_address_pretty_printer;
   api->address_to_string = &udp_address_to_string;
   api->check_address = &udp_plugin_check_address;
+
+  api->get_session = &udp_plugin_get_session;
+  api->send_with_session = &udp_plugin_send;
 
   if (GNUNET_YES ==
       GNUNET_CONFIGURATION_get_value_string (env->cfg, "transport-udp",
