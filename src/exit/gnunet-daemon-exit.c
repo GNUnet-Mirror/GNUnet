@@ -1152,7 +1152,7 @@ setup_fresh_address (int af,
       /* Given ABCD::/96, we want a mask of 'ABCD::FFFF:FFFF,
 	 thus: */
       mask = addr;
-      for (i=127;i>=128-ipv6prefix;i--)
+      for (i=127;i>=ipv6prefix;i--)
 	mask.s6_addr[i / 8] |= (1 << (i % 8));
       
       /* Pick random IPv6 address within the subnet, except 'addr' or 'mask' itself */
@@ -1393,9 +1393,9 @@ prepare_ipv6_packet (const void *payload, size_t payload_length,
 
   GNUNET_TUN_initialize_ipv6_header (pkt6,
 				     protocol,
-				     len,
-				     &dst_address->address.ipv6,
-				     &src_address->address.ipv6);
+				     len,				   
+				     &src_address->address.ipv6,
+				     &dst_address->address.ipv6);
 
   switch (protocol)
   {
