@@ -1418,6 +1418,8 @@ GAS_mlp_done (struct GAS_MLP_Handle *mlp)
   struct ATS_Peer * peer;
   struct ATS_Peer * tmp;
 
+  GNUNET_assert (mlp != NULL);
+
   if (mlp->mlp_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel(mlp->mlp_task);
@@ -1425,16 +1427,13 @@ GAS_mlp_done (struct GAS_MLP_Handle *mlp)
   }
 
   /* clean up peer list */
-  if (mlp != NULL)
+  peer = mlp->peer_head;
+  while (peer != NULL)
   {
-    peer = mlp->peer_head;
-    while (peer != NULL)
-    {
-      GNUNET_CONTAINER_DLL_remove(mlp->peer_head, mlp->peer_tail, peer);
-      tmp = peer->next;
-      GNUNET_free (peer);
-      peer = tmp;
-    }
+    GNUNET_CONTAINER_DLL_remove(mlp->peer_head, mlp->peer_tail, peer);
+    tmp = peer->next;
+    GNUNET_free (peer);
+    peer = tmp;
   }
   mlp_delete_problem (mlp);
 

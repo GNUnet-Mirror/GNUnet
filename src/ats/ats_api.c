@@ -252,14 +252,6 @@ suggest_address (void *cls, const GNUNET_HashCode * key, void *value)
   return GNUNET_NO;
 }
 
-
-int
-map_it (void *cls, const GNUNET_HashCode * key, void *value)
-{
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Found entry for %s\n", GNUNET_h2s (key));
-  return GNUNET_YES;
-}
-
 /**
  * We would like to establish a new connection with a peer.
  * ATS should suggest a good address to begin with.
