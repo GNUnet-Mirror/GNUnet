@@ -277,7 +277,8 @@ client_response_handler (void *cls, enum GNUNET_BLOCK_EvaluationResult eval,
 #endif
   if (eval != GNUNET_BLOCK_EVALUATION_OK_LAST)
     return;
-  cr->kill_task = GNUNET_SCHEDULER_add_now (&client_request_destroy, cr);
+  if (GNUNET_SCHEDULER_NO_TASK != cr->kill_task)
+    cr->kill_task = GNUNET_SCHEDULER_add_now (&client_request_destroy, cr);
 }
 
 
