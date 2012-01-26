@@ -63,8 +63,7 @@
 
 #define SETUP_CONNECTION_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15)
 
-
-#define  TEST_NEW_CODE GNUNET_YES
+#define  TEST_NEW_CODE GNUNET_NO
 
 /**
  * Entry in neighbours.
@@ -1539,12 +1538,12 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
       n->address = NULL;
       return GNUNET_NO;
     }
-    else
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Obtained new session %p for peer `%s' and  address '%s'\n",
-                  n->session, GNUNET_i2s (&n->id), GST_plugins_a2s (n->address));
-    }
+
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Obtained new session %p for peer `%s' and  address '%s'\n",
+                 n->session, GNUNET_i2s (&n->id), GST_plugins_a2s (n->address));
+    /* Telling ATS about new session */
+    GNUNET_ATS_address_update (GST_ats, n->address, n->session, NULL, 0);
   }
   else
   {
