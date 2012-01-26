@@ -325,6 +325,16 @@ struct MeshTunnel
   unsigned int nclients;
 
     /**
+     * Clients that have requested to leave the tunnel
+     */
+  struct MeshClient **ignore;
+
+    /**
+     * Number of elements in clients
+     */
+  unsigned int nignore;
+
+    /**
      * Messages ready to transmit
      */
   struct MeshQueue *queue_head;
@@ -412,6 +422,10 @@ struct MeshClient
      */
   struct GNUNET_CONTAINER_MultiHashMap *incoming_tunnels;
 
+   /**
+     * Tunnels this client has rejected, indexed by incoming local id
+     */
+  struct GNUNET_CONTAINER_MultiHashMap *ignore_tunnels;
     /**
      * Handle to communicate with the client
      */
@@ -713,6 +727,43 @@ dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
 /******************************************************************************/
 
 /**
+ * Search for a tunnel by global ID using full PeerIdentities
+ *
+ * @param oid owner of the tunnel
+ * @param tid global tunnel number
+ *
+ * @return tunnel handler, NULL if doesn't exist
+ */
+static struct MeshTunnel *
+tunnel_get (struct GNUNET_PeerIdentity *oid, MESH_TunnelNumber tid);
+
+
+/**
+ * Delete an active client from the tunnel.
+ * 
+ * @param t Tunnel.
+ * @param c Client.
+ */
+static void
+tunnel_delete_active_client (struct MeshTunnel *t, const struct MeshClient *c);
+
+/**
+ * Notify a tunnel that a connection has broken that affects at least
+ * some of its peers.
+ *
+ * @param t Tunnel affected.
+ * @param p1 Peer that got disconnected from p2.
+ * @param p2 Peer that got disconnected from p1.
+ *
+ * @return Short ID of the peer disconnected (either p1 or p2).
+ *         0 if the tunnel remained unaffected.
+ */
+static GNUNET_PEER_Id
+tunnel_notify_connection_broken (struct MeshTunnel *t, GNUNET_PEER_Id p1,
+                                 GNUNET_PEER_Id p2);
+
+
+/**
  * Check if client has registered with the service and has not disconnected
  *
  * @param client the client to check
@@ -782,43 +833,110 @@ client_allow_send (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
- * Search for a tunnel by global ID using full PeerIdentities
+ * Check whether client wants traffic from a tunnel.
  *
- * @param oid owner of the tunnel
- * @param tid global tunnel number
+ * @param c Client to check.
+ * @param t Tunnel to be found.
  *
- * @return tunnel handler, NULL if doesn't exist
- */
-static struct MeshTunnel *
-tunnel_get (struct GNUNET_PeerIdentity *oid, MESH_TunnelNumber tid);
-
-
-/**
- * Gets the index in t->clients of the client.
- *
- * @param t Tunnel where to find client.
- * @param c Client to be found.
- *
- * @return Index of the client, -1 if not present
+ * @return GNUNET_YES if client knows tunnel.
+ * 
+ * TODO look in client hashmap
  */
 static int
-tunnel_get_client_index (struct MeshTunnel *t, struct MeshClient *c);
+client_wants_tunnel (struct MeshClient *c, struct MeshTunnel *t)
+{
+  unsigned int i;
+
+  for (i = 0; i < t->nclients; i++)
+    if (t->clients[i] == c)
+      return GNUNET_YES;
+  return GNUNET_NO;
+}
 
 
 /**
- * Notify a tunnel that a connection has broken that affects at least
- * some of its peers.
+ * Check whether client has been informed about a tunnel.
  *
- * @param t Tunnel affected.
- * @param p1 Peer that got disconnected from p2.
- * @param p2 Peer that got disconnected from p1.
+ * @param c Client to check.
+ * @param t Tunnel to be found.
  *
- * @return Short ID of the peer disconnected (either p1 or p2).
- *         0 if the tunnel remained unaffected.
+ * @return GNUNET_YES if client knows tunnel.
+ * 
+ * TODO look in client hashmap
  */
-static GNUNET_PEER_Id
-tunnel_notify_connection_broken (struct MeshTunnel *t, GNUNET_PEER_Id p1,
-                                 GNUNET_PEER_Id p2);
+static int
+client_knows_tunnel (struct MeshClient *c, struct MeshTunnel *t)
+{
+  unsigned int i;
+
+  for (i = 0; i < t->nignore; i++)
+    if (t->ignore[i] == c)
+      return GNUNET_YES;
+  return client_wants_tunnel(c, t);
+}
+
+
+/**
+ * Marks a client as uninterested in traffic from the tunnel, updating both
+ * client and tunnel to reflect this.
+ *
+ * @param c Client that doesn't want traffic anymore.
+ * @param t Tunnel which should be ignored.
+ *
+ * FIXME when to delete an incoming tunnel?
+ */
+static void
+client_ignore_tunnel (struct MeshClient *c, struct MeshTunnel *t)
+{
+  GNUNET_HashCode hash;
+
+  GNUNET_CRYPTO_hash(&t->local_tid_dest, sizeof (MESH_TunnelNumber), &hash);
+  GNUNET_break (GNUNET_YES ==
+                GNUNET_CONTAINER_multihashmap_remove (c->incoming_tunnels,
+                                                      &hash, t));
+  GNUNET_break (GNUNET_YES ==
+                GNUNET_CONTAINER_multihashmap_put (c->ignore_tunnels, &hash, t,
+                                                   GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
+  tunnel_delete_active_client (t, c);
+  GNUNET_array_append (t->ignore, t->nignore, c);
+}
+
+
+/**
+ * Deletes a tunnel from a client (either owner or destination). To be used on
+ * tunnel destroy, otherwise, use client_ignore_tunnel.
+ *
+ * @param c Client whose tunnel to delete.
+ * @param t Tunnel which should be deleted.
+ */
+static void
+client_delete_tunnel (struct MeshClient *c, struct MeshTunnel *t)
+{
+  GNUNET_HashCode hash;
+
+  if (c == t->owner)
+  {
+    GNUNET_CRYPTO_hash(&t->local_tid, sizeof (MESH_TunnelNumber), &hash);
+    GNUNET_assert (GNUNET_YES ==
+                   GNUNET_CONTAINER_multihashmap_remove (c->own_tunnels,
+                                                         &hash,
+                                                         t));
+  }
+  else
+  {
+    GNUNET_CRYPTO_hash(&t->local_tid_dest, sizeof (MESH_TunnelNumber), &hash);
+    // FIXME XOR?
+    GNUNET_assert (GNUNET_YES ==
+                   GNUNET_CONTAINER_multihashmap_remove (c->incoming_tunnels,
+                                                         &hash,
+                                                         t) ||
+                   GNUNET_YES ==
+                   GNUNET_CONTAINER_multihashmap_remove (c->ignore_tunnels,
+                                                         &hash,
+                                                         t));
+  }
+    
+}
 
 
 /**
@@ -836,7 +954,6 @@ send_subscribed_clients (const struct GNUNET_MessageHeader *msg,
   struct MeshClient *c;
   struct MeshTunnel *t;
   MESH_TunnelNumber *tid;
-  GNUNET_HashCode hash;
   unsigned int count;
   uint16_t type;
   char cbuf[htons (msg->size)];
@@ -895,7 +1012,7 @@ send_subscribed_clients (const struct GNUNET_MessageHeader *msg,
       }
       else
       {
-        if (-1 == tunnel_get_client_index (t, c))
+        if (GNUNET_NO == client_knows_tunnel (c, t))
         {
           /* This client doesn't know the tunnel */
           struct GNUNET_MESH_TunnelNotification tmsg;
@@ -918,9 +1035,7 @@ send_subscribed_clients (const struct GNUNET_MessageHeader *msg,
       }
 
       /* Check if the client wants to get traffic from the tunnel */
-      GNUNET_CRYPTO_hash(&t->local_tid_dest, sizeof (MESH_TunnelNumber), &hash);
-      if (GNUNET_NO ==
-          GNUNET_CONTAINER_multihashmap_contains(c->incoming_tunnels, &hash))
+      if (GNUNET_NO == client_wants_tunnel(c, t))
         continue;
       count++;
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH:      sending\n");
@@ -999,6 +1114,7 @@ send_client_tunnel_disconnect (struct MeshTunnel *t, struct MeshClient *c)
       GNUNET_SERVER_notification_context_unicast (nc, t->clients[i]->handle,
                                                   &msg.header, GNUNET_NO);
   }
+  // FIXME when to disconnect an incoming tunnel?
   else if (1 == t->nclients && NULL != t->owner)
   {
     struct GNUNET_MESH_PeerControl msg;
@@ -1974,6 +2090,67 @@ tunnel_get (struct GNUNET_PeerIdentity *oid, MESH_TunnelNumber tid)
 
 
 /**
+ * Delete an active client from the tunnel.
+ * 
+ * @param t Tunnel.
+ * @param c Client.
+ */
+static void
+tunnel_delete_active_client (struct MeshTunnel *t, const struct MeshClient *c)
+{
+  unsigned int i;
+
+  for (i = 0; i < t->nclients; i++)
+  {
+    if (t->clients[i] == c)
+    {
+      t->clients[i] = t->clients[t->nclients - 1];
+      GNUNET_array_grow (t->clients, t->nclients, t->nclients - 1);
+      break;
+    }
+  }
+}
+
+
+/**
+ * Delete an ignored client from the tunnel.
+ * 
+ * @param t Tunnel.
+ * @param c Client.
+ */
+static void
+tunnel_delete_ignored_client (struct MeshTunnel *t, const struct MeshClient *c)
+{
+  unsigned int i;
+
+  for (i = 0; i < t->nignore; i++)
+  {
+    if (t->ignore[i] == c)
+    {
+      t->ignore[i] = t->ignore[t->nignore - 1];
+      GNUNET_array_grow (t->ignore, t->nignore, t->nignore - 1);
+      break;
+    }
+  }
+}
+
+
+/**
+ * Delete a client from the tunnel. It should be only done on
+ * client disconnection, otherwise use client_ignore_tunnel.
+ * 
+ * @param t Tunnel.
+ * @param c Client.
+ */
+static void
+tunnel_delete_client (struct MeshTunnel *t, const struct MeshClient *c)
+{
+  tunnel_delete_ignored_client (t, c);
+  tunnel_delete_active_client (t, c);
+}
+
+
+/**
  * Callback used to notify a client owner of a tunnel that a peer has
  * disconnected, most likely because of a path change.
  *
@@ -2246,27 +2423,6 @@ tunnel_send_multicast (struct MeshTunnel *t,
 
 
 /**
- * Gets the index in t->clients of the client.
- *
- * @param t Tunnel where to find client.
- * @param c Client to be found.
- *
- * @return Index of the client, -1 if not present
- */
-static int
-tunnel_get_client_index (struct MeshTunnel *t, struct MeshClient *c)
-{
-  int i;
-
-  for (i = 0; i < t->nclients; i++)
-    if (t->clients[i] == c)
-      break;
-  if (i < t->nclients)
-    return i;
-  return -1;
-}
-
-/**
  * Send a message to all peers in this tunnel that the tunnel is no longer
  * valid.
  *
@@ -2343,6 +2499,15 @@ tunnel_destroy (struct MeshTunnel *t)
       r = GNUNET_SYSERR;
     }
   }
+  for (i = 0; i < t->nignore; i++)
+  {
+    c = t->ignore[i];
+    if (GNUNET_YES !=
+          GNUNET_CONTAINER_multihashmap_remove (c->ignore_tunnels, &hash, t))
+    {
+      r = GNUNET_SYSERR;
+    }
+  }
   if (t->nclients > 0)
   {
     if (GNUNET_YES !=
@@ -2397,26 +2562,6 @@ tunnel_delete_peer (struct MeshTunnel *t, GNUNET_PEER_Id peer)
 
 
 /**
- * Removes a client from the tunnel.
- *
- * @param t Tunnel from which to remove the client.
- * @param c Client that should be removed.
- *
- * FIXME when to delete an incoming tunnel?
- */
-static void
-tunnel_delete_client (struct MeshTunnel *t, struct MeshClient *c)
-{
-  GNUNET_HashCode hash;
-
-  GNUNET_CRYPTO_hash(&t->local_tid_dest, sizeof (MESH_TunnelNumber), &hash);
-  GNUNET_break (GNUNET_YES ==
-                GNUNET_CONTAINER_multihashmap_remove (c->incoming_tunnels,
-                                                      &hash, t));
-
-}
-
-/**
  * tunnel_destroy_iterator: iterator for deleting each tunnel that belongs to a
  * client when the client disconnects. If the client is not the owner, the
  * owner will get notified if no more clients are in the tunnel and the client
@@ -2442,7 +2587,8 @@ tunnel_destroy_iterator (void *cls, const GNUNET_HashCode * key, void *value)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Client %u is destination, keeping the tunnel alive.\n", c->id);
 #endif
-    tunnel_delete_client (t, c);
+    tunnel_delete_client(t, c);
+    client_delete_tunnel(c, t);
     return GNUNET_OK;
   }
   tunnel_send_destroy(t);
@@ -3629,8 +3775,11 @@ handle_local_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
                                            &tunnel_destroy_iterator, c);
     GNUNET_CONTAINER_multihashmap_iterate (c->incoming_tunnels,
                                            &tunnel_destroy_iterator, c);
+    GNUNET_CONTAINER_multihashmap_iterate (c->ignore_tunnels,
+                                           &tunnel_destroy_iterator, c);
     GNUNET_CONTAINER_multihashmap_destroy (c->own_tunnels);
     GNUNET_CONTAINER_multihashmap_destroy (c->incoming_tunnels);
+    GNUNET_CONTAINER_multihashmap_destroy (c->ignore_tunnels);
 
     /* deregister clients applications */
     if (NULL != c->apps)
@@ -3759,6 +3908,7 @@ handle_local_new_client (void *cls, struct GNUNET_SERVER_Client *client,
   GNUNET_CONTAINER_DLL_insert (clients, clients_tail, c);
   c->own_tunnels = GNUNET_CONTAINER_multihashmap_create (32);
   c->incoming_tunnels = GNUNET_CONTAINER_multihashmap_create (32);
+  c->ignore_tunnels = GNUNET_CONTAINER_multihashmap_create (32);
   GNUNET_SERVER_notification_context_add (nc, client);
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -3876,7 +4026,6 @@ handle_local_tunnel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
   struct MeshClient *c;
   struct MeshTunnel *t;
   MESH_TunnelNumber tid;
-  GNUNET_HashCode hash;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "MESH: Got a DESTROY TUNNEL from client!\n");
@@ -3902,20 +4051,20 @@ handle_local_tunnel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
 
   /* Retrieve tunnel */
   tid = ntohl (tunnel_msg->tunnel_id);
-
-  /* Remove from local id hashmap */
-  GNUNET_CRYPTO_hash (&tid, sizeof (MESH_TunnelNumber), &hash);
-  t = GNUNET_CONTAINER_multihashmap_get (c->own_tunnels, &hash);
+  t = tunnel_get_by_local_id(c, tid);
   if (NULL == t)
   {
     GNUNET_break (0);
+#if MESH_DEBUG
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "MESH:   tunnel %X not found\n", tid);
+#endif
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
   send_client_tunnel_disconnect(t, c);
   if (c != t->owner)
   {
-    tunnel_delete_client (t, c);
+    client_ignore_tunnel (c, t);
 #if 0
     // TODO: when to destroy incoming tunnel?
     if (t->nclients == 0)
@@ -3932,10 +4081,7 @@ handle_local_tunnel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
-  GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multihashmap_remove (c->own_tunnels,
-                                                       &hash,
-                                                       t));
+  client_delete_tunnel(c, t);
 
   /* Don't try to ACK the client about the tunnel_destroy multicast packet */
   t->owner = NULL;
@@ -4334,7 +4480,7 @@ handle_local_to_origin (void *cls, struct GNUNET_SERVER_Client *client,
   }
 
   /*  It should be sent by someone who has this as incoming tunnel. */
-  if (-1 == tunnel_get_client_index (t, c))
+  if (-1 == client_knows_tunnel (c, t))
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
