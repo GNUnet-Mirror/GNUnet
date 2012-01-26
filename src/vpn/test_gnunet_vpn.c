@@ -475,6 +475,18 @@ main (int argc, char *const *argv)
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
+
+  if ( (GNUNET_YES !=
+	GNUNET_OS_check_helper_binary ("gnunet-helper-vpn")) ||
+       (GNUNET_YES !=
+	GNUNET_OS_check_helper_binary ("gnunet-helper-exit")) )
+  {
+    fprintf (stderr,
+	     "WARNING: gnunet-helper-{exit,vpn} binaries in $PATH are not SUID, refusing to run test (as it would have to fail).\n");
+    fprintf (stderr,
+	     "Change $PATH ('.' in $PATH before $GNUNET_PREFIX/bin is problematic) or permissions (run 'make install' as root) to fix this!\n");
+    return 0;
+  }
   bin = argv[0];
   if (NULL != strstr (bin, "lt-"))
     bin = strstr (bin, "lt-") + 4;
