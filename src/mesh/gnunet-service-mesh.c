@@ -1453,14 +1453,27 @@ peer_info_connect (struct MeshPeerInfo *peer, struct MeshTunnel *t)
       return;
     }
 
+    // FIXME always send create path to self
     if (p->length > 1)
     {
       send_create_path (peer, p, t);
     }
     else
     {
+      GNUNET_HashCode hash;
+
       path_destroy (p);
       send_client_peer_connected (t, myid);
+      t->local_tid_dest = next_local_tid++;
+      GNUNET_CRYPTO_hash (&t->local_tid_dest, sizeof (MESH_TunnelNumber),
+                          &hash);
+      if (GNUNET_OK !=
+          GNUNET_CONTAINER_multihashmap_put (incoming_tunnels, &hash, t,
+                                             GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST))
+      {
+        GNUNET_break (0);
+        return;
+      }
     }
   }
   else if (NULL == peer->dhtget)
@@ -3544,6 +3557,9 @@ dht_get_type_handler (void *cls, struct GNUNET_TIME_Absolute exp,
   struct MeshPeerInfo *peer_info;
   struct MeshPeerPath *p;
 
+#if MESH_DEBUG
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: got type DHT result!\n");
+#endif
   if (size != sizeof (struct GNUNET_PeerIdentity))
   {
     GNUNET_break_op (0);
