@@ -461,7 +461,6 @@ inbound_session_iterator (void *cls, const GNUNET_HashCode * key, void *value)
   return GNUNET_YES;
 }
 
-
 /**
  * Lookup the session for the given peer.
  *
@@ -617,6 +616,101 @@ udp_disconnect (void *cls, const struct GNUNET_PeerIdentity *target)
 }
 
 
+static struct Session *
+create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
+                const void *addr, size_t addrlen,
+                GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls)
+{
+  struct Session *peer_session;
+  const struct IPv4UdpAddress *t4;
+  const struct IPv6UdpAddress *t6;
+  struct sockaddr_in *v4;
+  struct sockaddr_in6 *v6;
+  size_t len;
+  struct GNUNET_ATS_Information ats;
+
+  switch (addrlen)
+  {
+  case sizeof (struct IPv4UdpAddress):
+    if (NULL == plugin->sockv4)
+    {
+      return NULL;
+    }
+    t4 = addr;
+    peer_session =
+        GNUNET_malloc (sizeof (struct Session) + sizeof (struct sockaddr_in));
+    len = sizeof (struct sockaddr_in);
+    v4 = (struct sockaddr_in *) &peer_session[1];
+    v4->sin_family = AF_INET;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+    v4->sin_len = sizeof (struct sockaddr_in);
+#endif
+    v4->sin_port = t4->u4_port;
+    v4->sin_addr.s_addr = t4->ipv4_addr;
+    ats = plugin->env->get_address_type (plugin->env->cls, (const struct sockaddr *) v4, sizeof (struct sockaddr_in));
+    break;
+  case sizeof (struct IPv6UdpAddress):
+    if (NULL == plugin->sockv6)
+    {
+      return NULL;
+    }
+    t6 = addr;
+    peer_session =
+        GNUNET_malloc (sizeof (struct Session) + sizeof (struct sockaddr_in6));
+    len = sizeof (struct sockaddr_in6);
+    v6 = (struct sockaddr_in6 *) &peer_session[1];
+    v6->sin6_family = AF_INET6;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+    v6->sin6_len = sizeof (struct sockaddr_in6);
+#endif
+    v6->sin6_port = t6->u6_port;
+    v6->sin6_addr = t6->ipv6_addr;
+    ats = plugin->env->get_address_type (plugin->env->cls, (const struct sockaddr *) v6, sizeof (struct sockaddr_in6));
+    break;
+  default:
+    /* Must have a valid address to send to */
+    GNUNET_break_op (0);
+    return NULL;
+  }
+
+  peer_session->ats_address_network_type = ats.value;
+  peer_session->valid_until = GNUNET_TIME_absolute_get_zero ();
+  peer_session->invalidation_task = GNUNET_SCHEDULER_NO_TASK;
+  peer_session->addrlen = len;
+  peer_session->target = *target;
+  peer_session->plugin = plugin;
+  peer_session->sock_addr = (const struct sockaddr *) &peer_session[1];
+  peer_session->cont = cont;
+  peer_session->cont_cls = cont_cls;
+
+  return peer_session;
+}
+
+
+static int session_cmp_it (void *cls,
+                           const GNUNET_HashCode * key,
+                           void *value)
+{
+  int res = GNUNET_OK;
+  /*
+  struct GNUNET_HELLO_Address *address = cls;
+  struct Session *s = value;
+
+  struct IPv4UdpAddress * u4 = NULL;
+  struct IPv4UdpAddress * u6 = NULL;
+
+
+
+  if ((s->addrlen == address->address_length) &&
+      (0 == memcmp (s->sock_addr, address->address, address->address_length)))
+  {
+
+  }
+*/
+  return res;
+}
+
+
 /**
  * Creates a new outbound session the transport service will use to send data to the
  * peer
@@ -631,8 +725,29 @@ udp_plugin_get_session (void *cls,
                   const struct GNUNET_HELLO_Address *address)
 {
   struct Session * s = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "To be implemented\n");
-  GNUNET_break (0);
+  struct Plugin * plugin = cls;
+
+  GNUNET_assert (plugin != NULL);
+  GNUNET_assert (address != NULL);
+
+  if ((address->address == NULL) ||
+      ((address->address_length != sizeof (struct IPv4UdpAddress)) &&
+      (address->address_length != sizeof (struct IPv6UdpAddress))))
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
+
+  /* check if session already exists */
+  GNUNET_CONTAINER_multihashmap_get_multiple(plugin->sessions, &address->peer.hashPubKey, session_cmp_it, (void *) address);
+
+  /* otherwise create new */
+  s = create_session (plugin,
+      &address->peer,
+      address->address,
+      address->address_length,
+      NULL, NULL);
+
   return s;
 }
 
@@ -748,76 +863,6 @@ send_fragment (void *cls, const struct GNUNET_MessageHeader *msg)
   GNUNET_FRAGMENT_context_transmission_done (session->frag);
 }
 
-
-static struct Session *
-create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
-                const void *addr, size_t addrlen,
-                GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls)
-{
-  struct Session *peer_session;
-  const struct IPv4UdpAddress *t4;
-  const struct IPv6UdpAddress *t6;
-  struct sockaddr_in *v4;
-  struct sockaddr_in6 *v6;
-  size_t len;
-  struct GNUNET_ATS_Information ats;
-
-  switch (addrlen)
-  {
-  case sizeof (struct IPv4UdpAddress):
-    if (NULL == plugin->sockv4)
-    {
-      return NULL;
-    }
-    t4 = addr;
-    peer_session =
-        GNUNET_malloc (sizeof (struct Session) + sizeof (struct sockaddr_in));
-    len = sizeof (struct sockaddr_in);
-    v4 = (struct sockaddr_in *) &peer_session[1];
-    v4->sin_family = AF_INET;
-#if HAVE_SOCKADDR_IN_SIN_LEN
-    v4->sin_len = sizeof (struct sockaddr_in);
-#endif
-    v4->sin_port = t4->u4_port;
-    v4->sin_addr.s_addr = t4->ipv4_addr;
-    ats = plugin->env->get_address_type (plugin->env->cls, (const struct sockaddr *) v4, sizeof (struct sockaddr_in));
-    break;
-  case sizeof (struct IPv6UdpAddress):
-    if (NULL == plugin->sockv6)
-    {
-      return NULL;
-    }
-    t6 = addr;
-    peer_session =
-        GNUNET_malloc (sizeof (struct Session) + sizeof (struct sockaddr_in6));
-    len = sizeof (struct sockaddr_in6);
-    v6 = (struct sockaddr_in6 *) &peer_session[1];
-    v6->sin6_family = AF_INET6;
-#if HAVE_SOCKADDR_IN_SIN_LEN
-    v6->sin6_len = sizeof (struct sockaddr_in6);
-#endif
-    v6->sin6_port = t6->u6_port;
-    v6->sin6_addr = t6->ipv6_addr;
-    ats = plugin->env->get_address_type (plugin->env->cls, (const struct sockaddr *) v6, sizeof (struct sockaddr_in6));
-    break;
-  default:
-    /* Must have a valid address to send to */
-    GNUNET_break_op (0);
-    return NULL;
-  }
-
-  peer_session->ats_address_network_type = ats.value;
-  peer_session->valid_until = GNUNET_TIME_absolute_get_zero ();
-  peer_session->invalidation_task = GNUNET_SCHEDULER_NO_TASK;
-  peer_session->addrlen = len;
-  peer_session->target = *target;
-  peer_session->plugin = plugin;
-  peer_session->sock_addr = (const struct sockaddr *) &peer_session[1];
-  peer_session->cont = cont;
-  peer_session->cont_cls = cont_cls;
-
-  return peer_session;
-}
 
 static const char *
 udp_address_to_string (void *cls, const void *addr, size_t addrlen);
@@ -956,6 +1001,9 @@ udp_plugin_send_old (void *cls, const struct GNUNET_PeerIdentity *target,
       cont (cont_cls, target, GNUNET_SYSERR);
     return GNUNET_SYSERR;;
   }
+
+
+
 
   /* Message */
   udp = (struct UDPMessage *) mbuf;
