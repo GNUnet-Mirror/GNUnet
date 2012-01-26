@@ -373,16 +373,11 @@ typedef ssize_t (*GNUNET_TRANSPORT_TransmitFunction) (void *cls,
  *         and does NOT mean that the message was not transmitted (DV)
  */
 typedef ssize_t (*GNUNET_TRANSPORT_TransmitFunctionWithSession) (void *cls,
-                                                      const struct
-                                                      GNUNET_PeerIdentity *
-                                                      target,
-                                                      const char *msgbuf,
-                                                      size_t msgbuf_size,
-                                                      uint32_t priority,
-                                                      struct GNUNET_TIME_Relative timeout,
-                                                      struct Session * session,
-                                                      GNUNET_TRANSPORT_TransmitContinuation
-                                                      cont, void *cont_cls);
+    struct Session *session,
+    const char *msgbuf, size_t msgbuf_size,
+    unsigned int priority,
+    struct GNUNET_TIME_Relative to,
+    GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls);
 
 
 /**
@@ -467,16 +462,14 @@ typedef int (*GNUNET_TRANSPORT_CheckAddress) (void *cls, const void *addr,
  * This session will used to send data to this peer and the plugin will
  * notify us by calling the env->session_end function
  *
- * @param cls closure
+ * @param cls the plugin
  * @param target the neighbour id
  * @param addr pointer to the address
  * @param addrlen length of addr
  * @return the session if the address is valid, NULL otherwise
  */
-typedef const void * (*GNUNET_TRANSPORT_CreateSession) (void *cls,
-                                                  const struct GNUNET_PeerIdentity *target,
-                                                  const void *addr,
-                                                  size_t addrlen);
+typedef struct Session * (*GNUNET_TRANSPORT_CreateSession) (void *cls,
+                      const struct GNUNET_HELLO_Address *address);
 
 
 /**
@@ -558,7 +551,7 @@ struct GNUNET_TRANSPORT_PluginFunctions
    * Function that will be called tell the plugin to create a session
    * object
    */
-  GNUNET_TRANSPORT_CreateSession create_session;
+  GNUNET_TRANSPORT_CreateSession get_session;
 };
 
 
