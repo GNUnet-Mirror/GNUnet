@@ -111,11 +111,23 @@ struct GNUNET_TUN_TcpHeader
   unsigned dpt:16 GNUNET_PACKED;
   unsigned seq:32 GNUNET_PACKED;
   unsigned ack:32 GNUNET_PACKED;
-  unsigned off:4 GNUNET_PACKED;
+  /**
+   * Reserved.
+   */
   unsigned rsv:4 GNUNET_PACKED;
+  /**
+   * Number of 32-bit words in TCP header.
+   */
+  unsigned off:4 GNUNET_PACKED;
   unsigned flg:8 GNUNET_PACKED;
+  /**
+   * Window size.
+   */
   unsigned wsz:16 GNUNET_PACKED;
   unsigned crc:16 GNUNET_PACKED;
+  /**
+   * Urgent pointer.
+   */
   unsigned urg:16 GNUNET_PACKED;
 };
 
