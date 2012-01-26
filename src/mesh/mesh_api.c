@@ -1168,10 +1168,11 @@ send_callback (void *cls, size_t size, void *buf)
   if (NULL != (th = h->th_head))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "mesh:   next size: %u\n", th->size);
-    h->th =
-        GNUNET_CLIENT_notify_transmit_ready (h->client, th->size,
-                                             GNUNET_TIME_UNIT_FOREVER_REL,
-                                             GNUNET_YES, &send_callback, h);
+    if (NULL == h->th)
+      h->th =
+          GNUNET_CLIENT_notify_transmit_ready (h->client, th->size,
+                                               GNUNET_TIME_UNIT_FOREVER_REL,
+                                               GNUNET_YES, &send_callback, h);
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "mesh: Send packet() END\n");
   if (GNUNET_NO == h->in_receive)
