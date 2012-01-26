@@ -932,7 +932,7 @@ select_better_session (struct Session *s1, struct Session *s2)
  *         and does NOT mean that the message was not transmitted (DV and NAT)
  */
 static ssize_t
-tcp_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
+tcp_plugin_send_old (void *cls, const struct GNUNET_PeerIdentity *target,
                  const char *msg, size_t msgbuf_size, uint32_t priority,
                  struct GNUNET_TIME_Relative timeout, struct Session *session,
                  const void *addr, size_t addrlen, int force_address,
@@ -1202,24 +1202,15 @@ tcp_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
  * a fresh connection to another peer.
  *
  * @param cls closure
- * @param target who should receive this message
- * @param msg the message to transmit
- * @param msgbuf_size number of bytes in 'msg'
+ * @param session which session must be used
+ * @param msgbuf the message to transmit
+ * @param msgbuf_size number of bytes in 'msgbuf'
  * @param priority how important is the message (most plugins will
  *                 ignore message priority and just FIFO)
- * @param timeout how long to wait at most for the transmission (does not
+ * @param to how long to wait at most for the transmission (does not
  *                require plugins to discard the message after the timeout,
  *                just advisory for the desired delay; most plugins will ignore
  *                this as well)
- * @param session which session must be used (or NULL for "any")
- * @param addr the address to use (can be NULL if the plugin
- *                is "on its own" (i.e. re-use existing TCP connection))
- * @param addrlen length of the address in bytes
- * @param force_address GNUNET_YES if the plugin MUST use the given address,
- *                GNUNET_NO means the plugin may use any other address and
- *                GNUNET_SYSERR means that only reliable existing
- *                bi-directional connections should be used (regardless
- *                of address)
  * @param cont continuation to call once the message has
  *        been transmitted (or if the transport is ready
  *        for the next transmission call; or if the
@@ -1227,10 +1218,10 @@ tcp_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
  * @param cont_cls closure for cont
  * @return number of bytes used (on the physical network, with overheads);
  *         -1 on hard errors (i.e. address invalid); 0 is a legal value
- *         and does NOT mean that the message was not transmitted (DV and NAT)
+ *         and does NOT mean that the message was not transmitted (DV)
  */
 static ssize_t
-tcp_plugin_send_new (void *cls,
+tcp_plugin_send (void *cls,
     struct Session *session,
     const char *msgbuf, size_t msgbuf_size,
     unsigned int priority,
@@ -1240,6 +1231,7 @@ tcp_plugin_send_new (void *cls,
   struct Plugin * plugin = cls;
   struct PendingMessage *pm;
 
+  GNUNET_assert (plugin != NULL);
   GNUNET_assert (session != NULL);
   GNUNET_assert (session->client != NULL);
 
@@ -1306,7 +1298,7 @@ int session_it (void *cls,
  * @return the session if the address is valid, NULL otherwise
  */
 static struct Session *
-tcp_plugin_create_session (void *cls,
+tcp_plugin_get_session (void *cls,
                       const struct GNUNET_HELLO_Address *address)
 {
   struct Plugin * plugin = cls;
@@ -2281,10 +2273,10 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   }
   api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
   api->cls = plugin;
-  api->send = &tcp_plugin_send;
+  api->send = &tcp_plugin_send_old;
 
-  api->send_with_session = &tcp_plugin_send_new;
-  api->get_session = &tcp_plugin_create_session;
+  api->send_with_session = &tcp_plugin_send;
+  api->get_session = &tcp_plugin_get_session;
 
   api->disconnect = &tcp_plugin_disconnect;
   api->address_pretty_printer = &tcp_plugin_address_pretty_printer;

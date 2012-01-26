@@ -63,7 +63,7 @@
 
 #define SETUP_CONNECTION_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15)
 
-#define  TEST_NEW_CODE GNUNET_NO
+#define  TEST_NEW_CODE GNUNET_YES
 
 /**
  * Entry in neighbours.
@@ -1884,7 +1884,8 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
   /* try QUICKLY to re-establish a connection, reduce timeout! */
   if (n->ats_suggest != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (n->ats_suggest);
-  n->ats_suggest = GNUNET_SCHEDULER_add_delayed (ATS_RESPONSE_TIMEOUT, &ats_suggest_cancel,
+  n->ats_suggest = GNUNET_SCHEDULER_add_delayed (ATS_RESPONSE_TIMEOUT,
+                                    &ats_suggest_cancel,
                                     n);
   GNUNET_ATS_suggest_address (GST_ats, peer);
 }
