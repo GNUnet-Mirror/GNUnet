@@ -42,7 +42,7 @@
 #include "gnunet_transport_plugin.h"
 #include "transport.h"
 
-#define DEBUG_UNIX GNUNET_EXTRA_LOGGING
+#define DEBUG_UNIX GNUNET_EXTRALOGGING
 #define DETAILS GNUNET_NO
 
 #define MAX_PROBES 20
@@ -439,7 +439,7 @@ unix_real_send (void *cls,
 #if DEBUG_UNIX
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Trying to increase socket buffer size from %i to %i for message size %i\n",
-                  size, ((ssize / 1000) + 2) * 1000, ssize);
+                  size, ((msgbuf_size / 1000) + 2) * 1000, msgbuf_size);
 #endif
       size = ((msgbuf_size / 1000) + 2) * 1000;
       if (GNUNET_NETWORK_socket_setsockopt
@@ -626,7 +626,7 @@ unix_plugin_send (void *cls,
   GNUNET_CONTAINER_DLL_insert(plugin->msg_head, plugin->msg_tail, wrapper);
 
 #if DEBUG_UNIX
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sent %d bytes to `%s'\n", sent,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sent %d bytes to `%s'\n", ssize,
               (char *) session->addr);
 #endif
 
@@ -725,7 +725,7 @@ unix_plugin_send_old (void *cls, const struct GNUNET_PeerIdentity *target,
   GNUNET_CONTAINER_DLL_insert(plugin->msg_head, plugin->msg_tail, wrapper);
 
 #if DEBUG_UNIX
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sent %d bytes to `%s'\n", sent,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sent %d bytes to `%s'\n", ssize,
               (char *) addr);
 #endif
   return ssize;
