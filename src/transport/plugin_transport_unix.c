@@ -85,6 +85,13 @@ struct UNIXMessage
 
 };
 
+struct Session
+{
+  void *addr;
+  size_t addrlen;
+  struct GNUNET_PeerIdentity target;
+};
+
 struct UNIXMessageWrapper
 {
   struct UNIXMessageWrapper *next;
@@ -107,124 +114,8 @@ struct UNIXMessageWrapper
   void *cont_cls;
 };
 
-/**
- * Network format for IPv4 addresses.
- */
-struct IPv4UdpAddress
-{
-  /**
-   * IPv4 address, in network byte order.
-   */
-  uint32_t ipv4_addr GNUNET_PACKED;
-
-  /**
-   * Port number, in network byte order.
-   */
-  uint16_t u_port GNUNET_PACKED;
-};
-
-
-/**
- * Network format for IPv6 addresses.
- */
-struct IPv6UdpAddress
-{
-  /**
-   * IPv6 address.
-   */
-  struct in6_addr ipv6_addr GNUNET_PACKED;
-
-  /**
-   * Port number, in network byte order.
-   */
-  uint16_t u6_port GNUNET_PACKED;
-};
-GNUNET_NETWORK_STRUCT_END
-
 /* Forward definition */
 struct Plugin;
-
-struct PrettyPrinterContext
-{
-  GNUNET_TRANSPORT_AddressStringCallback asc;
-  void *asc_cls;
-  uint16_t port;
-};
-
-struct RetrySendContext
-{
-
-  /**
-   * Main plugin handle.
-   */
-  struct Plugin *plugin;
-
-  /**
-   * Address of recipient.
-   */
-  char *addr;
-
-  /**
-   * Length of address.
-   */
-  ssize_t addrlen;
-
-  /**
-   * Message to send.
-   */
-  char *msg;
-
-  /**
-   * Size of the message.
-   */
-  int msg_size;
-
-  /**
-   * Handle to send message out on.
-   */
-  struct GNUNET_NETWORK_Handle *send_handle;
-
-  /**
-   * Continuation to call on success or
-   * timeout.
-   */
-  GNUNET_TRANSPORT_TransmitContinuation cont;
-
-  /**
-   * Closure for continuation.
-   */
-  void *cont_cls;
-
-  /**
-   * The peer the message is destined for.
-   */
-  struct GNUNET_PeerIdentity target;
-
-  /**
-   * How long before not retrying any longer.
-   */
-  struct GNUNET_TIME_Absolute timeout;
-
-  /**
-   * How long the last message was delayed.
-   */
-  struct GNUNET_TIME_Relative delay;
-
-  /**
-   * The actual retry task.
-   */
-  GNUNET_SCHEDULER_TaskIdentifier retry_task;
-
-  /**
-   * The priority of the message.
-   */
-  unsigned int priority;
-
-  /**
-   * Entry in the DLL of retry items.
-   */
-  struct RetryList *retry_list_entry;
-};
 
 
 /**
@@ -309,6 +200,11 @@ struct Plugin
    * Session of peers with whom we are currently connected
    */
   struct PeerSession *sessions;
+
+  /*
+   * Sessions
+   */
+  struct GNUNET_CONTAINER_MultiHashMap *session_map;
 
   /**
    * ID of task used to update our addresses when one expires.
@@ -423,15 +319,6 @@ find_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *peer)
   return pos;
 }
 
-/* Forward Declaration */
-static ssize_t
-unix_real_send (void *cls, struct RetrySendContext *incoming_retry_context,
-                struct GNUNET_NETWORK_Handle *send_handle,
-                const struct GNUNET_PeerIdentity *target, const char *msgbuf,
-                size_t msgbuf_size, unsigned int priority,
-                struct GNUNET_TIME_Relative timeout, const void *addr,
-                size_t addrlen, GNUNET_TRANSPORT_TransmitContinuation cont,
-                void *cont_cls);
 
 /**
  * Actually send out the message, assume we've got the address and
@@ -456,7 +343,7 @@ unix_real_send (void *cls, struct RetrySendContext *incoming_retry_context,
  * @return the number of bytes written, -1 on errors
  */
 static ssize_t
-unix_real_send (void *cls, struct RetrySendContext *incoming_retry_context,
+unix_real_send (void *cls,
                 struct GNUNET_NETWORK_Handle *send_handle,
                 const struct GNUNET_PeerIdentity *target, const char *msgbuf,
                 size_t msgbuf_size, unsigned int priority,
@@ -572,6 +459,26 @@ unix_real_send (void *cls, struct RetrySendContext *incoming_retry_context,
   return sent;
 }
 
+struct gsi_ctx
+{
+  const struct GNUNET_HELLO_Address *address;
+  struct Session *res;
+};
+
+static int
+get_session_it (void *cls, const GNUNET_HashCode * key, void *value)
+{
+  struct gsi_ctx *gsi = cls;
+  struct Session *s = value;
+
+  if ((gsi->address->address_length == s->addrlen) &&
+      (0 == memcmp (gsi->address->address, s->addr, s->addrlen)))
+  {
+    gsi->res = s;
+    return GNUNET_NO;
+  }
+  return GNUNET_YES;
+}
 
 /**
  * Creates a new outbound session the transport service will use to send data to the
@@ -581,12 +488,25 @@ unix_real_send (void *cls, struct RetrySendContext *incoming_retry_context,
  * @param address the address
  * @return the session or NULL of max connections exceeded
  */
-
 static struct Session *
 unix_plugin_get_session (void *cls,
                   const struct GNUNET_HELLO_Address *address)
 {
   struct Session * s = NULL;
+  struct Plugin *plugin = cls;
+  struct gsi_ctx gsi;
+
+  /* Checks */
+  GNUNET_assert (plugin != NULL);
+  GNUNET_assert (address != NULL);
+
+  /* Check if already existing */
+  gsi.address = address;
+  gsi.res = NULL;
+  GNUNET_CONTAINER_multihashmap_get_multiple (plugin->session_map, &address->peer.hashPubKey, &get_session_it, &gsi);
+
+  /* Create a new session */
+
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "To be implemented\n");
   GNUNET_break (0);
   return s;
@@ -815,7 +735,7 @@ unix_plugin_select_write (struct Plugin * plugin)
   int sent = 0;
   struct UNIXMessageWrapper * msgw = plugin->msg_head;
 
-  sent = unix_real_send (plugin, NULL,
+  sent = unix_real_send (plugin,
                          plugin->unix_sock.desc,
                          &msgw->target,
                          (const char *) msgw->msg,
@@ -1001,27 +921,6 @@ unix_check_address (void *cls, const void *addr, size_t addrlen)
 
 
 /**
- * Append our port and forward the result.
- */
-static void
-append_port (void *cls, const char *hostname)
-{
-  struct PrettyPrinterContext *ppc = cls;
-  char *ret;
-
-  if (hostname == NULL)
-  {
-    ppc->asc (ppc->asc_cls, NULL);
-    GNUNET_free (ppc);
-    return;
-  }
-  GNUNET_asprintf (&ret, "%s:%d", hostname, ppc->port);
-  ppc->asc (ppc->asc_cls, ret);
-  GNUNET_free (ret);
-}
-
-
-/**
  * Convert the transports address to a nice, human-readable
  * format.
  *
@@ -1043,49 +942,14 @@ unix_plugin_address_pretty_printer (void *cls, const char *type,
                                     GNUNET_TRANSPORT_AddressStringCallback asc,
                                     void *asc_cls)
 {
-  struct PrettyPrinterContext *ppc;
-  const void *sb;
-  size_t sbs;
-  struct sockaddr_in a4;
-  struct sockaddr_in6 a6;
-  const struct IPv4UdpAddress *u4;
-  const struct IPv6UdpAddress *u6;
-  uint16_t port;
-
-  if (addrlen == sizeof (struct IPv6UdpAddress))
-  {
-    u6 = addr;
-    memset (&a6, 0, sizeof (a6));
-    a6.sin6_family = AF_INET6;
-    a6.sin6_port = u6->u6_port;
-    memcpy (&a6.sin6_addr, &u6->ipv6_addr, sizeof (struct in6_addr));
-    port = ntohs (u6->u6_port);
-    sb = &a6;
-    sbs = sizeof (a6);
-  }
-  else if (addrlen == sizeof (struct IPv4UdpAddress))
-  {
-    u4 = addr;
-    memset (&a4, 0, sizeof (a4));
-    a4.sin_family = AF_INET;
-    a4.sin_port = u4->u_port;
-    a4.sin_addr.s_addr = u4->ipv4_addr;
-    port = ntohs (u4->u_port);
-    sb = &a4;
-    sbs = sizeof (a4);
-  }
+  if ((addr != NULL) && (addrlen > 0))
+    asc (asc_cls, (const char *) addr);
   else
   {
-    /* invalid address */
-    GNUNET_break_op (0);
-    asc (asc_cls, NULL);
-    return;
+    GNUNET_break (0);
+    asc (asc_cls, "Invalid UNIX address");
   }
-  ppc = GNUNET_malloc (sizeof (struct PrettyPrinterContext));
-  ppc->asc = asc;
-  ppc->asc_cls = asc_cls;
-  ppc->port = port;
-  GNUNET_RESOLVER_hostname_get (sb, sbs, !numeric, timeout, &append_port, ppc);
+
 }
 
 /**
@@ -1161,6 +1025,8 @@ libgnunet_plugin_transport_unix_init (void *cls)
   if (sockets_created == 0)
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _("Failed to open UNIX sockets\n"));
 
+  plugin->session_map = GNUNET_CONTAINER_multihashmap_create(10);
+
   GNUNET_SCHEDULER_add_now (address_notification, plugin);
   return api;
 }
@@ -1172,6 +1038,8 @@ libgnunet_plugin_transport_unix_done (void *cls)
   struct Plugin *plugin = api->cls;
 
   unix_transport_server_stop (plugin);
+
+  GNUNET_CONTAINER_multihashmap_destroy (plugin->session_map);
 
   GNUNET_NETWORK_fdset_destroy (plugin->rs);
   GNUNET_NETWORK_fdset_destroy (plugin->ws);
