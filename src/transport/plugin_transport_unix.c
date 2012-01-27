@@ -325,6 +325,11 @@ struct Plugin
   struct GNUNET_NETWORK_FDSet *rs;
 
   /**
+   * FD Write set
+   */
+  struct GNUNET_NETWORK_FDSet *ws;
+
+  /**
    * socket that we transmit all data with
    */
   struct UNIX_Sock_Info unix_sock;
@@ -806,19 +811,9 @@ unix_demultiplexer (struct Plugin *plugin, struct GNUNET_PeerIdentity *sender,
 }
 
 
-/*
- * @param cls the plugin handle
- * @param tc the scheduling context (for rescheduling this function again)
- *
- * We have been notified that our writeset has something to read.  We don't
- * know which socket needs to be read, so we have to check each one
- * Then reschedule this function to be called again once more is available.
- *
- */
 static void
-unix_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+unix_plugin_select_read (struct Plugin * plugin)
 {
-  struct Plugin *plugin = cls;
   char buf[65536];
   struct UNIXMessage *msg;
   struct GNUNET_PeerIdentity sender;
@@ -831,14 +826,9 @@ unix_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   const struct GNUNET_MessageHeader *currhdr;
   uint16_t csize;
 
-  plugin->select_task = GNUNET_SCHEDULER_NO_TASK;
-  if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
-    return;
-
   addrlen = sizeof (un);
   memset (&un, 0, sizeof (un));
-  GNUNET_assert (GNUNET_NETWORK_fdset_isset
-                 (tc->read_ready, plugin->unix_sock.desc));
+
   ret =
       GNUNET_NETWORK_socket_recvfrom (plugin->unix_sock.desc, buf, sizeof (buf),
                                       (struct sockaddr *) &un, &addrlen);
@@ -846,11 +836,6 @@ unix_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (ret == GNUNET_SYSERR)
   {
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "recvfrom");
-    plugin->select_task =
-        GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                                     GNUNET_SCHEDULER_NO_TASK,
-                                     GNUNET_TIME_UNIT_FOREVER_REL, plugin->rs,
-                                     NULL, &unix_plugin_select, plugin);
     return;
   }
   else
@@ -871,11 +856,6 @@ unix_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if ((csize < sizeof (struct UNIXMessage)) || (csize > ret))
   {
     GNUNET_break_op (0);
-    plugin->select_task =
-        GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                                     GNUNET_SCHEDULER_NO_TASK,
-                                     GNUNET_TIME_UNIT_FOREVER_REL, plugin->rs,
-                                     NULL, &unix_plugin_select, plugin);
     return;
   }
   msgbuf = (char *) &msg[1];
@@ -895,11 +875,53 @@ unix_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     unix_demultiplexer (plugin, &sender, currhdr, &un, sizeof (un));
     offset += csize;
   }
+}
+
+static void
+unix_plugin_select_write (struct Plugin * plugin)
+{
+
+
+}
+
+/*
+ * @param cls the plugin handle
+ * @param tc the scheduling context (for rescheduling this function again)
+ *
+ * We have been notified that our writeset has something to read.  We don't
+ * know which socket needs to be read, so we have to check each one
+ * Then reschedule this function to be called again once more is available.
+ *
+ */
+static void
+unix_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct Plugin *plugin = cls;
+
+  plugin->select_task = GNUNET_SCHEDULER_NO_TASK;
+  if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
+    return;
+
+
+  if ((tc->reason & GNUNET_SCHEDULER_REASON_WRITE_READY) != 0)
+  {
+    GNUNET_assert (GNUNET_NETWORK_fdset_isset
+                   (tc->write_ready, plugin->unix_sock.desc));
+    unix_plugin_select_write (plugin);
+  }
+
+  if ((tc->reason & GNUNET_SCHEDULER_REASON_READ_READY) != 0)
+  {
+    GNUNET_assert (GNUNET_NETWORK_fdset_isset
+                   (tc->read_ready, plugin->unix_sock.desc));
+    unix_plugin_select_read (plugin);
+  }
+
   plugin->select_task =
       GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
                                    GNUNET_SCHEDULER_NO_TASK,
                                    GNUNET_TIME_UNIT_FOREVER_REL, plugin->rs,
-                                   NULL, &unix_plugin_select, plugin);
+                                   plugin->ws, &unix_plugin_select, plugin);
 }
 
 /**
@@ -956,14 +978,17 @@ unix_transport_server_start (void *cls)
                    &un.sun_path[0]);
 #endif
   plugin->rs = GNUNET_NETWORK_fdset_create ();
+  plugin->ws = GNUNET_NETWORK_fdset_create ();
   GNUNET_NETWORK_fdset_zero (plugin->rs);
+  GNUNET_NETWORK_fdset_zero (plugin->ws);
   GNUNET_NETWORK_fdset_set (plugin->rs, plugin->unix_sock.desc);
+  GNUNET_NETWORK_fdset_set (plugin->ws, plugin->unix_sock.desc);
 
   plugin->select_task =
       GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
                                    GNUNET_SCHEDULER_NO_TASK,
                                    GNUNET_TIME_UNIT_FOREVER_REL, plugin->rs,
-                                   NULL, &unix_plugin_select, plugin);
+                                   plugin->ws, &unix_plugin_select, plugin);
   return 1;
 }
 
@@ -1171,6 +1196,7 @@ libgnunet_plugin_transport_unix_done (void *cls)
   unix_transport_server_stop (plugin);
 
   GNUNET_NETWORK_fdset_destroy (plugin->rs);
+  GNUNET_NETWORK_fdset_destroy (plugin->ws);
   GNUNET_free (plugin->unix_socket_path);
   GNUNET_free (plugin);
   GNUNET_free (api);
