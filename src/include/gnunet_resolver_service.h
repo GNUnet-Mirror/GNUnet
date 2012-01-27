@@ -78,14 +78,14 @@ GNUNET_RESOLVER_disconnect (void);
  * Convert a string to one or more IP addresses.
  *
  * @param hostname the hostname to resolve
- * @param domain AF_INET or AF_INET6; use AF_UNSPEC for "any"
+ * @param af AF_INET or AF_INET6; use AF_UNSPEC for "any"
  * @param callback function to call with addresses
  * @param callback_cls closure for callback
  * @param timeout how long to try resolving
  * @return handle that can be used to cancel the request, NULL on error
  */
 struct GNUNET_RESOLVER_RequestHandle *
-GNUNET_RESOLVER_ip_get (const char *hostname, int domain,
+GNUNET_RESOLVER_ip_get (const char *hostname, int af,
                         struct GNUNET_TIME_Relative timeout,
                         GNUNET_RESOLVER_AddressCallback callback,
                         void *callback_cls);
@@ -94,14 +94,14 @@ GNUNET_RESOLVER_ip_get (const char *hostname, int domain,
 /**
  * Resolve our hostname to an IP address.
  *
- * @param domain AF_INET or AF_INET6; use AF_UNSPEC for "any"
+ * @param af AF_INET or AF_INET6; use AF_UNSPEC for "any"
  * @param callback function to call with addresses
  * @param cls closure for callback
  * @param timeout how long to try resolving
  * @return handle that can be used to cancel the request, NULL on error
  */
 struct GNUNET_RESOLVER_RequestHandle *
-GNUNET_RESOLVER_hostname_resolve (int domain,
+GNUNET_RESOLVER_hostname_resolve (int af,
                                   struct GNUNET_TIME_Relative timeout,
                                   GNUNET_RESOLVER_AddressCallback callback,
                                   void *cls);
