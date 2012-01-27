@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009 Christian Grothoff (and other contributing authors)
+     (C) 2009, 2012 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -32,20 +32,20 @@
 GNUNET_NETWORK_STRUCT_BEGIN
 
 /**
- * Request for the resolver.  Followed by either
- * the "struct sockaddr" or the 0-terminated hostname.
+ * Request for the resolver.  Followed by either the "struct sockaddr"
+ * or the 0-terminated hostname.
  *
  * The response will be one or more messages of type
- * RESOLVER_RESPONSE, each with the message header
- * immediately followed by the requested data
- * (hostname or struct sockaddr, depending on direction).
- * The last RESOLVER_RESPONSE will just be a header
- * without any data (used to indicate the end of the list).
+ * RESOLVER_RESPONSE, each with the message header immediately
+ * followed by the requested data (0-terminated hostname or struct
+ * in[6]_addr, depending on direction).  The last RESOLVER_RESPONSE
+ * will just be a header without any data (used to indicate the end of
+ * the list).
  */
 struct GNUNET_RESOLVER_GetMessage
 {
   /**
-   * Type:  GNUNET_MESSAGE_TYPE_STATISTICS_VALUE
+   * Type:  GNUNET_MESSAGE_TYPE_RESOLVER_REQUEST
    */
   struct GNUNET_MessageHeader header;
 
@@ -56,9 +56,12 @@ struct GNUNET_RESOLVER_GetMessage
   int32_t direction GNUNET_PACKED;
 
   /**
-   * Domain to use (AF_INET, AF_INET6 or AF_UNSPEC).
+   * Address family to use (AF_INET, AF_INET6 or AF_UNSPEC).
    */
-  int32_t domain GNUNET_PACKED;
+  int32_t af GNUNET_PACKED;
+
+  /* followed by 0-terminated string for A/AAAA-lookup or
+     by 'struct in_addr' / 'struct in6_addr' for reverse lookup */
 
 };
 GNUNET_NETWORK_STRUCT_END

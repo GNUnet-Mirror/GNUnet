@@ -30,12 +30,39 @@
 #define GET_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
 
 /**
- * Callback function to display address.
+ * Flag for reverse lookup.
+ */
+static int reverse;
+
+
+/**
+ * Prints each hostname obtained from DNS.
+ *
+ * @param cls closure (unused)
+ * @param hostname one of the names for the host, NULL
+ *        on the last call to the callback
  */
 static void
-printer (void *cls, const struct sockaddr *addr, socklen_t addrlen)
+print_hostname (void *cls,
+		const char *hostname)
 {
-  if (addr == NULL)
+  if (NULL == hostname)
+    return;
+  FPRINTF (stdout, "%s\n", hostname);
+}
+
+
+/**
+ * Callback function to display address.
+ *
+ * @param cls closure (unused)
+ * @param addr one of the addresses of the host, NULL for the last address
+ * @param addrlen length of the address
+ */
+static void
+print_sockaddr (void *cls, const struct sockaddr *addr, socklen_t addrlen)
+{
+  if (NULL == addr)
     return;
   FPRINTF (stdout, "%s\n", GNUNET_a2s (addr, addrlen));
 }
@@ -53,9 +80,57 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
+  const struct sockaddr *sa;
+  socklen_t salen;
+  struct sockaddr_in v4;
+  struct sockaddr_in6 v6;
+  
   if (args[0] == NULL)
     return;
-  GNUNET_RESOLVER_ip_get (args[0], AF_UNSPEC, GET_TIMEOUT, &printer, NULL);
+  if (! reverse)
+  {
+    GNUNET_RESOLVER_ip_get (args[0], AF_UNSPEC, GET_TIMEOUT, &print_sockaddr, NULL);
+    return;
+  }
+    
+  sa = NULL;
+  memset (&v4, 0, sizeof (v4));
+  v4.sin_family = AF_INET;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+  v4.sin_len = sizeof (v4);
+#endif
+  if (1 == inet_pton (AF_INET,
+		      args[0],
+		      &v4.sin_addr))
+  {
+    sa = (struct sockaddr *) &v4;
+    salen = sizeof (v4);
+  }
+  memset (&v6, 0, sizeof (v6));
+  v6.sin6_family = AF_INET6;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+  v6.sin6_len = sizeof (v6);
+#endif
+  if (1 == inet_pton (AF_INET6,
+		      args[0],
+		      &v6.sin6_addr))
+  {
+    sa = (struct sockaddr *) &v6;
+    salen = sizeof (v6);
+  }
+  if (NULL == sa)
+  {
+    fprintf (stderr, 
+	     "`%s' is not a valid IP: %s\n",
+	     args[0],
+	     strerror (errno));
+    return;
+  }
+  GNUNET_RESOLVER_hostname_get (sa, salen,
+				GNUNET_YES,
+				GET_TIMEOUT,
+				&print_hostname,
+				NULL);
 }
 
 /**
@@ -69,11 +144,14 @@ int
 main (int argc, char *const *argv)
 {
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
+    { 'r', "reverse", NULL,
+      gettext_noop ("perform a reverse lookup"),
+      0, &GNUNET_GETOPT_set_one, &reverse },
     GNUNET_GETOPT_OPTION_END
   };
   return (GNUNET_OK ==
           GNUNET_PROGRAM_run (argc, argv, "gnunet-resolver [hostname]",
-                              gettext_noop ("Test GNUnet DNS resolver code."),
+                              gettext_noop ("Use build-in GNUnet stub resolver"),
                               options, &run, NULL)) ? 0 : 1;
 }
 
