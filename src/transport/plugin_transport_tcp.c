@@ -1255,7 +1255,7 @@ tcp_plugin_send (void *cls,
 #if DEBUG_TCP
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
                    "Asked to transmit %u bytes to `%s', added message to list.\n",
-                   msgbuf_size, GNUNET_i2s (target));
+                   msgbuf_size, GNUNET_i2s (&session->target));
 #endif
   process_pending_messages (session);
   return msgbuf_size;
@@ -1402,7 +1402,7 @@ tcp_plugin_get_session (void *cls,
 #if DEBUG_TCP_NAT
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
                      "Created NAT WAIT connection to `%4s' at `%s'\n",
-                     GNUNET_i2s (target), GNUNET_a2s (sb, sbs));
+                     GNUNET_i2s (&address->peer), GNUNET_a2s (sb, sbs));
 #endif
     GNUNET_NAT_run_client (plugin->nat, &a4);
     return session;
@@ -1416,7 +1416,7 @@ tcp_plugin_get_session (void *cls,
 #if DEBUG_TCP
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
                      "Failed to create connection to `%4s' at `%s'\n",
-                     GNUNET_i2s (target), GNUNET_a2s (sb, sbs));
+                     GNUNET_i2s (&address->peer), GNUNET_a2s (sb, sbs));
 #endif
     return NULL;
   }
@@ -1424,7 +1424,7 @@ tcp_plugin_get_session (void *cls,
 #if DEBUG_TCP_NAT
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
                    "Asked to transmit to `%4s', creating fresh session using address `%s'.\n",
-                   GNUNET_i2s (target), GNUNET_a2s (sb, sbs));
+                   GNUNET_i2s (&address->peer), GNUNET_a2s (sb, sbs));
 #endif
   session = create_session (plugin,
                             &address->peer,
