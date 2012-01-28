@@ -277,45 +277,38 @@ GNUNET_RESOLVER_disconnect ()
  * @return address as a string, NULL on error
  */
 static char *
-no_resolve (const struct sockaddr *sa, socklen_t salen)
+no_resolve (int af,
+	    const void *ip, socklen_t ip_len)
 {
-  char *ret;
-  char inet4[INET_ADDRSTRLEN];
-  char inet6[INET6_ADDRSTRLEN];
+  char buf[INET6_ADDRSTRLEN];
 
-  if (salen < sizeof (struct sockaddr))
-    return NULL;
-  switch (sa->sa_family)
+  switch (af)
   {
   case AF_INET:
-    if (salen != sizeof (struct sockaddr_in))
+    if (ip_len != sizeof (struct in_addr))
       return NULL;
     if (NULL ==
-        inet_ntop (AF_INET, &((struct sockaddr_in *) sa)->sin_addr, inet4,
-                   INET_ADDRSTRLEN))
+        inet_ntop (AF_INET, ip, buf, sizeof (buf)))
     {
       LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "inet_ntop");
       return NULL;
     }
-    ret = GNUNET_strdup (inet4);
     break;
   case AF_INET6:
-    if (salen != sizeof (struct sockaddr_in6))
+    if (ip_len != sizeof (struct in6_addr))
       return NULL;
     if (NULL ==
-        inet_ntop (AF_INET6, &((struct sockaddr_in6 *) sa)->sin6_addr, inet6,
-                   INET6_ADDRSTRLEN))
+        inet_ntop (AF_INET6, ip, buf, sizeof (buf)))
     {
       LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "inet_ntop");
       return NULL;
     }
-    ret = GNUNET_strdup (inet6);
     break;
   default:
-    ret = NULL;
-    break;
+    GNUNET_break (0);
+    return NULL;
   }
-  return ret;
+  return GNUNET_strdup (buf);
 }
 
 
@@ -368,7 +361,8 @@ handle_response (void *cls, const struct GNUNET_MessageHeader *msg)
         /* no reverse lookup was successful, return ip as string */
         if (rh->received_response == GNUNET_NO)
           rh->name_callback (rh->cls,
-                             no_resolve ((const struct sockaddr *) &rh[1],
+                             no_resolve (rh->af,
+					 &rh[1],
                                          rh->data_len));
         /* at least one reverse lookup was successful */
         else
@@ -483,15 +477,6 @@ handle_response (void *cls, const struct GNUNET_MessageHeader *msg)
       reconnect ();
       return;
     }
-#if DEBUG_RESOLVER
-    {
-      char *ips = no_resolve (sa, salen);
-
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "Resolver returns `%s' for `%s'.\n", ips,
-           (const char *) &rh[1]);
-      GNUNET_free (ips);
-    }
-#endif
     rh->addr_callback (rh->cls, sa, salen);
     GNUNET_CLIENT_receive (client, &handle_response, rh,
                            GNUNET_TIME_absolute_get_remaining (rh->timeout));
@@ -816,7 +801,7 @@ numeric_reverse (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_RESOLVER_RequestHandle *rh = cls;
   char *result;
 
-  result = no_resolve ((const struct sockaddr *) &rh[1], rh->data_len);
+  result = no_resolve (rh->af, &rh[1], rh->data_len);
 #if DEBUG_RESOLVER
   LOG (GNUNET_ERROR_TYPE_DEBUG, _("Resolver returns `%s'.\n"), result);
 #endif
