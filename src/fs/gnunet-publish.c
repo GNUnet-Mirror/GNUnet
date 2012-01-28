@@ -84,17 +84,18 @@ do_stop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_FS_PublishContext *p;
 
+  kill_task = GNUNET_SCHEDULER_NO_TASK;
   if (pc != NULL)
   {
     p = pc;
     pc = NULL;
     GNUNET_FS_publish_stop (p);
-    if (NULL != meta)
-    {
-      GNUNET_CONTAINER_meta_data_destroy (meta);
-      meta = NULL;
-    }
   }
+  if (NULL != meta)
+  {
+    GNUNET_CONTAINER_meta_data_destroy (meta);
+    meta = NULL;
+  }  
 }
 
 
@@ -139,8 +140,7 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
       GNUNET_SCHEDULER_cancel (kill_task);
       kill_task = GNUNET_SCHEDULER_NO_TASK;
     }
-    GNUNET_SCHEDULER_add_continuation (&do_stop_task, NULL,
-                                       GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+    kill_task = GNUNET_SCHEDULER_add_now (&do_stop_task, NULL);
     break;
   case GNUNET_FS_STATUS_PUBLISH_COMPLETED:
     FPRINTF (stdout, _("Publishing `%s' done.\n"),
@@ -156,8 +156,7 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
         GNUNET_SCHEDULER_cancel (kill_task);
         kill_task = GNUNET_SCHEDULER_NO_TASK;
       }
-      GNUNET_SCHEDULER_add_continuation (&do_stop_task, NULL,
-                                         GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+      kill_task = GNUNET_SCHEDULER_add_now (&do_stop_task, NULL);
     }
     break;
   case GNUNET_FS_STATUS_PUBLISH_STOPPED:
@@ -682,6 +681,8 @@ main (int argc, char *const *argv)
      0, &GNUNET_GETOPT_set_one, &verbose},
     GNUNET_GETOPT_OPTION_END
   };
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+	      "GNUnet publish starts\n");
   bo.expiration_time =
       GNUNET_FS_year_to_time (GNUNET_FS_get_current_year () + 2);
   return (GNUNET_OK ==
