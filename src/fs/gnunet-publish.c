@@ -432,7 +432,7 @@ directory_scan_cb (void *cls, struct GNUNET_FS_DirScanner *ds,
 {
   switch (reason)
   {
-    case GNUNET_DIR_SCANNER_NEW_FILE:
+    case GNUNET_FS_DIRSCANNER_NEW_FILE:
       if (filename != NULL)
       {
         if (is_directory)
@@ -441,7 +441,7 @@ directory_scan_cb (void *cls, struct GNUNET_FS_DirScanner *ds,
           FPRINTF (stdout, _("Scanning file `%s'.\n"), filename);
       }
       break;
-    case GNUNET_DIR_SCANNER_DOES_NOT_EXIST:
+    case GNUNET_FS_DIRSCANNER_DOES_NOT_EXIST:
       if (filename != NULL)
       {
         FPRINTF (stdout, 
@@ -449,7 +449,7 @@ directory_scan_cb (void *cls, struct GNUNET_FS_DirScanner *ds,
             filename);
       }
       break;
-    case GNUNET_DIR_SCANNER_ASKED_TO_STOP:
+    case GNUNET_FS_DIRSCANNER_ASKED_TO_STOP:
       if (filename != NULL)
       {
         FPRINTF (stdout, 
@@ -459,13 +459,13 @@ directory_scan_cb (void *cls, struct GNUNET_FS_DirScanner *ds,
       else
         FPRINTF (stdout, "%s", _("Scanner is stopping.\n"));
       break;
-    case GNUNET_DIR_SCANNER_SHUTDOWN:
+    case GNUNET_FS_DIRSCANNER_SHUTDOWN:
       FPRINTF (stdout, "%s", _("Client is shutting down.\n"));
       break;
-    case GNUNET_DIR_SCANNER_FINISHED:
+    case GNUNET_FS_DIRSCANNER_FINISHED:
       FPRINTF (stdout, "%s", _("Scanner has finished.\n"));
       break;
-    case GNUNET_DIR_SCANNER_PROTOCOL_ERROR:
+    case GNUNET_FS_DIRSCANNER_PROTOCOL_ERROR:
       FPRINTF (stdout, "%s", 
           _("There was a failure communicating with the scanner.\n"));
       break;
@@ -474,9 +474,9 @@ directory_scan_cb (void *cls, struct GNUNET_FS_DirScanner *ds,
           filename);
       break;
   }
-  if ((filename == NULL && GNUNET_DIR_SCANNER_FINISHED)
-      || reason == GNUNET_DIR_SCANNER_PROTOCOL_ERROR
-      || reason == GNUNET_DIR_SCANNER_SHUTDOWN)
+  if ((filename == NULL && GNUNET_FS_DIRSCANNER_FINISHED)
+      || reason == GNUNET_FS_DIRSCANNER_PROTOCOL_ERROR
+      || reason == GNUNET_FS_DIRSCANNER_SHUTDOWN)
   {
     /* Any of this causes us to try to clean up the scanner */
     directory_scan_intermediary_result = GNUNET_FS_directory_scan_cleanup (ds);

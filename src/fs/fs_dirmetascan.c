@@ -357,8 +357,8 @@ write_progress (struct AddDirContext *adc, const char *filename,
   size_t filename_len;
   ssize_t wr;
   size_t total_write;
-  if ((adc->do_stop || should_stop (adc)) && reason != GNUNET_DIR_SCANNER_ASKED_TO_STOP
-      && reason != GNUNET_DIR_SCANNER_FINISHED)
+  if ((adc->do_stop || should_stop (adc)) && reason != GNUNET_FS_DIRSCANNER_ASKED_TO_STOP
+      && reason != GNUNET_FS_DIRSCANNER_FINISHED)
     return 1;
   total_write = 0;
   wr = 1;
@@ -764,18 +764,18 @@ scan_directory (void *cls, const char *filename)
   if (0 != STAT (filename, &sbuf))
   {
     (void) write_progress (adc, filename, S_ISDIR (sbuf.st_mode),
-			   GNUNET_DIR_SCANNER_DOES_NOT_EXIST);
+			   GNUNET_FS_DIRSCANNER_DOES_NOT_EXIST);
     return GNUNET_OK;
   }
 
   /* Report the progress */
   do_stop = write_progress (adc, filename, S_ISDIR (sbuf.st_mode),
-    GNUNET_DIR_SCANNER_NEW_FILE);
+    GNUNET_FS_DIRSCANNER_NEW_FILE);
   if (do_stop)
   {
     /* We were asked to stop, acknowledge that and return */
     (void) write_progress (adc, filename, S_ISDIR (sbuf.st_mode),
-      GNUNET_DIR_SCANNER_ASKED_TO_STOP);
+      GNUNET_FS_DIRSCANNER_ASKED_TO_STOP);
     return GNUNET_SYSERR;
   }
 
@@ -891,7 +891,7 @@ run_directory_scan_thread (void *cls)
   if (adc->plugins != NULL)
     EXTRACTOR_plugin_remove_all (adc->plugins);
   /* Tell the initiator that we're finished, it can now join the thread */
-  write_progress (adc, NULL, 0, GNUNET_DIR_SCANNER_FINISHED);
+  write_progress (adc, NULL, 0, GNUNET_FS_DIRSCANNER_FINISHED);
   return 0;
 }
 
@@ -921,7 +921,7 @@ read_progress_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if (!(tc->reason & GNUNET_SCHEDULER_REASON_READ_READY))
   {
-    ds->progress_callback (ds->cls, ds, NULL, 0, GNUNET_DIR_SCANNER_SHUTDOWN);
+    ds->progress_callback (ds->cls, ds, NULL, 0, GNUNET_FS_DIRSCANNER_SHUTDOWN);
     return;
   }
 
@@ -936,11 +936,11 @@ read_progress_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       total_read += rd;
   }
   if (total_read != sizeof (reason)
-      || reason <= GNUNET_DIR_SCANNER_FIRST
-      || reason >= GNUNET_DIR_SCANNER_LAST)
+      || reason <= GNUNET_FS_DIRSCANNER_FIRST
+      || reason >= GNUNET_FS_DIRSCANNER_LAST)
   {
     end_it = 1;
-    reason = GNUNET_DIR_SCANNER_PROTOCOL_ERROR;
+    reason = GNUNET_FS_DIRSCANNER_PROTOCOL_ERROR;
   }
 
   if (!end_it)
@@ -958,7 +958,7 @@ read_progress_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     if (rd != sizeof (size_t))
     {
       end_it = 1;
-      reason = GNUNET_DIR_SCANNER_PROTOCOL_ERROR;
+      reason = GNUNET_FS_DIRSCANNER_PROTOCOL_ERROR;
     }
   }
   if (!end_it)
@@ -968,7 +968,7 @@ read_progress_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     else if (filename_len > PATH_MAX)
     {
       end_it = 1;
-      reason = GNUNET_DIR_SCANNER_PROTOCOL_ERROR;
+      reason = GNUNET_FS_DIRSCANNER_PROTOCOL_ERROR;
     }
   }
   if (!end_it)
@@ -986,7 +986,7 @@ read_progress_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     if (rd != filename_len)
     {
       GNUNET_free (filename);
-      reason = GNUNET_DIR_SCANNER_PROTOCOL_ERROR;
+      reason = GNUNET_FS_DIRSCANNER_PROTOCOL_ERROR;
       end_it = 1;
     }
   }
@@ -1004,7 +1004,7 @@ read_progress_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     if (rd != sizeof (char))
     {
       GNUNET_free (filename);
-      reason = GNUNET_DIR_SCANNER_PROTOCOL_ERROR;
+      reason = GNUNET_FS_DIRSCANNER_PROTOCOL_ERROR;
       end_it = 1;
     }
   }
@@ -1048,6 +1048,9 @@ GNUNET_FS_directory_scan_start (const char *filename,
   struct GNUNET_DISK_PipeHandle *progress_pipe;
   int ok;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+	      "Starting to scan directory `%s'\n",
+	      filename);
   if (0 != STAT (filename, &sbuf))
     return NULL;
 
@@ -1102,6 +1105,10 @@ GNUNET_FS_directory_scan_start (const char *filename,
 
   ds->progress_read = GNUNET_DISK_pipe_handle (progress_pipe,
       GNUNET_DISK_PIPE_END_READ);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+	      "Creating thread to scan directory `%s'\n",
+	      filename);
 
 #if WINDOWS
   ds->thread = CreateThread (NULL, 0,
