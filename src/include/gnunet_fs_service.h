@@ -53,8 +53,9 @@ extern "C"
  * 6.0.0: with support for OR in KSKs
  * 6.1.x: with simplified namespace support
  * 9.0.0: CPS-style integrated API
+ * 9.1.1: asynchronous directory scanning
  */
-#define GNUNET_FS_VERSION 0x00090001
+#define GNUNET_FS_VERSION 0x00090101
 
 
 /* ******************** URI API *********************** */
@@ -1760,6 +1761,7 @@ GNUNET_FS_file_information_get_id (struct GNUNET_FS_FileInformation *s);
 const char *
 GNUNET_FS_file_information_get_filename (struct GNUNET_FS_FileInformation *s);
 
+
 /**
  * Set the filename in the file information structure.
  * If filename was already set, frees it before setting the new one.
@@ -1771,6 +1773,7 @@ GNUNET_FS_file_information_get_filename (struct GNUNET_FS_FileInformation *s);
 void
 GNUNET_FS_file_information_set_filename (struct GNUNET_FS_FileInformation *s,
                                          const char *filename);
+
 
 /**
  * Create an entry for a file in a publish-structure.
@@ -1877,105 +1880,6 @@ GNUNET_FS_file_information_create_from_reader (struct GNUNET_FS_Handle *h,
                                                int do_index,
                                                const struct
                                                GNUNET_FS_BlockOptions *bo);
-
-
-/**
- * Function that a "GNUNET_FS_DirectoryScanner" should call
- * for each entry in the directory.
- *
- * @param cls closure
- * @param filename name of the file (including path); must end
- *          in a "/" (even on W32) if this is a directory
- * @param fi information about the file (should not be
- *        used henceforth by the caller)
- */
-typedef void (*GNUNET_FS_FileProcessor) (void *cls, const char *filename,
-                                         struct GNUNET_FS_FileInformation * fi);
-
-
-/**
- * Type of a function that will be used to scan a directory.
- *
- * @param cls closure
- * @param h handle to the file sharing subsystem
- * @param dirname name of the directory to scan
- * @param do_index should files be indexed or inserted
- * @param bo block options
- * @param proc function to call on each entry
- * @param proc_cls closure for proc
- * @param emsg where to store an error message (on errors)
- * @return GNUNET_OK on success
- */
-typedef int (*GNUNET_FS_DirectoryScanner) (void *cls,
-                                           struct GNUNET_FS_Handle * h,
-                                           const char *dirname, int do_index,
-                                           const struct GNUNET_FS_BlockOptions *
-                                           bo, GNUNET_FS_FileProcessor proc,
-                                           void *proc_cls, char **emsg);
-
-
-
-/**
- * Simple, useful default implementation of a directory scanner
- * (GNUNET_FS_DirectoryScanner).  This implementation expects to get a
- * UNIX filename, will publish all files in the directory except hidden
- * files (those starting with a ".").  Metadata will be extracted
- * using GNU libextractor; the specific list of plugins should be
- * specified in "cls", passing NULL will disable (!)  metadata
- * extraction.  Keywords will be derived from the metadata and
- * associated with directories as appropriate.  This is strictly a
- * convenience function (however, if all tools use it, there will
- * be less of a chance of distinguishing users by the specific 
- * user-interface they were using).
- *
- * @param cls must be of type "struct EXTRACTOR_Extractor*"
- * @param h handle to the file sharing subsystem
- * @param dirname name of the directory to scan
- * @param do_index should files be indexed or inserted
- * @param bo block options
- * @param proc function called on each entry
- * @param proc_cls closure for proc
- * @param emsg where to store an error message (on errors)
- * @return GNUNET_OK on success
- */
-int
-GNUNET_FS_directory_scanner_default (void *cls, struct GNUNET_FS_Handle *h,
-                                     const char *dirname, int do_index,
-                                     const struct GNUNET_FS_BlockOptions *bo,
-                                     GNUNET_FS_FileProcessor proc,
-                                     void *proc_cls, char **emsg);
-
-
-/**
- * Create a publish-structure from an existing file hierarchy, inferring
- * and organizing keywords and metadata as much as possible.  This
- * function primarily performs the recursive build and re-organizes
- * keywords and metadata; for automatically getting metadata
- * extraction, scanning of directories and creation of the respective
- * GNUNET_FS_FileInformation entries the default scanner should be
- * passed (GNUNET_FS_directory_scanner_default).  This is strictly a
- * convenience function.
- *
- * @param h handle to the file sharing subsystem
- * @param client_info initial client-info value for this entry
- * @param filename name of the top-level file or directory
- * @param scanner function used to get a list of files in a directory
- * @param scanner_cls closure for scanner
- * @param do_index should files in the hierarchy be indexed?
- * @param bo block options
- * @param emsg where to store an error message
- * @return publish structure entry for the directory, NULL on error
- */
-struct GNUNET_FS_FileInformation *
-GNUNET_FS_file_information_create_from_directory (struct GNUNET_FS_Handle *h,
-                                                  void *client_info,
-                                                  const char *filename,
-                                                  GNUNET_FS_DirectoryScanner
-                                                  scanner, void *scanner_cls,
-                                                  int do_index,
-                                                  const struct
-                                                  GNUNET_FS_BlockOptions *bo,
-                                                  char **emsg);
 
 
 /**
@@ -2692,22 +2596,69 @@ GNUNET_FS_directory_builder_finish (struct GNUNET_FS_DirectoryBuilder *bld,
 
 /* ******************** DirScanner API *********************** */
 
+/**
+ * Progress reasons of the directory scanner.
+ */
 enum GNUNET_FS_DirScannerProgressUpdateReason
 {
+  /**
+   * FIXME
+   */
   GNUNET_FS_DIRSCANNER_FIRST = 0,
+
+  /**
+   * FIXME
+   */
   GNUNET_FS_DIRSCANNER_NEW_FILE = 1,
+
+  /**
+   * FIXME
+   */
   GNUNET_FS_DIRSCANNER_DOES_NOT_EXIST = 2,
+
+  /**
+   * FIXME
+   */
   GNUNET_FS_DIRSCANNER_ASKED_TO_STOP = 3,
+
+  /**
+   * FIXME
+   */
   GNUNET_FS_DIRSCANNER_FINISHED = 4,
+
+  /**
+   * FIXME
+   */
   GNUNET_FS_DIRSCANNER_PROTOCOL_ERROR = 5,
+
+  /**
+   * FIXME
+   */
   GNUNET_FS_DIRSCANNER_SHUTDOWN = 6,
+
+  /**
+   * FIXME
+   */
   GNUNET_FS_DIRSCANNER_LAST = 7
 };
 
 
-typedef int (* GNUNET_FS_DirScannerProgressCallback) (
-    void *cls, struct GNUNET_FS_DirScanner *ds, const char *filename,
-    char is_directory, enum GNUNET_FS_DirScannerProgressUpdateReason reason);
+/**
+ * Function called over time as the directory scanner makes
+ * progress on the job at hand.
+ *
+ * @param cls closure
+ * @param ds handle to the directory scanner (NEEDED!?)
+ * @param filename which file we are making progress on
+ * @param is_directory GNUNET_YES if this is a directory
+ * @param reason kind of progress we are making
+ */
+typedef int (*GNUNET_FS_DirScannerProgressCallback) (void *cls, 
+						     struct GNUNET_FS_DirScanner *ds, 
+						     const char *filename,
+						     int is_directory, 
+						     enum GNUNET_FS_DirScannerProgressUpdateReason reason);
+
 
 /**
  * A node of a directory tree (produced by dirscanner)
@@ -2763,24 +2714,46 @@ struct GNUNET_FS_ShareTreeItem
   char *short_filename;
 
   /**
-   * 1 if this is a directory
-   */
-  char is_directory;
-
-  /**
-   * Size of the file (if it's a file), in bytes
+   * Size of the file (if it is a file), in bytes
    */
   uint64_t file_size;
+
+  /**
+   * GNUNET_YES if this is a directory
+   */
+  int is_directory;
+
 };
 
-/* opaqe */
-struct GNUNET_FS_DirScanner;
 
 /**
- * Signals the scanner to finish the scan as fast as possible.
- * Does not block.
- * Can close the pipe if asked to, but that is only used by the
- * internal call to this function during cleanup. The client
+ * Opaqe handle to an asynchronous directory scanning activity.
+ */
+struct GNUNET_FS_DirScanner;
+
+
+/**
+ * Start a directory scanner thread.
+ *
+ * @param filename name of the directory to scan
+ * @param GNUNET_YES to not to run libextractor on files (only build a tree)
+ * @param ex if not NULL, must be a list of extra plugins for extractor
+ * @param cb the callback to call when there are scanning progress messages
+ * @param cb_cls closure for 'cb'
+ * @return directory scanner object to be used for controlling the scanner
+ */
+struct GNUNET_FS_DirScanner *
+GNUNET_FS_directory_scan_start (const char *filename,
+				int disable_extractor, 
+				const char *ex,
+				GNUNET_FS_DirScannerProgressCallback cb, 
+				void *cb_cls);
+
+
+/**
+ * Signals the scanner to finish the scan as fast as possible.  Does
+ * not block.  Can close the pipe if asked to, but that is only used
+ * by the internal call to this function during cleanup. The client
  * must understand the consequences of closing the pipe too early.
  *
  * @param ds directory scanner structure
@@ -2788,7 +2761,8 @@ struct GNUNET_FS_DirScanner;
  */
 void
 GNUNET_FS_directory_scan_finish (struct GNUNET_FS_DirScanner *ds,
-    int close_pipe);
+				 int close_pipe);
+
 
 /**
  * Signals the scanner thread to finish (in case it isn't finishing
@@ -2804,23 +2778,10 @@ GNUNET_FS_directory_scan_finish (struct GNUNET_FS_DirScanner *ds,
 struct GNUNET_FS_ShareTreeItem *
 GNUNET_FS_directory_scan_cleanup (struct GNUNET_FS_DirScanner *ds);
 
+
 /**
- * Start a directory scanner thread.
- *
- * @param filename name of the directory to scan
- * @param GNUNET_YES to not to run libextractor on files (only build a tree)
- * @param ex if not NULL, must be a list of extra plugins for extractor
- * @param cb the callback to call when there are scanning progress messages
- * @param cls closure for 'cb'
- * @return directory scanner object to be used for controlling the scanner
+ * opaque 
  */
-struct GNUNET_FS_DirScanner *
-GNUNET_FS_directory_scan_start (const char *filename,
-    int disable_extractor, const char *ex,
-    GNUNET_FS_DirScannerProgressCallback cb, void *cls);
-
-
-/* opaque */
 struct GNUNET_FS_ProcessMetadataContext;
 
 /**
@@ -2830,10 +2791,12 @@ struct GNUNET_FS_ProcessMetadataContext;
  * @param toplevel toplevel directory in the tree, returned by the scanner
  * @param cb called after processing is done
  * @param cls closure for 'cb'
+ * @return FIXME: what would this handle be used for?
  */
 struct GNUNET_FS_ProcessMetadataContext *
 GNUNET_FS_trim_share_tree (struct GNUNET_FS_ShareTreeItem *toplevel,
-    GNUNET_SCHEDULER_Task cb, void *cls);
+			   GNUNET_SCHEDULER_Task cb, void *cls);
+
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

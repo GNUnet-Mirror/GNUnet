@@ -427,8 +427,9 @@ directory_trim_complete (void *cls,
 
 static int
 directory_scan_cb (void *cls, struct GNUNET_FS_DirScanner *ds,
-    const char *filename, char is_directory,
-    enum GNUNET_FS_DirScannerProgressUpdateReason reason)
+		   const char *filename, 
+		   int is_directory,
+		   enum GNUNET_FS_DirScannerProgressUpdateReason reason)
 {
   switch (reason)
   {
