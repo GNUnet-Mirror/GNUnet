@@ -404,5 +404,29 @@ GNUNET_FS_share_tree_trim (struct GNUNET_FS_ShareTreeItem *toplevel)
   GNUNET_CONTAINER_multihashmap_destroy (tc.metacounter);
 }
 
+
+/**
+ * Release memory of a share item tree.
+ *
+ * @param toplevel toplevel of the tree to be freed
+ */
+void
+GNUNET_FS_share_tree_free (struct GNUNET_FS_ShareTreeItem *toplevel)
+{
+  struct GNUNET_FS_ShareTreeItem *pos;
+
+  while (NULL != (pos = toplevel->children_head))
+    GNUNET_FS_share_tree_free (pos);
+  if (NULL != toplevel->parent)
+    GNUNET_CONTAINER_DLL_remove (toplevel->parent->children_head,
+				 toplevel->parent->children_tail,
+				 toplevel);
+  GNUNET_CONTAINER_meta_data_destroy (toplevel->meta);
+  GNUNET_FS_uri_destroy (toplevel->ksk_uri);
+  GNUNET_free_non_null (toplevel->filename);
+  GNUNET_free_non_null (toplevel->short_filename);
+  GNUNET_free (toplevel);
+}
+
 /* end fs_sharetree.c */
 
