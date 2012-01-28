@@ -68,11 +68,7 @@ static GNUNET_SCHEDULER_TaskIdentifier kill_task;
 
 static struct GNUNET_FS_DirScanner *ds;
 
-static struct GNUNET_FS_ShareTreeItem * directory_scan_intermediary_result;
-
 static struct GNUNET_FS_ShareTreeItem * directory_scan_result;
-
-static struct GNUNET_FS_ProcessMetadataContext *pmc;
 
 static struct GNUNET_FS_Namespace *namespace;
 
@@ -378,21 +374,17 @@ get_file_information (struct GNUNET_FS_ShareTreeItem *item)
         item->ksk_uri, item->meta, !do_insert,
         &bo);
   }
-  GNUNET_CONTAINER_meta_data_destroy (item->meta);
-  GNUNET_FS_uri_destroy (item->ksk_uri);
-  GNUNET_free (item->short_filename);
-  GNUNET_free (item->filename);
-  GNUNET_free (item);
   return fi;
 }
 
+
 static void
-directory_trim_complete (void *cls,
-    const struct GNUNET_SCHEDULER_TaskContext *tc)
+directory_trim_complete ()
 {
   struct GNUNET_FS_FileInformation *fi;
-  directory_scan_result = directory_scan_intermediary_result;
+
   fi = get_file_information (directory_scan_result);
+  GNUNET_FS_share_tree_free (directory_scan_result);
   directory_scan_result = NULL;
   if (fi == NULL)
   {
@@ -425,7 +417,8 @@ directory_trim_complete (void *cls,
   }
 }
 
-static int
+
+static void
 directory_scan_cb (void *cls, struct GNUNET_FS_DirScanner *ds,
 		   const char *filename, 
 		   int is_directory,
@@ -433,64 +426,47 @@ directory_scan_cb (void *cls, struct GNUNET_FS_DirScanner *ds,
 {
   switch (reason)
   {
-    case GNUNET_FS_DIRSCANNER_NEW_FILE:
-      if (filename != NULL)
-      {
-        if (is_directory)
-          FPRINTF (stdout, _("Scanning directory `%s'.\n"), filename);
-        else
-          FPRINTF (stdout, _("Scanning file `%s'.\n"), filename);
-      }
+    case GNUNET_FS_DIRSCANNER_FILE_START:
+      if (is_directory)
+	FPRINTF (stdout, _("Scanning directory `%s'.\n"), filename);
+      else
+	FPRINTF (stdout, _("Scanning file `%s'.\n"), filename);      
+      break;
+    case GNUNET_FS_DIRSCANNER_SUBTREE_COUNTED:
+      if (is_directory)
+	FPRINTF (stdout, _("Done scanning directory `%s'.\n"), filename);
+      break;
+    case GNUNET_FS_DIRSCANNER_ALL_COUNTED:
+      FPRINTF (stdout, "%s", _("Preprocessing complete.\n"));      
+      break;
+    case GNUNET_FS_DIRSCANNER_EXTRACT_FINISHED:
+      FPRINTF (stdout, _("Extracting meta data from file `%s' complete.\n"), filename);      
       break;
     case GNUNET_FS_DIRSCANNER_DOES_NOT_EXIST:
-      if (filename != NULL)
-      {
-        FPRINTF (stdout, 
-            _("Failed to scan `%s', because it does not exist.\n"),
-            filename);
-      }
-      break;
-    case GNUNET_FS_DIRSCANNER_ASKED_TO_STOP:
-      if (filename != NULL)
-      {
-        FPRINTF (stdout, 
-            _("Scanner was about to scan `%s', but is now stopping.\n"),
-            filename);
-      }
-      else
-        FPRINTF (stdout, "%s", _("Scanner is stopping.\n"));
-      break;
-    case GNUNET_FS_DIRSCANNER_SHUTDOWN:
-      FPRINTF (stdout, "%s", _("Client is shutting down.\n"));
+      FPRINTF (stdout, 
+	       _("There was trouble processing file `%s', skipping it.\n"),
+	       filename);
       break;
     case GNUNET_FS_DIRSCANNER_FINISHED:
       FPRINTF (stdout, "%s", _("Scanner has finished.\n"));
+      directory_scan_result = GNUNET_FS_directory_scan_get_result (ds);
+      ds = NULL;
+      GNUNET_FS_share_tree_trim (directory_scan_result);
+      directory_trim_complete ();
       break;
-    case GNUNET_FS_DIRSCANNER_PROTOCOL_ERROR:
-      FPRINTF (stdout, "%s", 
-          _("There was a failure communicating with the scanner.\n"));
+    case GNUNET_FS_DIRSCANNER_INTERNAL_ERROR:
+      FPRINTF (stdout, "%s", _("Internal error scanning directory.\n"));
+      GNUNET_FS_directory_scan_abort (ds);
+      ds = NULL;
+      if (namespace != NULL)
+	GNUNET_FS_namespace_delete (namespace, GNUNET_NO);
+      GNUNET_FS_stop (ctx);
+      ret = 1;
       break;
     default:
-      FPRINTF (stdout, _("Got unknown scanner update with filename `%s'.\n"),
-          filename);
+      GNUNET_assert (0);
       break;
   }
-  if ((filename == NULL && GNUNET_FS_DIRSCANNER_FINISHED)
-      || reason == GNUNET_FS_DIRSCANNER_PROTOCOL_ERROR
-      || reason == GNUNET_FS_DIRSCANNER_SHUTDOWN)
-  {
-    /* Any of this causes us to try to clean up the scanner */
-    directory_scan_intermediary_result = GNUNET_FS_directory_scan_cleanup (ds);
-    pmc = GNUNET_FS_trim_share_tree (directory_scan_intermediary_result,
-      &directory_trim_complete, NULL);
-
-    ds = NULL;
-    /* FIXME: change the tree processor to be able to free untrimmed trees
-     * right here instead of waiting for trimming to complete, if we need to
-     * cancel everything.
-     */
-  }
-  return 0;
 }
 
 

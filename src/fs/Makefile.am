@@ -36,6 +36,7 @@ libgnunetfs_la_SOURCES = \
   fs_misc.c \
   fs_namespace.c \
   fs_search.c \
+  fs_sharetree.c \
   fs_tree.c fs_tree.h \
   fs_unindex.c \
   fs_uri.c 

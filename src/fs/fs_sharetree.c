@@ -421,8 +421,10 @@ GNUNET_FS_share_tree_free (struct GNUNET_FS_ShareTreeItem *toplevel)
     GNUNET_CONTAINER_DLL_remove (toplevel->parent->children_head,
 				 toplevel->parent->children_tail,
 				 toplevel);
-  GNUNET_CONTAINER_meta_data_destroy (toplevel->meta);
-  GNUNET_FS_uri_destroy (toplevel->ksk_uri);
+  if (NULL != toplevel->meta)
+    GNUNET_CONTAINER_meta_data_destroy (toplevel->meta);
+  if (NULL != toplevel->ksk_uri)
+    GNUNET_FS_uri_destroy (toplevel->ksk_uri);
   GNUNET_free_non_null (toplevel->filename);
   GNUNET_free_non_null (toplevel->short_filename);
   GNUNET_free (toplevel);
