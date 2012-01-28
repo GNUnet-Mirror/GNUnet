@@ -272,8 +272,9 @@ GNUNET_RESOLVER_disconnect ()
 /**
  * Convert IP address to string without DNS resolution.
  *
- * @param sa the address
- * @param salen number of bytes in sa
+ * @param af address family
+ * @param ip the address
+ * @param ip_len number of bytes in ip
  * @return address as a string, NULL on error
  */
 static char *

@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2001, 2002, 2005, 2006, 2009 Christian Grothoff (and other contributing authors)
+     (C) 2001--2012 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -1972,6 +1972,7 @@ GNUNET_DISK_file_sync (const struct GNUNET_DISK_FileHandle *h)
 #endif
 }
 
+
 #if WINDOWS
 /* Copyright Bob Byrnes  <byrnes <at> curl.com>
    http://permalink.gmane.org/gmane.os.cygwin.patches/2121
@@ -2110,6 +2111,7 @@ create_selectable_pipe (PHANDLE read_pipe_ptr, PHANDLE write_pipe_ptr,
 }
 #endif
 
+
 /**
  * Creates an interprocess channel
  *
@@ -2122,18 +2124,9 @@ create_selectable_pipe (PHANDLE read_pipe_ptr, PHANDLE write_pipe_ptr,
 struct GNUNET_DISK_PipeHandle *
 GNUNET_DISK_pipe (int blocking_read, int blocking_write, int inherit_read, int inherit_write)
 {
-  struct GNUNET_DISK_PipeHandle *p;
-  struct GNUNET_DISK_FileHandle *fds;
-
-  p = GNUNET_malloc (sizeof (struct GNUNET_DISK_PipeHandle) +
-                     2 * sizeof (struct GNUNET_DISK_FileHandle));
-  fds = (struct GNUNET_DISK_FileHandle *) &p[1];
-  p->fd[0] = &fds[0];
-  p->fd[1] = &fds[1];
 #ifndef MINGW
   int fd[2];
   int ret;
-  int flags;
   int eno;
 
   ret = pipe (fd);
@@ -2141,58 +2134,14 @@ GNUNET_DISK_pipe (int blocking_read, int blocking_write, int inherit_read, int i
   {
     eno = errno;
     LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "pipe");
-    GNUNET_free (p);
     errno = eno;
     return NULL;
   }
-  p->fd[0]->fd = fd[0];
-  p->fd[1]->fd = fd[1];
-  ret = 0;
-  if (!blocking_read)
-  {
-    flags = fcntl (fd[0], F_GETFL);
-    flags |= O_NONBLOCK;
-    if (0 > fcntl (fd[0], F_SETFL, flags))
-    {
-      ret = -1;
-      eno = errno;
-    }
-  }
-  flags = fcntl (fd[0], F_GETFD);
-  flags |= FD_CLOEXEC;
-  if (0 > fcntl (fd[0], F_SETFD, flags))
-  {
-    ret = -1;
-    eno = errno;
-  }
-
-  if (!blocking_write)
-  {
-    flags = fcntl (fd[1], F_GETFL);
-    flags |= O_NONBLOCK;
-    if (0 > fcntl (fd[1], F_SETFL, flags))
-    {
-      ret = -1;
-      eno = errno;
-    }
-  }
-  flags = fcntl (fd[1], F_GETFD);
-  flags |= FD_CLOEXEC;
-  if (0 > fcntl (fd[1], F_SETFD, flags))
-  {
-    ret = -1;
-    eno = errno;
-  }
-  if (ret == -1)
-  {
-    LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "fcntl");
-    GNUNET_break (0 == close (p->fd[0]->fd));
-    GNUNET_break (0 == close (p->fd[1]->fd));
-    GNUNET_free (p);
-    errno = eno;
-    return NULL;
-  }
+  return GNUNET_DISK_pipe_from_fd (blocking_read,
+				   blocking_write,
+				   fd);
 #else
+  struct GNUNET_DISK_PipeHandle *p;
   BOOL ret;
   HANDLE tmp_handle;
 
@@ -2249,15 +2198,17 @@ GNUNET_DISK_pipe (int blocking_read, int blocking_write, int inherit_read, int i
   p->fd[1]->oOverlapRead->hEvent = CreateEvent (NULL, FALSE, FALSE, NULL);
   p->fd[1]->oOverlapWrite->hEvent = CreateEvent (NULL, FALSE, FALSE, NULL);
 
-#endif
   return p;
+#endif
 }
+
 
 /**
  * Creates a pipe object from a couple of file descriptors.
  * Useful for wrapping existing pipe FDs.
  *
- * @param blocking creates an asynchronous pipe if set to GNUNET_NO
+ * @param blocking_read creates an asynchronous pipe for reading if set to GNUNET_NO
+ * @param blocking_write creates an asynchronous pipe for writing if set to GNUNET_NO
  * @param fd an array of two fd values. One of them may be -1 for read-only or write-only pipes
  *
  * @return handle to the new pipe, NULL on error
@@ -2283,32 +2234,48 @@ GNUNET_DISK_pipe_from_fd (int blocking_read, int blocking_write, int fd[2])
   ret = 0;
   if (fd[0] >= 0)
   {
-    flags = fcntl (fd[0], F_GETFL);
     if (!blocking_read)
+    {
+      flags = fcntl (fd[0], F_GETFL);
       flags |= O_NONBLOCK;
-    if (0 > fcntl (fd[0], F_SETFL, flags))
-      ret = -1;
+      if (0 > fcntl (fd[0], F_SETFL, flags))
+      {
+	ret = -1;
+	eno = errno;
+      }
+    }
     flags = fcntl (fd[0], F_GETFD);
     flags |= FD_CLOEXEC;
     if (0 > fcntl (fd[0], F_SETFD, flags))
+    {
       ret = -1;
+      eno = errno;
+    }
   }
 
   if (fd[1] >= 0)
   {
-    flags = fcntl (fd[1], F_GETFL);
     if (!blocking_write)
+    {
+      flags = fcntl (fd[1], F_GETFL);
       flags |= O_NONBLOCK;
-    if (0 > fcntl (fd[1], F_SETFL, flags))
-      ret = -1;
+      if (0 > fcntl (fd[1], F_SETFL, flags))
+      {
+	ret = -1;
+	eno = errno;
+      }
+    }
     flags = fcntl (fd[1], F_GETFD);
     flags |= FD_CLOEXEC;
     if (0 > fcntl (fd[1], F_SETFD, flags))
+    {
       ret = -1;
+      eno = errno;
+    }
   }
   if (ret == -1)
   {
-    eno = errno;
+    errno = eno;
     LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "fcntl");
     if (p->fd[0]->fd >= 0)
       GNUNET_break (0 == close (p->fd[0]->fd));
@@ -2319,8 +2286,6 @@ GNUNET_DISK_pipe_from_fd (int blocking_read, int blocking_write, int fd[2])
     return NULL;
   }
 #else
-  BOOL ret;
-
   if (fd[0] >= 0)
     p->fd[0]->h = _get_osfhandle (fd[0]);
   else
@@ -2420,6 +2385,7 @@ GNUNET_DISK_pipe_close_end (struct GNUNET_DISK_PipeHandle *p,
   errno = save;
   return ret;
 }
+
 
 /**
  * Closes an interprocess channel
@@ -2662,6 +2628,7 @@ GNUNET_DISK_npipe_open (const char *fn, enum GNUNET_DISK_OpenFlags flags,
   return GNUNET_DISK_file_open (fn, flags, perm);
 #endif
 }
+
 
 /**
  * Closes a named pipe/FIFO
