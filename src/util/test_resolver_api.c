@@ -72,10 +72,8 @@ check_localhost_num (void *cls, const char *hostname)
   }
   else
   {
-#if DEBUG_RESOLVER
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received invalid hostname `%s'.\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Received invalid hostname `%s'.\n",
                 hostname);
-#endif
     GNUNET_break (0);
   }
 }
@@ -122,9 +120,10 @@ check_127 (void *cls, const struct sockaddr *sa, socklen_t salen)
   }
   else
   {
-#if DEBUG_RESOLVER
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received incorrect address.\n");
-#endif
+    char buf[INET_ADDRSTRLEN];
+
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Received incorrect address`%s'.\n",
+		inet_ntop (AF_INET, &sai->sin_addr, buf, sizeof (buf)));
     GNUNET_break (0);
   }
 }
@@ -151,7 +150,7 @@ check_local_fqdn (void *cls, const char *gnunet_fqdn)
   if (NULL == host)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Could not resolve our FQDN : %s %u\n"), hstrerror (h_errno),
+                _("Could not resolve our FQDN: %s %u\n"), hstrerror (h_errno),
                 h_errno);
     return;
   }
@@ -215,10 +214,8 @@ check_rootserver_name (void *cls, const char *hostname)
   }
   else
   {
-#if DEBUG_RESOLVER
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Received invalid rootserver hostname `%s'.\n", hostname);
-#endif
     GNUNET_break (0);
   }
 }
@@ -259,11 +256,9 @@ run (void *cls, char *const *args, const char *cfgfile,
   if (rootserver == NULL)
   {
     /* Error: resolving ip addresses does not work */
-#if DEBUG_RESOLVER
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("gethostbyname() could not lookup IP address: %s\n"),
                 hstrerror (h_errno));
-#endif
     FPRINTF (stderr,
              "%s", "System seems to be off-line, will not run all DNS tests\n");
     *ok = 0;                    /* mark test as passing anyway */
@@ -287,10 +282,8 @@ run (void *cls, char *const *args, const char *cfgfile,
       (inet_ntoa (*(struct in_addr *) rootserver->h_addr_list[0]),
        ROOTSERVER_IP) != 0)
   {
-#if DEBUG_RESOLVER
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "IP received and IP for root name server differ\n");
-#endif
     GNUNET_break (0);
   }
 #if DEBUG_RESOLVER
@@ -324,11 +317,9 @@ run (void *cls, char *const *args, const char *cfgfile,
   if (rootserver == NULL)
   {
     /* Error: resolving IP addresses does not work */
-#if DEBUG_RESOLVER
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("gethostbyaddr() could not lookup hostname: %s\n"),
                 hstrerror (h_errno));
-#endif
     GNUNET_break (0);
   }
   else
