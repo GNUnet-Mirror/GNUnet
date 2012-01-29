@@ -604,10 +604,12 @@ read_progress_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   /* schedule task to keep reading (done here in case client calls
      abort or something similar) */
-  ds->progress_read_task 
-    = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL, 
-				      ds->progress_read, 
-				      &read_progress_task, ds);
+  if ( (reason != GNUNET_FS_DIRSCANNER_EXTRACT_FINISHED) &&
+       (reason != GNUNET_FS_DIRSCANNER_INTERNAL_ERROR) )
+    ds->progress_read_task 
+      = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL, 
+					ds->progress_read, 
+					&read_progress_task, ds);
 
   /* read successfully, notify client about progress */
   ds->progress_callback (ds->progress_callback_cls, 
