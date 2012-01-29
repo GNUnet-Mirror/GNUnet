@@ -216,8 +216,8 @@ do_align:
     }
     if (one_shot == GNUNET_YES)
       one_shot = GNUNET_SYSERR;
-    mst->cb (mst->cb_cls, client_identity, hdr);
     mst->off += want;
+    mst->cb (mst->cb_cls, client_identity, hdr);
     if (mst->off == mst->pos)
     {
       /* reset to beginning of buffer, it's free right now! */
