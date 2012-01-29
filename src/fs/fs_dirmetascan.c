@@ -217,6 +217,10 @@ write_all (const struct GNUNET_DISK_FileHandle *out,
     if (wr > 0)
       total += wr;
   } while ( (wr > 0) && (total < size) );
+  if (wr <= 0)
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Failed to write to inter thread communication pipe: %s\n",
+		strerror (errno));
   return (total == size) ? GNUNET_OK : GNUNET_SYSERR;
 }
 
@@ -449,9 +453,11 @@ extract_files (struct GNUNET_FS_DirScanner *ds,
   }
   
   /* this is the expensive operation, *afterwards* we'll check for aborts */
+  fprintf (stderr, "\tCalling extract on `%s'\n", item->filename);
   GNUNET_FS_meta_data_extract_from_file (item->meta, 
 					 item->filename,
 					 ds->plugins);
+  fprintf (stderr, "\tExtract `%s' done\n", item->filename);
 
   /* having full filenames is too dangerous; always make sure we clean them up */
   GNUNET_CONTAINER_meta_data_delete (item->meta, 
@@ -497,19 +503,25 @@ run_directory_scan_thread (void *cls)
 				    ds->filename_expanded, 
 				    &ds->toplevel))
   {
-    (void) write_progress (ds, "", GNUNET_NO, GNUNET_FS_DIRSCANNER_INTERNAL_ERROR);
+    (void) write_progress (ds, "", GNUNET_SYSERR, GNUNET_FS_DIRSCANNER_INTERNAL_ERROR);
+    GNUNET_DISK_pipe_close_end (ds->progress_pipe, GNUNET_DISK_PIPE_END_WRITE);
     return 0;
   }
   if (GNUNET_OK !=
-      write_progress (ds, "", GNUNET_NO, GNUNET_FS_DIRSCANNER_ALL_COUNTED))
+      write_progress (ds, "", GNUNET_SYSERR, GNUNET_FS_DIRSCANNER_ALL_COUNTED))
+  {
+    GNUNET_DISK_pipe_close_end (ds->progress_pipe, GNUNET_DISK_PIPE_END_WRITE);
     return 0;
+  }
   if (GNUNET_OK !=
       extract_files (ds, ds->toplevel))
   {
-    (void) write_progress (ds, "", GNUNET_NO, GNUNET_FS_DIRSCANNER_INTERNAL_ERROR);
+    (void) write_progress (ds, "", GNUNET_SYSERR, GNUNET_FS_DIRSCANNER_INTERNAL_ERROR);
+    GNUNET_DISK_pipe_close_end (ds->progress_pipe, GNUNET_DISK_PIPE_END_WRITE);
     return 0;
   }
-  (void) write_progress (ds, "", GNUNET_NO, GNUNET_FS_DIRSCANNER_FINISHED);
+  (void) write_progress (ds, "", GNUNET_SYSERR, GNUNET_FS_DIRSCANNER_FINISHED);
+  GNUNET_DISK_pipe_close_end (ds->progress_pipe, GNUNET_DISK_PIPE_END_WRITE);
   return 0;
 }
 
@@ -539,6 +551,10 @@ read_all (const struct GNUNET_DISK_FileHandle *in,
     if (rd > 0)
       total += rd;
   } while ( (rd > 0) && (total < size) );
+  if (rd <= 0)
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Failed to read from inter thread communication pipe: %s\n",
+		strerror (errno));
   return (total == size) ? GNUNET_OK : GNUNET_SYSERR;
 }
 
@@ -560,7 +576,7 @@ read_progress_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   char *filename;
 
   ds->progress_read_task = GNUNET_SCHEDULER_NO_TASK;
-  if (! (tc->reason & GNUNET_SCHEDULER_REASON_READ_READY))
+  if (0 == (tc->reason & GNUNET_SCHEDULER_REASON_READ_READY))
   {
     ds->progress_read_task
       = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
@@ -604,13 +620,14 @@ read_progress_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   /* schedule task to keep reading (done here in case client calls
      abort or something similar) */
-  if ( (reason != GNUNET_FS_DIRSCANNER_EXTRACT_FINISHED) &&
+  if ( (reason != GNUNET_FS_DIRSCANNER_FINISHED) &&
        (reason != GNUNET_FS_DIRSCANNER_INTERNAL_ERROR) )
+  {
     ds->progress_read_task 
       = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL, 
 					ds->progress_read, 
 					&read_progress_task, ds);
-
+  }
   /* read successfully, notify client about progress */
   ds->progress_callback (ds->progress_callback_cls, 
 			 ds, 

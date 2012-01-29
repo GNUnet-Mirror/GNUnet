@@ -344,6 +344,7 @@ uri_ksk_continuation (void *cls, const struct GNUNET_FS_Uri *ksk_uri,
   ctx = NULL;
 }
 
+
 static struct GNUNET_FS_FileInformation *
 get_file_information (struct GNUNET_FS_ShareTreeItem *item)
 {
@@ -356,7 +357,13 @@ get_file_information (struct GNUNET_FS_ShareTreeItem *item)
     GNUNET_CONTAINER_meta_data_delete (item->meta,
         EXTRACTOR_METATYPE_MIMETYPE, NULL, 0);
     GNUNET_FS_meta_data_make_directory (item->meta);
-    GNUNET_FS_uri_ksk_add_keyword (item->ksk_uri, GNUNET_FS_DIRECTORY_MIME,
+    if (NULL == item->ksk_uri)
+    {
+      const char *mime = GNUNET_FS_DIRECTORY_MIME;
+      item->ksk_uri = GNUNET_FS_uri_ksk_create_from_args (1, &mime);
+    }
+    else
+      GNUNET_FS_uri_ksk_add_keyword (item->ksk_uri, GNUNET_FS_DIRECTORY_MIME,
         GNUNET_NO);
     fi = GNUNET_FS_file_information_create_empty_directory (
         ctx, NULL, item->ksk_uri,
@@ -467,6 +474,7 @@ directory_scan_cb (void *cls, struct GNUNET_FS_DirScanner *ds,
       GNUNET_assert (0);
       break;
   }
+  fflush (stdout);
 }
 
 

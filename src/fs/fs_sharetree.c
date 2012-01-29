@@ -274,7 +274,12 @@ migrate_and_drop_keywords (void *cls, const GNUNET_HashCode * key, void *value)
   struct KeywordCounter *counter = value;
 
   if (counter->count >= tc->move_threshold)
-    GNUNET_FS_uri_ksk_add_keyword (tc->pos->ksk_uri, counter->value, GNUNET_NO);
+  {
+    if (NULL == tc->pos->ksk_uri)
+      tc->pos->ksk_uri = GNUNET_FS_uri_ksk_create_from_args (1, &counter->value);
+    else
+      GNUNET_FS_uri_ksk_add_keyword (tc->pos->ksk_uri, counter->value, GNUNET_NO);
+  }
   GNUNET_assert (GNUNET_YES ==
 		 GNUNET_CONTAINER_multihashmap_remove (tc->keywordcounter,
 						       key,
@@ -360,7 +365,8 @@ share_tree_trim (struct TrimContext *tc,
   for (pos = tree->children_head; NULL != pos; pos = pos->next)
   {
     GNUNET_CONTAINER_meta_data_iterate (pos->meta, &add_to_meta_counter, tc->metacounter);    
-    GNUNET_FS_uri_ksk_get_keywords (pos->ksk_uri, &add_to_keyword_counter, tc->keywordcounter);
+    if (NULL != pos->ksk_uri)
+      GNUNET_FS_uri_ksk_get_keywords (pos->ksk_uri, &add_to_keyword_counter, tc->keywordcounter);
   }
 
   /* calculate threshold for moving keywords / meta data */
@@ -370,7 +376,8 @@ share_tree_trim (struct TrimContext *tc,
   for (pos = tree->children_head; NULL != pos; pos = pos->next)
   {
     tc->pos = pos;
-    GNUNET_FS_uri_ksk_get_keywords (pos->ksk_uri, &remove_high_frequency_keywords, tc);
+    if (NULL != pos->ksk_uri)
+      GNUNET_FS_uri_ksk_get_keywords (pos->ksk_uri, &remove_high_frequency_keywords, tc);
   }
 
   /* add high-frequency meta data and keywords to parent */
