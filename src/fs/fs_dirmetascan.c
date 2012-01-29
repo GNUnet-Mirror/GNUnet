@@ -78,6 +78,11 @@ struct GNUNET_FS_DirScanner
   struct GNUNET_FS_ShareTreeItem *pos;
 
   /**
+   * Task scheduled when we are done.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier stop_task;
+
+  /**
    * Arguments for helper.
    */
   char *args[4];
@@ -101,6 +106,8 @@ GNUNET_FS_directory_scan_abort (struct GNUNET_FS_DirScanner *ds)
   /* free resources */
   if (NULL != ds->toplevel)
     GNUNET_FS_share_tree_free (ds->toplevel);
+  if (GNUNET_SCHEDULER_NO_TASK != ds->stop_task)
+    GNUNET_SCHEDULER_cancel (ds->stop_task);
   GNUNET_free_non_null (ds->ex_arg);
   GNUNET_free (ds->filename_expanded);
   GNUNET_free (ds);
@@ -198,6 +205,27 @@ expand_tree (struct GNUNET_FS_ShareTreeItem *parent,
 				   parent->children_tail,
 				   chld);  
   return chld;
+}
+
+
+/**
+ * Task run last to shut everything down.
+ *
+ * @param cls the 'struct GNUNET_FS_DirScanner'
+ * @param tc unused
+ */
+static void
+finish_scan (void *cls,
+	     const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_FS_DirScanner *ds = cls;
+
+  ds->stop_task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_HELPER_stop (ds->helper);
+  ds->helper = NULL;
+  ds->progress_callback (ds->progress_callback_cls, 
+			 NULL, GNUNET_SYSERR,
+			 GNUNET_FS_DIRSCANNER_FINISHED);    
 }
 
 
@@ -354,11 +382,8 @@ process_helper_msgs (void *cls,
       GNUNET_break (0);
       break;
     }
-    GNUNET_HELPER_stop (ds->helper);
-    ds->helper = NULL;
-    ds->progress_callback (ds->progress_callback_cls, 
-			   NULL, GNUNET_SYSERR,
-			   GNUNET_FS_DIRSCANNER_FINISHED);    
+    ds->stop_task = GNUNET_SCHEDULER_add_now (&finish_scan,
+					      ds);
     return;
   default:
     GNUNET_break (0);
@@ -367,7 +392,6 @@ process_helper_msgs (void *cls,
   ds->progress_callback (ds->progress_callback_cls, 
 			 NULL, GNUNET_SYSERR,
 			 GNUNET_FS_DIRSCANNER_INTERNAL_ERROR);
-
 }
 
 
