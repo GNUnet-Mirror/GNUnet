@@ -29,24 +29,94 @@
 #include "platform.h"
 #include "gnunet_fs_service.h"
 
+
+/**
+ * A node of a directory tree.
+ */
+struct ScanTreeNode
+{
+
+  /**
+   * This is a doubly-linked list
+   */
+  struct ScanTreeNode *next;
+
+  /**
+   * This is a doubly-linked list
+   */
+  struct ScanTreeNode *prev;
+
+  /**
+   * Parent of this node, NULL for top-level entries.
+   */
+  struct ScanTreeNode *parent;
+
+  /**
+   * This is a doubly-linked tree
+   * NULL for files and empty directories
+   */
+  struct ScanTreeNode *children_head;
+
+  /**
+   * This is a doubly-linked tree
+   * NULL for files and empty directories
+   */
+  struct ScanTreeNode *children_tail;
+
+  /**
+   * Name of the file/directory
+   */
+  char *filename;
+
+  /**
+   * Size of the file (if it is a file), in bytes
+   */
+  uint64_t file_size;
+
+  /**
+   * GNUNET_YES if this is a directory
+   */
+  int is_directory;
+
+};
+
+
 /**
  * List of libextractor plugins to use for extracting.
  */
 static struct EXTRACTOR_PluginList *plugins;
 
 
-#if 0
+/**
+ * Free memory of the 'tree' structure
+ *
+ * @param tree tree to free
+ */
+static void 
+free_tree (struct ScanTreeNode *tree)
+{
+  struct ScanTreeNode *pos;
+
+  while (NULL != (pos = tree->children_head))
+    free_tree (pos);
+  if (NULL != tree->parent)
+    GNUNET_CONTAINER_DLL_remove (tree->parent->children_head,
+				 tree->parent->children_tail,
+				 tree);				 
+  GNUNET_free (tree->filename);
+  GNUNET_free (tree);
+}
+
+
 /**
  * Write 'size' bytes from 'buf' into 'out'.
  *
- * @param in pipe to write to
  * @param buf buffer with data to write
  * @param size number of bytes to write
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
 static int
-write_all (const struct GNUNET_DISK_FileHandle *out,
-	   const void *buf,
+write_all (const void *buf,
 	   size_t size)
 {
   const char *cbuf = buf;
@@ -56,54 +126,43 @@ write_all (const struct GNUNET_DISK_FileHandle *out,
   total = 0;
   do
   {
-    wr = GNUNET_DISK_file_write (out,
-				 &cbuf[total],
-				 size - total);
+    wr = write (1,
+		&cbuf[total],
+		size - total);
     if (wr > 0)
       total += wr;
   } while ( (wr > 0) && (total < size) );
   if (wr <= 0)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Failed to write to inter thread communication pipe: %s\n",
+		"Failed to write to stdout: %s\n",
 		strerror (errno));
   return (total == size) ? GNUNET_OK : GNUNET_SYSERR;
 }
 
 
 /**
- * Write progress message.
+ * Write message to the master process.
  *
- * @param ds
- * @param filename name of the file to transmit, never NULL
- * @param is_directory GNUNET_YES for directory, GNUNET_NO for file, GNUNET_SYSERR for neither
- * @param reason reason for the progress call
+ * @param message_type message type to use
+ * @param data data to append, NULL for none
+ * @param data_length number of bytes in data
  * @return GNUNET_SYSERR to stop scanning (the pipe was broken somehow)
  */
 static int
-write_progress (struct GNUNET_FS_DirScanner *ds,
-		const char *filename,
-		int is_directory, 
-		enum GNUNET_FS_DirScannerProgressUpdateReason reason)
+write_message (uint16_t message_type,
+	       const char *data,
+	       size_t data_length)
 {
-  size_t slen;
+  struct GNUNET_MessageHeader hdr;
 
-  slen = strlen (filename) + 1;
+  hdr.type = htons (message_type);
+  hdr.size = htons (sizeof (struct GNUNET_MessageHeader) + data_length);
   if ( (GNUNET_OK !=
-	write_all (ds->progress_write,
-		   &reason,
-		   sizeof (reason))) ||
+	write_all (&hdr,
+		   sizeof (hdr))) ||
        (GNUNET_OK !=
-	write_all (ds->progress_write,
-		   &slen,
-		   sizeof (slen))) ||
-       (GNUNET_OK !=
-	write_all (ds->progress_write,
-		   filename,
-		   slen)) ||
-       (GNUNET_OK !=
-	write_all (ds->progress_write,
-		   &is_directory,
-		   sizeof (is_directory))) )
+	write_all (data,
+		   data_length)) )
     return GNUNET_SYSERR;
   return GNUNET_OK;
 }
@@ -114,15 +173,13 @@ write_progress (struct GNUNET_FS_DirScanner *ds,
  * directory to the tree.  Called by the directory scanner to initiate
  * the scan.  Does NOT yet add any metadata.
  *
- * @param ds directory scanner context to use
  * @param filename file or directory to scan
  * @param dst where to store the resulting share tree item
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
 static int
-preprocess_file (struct GNUNET_FS_DirScanner *ds,
-		 const char *filename,
-		 struct GNUNET_FS_ShareTreeItem **dst);
+preprocess_file (const char *filename,
+		 struct ScanTreeNode **dst);
 
 
 /**
@@ -131,14 +188,9 @@ preprocess_file (struct GNUNET_FS_DirScanner *ds,
 struct RecursionContext
 {
   /**
-   * Global scanner context.
-   */
-  struct GNUNET_FS_DirScanner *ds;
-
-  /**
    * Parent to add the files to.
    */
-  struct GNUNET_FS_ShareTreeItem *parent;
+  struct ScanTreeNode *parent;
 
   /**
    * Flag to set to GNUNET_YES on serious errors.
@@ -161,11 +213,10 @@ scan_callback (void *cls,
 	       const char *filename)
 {
   struct RecursionContext *rc = cls;
-  struct GNUNET_FS_ShareTreeItem *chld;
+  struct ScanTreeNode *chld;
 
   if (GNUNET_OK !=
-      preprocess_file (rc->ds,
-		       filename,
+      preprocess_file (filename,
 		       &chld))
   {
     rc->stop = GNUNET_YES;
@@ -184,17 +235,15 @@ scan_callback (void *cls,
  * directory to the tree.  Called by the directory scanner to initiate
  * the scan.  Does NOT yet add any metadata.
  *
- * @param ds directory scanner context to use
  * @param filename file or directory to scan
  * @param dst where to store the resulting share tree item
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
 static int
-preprocess_file (struct GNUNET_FS_DirScanner *ds,
-		 const char *filename,
-		 struct GNUNET_FS_ShareTreeItem **dst)
+preprocess_file (const char *filename,
+		 struct ScanTreeNode **dst)
 {
-  struct GNUNET_FS_ShareTreeItem *item;
+  struct ScanTreeNode *item;
   struct stat sbuf;
 
   if (0 != STAT (filename, &sbuf))
@@ -202,23 +251,21 @@ preprocess_file (struct GNUNET_FS_DirScanner *ds,
     /* If the file doesn't exist (or is not stat-able for any other reason)
        skip it (but report it), but do continue. */
     if (GNUNET_OK !=
-	write_progress (ds, filename, GNUNET_SYSERR,
-			GNUNET_FS_DIRSCANNER_DOES_NOT_EXIST))
+	write_message (GNUNET_MESSAGE_TYPE_FS_PUBLISH_HELPER_SKIP_FILE,
+		       filename, strlen (filename) + 1))
       return GNUNET_SYSERR;
     return GNUNET_OK;
   }
 
   /* Report the progress */
   if (GNUNET_OK !=
-      write_progress (ds, 
-		      filename, 
-		      S_ISDIR (sbuf.st_mode) ? GNUNET_YES : GNUNET_NO,
-		      GNUNET_FS_DIRSCANNER_FILE_START))
+      write_message (S_ISDIR (sbuf.st_mode) 
+		     ? GNUNET_MESSAGE_TYPE_FS_PUBLISH_HELPER_PROGRESS_DIRECTORY
+		     : GNUNET_MESSAGE_TYPE_FS_PUBLISH_HELPER_PROGRESS_FILE,
+		     filename, strlen (filename) + 1))
     return GNUNET_SYSERR;
-  item = GNUNET_malloc (sizeof (struct GNUNET_FS_ShareTreeItem));
-  item->meta = GNUNET_CONTAINER_meta_data_create ();
+  item = GNUNET_malloc (sizeof (struct ScanTreeNode));
   item->filename = GNUNET_strdup (filename);
-  item->short_filename = GNUNET_strdup (GNUNET_STRINGS_get_short_name (filename));
   item->is_directory = (S_ISDIR (sbuf.st_mode)) ? GNUNET_YES : GNUNET_NO;
   item->file_size = (uint64_t) sbuf.st_size;
   if (item->is_directory)
@@ -226,28 +273,15 @@ preprocess_file (struct GNUNET_FS_DirScanner *ds,
     struct RecursionContext rc;
 
     rc.parent = item;
-    rc.ds = ds;
     rc.stop = GNUNET_NO;
     GNUNET_DISK_directory_scan (filename, 
 				&scan_callback, 
 				&rc);    
-    if ( (rc.stop == GNUNET_YES) ||
-	 (GNUNET_OK != 
-	  test_thread_stop (ds)) )
+    if (rc.stop == GNUNET_YES) 
     {
-      GNUNET_FS_share_tree_free (item);
+      free_tree (item);
       return GNUNET_SYSERR;
     }
-  }
-  /* Report the progress */
-  if (GNUNET_OK !=
-      write_progress (ds, 
-		      filename, 
-		      S_ISDIR (sbuf.st_mode) ? GNUNET_YES : GNUNET_NO,
-		      GNUNET_FS_DIRSCANNER_SUBTREE_COUNTED))
-  {
-    GNUNET_FS_share_tree_free (item);
-    return GNUNET_SYSERR;
   }
   *dst = item;
   return GNUNET_OK;
@@ -262,67 +296,85 @@ preprocess_file (struct GNUNET_FS_DirScanner *ds,
  * @return GNUNET_OK on success, GNUNET_SYSERR on fatal errors
  */
 static int
-extract_files (struct GNUNET_FS_DirScanner *ds,
-	       struct GNUNET_FS_ShareTreeItem *item)
+extract_files (struct ScanTreeNode *item)
 {  
+  struct GNUNET_CONTAINER_MetaData *meta;
+  ssize_t size;
+  size_t slen;
+
   if (item->is_directory)
   {
     /* for directories, we simply only descent, no extraction, no
        progress reporting */
-    struct GNUNET_FS_ShareTreeItem *pos;
+    struct ScanTreeNode *pos;
 
     for (pos = item->children_head; NULL != pos; pos = pos->next)
       if (GNUNET_OK !=
-	  extract_files (ds, pos))
+	  extract_files (pos))
 	return GNUNET_SYSERR;
     return GNUNET_OK;
   }
   
   /* this is the expensive operation, *afterwards* we'll check for aborts */
-  fprintf (stderr, "\tCalling extract on `%s'\n", item->filename);
-  GNUNET_FS_meta_data_extract_from_file (item->meta, 
+  meta = GNUNET_CONTAINER_meta_data_create ();
+  GNUNET_FS_meta_data_extract_from_file (meta, 
 					 item->filename,
-					 ds->plugins);
-  fprintf (stderr, "\tExtract `%s' done\n", item->filename);
-
-  /* having full filenames is too dangerous; always make sure we clean them up */
-  GNUNET_CONTAINER_meta_data_delete (item->meta, 
-				     EXTRACTOR_METATYPE_FILENAME,
-				     NULL, 0);
-  GNUNET_CONTAINER_meta_data_insert (item->meta, "<libgnunetfs>",
-                                     EXTRACTOR_METATYPE_FILENAME,
-                                     EXTRACTOR_METAFORMAT_UTF8, "text/plain",
-                                     item->short_filename, 
-				     strlen (item->short_filename) + 1);
-  /* check for abort */
-  if (GNUNET_OK != 
-      test_thread_stop (ds))
-    return GNUNET_SYSERR;
-
-  /* Report the progress */
-  if (GNUNET_OK !=
-      write_progress (ds, 
-		      item->filename, 
-		      GNUNET_NO,
-		      GNUNET_FS_DIRSCANNER_EXTRACT_FINISHED))
-    return GNUNET_SYSERR;
+					 plugins);
+  slen = strlen (item->filename) + 1;
+  size = GNUNET_CONTAINER_meta_data_get_serialized_size (meta);
+  if ( (-1 == size) ||
+       (size >= GNUNET_SERVER_MAX_MESSAGE_SIZE - slen) )
+  {
+    /* no meta data */
+    GNUNET_CONTAINER_meta_data_destroy (meta);
+    if (GNUNET_OK !=
+	write_message (GNUNET_MESSAGE_TYPE_FS_PUBLISH_HELPER_META_DATA,
+		       item->filename, slen))
+      return GNUNET_SYSERR;    
+    return GNUNET_OK;
+  }
+  {
+    char buf[size + slen];
+    char *dst = buf;
+    
+    memcpy (buf, item->filename, slen);
+    size = GNUNET_CONTAINER_meta_data_serialize (meta,
+						 &dst, size,
+						 GNUNET_CONTAINER_META_DATA_SERIALIZE_FULL);
+    GNUNET_CONTAINER_meta_data_destroy (meta);
+    if (GNUNET_OK !=
+	write_message (GNUNET_MESSAGE_TYPE_FS_PUBLISH_HELPER_META_DATA,
+		       buf, 
+		       slen + size))
+      return GNUNET_SYSERR;
+  }
   return GNUNET_OK;
 }
 
-#endif
 
-
+/**
+ * Main function of the helper process to extract meta data.
+ *
+ * @param argc should be 3
+ * @param argv [0] our binary name
+ *             [1] name of the file or directory to process
+ *             [2] "-" to disable extraction, NULL for defaults,
+ *                 otherwise custom plugins to load from LE
+ * @return 0 on success
+ */
 int main(int argc,
 	 char **argv)
 {
   const char *filename_expanded;
   const char *ex;
+  struct ScanTreeNode *root;
 
-  if (argc < 3)
+  /* parse command line */
+  if ( (argc != 3) && (argc != 2) )
   {
     FPRINTF (stderr, 
 	     "%s",
-	     "gnunet-helper-fs-publish needs at least two arguments\n");
+	     "gnunet-helper-fs-publish needs exactly one or two arguments\n");
     return 1;
   }
   filename_expanded = argv[1];
@@ -335,29 +387,33 @@ int main(int argc,
 					     EXTRACTOR_OPTION_DEFAULT_POLICY);
   }
 
-#if 0
+  /* scan tree to find out how much work there is to be done */
   if (GNUNET_OK != preprocess_file (filename_expanded, 
-				    &toplevel))
+				    &root))
   {
-    (void) write_progress (ds, "", GNUNET_SYSERR, GNUNET_FS_DIRSCANNER_INTERNAL_ERROR);
-    GNUNET_DISK_pipe_close_end (ds->progress_pipe, GNUNET_DISK_PIPE_END_WRITE);
+    (void) write_message (GNUNET_MESSAGE_TYPE_FS_PUBLISH_HELPER_ERROR, NULL, 0);
     return 2;
   }
+  /* signal that we're done counting files, so that a percentage of 
+     progress can now be calculated */
   if (GNUNET_OK !=
-      write_progress (ds, "", GNUNET_SYSERR, GNUNET_FS_DIRSCANNER_ALL_COUNTED))
-  {
-    return 3;
-  }
+      write_message (GNUNET_MESSAGE_TYPE_FS_PUBLISH_HELPER_COUNTING_DONE, NULL, 0))
+    return 3;  
   if (GNUNET_OK !=
-      extract_files (ds, ds->toplevel))
+      extract_files (root))
   {
-    (void) write_progress (ds, "", GNUNET_SYSERR, GNUNET_FS_DIRSCANNER_INTERNAL_ERROR);
+    (void) write_message (GNUNET_MESSAGE_TYPE_FS_PUBLISH_HELPER_ERROR, NULL, 0);
+    free_tree (root);
     return 4;
   }
-  (void) write_progress (ds, "", GNUNET_SYSERR, GNUNET_FS_DIRSCANNER_FINISHED);
-#endif
+  free_tree (root);
+  /* enable "clean" shutdown by telling parent that we are done */
+  (void) write_message (GNUNET_MESSAGE_TYPE_FS_PUBLISH_HELPER_FINISHED, NULL, 0);
   if (NULL != plugins)
     EXTRACTOR_plugin_remove_all (plugins);
 
   return 0;
 }
+
+/* end of gnunet-helper-fs-publish.c */
+

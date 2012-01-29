@@ -439,10 +439,6 @@ directory_scan_cb (void *cls, struct GNUNET_FS_DirScanner *ds,
       else
 	FPRINTF (stdout, _("Scanning file `%s'.\n"), filename);      
       break;
-    case GNUNET_FS_DIRSCANNER_SUBTREE_COUNTED:
-      if (is_directory)
-	FPRINTF (stdout, _("Done scanning directory `%s'.\n"), filename);
-      break;
     case GNUNET_FS_DIRSCANNER_ALL_COUNTED:
       FPRINTF (stdout, "%s", _("Preprocessing complete.\n"));      
       break;

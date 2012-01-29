@@ -149,6 +149,19 @@ process_helper_msgs (void *cls,
 			 is_directory, 
 			 reason);
   GNUNET_free (filename);
+
+
+  /* having full filenames is too dangerous; always make sure we clean them up */
+  item->short_filename = GNUNET_strdup (GNUNET_STRINGS_get_short_name (filename));
+
+  GNUNET_CONTAINER_meta_data_delete (item->meta, 
+				     EXTRACTOR_METATYPE_FILENAME,
+				     NULL, 0);
+  GNUNET_CONTAINER_meta_data_insert (item->meta, "<libgnunetfs>",
+                                     EXTRACTOR_METATYPE_FILENAME,
+                                     EXTRACTOR_METAFORMAT_UTF8, "text/plain",
+                                     item->short_filename, 
+				     strlen (item->short_filename) + 1);
 #endif
 }
 
