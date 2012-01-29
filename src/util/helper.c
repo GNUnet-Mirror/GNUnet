@@ -264,6 +264,8 @@ helper_read (void *cls,
 	      _("Got %u bytes from helper `%s'\n"),
 	      (unsigned int) t,
 	      h->binary_name);
+  h->read_task = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
+						 h->fh_from_helper, &helper_read, h);
   if (GNUNET_SYSERR ==
       GNUNET_SERVER_mst_receive (h->mst, NULL, buf, t, GNUNET_NO, GNUNET_NO))
   {
@@ -278,8 +280,6 @@ helper_read (void *cls,
     return;
 
   }
-  h->read_task = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
-						 h->fh_from_helper, &helper_read, h);
 }
 
 
