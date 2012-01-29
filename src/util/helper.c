@@ -278,7 +278,6 @@ helper_read (void *cls,
         GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
                                       &restart_task, h);
     return;
-
   }
 }
 
