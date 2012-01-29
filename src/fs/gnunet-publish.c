@@ -425,50 +425,67 @@ directory_trim_complete ()
 }
 
 
+/**
+ * Function called by the directory scanner as we build the tree
+ * that we will need to publish later.
+ *
+ * @param cls closure
+ * @param filename which file we are making progress on
+ * @param is_directory GNUNET_YES if this is a directory,
+ *                     GNUNET_NO if this is a file
+ *                     GNUNET_SYSERR if it is neither (or unknown)
+ * @param reason kind of progress we are making
+ */
 static void
-directory_scan_cb (void *cls, struct GNUNET_FS_DirScanner *ds,
+directory_scan_cb (void *cls, 
 		   const char *filename, 
 		   int is_directory,
 		   enum GNUNET_FS_DirScannerProgressUpdateReason reason)
 {
   switch (reason)
   {
-    case GNUNET_FS_DIRSCANNER_FILE_START:
+  case GNUNET_FS_DIRSCANNER_FILE_START:
+    if (verbose > 1)
+    {
       if (is_directory)
 	FPRINTF (stdout, _("Scanning directory `%s'.\n"), filename);
       else
 	FPRINTF (stdout, _("Scanning file `%s'.\n"), filename);      
-      break;
-    case GNUNET_FS_DIRSCANNER_ALL_COUNTED:
+    }
+    break;
+  case GNUNET_FS_DIRSCANNER_FILE_IGNORED:
+    FPRINTF (stderr, 
+	     _("There was trouble processing file `%s', skipping it.\n"),
+	     filename);
+    break;
+  case GNUNET_FS_DIRSCANNER_ALL_COUNTED:
+    if (verbose)
       FPRINTF (stdout, "%s", _("Preprocessing complete.\n"));      
-      break;
-    case GNUNET_FS_DIRSCANNER_EXTRACT_FINISHED:
+    break;
+  case GNUNET_FS_DIRSCANNER_EXTRACT_FINISHED:
+    if (verbose > 2)
       FPRINTF (stdout, _("Extracting meta data from file `%s' complete.\n"), filename);      
-      break;
-    case GNUNET_FS_DIRSCANNER_DOES_NOT_EXIST:
-      FPRINTF (stdout, 
-	       _("There was trouble processing file `%s', skipping it.\n"),
-	       filename);
-      break;
-    case GNUNET_FS_DIRSCANNER_FINISHED:
-      FPRINTF (stdout, "%s", _("Scanner has finished.\n"));
-      directory_scan_result = GNUNET_FS_directory_scan_get_result (ds);
-      ds = NULL;
-      GNUNET_FS_share_tree_trim (directory_scan_result);
-      directory_trim_complete ();
-      break;
-    case GNUNET_FS_DIRSCANNER_INTERNAL_ERROR:
-      FPRINTF (stdout, "%s", _("Internal error scanning directory.\n"));
-      GNUNET_FS_directory_scan_abort (ds);
-      ds = NULL;
-      if (namespace != NULL)
-	GNUNET_FS_namespace_delete (namespace, GNUNET_NO);
-      GNUNET_FS_stop (ctx);
-      ret = 1;
-      break;
-    default:
-      GNUNET_assert (0);
-      break;
+    break;
+  case GNUNET_FS_DIRSCANNER_FINISHED:
+    if (verbose > 1)
+      FPRINTF (stdout, "%s", _("Meta data extraction has finished.\n"));
+    directory_scan_result = GNUNET_FS_directory_scan_get_result (ds);
+    ds = NULL;
+    GNUNET_FS_share_tree_trim (directory_scan_result);
+    directory_trim_complete ();
+    break;
+  case GNUNET_FS_DIRSCANNER_INTERNAL_ERROR:
+    FPRINTF (stdout, "%s", _("Internal error scanning directory.\n"));
+    GNUNET_FS_directory_scan_abort (ds);
+    ds = NULL;
+    if (namespace != NULL)
+      GNUNET_FS_namespace_delete (namespace, GNUNET_NO);
+    GNUNET_FS_stop (ctx);
+    ret = 1;
+    break;
+  default:
+    GNUNET_assert (0);
+    break;
   }
   fflush (stdout);
 }
@@ -587,6 +604,12 @@ run (void *cls, char *const *args, const char *cfgfile,
 				       disable_extractor, 
 				       ex, 
 				       &directory_scan_cb, NULL);
+  if (NULL == ds)
+  {
+    FPRINTF (stderr,
+	     "%s", _("Failed to start meta directory scanner.  Is gnunet-helper-publish-fs installed?\n"));
+    return;
+  }
   kill_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &do_stop_task,
                                     NULL);

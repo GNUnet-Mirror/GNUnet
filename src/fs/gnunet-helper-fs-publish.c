@@ -223,9 +223,10 @@ scan_callback (void *cls,
     return GNUNET_SYSERR;
   }
   chld->parent = rc->parent;
-  GNUNET_CONTAINER_DLL_insert (rc->parent->children_head,
-			       rc->parent->children_tail,
-			       chld);
+  if (NULL != rc->parent)
+    GNUNET_CONTAINER_DLL_insert (rc->parent->children_head,
+				 rc->parent->children_tail,
+				 chld);
   return GNUNET_OK;
 }
 
@@ -282,6 +283,10 @@ preprocess_file (const char *filename,
       free_tree (item);
       return GNUNET_SYSERR;
     }
+    if (GNUNET_OK !=
+	write_message (GNUNET_MESSAGE_TYPE_FS_PUBLISH_HELPER_PROGRESS_DIRECTORY,
+		       "..", 3))
+      return GNUNET_SYSERR;
   }
   *dst = item;
   return GNUNET_OK;
@@ -379,7 +384,8 @@ int main(int argc,
   }
   filename_expanded = argv[1];
   ex = argv[2];
-  if (0 != strcmp (ex, "-"))
+  if ( (ex == NULL) ||
+       (0 != strcmp (ex, "-")) )
   {
     plugins = EXTRACTOR_plugin_add_defaults (EXTRACTOR_OPTION_DEFAULT_POLICY);
     if (NULL != ex)
