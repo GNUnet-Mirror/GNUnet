@@ -2703,7 +2703,7 @@ struct GNUNET_FS_ShareTreeItem
   char *filename;
 
   /**
-   * Base name of the file/directory; FIXME: needed?
+   * Base name of the file/directory.
    */
   char *short_filename;
 

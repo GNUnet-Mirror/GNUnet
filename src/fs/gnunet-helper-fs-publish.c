@@ -340,7 +340,7 @@ extract_files (struct ScanTreeNode *item)
   }
   {
     char buf[size + slen];
-    char *dst = buf;
+    char *dst = &buf[slen];
     
     memcpy (buf, item->filename, slen);
     size = GNUNET_CONTAINER_meta_data_serialize (meta,

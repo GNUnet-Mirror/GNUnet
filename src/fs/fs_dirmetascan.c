@@ -95,8 +95,9 @@ void
 GNUNET_FS_directory_scan_abort (struct GNUNET_FS_DirScanner *ds)
 {
   /* terminate helper */
-  GNUNET_HELPER_stop (ds->helper);
-
+  if (NULL != ds->helper)
+    GNUNET_HELPER_stop (ds->helper);
+  
   /* free resources */
   if (NULL != ds->toplevel)
     GNUNET_FS_share_tree_free (ds->toplevel);
@@ -190,6 +191,7 @@ expand_tree (struct GNUNET_FS_ShareTreeItem *parent,
   chld = GNUNET_malloc (sizeof (struct GNUNET_FS_ShareTreeItem));
   chld->parent = parent;
   chld->filename = GNUNET_strdup (filename);
+  chld->short_filename = GNUNET_strdup (GNUNET_STRINGS_get_short_name (filename));
   chld->is_directory = is_directory;
   if (NULL != parent)
       GNUNET_CONTAINER_DLL_insert (parent->children_head,
@@ -300,10 +302,6 @@ process_helper_msgs (void *cls,
       if (0 != strcmp (filename,
 		       ds->pos->filename))
       {
-	fprintf (stderr,
-		 "Expected `%s', got `%s'\n",
-		 ds->pos->filename,
-		 filename);
 	GNUNET_break (0);
 	break;
       }
@@ -319,7 +317,6 @@ process_helper_msgs (void *cls,
 	  break;
 	}
 	/* having full filenames is too dangerous; always make sure we clean them up */
-	ds->pos->short_filename = GNUNET_strdup (GNUNET_STRINGS_get_short_name (filename));
 	GNUNET_CONTAINER_meta_data_delete (ds->pos->meta, 
 					   EXTRACTOR_METATYPE_FILENAME,
 					   NULL, 0);
@@ -343,10 +340,11 @@ process_helper_msgs (void *cls,
       GNUNET_break (0);
       break;
     }
+    GNUNET_HELPER_stop (ds->helper);
+    ds->helper = NULL;
     ds->progress_callback (ds->progress_callback_cls, 
 			   NULL, GNUNET_SYSERR,
-			   GNUNET_FS_DIRSCANNER_INTERNAL_ERROR);
-    
+			   GNUNET_FS_DIRSCANNER_FINISHED);    
     return;
   default:
     GNUNET_break (0);
