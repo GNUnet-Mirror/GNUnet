@@ -198,7 +198,10 @@ expand_tree (struct GNUNET_FS_ShareTreeItem *parent,
   chld = GNUNET_malloc (sizeof (struct GNUNET_FS_ShareTreeItem));
   chld->parent = parent;
   chld->filename = GNUNET_strdup (filename);
-  chld->short_filename = GNUNET_strdup (GNUNET_STRINGS_get_short_name (filename));
+  GNUNET_asprintf (&chld->short_filename,
+		   "%s%s",
+		   GNUNET_STRINGS_get_short_name (filename),
+		   is_directory ? "/" : "");
   chld->is_directory = is_directory;
   if (NULL != parent)
       GNUNET_CONTAINER_DLL_insert (parent->children_head,

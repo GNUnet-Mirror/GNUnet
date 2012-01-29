@@ -610,7 +610,14 @@ run (void *cls, char *const *args, const char *cfgfile,
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg, "FS", "EXTRACTORS", &ex))
     ex = NULL;
-
+  if (0 != ACCESS (args[0], R_OK))
+  {
+    FPRINTF (stderr,
+	     _("Failed to access `%s': %s\n"),
+	     args[0],
+	     STRERROR (errno));
+    return;
+  }
   ds = GNUNET_FS_directory_scan_start (args[0],
 				       disable_extractor, 
 				       ex, 

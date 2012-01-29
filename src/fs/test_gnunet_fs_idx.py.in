@@ -53,9 +53,6 @@ arm.communicate ()
 try:
   pub = pexpect ()
   pub.spawn (None, [publish, '-c', 'test_gnunet_fs_idx_data.conf', '-m', "description:The GNU Public License", '-k', 'gpl', '../../COPYING'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-  pub.expect ("stdout", re.compile (r"Scanning file `.+[\\/]\.\.[\\/]\.\.[\\/]COPYING'\.\r?\n"))
-  pub.expect ("stdout", re.compile (r"Scanner has finished\.\r?\n"))
-  pub.expect ("stdout", re.compile (r"Publishing `.+[\\/]\.\.[\\/]\.\.[\\/]COPYING' done\.\r?\n"))
   pub.expect ("stdout", re.compile (r"URI is `gnunet://fs/chk/PC0M19QMQC0BPSHR6BGA228PP6INER1D610MGEMOMEM87222FN8HVUO7PQGO0O9HD2GVLHF2N5IDHEQUNK6LKE428FPO96SKQEA486O\.PG7K85JGQ6N599MD5HEP3CHEVFPKQD9JB6NPSLVA3T1SKDS66CFI499VS6MGQ88B0QUAVT1282TCRD4GGFVUKDLGI8F0SPIANA3J2LG\.35147'\.\r?\n"))
 
   down = pexpect ()
