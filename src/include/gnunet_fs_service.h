@@ -2601,45 +2601,44 @@ GNUNET_FS_directory_builder_finish (struct GNUNET_FS_DirectoryBuilder *bld,
  */
 enum GNUNET_FS_DirScannerProgressUpdateReason
 {
-  /**
-   * FIXME
-   */
-  GNUNET_FS_DIRSCANNER_FIRST = 0,
 
   /**
-   * FIXME
+   * We've started processing a file or directory.
    */
-  GNUNET_FS_DIRSCANNER_NEW_FILE = 1,
+  GNUNET_FS_DIRSCANNER_FILE_START = 0,
 
   /**
-   * FIXME
+   * We've finished processing a subtree in the pre-pass.
    */
-  GNUNET_FS_DIRSCANNER_DOES_NOT_EXIST = 2,
+  GNUNET_FS_DIRSCANNER_SUBTREE_COUNTED,
 
   /**
-   * FIXME
+   * We've found all files (in the pre-pass).
    */
-  GNUNET_FS_DIRSCANNER_ASKED_TO_STOP = 3,
+  GNUNET_FS_DIRSCANNER_ALL_COUNTED,
 
   /**
-   * FIXME
+   * We've finished extracting meta data from a file.
    */
-  GNUNET_FS_DIRSCANNER_FINISHED = 4,
+  GNUNET_FS_DIRSCANNER_EXTRACT_FINISHED,
 
   /**
-   * FIXME
+   * Last call to the progress function: we have finished scanning
+   * the directory.
    */
-  GNUNET_FS_DIRSCANNER_PROTOCOL_ERROR = 5,
+  GNUNET_FS_DIRSCANNER_FINISHED,
 
   /**
-   * FIXME
+   * We're having trouble accessing a file (soft-error); it will
+   * be ignored.
    */
-  GNUNET_FS_DIRSCANNER_SHUTDOWN = 6,
+  GNUNET_FS_DIRSCANNER_DOES_NOT_EXIST,
 
   /**
-   * FIXME
+   * There was an internal error.  Application should abort the scan.
    */
-  GNUNET_FS_DIRSCANNER_LAST = 7
+  GNUNET_FS_DIRSCANNER_INTERNAL_ERROR
+
 };
 
 
@@ -2650,14 +2649,16 @@ enum GNUNET_FS_DirScannerProgressUpdateReason
  * @param cls closure
  * @param ds handle to the directory scanner (NEEDED!?)
  * @param filename which file we are making progress on
- * @param is_directory GNUNET_YES if this is a directory
+ * @param is_directory GNUNET_YES if this is a directory,
+ *                     GNUNET_NO if this is a file
+ *                     GNUNET_SYSERR if it is neither (or unknown)
  * @param reason kind of progress we are making
  */
-typedef int (*GNUNET_FS_DirScannerProgressCallback) (void *cls, 
-						     struct GNUNET_FS_DirScanner *ds, 
-						     const char *filename,
-						     int is_directory, 
-						     enum GNUNET_FS_DirScannerProgressUpdateReason reason);
+typedef void (*GNUNET_FS_DirScannerProgressCallback) (void *cls, 
+						      struct GNUNET_FS_DirScanner *ds, 
+						      const char *filename,
+						      int is_directory, 
+						      enum GNUNET_FS_DirScannerProgressUpdateReason reason);
 
 
 /**
@@ -2733,7 +2734,7 @@ struct GNUNET_FS_DirScanner;
 
 
 /**
- * Start a directory scanner thread.
+ * Start a directory scanner.
  *
  * @param filename name of the directory to scan
  * @param GNUNET_YES to not to run libextractor on files (only build a tree)
@@ -2751,52 +2752,43 @@ GNUNET_FS_directory_scan_start (const char *filename,
 
 
 /**
- * Signals the scanner to finish the scan as fast as possible.  Does
- * not block.  Can close the pipe if asked to, but that is only used
- * by the internal call to this function during cleanup. The client
- * must understand the consequences of closing the pipe too early.
+ * Abort the scan.
  *
  * @param ds directory scanner structure
- * @param close_pipe GNUNET_YES to close
  */
 void
-GNUNET_FS_directory_scan_finish (struct GNUNET_FS_DirScanner *ds,
-				 int close_pipe);
+GNUNET_FS_directory_scan_abort (struct GNUNET_FS_DirScanner *ds);
 
 
 /**
- * Signals the scanner thread to finish (in case it isn't finishing
- * already) and joins the scanner thread. Closes the pipes, frees the
- * scanner contexts (both of them), returns the results of the scan.
- * Results are valid (and have to be freed) even if the scanner had
- * an error or was rushed to finish prematurely.
- * Blocks until the scanner is finished.
+ * Obtain the result of the scan after the scan has signalled
+ * completion.  Must not be called prior to completion.  The 'ds' is
+ * freed as part of this call.
  *
  * @param ds directory scanner structure
  * @return the results of the scan (a directory tree)
  */
 struct GNUNET_FS_ShareTreeItem *
-GNUNET_FS_directory_scan_cleanup (struct GNUNET_FS_DirScanner *ds);
+GNUNET_FS_directory_scan_get_result (struct GNUNET_FS_DirScanner *ds);
 
-
-/**
- * opaque 
- */
-struct GNUNET_FS_ProcessMetadataContext;
 
 /**
  * Process a share item tree, moving frequent keywords up and
  * copying frequent metadata up.
  *
  * @param toplevel toplevel directory in the tree, returned by the scanner
- * @param cb called after processing is done
- * @param cls closure for 'cb'
- * @return FIXME: what would this handle be used for?
  */
-struct GNUNET_FS_ProcessMetadataContext *
-GNUNET_FS_trim_share_tree (struct GNUNET_FS_ShareTreeItem *toplevel,
-			   GNUNET_SCHEDULER_Task cb, void *cls);
+void
+GNUNET_FS_share_tree_trim (struct GNUNET_FS_ShareTreeItem *toplevel);
 
+
+/**
+ * Release memory of a share item tree.
+ *
+ * @param toplevel toplevel of the tree to be freed
+ */
+void
+GNUNET_FS_share_tree_free (struct GNUNET_FS_ShareTreeItem *toplevel);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */
