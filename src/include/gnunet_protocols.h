@@ -608,8 +608,6 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_VPN_ICMP_TO_VPN 192
 
-
-
 /**
  * Type of messages containing an DNS request for a DNS exit service.
  */
@@ -1214,11 +1212,49 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_STREAM_CLOSE_ACK 410
 
+/*******************************************************************************
+ * FS-PUBLISH-HELPER IPC Messages
+ ******************************************************************************/
 
 /**
- *  Next available: 420
+ * Progress information from the helper: found a file
  */
+#define GNUNET_MESSAGE_TYPE_FS_PUBLISH_HELPER_PROGRESS_FILE 420
 
+/**
+ * Progress information from the helper: found a directory
+ */
+#define GNUNET_MESSAGE_TYPE_FS_PUBLISH_HELPER_PROGRESS_DIRECTORY 421
+
+/**
+ * Error signal from the helper.
+ */
+#define GNUNET_MESSAGE_TYPE_FS_PUBLISH_HELPER_ERROR 422
+
+/**
+ * Signal that helper skipped a file.
+ */
+#define GNUNET_MESSAGE_TYPE_FS_PUBLISH_HELPER_SKIP_FILE 423
+
+/**
+ * Signal that helper is done scanning the directory tree.
+ */
+#define GNUNET_MESSAGE_TYPE_FS_PUBLISH_HELPER_COUNTING_DONE 424
+
+/**
+ * Extracted meta data from the helper.
+ */
+#define GNUNET_MESSAGE_TYPE_FS_PUBLISH_HELPER_META_DATA 425
+
+/**
+ * Signal that helper is done.
+ */
+#define GNUNET_MESSAGE_TYPE_FS_PUBLISH_HELPER_FINISHED 426
+
+
+/**
+ *  Next available: 430
+ */
 
 /*******************************************************************************
  * TODO: we need a way to register message types centrally (via some webpage).

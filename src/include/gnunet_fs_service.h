@@ -2608,9 +2608,10 @@ enum GNUNET_FS_DirScannerProgressUpdateReason
   GNUNET_FS_DIRSCANNER_FILE_START = 0,
 
   /**
-   * We've finished processing a subtree in the pre-pass.
+   * We're having trouble accessing a file (soft-error); it will
+   * be ignored.
    */
-  GNUNET_FS_DIRSCANNER_SUBTREE_COUNTED,
+  GNUNET_FS_DIRSCANNER_FILE_IGNORED,
 
   /**
    * We've found all files (in the pre-pass).
@@ -2629,12 +2630,6 @@ enum GNUNET_FS_DirScannerProgressUpdateReason
   GNUNET_FS_DIRSCANNER_FINISHED,
 
   /**
-   * We're having trouble accessing a file (soft-error); it will
-   * be ignored.
-   */
-  GNUNET_FS_DIRSCANNER_DOES_NOT_EXIST,
-
-  /**
    * There was an internal error.  Application should abort the scan.
    */
   GNUNET_FS_DIRSCANNER_INTERNAL_ERROR
@@ -2647,7 +2642,6 @@ enum GNUNET_FS_DirScannerProgressUpdateReason
  * progress on the job at hand.
  *
  * @param cls closure
- * @param ds handle to the directory scanner (NEEDED!?)
  * @param filename which file we are making progress on
  * @param is_directory GNUNET_YES if this is a directory,
  *                     GNUNET_NO if this is a file
@@ -2655,7 +2649,6 @@ enum GNUNET_FS_DirScannerProgressUpdateReason
  * @param reason kind of progress we are making
  */
 typedef void (*GNUNET_FS_DirScannerProgressCallback) (void *cls, 
-						      struct GNUNET_FS_DirScanner *ds, 
 						      const char *filename,
 						      int is_directory, 
 						      enum GNUNET_FS_DirScannerProgressUpdateReason reason);
@@ -2710,14 +2703,9 @@ struct GNUNET_FS_ShareTreeItem
   char *filename;
 
   /**
-   * Base name of the file/directory
+   * Base name of the file/directory; FIXME: needed?
    */
   char *short_filename;
-
-  /**
-   * Size of the file (if it is a file), in bytes
-   */
-  uint64_t file_size;
 
   /**
    * GNUNET_YES if this is a directory
