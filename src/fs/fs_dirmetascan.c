@@ -231,8 +231,12 @@ process_helper_msgs (void *cls,
     ds->progress_callback (ds->progress_callback_cls, 
 			   filename, GNUNET_NO,
 			   GNUNET_FS_DIRSCANNER_FILE_START);
-    expand_tree (ds->pos,
-		 filename, GNUNET_NO);
+    if (NULL == ds->toplevel)
+      ds->toplevel = expand_tree (ds->pos,
+				  filename, GNUNET_NO);
+    else
+      (void) expand_tree (ds->pos,
+			  filename, GNUNET_NO);
     return;
   case GNUNET_MESSAGE_TYPE_FS_PUBLISH_HELPER_PROGRESS_DIRECTORY:
     if (filename[left-1] != '\0')
@@ -269,6 +273,11 @@ process_helper_msgs (void *cls,
     return;
   case GNUNET_MESSAGE_TYPE_FS_PUBLISH_HELPER_COUNTING_DONE:
     if (0 != left)
+    {
+      GNUNET_break (0);
+      break;
+    }
+    if (NULL == ds->toplevel)
     {
       GNUNET_break (0);
       break;
@@ -336,6 +345,11 @@ process_helper_msgs (void *cls,
       break;
     }
     if (0 != left)
+    {
+      GNUNET_break (0);
+      break;
+    }   
+    if (NULL == ds->toplevel)
     {
       GNUNET_break (0);
       break;
