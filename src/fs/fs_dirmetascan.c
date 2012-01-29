@@ -100,7 +100,7 @@ GNUNET_FS_directory_scan_abort (struct GNUNET_FS_DirScanner *ds)
   /* free resources */
   if (NULL != ds->toplevel)
     GNUNET_FS_share_tree_free (ds->toplevel);
-  GNUNET_free (ds->ex_arg);
+  GNUNET_free_non_null (ds->ex_arg);
   GNUNET_free (ds->filename_expanded);
   GNUNET_free (ds);
 }
@@ -300,6 +300,10 @@ process_helper_msgs (void *cls,
       if (0 != strcmp (filename,
 		       ds->pos->filename))
       {
+	fprintf (stderr,
+		 "Expected `%s', got `%s'\n",
+		 ds->pos->filename,
+		 filename);
 	GNUNET_break (0);
 	break;
       }

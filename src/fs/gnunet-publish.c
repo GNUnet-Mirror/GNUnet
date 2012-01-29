@@ -345,6 +345,9 @@ uri_ksk_continuation (void *cls, const struct GNUNET_FS_Uri *ksk_uri,
 }
 
 
+/**
+ * FIXME: docu
+ */
 static struct GNUNET_FS_FileInformation *
 get_file_information (struct GNUNET_FS_ShareTreeItem *item)
 {
@@ -385,6 +388,9 @@ get_file_information (struct GNUNET_FS_ShareTreeItem *item)
 }
 
 
+/**
+ * FIXME: docu
+ */
 static void
 directory_trim_complete ()
 {
@@ -481,6 +487,11 @@ directory_scan_cb (void *cls,
     if (namespace != NULL)
       GNUNET_FS_namespace_delete (namespace, GNUNET_NO);
     GNUNET_FS_stop (ctx);
+    if (kill_task != GNUNET_SCHEDULER_NO_TASK)
+    {
+      GNUNET_SCHEDULER_cancel (kill_task);
+      kill_task = GNUNET_SCHEDULER_NO_TASK;
+    }
     ret = 1;
     break;
   default:
