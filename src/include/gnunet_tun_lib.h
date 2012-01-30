@@ -181,7 +181,7 @@ struct GNUNET_TUN_TcpHeader
   uint32_t ack GNUNET_PACKED;
 #if __BYTE_ORDER == __LITTLE_ENDIAN       
   /**
-   * Reserved.
+   * Reserved.  Must be zero.
    */
   unsigned int reserved : 4 GNUNET_PACKED;
   /**
@@ -194,10 +194,14 @@ struct GNUNET_TUN_TcpHeader
    */
   unsigned int off : 4 GNUNET_PACKED;
   /**
-   * Reserved.
+   * Reserved.  Must be zero.
    */
   unsigned int reserved : 4 GNUNET_PACKED;
 #endif        
+
+  /**
+   * Flags (SYN, FIN, ACK, etc.)
+   */
   uint8_t flags;
 
   /**
