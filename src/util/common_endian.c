@@ -32,9 +32,9 @@
 uint64_t
 GNUNET_ntohll (uint64_t n)
 {
-#if __BYTE_ORDER == __BIG_ENDIAN || _BYTE_ORDER == _BIG_ENDIAN
+#if __BYTE_ORDER == __BIG_ENDIAN
   return n;
-#elif __BYTE_ORDER == __LITTLE_ENDIAN  || _BYTE_ORDER == _LITTLE_ENDIAN
+#elif __BYTE_ORDER == __LITTLE_ENDIAN
   return (((uint64_t) ntohl (n)) << 32) + ntohl (n >> 32);
 #else
   #error byteorder undefined
@@ -44,9 +44,9 @@ GNUNET_ntohll (uint64_t n)
 uint64_t
 GNUNET_htonll (uint64_t n)
 {
-#if __BYTE_ORDER == __BIG_ENDIAN || _BYTE_ORDER == _BIG_ENDIAN
+#if __BYTE_ORDER == __BIG_ENDIAN
   return n;
-#elif __BYTE_ORDER == __LITTLE_ENDIAN  || _BYTE_ORDER == _LITTLE_ENDIAN
+#elif __BYTE_ORDER == __LITTLE_ENDIAN
   return (((uint64_t) htonl (n)) << 32) + htonl (n >> 32);
 #else
   #error byteorder undefined

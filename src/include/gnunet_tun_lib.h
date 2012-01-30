@@ -70,10 +70,10 @@ struct GNUNET_TUN_Layer2PacketHeader
  */
 struct GNUNET_TUN_IPv4Header
 {
-#if __BYTE_ORDER == __LITTLE_ENDIAN || _BYTE_ORDER == _LITTLE_ENDIAN
+#if __BYTE_ORDER == __LITTLE_ENDIAN
   unsigned int header_length:4 GNUNET_PACKED;
   unsigned int version:4 GNUNET_PACKED;
-#elif __BYTE_ORDER == __BIG_ENDIAN || _BYTE_ORDER == _BIG_ENDIAN
+#elif __BYTE_ORDER == __BIG_ENDIAN
   unsigned int version:4 GNUNET_PACKED;
   unsigned int header_length:4 GNUNET_PACKED;
 #else
@@ -127,12 +127,12 @@ struct GNUNET_TUN_IPv4Header
  */
 struct GNUNET_TUN_IPv6Header
 {
-#if __BYTE_ORDER == __LITTLE_ENDIAN  || _BYTE_ORDER == _LITTLE_ENDIAN
+#if __BYTE_ORDER == __LITTLE_ENDIAN
   unsigned int traffic_class_h:4 GNUNET_PACKED;
   unsigned int version:4 GNUNET_PACKED;
   unsigned int traffic_class_l:4 GNUNET_PACKED;
   unsigned int flow_label:20 GNUNET_PACKED;
-#elif __BYTE_ORDER == __BIG_ENDIAN || _BYTE_ORDER == _BIG_ENDIAN
+#elif __BYTE_ORDER == __BIG_ENDIAN
   unsigned int version:4 GNUNET_PACKED;
   unsigned int traffic_class:8 GNUNET_PACKED;
   unsigned int flow_label:20 GNUNET_PACKED;
@@ -183,7 +183,7 @@ struct GNUNET_TUN_TcpHeader
    * Acknowledgement number.
    */
   uint32_t ack GNUNET_PACKED;
-#if __BYTE_ORDER == __LITTLE_ENDIAN  || _BYTE_ORDER == _LITTLE_ENDIAN
+#if __BYTE_ORDER == __LITTLE_ENDIAN
   /**
    * Reserved.  Must be zero.
    */
@@ -192,7 +192,7 @@ struct GNUNET_TUN_TcpHeader
    * Number of 32-bit words in TCP header.
    */
   unsigned int off : 4 GNUNET_PACKED;
-#elif __BYTE_ORDER == __BIG_ENDIAN || _BYTE_ORDER == _BIG_ENDIAN
+#elif __BYTE_ORDER == __BIG_ENDIAN
   /**
    * Number of 32-bit words in TCP header.
    */
