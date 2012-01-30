@@ -458,6 +458,31 @@ stop_peer (struct PeerContext *p)
 }
 
 
+/**
+ * Test if the given AF is supported by this system.
+ * 
+ * @param af to test
+ * @return GNUNET_OK if the AF is supported
+ */
+static int
+test_af (int af)
+{
+  int s;
+
+  s = socket (af, SOCK_STREAM, 0);
+  if (-1 == s)
+  {
+    if (EAFNOSUPPORT == errno)
+      return GNUNET_NO;
+    fprintf (stderr, "Failed to create test socket: %s\n", STRERROR (errno));
+    return GNUNET_SYSERR;
+  }
+  close (s);
+  return GNUNET_OK;
+}
+
+
+
 int
 main (int argc, char *const *argv)
 {
@@ -535,6 +560,14 @@ main (int argc, char *const *argv)
     fprintf (stderr, "invalid binary suffix `%s'\n", type);
     return 1;
   }
+  if ( (GNUNET_OK != test_af (src_af)) ||
+       (GNUNET_OK != test_af (dest_af)) )
+  {
+    fprintf (stderr, 
+	     "Required address families not supported by this system, skipping test.\n");
+    return 0;
+  }
+
 
   if (0 != curl_global_init (CURL_GLOBAL_WIN32))
     return 2;
