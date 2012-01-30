@@ -106,7 +106,7 @@ GNUNET_TUN_calculate_tcp4_checksum (const struct GNUNET_TUN_IPv4Header *ip,
 				    uint16_t payload_length)
 {
   uint32_t sum;
-  uint32_t tmp;
+  uint16_t tmp;
 
   GNUNET_assert (payload_length + sizeof (struct GNUNET_TUN_IPv4Header) + sizeof (struct GNUNET_TUN_TcpHeader) ==
 		 ntohs (ip->total_length));
@@ -116,8 +116,10 @@ GNUNET_TUN_calculate_tcp4_checksum (const struct GNUNET_TUN_IPv4Header *ip,
   sum = GNUNET_CRYPTO_crc16_step (0, 
 				  &ip->source_address,
 				  sizeof (struct in_addr) * 2);
-  tmp = htonl ((IPPROTO_TCP << 16) | (payload_length + sizeof (struct GNUNET_TUN_TcpHeader)));
-  sum = GNUNET_CRYPTO_crc16_step (sum, &tmp, sizeof (uint32_t));
+  tmp = htons (IPPROTO_TCP);
+  sum = GNUNET_CRYPTO_crc16_step (sum, &tmp, sizeof (uint16_t));
+  tmp = htons (payload_length + sizeof (struct GNUNET_TUN_TcpHeader));
+  sum = GNUNET_CRYPTO_crc16_step (sum, &tmp, sizeof (uint16_t));
   sum = GNUNET_CRYPTO_crc16_step (sum, tcp, sizeof (struct GNUNET_TUN_TcpHeader));
   sum = GNUNET_CRYPTO_crc16_step (sum, payload, payload_length);
   tcp->crc = GNUNET_CRYPTO_crc16_finish (sum);
