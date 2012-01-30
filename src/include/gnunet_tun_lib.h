@@ -70,12 +70,14 @@ struct GNUNET_TUN_Layer2PacketHeader
  */
 struct GNUNET_TUN_IPv4Header
 {
-#if __BYTE_ORDER == __LITTLE_ENDIAN       
+#if __BYTE_ORDER == __LITTLE_ENDIAN || _BYTE_ORDER == _LITTLE_ENDIAN
   unsigned int header_length:4 GNUNET_PACKED;
   unsigned int version:4 GNUNET_PACKED;
-#elif __BYTE_ORDER == __BIG_ENDIAN
+#elif __BYTE_ORDER == __BIG_ENDIAN || _BYTE_ORDER == _BIG_ENDIAN
   unsigned int version:4 GNUNET_PACKED;
   unsigned int header_length:4 GNUNET_PACKED;
+#else
+  #error byteorder undefined
 #endif
   uint8_t diff_serv;
 
@@ -125,15 +127,17 @@ struct GNUNET_TUN_IPv4Header
  */
 struct GNUNET_TUN_IPv6Header
 {
-#if __BYTE_ORDER == __LITTLE_ENDIAN 
+#if __BYTE_ORDER == __LITTLE_ENDIAN  || _BYTE_ORDER == _LITTLE_ENDIAN
   unsigned int traffic_class_h:4 GNUNET_PACKED;
   unsigned int version:4 GNUNET_PACKED;
   unsigned int traffic_class_l:4 GNUNET_PACKED;
   unsigned int flow_label:20 GNUNET_PACKED;
-#elif __BYTE_ORDER == __BIG_ENDIAN
+#elif __BYTE_ORDER == __BIG_ENDIAN || _BYTE_ORDER == _BIG_ENDIAN
   unsigned int version:4 GNUNET_PACKED;
   unsigned int traffic_class:8 GNUNET_PACKED;
   unsigned int flow_label:20 GNUNET_PACKED;
+#else
+  #error byteorder undefined
 #endif
   /**
    * Length of the payload, excluding this header.
