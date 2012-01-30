@@ -84,8 +84,8 @@ GNUNET_TUN_initialize_ipv6_header (struct GNUNET_TUN_IPv6Header *ip,
 				   const struct in6_addr *dst)
 {
   GNUNET_assert (payload_length <= UINT16_MAX - sizeof (struct GNUNET_TUN_IPv6Header));
-  ip->traffic_class_h = 0;
   ip->version = 6;
+  ip->traffic_class_h = 0;
   ip->traffic_class_l = 0;
   ip->flow_label = 0;
   ip->next_header = protocol;
