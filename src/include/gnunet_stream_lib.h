@@ -105,6 +105,7 @@ enum GNUNET_STREAM_Option
 /**
  * Tries to open a stream to the target peer
  *
+ * @param cfg configuration to use
  * @param target the target peer to which the stream has to be opened
  * @param app_port the application port number which uniquely identifies this
  *            stream
@@ -115,7 +116,8 @@ enum GNUNET_STREAM_Option
  *         opened 
  */
 struct GNUNET_STREAM_Socket *
-GNUNET_STREAM_open (const struct GNUNET_PeerIdentity *target,
+GNUNET_STREAM_open (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                    const struct GNUNET_PeerIdentity *target,
                     GNUNET_MESH_ApplicationType app_port,
                     GNUNET_STREAM_OpenCallback open_cb,
 		    void *open_cb_cls,
@@ -166,6 +168,7 @@ struct GNUNET_STREAM_ListenSocket;
 /**
  * Listens for stream connections for a specific application ports
  *
+ * @param cfg the configuration to use
  * @param app_port the application port for which new streams will be accepted
  * @param listen_cb this function will be called when a peer tries to establish
  *            a stream with us
@@ -173,7 +176,8 @@ struct GNUNET_STREAM_ListenSocket;
  * @return listen socket, NULL for any error
  */
 struct GNUNET_STREAM_ListenSocket *
-GNUNET_STREAM_listen (GNUNET_MESH_ApplicationType app_port,
+GNUNET_STREAM_listen (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                      GNUNET_MESH_ApplicationType app_port,
                       GNUNET_STREAM_ListenCallback listen_cb,
                       void *listen_cb_cls);
 
