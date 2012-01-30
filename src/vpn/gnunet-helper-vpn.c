@@ -553,7 +553,12 @@ main (int argc, char **argv)
 
   if (-1 == (fd_tun = init_tun (dev)))
   {
-    fprintf (stderr, "Fatal: could not initialize tun-interface\n");
+    fprintf (stderr, "Fatal: could not initialize tun-interface `%s'  with IPv6 %s/%s and IPv4 %s/%s\n",
+	     dev,
+	     argv[2],
+	     argv[3],
+	     argv[4],
+	     argv[5]);
     return 1;
   }
 
