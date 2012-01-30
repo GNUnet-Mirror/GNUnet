@@ -56,12 +56,12 @@ struct GNUNET_TUN_Layer2PacketHeader
   /**
    * Some flags (unused).
    */ 
-  uint16_t flags;
+  uint16_t flags GNUNET_PACKED;
 
   /**
    * Here we get an ETH_P_-number.
    */
-  uint16_t proto;
+  uint16_t proto GNUNET_PACKED;
 };
 
 
@@ -179,35 +179,35 @@ struct GNUNET_TUN_DnsHeader
 struct GNUNET_TUN_IcmpHeader {
   uint8_t type;		
   uint8_t code;		 
-  uint16_t crc;
+  uint16_t crc GNUNET_PACKED;
 
   union {
     /**
      * ICMP Echo (request/reply) 
      */
     struct {
-      uint16_t	identifier;
-      uint16_t	sequence_number;
+      uint16_t	identifier GNUNET_PACKED;
+      uint16_t	sequence_number GNUNET_PACKED;
     } echo;
 
     /**
      * ICMP Destination Unreachable (RFC 1191) 
      */
     struct ih_pmtu {
-      uint16_t empty;
-      uint16_t next_hop_mtu;
+      uint16_t empty GNUNET_PACKED;
+      uint16_t next_hop_mtu GNUNET_PACKED;
       /* followed by original IP header + first 8 bytes of original IP datagram */
     } destination_unreachable;
 
     /**
      * ICMP Redirect 
      */	
-    struct in_addr redirect_gateway_address;	
+    struct in_addr redirect_gateway_address GNUNET_PACKED;	
 
     /**
      * MTU for packets that are too big (IPv6).
      */
-    uint32_t packet_too_big_mtu;
+    uint32_t packet_too_big_mtu GNUNET_PACKED;
 
   } quench;
 
