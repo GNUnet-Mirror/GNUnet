@@ -183,7 +183,7 @@ struct GNUNET_TUN_TcpHeader
    * Acknowledgement number.
    */
   uint32_t ack GNUNET_PACKED;
-#if __BYTE_ORDER == __LITTLE_ENDIAN       
+#if __BYTE_ORDER == __LITTLE_ENDIAN  || _BYTE_ORDER == _LITTLE_ENDIAN
   /**
    * Reserved.  Must be zero.
    */
@@ -192,7 +192,7 @@ struct GNUNET_TUN_TcpHeader
    * Number of 32-bit words in TCP header.
    */
   unsigned int off : 4 GNUNET_PACKED;
-#elif __BYTE_ORDER == __BIG_ENDIAN
+#elif __BYTE_ORDER == __BIG_ENDIAN || _BYTE_ORDER == _BIG_ENDIAN
   /**
    * Number of 32-bit words in TCP header.
    */
@@ -201,6 +201,8 @@ struct GNUNET_TUN_TcpHeader
    * Reserved.  Must be zero.
    */
   unsigned int reserved : 4 GNUNET_PACKED;
+#else
+  #error byteorder undefined
 #endif        
 
   /**
