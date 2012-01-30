@@ -872,7 +872,7 @@ send_disconnect (struct NeighbourMapEntry * n)
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               "Sending DISCONNECT message to peer `%4s'\n",
-              GNUNET_i2s (target));
+              GNUNET_i2s (&n->id));
 #endif
 
   disconnect_msg.header.size = htons (sizeof (struct SessionDisconnectMessage));
