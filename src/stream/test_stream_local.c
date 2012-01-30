@@ -124,9 +124,10 @@ do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param status the status of the stream at the time this function is called
  * @param size the number of bytes read or written
  */
-void write_completion (void *cls,
-                       enum GNUNET_STREAM_Status status,
-                       size_t size)
+static void 
+write_completion (void *cls,
+                  enum GNUNET_STREAM_Status status,
+                  size_t size)
 {
   struct PeerData *peer;
 
