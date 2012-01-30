@@ -2990,6 +2990,31 @@ client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
 
 
 /**
+ * Test if the given AF is supported by this system.
+ * 
+ * @param af to test
+ * @return GNUNET_OK if the AF is supported
+ */
+static int
+test_af (int af)
+{
+  int s;
+
+  s = socket (af, SOCK_STREAM, 0);
+  if (-1 == s)
+  {
+    if (EAFNOSUPPORT == errno)
+      return GNUNET_NO;
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
+			 "socket");
+    return GNUNET_SYSERR;
+  }
+  close (s);
+  return GNUNET_OK;
+}
+
+
+/**
  * Main function that will be run by the scheduler.
  *
  * @param cls closure
@@ -3062,59 +3087,78 @@ run (void *cls,
     return;
   }
   vpn_argv[1] = ifname;
-  if ( (GNUNET_SYSERR ==
-	GNUNET_CONFIGURATION_get_value_string (cfg, "vpn", "IPV6ADDR",
-					       &ipv6addr) ||
-	(1 != inet_pton (AF_INET6, ipv6addr, &v6))) )
+  if (GNUNET_OK == test_af (AF_INET6))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "No valid entry 'IPV6ADDR' in configuration!\n");
-    GNUNET_SCHEDULER_shutdown ();
-    return;
+    if ( (GNUNET_SYSERR ==
+	  GNUNET_CONFIGURATION_get_value_string (cfg, "vpn", "IPV6ADDR",
+						 &ipv6addr) ||
+	  (1 != inet_pton (AF_INET6, ipv6addr, &v6))) )
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  "No valid entry 'IPV6ADDR' in configuration!\n");
+      GNUNET_SCHEDULER_shutdown ();
+      return;
+    }
+    vpn_argv[2] = ipv6addr;
+    if (GNUNET_SYSERR ==
+	GNUNET_CONFIGURATION_get_value_string (cfg, "vpn", "IPV6PREFIX",
+					       &ipv6prefix_s))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  "No entry 'IPV6PREFIX' in configuration!\n");
+      GNUNET_SCHEDULER_shutdown ();
+      return;
+    }
+    vpn_argv[3] = ipv6prefix_s;
+    if ( (GNUNET_OK !=
+	  GNUNET_CONFIGURATION_get_value_number (cfg, "vpn",
+						 "IPV6PREFIX",
+						 &ipv6prefix)) ||
+	 (ipv6prefix >= 127) )
+    {
+      GNUNET_SCHEDULER_shutdown ();
+      return;
+    }
   }
-  vpn_argv[2] = ipv6addr;
-  if (GNUNET_SYSERR ==
-      GNUNET_CONFIGURATION_get_value_string (cfg, "vpn", "IPV6PREFIX",
-                                             &ipv6prefix_s))
+  else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "No entry 'IPV6PREFIX' in configuration!\n");
-    GNUNET_SCHEDULER_shutdown ();
-    return;
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		_("IPv6 support disabled as this system does not support IPv6\n"));
+    vpn_argv[2] = GNUNET_strdup ("-");
+    vpn_argv[3] = GNUNET_strdup ("-");
   }
-  vpn_argv[3] = ipv6prefix_s;
-  if ( (GNUNET_OK !=
-	GNUNET_CONFIGURATION_get_value_number (cfg, "vpn",
-					       "IPV6PREFIX",
-					       &ipv6prefix)) ||
-       (ipv6prefix >= 127) )
+  if (GNUNET_OK == test_af (AF_INET))
   {
-    GNUNET_SCHEDULER_shutdown ();
-    return;
+    if ( (GNUNET_SYSERR ==
+	  GNUNET_CONFIGURATION_get_value_string (cfg, "vpn", "IPV4ADDR",
+						 &ipv4addr) ||
+	  (1 != inet_pton (AF_INET, ipv4addr, &v4))) )
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  "No valid entry for 'IPV4ADDR' in configuration!\n");
+      GNUNET_SCHEDULER_shutdown ();
+      return;
+    }
+    vpn_argv[4] = ipv4addr;
+    if ( (GNUNET_SYSERR ==
+	  GNUNET_CONFIGURATION_get_value_string (cfg, "vpn", "IPV4MASK",
+						 &ipv4mask) ||
+	  (1 != inet_pton (AF_INET, ipv4mask, &v4))) )
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  "No valid entry 'IPV4MASK' in configuration!\n");
+      GNUNET_SCHEDULER_shutdown ();
+      return;
+    }
+    vpn_argv[5] = ipv4mask;
   }
-
-  if ( (GNUNET_SYSERR ==
-	GNUNET_CONFIGURATION_get_value_string (cfg, "vpn", "IPV4ADDR",
-					       &ipv4addr) ||
-	(1 != inet_pton (AF_INET, ipv4addr, &v4))) )
+  else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "No valid entry for 'IPV4ADDR' in configuration!\n");
-    GNUNET_SCHEDULER_shutdown ();
-    return;
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		_("IPv4 support disabled as this system does not support IPv4\n"));
+    vpn_argv[4] = GNUNET_strdup ("-");
+    vpn_argv[5] = GNUNET_strdup ("-");
   }
-  vpn_argv[4] = ipv4addr;
-  if ( (GNUNET_SYSERR ==
-	GNUNET_CONFIGURATION_get_value_string (cfg, "vpn", "IPV4MASK",
-					       &ipv4mask) ||
-	(1 != inet_pton (AF_INET, ipv4mask, &v4))) )
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "No valid entry 'IPV4MASK' in configuration!\n");
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
-  vpn_argv[5] = ipv4mask;
   vpn_argv[6] = NULL;
 
   mesh_handle =

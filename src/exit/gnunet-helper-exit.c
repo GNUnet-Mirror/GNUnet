@@ -226,7 +226,7 @@ set_address6 (const char *dev, const char *address, unsigned long prefix_len)
 
   if (-1 == (fd = socket (PF_INET6, SOCK_DGRAM, 0)))
   {
-    fprintf (stderr, "Error creating socket: %s\n", strerror (errno));
+    fprintf (stderr, "Error creating socket: %s\n", strerror (errno));    
     exit (1);
   }
 

@@ -530,10 +530,10 @@ PROCESS_BUFFER:
  * @param argc must be 6
  * @param argv 0: binary name (gnunet-helper-vpn)
  *             1: tunnel interface name (gnunet-vpn)
- *             2: IPv6 address (::1)
- *             3: IPv6 netmask length in bits (64)
- *             4: IPv4 address (1.2.3.4)
- *             5: IPv4 netmask (255.255.0.0)
+ *             2: IPv6 address (::1), "-" to disable
+ *             3: IPv6 netmask length in bits (64), ignored if #2 is "-"
+ *             4: IPv4 address (1.2.3.4), "-" to disable
+ *             5: IPv4 netmask (255.255.0.0), ignored if #4 is "-"
  */
 int
 main (int argc, char **argv)
@@ -562,6 +562,7 @@ main (int argc, char **argv)
     return 1;
   }
 
+  if (0 != strcmp (argv[2], "-"))
   {
     const char *address = argv[2];
     long prefix_len = atol (argv[3]);
@@ -575,6 +576,7 @@ main (int argc, char **argv)
     set_address6 (dev, address, prefix_len);
   }
 
+  if (0 != strcmp (argv[4], "-"))
   {
     const char *address = argv[4];
     const char *mask = argv[5];

@@ -2949,6 +2949,31 @@ read_service_conf (void *cls GNUNET_UNUSED, const char *section)
 
 
 /**
+ * Test if the given AF is supported by this system.
+ * 
+ * @param af to test
+ * @return GNUNET_OK if the AF is supported
+ */
+static int
+test_af (int af)
+{
+  int s;
+
+  s = socket (af, SOCK_STREAM, 0);
+  if (-1 == s)
+  {
+    if (EAFNOSUPPORT == errno)
+      return GNUNET_NO;
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
+			 "socket");
+    return GNUNET_SYSERR;
+  }
+  close (s);
+  return GNUNET_OK;
+}
+
+
+/**
  * @brief Main function that will be run by the scheduler.
  *
  * @param cls closure
@@ -3000,6 +3025,23 @@ run (void *cls, char *const *args GNUNET_UNUSED,
   ipv6_exit = GNUNET_CONFIGURATION_get_value_yesno (cfg, "exit", "EXIT_IPV6"); 
   ipv4_enabled = GNUNET_CONFIGURATION_get_value_yesno (cfg, "exit", "ENABLE_IPV4");
   ipv6_enabled = GNUNET_CONFIGURATION_get_value_yesno (cfg, "exit", "ENABLE_IPV6"); 
+
+  if ( (ipv4_exit || ipv4_enabled) &&
+       GNUNET_OK != test_af (AF_INET))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		_("This system does not support IPv4, will disable IPv4 functions despite them being enabled in the configuration\n"));
+    ipv4_exit = GNUNET_NO;
+    ipv4_enabled = GNUNET_NO;
+  }
+  if ( (ipv6_exit || ipv6_enabled) &&
+       GNUNET_OK != test_af (AF_INET6))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		_("This system does not support IPv6, will disable IPv6 functions despite them being enabled in the configuration\n"));
+    ipv6_exit = GNUNET_NO;
+    ipv6_enabled = GNUNET_NO;
+  }
   if (ipv4_exit && (! ipv4_enabled))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -3063,6 +3105,8 @@ run (void *cls, char *const *args GNUNET_UNUSED,
   {
     exit_argv[2] = GNUNET_strdup ("%");
   }
+  
+
   if (GNUNET_YES == ipv6_enabled)
   {
     if ( (GNUNET_SYSERR ==
