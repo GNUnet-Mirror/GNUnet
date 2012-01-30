@@ -52,6 +52,8 @@
  */
 #define TIMEOUT_TRANSMIT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
 
+#define MSIZE 2600
+
 #define MTYPE 12345
 
 static char *test_source;
@@ -193,22 +195,23 @@ notify_ready (void *cls, size_t size, void *buf)
     return 0;
   }
 
-  GNUNET_assert (size >= 256);
+  GNUNET_assert (size >= MSIZE);
 
   if (buf != NULL)
   {
     hdr = buf;
-    hdr->size = htons (sizeof (struct GNUNET_MessageHeader));
+    hdr->size = htons (MSIZE);
     hdr->type = htons (MTYPE);
   }
-  char *ps = GNUNET_strdup (GNUNET_i2s (&p2->id));
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  char *ps = GNUNET_strdup (GNUNET_i2s (&p2->id));
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               "Peer %u (`%4s') sending message with type %u and size %u bytes to peer %u (`%4s')\n",
               p2->no, ps, ntohs (hdr->type), ntohs (hdr->size), p->no,
               GNUNET_i2s (&p->id));
   GNUNET_free (ps);
-  return sizeof (struct GNUNET_MessageHeader);
+
+  return MSIZE;
 }
 
 
@@ -226,7 +229,7 @@ sendtask (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
               p2->no, GNUNET_i2s (&p2->id), p1->no, receiver_s);
   GNUNET_free (receiver_s);
 
-  th = GNUNET_TRANSPORT_notify_transmit_ready (p2->th, &p1->id, 256, 0,
+  th = GNUNET_TRANSPORT_notify_transmit_ready (p2->th, &p1->id, MSIZE, 0,
                                                TIMEOUT_TRANSMIT, &notify_ready,
                                                p1);
 }
