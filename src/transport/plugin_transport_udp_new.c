@@ -64,6 +64,29 @@ struct PrettyPrinterContext
   uint16_t port;
 };
 
+struct Session
+{
+  /**
+   * Which peer is this session for?
+   */
+  struct GNUNET_PeerIdentity target;
+
+  /**
+   * Address of the other peer
+   */
+  const struct sockaddr *sock_addr;
+
+  size_t addrlen;
+};
+
+
+struct SessionCompareContext
+{
+  struct Session *res;
+  const struct GNUNET_HELLO_Address *addr;
+};
+
+
 
 /**
  * Function called for a quick conversion of the binary address to
@@ -293,6 +316,40 @@ udp_plugin_check_address (void *cls, const void *addr, size_t addrlen)
 
 
 /**
+ * Destroy a session, plugin is being unloaded.
+ *
+ * @param cls unused
+ * @param key hash of public key of target peer
+ * @param value a 'struct PeerSession*' to clean up
+ * @return GNUNET_OK (continue to iterate)
+ */
+static int
+disconnect_and_free_it (void *cls, const GNUNET_HashCode * key, void *value)
+{
+  struct Plugin *plugin = cls;
+  struct Session *s = value;
+
+#if DEBUG_UDP
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Session %p to peer `%s' address ended \n",
+         s,
+         GNUNET_i2s (&s->target),
+         GNUNET_a2s (s->sock_addr, s->addrlen));
+#endif
+
+  plugin->env->session_end (plugin->env->cls, &s->target, s);
+
+  GNUNET_assert (GNUNET_YES ==
+                 GNUNET_CONTAINER_multihashmap_remove (plugin->sessions,
+                                                       &s->target.hashPubKey,
+                                                       s));
+
+  GNUNET_free (s);
+  return GNUNET_OK;
+}
+
+
+/**
  * Disconnect from a remote node.  Clean up session if we have one for this peer
  *
  * @param cls closure for this call (should be handle to Plugin)
@@ -302,7 +359,127 @@ udp_plugin_check_address (void *cls, const void *addr, size_t addrlen)
 static void
 udp_disconnect (void *cls, const struct GNUNET_PeerIdentity *target)
 {
+  struct Plugin *plugin = cls;
+  GNUNET_assert (plugin != NULL);
 
+  GNUNET_assert (target != NULL);
+#if DEBUG_UDP
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Disconnecting from peer `%s'\n", GNUNET_i2s (target));
+#endif
+  /* Clean up sessions */
+  GNUNET_CONTAINER_multihashmap_get_multiple (plugin->sessions, &target->hashPubKey, &disconnect_and_free_it, plugin);
+
+}
+
+static struct Session *
+create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
+                const void *addr, size_t addrlen,
+                GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls)
+{
+  struct Session *s;
+  const struct IPv4UdpAddress *t4;
+  const struct IPv6UdpAddress *t6;
+  struct sockaddr_in *v4;
+  struct sockaddr_in6 *v6;
+  size_t len;
+  struct GNUNET_ATS_Information ats;
+
+  switch (addrlen)
+  {
+  case sizeof (struct IPv4UdpAddress):
+    if (NULL == plugin->sockv4)
+    {
+      return NULL;
+    }
+    t4 = addr;
+    s = GNUNET_malloc (sizeof (struct Session) + sizeof (struct sockaddr_in));
+    len = sizeof (struct sockaddr_in);
+    v4 = (struct sockaddr_in *) &s[1];
+    v4->sin_family = AF_INET;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+    v4->sin_len = sizeof (struct sockaddr_in);
+#endif
+    v4->sin_port = t4->u4_port;
+    v4->sin_addr.s_addr = t4->ipv4_addr;
+    ats = plugin->env->get_address_type (plugin->env->cls, (const struct sockaddr *) v4, sizeof (struct sockaddr_in));
+    break;
+  case sizeof (struct IPv6UdpAddress):
+    if (NULL == plugin->sockv6)
+    {
+      return NULL;
+    }
+    t6 = addr;
+    s =
+        GNUNET_malloc (sizeof (struct Session) + sizeof (struct sockaddr_in6));
+    len = sizeof (struct sockaddr_in6);
+    v6 = (struct sockaddr_in6 *) &s[1];
+    v6->sin6_family = AF_INET6;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+    v6->sin6_len = sizeof (struct sockaddr_in6);
+#endif
+    v6->sin6_port = t6->u6_port;
+    v6->sin6_addr = t6->ipv6_addr;
+    ats = plugin->env->get_address_type (plugin->env->cls, (const struct sockaddr *) v6, sizeof (struct sockaddr_in6));
+    break;
+  default:
+    /* Must have a valid address to send to */
+    GNUNET_break_op (0);
+    return NULL;
+  }
+
+  s->addrlen = len;
+  s->target = *target;
+  s->sock_addr = (const struct sockaddr *) &s[1];
+
+  return s;
+}
+
+static int session_cmp_it (void *cls,
+                           const GNUNET_HashCode * key,
+                           void *value)
+{
+  struct SessionCompareContext * cctx = cls;
+  const struct GNUNET_HELLO_Address *address = cctx->addr;
+  struct Session *s = value;
+  struct Session *r = cctx->res;
+  struct IPv4UdpAddress * u4 = NULL;
+  struct IPv6UdpAddress * u6 = NULL;
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "AAAAAAAAAAAAAAAAAAa\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Looking for existing session for address %s\n", udp_address_to_string (NULL, (void *) address->address, address->address_length));
+
+  if (s->addrlen == address->address_length)
+  {
+    if (address->address_length == sizeof (struct IPv4UdpAddress))
+    {
+      u4 = (struct IPv4UdpAddress * ) address->address;
+      struct sockaddr_in *sai = (struct sockaddr_in *) s->sock_addr;
+      if ((u4->ipv4_addr == sai->sin_addr.s_addr) &&
+          (u4->u4_port == sai->sin_port))
+      {
+        r = s;
+        return GNUNET_NO;
+      }
+    }
+    else if (address->address_length == sizeof (struct IPv6UdpAddress))
+    {
+      u6 = (struct IPv6UdpAddress * ) address->address;
+      struct sockaddr_in6 *sai = (struct sockaddr_in6 *) s->sock_addr;
+
+      if ((0 == memcmp (&u6->ipv6_addr, &sai->sin6_addr, sizeof (struct in6_addr))) &&
+         (u6->u6_port == sai->sin6_port))
+      {
+        r = s;
+        return GNUNET_NO;
+      }
+    }
+    else
+    {
+      GNUNET_break (0);
+      return GNUNET_YES;
+    }
+  }
+  return GNUNET_YES;
 }
 
 
@@ -314,13 +491,50 @@ udp_disconnect (void *cls, const struct GNUNET_PeerIdentity *target)
  * @param address the address
  * @return the session or NULL of max connections exceeded
  */
-
 static struct Session *
 udp_plugin_get_session (void *cls,
                   const struct GNUNET_HELLO_Address *address)
 {
   struct Session * s = NULL;
-  //struct Plugin * plugin = cls;
+  struct Plugin * plugin = cls;
+
+  GNUNET_assert (plugin != NULL);
+  GNUNET_assert (address != NULL);
+
+  if ((address->address == NULL) ||
+      ((address->address_length != sizeof (struct IPv4UdpAddress)) &&
+      (address->address_length != sizeof (struct IPv6UdpAddress))))
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
+
+  /* check if session already exists */
+  if (NULL != NULL)
+ {
+  struct SessionCompareContext cctx;
+  cctx.addr = address;
+  cctx.res = NULL;
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Looking for existing session for peer `%s' `%s' \n", GNUNET_i2s (&address->peer), udp_address_to_string(NULL, address->address, address->address_length));
+  GNUNET_CONTAINER_multihashmap_get_multiple(plugin->sessions, &address->peer.hashPubKey, session_cmp_it, &cctx);
+  if (cctx.res != NULL)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Found existing session\n");
+    return cctx.res;
+  }
+ }
+  /* otherwise create new */
+  s = create_session (plugin,
+      &address->peer,
+      address->address,
+      address->address_length,
+      NULL, NULL);
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Creating new session %p\n", s);
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CONTAINER_multihashmap_put (plugin->sessions,
+                                                    &s->target.hashPubKey,
+                                                    s,
+                                                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
 
   return s;
 }
@@ -784,6 +998,8 @@ libgnunet_plugin_transport_udp_init (void *cls)
   GNUNET_BANDWIDTH_tracker_init (&plugin->tracker,
                                  GNUNET_BANDWIDTH_value_init ((uint32_t)udp_max_bps), 30);
 
+
+  plugin->sessions = GNUNET_CONTAINER_multihashmap_create (10);
   plugin->port = port;
   plugin->aport = aport;
   plugin->last_expected_delay = GNUNET_TIME_UNIT_SECONDS;
@@ -819,7 +1035,6 @@ libgnunet_plugin_transport_udp_init (void *cls)
   return api;
 }
 
-
 /**
  * The exported method. Makes the core api available via a global and
  * returns the udp transport API.
@@ -848,8 +1063,16 @@ libgnunet_plugin_transport_udp_done (void *cls)
   }
   GNUNET_NETWORK_fdset_destroy (plugin->rs);
   GNUNET_NETWORK_fdset_destroy (plugin->ws);
-
   GNUNET_NAT_unregister (plugin->nat);
+
+  /* Clean up sessions */
+#if DEBUG_UDP
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Cleaning up sessions\n");
+#endif
+  GNUNET_CONTAINER_multihashmap_iterate (plugin->sessions, &disconnect_and_free_it, plugin);
+  GNUNET_CONTAINER_multihashmap_destroy (plugin->sessions);
+
   plugin->nat = NULL;
   GNUNET_free (plugin);
   GNUNET_free (api);

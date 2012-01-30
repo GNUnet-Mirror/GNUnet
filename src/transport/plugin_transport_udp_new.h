@@ -42,6 +42,7 @@
 #define LOG(kind,...) GNUNET_log_from (kind, "transport-udp", __VA_ARGS__)
 
 #define DEBUG_UDP GNUNET_YES
+#define DEBUG_UDP_BROADCASTING GNUNET_NO
 
 /**
  * MTU for fragmentation subsystem.  Should be conservative since
@@ -126,12 +127,6 @@ struct Plugin
    * map of peer identity to 'struct PeerSession'.
    */
   struct GNUNET_CONTAINER_MultiHashMap *sessions;
-
-  /**
-   * Session of peers with whom we are currently connected,
-   * map of peer identity to 'struct PeerSession'.
-   */
-  struct GNUNET_CONTAINER_MultiHashMap *inbound_sessions;
 
   /**
    * Heap with all of our defragmentation activities.
