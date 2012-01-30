@@ -50,7 +50,7 @@ GNUNET_TUN_initialize_ipv4_header (struct GNUNET_TUN_IPv4Header *ip,
 				   const struct in_addr *dst)
 {
   GNUNET_assert (payload_length <= UINT16_MAX - sizeof (struct GNUNET_TUN_IPv4Header));
-  memset (&ip, 0, sizeof (struct GNUNET_TUN_IPv4Header));
+  memset (ip, 0, sizeof (struct GNUNET_TUN_IPv4Header));
   ip->header_length =  sizeof (struct GNUNET_TUN_IPv4Header) / 4;
   ip->version = 4;
   ip->total_length = htons (sizeof (struct GNUNET_TUN_IPv4Header) + payload_length);
@@ -81,7 +81,7 @@ GNUNET_TUN_initialize_ipv6_header (struct GNUNET_TUN_IPv6Header *ip,
 				   const struct in6_addr *dst)
 {
   GNUNET_assert (payload_length <= UINT16_MAX - sizeof (struct GNUNET_TUN_IPv6Header));
-  memset (&ip, 0, sizeof (struct GNUNET_TUN_IPv6Header));
+  memset (ip, 0, sizeof (struct GNUNET_TUN_IPv6Header));
   ip->version = 6;
   ip->next_header = protocol;
   ip->payload_length = htons ((uint16_t) payload_length);
