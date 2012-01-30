@@ -407,7 +407,7 @@ GNUNET_CONFIGURATION_iterate_section_values (const struct
   struct ConfigEntry *epos;
 
   spos = cfg->sections;
-  while ((spos != NULL) && (0 != strcmp (spos->name, section)))
+  while ((spos != NULL) && (0 != strcasecmp (spos->name, section)))
     spos = spos->next;
 
   if (spos == NULL)
@@ -465,7 +465,7 @@ GNUNET_CONFIGURATION_remove_section (struct GNUNET_CONFIGURATION_Handle *cfg,
   spos = cfg->sections;
   while (spos != NULL)
   {
-    if (0 == strcmp (section, spos->name))
+    if (0 == strcasecmp (section, spos->name))
     {
       if (prev == NULL)
         cfg->sections = spos->next;

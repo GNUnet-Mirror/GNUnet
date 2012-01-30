@@ -308,6 +308,7 @@ start_process (struct ServiceList *sl)
 	      "Starting service `%s' using binary `%s' and configuration `%s'\n",
 	      sl->name, sl->binary, sl->config);
 #endif
+  GNUNET_assert (NULL == sl->proc);
   if (GNUNET_YES == use_debug)
     sl->proc =
       do_start_process (lsocks, loprefix, sl->binary, "-c", sl->config, "-L",
@@ -407,7 +408,7 @@ find_service (const char *name)
   sl = running_head;
   while (sl != NULL)
     {
-      if (0 == strcmp (sl->name, name))
+      if (0 == strcasecmp (sl->name, name))
 	return sl;
       sl = sl->next;
     }
@@ -1041,6 +1042,13 @@ setup_service (void *cls, const char *section)
       /* not a service section */
       return;
     }
+  sl = find_service (section);
+  if (NULL != sl)
+  {
+    /* got the same section twice!? */
+    GNUNET_break (0);
+    return;
+  }
   config = NULL;
   if ((GNUNET_OK !=
        GNUNET_CONFIGURATION_get_value_filename (cfg, section, "CONFIG",
