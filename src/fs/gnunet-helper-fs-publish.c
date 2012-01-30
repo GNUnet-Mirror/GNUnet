@@ -88,6 +88,36 @@ static struct EXTRACTOR_PluginList *plugins;
 
 
 /**
+ * Add meta data that libextractor finds to our meta data
+ * container.
+ *
+ * @param cls closure, our meta data container
+ * @param plugin_name name of the plugin that produced this value;
+ *        special values can be used (i.e. '&lt;zlib&gt;' for zlib being
+ *        used in the main libextractor library and yielding
+ *        meta data).
+ * @param type libextractor-type describing the meta data
+ * @param format basic format information about data
+ * @param data_mime_type mime-type of data (not of the original file);
+ *        can be NULL (if mime-type is not known)
+ * @param data actual meta-data found
+ * @param data_len number of bytes in data
+ * @return always 0 to continue extracting
+ */
+static int
+add_to_md (void *cls, const char *plugin_name, enum EXTRACTOR_MetaType type,
+           enum EXTRACTOR_MetaFormat format, const char *data_mime_type,
+           const char *data, size_t data_len)
+{
+  struct GNUNET_CONTAINER_MetaData *md = cls;
+
+  (void) GNUNET_CONTAINER_meta_data_insert (md, plugin_name, type, format,
+                                            data_mime_type, data, data_len);
+  return 0;
+}
+
+
+/**
  * Free memory of the 'tree' structure
  *
  * @param tree tree to free
@@ -322,9 +352,8 @@ extract_files (struct ScanTreeNode *item)
   
   /* this is the expensive operation, *afterwards* we'll check for aborts */
   meta = GNUNET_CONTAINER_meta_data_create ();
-  GNUNET_FS_meta_data_extract_from_file (meta, 
-					 item->filename,
-					 plugins);
+  if (NULL != plugins)
+    EXTRACTOR_extract (plugins, item->filename, NULL, 0, &add_to_md, meta);
   slen = strlen (item->filename) + 1;
   size = GNUNET_CONTAINER_meta_data_get_serialized_size (meta);
   if ( (-1 == size) ||

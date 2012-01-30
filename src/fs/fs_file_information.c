@@ -22,71 +22,12 @@
  * @file fs/fs_file_information.c
  * @brief  Manage information for publishing directory hierarchies
  * @author Christian Grothoff
- *
- * TODO:
- * - metadata filename clean up code
- * - metadata/ksk generation for directories from contained files
  */
 #include "platform.h"
 #include <extractor.h>
 #include "gnunet_fs_service.h"
 #include "fs_api.h"
 #include "fs_tree.h"
-
-
-/**
- * Add meta data that libextractor finds to our meta data
- * container.
- *
- * @param cls closure, our meta data container
- * @param plugin_name name of the plugin that produced this value;
- *        special values can be used (i.e. '&lt;zlib&gt;' for zlib being
- *        used in the main libextractor library and yielding
- *        meta data).
- * @param type libextractor-type describing the meta data
- * @param format basic format information about data
- * @param data_mime_type mime-type of data (not of the original file);
- *        can be NULL (if mime-type is not known)
- * @param data actual meta-data found
- * @param data_len number of bytes in data
- * @return always 0 to continue extracting
- */
-static int
-add_to_md (void *cls, const char *plugin_name, enum EXTRACTOR_MetaType type,
-           enum EXTRACTOR_MetaFormat format, const char *data_mime_type,
-           const char *data, size_t data_len)
-{
-  struct GNUNET_CONTAINER_MetaData *md = cls;
-
-  (void) GNUNET_CONTAINER_meta_data_insert (md, plugin_name, type, format,
-                                            data_mime_type, data, data_len);
-  return 0;
-}
-
-
-/**
- * Extract meta-data from a file.
- *
- * @return GNUNET_SYSERR on error, otherwise the number
- *   of meta-data items obtained
- */
-int
-GNUNET_FS_meta_data_extract_from_file (struct GNUNET_CONTAINER_MetaData *md,
-                                       const char *filename,
-                                       struct EXTRACTOR_PluginList *extractors)
-{
-  int old;
-
-  if (filename == NULL)
-    return GNUNET_SYSERR;
-  if (extractors == NULL)
-    return 0;
-  old = GNUNET_CONTAINER_meta_data_iterate (md, NULL, NULL);
-  GNUNET_assert (old >= 0);
-  EXTRACTOR_extract (extractors, filename, NULL, 0, &add_to_md, md);
-  return (GNUNET_CONTAINER_meta_data_iterate (md, NULL, NULL) - old);
-}
-
 
 
 /**

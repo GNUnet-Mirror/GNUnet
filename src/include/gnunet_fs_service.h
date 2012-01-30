@@ -1696,21 +1696,6 @@ GNUNET_FS_stop (struct GNUNET_FS_Handle *h);
 
 
 /**
- * Extract meta-data from a file.
- *
- * @param md metadata to set
- * @param filename name of file to inspect
- * @param extractors plugins to use
- * @return GNUNET_SYSERR on error, otherwise the number
- *   of meta-data items obtained
- */
-int
-GNUNET_FS_meta_data_extract_from_file (struct GNUNET_CONTAINER_MetaData *md,
-                                       const char *filename,
-                                       struct EXTRACTOR_PluginList *extractors);
-
-
-/**
  * Function called on entries in a GNUNET_FS_FileInformation publish-structure.
  *
  * @param cls closure

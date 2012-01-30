@@ -44,8 +44,7 @@ libgnunetfs_la_SOURCES = \
 libgnunetfs_la_LIBADD = \
   $(top_builddir)/src/datastore/libgnunetdatastore.la \
   $(top_builddir)/src/util/libgnunetutil.la \
-  -lextractor \
-  $(GN_LIBINTL) $(XLIB) -lunistring
+  $(GN_LIBINTL) $(XLIB) -lunistring -lextractor
 
 libgnunetfs_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)  $(WINFLAGS) \
@@ -114,7 +113,6 @@ gnunet_publish_DEPENDENCIES = \
 gnunet_helper_fs_publish_SOURCES =  \
  gnunet-helper-fs-publish.c 
 gnunet_helper_fs_publish_LDADD =  \
- $(top_builddir)/src/fs/libgnunetfs.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  -lextractor \
  $(GN_LIBINTL)
