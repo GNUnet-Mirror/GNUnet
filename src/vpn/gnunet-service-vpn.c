@@ -881,8 +881,8 @@ route_packet (struct DestinationEntry *destination,
   const struct GNUNET_TUN_UdpHeader *udp;
   const struct GNUNET_TUN_TcpHeader *tcp;
   const struct GNUNET_TUN_IcmpHeader *icmp;
-  uint16_t spt;
-  uint16_t dpt;
+  uint16_t source_port;
+  uint16_t destination_port;
 
   switch (protocol)
   {
@@ -900,14 +900,14 @@ route_packet (struct DestinationEntry *destination,
 	GNUNET_break_op (0);
 	return;
       }
-      spt = ntohs (udp->spt);
-      dpt = ntohs (udp->dpt);
+      source_port = ntohs (udp->source_port);
+      destination_port = ntohs (udp->destination_port);
       get_tunnel_key_from_ips (af,
 			       IPPROTO_UDP,
 			       source_ip,
-			       spt,
+			       source_port,
 			       destination_ip,
-			       dpt,
+			       destination_port,
 			       &key);
     }
     break;
@@ -925,14 +925,14 @@ route_packet (struct DestinationEntry *destination,
 	GNUNET_break_op (0);
 	return;
       }
-      spt = ntohs (tcp->spt);
-      dpt = ntohs (tcp->dpt);
+      source_port = ntohs (tcp->source_port);
+      destination_port = ntohs (tcp->destination_port);
       get_tunnel_key_from_ips (af,
 			       IPPROTO_TCP,
 			       source_ip,
-			       spt,
+			       source_port,
 			       destination_ip,
-			       dpt,
+			       destination_port,
 			       &key);
     }
     break;
@@ -945,8 +945,8 @@ route_packet (struct DestinationEntry *destination,
 	return;
       }
       icmp = payload;
-      spt = 0;
-      dpt = 0;
+      source_port = 0;
+      destination_port = 0;
       get_tunnel_key_from_ips (af,
 			       IPPROTO_ICMP,
 			       source_ip,
@@ -986,13 +986,13 @@ route_packet (struct DestinationEntry *destination,
 		  "Routing %s packet from %s:%u -> %s:%u to destination %s:%u\n",
 		  (protocol == IPPROTO_TCP) ? "TCP" : "UDP",
 		  inet_ntop (af, source_ip, sbuf, sizeof (sbuf)),
-		  spt,
+		  source_port,
 		  inet_ntop (af, destination_ip, dbuf, sizeof (dbuf)),
-		  dpt,
+		  destination_port,
 		  inet_ntop (destination->details.exit_destination.af,
 			     &destination->details.exit_destination.ip,
 			     xbuf, sizeof (xbuf)),
-		  dpt);
+		  destination_port);
     }
   }
   else
@@ -1007,9 +1007,9 @@ route_packet (struct DestinationEntry *destination,
 		  "Routing %s packet from %s:%u -> %s:%u to service %s at peer %s\n",
 		  (protocol == IPPROTO_TCP) ? "TCP" : "UDP",
 		  inet_ntop (af, source_ip, sbuf, sizeof (sbuf)),
-		  spt,
+		  source_port,
 		  inet_ntop (af, destination_ip, dbuf, sizeof (dbuf)),
-		  dpt,
+		  destination_port,
 		  GNUNET_h2s (&destination->details.service_destination.service_descriptor),
 		  GNUNET_i2s (&destination->details.service_destination.target));
     }
@@ -1045,8 +1045,8 @@ route_packet (struct DestinationEntry *destination,
       ts->source_ip.v6 = * (const struct in6_addr *) source_ip;
       ts->destination_ip.v6 = * (const struct in6_addr *) destination_ip;
     }
-    ts->source_port = spt;
-    ts->destination_port = dpt;
+    ts->source_port = source_port;
+    ts->destination_port = destination_port;
     ts->heap_node = GNUNET_CONTAINER_heap_insert (tunnel_heap,
 						  ts,
 						  GNUNET_TIME_absolute_get ().abs_value);
@@ -1093,8 +1093,8 @@ route_packet (struct DestinationEntry *destination,
       usm->header.type = htons (GNUNET_MESSAGE_TYPE_VPN_UDP_TO_SERVICE);
       /* if the source port is below 32000, we assume it has a special
 	 meaning; if not, we pick a random port (this is a heuristic) */
-      usm->source_port = (ntohs (udp->spt) < 32000) ? udp->spt : 0;
-      usm->destination_port = udp->dpt;
+      usm->source_port = (ntohs (udp->source_port) < 32000) ? udp->source_port : 0;
+      usm->destination_port = udp->destination_port;
       usm->service_descriptor = destination->details.service_destination.service_descriptor;
       memcpy (&usm[1],
 	      &udp[1],
@@ -1122,8 +1122,8 @@ route_packet (struct DestinationEntry *destination,
       uim->header.size = htons ((uint16_t) mlen);
       uim->header.type = htons (GNUNET_MESSAGE_TYPE_VPN_UDP_TO_INTERNET); 
       uim->af = htonl (destination->details.exit_destination.af);
-      uim->source_port = (ntohs (udp->spt) < 32000) ? udp->spt : 0;
-      uim->destination_port = udp->dpt;
+      uim->source_port = (ntohs (udp->source_port) < 32000) ? udp->source_port : 0;
+      uim->destination_port = udp->destination_port;
       switch (destination->details.exit_destination.af)
       {
       case AF_INET:
@@ -1630,8 +1630,8 @@ make_up_icmpv4_payload (struct TunnelState *ts,
 				     sizeof (struct GNUNET_TUN_TcpHeader),
 				     &ts->source_ip.v4,
 				     &ts->destination_ip.v4);
-  udp->spt = htons (ts->source_port);
-  udp->dpt = htons (ts->destination_port);
+  udp->source_port = htons (ts->source_port);
+  udp->destination_port = htons (ts->destination_port);
   udp->len = htons (0);
   udp->crc = htons (0);
 }
@@ -1656,8 +1656,8 @@ make_up_icmpv6_payload (struct TunnelState *ts,
 				     sizeof (struct GNUNET_TUN_TcpHeader),
 				     &ts->source_ip.v6,
 				     &ts->destination_ip.v6);
-  udp->spt = htons (ts->source_port);
-  udp->dpt = htons (ts->destination_port);
+  udp->source_port = htons (ts->source_port);
+  udp->destination_port = htons (ts->destination_port);
   udp->len = htons (0);
   udp->crc = htons (0);
 }
@@ -2085,13 +2085,13 @@ receive_udp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
 					   &ts->destination_ip.v4,
 					   &ts->source_ip.v4);
 	if (0 == ntohs (reply->source_port))
-	  udp->spt = htons (ts->destination_port);
+	  udp->source_port = htons (ts->destination_port);
 	else
-	  udp->spt = reply->source_port;
+	  udp->source_port = reply->source_port;
 	if (0 == ntohs (reply->destination_port))
-	  udp->dpt = htons (ts->source_port);
+	  udp->destination_port = htons (ts->source_port);
 	else
-	  udp->dpt = reply->destination_port;
+	  udp->destination_port = reply->destination_port;
 	udp->len = htons (mlen + sizeof (struct GNUNET_TUN_UdpHeader));
 	GNUNET_TUN_calculate_udp4_checksum (ipv4,
 					    udp,
@@ -2130,13 +2130,13 @@ receive_udp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
 					   &ts->destination_ip.v6,
 					   &ts->source_ip.v6);
 	if (0 == ntohs (reply->source_port))
-	  udp->spt = htons (ts->destination_port);
+	  udp->source_port = htons (ts->destination_port);
 	else
-	  udp->spt = reply->source_port;
+	  udp->source_port = reply->source_port;
 	if (0 == ntohs (reply->destination_port))
-	  udp->dpt = htons (ts->source_port);
+	  udp->destination_port = htons (ts->source_port);
 	else
-	  udp->dpt = reply->destination_port;
+	  udp->destination_port = reply->destination_port;
 	udp->len = htons (mlen + sizeof (struct GNUNET_TUN_UdpHeader));
 	GNUNET_TUN_calculate_udp6_checksum (ipv6,
 					    udp,
@@ -2243,8 +2243,8 @@ receive_tcp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
 					   &ts->destination_ip.v4,
 					   &ts->source_ip.v4);
 	*tcp = data->tcp_header;
-	tcp->spt = htons (ts->destination_port);
-	tcp->dpt = htons (ts->source_port);
+	tcp->source_port = htons (ts->destination_port);
+	tcp->destination_port = htons (ts->source_port);
 	GNUNET_TUN_calculate_tcp4_checksum (ipv4,
 					    tcp,
 					    &data[1],
@@ -2282,8 +2282,8 @@ receive_tcp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
 					   &ts->destination_ip.v6,
 					   &ts->source_ip.v6);
 	*tcp = data->tcp_header;
-	tcp->spt = htons (ts->destination_port);
-	tcp->dpt = htons (ts->source_port);
+	tcp->source_port = htons (ts->destination_port);
+	tcp->destination_port = htons (ts->source_port);
 	GNUNET_TUN_calculate_tcp6_checksum (ipv6,
 					    tcp,
 					    &data[1],

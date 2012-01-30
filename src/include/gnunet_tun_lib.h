@@ -70,13 +70,13 @@ struct GNUNET_TUN_Layer2PacketHeader
  */
 struct GNUNET_TUN_IPv4Header
 {
-  unsigned header_length:4 GNUNET_PACKED;
-  unsigned version:4 GNUNET_PACKED;
+  unsigned int header_length:4 GNUNET_PACKED;
+  unsigned int version:4 GNUNET_PACKED;
   uint8_t diff_serv;
   uint16_t total_length GNUNET_PACKED;
   uint16_t identification GNUNET_PACKED;
-  unsigned flags:3 GNUNET_PACKED;
-  unsigned fragmentation_offset:13 GNUNET_PACKED;
+  unsigned int flags:3 GNUNET_PACKED;
+  unsigned int fragmentation_offset:13 GNUNET_PACKED;
   uint8_t ttl;
   uint8_t protocol;
   uint16_t checksum GNUNET_PACKED;
@@ -90,10 +90,10 @@ struct GNUNET_TUN_IPv4Header
  */
 struct GNUNET_TUN_IPv6Header
 {
-  unsigned traffic_class_h:4 GNUNET_PACKED;
-  unsigned version:4 GNUNET_PACKED;
-  unsigned traffic_class_l:4 GNUNET_PACKED;
-  unsigned flow_label:20 GNUNET_PACKED;
+  unsigned int traffic_class_h:4 GNUNET_PACKED;
+  unsigned int version:4 GNUNET_PACKED;
+  unsigned int traffic_class_l:4 GNUNET_PACKED;
+  unsigned int flow_label:20 GNUNET_PACKED;
   uint16_t payload_length GNUNET_PACKED;
   uint8_t next_header;
   uint8_t hop_limit;
@@ -107,28 +107,42 @@ struct GNUNET_TUN_IPv6Header
  */
 struct GNUNET_TUN_TcpHeader
 {
-  unsigned spt:16 GNUNET_PACKED;
-  unsigned dpt:16 GNUNET_PACKED;
-  unsigned seq:32 GNUNET_PACKED;
-  unsigned ack:32 GNUNET_PACKED;
+  uint16_t source_port GNUNET_PACKED;
+  uint16_t destination_port GNUNET_PACKED;
+  uint32_t seq GNUNET_PACKED;
+  uint32_t ack GNUNET_PACKED;
+#if __BYTE_ORDER == __LITTLE_ENDIAN       
   /**
    * Reserved.
    */
-  unsigned rsv:4 GNUNET_PACKED;
+  unsigned int reserved : 4 GNUNET_PACKED;
   /**
    * Number of 32-bit words in TCP header.
    */
-  unsigned off:4 GNUNET_PACKED;
-  unsigned flg:8 GNUNET_PACKED;
+  unsigned int off : 4 GNUNET_PACKED;
+#elif __BYTE_ORDER == __BIG_ENDIAN
+  /**
+   * Number of 32-bit words in TCP header.
+   */
+  unsigned int off : 4 GNUNET_PACKED;
+  /**
+   * Reserved.
+   */
+  unsigned int reserved : 4 GNUNET_PACKED;
+#endif        
+  uint8_t flags;
+
   /**
    * Window size.
    */
-  unsigned wsz:16 GNUNET_PACKED;
-  unsigned crc:16 GNUNET_PACKED;
+  uint16_t window_size GNUNET_PACKED;
+
+  uint16_t crc GNUNET_PACKED;
+
   /**
    * Urgent pointer.
    */
-  unsigned urg:16 GNUNET_PACKED;
+  uint16_t urgent_pointer GNUNET_PACKED;
 };
 
 
@@ -137,8 +151,8 @@ struct GNUNET_TUN_TcpHeader
  */
 struct GNUNET_TUN_UdpHeader
 {
-  uint16_t spt GNUNET_PACKED;
-  uint16_t dpt GNUNET_PACKED;
+  uint16_t source_port GNUNET_PACKED;
+  uint16_t destination_port GNUNET_PACKED;
   uint16_t len GNUNET_PACKED;
   uint16_t crc GNUNET_PACKED;
 };

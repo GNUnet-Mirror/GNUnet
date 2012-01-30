@@ -384,8 +384,8 @@ request_done (struct RequestRecord *rr)
 {
   struct GNUNET_MessageHeader *hdr;
   size_t reply_len;
-  uint16_t spt;
-  uint16_t dpt;
+  uint16_t source_port;
+  uint16_t destination_port;
 
   GNUNET_array_grow (rr->client_wait_list,
 		     rr->client_wait_list_length,
@@ -455,8 +455,8 @@ request_done (struct RequestRecord *rr)
 	struct sockaddr_in *src = (struct sockaddr_in *) &rr->src_addr;
 	struct sockaddr_in *dst = (struct sockaddr_in *) &rr->dst_addr;
 	
-	spt = dst->sin_port;
-	dpt = src->sin_port;
+	source_port = dst->sin_port;
+	destination_port = src->sin_port;
 	GNUNET_TUN_initialize_ipv4_header (&ip4,
 					   IPPROTO_UDP,
 					   reply_len - off - sizeof (struct GNUNET_TUN_IPv4Header),
@@ -471,8 +471,8 @@ request_done (struct RequestRecord *rr)
 	struct sockaddr_in6 *src = (struct sockaddr_in6 *) &rr->src_addr;
 	struct sockaddr_in6 *dst = (struct sockaddr_in6 *) &rr->dst_addr;
 
-	spt = dst->sin6_port;
-	dpt = src->sin6_port;
+	source_port = dst->sin6_port;
+	destination_port = src->sin6_port;
 	GNUNET_TUN_initialize_ipv6_header (&ip6,
 					   IPPROTO_UDP,
 					   reply_len - sizeof (struct GNUNET_TUN_IPv6Header),
@@ -490,8 +490,8 @@ request_done (struct RequestRecord *rr)
     {
       struct GNUNET_TUN_UdpHeader udp;
 
-      udp.spt = spt;
-      udp.dpt = dpt;
+      udp.source_port = source_port;
+      udp.destination_port = destination_port;
       udp.len = htons (reply_len - off);
       if (AF_INET == rr->src_addr.ss_family)
 	GNUNET_TUN_calculate_udp4_checksum (&ip4,
@@ -1235,8 +1235,8 @@ process_helper_messages (void *cls GNUNET_UNUSED, void *client,
       dsta4->sin_family = AF_INET;
       srca4->sin_addr = ip4->source_address;
       dsta4->sin_addr = ip4->destination_address;
-      srca4->sin_port = udp->spt;
-      dsta4->sin_port = udp->dpt;
+      srca4->sin_port = udp->source_port;
+      dsta4->sin_port = udp->destination_port;
 #if HAVE_SOCKADDR_IN_SIN_LEN
       srca4->sin_len = sizeof (struct sockaddr_in))
       dsta4->sin_len = sizeof (struct sockaddr_in);
@@ -1253,8 +1253,8 @@ process_helper_messages (void *cls GNUNET_UNUSED, void *client,
       dsta6->sin6_family = AF_INET6;
       srca6->sin6_addr = ip6->source_address;
       dsta6->sin6_addr = ip6->destination_address;
-      srca6->sin6_port = udp->spt;
-      dsta6->sin6_port = udp->dpt;
+      srca6->sin6_port = udp->source_port;
+      dsta6->sin6_port = udp->destination_port;
 #if HAVE_SOCKADDR_IN_SIN_LEN
       srca6->sin6_len = sizeof (struct sockaddr_in6);
       dsta6->sin6_len = sizeof (struct sockaddr_in6);

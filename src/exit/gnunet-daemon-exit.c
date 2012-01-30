@@ -436,17 +436,17 @@ get_redirect_state (int af,
  *
  * @param service_map map of services (TCP or UDP)
  * @param desc service descriptor
- * @param dpt destination port
+ * @param destination_port destination port
  * @return NULL if we are not aware of such a service
  */
 static struct LocalService *
 find_service (struct GNUNET_CONTAINER_MultiHashMap *service_map,
 	      const GNUNET_HashCode *desc,
-	      uint16_t dpt)
+	      uint16_t destination_port)
 {
   char key[sizeof (GNUNET_HashCode) + sizeof (uint16_t)];
 
-  memcpy (&key[0], &dpt, sizeof (uint16_t));
+  memcpy (&key[0], &destination_port, sizeof (uint16_t));
   memcpy (&key[sizeof(uint16_t)], desc, sizeof (GNUNET_HashCode));
   return GNUNET_CONTAINER_multihashmap_get (service_map,
 					    (GNUNET_HashCode *) key);
@@ -480,13 +480,13 @@ free_service_record (void *cls,
  *
  * @param service_map map of services (TCP or UDP)
  * @param name name of the service 
- * @param dpt destination port
+ * @param destination_port destination port
  * @param service service information record to store (service->name will be set).
  */
 static void
 store_service (struct GNUNET_CONTAINER_MultiHashMap *service_map,
 	       const char *name,
-	       uint16_t dpt,
+	       uint16_t destination_port,
 	       struct LocalService *service)
 {
   char key[sizeof (GNUNET_HashCode) + sizeof (uint16_t)];
@@ -494,7 +494,7 @@ store_service (struct GNUNET_CONTAINER_MultiHashMap *service_map,
 
   GNUNET_CRYPTO_hash (name, strlen (name) + 1, &desc);
   service->name = GNUNET_strdup (name);
-  memcpy (&key[0], &dpt, sizeof (uint16_t));
+  memcpy (&key[0], &destination_port, sizeof (uint16_t));
   memcpy (&key[sizeof(uint16_t)], &desc, sizeof (GNUNET_HashCode));
   if (GNUNET_OK !=
       GNUNET_CONTAINER_multihashmap_put (service_map,
@@ -506,7 +506,7 @@ store_service (struct GNUNET_CONTAINER_MultiHashMap *service_map,
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		_("Got duplicate service records for `%s:%u'\n"),
 		name,
-		(unsigned int) dpt);
+		(unsigned int) destination_port);
   }
 }
 
@@ -614,8 +614,8 @@ icmp_from_helper (const struct GNUNET_TUN_IcmpHeader *icmp,
   const struct GNUNET_TUN_IPv6Header *ipv6;
   const struct GNUNET_TUN_UdpHeader *udp;
   size_t mlen;
-  uint16_t spt;
-  uint16_t dpt;
+  uint16_t source_port;
+  uint16_t destination_port;
   uint8_t protocol;
 
   {
@@ -640,8 +640,8 @@ icmp_from_helper (const struct GNUNET_TUN_IcmpHeader *icmp,
   /* Find out if this is an ICMP packet in response to an existing
      TCP/UDP packet and if so, figure out ports / protocol of the
      existing session from the IP data in the ICMP payload */
-  spt = 0;
-  dpt = 0;
+  source_port = 0;
+  destination_port = 0;
   protocol = IPPROTO_ICMP;
   switch (af)
   {
@@ -667,8 +667,8 @@ icmp_from_helper (const struct GNUNET_TUN_IcmpHeader *icmp,
 	/* could be TCP or UDP, but both have the ports in the right
 	   place, so that doesn't matter here */
 	udp = (const struct GNUNET_TUN_UdpHeader *) &ipv4[1];
-	spt = ntohs (udp->spt);
-	dpt = ntohs (udp->dpt);
+	source_port = ntohs (udp->source_port);
+	destination_port = ntohs (udp->destination_port);
 	/* throw away ICMP payload, won't be useful for the other side anyway */
 	pktlen = sizeof (struct GNUNET_TUN_IcmpHeader);
 	break;
@@ -699,8 +699,8 @@ icmp_from_helper (const struct GNUNET_TUN_IcmpHeader *icmp,
 	/* could be TCP or UDP, but both have the ports in the right
 	   place, so that doesn't matter here */
 	udp = (const struct GNUNET_TUN_UdpHeader *) &ipv6[1];
-	spt = ntohs (udp->spt);
-	dpt = ntohs (udp->dpt);
+	source_port = ntohs (udp->source_port);
+	destination_port = ntohs (udp->destination_port);
 	/* throw away ICMP payload, won't be useful for the other side anyway */
 	pktlen = sizeof (struct GNUNET_TUN_IcmpHeader);
 	break;
@@ -728,17 +728,17 @@ icmp_from_helper (const struct GNUNET_TUN_IcmpHeader *icmp,
   case IPPROTO_UDP:
     state = get_redirect_state (af, IPPROTO_UDP,
 				source_ip,
-				spt,
+				source_port,
 				destination_ip,
-				dpt,
+				destination_port,
 				NULL);
     break;
   case IPPROTO_TCP:
     state = get_redirect_state (af, IPPROTO_TCP,
 				source_ip,
-				spt,
+				source_port,
 				destination_ip,
-				dpt,
+				destination_port,
 				NULL);
     break;
   default:
@@ -800,11 +800,11 @@ udp_from_helper (const struct GNUNET_TUN_UdpHeader *udp,
 		inet_ntop (af,
 			   source_ip,
 			   sbuf, sizeof (sbuf)),
-		(unsigned int) ntohs (udp->spt),
+		(unsigned int) ntohs (udp->source_port),
 		inet_ntop (af,
 			   destination_ip,
 			   dbuf, sizeof (dbuf)),
-		(unsigned int) ntohs (udp->dpt));
+		(unsigned int) ntohs (udp->destination_port));
   }
   if (pktlen < sizeof (struct GNUNET_TUN_UdpHeader))
   {
@@ -820,9 +820,9 @@ udp_from_helper (const struct GNUNET_TUN_UdpHeader *udp,
   }
   state = get_redirect_state (af, IPPROTO_UDP,
 			      source_ip,
-			      ntohs (udp->spt),
+			      ntohs (udp->source_port),
 			      destination_ip,
-			      ntohs (udp->dpt),
+			      ntohs (udp->destination_port),
 			      NULL);
   if (NULL == state)
   {
@@ -881,11 +881,11 @@ tcp_from_helper (const struct GNUNET_TUN_TcpHeader *tcp,
 		inet_ntop (af,
 			   source_ip,
 			   sbuf, sizeof (sbuf)),
-		(unsigned int) ntohs (tcp->spt),
+		(unsigned int) ntohs (tcp->source_port),
 		inet_ntop (af,
 			   destination_ip,
 			   dbuf, sizeof (dbuf)),
-		(unsigned int) ntohs (tcp->dpt));
+		(unsigned int) ntohs (tcp->destination_port));
   }
   if (pktlen < sizeof (struct GNUNET_TUN_TcpHeader))
   {
@@ -895,9 +895,9 @@ tcp_from_helper (const struct GNUNET_TUN_TcpHeader *tcp,
   }
   state = get_redirect_state (af, IPPROTO_TCP,
 			      source_ip, 
-			      ntohs (tcp->spt),
+			      ntohs (tcp->source_port),
 			      destination_ip,
-			      ntohs (tcp->dpt),
+			      ntohs (tcp->destination_port),
 			      NULL);
   if (NULL == state)
   {
@@ -910,8 +910,8 @@ tcp_from_helper (const struct GNUNET_TUN_TcpHeader *tcp,
      sender will need to lookup the correct values anyway */
   memcpy (buf, tcp, pktlen);  
   mtcp = (struct GNUNET_TUN_TcpHeader *) buf;
-  mtcp->spt = 0;
-  mtcp->dpt = 0;
+  mtcp->source_port = 0;
+  mtcp->destination_port = 0;
   mtcp->crc = 0;
 
   mlen = sizeof (struct GNUNET_EXIT_TcpDataMessage) + (pktlen - sizeof (struct GNUNET_TUN_TcpHeader));
@@ -1316,8 +1316,8 @@ prepare_ipv4_packet (const void *payload, size_t payload_length,
     {
       struct GNUNET_TUN_UdpHeader *pkt4_udp = (struct GNUNET_TUN_UdpHeader *) &pkt4[1];
 
-      pkt4_udp->spt = htons (src_address->port);
-      pkt4_udp->dpt = htons (dst_address->port);
+      pkt4_udp->source_port = htons (src_address->port);
+      pkt4_udp->destination_port = htons (dst_address->port);
       pkt4_udp->len = htons ((uint16_t) payload_length);
       GNUNET_TUN_calculate_udp4_checksum (pkt4,
 					  pkt4_udp,
@@ -1330,8 +1330,8 @@ prepare_ipv4_packet (const void *payload, size_t payload_length,
       struct GNUNET_TUN_TcpHeader *pkt4_tcp = (struct GNUNET_TUN_TcpHeader *) &pkt4[1];
       
       *pkt4_tcp = *tcp_header;
-      pkt4_tcp->spt = htons (src_address->port);
-      pkt4_tcp->dpt = htons (dst_address->port);
+      pkt4_tcp->source_port = htons (src_address->port);
+      pkt4_tcp->destination_port = htons (dst_address->port);
       GNUNET_TUN_calculate_tcp4_checksum (pkt4,
 					  pkt4_tcp,
 					  payload,
@@ -1403,8 +1403,8 @@ prepare_ipv6_packet (const void *payload, size_t payload_length,
     {
       struct GNUNET_TUN_UdpHeader *pkt6_udp = (struct GNUNET_TUN_UdpHeader *) &pkt6[1];
 
-      pkt6_udp->spt = htons (src_address->port);
-      pkt6_udp->dpt = htons (dst_address->port);
+      pkt6_udp->source_port = htons (src_address->port);
+      pkt6_udp->destination_port = htons (dst_address->port);
       pkt6_udp->len = htons ((uint16_t) payload_length);
       GNUNET_TUN_calculate_udp6_checksum (pkt6,
 					  pkt6_udp,
@@ -1419,8 +1419,8 @@ prepare_ipv6_packet (const void *payload, size_t payload_length,
 
       /* memcpy first here as some TCP header fields are initialized this way! */
       *pkt6_tcp = *tcp_header;
-      pkt6_tcp->spt = htons (src_address->port);
-      pkt6_tcp->dpt = htons (dst_address->port);
+      pkt6_tcp->source_port = htons (src_address->port);
+      pkt6_tcp->destination_port = htons (dst_address->port);
       GNUNET_TUN_calculate_tcp6_checksum (pkt6,
 					  pkt6_tcp,
 					  payload,
@@ -1584,14 +1584,14 @@ receive_tcp_service (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
 	      "Received data from %s for forwarding to TCP service %s on port %u\n",
 	      GNUNET_i2s (sender),
 	      GNUNET_h2s (&start->service_descriptor),
-	      (unsigned int) ntohs (start->tcp_header.dpt));  
+	      (unsigned int) ntohs (start->tcp_header.destination_port));  
   if (NULL == (state->serv = find_service (tcp_services, &start->service_descriptor, 
-					   ntohs (start->tcp_header.dpt))))
+					   ntohs (start->tcp_header.destination_port))))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
 		_("No service found for %s on port %d!\n"),
 		"TCP",
-		ntohs (start->tcp_header.dpt));
+		ntohs (start->tcp_header.destination_port));
     GNUNET_STATISTICS_update (stats,
 			      gettext_noop ("# TCP requests dropped (no such service)"),
 			      1, GNUNET_NO);
@@ -1707,10 +1707,10 @@ receive_tcp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
 		inet_ntop (af, 
 			   &state->ri.remote_address.address,
 			   buf, sizeof (buf)),
-		(unsigned int) ntohs (start->tcp_header.dpt));  
+		(unsigned int) ntohs (start->tcp_header.destination_port));  
   }
   state->ri.remote_address.proto = IPPROTO_TCP;
-  state->ri.remote_address.port = ntohs (start->tcp_header.dpt);
+  state->ri.remote_address.port = ntohs (start->tcp_header.destination_port);
   setup_state_record (state);
   send_tcp_packet_via_tun (&state->ri.remote_address,
 			   &state->ri.local_address,
@@ -1913,8 +1913,8 @@ make_up_icmpv4_payload (struct TunnelState *state,
 				     sizeof (struct GNUNET_TUN_TcpHeader),
 				     &state->ri.remote_address.address.ipv4,
 				     &state->ri.local_address.address.ipv4);
-  udp->spt = htons (state->ri.remote_address.port);
-  udp->dpt = htons (state->ri.local_address.port);
+  udp->source_port = htons (state->ri.remote_address.port);
+  udp->destination_port = htons (state->ri.local_address.port);
   udp->len = htons (0);
   udp->crc = htons (0);
 }
@@ -1939,8 +1939,8 @@ make_up_icmpv6_payload (struct TunnelState *state,
 				     sizeof (struct GNUNET_TUN_TcpHeader),
 				     &state->ri.remote_address.address.ipv6,
 				     &state->ri.local_address.address.ipv6);
-  udp->spt = htons (state->ri.remote_address.port);
-  udp->dpt = htons (state->ri.local_address.port);
+  udp->source_port = htons (state->ri.remote_address.port);
+  udp->destination_port = htons (state->ri.local_address.port);
   udp->len = htons (0);
   udp->crc = htons (0);
 }
