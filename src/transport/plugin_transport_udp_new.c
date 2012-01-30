@@ -515,7 +515,9 @@ udp_plugin_get_session (void *cls,
   struct SessionCompareContext cctx;
   cctx.addr = address;
   cctx.res = NULL;
+#if DEBUG_UDP
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Looking for existing session for peer `%s' `%s' \n", GNUNET_i2s (&address->peer), udp_address_to_string(NULL, address->address, address->address_length));
+#endif
   GNUNET_CONTAINER_multihashmap_get_multiple(plugin->sessions, &address->peer.hashPubKey, session_cmp_it, &cctx);
   if (cctx.res != NULL)
   {
@@ -578,6 +580,37 @@ udp_plugin_send (void *cls,
 
   return 0;
 
+}
+
+static ssize_t udp_plugin_send_wrapper (void *cls,
+                                        const struct
+                                        GNUNET_PeerIdentity *
+                                        target,
+                                        const char *msgbuf,
+                                        size_t msgbuf_size,
+                                        uint32_t priority,
+                                        struct
+                                        GNUNET_TIME_Relative
+                                        timeout,
+                                        struct Session * session,
+                                        const void *addr,
+                                        size_t addrlen,
+                                        int force_address,
+                                        GNUNET_TRANSPORT_TransmitContinuation
+                                        cont, void *cont_cls)
+{
+  int ret;
+  struct Session * s = NULL;
+  struct GNUNET_HELLO_Address * ha = NULL;
+
+  ha = GNUNET_HELLO_address_allocate(target, "", addr,addrlen);
+  GNUNET_assert (ha != NULL);
+  s = udp_plugin_get_session(cls, ha);
+  GNUNET_assert (s != NULL);
+  GNUNET_free (ha);
+  ret = udp_plugin_send (cls, s, msgbuf, msgbuf_size, priority, timeout, cont, cont_cls);
+
+  return ret;
 }
 
 
@@ -1014,6 +1047,7 @@ libgnunet_plugin_transport_udp_init (void *cls)
   api->address_to_string = &udp_address_to_string;
   api->check_address = &udp_plugin_check_address;
   api->get_session = &udp_plugin_get_session;
+  api->send = &udp_plugin_send_wrapper;
   api->send_with_session = &udp_plugin_send;
 
   LOG (GNUNET_ERROR_TYPE_ERROR, "Setting up sockets\n");
@@ -1049,6 +1083,12 @@ libgnunet_plugin_transport_udp_done (void *cls)
   struct Plugin *plugin = api->cls;
 
   stop_broadcast (plugin);
+
+  if (plugin->select_task != GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel (plugin->select_task);
+    plugin->select_task = GNUNET_SCHEDULER_NO_TASK;
+  }
 
   /* Closing sockets */
   if (plugin->sockv4 != NULL)
