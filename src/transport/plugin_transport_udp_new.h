@@ -41,7 +41,7 @@
 
 #define LOG(kind,...) GNUNET_log_from (kind, "transport-udp", __VA_ARGS__)
 
-#define DEBUG_UDP GNUNET_YES
+#define DEBUG_UDP GNUNET_NO
 #define DEBUG_UDP_BROADCASTING GNUNET_NO
 
 /**
@@ -110,6 +110,23 @@ struct UDPMessage
 
 };
 
+struct UDPMessageWrapper
+{
+  struct Session *session;
+  struct UDPMessageWrapper *prev;
+  struct UDPMessageWrapper *next;
+  struct UDPMessage *udp;
+  size_t msg_size;
+  /**
+   * Function to call upon completion of the transmission.
+   */
+  GNUNET_TRANSPORT_TransmitContinuation cont;
+
+  /**
+   * Closure for 'cont'.
+   */
+  void *cont_cls;
+};
 
 /**
  * Encapsulation of all of the state of the plugin.
@@ -256,6 +273,9 @@ struct Plugin
    * Port we advertise on.
    */
   uint16_t aport;
+
+  struct UDPMessageWrapper *msg_head;
+  struct UDPMessageWrapper *msg_tail;
 
 };
 
