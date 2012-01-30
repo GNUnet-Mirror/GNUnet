@@ -476,6 +476,15 @@ main (int argc, char *const *argv)
     GNUNET_GETOPT_OPTION_END
   };
 
+  if (0 != ACCESS ("/dev/net/tun", R_OK))
+  {
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
+			      "access",
+			      "/dev/net/tun");
+    fprintf (stderr,
+	     "WARNING: System unable to run test, skipping.\n");
+    return 0;
+  }
   if ( (GNUNET_YES !=
 	GNUNET_OS_check_helper_binary ("gnunet-helper-vpn")) ||
        (GNUNET_YES !=
