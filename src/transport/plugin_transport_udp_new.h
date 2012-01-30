@@ -110,23 +110,6 @@ struct UDPMessage
 
 };
 
-struct UDPMessageWrapper
-{
-  struct Session *session;
-  struct UDPMessageWrapper *prev;
-  struct UDPMessageWrapper *next;
-  struct UDPMessage *udp;
-  size_t msg_size;
-  /**
-   * Function to call upon completion of the transmission.
-   */
-  GNUNET_TRANSPORT_TransmitContinuation cont;
-
-  /**
-   * Closure for 'cont'.
-   */
-  void *cont_cls;
-};
 
 /**
  * Encapsulation of all of the state of the plugin.
