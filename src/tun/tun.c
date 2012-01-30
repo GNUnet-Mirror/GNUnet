@@ -49,6 +49,7 @@ GNUNET_TUN_initialize_ipv4_header (struct GNUNET_TUN_IPv4Header *ip,
 				   const struct in_addr *src,
 				   const struct in_addr *dst)
 {
+  GNUNET_assert (20 == sizeof (struct GNUNET_TUN_IPv4Header));
   GNUNET_assert (payload_length <= UINT16_MAX - sizeof (struct GNUNET_TUN_IPv4Header));
   memset (ip, 0, sizeof (struct GNUNET_TUN_IPv4Header));
   ip->header_length =  sizeof (struct GNUNET_TUN_IPv4Header) / 4;
@@ -80,6 +81,7 @@ GNUNET_TUN_initialize_ipv6_header (struct GNUNET_TUN_IPv6Header *ip,
 				   const struct in6_addr *src,
 				   const struct in6_addr *dst)
 {
+  GNUNET_assert (40 == sizeof (struct GNUNET_TUN_IPv6Header));
   GNUNET_assert (payload_length <= UINT16_MAX - sizeof (struct GNUNET_TUN_IPv6Header));
   memset (ip, 0, sizeof (struct GNUNET_TUN_IPv6Header));
   ip->version = 6;
@@ -108,6 +110,7 @@ GNUNET_TUN_calculate_tcp4_checksum (const struct GNUNET_TUN_IPv4Header *ip,
   uint32_t sum;
   uint16_t tmp;
 
+  GNUNET_assert (20 == sizeof (struct GNUNET_TUN_TcpHeader));
   GNUNET_assert (payload_length + sizeof (struct GNUNET_TUN_IPv4Header) + sizeof (struct GNUNET_TUN_TcpHeader) ==
 		 ntohs (ip->total_length));
   GNUNET_assert (IPPROTO_TCP == ip->protocol);
@@ -143,6 +146,7 @@ GNUNET_TUN_calculate_tcp6_checksum (const struct GNUNET_TUN_IPv6Header *ip,
   uint32_t sum;
   uint32_t tmp;
 
+  GNUNET_assert (20 == sizeof (struct GNUNET_TUN_TcpHeader));
   GNUNET_assert (payload_length + sizeof (struct GNUNET_TUN_TcpHeader) ==
 		 ntohs (ip->payload_length));
   GNUNET_assert (IPPROTO_TCP == ip->next_header);
@@ -176,6 +180,7 @@ GNUNET_TUN_calculate_udp4_checksum (const struct GNUNET_TUN_IPv4Header *ip,
   uint32_t sum;
   uint16_t tmp;
 
+  GNUNET_assert (8 == sizeof (struct GNUNET_TUN_UdpHeader));
   GNUNET_assert (payload_length + sizeof (struct GNUNET_TUN_IPv4Header) + sizeof (struct GNUNET_TUN_UdpHeader) ==
 		 ntohs (ip->total_length));
   GNUNET_assert (IPPROTO_UDP == ip->protocol);
@@ -253,6 +258,7 @@ GNUNET_TUN_calculate_icmp_checksum (struct GNUNET_TUN_IcmpHeader *icmp,
 {
   uint32_t sum;
 
+  GNUNET_assert (8 == sizeof (struct GNUNET_TUN_IcmpHeader));
   icmp->crc = 0;
   sum = GNUNET_CRYPTO_crc16_step (0,
 				  icmp,
