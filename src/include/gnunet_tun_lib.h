@@ -132,8 +132,7 @@ struct GNUNET_TUN_IPv6Header
   unsigned int flow_label:20 GNUNET_PACKED;
 #elif __BYTE_ORDER == __BIG_ENDIAN
   unsigned int version:4 GNUNET_PACKED;
-  unsigned int traffic_class_h:4 GNUNET_PACKED;
-  unsigned int traffic_class_l:4 GNUNET_PACKED;
+  unsigned int traffic_class:8 GNUNET_PACKED;
   unsigned int flow_label:20 GNUNET_PACKED;
 #endif
   /**

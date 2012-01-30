@@ -50,17 +50,14 @@ GNUNET_TUN_initialize_ipv4_header (struct GNUNET_TUN_IPv4Header *ip,
 				   const struct in_addr *dst)
 {
   GNUNET_assert (payload_length <= UINT16_MAX - sizeof (struct GNUNET_TUN_IPv4Header));
+  memset (&ip, 0, sizeof (struct GNUNET_TUN_IPv4Header));
   ip->header_length =  sizeof (struct GNUNET_TUN_IPv4Header) / 4;
   ip->version = 4;
-  ip->diff_serv = 0;
   ip->total_length = htons (sizeof (struct GNUNET_TUN_IPv4Header) + payload_length);
   ip->identification = (uint16_t) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 
 							    65536);
-  ip->flags = 0;
-  ip->fragmentation_offset = 0;
   ip->ttl = FRESH_TTL;
   ip->protocol = protocol;
-  ip->checksum = 0;
   ip->source_address = *src;
   ip->destination_address = *dst;
   ip->checksum = GNUNET_CRYPTO_crc16_n (ip, sizeof (struct GNUNET_TUN_IPv4Header));
@@ -84,10 +81,8 @@ GNUNET_TUN_initialize_ipv6_header (struct GNUNET_TUN_IPv6Header *ip,
 				   const struct in6_addr *dst)
 {
   GNUNET_assert (payload_length <= UINT16_MAX - sizeof (struct GNUNET_TUN_IPv6Header));
+  memset (&ip, 0, sizeof (struct GNUNET_TUN_IPv6Header));
   ip->version = 6;
-  ip->traffic_class_h = 0;
-  ip->traffic_class_l = 0;
-  ip->flow_label = 0;
   ip->next_header = protocol;
   ip->payload_length = htons ((uint16_t) payload_length);
   ip->hop_limit = FRESH_TTL;
