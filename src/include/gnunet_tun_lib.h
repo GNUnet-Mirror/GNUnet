@@ -70,17 +70,52 @@ struct GNUNET_TUN_Layer2PacketHeader
  */
 struct GNUNET_TUN_IPv4Header
 {
+#if __BYTE_ORDER == __LITTLE_ENDIAN       
   unsigned int header_length:4 GNUNET_PACKED;
   unsigned int version:4 GNUNET_PACKED;
+#elif __BYTE_ORDER == __BIG_ENDIAN
+  unsigned int version:4 GNUNET_PACKED;
+  unsigned int header_length:4 GNUNET_PACKED;
+#endif
   uint8_t diff_serv;
+
+  /**
+   * Length of the packet, including this header.
+   */
   uint16_t total_length GNUNET_PACKED;
+  
+  /**
+   * Unique random ID for matching up fragments.
+   */
   uint16_t identification GNUNET_PACKED;
+
   unsigned int flags:3 GNUNET_PACKED;
+
   unsigned int fragmentation_offset:13 GNUNET_PACKED;
+
+  /**
+   * How many more hops can this packet be forwarded?
+   */
   uint8_t ttl;
+
+  /**
+   * L4-protocol, for example, IPPROTO_UDP or IPPROTO_TCP.
+   */
   uint8_t protocol;
+
+  /**
+   * Checksum.
+   */
   uint16_t checksum GNUNET_PACKED;
+
+  /**
+   * Origin of the packet.
+   */ 
   struct in_addr source_address GNUNET_PACKED;
+
+  /**
+   * Destination of the packet.
+   */ 
   struct in_addr destination_address GNUNET_PACKED;
 };
 
@@ -90,26 +125,59 @@ struct GNUNET_TUN_IPv4Header
  */
 struct GNUNET_TUN_IPv6Header
 {
+#if __BYTE_ORDER == __LITTLE_ENDIAN 
   unsigned int traffic_class_h:4 GNUNET_PACKED;
   unsigned int version:4 GNUNET_PACKED;
   unsigned int traffic_class_l:4 GNUNET_PACKED;
   unsigned int flow_label:20 GNUNET_PACKED;
+#elif __BYTE_ORDER == __BIG_ENDIAN
+  unsigned int version:4 GNUNET_PACKED;
+  unsigned int traffic_class:8 GNUNET_PACKED;
+  unsigned int flow_label:20 GNUNET_PACKED;
+#endif
+  /**
+   * Length of the payload, excluding this header.
+   */
   uint16_t payload_length GNUNET_PACKED;
+
+  /**
+   * For example, IPPROTO_UDP or IPPROTO_TCP.
+   */
   uint8_t next_header;
+
+  /**
+   * How many more hops can this packet be forwarded?
+   */
   uint8_t hop_limit;
+
+  /**
+   * Origin of the packet.
+   */ 
   struct in6_addr source_address GNUNET_PACKED;
+
+  /**
+   * Destination of the packet.
+   */ 
   struct in6_addr destination_address GNUNET_PACKED;
 };
 
 
 /**
- * TCP packet header (FIXME: rename!)
+ * TCP packet header.
  */
 struct GNUNET_TUN_TcpHeader
 {
   uint16_t source_port GNUNET_PACKED;
   uint16_t destination_port GNUNET_PACKED;
+
+  /**
+   * Sequence number.
+   */
   uint32_t seq GNUNET_PACKED;
+
+  /**
+   * Acknowledgement number.
+   */
   uint32_t ack GNUNET_PACKED;
 #if __BYTE_ORDER == __LITTLE_ENDIAN       
   /**
@@ -137,6 +205,9 @@ struct GNUNET_TUN_TcpHeader
    */
   uint16_t window_size GNUNET_PACKED;
 
+  /**
+   * Checksum.
+   */
   uint16_t crc GNUNET_PACKED;
 
   /**
@@ -147,7 +218,7 @@ struct GNUNET_TUN_TcpHeader
 
 
 /**
- * UDP packet header  (FIXME: rename!)
+ * UDP packet header.
  */
 struct GNUNET_TUN_UdpHeader
 {
@@ -186,6 +257,7 @@ struct GNUNET_TUN_DnsHeader
 #define	GNUNET_TUN_ICMPTYPE6_PARAMETER_PROBLEM 4
 #define	GNUNET_TUN_ICMPTYPE6_ECHO_REQUEST 128
 #define	GNUNET_TUN_ICMPTYPE6_ECHO_REPLY 129
+
 
 /**
  * ICMP header.
