@@ -87,6 +87,28 @@ struct IPv6UdpAddress
 GNUNET_NETWORK_STRUCT_END
 
 
+/**
+ * UDP Message-Packet header (after defragmentation).
+ */
+struct UDPMessage
+{
+  /**
+   * Message header.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Always zero for now.
+   */
+  uint32_t reserved;
+
+  /**
+   * What is the identity of the sender
+   */
+  struct GNUNET_PeerIdentity sender;
+
+};
+
 
 /**
  * Encapsulation of all of the state of the plugin.
@@ -150,6 +172,11 @@ struct Plugin
    * FD Read set
    */
   struct GNUNET_NETWORK_FDSet *rs;
+
+  /**
+   * FD Write set
+   */
+  struct GNUNET_NETWORK_FDSet *ws;
 
   /**
    * The read socket for IPv4
@@ -242,6 +269,12 @@ const char *
 udp_address_to_string (void *cls, const void *addr, size_t addrlen);
 
 void
+udp_broadcast_receive ();
+
+void
 setup_broadcast (struct Plugin *plugin, struct sockaddr_in6 *serverAddrv6, struct sockaddr_in *serverAddrv4);
+
+void
+stop_broadcast (struct Plugin *plugin);
 
 /* end of plugin_transport_udp.h */

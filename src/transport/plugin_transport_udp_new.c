@@ -413,6 +413,114 @@ udp_nat_port_map_callback (void *cls, int add_remove,
 }
 
 
+/**
+ * Read and process a message from the given socket.
+ *
+ * @param plugin the overall plugin
+ * @param rsock socket to read from
+ */
+static void
+udp_read (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *rsock)
+{
+  socklen_t fromlen;
+  char addr[32];
+  char buf[65536];
+  ssize_t size;
+  const struct GNUNET_MessageHeader *msg;
+  //const struct GNUNET_MessageHeader *ack;
+  //struct Session *peer_session;
+  //const struct UDP_ACK_Message *udp_ack;
+  //struct ReceiveContext *rc;
+  //struct GNUNET_TIME_Absolute now;
+  //struct FindReceiveContext frc;
+  //struct Session *s = NULL;
+  //struct GNUNET_TIME_Relative flow_delay;
+  //struct GNUNET_ATS_Information ats;
+
+  fromlen = sizeof (addr);
+  memset (&addr, 0, sizeof (addr));
+  size = GNUNET_NETWORK_socket_recvfrom (rsock, buf, sizeof (buf),
+                                      (struct sockaddr *) &addr, &fromlen);
+  if (size < sizeof (struct GNUNET_MessageHeader))
+  {
+    GNUNET_break_op (0);
+    return;
+  }
+  msg = (const struct GNUNET_MessageHeader *) buf;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "UDP received %u-byte message from `%s' type %i\n", (unsigned int) size,
+       GNUNET_a2s ((const struct sockaddr *) addr, fromlen), ntohs (msg->type));
+
+  if (size != ntohs (msg->size))
+  {
+    GNUNET_break_op (0);
+    return;
+  }
+  switch (ntohs (msg->type))
+  {
+  case GNUNET_MESSAGE_TYPE_TRANSPORT_BROADCAST_BEACON:
+  {
+    udp_broadcast_receive(plugin, &buf, size, addr, fromlen);
+    return;
+  }
+  case GNUNET_MESSAGE_TYPE_TRANSPORT_UDP_MESSAGE:
+    if (ntohs (msg->size) < sizeof (struct UDPMessage))
+    {
+      GNUNET_break_op (0);
+      return;
+    }
+    /*
+    process_udp_message (plugin, (const struct UDPMessage *) msg,
+                         (const struct sockaddr *) addr, fromlen);
+     */
+    return;
+  default:
+    GNUNET_break_op (0);
+    return;
+  }
+}
+
+/**
+ * We have been notified that our readset has something to read.  We don't
+ * know which socket needs to be read, so we have to check each one
+ * Then reschedule this function to be called again once more is available.
+ *
+ * @param cls the plugin handle
+ * @param tc the scheduling context (for rescheduling this function again)
+ */
+static void
+udp_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct Plugin *plugin = cls;
+
+  plugin->select_task = GNUNET_SCHEDULER_NO_TASK;
+  if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
+    return;
+
+  if ((tc->reason & GNUNET_SCHEDULER_REASON_READ_READY) != 0)
+  {
+    if ((NULL != plugin->sockv4) &&
+      (GNUNET_NETWORK_fdset_isset (tc->read_ready, plugin->sockv4)))
+        udp_read (plugin, plugin->sockv4);
+    if ((NULL != plugin->sockv6) &&
+      (GNUNET_NETWORK_fdset_isset (tc->read_ready, plugin->sockv6)))
+        udp_read (plugin, plugin->sockv6);
+  }
+
+  if ((tc->reason & GNUNET_SCHEDULER_REASON_WRITE_READY) != 0)
+  {
+    /* TODO */
+  }
+
+  plugin->select_task = GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+                                   GNUNET_SCHEDULER_NO_TASK,
+                                   GNUNET_TIME_UNIT_FOREVER_REL, plugin->rs,
+                                   plugin->ws, &udp_plugin_select, plugin);
+
+}
+
+
 static int
 setup_sockets (struct Plugin *plugin, struct sockaddr_in6 *serverAddrv6, struct sockaddr_in *serverAddrv4)
 {
@@ -525,14 +633,28 @@ setup_sockets (struct Plugin *plugin, struct sockaddr_in6 *serverAddrv6, struct 
 
   /* Create file descriptors */
   plugin->rs = GNUNET_NETWORK_fdset_create ();
+  plugin->ws = GNUNET_NETWORK_fdset_create ();
   GNUNET_NETWORK_fdset_zero (plugin->rs);
+  GNUNET_NETWORK_fdset_zero (plugin->ws);
   if (NULL != plugin->sockv4)
+  {
     GNUNET_NETWORK_fdset_set (plugin->rs, plugin->sockv4);
+    GNUNET_NETWORK_fdset_set (plugin->ws, plugin->sockv4);
+  }
   if (NULL != plugin->sockv6)
+  {
     GNUNET_NETWORK_fdset_set (plugin->rs, plugin->sockv6);
+    GNUNET_NETWORK_fdset_set (plugin->ws, plugin->sockv6);
+  }
 
   if (sockets_created == 0)
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _("Failed to open UDP sockets\n"));
+
+  plugin->select_task =
+      GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+                                   GNUNET_SCHEDULER_NO_TASK,
+                                   GNUNET_TIME_UNIT_FOREVER_REL, plugin->rs,
+                                   plugin->ws, &udp_plugin_select, plugin);
 
   plugin->nat = GNUNET_NAT_register (plugin->env->cfg,
                            GNUNET_NO, plugin->port,
@@ -687,8 +809,9 @@ libgnunet_plugin_transport_udp_init (void *cls)
     GNUNET_free (api);
     return NULL;
   }
+
   LOG (GNUNET_ERROR_TYPE_ERROR, "Starting broadcasting\n");
-  //setup_broadcast (plugin, &serverAddrv6, &serverAddrv4);
+  setup_broadcast (plugin, &serverAddrv6, &serverAddrv4);
 
 
   GNUNET_free_non_null (bind4_address);
@@ -710,6 +833,8 @@ libgnunet_plugin_transport_udp_done (void *cls)
   struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;
 
+  stop_broadcast (plugin);
+
   /* Closing sockets */
   if (plugin->sockv4 != NULL)
   {
@@ -722,6 +847,7 @@ libgnunet_plugin_transport_udp_done (void *cls)
     plugin->sockv6 = NULL;
   }
   GNUNET_NETWORK_fdset_destroy (plugin->rs);
+  GNUNET_NETWORK_fdset_destroy (plugin->ws);
 
   GNUNET_NAT_unregister (plugin->nat);
   plugin->nat = NULL;
