@@ -20,6 +20,13 @@ VPNBIN = gnunet-helper-vpn
 install-exec-hook:
 	$(SUDO_BINARY) chown root:root $(bindir)/gnunet-helper-vpn || true
 	$(SUDO_BINARY) chmod u+s $(bindir)/gnunet-helper-vpn || true
+if HAVE_MHD
+ VPN_TEST = \
+ test_gnunet_vpn-4_to_6 \
+ test_gnunet_vpn-6_to_4 \
+ test_gnunet_vpn-6_over \
+ test_gnunet_vpn-4_over
+endif
 else
 install-exec-hook:
 endif
@@ -33,13 +40,6 @@ bin_PROGRAMS = \
   $(VPNBIN) gnunet-service-vpn gnunet-vpn
 
 
-if HAVE_MHD
- VPN_TEST = \
- test_gnunet_vpn-4_to_6 \
- test_gnunet_vpn-6_to_4 \
- test_gnunet_vpn-6_over \
- test_gnunet_vpn-4_over
-endif
 
 check_PROGRAMS = $(VPN_TEST)
 
