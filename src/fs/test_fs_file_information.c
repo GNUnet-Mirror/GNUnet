@@ -137,64 +137,6 @@ run (void *cls, char *const *args, const char *cfgfile,
 }
 
 
-static int
-testThumbnail ()
-{
-  struct GNUNET_CONTAINER_MetaData *m;
-  struct GNUNET_CONTAINER_MetaData *d;
-  struct EXTRACTOR_PluginList *ex;
-  unsigned char *thumb;
-  size_t size;
-  char *date;
-
-  ex = EXTRACTOR_plugin_add_config (NULL, "thumbnailgtk",
-                                    EXTRACTOR_OPTION_DEFAULT_POLICY);
-  if (ex == NULL)
-  {
-    FPRINTF (stderr,
-             "%s",
-	     "Test incomplete, have no GTK thumbnail extractor available.\n");
-    return 0;                   /* can not test, no thumbnailer */
-  }
-  ex = EXTRACTOR_plugin_add_config (ex, "mime",
-                                    EXTRACTOR_OPTION_DEFAULT_POLICY);
-  m = GNUNET_CONTAINER_meta_data_create ();
-  if (3 !=
-      GNUNET_FS_meta_data_extract_from_file (m,
-                                             "test_fs_file_information_meta_data_image.jpg",
-                                             ex))
-  {
-    GNUNET_break (0);
-    EXTRACTOR_plugin_remove_all (ex);
-    GNUNET_CONTAINER_meta_data_destroy (m);
-    return 1;
-  }
-  EXTRACTOR_plugin_remove_all (ex);
-  d = GNUNET_CONTAINER_meta_data_duplicate (m);
-  GNUNET_CONTAINER_meta_data_destroy (m);
-  thumb = NULL;
-  size = GNUNET_CONTAINER_meta_data_get_thumbnail (d, &thumb);
-  if (size == 0)
-  {
-    GNUNET_break (0);
-    GNUNET_CONTAINER_meta_data_destroy (d);
-    return 1;
-  }
-  GNUNET_free (thumb);
-  GNUNET_CONTAINER_meta_data_add_publication_date (d);
-  date =
-      GNUNET_CONTAINER_meta_data_get_by_type (d,
-                                              EXTRACTOR_METATYPE_PUBLICATION_DATE);
-  if (date == NULL)
-  {
-    GNUNET_break (0);
-    GNUNET_CONTAINER_meta_data_destroy (d);
-    return 1;
-  }
-  GNUNET_free (date);
-  GNUNET_CONTAINER_meta_data_destroy (d);
-  return 0;
-}
 
 
 
@@ -221,8 +163,6 @@ main (int argc, char *argv[])
                     "WARNING",
 #endif
                     NULL);
-  if (0 != testThumbnail ())
-    return 1;
   GNUNET_PROGRAM_run ((sizeof (argvx) / sizeof (char *)) - 1, argvx,
                       "test-fs-file_information", "nohelp", options, &run,
                       NULL);
