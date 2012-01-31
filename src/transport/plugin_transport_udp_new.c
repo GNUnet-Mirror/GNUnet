@@ -216,6 +216,9 @@ struct FragmentationContext
   struct GNUNET_FRAGMENT_Context * frag;
   struct Session * session;
 
+  struct GNUNET_TIME_Absolute timeout;
+
+
   /**
    * Function to call upon completion of the transmission.
    */
@@ -237,6 +240,9 @@ struct UDPMessageWrapper
   struct UDPMessageWrapper *next;
   struct UDPMessage *udp;
   size_t msg_size;
+
+  struct GNUNET_TIME_Absolute timeout;
+
   /**
    * Function to call upon completion of the transmission.
    */
@@ -774,8 +780,8 @@ enqueue_fragment (void *cls, const struct GNUNET_MessageHeader *msg)
   udpw->msg_size = msg_len;
   udpw->cont = frag_ctx->cont;
   udpw->cont_cls = frag_ctx->cont_cls;
+  udpw->timeout = frag_ctx->timeout;
   udpw->frag = frag_ctx;
-
   memcpy (udpw->udp, msg, msg_len);
 
   GNUNET_CONTAINER_DLL_insert(plugin->msg_head, plugin->msg_tail, udpw);
@@ -858,9 +864,11 @@ udp_plugin_send (void *cls,
     udpw->session = s;
     udpw->udp = (struct UDPMessage *) &udpw[1];
     udpw->msg_size = mlen;
+    udpw->timeout = GNUNET_TIME_absolute_add(GNUNET_TIME_absolute_get(), to);
     udpw->cont = cont;
     udpw->cont_cls = cont_cls;
     udpw->frag = NULL;
+
     memcpy (udpw->udp, udp, sizeof (struct UDPMessage));
     memcpy (&udpw->udp[1], msgbuf, msgbuf_size);
 
@@ -877,6 +885,7 @@ udp_plugin_send (void *cls,
     frag_ctx->session = s;
     frag_ctx->cont = cont;
     frag_ctx->cont_cls = cont_cls;
+    frag_ctx->timeout = GNUNET_TIME_absolute_add(GNUNET_TIME_absolute_get(), to);
     frag_ctx->bytes_to_send = mlen;
     frag_ctx->frag = GNUNET_FRAGMENT_context_create (plugin->env->stats,
               UDP_MTU,
@@ -1313,9 +1322,51 @@ udp_select_send (struct Plugin *plugin)
 {
   ssize_t sent;
   size_t slen;
+  struct GNUNET_TIME_Absolute max;
+  struct GNUNET_TIME_Absolute ;
 
   struct UDPMessageWrapper *udpw = plugin->msg_head;
   const struct sockaddr * sa = udpw->session->sock_addr;
+
+  max = GNUNET_TIME_absolute_max(udpw->timeout, GNUNET_TIME_absolute_get());
+
+  while (udpw != NULL)
+  {
+    if (max.abs_value != udpw->timeout.abs_value)
+    {
+      /* Message timed out */
+
+      if (udpw->cont != NULL)
+        udpw->cont (udpw->cont_cls, &udpw->session->target, GNUNET_SYSERR);
+      if (udpw->frag != NULL)
+      {
+#if DEBUG_UDP
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Fragmendted message for peer `%s' with size %u timed out\n",
+            GNUNET_i2s(&udpw->session->target), udpw->frag->bytes_to_send);
+#endif
+        GNUNET_FRAGMENT_context_destroy(udpw->frag->frag);
+      }
+      else
+      {
+#if DEBUG_UDP
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Message for peer `%s' with size %u timed out\n",
+            GNUNET_i2s(&udpw->session->target), udpw->msg_size);
+#endif
+      }
+
+      GNUNET_CONTAINER_DLL_remove(plugin->msg_head, plugin->msg_tail, udpw);
+      GNUNET_free (udpw);
+      udpw = plugin->msg_head;
+    }
+    else
+      break;
+  }
+
+  if (udpw == NULL)
+  {
+    /* No message left */
+    return 0;
+  }
 
   switch (sa->sa_family)
   {
