@@ -41,7 +41,7 @@
 
 #define LOG(kind,...) GNUNET_log_from (kind, "transport-udp", __VA_ARGS__)
 
-#define DEBUG_UDP GNUNET_NO
+#define DEBUG_UDP GNUNET_YES
 #define DEBUG_UDP_BROADCASTING GNUNET_NO
 
 /**
@@ -131,7 +131,7 @@ struct Plugin
   /**
    * Heap with all of our defragmentation activities.
    */
-  struct GNUNET_CONTAINER_Heap *defrags;
+  struct GNUNET_CONTAINER_Heap *defrag_ctxs;
 
   /**
    * ID of select task
