@@ -46,6 +46,8 @@ GNUNET_HELLO_address_allocate (const struct GNUNET_PeerIdentity *peer,
   size_t slen;
   char *end;
 
+  GNUNET_assert (transport_name != NULL);
+
   slen = strlen (transport_name) + 1;
   addr =
       GNUNET_malloc (sizeof (struct GNUNET_HELLO_Address) + address_length +

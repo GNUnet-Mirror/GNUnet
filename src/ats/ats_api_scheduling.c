@@ -759,7 +759,7 @@ get_addresses (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @return location as GNUNET_ATS_Information
  */
 
-struct GNUNET_ATS_Information
+const struct GNUNET_ATS_Information
 GNUNET_ATS_address_get_type (struct GNUNET_ATS_SchedulingHandle * sh, const struct sockaddr * addr, socklen_t addrlen)
 {
   GNUNET_assert (sh != NULL);
@@ -868,7 +868,7 @@ GNUNET_ATS_address_get_type (struct GNUNET_ATS_SchedulingHandle * sh, const stru
 
   ats.type = htonl (GNUNET_ATS_NETWORK_TYPE);
   ats.value = htonl (type);
-  return ats;
+  return (const struct GNUNET_ATS_Information) ats;
 }
 
 /**
