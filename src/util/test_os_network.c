@@ -26,7 +26,7 @@
 #include "gnunet_configuration_lib.h"
 #include "gnunet_os_lib.h"
 
-#define VERBOSE 0
+#define VERBOSE 
 
 /**
  * Check if the address we got is IPv4 or IPv6 loopback (which should
