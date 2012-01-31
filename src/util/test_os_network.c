@@ -43,6 +43,16 @@ proc (void *cls, const char *name, int isDefault, const struct sockaddr *addr,
 
   if (NULL == addr)
     return GNUNET_OK;
+#if VERBOSE
+  const char * protocol;
+  if (addrlen == sizeof (struct sockaddr_in))
+    protocol = "IPv4";
+  else
+    protocol = "IPv6";
+  printf ("%s Address `%s'\n", protocol, GNUNET_a2s ((const struct sockaddr *) addr,addrlen) );
+  printf ("     Netmask `%s'\n", GNUNET_a2s ((const struct sockaddr *) netmask, addrlen) );
+  printf ("     Broadcast `%s'\n", GNUNET_a2s ((const struct sockaddr *) broadcast_addr,addrlen) );
+#endif
 
   inet_ntop (addr->sa_family,
              (addr->sa_family ==
