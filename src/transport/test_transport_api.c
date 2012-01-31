@@ -162,7 +162,7 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
   GNUNET_free (ps);
 
   if ((MTYPE == ntohs (message->type)) &&
-      (sizeof (struct GNUNET_MessageHeader) == ntohs (message->size)))
+      (MSIZE == ntohs (message->size)))
   {
     ok = 0;
     end ();
