@@ -47,7 +47,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
 struct GNUNET_NSE_ClientMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_NSE_UPDATE
+   * Type: GNUNET_MESSAGE_TYPE_NSE_ESTIMATE
    */
   struct GNUNET_MessageHeader header;
 
