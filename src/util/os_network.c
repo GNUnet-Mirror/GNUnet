@@ -101,17 +101,26 @@ GNUNET_OS_network_interfaces_list (GNUNET_OS_NetworkInterfaceProcessor proc,
     freeifaddrs (ifa_first);
   }
 #else
+  int i;
   char line[1024];
+  char *replace;
   const char *start;
   char ifc[12];
   char addrstr[128];
   char bcstr[128];
+  char netmaskstr[128];
   FILE *f;
   int have_ifc;
   struct sockaddr_in a4;
   struct sockaddr_in6 a6;
   struct in_addr v4;
   struct in6_addr v6;
+  struct sockaddr_in bcaddr;
+  struct sockaddr_in netmask;
+  struct sockaddr_in6 netmask6;
+  struct sockaddr *pass_bcaddr;
+  struct sockaddr *pass_netmask;
+  int prefixlen;
 
   if (system ("ifconfig -a > /dev/null 2> /dev/null"))
     if (system ("/sbin/ifconfig -a > /dev/null 2> /dev/null") == 0)
@@ -146,12 +155,29 @@ GNUNET_OS_network_interfaces_list (GNUNET_OS_NetworkInterfaceProcessor proc,
     }
     if (!have_ifc)
       continue;                 /* strange input, hope for the best */
+
+    /* make parsing of ipv6 addresses easier */
+    for (replace = line; *replace != '\0'; replace++)
+    {
+      if (*replace == '/')
+        *replace = ' ';
+    }
+    prefixlen = -1;
+
     start = line;
     while (('\0' != *start) && (isspace (*start)))
       start++;
-    if (                        /* Linux */
-	(2 == SSCANF (start, "inet addr:%127s Bcast:%127s", addrstr, bcstr)) ||
-         (1 == SSCANF (start, "inet6 addr:%127s", addrstr)) ||
+
+    /* Zero-out stack allocated values */
+    memset (addrstr, 0, 128);
+    memset (netmaskstr, 0, 128);
+    memset (bcstr, 0, 128);
+    prefixlen = 0;
+
+    if ( /* Linux */
+         (3 == SSCANF (start, "inet addr:%127s Bcast:%127s Mask:%127s", addrstr, bcstr, netmaskstr)) ||
+         (2 == SSCANF (start, "inet addr:%127s Mask:%127s", addrstr, netmaskstr)) ||
+         (2 == SSCANF (start, "inet6 addr:%127s %d", addrstr, &prefixlen)) ||
          /* Solaris, OS X */
          (1 == SSCANF (start, "inet %127s", addrstr)) ||
          (1 == SSCANF (start, "inet6 %127s", addrstr)))
@@ -165,11 +191,35 @@ GNUNET_OS_network_interfaces_list (GNUNET_OS_NetworkInterfaceProcessor proc,
         a4.sin_len = (u_char) sizeof (struct sockaddr_in);
 #endif
         a4.sin_addr = v4;
+
+        pass_bcaddr = NULL;
+        pass_netmask = NULL;
+        if (1 == inet_pton (AF_INET, bcstr, &v4))
+        {
+          memset (&bcaddr, 0, sizeof (bcaddr));
+          bcaddr.sin_family = AF_INET;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+          bcaddr.sin_len = (u_char) sizeof (struct sockaddr_in);
+#endif
+          bcaddr.sin_addr = v4;
+          pass_bcaddr = (struct sockaddr *) &bcaddr;
+        }
+        if (1 == inet_pton (AF_INET, netmaskstr, &v4))
+        {
+          memset (&netmask, 0, sizeof (netmask));
+          netmask.sin_family = AF_INET;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+          netmask.sin_len = (u_char) sizeof (struct sockaddr_in);
+#endif
+          netmask.sin_addr = v4;
+          pass_netmask = (struct sockaddr *) &netmask;
+        }
+
+
         if (GNUNET_OK !=
             proc (proc_cls, ifc, 0 == strcmp (ifc, GNUNET_DEFAULT_INTERFACE),
                   (const struct sockaddr *) &a4,
-                  /* TODO broadcast and netmask */
-                  NULL, NULL, sizeof (a4)))
+                  pass_bcaddr, pass_netmask, sizeof (a4)))
           break;
         continue;
       }
@@ -182,11 +232,29 @@ GNUNET_OS_network_interfaces_list (GNUNET_OS_NetworkInterfaceProcessor proc,
         a6.sin6_len = (u_char) sizeof (struct sockaddr_in6);
 #endif
         a6.sin6_addr = v6;
+
+        pass_netmask = NULL;
+        if (prefixlen != -1)
+        {
+          memset (v6.s6_addr, 0, sizeof (v6.s6_addr));
+          for (i = 0; i < prefixlen; i++)
+          {
+            v6.s6_addr[i >> 3] |= 1 << (i & 7);
+          }
+          memset (&netmask6, 0, sizeof (netmask6));
+          netmask6.sin6_family = AF_INET6;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+          netmask6.sin6_len = (u_char) sizeof (struct sockaddr_in6);
+#endif
+          netmask6.sin6_addr = v6;
+
+          pass_netmask = (struct sockaddr *) &netmask6;
+        }
+        
         if (GNUNET_OK !=
             proc (proc_cls, ifc, 0 == strcmp (ifc, GNUNET_DEFAULT_INTERFACE),
                   (const struct sockaddr *) &a6,
-                  /* TODO broadcast and netmask */
-                  NULL, NULL, sizeof (a6)))
+                  NULL, pass_netmask, sizeof (a6)))
           break;
         continue;
       }
