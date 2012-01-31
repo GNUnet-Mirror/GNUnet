@@ -2142,8 +2142,16 @@ GNUNET_DISK_pipe (int blocking_read, int blocking_write, int inherit_read, int i
 				   fd);
 #else
   struct GNUNET_DISK_PipeHandle *p;
+  struct GNUNET_DISK_FileHandle *fds;
   BOOL ret;
   HANDLE tmp_handle;
+  
+
+  p = GNUNET_malloc (sizeof (struct GNUNET_DISK_PipeHandle) +
+                     2 * sizeof (struct GNUNET_DISK_FileHandle));
+  fds = (struct GNUNET_DISK_FileHandle *) &p[1];
+  p->fd[0] = &fds[0];
+  p->fd[1] = &fds[1];
 
   /* All pipes are overlapped. If you want them to block - just
    * call WriteFile() and ReadFile() with NULL overlapped pointer.
