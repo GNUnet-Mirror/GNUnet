@@ -389,7 +389,7 @@ plugin_env_address_to_type (void *cls,
                 addrlen,
                 GNUNET_a2s(addr, addrlen));
     GNUNET_break (0);
-    return ats;
+    return (const struct GNUNET_ATS_Information) ats;
   }
   return GNUNET_ATS_address_get_type(GST_ats, addr, addrlen);
 }
