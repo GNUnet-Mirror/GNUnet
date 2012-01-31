@@ -309,6 +309,9 @@ void __attribute__ ((constructor)) GNUNET_CRYPTO_random_init ()
              GCRYPT_VERSION);
     GNUNET_abort ();
   }
+#ifdef GCRYCTL_INITIALIZATION_FINISHED
+  gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
+#endif
 #ifdef gcry_fast_random_poll
   gcry_fast_random_poll ();
 #endif
