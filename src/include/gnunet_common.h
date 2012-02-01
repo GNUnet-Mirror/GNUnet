@@ -324,23 +324,27 @@ GNUNET_log_from_nocheck (enum GNUNET_ErrorType kind, const char *comp,
 #if !defined(GNUNET_CULL_LOGGING)
 #define GNUNET_log_from(kind,comp,...) do { int log_line = __LINE__;\
   static int log_call_enabled = GNUNET_LOG_CALL_STATUS;\
-  if (GN_UNLIKELY(log_call_enabled == -1))\
-    log_call_enabled = GNUNET_get_log_call_status ((kind) & (~GNUNET_ERROR_TYPE_BULK), comp, __FILE__, __FUNCTION__, log_line);\
-  if (GN_UNLIKELY(skip_log > 0)) {skip_log--;}\
-  else {\
-    if (GN_UNLIKELY(log_call_enabled))\
-      GNUNET_log_from_nocheck (kind, comp, __VA_ARGS__);\
+  if ((GNUNET_EXTRA_LOGGING > 0) || ((GNUNET_ERROR_TYPE_DEBUG & kind) == 0)) {\
+    if (GN_UNLIKELY(log_call_enabled == -1))\
+      log_call_enabled = GNUNET_get_log_call_status ((kind) & (~GNUNET_ERROR_TYPE_BULK), comp, __FILE__, __FUNCTION__, log_line);\
+    if (GN_UNLIKELY(skip_log > 0)) {skip_log--;}\
+    else {\
+      if (GN_UNLIKELY(log_call_enabled))\
+        GNUNET_log_from_nocheck (kind, comp, __VA_ARGS__);\
+    }\
   }\
 } while (0)
 
 #define GNUNET_log(kind,...) do { int log_line = __LINE__;\
   static int log_call_enabled = GNUNET_LOG_CALL_STATUS;\
-  if (GN_UNLIKELY(log_call_enabled == -1))\
-    log_call_enabled = GNUNET_get_log_call_status ((kind) & (~GNUNET_ERROR_TYPE_BULK), NULL, __FILE__, __FUNCTION__, log_line);\
-  if (GN_UNLIKELY(skip_log > 0)) {skip_log--;}\
-  else {\
-    if (GN_UNLIKELY(log_call_enabled))\
-      GNUNET_log_nocheck (kind, __VA_ARGS__);\
+  if ((GNUNET_EXTRA_LOGGING > 0) || ((GNUNET_ERROR_TYPE_DEBUG & kind) == 0)) {\
+    if (GN_UNLIKELY(log_call_enabled == -1))\
+      log_call_enabled = GNUNET_get_log_call_status ((kind) & (~GNUNET_ERROR_TYPE_BULK), NULL, __FILE__, __FUNCTION__, log_line);\
+    if (GN_UNLIKELY(skip_log > 0)) {skip_log--;}\
+    else {\
+      if (GN_UNLIKELY(log_call_enabled))\
+        GNUNET_log_nocheck (kind, __VA_ARGS__);\
+    }\
   }\
 } while (0)
 #else
