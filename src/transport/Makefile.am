@@ -248,6 +248,7 @@ libgnunet_plugin_transport_https_la_CPPFLAGS = \
 check_PROGRAMS = \
  test_transport_testing \
  test_transport_startonly \
+ test_transport_api_blacklisting \
  test_transport_api_disconnect_tcp \
  test_transport_api_bidirectional_connect \
  test_transport_api_tcp \
@@ -289,6 +290,7 @@ if ENABLE_TEST_RUN
 TESTS = \
  test_transport_testing \
  test_transport_startonly \
+ test_transport_api_blacklisting \
  test_transport_api_disconnect_tcp \
  test_transport_api_bidirectional_connect \
  test_transport_api_tcp \
@@ -342,6 +344,14 @@ test_transport_testing_LDADD = \
 # $(top_builddir)/src/hello/libgnunethello.la \
 # $(top_builddir)/src/util/libgnunetutil.la \
 # $(top_builddir)/src/transport/libgnunettransporttesting.la 
+
+test_transport_api_blacklisting_SOURCES = \
+ test_transport_api_blacklisting.c
+test_transport_api_blacklisting_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/statistics/libgnunetstatistics.la \
+ $(top_builddir)/src/util/libgnunetutil.la
 
 test_transport_api_disconnect_tcp_SOURCES = \
  test_transport_api_disconnect.c
