@@ -47,7 +47,11 @@ extern "C"
 
 #define MESH_API_DEBUG GNUNET_YES
 
+#if MESH_API_DEBUG
 #define LOG(kind,...) GNUNET_log_from (kind, "mesh-api",__VA_ARGS__)
+#else
+#define LOG(kind,...)
+#endif
 
 /******************************************************************************/
 /************************      DATA STRUCTURES     ****************************/

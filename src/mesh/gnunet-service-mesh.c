@@ -73,7 +73,17 @@
 
 #define MESH_DEBUG_DHT GNUNET_NO
 
+#if MESH_DEBUG
+#define DEBUG(...) GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__)
+#else
+#define DEBUG(...)
+#endif
 
+#if MESH_DEBUG_DHT
+#define DEBUG_DHT(...) GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__)
+#else
+#define DEBUG_DHT(...)
+#endif
 
 /******************************************************************************/
 /************************      DATA STRUCTURES     ****************************/
@@ -477,7 +487,7 @@ mesh_debug (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: %s\n", s);
+  DEBUG ("MESH: %s\n", s);
 }
 #endif
 
