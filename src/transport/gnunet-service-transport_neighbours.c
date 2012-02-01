@@ -2746,7 +2746,7 @@ GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
   bcc->ats[ats_count].value =
       htonl ((uint32_t) GST_neighbour_get_latency (peer).rel_value);
   GST_blacklist_test_allowed (peer, address->transport_name,
-                              handle_connect_blacklist_cont, bcc);
+                              &handle_connect_blacklist_cont, bcc);
 }
 
 
