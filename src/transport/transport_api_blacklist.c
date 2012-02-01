@@ -255,6 +255,8 @@ GNUNET_TRANSPORT_blacklist (const struct GNUNET_CONFIGURATION_Handle *cfg,
   ret = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_Blacklist));
   ret->client = client;
   ret->cfg = cfg;
+  ret->cb = cb;
+  ret->cb_cls = cb_cls;
   ret->th =
       GNUNET_CLIENT_notify_transmit_ready (client,
                                            sizeof (struct GNUNET_MessageHeader),
