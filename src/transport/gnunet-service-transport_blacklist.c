@@ -489,6 +489,7 @@ do_blacklist_check (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                 GNUNET_i2s (&bc->peer));
 #endif
     bc->cont (bc->cont_cls, &bc->peer, GNUNET_OK);
+    GNUNET_CONTAINER_DLL_remove(bc_head, bc_tail, bc);
     GNUNET_free (bc);
     return;
   }

@@ -35,7 +35,7 @@
 #include "transport.h"
 #include "transport-testing.h"
 
-#define VERBOSE GNUNET_YES
+#define VERBOSE GNUNET_EXTRA_LOGGING
 #define VERBOSE_ARM GNUNET_EXTRA_LOGGING
 
 #define START_ARM GNUNET_YES
@@ -67,6 +67,9 @@ struct GNUNET_TRANSPORT_TESTING_handle *tth;
 
 
 static int ok;
+static int connected;
+static int blacklist_request_p1;
+static int blacklist_request_p2;
 
 struct GNUNET_TRANSPORT_Blacklist * blacklist_p1;
 
@@ -76,6 +79,8 @@ static GNUNET_SCHEDULER_TaskIdentifier die_task;
 
 static GNUNET_SCHEDULER_TaskIdentifier send_task;
 
+static GNUNET_SCHEDULER_TaskIdentifier shutdown_task;
+
 #if VERBOSE
 #define OKPP do { ok++; FPRINTF (stderr, "Now at stage %u at %s:%u\n", ok, __FILE__, __LINE__); } while (0)
 #else
@@ -84,7 +89,7 @@ static GNUNET_SCHEDULER_TaskIdentifier send_task;
 
 
 static void
-end ()
+end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping\n");
 
@@ -92,27 +97,72 @@ end ()
     GNUNET_SCHEDULER_cancel (send_task);
 
   if (die_task != GNUNET_SCHEDULER_NO_TASK)
+  {
     GNUNET_SCHEDULER_cancel (die_task);
+    die_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+
+  if (cc != NULL)
+  {
+    GNUNET_TRANSPORT_TESTING_connect_peers_cancel(tth, cc);
+    cc = NULL;
+  }
 
   if (th != NULL)
     GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
   th = NULL;
 
-  GNUNET_TRANSPORT_blacklist_cancel (blacklist_p1);
+  if (blacklist_p1 != NULL)
+  {
+    GNUNET_TRANSPORT_blacklist_cancel (blacklist_p1);
+    blacklist_p1 = NULL;
+  }
 
-  GNUNET_TRANSPORT_blacklist_cancel (blacklist_p2);
+  if (blacklist_p2 != NULL)
+  {
+    GNUNET_TRANSPORT_blacklist_cancel (blacklist_p2);
+    blacklist_p2 = NULL;
+  }
 
-  GNUNET_TRANSPORT_TESTING_stop_peer (tth, p1);
-  GNUNET_TRANSPORT_TESTING_stop_peer (tth, p2);
+  if (p1 != NULL)
+  {
+    GNUNET_TRANSPORT_TESTING_stop_peer (tth, p1);
+    p1 = NULL;
+  }
+  if (p2 != NULL)
+  {
+    GNUNET_TRANSPORT_TESTING_stop_peer (tth, p2);
+    p2 = NULL;
+  }
 
-  ok = 0;
+  if ((blacklist_request_p1 == GNUNET_YES) &&
+      (blacklist_request_p2 == GNUNET_YES) &&
+      (connected == GNUNET_NO))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Peers were not connected, success\n"));
+    ok = 0;
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Peers were not connected, fail\n"));
+    ok = 1;
+  }
 }
 
 static void
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   if (send_task != GNUNET_SCHEDULER_NO_TASK)
+  {
     GNUNET_SCHEDULER_cancel (send_task);
+    send_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+
+  if (shutdown_task != GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel (shutdown_task);
+    shutdown_task = GNUNET_SCHEDULER_NO_TASK;
+  }
 
   if (cc != NULL)
   {
@@ -166,13 +216,13 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
       (MSIZE == ntohs (message->size)))
   {
     ok = 0;
-    end ();
+    shutdown_task = GNUNET_SCHEDULER_add_now(&end, NULL);
   }
   else
   {
     GNUNET_break (0);
     ok = 1;
-    end ();
+    shutdown_task = GNUNET_SCHEDULER_add_now(&end, NULL);
   }
 }
 
@@ -190,7 +240,10 @@ notify_ready (void *cls, size_t size, void *buf)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Timeout occurred while waiting for transmit_ready\n");
     if (GNUNET_SCHEDULER_NO_TASK != die_task)
+    {
       GNUNET_SCHEDULER_cancel (die_task);
+      die_task = GNUNET_SCHEDULER_NO_TASK;
+    }
     die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
     ok = 42;
     return 0;
@@ -286,6 +339,8 @@ testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)
               p1->no, p1_c, p2->no, GNUNET_i2s (&p2->id));
   GNUNET_free (p1_c);
 
+
+
   send_task = GNUNET_SCHEDULER_add_now (&sendtask, NULL);
 }
 
@@ -294,8 +349,27 @@ int blacklist_cb (void *cls,
                  const struct
                  GNUNET_PeerIdentity * pid)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Blacklist request\n", GNUNET_i2s (pid));
-  return GNUNET_YES;
+  struct PeerContext * p = cls;
+  int res = GNUNET_SYSERR;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer  %u : Blacklist request for peer `%s'\n", p->no, GNUNET_i2s (pid));
+
+  if (p == p1)
+  {
+    blacklist_request_p1 = GNUNET_YES;
+    res = GNUNET_OK;
+  }
+  else if (p == p2)
+  {
+    blacklist_request_p2 = GNUNET_YES;
+    res = GNUNET_SYSERR;
+  }
+
+  if (((blacklist_request_p2 == GNUNET_YES) && (blacklist_request_p1 == GNUNET_YES)) && (shutdown_task == GNUNET_SCHEDULER_NO_TASK))
+  {
+    shutdown_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 3), &end, NULL);
+  }
+
+  return res;
 }
 
 void
@@ -328,6 +402,9 @@ run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
+  connected = GNUNET_NO;
+  blacklist_request_p1 = GNUNET_NO;
+  blacklist_request_p2 = GNUNET_NO;
 
   p1 = GNUNET_TRANSPORT_TESTING_start_peer (tth, "test_transport_api_tcp_peer1.conf", 1,
                                             &notify_receive, &notify_connect,
@@ -343,7 +420,7 @@ run (void *cls, char *const *args, const char *cfgfile,
                               &blacklist_cb,
                               p1);
 
-  blacklist_p2 = GNUNET_TRANSPORT_blacklist (p1->cfg,
+  blacklist_p2 = GNUNET_TRANSPORT_blacklist (p2->cfg,
                               &blacklist_cb,
                               p2);
 

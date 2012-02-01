@@ -351,7 +351,8 @@ test_transport_api_blacklisting_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
- $(top_builddir)/src/util/libgnunetutil.la
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/transport/libgnunettransporttesting.la 
 
 test_transport_api_disconnect_tcp_SOURCES = \
  test_transport_api_disconnect.c
@@ -378,7 +379,7 @@ test_transport_api_tcp_LDADD = \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la  \
  $(top_builddir)/src/transport/libgnunettransporttesting.la
-
+  
 test_transport_api_bidirectional_connect_SOURCES = \
  test_transport_api_bidirectional_connect.c
 test_transport_api_bidirectional_connect_LDADD = \
@@ -404,7 +405,7 @@ test_transport_api_restart_2peers_LDADD = \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la 
-
+  
 test_transport_api_limited_sockets_tcp_SOURCES = \
  test_transport_api_limited_sockets.c
 test_transport_api_limited_sockets_tcp_LDADD = \
@@ -444,7 +445,7 @@ test_transport_api_timeout_http_LDADD = \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la 
-
+ 
 test_transport_api_timeout_https_SOURCES = \
  test_transport_api_timeout.c
 test_transport_api_timeout_https_LDADD = \
@@ -452,7 +453,7 @@ test_transport_api_timeout_https_LDADD = \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la 
-
+ 
 test_transport_api_reliability_tcp_nat_SOURCES = \
  test_transport_api_reliability.c
 test_transport_api_reliability_tcp_nat_LDADD = \
@@ -516,7 +517,7 @@ test_transport_api_http_LDADD = \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la 
-
+ 
  test_transport_api_http_nat_SOURCES = \
  test_transport_api.c
 test_transport_api_http_nat_LDADD = \
