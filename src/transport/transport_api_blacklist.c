@@ -103,7 +103,9 @@ query_handler (void *cls, const struct GNUNET_MessageHeader *msg)
   struct GNUNET_TRANSPORT_Blacklist *br = cls;
   const struct BlacklistMessage *bm;
 
-  if ((ntohs (msg->size) != sizeof (struct BlacklistMessage)) ||
+  GNUNET_assert (br != NULL);
+  if ((NULL == msg) ||
+      (ntohs (msg->size) != sizeof (struct BlacklistMessage)) ||
       (ntohs (msg->type) != GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_QUERY))
   {
     reconnect (br);
@@ -151,6 +153,7 @@ transmit_blacklist_init (void *cls, size_t size, void *buf)
   req.size = htons (sizeof (struct GNUNET_MessageHeader));
   req.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_INIT);
   memcpy (buf, &req, sizeof (req));
+  br->th = NULL;
   receive (br);
   return sizeof (req);
 }
@@ -201,6 +204,7 @@ transmit_blacklist_reply (void *cls, size_t size, void *buf)
   req.is_allowed = htonl (br->cb (br->cb_cls, &br->peer));
   req.peer = br->peer;
   memcpy (buf, &req, sizeof (req));
+  br->th = NULL;
   receive (br);
   return sizeof (req);
 }
