@@ -722,9 +722,11 @@ test_blacklisted (void *cls, const GNUNET_HashCode * key, void *value)
   const char *transport_name = cls;
   char *be = value;
 
-  GNUNET_assert (transport_name != NULL);
-  GNUNET_assert (be != NULL);
+  /* blacklist check for specific no specific transport*/
+  if (transport_name == NULL)
+    return GNUNET_NO;
 
+  /* blacklist check for specific transport */
   if (0 == strcmp (transport_name, be))
     return GNUNET_NO;           /* abort iteration! */
   return GNUNET_OK;
@@ -747,6 +749,8 @@ GST_blacklist_test_allowed (const struct GNUNET_PeerIdentity *peer,
                             GST_BlacklistTestContinuation cont, void *cont_cls)
 {
   struct GST_BlacklistCheck *bc;
+
+  GNUNET_assert (peer != NULL);
 
   if ((blacklist != NULL) &&
       (GNUNET_SYSERR ==
