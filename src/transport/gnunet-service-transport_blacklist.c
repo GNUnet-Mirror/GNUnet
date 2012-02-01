@@ -722,6 +722,9 @@ test_blacklisted (void *cls, const GNUNET_HashCode * key, void *value)
   const char *transport_name = cls;
   char *be = value;
 
+  GNUNET_assert (transport_name != NULL);
+  GNUNET_assert (be != NULL);
+
   if (0 == strcmp (transport_name, be))
     return GNUNET_NO;           /* abort iteration! */
   return GNUNET_OK;
