@@ -489,7 +489,7 @@ mesh_debug (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     return;
   }
-  DEBUG ("MESH: %s\n", s);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MESH: %s\n", s);
 }
 #endif
 
