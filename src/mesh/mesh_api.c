@@ -636,11 +636,9 @@ send_connect (struct GNUNET_MESH_Handle *h)
       types[ntypes] = htons (h->message_handlers[ntypes].type);
     msg->applications = htons (napps);
     msg->types = htons (ntypes);
-#if MESH_API_DEBUG
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "mesh: Sending %lu bytes long message %d types and %d apps\n",
          ntohs (msg->header.size), ntypes, napps);
-#endif
     send_packet (h, &msg->header, NULL);
   }
 }
@@ -660,11 +658,10 @@ reconnect (struct GNUNET_MESH_Handle *h)
   struct GNUNET_MESH_Tunnel *t;
   unsigned int i;
 
-#if MESH_API_DEBUG
   LOG (GNUNET_ERROR_TYPE_DEBUG, "mesh: *****************************\n");
   LOG (GNUNET_ERROR_TYPE_DEBUG, "mesh: *******   RECONNECT   *******\n");
   LOG (GNUNET_ERROR_TYPE_DEBUG, "mesh: *****************************\n");
-#endif
+
   h->in_receive = GNUNET_NO;
   /* disconnect */
   if (NULL != h->th)
@@ -803,10 +800,7 @@ process_tunnel_created (struct GNUNET_MESH_Handle *h,
     atsi.value = 0;
     t->ctx = h->new_tunnel (h->cls, t, &msg->peer, &atsi);
   }
-#if MESH_API_DEBUG
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh: new incoming tunnel %X\n",
-              t->tid);
-#endif
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "mesh: new incoming tunnel %X\n", t->tid);
   return;
 }
 
@@ -835,9 +829,7 @@ process_tunnel_destroy (struct GNUNET_MESH_Handle *h,
   {
     GNUNET_break (0);
   }
-#if MESH_API_DEBUG
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh: tunnel %u destroyed\n", t->tid);
-#endif
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "mesh: tunnel %u destroyed\n", t->tid);
   destroy_tunnel (t, GNUNET_YES);
   return;
 }
@@ -923,7 +915,7 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
   unsigned int i;
   uint16_t type;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh: Got a data message!\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "mesh: Got a data message!\n");
   type = ntohs (message->type);
   switch (type)
   {
@@ -933,24 +925,24 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
     t = retrieve_tunnel (h, ntohl (ucast->tid));
     payload = (struct GNUNET_MessageHeader *) &ucast[1];
     peer = &ucast->oid;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh:   ucast on tunnel %s [%x]\n",
-                GNUNET_i2s (peer), ntohl (ucast->tid));
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "mesh:   ucast on tunnel %s [%x]\n",
+         GNUNET_i2s (peer), ntohl (ucast->tid));
     break;
   case GNUNET_MESSAGE_TYPE_MESH_MULTICAST:
     mcast = (struct GNUNET_MESH_Multicast *) message;
     t = retrieve_tunnel (h, ntohl (mcast->tid));
     payload = (struct GNUNET_MessageHeader *) &mcast[1];
     peer = &mcast->oid;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh:   mcast on tunnel %s [%x]\n",
-                GNUNET_i2s (peer), ntohl (mcast->tid));
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "mesh:   mcast on tunnel %s [%x]\n",
+         GNUNET_i2s (peer), ntohl (mcast->tid));
     break;
   case GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN:
     to_orig = (struct GNUNET_MESH_ToOrigin *) message;
     t = retrieve_tunnel (h, ntohl (to_orig->tid));
     payload = (struct GNUNET_MessageHeader *) &to_orig[1];
     peer = &to_orig->sender;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh:   torig on tunnel %s [%x]\n",
-                GNUNET_i2s (peer), ntohl (to_orig->tid));
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "mesh:   torig on tunnel %s [%x]\n",
+         GNUNET_i2s (peer), ntohl (to_orig->tid));
     break;
   default:
     GNUNET_break (0);
@@ -978,14 +970,12 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
         GNUNET_MESH_disconnect (h);
         return GNUNET_NO;
       }
-#if MESH_API_DEBUG
       else
       {
         LOG (GNUNET_ERROR_TYPE_DEBUG,
              "MESH: callback completed successfully\n");
 
       }
-#endif
     }
   }
   return GNUNET_YES;
@@ -1088,8 +1078,8 @@ send_callback (void *cls, size_t size, void *buf)
         GNUNET_assert (size >= th->size);
         mh = (struct GNUNET_MessageHeader *) &cbuf[sizeof (to)];
         psize = th->notify (th->notify_cls, size - sizeof (to), mh);
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh:   to origin, type %u\n",
-                    ntohs (mh->type));
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "mesh:   to origin, type %u\n",
+             ntohs (mh->type));
         if (psize > 0)
         {
           psize += sizeof (to);
@@ -1111,8 +1101,8 @@ send_callback (void *cls, size_t size, void *buf)
         GNUNET_assert (size >= th->size);
         mh = (struct GNUNET_MessageHeader *) &cbuf[sizeof (mc)];
         psize = th->notify (th->notify_cls, size - sizeof (mc), mh);
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh:   multicast, type %u\n",
-                    ntohs (mh->type));
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "mesh:   multicast, type %u\n",
+             ntohs (mh->type));
         if (psize > 0)
         {
           psize += sizeof (mc);
@@ -1135,8 +1125,8 @@ send_callback (void *cls, size_t size, void *buf)
         GNUNET_assert (size >= th->size);
         mh = (struct GNUNET_MessageHeader *) &cbuf[sizeof (uc)];
         psize = th->notify (th->notify_cls, size - sizeof (uc), mh);
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh:   unicast, type %u\n",
-                    ntohs (mh->type));
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "mesh:   unicast, type %u\n",
+             ntohs (mh->type));
         if (psize > 0)
         {
           psize += sizeof (uc);
@@ -1309,10 +1299,7 @@ GNUNET_MESH_disconnect (struct GNUNET_MESH_Handle *handle)
     if (t->tid < GNUNET_MESH_LOCAL_TUNNEL_ID_SERV)
     {
       GNUNET_break (0);
-#if MESH_API_DEBUG
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh: tunnel %X not destroyed\n",
-                  t->tid);
-#endif
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "mesh: tunnel %X not destroyed\n", t->tid);
     }
     destroy_tunnel (t, GNUNET_YES);
     t = aux;
@@ -1334,10 +1321,8 @@ GNUNET_MESH_disconnect (struct GNUNET_MESH_Handle *handle)
         break;
       default:
         GNUNET_break (0);
-#if MESH_API_DEBUG
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh: unexpected msg %u\n",
-                    ntohs(msg->type));
-#endif
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "mesh: unexpected msg %u\n",
+             ntohs(msg->type));
     }
 
     GNUNET_CONTAINER_DLL_remove (handle->th_head, handle->th_tail, th);
@@ -1579,15 +1564,11 @@ GNUNET_MESH_notify_transmit_ready (struct GNUNET_MESH_Tunnel *tunnel, int cork,
   size_t overhead;
 
   GNUNET_assert (NULL != tunnel);
-#if MESH_API_DEBUG
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "mesh: mesh notify transmit ready called\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "mesh: mesh notify transmit ready called\n");
   if (NULL != target)
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh:     target %s\n",
-                GNUNET_i2s (target));
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "mesh:     target %s\n", GNUNET_i2s (target));
   else
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "mesh:     target multicast\n");
-#endif
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "mesh:     target multicast\n");
   GNUNET_assert (NULL != notify);
   if (tunnel->mesh->npackets >= tunnel->mesh->max_queue_size &&
       tunnel->npackets > 0)
