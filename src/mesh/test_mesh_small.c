@@ -27,7 +27,7 @@
 #include "gnunet_testing_lib.h"
 #include "gnunet_mesh_service.h"
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 #define REMOVE_DIR GNUNET_YES
 
 struct MeshPeer
