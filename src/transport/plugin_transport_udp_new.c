@@ -100,18 +100,19 @@ struct Session
   size_t addrlen;
 
   /**
+   * Desired delay for next sending we send to other peer
+   */
+  struct GNUNET_TIME_Relative flow_delay_for_other_peer;
+
+  /**
    * Desired delay for next sending we received from other peer
    */
   struct GNUNET_TIME_Absolute flow_delay_from_other_peer;
 
-  struct GNUNET_TIME_Relative flow_delay_for_other_peer;
 
   struct GNUNET_ATS_Information ats;
 
   struct FragmentationContext * frag_ctx;
-
-//  struct FragmentationContext * head;
-//  struct FragmentationContext * tail;
 };
 
 
@@ -651,6 +652,8 @@ create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
   s->addrlen = len;
   s->target = *target;
   s->sock_addr = (const struct sockaddr *) &s[1];
+  s->flow_delay_for_other_peer = GNUNET_TIME_relative_get_zero();
+  s->flow_delay_from_other_peer = GNUNET_TIME_absolute_get_zero();
 
   return s;
 }
@@ -843,7 +846,6 @@ udp_plugin_send (void *cls,
   struct Plugin *plugin = cls;
   size_t mlen = msgbuf_size + sizeof (struct UDPMessage);
 
-  struct GNUNET_TIME_Relative delta;
   struct UDPMessageWrapper * udpw;
   struct UDPMessage *udp;
   char mbuf[mlen];
@@ -917,8 +919,6 @@ udp_plugin_send (void *cls,
     s->frag_ctx = frag_ctx;
 
   }
-
-  delta = GNUNET_TIME_absolute_get_remaining (s->flow_delay_from_other_peer);
   return mlen;
 }
 
@@ -1163,7 +1163,6 @@ fragment_msg_proc (void *cls, const struct GNUNET_MessageHeader *msg)
     GNUNET_break (0);
     return;
   }
-  LOG (GNUNET_ERROR_TYPE_ERROR, "Sending fragment_msg_proc ms\n");
   process_udp_message (rc->plugin, (const struct UDPMessage *) msg,
                        rc->src_addr, rc->addr_len);
 }
@@ -1202,7 +1201,6 @@ static void
 ack_proc (void *cls, uint32_t id, const struct GNUNET_MessageHeader *msg)
 {
   struct DefragContext *rc = cls;
-  LOG (GNUNET_ERROR_TYPE_ERROR, "Sending ACK ms\n");
 
   size_t msize = sizeof (struct UDP_ACK_Message) + ntohs (msg->size);
   struct UDP_ACK_Message *udp_ack;
@@ -1295,18 +1293,15 @@ static void read_process_ack (struct Plugin *plugin,
       &lookup_session_by_addr_it,
       &l_ctx);
   s = l_ctx.res;
-  GNUNET_assert (s != NULL);
 
-  if (s != NULL)
-  {
-    flow_delay.rel_value = (uint64_t) ntohl (udp_ack->delay);
+  if ((s == NULL) || (s->frag_ctx == NULL))
+    return;
 
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "We received a sending delay of %llu\n",
-         flow_delay.rel_value);
-
-    s->flow_delay_from_other_peer =
-        GNUNET_TIME_relative_to_absolute (flow_delay);
-  }
+  flow_delay.rel_value = (uint64_t) ntohl (udp_ack->delay);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "We received a sending delay of %llu\n",
+       flow_delay.rel_value);
+  s->flow_delay_from_other_peer =
+      GNUNET_TIME_relative_to_absolute (flow_delay);
 
   ack = (const struct GNUNET_MessageHeader *) &udp_ack[1];
   if (ntohs (ack->size) !=
@@ -1334,6 +1329,17 @@ static void read_process_ack (struct Plugin *plugin,
        GNUNET_a2s ((const struct sockaddr *) addr, fromlen));
 #endif
   plugin->last_expected_delay = GNUNET_FRAGMENT_context_destroy (s->frag_ctx->frag);
+
+  struct UDPMessageWrapper * udpw = plugin->msg_head;
+  while (udpw!= NULL)
+  {
+    if ((udpw->frag_ctx != NULL) && (udpw->frag_ctx == s->frag_ctx))
+    {
+      GNUNET_CONTAINER_DLL_remove(plugin->msg_head, plugin->msg_tail, udpw);
+      GNUNET_free (udpw);
+    }
+    udpw = udpw->next;
+  }
 
   if (s->frag_ctx->cont != NULL)
     s->frag_ctx->cont
@@ -1522,7 +1528,24 @@ udp_select_send (struct Plugin *plugin)
       udpw = plugin->msg_head;
     }
     else
-      break;
+    {
+      struct GNUNET_TIME_Relative delta = GNUNET_TIME_absolute_get_remaining (udpw->session->flow_delay_from_other_peer);
+      if (delta.rel_value == 0)
+      {
+        /* this message is not delayed */
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Message is not delayed for %llu \n",
+            delta);
+        break;
+      }
+      else
+      {
+        /* this message is delayed, try next */
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Message is delayed for %llu \n",
+            delta);
+        udpw = udpw->next;
+      }
+    }
+
   }
 
   if (udpw == NULL)
@@ -1957,7 +1980,6 @@ libgnunet_plugin_transport_udp_done (void *cls)
 {
   struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;
-GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "libgnunet_plugin_transport_udp_done\n ");
   stop_broadcast (plugin);
 
   if (plugin->select_task != GNUNET_SCHEDULER_NO_TASK)
