@@ -109,6 +109,11 @@ struct Session
    */
   struct GNUNET_TIME_Absolute flow_delay_from_other_peer;
 
+  /**
+   * expected delay for ACKs
+   */
+  struct GNUNET_TIME_Relative last_expected_delay;
+
 
   struct GNUNET_ATS_Information ats;
 
@@ -537,7 +542,7 @@ disconnect_and_free_it (void *cls, const GNUNET_HashCode * key, void *value)
 #endif
   plugin->env->session_end (plugin->env->cls, &s->target, s);
 
-  while (s->frag_ctx != NULL)
+  if (s->frag_ctx != NULL)
   {
     GNUNET_FRAGMENT_context_destroy(s->frag_ctx->frag);
     GNUNET_free (s->frag_ctx);
@@ -654,6 +659,7 @@ create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
   s->sock_addr = (const struct sockaddr *) &s[1];
   s->flow_delay_for_other_peer = GNUNET_TIME_relative_get_zero();
   s->flow_delay_from_other_peer = GNUNET_TIME_absolute_get_zero();
+  s->last_expected_delay = GNUNET_TIME_UNIT_SECONDS;
 
   return s;
 }
@@ -911,7 +917,7 @@ udp_plugin_send (void *cls,
     frag_ctx->frag = GNUNET_FRAGMENT_context_create (plugin->env->stats,
               UDP_MTU,
               &plugin->tracker,
-              plugin->last_expected_delay,
+              s->last_expected_delay,
               &udp->header,
               &enqueue_fragment,
               frag_ctx);
@@ -1328,7 +1334,7 @@ static void read_process_ack (struct Plugin *plugin,
        (unsigned int) ntohs (msg->size), GNUNET_i2s (&udp_ack->sender),
        GNUNET_a2s ((const struct sockaddr *) addr, fromlen));
 #endif
-  plugin->last_expected_delay = GNUNET_FRAGMENT_context_destroy (s->frag_ctx->frag);
+  s->last_expected_delay = GNUNET_FRAGMENT_context_destroy (s->frag_ctx->frag);
 
   struct UDPMessageWrapper * udpw = plugin->msg_head;
   while (udpw!= NULL)
@@ -1513,7 +1519,9 @@ udp_select_send (struct Plugin *plugin)
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Fragmented message for peer `%s' with size %u timed out\n",
             GNUNET_i2s(&udpw->session->target), udpw->frag_ctx->bytes_to_send);
 #endif
-        GNUNET_FRAGMENT_context_destroy(udpw->frag_ctx->frag);
+        udpw->session->last_expected_delay = GNUNET_FRAGMENT_context_destroy(udpw->frag_ctx->frag);
+        GNUNET_free (udpw->frag_ctx);
+        udpw->session->frag_ctx = NULL;
       }
       else
       {
@@ -1533,14 +1541,15 @@ udp_select_send (struct Plugin *plugin)
       if (delta.rel_value == 0)
       {
         /* this message is not delayed */
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Message is not delayed for %llu \n",
-            delta);
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Message for peer `%s' (%u bytes) is not delayed \n",
+            GNUNET_i2s(&udpw->session->target), udpw->msg_size);
         break;
       }
       else
       {
         /* this message is delayed, try next */
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Message is delayed for %llu \n",
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Message for peer `%s' (%u bytes) is delayed for %llu \n",
+            GNUNET_i2s(&udpw->session->target), udpw->msg_size,
             delta);
         udpw = udpw->next;
       }
@@ -1917,7 +1926,6 @@ libgnunet_plugin_transport_udp_init (void *cls)
   plugin->mst = GNUNET_SERVER_mst_create (&process_inbound_tokenized_messages, plugin);
   plugin->port = port;
   plugin->aport = aport;
-  plugin->last_expected_delay = GNUNET_TIME_UNIT_SECONDS;
   plugin->broadcast_interval = interval;
   plugin->enable_ipv6 = enable_v6;
   plugin->env = env;
