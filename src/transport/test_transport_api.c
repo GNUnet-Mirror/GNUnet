@@ -50,7 +50,7 @@
 /**
  * How long until we give up on transmitting the message?
  */
-#define TIMEOUT_TRANSMIT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
+#define TIMEOUT_TRANSMIT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
 #define MSIZE 2600
 
@@ -87,7 +87,6 @@ char *cfg_file_p2;
 #else
 #define OKPP do { ok++; } while (0)
 #endif
-
 
 static void
 end ()
@@ -205,7 +204,7 @@ notify_ready (void *cls, size_t size, void *buf)
   }
 
   char *ps = GNUNET_strdup (GNUNET_i2s (&p2->id));
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Peer %u (`%4s') sending message with type %u and size %u bytes to peer %u (`%4s')\n",
               p2->no, ps, ntohs (hdr->type), ntohs (hdr->size), p->no,
               GNUNET_i2s (&p->id));

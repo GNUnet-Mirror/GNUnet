@@ -41,7 +41,7 @@
 
 #define LOG(kind,...) GNUNET_log_from (kind, "transport-udp", __VA_ARGS__)
 
-#define DEBUG_UDP GNUNET_YES
+#define DEBUG_UDP GNUNET_NO
 #define DEBUG_UDP_BROADCASTING GNUNET_NO
 
 /**
@@ -230,12 +230,6 @@ struct Plugin
    */
   struct BroadcastAddress *ipv4_broadcast_tail;
   struct BroadcastAddress *ipv4_broadcast_head;
-
-
-  /**
-   * expected delay for ACKs
-   */
-  struct GNUNET_TIME_Relative last_expected_delay;
 
   /**
    * Enable IPv6
