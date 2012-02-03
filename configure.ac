@@ -886,6 +886,7 @@ src/peerinfo-tool/Makefile
 src/pt/Makefile
 src/statistics/Makefile
 src/statistics/statistics.conf
+src/stream/Makefile
 src/template/Makefile
 src/testing/Makefile
 src/topology/Makefile
