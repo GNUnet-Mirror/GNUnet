@@ -315,7 +315,8 @@ GNUNET_CONTAINER_meta_data_insert (struct GNUNET_CONTAINER_MetaData *md,
   i->data = GNUNET_malloc (data_len);
   memcpy (i->data, data, data_len);
   /* change OS native dir separators to unix '/' and others to '_' */
-  if (type == EXTRACTOR_METATYPE_FILENAME)
+  if ( (type == EXTRACTOR_METATYPE_FILENAME) ||
+       (type == EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME) )
   {
     p = i->data;
     while ((*p != '\0') && (p < i->data + data_len))

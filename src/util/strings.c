@@ -607,6 +607,7 @@ GNUNET_STRINGS_absolute_time_to_string (struct GNUNET_TIME_Absolute t)
   return ret;
 }
 
+
 /**
  * "man basename"
  * Returns a pointer to a part of filename (allocates nothing)!

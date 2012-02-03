@@ -194,6 +194,7 @@ expand_tree (struct GNUNET_FS_ShareTreeItem *parent,
 	     int is_directory)
 {
   struct GNUNET_FS_ShareTreeItem *chld;
+  size_t slen;
 
   chld = GNUNET_malloc (sizeof (struct GNUNET_FS_ShareTreeItem));
   chld->parent = parent;
@@ -202,6 +203,12 @@ expand_tree (struct GNUNET_FS_ShareTreeItem *parent,
 		   "%s%s",
 		   GNUNET_STRINGS_get_short_name (filename),
 		   is_directory ? "/" : "");
+  /* make sure we do not end with '//' */
+  slen = strlen (chld->short_filename);
+  if ( (slen >= 2) &&
+       (chld->short_filename[slen-1] == '/') &&
+       (chld->short_filename[slen-2] == '/') )
+    chld->short_filename[slen-1] = '\0';
   chld->is_directory = is_directory;
   if (NULL != parent)
       GNUNET_CONTAINER_DLL_insert (parent->children_head,
@@ -360,8 +367,9 @@ process_helper_msgs (void *cls,
 	GNUNET_CONTAINER_meta_data_delete (ds->pos->meta, 
 					   EXTRACTOR_METATYPE_FILENAME,
 					   NULL, 0);
+	/* instead, put in our 'safer' original filename */
 	GNUNET_CONTAINER_meta_data_insert (ds->pos->meta, "<libgnunetfs>",
-					   EXTRACTOR_METATYPE_FILENAME,
+					   EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME,
 					   EXTRACTOR_METAFORMAT_UTF8, "text/plain",
 					   ds->pos->short_filename, 
 					   strlen (ds->pos->short_filename) + 1);

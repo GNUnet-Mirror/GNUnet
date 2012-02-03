@@ -319,6 +319,7 @@ GNUNET_PSEUDONYM_id_to_name (const struct GNUNET_CONFIGURATION_Handle *cfg,
       name =
           GNUNET_CONTAINER_meta_data_get_first_by_types (meta,
                                                          EXTRACTOR_METATYPE_TITLE,
+                                                         EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME,
                                                          EXTRACTOR_METATYPE_FILENAME,
                                                          EXTRACTOR_METATYPE_DESCRIPTION,
                                                          EXTRACTOR_METATYPE_SUBJECT,

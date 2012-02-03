@@ -1805,7 +1805,7 @@ GNUNET_FS_uri_ksk_create_from_meta_data (const struct GNUNET_CONTAINER_MetaData
   if (ent > 0)
   {
     full_name = GNUNET_CONTAINER_meta_data_get_first_by_types (md,
-        EXTRACTOR_METATYPE_FILENAME, -1);
+        EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME, -1);
     if (NULL != full_name)
     {
       filename = full_name;
