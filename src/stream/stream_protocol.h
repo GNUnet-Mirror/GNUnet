@@ -37,6 +37,8 @@ extern "C"
 
 #include "gnunet_util_lib.h"
 
+GNUNET_NETWORK_STRUCT_BEGIN
+
 
 /**
  * The stream message header
@@ -53,7 +55,7 @@ struct GNUNET_STREAM_MessageHeader
   /**
    * A number which identifies a session between the two peers.
    */
-  uint32_t session_id;
+  uint32_t session_id GNUNET_PACKED;
 
 };
 
@@ -71,6 +73,13 @@ struct GNUNET_STREAM_DataMessage
   struct GNUNET_STREAM_MessageHeader header;
 
   /**
+   * Sequence number; starts with a random value.  (Just in case
+   * someone breaks mesh and is able to try to do a Sequence
+   * Prediction Attack on us.)
+   */
+  uint32_t sequence_number GNUNET_PACKED;
+
+  /**
    * number of milliseconds to the soft deadline for sending acknowledgement
    * measured from the time this message is received. It is optimal for the
    * communication to send the ack within the soft deadline
@@ -78,18 +87,11 @@ struct GNUNET_STREAM_DataMessage
   struct GNUNET_TIME_RelativeNBO ack_deadline;
 
   /**
-   * Sequence number; starts with a random value.  (Just in case
-   * someone breaks mesh and is able to try to do a Sequence
-   * Prediction Attack on us.)
-   */
-  uint32_t sequence_number;
-
-  /**
    * Offset of the packet in the overall stream, modulo 2^32; allows
    * the receiver to calculate where in the destination buffer the
-   * message should be placed.
+   * message should be placed.  In network byte order.
    */
-  uint32_t offset;
+  uint32_t offset GNUNET_PACKED;
 
   /**
    * The data should be appended here
@@ -117,20 +119,22 @@ struct GNUNET_STREAM_AckMessage
    * The Selective Acknowledgement Bitmap. Computed relative to the base_seq
    * (bit n corresponds to the Data message with sequence number base_seq+n)
    */
-  GNUNET_STREAM_AckBitmap bitmap;
+  GNUNET_STREAM_AckBitmap bitmap GNUNET_PACKED;
 
   /**
    * The sequence number of the Data Message upto which the receiver has filled
    * its buffer without any missing packets
    */
-  uint32_t base_sequence_number;
+  uint32_t base_sequence_number GNUNET_PACKED;
 
   /**
    * Available buffer space past the last acknowledged buffer (for flow control),
    * in bytes.
    */
-  uint32_t receive_window_remaining;
+  uint32_t receive_window_remaining GNUNET_PACKED;
 };
+
+GNUNET_NETWORK_STRUCT_END
 
 
 #if 0                           /** keep Emacsens' auto-indent happy */
