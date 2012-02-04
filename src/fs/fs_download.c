@@ -1788,6 +1788,9 @@ GNUNET_FS_download_start_task_ (void *cls,
       GNUNET_DISK_file_close (fh);
     }
     GNUNET_FS_download_sync_ (dc);
+    pi.status = GNUNET_FS_STATUS_DOWNLOAD_START;
+    pi.value.download.specifics.start.meta = dc->meta;
+    GNUNET_FS_download_make_status_ (&pi, dc);
     check_completed (dc);
     return;
   }
