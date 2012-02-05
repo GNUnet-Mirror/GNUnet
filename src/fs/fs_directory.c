@@ -197,11 +197,7 @@ GNUNET_FS_directory_list_contents (size_t size, const void *data,
   if ((offset == 0) &&
       ((size < 8 + sizeof (uint32_t)) ||
        (0 != memcmp (cdata, GNUNET_FS_DIRECTORY_MAGIC, 8))))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _("MAGIC mismatch.  This is not a GNUnet directory.\n"));
     return GNUNET_SYSERR;
-  }
   pos = offset;
   if (offset == 0)
   {

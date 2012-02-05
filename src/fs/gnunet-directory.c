@@ -150,8 +150,11 @@ run (void *cls, char *const *args, const char *cfgfile,
     len = (size_t) size;
     data = GNUNET_DISK_file_map (h, &map, GNUNET_DISK_MAP_TYPE_READ, len);
     GNUNET_assert (NULL != data);
-    GNUNET_FS_directory_list_contents (len, data, 0, &print_entry, NULL);
-    printf ("\n");
+    if (GNUNET_OK != GNUNET_FS_directory_list_contents (len, data, 0, &print_entry, NULL))
+      fprintf (stdout, _("`%s' is not a GNUnet directory\n"),
+	       filename);
+    else
+      printf ("\n");
     GNUNET_DISK_file_unmap (map);
     GNUNET_DISK_file_close (h);
   }
