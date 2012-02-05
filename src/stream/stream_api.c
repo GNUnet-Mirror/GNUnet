@@ -308,19 +308,18 @@ queue_message (struct GNUNET_STREAM_Socket *socket,
                SendFinishCallback finish_cb,
                void *finish_cb_cls)
 {
-  struct MessageQueue *msg_info;
+  struct MessageQueue *queue_entity;
 
-  msg_info = GNUNET_malloc (sizeof (struct MessageQueue));
-  msg_info->message = message;
-  msg_info->finish_cb = finish_cb;
-  msg_info->finish_cb_cls = finish_cb_cls;
-  msg_info->next = NULL;
-
+  queue_entity = GNUNET_malloc (sizeof (struct MessageQueue));
+  queue_entity->message = message;
+  queue_entity->finish_cb = finish_cb;
+  queue_entity->finish_cb_cls = finish_cb_cls;
+  queue_entity->next = NULL;
 
   if (NULL == socket->queue)
     {
-      socket->queue = msg_info;
-      socket->queue_tail = msg_info;
+      socket->queue = queue_entity;
+      socket->queue_tail = queue_entity;
       socket->retries = 0;
       socket->transmit_handle = 
         GNUNET_MESH_notify_transmit_ready (socket->tunnel,
@@ -334,8 +333,8 @@ queue_message (struct GNUNET_STREAM_Socket *socket,
     }
   else                          /* There is a pending message in queue */
     {
-      socket->queue_tail->next = msg_info; /* Add to tail */
-      socket->queue_tail = msg_info;
+      socket->queue_tail->next = queue_entity; /* Add to tail */
+      socket->queue_tail = queue_entity;
     }
 }
 
@@ -447,6 +446,12 @@ client_handle_hello_ack (void *cls,
                      reply, 
                      &set_state_established, 
                      NULL);
+    }
+  else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Server sent HELLO_ACK when in state %d\n", socket->state);
+      /* FIXME: Send RESET? */
     }
 
   return GNUNET_OK;
@@ -685,7 +690,29 @@ server_handle_hello (void *cls,
                      const struct GNUNET_ATS_Information*atsi)
 {
   struct GNUNET_STREAM_Socket *socket = *tunnel_ctx;
+  struct GNUNET_STREAM_MessageHeader *reply;
 
+  GNUNET_assert (socket->tunnel == tunnel);
+  if (STATE_INIT == socket->state)
+    {
+      reply = 
+        GNUNET_malloc (sizeof (struct GNUNET_STREAM_MessageHeader));
+      reply->header.size = 
+        htons (sizeof (struct GNUNET_STREAM_MessageHeader));
+      reply->header.type = 
+        htons (GNUNET_MESSAGE_TYPE_STREAM_HELLO_ACK);
+      queue_message (socket, 
+                     reply, 
+                     &set_state_hello_wait, 
+                     NULL);
+    }
+  else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Client sent HELLO when in state %d\n", socket->state);
+      /* FIXME: Send RESET? */
+      
+    }
   return GNUNET_OK;
 }
 
@@ -711,7 +738,20 @@ server_handle_hello_ack (void *cls,
                          const struct GNUNET_ATS_Information*atsi)
 {
   struct GNUNET_STREAM_Socket *socket = *tunnel_ctx;
+  struct GNUNET_STREAM_MessageHeader *reply;
 
+  GNUNET_assert (socket->tunnel == tunnel);
+  if (STATE_HELLO_WAIT == socket->state)
+    {
+      socket->state = STATE_ESTABLISHED;
+    }
+  else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Client sent HELLO_ACK when in state %d\n", socket->state);
+      /* FIXME: Send RESET? */
+      
+    }
   return GNUNET_OK;
 }
 
@@ -1073,12 +1113,12 @@ mesh_peer_connect_callback (void *cls,
                  NULL);
 
   /* Call open callback */
-  if (NULL == socket->open_cls)
+  if (NULL == socket->open_cb)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "STREAM_open callback is NULL\n");
     }
-  if (NULL != socket->open_cb)
+  else
     {
       socket->open_cb (socket->open_cls, socket);
     }
@@ -1150,8 +1190,7 @@ GNUNET_STREAM_open (const struct GNUNET_CONFIGURATION_Handle *cfg,
       case GNUNET_STREAM_OPTION_END:
         break;
       }
-
-  } while (0 != option);
+  } while (GNUNET_STREAM_OPTION_END != option);
   va_end (vargs);               /* End of variable args parsing */
 
   socket->mesh = GNUNET_MESH_connect (cfg, /* the configuration handle */
@@ -1168,7 +1207,7 @@ GNUNET_STREAM_open (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                               NULL, /* Tunnel context */
                                               &mesh_peer_connect_callback,
                                               &mesh_peer_disconnect_callback,
-                                              (void *) socket);
+                                              socket);
   // FIXME: if (NULL == socket->tunnel) ...
 
   return socket;
@@ -1183,17 +1222,28 @@ GNUNET_STREAM_open (const struct GNUNET_CONFIGURATION_Handle *cfg,
 void
 GNUNET_STREAM_close (struct GNUNET_STREAM_Socket *socket)
 {
+  struct MessageQueue *head;
+
   /* Clear Transmit handles */
   if (NULL != socket->transmit_handle)
     {
       GNUNET_MESH_notify_transmit_ready_cancel (socket->transmit_handle);
     }
-  /* FIXME: Clear message queue */
+
+  /* Clear existing message queue */
+  while (NULL != socket->queue) {
+    head = socket->queue;
+    socket->queue = head->next;
+    GNUNET_free (head->message);
+    GNUNET_free (head);
+  }
+
   /* Close associated tunnel */
   if (NULL != socket->tunnel)
     {
       GNUNET_MESH_tunnel_destroy (socket->tunnel);
     }
+
   /* Close mesh connection */
   if (NULL != socket->mesh)
     {
@@ -1258,7 +1308,6 @@ tunnel_cleaner (void *cls,
                 const struct GNUNET_MESH_Tunnel *tunnel,
                 void *tunnel_ctx)
 {
-  struct GNUNET_STREAM_ListenSocket *lsocket = cls;
   struct GNUNET_STREAM_Socket *socket = tunnel_ctx;
   struct MessageQueue *head;
 
@@ -1273,14 +1322,7 @@ tunnel_cleaner (void *cls,
       GNUNET_MESH_notify_transmit_ready_cancel (socket->transmit_handle);
       socket->transmit_handle = NULL;
     }
-   
-  /* Clear existing message queue */
-  while (NULL != socket->queue) {
-    head = socket->queue;
-    socket->queue = head->next;
-    GNUNET_free (head->message);
-    GNUNET_free (head);
-  }
+  socket->tunnel = NULL;
 }
 
 
@@ -1329,8 +1371,6 @@ GNUNET_STREAM_listen (const struct GNUNET_CONFIGURATION_Handle *cfg,
 void
 GNUNET_STREAM_listen_close (struct GNUNET_STREAM_ListenSocket *lsocket)
 {
-  /* Do house keeping */
-
   /* Close MESH connection */
   GNUNET_MESH_disconnect (lsocket->mesh);
   
