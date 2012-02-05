@@ -1264,6 +1264,9 @@ fip_signal_stop (void *cls, struct GNUNET_FS_FileInformation *fi,
 void
 GNUNET_FS_publish_stop (struct GNUNET_FS_PublishContext *pc)
 {
+  struct GNUNET_FS_ProgressInfo pi;
+  uint64_t off;
+
 #if DEBUG_PUBLISH
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Publish stop called\n");
 #endif
@@ -1283,6 +1286,20 @@ GNUNET_FS_publish_stop (struct GNUNET_FS_PublishContext *pc)
     GNUNET_SCHEDULER_cancel (pc->upload_task);
     pc->upload_task = GNUNET_SCHEDULER_NO_TASK;
   }
+  pc->skip_next_fi_callback = GNUNET_YES;
+  GNUNET_FS_file_information_inspect (pc->fi, &fip_signal_stop, pc);
+
+  if (pc->fi->serialization != NULL)
+  {
+    GNUNET_FS_remove_sync_file_ (pc->h, GNUNET_FS_SYNC_PATH_FILE_INFO,
+                                 pc->fi->serialization);
+    GNUNET_free (pc->fi->serialization);
+    pc->fi->serialization = NULL;
+  }
+  off = (pc->fi->chk_uri == NULL) ? 0 : GNUNET_ntohll (pc->fi->chk_uri->data.chk.file_length);
+  pi.status = GNUNET_FS_STATUS_PUBLISH_STOPPED;
+  GNUNET_break (NULL == GNUNET_FS_publish_make_status_ (&pi, pc, pc->fi, off));
+
   if (pc->serialization != NULL)
   {
     GNUNET_FS_remove_sync_file_ (pc->h, GNUNET_FS_SYNC_PATH_MASTER_PUBLISH,
@@ -1290,7 +1307,6 @@ GNUNET_FS_publish_stop (struct GNUNET_FS_PublishContext *pc)
     GNUNET_free (pc->serialization);
     pc->serialization = NULL;
   }
-  GNUNET_FS_file_information_inspect (pc->fi, &fip_signal_stop, pc);
   if (GNUNET_YES == pc->in_network_wait)
   {
     pc->in_network_wait = GNUNET_SYSERR;
