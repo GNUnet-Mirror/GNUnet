@@ -43,7 +43,7 @@ static struct GNUNET_DISK_PipeHandle *pipe_stdout;
 static GNUNET_SCHEDULER_TaskIdentifier die_task;
 
 static void
-runone ();
+runone (void);
 
 static void
 end_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)

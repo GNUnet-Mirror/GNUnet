@@ -132,6 +132,8 @@ GNUNET_SERVER_mst_receive (struct GNUNET_SERVER_MessageStreamTokenizer *mst,
   unsigned long offset;
   int ret;
 
+  GNUNET_assert (mst->off <= mst->pos);
+  GNUNET_assert (mst->pos <= mst->curr_buf);
 #if DEBUG_SERVER_MST
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Server-mst receives %u bytes with %u bytes already in private buffer\n",
@@ -142,6 +144,7 @@ GNUNET_SERVER_mst_receive (struct GNUNET_SERVER_MessageStreamTokenizer *mst,
   while (mst->pos > 0)
   {
 do_align:
+    GNUNET_assert (mst->pos >= mst->off);
     if ((mst->curr_buf - mst->off < sizeof (struct GNUNET_MessageHeader)) ||
         (0 != (mst->off % ALIGN_FACTOR)))
     {
@@ -176,15 +179,18 @@ do_align:
       GNUNET_break_op (0);
       return GNUNET_SYSERR;
     }
-    if (mst->curr_buf - mst->off < want)
+    if ( (mst->curr_buf - mst->off < want) &&
+	 (mst->off > 0) )
     {
-      /* need more space */
+      /* can get more space by moving */
       mst->pos -= mst->off;
       memmove (ibuf, &ibuf[mst->off], mst->pos);
       mst->off = 0;
     }
-    if (want > mst->curr_buf)
+    if (mst->curr_buf < want)
     {
+      /* need to get more space by growing buffer */
+      GNUNET_assert (0 == mst->off);
       mst->hdr = GNUNET_realloc (mst->hdr, want);
       ibuf = (char *) mst->hdr;
       mst->curr_buf = want;
@@ -193,6 +199,7 @@ do_align:
     if (mst->pos - mst->off < want)
     {
       delta = GNUNET_MIN (want - (mst->pos - mst->off), size);
+      GNUNET_assert (mst->pos + delta <= mst->curr_buf);
       memcpy (&ibuf[mst->pos], buf, delta);
       mst->pos += delta;
       buf += delta;
@@ -225,6 +232,7 @@ do_align:
       mst->pos = 0;
     }
   }
+  GNUNET_assert (0 == mst->pos);
   while (size > 0)
   {
 #if DEBUG_SERVER_MST
@@ -235,7 +243,7 @@ do_align:
     if (size < sizeof (struct GNUNET_MessageHeader))
       break;
     offset = (unsigned long) buf;
-    need_align = (0 != offset % ALIGN_FACTOR) ? GNUNET_YES : GNUNET_NO;
+    need_align = (0 != (offset % ALIGN_FACTOR)) ? GNUNET_YES : GNUNET_NO;
     if (GNUNET_NO == need_align)
     {
       /* can try to do zero-copy and process directly from original buffer */
@@ -248,7 +256,7 @@ do_align:
         return GNUNET_SYSERR;
       }
       if (size < want)
-        break;                  /* or not, buffer incomplete, so copy to private buffer... */
+        break;                  /* or not: buffer incomplete, so copy to private buffer... */
       if (one_shot == GNUNET_SYSERR)
       {
         /* cannot call callback again, but return value saying that
@@ -278,12 +286,15 @@ copy:
       ibuf = (char *) mst->hdr;
       mst->curr_buf = size + mst->pos;
     }
-    GNUNET_assert (mst->pos + size <= mst->curr_buf);
+    GNUNET_assert (size + mst->pos <= mst->curr_buf);
     memcpy (&ibuf[mst->pos], buf, size);
     mst->pos += size;
   }
   if (purge)
+  {
     mst->off = 0;
+    mst->pos = 0;
+  }
 #if DEBUG_SERVER_MST
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Server-mst leaves %u bytes in private buffer\n",

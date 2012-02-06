@@ -25,11 +25,17 @@
  * @author LRN
  */
 #include "platform.h"
+#undef GNUNET_EXTRA_LOGGING
+#define GNUNET_EXTRA_LOGGING GNUNET_YES
+
 #include "gnunet_common.h"
 #include "gnunet_time_lib.h"
 #include "gnunet_network_lib.h"
 
-#define MS200 GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 200)
+/**
+ * Delay introduced between operations, useful for debugging.
+ */
+#define OUTPUT_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 0)
 
 static void
 my_log (void *ctx, enum GNUNET_ErrorType kind, const char *component,
@@ -44,7 +50,7 @@ my_log (void *ctx, enum GNUNET_ErrorType kind, const char *component,
 static int
 expensive_func ()
 {
-  return GNUNET_NETWORK_socket_select (NULL, NULL, NULL, MS200);
+  return GNUNET_NETWORK_socket_select (NULL, NULL, NULL, OUTPUT_DELAY);
 }
 
 #define pr(kind,lvl) {\
