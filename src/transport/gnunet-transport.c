@@ -76,6 +76,11 @@ static int iterate_connections;
 static int test_configuration;
 
 /**
+ * Option -m.
+ */
+static int monitor_connections;
+
+/**
  * Option -n.
  */
 static int numeric;
@@ -483,6 +488,24 @@ process_address (void *cls, const struct GNUNET_PeerIdentity *peer,
 
 
 /**
+ * Task run in monitor mode when the user presses CTRL-C to abort.
+ * Stops monitoring activity.
+ * 
+ * @param cls the 'struct GNUNET_TRANSPORT_PeerIterateContext *'
+ * @param tc scheduler context
+ */
+static void
+shutdown_task (void *cls,
+	       const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_TRANSPORT_PeerIterateContext *pic = cls;
+
+  GNUNET_TRANSPORT_peer_get_active_addresses_cancel (pic);  
+}
+
+
+
+/**
  * Main function that will be run by the scheduler.
  *
  * @param cls closure
@@ -538,6 +561,17 @@ run (void *cls, char *const *args, const char *cfgfile,
                                                 GNUNET_TIME_UNIT_MINUTES,
                                                 &process_address, (void *) cfg);
   }
+  if (monitor_connections)
+  {
+    struct GNUNET_TRANSPORT_PeerIterateContext *pic;
+
+    pic = GNUNET_TRANSPORT_peer_get_active_addresses (cfg, NULL, GNUNET_NO,
+						      GNUNET_TIME_UNIT_FOREVER_REL,
+						      &process_address, (void *) cfg);
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
+				  &shutdown_task,
+				  pic);
+  }
 }
 
 
@@ -554,6 +588,12 @@ main (int argc, char *const *argv)
     {'i', "information", NULL,
      gettext_noop ("provide information about all current connections (once)"),
      0, &GNUNET_GETOPT_set_one, &iterate_connections},
+    {'m', "monitor", NULL,
+     gettext_noop ("provide information about all current connections (continuously)"),
+     0, &GNUNET_GETOPT_set_one, &monitor_connections},
+    {'n', "numeric", NULL,
+     gettext_noop ("do not resolve hostnames"),
+     0, &GNUNET_GETOPT_set_one, &numeric},
     {'s', "send", NULL,
      gettext_noop
      ("send data for benchmarking to the other peer (until CTRL-C)"),
@@ -561,9 +601,6 @@ main (int argc, char *const *argv)
     {'t', "test", NULL,
      gettext_noop ("test transport configuration (involves external server)"),
      0, &GNUNET_GETOPT_set_one, &test_configuration},
-    {'n', "numeric", NULL,
-     gettext_noop ("do not resolve hostnames"),
-     0, &GNUNET_GETOPT_set_one, &numeric},
     GNUNET_GETOPT_OPTION_VERBOSE (&verbosity),
     GNUNET_GETOPT_OPTION_END
   };
