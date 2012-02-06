@@ -415,6 +415,11 @@ directory_trim_complete ()
       GNUNET_FS_namespace_delete (namespace, GNUNET_NO);
     GNUNET_FS_file_information_destroy (fi, NULL, NULL);
     GNUNET_FS_stop (ctx);
+    if (kill_task != GNUNET_SCHEDULER_NO_TASK)
+    {
+      GNUNET_SCHEDULER_cancel (kill_task);
+      kill_task = GNUNET_SCHEDULER_NO_TASK;
+    }
     return;
   }
   pc = GNUNET_FS_publish_start (ctx, fi, namespace, this_id, next_id,

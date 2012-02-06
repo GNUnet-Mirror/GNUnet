@@ -60,10 +60,110 @@ struct GNUNET_TRANSPORT_PeerIterateContext
   struct GNUNET_CLIENT_Connection *client;
 
   /**
+   * Configuration we use.
+   */
+  const struct GNUNET_CONFIGURATION_Handle *cfg;
+
+  /**
    * When should this operation time out?
    */
   struct GNUNET_TIME_Absolute timeout;
+
+  /**
+   * Backoff for reconnect.
+   */
+  struct GNUNET_TIME_Relative backoff;
+  
+  /**
+   * Task ID for reconnect.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier reconnect_task;
+
+  /**
+   * Identity of the peer to monitor.
+   */
+  struct GNUNET_PeerIdentity peer;
+
+  /**
+   * Was this a one-shot request?
+   */
+  int one_shot;
 };
+
+
+/**
+ * Function called with responses from the service.
+ *
+ * @param cls our 'struct GNUNET_TRANSPORT_PeerAddressLookupContext*'
+ * @param msg NULL on timeout or error, otherwise presumably a
+ *        message with the human-readable address
+ */
+static void
+peer_address_response_processor (void *cls,
+                                 const struct GNUNET_MessageHeader *msg);
+
+
+/**
+ * Send our subscription request to the service.
+ *
+ * @param pal_ctx our context
+ */
+static void
+send_request (struct GNUNET_TRANSPORT_PeerIterateContext *pal_ctx)
+{
+  struct AddressIterateMessage msg;
+
+  msg.header.size = htons (sizeof (struct AddressIterateMessage));
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE);
+  msg.one_shot = htonl (pal_ctx->one_shot);
+  msg.timeout = GNUNET_TIME_absolute_hton (pal_ctx->timeout);
+  msg.peer = pal_ctx->peer;
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CLIENT_transmit_and_get_response (pal_ctx->client, 
+							  &msg.header,
+                                                          GNUNET_TIME_absolute_get_remaining (pal_ctx->timeout),
+							  GNUNET_YES,
+                                                          &peer_address_response_processor,
+                                                          pal_ctx));
+}
+
+/**
+ * Task run to re-establish the connection.
+ * 
+ * @param cls our 'struct GNUNET_TRANSPORT_PeerAddressLookupContext*'
+ * @param tc scheduler context, unused
+ */
+static void
+do_connect (void *cls,
+	    const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_TRANSPORT_PeerIterateContext *pal_ctx = cls;
+
+  pal_ctx->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+  pal_ctx->client = GNUNET_CLIENT_connect ("transport", pal_ctx->cfg);
+  GNUNET_assert (NULL != pal_ctx->client);
+  send_request (pal_ctx);
+}
+
+
+/**
+ * Cut the existing connection and reconnect.
+ *
+ * @param pal_ctx our context
+ */
+static void
+reconnect (struct GNUNET_TRANSPORT_PeerIterateContext *pal_ctx)
+{
+  GNUNET_assert (GNUNET_NO == pal_ctx->one_shot);
+  GNUNET_CLIENT_disconnect (pal_ctx->client, GNUNET_NO);
+  pal_ctx->client = NULL;
+  pal_ctx->backoff = GNUNET_TIME_relative_max (GNUNET_TIME_UNIT_MILLISECONDS,
+					       GNUNET_TIME_relative_min (GNUNET_TIME_relative_multiply (pal_ctx->backoff, 2),
+									 GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)));
+  pal_ctx->reconnect_task = GNUNET_SCHEDULER_add_delayed (pal_ctx->backoff,
+							  &do_connect,
+							  pal_ctx);
+}
 
 
 /**
@@ -88,8 +188,15 @@ peer_address_response_processor (void *cls,
 
   if (msg == NULL)
   {
-    pal_ctx->cb (pal_ctx->cb_cls, NULL, NULL);
-    GNUNET_TRANSPORT_peer_get_active_addresses_cancel (pal_ctx);
+    if (pal_ctx->one_shot)
+    {
+      pal_ctx->cb (pal_ctx->cb_cls, NULL, NULL);
+      GNUNET_TRANSPORT_peer_get_active_addresses_cancel (pal_ctx);
+    }
+    else
+    {
+      reconnect (pal_ctx);
+    }
     return;
   }
   size = ntohs (msg->size);
@@ -98,8 +205,15 @@ peer_address_response_processor (void *cls,
   if (size == sizeof (struct GNUNET_MessageHeader))
   {
     /* done! */
-    pal_ctx->cb (pal_ctx->cb_cls, NULL, NULL);
-    GNUNET_TRANSPORT_peer_get_active_addresses_cancel (pal_ctx);
+    if (pal_ctx->one_shot)
+    {
+      pal_ctx->cb (pal_ctx->cb_cls, NULL, NULL);
+      GNUNET_TRANSPORT_peer_get_active_addresses_cancel (pal_ctx);
+    }
+    else
+    {
+      reconnect (pal_ctx);
+    }
     return;
   }
 
@@ -108,8 +222,15 @@ peer_address_response_processor (void *cls,
        GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE_RESPONSE))
   {
     GNUNET_break (0);
-    pal_ctx->cb (pal_ctx->cb_cls, NULL, NULL);
-    GNUNET_TRANSPORT_peer_get_active_addresses_cancel (pal_ctx);
+    if (pal_ctx->one_shot)
+    {
+      pal_ctx->cb (pal_ctx->cb_cls, NULL, NULL);
+      GNUNET_TRANSPORT_peer_get_active_addresses_cancel (pal_ctx);
+    }
+    else
+    {
+      reconnect (pal_ctx);
+    }
     return;
   }
 
@@ -120,8 +241,15 @@ peer_address_response_processor (void *cls,
   if (size != sizeof (struct AddressIterateResponseMessage) + tlen + alen)
   {
     GNUNET_break (0);
-    pal_ctx->cb (pal_ctx->cb_cls, NULL, NULL);
-    GNUNET_TRANSPORT_peer_get_active_addresses_cancel (pal_ctx);
+    if (pal_ctx->one_shot)
+    {
+      pal_ctx->cb (pal_ctx->cb_cls, NULL, NULL);
+      GNUNET_TRANSPORT_peer_get_active_addresses_cancel (pal_ctx);
+    }
+    else
+    {
+      reconnect (pal_ctx);
+    }
     return;
   }
 
@@ -136,9 +264,16 @@ peer_address_response_processor (void *cls,
 
     if (transport_name[tlen - 1] != '\0')
     {
-      GNUNET_break_op (0);
-      pal_ctx->cb (pal_ctx->cb_cls, NULL, NULL);
-      GNUNET_TRANSPORT_peer_get_active_addresses_cancel (pal_ctx);
+      GNUNET_break (0);
+      if (pal_ctx->one_shot)	
+      {
+	pal_ctx->cb (pal_ctx->cb_cls, NULL, NULL);
+	GNUNET_TRANSPORT_peer_get_active_addresses_cancel (pal_ctx);
+      }
+      else
+      {
+	reconnect (pal_ctx);
+      }
       return;
     }
 
@@ -185,34 +320,24 @@ GNUNET_TRANSPORT_peer_get_active_addresses (const struct
                                             void *peer_address_callback_cls)
 {
   struct GNUNET_TRANSPORT_PeerIterateContext *pal_ctx;
-  struct AddressIterateMessage msg;
   struct GNUNET_CLIENT_Connection *client;
-  struct GNUNET_TIME_Absolute abs_timeout;
 
   client = GNUNET_CLIENT_connect ("transport", cfg);
   if (client == NULL)
     return NULL;
   if (GNUNET_YES != one_shot)
     timeout = GNUNET_TIME_UNIT_FOREVER_REL;
-  abs_timeout = GNUNET_TIME_relative_to_absolute (timeout);
-  msg.header.size = htons (sizeof (struct AddressIterateMessage));
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE);
-  msg.one_shot = htonl (one_shot);
-  msg.timeout = GNUNET_TIME_absolute_hton (abs_timeout);
-  if (peer == NULL)
-    memset (&msg.peer, 0, sizeof (struct GNUNET_PeerIdentity));
-  else
-    msg.peer = *peer;
   pal_ctx = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PeerIterateContext));
   pal_ctx->cb = peer_address_callback;
   pal_ctx->cb_cls = peer_address_callback_cls;
-  pal_ctx->timeout = abs_timeout;
+  pal_ctx->cfg = cfg;
+  pal_ctx->timeout = GNUNET_TIME_relative_to_absolute (timeout);
+  if (NULL != peer)
+    pal_ctx->peer = *peer;
+  pal_ctx->one_shot = one_shot;  
   pal_ctx->client = client;
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CLIENT_transmit_and_get_response (client, &msg.header,
-                                                          timeout, GNUNET_YES,
-                                                          &peer_address_response_processor,
-                                                          pal_ctx));
+  send_request (pal_ctx);
+
   return pal_ctx;
 }
 
@@ -227,7 +352,16 @@ GNUNET_TRANSPORT_peer_get_active_addresses_cancel (struct
                                                    GNUNET_TRANSPORT_PeerIterateContext
                                                    *alc)
 {
-  GNUNET_CLIENT_disconnect (alc->client, GNUNET_NO);
+  if (NULL != alc->client)
+  {
+    GNUNET_CLIENT_disconnect (alc->client, GNUNET_NO);
+    alc->client = NULL;
+  }
+  if (GNUNET_SCHEDULER_NO_TASK != alc->reconnect_task)
+  {
+    GNUNET_SCHEDULER_cancel (alc->reconnect_task);
+    alc->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   GNUNET_free (alc);
 }
 
