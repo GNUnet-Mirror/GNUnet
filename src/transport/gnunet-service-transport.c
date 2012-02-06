@@ -494,6 +494,23 @@ neighbours_disconnect_notification (void *cls,
 
 
 /**
+ * Function called to notify transport users that a neighbour peer changed its
+ * active address.
+ *
+ * @param cls closure
+ * @param peer peer this update is about (never NULL)
+ * @param address address, NULL on disconnect
+ */
+static void
+neighbours_address_notification (void *cls,
+                                 const struct GNUNET_PeerIdentity *peer,
+                                 const struct GNUNET_HELLO_Address *address)
+{
+  GST_clients_broadcast_address_notification (peer, address);
+}
+
+
+/**
  * Function called when the service shuts down.  Unloads our plugins
  * and cancels pending validations.
  *
@@ -589,8 +606,10 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
                     &plugin_env_address_change_notification,
                     &plugin_env_session_end,
                     &plugin_env_address_to_type);
-  GST_neighbours_start (NULL, &neighbours_connect_notification,
-                        &neighbours_disconnect_notification);
+  GST_neighbours_start (NULL,
+                        &neighbours_connect_notification,
+                        &neighbours_disconnect_notification,
+                        &neighbours_address_notification);
   GST_clients_start (server);
   GST_validation_start ();
 }

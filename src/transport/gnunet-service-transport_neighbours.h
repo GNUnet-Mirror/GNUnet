@@ -42,10 +42,13 @@
  * @param cls closure for callbacks
  * @param connect_cb function to call if we connect to a peer
  * @param disconnect_cb function to call if we disconnect from a peer
+ * @param peer_address_cb function to call if a neighbour's active address changes
  */
 void
-GST_neighbours_start (void *cls, GNUNET_TRANSPORT_NotifyConnect connect_cb,
-                      GNUNET_TRANSPORT_NotifyDisconnect disconnect_cb);
+GST_neighbours_start (void *cls,
+                      GNUNET_TRANSPORT_NotifyConnect connect_cb,
+                      GNUNET_TRANSPORT_NotifyDisconnect disconnect_cb,
+                      GNUNET_TRANSPORT_PeerIterateCallback peer_address_cb);
 
 
 /**

@@ -357,7 +357,7 @@ struct NeighbourMapEntry
 static struct GNUNET_CONTAINER_MultiHashMap *neighbours;
 
 /**
- * Closure for connect_notify_cb and disconnect_notify_cb
+ * Closure for connect_notify_cb, disconnect_notify_cb and address_change_cb
  */
 static void *callback_cls;
 
@@ -370,6 +370,11 @@ static GNUNET_TRANSPORT_NotifyConnect connect_notify_cb;
  * Function to call when we disconnected from a neighbour.
  */
 static GNUNET_TRANSPORT_NotifyDisconnect disconnect_notify_cb;
+
+/**
+ * Function to call when we changed an active address of a neighbour.
+ */
+static GNUNET_TRANSPORT_PeerIterateCallback address_change_cb;
 
 /**
  * counter for connected neighbours
@@ -492,8 +497,11 @@ reset_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static int
 change (struct NeighbourMapEntry *n, int state, int line)
 {
+  int previous_state;
   /* allowed transitions */
   int allowed = GNUNET_NO;
+
+  previous_state = n->state;
 
   switch (n->state)
   {
@@ -584,7 +592,13 @@ change (struct NeighbourMapEntry *n, int state, int line)
     GNUNET_assert (0);
   }
 
-
+  if (NULL != address_change_cb)
+  {
+    if (n->state == S_CONNECTED)
+      address_change_cb (callback_cls, &n->id, n->address);
+    else if (previous_state == S_CONNECTED)
+      address_change_cb (callback_cls, &n->id, NULL);
+  }
 
   return GNUNET_OK;
 }
@@ -839,14 +853,19 @@ transmission_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param cls closure for callbacks
  * @param connect_cb function to call if we connect to a peer
  * @param disconnect_cb function to call if we disconnect from a peer
+ * @param address_cb function to call if we change an active address
+ *                   of a neighbour
  */
 void
-GST_neighbours_start (void *cls, GNUNET_TRANSPORT_NotifyConnect connect_cb,
-                      GNUNET_TRANSPORT_NotifyDisconnect disconnect_cb)
+GST_neighbours_start (void *cls,
+                      GNUNET_TRANSPORT_NotifyConnect connect_cb,
+                      GNUNET_TRANSPORT_NotifyDisconnect disconnect_cb,
+                      GNUNET_TRANSPORT_PeerIterateCallback address_cb)
 {
   callback_cls = cls;
   connect_notify_cb = connect_cb;
   disconnect_notify_cb = disconnect_cb;
+  address_change_cb = address_cb;
   neighbours = GNUNET_CONTAINER_multihashmap_create (NEIGHBOUR_TABLE_SIZE);
 }
 
@@ -1164,6 +1183,7 @@ GST_neighbours_stop ()
   callback_cls = NULL;
   connect_notify_cb = NULL;
   disconnect_notify_cb = NULL;
+  address_change_cb = NULL;
 }
 
 struct ContinutionContext
@@ -1496,7 +1516,6 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
       GNUNET_ATS_address_in_use (GST_ats, n->address, n->session, GNUNET_NO);
       n->address_state = UNUSED;
     }
-
   }
 
   /* set new address */
@@ -1510,6 +1529,9 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
   n->timeout_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
                                     &neighbour_timeout_task, n);
+
+  if (NULL != address_change_cb && n->state == S_CONNECTED)
+    address_change_cb (callback_cls, &n->id, n->address); 
 
 #if TEST_NEW_CODE
   /* Obtain an session for this address from plugin */

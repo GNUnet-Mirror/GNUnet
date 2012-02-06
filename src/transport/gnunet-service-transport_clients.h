@@ -28,6 +28,7 @@
 
 #include "gnunet_statistics_service.h"
 #include "gnunet_util_lib.h"
+#include "gnunet_hello_lib.h"
 
 
 /**
@@ -67,6 +68,18 @@ void
 GST_clients_unicast (struct GNUNET_SERVER_Client *client,
                      const struct GNUNET_MessageHeader *msg, int may_drop);
 
+
+/**
+ * Broadcast the new active address to all clients monitoring the peer.
+ *
+ * @param peer peer this update is about (never NULL)
+ * @param address address, NULL on disconnect
+ */
+void
+GST_clients_broadcast_address_notification (const struct GNUNET_PeerIdentity
+                                            *peer,
+                                            const struct GNUNET_HELLO_Address
+                                            *address);
 
 
 #endif

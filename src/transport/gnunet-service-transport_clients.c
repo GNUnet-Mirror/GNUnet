@@ -117,6 +117,35 @@ struct TransportClient
 
 
 /**
+ * Client monitoring changes of active addresses of our neighbours.
+ */
+struct MonitoringClient
+{
+  /**
+   * This is a doubly-linked list.
+   */
+  struct MonitoringClient *next;
+
+  /**
+   * This is a doubly-linked list.
+   */
+  struct MonitoringClient *prev;
+
+  /**
+   * Handle to the client.
+   */
+  struct GNUNET_SERVER_Client *client;
+
+  /**
+   * Peer identity to monitor the addresses of.
+   * Zero to monitor all neighrours.
+   */
+  struct GNUNET_PeerIdentity peer;
+
+};
+
+
+/**
  * Head of linked list of all clients to this service.
  */
 static struct TransportClient *clients_head;
@@ -125,6 +154,23 @@ static struct TransportClient *clients_head;
  * Tail of linked list of all clients to this service.
  */
 static struct TransportClient *clients_tail;
+
+/**
+ * Head of linked list of monitoring clients.
+ */
+static struct MonitoringClient *monitoring_clients_head;
+
+/**
+ * Tail of linked list of monitoring clients.
+ */
+static struct MonitoringClient *monitoring_clients_tail;
+
+/**
+ * Notification context, to send updates on changes to active addresses
+ * of our neighbours.
+ */
+struct GNUNET_SERVER_NotificationContext *nc = NULL;
+
 
 /**
  * Find the internal handle associated with the given client handle
@@ -167,6 +213,60 @@ setup_client (struct GNUNET_SERVER_Client *client)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Client %X connected\n", tc);
 #endif
   return tc;
+}
+
+
+/**
+ * Find the handle to the monitoring client associated with the given
+ * client handle
+ *
+ * @param client server's client handle to look up
+ * @return handle to the monitoring client
+ */
+static struct MonitoringClient *
+lookup_monitoring_client (struct GNUNET_SERVER_Client *client)
+{
+  struct MonitoringClient *mc;
+
+  mc = monitoring_clients_head;
+  while (mc != NULL)
+  {
+    if (mc->client == client)
+      return mc;
+    mc = mc->next;
+  }
+  return NULL;
+}
+
+
+/**
+ * Setup a new monitoring client using the given server client handle and
+ * the peer identity.
+ *
+ * @param client server's client handle to create our internal handle for
+ * @param peer identity of the peer to monitor the addresses of,
+ *             zero to monitor all neighrours.
+ * @return handle to the new monitoring client
+ */
+static struct MonitoringClient *
+setup_monitoring_client (struct GNUNET_SERVER_Client *client,
+                         struct GNUNET_PeerIdentity *peer)
+{
+  struct MonitoringClient *mc;
+
+  GNUNET_assert (lookup_monitoring_client (client) == NULL);
+  mc = GNUNET_malloc (sizeof (struct MonitoringClient));
+  mc->client = client;
+  mc->peer = *peer;
+  GNUNET_CONTAINER_DLL_insert (monitoring_clients_head,
+                               monitoring_clients_tail,
+                               mc);
+  GNUNET_SERVER_notification_context_add (nc, client);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Client %X started monitoring of the peer `%s'\n",
+              mc, GNUNET_i2s (peer));
+  return mc;
 }
 
 
@@ -287,10 +387,19 @@ static void
 client_disconnect_notification (void *cls, struct GNUNET_SERVER_Client *client)
 {
   struct TransportClient *tc;
+  struct MonitoringClient *mc;
   struct ClientMessageQueueEntry *mqe;
 
   if (client == NULL)
     return;
+  mc = lookup_monitoring_client (client);
+  if (mc != NULL)
+  {
+    GNUNET_CONTAINER_DLL_remove (monitoring_clients_head,
+                                 monitoring_clients_tail,
+                                 mc);
+    GNUNET_free (mc);
+  }
   tc = lookup_client (client);
   if (tc == NULL)
     return;
@@ -690,6 +799,52 @@ clients_handle_address_to_string (void *cls,
 
 
 /**
+ * Compose AddressIterateResponseMessage using the given peer and address.
+ *
+ * @param peer identity of the peer
+ * @param address the address, NULL on disconnect
+ * @return composed message
+ */
+static struct AddressIterateResponseMessage *
+compose_address_iterate_response_message (const struct GNUNET_PeerIdentity
+                                          *peer,
+                                          const struct GNUNET_HELLO_Address
+                                          *address)
+{
+  struct AddressIterateResponseMessage *msg;
+  size_t size;
+  size_t tlen;
+  size_t alen;
+  char *addr;
+
+  GNUNET_assert (NULL != peer);
+  if (NULL != address)
+  {
+    tlen = strlen (address->transport_name) + 1;
+    alen = address->address_length;
+  }
+  else
+    tlen = alen = 0;
+  size = (sizeof (struct AddressIterateResponseMessage) + alen + tlen);
+  msg = GNUNET_malloc (size);
+  msg->header.size = htons (size);
+  msg->header.type =
+      htons (GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE_RESPONSE);
+  msg->reserved = htonl (0);
+  msg->peer = *peer;
+  msg->addrlen = htonl (alen);
+  msg->pluginlen = htonl (tlen);
+  if (NULL != address)
+  {
+    addr = (char *) &msg[1];
+    memcpy (addr, address->address, alen);
+    memcpy (&addr[alen], address->transport_name, tlen);
+  }
+  return msg;
+}
+
+
+/**
  * Output the active address of connected neighbours to the given client.
  *
  * @param cls the 'struct GNUNET_SERVER_TransmitContext' for transmission to the client
@@ -705,34 +860,10 @@ output_address (void *cls, const struct GNUNET_PeerIdentity *peer,
 {
   struct GNUNET_SERVER_TransmitContext *tc = cls;
   struct AddressIterateResponseMessage *msg;
-  size_t size;
-  size_t tlen;
-  size_t alen;
-  char *addr;
 
-  tlen = strlen (address->transport_name) + 1;
-  alen = address->address_length;
-  size = (sizeof (struct AddressIterateResponseMessage) + alen + tlen);
-  {
-    char buf[size];
-
-    msg = (struct AddressIterateResponseMessage *) buf;
-    msg->reserved = htonl (0);
-    msg->peer = *peer;
-    msg->addrlen = htonl (alen);
-    msg->pluginlen = htonl (tlen);
-    addr = (char *) &msg[1];
-    memcpy (addr, address->address, alen);
-    memcpy (&addr[alen], address->transport_name, tlen);
-    GNUNET_SERVER_transmit_context_append_data (tc,
-                                                &buf[sizeof
-                                                     (struct
-                                                      GNUNET_MessageHeader)],
-                                                size -
-                                                sizeof (struct
-                                                        GNUNET_MessageHeader),
-                                                GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE_RESPONSE);
-  }
+  msg = compose_address_iterate_response_message (peer, address);
+  GNUNET_SERVER_transmit_context_append_message (tc, &msg->header);
+  GNUNET_free (msg);
 }
 
 
@@ -753,6 +884,7 @@ clients_handle_address_iterate (void *cls, struct GNUNET_SERVER_Client *client,
   struct GNUNET_SERVER_TransmitContext *tc;
   struct AddressIterateMessage *msg;
   struct GNUNET_HELLO_Address *address;
+  struct MonitoringClient *mc;
 
   if (ntohs (message->type) != GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE)
   {
@@ -767,13 +899,6 @@ clients_handle_address_iterate (void *cls, struct GNUNET_SERVER_Client *client,
     return;
   }
   msg = (struct AddressIterateMessage *) message;
-  if (GNUNET_YES != ntohl (msg->one_shot))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Address monitoring not implemented\n");
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
-  }
   GNUNET_SERVER_disable_receive_done_warning (client);
   tc = GNUNET_SERVER_transmit_context_create (client);
   if (0 == memcmp (&msg->peer, &all_zeros, sizeof (struct GNUNET_PeerIdentity)))
@@ -788,8 +913,24 @@ clients_handle_address_iterate (void *cls, struct GNUNET_SERVER_Client *client,
     if (address != NULL)
       output_address (tc, &msg->peer, NULL, 0, address);
   }
+  if (GNUNET_YES != ntohl (msg->one_shot))
+  {
+    mc = lookup_monitoring_client (client);
+    if (mc != NULL)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
+                  "ServerClient %X tried to start monitoring twice (MonitoringClient %X)\n",
+                  client, mc);
+      GNUNET_break (0);
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      return;
+    }
+    setup_monitoring_client (client, &msg->peer);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
   GNUNET_SERVER_transmit_context_append_data (tc, NULL, 0,
-                                              GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE_RESPONSE);
+					      GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE_RESPONSE);
   GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
 }
 
@@ -825,6 +966,7 @@ GST_clients_start (struct GNUNET_SERVER_Handle *server)
      sizeof (struct BlacklistMessage)},
     {NULL, NULL, 0, 0}
   };
+  nc = GNUNET_SERVER_notification_context_create (server, 0);
   GNUNET_SERVER_add_handlers (server, handlers);
   GNUNET_SERVER_disconnect_notify (server, &client_disconnect_notification,
                                    NULL);
@@ -837,7 +979,11 @@ GST_clients_start (struct GNUNET_SERVER_Handle *server)
 void
 GST_clients_stop ()
 {
-  /* nothing to do */
+  if (NULL != nc)
+  {
+    GNUNET_SERVER_notification_context_destroy (nc);
+    nc = NULL;
+  }
 }
 
 
@@ -878,6 +1024,41 @@ GST_clients_unicast (struct GNUNET_SERVER_Client *client,
   if (NULL == tc)
     return;                     /* client got disconnected in the meantime, drop message */
   unicast (tc, msg, may_drop);
+}
+
+
+/**
+ * Broadcast the new active address to all clients monitoring the peer.
+ *
+ * @param peer peer this update is about (never NULL)
+ * @param address address, NULL on disconnect
+ */
+void
+GST_clients_broadcast_address_notification (const struct GNUNET_PeerIdentity
+                                            *peer,
+                                            const struct GNUNET_HELLO_Address
+                                            *address)
+{
+  struct AddressIterateResponseMessage *msg;
+  struct MonitoringClient *mc;
+  static struct GNUNET_PeerIdentity all_zeros;
+
+  msg = compose_address_iterate_response_message (peer, address);
+  mc = monitoring_clients_head;
+  while (mc != NULL)
+  {
+    if ((0 == memcmp (&mc->peer, &all_zeros,
+                      sizeof (struct GNUNET_PeerIdentity))) ||
+        (0 == memcmp (&mc->peer, peer,
+                      sizeof (struct GNUNET_PeerIdentity))))
+    {
+      GNUNET_SERVER_notification_context_unicast (nc, mc->client,
+                                                  &msg->header, GNUNET_NO);
+    }
+
+    mc = mc->next;
+  }
+  GNUNET_free (msg);
 }
 
 
