@@ -926,11 +926,12 @@ clients_handle_address_iterate (void *cls, struct GNUNET_SERVER_Client *client,
       return;
     }
     setup_monitoring_client (client, &msg->peer);
-    GNUNET_SERVER_receive_done (client, GNUNET_OK);
-    return;
   }
-  GNUNET_SERVER_transmit_context_append_data (tc, NULL, 0,
-					      GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE_RESPONSE);
+  else
+  {
+    GNUNET_SERVER_transmit_context_append_data (tc, NULL, 0,
+						GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE_RESPONSE);
+  }
   GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
 }
 
