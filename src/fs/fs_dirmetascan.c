@@ -374,6 +374,7 @@ process_helper_msgs (void *cls,
 					   ds->pos->short_filename, 
 					   strlen (ds->pos->short_filename) + 1);
       }
+      ds->pos->ksk_uri = GNUNET_FS_uri_ksk_create_from_meta_data (ds->pos->meta);
       ds->pos = advance (ds->pos);      
       return;
     }
