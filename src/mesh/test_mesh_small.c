@@ -233,6 +233,21 @@ disconnect_mesh_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "test: disconnecting mesh service of peers\n");
   disconnect_task = GNUNET_SCHEDULER_NO_TASK;
+  if (NULL != t)
+  {
+    GNUNET_MESH_tunnel_destroy(t);
+    t = NULL;
+  }
+  if (NULL != incoming_t)
+  {
+    GNUNET_MESH_tunnel_destroy(incoming_t);
+    incoming_t = NULL;
+  }
+  if (NULL != incoming_t2)
+  {
+    GNUNET_MESH_tunnel_destroy(incoming_t2);
+    incoming_t2 = NULL;
+  }
   GNUNET_MESH_disconnect (h1);
   GNUNET_MESH_disconnect (h2);
   if (test == MULTICAST)
