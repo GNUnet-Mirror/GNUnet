@@ -163,7 +163,7 @@ test_dht_multipeer_DEPENDENCIES = \
   libgnunetdht.la			    
 
 test_dht_2dtorus_SOURCES = \
- test_dht_2dtorus.c
+ test_dht_topo.c
 test_dht_2dtorus_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/testing/libgnunettesting.la \
