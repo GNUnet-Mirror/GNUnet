@@ -823,7 +823,7 @@ main (int argc, char *const*argv)
     char *const mangle_args[] = 
       {
 	"iptables", "-m", "owner", "-t", "mangle", "-I", "OUTPUT", "1", "-p",
-	"udp", "!", "--gid-owner", mygid, "--dport", DNS_PORT, "-j",
+	"udp", "--gid-owner", mygid, "--dport", DNS_PORT, "-j",
 	"ACCEPT", NULL
       };
     if (0 != fork_and_exec (sbin_iptables, mangle_args))
@@ -938,7 +938,7 @@ main (int argc, char *const*argv)
     char *const mangle_clean_args[] =
       {
 	"iptables", "-m", "owner", "-t", "mangle", "-D", "OUTPUT", "-p", "udp",
-	"!", "--gid-owner", mygid, "--dport", DNS_PORT, "-j", "ACCEPT",
+	 "--gid-owner", mygid, "--dport", DNS_PORT, "-j", "ACCEPT",
 	NULL
       };
     if (0 != fork_and_exec (sbin_iptables, mangle_clean_args))
