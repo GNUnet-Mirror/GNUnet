@@ -164,7 +164,6 @@ struct RequestRecord
 };
 
 
-
 /**
  * State we keep for each DNS tunnel that terminates at this node.
  */
@@ -236,12 +235,6 @@ static GNUNET_SCHEDULER_TaskIdentifier read4_task;
 static GNUNET_SCHEDULER_TaskIdentifier read6_task;
 
 /**
- * The port bound to the socket dnsout (and/or dnsout6).  We always (try) to bind
- * both sockets to the same port.
- */
-static uint16_t dnsoutport;
-
-/**
  * The configuration to use
  */
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
@@ -259,7 +252,7 @@ static struct GNUNET_HELPER_Handle *hijacker;
 /**
  * Command-line arguments we are giving to the hijacker process.
  */
-static char *helper_argv[8];
+static char *helper_argv[7];
 
 /**
  * Head of DLL of clients we consult.
@@ -303,6 +296,11 @@ static char *dns_exit;
  */
 static struct GNUNET_MESH_Handle *mesh;
 
+/**
+ * Number of active DNS requests.
+ */
+static unsigned int dns_active;
+
 
 /**
  * We're done processing a DNS request, free associated memory.
@@ -335,7 +333,7 @@ cleanup_task (void *cls GNUNET_UNUSED,
 
   GNUNET_HELPER_stop (hijacker);
   hijacker = NULL;
-  for (i=0;i<8;i++)
+  for (i=0;i<7;i++)
     GNUNET_free_non_null (helper_argv[i]);
   if (NULL != dnsout4)
   {
@@ -561,6 +559,13 @@ send_request_to_client (struct RequestRecord *rr,
 
 
 /**
+ * Try to change the source ports we are bound to.
+ */
+static void
+change_source_ports ();
+
+
+/**
  * A client has completed its processing for this
  * request.  Move on.
  *
@@ -621,6 +626,7 @@ next_phase (struct RequestRecord *rr)
     return;
   case RP_QUERY:
     rr->phase = RP_INTERNET_DNS;
+    dns_active++;
     switch (rr->dst_addr.ss_family)
     {
     case AF_INET:
@@ -651,6 +657,9 @@ next_phase (struct RequestRecord *rr)
 				  salen);
     return;
   case RP_INTERNET_DNS:
+    dns_active--;
+    if (0 == dns_active)
+      change_source_ports ();
     rr->phase = RP_MODIFY;
     for (cr = clients_head; NULL != cr; cr = cr->next)
     {
@@ -904,7 +913,6 @@ static int
 open_port4 ()
 {
   struct sockaddr_in addr;
-  socklen_t addrlen;
 
   dnsout4 = GNUNET_NETWORK_socket_create (AF_INET, SOCK_DGRAM, 0);
   if (dnsout4 == NULL)
@@ -925,25 +933,6 @@ open_port4 ()
     dnsout4 = NULL;
     return GNUNET_SYSERR;
   }
-
-  /* Read the port we bound to */
-  addrlen = sizeof (struct sockaddr_in);
-  if (0 != getsockname (GNUNET_NETWORK_get_fd (dnsout4), 
-			(struct sockaddr *) &addr,
-			&addrlen))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
-		_("Could not determine port I got: %s\n"),
-		STRERROR (errno));
-    GNUNET_NETWORK_socket_close (dnsout4);
-    dnsout4 = NULL;
-    return GNUNET_SYSERR;
-  }
-  dnsoutport = htons (addr.sin_port);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
-	      _("GNUnet DNS will exit on source port %u\n"),
-	      (unsigned int) dnsoutport);
   read4_task = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL, 
 					      dnsout4,
 					      &read_response, dnsout4);
@@ -961,7 +950,6 @@ static int
 open_port6 ()
 {
   struct sockaddr_in6 addr;
-  socklen_t addrlen;
 
   dnsout6 = GNUNET_NETWORK_socket_create (AF_INET6, SOCK_DGRAM, 0);
   if (dnsout6 == NULL)
@@ -973,7 +961,6 @@ open_port6 ()
   }
   memset (&addr, 0, sizeof (struct sockaddr_in6));
   addr.sin6_family = AF_INET6;
-  addr.sin6_port = htons (dnsoutport);
   int err = GNUNET_NETWORK_socket_bind (dnsout6,
                                         (struct sockaddr *) &addr,
                                         sizeof (struct sockaddr_in6));
@@ -981,33 +968,64 @@ open_port6 ()
   if (err != GNUNET_OK)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		_("Could not bind to port %u: %s\n"),
-		(unsigned int) dnsoutport,
+		_("Could not bind: %s\n"),
 		STRERROR (errno));
     GNUNET_NETWORK_socket_close (dnsout6);
     dnsout6 = NULL;
     return GNUNET_SYSERR;
   }
-  if (0 == dnsoutport)
-  {
-    addrlen = sizeof (struct sockaddr_in6);
-    if (0 != getsockname (GNUNET_NETWORK_get_fd (dnsout6), 
-			  (struct sockaddr *) &addr,
-			  &addrlen))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
-		  _("Could not determine port I got: %s\n"),
-		  STRERROR (errno));
-      GNUNET_NETWORK_socket_close (dnsout6);
-      dnsout6 = NULL;
-      return GNUNET_SYSERR;
-    }
-  }
-  dnsoutport = htons (addr.sin6_port);
   read6_task = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
 					      dnsout6,
 					      &read_response, dnsout6);
   return GNUNET_YES;
+}
+
+
+/**
+ * Try to change the source ports we are bound to.
+ */
+static void
+change_source_ports ()
+{
+  struct GNUNET_NETWORK_Handle *old4;
+  struct GNUNET_NETWORK_Handle *old6;
+
+  if (GNUNET_SCHEDULER_NO_TASK != read4_task)
+  {
+    GNUNET_SCHEDULER_cancel (read4_task);
+    read4_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  if (GNUNET_SCHEDULER_NO_TASK != read6_task)
+  {
+    GNUNET_SCHEDULER_cancel (read6_task);
+    read6_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  old4 = dnsout4;
+  if (GNUNET_OK != open_port4 ())
+  {
+    dnsout4 = old4;
+    read4_task = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
+						dnsout4,
+						&read_response, dnsout4);
+  }
+  else
+  {
+    if (NULL != old4)
+      GNUNET_NETWORK_socket_close (old4);
+  }
+  old6 = dnsout6;
+  if (GNUNET_OK != open_port6 ())
+  {
+    dnsout6 = old6;
+    read6_task = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
+						dnsout6,
+						&read_response, dnsout6);
+  }
+  else
+  {
+    if (NULL != old6)
+      GNUNET_NETWORK_socket_close (old6);
+  }
 }
 
 
@@ -1216,6 +1234,12 @@ process_helper_messages (void *cls GNUNET_UNUSED, void *client,
 
   /* clean up from previous request */
   GNUNET_free_non_null (rr->payload);
+  if (RP_INTERNET_DNS == rr->phase)
+  {
+    dns_active--;
+    if (0 == dns_active)
+      change_source_ports ();
+  }
   rr->payload = NULL;
   GNUNET_array_grow (rr->client_wait_list,
 		     rr->client_wait_list_length,
@@ -1435,7 +1459,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     {&handle_client_response, NULL, GNUNET_MESSAGE_TYPE_DNS_CLIENT_RESPONSE, 0},
     {NULL, NULL, 0, 0}
   };
-  char port_s[6];
   char *ifc_name;
   char *ipv4addr;
   char *ipv4mask;
@@ -1514,12 +1537,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     return;
   }
   helper_argv[5] = ipv4mask;
-  GNUNET_snprintf (port_s, 
-		   sizeof (port_s), 
-		   "%u", 
-		   (unsigned int) dnsoutport);
-  helper_argv[6] = GNUNET_strdup (port_s);
-  helper_argv[7] = NULL;
+  helper_argv[6] = NULL;
 
   if (NULL != dns_exit)
   {

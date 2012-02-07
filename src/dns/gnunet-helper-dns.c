@@ -35,7 +35,9 @@
  * administrators must take care to not cause conflicts with these
  * values (it was deemed safest to hardcode them as passing these
  * values as arguments might permit messing with arbitrary firewall
- * rules, which would be dangerous).
+ * rules, which would be dangerous).  Traffic coming from the same
+ * group ID as the effective group ID that this process is running
+ * as is not intercepted.
  *
  * The code first sets up the virtual interface, then begins to
  * redirect the DNS traffic to it, and then on errors or SIGTERM shuts
@@ -659,7 +661,6 @@ PROCESS_BUFFER:
  *             3: IPv6 netmask length in bits ("64")
  *             4: IPv4 address for the tunnel ("1.2.3.4")
  *             5: IPv4 netmask ("255.255.0.0")
- *             6: PORT to not hijack ("55533")
  * @return 0 on success, otherwise code indicating type of error:
  *         1 wrong number of arguments
  *         2 invalid arguments (i.e. port number / prefix length wrong)
@@ -678,13 +679,12 @@ PROCESS_BUFFER:
 int
 main (int argc, char *const*argv)
 {
-  unsigned int port;
-  char localport[6];
   int r;
   char dev[IFNAMSIZ];
+  char mygid[32];
   int fd_tun;
 
-  if (7 != argc)
+  if (6 != argc)
   {
     fprintf (stderr, "Fatal: must supply 6 arguments!\n");
     return 1;
@@ -714,20 +714,8 @@ main (int argc, char *const*argv)
     return 4;
   }
 
-  /* validate port number */
-  port = atoi (argv[6]);
-  if ( (port == 0) || (port >= 65536) )
-  {
-    fprintf (stderr, 
-	     "Port `%u' is invalid\n",
-	     port);
-    return 2;
-  }
-  /* print port number to string for command-line use*/
-  (void) snprintf (localport,
-		   sizeof (localport), 
-		   "%u", 
-		   port);
+  /* setup 'mygid' string */
+  snprintf (mygid, sizeof (mygid), "%d", (int) getegid());
 
   /* do not die on SIGPIPE */
   if (SIG_ERR == signal (SIGPIPE, SIG_IGN))
@@ -827,14 +815,15 @@ main (int argc, char *const*argv)
   }
   
   /* update routing tables -- next part why we need SUID! */
-  /* Forward everything from the given local port (with destination
-     to port 53, and only for UDP) without hijacking */
+  /* Forward everything from our EGID (which should only be held
+     by the 'gnunet-service-dns') and with destination
+     to port 53 on UDP, without hijacking */
   r = 8; /* failed to fully setup routing table */
   {
     char *const mangle_args[] = 
       {
-	"iptables", "-t", "mangle", "-I", "OUTPUT", "1", "-p",
-	"udp", "--sport", localport, "--dport", DNS_PORT, "-j",
+	"iptables", "-m", "owner", "-t", "mangle", "-I", "OUTPUT", "1", "-p",
+	"udp", "!", "--gid-owner", mygid, "--dport", DNS_PORT, "-j",
 	"ACCEPT", NULL
       };
     if (0 != fork_and_exec (sbin_iptables, mangle_args))
@@ -948,8 +937,8 @@ main (int argc, char *const*argv)
   {
     char *const mangle_clean_args[] =
       {
-	"iptables", "-t", "mangle", "-D", "OUTPUT", "-p", "udp",
-	"--sport", localport, "--dport", DNS_PORT, "-j", "ACCEPT",
+	"iptables", "-m", "owner", "-t", "mangle", "-D", "OUTPUT", "-p", "udp",
+	"!", "--gid-owner", mygid, "--dport", DNS_PORT, "-j", "ACCEPT",
 	NULL
       };
     if (0 != fork_and_exec (sbin_iptables, mangle_clean_args))
