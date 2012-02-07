@@ -361,7 +361,7 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
         return GNUNET_OK;
       end_time = GNUNET_TIME_absolute_get();
       total_time = GNUNET_TIME_absolute_get_difference(start_time, end_time);
-      FPRINTF (stderr, "\nTest time %lu ms\n", total_time.rel_value);
+      FPRINTF (stderr, "\nTest time %llu ms\n", total_time.rel_value);
       FPRINTF (stderr, "Test bandwidth: %f kb/s\n",
                4000.0 / total_time.rel_value);
       FPRINTF (stderr, "Test throughput: %f packets/s\n",
