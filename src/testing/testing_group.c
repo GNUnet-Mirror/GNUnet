@@ -1680,7 +1680,7 @@ remove_connections (struct GNUNET_TESTING_PeerGroup *pg, unsigned int first,
   return removed;
 }
 
-/*
+/**
  * Add entries to the some list
  *
  * @param pg the peer group we are working with
@@ -3985,66 +3985,46 @@ GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg,
   switch (topology)
   {
   case GNUNET_TESTING_TOPOLOGY_CLIQUE:
-#if VERBOSE_TESTING
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Creating clique topology\n"));
-#endif
     num_connections = create_clique (pg, &add_connections, ALLOWED, GNUNET_NO);
     break;
   case GNUNET_TESTING_TOPOLOGY_SMALL_WORLD_RING:
-#if VERBOSE_TESTING
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 _("Creating small world (ring) topology\n"));
-#endif
     num_connections = create_small_world_ring (pg, &add_connections, ALLOWED);
     break;
   case GNUNET_TESTING_TOPOLOGY_SMALL_WORLD:
-#if VERBOSE_TESTING
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 _("Creating small world (2d-torus) topology\n"));
-#endif
     num_connections = create_small_world (pg, &add_connections, ALLOWED);
     break;
   case GNUNET_TESTING_TOPOLOGY_RING:
-#if VERBOSE_TESTING
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Creating ring topology\n"));
-#endif
     num_connections = create_ring (pg, &add_connections, ALLOWED);
     break;
   case GNUNET_TESTING_TOPOLOGY_2D_TORUS:
-#if VERBOSE_TESTING
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Creating 2d torus topology\n"));
-#endif
     num_connections = create_2d_torus (pg, &add_connections, ALLOWED);
     break;
   case GNUNET_TESTING_TOPOLOGY_ERDOS_RENYI:
-#if VERBOSE_TESTING
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Creating Erdos-Renyi topology\n"));
-#endif
     num_connections = create_erdos_renyi (pg, &add_connections, ALLOWED);
     break;
   case GNUNET_TESTING_TOPOLOGY_INTERNAT:
-#if VERBOSE_TESTING
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Creating InterNAT topology\n"));
-#endif
     num_connections = create_nated_internet (pg, &add_connections, ALLOWED);
     break;
   case GNUNET_TESTING_TOPOLOGY_SCALE_FREE:
-#if VERBOSE_TESTING
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Creating Scale Free topology\n"));
-#endif
     num_connections = create_scale_free (pg, &add_connections, ALLOWED);
     break;
   case GNUNET_TESTING_TOPOLOGY_LINE:
-#if VERBOSE_TESTING
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 _("Creating straight line topology\n"));
-#endif
     num_connections = create_line (pg, &add_connections, ALLOWED);
     break;
   case GNUNET_TESTING_TOPOLOGY_FROM_FILE:
-#if VERBOSE_TESTING
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Creating topology from file!\n"));
-#endif
     if (GNUNET_OK ==
         GNUNET_CONFIGURATION_get_value_string (pg->cfg, "testing",
                                                "topology_file", &filename))
@@ -4058,11 +4038,9 @@ GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg,
     }
     break;
   case GNUNET_TESTING_TOPOLOGY_NONE:
-#if VERBOSE_TESTING
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 _
                 ("Creating no allowed topology (all peers can connect at core level)\n"));
-#endif
     num_connections = pg->total * pg->total;    /* Clique is allowed! */
     break;
   default:
@@ -4076,18 +4054,14 @@ GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg,
     ret = create_and_copy_friend_files (pg);
     if (ret != GNUNET_OK)
     {
-#if VERBOSE_TESTING
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   _("Failed during friend file copying!\n"));
-#endif
       return GNUNET_SYSERR;
     }
     else
     {
-#if VERBOSE_TESTING
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   _("Friend files created/copied successfully!\n"));
-#endif
     }
   }
 
@@ -4103,58 +4077,44 @@ GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg,
   switch (restrict_topology)
   {
   case GNUNET_TESTING_TOPOLOGY_CLIQUE:
-#if VERBOSE_TESTING
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 _("Blacklisting all but clique topology\n"));
-#endif
     unblacklisted_connections =
         create_clique (pg, &remove_connections, BLACKLIST, GNUNET_NO);
     break;
   case GNUNET_TESTING_TOPOLOGY_SMALL_WORLD_RING:
-#if VERBOSE_TESTING
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 _("Blacklisting all but small world (ring) topology\n"));
-#endif
     unblacklisted_connections =
         create_small_world_ring (pg, &remove_connections, BLACKLIST);
     break;
   case GNUNET_TESTING_TOPOLOGY_SMALL_WORLD:
-#if VERBOSE_TESTING
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 _("Blacklisting all but small world (2d-torus) topology\n"));
-#endif
     unblacklisted_connections =
         create_small_world (pg, &remove_connections, BLACKLIST);
     break;
   case GNUNET_TESTING_TOPOLOGY_RING:
-#if VERBOSE_TESTING
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 _("Blacklisting all but ring topology\n"));
-#endif
     unblacklisted_connections =
         create_ring (pg, &remove_connections, BLACKLIST);
     break;
   case GNUNET_TESTING_TOPOLOGY_2D_TORUS:
-#if VERBOSE_TESTING
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 _("Blacklisting all but 2d torus topology\n"));
-#endif
     unblacklisted_connections =
         create_2d_torus (pg, &remove_connections, BLACKLIST);
     break;
   case GNUNET_TESTING_TOPOLOGY_ERDOS_RENYI:
-#if VERBOSE_TESTING
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 _("Blacklisting all but Erdos-Renyi topology\n"));
-#endif
     unblacklisted_connections =
         create_erdos_renyi (pg, &remove_connections, BLACKLIST);
     break;
   case GNUNET_TESTING_TOPOLOGY_INTERNAT:
-#if VERBOSE_TESTING
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 _("Blacklisting all but InterNAT topology\n"));
-#endif
 
 #if TOPOLOGY_HACK
     for (off = 0; off < pg->total; off++)
@@ -4188,18 +4148,14 @@ GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg,
 
     break;
   case GNUNET_TESTING_TOPOLOGY_SCALE_FREE:
-#if VERBOSE_TESTING
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 _("Blacklisting all but Scale Free topology\n"));
-#endif
     unblacklisted_connections =
         create_scale_free (pg, &remove_connections, BLACKLIST);
     break;
   case GNUNET_TESTING_TOPOLOGY_LINE:
-#if VERBOSE_TESTING
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 _("Blacklisting all but straight line topology\n"));
-#endif
     unblacklisted_connections =
         create_line (pg, &remove_connections, BLACKLIST);
   default:
@@ -4208,25 +4164,19 @@ GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg,
 
   if ((unblacklisted_connections > 0) && (restrict_transports != NULL))
   {
-#if DEBUG_TESTING
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Creating blacklist with `%s'\n",
                 restrict_transports);
-#endif
     ret = create_and_copy_blacklist_files (pg, restrict_transports);
     if (ret != GNUNET_OK)
     {
-#if VERBOSE_TESTING
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   _("Failed during blacklist file copying!\n"));
-#endif
       return 0;
     }
     else
     {
-#if VERBOSE_TESTING
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   _("Blacklist files created/copied successfully!\n"));
-#endif
     }
   }
   return num_connections;
@@ -7167,6 +7117,7 @@ GNUNET_TESTING_daemons_stop (struct GNUNET_TESTING_PeerGroup *pg,
       pg->peers[off].cfg = NULL;
     }
 #if OLD
+// FIXME Do DLL remove for all pg->peers[off].LIST
     conn_iter = pg->peers[off].allowed_peers_head;
     while (conn_iter != NULL)
     {
@@ -7174,6 +7125,7 @@ GNUNET_TESTING_daemons_stop (struct GNUNET_TESTING_PeerGroup *pg,
       GNUNET_free (conn_iter);
       conn_iter = temp_conn;
     }
+    pg->peers[off].allowed_peers_head = NULL;
 
     conn_iter = pg->peers[off].connect_peers_head;
     while (conn_iter != NULL)
@@ -7182,6 +7134,7 @@ GNUNET_TESTING_daemons_stop (struct GNUNET_TESTING_PeerGroup *pg,
       GNUNET_free (conn_iter);
       conn_iter = temp_conn;
     }
+    pg->peers[off].connect_peers_head = NULL;
 
     conn_iter = pg->peers[off].blacklisted_peers_head;
     while (conn_iter != NULL)
@@ -7190,6 +7143,7 @@ GNUNET_TESTING_daemons_stop (struct GNUNET_TESTING_PeerGroup *pg,
       GNUNET_free (conn_iter);
       conn_iter = temp_conn;
     }
+    pg->peers[off].blacklisted_peers_head = NULL;
 
     conn_iter = pg->peers[off].connect_peers_working_set_head;
     while (conn_iter != NULL)
@@ -7198,6 +7152,7 @@ GNUNET_TESTING_daemons_stop (struct GNUNET_TESTING_PeerGroup *pg,
       GNUNET_free (conn_iter);
       conn_iter = temp_conn;
     }
+    pg->peers[off].connect_peers_working_set_head = NULL;
 #else
     if (pg->peers[off].allowed_peers != NULL)
       GNUNET_CONTAINER_multihashmap_destroy (pg->peers[off].allowed_peers);
