@@ -31,7 +31,7 @@
 #include "gnunet_testing_lib.h"
 #include "gnunet_dht_service.h"
 
-#define VERBOSE 1
+#define VERBOSE GNUNET_YES
 
 #define REMOVE_DIR GNUNET_YES
 
@@ -314,7 +314,7 @@ monitor_dht_cb (void *cls,
   const char *s_key;
 
   s_key = GNUNET_h2s(key);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%u got a message of type %u for key %s\n",
               cls, mtype, s_key);
 

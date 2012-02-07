@@ -99,6 +99,7 @@ check_PROGRAMS = \
  test_dht_twopeer_get_put \
  test_dht_twopeer_path_tracking \
  test_dht_multipeer \
+ test_dht_line \
  test_dht_2dtorus \
  test_dht_monitor
 
@@ -109,6 +110,7 @@ TESTS = test_dht_api $(check_SCRIPTS) \
  test_dht_twopeer_get_put \
  test_dht_twopeer_path_tracking \
  test_dht_multipeer  \
+ test_dht_line \
  test_dht_2dtorus \
  test_dht_monitor
 endif
@@ -169,6 +171,15 @@ test_dht_2dtorus_LDADD = \
  $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/dht/libgnunetdht.la
 test_dht_2dtorus_DEPENDENCIES = \
+  libgnunetdht.la
+
+test_dht_line_SOURCES = \
+ test_dht_topo.c
+test_dht_line_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/testing/libgnunettesting.la \
+ $(top_builddir)/src/dht/libgnunetdht.la
+test_dht_line_DEPENDENCIES = \
   libgnunetdht.la
 
 test_dht_monitor_SOURCES = test_dht_monitor.c
