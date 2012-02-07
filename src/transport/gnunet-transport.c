@@ -460,13 +460,11 @@ process_string (void *cls, const char *address)
 }
 
 /**
- * Function to call with a human-readable format of an address
+ * Function to call with a binary address
  *
  * @param cls closure
  * @param peer identity of the peer
- * @param transport name of the plugin
- * @param addr binary address
- * @param addrlen number of bytes in addr
+ * @param address binary address (NULL on disconnect)
  */
 static void
 process_address (void *cls, const struct GNUNET_PeerIdentity *peer,
@@ -474,9 +472,15 @@ process_address (void *cls, const struct GNUNET_PeerIdentity *peer,
 {
   const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
 
-  if ((address == NULL) || (peer == NULL))
+  if (peer == NULL)
   {
     /* done */
+    return;
+  }
+
+  if (address == NULL)
+  {
+    FPRINTF (stdout, _("Peer `%s' disconnected\n"), GNUNET_i2s (peer));
     return;
   }
 
