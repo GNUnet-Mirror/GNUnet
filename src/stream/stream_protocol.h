@@ -52,7 +52,7 @@ struct GNUNET_STREAM_MessageHeader
   struct GNUNET_MessageHeader header;
 
   /**
-   * A number which identifies a session between the two peers.
+   * A number which identifies a session between the two peers. FIXME: not needed
    */
   uint32_t session_id GNUNET_PACKED;
 

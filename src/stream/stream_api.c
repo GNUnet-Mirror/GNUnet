@@ -32,6 +32,7 @@
 
 #define MAX_PACKET_SIZE 64000
 
+
 /**
  * states in the Protocol
  */
@@ -122,6 +123,11 @@ struct MessageQueue
    * The next message in queue. Should be NULL in the last message
    */
   struct MessageQueue *next;
+
+  /**
+   * The next message in queue. Should be NULL in the last message
+   */
+  struct MessageQueue *prev;
 };
 
 
@@ -130,6 +136,17 @@ struct MessageQueue
  */
 struct GNUNET_STREAM_Socket
 {
+
+  /**
+   * The peer identity of the peer at the other end of the stream
+   */
+  struct GNUNET_PeerIdentity other_peer;
+
+  /**
+   * Retransmission timeout
+   */
+  struct GNUNET_TIME_Relative retransmit_timeout;
+
   /**
    * The mesh handle
    */
@@ -139,16 +156,6 @@ struct GNUNET_STREAM_Socket
    * The mesh tunnel handle
    */
   struct GNUNET_MESH_Tunnel *tunnel;
-
-  /**
-   * The session id associated with this stream connection
-   */
-  uint32_t session_id;
-
-  /**
-   * The peer identity of the peer at the other end of the stream
-   */
-  struct GNUNET_PeerIdentity other_peer;
 
   /**
    * Stream open closure
@@ -161,9 +168,29 @@ struct GNUNET_STREAM_Socket
   GNUNET_STREAM_OpenCallback open_cb;
 
   /**
-   * Retransmission timeout
+   * The current transmit handle (if a pending transmit request exists)
    */
-  struct GNUNET_TIME_Relative retransmit_timeout;
+  struct GNUNET_MESH_TransmitHandle *transmit_handle;
+
+  /**
+   * The current message associated with the transmit handle
+   */
+  struct MessageQueue *queue_head;
+
+  /**
+   * The queue tail, should always point to the last message in queue
+   */
+  struct MessageQueue *queue_tail;
+
+  /**
+   * The write IO_handle associated with this socket
+   */
+  struct GNUNET_STREAM_IOHandle *write_handle;
+
+  /**
+   * The read IO_handle associated with this socket
+   */
+  struct GNUNET_STREAM_IOHandle *read_handle;
 
   /**
    * The state of the protocol associated with this socket
@@ -176,34 +203,14 @@ struct GNUNET_STREAM_Socket
   enum GNUNET_STREAM_Status status;
 
   /**
-   * The current transmit handle (if a pending transmit request exists)
-   */
-  struct GNUNET_MESH_TransmitHandle *transmit_handle;
-
-  /**
-   * The current message associated with the transmit handle
-   */
-  struct MessageQueue *queue;
-
-  /**
-   * The queue tail, should always point to the last message in queue
-   */
-  struct MessageQueue *queue_tail;
-
-  /**
-   * The number of previous timeouts
+   * The number of previous timeouts; FIXME: currently not used
    */
   unsigned int retries;
 
   /**
-   * The write IO_handle associated with this socket
+   * The session id associated with this stream connection
    */
-  struct GNUNET_STREAM_IOHandle *write_handle;
-
-  /**
-   * The read IO_handle associated with this socket
-   */
-  struct GNUNET_STREAM_IOHandle *read_handle;
+  uint32_t session_id;
 
   /**
    * Write sequence number. Start at random upon reaching ESTABLISHED state
@@ -229,11 +236,6 @@ struct GNUNET_STREAM_ListenSocket
   struct GNUNET_MESH_Handle *mesh;
 
   /**
-   * The service port
-   */
-  GNUNET_MESH_ApplicationType port;
-
-  /**
    * The callback function which is called after successful opening socket
    */
   GNUNET_STREAM_ListenCallback listen_cb;
@@ -242,6 +244,11 @@ struct GNUNET_STREAM_ListenSocket
    * The call back closure
    */
   void *listen_cb_cls;
+
+  /**
+   * The service port
+   */
+  GNUNET_MESH_ApplicationType port;
 };
 
 
@@ -284,8 +291,10 @@ send_message_notify (void *cls, size_t size, void *buf)
   struct MessageQueue *head;
   size_t ret;
 
-  head = socket->queue;
   socket->transmit_handle = NULL; /* Remove the transmit handle */
+  head = socket->queue_head;
+  if (NULL == head)
+    return 0; /* just to be safe */
   if (0 == size)                /* request timed out */
     {
       socket->retries++;
@@ -312,11 +321,12 @@ send_message_notify (void *cls, size_t size, void *buf)
     {
       head->finish_cb (socket, head->finish_cb_cls);
     }
-
-  socket->queue = head->next;   /* Will be NULL if the queue is empty */
+  GNUNET_CONTAINER_DLL_remove (socket->queue_head,
+			       socket->queue_tail,
+			       head);
   GNUNET_free (head->message);
   GNUNET_free (head);
-  head = socket->queue;
+  head = socket->queue_head;
   if (NULL != head)    /* more pending messages to send */
     {
       socket->retries = 0;
@@ -355,28 +365,22 @@ queue_message (struct GNUNET_STREAM_Socket *socket,
   queue_entity->message = message;
   queue_entity->finish_cb = finish_cb;
   queue_entity->finish_cb_cls = finish_cb_cls;
-  queue_entity->next = NULL;
-
-  if (NULL == socket->queue)
-    {
-      socket->queue = queue_entity;
-      socket->queue_tail = queue_entity;
-      socket->retries = 0;
-      socket->transmit_handle = 
-        GNUNET_MESH_notify_transmit_ready (socket->tunnel,
-                                           0, /* Corking */
-                                           1, /* Priority */
-                                           socket->retransmit_timeout,
-                                           &socket->other_peer,
-                                           ntohs (message->header.size),
-                                           &send_message_notify,
-                                           socket);
-    }
-  else                          /* There is a pending message in queue */
-    {
-      socket->queue_tail->next = queue_entity; /* Add to tail */
-      socket->queue_tail = queue_entity;
-    }
+  GNUNET_CONTAINER_DLL_insert_tail (socket->queue_head,
+				    socket->queue_tail,
+				    queue_entity);
+  if (NULL == socket->transmit_handle)
+  {
+    socket->retries = 0;
+    socket->transmit_handle = 
+      GNUNET_MESH_notify_transmit_ready (socket->tunnel,
+					 0, /* Corking */
+					 1, /* Priority */
+					 socket->retransmit_timeout,
+					 &socket->other_peer,
+					 ntohs (message->header.size),
+					 &send_message_notify,
+					 socket);
+  }
 }
 
 
@@ -385,17 +389,18 @@ queue_message (struct GNUNET_STREAM_Socket *socket,
  *
  * @param bitmap the bitmap to modify
  * @param bit the bit number to modify
- * @param GNUNET_YES to on, GNUNET_NO to off
+ * @param value GNUNET_YES to on, GNUNET_NO to off
  */
 static void
 AckBitmap_modify_bit (GNUNET_STREAM_AckBitmap *bitmap,
-                                    uint8_t bit, 
-                                    uint8_t value)
+		      unsigned int bit, 
+		      int value)
 {
-  uint64_t val;
-
-  val = value;
-  *bitmap = *bitmap | (val << bit);
+  GNUNET_assert (bit < 64);
+  if (GNUNET_YES == value)
+    *bitmap |= (1LL << bit);
+  else
+    *bitmap &= ~(1LL << bit);
 }
 
 
@@ -407,9 +412,10 @@ AckBitmap_modify_bit (GNUNET_STREAM_AckBitmap *bitmap,
  */
 static uint8_t
 AckBitmap_is_bit_set (const GNUNET_STREAM_AckBitmap *bitmap,
-                      uint8_t bit)
+                      unsigned int bit)
 {
-  return (*bitmap & (0x0000000000000001 << bit)) >> bit;
+  GNUNET_assert (bit < 64);
+  return 0 != (*bitmap & (1LL << bit));
 }
 
 
@@ -456,7 +462,7 @@ client_handle_data (void *cls,
 /**
  * Callback to set state to ESTABLISHED
  *
- * @param cls the closure from queue_message
+ * @param cls the closure from queue_message FIXME: document
  * @param socket the socket to requiring state change
  */
 static void
@@ -510,12 +516,13 @@ client_handle_hello_ack (void *cls,
 
   ack_msg = (const struct GNUNET_STREAM_HelloAckMessage *) message;
   GNUNET_assert (socket->tunnel == tunnel);
-  if (STATE_HELLO_WAIT == socket->state)
-    {
+  switch (socket->state)
+  {
+  case STATE_HELLO_WAIT:
       socket->read_sequence_number = ntohl (ack_msg->sequence_number);
       /* Get the random sequence number */
       socket->write_sequence_number = 
-        GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, 0xffffffff);
+        GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
       reply = 
         GNUNET_malloc (sizeof (struct GNUNET_STREAM_HelloAckMessage));
       reply->header.header.size = 
@@ -524,18 +531,22 @@ client_handle_hello_ack (void *cls,
         htons (GNUNET_MESSAGE_TYPE_STREAM_HELLO_ACK);
       reply->sequence_number = htonl (socket->write_sequence_number);
       queue_message (socket, 
-                     (struct GNUNET_STREAM_MessageHeader *) reply, 
+                     &reply->header, 
                      &set_state_established, 
-                     NULL);
-    }
-  else
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Server sent HELLO_ACK when in state %d\n", socket->state);
-      /* FIXME: Send RESET? */
-    }
+                     NULL);      
+      return GNUNET_OK;
+  case STATE_ESTABLISHED:
+  case STATE_RECEIVE_CLOSE_WAIT:
+    // call statistics (# ACKs ignored++)
+    return GNUNET_OK;
+  case STATE_INIT:
+  default:
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Server sent HELLO_ACK when in state %d\n", socket->state);
+    socket->state = STATE_CLOSED; // introduce STATE_ERROR?
+    return GNUNET_SYSERR;
+  }
 
-  return GNUNET_OK;
 }
 
 
@@ -778,7 +789,7 @@ server_handle_hello (void *cls,
     {
       /* Get the random sequence number */
       socket->write_sequence_number = 
-        GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, 0xffffffff);
+        GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
       reply = 
         GNUNET_malloc (sizeof (struct GNUNET_STREAM_HelloAckMessage));
       reply->header.header.size = 
@@ -787,7 +798,7 @@ server_handle_hello (void *cls,
         htons (GNUNET_MESSAGE_TYPE_STREAM_HELLO_ACK);
       reply->sequence_number = htonl (socket->write_sequence_number);
       queue_message (socket, 
-                     (struct GNUNET_STREAM_MessageHeader *)reply,
+		     &reply->header,
                      &set_state_hello_wait, 
                      NULL);
     }
@@ -1179,8 +1190,8 @@ mesh_peer_connect_callback (void *cls,
                    sizeof (struct GNUNET_PeerIdentity)))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "A peer (%s) which is not our target has\
-  connected to our tunnel", GNUNET_i2s (peer));
+                  "A peer (%s) which is not our target has connected to our tunnel", 
+		  GNUNET_i2s (peer));
       return;
     }
   
@@ -1319,9 +1330,10 @@ GNUNET_STREAM_close (struct GNUNET_STREAM_Socket *socket)
     }
 
   /* Clear existing message queue */
-  while (NULL != socket->queue) {
-    head = socket->queue;
-    socket->queue = head->next;
+  while (NULL != (head = socket->queue_head)) {
+    GNUNET_CONTAINER_DLL_remove (socket->queue_head,
+				 socket->queue_tail,
+				 head);
     GNUNET_free (head->message);
     GNUNET_free (head);
   }
