@@ -211,7 +211,7 @@ dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
 {
   int i;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "test: ************* FOUND!!! ***********\n");
   if (sizeof (GNUNET_HashCode) == size)
   {
