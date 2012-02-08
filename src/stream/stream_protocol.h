@@ -42,8 +42,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
 
 /**
  * The stream message header
- *
- * The message can be of Data, Acknowledgement or both
+ * All messages of STREAM should commonly have this as header
  */
 struct GNUNET_STREAM_MessageHeader
 {
@@ -132,6 +131,22 @@ struct GNUNET_STREAM_AckMessage
    * in bytes.
    */
   uint32_t receive_window_remaining GNUNET_PACKED;
+};
+
+
+struct GNUNET_STREAM_HelloAckMessage
+{
+  /**
+   * The stream message header
+   */
+  struct GNUNET_STREAM_MessageHeader header;
+
+  /**
+   * The selected sequence number. Following data tranmissions from the sender
+   * start with this sequence
+   */
+  uint32_t sequence_number;
+
 };
 
 GNUNET_NETWORK_STRUCT_END
