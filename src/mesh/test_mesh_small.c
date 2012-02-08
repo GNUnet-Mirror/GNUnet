@@ -26,6 +26,8 @@
 #include "platform.h"
 #include "gnunet_testing_lib.h"
 #include "gnunet_mesh_service.h"
+#include <gauger.h>
+
 
 #define VERBOSE GNUNET_YES
 #define REMOVE_DIR GNUNET_YES
@@ -217,6 +219,22 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     disconnect_task = GNUNET_SCHEDULER_NO_TASK;
   }
 
+  if (NULL != h1)
+  {
+    GNUNET_MESH_disconnect (h1);
+    h1 = NULL;
+  }
+  if (NULL != h2)
+  {
+    GNUNET_MESH_disconnect (h2);
+    h2 = NULL;
+  }
+  if (test == MULTICAST && NULL != h3)
+  {
+    GNUNET_MESH_disconnect (h3);
+    h3 = NULL;
+  }
+  
   if (data_file != NULL)
     GNUNET_DISK_file_close (data_file);
   GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
@@ -250,8 +268,12 @@ disconnect_mesh_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   GNUNET_MESH_disconnect (h1);
   GNUNET_MESH_disconnect (h2);
+  h1 = h2 = NULL;
   if (test == MULTICAST)
+  {
     GNUNET_MESH_disconnect (h3);
+    h3 = NULL;
+  }
   if (GNUNET_SCHEDULER_NO_TASK != shutdown_handle)
   {
     GNUNET_SCHEDULER_cancel (shutdown_handle);
@@ -376,11 +398,14 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
         return GNUNET_OK;
       end_time = GNUNET_TIME_absolute_get();
       total_time = GNUNET_TIME_absolute_get_difference(start_time, end_time);
-      FPRINTF (stderr, "\nTest time %llu ms\n", total_time.rel_value);
+      FPRINTF (stderr, "\nTest time %llu ms\n",
+               (unsigned long long) total_time.rel_value);
       FPRINTF (stderr, "Test bandwidth: %f kb/s\n",
                4000.0 / total_time.rel_value);
       FPRINTF (stderr, "Test throughput: %f packets/s\n",
                1000000.0 / total_time.rel_value);
+      GAUGER ("MESH", "Tunnel 5 peers", 1000000.0 / total_time.rel_value,
+              "packets/s");
     }
     GNUNET_MESH_tunnel_destroy (tunnel);
     if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)

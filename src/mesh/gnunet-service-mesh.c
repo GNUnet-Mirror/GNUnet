@@ -1614,7 +1614,7 @@ peer_info_connect (struct MeshPeerInfo *peer, struct MeshTunnel *t)
                                          GNUNET_TIME_UNIT_FOREVER_REL,  /* timeout */
                                          GNUNET_BLOCK_TYPE_TEST,        /* type */
                                          &id.hashPubKey,        /* key to search */
-                                         4,     /* replication level */
+                                         10U,     /* replication level */
                                          GNUNET_DHT_RO_RECORD_ROUTE | GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE, NULL,       /* xquery */
                                          0,     /* xquery bits */
                                          &dht_get_id_handler, path_info);
