@@ -2725,7 +2725,8 @@ GNUNET_FS_directory_scan_start (const char *filename,
 
 
 /**
- * Abort the scan.
+ * Abort the scan.    Must not be called from within the progress_callback
+ * function.
  *
  * @param ds directory scanner structure
  */

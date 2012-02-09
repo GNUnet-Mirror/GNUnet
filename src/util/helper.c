@@ -194,7 +194,7 @@ stop_helper (struct GNUNET_HELPER_Handle *h)
     GNUNET_free (qe);
   }
   /* purge MST buffer */
-  GNUNET_SERVER_mst_receive (h->mst, NULL, NULL, 0, GNUNET_YES, GNUNET_NO);
+  (void) GNUNET_SERVER_mst_receive (h->mst, NULL, NULL, 0, GNUNET_YES, GNUNET_NO);
 }
 
 

@@ -96,6 +96,29 @@ do_stop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
+ * Stop the directory scanner (we had an error).
+ *
+ * @param cls closure
+ * @param tc scheduler context
+ */
+static void
+stop_scanner_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  kill_task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_FS_directory_scan_abort (ds);
+  ds = NULL;
+  if (namespace != NULL)
+  {
+    GNUNET_FS_namespace_delete (namespace, GNUNET_NO);
+    namespace = NULL;
+  }
+  GNUNET_FS_stop (ctx);
+  ctx = NULL;
+  ret = 1;
+}
+
+
+/**
  * Called by FS client to give information about the progress of an
  * operation.
  *
@@ -487,17 +510,12 @@ directory_scan_cb (void *cls,
     break;
   case GNUNET_FS_DIRSCANNER_INTERNAL_ERROR:
     FPRINTF (stdout, "%s", _("Internal error scanning directory.\n"));
-    GNUNET_FS_directory_scan_abort (ds);
-    ds = NULL;
-    if (namespace != NULL)
-      GNUNET_FS_namespace_delete (namespace, GNUNET_NO);
-    GNUNET_FS_stop (ctx);
     if (kill_task != GNUNET_SCHEDULER_NO_TASK)
     {
       GNUNET_SCHEDULER_cancel (kill_task);
       kill_task = GNUNET_SCHEDULER_NO_TASK;
     }
-    ret = 1;
+    kill_task = GNUNET_SCHEDULER_add_now (&stop_scanner_task, NULL);
     break;
   default:
     GNUNET_assert (0);

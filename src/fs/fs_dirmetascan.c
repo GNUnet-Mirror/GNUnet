@@ -92,7 +92,8 @@ struct GNUNET_FS_DirScanner
 
 
 /**
- * Abort the scan.
+ * Abort the scan.  Must not be called from within the progress_callback
+ * function.
  *
  * @param ds directory scanner structure
  */
