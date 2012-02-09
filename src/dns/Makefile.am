@@ -22,7 +22,7 @@ install-exec-hook:
 	$(SUDO_BINARY) chgrp $(GNUNETDNS_GROUP) $(bindir)/gnunet-helper-dns || true
 	$(SUDO_BINARY) chmod 4750 $(bindir)/gnunet-helper-dns || true
 	$(SUDO_BINARY) chgrp $(GNUNETDNS_GROUP) $(bindir)/gnunet-service-dns || true
-	$(SUDO_BINARY) chmod 2755 $(bindir)/gnunet-service-dns || true
+	$(SUDO_BINARY) chmod 2750 $(bindir)/gnunet-service-dns || true
 else
 install-exec-hook:
 endif
