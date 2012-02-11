@@ -604,7 +604,7 @@ GNUNET_DISK_directory_iterator_next (struct GNUNET_DISK_DirectoryIterator *iter,
  * @param dirName the name of the directory
  * @param callback the method to call for each file
  * @param callback_cls closure for callback
- * @return GNUNET_YES if directory is not empty and @callback
+ * @return GNUNET_YES if directory is not empty and 'callback'
  *         will be called later, GNUNET_NO otherwise, GNUNET_SYSERR on error.
  */
 int

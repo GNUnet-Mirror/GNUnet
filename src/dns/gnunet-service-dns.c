@@ -359,7 +359,7 @@ static struct GNUNET_MESH_Handle *mesh;
 /**
  * We're done with a RequestSocket, close it for now.
  *
- * @param rr request to clean up
+ * @param rs request socket to clean up
  */
 static void
 cleanup_rs (struct RequestSocket *rs)
@@ -950,7 +950,7 @@ transmit_reply_to_mesh (void *cls,
  * if we have a valid, matching, pending request.
  *
  * @param dnsout socket to read from
- * @param GNUNET_OK on success, GNUNET_NO on drop, GNUNET_SYSERR on IO-errors (closed socket)
+ * @return GNUNET_OK on success, GNUNET_NO on drop, GNUNET_SYSERR on IO-errors (closed socket)
  */
 static int
 do_dns_read (struct GNUNET_NETWORK_Handle *dnsout)

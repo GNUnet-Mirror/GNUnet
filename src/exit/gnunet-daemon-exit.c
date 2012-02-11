@@ -1271,7 +1271,7 @@ setup_state_record (struct TunnelState *state)
  * @param tcp_header skeleton of the TCP header, NULL for UDP
  * @param src_address source address to use (IP and port)
  * @param dst_address destination address to use (IP and port)
- * @param pkt6 where to write the assembled packet; must
+ * @param pkt4 where to write the assembled packet; must
  *        contain enough space for the IP header, UDP/TCP header
  *        AND the payload
  */
@@ -1356,6 +1356,7 @@ prepare_ipv4_packet (const void *payload, size_t payload_length,
  *                TCP header, depending on protocol)
  * @param payload_length number of bytes in 'payload'
  * @param protocol IPPROTO_UDP or IPPROTO_TCP
+ * @param tcp_header skeleton TCP header data to send, NULL for UDP
  * @param src_address source address to use (IP and port)
  * @param dst_address destination address to use (IP and port)
  * @param pkt6 where to write the assembled packet; must
@@ -2651,7 +2652,7 @@ receive_udp_service (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
 static void *
 new_tunnel (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
             const struct GNUNET_PeerIdentity *initiator GNUNET_UNUSED,
-            const struct GNUNET_ATS_Information *ats GNUNET_UNUSED)
+            const struct GNUNET_ATS_Information *atsi GNUNET_UNUSED)
 {
   struct TunnelState *s = GNUNET_malloc (sizeof (struct TunnelState));
 

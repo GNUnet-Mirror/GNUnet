@@ -326,7 +326,6 @@ preprocess_file (const char *filename,
 /**
  * Extract metadata from files.
  *
- * @param ds directory scanner context
  * @param item entry we are processing
  * @return GNUNET_OK on success, GNUNET_SYSERR on fatal errors
  */
