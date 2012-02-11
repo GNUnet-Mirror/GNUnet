@@ -982,7 +982,6 @@ process_result_with_request (void *cls, const GNUNET_HashCode * key,
     dr->is_pending = GNUNET_NO;
   }
 
-
   GNUNET_CRYPTO_hash_to_aes_key (&dr->chk.key, &skey, &iv);
   if (-1 == GNUNET_CRYPTO_aes_decrypt (prc->data, prc->size, &skey, &iv, pt))
   {
@@ -1069,6 +1068,7 @@ process_result_with_request (void *cls, const GNUNET_HashCode * key,
                                          &trigger_recursive_download, dc);
 
   }
+  GNUNET_assert (dc->completed <= dc->length);
   dr->state = BRS_DOWNLOAD_DOWN;
   pi.status = GNUNET_FS_STATUS_DOWNLOAD_PROGRESS;
   pi.value.download.specifics.progress.data = pt;
@@ -1083,7 +1083,6 @@ process_result_with_request (void *cls, const GNUNET_HashCode * key,
     pi.value.download.specifics.progress.block_download_duration.rel_value = 
         GNUNET_TIME_UNIT_FOREVER_REL.rel_value;
   GNUNET_FS_download_make_status_ (&pi, dc);
-  GNUNET_assert (dc->completed <= dc->length);
   if (dr->depth == 0)
     propagate_up (dr);
 
@@ -1662,6 +1661,8 @@ reconstruct_cb (void *cls, const struct ContentHashKey *chk, uint64_t offset,
     GNUNET_assert (chld < dr->num_children);
     dr = dr->children[chld];
   }
+  /* FIXME: this code needs more testing and might
+     need to handle more states... */
   switch (dr->state)
   {
   case BRS_INIT:
@@ -1678,6 +1679,13 @@ reconstruct_cb (void *cls, const struct ContentHashKey *chk, uint64_t offset,
       /* block matches, hence tree below matches;
        * this request is done! */
       dr->state = BRS_DOWNLOAD_UP;
+      GNUNET_assert (GNUNET_YES ==
+		     GNUNET_CONTAINER_multihashmap_remove (dc->active, &dr->chk.query, dr));
+      if (GNUNET_YES == dr->is_pending)
+      {
+	GNUNET_CONTAINER_DLL_remove (dc->pending_head, dc->pending_tail, dr);
+	dr->is_pending = GNUNET_NO;
+      }
       /* calculate how many bytes of payload this block
        * corresponds to */
       blen = GNUNET_FS_tree_compute_tree_size (dr->depth);
@@ -1692,9 +1700,26 @@ reconstruct_cb (void *cls, const struct ContentHashKey *chk, uint64_t offset,
       pi.value.download.specifics.progress.depth = 0;
       pi.value.download.specifics.progress.trust_offered = 0;
       GNUNET_FS_download_make_status_ (&pi, dc);
-    }
-    else
-    {
+      /* FIXME: duplicated code from 'process_result_with_request - refactor */
+      if (dc->completed == dc->length)
+      {
+	/* download completed, signal */
+#if DEBUG_DOWNLOAD
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		    "Download completed, truncating file to desired length %llu\n",
+		    (unsigned long long) GNUNET_ntohll (dc->uri->data.
+							chk.file_length));
+#endif
+	/* truncate file to size (since we store IBlocks at the end) */
+	if (dc->filename != NULL)
+	{
+	  if (0 !=
+	      truncate (dc->filename,
+			GNUNET_ntohll (dc->uri->data.chk.file_length)))
+	    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "truncate",
+				      dc->filename);
+	}
+      }
     }
     break;
   case BRS_DOWNLOAD_DOWN:
