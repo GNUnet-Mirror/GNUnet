@@ -28,7 +28,7 @@
 #include "gnunet_arm_service.h"
 #include "gnunet_fs_service.h"
 
-#define VERBOSE GNUNET_EXTRA_LOGGING
+#define VERBOSE GNUNET_NO
 
 #define START_ARM GNUNET_YES
 
