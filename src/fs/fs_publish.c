@@ -1276,11 +1276,6 @@ GNUNET_FS_publish_stop (struct GNUNET_FS_PublishContext *pc)
     GNUNET_DATASTORE_cancel (pc->qre);
     pc->qre = NULL;
   }
-  if (NULL != pc->dsh)
-  {
-    GNUNET_DATASTORE_disconnect (pc->dsh, GNUNET_NO);
-    pc->dsh = NULL;
-  }
   if (GNUNET_SCHEDULER_NO_TASK != pc->upload_task)
   {
     GNUNET_SCHEDULER_cancel (pc->upload_task);
@@ -1297,8 +1292,6 @@ GNUNET_FS_publish_stop (struct GNUNET_FS_PublishContext *pc)
     pc->fi->serialization = NULL;
   }
   off = (pc->fi->chk_uri == NULL) ? 0 : GNUNET_ntohll (pc->fi->chk_uri->data.chk.file_length);
-  pi.status = GNUNET_FS_STATUS_PUBLISH_STOPPED;
-  GNUNET_break (NULL == GNUNET_FS_publish_make_status_ (&pi, pc, pc->fi, off));
 
   if (pc->serialization != NULL)
   {
@@ -1312,6 +1305,8 @@ GNUNET_FS_publish_stop (struct GNUNET_FS_PublishContext *pc)
     pc->in_network_wait = GNUNET_SYSERR;
     return;
   }
+  pi.status = GNUNET_FS_STATUS_PUBLISH_STOPPED;
+  GNUNET_break (NULL == GNUNET_FS_publish_make_status_ (&pi, pc, pc->fi, off));
   publish_cleanup (pc, NULL);
 }
 
