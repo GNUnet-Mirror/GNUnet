@@ -1053,9 +1053,6 @@ check_crc_buf_osdep (const unsigned char *buf, size_t len)
 {
   unsigned long crc;
 
-  if (0 > len)
-    return 0;
-
   crc = calc_crc_osdep (buf, len);
   buf += len;
   return (((crc) & 0xFF) == buf[0] && ((crc >> 8) & 0xFF) == buf[1] &&
