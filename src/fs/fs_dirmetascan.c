@@ -412,7 +412,7 @@ process_helper_msgs (void *cls,
  * Start a directory scanner thread.
  *
  * @param filename name of the directory to scan
- * @param GNUNET_YES to not to run libextractor on files (only build a tree)
+ * @param disable_extractor GNUNET_YES to not to run libextractor on files (only build a tree)
  * @param ex if not NULL, must be a list of extra plugins for extractor
  * @param cb the callback to call when there are scanning progress messages
  * @param cb_cls closure for 'cb'
