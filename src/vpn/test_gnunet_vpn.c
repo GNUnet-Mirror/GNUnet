@@ -392,6 +392,8 @@ run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct in_addr v4;
+  struct in_addr v6;
+  void *addr;
   enum MHD_FLAG flags;
 
   vpn = GNUNET_VPN_connect (cfg);
@@ -406,11 +408,24 @@ run (void *cls, char *const *args, const char *cfgfile,
 			  MHD_OPTION_END);
   GNUNET_assert (NULL != mhd);
   mhd_main ();
-  GNUNET_assert (1 == inet_pton (dest_af, dest_ip, &v4));
+  addr = NULL;
+  switch (dest_af)
+  {
+  case AF_INET:
+    GNUNET_assert (1 == inet_pton (dest_af, dest_ip, &v4));
+    addr = &v4;
+    break;
+  case AF_INET6:
+    GNUNET_assert (1 == inet_pton (dest_af, dest_ip, &v6));
+    addr = &v6;
+    break;
+  default:
+    GNUNET_assert (0);
+  }
   rr = GNUNET_VPN_redirect_to_ip (vpn,
 				  src_af,
 				  dest_af,
-				  &v4,
+				  addr,
 				  GNUNET_YES,
 				  GNUNET_TIME_UNIT_FOREVER_ABS,
 				  &allocation_cb, NULL);
