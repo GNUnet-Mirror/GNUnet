@@ -395,7 +395,8 @@ get_redirect_state (int af,
   GNUNET_HashCode key;
   struct TunnelState *state;
 
-  if (protocol == IPPROTO_ICMP)
+  if ( ( (af == AF_INET) && (proto == IPPROTO_ICMP) ) ||
+       ( (af == AF_INET6) && (proto == IPPROTO_ICMPV6) ) )
   {
     /* ignore ports */
     destination_port = 0;
@@ -642,10 +643,10 @@ icmp_from_helper (const struct GNUNET_TUN_IcmpHeader *icmp,
      existing session from the IP data in the ICMP payload */
   source_port = 0;
   destination_port = 0;
-  protocol = IPPROTO_ICMP;
   switch (af)
   {
   case AF_INET:
+    protocol = IPPROTO_ICMP;
     switch (icmp->type)
       {
       case GNUNET_TUN_ICMPTYPE_ECHO_REPLY:
@@ -680,6 +681,7 @@ icmp_from_helper (const struct GNUNET_TUN_IcmpHeader *icmp,
       }
     break;
   case AF_INET6:
+    protocol = IPPROTO_ICMPV6;
     switch (icmp->type)
       {
       case GNUNET_TUN_ICMPTYPE6_DESTINATION_UNREACHABLE:
@@ -721,6 +723,12 @@ icmp_from_helper (const struct GNUNET_TUN_IcmpHeader *icmp,
   {
   case IPPROTO_ICMP:
     state = get_redirect_state (af, IPPROTO_ICMP,
+				source_ip, 0,
+				destination_ip, 0,
+				NULL);
+    break;
+  case IPPROTO_ICMPV6:
+    state = get_redirect_state (af, IPPROTO_ICMPV6,
 				source_ip, 0,
 				destination_ip, 0,
 				NULL);
@@ -1060,7 +1068,7 @@ message_token (void *cls GNUNET_UNUSED, void *client GNUNET_UNUSED,
 			 &pkt6->destination_address, 
 			 &pkt6->source_address);
 	break;
-      case IPPROTO_ICMP:
+      case IPPROTO_ICMPV6:
 	icmp_from_helper ((const struct GNUNET_TUN_IcmpHeader *) &pkt6[1], size,
 			  AF_INET6,
 			  &pkt6->destination_address, 
@@ -1100,7 +1108,8 @@ setup_fresh_address (int af,
   local_address->proto = (uint8_t) proto;
   /* default "local" port range is often 32768--61000,
      so we pick a random value in that range */	 
-  if (proto == IPPROTO_ICMP)
+  if ( ( (af == AF_INET) && (proto == IPPROTO_ICMP) ) ||
+       ( (af == AF_INET6) && (proto == IPPROTO_ICMPV6) ) )
     local_address->port = 0;
   else
     local_address->port 
@@ -1871,7 +1880,7 @@ send_icmp_packet_via_tun (const struct SocketAddress *destination_address,
 	
 	tun->proto = htons (ETH_P_IPV6);
 	GNUNET_TUN_initialize_ipv6_header (ipv6,
-					   IPPROTO_ICMP,
+					   IPPROTO_ICMPV6,
 					   sizeof (struct GNUNET_TUN_IcmpHeader) + payload_length,
 					   &source_address->address.ipv6,
 					   &destination_address->address.ipv6);
@@ -2078,7 +2087,7 @@ receive_icmp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
     if (NULL == state->heap_node)
     {
       state->ri.remote_address.af = af;
-      state->ri.remote_address.proto = IPPROTO_ICMP;
+      state->ri.remote_address.proto = IPPROTO_ICMPV6;
       setup_state_record (state);
     }
     /* check that ICMP type is something we want to support 

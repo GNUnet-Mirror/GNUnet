@@ -857,7 +857,7 @@ expire_tunnel (struct TunnelState *except)
  *
  * @param destination description of the destination
  * @param af address family on this end (AF_INET or AF_INET6)
- * @param protocol IPPROTO_TCP or IPPROTO_UDP
+ * @param protocol IPPROTO_TCP or IPPROTO_UDP or IPPROTO_ICMP or IPPROTO_ICMPV6
  * @param source_ip source IP used by the sender (struct in_addr or struct in6_addr)
  * @param destination_ip destination IP used by the sender (struct in_addr or struct in6_addr)
  * @param payload payload of the packet after the IP header
@@ -936,8 +936,14 @@ route_packet (struct DestinationEntry *destination,
 			       &key);
     }
     break;
-  case IPPROTO_ICMP:
+  case IPPROTO_ICMP:  
+  case IPPROTO_ICMPV6:  
     {
+      if ( (AF_INET == af) ^ (protocol == IPPROTO_ICMP) )
+      {
+	GNUNET_break (0);
+	return;
+      }
       if (payload_length < sizeof (struct GNUNET_TUN_IcmpHeader))
       {
 	/* blame kernel? */
@@ -948,7 +954,7 @@ route_packet (struct DestinationEntry *destination,
       source_port = 0;
       destination_port = 0;
       get_tunnel_key_from_ips (af,
-			       IPPROTO_ICMP,
+			       protocol,
 			       source_ip,
 			       0,
 			       destination_ip,
@@ -1238,6 +1244,7 @@ route_packet (struct DestinationEntry *destination,
      }
     break;
   case IPPROTO_ICMP:
+  case IPPROTO_ICMPV6:
     if (destination->is_service)
     {
       struct GNUNET_EXIT_IcmpServiceMessage *ism;
@@ -1875,7 +1882,7 @@ receive_icmp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
 	tun->flags = htons (0);
 	tun->proto = htons (ETH_P_IPV6);
 	GNUNET_TUN_initialize_ipv6_header (ipv6,
-					   IPPROTO_ICMP,
+					   IPPROTO_ICMPV6,
 					   sizeof (struct GNUNET_TUN_IcmpHeader) + mlen,
 					   &ts->destination_ip.v6,
 					   &ts->source_ip.v6);
