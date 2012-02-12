@@ -1404,7 +1404,7 @@ GNUNET_FS_uri_test_ksk (const struct GNUNET_FS_Uri *uri)
 
   if (uri->type == ksk)
   {
-    for (i=0;i i < uri->data.ksk.keywordCount; i++)
+    for (i=0;i < uri->data.ksk.keywordCount; i++)
       GNUNET_assert (uri->data.ksk.keywords[i] != NULL);
   }
 #endif
