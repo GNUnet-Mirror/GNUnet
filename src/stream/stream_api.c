@@ -1163,7 +1163,7 @@ handle_ack (struct GNUNET_STREAM_Socket *socket,
           return GNUNET_OK;
         }
 
-      socket->write_handle->ack_bitmap = ntoh64 (ack->bitmap);
+      socket->write_handle->ack_bitmap = GNUNET_ntohll (ack->bitmap);
       socket->write_handle->receive_window_available = 
         ntohl (ack->receive_window_remaining);
       write_data (socket);
