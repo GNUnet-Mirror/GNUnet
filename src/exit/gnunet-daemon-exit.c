@@ -395,8 +395,8 @@ get_redirect_state (int af,
   GNUNET_HashCode key;
   struct TunnelState *state;
 
-  if ( ( (af == AF_INET) && (proto == IPPROTO_ICMP) ) ||
-       ( (af == AF_INET6) && (proto == IPPROTO_ICMPV6) ) )
+  if ( ( (af == AF_INET) && (protocol == IPPROTO_ICMP) ) ||
+       ( (af == AF_INET6) && (protocol == IPPROTO_ICMPV6) ) )
   {
     /* ignore ports */
     destination_port = 0;
