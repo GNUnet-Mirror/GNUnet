@@ -210,7 +210,7 @@ setup_client (struct GNUNET_SERVER_Client *client)
   tc->client = client;
 
 #if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Client %X connected\n", tc);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Client %p connected\n", tc);
 #endif
   return tc;
 }
@@ -264,7 +264,7 @@ setup_monitoring_client (struct GNUNET_SERVER_Client *client,
   GNUNET_SERVER_notification_context_add (nc, client);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Client %X started monitoring of the peer `%s'\n",
+              "Client %p started monitoring of the peer `%s'\n",
               mc, GNUNET_i2s (peer));
   return mc;
 }
@@ -309,7 +309,7 @@ transmit_to_client_callback (void *cls, size_t size, void *buf)
       break;
 #if DEBUG_TRANSPORT
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Transmitting message of type %u to client %X.\n",
+                "Transmitting message of type %u to client %p.\n",
                 ntohs (msg->type), tc);
 #endif
     GNUNET_CONTAINER_DLL_remove (tc->message_queue_head, tc->message_queue_tail,
@@ -405,7 +405,7 @@ client_disconnect_notification (void *cls, struct GNUNET_SERVER_Client *client)
     return;
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
-              "Client %X disconnected, cleaning up.\n", tc);
+              "Client %p disconnected, cleaning up.\n", tc);
 #endif
   while (NULL != (mqe = tc->message_queue_head))
   {
@@ -482,19 +482,15 @@ clients_handle_start (void *cls, struct GNUNET_SERVER_Client *client,
   tc = lookup_client (client);
 
 #if DEBUG_TRANSPORT
-  if (tc != NULL)
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
-                "Client %X sent START\n", tc);
-  else
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
-                "Client %X sent START\n", tc);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
+              "Client %p sent START\n", tc);
 #endif
   if (tc != NULL)
   {
     /* got 'start' twice from the same client, not allowed */
 #if DEBUG_TRANSPORT
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
-                "TransportClient %X ServerClient %X  sent multiple START messages\n",
+                "TransportClient %p ServerClient %p sent multiple START messages\n",
                 tc, tc->client);
 #endif
     GNUNET_break (0);
@@ -919,7 +915,7 @@ clients_handle_address_iterate (void *cls, struct GNUNET_SERVER_Client *client,
     if (mc != NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
-                  "ServerClient %X tried to start monitoring twice (MonitoringClient %X)\n",
+                  "ServerClient %p tried to start monitoring twice (MonitoringClient %p)\n",
                   client, mc);
       GNUNET_break (0);
       GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
