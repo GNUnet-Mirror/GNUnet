@@ -1324,7 +1324,7 @@ process_helper_messages (void *cls GNUNET_UNUSED, void *client,
       srca4->sin_port = udp->source_port;
       dsta4->sin_port = udp->destination_port;
 #if HAVE_SOCKADDR_IN_SIN_LEN
-      srca4->sin_len = sizeof (struct sockaddr_in))
+      srca4->sin_len = sizeof (struct sockaddr_in);
       dsta4->sin_len = sizeof (struct sockaddr_in);
 #endif
     }
