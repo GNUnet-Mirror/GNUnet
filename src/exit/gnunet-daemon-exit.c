@@ -1022,7 +1022,8 @@ message_token (void *cls GNUNET_UNUSED, void *client GNUNET_UNUSED,
 	break;
       default:
 	GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		    _("IPv4 packet with unsupported next header received.  Ignored.\n"));
+		    _("IPv4 packet with unsupported next header %u received.  Ignored.\n"),
+	            (int) pkt4->protocol);
 	return;
       }
     }
@@ -1067,7 +1068,8 @@ message_token (void *cls GNUNET_UNUSED, void *client GNUNET_UNUSED,
 	break;
       default:
 	GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		    _("IPv6 packet with unsupported next header received.  Ignored.\n"));
+		    _("IPv6 packet with unsupported next header %d received.  Ignored.\n"),
+                    pkt6->next_header);
 	return;
       }
     }
