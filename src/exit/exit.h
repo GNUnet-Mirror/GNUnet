@@ -28,6 +28,8 @@
 
 #include "gnunet_util_lib.h"
 
+GNUNET_NETWORK_STRUCT_BEGIN
+
 /**
  * Message send via mesh to an exit daemon to initiate forwarding of
  * TCP data to a local service.
@@ -42,12 +44,12 @@ struct GNUNET_EXIT_TcpServiceStartMessage
   /**
    * Always 0.
    */
-  uint32_t reserved;
+  uint32_t reserved GNUNET_PACKED;
 
   /**
    * Identification for the desired service.
    */
-  GNUNET_HashCode service_descriptor;
+  GNUNET_HashCode service_descriptor GNUNET_PACKED;
 
   /**
    * Skeleton of the TCP header to send.  Port numbers are to
@@ -73,7 +75,7 @@ struct GNUNET_EXIT_TcpInternetStartMessage
   /**
    * Address family, AF_INET or AF_INET6, in network byte order.
    */
-  int32_t af;
+  int32_t af GNUNET_PACKED;
 
   /**
    * Skeleton of the TCP header to send.  Port numbers are to
@@ -104,7 +106,7 @@ struct GNUNET_EXIT_TcpDataMessage
   /**
    * Always 0.
    */
-  uint32_t reserved;
+  uint32_t reserved GNUNET_PACKED;
 
   /**
    * Skeleton of the TCP header to send.  Port numbers are to
@@ -130,17 +132,17 @@ struct GNUNET_EXIT_UdpServiceMessage
   /**
    * Source port to use for the UDP request (0 to use a random port).  In NBO.
    */
-  uint16_t source_port;
+  uint16_t source_port GNUNET_PACKED;
 
   /**
    * Destination port to use for the UDP request.  In NBO.
    */   
-  uint16_t destination_port;
+  uint16_t destination_port GNUNET_PACKED;
 
   /**
    * Identification for the desired service.
    */
-  GNUNET_HashCode service_descriptor;
+  GNUNET_HashCode service_descriptor GNUNET_PACKED;
 
   /* followed by UDP payload */
 };
@@ -160,17 +162,17 @@ struct GNUNET_EXIT_UdpInternetMessage
   /**
    * Address family, AF_INET or AF_INET6, in network byte order.
    */
-  int32_t af;
+  int32_t af GNUNET_PACKED;
 
   /**
    * Source port to use for the UDP request (0 to use a random port).  In NBO.
    */
-  uint16_t source_port;
+  uint16_t source_port GNUNET_PACKED;
 
   /**
    * Destination port to use for the UDP request.  In NBO.
    */   
-  uint16_t destination_port;
+  uint16_t destination_port GNUNET_PACKED;
 
   /* followed by IP address of the destination; either
      'struct in_addr' or 'struct in6_addr', depending on af */
@@ -194,13 +196,13 @@ struct GNUNET_EXIT_UdpReplyMessage
    * Source port to use for the UDP reply (0 to use the same
    * port as for the original request).  In NBO.
    */
-  uint16_t source_port;
+  uint16_t source_port GNUNET_PACKED;
 
   /**
    * Destination port to use for the UDP reply (0 to use the same
    * port as for the original request).  In NBO.
    */   
-  uint16_t destination_port;
+  uint16_t destination_port GNUNET_PACKED;
 
   /* followed by UDP payload */
 };
@@ -223,12 +225,12 @@ struct GNUNET_EXIT_IcmpServiceMessage
    * The receiver (exit) may still have to translate (PT) to the services'
    * ICMP version (if possible).
    */
-  int32_t af;
+  int32_t af GNUNET_PACKED;
 
   /**
    * Identification for the desired service.
    */
-  GNUNET_HashCode service_descriptor;
+  GNUNET_HashCode service_descriptor GNUNET_PACKED;
 
   /**
    * ICMP header to use.
@@ -259,7 +261,7 @@ struct GNUNET_EXIT_IcmpInternetMessage
    * the IP address format that is used for the target IP.  If
    * PT is necessary, the sender has already done it.
    */
-  int32_t af;
+  int32_t af GNUNET_PACKED;
 
   /**
    * ICMP header to use.  Must match the target 'af' given
@@ -292,7 +294,7 @@ struct GNUNET_EXIT_IcmpToVPNMessage
    * Address family, AF_INET or AF_INET6, in network byte order.
    * Useful to determine if this is an ICMPv4 or ICMPv6 header.
    */
-  int32_t af;
+  int32_t af GNUNET_PACKED;
 
   /**
    * ICMP header to use.  ICMPv4 or ICMPv6, depending on 'af'.
@@ -305,5 +307,7 @@ struct GNUNET_EXIT_IcmpToVPNMessage
      to create some fake payload manually) */
 };
 
+
+GNUNET_NETWORK_STRUCT_END
 
 #endif

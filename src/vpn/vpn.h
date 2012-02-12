@@ -28,6 +28,8 @@
 
 #include "gnunet_util_lib.h"
 
+GNUNET_NETWORK_STRUCT_BEGIN
+
 /**
  * Message send by the VPN client to the VPN service requesting
  * the setup of a redirection from some IP via an exit node to
@@ -44,7 +46,7 @@ struct RedirectToIpRequestMessage
    * GNUNET_YES to notify only after completion of the mesh-level connection,
    * GNUNET_NO to notify as soon as an address was allocated (in nbo).
    */
-  int32_t nac;
+  int32_t nac GNUNET_PACKED;
   
   /**
    * How long should the redirection be maintained at most?
@@ -54,18 +56,18 @@ struct RedirectToIpRequestMessage
   /**
    * Address family desired for the result (AF_INET or AF_INET6 or AF_UNSPEC, in nbo)
    */
-  int32_t result_af;
+  int32_t result_af GNUNET_PACKED;
 
   /**
    * Address family used for the destination address (AF_INET or AF_INET6, in nbo)
    */
-  int32_t addr_af;
+  int32_t addr_af GNUNET_PACKED;
 
   /**
    * Unique ID to match a future response to this request.
    * Picked by the client.
    */
-  uint64_t request_id;
+  uint64_t request_id GNUNET_PACKED;
 
   /* followed by destination address ('struct in_addr' or 'struct in6_addr') */
   
@@ -88,7 +90,7 @@ struct RedirectToServiceRequestMessage
    * GNUNET_YES to notify only after completion of the mesh-level connection,
    * GNUNET_NO to notify as soon as an address was allocated (in nbo).
    */
-  int32_t nac;
+  int32_t nac GNUNET_PACKED;
   
   /**
    * How long should the redirection be maintained at most?
@@ -98,12 +100,12 @@ struct RedirectToServiceRequestMessage
   /**
    * Desired protocol (IPPROTO_UDP or IPPROTO_TCP)
    */
-  int32_t protocol;
+  int32_t protocol GNUNET_PACKED;
   
   /**
    * Address family desired for the result (AF_INET or AF_INET6 or AF_UNSPEC, in nbo)
    */
-  int32_t result_af;
+  int32_t result_af GNUNET_PACKED;
 
   /**
    * Target peer offering the service.
@@ -113,13 +115,13 @@ struct RedirectToServiceRequestMessage
   /**
    * Service descriptor identifying the service.
    */
-  GNUNET_HashCode service_descriptor;
+  GNUNET_HashCode service_descriptor GNUNET_PACKED;
 
   /**
    * Unique ID to match a future response to this request.
    * Picked by the client.
    */
-  uint64_t request_id;
+  uint64_t request_id GNUNET_PACKED;
 
 };
 
@@ -140,16 +142,18 @@ struct RedirectToIpResponseMessage
    * Address family of the allocated address that follows; will match
    * "result_af" from the request, of be "AF_UNSPEC" on errors.
    */
-  int32_t result_af;
+  int32_t result_af GNUNET_PACKED;
 
   /**
    * Unique ID to match the response to a request.
    */
-  uint64_t request_id;
+  uint64_t request_id GNUNET_PACKED;
 
   /* followed by destination address ('struct in_addr' or 'struct in6_addr') */
   
 };
+
+GNUNET_NETWORK_STRUCT_END
 
 
 #endif
