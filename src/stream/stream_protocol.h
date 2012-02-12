@@ -123,6 +123,8 @@ struct GNUNET_STREAM_AckMessage
   /**
    * The sequence number of the Data Message upto which the receiver has filled
    * its buffer without any missing packets
+   *
+   * FIXME: Do we need this?
    */
   uint32_t base_sequence_number GNUNET_PACKED;
 
@@ -147,6 +149,10 @@ struct GNUNET_STREAM_HelloAckMessage
    */
   uint32_t sequence_number;
 
+  /**
+   * The size(in bytes) of the receive window on the peer sending this message
+   */
+  uint32_t receive_window_size;
 };
 
 GNUNET_NETWORK_STRUCT_END
