@@ -421,7 +421,7 @@ process_ksk_result (struct GNUNET_FS_SearchContext *sc,
     GNUNET_CONTAINER_meta_data_merge (sr->meta, meta);
   }
   koff = ent - sc->requests;
-  GNUNET_assert ( (koff >= 0) && (koff < sc->uri->data.ksk.keywordCount));
+  GNUNET_assert ( (ent >= sc->requests) && (koff < sc->uri->data.ksk.keywordCount));
   sr->keyword_bitmap[koff / 8] |= (1 << (koff % 8));
   /* check if mandatory satisfied */
   if (ent->mandatory)
