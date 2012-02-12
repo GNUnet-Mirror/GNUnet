@@ -392,7 +392,7 @@ run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct in_addr v4;
-  struct in_addr v6;
+  struct in6_addr v6;
   void *addr;
   enum MHD_FLAG flags;
 
