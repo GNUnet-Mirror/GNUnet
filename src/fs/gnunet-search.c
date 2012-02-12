@@ -299,7 +299,7 @@ main (int argc, char *const *argv)
     {'N', "results", "VALUE",
      gettext_noop
      ("automatically terminate search after VALUE results are found"),
-     1, &GNUNET_GETOPT_set_ulong, &results_limit},
+     1, &GNUNET_GETOPT_set_uint, &results_limit},
     GNUNET_GETOPT_OPTION_END
   };
   return (GNUNET_OK ==
