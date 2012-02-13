@@ -308,15 +308,14 @@ preprocess_file (const char *filename,
     GNUNET_DISK_directory_scan (filename, 
 				&scan_callback, 
 				&rc);    
-    if (rc.stop == GNUNET_YES) 
+    if ( (rc.stop == GNUNET_YES) ||
+	 (GNUNET_OK !=
+	  write_message (GNUNET_MESSAGE_TYPE_FS_PUBLISH_HELPER_PROGRESS_DIRECTORY,
+			 "..", 3)) )
     {
       free_tree (item);
       return GNUNET_SYSERR;
     }
-    if (GNUNET_OK !=
-	write_message (GNUNET_MESSAGE_TYPE_FS_PUBLISH_HELPER_PROGRESS_DIRECTORY,
-		       "..", 3))
-      return GNUNET_SYSERR;
   }
   *dst = item;
   return GNUNET_OK;
