@@ -481,11 +481,24 @@ transmit_ping_if_allowed (void *cls, const struct GNUNET_PeerIdentity *pid,
     else
     {
       GNUNET_assert (papi->send != NULL);
-      ret =
-          papi->send (papi->cls, pid, message_buf, tsize, PING_PRIORITY,
-                      ACCEPTABLE_PING_DELAY, NULL /* no session */ ,
-                      ve->address->address, ve->address->address_length,
-                      GNUNET_YES, NULL, NULL);
+      GNUNET_assert (papi->get_session != NULL);
+      struct Session * session = papi->get_session(papi->cls, ve->address);
+
+      if (session != NULL)
+      {
+        ret = papi->send_with_session (papi->cls, session,
+                          message_buf, tsize,
+                          PING_PRIORITY, ACCEPTABLE_PING_DELAY,
+                          NULL, NULL);
+      }
+      else
+      {
+        /* Could not get a valid session */
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not get a valid session for `%s' %s\n",
+                    GNUNET_i2s (pid), GST_plugins_a2s (ve->address));
+        GNUNET_break (0);
+        ret = -1;
+      }
     }
   }
   if (-1 != ret)
@@ -727,10 +740,21 @@ multicast_pong (void *cls,
   papi = GST_plugins_find (address->transport_name);
   if (papi == NULL)
     return;
-  (void) papi->send (papi->cls, &address->peer, (const char *) pong,
-                     ntohs (pong->header.size), PONG_PRIORITY,
-                     ACCEPTABLE_PING_DELAY, NULL, address->address,
-                     address->address_length, GNUNET_YES, NULL, NULL);
+
+  GNUNET_assert (papi->send != NULL);
+  GNUNET_assert (papi->get_session != NULL);
+
+  struct Session * session = papi->get_session(papi->cls, address);
+  if (session == NULL)
+  {
+     GNUNET_break (0);
+     return;
+  }
+
+  papi->send_with_session (papi->cls, session,
+              (const char *) pong, ntohs (pong->header.size),
+              PONG_PRIORITY, ACCEPTABLE_PING_DELAY,
+              NULL, NULL);
 }
 
 
@@ -862,11 +886,27 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
   if (papi == NULL)
     ret = -1;
   else
-    ret =
-        papi->send (papi->cls, sender, (const char *) pong,
-                    ntohs (pong->header.size), PONG_PRIORITY,
-                    ACCEPTABLE_PING_DELAY, session, sender_address->address,
-                    sender_address->address_length, GNUNET_SYSERR, NULL, NULL);
+  {
+    GNUNET_assert (papi->send != NULL);
+    GNUNET_assert (papi->get_session != NULL);
+
+    if ((session == NULL) && (sender_address != NULL))
+    {
+      session = papi->get_session (papi->cls, sender_address);
+    }
+    if (session == NULL)
+    {
+      GNUNET_break (0);
+      ret = -1;
+    }
+    else
+    {
+      ret = papi->send_with_session (papi->cls, session,
+                        (const char *) pong, ntohs (pong->header.size),
+                        PONG_PRIORITY, ACCEPTABLE_PING_DELAY,
+                        NULL, NULL);
+    }
+  }
   if (ret != -1)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
