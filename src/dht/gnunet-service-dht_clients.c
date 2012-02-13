@@ -226,7 +226,7 @@ static struct ClientList *client_tail;
 static struct ClientMonitorRecord *monitor_head;
 
 /**
- * List of active monitoring requests..
+ * List of active monitoring requests.
  */
 static struct ClientMonitorRecord *monitor_tail;
 
@@ -1033,10 +1033,10 @@ GDS_CLIENTS_handle_reply (struct GNUNET_TIME_Absolute expiration,
  * @param mtype Type of the DHT message.
  * @param exp When will this value expire.
  * @param key Key of the result/request.
- * @param get_path Peers on reply path (or NULL if not recorded).
- * @param get_path_length number of entries in get_path.
+ * @param putl number of entries in get_path.
  * @param put_path peers on the PUT path (or NULL if not recorded).
- * @param put_path_length number of entries in get_path.
+ * @param getl number of entries in get_path.
+ * @param get_path Peers on reply path (or NULL if not recorded).
  * @param desired_replication_level Desired replication level.
  * @param type Type of the result/request.
  * @param data Pointer to the result data.
