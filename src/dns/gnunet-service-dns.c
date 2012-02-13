@@ -1394,7 +1394,7 @@ receive_dns_request (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
   struct sockaddr_in6 v6;
   struct sockaddr *so;
   socklen_t salen;
-
+  
   if (dlen < sizeof (struct GNUNET_TUN_DnsHeader))
   {
     GNUNET_break_op (0);
@@ -1410,7 +1410,6 @@ receive_dns_request (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
   memcpy (buf, dns, dlen);
   dout = (struct GNUNET_TUN_DnsHeader*) buf;
   dout->id = ts->my_id;
-  
   memset (&v4, 0, sizeof (v4));
   memset (&v6, 0, sizeof (v6));
   if (1 == inet_pton (AF_INET, dns_exit, &v4.sin_addr))
@@ -1423,8 +1422,8 @@ receive_dns_request (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
 #endif
     so = (struct sockaddr *) &v4;
     ts->dnsout = get_request_socket (AF_INET);
-  } 
-  if (1 == inet_pton (AF_INET6, dns_exit, &v6.sin6_addr))
+  }
+  else if (1 == inet_pton (AF_INET6, dns_exit, &v6.sin6_addr))
   {
     salen = sizeof (v6);
     v6.sin6_family = AF_INET6;
@@ -1435,6 +1434,11 @@ receive_dns_request (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
     so = (struct sockaddr *) &v6;
     ts->dnsout = get_request_socket (AF_INET6);
   }  
+  else
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
   if (NULL == ts->dnsout)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -1542,8 +1546,12 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 						 &dns_exit)) ||
 	 ( (1 != inet_pton (AF_INET, dns_exit, &dns_exit4)) &&
 	   (1 != inet_pton (AF_INET6, dns_exit, &dns_exit6)) ) ) )
+  {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		_("Configured to provide DNS exit, but no valid DNS server configured!\n"));
+    GNUNET_free_non_null (dns_exit);
+    dns_exit = NULL;
+  }
 
   helper_argv[0] = GNUNET_strdup ("gnunet-dns");
   if (GNUNET_SYSERR ==
