@@ -471,7 +471,7 @@ GNUNET_OS_check_helper_binary (const char *binary)
     GNUNET_free (p);
     p = pf;
   }
-  free (binaryexe);
+  GNUNET_free (binaryexe);
 #else
   p = get_path_from_PATH (binary);
   if (p != NULL)

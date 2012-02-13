@@ -456,7 +456,7 @@ parse_definitions (const char *constname, int force)
           from_line = strtol (start, &t, 10);
           if (errno != 0 || from_line < 0)
           {
-            free (def);
+            GNUNET_free (def);
             return counter;
           }
           if (t < p && t[0] == '-')
@@ -466,7 +466,7 @@ parse_definitions (const char *constname, int force)
             to_line = strtol (start, &t, 10);
             if (errno != 0 || to_line < 0 || t != p)
             {
-              free (def);
+              GNUNET_free (def);
               return counter;
             }
           }
@@ -498,7 +498,7 @@ parse_definitions (const char *constname, int force)
             0 != add_definition (comp, file, function, from_line, to_line,
                                  level, force))
         {
-          free (def);
+          GNUNET_free (def);
           return counter;
         }
         counter += 1;
@@ -511,7 +511,7 @@ parse_definitions (const char *constname, int force)
       break;
     }
   }
-  free (def);
+  GNUNET_free (def);
   return counter;
 }
 
