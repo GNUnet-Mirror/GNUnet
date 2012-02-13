@@ -624,12 +624,12 @@ send_with_session (struct NeighbourMapEntry *n,
     return GNUNET_SYSERR;
   }
 
-  ret = papi->send_with_session (papi->cls,
-                                 n->session,
-                                 msgbuf, msgbuf_size,
-                                 0,
-                                 timeout,
-                                 cont, cont_cls);
+  ret = papi->send (papi->cls,
+                   n->session,
+                   msgbuf, msgbuf_size,
+                   0,
+                   timeout,
+                   cont, cont_cls);
 
   if ((ret == -1) && (cont != NULL))
       cont (cont_cls, &n->id, GNUNET_SYSERR);

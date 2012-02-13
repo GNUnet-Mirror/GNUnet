@@ -124,43 +124,47 @@ struct Plugin
 
 };
 
+
 /**
  * Function that can be used by the transport service to transmit
- * a message using the plugin.
+ * a message using the plugin.   Note that in the case of a
+ * peer disconnecting, the continuation MUST be called
+ * prior to the disconnect notification itself.  This function
+ * will be called with this peer's HELLO message to initiate
+ * a fresh connection to another peer.
  *
  * @param cls closure
- * @param target who should receive this message
- * @param priority how important is the message
+ * @param session which session must be used
  * @param msgbuf the message to transmit
  * @param msgbuf_size number of bytes in 'msgbuf'
- * @param timeout when should we time out
- * @param session which session must be used (or NULL for "any")
- * @param addr the address to use (can be NULL if the plugin
- *                is "on its own" (i.e. re-use existing TCP connection))
- * @param addrlen length of the address in bytes
- * @param force_address GNUNET_YES if the plugin MUST use the given address,
- *                otherwise the plugin may use other addresses or
- *                existing connections (if available)
+ * @param priority how important is the message (most plugins will
+ *                 ignore message priority and just FIFO)
+ * @param to how long to wait at most for the transmission (does not
+ *                require plugins to discard the message after the timeout,
+ *                just advisory for the desired delay; most plugins will ignore
+ *                this as well)
  * @param cont continuation to call once the message has
  *        been transmitted (or if the transport is ready
  *        for the next transmission call; or if the
- *        peer disconnected...)
+ *        peer disconnected...); can be NULL
  * @param cont_cls closure for cont
  * @return number of bytes used (on the physical network, with overheads);
  *         -1 on hard errors (i.e. address invalid); 0 is a legal value
  *         and does NOT mean that the message was not transmitted (DV)
  */
 static ssize_t
-template_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
-                      const char *msgbuf, size_t msgbuf_size,
-                      unsigned int priority,
-                      struct GNUNET_TIME_Relative timeout,
-                      struct Session *session, const void *addr, size_t addrlen,
-                      int force_address,
-                      GNUNET_TRANSPORT_TransmitContinuation cont,
-                      void *cont_cls)
+template_plugin_send (void *cls,
+                  struct Session *session,
+                  const char *msgbuf, size_t msgbuf_size,
+                  unsigned int priority,
+                  struct GNUNET_TIME_Relative to,
+                  GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls)
 {
+  struct Plugin *plugin = cls;
   int bytes_sent = 0;
+
+  GNUNET_assert (plugin != NULL);
+  GNUNET_assert (session != NULL);
 
   /*  struct Plugin *plugin = cls; */
   return bytes_sent;

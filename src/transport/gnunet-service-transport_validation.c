@@ -486,7 +486,7 @@ transmit_ping_if_allowed (void *cls, const struct GNUNET_PeerIdentity *pid,
 
       if (session != NULL)
       {
-        ret = papi->send_with_session (papi->cls, session,
+        ret = papi->send (papi->cls, session,
                           message_buf, tsize,
                           PING_PRIORITY, ACCEPTABLE_PING_DELAY,
                           NULL, NULL);
@@ -751,7 +751,7 @@ multicast_pong (void *cls,
      return;
   }
 
-  papi->send_with_session (papi->cls, session,
+  papi->send (papi->cls, session,
               (const char *) pong, ntohs (pong->header.size),
               PONG_PRIORITY, ACCEPTABLE_PING_DELAY,
               NULL, NULL);
@@ -901,7 +901,7 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
     }
     else
     {
-      ret = papi->send_with_session (papi->cls, session,
+      ret = papi->send (papi->cls, session,
                         (const char *) pong, ntohs (pong->header.size),
                         PONG_PRIORITY, ACCEPTABLE_PING_DELAY,
                         NULL, NULL);

@@ -928,37 +928,6 @@ udp_plugin_send (void *cls,
   return mlen;
 }
 
-static ssize_t udp_plugin_send_wrapper (void *cls,
-                                        const struct
-                                        GNUNET_PeerIdentity *
-                                        target,
-                                        const char *msgbuf,
-                                        size_t msgbuf_size,
-                                        uint32_t priority,
-                                        struct
-                                        GNUNET_TIME_Relative
-                                        timeout,
-                                        struct Session * session,
-                                        const void *addr,
-                                        size_t addrlen,
-                                        int force_address,
-                                        GNUNET_TRANSPORT_TransmitContinuation
-                                        cont, void *cont_cls)
-{
-  int ret;
-  struct Session * s = NULL;
-  struct GNUNET_HELLO_Address * ha = NULL;
-
-  ha = GNUNET_HELLO_address_allocate(target, "", addr,addrlen);
-  GNUNET_assert (ha != NULL);
-  s = udp_plugin_get_session(cls, ha);
-  GNUNET_assert (s != NULL);
-  GNUNET_free (ha);
-  ret = udp_plugin_send (cls, s, msgbuf, msgbuf_size, priority, timeout, cont, cont_cls);
-
-  return ret;
-}
-
 
 /**
  * Our external IP address/port mapping has changed.
@@ -1937,8 +1906,7 @@ libgnunet_plugin_transport_udp_init (void *cls)
   api->address_to_string = &udp_address_to_string;
   api->check_address = &udp_plugin_check_address;
   api->get_session = &udp_plugin_get_session;
-  api->send = &udp_plugin_send_wrapper;
-  api->send_with_session = &udp_plugin_send;
+  api->send = &udp_plugin_send;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Setting up sockets\n");
   res = setup_sockets (plugin, &serverAddrv6, &serverAddrv4);

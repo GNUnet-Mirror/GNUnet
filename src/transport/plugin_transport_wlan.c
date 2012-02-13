@@ -2329,123 +2329,6 @@ wlan_plugin_send (void *cls,
 
 
 /**
- * Function that can be used by the transport service to transmit
- * a message using the plugin.
- *
- * @param cls closure
- * @param target who should receive this message
- * @param priority how important is the message
- * @param msgbuf the message to transmit
- * @param msgbuf_size number of bytes in 'msgbuf'
- * @param timeout when should we time out
- * @param session which session must be used (or NULL for "any")
- * @param addr the address to use (can be NULL if the plugin
- *                is "on its own" (i.e. re-use existing TCP connection))
- * @param addrlen length of the address in bytes
- * @param force_address GNUNET_YES if the plugin MUST use the given address,
- *                otherwise the plugin may use other addresses or
- *                existing connections (if available)
- * @param cont continuation to call once the message has
- *        been transmitted (or if the transport is ready
- *        for the next transmission call; or if the
- *        peer disconnected...)
- * @param cont_cls closure for cont
- * @return number of bytes used (on the physical network, with overheads);
- *         -1 on hard errors (i.e. address invalid); 0 is a legal value
- *         and does NOT mean that the message was not transmitted (DV)
- */
-static ssize_t
-wlan_plugin_send_old (void *cls, const struct GNUNET_PeerIdentity *target,
-                  const char *msgbuf, size_t msgbuf_size, unsigned int priority,
-                  struct GNUNET_TIME_Relative timeout, struct Session *session,
-                  const void *addr, size_t addrlen, int force_address,
-                  GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls)
-{
-  struct Plugin *plugin = cls;
-  struct PendingMessage *newmsg;
-  struct WlanHeader *wlanheader;
-
-  GNUNET_assert (plugin != NULL);
-  //check if msglen > 0
-  GNUNET_assert (msgbuf_size > 0);
-
-  //get session if needed
-  if (session == NULL)
-  {
-    if (wlan_plugin_address_suggested (plugin, addr, addrlen) == GNUNET_OK)
-    {
-      session = get_session (plugin, addr, target);
-    }
-    else
-    {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, PLUGIN_LOG_NAME,
-                       _("Wlan Address len %d is wrong\n"), addrlen);
-      return -1;
-    }
-  }
-
-  GNUNET_STATISTICS_update (plugin->env->stats, _("# wlan messages queued"), 1,
-                            GNUNET_NO);
-
-  //queue message:
-
-  //queue message in session
-  //test if there is no other message in the "queue"
-  //FIXME: to many send requests
-  if (session->pending_message_head != NULL)
-  {
-    newmsg = session->pending_message_head;
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, PLUGIN_LOG_NAME,
-                     "wlan_plugin_send: a pending message is already in the queue for this client\n remaining time to send this message is %u, queued fragment messages for this mac connection %u\n",
-                     GNUNET_TIME_absolute_get_remaining (newmsg->
-                                                         timeout).rel_value,
-                     session->mac->fragment_messages_out_count);
-  }
-
-  newmsg = GNUNET_malloc (sizeof (struct PendingMessage));
-  newmsg->msg = GNUNET_malloc (msgbuf_size + sizeof (struct WlanHeader));
-  wlanheader = newmsg->msg;
-  //copy msg to buffer, not fragmented / segmented yet, but with message header
-  wlanheader->header.size = htons (msgbuf_size + sizeof (struct WlanHeader));
-  wlanheader->header.type = htons (GNUNET_MESSAGE_TYPE_WLAN_DATA);
-  memcpy (&(wlanheader->target), target, sizeof (struct GNUNET_PeerIdentity));
-  memcpy (&(wlanheader->source), plugin->env->my_identity,
-          sizeof (struct GNUNET_PeerIdentity));
-  wlanheader->crc = 0;
-  memcpy (&wlanheader[1], msgbuf, msgbuf_size);
-  wlanheader->crc =
-      htonl (GNUNET_CRYPTO_crc32_n
-             ((char *) wlanheader, msgbuf_size + sizeof (struct WlanHeader)));
-
-  newmsg->transmit_cont = cont;
-  newmsg->transmit_cont_cls = cont_cls;
-  newmsg->timeout = GNUNET_TIME_relative_to_absolute (timeout);
-
-  newmsg->timeout.abs_value = newmsg->timeout.abs_value - 500;
-
-  newmsg->message_size = msgbuf_size + sizeof (struct WlanHeader);
-
-  GNUNET_CONTAINER_DLL_insert_tail (session->pending_message_head,
-                                    session->pending_message_tail, newmsg);
-
-#if DEBUG_wlan
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, PLUGIN_LOG_NAME,
-                   "New message for %p with size (incl wlan header) %u added\n",
-                   session, newmsg->message_size);
-#endif
-#if DEBUG_wlan_msg_dump > 1
-  hexdump (msgbuf, GNUNET_MIN (msgbuf_size, 256));
-#endif
-  //queue session
-  queue_session (plugin, session);
-
-  check_fragment_queue (plugin);
-  //FIXME not the correct size
-  return msgbuf_size;
-
-}
-
-/**
  * function to free a mac endpoint
  * @param plugin pointer to the plugin struct
  * @param endpoint pointer to the MacEndpoint to free
@@ -3396,8 +3279,7 @@ libgnunet_plugin_transport_wlan_init (void *cls)
 
   api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
   api->cls = plugin;
-  api->send = &wlan_plugin_send_old;
-  api->send_with_session = &wlan_plugin_send;
+  api->send = &wlan_plugin_send;
   api->get_session = &wlan_plugin_get_session;
   api->disconnect = &wlan_plugin_disconnect;
   api->address_pretty_printer = &wlan_plugin_address_pretty_printer;

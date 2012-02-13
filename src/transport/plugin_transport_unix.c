@@ -636,104 +636,6 @@ unix_plugin_send (void *cls,
 
 
 /**
- * Function that can be used by the transport service to transmit
- * a message using the plugin.
- *
- * @param cls closure
- * @param target who should receive this message (ignored by UNIX)
- * @param msgbuf one or more GNUNET_MessageHeader(s) strung together
- * @param msgbuf_size the size of the msgbuf to send
- * @param priority how important is the message (ignored by UNIX)
- * @param timeout when should we time out (give up) if we can not transmit?
- * @param session identifier used for this session (can be NULL)
- * @param addr the addr to send the message to, needs to be a sockaddr for us
- * @param addrlen the len of addr
- * @param force_address not used, we had better have an address to send to
- *        because we are stateless!!
- * @param cont continuation to call once the message has
- *        been transmitted (or if the transport is ready
- *        for the next transmission call; or if the
- *        peer disconnected...)
- * @param cont_cls closure for cont
- *
- * @return the number of bytes written (may return 0 and the message can
- *         still be transmitted later!)
- */
-static ssize_t
-unix_plugin_send_old (void *cls, const struct GNUNET_PeerIdentity *target,
-                  const char *msgbuf, size_t msgbuf_size, unsigned int priority,
-                  struct GNUNET_TIME_Relative timeout, struct Session *session,
-                  const void *addr, size_t addrlen, int force_address,
-                  GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls)
-{
-  struct Plugin *plugin = cls;
-  struct UNIXMessage *message;
-  struct UNIXMessageWrapper *wrapper;
-  int ssize;
-  struct gsi_ctx gsi;
-
-  /* Build the message to be sent */
-  wrapper = GNUNET_malloc (sizeof (struct UNIXMessageWrapper) + addrlen);
-  message = GNUNET_malloc (sizeof (struct UNIXMessage) + msgbuf_size);
-  ssize = sizeof (struct UNIXMessage) + msgbuf_size;
-
-#if DEBUG_UNIX
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Asked to send message to `%s'\n",
-              (char *) addr);
-#endif
-
-  message->header.size = htons (ssize);
-  message->header.type = htons (0);
-  memcpy (&message->sender, plugin->env->my_identity,
-          sizeof (struct GNUNET_PeerIdentity));
-  memcpy (&message[1], msgbuf, msgbuf_size);
-
-  if (session == NULL)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Looking for existing session\n");
-    gsi.address = (char *) addr;
-    gsi.addrlen = addrlen;
-    gsi.res = NULL;
-    GNUNET_CONTAINER_multihashmap_get_multiple (plugin->session_map, &target->hashPubKey, &get_session_it, &gsi);
-    wrapper->session = gsi.res;
-    if (gsi.res == NULL)
-    {
-      wrapper->session = GNUNET_malloc (sizeof (struct Session) + addrlen);
-      wrapper->session->addr = &wrapper->session[1];
-      wrapper->session->addrlen = addrlen;
-      memcpy(wrapper->session->addr, addr, wrapper->session->addrlen);
-      memcpy(&wrapper->session->target, target, sizeof (struct GNUNET_PeerIdentity));
-      GNUNET_CONTAINER_multihashmap_put (plugin->session_map,
-          &target->hashPubKey, wrapper->session,
-          GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created new session for `%s'\n", addr);
-    }
-    else
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found existing session\n");
-
-  }
-  else
-    wrapper->session = session;
-
-  wrapper->msg = message;
-  wrapper->msgsize = ssize;
-  wrapper->priority = priority;
-  wrapper->timeout = timeout;
-  wrapper->cont = cont;
-  wrapper->cont_cls = cont_cls;
-  wrapper->retry_counter = 0;
-  GNUNET_CONTAINER_DLL_insert(plugin->msg_head, plugin->msg_tail, wrapper);
-
-#if DEBUG_UNIX
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sent %d bytes to `%s'\n", ssize,
-              (char *) addr);
-#endif
-  return ssize;
-}
-
-
-/**
  * Demultiplexer for UNIX messages
  *
  * @param plugin the main plugin for this transport
@@ -1121,8 +1023,7 @@ libgnunet_plugin_transport_unix_init (void *cls)
   api->cls = plugin;
 
   api->get_session = &unix_plugin_get_session;
-  api->send_with_session = &unix_plugin_send;
-  api->send = &unix_plugin_send_old;
+  api->send = &unix_plugin_send;
   api->disconnect = &unix_disconnect;
   api->address_pretty_printer = &unix_plugin_address_pretty_printer;
   api->address_to_string = &unix_address_to_string;
