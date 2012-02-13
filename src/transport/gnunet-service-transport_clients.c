@@ -895,6 +895,16 @@ clients_handle_address_iterate (void *cls, struct GNUNET_SERVER_Client *client,
     return;
   }
   msg = (struct AddressIterateMessage *) message;
+  if ( (GNUNET_YES != ntohl (msg->one_shot)) &&
+       (NULL != lookup_monitoring_client (client)) )
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
+		"ServerClient %p tried to start monitoring twice (MonitoringClient %p)\n",
+		client, mc);
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
   GNUNET_SERVER_disable_receive_done_warning (client);
   tc = GNUNET_SERVER_transmit_context_create (client);
   if (0 == memcmp (&msg->peer, &all_zeros, sizeof (struct GNUNET_PeerIdentity)))
@@ -910,24 +920,10 @@ clients_handle_address_iterate (void *cls, struct GNUNET_SERVER_Client *client,
       output_address (tc, &msg->peer, NULL, 0, address);
   }
   if (GNUNET_YES != ntohl (msg->one_shot))
-  {
-    mc = lookup_monitoring_client (client);
-    if (mc != NULL)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
-                  "ServerClient %p tried to start monitoring twice (MonitoringClient %p)\n",
-                  client, mc);
-      GNUNET_break (0);
-      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-      return;
-    }
     setup_monitoring_client (client, &msg->peer);
-  }
   else
-  {
     GNUNET_SERVER_transmit_context_append_data (tc, NULL, 0,
-						GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE_RESPONSE);
-  }
+						GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE_RESPONSE);  
   GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
 }
 
