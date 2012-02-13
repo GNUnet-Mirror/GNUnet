@@ -5183,7 +5183,10 @@ GNUNET_TESTING_get_statistics (struct GNUNET_TESTING_PeerGroup *pg,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Retrieving stats from %u total instances.\n", total_count);
-  stats_context->total = total_count;
+  if (0 != total_count)
+    stats_context->total = total_count;
+  else
+    GNUNET_free (stats_context);
   if (stats_list != NULL)
   {
     pos = stats_list;
