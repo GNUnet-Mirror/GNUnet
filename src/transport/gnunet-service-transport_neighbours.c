@@ -636,59 +636,6 @@ send_with_session (struct NeighbourMapEntry *n,
   return ret;
 }
 
-
-static ssize_t
-send_with_plugin (const struct GNUNET_PeerIdentity *target, const char *msgbuf,
-                  size_t msgbuf_size, uint32_t priority,
-                  struct GNUNET_TIME_Relative timeout, struct Session *session,
-                  const struct GNUNET_HELLO_Address *address, int force_address,
-                  GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls)
-{
-#if TEST_NEW_CODE
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-              "Call to depracted function send_with_plugin\n");
-#endif
-
-  struct GNUNET_TRANSPORT_PluginFunctions *papi;
-  size_t ret = GNUNET_SYSERR;
-
-  /* FIXME : ats returns an address with all values 0 */
-  if (address == NULL)
-  {
-    if (cont != NULL)
-      cont (cont_cls, target, GNUNET_SYSERR);
-    return GNUNET_SYSERR;
-  }
-
-  if ((session == NULL) && (address->address_length == 0))
-  {
-    if (cont != NULL)
-      cont (cont_cls, target, GNUNET_SYSERR);
-    return GNUNET_SYSERR;
-  }
-
-  papi = GST_plugins_find (address->transport_name);
-  if (papi == NULL)
-  {
-    if (cont != NULL)
-      cont (cont_cls, target, GNUNET_SYSERR);
-    return GNUNET_SYSERR;
-  }
-
-  ret =
-      papi->send (papi->cls, target, msgbuf, msgbuf_size, 0, timeout, session,
-                  address->address, address->address_length, GNUNET_YES, cont,
-                  cont_cls);
-
-  if (ret == -1)
-  {
-    if (cont != NULL)
-      cont (cont_cls, target, GNUNET_SYSERR);
-  }
-  return ret;
-}
-
-
 /**
  * Task invoked to start a transmission to another peer.
  *
@@ -806,18 +753,10 @@ try_transmission_to_peer (struct NeighbourMapEntry *n)
     return;
   }
 
-#if TEST_NEW_CODE
   ret = send_with_session(n,
               mq->message_buf, mq->message_buf_size,
               0, timeout,
               &transmit_send_continuation, mq);
-#else
-  ret = send_with_plugin (&n->id,
-                          mq->message_buf, mq->message_buf_size,
-                          0, timeout,
-                          n->session, n->address, GNUNET_YES,
-                          &transmit_send_continuation, mq);
-#endif
 
   if (ret == -1)
   {
@@ -911,18 +850,10 @@ send_disconnect (struct NeighbourMapEntry * n)
                                          &disconnect_msg.purpose,
                                          &disconnect_msg.signature));
 
-#if TEST_NEW_CODE
   ret = send_with_session (n,
             (const char *) &disconnect_msg, sizeof (disconnect_msg),
             UINT32_MAX, GNUNET_TIME_UNIT_FOREVER_REL,
             &send_disconnect_cont, NULL);
-#else
-  ret = send_with_plugin (&n->id,
-                        (const char *) &disconnect_msg, sizeof (disconnect_msg),
-                        UINT32_MAX, GNUNET_TIME_UNIT_FOREVER_REL,
-                        n->session, n->address,
-                        GNUNET_YES, &send_disconnect_cont, NULL);
-#endif
 
   if (ret == GNUNET_SYSERR)
     return GNUNET_SYSERR;
@@ -1098,18 +1029,11 @@ neighbour_keepalive_task (void *cls,
   m.size = htons (sizeof (struct GNUNET_MessageHeader));
   m.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_KEEPALIVE);
 
-#if TEST_NEW_CODE
   ret = send_with_session (n,
             (const void *) &m, sizeof (m),
             UINT32_MAX /* priority */ ,
             GNUNET_TIME_UNIT_FOREVER_REL,
             NULL, NULL);
-#else
-  ret = send_with_plugin (&n->id, (const void *) &m, sizeof (m),
-                        UINT32_MAX /* priority */ ,
-                        GNUNET_TIME_UNIT_FOREVER_REL, n->session, n->address,
-                        GNUNET_YES, NULL, NULL);
-#endif
 
   n->expect_latency_response = GNUNET_NO;
   n->keep_alive_sent = GNUNET_TIME_absolute_get_zero ();
@@ -1532,7 +1456,6 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
   if (NULL != address_change_cb && n->state == S_CONNECTED)
     address_change_cb (callback_cls, &n->id, n->address); 
 
-#if TEST_NEW_CODE
   /* Obtain an session for this address from plugin */
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
   papi = GST_plugins_find (address->transport_name);
@@ -1573,12 +1496,6 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
                 n->session, GNUNET_i2s (&n->id), GST_plugins_a2s (n->address));
     n->session = session;
   }
-#else
-  n->session = session;
-
-  /* dummy */
-  if (NULL != NULL) send_with_session( NULL, NULL, 0, 0, GNUNET_TIME_relative_get_zero(), NULL, NULL);
-#endif
 
   switch (n->state)
   {
@@ -1596,17 +1513,10 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
     cc->session = session;
     cc->address = GNUNET_HELLO_address_copy (address);
 
-#if TEST_NEW_CODE
-  ret = send_with_session (n,
+    ret = send_with_session (n,
       (const char *) &connect_msg, msg_len,
       UINT32_MAX, GNUNET_TIME_UNIT_FOREVER_REL,
       &send_connect_continuation, cc);
-#else
-  ret =
-      send_with_plugin (peer, (const char *) &connect_msg, msg_len,
-                        UINT32_MAX, GNUNET_TIME_UNIT_FOREVER_REL, session,
-                        address, GNUNET_YES, &send_connect_continuation, cc);
-#endif
 
     return GNUNET_NO;
   case S_CONNECT_RECV:
@@ -1621,19 +1531,12 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
     cc = GNUNET_malloc (sizeof (struct ContinutionContext));
     cc->session = session;
     cc->address = GNUNET_HELLO_address_copy (address);
-#if TEST_NEW_CODE
+
     ret = send_with_session(n,
                             (const void *) &connect_msg, msg_len,
                             UINT32_MAX, GNUNET_TIME_UNIT_FOREVER_REL,
                             &send_connect_ack_continuation,
                             cc);
-#else
-    ret =
-        send_with_plugin (&n->id, (const void *) &connect_msg, msg_len,
-                          UINT32_MAX, GNUNET_TIME_UNIT_FOREVER_REL, session,
-                          address, GNUNET_YES, &send_connect_ack_continuation,
-                          cc);
-#endif
     return GNUNET_NO;
   case S_CONNECTED:
   case S_FAST_RECONNECT:
@@ -1648,21 +1551,10 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
     cc = GNUNET_malloc (sizeof (struct ContinutionContext));
     cc->session = session;
     cc->address = GNUNET_HELLO_address_copy (address);
-
-#if TEST_NEW_CODE
     ret = send_with_session(n,
                             (const void *) &connect_msg, msg_len,
                             UINT32_MAX, GNUNET_TIME_UNIT_FOREVER_REL,
                             &send_switch_address_continuation, cc);
-#else
-    ret =
-        send_with_plugin (peer, (const char *) &connect_msg, msg_len,
-                          UINT32_MAX, GNUNET_TIME_UNIT_FOREVER_REL, session,
-                          address, GNUNET_YES,
-                          &send_switch_address_continuation, cc);
-#endif
-
-
     if (ret == GNUNET_SYSERR)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -2127,22 +2019,11 @@ GST_neighbours_keepalive (const struct GNUNET_PeerIdentity *neighbour)
   m.size = htons (sizeof (struct GNUNET_MessageHeader));
   m.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_KEEPALIVE_RESPONSE);
 
-#if TEST_NEW_CODE
   send_with_session(n,
       (const void *) &m, sizeof (m),
       UINT32_MAX,
       GNUNET_TIME_UNIT_FOREVER_REL,
       NULL, NULL);
-#else
-  send_with_plugin (&n->id,
-      (const void *) &m, sizeof (m),
-      UINT32_MAX /* priority */ ,
-      GNUNET_TIME_UNIT_FOREVER_REL,
-      n->session, n->address,
-      GNUNET_YES, NULL, NULL);
-#endif
-
-
 }
 
 /**
@@ -2521,19 +2402,10 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
   msg.size = htons (msg_len);
   msg.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_ACK);
 
-#if TEST_NEW_CODE
   ret = send_with_session(n,
             (const char *) &msg, msg_len,
             UINT32_MAX, GNUNET_TIME_UNIT_FOREVER_REL,
             NULL, NULL);
-#else
-  ret =
-      send_with_plugin (&n->id,
-                        (const char *) &msg, msg_len,
-                        UINT32_MAX, GNUNET_TIME_UNIT_FOREVER_REL,
-                        n->session, n->address, GNUNET_YES,
-                        NULL, NULL);
-#endif
 
   if (ret == GNUNET_SYSERR)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
