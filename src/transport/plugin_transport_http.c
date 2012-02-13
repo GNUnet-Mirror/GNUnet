@@ -511,6 +511,10 @@ http_get_session (void *cls,
 
   GNUNET_assert (plugin != NULL);
   GNUNET_assert (address != NULL);
+  GNUNET_assert (address->address != NULL);
+
+  ats.type = htonl (GNUNET_ATS_ARRAY_TERMINATOR);
+  ats.value = htonl (GNUNET_ATS_ARRAY_TERMINATOR);
 
   /* find existing session */
   s = lookup_session (plugin, address);
@@ -543,7 +547,7 @@ http_get_session (void *cls,
   s->ats_address_network_type = htonl (GNUNET_ATS_NET_UNSPECIFIED);
 
   /* Get ATS type */
-  if ((addrlen == sizeof (struct IPv4HttpAddress)) && (address->address != NULL))
+  if (addrlen == sizeof (struct IPv4HttpAddress))
   {
     struct IPv4HttpAddress *a4 = (struct IPv4HttpAddress *) address->address;
     struct sockaddr_in s4;
@@ -556,7 +560,7 @@ http_get_session (void *cls,
 #endif
     ats = plugin->env->get_address_type (plugin->env->cls, (const struct sockaddr *) &s4, sizeof (struct sockaddr_in));
   }
-  if ((addrlen == sizeof (struct IPv6HttpAddress)) && (address->address != NULL))
+  if (addrlen == sizeof (struct IPv6HttpAddress))
   {
     struct IPv6HttpAddress *a6 = (struct IPv6HttpAddress *) address->address;
     struct sockaddr_in6 s6;
