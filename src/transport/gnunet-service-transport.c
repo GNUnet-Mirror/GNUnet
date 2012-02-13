@@ -120,7 +120,7 @@ process_hello_update (void *cls, const struct GNUNET_MessageHeader *hello)
  * @param peer (claimed) identity of the other peer
  * @param address the address
  * @param session session used
- * @param msg the message to process
+ * @param message the message to process
  * @param ats performance information
  * @param ats_count number of records in ats
  * @return how long the plugin should wait until receiving more data
@@ -408,7 +408,7 @@ plugin_env_address_to_type (void *cls,
  * @param bandwidth_out assigned outbound bandwidth for the connection, 0 to disconnect from peer
  * @param bandwidth_in assigned inbound bandwidth for the connection, 0 to disconnect from peer
  * @param ats ATS information
- * @param number of ATS elements
+ * @param ats_count number of ATS elements
  */
 static void
 ats_request_address_change (void *cls,

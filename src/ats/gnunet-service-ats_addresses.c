@@ -39,14 +39,14 @@
 
 enum ATS_Mode
 {
-  /**
+  /*
    * Assign each peer an equal amount of bandwidth (bw)
    *
    * bw_per_peer = bw_total / #active addresses
    */
   SIMPLE,
 
-  /**
+  /*
    * Use MLP solver to assign bandwidth
    */
   MLP

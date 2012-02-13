@@ -754,6 +754,7 @@ get_addresses (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 /**
  * Returns where the address is located: LAN or WAN or ...
+ * @param sh the scheduling handle
  * @param addr address
  * @param addrlen address length
  * @return location as GNUNET_ATS_Information

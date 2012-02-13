@@ -538,6 +538,7 @@ GNUNET_ATS_suggest_address_cancel (struct GNUNET_ATS_SchedulingHandle *sh,
 
 /**
  * Returns where the address is located: LAN or WAN or ...
+ * @param sh the GNUNET_ATS_SchedulingHandle handle
  * @param addr address
  * @param addrlen address length
  * @return location as GNUNET_ATS_Information

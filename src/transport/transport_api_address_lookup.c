@@ -19,7 +19,7 @@
 */
 
 /**
- * @file transport/transport_api_peer_address_lookup.c
+ * @file transport/transport_api_address_lookup.c
  * @brief given a peer id, get all known addresses from transport service
  *
  * This api provides the ability to query the transport service about

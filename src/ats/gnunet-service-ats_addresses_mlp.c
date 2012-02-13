@@ -151,7 +151,7 @@ mlp_status_to_string (int retcode)
  * Translate ATS properties to text
  * Just intended for debugging
  *
- * @param retcode return code
+ * @param ats_index the ATS index
  * @return string with result
  */
 const char *
@@ -195,7 +195,9 @@ mlp_ats_to_string (int ats_index)
 
 /**
  * Find a peer in the DLL
- * @param the peer to find
+ *
+ * @param mlp the mlp handle
+ * @param peer the peer to find
  * @return the peer struct
  */
 static struct ATS_Peer *
@@ -381,6 +383,7 @@ mlp_lookup_ats (struct ATS_Address *addr, int ats_index)
  * Adds the problem constraints for all addresses
  * Required for problem recreation after address deletion
  *
+ * @param mlp the mlp handle
  * @param addresses all addresses
  */
 
@@ -684,6 +687,7 @@ create_columns_it (void *cls, const GNUNET_HashCode * key, void *value)
  * Create the MLP problem
  *
  * @param mlp the MLP handle
+ * @param addresses the hashmap containing all adresses
  * @return GNUNET_OK or GNUNET_SYSERR
  */
 static int
@@ -1022,6 +1026,7 @@ GAS_mlp_solve_problem (struct GAS_MLP_Handle *mlp)
 /**
  * Init the MLP problem solving component
  *
+ * @param cfg the GNUNET_CONFIGURATION_Handle handle
  * @param stats the GNUNET_STATISTICS handle
  * @param max_duration maximum numbers of iterations for the LP/MLP Solver
  * @param max_iterations maximum time limit for the LP/MLP Solver
@@ -1393,13 +1398,13 @@ GAS_mlp_address_delete (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_Mult
  * @param mlp the MLP Handle
  * @param peer the peer
  * @param kind the kind to change the preference
- * @param float the score
+ * @param score the score
  */
 void
 GAS_mlp_address_change_preference (struct GAS_MLP_Handle *mlp,
                                    const struct GNUNET_PeerIdentity *peer,
                                    enum GNUNET_ATS_PreferenceKind kind,
-                                   float score)
+                                   float )
 {
   GNUNET_STATISTICS_update (mlp->stats,"# LP address preference changes", 1, GNUNET_NO);
 

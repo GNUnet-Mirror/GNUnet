@@ -339,7 +339,7 @@ GAS_mlp_address_delete (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_Mult
  * @param mlp the MLP Handle
  * @param peer the peer
  * @param kind the kind to change the preference
- * @param float the score
+ * @param score the score
  */
 void
 GAS_mlp_address_change_preference (struct GAS_MLP_Handle *mlp,

@@ -791,19 +791,19 @@ transmission_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param cls closure for callbacks
  * @param connect_cb function to call if we connect to a peer
  * @param disconnect_cb function to call if we disconnect from a peer
- * @param address_cb function to call if we change an active address
+ * @param peer_address_cb function to call if we change an active address
  *                   of a neighbour
  */
 void
 GST_neighbours_start (void *cls,
                       GNUNET_TRANSPORT_NotifyConnect connect_cb,
                       GNUNET_TRANSPORT_NotifyDisconnect disconnect_cb,
-                      GNUNET_TRANSPORT_PeerIterateCallback address_cb)
+                      GNUNET_TRANSPORT_PeerIterateCallback peer_address_cb)
 {
   callback_cls = cls;
   connect_notify_cb = connect_cb;
   disconnect_notify_cb = disconnect_cb;
-  address_change_cb = address_cb;
+  address_change_cb = peer_address_cb;
   neighbours = GNUNET_CONTAINER_multihashmap_create (NEIGHBOUR_TABLE_SIZE);
 }
 
