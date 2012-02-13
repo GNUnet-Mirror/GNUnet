@@ -279,61 +279,6 @@ typedef void (*GNUNET_TRANSPORT_TransmitContinuation) (void *cls,
                                                        GNUNET_PeerIdentity *
                                                        target, int result);
 
-
-/**
- * Function that can be used by the transport service to transmit
- * a message using the plugin.   Note that in the case of a
- * peer disconnecting, the continuation MUST be called
- * prior to the disconnect notification itself.  This function
- * will be called with this peer's HELLO message to initiate
- * a fresh connection to another peer.
- *
- * @param cls closure
- * @param target who should receive this message
- * @param msgbuf the message to transmit
- * @param msgbuf_size number of bytes in 'msgbuf'
- * @param priority how important is the message (most plugins will
- *                 ignore message priority and just FIFO)
- * @param timeout how long to wait at most for the transmission (does not
- *                require plugins to discard the message after the timeout,
- *                just advisory for the desired delay; most plugins will ignore
- *                this as well)
- * @param session which session must be used (or NULL for "any")
- * @param addr the address to use (can be NULL if the plugin
- *                is "on its own" (i.e. re-use existing TCP connection))
- * @param addrlen length of the address in bytes
- * @param force_address GNUNET_YES if the plugin MUST use the given address,
- *                GNUNET_NO means the plugin may use any other address and
- *                GNUNET_SYSERR means that only reliable existing
- *                bi-directional connections should be used (regardless
- *                of address)
- * @param cont continuation to call once the message has
- *        been transmitted (or if the transport is ready
- *        for the next transmission call; or if the
- *        peer disconnected...); can be NULL
- * @param cont_cls closure for cont
- * @return number of bytes used (on the physical network, with overheads);
- *         -1 on hard errors (i.e. address invalid); 0 is a legal value
- *         and does NOT mean that the message was not transmitted (DV)
- */
-typedef ssize_t (*GNUNET_TRANSPORT_TransmitFunction) (void *cls,
-                                                      const struct
-                                                      GNUNET_PeerIdentity *
-                                                      target,
-                                                      const char *msgbuf,
-                                                      size_t msgbuf_size,
-                                                      uint32_t priority,
-                                                      struct
-                                                      GNUNET_TIME_Relative
-                                                      timeout,
-                                                      struct Session * session,
-                                                      const void *addr,
-                                                      size_t addrlen,
-                                                      int force_address,
-                                                      GNUNET_TRANSPORT_TransmitContinuation
-                                                      cont, void *cont_cls);
-
-
 /**
  * The new send function with just the session and no address
  *
@@ -372,7 +317,7 @@ typedef ssize_t (*GNUNET_TRANSPORT_TransmitFunction) (void *cls,
  *         -1 on hard errors (i.e. address invalid); 0 is a legal value
  *         and does NOT mean that the message was not transmitted (DV)
  */
-typedef ssize_t (*GNUNET_TRANSPORT_TransmitFunctionWithSession) (void *cls,
+typedef ssize_t (*GNUNET_TRANSPORT_TransmitFunction) (void *cls,
     struct Session *session,
     const char *msgbuf, size_t msgbuf_size,
     unsigned int priority,
@@ -508,13 +453,6 @@ struct GNUNET_TRANSPORT_PluginFunctions
    * target having disconnected.
    */
   GNUNET_TRANSPORT_TransmitFunction send;
-
-  /**
-   * New send function
-   * Will be renamed to "send" when implementation is done
-   */
-
-  GNUNET_TRANSPORT_TransmitFunctionWithSession send_with_session;
 
   /**
    * Function that can be used to force the plugin to disconnect from
