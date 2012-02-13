@@ -1313,10 +1313,12 @@ tcp_plugin_get_session (void *cls,
   const struct IPv4TcpAddress *t4;
   const struct IPv6TcpAddress *t6;
   unsigned int is_natd = GNUNET_NO;
-  size_t addrlen = address->address_length;
+  size_t addrlen = 0;
 
   GNUNET_assert (plugin != NULL);
   GNUNET_assert (address != NULL);
+
+  addrlen = address->address_length;
 
   if (addrlen == sizeof (struct IPv6TcpAddress))
   {
