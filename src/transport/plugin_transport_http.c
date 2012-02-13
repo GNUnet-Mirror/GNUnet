@@ -390,15 +390,11 @@ lookup_session_old (struct Plugin *plugin, const struct GNUNET_PeerIdentity *tar
                 struct Session *session, const void *addr, size_t addrlen,
                 int force_address)
 {
-  struct Session *s = NULL;
-  struct Session *t = NULL;
+  struct Session *t;
   int e_peer;
   int e_addr;
 
-  t = plugin->head;
-  if (t == NULL)
-    return NULL;
-  while (t != NULL)
+  for (t = plugin->head; NULL != t; t = t->next)
   {
 #if 0
     GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
@@ -414,52 +410,24 @@ lookup_session_old (struct Plugin *plugin, const struct GNUNET_PeerIdentity *tar
 #endif
     e_peer = GNUNET_NO;
     e_addr = GNUNET_NO;
-
     if (0 == memcmp (target, &t->target, sizeof (struct GNUNET_PeerIdentity)))
     {
       e_peer = GNUNET_YES;
-      if (addrlen == t->addrlen)
-      {
-        if (0 == memcmp (addr, t->addr, addrlen))
-        {
-          e_addr = GNUNET_YES;
-        }
-      }
-      if ((t == session))
-      {
-        if (t->addrlen == session->addrlen)
-        {
-          if (0 == memcmp (session->addr, t->addr, t->addrlen))
-          {
-            e_addr = GNUNET_YES;
-          }
-        }
-      }
+      if ( (addrlen == t->addrlen) &&
+	   (0 == memcmp (addr, t->addr, addrlen)) )
+	e_addr = GNUNET_YES;    
+      if ( (t == session) &&
+	   (t->addrlen == session->addrlen) &&
+	   (0 == memcmp (session->addr, t->addr, t->addrlen)) )
+	e_addr = GNUNET_YES;
     }
 
-    if ((e_peer == GNUNET_YES) && (force_address == GNUNET_NO))
-    {
-      s = t;
-      break;
-    }
-    if ((e_peer == GNUNET_YES) && (force_address == GNUNET_YES) &&
-        (e_addr == GNUNET_YES))
-    {
-      s = t;
-      break;
-    }
-    if ((e_peer == GNUNET_YES) && (force_address == GNUNET_SYSERR))
-    {
-      s = t;
-      break;
-    }
-    if (s != NULL)
-      break;
-    t = t->next;
+    if ( ((e_peer == GNUNET_YES) && (force_address == GNUNET_NO)) ||
+	 ((e_peer == GNUNET_YES) && (force_address == GNUNET_YES) && (e_addr == GNUNET_YES)) ||
+	 ((e_peer == GNUNET_YES) && (force_address == GNUNET_SYSERR)) )
+      return t;
   }
-
-
-  return s;
+  return NULL;
 }
 
 struct Session *
