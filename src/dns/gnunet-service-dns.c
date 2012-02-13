@@ -462,6 +462,7 @@ open_socket (int af)
     break;
   default:
     GNUNET_break (0);
+    GNUNET_NETWORK_socket_close (ret);
     return NULL;
   }
   sa->sa_family = af;
