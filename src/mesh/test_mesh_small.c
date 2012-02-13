@@ -44,12 +44,6 @@ struct MeshPeer
 };
 
 
-struct StatsContext
-{
-  unsigned long long total_mesh_bytes;
-};
-
-
 /**
  * How long until we give up on connecting the peers?
  */
