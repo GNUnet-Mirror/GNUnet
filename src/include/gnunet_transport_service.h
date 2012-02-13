@@ -365,7 +365,7 @@ struct GNUNET_TRANSPORT_Blacklist;
  *
  * @param cls closure
  * @param pid peer to approve or disapproave
- * @return GNUNET_OK if the connection is allowed
+ * @return GNUNET_OK if the connection is allowed, GNUNET_SYSERR if not
  */
 typedef int (*GNUNET_TRANSPORT_BlacklistCallback) (void *cls,
                                                    const struct
