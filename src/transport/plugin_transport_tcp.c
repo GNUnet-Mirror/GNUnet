@@ -1320,6 +1320,13 @@ tcp_plugin_get_session (void *cls,
 
   addrlen = address->address_length;
 
+#if DEBUG_TCP
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
+                   "Trying to get session for `%s' address length %i\n",
+                   tcp_address_to_string(NULL, address->address, address->address_length),
+                   addrlen);
+#endif
+
   if (addrlen == sizeof (struct IPv6TcpAddress))
   {
     GNUNET_assert (NULL != address->address);     /* make static analysis happy */
@@ -1368,10 +1375,13 @@ tcp_plugin_get_session (void *cls,
     struct SessionItCtx si_ctx;
     si_ctx.addr = &sbs;
     si_ctx.addrlen = sbs;
+    si_ctx.result = NULL;
     GNUNET_CONTAINER_multihashmap_get_multiple(plugin->sessionmap, &address->peer.hashPubKey, &session_it, &si_ctx);
     if (si_ctx.result != NULL)
+    {
       session = si_ctx.result;
-    return session;
+      return session;
+    }
   }
 
   if ((is_natd == GNUNET_YES) && (addrlen == sizeof (struct IPv6TcpAddress)))
