@@ -880,7 +880,6 @@ clients_handle_address_iterate (void *cls, struct GNUNET_SERVER_Client *client,
   struct GNUNET_SERVER_TransmitContext *tc;
   struct AddressIterateMessage *msg;
   struct GNUNET_HELLO_Address *address;
-  struct MonitoringClient *mc;
 
   if (ntohs (message->type) != GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE)
   {
@@ -899,8 +898,8 @@ clients_handle_address_iterate (void *cls, struct GNUNET_SERVER_Client *client,
        (NULL != lookup_monitoring_client (client)) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
-		"ServerClient %p tried to start monitoring twice (MonitoringClient %p)\n",
-		client, mc);
+		"ServerClient %p tried to start monitoring twice\n",
+		client);
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
