@@ -77,8 +77,11 @@ create_unique_cfgs (const char * template, const unsigned int no)
     return 1;
   }
   /* load defaults */
-  else
-    GNUNET_CONFIGURATION_load(cfg_tmpl,  NULL);
+  else if (GNUNET_OK != GNUNET_CONFIGURATION_load(cfg_tmpl,  NULL))
+  {
+    GNUNET_break (0);
+    return 1;
+  }
 
   if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string(cfg_tmpl, "PATHS", "SERVICEHOME", &service_home))
   {
