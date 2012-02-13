@@ -285,10 +285,8 @@ struct GNUNET_TRANSPORT_AddressToStringContext;
  *
  * @param cfg configuration to use
  * @param address address to convert (binary format)
- * @param addressLen number of bytes in address
  * @param numeric should (IP) addresses be displayed in numeric form
  *                (otherwise do reverse DNS lookup)
- * @param nameTrans name of the transport to which the address belongs
  * @param timeout how long is the lookup allowed to take at most
  * @param aluc function to call with the results
  * @param aluc_cls closure for aluc

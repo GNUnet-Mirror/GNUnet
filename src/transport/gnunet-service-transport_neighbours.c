@@ -1353,7 +1353,7 @@ send_connect_ack_continuation (void *cls,
 
 /**
  * For an existing neighbour record, set the active connection to
- * the given address.
+ * use the given address.
  *
  * @param peer identity of the peer to switch the address for
  * @param address address of the other peer, NULL if other peer
@@ -1361,6 +1361,8 @@ send_connect_ack_continuation (void *cls,
  * @param session session to use (or NULL)
  * @param ats performance data
  * @param ats_count number of entries in ats
+ * @param bandwidth_in inbound quota to be used when connection is up
+ * @param bandwidth_out outbound quota to be used when connection is up
  * @return GNUNET_YES if we are currently connected, GNUNET_NO if the
  *         connection is not up (yet)
  */

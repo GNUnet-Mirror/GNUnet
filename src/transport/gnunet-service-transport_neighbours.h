@@ -221,10 +221,8 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
                                        *address, struct Session *session,
                                        const struct GNUNET_ATS_Information *ats,
                                        uint32_t ats_count,
-                                       struct GNUNET_BANDWIDTH_Value32NBO
-                                       bandwidth_in,
-                                       struct GNUNET_BANDWIDTH_Value32NBO
-                                       bandwidth_out);
+                                       struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
+                                       struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out);
 
 
 /**

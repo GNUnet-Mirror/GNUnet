@@ -823,7 +823,7 @@ enqueue_fragment (void *cls, const struct GNUNET_MessageHeader *msg)
  * a fresh connection to another peer.
  *
  * @param cls closure
- * @param session which session must be used
+ * @param s which session must be used
  * @param msgbuf the message to transmit
  * @param msgbuf_size number of bytes in 'msgbuf'
  * @param priority how important is the message (most plugins will

@@ -518,22 +518,23 @@ GNUNET_TRANSPORT_TESTING_stop_peer (struct GNUNET_TRANSPORT_TESTING_handle *tth,
 }
 
 /**
- * Initiate peer p1 to connect to peer p2
- * Get peer p2's HELLO and offer it to p1
- * p1 then tries to connect to p2
+ * Connect the given peers and call the callback when both peers report the
+ * inbound connection. Remarks: start_peer's notify_connect callback can be called
+ * before.
+ *
+ * @param tth transport testing handle
  * @param p1 peer 1
  * @param p2 peer 2
  * @param cb the callback to call when both peers notified that they are connected
- * @param cb_cls callback cls (or a pointer to the
- *        GNUNET_TRANSPORT_TESTING_ConnectRequest itself if null)
- * @return connect context
+ * @param cls callback cls
+ * @return a connect request handle
  */
 GNUNET_TRANSPORT_TESTING_ConnectRequest
-GNUNET_TRANSPORT_TESTING_connect_peers (struct GNUNET_TRANSPORT_TESTING_handle
-                                        *tth, struct PeerContext *p1,
+GNUNET_TRANSPORT_TESTING_connect_peers (struct GNUNET_TRANSPORT_TESTING_handle *tth,
+                                        struct PeerContext *p1,
                                         struct PeerContext *p2,
                                         GNUNET_TRANSPORT_TESTING_connect_cb cb,
-                                        void *cb_cls)
+                                        void *cls)
 {
   GNUNET_assert (tth != NULL);
 
@@ -547,8 +548,8 @@ GNUNET_TRANSPORT_TESTING_connect_peers (struct GNUNET_TRANSPORT_TESTING_handle
   cc->p2 = p2;
 
   cc->cb = cb;
-  if (cb_cls != NULL)
-    cc->cb_cls = cb_cls;
+  if (cls != NULL)
+    cc->cb_cls = cls;
   else
     cc->cb_cls = cc;
 

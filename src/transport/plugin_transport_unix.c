@@ -346,7 +346,6 @@ find_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *peer)
  * send_handle squared away!
  *
  * @param cls closure
- * @param incoming_retry_context the retry context to use
  * @param send_handle which handle to send message on
  * @param target who should receive this message (ignored by UNIX)
  * @param msgbuf one or more GNUNET_MessageHeader(s) strung together

@@ -189,12 +189,12 @@ GNUNET_TRANSPORT_TESTING_restart_peer (struct GNUNET_TRANSPORT_TESTING_handle
  * @param p1 peer 1
  * @param p2 peer 2
  * @param cb the callback to call when both peers notified that they are connected
- * @param cb_cls callback cls
+ * @param cls callback cls
  * @return a connect request handle
  */
 GNUNET_TRANSPORT_TESTING_ConnectRequest
-GNUNET_TRANSPORT_TESTING_connect_peers (struct GNUNET_TRANSPORT_TESTING_handle
-                                        *tth, struct PeerContext *p1,
+GNUNET_TRANSPORT_TESTING_connect_peers (struct GNUNET_TRANSPORT_TESTING_handle *tth,
+                                        struct PeerContext *p1,
                                         struct PeerContext *p2,
                                         GNUNET_TRANSPORT_TESTING_connect_cb cb,
                                         void *cls);
@@ -203,7 +203,7 @@ GNUNET_TRANSPORT_TESTING_connect_peers (struct GNUNET_TRANSPORT_TESTING_handle
  * Cancel the request to connect two peers
  * Tou MUST cancel the request if you stop the peers before the peers connected succesfully
  * @param tth testing
- * @param cc a connect request handle
+ * @param ccr a connect request handle
  */
 void
 GNUNET_TRANSPORT_TESTING_connect_peers_cancel (struct

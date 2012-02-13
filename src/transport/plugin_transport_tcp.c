@@ -961,9 +961,7 @@ int session_it (void *cls,
  * notify us by calling the env->session_end function
  *
  * @param cls closure
- * @param target the neighbour id
- * @param addr pointer to the address
- * @param addrlen length of addr
+ * @param address pointer to the GNUNET_HELLO_Address
  * @return the session if the address is valid, NULL otherwise
  */
 static struct Session *

@@ -1404,7 +1404,7 @@ void
 GAS_mlp_address_change_preference (struct GAS_MLP_Handle *mlp,
                                    const struct GNUNET_PeerIdentity *peer,
                                    enum GNUNET_ATS_PreferenceKind kind,
-                                   float )
+                                   float score)
 {
   GNUNET_STATISTICS_update (mlp->stats,"# LP address preference changes", 1, GNUNET_NO);
 
