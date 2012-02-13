@@ -379,7 +379,7 @@ create_tunnel (struct GNUNET_MESH_Handle *h, MESH_TunnelNumber tid)
  * - Frees all memory used
  *
  * @param t Pointer to the tunnel.
- * @param call_handler Whether to call the cleaner handler.
+ * @param call_cleaner Whether to call the cleaner handler.
  *
  * @return Handle to the required tunnel or NULL if not found.
  */
@@ -1086,7 +1086,7 @@ send_callback (void *cls, size_t size, void *buf)
   if ((0 == size) || (NULL == buf))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Received NULL callback\n");
-//     reconnect (h); FIXME
+    reconnect (h);
     return 0;
   }
   tsize = 0;
