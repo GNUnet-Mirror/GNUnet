@@ -434,21 +434,13 @@ struct Session *
 lookup_session (struct Plugin *plugin,
                 const struct GNUNET_HELLO_Address *address)
 {
-  struct Session *tmp = NULL;
+  struct Session *pos;
 
-  tmp = plugin->head;
-  if (tmp == NULL)
-    return NULL;
-  while (tmp != NULL)
-  {
-    if (0 != memcmp (&address->peer, &tmp->target, sizeof (struct GNUNET_PeerIdentity)))
-      continue;
-    if ((address->address_length != tmp->addrlen) &&
-        (0 != memcmp (address->address, tmp->addr, tmp->addrlen)))
-      continue;
-
-    return tmp;
-  }
+  for (pos = plugin->head; NULL != pos; pos = pos->next)
+    if ( (0 == memcmp (&address->peer, &pos->target, sizeof (struct GNUNET_PeerIdentity))) &&
+	 (address->address_length == pos->addrlen) &&
+	 (0 == memcmp (address->address, pos->addr, pos->addrlen)) )
+      return pos;
   return NULL;
 }
 
