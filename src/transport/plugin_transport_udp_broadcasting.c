@@ -25,7 +25,7 @@
  * @author Matthias Wachs
  */
 #include "platform.h"
-#include "plugin_transport_udp_new.h"
+#include "plugin_transport_udp.h"
 #include "gnunet_hello_lib.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_fragmentation_lib.h"

@@ -637,7 +637,6 @@ send_with_session (struct NeighbourMapEntry *n,
 }
 
 
-
 static ssize_t
 send_with_plugin (const struct GNUNET_PeerIdentity *target, const char *msgbuf,
                   size_t msgbuf_size, uint32_t priority,
@@ -1561,7 +1560,7 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
       return GNUNET_NO;
     }
 
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Obtained new session %p for peer `%s' and  address '%s'\n",
                  n->session, GNUNET_i2s (&n->id), GST_plugins_a2s (n->address));
     /* Telling ATS about new session */
@@ -1569,15 +1568,11 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
   }
   else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Using existing session %p for peer `%s' and  address '%s'\n",
                 n->session, GNUNET_i2s (&n->id), GST_plugins_a2s (n->address));
     n->session = session;
   }
-  /* remove this dummy */
-  if (NULL != NULL) send_with_plugin (NULL, NULL, 0,
-      UINT32_MAX, GNUNET_TIME_UNIT_FOREVER_REL, NULL,
-      NULL, GNUNET_YES, NULL, NULL);
 #else
   n->session = session;
 
