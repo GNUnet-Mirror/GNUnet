@@ -260,7 +260,8 @@ get_session_delete_it (void *cls, const GNUNET_HashCode * key, void *value)
 
   plugin->env->session_end (plugin->env->cls, &s->target, s);
 
-  GNUNET_CONTAINER_multihashmap_remove(plugin->session_map, &s->target.hashPubKey, s);
+  GNUNET_assert (GNUNET_YES ==
+		 GNUNET_CONTAINER_multihashmap_remove(plugin->session_map, &s->target.hashPubKey, s));
 
   GNUNET_free (s);
 
