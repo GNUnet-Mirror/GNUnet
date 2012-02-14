@@ -64,8 +64,6 @@
  */
 #define UNIX_NAT_DEFAULT_PORT 22086
 
-#define MAX_RETRIES 5
-
 GNUNET_NETWORK_STRUCT_BEGIN
 
 /**
@@ -99,8 +97,6 @@ struct UNIXMessageWrapper
 
   struct UNIXMessage * msg;
   size_t msgsize;
-
-  int retry_counter;
 
   struct GNUNET_TIME_Relative timeout;
   unsigned int priority;
@@ -436,11 +432,9 @@ unix_real_send (void *cls,
 
     if (size < msgbuf_size)
     {
-#if DEBUG_UNIX
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Trying to increase socket buffer size from %i to %i for message size %i\n",
                   size, ((msgbuf_size / 1000) + 2) * 1000, msgbuf_size);
-#endif
       size = ((msgbuf_size / 1000) + 2) * 1000;
       if (GNUNET_NETWORK_socket_setsockopt
           ((struct GNUNET_NETWORK_Handle *) send_handle, SOL_SOCKET, SO_SNDBUF,
@@ -620,7 +614,6 @@ unix_plugin_send (void *cls,
   wrapper->timeout = to;
   wrapper->cont = cont;
   wrapper->cont_cls = cont_cls;
-  wrapper->retry_counter = 0;
   wrapper->session = session;
 
   GNUNET_CONTAINER_DLL_insert(plugin->msg_head, plugin->msg_tail, wrapper);
@@ -759,17 +752,6 @@ unix_plugin_select_write (struct Plugin * plugin)
     return;
   }
 
-  /* max retries */
-  if (msgw->retry_counter > MAX_RETRIES)
-  {
-    msgw->cont (msgw->cont_cls, &msgw->session->target, GNUNET_SYSERR);
-    GNUNET_CONTAINER_DLL_remove(plugin->msg_head, plugin->msg_tail, msgw);
-    GNUNET_break (0);
-    GNUNET_free (msgw->msg);
-    GNUNET_free (msgw);
-    return;
-  }
-
   /* failed and no retry */
   if (sent == -1)
   {
@@ -781,11 +763,7 @@ unix_plugin_select_write (struct Plugin * plugin)
 
   /* failed and retry */
   if (sent == 0)
-  {
-    msgw->retry_counter++;
     return;
-  }
-
 }
 
 /*
