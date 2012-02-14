@@ -532,6 +532,7 @@ disconnect_and_free_it (void *cls, const GNUNET_HashCode * key, void *value)
   struct Plugin *plugin = cls;
   struct Session *s = value;
   struct UDPMessageWrapper *udpw;
+  struct UDPMessageWrapper *next;
 
 #if DEBUG_UDP
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -552,6 +553,7 @@ disconnect_and_free_it (void *cls, const GNUNET_HashCode * key, void *value)
   udpw = plugin->msg_head;
   while (udpw != NULL)
   {
+    next = udpw->next;
     if (udpw->session == s)
     {
       GNUNET_CONTAINER_DLL_remove(plugin->msg_head, plugin->msg_tail, udpw);
@@ -560,7 +562,7 @@ disconnect_and_free_it (void *cls, const GNUNET_HashCode * key, void *value)
         udpw->cont (udpw->cont_cls, &s->target, GNUNET_SYSERR);
       GNUNET_free (udpw);
     }
-    udpw = plugin->msg_head;
+    udpw = next;
   }
 
   GNUNET_assert (GNUNET_YES ==
