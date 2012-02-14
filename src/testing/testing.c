@@ -1668,6 +1668,8 @@ GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
 
   GNUNET_free_non_null (del_arg);
   d->max_timeout = GNUNET_TIME_relative_to_absolute (timeout);
+  if (GNUNET_SCHEDULER_NO_TASK != d->task)
+    GNUNET_SCHEDULER_cancel(d->task);
   d->task = GNUNET_SCHEDULER_add_now (&start_fsm, d);
 }
 
