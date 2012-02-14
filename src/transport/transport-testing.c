@@ -104,7 +104,6 @@ notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (p->nc != NULL)
     p->nc (p->cb_cls, peer, ats, ats_count);
 
-#if VERBOSE
   char *p2_s;
 
   if (p2 != NULL)
@@ -115,8 +114,6 @@ notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
                    "Peers %s connected to peer %u (`%s')\n", p2_s, p->no,
                    GNUNET_i2s (&p->id));
   GNUNET_free (p2_s);
-#endif
-
 
   /* Find ConnectingContext */
   struct ConnectingContext *cc = find_connecting_context (p->tth, p, p2);
@@ -192,26 +189,15 @@ get_hello (void *cb_cls, const struct GNUNET_MessageHeader *message)
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *)
                                       message, &p->id));
-#if VERBOSE
-  size_t size =
-      GNUNET_HELLO_size ((const struct GNUNET_HELLO_Message *) message);
-#endif
   GNUNET_free_non_null (p->hello);
   p->hello = (struct GNUNET_HELLO_Message *) GNUNET_copy_message (message);
 
-#if VERBOSE
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-testing",
-                   "New HELLO for peer %u (`%s') with size %u\n", p->no,
-                   GNUNET_i2s (&p->id), size);
-#endif
-
   if (p->start_cb != NULL)
   {
-#if VERBOSE
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-testing",
                      "Peer %u (`%s') successfully started\n", p->no,
                      GNUNET_i2s (&p->id));
-#endif
+
     p->start_cb (p, p->cb_cls);
     p->start_cb = NULL;
   }
@@ -347,7 +333,6 @@ GNUNET_TRANSPORT_TESTING_start_peer (struct GNUNET_TRANSPORT_TESTING_handle
   GNUNET_assert (p->ghh != NULL);
 
   GNUNET_CONTAINER_DLL_insert (tth->p_head, tth->p_tail, p);
-
   return p;
 }
 
@@ -512,6 +497,10 @@ GNUNET_TRANSPORT_TESTING_stop_peer (struct GNUNET_TRANSPORT_TESTING_handle *tth,
   p->cfg = NULL;
 
   GNUNET_CONTAINER_DLL_remove (tth->p_head, tth->p_tail, p);
+
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-testing",
+                   "Peer %u (`%s') stopped \n", p->no,
+                   GNUNET_i2s (&p->id));
 
   GNUNET_free (p);
   p = NULL;
