@@ -594,9 +594,6 @@ udp_disconnect (void *cls, const struct GNUNET_PeerIdentity *target)
 #endif
   /* Clean up sessions */
   GNUNET_CONTAINER_multihashmap_get_multiple (plugin->sessions, &target->hashPubKey, &disconnect_and_free_it, plugin);
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "FREEED SESSIONS from peer `%s'\n", GNUNET_i2s (target));
 }
 
 static struct Session *
