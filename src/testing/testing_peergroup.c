@@ -463,6 +463,16 @@ internal_topology_callback (void *cls, const struct GNUNET_PeerIdentity *first,
   }
 }
 
+
+/**
+ * Callback called for each started daemon.
+ *
+ * @param cls Clause (PG Context).
+ * @param id PeerIdentidy of started daemon.
+ * @param cfg Configuration used by the daemon.
+ * @param d Handle for the daemon.
+ * @param emsg Error message, NULL on success.
+ */
 static void
 internal_peers_started_callback (void *cls,
                                  const struct GNUNET_PeerIdentity *id,
@@ -488,6 +498,11 @@ internal_peers_started_callback (void *cls,
 
   pg_start_ctx->peers_left--;
 
+  if (NULL == pg_start_ctx->peer_start_meter)
+  {
+    /* Cancelled Ctrl-C or error */
+    return;
+  }
   if (GNUNET_YES == update_meter (pg_start_ctx->peer_start_meter))
   {
 #if VERBOSE
