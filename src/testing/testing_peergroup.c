@@ -68,14 +68,29 @@ struct PeerGroupStartupContext
   void *cls;
 
   const struct GNUNET_TESTING_Host *hostnames;
+  
+  /**
+   * FIXME document
+   */
   enum GNUNET_TESTING_Topology topology;
 
   float topology_percentage;
 
   float topology_probability;
 
+  /**
+   * FIXME document
+   */
   enum GNUNET_TESTING_Topology restrict_topology;
+  
+  /**
+   * FIXME document
+   */
   char *restrict_transports;
+  
+  /**
+   * Initial connections
+   */
   enum GNUNET_TESTING_Topology connect_topology;
   enum GNUNET_TESTING_TopologyOption connect_topology_option;
   double connect_topology_option_modifier;
@@ -297,11 +312,20 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                &internal_shutdown_callback, pg_start_ctx);
 
   if (pg_start_ctx->hostkey_meter != NULL)
+  {
     free_meter (pg_start_ctx->hostkey_meter);
+    pg_start_ctx->hostkey_meter = NULL;
+  }
   if (pg_start_ctx->peer_start_meter != NULL)
+  {
     free_meter (pg_start_ctx->peer_start_meter);
+    pg_start_ctx->peer_start_meter = NULL;
+  }
   if (pg_start_ctx->connect_meter != NULL)
+  {
     free_meter (pg_start_ctx->connect_meter);
+    pg_start_ctx->connect_meter = NULL;
+  }
 }
 
 /**
