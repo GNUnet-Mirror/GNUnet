@@ -1027,7 +1027,6 @@ process_udp_message (struct Plugin *plugin, const struct UDPMessage *msg,
   struct Session * s = NULL;
   struct IPv4UdpAddress u4;
   struct IPv6UdpAddress u6;
-  struct GNUNET_ATS_Information ats;
   const void *arg;
   size_t args;
 
@@ -1043,8 +1042,6 @@ process_udp_message (struct Plugin *plugin, const struct UDPMessage *msg,
     return;
   }
 
-  ats.type = htonl (GNUNET_ATS_NETWORK_TYPE);
-  ats.value = htonl (GNUNET_ATS_NET_UNSPECIFIED);
   /* convert address */
   switch (sender_addr->sa_family)
   {
