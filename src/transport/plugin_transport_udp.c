@@ -1639,7 +1639,8 @@ setup_sockets (struct Plugin *plugin, struct sockaddr_in6 *serverAddrv6, struct 
     plugin->sockv6 = GNUNET_NETWORK_socket_create (PF_INET6, SOCK_DGRAM, 0);
     if (NULL == plugin->sockv6)
     {
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "socket");
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Disabling IPv6 since it is not supported on this system!");
+      plugin->enable_ipv6 = GNUNET_NO;
     }
     else
     {
