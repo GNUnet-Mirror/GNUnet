@@ -773,6 +773,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         d->server = NULL;
       }
       GNUNET_CONFIGURATION_destroy (d->cfg);
+      d->cfg = NULL;
       GNUNET_free (d->cfgfile);
       GNUNET_free_non_null (d->hello);
       GNUNET_free_non_null (d->hostname);
@@ -807,6 +808,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     if (d->churn == GNUNET_NO)
     {
       GNUNET_CONFIGURATION_destroy (d->cfg);
+      d->cfg = NULL;
       GNUNET_free (d->cfgfile);
       GNUNET_free_non_null (d->hostname);
       GNUNET_free_non_null (d->username);
@@ -1661,6 +1663,7 @@ GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
                                        "-c", d->cfgfile, "-e", "-q", "-T",
                                        GNUNET_TIME_relative_to_string (timeout),
                                        del_arg, NULL);
+    GNUNET_assert (NULL != d->proc);
   }
 
   GNUNET_free_non_null (del_arg);
