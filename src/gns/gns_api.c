@@ -254,7 +254,17 @@ GNUNET_GNS_add_record (struct GNUNET_GNS_Handle *handle, const GNUNET_HashCode *
                 struct GNUNET_TIME_Relative timeout, GNUNET_SCHEDULER_Task cont,
                 void *cont_cls)
 {
-	/* add record to local db, dht; sign etc */
+	/**
+	 * build add record message
+	 */
+	struct GNUNET_GNS_Record *record;
+
+	record = GNUNET_malloc(sizeof (struct GNUNET_GNS_Record));
+	/* TODO fill */
+	queue_record_msg(handle, record);
+}
+
+
 }
 
 
@@ -283,7 +293,7 @@ GNUNET_GNS_lookup_start (struct GNUNET_GNS_Handle *handle,
                       size_t xquery_size, GNUNET_GNS_LookupIterator iter,
                       void *iter_cls)
 {
-  /* look for local entries, start dht lookup, return lookup_handle */
+  /* IPC to look for local entries, start dht lookup, return lookup_handle */
 }
 
 
@@ -295,7 +305,6 @@ GNUNET_GNS_lookup_start (struct GNUNET_GNS_Handle *handle,
 void
 GNUNET_GNS_lookup_stop (struct GNUNET_GNS_LookupHandle *lookup_handle)
 {
-  struct GNUNET_DHT_Handle *handle;
 	/* TODO Stop dht lookups */
 }
 

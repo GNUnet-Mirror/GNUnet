@@ -26,14 +26,15 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_transport_service.h"
+#include "gnunet_dns_service.h"
 #include "gnunet_gns_service.h"
 #include "gnunet-service-gns.h"
 
 
 /**
- * Our handle to the BLOCK library.
+ * Our handle to the DNS handler library
  */
-struct GNUNET_BLOCK_Context *GDS_block_context;
+struct GNUNET_DNS_Handle *dns_handler;
 
 /**
  * The configuration the GNS service is running with
@@ -49,7 +50,58 @@ const struct GNUNET_CONFIGURATION_Handle *GDS_cfg;
 static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-	/* TODO: Do sth here */
+	GNUNET_DNS_disconnect(dns_handle);
+}
+
+/**
+ * The DNS request handler
+ *
+ * @param cls closure
+ * @param rh request handle to user for reply
+ * @param request_length number of bytes in request
+ * @param request udp payload of the DNS request
+ */
+void
+handle_dns_request(void *cls,
+									 struct GNUNET_DNS_RequestHandle *rh,
+									 size_t request_length,
+									 const char *request)
+{
+	/**
+	 * TODO: parse request for tld
+	 * Queue rh and gns handle (or use cls)
+	 * How should lookup behave:
+	 *  - sync and return result or "NX"
+	 *  - async like dht with iter
+	 *  Maybe provide both, useful for cli app
+	 **/
+  struct GNUNET_DNSPARSER_Packet *p;
+	char buf[INET6_ADDRSTRLEN];
+	int namelen;
+	
+	p = GNUNET_DNSPARSER_parse (request, request_length);
+	if (NULL == p)
+	{
+		fprintf (stderr, "Received malformed DNS packet, leaving it untouched\n");
+		GNUNET_DNS_request_forward (rh);
+		return;
+	}
+	/* TODO factor out */
+	for (i=0;i<p->num_queries;i++)
+	{
+		namelen = strlen(&p->queries[i]->name);
+		if (namelen >= 7)
+		{
+			if (0 == strcmp(&p->queries[i]->name, ".gnunet"))
+			{
+				GNUNET_DNS_request_answer(rh, 0 /*length*/, NULL/*reply*/);
+			}
+			else
+			{
+				GNUNET_DNS_request_forward (rh);
+			}
+		}
+	}
 }
 
 
@@ -64,9 +116,35 @@ static void
 run (void *cls, struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
+	/* The IPC message types */
+	static const struct GNUNET_SERVER_MessageHandler handlers[] = {
+		/* callback, cls, type, size */
+		{&handle_record_lookup, NULL, GNUNET_MESSAGE_TYPE_GNS_RECORD_LOOKUP,
+			sizeof (struct GNUNET_GNS_Lookup)},
+		{&handle_record_add, NULL, GNUNET_MESSAGE_TYPE_GNS_RECORD_ADD,
+			sizeof (struct GNUNET_GNS_Record)},
+		{NULL, NULL, 0, 0}
+	};
+	
+	nc = GNUNET_SERVER_notification_context_create (server, 1);
+
+	/* TODO do some config parsing */
+
+	GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
                                 NULL);
-	/* Do gnunet dns init here */
+	/**
+	 * Do gnunet dns init here
+	 * */
+	dns_handle = GNUNET_DNS_connect(c,
+																	GNUNET_DNS_FLAG_PRE_RESOLUTION,
+																	&handle_dns_request, /* rh */
+																	NULL); /* Closure */
+	GNUNET_SERVER_add_handlers (server, handlers);
+	/**
+	 * Esp the lookup would require to keep track of the clients' context
+	 * See dht.
+	 * GNUNET_SERVER_disconnect_notify (server, &client_disconnect, NULL);
+	 * */
 }
 
 
@@ -86,7 +164,6 @@ main (int argc, char *const *argv)
       (GNUNET_OK ==
        GNUNET_SERVICE_run (argc, argv, "gns", GNUNET_SERVICE_OPTION_NONE, &run,
                            NULL)) ? 0 : 1;
-  GDS_CLIENTS_done ();
   return ret;
 }
 
