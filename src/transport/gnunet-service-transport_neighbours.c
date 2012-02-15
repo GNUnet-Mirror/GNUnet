@@ -1512,7 +1512,7 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
         GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get ());
 
     cc = GNUNET_malloc (sizeof (struct ContinutionContext));
-    cc->session = session;
+    cc->session = n->session;
     cc->address = GNUNET_HELLO_address_copy (address);
 
     ret = send_with_session (n,
@@ -1531,7 +1531,7 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
     connect_msg.timestamp =
         GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get ());
     cc = GNUNET_malloc (sizeof (struct ContinutionContext));
-    cc->session = session;
+    cc->session = n->session;
     cc->address = GNUNET_HELLO_address_copy (address);
 
     ret = send_with_session(n,
@@ -1551,7 +1551,7 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
     connect_msg.timestamp =
         GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get ());
     cc = GNUNET_malloc (sizeof (struct ContinutionContext));
-    cc->session = session;
+    cc->session = n->session;
     cc->address = GNUNET_HELLO_address_copy (address);
     ret = send_with_session(n,
                             (const void *) &connect_msg, msg_len,
