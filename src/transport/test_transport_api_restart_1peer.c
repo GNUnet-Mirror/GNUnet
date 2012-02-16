@@ -65,7 +65,11 @@ static GNUNET_SCHEDULER_TaskIdentifier reconnect_task;
 
 struct PeerContext *p1;
 
+int p1_connected;
+
 struct PeerContext *p2;
+
+int p2_connected;
 
 static GNUNET_TRANSPORT_TESTING_ConnectRequest cc;
 
@@ -217,8 +221,8 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
     }
     else
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Restarted peers connected, stopping test...\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Restarted peers connected and message was sent, stopping test...\n");
       ok = 0;
       end ();
     }
@@ -303,9 +307,15 @@ notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct PeerContext *t = NULL;
 
   if (0 == memcmp (peer, &p1->id, sizeof (struct GNUNET_PeerIdentity)))
+  {
+    p1_connected = GNUNET_YES;
     t = p1;
+  }
   if (0 == memcmp (peer, &p2->id, sizeof (struct GNUNET_PeerIdentity)))
+  {
+    p2_connected = GNUNET_YES;
     t = p2;
+  }
   GNUNET_assert (t != NULL);
 
   char *ps = GNUNET_strdup (GNUNET_i2s (&p->id));
@@ -315,8 +325,9 @@ notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
               t->no, GNUNET_i2s (peer));
   GNUNET_free (ps);
 
-  if ((restarted == GNUNET_YES) && (c == 4))
+  if ((restarted == GNUNET_YES) && ((p1_connected == GNUNET_YES) && (p2_connected == GNUNET_YES)))
   {
+    /* Peer was restarted and we received 3 connect messages (2 from first connect, 1 from reconnect) */
     send_task = GNUNET_SCHEDULER_add_now (&sendtask, NULL);
   }
 }
@@ -326,6 +337,15 @@ static void
 notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
   struct PeerContext *p = cls;
+
+  if (0 == memcmp (peer, &p1->id, sizeof (struct GNUNET_PeerIdentity)))
+  {
+    p1_connected = GNUNET_NO;
+  }
+  if (0 == memcmp (peer, &p2->id, sizeof (struct GNUNET_PeerIdentity)))
+  {
+    p2_connected = GNUNET_NO;
+  }
 
 
   char *ps = GNUNET_strdup (GNUNET_i2s (&p->id));
@@ -385,7 +405,8 @@ run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
-
+  p1_connected = GNUNET_NO;
+  p2_connected = GNUNET_NO;
   p1 = GNUNET_TRANSPORT_TESTING_start_peer (tth, cfg_file_p1, 1,
                                             &notify_receive, &notify_connect,
                                             &notify_disconnect, &start_cb,
