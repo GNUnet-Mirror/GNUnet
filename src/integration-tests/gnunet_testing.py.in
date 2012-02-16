@@ -135,9 +135,9 @@ class StatisticsCondition (Condition):
             fail = ""
             op = " == "
         if ((self.fulfilled == False) and (failed_only == True)):
-            print self.peer.cfg + " " + str(self.type) + ' condition in subsystem "' + self.subsystem.ljust(12) +'" : "' + self.name.ljust(30) +'" : (expected/real value) ' + str(self.value) + op + res + fail
+            print self.peer.id[:4] + " " +self.peer.cfg + " " +  str(self.type) + ' condition in subsystem "' + self.subsystem.ljust(12) +'" : "' + self.name.ljust(30) +'" : (expected/real value) ' + str(self.value) + op + res + fail
         elif (failed_only == False): 
-            print self.peer.cfg + " " + str(self.type) + ' condition in subsystem "' + self.subsystem.ljust(12) +'" : "' + self.name.ljust(30) +'" : (expected/real value) ' + str(self.value) + op + res + fail 
+            print self.peer.id[:4] + " " +self.peer.cfg + " " +  str(self.type) + ' condition in subsystem "' + self.subsystem.ljust(12) +'" : "' + self.name.ljust(30) +'" : (expected/real value) ' + str(self.value) + op + res + fail 
         return self.fulfilled    
         
 class Test:
@@ -173,7 +173,7 @@ class Peer:
     def __init__(self, test, cfg_file):
         if (False == os.path.isfile(cfg_file)):
             print ("Peer cfg " + cfg_file + ": FILE NOT FOUND")
-        self.id = ""
+        self.id = "<NaN>"
         self.test = test
         self.started = False
         self.cfg = cfg_file 
