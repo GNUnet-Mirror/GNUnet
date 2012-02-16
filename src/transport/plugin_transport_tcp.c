@@ -1004,6 +1004,7 @@ tcp_plugin_get_session (void *cls,
   struct sockaddr_in6 a6;
   const struct IPv4TcpAddress *t4;
   const struct IPv6TcpAddress *t6;
+  struct GNUNET_ATS_Information ats;
   unsigned int is_natd = GNUNET_NO;
   size_t addrlen = 0;
 
@@ -1082,17 +1083,28 @@ tcp_plugin_get_session (void *cls,
     return NULL;
   }
 
+  ats = plugin->env->get_address_type (plugin->env->cls, sb ,sbs);
+
   if ((is_natd == GNUNET_YES) && (addrlen == sizeof (struct IPv6TcpAddress)))
-    return NULL;              /* NAT client only works with IPv4 addresses */
+  {
+    /* NAT client only works with IPv4 addresses */
+    return NULL;
+  }
 
   if (0 == plugin->max_connections)
-    return NULL;              /* saturated */
+  {
+    /* saturated */
+    return NULL;
+  }
 
   if ((is_natd == GNUNET_YES) &&
       (GNUNET_YES ==
        GNUNET_CONTAINER_multihashmap_contains (plugin->nat_wait_conns,
                                                &address->peer.hashPubKey)))
-     return NULL;             /* Only do one NAT punch attempt per peer identity */
+  {
+    /* Only do one NAT punch attempt per peer identity */
+     return NULL;
+  }
 
   if ((is_natd == GNUNET_YES) && (NULL != plugin->nat) &&
       (GNUNET_NO ==
@@ -1106,6 +1118,7 @@ tcp_plugin_get_session (void *cls,
     session = create_session (plugin, &address->peer, NULL, GNUNET_YES);
     session->addrlen = 0;
     session->addr = NULL;
+    session->ats_address_network_type = ats.value;
     GNUNET_assert (session != NULL);
 
     GNUNET_assert (GNUNET_CONTAINER_multihashmap_put
@@ -1145,14 +1158,7 @@ tcp_plugin_get_session (void *cls,
   session->addr = GNUNET_malloc (addrlen);
   memcpy (session->addr, address->address, addrlen);
   session->addrlen = addrlen;
-  if (addrlen != 0)
-  {
-    struct GNUNET_ATS_Information ats;
-    ats = plugin->env->get_address_type (plugin->env->cls, sb ,sbs);
-    session->ats_address_network_type = ats.value;
-  }
-  else
-    GNUNET_break (0);
+  session->ats_address_network_type = ats.value;
 
   GNUNET_CONTAINER_multihashmap_put(plugin->sessionmap, &address->peer.hashPubKey, session, GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
 
@@ -1183,6 +1189,26 @@ int session_disconnect_it (void *cls,
   return GNUNET_YES;
 }
 
+int session_nat_disconnect_it (void *cls,
+               const GNUNET_HashCode * key,
+               void *value)
+{
+  struct Session *session = value;
+
+  if (session != NULL)
+  {
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
+                     "Cleaning up pending NAT session for peer `%4s'\n", GNUNET_i2s (&session->target));
+    GNUNET_CONTAINER_multihashmap_remove (session->plugin->nat_wait_conns, &session->target.hashPubKey, session);
+    GNUNET_SERVER_client_drop (session->client);
+    GNUNET_SERVER_receive_done (session->client, GNUNET_SYSERR);
+    GNUNET_free (session);
+  }
+
+  return GNUNET_YES;
+}
+
+
 /**
  * Function that can be called to force a disconnect from the
  * specified neighbour.  This should also cancel all previously
@@ -1203,11 +1229,23 @@ static void
 tcp_plugin_disconnect (void *cls, const struct GNUNET_PeerIdentity *target)
 {
   struct Plugin *plugin = cls;
+  struct Session *nat_session = NULL;
 
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
                    "Disconnecting peer `%4s'\n", GNUNET_i2s (target));
 
-  GNUNET_CONTAINER_multihashmap_get_multiple(plugin->sessionmap, &target->hashPubKey, session_disconnect_it, plugin);
+  GNUNET_CONTAINER_multihashmap_get_multiple (plugin->sessionmap, &target->hashPubKey, session_disconnect_it, plugin);
+
+  nat_session = GNUNET_CONTAINER_multihashmap_get(plugin->nat_wait_conns, &target->hashPubKey);
+  if (nat_session != NULL)
+  {
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
+                     "Cleaning up pending NAT session for peer `%4s'\n", GNUNET_i2s (target));
+    GNUNET_CONTAINER_multihashmap_remove (plugin->nat_wait_conns, &target->hashPubKey, nat_session);
+    GNUNET_SERVER_client_drop (nat_session->client);
+    GNUNET_SERVER_receive_done (nat_session->client, GNUNET_SYSERR);
+    GNUNET_free (nat_session);
+  }
 }
 
 
@@ -1424,9 +1462,8 @@ handle_tcp_nat_probe (void *cls, struct GNUNET_SERVER_Client *client,
   const struct sockaddr_in *s4;
   const struct sockaddr_in6 *s6;
 
-#if DEBUG_TCP_NAT
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp", "received NAT probe\n");
-#endif
+
   /* We have received a TCP NAT probe, meaning we (hopefully) initiated
    * a connection to this peer by running gnunet-nat-client.  This peer
    * received the punch message and now wants us to use the new connection
@@ -1456,17 +1493,14 @@ handle_tcp_nat_probe (void *cls, struct GNUNET_SERVER_Client *client,
                                          clientIdentity.hashPubKey);
   if (session == NULL)
   {
-#if DEBUG_TCP_NAT
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
                      "Did NOT find session for NAT probe!\n");
-#endif
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
-#if DEBUG_TCP_NAT
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
                    "Found session for NAT probe!\n");
-#endif
+
   GNUNET_assert (GNUNET_CONTAINER_multihashmap_remove
                  (plugin->nat_wait_conns,
                   &tcp_nat_probe->clientIdentity.hashPubKey,
@@ -1509,11 +1543,11 @@ handle_tcp_nat_probe (void *cls, struct GNUNET_SERVER_Client *client,
     break;
   default:
     GNUNET_break_op (0);
-#if DEBUG_TCP_NAT
+
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
                      "Bad address for incoming connection!\n");
-#endif
     GNUNET_free (vaddr);
+
     GNUNET_SERVER_client_drop (client);
     GNUNET_free (session);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
@@ -2054,6 +2088,8 @@ libgnunet_plugin_transport_tcp_done (void *cls)
 
   /* Removing leftover sessions */
   GNUNET_CONTAINER_multihashmap_iterate(plugin->sessionmap, &session_disconnect_it, NULL);
+  /* Removing leftover NAT sessions */
+  GNUNET_CONTAINER_multihashmap_iterate(plugin->nat_wait_conns, &session_nat_disconnect_it, NULL);
 
   if (plugin->service != NULL)
     GNUNET_SERVICE_stop (plugin->service);
