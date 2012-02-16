@@ -221,7 +221,7 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
     }
     else
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Restarted peers connected and message was sent, stopping test...\n");
       ok = 0;
       end ();

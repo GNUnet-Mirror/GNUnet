@@ -2644,9 +2644,9 @@ GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
   GNUNET_ATS_address_update (GST_ats, address, session, ats, ats_count);
 
   n = lookup_neighbour (peer);
-  if ((n != NULL) && (S_CONNECTED == n->state))
+  if ((n != NULL) && ((S_CONNECTED == n->state) || (S_FAST_RECONNECT == n->state)))
   {
-    /* connected peer switches addresses */
+    /* connected peer switches addresses or is trying to do a fast reconnect*/
     return;
   }
 
