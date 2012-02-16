@@ -1,6 +1,6 @@
 /*
       This file is part of GNUnet
-      (C) 2004, 2005, 2006, 2008, 2009, 2011 Christian Grothoff (and other contributing authors)
+      (C) 2012 Christian Grothoff (and other contributing authors)
 
       GNUnet is free software; you can redistribute it and/or modify
       it under the terms of the GNU General Public License as published
@@ -58,6 +58,8 @@ struct GNUNET_GNS_Record;
  */
 enum GNUNET_GNS_RecordType
 {
+  // FIXME: should be based on GNUNET_DNSPARSER_TYPE's (standard DNS),
+  // and then maybe our extensions in the area > 255?
   GNUNET_GNS_RECORD_A,
   GNUNET_GNS_RECORD_AAAA,
   GNUNET_GNS_RECORD_MX,
@@ -90,18 +92,29 @@ GNUNET_GNS_disconnect (struct GNUNET_GNS_Handle *handle);
 /**
  * Perform an add operation storing records in the GNS.
  *
+ * FIXME: Yes, we need this kind of API, but should it not be with the
+ * NameDataStore, rather than the GNS-service?
+ *
  * @param handle handle to GNS service
- * @param key the key to store under
+ * @param name the key to store under
+ * // FIXME: need to be precise here what 'name' is. Does it
+   // include '.gnunet'?  What happens if we specify 'a.b.c.gnunet'
+   //  but 'b.c.gnunet' has been delegated? (error?)  
  * @param desired_replication_level estimate of how many
  *                nearest peers this request should reach
  * @param options routing options for this message
+   // FIXME: which are? where is the arg?
+   // FIXME: we should probably distinguish between 'private' and 'public'
+   //        records;
  * @param type type of the value
  * @param size number of bytes in data; must be less than 64k
  * @param data the data to store
+   // FIXME: what is the exact format of data?
  * @param exp desired expiration time for the value
  * @param timeout how long to wait for transmission of this request
  * @param cont continuation to call when done (transmitting request to service)
  * @param cont_cls closure for cont
+ * // FIXME: where are the continuations?
  */
 void
 GNUNET_GNS_add_record (struct GNUNET_GNS_Handle *handle,
@@ -116,12 +129,16 @@ GNUNET_GNS_add_record (struct GNUNET_GNS_Handle *handle,
  * Iterator called on each result obtained for a GNS
  * operation that expects a reply TODO: eh?
  *
+ *
  * @param cls closure
  * @param exp when will this value expire
  * @param key key of the result
- * @param records the records in reply
+ * // how does the key relate to the name exactly? Why not give the name?
+ * @param record the records in reply
+ * // FIXME: shouldn't this then be an array of pointers?
  * @param num_records the number of records in reply
  * @param type type of the result
+ * // FIXME: not in signature
  */
 typedef void (*GNUNET_GNS_LookupIterator) (void *cls,
                                         const GNUNET_HashCode * key,
@@ -135,11 +152,14 @@ typedef void (*GNUNET_GNS_LookupIterator) (void *cls,
  *
  * @param handle handle to the GNS service
  * @param timeout how long to wait for transmission of this request to the service
+ * // FIXME: what happens afterwards?
  * @param type expected type of the response object
  * @param key the key to look up
+ * // FIXME: key, name, what format?
  * @param desired_replication_level estimate of how many
                   nearest peers this request should reach
  * @param options routing options for this message
+ * //FIXME: missmatch between documented and actual options...
  * @param xquery extended query data (can be NULL, depending on type)
  * @param xquery_size number of bytes in xquery
  * @param iter function to call on each result
