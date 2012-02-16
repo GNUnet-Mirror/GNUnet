@@ -71,11 +71,6 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
 static struct GNUNET_GNS_LookupHandle *lookup_handle;
 
 /**
- * Count of results found
- */
-static unsigned int result_count;
-
-/**
  * Global status value
  */
 static int ret;
@@ -121,11 +116,11 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  */
 static void
 lookup_result_iterator (void *cls,
-                        const GNUNET_HashCode * key,
+                        const char * name,
                         const struct GNUNET_GNS_Record *record,
                         unsigned int num_records)
 {
-  FPRINTF (stdout, "Results %d\n", num_records);
+  FPRINTF (stdout, "%d results for %s\n", num_records, name);
 }
 
 

@@ -53,14 +53,8 @@ struct GNUNET_GNS_ClientLookupMessage
   /**
    * the type of record to look up
    */
-  // FIXME: bad type
+  // FIXME: bad type - should be of GNUNET_GNS_RecordType
   int type;
-
-  /**
-   * Length of name to lookup
-   * // FIXME: redundant
-   */
-  uint32_t namelen;
 
   /* Followed by the name to look up */
 };

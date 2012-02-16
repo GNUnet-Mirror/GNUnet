@@ -22,20 +22,11 @@ bin_PROGRAMS = \
   gnunet-service-gns
 
 noinst_PROGRAMS = \
-  gnunet-gns-lookup gnunet-gns-add
+  gnunet-gns-lookup
 
 #check_SCRIPTS = \
 # test_gnunet_dns.sh
 
-
-gnunet_gns_add_SOURCES = \
- gnunet-gns-add.c
-gnunet_gns_add_LDADD = \
-  $(top_builddir)/src/gns/libgnunetgns.la \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(GN_LIBINTL)
-gnunet_dns_add_DEPENDENCIES = \
-  libgnunetgns.la
 
 gnunet_gns_lookup_SOURCES = \
  gnunet-gns-lookup.c

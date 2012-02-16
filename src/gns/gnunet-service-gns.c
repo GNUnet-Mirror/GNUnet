@@ -134,14 +134,6 @@ handle_client_record_lookup(void *cls,
 {
 }
 
-/*TODO*/
-static void
-handle_client_record_add(void *cls,
-                         struct GNUNET_SERVER_Client *client,
-                         const struct GNUNET_MessageHeader *message)
-{
-}
-
 /**
  * Process GNS requests.
  *
@@ -158,8 +150,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     /* callback, cls, type, size */
     {&handle_client_record_lookup, NULL, GNUNET_MESSAGE_TYPE_GNS_CLIENT_LOOKUP,
       0},
-    /*{&handle_client_record_add, NULL, GNUNET_MESSAGE_TYPE_GNS_CLIENT_ADD,
-      0},*/
     {NULL, NULL, 0, 0}
   };
   

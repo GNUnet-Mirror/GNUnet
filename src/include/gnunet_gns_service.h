@@ -93,43 +93,7 @@ void
 GNUNET_GNS_disconnect (struct GNUNET_GNS_Handle *handle);
 
 
-/* *************** Standard API: add and lookup ******************* */
-
-/**
- * Perform an add operation storing records in the GNS.
- *
- * FIXME: Yes, we need this kind of API, but should it not be with the
- * NameDataStore, rather than the GNS-service?
- *
- * @param handle handle to GNS service
- * @param name the key to store under
- * // FIXME: need to be precise here what 'name' is. Does it
-   // include '.gnunet'?  What happens if we specify 'a.b.c.gnunet'
-   //  but 'b.c.gnunet' has been delegated? (error?)  
- * @param desired_replication_level estimate of how many
- *                nearest peers this request should reach
- * @param options routing options for this message
-   // FIXME: which are? where is the arg?
-   // FIXME: we should probably distinguish between 'private' and 'public'
-   //        records;
- * @param type type of the value
- * @param size number of bytes in data; must be less than 64k
- * @param data the data to store
-   // FIXME: what is the exact format of data?
- * @param exp desired expiration time for the value
- * @param timeout how long to wait for transmission of this request
- * @param cont continuation to call when done (transmitting request to service)
- * @param cont_cls closure for cont
- * // FIXME: where are the continuations?
- */
-void
-GNUNET_GNS_add_record (struct GNUNET_GNS_Handle *handle,
-                       const char* name,
-                       enum GNUNET_GNS_RecordType type,
-                       size_t size, const char *data,
-                       struct GNUNET_TIME_Absolute exp,
-                       struct GNUNET_TIME_Relative timeout);
-
+/* *************** Standard API: lookup ******************* */
 
 /**
  * Iterator called on each result obtained for a GNS
@@ -137,17 +101,13 @@ GNUNET_GNS_add_record (struct GNUNET_GNS_Handle *handle,
  *
  *
  * @param cls closure
- * @param exp when will this value expire
- * @param key key of the result
- * // how does the key relate to the name exactly? Why not give the name?
+ * @param name "name" of the original lookup
  * @param record the records in reply
- * // FIXME: shouldn't this then be an array of pointers?
+ * // FIXME: shouldn't this then be an array of pointers? - not sure as of yet
  * @param num_records the number of records in reply
- * @param type type of the result
- * // FIXME: not in signature
  */
 typedef void (*GNUNET_GNS_LookupIterator) (void *cls,
-                                        const GNUNET_HashCode * key,
+                                        const char * name,
                                         const struct GNUNET_GNS_Record *record,
                                         unsigned int num_records);
 
@@ -160,14 +120,8 @@ typedef void (*GNUNET_GNS_LookupIterator) (void *cls,
  * @param timeout how long to wait for transmission of this request to the service
  * // FIXME: what happens afterwards?
  * @param type expected type of the response object
- * @param key the key to look up
- * // FIXME: key, name, what format?
- * @param desired_replication_level estimate of how many
-                  nearest peers this request should reach
- * @param options routing options for this message
- * //FIXME: missmatch between documented and actual options...
- * @param xquery extended query data (can be NULL, depending on type)
- * @param xquery_size number of bytes in xquery
+ * @param name the name to look up
+ * @param type the GNUNET_GNS_RecordType to look for
  * @param iter function to call on each result
  * @param iter_cls closure for iter
  *
@@ -175,11 +129,11 @@ typedef void (*GNUNET_GNS_LookupIterator) (void *cls,
  */
 struct GNUNET_GNS_LookupHandle *
 GNUNET_GNS_lookup_start (struct GNUNET_GNS_Handle *handle,
-                      struct GNUNET_TIME_Relative timeout,
-                      const char * name,
-                      enum GNUNET_GNS_RecordType type,
-                      GNUNET_GNS_LookupIterator iter,
-                      void *iter_cls);
+                         struct GNUNET_TIME_Relative timeout,
+                         const char * name,
+                         enum GNUNET_GNS_RecordType type,
+                         GNUNET_GNS_LookupIterator iter,
+                         void *iter_cls);
 
 
 /**

@@ -435,6 +435,7 @@ process_reply (void *cls, const GNUNET_HashCode * key, void *value)
 {
   const struct GNUNET_GNS_ClientResultMessage *gns_msg = cls;
   struct GNUNET_GNS_LookupHandle *lookup_handle = value;
+  const char *name = (const char*) &lookup_handle[1];
   const struct GNUNET_GNS_Record *records;
   uint32_t num_records;
   size_t meta_length;
@@ -467,7 +468,7 @@ process_reply (void *cls, const GNUNET_HashCode * key, void *value)
        (unsigned int) (msize - meta_length), GNUNET_h2s (key));
 #endif
   records = (const struct GNUNET_GNS_Record *) &gns_msg[1];
-  lookup_handle->iter (lookup_handle->iter_cls, key, records, num_records);
+  lookup_handle->iter (lookup_handle->iter_cls, name, records, num_records);
   return GNUNET_YES;
 }
 
@@ -559,37 +560,10 @@ GNUNET_GNS_disconnect (struct GNUNET_GNS_Handle *handle)
 
 
 /**
- * Add a new record to the GNS.
- *
- * @param handle handle to GNS service
- * @param record the record to store
- * @param exp desired expiration time for the value
- * @param timeout how long to wait for transmission of this request
- */
-void
-GNUNET_GNS_add_record (struct GNUNET_GNS_Handle *handle,
-                       const char* name,
-                       enum GNUNET_GNS_RecordType type,
-                       size_t size, const char *data,
-                       struct GNUNET_TIME_Absolute exp,
-                       struct GNUNET_TIME_Relative timeout)
-{
-  /**
-   * build add record message
-   */
-  struct GNUNET_GNS_Record *record;
-
-  record = GNUNET_malloc(sizeof (struct GNUNET_GNS_Record));
-  /**
-   * TODO
-   * queue_record_msg(handle, record);
-   **/
-}
-
-
-/**
  * Perform an asynchronous Lookup operation on the GNS.
- * TODO: Still not sure what we query for... "names" it is for now
+ * TODO:
+ *    - Still not sure what we query for... "names" it is for now
+ *    - Do we need such sophisticated message queueing like dht? simplify?
  *
  * @param handle handle to the GNS service
  * @param timeout how long to wait for transmission of this request to the service
@@ -632,7 +606,6 @@ GNUNET_GNS_lookup_start (struct GNUNET_GNS_Handle *handle,
   pending->free_on_send = GNUNET_NO;
   lookup_msg->header.size = htons (msize);
   lookup_msg->header.type = htons (GNUNET_MESSAGE_TYPE_GNS_CLIENT_LOOKUP);
-  lookup_msg->namelen = strlen(name);
   lookup_msg->key = key;
   memcpy(&lookup_msg[1], name, strlen(name));
   handle->uid_gen++;
