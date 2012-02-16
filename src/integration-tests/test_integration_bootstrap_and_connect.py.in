@@ -1,4 +1,4 @@
-#!@PYTHON@
+#!/usr/bin/python
 #    This file is part of GNUnet.
 #    (C) 2010 Christian Grothoff (and other contributing authors)
 #
@@ -68,7 +68,7 @@ def success_cont (check):
 def fail_cont (check):    
     global success 
     success = False;
-    check.eval(True)
+    check.evaluate(True)
 
 def check ():
   check = Check (test)
@@ -103,13 +103,13 @@ def run ():
 	server = Peer(test, './confs/c_bootstrap_server.conf');
 	client = Peer(test, './confs/c_no_nat_client.conf');
 	
-	server.start();
-	client.start();
+	assert (True == server.start());
+	assert (True == client.start());
 	
 	if ((client.started == True) and (server.started == True)):
-	    test.p ('Peers started, running check')
-	    time.sleep(5)
-	    check ()
+		test.p ('Peers started, running check')
+		time.sleep(5)
+		check ()
 	server.stop ()
 	client.stop ()
 	
@@ -122,12 +122,12 @@ def run ():
 		return True
 
 try:
-    run ()
+	run ()
 except (KeyboardInterrupt, SystemExit):    
-    print 'Test interrupted'
-    server.stop ()
-    client.stop ()
-    cleanup ()
+	print 'Test interrupted'
+	server.stop ()
+	client.stop ()
+	cleanup ()
 if (success == False):
 	sys.exit(1)   
 else:

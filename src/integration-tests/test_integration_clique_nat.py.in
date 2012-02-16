@@ -63,7 +63,7 @@ def success_cont (check):
 def fail_cont (check):    
     global success 
     success= False;
-    check.eval(True)        
+    check.evaluate(True)        
 
 
 def check_disconnect_client ():
@@ -87,7 +87,7 @@ def success_disconnect_server_cont (check):
 def fail_disconnect_server_cont (check):    
     global success 
     success= False;
-    check.eval(True)        
+    check.evaluate(False)        
 
         
 def check_disconnect_server ():
@@ -116,7 +116,7 @@ def success_connect_cont (check):
 def fail_connect_cont (check):    
     global success 
     success= False;
-    check.eval(True)
+    check.evaluate(False)
 
 
 def check_connect ():

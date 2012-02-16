@@ -68,7 +68,7 @@ def success_restart_cont (check):
 def fail_restart_cont (check):    
 	global success 
 	success = False;
-	check.eval(True)   
+	check.evaluate(True)   
     
 
 def success_connect_cont (check):
@@ -101,7 +101,7 @@ def success_connect_cont (check):
 def fail_connect_cont (check):    
     global success 
     success= False;
-    check.eval(True)
+    check.evaluate(True)
 
 
 def check_connect ():

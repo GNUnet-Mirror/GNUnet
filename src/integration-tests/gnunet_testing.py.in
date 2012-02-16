@@ -1,4 +1,4 @@
-#!@PYTHON@
+#!/usr/bin/python
 #    This file is part of GNUnet.
 #    (C) 2010 Christian Grothoff (and other contributing authors)
 #
@@ -19,12 +19,11 @@
 #
 # Functions for integration testing
 import os
-import re
 import subprocess
 import sys
 import shutil
 import time
-
+from gnunet_pyexpect import pexpect
 
 class Check:
     def __init__(self, test):
@@ -56,11 +55,11 @@ class Check:
             neg_cont (self)
         else:
             pos_cont (self)
-    def eval(self, failed_only):
+    def evaluate (self, failed_only):
         pos = 0
         neg = 0
         for c in self.conditions:
-            if (False == c.eval (failed_only)):
+            if (False == c.evaluate (failed_only)):
                 neg += 1
             else:
                 pos += 1
@@ -76,7 +75,7 @@ class Condition:
         self.type = type
     def check(self):
         return False;
-    def eval(self, failed_only):
+    def evaluate (self, failed_only):
         if ((self.fulfilled == False) and (failed_only == True)):
             print str(self.type) + 'condition for was ' + str(self.fulfilled)
         elif (failed_only == False): 
@@ -98,7 +97,7 @@ class FileExistCondition (Condition):
                 return False
         else:
             return True
-    def eval(self, failed_only):
+    def evaluate (self, failed_only):
         if ((self.fulfilled == False) and (failed_only == True)):
             print str(self.type) + 'condition for file '+self.file+' was ' + str(self.fulfilled)
         elif (failed_only == False): 
@@ -124,11 +123,11 @@ class StatisticsCondition (Condition):
                 return False
         else:
             return True
-    def eval(self, failed_only):
-    	if (self.result == -1):
-    		res = 'NaN'
-    	else:
-    		res = str(self.result)
+    def evaluate (self, failed_only):
+        if (self.result == -1):
+            res = 'NaN'
+        else:
+            res = str(self.result)
         if (self.fulfilled == False):
             fail = " FAIL!" 
             op = " != "
@@ -144,47 +143,50 @@ class StatisticsCondition (Condition):
 class Test:
     def __init__(self, testname, verbose):
         self.peers = list()
-    	self.verbose = verbose;
-    	self.name = testname;
-    	srcdir = "../.."
+        self.verbose = verbose;
+        self.name = testname;
+        srcdir = "../.."
         gnunet_pyexpect_dir = os.path.join (srcdir, "contrib")
         if gnunet_pyexpect_dir not in sys.path:
-        	sys.path.append (gnunet_pyexpect_dir)
-        	from gnunet_pyexpect import pexpect
+            sys.path.append (gnunet_pyexpect_dir)
         self.gnunetarm = ''        
         self.gnunetstatistics = ''
         if os.name == 'posix':
-           self.gnunetarm = 'gnunet-arm'
-           self.gnunetstatistics = 'gnunet-statistics'
+            self.gnunetarm = 'gnunet-arm'
+            self.gnunetstatistics = 'gnunet-statistics'
+            self.gnunetpeerinfo = 'gnunet-peerinfo'
         elif os.name == 'nt':
-           self.gnunetarm = 'gnunet-arm.exe'
-           self.gnunetstatistics = 'gnunet-statistics.exe'    
+            self.gnunetarm = 'gnunet-arm.exe'
+            self.gnunetstatistics = 'gnunet-statistics.exe'
+            self.gnunetpeerinfo = 'gnunet-peerinfo.exe'    
         if os.name == "nt":
             shutil.rmtree (os.path.join (os.getenv ("TEMP"), testname), True)
         else:
             shutil.rmtree ("/tmp/" + testname, True)
-    def add_peer (peer):
-    	self.conditions.append(condition)
+    def add_peer (self, peer):
+        self.peers.append(peer)
     def p (self, msg):
         if (self.verbose == True):
-    	   print msg    
+            print msg    
 
 class Peer:
     def __init__(self, test, cfg_file):
         if (False == os.path.isfile(cfg_file)):
             print ("Peer cfg " + cfg_file + ": FILE NOT FOUND")
+        self.id = ""
         self.test = test
         self.started = False
         self.cfg = cfg_file 
     def __del__(self):
-    	if (self.started == True):
-    		print 'ERROR! Peer using cfg ' + self.cfg + ' was not stopped'
-    		if (ret == self.stop ()):
-    			print 'ERROR! Peer using cfg ' + self.cfg + ' could not be stopped'
-    		self.started == False
-    		return ret
-    	else:
-    		return False
+        if (self.started == True): 
+            print 'ERROR! Peer using cfg ' + self.cfg + ' was not stopped'
+            ret = self.stop ()
+            if (False == ret):
+                print 'ERROR! Peer using cfg ' + self.cfg + ' could not be stopped'
+                self.started = False
+            return ret
+        else:
+            return False
     def start (self):
         self.test.p ("Starting peer using cfg " + self.cfg)
         try:
@@ -194,11 +196,20 @@ class Peer:
             print "Can not start peer"
             self.started = False
             return False
-        self.started = True
+        self.started = True;
+        test = ''
+        try:
+            server = pexpect ()
+            server.spawn (None, [self.test.gnunetpeerinfo, '-c', self.cfg ,'-s'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            test = server.read("stdout", 1024)
+        except OSError:
+            print "Can not get peer identity"
+        test = (test.split('`')[1])
+        self.id = test.split('\'')[0]
         return True 
     def stop (self):
-    	if (self.started == False):
-    		return False
+        if (self.started == False):
+            return False
         self.test.p ("Stopping peer using cfg " + self.cfg)
         try:
             server = subprocess.Popen ([self.test.gnunetarm, '-eq', '-c', self.cfg])
@@ -209,7 +220,6 @@ class Peer:
         self.started = False
         return True;
     def get_statistics_value (self, subsystem, name):
-        from gnunet_pyexpect import pexpect
         server = pexpect ()
         server.spawn (None, [self.test.gnunetstatistics, '-c', self.cfg ,'-q','-n', name, '-s', subsystem ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         #server.expect ("stdout", re.compile (r""))
