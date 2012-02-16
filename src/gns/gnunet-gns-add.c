@@ -134,9 +134,6 @@ run (void *cls, char *const *args, const char *cfgfile,
   else if (verbose)
     FPRINTF (stderr, _("Connected to %s service!\n"), "GNS");
 
-  if (query_type == GNUNET_BLOCK_TYPE_ANY)      /* Type of data not set */
-    query_type = GNUNET_BLOCK_TYPE_TEST;
-
   timeout =
       GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, timeout_request);
   expiration =
@@ -147,9 +144,8 @@ run (void *cls, char *const *args, const char *cfgfile,
   if (verbose)
     FPRINTF (stderr, _("Issuing add request for `%s' with data `%s'!\n"),
              record_key, data);
-  GNUNET_GNS_add (gns_handle, &record_key, replication, GNUNET_DHT_RO_NONE, record_type,
-                  strlen (data), data, expiration, timeout, &message_sent_cont,
-                  NULL);
+  GNUNET_GNS_add_record (gns_handle, &record_key, record_type,
+                  strlen (data), data, expiration, timeout);
 
 }
 

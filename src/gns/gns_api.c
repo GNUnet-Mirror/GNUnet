@@ -31,10 +31,78 @@
 #include "gnunet_hello_lib.h"
 #include "gnunet_protocols.h"
 #include "gnunet_dht_service.h"
+#include "gns.h"
+#include "gnunet_gns_service.h"
 
 #define DEBUG_GNS_API GNUNET_EXTRA_LOGGING
 
 #define LOG(kind,...) GNUNET_log_from (kind, "gns-api",__VA_ARGS__)
+
+/* TODO into gnunet_protocols */
+#define GNUNET_MESSAGE_TYPE_GNS_CLIENT_LOOKUP 23
+#define GNUNET_MESSAGE_TYPE_GNS_CLIENT_RESULT 24
+
+/**
+ * Entry in our list of messages to be (re-)transmitted.
+ */
+struct PendingMessage
+{
+  /**
+   * This is a doubly-linked list.
+   */
+  struct PendingMessage *prev;
+
+  /**
+   * This is a doubly-linked list.
+   */
+  struct PendingMessage *next;
+
+  /**
+   * Message that is pending, allocated at the end
+   * of this struct.
+   */
+  const struct GNUNET_MessageHeader *msg;
+
+  /**
+   * Handle to the GNS API context.
+   */
+  struct GNUNET_GNS_Handle *handle;
+
+  /**
+   * Continuation to call when the request has been
+   * transmitted (for the first time) to the service; can be NULL.
+   */
+  GNUNET_SCHEDULER_Task cont;
+
+  /**
+   * Closure for 'cont'.
+   */
+  void *cont_cls;
+
+  /**
+   * Timeout task for this message
+   */
+  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+
+  /**
+   * Unique ID for this request
+   */
+  uint64_t unique_id;
+
+  /**
+   * Free the saved message once sent, set to GNUNET_YES for messages
+   * that do not receive responses; GNUNET_NO if this pending message
+   * is aliased from a 'struct GNUNET_DHT_RouteHandle' and will be freed
+   * from there.
+   */
+
+  int free_on_send;
+  /**
+   * GNUNET_YES if this message is in our pending queue right now.
+   */
+  int in_pending_queue;
+
+};
 
 /**
  * Handle to a Lookup request
@@ -67,8 +135,17 @@ struct GNUNET_GNS_LookupHandle
    */
   uint64_t unique_id;
 
+  struct PendingMessage *message;
+
 };
 
+/**
+ * A GNS Record.
+ */
+struct GNUNET_GNS_Record
+{
+  enum GNUNET_GNS_RecordType type;
+};
 
 /**
  * Connection to the GNS service.
@@ -91,6 +168,21 @@ struct GNUNET_GNS_Handle
    */
   struct GNUNET_CLIENT_TransmitHandle *th;
 
+  /**
+   * Head of linked list of messages we would like to transmit.
+   */
+  struct PendingMessage *pending_head;
+
+  /**
+   * Tail of linked list of messages we would like to transmit.
+   */
+  struct PendingMessage *pending_tail;
+
+  /**
+   * Hash map containing the current outstanding unique requests.
+   */
+  struct GNUNET_CONTAINER_MultiHashMap *active_requests;
+
   GNUNET_SCHEDULER_TaskIdentifier reconnect_task;
 
   /**
@@ -110,6 +202,12 @@ struct GNUNET_GNS_Handle
   int in_receive;
 };
 
+/**
+ * Try to send messages from list of messages to send
+ * @param handle GNS_Handle
+ */
+static void
+process_pending_messages (struct GNUNET_GNS_Handle *handle);
 
 /**
  * Try to (re)connect to the GNS service.
@@ -143,7 +241,7 @@ try_reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_GNS_Handle *handle = cls;
 
-#if DEBUG_DHT
+#if DEBUG_GNS
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Reconnecting with GNS %p\n", handle);
 #endif
   handle->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
@@ -156,7 +254,7 @@ try_reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   handle->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
   if (GNUNET_YES != try_connect (handle))
   {
-#if DEBUG_DHT
+#if DEBUG_GNS
     LOG (GNUNET_ERROR_TYPE_DEBUG, "GNS reconnect failed(!)\n");
 #endif
     return;
@@ -190,11 +288,215 @@ do_disconnect (struct GNUNET_GNS_Handle *handle)
       GNUNET_SCHEDULER_add_delayed (handle->retry_time, &try_reconnect, handle);
 }
 
+/**
+ * Transmit the next pending message, called by notify_transmit_ready
+ */
+static size_t
+transmit_pending (void *cls, size_t size, void *buf);
+
+/**
+ * Handler for messages received from the GNS service
+ *
+ * @param cls the 'struct GNUNET_GNS_Handle'
+ * @param msg the incoming message
+ */
+static void
+message_handler (void *cls, const struct GNUNET_MessageHeader *msg);
+
+/**
+ * Try to send messages from list of messages to send
+ */
+static void
+process_pending_messages (struct GNUNET_GNS_Handle *handle)
+{
+  struct PendingMessage *head;
+
+  if (handle->client == NULL)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "process_pending_messages called, but client is null, reconnecting\n");
+    do_disconnect (handle);
+    return;
+  }
+  if (handle->th != NULL)
+    return;
+  if (NULL == (head = handle->pending_head))
+    return;
+  handle->th =
+    GNUNET_CLIENT_notify_transmit_ready (handle->client,
+                                         ntohs (head->msg->size),
+                                         GNUNET_TIME_UNIT_FOREVER_REL,
+                                         GNUNET_YES, &transmit_pending,
+                                         handle);
+  if (NULL != handle->th)
+    return;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "notify_transmit_ready returned NULL, reconnecting\n");
+  do_disconnect (handle);
+}
+
+
+/**
+ * Transmit the next pending message, called by notify_transmit_ready
+ */
+static size_t
+transmit_pending (void *cls, size_t size, void *buf)
+{
+  struct GNUNET_GNS_Handle *handle = cls;
+  struct PendingMessage *head;
+  size_t tsize;
+
+  handle->th = NULL;
+  if (buf == NULL)
+  {
+#if DEBUG_GNS
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Transmission to GNS service failed!  Reconnecting!\n");
+#endif
+    do_disconnect (handle);
+    return 0;
+  }
+  if (NULL == (head = handle->pending_head))
+    return 0;
+
+  tsize = ntohs (head->msg->size);
+  if (size < tsize)
+  {
+    process_pending_messages (handle);
+    return 0;
+  }
+  memcpy (buf, head->msg, tsize);
+  GNUNET_CONTAINER_DLL_remove (handle->pending_head, handle->pending_tail,
+                               head);
+  head->in_pending_queue = GNUNET_NO;
+  if (head->timeout_task != GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel (head->timeout_task);
+    head->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  if (GNUNET_YES == head->free_on_send)
+    GNUNET_free (head);
+  process_pending_messages (handle);
+#if DEBUG_GNS
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Forwarded request of %u bytes to GNS service\n", (unsigned int) tsize);
+#endif
+  if (GNUNET_NO == handle->in_receive)
+  {
+#if DEBUG_GNS
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Starting to process replies from GNS\n");
+#endif
+    handle->in_receive = GNUNET_YES;
+    GNUNET_CLIENT_receive (handle->client, &message_handler, handle,
+                           GNUNET_TIME_UNIT_FOREVER_REL);
+  }
+  return tsize;
+}
+
+/**
+ * Process a given reply that might match the given
+ * request.
+ *
+ * @param cls the 'struct GNUNET_GNS_ClientResultMessage'
+ * @param key query of the request
+ * @param value the 'struct GNUNET_GNS_LookupHandle' of a request matching the same key
+ * @return GNUNET_YES to continue to iterate over all results,
+ *         GNUNET_NO if the reply is malformed
+ */
+static int
+process_reply (void *cls, const GNUNET_HashCode * key, void *value)
+{
+  const struct GNUNET_GNS_ClientResultMessage *gns_msg = cls;
+  struct GNUNET_GNS_LookupHandle *lookup_handle = value;
+  const struct GNUNET_GNS_Record *records;
+  uint32_t num_records;
+  size_t meta_length;
+  size_t msize;
+
+  if (gns_msg->unique_id != lookup_handle->unique_id)
+  {
+    /* UID mismatch */
+#if DEBUG_GNS
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Ignoring reply for %s: UID mismatch: %llu/%llu\n", GNUNET_h2s (key),
+         gns_msg->unique_id, lookup_handle->unique_id);
+#endif
+    return GNUNET_YES;
+  }
+  msize = ntohs (gns_msg->header.size);
+  num_records = ntohl (gns_msg->num_records);
+  meta_length =
+    sizeof (struct GNUNET_GNS_ClientResultMessage) +
+    sizeof (struct GNUNET_GNS_Record) * (num_records);
+  if ((msize < meta_length) ||
+      (num_records >
+       GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_GNS_Record)))
+  {
+    GNUNET_break (0);
+    return GNUNET_NO;
+  }
+#if DEBUG_GNS
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Giving %u byte reply for %s to application\n",
+       (unsigned int) (msize - meta_length), GNUNET_h2s (key));
+#endif
+  records = (const struct GNUNET_GNS_Record *) &gns_msg[1];
+  lookup_handle->iter (lookup_handle->iter_cls, key, records, num_records);
+  return GNUNET_YES;
+}
+
+
+/**
+ * Handler for messages received from the GNS service
+ *
+ * @param cls the 'struct GNUNET_GNS_Handle'
+ * @param msg the incoming message
+ */
+static void
+message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
+{
+  struct GNUNET_GNS_Handle *handle = cls;
+  const struct GNUNET_GNS_ClientResultMessage *gns_msg;
+
+  if (msg == NULL)
+  {
+#if DEBUG_GNS
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Error receiving data from GNS service, reconnecting\n");
+#endif
+    do_disconnect (handle);
+    return;
+  }
+  if (ntohs (msg->type) != GNUNET_MESSAGE_TYPE_GNS_CLIENT_RESULT)
+  {
+    GNUNET_break (0);
+    do_disconnect (handle);
+    return;
+  }
+  if (ntohs (msg->size) < sizeof (struct GNUNET_GNS_ClientResultMessage))
+  {
+    GNUNET_break (0);
+    do_disconnect (handle);
+    return;
+  }
+  gns_msg = (const struct GNUNET_GNS_ClientResultMessage *) msg;
+#if DEBUG_GNS
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Received reply for `%s' from GNS service %p\n",
+       &gns_msg->name, handle);
+#endif
+  /* TODO uniquely identify requests... maybe hash(name) or uid */
+  GNUNET_CONTAINER_multihashmap_get_multiple (handle->active_requests,
+                                              &gns_msg->key, &process_reply,
+                                              (void *) gns_msg);
+  GNUNET_CLIENT_receive (handle->client, &message_handler, handle,
+                         GNUNET_TIME_UNIT_FOREVER_REL);
+}
+
 
 /**
  * Initialize the connection with the GNS service.
  *
  * @param cfg configuration to use
+ * @param ht_len size of the internal hash table to use for parallel requests
  * @return handle to the GNS service, or NULL on error
  */
 struct GNUNET_GNS_Handle *
@@ -225,7 +527,7 @@ GNUNET_GNS_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
 void
 GNUNET_GNS_disconnect (struct GNUNET_GNS_Handle *handle)
 {
-	/* disco from GNS */
+  /* disco from GNS */
 }
 
 
@@ -233,38 +535,28 @@ GNUNET_GNS_disconnect (struct GNUNET_GNS_Handle *handle)
  * Add a new record to the GNS.
  *
  * @param handle handle to GNS service
- * @param key the key to store under
- * @param desired_replication_level estimate of how many
- *                nearest peers this request should reach
- * @param options routing options for this message
- * @param type type of the value
- * @param size number of bytes in data; must be less than 64k
- * @param data the data to store
+ * @param record the record to store
  * @param exp desired expiration time for the value
  * @param timeout how long to wait for transmission of this request
- * @param cont continuation to call when done (transmitting request to service)
- * @param cont_cls closure for cont
  */
 void
-GNUNET_GNS_add_record (struct GNUNET_GNS_Handle *handle, const GNUNET_HashCode * key,
-                uint32_t desired_replication_level,
-                enum GNUNET_DHT_RouteOption options,
-                enum GNUNET_BLOCK_Type type, size_t size, const char *data,
-                struct GNUNET_TIME_Absolute exp,
-                struct GNUNET_TIME_Relative timeout, GNUNET_SCHEDULER_Task cont,
-                void *cont_cls)
+GNUNET_GNS_add_record (struct GNUNET_GNS_Handle *handle,
+                       const char* name,
+                       enum GNUNET_GNS_RecordType type,
+                       size_t size, const char *data,
+                       struct GNUNET_TIME_Absolute exp,
+                       struct GNUNET_TIME_Relative timeout)
 {
-	/**
-	 * build add record message
-	 */
-	struct GNUNET_GNS_Record *record;
+  /**
+   * build add record message
+   */
+  struct GNUNET_GNS_Record *record;
 
-	record = GNUNET_malloc(sizeof (struct GNUNET_GNS_Record));
-	/* TODO fill */
-	queue_record_msg(handle, record);
-}
-
-
+  record = GNUNET_malloc(sizeof (struct GNUNET_GNS_Record));
+  /**
+   * TODO
+   * queue_record_msg(handle, record);
+   **/
 }
 
 
@@ -273,13 +565,7 @@ GNUNET_GNS_add_record (struct GNUNET_GNS_Handle *handle, const GNUNET_HashCode *
  *
  * @param handle handle to the GNS service
  * @param timeout how long to wait for transmission of this request to the service
- * @param type expected type of the response object
- * @param key the key to look up
- * @param desired_replication_level estimate of how many
-                  nearest peers this request should reach
- * @param options routing options for this message
- * @param xquery extended query data (can be NULL, depending on type)
- * @param xquery_size number of bytes in xquery
+ * @param name the name to look up
  * @param iter function to call on each result
  * @param iter_cls closure for iter
  * @return handle to stop the async get
@@ -287,13 +573,45 @@ GNUNET_GNS_add_record (struct GNUNET_GNS_Handle *handle, const GNUNET_HashCode *
 struct GNUNET_GNS_LookupHandle *
 GNUNET_GNS_lookup_start (struct GNUNET_GNS_Handle *handle,
                       struct GNUNET_TIME_Relative timeout,
-                      enum GNUNET_BLOCK_Type type, const GNUNET_HashCode * key,
-                      uint32_t desired_replication_level,
-                      enum GNUNET_DHT_RouteOption options, const void *xquery,
-                      size_t xquery_size, GNUNET_GNS_LookupIterator iter,
+                      const char * name,
+                      enum GNUNET_GNS_RecordType type,
+                      GNUNET_GNS_LookupIterator iter,
                       void *iter_cls)
 {
   /* IPC to look for local entries, start dht lookup, return lookup_handle */
+  struct GNUNET_GNS_ClientLookupMessage *lookup_msg;
+  struct GNUNET_GNS_LookupHandle *lookup_handle;
+  size_t msize;
+  struct PendingMessage *pending;
+
+  msize = sizeof (struct GNUNET_GNS_ClientLookupMessage) + strlen(name);
+#if DEBUG_GNS
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Starting lookup for %s in GNS %p\n",
+       name, handle);
+#endif
+  pending = GNUNET_malloc (sizeof (struct PendingMessage) + msize);
+  lookup_msg = (struct GNUNET_GNS_ClientLookupMessage *) &pending[1];
+  pending->msg = &lookup_msg->header;
+  pending->handle = handle;
+  pending->free_on_send = GNUNET_NO;
+  lookup_msg->header.size = htons (msize);
+  lookup_msg->header.type = htons (GNUNET_MESSAGE_TYPE_GNS_CLIENT_LOOKUP);
+  lookup_msg->namelen = strlen(name);
+  memcpy(&lookup_msg[1], name, strlen(name));
+  handle->uid_gen++;
+  lookup_msg->unique_id = handle->uid_gen;
+  GNUNET_CONTAINER_DLL_insert (handle->pending_head, handle->pending_tail,
+                               pending);
+  pending->in_pending_queue = GNUNET_YES;
+  lookup_handle = GNUNET_malloc (sizeof (struct GNUNET_GNS_LookupHandle));
+  lookup_handle->iter = iter;
+  lookup_handle->iter_cls = iter_cls;
+  lookup_handle->message = pending;
+  lookup_handle->unique_id = lookup_msg->unique_id;
+  GNUNET_CONTAINER_multihashmap_put (handle->active_requests, key, lookup_handle,
+                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+  process_pending_messages (handle);
+  return lookup_handle;
 }
 
 
@@ -305,7 +623,7 @@ GNUNET_GNS_lookup_start (struct GNUNET_GNS_Handle *handle,
 void
 GNUNET_GNS_lookup_stop (struct GNUNET_GNS_LookupHandle *lookup_handle)
 {
-	/* TODO Stop dht lookups */
+  /* TODO Stop dht lookups */
 }
 
 

@@ -39,7 +39,7 @@ struct GNUNET_DNS_Handle *dns_handler;
 /**
  * The configuration the GNS service is running with
  */
-const struct GNUNET_CONFIGURATION_Handle *GDS_cfg;
+const struct GNUNET_CONFIGURATION_Handle *GNS_cfg;
 
 /**
  * Task run during shutdown.
@@ -76,7 +76,6 @@ handle_dns_request(void *cls,
 	 *  Maybe provide both, useful for cli app
 	 **/
   struct GNUNET_DNSPARSER_Packet *p;
-	char buf[INET6_ADDRSTRLEN];
 	int namelen;
 	
 	p = GNUNET_DNSPARSER_parse (request, request_length);
@@ -86,13 +85,22 @@ handle_dns_request(void *cls,
 		GNUNET_DNS_request_forward (rh);
 		return;
 	}
-	/* TODO factor out */
+	/**
+	 * TODO factor out
+	 * Check tld and decide if we or
+	 * legacy dns is responsible
+	 **/
 	for (i=0;i<p->num_queries;i++)
 	{
 		namelen = strlen(&p->queries[i]->name);
 		if (namelen >= 7)
 		{
-			if (0 == strcmp(&p->queries[i]->name, ".gnunet"))
+			/**
+			 * TODO off by 1?
+			 * Move our tld/root to config file
+			 * Generate fake DNS reply that replaces .gnunet with .org
+			 **/
+			if (0 == strcmp((&p->queries[i]->name)+(namelen-7), ".gnunet"))
 			{
 				GNUNET_DNS_request_answer(rh, 0 /*length*/, NULL/*reply*/);
 			}
@@ -119,9 +127,9 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 	/* The IPC message types */
 	static const struct GNUNET_SERVER_MessageHandler handlers[] = {
 		/* callback, cls, type, size */
-		{&handle_record_lookup, NULL, GNUNET_MESSAGE_TYPE_GNS_RECORD_LOOKUP,
+		{&handle_client_record_lookup, NULL, GNUNET_MESSAGE_TYPE_GNS_RECORD_LOOKUP,
 			sizeof (struct GNUNET_GNS_Lookup)},
-		{&handle_record_add, NULL, GNUNET_MESSAGE_TYPE_GNS_RECORD_ADD,
+		{&handle_client_record_add, NULL, GNUNET_MESSAGE_TYPE_GNS_RECORD_ADD,
 			sizeof (struct GNUNET_GNS_Record)},
 		{NULL, NULL, 0, 0}
 	};
@@ -144,7 +152,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 	 * Esp the lookup would require to keep track of the clients' context
 	 * See dht.
 	 * GNUNET_SERVER_disconnect_notify (server, &client_disconnect, NULL);
-	 * */
+	 **/
 }
 
 

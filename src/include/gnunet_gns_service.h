@@ -49,13 +49,31 @@ struct GNUNET_GNS_Handle;
 struct GNUNET_GNS_LookupHandle;
 
 /**
+ * A single GNS record.
+ */
+struct GNUNET_GNS_Record;
+
+/**
+ * Records types
+ */
+enum GNUNET_GNS_RecordType
+{
+  GNUNET_GNS_RECORD_A,
+  GNUNET_GNS_RECORD_AAAA,
+  GNUNET_GNS_RECORD_MX,
+  GNUNET_GNS_RECORD_PKEY
+};
+
+/**
  * Initialize the connection with the GNS service.
  *
  * @param cfg configuration to use
+ * @param ht_len size of the internal hash table to use for parallel lookups
  * @return NULL on error
  */
 struct GNUNET_GNS_Handle *
-GNUNET_GNS_connect (const struct GNUNET_CONFIGURATION_Handle *cfg);
+GNUNET_GNS_connect (const struct GNUNET_CONFIGURATION_Handle *cfg
+                    unsigned int ht_len);
 
 
 /**
@@ -86,13 +104,12 @@ GNUNET_GNS_disconnect (struct GNUNET_GNS_Handle *handle);
  * @param cont_cls closure for cont
  */
 void
-GNUNET_GNS_add (struct GNUNET_GNS_Handle *handle, const GNUNET_HashCode * key,
-                uint32_t desired_replication_level,
-                enum GNUNET_DHT_RouteOption options,
-                enum GNUNET_BLOCK_Type type, size_t size, const char *data,
-                struct GNUNET_TIME_Absolute exp,
-                struct GNUNET_TIME_Relative timeout, GNUNET_SCHEDULER_Task cont,
-                void *cont_cls);
+GNUNET_GNS_add_record (struct GNUNET_GNS_Handle *handle,
+                       const char* name,
+                       enum GNUNET_GNS_RecordType type,
+                       size_t size, const char *data,
+                       struct GNUNET_TIME_Absolute exp,
+                       struct GNUNET_TIME_Relative timeout);
 
 
 /**
@@ -102,23 +119,14 @@ GNUNET_GNS_add (struct GNUNET_GNS_Handle *handle, const GNUNET_HashCode * key,
  * @param cls closure
  * @param exp when will this value expire
  * @param key key of the result
- * @param get_path peers on reply path (or NULL if not recorded)
- * @param get_path_length number of entries in get_path
- * @param put_path peers on the PUT path (or NULL if not recorded)
- * @param put_path_length number of entries in get_path
+ * @param records the records in reply
+ * @param num_records the number of records in reply
  * @param type type of the result
- * @param size number of bytes in data
- * @param data pointer to the result data
  */
 typedef void (*GNUNET_GNS_LookupIterator) (void *cls,
-                                        struct GNUNET_TIME_Absolute exp,
                                         const GNUNET_HashCode * key,
-                                        const struct GNUNET_PeerIdentity *
-                                        get_path, unsigned int get_path_length,
-                                        const struct GNUNET_PeerIdentity *
-                                        put_path, unsigned int put_path_length,
-                                        enum GNUNET_BLOCK_Type type,
-                                        size_t size, const void *data);
+                                        const struct GNUNET_GNS_Record *record,
+                                        unsigned int num_records);
 
 
 
@@ -142,10 +150,9 @@ typedef void (*GNUNET_GNS_LookupIterator) (void *cls,
 struct GNUNET_GNS_LookupHandle *
 GNUNET_GNS_lookup_start (struct GNUNET_GNS_Handle *handle,
                       struct GNUNET_TIME_Relative timeout,
-                      enum GNUNET_BLOCK_Type type, const GNUNET_HashCode * key,
-                      uint32_t desired_replication_level,
-                      enum GNUNET_DHT_RouteOption options, const void *xquery,
-                      size_t xquery_size, GNUNET_GNS_LookupIterator iter,
+                      const char * name,
+                      enum GNUNET_GNS_RecordType type,
+                      GNUNET_GNS_LookupIterator iter,
                       void *iter_cls);
 
 
