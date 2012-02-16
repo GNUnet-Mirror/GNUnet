@@ -42,15 +42,18 @@ struct GNUNET_GNS_ClientLookupMessage
   /**
    * Unique identifier for this request (for key collisions).
    */
+  // FIXME: unaligned
   uint64_t unique_id;
 
   /**
    * the type of record to look up
    */
+  // FIXME: bad type
   int type;
 
   /**
    * Length of name to lookup
+   * // FIXME: redundant
    */
   uint32_t namelen;
 
@@ -71,18 +74,21 @@ struct GNUNET_GNS_ClientResultMessage
   /**
    * Unique identifier for this request (for key collisions).
    */
+  // FIXME: unaligned
   uint64_t unique_id;
 
   /**
    * A key. TODO some uid
+   * // FIXME: why hash?
    */
   GNUNET_HashCode key;
 
   /**
    * The number of records contained in response
-   */
+   */  
   uint32_t num_records;
 
+  // FIXME: what format has a GNS_Record?
   /* followed by num_records GNUNET_GNS_Records*/
 
 };
