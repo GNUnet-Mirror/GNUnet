@@ -1252,6 +1252,8 @@ send_switch_address_continuation (void *cls,
     {
       GST_validation_set_address_use (cc->address, cc->session, GNUNET_YES);
       GNUNET_ATS_address_update (GST_ats, cc->address, cc->session, NULL, 0);
+      if (cc->session != n->session)
+        GNUNET_break (0);
       GNUNET_ATS_address_in_use (GST_ats, cc->address, cc->session, GNUNET_YES);
       n->address_state = USED;
     }
@@ -1409,12 +1411,13 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
   }
 
   /* checks successful and neighbour != NULL */
-#if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "ATS tells us to switch to address '%s' session %p for peer `%s' in state `%s'\n",
-              GST_plugins_a2s (address), session, GNUNET_i2s (peer),
+              (address->address_length != 0) ? GST_plugins_a2s (address): "<inbound>",
+              session,
+              GNUNET_i2s (peer),
               print_state (n->state));
-#endif
+
   if (n->ats_suggest != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (n->ats_suggest);
@@ -1468,7 +1471,7 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
     /* Session could not be initiated */
     if (n->session == NULL)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Failed to obtain new session %p for peer `%s' and  address '%s'\n",
                   n->session, GNUNET_i2s (&n->id), GST_plugins_a2s (n->address));
 
@@ -1482,6 +1485,7 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
       GNUNET_ATS_suggest_address (GST_ats, &n->id);
       GNUNET_HELLO_address_free (n->address);
       n->address = NULL;
+      n->session = NULL;
       return GNUNET_NO;
     }
 
@@ -1493,10 +1497,12 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
   }
   else
   {
+    n->session = session;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Using existing session %p for peer `%s' and  address '%s'\n",
-                n->session, GNUNET_i2s (&n->id), GST_plugins_a2s (n->address));
-    n->session = session;
+                n->session,
+                GNUNET_i2s (&n->id),
+                (address->address_length != 0) ? GST_plugins_a2s (address): "<inbound>");
   }
 
   switch (n->state)
@@ -2389,7 +2395,7 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
   }
   GNUNET_ATS_address_update (GST_ats, address, session, ats, ats_count);
   GNUNET_assert (NULL != n->address);
-//LOOKAT
+
   if ((n->address_state == FRESH) && (0 == GNUNET_HELLO_address_cmp(address, n->address)))
   {
     GST_validation_set_address_use (n->address, n->session, GNUNET_YES);
@@ -2476,7 +2482,7 @@ GST_neighbours_handle_ack (const struct GNUNET_MessageHeader *message,
                      session, address->transport_name, GNUNET_i2s (peer));
   GNUNET_ATS_address_update (GST_ats, address, session, ats, ats_count);
   GNUNET_assert (n->address != NULL);
-// LOOKAT
+
   if ((n->address_state == FRESH) && (0 == GNUNET_HELLO_address_cmp(address, n->address)))
   {
     GST_validation_set_address_use (n->address, n->session, GNUNET_YES);
