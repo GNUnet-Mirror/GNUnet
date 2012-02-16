@@ -120,17 +120,12 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param data pointer to the result data
  */
 static void
-get_result_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
-                     const GNUNET_HashCode * key,
-                     const struct GNUNET_PeerIdentity *get_path,
-                     unsigned int get_path_length,
-                     const struct GNUNET_PeerIdentity *put_path,
-                     unsigned int put_path_length, enum GNUNET_BLOCK_Type type,
-                     size_t size, const void *data)
+lookup_result_iterator (void *cls,
+                        const GNUNET_HashCode * key,
+                        const struct GNUNET_GNS_Record *record,
+                        unsigned int num_records)
 {
-  FPRINTF (stdout, "Result %d, type %d:\n%.*s\n", result_count, type,
-           (unsigned int) size, (char *) data);
-  result_count++;
+  FPRINTF (stdout, "Results %d\n", num_records);
 }
 
 
@@ -147,7 +142,6 @@ run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   struct GNUNET_TIME_Relative timeout;
-  GNUNET_HashCode key;
 
   cfg = c;
 
@@ -159,9 +153,9 @@ run (void *cls, char *const *args, const char *cfgfile,
     return;
   }
 
-  lookup_handle = GNUNET_GNS_connect (cfg, 1);
+  gns_handle = GNUNET_GNS_connect (cfg, 1);
 
-  if (lookup_handle == NULL)
+  if (gns_handle == NULL)
   {
     if (verbose)
       FPRINTF (stderr, "%s",  "Couldn't connect to GNS service!\n");
@@ -171,11 +165,6 @@ run (void *cls, char *const *args, const char *cfgfile,
   else if (verbose)
     FPRINTF (stderr, "%s",  "Connected to GNS service!\n");
 
-  if (query_type == GNUNET_BLOCK_TYPE_ANY)      /* Type of data not set */
-    query_type = GNUNET_BLOCK_TYPE_TEST;
-
-  GNUNET_CRYPTO_hash (query_key, strlen (query_key), &key);
-
   timeout =
       GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, timeout_request);
   absolute_timeout = GNUNET_TIME_relative_to_absolute (timeout);
@@ -184,10 +173,11 @@ run (void *cls, char *const *args, const char *cfgfile,
     FPRINTF (stderr, "Issuing lookup request for %s!\n", query_key);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining
                                 (absolute_timeout), &cleanup_task, NULL);
-  get_handle =
-      GNUNET_GNS_lookup_start (lookup_handle, timeout, query_type, &key, replication,
-                            GNUNET_DHT_RO_NONE, NULL, 0, &get_result_iterator,
-                            NULL);
+  lookup_handle =
+      GNUNET_GNS_lookup_start (gns_handle, timeout, query_key,
+                               0/*GNS_RecordType*/,
+                               &lookup_result_iterator,
+                               NULL);
 
 }
 

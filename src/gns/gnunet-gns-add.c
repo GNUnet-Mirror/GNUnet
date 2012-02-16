@@ -144,8 +144,9 @@ run (void *cls, char *const *args, const char *cfgfile,
   if (verbose)
     FPRINTF (stderr, _("Issuing add request for `%s' with data `%s'!\n"),
              record_key, data);
-  GNUNET_GNS_add_record (gns_handle, &record_key, record_type,
-                  strlen (data), data, expiration, timeout);
+  GNUNET_GNS_add_record (gns_handle, record_key,
+                         0/*RecordType*/,
+                         strlen (data), data, expiration, timeout);
 
 }
 

@@ -272,7 +272,7 @@ GNUNET_DHT_monitor_start (struct GNUNET_DHT_Handle *handle,
  *
  * @param handle The handle to the monitor request returned by monitor_start.
  *
- * On return get_handle will no longer be valid, caller must not use again!!!
+ * On return handle will no longer be valid, caller must not use again!!!
  */
 void
 GNUNET_DHT_monitor_stop (struct GNUNET_DHT_MonitorHandle *handle);

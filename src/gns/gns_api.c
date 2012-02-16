@@ -231,6 +231,35 @@ try_connect (struct GNUNET_GNS_Handle *handle)
 }
 
 /**
+ * Add the request corresponding to the given handle
+ * to the pending queue (if it is not already in there).
+ *
+ * @param cls the 'struct GNUNET_GNS_Handle*'
+ * @param key key for the request (not used)
+ * @param value the 'struct GNUNET_GNS_LookupHandle*'
+ * @return GNUNET_YES (always)
+ */
+static int
+add_request_to_pending (void *cls, const GNUNET_HashCode * key, void *value)
+{
+  struct GNUNET_GNS_Handle *handle = cls;
+  struct GNUNET_GNS_LookupHandle *rh = value;
+
+  if (GNUNET_NO == rh->message->in_pending_queue)
+  {
+#if DEBUG_DHT
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Retransmitting request related to %s to GNS %p\n", GNUNET_h2s(key),
+         handle);
+#endif
+    GNUNET_CONTAINER_DLL_insert (handle->pending_head, handle->pending_tail,
+                                 rh->message);
+    rh->message->in_pending_queue = GNUNET_YES;
+  }
+  return GNUNET_YES;
+}
+
+/**
  * Try reconnecting to the GNS service.
  *
  * @param cls GNUNET_GNS_Handle
@@ -349,10 +378,8 @@ transmit_pending (void *cls, size_t size, void *buf)
   handle->th = NULL;
   if (buf == NULL)
   {
-#if DEBUG_GNS
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
          "Transmission to GNS service failed!  Reconnecting!\n");
-#endif
     do_disconnect (handle);
     return 0;
   }
@@ -562,6 +589,7 @@ GNUNET_GNS_add_record (struct GNUNET_GNS_Handle *handle,
 
 /**
  * Perform an asynchronous Lookup operation on the GNS.
+ * TODO: Still not sure what we query for... "names" it is for now
  *
  * @param handle handle to the GNS service
  * @param timeout how long to wait for transmission of this request to the service
@@ -572,17 +600,25 @@ GNUNET_GNS_add_record (struct GNUNET_GNS_Handle *handle,
  */
 struct GNUNET_GNS_LookupHandle *
 GNUNET_GNS_lookup_start (struct GNUNET_GNS_Handle *handle,
-                      struct GNUNET_TIME_Relative timeout,
-                      const char * name,
-                      enum GNUNET_GNS_RecordType type,
-                      GNUNET_GNS_LookupIterator iter,
-                      void *iter_cls)
+                         struct GNUNET_TIME_Relative timeout,
+                         const char * name,
+                         enum GNUNET_GNS_RecordType type,
+                         GNUNET_GNS_LookupIterator iter,
+                         void *iter_cls)
 {
   /* IPC to look for local entries, start dht lookup, return lookup_handle */
   struct GNUNET_GNS_ClientLookupMessage *lookup_msg;
   struct GNUNET_GNS_LookupHandle *lookup_handle;
+  GNUNET_HashCode key;
   size_t msize;
   struct PendingMessage *pending;
+
+  if (NULL == name)
+  {
+    return NULL;
+  }
+
+  GNUNET_CRYPTO_hash (name, strlen(name), &key);
 
   msize = sizeof (struct GNUNET_GNS_ClientLookupMessage) + strlen(name);
 #if DEBUG_GNS
@@ -597,6 +633,7 @@ GNUNET_GNS_lookup_start (struct GNUNET_GNS_Handle *handle,
   lookup_msg->header.size = htons (msize);
   lookup_msg->header.type = htons (GNUNET_MESSAGE_TYPE_GNS_CLIENT_LOOKUP);
   lookup_msg->namelen = strlen(name);
+  lookup_msg->key = key;
   memcpy(&lookup_msg[1], name, strlen(name));
   handle->uid_gen++;
   lookup_msg->unique_id = handle->uid_gen;
@@ -608,7 +645,8 @@ GNUNET_GNS_lookup_start (struct GNUNET_GNS_Handle *handle,
   lookup_handle->iter_cls = iter_cls;
   lookup_handle->message = pending;
   lookup_handle->unique_id = lookup_msg->unique_id;
-  GNUNET_CONTAINER_multihashmap_put (handle->active_requests, key, lookup_handle,
+  GNUNET_CONTAINER_multihashmap_put (handle->active_requests, &lookup_msg->key,
+                                     lookup_handle,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   process_pending_messages (handle);
   return lookup_handle;

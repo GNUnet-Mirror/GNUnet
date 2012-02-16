@@ -40,6 +40,11 @@ struct GNUNET_GNS_ClientLookupMessage
   struct GNUNET_MessageHeader header;
 
   /**
+   * A key. TODO some uid
+   */
+  GNUNET_HashCode key;
+
+  /**
    * Unique identifier for this request (for key collisions).
    */
   // FIXME: unaligned

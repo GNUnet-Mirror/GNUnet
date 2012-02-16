@@ -80,7 +80,7 @@ enum GNUNET_GNS_RecordType
  * @return NULL on error
  */
 struct GNUNET_GNS_Handle *
-GNUNET_GNS_connect (const struct GNUNET_CONFIGURATION_Handle *cfg
+GNUNET_GNS_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
                     unsigned int ht_len);
 
 

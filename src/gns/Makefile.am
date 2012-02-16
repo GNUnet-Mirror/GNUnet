@@ -12,14 +12,14 @@ pkgcfgdir= $(pkgdatadir)/config.d/
 
 plugindir = $(libdir)/gnunet
 
-pkgcfg_DATA = \
-  dns.conf
+#pkgcfg_DATA = \
+#  dns.conf
 
 lib_LTLIBRARIES = \
   libgnunetgns.la
 
 bin_PROGRAMS = \
-  gnunet-service-gns $(HIJACKBIN)
+  gnunet-service-gns
 
 noinst_PROGRAMS = \
   gnunet-gns-lookup gnunet-gns-add
@@ -37,6 +37,15 @@ gnunet_gns_add_LDADD = \
 gnunet_dns_add_DEPENDENCIES = \
   libgnunetgns.la
 
+gnunet_gns_lookup_SOURCES = \
+ gnunet-gns-lookup.c
+gnunet_gns_lookup_LDADD = \
+  $(top_builddir)/src/gns/libgnunetgns.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(GN_LIBINTL)
+gnunet_dns_lookup_DEPENDENCIES = \
+  libgnunetgns.la
+
 gnunet_service_gns_SOURCES = \
  gnunet-service-gns.c 
 gnunet_service_gns_LDADD = \
@@ -45,6 +54,7 @@ gnunet_service_gns_LDADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
 	$(top_builddir)/src/dns/libgnunetdns.la \
+	$(top_builddir)/src/dns/libgnunetdnsparser.la \
   $(GN_LIBINTL)
 
 libgnunetgns_la_SOURCES = \
