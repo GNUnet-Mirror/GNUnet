@@ -401,6 +401,13 @@ int main(int argc,
   const char *ex;
   struct ScanTreeNode *root;
 
+#if WINDOWS
+  /* We're using stdout to communicate binary data back to the parent; use
+   * binary mode.
+   */
+  _setmode (1, _O_BINARY);
+#endif
+
   /* parse command line */
   if ( (argc != 3) && (argc != 2) )
   {
