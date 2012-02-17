@@ -14,7 +14,8 @@ bin_PROGRAMS =
 check_PROGRAMS =
 
 noinst_SCRIPTS = \
- gnunet_testing.py
+ gnunet_testing.py \
+ gnunet_pyexpect.py
 
 if HAVE_PYTHON_PEXPECT
 check_SCRIPTS = \
@@ -40,6 +41,10 @@ do_subst = $(SED) -e 's,[@]PYTHON[@],$(PYTHON),g'
 gnunet_testing.py: gnunet_testing.py.in Makefile
 	$(do_subst) < $(srcdir)/gnunet_testing.py.in > gnunet_testing.py
 	chmod +x gnunet_testing.py	
+
+gnunet_pyexpect.py: gnunet_pyexpect.py.in Makefile
+	$(do_subst) < $(srcdir)/gnunet_pyexpect.py.in > gnunet_pyexpect.py
+	chmod +x gnunet_pyexpect.py	
 
 test_integration_bootstrap_and_connect.py: test_integration_bootstrap_and_connect.py.in Makefile
 	$(do_subst) < $(srcdir)/test_integration_bootstrap_and_connect.py.in > test_integration_bootstrap_and_connect.py
@@ -68,6 +73,7 @@ test_integration_clique_nat.py: test_integration_clique_nat.py.in Makefile
 
 EXTRA_DIST = \
    gnunet_testing.py.in \
+   gnunet_pyexpect.py.in \
    test_integration_bootstrap_and_connect.py.in \
    test_integration_disconnect.py.in \
    test_integration_restart.py.in \
@@ -87,9 +93,6 @@ EXTRA_DIST = \
    hostkeys/0007-hostkey \
    hostkeys/0008-hostkey \
    hostkeys/0009-hostkey 
-
-
-
 #   test_integration_disconnect_nat.py 
 
 CLEANFILES = \
