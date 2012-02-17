@@ -251,6 +251,10 @@ struct GAS_MLP_Handle
  */
 struct MLP_information
 {
+  double b;
+
+  int n;
+
   /* bandwidth column index */
   signed int c_b;
 
@@ -347,6 +351,18 @@ GAS_mlp_address_change_preference (struct GAS_MLP_Handle *mlp,
                                    enum GNUNET_ATS_PreferenceKind kind,
                                    float score);
 
+
+/**
+ * Get the preferred address for a specific peer
+ *
+ * @param mlp the MLP Handle
+ * @param peer the peer
+ * @return suggested address
+ */
+struct ATS_Address *
+GAS_mlp_get_preferred_address (struct GAS_MLP_Handle *mlp,
+                               struct GNUNET_CONTAINER_MultiHashMap * addresses,
+                               const struct GNUNET_PeerIdentity *peer);
 
 /**
  * Shutdown the MLP problem solving component

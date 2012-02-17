@@ -77,17 +77,19 @@ static int ats_mode;
  * @return GNUNET_OK (continue to iterate)
  */
 static int
-update_bw_it (void *cls, const GNUNET_HashCode * key, void *value)
+update_bw_simple_it (void *cls, const GNUNET_HashCode * key, void *value)
 {
   struct ATS_Address *aa = value;
 
-
-  /* Simple method */
   if (GNUNET_YES != aa->active)
     return GNUNET_OK;
   GNUNET_assert (active_addr_count > 0);
+
+
+  /* Simple method */
   aa->assigned_bw_in.value__ = htonl (wan_quota_in / active_addr_count);
   aa->assigned_bw_out.value__ = htonl (wan_quota_out / active_addr_count);
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "New bandwidth for peer %s is %u/%u\n",
               GNUNET_i2s (&aa->peer), ntohl (aa->assigned_bw_in.value__),
               ntohl (aa->assigned_bw_out.value__));
@@ -117,7 +119,8 @@ recalculate_assigned_bw ()
                             1, GNUNET_NO);
   GNUNET_STATISTICS_set (GSA_stats, "# active addresses", active_addr_count,
                          GNUNET_NO);
-  GNUNET_CONTAINER_multihashmap_iterate (addresses, &update_bw_it, NULL);
+
+  GNUNET_CONTAINER_multihashmap_iterate (addresses, &update_bw_simple_it, NULL);
 }
 
 /**
@@ -591,14 +594,24 @@ GAS_addresses_request_address (const struct GNUNET_PeerIdentity *peer)
   struct ATS_Address *aa;
 
   aa = NULL;
-  GNUNET_CONTAINER_multihashmap_get_multiple (addresses, &peer->hashPubKey,
-                                              &find_address_it, &aa);
-  if (aa == NULL)
+
+  if (ats_mode == SIMPLE)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Cannot suggest address for peer `%s'\n", GNUNET_i2s (peer));
-    return;
+    /* Get address with: stick to current address, lower distance, lower latency */
+    GNUNET_CONTAINER_multihashmap_get_multiple (addresses, &peer->hashPubKey,
+                                                &find_address_it, &aa);
+    if (aa == NULL)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Cannot suggest address for peer `%s'\n", GNUNET_i2s (peer));
+      return;
+    }
   }
+  if (ats_mode == MLP)
+  {
+    /* Get preferred address from MLP */
+  }
+
   if (aa->active == GNUNET_NO)
   {
     aa->active = GNUNET_YES;

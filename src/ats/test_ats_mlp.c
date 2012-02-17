@@ -45,6 +45,7 @@ struct GNUNET_CONTAINER_MultiHashMap * addresses;
 
 struct GAS_MLP_Handle *mlp;
 
+
 static void
 create_address (struct ATS_Address *addr, char * plugin, int ats_count, struct GNUNET_ATS_Information *ats)
 {
@@ -73,6 +74,7 @@ check (void *cls, char *const *args, const char *cfgfile,
   return;
 #endif
   struct ATS_Address addr[10];
+  struct ATS_Address *res[10];
 
   stats = GNUNET_STATISTICS_create("ats", cfg);
 
@@ -137,6 +139,11 @@ check (void *cls, char *const *args, const char *cfgfile,
   GNUNET_assert (mlp->addr_in_problem == 3);
 
   GNUNET_assert (GNUNET_OK == GAS_mlp_solve_problem(mlp));
+
+  res[0] = GAS_mlp_get_preferred_address(mlp, addresses, &p[0]);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Preferred address `%s' \n",res[0]->plugin);
+  res[1] = GAS_mlp_get_preferred_address(mlp, addresses, &p[1]);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Preferred address `%s' \n",res[1]->plugin);
 
   /* Delete an address */
   GNUNET_CONTAINER_multihashmap_remove (addresses, &addr[0].peer.hashPubKey, &addr[0]);

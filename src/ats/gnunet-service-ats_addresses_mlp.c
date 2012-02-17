@@ -1026,16 +1026,19 @@ GAS_mlp_solve_problem (struct GAS_MLP_Handle *mlp)
       mlpi = a->mlp_information;
 
       b = glp_mip_col_val(mlp->prob, mlpi->c_b);
+      mlpi->b = b;
+
       n = glp_mip_col_val(mlp->prob, mlpi->c_n);
+      if (n == 1.0)
+        mlpi->n = GNUNET_YES;
+      else
+        mlpi->n = GNUNET_NO;
 
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "\tAddress %f %f\n", n, b);
-
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "\tAddress %s %f\n",
+          (n == 1.0) ? "[x]" : "[ ]", b);
     }
 
   }
-
-
-
 
   if (mlp->mlp_task != GNUNET_SCHEDULER_NO_TASK)
   {
@@ -1415,6 +1418,41 @@ GAS_mlp_address_delete (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_Mult
       GAS_mlp_solve_problem (mlp);
   }
 }
+
+static int
+mlp_get_preferred_address_it (void *cls, const GNUNET_HashCode * key, void *value)
+{
+
+  struct ATS_Address **aa = (struct ATS_Address **)cls;
+  struct ATS_Address *addr = value;
+  struct MLP_information *mlpi = addr->mlp_information;
+  if (mlpi->n == GNUNET_YES)
+  {
+    *aa = addr;
+    return GNUNET_NO;
+  }
+  return GNUNET_YES;
+}
+
+
+/**
+ * Get the preferred address for a specific peer
+ *
+ * @param mlp the MLP Handle
+ * @param peer the peer
+ * @return suggested address
+ */
+struct ATS_Address *
+GAS_mlp_get_preferred_address (struct GAS_MLP_Handle *mlp,
+                               struct GNUNET_CONTAINER_MultiHashMap * addresses,
+                               const struct GNUNET_PeerIdentity *peer)
+{
+  struct ATS_Address * aa = NULL;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Getting preferred address for `%s'\n", GNUNET_i2s (peer));
+  GNUNET_CONTAINER_multihashmap_get_multiple(addresses, &peer->hashPubKey, mlp_get_preferred_address_it, &aa);
+  return aa;
+}
+
 
 /**
  * Changes the preferences for a peer in the MLP problem
