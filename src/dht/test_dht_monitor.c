@@ -20,7 +20,7 @@
 /**
  * @file dht/test_dht_monitor.c
  *
- * @brief Test for the dht service: store, retrieve and monitor in a 2d_torus.
+ * @brief Test for the dht service: store, retrieve and monitor in a line.
  * TODO: update this description
  * Each peer stores it own ID in the DHT and then a different peer tries to
  * retrieve that key from it. The GET starts after a first round of PUTS has
@@ -120,7 +120,7 @@ struct GNUNET_DHT_MonitorHandle **mhs;
 struct GNUNET_DHT_GetHandle *get_h_far;
 
 const char *id_origin = "FC74";
-const char *id_far = "KPST";
+const char *id_far = "2UVH";
 
 unsigned int i_origin;
 unsigned int i_far;
@@ -152,6 +152,7 @@ shutdown_callback (void *cls, const char *emsg)
                 "test: All peers successfully shut down!\n");
 #endif
   }
+  GNUNET_CONFIGURATION_destroy (testing_cfg);
 }
 
 
@@ -171,7 +172,6 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (data_file != NULL)
     GNUNET_DISK_file_close (data_file);
   GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
-  GNUNET_CONFIGURATION_destroy (testing_cfg);
 }
 
 
@@ -267,10 +267,10 @@ put_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_TESTING_Daemon *d;
 
-  d = GNUNET_TESTING_daemon_get (pg, i_far);
+  d = GNUNET_TESTING_daemon_get (pg, 4);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: putting into DHT: %s\n",
               GNUNET_h2s_full (&d->id.hashPubKey));
-  GNUNET_DHT_put (hs[i_far], &d->id.hashPubKey, 10U,
+  GNUNET_DHT_put (hs[4], &d->id.hashPubKey, 10U,
                   GNUNET_DHT_RO_RECORD_ROUTE |
                   GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
                   GNUNET_BLOCK_TYPE_TEST, sizeof (struct GNUNET_PeerIdentity),
@@ -333,11 +333,8 @@ monitor_dht_cb (void *cls,
 static void
 peergroup_ready (void *cls, const char *emsg)
 {
-  struct GNUNET_TESTING_Daemon *d;
   char *buf;
-  const char *id_aux;
   int buf_len;
-  unsigned int i;
 
   if (emsg != NULL)
   {
@@ -372,29 +369,13 @@ peergroup_ready (void *cls, const char *emsg)
   hs = GNUNET_malloc (num_peers * sizeof (struct GNUNET_DHT_Handle *));
   mhs = GNUNET_malloc (num_peers * sizeof (struct GNUNET_DHT_MonitorHandle *));
   d_far = o = NULL;
-  for (i = 0; i < num_peers; i++)
-  {
-    d = GNUNET_TESTING_daemon_get (pg, i);
-    hs[i] = GNUNET_DHT_connect (d->cfg, 32);
-    mhs[i] = GNUNET_DHT_monitor_start(hs[i], GNUNET_BLOCK_TYPE_ANY, NULL,
-                                      &monitor_dht_cb, (void *)(long)i);
-    id_aux = GNUNET_i2s (&d->id);
-    if (strcmp (id_aux, id_origin) == 0)
-    {
-      o = d;
-      i_origin = i;
-    }
-    if (strcmp (id_aux, id_far) == 0)
-    {
-      i_far = i;
-      d_far = d;
-    }
-  }
+  o = GNUNET_TESTING_daemon_get (pg, 0);
+  d_far = GNUNET_TESTING_daemon_get (pg, 4);
 
   if ((NULL == o) || (NULL == d_far))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "test: Peers not found (hostkey file changed?)\n");
+                "test: Error getting daemons from pg\n");
     GNUNET_SCHEDULER_cancel (disconnect_task);
     disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_peers, NULL);
     return;
@@ -496,12 +477,12 @@ run (void *cls, char *const *args, const char *cfgfile,
                                              &topology_file))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Option test_dht_2d:topology_output_file is required!\n");
+                "Option test_dht_monitor:topology_output_file is required!\n");
     return;
   }
 
   if (GNUNET_OK ==
-      GNUNET_CONFIGURATION_get_value_string (testing_cfg, "test_dht_2dtorus",
+      GNUNET_CONFIGURATION_get_value_string (testing_cfg, "test_dht_topo",
                                              "data_output_file",
                                              &data_filename))
   {
@@ -520,7 +501,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   }
 
   if (GNUNET_YES ==
-      GNUNET_CONFIGURATION_get_value_string (cfg, "test_dht_2dtorus",
+      GNUNET_CONFIGURATION_get_value_string (cfg, "test_dht_topo",
                                              "output_file", &temp_str))
   {
     output_file =
@@ -567,7 +548,7 @@ main (int xargc, char *xargv[])
 {
   char *const argv[] = { "test-dht-monitor",
     "-c",
-    "test_dht_2dtorus.conf", // reuse 2dtorus conf file
+    "test_dht_line.conf",
 #if VERBOSE
     "-L", "DEBUG",
 #endif
@@ -577,7 +558,7 @@ main (int xargc, char *xargv[])
   in_test = GNUNET_NO;
   GNUNET_PROGRAM_run (sizeof (argv) / sizeof (char *) - 1, argv,
                       "test_dht_monitor",
-                      gettext_noop ("Test dht monitoring in a small 2D torus."),
+                      gettext_noop ("Test dht monitoring in a line."),
                       options, &run, NULL);
 #if REMOVE_DIR
   GNUNET_DISK_directory_remove ("/tmp/test_dht_monitor");
