@@ -57,7 +57,7 @@
 #define KEEPALIVE_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
 
-#define ATS_RESPONSE_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 3)
+#define ATS_RESPONSE_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
 #define FAST_RECONNECT_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
 
@@ -393,6 +393,14 @@ lookup_neighbour (const struct GNUNET_PeerIdentity *pid)
   return GNUNET_CONTAINER_multihashmap_get (neighbours, &pid->hashPubKey);
 }
 
+/**
+ * Disconnect from the given neighbour, clean up the record.
+ *
+ * @param n neighbour to disconnect from
+ */
+static void
+disconnect_neighbour (struct NeighbourMapEntry *n);
+
 #define change_state(n, state, ...) change (n, state, __LINE__)
 
 static int
@@ -476,7 +484,22 @@ reset_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 #endif
 
   /* resetting state */
+
+  if (n->state == S_FAST_RECONNECT)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Fast reconnect time out, disconnecting peer `%s'\n",
+                GNUNET_i2s (&n->id));
+    disconnect_neighbour(n);
+    return;
+  }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "State for neighbour `%s' %X changed from `%s' to `%s' in line %u\n",
+              GNUNET_i2s (&n->id), n, print_state(n->state), "S_NOT_CONNECTED", __LINE__);
+
   n->state = S_NOT_CONNECTED;
+  GNUNET_break (0);
 
   /* destroying address */
   if (n->address != NULL)
@@ -543,7 +566,6 @@ change (struct NeighbourMapEntry *n, int state, int line)
     GNUNET_free (new);
     return GNUNET_SYSERR;
   }
-#if DEBUG_TRANSPORT
   {
     char *old = GNUNET_strdup (print_state (n->state));
     char *new = GNUNET_strdup (print_state (state));
@@ -554,7 +576,6 @@ change (struct NeighbourMapEntry *n, int state, int line)
     GNUNET_free (old);
     GNUNET_free (new);
   }
-#endif
   n->state = state;
 
   switch (n->state)
@@ -1079,7 +1100,7 @@ ats_suggest_cancel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   n->ats_suggest = GNUNET_SCHEDULER_NO_TASK;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               "ATS did not suggested address to connect to peer `%s'\n",
               GNUNET_i2s (&n->id));
 
@@ -1424,6 +1445,17 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
     n->ats_suggest = GNUNET_SCHEDULER_NO_TASK;
   }
   /* do not switch addresses just update quotas */
+/*
+  if (n->state == S_FAST_RECONNECT)
+  {
+    if (0 == GNUNET_HELLO_address_cmp(address, n->address))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "FAST RECONNECT to peer `%s' and  address '%s' with identical ADDRESS\n",
+                  GNUNET_i2s (&n->id), GST_plugins_a2s (n->address));
+    }
+  }
+*/
   if ((n->state == S_CONNECTED) && (NULL != n->address) &&
       (0 == GNUNET_HELLO_address_cmp (address, n->address)) &&
       (n->session == session))
@@ -1783,10 +1815,10 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
    * neighbours_connected -= 1
    * BUT: no disconnect_cb to notify clients about disconnect
    */
-#if DEBUG_TRANSPORT
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Trying fast reconnect to peer `%s'\n",
               GNUNET_i2s (peer));
-#endif
+
   GNUNET_assert (neighbours_connected > 0);
   change_state (n, S_FAST_RECONNECT);
   neighbours_connected--;
