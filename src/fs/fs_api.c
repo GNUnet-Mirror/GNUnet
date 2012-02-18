@@ -2641,7 +2641,15 @@ deserialize_search_file (void *cls, const char *filename)
   char *emsg;
   struct GNUNET_BIO_ReadHandle *rh;
   struct GNUNET_FS_SearchContext *sc;
+  struct stat buf;
 
+  if (0 != STAT (filename, &buf))
+  {
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "stat", filename);
+    return GNUNET_OK;
+  }
+  if (S_ISDIR (buf.st_mode))
+    return GNUNET_OK; /* skip directories */
   ser = get_serialization_short_name (filename);
   rh = GNUNET_BIO_read_open (filename);
   if (rh == NULL)
