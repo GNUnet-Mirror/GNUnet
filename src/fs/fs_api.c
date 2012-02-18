@@ -676,13 +676,13 @@ deserialize_fi_node (struct GNUNET_FS_Handle *h, const char *fn,
   filename = NULL;
   if ((GNUNET_OK != GNUNET_BIO_read_meta_data (rh, "metadata", &ret->meta)) ||
       (GNUNET_OK != GNUNET_BIO_read_string (rh, "ksk-uri", &ksks, 32 * 1024)) ||
-      ((ksks != NULL) &&
-       (NULL == (ret->keywords = GNUNET_FS_uri_parse (ksks, NULL)))) ||
-      (GNUNET_YES != GNUNET_FS_uri_test_ksk (ret->keywords)) ||
+      ( (NULL != ksks) &&
+	( (NULL == (ret->keywords = GNUNET_FS_uri_parse (ksks, NULL))) ||
+	  (GNUNET_YES != GNUNET_FS_uri_test_ksk (ret->keywords)) ) ) ||
       (GNUNET_OK != GNUNET_BIO_read_string (rh, "chk-uri", &chks, 1024)) ||
-      ((chks != NULL) &&
-       ((NULL == (ret->chk_uri = GNUNET_FS_uri_parse (chks, NULL))) ||
-        (GNUNET_YES != GNUNET_FS_uri_test_chk (ret->chk_uri)))) ||
+      ( (NULL != chks) &&
+	( (NULL == (ret->chk_uri = GNUNET_FS_uri_parse (chks, NULL))) ||
+	  (GNUNET_YES != GNUNET_FS_uri_test_chk (ret->chk_uri))) ) ||
       (GNUNET_OK != read_start_time (rh, &ret->start_time)) ||
       (GNUNET_OK != GNUNET_BIO_read_string (rh, "emsg", &ret->emsg, 16 * 1024))
       || (GNUNET_OK !=

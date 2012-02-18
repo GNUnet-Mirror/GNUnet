@@ -388,6 +388,7 @@ encode_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   p = pc->fi_pos;
   GNUNET_FS_tree_encoder_finish (p->te, &p->chk_uri, &emsg);
   p->te = NULL;
+  GNUNET_FS_file_information_sync_ (p);
   if (NULL != emsg)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Error during tree walk: %s\n", emsg);
