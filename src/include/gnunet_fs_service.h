@@ -55,7 +55,7 @@ extern "C"
  * 9.0.0: CPS-style integrated API
  * 9.1.1: asynchronous directory scanning
  */
-#define GNUNET_FS_VERSION 0x00090101
+#define GNUNET_FS_VERSION 0x00090102
 
 
 /* ******************** URI API *********************** */
