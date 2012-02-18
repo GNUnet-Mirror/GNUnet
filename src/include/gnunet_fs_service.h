@@ -2157,6 +2157,16 @@ GNUNET_FS_namespace_create (struct GNUNET_FS_Handle *h, const char *name);
 
 
 /**
+ * Duplicate a namespace handle.
+ *
+ * @param ns namespace handle
+ * @return duplicated handle to the namespace
+ */
+struct GNUNET_FS_Namespace *
+GNUNET_FS_namespace_dup (struct GNUNET_FS_Namespace *ns);
+
+
+/**
  * Delete a namespace handle.  Can be used for a clean shutdown (free
  * memory) or also to freeze the namespace to prevent further
  * insertions by anyone.
