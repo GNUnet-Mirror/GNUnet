@@ -1213,12 +1213,12 @@ process_result_message (void *cls, const struct GNUNET_MessageHeader *msg)
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Received end of result set, new queue size is %u\n", h->queue_size);
 #endif
-    if (rc.proc != NULL)
-      rc.proc (rc.proc_cls, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS,
-               0);
     h->retry_time.rel_value = 0;
     h->result_count = 0;
     process_queue (h);
+    if (rc.proc != NULL)
+      rc.proc (rc.proc_cls, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS,
+               0);
     return;
   }
   qe = h->queue_head;
