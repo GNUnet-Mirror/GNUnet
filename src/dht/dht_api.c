@@ -463,8 +463,7 @@ transmit_pending (void *cls, size_t size, void *buf)
   }
   if (NULL != head->cont)
   {
-    GNUNET_SCHEDULER_add_continuation (head->cont, head->cont_cls,
-                                       GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+    head->cont (head->cont_cls, NULL);
     head->cont = NULL;
     head->cont_cls = NULL;
   }
@@ -719,8 +718,7 @@ GNUNET_DHT_disconnect (struct GNUNET_DHT_Handle *handle)
     if (GNUNET_SCHEDULER_NO_TASK != pm->timeout_task)
       GNUNET_SCHEDULER_cancel (pm->timeout_task);
     if (NULL != pm->cont)
-      GNUNET_SCHEDULER_add_continuation (pm->cont, pm->cont_cls,
-                                         GNUNET_SCHEDULER_REASON_TIMEOUT);
+      pm->cont (pm->cont_cls, NULL);
     GNUNET_free (pm);
   }
   if (handle->client != NULL)
