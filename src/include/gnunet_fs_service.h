@@ -72,8 +72,6 @@ extern "C"
  */
 struct GNUNET_FS_Uri;
 
-struct GNUNET_FS_DirScanner;
-
 /**
  * Iterator over keywords
  *
