@@ -1832,6 +1832,8 @@ GNUNET_FS_download_start_task_ (void *cls,
          chk) ? dc->uri->data.chk.chk : dc->uri->data.loc.fi.chk;
     /* signal start */
     GNUNET_FS_download_sync_ (dc);
+    if (NULL != dc->search)
+      GNUNET_FS_search_result_sync_ (dc->search);
     pi.status = GNUNET_FS_STATUS_DOWNLOAD_START;
     pi.value.download.specifics.start.meta = dc->meta;
     GNUNET_FS_download_make_status_ (&pi, dc);
@@ -2242,6 +2244,7 @@ GNUNET_FS_download_stop (struct GNUNET_FS_DownloadContext *dc, int do_delete)
   if (dc->search != NULL)
   {
     dc->search->download = NULL;
+    GNUNET_FS_search_result_sync_ (dc->search);
     dc->search = NULL;
   }
   if (dc->job_queue != NULL)
