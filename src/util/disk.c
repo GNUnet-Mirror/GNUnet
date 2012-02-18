@@ -473,7 +473,6 @@ GNUNET_DISK_get_blocks_available (const char *part)
   }
   GNUNET_free (path);
   wcsncpy (szDrive, wpath, 3);
-  GNUNET_free (wpath);
   szDrive[3] = 0;
   if (!GetDiskFreeSpaceW (szDrive, &dwDummy, &dwDummy, &dwBlocks, &dwDummy))
   {
