@@ -34,9 +34,9 @@
 #include "gnunet_dht_service.h"
 #include "gnunet_hello_lib.h"
 
-#define VERBOSE GNUNET_EXTRA_LOGGING
+#define VERBOSE GNUNET_NO
 
-#define VERBOSE_ARM GNUNET_EXTRA_LOGGING
+#define VERBOSE_ARM GNUNET_NO
 
 #define START_ARM GNUNET_YES
 
