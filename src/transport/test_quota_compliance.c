@@ -563,7 +563,7 @@ check ()
 {
   static char *argv[] = { "test_transport-quota-compliance",
     "-c",
-    "",
+    "test_quota_compliance_data.conf",
 #if VERBOSE
     "-L", "DEBUG",
 #endif
