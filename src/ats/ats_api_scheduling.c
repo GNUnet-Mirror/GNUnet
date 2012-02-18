@@ -722,7 +722,7 @@ interface_proc (void *cls, const char *name,
   if (net != NULL)
   {
 #if VERBOSE_ATS
-    char * netmask = strdup (GNUNET_a2s((struct sockaddr *) net->netmask, addrlen));
+    char * netmask = GNUNET_strdup (GNUNET_a2s((struct sockaddr *) net->netmask, addrlen));
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding network `%s', netmask `%s'\n",
         GNUNET_a2s((struct sockaddr *) net->network, addrlen),
         netmask);
@@ -806,7 +806,7 @@ GNUNET_ATS_address_get_type (struct GNUNET_ATS_SchedulingHandle * sh, const stru
 
       if (((a4->sin_addr.s_addr & mask4->sin_addr.s_addr)) == net4->sin_addr.s_addr)
       {
-        char * net = strdup (GNUNET_a2s ((const struct sockaddr *) net4, addrlen));
+        char * net = GNUNET_strdup (GNUNET_a2s ((const struct sockaddr *) net4, addrlen));
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "`%s' is in network `%s'\n",
             GNUNET_a2s ((const struct sockaddr *)a4, addrlen),
             net);
@@ -831,7 +831,7 @@ GNUNET_ATS_address_get_type (struct GNUNET_ATS_SchedulingHandle * sh, const stru
 
       if (res == GNUNET_YES)
       {
-        char * net = strdup (GNUNET_a2s ((const struct sockaddr *) net6, addrlen));
+        char * net = GNUNET_strdup (GNUNET_a2s ((const struct sockaddr *) net6, addrlen));
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "`%s' is in network `%s'\n",
               GNUNET_a2s ((const struct sockaddr *) a6, addrlen),
               net);
