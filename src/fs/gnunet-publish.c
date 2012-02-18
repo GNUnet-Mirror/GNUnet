@@ -356,7 +356,7 @@ uri_ksk_continuation (void *cls, const struct GNUNET_FS_Uri *ksk_uri,
     {
       GNUNET_FS_publish_sks (ctx, ns, this_id, next_id, meta, uri, &bo,
                              GNUNET_FS_PUBLISH_OPTION_NONE,
-                             uri_sks_continuation, NULL);
+                             &uri_sks_continuation, NULL);
       GNUNET_assert (GNUNET_OK == GNUNET_FS_namespace_delete (ns, GNUNET_NO));
       return;
     }

@@ -47,20 +47,6 @@ static int verbose;
 
 
 /**
- * Shutdown this process.
- *
- * @param cls unused
- * @param tc unused
- */
-static void
-do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  GNUNET_FS_stop (fs);
-  fs = NULL;
-}
-
-
-/**
  * Print indexed filenames to stdout.
  *
  * @param cls closure
@@ -71,6 +57,12 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static int
 print_indexed (void *cls, const char *filename, const GNUNET_HashCode * file_id)
 {
+  if (NULL == filename)
+  {
+    GNUNET_FS_stop (fs);
+    fs = NULL;
+    return GNUNET_OK;
+  }
   if (verbose)
     FPRINTF (stdout, "%s: %s\n", GNUNET_h2s (file_id), filename);
   else
@@ -100,7 +92,13 @@ run (void *cls, char *const *args, const char *cfgfile,
       ret = 1;
       return;
     }
-    GNUNET_FS_get_indexed_files (fs, &print_indexed, NULL, &do_shutdown, NULL);
+    if (NULL == GNUNET_FS_get_indexed_files (fs, &print_indexed, NULL))
+    {
+      ret = 2;
+      GNUNET_FS_stop (fs);
+      fs = NULL;
+      return;
+    }
   }
 }
 

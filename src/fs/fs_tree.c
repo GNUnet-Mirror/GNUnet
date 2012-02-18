@@ -360,8 +360,7 @@ GNUNET_FS_tree_encoder_next (struct GNUNET_FS_TreeEncoder *te)
     if (pt_size !=
         te->reader (te->cls, te->publish_offset, pt_size, iob, &te->emsg))
     {
-      GNUNET_SCHEDULER_add_continuation (te->cont, te->cls,
-                                         GNUNET_SCHEDULER_REASON_TIMEOUT);
+      te->cont (te->cls, NULL);
       te->in_next = GNUNET_NO;
       return;
     }

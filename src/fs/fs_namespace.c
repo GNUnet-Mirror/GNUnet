@@ -30,18 +30,11 @@
 #include "gnunet_fs_service.h"
 #include "fs_api.h"
 
-#define DEBUG_NAMESPACE GNUNET_EXTRA_LOGGING
-
 
 /**
  * Maximum legal size for an sblock.
  */
 #define MAX_SBLOCK_SIZE (60 * 1024)
-
-/**
- * Maximum legal size for an nblock.
- */
-#define MAX_NBLOCK_SIZE (60 * 1024)
 
 
 /**
@@ -233,253 +226,6 @@ END:
 }
 
 
-/**
- * Context for advertising a namespace.
- */
-struct AdvertisementContext
-{
-  /**
-   * Function to call with the result.
-   */
-  GNUNET_FS_PublishContinuation cont;
-
-  /**
-   * Closure for cont.
-   */
-  void *cont_cls;
-
-  /**
-   * Datastore handle.
-   */
-  struct GNUNET_DATASTORE_Handle *dsh;
-
-  /**
-   * Our KSK URI.
-   */
-  struct GNUNET_FS_Uri *ksk_uri;
-
-  /**
-   * Plaintext.
-   */
-  char *pt;
-
-  /**
-   * NBlock to sign and store.
-   */
-  struct NBlock *nb;
-
-  /**
-   * The namespace.
-   */
-  struct GNUNET_FS_Namespace *ns;
-
-  /**
-   * Block options.
-   */
-  struct GNUNET_FS_BlockOptions bo;
-
-  /**
-   * Number of bytes of plaintext.
-   */
-  size_t pt_size;
-
-  /**
-   * Current keyword offset.
-   */
-  unsigned int pos;
-};
-
-
-/**
- * Disconnect from the datastore.
- *
- * @param cls datastore handle
- * @param tc scheduler context
- */
-static void
-do_disconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct GNUNET_DATASTORE_Handle *dsh = cls;
-
-  GNUNET_DATASTORE_disconnect (dsh, GNUNET_NO);
-}
-
-
-/**
- * Continuation called to notify client about result of the
- * operation.
- *
- * @param cls closure (our struct AdvertismentContext)
- * @param success GNUNET_SYSERR on failure
- * @param min_expiration minimum expiration time required for content to be stored
- * @param msg NULL on success, otherwise an error message
- */
-static void
-advertisement_cont (void *cls, int success, 
-		    struct GNUNET_TIME_Absolute min_expiration,
-		    const char *msg)
-{
-  struct AdvertisementContext *ac = cls;
-  const char *keyword;
-  GNUNET_HashCode key;
-  GNUNET_HashCode query;
-  struct GNUNET_CRYPTO_AesSessionKey skey;
-  struct GNUNET_CRYPTO_AesInitializationVector iv;
-  struct GNUNET_CRYPTO_RsaPrivateKey *pk;
-
-  if (GNUNET_OK != success)
-  {
-    /* error! */
-    GNUNET_SCHEDULER_add_continuation (&do_disconnect, ac->dsh,
-                                       GNUNET_SCHEDULER_REASON_PREREQ_DONE);
-    if (msg == NULL)
-    {
-      GNUNET_break (0);
-      msg = _("Unknown error");
-    }
-    if (ac->cont != NULL)
-      ac->cont (ac->cont_cls, NULL, msg);
-    GNUNET_FS_uri_destroy (ac->ksk_uri);
-    GNUNET_free (ac->pt);
-    GNUNET_free (ac->nb);
-    GNUNET_FS_namespace_delete (ac->ns, GNUNET_NO);
-    GNUNET_free (ac);
-    return;
-  }
-  if (ac->pos == ac->ksk_uri->data.ksk.keywordCount)
-  {
-    /* done! */
-    GNUNET_SCHEDULER_add_continuation (&do_disconnect, ac->dsh,
-                                       GNUNET_SCHEDULER_REASON_PREREQ_DONE);
-    if (ac->cont != NULL)
-      ac->cont (ac->cont_cls, ac->ksk_uri, NULL);
-    GNUNET_FS_uri_destroy (ac->ksk_uri);
-    GNUNET_free (ac->pt);
-    GNUNET_free (ac->nb);
-    GNUNET_FS_namespace_delete (ac->ns, GNUNET_NO);
-    GNUNET_free (ac);
-    return;
-  }
-  keyword = ac->ksk_uri->data.ksk.keywords[ac->pos++];
-  /* first character of keyword indicates if it is
-   * mandatory or not -- ignore for hashing */
-  GNUNET_CRYPTO_hash (&keyword[1], strlen (&keyword[1]), &key);
-  GNUNET_CRYPTO_hash_to_aes_key (&key, &skey, &iv);
-  GNUNET_CRYPTO_aes_encrypt (ac->pt, ac->pt_size, &skey, &iv, &ac->nb[1]);
-  GNUNET_break (GNUNET_OK ==
-                GNUNET_CRYPTO_rsa_sign (ac->ns->key, &ac->nb->ns_purpose,
-                                        &ac->nb->ns_signature));
-  pk = GNUNET_CRYPTO_rsa_key_create_from_hash (&key);
-  GNUNET_assert (pk != NULL);
-  GNUNET_CRYPTO_rsa_key_get_public (pk, &ac->nb->keyspace);
-  GNUNET_CRYPTO_hash (&ac->nb->keyspace,
-                      sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
-                      &query);
-  GNUNET_break (GNUNET_OK ==
-                GNUNET_CRYPTO_rsa_sign (pk, &ac->nb->ksk_purpose,
-                                        &ac->nb->ksk_signature));
-  GNUNET_CRYPTO_rsa_key_free (pk);
-  GNUNET_DATASTORE_put (ac->dsh, 0 /* no reservation */ ,
-                        &query, ac->pt_size + sizeof (struct NBlock), ac->nb,
-                        GNUNET_BLOCK_TYPE_FS_NBLOCK, ac->bo.content_priority,
-                        ac->bo.anonymity_level, ac->bo.replication_level,
-                        ac->bo.expiration_time, -2, 1,
-                        GNUNET_CONSTANTS_SERVICE_TIMEOUT, &advertisement_cont,
-                        ac);
-}
-
-
-/**
- * Publish an advertismement for a namespace.
- *
- * @param h handle to the file sharing subsystem
- * @param ksk_uri keywords to use for advertisment
- * @param namespace handle for the namespace that should be advertised
- * @param meta meta-data for the namespace advertisement
- * @param bo block options
- * @param rootEntry name of the root of the namespace
- * @param cont continuation
- * @param cont_cls closure for cont
- */
-void
-GNUNET_FS_namespace_advertise (struct GNUNET_FS_Handle *h,
-                               struct GNUNET_FS_Uri *ksk_uri,
-                               struct GNUNET_FS_Namespace *namespace,
-                               const struct GNUNET_CONTAINER_MetaData *meta,
-                               const struct GNUNET_FS_BlockOptions *bo,
-                               const char *rootEntry,
-                               GNUNET_FS_PublishContinuation cont,
-                               void *cont_cls)
-{
-  size_t reslen;
-  size_t size;
-  ssize_t mdsize;
-  struct NBlock *nb;
-  char *mdst;
-  struct GNUNET_DATASTORE_Handle *dsh;
-  struct AdvertisementContext *ctx;
-  char *pt;
-
-  /* create advertisements */
-  mdsize = GNUNET_CONTAINER_meta_data_get_serialized_size (meta);
-  if (-1 == mdsize)
-  {
-    cont (cont_cls, NULL, _("Failed to serialize meta data"));
-    return;
-  }
-  reslen = strlen (rootEntry) + 1;
-  size = mdsize + sizeof (struct NBlock) + reslen;
-  if (size > MAX_NBLOCK_SIZE)
-  {
-    size = MAX_NBLOCK_SIZE;
-    mdsize = size - sizeof (struct NBlock) - reslen;
-  }
-
-  pt = GNUNET_malloc (mdsize + reslen);
-  memcpy (pt, rootEntry, reslen);
-  mdst = &pt[reslen];
-  mdsize =
-      GNUNET_CONTAINER_meta_data_serialize (meta, &mdst, mdsize,
-                                            GNUNET_CONTAINER_META_DATA_SERIALIZE_PART);
-  if (mdsize == -1)
-  {
-    GNUNET_break (0);
-    GNUNET_free (pt);
-    cont (cont_cls, NULL, _("Failed to serialize meta data"));
-    return;
-  }
-  size = mdsize + sizeof (struct NBlock) + reslen;
-  nb = GNUNET_malloc (size);
-  GNUNET_CRYPTO_rsa_key_get_public (namespace->key, &nb->subspace);
-  nb->ns_purpose.size =
-      htonl (mdsize + reslen +
-             sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose) +
-             sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
-  nb->ns_purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_FS_NBLOCK);
-  nb->ksk_purpose.size =
-      htonl (size - sizeof (struct GNUNET_CRYPTO_RsaSignature));
-  nb->ksk_purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_FS_NBLOCK_KSIG);
-  dsh = GNUNET_DATASTORE_connect (h->cfg);
-  if (NULL == dsh)
-  {
-    GNUNET_free (nb);
-    GNUNET_free (pt);
-    cont (cont_cls, NULL, _("Failed to connect to datastore service"));
-    return;
-  }
-  ctx = GNUNET_malloc (sizeof (struct AdvertisementContext));
-  ctx->cont = cont;
-  ctx->cont_cls = cont_cls;
-  ctx->dsh = dsh;
-  ctx->ksk_uri = GNUNET_FS_uri_dup (ksk_uri);
-  ctx->nb = nb;
-  ctx->pt = pt;
-  ctx->pt_size = mdsize + reslen;
-  ctx->ns = namespace;
-  ctx->ns->rc++;
-  ctx->bo = *bo;
-  advertisement_cont (ctx, GNUNET_OK, GNUNET_TIME_UNIT_ZERO_ABS, NULL);
-}
 
 
 /**
@@ -557,26 +303,25 @@ GNUNET_FS_namespace_delete (struct GNUNET_FS_Namespace *namespace, int freeze)
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "unlink",
                                 namespace->filename);
   }
-  if (0 == namespace->rc)
+  if (0 != namespace->rc)
+    return GNUNET_OK;
+  GNUNET_CRYPTO_rsa_key_free (namespace->key);
+  GNUNET_free (namespace->filename);
+  GNUNET_free (namespace->name);
+  for (i = 0; i < namespace->update_node_count; i++)
   {
-    GNUNET_CRYPTO_rsa_key_free (namespace->key);
-    GNUNET_free (namespace->filename);
-    GNUNET_free (namespace->name);
-    for (i = 0; i < namespace->update_node_count; i++)
-    {
-      nsn = namespace->update_nodes[i];
-      GNUNET_CONTAINER_meta_data_destroy (nsn->md);
-      GNUNET_FS_uri_destroy (nsn->uri);
-      GNUNET_free (nsn->id);
-      GNUNET_free (nsn->update);
-      GNUNET_free (nsn);
-    }
-    GNUNET_array_grow (namespace->update_nodes, namespace->update_node_count,
-                       0);
-    if (namespace->update_map != NULL)
-      GNUNET_CONTAINER_multihashmap_destroy (namespace->update_map);
-    GNUNET_free (namespace);
+    nsn = namespace->update_nodes[i];
+    GNUNET_CONTAINER_meta_data_destroy (nsn->md);
+    GNUNET_FS_uri_destroy (nsn->uri);
+    GNUNET_free (nsn->id);
+    GNUNET_free (nsn->update);
+    GNUNET_free (nsn);
   }
+  GNUNET_array_grow (namespace->update_nodes, namespace->update_node_count,
+		     0);
+  if (namespace->update_map != NULL)
+    GNUNET_CONTAINER_multihashmap_destroy (namespace->update_map);
+  GNUNET_free (namespace);
   return GNUNET_OK;
 }
 
@@ -666,12 +411,10 @@ GNUNET_FS_namespace_list (struct GNUNET_FS_Handle *h,
 }
 
 
-
-
 /**
  * Context for the SKS publication.
  */
-struct PublishSksContext
+struct GNUNET_FS_PublishSksContext
 {
 
   /**
@@ -705,6 +448,10 @@ struct PublishSksContext
    */
   void *cont_cls;
 
+  /**
+   * Handle for our datastore request.
+   */
+  struct GNUNET_DATASTORE_QueueEntry *dqe;
 };
 
 
@@ -712,7 +459,7 @@ struct PublishSksContext
  * Function called by the datastore API with
  * the result from the PUT (SBlock) request.
  *
- * @param cls closure of type "struct PublishSksContext*"
+ * @param cls closure of type "struct GNUNET_FS_PublishSksContext*"
  * @param success GNUNET_OK on success
  * @param min_expiration minimum expiration time required for content to be stored
  * @param msg error message (or NULL)
@@ -722,54 +469,39 @@ sb_put_cont (void *cls, int success,
 	     struct GNUNET_TIME_Absolute min_expiration,
 	     const char *msg)
 {
-  struct PublishSksContext *psc = cls;
+  struct GNUNET_FS_PublishSksContext *psc = cls;
   GNUNET_HashCode hc;
 
-  if (NULL != psc->dsh)
-  {
-    GNUNET_DATASTORE_disconnect (psc->dsh, GNUNET_NO);
-    psc->dsh = NULL;
-  }
+  psc->dqe = NULL;
   if (GNUNET_OK != success)
   {
-    if (psc->cont != NULL)
+    if (NULL != psc->cont)
       psc->cont (psc->cont_cls, NULL, msg);
+    GNUNET_FS_publish_sks_cancel (psc);
+    return;
   }
-  else
+  if (NULL != psc->nsn)
   {
-    if (psc->nsn != NULL)
+    /* FIXME: this can be done much more
+     * efficiently by simply appending to the
+     * file and overwriting the 4-byte header */
+    if (psc->namespace->update_nodes == NULL)
+      read_update_information_graph (psc->namespace);
+    GNUNET_array_append (psc->namespace->update_nodes,
+			 psc->namespace->update_node_count, psc->nsn);
+    if (psc->namespace->update_map != NULL)
     {
-      /* FIXME: this can be done much more
-       * efficiently by simply appending to the
-       * file and overwriting the 4-byte header */
-      if (psc->namespace->update_nodes == NULL)
-        read_update_information_graph (psc->namespace);
-      GNUNET_array_append (psc->namespace->update_nodes,
-                           psc->namespace->update_node_count, psc->nsn);
-      if (psc->namespace->update_map != NULL)
-      {
-        GNUNET_CRYPTO_hash (psc->nsn->id, strlen (psc->nsn->id), &hc);
-        GNUNET_CONTAINER_multihashmap_put (psc->namespace->update_map, &hc,
-                                           psc->nsn,
-                                           GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-      }
-      psc->nsn = NULL;
-      write_update_information_graph (psc->namespace);
+      GNUNET_CRYPTO_hash (psc->nsn->id, strlen (psc->nsn->id), &hc);
+      GNUNET_CONTAINER_multihashmap_put (psc->namespace->update_map, &hc,
+					 psc->nsn,
+					 GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
     }
-    if (psc->cont != NULL)
-      psc->cont (psc->cont_cls, psc->uri, NULL);
+    psc->nsn = NULL;
+    write_update_information_graph (psc->namespace);
   }
-  GNUNET_FS_namespace_delete (psc->namespace, GNUNET_NO);
-  GNUNET_FS_uri_destroy (psc->uri);
-  if (psc->nsn != NULL)
-  {
-    GNUNET_CONTAINER_meta_data_destroy (psc->nsn->md);
-    GNUNET_FS_uri_destroy (psc->nsn->uri);
-    GNUNET_free (psc->nsn->id);
-    GNUNET_free (psc->nsn->update);
-    GNUNET_free (psc->nsn);
-  }
-  GNUNET_free (psc);
+  if (NULL != psc->cont)
+    psc->cont (psc->cont_cls, psc->uri, NULL);
+  GNUNET_FS_publish_sks_cancel (psc);
 }
 
 
@@ -786,8 +518,9 @@ sb_put_cont (void *cls, int success,
  * @param options publication options
  * @param cont continuation
  * @param cont_cls closure for cont
+ * @return NULL on error ('cont' will still be called)
  */
-void
+struct GNUNET_FS_PublishSksContext *
 GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
                        struct GNUNET_FS_Namespace *namespace,
                        const char *identifier, const char *update,
@@ -797,7 +530,7 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
                        enum GNUNET_FS_PublishOptions options,
                        GNUNET_FS_PublishContinuation cont, void *cont_cls)
 {
-  struct PublishSksContext *psc;
+  struct GNUNET_FS_PublishSksContext *psc;
   struct GNUNET_CRYPTO_AesSessionKey sk;
   struct GNUNET_CRYPTO_AesInitializationVector iv;
   struct GNUNET_FS_Uri *sks_uri;
@@ -851,8 +584,9 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
   {
     GNUNET_break (0);
     GNUNET_free (sb);
-    cont (cont_cls, NULL, _("Internal error."));
-    return;
+    if (NULL != cont)
+      cont (cont_cls, NULL, _("Internal error."));
+    return NULL;
   }
   size = sizeof (struct SBlock) + mdsize + slen + nidlen;
   sb_enc = GNUNET_malloc (size);
@@ -877,18 +611,17 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CRYPTO_rsa_sign (namespace->key, &sb_enc->purpose,
                                          &sb_enc->signature));
-  psc = GNUNET_malloc (sizeof (struct PublishSksContext));
+  psc = GNUNET_malloc (sizeof (struct GNUNET_FS_PublishSksContext));
   psc->uri = sks_uri;
   psc->cont = cont;
-  psc->namespace = namespace;
-  namespace->rc++;
+  psc->namespace = GNUNET_FS_namespace_dup (namespace);
   psc->cont_cls = cont_cls;
   if (0 != (options & GNUNET_FS_PUBLISH_OPTION_SIMULATE_ONLY))
   {
     GNUNET_free (sb_enc);
     GNUNET_free (sb);
     sb_put_cont (psc, GNUNET_OK, GNUNET_TIME_UNIT_ZERO_ABS, NULL);
-    return;
+    return NULL;
   }
   psc->dsh = GNUNET_DATASTORE_connect (h->cfg);
   if (NULL == psc->dsh)
@@ -896,7 +629,7 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
     GNUNET_free (sb_enc);
     GNUNET_free (sb);
     sb_put_cont (psc, GNUNET_NO, GNUNET_TIME_UNIT_ZERO_ABS, _("Failed to connect to datastore."));
-    return;
+    return NULL;
   }
   GNUNET_CRYPTO_hash_xor (&sks_uri->data.sks.namespace, &id, &query);
   if (NULL != update)
@@ -907,13 +640,46 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
     psc->nsn->md = GNUNET_CONTAINER_meta_data_duplicate (meta);
     psc->nsn->uri = GNUNET_FS_uri_dup (uri);
   }
-  GNUNET_DATASTORE_put (psc->dsh, 0, &sb_enc->identifier, size, sb_enc,
-                        GNUNET_BLOCK_TYPE_FS_SBLOCK, bo->content_priority,
-                        bo->anonymity_level, bo->replication_level,
-                        bo->expiration_time, -2, 1,
-                        GNUNET_CONSTANTS_SERVICE_TIMEOUT, &sb_put_cont, psc);
+  psc->dqe = GNUNET_DATASTORE_put (psc->dsh, 0, &sb_enc->identifier, size, sb_enc,
+				   GNUNET_BLOCK_TYPE_FS_SBLOCK, bo->content_priority,
+				   bo->anonymity_level, bo->replication_level,
+				   bo->expiration_time, -2, 1,
+				   GNUNET_CONSTANTS_SERVICE_TIMEOUT, &sb_put_cont, psc);
   GNUNET_free (sb);
   GNUNET_free (sb_enc);
+  return psc;
+}
+
+
+/**
+ * Abort the SKS publishing operation.
+ *
+ * @param sc context of the operation to abort.
+ */
+void
+GNUNET_FS_publish_sks_cancel (struct GNUNET_FS_PublishSksContext *psc)
+{
+  if (NULL != psc->dqe)
+  {
+    GNUNET_DATASTORE_cancel (psc->dqe);
+    psc->dqe = NULL;
+  }
+  if (NULL != psc->dsh)
+  {
+    GNUNET_DATASTORE_disconnect (psc->dsh, GNUNET_NO);
+    psc->dsh = NULL;
+  }
+  GNUNET_FS_namespace_delete (psc->namespace, GNUNET_NO);
+  GNUNET_FS_uri_destroy (psc->uri);
+  if (NULL != psc->nsn)
+  {
+    GNUNET_CONTAINER_meta_data_destroy (psc->nsn->md);
+    GNUNET_FS_uri_destroy (psc->nsn->uri);
+    GNUNET_free (psc->nsn->id);
+    GNUNET_free (psc->nsn->update);
+    GNUNET_free (psc->nsn);
+  }
+  GNUNET_free (psc);
 }
 
 
@@ -1081,10 +847,8 @@ GNUNET_FS_namespace_list_updateable (struct GNUNET_FS_Namespace *namespace,
     read_update_information_graph (namespace);
   if (namespace->update_nodes == NULL)
   {
-#if DEBUG_NAMESPACE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "No updateable nodes found for ID `%s'\n", next_id);
-#endif
     return;                     /* no nodes */
   }
   if (namespace->update_map == NULL)
@@ -1111,10 +875,8 @@ GNUNET_FS_namespace_list_updateable (struct GNUNET_FS_Namespace *namespace,
                                                 &process_update_node, &pc);
     return;
   }
-#if DEBUG_NAMESPACE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Calculating TREEs to find roots of update trees\n");
-#endif
   /* Find heads of TREEs in update graph */
   nug = ++namespace->nug_gen;
   fc.tree_array = NULL;
@@ -1125,10 +887,8 @@ GNUNET_FS_namespace_list_updateable (struct GNUNET_FS_Namespace *namespace,
     nsn = namespace->update_nodes[i];
     if (nsn->nug == nug)
     {
-#if DEBUG_NAMESPACE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "TREE of node `%s' is %u\n", nsn->id,
                   nsn->nug);
-#endif
       continue;                 /* already placed in TREE */
     }
     GNUNET_CRYPTO_hash (nsn->update, strlen (nsn->update), &hc);
@@ -1156,11 +916,9 @@ GNUNET_FS_namespace_list_updateable (struct GNUNET_FS_Namespace *namespace,
         GNUNET_array_append (fc.tree_array, fc.tree_array_size, nsn);
         nsn->tree_id = fc.id;
       }
-#if DEBUG_NAMESPACE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Starting new TREE %u with node `%s'\n", nsn->tree_id,
                   nsn->id);
-#endif
       /* put all nodes with same identifier into this TREE */
       GNUNET_CRYPTO_hash (nsn->id, strlen (nsn->id), &hc);
       fc.id = nsn->tree_id;
@@ -1175,28 +933,21 @@ GNUNET_FS_namespace_list_updateable (struct GNUNET_FS_Namespace *namespace,
       fc.tree_array[fc.id] = nsn;
       nsn->tree_id = fc.id;
     }
-#if DEBUG_NAMESPACE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "TREE of node `%s' is %u\n", nsn->id,
                 fc.id);
-#endif
   }
   for (i = 0; i < fc.tree_array_size; i++)
   {
     nsn = fc.tree_array[i];
     if (NULL != nsn)
     {
-#if DEBUG_NAMESPACE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Root of TREE %u is node `%s'\n", i,
                   nsn->id);
-#endif
-
       ip (ip_cls, nsn->id, nsn->uri, nsn->md, nsn->update);
     }
   }
   GNUNET_array_grow (fc.tree_array, fc.tree_array_size, 0);
-#if DEBUG_NAMESPACE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Done processing TREEs\n");
-#endif
 }
 
 

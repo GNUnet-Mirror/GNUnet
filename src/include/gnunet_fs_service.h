@@ -2023,6 +2023,12 @@ typedef void (*GNUNET_FS_PublishContinuation) (void *cls,
 
 
 /**
+ * Handle to cancel publish KSK operation.
+ */
+struct GNUNET_FS_PublishKskContext;
+
+
+/**
  * Publish a KBlock on GNUnet.
  *
  * @param h handle to the file sharing subsystem
@@ -2033,8 +2039,9 @@ typedef void (*GNUNET_FS_PublishContinuation) (void *cls,
  * @param options publication options
  * @param cont continuation
  * @param cont_cls closure for cont
+ * @return NULL on error ('cont' will still be called)
  */
-void
+struct GNUNET_FS_PublishKskContext *
 GNUNET_FS_publish_ksk (struct GNUNET_FS_Handle *h,
                        const struct GNUNET_FS_Uri *ksk_uri,
                        const struct GNUNET_CONTAINER_MetaData *meta,
@@ -2042,6 +2049,21 @@ GNUNET_FS_publish_ksk (struct GNUNET_FS_Handle *h,
                        const struct GNUNET_FS_BlockOptions *bo,
                        enum GNUNET_FS_PublishOptions options,
                        GNUNET_FS_PublishContinuation cont, void *cont_cls);
+
+
+/**
+ * Abort the KSK publishing operation.
+ *
+ * @param pkc context of the operation to abort.
+ */
+void
+GNUNET_FS_publish_ksk_cancel (struct GNUNET_FS_PublishKskContext *pkc);
+
+
+/**
+ * Handle to cancel publish SKS operation.
+ */
+struct GNUNET_FS_PublishSksContext;
 
 
 /**
@@ -2057,8 +2079,9 @@ GNUNET_FS_publish_ksk (struct GNUNET_FS_Handle *h,
  * @param options publication options
  * @param cont continuation
  * @param cont_cls closure for cont
+ * @return NULL on error ('cont' will still be called)
  */
-void
+struct GNUNET_FS_PublishSksContext *
 GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
                        struct GNUNET_FS_Namespace *namespace,
                        const char *identifier, const char *update,
@@ -2070,10 +2093,19 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
 
 
 /**
+ * Abort the SKS publishing operation.
+ *
+ * @param psc context of the operation to abort.
+ */
+void
+GNUNET_FS_publish_sks_cancel (struct GNUNET_FS_PublishSksContext *psc);
+
+
+/**
  * Type of a function called by "GNUNET_FS_get_indexed_files".
  *
  * @param cls closure
- * @param filename the name of the file
+ * @param filename the name of the file, NULL for end of list
  * @param file_id hash of the contents of the indexed file
  * @return GNUNET_OK to continue iteration, GNUNET_SYSERR to abort
  */
@@ -2082,21 +2114,32 @@ typedef int (*GNUNET_FS_IndexedFileProcessor) (void *cls, const char *filename,
 
 
 /**
+ * Handle to cancel 'GNUNET_FS_get_indexed_files'.
+ */
+struct GNUNET_FS_GetIndexedContext;
+
+
+/**
  * Iterate over all indexed files.
  *
  * @param h handle to the file sharing subsystem
  * @param iterator function to call on each indexed file
  * @param iterator_cls closure for iterator
- * @param cont continuation to call when done;
- *             reason should be "TIMEOUT" (on
- *             error) or  "PREREQ_DONE" (on success)
- * @param cont_cls closure for cont
+ * @return NULL on error ('iter' is not called)
  */
-void
+struct GNUNET_FS_GetIndexedContext *
 GNUNET_FS_get_indexed_files (struct GNUNET_FS_Handle *h,
                              GNUNET_FS_IndexedFileProcessor iterator,
-                             void *iterator_cls, GNUNET_SCHEDULER_Task cont,
-                             void *cont_cls);
+                             void *iterator_cls);
+
+
+/**
+ * Cancel iteration over all indexed files.
+ *
+ * @param gic operation to cancel
+ */
+void
+GNUNET_FS_get_indexed_files_cancel (struct GNUNET_FS_GetIndexedContext *gic);
 
 
 /**
@@ -2122,6 +2165,12 @@ GNUNET_FS_unindex_stop (struct GNUNET_FS_UnindexContext *uc);
 
 
 /**
+ * Context for advertising a namespace.
+ */
+struct GNUNET_FS_AdvertisementContext;
+
+
+/**
  * Publish an advertismement for a namespace.
  *
  * @param h handle to the file sharing subsystem
@@ -2132,8 +2181,9 @@ GNUNET_FS_unindex_stop (struct GNUNET_FS_UnindexContext *uc);
  * @param rootEntry name of the root of the namespace
  * @param cont continuation
  * @param cont_cls closure for cont
+ * @return NULL on error ('cont' will still be called)
  */
-void
+struct GNUNET_FS_AdvertisementContext *
 GNUNET_FS_namespace_advertise (struct GNUNET_FS_Handle *h,
                                struct GNUNET_FS_Uri *ksk_uri,
                                struct GNUNET_FS_Namespace *namespace,
@@ -2142,6 +2192,15 @@ GNUNET_FS_namespace_advertise (struct GNUNET_FS_Handle *h,
                                const char *rootEntry,
                                GNUNET_FS_PublishContinuation cont,
                                void *cont_cls);
+
+
+/**
+ * Abort the namespace advertisement operation.
+ *
+ * @param pkc context of the operation to abort.
+ */
+void
+GNUNET_FS_namespace_advertise_cancel (struct GNUNET_FS_AdvertisementContext *ac);
 
 
 /**

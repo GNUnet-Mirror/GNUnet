@@ -34,7 +34,7 @@
 /**
  * Context for "GNUNET_FS_get_indexed_files".
  */
-struct GetIndexedContext
+struct GNUNET_FS_GetIndexedContext
 {
   /**
    * Handle to global FS context.
@@ -72,13 +72,13 @@ struct GetIndexedContext
  * Function called on each response from the FS
  * service with information about indexed files.
  *
- * @param cls closure (of type "struct GetIndexedContext*")
+ * @param cls closure (of type "struct GNUNET_FS_GetIndexedContext*")
  * @param msg message with indexing information
  */
 static void
 handle_index_info (void *cls, const struct GNUNET_MessageHeader *msg)
 {
-  struct GetIndexedContext *gic = cls;
+  struct GNUNET_FS_GetIndexedContext *gic = cls;
   const struct IndexInfoMessage *iim;
   uint16_t msize;
   const char *filename;
@@ -89,19 +89,15 @@ handle_index_info (void *cls, const struct GNUNET_MessageHeader *msg)
                 _
                 ("Failed to receive response for `%s' request from `%s' service.\n"),
                 "GET_INDEXED", "fs");
-    GNUNET_SCHEDULER_add_continuation (gic->cont, gic->cont_cls,
-                                       GNUNET_SCHEDULER_REASON_TIMEOUT);
-    GNUNET_CLIENT_disconnect (gic->client, GNUNET_NO);
-    GNUNET_free (gic);
+    (void) gic->iterator (gic->iterator_cls, NULL, NULL);
+    GNUNET_FS_get_indexed_files_cancel (gic);
     return;
   }
   if (ntohs (msg->type) == GNUNET_MESSAGE_TYPE_FS_INDEX_LIST_END)
   {
     /* normal end-of-list */
-    GNUNET_SCHEDULER_add_continuation (gic->cont, gic->cont_cls,
-                                       GNUNET_SCHEDULER_REASON_PREREQ_DONE);
-    GNUNET_CLIENT_disconnect (gic->client, GNUNET_NO);
-    GNUNET_free (gic);
+    (void) gic->iterator (gic->iterator_cls, NULL, NULL);
+    GNUNET_FS_get_indexed_files_cancel (gic);
     return;
   }
   msize = ntohs (msg->size);
@@ -116,18 +112,13 @@ handle_index_info (void *cls, const struct GNUNET_MessageHeader *msg)
                 _
                 ("Failed to receive valid response for `%s' request from `%s' service.\n"),
                 "GET_INDEXED", "fs");
-    GNUNET_SCHEDULER_add_continuation (gic->cont, gic->cont_cls,
-                                       GNUNET_SCHEDULER_REASON_TIMEOUT);
-    GNUNET_CLIENT_disconnect (gic->client, GNUNET_NO);
-    GNUNET_free (gic);
+    (void) gic->iterator (gic->iterator_cls, NULL, NULL);
+    GNUNET_FS_get_indexed_files_cancel (gic);
     return;
   }
   if (GNUNET_OK != gic->iterator (gic->iterator_cls, filename, &iim->file_id))
   {
-    GNUNET_SCHEDULER_add_continuation (gic->cont, gic->cont_cls,
-                                       GNUNET_SCHEDULER_REASON_PREREQ_DONE);
-    GNUNET_CLIENT_disconnect (gic->client, GNUNET_NO);
-    GNUNET_free (gic);
+    GNUNET_FS_get_indexed_files_cancel (gic);
     return;
   }
   /* get more */
@@ -142,19 +133,15 @@ handle_index_info (void *cls, const struct GNUNET_MessageHeader *msg)
  * @param h handle to the file sharing subsystem
  * @param iterator function to call on each indexed file
  * @param iterator_cls closure for iterator
- * @param cont continuation to call when done;
- *             reason should be "TIMEOUT" (on
- *             error) or  "PREREQ_DONE" (on success)
- * @param cont_cls closure for cont
+ * @return NULL on error ('iter' is not called)
  */
-void
+struct GNUNET_FS_GetIndexedContext *
 GNUNET_FS_get_indexed_files (struct GNUNET_FS_Handle *h,
                              GNUNET_FS_IndexedFileProcessor iterator,
-                             void *iterator_cls, GNUNET_SCHEDULER_Task cont,
-                             void *cont_cls)
+                             void *iterator_cls)
 {
   struct GNUNET_CLIENT_Connection *client;
-  struct GetIndexedContext *gic;
+  struct GNUNET_FS_GetIndexedContext *gic;
   struct GNUNET_MessageHeader msg;
 
   client = GNUNET_CLIENT_connect ("fs", h->cfg);
@@ -162,18 +149,13 @@ GNUNET_FS_get_indexed_files (struct GNUNET_FS_Handle *h,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 _("Failed to not connect to `%s' service.\n"), "fs");
-    GNUNET_SCHEDULER_add_continuation (cont, cont_cls,
-                                       GNUNET_SCHEDULER_REASON_TIMEOUT);
-    return;
+    return NULL;
   }
-
-  gic = GNUNET_malloc (sizeof (struct GetIndexedContext));
+  gic = GNUNET_malloc (sizeof (struct GNUNET_FS_GetIndexedContext));
   gic->h = h;
   gic->client = client;
   gic->iterator = iterator;
   gic->iterator_cls = iterator_cls;
-  gic->cont = cont;
-  gic->cont_cls = cont_cls;
   msg.size = htons (sizeof (struct GNUNET_MessageHeader));
   msg.type = htons (GNUNET_MESSAGE_TYPE_FS_INDEX_LIST_GET);
   GNUNET_assert (GNUNET_OK ==
@@ -182,6 +164,21 @@ GNUNET_FS_get_indexed_files (struct GNUNET_FS_Handle *h,
                                                           GNUNET_YES,
                                                           &handle_index_info,
                                                           gic));
+  return gic;
 }
+
+
+/**
+ * Cancel iteration over all indexed files.
+ *
+ * @param gic operation to cancel
+ */
+void
+GNUNET_FS_get_indexed_files_cancel (struct GNUNET_FS_GetIndexedContext *gic)
+{
+  GNUNET_CLIENT_disconnect (gic->client, GNUNET_NO);
+  GNUNET_free (gic);
+}
+
 
 /* end of fs_list_indexed.c */

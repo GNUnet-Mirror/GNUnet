@@ -1161,6 +1161,18 @@ struct GNUNET_FS_PublishContext
   struct GNUNET_DATASTORE_QueueEntry *qre;
 
   /**
+   * Context for SKS publishing operation that is part of this publishing operation
+   * (NULL if not active).
+   */
+  struct GNUNET_FS_PublishSksContext *sks_pc;
+
+  /**
+   * Context for KSK publishing operation that is part of this publishing operation
+   * (NULL if not active).
+   */
+  struct GNUNET_FS_PublishKskContext *ksk_pc;
+
+  /**
    * ID of the task performing the upload. NO_TASK if the upload has
    * completed.
    */
@@ -1176,17 +1188,6 @@ struct GNUNET_FS_PublishContext
    * publish operation.
    */
   uint32_t reserve_entries;
-
-  /**
-   * Typically GNUNET_NO.  Set to GNUNET_YES if "upload_task" is
-   * GNUNET_SCHEDULER_NO_TASK and we're waiting for a response from
-   * the datastore service (in which case this struct must not be
-   * freed until we have that response).  If someone tries to stop the
-   * download for good during this period, "in_network_wait" is set to
-   * GNUNET_SYSERR which will cause the struct to be destroyed right
-   * after we have the reply (or timeout) from the datastore service.
-   */
-  int in_network_wait;
 
   /**
    * Options for publishing.
