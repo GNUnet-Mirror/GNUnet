@@ -588,34 +588,68 @@ GAS_addresses_in_use (const struct GNUNET_PeerIdentity *peer,
 #endif
 }
 
-void
-GAS_addresses_request_address (const struct GNUNET_PeerIdentity *peer)
+
+void request_address_mlp (const struct GNUNET_PeerIdentity *peer)
 {
   struct ATS_Address *aa;
-
   aa = NULL;
 
-  if (ats_mode == SIMPLE)
-  {
-    /* Get address with: stick to current address, lower distance, lower latency */
-    GNUNET_CONTAINER_multihashmap_get_multiple (addresses, &peer->hashPubKey,
-                                                &find_address_it, &aa);
-  }
-  if (ats_mode == MLP)
-  {
 #if HAVE_GLPK
+  /* Get preferred address from MLP */
+  struct ATS_PreferedAddress * paddr = NULL;
+  paddr = GAS_mlp_get_preferred_address (mlp, addresses, peer);
+  aa = paddr->address;
+  aa->assigned_bw_out = GNUNET_BANDWIDTH_value_init(paddr->bandwidth_out);
+  /* FIXME use bw in value */
+  paddr->bandwidth_in = paddr->bandwidth_out;
+  aa->assigned_bw_in = GNUNET_BANDWIDTH_value_init (paddr->bandwidth_in);
+  GNUNET_free (paddr);
 #endif
-    /* Get preferred address from MLP */
-    struct ATS_PreferedAddress * paddr = NULL;
-    paddr = GAS_mlp_get_preferred_address (mlp, addresses, peer);
-    aa = paddr->address;
-    aa->assigned_bw_out = GNUNET_BANDWIDTH_value_init(paddr->bandwidth_out);
-    /* FIXME use bw in value */
-    paddr->bandwidth_in = paddr->bandwidth_out;
-    aa->assigned_bw_in = GNUNET_BANDWIDTH_value_init (paddr->bandwidth_in);
-    GNUNET_free (paddr);
+
+  if (aa == NULL)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Cannot suggest address for peer `%s'\n", GNUNET_i2s (peer));
+    return;
+  }
+  if (aa->active == GNUNET_NO)
+  {
+    aa->active = GNUNET_YES;
+    active_addr_count++;
+
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "New bandwidth for peer %s is %u/%u\n",
+                GNUNET_i2s (&aa->peer), ntohl (aa->assigned_bw_in.value__),
+                ntohl (aa->assigned_bw_out.value__));
+    GAS_scheduling_transmit_address_suggestion (&aa->peer, aa->plugin, aa->addr,
+                                                aa->addr_len, aa->session_id,
+                                                aa->ats, aa->ats_count,
+                                                aa->assigned_bw_out,
+                                                aa->assigned_bw_in);
+    GAS_reservations_set_bandwidth (&aa->peer, aa->assigned_bw_in);
+    GAS_performance_notify_clients (&aa->peer, aa->plugin, aa->addr, aa->addr_len,
+                                    aa->ats, aa->ats_count, aa->assigned_bw_out,
+                                    aa->assigned_bw_in);
+  }
+  else
+  {
+    /* just to be sure... */
+    GAS_scheduling_transmit_address_suggestion (peer, aa->plugin, aa->addr,
+                                                aa->addr_len, aa->session_id,
+                                                aa->ats, aa->ats_count,
+                                                aa->assigned_bw_out,
+                                                aa->assigned_bw_in);
   }
 
+}
+
+void request_address_simple (const struct GNUNET_PeerIdentity *peer)
+{
+  struct ATS_Address *aa;
+  aa = NULL;
+
+  /* Get address with: stick to current address, lower distance, lower latency */
+  GNUNET_CONTAINER_multihashmap_get_multiple (addresses, &peer->hashPubKey,
+                                              &find_address_it, &aa);
   if (aa == NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -631,10 +665,6 @@ GAS_addresses_request_address (const struct GNUNET_PeerIdentity *peer)
     {
       recalculate_assigned_bw ();
     }
-    if (ats_mode == SIMPLE)
-    {
-      recalculate_assigned_bw ();
-    }
   }
   else
   {
@@ -644,6 +674,20 @@ GAS_addresses_request_address (const struct GNUNET_PeerIdentity *peer)
                                                 aa->ats, aa->ats_count,
                                                 aa->assigned_bw_out,
                                                 aa->assigned_bw_in);
+  }
+}
+
+
+void
+GAS_addresses_request_address (const struct GNUNET_PeerIdentity *peer)
+{
+  if (ats_mode == SIMPLE)
+  {
+    request_address_simple (peer);
+  }
+  if (ats_mode == MLP)
+  {
+    request_address_mlp(peer);
   }
 }
 
@@ -692,7 +736,6 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
           mlp = GAS_mlp_init (cfg, stats, MLP_MAX_EXEC_DURATION, MLP_MAX_ITERATIONS);
           break;
 #else
-
           GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "MLP mode was configured, but libglpk is not installed, switching to simple mode");
           ats_mode = SIMPLE;
           break;

@@ -1092,7 +1092,6 @@ GAS_mlp_solve_problem (struct GAS_MLP_Handle *mlp)
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "\tAddress %s %f\n",
           (n == 1.0) ? "[x]" : "[ ]", b);
     }
-
   }
 
   if (mlp->mlp_task != GNUNET_SCHEDULER_NO_TASK)
@@ -1556,6 +1555,8 @@ mlp_get_preferred_address_it (void *cls, const GNUNET_HashCode * key, void *valu
   struct ATS_PreferedAddress *aa = (struct ATS_PreferedAddress *) cls;
   struct ATS_Address *addr = value;
   struct MLP_information *mlpi = addr->mlp_information;
+  if (mlpi == NULL)
+    return GNUNET_YES;
   if (mlpi->n == GNUNET_YES)
   {
     aa->address = addr;
@@ -1583,8 +1584,11 @@ GAS_mlp_get_preferred_address (struct GAS_MLP_Handle *mlp,
                                const struct GNUNET_PeerIdentity *peer)
 {
   struct ATS_PreferedAddress * aa = GNUNET_malloc (sizeof (struct ATS_PreferedAddress));
+  aa->address = NULL;
+  aa->bandwidth_in = 0;
+  aa->bandwidth_out = 0;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Getting preferred address for `%s'\n", GNUNET_i2s (peer));
-  GNUNET_CONTAINER_multihashmap_get_multiple(addresses, &peer->hashPubKey, mlp_get_preferred_address_it, aa);
+  GNUNET_CONTAINER_multihashmap_get_multiple (addresses, &peer->hashPubKey, mlp_get_preferred_address_it, aa);
   return aa;
 }
 
