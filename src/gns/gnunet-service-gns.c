@@ -94,6 +94,7 @@ static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_DNS_disconnect(dns_handle);
+  GNUNET_NAMESTORE_disconnect(namestore_handle, 0);
 }
 
 static void
@@ -109,6 +110,10 @@ process_ns_result(void* cls, const GNUNET_HashCode *zone,
   struct GNUNET_DNSPARSER_Packet *packet;
   struct GNUNET_DNSPARSER_Flags dnsflags;
   char *reply_buffer;
+  struct GNUNET_CONTAINER_SList_Iterator *i;
+  struct GNUNET_CONTAINER_SList_Iterator head;
+  int j;
+  size_t record_len;
   
   answer = (struct GNUNET_GNS_PendingQuery *) cls;
 
@@ -123,6 +128,20 @@ process_ns_result(void* cls, const GNUNET_HashCode *zone,
     packet = GNUNET_malloc(sizeof(struct GNUNET_DNSPARSER_Packet));
     packet->answers =
       GNUNET_malloc(sizeof(struct GNUNET_DNSPARSER_Record) * answer->num_records);
+
+    j = 0;
+    head = GNUNET_CONTAINER_slist_begin (answer->records);
+    i = &head;
+    record_len = sizeof(struct GNUNET_DNSPARSER_Record*);
+    for (;i != NULL; GNUNET_CONTAINER_slist_next (i))
+    {
+      memcpy(&packet->answers[j], 
+             GNUNET_CONTAINER_slist_get (i, &record_len),
+             sizeof (struct GNUNET_DNSPARSER_Record));
+      j++;
+    }
+
+
     /* FIXME how to handle auth, additional etc */
     packet->num_answers = answer->num_records;
     packet->num_authority_records = answer->num_authority_records;
@@ -143,6 +162,7 @@ process_ns_result(void* cls, const GNUNET_HashCode *zone,
       GNUNET_DNS_request_answer(answer->request_handle,
                                 6000, //FIXME what length here
                                 reply_buffer);
+      //FIXME return code, free datastructures
     }
     else
     {
@@ -260,6 +280,39 @@ handle_client_record_lookup(void *cls,
 }
 
 /**
+ * test function
+ */
+void
+put_some_records(void)
+{
+  /* put a few records into namestore */
+  char* ipA = "1.2.3.4";
+  char* ipB = "5.6.7.8";
+  GNUNET_NAMESTORE_record_put (namestore_handle,
+                               my_zone,
+                               "alice.gnunet",
+                               GNUNET_GNS_RECORD_TYPE_A,
+                               GNUNET_TIME_absolute_get_forever(),
+                               GNUNET_NAMESTORE_RF_AUTHORITY,
+                               NULL, //sig loc
+                               strlen (ipA),
+                               ipA,
+                               NULL,
+                               NULL);
+  GNUNET_NAMESTORE_record_put (namestore_handle,
+                               my_zone,
+                               "bob.gnunet",
+                               GNUNET_GNS_RECORD_TYPE_A,
+                               GNUNET_TIME_absolute_get_forever(),
+                               GNUNET_NAMESTORE_RF_AUTHORITY,
+                               NULL, //sig loc
+                               strlen (ipB),
+                               ipB,
+                               NULL,
+                               NULL);
+}
+
+/**
  * Process GNS requests.
  *
  * @param cls closure
@@ -298,6 +351,13 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
    * handle to our local namestore
    */
   namestore_handle = GNUNET_NAMESTORE_connect(c);
+
+  if (NULL == namestore_handle)
+  {
+    //FIXME do error handling;
+  }
+
+  put_some_records();
 
   GNUNET_SERVER_add_handlers (server, handlers);
   /**
