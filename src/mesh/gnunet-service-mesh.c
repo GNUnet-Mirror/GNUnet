@@ -1170,7 +1170,8 @@ send_core_data_multicast (void *cls, size_t size, void *buf);
 /**
  * Decrements the reference counter and frees all resources if needed
  *
- * @param dd Data Descriptor used in a multicast message. Freed if needed.
+ * @param mesh_data Data Descriptor used in a multicast message.
+ *                  Freed no longer needed (last message).
  */
 static void
 data_descriptor_decrement_multicast (struct MeshData *mesh_data)
