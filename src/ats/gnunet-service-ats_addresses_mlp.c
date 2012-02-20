@@ -35,6 +35,8 @@
 #define DEBUG_ATS GNUNET_NO
 #define VERBOSE_GLPK GNUNET_NO
 
+#define ENABLE_C8 GNUNET_YES
+#define ENABLE_C9 GNUNET_YES
 /**
  * Translate glpk solver error codes to text
  * @param retcode return code
@@ -577,6 +579,7 @@ mlp_add_constraints_all_addresses (struct GAS_MLP_Handle *mlp, struct GNUNET_CON
     glp_set_row_bnds (mlp->prob, peer->r_c2, GLP_FX, 1.0, 1.0);
 
     /* Adding rows for c 9) */
+#if ENABLE_C9
     peer->r_c9 = glp_add_rows (mlp->prob, 1);
     GNUNET_asprintf(&name, "c9_%s", GNUNET_i2s(&peer->id));
     glp_set_row_name (mlp->prob, peer->r_c9, name);
@@ -589,8 +592,7 @@ mlp_add_constraints_all_addresses (struct GAS_MLP_Handle *mlp, struct GNUNET_CON
     ja[mlp->ci] = mlp->c_r;
     ar[mlp->ci] = -1;
     mlp->ci++;
-
-
+#endif
 
     while (addr != NULL)
     {
@@ -609,11 +611,13 @@ mlp_add_constraints_all_addresses (struct GAS_MLP_Handle *mlp, struct GNUNET_CON
       ar[mlp->ci] = peer->f;
       mlp->ci++;
 
+#if ENABLE_C9
       /* coefficient for c 9) */
       ia[mlp->ci] = peer->r_c9;
       ja[mlp->ci] = mlpi->c_b;
       ar[mlp->ci] = 1;
       mlp->ci++;
+#endif
 
       addr = addr->next;
     }
@@ -782,6 +786,7 @@ mlp_create_problem (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_MultiHas
   /* Column lower bound = 0.0 */
   glp_set_col_bnds (mlp->prob, col, GLP_LO, 0.0, 0.0);
 
+#if ENABLE_C9
   /* Relativity r column  */
   col = glp_add_cols (mlp->prob, 1);
   mlp->c_r = col;
@@ -791,6 +796,7 @@ mlp_create_problem (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_MultiHas
   glp_set_obj_coef (mlp->prob, col, mlp->co_R);
   /* Column lower bound = 0.0 */
   glp_set_col_bnds (mlp->prob, col, GLP_LO, 0.0, 0.0);
+#endif
 
   /* Quality metric columns */
   col = glp_add_cols(mlp->prob, mlp->m_q);
@@ -1131,6 +1137,8 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   mlp->prob = glp_create_prob();
   GNUNET_assert (mlp->prob != NULL);
 
+  mlp->BIG_M = (double) (UINT32_MAX) /10;
+
   /* Get diversity coefficient from configuration */
   if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (cfg, "ats",
                                                       "COEFFICIENT_D",
@@ -1244,11 +1252,11 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
     if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_size (cfg, "ats", entry_out, &quota_out))
     {
-      quota_out = UINT32_MAX;
+      quota_out = mlp->BIG_M;
     }
     if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_size (cfg, "ats", entry_in, &quota_in))
     {
-      quota_in = UINT32_MAX;
+      quota_in = mlp->BIG_M;
     }
     /* Check if defined quota could make problem unsolvable */
     if ((n_min * b_min) > quota_out)
@@ -1315,8 +1323,6 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
   mlp->last_execution = GNUNET_TIME_absolute_get_forever();
 
-
-  mlp->BIG_M = (double) UINT32_MAX;
   mlp->co_D = D;
   mlp->co_R = R;
   mlp->co_U = U;
