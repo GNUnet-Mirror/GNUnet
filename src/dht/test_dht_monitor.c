@@ -237,9 +237,21 @@ dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
   disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_peers, NULL);
 }
 
+/**
+ * Start test: start GET request from the first node in the line looking for
+ * the ID of the last node in the line.
+ * 
+ * @param cls Closure (not used).
+ * @param tc Task context.
+ */
 static void
 do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
+  {
+    return;
+  }
+  
   in_test = GNUNET_YES;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: test_task\n");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: looking for %s\n",
@@ -291,8 +303,9 @@ put_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 /**
  * Callback called on each request going through the DHT.
+ * Prints the info about the intercepted packet and increments a counter.
  *
- * @param cls Closure.
+ * @param cls Closure (long) # of daemon that got the monitor event.
  * @param mtype Type of the DHT message monitored.
  * @param exp When will this value expire.
  * @param key Key of the result/request.
@@ -321,11 +334,29 @@ monitor_dht_cb (void *cls,
                 size_t size)
 {
   const char *s_key;
+  const char *mtype_s;
+  unsigned int i;
 
+  i = (unsigned int) (long) cls;
   s_key = GNUNET_h2s(key);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%u got a message of type %u for key %s\n",
-              cls, mtype, s_key);
+  switch (mtype)
+  {
+    case 149:
+      mtype_s = "GET   ";
+      break;
+    case 150:
+      mtype_s = "RESULT";
+      break;
+    case 151:
+      mtype_s = "PUT   ";
+      break;
+    default:
+      GNUNET_break (0);
+      mtype_s = "UNKNOWN!!!";
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "%u got a message of type %s for key %s\n",
+              i, mtype_s, s_key);
 
   if ((mtype == GNUNET_MESSAGE_TYPE_DHT_MONITOR_GET ||
        mtype == GNUNET_MESSAGE_TYPE_DHT_MONITOR_PUT) &&
