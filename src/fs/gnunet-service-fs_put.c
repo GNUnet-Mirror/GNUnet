@@ -104,7 +104,7 @@ delay_dht_put_blocks (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_TIME_Relative delay;
 
   po->dht_task = GNUNET_SCHEDULER_NO_TASK;
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+  if (tc != NULL && 0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   if (po->zero_anonymity_count_estimate > 0)
   {
