@@ -81,6 +81,7 @@ GDS_CLIENTS_process_monitor (uint16_t mtype,
                              uint32_t getl,
                              const struct GNUNET_PeerIdentity *get_path,
                              uint32_t replevel,
+                             uint32_t desired_replication_level,
                              enum GNUNET_BLOCK_Type type,
                              const struct GNUNET_MessageHeader *data,
                              uint16_t size);
