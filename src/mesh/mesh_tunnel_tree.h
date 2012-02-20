@@ -197,7 +197,7 @@ tree_get_first_hop (struct MeshTunnelTree *t, GNUNET_PEER_Id peer);
  * Find the given peer in the tree.
  *
  * @param tree Tree where to look for the peer.
- * @param peer Peer to find.
+ * @param peer_id Peer to find.
  *
  * @return Pointer to the node of the peer. NULL if not found.
  */
