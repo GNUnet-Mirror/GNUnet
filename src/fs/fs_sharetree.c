@@ -384,7 +384,11 @@ share_tree_trim (struct TrimContext *tc,
   {
     tc->pos = pos;
     if (NULL != pos->ksk_uri)
-      GNUNET_FS_uri_ksk_get_keywords (pos->ksk_uri, &remove_high_frequency_keywords, tc);
+    {
+      struct GNUNET_FS_Uri *ksk_uri_copy = GNUNET_FS_uri_dup (pos->ksk_uri);
+      GNUNET_FS_uri_ksk_get_keywords (ksk_uri_copy, &remove_high_frequency_keywords, tc);
+      GNUNET_FS_uri_destroy (ksk_uri_copy);
+    }
   }
 
   /* add high-frequency meta data and keywords to parent */
