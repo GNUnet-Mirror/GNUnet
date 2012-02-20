@@ -97,23 +97,26 @@ check (void *cls, char *const *args, const char *cfgfile,
   set_ats (&a1_ats[1], GNUNET_ATS_QUALITY_NET_DELAY, 32);
   set_ats (&a1_ats[2], GNUNET_ATS_ARRAY_TERMINATOR, 0);
   create_address (&addr[0], "dummy", 3, &a1_ats[0]);
+  addr[0].atsp_network_type = GNUNET_ATS_NET_WAN;
 
 
   /* Creating peer 1  address 2 */
   addr[1].peer.hashPubKey = p[0].hashPubKey;
   struct GNUNET_ATS_Information a2_ats[3];
-  set_ats (&a2_ats[0], GNUNET_ATS_ARRAY_TERMINATOR, 0);
-  set_ats (&a2_ats[1], GNUNET_ATS_QUALITY_NET_DELAY, 32);
-  set_ats (&a2_ats[2], GNUNET_ATS_QUALITY_NET_DISTANCE, 1);
+  set_ats (&a2_ats[0], GNUNET_ATS_QUALITY_NET_DELAY, 32);
+  set_ats (&a2_ats[1], GNUNET_ATS_QUALITY_NET_DISTANCE, 1);
+  set_ats (&a2_ats[2], GNUNET_ATS_ARRAY_TERMINATOR, 0);
   create_address (&addr[1], "dummy2", 3, &a2_ats[0]);
+  addr[1].atsp_network_type = GNUNET_ATS_NET_WAN;
 
   /* Creating peer 2  address 1 */
   addr[2].peer.hashPubKey = p[1].hashPubKey;
   struct GNUNET_ATS_Information a3_ats[3];
-  set_ats (&a3_ats[0], GNUNET_ATS_ARRAY_TERMINATOR, 0);
-  set_ats (&a3_ats[1], GNUNET_ATS_QUALITY_NET_DELAY, 32);
-  set_ats (&a3_ats[2], GNUNET_ATS_QUALITY_NET_DISTANCE, 1);
+  set_ats (&a3_ats[0], GNUNET_ATS_QUALITY_NET_DELAY, 32);
+  set_ats (&a3_ats[1], GNUNET_ATS_QUALITY_NET_DISTANCE, 1);
+  set_ats (&a3_ats[2], GNUNET_ATS_ARRAY_TERMINATOR, 0);
   create_address (&addr[2], "dummy3", 3, &a3_ats[0]);
+  addr[2].atsp_network_type = GNUNET_ATS_NET_LAN;
 
   GNUNET_CONTAINER_multihashmap_put(addresses, &addr[0].peer.hashPubKey, &addr[0], GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
 

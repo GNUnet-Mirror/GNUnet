@@ -412,6 +412,15 @@ enum GNUNET_ATS_Property
  */
 #define GNUNET_ATS_QualityProperties {GNUNET_ATS_QUALITY_NET_DELAY, GNUNET_ATS_QUALITY_NET_DISTANCE}
 
+/**
+ * Number of ATS quality properties
+ */
+#define GNUNET_ATS_NetworkTypeCount 5
+
+/**
+ * ATS quality properties as array initializer
+ */
+#define GNUNET_ATS_NetworkType {GNUNET_ATS_NET_UNSPECIFIED, GNUNET_ATS_NET_LOOPBACK, GNUNET_ATS_NET_LAN, GNUNET_ATS_NET_WAN, GNUNET_ATS_NET_WLAN}
 
 GNUNET_NETWORK_STRUCT_BEGIN
 

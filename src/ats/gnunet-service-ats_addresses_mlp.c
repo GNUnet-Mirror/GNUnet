@@ -347,6 +347,32 @@ create_constraint_it (void *cls, const GNUNET_HashCode * key, void *value)
   mlp->ar[mlp->ci] = 1;
   mlp->ci++;
 
+  /* c 10) obey network specific quotas
+   * (1)*b_1 + ... + (1)*b_m <= quota_n
+   */
+  int cur_row = 0;
+  int c;
+  for (c = 0; c < GNUNET_ATS_NetworkTypeCount; c++)
+    {
+    if (mlp->quota_index[c] == address->atsp_network_type)
+    {
+      cur_row = mlp->r_quota[c];
+      break;
+    }
+  }
+
+  if (cur_row != 0)
+  {
+    mlp->ia[mlp->ci] = cur_row;
+    mlp->ja[mlp->ci] = mlpi->c_b;
+    mlp->ar[mlp->ci] = 1;
+    mlp->ci++;
+  }
+  else
+  {
+    GNUNET_break (0);
+  }
+
   return GNUNET_OK;
 }
 
@@ -421,6 +447,10 @@ mlp_add_constraints_all_addresses (struct GAS_MLP_Handle *mlp, struct GNUNET_CON
    * #rows: |ressources|
    * #indices: |n_addresses|
    *
+   * c 10) obey network specific quota
+   * #rows: |network types
+   * #indices: |n_addresses|
+   *
    * Sum for feasibility constraints:
    * #rows: 3 * |n_addresses| +  |ressources| + |peers| + 1
    * #indices: 7 * |n_addresses|
@@ -444,8 +474,8 @@ mlp_add_constraints_all_addresses (struct GAS_MLP_Handle *mlp, struct GNUNET_CON
    * #indices: |n_addresses| + |peers|
    * */
 
-  /* last +1 caused by glpk index starting with one */
-  int pi = ((7 * n_addresses) + (4 * n_addresses +  mlp->m_q + mlp->c_p + 2) + 1);
+  /* last +1 caused by glpk index starting with one: [1..pi]*/
+  int pi = ((7 * n_addresses) + (5 * n_addresses +  mlp->m_q + mlp->c_p + 2) + 1);
   mlp->cm_size = pi;
   mlp->ci = 1;
 
@@ -469,6 +499,7 @@ mlp_add_constraints_all_addresses (struct GAS_MLP_Handle *mlp, struct GNUNET_CON
    * c 3) minimum bandwidth
    * c 4) minimum number of connections
    * c 6) maximize diversity
+   * c 10) obey network specific quota
    */
 
   int min = mlp->n_min;
@@ -489,6 +520,14 @@ mlp_add_constraints_all_addresses (struct GAS_MLP_Handle *mlp, struct GNUNET_CON
   ja[mlp->ci] = mlp->c_d;
   ar[mlp->ci] = -1;
   mlp->ci++;
+
+  /* Add rows for c 10) */
+  for (c = 0; c < GNUNET_ATS_NetworkTypeCount; c++)
+  {
+    mlp->r_quota[c] = glp_add_rows (mlp->prob, 1);
+    /* Set bounds to 0 <= x <= quota_out */
+    glp_set_row_bnds (mlp->prob, mlp->r_quota[c], GLP_DB, 0.0, mlp->quota_out[c]);
+  }
 
   GNUNET_CONTAINER_multihashmap_iterate (addresses, create_constraint_it, mlp);
 
@@ -549,16 +588,19 @@ mlp_add_constraints_all_addresses (struct GAS_MLP_Handle *mlp, struct GNUNET_CON
     {
       mlpi = (struct MLP_information *) addr->mlp_information;
 
+      /* coefficient for c 2) */
       ia[mlp->ci] = peer->r_c2;
       ja[mlp->ci] = mlpi->c_n;
       ar[mlp->ci] = 1;
       mlp->ci++;
 
+      /* coefficient for c 8) */
       ia[mlp->ci] = mlp->r_c8;
       ja[mlp->ci] = mlpi->c_b;
       ar[mlp->ci] = peer->f;
       mlp->ci++;
 
+      /* coefficient for c 9) */
       ia[mlp->ci] = peer->r_c9;
       ja[mlp->ci] = mlpi->c_b;
       ar[mlp->ci] = 1;
@@ -588,7 +630,6 @@ mlp_add_constraints_all_addresses (struct GAS_MLP_Handle *mlp, struct GNUNET_CON
       /* Set row bound == 0 */
       glp_set_row_bnds (mlp->prob, mlp->r_q[c], GLP_LO, 0.0, 0.0);
 
-      /* Set -q_m */
       ia[mlp->ci] = mlp->r_q[c];
       ja[mlp->ci] = mlp->c_q[c];
       ar[mlp->ci] = -1;
@@ -605,9 +646,7 @@ mlp_add_constraints_all_addresses (struct GAS_MLP_Handle *mlp, struct GNUNET_CON
           value = (double) addr->ats[index].value;
 
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Quality %i with ATS property `%s' has index %i in addresses ats information has value %f\n", c,  mlp_ats_to_string(mlp->q[c]), index, (double) addr->ats[index].value);
-
         }
-
         else
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Quality %i with ATS property `%s' not existing\n", c,  mlp_ats_to_string(mlp->q[c]), index);
 
@@ -1105,11 +1144,65 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   else
     U = 1.0;
 
+  /* Init network quotas */
+  int quotas[GNUNET_ATS_NetworkTypeCount] = GNUNET_ATS_NetworkType;
+  int c;
+
+  for (c = 0; c < GNUNET_ATS_NetworkTypeCount; c++)
+  {
+    mlp->quota_index[c] = quotas[c];
+    static char * entry_in = NULL;
+    static char * entry_out = NULL;
+    unsigned long long quota_in = 0;
+    unsigned long long quota_out = 0;
+
+    switch (quotas[c]) {
+      case GNUNET_ATS_NET_UNSPECIFIED:
+        entry_out = "UNSPECIFIED_QUOTA_OUT";
+        entry_in = "UNSPECIFIED_QUOTA_IN";
+        break;
+      case GNUNET_ATS_NET_LOOPBACK:
+        entry_out = "LOOPBACK_QUOTA_OUT";
+        entry_in = "LOOPBACK_QUOTA_IN";
+        break;
+      case GNUNET_ATS_NET_LAN:
+        entry_out = "LAN_QUOTA_OUT";
+        entry_in = "LAN_QUOTA_IN";
+        break;
+      case GNUNET_ATS_NET_WAN:
+        entry_out = "WAN_QUOTA_OUT";
+        entry_in = "WAN_QUOTA_IN";
+        break;
+      case GNUNET_ATS_NET_WLAN:
+        entry_out = "WLAN_QUOTA_OUT";
+        entry_in = "WLAN_QUOTA_IN";
+        break;
+      default:
+        break;
+    }
+
+    if ((entry_in == NULL) || (entry_out == NULL))
+      continue;
+
+    if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_size (cfg, "ats", entry_out, &quota_out))
+    {
+      quota_out = UINT32_MAX;
+    }
+    if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_size (cfg, "ats", entry_in, &quota_in))
+    {
+      quota_in = UINT32_MAX;
+    }
+
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found `%s' quota %llu and `%s' quota %llu\n",
+                entry_out, quota_out, entry_in, quota_in);
+    mlp->quota_out[c] = quota_out;
+    mlp->quota_in[c] = quota_in;
+  }
+
   /* Get quality metric coefficients from configuration */
   int i_delay = -1;
   int i_distance = -1;
   int q[GNUNET_ATS_QualityPropertiesCount] = GNUNET_ATS_QualityProperties;
-  int c;
   for (c = 0; c < GNUNET_ATS_QualityPropertiesCount; c++)
   {
     /* initialize quality coefficients with default value 1.0 */
@@ -1143,7 +1236,9 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                                       &tmp))
     b_min = tmp;
   else
-    b_min = 64000;
+  {
+    b_min = ntohl (GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT.value__);
+  }
 
   /* Get minimum number of connections from configuration */
   if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (cfg, "ats",

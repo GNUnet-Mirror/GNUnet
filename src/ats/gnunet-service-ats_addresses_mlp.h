@@ -223,6 +223,13 @@ struct GAS_MLP_Handle
   /* number of quality metrics */
   int m_q;
 
+  /* ATS network quotas */
+  int c_quota[GNUNET_ATS_NetworkTypeCount];
+  int r_quota[GNUNET_ATS_NetworkTypeCount];
+  int quota_index [GNUNET_ATS_NetworkTypeCount];
+  unsigned long long quota_out[GNUNET_ATS_NetworkTypeCount];
+  unsigned long long quota_in[GNUNET_ATS_NetworkTypeCount];
+
   /* ATS ressource costs
    *
    * array with GNUNET_ATS_QualityPropertiesCount elements
