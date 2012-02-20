@@ -1,0 +1,30 @@
+[namestore]
+AUTOSTART = YES
+UNIXPATH = /tmp/gnunet-service-namestore.sock
+UNIX_MATCH_UID = YES
+UNIX_MATCH_GID = YES
+@UNIXONLY@ PORT = 2099
+HOSTNAME = localhost
+HOME = $SERVICEHOME
+CONFIG = $DEFAULTCONFIG
+BINARY = gnunet-service-namestore
+ACCEPT_FROM = 127.0.0.1;
+ACCEPT_FROM6 = ::1;
+DATABASE = sqlite
+
+[namestore-sqlite]
+FILENAME = $SERVICEHOME/namestore/sqlite.db
+
+[namestore-postgres]
+CONFIG = connect_timeout=10; dbname=gnunet
+
+[namestore-mysql]
+DATABASE = gnunet
+CONFIG = ~/.my.cnf
+# USER = gnunet
+# PASSWORD = 
+# HOST = localhost
+# PORT = 3306
+
+
+

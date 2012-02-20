@@ -877,6 +877,8 @@ src/include/gnunet_directories.h
 src/hostlist/Makefile
 src/mesh/Makefile
 src/mesh/mesh.conf
+src/namestore/Makefile
+src/namestore/namestore.conf
 src/nat/Makefile
 src/nse/Makefile
 src/nse/nse.conf
