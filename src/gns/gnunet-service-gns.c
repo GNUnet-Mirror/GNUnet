@@ -65,6 +65,8 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 /**
  * The DNS request handler
+ * Is this supposed to happen here in the service (config option)
+ * or in an app that interfaces with the GNS API?
  *
  * @param cls closure
  * @param rh request handle to user for reply
@@ -78,12 +80,7 @@ handle_dns_request(void *cls,
                    const char *request)
 {
   /**
-   * TODO: parse request for tld
-   * Queue rh and gns handle (or use cls)
-   * How should lookup behave:
-   *  - sync and return result or "NX"
-   *  - async like dht with iter
-   *  Maybe provide both, useful for cli app
+   * parse request for tld
    **/
   struct GNUNET_DNSPARSER_Packet *p;
   int namelen;
@@ -98,7 +95,7 @@ handle_dns_request(void *cls,
     return;
   }
   /**
-   * TODO factor out
+   * FIXME factor out
    * Check tld and decide if we or
    * legacy dns is responsible
    **/
@@ -108,7 +105,7 @@ handle_dns_request(void *cls,
     if (namelen >= 7)
     {
       /**
-       * TODO off by 1?
+       * FIXME off by 1?
        * Move our tld/root to config file
        * Generate fake DNS reply that replaces .gnunet with .org
        **/

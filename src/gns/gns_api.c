@@ -19,6 +19,8 @@
 */
 
 /**
+ * TODO: Do we really need a client API?
+ *
  * @file gns/gns_api.c
  * @brief library to access the GNS service
  * @author Martin Schanzenbach
@@ -145,6 +147,8 @@ struct GNUNET_GNS_LookupHandle
 struct GNUNET_GNS_Record
 {
   enum GNUNET_GNS_RecordType type;
+  /* Followed by data array. Format determined by type */
+  char *data;
 };
 
 /**

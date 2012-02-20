@@ -60,20 +60,28 @@ struct GNUNET_GNS_LookupHandle;
 struct GNUNET_GNS_Record;
 
 /**
- * Records types
+ * Record types
+ * Based on GNUNET_DNSPARSER_TYPEs (standard DNS)
  */
 enum GNUNET_GNS_RecordType
 {
-  // FIXME: should be based on GNUNET_DNSPARSER_TYPE's (standard DNS),
-  // and then maybe our extensions in the area > 255?
-  GNUNET_GNS_RECORD_A,
-  GNUNET_GNS_RECORD_AAAA,
-  GNUNET_GNS_RECORD_MX,
-  GNUNET_GNS_RECORD_PKEY
+  /* Standard DNS */
+  GNUNET_GNS_RECORD_TYPE_A = 1,
+  GNUNET_GNS_RECORD_TYPE_NS = 2,
+  GNUNET_GNS_RECORD_TYPE_CNAME = 5,
+  GNUNET_GNS_RECORD_TYPE_SOA = 6,
+  GNUNET_GNS_RECORD_TYPE_PTR = 12,
+  GNUNET_GNS_RECORD_MX = 15,
+  GNUNET_GNS_RECORD_TXT = 16,
+  GNUNET_GNS_RECORD_AAAA = 28,
+
+  /* GNS specific */
+  GNUNET_GNS_RECORD_PKEY = 256
 };
 
 /**
  * Initialize the connection with the GNS service.
+ * FIXME: Do we need the ht_len?
  *
  * @param cfg configuration to use
  * @param ht_len size of the internal hash table to use for parallel lookups
@@ -97,7 +105,7 @@ GNUNET_GNS_disconnect (struct GNUNET_GNS_Handle *handle);
 
 /**
  * Iterator called on each result obtained for a GNS
- * operation that expects a reply TODO: eh?
+ * lookup
  *
  *
  * @param cls closure

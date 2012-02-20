@@ -1,10 +1,10 @@
 /*
-     This file is part of GNUnet
-     (C) 2012 Christian Grothoff (and other contributing authors)
+     This file is part of GNUnet.
+     (C) 2009, 2010 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
-     by the Free Software Foundation; either version 2, or (at your
+     by the Free Software Foundation; either version 3, or (at your
      option) any later version.
 
      GNUnet is distributed in the hope that it will be useful, but
@@ -19,170 +19,104 @@
 */
 
 /**
- * @file include/gnunet_namestore_service.h
- * @brief API that can be used to store naming information on a GNUnet node;
- * @author Christian Grothoff
- *
- * Other functions we might want:
- * - enumerate all known zones
- * - convenience function to gather record and the full affilliated stree
- *   in one shot
+ * @file gns/namestore_stub_api.c
+ * @brief stub library to access the NAMESTORE service
+ * @author Martin Schanzenbach
  */
 
-#ifndef GNUNET_NAMESTORE_SERVICE_H
-#define GNUNET_NAMESTORE_SERVICE_H
-
+#include "platform.h"
 #include "gnunet_util_lib.h"
-#include "gnunet_block_lib.h"
+#include "gnunet_constants.h"
+#include "gnunet_arm_service.h"
+#include "gnunet_namestore_service.h"
 
-#ifdef __cplusplus
-extern "C"
+#define DEBUG_GNS_API GNUNET_EXTRA_LOGGING
+
+#define LOG(kind,...) GNUNET_log_from (kind, "gns-api",__VA_ARGS__)
+
+/**
+ * A QueueEntry.
+ */
+struct GNUNET_NAMESTORE_QueueEntry
 {
-#if 0                           /* keep Emacsens' auto-indent happy */
-}
-#endif
-#endif
+  char *data; /*stub data pointer*/
+};
 
 /**
- * Entry in the queue.
+ * Connection to the NAMESTORE service.
  */
-struct GNUNET_NAMESTORE_QueueEntry;
+struct GNUNET_NAMESTORE_Handle
+{
+
+  /**
+   * Configuration to use.
+   */
+  const struct GNUNET_CONFIGURATION_Handle *cfg;
+
+  /**
+   * Socket (if available).
+   */
+  struct GNUNET_CLIENT_Connection *client;
+
+  /**
+   * Currently pending transmission request (or NULL).
+   */
+  struct GNUNET_CLIENT_TransmitHandle *th;
+
+  /* dll to use for records */
+  struct GNUNET_NAMESTORE_SimpleRecord * records_head;
+  struct GNUNET_NAMESTORE_SimpleRecord * records_tail;
+
+};
+
+struct GNUNET_NAMESTORE_SimpleRecord
+{
+  /**
+   * DLL
+   */
+  struct GNUNET_NAMESTORE_SimpleRecord *next;
+
+  /**
+   * DLL
+   */
+  struct GNUNET_NAMESTORE_SimpleRecord *prev;
+  
+  const char *name;
+  const GNUNET_HashCode *zone;
+  uint32_t record_type;
+  struct GNUNET_TIME_Absolute expiration;
+  enum GNUNET_NAMESTORE_RecordFlags flags;
+  size_t data_size;
+  const void *data;
+};
 
 /**
- * Handle to the namestore service.
- */
-struct GNUNET_NAMESTORE_Handle;
-
-/**
- * Maximum size of a value that can be stored in the namestore.
- */
-#define GNUNET_NAMESTORE_MAX_VALUE_SIZE (63 * 1024)
-
-/**
- * Connect to the namestore service.
+ * Initialize the connection with the NAMESTORE service.
  *
  * @param cfg configuration to use
- * @return handle to use to access the service
+ * @return handle to the GNS service, or NULL on error
  */
 struct GNUNET_NAMESTORE_Handle *
-GNUNET_NAMESTORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg);
+GNUNET_NAMESTORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
+{
+  struct GNUNET_NAMESTORE_Handle *handle;
+
+  handle = GNUNET_malloc (sizeof (struct GNUNET_NAMESTORE_Handle));
+  handle->cfg = cfg;
+  return handle;
+}
 
 
 /**
- * Disconnect from the namestore service (and free
- * associated resources).
+ * Shutdown connection with the NAMESTORE service.
  *
- * @param h handle to the namestore
- * @param drop set to GNUNET_YES to delete all data in namestore (!)
+ * @param handle handle of the NAMESTORE connection to stop
  */
 void
-GNUNET_NAMESTORE_disconnect (struct GNUNET_NAMESTORE_Handle *h, int drop);
-
-
-/**
- * Continuation called to notify client about result of the
- * operation.
- *
- * @param cls closure
- * @param success GNUNET_SYSERR on failure (including timeout/queue drop)
- *                GNUNET_NO if content was already there
- *                GNUNET_YES (or other positive value) on success
- * @param emsg NULL on success, otherwise an error message
- */
-typedef void (*GNUNET_NAMESTORE_ContinuationWithStatus) (void *cls,
-                                                         int32_t success,
-                                                         const char *emsg);
-
-
-/**
- * Flags that can be set for a record.
- */
-enum GNUNET_NAMESTORE_RecordFlags
+GNUNET_NAMESTORE_disconnect (struct GNUNET_NAMESTORE_Handle *handle, int drop)
 {
-  
-  /**
-   * No special options.
-   */
-  GNUNET_NAMESTORE_RF_NONE = 0,
-
-  /**
-   * This peer is the authority for this record; it must thus
-   * not be deleted (other records can be deleted if we run
-   * out of space).
-   */
-  GNUNET_NAMESTORE_RF_AUTHORITY = 1,
-
-  /**
-   * This is a private record of this peer and it should
-   * thus not be handed out to other peers.
-   */
-  GNUNET_NAMESTORE_RF_PRIVATE = 2
-
-};
-
-
-/**
- * We formally store records in a B-tree for signing.  This struct
- * identifies the location of a record in the B-tree.
- */
-struct GNUNET_NAMESTORE_SignatureLocation
-{
-  /**
-   * Offset in the B-tree.
-   */
-  uint64_t offset;
-
-  /**
-   * Depth in the B-tree.
-   */
-  uint32_t depth;
-
-  /**
-   * Revision of the B-tree.
-   */
-  uint32_t revision;
-};
-
-
-/**
- * Continuation called to notify client about result of the
- * signing operation.
- *
- * @param cls closure
- * @param sig where the signature is now located in the S-tree
- */
-typedef void (*GNUNET_NAMESTORE_ContinuationWithSignature) (void *cls,
-							    const struct GNUNET_NAMESTORE_SignatureLocation *sig);
-
-
-
-
-
-/**
- * Get the hash of a record (what will be signed in the Stree for
- * the record).
- *
- * @param zone hash of the public key of the zone
- * @param name name that is being mapped (at most 255 characters long)
- * @param record_type type of the record (A, AAAA, PKEY, etc.)
- * @param expiration expiration time for the content
- * @param flags flags for the content
- * @param data_size number of bytes in data
- * @param data value, semantics depend on 'record_type' (see RFCs for DNS and 
- *             GNS specification for GNS extensions)
- * @param record_hash hash of the record (set)
- */
-void
-GNUNET_NAMESTORE_record_hash (struct GNUNET_NAMESTORE_Handle *h,
-			      const GNUNET_HashCode *zone,
-			      const char *name,
-			      uint32_t record_type,
-			      struct GNUNET_TIME_Absolute expiration,
-			      enum GNUNET_NAMESTORE_RecordFlags flags,
-			      size_t data_size,
-			      const void *data, 
-			      GNUNET_HashCode *record_hash);
-
+  GNUNET_free(handle);
+}
 
 /**
  * Sign a record.  This function is used by the authority of the zone
@@ -197,11 +131,15 @@ GNUNET_NAMESTORE_record_hash (struct GNUNET_NAMESTORE_Handle *h,
  */
 struct GNUNET_NAMESTORE_QueueEntry *
 GNUNET_NAMESTORE_stree_extend (struct GNUNET_NAMESTORE_Handle *h,
-			       const struct GNUNET_CRYPTO_RsaPrivateKey *zone_privkey,
-			       const GNUNET_HashCode *record_hash,
-			       GNUNET_NAMESTORE_ContinuationWithSignature cont,
-			       void *cont_cls);
-
+             const struct GNUNET_CRYPTO_RsaPrivateKey *zone_privkey,
+             const GNUNET_HashCode *record_hash,
+             GNUNET_NAMESTORE_ContinuationWithSignature cont,
+             void *cont_cls)
+{
+  struct GNUNET_NAMESTORE_QueueEntry *qe;
+  qe = GNUNET_malloc(sizeof (struct GNUNET_NAMESTORE_QueueEntry));
+  return qe;
+}
 
 /**
  * Rebalance the signature tree of our zone.  This function should
@@ -215,10 +153,14 @@ GNUNET_NAMESTORE_stree_extend (struct GNUNET_NAMESTORE_Handle *h,
  */
 struct GNUNET_NAMESTORE_QueueEntry *
 GNUNET_NAMESTORE_stree_rebalance (struct GNUNET_NAMESTORE_Handle *h,
-				  const struct GNUNET_CRYPTO_RsaPrivateKey *zone_privkey,
-				  GNUNET_NAMESTORE_ContinuationWithStatus cont,
-				  void *cont_cls);
-
+          const struct GNUNET_CRYPTO_RsaPrivateKey *zone_privkey,
+          GNUNET_NAMESTORE_ContinuationWithStatus cont,
+          void *cont_cls)
+{
+  struct GNUNET_NAMESTORE_QueueEntry *qe;
+  qe = GNUNET_malloc(sizeof (struct GNUNET_NAMESTORE_QueueEntry));
+  return qe;
+}
 
 /**
  * Provide the root of a signature tree.  This function is 
@@ -241,8 +183,12 @@ GNUNET_NAMESTORE_stree_start (struct GNUNET_NAMESTORE_Handle *h,
 			      uint32_t revision,
 			      const GNUNET_HashCode *top_hash,
 			      GNUNET_NAMESTORE_ContinuationWithSignature cont,
-			      void *cont_cls);
-
+			      void *cont_cls)
+{
+  struct GNUNET_NAMESTORE_QueueEntry *qe;
+  qe = GNUNET_malloc(sizeof (struct GNUNET_NAMESTORE_QueueEntry));
+  return qe;
+}
 
 /**
  * Store part of a signature B-tree in the namestore.  This function
@@ -271,8 +217,12 @@ GNUNET_NAMESTORE_stree_put (struct GNUNET_NAMESTORE_Handle *h,
 			    unsigned int num_entries,
 			    const GNUNET_HashCode *entries,
 			    GNUNET_NAMESTORE_ContinuationWithStatus cont,
-			    void *cont_cls);
-
+			    void *cont_cls)
+{
+  struct GNUNET_NAMESTORE_QueueEntry *qe;
+  qe = GNUNET_malloc(sizeof (struct GNUNET_NAMESTORE_QueueEntry));
+  return qe;
+}
 
 /**
  * Store an item in the namestore.  If the item is already present,
@@ -305,8 +255,22 @@ GNUNET_NAMESTORE_record_put (struct GNUNET_NAMESTORE_Handle *h,
 			     size_t data_size,
 			     const void *data, 
 			     GNUNET_NAMESTORE_ContinuationWithStatus cont,
-			     void *cont_cls);
+			     void *cont_cls)
+{
+  struct GNUNET_NAMESTORE_QueueEntry *qe;
+  qe = GNUNET_malloc(sizeof (struct GNUNET_NAMESTORE_QueueEntry));
 
+  struct GNUNET_NAMESTORE_SimpleRecord *sr;
+  sr = GNUNET_malloc(sizeof(struct GNUNET_NAMESTORE_SimpleRecord));
+  sr->name = name;
+  sr->record_type = record_type;
+  sr->expiration = expiration;
+  sr->flags = flags;
+  sr->data_size = data_size;
+  sr->data = data;
+  GNUNET_CONTAINER_DLL_insert(h->records_head, h->records_tail, sr);
+  return qe;
+}
 
 /**
  * Explicitly remove some content from the database.  The
@@ -332,31 +296,26 @@ GNUNET_NAMESTORE_record_remove (struct GNUNET_NAMESTORE_Handle *h,
 				size_t size,
 				const void *data, 
 				GNUNET_NAMESTORE_ContinuationWithStatus cont,
-				void *cont_cls);
-
-
-/**
- * Process a record that was stored in the namestore.
- *
- * @param cls closure
- * @param zone hash of the public key of the zone
- * @param name name that is being mapped (at most 255 characters long)
- * @param record_type type of the record (A, AAAA, PKEY, etc.)
- * @param expiration expiration time for the content
- * @param flags flags for the content
- * @param sig_loc where is the information about the signature for this record stored?
- * @param size number of bytes in data
- * @param data content stored
- */
-typedef void (*GNUNET_NAMESTORE_RecordProcessor) (void *cls,
-                                                 const GNUNET_HashCode *zone,
-						 const char *name,
-						 uint32_t record_type,
-						 struct GNUNET_TIME_Absolute expiration,
-						 enum GNUNET_NAMESTORE_RecordFlags flags,
-						 const struct GNUNET_NAMESTORE_SignatureLocation *sig_loc,
-						 size_t size, const void *data);
-
+				void *cont_cls)
+{
+  struct GNUNET_NAMESTORE_QueueEntry *qe;
+  qe = GNUNET_malloc(sizeof (struct GNUNET_NAMESTORE_QueueEntry));
+  
+  struct GNUNET_NAMESTORE_SimpleRecord *iter;
+  for (iter=h->records_head; iter != NULL; iter=iter->next)
+  {
+    if (strcmp ( iter->name, name ) &&
+        iter->record_type == record_type &&
+        GNUNET_CRYPTO_hash_cmp (iter->zone, zone))
+      break;
+  }
+  if (iter)
+    GNUNET_CONTAINER_DLL_remove(h->records_head,
+                                h->records_tail,
+                                iter);
+  
+  return qe;
+}
 
 /**
  * Get a result for a particular key from the namestore.  The processor
@@ -377,48 +336,56 @@ GNUNET_NAMESTORE_lookup_name (struct GNUNET_NAMESTORE_Handle *h,
 			      const GNUNET_HashCode *zone,
 			      const char *name,
 			      uint32_t record_type,
-			      GNUNET_NAMESTORE_RecordProcessor proc, void *proc_cls);
+			      GNUNET_NAMESTORE_RecordProcessor proc, void *proc_cls)
+{
+  struct GNUNET_NAMESTORE_QueueEntry *qe;
+  qe = GNUNET_malloc(sizeof (struct GNUNET_NAMESTORE_QueueEntry));
 
+  struct GNUNET_NAMESTORE_SimpleRecord *iter;
+  for (iter=h->records_head; iter != NULL; iter=iter->next)
+  {
+    proc(proc_cls, iter->zone, iter->name, iter->record_type,
+       iter->expiration,
+       iter->flags,
+       NULL /*sig loc*/,
+       iter->data_size /*size*/,
+       iter->data /* data */);
+  }
+  proc(proc_cls, zone, name, record_type,
+       GNUNET_TIME_absolute_get_forever(), 0, NULL, 0, NULL); /*TERMINATE*/
+
+  return qe;
+}
 
 
 /**
- * Get the hash of a subtree in the STree (what will be signed in the parent
- * location). FIXME naming conflict!
+ * Get the hash of a record (what will be signed in the Stree for
+ * the record).
  *
  * @param zone hash of the public key of the zone
- * @param loc where we are in the signature tree
- * @param num_entries number of entries being stored here
- * @param entries the entries themselves
- * @param st_hash hash of the stree node (set)
+ * @param name name that is being mapped (at most 255 characters long)
+ * @param record_type type of the record (A, AAAA, PKEY, etc.)
+ * @param expiration expiration time for the content
+ * @param flags flags for the content
+ * @param data_size number of bytes in data
+ * @param data value, semantics depend on 'record_type' (see RFCs for DNS and.
+ *             GNS specification for GNS extensions)
+ * @param record_hash hash of the record (set)
  */
 void
-GNUNET_NAMESTORE_record_hash_dup (struct GNUNET_NAMESTORE_Handle *h,
-			      const GNUNET_HashCode *zone,
-			      const struct GNUNET_NAMESTORE_SignatureLocation *loc,
-			      unsigned int num_entries,
-			      const GNUNET_HashCode *entries,
-			      GNUNET_HashCode *st_hash);
-
-
-/**
- * Process a Stree node that was stored in the namestore.
- *
- * @param cls closure
- * @param zone hash of the public key of the zone
- * @param loc where we are in the signature tree
- * @param ploc location of our parent in the signature tree (NULL if 'loc.depth == 0')
- * @param top_sig signature at the root (NULL if 'loc.depth > 0')
- * @param num_entries number of entries being stored here
- * @param entries the entries themselves
- */
-typedef void (*GNUNET_NAMESTORE_StreeProcessor) (void *cls,
-                                                 const GNUNET_HashCode *zone,
-						 const struct GNUNET_NAMESTORE_SignatureLocation *loc,
-						 const struct GNUNET_NAMESTORE_SignatureLocation *ploc,
-						 const struct GNUNET_CRYPTO_RsaSignature *top_sig,
-						 unsigned int num_entries,
-						 const GNUNET_HashCode *entries);
-
+GNUNET_NAMESTORE_record_hash (struct GNUNET_NAMESTORE_Handle *h,
+                              const GNUNET_HashCode *zone,
+                              const char *name,
+                              uint32_t record_type,
+                              struct GNUNET_TIME_Absolute expiration,
+                              enum GNUNET_NAMESTORE_RecordFlags flags,
+                              size_t data_size,
+                              const void *data,
+                              GNUNET_HashCode *record_hash)
+{
+  char* teststring = "namestore-stub";
+  GNUNET_CRYPTO_hash(teststring, strlen(teststring), record_hash);
+}
 
 /**
  * Obtain part of a signature B-tree.  The processor
@@ -434,10 +401,15 @@ typedef void (*GNUNET_NAMESTORE_StreeProcessor) (void *cls,
  *         cancel
  */
 struct GNUNET_NAMESTORE_QueueEntry *
-GNUNET_NAMESTORE_lookup_stree (struct GNUNET_NAMESTORE_Handle *h, 
-			       const GNUNET_HashCode *zone,
-			       const struct GNUNET_NAMESTORE_SignatureLocation *sig_loc,
-			       GNUNET_NAMESTORE_StreeProcessor proc, void *proc_cls);
+GNUNET_NAMESTORE_lookup_stree (struct GNUNET_NAMESTORE_Handle *h,
+                      const GNUNET_HashCode *zone,
+                      const struct GNUNET_NAMESTORE_SignatureLocation *sig_loc,
+                      GNUNET_NAMESTORE_StreeProcessor proc, void *proc_cls)
+{
+  struct GNUNET_NAMESTORE_QueueEntry *qe;
+  qe = GNUNET_malloc(sizeof (struct GNUNET_NAMESTORE_QueueEntry));
+  return qe;
+}
 
 
 /**
@@ -454,9 +426,14 @@ GNUNET_NAMESTORE_lookup_stree (struct GNUNET_NAMESTORE_Handle *h,
  */
 struct GNUNET_NAMESTORE_QueueEntry *
 GNUNET_NAMESTORE_zone_transfer (struct GNUNET_NAMESTORE_Handle *h,
-				const GNUNET_HashCode *zone,
-				GNUNET_NAMESTORE_RecordProcessor proc,
-				void *proc_cls);
+                                const GNUNET_HashCode *zone,
+                                GNUNET_NAMESTORE_RecordProcessor proc,
+                                void *proc_cls)
+{
+  struct GNUNET_NAMESTORE_QueueEntry *qe;
+  qe = GNUNET_malloc(sizeof (struct GNUNET_NAMESTORE_QueueEntry));
+  return qe;
+}
 
 
 
@@ -468,15 +445,13 @@ GNUNET_NAMESTORE_zone_transfer (struct GNUNET_NAMESTORE_Handle *h,
  * @param qe operation to cancel
  */
 void
-GNUNET_NAMESTORE_cancel (struct GNUNET_NAMESTORE_QueueEntry *qe);
-
-
-#if 0                           /* keep Emacsens' auto-indent happy */
+GNUNET_NAMESTORE_cancel (struct GNUNET_NAMESTORE_QueueEntry *qe)
 {
-#endif
-#ifdef __cplusplus
+  if (qe)
+    GNUNET_free(qe);
 }
-#endif
 
-/* end of gnunet_namestore_service.h */
-#endif
+
+
+
+/* end of namestore_stub_api.c */
