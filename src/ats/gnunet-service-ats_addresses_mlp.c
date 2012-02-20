@@ -1553,12 +1553,17 @@ static int
 mlp_get_preferred_address_it (void *cls, const GNUNET_HashCode * key, void *value)
 {
 
-  struct ATS_Address **aa = (struct ATS_Address **)cls;
+  struct ATS_PreferedAddress *aa = (struct ATS_PreferedAddress *) cls;
   struct ATS_Address *addr = value;
   struct MLP_information *mlpi = addr->mlp_information;
   if (mlpi->n == GNUNET_YES)
   {
-    *aa = addr;
+    aa->address = addr;
+    if (mlpi->b > (double) UINT32_MAX)
+      aa->bandwidth_out = UINT32_MAX;
+    else
+      aa->bandwidth_out = (uint32_t) mlpi->b;
+    aa->bandwidth_in = 0;
     return GNUNET_NO;
   }
   return GNUNET_YES;
@@ -1572,14 +1577,14 @@ mlp_get_preferred_address_it (void *cls, const GNUNET_HashCode * key, void *valu
  * @param peer the peer
  * @return suggested address
  */
-struct ATS_Address *
+struct ATS_PreferedAddress *
 GAS_mlp_get_preferred_address (struct GAS_MLP_Handle *mlp,
                                struct GNUNET_CONTAINER_MultiHashMap * addresses,
                                const struct GNUNET_PeerIdentity *peer)
 {
-  struct ATS_Address * aa = NULL;
+  struct ATS_PreferedAddress * aa = GNUNET_malloc (sizeof (struct ATS_PreferedAddress));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Getting preferred address for `%s'\n", GNUNET_i2s (peer));
-  GNUNET_CONTAINER_multihashmap_get_multiple(addresses, &peer->hashPubKey, mlp_get_preferred_address_it, &aa);
+  GNUNET_CONTAINER_multihashmap_get_multiple(addresses, &peer->hashPubKey, mlp_get_preferred_address_it, aa);
   return aa;
 }
 

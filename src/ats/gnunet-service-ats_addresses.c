@@ -600,23 +600,41 @@ GAS_addresses_request_address (const struct GNUNET_PeerIdentity *peer)
     /* Get address with: stick to current address, lower distance, lower latency */
     GNUNET_CONTAINER_multihashmap_get_multiple (addresses, &peer->hashPubKey,
                                                 &find_address_it, &aa);
-    if (aa == NULL)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Cannot suggest address for peer `%s'\n", GNUNET_i2s (peer));
-      return;
-    }
   }
   if (ats_mode == MLP)
   {
+#if HAVE_GLPK
+#endif
     /* Get preferred address from MLP */
+    struct ATS_PreferedAddress * paddr = NULL;
+    paddr = GAS_mlp_get_preferred_address (mlp, addresses, peer);
+    aa = paddr->address;
+    aa->assigned_bw_out = GNUNET_BANDWIDTH_value_init(paddr->bandwidth_out);
+    /* FIXME use bw in value */
+    paddr->bandwidth_in = paddr->bandwidth_out;
+    aa->assigned_bw_in = GNUNET_BANDWIDTH_value_init (paddr->bandwidth_in);
+    GNUNET_free (paddr);
+  }
+
+  if (aa == NULL)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Cannot suggest address for peer `%s'\n", GNUNET_i2s (peer));
+    return;
   }
 
   if (aa->active == GNUNET_NO)
   {
     aa->active = GNUNET_YES;
     active_addr_count++;
-    recalculate_assigned_bw ();
+    if (ats_mode == SIMPLE)
+    {
+      recalculate_assigned_bw ();
+    }
+    if (ats_mode == SIMPLE)
+    {
+      recalculate_assigned_bw ();
+    }
   }
   else
   {

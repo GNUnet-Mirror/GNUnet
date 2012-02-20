@@ -74,7 +74,7 @@ check (void *cls, char *const *args, const char *cfgfile,
   return;
 #endif
   struct ATS_Address addr[10];
-  struct ATS_Address *res[10];
+  struct ATS_PreferedAddress *res[10];
 
   stats = GNUNET_STATISTICS_create("ats", cfg);
 
@@ -97,8 +97,7 @@ check (void *cls, char *const *args, const char *cfgfile,
   set_ats (&a1_ats[1], GNUNET_ATS_QUALITY_NET_DELAY, 2);
   set_ats (&a1_ats[2], GNUNET_ATS_ARRAY_TERMINATOR, 0);
   create_address (&addr[0], "dummy", 3, &a1_ats[0]);
-  addr[0].atsp_network_type = GNUNET_ATS_NET_LOOPBACK;
-
+  addr[0].atsp_network_type = GNUNET_ATS_NET_WAN;
 
   /* Creating peer 1  address 2 */
   addr[1].peer.hashPubKey = p[0].hashPubKey;
@@ -116,7 +115,7 @@ check (void *cls, char *const *args, const char *cfgfile,
   set_ats (&a3_ats[1], GNUNET_ATS_QUALITY_NET_DISTANCE, 1);
   set_ats (&a3_ats[2], GNUNET_ATS_ARRAY_TERMINATOR, 0);
   create_address (&addr[2], "dummy3", 3, &a3_ats[0]);
-  addr[2].atsp_network_type = GNUNET_ATS_NET_WAN;
+  addr[2].atsp_network_type = GNUNET_ATS_NET_LAN;
 
   GNUNET_CONTAINER_multihashmap_put(addresses, &addr[0].peer.hashPubKey, &addr[0], GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
 
@@ -144,9 +143,9 @@ check (void *cls, char *const *args, const char *cfgfile,
   GNUNET_assert (GNUNET_OK == GAS_mlp_solve_problem(mlp));
 
   res[0] = GAS_mlp_get_preferred_address(mlp, addresses, &p[0]);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Preferred address `%s' \n",res[0]->plugin);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Preferred address `%s' outbound bandwidth: %u Bps\n",res[0]->address->plugin, res[0]->bandwidth_out);
   res[1] = GAS_mlp_get_preferred_address(mlp, addresses, &p[1]);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Preferred address `%s' \n",res[1]->plugin);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Preferred address `%s' outbound bandwidth: %u Bps\n",res[1]->address->plugin, res[1]->bandwidth_out);
 
   /* Delete an address */
   GNUNET_CONTAINER_multihashmap_remove (addresses, &addr[0].peer.hashPubKey, &addr[0]);
