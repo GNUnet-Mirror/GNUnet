@@ -28,6 +28,7 @@
 #include "gnunet_transport_service.h"
 #include "gnunet_dns_service.h"
 #include "gnunet_dnsparser_lib.h"
+#include "gnunet_namestore_service.h"
 #include "gnunet_gns_service.h"
 #include "gns.h"
 
@@ -37,9 +38,36 @@
 #define GNUNET_MESSAGE_TYPE_GNS_CLIENT_RESULT 24
 
 /**
+ * A result list for namestore queries
+ */
+struct GNUNET_GNS_PendingQuery
+{
+  /* the answer packet */
+  struct GNUNET_DNSPARSER_Packet *answer;
+
+  /* records to put into answer packet */
+  struct GNUNET_CONTAINER_SList *records;
+
+  int num_records;
+  int num_authority_records; //FIXME are all of our replies auth?
+  
+  /* the dns request id */
+  int id; // FIXME can handle->request_id also be used here?
+
+  /* the request handle to reply to */
+  struct GNUNET_DNS_RequestHandle *request_handle;
+};
+
+
+/**
  * Our handle to the DNS handler library
  */
 struct GNUNET_DNS_Handle *dns_handle;
+
+/**
+ * Our handle to the namestore service
+ */
+struct GNUNET_NAMESTORE_Handle *namestore_handle;
 
 /**
  * The configuration the GNS service is running with
@@ -52,6 +80,11 @@ const struct GNUNET_CONFIGURATION_Handle *GNS_cfg;
 static struct GNUNET_SERVER_NotificationContext *nc;
 
 /**
+ * Our zone hash
+ */
+const GNUNET_HashCode *my_zone;
+
+/**
  * Task run during shutdown.
  *
  * @param cls unused
@@ -62,6 +95,87 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_DNS_disconnect(dns_handle);
 }
+
+static void
+process_ns_result(void* cls, const GNUNET_HashCode *zone,
+                  const char *name, uint32_t record_type,
+                  struct GNUNET_TIME_Absolute expiration,
+                  enum GNUNET_NAMESTORE_RecordFlags flags,
+                  const struct GNUNET_NAMESTORE_SignatureLocation *sig_loc,
+                  size_t size, const void *data)
+{
+  struct GNUNET_GNS_PendingQuery *answer;
+  struct GNUNET_DNSPARSER_Record *record;
+  struct GNUNET_DNSPARSER_Packet *packet;
+  struct GNUNET_DNSPARSER_Flags dnsflags;
+  char *reply_buffer;
+  
+  answer = (struct GNUNET_GNS_PendingQuery *) cls;
+
+
+  if (NULL == data)
+  {
+    /**
+     * Last result received (or none)
+     * FIXME extract to func
+     */
+    reply_buffer = GNUNET_malloc(6000); //FIXME magic number
+    packet = GNUNET_malloc(sizeof(struct GNUNET_DNSPARSER_Packet));
+    packet->answers =
+      GNUNET_malloc(sizeof(struct GNUNET_DNSPARSER_Record) * answer->num_records);
+    /* FIXME how to handle auth, additional etc */
+    packet->num_answers = answer->num_records;
+    packet->num_authority_records = answer->num_authority_records;
+    
+    dnsflags.authoritative_answer = 1;
+    dnsflags.return_code = GNUNET_DNSPARSER_RETURN_CODE_YXDOMAIN; //not sure
+    dnsflags.query_or_response = 1;
+    packet->flags = dnsflags;
+
+    packet->id = answer->id;
+    size_t bufsize = 6000;
+    int ret = GNUNET_DNSPARSER_pack (packet,
+                           600, /* FIXME max udp payload */
+                           &reply_buffer,
+                           &bufsize); // FIXME magic number bufsize
+    if (ret == GNUNET_OK)
+    {
+      GNUNET_DNS_request_answer(answer->request_handle,
+                                6000, //FIXME what length here
+                                reply_buffer);
+    }
+    else
+    {
+      //FIXME log
+    }
+  }
+  else
+  {
+    /**
+     * New result
+     */
+    record = GNUNET_malloc(sizeof(struct GNUNET_DNSPARSER_Record));
+    record->name = (char*)name;
+    /* FIXME for gns records this requires the dnsparser to be modified!*/
+    //record->data = data; FIXME!
+    record->expiration_time = expiration;
+    record->type = record_type;
+    record->class = GNUNET_DNSPARSER_CLASS_INTERNET; /* srsly? */
+    
+    if (flags == GNUNET_NAMESTORE_RF_AUTHORITY)
+    {
+      answer->num_authority_records++;
+    }
+    
+    answer->num_records++;
+    
+    //FIXME watch for leaks
+    GNUNET_CONTAINER_slist_add (answer->records,
+                                GNUNET_CONTAINER_SLIST_DISPOSITION_DYNAMIC,
+                                &record, sizeof(struct GNUNET_DNSPARSER_Record*));
+  }
+}
+
 
 /**
  * The DNS request handler
@@ -81,8 +195,9 @@ handle_dns_request(void *cls,
 {
   /**
    * parse request for tld
-   **/
+   */
   struct GNUNET_DNSPARSER_Packet *p;
+  struct GNUNET_GNS_PendingQuery *answer;
   int namelen;
   int i;
   char *tail;
@@ -98,27 +213,40 @@ handle_dns_request(void *cls,
    * FIXME factor out
    * Check tld and decide if we or
    * legacy dns is responsible
-   **/
+   */
   for (i=0;i<p->num_queries;i++)
   {
     namelen = strlen(p->queries[i].name);
-    if (namelen >= 7)
+    
+    if (namelen < 7) /* this can't be .gnunet */
+      continue;
+    /**
+     * FIXME off by 1?
+     * Move our tld/root to config file
+     * Generate fake DNS reply that replaces .gnunet with .org for testing?
+     */
+    tail = p->queries[i].name+(namelen-7);
+    if (0 == strcmp(tail, ".gnunet"))
     {
       /**
-       * FIXME off by 1?
-       * Move our tld/root to config file
-       * Generate fake DNS reply that replaces .gnunet with .org
-       **/
-      tail = p->queries[i].name+(namelen-7);
-      if (0 == strcmp(tail, ".gnunet"))
-      {
-        /* Do db lookup here. Make dht lookup if necessary */
-        GNUNET_DNS_request_answer(rh, 0 /*length*/, NULL/*reply*/);
-      }
-      else
-      {
-        GNUNET_DNS_request_forward (rh);
-      }
+       * Do db lookup here. Make dht lookup if necessary 
+       * FIXME for now only local lookups for our zone!
+       */
+      answer = GNUNET_malloc(sizeof (struct GNUNET_GNS_PendingQuery));
+      answer->records = GNUNET_CONTAINER_slist_create ();
+      answer->id = p->id;
+
+      GNUNET_NAMESTORE_lookup_name(namestore_handle,
+                                   my_zone,
+                                   p->queries[i].name,
+                                   p->queries[i].type,
+                                   &process_ns_result,
+                                   answer);
+      //GNUNET_DNS_request_answer(rh, 0 /*length*/, NULL/*reply*/);
+    }
+    else
+    {
+      GNUNET_DNS_request_forward (rh);
     }
   }
 }
@@ -152,17 +280,25 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   
   nc = GNUNET_SERVER_notification_context_create (server, 1);
 
-  /* TODO do some config parsing */
+  /* FIXME - do some config parsing 
+   *       - Maybe only hijack dns if option is set (HIJACK_DNS=1)
+   */
 
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
                                 NULL);
   /**
    * Do gnunet dns init here
-   * */
+   */
   dns_handle = GNUNET_DNS_connect(c,
                                   GNUNET_DNS_FLAG_PRE_RESOLUTION,
                                   &handle_dns_request, /* rh */
                                   NULL); /* Closure */
+
+  /**
+   * handle to our local namestore
+   */
+  namestore_handle = GNUNET_NAMESTORE_connect(c);
+
   GNUNET_SERVER_add_handlers (server, handlers);
   /**
    * Esp the lookup would require to keep track of the clients' context

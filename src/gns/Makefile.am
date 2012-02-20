@@ -45,6 +45,7 @@ gnunet_service_gns_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
 	$(top_builddir)/src/dns/libgnunetdns.la \
 	$(top_builddir)/src/dns/libgnunetdnsparser.la \
+	$(top_builddir)/src/gns/libgnunetnamestore.la \
   $(GN_LIBINTL)
 
 libgnunetgns_la_SOURCES = \
