@@ -122,9 +122,6 @@ struct GNUNET_DHT_GetHandle *get_h_far;
 const char *id_origin = "FC74";
 const char *id_far = "2UVH";
 
-unsigned int i_origin;
-unsigned int i_far;
-
 struct GNUNET_TESTING_Daemon *d_far;
 struct GNUNET_TESTING_Daemon *o;
 
@@ -249,7 +246,7 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
               GNUNET_h2s_full (&d_far->id.hashPubKey));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test:        from %s\n",
               GNUNET_h2s_full (&o->id.hashPubKey));
-  get_h_far = GNUNET_DHT_get_start (hs[i_origin], GNUNET_TIME_UNIT_FOREVER_REL,        /* timeout */
+  get_h_far = GNUNET_DHT_get_start (hs[0], GNUNET_TIME_UNIT_FOREVER_REL,        /* timeout */
                                     GNUNET_BLOCK_TYPE_TEST,     /* type */
                                     &d_far->id.hashPubKey,      /*key to search */
                                     4U, /* replication level */
@@ -262,10 +259,22 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
+/**
+ * Periodic function used to put the ID of the far peer in the DHT.
+ * 
+ * @param cls Closure (not used).
+ * @param tc Task context.
+ */
 static void
 put_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_TESTING_Daemon *d;
+
+  if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
+  {
+    put_task = GNUNET_SCHEDULER_NO_TASK;
+    return;
+  }
 
   d = GNUNET_TESTING_daemon_get (pg, 4);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: putting into DHT: %s\n",
@@ -327,14 +336,17 @@ monitor_dht_cb (void *cls,
 
 /**
  * peergroup_ready: start test when all peers are connected
+ *
  * @param cls closure
  * @param emsg error message
  */
 static void
 peergroup_ready (void *cls, const char *emsg)
 {
+  struct GNUNET_TESTING_Daemon *d;
   char *buf;
   int buf_len;
+  unsigned int i;
 
   if (emsg != NULL)
   {
@@ -371,6 +383,14 @@ peergroup_ready (void *cls, const char *emsg)
   d_far = o = NULL;
   o = GNUNET_TESTING_daemon_get (pg, 0);
   d_far = GNUNET_TESTING_daemon_get (pg, 4);
+
+  for (i = 0; i < num_peers; i++)
+  {
+    d = GNUNET_TESTING_daemon_get (pg, i);
+    hs[i] = GNUNET_DHT_connect (d->cfg, 32);
+    mhs[i] = GNUNET_DHT_monitor_start(hs[i], GNUNET_BLOCK_TYPE_ANY, NULL,
+                                      &monitor_dht_cb, (void *)(long)i);
+  }
 
   if ((NULL == o) || (NULL == d_far))
   {
