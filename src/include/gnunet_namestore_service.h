@@ -84,7 +84,7 @@ GNUNET_NAMESTORE_disconnect (struct GNUNET_NAMESTORE_Handle *h, int drop);
  * operation.
  *
  * @param cls closure
- * @param success GNUNET_SYSERR on failure (including timeout/queue drop)
+ * @param success GNUNET_SYSERR on failure (including timeout/queue drop/failure to validate)
  *                GNUNET_NO if content was already there
  *                GNUNET_YES (or other positive value) on success
  * @param emsg NULL on success, otherwise an error message
