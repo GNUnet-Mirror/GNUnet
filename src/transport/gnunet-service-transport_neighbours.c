@@ -499,7 +499,6 @@ reset_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
               GNUNET_i2s (&n->id), n, print_state(n->state), "S_NOT_CONNECTED", __LINE__);
 
   n->state = S_NOT_CONNECTED;
-  GNUNET_break (0);
 
   /* destroying address */
   if (n->address != NULL)
