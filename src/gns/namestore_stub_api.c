@@ -344,6 +344,12 @@ GNUNET_NAMESTORE_lookup_name (struct GNUNET_NAMESTORE_Handle *h,
   struct GNUNET_NAMESTORE_SimpleRecord *iter;
   for (iter=h->records_head; iter != NULL; iter=iter->next)
   {
+    if (strcmp(iter->name, name))
+      continue;
+
+    if (iter->record_type != record_type)
+      continue;
+
     proc(proc_cls, iter->zone, iter->name, iter->record_type,
        iter->expiration,
        iter->flags,
