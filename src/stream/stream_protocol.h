@@ -136,6 +136,9 @@ struct GNUNET_STREAM_AckMessage
 };
 
 
+/**
+ * Message for Acknowledging HELLO
+ */
 struct GNUNET_STREAM_HelloAckMessage
 {
   /**
@@ -151,8 +154,28 @@ struct GNUNET_STREAM_HelloAckMessage
 
   /**
    * The size(in bytes) of the receive window on the peer sending this message
+   *
+   * FIXME: Remove if not needed
    */
   uint32_t receive_window_size;
+};
+
+
+/**
+ * The Transmit close message(used to signal transmission is closed)
+ */
+struct GNUNET_STREAM_TransmitCloseMessage
+{
+  /**
+   * The stream message header
+   */
+  struct GNUNET_STREAM_MessageHeader header;
+
+  /**
+   * The last sequence number of the packet after which the transmission has
+   * ended 
+   */
+  uint32_t final_sequence_number GNUNET_PACKED;
 };
 
 GNUNET_NETWORK_STRUCT_END
