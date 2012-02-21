@@ -29,6 +29,8 @@
 #ifndef GNUNET_NAMESTORE_PLUGIN_H
 #define GNUNET_NAMESTORE_PLUGIN_H
 
+#include "gnunet_common.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_namestore_service.h"
 
 #ifdef __cplusplus
@@ -79,7 +81,7 @@ typedef void (*GNUNET_NAMESTORE_RecordIterator) (void *cls,
  *                records)
  */
 typedef void (*GNUNET_NAMESTORE_NodeCallback) (void *cls,
-					       const struct GNUNET_HashCode *zone,
+					       const GNUNET_HashCode *zone,
 					       const struct GNUNET_NAMESTORE_SignatureLocation *loc,
 					       const struct GNUNET_NAMESTORE_SignatureLocation *ploc,
 					       unsigned int num_entries,
@@ -154,7 +156,7 @@ struct GNUNET_NAMESTORE_PluginFunctions
    * @return GNUNET_OK on success
    */
   int (*put_node) (void *cls, 
-		   const struct GNUNET_HashCode *zone,
+		   const GNUNET_HashCode *zone,
 		   const struct GNUNET_NAMESTORE_SignatureLocation *loc,
 		   const struct GNUNET_NAMESTORE_SignatureLocation *ploc,
 		   unsigned int num_entries,
