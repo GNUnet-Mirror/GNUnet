@@ -74,6 +74,11 @@ struct GNUNET_GNS_PendingQuery
 
   /* hast this query been answered? */
   int answered;
+
+  /* we have an authority in namestore that
+   * may be able to resolve
+   */
+  int authority_found;
 };
 
 
@@ -126,14 +131,101 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_DNS_disconnect(dns_handle);
   GNUNET_NAMESTORE_disconnect(namestore_handle, 0);
+  GNUNET_DHT_disconnect(dht_handle);
 }
+
+void
+handle_dht_reply(void* cls,
+                 struct GNUNET_TIME_Absolute exp,
+                 const GNUNET_HashCode * key,
+                 const struct GNUNET_PeerIdentity *get_path,
+                 unsigned int get_path_length,
+                 const struct GNUNET_PeerIdentity *put_path,
+                 unsigned int put_path_length,
+                 enum GNUNET_BLOCK_Type type,
+                 size_t size, const void *data)
+{
+}
+
+void
+process_auth_query(void* cls, const GNUNET_HashCode *zone,
+                   const char *name, uint32_t record_type,
+                   struct GNUNET_TIME_Absolute expiration,
+                   enum GNUNET_NAMESTORE_RecordFlags flags,
+                   const struct GNUNET_NAMESTORE_SignatureLocation *sig_loc,
+                   size_t size, const void *data)
+{
+  struct GNUNET_GNS_PendingQuery *query;
+
+  query = (struct GNUNET_GNS_PendingQuery *)cls;
+  
+  /**
+   * No authority found
+   * FIXME We assume this will never return our authority
+   */
+  if ((NULL == data) && !query->authority_found)
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Find authority\n");
+    if (0 == strcmp(name, "gnunet"))
+    {
+      // Reached tld return nx
+      GNUNET_log(GNUNET_ERROR_TYPE_INFO, "NX record\n");
+      return;
+    }
+    
+    //Move name to next level
+    while ((*name) != '.')
+      name++;
+
+    name++;
+    GNUNET_NAMESTORE_lookup_name(namestore_handle,
+                                 zone_hash,
+                                 name,
+                                 GNUNET_GNS_RECORD_PKEY,
+                                 &process_auth_query,
+                                 query);
+    return;
+  }
+  
+  /**
+   * We found a PKEY that may be able to help us
+   */
+  GNUNET_HashCode *key = (GNUNET_HashCode*) data;
+  
+  //FIXME magic number
+  struct GNUNET_TIME_Relative timeout =
+    GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 20);
+  GNUNET_DHT_get_start (dht_handle,
+                        timeout,
+                        GNUNET_BLOCK_TYPE_TEST, //TODO our plugin
+                        key,
+                        5, //replication
+                        GNUNET_DHT_RO_NONE,
+                        query->name, //xquery FIXME nobody will know this name
+                        strlen(query->name),
+                        &handle_dht_reply,
+                        query); //iter cls
+
+
+}
+
 
 /**
  * Phase 2 of resolution.
  */
 void
-lookup_dht(struct GNUNET_GNS_PendingQuery *answer)
+lookup_dht(struct GNUNET_GNS_PendingQuery *query)
 {
+  /**
+   * In this phase we first want to find the
+   * responsible authority in the namestore
+   */
+  GNUNET_NAMESTORE_lookup_name(namestore_handle,
+                               zone_hash,
+                               query->name,
+                               GNUNET_GNS_RECORD_PKEY,
+                               &process_auth_query,
+                               query);
 }
 
 void
@@ -362,7 +454,7 @@ handle_dns_request(void *cls,
     if (0 == strcmp(tail, ".gnunet"))
     {
       /* FIXME we need to answer to ALL queries in ONE response...
-       * What happens if some requests should be handles by us and
+       * What happens if some requests should be handled by us and
        * others by DNS?
        * Like this we only answer one...
        */
@@ -424,6 +516,10 @@ put_some_records(void)
                                NULL,
                                NULL);
 }
+
+//Prototype... needed in put function
+static void
+update_zone_dht(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 void
 put_gns_record(void *cls, const GNUNET_HashCode *zone, const char *name,
@@ -508,6 +604,13 @@ put_gns_record(void *cls, const GNUNET_HashCode *zone, const char *name,
                   timeout,
                   NULL, //FIXME continuation needed? success check?
                   NULL); //cls for cont
+
+  /**
+   * Reschedule update
+   */
+  GNUNET_SCHEDULER_add_delayed (dht_update_interval,
+                                &update_zone_dht,
+                                NULL);
 
 }
 
