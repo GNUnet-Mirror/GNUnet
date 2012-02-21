@@ -19,6 +19,12 @@
 */
 
 /**
+ *
+ * TODO:
+ *    - Finish dht lookup
+ *    - Think about mixed dns queries (.gnunet and .org)
+ *    - The smaller FIXME issues all around
+ *
  * @file gns/gnunet-service-gns.c
  * @brief GNUnet GNS service
  * @author Martin Schanzenbach
@@ -33,8 +39,7 @@
 #include "gnunet_gns_service.h"
 #include "gns.h"
 
-
-/* TODO into gnunet_protocols */
+/* Ignore for now not used anyway and probably never will */
 #define GNUNET_MESSAGE_TYPE_GNS_CLIENT_LOOKUP 23
 #define GNUNET_MESSAGE_TYPE_GNS_CLIENT_RESULT 24
 
@@ -134,6 +139,20 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_DHT_disconnect(dht_handle);
 }
 
+/**
+ * FIXME
+ * This is where it gets tricky
+ * First we store (cache) all replies. Simple.
+ * If we see an authority "closer" to the name
+ * we have to start a new query. Unless we get
+ * a resolution.
+ * It is important that the authority is closer
+ * because else we might end up in an endless loop
+ * (maybe keep track of queried keys?)
+ * Of course we could just limit the resolution
+ * with a timeout (makes sense for clients) but we need
+ * to know when to stop querying.
+ */
 void
 handle_dht_reply(void* cls,
                  struct GNUNET_TIME_Absolute exp,
@@ -190,6 +209,7 @@ process_auth_query(void* cls, const GNUNET_HashCode *zone,
   /**
    * We found a PKEY that may be able to help us
    */
+  query->authority_found = 1;
   GNUNET_HashCode *key = (GNUNET_HashCode*) data;
   
   //FIXME magic number
