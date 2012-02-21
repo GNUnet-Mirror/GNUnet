@@ -87,6 +87,14 @@ struct GNUNET_DNS_Handle *dns_handle;
  */
 struct GNUNET_DHT_Handle *dht_handle;
 
+struct GNUNET_TIME_Relative dht_update_interval;
+
+/**
+ * Our private "key"
+ * FIXME get the real deal
+ */
+struct GNUNET_CRYPTO_RsaPrivateKey *zone_key;
+
 /**
  * Our handle to the namestore service
  */
@@ -105,7 +113,7 @@ static struct GNUNET_SERVER_NotificationContext *nc;
 /**
  * Our zone hash
  */
-const GNUNET_HashCode *my_zone;
+GNUNET_HashCode *zone_hash;
 
 /**
  * Task run during shutdown.
@@ -296,7 +304,7 @@ lookup_namestore(struct GNUNET_DNS_RequestHandle *rh,
   answer->request_handle = rh;
   
   GNUNET_NAMESTORE_lookup_name(namestore_handle,
-                               my_zone,
+                               zone_hash,
                                name,
                                type,
                                &process_ns_result,
@@ -394,7 +402,7 @@ put_some_records(void)
   GNUNET_assert(1 == inet_pton (AF_INET, ipA, alice));
   GNUNET_assert(1 == inet_pton (AF_INET, ipB, bob));
   GNUNET_NAMESTORE_record_put (namestore_handle,
-                               my_zone,
+                               zone_hash,
                                "alice.gnunet",
                                GNUNET_GNS_RECORD_TYPE_A,
                                GNUNET_TIME_absolute_get_forever(),
@@ -405,7 +413,7 @@ put_some_records(void)
                                NULL,
                                NULL);
   GNUNET_NAMESTORE_record_put (namestore_handle,
-                               my_zone,
+                               zone_hash,
                                "bob.gnunet",
                                GNUNET_GNS_RECORD_TYPE_A,
                                GNUNET_TIME_absolute_get_forever(),
@@ -415,6 +423,103 @@ put_some_records(void)
                                bob,
                                NULL,
                                NULL);
+}
+
+void
+put_gns_record(void *cls, const GNUNET_HashCode *zone, const char *name,
+               uint32_t record_type, struct GNUNET_TIME_Absolute expiration,
+               enum GNUNET_NAMESTORE_RecordFlags flags,
+               const struct GNUNET_NAMESTORE_SignatureLocation *sig_loc,
+               size_t size, const void *record_data)
+{
+  struct GNUNET_TIME_Relative timeout;
+
+  char* data;
+  char* data_ptr;
+  struct GNUNET_TIME_AbsoluteNBO exp_nbo;
+  exp_nbo = GNUNET_TIME_absolute_hton (expiration);
+  uint32_t namelen = htonl(strlen(name));
+  uint16_t flags_nbo = htons(flags);
+  uint64_t offset = GNUNET_htonll(sig_loc->offset);
+  uint32_t depth = htonl(sig_loc->depth);
+  uint32_t revision = htonl(sig_loc->revision);
+
+  /**
+   * I guess this can be done prettier
+   */
+  size_t record_len = sizeof(size_t) + sizeof(uint32_t) +
+    sizeof(uint16_t) +
+    sizeof(struct GNUNET_NAMESTORE_SignatureLocation) +
+    sizeof(uint32_t) + strlen(name) + size;
+  
+  record_type = htonl(record_type);
+
+  data = GNUNET_malloc(record_len);
+  
+  /* -_- */
+  data_ptr = data;
+  memcpy(data_ptr, &namelen, sizeof(size_t));
+  data_ptr += sizeof(size_t);
+
+  memcpy(data_ptr, name, namelen);
+  data_ptr += namelen;
+  
+  memcpy(data_ptr, &record_type, sizeof(uint32_t));
+  data_ptr += sizeof(uint32_t);
+
+  memcpy(data_ptr, &exp_nbo, sizeof(struct GNUNET_TIME_AbsoluteNBO));
+  data_ptr += sizeof(struct GNUNET_TIME_AbsoluteNBO);
+
+  memcpy(data_ptr, &flags_nbo, sizeof(uint16_t));
+  data_ptr += sizeof(uint16_t);
+
+  memcpy(data_ptr, &offset, sizeof(uint64_t));
+  data_ptr += sizeof(uint64_t);
+
+  memcpy(data_ptr, &depth, sizeof(uint32_t));
+  data_ptr += sizeof(uint32_t);
+  
+  memcpy(data_ptr, &revision, sizeof(uint32_t));
+  data_ptr += sizeof(uint32_t);
+
+  memcpy(data_ptr, &size, sizeof(uint32_t));
+  data_ptr += sizeof(uint32_t);
+
+  /**
+   * FIXME note that this only works with raw data in nbo
+   * write helper function that converts properly and returns buffer
+   */
+  memcpy(data_ptr, record_data, size);
+  data_ptr += size;
+  /*Doing this made me sad...*/
+
+  /**
+   * FIXME magic number
+   */
+  timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 20);
+
+  GNUNET_DHT_put (dht_handle, zone_hash,
+                  5, //replication
+                  GNUNET_DHT_RO_NONE,
+                  GNUNET_BLOCK_TYPE_TEST, //FIXME todo
+                  (data_ptr-data),
+                  data,
+                  expiration, //FIXME from record makes sense?
+                  timeout,
+                  NULL, //FIXME continuation needed? success check?
+                  NULL); //cls for cont
+
+}
+
+/**
+ * Periodically iterate over our zone and store everything in dht
+ */
+static void
+update_zone_dht(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_NAMESTORE_zone_transfer (namestore_handle, zone_hash,
+                                  &put_gns_record,
+                                  NULL);
 }
 
 /**
@@ -428,6 +533,7 @@ static void
 run (void *cls, struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
+  
   /* The IPC message types */
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
     /* callback, cls, type, size */
@@ -436,6 +542,10 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     {NULL, NULL, 0, 0}
   };
   
+  zone_key = GNUNET_CRYPTO_rsa_key_create ();
+  GNUNET_CRYPTO_hash(zone_key, GNUNET_CRYPTO_RSA_KEY_LENGTH,//FIXME is this ok?
+                     zone_hash);
+
   nc = GNUNET_SERVER_notification_context_create (server, 1);
 
   /* FIXME - do some config parsing 
@@ -479,6 +589,12 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Could not connect to DHT!\n");
   }
+  
+  dht_update_interval = GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS,
+                                                      60); //FIXME from cfg
+  GNUNET_SCHEDULER_add_delayed (dht_update_interval,
+                                &update_zone_dht,
+                                NULL);
   
   put_some_records();
 
