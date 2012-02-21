@@ -27,13 +27,17 @@
 
 #define VERBOSE GNUNET_EXTRA_LOGGING
 
+static struct GNUNET_NAMESTORE_Handle * nsh;
+
 static int res;
 
 static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-
+  nsh = GNUNET_NAMESTORE_connect (cfg);
+  GNUNET_break (NULL != nsh);
+  GNUNET_NAMESTORE_disconnect (nsh, GNUNET_YES);
   res = 0;
 }
 
