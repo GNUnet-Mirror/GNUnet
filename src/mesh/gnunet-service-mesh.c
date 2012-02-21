@@ -485,7 +485,7 @@ mesh_debug (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   char *s = cls;
 
-  if (GNUNET_SCHEDULER_REASON_SHUTDOWN == tc->reason)
+  if (NULL != tc && GNUNET_SCHEDULER_REASON_SHUTDOWN == tc->reason)
   {
     return;
   }
@@ -3975,6 +3975,7 @@ handle_local_tunnel_create (void *cls, struct GNUNET_SERVER_Client *client,
   }
   t->tree = tree_new (myid);
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "new tunnel created\n");
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
   return;
 }
