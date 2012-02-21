@@ -1251,9 +1251,17 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_FS_PUBLISH_HELPER_FINISHED 426
 
+/*******************************************************************************
+ * NAMESTORE message types
+ ******************************************************************************/
 
 /**
- *  Next available: 430
+ * Request update and listing of a peer.
+ */
+#define GNUNET_MESSAGE_TYPE_NAMESTORE_START 430
+
+/**
+ *  Next available: 440
  */
 
 /*******************************************************************************
