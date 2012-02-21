@@ -493,9 +493,9 @@ typedef void (*GNUNET_NAMESTORE_SignatureProcessor) (void *cls,
  *         cancel
  */
 struct GNUNET_NAMESTORE_QueueEntry *
-GNUNET_NAMESTORE_lookup_stree (struct GNUNET_NAMESTORE_Handle *h, 
-			       const GNUNET_HashCode *zone,
-			       GNUNET_NAMESTORE_StreeProcessor proc, void *proc_cls);
+GNUNET_NAMESTORE_lookup_signature (struct GNUNET_NAMESTORE_Handle *h, 
+				   const GNUNET_HashCode *zone,
+				   GNUNET_NAMESTORE_SignatureProcessor proc, void *proc_cls);
 
 
 /**

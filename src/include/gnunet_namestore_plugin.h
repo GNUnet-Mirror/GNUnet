@@ -145,7 +145,7 @@ struct GNUNET_NAMESTORE_PluginFunctions
    * @param cls closure (internal context for the plugin)
    * @param zone hash of public key of the zone
    * @param loc location in the B-tree
-   * @param ploc parent's location in the B-tree (must have depth = loc.depth - 1) and the
+   * @param ploc parent's location in the B-tree (must have depth = loc.depth + 1) and the
    *             revision must also match loc's revision; NULL for root
    * @param num_entries number of entries at this node in the B-tree
    * @param entries the 'num_entries' entries to store (hashes over the
