@@ -28,6 +28,7 @@
 #include "gnunet_transport_service.h"
 #include "gnunet_dns_service.h"
 #include "gnunet_dnsparser_lib.h"
+#include "gnunet_dht_service.h"
 #include "gnunet_namestore_service.h"
 #include "gnunet_gns_service.h"
 #include "gns.h"
@@ -80,7 +81,11 @@ struct GNUNET_GNS_PendingQuery
  * Our handle to the DNS handler library
  */
 struct GNUNET_DNS_Handle *dns_handle;
-struct GNUNET_DNS_Handle *dns_res_handle;
+
+/**
+ * Our handle to the DHT
+ */
+struct GNUNET_DHT_Handle *dht_handle;
 
 /**
  * Our handle to the namestore service
@@ -119,7 +124,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Phase 2 of resolution.
  */
 void
-lookup_dht()
+lookup_dht(struct GNUNET_GNS_PendingQuery *answer)
 {
 }
 
@@ -198,7 +203,6 @@ process_ns_result(void* cls, const GNUNET_HashCode *zone,
   struct GNUNET_GNS_QueryRecordList *qrecord;
   struct GNUNET_DNSPARSER_Record *record;
   query = (struct GNUNET_GNS_PendingQuery *) cls;
-  char bufA[INET6_ADDRSTRLEN];
 
 
   if (NULL == data)
@@ -215,7 +219,7 @@ process_ns_result(void* cls, const GNUNET_HashCode *zone,
     if (query->answered)
       reply_to_dns(query);
     else
-      lookup_dht(); //TODO
+      lookup_dht(query); //TODO
 
   }
   else
@@ -233,14 +237,13 @@ process_ns_result(void* cls, const GNUNET_HashCode *zone,
     record->name = (char*)name;
     /* FIXME for gns records this requires the dnsparser to be modified!
      * or use RAW
-     * */
+     * maybe store record data appropriately in namestore to avoid this
+     * huge switch?
+     **/
     if (record_type == GNUNET_DNSPARSER_TYPE_A)
     {
-      GNUNET_log(GNUNET_ERROR_TYPE_INFO, "A record: %s\n", data);
-      record->data.raw.data = GNUNET_malloc(sizeof (struct in_addr));
-      GNUNET_assert(1 == inet_pton (AF_INET, data,
-                                    record->data.raw.data));
-      record->data.raw.data_len = sizeof (struct in_addr);
+      record->data.raw.data = (char*)data;
+      record->data.raw.data_len = size;
     }
     record->expiration_time = expiration;
     record->type = record_type;
@@ -268,16 +271,6 @@ process_ns_result(void* cls, const GNUNET_HashCode *zone,
 }
 
 
-void
-handle_dns_response(void *cls,
-                   struct GNUNET_DNS_RequestHandle *rh,
-                   size_t request_length,
-                   const char *request)
-{
-  GNUNET_DNS_request_forward (rh);
-}
-
-
 /**
  * Phase 1 of name resolution: Lookup local namestore
  *
@@ -286,7 +279,8 @@ handle_dns_response(void *cls,
  * @param type the record type to look for
  */
 void
-lookup_namestore(struct GNUNET_DNS_RequestHandle *rh, char* name, uint16_t id, uint16_t type)
+lookup_namestore(struct GNUNET_DNS_RequestHandle *rh,
+                 char* name, uint16_t id, uint16_t type)
 {
   struct GNUNET_GNS_PendingQuery *answer;
   
@@ -353,7 +347,6 @@ handle_dns_request(void *cls,
     if (namelen < 7) /* this can't be .gnunet */
       continue;
     /**
-     * FIXME off by 1?
      * Move our tld/root to config file
      * Generate fake DNS reply that replaces .gnunet with .org for testing?
      */
@@ -361,6 +354,8 @@ handle_dns_request(void *cls,
     if (0 == strcmp(tail, ".gnunet"))
     {
       /* FIXME we need to answer to ALL queries in ONE response...
+       * What happens if some requests should be handles by us and
+       * others by DNS?
        * Like this we only answer one...
        */
       lookup_namestore(rh, p->queries[i].name, p->id, p->queries[i].type);
@@ -394,6 +389,10 @@ put_some_records(void)
   /* put a few records into namestore */
   char* ipA = "1.2.3.4";
   char* ipB = "5.6.7.8";
+  struct in_addr *alice = GNUNET_malloc(sizeof(struct in_addr));
+  struct in_addr *bob = GNUNET_malloc(sizeof(struct in_addr));
+  GNUNET_assert(1 == inet_pton (AF_INET, ipA, alice));
+  GNUNET_assert(1 == inet_pton (AF_INET, ipB, bob));
   GNUNET_NAMESTORE_record_put (namestore_handle,
                                my_zone,
                                "alice.gnunet",
@@ -401,8 +400,8 @@ put_some_records(void)
                                GNUNET_TIME_absolute_get_forever(),
                                GNUNET_NAMESTORE_RF_AUTHORITY,
                                NULL, //sig loc
-                               strlen (ipA),
-                               ipA,
+                               sizeof(struct in_addr),
+                               alice,
                                NULL,
                                NULL);
   GNUNET_NAMESTORE_record_put (namestore_handle,
@@ -412,8 +411,8 @@ put_some_records(void)
                                GNUNET_TIME_absolute_get_forever(),
                                GNUNET_NAMESTORE_RF_AUTHORITY,
                                NULL, //sig loc
-                               strlen (ipB),
-                               ipB,
+                               sizeof(struct in_addr),
+                               bob,
                                NULL,
                                NULL);
 }
@@ -452,11 +451,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
                                   GNUNET_DNS_FLAG_PRE_RESOLUTION,
                                   &handle_dns_request, /* rh */
                                   NULL); /* Closure */
-  
-  dns_res_handle = GNUNET_DNS_connect(c,
-                                      GNUNET_DNS_FLAG_PRE_RESOLUTION,
-                                      &handle_dns_response, /* rh */
-                                      NULL); /* Closure */
 
   if (NULL == dns_handle)
   {
@@ -476,6 +470,16 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
                "Failed to connect to the namestore!\n");
   }
 
+  /**
+   * handle to the dht
+   */
+  dht_handle = GNUNET_DHT_connect(c, 1); //FIXME get ht_len from cfg
+
+  if (NULL == dht_handle)
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Could not connect to DHT!\n");
+  }
+  
   put_some_records();
 
   GNUNET_SERVER_add_handlers (server, handlers);
