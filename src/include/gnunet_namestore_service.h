@@ -253,8 +253,7 @@ GNUNET_NAMESTORE_stree_start (struct GNUNET_NAMESTORE_Handle *h,
  * @param h handle to the namestore
  * @param zone_key public key of the zone
  * @param loc location in the B-tree
- * @param ploc parent's location in the B-tree (must have depth = loc.depth - 1), NULL for root
- * @param top_sig signature at the top, NULL if 'loc.depth > 0'
+ * @param ploc parent's location in the B-tree (must have depth = loc.depth - 1)
  * @param num_entries number of entries at this node in the B-tree
  * @param entries the 'num_entries' entries to store (hashes over the
  *                records)
@@ -267,11 +266,37 @@ GNUNET_NAMESTORE_stree_put (struct GNUNET_NAMESTORE_Handle *h,
 			    const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
 			    const struct GNUNET_NAMESTORE_SignatureLocation *loc,
 			    const struct GNUNET_NAMESTORE_SignatureLocation *ploc,
-			    const struct GNUNET_CRYPTO_RsaSignature *sig,
 			    unsigned int num_entries,
 			    const GNUNET_HashCode *entries,
 			    GNUNET_NAMESTORE_ContinuationWithStatus cont,
 			    void *cont_cls);
+
+
+/**
+ * Store current zone signature in the namestore.  This function
+ * is used by non-authorities to cache the top of a zone's signature tree.
+ * Note that the tree must be build top-down, so this function is called
+ * first for a given zone and revision.
+ *
+ * @param h handle to the namestore
+ * @param zone_key public key of the zone
+ * @param loc identifies the top of the B-tree (depth and revision)
+ * @param time time of the signature creation
+ * @param top_sig signature at the top
+ * @param root_hash top level hash code in the Merkle-tree / stree
+ * @param cont continuation to call when done
+ * @param cont_cls closure for cont
+ * @return handle to abort the request
+ */
+struct GNUNET_NAMESTORE_QueueEntry *
+GNUNET_NAMESTORE_signature_put (struct GNUNET_NAMESTORE_Handle *h,
+				const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
+				const struct GNUNET_NAMESTORE_SignatureLocation *loc,
+				struct GNUNET_TIME_Absolute time,
+				const struct GNUNET_CRYPTO_RsaSignature *top_sig,
+				const GNUNET_HashCode *root_hash,
+				GNUNET_NAMESTORE_ContinuationWithStatus cont,
+				void *cont_cls);
 
 
 /**
@@ -406,8 +431,7 @@ GNUNET_NAMESTORE_record_hash_dup (struct GNUNET_NAMESTORE_Handle *h,
  * @param cls closure
  * @param zone hash of the public key of the zone
  * @param loc where we are in the signature tree
- * @param ploc location of our parent in the signature tree (NULL if 'loc.depth == 0')
- * @param top_sig signature at the root (NULL if 'loc.depth > 0')
+ * @param ploc location of our parent in the signature tree
  * @param num_entries number of entries being stored here
  * @param entries the entries themselves
  */
@@ -415,7 +439,6 @@ typedef void (*GNUNET_NAMESTORE_StreeProcessor) (void *cls,
                                                  const GNUNET_HashCode *zone,
 						 const struct GNUNET_NAMESTORE_SignatureLocation *loc,
 						 const struct GNUNET_NAMESTORE_SignatureLocation *ploc,
-						 const struct GNUNET_CRYPTO_RsaSignature *top_sig,
 						 unsigned int num_entries,
 						 const GNUNET_HashCode *entries);
 
@@ -437,6 +460,41 @@ struct GNUNET_NAMESTORE_QueueEntry *
 GNUNET_NAMESTORE_lookup_stree (struct GNUNET_NAMESTORE_Handle *h, 
 			       const GNUNET_HashCode *zone,
 			       const struct GNUNET_NAMESTORE_SignatureLocation *sig_loc,
+			       GNUNET_NAMESTORE_StreeProcessor proc, void *proc_cls);
+
+/**
+ * Process zone signature information that was stored in the namestore.
+ *
+ * @param cls closure
+ * @param zone hash of the public key of the zone
+ * @param loc where we are in the signature tree (identifies top)
+ * @param top_sig signature at the root
+ * @param time timestamp of the signature
+ * @param top_hash hash at the top of the tree
+ */
+typedef void (*GNUNET_NAMESTORE_SignatureProcessor) (void *cls,
+						     const GNUNET_HashCode *zone,
+						     const struct GNUNET_NAMESTORE_SignatureLocation *loc,
+						     const struct GNUNET_CRYPTO_RsaSignature *top_sig,
+						     struct GNUNET_TIME_Absolute time,
+						     const GNUNET_HashCode *top_hash);
+
+
+/**
+ * Obtain latest/current signature of a zone.  The processor
+ * will only be called once.
+ *
+ * @param h handle to the namestore
+ * @param zone zone to look up a record from
+ * @param proc function to call on each matching value;
+ *        will be called once with a NULL value at the end
+ * @param proc_cls closure for proc
+ * @return a handle that can be used to
+ *         cancel
+ */
+struct GNUNET_NAMESTORE_QueueEntry *
+GNUNET_NAMESTORE_lookup_stree (struct GNUNET_NAMESTORE_Handle *h, 
+			       const GNUNET_HashCode *zone,
 			       GNUNET_NAMESTORE_StreeProcessor proc, void *proc_cls);
 
 
