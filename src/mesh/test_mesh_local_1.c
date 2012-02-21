@@ -42,6 +42,7 @@ static unsigned int two = 2;
 static int result;
 static GNUNET_SCHEDULER_TaskIdentifier abort_task;
 static GNUNET_SCHEDULER_TaskIdentifier test_task;
+static GNUNET_SCHEDULER_TaskIdentifier shutdown_task;
 
 
 /**
@@ -93,6 +94,11 @@ do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   result = GNUNET_SYSERR;
   abort_task = 0;
+  if (GNUNET_SCHEDULER_NO_TASK != shutdown_task)
+  {
+    GNUNET_SCHEDULER_cancel (shutdown_task);
+    shutdown_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   do_shutdown (cls, tc);
 }
 
@@ -116,9 +122,12 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
                const struct GNUNET_ATS_Information *atsi)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: Data callback\n");
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                (GNUNET_TIME_UNIT_SECONDS, 2), &do_shutdown,
-                                NULL);
+  if (GNUNET_SCHEDULER_NO_TASK != shutdown_task)
+    GNUNET_SCHEDULER_cancel (shutdown_task);
+  shutdown_task =
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                  (GNUNET_TIME_UNIT_SECONDS, 2), &do_shutdown,
+                                  NULL);
   return GNUNET_OK;
 }
 
@@ -187,7 +196,10 @@ peer_conected (void *cls, const struct GNUNET_PeerIdentity *peer,
                const struct GNUNET_ATS_Information *atsi)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: peer connected\n");
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &do_shutdown, NULL);
+  if (GNUNET_SCHEDULER_NO_TASK != shutdown_task)
+    GNUNET_SCHEDULER_cancel(shutdown_task);
+  shutdown_task =  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+                                                 &do_shutdown, NULL);
 }
 
 
