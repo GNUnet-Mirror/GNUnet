@@ -384,8 +384,7 @@ GNUNET_NAMESTORE_stree_start (struct GNUNET_NAMESTORE_Handle *h,
  * @param h handle to the namestore
  * @param zone_key public key of the zone
  * @param loc location in the B-tree
- * @param ploc parent's location in the B-tree (must have depth = loc.depth - 1), NULL for root
- * @param top_sig signature at the top, NULL if 'loc.depth > 0'
+ * @param ploc parent's location in the B-tree (must have depth = loc.depth - 1)
  * @param num_entries number of entries at this node in the B-tree
  * @param entries the 'num_entries' entries to store (hashes over the
  *                records)
@@ -398,7 +397,6 @@ GNUNET_NAMESTORE_stree_put (struct GNUNET_NAMESTORE_Handle *h,
                             const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
                             const struct GNUNET_NAMESTORE_SignatureLocation *loc,
                             const struct GNUNET_NAMESTORE_SignatureLocation *ploc,
-                            const struct GNUNET_CRYPTO_RsaSignature *sig,
                             unsigned int num_entries,
                             const GNUNET_HashCode *entries,
                             GNUNET_NAMESTORE_ContinuationWithStatus cont,
