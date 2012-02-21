@@ -1679,10 +1679,11 @@ reconstruct_cb (void *cls, const struct ContentHashKey *chk, uint64_t offset,
       /* block matches, hence tree below matches;
        * this request is done! */
       dr->state = BRS_DOWNLOAD_UP;
-      GNUNET_assert (GNUNET_YES ==
-		     GNUNET_CONTAINER_multihashmap_remove (dc->active, &dr->chk.query, dr));
+      GNUNET_break (GNUNET_NO ==
+		    GNUNET_CONTAINER_multihashmap_remove (dc->active, &dr->chk.query, dr));
       if (GNUNET_YES == dr->is_pending)
       {
+	GNUNET_break (0); /* how did we get here? */
 	GNUNET_CONTAINER_DLL_remove (dc->pending_head, dc->pending_tail, dr);
 	dr->is_pending = GNUNET_NO;
       }
