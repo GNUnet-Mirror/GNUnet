@@ -28,6 +28,7 @@
 #include "gnunet_service_lib.h"
 #include "gnunet_namestore_service.h"
 
+
 /**
  * Task run during shutdown.
  *
@@ -56,7 +57,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     /* FIXME: add handlers here! */
     {NULL, NULL, 0, 0}
   };
-  /* FIXME: do setup here */
+
   GNUNET_SERVER_add_handlers (server, handlers);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleanup_task,
                                 NULL);

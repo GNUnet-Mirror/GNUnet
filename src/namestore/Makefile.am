@@ -17,29 +17,31 @@ if USE_COVERAGE
 endif
 
 
-#lib_LTLIBRARIES = \
-#  libgnunetnamestore.la
-#
-#libgnunetnamestore_la_SOURCES = \
-#  namestore_api.c namestore.h 
-#libgnunetnamestore_la_LIBADD = \
-#  $(top_builddir)/src/statistics/libgnunetstatistics.la \
-#  $(top_builddir)/src/util/libgnunetutil.la \
-#  $(GN_LIBINTL) 
-#libgnunetnamestore_la_LDFLAGS = \
-#  $(GN_LIB_LDFLAGS) $(WINFLAGS) \
-#  -version-info 0:0:0
-#
+check_PROGRAMS = \
+ test_namestore_api
 
-#bin_PROGRAMS = \
-# gnunet-service-namestore
-#
-#gnunet_service_namestore_SOURCES = \
-# gnunet-service-namestore.c 
-#gnunet_service_namestore_LDADD = \
-#  $(top_builddir)/src/statistics/libgnunetstatistics.la \
-#  $(top_builddir)/src/util/libgnunetutil.la \
-#  $(GN_LIBINTL)
+lib_LTLIBRARIES = \
+  libgnunetnamestore.la
+
+libgnunetnamestore_la_SOURCES = \
+  namestore_api.c namestore.h 
+libgnunetnamestore_la_LIBADD = \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(GN_LIBINTL) 
+libgnunetnamestore_la_LDFLAGS = \
+  $(GN_LIB_LDFLAGS) $(WINFLAGS) \
+  -version-info 0:0:0
+
+bin_PROGRAMS = \
+ gnunet-service-namestore
+
+gnunet_service_namestore_SOURCES = \
+ gnunet-service-namestore.c 
+gnunet_service_namestore_LDADD = \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(GN_LIBINTL)
 
 if HAVE_SQLITE
  SQLITE_PLUGIN = libgnunet_plugin_namestore_sqlite.la
@@ -56,3 +58,14 @@ libgnunet_plugin_namestore_sqlite_la_LIBADD = \
 libgnunet_plugin_namestore_sqlite_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 
+
+test_namestore_api_SOURCES = \
+ test_namestore_api.c
+test_namestore_api_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/namestore/libgnunetnamestore.la
+
+EXTRADIST = \
+  test_namestore_api.conf
+
+ 
