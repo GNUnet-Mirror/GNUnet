@@ -68,6 +68,10 @@ static struct GNUNET_MESH_MessageHandler handlers[] = { {&callback, 1, 0},
 static void
 do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  if (NULL != t)
+  {
+    GNUNET_MESH_tunnel_destroy (t);
+  }
   if (0 != abort_task)
   {
     GNUNET_SCHEDULER_cancel (abort_task);
@@ -116,10 +120,6 @@ test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
 
   t = GNUNET_MESH_tunnel_create (mesh, NULL, NULL, NULL, NULL);
-  if (NULL != t)
-  {
-    GNUNET_MESH_tunnel_destroy (t);
-  }
 
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                 (GNUNET_TIME_UNIT_SECONDS, 5), &do_shutdown,
