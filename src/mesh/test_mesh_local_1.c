@@ -55,6 +55,10 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     GNUNET_SCHEDULER_cancel (abort_task);
   }
+  if (NULL != t)
+  {
+    GNUNET_MESH_tunnel_destroy(t);
+  }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: D1\n");
   if (NULL != mesh_peer_1)
   {
@@ -173,7 +177,7 @@ inbound_end (void *cls, const struct GNUNET_MESH_Tunnel *tunnel,
 
 
 /**
- * Method called whenever a peer has disconnected from the tunnel.
+ * Method called whenever a peer has connected to the tunnel.
  *
  * @param cls closure
  * @param peer peer identity the tunnel stopped working with
@@ -222,6 +226,7 @@ static struct GNUNET_MESH_MessageHandler handlers2[] = { {NULL, 0, 0} };
 static void
 do_find (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: CONNECT BY TYPE\n");
   GNUNET_MESH_peer_request_connect_by_type (t, 1);
 }
 
@@ -319,6 +324,7 @@ main (int argc, char *argv[])
     GNUNET_GETOPT_OPTION_END
   };
 
+  result = GNUNET_OK;
   ret =
       GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
                           "test-mesh-local", "nohelp", options, &run, NULL);
