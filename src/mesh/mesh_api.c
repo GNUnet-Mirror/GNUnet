@@ -776,8 +776,10 @@ reconnect_cbk (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 reconnect (struct GNUNET_MESH_Handle *h)
 {
-  if (GNUNET_SCHEDULER_NO_TASK != h->reconnect_task)
-    GNUNET_SCHEDULER_add_delayed (h->reconnect_time, &reconnect_cbk, h);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Requested RECONNECT\n");
+  if (GNUNET_SCHEDULER_NO_TASK == h->reconnect_task)
+    h->reconnect_task = GNUNET_SCHEDULER_add_delayed (h->reconnect_time,
+                                                      &reconnect_cbk, h);
 }
 
 
@@ -1292,6 +1294,7 @@ GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
   h->message_handlers = handlers;
   h->next_tid = GNUNET_MESH_LOCAL_TUNNEL_ID_CLI;
   h->reconnect_time = GNUNET_TIME_UNIT_MILLISECONDS;
+  h->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
 
   /* count handlers and apps, calculate size */
   for (h->n_applications = 0; stypes[h->n_applications]; h->n_applications++) ;
@@ -1549,6 +1552,7 @@ GNUNET_MESH_peer_request_connect_by_type (struct GNUNET_MESH_Tunnel *tunnel,
 
   GNUNET_array_append (tunnel->apps, tunnel->napps, app_type);
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "* CONNECT BY TYPE *\n");
   msg.header.size = htons (sizeof (struct GNUNET_MESH_ConnectPeerByType));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_ADD_BY_TYPE);
   msg.tunnel_id = htonl (tunnel->tid);
