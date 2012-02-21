@@ -47,8 +47,6 @@ extern "C"
  *
  * @param cls closure
  * @param zone hash of the public key of the zone
- * @param record_hash hash of the record 
- * @param record_key XOR of zone and hash of name
  * @param name name that is being mapped (at most 255 characters long)
  * @param record_type type of the record (A, AAAA, PKEY, etc.)
  * @param expiration expiration time for the content
@@ -59,8 +57,6 @@ extern "C"
  */
 typedef void (*GNUNET_NAMESTORE_RecordIterator) (void *cls,
 						 const GNUNET_HashCode *zone,
-						 const GNUNET_HashCode *record_hash,
-						 const GNUNET_HashCode *record_key,
 						 const char *name,
 						 uint32_t record_type,
 						 struct GNUNET_TIME_Absolute expiration,
@@ -94,13 +90,15 @@ typedef void (*GNUNET_NAMESTORE_NodeCallback) (void *cls,
  * @param cls closure
  * @param zone public key of the zone
  * @param loc location of the root in the B-tree (depth, revision)
- * @param top_sig 
+ * @param top_sig signature signing the zone
+ * @param zone_time time the signature was created
  * @param root_hash top level hash that is being signed
  */
 typedef void (*GNUNET_NAMESTORE_SignatureCallback) (void *cls,
 						    const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
 						    const struct GNUNET_NAMESTORE_SignatureLocation *loc,
 						    const struct GNUNET_CRYPTO_RsaSignature *top_sig,
+						    struct GNUNET_TIME_Absolute zone_time,
 						    const GNUNET_HashCode *root_hash);
 
 
@@ -120,10 +118,9 @@ struct GNUNET_NAMESTORE_PluginFunctions
    *
    * @param cls closure (internal context for the plugin)
    * @param zone hash of the public key of the zone
-   * @param record_hash hash of the record 
-   * @param record_key XOR of zone and hash of name
    * @param name name that is being mapped (at most 255 characters long)
    * @param record_type type of the record (A, AAAA, PKEY, etc.)
+   * @param loc location of the signature for the record
    * @param expiration expiration time for the content
    * @param flags flags for the content
    * @param data_size number of bytes in data
@@ -133,10 +130,9 @@ struct GNUNET_NAMESTORE_PluginFunctions
    */
   int (*put_record) (void *cls, 
 		     const GNUNET_HashCode *zone,
-		     const GNUNET_HashCode *record_hash,
-		     const GNUNET_HashCode *record_key,
 		     const char *name,
 		     uint32_t record_type,
+		     const struct GNUNET_NAMESTORE_SignatureLocation *loc,
 		     struct GNUNET_TIME_Absolute expiration,
 		     enum GNUNET_NAMESTORE_RecordFlags flags,
 		     size_t data_size,
@@ -149,7 +145,8 @@ struct GNUNET_NAMESTORE_PluginFunctions
    * @param cls closure (internal context for the plugin)
    * @param zone hash of public key of the zone
    * @param loc location in the B-tree
-   * @param ploc parent's location in the B-tree (must have depth = loc.depth - 1), NULL for root
+   * @param ploc parent's location in the B-tree (must have depth = loc.depth - 1) and the
+   *             revision must also match loc's revision; NULL for root
    * @param num_entries number of entries at this node in the B-tree
    * @param entries the 'num_entries' entries to store (hashes over the
    *                records)
@@ -172,15 +169,17 @@ struct GNUNET_NAMESTORE_PluginFunctions
    * @param cls closure (internal context for the plugin)
    * @param zone_key public key of the zone
    * @param loc location in the B-tree (top of the tree, offset 0, depth at 'maximum')
-   * @param top_sig signature at the top, NULL if 'loc.depth > 0'
+   * @param top_sig signature at the top
    * @param root_hash top level hash that is signed
+   * @param zone_time time the zone was signed
    * @return GNUNET_OK on success
    */
   int (*put_signature) (void *cls, 
 			const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
 			const struct GNUNET_NAMESTORE_SignatureLocation *loc,
 			const struct GNUNET_CRYPTO_RsaSignature *top_sig,
-			const GNUNET_HashCode *root_hash);
+			const GNUNET_HashCode *root_hash,
+			struct GNUNET_TIME_Absolute zone_time);
   
   
   /**
@@ -191,15 +190,14 @@ struct GNUNET_NAMESTORE_PluginFunctions
    *
    * @param cls closure (internal context for the plugin)
    * @param zone hash of public key of the zone
-   * @param record_key key for the record (XOR of zone and hash of name);
-   *                   NULL to iterate over all records of the zone
+   * @param name_hash hash of name, NULL to iterate over all records of the zone
    * @param iter maybe NULL (to just count)
    * @param iter_cls closure for iter
    * @return the number of results found
    */
   unsigned int (*iterate_records) (void *cls, 
 				   const GNUNET_HashCode *zone,
-				   const GNUNET_HashCode *record_key,
+				   const GNUNET_HashCode *name_hash,
 				   GNUNET_NAMESTORE_RecordIterator iter, void *iter_cls);
 
  
