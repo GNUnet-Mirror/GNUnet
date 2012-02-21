@@ -638,7 +638,7 @@ GNUNET_OS_start_process_vap (struct GNUNET_DISK_PipeHandle *pipe_stdin,
   char *cmd, *idx;
   STARTUPINFOW start;
   PROCESS_INFORMATION proc;
-  int argc;
+  int argc, arg_count;
   HANDLE stdin_handle;
   HANDLE stdout_handle;
 
@@ -707,19 +707,24 @@ GNUNET_OS_start_process_vap (struct GNUNET_DISK_PipeHandle *pipe_stdin,
   while (NULL != (arg = argv[argc++]))
   {
     if (cmdlen == 0)
-      cmdlen = cmdlen + strlen (path) + 3;
+      cmdlen = cmdlen + strlen (path) + 4;
     else
-      cmdlen = cmdlen + strlen (arg) + 3;
+      cmdlen = cmdlen + strlen (arg) + 4;
   }
+  arg_count = argc;
 
   cmd = idx = GNUNET_malloc (sizeof (char) * (cmdlen + 1));
   argc = 0;
   while (NULL != (arg = argv[argc++]))
   {
+    /* This is to escape trailing slash */
+    char arg_lastchar = arg[strlen (arg) - 1];
     if (idx == cmd)
-      idx += sprintf (idx, "\"%s\" ", path);
+      idx += sprintf (idx, "\"%s%s\"%s", path,
+          arg_lastchar == '\\' ? "\\" : "", argc + 1 == arg_count ? "" : " ");
     else
-      idx += sprintf (idx, "\"%s\" ", arg);
+      idx += sprintf (idx, "\"%s%s\"%s", arg,
+          arg_lastchar == '\\' ? "\\" : "", argc + 1 == arg_count ? "" : " ");
   }
 
   memset (&start, 0, sizeof (start));
@@ -1103,7 +1108,7 @@ GNUNET_OS_start_process_v (const SOCKTYPE *lsocks,
   arg = non_const_argv;
   while (*arg)
   {
-    cmdlen = cmdlen + strlen (*arg) + 3;
+    cmdlen = cmdlen + strlen (*arg) + 4;
     arg++;
   }
 
@@ -1112,7 +1117,9 @@ GNUNET_OS_start_process_v (const SOCKTYPE *lsocks,
   arg = non_const_argv;
   while (*arg)
   {
-    idx += sprintf (idx, "\"%s\" ", *arg);
+    char arg_last_char = (*arg)[strlen (*arg) - 1];
+    idx += sprintf (idx, "\"%s%s\"%s", *arg,
+        arg_last_char == '\\' ? "\\" : "", *(arg + 1) ? " " : "");
     arg++;
   }
 
