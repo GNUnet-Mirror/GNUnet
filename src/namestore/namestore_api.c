@@ -287,7 +287,7 @@ GNUNET_NAMESTORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
 
   nsh = GNUNET_malloc (sizeof (struct GNUNET_NAMESTORE_Handle));
   nsh->cfg = cfg;
-  nsh->reconnect_task = GNUNET_SCHEDULER_add_now (&reconnect, nsh);
+  nsh->reconnect_task = GNUNET_SCHEDULER_add_now (&reconnect_task, nsh);
   return nsh;
 }
 
