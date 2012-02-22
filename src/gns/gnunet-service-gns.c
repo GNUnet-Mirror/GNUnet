@@ -160,7 +160,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * not match our name. How do we check this?
  */
 void
-handle_dht_reply(void* cls,
+process_authority_dht_result(void* cls,
                  struct GNUNET_TIME_Absolute exp,
                  const GNUNET_HashCode * key,
                  const struct GNUNET_PeerIdentity *get_path,
@@ -170,13 +170,105 @@ handle_dht_reply(void* cls,
                  enum GNUNET_BLOCK_Type type,
                  size_t size, const void *data)
 {
+  if (data == NULL)
+    return;
+
+  /**
+   * data is a searialized PKEY record (probably)
+   * parse, put into namestore
+   * namestore zone hash is in query.
+   * Then adjust query->name and call resolve_name
+   * with new zone (the one just received)
+   */
+}
+
+/**
+ * Start DHT lookup for a name -> PKEY (compare NS) record in
+ * query->authority's zone
+ *
+ * @param query the pending gns query
+ * @param name the name of the PKEY record
+ */
+void
+resolve_authority_dht(struct GNUNET_GNS_PendingQuery *query, const char* name)
+{
+  enum GNUNET_GNS_RecordType rtype = GNUNET_GNS_RECORD_PKEY;
+  struct GNUNET_TIME_Relative timeout;
+  GNUNET_HashCode name_hash;
+  GNUNET_HashCode lookup_key;
+
+  GNUNET_CRYPTO_hash(name, strlen(name), &name_hash);
+  GNUNET_CRYPTO_hash_xor(&name_hash, query->authority, &lookup_key);
+
+  timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 20);
+  
+  //FIXME how long to wait for results?
+  GNUNET_DHT_get_start(dht_handle, timeout,
+                       GNUNET_BLOCK_TYPE_TEST, //FIXME todo
+                       &lookup_key,
+                       5, //Replication level FIXME
+                       GNUNET_DHT_RO_NONE,
+                       &rtype, //xquery FIXME this is bad
+                       sizeof(GNUNET_GNS_RECORD_PKEY),
+                       &process_authority_dht_result,
+                       query);
+
 }
 
 void
-resolve_authority_dht(struct GNUNET_GNS_PendingQuery *query)
+process_name_dht_result(void* cls,
+                 struct GNUNET_TIME_Absolute exp,
+                 const GNUNET_HashCode * key,
+                 const struct GNUNET_PeerIdentity *get_path,
+                 unsigned int get_path_length,
+                 const struct GNUNET_PeerIdentity *put_path,
+                 unsigned int put_path_length,
+                 enum GNUNET_BLOCK_Type type,
+                 size_t size, const void *data)
 {
+  if (data == NULL)
+    return;
+
+  /**
+   * data is a searialized GNS record of type
+   * query->record_type. Parse and put into namestore
+   * namestore zone hash is in query.
+   * Check if record type and name match in query and reply
+   * to dns!
+   */
 }
 
+/**
+ * Start DHT lookup for a name -> query->record_type record in
+ * query->authority's zone
+ *
+ * @param query the pending gns query
+ * @param name the name to query record
+ */
+void
+resolve_name_dht(struct GNUNET_GNS_PendingQuery *query, const char* name)
+{
+  struct GNUNET_TIME_Relative timeout;
+  GNUNET_HashCode name_hash;
+  GNUNET_HashCode lookup_key;
+
+  GNUNET_CRYPTO_hash(name, strlen(name), &name_hash);
+  GNUNET_CRYPTO_hash_xor(&name_hash, query->authority, &lookup_key);
+
+  timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 20);
+  
+  //FIXME how long to wait for results?
+  GNUNET_DHT_get_start(dht_handle, timeout,
+                       GNUNET_BLOCK_TYPE_TEST, //FIXME todo
+                       &lookup_key,
+                       5, //Replication level FIXME
+                       GNUNET_DHT_RO_NONE,
+                       &query->type, //xquery
+                       sizeof(query->type),
+                       &process_name_dht_result,
+                       query);
+
+}
 /**
  * This is a callback function that should give us only PKEY
  * records. Used to iteratively query the namestore for 'closest'
@@ -229,7 +321,7 @@ process_authority_lookup(void* cls, const GNUNET_HashCode *zone,
       return;
     }
 
-    resolve_authority_dht(query);
+    resolve_authority_dht(query, name);
     return;
   }
   
@@ -314,11 +406,6 @@ reply_to_dns(struct GNUNET_GNS_PendingQuery *answer)
   }
 }
 
-void
-resolve_name_dht(struct GNUNET_GNS_PendingQuery *query)
-{
-}
-
 /**
  * Namestore calls this function if we have an entry for this name.
  * (or data=null to indicate the lookup has finished)
@@ -371,7 +458,7 @@ process_authoritative_result(void* cls, const GNUNET_HashCode *zone,
     if (!GNUNET_CRYPTO_hash_cmp(zone, zone_hash))
     {
       //FIXME todo
-      resolve_name_dht(query);
+      resolve_name_dht(query, name);
       return;
     }
 
