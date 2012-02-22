@@ -890,7 +890,7 @@ struct DeleteContext
  * the signature.
  * 
  * @param cls a 'struct DeleteContext' with a revision to compare against
- * @param zone public key of the zone
+ * @param zone_key public key of the zone
  * @param loc location of the root in the B-tree (depth, revision)
  * @param top_sig signature signing the zone
  * @param zone_time time the signature was created

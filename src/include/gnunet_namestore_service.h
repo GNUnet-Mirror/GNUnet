@@ -69,8 +69,8 @@ GNUNET_NAMESTORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /**
- * Disconnect from the namestore service (and free
- * associated resources).
+ * Disconnect from the namestore service (and free associated
+ * resources).
  *
  * @param h handle to the namestore
  * @param drop set to GNUNET_YES to delete all data in namestore (!)

@@ -107,11 +107,9 @@ GNUNET_GNS_disconnect (struct GNUNET_GNS_Handle *handle);
  * Iterator called on each result obtained for a GNS
  * lookup
  *
- *
  * @param cls closure
  * @param name "name" of the original lookup
  * @param record the records in reply
- * // FIXME: shouldn't this then be an array of pointers? - not sure as of yet
  * @param num_records the number of records in reply
  */
 typedef void (*GNUNET_GNS_LookupIterator) (void *cls,

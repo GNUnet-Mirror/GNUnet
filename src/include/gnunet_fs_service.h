@@ -2195,7 +2195,7 @@ GNUNET_FS_namespace_advertise (struct GNUNET_FS_Handle *h,
 /**
  * Abort the namespace advertisement operation.
  *
- * @param pkc context of the operation to abort.
+ * @param ac context of the operation to abort.
  */
 void
 GNUNET_FS_namespace_advertise_cancel (struct GNUNET_FS_AdvertisementContext *ac);

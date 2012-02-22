@@ -654,7 +654,7 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
 /**
  * Abort the SKS publishing operation.
  *
- * @param sc context of the operation to abort.
+ * @param psc context of the operation to abort.
  */
 void
 GNUNET_FS_publish_sks_cancel (struct GNUNET_FS_PublishSksContext *psc)
