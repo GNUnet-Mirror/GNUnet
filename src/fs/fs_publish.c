@@ -57,7 +57,7 @@ GNUNET_FS_publish_make_status_ (struct GNUNET_FS_ProgressInfo *pi,
   pi->value.publish.pctx = (NULL == p->dir) ? NULL : p->dir->client_info;
   pi->value.publish.filename = p->filename;
   pi->value.publish.size =
-      (p->is_directory) ? p->data.dir.dir_size : p->data.file.file_size;
+      (p->is_directory == GNUNET_YES) ? p->data.dir.dir_size : p->data.file.file_size;
   pi->value.publish.eta =
       GNUNET_TIME_calculate_eta (p->start_time, offset, pi->value.publish.size);
   pi->value.publish.completed = offset;
@@ -132,7 +132,7 @@ ds_put_cont (void *cls, int success,
     pi.value.publish.specifics.error.message = pc->fi_pos->emsg;
     pc->fi_pos->client_info =
         GNUNET_FS_publish_make_status_ (&pi, pc, pc->fi_pos, 0);
-    if ((pc->fi_pos->is_directory == GNUNET_NO) &&
+    if ((pc->fi_pos->is_directory != GNUNET_YES) &&
         (pc->fi_pos->filename != NULL) &&
         (pc->fi_pos->data.file.do_index == GNUNET_YES))
     {
@@ -191,7 +191,7 @@ signal_publish_error (struct GNUNET_FS_FileInformation *p,
   pi.value.publish.eta = GNUNET_TIME_UNIT_FOREVER_REL;
   pi.value.publish.specifics.error.message = emsg;
   p->client_info = GNUNET_FS_publish_make_status_ (&pi, pc, p, 0);
-  if ((p->is_directory == GNUNET_NO) && (p->filename != NULL) &&
+  if ((p->is_directory != GNUNET_YES) && (p->filename != NULL) &&
       (p->data.file.do_index == GNUNET_YES))
   {
     /* run unindex to clean up */
@@ -347,7 +347,7 @@ block_reader (void *cls, uint64_t offset, size_t max, void *buf, char **emsg)
   const char *dd;
 
   p = pc->fi_pos;
-  if (p->is_directory)
+  if (p->is_directory == GNUNET_YES)
   {
     pt_size = GNUNET_MIN (max, p->data.dir.dir_size - offset);
     dd = p->data.dir.dir_data;
@@ -451,7 +451,7 @@ block_proc (void *cls, const struct ContentHashKey *chk, uint64_t offset,
     return;
   }
 
-  if ((!p->is_directory) && (GNUNET_YES == p->data.file.do_index) &&
+  if ((p->is_directory != GNUNET_YES) && (GNUNET_YES == p->data.file.do_index) &&
       (type == GNUNET_BLOCK_TYPE_FS_DBLOCK))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -462,7 +462,7 @@ block_proc (void *cls, const struct ContentHashKey *chk, uint64_t offset,
     odb.file_id = p->data.file.file_id;
     GNUNET_assert (pc->qre == NULL);
     pc->qre =
-        GNUNET_DATASTORE_put (pc->dsh, (p->is_directory) ? 0 : pc->rid,
+        GNUNET_DATASTORE_put (pc->dsh, (p->is_directory == GNUNET_YES) ? 0 : pc->rid,
                               &chk->query, sizeof (struct OnDemandBlock), &odb,
                               GNUNET_BLOCK_TYPE_FS_ONDEMAND,
                               p->bo.content_priority, p->bo.anonymity_level,
@@ -477,7 +477,7 @@ block_proc (void *cls, const struct ContentHashKey *chk, uint64_t offset,
               (unsigned int) block_size);
   GNUNET_assert (pc->qre == NULL);
   pc->qre =
-      GNUNET_DATASTORE_put (pc->dsh, (p->is_directory) ? 0 : pc->rid,
+      GNUNET_DATASTORE_put (pc->dsh, (p->is_directory == GNUNET_YES) ? 0 : pc->rid,
                             &chk->query, block_size, block, type,
                             p->bo.content_priority, p->bo.anonymity_level,
                             p->bo.replication_level, p->bo.expiration_time, -2,
@@ -535,14 +535,14 @@ publish_content (struct GNUNET_FS_PublishContext *pc)
   GNUNET_assert (p != NULL);
   if (NULL == p->te)
   {
-    if (p->is_directory)
+    if (p->is_directory == GNUNET_YES)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Creating directory\n");
       db = GNUNET_FS_directory_builder_create (p->meta);
       dirpos = p->data.dir.entries;
       while (NULL != dirpos)
       {
-        if (dirpos->is_directory)
+        if (dirpos->is_directory == GNUNET_YES)
         {
           raw_data = dirpos->data.dir.dir_data;
           dirpos->data.dir.dir_data = NULL;
@@ -578,7 +578,7 @@ publish_content (struct GNUNET_FS_PublishContext *pc)
                                           &p->data.dir.dir_data);
       GNUNET_FS_file_information_sync_ (p);
     }
-    size = (p->is_directory) ? p->data.dir.dir_size : p->data.file.file_size;
+    size = (p->is_directory == GNUNET_YES) ? p->data.dir.dir_size : p->data.file.file_size;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Creating tree encoder\n");
     p->te =
         GNUNET_FS_tree_encoder_create (pc->h, size, pc, &block_reader,
@@ -783,7 +783,7 @@ GNUNET_FS_publish_main_ (void *cls,
     return;
   }
   /* find starting position */
-  while ((p->is_directory) && (NULL != p->data.dir.entries) && (NULL == p->emsg)
+  while ((p->is_directory == GNUNET_YES) && (NULL != p->data.dir.entries) && (NULL == p->emsg)
          && (NULL == p->data.dir.entries->chk_uri))
   {
     p = p->data.dir.entries;
@@ -847,7 +847,7 @@ GNUNET_FS_publish_main_ (void *cls,
     }
     return;
   }
-  if ((!p->is_directory) && (p->data.file.do_index))
+  if ((p->is_directory != GNUNET_YES) && (p->data.file.do_index))
   {
     if (NULL == p->filename)
     {

@@ -324,7 +324,7 @@ int
 GNUNET_FS_file_information_add (struct GNUNET_FS_FileInformation *dir,
                                 struct GNUNET_FS_FileInformation *ent)
 {
-  if ((ent->dir != NULL) || (ent->next != NULL) || (!dir->is_directory))
+  if ((ent->dir != NULL) || (ent->next != NULL) || (dir->is_directory != GNUNET_YES))
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
@@ -362,12 +362,12 @@ GNUNET_FS_file_information_inspect (struct GNUNET_FS_FileInformation *dir,
   no = GNUNET_NO;
   if (GNUNET_OK !=
       proc (proc_cls, dir,
-            (dir->is_directory) ? dir->data.dir.dir_size : dir->data.
+            (dir->is_directory == GNUNET_YES) ? dir->data.dir.dir_size : dir->data.
             file.file_size, dir->meta, &dir->keywords, &dir->bo,
-            (dir->is_directory) ? &no : &dir->data.file.do_index,
+            (dir->is_directory == GNUNET_YES) ? &no : &dir->data.file.do_index,
             &dir->client_info))
     return;
-  if (!dir->is_directory)
+  if (dir->is_directory != GNUNET_YES)
     return;
   pos = dir->data.dir.entries;
   while (pos != NULL)
@@ -375,9 +375,9 @@ GNUNET_FS_file_information_inspect (struct GNUNET_FS_FileInformation *dir,
     no = GNUNET_NO;
     if (GNUNET_OK !=
         proc (proc_cls, pos,
-              (pos->is_directory) ? pos->data.dir.dir_size : pos->data.
+              (pos->is_directory == GNUNET_YES) ? pos->data.dir.dir_size : pos->data.
               file.file_size, pos->meta, &pos->keywords, &pos->bo,
-              (pos->is_directory) ? &no : &pos->data.file.do_index,
+              (pos->is_directory == GNUNET_YES) ? &no : &pos->data.file.do_index,
               &pos->client_info))
       break;
     pos = pos->next;
@@ -404,7 +404,7 @@ GNUNET_FS_file_information_destroy (struct GNUNET_FS_FileInformation *fi,
   int no;
 
   no = GNUNET_NO;
-  if (fi->is_directory)
+  if (fi->is_directory == GNUNET_YES)
   {
     /* clean up directory */
     while (NULL != (pos = fi->data.dir.entries))

@@ -298,7 +298,7 @@ preprocess_file (const char *filename,
   item->filename = GNUNET_strdup (filename);
   item->is_directory = (S_ISDIR (sbuf.st_mode)) ? GNUNET_YES : GNUNET_NO;
   item->file_size = (uint64_t) sbuf.st_size;
-  if (item->is_directory)
+  if (item->is_directory == GNUNET_YES)
   {
     struct RecursionContext rc;
 
@@ -334,7 +334,7 @@ extract_files (struct ScanTreeNode *item)
   ssize_t size;
   size_t slen;
 
-  if (item->is_directory)
+  if (item->is_directory == GNUNET_YES)
   {
     /* for directories, we simply only descent, no extraction, no
        progress reporting */

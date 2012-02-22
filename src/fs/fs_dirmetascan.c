@@ -152,7 +152,7 @@ advance (struct GNUNET_FS_ShareTreeItem *pos)
   
   GNUNET_assert (NULL != pos);
   moved = 0; /* must not terminate, even on file, otherwise "normal" */
-  while ( (pos->is_directory) ||
+  while ( (pos->is_directory == GNUNET_YES) ||
 	  (0 == moved) )
   {
     if ( (moved != -1) &&
@@ -203,7 +203,7 @@ expand_tree (struct GNUNET_FS_ShareTreeItem *parent,
   GNUNET_asprintf (&chld->short_filename,
 		   "%s%s",
 		   GNUNET_STRINGS_get_short_name (filename),
-		   is_directory ? "/" : "");
+		   is_directory == GNUNET_YES ? "/" : "");
   /* make sure we do not end with '//' */
   slen = strlen (chld->short_filename);
   if ( (slen >= 2) &&
@@ -325,7 +325,7 @@ process_helper_msgs (void *cls,
 			   NULL, GNUNET_SYSERR,
 			   GNUNET_FS_DIRSCANNER_ALL_COUNTED);
     ds->pos = ds->toplevel;
-    if (ds->pos->is_directory)
+    if (ds->pos->is_directory == GNUNET_YES)
       ds->pos = advance (ds->pos);
     return;
   case GNUNET_MESSAGE_TYPE_FS_PUBLISH_HELPER_META_DATA:

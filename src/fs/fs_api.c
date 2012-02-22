@@ -1210,7 +1210,7 @@ find_file_position (struct GNUNET_FS_FileInformation *pos, const char *srch)
   {
     if (0 == strcmp (srch, pos->serialization))
       return pos;
-    if (pos->is_directory)
+    if (pos->is_directory == GNUNET_YES)
     {
       r = find_file_position (pos->data.dir.entries, srch);
       if (r != NULL)

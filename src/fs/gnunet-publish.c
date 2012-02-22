@@ -378,7 +378,7 @@ get_file_information (struct GNUNET_FS_ShareTreeItem *item)
   struct GNUNET_FS_FileInformation *fic;
   struct GNUNET_FS_ShareTreeItem *child;
 
-  if (item->is_directory)
+  if (item->is_directory == GNUNET_YES)
   {
     GNUNET_CONTAINER_meta_data_delete (item->meta,
         EXTRACTOR_METATYPE_MIMETYPE, NULL, 0);
@@ -481,7 +481,7 @@ directory_scan_cb (void *cls,
   case GNUNET_FS_DIRSCANNER_FILE_START:
     if (verbose > 1)
     {
-      if (is_directory)
+      if (is_directory == GNUNET_YES)
 	FPRINTF (stdout, _("Scanning directory `%s'.\n"), filename);
       else
 	FPRINTF (stdout, _("Scanning file `%s'.\n"), filename);      

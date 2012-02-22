@@ -347,7 +347,7 @@ share_tree_trim (struct TrimContext *tc,
   }
 
   /* consider adding filename to directory meta data */
-  if (tree->is_directory)
+  if (tree->is_directory == GNUNET_YES)
   {
     const char *user = getenv ("USER");
     if ( (user == NULL) || 
