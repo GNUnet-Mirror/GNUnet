@@ -72,8 +72,13 @@ stop_arm ()
 static void
 endbadly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  if (nsh != NULL)
+    GNUNET_NAMESTORE_disconnect (nsh, GNUNET_YES);
+  nsh = NULL;
+
   if (NULL != arm)
     stop_arm();
+
   res = 1;
 }
 
@@ -86,6 +91,11 @@ end (void)
     GNUNET_SCHEDULER_cancel (endbadly_task);
     endbadly_task = GNUNET_SCHEDULER_NO_TASK;
   }
+
+  if (nsh != NULL)
+    GNUNET_NAMESTORE_disconnect (nsh, GNUNET_YES);
+  nsh = NULL;
+
 
   if (NULL != arm)
     stop_arm();
@@ -105,7 +115,8 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   nsh = GNUNET_NAMESTORE_connect (cfg);
   GNUNET_break (NULL != nsh);
-  GNUNET_NAMESTORE_disconnect (nsh, GNUNET_YES);
+
+  GNUNET_NAMESTORE_lookup_name (nsh, NULL, NULL, 0, NULL, NULL);
 
   //stop_arm ();
   //end ();

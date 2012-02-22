@@ -54,9 +54,34 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_free (db_lib_name);
 }
 
-static void handle_start ()
+/**
+ * Called whenever a client is disconnected.  Frees our
+ * resources associated with that client.
+ *
+ * @param cls closure
+ * @param client identification of the client
+ */
+static void
+client_disconnect_notification (void *cls, struct GNUNET_SERVER_Client *client)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "START");
+  if (NULL != client)
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Client %p disconnected \n", client);
+}
+
+static void handle_start (void *cls,
+                          struct GNUNET_SERVER_Client * client,
+                          const struct GNUNET_MessageHeader * message)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Client %p connected\n");
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
+
+static void handle_lookup_name (void *cls,
+                          struct GNUNET_SERVER_Client * client,
+                          const struct GNUNET_MessageHeader * message)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "NAMESTORE_LOOKUP_NAME");
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 
@@ -78,6 +103,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
     {&handle_start, NULL,
      GNUNET_MESSAGE_TYPE_NAMESTORE_START, sizeof (struct StartMessage)},
+    {&handle_lookup_name, NULL,
+     GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_NAME, 0},
     {NULL, NULL, 0, 0}
   };
 
@@ -98,6 +125,9 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 
   /* Configuring server handles */
   GNUNET_SERVER_add_handlers (server, handlers);
+  GNUNET_SERVER_disconnect_notify (server,
+                                   &client_disconnect_notification,
+                                   NULL);
 
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleanup_task,
                                 NULL);

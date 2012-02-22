@@ -248,6 +248,7 @@ do_transmit (struct GNUNET_NAMESTORE_Handle *nsh)
     return;
   if (NULL == nsh->client)
     return;                     /* currently reconnecting */
+
   nsh->th = GNUNET_CLIENT_notify_transmit_ready (nsh->client, p->size,
                                            GNUNET_TIME_UNIT_FOREVER_REL,
                                            GNUNET_NO, &transmit_message_to_namestore,
@@ -579,7 +580,7 @@ GNUNET_NAMESTORE_record_remove (struct GNUNET_NAMESTORE_Handle *h,
  *         cancel
  */
 struct GNUNET_NAMESTORE_QueueEntry *
-GNUNET_NAMESTORE_lookup_name (struct GNUNET_NAMESTORE_Handle *h, 
+GNUNET_NAMESTORE_lookup_name (struct GNUNET_NAMESTORE_Handle *nsh,
                               const GNUNET_HashCode *zone,
                               const char *name,
                               uint32_t record_type,
@@ -601,6 +602,22 @@ GNUNET_NAMESTORE_lookup_name (struct GNUNET_NAMESTORE_Handle *h,
   proc(proc_cls, zone, name, record_type,
        GNUNET_TIME_absolute_get_forever(), 0, NULL, 0, NULL); /*TERMINATE*/
 #endif
+
+  GNUNET_assert (NULL != nsh);
+
+  struct PendingMessage * p;
+  struct LookupNameMessage * msg;
+  size_t msg_len = sizeof (struct LookupNameMessage);
+
+  p = GNUNET_malloc (sizeof (struct PendingMessage) + msg_len);
+  p->size = msg_len;
+  p->is_init = GNUNET_NO;
+  msg = (struct LookupNameMessage *) &p[1];
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_NAME);
+  msg->header.size = htons (msg_len);
+  GNUNET_CONTAINER_DLL_insert (nsh->pending_head, nsh->pending_tail, p);
+  do_transmit (nsh);
+
   return qe;
 }
 

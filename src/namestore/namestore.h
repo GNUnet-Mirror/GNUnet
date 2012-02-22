@@ -26,10 +26,14 @@
 #ifndef NAMESTORE_H
 #define NAMESTORE_H
 
+/*
+ * Collect message types here, move to protocols later
+ */
+#define GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_NAME 431
+
 GNUNET_NETWORK_STRUCT_BEGIN
 /**
- * Change in blacklisting (either request or notification,
- * depending on which direction it is going).
+ * Connect to namestore service
  */
 struct StartMessage
 {
@@ -41,6 +45,22 @@ struct StartMessage
 
 };
 GNUNET_NETWORK_STRUCT_END
+
+GNUNET_NETWORK_STRUCT_BEGIN
+/**
+ * Connect to namestore service
+ */
+struct LookupNameMessage
+{
+
+  /**
+   * Type will be GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_NAME
+   */
+  struct GNUNET_MessageHeader header;
+
+};
+GNUNET_NETWORK_STRUCT_END
+
 
 /* end of namestore.h */
 #endif
