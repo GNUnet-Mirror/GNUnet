@@ -655,7 +655,10 @@ namestore_sqlite_iterate_records (void *cls,
   }
   if (SQLITE_DONE != sret)
     LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR, "sqlite_step");
-  sqlite3_finalize (plugin->iterate_records);
+  if (SQLITE_OK != sqlite3_reset (plugin->iterate_records))
+    LOG_SQLITE (plugin,
+		GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+		"sqlite3_reset");
   return ret;
 }
 
@@ -727,7 +730,10 @@ namestore_sqlite_get_node (void *cls,
   }
   else if (SQLITE_DONE != ret)
     LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR, "sqlite_step");
-  sqlite3_finalize (plugin->get_node);
+  if (SQLITE_OK != sqlite3_reset (plugin->get_node))
+    LOG_SQLITE (plugin,
+		GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+		"sqlite3_reset");
   return ret;
 }
 
@@ -748,6 +754,7 @@ namestore_sqlite_get_signature (void *cls,
 {
   struct Plugin *plugin = cls;
   int ret;
+  int sret;
   const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key;
   struct GNUNET_NAMESTORE_SignatureLocation top_loc;
   const struct GNUNET_CRYPTO_RsaSignature *zone_sig;
@@ -766,7 +773,7 @@ namestore_sqlite_get_signature (void *cls,
     return GNUNET_SYSERR;
   }
   ret = GNUNET_NO;
-  if (SQLITE_ROW == (ret = sqlite3_step (plugin->get_signature)))    
+  if (SQLITE_ROW == (sret = sqlite3_step (plugin->get_signature)))    
   {
     top_loc.offset = 0;
     top_loc.revision = sqlite3_column_int (plugin->get_signature, 0);
@@ -794,9 +801,12 @@ namestore_sqlite_get_signature (void *cls,
 	  top_hash);
     }
   }
-  if (SQLITE_DONE != ret)
+  else if (SQLITE_DONE != sret)
     LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR, "sqlite_step");
-  sqlite3_finalize (plugin->get_signature);
+  if (SQLITE_OK != sqlite3_reset (plugin->get_signature))
+    LOG_SQLITE (plugin,
+		GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+		"sqlite3_reset");
   return ret;
 }
 
@@ -816,24 +826,24 @@ run_delete_statement (struct Plugin *plugin,
 {
   int n;
 
-  if (SQLITE_OK != sqlite3_bind_blob (plugin->delete_zone_records, 1, zone, sizeof (GNUNET_HashCode), SQLITE_STATIC))
+  if (SQLITE_OK != sqlite3_bind_blob (stmt, 1, zone, sizeof (GNUNET_HashCode), SQLITE_STATIC))
   {
     LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "sqlite3_bind_XXXX");
-    if (SQLITE_OK != sqlite3_reset (plugin->delete_zone_records))
+    if (SQLITE_OK != sqlite3_reset (stmt))
       LOG_SQLITE (plugin,
                   GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                   "sqlite3_reset");
     return;
   }
-  n = sqlite3_step (plugin->put_signature);
-  if (SQLITE_OK != sqlite3_reset (plugin->delete_zone_records))
+  n = sqlite3_step (stmt);
+  if (SQLITE_OK != sqlite3_reset (stmt))
     LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
 		"sqlite3_reset");
   switch (n)
   {
   case SQLITE_DONE:
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "sqlite", "Zone records deleted\n");
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "sqlite", "Values deleted\n");
     break;
   case SQLITE_BUSY:
     LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_WARNING | GNUNET_ERROR_TYPE_BULK,
@@ -948,6 +958,7 @@ namestore_sqlite_put_signature (void *cls,
   GNUNET_HashCode zone;
   struct DeleteContext dc;
 
+  GNUNET_break (0 == loc->offset); /* little sanity check */
   GNUNET_CRYPTO_hash (zone_key,
 		      sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
 		      &zone);
@@ -975,7 +986,6 @@ namestore_sqlite_put_signature (void *cls,
                   GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                   "sqlite3_reset");
     return GNUNET_SYSERR;
-
   }
   n = sqlite3_step (plugin->put_signature);
   if (SQLITE_OK != sqlite3_reset (plugin->put_signature))

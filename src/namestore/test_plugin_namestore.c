@@ -243,7 +243,7 @@ test_signature (void *cls,
 
   memset (&tzone_key, 13, sizeof (tzone_key));
   tloc.depth = (id % 10);
-  tloc.offset = (id % 3);
+  tloc.offset = 0;
   tloc.revision = id % 1024;
   memset (&ttop_sig, 24, sizeof (ttop_sig));
   memset (&troot_hash, 42, sizeof (troot_hash));
@@ -258,12 +258,14 @@ test_signature (void *cls,
 static void
 get_signature (struct GNUNET_NAMESTORE_PluginFunctions *nsp, int id)
 {
-  GNUNET_HashCode root_hash;
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded zone_key;
+  GNUNET_HashCode zone;
 
-  memset (&root_hash, 42, sizeof (root_hash));
+  memset (&zone_key, 13, sizeof (zone_key));
+  GNUNET_CRYPTO_hash (&zone_key, sizeof (zone_key), &zone);
   GNUNET_assert (GNUNET_OK ==
 		 nsp->get_signature (nsp->cls,
-				     &root_hash,
+				     &zone,
 				     test_signature,
 				     &id));
 }
@@ -347,7 +349,7 @@ put_signature (struct GNUNET_NAMESTORE_PluginFunctions *nsp,
 
   memset (&zone_key, 13, sizeof (zone_key));
   loc.depth = (id % 10);
-  loc.offset = (id % 3);
+  loc.offset = 0;
   loc.revision = id % 1024;
   memset (&top_sig, 24, sizeof (top_sig));
   memset (&root_hash, 42, sizeof (root_hash));
@@ -368,6 +370,7 @@ run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_NAMESTORE_PluginFunctions *nsp;  
+  GNUNET_HashCode zone;
   
   ok = 0;
   nsp = load_plugin (cfg);
@@ -384,7 +387,9 @@ run (void *cls, char *const *args, const char *cfgfile,
   get_node (nsp, 1);
   put_signature (nsp, 1);
   get_signature (nsp, 1);
-  
+
+  memset (&zone, 42, sizeof (zone));  
+  nsp->delete_zone (nsp->cls, &zone);
   unload_plugin (nsp);
 }
 
@@ -408,6 +413,7 @@ main (int argc, char *argv[])
     GNUNET_GETOPT_OPTION_END
   };
 
+  GNUNET_DISK_directory_remove ("/tmp/gnunet-test-plugin-namestore-sqlite");
   GNUNET_log_setup ("test-plugin-namestore",
 #if VERBOSE
                     "DEBUG",
@@ -432,6 +438,7 @@ main (int argc, char *argv[])
                       "test-plugin-namestore", "nohelp", options, &run, NULL);
   if (ok != 0)
     FPRINTF (stderr, "Missed some testcases: %d\n", ok);
+  GNUNET_DISK_directory_remove ("/tmp/gnunet-test-plugin-namestore-sqlite");
   return ok;
 }
 
