@@ -18,3 +18,17 @@ libgnunettun_la_LIBADD = \
 libgnunettun_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)
 
+
+check_PROGRAMS = \
+ test_tun
+
+
+if ENABLE_TEST_RUN
+TESTS = $(check_PROGRAMS)
+endif
+
+test_tun_SOURCES = \
+ test_tun.c
+test_tun_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/tun/libgnunettun.la
