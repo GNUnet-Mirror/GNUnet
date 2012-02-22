@@ -69,7 +69,9 @@ struct GNUNET_GNS_PendingQuery
   int num_records;
   int num_authority_records; //FIXME are all of our replies auth?
   
+  char *original_name;
   char *name;
+
   uint16_t type;
   /* the dns request id */
   int id; // FIXME can handle->request_id also be used here?
@@ -79,6 +81,9 @@ struct GNUNET_GNS_PendingQuery
 
   /* hast this query been answered? */
   int answered;
+
+  /* the authoritative zone to query */
+  GNUNET_HashCode *authority;
 
   /* we have an authority in namestore that
    * may be able to resolve
@@ -141,8 +146,8 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * FIXME
  * This is where it gets tricky
- * First we store (cache) all replies. Simple.
- * If we see an authority "closer" to the name
+ * 1. we store (cache) all replies. Simple.
+ * 2. If we see an authority "closer" to the name
  * we have to start a new query. Unless we get
  * a resolution.
  * It is important that the authority is closer
@@ -151,6 +156,8 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Of course we could just limit the resolution
  * with a timeout (makes sense for clients) but we need
  * to know when to stop querying.
+ * 3. Also the name returned for the record here will probably
+ * not match our name. How do we check this?
  */
 void
 handle_dht_reply(void* cls,
@@ -162,6 +169,11 @@ handle_dht_reply(void* cls,
                  unsigned int put_path_length,
                  enum GNUNET_BLOCK_Type type,
                  size_t size, const void *data)
+{
+}
+
+void
+resolve_authority_dht(struct GNUNET_GNS_PendingQuery *query)
 {
 }
 
@@ -181,7 +193,7 @@ handle_dht_reply(void* cls,
  * @param data the record data
  */
 void
-process_auth_query(void* cls, const GNUNET_HashCode *zone,
+process_authority_lookup(void* cls, const GNUNET_HashCode *zone,
                    const char *name, uint32_t record_type,
                    struct GNUNET_TIME_Absolute expiration,
                    enum GNUNET_NAMESTORE_RecordFlags flags,
@@ -193,79 +205,44 @@ process_auth_query(void* cls, const GNUNET_HashCode *zone,
   query = (struct GNUNET_GNS_PendingQuery *)cls;
   
   /**
-   * No authority found
-   * FIXME We assume this will never return our authority
+   * No authority found in namestore.
    */
-  if ((NULL == data) && !query->authority_found)
+  if (NULL == data)
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Find authority\n");
-    if (0 == strcmp(name, "gnunet"))
+    if (query->authority_found)
     {
-      // Reached tld return nx
-      GNUNET_log(GNUNET_ERROR_TYPE_INFO, "NX record\n");
+      query->authority_found = 0;
+      //FIXME continue lookup
       return;
     }
-    
-    //Move name to next level
-    while ((*name) != '.')
-      name++;
 
-    name++;
-    GNUNET_NAMESTORE_lookup_name(namestore_handle,
-                                 zone_hash,
-                                 name,
-                                 GNUNET_GNS_RECORD_PKEY,
-                                 &process_auth_query,
-                                 query);
+    /**
+     * We did not find an authority in the namestore
+     * _IF_ the current authoritative zone is not us. we can
+     * check the dht.
+     * _ELSE_ we cannot resolve
+     */
+    if (GNUNET_CRYPTO_hash_cmp(zone, zone_hash))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_INFO, "NX record\n");
+      //FIXME return NX answer
+      return;
+    }
+
+    resolve_authority_dht(query);
     return;
   }
   
   /**
-   * We found a PKEY that may be able to help us
+   * We found an authority that may be able to help us
+   * move on with query
    */
   query->authority_found = 1;
-  GNUNET_HashCode *key = (GNUNET_HashCode*) data;
+  GNUNET_HashCode *key = (GNUNET_HashCode*) data; //FIXME i assume this works
+  query->authority = key;
   
-  //FIXME magic number
-  struct GNUNET_TIME_Relative timeout =
-    GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 20);
-  GNUNET_DHT_get_start (dht_handle,
-                        timeout,
-                        GNUNET_BLOCK_TYPE_TEST, //TODO our plugin
-                        key,
-                        5, //replication
-                        GNUNET_DHT_RO_NONE,
-                        query->name, //xquery FIXME nobody will know this name
-                        strlen(query->name),
-                        &handle_dht_reply,
-                        query); //iter cls
-
-
 }
 
-
-/**
- * Phase 2 of resolution.
- * We did not find an entry for name in the namestore
- * so we consult the dht after finding an appropriate NS
- * in the namestore.
- *
- * @param query the pending query handle from the namestore lookup
- */
-void
-lookup_dht(struct GNUNET_GNS_PendingQuery *query)
-{
-  /**
-   * In this phase we first want to find the
-   * responsible authority in the namestore (a PKEY)
-   */
-  GNUNET_NAMESTORE_lookup_name(namestore_handle,
-                               zone_hash,
-                               query->name,
-                               GNUNET_GNS_RECORD_PKEY,
-                               &process_auth_query,
-                               query);
-}
 
 /**
  * Reply to client with the result from our lookup.
@@ -337,6 +314,11 @@ reply_to_dns(struct GNUNET_GNS_PendingQuery *answer)
   }
 }
 
+void
+resolve_name_dht(struct GNUNET_GNS_PendingQuery *query)
+{
+}
+
 /**
  * Namestore calls this function if we have an entry for this name.
  * (or data=null to indicate the lookup has finished)
@@ -352,7 +334,7 @@ reply_to_dns(struct GNUNET_GNS_PendingQuery *answer)
  * @param data the record data
  */
 static void
-process_ns_result(void* cls, const GNUNET_HashCode *zone,
+process_authoritative_result(void* cls, const GNUNET_HashCode *zone,
                   const char *name, uint32_t record_type,
                   struct GNUNET_TIME_Absolute expiration,
                   enum GNUNET_NAMESTORE_RecordFlags flags,
@@ -368,17 +350,36 @@ process_ns_result(void* cls, const GNUNET_HashCode *zone,
   if (NULL == data)
   {
     /**
+     * FIXME
      * Lookup terminated
      * Do we have what we need to answer?
      * If not -> DHT Phase
+     * if full_name == next_name and not anwered we cannot resolve
      */
     GNUNET_log(GNUNET_ERROR_TYPE_INFO,
                "Namestore lookup terminated. (answered=%d)", query->answered);
-
     if (query->answered)
+    {
       reply_to_dns(query);
-    else
-      lookup_dht(query);
+      return;
+    }
+
+    /**
+     * if this is not our zone we cannot rely on the namestore to be
+     * complete. -> Query DHT
+     */
+    if (!GNUNET_CRYPTO_hash_cmp(zone, zone_hash))
+    {
+      //FIXME todo
+      resolve_name_dht(query);
+      return;
+    }
+
+    /**
+     * Our zone and no result? Cannot resolve TT
+     * FIXME modify query to say NX
+     */
+    return;
 
   }
   else
@@ -393,7 +394,7 @@ process_ns_result(void* cls, const GNUNET_HashCode *zone,
     record = GNUNET_malloc(sizeof(struct GNUNET_DNSPARSER_Record));
     qrecord->record = record;
 
-    record->name = (char*)name;
+    record->name = (char*)query->original_name;
 
     /**
      * FIXME for gns records this requires the dnsparser to be modified!
@@ -421,12 +422,8 @@ process_ns_result(void* cls, const GNUNET_HashCode *zone,
      * be different in name and or record type...
      * but to me this does not make sense
      */
-    if ((0 == strcmp(query->name , name)) &&
-        (query->type == record_type))
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Found answer to query!\n");
-      query->answered = 1;
-    }
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Found answer to query!\n");
+    query->answered = 1;
 
     query->num_records++;
 
@@ -440,6 +437,42 @@ process_ns_result(void* cls, const GNUNET_HashCode *zone,
   }
 }
 
+int
+is_canonical(char* name)
+{
+  return 0;
+}
+
+char* move_up(char* name)
+{
+  return name;
+}
+
+void
+resolve_name(struct GNUNET_GNS_PendingQuery *query, GNUNET_HashCode *zone)
+{
+  if (is_canonical(query->name))
+  {
+    //We only need to check this zone's ns
+    GNUNET_NAMESTORE_lookup_name(namestore_handle,
+                               zone,
+                               query->name,
+                               query->type,
+                               &process_authoritative_result,
+                               query);
+  }
+  else
+  {
+    //We have to resolve the authoritative entity
+    char *new_authority = move_up(query->name);
+    GNUNET_NAMESTORE_lookup_name(namestore_handle,
+                                 zone,
+                                 new_authority,
+                                 GNUNET_GNS_RECORD_PKEY,
+                                 &process_authority_lookup,
+                                 query);
+  }
+}
 
 /**
  * Phase 1 of name resolution
@@ -447,30 +480,32 @@ process_ns_result(void* cls, const GNUNET_HashCode *zone,
  * provide an authoritative answer without the dht.
  * If we don't we have to start querying the dht.
  *
+ * FIXME now it is possible that we have a foreign zone (or even the result)
+ * cached in our namestore. Look up as well? We need a list of cached zones
+ * then.
+ *
  * @param rh the request handle of the DNS request from a client
  * @param name the name to look up
  * @param id the id of the dns request (for the reply)
  * @param type the record type to look for
  */
 void
-lookup_namestore(struct GNUNET_DNS_RequestHandle *rh,
+start_resolution(struct GNUNET_DNS_RequestHandle *rh,
                  char* name, uint16_t id, uint16_t type)
 {
-  struct GNUNET_GNS_PendingQuery *answer;
+  struct GNUNET_GNS_PendingQuery *query;
   
+  //FIXME remove .gnunet here from name
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "This is .gnunet (%s)!\n", name);
-  answer = GNUNET_malloc(sizeof (struct GNUNET_GNS_PendingQuery));
-  answer->id = id;
-  answer->name = name;
-  answer->type =type;
-  answer->request_handle = rh;
-  
-  GNUNET_NAMESTORE_lookup_name(namestore_handle,
-                               zone_hash,
-                               name,
-                               type,
-                               &process_ns_result,
-                               answer);
+  query = GNUNET_malloc(sizeof (struct GNUNET_GNS_PendingQuery));
+  query->id = id;
+  query->original_name = name; //Full name of original query
+  query->name = name; // FIXME without tld
+  query->type = type;
+  query->request_handle = rh;
+
+  //Start resolution in our zone
+  resolve_name(query, zone_hash);
 }
 
 /**
@@ -489,9 +524,8 @@ handle_dns_request(void *cls,
                    const char *request)
 {
   struct GNUNET_DNSPARSER_Packet *p;
-  int namelen;
   int i;
-  char *tail;
+  char *tldoffset;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Hijacked a DNS request...processing\n");
   p = GNUNET_DNSPARSER_parse (request, request_length);
@@ -518,18 +552,17 @@ handle_dns_request(void *cls,
    */
   for (i=0;i<p->num_queries;i++)
   {
-    namelen = strlen(p->queries[i].name);
-    
-    if (namelen < 7) /* this can't be .gnunet */
-      continue;
+    tldoffset = p->queries[i].name + strlen(p->queries[i].name);
 
+    while ((*tldoffset) != '.')
+      tldoffset--;
+    
     /**
      * FIXME Move our tld/root to config file
      */
-    tail = p->queries[i].name+(namelen-7);
-    if (0 == strcmp(tail, ".gnunet"))
+    if (0 == strcmp(tldoffset, ".gnunet"))
     {
-      lookup_namestore(rh, p->queries[i].name, p->id, p->queries[i].type);
+      start_resolution(rh, p->queries[i].name, p->id, p->queries[i].type);
     }
     else
     {
@@ -558,7 +591,7 @@ put_some_records(void)
   GNUNET_assert(1 == inet_pton (AF_INET, ipB, bob));
   GNUNET_NAMESTORE_record_put (namestore_handle,
                                zone_hash,
-                               "alice.gnunet",
+                               "alice",
                                GNUNET_GNS_RECORD_TYPE_A,
                                GNUNET_TIME_absolute_get_forever(),
                                GNUNET_NAMESTORE_RF_AUTHORITY,
@@ -569,7 +602,7 @@ put_some_records(void)
                                NULL);
   GNUNET_NAMESTORE_record_put (namestore_handle,
                                zone_hash,
-                               "bob.gnunet",
+                               "bob",
                                GNUNET_GNS_RECORD_TYPE_A,
                                GNUNET_TIME_absolute_get_forever(),
                                GNUNET_NAMESTORE_RF_AUTHORITY,
@@ -617,6 +650,8 @@ put_gns_record(void *cls, const GNUNET_HashCode *zone, const char *name,
   uint64_t offset = GNUNET_htonll(sig_loc->offset);
   uint32_t depth = htonl(sig_loc->depth);
   uint32_t revision = htonl(sig_loc->revision);
+  GNUNET_HashCode name_hash;
+  GNUNET_HashCode xor_hash;
 
   /**
    * I guess this can be done prettier
@@ -673,7 +708,9 @@ put_gns_record(void *cls, const GNUNET_HashCode *zone, const char *name,
    */
   timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 20);
 
-  GNUNET_DHT_put (dht_handle, zone_hash,
+  GNUNET_CRYPTO_hash(name, strlen(name), &name_hash);
+  GNUNET_CRYPTO_hash_xor(zone_hash, &name_hash, &xor_hash);
+  GNUNET_DHT_put (dht_handle, &xor_hash,
                   5, //replication level
                   GNUNET_DHT_RO_NONE,
                   GNUNET_BLOCK_TYPE_TEST, //FIXME todo block plugin
