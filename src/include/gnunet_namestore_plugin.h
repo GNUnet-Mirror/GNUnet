@@ -212,7 +212,7 @@ struct GNUNET_NAMESTORE_PluginFunctions
    * @param cb function to call with the result
    * @param cb_cls closure for cont
    */
-  void (*get_node) (void *cls, 
+  int (*get_node) (void *cls, 
 		    const GNUNET_HashCode *zone,
 		    const struct GNUNET_NAMESTORE_SignatureLocation *loc,
 		    GNUNET_NAMESTORE_NodeCallback cb, void *cb_cls);
@@ -226,7 +226,7 @@ struct GNUNET_NAMESTORE_PluginFunctions
    * @param cb function to call with the result
    * @param cb_cls closure for cont
    */
-  void (*get_signature) (void *cls, 
+  int (*get_signature) (void *cls, 
 			 const GNUNET_HashCode *zone,
 			 GNUNET_NAMESTORE_SignatureCallback cb, void *cb_cls);
 
