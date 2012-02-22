@@ -623,7 +623,7 @@ write_data (struct GNUNET_STREAM_Socket *socket)
  * @param socket the socket through which the ack was received
  * @param tunnel connection to the other end
  * @param sender who sent the message
- * @param ack the acknowledgment message
+ * @param msg the data message
  * @param atsi performance data for the connection
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
@@ -852,7 +852,7 @@ client_handle_reset (void *cls,
  * @param socket the socket through which the ack was received
  * @param tunnel connection to the other end
  * @param sender who sent the message
- * @param ack the acknowledgment message
+ * @param msg the transmit close message
  * @param atsi performance data for the connection
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
