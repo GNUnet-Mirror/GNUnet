@@ -137,15 +137,6 @@ struct GNUNET_NAMESTORE_SimpleRecord
 static void
 force_reconnect (struct GNUNET_NAMESTORE_Handle *nsh);
 
-/**
- * Transmit messages from the message queue to the service
- * (if there are any, and if we are not already trying).
- *
- * @param nsh handle to use
- */
-static void
-do_transmit (struct GNUNET_NAMESTORE_Handle *nsh);
-
 
 /**
  * Type of a function to call when we receive a message
@@ -184,6 +175,17 @@ process_namestore_message (void *cls, const struct GNUNET_MessageHeader *msg)
   if (GNUNET_YES == nsh->reconnect)
     force_reconnect (nsh);
 }
+
+
+/**
+ * Transmit messages from the message queue to the service
+ * (if there are any, and if we are not already trying).
+ *
+ * @param nsh handle to use
+ */
+static void
+do_transmit (struct GNUNET_NAMESTORE_Handle *nsh);
+
 
 /**
  * We can now transmit a message to NAMESTORE. Do it.

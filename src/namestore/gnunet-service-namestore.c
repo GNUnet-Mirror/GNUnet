@@ -27,6 +27,7 @@
 #include "gnunet_getopt_lib.h"
 #include "gnunet_service_lib.h"
 #include "gnunet_namestore_service.h"
+#include "namestore.h"
 
 
 /**
@@ -39,6 +40,12 @@ static void
 cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   /* FIXME: do clean up here */
+}
+
+static void handle_start ()
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "START");
+
 }
 
 
@@ -54,7 +61,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
-    /* FIXME: add handlers here! */
+    {&handle_start, NULL,
+     GNUNET_MESSAGE_TYPE_NAMESTORE_START, sizeof (struct StartMessage)},
     {NULL, NULL, 0, 0}
   };
 

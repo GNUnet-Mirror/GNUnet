@@ -31,6 +31,7 @@ static struct GNUNET_NAMESTORE_Handle * nsh;
 
 static int res;
 
+
 static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
@@ -66,7 +67,6 @@ int
 main (int argc, char *argv[])
 {
   int ret;
-
 
   ret = check ();
 
