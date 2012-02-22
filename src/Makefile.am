@@ -23,6 +23,7 @@ SUBDIRS = \
   peerinfo \
   datacache \
   datastore \
+  namestore \
   template \
   ats \
   nat \
