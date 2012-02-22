@@ -28,7 +28,19 @@
 
 GNUNET_NETWORK_STRUCT_BEGIN
 
+/**
+ * Equivalent to GNUNET_DNSPARSER_Record
+ * FIXME typedef?
+ */
+struct GNUNET_GNS_Record
+{
+  //struct GNUNET_DNSPARSER_Record record;
 
+  //enum GNUNET_NAMESTORE_RecordFlags flags;
+
+  const struct GNUNET_NAMESTORE_SignatureLocation *sig_loc;
+
+};
 /**
  * Message from client to GNS service to lookup records.
  */

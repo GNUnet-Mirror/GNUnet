@@ -142,16 +142,6 @@ struct GNUNET_GNS_LookupHandle
 };
 
 /**
- * A GNS Record.
- */
-struct GNUNET_GNS_Record
-{
-  enum GNUNET_GNS_RecordType type;
-  /* Followed by data array. Format determined by type */
-  char *data;
-};
-
-/**
  * Connection to the GNS service.
  */
 struct GNUNET_GNS_Handle

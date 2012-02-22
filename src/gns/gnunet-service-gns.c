@@ -128,7 +128,7 @@ static struct GNUNET_SERVER_NotificationContext *nc;
 /**
  * Our zone hash
  */
-GNUNET_HashCode *zone_hash;
+GNUNET_HashCode zone_hash;
 
 /**
  * Our tld. Maybe get from config file
@@ -150,20 +150,19 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 /**
- * FIXME
- * This is where it gets tricky
- * 1. we store (cache) all replies. Simple.
- * 2. If we see an authority "closer" to the name
- * we have to start a new query. Unless we get
- * a resolution.
- * It is important that the authority is closer
- * because else we might end up in an endless loop
- * (maybe keep track of queried keys?)
- * Of course we could just limit the resolution
- * with a timeout (makes sense for clients) but we need
- * to know when to stop querying.
- * 3. Also the name returned for the record here will probably
- * not match our name. How do we check this?
+ * Function called when we get a result from the dht
+ * for our query
+ *
+ * @param cls the query handle
+ * @param exp lifetime
+ * @param key the key the record was stored under
+ * @param get_path get path
+ * @param get_path_length get path length
+ * @param put_path put path
+ * @param put_path_length put path length
+ * @param type the block type
+ * @param size the size of the record
+ * @param data the record data
  */
 void
 process_authority_dht_result(void* cls,
@@ -224,6 +223,21 @@ resolve_authority_dht(struct GNUNET_GNS_PendingQuery *query, const char* name)
 
 }
 
+/**
+ * Function called when we get a result from the dht
+ * for our query
+ *
+ * @param cls the query handle
+ * @param exp lifetime
+ * @param key the key the record was stored under
+ * @param get_path get path
+ * @param get_path_length get path length
+ * @param put_path put path
+ * @param put_path_length put path length
+ * @param type the block type
+ * @param size the size of the record
+ * @param data the record data
+ */
 void
 process_name_dht_result(void* cls,
                  struct GNUNET_TIME_Absolute exp,
@@ -239,7 +253,7 @@ process_name_dht_result(void* cls,
     return;
 
   /**
-   * data is a searialized GNS record of type
+   * data is a serialized GNS record of type
    * query->record_type. Parse and put into namestore
    * namestore zone hash is in query.
    * Check if record type and name match in query and reply
@@ -248,7 +262,7 @@ process_name_dht_result(void* cls,
 }
 
 /**
- * Start DHT lookup for a name -> query->record_type record in
+ * Start DHT lookup for a (name -> query->record_type) record in
  * query->authority's zone
  *
  * @param query the pending gns query
@@ -285,8 +299,8 @@ resolve_name(struct GNUNET_GNS_PendingQuery *query, GNUNET_HashCode *zone);
 
 /**
  * This is a callback function that should give us only PKEY
- * records. Used to iteratively query the namestore for 'closest'
- * authority.
+ * records. Used to query the namestore for the authority (PKEY)
+ * for 'name'
  *
  * @param cls the pending query
  * @param zone our zone hash
@@ -328,7 +342,7 @@ process_authority_lookup(void* cls, const GNUNET_HashCode *zone,
      * we cannot resolve
      * _ELSE_ we cannot still check the dht
      */
-    if (GNUNET_CRYPTO_hash_cmp(zone, zone_hash))
+    if (GNUNET_CRYPTO_hash_cmp(zone, &zone_hash))
     {
       GNUNET_log(GNUNET_ERROR_TYPE_INFO, "NX record\n");
       //FIXME return NX answer
@@ -406,9 +420,9 @@ reply_to_dns(struct GNUNET_GNS_PendingQuery *answer)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_INFO,
                "Answering DNS request\n");
-    GNUNET_DNS_request_answer(answer->request_handle,
-                              len,
-                              buf);
+    //GNUNET_DNS_request_answer(answer->request_handle,
+    //                          len,
+     //                         buf);
     GNUNET_free(answer);
     GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Answered DNS request\n");
     //FIXME return code, free datastructures
@@ -419,6 +433,7 @@ reply_to_dns(struct GNUNET_GNS_PendingQuery *answer)
                "Error building DNS response! (ret=%d)", ret);
   }
 }
+
 
 /**
  * Namestore calls this function if we have an entry for this name.
@@ -469,7 +484,7 @@ process_authoritative_result(void* cls, const GNUNET_HashCode *zone,
      * if this is not our zone we cannot rely on the namestore to be
      * complete. -> Query DHT
      */
-    if (!GNUNET_CRYPTO_hash_cmp(zone, zone_hash))
+    if (!GNUNET_CRYPTO_hash_cmp(zone, &zone_hash))
     {
       //FIXME todo
       resolve_name_dht(query, name);
@@ -538,6 +553,15 @@ process_authoritative_result(void* cls, const GNUNET_HashCode *zone,
   }
 }
 
+/**
+ * Determine if this name is canonical.
+ * i.e.
+ * a.b.gnunet  = not canonical
+ * a           = canonical
+ *
+ * @param name the name to test
+ * @return 1 if canonical
+ */
 int
 is_canonical(char* name)
 {
@@ -552,6 +576,14 @@ is_canonical(char* name)
   return 1;
 }
 
+/**
+ * Move one level up in the domain hierarchy and return the
+ * passed top level domain.
+ * FIXME this needs a better name
+ *
+ * @param name the domain
+ * @return the tld
+ */
 char* move_up(char* name)
 {
   uint32_t len;
@@ -573,6 +605,16 @@ char* move_up(char* name)
   return (name+len+1);
 }
 
+
+/**
+ * The first phase of resolution.
+ * First check if the name is canonical.
+ * If it is then try to resolve directly.
+ * If not then first have to resolve the authoritative entities.
+ *
+ * @param query the pending lookup
+ * @param zone the zone we are currently resolving in
+ */
 void
 resolve_name(struct GNUNET_GNS_PendingQuery *query, GNUNET_HashCode *zone)
 {
@@ -600,14 +642,10 @@ resolve_name(struct GNUNET_GNS_PendingQuery *query, GNUNET_HashCode *zone)
 }
 
 /**
- * Phase 1 of name resolution
- * Lookup local namestore. If we find a match there we can
- * provide an authoritative answer without the dht.
- * If we don't we have to start querying the dht.
+ * Entry point for name resolution
+ * Lookup local namestore of our zone.
  *
- * FIXME now it is possible that we have a foreign zone (or even the result)
- * cached in our namestore. Look up as well? We need a list of cached zones
- * then.
+ * Setup a new query and try to resolve
  *
  * @param rh the request handle of the DNS request from a client
  * @param name the name to look up
@@ -635,7 +673,7 @@ start_resolution(struct GNUNET_DNS_RequestHandle *rh,
   query->request_handle = rh;
 
   //Start resolution in our zone
-  resolve_name(query, zone_hash);
+  resolve_name(query, &zone_hash);
 }
 
 /**
@@ -709,6 +747,7 @@ handle_dns_request(void *cls,
 void
 put_some_records(void)
 {
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Populating namestore\n");
   /* put a few records into namestore */
   char* ipA = "1.2.3.4";
   char* ipB = "5.6.7.8";
@@ -717,7 +756,7 @@ put_some_records(void)
   GNUNET_assert(1 == inet_pton (AF_INET, ipA, alice));
   GNUNET_assert(1 == inet_pton (AF_INET, ipB, bob));
   GNUNET_NAMESTORE_record_put (namestore_handle,
-                               zone_hash,
+                               &zone_hash,
                                "alice",
                                GNUNET_GNS_RECORD_TYPE_A,
                                GNUNET_TIME_absolute_get_forever(),
@@ -728,7 +767,7 @@ put_some_records(void)
                                NULL,
                                NULL);
   GNUNET_NAMESTORE_record_put (namestore_handle,
-                               zone_hash,
+                               &zone_hash,
                                "bob",
                                GNUNET_GNS_RECORD_TYPE_A,
                                GNUNET_TIME_absolute_get_forever(),
@@ -766,6 +805,7 @@ put_gns_record(void *cls, const GNUNET_HashCode *zone, const char *name,
                const struct GNUNET_NAMESTORE_SignatureLocation *sig_loc,
                size_t size, const void *record_data)
 {
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Putting a record into the DHT\n");
   struct GNUNET_TIME_Relative timeout;
 
   char* data;
@@ -836,7 +876,7 @@ put_gns_record(void *cls, const GNUNET_HashCode *zone, const char *name,
   timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 20);
 
   GNUNET_CRYPTO_hash(name, strlen(name), &name_hash);
-  GNUNET_CRYPTO_hash_xor(zone_hash, &name_hash, &xor_hash);
+  GNUNET_CRYPTO_hash_xor(&zone_hash, &name_hash, &xor_hash);
   GNUNET_DHT_put (dht_handle, &xor_hash,
                   5, //replication level
                   GNUNET_DHT_RO_NONE,
@@ -866,7 +906,8 @@ put_gns_record(void *cls, const GNUNET_HashCode *zone, const char *name,
 static void
 update_zone_dht(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_NAMESTORE_zone_transfer (namestore_handle, zone_hash,
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Update zone!\n");
+  GNUNET_NAMESTORE_zone_transfer (namestore_handle, &zone_hash,
                                   &put_gns_record,
                                   NULL);
 }
@@ -883,10 +924,11 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Init GNS\n");
   zone_key = GNUNET_CRYPTO_rsa_key_create ();
-  GNUNET_CRYPTO_hash(zone_key, GNUNET_CRYPTO_RSA_KEY_LENGTH,//FIXME is this ok?
-                     zone_hash);
 
+  GNUNET_CRYPTO_hash(zone_key, GNUNET_CRYPTO_RSA_KEY_LENGTH,//FIXME is this ok?
+                     &zone_hash);
   nc = GNUNET_SERVER_notification_context_create (server, 1);
 
   /* FIXME - do some config parsing 
@@ -942,6 +984,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   GNUNET_SCHEDULER_add_delayed (dht_update_interval,
                                 &update_zone_dht,
                                 NULL);
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "GNS Init done!\n");
 
 }
 
