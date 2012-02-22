@@ -880,6 +880,8 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
   }
   pong->signature = *sig_cache;
 
+  GNUNET_assert (sender_address != NULL);
+
   /* first see if the session we got this PING from can be used to transmit
    * a response reliably */
   papi = GST_plugins_find (sender_address->transport_name);
@@ -890,7 +892,7 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
     GNUNET_assert (papi->send != NULL);
     GNUNET_assert (papi->get_session != NULL);
 
-    if ((session == NULL) && (sender_address != NULL))
+    if (session == NULL)
     {
       session = papi->get_session (papi->cls, sender_address);
     }
