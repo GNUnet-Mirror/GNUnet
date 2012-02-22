@@ -146,6 +146,45 @@ force_reconnect (struct GNUNET_NAMESTORE_Handle *nsh);
 static void
 do_transmit (struct GNUNET_NAMESTORE_Handle *nsh);
 
+
+/**
+ * Type of a function to call when we receive a message
+ * from the service.
+ *
+ * @param cls the 'struct GNUNET_NAMESTORE_SchedulingHandle'
+ * @param msg message received, NULL on timeout or fatal error
+ */
+static void
+process_namestore_message (void *cls, const struct GNUNET_MessageHeader *msg)
+{
+  struct GNUNET_NAMESTORE_Handle *nsh = cls;
+  uint16_t size;
+  uint16_t type;
+
+  if (NULL == msg)
+  {
+    force_reconnect (nsh);
+    return;
+  }
+
+  size = ntohs (msg->size);
+  type = ntohs (msg->type);
+
+  switch (type) {
+    case GNUNET_MESSAGE_TYPE_TEST:
+      /* handle message here */
+      break;
+    default:
+      break;
+  }
+
+  GNUNET_CLIENT_receive (nsh->client, &process_namestore_message, nsh,
+                         GNUNET_TIME_UNIT_FOREVER_REL);
+
+  if (GNUNET_YES == nsh->reconnect)
+    force_reconnect (nsh);
+}
+
 /**
  * We can now transmit a message to NAMESTORE. Do it.
  *
@@ -177,7 +216,7 @@ transmit_message_to_namestore (void *cls, size_t size, void *buf)
     size -= p->size;
     GNUNET_CONTAINER_DLL_remove (nsh->pending_head, nsh->pending_tail, p);
     if (GNUNET_YES == p->is_init)
-      GNUNET_CLIENT_receive (nsh->client,/* &process_namestore_message*/ NULL, nsh,
+      GNUNET_CLIENT_receive (nsh->client, &process_namestore_message, nsh,
                              GNUNET_TIME_UNIT_FOREVER_REL);
     GNUNET_free (p);
   }
@@ -267,8 +306,8 @@ force_reconnect (struct GNUNET_NAMESTORE_Handle *nsh)
   nsh->reconnect = GNUNET_NO;
   GNUNET_CLIENT_disconnect (nsh->client, GNUNET_NO);
   nsh->client = NULL;
-  nsh->reconnect_task =
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &reconnect_task,
+  nsh->reconnect_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+                                    &reconnect_task,
                                     nsh);
 }
 
@@ -298,9 +337,27 @@ GNUNET_NAMESTORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
  * @param handle handle of the NAMESTORE connection to stop
  */
 void
-GNUNET_NAMESTORE_disconnect (struct GNUNET_NAMESTORE_Handle *handle, int drop)
+GNUNET_NAMESTORE_disconnect (struct GNUNET_NAMESTORE_Handle *nsh, int drop)
 {
-  GNUNET_free(handle);
+  struct PendingMessage *p;
+
+  while (NULL != (p = nsh->pending_head))
+  {
+    GNUNET_CONTAINER_DLL_remove (nsh->pending_head, nsh->pending_tail, p);
+    GNUNET_free (p);
+  }
+  if (NULL != nsh->client)
+  {
+    GNUNET_CLIENT_disconnect (nsh->client, GNUNET_NO);
+    nsh->client = NULL;
+  }
+  if (GNUNET_SCHEDULER_NO_TASK != nsh->reconnect_task)
+  {
+    GNUNET_SCHEDULER_cancel (nsh->reconnect_task);
+    nsh->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  GNUNET_free(nsh);
+  nsh = NULL;
 }
 
 /**
