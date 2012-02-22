@@ -422,9 +422,8 @@ destroy_tunnel (struct GNUNET_MESH_Tunnel *t, int call_cleaner)
     next = th->next;
     if (th->tunnel != t)
       continue;
-    /* we should not really get here, as clients should have
-       aborted their requests already.
-       Management traffic should be ok, as clients can't cancel that */
+    /* Clients should have aborted their requests already.
+     * Management traffic should be ok, as clients can't cancel that */
     GNUNET_break (NULL == th->notify);
     GNUNET_CONTAINER_DLL_remove (h->th_head, h->th_tail, th);
 
