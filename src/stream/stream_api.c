@@ -669,7 +669,7 @@ handle_data (struct GNUNET_STREAM_Socket *socket,
               size);
       
       /* Modify the ACK bitmap */
-      ackbitmap_modify_bit (&socket->bitmap,
+      ackbitmap_modify_bit (&socket->ack_bitmap,
                             ntohl (msg->sequence_number) -
                             socket->read_sequence_number,
                             GNUNET_YES);
