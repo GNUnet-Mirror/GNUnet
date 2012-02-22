@@ -2043,7 +2043,7 @@ libgnunet_plugin_transport_udp_done (void *cls)
   }
 
   /* Clean up leftover messages */
-  struct UDPMessageWrapper * updw;
+  struct UDPMessageWrapper * udpw;
   udpw = plugin->ipv4_queue_head;
   while (udpw != NULL)
   {
