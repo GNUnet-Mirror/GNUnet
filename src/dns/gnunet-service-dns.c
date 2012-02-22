@@ -429,6 +429,11 @@ cleanup_task (void *cls GNUNET_UNUSED,
     GNUNET_free (dns_exit);
     dns_exit = NULL;
   }
+  if (NULL != mesh)
+  {
+    GNUNET_MESH_disconnect(mesh);
+    mesh = NULL;
+  }
 }
 
 
