@@ -97,6 +97,12 @@ struct GNUNET_STREAM_DataMessage
    */
 };
 
+
+/**
+ * Number of bits in GNUNET_STREAM_AckBitmap
+ */
+#define GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH 64
+
 /**
  * The Selective Acknowledgement Bitmap
  */
