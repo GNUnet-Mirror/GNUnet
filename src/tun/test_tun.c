@@ -47,6 +47,9 @@ test_udp (size_t pll,
 				     pll + sizeof (udp),
 				     &src,
 				     &dst);
+  udp.source_port = htons (4242);
+  udp.destination_port = htons (4242);
+  udp.len = htons (pll);
   GNUNET_TUN_calculate_udp4_checksum (&ip,
 				      &udp,
 				      payload,
@@ -63,8 +66,8 @@ test_udp (size_t pll,
 int main (int argc,
 	  char **argv)
 {
-  test_udp (4, 3, 30799);
-  test_udp (4, 1, 31827);
-  test_udp (7, 17, 14879);
+  test_udp (4, 3, 22439);
+  test_udp (4, 1, 23467);
+  test_udp (7, 17, 6516);
   return ret;
 }
