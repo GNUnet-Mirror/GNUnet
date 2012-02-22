@@ -253,10 +253,9 @@ scan_callback (void *cls,
     return GNUNET_SYSERR;
   }
   chld->parent = rc->parent;
-  if (NULL != rc->parent)
-    GNUNET_CONTAINER_DLL_insert (rc->parent->children_head,
-				 rc->parent->children_tail,
-				 chld);
+  GNUNET_CONTAINER_DLL_insert (rc->parent->children_head,
+			       rc->parent->children_tail,
+			       chld);
   return GNUNET_OK;
 }
 
