@@ -220,7 +220,7 @@ struct GNUNET_STREAM_IOHandle;
  * @param timeout the timeout period
  * @param write_cont the function to call upon writing some bytes into the stream
  * @param write_cont_cls the closure
- * @return handle to cancel the operation
+ * @return handle to cancel the operation; NULL if a previous write is pending
  */
 struct GNUNET_STREAM_IOHandle *
 GNUNET_STREAM_write (struct GNUNET_STREAM_Socket *socket,
