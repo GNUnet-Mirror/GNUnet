@@ -62,7 +62,7 @@ check_addr (void *cls, const struct GNUNET_HELLO_Address *address,
 
 #if DEBUG
   FPRINTF (stderr, "DEBUG: check_addr called with i = %d and addrlen = %u\n",
-           *i, address->address_length);
+           *i, (unsigned int) address->address_length);
 #endif
   GNUNET_assert (address->address_length > 0);
   GNUNET_assert (*i & (1 << (address->address_length - 1)));
@@ -83,7 +83,7 @@ remove_some (void *cls, const struct GNUNET_HELLO_Address *address,
 
 #if DEBUG
   FPRINTF (stderr, "DEBUG: remove_some called with i = %d and addrlen = %u\n",
-           *i, address->address_length);
+           *i, (unsigned int) address->address_length);
 #endif
   GNUNET_assert (address->address_length > 0);
   if (*i & (1 << (address->address_length - 1)))
