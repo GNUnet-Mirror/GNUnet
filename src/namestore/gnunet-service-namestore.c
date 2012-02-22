@@ -27,8 +27,17 @@
 #include "gnunet_getopt_lib.h"
 #include "gnunet_service_lib.h"
 #include "gnunet_namestore_service.h"
+#include "gnunet_namestore_plugin.h"
 #include "namestore.h"
 
+/**
+ * Configuration handle.
+ */
+const struct GNUNET_CONFIGURATION_Handle *GSN_cfg;
+
+static struct GNUNET_NAMESTORE_PluginFunctions *GSN_database;
+
+static char *db_lib_name;
 
 /**
  * Task run during shutdown.
@@ -39,13 +48,15 @@
 static void
 cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  /* FIXME: do clean up here */
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping namestore service\n");
+
+  GNUNET_break (NULL == GNUNET_PLUGIN_unload (db_lib_name, GSN_database));
+  GNUNET_free (db_lib_name);
 }
 
 static void handle_start ()
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "START");
-
 }
 
 
@@ -60,15 +71,37 @@ static void
 run (void *cls, struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
+  char * database;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting namestore service\n");
+
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
     {&handle_start, NULL,
      GNUNET_MESSAGE_TYPE_NAMESTORE_START, sizeof (struct StartMessage)},
     {NULL, NULL, 0, 0}
   };
 
+  GSN_cfg = cfg;
+
+  /* Loading database plugin */
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_string (cfg, "namestore", "database",
+                                             &database))
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "No database backend configured\n");
+
+  GNUNET_asprintf (&db_lib_name, "libgnunet_plugin_namestore_%s", database);
+  GSN_database = GNUNET_PLUGIN_load (db_lib_name, (void *) GSN_cfg);
+  if (GSN_database == NULL)
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not load database backend `%s'\n",
+        db_lib_name);
+  GNUNET_free (database);
+
+  /* Configuring server handles */
   GNUNET_SERVER_add_handlers (server, handlers);
+
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleanup_task,
                                 NULL);
+
 }
 
 

@@ -27,7 +27,7 @@
 
 #define VERBOSE GNUNET_EXTRA_LOGGING
 
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
 static struct GNUNET_NAMESTORE_Handle * nsh;
 
@@ -107,8 +107,8 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_break (NULL != nsh);
   GNUNET_NAMESTORE_disconnect (nsh, GNUNET_YES);
 
-  stop_arm ();
-  end ();
+  //stop_arm ();
+  //end ();
   res = 0;
 }
 
