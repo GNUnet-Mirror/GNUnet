@@ -353,7 +353,7 @@ database_setup (struct Plugin *plugin)
        (plugin->dbh,
         "INSERT INTO ns090signatures (zone_hash, zone_revision, zone_time, zone_root_hash, "
 	"zone_root_depth, zone_public_key, zone_signature) "
-	"VALUES (?, ?, ?, ?, ?, ?)",
+	"VALUES (?, ?, ?, ?, ?, ?, ?)",
         &plugin->put_signature) != SQLITE_OK) ||
       (sq_prepare
        (plugin->dbh,
@@ -372,15 +372,15 @@ database_setup (struct Plugin *plugin)
         &plugin->get_signature) != SQLITE_OK) ||
       (sq_prepare
        (plugin->dbh,
-        "DELETE FROM gn090records WHERE zone_hash=?",
+        "DELETE FROM ns090records WHERE zone_hash=?",
         &plugin->delete_zone_records) != SQLITE_OK) ||
       (sq_prepare
        (plugin->dbh,
-        "DELETE FROM gn090nodes WHERE zone_hash=?",
+        "DELETE FROM ns090nodes WHERE zone_hash=?",
         &plugin->delete_zone_nodes) != SQLITE_OK) ||
       (sq_prepare
        (plugin->dbh,
-        "DELETE FROM gn090signatures WHERE zone_hash=?",
+        "DELETE FROM ns090signatures WHERE zone_hash=?",
         &plugin->delete_zone_signatures) != SQLITE_OK) )
   {
     LOG_SQLITE (plugin,GNUNET_ERROR_TYPE_ERROR, "precompiling");

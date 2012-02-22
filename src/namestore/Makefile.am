@@ -16,8 +16,14 @@ if USE_COVERAGE
   XLIBS = -lgcov
 endif
 
+if HAVE_SQLITE
+SQLITE_TESTS = \
+ test_plugin_namestore_sqlite 
+endif
+
 
 check_PROGRAMS = \
+ $(SQLITE_TESTS) \
  test_namestore_api
 
 lib_LTLIBRARIES = \
@@ -66,6 +72,11 @@ test_namestore_api_LDADD = \
   $(top_builddir)/src/namestore/libgnunetnamestore.la
 
 EXTRADIST = \
-  test_namestore_api.conf
+  test_namestore_api.conf \
+  test_plugin_namestore_sqlite.conf
 
- 
+
+test_plugin_namestore_sqlite_SOURCES = \
+ test_plugin_namestore.c
+test_plugin_namestore_sqlite_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la  
