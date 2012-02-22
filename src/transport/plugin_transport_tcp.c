@@ -1199,7 +1199,7 @@ int session_nat_disconnect_it (void *cls,
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
                      "Cleaning up pending NAT session for peer `%4s'\n", GNUNET_i2s (&session->target));
-    GNUNET_CONTAINER_multihashmap_remove (session->plugin->nat_wait_conns, &session->target.hashPubKey, session);
+    GNUNET_assert (GNUNET_YES == GNUNET_CONTAINER_multihashmap_remove (session->plugin->nat_wait_conns, &session->target.hashPubKey, session));
     GNUNET_SERVER_client_drop (session->client);
     GNUNET_SERVER_receive_done (session->client, GNUNET_SYSERR);
     GNUNET_free (session);
@@ -1241,7 +1241,7 @@ tcp_plugin_disconnect (void *cls, const struct GNUNET_PeerIdentity *target)
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
                      "Cleaning up pending NAT session for peer `%4s'\n", GNUNET_i2s (target));
-    GNUNET_CONTAINER_multihashmap_remove (plugin->nat_wait_conns, &target->hashPubKey, nat_session);
+    GNUNET_assert (GNUNET_YES == GNUNET_CONTAINER_multihashmap_remove (plugin->nat_wait_conns, &target->hashPubKey, nat_session));
     GNUNET_SERVER_client_drop (nat_session->client);
     GNUNET_SERVER_receive_done (nat_session->client, GNUNET_SYSERR);
     GNUNET_free (nat_session);
