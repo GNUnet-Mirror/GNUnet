@@ -362,7 +362,7 @@ database_setup (struct Plugin *plugin)
         &plugin->iterate_records) != SQLITE_OK) ||
       (sq_prepare
        (plugin->dbh,
-        "SELECT node_parent_offset,node_hashcodes FROM ns090nodes "
+        "SELECT node_parent_offset,node_location_offset,node_hashcodes FROM ns090nodes "
 	"WHERE zone_hash=? AND zone_revision=? AND node_location_depth=? AND node_location_offset<=? ORDER BY node_location_offset DESC LIMIT 1",
         &plugin->get_node) != SQLITE_OK) ||
       (sq_prepare
@@ -585,77 +585,6 @@ namestore_sqlite_put_node (void *cls,
   }
 }
   
-
-/**
- * Store a zone signature in the datastore.  If a signature for the zone with a
- * lower depth exists, the old signature is removed.  If a signature for an
- * older revision of the zone exists, this will delete all records, nodes
- * and signatures for the older revision of the zone.
- *
- * @param cls closure (internal context for the plugin)
- * @param zone_key public key of the zone
- * @param loc location in the B-tree (top of the tree, offset 0, depth at 'maximum')
- * @param top_sig signature at the top, NULL if 'loc.depth > 0'
- * @param root_hash top level hash that is signed
- * @param zone_time time the zone was signed
- * @return GNUNET_OK on success
- */
-static int
-namestore_sqlite_put_signature (void *cls, 
-				const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
-				const struct GNUNET_NAMESTORE_SignatureLocation *loc,
-				const struct GNUNET_CRYPTO_RsaSignature *top_sig,
-				const GNUNET_HashCode *root_hash,
-				struct GNUNET_TIME_Absolute zone_time)
-{
-  struct Plugin *plugin = cls;
-  int n;
-  GNUNET_HashCode zone;
-
-  GNUNET_CRYPTO_hash (zone_key,
-		      sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
-		      &zone);
-  /* FIXME: get "old" signature, if older revision, delete all existing
-     records/nodes for the zone, if same revision, delete only the signature */
-
-
-  if ((SQLITE_OK != sqlite3_bind_blob (plugin->put_signature, 1, &zone, sizeof (GNUNET_HashCode), SQLITE_STATIC)) ||
-      (SQLITE_OK != sqlite3_bind_int (plugin->put_signature, 2, loc->revision)) ||
-      (SQLITE_OK != sqlite3_bind_int64 (plugin->put_signature, 3, zone_time.abs_value)) ||
-      (SQLITE_OK != sqlite3_bind_blob (plugin->put_signature, 4, root_hash, sizeof (GNUNET_HashCode), SQLITE_STATIC)) ||
-      (SQLITE_OK != sqlite3_bind_int (plugin->put_signature, 5, loc->depth)) ||
-      (SQLITE_OK != sqlite3_bind_blob (plugin->put_signature, 6, zone_key, sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), SQLITE_STATIC))||
-      (SQLITE_OK != sqlite3_bind_blob (plugin->put_signature, 7, top_sig, sizeof (struct GNUNET_CRYPTO_RsaSignature), SQLITE_STATIC)) )
-  {
-    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                "sqlite3_bind_XXXX");
-    if (SQLITE_OK != sqlite3_reset (plugin->put_signature))
-      LOG_SQLITE (plugin,
-                  GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                  "sqlite3_reset");
-    return GNUNET_SYSERR;
-
-  }
-  n = sqlite3_step (plugin->put_signature);
-  if (SQLITE_OK != sqlite3_reset (plugin->put_signature))
-    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                "sqlite3_reset");
-  switch (n)
-  {
-  case SQLITE_DONE:
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "sqlite", "Signature stored\n");
-    return GNUNET_OK;
-  case SQLITE_BUSY:
-    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_WARNING | GNUNET_ERROR_TYPE_BULK,
-                "sqlite3_step");
-    return GNUNET_NO;
-  default:
-    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                "sqlite3_step");
-    return GNUNET_SYSERR;
-  }
-}
-  
   
 /**
  * Iterate over the results for a particular key and zone in the
@@ -745,6 +674,7 @@ namestore_sqlite_get_node (void *cls,
   size_t hashcodes_size;
   const GNUNET_HashCode *hashcodes;
   struct GNUNET_NAMESTORE_SignatureLocation ploc;
+  struct GNUNET_NAMESTORE_SignatureLocation rloc;
 
   GNUNET_assert (NULL != cb);
   if ((SQLITE_OK != sqlite3_bind_blob (plugin->get_node, 1, zone, sizeof (GNUNET_HashCode), SQLITE_STATIC)) ||
@@ -761,14 +691,17 @@ namestore_sqlite_get_node (void *cls,
     return GNUNET_SYSERR;
 
   }
+  rloc.revision = loc->revision;
+  rloc.depth = loc->depth;
   ploc.revision = loc->revision;
   ploc.depth = loc->depth + 1;
   ret = GNUNET_NO;
   if (SQLITE_ROW == (ret = sqlite3_step (plugin->get_node)))    
   {
     ploc.offset = sqlite3_column_int64 (plugin->get_node, 1);
-    hashcodes = sqlite3_column_blob (plugin->get_node, 2);
-    hashcodes_size = sqlite3_column_bytes (plugin->get_node, 2);    
+    rloc.offset = sqlite3_column_int64 (plugin->get_node, 2);
+    hashcodes = sqlite3_column_blob (plugin->get_node, 3);
+    hashcodes_size = sqlite3_column_bytes (plugin->get_node, 3);    
     if (0 != (hashcodes_size % sizeof (GNUNET_HashCode)))
     {
       GNUNET_break (0);
@@ -779,7 +712,7 @@ namestore_sqlite_get_node (void *cls,
       ret = GNUNET_OK;
       cb (cb_cls,
 	  zone,
-	  loc,
+	  &rloc,
 	  &ploc,
 	  hashcodes_size / sizeof (GNUNET_HashCode),
 	  hashcodes);
@@ -923,6 +856,138 @@ namestore_sqlite_delete_zone (void *cls,
   run_delete_statement (plugin, zone, plugin->delete_zone_records);
   run_delete_statement (plugin, zone, plugin->delete_zone_nodes);
   run_delete_statement (plugin, zone, plugin->delete_zone_signatures);
+}
+
+
+/**
+ * Context for 'delete_old_zone_information'.
+ */
+struct DeleteContext
+{
+  /**
+   * Plugin handle.
+   */
+  struct Plugin *plugin;
+
+  /**
+   * Hash of the public key of the zone (to avoid having to
+   * recalculate it).
+   */
+  const GNUNET_HashCode *zone;
+
+  /**
+   * Revision to compare against.
+   */
+  uint32_t revision;
+  
+};
+
+
+/**
+ * Function called on the current signature in the database for
+ * a zone.  If the revision given in the closure is more recent,
+ * delete all information about the zone.  Otherwise, only delete
+ * the signature.
+ * 
+ * @param cls a 'struct DeleteContext' with a revision to compare against
+ * @param zone public key of the zone
+ * @param loc location of the root in the B-tree (depth, revision)
+ * @param top_sig signature signing the zone
+ * @param zone_time time the signature was created
+ * @param root_hash top level hash that is being signed
+ */
+static void
+delete_old_zone_information (void *cls,
+			     const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
+			     const struct GNUNET_NAMESTORE_SignatureLocation *loc,
+			     const struct GNUNET_CRYPTO_RsaSignature *top_sig,
+			     struct GNUNET_TIME_Absolute zone_time,
+			     const GNUNET_HashCode *root_hash)
+{
+  struct DeleteContext *dc = cls;
+
+  run_delete_statement (dc->plugin, dc->zone, dc->plugin->delete_zone_signatures);    
+  if (loc->revision == dc->revision)
+    return;
+  run_delete_statement (dc->plugin, dc->zone, dc->plugin->delete_zone_records);
+  run_delete_statement (dc->plugin, dc->zone, dc->plugin->delete_zone_nodes);
+}
+  
+
+/**
+ * Store a zone signature in the datastore.  If a signature for the zone with a
+ * lower depth exists, the old signature is removed.  If a signature for an
+ * older revision of the zone exists, this will delete all records, nodes
+ * and signatures for the older revision of the zone.
+ *
+ * @param cls closure (internal context for the plugin)
+ * @param zone_key public key of the zone
+ * @param loc location in the B-tree (top of the tree, offset 0, depth at 'maximum')
+ * @param top_sig signature at the top, NULL if 'loc.depth > 0'
+ * @param root_hash top level hash that is signed
+ * @param zone_time time the zone was signed
+ * @return GNUNET_OK on success
+ */
+static int
+namestore_sqlite_put_signature (void *cls, 
+				const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
+				const struct GNUNET_NAMESTORE_SignatureLocation *loc,
+				const struct GNUNET_CRYPTO_RsaSignature *top_sig,
+				const GNUNET_HashCode *root_hash,
+				struct GNUNET_TIME_Absolute zone_time)
+{
+  struct Plugin *plugin = cls;
+  int n;
+  GNUNET_HashCode zone;
+  struct DeleteContext dc;
+
+  GNUNET_CRYPTO_hash (zone_key,
+		      sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+		      &zone);
+  /* get "old" signature, if older revision, delete all existing
+     records/nodes for the zone, if same revision, delete only the signature */
+  dc.plugin = plugin;
+  dc.zone = &zone;
+  dc.revision = loc->revision;
+  (void) namestore_sqlite_get_signature (plugin,
+					 &zone,
+					 &delete_old_zone_information,
+					 &dc);
+  if ((SQLITE_OK != sqlite3_bind_blob (plugin->put_signature, 1, &zone, sizeof (GNUNET_HashCode), SQLITE_STATIC)) ||
+      (SQLITE_OK != sqlite3_bind_int (plugin->put_signature, 2, loc->revision)) ||
+      (SQLITE_OK != sqlite3_bind_int64 (plugin->put_signature, 3, zone_time.abs_value)) ||
+      (SQLITE_OK != sqlite3_bind_blob (plugin->put_signature, 4, root_hash, sizeof (GNUNET_HashCode), SQLITE_STATIC)) ||
+      (SQLITE_OK != sqlite3_bind_int (plugin->put_signature, 5, loc->depth)) ||
+      (SQLITE_OK != sqlite3_bind_blob (plugin->put_signature, 6, zone_key, sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), SQLITE_STATIC))||
+      (SQLITE_OK != sqlite3_bind_blob (plugin->put_signature, 7, top_sig, sizeof (struct GNUNET_CRYPTO_RsaSignature), SQLITE_STATIC)) )
+  {
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "sqlite3_bind_XXXX");
+    if (SQLITE_OK != sqlite3_reset (plugin->put_signature))
+      LOG_SQLITE (plugin,
+                  GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                  "sqlite3_reset");
+    return GNUNET_SYSERR;
+
+  }
+  n = sqlite3_step (plugin->put_signature);
+  if (SQLITE_OK != sqlite3_reset (plugin->put_signature))
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "sqlite3_reset");
+  switch (n)
+  {
+  case SQLITE_DONE:
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "sqlite", "Signature stored\n");
+    return GNUNET_OK;
+  case SQLITE_BUSY:
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_WARNING | GNUNET_ERROR_TYPE_BULK,
+                "sqlite3_step");
+    return GNUNET_NO;
+  default:
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "sqlite3_step");
+    return GNUNET_SYSERR;
+  }
 }
 
 
