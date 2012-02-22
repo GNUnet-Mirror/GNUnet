@@ -26,8 +26,12 @@
 #include "platform.h"
 #include "gnunet_tun_lib.h"
 
+static int ret;
+
 static void
-test_udp (size_t pll)
+test_udp (size_t pll,
+	  int pl_fill,
+	  uint16_t crc)
 {
   struct GNUNET_TUN_IPv4Header ip;
   struct GNUNET_TUN_UdpHeader udp;
@@ -37,7 +41,7 @@ test_udp (size_t pll)
 
   inet_pton (AF_INET, "1.2.3.4", &src);
   inet_pton (AF_INET, "122.2.3.5", &dst);
-  memset (payload, 42, sizeof (payload));
+  memset (payload, pl_fill, sizeof (payload));
   GNUNET_TUN_initialize_ipv4_header (&ip,
 				     IPPROTO_UDP,
 				     pll + sizeof (udp),
@@ -47,13 +51,20 @@ test_udp (size_t pll)
 				      &udp,
 				      payload,
 				      pll);
-  fprintf (stderr, "CRC: %u\n", 
-	   ntohs (udp.crc));
+  if (crc != ntohs (udp.crc))
+  {
+    fprintf (stderr, "Got CRC: %u, wanted: %u\n", 
+	     ntohs (udp.crc),
+	     crc);
+    ret = 1;
+  }
 }
 
 int main (int argc,
 	  char **argv)
 {
-  test_udp (4);
-  return 0;
+  test_udp (4, 3, 30799);
+  test_udp (4, 1, 31827);
+  test_udp (7, 17, 14879);
+  return ret;
 }
