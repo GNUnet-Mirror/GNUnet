@@ -21,8 +21,9 @@
 /**
  *
  * TODO:
- *    - Finish dht lookup
+ *    - Write xquery and block plugin
  *    - Think about mixed dns queries (.gnunet and .org)
+ *    - (de-)serialisation of records/signature trees
  *    - The smaller FIXME issues all around
  *
  * @file gns/gnunet-service-gns.c
@@ -130,6 +131,11 @@ static struct GNUNET_SERVER_NotificationContext *nc;
 GNUNET_HashCode *zone_hash;
 
 /**
+ * Our tld. Maybe get from config file
+ */
+const char* gnunet_tld = ".gnunet";
+
+/**
  * Task run during shutdown.
  *
  * @param cls unused
@@ -174,11 +180,14 @@ process_authority_dht_result(void* cls,
     return;
 
   /**
-   * data is a searialized PKEY record (probably)
+   * data is a serialized PKEY record (probably)
    * parse, put into namestore
    * namestore zone hash is in query.
    * Then adjust query->name and call resolve_name
    * with new zone (the one just received)
+   *
+   * query->authority = new_authority
+   * resolve_name(query, new_authority);
    */
 }
 
@@ -269,6 +278,11 @@ resolve_name_dht(struct GNUNET_GNS_PendingQuery *query, const char* name)
                        query);
 
 }
+
+//Prototype
+void
+resolve_name(struct GNUNET_GNS_PendingQuery *query, GNUNET_HashCode *zone);
+
 /**
  * This is a callback function that should give us only PKEY
  * records. Used to iteratively query the namestore for 'closest'
@@ -304,15 +318,15 @@ process_authority_lookup(void* cls, const GNUNET_HashCode *zone,
     if (query->authority_found)
     {
       query->authority_found = 0;
-      //FIXME continue lookup
+      resolve_name(query, query->authority);
       return;
     }
 
     /**
      * We did not find an authority in the namestore
-     * _IF_ the current authoritative zone is not us. we can
-     * check the dht.
-     * _ELSE_ we cannot resolve
+     * _IF_ the current authoritative zone is us.
+     * we cannot resolve
+     * _ELSE_ we cannot still check the dht
      */
     if (GNUNET_CRYPTO_hash_cmp(zone, zone_hash))
     {
@@ -527,12 +541,36 @@ process_authoritative_result(void* cls, const GNUNET_HashCode *zone,
 int
 is_canonical(char* name)
 {
-  return 0;
+  uint32_t len = strlen(name);
+  int i;
+
+  for (i=0; i<len; i++)
+  {
+    if (*(name+i) == '.')
+      return 0;
+  }
+  return 1;
 }
 
 char* move_up(char* name)
 {
-  return name;
+  uint32_t len;
+
+  if (is_canonical(name))
+    return NULL;
+
+  for (len = strlen(name); len > 0; len--)
+  {
+    if (*(name+len) == '.')
+      break;
+  }
+
+  if (len == 0)
+    return NULL; //Error
+
+  name[len] = '\0'; //terminate string
+
+  return (name+len+1);
 }
 
 void
@@ -587,7 +625,12 @@ start_resolution(struct GNUNET_DNS_RequestHandle *rh,
   query = GNUNET_malloc(sizeof (struct GNUNET_GNS_PendingQuery));
   query->id = id;
   query->original_name = name; //Full name of original query
-  query->name = name; // FIXME without tld
+  
+  //FIXME do not forget to free!!
+  query->name = GNUNET_malloc(strlen(name)-strlen(gnunet_tld) + 1);
+  memset(query->name, 0, strlen(name)-strlen(gnunet_tld) + 1);
+  memcpy(query->name, name, strlen(name)-strlen(gnunet_tld));
+
   query->type = type;
   query->request_handle = rh;
 
@@ -644,10 +687,7 @@ handle_dns_request(void *cls,
     while ((*tldoffset) != '.')
       tldoffset--;
     
-    /**
-     * FIXME Move our tld/root to config file
-     */
-    if (0 == strcmp(tldoffset, ".gnunet"))
+    if (0 == strcmp(tldoffset, gnunet_tld))
     {
       start_resolution(rh, p->queries[i].name, p->id, p->queries[i].type);
     }
