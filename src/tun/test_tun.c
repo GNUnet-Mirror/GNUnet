@@ -69,5 +69,6 @@ int main (int argc,
   test_udp (4, 3, 22439);
   test_udp (4, 1, 23467);
   test_udp (7, 17, 6516);
+  test_udp (12451, 251, 42771);
   return ret;
 }
