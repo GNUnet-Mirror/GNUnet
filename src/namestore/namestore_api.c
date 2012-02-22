@@ -99,6 +99,10 @@ struct GNUNET_NAMESTORE_Handle
    */
   GNUNET_SCHEDULER_TaskIdentifier reconnect_task;
 
+  /**
+   * Pending messages to send to the service
+   */
+
   struct PendingMessage * pending_head;
   struct PendingMessage * pending_tail;
 

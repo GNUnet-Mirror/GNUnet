@@ -27,18 +27,88 @@
 
 #define VERBOSE GNUNET_EXTRA_LOGGING
 
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
+
 static struct GNUNET_NAMESTORE_Handle * nsh;
 
+static GNUNET_SCHEDULER_TaskIdentifier endbadly_task;
+static struct GNUNET_OS_Process *arm;
+
 static int res;
+
+
+static void
+start_arm (const char *cfgname)
+{
+  arm = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
+                               "gnunet-service-arm", "-c", cfgname,
+#if VERBOSE_PEERS
+                               "-L", "DEBUG",
+#else
+                               "-L", "ERROR",
+#endif
+                               NULL);
+}
+
+static void
+stop_arm ()
+{
+  if (NULL != arm)
+  {
+    if (0 != GNUNET_OS_process_kill (arm, SIGTERM))
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
+    GNUNET_OS_process_wait (arm);
+    GNUNET_OS_process_close (arm);
+    arm = NULL;
+  }
+}
+
+/**
+ * Re-establish the connection to the service.
+ *
+ * @param cls handle to use to re-connect.
+ * @param tc scheduler context
+ */
+static void
+endbadly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  if (NULL != arm)
+    stop_arm();
+  res = 1;
+}
+
+
+static void
+end (void)
+{
+  if (endbadly_task != GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel (endbadly_task);
+    endbadly_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+
+  if (NULL != arm)
+    stop_arm();
+
+  res = 0;
+}
 
 
 static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
+  endbadly_task = GNUNET_SCHEDULER_add_delayed(TIMEOUT,endbadly, NULL);
+
+  start_arm (cfgfile);
+  GNUNET_assert (arm != NULL);
+
   nsh = GNUNET_NAMESTORE_connect (cfg);
   GNUNET_break (NULL != nsh);
   GNUNET_NAMESTORE_disconnect (nsh, GNUNET_YES);
+
+  stop_arm ();
+  end ();
   res = 0;
 }
 
