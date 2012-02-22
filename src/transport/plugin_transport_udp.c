@@ -550,13 +550,28 @@ disconnect_and_free_it (void *cls, const GNUNET_HashCode * key, void *value)
     s->frag_ctx = NULL;
   }
 
-  udpw = plugin->msg_head;
+  udpw = plugin->ipv4_queue_head;
   while (udpw != NULL)
   {
     next = udpw->next;
     if (udpw->session == s)
     {
-      GNUNET_CONTAINER_DLL_remove(plugin->msg_head, plugin->msg_tail, udpw);
+      GNUNET_CONTAINER_DLL_remove(plugin->ipv4_queue_head, plugin->ipv4_queue_tail, udpw);
+
+      if (udpw->cont != NULL)
+        udpw->cont (udpw->cont_cls, &s->target, GNUNET_SYSERR);
+      GNUNET_free (udpw);
+    }
+    udpw = next;
+  }
+
+  udpw = plugin->ipv6_queue_head;
+  while (udpw != NULL)
+  {
+    next = udpw->next;
+    if (udpw->session == s)
+    {
+      GNUNET_CONTAINER_DLL_remove(plugin->ipv6_queue_head, plugin->ipv6_queue_tail, udpw);
 
       if (udpw->cont != NULL)
         udpw->cont (udpw->cont_cls, &s->target, GNUNET_SYSERR);
@@ -776,6 +791,15 @@ udp_plugin_get_session (void *cls,
   return s;
 }
 
+static void enqueue (struct Plugin *plugin, struct UDPMessageWrapper * udpw)
+{
+
+  if (udpw->session->addrlen == sizeof (struct sockaddr_in))
+    GNUNET_CONTAINER_DLL_insert(plugin->ipv4_queue_head, plugin->ipv4_queue_tail, udpw);
+  if (udpw->session->addrlen == sizeof (struct sockaddr_in6))
+    GNUNET_CONTAINER_DLL_insert(plugin->ipv6_queue_head, plugin->ipv6_queue_tail, udpw);
+}
+
 /**
  * Function that is called with messages created by the fragmentation
  * module.  In the case of the 'proc' callback of the
@@ -809,7 +833,8 @@ enqueue_fragment (void *cls, const struct GNUNET_MessageHeader *msg)
   udpw->frag_ctx = frag_ctx;
   memcpy (udpw->udp, msg, msg_len);
 
-  GNUNET_CONTAINER_DLL_insert(plugin->msg_head, plugin->msg_tail, udpw);
+  enqueue (plugin, udpw);
+
 }
 
 
@@ -896,7 +921,7 @@ udp_plugin_send (void *cls,
     memcpy (udpw->udp, udp, sizeof (struct UDPMessage));
     memcpy (&udpw->udp[sizeof (struct UDPMessage)], msgbuf, msgbuf_size);
 
-    GNUNET_CONTAINER_DLL_insert(plugin->msg_head, plugin->msg_tail, udpw);
+    enqueue (plugin, udpw);
   }
   else
   {
@@ -1218,7 +1243,7 @@ ack_proc (void *cls, uint32_t id, const struct GNUNET_MessageHeader *msg)
   udp_ack->sender = *rc->plugin->env->my_identity;
   memcpy (&udp_ack[1], msg, ntohs (msg->size));
 
-  GNUNET_CONTAINER_DLL_insert(rc->plugin->msg_head, rc->plugin->msg_tail, udpw);
+  enqueue (rc->plugin, udpw);
 }
 
 
@@ -1301,15 +1326,32 @@ static void read_process_ack (struct Plugin *plugin,
 #endif
   s->last_expected_delay = GNUNET_FRAGMENT_context_destroy (s->frag_ctx->frag);
 
-  struct UDPMessageWrapper * udpw = plugin->msg_head;
-  while (udpw!= NULL)
+  struct UDPMessageWrapper * udpw = NULL;
+  if (s->addrlen == sizeof (struct sockaddr_in6))
   {
-    if ((udpw->frag_ctx != NULL) && (udpw->frag_ctx == s->frag_ctx))
+    udpw = plugin->ipv6_queue_head;
+    while (udpw!= NULL)
     {
-      GNUNET_CONTAINER_DLL_remove(plugin->msg_head, plugin->msg_tail, udpw);
-      GNUNET_free (udpw);
+      if ((udpw->frag_ctx != NULL) && (udpw->frag_ctx == s->frag_ctx))
+      {
+        GNUNET_CONTAINER_DLL_remove(plugin->ipv6_queue_head, plugin->ipv6_queue_tail, udpw);
+        GNUNET_free (udpw);
+      }
+      udpw = udpw->next;
     }
-    udpw = udpw->next;
+  }
+  if (s->addrlen == sizeof (struct sockaddr_in))
+  {
+    udpw = plugin->ipv4_queue_head;
+    while (udpw!= NULL)
+    {
+      if ((udpw->frag_ctx != NULL) && (udpw->frag_ctx == s->frag_ctx))
+      {
+        GNUNET_CONTAINER_DLL_remove(plugin->ipv4_queue_head, plugin->ipv4_queue_tail, udpw);
+        GNUNET_free (udpw);
+      }
+      udpw = udpw->next;
+    }
   }
 
   if (s->frag_ctx->cont != NULL)
@@ -1458,15 +1500,28 @@ udp_select_read (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *rsock)
 }
 
 size_t
-udp_select_send (struct Plugin *plugin)
+udp_select_send (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *sock)
 {
   ssize_t sent;
   size_t slen;
   struct GNUNET_TIME_Absolute max;
   struct GNUNET_TIME_Absolute ;
 
-  struct UDPMessageWrapper *udpw = plugin->msg_head;
+  struct UDPMessageWrapper *udpw = NULL;
+
+  if (sock == plugin->sockv4)
+  {
+    udpw = plugin->ipv4_queue_head;
+  }
+  else if (sock == plugin->sockv6)
+  {
+    udpw = plugin->ipv6_queue_head;
+  }
+  else
+    GNUNET_break (0);
+
   const struct sockaddr * sa = udpw->session->sock_addr;
+  slen = udpw->session->addrlen;
 
   max = GNUNET_TIME_absolute_max(udpw->timeout, GNUNET_TIME_absolute_get());
 
@@ -1496,9 +1551,13 @@ udp_select_send (struct Plugin *plugin)
 #endif
       }
 
-      GNUNET_CONTAINER_DLL_remove(plugin->msg_head, plugin->msg_tail, udpw);
+      if (sock == plugin->sockv4)
+        GNUNET_CONTAINER_DLL_remove(plugin->ipv4_queue_head, plugin->ipv4_queue_tail, udpw);
+      else if (sock == plugin->sockv6)
+        GNUNET_CONTAINER_DLL_remove(plugin->ipv6_queue_head, plugin->ipv6_queue_tail, udpw);
+
       GNUNET_free (udpw);
-      udpw = plugin->msg_head;
+      udpw = plugin->ipv4_queue_head;
     }
     else
     {
@@ -1528,26 +1587,8 @@ udp_select_send (struct Plugin *plugin)
     return 0;
   }
 
-  switch (sa->sa_family)
-  {
-  case AF_INET:
-    if (NULL == plugin->sockv4)
-      return 0;
-    sent =
-        GNUNET_NETWORK_socket_sendto (plugin->sockv4, udpw->udp, udpw->msg_size,
-                                      sa, slen = sizeof (struct sockaddr_in));
-    break;
-  case AF_INET6:
-    if (NULL == plugin->sockv6)
-      return 0;
-    sent =
-        GNUNET_NETWORK_socket_sendto (plugin->sockv6, udpw->udp, udpw->msg_size,
-                                      sa, slen = sizeof (struct sockaddr_in6));
-    break;
-  default:
-    GNUNET_break (0);
-    return 0;
-  }
+  sent = GNUNET_NETWORK_socket_sendto (sock, udpw->udp, udpw->msg_size, sa, slen);
+
   if (GNUNET_SYSERR == sent)
   {
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "sendto");
@@ -1575,8 +1616,12 @@ udp_select_send (struct Plugin *plugin)
       udpw->cont (udpw->cont_cls, &udpw->session->target, GNUNET_OK);
   }
 
-  GNUNET_CONTAINER_DLL_remove(plugin->msg_head, plugin->msg_tail, udpw);
+  if (sock == plugin->sockv4)
+    GNUNET_CONTAINER_DLL_remove(plugin->ipv4_queue_head, plugin->ipv4_queue_tail, udpw);
+  else if (sock == plugin->sockv6)
+    GNUNET_CONTAINER_DLL_remove(plugin->ipv6_queue_head, plugin->ipv6_queue_tail, udpw);
   GNUNET_free (udpw);
+  udpw = NULL;
 
   return sent;
 }
@@ -1610,8 +1655,16 @@ udp_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if ((tc->reason & GNUNET_SCHEDULER_REASON_WRITE_READY) != 0)
   {
-    if (plugin->msg_head != NULL)
-      udp_select_send (plugin);
+    if ((NULL != plugin->sockv4) && (plugin->ipv4_queue_head != NULL) &&
+      (GNUNET_NETWORK_fdset_isset (tc->write_ready, plugin->sockv4)))
+      {
+        udp_select_send (plugin, plugin->sockv4);
+      }
+    if ((NULL != plugin->sockv6) && (plugin->ipv6_queue_head != NULL) &&
+      (GNUNET_NETWORK_fdset_isset (tc->write_ready, plugin->sockv6)))
+      {
+        udp_select_send (plugin, plugin->sockv6);
+      }
   }
 
   plugin->select_task = GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
@@ -1990,11 +2043,22 @@ libgnunet_plugin_transport_udp_done (void *cls)
   }
 
   /* Clean up leftover messages */
-  struct UDPMessageWrapper *udpw = plugin->msg_head;
+  struct UDPMessageWrapper * updw;
+  udpw = plugin->ipv4_queue_head;
   while (udpw != NULL)
   {
     struct UDPMessageWrapper *tmp = udpw->next;
-    GNUNET_CONTAINER_DLL_remove(plugin->msg_head, plugin->msg_tail, udpw);
+    GNUNET_CONTAINER_DLL_remove(plugin->ipv4_queue_head, plugin->ipv4_queue_tail, udpw);
+    if (udpw->cont != NULL)
+      udpw->cont (udpw->cont_cls, &udpw->session->target, GNUNET_SYSERR);
+    GNUNET_free (udpw);
+    udpw = tmp;
+  }
+  udpw = plugin->ipv6_queue_head;
+  while (udpw != NULL)
+  {
+    struct UDPMessageWrapper *tmp = udpw->next;
+    GNUNET_CONTAINER_DLL_remove(plugin->ipv6_queue_head, plugin->ipv6_queue_tail, udpw);
     if (udpw->cont != NULL)
       udpw->cont (udpw->cont_cls, &udpw->session->target, GNUNET_SYSERR);
     GNUNET_free (udpw);

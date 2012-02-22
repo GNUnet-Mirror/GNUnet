@@ -251,9 +251,11 @@ struct Plugin
    */
   uint16_t aport;
 
-  struct UDPMessageWrapper *msg_head;
-  struct UDPMessageWrapper *msg_tail;
+  struct UDPMessageWrapper *ipv4_queue_head;
+  struct UDPMessageWrapper *ipv4_queue_tail;
 
+  struct UDPMessageWrapper *ipv6_queue_head;
+  struct UDPMessageWrapper *ipv6_queue_tail;
 };
 
 
