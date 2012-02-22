@@ -61,10 +61,6 @@
 
 #define ID_ANNOUNCE_TIME        GNUNET_TIME_relative_multiply(\
                                     GNUNET_TIME_UNIT_SECONDS,\
-                                    10)
-
-#define GET_RESTART_TIME        GNUNET_TIME_relative_multiply(\
-                                    GNUNET_TIME_UNIT_SECONDS,\
                                     5)
 
 #define UNACKNOWLEDGED_WAIT     GNUNET_TIME_relative_multiply(\
@@ -74,7 +70,7 @@
 
 /* TODO END */
 
-#define MESH_DEBUG_DHT GNUNET_NO
+#define MESH_DEBUG_DHT GNUNET_YES
 #define MESH_DEBUG_CONNECTION GNUNET_NO
 
 #if MESH_DEBUG_CONNECTION
@@ -658,14 +654,14 @@ announce_applications (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
   }
  
-  DEBUG_DHT ("MESH: Starting PUT for apps\n");
+  DEBUG_DHT ("Starting PUT for apps\n");
 
   GNUNET_CONTAINER_multihashmap_iterate (applications, &announce_application,
                                          NULL);
   announce_applications_task =
       GNUNET_SCHEDULER_add_delayed (APP_ANNOUNCE_TIME, &announce_applications,
                                     cls);
-  DEBUG_DHT ("MESH: Finished PUT for apps\n");
+  DEBUG_DHT ("Finished PUT for apps\n");
 
   return;
 }
@@ -689,7 +685,7 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
    * - Set data expiration in function of X
    * - Adapt X to churn
    */
-  DEBUG_DHT ("MESH: DHT_put for ID %s started.\n", GNUNET_i2s (&my_full_id));
+  DEBUG_DHT ("DHT_put for ID %s started.\n", GNUNET_i2s (&my_full_id));
 
   GNUNET_DHT_put (dht_handle,   /* DHT handle */
                   &my_full_id.hashPubKey,       /* Key to use */
@@ -836,7 +832,7 @@ client_allow_send (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
   GNUNET_assert (NULL != mdata->reference_counter);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "MESH: CLIENT ALLOW SEND DESPITE %u COPIES PENDING\n",
+              "CLIENT ALLOW SEND DESPITE %u COPIES PENDING\n",
               *(mdata->reference_counter));
   *(mdata->task) = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_SERVER_receive_done (mdata->t->owner->handle, GNUNET_OK);
@@ -1220,7 +1216,7 @@ peer_info_cancel_transmission (struct MeshPeerInfo *peer, unsigned int i)
 
       GNUNET_PEER_resolve (peer->id, &id);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "MESH:   Cancelling data transmission at %s [%u]\n",
+                  "  Cancelling data transmission at %s [%u]\n",
                   GNUNET_i2s (&id), i);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   message type %u\n",
                   peer->types[i]);
@@ -1609,7 +1605,7 @@ peer_info_connect (struct MeshPeerInfo *peer, struct MeshTunnel *t)
     path_info->peer = peer;
     path_info->t = t;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "MESH:   Starting DHT GET for peer %s\n", GNUNET_i2s (&id));
+                "  Starting DHT GET for peer %s\n", GNUNET_i2s (&id));
     peer->dhtgetcls = path_info;
     peer->dhtget = GNUNET_DHT_get_start (dht_handle,    /* handle */
                                          GNUNET_TIME_UNIT_FOREVER_REL,  /* timeout */
@@ -1670,7 +1666,7 @@ peer_info_destroy (struct MeshPeerInfo *pi)
   {
     GNUNET_break (0);
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "MESH: removing peer %s, not in hashmap\n", GNUNET_i2s (&id));
+                "removing peer %s, not in hashmap\n", GNUNET_i2s (&id));
   }
   if (NULL != pi->dhtget)
   {
@@ -2371,7 +2367,7 @@ tunnel_send_multicast (struct MeshTunnel *t,
   struct MeshData *mdata;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "MESH:  sending a multicast packet...\n");
+              " sending a multicast packet...\n");
   mdata = GNUNET_malloc (sizeof (struct MeshData));
   mdata->data_len = ntohs (msg->size);
   mdata->reference_counter = GNUNET_malloc (sizeof (unsigned int));
@@ -2417,7 +2413,7 @@ tunnel_send_multicast (struct MeshTunnel *t,
     GNUNET_free (mdata);
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "MESH:  sending a multicast packet done\n");
+              " sending a multicast packet done\n");
   return;
 }
 
@@ -2682,7 +2678,7 @@ send_core_create_path (void *cls, size_t size, void *buf)
 
     GNUNET_PEER_resolve (peer->id, &id);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "MESH:   setting core_transmit %s [%u] to NULL\n",
+                "  setting core_transmit %s [%u] to NULL\n",
                 GNUNET_i2s (&id), info->pos);
   }
 #endif
@@ -2701,7 +2697,7 @@ send_core_create_path (void *cls, size_t size, void *buf)
   GNUNET_free (info);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "MESH: CREATE PATH (%u bytes long) sent!\n", size_needed);
+              "CREATE PATH (%u bytes long) sent!\n", size_needed);
   return size_needed;
 }
 
@@ -2736,7 +2732,7 @@ send_core_data_multicast (void *cls, size_t size, void *buf)
     struct GNUNET_PeerIdentity id;
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "MESH: Multicast: retransmitting... (%u/%u)\n", size,
+                "Multicast: retransmitting... (%u/%u)\n", size,
                 total_size);
     GNUNET_PEER_resolve (info->peer->id, &id);
     info->peer->core_transmit[info->handler_n] =
@@ -2761,9 +2757,9 @@ send_core_data_multicast (void *cls, size_t size, void *buf)
       mc = (struct GNUNET_MESH_Multicast *) mh;
       mh = (struct GNUNET_MessageHeader *) &mc[1];
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "MESH:  multicast, payload type %u\n", ntohs (mh->type));
+                  " multicast, payload type %u\n", ntohs (mh->type));
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "MESH:  multicast, payload size %u\n", ntohs (mh->size));
+                  " multicast, payload size %u\n", ntohs (mh->size));
     }
     else
     {
@@ -2856,7 +2852,7 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct MeshTunnel *t;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "MESH: Received a path create msg [%s]\n",
+              "Received a path create msg [%s]\n",
               GNUNET_i2s (&my_full_id));
   size = ntohs (message->size);
   if (size < sizeof (struct GNUNET_MESH_ManipulatePath))
@@ -2883,7 +2879,7 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
   tid = ntohl (msg->tid);
   pi = (struct GNUNET_PeerIdentity *) &msg[1];
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "MESH:     path is for tunnel %s [%X].\n", GNUNET_i2s (pi), tid);
+              "    path is for tunnel %s [%X].\n", GNUNET_i2s (pi), tid);
   t = tunnel_get (pi, tid);
   if (NULL == t)
   {
@@ -2922,7 +2918,7 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (NULL == dest_peer_info)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "MESH:   Creating PeerInfo for destination.\n");
+                "  Creating PeerInfo for destination.\n");
     dest_peer_info = GNUNET_malloc (sizeof (struct MeshPeerInfo));
     dest_peer_info->id = GNUNET_PEER_intern (&pi[size - 1]);
     GNUNET_CONTAINER_multihashmap_put (peers, &pi[size - 1].hashPubKey,
@@ -2933,7 +2929,7 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (NULL == orig_peer_info)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "MESH:   Creating PeerInfo for origin.\n");
+                "  Creating PeerInfo for origin.\n");
     orig_peer_info = GNUNET_malloc (sizeof (struct MeshPeerInfo));
     orig_peer_info->id = GNUNET_PEER_intern (pi);
     GNUNET_CONTAINER_multihashmap_put (peers, &pi->hashPubKey, orig_peer_info,
@@ -3039,7 +3035,7 @@ handle_mesh_path_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
   size_t size;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "MESH: Received a PATH DESTROY msg from %s\n", GNUNET_i2s (peer));
+              "Received a PATH DESTROY msg from %s\n", GNUNET_i2s (peer));
   size = ntohs (message->size);
   if (size < sizeof (struct GNUNET_MESH_ManipulatePath))
   {
@@ -3064,7 +3060,7 @@ handle_mesh_path_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
   msg = (struct GNUNET_MESH_ManipulatePath *) message;
   pi = (struct GNUNET_PeerIdentity *) &msg[1];
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "MESH:     path is for tunnel %s [%X].\n", GNUNET_i2s (pi),
+              "    path is for tunnel %s [%X].\n", GNUNET_i2s (pi),
               msg->tid);
   t = tunnel_get (pi, ntohl (msg->tid));
   if (NULL == t)
@@ -3118,7 +3114,7 @@ handle_mesh_path_broken (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct MeshTunnel *t;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "MESH: Received a PATH BROKEN msg from %s\n", GNUNET_i2s (peer));
+              "Received a PATH BROKEN msg from %s\n", GNUNET_i2s (peer));
   msg = (struct GNUNET_MESH_PathBroken *) message;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  regarding %s\n",
               GNUNET_i2s (&msg->peer1));
@@ -3159,7 +3155,7 @@ handle_mesh_tunnel_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct MeshTunnel *t;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "MESH: Got a TUNNEL DESTROY packet from %s\n", GNUNET_i2s (peer));
+              "Got a TUNNEL DESTROY packet from %s\n", GNUNET_i2s (peer));
   msg = (struct GNUNET_MESH_TunnelDestroy *) message;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  for tunnel %s [%u]\n",
               GNUNET_i2s (&msg->oid), ntohl (msg->tid));
@@ -3235,12 +3231,12 @@ handle_mesh_data_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (pid == myid)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "MESH:   it's for us! sending to clients...\n");
+                "  it's for us! sending to clients...\n");
     send_subscribed_clients (message, (struct GNUNET_MessageHeader *) &msg[1]);
     return GNUNET_OK;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "MESH:   not for us, retransmitting...\n");
+              "  not for us, retransmitting...\n");
   send_message (message, tree_get_first_hop (t->tree, pid));
   return GNUNET_OK;
 }
@@ -3291,13 +3287,13 @@ handle_mesh_data_multicast (void *cls, const struct GNUNET_PeerIdentity *peer,
   {
     /* FIXME: already seen this packet, log dropping */
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "MESH:  Already seen mid %u, DROPPING!\n", t->mid);
+                " Already seen mid %u, DROPPING!\n", t->mid);
     return GNUNET_OK;
   }
   else
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "MESH:  mid %u not seen yet, forwarding\n", ntohl (msg->mid));
+                " mid %u not seen yet, forwarding\n", ntohl (msg->mid));
   }
   t->mid = ntohl (msg->mid);
   tunnel_reset_timeout (t);
@@ -3371,7 +3367,7 @@ handle_mesh_data_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
     struct GNUNET_MESH_ToOrigin *copy;
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "MESH:   it's for us! sending to clients...\n");
+                "  it's for us! sending to clients...\n");
     if (NULL == t->owner)
     {
       /* got data packet for ownerless tunnel */
@@ -3388,7 +3384,7 @@ handle_mesh_data_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
     return GNUNET_OK;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "MESH:   not for us, retransmitting...\n");
+              "  not for us, retransmitting...\n");
 
   peer_info = peer_info_get (&msg->oid);
   if (NULL == peer_info)
@@ -3475,7 +3471,7 @@ handle_mesh_path_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "MESH:   not for us, retransmitting...\n");
+              "  not for us, retransmitting...\n");
   GNUNET_PEER_resolve (tree_get_predecessor (t->tree), &id);
   peer_info = peer_info_get (&msg->oid);
   if (NULL == peer_info)
@@ -3596,7 +3592,7 @@ path_refresh (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   t->path_refresh_task = GNUNET_SCHEDULER_NO_TASK;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "MESH: sending keepalive for tunnel %d\n", t->id.tid);
+              "sending keepalive for tunnel %d\n", t->id.tid);
 
   msg = (struct GNUNET_MESH_Multicast *) cbuf;
   msg->header.size = htons (size);
@@ -3878,7 +3874,7 @@ handle_local_new_client (void *cls, struct GNUNET_SERVER_Client *client,
     }
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "MESH:  client has %u+%u subscriptions\n", napps, ntypes);
+              " client has %u+%u subscriptions\n", napps, ntypes);
 
   GNUNET_CONTAINER_DLL_insert (clients, clients_tail, c);
   c->own_tunnels = GNUNET_CONTAINER_multihashmap_create (32);
@@ -3998,7 +3994,7 @@ handle_local_tunnel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
   MESH_TunnelNumber tid;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "MESH: Got a DESTROY TUNNEL from client!\n");
+              "Got a DESTROY TUNNEL from client!\n");
 
   /* Sanity check for client registration */
   if (NULL == (c = client_get (client)))
@@ -4320,7 +4316,7 @@ handle_local_unicast (void *cls, struct GNUNET_SERVER_Client *client,
   size_t size;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "MESH: Got a unicast request from a client!\n");
+              "Got a unicast request from a client!\n");
 
   /* Sanity check for client registration */
   if (NULL == (c = client_get (client)))
@@ -4381,7 +4377,7 @@ handle_local_unicast (void *cls, struct GNUNET_SERVER_Client *client,
     copy->oid = my_full_id;
     copy->tid = htonl (t->id.tid);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "MESH:   calling generic handler...\n");
+                "  calling generic handler...\n");
     handle_mesh_data_unicast (NULL, &my_full_id, &copy->header, NULL, 0);
   }
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -4428,7 +4424,7 @@ handle_local_to_origin (void *cls, struct GNUNET_SERVER_Client *client,
   /* Tunnel exists? */
   tid = ntohl (data_msg->tid);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "MESH: Got a ToOrigin request from a client! Tunnel %X\n", tid);
+              "Got a ToOrigin request from a client! Tunnel %X\n", tid);
   if (tid < GNUNET_MESH_LOCAL_TUNNEL_ID_SERV)
   {
     GNUNET_break (0);
@@ -4466,7 +4462,7 @@ handle_local_to_origin (void *cls, struct GNUNET_SERVER_Client *client,
     copy->tid = htonl (t->id.tid);
     copy->sender = my_full_id;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "MESH:   calling generic handler...\n");
+                "  calling generic handler...\n");
     handle_mesh_data_to_orig (NULL, &my_full_id, &copy->header, NULL, 0);
   }
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -4491,7 +4487,7 @@ handle_local_multicast (void *cls, struct GNUNET_SERVER_Client *client,
   MESH_TunnelNumber tid;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "MESH: Got a multicast request from a client!\n");
+              "Got a multicast request from a client!\n");
 
   /* Sanity check for client registration */
   if (NULL == (c = client_get (client)))
@@ -4539,7 +4535,7 @@ handle_local_multicast (void *cls, struct GNUNET_SERVER_Client *client,
     copy->ttl = htonl (DEFAULT_TTL);
     copy->mid = htonl (t->mid + 1);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "MESH:   calling generic handler...\n");
+                "  calling generic handler...\n");
     handle_mesh_data_multicast (client, &my_full_id, &copy->header, NULL, 0);
   }
 
@@ -4616,17 +4612,17 @@ core_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct MeshPeerInfo *peer_info;
   struct MeshPeerPath *path;
 
-  DEBUG_CONN ("MESH: Peer connected\n");
-  DEBUG_CONN ("MESH:      %s\n", GNUNET_i2s (&my_full_id));
+  DEBUG_CONN ("Peer connected\n");
+  DEBUG_CONN ("     %s\n", GNUNET_i2s (&my_full_id));
   peer_info = peer_info_get (peer);
   if (myid == peer_info->id)
   {
-    DEBUG_CONN ("MESH:      (self)\n");
+    DEBUG_CONN ("     (self)\n");
     return;
   }
   else
   {
-    DEBUG_CONN ("MESH:      %s\n", GNUNET_i2s (peer));
+    DEBUG_CONN ("     %s\n", GNUNET_i2s (peer));
   }
   path = path_new (2);
   path->peers[0] = myid;
@@ -4649,7 +4645,7 @@ core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
   struct MeshPeerInfo *pi;
   unsigned int i;
 
-  DEBUG_CONN ("MESH: Peer disconnected\n");
+  DEBUG_CONN ("Peer disconnected\n");
   pi = GNUNET_CONTAINER_multihashmap_get (peers, &peer->hashPubKey);
   if (NULL == pi)
   {
@@ -4664,7 +4660,7 @@ core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
   peer_info_remove_path (pi, pi->id, myid);
   if (myid == pi->id)
   {
-    DEBUG_CONN ("MESH:      (self)\n");
+    DEBUG_CONN ("     (self)\n");
   }
   return;
 }
