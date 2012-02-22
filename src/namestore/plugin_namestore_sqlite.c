@@ -245,6 +245,9 @@ database_setup (struct Plugin *plugin)
          sqlite3_exec (plugin->dbh, "PRAGMA auto_vacuum=INCREMENTAL", NULL,
                        NULL, ENULL));
   CHECK (SQLITE_OK ==
+         sqlite3_exec (plugin->dbh, "PRAGMA encoding=\"UTF-8\"", NULL,
+                       NULL, ENULL));
+  CHECK (SQLITE_OK ==
          sqlite3_exec (plugin->dbh, "PRAGMA locking_mode=EXCLUSIVE", NULL, NULL,
                        ENULL));
   CHECK (SQLITE_OK ==
@@ -266,9 +269,9 @@ database_setup (struct Plugin *plugin)
       (sqlite3_exec
        (plugin->dbh,
         "CREATE TABLE ns090records (" 
-        " zone_hash TEXT NOT NULL DEFAULT ''," 
+        " zone_hash BLOB NOT NULL DEFAULT ''," 
         " zone_revision INT4 NOT NULL DEFAULT 0," 
-        " record_name_hash TEXT NOT NULL DEFAULT ''," 
+        " record_name_hash BLOB NOT NULL DEFAULT ''," 
         " record_name TEXT NOT NULL DEFAULT ''," 
 	" record_type INT4 NOT NULL DEFAULT 0,"
         " node_location_depth INT4 NOT NULL DEFAULT 0," 
@@ -293,7 +296,7 @@ database_setup (struct Plugin *plugin)
       (sqlite3_exec
        (plugin->dbh,
         "CREATE TABLE ns090nodes (" 
-        " zone_hash TEXT NOT NULL DEFAULT ''," 
+        " zone_hash BLOB NOT NULL DEFAULT ''," 
         " zone_revision INT4 NOT NULL DEFAULT 0," 
         " node_location_depth INT4 NOT NULL DEFAULT 0," 
         " node_location_offset INT8 NOT NULL DEFAULT 0," 
@@ -317,10 +320,10 @@ database_setup (struct Plugin *plugin)
       (sqlite3_exec
        (plugin->dbh,
         "CREATE TABLE ns090signatures (" 
-        " zone_hash TEXT NOT NULL DEFAULT ''," 
+        " zone_hash BLOB NOT NULL DEFAULT ''," 
         " zone_revision INT4 NOT NULL DEFAULT 0," 
         " zone_time INT8 NOT NULL DEFAULT 0," 
-        " zone_root_hash TEXT NOT NULL DEFAULT 0," 
+        " zone_root_hash BLOB NOT NULL DEFAULT 0," 
         " zone_root_depth INT4 NOT NULL DEFAULT 0," 
         " zone_public_key BLOB NOT NULL DEFAULT 0," 
         " zone_signature BLOB NOT NULL DEFAULT 0" 
@@ -480,7 +483,7 @@ namestore_sqlite_put_record (void *cls,
   if ((SQLITE_OK != sqlite3_bind_blob (plugin->put_record, 1, zone, sizeof (GNUNET_HashCode), SQLITE_STATIC)) ||
       (SQLITE_OK != sqlite3_bind_int64 (plugin->put_record, 2, loc->revision)) ||
       (SQLITE_OK != sqlite3_bind_blob (plugin->put_record, 3, &nh, sizeof (GNUNET_HashCode), SQLITE_STATIC)) ||
-      (SQLITE_OK != sqlite3_bind_text (plugin->put_record, 4, name, name_len, SQLITE_STATIC)) ||
+      (SQLITE_OK != sqlite3_bind_text (plugin->put_record, 4, name, -1, SQLITE_STATIC)) ||
       (SQLITE_OK != sqlite3_bind_int (plugin->put_record, 5, record_type)) ||
       (SQLITE_OK != sqlite3_bind_int (plugin->put_record, 6, loc->depth)) ||
       (SQLITE_OK != sqlite3_bind_int64 (plugin->put_record, 7, loc->offset)) ||
@@ -607,6 +610,7 @@ namestore_sqlite_iterate_records (void *cls,
 {
   struct Plugin *plugin = cls;
   unsigned int ret;
+  int sret;
   struct GNUNET_TIME_Absolute expiration;
   uint32_t record_type;
   enum GNUNET_NAMESTORE_RecordFlags flags;
@@ -615,8 +619,12 @@ namestore_sqlite_iterate_records (void *cls,
   struct GNUNET_NAMESTORE_SignatureLocation loc;
   const char *name;
 
-  if ((SQLITE_OK != sqlite3_bind_blob (plugin->iterate_records, 1, zone, sizeof (GNUNET_HashCode), SQLITE_STATIC)) ||
-      (SQLITE_OK != sqlite3_bind_blob (plugin->iterate_records, 2, name_hash, sizeof (GNUNET_HashCode), SQLITE_STATIC)) )
+  if ((SQLITE_OK != sqlite3_bind_blob (plugin->iterate_records, 1, 
+				       zone, sizeof (GNUNET_HashCode), 
+				       SQLITE_STATIC)) ||
+      (SQLITE_OK != sqlite3_bind_blob (plugin->iterate_records, 2, 
+				       name_hash, sizeof (GNUNET_HashCode), 
+				       SQLITE_STATIC)) )
   {
     LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "sqlite3_bind_XXXX");
@@ -625,28 +633,27 @@ namestore_sqlite_iterate_records (void *cls,
                   GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                   "sqlite3_reset");
     return GNUNET_SYSERR;
-
   }
   ret = 0;
-  while (SQLITE_ROW == (ret = sqlite3_step (plugin->iterate_records)))
+  while (SQLITE_ROW == (sret = sqlite3_step (plugin->iterate_records)))
   {
     ret++;
     if (NULL == iter)
       continue; /* FIXME: just counting can be done more cheaply... */
-    loc.revision = sqlite3_column_int (plugin->iterate_records, 1);
-    name = (const char*) sqlite3_column_text (plugin->iterate_records, 2);
-    record_type = sqlite3_column_int (plugin->iterate_records, 3);
-    loc.depth = sqlite3_column_int (plugin->iterate_records, 4);
-    loc.offset = sqlite3_column_int64 (plugin->iterate_records, 5);
-    expiration.abs_value = (uint64_t) sqlite3_column_int64 (plugin->iterate_records, 6);
-    flags = (enum GNUNET_NAMESTORE_RecordFlags) sqlite3_column_int (plugin->iterate_records, 7);
-    data = sqlite3_column_blob (plugin->iterate_records, 8);
-    data_size = sqlite3_column_bytes (plugin->iterate_records, 8);
+    loc.revision = sqlite3_column_int (plugin->iterate_records, 0);
+    name = (const char*) sqlite3_column_text (plugin->iterate_records, 1);
+    record_type = sqlite3_column_int (plugin->iterate_records, 2);
+    loc.depth = sqlite3_column_int (plugin->iterate_records, 3);
+    loc.offset = sqlite3_column_int64 (plugin->iterate_records, 4);
+    expiration.abs_value = (uint64_t) sqlite3_column_int64 (plugin->iterate_records, 5);
+    flags = (enum GNUNET_NAMESTORE_RecordFlags) sqlite3_column_int (plugin->iterate_records, 6);
+    data = sqlite3_column_blob (plugin->iterate_records, 7);
+    data_size = sqlite3_column_bytes (plugin->iterate_records, 7);
     iter (iter_cls, zone,
 	  &loc, name, record_type,
 	  expiration, flags, data_size, data);
   }
-  if (SQLITE_DONE != ret)
+  if (SQLITE_DONE != sret)
     LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR, "sqlite_step");
   sqlite3_finalize (plugin->iterate_records);
   return ret;
@@ -698,10 +705,10 @@ namestore_sqlite_get_node (void *cls,
   ret = GNUNET_NO;
   if (SQLITE_ROW == (ret = sqlite3_step (plugin->get_node)))    
   {
-    ploc.offset = sqlite3_column_int64 (plugin->get_node, 1);
-    rloc.offset = sqlite3_column_int64 (plugin->get_node, 2);
-    hashcodes = sqlite3_column_blob (plugin->get_node, 3);
-    hashcodes_size = sqlite3_column_bytes (plugin->get_node, 3);    
+    ploc.offset = sqlite3_column_int64 (plugin->get_node, 0);
+    rloc.offset = sqlite3_column_int64 (plugin->get_node, 1);
+    hashcodes = sqlite3_column_blob (plugin->get_node, 2);
+    hashcodes_size = sqlite3_column_bytes (plugin->get_node, 2);
     if (0 != (hashcodes_size % sizeof (GNUNET_HashCode)))
     {
       GNUNET_break (0);
@@ -718,7 +725,7 @@ namestore_sqlite_get_node (void *cls,
 	  hashcodes);
     }
   }
-  if (SQLITE_DONE != ret)
+  else if (SQLITE_DONE != ret)
     LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR, "sqlite_step");
   sqlite3_finalize (plugin->get_node);
   return ret;
@@ -748,7 +755,7 @@ namestore_sqlite_get_signature (void *cls,
   const GNUNET_HashCode *top_hash;
 
   GNUNET_assert (NULL != cb);
-  if ((SQLITE_OK != sqlite3_bind_blob (plugin->get_signature, 1, zone, sizeof (GNUNET_HashCode), SQLITE_STATIC)))
+  if (SQLITE_OK != sqlite3_bind_blob (plugin->get_signature, 1, zone, sizeof (GNUNET_HashCode), SQLITE_STATIC))
   {
     LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "sqlite3_bind_XXXX");
@@ -762,16 +769,16 @@ namestore_sqlite_get_signature (void *cls,
   if (SQLITE_ROW == (ret = sqlite3_step (plugin->get_signature)))    
   {
     top_loc.offset = 0;
-    top_loc.revision = sqlite3_column_int (plugin->get_signature, 1);
-    zone_time.abs_value = sqlite3_column_int64 (plugin->get_signature, 2);
-    top_hash = sqlite3_column_blob (plugin->get_signature, 3);
-    top_loc.depth = sqlite3_column_int (plugin->get_signature, 4);
-    zone_key = sqlite3_column_blob (plugin->get_signature, 5);
-    zone_sig = sqlite3_column_blob (plugin->get_signature, 6);
+    top_loc.revision = sqlite3_column_int (plugin->get_signature, 0);
+    zone_time.abs_value = sqlite3_column_int64 (plugin->get_signature, 1);
+    top_hash = sqlite3_column_blob (plugin->get_signature, 2);
+    top_loc.depth = sqlite3_column_int (plugin->get_signature, 3);
+    zone_key = sqlite3_column_blob (plugin->get_signature, 4);
+    zone_sig = sqlite3_column_blob (plugin->get_signature, 5);
 
-    if ((sizeof (GNUNET_HashCode) != sqlite3_column_bytes (plugin->get_signature, 3)) ||
-	(sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded) != sqlite3_column_bytes (plugin->get_signature, 5)) ||
-	(sizeof (struct GNUNET_CRYPTO_RsaSignature) != sqlite3_column_bytes (plugin->get_signature, 6)))
+    if ((sizeof (GNUNET_HashCode) != sqlite3_column_bytes (plugin->get_signature, 2)) ||
+	(sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded) != sqlite3_column_bytes (plugin->get_signature, 4)) ||
+	(sizeof (struct GNUNET_CRYPTO_RsaSignature) != sqlite3_column_bytes (plugin->get_signature, 5)))
     {
       GNUNET_break (0);
       /* FIXME: delete bogus record & full zone (!?) */
@@ -809,7 +816,7 @@ run_delete_statement (struct Plugin *plugin,
 {
   int n;
 
-  if (SQLITE_OK != sqlite3_bind_blob (plugin->delete_zone_records, 1, &zone, sizeof (GNUNET_HashCode), SQLITE_STATIC))
+  if (SQLITE_OK != sqlite3_bind_blob (plugin->delete_zone_records, 1, zone, sizeof (GNUNET_HashCode), SQLITE_STATIC))
   {
     LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "sqlite3_bind_XXXX");
