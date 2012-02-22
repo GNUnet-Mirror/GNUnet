@@ -47,6 +47,7 @@ extern "C"
  *
  * @param cls closure
  * @param zone hash of the public key of the zone
+ * @param loc location of the signature for this record
  * @param name name that is being mapped (at most 255 characters long)
  * @param record_type type of the record (A, AAAA, PKEY, etc.)
  * @param expiration expiration time for the content
@@ -57,6 +58,7 @@ extern "C"
  */
 typedef void (*GNUNET_NAMESTORE_RecordIterator) (void *cls,
 						 const GNUNET_HashCode *zone,
+						 const struct GNUNET_NAMESTORE_SignatureLocation *loc,
 						 const char *name,
 						 uint32_t record_type,
 						 struct GNUNET_TIME_Absolute expiration,
