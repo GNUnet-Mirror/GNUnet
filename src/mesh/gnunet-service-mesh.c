@@ -1085,7 +1085,7 @@ send_clients_tunnel_destroy (struct MeshTunnel *t)
 
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_DESTROY);
-  msg.tunnel_id = htonl (t->local_tid);
+  msg.tunnel_id = htonl (t->local_tid_dest);
   GNUNET_SERVER_notification_context_broadcast (nc, &msg.header, GNUNET_NO);
 }
 
@@ -3173,9 +3173,11 @@ handle_mesh_tunnel_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_break_op (0);
     return GNUNET_OK;
   }
-  if (t->local_tid >= GNUNET_MESH_LOCAL_TUNNEL_ID_SERV)
+  if (t->local_tid_dest >= GNUNET_MESH_LOCAL_TUNNEL_ID_SERV)
   {
     /* Tunnel was incoming, notify clients */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "INCOMING TUNNEL %X %X\n",
+                t->local_tid, t->local_tid_dest);
     send_clients_tunnel_destroy (t);
   }
   tunnel_send_destroy (t);
