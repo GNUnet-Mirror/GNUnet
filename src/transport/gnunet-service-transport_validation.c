@@ -494,9 +494,8 @@ transmit_ping_if_allowed (void *cls, const struct GNUNET_PeerIdentity *pid,
       else
       {
         /* Could not get a valid session */
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not get a valid session for `%s' %s\n",
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Could not get a valid session for `%s' %s\n",
                     GNUNET_i2s (pid), GST_plugins_a2s (ve->address));
-        GNUNET_break (0);
         ret = -1;
       }
     }
