@@ -29,10 +29,8 @@ if HAVE_EXPERIMENTAL
 check_PROGRAMS += test_namestore_api
 endif
 
-if HAVE_EXPERIMENTAL
 lib_LTLIBRARIES = \
   libgnunetnamestore.la
-endif
 
 libgnunetnamestore_la_SOURCES = \
   namestore_api.c namestore.h 
