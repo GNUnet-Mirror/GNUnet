@@ -223,6 +223,8 @@ struct Plugin
    */
   struct GNUNET_NETWORK_FDSet *ws;
 
+  int with_ws;
+
   /**
    * socket that we transmit all data with
    */
@@ -315,7 +317,7 @@ unix_transport_server_stop (void *cls)
   GNUNET_break (GNUNET_OK ==
                 GNUNET_NETWORK_socket_close (plugin->unix_sock.desc));
   plugin->unix_sock.desc = NULL;
-
+  plugin->with_ws = GNUNET_NO;
   return GNUNET_OK;
 }
 
@@ -635,17 +637,20 @@ unix_plugin_send (void *cls,
               (char *) session->addr);
 #endif
 
-  if (plugin->select_task != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel(plugin->select_task);
+  if (plugin->with_ws == GNUNET_NO)
+  {
+    if (plugin->select_task != GNUNET_SCHEDULER_NO_TASK)
+      GNUNET_SCHEDULER_cancel(plugin->select_task);
 
-  plugin->select_task =
-      GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                                   GNUNET_SCHEDULER_NO_TASK,
-                                   GNUNET_TIME_UNIT_FOREVER_REL,
-                                   plugin->rs,
-                                   plugin->ws,
-                                   &unix_plugin_select, plugin);
-
+    plugin->select_task =
+        GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+                                     GNUNET_SCHEDULER_NO_TASK,
+                                     GNUNET_TIME_UNIT_FOREVER_REL,
+                                     plugin->rs,
+                                     plugin->ws,
+                                     &unix_plugin_select, plugin);
+    plugin->with_ws = GNUNET_YES;
+  }
   return ssize;
 }
 
@@ -704,6 +709,9 @@ unix_plugin_select_read (struct Plugin * plugin)
   ret =
       GNUNET_NETWORK_socket_recvfrom (plugin->unix_sock.desc, buf, sizeof (buf),
                                       (struct sockaddr *) &un, &addrlen);
+
+  if ((GNUNET_SYSERR == ret) && ((errno == EAGAIN) || (errno == ENOBUFS)))
+    return;
 
   if (ret == GNUNET_SYSERR)
   {
@@ -807,7 +815,7 @@ unix_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     return;
 
-
+  plugin->with_ws = GNUNET_NO;
   if ((tc->reason & GNUNET_SCHEDULER_REASON_WRITE_READY) != 0)
   {
     GNUNET_assert (GNUNET_NETWORK_fdset_isset
@@ -823,6 +831,8 @@ unix_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     unix_plugin_select_read (plugin);
   }
 
+  if (plugin->select_task != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel (plugin->select_task);
   plugin->select_task =
       GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
                                    GNUNET_SCHEDULER_NO_TASK,
@@ -830,6 +840,8 @@ unix_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                    plugin->rs,
                                    (plugin->msg_head != NULL) ? plugin->ws : NULL,
                                    &unix_plugin_select, plugin);
+  if (plugin->msg_head != NULL)
+    plugin->with_ws = GNUNET_YES;
 }
 
 /**
@@ -895,8 +907,12 @@ unix_transport_server_start (void *cls)
   plugin->select_task =
       GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
                                    GNUNET_SCHEDULER_NO_TASK,
-                                   GNUNET_TIME_UNIT_FOREVER_REL, plugin->rs,
-                                   plugin->ws, &unix_plugin_select, plugin);
+                                   GNUNET_TIME_UNIT_FOREVER_REL,
+                                   plugin->rs,
+                                   NULL,
+                                   &unix_plugin_select, plugin);
+  plugin->with_ws = GNUNET_NO;
+
   return 1;
 }
 
