@@ -96,7 +96,6 @@ src/ats/gnunet-service-ats.c
 src/ats/gnunet-service-ats_addresses.c
 src/ats/gnunet-service-ats_performance.c
 src/ats/ats_api_performance.c
-src/ats/gnunet-service-ats_math.c
 src/ats/gnunet-service-ats_scheduling.c
 src/fragmentation/defragmentation.c
 src/fragmentation/fragmentation.c
@@ -146,7 +145,6 @@ src/transport/gnunet-service-transport_plugins.c
 src/transport/plugin_transport_wlan.c
 src/transport/gnunet-transport.c
 src/transport/gnunet-service-transport_validation.c
-src/transport/plugin_transport_udp_new.c
 src/transport/gnunet-transport-certificate-creation.c
 src/transport/gnunet-service-transport_clients.c
 src/transport/transport_api.c
@@ -202,7 +200,6 @@ src/dht/gnunet-service-dht_hello.h
 src/dht/gnunet-service-dht_nse.h
 src/arm/arm.h
 src/ats/gnunet-service-ats_performance.h
-src/ats/gnunet-service-ats_math.h
 src/ats/gnunet-service-ats.h
 src/ats/ats.h
 src/ats/gnunet-service-ats_addresses.h
