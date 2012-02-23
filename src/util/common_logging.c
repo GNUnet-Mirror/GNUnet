@@ -948,6 +948,23 @@ GNUNET_i2s (const struct GNUNET_PeerIdentity *pid)
   return (const char *) ret.encoding;
 }
 
+/**
+ * Convert a peer identity to a string (for printing debug messages).
+ * This is one of the very few calls in the entire API that is
+ * NOT reentrant!
+ *
+ * @param pid the peer identity
+ * @return string form of the pid; will be overwritten by next
+ *         call to GNUNET_i2s.
+ */
+const char *
+GNUNET_i2s_full (const struct GNUNET_PeerIdentity *pid)
+{
+  static struct GNUNET_CRYPTO_HashAsciiEncoded ret;
+
+  GNUNET_CRYPTO_hash_to_enc (&pid->hashPubKey, &ret);
+  return (const char *) ret.encoding;
+}
 
 
 /**

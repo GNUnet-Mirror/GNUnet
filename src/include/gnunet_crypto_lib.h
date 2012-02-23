@@ -407,12 +407,25 @@ GNUNET_CRYPTO_hash_to_enc (const GNUNET_HashCode * block,
 
 /**
  * Convert ASCII encoding back to GNUNET_CRYPTO_hash
+ *
  * @param enc the encoding
+ * @param enclen number of characters in 'enc' (without 0-terminator, which can be missing)
  * @param result where to store the GNUNET_CRYPTO_hash code
  * @return GNUNET_OK on success, GNUNET_SYSERR if result has the wrong encoding
  */
 int
-GNUNET_CRYPTO_hash_from_string (const char *enc, GNUNET_HashCode * result);
+GNUNET_CRYPTO_hash_from_string2 (const char *enc, size_t enclen,
+                                 GNUNET_HashCode * result);
+
+
+/**
+ * Convert ASCII encoding back to GNUNET_CRYPTO_hash
+ * @param enc the encoding
+ * @param result where to store the GNUNET_CRYPTO_hash code
+ * @return GNUNET_OK on success, GNUNET_SYSERR if result has the wrong encoding
+ */
+#define GNUNET_CRYPTO_hash_from_string(enc, result) \
+  GNUNET_CRYPTO_hash_from_string2 (enc, strlen(enc), result)
 
 
 /**

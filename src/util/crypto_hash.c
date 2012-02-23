@@ -322,7 +322,8 @@ GNUNET_CRYPTO_hash_to_enc (const GNUNET_HashCode * block,
  * @return GNUNET_OK on success, GNUNET_SYSERR if result has the wrong encoding
  */
 int
-GNUNET_CRYPTO_hash_from_string (const char *enc, GNUNET_HashCode * result)
+GNUNET_CRYPTO_hash_from_string2 (const char *enc, size_t enclen,
+                                GNUNET_HashCode * result)
 {
   unsigned int rpos;
   unsigned int wpos;
@@ -330,7 +331,7 @@ GNUNET_CRYPTO_hash_from_string (const char *enc, GNUNET_HashCode * result)
   unsigned int vbit;
   int ret;
 
-  if (strlen (enc) != sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) - 1)
+  if (enclen != sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) - 1)
     return GNUNET_SYSERR;
 
   vbit = 2;                     /* padding! */

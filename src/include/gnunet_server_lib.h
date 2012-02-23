@@ -240,6 +240,14 @@ GNUNET_SERVER_client_set_timeout (struct GNUNET_SERVER_Client *client,
 
 
 /**
+ * Set if a client should finish a pending write when disconnecting.
+ */
+void
+GNUNET_SERVER_client_set_finish_pending_write (struct GNUNET_SERVER_Client *client,
+                                               int finish);
+
+
+/**
  * Disable the warning the server issues if a message is not acknowledged
  * in a timely fashion.  Use this call if a client is intentionally delayed
  * for a while.  Only applies to the current message.
@@ -634,6 +642,64 @@ GNUNET_SERVER_mst_receive (struct GNUNET_SERVER_MessageStreamTokenizer *mst,
  */
 void
 GNUNET_SERVER_mst_destroy (struct GNUNET_SERVER_MessageStreamTokenizer *mst);
+
+
+/**
+ * Signature of a function to create a custom tokenizer.
+ *
+ * @param cls closure from 'GNUNET_SERVER_set_callbacks'
+ * @param client handle to client the tokenzier will be used for
+ * @return handle to custom tokenizer ('mst')
+ */
+typedef void* (*GNUNET_SERVER_MstCreateCallback) (void *cls,
+                                                  struct GNUNET_SERVER_Client *client);
+
+/**
+ * Signature of a function to destroy a custom tokenizer.
+ *
+ * @param cls closure from 'GNUNET_SERVER_set_callbacks'
+ * @param mst custom tokenizer handle
+ */
+typedef void (*GNUNET_SERVER_MstDestroyCallback) (void *cls, void *mst);
+
+/**
+ * Signature of a function to destroy a custom tokenizer.
+ *
+ * @param cls closure from 'GNUNET_SERVER_set_callbacks'
+ * @param mst custom tokenizer handle
+ * @param client_identity ID of client for which this is a buffer,
+ *        can be NULL (will be passed back to 'cb')
+ * @param buf input data to add
+ * @param size number of bytes in buf
+ * @param purge should any excess bytes in the buffer be discarded
+ *       (i.e. for packet-based services like UDP)
+ * @param one_shot only call callback once, keep rest of message in buffer
+ * @return GNUNET_OK if we are done processing (need more data)
+ *         GNUNET_NO if one_shot was set and we have another message ready
+ *         GNUNET_SYSERR if the data stream is corrupt 
+ */
+typedef int (*GNUNET_SERVER_MstReceiveCallback) (void *cls, void *mst,
+                                                 struct GNUNET_SERVER_Client *client,
+                                                 const char *buf, size_t size,
+                                                 int purge, int one_shot);
+
+
+/**
+ * Change functions used by the server to tokenize the message stream.
+ * (very rarely used).
+ *
+ * @param server server to modify
+ * @param create new tokenizer initialization function
+ * @param destroy new tokenizer destruction function
+ * @param receive new tokenizer receive function
+ * @param cls closure for 'create', 'receive', 'destroy' 
+ */
+void
+GNUNET_SERVER_set_callbacks (struct GNUNET_SERVER_Handle *server,
+                             GNUNET_SERVER_MstCreateCallback create,
+                             GNUNET_SERVER_MstDestroyCallback destroy,
+                             GNUNET_SERVER_MstReceiveCallback receive,
+                             void *cls);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */
