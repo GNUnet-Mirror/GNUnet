@@ -160,6 +160,27 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_DHT_disconnect(dht_handle);
 }
 
+void
+on_namestore_record_put_result(void *cls,
+                               int32_t success,
+                               const char *emsg)
+{
+  if (GNUNET_NO == success)
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "records already in namestore\n");
+    return;
+  }
+  else if (GNUNET_YES == success)
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "records successfully put in namestore\n");
+    return;
+  }
+
+  GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+             "Error putting records into namestore: %s\n", emsg);
+}
+
 /**
  * Function called when we get a result from the dht
  * for our query
@@ -259,7 +280,7 @@ process_authority_dht_result(void* cls,
                                num_records,
                                rd,
                                signature,
-                               NULL, //cont
+                               &on_namestore_record_put_result, //cont
                                NULL); //cls
   
   if (query->answered)
@@ -412,7 +433,7 @@ process_name_dht_result(void* cls,
                                num_records,
                                rd,
                                signature,
-                               NULL, //cont
+                               &on_namestore_record_put_result, //cont
                                NULL); //cls
   
   if (query->answered)
