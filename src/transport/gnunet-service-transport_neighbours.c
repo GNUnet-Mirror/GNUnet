@@ -1495,7 +1495,24 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
   /* Obtain an session for this address from plugin */
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
   papi = GST_plugins_find (address->transport_name);
-  GNUNET_assert (papi != NULL);
+
+  if (papi == NULL)
+  {
+    /* we don't have the plugin for this address */
+    GNUNET_ATS_address_destroyed (GST_ats, n->address, NULL);
+
+    if (n->ats_suggest != GNUNET_SCHEDULER_NO_TASK)
+      GNUNET_SCHEDULER_cancel (n->ats_suggest);
+    n->ats_suggest =  GNUNET_SCHEDULER_add_delayed (ATS_RESPONSE_TIMEOUT,
+                                      ats_suggest_cancel,
+                                      n);
+    GNUNET_ATS_suggest_address (GST_ats, &n->id);
+    GNUNET_HELLO_address_free (n->address);
+    n->address = NULL;
+    n->session = NULL;
+    return GNUNET_NO;
+  }
+
   if (session == NULL)
   {
     n->session = papi->get_session (papi->cls, address);
