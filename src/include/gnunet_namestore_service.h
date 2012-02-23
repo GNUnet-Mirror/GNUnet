@@ -260,7 +260,10 @@ GNUNET_NAMESTORE_record_remove (struct GNUNET_NAMESTORE_Handle *h,
  * @param cls closure
  * @param zone_key public key of the zone
  * @param expire when does the corresponding block in the DHT expire (until
- *               when should we never do a DHT lookup for the same name again)?
+ *               when should we never do a DHT lookup for the same name again)?; 
+ *               GNUNET_TIME_UNIT_ZERO_ABS if there are no records of any type in the namestore,
+ *               or the expiration time of the block in the namestore (even if there are zero
+ *               records matching the desired record type)
  * @param name name that is being mapped (at most 255 characters long)
  * @param rd_count number of entries in 'rd' array
  * @param rd array of records with data to store

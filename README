@@ -67,30 +67,38 @@ If you install from source, you need to install GNU libextractor first
 (download from http://www.gnu.org/software/libextractor/).  We also
 recommend installing GNU libmicrohttpd (download from
 http://www.gnu.org/software/libmicrohttpd/).  Then you can start the
-actual GNUnet compilation process with:
+actual GNUnet compilation and installation process with:
 
-$ ./configure --prefix=$HOME --with-extractor=$HOME
+$ export GNUNET_PREFIX=/usr/local # or other directory of your choice
+$ addgroup gnunetdns
+$ adduser gnunet gnunet
+$ ./configure --prefix=$GNUNET_PREFIX --with-extractor=$LE_PREFIX
 $ make
 # make install
 # sudo -u gnunet mkdir ~/.gnunet/ 
 # sudo -u gnunet touch ~/.gnunet/gnunet.conf
 # sudo -u gnunet gnunet-arm -s
 
-This will compile and install GNUnet to $HOME/bin/, $HOME/lib/ and
-$HOME/share/ and start the system with the default configuration.  It
-is recommended that you add a user "gnunet" to run "gnunet-arm".  You
-can then still run the end-user applications as another user.  If you
-create a user "gnunet", it is recommended that you edit the
-configuration file slightly so that data can be stored in
-"/var/lib/gnunet"; you may also want to use "/etc/gnunet.conf" for the
-location of the configuration file in this case.
+This will create the users and groups needed for running GNUnet
+securely and then compile and install GNUnet to $GNUNET_PREFIX/bin/,
+$GNUNET_PREFIX/lib/ and $GNUNET_PREFIX/share/ and start the system
+with the default configuration.  It is strongly recommended that you
+add a user "gnunet" to run "gnunet-arm".  You can then still run the
+end-user applications as another user.  
+
+If you create a system user "gnunet", it is recommended that you edit
+the configuration file slightly so that data can be stored in the
+system user home directory at "/var/lib/gnunet"; you may also want to
+use "/etc/gnunet.conf" for the location of the configuration file in
+this case.
 
 You can avoid running 'make install' as root if you run configure
 with the "--with-sudo=yes" option and have extensive sudo rights
-(can run chmod +s and chown via sudo).  If you run 'make install'
+(can run "chmod +s" and "chown" via 'sudo').  If you run 'make install'
 as a normal user without sudo rights (or the configure option),
 certain binaries that require additional priviledges will not be
-installed properly (and NAT traversal, WLAN and VPN will not work).
+installed properly (and autonomous NAT traversal, WLAN, DNS/GNS and 
+the VPN will then not work).
 
 Note that additional, per-user configuration files
 (~/.gnunet/gnunet.conf) need to be created by each user (for example,
@@ -113,12 +121,12 @@ Configuration
 =============
 
 GNUnet uses two types of configuration files, one that specifies the
-system-wide defaults (typically located in /usr/share/gnunet/defaults
-.conf) and a second one that overrides default values with
-user-specific preferences.  The user-specific configuration file
-should be located in "~/.gnunet/gnunet.conf" or its location can be
-specified by giving the "-c" option to the respective GNUnet
-application.
+system-wide defaults (typically located in
+$GNUNET_PREFIX/share/gnunet/config.d/) and a second one that overrides
+default values with user-specific preferences.  The user-specific
+configuration file should be located in "~/.gnunet/gnunet.conf" or its
+location can be specified by giving the "-c" option to the respective
+GNUnet application.
 
 The defaults that are shipped with the installation are usually ok,
 you may want to adjust the limitations (space consumption, bandwidth,
@@ -168,9 +176,11 @@ together with a description.  To publish files on GNUnet, use the
 
 
 The GTK user interface is shipped separately.  After downloading and
-installing gnunet-gtk, you can invoke the GUI with:
+installing gnunet-gtk, you can invoke the setup tool and the 
+file-sharing GUI with:
 
-$ gnunet-gtk
+$ gnunet-setup
+$ gnunet-fs-gtk
 
 For further documentation, see our webpage.
 
