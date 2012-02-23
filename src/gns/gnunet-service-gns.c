@@ -317,7 +317,6 @@ process_authority_lookup(void* cls, const GNUNET_HashCode *zone,
                    const char *name, uint32_t record_type,
                    struct GNUNET_TIME_Absolute expiration,
                    enum GNUNET_NAMESTORE_RecordFlags flags,
-                   const struct GNUNET_NAMESTORE_SignatureLocation *sig_loc,
                    size_t size, const void *data)
 {
   struct GNUNET_GNS_PendingQuery *query;
@@ -344,7 +343,7 @@ process_authority_lookup(void* cls, const GNUNET_HashCode *zone,
      */
     if (GNUNET_CRYPTO_hash_cmp(zone, &zone_hash))
     {
-      GNUNET_log(GNUNET_ERROR_TYPE_INFO, "NX record\n");
+      GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Authority unknown\n");
       //FIXME return NX answer
       return;
     }
@@ -420,10 +419,10 @@ reply_to_dns(struct GNUNET_GNS_PendingQuery *answer)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_INFO,
                "Answering DNS request\n");
-    //GNUNET_DNS_request_answer(answer->request_handle,
-    //                          len,
-     //                         buf);
-    GNUNET_free(answer);
+    GNUNET_DNS_request_answer(answer->request_handle,
+                              len,
+                              buf);
+    //GNUNET_free(answer);
     GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Answered DNS request\n");
     //FIXME return code, free datastructures
   }
@@ -454,7 +453,6 @@ process_authoritative_result(void* cls, const GNUNET_HashCode *zone,
                   const char *name, uint32_t record_type,
                   struct GNUNET_TIME_Absolute expiration,
                   enum GNUNET_NAMESTORE_RecordFlags flags,
-                  const struct GNUNET_NAMESTORE_SignatureLocation *sig_loc,
                   size_t size, const void *data)
 {
   struct GNUNET_GNS_PendingQuery *query;
@@ -621,7 +619,7 @@ resolve_name(struct GNUNET_GNS_PendingQuery *query, GNUNET_HashCode *zone)
   if (is_canonical(query->name))
   {
     //We only need to check this zone's ns
-    GNUNET_NAMESTORE_lookup_name(namestore_handle,
+    GNUNET_NAMESTORE_lookup_record(namestore_handle,
                                zone,
                                query->name,
                                query->type,
@@ -632,7 +630,7 @@ resolve_name(struct GNUNET_GNS_PendingQuery *query, GNUNET_HashCode *zone)
   {
     //We have to resolve the authoritative entity
     char *new_authority = move_up(query->name);
-    GNUNET_NAMESTORE_lookup_name(namestore_handle,
+    GNUNET_NAMESTORE_lookup_record(namestore_handle,
                                  zone,
                                  new_authority,
                                  GNUNET_GNS_RECORD_PKEY,
@@ -761,7 +759,6 @@ put_some_records(void)
                                GNUNET_GNS_RECORD_TYPE_A,
                                GNUNET_TIME_absolute_get_forever(),
                                GNUNET_NAMESTORE_RF_AUTHORITY,
-                               NULL, //sig loc
                                sizeof(struct in_addr),
                                alice,
                                NULL,
@@ -772,7 +769,6 @@ put_some_records(void)
                                GNUNET_GNS_RECORD_TYPE_A,
                                GNUNET_TIME_absolute_get_forever(),
                                GNUNET_NAMESTORE_RF_AUTHORITY,
-                               NULL, //sig loc
                                sizeof(struct in_addr),
                                bob,
                                NULL,
@@ -802,7 +798,6 @@ void
 put_gns_record(void *cls, const GNUNET_HashCode *zone, const char *name,
                uint32_t record_type, struct GNUNET_TIME_Absolute expiration,
                enum GNUNET_NAMESTORE_RecordFlags flags,
-               const struct GNUNET_NAMESTORE_SignatureLocation *sig_loc,
                size_t size, const void *record_data)
 {
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Putting a record into the DHT\n");
@@ -814,9 +809,6 @@ put_gns_record(void *cls, const GNUNET_HashCode *zone, const char *name,
   exp_nbo = GNUNET_TIME_absolute_hton (expiration);
   uint32_t namelen = htonl(strlen(name));
   uint16_t flags_nbo = htons(flags);
-  uint64_t offset = GNUNET_htonll(sig_loc->offset);
-  uint32_t depth = htonl(sig_loc->depth);
-  uint32_t revision = htonl(sig_loc->revision);
   GNUNET_HashCode name_hash;
   GNUNET_HashCode xor_hash;
 
@@ -826,7 +818,6 @@ put_gns_record(void *cls, const GNUNET_HashCode *zone, const char *name,
    */
   size_t record_len = sizeof(size_t) + sizeof(uint32_t) +
     sizeof(uint16_t) +
-    sizeof(struct GNUNET_NAMESTORE_SignatureLocation) +
     sizeof(uint32_t) + strlen(name) + size;
   
   record_type = htonl(record_type);
@@ -849,15 +840,6 @@ put_gns_record(void *cls, const GNUNET_HashCode *zone, const char *name,
 
   memcpy(data_ptr, &flags_nbo, sizeof(uint16_t));
   data_ptr += sizeof(uint16_t);
-
-  memcpy(data_ptr, &offset, sizeof(uint64_t));
-  data_ptr += sizeof(uint64_t);
-
-  memcpy(data_ptr, &depth, sizeof(uint32_t));
-  data_ptr += sizeof(uint32_t);
-  
-  memcpy(data_ptr, &revision, sizeof(uint32_t));
-  data_ptr += sizeof(uint32_t);
 
   memcpy(data_ptr, &size, sizeof(uint32_t));
   data_ptr += sizeof(uint32_t);
