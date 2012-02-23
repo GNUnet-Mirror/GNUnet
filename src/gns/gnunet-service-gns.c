@@ -52,7 +52,7 @@ struct GNUNET_GNS_QueryRecordList
   struct GNUNET_GNS_QueryRecordList * next;
   struct GNUNET_GNS_QueryRecordList * prev;
 
-  GNUNET_GNS_Record * record;
+  struct GNUNET_NAMESTORE_RecordData * record;
 };
 
 /**
@@ -366,16 +366,12 @@ process_authority_lookup(void* cls,
    * We found an authority that may be able to help us
    * move on with query
    */
-  GNUNET_GNS_Record *record 
-    = GNUNET_malloc(sizeof(GNUNET_GNS_Record));
   
-  
-  //FIXME todo
-  //parse_record(rd[0]->data, rd[0]->data_size, 0, record);
-  //FIXME this cast will not work we have to define how a PKEY record looks like
-  //In reality this also returns a pubkey not a hash
-  GNUNET_HashCode *k = (GNUNET_HashCode*)record->data.raw.data;
-  query->authority = k;
+  GNUNET_assert(rd->record_type == GNUNET_GNS_RECORD_PKEY);
+  GNUNET_HashCode *pkey_hash = GNUNET_malloc(sizeof(GNUNET_HashCode));
+  GNUNET_CRYPTO_hash(rd->data, GNUNET_CRYPTO_RSA_KEY_LENGTH, pkey_hash);
+  GNUNET_free_non_null(query->authority);
+  query->authority = pkey_hash;
   resolve_name(query, query->authority);
   
 }
@@ -406,10 +402,11 @@ reply_to_dns(struct GNUNET_GNS_PendingQuery *answer)
   for (i=answer->records_head; i != NULL; i=i->next)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-               "Adding %s to DNS response\n", i->record->name);
-    memcpy(&packet->answers[j], 
-           i->record,
-           sizeof (struct GNUNET_DNSPARSER_Record));
+               "Adding type %d to DNS response\n", i->record->record_type);
+    //FIXME build proper dnsparser record! this will fail!
+    //memcpy(&packet->answers[j], 
+    //       i->record,
+    //       sizeof (struct GNUNET_DNSPARSER_Record));
     GNUNET_free(i->record);
     j++;
   }
@@ -476,7 +473,7 @@ process_authoritative_result(void* cls,
 {
   struct GNUNET_GNS_PendingQuery *query;
   struct GNUNET_GNS_QueryRecordList *qrecord;
-  struct GNUNET_DNSPARSER_Record *record;
+  struct GNUNET_NAMESTORE_RecordData *record;
   GNUNET_HashCode zone;
   query = (struct GNUNET_GNS_PendingQuery *) cls;
   GNUNET_CRYPTO_hash(key, GNUNET_CRYPTO_RSA_KEY_LENGTH, &zone);
@@ -527,7 +524,7 @@ process_authoritative_result(void* cls,
     {
       // A time will come when this has to be freed
       qrecord = GNUNET_malloc(sizeof(struct GNUNET_GNS_QueryRecordList));
-      record = GNUNET_malloc(sizeof(struct GNUNET_DNSPARSER_Record));
+      record = GNUNET_malloc(sizeof(struct GNUNET_NAMESTORE_RecordData));
       qrecord->record = record;
       
       //fixme into gns_util
@@ -580,7 +577,7 @@ is_canonical(char* name)
  * @param name the domain
  * @return the tld
  */
-char* move_up(char* name)
+char* pop_tld(char* name)
 {
   uint32_t len;
 
@@ -627,7 +624,7 @@ resolve_name(struct GNUNET_GNS_PendingQuery *query, GNUNET_HashCode *zone)
   else
   {
     //We have to resolve the authoritative entity
-    char *new_authority = move_up(query->name);
+    char *new_authority = pop_tld(query->name);
     GNUNET_NAMESTORE_lookup_record(namestore_handle,
                                  zone,
                                  new_authority,
@@ -747,19 +744,26 @@ put_some_records(void)
   /* put a few records into namestore */
   char* ipA = "1.2.3.4";
   char* ipB = "5.6.7.8";
-  GNUNET_GNS_Record *alice = GNUNET_malloc(sizeof(GNUNET_GNS_Record));
-  GNUNET_GNS_Record *bob = GNUNET_malloc(sizeof(GNUNET_GNS_Record));
-  struct GNUNET_NAMESTORE_RecordData *rda = NULL;
-  struct GNUNET_NAMESTORE_RecordData *rdb = NULL;
+  struct in_addr *alice = GNUNET_malloc(sizeof(struct in_addr));
+  struct in_addr *bob = GNUNET_malloc(sizeof(struct in_addr));
+  struct GNUNET_NAMESTORE_RecordData *rda;
+  struct GNUNET_NAMESTORE_RecordData *rdb;
+
   rda = GNUNET_malloc(sizeof(struct GNUNET_NAMESTORE_RecordData));
+  rdb = GNUNET_malloc(sizeof(struct GNUNET_NAMESTORE_RecordData));
   
-  //FIXME here we would have to parse the gns record and put it into
-  //the rd struct
+  GNUNET_assert(1 == inet_pton (AF_INET, ipA, alice));
+  GNUNET_assert(1 == inet_pton (AF_INET, ipB, bob));
 
-  //FIXME this is not enough! but too mucht atm
-  GNUNET_assert(1 == inet_pton (AF_INET, ipA, alice->data.raw.data));
-  GNUNET_assert(1 == inet_pton (AF_INET, ipB, bob->data.raw.data));
-
+  rda->data_size = sizeof(struct in_addr);
+  rdb->data_size = sizeof(struct in_addr);
+  rda->data = alice;
+  rdb->data = bob;
+  rda->record_type = GNUNET_GNS_RECORD_TYPE_A;
+  rdb->record_type = GNUNET_GNS_RECORD_TYPE_A;
+  rda->expiration = GNUNET_TIME_absolute_get_forever ();
+  rdb->expiration = GNUNET_TIME_absolute_get_forever ();
+  
   GNUNET_NAMESTORE_record_create (namestore_handle,
                                zone_key,
                                "alice",

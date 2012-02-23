@@ -34,6 +34,7 @@
 #define GNUNET_GNS_SERVICE_H
 
 #include "gnunet_util_lib.h"
+#include "gnunet_namestore_service.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -53,11 +54,6 @@ struct GNUNET_GNS_Handle;
  * Handle to control a get operation.
  */
 struct GNUNET_GNS_LookupHandle;
-
-/**
- * A single GNS record.
- */
-struct GNUNET_GNS_Record;
 
 /**
  * Record types
@@ -114,7 +110,7 @@ GNUNET_GNS_disconnect (struct GNUNET_GNS_Handle *handle);
  */
 typedef void (*GNUNET_GNS_LookupIterator) (void *cls,
                                         const char * name,
-                                        const struct GNUNET_GNS_Record *record,
+                                        const struct GNUNET_NAMESTORE_RecordData *record,
                                         unsigned int num_records);
 
 
