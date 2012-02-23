@@ -23,7 +23,6 @@
  * TODO:
  *    - Write xquery and block plugin
  *    - Think about mixed dns queries (.gnunet and .org)
- *    - (de-)serialisation of records/signature trees
  *    - The smaller FIXME issues all around
  *
  * @file gns/gnunet-service-gns.c
@@ -1014,6 +1013,8 @@ put_gns_record(void *cls,
                   timeout,
                   NULL, //FIXME continuation needed? success check? yes ofc
                   NULL); //cls for cont
+  
+  num_public_records++;
 
   /**
    * Reschedule periodic put
@@ -1036,6 +1037,7 @@ update_zone_dht_start(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Update zone!\n");
   dht_update_interval = GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS,
                                                      (3600/num_public_records));
+  num_public_records = 0; //start counting again
   namestore_iter = GNUNET_NAMESTORE_zone_iteration_start (namestore_handle,
                                                           &zone_hash,
                                                           GNUNET_NAMESTORE_RF_AUTHORITY,
