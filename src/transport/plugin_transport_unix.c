@@ -549,6 +549,18 @@ unix_plugin_get_session (void *cls,
   return s;
 }
 
+/*
+ * @param cls the plugin handle
+ * @param tc the scheduling context (for rescheduling this function again)
+ *
+ * We have been notified that our writeset has something to read.  We don't
+ * know which socket needs to be read, so we have to check each one
+ * Then reschedule this function to be called again once more is available.
+ *
+ */
+static void
+unix_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+
 /**
  * Function that can be used by the transport service to transmit
  * a message using the plugin.   Note that in the case of a
@@ -622,6 +634,17 @@ unix_plugin_send (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sent %d bytes to `%s'\n", ssize,
               (char *) session->addr);
 #endif
+
+  if (plugin->select_task != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel(plugin->select_task);
+
+  plugin->select_task =
+      GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+                                   GNUNET_SCHEDULER_NO_TASK,
+                                   GNUNET_TIME_UNIT_FOREVER_REL,
+                                   plugin->rs,
+                                   plugin->ws,
+                                   &unix_plugin_select, plugin);
 
   return ssize;
 }
@@ -803,8 +826,10 @@ unix_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   plugin->select_task =
       GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
                                    GNUNET_SCHEDULER_NO_TASK,
-                                   GNUNET_TIME_UNIT_FOREVER_REL, plugin->rs,
-                                   plugin->ws, &unix_plugin_select, plugin);
+                                   GNUNET_TIME_UNIT_FOREVER_REL,
+                                   plugin->rs,
+                                   (plugin->msg_head != NULL) ? plugin->ws : NULL,
+                                   &unix_plugin_select, plugin);
 }
 
 /**
