@@ -541,7 +541,6 @@ disconnect_and_free_it (void *cls, const GNUNET_HashCode * key, void *value)
          GNUNET_i2s (&s->target),
          GNUNET_a2s (s->sock_addr, s->addrlen));
 #endif
-  plugin->env->session_end (plugin->env->cls, &s->target, s);
 
   if (s->frag_ctx != NULL)
   {
@@ -579,6 +578,8 @@ disconnect_and_free_it (void *cls, const GNUNET_HashCode * key, void *value)
     }
     udpw = next;
   }
+
+  plugin->env->session_end (plugin->env->cls, &s->target, s);
 
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multihashmap_remove (plugin->sessions,
