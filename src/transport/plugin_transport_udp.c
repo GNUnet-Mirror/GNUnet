@@ -289,7 +289,27 @@ struct UDP_ACK_Message
 
 };
 
+/**
+ * We have been notified that our readset has something to read.  We don't
+ * know which socket needs to be read, so we have to check each one
+ * Then reschedule this function to be called again once more is available.
+ *
+ * @param cls the plugin handle
+ * @param tc the scheduling context (for rescheduling this function again)
+ */
+static void
+udp_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
+/**
+ * We have been notified that our readset has something to read.  We don't
+ * know which socket needs to be read, so we have to check each one
+ * Then reschedule this function to be called again once more is available.
+ *
+ * @param cls the plugin handle
+ * @param tc the scheduling context (for rescheduling this function again)
+ */
+static void
+udp_plugin_select_v6 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 /**
  * Function called for a quick conversion of the binary address to
@@ -746,6 +766,7 @@ udp_plugin_get_session (void *cls,
   GNUNET_assert (plugin != NULL);
   GNUNET_assert (address != NULL);
 
+
   if ((address->address == NULL) ||
       ((address->address_length != sizeof (struct IPv4UdpAddress)) &&
       (address->address_length != sizeof (struct IPv6UdpAddress))))
@@ -753,6 +774,15 @@ udp_plugin_get_session (void *cls,
     GNUNET_break (0);
     return NULL;
   }
+
+  if ((address->address_length == sizeof (struct IPv4UdpAddress)) &&
+      (plugin->sockv4 == NULL))
+    return NULL;
+
+  if ((address->address_length == sizeof (struct IPv6UdpAddress)) &&
+      (plugin->sockv6 == NULL))
+    return NULL;
+
 
   /* check if session already exists */
   struct SessionCompareContext cctx;
@@ -816,6 +846,7 @@ enqueue_fragment (void *cls, const struct GNUNET_MessageHeader *msg)
   struct FragmentationContext *frag_ctx = cls;
   struct Plugin *plugin = frag_ctx->plugin;
   struct UDPMessageWrapper * udpw;
+  struct Session *s;
 
   size_t msg_len = ntohs (msg->size);
 
@@ -825,6 +856,7 @@ enqueue_fragment (void *cls, const struct GNUNET_MessageHeader *msg)
 
   udpw = GNUNET_malloc (sizeof (struct UDPMessageWrapper) + msg_len);
   udpw->session = frag_ctx->session;
+  s = udpw->session;
   udpw->udp = (char *) &udpw[1];
 
   udpw->msg_size = msg_len;
@@ -836,7 +868,46 @@ enqueue_fragment (void *cls, const struct GNUNET_MessageHeader *msg)
 
   enqueue (plugin, udpw);
 
+
+  if (s->addrlen == sizeof (struct sockaddr_in))
+  {
+    if (plugin->with_v4_ws == GNUNET_NO)
+    {
+      if (plugin->select_task != GNUNET_SCHEDULER_NO_TASK)
+        GNUNET_SCHEDULER_cancel(plugin->select_task);
+
+      plugin->select_task =
+          GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+                                       GNUNET_SCHEDULER_NO_TASK,
+                                       GNUNET_TIME_UNIT_FOREVER_REL,
+                                       plugin->rs_v4,
+                                       plugin->ws_v4,
+                                       &udp_plugin_select, plugin);
+      plugin->with_v4_ws = GNUNET_YES;
+    }
+  }
+
+  else if (s->addrlen == sizeof (struct sockaddr_in6))
+  {
+    if (plugin->with_v6_ws == GNUNET_NO)
+    {
+      if (plugin->select_task_v6 != GNUNET_SCHEDULER_NO_TASK)
+        GNUNET_SCHEDULER_cancel(plugin->select_task_v6);
+
+      plugin->select_task_v6 =
+          GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+                                       GNUNET_SCHEDULER_NO_TASK,
+                                       GNUNET_TIME_UNIT_FOREVER_REL,
+                                       plugin->rs_v6,
+                                       plugin->ws_v6,
+                                       &udp_plugin_select_v6, plugin);
+      plugin->with_v6_ws = GNUNET_YES;
+    }
+  }
+
 }
+
+
 
 
 /**
@@ -882,6 +953,13 @@ udp_plugin_send (void *cls,
   char mbuf[mlen];
   GNUNET_assert (plugin != NULL);
   GNUNET_assert (s != NULL);
+
+  if ((s->addrlen == sizeof (struct sockaddr_in6)) && (plugin->sockv6 == NULL))
+    return GNUNET_SYSERR;
+
+   if ((s->addrlen == sizeof (struct sockaddr_in)) && (plugin->sockv4 == NULL))
+     return GNUNET_SYSERR;
+
 
   if (mlen >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
   {
@@ -950,6 +1028,43 @@ udp_plugin_send (void *cls,
     s->frag_ctx = frag_ctx;
 
   }
+
+  if (s->addrlen == sizeof (struct sockaddr_in))
+  {
+    if (plugin->with_v4_ws == GNUNET_NO)
+    {
+      if (plugin->select_task != GNUNET_SCHEDULER_NO_TASK)
+        GNUNET_SCHEDULER_cancel(plugin->select_task);
+
+      plugin->select_task =
+          GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+                                       GNUNET_SCHEDULER_NO_TASK,
+                                       GNUNET_TIME_UNIT_FOREVER_REL,
+                                       plugin->rs_v4,
+                                       plugin->ws_v4,
+                                       &udp_plugin_select, plugin);
+      plugin->with_v4_ws = GNUNET_YES;
+    }
+  }
+
+  else if (s->addrlen == sizeof (struct sockaddr_in6))
+  {
+    if (plugin->with_v6_ws == GNUNET_NO)
+    {
+      if (plugin->select_task_v6 != GNUNET_SCHEDULER_NO_TASK)
+        GNUNET_SCHEDULER_cancel(plugin->select_task_v6);
+
+      plugin->select_task_v6 =
+        GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+                                     GNUNET_SCHEDULER_NO_TASK,
+                                     GNUNET_TIME_UNIT_FOREVER_REL,
+                                     plugin->rs_v6,
+                                     plugin->ws_v6,
+                                     &udp_plugin_select_v6, plugin);
+      plugin->with_v6_ws = GNUNET_YES;
+    }
+  }
+
   return mlen;
 }
 
@@ -1648,15 +1763,14 @@ udp_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   plugin->select_task = GNUNET_SCHEDULER_NO_TASK;
   if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     return;
+  plugin->with_v4_ws = GNUNET_NO;
 
   if ((tc->reason & GNUNET_SCHEDULER_REASON_READ_READY) != 0)
   {
     if ((NULL != plugin->sockv4) &&
       (GNUNET_NETWORK_fdset_isset (tc->read_ready, plugin->sockv4)))
         udp_select_read (plugin, plugin->sockv4);
-    if ((NULL != plugin->sockv6) &&
-      (GNUNET_NETWORK_fdset_isset (tc->read_ready, plugin->sockv6)))
-        udp_select_read (plugin, plugin->sockv6);
+
   }
 
   if ((tc->reason & GNUNET_SCHEDULER_REASON_WRITE_READY) != 0)
@@ -1666,18 +1780,68 @@ udp_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       {
         udp_select_send (plugin, plugin->sockv4);
       }
+  }
+
+  if (plugin->select_task != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel (plugin->select_task);
+  plugin->select_task = GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+                                   GNUNET_SCHEDULER_NO_TASK,
+                                   GNUNET_TIME_UNIT_FOREVER_REL,
+                                   plugin->rs_v4,
+                                   (plugin->ipv4_queue_head != NULL) ? plugin->ws_v4 : NULL,
+                                   &udp_plugin_select, plugin);
+  if (plugin->ipv4_queue_head != NULL)
+    plugin->with_v4_ws = GNUNET_YES;
+  else
+    plugin->with_v4_ws = GNUNET_NO;
+}
+
+
+/**
+ * We have been notified that our readset has something to read.  We don't
+ * know which socket needs to be read, so we have to check each one
+ * Then reschedule this function to be called again once more is available.
+ *
+ * @param cls the plugin handle
+ * @param tc the scheduling context (for rescheduling this function again)
+ */
+static void
+udp_plugin_select_v6 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct Plugin *plugin = cls;
+
+  plugin->select_task_v6 = GNUNET_SCHEDULER_NO_TASK;
+  if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
+    return;
+
+  plugin->with_v6_ws = GNUNET_NO;
+  if ((tc->reason & GNUNET_SCHEDULER_REASON_READ_READY) != 0)
+  {
+    if ((NULL != plugin->sockv6) &&
+      (GNUNET_NETWORK_fdset_isset (tc->read_ready, plugin->sockv6)))
+        udp_select_read (plugin, plugin->sockv6);
+  }
+
+  if ((tc->reason & GNUNET_SCHEDULER_REASON_WRITE_READY) != 0)
+  {
     if ((NULL != plugin->sockv6) && (plugin->ipv6_queue_head != NULL) &&
       (GNUNET_NETWORK_fdset_isset (tc->write_ready, plugin->sockv6)))
       {
         udp_select_send (plugin, plugin->sockv6);
       }
   }
-
-  plugin->select_task = GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+  if (plugin->select_task_v6 != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel (plugin->select_task_v6);
+  plugin->select_task_v6 = GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
                                    GNUNET_SCHEDULER_NO_TASK,
-                                   GNUNET_TIME_UNIT_FOREVER_REL, plugin->rs,
-                                   plugin->ws, &udp_plugin_select, plugin);
-
+                                   GNUNET_TIME_UNIT_FOREVER_REL,
+                                   plugin->rs_v6,
+                                   (plugin->ipv6_queue_head != NULL) ? plugin->ws_v6 : NULL,
+                                   &udp_plugin_select_v6, plugin);
+  if (plugin->ipv6_queue_head != NULL)
+    plugin->with_v6_ws = GNUNET_YES;
+  else
+    plugin->with_v6_ws = GNUNET_NO;
 }
 
 
@@ -1793,19 +1957,14 @@ setup_sockets (struct Plugin *plugin, struct sockaddr_in6 *serverAddrv6, struct 
   }
 
   /* Create file descriptors */
-  plugin->rs = GNUNET_NETWORK_fdset_create ();
-  plugin->ws = GNUNET_NETWORK_fdset_create ();
-  GNUNET_NETWORK_fdset_zero (plugin->rs);
-  GNUNET_NETWORK_fdset_zero (plugin->ws);
+  plugin->rs_v4 = GNUNET_NETWORK_fdset_create ();
+  plugin->ws_v4 = GNUNET_NETWORK_fdset_create ();
+  GNUNET_NETWORK_fdset_zero (plugin->rs_v4);
+  GNUNET_NETWORK_fdset_zero (plugin->ws_v4);
   if (NULL != plugin->sockv4)
   {
-    GNUNET_NETWORK_fdset_set (plugin->rs, plugin->sockv4);
-    GNUNET_NETWORK_fdset_set (plugin->ws, plugin->sockv4);
-  }
-  if (NULL != plugin->sockv6)
-  {
-    GNUNET_NETWORK_fdset_set (plugin->rs, plugin->sockv6);
-    GNUNET_NETWORK_fdset_set (plugin->ws, plugin->sockv6);
+    GNUNET_NETWORK_fdset_set (plugin->rs_v4, plugin->sockv4);
+    GNUNET_NETWORK_fdset_set (plugin->ws_v4, plugin->sockv4);
   }
 
   if (sockets_created == 0)
@@ -1814,8 +1973,33 @@ setup_sockets (struct Plugin *plugin, struct sockaddr_in6 *serverAddrv6, struct 
   plugin->select_task =
       GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
                                    GNUNET_SCHEDULER_NO_TASK,
-                                   GNUNET_TIME_UNIT_FOREVER_REL, plugin->rs,
-                                   plugin->ws, &udp_plugin_select, plugin);
+                                   GNUNET_TIME_UNIT_FOREVER_REL,
+                                   plugin->rs_v4,
+                                   NULL,
+                                   &udp_plugin_select, plugin);
+  plugin->with_v4_ws = GNUNET_NO;
+
+  if (plugin->enable_ipv6 == GNUNET_YES)
+  {
+    plugin->rs_v6 = GNUNET_NETWORK_fdset_create ();
+    plugin->ws_v6 = GNUNET_NETWORK_fdset_create ();
+    GNUNET_NETWORK_fdset_zero (plugin->rs_v6);
+    GNUNET_NETWORK_fdset_zero (plugin->ws_v6);
+    if (NULL != plugin->sockv6)
+    {
+      GNUNET_NETWORK_fdset_set (plugin->rs_v6, plugin->sockv6);
+      GNUNET_NETWORK_fdset_set (plugin->ws_v6, plugin->sockv6);
+    }
+
+    plugin->select_task_v6 =
+        GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+                                     GNUNET_SCHEDULER_NO_TASK,
+                                     GNUNET_TIME_UNIT_FOREVER_REL,
+                                     plugin->rs_v6,
+                                     NULL,
+                                     &udp_plugin_select_v6, plugin);
+    plugin->with_v6_ws = GNUNET_NO;
+  }
 
   plugin->nat = GNUNET_NAT_register (plugin->env->cfg,
                            GNUNET_NO, plugin->port,
@@ -2019,6 +2203,11 @@ libgnunet_plugin_transport_udp_done (void *cls)
     GNUNET_SCHEDULER_cancel (plugin->select_task);
     plugin->select_task = GNUNET_SCHEDULER_NO_TASK;
   }
+  if (plugin->select_task_v6 != GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel (plugin->select_task_v6);
+    plugin->select_task_v6 = GNUNET_SCHEDULER_NO_TASK;
+  }
 
   /* Closing sockets */
   if (plugin->sockv4 != NULL)
@@ -2026,13 +2215,18 @@ libgnunet_plugin_transport_udp_done (void *cls)
     GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (plugin->sockv4));
     plugin->sockv4 = NULL;
   }
+  GNUNET_NETWORK_fdset_destroy (plugin->rs_v4);
+  GNUNET_NETWORK_fdset_destroy (plugin->ws_v4);
+
   if (plugin->sockv6 != NULL)
   {
     GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (plugin->sockv6));
     plugin->sockv6 = NULL;
+
+    GNUNET_NETWORK_fdset_destroy (plugin->rs_v6);
+    GNUNET_NETWORK_fdset_destroy (plugin->ws_v6);
   }
-  GNUNET_NETWORK_fdset_destroy (plugin->rs);
-  GNUNET_NETWORK_fdset_destroy (plugin->ws);
+
   GNUNET_NAT_unregister (plugin->nat);
 
   if (plugin->defrag_ctxs != NULL)

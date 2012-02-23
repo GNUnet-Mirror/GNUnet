@@ -137,6 +137,7 @@ struct Plugin
    * ID of select task
    */
   GNUNET_SCHEDULER_TaskIdentifier select_task;
+  GNUNET_SCHEDULER_TaskIdentifier select_task_v6;
 
   /**
    * Tokenizer for inbound messages.
@@ -166,17 +167,33 @@ struct Plugin
   /**
    * FD Read set
    */
-  struct GNUNET_NETWORK_FDSet *rs;
+  struct GNUNET_NETWORK_FDSet *rs_v4;
 
   /**
    * FD Write set
    */
-  struct GNUNET_NETWORK_FDSet *ws;
+  struct GNUNET_NETWORK_FDSet *ws_v4;
+
+
+  int with_v4_ws;
 
   /**
    * The read socket for IPv4
    */
   struct GNUNET_NETWORK_Handle *sockv4;
+
+
+  /**
+   * FD Read set
+   */
+  struct GNUNET_NETWORK_FDSet *rs_v6;
+
+  /**
+   * FD Write set
+   */
+  struct GNUNET_NETWORK_FDSet *ws_v6;
+
+  int with_v6_ws;
 
   /**
    * The read socket for IPv6
