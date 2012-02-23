@@ -1552,12 +1552,17 @@ udp_select_send (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *sock)
       }
 
       if (sock == plugin->sockv4)
+      {
         GNUNET_CONTAINER_DLL_remove(plugin->ipv4_queue_head, plugin->ipv4_queue_tail, udpw);
+        GNUNET_free (udpw);
+        udpw = plugin->ipv4_queue_head;
+      }
       else if (sock == plugin->sockv6)
+      {
         GNUNET_CONTAINER_DLL_remove(plugin->ipv6_queue_head, plugin->ipv6_queue_tail, udpw);
-
-      GNUNET_free (udpw);
-      udpw = plugin->ipv4_queue_head;
+        GNUNET_free (udpw);
+        udpw = plugin->ipv6_queue_head;
+      }
     }
     else
     {
