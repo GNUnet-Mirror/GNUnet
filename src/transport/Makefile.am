@@ -260,8 +260,9 @@ check_PROGRAMS = \
  test_transport_api_limited_sockets_tcp \
  test_transport_api_tcp_nat \
  test_transport_api_udp \
+ test_transport_api_timeout_udp \
  $(UNIX_PLUGIN_TEST) \
- test_transport_api_timeout_unix \
+ $(UNIX_PLUGIN_TIMEOUT_TEST) \
  test_transport_api_udp_nat \
  $(HTTP_API_TEST) \
  $(HTTP_NAT_API_TEST) \
@@ -303,8 +304,9 @@ TESTS = \
  test_transport_api_limited_sockets_tcp \
  test_transport_api_tcp_nat \
  test_transport_api_udp \
+ test_transport_api_timeout_udp \
  $(UNIX_PLUGIN_TEST) \
- test_transport_api_timeout_unix \
+ $(UNIX_PLUGIN_TIMEOUT_TEST) \
  test_transport_api_udp_nat \
  $(HTTP_API_TEST) \
  $(HTTP_NAT_API_TEST) \
@@ -496,7 +498,15 @@ test_transport_api_udp_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la  \
- $(top_builddir)/src/transport/libgnunettransporttesting.la 
+ $(top_builddir)/src/transport/libgnunettransporttesting.la
+ 
+test_transport_api_timeout_udp_SOURCES = \
+ test_transport_api_timeout.c
+test_transport_api_timeout_udp_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/transport/libgnunettransporttesting.la  
 
 test_transport_api_udp_nat_SOURCES = \
  test_transport_api.c
@@ -513,14 +523,6 @@ test_transport_api_unix_LDADD = \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la 
-
-#test_plugin_transport_http_SOURCES = \
-# test_plugin_transport_http.c
-#test_plugin_transport_http_LDADD = \
-# $(top_builddir)/src/statistics/libgnunetstatistics.la \
-# @LIBCURL@ \
-# $(top_builddir)/src/hello/libgnunethello.la \
-# $(top_builddir)/src/util/libgnunetutil.la  
 
 test_transport_api_http_SOURCES = \
  test_transport_api.c
@@ -775,6 +777,8 @@ test_transport_api_udp_nat_peer1.conf\
 test_transport_api_udp_nat_peer2.conf\
 test_transport_api_udp_peer1.conf\
 test_transport_api_udp_peer2.conf\
+test_transport_api_timeout_udp_peer1.conf\
+test_transport_api_timeout_udp_peer2.conf\
 test_transport_api_unix_peer1.conf\
 test_transport_api_unix_peer2.conf\
 test_transport_api_timeout_unix_peer1.conf\
