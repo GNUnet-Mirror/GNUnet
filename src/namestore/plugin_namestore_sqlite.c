@@ -289,9 +289,9 @@ database_setup (struct Plugin *plugin)
         " zone_key BLOB NOT NULL DEFAULT ''," 
         " zone_hash BLOB NOT NULL DEFAULT ''," 
 	" record_count INT NOT NULL DEFAULT 0,"
-        " record_data BLOB NOT NULL DEFAULT ''"
+        " record_data BLOB NOT NULL DEFAULT '',"
         " block_expiration_time INT8 NOT NULL DEFAULT 0," 
-        " signature BLOB NOT NULL DEFAULT ''"
+        " signature BLOB NOT NULL DEFAULT '',"
         " record_name TEXT NOT NULL DEFAULT ''," 
         " record_name_hash BLOB NOT NULL DEFAULT ''," 
 	" rvalue INT8 NOT NULL DEFAULT ''"
@@ -310,7 +310,7 @@ database_setup (struct Plugin *plugin)
   if ((sq_prepare
        (plugin->dbh,
         "INSERT INTO ns090records (" ALL ", zone_hash, record_name_hash, rvalue) VALUES "
-	"(?, ?, ?, ?, ?, ?)",
+	"(?, ?, ?, ?, ?, ?, ?, ?, ?)",
         &plugin->put_records) != SQLITE_OK) ||
       (sq_prepare
        (plugin->dbh,
@@ -319,22 +319,22 @@ database_setup (struct Plugin *plugin)
       (sq_prepare
        (plugin->dbh,
         "SELECT " ALL
-	"FROM ns090records WHERE zone_hash=? AND record_name_hash=? ORDER BY rvalue OFFSET ? LIMIT 1",
+	" FROM ns090records WHERE zone_hash=? AND record_name_hash=? ORDER BY rvalue LIMIT 1 OFFSET ?",
         &plugin->iterate_records) != SQLITE_OK) ||
       (sq_prepare
        (plugin->dbh,
         "SELECT " ALL
-	"FROM ns090records WHERE zone_hash=? ORDER BY rvalue OFFSET ? LIMIT 1",
+	" FROM ns090records WHERE zone_hash=? ORDER BY rvalue  LIMIT 1 OFFSET ?",
         &plugin->iterate_by_zone) != SQLITE_OK) ||
       (sq_prepare
        (plugin->dbh,
         "SELECT " ALL 
-	"FROM ns090records WHERE record_name_hash=? ORDER BY rvalue OFFSET ? LIMIT 1",
+	" FROM ns090records WHERE record_name_hash=? ORDER BY rvalue LIMIT 1 OFFSET ?",
         &plugin->iterate_by_name) != SQLITE_OK) ||
       (sq_prepare
 	(plugin->dbh,
         "SELECT " ALL
-	"FROM ns090records ORDER BY rvalue OFFSET ? LIMIT 1",
+	" FROM ns090records ORDER BY rvalue LIMIT 1 OFFSET ?",
         &plugin->iterate_all) != SQLITE_OK) ||
       (sq_prepare
        (plugin->dbh,
@@ -645,16 +645,16 @@ namestore_sqlite_iterate_records (void *cls,
     const char *name;
       
     ret = GNUNET_YES;
-    zone_key =  sqlite3_column_blob (plugin->iterate_records, 0);
-    name = (const char*) sqlite3_column_text (plugin->iterate_records, 1);
-    record_count = sqlite3_column_int (plugin->iterate_records, 2);
-    data_size = sqlite3_column_bytes (plugin->iterate_records, 3);
-    data = sqlite3_column_blob (plugin->iterate_records, 3);
-    expiration.abs_value = (uint64_t) sqlite3_column_int64 (plugin->iterate_records, 4);
-    sig =  sqlite3_column_blob (plugin->iterate_records, 5);
+    zone_key =  sqlite3_column_blob (stmt, 0);
+    name = (const char*) sqlite3_column_text (stmt, 1);
+    record_count = sqlite3_column_int (stmt, 2);
+    data_size = sqlite3_column_bytes (stmt, 3);
+    data = sqlite3_column_blob (stmt, 3);
+    expiration.abs_value = (uint64_t) sqlite3_column_int64 (stmt, 4);
+    sig = sqlite3_column_blob (stmt, 5);
 
-    if ( (sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded) != sqlite3_column_bytes (plugin->iterate_records, 0)) ||
-	 (sizeof (struct GNUNET_CRYPTO_RsaSignature) != sqlite3_column_bytes (plugin->iterate_records, 5)) ||
+    if ( (sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded) != sqlite3_column_bytes (stmt, 0)) ||
+	 (sizeof (struct GNUNET_CRYPTO_RsaSignature) != sqlite3_column_bytes (stmt, 5)) ||
 	 (sizeof (struct DbRecord) * record_count > data_size) )
     {
       GNUNET_break (0);
@@ -670,7 +670,7 @@ namestore_sqlite_iterate_records (void *cls,
       off = record_count * sizeof (struct DbRecord);
       for (i=0;i<record_count;i++)
       {
-	if (off + db[i].data_size > data_size)
+	if (off + ntohl (db[i].data_size) > data_size)
 	{
 	  GNUNET_break (0);
 	  ret = GNUNET_SYSERR;
@@ -690,10 +690,10 @@ namestore_sqlite_iterate_records (void *cls,
   }
   else
   {
+    if (SQLITE_DONE != sret)
+      LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR, "sqlite_step");
     iter (iter_cls, NULL, GNUNET_TIME_UNIT_ZERO_ABS, NULL, 0, NULL, NULL);
   }
-  if (SQLITE_DONE != sret)
-    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR, "sqlite_step");
   if (SQLITE_OK != sqlite3_reset (stmt))
     LOG_SQLITE (plugin,
 		GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,

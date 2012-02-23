@@ -102,6 +102,28 @@ test_record (void *cls,
 	     const struct GNUNET_NAMESTORE_RecordData *rd,
 	     const struct GNUNET_CRYPTO_RsaSignature *signature)
 {
+  int *idp = cls;
+  int id = *idp;
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded tzone_key;
+  char tname[64];
+  unsigned int trd_count = 1 + (id % 1024);
+  struct GNUNET_CRYPTO_RsaSignature tsignature;
+  unsigned int i;
+
+  GNUNET_snprintf (tname, sizeof (tname),
+		   "a%u", (unsigned int ) id);
+  for (i=0;i<trd_count;i++)
+  {
+    GNUNET_assert (rd[i].data_size == id % 10);
+    GNUNET_assert (0 == memcmp ("Hello World", rd[i].data, id % 10));
+    GNUNET_assert (rd[i].record_type == 1 + (id % 13));
+    GNUNET_assert (rd[i].flags == (id  % 7));
+  }
+  memset (&tzone_key, (id % 241), sizeof (tzone_key));
+  memset (&tsignature, (id % 243), sizeof (tsignature));
+  GNUNET_assert (0 == strcmp (name, tname));
+  GNUNET_assert (0 == memcmp (&tzone_key, zone_key, sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded)));
+  GNUNET_assert (0 == memcmp (&tsignature, signature, sizeof (struct GNUNET_CRYPTO_RsaSignature)));
 }
 
 
@@ -117,6 +139,34 @@ get_record (struct GNUNET_NAMESTORE_PluginFunctions *nsp, int id)
 static void
 put_record (struct GNUNET_NAMESTORE_PluginFunctions *nsp, int id)
 {
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded zone_key;
+  struct GNUNET_TIME_Absolute expire;
+  char name[64];
+  unsigned int rd_count = 1 + (id % 1024);
+  struct GNUNET_NAMESTORE_RecordData rd[rd_count];
+  struct GNUNET_CRYPTO_RsaSignature signature;
+  unsigned int i;
+
+  GNUNET_snprintf (name, sizeof (name),
+		   "a%u", (unsigned int ) id);
+  expire = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_MINUTES);
+  for (i=0;i<rd_count;i++)
+  {
+    rd[i].data = "Hello World";
+    rd[i].data_size = id % 10;
+    rd[i].expiration = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_MINUTES);
+    rd[i].record_type = 1 + (id % 13);
+    rd[i].flags = (id  % 7);    
+  }
+  memset (&zone_key, (id % 241), sizeof (zone_key));
+  memset (&signature, (id % 243), sizeof (signature));
+  GNUNET_assert (GNUNET_OK == nsp->put_records (nsp->cls,
+						&zone_key,
+						expire,
+						name,
+						rd_count,
+						rd,
+						&signature));
 }
 
 
@@ -125,6 +175,7 @@ run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_NAMESTORE_PluginFunctions *nsp;  
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded zone_key;
   GNUNET_HashCode zone;
   
   ok = 0;
@@ -139,7 +190,8 @@ run (void *cls, char *const *args, const char *cfgfile,
   put_record (nsp, 1);
   get_record (nsp, 1);
 
-  memset (&zone, 42, sizeof (zone));  
+  memset (&zone_key, 1, sizeof (zone_key));
+  GNUNET_CRYPTO_hash (&zone_key, sizeof (zone_key), &zone);  
   nsp->delete_zone (nsp->cls, &zone);
   unload_plugin (nsp);
 }
