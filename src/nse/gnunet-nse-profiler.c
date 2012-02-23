@@ -217,6 +217,12 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     if (pos->nse_handle != NULL)
       GNUNET_NSE_disconnect (pos->nse_handle);
     GNUNET_CONTAINER_DLL_remove (peer_head, peer_tail, pos);
+    if (GNUNET_SCHEDULER_NO_TASK != pos->stats_task)
+    {
+      GNUNET_SCHEDULER_cancel (pos->stats_task);
+      if (NULL != pos->stats)
+        GNUNET_STATISTICS_destroy(pos->stats, GNUNET_NO);
+    }
     GNUNET_free (pos);
   }
 
@@ -313,12 +319,12 @@ static void
 core_get_stats (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct NSEPeer *peer = cls;
-  
-  peer->stats_task = GNUNET_SCHEDULER_NO_TASK;
+
   if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
   {
     GNUNET_STATISTICS_destroy(peer->stats, GNUNET_NO);
     peer->stats = NULL;
+    return;
   }
   else
   {
@@ -332,6 +338,7 @@ core_get_stats (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                           GNUNET_TIME_UNIT_FOREVER_REL,
                           NULL, &core_stats_iterator, peer);
   }
+  peer->stats_task = GNUNET_SCHEDULER_NO_TASK;
 }
 
 /**
