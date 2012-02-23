@@ -141,6 +141,11 @@ const char* gnunet_tld = ".gnunet";
 static int num_public_records =  3600;
 struct GNUNET_TIME_Relative dht_update_interval;
 
+
+void reply_to_dns(struct GNUNET_GNS_PendingQuery *answer);
+void resolve_name(struct GNUNET_GNS_PendingQuery *query,
+                  GNUNET_HashCode *zone);
+
 /**
  * Task run during shutdown.
  *
@@ -181,9 +186,88 @@ process_authority_dht_result(void* cls,
                  enum GNUNET_BLOCK_Type type,
                  size_t size, const void *data)
 {
+  struct GNUNET_GNS_PendingQuery *query;
+  uint32_t num_records;
+  uint16_t namelen;
+  char* name = NULL;
+  struct GNUNET_CRYPTO_RsaSignature *signature;
+  int i;
+  char* pos;
+  GNUNET_HashCode zone, name_hash;
+
   if (data == NULL)
     return;
+  
+  query = (struct GNUNET_GNS_PendingQuery *)cls;
+  pos = (char*)data;
+  
+  num_records = ntohl(*pos);
+  struct GNUNET_NAMESTORE_RecordData rd[num_records];
 
+  pos += sizeof(uint32_t);
+  
+  for (i=0; i<num_records; i++)
+  {
+    namelen = ntohs(*pos);
+    pos += sizeof(uint16_t);
+    
+    //name must be 0 terminated
+    name = pos;
+    pos += namelen;
+  
+    rd[i].record_type = ntohl(*pos);
+    pos += sizeof(uint32_t);
+  
+    rd[i].data_size = ntohl(*pos);
+    pos += sizeof(uint32_t);
+  
+    rd[i].data = pos;
+    pos += rd[i].data_size;
+
+    rd[i].expiration = GNUNET_TIME_absolute_ntoh(
+                              *((struct GNUNET_TIME_AbsoluteNBO*)pos));
+    pos += sizeof(struct GNUNET_TIME_AbsoluteNBO);
+
+    rd[i].flags = ntohs(*pos);
+    pos += sizeof(uint16_t);
+    //FIXME class?
+    //
+    if (strcmp(name, query->name) && rd[i].record_type == query->type)
+    {
+      query->answered = 1;
+    }
+
+  }
+
+  if ((((char*)data)-pos) < sizeof(struct GNUNET_CRYPTO_RsaSignature))
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+               "Cannot parse signature in DHT response. Corrupted or Missing");
+    return;
+  }
+
+  signature = (struct GNUNET_CRYPTO_RsaSignature*)pos;
+
+  GNUNET_CRYPTO_hash(name, strlen(name), &name_hash);
+  GNUNET_CRYPTO_hash_xor(key, &name_hash, &zone);
+
+  //Save to namestore
+  GNUNET_NAMESTORE_record_put (namestore_handle,
+                               &zone,
+                               name,
+                               exp,
+                               num_records,
+                               rd,
+                               signature,
+                               NULL, //cont
+                               NULL); //cls
+  
+  if (query->answered)
+  {
+    query->answered = 0;
+    memcpy(query->authority, &zone, sizeof(GNUNET_HashCode));
+    resolve_name(query, query->authority);
+  }
   /**
    * data is a serialized PKEY record (probably)
    * parse, put into namestore
@@ -255,6 +339,7 @@ process_name_dht_result(void* cls,
                  enum GNUNET_BLOCK_Type type,
                  size_t size, const void *data)
 {
+  struct GNUNET_GNS_PendingQuery *query;
   uint32_t num_records;
   uint16_t namelen;
   char* name = NULL;
@@ -266,6 +351,7 @@ process_name_dht_result(void* cls,
   if (data == NULL)
     return;
   
+  query = (struct GNUNET_GNS_PendingQuery *)cls;
   pos = (char*)data;
   
   num_records = ntohl(*pos);
@@ -298,6 +384,12 @@ process_name_dht_result(void* cls,
     rd[i].flags = ntohs(*pos);
     pos += sizeof(uint16_t);
     //FIXME class?
+    //
+    if (strcmp(name, query->name) && rd[i].record_type == query->type)
+    {
+      query->answered = 1;
+    }
+
   }
 
   if ((((char*)data)-pos) < sizeof(struct GNUNET_CRYPTO_RsaSignature))
@@ -322,6 +414,14 @@ process_name_dht_result(void* cls,
                                signature,
                                NULL, //cont
                                NULL); //cls
+  
+  if (query->answered)
+  {
+    //FIXME: add records to query handle, but on stack!
+    //do we need records in query handle? can't we just
+    //pass them to reply_to_dns?
+    reply_to_dns(query);
+  }
 
   /**
    * data is a serialized GNS record of type
@@ -401,13 +501,6 @@ process_authority_lookup(void* cls,
    */
   if (rd_count == 0)
   {
-    if (query->authority_found)
-    {
-      query->authority_found = 0;
-      resolve_name(query, query->authority);
-      return;
-    }
-
     /**
      * We did not find an authority in the namestore
      * _IF_ the current authoritative zone is us we cannot resolve
@@ -419,7 +512,10 @@ process_authority_lookup(void* cls,
       //FIXME return NX answer
       return;
     }
-
+    
+    /**
+     * Last hope
+     */
     resolve_authority_dht(query, name);
     return;
   }
