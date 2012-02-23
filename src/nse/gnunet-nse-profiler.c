@@ -73,6 +73,11 @@ struct StatsContext
    * How many extra messages per edge (corrections) have been received.
    */
   unsigned long long total_nse_extra;
+
+  /**
+   * How many messages have been discarded.
+   */
+  unsigned long long total_discarded;
 };
 
 
@@ -455,6 +460,17 @@ stats_finished_callback (void *cls, int success)
     }
     GNUNET_free_non_null (buf);
 
+    buf = NULL;
+    buf_len =
+        GNUNET_asprintf (&buf, "TOTAL_NSE_DISCARDED_%d: %u \n",
+                         stats_context->shutdown, 
+                         stats_context->total_discarded);
+    if (buf_len > 0)
+    {
+      GNUNET_DISK_file_write (data_file, buf, buf_len);
+    }
+    GNUNET_free_non_null (buf);
+
   }
 
   if (GNUNET_YES == stats_context->shutdown)
@@ -539,6 +555,10 @@ statistics_iterator (void *cls, const struct GNUNET_PeerIdentity *peer,
     if (0 == strcmp (name, "# extra messages"))
     {
       stats_context->total_nse_extra += value;
+    }
+    if (0 == strcmp (name, "# flood messages discarded (clock skew too large)"))
+    {
+      stats_context->total_discarded += value;
     }
   }
   return GNUNET_OK;
