@@ -101,7 +101,7 @@ struct GNUNET_NAMESTORE_PluginFunctions
    *
    * @param cls closure (internal context for the plugin)
    * @param zone hash of the public key of the zone
-   * @param name name that is being mapped (at most 255 characters long)
+   * @param name name to remove (at most 255 characters long)
    * @return GNUNET_OK on success
    */
   int (*remove_records) (void *cls, 
