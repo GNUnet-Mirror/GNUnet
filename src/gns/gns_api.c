@@ -430,7 +430,7 @@ process_reply (void *cls, const GNUNET_HashCode * key, void *value)
   const struct GNUNET_GNS_ClientResultMessage *gns_msg = cls;
   struct GNUNET_GNS_LookupHandle *lookup_handle = value;
   const char *name = (const char*) &lookup_handle[1];
-  const struct GNUNET_GNS_Record *records;
+  const GNUNET_GNS_Record *records;
   uint32_t num_records;
   size_t meta_length;
   size_t msize;
@@ -449,10 +449,10 @@ process_reply (void *cls, const GNUNET_HashCode * key, void *value)
   num_records = ntohl (gns_msg->num_records);
   meta_length =
     sizeof (struct GNUNET_GNS_ClientResultMessage) +
-    sizeof (struct GNUNET_GNS_Record) * (num_records);
+    sizeof (GNUNET_GNS_Record) * (num_records);
   if ((msize < meta_length) ||
       (num_records >
-       GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_GNS_Record)))
+       GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (GNUNET_GNS_Record)))
   {
     GNUNET_break (0);
     return GNUNET_NO;
@@ -461,7 +461,7 @@ process_reply (void *cls, const GNUNET_HashCode * key, void *value)
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Giving %u byte reply for %s to application\n",
        (unsigned int) (msize - meta_length), GNUNET_h2s (key));
 #endif
-  records = (const struct GNUNET_GNS_Record *) &gns_msg[1];
+  records = (const GNUNET_GNS_Record *) &gns_msg[1];
   lookup_handle->iter (lookup_handle->iter_cls, name, records, num_records);
   return GNUNET_YES;
 }

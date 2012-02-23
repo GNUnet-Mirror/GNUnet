@@ -52,7 +52,7 @@ struct GNUNET_GNS_QueryRecordList
   struct GNUNET_GNS_QueryRecordList * next;
   struct GNUNET_GNS_QueryRecordList * prev;
 
-  struct GNUNET_DNSPARSER_Record * record;
+  GNUNET_GNS_Record * record;
 };
 
 /**
@@ -103,8 +103,6 @@ struct GNUNET_DNS_Handle *dns_handle;
  */
 struct GNUNET_DHT_Handle *dht_handle;
 
-struct GNUNET_TIME_Relative dht_update_interval;
-
 /**
  * Our zone's private key
  */
@@ -114,6 +112,8 @@ struct GNUNET_CRYPTO_RsaPrivateKey *zone_key;
  * Our handle to the namestore service
  */
 struct GNUNET_NAMESTORE_Handle *namestore_handle;
+
+struct GNUNET_NAMESTORE_ZoneIterator *namestore_iter;
 
 /**
  * The configuration the GNS service is running with
@@ -134,6 +134,12 @@ GNUNET_HashCode zone_hash;
  * Our tld. Maybe get from config file
  */
 const char* gnunet_tld = ".gnunet";
+
+/**
+ * Useful for zone update for DHT put
+ */
+static int num_public_records =  3600;
+struct GNUNET_TIME_Relative dht_update_interval;
 
 /**
  * Task run during shutdown.
@@ -313,20 +319,24 @@ resolve_name(struct GNUNET_GNS_PendingQuery *query, GNUNET_HashCode *zone);
  * @param data the record data
  */
 void
-process_authority_lookup(void* cls, const GNUNET_HashCode *zone,
-                   const char *name, uint32_t record_type,
+process_authority_lookup(void* cls,
+                   const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *key,
                    struct GNUNET_TIME_Absolute expiration,
-                   enum GNUNET_NAMESTORE_RecordFlags flags,
-                   size_t size, const void *data)
+                   const char *name,
+                   unsigned int rd_count,
+                   const struct GNUNET_NAMESTORE_RecordData *rd,
+                   const struct GNUNET_CRYPTO_RsaSignature *signature)
 {
   struct GNUNET_GNS_PendingQuery *query;
+  GNUNET_HashCode zone;
 
   query = (struct GNUNET_GNS_PendingQuery *)cls;
+  GNUNET_CRYPTO_hash(key, GNUNET_CRYPTO_RSA_KEY_LENGTH, &zone);
   
   /**
    * No authority found in namestore.
    */
-  if (NULL == data)
+  if (rd_count == 0)
   {
     if (query->authority_found)
     {
@@ -337,11 +347,10 @@ process_authority_lookup(void* cls, const GNUNET_HashCode *zone,
 
     /**
      * We did not find an authority in the namestore
-     * _IF_ the current authoritative zone is us.
-     * we cannot resolve
-     * _ELSE_ we cannot still check the dht
+     * _IF_ the current authoritative zone is us we cannot resolve
+     * _ELSE_ we can still check the dht
      */
-    if (GNUNET_CRYPTO_hash_cmp(zone, &zone_hash))
+    if (GNUNET_CRYPTO_hash_cmp(&zone, &zone_hash))
     {
       GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Authority unknown\n");
       //FIXME return NX answer
@@ -351,14 +360,23 @@ process_authority_lookup(void* cls, const GNUNET_HashCode *zone,
     resolve_authority_dht(query, name);
     return;
   }
-  
+
+  //Note only 1 pkey should have been returned.. anything else would be strange
   /**
    * We found an authority that may be able to help us
    * move on with query
    */
-  query->authority_found = 1;
-  GNUNET_HashCode *key = (GNUNET_HashCode*) data; //FIXME i assume this works
-  query->authority = key;
+  GNUNET_GNS_Record *record 
+    = GNUNET_malloc(sizeof(GNUNET_GNS_Record));
+  
+  
+  //FIXME todo
+  //parse_record(rd[0]->data, rd[0]->data_size, 0, record);
+  //FIXME this cast will not work we have to define how a PKEY record looks like
+  //In reality this also returns a pubkey not a hash
+  GNUNET_HashCode *k = (GNUNET_HashCode*)record->data.raw.data;
+  query->authority = k;
+  resolve_name(query, query->authority);
   
 }
 
@@ -449,40 +467,38 @@ reply_to_dns(struct GNUNET_GNS_PendingQuery *answer)
  * @param data the record data
  */
 static void
-process_authoritative_result(void* cls, const GNUNET_HashCode *zone,
-                  const char *name, uint32_t record_type,
+process_authoritative_result(void* cls,
+                  const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *key,
                   struct GNUNET_TIME_Absolute expiration,
-                  enum GNUNET_NAMESTORE_RecordFlags flags,
-                  size_t size, const void *data)
+                  const char *name, unsigned int rd_count,
+                  const struct GNUNET_NAMESTORE_RecordData *rd,
+                  const struct GNUNET_CRYPTO_RsaSignature *signature)
 {
   struct GNUNET_GNS_PendingQuery *query;
   struct GNUNET_GNS_QueryRecordList *qrecord;
   struct GNUNET_DNSPARSER_Record *record;
+  GNUNET_HashCode zone;
   query = (struct GNUNET_GNS_PendingQuery *) cls;
+  GNUNET_CRYPTO_hash(key, GNUNET_CRYPTO_RSA_KEY_LENGTH, &zone);
 
+  //FIXME Handle results in rd
 
-  if (NULL == data)
+  if (rd_count == 0)
   {
     /**
      * FIXME
-     * Lookup terminated
-     * Do we have what we need to answer?
-     * If not -> DHT Phase
+     * Lookup terminated and no results
+     * -> DHT Phase unless data is recent
      * if full_name == next_name and not anwered we cannot resolve
      */
     GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-               "Namestore lookup terminated. (answered=%d)", query->answered);
-    if (query->answered)
-    {
-      reply_to_dns(query);
-      return;
-    }
-
+               "Namestore lookup terminated. without results\n");
+    
     /**
      * if this is not our zone we cannot rely on the namestore to be
      * complete. -> Query DHT
      */
-    if (!GNUNET_CRYPTO_hash_cmp(zone, &zone_hash))
+    if (!GNUNET_CRYPTO_hash_cmp(&zone, &zone_hash))
     {
       //FIXME todo
       resolve_name_dht(query, name);
@@ -500,54 +516,36 @@ process_authoritative_result(void* cls, const GNUNET_HashCode *zone,
   {
     /**
      * Record found
+     *
+     * FIXME Check record expiration and dht expiration
+     * consult dht if necessary
      */
     GNUNET_log(GNUNET_ERROR_TYPE_INFO,
                "Processing additional result for %s from namestore\n", name);
-
-    qrecord = GNUNET_malloc(sizeof(struct GNUNET_GNS_QueryRecordList));
-    record = GNUNET_malloc(sizeof(struct GNUNET_DNSPARSER_Record));
-    qrecord->record = record;
-
-    record->name = (char*)query->original_name;
-
-    /**
-     * FIXME for gns records this requires the dnsparser to be modified!
-     * or use RAW. But RAW data need serialization!
-     * maybe store record data appropriately in namestore to avoid a
-     * huge switch statement?
-     */
-    if (record_type == GNUNET_DNSPARSER_TYPE_A)
+    int i;
+    for (i=0; i<rd_count;i++)
     {
-      record->data.raw.data = (char*)data;
-      record->data.raw.data_len = size;
+      // A time will come when this has to be freed
+      qrecord = GNUNET_malloc(sizeof(struct GNUNET_GNS_QueryRecordList));
+      record = GNUNET_malloc(sizeof(struct GNUNET_DNSPARSER_Record));
+      qrecord->record = record;
+      
+      //fixme into gns_util
+      //parse_record(rd[i]->data, rd[i]->data_size, 0, record);
+      GNUNET_CONTAINER_DLL_insert(query->records_head,
+                                  query->records_tail,
+                                  qrecord);
+      query->num_records++;
+
+      //TODO really?
+      //we need to resolve to the original name in the end though...
+      //record->name = (char*)query->original_name;
     }
-    record->expiration_time = expiration;
-    record->type = record_type;
-    record->class = GNUNET_DNSPARSER_CLASS_INTERNET; /* srsly? */
-    
-    //FIXME authoritative answer if we find a result in namestore
-    if (flags == GNUNET_NAMESTORE_RF_AUTHORITY)
-    {
-      //query->num_authority_records++;
-    }
-    
-    /**
-     * This seems to take into account that the result could
-     * be different in name and or record type...
-     * but to me this does not make sense
-     */
+
     GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Found answer to query!\n");
     query->answered = 1;
 
-    query->num_records++;
-
-    /**
-     * FIXME watch for leaks
-     * properly free pendingquery when the time comes
-     */
-    GNUNET_CONTAINER_DLL_insert(query->records_head,
-                                query->records_tail,
-                                qrecord);
+    reply_to_dns(query);
   }
 }
 
@@ -749,40 +747,41 @@ put_some_records(void)
   /* put a few records into namestore */
   char* ipA = "1.2.3.4";
   char* ipB = "5.6.7.8";
-  struct in_addr *alice = GNUNET_malloc(sizeof(struct in_addr));
-  struct in_addr *bob = GNUNET_malloc(sizeof(struct in_addr));
-  GNUNET_assert(1 == inet_pton (AF_INET, ipA, alice));
-  GNUNET_assert(1 == inet_pton (AF_INET, ipB, bob));
-  GNUNET_NAMESTORE_record_put (namestore_handle,
-                               &zone_hash,
+  GNUNET_GNS_Record *alice = GNUNET_malloc(sizeof(GNUNET_GNS_Record));
+  GNUNET_GNS_Record *bob = GNUNET_malloc(sizeof(GNUNET_GNS_Record));
+  struct GNUNET_NAMESTORE_RecordData *rda = NULL;
+  struct GNUNET_NAMESTORE_RecordData *rdb = NULL;
+  rda = GNUNET_malloc(sizeof(struct GNUNET_NAMESTORE_RecordData));
+  
+  //FIXME here we would have to parse the gns record and put it into
+  //the rd struct
+
+  //FIXME this is not enough! but too mucht atm
+  GNUNET_assert(1 == inet_pton (AF_INET, ipA, alice->data.raw.data));
+  GNUNET_assert(1 == inet_pton (AF_INET, ipB, bob->data.raw.data));
+
+  GNUNET_NAMESTORE_record_create (namestore_handle,
+                               zone_key,
                                "alice",
-                               GNUNET_GNS_RECORD_TYPE_A,
-                               GNUNET_TIME_absolute_get_forever(),
-                               GNUNET_NAMESTORE_RF_AUTHORITY,
-                               sizeof(struct in_addr),
-                               alice,
+                               rda,
                                NULL,
                                NULL);
-  GNUNET_NAMESTORE_record_put (namestore_handle,
-                               &zone_hash,
+  GNUNET_NAMESTORE_record_create (namestore_handle,
+                               zone_key,
                                "bob",
-                               GNUNET_GNS_RECORD_TYPE_A,
-                               GNUNET_TIME_absolute_get_forever(),
-                               GNUNET_NAMESTORE_RF_AUTHORITY,
-                               sizeof(struct in_addr),
-                               bob,
+                               rdb,
                                NULL,
                                NULL);
 }
 
-//Prototype... needed in put function
-static void
-update_zone_dht(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+void
+update_zone_dht_next(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_NAMESTORE_zone_iterator_next(namestore_iter);
+}
 
 /**
  * Function used to put all records successively into the DHT.
- * FIXME also serializes records. maybe do this somewhere else...
- * FIXME don't store private records (maybe zone transfer does this)
  *
  * @param cls the closure (NULL)
  * @param zone our root zone hash
@@ -795,77 +794,37 @@ update_zone_dht(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
  * @param record_data the record data
  */
 void
-put_gns_record(void *cls, const GNUNET_HashCode *zone, const char *name,
-               uint32_t record_type, struct GNUNET_TIME_Absolute expiration,
-               enum GNUNET_NAMESTORE_RecordFlags flags,
-               size_t size, const void *record_data)
+put_gns_record(void *cls,
+                const const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *key,
+                struct GNUNET_TIME_Absolute expiration,
+                const char *name,
+                unsigned int rd_count,
+                const struct GNUNET_NAMESTORE_RecordData *rd,
+                const struct GNUNET_CRYPTO_RsaSignature *signature)
 {
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Putting a record into the DHT\n");
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Putting records into the DHT\n");
   struct GNUNET_TIME_Relative timeout;
-
-  char* data;
-  char* data_ptr;
-  struct GNUNET_TIME_AbsoluteNBO exp_nbo;
-  exp_nbo = GNUNET_TIME_absolute_hton (expiration);
-  uint32_t namelen = htonl(strlen(name));
-  uint16_t flags_nbo = htons(flags);
   GNUNET_HashCode name_hash;
   GNUNET_HashCode xor_hash;
 
-  /**
-   * I guess this can be done prettier
-   * FIXME extract into function, maybe even into different file
-   */
-  size_t record_len = sizeof(size_t) + sizeof(uint32_t) +
-    sizeof(uint16_t) +
-    sizeof(uint32_t) + strlen(name) + size;
-  
-  record_type = htonl(record_type);
-
-  data = GNUNET_malloc(record_len);
-  
-  /* -_- */
-  data_ptr = data;
-  memcpy(data_ptr, &namelen, sizeof(size_t));
-  data_ptr += sizeof(size_t);
-
-  memcpy(data_ptr, name, namelen);
-  data_ptr += namelen;
-  
-  memcpy(data_ptr, &record_type, sizeof(uint32_t));
-  data_ptr += sizeof(uint32_t);
-
-  memcpy(data_ptr, &exp_nbo, sizeof(struct GNUNET_TIME_AbsoluteNBO));
-  data_ptr += sizeof(struct GNUNET_TIME_AbsoluteNBO);
-
-  memcpy(data_ptr, &flags_nbo, sizeof(uint16_t));
-  data_ptr += sizeof(uint16_t);
-
-  memcpy(data_ptr, &size, sizeof(uint32_t));
-  data_ptr += sizeof(uint32_t);
-
-  /**
-   * FIXME note that this only works with raw data in nbo
-   * write helper function that converts properly and returns buffer
-   */
-  memcpy(data_ptr, record_data, size);
-  data_ptr += size;
-  /*Doing this made me sad...*/
-
+  if (NULL == name) //We're done
+  {
+    GNUNET_NAMESTORE_zone_iteration_stop (namestore_iter);
+    return;
+  }
   /**
    * FIXME magic number 20 move to config file
    */
   timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 20);
-
   GNUNET_CRYPTO_hash(name, strlen(name), &name_hash);
   GNUNET_CRYPTO_hash_xor(&zone_hash, &name_hash, &xor_hash);
   GNUNET_DHT_put (dht_handle, &xor_hash,
                   5, //replication level
                   GNUNET_DHT_RO_NONE,
                   GNUNET_BLOCK_TYPE_TEST, //FIXME todo block plugin
-                  (data_ptr-data),
-                  data,
-                  expiration, //FIXME from record makes sense? is absolute?
+                  rd->data_size,
+                  rd->data,
+                  expiration,
                   timeout,
                   NULL, //FIXME continuation needed? success check? yes ofc
                   NULL); //cls for cont
@@ -874,7 +833,7 @@ put_gns_record(void *cls, const GNUNET_HashCode *zone, const char *name,
    * Reschedule periodic put
    */
   GNUNET_SCHEDULER_add_delayed (dht_update_interval,
-                                &update_zone_dht,
+                                &update_zone_dht_next,
                                 NULL);
 
 }
@@ -886,12 +845,17 @@ put_gns_record(void *cls, const GNUNET_HashCode *zone, const char *name,
  * @param tc task context
  */
 static void
-update_zone_dht(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+update_zone_dht_start(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Update zone!\n");
-  GNUNET_NAMESTORE_zone_transfer (namestore_handle, &zone_hash,
-                                  &put_gns_record,
-                                  NULL);
+  dht_update_interval = GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS,
+                                                     (3600/num_public_records));
+  namestore_iter = GNUNET_NAMESTORE_zone_iteration_start (namestore_handle,
+                                                          &zone_hash,
+                                                          GNUNET_NAMESTORE_RF_AUTHORITY,
+                                                          GNUNET_NAMESTORE_RF_PRIVATE,
+                                                          &put_gns_record,
+                                                          NULL);
 }
 
 /**
@@ -960,11 +924,12 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   /**
    * Schedule periodic put
    * for our records
+   * We have roughly an hour for all records;
    */
   dht_update_interval = GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS,
                                                       60); //FIXME from cfg
   GNUNET_SCHEDULER_add_delayed (dht_update_interval,
-                                &update_zone_dht,
+                                &update_zone_dht_start,
                                 NULL);
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, "GNS Init done!\n");
 
