@@ -565,16 +565,14 @@ void
 reply_to_dns(struct GNUNET_GNS_PendingQuery *answer)
 {
   struct GNUNET_GNS_QueryRecordList *i;
-  struct GNUNET_DNSPARSER_Packet *packet;
   struct GNUNET_DNSPARSER_Flags dnsflags;
   int j;
   size_t len;
   int ret;
   char *buf;
-  
-  packet = GNUNET_malloc(sizeof(struct GNUNET_DNSPARSER_Packet));
-  packet->answers =
-    GNUNET_malloc(sizeof(struct GNUNET_DNSPARSER_Record) * answer->num_records);
+  struct GNUNET_DNSPARSER_Packet packet;
+  struct GNUNET_DNSPARSER_Record answer_records[answer->num_records];
+  packet.answers = answer_records;
   
   len = sizeof(struct GNUNET_DNSPARSER_Record*);
   j = 0;
@@ -582,28 +580,30 @@ reply_to_dns(struct GNUNET_GNS_PendingQuery *answer)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_INFO,
                "Adding type %d to DNS response\n", i->record->record_type);
-    //FIXME build proper dnsparser record! this will fail!
-    //memcpy(&packet->answers[j], 
-    //       i->record,
-    //       sizeof (struct GNUNET_DNSPARSER_Record));
-    GNUNET_free(i->record);
+    answer_records[j].name = answer->original_name; //FIXME yes?
+    answer_records[j].type = i->record->record_type;
+    answer_records[j].data.raw.data_len = i->record->data_size;
+    answer_records[j].data.raw.data = (char*)i->record->data;
+    answer_records[j].expiration_time = i->record->expiration;
+    answer_records[j].class = GNUNET_DNSPARSER_CLASS_INTERNET;//hmmn
+    //GNUNET_free(i->record); DO this later!
     j++;
   }
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, "after memcpy\n");
   /* FIXME how to handle auth, additional etc */
-  packet->num_answers = answer->num_records;
-  packet->num_authority_records = answer->num_authority_records;
+  packet.num_answers = answer->num_records;
+  packet.num_authority_records = answer->num_authority_records;
 
   dnsflags.authoritative_answer = 1;
   dnsflags.opcode = GNUNET_DNSPARSER_OPCODE_QUERY;
   dnsflags.return_code = GNUNET_DNSPARSER_RETURN_CODE_NO_ERROR; //not sure
   dnsflags.query_or_response = 1;
-  packet->flags = dnsflags;
+  packet.flags = dnsflags;
 
-  packet->id = answer->id;
+  packet.id = answer->id;
   
   //FIXME this is silently discarded
-  ret = GNUNET_DNSPARSER_pack (packet,
+  ret = GNUNET_DNSPARSER_pack (&packet,
                                1024, /* FIXME magic from dns redirector */
                                &buf,
                                &len);
@@ -653,9 +653,12 @@ process_authoritative_result(void* cls,
   struct GNUNET_GNS_PendingQuery *query;
   struct GNUNET_GNS_QueryRecordList *qrecord;
   struct GNUNET_NAMESTORE_RecordData *record;
+  struct GNUNET_TIME_Relative remaining_time;
   GNUNET_HashCode zone;
+
   query = (struct GNUNET_GNS_PendingQuery *) cls;
   GNUNET_CRYPTO_hash(key, GNUNET_CRYPTO_RSA_KEY_LENGTH, &zone);
+  remaining_time = GNUNET_TIME_absolute_get_remaining (expiration);
 
   //FIXME Handle results in rd
 
@@ -675,9 +678,16 @@ process_authoritative_result(void* cls,
      */
     if (!GNUNET_CRYPTO_hash_cmp(&zone, &zone_hash))
     {
-      //FIXME if very recent dht lookup -> cannot resolve
-      resolve_name_dht(query, name);
-      return;
+      remaining_time = GNUNET_TIME_absolute_get_remaining (expiration);
+      if (remaining_time.rel_value == 0)
+      {
+        resolve_name_dht(query, name);
+        return;
+      }
+      else
+      {
+        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Record is still recent. No DHT lookup\n");
+      }
     }
 
     /**
@@ -697,11 +707,25 @@ process_authoritative_result(void* cls,
      * FIXME Check record expiration and dht expiration
      * consult dht if necessary
      */
+    if (remaining_time.rel_value == 0)
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, 
+                 "This dht entry is old. Refreshing.\n");
+      resolve_name_dht(query, name);
+      return;
+    }
     GNUNET_log(GNUNET_ERROR_TYPE_INFO,
                "Processing additional result %s from namestore\n", name);
     int i;
     for (i=0; i<rd_count;i++)
     {
+      if ((GNUNET_TIME_absolute_get_remaining (rd[i].expiration)).rel_value
+          == 0)
+      {
+        //FIXME there is a catch here...
+        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "This record is expired. Skipping\n");
+        continue;
+      }
       // A time will come when this has to be freed
       qrecord = GNUNET_malloc(sizeof(struct GNUNET_GNS_QueryRecordList));
       record = GNUNET_malloc(sizeof(struct GNUNET_NAMESTORE_RecordData));
