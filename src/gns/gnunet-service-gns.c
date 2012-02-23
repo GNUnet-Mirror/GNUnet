@@ -255,13 +255,76 @@ process_name_dht_result(void* cls,
                  enum GNUNET_BLOCK_Type type,
                  size_t size, const void *data)
 {
+  uint32_t num_records;
+  uint16_t namelen;
+  char* name = NULL;
+  struct GNUNET_CRYPTO_RsaSignature *signature;
+  int i;
+  char* pos;
+  GNUNET_HashCode zone, name_hash;
+
   if (data == NULL)
     return;
+  
+  pos = (char*)data;
+  
+  num_records = ntohl(*pos);
+  struct GNUNET_NAMESTORE_RecordData rd[num_records];
+
+  pos += sizeof(uint32_t);
+  
+  for (i=0; i<num_records; i++)
+  {
+    namelen = ntohs(*pos);
+    pos += sizeof(uint16_t);
+    
+    //name must be 0 terminated
+    name = pos;
+    pos += namelen;
+  
+    rd[i].record_type = ntohl(*pos);
+    pos += sizeof(uint32_t);
+  
+    rd[i].data_size = ntohl(*pos);
+    pos += sizeof(uint32_t);
+  
+    rd[i].data = pos;
+    pos += rd[i].data_size;
+
+    rd[i].expiration = GNUNET_TIME_absolute_ntoh(
+                              *((struct GNUNET_TIME_AbsoluteNBO*)pos));
+    pos += sizeof(struct GNUNET_TIME_AbsoluteNBO);
+
+    rd[i].flags = ntohs(*pos);
+    pos += sizeof(uint16_t);
+    //FIXME class?
+  }
+
+  if ((((char*)data)-pos) < sizeof(struct GNUNET_CRYPTO_RsaSignature))
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+               "Cannot parse signature in DHT response. Corrupted or Missing");
+    return;
+  }
+
+  signature = (struct GNUNET_CRYPTO_RsaSignature*)pos;
+
+  GNUNET_CRYPTO_hash(name, strlen(name), &name_hash);
+  GNUNET_CRYPTO_hash_xor(key, &name_hash, &zone);
+
+  //Save to namestore
+  GNUNET_NAMESTORE_record_put (namestore_handle,
+                               &zone,
+                               name,
+                               exp,
+                               num_records,
+                               rd,
+                               signature,
+                               NULL, //cont
+                               NULL); //cls
 
   /**
    * data is a serialized GNS record of type
-   * query->record_type. Parse and put into namestore
-   * namestore zone hash is in query.
    * Check if record type and name match in query and reply
    * to dns!
    */
@@ -486,7 +549,6 @@ process_authoritative_result(void* cls,
      * FIXME
      * Lookup terminated and no results
      * -> DHT Phase unless data is recent
-     * if full_name == next_name and not anwered we cannot resolve
      */
     GNUNET_log(GNUNET_ERROR_TYPE_INFO,
                "Namestore lookup terminated. without results\n");
@@ -497,7 +559,7 @@ process_authoritative_result(void* cls,
      */
     if (!GNUNET_CRYPTO_hash_cmp(&zone, &zone_hash))
     {
-      //FIXME todo
+      //FIXME if very recent dht lookup -> cannot resolve
       resolve_name_dht(query, name);
       return;
     }
@@ -506,6 +568,8 @@ process_authoritative_result(void* cls,
      * Our zone and no result? Cannot resolve TT
      * FIXME modify query to say NX
      */
+    GNUNET_assert(query->answered == 0);
+    reply_to_dns(query); //answered should be 0
     return;
 
   }
@@ -518,7 +582,7 @@ process_authoritative_result(void* cls,
      * consult dht if necessary
      */
     GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-               "Processing additional result for %s from namestore\n", name);
+               "Processing additional result %s from namestore\n", name);
     int i;
     for (i=0; i<rd_count;i++)
     {
@@ -536,6 +600,7 @@ process_authoritative_result(void* cls,
 
       //TODO really?
       //we need to resolve to the original name in the end though...
+      //keep in mind. This can also be done later probably
       //record->name = (char*)query->original_name;
     }
 
