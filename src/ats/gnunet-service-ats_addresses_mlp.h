@@ -36,6 +36,8 @@
 
 #define DEBUG_MLP GNUNET_EXTRA_LOGGING
 
+#define MLP_AVERAGING_QUEUE_LENGTH 3
+
 #define MLP_MAX_EXEC_DURATION   GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 3)
 #define MLP_MAX_ITERATIONS      INT_MAX
 
@@ -286,11 +288,14 @@ struct MLP_information
   /* Quality information row indices */
   unsigned int r_q[GNUNET_ATS_QualityPropertiesCount];
 
-  /* Quality information column indices */
-  unsigned int c_q[GNUNET_ATS_QualityPropertiesCount];
-
   /* Quality information */
-  double q[GNUNET_ATS_QualityPropertiesCount];
+  double q[GNUNET_ATS_QualityPropertiesCount][MLP_AVERAGING_QUEUE_LENGTH];
+
+  /* Quality information averaged */
+  double q_averaged[GNUNET_ATS_QualityPropertiesCount];
+
+  /* Averaging index */
+  int q_avg_i[GNUNET_ATS_QualityPropertiesCount];
 };
 
 

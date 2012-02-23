@@ -94,7 +94,7 @@ check (void *cls, char *const *args, const char *cfgfile,
   addr[0].peer.hashPubKey = p[0].hashPubKey;
   struct GNUNET_ATS_Information a1_ats[3];
   set_ats (&a1_ats[0], GNUNET_ATS_QUALITY_NET_DISTANCE, 1);
-  set_ats (&a1_ats[1], GNUNET_ATS_QUALITY_NET_DELAY, 2);
+  set_ats (&a1_ats[1], GNUNET_ATS_QUALITY_NET_DELAY, 1);
   set_ats (&a1_ats[2], GNUNET_ATS_ARRAY_TERMINATOR, 0);
   create_address (&addr[0], "dummy", 3, &a1_ats[0]);
   addr[0].atsp_network_type = GNUNET_ATS_NET_WAN;
@@ -102,8 +102,8 @@ check (void *cls, char *const *args, const char *cfgfile,
   /* Creating peer 1  address 2 */
   addr[1].peer.hashPubKey = p[0].hashPubKey;
   struct GNUNET_ATS_Information a2_ats[3];
-  set_ats (&a2_ats[0], GNUNET_ATS_QUALITY_NET_DELAY, 32);
   set_ats (&a2_ats[1], GNUNET_ATS_QUALITY_NET_DISTANCE, 1);
+  set_ats (&a2_ats[0], GNUNET_ATS_QUALITY_NET_DELAY, 1);
   set_ats (&a2_ats[2], GNUNET_ATS_ARRAY_TERMINATOR, 0);
   create_address (&addr[1], "dummy2", 3, &a2_ats[0]);
   addr[1].atsp_network_type = GNUNET_ATS_NET_LAN;
@@ -111,8 +111,8 @@ check (void *cls, char *const *args, const char *cfgfile,
   /* Creating peer 2  address 1 */
   addr[2].peer.hashPubKey = p[1].hashPubKey;
   struct GNUNET_ATS_Information a3_ats[3];
-  set_ats (&a3_ats[0], GNUNET_ATS_QUALITY_NET_DELAY, 32);
   set_ats (&a3_ats[1], GNUNET_ATS_QUALITY_NET_DISTANCE, 1);
+  set_ats (&a3_ats[0], GNUNET_ATS_QUALITY_NET_DELAY, 1);
   set_ats (&a3_ats[2], GNUNET_ATS_ARRAY_TERMINATOR, 0);
   create_address (&addr[2], "dummy3", 3, &a3_ats[0]);
   addr[2].atsp_network_type = GNUNET_ATS_NET_LAN;
@@ -126,7 +126,7 @@ check (void *cls, char *const *args, const char *cfgfile,
   GNUNET_assert (mlp->addr_in_problem == 1);
 
   /* Update an peer 1 address 1  */
-  set_ats (&a1_ats[1], GNUNET_ATS_QUALITY_NET_DELAY, 20);
+  set_ats (&a1_ats[1], GNUNET_ATS_QUALITY_NET_DELAY, 1);
   GAS_mlp_address_update (mlp, addresses, &addr[0]);
   GNUNET_assert (mlp->addr_in_problem == 1);
 

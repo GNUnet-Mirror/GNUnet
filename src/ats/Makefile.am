@@ -16,7 +16,8 @@ endif
 if HAVE_LIBGLPK
   GN_LIBGLPK = -lglpk
   GN_MLP_SRC = gnunet-service-ats_addresses_mlp.c gnunet-service-ats_addresses_mlp.h
-  GN_MLP_TEST = test_ats_mlp
+  GN_MLP_TEST = test_ats_mlp 
+  GN_MLP_TEST_AVG = test_ats_mlp_averaging
   GN_MLP_PERF = perf_ats_mlp
 endif
 
@@ -54,6 +55,7 @@ gnunet_service_ats_LDADD = \
 check_PROGRAMS = \
  test_ats_api_scheduling \
  $(GN_MLP_TEST) \
+ $(GN_MLP_TEST_AVG) \
  $(GN_MLP_PERF)
 # test_ats_api_scheduling_get_type
 # test_ats_api_bandwidth_consumption
@@ -67,6 +69,14 @@ test_ats_mlp_SOURCES = \
  $(GN_MLP_SRC) \
  test_ats_mlp.c
 test_ats_mlp_LDADD = \
+  $(GN_LIBGLPK) \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la
+
+test_ats_mlp_averaging_SOURCES = \
+ $(GN_MLP_SRC) \
+ test_ats_mlp_averaging.c
+test_ats_mlp_averaging_LDADD = \
   $(GN_LIBGLPK) \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la
