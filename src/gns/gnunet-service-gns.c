@@ -57,7 +57,7 @@ struct GNUNET_GNS_QueryRecordList
 /**
  * A result list for namestore queries
  */
-struct GNUNET_GNS_PendingQuery
+struct GNUNET_GNS_ResolverHandle
 {
   /* the answer packet */
   struct GNUNET_DNSPARSER_Packet *answer;
@@ -69,12 +69,7 @@ struct GNUNET_GNS_PendingQuery
   int num_records;
   int num_authority_records; //FIXME are all of our replies auth?
   
-  char *original_name;
   char *name;
-
-  uint16_t type;
-  /* the dns request id */
-  int id; // FIXME can handle->request_id also be used here?
 
   /* the request handle to reply to */
   struct GNUNET_DNS_RequestHandle *request_handle;
@@ -90,7 +85,9 @@ struct GNUNET_GNS_PendingQuery
    */
   int authority_found;
 
-  struct GNUNET_DNSPARSER_Packet *p;
+  struct GNUNET_DNSPARSER_Packet *packet;
+
+  struct GNUNET_DNSPARSER_Query *query;
 };
 
 
@@ -143,9 +140,9 @@ static int num_public_records =  3600;
 struct GNUNET_TIME_Relative dht_update_interval;
 
 
-void reply_to_dns(struct GNUNET_GNS_PendingQuery *answer, uint32_t rd_count,
+void reply_to_dns(struct GNUNET_GNS_ResolverHandle *answer, uint32_t rd_count,
                   const struct GNUNET_NAMESTORE_RecordData *rd);
-void resolve_name(struct GNUNET_GNS_PendingQuery *query,
+void resolve_name(struct GNUNET_GNS_ResolverHandle *query,
                   GNUNET_HashCode *zone);
 
 /**
@@ -209,7 +206,7 @@ process_authority_dht_result(void* cls,
                  enum GNUNET_BLOCK_Type type,
                  size_t size, const void *data)
 {
-  struct GNUNET_GNS_PendingQuery *query;
+  struct GNUNET_GNS_ResolverHandle *rh;
   uint32_t num_records;
   uint16_t namelen;
   char* name = NULL;
@@ -222,7 +219,7 @@ process_authority_dht_result(void* cls,
   if (data == NULL)
     return;
   
-  query = (struct GNUNET_GNS_PendingQuery *)cls;
+  rh = (struct GNUNET_GNS_ResolverHandle *)cls;
   pos = (char*)data;
   
   num_records = ntohl(*pos);
@@ -256,9 +253,9 @@ process_authority_dht_result(void* cls,
     pos += sizeof(uint16_t);
     //FIXME class?
     //
-    if (strcmp(name, query->name) && rd[i].record_type == query->type)
+    if (strcmp(name, rh->query->name) && rd[i].record_type == rh->query->type)
     {
-      query->answered = 1;
+      rh->answered = 1;
     }
 
   }
@@ -290,11 +287,11 @@ process_authority_dht_result(void* cls,
                                &on_namestore_record_put_result, //cont
                                NULL); //cls
   
-  if (query->answered)
+  if (rh->answered)
   {
-    query->answered = 0;
-    memcpy(query->authority, &zone, sizeof(GNUNET_HashCode));
-    resolve_name(query, query->authority);
+    rh->answered = 0;
+    memcpy(rh->authority, &zone, sizeof(GNUNET_HashCode));
+    resolve_name(rh, rh->authority);
   }
   /**
    * data is a serialized PKEY record (probably)
@@ -316,7 +313,7 @@ process_authority_dht_result(void* cls,
  * @param name the name of the PKEY record
  */
 void
-resolve_authority_dht(struct GNUNET_GNS_PendingQuery *query, const char* name)
+resolve_authority_dht(struct GNUNET_GNS_ResolverHandle *rh, const char* name)
 {
   enum GNUNET_GNS_RecordType rtype = GNUNET_GNS_RECORD_PKEY;
   struct GNUNET_TIME_Relative timeout;
@@ -324,7 +321,7 @@ resolve_authority_dht(struct GNUNET_GNS_PendingQuery *query, const char* name)
   GNUNET_HashCode lookup_key;
 
   GNUNET_CRYPTO_hash(name, strlen(name), &name_hash);
-  GNUNET_CRYPTO_hash_xor(&name_hash, query->authority, &lookup_key);
+  GNUNET_CRYPTO_hash_xor(&name_hash, rh->authority, &lookup_key);
 
   timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 20);
   
@@ -337,7 +334,7 @@ resolve_authority_dht(struct GNUNET_GNS_PendingQuery *query, const char* name)
                        &rtype, //xquery FIXME this is bad
                        sizeof(GNUNET_GNS_RECORD_PKEY),
                        &process_authority_dht_result,
-                       query);
+                       rh);
 
 }
 
@@ -367,7 +364,7 @@ process_name_dht_result(void* cls,
                  enum GNUNET_BLOCK_Type type,
                  size_t size, const void *data)
 {
-  struct GNUNET_GNS_PendingQuery *query;
+  struct GNUNET_GNS_ResolverHandle *rh;
   uint32_t num_records;
   uint16_t namelen;
   char* name = NULL;
@@ -380,7 +377,7 @@ process_name_dht_result(void* cls,
   if (data == NULL)
     return;
   
-  query = (struct GNUNET_GNS_PendingQuery *)cls;
+  rh = (struct GNUNET_GNS_ResolverHandle *)cls;
   pos = (char*)data;
   
   num_records = ntohl(*pos);
@@ -414,9 +411,9 @@ process_name_dht_result(void* cls,
     pos += sizeof(uint16_t);
     //FIXME class?
     //
-    if (strcmp(name, query->name) && rd[i].record_type == query->type)
+    if (strcmp(name, rh->query->name) && rd[i].record_type == rh->query->type)
     {
-      query->answered = 1;
+      rh->answered = 1;
     }
 
   }
@@ -449,12 +446,12 @@ process_name_dht_result(void* cls,
                                &on_namestore_record_put_result, //cont
                                NULL); //cls
   
-  if (query->answered)
+  if (rh->answered)
   {
     //FIXME: add records to query handle, but on stack!
     //do we need records in query handle? can't we just
     //pass them to reply_to_dns?
-    reply_to_dns(query, num_records, rd);
+    reply_to_dns(rh, num_records, rd);
   }
 
   /**
@@ -472,14 +469,14 @@ process_name_dht_result(void* cls,
  * @param name the name to query record
  */
 void
-resolve_name_dht(struct GNUNET_GNS_PendingQuery *query, const char* name)
+resolve_name_dht(struct GNUNET_GNS_ResolverHandle *rh, const char* name)
 {
   struct GNUNET_TIME_Relative timeout;
   GNUNET_HashCode name_hash;
   GNUNET_HashCode lookup_key;
 
   GNUNET_CRYPTO_hash(name, strlen(name), &name_hash);
-  GNUNET_CRYPTO_hash_xor(&name_hash, query->authority, &lookup_key);
+  GNUNET_CRYPTO_hash_xor(&name_hash, rh->authority, &lookup_key);
 
   timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 20);
   
@@ -489,16 +486,16 @@ resolve_name_dht(struct GNUNET_GNS_PendingQuery *query, const char* name)
                        &lookup_key,
                        5, //Replication level FIXME
                        GNUNET_DHT_RO_NONE,
-                       &query->type, //xquery
-                       sizeof(query->type),
+                       &rh->query->type, //xquery
+                       sizeof(rh->query->type),
                        &process_name_dht_result,
-                       query);
+                       rh);
 
 }
 
 //Prototype
 void
-resolve_name(struct GNUNET_GNS_PendingQuery *query, GNUNET_HashCode *zone);
+resolve_name(struct GNUNET_GNS_ResolverHandle *query, GNUNET_HashCode *zone);
 
 /**
  * This is a callback function that should give us only PKEY
@@ -524,10 +521,10 @@ process_authority_lookup(void* cls,
                    const struct GNUNET_NAMESTORE_RecordData *rd,
                    const struct GNUNET_CRYPTO_RsaSignature *signature)
 {
-  struct GNUNET_GNS_PendingQuery *query;
+  struct GNUNET_GNS_ResolverHandle *query;
   GNUNET_HashCode zone;
 
-  query = (struct GNUNET_GNS_PendingQuery *)cls;
+  query = (struct GNUNET_GNS_ResolverHandle *)cls;
   GNUNET_CRYPTO_hash(key, GNUNET_CRYPTO_RSA_KEY_LENGTH, &zone);
   
   /**
@@ -576,7 +573,7 @@ process_authority_lookup(void* cls,
  * @param answer the pending query used in the lookup
  */
 void
-reply_to_dns(struct GNUNET_GNS_PendingQuery *answer, uint32_t rd_count,
+reply_to_dns(struct GNUNET_GNS_ResolverHandle *rh, uint32_t rd_count,
              const struct GNUNET_NAMESTORE_RecordData *rd)
 {
   struct GNUNET_DNSPARSER_Flags dnsflags;
@@ -584,8 +581,8 @@ reply_to_dns(struct GNUNET_GNS_PendingQuery *answer, uint32_t rd_count,
   size_t len;
   int ret;
   char *buf;
-  struct GNUNET_DNSPARSER_Packet *packet = answer->p;
-  struct GNUNET_DNSPARSER_Record answer_records[answer->num_records];
+  struct GNUNET_DNSPARSER_Packet *packet = rh->packet;
+  struct GNUNET_DNSPARSER_Record answer_records[rh->num_records];
   packet->answers = answer_records;
   
   len = sizeof(struct GNUNET_DNSPARSER_Record*);
@@ -593,11 +590,11 @@ reply_to_dns(struct GNUNET_GNS_PendingQuery *answer, uint32_t rd_count,
   {
     GNUNET_log(GNUNET_ERROR_TYPE_INFO,
                "Adding type %d to DNS response\n", rd[i].record_type);
-    GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Name: %s\n", answer->name);
-    GNUNET_log(GNUNET_ERROR_TYPE_INFO, "OName: %s\n", answer->original_name);
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Name: %s\n", rh->name);
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO, "QName: %s\n", rh->query->name);
     GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Record %d/%d\n", i+1, rd_count);
     GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Record len %d\n", rd[i].data_size);
-    answer_records[i].name = answer->original_name; //FIXME yes?
+    answer_records[i].name = rh->query->name;
     answer_records[i].type = rd[i].record_type;
     answer_records[i].data.raw.data_len = rd[i].data_size;
     answer_records[i].data.raw.data = (char*)rd[i].data;
@@ -643,7 +640,7 @@ reply_to_dns(struct GNUNET_GNS_PendingQuery *answer, uint32_t rd_count,
   {
     GNUNET_log(GNUNET_ERROR_TYPE_INFO,
                "Answering DNS request\n");
-    GNUNET_DNS_request_answer(answer->request_handle,
+    GNUNET_DNS_request_answer(rh->request_handle,
                               len,
                               buf);
     //GNUNET_free(answer);
@@ -655,6 +652,11 @@ reply_to_dns(struct GNUNET_GNS_PendingQuery *answer, uint32_t rd_count,
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
                "Error building DNS response! (ret=%d)", ret);
   }
+
+  //FIXME into free_resolver(rh)
+  //GNUNET_DNSPARSER_free_packet(rh->packet);
+  //GNUNET_free(rh->name);
+  //GNUNET_free(rh);
 }
 
 
@@ -680,13 +682,13 @@ process_authoritative_result(void* cls,
                   const struct GNUNET_NAMESTORE_RecordData *rd,
                   const struct GNUNET_CRYPTO_RsaSignature *signature)
 {
-  struct GNUNET_GNS_PendingQuery *query;
+  struct GNUNET_GNS_ResolverHandle *query;
   struct GNUNET_GNS_QueryRecordList *qrecord;
   struct GNUNET_NAMESTORE_RecordData *record;
   struct GNUNET_TIME_Relative remaining_time;
   GNUNET_HashCode zone;
 
-  query = (struct GNUNET_GNS_PendingQuery *) cls;
+  query = (struct GNUNET_GNS_ResolverHandle *) cls;
   GNUNET_CRYPTO_hash(key, GNUNET_CRYPTO_RSA_KEY_LENGTH, &zone);
   remaining_time = GNUNET_TIME_absolute_get_remaining (expiration);
 
@@ -844,28 +846,28 @@ char* pop_tld(char* name)
  * @param zone the zone we are currently resolving in
  */
 void
-resolve_name(struct GNUNET_GNS_PendingQuery *query, GNUNET_HashCode *zone)
+resolve_name(struct GNUNET_GNS_ResolverHandle *rh, GNUNET_HashCode *zone)
 {
-  if (is_canonical(query->name))
+  if (is_canonical(rh->name))
   {
     //We only need to check this zone's ns
     GNUNET_NAMESTORE_lookup_record(namestore_handle,
                                zone,
-                               query->name,
-                               query->type,
+                               rh->name,
+                               rh->query->type,
                                &process_authoritative_result,
-                               query);
+                               rh);
   }
   else
   {
     //We have to resolve the authoritative entity
-    char *new_authority = pop_tld(query->name);
+    char *new_authority = pop_tld(rh->name);
     GNUNET_NAMESTORE_lookup_record(namestore_handle,
                                  zone,
                                  new_authority,
                                  GNUNET_GNS_RECORD_PKEY,
                                  &process_authority_lookup,
-                                 query);
+                                 rh);
   }
 }
 
@@ -876,34 +878,37 @@ resolve_name(struct GNUNET_GNS_PendingQuery *query, GNUNET_HashCode *zone)
  * Setup a new query and try to resolve
  *
  * @param rh the request handle of the DNS request from a client
+ * @param p the DNS query packet we received
  * @param name the name to look up
  * @param id the id of the dns request (for the reply)
  * @param type the record type to look for
  */
 void
-start_resolution(struct GNUNET_DNS_RequestHandle *rh,
+start_resolution(struct GNUNET_DNS_RequestHandle *request,
                  struct GNUNET_DNSPARSER_Packet *p,
-                 char* name, uint16_t id, uint16_t type)
+                 struct GNUNET_DNSPARSER_Query *q)
 {
-  struct GNUNET_GNS_PendingQuery *query;
+  struct GNUNET_GNS_ResolverHandle *rh;
   
-  //FIXME remove .gnunet here from name
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "This is .gnunet (%s)!\n", name);
-  query = GNUNET_malloc(sizeof (struct GNUNET_GNS_PendingQuery));
-  query->id = id;
-  query->original_name = name; //Full name of original query
-  query->p = p;
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Starting resolution for (%s)!\n",
+              q->name);
+  
+  rh = GNUNET_malloc(sizeof (struct GNUNET_GNS_ResolverHandle));
+  rh->packet = p;
+  rh->query = q;
   
   //FIXME do not forget to free!!
-  query->name = GNUNET_malloc(strlen(name)-strlen(gnunet_tld) + 1);
-  memset(query->name, 0, strlen(name)-strlen(gnunet_tld) + 1);
-  memcpy(query->name, name, strlen(name)-strlen(gnunet_tld));
+  rh->name = GNUNET_malloc(strlen(q->name)
+                              - strlen(gnunet_tld) + 1);
+  memset(rh->name, 0,
+         strlen(q->name)-strlen(gnunet_tld) + 1);
+  memcpy(rh->name, q->name,
+         strlen(q->name)-strlen(gnunet_tld));
 
-  query->type = type;
-  query->request_handle = rh;
+  rh->request_handle = request;
 
   //Start resolution in our zone
-  resolve_name(query, &zone_hash);
+  resolve_name(rh, &zone_hash);
 }
 
 /**
@@ -922,7 +927,6 @@ handle_dns_request(void *cls,
                    const char *request)
 {
   struct GNUNET_DNSPARSER_Packet *p;
-  int i;
   char *tldoffset;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Hijacked a DNS request...processing\n");
@@ -948,27 +952,40 @@ handle_dns_request(void *cls,
    * The way it is implemented here now is buggy and will lead to erratic
    * behaviour (if multiple queries are present).
    */
-  for (i=0;i<p->num_queries;i++)
+  if (p->num_queries == 0)
   {
-    tldoffset = p->queries[i].name + strlen(p->queries[i].name);
-
-    while ((*tldoffset) != '.')
-      tldoffset--;
-    
-    if (0 == strcmp(tldoffset, gnunet_tld))
-    {
-      start_resolution(rh, p, p->queries[i].name, p->id, p->queries[i].type);
-    }
-    else
-    {
-      /**
-       * This request does not concern us. Forward to real DNS.
-       */
-      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-                 "Request for %s is forwarded to DNS\n", p->queries[i].name);
-      GNUNET_DNS_request_forward (rh);
-    }
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "No Queries in DNS packet... forwarding\n");
+    GNUNET_DNS_request_forward (rh);
   }
+
+  if (p->num_queries > 1)
+  {
+    //Note: We could also look for .gnunet
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                ">1 queriy in DNS packet... odd. We only process #1\n");
+  }
+
+
+  tldoffset = p->queries[0].name + strlen(p->queries[0].name);
+
+  while ((*tldoffset) != '.')
+    tldoffset--;
+  
+  if (0 == strcmp(tldoffset, gnunet_tld))
+  {
+    start_resolution(rh, p, p->queries);
+  }
+  else
+  {
+    /**
+     * This request does not concern us. Forward to real DNS.
+     */
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+               "Request for %s is forwarded to DNS\n", p->queries[0].name);
+    GNUNET_DNS_request_forward (rh);
+  }
+
 }
 
 /**
