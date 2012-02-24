@@ -166,7 +166,7 @@ struct GNUNET_NAMESTORE_RecordData
  * authorities.
  *
  * @param h handle to the namestore
- * @param zone hash of the public key of the zone
+ * @param zone_key public key of the zone
  * @param name name that is being mapped (at most 255 characters long)
  * @param expire when does the corresponding block in the DHT expire (until
  *               when should we never do a DHT lookup for the same name again)?
@@ -179,7 +179,7 @@ struct GNUNET_NAMESTORE_RecordData
  */
 struct GNUNET_NAMESTORE_QueueEntry *
 GNUNET_NAMESTORE_record_put (struct GNUNET_NAMESTORE_Handle *h,
-			     const GNUNET_HashCode *zone,
+			     const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
 			     const char *name,
 			     struct GNUNET_TIME_Absolute expire,
 			     unsigned int rd_count,
