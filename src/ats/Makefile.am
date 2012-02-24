@@ -80,7 +80,7 @@ test_ats_mlp_averaging_LDADD = \
   $(GN_LIBGLPK) \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la
-  
+
 perf_ats_mlp_SOURCES = \
  $(GN_MLP_SRC) \
  perf_ats_mlp.c
