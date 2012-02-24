@@ -66,6 +66,8 @@ struct GenericMessage
 };
 GNUNET_NETWORK_STRUCT_END
 
+
+
 GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * Connect to namestore service
@@ -81,10 +83,27 @@ struct LookupNameMessage
    * Operation ID in NBO
    */
   uint32_t op_id;
+
+  /* The zone */
+  GNUNET_HashCode zone;
+
+  /* Requested record type */
+  uint32_t record_type;
+
+  /* Requested record type */
+  uint32_t name_len;
 };
 GNUNET_NETWORK_STRUCT_END
 
+
+
 GNUNET_NETWORK_STRUCT_BEGIN
+
+/**
+ * Lookup response
+ * Memory layout:
+ * [struct LookupNameResponseMessage][struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded][char *name][rc_count * struct GNUNET_NAMESTORE_RecordData][struct GNUNET_CRYPTO_RsaSignature]
+ */
 
 struct LookupNameResponseMessage
 {
@@ -97,6 +116,15 @@ struct LookupNameResponseMessage
    * Operation ID in NBO
    */
   uint32_t op_id;
+
+  struct GNUNET_TIME_AbsoluteNBO expire;
+
+  uint16_t name_len;
+
+  uint16_t contains_sig;
+
+  /* Requested record type */
+  uint32_t rc_count;
 };
 
 

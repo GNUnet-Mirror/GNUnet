@@ -196,23 +196,59 @@ handle_lookup_name_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
               "LOOKUP_NAME_RESPONSE");
 
   struct GNUNET_NAMESTORE_Handle *nsh = qe->nsh;
-
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key = NULL;
-  struct GNUNET_TIME_Absolute expire = GNUNET_TIME_absolute_get_forever();
-  const char *name = "";
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key;
+  char *name;
+  struct GNUNET_NAMESTORE_RecordData *rd = NULL;
+  struct GNUNET_CRYPTO_RsaSignature *signature = NULL;
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded dummy;
+  struct GNUNET_TIME_Absolute expire;
   unsigned int rd_count = 0;
-  const struct GNUNET_NAMESTORE_RecordData *rd = NULL;
-  const struct GNUNET_CRYPTO_RsaSignature *signature = NULL;
+  size_t msg_len = 0;
+  size_t name_len = 0;
+  int contains_sig = GNUNET_NO;
 
-  /* TODO: extract real values */
+  rd_count = ntohl (msg->rc_count);
+  msg_len = ntohs (msg->header.size);
+  name_len = ntohs (msg->name_len);
+  contains_sig = ntohs (msg->contains_sig);
+  expire = GNUNET_TIME_absolute_ntoh(msg->expire);
 
-  /* Lookup complete, remove queue entry */
-  GNUNET_CONTAINER_DLL_remove (nsh->op_head, nsh->op_tail, qe);
+  if (msg_len != sizeof (struct LookupNameResponseMessage) +
+      sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded) +
+      name_len +
+      rd_count * sizeof (struct GNUNET_NAMESTORE_RecordData) +
+      contains_sig * sizeof (struct GNUNET_CRYPTO_RsaSignature))
+  {
+    GNUNET_break_op (0);
+    return;
+  }
 
-  /* Notify */
+  zone_key = (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *) &msg[1];
+  name = (char *) &zone_key[1];
+  rd = (struct GNUNET_NAMESTORE_RecordData *) &name[name_len];
+
+  /* reset values if values not contained */
+  if (contains_sig == GNUNET_NO)
+    signature = NULL;
+  else
+    signature = (struct GNUNET_CRYPTO_RsaSignature *) &rd[rd_count];
+  if (rd_count == 0)
+    rd = NULL;
+  if (name_len == 0)
+    name = NULL;
+
+  memset (&dummy, '0', sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
+  if (0 == memcmp (zone_key, &dummy, sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded)))
+      zone_key = NULL;
+
   if (qe->proc != NULL)
+  {
     qe->proc (qe->proc_cls, zone_key, expire, name, rd_count, rd, signature);
+  }
 
+
+  /* Operation done, remove */
+  GNUNET_CONTAINER_DLL_remove(nsh->op_head, nsh->op_tail, qe);
   GNUNET_free (qe);
 
 }
@@ -283,6 +319,11 @@ process_namestore_message (void *cls, const struct GNUNET_MessageHeader *msg)
   /* handle different message type */
   switch (type) {
     case GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_NAME_RESPONSE:
+        if (size < sizeof (struct LookupNameResponseMessage))
+        {
+          GNUNET_break_op (0);
+          break;
+        }
         handle_lookup_name_response (qe, (struct LookupNameResponseMessage *) msg, size);
       break;
     default:
@@ -724,9 +765,20 @@ GNUNET_NAMESTORE_lookup_record (struct GNUNET_NAMESTORE_Handle *h,
   struct GNUNET_NAMESTORE_QueueEntry *qe;
   struct PendingMessage *pe;
   size_t msg_size = 0;
+  size_t name_len = 0;
   uint32_t id = 0;
 
   GNUNET_assert (NULL != h);
+  GNUNET_assert (NULL != zone);
+  GNUNET_assert (NULL != name);
+
+  name_len = strlen (name) + 1;
+  if ((name_len == 0) || (name_len > 256))
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
+
   id = get_op_id(h);
   qe = GNUNET_malloc(sizeof (struct GNUNET_NAMESTORE_QueueEntry));
   qe->nsh = h;
@@ -736,7 +788,7 @@ GNUNET_NAMESTORE_lookup_record (struct GNUNET_NAMESTORE_Handle *h,
   GNUNET_CONTAINER_DLL_insert(h->op_head, h->op_tail, qe);
 
   /* set msg_size*/
-  msg_size = sizeof (struct LookupNameMessage);
+  msg_size = sizeof (struct LookupNameMessage) + name_len;
   pe = GNUNET_malloc(sizeof (struct PendingMessage) + msg_size);
 
   /* create msg here */
@@ -747,6 +799,12 @@ GNUNET_NAMESTORE_lookup_record (struct GNUNET_NAMESTORE_Handle *h,
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_NAME);
   msg->header.size = htons (msg_size);
   msg->op_id = htonl (id);
+  msg->record_type = htonl (record_type);
+  msg->zone = *zone;
+  msg->name_len = htonl (name_len);
+  memcpy (&msg[1], name, name_len);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message for name `%s'\n", "NAMESTORE_LOOKUP_NAME", name);
 
   /* transmit message */
   GNUNET_CONTAINER_DLL_insert (h->pending_head, h->pending_tail, pe);

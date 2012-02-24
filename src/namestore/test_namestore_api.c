@@ -27,7 +27,7 @@
 
 #define VERBOSE GNUNET_EXTRA_LOGGING
 
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 
 static struct GNUNET_NAMESTORE_Handle * nsh;
 
@@ -112,6 +112,7 @@ void name_lookup_proc (void *cls,
                             const struct GNUNET_NAMESTORE_RecordData *rd,
                             const struct GNUNET_CRYPTO_RsaSignature *signature)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "name_lookup_proc %p `%s' %i %p %p\n", zone_key, name, rd_count, rd, signature);
   res = 0;
   GNUNET_SCHEDULER_add_now(&end, NULL);
 }
@@ -122,13 +123,17 @@ run (void *cls, char *const *args, const char *cfgfile,
 {
   endbadly_task = GNUNET_SCHEDULER_add_delayed(TIMEOUT,endbadly, NULL);
 
+  GNUNET_HashCode zone;
+  GNUNET_CRYPTO_hash_create_random(GNUNET_CRYPTO_QUALITY_WEAK, &zone);
+  char * name = "dummy.dummy.gnunet";
+
   start_arm (cfgfile);
   GNUNET_assert (arm != NULL);
 
   nsh = GNUNET_NAMESTORE_connect (cfg);
   GNUNET_break (NULL != nsh);
 
-  GNUNET_NAMESTORE_lookup_record (nsh, NULL, NULL, 0, &name_lookup_proc, NULL);
+  GNUNET_NAMESTORE_lookup_record (nsh, &zone, name, 0, &name_lookup_proc, NULL);
 }
 
 static int
