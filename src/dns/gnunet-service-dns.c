@@ -1208,7 +1208,7 @@ handle_client_response (void *cls GNUNET_UNUSED,
 			   0);
       }
       /* if query changed to answer, move past DNS resolution phase... */
-      if ( (RP_REQUEST_MONITOR == rr->phase) &&
+      if ( (RP_QUERY == rr->phase) &&
 	   (rr->payload_length > sizeof (struct GNUNET_TUN_DnsHeader)) &&
 	   ((struct GNUNET_DNSPARSER_Flags*)&(((struct GNUNET_TUN_DnsHeader*) rr->payload)->flags))->query_or_response == 1)
       {
