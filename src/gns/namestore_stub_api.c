@@ -115,6 +115,8 @@ GNUNET_NAMESTORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
 
   handle = GNUNET_malloc (sizeof (struct GNUNET_NAMESTORE_Handle));
   handle->cfg = cfg;
+  handle->records_head = NULL;
+  handle->records_tail = NULL;
   return handle;
 }
 
@@ -150,7 +152,7 @@ GNUNET_NAMESTORE_disconnect (struct GNUNET_NAMESTORE_Handle *handle, int drop)
  */
 struct GNUNET_NAMESTORE_QueueEntry *
 GNUNET_NAMESTORE_record_put (struct GNUNET_NAMESTORE_Handle *h,
-			     const GNUNET_HashCode *zone,
+           const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *public_key,
 			     const char *name,
 			     struct GNUNET_TIME_Absolute expiration,
 			     unsigned int rd_count,
@@ -161,7 +163,57 @@ GNUNET_NAMESTORE_record_put (struct GNUNET_NAMESTORE_Handle *h,
 {
   struct GNUNET_NAMESTORE_QueueEntry *qe;
   qe = GNUNET_malloc(sizeof (struct GNUNET_NAMESTORE_QueueEntry));
-  //FIXME
+  struct GNUNET_NAMESTORE_SimpleRecord* sr;
+  GNUNET_HashCode *zone;
+  int i;
+
+  zone = GNUNET_malloc(sizeof(GNUNET_HashCode));
+  GNUNET_CRYPTO_hash(public_key,
+                     sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+                     zone);
+
+  sr = h->records_head;
+  for (; sr != NULL; sr = sr->next)
+  {
+    if (GNUNET_CRYPTO_hash_cmp(zone, sr->zone) == 0)
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_INFO, "records for %s already present ow\n",
+                 name);
+      sr->rd_count = rd_count;
+      for (i=0; i<rd_count; i++)
+      {
+        sr->rd[i] = rd[i];
+      }
+      //Expiration, Signature etc
+      return qe;
+    }
+  }
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "new records for %s\n", name);
+  // Not present
+  sr = GNUNET_malloc(sizeof (struct GNUNET_NAMESTORE_SimpleRecord));
+  sr->rd_count = rd_count;
+  sr->name = GNUNET_malloc(strlen(name));
+  sr->zone = zone;
+  sr->zone_key = public_key; //pkey FIXME;
+  sr->next = NULL;
+  sr->prev = NULL;
+  strcpy((char*)sr->name, name);
+  
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "copying \n");
+  for (i=0; i<rd_count; i++)
+    sr->rd[i] = rd[i];
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "done \n");
+  
+  if (h->records_head == NULL && h->records_tail == NULL)
+  {
+    h->records_head = sr;
+    h->records_tail = sr;
+  }
+  else
+  {
+    GNUNET_CONTAINER_DLL_insert(h->records_head, h->records_tail, sr);
+  }
+
   return qe;
 }
 
@@ -177,7 +229,7 @@ GNUNET_NAMESTORE_verify_signature (const struct GNUNET_CRYPTO_RsaPublicKeyBinary
 
 struct GNUNET_NAMESTORE_QueueEntry *
 GNUNET_NAMESTORE_record_create (struct GNUNET_NAMESTORE_Handle *h,
-			     const struct GNUNET_CRYPTO_RsaPrivateKey *pkey,
+			     const struct GNUNET_CRYPTO_RsaPrivateKey *key,
 			     const char *name,
            const struct GNUNET_NAMESTORE_RecordData *rd,
            GNUNET_NAMESTORE_ContinuationWithStatus cont,
@@ -186,13 +238,25 @@ GNUNET_NAMESTORE_record_create (struct GNUNET_NAMESTORE_Handle *h,
   struct GNUNET_NAMESTORE_QueueEntry *qe;
   qe = GNUNET_malloc(sizeof (struct GNUNET_NAMESTORE_QueueEntry));
   struct GNUNET_NAMESTORE_SimpleRecord* sr;
+
+  GNUNET_HashCode *zone_hash;
+  
+  //memleakage.. but only stub so w/e
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *pkey;
+  pkey = GNUNET_malloc(sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
+  GNUNET_CRYPTO_rsa_key_get_public (key, pkey);
+
+  zone_hash = GNUNET_malloc(sizeof(GNUNET_HashCode));
+
+  GNUNET_CRYPTO_hash(pkey, GNUNET_CRYPTO_RSA_KEY_LENGTH, zone_hash);
   
   sr = h->records_head;
   for (; sr != NULL; sr = sr->next)
   {
-    if (strcmp(sr->name, name) && (sr->zone == NULL))
+    if (strcmp(sr->name, name) && (sr->zone == zone_hash))
     {
-      memcpy (&(sr->rd[sr->rd_count]), rd,
+      //Dangerous
+      memcpy (&(sr->rd[sr->rd_count-1]), rd,
               sizeof(struct GNUNET_NAMESTORE_RecordData));
 
       sr->rd_count++;
@@ -200,18 +264,27 @@ GNUNET_NAMESTORE_record_create (struct GNUNET_NAMESTORE_Handle *h,
     }
   }
       
-  sr = GNUNET_malloc(sizeof (struct GNUNET_NAMESTORE_SimpleRecord*));
+  sr = GNUNET_malloc(sizeof (struct GNUNET_NAMESTORE_SimpleRecord));
   
-  sr->rd_count = 0;
+  sr->rd_count = 1;
   sr->name = GNUNET_malloc(strlen(name));
-  sr->zone = NULL;
-  sr->zone_key = NULL;
+  sr->zone = zone_hash;
+  sr->zone_key = pkey;
+  sr->next = NULL;
+  sr->prev = NULL;
   strcpy((char*)sr->name, name);
 
   memcpy (&(sr->rd), rd,
           sizeof(struct GNUNET_NAMESTORE_RecordData));
-
-  GNUNET_CONTAINER_DLL_insert(h->records_head, h->records_tail, sr);
+  if (h->records_head == NULL && h->records_tail == NULL)
+  {
+    h->records_head = sr;
+    h->records_tail = sr;
+  }
+  else
+  {
+    GNUNET_CONTAINER_DLL_insert(h->records_head, h->records_tail, sr);
+  }
 
   return qe;
 }
@@ -272,17 +345,23 @@ GNUNET_NAMESTORE_lookup_record (struct GNUNET_NAMESTORE_Handle *h,
   qe = GNUNET_malloc(sizeof (struct GNUNET_NAMESTORE_QueueEntry));
   struct GNUNET_NAMESTORE_SimpleRecord *sr;
   
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Looking up %s\n", name);
   sr = h->records_head;
   for (; sr != NULL; sr = sr->next)
   {
-    if (strcmp(sr->name, name) &&
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Got %s\n", sr->name);
+    if ((strcmp(sr->name, name) == 0) &&
         (GNUNET_CRYPTO_hash_cmp(sr->zone, zone)))
     {
+      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+                 "Found match for %s with %d entries\n",
+                 sr->name, sr->rd_count);
       //Simply always return all records
       proc(proc_cls, sr->zone_key, GNUNET_TIME_UNIT_FOREVER_ABS, //FIXME
            name, sr->rd_count, sr->rd, NULL);
       return qe;
     }
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO, "No match\n");
   }
   proc(proc_cls, NULL, GNUNET_TIME_UNIT_ZERO_ABS, name, 0, NULL, NULL);
   //FIXME

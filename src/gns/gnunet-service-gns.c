@@ -89,6 +89,8 @@ struct GNUNET_GNS_PendingQuery
    * may be able to resolve
    */
   int authority_found;
+
+  struct GNUNET_DNSPARSER_Packet *p;
 };
 
 
@@ -212,6 +214,7 @@ process_authority_dht_result(void* cls,
   uint16_t namelen;
   char* name = NULL;
   struct GNUNET_CRYPTO_RsaSignature *signature;
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *public_key;
   int i;
   char* pos;
   GNUNET_HashCode zone, name_hash;
@@ -260,21 +263,25 @@ process_authority_dht_result(void* cls,
 
   }
 
-  if ((((char*)data)-pos) < sizeof(struct GNUNET_CRYPTO_RsaSignature))
+  if ((((char*)data)-pos) < 
+      (sizeof(struct GNUNET_CRYPTO_RsaSignature) +
+       sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded)))
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-               "Cannot parse signature in DHT response. Corrupted or Missing");
+            "Cannot parse signature/key in DHT response. Corrupted or Missing");
     return;
   }
 
   signature = (struct GNUNET_CRYPTO_RsaSignature*)pos;
-
+  pos += sizeof(struct GNUNET_CRYPTO_RsaSignature);
+  
+  public_key = (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded*)pos;
   GNUNET_CRYPTO_hash(name, strlen(name), &name_hash);
   GNUNET_CRYPTO_hash_xor(key, &name_hash, &zone);
 
   //Save to namestore
   GNUNET_NAMESTORE_record_put (namestore_handle,
-                               &zone,
+                               public_key,
                                name,
                                exp,
                                num_records,
@@ -365,6 +372,7 @@ process_name_dht_result(void* cls,
   uint16_t namelen;
   char* name = NULL;
   struct GNUNET_CRYPTO_RsaSignature *signature;
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *public_key;
   int i;
   char* pos;
   GNUNET_HashCode zone, name_hash;
@@ -413,21 +421,26 @@ process_name_dht_result(void* cls,
 
   }
 
-  if ((((char*)data)-pos) < sizeof(struct GNUNET_CRYPTO_RsaSignature))
+  if ((((char*)data)-pos) < 
+      (sizeof(struct GNUNET_CRYPTO_RsaSignature) +
+       sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded)))
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-               "Cannot parse signature in DHT response. Corrupted or Missing");
+            "Cannot parse signature/key in DHT response. Corrupted or Missing");
     return;
   }
 
   signature = (struct GNUNET_CRYPTO_RsaSignature*)pos;
+  pos += sizeof(struct GNUNET_CRYPTO_RsaSignature);
+  
+  public_key = (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded*)pos;
 
   GNUNET_CRYPTO_hash(name, strlen(name), &name_hash);
   GNUNET_CRYPTO_hash_xor(key, &name_hash, &zone);
 
   //Save to namestore
   GNUNET_NAMESTORE_record_put (namestore_handle,
-                               &zone,
+                               public_key,
                                name,
                                exp,
                                num_records,
@@ -571,15 +584,19 @@ reply_to_dns(struct GNUNET_GNS_PendingQuery *answer, uint32_t rd_count,
   size_t len;
   int ret;
   char *buf;
-  struct GNUNET_DNSPARSER_Packet packet;
+  struct GNUNET_DNSPARSER_Packet *packet = answer->p;
   struct GNUNET_DNSPARSER_Record answer_records[answer->num_records];
-  packet.answers = answer_records;
+  packet->answers = answer_records;
   
   len = sizeof(struct GNUNET_DNSPARSER_Record*);
   for (i=0; i < rd_count; i++)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_INFO,
                "Adding type %d to DNS response\n", rd[i].record_type);
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Name: %s\n", answer->name);
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO, "OName: %s\n", answer->original_name);
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Record %d/%d\n", i+1, rd_count);
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Record len %d\n", rd[i].data_size);
     answer_records[i].name = answer->original_name; //FIXME yes?
     answer_records[i].type = rd[i].record_type;
     answer_records[i].data.raw.data_len = rd[i].data_size;
@@ -588,26 +605,40 @@ reply_to_dns(struct GNUNET_GNS_PendingQuery *answer, uint32_t rd_count,
     answer_records[i].class = GNUNET_DNSPARSER_CLASS_INTERNET;//hmmn
     //GNUNET_free(i->record); DO this later!
   }
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "after memcpy\n");
-  /* FIXME how to handle auth, additional etc */
-  packet.num_answers = answer->num_records;
-  packet.num_authority_records = answer->num_authority_records;
+  
+  /**
+   *  FIXME how to handle auth, additional etc 
+   *  PKEY might be auth, != name,record_type additional
+   **/
+  packet->num_queries = 0;
+  packet->num_additional_records = 0;
+  packet->num_answers = rd_count; //answer->num_records;
+  //packet.num_authority_records = 0;//answer->num_authority_records;
 
   dnsflags.authoritative_answer = 1;
+  dnsflags.message_truncated = 0;
+  dnsflags.recursion_desired = 0;
+  dnsflags.authenticated_data = 0;
+  dnsflags.checking_disabled = 1;
+  dnsflags.zero = 0;
+  dnsflags.recursion_available = 0;
   dnsflags.opcode = GNUNET_DNSPARSER_OPCODE_QUERY;
-  dnsflags.return_code = GNUNET_DNSPARSER_RETURN_CODE_NO_ERROR; //not sure
+  if (rd == NULL)
+    dnsflags.return_code = GNUNET_DNSPARSER_RETURN_CODE_NAME_ERROR;
+  else
+    dnsflags.return_code = GNUNET_DNSPARSER_RETURN_CODE_NO_ERROR;
   dnsflags.query_or_response = 1;
-  packet.flags = dnsflags;
+  packet->flags = dnsflags;
 
-  packet.id = answer->id;
-  
   //FIXME this is silently discarded
-  ret = GNUNET_DNSPARSER_pack (&packet,
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+             "Building DNS response\n");
+  ret = GNUNET_DNSPARSER_pack (packet,
                                1024, /* FIXME magic from dns redirector */
                                &buf,
                                &len);
   GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-             "Built DNS response! (ret=%d)\n", ret);
+             "Built DNS response! (ret=%d,len=%d)\n", ret, len);
   if (ret == GNUNET_OK)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_INFO,
@@ -669,7 +700,7 @@ process_authoritative_result(void* cls,
      * -> DHT Phase unless data is recent
      */
     GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-               "Namestore lookup terminated. without results\n");
+               "Namestore lookup for %s terminated without results\n", name);
     
     /**
      * if this is not our zone we cannot rely on the namestore to be
@@ -851,6 +882,7 @@ resolve_name(struct GNUNET_GNS_PendingQuery *query, GNUNET_HashCode *zone)
  */
 void
 start_resolution(struct GNUNET_DNS_RequestHandle *rh,
+                 struct GNUNET_DNSPARSER_Packet *p,
                  char* name, uint16_t id, uint16_t type)
 {
   struct GNUNET_GNS_PendingQuery *query;
@@ -860,6 +892,7 @@ start_resolution(struct GNUNET_DNS_RequestHandle *rh,
   query = GNUNET_malloc(sizeof (struct GNUNET_GNS_PendingQuery));
   query->id = id;
   query->original_name = name; //Full name of original query
+  query->p = p;
   
   //FIXME do not forget to free!!
   query->name = GNUNET_malloc(strlen(name)-strlen(gnunet_tld) + 1);
@@ -924,7 +957,7 @@ handle_dns_request(void *cls,
     
     if (0 == strcmp(tldoffset, gnunet_tld))
     {
-      start_resolution(rh, p->queries[i].name, p->id, p->queries[i].type);
+      start_resolution(rh, p, p->queries[i].name, p->id, p->queries[i].type);
     }
     else
     {
@@ -948,38 +981,61 @@ put_some_records(void)
   /* put a few records into namestore */
   char* ipA = "1.2.3.4";
   char* ipB = "5.6.7.8";
+  struct GNUNET_CRYPTO_RsaPrivateKey *bob_key = GNUNET_CRYPTO_rsa_key_create ();  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *bob;
+  bob = GNUNET_malloc(sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
+
+  GNUNET_CRYPTO_rsa_key_get_public (bob_key, bob);
+
+  GNUNET_HashCode *bob_zone = GNUNET_malloc(sizeof(GNUNET_HashCode));
+
+  GNUNET_CRYPTO_hash(bob, GNUNET_CRYPTO_RSA_KEY_LENGTH, bob_zone);
+
   struct in_addr *alice = GNUNET_malloc(sizeof(struct in_addr));
-  struct in_addr *bob = GNUNET_malloc(sizeof(struct in_addr));
-  struct GNUNET_NAMESTORE_RecordData *rda;
-  struct GNUNET_NAMESTORE_RecordData *rdb;
+  struct in_addr *bob_web = GNUNET_malloc(sizeof(struct in_addr));
+  struct GNUNET_NAMESTORE_RecordData rda;
+  struct GNUNET_NAMESTORE_RecordData rdb;
+  struct GNUNET_NAMESTORE_RecordData rdb_web;
 
-  rda = GNUNET_malloc(sizeof(struct GNUNET_NAMESTORE_RecordData));
-  rdb = GNUNET_malloc(sizeof(struct GNUNET_NAMESTORE_RecordData));
-  
   GNUNET_assert(1 == inet_pton (AF_INET, ipA, alice));
-  GNUNET_assert(1 == inet_pton (AF_INET, ipB, bob));
+  GNUNET_assert(1 == inet_pton (AF_INET, ipB, bob_web));
 
-  rda->data_size = sizeof(struct in_addr);
-  rdb->data_size = sizeof(struct in_addr);
-  rda->data = alice;
-  rdb->data = bob;
-  rda->record_type = GNUNET_GNS_RECORD_TYPE_A;
-  rdb->record_type = GNUNET_GNS_RECORD_TYPE_A;
-  rda->expiration = GNUNET_TIME_absolute_get_forever ();
-  rdb->expiration = GNUNET_TIME_absolute_get_forever ();
+  rda.data_size = sizeof(struct in_addr);
+  rdb_web.data_size = sizeof(struct in_addr);
+  rdb.data_size = sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded);
+  rda.data = alice;
+  rdb.data = bob;
+  rdb_web.data = bob_web;
+  rda.record_type = GNUNET_GNS_RECORD_TYPE_A;
+  rdb_web.record_type = GNUNET_GNS_RECORD_TYPE_A;
+  rdb.record_type = GNUNET_GNS_RECORD_PKEY;
+  rdb_web.expiration = GNUNET_TIME_absolute_get_forever ();
+  rda.expiration = GNUNET_TIME_absolute_get_forever ();
+  rdb.expiration = GNUNET_TIME_absolute_get_forever ();
   
+  //alice.gnunet A IN 1.2.3.4
   GNUNET_NAMESTORE_record_create (namestore_handle,
                                zone_key,
                                "alice",
-                               rda,
+                               &rda,
                                NULL,
                                NULL);
+
+  //www.bob.gnunet A IN 5.6.7.8
   GNUNET_NAMESTORE_record_create (namestore_handle,
                                zone_key,
                                "bob",
-                               rdb,
+                               &rdb,
                                NULL,
                                NULL);
+  GNUNET_NAMESTORE_record_put(namestore_handle,
+                              bob,
+                              "www",
+                              GNUNET_TIME_absolute_get_forever (),
+                              1,
+                              &rdb_web,
+                              NULL, //Signature
+                              NULL, //Cont
+                              NULL); //cls
 }
 
 void
