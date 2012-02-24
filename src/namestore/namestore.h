@@ -30,6 +30,7 @@
  * Collect message types here, move to protocols later
  */
 #define GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_NAME 431
+#define GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_NAME_RESPONSE 432
 
 GNUNET_NETWORK_STRUCT_BEGIN
 /**
@@ -46,19 +47,59 @@ struct StartMessage
 };
 GNUNET_NETWORK_STRUCT_END
 
+
+GNUNET_NETWORK_STRUCT_BEGIN
+/**
+ * Generic namestore message with op id
+ */
+struct GenericMessage
+{
+  /**
+   * Type will be GNUNET_MESSAGE_TYPE_NAMESTORE_*
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Operation ID in NBO
+   */
+  uint32_t op_id;
+};
+GNUNET_NETWORK_STRUCT_END
+
 GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * Connect to namestore service
  */
 struct LookupNameMessage
 {
-
   /**
    * Type will be GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_NAME
    */
   struct GNUNET_MessageHeader header;
 
+  /**
+   * Operation ID in NBO
+   */
+  uint32_t op_id;
 };
+GNUNET_NETWORK_STRUCT_END
+
+GNUNET_NETWORK_STRUCT_BEGIN
+
+struct LookupNameResponseMessage
+{
+  /**
+   * Type will be GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_NAME_RESPONSE
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Operation ID in NBO
+   */
+  uint32_t op_id;
+};
+
+
 GNUNET_NETWORK_STRUCT_END
 
 

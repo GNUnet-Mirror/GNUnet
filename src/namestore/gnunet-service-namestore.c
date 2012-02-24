@@ -69,6 +69,11 @@ const struct GNUNET_CONFIGURATION_Handle *GSN_cfg;
 
 static struct GNUNET_NAMESTORE_PluginFunctions *GSN_database;
 
+/**
+ * Our notification context.
+ */
+static struct GNUNET_SERVER_NotificationContext *snc;
+
 static char *db_lib_name;
 
 static struct GNUNET_NAMESTORE_Client *client_head;
@@ -101,9 +106,28 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_CONTAINER_DLL_remove (client_head, client_tail, nc);
   GNUNET_free (nc);
 
+  GNUNET_SERVER_notification_context_destroy (snc);
+  snc = NULL;
+
   GNUNET_break (NULL == GNUNET_PLUGIN_unload (db_lib_name, GSN_database));
   GNUNET_free (db_lib_name);
 }
+
+static struct GNUNET_NAMESTORE_Client *
+client_lookup (struct GNUNET_SERVER_Client *client)
+{
+  struct GNUNET_NAMESTORE_Client * nc;
+
+  GNUNET_assert (NULL != client);
+
+  for (nc = client_head; nc != NULL; nc = nc->next)
+  {
+    if (client == nc->client)
+      break;
+  }
+  return nc;
+}
+
 
 /**
  * Called whenever a client is disconnected.  Frees our
@@ -122,12 +146,9 @@ client_disconnect_notification (void *cls, struct GNUNET_SERVER_Client *client)
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Client %p disconnected \n", client);
 
-  for (nc = client_head; nc != NULL; nc = nc->next)
-  {
-    if (client == nc->client)
-      break;
-  }
-  if (NULL == client)
+  nc = client_lookup (client);
+
+  if ((NULL == client) || (NULL == nc))
     return;
 
   for (no = nc->op_head; no != NULL; no = no->next)
@@ -144,11 +165,11 @@ static void handle_start (void *cls,
                           struct GNUNET_SERVER_Client * client,
                           const struct GNUNET_MessageHeader * message)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Client %p connected\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Client %p connected\n", client);
 
   struct GNUNET_NAMESTORE_Client * nc = GNUNET_malloc (sizeof (struct GNUNET_NAMESTORE_Client));
   nc->client = client;
-
+  GNUNET_SERVER_notification_context_add (snc, client);
   GNUNET_CONTAINER_DLL_insert(client_head, client_tail, nc);
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -159,6 +180,33 @@ static void handle_lookup_name (void *cls,
                           const struct GNUNET_MessageHeader * message)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "NAMESTORE_LOOKUP_NAME");
+
+  struct GNUNET_NAMESTORE_Client *nc;
+  uint32_t id = 0;
+  size_t r_size = 0;
+
+  nc = client_lookup(client);
+  if (nc == NULL)
+  {
+    GNUNET_break_op (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
+
+  struct LookupNameMessage * ln_msg = (struct LookupNameMessage *) message;
+  id = ntohl (ln_msg->op_id);
+
+  /* do the actual lookup */
+
+  /* send response */
+  struct LookupNameResponseMessage lnr_msg;
+  r_size = sizeof (struct LookupNameResponseMessage);
+
+  lnr_msg.header.type = ntohs (GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_NAME_RESPONSE);
+  lnr_msg.header.size = ntohs (r_size);
+  lnr_msg.op_id = htonl (id);
+
+  GNUNET_SERVER_notification_context_unicast (snc, nc->client, (const struct GNUNET_MessageHeader *) &lnr_msg, GNUNET_NO);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
@@ -182,7 +230,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     {&handle_start, NULL,
      GNUNET_MESSAGE_TYPE_NAMESTORE_START, sizeof (struct StartMessage)},
     {&handle_lookup_name, NULL,
-     GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_NAME, 0},
+     GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_NAME, sizeof (struct LookupNameMessage)},
     {NULL, NULL, 0, 0}
   };
 
@@ -203,6 +251,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 
   /* Configuring server handles */
   GNUNET_SERVER_add_handlers (server, handlers);
+  snc = GNUNET_SERVER_notification_context_create (server, 16);
   GNUNET_SERVER_disconnect_notify (server,
                                    &client_disconnect_notification,
                                    NULL);

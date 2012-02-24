@@ -82,9 +82,9 @@ endbadly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   res = 1;
 }
 
-/*
+
 static void
-end (void)
+end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   if (endbadly_task != GNUNET_SCHEDULER_NO_TASK)
   {
@@ -102,8 +102,19 @@ end (void)
 
   res = 0;
 }
-*/
 
+
+void name_lookup_proc (void *cls,
+                            const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
+                            struct GNUNET_TIME_Absolute expire,
+                            const char *name,
+                            unsigned int rd_count,
+                            const struct GNUNET_NAMESTORE_RecordData *rd,
+                            const struct GNUNET_CRYPTO_RsaSignature *signature)
+{
+  res = 0;
+  GNUNET_SCHEDULER_add_now(&end, NULL);
+}
 
 static void
 run (void *cls, char *const *args, const char *cfgfile,
@@ -117,11 +128,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   nsh = GNUNET_NAMESTORE_connect (cfg);
   GNUNET_break (NULL != nsh);
 
-  //GNUNET_NAMESTORE_lookup_name (nsh, NULL, NULL, 0, NULL, NULL);
-
-  //stop_arm ();
-  //end ();
-  res = 0;
+  GNUNET_NAMESTORE_lookup_record (nsh, NULL, NULL, 0, &name_lookup_proc, NULL);
 }
 
 static int
