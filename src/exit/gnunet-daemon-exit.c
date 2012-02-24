@@ -668,8 +668,9 @@ icmp_from_helper (const struct GNUNET_TUN_IcmpHeader *icmp,
 	/* could be TCP or UDP, but both have the ports in the right
 	   place, so that doesn't matter here */
 	udp = (const struct GNUNET_TUN_UdpHeader *) &ipv4[1];
-	source_port = ntohs (udp->source_port);
-	destination_port = ntohs (udp->destination_port);
+	/* swap ports, as they are from the original message */
+	destination_port = ntohs (udp->source_port);
+	source_port = ntohs (udp->destination_port);
 	/* throw away ICMP payload, won't be useful for the other side anyway */
 	pktlen = sizeof (struct GNUNET_TUN_IcmpHeader);
 	break;
@@ -701,8 +702,9 @@ icmp_from_helper (const struct GNUNET_TUN_IcmpHeader *icmp,
 	/* could be TCP or UDP, but both have the ports in the right
 	   place, so that doesn't matter here */
 	udp = (const struct GNUNET_TUN_UdpHeader *) &ipv6[1];
-	source_port = ntohs (udp->source_port);
-	destination_port = ntohs (udp->destination_port);
+	/* swap ports, as they are from the original message */
+	destination_port = ntohs (udp->source_port);
+	source_port = ntohs (udp->destination_port);
 	/* throw away ICMP payload, won't be useful for the other side anyway */
 	pktlen = sizeof (struct GNUNET_TUN_IcmpHeader);
 	break;
