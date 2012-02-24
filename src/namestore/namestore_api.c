@@ -40,6 +40,11 @@
  */
 struct GNUNET_NAMESTORE_QueueEntry
 {
+  struct GNUNET_NAMESTORE_QueueEntry *next;
+  struct GNUNET_NAMESTORE_QueueEntry *prev;
+
+  uint64_t op_id;
+
   char *data; /*stub data pointer*/
 };
 
@@ -110,6 +115,16 @@ struct GNUNET_NAMESTORE_Handle
    * Should we reconnect to service due to some serious error?
    */
   int reconnect;
+
+
+  /**
+   * Pending namestore operations
+   */
+
+  struct GNUNET_NAMESTORE_QueueEntry * op_head;
+  struct GNUNET_NAMESTORE_QueueEntry * op_tail;
+
+  uint64_t op_id;
 };
 
 struct GNUNET_NAMESTORE_SimpleRecord
@@ -153,8 +168,10 @@ static void
 process_namestore_message (void *cls, const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_NAMESTORE_Handle *nsh = cls;
+  struct GNUNET_NAMESTORE_QueueEntry *qe;
   uint16_t size;
   uint16_t type;
+  uint64_t op_id = UINT64_MAX;
 
   if (NULL == msg)
   {
@@ -164,6 +181,27 @@ process_namestore_message (void *cls, const struct GNUNET_MessageHeader *msg)
 
   size = ntohs (msg->size);
   type = ntohs (msg->type);
+
+  /* find matching operation */
+  if (op_id > nsh->op_id)
+  {
+    GNUNET_break_op (0);
+    GNUNET_CLIENT_receive (nsh->client, &process_namestore_message, nsh,
+                           GNUNET_TIME_UNIT_FOREVER_REL);
+    return;
+  }
+  for (qe = nsh->op_head; qe != NULL; qe = qe->next)
+  {
+    if (qe->op_id == op_id)
+      break;
+  }
+  if (qe == NULL)
+  {
+    GNUNET_break_op (0);
+    GNUNET_CLIENT_receive (nsh->client, &process_namestore_message, nsh,
+                           GNUNET_TIME_UNIT_FOREVER_REL);
+    return;
+  }
 
   switch (type) {
     case GNUNET_MESSAGE_TYPE_TEST:
@@ -318,7 +356,13 @@ force_reconnect (struct GNUNET_NAMESTORE_Handle *nsh)
                                     nsh);
 }
 
-
+static void
+enqeue_namestore_operation (struct GNUNET_NAMESTORE_Handle *nsh, struct GNUNET_NAMESTORE_QueueEntry *qe)
+{
+  qe->op_id = nsh->op_id;
+  nsh->op_id ++;
+  GNUNET_CONTAINER_DLL_insert(nsh->op_head, nsh->op_tail, qe);
+}
 
 /**
  * Initialize the connection with the NAMESTORE service.
@@ -334,9 +378,9 @@ GNUNET_NAMESTORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
   nsh = GNUNET_malloc (sizeof (struct GNUNET_NAMESTORE_Handle));
   nsh->cfg = cfg;
   nsh->reconnect_task = GNUNET_SCHEDULER_add_now (&reconnect_task, nsh);
+  nsh->op_id = 0;
   return nsh;
 }
-
 
 /**
  * Shutdown connection with the NAMESTORE service.
@@ -347,12 +391,20 @@ void
 GNUNET_NAMESTORE_disconnect (struct GNUNET_NAMESTORE_Handle *nsh, int drop)
 {
   struct PendingMessage *p;
+  struct GNUNET_NAMESTORE_QueueEntry *q;
 
   while (NULL != (p = nsh->pending_head))
   {
     GNUNET_CONTAINER_DLL_remove (nsh->pending_head, nsh->pending_tail, p);
     GNUNET_free (p);
   }
+
+  while (NULL != (q = nsh->op_head))
+  {
+    GNUNET_CONTAINER_DLL_remove (nsh->op_head, nsh->op_tail, q);
+    GNUNET_free (q);
+  }
+
   if (NULL != nsh->client)
   {
     GNUNET_CLIENT_disconnect (nsh->client, GNUNET_NO);
@@ -398,7 +450,19 @@ GNUNET_NAMESTORE_record_put (struct GNUNET_NAMESTORE_Handle *h,
 			     void *cont_cls)
 {
   struct GNUNET_NAMESTORE_QueueEntry *qe;
+  struct PendingMessage *pe;
+  size_t msg_size = 0;
   qe = GNUNET_malloc(sizeof (struct GNUNET_NAMESTORE_QueueEntry));
+  enqeue_namestore_operation(h, qe);
+
+  /* set msg_size*/
+  pe = GNUNET_malloc(sizeof (struct PendingMessage) + msg_size);
+
+  /* create msg here */
+
+  GNUNET_CONTAINER_DLL_insert (h->pending_head, h->pending_tail, pe);
+  do_transmit(h);
+
 #if 0
   struct GNUNET_NAMESTORE_SimpleRecord *sr;
   sr = GNUNET_malloc(sizeof(struct GNUNET_NAMESTORE_SimpleRecord));
@@ -526,6 +590,7 @@ GNUNET_NAMESTORE_lookup_record (struct GNUNET_NAMESTORE_Handle *h,
 {
   struct GNUNET_NAMESTORE_QueueEntry *qe;
   qe = GNUNET_malloc(sizeof (struct GNUNET_NAMESTORE_QueueEntry));
+
 #if 0
   struct GNUNET_NAMESTORE_SimpleRecord *iter;
   for (iter=h->records_head; iter != NULL; iter=iter->next)

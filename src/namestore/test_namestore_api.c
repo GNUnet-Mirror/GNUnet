@@ -82,7 +82,7 @@ endbadly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   res = 1;
 }
 
-
+/*
 static void
 end (void)
 {
@@ -102,6 +102,7 @@ end (void)
 
   res = 0;
 }
+*/
 
 
 static void
@@ -116,7 +117,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   nsh = GNUNET_NAMESTORE_connect (cfg);
   GNUNET_break (NULL != nsh);
 
-  GNUNET_NAMESTORE_lookup_name (nsh, NULL, NULL, 0, NULL, NULL);
+  //GNUNET_NAMESTORE_lookup_name (nsh, NULL, NULL, 0, NULL, NULL);
 
   //stop_arm ();
   //end ();
