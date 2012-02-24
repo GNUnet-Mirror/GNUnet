@@ -43,6 +43,8 @@ struct GNUNET_NAMESTORE_QueueEntry
   struct GNUNET_NAMESTORE_QueueEntry *next;
   struct GNUNET_NAMESTORE_QueueEntry *prev;
 
+  struct GNUNET_NAMESTORE_Handle *nsh;
+
   uint64_t op_id;
 
   GNUNET_NAMESTORE_ContinuationWithStatus cont;
@@ -52,6 +54,23 @@ struct GNUNET_NAMESTORE_QueueEntry
   void *proc_cls;
 
   char *data; /*stub data pointer*/
+};
+
+
+/**
+ * Zone iterator
+ */
+struct GNUNET_NAMESTORE_ZoneIterator
+{
+  struct GNUNET_NAMESTORE_ZoneIterator *next;
+  struct GNUNET_NAMESTORE_ZoneIterator *prev;
+
+  struct GNUNET_NAMESTORE_Handle *h;
+  GNUNET_NAMESTORE_RecordProcessor proc;
+  void* proc_cls;
+  const GNUNET_HashCode * zone;
+  uint32_t no_flags;
+  uint32_t flags;
 };
 
 
@@ -124,13 +143,18 @@ struct GNUNET_NAMESTORE_Handle
 
 
   /**
-   * Pending namestore operations
+   * Pending namestore queue entries
    */
-
   struct GNUNET_NAMESTORE_QueueEntry * op_head;
   struct GNUNET_NAMESTORE_QueueEntry * op_tail;
 
   uint64_t op_id;
+
+  /**
+   * Pending namestore zone iterator entries
+   */
+  struct GNUNET_NAMESTORE_ZoneIterator * z_head;
+  struct GNUNET_NAMESTORE_ZoneIterator * z_tail;
 };
 
 struct GNUNET_NAMESTORE_SimpleRecord
@@ -153,6 +177,7 @@ struct GNUNET_NAMESTORE_SimpleRecord
   size_t data_size;
   const void *data;
 };
+
 
 /**
  * Disconnect from service and then reconnect.
@@ -398,6 +423,9 @@ GNUNET_NAMESTORE_disconnect (struct GNUNET_NAMESTORE_Handle *nsh, int drop)
 {
   struct PendingMessage *p;
   struct GNUNET_NAMESTORE_QueueEntry *q;
+  struct GNUNET_NAMESTORE_ZoneIterator *z;
+
+  GNUNET_assert (nsh != NULL);
 
   while (NULL != (p = nsh->pending_head))
   {
@@ -409,6 +437,12 @@ GNUNET_NAMESTORE_disconnect (struct GNUNET_NAMESTORE_Handle *nsh, int drop)
   {
     GNUNET_CONTAINER_DLL_remove (nsh->op_head, nsh->op_tail, q);
     GNUNET_free (q);
+  }
+
+  while (NULL != (z = nsh->z_head))
+  {
+    GNUNET_CONTAINER_DLL_remove (nsh->z_head, nsh->z_tail, z);
+    GNUNET_free (z);
   }
 
   if (NULL != nsh->client)
@@ -462,6 +496,7 @@ GNUNET_NAMESTORE_record_put (struct GNUNET_NAMESTORE_Handle *h,
   GNUNET_assert (NULL != h);
 
   qe = GNUNET_malloc(sizeof (struct GNUNET_NAMESTORE_QueueEntry));
+  qe->nsh = h;
   qe->cont = cont;
   qe->cont_cls = cont_cls;
   enqeue_namestore_operation(h, qe);
@@ -538,6 +573,7 @@ GNUNET_NAMESTORE_record_create (struct GNUNET_NAMESTORE_Handle *h,
   GNUNET_assert (NULL != h);
 
   qe = GNUNET_malloc(sizeof (struct GNUNET_NAMESTORE_QueueEntry));
+  qe->nsh = h;
   qe->cont = cont;
   qe->cont_cls = cont_cls;
   enqeue_namestore_operation(h, qe);
@@ -583,6 +619,7 @@ GNUNET_NAMESTORE_record_remove (struct GNUNET_NAMESTORE_Handle *h,
   GNUNET_assert (NULL != h);
 
   qe = GNUNET_malloc(sizeof (struct GNUNET_NAMESTORE_QueueEntry));
+  qe->nsh = h;
   qe->cont = cont;
   qe->cont_cls = cont_cls;
   enqeue_namestore_operation(h, qe);
@@ -641,6 +678,7 @@ GNUNET_NAMESTORE_lookup_record (struct GNUNET_NAMESTORE_Handle *h,
   GNUNET_assert (NULL != h);
 
   qe = GNUNET_malloc(sizeof (struct GNUNET_NAMESTORE_QueueEntry));
+  qe->nsh = h;
   qe->proc = proc;
   qe->proc_cls = proc_cls;
   enqeue_namestore_operation(h, qe);
@@ -711,7 +749,17 @@ GNUNET_NAMESTORE_zone_iteration_start (struct GNUNET_NAMESTORE_Handle *h,
 				       GNUNET_NAMESTORE_RecordProcessor proc,
 				       void *proc_cls)
 {
-  return NULL;
+  struct GNUNET_NAMESTORE_ZoneIterator *it;
+
+  GNUNET_assert (h != NULL);
+
+  it = GNUNET_malloc (sizeof (struct GNUNET_NAMESTORE_ZoneIterator));
+  it->h = h;
+  it->proc = proc;
+  it->proc_cls = proc;
+  GNUNET_CONTAINER_DLL_insert(h->z_head, h->z_tail, it);
+
+  return it;
 }
 
 
@@ -724,6 +772,7 @@ GNUNET_NAMESTORE_zone_iteration_start (struct GNUNET_NAMESTORE_Handle *h,
 void
 GNUNET_NAMESTORE_zone_iterator_next (struct GNUNET_NAMESTORE_ZoneIterator *it)
 {
+
 }
 
 
@@ -735,6 +784,13 @@ GNUNET_NAMESTORE_zone_iterator_next (struct GNUNET_NAMESTORE_ZoneIterator *it)
 void
 GNUNET_NAMESTORE_zone_iteration_stop (struct GNUNET_NAMESTORE_ZoneIterator *it)
 {
+  struct GNUNET_NAMESTORE_Handle * nsh;
+  GNUNET_assert (it != NULL);
+
+  nsh = it->h;
+  GNUNET_CONTAINER_DLL_remove (nsh->z_head, nsh->z_tail, it);
+  GNUNET_free (it);
+
 }
 
 
@@ -747,8 +803,13 @@ GNUNET_NAMESTORE_zone_iteration_stop (struct GNUNET_NAMESTORE_ZoneIterator *it)
 void
 GNUNET_NAMESTORE_cancel (struct GNUNET_NAMESTORE_QueueEntry *qe)
 {
-  if (qe)
-    GNUNET_free(qe);
+  struct GNUNET_NAMESTORE_Handle *nsh = qe->nsh;
+
+  GNUNET_assert (qe != NULL);
+
+  GNUNET_CONTAINER_DLL_remove(nsh->op_head, nsh->op_tail, qe);
+  GNUNET_free(qe);
+
 }
 
 /* end of namestore_api.c */
