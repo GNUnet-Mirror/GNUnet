@@ -607,7 +607,7 @@ reply_to_dns(struct GNUNET_GNS_ResolverHandle *rh, uint32_t rd_count,
    *  FIXME how to handle auth, additional etc 
    *  PKEY might be auth, != name,record_type additional
    **/
-  packet->num_queries = 0;
+  //packet->num_queries = 0;
   packet->num_additional_records = 0;
   packet->num_answers = rd_count; //answer->num_records;
   //packet.num_authority_records = 0;//answer->num_authority_records;
@@ -682,13 +682,13 @@ process_authoritative_result(void* cls,
                   const struct GNUNET_NAMESTORE_RecordData *rd,
                   const struct GNUNET_CRYPTO_RsaSignature *signature)
 {
-  struct GNUNET_GNS_ResolverHandle *query;
+  struct GNUNET_GNS_ResolverHandle *rh;
   struct GNUNET_GNS_QueryRecordList *qrecord;
   struct GNUNET_NAMESTORE_RecordData *record;
   struct GNUNET_TIME_Relative remaining_time;
   GNUNET_HashCode zone;
 
-  query = (struct GNUNET_GNS_ResolverHandle *) cls;
+  rh = (struct GNUNET_GNS_ResolverHandle *) cls;
   GNUNET_CRYPTO_hash(key, GNUNET_CRYPTO_RSA_KEY_LENGTH, &zone);
   remaining_time = GNUNET_TIME_absolute_get_remaining (expiration);
 
@@ -713,7 +713,7 @@ process_authoritative_result(void* cls,
       remaining_time = GNUNET_TIME_absolute_get_remaining (expiration);
       if (remaining_time.rel_value == 0)
       {
-        resolve_name_dht(query, name);
+        resolve_name_dht(rh, name);
         return;
       }
       else
@@ -726,8 +726,8 @@ process_authoritative_result(void* cls,
      * Our zone and no result? Cannot resolve TT
      * FIXME modify query to say NX
      */
-    GNUNET_assert(query->answered == 0);
-    reply_to_dns(query, 0, NULL); //answered should be 0
+    GNUNET_assert(rh->answered == 0);
+    reply_to_dns(rh, 0, NULL); //answered should be 0
     return;
 
   }
@@ -743,7 +743,7 @@ process_authoritative_result(void* cls,
     {
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, 
                  "This dht entry is old. Refreshing.\n");
-      resolve_name_dht(query, name);
+      resolve_name_dht(rh, name);
       return;
     }
     GNUNET_log(GNUNET_ERROR_TYPE_INFO,
@@ -765,10 +765,10 @@ process_authoritative_result(void* cls,
       
       //fixme into gns_util
       //parse_record(rd[i]->data, rd[i]->data_size, 0, record);
-      GNUNET_CONTAINER_DLL_insert(query->records_head,
-                                  query->records_tail,
+      GNUNET_CONTAINER_DLL_insert(rh->records_head,
+                                  rh->records_tail,
                                   qrecord);
-      query->num_records++;
+      rh->num_records++;
 
       //TODO really?
       //we need to resolve to the original name in the end though...
@@ -777,9 +777,9 @@ process_authoritative_result(void* cls,
     }
 
     GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Found answer to query!\n");
-    query->answered = 1;
+    rh->answered = 1;
 
-    reply_to_dns(query, rd_count, rd);
+    reply_to_dns(rh, rd_count, rd);
   }
 }
 
