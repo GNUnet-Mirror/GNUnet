@@ -207,6 +207,11 @@ static enum GNUNET_DHT_RouteOption route_option;
 static GNUNET_SCHEDULER_TaskIdentifier die_task;
 
 /**
+ * Task handle to use to schedule test shutdown
+ */
+GNUNET_SCHEDULER_TaskIdentifier shutdown_task;
+
+/**
  * Global return value (0 for success, anything else for failure)
  */
 static int ok;
@@ -224,14 +229,27 @@ shutdown_callback (void *cls, const char *emsg)
     if (ok == 0)
       ok = 2;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Shutdown callback completed.\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown callback completed.\n");
 }
 
 static void
 do_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Shutdown requested.\n");
-  GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
+  if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) == 0)
+  {
+    if (GNUNET_SCHEDULER_NO_TASK != shutdown_task)
+    {
+      GNUNET_SCHEDULER_cancel(shutdown_task);
+      shutdown_task = GNUNET_SCHEDULER_NO_TASK;
+    }
+  }
+  else
+  {
+    shutdown_task = GNUNET_SCHEDULER_NO_TASK ;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown requested.\n");
+  if (NULL != pg)
+    GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
   pg = NULL;
 }
 
@@ -790,8 +808,8 @@ run (void *cls, char *const *args, const char *cfgfile,
   pg = GNUNET_TESTING_peergroup_start (cfg, num_peers, TIMEOUT, NULL,
                                        &startup_done, NULL, NULL);
   GNUNET_assert (NULL != pg);
-  GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_FOREVER_REL,
-                               &do_stop, NULL);
+  shutdown_task = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_FOREVER_REL,
+                                               &do_stop, NULL);
 }
 
 

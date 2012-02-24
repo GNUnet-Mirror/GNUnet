@@ -86,10 +86,14 @@ static unsigned int total_connections;
  */
 static unsigned int failed_connections;
 
-/* Task handle to use to schedule test failure */
+/**
+ * Task handle to use to schedule test failure
+ */
 GNUNET_SCHEDULER_TaskIdentifier die_task;
 
-/* Global return value (0 for success, anything else for failure) */
+/**
+ * Global return value (0 for success, anything else for failure)
+ */
 static int ok;
 
 /**
