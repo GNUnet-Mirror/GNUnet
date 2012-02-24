@@ -39,8 +39,8 @@ test_udp (size_t pll,
   struct in_addr src;
   struct in_addr dst;
 
-  inet_pton (AF_INET, "1.2.3.4", &src);
-  inet_pton (AF_INET, "122.2.3.5", &dst);
+  GNUNET_assert (1 == inet_pton (AF_INET, "1.2.3.4", &src));
+  GNUNET_assert (1 == inet_pton (AF_INET, "122.2.3.5", &dst));
   memset (payload, pl_fill, sizeof (payload));
   GNUNET_TUN_initialize_ipv4_header (&ip,
 				     IPPROTO_UDP,
