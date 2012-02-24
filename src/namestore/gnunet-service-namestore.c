@@ -30,6 +30,38 @@
 #include "gnunet_namestore_plugin.h"
 #include "namestore.h"
 
+
+
+/**
+ * A namestore operation.
+ */
+struct GNUNET_NAMESTORE_Operation
+{
+  struct GNUNET_NAMESTORE_Operation *next;
+  struct GNUNET_NAMESTORE_Operation *prev;
+
+  uint64_t op_id;
+
+  char *data; /*stub data pointer*/
+};
+
+
+/**
+ * A namestore client
+ */
+struct GNUNET_NAMESTORE_Client
+{
+  struct GNUNET_NAMESTORE_Client *next;
+  struct GNUNET_NAMESTORE_Client *prev;
+
+  struct GNUNET_SERVER_Client * client;
+
+  struct GNUNET_NAMESTORE_Operation *op_head;
+  struct GNUNET_NAMESTORE_Operation *op_tail;
+};
+
+
+
 /**
  * Configuration handle.
  */
@@ -38,6 +70,10 @@ const struct GNUNET_CONFIGURATION_Handle *GSN_cfg;
 static struct GNUNET_NAMESTORE_PluginFunctions *GSN_database;
 
 static char *db_lib_name;
+
+static struct GNUNET_NAMESTORE_Client *client_head;
+static struct GNUNET_NAMESTORE_Client *client_tail;
+
 
 /**
  * Task run during shutdown.
@@ -49,6 +85,21 @@ static void
 cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping namestore service\n");
+
+  struct GNUNET_NAMESTORE_Operation * no;
+  struct GNUNET_NAMESTORE_Client * nc;
+
+  for (nc = client_head; nc != NULL; nc = nc->next)
+  {
+    for (no = nc->op_head; no != NULL; no = no->next)
+    {
+      GNUNET_CONTAINER_DLL_remove (nc->op_head, nc->op_tail, no);
+      GNUNET_free (no);
+    }
+  }
+
+  GNUNET_CONTAINER_DLL_remove (client_head, client_tail, nc);
+  GNUNET_free (nc);
 
   GNUNET_break (NULL == GNUNET_PLUGIN_unload (db_lib_name, GSN_database));
   GNUNET_free (db_lib_name);
@@ -64,8 +115,29 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 client_disconnect_notification (void *cls, struct GNUNET_SERVER_Client *client)
 {
-  if (NULL != client)
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Client %p disconnected \n", client);
+  struct GNUNET_NAMESTORE_Operation * no;
+  struct GNUNET_NAMESTORE_Client * nc;
+  if (NULL == client)
+    return;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Client %p disconnected \n", client);
+
+  for (nc = client_head; nc != NULL; nc = nc->next)
+  {
+    if (client == nc->client)
+      break;
+  }
+  if (NULL == client)
+    return;
+
+  for (no = nc->op_head; no != NULL; no = no->next)
+  {
+    GNUNET_CONTAINER_DLL_remove (nc->op_head, nc->op_tail, no);
+    GNUNET_free (no);
+  }
+
+  GNUNET_CONTAINER_DLL_remove (client_head, client_tail, nc);
+  GNUNET_free (nc);
 }
 
 static void handle_start (void *cls,
@@ -73,6 +145,12 @@ static void handle_start (void *cls,
                           const struct GNUNET_MessageHeader * message)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Client %p connected\n");
+
+  struct GNUNET_NAMESTORE_Client * nc = GNUNET_malloc (sizeof (struct GNUNET_NAMESTORE_Client));
+  nc->client = client;
+
+  GNUNET_CONTAINER_DLL_insert(client_head, client_tail, nc);
+
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 

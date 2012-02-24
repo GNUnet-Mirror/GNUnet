@@ -45,6 +45,12 @@ struct GNUNET_NAMESTORE_QueueEntry
 
   uint64_t op_id;
 
+  GNUNET_NAMESTORE_ContinuationWithStatus cont;
+  void *cont_cls;
+
+  GNUNET_NAMESTORE_RecordProcessor proc;
+  void *proc_cls;
+
   char *data; /*stub data pointer*/
 };
 
@@ -452,7 +458,12 @@ GNUNET_NAMESTORE_record_put (struct GNUNET_NAMESTORE_Handle *h,
   struct GNUNET_NAMESTORE_QueueEntry *qe;
   struct PendingMessage *pe;
   size_t msg_size = 0;
+
+  GNUNET_assert (NULL != h);
+
   qe = GNUNET_malloc(sizeof (struct GNUNET_NAMESTORE_QueueEntry));
+  qe->cont = cont;
+  qe->cont_cls = cont_cls;
   enqeue_namestore_operation(h, qe);
 
   /* set msg_size*/
@@ -520,7 +531,25 @@ GNUNET_NAMESTORE_record_create (struct GNUNET_NAMESTORE_Handle *h,
 				GNUNET_NAMESTORE_ContinuationWithStatus cont,
 				void *cont_cls)
 {
-  return NULL;
+  struct GNUNET_NAMESTORE_QueueEntry *qe;
+  struct PendingMessage *pe;
+  size_t msg_size = 0;
+
+  GNUNET_assert (NULL != h);
+
+  qe = GNUNET_malloc(sizeof (struct GNUNET_NAMESTORE_QueueEntry));
+  qe->cont = cont;
+  qe->cont_cls = cont_cls;
+  enqeue_namestore_operation(h, qe);
+
+  /* set msg_size*/
+  pe = GNUNET_malloc(sizeof (struct PendingMessage) + msg_size);
+
+  /* create msg here */
+
+  GNUNET_CONTAINER_DLL_insert (h->pending_head, h->pending_tail, pe);
+  do_transmit(h);
+  return qe;
 }
 
 
@@ -548,7 +577,24 @@ GNUNET_NAMESTORE_record_remove (struct GNUNET_NAMESTORE_Handle *h,
 				void *cont_cls)
 {
   struct GNUNET_NAMESTORE_QueueEntry *qe;
+  struct PendingMessage *pe;
+  size_t msg_size = 0;
+
+  GNUNET_assert (NULL != h);
+
   qe = GNUNET_malloc(sizeof (struct GNUNET_NAMESTORE_QueueEntry));
+  qe->cont = cont;
+  qe->cont_cls = cont_cls;
+  enqeue_namestore_operation(h, qe);
+
+  /* set msg_size*/
+  pe = GNUNET_malloc(sizeof (struct PendingMessage) + msg_size);
+
+  /* create msg here */
+
+  GNUNET_CONTAINER_DLL_insert (h->pending_head, h->pending_tail, pe);
+  do_transmit(h);
+
 #if 0
   struct GNUNET_NAMESTORE_SimpleRecord *iter;
   for (iter=h->records_head; iter != NULL; iter=iter->next)
@@ -589,7 +635,33 @@ GNUNET_NAMESTORE_lookup_record (struct GNUNET_NAMESTORE_Handle *h,
 			      GNUNET_NAMESTORE_RecordProcessor proc, void *proc_cls)
 {
   struct GNUNET_NAMESTORE_QueueEntry *qe;
+  struct PendingMessage *pe;
+  size_t msg_size = 0;
+
+  GNUNET_assert (NULL != h);
+
   qe = GNUNET_malloc(sizeof (struct GNUNET_NAMESTORE_QueueEntry));
+  qe->proc = proc;
+  qe->proc_cls = proc_cls;
+  enqeue_namestore_operation(h, qe);
+
+  /* set msg_size*/
+  msg_size = sizeof (struct LookupNameMessage);
+  pe = GNUNET_malloc(sizeof (struct PendingMessage) + msg_size);
+
+  /* create msg here */
+
+  struct LookupNameMessage * msg;
+  pe->size = msg_size;
+  pe->is_init = GNUNET_NO;
+  msg = (struct LookupNameMessage *) &pe[1];
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_NAME);
+  msg->header.size = htons (msg_size);
+
+  /* create msg done */
+
+  GNUNET_CONTAINER_DLL_insert (h->pending_head, h->pending_tail, pe);
+  do_transmit(h);
 
 #if 0
   struct GNUNET_NAMESTORE_SimpleRecord *iter;
@@ -606,20 +678,7 @@ GNUNET_NAMESTORE_lookup_record (struct GNUNET_NAMESTORE_Handle *h,
        GNUNET_TIME_absolute_get_forever(), 0, NULL, 0, NULL); /*TERMINATE*/
 #endif
 
-  GNUNET_assert (NULL != h);
 
-  struct PendingMessage * p;
-  struct LookupNameMessage * msg;
-  size_t msg_len = sizeof (struct LookupNameMessage);
-
-  p = GNUNET_malloc (sizeof (struct PendingMessage) + msg_len);
-  p->size = msg_len;
-  p->is_init = GNUNET_NO;
-  msg = (struct LookupNameMessage *) &p[1];
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_NAME);
-  msg->header.size = htons (msg_len);
-  GNUNET_CONTAINER_DLL_insert (h->pending_head, h->pending_tail, p);
-  do_transmit (h);
 
   return qe;
 }
