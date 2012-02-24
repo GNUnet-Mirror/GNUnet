@@ -224,11 +224,13 @@ shutdown_callback (void *cls, const char *emsg)
     if (ok == 0)
       ok = 2;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Shutdown callback completed.\n");
 }
 
 static void
 do_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Shutdown requested.\n");
   GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
   pg = NULL;
 }
@@ -788,6 +790,8 @@ run (void *cls, char *const *args, const char *cfgfile,
   pg = GNUNET_TESTING_peergroup_start (cfg, num_peers, TIMEOUT, NULL,
                                        &startup_done, NULL, NULL);
   GNUNET_assert (NULL != pg);
+  GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_FOREVER_REL,
+                               &do_stop, NULL);
 }
 
 
