@@ -217,9 +217,9 @@ extern "C"
     int is_default;
     char pretty_name[1001];
     size_t addr_size;
-    struct sockaddr address;
-    struct sockaddr mask;
-    struct sockaddr broadcast;
+    SOCKADDR_STORAGE address;
+    SOCKADDR_STORAGE mask;
+    SOCKADDR_STORAGE broadcast;
   };
 
   int EnumNICs3 (struct EnumNICs3_results **, int *EnumNICs3_results_count);

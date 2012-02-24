@@ -60,10 +60,12 @@ GNUNET_OS_network_interfaces_list (GNUNET_OS_NetworkInterfaceProcessor proc,
   {
     if (GNUNET_OK !=
         proc (proc_cls, results[i].pretty_name, results[i].is_default,
-              &results[i].address,
+              (const struct sockaddr *) &results[i].address,
               results[i].
-              flags & ENUMNICS3_BCAST_OK ? &results[i].broadcast : NULL,
-              results[i].flags & ENUMNICS3_MASK_OK ? &results[i].mask : NULL,
+              flags & ENUMNICS3_BCAST_OK ?
+              (const struct sockaddr *) &results[i].broadcast : NULL,
+              results[i].flags & ENUMNICS3_MASK_OK ?
+              (const struct sockaddr *) &results[i].mask : NULL,
               results[i].addr_size))
       break;
   }
