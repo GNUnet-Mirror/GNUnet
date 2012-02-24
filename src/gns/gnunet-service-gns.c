@@ -521,10 +521,10 @@ process_authority_lookup(void* cls,
                    const struct GNUNET_NAMESTORE_RecordData *rd,
                    const struct GNUNET_CRYPTO_RsaSignature *signature)
 {
-  struct GNUNET_GNS_ResolverHandle *query;
+  struct GNUNET_GNS_ResolverHandle *rh;
   GNUNET_HashCode zone;
 
-  query = (struct GNUNET_GNS_ResolverHandle *)cls;
+  rh = (struct GNUNET_GNS_ResolverHandle *)cls;
   GNUNET_CRYPTO_hash(key, GNUNET_CRYPTO_RSA_KEY_LENGTH, &zone);
   
   /**
@@ -547,7 +547,7 @@ process_authority_lookup(void* cls,
     /**
      * Last hope
      */
-    resolve_authority_dht(query, name);
+    resolve_authority_dht(rh, name);
     return;
   }
 
@@ -560,9 +560,9 @@ process_authority_lookup(void* cls,
   GNUNET_assert(rd->record_type == GNUNET_GNS_RECORD_PKEY);
   GNUNET_HashCode *pkey_hash = GNUNET_malloc(sizeof(GNUNET_HashCode));
   GNUNET_CRYPTO_hash(rd->data, GNUNET_CRYPTO_RSA_KEY_LENGTH, pkey_hash);
-  GNUNET_free_non_null(query->authority);
-  query->authority = pkey_hash;
-  resolve_name(query, query->authority);
+  GNUNET_free_non_null(rh->authority);
+  rh->authority = pkey_hash;
+  resolve_name(rh, rh->authority);
   
 }
 
@@ -611,8 +611,12 @@ reply_to_dns(struct GNUNET_GNS_ResolverHandle *rh, uint32_t rd_count,
   packet->num_additional_records = 0;
   packet->num_answers = rd_count; //answer->num_records;
   //packet.num_authority_records = 0;//answer->num_authority_records;
+  
+  if (NULL == rh->authority)
+    dnsflags.authoritative_answer = 1;
+  else
+    dnsflags.authoritative_answer = 0;
 
-  dnsflags.authoritative_answer = 1;
   dnsflags.message_truncated = 0;
   dnsflags.recursion_desired = 0;
   dnsflags.authenticated_data = 0;
@@ -620,10 +624,12 @@ reply_to_dns(struct GNUNET_GNS_ResolverHandle *rh, uint32_t rd_count,
   dnsflags.zero = 0;
   dnsflags.recursion_available = 0;
   dnsflags.opcode = GNUNET_DNSPARSER_OPCODE_QUERY;
+  
   if (rd == NULL)
     dnsflags.return_code = GNUNET_DNSPARSER_RETURN_CODE_NAME_ERROR;
   else
     dnsflags.return_code = GNUNET_DNSPARSER_RETURN_CODE_NO_ERROR;
+  
   dnsflags.query_or_response = 1;
   packet->flags = dnsflags;
 
@@ -896,6 +902,7 @@ start_resolution(struct GNUNET_DNS_RequestHandle *request,
   rh = GNUNET_malloc(sizeof (struct GNUNET_GNS_ResolverHandle));
   rh->packet = p;
   rh->query = q;
+  rh->authority = NULL;
   
   //FIXME do not forget to free!!
   rh->name = GNUNET_malloc(strlen(q->name)

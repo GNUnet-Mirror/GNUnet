@@ -1,0 +1,13 @@
+[gns]
+AUTOSTART = YES
+HOSTNAME = localhost
+HOME = $SERVICEHOME
+CONFIG = $DEFAULTCONFIG
+BINARY = gnunet-service-gns
+UNIXPATH = /tmp/gnunet-service-gns.sock
+
+# Access to this service can compromise all DNS queries in this
+# system.  Thus access should be restricted to the same UID.
+# (see https://gnunet.org/gnunet-access-control-model)
+UNIX_MATCH_UID = YES
+UNIX_MATCH_GID = YES

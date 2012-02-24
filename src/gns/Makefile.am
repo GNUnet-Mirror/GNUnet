@@ -12,8 +12,8 @@ pkgcfgdir= $(pkgdatadir)/config.d/
 
 plugindir = $(libdir)/gnunet
 
-#pkgcfg_DATA = \
-#  dns.conf
+pkgcfg_DATA = \
+  gns.conf
 
 lib_LTLIBRARIES = \
   libgnunetgns.la libgnunetnamestore.la
@@ -24,8 +24,8 @@ bin_PROGRAMS = \
 #noinst_PROGRAMS = \
 #  gnunet-gns-lookup
 
-#check_SCRIPTS = \
-# test_gnunet_dns.sh
+check_SCRIPTS = \
+ test_gnunet_gns.sh
 
 #gnunet_gns_lookup_SOURCES = \
 # gnunet-gns-lookup.c
