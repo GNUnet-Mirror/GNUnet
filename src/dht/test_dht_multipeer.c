@@ -664,7 +664,10 @@ put_finished (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   outstanding_puts--;
   puts_completed++;
-  GNUNET_SCHEDULER_cancel (test_put->task);
+  if (GNUNET_SCHEDULER_NO_TASK != test_put->task)
+  {
+    GNUNET_SCHEDULER_cancel (test_put->task);
+  }
   test_put->task = GNUNET_SCHEDULER_add_now (&put_disconnect_task, test_put);
   if (puts_completed != num_peers * num_peers)
     return;
@@ -716,6 +719,11 @@ run_dht_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   unsigned long long i;
   struct TestPutContext *test_put;
 
+  if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
+  {
+    ok = 1;
+    return;
+  }
 #if PATH_TRACKING
   route_option =
       GNUNET_DHT_RO_RECORD_ROUTE | GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE;

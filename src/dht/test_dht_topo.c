@@ -155,6 +155,7 @@ shutdown_callback (void *cls, const char *emsg)
                 "test: All peers successfully shut down!\n");
 #endif
   }
+  GNUNET_CONFIGURATION_destroy (testing_cfg);
 }
 
 
@@ -174,7 +175,6 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (data_file != NULL)
     GNUNET_DISK_file_close (data_file);
   GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
-  GNUNET_CONFIGURATION_destroy (testing_cfg);
 }
 
 
