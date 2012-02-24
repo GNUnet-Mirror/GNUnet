@@ -44,6 +44,7 @@
 #include "gnunet_signatures.h"
 #include "dns.h"
 #include "gnunet_dns_service.h"
+#include "gnunet_dnsparser_lib.h"
 #include "gnunet_mesh_service.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_tun_lib.h"
@@ -1202,6 +1203,16 @@ handle_client_response (void *cls GNUNET_UNUSED,
       if (rr->phase == RP_QUERY)
       {
 	/* clear wait list, we're moving to MODIFY phase next */
+	GNUNET_array_grow (rr->client_wait_list,
+			   rr->client_wait_list_length,
+			   0);
+      }
+      /* if query changed to answer, move past DNS resolution phase... */
+      if ( (RP_REQUEST_MONITOR == rr->phase) &&
+	   (rr->payload_length > sizeof (struct GNUNET_TUN_DnsHeader)) &&
+	   ((struct GNUNET_DNSPARSER_Flags*)&(((struct GNUNET_TUN_DnsHeader*) rr->payload)->flags))->query_or_response == 1)
+      {
+	rr->phase = RP_INTERNET_DNS;
 	GNUNET_array_grow (rr->client_wait_list,
 			   rr->client_wait_list_length,
 			   0);
