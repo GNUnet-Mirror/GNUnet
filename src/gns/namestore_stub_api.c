@@ -67,11 +67,19 @@ struct GNUNET_NAMESTORE_Handle
   struct GNUNET_NAMESTORE_SimpleRecord * records_head;
   struct GNUNET_NAMESTORE_SimpleRecord * records_tail;
 
+  uint32_t locked;
+
 };
 
 struct GNUNET_NAMESTORE_ZoneIterator
 {
   struct GNUNET_NAMESTORE_Handle *handle;
+  GNUNET_NAMESTORE_RecordProcessor proc;
+  void* proc_cls;
+  const GNUNET_HashCode * zone;
+  uint32_t no_flags;
+  uint32_t flags;
+  struct GNUNET_NAMESTORE_Handle *h;
 };
 
 struct GNUNET_NAMESTORE_SimpleRecord
@@ -88,12 +96,11 @@ struct GNUNET_NAMESTORE_SimpleRecord
   
   const char *name;
   const GNUNET_HashCode *zone;
-  uint32_t record_type;
-  struct GNUNET_TIME_Absolute expiration;
-  enum GNUNET_NAMESTORE_RecordFlags flags;
-  size_t data_size;
-  const void *data;
+  const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key;
+  uint32_t rd_count;
+  struct GNUNET_NAMESTORE_RecordData rd[100];
 };
+
 
 /**
  * Initialize the connection with the NAMESTORE service.
@@ -110,7 +117,6 @@ GNUNET_NAMESTORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
   handle->cfg = cfg;
   return handle;
 }
-
 
 /**
  * Shutdown connection with the NAMESTORE service.
@@ -179,7 +185,34 @@ GNUNET_NAMESTORE_record_create (struct GNUNET_NAMESTORE_Handle *h,
 {
   struct GNUNET_NAMESTORE_QueueEntry *qe;
   qe = GNUNET_malloc(sizeof (struct GNUNET_NAMESTORE_QueueEntry));
-  //FIXME
+  struct GNUNET_NAMESTORE_SimpleRecord* sr;
+  
+  sr = h->records_head;
+  for (; sr != NULL; sr = sr->next)
+  {
+    if (strcmp(sr->name, name) && (sr->zone == NULL))
+    {
+      memcpy (&(sr->rd[sr->rd_count]), rd,
+              sizeof(struct GNUNET_NAMESTORE_RecordData));
+
+      sr->rd_count++;
+      return qe;
+    }
+  }
+      
+  sr = GNUNET_malloc(sizeof (struct GNUNET_NAMESTORE_SimpleRecord*));
+  
+  sr->rd_count = 0;
+  sr->name = GNUNET_malloc(strlen(name));
+  sr->zone = NULL;
+  sr->zone_key = NULL;
+  strcpy((char*)sr->name, name);
+
+  memcpy (&(sr->rd), rd,
+          sizeof(struct GNUNET_NAMESTORE_RecordData));
+
+  GNUNET_CONTAINER_DLL_insert(h->records_head, h->records_tail, sr);
+
   return qe;
 }
 
@@ -237,7 +270,21 @@ GNUNET_NAMESTORE_lookup_record (struct GNUNET_NAMESTORE_Handle *h,
 {
   struct GNUNET_NAMESTORE_QueueEntry *qe;
   qe = GNUNET_malloc(sizeof (struct GNUNET_NAMESTORE_QueueEntry));
-
+  struct GNUNET_NAMESTORE_SimpleRecord *sr;
+  
+  sr = h->records_head;
+  for (; sr != NULL; sr = sr->next)
+  {
+    if (strcmp(sr->name, name) &&
+        (GNUNET_CRYPTO_hash_cmp(sr->zone, zone)))
+    {
+      //Simply always return all records
+      proc(proc_cls, sr->zone_key, GNUNET_TIME_UNIT_FOREVER_ABS, //FIXME
+           name, sr->rd_count, sr->rd, NULL);
+      return qe;
+    }
+  }
+  proc(proc_cls, NULL, GNUNET_TIME_UNIT_ZERO_ABS, name, 0, NULL, NULL);
   //FIXME
   return qe;
 }
@@ -251,18 +298,45 @@ GNUNET_NAMESTORE_zone_iteration_start(struct GNUNET_NAMESTORE_Handle *h,
                                       void *proc_cls)
 {
   struct GNUNET_NAMESTORE_ZoneIterator *it;
+  h->locked = 1;
   it = GNUNET_malloc(sizeof(struct GNUNET_NAMESTORE_ZoneIterator));
+  it->h = h;
+  it->proc = proc;
+  it->proc_cls = proc_cls;
+  it->zone = zone;
+  it->no_flags = must_not_have_flags;
+  it->flags = must_have_flags;
+  GNUNET_NAMESTORE_zone_iterator_next(it);
   return it;
 }
 
 void
 GNUNET_NAMESTORE_zone_iterator_next(struct GNUNET_NAMESTORE_ZoneIterator *it)
 {
+  struct GNUNET_NAMESTORE_SimpleRecord *sr;
+  
+  if (it->h->locked == 0)
+    return;
+
+  sr = it->h->records_head;
+  for (; sr != NULL; sr = sr->next)
+  {
+    if (GNUNET_CRYPTO_hash_cmp(sr->zone, it->zone))
+    {
+      //Simply always return all records
+      //check flags
+      it->proc(it->proc_cls, sr->zone_key, GNUNET_TIME_UNIT_FOREVER_ABS, //FIXME
+           sr->name, sr->rd_count, sr->rd, NULL);
+    }
+  }
+  it->proc(it->proc_cls, NULL, GNUNET_TIME_UNIT_ZERO_ABS, NULL, 0, NULL, NULL);
 }
 
 void
 GNUNET_NAMESTORE_zone_iteration_stop(struct GNUNET_NAMESTORE_ZoneIterator *it)
 {
+  it->h->locked = 0;
+  GNUNET_free(it);
 }
 
 /**

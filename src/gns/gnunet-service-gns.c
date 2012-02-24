@@ -141,7 +141,8 @@ static int num_public_records =  3600;
 struct GNUNET_TIME_Relative dht_update_interval;
 
 
-void reply_to_dns(struct GNUNET_GNS_PendingQuery *answer);
+void reply_to_dns(struct GNUNET_GNS_PendingQuery *answer, uint32_t rd_count,
+                  const struct GNUNET_NAMESTORE_RecordData *rd);
 void resolve_name(struct GNUNET_GNS_PendingQuery *query,
                   GNUNET_HashCode *zone);
 
@@ -440,7 +441,7 @@ process_name_dht_result(void* cls,
     //FIXME: add records to query handle, but on stack!
     //do we need records in query handle? can't we just
     //pass them to reply_to_dns?
-    reply_to_dns(query);
+    reply_to_dns(query, num_records, rd);
   }
 
   /**
@@ -562,11 +563,11 @@ process_authority_lookup(void* cls,
  * @param answer the pending query used in the lookup
  */
 void
-reply_to_dns(struct GNUNET_GNS_PendingQuery *answer)
+reply_to_dns(struct GNUNET_GNS_PendingQuery *answer, uint32_t rd_count,
+             const struct GNUNET_NAMESTORE_RecordData *rd)
 {
-  struct GNUNET_GNS_QueryRecordList *i;
   struct GNUNET_DNSPARSER_Flags dnsflags;
-  int j;
+  int i;
   size_t len;
   int ret;
   char *buf;
@@ -575,19 +576,17 @@ reply_to_dns(struct GNUNET_GNS_PendingQuery *answer)
   packet.answers = answer_records;
   
   len = sizeof(struct GNUNET_DNSPARSER_Record*);
-  j = 0;
-  for (i=answer->records_head; i != NULL; i=i->next)
+  for (i=0; i < rd_count; i++)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-               "Adding type %d to DNS response\n", i->record->record_type);
-    answer_records[j].name = answer->original_name; //FIXME yes?
-    answer_records[j].type = i->record->record_type;
-    answer_records[j].data.raw.data_len = i->record->data_size;
-    answer_records[j].data.raw.data = (char*)i->record->data;
-    answer_records[j].expiration_time = i->record->expiration;
-    answer_records[j].class = GNUNET_DNSPARSER_CLASS_INTERNET;//hmmn
+               "Adding type %d to DNS response\n", rd[i].record_type);
+    answer_records[i].name = answer->original_name; //FIXME yes?
+    answer_records[i].type = rd[i].record_type;
+    answer_records[i].data.raw.data_len = rd[i].data_size;
+    answer_records[i].data.raw.data = (char*)rd[i].data;
+    answer_records[i].expiration_time = rd[i].expiration;
+    answer_records[i].class = GNUNET_DNSPARSER_CLASS_INTERNET;//hmmn
     //GNUNET_free(i->record); DO this later!
-    j++;
   }
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, "after memcpy\n");
   /* FIXME how to handle auth, additional etc */
@@ -695,7 +694,7 @@ process_authoritative_result(void* cls,
      * FIXME modify query to say NX
      */
     GNUNET_assert(query->answered == 0);
-    reply_to_dns(query); //answered should be 0
+    reply_to_dns(query, 0, NULL); //answered should be 0
     return;
 
   }
@@ -747,7 +746,7 @@ process_authoritative_result(void* cls,
     GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Found answer to query!\n");
     query->answered = 1;
 
-    reply_to_dns(query);
+    reply_to_dns(query, rd_count, rd);
   }
 }
 
