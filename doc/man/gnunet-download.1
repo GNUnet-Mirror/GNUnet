@@ -1,4 +1,4 @@
-.TH GNUNET-DOWNLOAD "1" "28 Apr 2010" "GNUnet"
+.TH GNUNET-DOWNLOAD "1" "25 Feb 2012" "GNUnet"
 .SH NAME
 gnunet\-download \- a command line interface for downloading files from GNUnet
 .SH SYNOPSIS
@@ -39,7 +39,7 @@ write the file to FILENAME.  Hint: when recursively downloading a directory, app
 
 .TP
 \fB\-p \fIDOWNLOADS\fR, \fB\-\-parallelism=DOWNLOADS\fR
-set the maximum number of parallel downloads that is allowed.  More parallel downloads can, to some extent, improve the overall time to download content.  However, parallel downloads also take more memory (see also option \-r which can be used to limit memory utilization) and more sockets.  GNUnet typically only supports 1024 sockets per process, and each parallel download requires a new socket.  Hence it is not possible to run more than about 1000 downloads in parallel.   This option is used to limit the number of files that are downloaded in parallel (\-r can be used to limit the number of blocks that are concurrently requested).  As a result, the value only matters for recursive downloads.  The default value is 32.  Note that the overall limit of 1000 downloads applies to gnunet\-service\-fs as well and using multiple gnunet\-download processes hence does not increase this limit.
+set the maximum number of parallel downloads that is allowed.  More parallel downloads can, to some extent, improve the overall time to download content.  However, parallel downloads also take more memory (see also option \-r which can be used to limit memory utilization) and more sockets.  This option is used to limit the number of files that are downloaded in parallel (\-r can be used to limit the number of blocks that are concurrently requested).  As a result, the value only matters for recursive downloads.  The default value is 32. 
 
 .TP
 \fB\-r \fIREQUESTS\fR, \fB\-\-request-parallelism=REQUESTS\fR
@@ -58,18 +58,18 @@ print the version number
 print progress information
 
 .SH NOTES
-The GNUNET_URI is typically obtained from gnunet\-search. gnunet\-gtk can also be used instead of gnunet\-download.
-If you ever have to abort a download, you can at any time continue it by re\-issuing gnunet\-download with the same filename. In that case GNUnet will not download blocks again that are already present. GNUnets file\-encoding will ensure file integrity, even if the existing file was not downloaded from GNUnet in the first place. Temporary information will be appended to the target file until the download is completed. 
+The GNUNET_URI is typically obtained from gnunet\-search. gnunet\-fs\-gtk can also be used instead of gnunet\-download.
+If you ever have to abort a download, you can at any time continue it by re\-issuing gnunet\-download with the same filename. In that case GNUnet will not download blocks again that are already present. GNUnet's file\-encoding will ensure file integrity, even if the existing file was not downloaded from GNUnet in the first place. Temporary information will be appended to the target file until the download is completed. 
 
 .SH SETTING ANONYMITY LEVEL
 
-The \fB\-a\fR option can be used to specify additional anonymity constraints. If set to 0, GNUnet will try to download the file as fast as possible without any additional slowdown by the anonymity code. Note that you will still have a fair degree of anonymity depending on the current network load and the power of the adversary. The download is still unlikely to be terribly fast since the sender may have requested sender\-anonymity and since in addition to that, GNUnet will still do the anonymous routing.
+The \fB\-a\fR option can be used to specify additional anonymity constraints. If set to 0, GNUnet will try to download the file as fast as possible, including using non-anonymous methods.  If you set it to 1 (default), you use the standard anonymous routing algorithm (which does not explicitly leak your identity).  However, a powerful adversary may still be able to perform traffic analysis (statistics) to over time infer data about your identity.  You can gain better privacy by specifying a higher level of anonymity, which increases the amount of cover traffic your own traffic will get, at the expense of performance.  Note that your download performance is not only determined by your own anonymity level, but also by the anonymity level of the peers publishing the file.  So even if you download with anonymity level 0, the peers publishing the data might be sharing with a higher anonymity level, which in this case will determine performance.  Also, peers that cache content in the network always use anonymity level 1.  
 
 This option can be used to limit requests further than that. In particular, you can require GNUnet to receive certain amounts of traffic from other peers before sending your queries. This way, you can gain very high levels of anonymity \- at the expense of much more traffic and much higher latency. So set it only if you really believe you need it.
 
-The definition of ANONYMITY\-RECEIVE is the following: If the value v is < 1000, it means that if GNUnet routes n bytes of messages from foreign peers, it may originate n/v bytes of queries in the same time\-period. The time\-period is twice the average delay that GNUnet deferrs forwarded queries. If the value v is >= 1000, it means that if GNUnet routes n bytes of QUERIES from at least (v % 1000) peers, it may originate n/v/1000 bytes of queries in the same time\-period.
+The definition of ANONYMITY\-RECEIVE is the following.  0 means no anonymity is required.  Otherwise a value of 'v' means that 1 out of v bytes of "anonymous" traffic can be from the local user, leaving 'v-1' bytes of cover traffic per byte on the wire.  Thus, if GNUnet routes n bytes of messages from foreign peers (using anonymous routing), it may originate n/(v-1) bytes of queries in the same time\-period. The time\-period is twice the average delay that GNUnet defers forwarded queries. 
 
-The default is 0 and this should be fine for most users. Also notice that if you choose values above 1000, you may end up having no throughput at all, especially if many of your fellow GNUnet\-peers do the same.
+The default is 1 and this should be fine for most users.  Also notice that if you choose very large values, you may end up having no throughput at all, especially if many of your fellow GNUnet\-peers all do the same.
 
 .SH FILES
 .TP
@@ -78,4 +78,4 @@ GNUnet configuration file
 .SH "REPORTING BUGS"
 Report bugs to <https://gnunet.org/bugs/> or by sending electronic mail to <gnunet\-developers@gnu.org>
 .SH "SEE ALSO"
-\fBgnunet\-gtk\fP(1), \fBgnunet\-publish\fP(1), \fBgnunet\-gtk\fP(1), \fBgnunet\-search\fP(1), \fBgnunet\-download\fP(1), \fBgnunet.conf\fP(5), \fBgnunet\-service\-fs\fP(1)
+\fBgnunet\-fs\-gtk\fP(1), \fBgnunet\-publish\fP(1), \fBgnunet\-search\fP(1), \fBgnunet.conf\fP(5), \fBgnunet\-service\-fs\fP(1)

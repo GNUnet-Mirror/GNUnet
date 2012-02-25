@@ -1,4 +1,4 @@
-.TH GNUNET\-VPN 1 "Jan 7, 2012" "GNUnet"
+.TH GNUNET\-VPN 1 "25 Feb 2012" "GNUnet"
 
 .SH NAME
 gnunet\-vpn \- manually setup a GNUnet VPN tunnel
@@ -9,7 +9,7 @@ gnunet\-vpn \- manually setup a GNUnet VPN tunnel
 .br
 
 .SH DESCRIPTION
-\fBgnunet\-vpn\fP can be used to manually setup a VPN tunnel via the GNUnet network.  There are two main types of tunnels.  Tunnels to an exit node which routes the traffic to the global Internet, and tunnels to a node that runs a service only within GNUnet.  Depending on the type of tunnel, gnunet\-vpn takes different options.  The "\-i" option is required for tunnels to an exit node, whereas the "\-p" and "\-s" options in conjuction with either "\-u" or "\-t" are required for tunnels to services.  For exit tunnels, both UDP and TCP traffic will be redirected.  For service tunnels, either UDP ("\-u") or TCP ("\-t") traffic will be redirected.
+\fBgnunet\-vpn\fP can be used to manually setup a VPN tunnel via the GNUnet network.  There are two main types of tunnels.  Tunnels to an exit node which routes the traffic to the global Internet, and tunnels to a node that runs a service only within GNUnet.  Depending on the type of tunnel, gnunet\-vpn takes different options.  The "\-i" option is required for tunnels to an exit node, whereas the "\-p" and "\-s" options in conjunction with either "\-u" or "\-t" are required for tunnels to services.  For exit tunnels, both UDP and TCP traffic will be redirected.  For service tunnels, either UDP ("\-u") or TCP ("\-t") traffic will be redirected.
 
 The tool will display the IP address for this end of the tunnel.  The address can be displayed as soon as it has been allocated, or only after ("\-a") the tunnel has been created.
 
@@ -46,10 +46,10 @@ Name of the peer offering the service to connect to.  Cannot be used in conjunct
 Name of the service running on the target peer.  Cannot be used in conjunction with "\-i", requires "\-p".
 .B
 .IP "\-t, \-\-tcp"
-Service runs TCP.  Either "\-t" or \"-u" must be specified when using "\-s".
+Service runs TCP.  Either "\-t" or "\-u" must be specified when using "\-s".
 .B
 .IP "\-u, \-\-udp"
-Service runs UDP.  Either "\-t" or \"-u" must be specified when using "\-s".
+Service runs UDP.  Either "\-t" or "\-u" must be specified when using "\-s".
 .B
 .IP "\-V, \-\-verbose"
 Be verbose.

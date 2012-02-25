@@ -1,4 +1,4 @@
-.TH GNUNET-SEARCH "1" "28 Apr 2010" "GNUnet"
+.TH GNUNET-SEARCH "1" "25 Feb 2012" "GNUnet"
 .SH NAME
 gnunet\-search \- a command line interface to search for content on GNUnet
 .SH SYNOPSIS
@@ -12,13 +12,14 @@ gnunet\-search \- a command line interface to search for content on GNUnet
 Search for content on GNUnet. The keywords are case\-sensitive.  gnunet\-search can be used both for a search in the global namespace as well as for searching a private subspace.
 .TP
 \fB\-a \fILEVEL\fR, \fB\-\-anonymity=\fILEVEL\fR
-The \fB-a\fR option can be used to specify additional anonymity constraints.  If set to 0, GNUnet will try to download the file as fast as possible without any additional slowdown for anonymous routing.  Note that you may still have some amount of anonymity depending on the current network load and the power of the adversary.  Use at least 1 to force GNUnet to use anonymous routing.
 
-This option can be used to limit requests further than that. In particular, you can require GNUnet to have a certain amount of cover traffic from other peers before sending your queries. This way, you can gain very high levels of anonymity \- at the expense of much more traffic and much higher latency. So set this option to values beyond 1 only if you really believe you need it.
+The \fB\-a\fR option can be used to specify additional anonymity constraints. If set to 0, GNUnet will try to download the file as fast as possible, including using non-anonymous methods.  If you set it to 1 (default), you use the standard anonymous routing algorithm (which does not explicitly leak your identity).  However, a powerful adversary may still be able to perform traffic analysis (statistics) to over time infer data about your identity.  You can gain better privacy by specifying a higher level of anonymity, which increases the amount of cover traffic your own traffic will get, at the expense of performance.  Note that your download performance is not only determined by your own anonymity level, but also by the anonymity level of the peers publishing the file.  So even if you download with anonymity level 0, the peers publishing the data might be sharing with a higher anonymity level, which in this case will determine performance.  Also, peers that cache content in the network always use anonymity level 1.  
 
-The definition of ANONYMITY\-RECEIVE is the following: If the value v is 0, anonymous routing is not required.  For 1, anonymous routing is required, but there is no lower bound on how much cover traffic must be present.  For values > 1 and < 1000, it means that if GNUnet routes n bytes of messages from foreign peers, it may originate n/v bytes of queries in the same time\-period. The time\-period is twice the average delay that GNUnet deferrs forwarded queries. If the value v is >= 1000, it means that if GNUnet routes n bytes of QUERIES from at least (v % 1000) peers, it may originate n/v/1000 bytes of queries in the same time\-period.
+This option can be used to limit requests further than that. In particular, you can require GNUnet to receive certain amounts of traffic from other peers before sending your queries. This way, you can gain very high levels of anonymity \- at the expense of much more traffic and much higher latency. So set it only if you really believe you need it.
 
-The default is 1 and this should be fine for most users.  Also notice that if you choose values above 1000, you may end up having no throughput at all, especially if many of your fellow GNUnet\-peers do the same.
+The definition of ANONYMITY\-RECEIVE is the following.  0 means no anonymity is required.  Otherwise a value of 'v' means that 1 out of v bytes of "anonymous" traffic can be from the local user, leaving 'v-1' bytes of cover traffic per byte on the wire.  Thus, if GNUnet routes n bytes of messages from foreign peers (using anonymous routing), it may originate n/(v-1) bytes of queries in the same time\-period. The time\-period is twice the average delay that GNUnet defers forwarded queries. 
+
+The default is 1 and this should be fine for most users.  Also notice that if you choose very large values, you may end up having no throughput at all, especially if many of your fellow GNUnet\-peers all do the same.
 
 .TP
 \fB\-c \fIFILENAME\fR, \fB\-\-config=\fIFILENAME\fR
@@ -42,7 +43,7 @@ Writes a GNUnet directory containing all of the search results to FILENAME.
 Only search locally, do not forward requests to other peers.
 
 .TP
-\fB\-N \fIVALUE\fR, \fB\-\-results=\fVALUE\fR
+\fB\-N \fIVALUE\fR, \fB\-\-results=\fIVALUE\fR
 automatically terminate the search after receiving VALUE results.
 
 .TP

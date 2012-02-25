@@ -1,4 +1,4 @@
-.TH gnunet-directory "1" "26 Oct 2011" "GNUnet"
+.TH gnunet-directory "1" "25 Feb 2012" "GNUnet"
 .SH NAME
 gnunet\-directory \- display directories
 
@@ -25,9 +25,9 @@ A GNUnet directory is a file containing a list of GNUnet URIs and meta data.  Th
 
 If a directory has missing blocks (for example, some blocks failed to download), GNUnet is typically able to retrieve information about other files in the directory.  Files in a GNUnet directory have no particular order; the GNUnet code that generates a directory can reorder the entries in order to better fit the information about files into blocks of 32k.  Respecting 32k boundaries where possible makes it easier for gnunet\-directory (and other tools) to recover information from partially downloaded directory files.
 
-At the moment, directories can be created by \fBgnunet\-gtk\fP and \fBgnunet\-publish\fP.  Just like ordinary files, a directory can be published in a namespace.
+At the moment, directories can be created by \fBgnunet\-fs\-gtk\fP and \fBgnunet\-publish\fP.  Just like ordinary files, a directory can be published in a namespace.
 
-GNUnet directories use the (unregistered) mimetype \fBapplication/gnunet\-directory\fP.  They can show up among normal search results.  The directory file can be downloaded to disk by \fBgnunet\-download\fP(1) for later processing or be handled more directly by \fBgnunet\-gtk\fP(1).
+GNUnet directories use the (unregistered) mimetype \fBapplication/gnunet\-directory\fP.  They can show up among normal search results.  The directory file can be downloaded to disk by \fBgnunet\-download\fP(1) for later processing or be handled more directly by \fBgnunet\-fs\-gtk\fP(1).
 
 .SH "REPORTING BUGS"
 Report bugs by using mantis <https://gnunet.org/bugs/> or by sending electronic mail to <gnunet\-developers@gnu.org>
