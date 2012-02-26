@@ -270,11 +270,9 @@ client_response_handler (void *cls, enum GNUNET_BLOCK_EvaluationResult eval,
     memcpy (&pm[1], data, data_len);
     GSF_local_client_transmit_ (lc, &pm->header);
   }
-#if DEBUG_FS_CLIENT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Queued reply to query `%s' for local client\n",
               GNUNET_h2s (&prd->query), (unsigned int) prd->type);
-#endif
   if (eval != GNUNET_BLOCK_EVALUATION_OK_LAST)
     return;
   if (GNUNET_SCHEDULER_NO_TASK != cr->kill_task)
@@ -325,11 +323,9 @@ GSF_local_client_start_search_handler_ (struct GNUNET_SERVER_Client *client,
   sc = (msize - sizeof (struct SearchMessage)) / sizeof (GNUNET_HashCode);
   sm = (const struct SearchMessage *) message;
   type = ntohl (sm->type);
-#if DEBUG_FS_CLIENT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received request for `%s' of type %u from local client\n",
               GNUNET_h2s (&sm->query), (unsigned int) type);
-#endif
   lc = GSF_local_client_lookup_ (client);
   cr = NULL;
   /* detect duplicate KBLOCK requests */
@@ -352,10 +348,8 @@ GSF_local_client_start_search_handler_ (struct GNUNET_SERVER_Client *client,
   }
   if (cr != NULL)
   {
-#if DEBUG_FS_CLIENT
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Have existing request, merging content-seen lists.\n");
-#endif
     GSF_pending_request_update_ (cr->pr, (const GNUNET_HashCode *) &sm[1], sc);
     GNUNET_STATISTICS_update (GSF_stats,
                               gettext_noop

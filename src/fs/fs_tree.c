@@ -27,7 +27,6 @@
 #include "platform.h"
 #include "fs_tree.h"
 
-#define DEBUG_TREE GNUNET_EXTRA_LOGGING
 
 /**
  * Context for an ECRS-based file encoder that computes
@@ -341,10 +340,8 @@ GNUNET_FS_tree_encoder_next (struct GNUNET_FS_TreeEncoder *te)
   if (te->chk_tree_depth == te->current_depth)
   {
     off = CHK_PER_INODE * (te->chk_tree_depth - 1);
-#if DEBUG_TREE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "TE done, reading CHK `%s' from %u\n",
                 GNUNET_h2s (&te->chk_tree[off].query), off);
-#endif
     te->uri = GNUNET_malloc (sizeof (struct GNUNET_FS_Uri));
     te->uri->type = chk;
     te->uri->data.chk.chk = te->chk_tree[off];
@@ -374,23 +371,19 @@ GNUNET_FS_tree_encoder_next (struct GNUNET_FS_TreeEncoder *te)
     pt_block = &te->chk_tree[(te->current_depth - 1) * CHK_PER_INODE];
   }
   off = compute_chk_offset (te->current_depth, te->publish_offset);
-#if DEBUG_TREE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "TE is at offset %llu and depth %u with block size %u and target-CHK-offset %u\n",
               (unsigned long long) te->publish_offset, te->current_depth,
               (unsigned int) pt_size, (unsigned int) off);
-#endif
   mychk = &te->chk_tree[te->current_depth * CHK_PER_INODE + off];
   GNUNET_CRYPTO_hash (pt_block, pt_size, &mychk->key);
   GNUNET_CRYPTO_hash_to_aes_key (&mychk->key, &sk, &iv);
   GNUNET_CRYPTO_aes_encrypt (pt_block, pt_size, &sk, &iv, enc);
   GNUNET_CRYPTO_hash (enc, pt_size, &mychk->query);
-#if DEBUG_TREE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "TE calculates query to be `%s', stored at %u\n",
               GNUNET_h2s (&mychk->query),
               te->current_depth * CHK_PER_INODE + off);
-#endif
   if (NULL != te->proc)
     te->proc (te->cls, mychk, te->publish_offset, te->current_depth,
               (0 ==

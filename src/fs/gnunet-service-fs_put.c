@@ -156,11 +156,9 @@ process_dht_put_content (void *cls, const GNUNET_HashCode * key, size_t size,
   }
   po->zero_anonymity_count_estimate =
       GNUNET_MAX (po->current_offset, po->zero_anonymity_count_estimate);
-#if DEBUG_FS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Retrieved block `%s' of type %u for DHT PUT\n", GNUNET_h2s (key),
               type);
-#endif
   GNUNET_DHT_put (GSF_dht, key, 5 /* DEFAULT_PUT_REPLICATION */ ,
                   GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE, type, size, data,
                   expiration, GNUNET_TIME_UNIT_FOREVER_REL,

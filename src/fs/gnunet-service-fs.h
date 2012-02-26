@@ -33,9 +33,6 @@
 #include "gnunet_block_lib.h"
 #include "fs.h"
 
-#define DEBUG_FS GNUNET_YES
-
-#define DEBUG_FS_CLIENT GNUNET_EXTRA_LOGGING
 
 /**
  * By which amount do we decrement the TTL for simple forwarding /

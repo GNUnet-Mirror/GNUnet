@@ -265,10 +265,8 @@ hash_for_index_val (void *cls, const GNUNET_HashCode * res)
                 _
                 ("Hash mismatch trying to index file `%s' which has hash `%s'\n"),
                 ii->filename, GNUNET_h2s (res));
-#if DEBUG_FS
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Wanted `%s'\n",
                 GNUNET_h2s (&ii->file_id));
-#endif
     GNUNET_SERVER_transmit_context_append_data (ii->tc, NULL, 0,
                                                 GNUNET_MESSAGE_TYPE_FS_INDEX_START_FAILED);
     GNUNET_SERVER_transmit_context_run (ii->tc, GNUNET_TIME_UNIT_MINUTES);
@@ -329,11 +327,8 @@ GNUNET_FS_handle_index_start (void *cls, struct GNUNET_SERVER_Client *client,
   ii->filename = (const char *) &ii[1];
   memcpy (&ii[1], fn, slen);
   ii->file_id = ism->file_id;
-#if DEBUG_FS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message for file `%s'\n",
               "START_INDEX", ii->filename);
-#endif
-
   ii->tc = GNUNET_SERVER_transmit_context_create (client);
   mydev = 0;
   myino = 0;
@@ -346,12 +341,10 @@ GNUNET_FS_handle_index_start (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_free (fn);
     return;
   }
-#if DEBUG_FS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Mismatch in file identifiers (%llu != %llu or %u != %u), need to hash.\n",
               (unsigned long long) ino, (unsigned long long) myino,
               (unsigned int) dev, (unsigned int) mydev);
-#endif
   /* slow validation, need to hash full file (again) */
   ii->fhc =
       GNUNET_CRYPTO_hash_file (GNUNET_SCHEDULER_PRIORITY_IDLE, fn,
@@ -457,11 +450,9 @@ GNUNET_FS_handle_unindex (void *cls, struct GNUNET_SERVER_Client *client,
     }
     pos = next;
   }
-#if DEBUG_FS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Client requested unindexing of file `%s': %s\n",
               GNUNET_h2s (&um->file_id), found ? "found" : "not found");
-#endif
   if (GNUNET_YES == found)
     write_index_list ();
   tc = GNUNET_SERVER_transmit_context_create (client);
@@ -583,10 +574,8 @@ GNUNET_FS_handle_on_demand_block (const GNUNET_HashCode * key, uint32_t size,
                              GNUNET_TIME_UNIT_FOREVER_REL, &remove_cont, NULL);
     return GNUNET_SYSERR;
   }
-#if DEBUG_FS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "On-demand encoded block for query `%s'\n", GNUNET_h2s (key));
-#endif
   cont (cont_cls, key, nsize, edata, GNUNET_BLOCK_TYPE_FS_DBLOCK, priority,
         anonymity, expiration, uid);
   return GNUNET_OK;

@@ -278,11 +278,9 @@ GSF_pending_request_create_ (enum GSF_PendingRequestOptions options,
   struct GSF_PendingRequest *pr;
   struct GSF_PendingRequest *dpr;
 
-#if DEBUG_FS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Creating request handle for `%s' of type %d\n",
               GNUNET_h2s (query), type);
-#endif
   GNUNET_STATISTICS_update (GSF_stats,
                             gettext_noop ("# Pending requests created"), 1,
                             GNUNET_NO);
@@ -489,12 +487,10 @@ GSF_pending_request_get_message_ (struct GSF_PendingRequest *pr,
   int64_t ttl;
   int do_route;
 
-#if DEBUG_FS
   if (buf_size > 0)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Building request message for `%s' of type %d\n",
                 GNUNET_h2s (&pr->public_data.query), pr->public_data.type);
-#endif
   k = 0;
   bm = 0;
   do_route = (0 == (pr->public_data.options & GSF_PRO_FORWARD_ONLY));
@@ -574,10 +570,8 @@ clean_request (void *cls, const GNUNET_HashCode * key, void *value)
   struct GSF_PendingRequest *pr = value;
   GSF_LocalLookupContinuation cont;
 
-#if DEBUG_FS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Cleaning up pending request for `%s'.\n", GNUNET_h2s (key));
-#endif
   if (NULL != (cont = pr->llc_cont))
   {
     pr->llc_cont = NULL;
@@ -778,11 +772,9 @@ process_reply (void *cls, const GNUNET_HashCode * key, void *value)
 
   if (NULL == pr->rh)
     return GNUNET_YES;
-#if DEBUG_FS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Matched result (type %u) for query `%s' with pending request\n",
               (unsigned int) prq->type, GNUNET_h2s (key));
-#endif
   GNUNET_STATISTICS_update (GSF_stats,
                             gettext_noop ("# replies received and matched"), 1,
                             GNUNET_NO);
@@ -815,10 +807,8 @@ process_reply (void *cls, const GNUNET_HashCode * key, void *value)
                               gettext_noop
                               ("# duplicate replies discarded (bloomfilter)"),
                               1, GNUNET_NO);
-#if DEBUG_FS && 0
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Duplicate response `%s', discarding.\n", GNUNET_h2s (&mhash));
-#endif
+                "Duplicate response, discarding.\n");
     return GNUNET_YES;          /* duplicate */
   case GNUNET_BLOCK_EVALUATION_RESULT_INVALID:
     return GNUNET_YES;          /* wrong namespace */
@@ -838,11 +828,9 @@ process_reply (void *cls, const GNUNET_HashCode * key, void *value)
   GSF_pending_request_update_ (pr, &chash, 1);
   if (NULL == prq->sender)
   {
-#if DEBUG_FS
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Found result for query `%s' in local datastore\n",
                 GNUNET_h2s (key));
-#endif
     GNUNET_STATISTICS_update (GSF_stats,
                               gettext_noop ("# results found locally"), 1,
                               GNUNET_NO);
@@ -940,11 +928,9 @@ put_migration_continuation (void *cls, int success,
     ppd = GSF_get_peer_performance_data_ (cp);
     if (min_expiration.abs_value > 0)
     {
-#if DEBUG_FS
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 		  "Asking to stop migration for %llu ms because datastore is full\n",
 		  (unsigned long long) GNUNET_TIME_absolute_get_remaining (min_expiration).rel_value);
-#endif
       GSF_block_peer_migration_ (cp, min_expiration);      
     }
     else
@@ -956,11 +942,9 @@ put_migration_continuation (void *cls, int success,
       mig_pause.rel_value = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
 						      ppd->migration_delay.rel_value);
       ppd->migration_delay = GNUNET_TIME_relative_multiply (ppd->migration_delay, 2);
-#if DEBUG_FS
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 		  "Replicated content already exists locally, asking to stop migration for %llu ms\n",
 		  (unsigned long long) mig_pause.rel_value);
-#endif
       GSF_block_peer_migration_ (cp, GNUNET_TIME_relative_to_absolute (mig_pause));
     }
   }
@@ -1042,11 +1026,9 @@ handle_dht_reply (void *cls, struct GNUNET_TIME_Absolute exp,
   if ((GNUNET_YES == active_to_migration) &&
       (GNUNET_NO == test_put_load_too_high (prq.priority)))
   {
-#if DEBUG_FS
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Replicating result for query `%s' with priority %u\n",
                 GNUNET_h2s (key), prq.priority);
-#endif
     pmc = GNUNET_malloc (sizeof (struct PutMigrationContext));
     pmc->start = GNUNET_TIME_absolute_get ();
     pmc->requested = GNUNET_YES;
@@ -1220,10 +1202,8 @@ process_local_reply (void *cls, const GNUNET_HashCode * key, size_t size,
   }
   if (NULL == key)
   {
-#if DEBUG_FS
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
                 "No further local responses available.\n");
-#endif
     if ((pr->public_data.type == GNUNET_BLOCK_TYPE_FS_DBLOCK) ||
         (pr->public_data.type == GNUNET_BLOCK_TYPE_FS_IBLOCK))
       GNUNET_STATISTICS_update (GSF_stats,
@@ -1232,17 +1212,13 @@ process_local_reply (void *cls, const GNUNET_HashCode * key, size_t size,
                                 GNUNET_NO);
     goto check_error_and_continue;
   }
-#if DEBUG_FS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received reply for `%s' of type %d with UID %llu from datastore.\n",
               GNUNET_h2s (key), type, (unsigned long long) uid);
-#endif
   if (type == GNUNET_BLOCK_TYPE_FS_ONDEMAND)
   {
-#if DEBUG_FS
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Found ONDEMAND block, performing on-demand encoding\n");
-#endif
     GNUNET_STATISTICS_update (GSF_stats,
                               gettext_noop
                               ("# on-demand blocks matched requests"), 1,
@@ -1356,9 +1332,7 @@ process_local_reply (void *cls, const GNUNET_HashCode * key, size_t size,
       ((GNUNET_YES == GSF_test_get_load_too_high_ (0)) ||
        (pr->public_data.results_found > 5 + 2 * pr->public_data.priority)))
   {
-#if DEBUG_FS > 2
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Load too high, done with request\n");
-#endif
     GNUNET_STATISTICS_update (GSF_stats,
                               gettext_noop
                               ("# Datastore lookups concluded (load too high)"),
@@ -1557,11 +1531,9 @@ GSF_handle_p2p_content_ (struct GSF_ConnectedPeer *cp,
   if ((GNUNET_YES == active_to_migration) &&
       (GNUNET_NO == test_put_load_too_high (prq.priority)))
   {
-#if DEBUG_FS
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Replicating result for query `%s' with priority %u\n",
                 GNUNET_h2s (&query), prq.priority);
-#endif
     pmc = GNUNET_malloc (sizeof (struct PutMigrationContext));
     pmc->start = GNUNET_TIME_absolute_get ();
     pmc->requested = prq.request_found;
@@ -1581,12 +1553,10 @@ GSF_handle_p2p_content_ (struct GSF_ConnectedPeer *cp,
   }
   else
   {
-#if DEBUG_FS
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Choosing not to keep content `%s' (%d/%d)\n",
                 GNUNET_h2s (&query), active_to_migration,
                 test_put_load_too_high (prq.priority));
-#endif
   }
   putl = GNUNET_LOAD_get_load (datastore_put_load);
   if ((NULL != (cp = prq.sender)) && (GNUNET_NO == prq.request_found) &&
@@ -1601,14 +1571,12 @@ GSF_handle_p2p_content_ (struct GSF_ConnectedPeer *cp,
                                        GNUNET_CRYPTO_random_u32
                                        (GNUNET_CRYPTO_QUALITY_WEAK,
                                         (unsigned int) (60000 * putl * putl)));
-#if DEBUG_FS
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 		"Asking to stop migration for %llu ms because of load %f and events %d/%d\n",
 		(unsigned long long) block_time.rel_value,
 		putl,
 		active_to_migration,
 		(GNUNET_NO == prq.request_found));
-#endif
     GSF_block_peer_migration_ (cp, GNUNET_TIME_relative_to_absolute (block_time));
   }
   return GNUNET_OK;

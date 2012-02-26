@@ -373,11 +373,9 @@ start_p2p_processing (void *cls, struct GSF_PendingRequest *pr,
   struct GSF_PendingRequestData *prd;
 
   prd = GSF_pending_request_get_data_ (pr);
-#if DEBUG_FS_CLIENT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Finished database lookup for local request `%s' with result %d\n",
               GNUNET_h2s (&prd->query), result);
-#endif
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
   if (GNUNET_BLOCK_EVALUATION_OK_LAST == result)
     return;                     /* we're done, 'pr' was already destroyed... */

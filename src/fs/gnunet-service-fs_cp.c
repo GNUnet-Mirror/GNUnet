@@ -912,11 +912,9 @@ handle_p2p_reply (void *cls, enum GNUNET_BLOCK_EvaluationResult eval,
                                 1, GNUNET_NO);
     return;
   }
-#if DEBUG_FS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Transmitting result for query `%s' to peer\n",
               GNUNET_h2s (&prd->query));
-#endif
   GNUNET_STATISTICS_update (GSF_stats,
                             gettext_noop ("# replies received for other peers"),
                             1, GNUNET_NO);
@@ -1194,7 +1192,6 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
     cp = cps;
   if (cp == NULL)
   {
-#if DEBUG_FS
     if (0 != (bm & GET_MESSAGE_BIT_RETURN_TO))
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Failed to find RETURN-TO peer `%4s' in connection set. Dropping query.\n",
@@ -1205,7 +1202,6 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Failed to find peer `%4s' in connection set. Dropping query.\n",
                   GNUNET_i2s (other));
-#endif
     GNUNET_STATISTICS_update (GSF_stats,
                               gettext_noop
                               ("# requests dropped due to missing reverse route"),
@@ -1218,19 +1214,15 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
   priority = bound_priority (ntohl (gm->priority), cps);
   if (priority < 0)
   {
-#if DEBUG_FS
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Dropping query from `%s', this peer is too busy.\n",
                 GNUNET_i2s (other));
-#endif
     return NULL;
   }
-#if DEBUG_FS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received request for `%s' of type %u from peer `%4s' with flags %u\n",
               GNUNET_h2s (&gm->query), (unsigned int) type, GNUNET_i2s (other),
               (unsigned int) bm);
-#endif
   namespace = (0 != (bm & GET_MESSAGE_BIT_SKS_NAMESPACE)) ? &opt[bits++] : NULL;
   if ((type == GNUNET_BLOCK_TYPE_FS_SBLOCK) && (namespace == NULL))
   {
@@ -1267,11 +1259,9 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
                                                     TTL_DECREMENT);
   if ((ttl < 0) && (((int32_t) (ttl - ttl_decrement)) > 0))
   {
-#if DEBUG_FS
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Dropping query from `%s' due to TTL underflow (%d - %u).\n",
                 GNUNET_i2s (other), ttl, ttl_decrement);
-#endif
     GNUNET_STATISTICS_update (GSF_stats,
                               gettext_noop
                               ("# requests dropped due TTL underflow"), 1,
@@ -1295,11 +1285,9 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
       {
         /* existing request has higher TTL, drop new one! */
         prd->priority += priority;
-#if DEBUG_FS
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                     "Have existing request with higher TTL, dropping new request.\n",
                     GNUNET_i2s (other));
-#endif
         GNUNET_STATISTICS_update (GSF_stats,
                                   gettext_noop
                                   ("# requests dropped due to higher-TTL request"),
@@ -1352,10 +1340,8 @@ peer_transmit_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GSF_PeerTransmitHandle *pth = cls;
   struct GSF_ConnectedPeer *cp;
 
-#if DEBUG_FS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Timeout trying to transmit to other peer\n");
-#endif
   pth->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   cp = pth->cp;
   GNUNET_CONTAINER_DLL_remove (cp->pth_head, cp->pth_tail, pth);
@@ -1717,19 +1703,15 @@ GSF_block_peer_migration_ (struct GSF_ConnectedPeer *cp,
 {
   if (cp->last_migration_block.abs_value > block_time.abs_value)
   {
-#if DEBUG_FS
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Migration already blocked for another %llu ms\n",
                 (unsigned long long)
                 GNUNET_TIME_absolute_get_remaining
                 (cp->last_migration_block).rel_value);
-#endif
     return;                     /* already blocked */
   }
-#if DEBUG_FS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Asking to stop migration for %llu ms\n",
               (unsigned long long) GNUNET_TIME_absolute_get_remaining (block_time).rel_value);
-#endif
   cp->last_migration_block = block_time;
   if (cp->migration_pth != NULL)
     GSF_peer_transmit_cancel_ (cp->migration_pth);

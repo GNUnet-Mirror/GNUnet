@@ -318,12 +318,9 @@ plan (struct PeerPlan *pp, struct GSF_RequestPlan *rp)
               (unsigned int) rp->transmission_counter,
               (unsigned long long) delay.rel_value);
   rp->earliest_transmission = GNUNET_TIME_relative_to_absolute (delay);
-#if DEBUG_FS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Earliest (re)transmission for `%s' in %us\n",
               GNUNET_h2s (&prd->query), rp->transmission_counter);
-#endif
-
   GNUNET_assert (rp->hn == NULL);
   if (GNUNET_TIME_absolute_get_remaining (rp->earliest_transmission).rel_value
       == 0)
@@ -414,11 +411,9 @@ transmit_message_callback (void *cls, size_t buf_size, void *buf)
   rp->last_transmission = GNUNET_TIME_absolute_get ();
   rp->transmission_counter++;
   total_delay++;
-#if DEBUG_FS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Executing plan %p executed %u times, planning retransmission\n",
               rp, rp->transmission_counter);
-#endif
   plan (pp, rp);
   GNUNET_STATISTICS_update (GSF_stats,
                             gettext_noop
@@ -463,18 +458,14 @@ schedule_peer_transmission (void *cls,
     rp = GNUNET_CONTAINER_heap_peek (pp->delay_heap);
     if (NULL == rp)
     {
-#if DEBUG_FS
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "No active requests for plan %p.\n",
                   pp);
-#endif
       return;                   /* both queues empty */
     }
     delay = GNUNET_TIME_absolute_get_remaining (rp->earliest_transmission);
-#if DEBUG_FS
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Sleeping for %llu ms before retrying requests on plan %p.\n",
                 (unsigned long long) delay.rel_value, pp);
-#endif
     GNUNET_STATISTICS_set (GSF_stats, gettext_noop ("# delay heap timeout"),
                            delay.rel_value, GNUNET_NO);
 
@@ -486,9 +477,7 @@ schedule_peer_transmission (void *cls,
                             1, GNUNET_NO);
   /* process from priority heap */
   rp = GNUNET_CONTAINER_heap_peek (pp->priority_heap);
-#if DEBUG_FS > 1
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Executing query plan %p\n", rp);
-#endif
   GNUNET_assert (NULL != rp);
   msize = GSF_pending_request_get_message_ (get_latest (rp), 0, NULL);
   pp->pth =
@@ -608,11 +597,9 @@ GSF_plan_add_ (struct GSF_ConnectedPeer *cp, struct GSF_PendingRequest *pr)
   GNUNET_STATISTICS_update (GSF_stats, gettext_noop ("# query plan entries"), 1,
                             GNUNET_NO);
   prd = GSF_pending_request_get_data_ (pr);
-#if DEBUG_FS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Planning transmission of query `%s' to peer `%s'\n",
               GNUNET_h2s (&prd->query), GNUNET_i2s (&id));
-#endif
   rp = GNUNET_malloc (sizeof (struct GSF_RequestPlan));
   rpr = GNUNET_malloc (sizeof (struct GSF_RequestPlanReference));
   prl = GNUNET_malloc (sizeof (struct PendingRequestList));

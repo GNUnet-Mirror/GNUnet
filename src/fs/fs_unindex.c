@@ -31,7 +31,6 @@
 #include "fs_api.h"
 #include "fs_tree.h"
 
-#define DEBUG_UNINDEX GNUNET_EXTRA_LOGGING
 
 /**
  * Function called by the tree encoder to obtain
@@ -158,10 +157,8 @@ process_cont (void *cls, int success, struct GNUNET_TIME_Absolute min_expiration
     signal_unindex_error (uc);
     return;
   }
-#if DEBUG_UNINDEX
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Datastore REMOVE operation succeeded\n");
-#endif
   GNUNET_FS_tree_encoder_next (uc->tc);
 }
 
@@ -202,10 +199,8 @@ unindex_process (void *cls, const struct ContentHashKey *chk, uint64_t offset,
     odb.file_id = uc->file_id;
     data = &odb;
   }
-#if DEBUG_UNINDEX
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Sending REMOVE request to DATASTORE service\n");
-#endif
   GNUNET_DATASTORE_remove (uc->dsh, &chk->query, size, data, -2, 1,
                            GNUNET_CONSTANTS_SERVICE_TIMEOUT, &process_cont, uc);
 }
@@ -299,10 +294,8 @@ unindex_finish (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     signal_unindex_error (uc);
     return;
   }
-#if DEBUG_UNINDEX
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Sending UNINDEX message to FS service\n");
-#endif
   req.header.size = htons (sizeof (struct UnindexMessage));
   req.header.type = htons (GNUNET_MESSAGE_TYPE_FS_UNINDEX);
   req.reserved = 0;
