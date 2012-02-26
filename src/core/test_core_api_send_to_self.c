@@ -187,7 +187,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   die_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                    (GNUNET_TIME_UNIT_SECONDS, 60), &cleanup,
+                                    (GNUNET_TIME_UNIT_SECONDS, 300), &cleanup,
                                     cls);
 }
 

@@ -190,7 +190,7 @@ connect_notify (void *cls, const struct GNUNET_PeerIdentity *peer,
     if (NULL ==
         GNUNET_CORE_notify_transmit_ready (p1.ch, GNUNET_YES, 0,
                                            GNUNET_TIME_relative_multiply
-                                           (GNUNET_TIME_UNIT_SECONDS, 45),
+                                           (GNUNET_TIME_UNIT_SECONDS, 145),
                                            &p2.id,
                                            sizeof (struct GNUNET_MessageHeader),
                                            &transmit_ready, &p1))
@@ -343,7 +343,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   setup_peer (&p2, "test_core_api_peer2.conf");
   err_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                    (GNUNET_TIME_UNIT_SECONDS, 120),
+                                    (GNUNET_TIME_UNIT_SECONDS, 300),
                                     &terminate_task_error, NULL);
   p1.ch =
       GNUNET_CORE_connect (p1.cfg, 1, &p1, &init_notify, &connect_notify,

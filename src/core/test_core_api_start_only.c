@@ -33,7 +33,7 @@
 
 #define VERBOSE GNUNET_NO
 
-#define TIMEOUT 3
+#define TIMEOUT 5
 
 #define START_ARM GNUNET_YES
 
