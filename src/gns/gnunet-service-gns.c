@@ -303,7 +303,7 @@ process_authority_dht_result(void* cls,
  * Start DHT lookup for a name -> PKEY (compare NS) record in
  * query->authority's zone
  *
- * @param query the pending gns query
+ * @param rh the pending gns query
  * @param name the name of the PKEY record
  */
 void
@@ -459,7 +459,7 @@ process_name_dht_result(void* cls,
  * Start DHT lookup for a (name -> query->record_type) record in
  * query->authority's zone
  *
- * @param query the pending gns query
+ * @param rh the pending gns query context
  * @param name the name to query record
  */
 void
@@ -501,7 +501,7 @@ resolve_name(struct GNUNET_GNS_ResolverHandle *query, GNUNET_HashCode *zone);
  * @param expiration expiration date of the record data set in the namestore
  * @param name the name for which we need an authority
  * @param rd_count the number of records with 'name'
- * @param data the record data
+ * @param rd the record data
  * @param signature the signature of the authority for the record data
  */
 void
@@ -697,7 +697,7 @@ reply_to_dns(struct GNUNET_GNS_ResolverHandle *rh, uint32_t rd_count,
  * @param expiration expiration date of the namestore entry
  * @param name the name for which we need an authority
  * @param rd_count the number of records with 'name'
- * @param data the record data
+ * @param rd the record data
  * @param signature the signature of the authority for the record data
  */
 static void
@@ -854,7 +854,7 @@ char* pop_tld(char* name)
  * If it is then try to resolve directly.
  * If not then first have to resolve the authoritative entities.
  *
- * @param query the pending lookup
+ * @param rh the pending lookup
  * @param zone the zone we are currently resolving in
  */
 void
@@ -889,7 +889,7 @@ resolve_name(struct GNUNET_GNS_ResolverHandle *rh, GNUNET_HashCode *zone)
  *
  * Setup a new query and try to resolve
  *
- * @param rh the request handle of the DNS request from a client
+ * @param request the request handle of the DNS request from a client
  * @param p the DNS query packet we received
  * @param q the DNS query we received parsed from p
  */

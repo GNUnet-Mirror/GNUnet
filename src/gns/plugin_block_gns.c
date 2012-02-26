@@ -61,10 +61,86 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
                           size_t xquery_size, const void *reply_block,
                           size_t reply_block_size)
 {
-  if (type != GNUNET_BLOCK_TYPE_GNS_RECORD)
+  if (type != GNUNET_BLOCK_TYPE_GNS_NAMERECORD)
     return GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED;
+
+  struct GNUNET_CRYPTO_RsaSignature *signature;
+  struct GNUNET_CRYPTO_RsaSignaturePurpose *purpose;
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *public_key;
+  char* name;
+  GNUNET_HashCode pkey_hash;
+  GNUNET_HashCode query_pkey;
+  GNUNET_HashCode name_hash;
+
+  uint32_t rd_num;
+  uint32_t type;
+  struct GNUNET_TIME_AbsoluteNBO;
+  uint32_t data_length;
+  uint32_t flags;
+
+  char* pos = (char*) reply_block;
+  signature = pos;
+  pos += sizeof(struct GNUNET_CRYPTO_RsaSignature);
+  pos += sizeof(struct GNUNET_CRYPTO_RsaSignaturePurpose);
+
+  public_key = pos;
+  pos += sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded);
+  name = pos;
+  pos += namelen(name); //Off by 1?
+
+  GNUNET_CRYPTO_hash(public_key,
+                     sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+                     &pkey_hash);
+
+  GNUNET_CRYPTO_hash(name, strlen(name), &name_hash);
+
+  GNUNET_CRYPTO_hash_xor(query, &name_hash, &query_pkey);
   
-  //FIXME check signatures here
+  //Check query key against public key
+  if (0 != GNUNET_CRYPTO_hash_cmp(&query_pkey, &pkey_hash))
+    return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
+
+  rd_count = ntohl(*pos);
+  pos += sizeof(uint32_t);
+
+  struct GNUNET_NAMESTORE_RecordData rd[rd_count];
+  int i = 0;
+
+  for (i=0; i<rd_count; i++)
+  {
+    rd[i].type = ntohl(*pos);
+    pos += sizeof(uint32_t);
+    rd[i].expiration =
+      GNUNET_TIME_relative_ntoh(*((struct GNUNET_TIME_AbsoluteNBO*)pos));
+    pos += sizeof(struct GNUNET_TIME_AbsoluteNBO);
+    rd[i].data_length = ntohl(*pos);
+    pos += sizeof(uint32_t);
+    rd[i].flags = ntohl(*pos);
+    pos += sizeof(uint32_t);
+    rd[i].data = pos;
+    pos += rd[i].data_length;
+  }
+
+  if (GNUNET_OK != GNUNET_NAMESTORE_verify_signature (public_key,
+                                                      name,
+                                                      rd_count,
+                                                      rd,
+                                                      signature))
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Signature invalid\n");
+    return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
+  }
+
+  //Cache
+  GNUNET_NAMESTORE_record_put (handle, //FIXME where do i get this from?
+                               &pkey_hash,
+                               name,
+                               expiration, //FIXME uh where do i get this from?
+                               rd_count,
+                               rd,
+                               signature,
+                               NULL, //cont
+                               NULL); //cls
   return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
 }
 

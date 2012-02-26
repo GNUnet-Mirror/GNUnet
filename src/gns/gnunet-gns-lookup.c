@@ -104,15 +104,9 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * operation that expects a reply
  *
  * @param cls closure
- * @param exp when will this value expire
- * @param key key of the result
- * @param get_path peers on reply path (or NULL if not recorded)
- * @param get_path_length number of entries in get_path
- * @param put_path peers on the PUT path (or NULL if not recorded)
- * @param put_path_length number of entries in get_path
- * @param type type of the result
- * @param size number of bytes in data
- * @param data pointer to the result data
+ * @param name name
+ * @param record a record
+ * @param num_records number of records
  */
 static void
 lookup_result_iterator (void *cls,
