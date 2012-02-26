@@ -64,13 +64,13 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
   if (type != GNUNET_BLOCK_TYPE_GNS_NAMERECORD)
     return GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED;
 
-  struct GNUNET_CRYPTO_RsaSignature *signature;
-  struct GNUNET_CRYPTO_RsaSignaturePurpose *purpose;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *public_key;
   char* name;
   GNUNET_HashCode pkey_hash;
   GNUNET_HashCode query_pkey;
   GNUNET_HashCode name_hash;
+  struct GNSNameRecordBlock *nrb;
+  struct GNSRecordBlock *rb;
 
   uint32_t rd_num;
   uint32_t type;
@@ -79,16 +79,11 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
   uint32_t flags;
 
   char* pos = (char*) reply_block;
-  signature = pos;
-  pos += sizeof(struct GNUNET_CRYPTO_RsaSignature);
-  pos += sizeof(struct GNUNET_CRYPTO_RsaSignaturePurpose);
+  nrb = reply_block;
 
-  public_key = pos;
-  pos += sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded);
-  name = pos;
-  pos += namelen(name); //Off by 1?
+  name = &nrb[1];
 
-  GNUNET_CRYPTO_hash(public_key,
+  GNUNET_CRYPTO_hash(nrb->public_key,
                      sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
                      &pkey_hash);
 
@@ -100,32 +95,28 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
   if (0 != GNUNET_CRYPTO_hash_cmp(&query_pkey, &pkey_hash))
     return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
 
-  rd_count = ntohl(*pos);
-  pos += sizeof(uint32_t);
+  rd_count = ntohl(nrb->rd_num);
 
   struct GNUNET_NAMESTORE_RecordData rd[rd_count];
   int i = 0;
+  rb = &nrb[1] + strlen(name);
 
   for (i=0; i<rd_count; i++)
   {
-    rd[i].type = ntohl(*pos);
-    pos += sizeof(uint32_t);
+    rd[i].type = ntohl(rb->type);
     rd[i].expiration =
-      GNUNET_TIME_relative_ntoh(*((struct GNUNET_TIME_AbsoluteNBO*)pos));
-    pos += sizeof(struct GNUNET_TIME_AbsoluteNBO);
-    rd[i].data_length = ntohl(*pos);
-    pos += sizeof(uint32_t);
-    rd[i].flags = ntohl(*pos);
-    pos += sizeof(uint32_t);
-    rd[i].data = pos;
-    pos += rd[i].data_length;
+      GNUNET_TIME_relative_ntoh(rb->expiration);
+    rd[i].data_length = ntohl(rb->data_length);
+    rd[i].flags = ntohl(rb->flags);
+    rd[i].data = rb[1];
+    rb = &rb[1] + rd[i].data_length;
   }
 
-  if (GNUNET_OK != GNUNET_NAMESTORE_verify_signature (public_key,
+  if (GNUNET_OK != GNUNET_NAMESTORE_verify_signature (nrb->public_key,
                                                       name,
-                                                      rd_count,
+                                                      nrb->rd_count,
                                                       rd,
-                                                      signature))
+                                                      nrb->signature))
   {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Signature invalid\n");
     return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;

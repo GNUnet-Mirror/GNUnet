@@ -79,10 +79,10 @@ struct GNSNameRecordBlock
    */
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded public_key;
 
-  /* 0-terminated name here */
-
   /* number of records that follow */
   uint32_t rd_num GNUNET_PACKED;
+
+  /* 0-terminated name here */
 
   /* variable-size GNSRecordBlocks follows here */
 
