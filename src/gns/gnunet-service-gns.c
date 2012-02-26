@@ -1029,7 +1029,7 @@ update_zone_dht_start(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
  */
 void
 put_gns_record(void *cls,
-                const const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *key,
+                const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *key,
                 struct GNUNET_TIME_Absolute expiration,
                 const char *name,
                 unsigned int rd_count,
@@ -1038,8 +1038,12 @@ put_gns_record(void *cls,
 {
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Putting records into the DHT\n");
   struct GNUNET_TIME_Relative timeout;
+  struct GNSNameRecordBlock *nrb;
+  struct GNSRecordBlock *rb;
   GNUNET_HashCode name_hash;
   GNUNET_HashCode xor_hash;
+  int i;
+  uint32_t rd_payload_length;
 
   if (NULL == name) //We're done
   {
@@ -1049,6 +1053,39 @@ put_gns_record(void *cls,
                                                    NULL);
     return;
   }
+  
+  rd_payload_length = rd_count * sizeof(struct GNSRecordBlock);
+  rd_payload_length += strlen(name) + sizeof(struct GNSNameRecordBlock);
+  //Calculate payload size
+  for (i=0; i<rd_count; i++)
+  {
+    rd_payload_length += rd[i].data_size;
+  }
+  
+  nrb = GNUNET_malloc(rd_payload_length);
+  
+  memcpy(&nrb->signature, signature,
+         sizeof(struct GNUNET_CRYPTO_RsaSignature));
+  //FIXME signature purpose
+  memcpy(&nrb->public_key, key,
+         sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
+
+  nrb->rd_count = htonl(rd_count);
+
+  memcpy(&nrb[1], name, strlen(name)); //FIXME is this 0 terminated??
+
+  rb = (struct GNSRecordBlock *)(&nrb[1]+strlen(name));
+
+  for (i=0; i<rd_count; i++)
+  {
+    rb->type = htonl(rd[i].record_type);
+    rb->expiration = GNUNET_TIME_absolute_hton(rd[i].expiration);
+    rb->data_length = htonl(rd[i].data_size);
+    rb->flags = htonl(rd[i].flags);
+    memcpy(&rb[1], rd[i].data, rd[i].data_size);
+    rb = &rb[1] + rd[i].data_size;
+  }
+
   /**
    * FIXME magic number 20 move to config file
    */
@@ -1059,8 +1096,8 @@ put_gns_record(void *cls,
                   5, //replication level
                   GNUNET_DHT_RO_NONE,
                   GNUNET_BLOCK_TYPE_TEST, //FIXME todo block plugin
-                  rd->data_size,
-                  rd->data,
+                  rd_payload_length,
+                  (char*)nrb,
                   expiration,
                   timeout,
                   NULL, //FIXME continuation needed? success check? yes ofc
