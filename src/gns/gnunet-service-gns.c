@@ -1064,7 +1064,8 @@ put_gns_record(void *cls,
   
   nrb = GNUNET_malloc(rd_payload_length);
   
-  memcpy(&nrb->signature, signature,
+  if (signature != NULL)
+    memcpy(&nrb->signature, signature,
          sizeof(struct GNUNET_CRYPTO_RsaSignature));
   //FIXME signature purpose
   memcpy(&nrb->public_key, key,
@@ -1158,7 +1159,17 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 {
   
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Init GNS\n");
-  zone_key = GNUNET_CRYPTO_rsa_key_create ();
+  char* keyfile;
+  //this always returns syserr
+  if (GNUNET_SYSERR ==
+      GNUNET_CONFIGURATION_get_value_string (c, "gns",
+                                             "ZONEKEY", &keyfile));
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "No private key for root zone specified%s!\n", keyfile);
+  }
+  zone_key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
+  //zone_key = GNUNET_CRYPTO_rsa_key_create ();
 
   GNUNET_CRYPTO_hash(zone_key, GNUNET_CRYPTO_RSA_KEY_LENGTH,//FIXME is this ok?
                      &zone_hash);
