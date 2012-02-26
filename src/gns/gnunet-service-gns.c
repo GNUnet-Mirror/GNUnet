@@ -22,7 +22,6 @@
  *
  * TODO:
  *    - Write xquery and block plugin
- *    - Think about mixed dns queries (.gnunet and .org)
  *    - The smaller FIXME issues all around
  *
  * @file gns/gnunet-service-gns.c
@@ -48,11 +47,19 @@
  */
 struct GNUNET_GNS_ResolverHandle
 {
+  /* The name to resolve */
   char *name;
 
   /* the request handle to reply to */
   struct GNUNET_DNS_RequestHandle *request_handle;
+  
+  /* the dns parser packet received */
+  struct GNUNET_DNSPARSER_Packet *packet;
+  
+  /* the query parsed from the packet */
 
+  struct GNUNET_DNSPARSER_Query *query;
+  
   /* has this query been answered? how many matches */
   int answered;
 
@@ -65,9 +72,9 @@ struct GNUNET_GNS_ResolverHandle
    */
   int authority_found;
 
-  struct GNUNET_DNSPARSER_Packet *packet;
+  /* a handle for dht lookups. should be NULL if no lookups are in progress */
+  struct GNUNET_DHT_GetHandle *get_handle;
 
-  struct GNUNET_DNSPARSER_Query *query;
 };
 
 
@@ -88,9 +95,13 @@ struct GNUNET_CRYPTO_RsaPrivateKey *zone_key;
 
 /**
  * Our handle to the namestore service
+ * FIXME maybe need a second handle for iteration
  */
 struct GNUNET_NAMESTORE_Handle *namestore_handle;
 
+/**
+ * Handle to iterate over our authoritative zone in namestore
+ */
 struct GNUNET_NAMESTORE_ZoneIterator *namestore_iter;
 
 /**
@@ -120,6 +131,7 @@ static int num_public_records =  3600;
 struct GNUNET_TIME_Relative dht_update_interval;
 
 
+//Prototypes
 void reply_to_dns(struct GNUNET_GNS_ResolverHandle *answer, uint32_t rd_count,
                   const struct GNUNET_NAMESTORE_RecordData *rd);
 void resolve_name(struct GNUNET_GNS_ResolverHandle *query,
@@ -139,6 +151,13 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_DHT_disconnect(dht_handle);
 }
 
+/**
+ * Callback when record data is put into namestore
+ *
+ * @param cls the closure
+ * @param success GNUNET_OK on success
+ * @param emsg the error message. NULL if SUCCESS==GNUNET_OK
+ */
 void
 on_namestore_record_put_result(void *cls,
                                int32_t success,
@@ -164,7 +183,7 @@ on_namestore_record_put_result(void *cls,
  * Function called when we get a result from the dht
  * for our query
  *
- * @param cls the query handle
+ * @param cls the request handle
  * @param exp lifetime
  * @param key the key the record was stored under
  * @param get_path get path
@@ -199,9 +218,12 @@ process_authority_dht_result(void* cls,
   if (data == NULL)
     return;
   
+  //FIXME check expiration?
   rh = (struct GNUNET_GNS_ResolverHandle *)cls;
   pos = (char*)data;
   
+  GNUNET_DHT_get_stop (rh->get_handle);
+  rh->get_handle = NULL;
   num_records = ntohl(*pos);
   struct GNUNET_NAMESTORE_RecordData rd[num_records];
 
@@ -298,7 +320,7 @@ resolve_authority_dht(struct GNUNET_GNS_ResolverHandle *rh, const char* name)
   timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 20);
   
   //FIXME how long to wait for results?
-  GNUNET_DHT_get_start(dht_handle, timeout,
+  rh->get_handle = GNUNET_DHT_get_start(dht_handle, timeout,
                        GNUNET_BLOCK_TYPE_TEST, //FIXME todo
                        &lookup_key,
                        5, //Replication level FIXME
@@ -314,7 +336,7 @@ resolve_authority_dht(struct GNUNET_GNS_ResolverHandle *rh, const char* name)
  * Function called when we get a result from the dht
  * for our query
  *
- * @param cls the query handle
+ * @param cls the request handle
  * @param exp lifetime
  * @param key the key the record was stored under
  * @param get_path get path
@@ -348,10 +370,15 @@ process_name_dht_result(void* cls,
 
   if (data == NULL)
     return;
+
+  //FIXME maybe check expiration here
   
   rh = (struct GNUNET_GNS_ResolverHandle *)cls;
   pos = (char*)data;
   
+
+  GNUNET_DHT_get_stop (rh->get_handle);
+  rh->get_handle = NULL;
   num_records = ntohl(*pos);
   struct GNUNET_NAMESTORE_RecordData rd[num_records];
 
@@ -406,6 +433,9 @@ process_name_dht_result(void* cls,
 
   GNUNET_CRYPTO_hash(name, strlen(name), &name_hash);
   GNUNET_CRYPTO_hash_xor(key, &name_hash, &zone);
+  
+  //FIXME check pubkey against existing key in namestore?
+  //https://gnunet.org/bugs/view.php?id=2179
 
   //Save to namestore
   GNUNET_NAMESTORE_record_put (namestore_handle,
@@ -420,12 +450,9 @@ process_name_dht_result(void* cls,
   
   if (rh->answered)
     reply_to_dns(rh, num_records, rd);
+  else
+    reply_to_dns(rh, 0, NULL);
 
-  /**
-   * data is a serialized GNS record of type
-   * Check if record type and name match in query and reply
-   * to dns!
-   */
 }
 
 /**
@@ -448,7 +475,7 @@ resolve_name_dht(struct GNUNET_GNS_ResolverHandle *rh, const char* name)
   timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 20);
   
   //FIXME how long to wait for results?
-  GNUNET_DHT_get_start(dht_handle, timeout,
+  rh->get_handle = GNUNET_DHT_get_start(dht_handle, timeout,
                        GNUNET_BLOCK_TYPE_TEST, //FIXME todo
                        &lookup_key,
                        5, //Replication level FIXME
@@ -470,14 +497,12 @@ resolve_name(struct GNUNET_GNS_ResolverHandle *query, GNUNET_HashCode *zone);
  * for 'name'
  *
  * @param cls the pending query
- * @param zone our zone hash
+ * @param key the key of the zone we did the lookup
+ * @param expiration expiration date of the record data set in the namestore
  * @param name the name for which we need an authority
- * @param record_type the type of record (PKEY)
- * @param expiration expiration date of the record
- * @param flags namestore record flags
- * @param sig_loc the location of the record in the signature tree
- * @param size the size of the record
+ * @param rd_count the number of records with 'name'
  * @param data the record data
+ * @param signature the signature of the authority for the record data
  */
 void
 process_authority_lookup(void* cls,
@@ -567,7 +592,9 @@ process_authority_lookup(void* cls,
 /**
  * Reply to client with the result from our lookup.
  *
- * @param answer the pending query used in the lookup
+ * @param rh the request handle of the lookup
+ * @param rd_count the number of records to return
+ * @param rd the record data
  */
 void
 reply_to_dns(struct GNUNET_GNS_ResolverHandle *rh, uint32_t rd_count,
@@ -663,17 +690,15 @@ reply_to_dns(struct GNUNET_GNS_ResolverHandle *rh, uint32_t rd_count,
 
 /**
  * Namestore calls this function if we have an entry for this name.
- * (or data=null to indicate the lookup has finished)
+ * (or data=null to indicate the lookup has finished
  *
  * @param cls the pending query
- * @param zone the zone of the lookup
- * @param name the name looked up
- * @param record_type the record type
- * @param expiration lifetime of the record
- * @param flags record flags
- * @param sig_loc location of the record in the signature tree
- * @param size the size of the record
+ * @param key the key of the zone we did the lookup
+ * @param expiration expiration date of the namestore entry
+ * @param name the name for which we need an authority
+ * @param rd_count the number of records with 'name'
  * @param data the record data
+ * @param signature the signature of the authority for the record data
  */
 static void
 process_authoritative_result(void* cls,
@@ -797,7 +822,6 @@ is_canonical(char* name)
 /**
  * Move one level up in the domain hierarchy and return the
  * passed top level domain.
- * FIXME this needs a better name
  *
  * @param name the domain
  * @return the tld
@@ -867,9 +891,7 @@ resolve_name(struct GNUNET_GNS_ResolverHandle *rh, GNUNET_HashCode *zone)
  *
  * @param rh the request handle of the DNS request from a client
  * @param p the DNS query packet we received
- * @param name the name to look up
- * @param id the id of the dns request (for the reply)
- * @param type the record type to look for
+ * @param q the DNS query we received parsed from p
  */
 void
 start_resolution(struct GNUNET_DNS_RequestHandle *request,
@@ -1052,16 +1074,15 @@ update_zone_dht_next(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 /**
  * Function used to put all records successively into the DHT.
+ * FIXME bug here
  *
  * @param cls the closure (NULL)
- * @param zone our root zone hash
- * @param name the name of the record
- * @param record_type the type of the record
- * @param expiration lifetime of the record
- * @param flags flags of the record
- * @param sig_loc location of record in signature tree
- * @param size size of the record
- * @param record_data the record data
+ * @param key the public key of the authority (ours)
+ * @param expiration lifetime of the namestore entry
+ * @param name the name of the records
+ * @param rd_count the number of records in data
+ * @param rd the record data
+ * @param signature the signature for the record data
  */
 void
 put_gns_record(void *cls,
