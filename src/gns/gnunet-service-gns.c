@@ -36,6 +36,7 @@
 #include "gnunet_dht_service.h"
 #include "gnunet_namestore_service.h"
 #include "gnunet_gns_service.h"
+#include "block_gns.h"
 #include "gns.h"
 
 /* Ignore for now not used anyway and probably never will */
@@ -207,85 +208,57 @@ process_authority_dht_result(void* cls,
                  size_t size, const void *data)
 {
   struct GNUNET_GNS_ResolverHandle *rh;
+  struct GNSNameRecordBlock *nrb;
+  struct GNSRecordBlock *rb;
   uint32_t num_records;
-  uint16_t namelen;
   char* name = NULL;
-  struct GNUNET_CRYPTO_RsaSignature *signature;
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *public_key;
   int i;
-  char* pos;
   GNUNET_HashCode zone, name_hash;
+  
+  //FIXME GNS block check
 
   if (data == NULL)
     return;
   
   //FIXME check expiration?
   rh = (struct GNUNET_GNS_ResolverHandle *)cls;
-  pos = (char*)data;
+  nrb = (struct GNSNameRecordBlock*)data;
   
   GNUNET_DHT_get_stop (rh->get_handle);
   rh->get_handle = NULL;
-  num_records = ntohl(*pos);
+  num_records = ntohl(nrb->rd_count);
   struct GNUNET_NAMESTORE_RecordData rd[num_records];
+  name = (char*)&nrb[1];
+  rb = (struct GNSRecordBlock *)(&nrb[1] + strlen(name));
 
-  pos += sizeof(uint32_t);
-  
   for (i=0; i<num_records; i++)
   {
-    namelen = ntohs(*pos);
-    pos += sizeof(uint16_t);
+  
+    rd[i].record_type = ntohl(rb->type);
+    rd[i].data_size = ntohl(rb->data_length);
+    rd[i].data = &rb[1];
+    rd[i].expiration = GNUNET_TIME_absolute_ntoh(rb->expiration);
+    rd[i].flags = ntohs(rb->flags);
     
-    //name must be 0 terminated
-    name = pos;
-    pos += namelen;
-  
-    rd[i].record_type = ntohl(*pos);
-    pos += sizeof(uint32_t);
-  
-    rd[i].data_size = ntohl(*pos);
-    pos += sizeof(uint32_t);
-  
-    rd[i].data = pos;
-    pos += rd[i].data_size;
-
-    rd[i].expiration = GNUNET_TIME_absolute_ntoh(
-                              *((struct GNUNET_TIME_AbsoluteNBO*)pos));
-    pos += sizeof(struct GNUNET_TIME_AbsoluteNBO);
-
-    rd[i].flags = ntohs(*pos);
-    pos += sizeof(uint16_t);
-    
-    if (strcmp(name, rh->query->name) && rd[i].record_type == rh->query->type)
+    if (strcmp(name, rh->query->name) &&
+        (rd[i].record_type == rh->query->type))
     {
       rh->answered = 1;
     }
 
   }
 
-  if ((((char*)data)-pos) < 
-      (sizeof(struct GNUNET_CRYPTO_RsaSignature) +
-       sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded)))
-  {
-    GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-            "Cannot parse signature/key in DHT response. Corrupted or Missing");
-    return;
-  }
-
-  signature = (struct GNUNET_CRYPTO_RsaSignature*)pos;
-  pos += sizeof(struct GNUNET_CRYPTO_RsaSignature);
-  
-  public_key = (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded*)pos;
   GNUNET_CRYPTO_hash(name, strlen(name), &name_hash);
   GNUNET_CRYPTO_hash_xor(key, &name_hash, &zone);
 
   //Save to namestore
   GNUNET_NAMESTORE_record_put (namestore_handle,
-                               public_key,
+                               &nrb->public_key,
                                name,
                                exp,
                                num_records,
                                rd,
-                               signature,
+                               &nrb->signature,
                                &on_namestore_record_put_result, //cont
                                NULL); //cls
   
@@ -360,77 +333,44 @@ process_name_dht_result(void* cls,
                  size_t size, const void *data)
 {
   struct GNUNET_GNS_ResolverHandle *rh;
+  struct GNSNameRecordBlock *nrb;
+  struct GNSRecordBlock *rb;
   uint32_t num_records;
-  uint16_t namelen;
   char* name = NULL;
-  struct GNUNET_CRYPTO_RsaSignature *signature;
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *public_key;
   int i;
-  char* pos;
   GNUNET_HashCode zone, name_hash;
 
   if (data == NULL)
     return;
 
-  //FIXME maybe check expiration here
+  //FIXME maybe check expiration here, check block type
   
   rh = (struct GNUNET_GNS_ResolverHandle *)cls;
-  pos = (char*)data;
-  
+  nrb = (struct GNSNameRecordBlock*)data;
 
   GNUNET_DHT_get_stop (rh->get_handle);
   rh->get_handle = NULL;
-  num_records = ntohl(*pos);
+  num_records = ntohl(nrb->rd_count);
   struct GNUNET_NAMESTORE_RecordData rd[num_records];
 
-  pos += sizeof(uint32_t);
+  name = (char*)&nrb[1];
+  rb = (struct GNSRecordBlock*)(&nrb[1] + strlen(name));
   
   for (i=0; i<num_records; i++)
   {
-    namelen = ntohs(*pos);
-    pos += sizeof(uint16_t);
-    
-    //name must be 0 terminated
-    name = pos;
-    pos += namelen;
-  
-    rd[i].record_type = ntohl(*pos);
-    pos += sizeof(uint32_t);
-  
-    rd[i].data_size = ntohl(*pos);
-    pos += sizeof(uint32_t);
-  
-    rd[i].data = pos;
-    pos += rd[i].data_size;
-
-    rd[i].expiration = GNUNET_TIME_absolute_ntoh(
-                              *((struct GNUNET_TIME_AbsoluteNBO*)pos));
-    pos += sizeof(struct GNUNET_TIME_AbsoluteNBO);
-
-    rd[i].flags = ntohs(*pos);
-    pos += sizeof(uint16_t);
+    rd[i].record_type = ntohl(rb->type);
+    rd[i].data_size = ntohl(rb->data_length);
+    rd[i].data = (char*)&rb[1];
+    rd[i].expiration = GNUNET_TIME_absolute_ntoh(rb->expiration);
+    rd[i].flags = ntohs(rb->flags);
     //FIXME class?
-    //
-    if (strcmp(name, rh->query->name) && rd[i].record_type == rh->query->type)
+    if (strcmp(name, rh->query->name) &&
+       (rd[i].record_type == rh->query->type))
     {
       rh->answered++;
     }
 
   }
-
-  if ((((char*)data)-pos) < 
-      (sizeof(struct GNUNET_CRYPTO_RsaSignature) +
-       sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded)))
-  {
-    GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-            "Cannot parse signature/key in DHT response. Corrupted or Missing");
-    return;
-  }
-
-  signature = (struct GNUNET_CRYPTO_RsaSignature*)pos;
-  pos += sizeof(struct GNUNET_CRYPTO_RsaSignature);
-  
-  public_key = (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded*)pos;
 
   GNUNET_CRYPTO_hash(name, strlen(name), &name_hash);
   GNUNET_CRYPTO_hash_xor(key, &name_hash, &zone);
@@ -440,12 +380,12 @@ process_name_dht_result(void* cls,
 
   //Save to namestore
   GNUNET_NAMESTORE_record_put (namestore_handle,
-                               public_key,
+                               &nrb->public_key,
                                name,
                                exp,
                                num_records,
                                rd,
-                               signature,
+                               &nrb->signature,
                                &on_namestore_record_put_result, //cont
                                NULL); //cls
   
