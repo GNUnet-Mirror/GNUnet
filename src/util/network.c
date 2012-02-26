@@ -35,7 +35,6 @@
 
 #define DEBUG_NETWORK GNUNET_EXTRA_LOGGING
 
-#define DEBUG_W32_CYCLES GNUNET_EXTRA_LOGGING
 
 #ifndef INVALID_SOCKET
 #define INVALID_SOCKET -1
@@ -46,7 +45,6 @@ struct GNUNET_NETWORK_Handle
 {
 #ifndef MINGW
   int fd;
-
 #else
   SOCKET fd;
 #endif
@@ -337,19 +335,13 @@ GNUNET_NETWORK_socket_close (struct GNUNET_NETWORK_Handle *desc)
 #ifdef MINGW
   DWORD error = 0;
 
-#if DEBUG_NETWORK
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Closing 0x%x\n",
-       desc->fd);
-#endif
   SetLastError (0);
   ret = closesocket (desc->fd);
   error = WSAGetLastError ();
   SetErrnoFromWinsockError (error);
-#if DEBUG_NETWORK
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Closed 0x%x, closesocket() returned %d, GLE is %u\n", desc->fd, ret,
        error);
-#endif
 #else
   ret = close (desc->fd);
 #endif
@@ -1301,40 +1293,32 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
       if (fh->type == GNUNET_PIPE)
       {
         /* Read zero bytes to check the status of the pipe */
-#if DEBUG_NETWORK
         LOG (GNUNET_ERROR_TYPE_DEBUG, "Reading 0 bytes from the pipe 0x%x\n",
              fh->h);
-#endif
         if (!ReadFile (fh->h, NULL, 0, NULL, fh->oOverlapRead))
         {
           DWORD error_code = GetLastError ();
 
           if (error_code == ERROR_IO_PENDING)
           {
-#if DEBUG_NETWORK
             LOG (GNUNET_ERROR_TYPE_DEBUG,
                  "Adding the pipe's 0x%x overlapped event to the array as %d\n",
                  fh->h, nhandles);
-#endif
             handle_array[nhandles++] = fh->oOverlapRead->hEvent;
             readArray[readPipes++] = fh;
           }
           else
           {
-#if DEBUG_NETWORK
             LOG (GNUNET_ERROR_TYPE_DEBUG,
                  "Read failed, adding the read ready event to the array as %d\n", nhandles);
-#endif
             handle_array[nhandles++] = hEventReadReady;
             readArray[readPipes++] = fh;
           }
         }
         else
         {
-#if DEBUG_NETWORK
           LOG (GNUNET_ERROR_TYPE_DEBUG,
                "Adding the read ready event to the array as %d\n", nhandles);
-#endif
           handle_array[nhandles++] = hEventReadReady;
           readArray[readPipes++] = fh;
         }
@@ -1349,10 +1333,8 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
   }
   if (wfds && write_handles)
   {
-#if DEBUG_NETWORK
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Adding the write ready event to the array as %d\n", nhandles);
-#endif
     handle_array[nhandles++] = hEventPipeWrite;
     writePipePos = nhandles;
   }
@@ -1386,10 +1368,8 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
   {
     if (rfds)
     {
-#if DEBUG_NETWORK
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "Adding the socket read event to the array as %d\n", nhandles);
-#endif
       handle_array[nhandles++] = hEventRead;
       nSockEvents++;
       for (i = 0; i < rfds->sds.fd_count; i++)
@@ -1403,10 +1383,8 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
     {
       int wakeup = 0;
 
-#if DEBUG_NETWORK
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "Adding the socket write event to the array as %d\n", nhandles);
-#endif
       handle_array[nhandles++] = hEventWrite;
       nSockEvents++;
       for (i = 0; i < wfds->sds.fd_count; i++)
@@ -1416,10 +1394,8 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
 
         status = send (wfds->sds.fd_array[i], NULL, 0, 0);
         error = GetLastError ();
-#if DEBUG_NETWORK
         LOG (GNUNET_ERROR_TYPE_DEBUG,
              "pre-send to the socket %d returned %d (%u)\n", i, status, error);
-#endif
         if (status == 0 || (error != WSAEWOULDBLOCK && error != WSAENOTCONN))
           wakeup = 1;
         WSAEventSelect (wfds->sds.fd_array[i], hEventWrite,
@@ -1431,10 +1407,8 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
     }
     if (efds)
     {
-#if DEBUG_NETWORK
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "Adding the socket error event to the array as %d\n", nhandles);
-#endif
       handle_array[nhandles++] = hEventException;
       nSockEvents++;
       for (i = 0; i < efds->sds.fd_count; i++)
@@ -1464,9 +1438,7 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
 #endif
 
   returnedpos = returncode - WAIT_OBJECT_0;
-#if DEBUG_NETWORK
   LOG (GNUNET_ERROR_TYPE_DEBUG, "return pos is : %d\n", returnedpos);
-#endif
 
   /* FIXME: THIS LINE IS WRONG !! We should add to handles only handles that fired the events, not all ! */
   /*
@@ -1487,22 +1459,16 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
       retcode = select (nfds, &aread, &awrite, &aexcept, &tvslice);
       if (retcode == -1)
         retcode = 0;
-#if DEBUG_NETWORK
       LOG (GNUNET_ERROR_TYPE_DEBUG, "Select retcode : %d\n", retcode);
-#endif
     }
     /* FIXME: <= writePipePos? Really? */
     if ((writePipePos != -1) && (returnedpos <= writePipePos))
     {
       GNUNET_CONTAINER_slist_append (handles_write, wfds->handles);
       retcode += write_handles;
-#if DEBUG_NETWORK
       LOG (GNUNET_ERROR_TYPE_DEBUG, "Added write pipe\n");
-#endif
     }
-#if DEBUG_NETWORK
     LOG (GNUNET_ERROR_TYPE_DEBUG, "ReadPipes is : %d\n", readPipes);
-#endif
     /* We have some pipes ready for read. */
     /* FIXME: it is supposed to work !! Only choose the Pipes who fired the event, but it is not working */
 
@@ -1532,11 +1498,9 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
         bret =
             PeekNamedPipe (readArray[i]->h, NULL, 0, NULL, &waitstatus, NULL);
         error = GetLastError ();
-#if DEBUG_NETWORK
         LOG (GNUNET_ERROR_TYPE_DEBUG,
              "Peek at read pipe %d (0x%x) returned %d (%d bytes available) GLE %u\n",
              i, readArray[i]->h, bret, waitstatus, error);
-#endif
         if (bret == 0)
         {
           if (error != ERROR_BROKEN_PIPE)
@@ -1549,17 +1513,13 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
                                     readArray[i],
                                     sizeof (struct GNUNET_DISK_FileHandle));
         retcode++;
-#if DEBUG_NETWORK
         LOG (GNUNET_ERROR_TYPE_DEBUG, "Added read Pipe 0x%x (0x%x)\n",
              readArray[i], readArray[i]->h);
-#endif
       }
     }
     waitstatus = WaitForSingleObject (hEventWrite, 0);
-#if DEBUG_NETWORK
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Wait for the write event returned %d\n",
          waitstatus);
-#endif
     if (waitstatus == WAIT_OBJECT_0)
     {
       for (i = 0; i < wfds->sds.fd_count; i++)
@@ -1574,10 +1534,8 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
 
         status = send (wfds->sds.fd_array[i], NULL, 0, 0);
         error = GetLastError ();
-#if DEBUG_NETWORK
         LOG (GNUNET_ERROR_TYPE_DEBUG,
              "send to the socket %d returned %d (%u)\n", i, status, error);
-#endif
         if (status == 0 || (error != WSAEWOULDBLOCK && error != WSAENOTCONN) ||
             (status == -1 && gso_result == 0 && error == WSAENOTCONN &&
              so_error == WSAECONNREFUSED))
@@ -1614,9 +1572,7 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
         CancelIo (fh->h);
       }
     }
-#if DEBUG_NETWORK
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Zeroing rfds\n");
-#endif
     GNUNET_NETWORK_fdset_zero (rfds);
     if (retcode != -1 && nhandles && (returnedpos < nhandles))
       GNUNET_NETWORK_fdset_copy_native (rfds, &aread, retcode);
@@ -1629,9 +1585,7 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
       WSAEventSelect (wfds->sds.fd_array[i], hEventWrite, 0);
       nsock++;
     }
-#if DEBUG_NETWORK
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Zeroing wfds\n");
-#endif
     GNUNET_NETWORK_fdset_zero (wfds);
     if (retcode != -1 && nhandles && (returnedpos < nhandles))
       GNUNET_NETWORK_fdset_copy_native (wfds, &awrite, retcode);
@@ -1644,9 +1598,7 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
       WSAEventSelect (efds->sds.fd_array[i], hEventException, 0);
       nsock++;
     }
-#if DEBUG_NETWORK
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Zeroing efds\n");
-#endif
     GNUNET_NETWORK_fdset_zero (efds);
     if (retcode != -1 && nhandles && (returnedpos < nhandles))
       GNUNET_NETWORK_fdset_copy_native (efds, &aexcept, retcode);

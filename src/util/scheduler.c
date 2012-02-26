@@ -30,13 +30,14 @@
 #include "gnunet_signal_lib.h"
 #include "gnunet_time_lib.h"
 #include "disk.h"
-#define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
 
-#define LOG_STRERROR(kind,syscall) GNUNET_log_from_strerror (kind, "util", syscall)
+#define LOG(kind,...) GNUNET_log_from (kind, "util-scheduler", __VA_ARGS__)
+
+#define LOG_STRERROR(kind,syscall) GNUNET_log_from_strerror (kind, "util-scheduler", syscall)
+
+
 #ifdef LINUX
 #include "execinfo.h"
-
-
 
 /**
  * Use lsof to generate file descriptor reports on select error?
@@ -52,15 +53,13 @@
 /**
  * Check each file descriptor before adding
  */
-#define DEBUG_FDS GNUNET_EXTRA_LOGGING
+#define DEBUG_FDS GNUNET_NO
 
 /**
  * Depth of the traces collected via EXECINFO.
  */
 #define MAX_TRACE_DEPTH 50
 #endif
-
-#define DEBUG_TASKS GNUNET_EXTRA_LOGGING
 
 /**
  * Should we figure out which tasks are delayed for a while
@@ -73,6 +72,7 @@
  * PROFILE_DELAYS is active.
  */
 #define DELAY_THRESHOLD GNUNET_TIME_UNIT_SECONDS
+
 
 /**
  * Linked list of pending tasks.
@@ -526,10 +526,9 @@ check_ready (const struct GNUNET_NETWORK_FDSet *rs,
   pos = pending;
   while (pos != NULL)
   {
-#if DEBUG_TASKS
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Checking readiness of task: %llu / %p\n",
+    LOG (GNUNET_ERROR_TYPE_DEBUG, 
+	 "Checking readiness of task: %llu / %p\n",
          pos->id, pos->callback_cls);
-#endif
     next = pos->next;
     if (GNUNET_YES == is_ready (pos, now, rs, ws))
     {
@@ -677,10 +676,9 @@ run_ready (struct GNUNET_NETWORK_FDSet *rs, struct GNUNET_NETWORK_FDSet *ws)
         (pos->write_fd != -1) &&
         (!GNUNET_NETWORK_fdset_test_native (ws, pos->write_fd)))
       GNUNET_abort ();          // added to ready in previous select loop!
-#if DEBUG_TASKS
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Running task: %llu / %p\n", pos->id,
+    LOG (GNUNET_ERROR_TYPE_DEBUG, 
+	 "Running task: %llu / %p\n", pos->id,
          pos->callback_cls);
-#endif
     pos->callback (pos->callback_cls, &tc);
 #if EXECINFO
     int i;
@@ -1037,10 +1035,8 @@ GNUNET_SCHEDULER_cancel (GNUNET_SCHEDULER_TaskIdentifier task)
     prev->next = t->next;
   }
   ret = t->callback_cls;
-#if DEBUG_TASKS
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Canceling task: %llu / %p\n", task,
        t->callback_cls);
-#endif
   destroy_task (t);
   return ret;
 }
@@ -1087,10 +1083,8 @@ GNUNET_SCHEDULER_add_continuation_with_priority (GNUNET_SCHEDULER_Task task, voi
   t->reason = reason;
   t->priority = priority;
   t->lifeness = current_lifeness;
-#if DEBUG_TASKS
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Adding continuation task: %llu / %p\n", t->id,
        t->callback_cls);
-#endif
   queue_ready_task (t);
 }
 
@@ -1233,10 +1227,8 @@ GNUNET_SCHEDULER_add_delayed_with_priority (struct GNUNET_TIME_Relative delay,
   /* hyper-optimization... */
   pending_timeout_last = t;
 
-#if DEBUG_TASKS
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Adding task: %llu / %p\n", t->id,
        t->callback_cls);
-#endif
 #if EXECINFO
   int i;
 
@@ -1416,10 +1408,8 @@ add_without_sets (struct GNUNET_TIME_Relative delay,
   t->next = pending;
   pending = t;
   max_priority_added = GNUNET_MAX (max_priority_added, t->priority);
-#if DEBUG_TASKS
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Adding task: %llu / %p\n", t->id,
        t->callback_cls);
-#endif
 #if EXECINFO
   int i;
 
@@ -1693,10 +1683,8 @@ GNUNET_SCHEDULER_add_select (enum GNUNET_SCHEDULER_Priority prio,
   t->next = pending;
   pending = t;
   max_priority_added = GNUNET_MAX (max_priority_added, t->priority);
-#if DEBUG_TASKS
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Adding task: %llu / %p\n", t->id,
        t->callback_cls);
-#endif
 #if EXECINFO
   int i;
 

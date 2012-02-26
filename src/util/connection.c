@@ -39,7 +39,6 @@
 #include "gnunet_scheduler_lib.h"
 #include "gnunet_server_lib.h"
 
-#define DEBUG_CONNECTION GNUNET_EXTRA_LOGGING
 
 #define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
 
@@ -472,10 +471,9 @@ GNUNET_CONNECTION_create_from_accept (GNUNET_CONNECTION_AccessCheck access,
   ret->addr = uaddr;
   ret->addrlen = addrlen;
   ret->sock = sock;
-#if DEBUG_CONNECTION
-  LOG (GNUNET_ERROR_TYPE_INFO, _("Accepting connection from `%s': %p\n"),
+  LOG (GNUNET_ERROR_TYPE_INFO, 
+       _("Accepting connection from `%s': %p\n"),
        GNUNET_a2s (uaddr, addrlen), ret);
-#endif
   return ret;
 }
 
@@ -532,19 +530,15 @@ destroy_continuation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_assert (sock->dns_active == NULL);
   if (0 != (sock->ccs & COCO_TRANSMIT_READY))
   {
-#if DEBUG_CONNECTION
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Destroy waits for CCS-TR to be done (%p)\n",
          sock);
-#endif
     sock->ccs |= COCO_DESTROY_CONTINUATION;
     return;
   }
   if (sock->write_task != GNUNET_SCHEDULER_NO_TASK)
   {
-#if DEBUG_CONNECTION
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Destroy waits for write_task to be done (%p)\n", sock);
-#endif
     GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == sock->destroy_task);
     sock->destroy_task =
         GNUNET_SCHEDULER_add_after (sock->write_task, &destroy_continuation,
@@ -558,9 +552,7 @@ destroy_continuation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   if (sock->sock != NULL)
   {
-#if DEBUG_CONNECTION
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Shutting down socket (%p)\n", sock);
-#endif
     if (sock->persist != GNUNET_YES)
     {
       if ((GNUNET_YES != GNUNET_NETWORK_socket_shutdown (sock->sock, SHUT_RDWR))
@@ -576,9 +568,7 @@ destroy_continuation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                     sock);
     return;
   }
-#if DEBUG_CONNECTION
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Destroy actually runs (%p)!\n", sock);
-#endif
   while (NULL != (pos = sock->ap_head))
   {
     GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (pos->sock));
@@ -605,9 +595,7 @@ destroy_continuation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_free_non_null (sock->addr);
   GNUNET_free_non_null (sock->hostname);
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == sock->destroy_task);
-#if DEBUG_CONNECTION
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Freeing memory of connection %p.\n", sock);
-#endif
   GNUNET_free (sock->write_buffer);
   GNUNET_free (sock);
 }
@@ -634,14 +622,12 @@ transmit_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 static void
 connect_fail_continuation (struct GNUNET_CONNECTION_Handle *h)
 {
-#if DEBUG_CONNECTION
   LOG ((0 !=
         strncmp (h->hostname, "localhost:",
                  10)) ? GNUNET_ERROR_TYPE_INFO : GNUNET_ERROR_TYPE_WARNING,
        _
        ("Failed to establish TCP connection to `%s:%u', no further addresses to try.\n"),
        h->hostname, h->port);
-#endif
   /* connect failed / timed out */
   GNUNET_break (h->ap_head == NULL);
   GNUNET_break (h->ap_tail == NULL);
@@ -651,20 +637,16 @@ connect_fail_continuation (struct GNUNET_CONNECTION_Handle *h)
   /* trigger jobs that used to wait on "connect_task" */
   if (0 != (h->ccs & COCO_RECEIVE_AGAIN))
   {
-#if DEBUG_CONNECTION
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "connect_fail_continuation triggers receive_again (%p)\n", h);
-#endif
     h->ccs -= COCO_RECEIVE_AGAIN;
     h->read_task = GNUNET_SCHEDULER_add_now (&receive_again, h);
   }
   if (0 != (h->ccs & COCO_TRANSMIT_READY))
   {
-#if DEBUG_CONNECTION
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "connect_fail_continuation cancels timeout_task, triggers transmit_ready (%p)\n",
          h);
-#endif
     GNUNET_assert (h->nth.timeout_task != GNUNET_SCHEDULER_NO_TASK);
     GNUNET_SCHEDULER_cancel (h->nth.timeout_task);
     h->nth.timeout_task = GNUNET_SCHEDULER_NO_TASK;
@@ -675,10 +657,8 @@ connect_fail_continuation (struct GNUNET_CONNECTION_Handle *h)
   }
   if (0 != (h->ccs & COCO_DESTROY_CONTINUATION))
   {
-#if DEBUG_CONNECTION
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "connect_fail_continuation runs destroy_continuation (%p)\n", h);
-#endif
     h->ccs -= COCO_DESTROY_CONTINUATION;
     GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == h->destroy_task);
     h->destroy_task = GNUNET_SCHEDULER_add_now (&destroy_continuation, h);
@@ -694,27 +674,21 @@ connect_fail_continuation (struct GNUNET_CONNECTION_Handle *h)
 static void
 connect_success_continuation (struct GNUNET_CONNECTION_Handle *h)
 {
-#if DEBUG_CONNECTION
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Connection to `%s' succeeded! (%p)\n",
        GNUNET_a2s (h->addr, h->addrlen), h);
-#endif
   /* trigger jobs that waited for the connection */
   if (0 != (h->ccs & COCO_RECEIVE_AGAIN))
   {
-#if DEBUG_CONNECTION
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "connect_success_continuation runs receive_again (%p)\n", h);
-#endif
     h->ccs -= COCO_RECEIVE_AGAIN;
     h->read_task = GNUNET_SCHEDULER_add_now (&receive_again, h);
   }
   if (0 != (h->ccs & COCO_TRANSMIT_READY))
   {
-#if DEBUG_CONNECTION
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "connect_success_continuation runs transmit_ready, cancels timeout_task (%p)\n",
          h);
-#endif
     GNUNET_assert (h->nth.timeout_task != GNUNET_SCHEDULER_NO_TASK);
     GNUNET_SCHEDULER_cancel (h->nth.timeout_task);
     h->nth.timeout_task = GNUNET_SCHEDULER_NO_TASK;
@@ -728,10 +702,8 @@ connect_success_continuation (struct GNUNET_CONNECTION_Handle *h)
   }
   if (0 != (h->ccs & COCO_DESTROY_CONTINUATION))
   {
-#if DEBUG_CONNECTION
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "connect_success_continuation runs destroy_continuation (%p)\n", h);
-#endif
     h->ccs -= COCO_DESTROY_CONTINUATION;
     GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == h->destroy_task);
     h->destroy_task = GNUNET_SCHEDULER_add_now (&destroy_continuation, h);
@@ -818,11 +790,9 @@ try_connect_using_address (void *cls, const struct sockaddr *addr,
     return;                     /* already connected */
   GNUNET_assert (h->addr == NULL);
   /* try to connect */
-#if DEBUG_CONNECTION
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Trying to connect using address `%s:%u/%s:%u'\n", h->hostname, h->port,
        GNUNET_a2s (addr, addrlen), h->port);
-#endif
   ap = GNUNET_malloc (sizeof (struct AddressProbe) + addrlen);
   ap->addr = (const struct sockaddr *) &ap[1];
   memcpy (&ap[1], addr, addrlen);
@@ -848,10 +818,8 @@ try_connect_using_address (void *cls, const struct sockaddr *addr,
     GNUNET_free (ap);
     return;                     /* not supported by OS */
   }
-#if DEBUG_CONNECTION
   LOG (GNUNET_ERROR_TYPE_INFO, _("Trying to connect to `%s' (%p)\n"),
        GNUNET_a2s (ap->addr, ap->addrlen), h);
-#endif
   if ((GNUNET_OK !=
        GNUNET_NETWORK_socket_connect (ap->sock, ap->addr, ap->addrlen)) &&
       (errno != EINPROGRESS))
@@ -1021,10 +989,8 @@ GNUNET_CONNECTION_create_from_sockaddr (int af_family,
   ret->addr = GNUNET_malloc (addrlen);
   memcpy (ret->addr, serv_addr, addrlen);
   ret->addrlen = addrlen;
-#if DEBUG_CONNECTION
   LOG (GNUNET_ERROR_TYPE_INFO, _("Trying to connect to `%s' (%p)\n"),
        GNUNET_a2s (serv_addr, addrlen), ret);
-#endif
   return ret;
 }
 
@@ -1092,10 +1058,8 @@ signal_timeout (struct GNUNET_CONNECTION_Handle *sh)
 {
   GNUNET_CONNECTION_Receiver receiver;
 
-#if DEBUG_CONNECTION
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Network signals time out to receiver (%p)!\n",
        sh);
-#endif
   GNUNET_assert (NULL != (receiver = sh->receiver));
   sh->receiver = NULL;
   receiver (sh->receiver_cls, NULL, 0, NULL, 0, 0);
@@ -1134,10 +1098,8 @@ receive_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN)))
   {
     /* ignore shutdown request, go again immediately */
-#if DEBUG_CONNECTION
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Ignoring shutdown signal per configuration\n");
-#endif
     sh->read_task =
         GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_absolute_get_remaining
                                        (sh->receive_timeout), sh->sock,
@@ -1149,24 +1111,20 @@ receive_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       (0 != (tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT)) ||
       (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN)))
   {
-#if DEBUG_CONNECTION
     if (0 == (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "Receive from `%s' encounters error: time out by %llums... (%p)\n",
            GNUNET_a2s (sh->addr, sh->addrlen),
            GNUNET_TIME_absolute_get_duration (sh->receive_timeout).rel_value,
            sh);
-#endif
     signal_timeout (sh);
     return;
   }
   if (sh->sock == NULL)
   {
     /* connect failed for good */
-#if DEBUG_CONNECTION
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Receive encounters error, socket closed... (%p)\n", sh);
-#endif
     signal_error (sh, ECONNREFUSED);
     return;
   }
@@ -1177,17 +1135,13 @@ RETRY:
   {
     if (errno == EINTR)
       goto RETRY;
-#if DEBUG_CONNECTION
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Error receiving: %s\n", STRERROR (errno));
-#endif
     signal_error (sh, errno);
     return;
   }
-#if DEBUG_CONNECTION
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "receive_ready read %u/%u bytes from `%s' (%p)!\n", (unsigned int) ret,
        sh->max, GNUNET_a2s (sh->addr, sh->addrlen), sh);
-#endif
   GNUNET_assert (NULL != (receiver = sh->receiver));
   sh->receiver = NULL;
   receiver (sh->receiver_cls, buffer, ret, sh->addr, sh->addrlen, 0);
@@ -1214,10 +1168,8 @@ receive_again (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (sh->sock == NULL)
   {
     /* not connected and no longer trying */
-#if DEBUG_CONNECTION
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Receive encounters error, socket closed (%p)...\n", sh);
-#endif
     signal_error (sh, ECONNREFUSED);
     return;
   }
@@ -1225,10 +1177,8 @@ receive_again (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if ((now.abs_value > sh->receive_timeout.abs_value) ||
       (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN)))
   {
-#if DEBUG_CONNECTION
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Receive encounters error: time out (%p)...\n", sh);
-#endif
     signal_timeout (sh);
     return;
   }
@@ -1385,15 +1335,11 @@ transmit_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_CONNECTION_Handle *sock = cls;
   GNUNET_CONNECTION_TransmitReadyNotify notify;
 
-#if DEBUG_CONNECTION
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "transmit_timeout running (%p)\n", sock);
-#endif
   sock->nth.timeout_task = GNUNET_SCHEDULER_NO_TASK;
-#if DEBUG_CONNECTION
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Transmit to `%s:%u/%s' fails, time out reached (%p).\n", sock->hostname,
+       "Transmit to `%s:%u/%s' fails, time out reached (%p).\n",
+       sock->hostname,
        sock->port, GNUNET_a2s (sock->addr, sock->addrlen), sock);
-#endif
   GNUNET_assert (0 != (sock->ccs & COCO_TRANSMIT_READY));
   sock->ccs -= COCO_TRANSMIT_READY;     /* remove request */
   notify = sock->nth.notify_ready;
@@ -1417,11 +1363,9 @@ connect_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_CONNECTION_Handle *sock = cls;
   GNUNET_CONNECTION_TransmitReadyNotify notify;
 
-#if DEBUG_CONNECTION
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Transmission request of size %u fails (%s/%u), connection failed (%p).\n",
        sock->nth.notify_size, sock->hostname, sock->port, sock);
-#endif
   sock->write_task = GNUNET_SCHEDULER_NO_TASK;
   notify = sock->nth.notify_ready;
   sock->nth.notify_ready = NULL;
@@ -1476,9 +1420,7 @@ transmit_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   ssize_t ret;
   size_t have;
 
-#if DEBUG_CONNECTION
   LOG (GNUNET_ERROR_TYPE_DEBUG, "transmit_ready running (%p).\n", sock);
-#endif
   GNUNET_assert (sock->write_task != GNUNET_SCHEDULER_NO_TASK);
   sock->write_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_assert (sock->nth.timeout_task == GNUNET_SCHEDULER_NO_TASK);
@@ -1486,11 +1428,9 @@ transmit_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     if ((sock->ignore_shutdown == GNUNET_YES) && (NULL != sock->sock))
       goto SCHEDULE_WRITE;      /* ignore shutdown, go again immediately */
-#if DEBUG_CONNECTION
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Transmit to `%s' fails, shutdown happened (%p).\n",
          GNUNET_a2s (sock->addr, sock->addrlen), sock);
-#endif
     notify = sock->nth.notify_ready;
     if (NULL != notify)
     {
@@ -1501,11 +1441,9 @@ transmit_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT))
   {
-#if DEBUG_CONNECTION
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Transmit to `%s' fails, time out reached (%p).\n",
          GNUNET_a2s (sock->addr, sock->addrlen), sock);
-#endif
     notify = sock->nth.notify_ready;
     GNUNET_assert (NULL != notify);
     sock->nth.notify_ready = NULL;
@@ -1522,12 +1460,10 @@ transmit_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   if (!GNUNET_NETWORK_fdset_isset (tc->write_ready, sock->sock))
   {
-#if DEBUG_CONNECTION
     LOG (GNUNET_ERROR_TYPE_INFO,
          _
          ("Could not satisfy pending transmission request, socket closed or connect failed (%p).\n"),
          sock);
-#endif
     transmit_error (sock);
     return;                     /* connect failed for good, we're finished */
   }
@@ -1558,23 +1494,13 @@ RETRY:
   {
     if (errno == EINTR)
       goto RETRY;
-#if 0
-    int en = errno;
-
-    LOG (GNUNET_ERROR_TYPE_ERROR, _("Failed to send to `%s': %s\n"),
-         GNUNET_a2s (sock->addr, sock->addrlen), STRERROR (en));
-#endif
-#if DEBUG_CONNECTION
     LOG_STRERROR (GNUNET_ERROR_TYPE_DEBUG, "send");
-#endif
     transmit_error (sock);
     return;
   }
-#if DEBUG_CONNECTION
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "transmit_ready transmitted %u/%u bytes to `%s' (%p)\n",
        (unsigned int) ret, have, GNUNET_a2s (sock->addr, sock->addrlen), sock);
-#endif
   sock->write_buffer_pos += ret;
   if (sock->write_buffer_pos == sock->write_buffer_off)
   {
@@ -1586,10 +1512,8 @@ RETRY:
     return;                     /* all data sent! */
   /* not done writing, schedule more */
 SCHEDULE_WRITE:
-#if DEBUG_CONNECTION
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Re-scheduling transmit_ready (more to do) (%p).\n", sock);
-#endif
   have = sock->write_buffer_off - sock->write_buffer_pos;
   GNUNET_assert ((sock->nth.notify_ready != NULL) || (have > 0));
   if (sock->write_task == GNUNET_SCHEDULER_NO_TASK)
@@ -1651,9 +1575,7 @@ GNUNET_CONNECTION_notify_transmit_ready (struct GNUNET_CONNECTION_Handle *sock,
     return &sock->nth;
   if (sock->sock != NULL)
   {
-#if DEBUG_CONNECTION
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Scheduling transmit_ready (%p).\n", sock);
-#endif
     sock->write_task =
         GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_absolute_get_remaining
                                         (sock->nth.transmit_timeout),
@@ -1661,10 +1583,8 @@ GNUNET_CONNECTION_notify_transmit_ready (struct GNUNET_CONNECTION_Handle *sock,
   }
   else
   {
-#if DEBUG_CONNECTION
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "CCS-Scheduling transmit_ready, adding timeout task (%p).\n", sock);
-#endif
     sock->ccs |= COCO_TRANSMIT_READY;
     sock->nth.timeout_task =
         GNUNET_SCHEDULER_add_delayed (timeout, &transmit_timeout, sock);
@@ -1686,10 +1606,8 @@ GNUNET_CONNECTION_notify_transmit_ready_cancel (struct
   GNUNET_assert (th->notify_ready != NULL);
   if (0 != (th->sh->ccs & COCO_TRANSMIT_READY))
   {
-#if DEBUG_CONNECTION
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "notify_transmit_ready_cancel cancels timeout_task (%p)\n", th);
-#endif
     GNUNET_SCHEDULER_cancel (th->timeout_task);
     th->timeout_task = GNUNET_SCHEDULER_NO_TASK;
     th->sh->ccs -= COCO_TRANSMIT_READY;

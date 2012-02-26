@@ -27,9 +27,8 @@
 #include "gnunet_bandwidth_lib.h"
 #include "gnunet_server_lib.h"
 
-#define DEBUG_BANDWIDTH GNUNET_EXTRA_LOGGING
 
-#define LOG(kind,...) GNUNET_log_from (kind, "util",__VA_ARGS__)
+#define LOG(kind,...) GNUNET_log_from (kind, "util-bandwidth", __VA_ARGS__)
 
 /**
  * Create a new bandwidth value.
@@ -42,10 +41,8 @@ GNUNET_BANDWIDTH_value_init (uint32_t bytes_per_second)
 {
   struct GNUNET_BANDWIDTH_Value32NBO ret;
 
-#if DEBUG_BANDWIDTH
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Initializing bandwidth of %u Bps\n",
        (unsigned int) bytes_per_second);
-#endif
   ret.value__ = htonl (bytes_per_second);
   return ret;
 }
@@ -85,12 +82,10 @@ GNUNET_BANDWIDTH_value_get_available_until (struct GNUNET_BANDWIDTH_Value32NBO
   uint64_t b;
 
   b = ntohl (bps.value__);
-#if DEBUG_BANDWIDTH
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Bandwidth has %llu bytes available until deadline in %llums\n",
        (unsigned long long) ((b * deadline.rel_value + 500LL) / 1000LL),
        deadline.rel_value);
-#endif
   return (b * deadline.rel_value + 500LL) / 1000LL;
 }
 
@@ -113,18 +108,14 @@ GNUNET_BANDWIDTH_value_get_delay_for (struct GNUNET_BANDWIDTH_Value32NBO bps,
   b = ntohl (bps.value__);
   if (b == 0)
   {
-#if DEBUG_BANDWIDTH
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Bandwidth suggests delay of infinity (zero bandwidth)\n");
-#endif
     return GNUNET_TIME_UNIT_FOREVER_REL;
   }
   ret.rel_value = size * 1000LL / b;
-#if DEBUG_BANDWIDTH
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Bandwidth suggests delay of %llu ms for %llu bytes of traffic\n",
        (unsigned long long) ret.rel_value, (unsigned long long) size);
-#endif
   return ret;
 }
 
@@ -152,11 +143,9 @@ GNUNET_BANDWIDTH_tracker_init (struct GNUNET_BANDWIDTH_Tracker *av,
   av->last_update__ = GNUNET_TIME_absolute_get ();
   av->available_bytes_per_s__ = ntohl (bytes_per_second_limit.value__);
   av->max_carry_s__ = max_carry_s;
-#if DEBUG_BANDWIDTH
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Tracker %p initialized with %u Bps and max carry %u\n", av,
        (unsigned int) av->available_bytes_per_s__, (unsigned int) max_carry_s);
-#endif
 }
 
 
@@ -193,13 +182,10 @@ update_tracker (struct GNUNET_BANDWIDTH_Tracker *av)
     else
       av->consumption_since_last_update__ = -max_carry;
   }
-#if DEBUG_BANDWIDTH
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Tracker %p  updated, have %u Bps, last update was %llu ms ago\n", av,
        (unsigned int) av->available_bytes_per_s__,
        (unsigned long long) delta_time);
-#endif
-
 }
 
 
@@ -220,10 +206,8 @@ GNUNET_BANDWIDTH_tracker_consume (struct GNUNET_BANDWIDTH_Tracker *av,
 {
   int64_t nc;
 
-#if DEBUG_BANDWIDTH
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Tracker %p consumes %d bytes\n", av,
        (int) size);
-#endif
   if (size > 0)
   {
     nc = av->consumption_since_last_update__ + size;
@@ -236,11 +220,9 @@ GNUNET_BANDWIDTH_tracker_consume (struct GNUNET_BANDWIDTH_Tracker *av,
     update_tracker (av);
     if (av->consumption_since_last_update__ > 0)
     {
-#if DEBUG_BANDWIDTH
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "Tracker %p consumption %llu bytes above limit\n", av,
            (unsigned long long) av->consumption_since_last_update__);
-#endif
       return GNUNET_YES;
     }
   }
@@ -270,28 +252,22 @@ GNUNET_BANDWIDTH_tracker_get_delay (struct GNUNET_BANDWIDTH_Tracker *av,
 
   if (av->available_bytes_per_s__ == 0)
   {
-#if DEBUG_BANDWIDTH
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Tracker %p delay is infinity\n", av);
-#endif
     return GNUNET_TIME_UNIT_FOREVER_REL;
   }
   update_tracker (av);
   bytes_needed = size + av->consumption_since_last_update__;
   if (bytes_needed <= 0)
   {
-#if DEBUG_BANDWIDTH
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Tracker %p delay for %u bytes is zero\n", av,
          (unsigned int) size);
-#endif
     return GNUNET_TIME_UNIT_ZERO;
   }
   ret.rel_value =
       (1000LL * bytes_needed) /
       (unsigned long long) av->available_bytes_per_s__;
-#if DEBUG_BANDWIDTH
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Tracker %p delay for %u bytes is %llu ms\n",
        av, (unsigned int) size, (unsigned long long) ret.rel_value);
-#endif
   return ret;
 }
 
@@ -317,11 +293,9 @@ GNUNET_BANDWIDTH_tracker_get_available (struct GNUNET_BANDWIDTH_Tracker * av)
                                                   GNUNET_TIME_absolute_get_duration
                                                   (av->last_update__));
   used = av->consumption_since_last_update__;
-#if DEBUG_BANDWIDTH
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Tracker %p  available bandwidth is %lld bytes\n", av,
        (long long) (int64_t) (avail - used));
-#endif
   return (int64_t) (avail - used);
 }
 
@@ -341,10 +315,8 @@ GNUNET_BANDWIDTH_tracker_update_quota (struct GNUNET_BANDWIDTH_Tracker *av,
   uint32_t new_limit;
 
   new_limit = ntohl (bytes_per_second_limit.value__);
-#if DEBUG_BANDWIDTH
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Tracker %p bandwidth changed to %u Bps\n", av,
        (unsigned int) new_limit);
-#endif
   update_tracker (av);
   old_limit = av->available_bytes_per_s__;
   av->available_bytes_per_s__ = new_limit;
