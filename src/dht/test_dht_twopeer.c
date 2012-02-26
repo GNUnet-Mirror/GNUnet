@@ -192,7 +192,6 @@ get_result_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
                                   "key mismatch in get response!\n");
     return;
   }
-  FPRINTF (stderr, "%s",  "!\n");
   if (get_context->retry_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (get_context->retry_task);
