@@ -26,6 +26,7 @@
 
 #include "platform.h"
 #include "gnunet_block_plugin.h"
+#include "gnunet_namestore_service.h"
 #include "block_gns.h"
 #include "gnunet_signatures.h"
 
@@ -34,6 +35,9 @@
  * Do not change! -from fs
  */
 #define BLOOMFILTER_K 16
+
+//Not taken until now
+#define GNUNET_BLOCK_TYPE_GNS_NAMERECORD 11
 
 /**
  * Function called to validate a reply or a request.  For
@@ -63,27 +67,20 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
 {
   if (type != GNUNET_BLOCK_TYPE_GNS_NAMERECORD)
     return GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED;
-
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *public_key;
+  
   char* name;
   GNUNET_HashCode pkey_hash;
   GNUNET_HashCode query_pkey;
   GNUNET_HashCode name_hash;
   struct GNSNameRecordBlock *nrb;
   struct GNSRecordBlock *rb;
+  uint32_t rd_count;
 
-  uint32_t rd_num;
-  uint32_t type;
-  struct GNUNET_TIME_AbsoluteNBO;
-  uint32_t data_length;
-  uint32_t flags;
+  nrb = (struct GNSNameRecordBlock *)reply_block;
 
-  char* pos = (char*) reply_block;
-  nrb = reply_block;
+  name = (char*)&nrb[1];
 
-  name = &nrb[1];
-
-  GNUNET_CRYPTO_hash(nrb->public_key,
+  GNUNET_CRYPTO_hash(&nrb->public_key,
                      sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
                      &pkey_hash);
 
@@ -95,35 +92,35 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
   if (0 != GNUNET_CRYPTO_hash_cmp(&query_pkey, &pkey_hash))
     return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
 
-  rd_count = ntohl(nrb->rd_num);
+  rd_count = ntohl(nrb->rd_count);
 
   struct GNUNET_NAMESTORE_RecordData rd[rd_count];
   int i = 0;
-  rb = &nrb[1] + strlen(name);
+  rb = (struct GNSRecordBlock*)(&nrb[1] + strlen(name));
 
   for (i=0; i<rd_count; i++)
   {
-    rd[i].type = ntohl(rb->type);
+    rd[i].record_type = ntohl(rb->type);
     rd[i].expiration =
-      GNUNET_TIME_relative_ntoh(rb->expiration);
-    rd[i].data_length = ntohl(rb->data_length);
+      GNUNET_TIME_absolute_ntoh(rb->expiration);
+    rd[i].data_size = ntohl(rb->data_length);
     rd[i].flags = ntohl(rb->flags);
-    rd[i].data = rb[1];
-    rb = &rb[1] + rd[i].data_length;
+    rd[i].data = (char*)&rb[1];
+    rb = &rb[1] + rd[i].data_size;
   }
 
-  if (GNUNET_OK != GNUNET_NAMESTORE_verify_signature (nrb->public_key,
+  if (GNUNET_OK != GNUNET_NAMESTORE_verify_signature (&nrb->public_key,
                                                       name,
                                                       nrb->rd_count,
                                                       rd,
-                                                      nrb->signature))
+                                                      &nrb->signature))
   {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Signature invalid\n");
     return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
   }
 
-  //Cache
-  GNUNET_NAMESTORE_record_put (handle, //FIXME where do i get this from?
+  //Cache FIXME we need a static function here to namestore?
+  /*GNUNET_NAMESTORE_record_put (handle, //FIXME where do i get this from?
                                &pkey_hash,
                                name,
                                expiration, //FIXME uh where do i get this from?
@@ -131,7 +128,7 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
                                rd,
                                signature,
                                NULL, //cont
-                               NULL); //cls
+                               NULL); //cls*/
   return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
 }
 
@@ -152,8 +149,19 @@ block_plugin_gns_get_key (void *cls, enum GNUNET_BLOCK_Type type,
                          const void *block, size_t block_size,
                          GNUNET_HashCode * key)
 {
-  if (type != GNUNET_BLOCK_TYPE_GNS_RECORD)
+  if (type != GNUNET_BLOCK_TYPE_GNS_NAMERECORD)
     return GNUNET_NO;
+  GNUNET_HashCode name_hash;
+  GNUNET_HashCode pkey_hash;
+  struct GNSNameRecordBlock *nrb = (struct GNSNameRecordBlock *)block;
+
+  GNUNET_CRYPTO_hash(&nrb[1], strlen((char*)&nrb[1]), &name_hash);
+  GNUNET_CRYPTO_hash(&nrb->public_key,
+                     sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+                     &pkey_hash);
+
+  GNUNET_CRYPTO_hash_xor(&name_hash, &pkey_hash, key);
+  
   //FIXME calculate key from name and hash(pkey) here
   return GNUNET_OK;
 }
@@ -167,7 +175,7 @@ libgnunet_plugin_block_gns_init (void *cls)
 {
   static enum GNUNET_BLOCK_Type types[] =
   {
-    GNUNET_BLOCK_TYPE_GNS_RECORD,
+    GNUNET_BLOCK_TYPE_GNS_NAMERECORD,
     GNUNET_BLOCK_TYPE_ANY       /* end of list */
   };
   struct GNUNET_BLOCK_PluginFunctions *api;

@@ -27,6 +27,9 @@ bin_PROGRAMS = \
 check_SCRIPTS = \
  test_gnunet_gns.sh
 
+plugin_LTLIBRARIES = \
+  libgnunet_plugin_block_gns.la
+
 #gnunet_gns_lookup_SOURCES = \
 # gnunet-gns-lookup.c
 #gnunet_gns_lookup_LDADD = \
@@ -55,6 +58,13 @@ libgnunetgns_la_LIBADD = \
  $(top_builddir)/src/util/libgnunetutil.la $(XLIB)
 libgnunetgns_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)
+
+libgnunet_plugin_block_gns_la_SOURCES = \
+  plugin_block_gns.c
+libgnunet_plugin_block_gns_la_LIBADD = \
+  $(top_builddir)/src/util/libgnunetutil.la
+libgnunet_plugin_block_gns_la_LDFLAGS = \
+  $(top_builddir)/src/block/$(GN_PLUGIN_LDFLAGS)
 
 #Build stub api
 libgnunetnamestore_la_SOURCES = \

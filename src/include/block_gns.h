@@ -56,7 +56,7 @@ struct GNSRecordBlock
   //Class of the record?
 
   /* followed by the record data */
-}
+};
 
 /**
  * @brief a record block for a given name of a single authority
@@ -80,7 +80,7 @@ struct GNSNameRecordBlock
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded public_key;
 
   /* number of records that follow */
-  uint32_t rd_num GNUNET_PACKED;
+  uint32_t rd_count GNUNET_PACKED;
 
   /* 0-terminated name here */
 
