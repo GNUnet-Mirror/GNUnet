@@ -33,7 +33,7 @@
 #include "gnunet_transport_service.h"
 #include <gauger.h>
 
-#define VERBOSE GNUNET_EXTRA_LOGGING
+#define VERBOSE GNUNET_NO
 
 #define START_ARM GNUNET_YES
 

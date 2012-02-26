@@ -33,8 +33,7 @@
 #include "gnunet_transport_service.h"
 #include "gnunet_statistics_service.h"
 
-#define VERBOSE GNUNET_EXTRA_LOGGING
-#define DEBUG_TRANSMISSION GNUNET_EXTRA_LOGGING
+#define VERBOSE GNUNET_NO
 
 #define SYMMETRIC 0
 #define ASYMMETRIC_SEND_LIMITED 1
@@ -333,11 +332,9 @@ transmit_ready (void *cls, size_t size, void *buf)
   cbuf = buf;
   do
   {
-#if DEBUG_TRANSMISSION
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Sending message %u of size %u at offset %u\n", tr_n,
                 MESSAGESIZE, ret);
-#endif
     hdr.header.size = htons (MESSAGESIZE);
     hdr.header.type = htons (MTYPE);
     hdr.num = htonl (tr_n);
@@ -373,14 +370,12 @@ connect_notify (void *cls, const struct GNUNET_PeerIdentity *peer,
   pc->connect_status = 1;
   if (pc == &p1)
   {
-#if DEBUG_TRANSMISSION
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Encrypted connection established to peer `%4s'\n",
                 GNUNET_i2s (peer));
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Asking core (1) for transmission to peer `%4s'\n",
                 GNUNET_i2s (&p2.id));
-#endif
     if (err_task != GNUNET_SCHEDULER_NO_TASK)
       GNUNET_SCHEDULER_cancel (err_task);
     err_task =
@@ -421,10 +416,8 @@ disconnect_notify (void *cls, const struct GNUNET_PeerIdentity *peer)
     GNUNET_CORE_notify_transmit_ready_cancel (pc->nth);
     pc->nth = NULL;
   }
-#if DEBUG_TRANSMISSION
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Encrypted connection to `%4s' cut\n",
               GNUNET_i2s (peer));
-#endif
 }
 
 
@@ -434,11 +427,9 @@ inbound_notify (void *cls, const struct GNUNET_PeerIdentity *other,
                 const struct GNUNET_ATS_Information *atsi,
                 unsigned int atsi_count)
 {
-#if DEBUG_TRANSMISSION
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Core provides inbound data from `%4s' %llu.\n",
               GNUNET_i2s (other), ntohs (message->size));
-#endif
   total_bytes_recv += ntohs (message->size);
   return GNUNET_OK;
 }
@@ -450,11 +441,9 @@ outbound_notify (void *cls, const struct GNUNET_PeerIdentity *other,
                  const struct GNUNET_ATS_Information *atsi,
                  unsigned int atsi_count)
 {
-#if DEBUG_TRANSMISSION
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Core notifies about outbound data for `%4s'.\n",
               GNUNET_i2s (other));
-#endif
   return GNUNET_OK;
 }
 
@@ -492,10 +481,8 @@ process_mtype (void *cls, const struct GNUNET_PeerIdentity *peer,
     err_task = GNUNET_SCHEDULER_add_now (&terminate_task_error, NULL);
     return GNUNET_SYSERR;
   }
-#if DEBUG_TRANSMISSION
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got message %u of size %u\n",
               ntohl (hdr->num), ntohs (message->size));
-#endif
   n++;
   if (0 == (n % 10))
     FPRINTF (stderr, "%s",  ".");
@@ -545,11 +532,9 @@ init_notify (void *cls, struct GNUNET_CORE_Handle *server,
     GNUNET_assert (ok == 3);
     OKPP;
     GNUNET_assert (cls == &p2);
-#if DEBUG_TRANSMISSION
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Asking core (1) to connect to peer `%4s'\n",
                 GNUNET_i2s (&p2.id));
-#endif
     connect_task = GNUNET_SCHEDULER_add_now (&try_connect, NULL);
   }
 }
@@ -560,11 +545,8 @@ process_hello (void *cls, const struct GNUNET_MessageHeader *message)
 {
   struct PeerContext *p = cls;
 
-
-#if DEBUG_TRANSMISSION
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received (my) `%s' from transport service\n", "HELLO");
-#endif
   GNUNET_assert (message != NULL);
   p->hello = GNUNET_malloc (ntohs (message->size));
   memcpy (p->hello, message, ntohs (message->size));

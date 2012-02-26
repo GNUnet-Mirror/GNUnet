@@ -31,7 +31,7 @@
 #include "gnunet_program_lib.h"
 #include "gnunet_scheduler_lib.h"
 
-#define VERBOSE GNUNET_EXTRA_LOGGING
+#define VERBOSE GNUNET_NO
 
 #define TIMEOUT 3
 
