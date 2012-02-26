@@ -64,7 +64,7 @@ struct GNUNET_GNS_ResolverHandle
   int answered;
 
   /* the authoritative zone to query */
-  GNUNET_HashCode *authority;
+  GNUNET_HashCode authority;
 
   /**
    * we have an authority in namestore that
@@ -129,13 +129,12 @@ const char* gnunet_tld = ".gnunet";
  */
 static int num_public_records =  3600;
 struct GNUNET_TIME_Relative dht_update_interval;
-
+GNUNET_SCHEDULER_TaskIdentifier zone_update_taskid = GNUNET_SCHEDULER_NO_TASK;
 
 //Prototypes
 void reply_to_dns(struct GNUNET_GNS_ResolverHandle *answer, uint32_t rd_count,
                   const struct GNUNET_NAMESTORE_RecordData *rd);
-void resolve_name(struct GNUNET_GNS_ResolverHandle *query,
-                  GNUNET_HashCode *zone);
+void resolve_name(struct GNUNET_GNS_ResolverHandle *rh);
 
 /**
  * Task run during shutdown.
@@ -146,6 +145,8 @@ void resolve_name(struct GNUNET_GNS_ResolverHandle *query,
 static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  //Kill zone task for it may make the scheduler hang
+  GNUNET_SCHEDULER_cancel(zone_update_taskid);
   GNUNET_DNS_disconnect(dns_handle);
   GNUNET_NAMESTORE_disconnect(namestore_handle, 0);
   GNUNET_DHT_disconnect(dht_handle);
@@ -291,8 +292,8 @@ process_authority_dht_result(void* cls,
   if (rh->answered)
   {
     rh->answered = 0;
-    memcpy(rh->authority, &zone, sizeof(GNUNET_HashCode));
-    resolve_name(rh, rh->authority);
+    rh->authority = zone;
+    resolve_name(rh);
     return;
   }
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, "No authority in records\n");
@@ -315,7 +316,7 @@ resolve_authority_dht(struct GNUNET_GNS_ResolverHandle *rh, const char* name)
   GNUNET_HashCode lookup_key;
 
   GNUNET_CRYPTO_hash(name, strlen(name), &name_hash);
-  GNUNET_CRYPTO_hash_xor(&name_hash, rh->authority, &lookup_key);
+  GNUNET_CRYPTO_hash_xor(&name_hash, &rh->authority, &lookup_key);
 
   timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 20);
   
@@ -470,7 +471,8 @@ resolve_name_dht(struct GNUNET_GNS_ResolverHandle *rh, const char* name)
   GNUNET_HashCode lookup_key;
 
   GNUNET_CRYPTO_hash(name, strlen(name), &name_hash);
-  GNUNET_CRYPTO_hash_xor(&name_hash, rh->authority, &lookup_key);
+  GNUNET_CRYPTO_hash_xor(&name_hash, &rh->authority, &lookup_key);
+  
 
   timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 20);
   
@@ -489,7 +491,7 @@ resolve_name_dht(struct GNUNET_GNS_ResolverHandle *rh, const char* name)
 
 //Prototype
 void
-resolve_name(struct GNUNET_GNS_ResolverHandle *query, GNUNET_HashCode *zone);
+resolve_name(struct GNUNET_GNS_ResolverHandle *rh);
 
 /**
  * This is a callback function that should give us only PKEY
@@ -570,11 +572,9 @@ process_authority_lookup(void* cls,
       }
 
       GNUNET_assert(rd[i].record_type == GNUNET_GNS_RECORD_PKEY);
-      GNUNET_HashCode *pkey_hash = GNUNET_malloc(sizeof(GNUNET_HashCode));
-      GNUNET_CRYPTO_hash(rd[i].data, GNUNET_CRYPTO_RSA_KEY_LENGTH, pkey_hash);
-      GNUNET_free_non_null(rh->authority);
-      rh->authority = pkey_hash;
-      resolve_name(rh, rh->authority);
+      GNUNET_CRYPTO_hash(rd[i].data, GNUNET_CRYPTO_RSA_KEY_LENGTH,
+                         &rh->authority);
+      resolve_name(rh);
       return;
       
   }
@@ -643,7 +643,7 @@ reply_to_dns(struct GNUNET_GNS_ResolverHandle *rh, uint32_t rd_count,
   packet->num_answers = rh->answered; //answer->num_records;
   packet->num_additional_records = rd_count-(rh->answered);
   
-  if (NULL == rh->authority)
+  if (0 == GNUNET_CRYPTO_hash_cmp(&rh->authority, &zone_hash))
     packet->flags.authoritative_answer = 1;
   else
    packet->flags.authoritative_answer = 0;
@@ -682,9 +682,8 @@ reply_to_dns(struct GNUNET_GNS_ResolverHandle *rh, uint32_t rd_count,
   }
 
   //FIXME into free_resolver(rh)
-  //GNUNET_DNSPARSER_free_packet(rh->packet);
-  //GNUNET_free(rh->name);
-  //GNUNET_free(rh);
+  GNUNET_free(rh->name);
+  GNUNET_free(rh);
 }
 
 
@@ -858,13 +857,13 @@ char* pop_tld(char* name)
  * @param zone the zone we are currently resolving in
  */
 void
-resolve_name(struct GNUNET_GNS_ResolverHandle *rh, GNUNET_HashCode *zone)
+resolve_name(struct GNUNET_GNS_ResolverHandle *rh)
 {
   if (is_canonical(rh->name))
   {
     //We only need to check this zone's ns
     GNUNET_NAMESTORE_lookup_record(namestore_handle,
-                               zone,
+                               &rh->authority,
                                rh->name,
                                rh->query->type,
                                &process_authoritative_result,
@@ -875,7 +874,7 @@ resolve_name(struct GNUNET_GNS_ResolverHandle *rh, GNUNET_HashCode *zone)
     //We have to resolve the authoritative entity
     char *new_authority = pop_tld(rh->name);
     GNUNET_NAMESTORE_lookup_record(namestore_handle,
-                                 zone,
+                                 &rh->authority,
                                  new_authority,
                                  GNUNET_GNS_RECORD_PKEY,
                                  &process_authority_lookup,
@@ -906,7 +905,7 @@ start_resolution(struct GNUNET_DNS_RequestHandle *request,
   rh = GNUNET_malloc(sizeof (struct GNUNET_GNS_ResolverHandle));
   rh->packet = p;
   rh->query = q;
-  rh->authority = NULL;
+  rh->authority = zone_hash;
   
   //FIXME do not forget to free!!
   rh->name = GNUNET_malloc(strlen(q->name)
@@ -919,7 +918,7 @@ start_resolution(struct GNUNET_DNS_RequestHandle *request,
   rh->request_handle = request;
 
   //Start resolution in our zone
-  resolve_name(rh, &zone_hash);
+  resolve_name(rh);
 }
 
 /**
@@ -1106,7 +1105,8 @@ put_gns_record(void *cls,
   {
     GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Zone iteration finished\n");
     GNUNET_NAMESTORE_zone_iteration_stop (namestore_iter);
-    GNUNET_SCHEDULER_add_now (&update_zone_dht_start, NULL);
+    zone_update_taskid = GNUNET_SCHEDULER_add_now (&update_zone_dht_start,
+                                                   NULL);
     return;
   }
   /**
@@ -1131,7 +1131,7 @@ put_gns_record(void *cls,
   /**
    * Reschedule periodic put
    */
-  GNUNET_SCHEDULER_add_delayed (dht_update_interval,
+  zone_update_taskid = GNUNET_SCHEDULER_add_delayed (dht_update_interval,
                                 &update_zone_dht_next,
                                 NULL);
 
@@ -1238,7 +1238,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
    */
   dht_update_interval = GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS,
                                                       1); //FIXME from cfg
-  GNUNET_SCHEDULER_add_now (&update_zone_dht_start, NULL);
+  zone_update_taskid = GNUNET_SCHEDULER_add_now (&update_zone_dht_start, NULL);
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, "GNS Init done!\n");
 
 }

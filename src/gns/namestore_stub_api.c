@@ -352,7 +352,7 @@ GNUNET_NAMESTORE_lookup_record (struct GNUNET_NAMESTORE_Handle *h,
   {
     GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Got %s\n", sr->name);
     if ((strcmp(sr->name, name) == 0) &&
-        (GNUNET_CRYPTO_hash_cmp(sr->zone, zone)))
+        (0 == (GNUNET_CRYPTO_hash_cmp(sr->zone, zone))))
     {
       GNUNET_log(GNUNET_ERROR_TYPE_INFO,
                  "Found match for %s with %d entries\n",
