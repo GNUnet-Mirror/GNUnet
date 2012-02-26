@@ -36,7 +36,7 @@
 #include "gnunet_nat_lib.h"
 
 
-#define VERBOSE GNUNET_EXTRA_LOGGING
+#define VERBOSE GNUNET_NO
 
 /* Time to wait before stopping NAT, in seconds */
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)

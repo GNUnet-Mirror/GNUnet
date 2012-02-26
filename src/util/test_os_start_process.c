@@ -33,7 +33,7 @@
 #include "gnunet_scheduler_lib.h"
 #include "disk.h"
 
-#define VERBOSE GNUNET_EXTRA_LOGGING
+#define VERBOSE GNUNET_NO
 
 static char *test_phrase = "HELLO WORLD";
 static int ok;

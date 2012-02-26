@@ -27,7 +27,7 @@
 #include "gnunet_time_lib.h"
 #include "gnunet_disk_lib.h"
 
-#define VERBOSE GNUNET_EXTRA_LOGGING
+#define VERBOSE GNUNET_NO
 
 static void
 task3 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)

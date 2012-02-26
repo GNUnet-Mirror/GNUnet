@@ -25,7 +25,7 @@
 #include "platform.h"
 #include "gnunet_fragmentation_lib.h"
 
-#define VERBOSE GNUNET_EXTRA_LOGGING
+#define VERBOSE GNUNET_NO
 
 #define DETAILS GNUNET_NO
 

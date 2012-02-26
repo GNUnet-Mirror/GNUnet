@@ -30,7 +30,7 @@
 #include "gnunet_disk_lib.h"
 #include "gnunet_os_lib.h"
 
-#define VERBOSE GNUNET_EXTRA_LOGGING
+#define VERBOSE GNUNET_NO
 
 static int ok;
 static int phase = 0;

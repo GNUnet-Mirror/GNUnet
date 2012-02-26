@@ -29,7 +29,7 @@
 #include "gnunet_datastore_plugin.h"
 #include <gauger.h>
 
-#define VERBOSE GNUNET_EXTRA_LOGGING
+#define VERBOSE GNUNET_NO
 
 /**
  * Target datastore size (in bytes).  Realistic sizes are

@@ -24,7 +24,7 @@
 #include "platform.h"
 #include "gnunet_common.h"
 
-#define VERBOSE GNUNET_EXTRA_LOGGING
+#define VERBOSE GNUNET_NO
 
 static int
 check ()

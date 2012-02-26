@@ -24,7 +24,7 @@
 #include "platform.h"
 #include "gnunet_plugin_lib.h"
 
-#define VERBOSE GNUNET_EXTRA_LOGGING
+#define VERBOSE GNUNET_NO
 
 static void
 test_cb (void *cls, const char *libname, void *lib_ret)

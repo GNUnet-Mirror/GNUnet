@@ -30,7 +30,7 @@
 #include "gnunet-service-ats_addresses_mlp.h"
 
 #define VERBOSE GNUNET_YES
-#define VERBOSE_ARM GNUNET_EXTRA_LOGGING
+#define VERBOSE_ARM GNUNET_NO
 
 #define MLP_MAX_EXEC_DURATION   GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 3)
 #define MLP_MAX_ITERATIONS      INT_MAX

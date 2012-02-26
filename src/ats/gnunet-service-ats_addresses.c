@@ -35,7 +35,7 @@
 #include "gnunet-service-ats_addresses_mlp.h"
 #endif
 
-#define VERBOSE GNUNET_EXTRA_LOGGING
+#define VERBOSE GNUNET_NO
 
 enum ATS_Mode
 {

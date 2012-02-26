@@ -30,7 +30,7 @@
 #include "gnunet_resolver_service.h"
 #include "resolver.h"
 
-#define VERBOSE GNUNET_EXTRA_LOGGING
+#define VERBOSE GNUNET_NO
 
 /**
  * Using DNS root servers to check gnunet's resolver service

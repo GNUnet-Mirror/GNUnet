@@ -27,7 +27,7 @@
 
 #define DEBUG GNUNET_EXTRA_LOGGING
 
-#define VERBOSE GNUNET_EXTRA_LOGGING
+#define VERBOSE GNUNET_NO
 
 
 static size_t

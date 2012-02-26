@@ -28,9 +28,9 @@
 #include "gnunet_ats_service.h"
 #include "ats.h"
 
-#define VERBOSE GNUNET_EXTRA_LOGGING
+#define VERBOSE GNUNET_NO
 
-#define VERBOSE_ARM GNUNET_EXTRA_LOGGING
+#define VERBOSE_ARM GNUNET_NO
 
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 
