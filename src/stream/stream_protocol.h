@@ -89,9 +89,6 @@ struct GNUNET_STREAM_DataMessage
    * Offset of the packet in the overall stream, modulo 2^32; allows
    * the receiver to calculate where in the destination buffer the
    * message should be placed.  In network byte order.
-   *
-   * FIXME: if all the packets except the last one are of constant size we
-   * don't need this anymore
    */
   uint32_t offset GNUNET_PACKED;
 
