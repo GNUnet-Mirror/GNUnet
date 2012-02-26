@@ -206,10 +206,15 @@ typedef void (*GNUNET_STREAM_CompletionContinuation) (void *cls,
 
 
 /**
- * Handle to cancel IO operations.
+ * Handle to cancel IO write operations.
  */
-struct GNUNET_STREAM_IOHandle;
+struct GNUNET_STREAM_IOWriteHandle;
 
+
+/**
+ * Handle to cancel IO read operations.
+ */
+struct GNUNET_STREAM_IOReadHandle;
 
 /**
  * Tries to write the given data to the stream
@@ -222,7 +227,7 @@ struct GNUNET_STREAM_IOHandle;
  * @param write_cont_cls the closure
  * @return handle to cancel the operation; NULL if a previous write is pending
  */
-struct GNUNET_STREAM_IOHandle *
+struct GNUNET_STREAM_IOWriteHandle *
 GNUNET_STREAM_write (struct GNUNET_STREAM_Socket *socket,
                      const void *data,
                      size_t size,
@@ -257,20 +262,29 @@ typedef size_t (*GNUNET_STREAM_DataProcessor) (void *cls,
  * @param proc_cls the closure for proc
  * @return handle to cancel the operation
  */
-struct GNUNET_STREAM_IOHandle *
-GNUNET_STREAM_read (const struct GNUNET_STREAM_Socket *socket,
+struct GNUNET_STREAM_IOReadHandle *
+GNUNET_STREAM_read (struct GNUNET_STREAM_Socket *socket,
                     struct GNUNET_TIME_Relative timeout,
 		    GNUNET_STREAM_DataProcessor proc,
 		    void *proc_cls);
 
 
 /**
- * Cancel pending read or write operation.
+ * Cancel pending write operation.
  *
  * @param ioh handle to operation to cancel
  */
 void
-GNUNET_STREAM_io_cancel (struct GNUNET_STREAM_IOHandle *ioh);
+GNUNET_STREAM_io_write_cancel (struct GNUNET_STREAM_IOWriteHandle *ioh);
+
+
+/**
+ * Cancel pending read operation.
+ *
+ * @param ioh handle to operation to cancel
+ */
+void
+GNUNET_STREAM_io_read_cancel (struct GNUNET_STREAM_IOReadHandle *ioh);
 
 
 #if 0
