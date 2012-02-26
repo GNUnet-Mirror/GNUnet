@@ -30,7 +30,7 @@
 #include "gnunet_testing_lib.h"
 #include "gnunet_dht_service.h"
 
-#define VERBOSE GNUNET_EXTRA_LOGGING
+#define VERBOSE GNUNET_NO
 
 #define REMOVE_DIR GNUNET_YES
 

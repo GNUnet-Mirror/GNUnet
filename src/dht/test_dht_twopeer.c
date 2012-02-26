@@ -28,7 +28,7 @@
 #include "gnunet_dht_service.h"
 
 /* DEFINES */
-#define VERBOSE GNUNET_EXTRA_LOGGING
+#define VERBOSE GNUNET_NO
 
 #define MAX_GET_ATTEMPTS 10
 
