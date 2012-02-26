@@ -1072,6 +1072,10 @@ update_zone_dht_next(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_NAMESTORE_zone_iterator_next(namestore_iter);
 }
 
+/* prototype */
+static void
+update_zone_dht_start(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+
 /**
  * Function used to put all records successively into the DHT.
  * FIXME bug here
@@ -1100,7 +1104,9 @@ put_gns_record(void *cls,
 
   if (NULL == name) //We're done
   {
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Zone iteration finished\n");
     GNUNET_NAMESTORE_zone_iteration_stop (namestore_iter);
+    GNUNET_SCHEDULER_add_now (&update_zone_dht_start, NULL);
     return;
   }
   /**
@@ -1141,8 +1147,18 @@ static void
 update_zone_dht_start(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Update zone!\n");
-  dht_update_interval = GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS,
+  if (0 == num_public_records)
+  {
+    dht_update_interval = GNUNET_TIME_relative_multiply(
+                                                      GNUNET_TIME_UNIT_SECONDS,
+                                                      1);
+  }
+  else
+  {
+    dht_update_interval = GNUNET_TIME_relative_multiply(
+                                                      GNUNET_TIME_UNIT_SECONDS,
                                                      (3600/num_public_records));
+  }
   num_public_records = 0; //start counting again
   namestore_iter = GNUNET_NAMESTORE_zone_iteration_start (namestore_handle,
                                                           &zone_hash,
@@ -1221,10 +1237,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
    * We have roughly an hour for all records;
    */
   dht_update_interval = GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS,
-                                                      60); //FIXME from cfg
-  //GNUNET_SCHEDULER_add_delayed (dht_update_interval,
-  //                              &update_zone_dht_start,
-  //                              NULL);
+                                                      1); //FIXME from cfg
+  GNUNET_SCHEDULER_add_now (&update_zone_dht_start, NULL);
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, "GNS Init done!\n");
 
 }

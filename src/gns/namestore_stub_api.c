@@ -80,6 +80,7 @@ struct GNUNET_NAMESTORE_ZoneIterator
   uint32_t no_flags;
   uint32_t flags;
   struct GNUNET_NAMESTORE_Handle *h;
+  struct GNUNET_NAMESTORE_SimpleRecord *sr;
 };
 
 struct GNUNET_NAMESTORE_SimpleRecord
@@ -380,6 +381,7 @@ GNUNET_NAMESTORE_zone_iteration_start(struct GNUNET_NAMESTORE_Handle *h,
   h->locked = 1;
   it = GNUNET_malloc(sizeof(struct GNUNET_NAMESTORE_ZoneIterator));
   it->h = h;
+  it->sr = h->records_head;
   it->proc = proc;
   it->proc_cls = proc_cls;
   it->zone = zone;
@@ -392,30 +394,30 @@ GNUNET_NAMESTORE_zone_iteration_start(struct GNUNET_NAMESTORE_Handle *h,
 void
 GNUNET_NAMESTORE_zone_iterator_next(struct GNUNET_NAMESTORE_ZoneIterator *it)
 {
-  struct GNUNET_NAMESTORE_SimpleRecord *sr;
   
   if (it->h->locked == 0)
     return;
-
-  sr = it->h->records_head;
-  for (; sr != NULL; sr = sr->next)
+  if (it->sr == NULL)
   {
-    if (GNUNET_CRYPTO_hash_cmp(sr->zone, it->zone))
-    {
-      //Simply always return all records
-      //check flags
-      it->proc(it->proc_cls, sr->zone_key, GNUNET_TIME_UNIT_FOREVER_ABS, //FIXME
-           sr->name, sr->rd_count, sr->rd, NULL);
-    }
+    it->proc(it->proc_cls, NULL, GNUNET_TIME_UNIT_ZERO_ABS,
+             NULL, 0, NULL, NULL);
+    return;
   }
-  it->proc(it->proc_cls, NULL, GNUNET_TIME_UNIT_ZERO_ABS, NULL, 0, NULL, NULL);
+
+  if (GNUNET_CRYPTO_hash_cmp(it->sr->zone, it->zone))
+  {
+    //Simply always return all records
+    //check flags
+    it->proc(it->proc_cls, it->sr->zone_key, GNUNET_TIME_UNIT_FOREVER_ABS,
+         it->sr->name, it->sr->rd_count, it->sr->rd, NULL);
+  }
+  it->sr = it->sr->next;
 }
 
 void
 GNUNET_NAMESTORE_zone_iteration_stop(struct GNUNET_NAMESTORE_ZoneIterator *it)
 {
-  it->h->locked = 0;
-  GNUNET_free(it);
+  //it->h->locked = 0;
 }
 
 /**
