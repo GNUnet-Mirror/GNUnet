@@ -465,7 +465,7 @@ namestore_sqlite_remove_records (void *cls,
  * @param rd array of records with data to store
  * @param signature signature of the record block, NULL if signature is unavailable (i.e. 
  *        because the user queried for a particular record type only)
- * @return GNUNET_OK on success
+ * @return GNUNET_OK on success, else GNUNET_SYSERR
  */
 static int 
 namestore_sqlite_put_records (void *cls, 

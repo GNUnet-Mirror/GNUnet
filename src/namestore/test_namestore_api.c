@@ -34,6 +34,10 @@ static struct GNUNET_NAMESTORE_Handle * nsh;
 static GNUNET_SCHEDULER_TaskIdentifier endbadly_task;
 static struct GNUNET_OS_Process *arm;
 
+static struct GNUNET_CRYPTO_RsaPrivateKey * privkey;
+static struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pubkey;
+static GNUNET_HashCode zone;
+
 static int res;
 
 
@@ -76,6 +80,10 @@ endbadly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_NAMESTORE_disconnect (nsh, GNUNET_YES);
   nsh = NULL;
 
+  if (privkey != NULL)
+    GNUNET_CRYPTO_rsa_key_free (privkey);
+  privkey = NULL;
+
   if (NULL != arm)
     stop_arm();
 
@@ -91,6 +99,10 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_SCHEDULER_cancel (endbadly_task);
     endbadly_task = GNUNET_SCHEDULER_NO_TASK;
   }
+
+  if (privkey != NULL)
+    GNUNET_CRYPTO_rsa_key_free (privkey);
+  privkey = NULL;
 
   if (nsh != NULL)
     GNUNET_NAMESTORE_disconnect (nsh, GNUNET_YES);
@@ -112,9 +124,18 @@ void name_lookup_proc (void *cls,
                             const struct GNUNET_NAMESTORE_RecordData *rd,
                             const struct GNUNET_CRYPTO_RsaSignature *signature)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "name_lookup_proc %p `%s' %i %p %p\n", zone_key, name, rd_count, rd, signature);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Namestore lookup result %p `%s' %i %p %p\n", zone_key, name, rd_count, rd, signature);
   res = 0;
   GNUNET_SCHEDULER_add_now(&end, NULL);
+}
+
+void put_cont (void *cls, int32_t success, const char *emsg)
+{
+  char * name = cls;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Name store added record for `%s': %s\n", name, (success == GNUNET_OK) ? "SUCCESS" : "FAIL");
+
+  GNUNET_NAMESTORE_lookup_record (nsh, &zone, name, 0, &name_lookup_proc, NULL);
 }
 
 static void
@@ -123,8 +144,14 @@ run (void *cls, char *const *args, const char *cfgfile,
 {
   endbadly_task = GNUNET_SCHEDULER_add_delayed(TIMEOUT,endbadly, NULL);
 
-  GNUNET_HashCode zone;
-  GNUNET_CRYPTO_hash_create_random(GNUNET_CRYPTO_QUALITY_WEAK, &zone);
+  privkey = GNUNET_CRYPTO_rsa_key_create_from_file("hostkey");
+  GNUNET_assert (privkey != NULL);
+  GNUNET_CRYPTO_rsa_key_get_public(privkey, &pubkey);
+
+  GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK, &zone);
+
+
+  struct GNUNET_CRYPTO_RsaSignature signature;
   char * name = "dummy.dummy.gnunet";
 
   start_arm (cfgfile);
@@ -133,7 +160,9 @@ run (void *cls, char *const *args, const char *cfgfile,
   nsh = GNUNET_NAMESTORE_connect (cfg);
   GNUNET_break (NULL != nsh);
 
-  GNUNET_NAMESTORE_lookup_record (nsh, &zone, name, 0, &name_lookup_proc, NULL);
+  GNUNET_NAMESTORE_record_put (nsh, &pubkey, name,
+                              GNUNET_TIME_absolute_get_forever(),
+                              0, NULL, &signature, put_cont, name);
 }
 
 static int

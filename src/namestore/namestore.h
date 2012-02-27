@@ -31,6 +31,8 @@
  */
 #define GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_NAME 431
 #define GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_NAME_RESPONSE 432
+#define GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_PUT 433
+#define GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_PUT_RESPONSE 434
 
 GNUNET_NETWORK_STRUCT_BEGIN
 /**
@@ -67,11 +69,10 @@ struct GenericMessage
 GNUNET_NETWORK_STRUCT_END
 
 
-
-GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * Connect to namestore service
  */
+GNUNET_NETWORK_STRUCT_BEGIN
 struct LookupNameMessage
 {
   /**
@@ -96,15 +97,12 @@ struct LookupNameMessage
 GNUNET_NETWORK_STRUCT_END
 
 
-
-GNUNET_NETWORK_STRUCT_BEGIN
-
 /**
  * Lookup response
  * Memory layout:
  * [struct LookupNameResponseMessage][struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded][char *name][rc_count * struct GNUNET_NAMESTORE_RecordData][struct GNUNET_CRYPTO_RsaSignature]
  */
-
+GNUNET_NETWORK_STRUCT_BEGIN
 struct LookupNameResponseMessage
 {
   /**
@@ -126,9 +124,68 @@ struct LookupNameResponseMessage
   /* Requested record type */
   uint32_t rc_count;
 };
-
-
 GNUNET_NETWORK_STRUCT_END
+
+
+/**
+ * Put a record to the namestore
+ * Memory layout:
+ * [struct RecordPutMessage][struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded][char *name][rc_count * struct GNUNET_NAMESTORE_RecordData]
+ */
+GNUNET_NETWORK_STRUCT_BEGIN
+struct RecordPutMessage
+{
+  /**
+   * Type will be GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_RECORD_PUT
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Operation ID in NBO
+   */
+  uint32_t op_id;
+
+  /* Contenct starts here */
+
+  /* name length */
+  uint16_t name_len;
+
+  /* Requested record type */
+  uint32_t rd_count;
+
+  struct GNUNET_TIME_AbsoluteNBO expire;
+
+  struct GNUNET_CRYPTO_RsaSignature signature;
+};
+GNUNET_NETWORK_STRUCT_END
+
+/**
+ * Put a record to the namestore
+ * Memory layout:
+ * [struct RecordPutMessage][struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded][char *name][rc_count * struct GNUNET_NAMESTORE_RecordData]
+ */
+GNUNET_NETWORK_STRUCT_BEGIN
+struct RecordPutResponseMessage
+{
+  /**
+   * Type will be GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_PUT_RESPONSE
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Operation ID in NBO
+   */
+  uint32_t op_id;
+
+  /* Contenct starts here */
+
+  /**
+   *  name length: GNUNET_NO (0) on error, GNUNET_OK (1) on success
+   */
+  uint16_t op_result;
+};
+GNUNET_NETWORK_STRUCT_END
+
 
 
 /* end of namestore.h */

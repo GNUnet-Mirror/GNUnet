@@ -287,7 +287,6 @@ handle_lookup_name_it (void *cls,
 
   if (GNUNET_YES == contains_signature)
     memcpy (signature_tmp, signature, sizeof (struct GNUNET_CRYPTO_RsaSignature));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "DONE `%s' message\n", "NAMESTORE_LOOKUP_NAME_RESPONSE");
   GNUNET_SERVER_notification_context_unicast (snc, lnc->nc->client, (const struct GNUNET_MessageHeader *) lnr_msg, GNUNET_NO);
 
   GNUNET_free (lnr_msg);
@@ -349,6 +348,94 @@ static void handle_lookup_name (void *cls,
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
+static void handle_record_put (void *cls,
+                          struct GNUNET_SERVER_Client * client,
+                          const struct GNUNET_MessageHeader * message)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "NAMESTORE_RECORD_PUT");
+  struct GNUNET_NAMESTORE_Client *nc;
+  struct GNUNET_TIME_Absolute expire;
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key;
+  struct GNUNET_NAMESTORE_RecordData *rd;
+  struct GNUNET_CRYPTO_RsaSignature *signature;
+  struct RecordPutResponseMessage rpr_msg;
+  size_t name_len;
+  size_t msg_size;
+  size_t msg_size_exp;
+  char * name;
+  uint32_t id = 0;
+  uint32_t rd_count;
+  int res = GNUNET_SYSERR;
+
+  if (ntohs (message->size) < sizeof (struct RecordPutMessage))
+  {
+    GNUNET_break_op (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
+
+  nc = client_lookup(client);
+  if (nc == NULL)
+  {
+    GNUNET_break_op (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
+
+  struct RecordPutMessage * rp_msg = (struct RecordPutMessage *) message;
+  id = ntohl (rp_msg->op_id);
+  name_len = ntohs (rp_msg->name_len);
+  rd_count = ntohl(rp_msg->rd_count);
+  msg_size = ntohs (message->size);
+  msg_size_exp = sizeof (struct RecordPutMessage) + sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded) + name_len  + rd_count * (sizeof (struct GNUNET_NAMESTORE_RecordData));
+
+  if (msg_size != msg_size_exp)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Expected message %u size but message size is %u \n", msg_size_exp, msg_size);
+    GNUNET_break_op (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
+
+
+  if ((name_len == 0) || (name_len > 256))
+  {
+    GNUNET_break_op (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
+
+  zone_key = (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *) &rp_msg[1];
+  name = (char *) &zone_key[1];
+  expire = GNUNET_TIME_absolute_ntoh(rp_msg->expire);
+  signature = (struct GNUNET_CRYPTO_RsaSignature *) &rp_msg->signature;
+  rd = (struct GNUNET_NAMESTORE_RecordData *) &name[name_len];
+
+  /* Database operation */
+  res = GSN_database->put_records(GSN_database->cls,
+                                zone_key,
+                                expire,
+                                name,
+                                rd_count, rd,
+                                signature);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Putting record for name `%s': %s\n",
+      name, (res == GNUNET_OK) ? "OK" : "FAIL");
+
+  /* Send response */
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message\n", "RECORD_PUT_RESPONSE");
+  rpr_msg.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_PUT_RESPONSE);
+  rpr_msg.op_id = rp_msg->op_id;
+  rpr_msg.header.size = htons (sizeof (struct RecordPutResponseMessage));
+  if (GNUNET_OK == res)
+    rpr_msg.op_result = htons (GNUNET_OK);
+  else
+    rpr_msg.op_result = htons (GNUNET_NO);
+  GNUNET_SERVER_notification_context_unicast (snc, nc->client, (const struct GNUNET_MessageHeader *) &rpr_msg, GNUNET_NO);
+
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
 
 /**
  * Process template requests.
@@ -370,6 +457,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
      GNUNET_MESSAGE_TYPE_NAMESTORE_START, sizeof (struct StartMessage)},
     {&handle_lookup_name, NULL,
      GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_NAME, 0},
+     {&handle_record_put, NULL,
+      GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_PUT, 0},
     {NULL, NULL, 0, 0}
   };
 

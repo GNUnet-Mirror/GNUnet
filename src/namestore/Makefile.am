@@ -76,7 +76,8 @@ test_namestore_api_LDADD = \
 
 EXTRADIST = \
   test_namestore_api.conf \
-  test_plugin_namestore_sqlite.conf
+  test_plugin_namestore_sqlite.conf \
+  hostkey
 
 
 test_plugin_namestore_sqlite_SOURCES = \
