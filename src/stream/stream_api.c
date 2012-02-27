@@ -237,11 +237,6 @@ struct GNUNET_STREAM_Socket
   void *receive_buffer;
 
   /**
-   * Copy buffer pointer; Used during read operations
-   */
-  void *copy_buffer;
-
-  /**
    * Task identifier for the read io timeout task
    */
   GNUNET_SCHEDULER_TaskIdentifier read_io_timeout_task;
@@ -304,14 +299,9 @@ struct GNUNET_STREAM_Socket
   uint32_t read_offset;
 
   /**
-   * The size of the copy buffer
+   * The offset upto which user has read from the received buffer
    */
-  uint32_t copy_buffer_size;
-  
-  /**
-   * The read offset of copy buffer
-   */
-  uint32_t copy_buffer_read_offset;
+  uint32_t copy_offset;
 };
 
 
@@ -680,12 +670,15 @@ write_data (struct GNUNET_STREAM_Socket *socket)
  * @param tc the task context
  */
 static void
-call_read_processor_task (void *cls,
+call_read_processor (void *cls,
                           const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_STREAM_Socket *socket = cls;
   size_t read_size;
   size_t valid_read_size;
+  unsigned int packet;
+  uint32_t sequence_increase;
+  uint32_t offset_increase;
 
   socket->read_task = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
@@ -693,54 +686,6 @@ call_read_processor_task (void *cls,
 
   GNUNET_assert (NULL != socket->read_handle);
   GNUNET_assert (NULL != socket->read_handle->proc);
-  GNUNET_assert (NULL != socket->copy_buffer);
-  GNUNET_assert (0 != socket->copy_buffer_size);
-
-  valid_read_size = socket->copy_buffer_size - socket->copy_buffer_read_offset;
-  GNUNET_assert (0 != valid_read_size);
-
-  /* Cancel the read_io_timeout_task */
-  GNUNET_SCHEDULER_cancel (socket->read_io_timeout_task);
-  /* Call the data processor */
-  read_size = socket->read_handle->proc (socket->read_handle->proc_cls,
-                                         socket->status,
-                                         socket->copy_buffer 
-                                         + socket->copy_buffer_read_offset,
-                                         valid_read_size);
-
-  GNUNET_assert (read_size <= valid_read_size);
-  socket->copy_buffer_read_offset += read_size;
-
-  /* Free the copy buffer once it has been read entirely */
-  if (socket->copy_buffer_read_offset == socket->copy_buffer_size)
-    {
-      GNUNET_free (socket->copy_buffer);
-      socket->copy_buffer = NULL;
-      socket->copy_buffer_size = 0;
-      socket->copy_buffer_read_offset = 0;
-    }
-
-  /* Free the read handle */
-  GNUNET_free (socket->read_handle);
-  socket->read_handle = NULL;
-}
-
-
-/**
- * Prepares the receive buffer for possible reads; Should only be called when
- * there is a valid READ io request pending and socket->copy_buffer is empty
- *
- * @param socket the socket pointer
- */
-static void 
-prepare_buffer_for_read (struct GNUNET_STREAM_Socket *socket)
-{
-  unsigned int packet;
-  uint32_t offset_increase;
-  uint32_t sequence_increase;
-
-  GNUNET_assert (NULL == socket->copy_buffer);
-  GNUNET_assert (NULL != socket->read_handle);
 
   /* Check the bitmap for any holes */
   for (packet=0; packet < GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH; packet++)
@@ -749,22 +694,41 @@ prepare_buffer_for_read (struct GNUNET_STREAM_Socket *socket)
                                              packet))
         break;
     }
+  /* We only call read processor if we have the first packet */
+  GNUNET_assert (0 < packet);
+
+  valid_read_size = 
+    socket->receive_buffer_boundaries[packet-1] - socket->copy_offset;
+
+  GNUNET_assert (0 != valid_read_size);
+
+  /* Cancel the read_io_timeout_task */
+  GNUNET_SCHEDULER_cancel (socket->read_io_timeout_task);
+  socket->read_io_timeout_task = GNUNET_SCHEDULER_NO_TASK;
+
+  /* Call the data processor */
+  read_size = 
+    socket->read_handle->proc (socket->read_handle->proc_cls,
+                               socket->status,
+                               socket->receive_buffer + socket->copy_offset,
+                               valid_read_size);
+  /* Free the read handle */
+  GNUNET_free (socket->read_handle);
+  socket->read_handle = NULL;
+
+  GNUNET_assert (read_size <= valid_read_size);
+  socket->copy_offset += read_size;
+
+  /* Determine upto which packet we can remove from the buffer */
+  for (packet = 0; packet < GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH; packet++)
+    if (socket->copy_offset < socket->receive_buffer_boundaries[packet])
+      break;
+
+  /* If no packets can be removed we can't move the buffer */
+  if (0 == packet) return;
 
   sequence_increase = packet;
 
-  if (0 == sequence_increase)              /* The first packet is still missing */
-    {
-      return;
-    }
-  
-  /* Copy data to copy buffer */
-  GNUNET_assert (0 < socket->receive_buffer_boundaries[sequence_increase-1]);
-  socket->copy_buffer = 
-    GNUNET_malloc (socket->receive_buffer_boundaries[sequence_increase-1]);
-  memcpy (socket->copy_buffer, 
-          socket->receive_buffer,
-          socket->receive_buffer_boundaries[sequence_increase-1]);
-  
   /* Shift the data in the receive buffer */
   memmove (socket->receive_buffer,
            socket->receive_buffer 
@@ -780,6 +744,10 @@ prepare_buffer_for_read (struct GNUNET_STREAM_Socket *socket)
   /* Set read_offset */
   offset_increase = socket->receive_buffer_boundaries[sequence_increase-1];
   socket->read_offset += offset_increase;
+
+  /* Fix copy_offset */
+  GNUNET_assert (offset_increase <= socket->copy_offset);
+  socket->copy_offset -= offset_increase;
   
   /* Fix relative boundaries */
   for (packet=0; packet < GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH; packet++)
@@ -793,11 +761,7 @@ prepare_buffer_for_read (struct GNUNET_STREAM_Socket *socket)
       else
         socket->receive_buffer_boundaries[packet] = 0;
     }
-  
-  socket->read_task = GNUNET_SCHEDULER_add_now (&call_read_processor_task,
-						socket);
 }
-
 
 
 /**
@@ -807,11 +771,12 @@ prepare_buffer_for_read (struct GNUNET_STREAM_Socket *socket)
  * @param tc the task context
  */
 static void
-cancel_read_io (void *cls, 
+read_io_timeout (void *cls, 
                 const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_STREAM_Socket *socket = cls;
 
+  socket->read_io_timeout_task = GNUNET_SCHEDULER_NO_TASK;
   if (socket->read_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (socket->read_task);
@@ -920,9 +885,15 @@ handle_data (struct GNUNET_STREAM_Socket *socket,
        }
 
       if ((NULL != socket->read_handle) /* A read handle is waiting */
-          && (NULL == socket->copy_buffer)) /* And the copy buffer is empty */
+          /* There is no current read task */
+          && (GNUNET_SCHEDULER_NO_TASK == socket->read_task)
+          /* We have the first packet */
+          && (GNUNET_YES == ackbitmap_is_bit_set(&socket->ack_bitmap,
+                                                 0)))
         {
-          prepare_buffer_for_read (socket);
+          socket->read_task = 
+            GNUNET_SCHEDULER_add_now (&call_read_processor,
+                                      socket);
         }
       
       break;
@@ -2192,16 +2163,18 @@ GNUNET_STREAM_read (struct GNUNET_STREAM_Socket *socket,
   read_handle->proc = proc;
   socket->read_handle = read_handle;
 
-  /* if previous copy buffer is still not read call the data processor on it */
-  if (NULL != socket->copy_buffer)
-    socket->read_task = GNUNET_SCHEDULER_add_now (&call_read_processor_task,
-						  socket);
-  else
-    prepare_buffer_for_read (socket);
-
+  /* Check if we have a packet at bitmap 0 */
+  if (GNUNET_YES == ackbitmap_is_bit_set (&socket->ack_bitmap,
+                                          0))
+    {
+      socket->read_task = GNUNET_SCHEDULER_add_now (&call_read_processor,
+                                                    socket);
+   
+    }
+  
+  /* Setup the read timeout task */
   socket->read_io_timeout_task = GNUNET_SCHEDULER_add_delayed (timeout,
-                                                               &cancel_read_io,
+                                                               &read_io_timeout,
                                                                socket);
-
   return read_handle;
 }
