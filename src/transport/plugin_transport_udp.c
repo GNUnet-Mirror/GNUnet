@@ -762,6 +762,8 @@ udp_plugin_get_session (void *cls,
 {
   struct Session * s = NULL;
   struct Plugin * plugin = cls;
+  struct IPv6UdpAddress * udp_a6;
+  struct IPv4UdpAddress * udp_a4;
 
   GNUNET_assert (plugin != NULL);
   GNUNET_assert (address != NULL);
@@ -775,14 +777,23 @@ udp_plugin_get_session (void *cls,
     return NULL;
   }
 
-  if ((address->address_length == sizeof (struct IPv4UdpAddress)) &&
-      (plugin->sockv4 == NULL))
-    return NULL;
+  if (address->address_length == sizeof (struct IPv4UdpAddress))
+  {
+    if (plugin->sockv4 == NULL)
+      return NULL;
+    udp_a4 = (struct IPv4UdpAddress *) address->address;
+    if (udp_a4->u4_port == 0)
+      return NULL;
+  }
 
-  if ((address->address_length == sizeof (struct IPv6UdpAddress)) &&
-      (plugin->sockv6 == NULL))
-    return NULL;
-
+  if (address->address_length == sizeof (struct IPv6UdpAddress))
+  {
+    if (plugin->sockv6 == NULL)
+      return NULL;
+    udp_a6 = (struct IPv6UdpAddress *) address->address;
+    if (udp_a6->u6_port == 0)
+      return NULL;
+  }
 
   /* check if session already exists */
   struct SessionCompareContext cctx;
