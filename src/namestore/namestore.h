@@ -33,6 +33,11 @@
 #define GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_NAME_RESPONSE 432
 #define GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_PUT 433
 #define GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_PUT_RESPONSE 434
+#define GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_CREATE 435
+#define GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_CREATE_RESPONSE 436
+#define GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_REMOVE 437
+#define GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_REMOVE_RESPONSE 438
+
 
 GNUNET_NETWORK_STRUCT_BEGIN
 /**
@@ -160,9 +165,7 @@ struct RecordPutMessage
 GNUNET_NETWORK_STRUCT_END
 
 /**
- * Put a record to the namestore
- * Memory layout:
- * [struct RecordPutMessage][struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded][char *name][rc_count * struct GNUNET_NAMESTORE_RecordData]
+ * Put a record to the namestore response
  */
 GNUNET_NETWORK_STRUCT_BEGIN
 struct RecordPutResponseMessage
@@ -186,6 +189,113 @@ struct RecordPutResponseMessage
 };
 GNUNET_NETWORK_STRUCT_END
 
+
+/**
+ * Put a record to the namestore
+ * Memory layout:
+ * [struct RecordPutMessage][struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded][char *name][rc_count * struct GNUNET_NAMESTORE_RecordData]
+ */
+GNUNET_NETWORK_STRUCT_BEGIN
+struct RecordCreateMessage
+{
+  /**
+   * Type will be GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_CREATE
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Operation ID in NBO
+   */
+  uint32_t op_id;
+
+  /* Contenct starts here */
+
+  /* name length */
+  uint16_t name_len;
+
+  struct GNUNET_CRYPTO_RsaSignature signature;
+};
+GNUNET_NETWORK_STRUCT_END
+
+
+/**
+ * Create a record to the namestore response
+ * Memory layout:
+ */
+GNUNET_NETWORK_STRUCT_BEGIN
+struct RecordCreateResponseMessage
+{
+  /**
+   * Type will be GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_CREATE_RESPONSE
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Operation ID in NBO
+   */
+  uint32_t op_id;
+
+  /* Contenct starts here */
+
+  /**
+   *  name length: GNUNET_NO (0) on error, GNUNET_OK (1) on success
+   */
+  uint16_t op_result;
+};
+GNUNET_NETWORK_STRUCT_END
+
+/**
+ * Remove a record from the namestore
+ * Memory layout:
+ * [struct RecordRemoveMessage][char *name][struct GNUNET_NAMESTORE_RecordData]
+ */
+GNUNET_NETWORK_STRUCT_BEGIN
+struct RecordRemoveMessage
+{
+  /**
+   * Type will be GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_REMOVE
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Operation ID in NBO
+   */
+  uint32_t op_id;
+
+  /* Contenct starts here */
+
+  /* name length */
+  uint16_t name_len;
+
+  struct GNUNET_CRYPTO_RsaSignature signature;
+};
+GNUNET_NETWORK_STRUCT_END
+
+
+/**
+ * Remove a record from the namestore response
+ */
+GNUNET_NETWORK_STRUCT_BEGIN
+struct RecordRemoveResponseMessage
+{
+  /**
+   * Type will be GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_REMOVE_RESPONSE
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Operation ID in NBO
+   */
+  uint32_t op_id;
+
+  /* Contenct starts here */
+
+  /**
+   *  name length: GNUNET_NO (0) on error, GNUNET_OK (1) on success
+   */
+  uint16_t op_result;
+};
+GNUNET_NETWORK_STRUCT_END
 
 
 /* end of namestore.h */
