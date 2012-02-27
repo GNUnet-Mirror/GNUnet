@@ -256,7 +256,7 @@ process_authority_dht_result(void* cls,
       GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Authority found in DHT\n");
       rh->answered = 1;
       GNUNET_CRYPTO_hash(
-                 (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *)&rd[i].data,
+                 (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *)rd[i].data,
                  GNUNET_CRYPTO_RSA_KEY_LENGTH,
                  &rh->authority);
     }
