@@ -187,6 +187,7 @@ gns_started(void *cls, const struct GNUNET_PeerIdentity *id,
   }
   if (d == d1)
   {
+    /* start gns for bob */
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "GNS started on alice\n");
     GNUNET_TESTING_daemon_start_service (d2, "gns", TIMEOUT, &gns_started,
                                         NULL);
@@ -195,6 +196,7 @@ gns_started(void *cls, const struct GNUNET_PeerIdentity *id,
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "GNS started on bob\n");
 
+  /* start the lookup tests */
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                   (GNUNET_TIME_UNIT_SECONDS, 1),
                                   &do_lookup, NULL);
@@ -247,6 +249,8 @@ notify_connect (void *cls, const struct GNUNET_PeerIdentity *first,
     GNUNET_SCHEDULER_cancel (die_task);
     die_task =
         GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, "from test lookup");
+    
+    /* start gns for alice */
     GNUNET_TESTING_daemon_start_service (d1, "gns", TIMEOUT, &gns_started, NULL);
     
   }
@@ -266,6 +270,7 @@ static void
 alice_idle (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   
+  alice_online = 1;
   if (!bob_online)
   {
     GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
@@ -282,10 +287,10 @@ alice_idle (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 bob_idle (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  
+  /* he's lazy FIXME forever */
   bob_online = 1;
   bob_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                  (GNUNET_TIME_UNIT_SECONDS, 2),
+                                  (GNUNET_TIME_UNIT_SECONDS, 20),
                                    &bob_idle, NULL);
 }
 
@@ -316,7 +321,6 @@ alice_started (void *cls, const struct GNUNET_PeerIdentity *id,
   }
   GNUNET_assert (id != NULL);
   
-  alice_online = 1;
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                 (GNUNET_TIME_UNIT_SECONDS, 2),
                                 &alice_idle, NULL);
@@ -335,7 +339,6 @@ bob_started (void *cls, const struct GNUNET_PeerIdentity *id,
   }
   GNUNET_assert (id != NULL);
   
-  alice_online = 1;
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                 (GNUNET_TIME_UNIT_SECONDS, 2),
                                 &bob_idle, NULL);
@@ -368,25 +371,39 @@ run (void *cls, char *const *args, const char *cfgfile,
   die_task =
       GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly,
                                     "didn't start all daemons in reasonable amount of time!!!");
+  
   alice_online = 0;
   bob_online = 0;
+  expected_connections = 1;
+  
+  /* Start alice */
   d1 = GNUNET_TESTING_daemon_start(cfg, TIMEOUT, GNUNET_NO, NULL, NULL, 0,
                                    NULL, NULL, NULL, &alice_started, NULL);
+  
+  /* Somebody care to explain? */
   uint16_t port = 6000;
-  expected_connections = 1;
   uint32_t upnum = 23;
   uint32_t fdnum = 42;
+  
+  
+  /**
+   * Modify some config options for bob
+   * namely swap keys and disable dns hijacking
+   */
   struct GNUNET_CONFIGURATION_Handle *cfg2 = GNUNET_TESTING_create_cfg(cfg,
                                               23, &port, &upnum,
                                               NULL, &fdnum);
+  
   GNUNET_CONFIGURATION_set_value_string (cfg2, "paths", "servicehome",
-                                         "/tmp/peer2");
+                                         "/tmp/test-gnunetd-gns-peer-2/");
   GNUNET_CONFIGURATION_set_value_string (cfg2, "gns", "HIJACK_DNS",
                                         "NO");
   GNUNET_CONFIGURATION_set_value_string (cfg2, "gns", "ZONEKEY",
                                          "/tmp/bobkey");
   GNUNET_CONFIGURATION_set_value_string (cfg2, "gns", "TRUSTED",
-                                         "alice:/tmp/zonekey");
+                                         "alice:/tmp/alicekey");
+  
+  //Start bob
   d2 = GNUNET_TESTING_daemon_start(cfg2, TIMEOUT, GNUNET_NO, NULL, NULL, 0,
                                    NULL, NULL, NULL, &bob_started, NULL);
 

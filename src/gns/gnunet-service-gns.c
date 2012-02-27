@@ -817,9 +817,9 @@ char* pop_tld(char* name)
   }
 
   if (len == 0)
-    return NULL; //Error
+    return NULL;
 
-  name[len] = '\0'; //terminate string
+  name[len] = '\0';
 
   return (name+len+1);
 }
@@ -839,7 +839,7 @@ resolve_name(struct GNUNET_GNS_ResolverHandle *rh)
 {
   if (is_canonical(rh->name))
   {
-    //We only need to check this zone's ns
+    /* We only need to check the current zone's ns */
     GNUNET_NAMESTORE_lookup_record(namestore_handle,
                                &rh->authority,
                                rh->name,
@@ -849,7 +849,7 @@ resolve_name(struct GNUNET_GNS_ResolverHandle *rh)
   }
   else
   {
-    //We have to resolve the authoritative entity
+    /* We have to resolve the authoritative entity first */
     rh->authority_name = pop_tld(rh->name);
     GNUNET_NAMESTORE_lookup_record(namestore_handle,
                                  &rh->authority,
@@ -885,7 +885,6 @@ start_resolution(struct GNUNET_DNS_RequestHandle *request,
   rh->query = q;
   rh->authority = zone_hash;
   
-  //FIXME do not forget to free!!
   rh->name = GNUNET_malloc(strlen(q->name)
                               - strlen(gnunet_tld) + 1);
   memset(rh->name, 0,
@@ -895,7 +894,7 @@ start_resolution(struct GNUNET_DNS_RequestHandle *request,
 
   rh->request_handle = request;
 
-  //Start resolution in our zone
+  /* Start resolution in our zone */
   resolve_name(rh);
 }
 
@@ -949,7 +948,7 @@ handle_dns_request(void *cls,
 
   if (p->num_queries > 1)
   {
-    //Note: We could also look for .gnunet
+    /* Note: We could also look for .gnunet */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 ">1 queriy in DNS packet... odd. We only process #1\n");
   }
@@ -983,71 +982,25 @@ void
 put_some_records(void)
 {
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Populating namestore\n");
-  /* put a few records into namestore */
-  char* ipA = "1.2.3.4";
+  /* put an A record into namestore FIXME use gnunet.org */
   char* ipB = "5.6.7.8";
-  //struct GNUNET_CRYPTO_RsaPrivateKey *bob_key = GNUNET_CRYPTO_rsa_key_create ();
-  //struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *bob;
-  //bob = GNUNET_malloc(sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
 
-  //GNUNET_CRYPTO_rsa_key_get_public (bob_key, bob);
-
-  //GNUNET_HashCode *bob_zone = GNUNET_malloc(sizeof(GNUNET_HashCode));
-
-  //GNUNET_CRYPTO_hash(bob, GNUNET_CRYPTO_RSA_KEY_LENGTH, bob_zone);
-
-  struct in_addr *alice = GNUNET_malloc(sizeof(struct in_addr));
   struct in_addr *web = GNUNET_malloc(sizeof(struct in_addr));
-  struct GNUNET_NAMESTORE_RecordData rda;
-  //struct GNUNET_NAMESTORE_RecordData rdb;
   struct GNUNET_NAMESTORE_RecordData rdb_web;
 
-  GNUNET_assert(1 == inet_pton (AF_INET, ipA, alice));
   GNUNET_assert(1 == inet_pton (AF_INET, ipB, web));
 
-  rda.data_size = sizeof(struct in_addr);
   rdb_web.data_size = sizeof(struct in_addr);
-  //rdb.data_size = sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded);
-  rda.data = alice;
-  //rdb.data = bob;
   rdb_web.data = web;
-  rda.record_type = GNUNET_GNS_RECORD_TYPE_A;
   rdb_web.record_type = GNUNET_DNSPARSER_TYPE_A;
-  //rdb.record_type = GNUNET_GNS_RECORD_PKEY;
   rdb_web.expiration = GNUNET_TIME_absolute_get_forever ();
-  rda.expiration = GNUNET_TIME_absolute_get_forever ();
-  //rdb.expiration = GNUNET_TIME_absolute_get_forever ();
   
-  //alice.gnunet A IN 1.2.3.4
-  /*GNUNET_NAMESTORE_record_create (namestore_handle,
-                               zone_key,
-                               "alice",
-                               &rda,
-                               NULL,
-                               NULL);*/
   GNUNET_NAMESTORE_record_create (namestore_handle,
                                   zone_key,
                                   "www",
                                   &rdb_web,
                                   NULL,
                                   NULL);
-/*
-  //www.bob.gnunet A IN 5.6.7.8
-  GNUNET_NAMESTORE_record_create (namestore_handle,
-                               zone_key,
-                               "bob",
-                               &rdb,
-                               NULL,
-                               NULL);*/
-  /*GNUNET_NAMESTORE_record_put(namestore_handle,
-                              zone_key,
-                              "www",
-                              GNUNET_TIME_absolute_get_forever (),
-                              1,
-                              &rdb_web,
-                              NULL, //Signature
-                              NULL, //Cont
-                              NULL); //cls*/
 }
 
 void
@@ -1097,7 +1050,8 @@ put_gns_record(void *cls,
   int i;
   uint32_t rd_payload_length;
 
-  if (NULL == name) //We're done
+  /* we're done */
+  if (NULL == name)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Zone iteration finished\n");
     GNUNET_NAMESTORE_zone_iteration_stop (namestore_iter);
@@ -1108,7 +1062,8 @@ put_gns_record(void *cls,
   
   rd_payload_length = rd_count * sizeof(struct GNSRecordBlock);
   rd_payload_length += strlen(name) + 1 + sizeof(struct GNSNameRecordBlock);
-  //Calculate payload size
+  
+  /* calculate payload size */
   for (i=0; i<rd_count; i++)
   {
     rd_payload_length += rd[i].data_size;
@@ -1125,7 +1080,7 @@ put_gns_record(void *cls,
 
   nrb->rd_count = htonl(rd_count);
 
-  memcpy(&nrb[1], name, strlen(name) + 1); //FIXME is this 0 terminated??-sure hope so for we use strlen
+  memcpy(&nrb[1], name, strlen(name) + 1); //FIXME is this 0 terminated??
 
   rb = (struct GNSRecordBlock *)((char*)&nrb[1] + strlen(name) + 1);
 
@@ -1273,6 +1228,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
       GNUNET_CONFIGURATION_get_value_yesno (c, "gns",
                                             "HIJACK_DNS"))
   {
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+               "DNS hijacking enabled... connecting to service.\n");
     /**
      * Do gnunet dns init here
      */
