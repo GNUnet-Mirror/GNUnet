@@ -50,7 +50,7 @@ libgnunetfs_la_LIBADD = \
 
 libgnunetfs_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)  $(WINFLAGS) \
-  -version-info 1:0:1
+  -version-info 2:0:0
 
 
 libgnunetfstest_a_SOURCES = \

@@ -16,7 +16,8 @@ libgnunethello_la_SOURCES = \
 libgnunethello_la_LIBADD = \
  $(top_builddir)/src/util/libgnunetutil.la $(XLIB)
 libgnunethello_la_LDFLAGS = \
-  $(GN_LIB_LDFLAGS)
+  $(GN_LIB_LDFLAGS) \
+  -version-info 0:0:0
 
 check_PROGRAMS = \
  test_hello

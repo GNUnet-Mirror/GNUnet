@@ -84,14 +84,16 @@ libgnunetdnsparser_la_SOURCES = \
 libgnunetdnsparser_la_LIBADD = \
  $(top_builddir)/src/util/libgnunetutil.la $(XLIB)
 libgnunetdnsparser_la_LDFLAGS = \
-  $(GN_LIB_LDFLAGS)
+  $(GN_LIB_LDFLAGS) \
+  -version-info 0:0:0
 
 libgnunetdns_la_SOURCES = \
  dns_api.c dns.h
 libgnunetdns_la_LIBADD = \
  $(top_builddir)/src/util/libgnunetutil.la $(XLIB)
 libgnunetdns_la_LDFLAGS = \
-  $(GN_LIB_LDFLAGS)
+  $(GN_LIB_LDFLAGS)) \
+  -version-info 0:0:0
 
 libgnunet_plugin_block_dns_la_SOURCES = \
   plugin_block_dns.c
