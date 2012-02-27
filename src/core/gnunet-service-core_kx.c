@@ -603,6 +603,9 @@ process_hello (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 _("Error in communication with PEERINFO service\n"));
     kx->pitr = NULL;
+    kx->retry_set_key_task =
+        GNUNET_SCHEDULER_add_delayed (kx->set_key_retry_frequency,
+                                      &set_key_retry_task, kx);
     return;
   }
   if (peer == NULL)
@@ -1155,9 +1158,11 @@ GSC_KX_handle_pong (struct GSC_KeyExchangeInfo *kx,
                               GNUNET_NO);
     kx->status = KX_STATE_UP;
     GSC_SESSIONS_create (&kx->peer, kx);
-    GNUNET_assert (kx->retry_set_key_task != GNUNET_SCHEDULER_NO_TASK);
-    GNUNET_SCHEDULER_cancel (kx->retry_set_key_task);
-    kx->retry_set_key_task = GNUNET_SCHEDULER_NO_TASK;
+    if (GNUNET_SCHEDULER_NO_TASK != kx->retry_set_key_task)
+    {
+      GNUNET_SCHEDULER_cancel (kx->retry_set_key_task);
+      kx->retry_set_key_task = GNUNET_SCHEDULER_NO_TASK;
+    }
     GNUNET_assert (kx->keep_alive_task == GNUNET_SCHEDULER_NO_TASK);
     if (kx->emsg_received != NULL)
     {
