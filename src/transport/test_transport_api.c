@@ -64,6 +64,10 @@ static char *test_name;
 
 static int ok;
 
+static int s_started;
+static int s_connected;
+static int s_sending;
+
 static GNUNET_SCHEDULER_TaskIdentifier die_task;
 
 static GNUNET_SCHEDULER_TaskIdentifier send_task;
@@ -127,12 +131,34 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if (th != NULL)
     GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
+  else
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Peer were not ready to send data\n"));
+
+  if (s_started == GNUNET_NO)
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Peers were not started n"));
+  else
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Peers were started n"));
+
+  if (s_connected == GNUNET_NO)
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Peer were not connected\n"));
+  else
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Peer were connected\n"));
+
+  if (s_sending == GNUNET_NO)
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Peer were not ready to send data\n"));
+  else
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Peer were ready to send data\n"));
+
   th = NULL;
 
   if (p1 != NULL)
     GNUNET_TRANSPORT_TESTING_stop_peer (tth, p1);
+  else
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Peer 1 was not started\n"));
   if (p2 != NULL)
     GNUNET_TRANSPORT_TESTING_stop_peer (tth, p2);
+  else
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Peer 2 was not started\n"));
 
   ok = GNUNET_SYSERR;
 }
@@ -227,7 +253,7 @@ sendtask (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
               "Sending message from peer %u (`%4s') -> peer %u (`%s') !\n",
               p2->no, GNUNET_i2s (&p2->id), p1->no, receiver_s);
   GNUNET_free (receiver_s);
-
+  s_sending = GNUNET_YES;
   th = GNUNET_TRANSPORT_notify_transmit_ready (p2->th, &p1->id, MSIZE, 0,
                                                TIMEOUT_TRANSMIT, &notify_ready,
                                                p1);
@@ -286,6 +312,7 @@ testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)
               p1->no, p1_c, p2->no, GNUNET_i2s (&p2->id));
   GNUNET_free (p1_c);
 
+  s_connected = GNUNET_YES;
   send_task = GNUNET_SCHEDULER_add_now (&sendtask, NULL);
 }
 
@@ -303,7 +330,8 @@ start_cb (struct PeerContext *p, void *cls)
 
   if (started != 2)
     return;
-
+  else
+    s_started = GNUNET_YES;
   char *sender_c = GNUNET_strdup (GNUNET_i2s (&p1->id));
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -321,6 +349,10 @@ run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
+
+  s_started = GNUNET_NO;
+  s_connected = GNUNET_NO;
+  s_sending = GNUNET_NO;
 
   p1 = GNUNET_TRANSPORT_TESTING_start_peer (tth, cfg_file_p1, 1,
                                             &notify_receive, &notify_connect,
