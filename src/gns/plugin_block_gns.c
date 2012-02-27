@@ -36,9 +36,6 @@
  */
 #define BLOOMFILTER_K 16
 
-//Not taken until now
-#define GNUNET_BLOCK_TYPE_GNS_NAMERECORD 11
-
 /**
  * Function called to validate a reply or a request.  For
  * request evaluation, simply pass "NULL" for the reply_block.
@@ -67,39 +64,50 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
 {
   if (type != GNUNET_BLOCK_TYPE_GNS_NAMERECORD)
     return GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED;
+  if (reply_block_size == 0)
+    return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
   
   char* name;
   GNUNET_HashCode pkey_hash;
-  GNUNET_HashCode query_pkey;
+  GNUNET_HashCode query_key;
   GNUNET_HashCode name_hash;
   GNUNET_HashCode mhash;
   GNUNET_HashCode chash;
   struct GNSNameRecordBlock *nrb;
   struct GNSRecordBlock *rb;
   uint32_t rd_count;
-
+  
   nrb = (struct GNSNameRecordBlock *)reply_block;
-
   name = (char*)&nrb[1];
-
   GNUNET_CRYPTO_hash(&nrb->public_key,
-                     sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+                     sizeof(nrb->public_key),
                      &pkey_hash);
 
   GNUNET_CRYPTO_hash(name, strlen(name), &name_hash);
 
-  GNUNET_CRYPTO_hash_xor(query, &name_hash, &query_pkey);
+  GNUNET_CRYPTO_hash_xor(&pkey_hash, &name_hash, &query_key);
+  struct GNUNET_CRYPTO_HashAsciiEncoded hstr;
+  GNUNET_CRYPTO_hash_to_enc (query, &hstr);
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Query key: %s\n", (char*)&hstr);
+  GNUNET_CRYPTO_hash_to_enc (&pkey_hash, &hstr);
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Pub key: %s\n", (char*)&hstr);
+  GNUNET_CRYPTO_hash_to_enc (&name_hash, &hstr);
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Name: %s\n", (char*)&hstr);
+  GNUNET_CRYPTO_hash_to_enc (&query_key, &hstr);
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "XOR: %s\n", (char*)&hstr);
+  
   
   //Check query key against public key
-  if (0 != GNUNET_CRYPTO_hash_cmp(&query_pkey, &pkey_hash))
+  if (0 != GNUNET_CRYPTO_hash_cmp(query, &query_key))
     return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
-
+  
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Checking payload\n");
   rd_count = ntohl(nrb->rd_count);
 
   struct GNUNET_NAMESTORE_RecordData rd[rd_count];
   int i = 0;
   int record_match = 0;
-  rb = (struct GNSRecordBlock*)(&nrb[1] + strlen(name) + 1);
+  rb = (struct GNSRecordBlock*)(&name[strlen(name) + 1]);
 
   for (i=0; i<rd_count; i++)
   {
@@ -109,25 +117,27 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
     rd[i].data_size = ntohl(rb->data_length);
     rd[i].flags = ntohl(rb->flags);
     rd[i].data = (char*)&rb[1];
-    rb = &rb[1] + rd[i].data_size;
+    rb = (struct GNSRecordBlock *)((char*)&rb[1] + rd[i].data_size);
     if (xquery_size > 0 && (rd[i].record_type == *((uint32_t*)xquery)))
       record_match++;
   }
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "done\n");
   
-  //No record matches query
-  if (xquery_size > 0 && (record_match == 0))
-    return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
 
-  if (GNUNET_OK != GNUNET_NAMESTORE_verify_signature (&nrb->public_key,
+  /*if (GNUNET_OK != GNUNET_NAMESTORE_verify_signature (&nrb->public_key,
                                                       name,
-                                                      nrb->rd_count,
+                                                      rd_count,
                                                       rd,
-                                                      &nrb->signature))
+                                                      NULL))
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Signature invalid\n");
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Signature invalid\n");
     return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
-  }
-
+  }*/
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "done\n");
+  //No record matches query
+  if ((xquery_size > 0) && (record_match == 0))
+    return GNUNET_BLOCK_EVALUATION_OK_MORE;
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Records match\n");
   //FIXME do bf check before or after crypto??
   if (NULL != bf)
   {
@@ -135,6 +145,7 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
     GNUNET_BLOCK_mingle_hash(&chash, bf_mutator, &mhash);
     if (NULL != *bf)
     {
+      GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Check BF\n");
       if (GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test(*bf, &mhash))
         return GNUNET_BLOCK_EVALUATION_OK_DUPLICATE;
     }
@@ -144,8 +155,8 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
     }
     GNUNET_CONTAINER_bloomfilter_add(*bf, &mhash);
   }
-
-  return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "No dup\n");
+  return GNUNET_BLOCK_EVALUATION_OK_MORE;
 }
 
 
@@ -166,7 +177,7 @@ block_plugin_gns_get_key (void *cls, enum GNUNET_BLOCK_Type type,
                          GNUNET_HashCode * key)
 {
   if (type != GNUNET_BLOCK_TYPE_GNS_NAMERECORD)
-    return GNUNET_NO;
+    return GNUNET_SYSERR;
   GNUNET_HashCode name_hash;
   GNUNET_HashCode pkey_hash;
   struct GNSNameRecordBlock *nrb = (struct GNSNameRecordBlock *)block;

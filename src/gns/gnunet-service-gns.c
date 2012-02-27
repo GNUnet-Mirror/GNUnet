@@ -257,7 +257,7 @@ process_authority_dht_result(void* cls,
       rh->answered = 1;
       GNUNET_CRYPTO_hash(
                  (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *)rd[i].data,
-                 GNUNET_CRYPTO_RSA_KEY_LENGTH,
+                 rd[i].data_size,
                  &rh->authority);
     }
     rb = (struct GNSRecordBlock*)((char*)&rb[1] + rd[i].data_size);
@@ -314,7 +314,7 @@ resolve_authority_dht(struct GNUNET_GNS_ResolverHandle *rh, const char* name)
   xquery = htonl(GNUNET_GNS_RECORD_PKEY);
   //FIXME how long to wait for results?
   rh->get_handle = GNUNET_DHT_get_start(dht_handle, timeout,
-                       GNUNET_BLOCK_TYPE_TEST, //FIXME todo
+                       GNUNET_BLOCK_TYPE_GNS_NAMERECORD, //FIXME todo
                        &lookup_key,
                        5, //Replication level FIXME
                        GNUNET_DHT_RO_NONE,
@@ -454,7 +454,7 @@ resolve_name_dht(struct GNUNET_GNS_ResolverHandle *rh, const char* name)
   xquery = htonl(rh->query->type);
   //FIXME how long to wait for results?
   rh->get_handle = GNUNET_DHT_get_start(dht_handle, timeout,
-                       GNUNET_BLOCK_TYPE_TEST, //FIXME todo
+                       GNUNET_BLOCK_TYPE_GNS_NAMERECORD, //FIXME todo
                        &lookup_key,
                        5, //Replication level FIXME
                        GNUNET_DHT_RO_NONE,
@@ -496,7 +496,7 @@ process_authority_lookup(void* cls,
   GNUNET_HashCode zone;
 
   rh = (struct GNUNET_GNS_ResolverHandle *)cls;
-  GNUNET_CRYPTO_hash(key, GNUNET_CRYPTO_RSA_KEY_LENGTH, &zone);
+  GNUNET_CRYPTO_hash(key, sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), &zone);
   remaining_time = GNUNET_TIME_absolute_get_remaining (expiration);
   
   /**
@@ -548,7 +548,7 @@ process_authority_lookup(void* cls,
       }
 
       GNUNET_assert(rd[i].record_type == GNUNET_GNS_RECORD_PKEY);
-      GNUNET_CRYPTO_hash(rd[i].data, GNUNET_CRYPTO_RSA_KEY_LENGTH,
+      GNUNET_CRYPTO_hash(rd[i].data, sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
                          &rh->authority);
       resolve_name(rh);
       return;
@@ -688,7 +688,7 @@ process_authoritative_result(void* cls,
   GNUNET_HashCode zone;
 
   rh = (struct GNUNET_GNS_ResolverHandle *) cls;
-  GNUNET_CRYPTO_hash(key, GNUNET_CRYPTO_RSA_KEY_LENGTH, &zone);
+  GNUNET_CRYPTO_hash(key, sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), &zone);
   remaining_time = GNUNET_TIME_absolute_get_remaining (expiration);
 
   //FIXME Handle results in rd
@@ -1107,11 +1107,21 @@ put_gns_record(void *cls,
   GNUNET_log(GNUNET_ERROR_TYPE_INFO,
              "putting records for %s under key: %s with size %d\n",
              name, (char*)&xor_hash_string, rd_payload_length);
+  GNUNET_CRYPTO_hash_to_enc (&zone_hash, &xor_hash_string);
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Pub key: %s\n", (char*)&xor_hash_string);
+  GNUNET_CRYPTO_hash_to_enc (&name_hash, &xor_hash_string);
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Name: %s\n", (char*)&xor_hash_string);
+
+  GNUNET_HashCode key_hash;
+  GNUNET_CRYPTO_hash(key, sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+                     &key_hash);
+  GNUNET_CRYPTO_hash_to_enc (&key_hash, &xor_hash_string);
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Pub2: %s\n", (char*)&xor_hash_string);
 
   GNUNET_DHT_put (dht_handle, &xor_hash,
                   5, //replication level
                   GNUNET_DHT_RO_NONE,
-                  GNUNET_BLOCK_TYPE_TEST, //FIXME todo block plugin
+                  GNUNET_BLOCK_TYPE_GNS_NAMERECORD, //FIXME todo block plugin
                   rd_payload_length,
                   (char*)nrb,
                   expiration,
@@ -1216,7 +1226,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   GNUNET_CRYPTO_rsa_key_get_public (zone_key, &pkey);
   //zone_key = GNUNET_CRYPTO_rsa_key_create ();
 
-  GNUNET_CRYPTO_hash(&pkey, GNUNET_CRYPTO_RSA_KEY_LENGTH,
+  GNUNET_CRYPTO_hash(&pkey, sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
                      &zone_hash);
   
   nc = GNUNET_SERVER_notification_context_create (server, 1);

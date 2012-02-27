@@ -249,12 +249,14 @@ GNUNET_NAMESTORE_record_create (struct GNUNET_NAMESTORE_Handle *h,
 
   zone_hash = GNUNET_malloc(sizeof(GNUNET_HashCode));
 
-  GNUNET_CRYPTO_hash(pkey, GNUNET_CRYPTO_RSA_KEY_LENGTH, zone_hash);
+  GNUNET_CRYPTO_hash(pkey, sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+                     zone_hash);
   
   sr = h->records_head;
   for (; sr != NULL; sr = sr->next)
   {
-    if (strcmp(sr->name, name) && (sr->zone == zone_hash))
+    if ((strcmp(sr->name, name) == 0) &&
+        (0 == GNUNET_CRYPTO_hash_cmp(sr->zone, zone_hash)))
     {
       //Dangerous
       memcpy (&(sr->rd[sr->rd_count-1]), rd,
