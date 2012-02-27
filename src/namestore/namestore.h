@@ -38,6 +38,10 @@
 #define GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_REMOVE 437
 #define GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_REMOVE_RESPONSE 438
 
+#define GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_START 439
+#define GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_NEXT 439
+#define GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_STOP 439
+#define GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_RESPONSE 439
 
 GNUNET_NETWORK_STRUCT_BEGIN
 /**
@@ -294,6 +298,87 @@ struct RecordRemoveResponseMessage
    *  name length: GNUNET_NO (0) on error, GNUNET_OK (1) on success
    */
   uint16_t op_result;
+};
+GNUNET_NETWORK_STRUCT_END
+
+
+/**
+ * Start a zone iteration for the given zone
+ */
+GNUNET_NETWORK_STRUCT_BEGIN
+struct ZoneIterationStartMessage
+{
+  /**
+   * Type will be GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_START
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Operation ID in NBO
+   */
+  uint32_t op_id;
+
+  /* Contenct starts here */
+
+  uint16_t must_have_flags;
+  uint16_t must_not_have_flags;
+
+  GNUNET_HashCode zone;
+};
+GNUNET_NETWORK_STRUCT_END
+
+/**
+ * Ask for next result of zone iteration for the given operation
+ */
+GNUNET_NETWORK_STRUCT_BEGIN
+struct ZoneIterationNextMessage
+{
+  /**
+   * Type will be GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_NEXT
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Operation ID in NBO
+   */
+  uint32_t op_id;
+};
+GNUNET_NETWORK_STRUCT_END
+
+
+/**
+ * Stop zone iteration for the given operation
+ */
+GNUNET_NETWORK_STRUCT_BEGIN
+struct ZoneIterationStopMessage
+{
+  /**
+   * Type will be GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_STOP
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Operation ID in NBO
+   */
+  uint32_t op_id;
+};
+GNUNET_NETWORK_STRUCT_END
+
+/**
+ * Ask for next result of zone iteration for the given operation
+ */
+GNUNET_NETWORK_STRUCT_BEGIN
+struct ZoneIterationResponseMessage
+{
+  /**
+   * Type will be GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_RESPONSE
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Operation ID in NBO
+   */
+  uint32_t op_id;
 };
 GNUNET_NETWORK_STRUCT_END
 
