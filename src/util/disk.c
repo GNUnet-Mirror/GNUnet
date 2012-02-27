@@ -1610,7 +1610,7 @@ GNUNET_DISK_file_open (const char *fn, enum GNUNET_DISK_OpenFlags flags,
     mode = translate_unix_perms (perm);
   }
 
-  fd = open (expfn, oflags | O_LARGEFILE | O_NONBLOCK, mode);
+  fd = open (expfn, oflags | O_LARGEFILE, mode);
   if (fd == -1)
   {
     if (0 == (flags & GNUNET_DISK_OPEN_FAILIFEXISTS))
