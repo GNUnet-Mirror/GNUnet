@@ -92,15 +92,17 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping namestore service\n");
 
   struct GNUNET_NAMESTORE_Operation * no;
+  struct GNUNET_NAMESTORE_Operation * tmp;
   struct GNUNET_NAMESTORE_Client * nc;
   struct GNUNET_NAMESTORE_Client * next;
 
   for (nc = client_head; nc != NULL; nc = next)
   {
     next = nc->next;
-    for (no = nc->op_head; no != NULL; no = no->next)
+    for (no = nc->op_head; no != NULL; no = tmp)
     {
       GNUNET_CONTAINER_DLL_remove (nc->op_head, nc->op_tail, no);
+      tmp = no->next;
       GNUNET_free (no);
     }
 
