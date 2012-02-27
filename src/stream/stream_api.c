@@ -237,6 +237,11 @@ struct GNUNET_STREAM_Socket
   void *copy_buffer;
 
   /**
+   * Task identifier for the read io timeout task
+   */
+  GNUNET_SCHEDULER_TaskIdentifier read_io_timeout_task;
+
+  /**
    * The state of the protocol associated with this socket
    */
   enum State state;
@@ -687,6 +692,9 @@ call_read_processor_task (void *cls,
   valid_read_size = socket->copy_buffer_size - socket->copy_buffer_read_offset;
   GNUNET_assert (0 != valid_read_size);
 
+  /* Cancel the read_io_timeout_task */
+  GNUNET_SCHEDULER_cancel (socket->read_io_timeout_task);
+  /* Call the data processor */
   read_size = socket->read_handle->proc (socket->read_handle->proc_cls,
                                          socket->status,
                                          socket->copy_buffer 
@@ -782,6 +790,26 @@ prepare_buffer_for_read (struct GNUNET_STREAM_Socket *socket)
   GNUNET_SCHEDULER_add_continuation (&call_read_processor_task,
                                      socket,
                                      GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+}
+
+
+
+/**
+ * Cancels the existing read io handle
+ *
+ * @param cls the closure from the SCHEDULER call
+ * @param tc the task context
+ */
+static void
+cancel_read_io (void *cls, 
+                const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_STREAM_Socket *socket = cls;
+
+  GNUNET_assert (NULL != socket->read_handle);
+  
+  GNUNET_free (socket->read_handle);
+  socket->read_handle = NULL;
 }
 
 
@@ -2152,6 +2180,10 @@ GNUNET_STREAM_read (struct GNUNET_STREAM_Socket *socket,
                                        GNUNET_SCHEDULER_REASON_PREREQ_DONE);
   else
     prepare_buffer_for_read (socket);
+
+  socket->read_io_timeout_task = GNUNET_SCHEDULER_add_delayed (timeout,
+                                                               &cancel_read_io,
+                                                               socket);
 
   return read_handle;
 }
