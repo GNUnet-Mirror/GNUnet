@@ -1634,7 +1634,10 @@ udp_select_send (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *sock)
     udpw = plugin->ipv6_queue_head;
   }
   else
+  {
     GNUNET_break (0);
+    return 0;
+  }
 
   const struct sockaddr * sa = udpw->session->sock_addr;
   slen = udpw->session->addrlen;
