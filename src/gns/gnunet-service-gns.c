@@ -338,7 +338,7 @@ process_name_dht_result(void* cls,
   char* name = NULL;
   int i;
   GNUNET_HashCode zone, name_hash;
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "got dht result\n");
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "got dht result (size=%d)\n", size);
   if (data == NULL)
     return;
 
@@ -353,7 +353,7 @@ process_name_dht_result(void* cls,
   struct GNUNET_NAMESTORE_RecordData rd[num_records];
 
   name = (char*)&nrb[1];
-  rb = (struct GNSRecordBlock*)(&nrb[1] + strlen(name) + 2);
+  rb = (struct GNSRecordBlock*)&name[strlen(name) + 1];
   
   for (i=0; i<num_records; i++)
   {
@@ -365,14 +365,14 @@ process_name_dht_result(void* cls,
     GNUNET_log(GNUNET_ERROR_TYPE_INFO,
                "Got name: %s (wanted %s)\n", name, rh->name);
     GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-               "Got type: %d (wanted %d)\n",
-               rd[i].record_type, rh->query->type);
+               "Got type: %d raw %d (wanted %d)\n",
+               rd[i].record_type, rb->type, rh->query->type);
     GNUNET_log(GNUNET_ERROR_TYPE_INFO,
                "Got data length: %d\n", rd[i].data_size);
     GNUNET_log(GNUNET_ERROR_TYPE_INFO,
                "Got flag %d\n", rd[i].flags);
     //FIXME class?
-    if (strcmp(name, rh->name) &&
+    if ((strcmp(name, rh->name) == 0) &&
        (rd[i].record_type == rh->query->type))
     {
       rh->answered++;
@@ -1107,7 +1107,7 @@ put_gns_record(void *cls,
 
   memcpy(&nrb[1], name, strlen(name) + 1); //FIXME is this 0 terminated??-sure hope so for we use strlen
 
-  rb = (struct GNSRecordBlock *)(&nrb[1] + strlen(name) + 1);
+  rb = (struct GNSRecordBlock *)((char*)&nrb[1] + strlen(name) + 1);
 
   for (i=0; i<rd_count; i++)
   {
@@ -1129,8 +1129,9 @@ put_gns_record(void *cls,
   GNUNET_CRYPTO_hash(name, strlen(name), &name_hash);
   GNUNET_CRYPTO_hash_xor(&zone_hash, &name_hash, &xor_hash);
   GNUNET_CRYPTO_hash_to_enc (&xor_hash, &xor_hash_string);
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "putting new record %s under key: %s\n",
-             name, (char*)&xor_hash_string);
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+             "putting records for %s under key: %s with size %d\n",
+             name, (char*)&xor_hash_string, rd_payload_length);
 
   GNUNET_DHT_put (dht_handle, &xor_hash,
                   5, //replication level
