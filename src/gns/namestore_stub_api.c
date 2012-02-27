@@ -345,12 +345,15 @@ GNUNET_NAMESTORE_lookup_record (struct GNUNET_NAMESTORE_Handle *h,
   struct GNUNET_NAMESTORE_QueueEntry *qe;
   qe = GNUNET_malloc(sizeof (struct GNUNET_NAMESTORE_QueueEntry));
   struct GNUNET_NAMESTORE_SimpleRecord *sr;
+  struct GNUNET_CRYPTO_HashAsciiEncoded zone_string, zone_string_ex;
   
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Looking up %s\n", name);
+  GNUNET_CRYPTO_hash_to_enc (zone, &zone_string);
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Looking up %s in %s\n", name, (char*)&zone_string);
   sr = h->records_head;
   for (; sr != NULL; sr = sr->next)
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Got %s\n", sr->name);
+    GNUNET_CRYPTO_hash_to_enc (sr->zone, &zone_string_ex);
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Got %s in %s\n", sr->name, (char*)&zone_string_ex);
     if ((strcmp(sr->name, name) == 0) &&
         (0 == (GNUNET_CRYPTO_hash_cmp(sr->zone, zone))))
     {

@@ -949,36 +949,37 @@ put_some_records(void)
   /* put a few records into namestore */
   char* ipA = "1.2.3.4";
   char* ipB = "5.6.7.8";
-  struct GNUNET_CRYPTO_RsaPrivateKey *bob_key = GNUNET_CRYPTO_rsa_key_create ();  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *bob;
-  bob = GNUNET_malloc(sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
+  //struct GNUNET_CRYPTO_RsaPrivateKey *bob_key = GNUNET_CRYPTO_rsa_key_create ();
+  //struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *bob;
+  //bob = GNUNET_malloc(sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
 
-  GNUNET_CRYPTO_rsa_key_get_public (bob_key, bob);
+  //GNUNET_CRYPTO_rsa_key_get_public (bob_key, bob);
 
-  GNUNET_HashCode *bob_zone = GNUNET_malloc(sizeof(GNUNET_HashCode));
+  //GNUNET_HashCode *bob_zone = GNUNET_malloc(sizeof(GNUNET_HashCode));
 
-  GNUNET_CRYPTO_hash(bob, GNUNET_CRYPTO_RSA_KEY_LENGTH, bob_zone);
+  //GNUNET_CRYPTO_hash(bob, GNUNET_CRYPTO_RSA_KEY_LENGTH, bob_zone);
 
   struct in_addr *alice = GNUNET_malloc(sizeof(struct in_addr));
   struct in_addr *bob_web = GNUNET_malloc(sizeof(struct in_addr));
   struct GNUNET_NAMESTORE_RecordData rda;
-  struct GNUNET_NAMESTORE_RecordData rdb;
-  struct GNUNET_NAMESTORE_RecordData rdb_web;
+  //struct GNUNET_NAMESTORE_RecordData rdb;
+  //struct GNUNET_NAMESTORE_RecordData rdb_web;
 
   GNUNET_assert(1 == inet_pton (AF_INET, ipA, alice));
-  GNUNET_assert(1 == inet_pton (AF_INET, ipB, bob_web));
+  //GNUNET_assert(1 == inet_pton (AF_INET, ipB, bob_web));
 
   rda.data_size = sizeof(struct in_addr);
-  rdb_web.data_size = sizeof(struct in_addr);
-  rdb.data_size = sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded);
+  //rdb_web.data_size = sizeof(struct in_addr);
+  //rdb.data_size = sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded);
   rda.data = alice;
-  rdb.data = bob;
-  rdb_web.data = bob_web;
+  //rdb.data = bob;
+  //rdb_web.data = bob_web;
   rda.record_type = GNUNET_GNS_RECORD_TYPE_A;
-  rdb_web.record_type = GNUNET_GNS_RECORD_TYPE_A;
-  rdb.record_type = GNUNET_GNS_RECORD_PKEY;
-  rdb_web.expiration = GNUNET_TIME_absolute_get_forever ();
+  //rdb_web.record_type = GNUNET_GNS_RECORD_TYPE_A;
+  //rdb.record_type = GNUNET_GNS_RECORD_PKEY;
+  //rdb_web.expiration = GNUNET_TIME_absolute_get_forever ();
   rda.expiration = GNUNET_TIME_absolute_get_forever ();
-  rdb.expiration = GNUNET_TIME_absolute_get_forever ();
+  //rdb.expiration = GNUNET_TIME_absolute_get_forever ();
   
   //alice.gnunet A IN 1.2.3.4
   GNUNET_NAMESTORE_record_create (namestore_handle,
@@ -987,7 +988,7 @@ put_some_records(void)
                                &rda,
                                NULL,
                                NULL);
-
+/*
   //www.bob.gnunet A IN 5.6.7.8
   GNUNET_NAMESTORE_record_create (namestore_handle,
                                zone_key,
@@ -1004,6 +1005,7 @@ put_some_records(void)
                               NULL, //Signature
                               NULL, //Cont
                               NULL); //cls
+                              */
 }
 
 void
@@ -1117,6 +1119,31 @@ put_gns_record(void *cls,
 
 }
 
+void
+put_trusted(char* name, char* keyfile)
+{
+  struct GNUNET_NAMESTORE_RecordData rd;
+  struct GNUNET_CRYPTO_RsaPrivateKey *key;
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *pkey;
+  pkey = GNUNET_malloc(sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
+
+  key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
+  GNUNET_CRYPTO_rsa_key_get_public (key, pkey);
+  rd.data = pkey;
+  rd.expiration = GNUNET_TIME_absolute_get_forever ();
+  rd.data_size = sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded);
+  rd.record_type = GNUNET_GNS_RECORD_PKEY;
+
+  GNUNET_NAMESTORE_record_create (namestore_handle,
+                                  zone_key,
+                                  name,
+                                  &rd,
+                                  NULL,
+                                  NULL);
+}
+
+
+
 /**
  * Periodically iterate over our zone and store everything in dht
  *
@@ -1163,6 +1190,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Init GNS\n");
   char* keyfile;
   char* trusted_entities;
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pkey;
 
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (c, "gns",
                                              "ZONEKEY", &keyfile))
@@ -1172,10 +1200,12 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     GNUNET_SCHEDULER_shutdown(0);
     return;
   }
+
   zone_key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
+  GNUNET_CRYPTO_rsa_key_get_public (zone_key, &pkey);
   //zone_key = GNUNET_CRYPTO_rsa_key_create ();
 
-  GNUNET_CRYPTO_hash(zone_key, GNUNET_CRYPTO_RSA_KEY_LENGTH,
+  GNUNET_CRYPTO_hash(&pkey, GNUNET_CRYPTO_RSA_KEY_LENGTH,
                      &zone_hash);
   
   nc = GNUNET_SERVER_notification_context_create (server, 1);
@@ -1240,10 +1270,20 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
         trusted_entities++;
       *trusted_entities = '\0';
       trusted_entities++;
-
-      GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Adding %s:%s to root zone\n",
+      
+      if (GNUNET_YES == GNUNET_DISK_file_test (trusted_key))
+      {
+        GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Adding %s:%s to root zone\n",
                  trusted_name,
                  trusted_key);
+        put_trusted(trusted_name, trusted_key);
+      }
+      else
+      {
+        GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Keyfile %s does not exist!\n",
+                   trusted_key);
+        //put_trusted(trusted_name, trusted_key); //FIXME for testing
+      }
     }
 
   }
