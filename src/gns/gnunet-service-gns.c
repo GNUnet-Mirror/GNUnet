@@ -67,6 +67,9 @@ struct GNUNET_GNS_ResolverHandle
   /* the authoritative zone to query */
   GNUNET_HashCode authority;
 
+  /* the name of the authoritative zone to query */
+  char *authority_name;
+
   /**
    * we have an authority in namestore that
    * may be able to resolve
@@ -227,7 +230,7 @@ process_authority_dht_result(void* cls,
   num_records = ntohl(nrb->rd_count);
   struct GNUNET_NAMESTORE_RecordData rd[num_records];
   name = (char*)&nrb[1];
-  rb = (struct GNSRecordBlock *)(&nrb[1] + strlen(name) + 1);
+  rb = (struct GNSRecordBlock *)&name[strlen(name) + 1];
 
   for (i=0; i<num_records; i++)
   {
@@ -238,11 +241,26 @@ process_authority_dht_result(void* cls,
     rd[i].expiration = GNUNET_TIME_absolute_ntoh(rb->expiration);
     rd[i].flags = ntohl(rb->flags);
     
-    if (strcmp(name, rh->query->name) &&
-        (rd[i].record_type == rh->query->type))
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+               "Got name: %s (wanted %s)\n", name, rh->authority_name);
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+               "Got type: %d raw %d (wanted %d)\n",
+               rd[i].record_type, rb->type, GNUNET_GNS_RECORD_PKEY);
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+               "Got data length: %d\n", rd[i].data_size);
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+               "Got flag %d\n", rd[i].flags);
+    if ((strcmp(name, rh->authority_name) == 0) &&
+        (rd[i].record_type == GNUNET_GNS_RECORD_PKEY))
     {
+      GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Authority found in DHT\n");
       rh->answered = 1;
+      GNUNET_CRYPTO_hash(
+                 (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *)&rd[i].data,
+                 GNUNET_CRYPTO_RSA_KEY_LENGTH,
+                 &rh->authority);
     }
+    rb = (struct GNSRecordBlock*)((char*)&rb[1] + rd[i].data_size);
 
   }
 
@@ -250,7 +268,9 @@ process_authority_dht_result(void* cls,
   GNUNET_CRYPTO_hash_xor(key, &name_hash, &zone);
 
   //Save to namestore
-  GNUNET_NAMESTORE_record_put (namestore_handle,
+  if (0 == GNUNET_CRYPTO_hash_cmp(&zone_hash, &zone))
+  {
+    GNUNET_NAMESTORE_record_put (namestore_handle,
                                &nrb->public_key,
                                name,
                                exp,
@@ -259,11 +279,11 @@ process_authority_dht_result(void* cls,
                                &nrb->signature,
                                &on_namestore_record_put_result, //cont
                                NULL); //cls
+  }
   
   if (rh->answered)
   {
     rh->answered = 0;
-    rh->authority = zone;
     resolve_name(rh);
     return;
   }
@@ -378,7 +398,7 @@ process_name_dht_result(void* cls,
       rh->answered++;
     }
 
-    rb = &rb[1] + rd[i].data_size;
+    rb = (struct GNSRecordBlock*)((char*)&rb[1] + rd[i].data_size);
 
   }
 
@@ -830,10 +850,10 @@ resolve_name(struct GNUNET_GNS_ResolverHandle *rh)
   else
   {
     //We have to resolve the authoritative entity
-    char *new_authority = pop_tld(rh->name);
+    rh->authority_name = pop_tld(rh->name);
     GNUNET_NAMESTORE_lookup_record(namestore_handle,
                                  &rh->authority,
-                                 new_authority,
+                                 rh->authority_name,
                                  GNUNET_GNS_RECORD_PKEY,
                                  &process_authority_lookup,
                                  rh);
@@ -999,12 +1019,12 @@ put_some_records(void)
   //rdb.expiration = GNUNET_TIME_absolute_get_forever ();
   
   //alice.gnunet A IN 1.2.3.4
-  GNUNET_NAMESTORE_record_create (namestore_handle,
+  /*GNUNET_NAMESTORE_record_create (namestore_handle,
                                zone_key,
                                "alice",
                                &rda,
                                NULL,
-                               NULL);
+                               NULL);*/
   GNUNET_NAMESTORE_record_create (namestore_handle,
                                   zone_key,
                                   "www",
