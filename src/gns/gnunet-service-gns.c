@@ -236,7 +236,7 @@ process_authority_dht_result(void* cls,
     rd[i].data_size = ntohl(rb->data_length);
     rd[i].data = &rb[1];
     rd[i].expiration = GNUNET_TIME_absolute_ntoh(rb->expiration);
-    rd[i].flags = ntohs(rb->flags);
+    rd[i].flags = ntohl(rb->flags);
     
     if (strcmp(name, rh->query->name) &&
         (rd[i].record_type == rh->query->type))
@@ -289,7 +289,7 @@ resolve_authority_dht(struct GNUNET_GNS_ResolverHandle *rh, const char* name)
   GNUNET_CRYPTO_hash(name, strlen(name), &name_hash);
   GNUNET_CRYPTO_hash_xor(&name_hash, &rh->authority, &lookup_key);
 
-  timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 20);
+  timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5);
   
   xquery = htonl(GNUNET_GNS_RECORD_PKEY);
   //FIXME how long to wait for results?
@@ -299,7 +299,7 @@ resolve_authority_dht(struct GNUNET_GNS_ResolverHandle *rh, const char* name)
                        5, //Replication level FIXME
                        GNUNET_DHT_RO_NONE,
                        &xquery, //xquery FIXME is this bad?
-                       sizeof(GNUNET_GNS_RECORD_PKEY),
+                       0, // for test bp sizeof(GNUNET_GNS_RECORD_PKEY),
                        &process_authority_dht_result,
                        rh);
 
@@ -338,7 +338,7 @@ process_name_dht_result(void* cls,
   char* name = NULL;
   int i;
   GNUNET_HashCode zone, name_hash;
-
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "got dht result\n");
   if (data == NULL)
     return;
 
@@ -353,7 +353,7 @@ process_name_dht_result(void* cls,
   struct GNUNET_NAMESTORE_RecordData rd[num_records];
 
   name = (char*)&nrb[1];
-  rb = (struct GNSRecordBlock*)(&nrb[1] + strlen(name) + 1);
+  rb = (struct GNSRecordBlock*)(&nrb[1] + strlen(name) + 2);
   
   for (i=0; i<num_records; i++)
   {
@@ -361,13 +361,24 @@ process_name_dht_result(void* cls,
     rd[i].data_size = ntohl(rb->data_length);
     rd[i].data = (char*)&rb[1];
     rd[i].expiration = GNUNET_TIME_absolute_ntoh(rb->expiration);
-    rd[i].flags = ntohs(rb->flags);
+    rd[i].flags = ntohl(rb->flags);
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+               "Got name: %s (wanted %s)\n", name, rh->name);
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+               "Got type: %d (wanted %d)\n",
+               rd[i].record_type, rh->query->type);
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+               "Got data length: %d\n", rd[i].data_size);
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+               "Got flag %d\n", rd[i].flags);
     //FIXME class?
-    if (strcmp(name, rh->query->name) &&
+    if (strcmp(name, rh->name) &&
        (rd[i].record_type == rh->query->type))
     {
       rh->answered++;
     }
+
+    rb = &rb[1] + rd[i].data_size;
 
   }
 
@@ -409,12 +420,16 @@ resolve_name_dht(struct GNUNET_GNS_ResolverHandle *rh, const char* name)
   struct GNUNET_TIME_Relative timeout;
   GNUNET_HashCode name_hash;
   GNUNET_HashCode lookup_key;
+  struct GNUNET_CRYPTO_HashAsciiEncoded lookup_key_string;
 
   GNUNET_CRYPTO_hash(name, strlen(name), &name_hash);
   GNUNET_CRYPTO_hash_xor(&name_hash, &rh->authority, &lookup_key);
-  
+  GNUNET_CRYPTO_hash_to_enc (&lookup_key, &lookup_key_string);
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+             "starting dht lookup for %s with key: %s\n",
+             name, (char*)&lookup_key_string);
 
-  timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 20);
+  timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5);
   
   xquery = htonl(rh->query->type);
   //FIXME how long to wait for results?
@@ -424,7 +439,7 @@ resolve_name_dht(struct GNUNET_GNS_ResolverHandle *rh, const char* name)
                        5, //Replication level FIXME
                        GNUNET_DHT_RO_NONE,
                        &xquery, //xquery FIXME is this bad?
-                       sizeof(rh->query->type),
+                       0, //for test bp sizeof(rh->query->type),
                        &process_name_dht_result,
                        rh);
 
@@ -671,16 +686,18 @@ process_authoritative_result(void* cls,
      * if this is not our zone we cannot rely on the namestore to be
      * complete. -> Query DHT
      */
-    if (!GNUNET_CRYPTO_hash_cmp(&zone, &zone_hash))
+    if (GNUNET_CRYPTO_hash_cmp(&zone, &zone_hash))
     {
       if (remaining_time.rel_value == 0)
       {
+        GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+                   "trying dht...\n");
         resolve_name_dht(rh, name);
         return;
       }
       else
       {
-        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+        GNUNET_log(GNUNET_ERROR_TYPE_INFO,
                    "Record is still recent. No DHT lookup\n");
       }
     }
@@ -960,24 +977,24 @@ put_some_records(void)
   //GNUNET_CRYPTO_hash(bob, GNUNET_CRYPTO_RSA_KEY_LENGTH, bob_zone);
 
   struct in_addr *alice = GNUNET_malloc(sizeof(struct in_addr));
-  struct in_addr *bob_web = GNUNET_malloc(sizeof(struct in_addr));
+  struct in_addr *web = GNUNET_malloc(sizeof(struct in_addr));
   struct GNUNET_NAMESTORE_RecordData rda;
   //struct GNUNET_NAMESTORE_RecordData rdb;
-  //struct GNUNET_NAMESTORE_RecordData rdb_web;
+  struct GNUNET_NAMESTORE_RecordData rdb_web;
 
   GNUNET_assert(1 == inet_pton (AF_INET, ipA, alice));
-  //GNUNET_assert(1 == inet_pton (AF_INET, ipB, bob_web));
+  GNUNET_assert(1 == inet_pton (AF_INET, ipB, web));
 
   rda.data_size = sizeof(struct in_addr);
-  //rdb_web.data_size = sizeof(struct in_addr);
+  rdb_web.data_size = sizeof(struct in_addr);
   //rdb.data_size = sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded);
   rda.data = alice;
   //rdb.data = bob;
-  //rdb_web.data = bob_web;
+  rdb_web.data = web;
   rda.record_type = GNUNET_GNS_RECORD_TYPE_A;
-  //rdb_web.record_type = GNUNET_GNS_RECORD_TYPE_A;
+  rdb_web.record_type = GNUNET_DNSPARSER_TYPE_A;
   //rdb.record_type = GNUNET_GNS_RECORD_PKEY;
-  //rdb_web.expiration = GNUNET_TIME_absolute_get_forever ();
+  rdb_web.expiration = GNUNET_TIME_absolute_get_forever ();
   rda.expiration = GNUNET_TIME_absolute_get_forever ();
   //rdb.expiration = GNUNET_TIME_absolute_get_forever ();
   
@@ -988,6 +1005,12 @@ put_some_records(void)
                                &rda,
                                NULL,
                                NULL);
+  GNUNET_NAMESTORE_record_create (namestore_handle,
+                                  zone_key,
+                                  "www",
+                                  &rdb_web,
+                                  NULL,
+                                  NULL);
 /*
   //www.bob.gnunet A IN 5.6.7.8
   GNUNET_NAMESTORE_record_create (namestore_handle,
@@ -995,23 +1018,28 @@ put_some_records(void)
                                "bob",
                                &rdb,
                                NULL,
-                               NULL);
-  GNUNET_NAMESTORE_record_put(namestore_handle,
-                              bob,
+                               NULL);*/
+  /*GNUNET_NAMESTORE_record_put(namestore_handle,
+                              zone_key,
                               "www",
                               GNUNET_TIME_absolute_get_forever (),
                               1,
                               &rdb_web,
                               NULL, //Signature
                               NULL, //Cont
-                              NULL); //cls
-                              */
+                              NULL); //cls*/
 }
 
 void
 update_zone_dht_next(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_NAMESTORE_zone_iterator_next(namestore_iter);
+}
+
+void
+record_dht_put(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "put request transmitted\n");
 }
 
 /* prototype */
@@ -1045,6 +1073,7 @@ put_gns_record(void *cls,
   struct GNSRecordBlock *rb;
   GNUNET_HashCode name_hash;
   GNUNET_HashCode xor_hash;
+  struct GNUNET_CRYPTO_HashAsciiEncoded xor_hash_string;
   int i;
   uint32_t rd_payload_length;
 
@@ -1082,6 +1111,8 @@ put_gns_record(void *cls,
 
   for (i=0; i<rd_count; i++)
   {
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO, "putting record with type %d\n",
+               rd[i].record_type);
     rb->type = htonl(rd[i].record_type);
     rb->expiration = GNUNET_TIME_absolute_hton(rd[i].expiration);
     rb->data_length = htonl(rd[i].data_size);
@@ -1097,6 +1128,10 @@ put_gns_record(void *cls,
   timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 20);
   GNUNET_CRYPTO_hash(name, strlen(name), &name_hash);
   GNUNET_CRYPTO_hash_xor(&zone_hash, &name_hash, &xor_hash);
+  GNUNET_CRYPTO_hash_to_enc (&xor_hash, &xor_hash_string);
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "putting new record %s under key: %s\n",
+             name, (char*)&xor_hash_string);
+
   GNUNET_DHT_put (dht_handle, &xor_hash,
                   5, //replication level
                   GNUNET_DHT_RO_NONE,
@@ -1105,7 +1140,7 @@ put_gns_record(void *cls,
                   (char*)nrb,
                   expiration,
                   timeout,
-                  NULL, //FIXME continuation needed? success check? yes ofc
+                  &record_dht_put, //FIXME continuation needed? success check? yes ofc
                   NULL); //cls for cont
   
   num_public_records++;
@@ -1224,13 +1259,14 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
                                     GNUNET_DNS_FLAG_PRE_RESOLUTION,
                                     &handle_dns_request, /* rh */
                                     NULL); /* Closure */
+    if (NULL == dns_handle)
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+               "Failed to connect to the dnsservice!\n");
+    }
   }
 
-  if (NULL == dns_handle)
-  {
-    GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-               "Failed to connect to the dnsservice!\n");
-  }
+  
 
   /**
    * handle to our local namestore

@@ -27,8 +27,18 @@ bin_PROGRAMS = \
 check_SCRIPTS = \
  test_gnunet_gns.sh
 
+check_PROGRAMS = \
+  test_gns_twopeer
+
+
 plugin_LTLIBRARIES = \
   libgnunet_plugin_block_gns.la
+
+test_gns_twopeer_SOURCES = \
+  test_gns_twopeer.c
+test_gns_twopeer_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/testing/libgnunettesting.la
 
 #gnunet_gns_lookup_SOURCES = \
 # gnunet-gns-lookup.c

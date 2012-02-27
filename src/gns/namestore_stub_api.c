@@ -178,7 +178,7 @@ GNUNET_NAMESTORE_record_put (struct GNUNET_NAMESTORE_Handle *h,
   {
     if (GNUNET_CRYPTO_hash_cmp(zone, sr->zone) == 0)
     {
-      GNUNET_log(GNUNET_ERROR_TYPE_INFO, "records for %s already present ow\n",
+      GNUNET_log(GNUNET_ERROR_TYPE_INFO, "authority for %s already known\n",
                  name);
       sr->rd_count = rd_count;
       for (i=0; i<rd_count; i++)
@@ -353,13 +353,12 @@ GNUNET_NAMESTORE_lookup_record (struct GNUNET_NAMESTORE_Handle *h,
   for (; sr != NULL; sr = sr->next)
   {
     GNUNET_CRYPTO_hash_to_enc (sr->zone, &zone_string_ex);
-    GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Got %s in %s\n", sr->name, (char*)&zone_string_ex);
     if ((strcmp(sr->name, name) == 0) &&
         (0 == (GNUNET_CRYPTO_hash_cmp(sr->zone, zone))))
     {
       GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-                 "Found match for %s with %d entries\n",
-                 sr->name, sr->rd_count);
+                 "Found match for %s in %s with %d entries\n",
+                 sr->name, (char*)&zone_string_ex, sr->rd_count);
       //Simply always return all records
       proc(proc_cls, sr->zone_key, GNUNET_TIME_UNIT_FOREVER_ABS, //FIXME
            name, sr->rd_count, sr->rd, NULL);
@@ -390,6 +389,7 @@ GNUNET_NAMESTORE_zone_iteration_start(struct GNUNET_NAMESTORE_Handle *h,
   it->zone = zone;
   it->no_flags = must_not_have_flags;
   it->flags = must_have_flags;
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Begin iteration\n");
   GNUNET_NAMESTORE_zone_iterator_next(it);
   return it;
 }
@@ -406,9 +406,10 @@ GNUNET_NAMESTORE_zone_iterator_next(struct GNUNET_NAMESTORE_ZoneIterator *it)
              NULL, 0, NULL, NULL);
     return;
   }
-
-  if (GNUNET_CRYPTO_hash_cmp(it->sr->zone, it->zone))
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Next result\n");
+  if (GNUNET_CRYPTO_hash_cmp(it->sr->zone, it->zone) == 0)
   {
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO, "match\n");
     //Simply always return all records
     //check flags
     it->proc(it->proc_cls, it->sr->zone_key, GNUNET_TIME_UNIT_FOREVER_ABS,
