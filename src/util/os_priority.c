@@ -176,12 +176,10 @@ npipe_create (char **fn, enum GNUNET_DISK_OpenFlags flags,
  *
  * @param fn name of an existing named pipe
  * @param flags open flags
- * @param perm access permissions
  * @return pipe handle on success, NULL on error
  */
 static struct GNUNET_DISK_FileHandle *
-npipe_open (const char *fn, enum GNUNET_DISK_OpenFlags flags,
-	    enum GNUNET_DISK_AccessPermissions perm)
+npipe_open (const char *fn, enum GNUNET_DISK_OpenFlags flags)
 {
   struct GNUNET_DISK_FileHandle *ret;
   HANDLE h;
@@ -271,16 +269,46 @@ npipe_setup (char **fn)
  *
  * @param fn name of the file
  * @param flags flags to use
- * @param perm permissions to use
  * @return NULL on error
  */
 static struct GNUNET_DISK_FileHandle *
 npipe_open (const char *fn,
-	    enum GNUNET_DISK_OpenFlags flags,
-	    enum GNUNET_DISK_AccessPermissions perm)
+	    enum GNUNET_DISK_OpenFlags flags)
 {
-  flags = flags & (~GNUNET_DISK_OPEN_FAILIFEXISTS);
-  return GNUNET_DISK_file_open (fn, flags, perm);
+  struct GNUNET_DISK_FileHandle *ret;
+  int fd;
+  struct timespec req;
+  int i;
+
+  /* 200 * 5ms = 1s at most */
+  for (i=0;i<200;i++) 
+  {
+    fd = open (fn, O_NONBLOCK | ((flags == GNUNET_DISK_OPEN_READ) ? O_RDONLY : O_WRONLY));
+    if ( (-1 != fd) || (9 == i) || (flags == GNUNET_DISK_OPEN_READ)) 
+      break;
+    /* as this is for killing a child process via pipe and it is conceivable that
+       the child process simply didn't finish starting yet, we do some sleeping
+       (which is obviously usually not allowed).  We can't select on the FD as
+       'open' fails, and we probably shouldn't just "ignore" the error, so wait
+       and retry a few times is likely the best method; our process API doesn't 
+       support continuations, so we need to sleep directly... */
+    req.tv_sec = 0;
+    req.tv_nsec = 5000000; /* 5ms */
+    (void) nanosleep (&req, NULL);
+  } 
+  if (-1 == fd)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		(flags == GNUNET_DISK_OPEN_READ) 
+		? _("Failed to open named pipe `%s' for reading: %s\n")
+		: _("Failed to open named pipe `%s' for writing: %s\n"),
+		fn,
+		STRERROR (errno));
+    return NULL;
+  }
+  ret = GNUNET_malloc (sizeof (struct GNUNET_DISK_FileHandle));
+  ret->fd = fd;
+  return ret;
 }
 #endif
 
@@ -349,9 +377,7 @@ GNUNET_OS_install_parent_control_handler (void *cls,
     return;
   }
   control_pipe =
-    npipe_open (env_buf, GNUNET_DISK_OPEN_READ,
-		GNUNET_DISK_PERM_USER_READ |
-		GNUNET_DISK_PERM_USER_WRITE);
+    npipe_open (env_buf, GNUNET_DISK_OPEN_READ);
   if (NULL == control_pipe)
   {
     LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "open", env_buf);
@@ -403,9 +429,7 @@ GNUNET_OS_process_kill (struct GNUNET_OS_Process *proc, int sig)
   if ( (NULL == proc->control_pipe) &&
        (NULL != proc->childpipename) )
     proc->control_pipe = npipe_open (proc->childpipename,
-				     GNUNET_DISK_OPEN_WRITE,
-				     GNUNET_DISK_PERM_USER_READ |
-				     GNUNET_DISK_PERM_USER_WRITE);    
+				     GNUNET_DISK_OPEN_WRITE);
 #endif
   if (NULL == proc->control_pipe)
   {
@@ -750,22 +774,26 @@ GNUNET_OS_start_process_vap (int pipe_control,
     return NULL;  
   if (pipe_stdout != NULL)
   {
-    GNUNET_DISK_internal_file_handle_ (GNUNET_DISK_pipe_handle
-                                       (pipe_stdout,
-                                        GNUNET_DISK_PIPE_END_WRITE),
-                                       &fd_stdout_write, sizeof (int));
-    GNUNET_DISK_internal_file_handle_ (GNUNET_DISK_pipe_handle
-                                       (pipe_stdout, GNUNET_DISK_PIPE_END_READ),
-                                       &fd_stdout_read, sizeof (int));
+    GNUNET_assert (GNUNET_OK ==
+		   GNUNET_DISK_internal_file_handle_ (GNUNET_DISK_pipe_handle
+						      (pipe_stdout,
+						       GNUNET_DISK_PIPE_END_WRITE),
+						      &fd_stdout_write, sizeof (int)));
+    GNUNET_assert (GNUNET_OK ==
+		   GNUNET_DISK_internal_file_handle_ (GNUNET_DISK_pipe_handle
+						      (pipe_stdout, GNUNET_DISK_PIPE_END_READ),
+						      &fd_stdout_read, sizeof (int)));
   }
   if (pipe_stdin != NULL)
   {
-    GNUNET_DISK_internal_file_handle_ (GNUNET_DISK_pipe_handle
-                                       (pipe_stdin, GNUNET_DISK_PIPE_END_READ),
-                                       &fd_stdin_read, sizeof (int));
-    GNUNET_DISK_internal_file_handle_ (GNUNET_DISK_pipe_handle
-                                       (pipe_stdin, GNUNET_DISK_PIPE_END_WRITE),
-                                       &fd_stdin_write, sizeof (int));
+    GNUNET_assert (GNUNET_OK ==
+		   GNUNET_DISK_internal_file_handle_ (GNUNET_DISK_pipe_handle
+						      (pipe_stdin, GNUNET_DISK_PIPE_END_READ),
+						      &fd_stdin_read, sizeof (int)));
+    GNUNET_assert (GNUNET_OK ==
+		   GNUNET_DISK_internal_file_handle_ (GNUNET_DISK_pipe_handle
+						      (pipe_stdin, GNUNET_DISK_PIPE_END_WRITE),
+						      &fd_stdin_write, sizeof (int)));
   }
 
   ret = fork ();
