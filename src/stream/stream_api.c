@@ -2056,6 +2056,8 @@ GNUNET_STREAM_read (struct GNUNET_STREAM_Socket *socket,
 {
   unsigned int packet;
   struct GNUNET_STREAM_IOReadHandle *read_handle;
+  uint32_t offset_increase;
+  uint32_t sequence_increase;
   
   /* Return NULL if there is already a read handle; the user has to cancel that
   first before continuing or has to wait until it is completed */
@@ -2080,26 +2082,47 @@ GNUNET_STREAM_read (struct GNUNET_STREAM_Socket *socket,
         break;
     }
 
-  if (0 == packet)              /* The first packet is still missing */
+  sequence_increase = packet;
+
+  if (0 == sequence_increase)              /* The first packet is still missing */
     {
       /* We can't do anything until it arrives */
     }
   else
     {
       /* Copy data to copy buffer */
+      GNUNET_assert (0 < socket->receive_buffer_boundaries[sequence_increase-1]);
       socket->copy_buffer = 
-        GNUNET_malloc (socket->receive_buffer_boundaries[packet-1]);
+        GNUNET_malloc (socket->receive_buffer_boundaries[sequence_increase-1]);
+
+      /* Shift the data in the receive buffer */
+      memmove (socket->receive_buffer,
+               socket->receive_buffer 
+               + socket->receive_buffer_boundaries[sequence_increase-1],
+               socket->receive_buffer_size - socket->receive_buffer_boundaries[sequence_increase-1]);
       
       /* Shift the bitmap */
-      socket->ack_bitmap << packet;
+      socket->ack_bitmap = socket->ack_bitmap >> sequence_increase;
 
       /* Set read_sequence_number */
-      socket->read_sequence_number += packet;
+      socket->read_sequence_number += sequence_increase;
 
       /* Set read_offset */
-      socket->read_offset += packet;
-
-      /* FIXME: Fix relative calucations in receive buffer management */
+      offset_increase = socket->receive_buffer_boundaries[sequence_increase-1];
+      socket->read_offset += offset_increase;
+      
+      /* Fix relative boundaries */
+      for (packet=0; packet < GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH; packet++)
+        {
+          if (packet < GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH - sequence_increase)
+            {
+              socket->receive_buffer_boundaries[packet] = 
+                socket->receive_buffer_boundaries[packet + sequence_increase] 
+                - offset_increase;
+            }
+          else
+            socket->receive_buffer_boundaries[packet] = 0;
+        }
     }
 
   return read_handle;
