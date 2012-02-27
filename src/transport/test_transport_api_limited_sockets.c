@@ -304,7 +304,6 @@ int
 main (int argc, char *argv[])
 {
   int ret = 0;
-  int nat_res;
 
   test_plugin = NULL;
 
@@ -320,25 +319,6 @@ main (int argc, char *argv[])
                     "WARNING",
 #endif
                     NULL);
-
-  if ((test_plugin != NULL) &&
-      ((strcmp (test_plugin, "tcp_nat") == 0) ||
-       (strcmp (test_plugin, "udp_nat") == 0)))
-  {
-    nat_res = GNUNET_OS_check_helper_binary ("gnunet-nat-server");
-    if (GNUNET_NO == nat_res)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Cannot run NAT test: `%s' %s \n",
-                  "gnunet-nat-server", "SUID not set");
-      return 0;
-    }
-    if (GNUNET_SYSERR == nat_res)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Cannot run NAT test: `%s' %s \n",
-                  "gnunet-nat-server", "file not found");
-      return 0;
-    }
-  }
 
 #if !HAVE_SETRLIMIT
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot run test on this system\n");

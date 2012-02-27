@@ -459,10 +459,8 @@ main (int argc, char *argv[])
 
   tth = GNUNET_TRANSPORT_TESTING_init ();
 
-
   GNUNET_asprintf (&cfg_file_p1, "test_transport_api_tcp_peer1.conf");
   GNUNET_asprintf (&cfg_file_p2, "test_transport_api_tcp_peer2.conf");
-
 
   ret = check ();
 

@@ -235,6 +235,12 @@ testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)
 
   shutdown_flag = GNUNET_NO;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Waiting for %llu seconds\n", (WAIT.rel_value) / 1000);
+
+  if (die_task != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel (die_task);
+  die_task = GNUNET_SCHEDULER_add_delayed (WAIT, &end_badly, NULL);
+
   timer_task = GNUNET_SCHEDULER_add_now (&timer, NULL);
 }
 
@@ -319,7 +325,6 @@ int
 main (int argc, char *argv[])
 {
   int ret;
-  int nat_res;
 
   GNUNET_TRANSPORT_TESTING_get_test_name (argv[0], &test_name);
 
@@ -336,24 +341,6 @@ main (int argc, char *argv[])
                                                  &test_plugin);
 
   tth = GNUNET_TRANSPORT_TESTING_init ();
-
-  if ((strcmp (test_plugin, "tcp_nat") == 0) ||
-      (strcmp (test_plugin, "udp_nat") == 0))
-  {
-    nat_res = GNUNET_OS_check_helper_binary ("gnunet-nat-server");
-    if (GNUNET_NO == nat_res)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Cannot run NAT test: `%s' %s \n",
-                  "gnunet-nat-server", "SUID not set");
-      return 0;
-    }
-    if (GNUNET_SYSERR == nat_res)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Cannot run NAT test: `%s' %s \n",
-                  "gnunet-nat-server", "file not found");
-      return 0;
-    }
-  }
 
   GNUNET_TRANSPORT_TESTING_get_config_name (argv[0], &cfg_file_p1, 1);
   GNUNET_TRANSPORT_TESTING_get_config_name (argv[0], &cfg_file_p2, 2);
