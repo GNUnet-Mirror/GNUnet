@@ -5,8 +5,9 @@ HOME = $SERVICEHOME
 CONFIG = $DEFAULTCONFIG
 BINARY = gnunet-service-gns
 UNIXPATH = /tmp/gnunet-service-gns.sock
-ZONEKEY = $SERVICEHOME/zonekey
-TRUSTED = bob:$SERVICEHOME/bobkey
+ZONEKEY = /tmp/zonekey
+TRUSTED = bob:/tmp/bobkey
+HIJACK_DNS = YES
 OPTIONS = -L INFO
 
 # Access to this service can compromise all DNS queries in this

@@ -215,8 +215,6 @@ process_authority_dht_result(void* cls,
   int i;
   GNUNET_HashCode zone, name_hash;
   
-  //FIXME GNS block check
-
   if (data == NULL)
     return;
   
@@ -229,7 +227,7 @@ process_authority_dht_result(void* cls,
   num_records = ntohl(nrb->rd_count);
   struct GNUNET_NAMESTORE_RecordData rd[num_records];
   name = (char*)&nrb[1];
-  rb = (struct GNSRecordBlock *)(&nrb[1] + strlen(name));
+  rb = (struct GNSRecordBlock *)(&nrb[1] + strlen(name) + 1);
 
   for (i=0; i<num_records; i++)
   {
@@ -283,7 +281,7 @@ process_authority_dht_result(void* cls,
 void
 resolve_authority_dht(struct GNUNET_GNS_ResolverHandle *rh, const char* name)
 {
-  enum GNUNET_GNS_RecordType rtype = GNUNET_GNS_RECORD_PKEY;
+  uint32_t xquery;
   struct GNUNET_TIME_Relative timeout;
   GNUNET_HashCode name_hash;
   GNUNET_HashCode lookup_key;
@@ -293,13 +291,14 @@ resolve_authority_dht(struct GNUNET_GNS_ResolverHandle *rh, const char* name)
 
   timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 20);
   
+  xquery = htonl(GNUNET_GNS_RECORD_PKEY);
   //FIXME how long to wait for results?
   rh->get_handle = GNUNET_DHT_get_start(dht_handle, timeout,
                        GNUNET_BLOCK_TYPE_TEST, //FIXME todo
                        &lookup_key,
                        5, //Replication level FIXME
                        GNUNET_DHT_RO_NONE,
-                       &rtype, //xquery FIXME this is bad
+                       &xquery, //xquery FIXME is this bad?
                        sizeof(GNUNET_GNS_RECORD_PKEY),
                        &process_authority_dht_result,
                        rh);
@@ -354,7 +353,7 @@ process_name_dht_result(void* cls,
   struct GNUNET_NAMESTORE_RecordData rd[num_records];
 
   name = (char*)&nrb[1];
-  rb = (struct GNSRecordBlock*)(&nrb[1] + strlen(name));
+  rb = (struct GNSRecordBlock*)(&nrb[1] + strlen(name) + 1);
   
   for (i=0; i<num_records; i++)
   {
@@ -406,6 +405,7 @@ process_name_dht_result(void* cls,
 void
 resolve_name_dht(struct GNUNET_GNS_ResolverHandle *rh, const char* name)
 {
+  uint32_t xquery;
   struct GNUNET_TIME_Relative timeout;
   GNUNET_HashCode name_hash;
   GNUNET_HashCode lookup_key;
@@ -416,13 +416,14 @@ resolve_name_dht(struct GNUNET_GNS_ResolverHandle *rh, const char* name)
 
   timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 20);
   
+  xquery = htonl(rh->query->type);
   //FIXME how long to wait for results?
   rh->get_handle = GNUNET_DHT_get_start(dht_handle, timeout,
                        GNUNET_BLOCK_TYPE_TEST, //FIXME todo
                        &lookup_key,
                        5, //Replication level FIXME
                        GNUNET_DHT_RO_NONE,
-                       &rh->query->type, //xquery
+                       &xquery, //xquery FIXME is this bad?
                        sizeof(rh->query->type),
                        &process_name_dht_result,
                        rh);
@@ -1055,7 +1056,7 @@ put_gns_record(void *cls,
   }
   
   rd_payload_length = rd_count * sizeof(struct GNSRecordBlock);
-  rd_payload_length += strlen(name) + sizeof(struct GNSNameRecordBlock);
+  rd_payload_length += strlen(name) + 1 + sizeof(struct GNSNameRecordBlock);
   //Calculate payload size
   for (i=0; i<rd_count; i++)
   {
@@ -1073,9 +1074,9 @@ put_gns_record(void *cls,
 
   nrb->rd_count = htonl(rd_count);
 
-  memcpy(&nrb[1], name, strlen(name)); //FIXME is this 0 terminated??
+  memcpy(&nrb[1], name, strlen(name) + 1); //FIXME is this 0 terminated??-sure hope so for we use strlen
 
-  rb = (struct GNSRecordBlock *)(&nrb[1]+strlen(name));
+  rb = (struct GNSRecordBlock *)(&nrb[1] + strlen(name) + 1);
 
   for (i=0; i<rd_count; i++)
   {
@@ -1089,6 +1090,7 @@ put_gns_record(void *cls,
 
   /**
    * FIXME magic number 20 move to config file
+   * DHT_WAIT_TIMEOUT
    */
   timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 20);
   GNUNET_CRYPTO_hash(name, strlen(name), &name_hash);
@@ -1171,23 +1173,25 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   zone_key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
   //zone_key = GNUNET_CRYPTO_rsa_key_create ();
 
-  GNUNET_CRYPTO_hash(zone_key, GNUNET_CRYPTO_RSA_KEY_LENGTH,//FIXME is this ok?
+  GNUNET_CRYPTO_hash(zone_key, GNUNET_CRYPTO_RSA_KEY_LENGTH,
                      &zone_hash);
   nc = GNUNET_SERVER_notification_context_create (server, 1);
 
-  /* FIXME - do some config parsing 
-   *       - Maybe only hijack dns if option is set (HIJACK_DNS=1)
-   */
-
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
                                 NULL);
-  /**
-   * Do gnunet dns init here
-   */
-  dns_handle = GNUNET_DNS_connect(c,
-                                  GNUNET_DNS_FLAG_PRE_RESOLUTION,
-                                  &handle_dns_request, /* rh */
-                                  NULL); /* Closure */
+
+  if (GNUNET_YES ==
+      GNUNET_CONFIGURATION_get_value_yesno (c, "gns",
+                                            "HIJACK_DNS"))
+  {
+    /**
+     * Do gnunet dns init here
+     */
+    dns_handle = GNUNET_DNS_connect(c,
+                                    GNUNET_DNS_FLAG_PRE_RESOLUTION,
+                                    &handle_dns_request, /* rh */
+                                    NULL); /* Closure */
+  }
 
   if (NULL == dns_handle)
   {
@@ -1225,7 +1229,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
    * We have roughly an hour for all records;
    */
   dht_update_interval = GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS,
-                                                      1); //FIXME from cfg
+                                                      1);
   zone_update_taskid = GNUNET_SCHEDULER_add_now (&update_zone_dht_start, NULL);
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, "GNS Init done!\n");
 

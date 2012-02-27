@@ -72,6 +72,8 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
   GNUNET_HashCode pkey_hash;
   GNUNET_HashCode query_pkey;
   GNUNET_HashCode name_hash;
+  GNUNET_HashCode mhash;
+  GNUNET_HashCode chash;
   struct GNSNameRecordBlock *nrb;
   struct GNSRecordBlock *rb;
   uint32_t rd_count;
@@ -96,7 +98,8 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
 
   struct GNUNET_NAMESTORE_RecordData rd[rd_count];
   int i = 0;
-  rb = (struct GNSRecordBlock*)(&nrb[1] + strlen(name));
+  int record_match = 0;
+  rb = (struct GNSRecordBlock*)(&nrb[1] + strlen(name) + 1);
 
   for (i=0; i<rd_count; i++)
   {
@@ -107,7 +110,13 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
     rd[i].flags = ntohl(rb->flags);
     rd[i].data = (char*)&rb[1];
     rb = &rb[1] + rd[i].data_size;
+    if (xquery_size > 0 && (rd[i].record_type == *((uint32_t*)xquery)))
+      record_match++;
   }
+  
+  //No record matches query
+  if (xquery_size > 0 && (record_match == 0))
+    return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
 
   if (GNUNET_OK != GNUNET_NAMESTORE_verify_signature (&nrb->public_key,
                                                       name,
@@ -119,16 +128,23 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
     return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
   }
 
-  //Cache FIXME we need a static function here to namestore?
-  /*GNUNET_NAMESTORE_record_put (handle, //FIXME where do i get this from?
-                               &pkey_hash,
-                               name,
-                               expiration, //FIXME uh where do i get this from?
-                               rd_count,
-                               rd,
-                               signature,
-                               NULL, //cont
-                               NULL); //cls*/
+  //FIXME do bf check before or after crypto??
+  if (NULL != bf)
+  {
+    GNUNET_CRYPTO_hash(reply_block, reply_block_size, &chash);
+    GNUNET_BLOCK_mingle_hash(&chash, bf_mutator, &mhash);
+    if (NULL != *bf)
+    {
+      if (GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test(*bf, &mhash))
+        return GNUNET_BLOCK_EVALUATION_OK_DUPLICATE;
+    }
+    else
+    {
+      *bf = GNUNET_CONTAINER_bloomfilter_init(NULL, 8, BLOOMFILTER_K);
+    }
+    GNUNET_CONTAINER_bloomfilter_add(*bf, &mhash);
+  }
+
   return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
 }
 
