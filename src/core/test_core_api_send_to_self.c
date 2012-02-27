@@ -170,7 +170,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   core_cfg = GNUNET_CONFIGURATION_create ();
 
   arm_proc =
-      GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
+    GNUNET_OS_start_process (GNUNET_YES, NULL, NULL, "gnunet-service-arm",
                                "gnunet-service-arm",
 #if VERBOSE
                                "-L", "DEBUG",

@@ -526,7 +526,7 @@ check ()
                    "test_datastore_api_data_%s.conf", plugin_name);
 #if START_DATASTORE
   proc =
-      GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
+    GNUNET_OS_start_process (GNUNET_YES, NULL, NULL, "gnunet-service-arm",
                                "gnunet-service-arm",
 #if VERBOSE
                                "-L", "DEBUG",

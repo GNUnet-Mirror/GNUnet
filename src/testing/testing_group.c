@@ -2928,7 +2928,7 @@ create_and_copy_friend_files (struct GNUNET_TESTING_PeerGroup *pg)
     {
       GNUNET_asprintf (&arg, "%s/friends", temp_service_path);
       procarr[pg_iter] =
-          GNUNET_OS_start_process (NULL, NULL, "mv", "mv", mytemp, arg, NULL);
+ 	GNUNET_OS_start_process (GNUNET_NO, NULL, NULL, "mv", "mv", mytemp, arg, NULL);
       GNUNET_assert (procarr[pg_iter] != NULL);
 #if VERBOSE_TESTING
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -2950,7 +2950,7 @@ create_and_copy_friend_files (struct GNUNET_TESTING_PeerGroup *pg)
                          pg->peers[pg_iter].daemon->hostname,
                          temp_service_path);
       procarr[pg_iter] =
-          GNUNET_OS_start_process (NULL, NULL, "scp", "scp", mytemp, arg, NULL);
+	GNUNET_OS_start_process (GNUNET_NO, NULL, NULL, "scp", "scp", mytemp, arg, NULL);
       GNUNET_assert (procarr[pg_iter] != NULL);
       ret = GNUNET_OS_process_wait (procarr[pg_iter]);  /* FIXME: schedule this, throttle! */
       GNUNET_OS_process_close (procarr[pg_iter]);
@@ -3127,7 +3127,7 @@ create_and_copy_blacklist_files (struct GNUNET_TESTING_PeerGroup *pg,
     {
       GNUNET_asprintf (&arg, "%s/blacklist", temp_service_path);
       procarr[pg_iter] =
-          GNUNET_OS_start_process (NULL, NULL, "mv", "mv", mytemp, arg, NULL);
+	GNUNET_OS_start_process (GNUNET_NO, NULL, NULL, "mv", "mv", mytemp, arg, NULL);
 #if VERBOSE_TESTING
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   _("Copying file with command cp %s %s\n"), mytemp, arg);
@@ -3147,7 +3147,7 @@ create_and_copy_blacklist_files (struct GNUNET_TESTING_PeerGroup *pg,
                          pg->peers[pg_iter].daemon->hostname,
                          temp_service_path);
       procarr[pg_iter] =
-          GNUNET_OS_start_process (NULL, NULL, "scp", "scp", mytemp, arg, NULL);
+	GNUNET_OS_start_process (GNUNET_NO, NULL, NULL, "scp", "scp", mytemp, arg, NULL);
       GNUNET_assert (procarr[pg_iter] != NULL);
       GNUNET_OS_process_wait (procarr[pg_iter]);        /* FIXME: add scheduled blacklist file copy that parallelizes file copying! */
 
@@ -5806,7 +5806,7 @@ start_peer_helper (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   /* FIXME: Doesn't support ssh_port option! */
   helper->proc =
-      GNUNET_OS_start_process (NULL, NULL, "ssh", "ssh", arg,
+    GNUNET_OS_start_process (GNUNET_NO, NULL, NULL, "ssh", "ssh", arg,
                                "peerStartHelper.pl", tempdir, NULL);
   GNUNET_assert (helper->proc != NULL);
 #if DEBUG_TESTING
@@ -6031,7 +6031,7 @@ GNUNET_TESTING_daemons_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
     {
       GNUNET_asprintf (&ssh_port_str, "%d", pg->hosts[i].sshport);
       proc =
-          GNUNET_OS_start_process (NULL, NULL, "ssh", "ssh", "-P", ssh_port_str,
+	GNUNET_OS_start_process (GNUNET_NO, NULL, NULL, "ssh", "ssh", "-P", ssh_port_str,
 #if !DEBUG_TESTING
                                    "-q",
 #endif
@@ -6039,7 +6039,7 @@ GNUNET_TESTING_daemons_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
     }
     else
       proc =
-          GNUNET_OS_start_process (NULL, NULL, "ssh", "ssh", arg, "mkdir -p",
+	GNUNET_OS_start_process (GNUNET_NO, NULL, NULL, "ssh", "ssh", arg, "mkdir -p",
                                    tmpdir, NULL);
     GNUNET_assert (proc != NULL);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -6262,7 +6262,7 @@ GNUNET_TESTING_daemons_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
       /* FIXME: Doesn't support ssh_port option! */
       proc =
-          GNUNET_OS_start_process (NULL, NULL, "rsync", "rsync", "-r",
+	GNUNET_OS_start_process (GNUNET_NO, NULL, NULL, "rsync", "rsync", "-r",
                                    newservicehome, arg, NULL);
 #if DEBUG_TESTING
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

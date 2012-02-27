@@ -1487,7 +1487,7 @@ wlan_transport_start_wlan_helper (struct Plugin *plugin)
     if (GNUNET_OS_check_helper_binary (filenamehw) == GNUNET_YES)
     {
       plugin->server_proc =
-          GNUNET_OS_start_process (plugin->server_stdin, plugin->server_stdout,
+	  GNUNET_OS_start_process (GNUNET_NO, plugin->server_stdin, plugin->server_stdout,
                                    filenamehw, filenamehw, plugin->interface,
                                    NULL);
     }
@@ -1514,7 +1514,7 @@ wlan_transport_start_wlan_helper (struct Plugin *plugin)
                      absolute_filename, plugin->interface, plugin->testmode);
 #endif
     plugin->server_proc =
-        GNUNET_OS_start_process (plugin->server_stdin, plugin->server_stdout,
+        GNUNET_OS_start_process (GNUNET_NO, plugin->server_stdin, plugin->server_stdout,
                                  absolute_filename, absolute_filename, "1",
                                  NULL);
     if (plugin->server_proc == NULL)
@@ -1534,7 +1534,7 @@ wlan_transport_start_wlan_helper (struct Plugin *plugin)
 #endif
 
     plugin->server_proc =
-        GNUNET_OS_start_process (plugin->server_stdin, plugin->server_stdout,
+        GNUNET_OS_start_process (GNUNET_NO, plugin->server_stdin, plugin->server_stdout,
                                  absolute_filename, absolute_filename, "2",
                                  NULL);
     if (plugin->server_proc == NULL)

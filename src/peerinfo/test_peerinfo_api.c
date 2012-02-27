@@ -179,7 +179,7 @@ check ()
     GNUNET_GETOPT_OPTION_END
   };
   proc =
-      GNUNET_OS_start_process (NULL, NULL, "gnunet-service-peerinfo",
+    GNUNET_OS_start_process (GNUNET_YES, NULL, NULL, "gnunet-service-peerinfo",
                                "gnunet-service-peerinfo",
 #if DEBUG_PEERINFO
                                "-L", "DEBUG",

@@ -118,7 +118,7 @@ main (int argc, char *const argv[])
   }
 
   gns =
-      GNUNET_OS_start_process (NULL, NULL, "gnunet-nat-server",
+      GNUNET_OS_start_process (GNUNET_YES, NULL, NULL, "gnunet-nat-server",
                                "gnunet-nat-server",
 #if VERBOSE
                                "-L", "DEBUG",

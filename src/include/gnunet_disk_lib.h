@@ -32,11 +32,6 @@
 #endif
 
 /**
- * Opaque handle used to access files.
- */
-struct GNUNET_DISK_FileHandle;
-
-/**
  * Handle used to manage a pipe.
  */
 struct GNUNET_DISK_PipeHandle;
@@ -759,36 +754,6 @@ GNUNET_DISK_file_unmap (struct GNUNET_DISK_MapHandle *h);
 int
 GNUNET_DISK_file_sync (const struct GNUNET_DISK_FileHandle *h);
 
-/**
- * Creates a named pipe/FIFO and opens it
- * @param fn pointer to the name of the named pipe or to NULL
- * @param flags open flags
- * @param perm access permissions
- * @return pipe handle on success, NULL on error
- */
-struct GNUNET_DISK_FileHandle *
-GNUNET_DISK_npipe_create (char **fn, enum GNUNET_DISK_OpenFlags flags,
-                          enum GNUNET_DISK_AccessPermissions perm);
-
-/**
- * Opens already existing named pipe/FIFO
- *
- * @param fn name of an existing named pipe
- * @param flags open flags
- * @param perm access permissions
- * @return pipe handle on success, NULL on error
- */
-struct GNUNET_DISK_FileHandle *
-GNUNET_DISK_npipe_open (const char *fn, enum GNUNET_DISK_OpenFlags flags,
-                        enum GNUNET_DISK_AccessPermissions perm);
-
-/**
- * Closes a named pipe/FIFO
- * @param pipe named pipe
- * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
- */
-int
-GNUNET_DISK_npipe_close (struct GNUNET_DISK_FileHandle *pipe);
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

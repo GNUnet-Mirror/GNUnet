@@ -27,6 +27,16 @@
  * @author Ioana Patrascu
  * @author Tzvetan Horozov
  * @author Milan
+ *
+ * This code manages child processes.  We can communicate with child
+ * processes using signals.  Because signals are not supported on W32
+ * and Java (at least not nicely), we can alternatively use a pipe
+ * to send signals to the child processes (if the child process is
+ * a full-blown GNUnet process that supports reading signals from 
+ * a pipe, of course).  Naturally, this also only works for 'normal'
+ * termination via signals, and not as a replacement for SIGKILL.
+ * Thus using pipes to communicate signals should only be enabled if
+ * the child is a Java process OR if we are on Windoze.
  */
 
 #ifndef GNUNET_OS_LIB_H
@@ -201,7 +211,7 @@ GNUNET_OS_process_current (void);
 
 
 /**
- * Sends sig to the process
+ * Sends a signal to the process
  *
  * @param proc pointer to process structure
  * @param sig signal
@@ -219,6 +229,7 @@ GNUNET_OS_process_kill (struct GNUNET_OS_Process *proc, int sig);
 void
 GNUNET_OS_process_close (struct GNUNET_OS_Process *proc);
 
+
 /**
  * Get the pid of the process in question
  *
@@ -228,6 +239,7 @@ GNUNET_OS_process_close (struct GNUNET_OS_Process *proc);
  */
 pid_t
 GNUNET_OS_process_get_pid (struct GNUNET_OS_Process *proc);
+
 
 /**
  * Set process priority
@@ -241,10 +253,10 @@ GNUNET_OS_set_process_priority (struct GNUNET_OS_Process *proc,
                                 enum GNUNET_SCHEDULER_Priority prio);
 
 
-
 /**
  * Start a process.
  *
+ * @param pipe_control should a pipe be used to send signals to the child?
  * @param pipe_stdin pipe to use to send input to child process (or NULL)
  * @param pipe_stdout pipe to use to get output from child process (or NULL)
  * @param filename name of the binary
@@ -252,7 +264,8 @@ GNUNET_OS_set_process_priority (struct GNUNET_OS_Process *proc,
  * @return pointer to process structure of the new process, NULL on error
  */
 struct GNUNET_OS_Process *
-GNUNET_OS_start_process_vap (struct GNUNET_DISK_PipeHandle *pipe_stdin,
+GNUNET_OS_start_process_vap (int pipe_control,
+			     struct GNUNET_DISK_PipeHandle *pipe_stdin,
 			     struct GNUNET_DISK_PipeHandle *pipe_stdout,
 			     const char *filename, 
 			     char *const argv[]);
@@ -261,6 +274,7 @@ GNUNET_OS_start_process_vap (struct GNUNET_DISK_PipeHandle *pipe_stdin,
 /**
  * Start a process.
  *
+ * @param pipe_control should a pipe be used to send signals to the child?
  * @param pipe_stdin pipe to use to send input to child process (or NULL)
  * @param pipe_stdout pipe to use to get output from child process (or NULL)
  * @param filename name of the binary
@@ -268,7 +282,8 @@ GNUNET_OS_start_process_vap (struct GNUNET_DISK_PipeHandle *pipe_stdin,
  * @return pointer to process structure of the new process, NULL on error
  */
 struct GNUNET_OS_Process *
-GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin,
+GNUNET_OS_start_process (int pipe_control,
+			 struct GNUNET_DISK_PipeHandle *pipe_stdin,
                          struct GNUNET_DISK_PipeHandle *pipe_stdout,
                          const char *filename, ...);
 
@@ -276,6 +291,7 @@ GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin,
 /**
  * Start a process.
  *
+ * @param pipe_control should a pipe be used to send signals to the child?
  * @param pipe_stdin pipe to use to send input to child process (or NULL)
  * @param pipe_stdout pipe to use to get output from child process (or NULL)
  * @param filename name of the binary
@@ -283,13 +299,15 @@ GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin,
  * @return pointer to process structure of the new process, NULL on error
  */
 struct GNUNET_OS_Process *
-GNUNET_OS_start_process_va (struct GNUNET_DISK_PipeHandle *pipe_stdin,
+GNUNET_OS_start_process_va (int pipe_control,
+			    struct GNUNET_DISK_PipeHandle *pipe_stdin,
                             struct GNUNET_DISK_PipeHandle *pipe_stdout,
                             const char *filename, va_list va);
 
 /**
  * Start a process.
  *
+ * @param pipe_control should a pipe be used to send signals to the child?
  * @param lsocks array of listen sockets to dup systemd-style (or NULL);
  *         must be NULL on platforms where dup is not supported
  * @param filename name of the binary
@@ -298,7 +316,9 @@ GNUNET_OS_start_process_va (struct GNUNET_DISK_PipeHandle *pipe_stdin,
  * @return pointer to process structure of the new process, NULL on error
  */
 struct GNUNET_OS_Process *
-GNUNET_OS_start_process_v (const SOCKTYPE *lsocks, const char *filename,
+GNUNET_OS_start_process_v (int pipe_control,
+			   const SOCKTYPE *lsocks, 
+			   const char *filename,
                            char *const argv[]);
 
 
@@ -307,6 +327,7 @@ GNUNET_OS_start_process_v (const SOCKTYPE *lsocks, const char *filename,
  */
 struct GNUNET_OS_CommandHandle;
 
+
 /**
  * Type of a function to process a line of output.
  *
@@ -314,6 +335,7 @@ struct GNUNET_OS_CommandHandle;
  * @param line line of output from a command, NULL for the end
  */
 typedef void (*GNUNET_OS_LineProcessor) (void *cls, const char *line);
+
 
 /**
  * Stop/kill a command.
@@ -370,7 +392,13 @@ GNUNET_OS_process_wait (struct GNUNET_OS_Process *proc);
 
 
 /**
- * Connects this process to its parent via pipe
+ * Connects this process to its parent via pipe;
+ * essentially, the parent control handler will read signal numbers
+ * from the 'GNUNET_OS_CONTROL_PIPE' (as given in an environment
+ * variable) and raise those signals.
+ *
+ * @param cls closure (unused)
+ * @param tc scheduler context (unused)
  */
 void
 GNUNET_OS_install_parent_control_handler (void *cls,

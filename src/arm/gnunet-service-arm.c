@@ -152,6 +152,11 @@ struct ServiceList
    */
   int is_default;
 
+  /**
+   * Should we use pipes to signal this process? (YES for Java binaries and if we
+   * are on Windoze).
+   */
+  int pipe_control;
 };
 
 /**
@@ -311,11 +316,13 @@ start_process (struct ServiceList *sl)
   GNUNET_assert (NULL == sl->proc);
   if (GNUNET_YES == use_debug)
     sl->proc =
-      do_start_process (lsocks, loprefix, sl->binary, "-c", sl->config, "-L",
+      do_start_process (sl->pipe_control,
+			lsocks, loprefix, sl->binary, "-c", sl->config, "-L",
 			"DEBUG", options, NULL);
   else
     sl->proc =
-      do_start_process (lsocks, loprefix, sl->binary, "-c", sl->config,
+      do_start_process (sl->pipe_control,
+			lsocks, loprefix, sl->binary, "-c", sl->config,
 			options, NULL);
   if (sl->proc == NULL)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Failed to start service `%s'\n"),
@@ -1070,6 +1077,12 @@ setup_service (void *cls, const char *section)
   sl->config = config;
   sl->backoff = GNUNET_TIME_UNIT_MILLISECONDS;
   sl->restart_at = GNUNET_TIME_UNIT_FOREVER_ABS;
+#if WINDOWS
+  sl->pipe_control = GNUNET_YES;
+#else
+  if (GNUNET_CONFIGURATION_have_value (cfg, section, "PIPECONTROL"))
+    sl->pipe_control = GNUNET_CONFIGURATION_get_value_yesno (cfg, section, "PIPECONTROL");
+#endif  
   GNUNET_CONTAINER_DLL_insert (running_head, running_tail, sl);
   if (GNUNET_YES !=
       GNUNET_CONFIGURATION_get_value_yesno (cfg, section, "AUTOSTART"))

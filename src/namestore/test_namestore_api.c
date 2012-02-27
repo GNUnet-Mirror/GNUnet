@@ -40,7 +40,7 @@ static int res;
 static void
 start_arm (const char *cfgname)
 {
-  arm = GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
+  arm = GNUNET_OS_start_process (GNUNET_YES, NULL, NULL, "gnunet-service-arm",
                                "gnunet-service-arm", "-c", cfgname,
 #if VERBOSE_PEERS
                                "-L", "DEBUG",

@@ -126,7 +126,7 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
 
   proc =
-      GNUNET_OS_start_process (hello_pipe_stdin, hello_pipe_stdout, fn,
+      GNUNET_OS_start_process (GNUNET_NO, hello_pipe_stdin, hello_pipe_stdout, fn,
                                "test_gnunet_echo_hello", "-", NULL);
   GNUNET_free (fn);
 

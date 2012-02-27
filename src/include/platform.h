@@ -107,6 +107,7 @@
 #include <stdarg.h>
 #include <errno.h>
 #include <signal.h>
+#include <libgen.h>
 #ifdef WINDOWS
 #include <malloc.h>             /* for alloca(), on other OSes it's in stdlib.h */
 #endif

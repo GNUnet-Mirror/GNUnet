@@ -843,7 +843,7 @@ start_gnunet_nat_server (struct GNUNET_NAT_Handle *h)
 #endif
     /* Start the server process */
     h->server_proc =
-        GNUNET_OS_start_process (NULL, h->server_stdout,
+        GNUNET_OS_start_process (GNUNET_NO, NULL, h->server_stdout,
                                  "gnunet-helper-nat-server",
                                  "gnunet-helper-nat-server",
                                  h->internal_address, NULL);
@@ -1342,7 +1342,8 @@ GNUNET_NAT_run_client (struct GNUNET_NAT_Handle *h,
        inet4, (unsigned int) h->adv_port);
 #endif
   proc =
-      GNUNET_OS_start_process (NULL, NULL, "gnunet-helper-nat-client",
+      GNUNET_OS_start_process (GNUNET_NO,
+			       NULL, NULL, "gnunet-helper-nat-client",
                                "gnunet-helper-nat-client", h->internal_address,
                                inet4, port_as_string, NULL);
   if (NULL == proc)

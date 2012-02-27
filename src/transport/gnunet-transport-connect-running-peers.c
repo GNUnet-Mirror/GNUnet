@@ -256,7 +256,7 @@ connect_to_peer (const char *cfgname, GNUNET_TRANSPORT_ReceiveCallback rec,
     GNUNET_DISK_directory_remove (p->servicehome);
   /*
    * p->arm_proc =
-   * GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
+   * GNUNET_OS_start_process (GNUNET_YES, NULL, NULL, "gnunet-service-arm",
    * "gnunet-service-arm", "-c", cfgname,
    * #if VERBOSE_PEERS
    * "-L", "DEBUG",

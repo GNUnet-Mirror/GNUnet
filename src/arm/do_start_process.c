@@ -13,7 +13,8 @@
  * @return handle of the started process, NULL on error
  */
 static struct GNUNET_OS_Process *
-do_start_process (const SOCKTYPE * lsocks, const char *first_arg, ...)
+do_start_process (int pipe_control,
+		  const SOCKTYPE * lsocks, const char *first_arg, ...)
 {
   va_list ap;
   char **argv;
@@ -95,7 +96,7 @@ do_start_process (const SOCKTYPE * lsocks, const char *first_arg, ...)
 /* *INDENT-ON* */
   va_end (ap);
   argv[argv_size] = NULL;
-  proc = GNUNET_OS_start_process_v (lsocks, argv[0], argv);
+  proc = GNUNET_OS_start_process_v (pipe_control, lsocks, argv[0], argv);
   while (argv_size > 0)
     GNUNET_free (argv[--argv_size]);
   GNUNET_free (argv);

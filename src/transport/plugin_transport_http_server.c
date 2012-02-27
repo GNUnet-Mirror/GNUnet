@@ -178,7 +178,7 @@ server_load_certificate (struct Plugin *plugin)
 #endif
     errno = 0;
     cert_creation =
-        GNUNET_OS_start_process (NULL, NULL,
+        GNUNET_OS_start_process (GNUNET_NO, NULL, NULL,
                                  "gnunet-transport-certificate-creation",
                                  "gnunet-transport-certificate-creation",
                                  key_file, cert_file, NULL);

@@ -393,7 +393,7 @@ check ()
   pfx = GNUNET_OS_installation_get_path (GNUNET_OS_IPK_BINDIR);
   GNUNET_asprintf (&fn, "%s%cgnunet-service-resolver", pfx, DIR_SEPARATOR);
   GNUNET_free (pfx);
-  proc = GNUNET_OS_start_process (NULL, NULL, fn, "gnunet-service-resolver",
+  proc = GNUNET_OS_start_process (GNUNET_YES, NULL, NULL, fn, "gnunet-service-resolver",
 #if VERBOSE
                                   "-L", "DEBUG",
 #endif

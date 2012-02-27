@@ -39,19 +39,250 @@
 
 #define GNUNET_OS_CONTROL_PIPE "GNUNET_OS_CONTROL_PIPE"
 
-#define DEBUG_OS GNUNET_EXTRA_LOGGING
-
 struct GNUNET_OS_Process
 {
+  /**
+   * PID of the process.
+   */
   pid_t pid;
+
 #if WINDOWS
+  /**
+   * Process handle.
+   */
   HANDLE handle;
 #endif
-  int sig;
+
+  /**
+   * Pipe we use to signal the process (if used).
+   */
   struct GNUNET_DISK_FileHandle *control_pipe;
+
+  /**
+   * Name of the pipe, NULL for none.
+   */
+  char *childpipename;
 };
 
+
+/**
+ * Handle for 'this' process.
+ */
 static struct GNUNET_OS_Process current_process;
+
+
+/* MinGW version of named pipe API */
+#ifdef MINGW
+/**
+ * Creates a named pipe/FIFO and opens it
+ *
+ * @param fn pointer to the name of the named pipe or to NULL
+ * @param flags open flags
+ * @param perm access permissions
+ * @return pipe handle on success, NULL on error
+ */
+static struct GNUNET_DISK_FileHandle *
+npipe_create (char **fn, enum GNUNET_DISK_OpenFlags flags,
+	      enum GNUNET_DISK_AccessPermissions perm)
+{
+  struct GNUNET_DISK_FileHandle *ret;
+  HANDLE h = NULL;
+  DWORD openMode;
+  char *name;
+
+  openMode = 0;
+  if (flags & GNUNET_DISK_OPEN_READWRITE)
+    openMode = PIPE_ACCESS_DUPLEX;
+  else if (flags & GNUNET_DISK_OPEN_READ)
+    openMode = PIPE_ACCESS_INBOUND;
+  else if (flags & GNUNET_DISK_OPEN_WRITE)
+    openMode = PIPE_ACCESS_OUTBOUND;
+  if (flags & GNUNET_DISK_OPEN_FAILIFEXISTS)
+    openMode |= FILE_FLAG_FIRST_PIPE_INSTANCE;
+
+  while (h == NULL)
+  {
+    DWORD error_code;
+
+    name = NULL;
+    if (*fn != NULL)
+    {
+      GNUNET_asprintf (&name, "\\\\.\\pipe\\%.246s", fn);
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Trying to create an instance of named pipe `%s'\n", name);
+      /* 1) This might work just fine with UTF-8 strings as it is.
+       * 2) This is only used by GNUnet itself, and only with latin names.
+       */
+      h = CreateNamedPipe (name, openMode | FILE_FLAG_OVERLAPPED,
+                           PIPE_TYPE_BYTE | PIPE_READMODE_BYTE, 2, 1, 1, 0,
+                           NULL);
+    }
+    else
+    {
+      GNUNET_asprintf (fn, "\\\\.\\pipe\\gnunet-%llu",
+                       GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                                 UINT64_MAX));
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "Trying to create unique named pipe `%s'\n",
+           *fn);
+      h = CreateNamedPipe (*fn,
+                           openMode | FILE_FLAG_OVERLAPPED |
+                           FILE_FLAG_FIRST_PIPE_INSTANCE,
+                           PIPE_TYPE_BYTE | PIPE_READMODE_BYTE, 2, 1, 1, 0,
+                           NULL);
+    }
+    error_code = GetLastError ();
+    if (name)
+      GNUNET_free (name);
+    /* don't re-set name to NULL yet */
+    if (h == INVALID_HANDLE_VALUE)
+    {
+      SetErrnoFromWinError (error_code);
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Pipe creation have failed because of %d, errno is %d\n", error_code,
+           errno);
+      if (name == NULL)
+      {
+        LOG (GNUNET_ERROR_TYPE_DEBUG,
+             "Pipe was to be unique, considering re-creation\n");
+        GNUNET_free (*fn);
+        *fn = NULL;
+        if (error_code != ERROR_ACCESS_DENIED && error_code != ERROR_PIPE_BUSY)
+        {
+          return NULL;
+        }
+        LOG (GNUNET_ERROR_TYPE_DEBUG,
+             "Pipe name was not unique, trying again\n");
+        h = NULL;
+      }
+      else
+        return NULL;
+    }
+  }
+  errno = 0;
+
+  ret = GNUNET_malloc (sizeof (*ret));
+  ret->h = h;
+  ret->type = GNUNET_PIPE;
+  ret->oOverlapRead = GNUNET_malloc (sizeof (OVERLAPPED));
+  ret->oOverlapWrite = GNUNET_malloc (sizeof (OVERLAPPED));
+  ret->oOverlapRead->hEvent = CreateEvent (NULL, FALSE, FALSE, NULL);
+  ret->oOverlapWrite->hEvent = CreateEvent (NULL, FALSE, FALSE, NULL);
+  return ret;
+}
+
+
+/**
+ * Opens already existing named pipe/FIFO
+ *
+ * @param fn name of an existing named pipe
+ * @param flags open flags
+ * @param perm access permissions
+ * @return pipe handle on success, NULL on error
+ */
+static struct GNUNET_DISK_FileHandle *
+npipe_open (const char *fn, enum GNUNET_DISK_OpenFlags flags,
+	    enum GNUNET_DISK_AccessPermissions perm)
+{
+  struct GNUNET_DISK_FileHandle *ret;
+  HANDLE h;
+  DWORD openMode;
+
+  openMode = 0;
+  if (flags & GNUNET_DISK_OPEN_READWRITE)
+    openMode = GENERIC_WRITE | GENERIC_READ;
+  else if (flags & GNUNET_DISK_OPEN_READ)
+    openMode = GENERIC_READ;
+  else if (flags & GNUNET_DISK_OPEN_WRITE)
+    openMode = GENERIC_WRITE;
+
+  h = CreateFile (fn, openMode, 0, NULL, OPEN_EXISTING,
+                  FILE_FLAG_OVERLAPPED | FILE_READ_ATTRIBUTES, NULL);
+  if (h == INVALID_HANDLE_VALUE)
+  {
+    SetErrnoFromWinError (GetLastError ());
+    return NULL;
+  }
+
+  ret = GNUNET_malloc (sizeof (*ret));
+  ret->h = h;
+  ret->type = GNUNET_PIPE;
+  ret->oOverlapRead = GNUNET_malloc (sizeof (OVERLAPPED));
+  ret->oOverlapWrite = GNUNET_malloc (sizeof (OVERLAPPED));
+  ret->oOverlapRead->hEvent = CreateEvent (NULL, FALSE, FALSE, NULL);
+  ret->oOverlapWrite->hEvent = CreateEvent (NULL, FALSE, FALSE, NULL);
+
+  return ret;
+}
+
+#else
+/* UNIX version of named-pipe API */
+
+/**
+ * Clean up a named pipe and the directory it was placed in.
+ *
+ * @param fn name of the pipe
+ */
+static void
+cleanup_npipe (const char *fn)
+{
+  char *dn;
+  char *dp;
+
+  if (0 != unlink (fn))
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "unlink", fn);
+  dn = GNUNET_strdup (fn);
+  dp = dirname (dn);
+  if (0 != rmdir (dp))
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "rmdir", dp);
+  GNUNET_free (dn);  
+}
+
+
+/**
+ * Setup a named pipe.
+ *
+ * @param fn where to store the name of the new pipe,
+ *           if *fn is non-null, the name of the pipe to setup
+ * @return GNUNET_OK on success
+ */
+static int
+npipe_setup (char **fn)
+{
+  if (NULL == *fn)
+  {
+    /* FIXME: hardwired '/tmp' path... is bad */
+    char dir[] = "/tmp/gnunet-pipe-XXXXXX"; 
+
+    if (NULL == mkdtemp (dir))
+    {
+      LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "mkdtemp");
+      return GNUNET_SYSERR;
+    }
+    GNUNET_asprintf (fn, "%s/child-control", dir);
+  }
+  if (-1 == mkfifo (*fn, S_IRUSR | S_IWUSR))
+    return GNUNET_SYSERR;  
+  return GNUNET_OK;
+}
+
+
+/**
+ * Open an existing named pipe.
+ *
+ * @param fn name of the file
+ * @param flags flags to use
+ * @param perm permissions to use
+ * @return NULL on error
+ */
+static struct GNUNET_DISK_FileHandle *
+npipe_open (const char *fn,
+	    enum GNUNET_DISK_OpenFlags flags,
+	    enum GNUNET_DISK_AccessPermissions perm)
+{
+  flags = flags & (~GNUNET_DISK_OPEN_FAILIFEXISTS);
+  return GNUNET_DISK_file_open (fn, flags, perm);
+}
+#endif
 
 
 /**
@@ -64,44 +295,41 @@ static void
 parent_control_handler (void *cls,
                         const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct GNUNET_DISK_FileHandle *control_pipe =
-      (struct GNUNET_DISK_FileHandle *) cls;
+  struct GNUNET_DISK_FileHandle *control_pipe = cls;
   int sig;
 
-#if DEBUG_OS
   LOG (GNUNET_ERROR_TYPE_DEBUG, "`%s' invoked because of %d\n", __FUNCTION__,
        tc->reason);
-#endif
   if (tc->reason &
       (GNUNET_SCHEDULER_REASON_SHUTDOWN | GNUNET_SCHEDULER_REASON_TIMEOUT |
        GNUNET_SCHEDULER_REASON_PREREQ_DONE))
   {
-    GNUNET_DISK_npipe_close (control_pipe);
+    GNUNET_DISK_file_close (control_pipe);
+    return;
   }
-  else
+  if (GNUNET_DISK_file_read (control_pipe, &sig, sizeof (sig)) !=
+      sizeof (sig))
   {
-    if (GNUNET_DISK_file_read (control_pipe, &sig, sizeof (sig)) !=
-        sizeof (sig))
-    {
-      LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "GNUNET_DISK_file_read");
-      GNUNET_DISK_npipe_close (control_pipe);
-    }
-    else
-    {
-#if DEBUG_OS
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "Got control code %d from parent\n", sig);
-#endif
-      GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
-                                      control_pipe, &parent_control_handler,
-                                      control_pipe);
-      raise (sig);
-    }
+    LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "GNUNET_DISK_file_read");
+    GNUNET_DISK_file_close (control_pipe);
+    return;
   }
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Got control code %d from parent\n", sig);
+  GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
+				  control_pipe, &parent_control_handler,
+				  control_pipe);
+  raise (sig);
 }
 
 
 /**
- * Task that connects this process to its parent via pipe
+ * Task that connects this process to its parent via pipe;
+ * essentially, the parent control handler will read signal numbers
+ * from the 'GNUNET_OS_CONTROL_PIPE' (as given in an environment
+ * variable) and raise those signals.
+ *
+ * @param cls closure (unused)
+ * @param tc scheduler context (unused)
  */
 void
 GNUNET_OS_install_parent_control_handler (void *cls,
@@ -112,27 +340,26 @@ GNUNET_OS_install_parent_control_handler (void *cls,
   struct GNUNET_DISK_FileHandle *control_pipe;
 
   env_buf = getenv (GNUNET_OS_CONTROL_PIPE);
-  if ((env_buf == NULL) || (strlen (env_buf) <= 0))
+  if ( (env_buf == NULL) || (strlen (env_buf) <= 0) )
   {
-    LOG (GNUNET_ERROR_TYPE_INFO, _("Not installing a handler because $%s=%s\n"),
-         GNUNET_OS_CONTROL_PIPE, env_buf);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+	 "Not installing a handler because $%s is empty\n",
+         GNUNET_OS_CONTROL_PIPE);
     putenv ("GNUNET_OS_CONTROL_PIPE=");
     return;
   }
   control_pipe =
-      GNUNET_DISK_npipe_open (env_buf, GNUNET_DISK_OPEN_READ,
-                              GNUNET_DISK_PERM_USER_READ |
-                              GNUNET_DISK_PERM_USER_WRITE);
-  if (control_pipe == NULL)
+    npipe_open (env_buf, GNUNET_DISK_OPEN_READ,
+		GNUNET_DISK_PERM_USER_READ |
+		GNUNET_DISK_PERM_USER_WRITE);
+  if (NULL == control_pipe)
   {
     LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "open", env_buf);
     putenv ("GNUNET_OS_CONTROL_PIPE=");
     return;
   }
-#if DEBUG_OS
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Adding parent control handler pipe `%s' to the scheduler\n", env_buf);
-#endif
   GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL, control_pipe,
                                   &parent_control_handler, control_pipe);
   putenv ("GNUNET_OS_CONTROL_PIPE=");
@@ -160,104 +387,64 @@ GNUNET_OS_process_current ()
 }
 
 
+/**
+ * Sends a signal to the process
+ *
+ * @param proc pointer to process structure
+ * @param sig signal
+ * @return 0 on success, -1 on error
+ */
 int
 GNUNET_OS_process_kill (struct GNUNET_OS_Process *proc, int sig)
 {
-#if ENABLE_WINDOWS_WORKAROUNDS
-  int res = 0;
-  int ret = 0;
+  int ret;
 
-  ret = GNUNET_DISK_file_write (proc->control_pipe, &sig, sizeof (sig));
-  if (ret != sizeof (sig))
+#if !WINDOWS
+  if ( (NULL == proc->control_pipe) &&
+       (NULL != proc->childpipename) )
+    proc->control_pipe = npipe_open (proc->childpipename,
+				     GNUNET_DISK_OPEN_WRITE,
+				     GNUNET_DISK_PERM_USER_READ |
+				     GNUNET_DISK_PERM_USER_WRITE);    
+#endif
+  if (NULL == proc->control_pipe)
   {
-    if (errno == ECOMM)
-    {
-      /* Child process is not controllable via pipe */
-#if DEBUG_OS
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-           "Child process is not controllable, will kill it directly\n");
-#endif
-    }
-    else if (errno == EPIPE)
-    {
-#if DEBUG_OS
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-           "Failed to write into control pipe, because pipe is invalid (the child is most likely dead)\n");
-#endif
-    }
-    else
-      LOG (GNUNET_ERROR_TYPE_WARNING,
-           "Failed to write into control pipe , errno is %d\n", errno);
-#if WINDOWS && !defined(__CYGWIN__)
-    TerminateProcess (proc->handle, 0);
-#else
-    PLIBC_KILL (proc->pid, sig);
-#endif
-  }
-  else
-  {
-#if DEBUG_OS
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Wrote control code into control pipe, now waiting\n");
-#endif
-
 #if WINDOWS
-    /* Give it 3 seconds to die, then kill it in a nice Windows-specific way */
-    if (WaitForSingleObject (proc->handle, 3000) != WAIT_OBJECT_0)
-      TerminateProcess (proc->handle, 0);
-    res = 0;
+    /* no pipe and windows? can't do this */
+    errno = EINVAL;
+    return -1;
 #else
-    struct GNUNET_NETWORK_FDSet *rfds;
-    struct GNUNET_NETWORK_FDSet *efds;
-
-    rfds = GNUNET_NETWORK_fdset_create ();
-    efds = GNUNET_NETWORK_fdset_create ();
-
-    GNUNET_NETWORK_fdset_handle_set (rfds, proc->control_pipe);
-    GNUNET_NETWORK_fdset_handle_set (efds, proc->control_pipe);
-
-    /* Ndurner thought this up, and i have no idea what it does.
-     * There's have never been any code to answer the shutdown call
-     * (write a single int into the pipe, so that this function can read it).
-     * On *nix select() will probably tell that pipe is ready
-     * for reading, once the other process shuts down,
-     * but the read () call will fail, triggering a kill ()
-     * on the pid that is already dead. This will probably result in non-0
-     * return from kill(), and therefore from this function.
-     */
-    while (1)
-    {
-      ret =
-          GNUNET_NETWORK_socket_select (rfds, NULL, efds,
-                                        GNUNET_TIME_relative_multiply
-                                        (GNUNET_TIME_relative_get_unit (),
-                                         5000));
-
-      if (ret < 1 ||
-          GNUNET_NETWORK_fdset_handle_isset (efds, proc->control_pipe))
-      {
-        /* Just to be sure */
-        PLIBC_KILL (proc->pid, sig);
-        res = 0;
-        break;
-      }
-      else
-      {
-        if (GNUNET_DISK_file_read (proc->control_pipe, &ret, sizeof (ret)) !=
-            GNUNET_OK)
-          res = PLIBC_KILL (proc->pid, sig);
-
-        /* Child signaled shutdown is in progress */
-        continue;
-      }
-    }
-#endif
+    return kill (proc->pid, sig);
+#endif    
   }
-
-  return res;
+  ret = GNUNET_DISK_file_write (proc->control_pipe, &sig, sizeof (sig));
+  if (ret == sizeof (sig))
+    return 0;
+  /* pipe failed, try other methods */
+  switch (sig)
+  {
+  case SIGHUP:
+  case SIGINT:
+  case SIGKILL:
+  case SIGTERM:
+#if WINDOWS && !defined(__CYGWIN__)
+    if (0 == TerminateProcess (proc->handle, 0))
+    {
+      /* FIXME: set 'errno' */
+      return -1;
+    }
+    return 0;
 #else
-  return kill (proc->pid, sig);
+    return PLIBC_KILL (proc->pid, sig);
 #endif
+  default:
+#if WINDOWS
+    errno = EINVAL;
+    return -1;
+#else
+    return kill (proc->pid, sig);
+#endif    
+  }
 }
 
 /**
@@ -279,13 +466,18 @@ GNUNET_OS_process_close (struct GNUNET_OS_Process *proc)
 {
 #if ENABLE_WINDOWS_WORKAROUNDS
   if (proc->control_pipe)
-    GNUNET_DISK_npipe_close (proc->control_pipe);
+    GNUNET_DISK_file_close (proc->control_pipe);
 #endif
 // FIXME NILS
 #ifdef WINDOWS
   if (proc->handle != NULL)
     CloseHandle (proc->handle);
 #endif
+  if (NULL != proc->childpipename)
+  {
+    cleanup_npipe (proc->childpipename);
+    GNUNET_free (proc->childpipename);
+  }
   GNUNET_free (proc);
 }
 
@@ -417,10 +609,8 @@ GNUNET_OS_set_process_priority (struct GNUNET_OS_Process *proc,
     }
   }
 #else
-#if DEBUG_OS
   LOG (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
        "Priority management not availabe for this platform\n");
-#endif
 #endif
   return GNUNET_OK;
 }
@@ -531,6 +721,7 @@ CreateCustomEnvTable (char **vars)
 /**
  * Start a process.
  *
+ * @param pipe_control should a pipe be used to send signals to the child?
  * @param pipe_stdin pipe to use to send input to child process (or NULL)
  * @param pipe_stdout pipe to use to get output from child process (or NULL)
  * @param filename name of the binary
@@ -538,32 +729,25 @@ CreateCustomEnvTable (char **vars)
  * @return pointer to process structure of the new process, NULL on error
  */
 struct GNUNET_OS_Process *
-GNUNET_OS_start_process_vap (struct GNUNET_DISK_PipeHandle *pipe_stdin,
+GNUNET_OS_start_process_vap (int pipe_control,
+			     struct GNUNET_DISK_PipeHandle *pipe_stdin,
 			     struct GNUNET_DISK_PipeHandle *pipe_stdout,
 			     const char *filename, 
 			     char *const argv[])
 {
-#if ENABLE_WINDOWS_WORKAROUNDS
-  char *childpipename = NULL;
-  struct GNUNET_DISK_FileHandle *control_pipe = NULL;
-#endif
-  struct GNUNET_OS_Process *gnunet_proc = NULL;
-
 #ifndef MINGW
+  char *childpipename = NULL;
+  struct GNUNET_OS_Process *gnunet_proc = NULL;
   pid_t ret;
   int fd_stdout_write;
   int fd_stdout_read;
   int fd_stdin_read;
   int fd_stdin_write;
 
-#if ENABLE_WINDOWS_WORKAROUNDS
-  control_pipe =
-      GNUNET_DISK_npipe_create (&childpipename, GNUNET_DISK_OPEN_WRITE,
-                                GNUNET_DISK_PERM_USER_READ |
-                                GNUNET_DISK_PERM_USER_WRITE);
-  if (control_pipe == NULL)
-    return NULL;
-#endif
+  if ( (GNUNET_YES == pipe_control) &&
+       (GNUNET_OK != 
+	npipe_setup (&childpipename)) )
+    return NULL;  
   if (pipe_stdout != NULL)
   {
     GNUNET_DISK_internal_file_handle_ (GNUNET_DISK_pipe_handle
@@ -585,34 +769,24 @@ GNUNET_OS_start_process_vap (struct GNUNET_DISK_PipeHandle *pipe_stdin,
   }
 
   ret = fork ();
-  if (ret != 0)
+  if (-1 == ret)
   {
-    if (ret == -1)
-    {
-      LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "fork");
-#if ENABLE_WINDOWS_WORKAROUNDS
-      GNUNET_DISK_npipe_close (control_pipe);
-#endif
-    }
-    else
-    {
-      gnunet_proc = GNUNET_malloc (sizeof (struct GNUNET_OS_Process));
-      gnunet_proc->pid = ret;
-#if ENABLE_WINDOWS_WORKAROUNDS
-      gnunet_proc->control_pipe = control_pipe;
-#endif
-    }
-#if ENABLE_WINDOWS_WORKAROUNDS
-    GNUNET_free (childpipename);
-#endif
+    LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "fork");
+    GNUNET_free_non_null (childpipename);
+    return NULL;
+  }
+  if (0 != ret)
+  {
+    gnunet_proc = GNUNET_malloc (sizeof (struct GNUNET_OS_Process));
+    gnunet_proc->pid = ret;
+    gnunet_proc->childpipename = childpipename;
     return gnunet_proc;
   }
-
-#if ENABLE_WINDOWS_WORKAROUNDS
-  setenv (GNUNET_OS_CONTROL_PIPE, childpipename, 1);
-  GNUNET_free (childpipename);
-#endif
-
+  if (NULL != childpipename)
+  {
+    setenv (GNUNET_OS_CONTROL_PIPE, childpipename, 1);
+    GNUNET_free (childpipename);
+  }
   if (pipe_stdout != NULL)
   {
     GNUNET_break (0 == close (fd_stdout_read));
@@ -633,6 +807,8 @@ GNUNET_OS_start_process_vap (struct GNUNET_DISK_PipeHandle *pipe_stdin,
   LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_ERROR, "execvp", filename);
   _exit (1);
 #else
+  char *childpipename = NULL;
+  struct GNUNET_OS_Process *gnunet_proc = NULL;
   char *arg;
   unsigned int cmdlen;
   char *cmd, *idx;
@@ -749,26 +925,31 @@ GNUNET_OS_start_process_vap (struct GNUNET_DISK_PipeHandle *pipe_stdin,
                                        &stdout_handle, sizeof (HANDLE));
     start.hStdOutput = stdout_handle;
   }
-
-  control_pipe =
-      GNUNET_DISK_npipe_create (&childpipename, GNUNET_DISK_OPEN_WRITE,
-                                GNUNET_DISK_PERM_USER_READ |
-                                GNUNET_DISK_PERM_USER_WRITE);
-  if (control_pipe == NULL)
+  if (GNUNET_YES == pipe_control)
   {
-    GNUNET_free (cmd);
-    GNUNET_free (path);
-    return NULL;
+    control_pipe =
+      npipe_create (&childpipename, GNUNET_DISK_OPEN_WRITE,
+		    GNUNET_DISK_PERM_USER_READ |
+		    GNUNET_DISK_PERM_USER_WRITE);
+    if (control_pipe == NULL)
+    {
+      GNUNET_free (cmd);
+      GNUNET_free (path);
+      return NULL;
+    }
   }
-
-#if DEBUG_OS
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Opened the parent end of the pipe `%s'\n",
-       childpipename);
-#endif
-
-  GNUNET_asprintf (&our_env[0], "%s=", GNUNET_OS_CONTROL_PIPE);
-  GNUNET_asprintf (&our_env[1], "%s", childpipename);
-  our_env[2] = NULL;
+  if (NULL != childpipename)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Opened the parent end of the pipe `%s'\n",
+	 childpipename);
+    GNUNET_asprintf (&our_env[0], "%s=", GNUNET_OS_CONTROL_PIPE);
+    GNUNET_asprintf (&our_env[1], "%s", childpipename);
+    our_env[2] = NULL;
+  }
+  else
+  {
+    our_env[0] = NULL;
+  }
   env_block = CreateCustomEnvTable (our_env);
   GNUNET_free (our_env[0]);
   GNUNET_free (our_env[1]);
@@ -808,6 +989,7 @@ GNUNET_OS_start_process_vap (struct GNUNET_DISK_PipeHandle *pipe_stdin,
 /**
  * Start a process.
  *
+ * @param pipe_control should a pipe be used to send signals to the child?
  * @param pipe_stdin pipe to use to send input to child process (or NULL)
  * @param pipe_stdout pipe to use to get output from child process (or NULL)
  * @param filename name of the binary
@@ -815,7 +997,8 @@ GNUNET_OS_start_process_vap (struct GNUNET_DISK_PipeHandle *pipe_stdin,
  * @return pointer to process structure of the new process, NULL on error
  */
 struct GNUNET_OS_Process *
-GNUNET_OS_start_process_va (struct GNUNET_DISK_PipeHandle *pipe_stdin,
+GNUNET_OS_start_process_va (int pipe_control,
+			    struct GNUNET_DISK_PipeHandle *pipe_stdin,
                             struct GNUNET_DISK_PipeHandle *pipe_stdout,
                             const char *filename, va_list va)
 {
@@ -835,7 +1018,8 @@ GNUNET_OS_start_process_va (struct GNUNET_DISK_PipeHandle *pipe_stdin,
   while (NULL != (argv[argc] = va_arg (ap, char *)))
     argc++;
   va_end (ap);
-  ret = GNUNET_OS_start_process_vap (pipe_stdin,
+  ret = GNUNET_OS_start_process_vap (pipe_control,
+				     pipe_stdin,
 				     pipe_stdout,
 				     filename,
 				     argv);
@@ -848,6 +1032,7 @@ GNUNET_OS_start_process_va (struct GNUNET_DISK_PipeHandle *pipe_stdin,
 /**
  * Start a process.
  *
+ * @param pipe_control should a pipe be used to send signals to the child?
  * @param pipe_stdin pipe to use to send input to child process (or NULL)
  * @param pipe_stdout pipe to use to get output from child process (or NULL)
  * @param filename name of the binary
@@ -857,7 +1042,8 @@ GNUNET_OS_start_process_va (struct GNUNET_DISK_PipeHandle *pipe_stdin,
  *
  */
 struct GNUNET_OS_Process *
-GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin,
+GNUNET_OS_start_process (int pipe_control,
+			 struct GNUNET_DISK_PipeHandle *pipe_stdin,
                          struct GNUNET_DISK_PipeHandle *pipe_stdout,
                          const char *filename, ...)
 {
@@ -865,7 +1051,7 @@ GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin,
   va_list ap;
 
   va_start (ap, filename);
-  ret = GNUNET_OS_start_process_va (pipe_stdin, pipe_stdout, filename, ap);
+  ret = GNUNET_OS_start_process_va (pipe_control, pipe_stdin, pipe_stdout, filename, ap);
   va_end (ap);
   return ret;
 }
@@ -874,6 +1060,7 @@ GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin,
 /**
  * Start a process.
  *
+ * @param pipe_control should a pipe be used to send signals to the child?
  * @param lsocks array of listen sockets to dup systemd-style (or NULL);
  *         must be NULL on platforms where dup is not supported
  * @param filename name of the binary
@@ -881,20 +1068,17 @@ GNUNET_OS_start_process (struct GNUNET_DISK_PipeHandle *pipe_stdin,
  * @return process ID of the new process, -1 on error
  */
 struct GNUNET_OS_Process *
-GNUNET_OS_start_process_v (const SOCKTYPE *lsocks,
+GNUNET_OS_start_process_v (int pipe_control,
+			   const SOCKTYPE *lsocks,
                            const char *filename,
                            char *const argv[])
 {
-#if ENABLE_WINDOWS_WORKAROUNDS
-  struct GNUNET_DISK_FileHandle *control_pipe = NULL;
-  char *childpipename = NULL;
-#endif
-
 #ifndef MINGW
   pid_t ret;
   char lpid[16];
   char fds[16];
   struct GNUNET_OS_Process *gnunet_proc = NULL;
+  char *childpipename = NULL;
   int i;
   int j;
   int k;
@@ -903,15 +1087,9 @@ GNUNET_OS_start_process_v (const SOCKTYPE *lsocks,
   int *lscp;
   unsigned int ls;
 
-#if ENABLE_WINDOWS_WORKAROUNDS
-  control_pipe =
-      GNUNET_DISK_npipe_create (&childpipename, GNUNET_DISK_OPEN_WRITE,
-                                GNUNET_DISK_PERM_USER_READ |
-                                GNUNET_DISK_PERM_USER_WRITE);
-  if (control_pipe == NULL)
-    return NULL;
-#endif
-
+  if ( (GNUNET_YES == pipe_control) &&
+       (GNUNET_OK != npipe_setup (&childpipename)) )
+    return NULL;  
   lscp = NULL;
   ls = 0;
   if (lsocks != NULL)
@@ -922,36 +1100,26 @@ GNUNET_OS_start_process_v (const SOCKTYPE *lsocks,
     GNUNET_array_append (lscp, ls, -1);
   }
   ret = fork ();
-  if (ret != 0)
+  if (-1 == ret)
   {
-    if (ret == -1)
-    {
-      LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "fork");
-#if ENABLE_WINDOWS_WORKAROUNDS
-      GNUNET_DISK_npipe_close (control_pipe);
-#endif
-    }
-    else
-    {
-      gnunet_proc = GNUNET_malloc (sizeof (struct GNUNET_OS_Process));
-      gnunet_proc->pid = ret;
-#if ENABLE_WINDOWS_WORKAROUNDS
-      gnunet_proc->control_pipe = control_pipe;
-
-#endif
-    }
+    LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "fork");
+    GNUNET_free_non_null (childpipename);
     GNUNET_array_grow (lscp, ls, 0);
-#if ENABLE_WINDOWS_WORKAROUNDS
-    GNUNET_free (childpipename);
-#endif
+    return NULL;
+  }
+  if (0 != ret)
+  {
+    gnunet_proc = GNUNET_malloc (sizeof (struct GNUNET_OS_Process));
+    gnunet_proc->pid = ret;
+    gnunet_proc->childpipename = childpipename;  
+    GNUNET_array_grow (lscp, ls, 0);
     return gnunet_proc;
   }
-
-#if ENABLE_WINDOWS_WORKAROUNDS
-  setenv (GNUNET_OS_CONTROL_PIPE, childpipename, 1);
-  GNUNET_free (childpipename);
-#endif
-
+  if (NULL != childpipename)
+  {
+    setenv (GNUNET_OS_CONTROL_PIPE, childpipename, 1);
+    GNUNET_free (childpipename);
+  }
   if (lscp != NULL)
   {
     /* read systemd documentation... */
@@ -999,6 +1167,8 @@ GNUNET_OS_start_process_v (const SOCKTYPE *lsocks,
   LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_ERROR, "execvp", filename);
   _exit (1);
 #else
+  struct GNUNET_DISK_FileHandle *control_pipe = NULL;
+  char *childpipename = NULL;
   char **arg, **non_const_argv;
   unsigned int cmdlen;
   char *cmd, *idx;
@@ -1006,9 +1176,7 @@ GNUNET_OS_start_process_v (const SOCKTYPE *lsocks,
   PROCESS_INFORMATION proc;
   int argcount = 0;
   struct GNUNET_OS_Process *gnunet_proc = NULL;
-
   char path[MAX_PATH + 1];
-
   char *our_env[5] = { NULL, NULL, NULL, NULL, NULL };
   char *env_block = NULL;
   char *pathbuf;
@@ -1023,7 +1191,7 @@ GNUNET_OS_start_process_v (const SOCKTYPE *lsocks,
   HANDLE lsocks_read;
   HANDLE lsocks_write;
   wchar_t wpath[MAX_PATH + 1], wcmd[32768];
-
+  int env_off;
   int fail;
 
   /* Search in prefix dir (hopefully - the directory from which
@@ -1130,15 +1298,18 @@ GNUNET_OS_start_process_v (const SOCKTYPE *lsocks,
   memset (&start, 0, sizeof (start));
   start.cb = sizeof (start);
 
-  control_pipe =
-      GNUNET_DISK_npipe_create (&childpipename, GNUNET_DISK_OPEN_WRITE,
-                                GNUNET_DISK_PERM_USER_READ |
-                                GNUNET_DISK_PERM_USER_WRITE);
-  if (control_pipe == NULL)
+  if (GNUNET_YES == pipe_control)
   {
-    GNUNET_free (cmd);
-    GNUNET_free (path);
-    return NULL;
+    control_pipe =
+      npipe_create (&childpipename, GNUNET_DISK_OPEN_WRITE,
+		    GNUNET_DISK_PERM_USER_READ |
+		    GNUNET_DISK_PERM_USER_WRITE);
+    if (control_pipe == NULL)
+    {
+      GNUNET_free (cmd);
+      GNUNET_free (path);
+      return NULL;
+    }
   }
   if (lsocks != NULL && lsocks[0] != INVALID_SOCKET)
   {
@@ -1160,29 +1331,25 @@ GNUNET_OS_start_process_v (const SOCKTYPE *lsocks,
                                        &lsocks_read, sizeof (HANDLE));
   }
 
-#if DEBUG_OS
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Opened the parent end of the pipe `%s'\n",
-       childpipename);
-#endif
-
-  GNUNET_asprintf (&our_env[0], "%s=", GNUNET_OS_CONTROL_PIPE);
-  GNUNET_asprintf (&our_env[1], "%s", childpipename);
-  GNUNET_free (childpipename);
-  if (lsocks == NULL || lsocks[0] == INVALID_SOCKET)
-    our_env[2] = NULL;
-  else
+  env_off = 0;
+  if (NULL != childpipename)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Opened the parent end of the pipe `%s'\n",
+	 childpipename);
+    GNUNET_asprintf (&our_env[env_off++], "%s=", GNUNET_OS_CONTROL_PIPE);
+    GNUNET_asprintf (&our_env[env_off++], "%s", childpipename);
+    GNUNET_free (childpipename);
+  }
+  if ( (lsocks != NULL) && (lsocks[0] != INVALID_SOCKET))
   {
     /*This will tell the child that we're going to send lsocks over the pipe*/
-    GNUNET_asprintf (&our_env[2], "%s=", "GNUNET_OS_READ_LSOCKS");
-    GNUNET_asprintf (&our_env[3], "%lu", lsocks_read);
-    our_env[4] = NULL;
+    GNUNET_asprintf (&our_env[env_off++], "%s=", "GNUNET_OS_READ_LSOCKS");
+    GNUNET_asprintf (&our_env[env_off++], "%lu", lsocks_read);
   }
+  our_env[env_off++] = NULL;
   env_block = CreateCustomEnvTable (our_env);
-  GNUNET_free_non_null (our_env[0]);
-  GNUNET_free_non_null (our_env[1]);
-  GNUNET_free_non_null (our_env[2]);
-  GNUNET_free_non_null (our_env[3]);
-
+  while (0 > env_off)
+    GNUNET_free_non_null (our_env[--env_off]);
   if (ERROR_SUCCESS != plibc_conv_to_win_pathwconv(path, wpath)
       || ERROR_SUCCESS != plibc_conv_to_win_pathwconv(cmd, wcmd)
       || !CreateProcessW
@@ -1191,8 +1358,9 @@ GNUNET_OS_start_process_v (const SOCKTYPE *lsocks,
   {
     SetErrnoFromWinError (GetLastError ());
     LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "CreateProcess");
-    GNUNET_DISK_npipe_close (control_pipe);
-    if (lsocks != NULL)
+    if (NULL != control_pipe)
+      GNUNET_DISK_file_close (control_pipe);
+    if (NULL != lsocks)
       GNUNET_DISK_pipe_close (lsocks_pipe);
     GNUNET_free (env_block);
     GNUNET_free (cmd);
@@ -1286,11 +1454,11 @@ GNUNET_OS_start_process_v (const SOCKTYPE *lsocks,
      */
     TerminateProcess (gnunet_proc->handle, 0);
     CloseHandle (gnunet_proc->handle);
-    GNUNET_DISK_npipe_close (gnunet_proc->control_pipe);
+    if (NULL != gnunet_proc->control_pipe)
+      GNUNET_DISK_file_close (gnunet_proc->control_pipe);
     GNUNET_free (gnunet_proc);
     return NULL;
   }
-
   return gnunet_proc;
 #endif
 }
@@ -1599,7 +1767,7 @@ GNUNET_OS_command_run (GNUNET_OS_LineProcessor proc, void *proc_cls,
   if (NULL == opipe)
     return NULL;
   va_start (ap, binary);
-  eip = GNUNET_OS_start_process_va (NULL, opipe, binary, ap);
+  eip = GNUNET_OS_start_process_va (GNUNET_NO, NULL, opipe, binary, ap);
   va_end (ap);
   if (NULL == eip)
   {

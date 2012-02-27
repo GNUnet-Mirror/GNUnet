@@ -818,13 +818,11 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls)
   current_lifeness = GNUNET_YES;
   GNUNET_SCHEDULER_add_continuation (task, task_cls,
                                      GNUNET_SCHEDULER_REASON_STARTUP);
-#if ENABLE_WINDOWS_WORKAROUNDS
   active_task = (void *) (long) -1;     /* force passing of sanity check */
   GNUNET_SCHEDULER_add_now_with_lifeness (GNUNET_NO,
                                           &GNUNET_OS_install_parent_control_handler,
                                           NULL);
   active_task = NULL;
-#endif
   last_tr = 0;
   busy_wait_warning = 0;
   while (GNUNET_OK == check_lifeness ())

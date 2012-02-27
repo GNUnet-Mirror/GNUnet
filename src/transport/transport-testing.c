@@ -304,7 +304,8 @@ GNUNET_TRANSPORT_TESTING_start_peer (struct GNUNET_TRANSPORT_TESTING_handle
   }
 
   p->arm_proc =
-      GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
+      GNUNET_OS_start_process (GNUNET_YES,
+			       NULL, NULL, "gnunet-service-arm",
                                "gnunet-service-arm", "-c", cfgname,
 #if VERBOSE_PEERS
                                "-L", "DEBUG",
@@ -420,7 +421,8 @@ GNUNET_TRANSPORT_TESTING_restart_peer (struct GNUNET_TRANSPORT_TESTING_handle
     goto fail;
 
   p->arm_proc =
-      GNUNET_OS_start_process (NULL, NULL, "gnunet-service-arm",
+      GNUNET_OS_start_process (GNUNET_YES, 
+			       NULL, NULL, "gnunet-service-arm",
                                "gnunet-service-arm", "-c", cfgname,
 #if VERBOSE_PEERS
                                "-L", "DEBUG",
