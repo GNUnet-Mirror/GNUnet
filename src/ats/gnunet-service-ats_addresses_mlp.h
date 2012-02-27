@@ -375,6 +375,7 @@ GAS_mlp_address_change_preference (struct GAS_MLP_Handle *mlp,
  * Get the preferred address for a specific peer
  *
  * @param mlp the MLP Handle
+ * @param addresses address hashmap
  * @param peer the peer
  * @return suggested address
  */

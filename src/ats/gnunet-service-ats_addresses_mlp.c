@@ -1657,6 +1657,7 @@ mlp_get_preferred_address_it (void *cls, const GNUNET_HashCode * key, void *valu
  * Get the preferred address for a specific peer
  *
  * @param mlp the MLP Handle
+ * @param addresses address hashmap
  * @param peer the peer
  * @return suggested address
  */
