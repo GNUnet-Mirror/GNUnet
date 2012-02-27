@@ -1162,19 +1162,22 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Init GNS\n");
   char* keyfile;
-  //this always returns syserr
-  if (GNUNET_SYSERR ==
-      GNUNET_CONFIGURATION_get_value_string (c, "gns",
-                                             "ZONEKEY", &keyfile));
+  char* trusted_entities;
+
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (c, "gns",
+                                             "ZONEKEY", &keyfile))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "No private key for root zone specified%s!\n", keyfile);
+    GNUNET_SCHEDULER_shutdown(0);
+    return;
   }
   zone_key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
   //zone_key = GNUNET_CRYPTO_rsa_key_create ();
 
   GNUNET_CRYPTO_hash(zone_key, GNUNET_CRYPTO_RSA_KEY_LENGTH,
                      &zone_hash);
+  
   nc = GNUNET_SERVER_notification_context_create (server, 1);
 
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
@@ -1209,6 +1212,40 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     //FIXME do error handling;
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
                "Failed to connect to the namestore!\n");
+    GNUNET_SCHEDULER_shutdown(0);
+    return;
+  }
+  
+  char* trusted_start;
+  char* trusted_name;
+  char *trusted_key;
+  int trusted_len;
+  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (c, "gns",
+                                                      "TRUSTED",
+                                                      &trusted_entities))
+  {
+    trusted_start = trusted_entities;
+    trusted_len = strlen(trusted_entities);
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+               "Found trusted entities in config file, importing\n");
+    while ((trusted_entities-trusted_start) < trusted_len)
+    {
+      trusted_name = trusted_entities;
+      while (*trusted_entities != ':')
+        trusted_entities++;
+      *trusted_entities = '\0';
+      trusted_entities++;
+      trusted_key = trusted_entities;
+      while (*trusted_entities != ',' && (*trusted_entities != '\0'))
+        trusted_entities++;
+      *trusted_entities = '\0';
+      trusted_entities++;
+
+      GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Adding %s:%s to root zone\n",
+                 trusted_name,
+                 trusted_key);
+    }
+
   }
 
   /**
