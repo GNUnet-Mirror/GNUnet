@@ -93,7 +93,12 @@ enum GNUNET_BLOCK_Type
     /**
      * Block for storing .gnunet-domains
      */
-  GNUNET_BLOCK_TYPE_DNS = 10
+  GNUNET_BLOCK_TYPE_DNS = 10,
+
+    /**
+     * Block for storing record data
+     */
+  GNUNET_BLOCK_TYPE_GNS_NAMERECORD = 11
 };
 
 
