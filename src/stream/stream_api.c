@@ -182,6 +182,11 @@ struct GNUNET_STREAM_Socket
   GNUNET_SCHEDULER_TaskIdentifier ack_task_id;
 
   /**
+   * Task scheduled to continue a read operation.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier read_task;
+
+  /**
    * The mesh handle
    */
   struct GNUNET_MESH_Handle *mesh;
@@ -682,7 +687,9 @@ call_read_processor_task (void *cls,
   size_t read_size;
   size_t valid_read_size;
 
-  if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN) return;
+  socket->read_task = GNUNET_SCHEDULER_NO_TASK;
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    return;
 
   GNUNET_assert (NULL != socket->read_handle);
   GNUNET_assert (NULL != socket->read_handle->proc);
@@ -786,10 +793,9 @@ prepare_buffer_for_read (struct GNUNET_STREAM_Socket *socket)
       else
         socket->receive_buffer_boundaries[packet] = 0;
     }
-
-  GNUNET_SCHEDULER_add_continuation (&call_read_processor_task,
-                                     socket,
-                                     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+  
+  socket->read_task = GNUNET_SCHEDULER_add_now (&call_read_processor_task,
+						socket);
 }
 
 
@@ -806,6 +812,11 @@ cancel_read_io (void *cls,
 {
   struct GNUNET_STREAM_Socket *socket = cls;
 
+  if (socket->read_task != GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel (socket->read_task);
+    socket->read_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   GNUNET_assert (NULL != socket->read_handle);
   
   GNUNET_free (socket->read_handle);
@@ -1895,6 +1906,14 @@ GNUNET_STREAM_close (struct GNUNET_STREAM_Socket *socket)
 {
   struct MessageQueue *head;
 
+  if (socket->read_task != GNUNET_SCHEDULER_NO_TASK)
+  {
+    /* socket closed with read task pending!? */
+    GNUNET_break (0);
+    GNUNET_SCHEDULER_cancel (socket->read_task);
+    socket->read_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+
   /* Clear Transmit handles */
   if (NULL != socket->transmit_handle)
     {
@@ -2175,9 +2194,8 @@ GNUNET_STREAM_read (struct GNUNET_STREAM_Socket *socket,
 
   /* if previous copy buffer is still not read call the data processor on it */
   if (NULL != socket->copy_buffer)
-    GNUNET_SCHEDULER_add_continuation (&call_read_processor_task,
-                                       socket,
-                                       GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+    socket->read_task = GNUNET_SCHEDULER_add_now (&call_read_processor_task,
+						  socket);
   else
     prepare_buffer_for_read (socket);
 
