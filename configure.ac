@@ -320,28 +320,20 @@ LIBCURL_CHECK_CONFIG(,7.20.1,,AC_MSG_ERROR([GNUnet requires libcurl >= 7.20.1]))
 # restore LIBS
 LIBS=$SAVE_LIBS
 
-AC_ARG_ENABLE([ats],
-  [AS_HELP_STRING([--enable-ats], [enable ATS code])],
-  [enable_ats=${enableval}],
-  [enable_ats=no])
-if test x${enable_ats} = xyes
+
+AC_CHECK_HEADERS([glpk.h],[glpk=true],[gplk=false])
+AC_CHECK_LIB([glpk],[glp_create_prob],,[gplk=false])
+# GLPK must support atm MLP presolving, version >= 4.32
+AC_CHECK_MEMBERS(glp_iocp.presolve,,[gplk=false],[[#include <glpk.h>]])
+if test x$gplk = xfalse
 then
-	AC_CHECK_HEADERS([glpk.h],[glpk=true],[gplk=false])
-	AC_CHECK_LIB([glpk],[glp_create_prob],,[gplk=false])
-	# GLPK must support atm MLP presolving, version >= 4.32
-	AC_CHECK_MEMBERS(glp_iocp.presolve,,[gplk=false],[[#include <glpk.h>]])
-	if test x$gplk = xfalse
-	then
-		AM_CONDITIONAL(HAVE_LIBGLPK, false)
-		AC_MSG_WARN([GNUnet requires GLPK  >= 4.32])
-	else
-		AM_CONDITIONAL(HAVE_LIBGLPK, true)
-		AC_DEFINE([HAVE_LIBGLPK],[1],[Have GLPK])
-	fi
-else
 	AM_CONDITIONAL(HAVE_LIBGLPK, false)
-	AC_MSG_RESULT([no])
+	AC_MSG_WARN([GNUnet requires GLPK  >= 4.32])
+else
+	AM_CONDITIONAL(HAVE_LIBGLPK, true)
+	AC_DEFINE([HAVE_LIBGLPK],[1],[Have GLPK])
 fi
+
 
 # test for kvm and kstat (for CPU stats under BSD/Solaris)
 AC_CHECK_LIB([kvm],[kvm_open])
