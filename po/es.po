@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: GNUnet 0.7.0e\n"
 "Report-Msgid-Bugs-To: gnunet-developers@mail.gnu.org\n"
-"POT-Creation-Date: 2012-02-28 10:32+0100\n"
+"POT-Creation-Date: 2012-02-28 18:21+0100\n"
 "PO-Revision-Date: 2006-06-29 12:05+0200\n"
 "Last-Translator: Miguel Angel Arruga <miguel.13@telefonica.net>\n"
 "Language-Team: Spanish\n"
@@ -4855,107 +4855,107 @@ msgstr "Argumento no válido: '%s'\n"
 msgid "Failed to open UNIX sockets\n"
 msgstr "Fichero almacenado en '%s'.\n"
 
-#: src/transport/plugin_transport_wlan.c:880
+#: src/transport/plugin_transport_wlan.c:875
 #, fuzzy
 msgid "# wlan session timeouts"
 msgstr "# claves de la sesión aceptadas"
 
-#: src/transport/plugin_transport_wlan.c:904
+#: src/transport/plugin_transport_wlan.c:899
 #, fuzzy
 msgid "# wlan session created"
 msgstr "# claves de la sesión aceptadas"
 
-#: src/transport/plugin_transport_wlan.c:988
-#: src/transport/plugin_transport_wlan.c:1151
-#: src/transport/plugin_transport_wlan.c:1172
-#: src/transport/plugin_transport_wlan.c:1203
-#: src/transport/plugin_transport_wlan.c:2398
-#: src/transport/plugin_transport_wlan.c:3260
+#: src/transport/plugin_transport_wlan.c:980
+#: src/transport/plugin_transport_wlan.c:1138
+#: src/transport/plugin_transport_wlan.c:1159
+#: src/transport/plugin_transport_wlan.c:1190
+#: src/transport/plugin_transport_wlan.c:2334
+#: src/transport/plugin_transport_wlan.c:3142
 msgid "# wlan pending sessions"
 msgstr ""
 
-#: src/transport/plugin_transport_wlan.c:1246
-#: src/transport/plugin_transport_wlan.c:1933
+#: src/transport/plugin_transport_wlan.c:1233
+#: src/transport/plugin_transport_wlan.c:1888
 #, fuzzy
 msgid "# wlan pending fragments"
 msgstr "# fragmentos descartados"
 
-#: src/transport/plugin_transport_wlan.c:1407
+#: src/transport/plugin_transport_wlan.c:1388
 #, c-format
 msgid ""
 "Finished reading from gnunet-helper-transport-wlan stdout with code: %d\n"
 msgstr ""
 
-#: src/transport/plugin_transport_wlan.c:1774
+#: src/transport/plugin_transport_wlan.c:1732
 msgid "# wlan hello beacons send"
 msgstr ""
 
-#: src/transport/plugin_transport_wlan.c:1807
-#: src/transport/plugin_transport_wlan.c:2022
-#: src/transport/plugin_transport_wlan.c:2117
+#: src/transport/plugin_transport_wlan.c:1765
+#: src/transport/plugin_transport_wlan.c:1968
+#: src/transport/plugin_transport_wlan.c:2059
 #, c-format
 msgid "Error writing to wlan helper. errno == %d, ERROR: %s\n"
 msgstr ""
 
-#: src/transport/plugin_transport_wlan.c:2008
+#: src/transport/plugin_transport_wlan.c:1954
 msgid "# wlan acks send"
 msgstr ""
 
-#: src/transport/plugin_transport_wlan.c:2079
+#: src/transport/plugin_transport_wlan.c:2025
 #, fuzzy
 msgid "# wlan fragments send"
 msgstr "# fragmentos descartados"
 
-#: src/transport/plugin_transport_wlan.c:2223
+#: src/transport/plugin_transport_wlan.c:2161
 #, c-format
 msgid "Wlan Address len %d is wrong\n"
 msgstr ""
 
-#: src/transport/plugin_transport_wlan.c:2359
-#: src/transport/plugin_transport_wlan.c:3016
-#: src/transport/plugin_transport_wlan.c:3263
+#: src/transport/plugin_transport_wlan.c:2295
+#: src/transport/plugin_transport_wlan.c:2919
+#: src/transport/plugin_transport_wlan.c:3145
 msgid "# wlan mac endpoints"
 msgstr ""
 
-#: src/transport/plugin_transport_wlan.c:2587
+#: src/transport/plugin_transport_wlan.c:2517
 #, fuzzy
 msgid "# wlan whole messages received"
 msgstr "# mensajes PONG encriptados recibidos"
 
-#: src/transport/plugin_transport_wlan.c:2790
+#: src/transport/plugin_transport_wlan.c:2708
 #, fuzzy
 msgid "# wlan hello messages received"
 msgstr "# mensajes PONG encriptados recibidos"
 
-#: src/transport/plugin_transport_wlan.c:2827
+#: src/transport/plugin_transport_wlan.c:2742
 #, fuzzy
 msgid "# wlan fragments received"
 msgstr "# fragmentos descartados"
 
-#: src/transport/plugin_transport_wlan.c:2879
+#: src/transport/plugin_transport_wlan.c:2790
 #, fuzzy
 msgid "# wlan acks received"
 msgstr "# mensajes PONG encriptados recibidos"
 
-#: src/transport/plugin_transport_wlan.c:2976
+#: src/transport/plugin_transport_wlan.c:2879
 msgid "# wlan mac endpoints timeouts"
 msgstr ""
 
-#: src/transport/plugin_transport_wlan.c:3000
+#: src/transport/plugin_transport_wlan.c:2903
 #, fuzzy
 msgid "# wlan mac endpoints created"
 msgstr "# mensajes PONG encriptados recibidos"
 
-#: src/transport/plugin_transport_wlan.c:3058
+#: src/transport/plugin_transport_wlan.c:2956
 msgid "# wlan WLAN_HELPER_DATA received"
 msgstr ""
 
-#: src/transport/plugin_transport_wlan.c:3114
+#: src/transport/plugin_transport_wlan.c:3010
 #, fuzzy
 msgid "# wlan messages for this client received"
 msgstr "# mensajes PONG encriptados recibidos"
 
-#: src/transport/plugin_transport_wlan.c:3125
+#: src/transport/plugin_transport_wlan.c:3021
 #, fuzzy
 msgid "# wlan messages inside WLAN_HELPER_DATA received"
 msgstr "# mensajes PONG encriptados recibidos"

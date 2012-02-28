@@ -29,6 +29,7 @@
 #include "gnunet_os_lib.h"
 #include "gnunet_scheduler_lib.h"
 #include "gnunet_strings_lib.h"
+#include "gnunet_crypto_lib.h"
 #include "disk.h"
 
 #define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
