@@ -585,7 +585,7 @@ reconnect (struct GNUNET_NAMESTORE_Handle *h)
     init = (struct StartMessage *) &p[1];
     init->header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_START);
     init->header.size = htons (sizeof (struct StartMessage));
-    GNUNET_CONTAINER_DLL_insert_tail (h->pending_head, h->pending_tail, p);
+    GNUNET_CONTAINER_DLL_insert (h->pending_head, h->pending_tail, p);
   }
   do_transmit (h);
 }
