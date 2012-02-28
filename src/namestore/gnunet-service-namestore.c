@@ -42,6 +42,8 @@ struct GNUNET_NAMESTORE_ZoneIteration
 
   struct GNUNET_NAMESTORE_Client * client;
 
+  GNUNET_HashCode zone;
+
   uint64_t op_id;
   uint32_t offset;
 
@@ -593,7 +595,6 @@ void zone_iteration_proc (void *cls,
   zir_msg.op_id = htonl(zi->op_id);
   zir_msg.header.size = htons (sizeof (struct ZoneIterationResponseMessage));
 
-
   GNUNET_SERVER_notification_context_unicast (snc, zi->client->client, (const struct GNUNET_MessageHeader *) &zir_msg, GNUNET_NO);
 }
 
@@ -606,6 +607,7 @@ static void handle_iteration_start (void *cls,
   struct ZoneIterationStartMessage * zis_msg = (struct ZoneIterationStartMessage *) message;
   struct GNUNET_NAMESTORE_Client *nc;
   struct GNUNET_NAMESTORE_ZoneIteration *zi;
+  int res;
 
   nc = client_lookup(client);
   if (nc == NULL)
@@ -619,10 +621,12 @@ static void handle_iteration_start (void *cls,
   zi->op_id = ntohl (zis_msg->op_id);
   zi->offset = 0;
   zi->client = nc;
+  zi->zone = zis_msg->zone;
 
   GNUNET_CONTAINER_DLL_insert (nc->op_head, nc->op_tail, zi);
 
-  GSN_database->iterate_records (GSN_database->cls, &zis_msg->zone, NULL, zi->offset , &zone_iteration_proc, zi);
+  res = GSN_database->iterate_records (GSN_database->cls, &zis_msg->zone, NULL, zi->offset , &zone_iteration_proc, zi);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "iterate_records: %i\n", res);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
@@ -631,6 +635,38 @@ static void handle_iteration_stop (void *cls,
                           const struct GNUNET_MessageHeader * message)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "ZONE_ITERATION_STOP");
+
+  struct GNUNET_NAMESTORE_Client *nc;
+  struct GNUNET_NAMESTORE_ZoneIteration *zi;
+  struct ZoneIterationStopMessage * zis_msg = (struct ZoneIterationStopMessage *) message;
+  uint32_t id;
+
+  nc = client_lookup(client);
+  if (nc == NULL)
+  {
+    GNUNET_break_op (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
+
+  id = ntohl (zis_msg->op_id);
+  for (zi = nc->op_head; zi != NULL; zi = zi->next)
+  {
+    if (zi->op_id == id)
+      break;
+  }
+  if (zi == NULL)
+  {
+    GNUNET_break_op (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
+
+  GNUNET_CONTAINER_DLL_remove(nc->op_head, nc->op_tail, zi);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopped zone iteration for zone `%s'\n", GNUNET_h2s (&zi->zone));
+  GNUNET_free (zi);
+
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 static void handle_iteration_next (void *cls,
@@ -671,7 +707,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     {&handle_iteration_start, NULL,
      GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_START, sizeof (struct ZoneIterationStartMessage)},
     {&handle_iteration_stop, NULL,
-     GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_STOP, 0},
+     GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_STOP, sizeof (struct ZoneIterationStopMessage)},
     {&handle_iteration_next, NULL,
      GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_NEXT, 0},
     {NULL, NULL, 0, 0}

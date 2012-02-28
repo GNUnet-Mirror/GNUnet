@@ -380,6 +380,13 @@ handle_zone_iteration_response (struct GNUNET_NAMESTORE_ZoneIterator *ze,
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' \n",
               "ZONE_ITERATION_RESPONSE");
+
+
+  if (ze->proc != NULL)
+  {
+    // FIXME
+    ze->proc(ze->proc_cls, NULL, GNUNET_TIME_absolute_get_forever(), "dummy", 0, NULL, NULL);
+  }
 }
 
 

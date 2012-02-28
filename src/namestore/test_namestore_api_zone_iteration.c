@@ -32,6 +32,7 @@
 static struct GNUNET_NAMESTORE_Handle * nsh;
 
 static GNUNET_SCHEDULER_TaskIdentifier endbadly_task;
+static GNUNET_SCHEDULER_TaskIdentifier stopiteration_task;
 static struct GNUNET_OS_Process *arm;
 
 static struct GNUNET_CRYPTO_RsaPrivateKey * privkey;
@@ -76,6 +77,12 @@ stop_arm ()
 static void
 endbadly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  if (stopiteration_task != GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel (stopiteration_task);
+    stopiteration_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+
   if (nsh != NULL)
     GNUNET_NAMESTORE_disconnect (nsh, GNUNET_YES);
   nsh = NULL;
@@ -94,11 +101,18 @@ endbadly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  if (stopiteration_task != GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel (stopiteration_task);
+    stopiteration_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+
   if (endbadly_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (endbadly_task);
     endbadly_task = GNUNET_SCHEDULER_NO_TASK;
   }
+
 
   if (privkey != NULL)
     GNUNET_CRYPTO_rsa_key_free (privkey);
@@ -115,6 +129,16 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   res = 0;
 }
 
+static void
+stop_iteration (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  stopiteration_task = GNUNET_SCHEDULER_NO_TASK;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping iteration for zone `%s'\n", GNUNET_h2s (&zone));
+  GNUNET_NAMESTORE_zone_iteration_stop (zi);
+
+  GNUNET_SCHEDULER_add_now (&end, NULL);
+}
 
 void zone_proc (void *cls,
                 const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
@@ -125,7 +149,8 @@ void zone_proc (void *cls,
                 const struct GNUNET_CRYPTO_RsaSignature *signature)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Callback for zone `%s'\n", GNUNET_h2s (&zone));
-  endbadly_task = GNUNET_SCHEDULER_add_now (&end, NULL);
+
+  stopiteration_task = GNUNET_SCHEDULER_add_now (&stop_iteration, NULL);
 }
 
 static void
