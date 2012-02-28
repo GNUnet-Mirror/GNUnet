@@ -86,27 +86,17 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
   GNUNET_CRYPTO_hash(name, strlen(name), &name_hash);
 
   GNUNET_CRYPTO_hash_xor(&pkey_hash, &name_hash, &query_key);
-  struct GNUNET_CRYPTO_HashAsciiEncoded hstr;
-  GNUNET_CRYPTO_hash_to_enc (query, &hstr);
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Query key: %s\n", (char*)&hstr);
-  GNUNET_CRYPTO_hash_to_enc (&pkey_hash, &hstr);
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Pub key: %s\n", (char*)&hstr);
-  GNUNET_CRYPTO_hash_to_enc (&name_hash, &hstr);
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Name: %s\n", (char*)&hstr);
-  GNUNET_CRYPTO_hash_to_enc (&query_key, &hstr);
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "XOR: %s\n", (char*)&hstr);
   
-  
-  //Check query key against public key
+  /* Check query key against public key */
   if (0 != GNUNET_CRYPTO_hash_cmp(query, &query_key))
     return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
   
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Checking payload\n");
   rd_count = ntohl(nrb->rd_count);
 
   struct GNUNET_NAMESTORE_RecordData rd[rd_count];
   int i = 0;
   int record_match = 0;
+  uint32_t record_xquery = ntohl(*((uint32_t*)xquery));
   rb = (struct GNSRecordBlock*)(&name[strlen(name) + 1]);
 
   for (i=0; i<rd_count; i++)
@@ -118,10 +108,15 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
     rd[i].flags = ntohl(rb->flags);
     rd[i].data = (char*)&rb[1];
     rb = (struct GNSRecordBlock *)((char*)&rb[1] + rd[i].data_size);
-    if (xquery_size > 0 && (rd[i].record_type == *((uint32_t*)xquery)))
+    
+    if (xquery_size == 0)
+     continue;
+    
+    if (rd[i].record_type == record_xquery)
+    {
       record_match++;
+    }
   }
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "done\n");
   
 
   /*if (GNUNET_OK != GNUNET_NAMESTORE_verify_signature (&nrb->public_key,
@@ -133,10 +128,11 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
     GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Signature invalid\n");
     return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
   }*/
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "done\n");
+  
   //No record matches query
   if ((xquery_size > 0) && (record_match == 0))
-    return GNUNET_BLOCK_EVALUATION_OK_MORE;
+    return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
+
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Records match\n");
   //FIXME do bf check before or after crypto??
   if (NULL != bf)

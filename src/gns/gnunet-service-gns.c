@@ -323,8 +323,8 @@ resolve_authority_dht(struct GNUNET_GNS_ResolverHandle *rh)
                        &lookup_key,
                        5, //Replication level FIXME
                        GNUNET_DHT_RO_NONE,
-                       &xquery, //xquery FIXME is this bad?
-                       0, // for test bp sizeof(GNUNET_GNS_RECORD_PKEY),
+                       &xquery,
+                       sizeof(xquery),
                        &process_authority_dht_result,
                        rh);
 
@@ -470,7 +470,7 @@ resolve_name_dht(struct GNUNET_GNS_ResolverHandle *rh, const char* name)
                        5, //Replication level FIXME
                        GNUNET_DHT_RO_NONE,
                        &xquery, //xquery FIXME is this bad?
-                       0, //for test bp sizeof(rh->query->type),
+                       sizeof(xquery),
                        &process_name_dht_result,
                        rh);
 
