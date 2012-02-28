@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: GNUnet 0.7.0e\n"
 "Report-Msgid-Bugs-To: gnunet-developers@mail.gnu.org\n"
-"POT-Creation-Date: 2012-02-28 18:21+0100\n"
+"POT-Creation-Date: 2012-02-28 18:30+0100\n"
 "PO-Revision-Date: 2006-06-29 12:05+0200\n"
 "Last-Translator: Miguel Angel Arruga <miguel.13@telefonica.net>\n"
 "Language-Team: Spanish\n"
@@ -5357,12 +5357,12 @@ msgstr "'%s' %s falló: %s\n"
 msgid "stat (%s) failed: %s\n"
 msgstr "'%s' %s falló: %s\n"
 
-#: src/util/os_priority.c:303
+#: src/util/os_priority.c:304
 #, fuzzy, c-format
 msgid "Failed to open named pipe `%s' for reading: %s\n"
 msgstr "Fichero almacenado en '%s'.\n"
 
-#: src/util/os_priority.c:304
+#: src/util/os_priority.c:305
 #, fuzzy, c-format
 msgid "Failed to open named pipe `%s' for writing: %s\n"
 msgstr "Fichero almacenado en '%s'.\n"
