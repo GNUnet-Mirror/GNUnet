@@ -227,11 +227,7 @@ get_stop_finished (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct PeerGetContext *get_context = cls;
 
-  if (get_context->get_attempts < MAX_GET_ATTEMPTS)
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Get attempt %u failed, retrying request!\n",
-                get_context->get_attempts);
-  else
+  if (get_context->get_attempts >= MAX_GET_ATTEMPTS)
   {
     FPRINTF (stderr, "%s",  "?\n");
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -243,11 +239,14 @@ get_stop_finished (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                   "GET attempt failed, ending test!\n");
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Get attempt %u failed, retrying request!\n",
+              get_context->get_attempts);
   FPRINTF (stderr, "%s",  ".");
   get_context->get_attempts++;
   get_context->retry_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                    (GNUNET_TIME_UNIT_SECONDS, 10),
+                                    (GNUNET_TIME_UNIT_SECONDS, 60),
                                     &stop_retry_get, get_context);
   get_context->get_handle =
       GNUNET_DHT_get_start (get_context->dht_handle,
@@ -311,17 +310,15 @@ topology_callback (void *cls, const struct GNUNET_PeerIdentity *first,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "connected peer %s to peer %s, distance %u\n",
                 first_daemon->shortname, second_daemon->shortname, distance);
-#endif
   }
-#if VERBOSE
   else
   {
     failed_connections++;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Failed to connect peer %s to peer %s with error :\n%s\n",
                 first_daemon->shortname, second_daemon->shortname, emsg);
-  }
 #endif
+  }
 
   if (total_connections == expected_connections)
   {
