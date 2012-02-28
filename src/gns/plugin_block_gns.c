@@ -99,7 +99,7 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
   
   //Check query key against public key
   if (0 != GNUNET_CRYPTO_hash_cmp(query, &query_key))
-    return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
+    return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
   
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Checking payload\n");
   rd_count = ntohl(nrb->rd_count);
