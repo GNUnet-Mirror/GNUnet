@@ -764,6 +764,18 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename);
 
 
 /**
+ * Setup a hostkey file for a peer given the name of the
+ * configuration file (!).  This function is used so that
+ * at a later point code can be certain that reading a
+ * hostkey is fast (for example in time-dependent testcases).
+ *
+ * @param cfg_name name of the configuration file to use
+ */
+void
+GNUNET_CRYPTO_setup_hostkey (const char *cfg_name);
+
+
+/**
  * Deterministically (!) create a private key using only the
  * given HashCode as input to the PRNG.
  *

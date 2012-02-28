@@ -107,7 +107,9 @@ adjust (unsigned char *buf, size_t size, size_t target)
 }
 
 /**
- * This HostKey implementation uses RSA.
+ * Create a new private key. Caller must free return value.
+ *
+ * @return fresh private key
  */
 struct GNUNET_CRYPTO_RsaPrivateKey *
 GNUNET_CRYPTO_rsa_key_create ()
@@ -132,6 +134,7 @@ GNUNET_CRYPTO_rsa_key_create ()
 
 /**
  * Free memory occupied by hostkey
+ * @param hostkey pointer to the memory to free
  */
 void
 GNUNET_CRYPTO_rsa_key_free (struct GNUNET_CRYPTO_RsaPrivateKey *hostkey)
@@ -739,6 +742,34 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
          filename);
   }
   return ret;
+}
+
+
+/**
+ * Setup a hostkey file for a peer given the name of the
+ * configuration file (!).  This function is used so that
+ * at a later point code can be certain that reading a
+ * hostkey is fast (for example in time-dependent testcases).
+ *
+ * @param cfg_name name of the configuration file to use
+ */
+void
+GNUNET_CRYPTO_setup_hostkey (const char *cfg_name)
+{
+  struct GNUNET_CONFIGURATION_Handle *cfg;
+  struct GNUNET_CRYPTO_RsaPrivateKey *pk;
+  char *fn;
+
+  cfg = GNUNET_CONFIGURATION_create ();
+  (void) GNUNET_CONFIGURATION_load (cfg, cfg_name);
+  if (GNUNET_OK == 
+      GNUNET_CONFIGURATION_get_value_filename (cfg, "GNUNETD", "HOSTKEY", &fn))
+  {
+    pk = GNUNET_CRYPTO_rsa_key_create_from_file (fn);
+    if (NULL != pk)
+      GNUNET_CRYPTO_rsa_key_free (pk);
+  }
+  GNUNET_CONFIGURATION_destroy (cfg);
 }
 
 
