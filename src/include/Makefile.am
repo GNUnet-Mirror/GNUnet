@@ -17,6 +17,7 @@ gnunetinclude_HEADERS = \
   plibc.h \
   $(WINPROC) \
   block_dns.h \
+  block_gns.h \
   block_fs.h \
   gnunet_applications.h \
   gnunet_arm_service.h \
@@ -46,6 +47,7 @@ gnunetinclude_HEADERS = \
   gnunet_fragmentation_lib.h \
   gnunet_fs_service.h \
   gnunet_getopt_lib.h \
+  gnunet_gns_service.h \
   gnunet_hello_lib.h \
   gnunet_helper_lib.h \
   gnunet_load_lib.h \
@@ -69,6 +71,7 @@ gnunetinclude_HEADERS = \
   gnunet_signal_lib.h \
   gnunet_signatures.h \
   gnunet_statistics_service.h \
+  gnunet_stream_lib.h \
   gnunet_strings_lib.h \
   gnunet_testing_lib.h \
   gnunet_time_lib.h \

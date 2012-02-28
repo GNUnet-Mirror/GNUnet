@@ -197,18 +197,11 @@ handle_dv_message_received (void *cls, struct GNUNET_PeerIdentity *sender,
  * a message using the plugin.
  *
  * @param cls closure
- * @param target who should receive this message
+ * @param session the session used
  * @param priority how important is the message
  * @param msgbuf the message to transmit
  * @param msgbuf_size number of bytes in 'msgbuf'
  * @param timeout when should we time out
- * @param session the session used
- * @param addr the address to use (can be NULL if the plugin
- *                is "on its own" (i.e. re-use existing TCP connection))
- * @param addrlen length of the address in bytes
- * @param force_address GNUNET_YES if the plugin MUST use the given address,
- *                otherwise the plugin may use other addresses or
- *                existing connections (if available)
  * @param cont continuation to call once the message has
  *        been transmitted (or if the transport is ready
  *        for the next transmission call; or if the
@@ -219,18 +212,21 @@ handle_dv_message_received (void *cls, struct GNUNET_PeerIdentity *sender,
  *         and does NOT mean that the message was not transmitted (DV)
  */
 static ssize_t
-dv_plugin_send (void *cls, const struct GNUNET_PeerIdentity *target,
+dv_plugin_send (void *cls, 
+		struct Session *session,
                 const char *msgbuf, size_t msgbuf_size, unsigned int priority,
-                struct GNUNET_TIME_Relative timeout, struct Session *session,
-                const void *addr, size_t addrlen, int force_address,
+                struct GNUNET_TIME_Relative timeout, 
                 GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls)
 {
-  int ret = 0;
+  int ret = -1;
+#if 0
   struct Plugin *plugin = cls;
 
   ret =
-      GNUNET_DV_send (plugin->dv_handle, target, msgbuf, msgbuf_size, priority,
+      GNUNET_DV_send (plugin->dv_handle, &session->sender, 
+		      msgbuf, msgbuf_size, priority,
                       timeout, addr, addrlen, cont, cont_cls);
+#endif
   return ret;
 }
 
@@ -382,6 +378,26 @@ dv_plugin_check_address (void *cls, const void *addr, size_t addrlen)
 }
 
 
+
+/**
+ * Create a new session to transmit data to the target
+ * This session will used to send data to this peer and the plugin will
+ * notify us by calling the env->session_end function
+ *
+ * @param cls the plugin
+ * @param target the neighbour id
+ * @param addr pointer to the address
+ * @param addrlen length of addr
+ * @return the session if the address is valid, NULL otherwise
+ */
+static struct Session * 
+dv_get_session (void *cls,
+		const struct GNUNET_HELLO_Address *address)
+{
+  return NULL;
+}
+
+
 /**
  * Entry point for the plugin.
  */
@@ -411,6 +427,7 @@ libgnunet_plugin_transport_dv_init (void *cls)
   api->address_pretty_printer = &dv_plugin_address_pretty_printer;
   api->check_address = &dv_plugin_check_address;
   api->address_to_string = &address_to_string;
+  api->get_session = dv_get_session;
   return api;
 }
 
@@ -432,4 +449,4 @@ libgnunet_plugin_transport_dv_done (void *cls)
   return NULL;
 }
 
-/* end of plugin_transport_template.c */
+/* end of plugin_transport_dv.c */

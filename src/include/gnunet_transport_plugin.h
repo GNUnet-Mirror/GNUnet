@@ -290,7 +290,7 @@ typedef void (*GNUNET_TRANSPORT_TransmitContinuation) (void *cls,
  * a fresh connection to another peer.
  *
  * @param cls closure
- * @param target who should receive this message
+ * @param session which session must be used
  * @param msgbuf the message to transmit
  * @param msgbuf_size number of bytes in 'msgbuf'
  * @param priority how important is the message (most plugins will
@@ -299,15 +299,6 @@ typedef void (*GNUNET_TRANSPORT_TransmitContinuation) (void *cls,
  *                require plugins to discard the message after the timeout,
  *                just advisory for the desired delay; most plugins will ignore
  *                this as well)
- * @param session which session must be used (or NULL for "any")
- * @param addr the address to use (can be NULL if the plugin
- *                is "on its own" (i.e. re-use existing TCP connection))
- * @param addrlen length of the address in bytes
- * @param force_address GNUNET_YES if the plugin MUST use the given address,
- *                GNUNET_NO means the plugin may use any other address and
- *                GNUNET_SYSERR means that only reliable existing
- *                bi-directional connections should be used (regardless
- *                of address)
  * @param cont continuation to call once the message has
  *        been transmitted (or if the transport is ready
  *        for the next transmission call; or if the
