@@ -894,6 +894,8 @@ route_packet (struct DestinationEntry *destination,
 	GNUNET_break (0);
 	return;
       }
+      tcp = NULL; /* make compiler happy */
+      icmp = NULL;  /* make compiler happy */
       udp = payload;
       if (udp->len < sizeof (struct GNUNET_TUN_UdpHeader))
       {
@@ -919,6 +921,8 @@ route_packet (struct DestinationEntry *destination,
 	GNUNET_break (0);
 	return;
       }      
+      udp = NULL; /* make compiler happy */
+      icmp = NULL;  /* make compiler happy */
       tcp = payload;
       if (tcp->off * 4 < sizeof (struct GNUNET_TUN_TcpHeader))
       {
@@ -950,6 +954,8 @@ route_packet (struct DestinationEntry *destination,
 	GNUNET_break (0);
 	return;
       }
+      tcp = NULL; /* make compiler happy */
+      udp = NULL;  /* make compiler happy */
       icmp = payload;
       source_port = 0;
       destination_port = 0;

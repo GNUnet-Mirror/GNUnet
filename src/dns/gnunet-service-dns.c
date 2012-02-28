@@ -1268,6 +1268,7 @@ process_helper_messages (void *cls GNUNET_UNUSED, void *client,
   {
   case ETH_P_IPV4:
     ip4 = (const struct GNUNET_TUN_IPv4Header *) &tun[1];
+    ip6 = NULL; /* make compiler happy */
     if ( (msize < sizeof (struct GNUNET_TUN_IPv4Header)) ||
 	 (ip4->version != 4) ||
 	 (ip4->header_length != sizeof (struct GNUNET_TUN_IPv4Header) / 4) ||
@@ -1283,6 +1284,7 @@ process_helper_messages (void *cls GNUNET_UNUSED, void *client,
     msize -= sizeof (struct GNUNET_TUN_IPv4Header);
     break;
   case ETH_P_IPV6:
+    ip4 = NULL; /* make compiler happy */
     ip6 = (const struct GNUNET_TUN_IPv6Header *) &tun[1];
     if ( (msize < sizeof (struct GNUNET_TUN_IPv6Header)) ||
 	 (ip6->version != 6) ||
