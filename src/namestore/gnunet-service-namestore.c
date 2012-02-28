@@ -674,6 +674,35 @@ static void handle_iteration_next (void *cls,
                           const struct GNUNET_MessageHeader * message)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "ZONE_ITERATION_NEXT");
+
+  struct GNUNET_NAMESTORE_Client *nc;
+  struct GNUNET_NAMESTORE_ZoneIteration *zi;
+  struct ZoneIterationStopMessage * zis_msg = (struct ZoneIterationStopMessage *) message;
+  uint32_t id;
+
+  nc = client_lookup(client);
+  if (nc == NULL)
+  {
+    GNUNET_break_op (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
+
+  id = ntohl (zis_msg->op_id);
+  for (zi = nc->op_head; zi != NULL; zi = zi->next)
+  {
+    if (zi->op_id == id)
+      break;
+  }
+  if (zi == NULL)
+  {
+    GNUNET_break_op (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
+
+  zi->offset++;
+  res = GSN_database->iterate_records (GSN_database->cls, &zis_msg->zone, NULL, zi->offset , &zone_iteration_proc, zi);
 }
 
 
