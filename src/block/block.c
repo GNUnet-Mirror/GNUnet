@@ -102,7 +102,7 @@ add_plugin (void *cls, const char *library_name, void *lib_ret)
   struct GNUNET_BLOCK_PluginFunctions *api = lib_ret;
   struct Plugin *plugin;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Loading block plugin `%s'\n"),
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Loading block plugin `%s'\n"),
               library_name);
   plugin = GNUNET_malloc (sizeof (struct Plugin));
   plugin->api = api;
