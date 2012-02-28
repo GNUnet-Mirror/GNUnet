@@ -89,4 +89,5 @@ TESTS = $(check_PROGRAMS)  $(check_SCRIPTS)
 endif
 
 EXTRA_DIST = \
-  $(check_SCRIPTS) 
+  $(check_SCRIPTS) \
+  test_gns_twopeer.conf

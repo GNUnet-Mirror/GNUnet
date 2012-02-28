@@ -47,6 +47,8 @@ if ENABLE_TEST_RUN
 TESTS = $(check_PROGRAMS)
 endif
 
+EXTRA_DIST = \
+  test_gnunet_vpn.conf
 
 gnunet_helper_vpn_SOURCES = \
  gnunet-helper-vpn.c

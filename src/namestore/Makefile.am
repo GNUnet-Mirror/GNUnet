@@ -80,10 +80,10 @@ test_namestore_api_zone_iteration_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la  
 
-EXTRADIST = \
+EXTRA_DIST = \
   test_namestore_api.conf \
-  test_plugin_namestore_sqlite.conf \
-  hostkey
+  test_plugin_namestore_sqlite.conf 
+#  hostkey
 
 
 test_plugin_namestore_sqlite_SOURCES = \

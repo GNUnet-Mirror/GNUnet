@@ -197,6 +197,7 @@ EXTRA_DIST = \
   test_dht_twopeer_data.conf \
   test_dht_multipeer_data.conf \
   test_dht_2dtorus.conf \
+  test_dht_line.conf \
   multipeer_topo.dat
 
 check_SCRIPTS = \

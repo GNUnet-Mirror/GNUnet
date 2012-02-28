@@ -117,5 +117,5 @@ test_ats_api_scheduling_LDADD = \
 
 EXTRA_DIST = \
   ats.h \
-  test_ats_api.conf
+  test_ats_api.conf 
 
