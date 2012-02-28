@@ -709,7 +709,7 @@ mst_destroy (struct MessageStreamTokenizer *mst)
  * @param iterator iterator to initialize
  * @param radiotap_header message to parse
  * @param max_length number of valid bytes in radiotap_header
- * @return 0 on success
+ * @return 0 on success, -1 on error
  */
 static int
 ieee80211_radiotap_iterator_init (struct ieee80211_radiotap_iterator *iterator,
@@ -719,16 +719,16 @@ ieee80211_radiotap_iterator_init (struct ieee80211_radiotap_iterator *iterator,
 {
   if ( (iterator == NULL) ||
        (radiotap_header == NULL) )
-    return -EINVAL;
+    return -1;
 
   /* Linux only supports version 0 radiotap format */
   if (0 != radiotap_header->it_version)
-    return -EINVAL;
+    return -1;
 
   /* sanity check for allowed length and radiotap length field */
   if ( (max_length < sizeof (struct ieee80211_radiotap_header)) ||
        (max_length < (GNUNET_le16toh (radiotap_header->it_len))) )
-    return -EINVAL;
+    return -1;
 
   iterator->rtheader = radiotap_header;
   iterator->max_length = GNUNET_le16toh (radiotap_header->it_len);
@@ -752,7 +752,7 @@ ieee80211_radiotap_iterator_init (struct ieee80211_radiotap_iterator *iterator,
        * stated radiotap header length
        */
       if (iterator->arg - ((uint8_t*) iterator->rtheader) > iterator->max_length)
-        return -EINVAL;
+        return -1;
     }
     iterator->arg += sizeof (uint32_t);
     /*
@@ -777,7 +777,7 @@ ieee80211_radiotap_iterator_init (struct ieee80211_radiotap_iterator *iterator,
  *
  * @param iterator: radiotap_iterator to move to next arg (if any)
  *
- * @return next present arg index on success or negative if no more or error
+ * @return next present arg index on success or -1 if no more or error
  */
 static int
 ieee80211_radiotap_iterator_next (struct ieee80211_radiotap_iterator *iterator)
@@ -883,7 +883,7 @@ ieee80211_radiotap_iterator_next (struct ieee80211_radiotap_iterator *iterator)
 
     if ((((void *) iterator->arg) - ((void *) iterator->rtheader)) >
         iterator->max_length)
-      return -EINVAL;
+      return -1;
 
 next_entry:
 
@@ -1162,7 +1162,7 @@ linux_read (struct HardwareInfos *dev, unsigned char *buf, size_t buf_size,
 
     rthdr = (struct ieee80211_radiotap_header *) tmpbuf;
 
-    if (ieee80211_radiotap_iterator_init (&iterator, rthdr, caplen) < 0)
+    if (0 != ieee80211_radiotap_iterator_init (&iterator, rthdr, caplen))
       return 0;
 
     /* go through the radiotap arguments we have been given
