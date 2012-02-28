@@ -20,8 +20,8 @@ libgnunetstream_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)
 
 check_PROGRAMS = \
- test_stream_local \
- test_stream_halfclose
+ test_stream_local 
+# test_stream_halfclose
 
 EXTRA_DIST = test_stream_local.conf
 
