@@ -2234,7 +2234,7 @@ GNUNET_DISK_pipe_from_fd (int blocking_read, int blocking_write, int fd[2])
 #ifndef MINGW
   int ret;
   int flags;
-  int eno;
+  int eno = 0; /* make gcc happy */
 
   p->fd[0]->fd = fd[0];
   p->fd[1]->fd = fd[1];
