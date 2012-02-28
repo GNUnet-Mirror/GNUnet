@@ -26,7 +26,7 @@ check_PROGRAMS = \
  $(SQLITE_TESTS) 
 
 if HAVE_EXPERIMENTAL
-check_PROGRAMS += test_namestore_api
+check_PROGRAMS += test_namestore_api test_namestore_api_zone_iteration
 endif
 
 lib_LTLIBRARIES = \
@@ -73,6 +73,12 @@ test_namestore_api_SOURCES = \
 test_namestore_api_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la
+  
+test_namestore_api_zone_iteration_SOURCES = \
+ test_namestore_api_zone_iteration.c
+test_namestore_api_zone_iteration_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/namestore/libgnunetnamestore.la  
 
 EXTRADIST = \
   test_namestore_api.conf \

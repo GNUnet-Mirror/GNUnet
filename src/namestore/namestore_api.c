@@ -1132,14 +1132,14 @@ GNUNET_NAMESTORE_zone_iteration_stop (struct GNUNET_NAMESTORE_ZoneIterator *it)
   struct GNUNET_NAMESTORE_Handle *h = it->h;
 
   /* set msg_size*/
-  msg_size = sizeof (struct ZoneIterationNextMessage);
+  msg_size = sizeof (struct ZoneIterationStopMessage);
   pe = GNUNET_malloc(sizeof (struct PendingMessage) + msg_size);
 
   /* create msg here */
-  struct LookupNameMessage * msg;
+  struct ZoneIterationStopMessage * msg;
   pe->size = msg_size;
   pe->is_init = GNUNET_NO;
-  msg = (struct LookupNameMessage *) &pe[1];
+  msg = (struct ZoneIterationStopMessage *) &pe[1];
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_STOP);
   msg->header.size = htons (msg_size);
   msg->op_id = htonl (it->op_id);

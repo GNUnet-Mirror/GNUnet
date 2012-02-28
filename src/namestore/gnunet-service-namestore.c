@@ -35,14 +35,16 @@
 /**
  * A namestore operation.
  */
-struct GNUNET_NAMESTORE_Operation
+struct GNUNET_NAMESTORE_ZoneIteration
 {
-  struct GNUNET_NAMESTORE_Operation *next;
-  struct GNUNET_NAMESTORE_Operation *prev;
+  struct GNUNET_NAMESTORE_ZoneIteration *next;
+  struct GNUNET_NAMESTORE_ZoneIteration *prev;
+
+  struct GNUNET_NAMESTORE_Client * client;
 
   uint64_t op_id;
+  uint32_t offset;
 
-  char *data; /*stub data pointer*/
 };
 
 
@@ -56,8 +58,8 @@ struct GNUNET_NAMESTORE_Client
 
   struct GNUNET_SERVER_Client * client;
 
-  struct GNUNET_NAMESTORE_Operation *op_head;
-  struct GNUNET_NAMESTORE_Operation *op_tail;
+  struct GNUNET_NAMESTORE_ZoneIteration *op_head;
+  struct GNUNET_NAMESTORE_ZoneIteration *op_tail;
 };
 
 
@@ -91,8 +93,8 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping namestore service\n");
 
-  struct GNUNET_NAMESTORE_Operation * no;
-  struct GNUNET_NAMESTORE_Operation * tmp;
+  struct GNUNET_NAMESTORE_ZoneIteration * no;
+  struct GNUNET_NAMESTORE_ZoneIteration * tmp;
   struct GNUNET_NAMESTORE_Client * nc;
   struct GNUNET_NAMESTORE_Client * next;
 
@@ -144,7 +146,7 @@ client_lookup (struct GNUNET_SERVER_Client *client)
 static void
 client_disconnect_notification (void *cls, struct GNUNET_SERVER_Client *client)
 {
-  struct GNUNET_NAMESTORE_Operation * no;
+  struct GNUNET_NAMESTORE_ZoneIteration * no;
   struct GNUNET_NAMESTORE_Client * nc;
   if (NULL == client)
     return;
@@ -374,7 +376,7 @@ static void handle_record_put (void *cls,
     return;
   }
 
-  nc = client_lookup(client);
+  nc = client_lookup (client);
   if (nc == NULL)
   {
     GNUNET_break_op (0);
@@ -575,6 +577,70 @@ static void handle_record_remove (void *cls,
 }
 
 
+void zone_iteration_proc (void *cls,
+                         const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
+                         struct GNUNET_TIME_Absolute expire,
+                         const char *name,
+                         unsigned int rd_count,
+                         const struct GNUNET_NAMESTORE_RecordData *rd,
+                         const struct GNUNET_CRYPTO_RsaSignature *signature)
+{
+  struct ZoneIterationResponseMessage zir_msg;
+  struct GNUNET_NAMESTORE_ZoneIteration * zi = cls;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message\n", "ZONE_ITERATION_RESPONSE");
+  zir_msg.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_RESPONSE);
+  zir_msg.op_id = htonl(zi->op_id);
+  zir_msg.header.size = htons (sizeof (struct ZoneIterationResponseMessage));
+
+
+  GNUNET_SERVER_notification_context_unicast (snc, zi->client->client, (const struct GNUNET_MessageHeader *) &zir_msg, GNUNET_NO);
+}
+
+static void handle_iteration_start (void *cls,
+                          struct GNUNET_SERVER_Client * client,
+                          const struct GNUNET_MessageHeader * message)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "ZONE_ITERATION_START");
+
+  struct ZoneIterationStartMessage * zis_msg = (struct ZoneIterationStartMessage *) message;
+  struct GNUNET_NAMESTORE_Client *nc;
+  struct GNUNET_NAMESTORE_ZoneIteration *zi;
+
+  nc = client_lookup(client);
+  if (nc == NULL)
+  {
+    GNUNET_break_op (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
+
+  zi = GNUNET_malloc (sizeof (struct GNUNET_NAMESTORE_ZoneIteration));
+  zi->op_id = ntohl (zis_msg->op_id);
+  zi->offset = 0;
+  zi->client = nc;
+
+  GNUNET_CONTAINER_DLL_insert (nc->op_head, nc->op_tail, zi);
+
+  GSN_database->iterate_records (GSN_database->cls, &zis_msg->zone, NULL, zi->offset , &zone_iteration_proc, zi);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
+
+static void handle_iteration_stop (void *cls,
+                          struct GNUNET_SERVER_Client * client,
+                          const struct GNUNET_MessageHeader * message)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "ZONE_ITERATION_STOP");
+}
+
+static void handle_iteration_next (void *cls,
+                          struct GNUNET_SERVER_Client * client,
+                          const struct GNUNET_MessageHeader * message)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "ZONE_ITERATION_NEXT");
+}
+
+
 
 /**
  * Process template requests.
@@ -602,6 +668,12 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
      GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_CREATE, 0},
     {&handle_record_remove, NULL,
      GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_REMOVE, 0},
+    {&handle_iteration_start, NULL,
+     GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_START, sizeof (struct ZoneIterationStartMessage)},
+    {&handle_iteration_stop, NULL,
+     GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_STOP, 0},
+    {&handle_iteration_next, NULL,
+     GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_NEXT, 0},
     {NULL, NULL, 0, 0}
   };
 
