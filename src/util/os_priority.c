@@ -448,7 +448,9 @@ GNUNET_OS_process_kill (struct GNUNET_OS_Process *proc, int sig)
   /* pipe failed, try other methods */
   switch (sig)
   {
+#if !WINDOWS
   case SIGHUP:
+#endif
   case SIGINT:
   case SIGKILL:
   case SIGTERM:
@@ -500,7 +502,9 @@ GNUNET_OS_process_close (struct GNUNET_OS_Process *proc)
 #endif
   if (NULL != proc->childpipename)
   {
+#if !WINDOWS
     cleanup_npipe (proc->childpipename);
+#endif
     GNUNET_free (proc->childpipename);
   }
   GNUNET_free (proc);
