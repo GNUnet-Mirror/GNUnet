@@ -43,6 +43,42 @@
 #define GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_NEXT 441
 #define GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_STOP 442
 
+size_t
+GNUNET_NAMESTORE_records_serialize (char ** dest,
+                             unsigned int rd_count,
+                             const struct GNUNET_NAMESTORE_RecordData *rd);
+
+int
+GNUNET_NAMESTORE_records_deserialize ( struct GNUNET_NAMESTORE_RecordData **dest, char *src, size_t len);
+
+/**
+ * A GNS record serialized for network transmission.
+ * layout is [struct GNUNET_NAMESTORE_NetworkRecord][char[data_size] data]
+ */
+struct GNUNET_NAMESTORE_NetworkRecord
+{
+  /**
+   * Expiration time for the DNS record.
+   */
+  struct GNUNET_TIME_AbsoluteNBO expiration;
+
+  /**
+   * Number of bytes in 'data'.
+   */
+  uint32_t data_size;
+
+  /**
+   * Type of the GNS/DNS record.
+   */
+  uint32_t record_type;
+
+  /**
+   * Flags for the record.
+   */
+  uint32_t flags;
+};
+
+
 
 GNUNET_NETWORK_STRUCT_BEGIN
 /**

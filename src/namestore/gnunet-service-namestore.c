@@ -192,6 +192,8 @@ struct LookupNameContext
 };
 
 
+
+
 static void
 handle_lookup_name_it (void *cls,
     const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
@@ -578,6 +580,22 @@ static void handle_record_remove (void *cls,
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
+struct ZoneIterationProcResult
+{
+  int have_zone_key;
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded zone_key;
+
+  int have_signature;
+  struct GNUNET_CRYPTO_RsaSignature signature;
+  struct GNUNET_TIME_Absolute expire;
+
+  int have_name;
+  char name[256];
+
+  unsigned int rd_count;
+  char *rd_ser;
+};
+
 
 void zone_iteration_proc (void *cls,
                          const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
@@ -587,15 +605,40 @@ void zone_iteration_proc (void *cls,
                          const struct GNUNET_NAMESTORE_RecordData *rd,
                          const struct GNUNET_CRYPTO_RsaSignature *signature)
 {
-  struct ZoneIterationResponseMessage zir_msg;
-  struct GNUNET_NAMESTORE_ZoneIteration * zi = cls;
+  struct ZoneIterationProcResult *zipr = cls;
+  size_t len;
+  if (zone_key != NULL)
+  {
+    zipr->zone_key = *zone_key;
+    zipr->have_zone_key = GNUNET_YES;
+  }
+  else
+    zipr->have_zone_key = GNUNET_NO;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message\n", "ZONE_ITERATION_RESPONSE");
-  zir_msg.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_RESPONSE);
-  zir_msg.op_id = htonl(zi->op_id);
-  zir_msg.header.size = htons (sizeof (struct ZoneIterationResponseMessage));
+  zipr->expire = expire;
 
-  GNUNET_SERVER_notification_context_unicast (snc, zi->client->client, (const struct GNUNET_MessageHeader *) &zir_msg, GNUNET_NO);
+  if (name != NULL)
+  {
+    memcpy (zipr->name, name, strlen(name) + 1);
+    zipr->have_name = GNUNET_YES;
+  }
+  else
+    zipr->have_name = GNUNET_NO;
+
+  zipr->rd_count = rd_count;
+
+  if (signature != NULL)
+  {
+    zipr->signature = *signature;
+    zipr->have_signature = GNUNET_YES;
+  }
+  else
+    zipr->have_signature = GNUNET_NO;
+
+  if ((rd_count > 0) && (rd != NULL))
+  {
+    len = GNUNET_NAMESTORE_records_serialize (&zipr->rd_ser, rd_count, rd);
+  }
 }
 
 static void handle_iteration_start (void *cls,
@@ -607,6 +650,8 @@ static void handle_iteration_start (void *cls,
   struct ZoneIterationStartMessage * zis_msg = (struct ZoneIterationStartMessage *) message;
   struct GNUNET_NAMESTORE_Client *nc;
   struct GNUNET_NAMESTORE_ZoneIteration *zi;
+  struct ZoneIterationResponseMessage zir_msg;
+  struct ZoneIterationProcResult zipr;
   int res;
 
   nc = client_lookup(client);
@@ -625,8 +670,16 @@ static void handle_iteration_start (void *cls,
 
   GNUNET_CONTAINER_DLL_insert (nc->op_head, nc->op_tail, zi);
 
-  res = GSN_database->iterate_records (GSN_database->cls, &zis_msg->zone, NULL, zi->offset , &zone_iteration_proc, zi);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "iterate_records: %i\n", res);
+  res = GSN_database->iterate_records (GSN_database->cls, &zis_msg->zone, NULL, zi->offset , &zone_iteration_proc, &zipr);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message\n", "ZONE_ITERATION_RESPONSE");
+  zir_msg.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_RESPONSE);
+  zir_msg.op_id = htonl(zi->op_id);
+  zir_msg.header.size = htons (sizeof (struct ZoneIterationResponseMessage));
+
+  GNUNET_SERVER_notification_context_unicast (snc, zi->client->client, (const struct GNUNET_MessageHeader *) &zir_msg, GNUNET_NO);
+
+
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
@@ -679,6 +732,7 @@ static void handle_iteration_next (void *cls,
   struct GNUNET_NAMESTORE_ZoneIteration *zi;
   struct ZoneIterationStopMessage * zis_msg = (struct ZoneIterationStopMessage *) message;
   uint32_t id;
+  int res;
 
   nc = client_lookup(client);
   if (nc == NULL)
@@ -702,7 +756,7 @@ static void handle_iteration_next (void *cls,
   }
 
   zi->offset++;
-  res = GSN_database->iterate_records (GSN_database->cls, &zis_msg->zone, NULL, zi->offset , &zone_iteration_proc, zi);
+  res = GSN_database->iterate_records (GSN_database->cls, &zi->zone, NULL, zi->offset , &zone_iteration_proc, zi);
 }
 
 
