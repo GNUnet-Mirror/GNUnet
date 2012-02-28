@@ -1136,9 +1136,9 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg, int is_tcp,
   h->nat_punched =
       GNUNET_CONFIGURATION_get_value_yesno (cfg, "nat", "PUNCHED_NAT");
   h->enable_nat_client =
-      GNUNET_CONFIGURATION_get_value_yesno (cfg, "nat", "ENABLE_NAT_CLIENT");
+      GNUNET_CONFIGURATION_get_value_yesno (cfg, "nat", "ENABLE_ICMP_CLIENT");
   h->enable_nat_server =
-      GNUNET_CONFIGURATION_get_value_yesno (cfg, "nat", "ENABLE_NAT_SERVER");
+      GNUNET_CONFIGURATION_get_value_yesno (cfg, "nat", "ENABLE_ICMP_SERVER");
   h->enable_upnp =
       GNUNET_CONFIGURATION_get_value_yesno (cfg, "nat", "ENABLE_UPNP");
   h->use_localaddresses =
