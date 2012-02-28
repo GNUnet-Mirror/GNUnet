@@ -850,6 +850,7 @@ GNUNET_OS_start_process_vap (int pipe_control,
   int argc, arg_count;
   HANDLE stdin_handle;
   HANDLE stdout_handle;
+  struct GNUNET_DISK_FileHandle *control_pipe;
 
   char path[MAX_PATH + 1];
 
