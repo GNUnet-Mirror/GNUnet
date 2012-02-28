@@ -460,6 +460,7 @@ EXTRA_DIST = \
   test_gnunet_fs_psd.py.in \
   test_gnunet_fs_rec.py.in \
   test_gnunet_fs_ns.py.in \
-  test_gnunet_fs_idx.py.in
+  test_gnunet_fs_idx.py.in \
+  $(bin_SCRIPTS) 
 
 CLEANFILES = $(check_SCRIPTS)

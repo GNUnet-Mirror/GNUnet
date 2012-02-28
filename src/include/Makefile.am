@@ -50,6 +50,8 @@ gnunetinclude_HEADERS = \
   gnunet_helper_lib.h \
   gnunet_load_lib.h \
   gnunet_mesh_service.h \
+  gnunet_namestore_plugin.h \
+  gnunet_namestore_service.h \
   gnunet_nat_lib.h \
   gnunet_network_lib.h \
   gnunet_nse_service.h \

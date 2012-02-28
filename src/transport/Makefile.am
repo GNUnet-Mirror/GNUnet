@@ -188,7 +188,7 @@ libgnunet_plugin_transport_wlan_la_LDFLAGS = \
   $(GN_PLUGIN_LDFLAGS)
 
 libgnunet_plugin_transport_udp_la_SOURCES = \
-  plugin_transport_udp.c \
+  plugin_transport_udp.c plugin_transport_udp.h \
   plugin_transport_udp_broadcasting.c
 libgnunet_plugin_transport_udp_la_LIBADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
