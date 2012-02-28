@@ -39,6 +39,9 @@ test_gns_twopeer_SOURCES = \
 test_gns_twopeer_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la
+test_gns_twopeer_DEPENDENCIES = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/testing/libgnunettesting.la
 
 #gnunet_gns_lookup_SOURCES = \
 # gnunet-gns-lookup.c
@@ -61,6 +64,15 @@ gnunet_service_gns_LDADD = \
 	$(top_builddir)/src/dht/libgnunetdht.la \
 	$(top_builddir)/src/gns/libgnunetnamestore.la \
   $(GN_LIBINTL)
+gnunet_service_gns_DEPENDENCIES = \
+  $(top_builddir)/src/tun/libgnunettun.la \
+  $(top_builddir)/src/mesh/libgnunetmesh.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+	$(top_builddir)/src/dns/libgnunetdns.la \
+	$(top_builddir)/src/dns/libgnunetdnsparser.la \
+	$(top_builddir)/src/dht/libgnunetdht.la \
+	$(top_builddir)/src/gns/libgnunetnamestore.la
 
 libgnunetgns_la_SOURCES = \
  gns_api.c gns.h
@@ -68,13 +80,19 @@ libgnunetgns_la_LIBADD = \
  $(top_builddir)/src/util/libgnunetutil.la $(XLIB)
 libgnunetgns_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)
+libgnunetgns_la_DEPENDENCIES = \
+ $(top_builddir)/src/util/libgnunetutil.la
 
 libgnunet_plugin_block_gns_la_SOURCES = \
   plugin_block_gns.c
 libgnunet_plugin_block_gns_la_LIBADD = \
-  $(top_builddir)/src/util/libgnunetutil.la
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/block/libgnunetblock.la
 libgnunet_plugin_block_gns_la_LDFLAGS = \
-  $(top_builddir)/src/block/$(GN_PLUGIN_LDFLAGS)
+  $(GN_PLUGIN_LDFLAGS)
+libgnunet_plugin_block_gns_la_DEPENDENCIES = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/block/libgnunetblock.la
 
 #Build stub api
 libgnunetnamestore_la_SOURCES = \
@@ -83,6 +101,8 @@ libgnunetnamestore_la_LIBADD = \
  $(top_builddir)/src/util/libgnunetutil.la $(XLIB)
 libgnunetnamestore_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)
+libgnunetnamestore_la_DEPENDENCIES = \
+ $(top_builddir)/src/util/libgnunetutil.la
 
 if ENABLE_TEST_RUN
 TESTS = $(check_PROGRAMS)  $(check_SCRIPTS)
