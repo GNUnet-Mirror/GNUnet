@@ -864,6 +864,7 @@ src/fragmentation/Makefile
 src/fs/Makefile
 src/fs/fs.conf
 src/gns/Makefile
+src/gns/gns.conf
 src/hello/Makefile
 src/include/Makefile
 src/include/gnunet_directories.h
