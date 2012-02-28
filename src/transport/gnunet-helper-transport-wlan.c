@@ -19,6 +19,16 @@
    Free Software Foundation, Inc., 59 Temple Place - Suite 330,
    Boston, MA 02111-1307, USA.
 */
+/**
+ * @file src/transport/gnunet-helper-transport-wlan.c
+ * @brief wlan layer two server; must run as root (SUID will do)
+ *        This code will work under GNU/Linux only.
+ * @author David Brodski
+ *
+ * This program serves as the mediator between the wlan interface and
+ * gnunet
+ */
+
 /*-
  * we use our local copy of ieee80211_radiotap.h
  *
@@ -62,16 +72,6 @@
  */
 
 /**
- * @file src/transport/gnunet-helper-transport-wlan.c
- * @brief wlan layer two server; must run as root (SUID will do)
- *        This code will work under GNU/Linux only.
- * @author David Brodski
- *
- * This program serves as the mediator between the wlan interface and
- * gnunet
- */
-
-/**
  * parts taken from aircrack-ng, parts changend.
  */
 #define _GNU_SOURCE
@@ -111,7 +111,11 @@
  */
 #define IEEE80211_ADDR_LEN      6
 
+/**
+ * Maximum size of a message allowed in either direction.
+ */
 #define MAXLINE 4096
+
 
 #define IEEE80211_RADIOTAP_PRESENT_EXTEND_MASK 0x80000000
 
@@ -309,24 +313,67 @@ struct ieee80211_radiotap_header
   uint32_t it_present;
 };
 
+/**
+ *
+ */
 struct RadioTapheader
 {
+  /**
+   *
+   */
   struct ieee80211_radiotap_header header;
+
+  /**
+   *
+   */
   uint8_t rate;
+
+  /**
+   *
+   */
   uint8_t pad1;
+
+  /**
+   *
+   */
   uint16_t txflags;
 };
 
 
 /**
- * FIXME.
+ * IO buffer used for buffering data in transit (to wireless or to stdout).
  */
 struct SendBuffer
 {
-  unsigned int pos;
-  unsigned int size;
+  /**
+   * How many bytes of data are stored in 'buf' for transmission right now?
+   * Data always starts at offset 0 and extends to 'size'.
+   */
+  size_t size;
+
+  /**
+   * How many bytes that were stored in 'buf' did we already write to the
+   * destination?  Always smaller than 'size'.
+   */
+  size_t pos;
+  
+  /**
+   * Buffered data; twice the maximum allowed message size as we add some
+   * headers.
+   */
   char buf[MAXLINE * 2];
 };
+
+/**
+ * Buffer for data read from stdin to be transmitted to the wirless card.
+ */
+static struct SendBuffer write_pout;
+
+/**
+ * Buffer for data read from the wireless card to be transmitted to stdout.
+ */
+static struct SendBuffer write_std;
+
 
 GNUNET_NETWORK_STRUCT_BEGIN
 
@@ -346,6 +393,7 @@ struct ieee80211_frame
 } GNUNET_PACKED;
 GNUNET_NETWORK_STRUCT_END
 
+
 /**
  * struct for storing the information of the hardware
  */
@@ -353,15 +401,14 @@ struct HardwareInfos
 {
 
   /**
-   * send buffer
-   */
-  struct SendBuffer write_pout;
-
-  /**
    * file descriptor for the raw socket
    */
   int fd_raw;
 
+  /**
+   * Which format has the header that we're getting when receiving packets?
+   * Some  ARPHRD_IEEE80211_XXX-value.
+   */
   int arptype_in;
 
   /**
@@ -369,39 +416,16 @@ struct HardwareInfos
    */
   char iface[IFNAMSIZ];
 
-  struct MacAddress pl_mac;
+  /**
+   * MAC address of our own WLAN interface.
+   */
+  struct GNUNET_TRANSPORT_WLAN_MacAddress pl_mac;
 };
 
 
-
-
- /* *INDENT-OFF* */
-#define ___my_swab16(x) \
-((u_int16_t)( \
-  (((u_int16_t)(x) & (u_int16_t)0x00ffU) << 8) | \
-  (((u_int16_t)(x) & (u_int16_t)0xff00U) >> 8) ))
-
-#define ___my_swab32(x) \
-((u_int32_t)( \
-  (((u_int32_t)(x) & (u_int32_t)0x000000ffUL) << 24) | \
-  (((u_int32_t)(x) & (u_int32_t)0x0000ff00UL) <<  8) | \
-  (((u_int32_t)(x) & (u_int32_t)0x00ff0000UL) >>  8) | \
-  (((u_int32_t)(x) & (u_int32_t)0xff000000UL) >> 24) ))
-#define ___my_swab64(x) \
-((u_int64_t)( \
-  (u_int64_t)(((u_int64_t)(x) & (u_int64_t)0x00000000000000ffULL) << 56) | \
-  (u_int64_t)(((u_int64_t)(x) & (u_int64_t)0x000000000000ff00ULL) << 40) | \
-  (u_int64_t)(((u_int64_t)(x) & (u_int64_t)0x0000000000ff0000ULL) << 24) | \
-  (u_int64_t)(((u_int64_t)(x) & (u_int64_t)0x00000000ff000000ULL) <<  8) | \
-  (u_int64_t)(((u_int64_t)(x) & (u_int64_t)0x000000ff00000000ULL) >>  8) | \
-  (u_int64_t)(((u_int64_t)(x) & (u_int64_t)0x0000ff0000000000ULL) >> 24) | \
-  (u_int64_t)(((u_int64_t)(x) & (u_int64_t)0x00ff000000000000ULL) >> 40) | \
-  (u_int64_t)(((u_int64_t)(x) & (u_int64_t)0xff00000000000000ULL) >> 56) ))
- /* *INDENT-ON* */
-
-
 /**
- * struct ieee80211_radiotap_iterator - tracks walk through present radiotap args
+ * struct ieee80211_radiotap_iterator - tracks walk through present radiotap arguments
+ * in the radiotap header.
  */
 struct ieee80211_radiotap_iterator
 {
@@ -922,25 +946,6 @@ next_entry:
 
 
 /**
- * function to create GNUNET_MESSAGE_TYPE_WLAN_HELPER_CONTROL message for plugin
- * @param buffer pointer to buffer for the message
- * @param mac pointer to the mac address
- * @return number of bytes written
- */
-static int
-send_mac_to_plugin (char *buffer, struct MacAddress *mac)
-{
-  struct GNUNET_TRANSPORT_WLAN_HelperControlMessage macmsg;
-
-  memcpy (&macmsg.mac, (char *) mac, sizeof (struct MacAddress));
-  macmsg.hdr.size = htons (sizeof (struct GNUNET_TRANSPORT_WLAN_HelperControlMessage));
-  macmsg.hdr.type = htons (GNUNET_MESSAGE_TYPE_WLAN_HELPER_CONTROL);
-  memcpy (buffer, &macmsg, sizeof (struct GNUNET_TRANSPORT_WLAN_HelperControlMessage));
-  return sizeof (struct GNUNET_TRANSPORT_WLAN_HelperControlMessage);
-}
-
-
-/**
  * Return the channel from the frequency (in Mhz)
  * @param frequency of the channel
  * @return number of the channel
@@ -960,6 +965,7 @@ get_channel_from_frequency (int frequency)
 
 /**
  * function to calculate the crc, the start of the calculation
+ *
  * @param buf buffer to calc the crc
  * @param len len of the buffer
  * @return crc sum
@@ -1043,10 +1049,12 @@ calc_crc_osdep (const unsigned char *buf, size_t len)
 
 
 /**
- * Function to check crc of the wlan packet
- * @param buf buffer of the packet
- * @param len len of the data
- * @return crc sum of the data
+ * Function to calculate and check crc of the wlan packet
+ *
+ * @param buf buffer of the packet, with len + 4 bytes of data,
+ *            the last 4 bytes being the checksum
+ * @param len length of the payload in data
+ * @return 0 on success (checksum matches), 1 on error
  */
 static int
 check_crc_buf_osdep (const unsigned char *buf, size_t len)
@@ -1055,15 +1063,18 @@ check_crc_buf_osdep (const unsigned char *buf, size_t len)
 
   crc = calc_crc_osdep (buf, len);
   buf += len;
-  return (((crc) & 0xFF) == buf[0] && ((crc >> 8) & 0xFF) == buf[1] &&
-          ((crc >> 16) & 0xFF) == buf[2] && ((crc >> 24) & 0xFF) == buf[3]);
+  if (((crc) & 0xFF) == buf[0] && ((crc >> 8) & 0xFF) == buf[1] &&
+      ((crc >> 16) & 0xFF) == buf[2] && ((crc >> 24) & 0xFF) == buf[3])
+    return 0;
+  return 1;     
 }
 
 
 /**
- * function to get the channel of a specific wlan card
+ * Get the channel used by our WLAN interface.
+ *
  * @param dev pointer to the dev struct of the card
- * @return channel number
+ * @return channel number, -1 on error
  */
 static int
 linux_get_channel (const struct HardwareInfos *dev)
@@ -1272,7 +1283,7 @@ linux_read (struct HardwareInfos *dev, unsigned char *buf, size_t buf_size,
   caplen -= n;
 
   //detect fcs at the end, even if the flag wasn't set and remove it
-  if ((0 == fcs_removed) && (1 == check_crc_buf_osdep (tmpbuf + n, caplen - 4)))
+  if ((0 == fcs_removed) && (0 == check_crc_buf_osdep (tmpbuf + n, caplen - 4)))
   {
     caplen -= 4;
   }
@@ -1285,7 +1296,8 @@ linux_read (struct HardwareInfos *dev, unsigned char *buf, size_t buf_size,
 
 
 /**
- * function to open the device for read/write
+ * Open the wireless network interface for reading/writing.
+ *
  * @param dev pointer to the device struct
  * @return 0 on success
  */
@@ -1398,25 +1410,18 @@ open_device_raw (struct HardwareInfos *dev)
 
 
 /**
- * function to prepare the helper, e.g. sockets, device...
- * @param dev struct for the device
+ * Test if the given interface name really corresponds to a wireless
+ * device.
+ *
  * @param iface name of the interface
- * @return 0 on success
+ * @return 0 on success, 1 on error
  */
 static int
-wlan_initialize (struct HardwareInfos *dev, const char *iface)
+test_wlan_interface (const char *iface)
 {
   char strbuf[512];
   struct stat sbuf;
   int ret;
-
-  if (dev->fd_raw >= FD_SETSIZE)
-  {
-    fprintf (stderr, "File descriptor too large for select (%d > %d)\n",
-             dev->fd_raw, FD_SETSIZE);
-    close (dev->fd_raw);
-    return 1;
-  }
 
   /* mac80211 stack detection */
   ret =
@@ -1425,13 +1430,6 @@ wlan_initialize (struct HardwareInfos *dev, const char *iface)
   if ((ret < 0) || (ret >= sizeof (strbuf)) || (0 != stat (strbuf, &sbuf)))
   {
     fprintf (stderr, "Did not find 802.11 interface `%s'. Exiting.\n", iface);
-    close (dev->fd_raw);
-    return 1;
-  }
-  strncpy (dev->iface, iface, IFNAMSIZ);
-  if (0 != open_device_raw (dev))
-  {
-    close (dev->fd_raw);
     return 1;
   }
   return 0;
@@ -1484,7 +1482,6 @@ static void
 stdin_send_hw (void *cls, const struct GNUNET_MessageHeader *hdr)
 {
   struct HardwareInfos *dev = cls;
-  struct SendBuffer *write_pout = &dev->write_pout;
   struct Radiotap_Send *header = (struct Radiotap_Send *) &hdr[1];
   struct ieee80211_frame *wlanheader;
   size_t sendsize;
@@ -1521,56 +1518,61 @@ stdin_send_hw (void *cls, const struct GNUNET_MessageHeader *hdr)
 
   rtheader.header.it_len = GNUNET_htole16 (sizeof (rtheader));
   rtheader.rate = header->rate;
-  memcpy (write_pout->buf, &rtheader, sizeof (rtheader));
-  memcpy (write_pout->buf + sizeof (rtheader), &header[1], sendsize);
+  memcpy (write_pout.buf, &rtheader, sizeof (rtheader));
+  memcpy (write_pout.buf + sizeof (rtheader), &header[1], sendsize);
   /* payload contains MAC address, but we don't trust it, so we'll
    * overwrite it with OUR MAC address again to prevent mischief */
-  wlanheader = (struct ieee80211_frame *) (write_pout->buf + sizeof (rtheader));
+  wlanheader = (struct ieee80211_frame *) (write_pout.buf + sizeof (rtheader));
   mac_set (wlanheader, dev);
-  write_pout->size = sendsize + sizeof (rtheader);
+  write_pout.size = sendsize + sizeof (rtheader);
 }
 
 
 /**
- * main function of the helper
- * @param argc number of arguments
- * @param argv arguments
- * @return 0 on success, 1 on error
+ * Main function of the helper.  This code accesses a WLAN interface
+ * in monitoring mode (layer 2) and then forwards traffic in both
+ * directions between the WLAN interface and stdin/stdout of this
+ * process.  Error messages are written to stdout.
+ *
+ * @param argc number of arguments, must be 2
+ * @param argv arguments only argument is the name of the interface (i.e. 'mon0')
+ * @return 0 on success (never happens, as we don't return unless aborted), 1 on error
  */
 int
 main (int argc, char *argv[])
 {
-  uid_t uid;
   struct HardwareInfos dev;
   char readbuf[MAXLINE];
-  struct SendBuffer write_std;
-  ssize_t ret;
   int maxfd;
   fd_set rfds;
   fd_set wfds;
-  int retval;
   int stdin_open;
   struct MessageStreamTokenizer *stdin_mst;
   int raw_eno;
 
+  memset (&dev, 0, sizeof (dev));
   dev.fd_raw = socket (PF_PACKET, SOCK_RAW, htons (ETH_P_ALL));
   raw_eno = errno; /* remember for later */
-  uid = getuid ();
+
+  /* drop privs */
+  {
+    uid_t uid = getuid ();
 #ifdef HAVE_SETRESUID
-  if (0 != setresuid (uid, uid, uid))
-  {
-    fprintf (stderr, "Failed to setresuid: %s\n", strerror (errno));
-    if (-1 != dev.fd_raw)
-      (void) close (dev.fd_raw);
-    return 1;
-  }
+    if (0 != setresuid (uid, uid, uid))
+    {
+      fprintf (stderr, "Failed to setresuid: %s\n", strerror (errno));
+      if (-1 != dev.fd_raw)
+	(void) close (dev.fd_raw);
+      return 1;
+    }
 #else
-  if (0 != (setuid (uid) | seteuid (uid)))
-  {
-    fprintf (stderr, "Failed to setuid: %s\n", strerror (errno));
-    if (-1 != dev.fd_raw)
-      (void) close (dev.fd_raw);
-    return 1;
+    if (0 != (setuid (uid) | seteuid (uid)))
+    {
+      fprintf (stderr, "Failed to setuid: %s\n", strerror (errno));
+      if (-1 != dev.fd_raw)
+	(void) close (dev.fd_raw);
+      return 1;
+    }
   }
 #endif
 
@@ -1589,22 +1591,43 @@ main (int argc, char *argv[])
     fprintf (stderr, "Failed to create raw socket: %s\n", strerror (raw_eno));
     return 1;
   }
-  if (0 != wlan_initialize (&dev, argv[1]))
+  if (dev.fd_raw >= FD_SETSIZE)
+  {
+    fprintf (stderr, "File descriptor too large for select (%d > %d)\n",
+             dev.fd_raw, FD_SETSIZE);
+    (void) close (dev.fd_raw);
     return 1;
-  dev.write_pout.size = 0;
-  dev.write_pout.pos = 0;
+  }
+  if (0 != test_wlan_interface (argv[1]))
+  {
+    (void) close (dev.fd_raw);
+    return 1;
+  }
+  strncpy (dev.iface, argv[1], IFNAMSIZ);
+  if (0 != open_device_raw (&dev))
+  {
+    (void) close (dev.fd_raw);
+    return 1;
+  }
+
+  /* send MAC address of the WLAN interface to STDOUT first */
+  {
+    struct GNUNET_TRANSPORT_WLAN_HelperControlMessage macmsg;
+
+    macmsg.hdr.size = htons (sizeof (macmsg));
+    macmsg.hdr.type = htons (GNUNET_MESSAGE_TYPE_WLAN_HELPER_CONTROL);
+    memcpy (&macmsg.mac, &dev.pl_mac, sizeof (struct GNUNET_TRANSPORT_WLAN_MacAddress));
+    memcpy (write_std.buf, &macmsg, sizeof (macmsg));
+    write_std.size = sizeof (macmsg);
+  }  
+
   stdin_mst = mst_create (&stdin_send_hw, &dev);  
-
-  /* send mac to STDOUT first */
-  write_std.pos = 0;
-  write_std.size = send_mac_to_plugin ((char *) &write_std.buf, &dev.pl_mac);
   stdin_open = 1;
-
   while (1)
   {
     maxfd = -1;
     FD_ZERO (&rfds);
-    if ((0 == dev.write_pout.size) && (1 == stdin_open))
+    if ((0 == write_pout.size) && (1 == stdin_open))
     {
       FD_SET (STDIN_FILENO, &rfds);
       maxfd = MAX (maxfd, STDIN_FILENO);
@@ -1620,22 +1643,24 @@ main (int argc, char *argv[])
       FD_SET (STDOUT_FILENO, &wfds);
       maxfd = MAX (maxfd, STDOUT_FILENO);
     }
-    if (0 < dev.write_pout.size)
+    if (0 < write_pout.size)
     {
       FD_SET (dev.fd_raw, &wfds);
       maxfd = MAX (maxfd, dev.fd_raw);
     }
-    retval = select (maxfd + 1, &rfds, &wfds, NULL, NULL);
-    if ((-1 == retval) && (EINTR == errno))
-      continue;
-    if (0 > retval)
     {
-      fprintf (stderr, "select failed: %s\n", strerror (errno));
-      break;
+      int retval = select (maxfd + 1, &rfds, &wfds, NULL, NULL);
+      if ((-1 == retval) && (EINTR == errno))
+	continue;
+      if (0 > retval)
+      {
+	fprintf (stderr, "select failed: %s\n", strerror (errno));
+	break;
+      }
     }
     if (FD_ISSET (STDOUT_FILENO, &wfds))
     {
-      ret =
+      ssize_t ret =
           write (STDOUT_FILENO, write_std.buf + write_std.pos,
                  write_std.size - write_std.pos);
       if (0 > ret)
@@ -1652,31 +1677,35 @@ main (int argc, char *argv[])
     }
     if (FD_ISSET (dev.fd_raw, &wfds))
     {
-      ret = write (dev.fd_raw, dev.write_pout.buf, dev.write_pout.size);
+      ssize_t ret =
+	write (dev.fd_raw, write_pout.buf + write_std.pos, 
+	       write_pout.size - write_pout.pos);
       if (0 > ret)
       {
         fprintf (stderr, "Failed to write to WLAN device: %s\n",
                  strerror (errno));
         break;
       }
-      dev.write_pout.pos += ret;
-      if ((dev.write_pout.pos != dev.write_pout.size) && (ret != 0))
+      write_pout.pos += ret;
+      if ((write_pout.pos != write_pout.size) && (0 != ret))
       {
         /* we should not get partial sends with packet-oriented devices... */
         fprintf (stderr, "Write error, partial send: %u/%u\n",
-                 dev.write_pout.pos, dev.write_pout.size);
+                 (unsigned int) write_pout.pos,
+		 (unsigned int) write_pout.size);
         break;
       }
-      if (dev.write_pout.pos == dev.write_pout.size)
+      if (write_pout.pos == write_pout.size)
       {
-        dev.write_pout.pos = 0;
-        dev.write_pout.size = 0;
+        write_pout.pos = 0;
+        write_pout.size = 0;
       }
     }
 
     if (FD_ISSET (STDIN_FILENO, &rfds))
     {
-      ret = read (STDIN_FILENO, readbuf, sizeof (readbuf));
+      ssize_t ret = 
+	read (STDIN_FILENO, readbuf, sizeof (readbuf));
       if (0 > ret)
       {
         fprintf (stderr, "Read error from STDIN: %s\n", strerror (errno));
@@ -1695,6 +1724,7 @@ main (int argc, char *argv[])
       struct GNUNET_MessageHeader *header;
       struct Radiotap_rx *rxinfo;
       struct ieee80211_frame *datastart;
+      ssize_t ret;
 
       header = (struct GNUNET_MessageHeader *) write_std.buf;
       rxinfo = (struct Radiotap_rx *) &header[1];

@@ -34,16 +34,14 @@
  */
 #define MAC_ADDR_SIZE 6
 
+GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * A MAC Address.
  */
-struct MacAddress
+struct GNUNET_TRANSPORT_WLAN_MacAddress
 {
   uint8_t mac[MAC_ADDR_SIZE];
 };
-
-
-GNUNET_NETWORK_STRUCT_BEGIN
 
 /**
  * Format of a WLAN Control Message.
@@ -51,21 +49,22 @@ GNUNET_NETWORK_STRUCT_BEGIN
 struct GNUNET_TRANSPORT_WLAN_HelperControlMessage
 {
   /**
-   * Message header. FIXME: type?
+   * Message header.  Type is
+   * GNUNET_MESSAGE_TYPE_WLAN_HELPER_CONTROL
    */
   struct GNUNET_MessageHeader hdr;
 
   /**
-   * MAC Address. FIXME: of what?
+   * MAC Address of the local WLAN interface.
    */
-  struct MacAddress mac;
+  struct GNUNET_TRANSPORT_WLAN_MacAddress mac;
 };
 GNUNET_NETWORK_STRUCT_END
 
 /**
  * GNUnet bssid
  */
-static const struct MacAddress mac_bssid_gnunet = {
+static const struct GNUNET_TRANSPORT_WLAN_MacAddress mac_bssid_gnunet = {
   {0x13, 0x22, 0x33, 0x44, 0x55, 0x66}
 };
 
@@ -73,7 +72,7 @@ static const struct MacAddress mac_bssid_gnunet = {
 /**
  * Broadcast MAC
  */
-static const struct MacAddress bc_all_mac = {
+static const struct GNUNET_TRANSPORT_WLAN_MacAddress bc_all_mac = {
   {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}
 };
 

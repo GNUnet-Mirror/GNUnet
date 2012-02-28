@@ -59,12 +59,12 @@ sigfunc (int sig)
  * @return number of bytes written
  */
 static int
-send_mac_to_plugin (char *buffer, struct MacAddress *mac)
+send_mac_to_plugin (char *buffer, struct GNUNET_TRANSPORT_WLAN_MacAddress *mac)
 {
 
   struct GNUNET_TRANSPORT_WLAN_HelperControlMessage macmsg;
 
-  memcpy (&macmsg.mac, (char *) mac, sizeof (struct MacAddress));
+  memcpy (&macmsg.mac, (char *) mac, sizeof (struct GNUNET_TRANSPORT_WLAN_MacAddress));
   macmsg.hdr.size = htons (sizeof (struct GNUNET_TRANSPORT_WLAN_HelperControlMessage));
   macmsg.hdr.type = htons (GNUNET_MESSAGE_TYPE_WLAN_HELPER_CONTROL);
 
@@ -165,7 +165,7 @@ main (int argc, char *argv[])
   int retval;
   struct GNUNET_SERVER_MessageStreamTokenizer *stdin_mst;
   struct GNUNET_SERVER_MessageStreamTokenizer *file_in_mst;
-  struct MacAddress macaddr;
+  struct GNUNET_TRANSPORT_WLAN_MacAddress macaddr;
 
   if (2 != argc)
   {
