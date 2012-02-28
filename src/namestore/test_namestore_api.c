@@ -40,6 +40,10 @@ static GNUNET_HashCode zone;
 
 static int res;
 
+#define TEST_RECORD_TYPE 1234
+#define TEST_RECORD_DATALEN 123
+#define TEST_RECORD_DATA 'a'
+
 
 static void
 start_arm (const char *cfgname)
@@ -152,6 +156,13 @@ run (void *cls, char *const *args, const char *cfgfile,
 
 
   struct GNUNET_CRYPTO_RsaSignature signature;
+  struct GNUNET_NAMESTORE_RecordData rd;
+
+  rd.expiration = GNUNET_TIME_absolute_get();
+  rd.record_type = TEST_RECORD_TYPE;
+  rd.data_size = TEST_RECORD_DATALEN;
+  rd.data = GNUNET_malloc(TEST_RECORD_DATALEN);
+  memset ((char *) rd.data, 'a', TEST_RECORD_DATALEN);
   char * name = "dummy.dummy.gnunet";
 
   start_arm (cfgfile);
@@ -162,7 +173,10 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   GNUNET_NAMESTORE_record_put (nsh, &pubkey, name,
                               GNUNET_TIME_absolute_get_forever(),
-                              0, NULL, &signature, put_cont, name);
+                              1, &rd, &signature, put_cont, name);
+
+  GNUNET_free ((void *)rd.data);
+
 }
 
 static int

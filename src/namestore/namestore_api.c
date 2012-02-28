@@ -739,11 +739,13 @@ GNUNET_NAMESTORE_record_put (struct GNUNET_NAMESTORE_Handle *h,
 
   /* pointer to elements */
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key_tmp;
-  struct GNUNET_NAMESTORE_RecordData *rd_tmp;
+  char * rd_tmp;
+  char * rd_ser;
   char * name_tmp;
 
   size_t msg_size = 0;
   size_t name_len = strlen(name) + 1;
+  size_t rd_ser_len = 0;
   uint32_t id = 0;
 
   GNUNET_assert (NULL != h);
@@ -756,8 +758,10 @@ GNUNET_NAMESTORE_record_put (struct GNUNET_NAMESTORE_Handle *h,
   GNUNET_CONTAINER_DLL_insert_tail(h->op_head, h->op_tail, qe);
 
   /* set msg_size*/
+  rd_ser_len = GNUNET_NAMESTORE_records_serialize(&rd_ser, rd_count, rd);
+
   struct RecordPutMessage * msg;
-  msg_size = sizeof (struct RecordPutMessage) + sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded) + name_len  + rd_count * (sizeof (struct GNUNET_NAMESTORE_RecordData));
+  msg_size = sizeof (struct RecordPutMessage) + sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded) + name_len  + rd_ser_len;
 
   /* create msg here */
   pe = GNUNET_malloc(sizeof (struct PendingMessage) + msg_size);
@@ -766,7 +770,7 @@ GNUNET_NAMESTORE_record_put (struct GNUNET_NAMESTORE_Handle *h,
   msg = (struct RecordPutMessage *) &pe[1];
   zone_key_tmp = (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *) &msg[1];
   name_tmp = (char *) &zone_key_tmp[1];
-  rd_tmp = (struct GNUNET_NAMESTORE_RecordData *) &name_tmp[name_len];
+  rd_tmp = &name_tmp[name_len];
 
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_PUT);
   msg->header.size = htons (msg_size);
@@ -776,8 +780,10 @@ GNUNET_NAMESTORE_record_put (struct GNUNET_NAMESTORE_Handle *h,
   msg->name_len = htons (name_len);
   memcpy (name_tmp, name, name_len);
   msg->expire = GNUNET_TIME_absolute_hton (expire);
-  msg->rd_count = htonl(rd_count);
-  memcpy (rd_tmp, rd, rd_count * (sizeof (struct GNUNET_NAMESTORE_RecordData)));
+  msg->rd_len = htons (rd_ser_len);
+
+  memcpy (rd_tmp, rd_ser, rd_ser_len);
+  GNUNET_free (rd_ser);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message for name `%s' with size %u\n", "NAMESTORE_RECORD_PUT", name, msg_size);
 
@@ -832,8 +838,10 @@ GNUNET_NAMESTORE_record_create (struct GNUNET_NAMESTORE_Handle *h,
 {
   struct GNUNET_NAMESTORE_QueueEntry *qe;
   struct PendingMessage *pe;
-  struct GNUNET_NAMESTORE_RecordData * rd_tmp;
   char * name_tmp;
+  char * rd_tmp;
+  char * rd_ser;
+  size_t rd_ser_len = 0;
   size_t msg_size = 0;
   size_t name_len = 0;
   uint32_t id = 0;
@@ -848,8 +856,9 @@ GNUNET_NAMESTORE_record_create (struct GNUNET_NAMESTORE_Handle *h,
   qe->op_id = id;
 
   /* set msg_size*/
+  rd_ser_len = GNUNET_NAMESTORE_records_serialize(&rd_ser, 1, rd);
   struct RecordCreateMessage * msg;
-  msg_size = sizeof (struct RecordCreateMessage) + name_len + sizeof (struct GNUNET_NAMESTORE_RecordData);
+  msg_size = sizeof (struct RecordCreateMessage) + name_len + rd_ser_len;
 
   /* create msg here */
   pe = GNUNET_malloc(sizeof (struct PendingMessage) + msg_size);
@@ -858,7 +867,7 @@ GNUNET_NAMESTORE_record_create (struct GNUNET_NAMESTORE_Handle *h,
   msg = (struct RecordCreateMessage *) &pe[1];
 
   name_tmp = (char *) &msg[1];
-  rd_tmp = (struct GNUNET_NAMESTORE_RecordData *) &name_tmp[name_len];
+  rd_tmp = &name_tmp[name_len];
 
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_CREATE);
   msg->header.size = htons (msg_size);
@@ -866,7 +875,8 @@ GNUNET_NAMESTORE_record_create (struct GNUNET_NAMESTORE_Handle *h,
   //msg->signature = *signature;
   msg->name_len = htons (name_len);
   memcpy (name_tmp, name, name_len);
-  memcpy (rd_tmp, rd, sizeof (struct GNUNET_NAMESTORE_RecordData));
+  memcpy (rd_tmp, rd_ser, rd_ser_len);
+  GNUNET_free (rd_ser);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message for name `%s' with size %u\n", "NAMESTORE_RECORD_CREATE", name, msg_size);
 
@@ -901,8 +911,10 @@ GNUNET_NAMESTORE_record_remove (struct GNUNET_NAMESTORE_Handle *h,
 {
   struct GNUNET_NAMESTORE_QueueEntry *qe;
   struct PendingMessage *pe;
-  struct GNUNET_NAMESTORE_RecordData * rd_tmp;
+  char * rd_tmp;
+  char * rd_ser;
   char * name_tmp;
+  size_t rd_ser_len = 0;
   size_t msg_size = 0;
   size_t name_len = 0;
   uint32_t id = 0;
@@ -917,8 +929,9 @@ GNUNET_NAMESTORE_record_remove (struct GNUNET_NAMESTORE_Handle *h,
   qe->op_id = id;
 
   /* set msg_size*/
+  rd_ser_len = GNUNET_NAMESTORE_records_serialize(&rd_ser, 1, rd);
   struct RecordRemoveMessage * msg;
-  msg_size = sizeof (struct RecordRemoveMessage) + name_len + sizeof (struct GNUNET_NAMESTORE_RecordData);
+  msg_size = sizeof (struct RecordRemoveMessage) + name_len + rd_ser_len;
 
   /* create msg here */
   pe = GNUNET_malloc(sizeof (struct PendingMessage) + msg_size);
@@ -927,7 +940,7 @@ GNUNET_NAMESTORE_record_remove (struct GNUNET_NAMESTORE_Handle *h,
   msg = (struct RecordRemoveMessage *) &pe[1];
 
   name_tmp = (char *) &msg[1];
-  rd_tmp = (struct GNUNET_NAMESTORE_RecordData *) &name_tmp[name_len];
+  rd_tmp = &name_tmp[name_len];
 
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_REMOVE);
   msg->header.size = htons (msg_size);
@@ -935,7 +948,8 @@ GNUNET_NAMESTORE_record_remove (struct GNUNET_NAMESTORE_Handle *h,
   //msg->signature = *signature;
   msg->name_len = htons (name_len);
   memcpy (name_tmp, name, name_len);
-  memcpy (rd_tmp, rd, sizeof (struct GNUNET_NAMESTORE_RecordData));
+  memcpy (rd_tmp, rd_ser, rd_ser_len);
+  GNUNET_free (rd_ser);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message for name `%s' with size %u\n", "NAMESTORE_RECORD_REMOVE", name, msg_size);
 

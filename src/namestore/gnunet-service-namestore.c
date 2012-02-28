@@ -369,7 +369,9 @@ static void handle_record_put (void *cls,
   size_t msg_size;
   size_t msg_size_exp;
   char * name;
+  char * rd_ser;
   uint32_t id = 0;
+  uint32_t rd_ser_len;
   uint32_t rd_count;
   int res = GNUNET_SYSERR;
 
@@ -391,9 +393,9 @@ static void handle_record_put (void *cls,
   struct RecordPutMessage * rp_msg = (struct RecordPutMessage *) message;
   id = ntohl (rp_msg->op_id);
   name_len = ntohs (rp_msg->name_len);
-  rd_count = ntohl(rp_msg->rd_count);
+  rd_ser_len = ntohs(rp_msg->rd_len);
   msg_size = ntohs (message->size);
-  msg_size_exp = sizeof (struct RecordPutMessage) + sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded) + name_len  + rd_count * (sizeof (struct GNUNET_NAMESTORE_RecordData));
+  msg_size_exp = sizeof (struct RecordPutMessage) + sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded) + name_len  + rd_ser_len;
 
   if (msg_size != msg_size_exp)
   {
@@ -415,7 +417,8 @@ static void handle_record_put (void *cls,
   name = (char *) &zone_key[1];
   expire = GNUNET_TIME_absolute_ntoh(rp_msg->expire);
   signature = (struct GNUNET_CRYPTO_RsaSignature *) &rp_msg->signature;
-  rd = (struct GNUNET_NAMESTORE_RecordData *) &name[name_len];
+  rd_ser = &name[name_len];
+  rd_count = GNUNET_NAMESTORE_records_deserialize(&rd, rd_ser, rd_ser_len);
 
   /* Database operation */
   res = GSN_database->put_records(GSN_database->cls,

@@ -196,8 +196,8 @@ struct RecordPutMessage
   /* name length */
   uint16_t name_len;
 
-  /* Requested record type */
-  uint32_t rd_count;
+  /* Length of serialized rd data */
+  uint16_t rd_len;
 
   struct GNUNET_TIME_AbsoluteNBO expire;
 

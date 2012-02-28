@@ -23,19 +23,20 @@ endif
 
 
 check_PROGRAMS = \
- $(SQLITE_TESTS) 
+ $(SQLITE_TESTS) \
+ test_namestore_api \
+ test_namestore_api_zone_iteration \
+ test_namestore_record_serialization
 
 if HAVE_EXPERIMENTAL
-check_PROGRAMS += test_namestore_api \
-test_namestore_api_zone_iteration \
-test_namestore_record_serialization
+ check_PROGRAMS
 endif
 
 lib_LTLIBRARIES = \
   libgnunetnamestore.la
-
+  
 libgnunetnamestore_la_SOURCES = \
-  namestore_api.c namestore.h 
+  namestore_api.c namestore.h
 libgnunetnamestore_la_LIBADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
@@ -72,13 +73,15 @@ libgnunet_plugin_namestore_sqlite_la_LDFLAGS = \
 
 
 test_namestore_api_SOURCES = \
- test_namestore_api.c
+ test_namestore_api.c \
+ namestore_common.c
 test_namestore_api_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la
   
 test_namestore_api_zone_iteration_SOURCES = \
- test_namestore_api_zone_iteration.c
+ test_namestore_api_zone_iteration.c \
+ namestore_common.c
 test_namestore_api_zone_iteration_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la  
