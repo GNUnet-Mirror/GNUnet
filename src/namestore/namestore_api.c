@@ -200,16 +200,18 @@ handle_lookup_name_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
   struct GNUNET_NAMESTORE_Handle *h = qe->nsh;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key;
   char *name;
+  char * rd_tmp;
   struct GNUNET_NAMESTORE_RecordData *rd = NULL;
   struct GNUNET_CRYPTO_RsaSignature *signature = NULL;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded dummy;
   struct GNUNET_TIME_Absolute expire;
-  unsigned int rd_count = 0;
   size_t msg_len = 0;
   size_t name_len = 0;
+  size_t rd_len = 0;
   int contains_sig = GNUNET_NO;
+  int rd_count = 0;
 
-  rd_count = ntohl (msg->rc_count);
+  rd_len = ntohs (msg->rd_len);
   msg_len = ntohs (msg->header.size);
   name_len = ntohs (msg->name_len);
   contains_sig = ntohs (msg->contains_sig);
@@ -218,7 +220,7 @@ handle_lookup_name_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
   if (msg_len != sizeof (struct LookupNameResponseMessage) +
       sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded) +
       name_len +
-      rd_count * sizeof (struct GNUNET_NAMESTORE_RecordData) +
+      rd_len +
       contains_sig * sizeof (struct GNUNET_CRYPTO_RsaSignature))
   {
     GNUNET_break_op (0);
@@ -227,13 +229,14 @@ handle_lookup_name_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
 
   zone_key = (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *) &msg[1];
   name = (char *) &zone_key[1];
-  rd = (struct GNUNET_NAMESTORE_RecordData *) &name[name_len];
+  rd_tmp = &name[name_len];
+  rd_count = GNUNET_NAMESTORE_records_deserialize(&rd, rd_tmp, rd_len);
 
   /* reset values if values not contained */
   if (contains_sig == GNUNET_NO)
     signature = NULL;
   else
-    signature = (struct GNUNET_CRYPTO_RsaSignature *) &rd[rd_count];
+    signature = (struct GNUNET_CRYPTO_RsaSignature *) &rd_tmp[rd_len];
   if (rd_count == 0)
     rd = NULL;
   if (name_len == 0)
@@ -247,6 +250,9 @@ handle_lookup_name_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
   {
     qe->proc (qe->proc_cls, zone_key, expire, name, rd_count, rd, signature);
   }
+
+  GNUNET_NAMESTORE_records_free(rd_count, rd);
+
   /* Operation done, remove */
   GNUNET_CONTAINER_DLL_remove(h->op_head, h->op_tail, qe);
   GNUNET_free (qe);

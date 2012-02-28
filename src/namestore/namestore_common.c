@@ -55,6 +55,7 @@ GNUNET_NAMESTORE_records_serialize (char ** dest,
   int c = 0;
   int offset;
 
+  GNUNET_assert (rd != NULL);
 
   size_t total_len = rd_count * sizeof (struct GNUNET_NAMESTORE_NetworkRecord);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Struct size: %u\n", total_len);
@@ -92,6 +93,18 @@ GNUNET_NAMESTORE_records_serialize (char ** dest,
 
   GNUNET_assert (offset == total_len);
   return total_len;
+}
+
+void
+GNUNET_NAMESTORE_records_free (unsigned int rd_count, struct GNUNET_NAMESTORE_RecordData *rd)
+{
+  int c;
+  if ((rd == NULL) || (rd_count == 0))
+    return;
+
+  for (c = 0; c < rd_count; c++)
+    GNUNET_free_non_null ((void *) rd[c].data);
+  GNUNET_free (rd);
 }
 
 
@@ -142,8 +155,10 @@ GNUNET_NAMESTORE_records_deserialize ( struct GNUNET_NAMESTORE_RecordData **dest
     d[c].record_type = ntohl (nr->record_type);
     d[c].flags = ntohl (nr->flags);
     d[c].data_size = ntohl (nr->data_size);
-    d[c].data = GNUNET_malloc (d[c].data_size);
-    GNUNET_assert (d[c].data != NULL);
+    if (d[c].data_size > 0)
+      d[c].data = GNUNET_malloc (d[c].data_size);
+    else
+      d[c].data = NULL;
 
     offset += sizeof (struct GNUNET_NAMESTORE_NetworkRecord);
     memcpy((char *) d[c].data, &src[offset], d[c].data_size);

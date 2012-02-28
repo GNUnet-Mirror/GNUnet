@@ -51,6 +51,9 @@ GNUNET_NAMESTORE_records_serialize (char ** dest,
 int
 GNUNET_NAMESTORE_records_deserialize ( struct GNUNET_NAMESTORE_RecordData **dest, char *src, size_t len);
 
+void
+GNUNET_NAMESTORE_records_free (unsigned int rd_count, struct GNUNET_NAMESTORE_RecordData *rd);
+
 /**
  * A GNS record serialized for network transmission.
  * layout is [struct GNUNET_NAMESTORE_NetworkRecord][char[data_size] data]
@@ -168,7 +171,7 @@ struct LookupNameResponseMessage
   uint16_t contains_sig;
 
   /* Requested record type */
-  uint32_t rc_count;
+  uint32_t rd_len;
 };
 GNUNET_NETWORK_STRUCT_END
 
@@ -416,6 +419,16 @@ struct ZoneIterationResponseMessage
    * Operation ID in NBO
    */
   uint32_t op_id;
+
+  struct GNUNET_TIME_AbsoluteNBO expire;
+
+  uint16_t name_len;
+
+  uint16_t contains_sig;
+
+  /* Record data length */
+  uint16_t rd_len;
+
 };
 GNUNET_NETWORK_STRUCT_END
 
