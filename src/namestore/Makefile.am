@@ -30,9 +30,9 @@ check_PROGRAMS = \
 
 lib_LTLIBRARIES = \
   libgnunetnamestore.la
-  
+
 libgnunetnamestore_la_SOURCES = \
-  namestore_api.c namestore.h
+  namestore_api.c namestore_common.c namestore.h
 libgnunetnamestore_la_LIBADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
@@ -45,9 +45,10 @@ bin_PROGRAMS = \
  gnunet-service-namestore
 
 gnunet_service_namestore_SOURCES = \
- gnunet-service-namestore.c \
- namestore_common.c
+ gnunet-service-namestore.c
+
 gnunet_service_namestore_LDADD = \
+  $(top_builddir)/src/namestore/libgnunetnamestore.la  \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
@@ -69,22 +70,22 @@ libgnunet_plugin_namestore_sqlite_la_LDFLAGS = \
 
 
 test_namestore_api_SOURCES = \
- test_namestore_api.c \
- namestore_common.c
+ test_namestore_api.c
+
 test_namestore_api_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la
-  
+
 test_namestore_api_zone_iteration_SOURCES = \
- test_namestore_api_zone_iteration.c \
- namestore_common.c
+ test_namestore_api_zone_iteration.c
+
 test_namestore_api_zone_iteration_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la  
 
 test_namestore_record_serialization_SOURCES = \
- test_namestore_record_serialization.c \
- namestore_common.c
+ test_namestore_record_serialization.c
+
 test_namestore_record_serialization_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la  
