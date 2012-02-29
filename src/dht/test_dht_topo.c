@@ -145,17 +145,12 @@ shutdown_callback (void *cls, const char *emsg)
 {
   if (emsg != NULL)
   {
-#if VERBOSE
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown of peers failed!\n");
-#endif
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Shutdown of peers failed!\n");
     ok++;
   }
   else
   {
-#if VERBOSE
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "All peers successfully shut down!\n");
-#endif
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "All peers successfully shut down!\n");
   }
   GNUNET_CONFIGURATION_destroy (testing_cfg);
 }
@@ -164,9 +159,7 @@ shutdown_callback (void *cls, const char *emsg)
 static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-#if VERBOSE
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Ending test.\n");
-#endif
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Ending test.\n");
 
   if (disconnect_task != GNUNET_SCHEDULER_NO_TASK)
   {
@@ -185,7 +178,7 @@ disconnect_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   unsigned int i;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "disconnecting peers\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "disconnecting peers\n");
   disconnect_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_SCHEDULER_cancel (put_task);
   if (NULL != get_h)
@@ -313,7 +306,7 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     GNUNET_assert (0);
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test_task\ntest:   from %s\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test_task\nfrom %s\n",
               GNUNET_h2s_full (&o->id.hashPubKey));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  looking for %s\n",
               GNUNET_h2s_full (&d->id.hashPubKey));
@@ -474,7 +467,7 @@ connect_cb (void *cls, const struct GNUNET_PeerIdentity *first,
   }
   else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Problem with new connection (%s)\n", emsg);
   }
 
