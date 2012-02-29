@@ -51,6 +51,7 @@ gnunet_service_namestore_LDADD = \
   $(top_builddir)/src/namestore/libgnunetnamestore.la  \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
+  libgnunetnamestore.la \
   $(GN_LIBINTL)
 
 if HAVE_SQLITE
