@@ -443,7 +443,7 @@ GNUNET_OS_process_kill (struct GNUNET_OS_Process *proc, int sig)
 #endif    
   }
   ret = GNUNET_DISK_file_write (proc->control_pipe, &sig, sizeof (sig));
-  if (ret == sizeof (sig))
+  if (ret == sizeof (sig))  
     return 0;
   /* pipe failed, try other methods */
   switch (sig)
@@ -491,10 +491,8 @@ GNUNET_OS_process_get_pid (struct GNUNET_OS_Process * proc)
 void
 GNUNET_OS_process_close (struct GNUNET_OS_Process *proc)
 {
-#if ENABLE_WINDOWS_WORKAROUNDS
-  if (proc->control_pipe)
+  if (NULL != proc->control_pipe)
     GNUNET_DISK_file_close (proc->control_pipe);
-#endif
 // FIXME NILS
 #ifdef WINDOWS
   if (proc->handle != NULL)
