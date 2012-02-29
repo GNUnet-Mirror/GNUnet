@@ -87,6 +87,15 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_ARM_RESULT 11
 
+/**
+ * Request to ARM to list all currently running services
+ */
+#define GNUNET_MESSAGE_TYPE_ARM_LIST 12
+
+/**
+ * Response from ARM for listing currently running services
+ */
+#define GNUNET_MESSAGE_TYPE_ARM_LIST_RESULT 13
 
 /*******************************************************************************
  * HELLO message types

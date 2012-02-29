@@ -111,6 +111,19 @@ enum GNUNET_ARM_ProcessStatus
 typedef void (*GNUNET_ARM_Callback) (void *cls, 
 				     enum GNUNET_ARM_ProcessStatus result);
 
+/**
+ * Callback function invoked when list operation is complete.
+ *
+ * @param cls closure
+ * @param result outcome of the operation (GNUNET_YES if successful)
+ * @param count number of strings in the list
+ * @param list list of running services
+ */
+typedef void (*GNUNET_ARM_List_Callback) (void *cls, 
+                                          int result,
+                                          uint16_t count,
+                                          const char **list);
+
 
 /**
  * Handle for interacting with ARM.
@@ -183,6 +196,18 @@ GNUNET_ARM_stop_service (struct GNUNET_ARM_Handle *h, const char *service_name,
                          GNUNET_ARM_Callback cb, void *cb_cls);
 
 
+/**
+ * List all running services.
+ * 
+ * @param h handle to ARM
+ * @param timeout how long to wait before failing for good
+ * @param cb callback to invoke when service is ready
+ * @param cb_cls closure for callback
+ */
+void
+GNUNET_ARM_list_running_services (struct GNUNET_ARM_Handle *h,
+                                  struct GNUNET_TIME_Relative timeout,
+                                  GNUNET_ARM_List_Callback cb, void *cb_cls);
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

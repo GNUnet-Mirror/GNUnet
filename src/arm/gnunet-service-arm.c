@@ -370,6 +370,43 @@ write_result (void *cls, size_t size, void *buf)
   return sizeof (struct GNUNET_ARM_ResultMessage);
 }
 
+/**
+ * Transmit the list of running services.
+ * 
+ * @param cls pointer to struct GNUNET_ARM_ListResultMessage with the message
+ * @param size number of bytes available in buf
+ * @param buf where to copy the message, NULL on error
+ * @return number of bytes copied to buf
+ */
+static size_t
+write_list_result (void *cls, size_t size, void *buf)
+{
+  struct GNUNET_ARM_ListResultMessage *msg = cls;
+  struct GNUNET_ARM_ListResultMessage *rslt;
+  size_t rslt_size;
+  
+  if (buf == NULL)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _("Could not send list result to client\n"));
+    return 0;                   /* error, not much we can do */
+  }
+  
+  GNUNET_assert (size >= msg->header.size);
+  rslt = buf;
+  rslt->header.size = htons (msg->header.size);
+  rslt->header.type = htons (msg->header.type);
+  rslt->count = htons (msg->count);
+  
+  size_t list_size = msg->header.size 
+                     - sizeof (struct GNUNET_ARM_ListResultMessage);  
+  memcpy (&rslt[1], &msg[1], list_size);
+
+  rslt_size = msg->header.size;
+  GNUNET_free (msg);
+  return rslt_size;
+}
+
 
 /**
  * Signal our client that we will start or stop the
@@ -566,7 +603,7 @@ handle_start (void *cls, struct GNUNET_SERVER_Client *client,
   const char *servicename;
   struct ServiceList *sl;
   uint16_t size;
-
+  
   size = ntohs (message->size);
   size -= sizeof (struct GNUNET_MessageHeader);
   servicename = (const char *) &message[1];
@@ -663,6 +700,64 @@ handle_stop (void *cls, struct GNUNET_SERVER_Client *client,
   GNUNET_SERVER_client_keep (client);
 }
 
+/**
+ * Handle LIST-message.
+ *
+ * @param cls closure (always NULL)
+ * @param client identification of the client
+ * @param message the actual message
+ */
+static void
+handle_list (void *cls, struct GNUNET_SERVER_Client *client,
+             const struct GNUNET_MessageHeader *message)
+{
+  struct GNUNET_ARM_ListResultMessage *msg;
+  size_t string_list_size;
+  size_t total_size;
+  struct ServiceList *sl;
+  uint16_t count;
+  
+  if (NULL == client)
+    return;
+  
+  count = 0;
+  string_list_size = 0;
+  /* first count the running processes get their name's size */
+  for (sl = running_head; sl != NULL; sl = sl->next)
+  {
+    if (sl->proc != NULL)
+    {
+      string_list_size += strlen (sl->name);
+      string_list_size += 3;
+      string_list_size += strlen (sl->binary) + 1;
+      count++;
+    }
+  }
+  total_size = sizeof (struct GNUNET_ARM_ListResultMessage) 
+               + string_list_size;
+  msg = GNUNET_malloc (total_size);
+  msg->header.size = total_size;
+  msg->header.type = GNUNET_MESSAGE_TYPE_ARM_LIST_RESULT;
+  msg->count = count;
+  
+  char *pos = (char *)&msg[1];
+  for (sl = running_head; sl != NULL; sl = sl->next) 
+  {
+    if (sl->proc != NULL)
+    {
+      //memcpy (pos, sl->name, strlen (sl->name) + 1);
+      size_t s = strlen (sl->name) + strlen (sl->binary) + 4;
+      snprintf(pos, s, "%s (%s)", sl->name, sl->binary);
+      pos += s;
+    }
+  }
+  
+  GNUNET_SERVER_notify_transmit_ready (client,
+                                       msg->header.size,
+                                       GNUNET_TIME_UNIT_FOREVER_REL,
+                                       &write_list_result, msg);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
 
 /**
  * We are done with everything.  Stop remaining
@@ -1002,7 +1097,6 @@ handle_shutdown (void *cls, struct GNUNET_SERVER_Client *client,
   GNUNET_SERVER_client_persist_ (client);
 }
 
-
 /**
  * Signal handler called for SIGCHLD.  Triggers the
  * respective handler by writing to the trigger pipe.
@@ -1113,6 +1207,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *serv,
     {&handle_start, NULL, GNUNET_MESSAGE_TYPE_ARM_START, 0},
     {&handle_stop, NULL, GNUNET_MESSAGE_TYPE_ARM_STOP, 0},
     {&handle_shutdown, NULL, GNUNET_MESSAGE_TYPE_ARM_SHUTDOWN,
+     sizeof (struct GNUNET_MessageHeader)},
+    {&handle_list, NULL, GNUNET_MESSAGE_TYPE_ARM_LIST, 
      sizeof (struct GNUNET_MessageHeader)},
     {NULL, NULL, 0, 0}
   };

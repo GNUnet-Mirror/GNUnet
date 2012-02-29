@@ -51,6 +51,27 @@ struct GNUNET_ARM_ResultMessage
    */
   uint32_t status;
 };
+
+/**
+ * Reply from ARM to client for the 
+ * GNUNET_MESSAGE_TYPE_ARM_LIST request followed by count 
+ * '\0' terminated strings. header->size contains the
+ * total size (including all strings).
+ */
+struct GNUNET_ARM_ListResultMessage
+{
+  /**
+   * Reply to client is of type GNUNET_MESSAGE_TYPE_ARM_LIST_RESULT
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Number of '\0' terminated strings that follow
+   * this message.
+   */
+  uint16_t count;
+};
+
 GNUNET_NETWORK_STRUCT_END
 
 #endif

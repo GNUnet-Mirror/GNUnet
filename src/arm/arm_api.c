@@ -52,7 +52,6 @@ struct GNUNET_ARM_Handle
 
 };
 
-
 /**
  * Context for handling the shutdown of a service.
  */
@@ -487,6 +486,94 @@ handle_response (void *cls, const struct GNUNET_MessageHeader *msg)
   GNUNET_free (sc);
 }
 
+/**
+ * Internal state for a list request with ARM.
+ */
+struct ListRequestContext
+{
+
+  /**
+   * Pointer to our handle with ARM.
+   */
+  struct GNUNET_ARM_Handle *h;
+
+  /**
+   * Function to call with a status code for the requested operation.
+   */
+  GNUNET_ARM_List_Callback callback;
+
+  /**
+   * Closure for "callback".
+   */
+  void *cls;
+
+  /**
+   * Timeout for the operation.
+   */
+  struct GNUNET_TIME_Absolute timeout;
+};
+
+/**
+ * Process a response from ARM for the list request.
+ *
+ * @param cls the list request context
+ * @param msg the response
+ */
+static void
+handle_list_response (void *cls, const struct GNUNET_MessageHeader *msg)
+{
+  struct ListRequestContext *sc = cls;
+  const struct GNUNET_ARM_ListResultMessage *res;
+  int success;
+  
+   if (msg == NULL)
+   {
+      LOG (GNUNET_ERROR_TYPE_WARNING,
+           "Error receiving response to LIST request from ARM\n");
+      GNUNET_CLIENT_disconnect (sc->h->client, GNUNET_NO);
+      sc->h->client = GNUNET_CLIENT_connect ("arm", sc->h->cfg);
+      GNUNET_assert (NULL != sc->h->client);
+      if (sc->callback != NULL)
+        sc->callback (sc->cls, GNUNET_ARM_PROCESS_COMMUNICATION_ERROR, 0, NULL);
+      GNUNET_free (sc);
+      return;
+   }
+   
+   if (sc->callback != NULL) 
+   {
+     char **list;
+     const char *pos;
+     uint16_t size_check;
+     
+     size_check = 0;
+     res = (const struct GNUNET_ARM_ListResultMessage *) msg;
+     success = (ntohs (res->header.type) 
+                == GNUNET_MESSAGE_TYPE_ARM_LIST_RESULT ? 
+                GNUNET_YES : GNUNET_NO);
+     list = GNUNET_malloc (ntohs (res->count) * sizeof (char *));
+     pos = (const char *)&res[1];
+     
+     int i;
+     for (i=0; i<ntohs (res->count); i++)
+     {
+       list[i] = GNUNET_malloc (strlen (pos) + 1);
+       memcpy (list[i], pos, strlen (pos) + 1);
+       pos += strlen (pos) + 1;
+       size_check += strlen (pos) +1;
+       
+       if (size_check > ntohs (res->header.size))
+       {
+          GNUNET_free (list);
+          GNUNET_free (sc);
+          sc->callback (sc->cls, GNUNET_NO, 0, NULL);
+          return;
+       }
+     }
+     
+     sc->callback (sc->cls, success, ntohs (res->count), (const char**)list);
+   }
+   GNUNET_free (sc);
+}
 
 /**
  * Start or stop a service.
@@ -677,5 +764,69 @@ GNUNET_ARM_stop_service (struct GNUNET_ARM_Handle *h,
 		  GNUNET_MESSAGE_TYPE_ARM_STOP);
 }
 
+/**
+ * List all running services.
+ * 
+ * @param h handle to ARM
+ * @param timeout how long to wait before failing for good
+ * @param cb callback to invoke when service is ready
+ * @param cb_cls closure for callback
+ */
+void
+GNUNET_ARM_list_running_services (struct GNUNET_ARM_Handle *h,
+                                  struct GNUNET_TIME_Relative timeout,
+                                  GNUNET_ARM_List_Callback cb, void *cb_cls)
+{
+  struct ListRequestContext *sctx;
+  struct GNUNET_MessageHeader *msg;
+  struct GNUNET_CLIENT_Connection *client;
+  
+    if (h->client == NULL)
+    {
+      client = GNUNET_CLIENT_connect ("arm", h->cfg);
+      if (client == NULL)
+        {
+          LOG (GNUNET_ERROR_TYPE_DEBUG,
+               "arm_api, GNUNET_CLIENT_connect returned NULL\n");
+          cb (cb_cls, GNUNET_ARM_PROCESS_COMMUNICATION_ERROR, 0, NULL);
+          return;
+        }
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "arm_api, GNUNET_CLIENT_connect returned non-NULL\n");
+      h->client = client;
+    }
+
+  sctx = GNUNET_malloc (sizeof (struct RequestContext));
+  sctx->h = h;
+  sctx->callback = cb;
+  sctx->cls = cb_cls;
+  sctx->timeout = GNUNET_TIME_relative_to_absolute (timeout);
+  msg = GNUNET_malloc (sizeof (struct GNUNET_MessageHeader));
+  msg->size = htons (sizeof (struct GNUNET_MessageHeader));
+  msg->type = htons (GNUNET_MESSAGE_TYPE_ARM_LIST);
+  
+  LOG(GNUNET_ERROR_TYPE_DEBUG, 
+      "Requesting LIST from ARM service with timeout: %llu ms\n", 
+      (unsigned long long)timeout.rel_value);
+  
+    if (GNUNET_OK !=
+      GNUNET_CLIENT_transmit_and_get_response (sctx->h->client, 
+                                               msg,
+                                               GNUNET_TIME_absolute_get_remaining
+                                               (sctx->timeout), 
+                                               GNUNET_YES,
+                                               &handle_list_response, 
+                                               sctx))
+    {
+      LOG (GNUNET_ERROR_TYPE_WARNING, 
+           "Error while trying to transmit request to list services to ARM\n");
+      if (cb != NULL)
+        cb (cb_cls, GNUNET_SYSERR, 0, NULL);
+      GNUNET_free (sctx);
+      GNUNET_free (msg);
+      return;
+    }
+  GNUNET_free (msg);
+}
 
 /* end of arm_api.c */
