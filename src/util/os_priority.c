@@ -972,6 +972,8 @@ GNUNET_OS_start_process_vap (int pipe_control,
       return NULL;
     }
   }
+  else
+    control_pipe = NULL;
   if (NULL != childpipename)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Opened the parent end of the pipe `%s'\n",
@@ -1345,6 +1347,8 @@ GNUNET_OS_start_process_v (int pipe_control,
       return NULL;
     }
   }
+  else
+    control_pipe = NULL;
   if (lsocks != NULL && lsocks[0] != INVALID_SOCKET)
   {
     lsocks_pipe = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_YES, GNUNET_YES, GNUNET_NO);
