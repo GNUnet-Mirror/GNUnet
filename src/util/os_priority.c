@@ -985,8 +985,8 @@ GNUNET_OS_start_process_vap (int pipe_control,
     our_env[0] = NULL;
   }
   env_block = CreateCustomEnvTable (our_env);
-  GNUNET_free (our_env[0]);
-  GNUNET_free (our_env[1]);
+  GNUNET_free_non_null (our_env[0]);
+  GNUNET_free_non_null (our_env[1]);
 
   if (ERROR_SUCCESS != plibc_conv_to_win_pathwconv(path, wpath)
       || ERROR_SUCCESS != plibc_conv_to_win_pathwconv(cmd, wcmd)
