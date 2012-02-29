@@ -755,11 +755,23 @@ GNUNET_NAMESTORE_record_put (struct GNUNET_NAMESTORE_Handle *h,
   char * name_tmp;
 
   size_t msg_size = 0;
-  size_t name_len = strlen(name) + 1;
+  size_t name_len = 0;
   size_t rd_ser_len = 0;
   uint32_t id = 0;
 
   GNUNET_assert (NULL != h);
+  GNUNET_assert (NULL != zone_key);
+  GNUNET_assert (NULL != name);
+  GNUNET_assert (NULL != rd);
+  GNUNET_assert (NULL != signature);
+
+  name_len = strlen(name) + 1;
+  if (name_len > 256)
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
+
   id = get_op_id(h);
   qe = GNUNET_malloc(sizeof (struct GNUNET_NAMESTORE_QueueEntry));
   qe->nsh = h;
