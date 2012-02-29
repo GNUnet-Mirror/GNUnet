@@ -30,6 +30,10 @@ check_PROGRAMS = \
  test_namestore_api_zone_iteration \
  test_namestore_record_serialization
 
+if ENABLE_TEST_RUN
+TESTS = $(check_PROGRAMS)
+endif
+
 lib_LTLIBRARIES = \
   libgnunetnamestore.la
 
