@@ -28,6 +28,7 @@
 #include "gnunet_service_lib.h"
 #include "gnunet_namestore_service.h"
 #include "gnunet_namestore_plugin.h"
+#include "gnunet_signatures.h"
 #include "namestore.h"
 
 
@@ -262,6 +263,7 @@ handle_lookup_name_it (void *cls,
     rd_selected = NULL;
     rd_ser = NULL;
     rd_ser_len = 0;
+    expire = GNUNET_TIME_UNIT_ZERO_ABS;
   }
 
   if ((copied_elements == rd_count) && (signature != NULL))
@@ -281,7 +283,7 @@ handle_lookup_name_it (void *cls,
   lnr_msg->header.type = ntohs (GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_NAME_RESPONSE);
   lnr_msg->header.size = ntohs (r_size);
   lnr_msg->op_id = htonl (lnc->id);
-  lnr_msg->rd_len = htonl (rd_ser_len);
+  lnr_msg->rd_len = htons (rd_ser_len);
   lnr_msg->name_len = htons (name_len);
   lnr_msg->expire = GNUNET_TIME_absolute_hton(expire);
   lnr_msg->contains_sig = htons (contains_signature);
@@ -383,6 +385,7 @@ static void handle_record_put (void *cls,
   size_t name_len;
   size_t msg_size;
   size_t msg_size_exp;
+  size_t key_len;
   char * name;
   char * rd_ser;
   uint32_t id = 0;
@@ -406,11 +409,13 @@ static void handle_record_put (void *cls,
   }
 
   struct RecordPutMessage * rp_msg = (struct RecordPutMessage *) message;
+
   id = ntohl (rp_msg->op_id);
+  key_len = sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded);
   name_len = ntohs (rp_msg->name_len);
   rd_ser_len = ntohs(rp_msg->rd_len);
   msg_size = ntohs (message->size);
-  msg_size_exp = sizeof (struct RecordPutMessage) + sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded) + name_len  + rd_ser_len;
+  msg_size_exp = sizeof (struct RecordPutMessage) + key_len + name_len  + rd_ser_len;
 
   if (msg_size != msg_size_exp)
   {
@@ -429,7 +434,7 @@ static void handle_record_put (void *cls,
   }
 
   zone_key = (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *) &rp_msg[1];
-  name = (char *) &zone_key[1];
+  name =  &((char *)zone_key)[key_len];
 
   if (name[name_len -1] != '\0')
   {
@@ -442,6 +447,11 @@ static void handle_record_put (void *cls,
   signature = (struct GNUNET_CRYPTO_RsaSignature *) &rp_msg->signature;
   rd_ser = &name[name_len];
   rd_count = GNUNET_NAMESTORE_records_deserialize(&rd, rd_ser, rd_ser_len);
+
+  GNUNET_HashCode zone_hash;
+  GNUNET_CRYPTO_hash (zone_key, key_len, &zone_hash);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "PUT ZONE HASH: `%s'\n", GNUNET_h2s_full(&zone_hash));
+
 
   /* Database operation */
   res = GSN_database->put_records(GSN_database->cls,
@@ -471,6 +481,84 @@ static void handle_record_put (void *cls,
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
+struct CreateRecordContext
+{
+  struct GNUNET_NAMESTORE_RecordData *rd;
+  struct GNUNET_CRYPTO_RsaPrivateKey *pkey;
+  struct GNUNET_TIME_Absolute expire;
+  uint32_t op_id;
+  struct GNUNET_NAMESTORE_Client *nc;
+};
+
+struct GNUNET_CRYPTO_RsaSignature *
+GNUNET_NAMESTORE_create_signature (const struct GNUNET_CRYPTO_RsaPrivateKey *key, struct GNUNET_NAMESTORE_RecordData *rd, unsigned int rd_count)
+{
+  struct GNUNET_CRYPTO_RsaSignature *sig = GNUNET_malloc(sizeof (struct GNUNET_CRYPTO_RsaSignature));
+  struct GNUNET_CRYPTO_RsaSignaturePurpose *sig_purpose;
+  size_t rd_ser_len;
+  char *rd_ser;
+
+  rd_ser_len = GNUNET_NAMESTORE_records_serialize(&rd_ser, rd_count, rd);
+  sig_purpose = GNUNET_malloc(sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose) + rd_ser_len);
+
+  sig_purpose->size = htonl (sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose)+ rd_ser_len);
+  sig_purpose->purpose = htonl (GNUNET_SIGNATURE_PURPOSE_GNS_RECORD_SIGN);
+  memcpy (&sig_purpose[1], rd_ser, rd_ser_len);
+
+  GNUNET_CRYPTO_rsa_sign (key, sig_purpose, sig);
+
+  GNUNET_free (rd_ser);
+  GNUNET_free (sig_purpose);
+  return sig;
+}
+
+static void
+handle_create_record_it (void *cls,
+    const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
+    struct GNUNET_TIME_Absolute expire,
+    const char *name,
+    unsigned int rd_count,
+    const struct GNUNET_NAMESTORE_RecordData *rd,
+    const struct GNUNET_CRYPTO_RsaSignature *signature)
+{
+  struct CreateRecordContext * crc = cls;
+  struct GNUNET_CRYPTO_RsaSignature *signature_new;
+  struct RecordCreateResponseMessage rcr_msg;
+  int res;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found %u existing records for `%s'\n", rd_count, name);
+  struct GNUNET_NAMESTORE_RecordData *rd_new = GNUNET_malloc ((rd_count+1) * sizeof (struct GNUNET_NAMESTORE_RecordData));
+  memcpy (rd_new, rd, rd_count * sizeof (struct GNUNET_NAMESTORE_RecordData));
+
+  rd_new[rd_count] = *(crc->rd);
+
+  signature_new = GNUNET_NAMESTORE_create_signature (crc->pkey, rd_new, rd_count+1);
+
+  /* Database operation */
+  res = GSN_database->put_records(GSN_database->cls,
+                                zone_key,
+                                expire,
+                                name,
+                                rd_count +1, rd_new,
+                                signature_new);
+
+  GNUNET_free (rd_new);
+  GNUNET_free (signature_new);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Update result for name %u\n", res);
+  /* Send response */
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message\n", "RECORD_CREATE_RESPONSE");
+  rcr_msg.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_CREATE_RESPONSE);
+  rcr_msg.op_id = htonl (crc->op_id);
+  rcr_msg.header.size = htons (sizeof (struct RecordCreateResponseMessage));
+  if (GNUNET_OK == res)
+    rcr_msg.op_result = htons (GNUNET_OK);
+  else
+    rcr_msg.op_result = htons (GNUNET_NO);
+  GNUNET_SERVER_notification_context_unicast (snc, crc->nc->client, (const struct GNUNET_MessageHeader *) &rcr_msg, GNUNET_NO);
+
+}
 
 static void handle_record_create (void *cls,
                           struct GNUNET_SERVER_Client * client,
@@ -478,11 +566,21 @@ static void handle_record_create (void *cls,
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "NAMESTORE_RECORD_CREATE");
   struct GNUNET_NAMESTORE_Client *nc;
-  struct RecordCreateResponseMessage rcr_msg;
+  struct GNUNET_NAMESTORE_RecordData *rd;
+  struct CreateRecordContext crc;
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pub;
+  GNUNET_HashCode pubkey_hash;
   size_t name_len;
   size_t msg_size;
   size_t msg_size_exp;
+  size_t rd_ser_len;
+  size_t key_len;
   uint32_t id = 0;
+  char *pkey_tmp;
+  char *name_tmp;
+  char *rd_ser;
+  int rd_count;
+
 
   int res = GNUNET_SYSERR;
 
@@ -505,7 +603,9 @@ static void handle_record_create (void *cls,
   id = ntohl (rp_msg->op_id);
   name_len = ntohs (rp_msg->name_len);
   msg_size = ntohs (message->size);
-  msg_size_exp = sizeof (struct RecordCreateMessage) + name_len + sizeof (struct GNUNET_NAMESTORE_RecordData);
+  rd_ser_len = ntohs (rp_msg->rd_len);
+  key_len = ntohs (rp_msg->pkey_len);
+  msg_size_exp = sizeof (struct RecordCreateMessage) + key_len + name_len + rd_ser_len;
 
   if (msg_size != msg_size_exp)
   {
@@ -515,37 +615,48 @@ static void handle_record_create (void *cls,
     return;
   }
 
-
   if ((name_len == 0) || (name_len > 256))
   {
     GNUNET_break_op (0);
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
-/*
-  if (name[name_len -1] != '\0')
+
+  pkey_tmp = (char *) &rp_msg[1];
+  name_tmp = &pkey_tmp[key_len];
+  rd_ser = &name_tmp[name_len];
+
+  if (name_tmp[name_len -1] != '\0')
   {
     GNUNET_break_op (0);
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
-*/
-  /* DO WORK HERE */
 
-  /* Send response */
+  rd_count = GNUNET_NAMESTORE_records_deserialize(&rd, rd_ser, rd_ser_len);
+  GNUNET_assert (rd_count == 1);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message\n", "RECORD_CREATE_RESPONSE");
-  rcr_msg.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_CREATE_RESPONSE);
-  rcr_msg.op_id = rp_msg->op_id;
-  rcr_msg.header.size = htons (sizeof (struct RecordCreateResponseMessage));
-  if (GNUNET_OK == res)
-    rcr_msg.op_result = htons (GNUNET_OK);
-  else
-    rcr_msg.op_result = htons (GNUNET_NO);
-  GNUNET_SERVER_notification_context_unicast (snc, nc->client, (const struct GNUNET_MessageHeader *) &rcr_msg, GNUNET_NO);
+  /* Extracting and converting private key */
+  struct GNUNET_CRYPTO_RsaPrivateKey *pkey = GNUNET_CRYPTO_rsa_decode_key((char *) pkey_tmp, key_len);
+  GNUNET_assert (pkey != NULL);
+  GNUNET_CRYPTO_rsa_key_get_public(pkey, &pub);
+  GNUNET_CRYPTO_hash (&pub, sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), &pubkey_hash);
+
+  crc.pkey = pkey;
+  crc.rd = rd;
+  crc.nc = nc;
+  crc.op_id = id;
+
+  /* Get existing records for name */
+  res = GSN_database->iterate_records(GSN_database->cls, &pubkey_hash, name_tmp, 0, &handle_create_record_it, &crc);
+
+  GNUNET_CRYPTO_rsa_key_free(pkey);
+  GNUNET_NAMESTORE_records_free(rd_count, rd);
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
+
+
 
 static void handle_record_remove (void *cls,
                           struct GNUNET_SERVER_Client * client,
@@ -712,7 +823,6 @@ static void handle_iteration_start (void *cls,
   GNUNET_CONTAINER_DLL_insert (nc->op_head, nc->op_tail, zi);
 
   res = GSN_database->iterate_records (GSN_database->cls, &zis_msg->zone, NULL, zi->offset , &zone_iteration_proc, &zipr);
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "iterate_records result %u\n", res);
   switch (res) {
     case GNUNET_OK:
       /* GNUNET_OK on success */

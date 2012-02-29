@@ -36,10 +36,10 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  char * dest = NULL;
+  char * rd_ser = NULL;
   size_t len;
   int c;
-  int elem = 0;
+  int dst_elem = 0;
 
   int rd_count = 3;
   size_t data_len;
@@ -61,18 +61,18 @@ run (void *cls, char *const *args, const char *cfgfile,
   }
   res = 0;
 
-  len = GNUNET_NAMESTORE_records_serialize (&dest, rd_count, src);
+  len = GNUNET_NAMESTORE_records_serialize (&rd_ser, rd_count, src);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Serialized data len: %u\n",len);
 
-  GNUNET_assert (dest != NULL);
+  GNUNET_assert (rd_ser != NULL);
 
-  elem = GNUNET_NAMESTORE_records_deserialize(&dst, dest, len);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Deserialized elements: %u\n",elem);
+  dst_elem = GNUNET_NAMESTORE_records_deserialize(&dst, rd_ser, len);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Deserialized elements: %u\n",dst_elem);
 
-  GNUNET_assert (elem == rd_count);
+  GNUNET_assert (dst_elem == rd_count);
   GNUNET_assert (dst != NULL);
 
-  for (c = 0; c < elem; c++)
+  for (c = 0; c < dst_elem; c++)
   {
     if (src[c].data_size != dst[c].data_size)
     {
@@ -115,12 +115,12 @@ run (void *cls, char *const *args, const char *cfgfile,
     }
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Element [%i]: EQUAL\n", c);
-    /* clean up */
-    GNUNET_free((char *) dst[c].data);
-    GNUNET_free((char *) src[c].data);
   }
-  GNUNET_free (dest);
-  GNUNET_free (dst);
+
+  for (c = 0; c < rd_count; c++)
+    GNUNET_free ((void *)  src[c].data);
+  GNUNET_NAMESTORE_records_free (dst_elem, dst);
+  GNUNET_free (rd_ser);
 }
 
 static int

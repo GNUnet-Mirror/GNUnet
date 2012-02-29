@@ -171,7 +171,7 @@ struct LookupNameResponseMessage
   uint16_t contains_sig;
 
   /* Requested record type */
-  uint32_t rd_len;
+  uint16_t rd_len;
 };
 GNUNET_NETWORK_STRUCT_END
 
@@ -201,6 +201,9 @@ struct RecordPutMessage
 
   /* Length of serialized rd data */
   uint16_t rd_len;
+
+  /* Length of pubkey */
+  uint16_t key_len;
 
   struct GNUNET_TIME_AbsoluteNBO expire;
 
@@ -235,9 +238,9 @@ GNUNET_NETWORK_STRUCT_END
 
 
 /**
- * Put a record to the namestore
+ * Create a record and put it to the namestore
  * Memory layout:
- * [struct RecordPutMessage][struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded][char *name][rc_count * struct GNUNET_NAMESTORE_RecordData]
+ * [struct RecordCreateMessage][char *name][rc_count * struct GNUNET_NAMESTORE_RecordData]
  */
 GNUNET_NETWORK_STRUCT_BEGIN
 struct RecordCreateMessage
@@ -257,7 +260,11 @@ struct RecordCreateMessage
   /* name length */
   uint16_t name_len;
 
-  struct GNUNET_CRYPTO_RsaSignature signature;
+  /* Record data length */
+  uint16_t rd_len;
+
+  /* private key length */
+  uint16_t pkey_len;
 };
 GNUNET_NETWORK_STRUCT_END
 
@@ -285,6 +292,8 @@ struct RecordCreateResponseMessage
    *  name length: GNUNET_NO (0) on error, GNUNET_OK (1) on success
    */
   uint16_t op_result;
+
+
 };
 GNUNET_NETWORK_STRUCT_END
 
