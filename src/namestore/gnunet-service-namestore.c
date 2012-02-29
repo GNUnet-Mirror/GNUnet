@@ -253,8 +253,6 @@ handle_lookup_name_it (void *cls,
       copied_elements = rd_count;
       rd_selected = (struct GNUNET_NAMESTORE_RecordData *) rd;
     }
-
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "NAMESTORE_LOOKUP_NAME_RESPONSE: %p %u\n", rd_selected, copied_elements);
     rd_ser_len = GNUNET_NAMESTORE_records_serialize(&rd_ser, copied_elements, rd_selected);
   }
   else
@@ -319,12 +317,11 @@ static void handle_lookup_name (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "NAMESTORE_LOOKUP_NAME");
   struct LookupNameContext lnc;
   struct GNUNET_NAMESTORE_Client *nc;
-  GNUNET_HashCode name_hash;
   size_t name_len;
   char * name;
   uint32_t id = 0;
   uint32_t type = 0;
-
+  int res;
 
   if (ntohs (message->size) < sizeof (struct LookupNameMessage))
   {
@@ -353,17 +350,23 @@ static void handle_lookup_name (void *cls,
     return;
   }
 
-  name = GNUNET_malloc (name_len);
-  memcpy (name, &ln_msg[1], name_len);
+  name = (char *) &ln_msg[1];
+  if (name[name_len -1] != '\0')
+  {
+    GNUNET_break_op (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Looking up record for name `%s'\n", name);
-  GNUNET_CRYPTO_hash(name, name_len-1, &name_hash);
-  GNUNET_free (name);
 
   /* do the actual lookup */
   lnc.id = id;
   lnc.nc = nc;
   lnc.record_type = type;
-  GSN_database->iterate_records(GSN_database->cls, &ln_msg->zone, &ln_msg->zone, 0, &handle_lookup_name_it, &lnc);
+  res = GSN_database->iterate_records(GSN_database->cls, &ln_msg->zone, name, 0, &handle_lookup_name_it, &lnc);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ITERATE RESULTS: %u\n" , res);
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }

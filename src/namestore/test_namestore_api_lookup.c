@@ -141,7 +141,7 @@ void name_lookup_proc (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to lookup records for name `%s'\n", name);
       res = 1;
     }
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Lookup done for name %s'\n", name);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Lookup done for name %s'\n", name);
   }
 
   GNUNET_SCHEDULER_add_now(&end, NULL);
@@ -198,7 +198,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_CRYPTO_rsa_key_get_public(privkey, &pubkey);
 
   /* create random zone hash */
-  GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK, &zone);
+  GNUNET_CRYPTO_hash (&pubkey, sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), &zone);
 
   struct GNUNET_CRYPTO_RsaSignature signature;
 

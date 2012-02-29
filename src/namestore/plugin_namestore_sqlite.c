@@ -490,6 +490,7 @@ namestore_sqlite_put_records (void *cls,
   (void) namestore_sqlite_remove_records (plugin, &zone, name);
   name_len = strlen (name);
   GNUNET_CRYPTO_hash (name, name_len, &nh);
+
   rvalue = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK, UINT64_MAX);
   data_size = rd_count * sizeof (struct DbRecord);
   for (i=0;i<rd_count;i++)  
@@ -564,7 +565,7 @@ namestore_sqlite_put_records (void *cls,
  *
  * @param cls closure (internal context for the plugin)
  * @param zone hash of public key of the zone, NULL to iterate over all zones
- * @param name_hash hash of name, NULL to iterate over all records of the zone
+ * @param name name as string, NULL to iterate over all records of the zone
  * @param offset offset in the list of all matching records
  * @param iter function to call with the result
  * @param iter_cls closure for iter
@@ -573,26 +574,33 @@ namestore_sqlite_put_records (void *cls,
 static int 
 namestore_sqlite_iterate_records (void *cls, 
 				  const GNUNET_HashCode *zone,
-				  const GNUNET_HashCode *name_hash,
+				  const char *name,
 				  uint64_t offset,
 				  GNUNET_NAMESTORE_RecordIterator iter, void *iter_cls)
 {
   struct Plugin *plugin = cls;
   sqlite3_stmt *stmt;
+  GNUNET_HashCode name_hase;
   unsigned int boff;
   int ret;
   int sret;
 
   if (NULL == zone)
-    if (NULL == name_hash)
+    if (NULL == name)
       stmt = plugin->iterate_all;
     else
+    {
+      GNUNET_CRYPTO_hash (name, strlen(name), &name_hase);
       stmt = plugin->iterate_by_name;
+    }
   else
-    if (NULL == name_hash)
+    if (NULL == name)
       stmt = plugin->iterate_by_zone;
     else
+    {
+      GNUNET_CRYPTO_hash (name, strlen(name), &name_hase);
       stmt = plugin->iterate_records;
+    }
 
   boff = 0;
   if ( (NULL != zone) &&
@@ -608,11 +616,12 @@ namestore_sqlite_iterate_records (void *cls,
 		  "sqlite3_reset");
     return GNUNET_SYSERR;
   }      
-  if ( (NULL != name_hash) &&
+  if ( (NULL != name) &&
        (SQLITE_OK != sqlite3_bind_blob (stmt, ++boff, 
-					name_hash, sizeof (GNUNET_HashCode), 
+					&name_hase, sizeof (GNUNET_HashCode),
 					SQLITE_STATIC)) )
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ITERATE NAME HASH: `%s'", GNUNET_h2s_full(&name_hase));
     LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
 		"sqlite3_bind_XXXX");
     if (SQLITE_OK != sqlite3_reset (stmt))

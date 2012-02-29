@@ -56,7 +56,7 @@ typedef void (*GNUNET_NAMESTORE_RecordIterator) (void *cls,
 						 const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
 						 struct GNUNET_TIME_Absolute expire,
 						 const char *name,
-						 unsigned int rd_count,
+						 unsigned int rd_len,
 						 const struct GNUNET_NAMESTORE_RecordData *rd,
 						 const struct GNUNET_CRYPTO_RsaSignature *signature);
 
@@ -85,13 +85,13 @@ struct GNUNET_NAMESTORE_PluginFunctions
    * @param rd array of records with data to store
    * @param signature signature of the record block, NULL if signature is unavailable (i.e. 
    *        because the user queried for a particular record type only)
-   * @return GNUNET_OK on success
+   * @return GNUNET_OK on success, else GNUNET_SYSERR
    */
   int (*put_records) (void *cls, 
 		      const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
 		      struct GNUNET_TIME_Absolute expire,
 		      const char *name,
-		      unsigned int rd_count,
+		      unsigned int rd_len,
 		      const struct GNUNET_NAMESTORE_RecordData *rd,
 		      const struct GNUNET_CRYPTO_RsaSignature *signature);
 
@@ -115,7 +115,7 @@ struct GNUNET_NAMESTORE_PluginFunctions
    *
    * @param cls closure (internal context for the plugin)
    * @param zone hash of public key of the zone, NULL to iterate over all zones
-   * @param name_hash hash of name, NULL to iterate over all records of the zone
+   * @param name name as '\0' terminated string, NULL to iterate over all records of the zone
    * @param offset offset in the list of all matching records
    * @param iter function to call with the result
    * @param iter_cls closure for iter
@@ -123,7 +123,7 @@ struct GNUNET_NAMESTORE_PluginFunctions
    */
   int (*iterate_records) (void *cls, 
 			  const GNUNET_HashCode *zone,
-			  const GNUNET_HashCode *name_hash,
+			  const char *name,
 			  uint64_t offset,
 			  GNUNET_NAMESTORE_RecordIterator iter, void *iter_cls);
 

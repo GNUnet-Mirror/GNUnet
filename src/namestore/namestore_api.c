@@ -205,24 +205,29 @@ handle_lookup_name_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
   struct GNUNET_CRYPTO_RsaSignature *signature = NULL;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded dummy;
   struct GNUNET_TIME_Absolute expire;
+  size_t exp_msg_len;
   size_t msg_len = 0;
   size_t name_len = 0;
   size_t rd_len = 0;
   int contains_sig = GNUNET_NO;
   int rd_count = 0;
 
-  rd_len = ntohs (msg->rd_len);
+  rd_len = ntohl (msg->rd_len);
   msg_len = ntohs (msg->header.size);
   name_len = ntohs (msg->name_len);
   contains_sig = ntohs (msg->contains_sig);
   expire = GNUNET_TIME_absolute_ntoh(msg->expire);
 
-  if (msg_len != sizeof (struct LookupNameResponseMessage) +
+  exp_msg_len = sizeof (struct LookupNameResponseMessage) +
       sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded) +
       name_len +
       rd_len +
-      contains_sig * sizeof (struct GNUNET_CRYPTO_RsaSignature))
+      contains_sig * sizeof (struct GNUNET_CRYPTO_RsaSignature);
+
+  if (msg_len != exp_msg_len)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Message size describes with `%u' bytes but calculated size is %u bytes \n",
+                msg_len, exp_msg_len);
     GNUNET_break_op (0);
     return;
   }

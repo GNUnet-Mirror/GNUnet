@@ -274,7 +274,7 @@ typedef void (*GNUNET_NAMESTORE_RecordProcessor) (void *cls,
 						  const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
 						  struct GNUNET_TIME_Absolute expire,			    
 						  const char *name,
-						  unsigned int rd_count,
+						  unsigned int rd_len,
 						  const struct GNUNET_NAMESTORE_RecordData *rd,
 						  const struct GNUNET_CRYPTO_RsaSignature *signature);
 
