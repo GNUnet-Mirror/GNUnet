@@ -25,6 +25,8 @@ endif
 check_PROGRAMS = \
  $(SQLITE_TESTS) \
  test_namestore_api \
+ test_namestore_api_put \
+ test_namestore_api_lookup \
  test_namestore_api_zone_iteration \
  test_namestore_record_serialization
 
@@ -69,24 +71,32 @@ libgnunet_plugin_namestore_sqlite_la_LIBADD = \
 libgnunet_plugin_namestore_sqlite_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 
-
 test_namestore_api_SOURCES = \
  test_namestore_api.c
-
 test_namestore_api_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/namestore/libgnunetnamestore.la
+
+test_namestore_api_put_SOURCES = \
+ test_namestore_api_put.c
+test_namestore_api_put_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/namestore/libgnunetnamestore.la
+
+test_namestore_api_lookup_SOURCES = \
+ test_namestore_api_lookup.c
+test_namestore_api_lookup_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la
 
 test_namestore_api_zone_iteration_SOURCES = \
  test_namestore_api_zone_iteration.c
-
 test_namestore_api_zone_iteration_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la  
 
 test_namestore_record_serialization_SOURCES = \
  test_namestore_record_serialization.c
-
 test_namestore_record_serialization_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la  
