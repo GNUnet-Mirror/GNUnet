@@ -122,17 +122,26 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 void name_lookup_proc (void *cls,
                             const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
                             struct GNUNET_TIME_Absolute expire,
-                            const char *name,
+                            const char *n,
                             unsigned int rd_count,
                             const struct GNUNET_NAMESTORE_RecordData *rd,
                             const struct GNUNET_CRYPTO_RsaSignature *signature)
 {
-  if (name != NULL)
+  static int found = GNUNET_NO;
+
+  if (n != NULL)
+  {
+    found = GNUNET_YES;
     res = 0;
+  }
   else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Failed to lookup records for name `%s'\n", zone_key, name, rd_count, rd, signature);
-    res = 1;
+    if (found != GNUNET_YES)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to lookup records for name `%s'\n", name);
+      res = 1;
+    }
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Lookup done for name %s'\n", name);
   }
 
   GNUNET_SCHEDULER_add_now(&end, NULL);
@@ -152,6 +161,7 @@ put_cont (void *cls, int32_t success, const char *emsg)
   else
   {
     res = 1;
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to put records for name `%s'\n", name);
     GNUNET_SCHEDULER_add_now(&end, NULL);
   }
 }

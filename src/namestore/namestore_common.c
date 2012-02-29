@@ -128,6 +128,12 @@ GNUNET_NAMESTORE_records_deserialize ( struct GNUNET_NAMESTORE_RecordData **dest
   uint32_t data_size;
   int c;
 
+  if (len == 0)
+  {
+    (*dest) = NULL;
+    return 0;
+  }
+
   offset = 0;
   elements = 0;
   while (offset < len)
@@ -140,6 +146,13 @@ GNUNET_NAMESTORE_records_deserialize ( struct GNUNET_NAMESTORE_RecordData **dest
     offset += data_size;
     elements ++;
   }
+
+  if (elements == 0)
+  {
+    (*dest) = NULL;
+    return 0;
+  }
+
 
   GNUNET_assert (len == offset);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Deserializing %i records with total length of %u\n", elements, len);
