@@ -141,6 +141,15 @@
 #define GNUNET_PACKED __attribute__((packed))
 
 /**
+ * gcc-ism to get gcc bitfield layout when compiling with -mms-bitfields
+ */
+#if MINGW
+#define GNUNET_GCC_STRUCT_LAYOUT __attribute__((gcc_struct))
+#else
+#define GNUNET_GCC_STRUCT_LAYOUT
+#endif
+
+/**
  * gcc-ism to document unused arguments
  */
 #define GNUNET_UNUSED __attribute__((unused))

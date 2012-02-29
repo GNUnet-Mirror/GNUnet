@@ -128,7 +128,7 @@ struct GNUNET_DNSPARSER_Flags
    */
   unsigned int recursion_available  : 1 GNUNET_PACKED; 
   
-};
+} GNUNET_GCC_STRUCT_LAYOUT;
 
 
 /**

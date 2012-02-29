@@ -119,7 +119,7 @@ struct GNUNET_TUN_IPv4Header
    * Destination of the packet.
    */ 
   struct in_addr destination_address GNUNET_PACKED;
-};
+} GNUNET_GCC_STRUCT_LAYOUT;
 
 
 /**
@@ -163,7 +163,7 @@ struct GNUNET_TUN_IPv6Header
    * Destination of the packet.
    */ 
   struct in6_addr destination_address GNUNET_PACKED;
-};
+} GNUNET_GCC_STRUCT_LAYOUT;
 
 
 /**
@@ -224,7 +224,7 @@ struct GNUNET_TUN_TcpHeader
    * Urgent pointer.
    */
   uint16_t urgent_pointer GNUNET_PACKED;
-};
+} GNUNET_GCC_STRUCT_LAYOUT;
 
 
 /**
