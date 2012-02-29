@@ -24,6 +24,8 @@
 #include "platform.h"
 #include "gnunet_common.h"
 #include "gnunet_namestore_service.h"
+#include "namestore.h"
+#include "gnunet_signatures.h"
 
 #define VERBOSE GNUNET_NO
 
@@ -41,10 +43,12 @@ static struct GNUNET_OS_Process *arm;
 
 static struct GNUNET_CRYPTO_RsaPrivateKey * privkey;
 static struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pubkey;
-static GNUNET_HashCode zone;
-static char *name;
+struct GNUNET_CRYPTO_RsaSignature s_signature;
+static GNUNET_HashCode s_zone;
+struct GNUNET_NAMESTORE_RecordData *s_rd;
+static char *s_name;
 
-struct GNUNET_NAMESTORE_RecordData *rd;
+
 
 static int res;
 
@@ -107,6 +111,11 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     endbadly_task = GNUNET_SCHEDULER_NO_TASK;
   }
 
+  int c;
+  for (c = 0; c < RECORDS; c++)
+    GNUNET_free_non_null((void *) s_rd[c].data);
+  GNUNET_free (s_rd);
+
   if (privkey != NULL)
     GNUNET_CRYPTO_rsa_key_free (privkey);
   privkey = NULL;
@@ -128,9 +137,43 @@ void name_lookup_proc (void *cls,
                             const struct GNUNET_CRYPTO_RsaSignature *signature)
 {
   static int found = GNUNET_NO;
+  int failed = GNUNET_NO;
+  int c;
 
   if (n != NULL)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Checking returned results\n");
+    if (0 != memcmp (zone_key, &pubkey, sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded)))
+    {
+      GNUNET_break (0);
+      failed = GNUNET_YES;
+    }
+
+    if (0 != memcmp (signature, &s_signature, sizeof (struct GNUNET_CRYPTO_RsaSignature)))
+    {
+      GNUNET_break (0);
+      failed = GNUNET_YES;
+    }
+
+    if (0 != strcmp(n, s_name))
+    {
+      GNUNET_break (0);
+      failed = GNUNET_YES;
+    }
+
+    if (RECORDS != rd_count)
+    {
+      GNUNET_break (0);
+      failed = GNUNET_YES;
+    }
+
+    for (c = 0; c < RECORDS; c++)
+    {
+      GNUNET_break (rd[c].expiration.abs_value == s_rd[c].expiration.abs_value);
+      GNUNET_break (rd[c].record_type == TEST_RECORD_TYPE);
+      GNUNET_break (rd[c].data_size == TEST_RECORD_DATALEN);
+      GNUNET_break (0 == memcmp (rd[c].data, s_rd[c].data, TEST_RECORD_DATALEN));
+    }
     found = GNUNET_YES;
     res = 0;
   }
@@ -138,12 +181,11 @@ void name_lookup_proc (void *cls,
   {
     if (found != GNUNET_YES)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to lookup records for name `%s'\n", name);
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to lookup records for name `%s'\n", s_name);
       res = 1;
     }
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Lookup done for name %s'\n", name);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Lookup done for name %s'\n", s_name);
   }
-
   GNUNET_SCHEDULER_add_now(&end, NULL);
 }
 
@@ -156,7 +198,7 @@ put_cont (void *cls, int32_t success, const char *emsg)
   if (success == GNUNET_OK)
   {
     res = 0;
-    GNUNET_NAMESTORE_lookup_record (nsh, &zone, name, 0, &name_lookup_proc, NULL);
+    GNUNET_NAMESTORE_lookup_record (nsh, &s_zone, name, 0, &name_lookup_proc, NULL);
   }
   else
   {
@@ -190,6 +232,8 @@ run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   endbadly_task = GNUNET_SCHEDULER_add_delayed(TIMEOUT,endbadly, NULL);
+  char * rd_ser;
+  size_t rd_ser_len;
 
   /* load privat key */
   privkey = GNUNET_CRYPTO_rsa_key_create_from_file("hostkey");
@@ -197,10 +241,23 @@ run (void *cls, char *const *args, const char *cfgfile,
   /* get public key */
   GNUNET_CRYPTO_rsa_key_get_public(privkey, &pubkey);
 
-  /* create random zone hash */
-  GNUNET_CRYPTO_hash (&pubkey, sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), &zone);
+  /* create record */
+  s_name = "dummy.dummy.gnunet";
+  s_rd = create_record (RECORDS);
+  rd_ser_len = GNUNET_NAMESTORE_records_serialize(&rd_ser, RECORDS, s_rd);
 
-  struct GNUNET_CRYPTO_RsaSignature signature;
+  /* sign */
+  struct GNUNET_CRYPTO_RsaSignaturePurpose *sig_purpose = GNUNET_malloc(sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose) + rd_ser_len);
+  sig_purpose->size = htonl (sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose)+ rd_ser_len);
+  sig_purpose->purpose = htonl (GNUNET_SIGNATURE_PURPOSE_GNS_RECORD_SIGN);
+  memcpy (&sig_purpose[1], rd_ser, rd_ser_len);
+  GNUNET_CRYPTO_rsa_sign (privkey, sig_purpose, &s_signature);
+
+  GNUNET_free (rd_ser);
+  GNUNET_free (sig_purpose);
+
+  /* create random zone hash */
+  GNUNET_CRYPTO_hash (&pubkey, sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), &s_zone);
 
   start_arm (cfgfile);
   GNUNET_assert (arm != NULL);
@@ -208,21 +265,14 @@ run (void *cls, char *const *args, const char *cfgfile,
   nsh = GNUNET_NAMESTORE_connect (cfg);
   GNUNET_break (NULL != nsh);
 
-  /* create record */
-  name = "dummy.dummy.gnunet";
-  rd = create_record (RECORDS);
 
-  GNUNET_break (rd != NULL);
-  GNUNET_break (name != NULL);
 
-  GNUNET_NAMESTORE_record_put (nsh, &pubkey, name,
+  GNUNET_break (s_rd != NULL);
+  GNUNET_break (s_name != NULL);
+
+  GNUNET_NAMESTORE_record_put (nsh, &pubkey, s_name,
                               GNUNET_TIME_absolute_get_forever(),
-                              RECORDS, rd, &signature, put_cont, name);
-
-  int c;
-  for (c = 0; c < RECORDS; c++)
-    GNUNET_free_non_null((void *) rd[c].data);
-  GNUNET_free (rd);
+                              RECORDS, s_rd, &s_signature, put_cont, s_name);
 
 }
 

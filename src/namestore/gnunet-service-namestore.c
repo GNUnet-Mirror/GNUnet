@@ -366,8 +366,6 @@ static void handle_lookup_name (void *cls,
   lnc.record_type = type;
   res = GSN_database->iterate_records(GSN_database->cls, &ln_msg->zone, name, 0, &handle_lookup_name_it, &lnc);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ITERATE RESULTS: %u\n" , res);
-
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
@@ -432,6 +430,14 @@ static void handle_record_put (void *cls,
 
   zone_key = (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *) &rp_msg[1];
   name = (char *) &zone_key[1];
+
+  if (name[name_len -1] != '\0')
+  {
+    GNUNET_break_op (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
+
   expire = GNUNET_TIME_absolute_ntoh(rp_msg->expire);
   signature = (struct GNUNET_CRYPTO_RsaSignature *) &rp_msg->signature;
   rd_ser = &name[name_len];
@@ -516,7 +522,14 @@ static void handle_record_create (void *cls,
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
-
+/*
+  if (name[name_len -1] != '\0')
+  {
+    GNUNET_break_op (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
+*/
   /* DO WORK HERE */
 
   /* Send response */
@@ -584,7 +597,14 @@ static void handle_record_remove (void *cls,
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
-
+/*
+  if (name[name_len -1] != '\0')
+  {
+    GNUNET_break_op (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
+  */
   /* DO WORK HERE */
 
   /* Send response */

@@ -115,6 +115,12 @@ extern "C"
  */
 #define GNUNET_SIGNATURE_PURPOSE_NSE_SEND 14
 
+
+/**
+ * Signature of a gnunet naming system record block
+ */
+#define GNUNET_SIGNATURE_PURPOSE_GNS_RECORD_SIGN 15
+
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif
