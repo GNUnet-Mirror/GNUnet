@@ -217,7 +217,7 @@ list_cb (void *cls, int result, uint16_t count, const char **list)
 {
   if (result == GNUNET_YES && list != NULL)
   {
-    FPRINTF (stdout, _("Running services:\n-----------------\n"));
+    FPRINTF (stdout, "%s", _("Running services:\n-----------------\n"));
     int i;
     for (i=0; i<count; i++)
     {
