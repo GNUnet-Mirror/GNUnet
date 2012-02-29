@@ -101,6 +101,32 @@ enum GNUNET_CRYPTO_Quality
  */
 struct GNUNET_CRYPTO_RsaPrivateKey;
 
+GNUNET_NETWORK_STRUCT_BEGIN
+
+/**
+ * GNUnet mandates a certain format for the encoding
+ * of private RSA key information that is provided
+ * by the RSA implementations.  This format is used
+ * to serialize a private RSA key (typically when
+ * writing it to disk).
+ */
+struct GNUNET_CRYPTO_RsaPrivateKeyBinaryEncoded
+{
+  /**
+   * Total size of the structure, in bytes, in big-endian!
+   */
+  uint16_t len GNUNET_PACKED;
+  uint16_t sizen GNUNET_PACKED; /*  in big-endian! */
+  uint16_t sizee GNUNET_PACKED; /*  in big-endian! */
+  uint16_t sized GNUNET_PACKED; /*  in big-endian! */
+  uint16_t sizep GNUNET_PACKED; /*  in big-endian! */
+  uint16_t sizeq GNUNET_PACKED; /*  in big-endian! */
+  uint16_t sizedmp1 GNUNET_PACKED;      /*  in big-endian! */
+  uint16_t sizedmq1 GNUNET_PACKED;      /*  in big-endian! */
+  /* followed by the actual values */
+};
+GNUNET_NETWORK_STRUCT_END
+
 
 /**
  * @brief 0-terminated ASCII encoding of a GNUNET_HashCode.
@@ -734,6 +760,15 @@ GNUNET_CRYPTO_kdf (void *result, size_t out_len, const void *xts,
  */
 struct GNUNET_CRYPTO_RsaPrivateKey *
 GNUNET_CRYPTO_rsa_key_create (void);
+
+/**
+ * Encode the private key in a format suitable for
+ * storing it into a file.
+ * @returns encoding of the private key.
+ *    The first 4 bytes give the size of the array, as usual.
+ */
+struct GNUNET_CRYPTO_RsaPrivateKeyBinaryEncoded *
+GNUNET_CRYPTO_rsa_encode_key (const struct GNUNET_CRYPTO_RsaPrivateKey *hostkey);
 
 /**
  * Decode the private key from the data-format back
