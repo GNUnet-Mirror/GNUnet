@@ -246,9 +246,8 @@ create_record (int count)
   rd[0].expiration = GNUNET_TIME_absolute_get();
   rd[0].record_type = 0;
   rd[0].data_size = TEST_REMOVE_RECORD_DATALEN;
-  rd[0].data = GNUNET_malloc(TEST_RECORD_DATALEN);
+  rd[0].data = GNUNET_malloc(TEST_REMOVE_RECORD_DATALEN);
   memset ((char *) rd[0].data, TEST_RECORD_DATA, TEST_RECORD_DATALEN);
-
 
   for (c = 1; c < RECORDS; c++)
   {
