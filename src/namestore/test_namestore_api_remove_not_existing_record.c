@@ -47,7 +47,7 @@ static struct GNUNET_OS_Process *arm;
 
 static struct GNUNET_CRYPTO_RsaPrivateKey * privkey;
 static struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pubkey;
-struct GNUNET_CRYPTO_RsaSignature s_signature;
+struct GNUNET_CRYPTO_RsaSignature *s_signature;
 static GNUNET_HashCode s_zone;
 struct GNUNET_NAMESTORE_RecordData *s_rd;
 static char *s_name;
@@ -279,12 +279,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_NAMESTORE_records_serialize(RECORDS, s_rd, rd_ser_len, rd_ser);
 
   /* sign */
-  struct GNUNET_CRYPTO_RsaSignaturePurpose *sig_purpose = GNUNET_malloc(sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose) + rd_ser_len);
-  sig_purpose->size = htonl (sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose)+ rd_ser_len);
-  sig_purpose->purpose = htonl (GNUNET_SIGNATURE_PURPOSE_GNS_RECORD_SIGN);
-  memcpy (&sig_purpose[1], rd_ser, rd_ser_len);
-  GNUNET_CRYPTO_rsa_sign (privkey, sig_purpose, &s_signature);
-  GNUNET_free (sig_purpose);
+  s_signature = GNUNET_NAMESTORE_create_signature(privkey, s_name, s_rd, RECORDS);
 
   /* create random zone hash */
   GNUNET_CRYPTO_hash (&pubkey, sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), &s_zone);
@@ -305,8 +300,9 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   GNUNET_NAMESTORE_record_put (nsh, &pubkey, s_name,
                               GNUNET_TIME_absolute_get_forever(),
-                              RECORDS, s_rd, &s_signature, put_cont, s_name);
+                              RECORDS, s_rd, s_signature, put_cont, s_name);
 
+  GNUNET_free (s_signature);
 }
 
 static int

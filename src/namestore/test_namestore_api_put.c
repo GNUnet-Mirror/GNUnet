@@ -24,6 +24,7 @@
 #include "platform.h"
 #include "gnunet_common.h"
 #include "gnunet_namestore_service.h"
+#include "namestore.h"
 
 #define VERBOSE GNUNET_NO
 
@@ -42,7 +43,7 @@ static struct GNUNET_OS_Process *arm;
 static struct GNUNET_CRYPTO_RsaPrivateKey * privkey;
 static struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pubkey;
 
-struct GNUNET_NAMESTORE_RecordData *rd;
+struct GNUNET_NAMESTORE_RecordData *s_rd;
 
 static int res;
 
@@ -162,7 +163,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   /* get public key */
   GNUNET_CRYPTO_rsa_key_get_public(privkey, &pubkey);
 
-  struct GNUNET_CRYPTO_RsaSignature signature;
+  struct GNUNET_CRYPTO_RsaSignature *signature;
 
   start_arm (cfgfile);
   GNUNET_assert (arm != NULL);
@@ -171,20 +172,24 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_break (NULL != nsh);
 
   /* create record */
-  char * name = "dummy.dummy.gnunet";
-  rd = create_record (RECORDS);
+  char * s_name = "dummy.dummy.gnunet";
+  s_rd = create_record (RECORDS);
 
-  GNUNET_break (rd != NULL);
-  GNUNET_break (name != NULL);
+  signature = GNUNET_NAMESTORE_create_signature(privkey, s_name, s_rd, RECORDS);
 
-  GNUNET_NAMESTORE_record_put (nsh, &pubkey, name,
+  GNUNET_break (s_rd != NULL);
+  GNUNET_break (s_name != NULL);
+
+  GNUNET_NAMESTORE_record_put (nsh, &pubkey, s_name,
                               GNUNET_TIME_absolute_get_forever(),
-                              RECORDS, rd, &signature, put_cont, name);
+                              RECORDS, s_rd, signature, put_cont, s_name);
+
+  GNUNET_free (signature);
 
   int c;
   for (c = 0; c < RECORDS; c++)
-    GNUNET_free_non_null((void *) rd[c].data);
-  GNUNET_free (rd);
+    GNUNET_free_non_null((void *) s_rd[c].data);
+  GNUNET_free (s_rd);
 
 }
 
