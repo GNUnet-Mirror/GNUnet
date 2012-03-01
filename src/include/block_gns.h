@@ -74,11 +74,6 @@ struct GNSNameRecordBlock
    */
   struct GNUNET_CRYPTO_RsaSignature signature;
 
-  /**
-   * What is being signed and why?
-   */
-  struct GNUNET_CRYPTO_RsaSignaturePurpose purpose;
-
   /* number of records that follow */
   uint32_t rd_count GNUNET_PACKED;
 

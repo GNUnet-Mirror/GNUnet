@@ -43,17 +43,6 @@
 #define GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_NEXT 441
 #define GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_STOP 442
 
-size_t
-GNUNET_NAMESTORE_records_serialize (char ** dest,
-                             unsigned int rd_count,
-                             const struct GNUNET_NAMESTORE_RecordData *rd);
-
-int
-GNUNET_NAMESTORE_records_deserialize ( struct GNUNET_NAMESTORE_RecordData **dest, char *src, size_t len);
-
-void
-GNUNET_NAMESTORE_records_free (unsigned int rd_count, struct GNUNET_NAMESTORE_RecordData *rd);
-
 
 GNUNET_NETWORK_STRUCT_BEGIN
 /**

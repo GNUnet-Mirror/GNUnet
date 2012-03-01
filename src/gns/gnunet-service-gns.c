@@ -39,6 +39,8 @@
 #include "block_gns.h"
 #include "gns.h"
 
+#define DHT_LOOKUP_TIMEOUT  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+
 /* Ignore for now not used anyway and probably never will */
 #define GNUNET_MESSAGE_TYPE_GNS_CLIENT_LOOKUP 23
 #define GNUNET_MESSAGE_TYPE_GNS_CLIENT_RESULT 24
@@ -443,11 +445,10 @@ process_name_dht_result(void* cls,
  * @param rh the pending gns query context
  * @param name the name to query record
  */
-void
+static void
 resolve_name_dht(struct GNUNET_GNS_ResolverHandle *rh, const char* name)
 {
   uint32_t xquery;
-  struct GNUNET_TIME_Relative timeout;
   GNUNET_HashCode name_hash;
   GNUNET_HashCode lookup_key;
   struct GNUNET_CRYPTO_HashAsciiEncoded lookup_key_string;
@@ -460,16 +461,15 @@ resolve_name_dht(struct GNUNET_GNS_ResolverHandle *rh, const char* name)
              "starting dht lookup for %s with key: %s\n",
              name, (char*)&lookup_key_string);
 
-  timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5);
-  
   xquery = htonl(rh->query->type);
   //FIXME how long to wait for results?
-  rh->get_handle = GNUNET_DHT_get_start(dht_handle, timeout,
+  rh->get_handle = GNUNET_DHT_get_start(dht_handle, 
+					DHT_LOOKUP_TIMEOUT,
                        GNUNET_BLOCK_TYPE_GNS_NAMERECORD,
                        &lookup_key,
                        5, //Replication level FIXME
                        GNUNET_DHT_RO_NONE,
-                       &xquery, //xquery FIXME is this bad?
+                       &xquery, 
                        sizeof(xquery),
                        &process_name_dht_result,
                        rh);

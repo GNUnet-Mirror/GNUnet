@@ -34,6 +34,131 @@
 #define DEBUG_GNS_API GNUNET_EXTRA_LOGGING
 
 #define LOG(kind,...) GNUNET_log_from (kind, "gns-api",__VA_ARGS__)
+
+
+/**
+ * Internal format of a record in the serialized form.
+ */
+struct NetworkRecord
+{
+
+  /**
+   * Expiration time for the DNS record.
+   */
+  struct GNUNET_TIME_AbsoluteNBO expiration;
+
+  /**
+   * Number of bytes in 'data', network byte order.
+   */
+  uint32_t data_size;
+
+  /**
+   * Type of the GNS/DNS record, network byte order.
+   */
+  uint32_t record_type;
+
+  /**
+   * Flags for the record, network byte order.
+   */
+  uint32_t flags;
+  
+};
+
+/**
+ * Calculate how many bytes we will need to serialize the given
+ * records.
+ */
+size_t
+GNUNET_NAMESTORE_records_get_size (unsigned int rd_count,
+				   const struct GNUNET_NAMESTORE_RecordData *rd)
+{
+  unsigned int i;
+  size_t ret;
+
+  ret = sizeof (struct NetworkRecord) * rd_count;
+  for (i=0;i<rd_count;i++)
+  {
+    GNUNET_assert (ret + rd[i].data_size >= ret);
+    ret += rd[i].data_size;
+  }
+  return ret;  
+}
+
+
+/**
+ * Serialize the given records to the given destination buffer.
+ */
+ssize_t
+GNUNET_NAMESTORE_records_serialize (unsigned int rd_count,
+				    const struct GNUNET_NAMESTORE_RecordData *rd,
+				    size_t dest_size,
+				    char *dest)
+{
+  struct NetworkRecord rec;
+  unsigned int i;
+  size_t off;
+  
+  off = 0;
+  for (i=0;i<rd_count;i++)
+  {
+    rec.expiration = GNUNET_TIME_absolute_hton (rd[i].expiration);
+    rec.data_size = htonl ((uint32_t) rd[i].data_size);
+    rec.record_type = htonl (rd[i].record_type);
+    rec.flags = htonl (rd[i].flags);
+    if (off + sizeof (rec) > dest_size)
+      return -1;
+    memcpy (&dest[off], &rec, sizeof (rec));
+    off += sizeof (rec);
+    if (off + rd[i].data_size > dest_size)
+      return -1;
+    memcpy (&dest[off], rd[i].data, rd[i].data_size);
+    off += rd[i].data_size;
+  }
+  return off;
+}
+
+
+/**
+ * @param rd_count expected number of records in 'src'
+ * @param dest array of 'rd_count' entries for storing record data;
+ *         'data' values in 'dest' will point into 'src' and will thus
+ *         become invalid if 'src' is modified
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ */
+int
+GNUNET_NAMESTORE_records_deserialize (size_t len,
+				      const char *src,
+				      unsigned int rd_count,
+				      struct GNUNET_NAMESTORE_RecordData *dest)
+{
+  struct NetworkRecord rec;
+  unsigned int i;
+  size_t off;
+  
+  off = 0;
+  for (i=0;i<rd_count;i++)
+  {
+    if (off + sizeof (rec) > len)
+      return GNUNET_SYSERR;
+    memcpy (&rec, &src[off], sizeof (rec));
+    dest[i].expiration = GNUNET_TIME_absolute_ntoh (rec.expiration);
+    dest[i].data_size = ntohl ((uint32_t) rec.data_size);
+    dest[i].record_type = ntohl (rec.record_type);
+    dest[i].flags = ntohl (rec.flags);
+    off += sizeof (rec);
+
+    if (off + sizeof (dest[i].data_size) > len)
+      return GNUNET_SYSERR;
+    dest[i].data = &src[off];
+    off += dest[i].data_size;
+  }
+  return GNUNET_OK; 
+}
+
+
+
+#if 0
+
 /**
  * Serialize an array of GNUNET_NAMESTORE_RecordData *rd to transmit over the
  * network
@@ -184,5 +309,7 @@ GNUNET_NAMESTORE_records_deserialize ( struct GNUNET_NAMESTORE_RecordData **dest
 
   return elements;
 }
+
+#endif
 
 /* end of namestore_api.c */

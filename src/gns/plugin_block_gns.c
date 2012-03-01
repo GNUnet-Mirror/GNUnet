@@ -62,11 +62,6 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
                           size_t xquery_size, const void *reply_block,
                           size_t reply_block_size)
 {
-  if (type != GNUNET_BLOCK_TYPE_GNS_NAMERECORD)
-    return GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED;
-  if (reply_block_size == 0)
-    return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
-  
   char* name;
   GNUNET_HashCode pkey_hash;
   GNUNET_HashCode query_key;
@@ -76,7 +71,13 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
   struct GNSNameRecordBlock *nrb;
   struct GNSRecordBlock *rb;
   uint32_t rd_count;
-  
+  unsigned int record_match;
+
+  if (type != GNUNET_BLOCK_TYPE_GNS_NAMERECORD)
+    return GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED;
+  if (reply_block_size == 0)
+    return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
+    
   nrb = (struct GNSNameRecordBlock *)reply_block;
   name = (char*)&nrb[1];
   GNUNET_CRYPTO_hash(&nrb->public_key,
@@ -91,33 +92,31 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
   if (0 != GNUNET_CRYPTO_hash_cmp(query, &query_key))
     return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
   
+  record_match = 0;
   rd_count = ntohl(nrb->rd_count);
-
-  struct GNUNET_NAMESTORE_RecordData rd[rd_count];
-  int i = 0;
-  int record_match = 0;
-  uint32_t record_xquery = ntohl(*((uint32_t*)xquery));
-  rb = (struct GNSRecordBlock*)(&name[strlen(name) + 1]);
-
-  for (i=0; i<rd_count; i++)
   {
-    rd[i].record_type = ntohl(rb->type);
-    rd[i].expiration =
-      GNUNET_TIME_absolute_ntoh(rb->expiration);
-    rd[i].data_size = ntohl(rb->data_length);
-    rd[i].flags = ntohl(rb->flags);
-    rd[i].data = (char*)&rb[1];
-    rb = (struct GNSRecordBlock *)((char*)&rb[1] + rd[i].data_size);
-    
-    if (xquery_size == 0)
-     continue;
-    
-    if (rd[i].record_type == record_xquery)
+    struct GNUNET_NAMESTORE_RecordData rd[rd_count];
+    unsigned int i;
+    uint32_t record_xquery = ntohl(*((uint32_t*)xquery));
+
+    rb = (struct GNSRecordBlock*)(&name[strlen(name) + 1]);
+    for (i=0; i<rd_count; i++)
     {
-      record_match++;
+      rd[i].record_type = ntohl(rb->type);
+      rd[i].expiration =
+	GNUNET_TIME_absolute_ntoh(rb->expiration);
+      rd[i].data_size = ntohl(rb->data_length);
+      rd[i].flags = ntohl(rb->flags);
+      rd[i].data = (char*)&rb[1];
+      rb = (struct GNSRecordBlock *)((char*)&rb[1] + rd[i].data_size);
+      
+      if (xquery_size == 0)
+	continue;
+      
+      if (rd[i].record_type == record_xquery)
+	record_match++;	
     }
-  }
-  
+  }  
 
   /*if (GNUNET_OK != GNUNET_NAMESTORE_verify_signature (&nrb->public_key,
                                                       name,
