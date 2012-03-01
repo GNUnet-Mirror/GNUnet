@@ -89,12 +89,14 @@ libgnunet_plugin_block_gns_la_SOURCES = \
   plugin_block_gns.c
 libgnunet_plugin_block_gns_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/block/libgnunetblock.la
+  $(top_builddir)/src/block/libgnunetblock.la \
+  $(top_builddir)/src/namestore/libgnunetnamestore.la
 libgnunet_plugin_block_gns_la_LDFLAGS = \
   $(GN_PLUGIN_LDFLAGS)
 libgnunet_plugin_block_gns_la_DEPENDENCIES = \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/block/libgnunetblock.la
+  $(top_builddir)/src/block/libgnunetblock.la \
+  $(top_builddir)/src/namestore/libgnunetnamestore.la
 
 #Build stub api
 libgnunetnamestore_la_SOURCES = \
