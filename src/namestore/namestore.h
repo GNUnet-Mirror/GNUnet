@@ -169,6 +169,7 @@ struct RecordPutMessage
   /* Length of serialized rd data */
   uint16_t rd_len;
 
+  /* Number of records contained */
   uint16_t rd_count;
 
   /* Length of pubkey */
@@ -267,10 +268,17 @@ struct RecordRemoveMessage
 
   /* Contenct starts here */
 
-  /* name length */
+  /* Name length */
   uint16_t name_len;
 
-  struct GNUNET_CRYPTO_RsaSignature signature;
+  /* Length of serialized rd data */
+  uint16_t rd_len;
+
+  /* Number of records contained */
+  uint16_t rd_count;
+
+  /* Length of pubkey */
+  uint16_t key_len;
 };
 GNUNET_NETWORK_STRUCT_END
 
@@ -289,7 +297,12 @@ struct RecordRemoveResponseMessage
   /* Contenct starts here */
 
   /**
-   *  name length: GNUNET_NO (0) on error, GNUNET_OK (1) on success
+   *  result:
+   *  0 : successful
+   *  1 : no records for entry
+   *  2 : Could not find record to remove
+   *  3 : Failed to create new signature
+   *  4 : Failed to put new set of records in database
    */
   uint16_t op_result;
 };

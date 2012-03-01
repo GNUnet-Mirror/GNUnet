@@ -354,6 +354,72 @@ handle_record_create_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
 
 
 static void
+handle_record_remove_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
+                             struct RecordRemoveResponseMessage* msg,
+                             size_t size)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' \n",
+              "RECORD_REMOVE_RESPONSE");
+
+  struct GNUNET_NAMESTORE_Handle *h = qe->nsh;
+  int res = ntohs (msg->op_result);
+
+  /**
+   *  result:
+   *  0 : successful
+   *  1 : No records for entry
+   *  2 : Could not find record to remove
+   *  3 : Failed to create new signature
+   *  4 : Failed to put new set of records in database
+   */
+  switch (res) {
+    case 0:
+      if (qe->cont != NULL)
+      {
+        qe->cont (qe->cont_cls, GNUNET_YES, _("Namestore removed record successfully"));
+      }
+
+      break;
+    case 1:
+      if (qe->cont != NULL)
+      {
+        qe->cont (qe->cont_cls, GNUNET_NO, _("No records for entry"));
+      }
+
+      break;
+    case 2:
+      if (qe->cont != NULL)
+      {
+        qe->cont (qe->cont_cls, GNUNET_NO, _("Could not find record to remove"));
+      }
+
+      break;
+    case 3:
+      if (qe->cont != NULL)
+      {
+        qe->cont (qe->cont_cls, GNUNET_SYSERR, _("Failed to create new signature"));
+      }
+
+      break;
+    case 4:
+      if (qe->cont != NULL)
+      {
+        qe->cont (qe->cont_cls, GNUNET_SYSERR, _("Failed to put new set of records in database"));
+      }
+      break;
+    default:
+        GNUNET_break_op (0);
+      break;
+  }
+
+  /* Operation done, remove */
+  GNUNET_CONTAINER_DLL_remove(h->op_head, h->op_tail, qe);
+
+  GNUNET_free (qe);
+}
+
+
+static void
 manage_record_operations (struct GNUNET_NAMESTORE_QueueEntry *qe,
                           const struct GNUNET_MessageHeader *msg,
                           int type, size_t size)
@@ -384,6 +450,14 @@ manage_record_operations (struct GNUNET_NAMESTORE_QueueEntry *qe,
           break;
         }
         handle_record_create_response (qe, (struct RecordCreateResponseMessage *) msg, size);
+      break;
+    case GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_REMOVE_RESPONSE:
+        if (size != sizeof (struct RecordRemoveResponseMessage))
+        {
+          GNUNET_break_op (0);
+          break;
+        }
+        handle_record_remove_response (qe, (struct RecordRemoveResponseMessage *) msg, size);
       break;
     default:
       GNUNET_break_op (0);
@@ -968,11 +1042,13 @@ GNUNET_NAMESTORE_record_remove (struct GNUNET_NAMESTORE_Handle *h,
 {
   struct GNUNET_NAMESTORE_QueueEntry *qe;
   struct PendingMessage *pe;
-  char * rd_tmp;
-  char * name_tmp;
+  char *pkey_tmp;
+  char *rd_tmp;
+  char *name_tmp;
   size_t rd_ser_len = 0;
   size_t msg_size = 0;
   size_t name_len = 0;
+  size_t key_len = 0;
   uint32_t rid = 0;
 
   GNUNET_assert (NULL != h);
@@ -983,14 +1059,21 @@ GNUNET_NAMESTORE_record_remove (struct GNUNET_NAMESTORE_Handle *h,
   qe->cont = cont;
   qe->cont_cls = cont_cls;
   qe->op_id = rid;
+  GNUNET_CONTAINER_DLL_insert_tail(h->op_head, h->op_tail, qe);
 
   /* set msg_size*/
+  struct GNUNET_CRYPTO_RsaPrivateKeyBinaryEncoded * pkey_enc = GNUNET_CRYPTO_rsa_encode_key (pkey);
+  GNUNET_assert (pkey_enc != NULL);
+  key_len = ntohs (pkey_enc->len);
+
   rd_ser_len = GNUNET_NAMESTORE_records_get_size(1, rd);
   char rd_ser[rd_ser_len];
   GNUNET_NAMESTORE_records_serialize(1, rd, rd_ser_len, rd_ser);
 
+  name_len = strlen (name) + 1;
+
   struct RecordRemoveMessage * msg;
-  msg_size = sizeof (struct RecordRemoveMessage) + name_len + rd_ser_len;
+  msg_size = sizeof (struct RecordRemoveMessage) + key_len + name_len + rd_ser_len;
 
   /* create msg here */
   pe = GNUNET_malloc(sizeof (struct PendingMessage) + msg_size);
@@ -998,17 +1081,20 @@ GNUNET_NAMESTORE_record_remove (struct GNUNET_NAMESTORE_Handle *h,
   pe->is_init = GNUNET_NO;
   msg = (struct RecordRemoveMessage *) &pe[1];
 
-  name_tmp = (char *) &msg[1];
+  pkey_tmp = (char *) &msg[1];
+  name_tmp = &pkey_tmp[key_len];
   rd_tmp = &name_tmp[name_len];
 
   msg->gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_REMOVE);
   msg->gns_header.header.size = htons (msg_size);
   msg->gns_header.r_id = htonl (rid);
-  //msg->signature = *signature;
   msg->name_len = htons (name_len);
+  msg->rd_len = htons (rd_ser_len);
+  msg->rd_count = htons (1);
+  msg->key_len = htons (key_len);
+  memcpy (pkey_tmp, pkey_enc, key_len);
   memcpy (name_tmp, name, name_len);
   memcpy (rd_tmp, rd_ser, rd_ser_len);
-  GNUNET_free (rd_ser);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message for name `%s' with size %u\n", "NAMESTORE_RECORD_REMOVE", name, msg_size);
 
