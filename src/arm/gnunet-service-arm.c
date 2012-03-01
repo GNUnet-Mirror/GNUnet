@@ -728,8 +728,8 @@ handle_list (void *cls, struct GNUNET_SERVER_Client *client,
     if (sl->proc != NULL)
     {
       string_list_size += strlen (sl->name);
-      string_list_size += 3;
-      string_list_size += strlen (sl->binary) + 1;
+      string_list_size += strlen (sl->binary);
+      string_list_size += 4;
       count++;
     }
   }
@@ -745,9 +745,8 @@ handle_list (void *cls, struct GNUNET_SERVER_Client *client,
   {
     if (sl->proc != NULL)
     {
-      //memcpy (pos, sl->name, strlen (sl->name) + 1);
       size_t s = strlen (sl->name) + strlen (sl->binary) + 4;
-      snprintf(pos, s, "%s (%s)", sl->name, sl->binary);
+      GNUNET_snprintf(pos, s, "%s (%s)", sl->name, sl->binary);
       pos += s;
     }
   }
