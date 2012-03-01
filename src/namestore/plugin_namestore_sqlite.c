@@ -26,6 +26,7 @@
 
 #include "platform.h"
 #include "gnunet_namestore_plugin.h"
+#include "gnunet_namestore_service.h"
 #include <sqlite3.h>
 
 /**
@@ -104,35 +105,6 @@ struct Plugin
    */
   sqlite3_stmt *delete_zone;
 
-};
-
-
-/**
- * Internal format of a record in the BLOB in the database.
- */
-struct DbRecord
-{
-
-  /**
-   * Expiration time for the DNS record.
-   */
-  struct GNUNET_TIME_AbsoluteNBO expiration;
-
-  /**
-   * Number of bytes in 'data', network byte order.
-   */
-  uint32_t data_size;
-
-  /**
-   * Type of the GNS/DNS record, network byte order.
-   */
-  uint32_t record_type;
-
-  /**
-   * Flags for the record, network byte order.
-   */
-  uint32_t flags;
-  
 };
 
 
@@ -483,8 +455,6 @@ namestore_sqlite_put_records (void *cls,
   size_t name_len;
   uint64_t rvalue;
   size_t data_size;
-  size_t off;
-  unsigned int i;
 
   GNUNET_CRYPTO_hash (zone_key, sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), &zone);
   (void) namestore_sqlite_remove_records (plugin, &zone, name);
@@ -492,9 +462,7 @@ namestore_sqlite_put_records (void *cls,
   GNUNET_CRYPTO_hash (name, name_len, &nh);
 
   rvalue = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK, UINT64_MAX);
-  data_size = rd_count * sizeof (struct DbRecord);
-  for (i=0;i<rd_count;i++)  
-    data_size += rd[i].data_size;
+  data_size = GNUNET_NAMESTORE_records_get_size (rd_count, rd);
   if (data_size > 64 * 65536)
   {
     GNUNET_break (0);
@@ -502,20 +470,12 @@ namestore_sqlite_put_records (void *cls,
   }
   {
     char data[data_size];
-    struct DbRecord *rec;
-    
-    rec = (struct DbRecord *) data;
-    off = rd_count * sizeof (struct DbRecord);
-    for (i=0;i<rd_count;i++)  
+
+    if (data_size != GNUNET_NAMESTORE_records_serialize (rd_count, rd,
+							 data_size, data))
     {
-      rec[i].expiration = GNUNET_TIME_absolute_hton (rd[i].expiration);
-      rec[i].data_size = htonl ((uint32_t) rd[i].data_size);
-      rec[i].record_type = htonl (rd[i].record_type);
-      rec[i].flags = htonl (rd[i].flags);
-      memcpy (&data[off],
-	      rd[i].data,
-	      rd[i].data_size);
-      off += rd[i].data_size;
+      GNUNET_break (0);
+      return GNUNET_SYSERR;
     }
     if ((SQLITE_OK != sqlite3_bind_blob (plugin->put_records, 1, zone_key, sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), SQLITE_STATIC)) ||
 	(SQLITE_OK != sqlite3_bind_text (plugin->put_records, 2, name, -1, SQLITE_STATIC)) ||
@@ -663,38 +623,28 @@ namestore_sqlite_iterate_records (void *cls,
     sig = sqlite3_column_blob (stmt, 5);
 
     if ( (sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded) != sqlite3_column_bytes (stmt, 0)) ||
-	 (sizeof (struct GNUNET_CRYPTO_RsaSignature) != sqlite3_column_bytes (stmt, 5)) ||
-	 (sizeof (struct DbRecord) * record_count > data_size) )
+	 (sizeof (struct GNUNET_CRYPTO_RsaSignature) != sqlite3_column_bytes (stmt, 5)) )
     {
       GNUNET_break (0);
       ret = GNUNET_SYSERR;
     }
     else
     {
-      const struct DbRecord *db = (const struct DbRecord*) data;
       struct GNUNET_NAMESTORE_RecordData rd[record_count];
-      unsigned int i;
-      size_t off;
 
-      off = record_count * sizeof (struct DbRecord);
-      for (i=0;i<record_count;i++)
+      if (GNUNET_OK !=
+	  GNUNET_NAMESTORE_records_deserialize (data_size, data,
+						record_count, rd))
       {
-	if (off + ntohl (db[i].data_size) > data_size)
-	{
-	  GNUNET_break (0);
-	  ret = GNUNET_SYSERR;
-	  record_count = i;
-	  break;
-	}
-	rd[i].expiration = GNUNET_TIME_absolute_ntoh (db[i].expiration);
-	rd[i].data_size = ntohl (db[i].data_size);
-	rd[i].data = &data[off];
-	rd[i].record_type = ntohl (db[i].record_type);
-	rd[i].flags = ntohl (db[i].flags);
-	off += rd[i].data_size;
-      }     
-      iter (iter_cls, zone_key, expiration, name, 
-	    record_count, rd, sig);
+	GNUNET_break (0);
+	ret = GNUNET_SYSERR;
+	record_count = 0;
+      }
+      else
+      {
+	iter (iter_cls, zone_key, expiration, name, 
+	      record_count, rd, sig);
+      }
     }
   }
   else
