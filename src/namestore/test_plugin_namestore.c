@@ -235,8 +235,6 @@ main (int argc, char *argv[])
 
   GNUNET_snprintf (cfg_name, sizeof (cfg_name), "test_plugin_namestore_%s.conf",
                    plugin_name);
-  if (pos != plugin_name)
-    pos[0] = '.';
   GNUNET_PROGRAM_run ((sizeof (xargv) / sizeof (char *)) - 1, xargv,
                       "test-plugin-namestore", "nohelp", options, &run, NULL);
   if (ok != 0)
