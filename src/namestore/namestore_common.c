@@ -67,6 +67,12 @@ struct NetworkRecord
 /**
  * Calculate how many bytes we will need to serialize the given
  * records.
+ *
+ * @param rd_count number of records in the rd array
+ * @param rd array of GNUNET_NAMESTORE_RecordData with rd_count elements
+ *
+ * @return the required size to serialize
+ *
  */
 size_t
 GNUNET_NAMESTORE_records_get_size (unsigned int rd_count,
@@ -87,6 +93,13 @@ GNUNET_NAMESTORE_records_get_size (unsigned int rd_count,
 
 /**
  * Serialize the given records to the given destination buffer.
+ *
+ * @param rd_cound number of records in the rd array
+ * @param rd array of GNUNET_NAMESTORE_RecordData with rd_count elements
+ * @param dest_size size of the destination array
+ * @param dest where to write the result
+ *
+ * @return the size of serialized records
  */
 ssize_t
 GNUNET_NAMESTORE_records_serialize (unsigned int rd_count,
@@ -119,10 +132,13 @@ GNUNET_NAMESTORE_records_serialize (unsigned int rd_count,
 
 
 /**
- * @param rd_count expected number of records in 'src'
- * @param dest array of 'rd_count' entries for storing record data;
- *         'data' values in 'dest' will point into 'src' and will thus
- *         become invalid if 'src' is modified
+ * Deserialize the given records to the given destination.
+ *
+ * @param len size of the serialized record data
+ * @param src the serialized record data
+ * @param rd_cound number of records in the rd array
+ * @param dest where to put the data
+ *
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
 int
