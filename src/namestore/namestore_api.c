@@ -209,7 +209,7 @@ handle_lookup_name_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key;
   char *name;
   char * rd_tmp;
-  struct GNUNET_NAMESTORE_RecordData *rd = NULL;
+
   struct GNUNET_CRYPTO_RsaSignature *signature = NULL;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded dummy;
   struct GNUNET_TIME_Absolute expire;
@@ -221,6 +221,7 @@ handle_lookup_name_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
   int rd_count = 0;
 
   rd_len = ntohs (msg->rd_len);
+  rd_count = ntohs (msg->rd_count);
   msg_len = ntohs (msg->gns_header.header.size);
   name_len = ntohs (msg->name_len);
   contains_sig = ntohs (msg->contains_sig);
@@ -243,15 +244,15 @@ handle_lookup_name_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
   zone_key = (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *) &msg[1];
   name = (char *) &zone_key[1];
   rd_tmp = &name[name_len];
-  rd_count = GNUNET_NAMESTORE_records_deserialize(&rd, rd_tmp, rd_len);
+
+  struct GNUNET_NAMESTORE_RecordData rd[rd_count];
+  GNUNET_NAMESTORE_records_deserialize(rd_len, rd_tmp, rd_count, rd);
 
   /* reset values if values not contained */
   if (contains_sig == GNUNET_NO)
     signature = NULL;
   else
     signature = (struct GNUNET_CRYPTO_RsaSignature *) &rd_tmp[rd_len];
-  if (rd_count == 0)
-    rd = NULL;
   if (name_len == 0)
     name = NULL;
 
@@ -261,10 +262,8 @@ handle_lookup_name_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
 
   if (qe->proc != NULL)
   {
-    qe->proc (qe->proc_cls, zone_key, expire, name, rd_count, rd, signature);
+    qe->proc (qe->proc_cls, zone_key, expire, name, rd_count, (rd_count > 0) ? rd : NULL, signature);
   }
-
-  GNUNET_NAMESTORE_records_free(rd_count, rd);
 
   /* Operation done, remove */
   GNUNET_CONTAINER_DLL_remove(h->op_head, h->op_tail, qe);
@@ -759,7 +758,6 @@ GNUNET_NAMESTORE_record_put (struct GNUNET_NAMESTORE_Handle *h,
   /* pointer to elements */
   char * zone_key_tmp;
   char * rd_tmp;
-  char * rd_ser;
   char * name_tmp;
 
   size_t msg_size = 0;
@@ -790,7 +788,10 @@ GNUNET_NAMESTORE_record_put (struct GNUNET_NAMESTORE_Handle *h,
   GNUNET_CONTAINER_DLL_insert_tail(h->op_head, h->op_tail, qe);
 
   /* set msg_size*/
-  rd_ser_len = GNUNET_NAMESTORE_records_serialize(&rd_ser, rd_count, rd);
+  rd_ser_len = GNUNET_NAMESTORE_records_get_size(rd_count, rd);
+  char rd_ser[rd_ser_len];
+  GNUNET_NAMESTORE_records_serialize(rd_count, rd, rd_ser_len, rd_ser);
+
   pubkey_len = sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded);
   struct RecordPutMessage * msg;
   msg_size = sizeof (struct RecordPutMessage) + pubkey_len + name_len  + rd_ser_len;
@@ -875,7 +876,6 @@ GNUNET_NAMESTORE_record_create (struct GNUNET_NAMESTORE_Handle *h,
   char * name_tmp;
   char * pkey_tmp;
   char * rd_tmp;
-  char * rd_ser;
   size_t rd_ser_len = 0;
   size_t msg_size = 0;
   size_t name_len = 0;
@@ -906,7 +906,11 @@ GNUNET_NAMESTORE_record_create (struct GNUNET_NAMESTORE_Handle *h,
   struct GNUNET_CRYPTO_RsaPrivateKeyBinaryEncoded * pkey_enc = GNUNET_CRYPTO_rsa_encode_key (pkey);
   GNUNET_assert (pkey_enc != NULL);
   key_len = ntohs (pkey_enc->len);
-  rd_ser_len = GNUNET_NAMESTORE_records_serialize(&rd_ser, 1, rd);
+
+  rd_ser_len = GNUNET_NAMESTORE_records_get_size(1, rd);
+  char rd_ser[rd_ser_len];
+  GNUNET_NAMESTORE_records_serialize(1, rd, rd_ser_len, rd_ser);
+
   struct RecordCreateMessage * msg;
   msg_size = sizeof (struct RecordCreateMessage) + key_len + name_len + rd_ser_len;
 
@@ -966,7 +970,6 @@ GNUNET_NAMESTORE_record_remove (struct GNUNET_NAMESTORE_Handle *h,
   struct GNUNET_NAMESTORE_QueueEntry *qe;
   struct PendingMessage *pe;
   char * rd_tmp;
-  char * rd_ser;
   char * name_tmp;
   size_t rd_ser_len = 0;
   size_t msg_size = 0;
@@ -983,7 +986,10 @@ GNUNET_NAMESTORE_record_remove (struct GNUNET_NAMESTORE_Handle *h,
   qe->op_id = rid;
 
   /* set msg_size*/
-  rd_ser_len = GNUNET_NAMESTORE_records_serialize(&rd_ser, 1, rd);
+  rd_ser_len = GNUNET_NAMESTORE_records_get_size(1, rd);
+  char rd_ser[rd_ser_len];
+  GNUNET_NAMESTORE_records_serialize(1, rd, rd_ser_len, rd_ser);
+
   struct RecordRemoveMessage * msg;
   msg_size = sizeof (struct RecordRemoveMessage) + name_len + rd_ser_len;
 
