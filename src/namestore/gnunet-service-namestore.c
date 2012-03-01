@@ -512,7 +512,6 @@ GNUNET_NAMESTORE_create_signature (const struct GNUNET_CRYPTO_RsaPrivateKey *key
 
   GNUNET_CRYPTO_rsa_sign (key, sig_purpose, sig);
 
-  GNUNET_free (rd_ser);
   GNUNET_free (sig_purpose);
   return sig;
 }
@@ -655,6 +654,8 @@ static void handle_record_create (void *cls,
 
   /* Get existing records for name */
   res = GSN_database->iterate_records(GSN_database->cls, &pubkey_hash, name_tmp, 0, &handle_create_record_it, &crc);
+
+  GNUNET_CRYPTO_rsa_key_free(pkey);
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }

@@ -308,8 +308,6 @@ run (void *cls, char *const *args, const char *cfgfile,
   sig_purpose->purpose = htonl (GNUNET_SIGNATURE_PURPOSE_GNS_RECORD_SIGN);
   memcpy (&sig_purpose[1], rd_ser, rd_ser_len);
   GNUNET_CRYPTO_rsa_sign (privkey, sig_purpose, &s_signature);
-
-  GNUNET_free (rd_ser);
   GNUNET_free (sig_purpose);
 
   /* create random zone hash */
