@@ -39,6 +39,7 @@ static GNUNET_HashCode id1;
 
 static int
 iter (void *cls, const GNUNET_HashCode * pseudonym,
+      const char *name, const char *unique_name,
       const struct GNUNET_CONTAINER_MetaData *md, int rating)
 {
   int *ok = cls;
@@ -54,6 +55,7 @@ iter (void *cls, const GNUNET_HashCode * pseudonym,
 
 static int
 noti_callback (void *cls, const GNUNET_HashCode * pseudonym,
+               const char *name, const char *unique_name,
                const struct GNUNET_CONTAINER_MetaData *md, int rating)
 {
   int *ret = cls;
@@ -64,6 +66,7 @@ noti_callback (void *cls, const GNUNET_HashCode * pseudonym,
 
 static int
 fake_noti_callback (void *cls, const GNUNET_HashCode * pseudonym,
+                    const char *name, const char *unique_name,
                     const struct GNUNET_CONTAINER_MetaData *md, int rating)
 {
   int *ret = cls;
@@ -74,6 +77,7 @@ fake_noti_callback (void *cls, const GNUNET_HashCode * pseudonym,
 
 static int
 false_callback (void *cls, const GNUNET_HashCode * pseudonym,
+                const char *name, const char *unique_name,
                 const struct GNUNET_CONTAINER_MetaData *md, int rating)
 {
   return GNUNET_OK;
@@ -95,7 +99,10 @@ main (int argc, char *argv[])
   char *name1;
   char *name2;
   char *name3;
+  char *name1_unique;
+  char *name2_unique;
   char *noname;
+  int noname_is_a_dup;
   int notiCount, fakenotiCount;
   int count;
   static char m[1024 * 1024 * 10];
@@ -152,15 +159,21 @@ main (int argc, char *argv[])
                                                     strlen (m) + 1));
   GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK, &id3);
   GNUNET_PSEUDONYM_add (cfg, &id3, meta);
-  name3 = GNUNET_PSEUDONYM_id_to_name (cfg, &id3);
-  name2 = GNUNET_PSEUDONYM_id_to_name (cfg, &id2);
+  GNUNET_PSEUDONYM_get_info (cfg, &id3, NULL, NULL, &name3, NULL);
+  CHECK (name3 != NULL);
+  GNUNET_PSEUDONYM_get_info (cfg, &id2, NULL, NULL, &name2, NULL);
   CHECK (name2 != NULL);
-  name1 = GNUNET_PSEUDONYM_id_to_name (cfg, &id1);
+  GNUNET_PSEUDONYM_get_info (cfg, &id1, NULL, NULL, &name1, NULL);
   CHECK (name1 != NULL);
-  CHECK (0 != strcmp (name1, name2));
+  CHECK (0 == strcmp (name1, name2));
+  name1_unique = GNUNET_PSEUDONYM_name_uniquify (cfg, &id1, name1, NULL);
+  name2_unique = GNUNET_PSEUDONYM_name_uniquify (cfg, &id2, name2, NULL);
+  CHECK (0 != strcmp (name1_unique, name2_unique));
   CHECK (GNUNET_SYSERR == GNUNET_PSEUDONYM_name_to_id (cfg, "fake", &rid2));
-  CHECK (GNUNET_OK == GNUNET_PSEUDONYM_name_to_id (cfg, name2, &rid2));
-  CHECK (GNUNET_OK == GNUNET_PSEUDONYM_name_to_id (cfg, name1, &rid1));
+  CHECK (GNUNET_SYSERR == GNUNET_PSEUDONYM_name_to_id (cfg, name2, &rid2));
+  CHECK (GNUNET_SYSERR == GNUNET_PSEUDONYM_name_to_id (cfg, name1, &rid1));
+  CHECK (GNUNET_OK == GNUNET_PSEUDONYM_name_to_id (cfg, name2_unique, &rid2));
+  CHECK (GNUNET_OK == GNUNET_PSEUDONYM_name_to_id (cfg, name1_unique, &rid1));
   CHECK (0 == memcmp (&id1, &rid1, sizeof (GNUNET_HashCode)));
   CHECK (0 == memcmp (&id2, &rid2, sizeof (GNUNET_HashCode)));
 
@@ -168,14 +181,17 @@ main (int argc, char *argv[])
   GNUNET_log_skip (1, GNUNET_NO);
   CHECK (0 == GNUNET_PSEUDONYM_rank (cfg, &fid, 0));
   GNUNET_log_skip (0, GNUNET_YES);
-  noname = GNUNET_PSEUDONYM_id_to_name (cfg, &fid);
+  CHECK (GNUNET_OK == GNUNET_PSEUDONYM_get_info (cfg, &fid, NULL, NULL, &noname, &noname_is_a_dup));
   CHECK (noname != NULL);
+  CHECK (noname_is_a_dup == GNUNET_YES);
   CHECK (0 == GNUNET_PSEUDONYM_rank (cfg, &id1, 0));
   CHECK (5 == GNUNET_PSEUDONYM_rank (cfg, &id1, 5));
   CHECK (-5 == GNUNET_PSEUDONYM_rank (cfg, &id1, -10));
   CHECK (0 == GNUNET_PSEUDONYM_rank (cfg, &id1, 5));
   GNUNET_free (name1);
   GNUNET_free (name2);
+  GNUNET_free (name1_unique);
+  GNUNET_free (name2_unique);
   GNUNET_free (name3);
   GNUNET_free (noname);
   /* END OF TEST CODE */

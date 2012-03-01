@@ -114,14 +114,27 @@ receive_cb (void *cls, struct GNUNET_CHAT_Room *room,
             const char *message, struct GNUNET_TIME_Absolute timestamp,
             enum GNUNET_CHAT_MsgOptions options)
 {
+  char *non_unique_nick;
   char *nick;
+  int nick_is_a_dup;
   char *time;
   const char *fmt;
 
-  if (NULL != sender)
-    nick = GNUNET_PSEUDONYM_id_to_name (cfg, sender);
-  else
+  if (NULL == sender)
     nick = GNUNET_strdup (_("anonymous"));
+  else
+  {
+    if (GNUNET_OK != GNUNET_PSEUDONYM_get_info (cfg,
+        sender, NULL, NULL, &non_unique_nick, &nick_is_a_dup)
+        || (nick_is_a_dup == GNUNET_YES))
+    {
+      GNUNET_free (non_unique_nick);
+      non_unique_nick = GNUNET_strdup (_("anonymous"));
+    }
+    nick = GNUNET_PSEUDONYM_name_uniquify (cfg, sender, non_unique_nick, NULL);
+    GNUNET_free (non_unique_nick);
+  }
+
   fmt = NULL;
   switch ((int) options)
   {
@@ -188,9 +201,20 @@ confirmation_cb (void *cls, struct GNUNET_CHAT_Room *room,
                  const GNUNET_HashCode * receiver)
 {
   char *nick;
+  char *unique_nick;
+  int nick_is_a_dup;
 
-  nick = GNUNET_PSEUDONYM_id_to_name (cfg, receiver);
-  FPRINTF (stdout, _("'%s' acknowledged message #%d\n"), nick, orig_seq_number);
+  if (GNUNET_OK != GNUNET_PSEUDONYM_get_info (cfg,
+      receiver, NULL, NULL, &nick, &nick_is_a_dup)
+      || (nick_is_a_dup == GNUNET_YES))
+  {
+    GNUNET_free (nick);
+    nick = GNUNET_strdup (_("anonymous"));
+  }
+  unique_nick = GNUNET_PSEUDONYM_name_uniquify (cfg, receiver, nick, NULL);
+  GNUNET_free (nick);
+  FPRINTF (stdout, _("'%s' acknowledged message #%d\n"), unique_nick, orig_seq_number);
+  GNUNET_free (unique_nick);
   return GNUNET_OK;
 }
 
@@ -210,7 +234,8 @@ member_list_cb (void *cls, const struct GNUNET_CONTAINER_MetaData *member_info,
                 const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *member_id,
                 enum GNUNET_CHAT_MsgOptions options)
 {
-  char *nick;
+  char *nick, *non_unique_nick;
+  int nick_is_a_dup;
   GNUNET_HashCode id;
   struct UserList *pos;
   struct UserList *prev;
@@ -218,7 +243,16 @@ member_list_cb (void *cls, const struct GNUNET_CONTAINER_MetaData *member_info,
   GNUNET_CRYPTO_hash (member_id,
                       sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
                       &id);
-  nick = GNUNET_PSEUDONYM_id_to_name (cfg, &id);
+  if (GNUNET_OK != GNUNET_PSEUDONYM_get_info (cfg,
+      &id, NULL, NULL, &non_unique_nick, &nick_is_a_dup)
+      || (nick_is_a_dup == GNUNET_YES))
+  {
+    GNUNET_free (non_unique_nick);
+    non_unique_nick = GNUNET_strdup (_("anonymous"));
+  }
+  nick = GNUNET_PSEUDONYM_name_uniquify (cfg, &id, non_unique_nick, NULL);
+  GNUNET_free (non_unique_nick);
+
   FPRINTF (stdout,
            member_info !=
            NULL ? _("`%s' entered the room\n") : _("`%s' left the room\n"),
@@ -267,6 +301,7 @@ static int
 do_join (const char *arg, const void *xtra)
 {
   char *my_name;
+  int my_name_is_a_dup;
   GNUNET_HashCode me;
 
   if (arg[0] == '#')
@@ -284,7 +319,16 @@ do_join (const char *arg, const void *xtra)
     FPRINTF (stdout, "%s",  _("Could not change username\n"));
     return GNUNET_SYSERR;
   }
-  my_name = GNUNET_PSEUDONYM_id_to_name (cfg, &me);
+  if ((GNUNET_OK != GNUNET_PSEUDONYM_get_info (cfg,
+      &me, NULL, NULL, &my_name, &my_name_is_a_dup)) ||
+      (my_name_is_a_dup == GNUNET_YES))
+  {
+    GNUNET_free (my_name);
+    my_name = GNUNET_strdup (_("anonymous"));
+  }
+  /* Don't uniquify our own name - other people will have a different
+   * suffix for our own name anyway.
+   */
   FPRINTF (stdout, _("Joining room `%s' as user `%s'...\n"), room_name,
            my_name);
   GNUNET_free (my_name);
@@ -296,6 +340,7 @@ static int
 do_nick (const char *msg, const void *xtra)
 {
   char *my_name;
+  int my_name_is_a_dup;
   GNUNET_HashCode me;
 
   GNUNET_CHAT_leave_room (room);
@@ -316,7 +361,13 @@ do_nick (const char *msg, const void *xtra)
     FPRINTF (stdout, "%s",  _("Could not change username\n"));
     return GNUNET_SYSERR;
   }
-  my_name = GNUNET_PSEUDONYM_id_to_name (cfg, &me);
+  if ((GNUNET_OK != GNUNET_PSEUDONYM_get_info (cfg,
+      &me, NULL, NULL, &my_name, &my_name_is_a_dup)) ||
+      (my_name_is_a_dup == GNUNET_YES))
+  {
+    GNUNET_free (my_name);
+    my_name = GNUNET_strdup (_("anonymous"));
+  }
   FPRINTF (stdout, _("Changed username to `%s'\n"), my_name);
   GNUNET_free (my_name);
   return GNUNET_OK;
@@ -327,6 +378,8 @@ static int
 do_names (const char *msg, const void *xtra)
 {
   char *name;
+  char *unique_name;
+  int name_is_a_dup;
   struct UserList *pos;
   GNUNET_HashCode pid;
 
@@ -337,9 +390,17 @@ do_names (const char *msg, const void *xtra)
     GNUNET_CRYPTO_hash (&pos->pkey,
                         sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
                         &pid);
-    name = GNUNET_PSEUDONYM_id_to_name (cfg, &pid);
-    FPRINTF (stdout, "`%s' ", name);
+    if (GNUNET_OK != GNUNET_PSEUDONYM_get_info (cfg,
+        &pid, NULL, NULL, &name, &name_is_a_dup)
+        || (name_is_a_dup == GNUNET_YES))
+    {
+      GNUNET_free (name);
+      name = GNUNET_strdup (_("anonymous"));
+    }
+    unique_name = GNUNET_PSEUDONYM_name_uniquify (cfg, &pid, name, NULL);
     GNUNET_free (name);
+    FPRINTF (stdout, "`%s' ", unique_name);
+    GNUNET_free (unique_name);
     pos = pos->next;
   }
   FPRINTF (stdout, "%s",  "\n");
@@ -376,7 +437,9 @@ do_send_pm (const char *msg, const void *xtra)
   msg += strlen (user) + 1;
   if (GNUNET_OK != GNUNET_PSEUDONYM_name_to_id (cfg, user, &uid))
   {
-    FPRINTF (stderr, _("Unknown user `%s'\n"), user);
+    FPRINTF (stderr,
+        _("Unknown user `%s'. Make sure you specify its numeric suffix, if any.\n"),
+        user);
     GNUNET_free (user);
     return GNUNET_OK;
   }
@@ -598,6 +661,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 {
   GNUNET_HashCode me;
   char *my_name;
+  int my_name_is_a_dup;
 
   cfg = c;
   /* check arguments */
@@ -626,7 +690,13 @@ run (void *cls, char *const *args, const char *cfgfile,
     ret = -1;
     return;
   }
-  my_name = GNUNET_PSEUDONYM_id_to_name (cfg, &me);
+  if ((GNUNET_OK != GNUNET_PSEUDONYM_get_info (cfg,
+      &me, NULL, NULL, &my_name, &my_name_is_a_dup)) ||
+      (my_name_is_a_dup == GNUNET_YES))
+  {
+    GNUNET_free (my_name);
+    my_name = GNUNET_strdup (_("anonymous"));
+  }
   FPRINTF (stdout, _("Joining room `%s' as user `%s'...\n"), room_name,
            my_name);
   GNUNET_free (my_name);

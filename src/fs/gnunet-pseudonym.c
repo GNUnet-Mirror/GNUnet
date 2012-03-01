@@ -106,20 +106,28 @@ ns_printer (void *cls, const char *name, const GNUNET_HashCode * id)
 
 static int
 pseudo_printer (void *cls, const GNUNET_HashCode * pseudonym,
+                const char *name, const char *unique_name,
                 const struct GNUNET_CONTAINER_MetaData *md, int rating)
 {
-  char *id;
+  char *id, *unique_id;
+  int getinfo_result;
 
-  id = GNUNET_PSEUDONYM_id_to_name (cfg, pseudonym);
-  if (id == NULL)
+  /* While we get a name from the caller, it might be NULL.
+   * GNUNET_PSEUDONYM_get_info () never returns NULL.
+   */
+  getinfo_result = GNUNET_PSEUDONYM_get_info (cfg, pseudonym,
+      NULL, NULL, &id, NULL);
+  if (getinfo_result != GNUNET_OK)
   {
     GNUNET_break (0);
     return GNUNET_OK;
   }
-  FPRINTF (stdout, "%s (%d):\n", id, rating);
+  unique_id = GNUNET_PSEUDONYM_name_uniquify (cfg, pseudonym, id, NULL);
+  GNUNET_free (id);
+  FPRINTF (stdout, "%s (%d):\n", unique_id, rating);
   GNUNET_CONTAINER_meta_data_iterate (md, &EXTRACTOR_meta_data_print, stdout);
   FPRINTF (stdout, "%s",  "\n");
-  GNUNET_free (id);
+  GNUNET_free (unique_id);
   return GNUNET_OK;
 }
 
@@ -162,7 +170,8 @@ post_advertising (void *cls, const struct GNUNET_FS_Uri *uri, const char *emsg)
       }
       else
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Namespace `%s' unknown.\n"),
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+                    ("Namespace `%s' unknown. Make sure you specify its numeric suffix, if any.\n"),
                     rating_change);
       }
     }

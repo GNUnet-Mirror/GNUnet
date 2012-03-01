@@ -96,7 +96,7 @@ internal_notify (const GNUNET_HashCode * id,
   pos = head;
   while (pos != NULL)
   {
-    pos->callback (pos->closure, id, md, rating);
+    pos->callback (pos->closure, id, NULL, NULL, md, rating);
     pos = pos->next;
   }
 }
@@ -104,6 +104,9 @@ internal_notify (const GNUNET_HashCode * id,
 /**
  * Register callback to be invoked whenever we discover
  * a new pseudonym.
+ * Will immediately call provided iterator callback for all
+ * already discovered pseudonyms.
+ *
  * @param cfg configuration to use
  * @param iterator iterator over pseudonym
  * @param closure point to a closure
@@ -185,7 +188,7 @@ get_data_filename (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param nsid hash code of a pseudonym
  * @param meta meta data to be written into a file
  * @param ranking ranking of a pseudonym
- * @param ns_name name of a pseudonym
+ * @param ns_name non-unique name of a pseudonym
  */
 static void
 write_pseudonym_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
@@ -219,9 +222,9 @@ write_pseudonym_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
   }
   GNUNET_free (fn);
   /* create entry for pseudonym name in names */
-  /* FIXME: 90% of what this call does is not needed
-   * here => refactor code to only create the entry! */
-  GNUNET_free_non_null (GNUNET_PSEUDONYM_id_to_name (cfg, nsid));
+  if (ns_name != NULL)
+    GNUNET_free_non_null (GNUNET_PSEUDONYM_name_uniquify (cfg, nsid, ns_name,
+        NULL));
 }
 
 
@@ -285,57 +288,31 @@ read_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
   return GNUNET_OK;
 }
 
-
-
 /**
- * Return the unique, human readable name for the given namespace.
+ * Return unique variant of the namespace name.
+ * Use it after GNUNET_PSEUDONYM_get_info() to make sure
+ * that name is unique.
  *
  * @param cfg configuration
  * @param nsid cryptographic ID of the namespace
- * @return NULL on failure (should never happen)
+ * @param name name to uniquify
+ * @param suffix if not NULL, filled with the suffix value
+ * @return NULL on failure (should never happen), name on success.
+ *         Free the name with GNUNET_free().
  */
 char *
-GNUNET_PSEUDONYM_id_to_name (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                             const GNUNET_HashCode * nsid)
+GNUNET_PSEUDONYM_name_uniquify (const struct GNUNET_CONFIGURATION_Handle *cfg,
+    const GNUNET_HashCode * nsid, const char *name, unsigned int *suffix)
 {
-  struct GNUNET_CONTAINER_MetaData *meta;
-  char *name;
   GNUNET_HashCode nh;
-  char *fn;
   uint64_t len;
+  char *fn;
   struct GNUNET_DISK_FileHandle *fh;
   unsigned int i;
   unsigned int idx;
   char *ret;
   struct stat sbuf;
-  int32_t temp = 0;
-  int32_t *rank = &temp;
 
-  meta = NULL;
-  name = NULL;
-  if (GNUNET_OK == read_info (cfg, nsid, &meta, rank, &name))
-  {
-    if ((meta != NULL) && (name == NULL))
-      name =
-          GNUNET_CONTAINER_meta_data_get_first_by_types (meta,
-                                                         EXTRACTOR_METATYPE_TITLE,
-                                                         EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME,
-                                                         EXTRACTOR_METATYPE_FILENAME,
-                                                         EXTRACTOR_METATYPE_DESCRIPTION,
-                                                         EXTRACTOR_METATYPE_SUBJECT,
-                                                         EXTRACTOR_METATYPE_PUBLISHER,
-                                                         EXTRACTOR_METATYPE_AUTHOR_NAME,
-                                                         EXTRACTOR_METATYPE_COMMENT,
-                                                         EXTRACTOR_METATYPE_SUMMARY,
-                                                         -1);
-    if (meta != NULL)
-    {
-      GNUNET_CONTAINER_meta_data_destroy (meta);
-      meta = NULL;
-    }
-  }
-  if (name == NULL)
-    name = GNUNET_strdup (_("no-name"));
   GNUNET_CRYPTO_hash (name, strlen (name), &nh);
   fn = get_data_filename (cfg, PS_NAMES_DIR, &nh);
   GNUNET_assert (fn != NULL);
@@ -372,22 +349,107 @@ GNUNET_PSEUDONYM_id_to_name (const struct GNUNET_CONFIGURATION_Handle *cfg,
   GNUNET_DISK_file_close (fh);
   ret = GNUNET_malloc (strlen (name) + 32);
   GNUNET_snprintf (ret, strlen (name) + 32, "%s-%u", name, idx);
-  GNUNET_free (name);
+  if (suffix != NULL)
+    *suffix = idx;
   GNUNET_free (fn);
   return ret;
+}
+
+/**
+ * Get namespace name, metadata and rank
+ * This is a wrapper around internal read_info() call, and ensures that
+ * returned data is not invalid (not NULL).
+ *
+ * @param cfg configuration
+ * @param nsid cryptographic ID of the namespace
+ * @param ret_meta a location to store metadata pointer. NULL, if metadata
+ *        is not needed. Destroy with GNUNET_CONTAINER_meta_data_destroy().
+ * @param ret_rank a location to store rank. NULL, if rank not needed.
+ * @param ret_name a location to store human-readable name. Name is not unique.
+ *        NULL, if name is not needed. Free with GNUNET_free().
+ * @param name_is_a_dup is set to GNUNET_YES, if ret_name was filled with
+ *        a duplicate of a "no-name" placeholder
+ * @return GNUNET_OK on success. GNUENT_SYSERR if the data was
+ *         unobtainable (in that case ret_* are filled with placeholders - 
+ *         empty metadata container, rank -1 and a "no-name" name).
+ */
+int
+GNUNET_PSEUDONYM_get_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
+    const GNUNET_HashCode * nsid, struct GNUNET_CONTAINER_MetaData **ret_meta,
+    int32_t *ret_rank, char **ret_name, int *name_is_a_dup)
+{
+  struct GNUNET_CONTAINER_MetaData *meta;
+  char *name;
+  int32_t rank = -1;
+
+  meta = NULL;
+  name = NULL;
+  if (GNUNET_OK == read_info (cfg, nsid, &meta, &rank, &name))
+  {
+    if ((meta != NULL) && (name == NULL))
+      name =
+          GNUNET_CONTAINER_meta_data_get_first_by_types (meta,
+                                                         EXTRACTOR_METATYPE_TITLE,
+                                                         EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME,
+                                                         EXTRACTOR_METATYPE_FILENAME,
+                                                         EXTRACTOR_METATYPE_DESCRIPTION,
+                                                         EXTRACTOR_METATYPE_SUBJECT,
+                                                         EXTRACTOR_METATYPE_PUBLISHER,
+                                                         EXTRACTOR_METATYPE_AUTHOR_NAME,
+                                                         EXTRACTOR_METATYPE_COMMENT,
+                                                         EXTRACTOR_METATYPE_SUMMARY,
+                                                         -1);
+    if (ret_name != NULL)
+    {
+      if (name == NULL)
+      {
+        name = GNUNET_strdup (_("no-name"));
+        if (name_is_a_dup != NULL)
+          *name_is_a_dup = GNUNET_YES;
+      }
+      else if (name_is_a_dup != NULL)
+        *name_is_a_dup = GNUNET_NO;
+      *ret_name = name;
+    }
+    else if (name != NULL)
+      GNUNET_free (name);
+
+    if (ret_meta != NULL)
+    {
+      if (meta == NULL)
+        meta = GNUNET_CONTAINER_meta_data_create ();
+      *ret_meta = meta;
+    }
+    else if (meta != NULL)
+      GNUNET_CONTAINER_meta_data_destroy (meta);
+
+    if (ret_rank != NULL)
+      *ret_rank = rank;
+
+    return GNUNET_OK;
+  }
+  if (ret_name != NULL)
+    *ret_name = GNUNET_strdup (_("no-name"));
+  if (ret_meta != NULL)
+    *ret_meta = GNUNET_CONTAINER_meta_data_create ();
+  if (ret_rank != NULL)
+    *ret_rank = -1;
+  if (name_is_a_dup != NULL)
+    *name_is_a_dup = GNUNET_YES;
+  return GNUNET_SYSERR;
 }
 
 /**
  * Get the namespace ID belonging to the given namespace name.
  *
  * @param cfg configuration to use
- * @param ns_uname human-readable name for the namespace
+ * @param ns_uname unique (!) human-readable name for the namespace
  * @param nsid set to namespace ID based on 'ns_uname'
- * @return GNUNET_OK on success
+ * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
 int
 GNUNET_PSEUDONYM_name_to_id (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                             const char *ns_uname, GNUNET_HashCode * nsid)
+    const char *ns_uname, GNUNET_HashCode * nsid)
 {
   size_t slen;
   uint64_t len;
@@ -405,6 +467,7 @@ GNUNET_PSEUDONYM_name_to_id (const struct GNUNET_CONFIGURATION_Handle *cfg,
     return GNUNET_SYSERR;
   name = GNUNET_strdup (ns_uname);
   name[slen - 1] = '\0';
+
   GNUNET_CRYPTO_hash (name, strlen (name), &nh);
   GNUNET_free (name);
   fn = get_data_filename (cfg, PS_NAMES_DIR, &nh);
@@ -472,10 +535,10 @@ list_pseudonym_helper (void *cls, const char *fullname)
   struct ListPseudonymClosure *c = cls;
   int ret;
   GNUNET_HashCode id;
-  int rating;
+  int32_t rating;
   struct GNUNET_CONTAINER_MetaData *meta;
   const char *fn;
-  char *str;
+  char *str, *name_unique;
 
   if (strlen (fullname) < sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded))
     return GNUNET_OK;
@@ -487,11 +550,22 @@ list_pseudonym_helper (void *cls, const char *fullname)
   if (GNUNET_OK != GNUNET_CRYPTO_hash_from_string (fn, &id))
     return GNUNET_OK;           /* invalid name */
   str = NULL;
-  if (GNUNET_OK != read_info (c->cfg, &id, &meta, &rating, &str))
-    return GNUNET_OK;           /* ignore entry */
-  GNUNET_free_non_null (str);
+  if (GNUNET_OK != GNUNET_PSEUDONYM_get_info (c->cfg, &id, &meta, &rating,
+      &str, NULL))
+  {
+    /* ignore entry. FIXME: Why? Lack of data about a pseudonym is not a reason
+     * to ignore it... So yeah, it will have placeholders instead of name,
+     * empty metadata container and a default rank == -1, so what? We know
+     * its nsid - that's all we really need. Right? */
+    GNUNET_free (str);
+    GNUNET_CONTAINER_meta_data_destroy (meta);
+    return GNUNET_OK;
+  }
+  name_unique = GNUNET_PSEUDONYM_name_uniquify (c->cfg, &id, str, NULL);
   if (c->iterator != NULL)
-    ret = c->iterator (c->closure, &id, meta, rating);
+    ret = c->iterator (c->closure, &id, str, name_unique, meta, rating);
+  GNUNET_free_non_null (str);
+  GNUNET_free_non_null (name_unique);
   GNUNET_CONTAINER_meta_data_destroy (meta);
   return ret;
 }
@@ -555,6 +629,31 @@ GNUNET_PSEUDONYM_rank (const struct GNUNET_CONFIGURATION_Handle *cfg,
   GNUNET_CONTAINER_meta_data_destroy (meta);
   GNUNET_free_non_null (name);
   return ranking;
+}
+
+
+/**
+ * Set the pseudonym metadata, rank and name.
+ *
+ * @param cfg overall configuration
+ * @param nsid id of the pseudonym
+ * @param name name to set. Must be the non-unique version of it.
+ *        May be NULL, in which case it erases pseudonym's name!
+ * @param md metadata to set
+ *        May be NULL, in which case it erases pseudonym's metadata!
+ * @param rank rank to assign
+ * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+ */
+int
+GNUNET_PSEUDONYM_set_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
+    const GNUNET_HashCode * nsid, const char *name,
+    const struct GNUNET_CONTAINER_MetaData *md, int rank)
+{
+  GNUNET_assert (cfg != NULL);
+  GNUNET_assert (nsid != NULL);
+
+  write_pseudonym_info (cfg, nsid, md, rank, name);
+  return GNUNET_OK;
 }
 
 

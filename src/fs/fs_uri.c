@@ -1377,15 +1377,17 @@ GNUNET_FS_uri_sks_to_string_fancy (struct GNUNET_CONFIGURATION_Handle *cfg,
                                    const struct GNUNET_FS_Uri *uri)
 {
   char *ret;
-  char *name;
+  char *name, *unique_name;
+  int getinfo_result;
 
   if (uri->type != sks)
     return NULL;
-  name = GNUNET_PSEUDONYM_id_to_name (cfg, &uri->data.sks.namespace);
-  if (name == NULL)
-    return GNUNET_FS_uri_to_string (uri);
-  GNUNET_asprintf (&ret, "%s: %s", name, uri->data.sks.identifier);
+  getinfo_result = GNUNET_PSEUDONYM_get_info (cfg, &uri->data.sks.namespace,
+      NULL, NULL, &name, NULL);
+  unique_name = GNUNET_PSEUDONYM_name_uniquify (cfg, &uri->data.sks.namespace, name, NULL);
   GNUNET_free (name);
+  GNUNET_asprintf (&ret, "%s: %s", unique_name, uri->data.sks.identifier);
+  GNUNET_free (unique_name);
   return ret;
 }
 
