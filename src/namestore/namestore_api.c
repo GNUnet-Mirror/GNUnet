@@ -221,7 +221,7 @@ handle_lookup_name_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
   int rd_count = 0;
 
   rd_len = ntohs (msg->rd_len);
-  msg_len = ntohs (msg->header.size);
+  msg_len = ntohs (msg->gns_header.header.size);
   name_len = ntohs (msg->name_len);
   contains_sig = ntohs (msg->contains_sig);
   expire = GNUNET_TIME_absolute_ntoh(msg->expire);
@@ -442,12 +442,12 @@ static void
 process_namestore_message (void *cls, const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_NAMESTORE_Handle *h = cls;
-  struct GenericMessage * gm;
+  struct GNUNET_NAMESTORE_Header * gm;
   struct GNUNET_NAMESTORE_QueueEntry *qe;
   struct GNUNET_NAMESTORE_ZoneIterator *ze;
   uint16_t size;
   uint16_t type;
-  uint32_t op_id = UINT32_MAX;
+  uint32_t r_id = UINT32_MAX;
 
   if (NULL == msg)
   {
@@ -458,7 +458,7 @@ process_namestore_message (void *cls, const struct GNUNET_MessageHeader *msg)
   size = ntohs (msg->size);
   type = ntohs (msg->type);
 
-  if (size < sizeof (struct GenericMessage))
+  if (size < sizeof (struct GNUNET_NAMESTORE_Header))
   {
     GNUNET_break_op (0);
     GNUNET_CLIENT_receive (h->client, &process_namestore_message, h,
@@ -466,13 +466,13 @@ process_namestore_message (void *cls, const struct GNUNET_MessageHeader *msg)
     return;
   }
 
-  gm = (struct GenericMessage *) msg;
-  op_id = ntohl (gm->op_id);
+  gm = (struct GNUNET_NAMESTORE_Header *) msg;
+  r_id = ntohl (gm->r_id);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received message type %i size %i op %u\n", type, size, op_id);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received message type %i size %i op %u\n", type, size, r_id);
 
   /* Find matching operation */
-  if (op_id > h->op_id)
+  if (r_id > h->op_id)
   {
     /* No matching pending operation found */
     GNUNET_break_op (0);
@@ -484,7 +484,7 @@ process_namestore_message (void *cls, const struct GNUNET_MessageHeader *msg)
   /* Is it a record related operation ? */
   for (qe = h->op_head; qe != NULL; qe = qe->next)
   {
-    if (qe->op_id == op_id)
+    if (qe->op_id == r_id)
       break;
   }
   if (qe != NULL)
@@ -495,7 +495,7 @@ process_namestore_message (void *cls, const struct GNUNET_MessageHeader *msg)
   /* Is it a zone iteration operation ? */
   for (ze = h->z_head; ze != NULL; ze = ze->next)
   {
-    if (ze->op_id == op_id)
+    if (ze->op_id == r_id)
       break;
   }
   if (ze != NULL)
@@ -766,7 +766,7 @@ GNUNET_NAMESTORE_record_put (struct GNUNET_NAMESTORE_Handle *h,
   size_t name_len = 0;
   size_t rd_ser_len = 0;
   size_t pubkey_len = 0;
-  uint32_t id = 0;
+  uint32_t rid = 0;
 
   GNUNET_assert (NULL != h);
   GNUNET_assert (NULL != zone_key);
@@ -781,12 +781,12 @@ GNUNET_NAMESTORE_record_put (struct GNUNET_NAMESTORE_Handle *h,
     return NULL;
   }
 
-  id = get_op_id(h);
+  rid = get_op_id(h);
   qe = GNUNET_malloc(sizeof (struct GNUNET_NAMESTORE_QueueEntry));
   qe->nsh = h;
   qe->cont = cont;
   qe->cont_cls = cont_cls;
-  qe->op_id = id;
+  qe->op_id = rid;
   GNUNET_CONTAINER_DLL_insert_tail(h->op_head, h->op_tail, qe);
 
   /* set msg_size*/
@@ -804,9 +804,9 @@ GNUNET_NAMESTORE_record_put (struct GNUNET_NAMESTORE_Handle *h,
   name_tmp = (char *) &zone_key_tmp[pubkey_len];
   rd_tmp = &name_tmp[name_len];
 
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_PUT);
-  msg->header.size = htons (msg_size);
-  msg->op_id = htonl (id);
+  msg->gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_PUT);
+  msg->gns_header.header.size = htons (msg_size);
+  msg->gns_header.r_id = htonl (rid);
   msg->key_len = htons (pubkey_len);
   memcpy (zone_key_tmp, zone_key, pubkey_len);
   msg->signature = *signature;
@@ -880,7 +880,7 @@ GNUNET_NAMESTORE_record_create (struct GNUNET_NAMESTORE_Handle *h,
   size_t msg_size = 0;
   size_t name_len = 0;
   size_t key_len = 0;
-  uint32_t id = 0;
+  uint32_t rid = 0;
 
   GNUNET_assert (NULL != h);
   GNUNET_assert (NULL != pkey);
@@ -894,12 +894,12 @@ GNUNET_NAMESTORE_record_create (struct GNUNET_NAMESTORE_Handle *h,
     return NULL;
   }
 
-  id = get_op_id(h);
+  rid = get_op_id(h);
   qe = GNUNET_malloc(sizeof (struct GNUNET_NAMESTORE_QueueEntry));
   qe->nsh = h;
   qe->cont = cont;
   qe->cont_cls = cont_cls;
-  qe->op_id = id;
+  qe->op_id = rid;
   GNUNET_CONTAINER_DLL_insert_tail(h->op_head, h->op_tail, qe);
 
   /* set msg_size*/
@@ -920,9 +920,9 @@ GNUNET_NAMESTORE_record_create (struct GNUNET_NAMESTORE_Handle *h,
   name_tmp = &pkey_tmp[key_len];
   rd_tmp = &name_tmp[name_len];
 
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_CREATE);
-  msg->header.size = htons (msg_size);
-  msg->op_id = htonl (id);
+  msg->gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_CREATE);
+  msg->gns_header.header.size = htons (msg_size);
+  msg->gns_header.r_id = htonl (rid);
   msg->name_len = htons (name_len);
   msg->rd_len = htons (rd_ser_len);
   msg->pkey_len = htons (key_len);
@@ -971,16 +971,16 @@ GNUNET_NAMESTORE_record_remove (struct GNUNET_NAMESTORE_Handle *h,
   size_t rd_ser_len = 0;
   size_t msg_size = 0;
   size_t name_len = 0;
-  uint32_t id = 0;
+  uint32_t rid = 0;
 
   GNUNET_assert (NULL != h);
 
-  id = get_op_id(h);
+  rid = get_op_id(h);
   qe = GNUNET_malloc(sizeof (struct GNUNET_NAMESTORE_QueueEntry));
   qe->nsh = h;
   qe->cont = cont;
   qe->cont_cls = cont_cls;
-  qe->op_id = id;
+  qe->op_id = rid;
 
   /* set msg_size*/
   rd_ser_len = GNUNET_NAMESTORE_records_serialize(&rd_ser, 1, rd);
@@ -996,9 +996,9 @@ GNUNET_NAMESTORE_record_remove (struct GNUNET_NAMESTORE_Handle *h,
   name_tmp = (char *) &msg[1];
   rd_tmp = &name_tmp[name_len];
 
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_REMOVE);
-  msg->header.size = htons (msg_size);
-  msg->op_id = htonl (id);
+  msg->gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_REMOVE);
+  msg->gns_header.header.size = htons (msg_size);
+  msg->gns_header.r_id = htonl (rid);
   //msg->signature = *signature;
   msg->name_len = htons (name_len);
   memcpy (name_tmp, name, name_len);
@@ -1038,7 +1038,7 @@ GNUNET_NAMESTORE_lookup_record (struct GNUNET_NAMESTORE_Handle *h,
   struct PendingMessage *pe;
   size_t msg_size = 0;
   size_t name_len = 0;
-  uint32_t id = 0;
+  uint32_t rid = 0;
 
   GNUNET_assert (NULL != h);
   GNUNET_assert (NULL != zone);
@@ -1051,12 +1051,12 @@ GNUNET_NAMESTORE_lookup_record (struct GNUNET_NAMESTORE_Handle *h,
     return NULL;
   }
 
-  id = get_op_id(h);
+  rid = get_op_id(h);
   qe = GNUNET_malloc(sizeof (struct GNUNET_NAMESTORE_QueueEntry));
   qe->nsh = h;
   qe->proc = proc;
   qe->proc_cls = proc_cls;
-  qe->op_id = id;
+  qe->op_id = rid;
   GNUNET_CONTAINER_DLL_insert_tail(h->op_head, h->op_tail, qe);
 
   /* set msg_size*/
@@ -1068,9 +1068,9 @@ GNUNET_NAMESTORE_lookup_record (struct GNUNET_NAMESTORE_Handle *h,
   pe->size = msg_size;
   pe->is_init = GNUNET_NO;
   msg = (struct LookupNameMessage *) &pe[1];
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_NAME);
-  msg->header.size = htons (msg_size);
-  msg->op_id = htonl (id);
+  msg->gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_NAME);
+  msg->gns_header.header.size = htons (msg_size);
+  msg->gns_header.r_id = htonl (rid);
   msg->record_type = htonl (record_type);
   msg->zone = *zone;
   msg->name_len = htonl (name_len);
@@ -1116,17 +1116,17 @@ GNUNET_NAMESTORE_zone_iteration_start (struct GNUNET_NAMESTORE_Handle *h,
   struct GNUNET_NAMESTORE_ZoneIterator *it;
   struct PendingMessage *pe;
   size_t msg_size = 0;
-  uint32_t id = 0;
+  uint32_t rid = 0;
 
   GNUNET_assert (NULL != h);
   GNUNET_assert (NULL != zone);
 
-  id = get_op_id(h);
+  rid = get_op_id(h);
   it = GNUNET_malloc (sizeof (struct GNUNET_NAMESTORE_ZoneIterator));
   it->h = h;
   it->proc = proc;
   it->proc_cls = proc;
-  it->op_id = id;
+  it->op_id = rid;
   it->zone = *zone;
   GNUNET_CONTAINER_DLL_insert_tail(h->z_head, h->z_tail, it);
 
@@ -1139,9 +1139,9 @@ GNUNET_NAMESTORE_zone_iteration_start (struct GNUNET_NAMESTORE_Handle *h,
   pe->size = msg_size;
   pe->is_init = GNUNET_NO;
   msg = (struct ZoneIterationStartMessage *) &pe[1];
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_START);
-  msg->header.size = htons (msg_size);
-  msg->op_id = htonl (id);
+  msg->gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_START);
+  msg->gns_header.header.size = htons (msg_size);
+  msg->gns_header.r_id = htonl (rid);
   msg->zone = *zone;
   msg->must_have_flags = ntohs (must_have_flags);
   msg->must_not_have_flags = ntohs (must_not_have_flags);
@@ -1181,9 +1181,9 @@ GNUNET_NAMESTORE_zone_iterator_next (struct GNUNET_NAMESTORE_ZoneIterator *it)
   pe->size = msg_size;
   pe->is_init = GNUNET_NO;
   msg = (struct ZoneIterationNextMessage *) &pe[1];
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_NEXT);
-  msg->header.size = htons (msg_size);
-  msg->op_id = htonl (it->op_id);
+  msg->gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_NEXT);
+  msg->gns_header.header.size = htons (msg_size);
+  msg->gns_header.r_id = htonl (it->op_id);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message for name `%s'\n", "ZONE_ITERATION_NEXT", GNUNET_h2s(&it->zone));
 
@@ -1215,9 +1215,9 @@ GNUNET_NAMESTORE_zone_iteration_stop (struct GNUNET_NAMESTORE_ZoneIterator *it)
   pe->size = msg_size;
   pe->is_init = GNUNET_NO;
   msg = (struct ZoneIterationStopMessage *) &pe[1];
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_STOP);
-  msg->header.size = htons (msg_size);
-  msg->op_id = htonl (it->op_id);
+  msg->gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_STOP);
+  msg->gns_header.header.size = htons (msg_size);
+  msg->gns_header.r_id = htonl (it->op_id);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message for name `%s'\n", "ZONE_ITERATION_STOP", GNUNET_h2s(&it->zone));
 

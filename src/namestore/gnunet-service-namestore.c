@@ -45,7 +45,7 @@ struct GNUNET_NAMESTORE_ZoneIteration
 
   GNUNET_HashCode zone;
 
-  uint64_t op_id;
+  uint64_t request_id;
   uint32_t offset;
 
 };
@@ -188,7 +188,7 @@ static void handle_start (void *cls,
 struct LookupNameContext
 {
   struct GNUNET_NAMESTORE_Client *nc;
-  uint32_t id;
+  uint32_t request_id;
   uint32_t record_type;
 };
 
@@ -280,9 +280,9 @@ handle_lookup_name_it (void *cls,
 
   lnr_msg = GNUNET_malloc (r_size);
 
-  lnr_msg->header.type = ntohs (GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_NAME_RESPONSE);
-  lnr_msg->header.size = ntohs (r_size);
-  lnr_msg->op_id = htonl (lnc->id);
+  lnr_msg->gns_header.header.type = ntohs (GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_NAME_RESPONSE);
+  lnr_msg->gns_header.header.size = ntohs (r_size);
+  lnr_msg->gns_header.r_id = htonl (lnc->request_id);
   lnr_msg->rd_len = htons (rd_ser_len);
   lnr_msg->name_len = htons (name_len);
   lnr_msg->expire = GNUNET_TIME_absolute_hton(expire);
@@ -321,7 +321,7 @@ static void handle_lookup_name (void *cls,
   struct GNUNET_NAMESTORE_Client *nc;
   size_t name_len;
   char * name;
-  uint32_t id = 0;
+  uint32_t rid = 0;
   uint32_t type = 0;
   int res;
 
@@ -341,7 +341,7 @@ static void handle_lookup_name (void *cls,
   }
 
   struct LookupNameMessage * ln_msg = (struct LookupNameMessage *) message;
-  id = ntohl (ln_msg->op_id);
+  rid = ntohl (ln_msg->gns_header.r_id);
   name_len = ntohl (ln_msg->name_len);
   type = ntohl (ln_msg->record_type);
 
@@ -363,7 +363,7 @@ static void handle_lookup_name (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Looking up record for name `%s'\n", name);
 
   /* do the actual lookup */
-  lnc.id = id;
+  lnc.request_id = rid;
   lnc.nc = nc;
   lnc.record_type = type;
   res = GSN_database->iterate_records(GSN_database->cls, &ln_msg->zone, name, 0, &handle_lookup_name_it, &lnc);
@@ -388,7 +388,7 @@ static void handle_record_put (void *cls,
   size_t key_len;
   char * name;
   char * rd_ser;
-  uint32_t id = 0;
+  uint32_t rid = 0;
   uint32_t rd_ser_len;
   uint32_t rd_count;
   int res = GNUNET_SYSERR;
@@ -410,7 +410,7 @@ static void handle_record_put (void *cls,
 
   struct RecordPutMessage * rp_msg = (struct RecordPutMessage *) message;
 
-  id = ntohl (rp_msg->op_id);
+  rid = ntohl (rp_msg->gns_header.r_id);
   key_len = sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded);
   name_len = ntohs (rp_msg->name_len);
   rd_ser_len = ntohs(rp_msg->rd_len);
@@ -470,7 +470,7 @@ static void handle_record_put (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message\n", "RECORD_PUT_RESPONSE");
   rpr_msg.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_PUT_RESPONSE);
-  rpr_msg.op_id = rp_msg->op_id;
+  rpr_msg.op_id = rp_msg->gns_header.r_id;
   rpr_msg.header.size = htons (sizeof (struct RecordPutResponseMessage));
   if (GNUNET_OK == res)
     rpr_msg.op_result = htons (GNUNET_OK);
@@ -549,9 +549,9 @@ handle_create_record_it (void *cls,
   /* Send response */
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message\n", "RECORD_CREATE_RESPONSE");
-  rcr_msg.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_CREATE_RESPONSE);
-  rcr_msg.op_id = htonl (crc->op_id);
-  rcr_msg.header.size = htons (sizeof (struct RecordCreateResponseMessage));
+  rcr_msg.gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_CREATE_RESPONSE);
+  rcr_msg.gns_header.r_id = htonl (crc->op_id);
+  rcr_msg.gns_header.header.size = htons (sizeof (struct RecordCreateResponseMessage));
   if (GNUNET_OK == res)
     rcr_msg.op_result = htons (GNUNET_OK);
   else
@@ -575,7 +575,7 @@ static void handle_record_create (void *cls,
   size_t msg_size_exp;
   size_t rd_ser_len;
   size_t key_len;
-  uint32_t id = 0;
+  uint32_t rid = 0;
   char *pkey_tmp;
   char *name_tmp;
   char *rd_ser;
@@ -600,7 +600,7 @@ static void handle_record_create (void *cls,
   }
 
   struct RecordCreateMessage * rp_msg = (struct RecordCreateMessage *) message;
-  id = ntohl (rp_msg->op_id);
+  rid = ntohl (rp_msg->gns_header.r_id);
   name_len = ntohs (rp_msg->name_len);
   msg_size = ntohs (message->size);
   rd_ser_len = ntohs (rp_msg->rd_len);
@@ -645,7 +645,7 @@ static void handle_record_create (void *cls,
   crc.pkey = pkey;
   crc.rd = rd;
   crc.nc = nc;
-  crc.op_id = id;
+  crc.op_id = rid;
 
   /* Get existing records for name */
   res = GSN_database->iterate_records(GSN_database->cls, &pubkey_hash, name_tmp, 0, &handle_create_record_it, &crc);
@@ -668,7 +668,7 @@ static void handle_record_remove (void *cls,
   size_t name_len;
   size_t msg_size;
   size_t msg_size_exp;
-  uint32_t id = 0;
+  uint32_t rid = 0;
 
   int res = GNUNET_SYSERR;
 
@@ -688,7 +688,7 @@ static void handle_record_remove (void *cls,
   }
 
   struct RecordRemoveMessage * rp_msg = (struct RecordRemoveMessage *) message;
-  id = ntohl (rp_msg->op_id);
+  rid = ntohl (rp_msg->gns_header.r_id);
   name_len = ntohs (rp_msg->name_len);
   msg_size = ntohs (message->size);
   msg_size_exp = sizeof (struct RecordRemoveMessage) + name_len + sizeof (struct GNUNET_NAMESTORE_RecordData);
@@ -721,9 +721,9 @@ static void handle_record_remove (void *cls,
   /* Send response */
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message\n", "RECORD_REMOVE_RESPONSE");
-  rrr_msg.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_REMOVE_RESPONSE);
-  rrr_msg.op_id = rp_msg->op_id;
-  rrr_msg.header.size = htons (sizeof (struct RecordRemoveResponseMessage));
+  rrr_msg.gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_REMOVE_RESPONSE);
+  rrr_msg.gns_header.r_id = rp_msg->gns_header.r_id;
+  rrr_msg.gns_header.header.size = htons (sizeof (struct RecordRemoveResponseMessage));
   if (GNUNET_OK == res)
     rrr_msg.op_result = htons (GNUNET_OK);
   else
@@ -815,7 +815,7 @@ static void handle_iteration_start (void *cls,
   }
 
   zi = GNUNET_malloc (sizeof (struct GNUNET_NAMESTORE_ZoneIteration));
-  zi->op_id = ntohl (zis_msg->op_id);
+  zi->request_id = ntohl (zis_msg->gns_header.r_id);
   zi->offset = 0;
   zi->client = nc;
   zi->zone = zis_msg->zone;
@@ -841,9 +841,9 @@ static void handle_iteration_start (void *cls,
 
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message\n", "ZONE_ITERATION_RESPONSE");
-  zir_msg.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_RESPONSE);
-  zir_msg.op_id = htonl(zi->op_id);
-  zir_msg.header.size = htons (sizeof (struct ZoneIterationResponseMessage));
+  zir_msg.gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_RESPONSE);
+  zir_msg.gns_header.r_id = htonl(zi->request_id);
+  zir_msg.gns_header.header.size = htons (sizeof (struct ZoneIterationResponseMessage));
 
 
   GNUNET_SERVER_notification_context_unicast (snc, zi->client->client, (const struct GNUNET_MessageHeader *) &zir_msg, GNUNET_NO);
@@ -861,7 +861,7 @@ static void handle_iteration_stop (void *cls,
   struct GNUNET_NAMESTORE_Client *nc;
   struct GNUNET_NAMESTORE_ZoneIteration *zi;
   struct ZoneIterationStopMessage * zis_msg = (struct ZoneIterationStopMessage *) message;
-  uint32_t id;
+  uint32_t rid;
 
   nc = client_lookup(client);
   if (nc == NULL)
@@ -871,10 +871,10 @@ static void handle_iteration_stop (void *cls,
     return;
   }
 
-  id = ntohl (zis_msg->op_id);
+  rid = ntohl (zis_msg->gns_header.r_id);
   for (zi = nc->op_head; zi != NULL; zi = zi->next)
   {
-    if (zi->op_id == id)
+    if (zi->request_id == rid)
       break;
   }
   if (zi == NULL)
@@ -900,7 +900,7 @@ static void handle_iteration_next (void *cls,
   struct GNUNET_NAMESTORE_Client *nc;
   struct GNUNET_NAMESTORE_ZoneIteration *zi;
   struct ZoneIterationStopMessage * zis_msg = (struct ZoneIterationStopMessage *) message;
-  uint32_t id;
+  uint32_t rid;
   int res;
 
   nc = client_lookup(client);
@@ -911,10 +911,10 @@ static void handle_iteration_next (void *cls,
     return;
   }
 
-  id = ntohl (zis_msg->op_id);
+  rid = ntohl (zis_msg->gns_header.r_id);
   for (zi = nc->op_head; zi != NULL; zi = zi->next)
   {
-    if (zi->op_id == id)
+    if (zi->request_id == rid)
       break;
   }
   if (zi == NULL)

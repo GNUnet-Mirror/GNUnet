@@ -101,17 +101,18 @@ struct StartMessage
 /**
  * Generic namestore message with op id
  */
-struct GenericMessage
+struct GNUNET_NAMESTORE_Header
 {
   /**
-   * Type will be GNUNET_MESSAGE_TYPE_NAMESTORE_*
+   * header.type will be GNUNET_MESSAGE_TYPE_NAMESTORE_*
+   * header.size will be message size
    */
   struct GNUNET_MessageHeader header;
 
   /**
-   * Operation ID in NBO // BETTER: request ID
+   * Request ID in NBO
    */
-  uint32_t op_id;
+  uint32_t r_id;
 };
 
 
@@ -120,16 +121,7 @@ struct GenericMessage
  */
 struct LookupNameMessage
 {
-  /**
-   * Type will be GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_NAME
-   */
-  struct GNUNET_MessageHeader header;
-
-  // FIXME: use 'struct GenericMessage'
-  /**
-   * Operation ID in NBO
-   */
-  uint32_t op_id;
+  struct GNUNET_NAMESTORE_Header gns_header;
 
   /* The zone */
   GNUNET_HashCode zone;
@@ -152,12 +144,7 @@ struct LookupNameResponseMessage
   /**
    * Type will be GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_NAME_RESPONSE
    */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Operation ID in NBO
-   */
-  uint32_t op_id;
+  struct GNUNET_NAMESTORE_Header gns_header;
 
   struct GNUNET_TIME_AbsoluteNBO expire;
 
@@ -181,12 +168,7 @@ struct RecordPutMessage
   /**
    * Type will be GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_RECORD_PUT
    */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Operation ID in NBO
-   */
-  uint32_t op_id;
+  struct GNUNET_NAMESTORE_Header gns_header;
 
   /* Contenct starts here */
 
@@ -239,12 +221,7 @@ struct RecordCreateMessage
   /**
    * Type will be GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_CREATE
    */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Operation ID in NBO
-   */
-  uint32_t op_id;
+  struct GNUNET_NAMESTORE_Header gns_header;
 
   /* Contenct starts here */
 
@@ -268,12 +245,7 @@ struct RecordCreateResponseMessage
   /**
    * Type will be GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_CREATE_RESPONSE
    */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Operation ID in NBO
-   */
-  uint32_t op_id;
+  struct GNUNET_NAMESTORE_Header gns_header;
 
   /* Contenct starts here */
 
@@ -295,12 +267,7 @@ struct RecordRemoveMessage
   /**
    * Type will be GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_REMOVE
    */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Operation ID in NBO
-   */
-  uint32_t op_id;
+  struct GNUNET_NAMESTORE_Header gns_header;
 
   /* Contenct starts here */
 
@@ -321,12 +288,7 @@ struct RecordRemoveResponseMessage
   /**
    * Type will be GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_REMOVE_RESPONSE
    */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Operation ID in NBO
-   */
-  uint32_t op_id;
+  struct GNUNET_NAMESTORE_Header gns_header;
 
   /* Contenct starts here */
 
@@ -347,12 +309,7 @@ struct ZoneIterationStartMessage
   /**
    * Type will be GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_START
    */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Operation ID in NBO
-   */
-  uint32_t op_id;
+  struct GNUNET_NAMESTORE_Header gns_header;
 
   /* Contenct starts here */
 
@@ -372,12 +329,7 @@ struct ZoneIterationNextMessage
   /**
    * Type will be GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_NEXT
    */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Operation ID in NBO
-   */
-  uint32_t op_id;
+  struct GNUNET_NAMESTORE_Header gns_header;
 };
 GNUNET_NETWORK_STRUCT_END
 
@@ -391,12 +343,7 @@ struct ZoneIterationStopMessage
   /**
    * Type will be GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_STOP
    */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Operation ID in NBO
-   */
-  uint32_t op_id;
+  struct GNUNET_NAMESTORE_Header gns_header;
 };
 GNUNET_NETWORK_STRUCT_END
 
@@ -409,12 +356,7 @@ struct ZoneIterationResponseMessage
   /**
    * Type will be GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_RESPONSE
    */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Operation ID in NBO
-   */
-  uint32_t op_id;
+  struct GNUNET_NAMESTORE_Header gns_header;
 
   struct GNUNET_TIME_AbsoluteNBO expire;
 
