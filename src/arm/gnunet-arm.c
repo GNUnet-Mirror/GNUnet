@@ -213,20 +213,18 @@ confirm_cb (void *cls,
  * @param list copy of the list of running services
  */
 static void
-list_cb (void *cls, int result, uint16_t count, const char **list)
+list_cb (void *cls, int result, unsigned int count, const char *const*list)
 {
-  if (result == GNUNET_YES && list != NULL)
+  unsigned int i;
+
+  if ( (result != GNUNET_YES) || (NULL == list) )
   {
-    FPRINTF (stdout, "%s", _("Running services:\n-----------------\n"));
-    int i;
-    for (i=0; i<count; i++)
-    {
-      FPRINTF (stdout, "%s\n", list[i]);
-    }
-    GNUNET_free (list);
-  } else {
     FPRINTF (stderr, "%s", _("Error communicating with ARM. ARM not running?\n"));
+    return;
   }
+  FPRINTF (stdout, "%s", _("Running services:\n"));
+  for (i=0; i<count; i++)
+    FPRINTF (stdout, "%s\n", list[i]);
 }
 
 /**
@@ -353,7 +351,7 @@ cps_loop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	      start = 1;
 	      restart = 0;
 	      h = GNUNET_ARM_connect (cfg, NULL);
-	      if (h == NULL)
+	      if (NULL == h)
 		{
 		  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 			      _("Fatal error initializing ARM API.\n"));
@@ -368,7 +366,7 @@ cps_loop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
               GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Going to list all running services controlled by ARM.\n");
   
-              if (h == NULL) 
+              if (NULL == h) 
               {
                GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                               _("Fatal error initializing ARM API.\n"));

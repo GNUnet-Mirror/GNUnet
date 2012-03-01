@@ -121,8 +121,8 @@ typedef void (*GNUNET_ARM_Callback) (void *cls,
  */
 typedef void (*GNUNET_ARM_List_Callback) (void *cls, 
                                           int result,
-                                          uint16_t count,
-                                          const char **list);
+                                          unsigned int count,
+                                          const char *const *list);
 
 
 /**
