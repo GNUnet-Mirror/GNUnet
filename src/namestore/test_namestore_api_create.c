@@ -198,6 +198,12 @@ void name_lookup_proc (void *cls,
       }
     }
 
+    if (GNUNET_OK != GNUNET_NAMESTORE_verify_signature(&pubkey, n, rd_count, rd, signature))
+    {
+      GNUNET_break (0);
+      failed = GNUNET_YES;
+    }
+
     found = GNUNET_YES;
     if (failed == GNUNET_NO)
       res = 0;

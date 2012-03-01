@@ -196,7 +196,7 @@ void
 remove_cont (void *cls, int32_t success, const char *emsg)
 {
   char *name = cls;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Remove record for `%s': %s\n", name, (success == GNUNET_YES) ? "SUCCESS" : "FAIL", emsg);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Remove record for `%s': %s `%s'\n", name, (success == GNUNET_YES) ? "SUCCESS" : "FAIL", emsg);
   if (success == GNUNET_OK)
   {
     res = 0;
@@ -219,9 +219,16 @@ put_cont (void *cls, int32_t success, const char *emsg)
   if (success == GNUNET_OK)
   {
     res = 0;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Removing record for `%s'\n", name);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Removing non existing record for `%s'\n", name);
 
-    GNUNET_NAMESTORE_record_remove (nsh, privkey, name, &s_rd[0], &remove_cont, name);
+    struct GNUNET_NAMESTORE_RecordData rd;
+    char data[TEST_REMOVE_RECORD_DATALEN];
+    rd.expiration = GNUNET_TIME_absolute_get();
+    rd.record_type = TEST_REMOVE_RECORD_TYPE;
+    rd.data_size = TEST_REMOVE_RECORD_DATALEN;
+    rd.data = &data;
+
+    GNUNET_NAMESTORE_record_remove (nsh, privkey, name, &rd, &remove_cont, name);
   }
   else
   {
@@ -238,14 +245,7 @@ create_record (int count)
   struct GNUNET_NAMESTORE_RecordData * rd;
   rd = GNUNET_malloc (count * sizeof (struct GNUNET_NAMESTORE_RecordData));
 
-  rd[0].expiration = GNUNET_TIME_absolute_get();
-  rd[0].record_type = 0;
-  rd[0].data_size = TEST_REMOVE_RECORD_DATALEN;
-  rd[0].data = GNUNET_malloc(TEST_RECORD_DATALEN);
-  memset ((char *) rd[0].data, TEST_RECORD_DATA, TEST_RECORD_DATALEN);
-
-
-  for (c = 1; c < RECORDS; c++)
+  for (c = 0; c < RECORDS; c++)
   {
   rd[c].expiration = GNUNET_TIME_absolute_get();
   rd[c].record_type = TEST_RECORD_TYPE;
@@ -292,8 +292,6 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   nsh = GNUNET_NAMESTORE_connect (cfg);
   GNUNET_break (NULL != nsh);
-
-
 
   GNUNET_break (s_rd != NULL);
   GNUNET_break (s_name != NULL);

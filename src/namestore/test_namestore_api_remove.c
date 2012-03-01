@@ -174,7 +174,12 @@ void name_lookup_proc (void *cls,
       GNUNET_break (0 == memcmp (rd[c].data, s_rd[c+1].data, TEST_RECORD_DATALEN));
     }
 
-    found = GNUNET_YES;
+    if (GNUNET_OK != GNUNET_NAMESTORE_verify_signature(&pubkey, n, rd_count, rd, signature))
+    {
+      GNUNET_break (0);
+      failed = GNUNET_YES;
+    }
+
     if (failed == GNUNET_NO)
       res = 0;
     else
@@ -205,7 +210,7 @@ remove_cont (void *cls, int32_t success, const char *emsg)
   else
   {
     res = 1;
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to put records for name `%s'\n", name);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to remove record for name `%s'\n", name);
     GNUNET_SCHEDULER_add_now(&end, NULL);
   }
 
