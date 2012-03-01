@@ -48,6 +48,7 @@ static struct GNUNET_OS_Process *arm;
 static struct GNUNET_CRYPTO_RsaPrivateKey * privkey;
 static struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pubkey;
 struct GNUNET_CRYPTO_RsaSignature *s_signature;
+struct GNUNET_CRYPTO_RsaSignature *s_signature_updated;
 static GNUNET_HashCode s_zone;
 struct GNUNET_NAMESTORE_RecordData *s_rd;
 struct GNUNET_NAMESTORE_RecordData *s_create_rd;
@@ -203,6 +204,20 @@ void name_lookup_proc (void *cls,
       GNUNET_break (0);
       failed = GNUNET_YES;
     }
+
+    struct GNUNET_NAMESTORE_RecordData rd_new[RECORDS +1];
+    int c2;
+    for (c2 = 0; c2 < RECORDS; c2++)
+      rd_new[c2] = s_rd[c2];
+    rd_new[c2] = *s_create_rd;
+    s_signature_updated = GNUNET_NAMESTORE_create_signature(privkey, n, rd_new, RECORDS +1);
+
+    if (0 != memcmp (s_signature_updated, signature, sizeof (struct GNUNET_CRYPTO_RsaSignature)))
+    {
+      GNUNET_break (0);
+      failed = GNUNET_YES;
+    }
+    GNUNET_free (s_signature_updated);
 
     found = GNUNET_YES;
     if (failed == GNUNET_NO)
