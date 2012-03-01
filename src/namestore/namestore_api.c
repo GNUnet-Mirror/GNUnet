@@ -1120,6 +1120,8 @@ GNUNET_NAMESTORE_record_remove (struct GNUNET_NAMESTORE_Handle *h,
   memcpy (name_tmp, name, name_len);
   memcpy (rd_tmp, rd_ser, rd_ser_len);
 
+  GNUNET_free (pkey_enc);
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message for name `%s' with size %u\n", "NAMESTORE_RECORD_REMOVE", name, msg_size);
 
   GNUNET_CONTAINER_DLL_insert_tail (h->pending_head, h->pending_tail, pe);

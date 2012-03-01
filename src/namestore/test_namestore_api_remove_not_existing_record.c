@@ -132,83 +132,21 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     stop_arm();
 }
 
-void name_lookup_proc (void *cls,
-                            const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
-                            struct GNUNET_TIME_Absolute expire,
-                            const char *n,
-                            unsigned int rd_count,
-                            const struct GNUNET_NAMESTORE_RecordData *rd,
-                            const struct GNUNET_CRYPTO_RsaSignature *signature)
-{
-  static int found = GNUNET_NO;
-  int failed = GNUNET_NO;
-  int c;
-
-  if (n != NULL)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Lookup for name `%s' returned %u records\n", n, rd_count);
-    if (0 != memcmp (zone_key, &pubkey, sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded)))
-    {
-      GNUNET_break (0);
-      failed = GNUNET_YES;
-    }
-
-    if (0 != strcmp(n, s_name))
-    {
-      GNUNET_break (0);
-      failed = GNUNET_YES;
-    }
-
-    if (RECORDS-1 != rd_count)
-    {
-      GNUNET_break (0);
-      failed = GNUNET_YES;
-    }
-
-    for (c = 0; c < rd_count; c++)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Record [%u]: type: %u, size %u\n", c, rd[c].record_type, rd[c].data_size);
-      GNUNET_break (rd[c].expiration.abs_value == s_rd[c+1].expiration.abs_value);
-      GNUNET_break (rd[c].record_type == TEST_RECORD_TYPE);
-      GNUNET_break (rd[c].data_size == TEST_RECORD_DATALEN);
-      GNUNET_break (0 == memcmp (rd[c].data, s_rd[c+1].data, TEST_RECORD_DATALEN));
-    }
-
-    found = GNUNET_YES;
-    if (failed == GNUNET_NO)
-      res = 0;
-    else
-      res = 1;
-  }
-  else
-  {
-    if (found != GNUNET_YES)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to lookup records for name `%s'\n", s_name);
-      res = 1;
-    }
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Lookup done for name %s'\n", s_name);
-  }
-  GNUNET_SCHEDULER_add_now(&end, NULL);
-}
-
 void
 remove_cont (void *cls, int32_t success, const char *emsg)
 {
   char *name = cls;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Remove record for `%s': %s `%s'\n", name, (success == GNUNET_YES) ? "SUCCESS" : "FAIL", emsg);
-  if (success == GNUNET_OK)
+  if (GNUNET_NO == success)
   {
     res = 0;
-    GNUNET_NAMESTORE_lookup_record (nsh, &s_zone, name, 0, &name_lookup_proc, name);
   }
   else
   {
     res = 1;
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to put records for name `%s'\n", name);
-    GNUNET_SCHEDULER_add_now(&end, NULL);
+    GNUNET_break (0);
   }
-
+  GNUNET_SCHEDULER_add_now(&end, NULL);
 }
 
 void
