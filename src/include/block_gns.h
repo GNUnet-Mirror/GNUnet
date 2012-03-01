@@ -65,6 +65,11 @@ struct GNSNameRecordBlock
 {
 
   /**
+   * The public key of the authority
+   */
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded public_key;
+
+  /**
    * GNUNET_RSA_Signature using RSA-key generated from the records.
    */
   struct GNUNET_CRYPTO_RsaSignature signature;
@@ -74,18 +79,12 @@ struct GNSNameRecordBlock
    */
   struct GNUNET_CRYPTO_RsaSignaturePurpose purpose;
 
-  /**
-   * The public key of the authority
-   */
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded public_key;
-
   /* number of records that follow */
   uint32_t rd_count GNUNET_PACKED;
 
   /* 0-terminated name here */
 
   /* variable-size GNSRecordBlocks follows here */
-
 
 };
 

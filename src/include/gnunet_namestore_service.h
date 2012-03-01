@@ -357,6 +357,41 @@ void
 GNUNET_NAMESTORE_cancel (struct GNUNET_NAMESTORE_QueueEntry *qe);
 
 
+
+/* convenience APIs for serializing / deserializing GNS records */
+
+/**
+ * Calculate how many bytes we will need to serialize the given
+ * records.
+ */
+size_t
+GNUNET_NAMESTORE_records_get_size (unsigned int rd_count,
+				   const struct GNUNET_NAMESTORE_RecordData *rd);
+
+/**
+ * Serialize the given records to the given destination buffer.
+ */
+ssize_t
+GNUNET_NAMESTORE_records_serialize (unsigned int rd_count,
+				    const struct GNUNET_NAMESTORE_RecordData *rd,
+				    size_t dest_size,
+				    char *dest);
+
+
+/**
+ * @param rd_count expected number of records in 'src'
+ * @param dest array of 'rd_count' entries for storing record data;
+ *         'data' values in 'dest' will point into 'src' and will thus
+ *         become invalid if 'src' is modified
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ */
+int
+GNUNET_NAMESTORE_records_deserialize (size_t len,
+				      const char *src,
+				      unsigned int rd_count,
+				      struct GNUNET_NAMESTORE_RecordData *dest);
+
+
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif
