@@ -109,11 +109,11 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     next = nc->next;
     for (no = nc->op_head; no != NULL; no = tmp)
     {
+      GNUNET_break (0);
       GNUNET_CONTAINER_DLL_remove (nc->op_head, nc->op_tail, no);
       tmp = no->next;
       GNUNET_free (no);
     }
-
     GNUNET_SERVER_client_drop(nc->client);
     GNUNET_CONTAINER_DLL_remove (client_head, client_tail, nc);
     GNUNET_free (nc);
@@ -364,7 +364,7 @@ static void handle_lookup_name (void *cls,
     return;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Looking up record for name `%s'\n", name);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Looking up record for name `%s' in zone `%s'\n", name, GNUNET_h2s(&ln_msg->zone));
 
   /* do the actual lookup */
   lnc.request_id = rid;
@@ -468,6 +468,8 @@ static void handle_record_put (void *cls,
 
   GNUNET_HashCode zone_hash;
   GNUNET_CRYPTO_hash (zone_key, key_len, &zone_hash);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Putting %u record for name `%s' in zone `%s'\n", rd_count, name, GNUNET_h2s(&zone_hash));
 
   /* Database operation */
   res = GSN_database->put_records(GSN_database->cls,
@@ -641,6 +643,8 @@ static void handle_record_create (void *cls,
   crc.rd = rd;
   crc.nc = nc;
   crc.op_id = rid;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Creating record for name `%s' in zone `%s'\n", name_tmp, GNUNET_h2s(&pubkey_hash));
 
   /* Get existing records for name */
   res = GSN_database->iterate_records(GSN_database->cls, &pubkey_hash, name_tmp, 0, &handle_create_record_it, &crc);
@@ -849,6 +853,8 @@ static void handle_record_remove (void *cls,
   struct RemoveRecordContext rrc;
   rrc.rd = rd;
   rrc.pkey = pkey;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Removing record for name `%s' in zone `%s'\n", name_tmp, GNUNET_h2s(&pubkey_hash));
 
   /* Database operation */
   res = GSN_database->iterate_records (GSN_database->cls,

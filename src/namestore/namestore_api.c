@@ -767,6 +767,7 @@ GNUNET_NAMESTORE_disconnect (struct GNUNET_NAMESTORE_Handle *h, int drop)
 
   while (NULL != (q = h->op_head))
   {
+    GNUNET_break (0);
     GNUNET_CONTAINER_DLL_remove (h->op_head, h->op_tail, q);
     GNUNET_free (q);
   }

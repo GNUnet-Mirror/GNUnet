@@ -149,7 +149,7 @@ void name_lookup_proc (void *cls,
       failed = GNUNET_YES;
     }
 
-    if (0 != memcmp (signature, &s_signature, sizeof (struct GNUNET_CRYPTO_RsaSignature)))
+    if (0 != memcmp (signature, s_signature, sizeof (struct GNUNET_CRYPTO_RsaSignature)))
     {
       GNUNET_break (0);
       failed = GNUNET_YES;
@@ -268,7 +268,7 @@ run (void *cls, char *const *args, const char *cfgfile,
                               GNUNET_TIME_absolute_get_forever(),
                               RECORDS, s_rd, s_signature, put_cont, s_name);
 
-  GNUNET_free (s_signature);
+
 
 }
 
@@ -299,7 +299,7 @@ main (int argc, char *argv[])
   int ret;
 
   ret = check ();
-
+  GNUNET_free (s_signature);
   return ret;
 }
 

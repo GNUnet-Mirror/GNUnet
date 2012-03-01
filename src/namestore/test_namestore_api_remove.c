@@ -304,7 +304,7 @@ run (void *cls, char *const *args, const char *cfgfile,
                               GNUNET_TIME_absolute_get_forever(),
                               RECORDS, s_rd, s_signature, put_cont, s_name);
 
-  GNUNET_free (s_signature);
+
 
 }
 
@@ -335,7 +335,7 @@ main (int argc, char *argv[])
   int ret;
 
   ret = check ();
-
+  GNUNET_free (s_signature);
   return ret;
 }
 
