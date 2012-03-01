@@ -44,6 +44,9 @@
 #define GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_STOP 442
 
 
+struct GNUNET_CRYPTO_RsaSignature *
+GNUNET_NAMESTORE_create_signature (const struct GNUNET_CRYPTO_RsaPrivateKey *key, const char *name, struct GNUNET_NAMESTORE_RecordData *rd, unsigned int rd_count);
+
 GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * A GNS record serialized for network transmission.

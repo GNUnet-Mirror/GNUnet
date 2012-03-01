@@ -24,11 +24,13 @@ endif
 
 check_PROGRAMS = \
  $(SQLITE_TESTS) \
+ test_namestore_api_sign_verify \
  test_namestore_api \
  test_namestore_api_put \
  test_namestore_api_lookup \
  test_namestore_api_create \
  test_namestore_api_remove \
+ test_namestore_api_remove_not_existing_record \
  test_namestore_api_zone_iteration \
  test_namestore_record_serialization
 
@@ -78,6 +80,12 @@ libgnunet_plugin_namestore_sqlite_la_LIBADD = \
 libgnunet_plugin_namestore_sqlite_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 
+test_namestore_api_sign_verify_SOURCES = \
+ test_namestore_api_sign_verify.c
+test_namestore_api_sign_verify_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/namestore/libgnunetnamestore.la
+
 test_namestore_api_SOURCES = \
  test_namestore_api.c
 test_namestore_api_LDADD = \
@@ -108,6 +116,11 @@ test_namestore_api_remove_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la
 
+test_namestore_api_remove_not_existing_record_SOURCES = \
+ test_namestore_api_remove_not_existing_record.c
+test_namestore_api_remove_not_existing_record_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/namestore/libgnunetnamestore.la
 
 test_namestore_api_zone_iteration_SOURCES = \
  test_namestore_api_zone_iteration.c

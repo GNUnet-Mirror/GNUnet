@@ -30,14 +30,9 @@
 #include "gnunet_crypto_lib.h"
 #include "gnunet_constants.h"
 #include "gnunet_arm_service.h"
+#include "gnunet_signatures.h"
 #include "gnunet_namestore_service.h"
 #include "namestore.h"
-
-#include "platform.h"
-#include <gcrypt.h>
-#include "gnunet_common.h"
-#include "gnunet_crypto_lib.h"
-#include "gnunet_disk_lib.h"
 
 #define DEBUG_GNS_API GNUNET_EXTRA_LOGGING
 
@@ -920,7 +915,36 @@ GNUNET_NAMESTORE_verify_signature (const struct GNUNET_CRYPTO_RsaPublicKeyBinary
 				   const struct GNUNET_NAMESTORE_RecordData *rd,
 				   const struct GNUNET_CRYPTO_RsaSignature *signature)
 {
-  return GNUNET_SYSERR;
+  int res = GNUNET_SYSERR;
+  size_t rd_ser_len = 0;
+  size_t name_len = 0;
+  char * name_tmp;
+  char * rd_tmp;
+  struct GNUNET_CRYPTO_RsaSignaturePurpose *sig_purpose;
+
+  GNUNET_assert (public_key != NULL);
+  GNUNET_assert (name != NULL);
+  GNUNET_assert (signature != NULL);
+
+  rd_ser_len = GNUNET_NAMESTORE_records_get_size(rd_count, rd);
+  char rd_ser[rd_ser_len];
+  GNUNET_NAMESTORE_records_serialize(rd_count, rd, rd_ser_len, rd_ser);
+
+  name_len = strlen (name) + 1;
+
+  sig_purpose = GNUNET_malloc(sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose) + rd_ser_len + name_len);
+  sig_purpose->size = htonl (sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose)+ rd_ser_len + name_len);
+  sig_purpose->purpose = htonl (GNUNET_SIGNATURE_PURPOSE_GNS_RECORD_SIGN);
+  name_tmp = (char *) &sig_purpose[1];
+  rd_tmp = &name_tmp[name_len];
+  memcpy (name_tmp, name, name_len);
+  memcpy (rd_tmp, rd_ser, rd_ser_len);
+
+  res = GNUNET_CRYPTO_rsa_verify(GNUNET_SIGNATURE_PURPOSE_GNS_RECORD_SIGN, sig_purpose, signature, public_key);
+
+  GNUNET_free (sig_purpose);
+
+  return res;
 }
 
 /**

@@ -28,6 +28,7 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_constants.h"
+#include "gnunet_signatures.h"
 #include "gnunet_arm_service.h"
 #include "gnunet_namestore_service.h"
 #include "namestore.h"
@@ -171,161 +172,49 @@ GNUNET_NAMESTORE_records_deserialize (size_t len,
   return GNUNET_OK; 
 }
 
-
-
-#if 0
-
-/**
- * Serialize an array of GNUNET_NAMESTORE_RecordData *rd to transmit over the
- * network
- *
- * @param dest where to write the serialized data
- * @param rd_count number of elements in array
- * @param rd array
- *
- * @return number of bytes written to destination dest
- */
-size_t
-GNUNET_NAMESTORE_records_serialize (char ** dest,
-                             unsigned int rd_count,
-                             const struct GNUNET_NAMESTORE_RecordData *rd)
+struct GNUNET_CRYPTO_RsaSignature *
+GNUNET_NAMESTORE_create_signature (const struct GNUNET_CRYPTO_RsaPrivateKey *key, const char *name, struct GNUNET_NAMESTORE_RecordData *rd, unsigned int rd_count)
 {
-  //size_t len = 0;
-  struct GNUNET_NAMESTORE_NetworkRecord nr;
-  char * d = (*dest);
-  int c = 0;
-  int offset;
+  struct GNUNET_CRYPTO_RsaSignature *sig = GNUNET_malloc(sizeof (struct GNUNET_CRYPTO_RsaSignature));
+  struct GNUNET_CRYPTO_RsaSignaturePurpose *sig_purpose;
+  size_t rd_ser_len;
+  size_t name_len;
+  char * name_tmp;
+  char * rd_tmp;
+  int res;
 
-  GNUNET_assert (rd != NULL);
-
-  size_t total_len = rd_count * sizeof (struct GNUNET_NAMESTORE_NetworkRecord);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Struct size: %u\n", total_len);
-
-  /* figure out total len required */
-  for (c = 0; c < rd_count; c ++)
+  if (name == NULL)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Data size record[%i] : %u\n", c, rd[c].data_size);
-    total_len += rd[c].data_size;
+    GNUNET_break (0);
+    GNUNET_free (sig);
+    return NULL;
   }
+  name_len = strlen (name) + 1;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Serializing %i records with total length of %llu\n", rd_count, total_len);
+  rd_ser_len = GNUNET_NAMESTORE_records_get_size(rd_count, rd);
+  char rd_ser[rd_ser_len];
+  GNUNET_NAMESTORE_records_serialize(rd_count, rd, rd_ser_len, rd_ser);
 
-  (*dest) = GNUNET_malloc (total_len);
-  d = (*dest);
+  sig_purpose = GNUNET_malloc(sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose) + rd_ser_len + name_len);
 
-  /* copy records */
-  offset = 0;
+  sig_purpose->size = htonl (sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose)+ rd_ser_len + name_len);
+  sig_purpose->purpose = htonl (GNUNET_SIGNATURE_PURPOSE_GNS_RECORD_SIGN);
+  name_tmp = (char *) &sig_purpose[1];
+  rd_tmp = &name_tmp[name_len];
+  memcpy (name_tmp, name, name_len);
+  memcpy (rd_tmp, rd_ser, rd_ser_len);
 
-  for (c = 0; c < rd_count; c ++)
+  res = GNUNET_CRYPTO_rsa_sign (key, sig_purpose, sig);
+
+  GNUNET_free (sig_purpose);
+
+  if (GNUNET_OK != res)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Serialized record [%i]: data_size %i\n", c,rd[c].data_size);
-
-    // nr = (struct GNUNET_NAMESTORE_NetworkRecord *) &d[offset];
-    nr.data_size = htonl (rd[c].data_size);
-    nr.flags = htonl (rd[c].flags);
-    nr.record_type = htonl (rd[c].record_type);
-    nr.expiration = GNUNET_TIME_absolute_hton(rd[c].expiration);
-    memcpy (&d[offset], &nr, sizeof (nr));
-    offset += sizeof (struct GNUNET_NAMESTORE_NetworkRecord);
-
-    /*put data here */
-    memcpy (&d[offset], rd[c].data, rd[c].data_size);
-    offset += rd[c].data_size;
+    GNUNET_break (0);
+    GNUNET_free (sig);
+    return NULL;
   }
-
-  GNUNET_assert (offset == total_len);
-  return total_len;
+  return sig;
 }
-
-void
-GNUNET_NAMESTORE_records_free (unsigned int rd_count, struct GNUNET_NAMESTORE_RecordData *rd)
-{
-  int c;
-  if ((rd == NULL) || (rd_count == 0))
-    return;
-
-  for (c = 0; c < rd_count; c++)
-    GNUNET_free_non_null ((void *) rd[c].data);
-  GNUNET_free (rd);
-}
-
-
-/**
- * Deserialize an array of GNUNET_NAMESTORE_RecordData *rd after transmission
- * over the network
- *
- * @param source where to read the data to deserialize
- * @param rd_count number of elements in array
- * @param rd array
- *
- * @return number of elements deserialized
- */
-int
-GNUNET_NAMESTORE_records_deserialize ( struct GNUNET_NAMESTORE_RecordData **dest, char *src, size_t len)
-{
-  struct GNUNET_NAMESTORE_NetworkRecord * nr;
-  struct GNUNET_NAMESTORE_RecordData *d = (*dest);
-  int elements;
-  size_t offset;
-  uint32_t data_size;
-  int c;
-
-  if (len == 0)
-  {
-    (*dest) = NULL;
-    return 0;
-  }
-
-  offset = 0;
-  elements = 0;
-  while (offset < len)
-  {
-    nr = (struct GNUNET_NAMESTORE_NetworkRecord *) &src[offset];
-    offset += sizeof (struct GNUNET_NAMESTORE_NetworkRecord);
-
-    data_size = ntohl (nr->data_size);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Datasize record[%i]: %u\n", elements, data_size);
-    offset += data_size;
-    elements ++;
-  }
-
-  if (elements == 0)
-  {
-    (*dest) = NULL;
-    return 0;
-  }
-
-
-  GNUNET_assert (len == offset);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Deserializing %i records with total length of %u\n", elements, len);
-
-  (*dest) = GNUNET_malloc (elements * sizeof (struct GNUNET_NAMESTORE_RecordData));
-  d = (*dest);
-
-  offset = 0;
-  for (c = 0; c < elements; c++)
-  {
-    nr = (struct GNUNET_NAMESTORE_NetworkRecord *) &src[offset];
-    d[c].expiration = GNUNET_TIME_absolute_ntoh(nr->expiration);
-    d[c].record_type = ntohl (nr->record_type);
-    d[c].flags = ntohl (nr->flags);
-    d[c].data_size = ntohl (nr->data_size);
-    if (d[c].data_size > 0)
-      d[c].data = GNUNET_malloc (d[c].data_size);
-    else
-      d[c].data = NULL;
-
-    offset += sizeof (struct GNUNET_NAMESTORE_NetworkRecord);
-    memcpy((char *) d[c].data, &src[offset], d[c].data_size);
-
-    offset += d[c].data_size;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Deserialized record[%i] /w data_size %i\n", c, d[c].data_size);
-  }
-  GNUNET_assert(offset == len);
-
-  return elements;
-}
-
-#endif
 
 /* end of namestore_api.c */
