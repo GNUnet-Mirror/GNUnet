@@ -50,7 +50,7 @@ GNUNET_NAMESTORE_records_serialize (char ** dest,
                              const struct GNUNET_NAMESTORE_RecordData *rd)
 {
   //size_t len = 0;
-  struct GNUNET_NAMESTORE_NetworkRecord * nr;
+  struct GNUNET_NAMESTORE_NetworkRecord nr;
   char * d = (*dest);
   int c = 0;
   int offset;
@@ -79,14 +79,15 @@ GNUNET_NAMESTORE_records_serialize (char ** dest,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Serialized record [%i]: data_size %i\n", c,rd[c].data_size);
 
-    nr = (struct GNUNET_NAMESTORE_NetworkRecord *) &d[offset];
-    nr->data_size = htonl (rd[c].data_size);
-    nr->flags = htonl (rd[c].flags);
-    nr->record_type = htonl (rd[c].record_type);
-    nr->expiration = GNUNET_TIME_absolute_hton(rd[c].expiration);
+    // nr = (struct GNUNET_NAMESTORE_NetworkRecord *) &d[offset];
+    nr.data_size = htonl (rd[c].data_size);
+    nr.flags = htonl (rd[c].flags);
+    nr.record_type = htonl (rd[c].record_type);
+    nr.expiration = GNUNET_TIME_absolute_hton(rd[c].expiration);
+    memcpy (&d[offset], &nr, sizeof (nr));
+    offset += sizeof (struct GNUNET_NAMESTORE_NetworkRecord);
 
     /*put data here */
-    offset += sizeof (struct GNUNET_NAMESTORE_NetworkRecord);
     memcpy (&d[offset], rd[c].data, rd[c].data_size);
     offset += rd[c].data_size;
   }

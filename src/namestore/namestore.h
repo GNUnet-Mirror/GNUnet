@@ -54,6 +54,8 @@ GNUNET_NAMESTORE_records_deserialize ( struct GNUNET_NAMESTORE_RecordData **dest
 void
 GNUNET_NAMESTORE_records_free (unsigned int rd_count, struct GNUNET_NAMESTORE_RecordData *rd);
 
+
+GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * A GNS record serialized for network transmission.
  * layout is [struct GNUNET_NAMESTORE_NetworkRecord][char[data_size] data]
@@ -83,9 +85,8 @@ struct GNUNET_NAMESTORE_NetworkRecord
 
 
 
-GNUNET_NETWORK_STRUCT_BEGIN
 /**
- * Connect to namestore service
+ * Connect to namestore service.  FIXME: UNNECESSARY.
  */
 struct StartMessage
 {
@@ -96,10 +97,7 @@ struct StartMessage
   struct GNUNET_MessageHeader header;
 
 };
-GNUNET_NETWORK_STRUCT_END
 
-
-GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * Generic namestore message with op id
  */
@@ -111,17 +109,15 @@ struct GenericMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Operation ID in NBO
+   * Operation ID in NBO // BETTER: request ID
    */
   uint32_t op_id;
 };
-GNUNET_NETWORK_STRUCT_END
 
 
 /**
  * Connect to namestore service
  */
-GNUNET_NETWORK_STRUCT_BEGIN
 struct LookupNameMessage
 {
   /**
@@ -129,6 +125,7 @@ struct LookupNameMessage
    */
   struct GNUNET_MessageHeader header;
 
+  // FIXME: use 'struct GenericMessage'
   /**
    * Operation ID in NBO
    */
@@ -143,7 +140,6 @@ struct LookupNameMessage
   /* Requested record type */
   uint32_t name_len;
 };
-GNUNET_NETWORK_STRUCT_END
 
 
 /**
@@ -151,7 +147,6 @@ GNUNET_NETWORK_STRUCT_END
  * Memory layout:
  * [struct LookupNameResponseMessage][struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded][char *name][rc_count * struct GNUNET_NAMESTORE_RecordData][struct GNUNET_CRYPTO_RsaSignature]
  */
-GNUNET_NETWORK_STRUCT_BEGIN
 struct LookupNameResponseMessage
 {
   /**
@@ -168,12 +163,12 @@ struct LookupNameResponseMessage
 
   uint16_t name_len;
 
-  uint16_t contains_sig;
+  uint16_t rd_len;
+
+  int32_t contains_sig;
 
   /* Requested record type */
-  uint16_t rd_len;
 };
-GNUNET_NETWORK_STRUCT_END
 
 
 /**
@@ -181,7 +176,6 @@ GNUNET_NETWORK_STRUCT_END
  * Memory layout:
  * [struct RecordPutMessage][struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded][char *name][rc_count * struct GNUNET_NAMESTORE_RecordData]
  */
-GNUNET_NETWORK_STRUCT_BEGIN
 struct RecordPutMessage
 {
   /**
@@ -209,12 +203,11 @@ struct RecordPutMessage
 
   struct GNUNET_CRYPTO_RsaSignature signature;
 };
-GNUNET_NETWORK_STRUCT_END
+
 
 /**
  * Put a record to the namestore response
  */
-GNUNET_NETWORK_STRUCT_BEGIN
 struct RecordPutResponseMessage
 {
   /**
@@ -234,7 +227,6 @@ struct RecordPutResponseMessage
    */
   uint16_t op_result;
 };
-GNUNET_NETWORK_STRUCT_END
 
 
 /**
@@ -242,7 +234,6 @@ GNUNET_NETWORK_STRUCT_END
  * Memory layout:
  * [struct RecordCreateMessage][char *name][rc_count * struct GNUNET_NAMESTORE_RecordData]
  */
-GNUNET_NETWORK_STRUCT_BEGIN
 struct RecordCreateMessage
 {
   /**
@@ -266,14 +257,12 @@ struct RecordCreateMessage
   /* private key length */
   uint16_t pkey_len;
 };
-GNUNET_NETWORK_STRUCT_END
 
 
 /**
  * Create a record to the namestore response
  * Memory layout:
  */
-GNUNET_NETWORK_STRUCT_BEGIN
 struct RecordCreateResponseMessage
 {
   /**
@@ -295,14 +284,12 @@ struct RecordCreateResponseMessage
 
 
 };
-GNUNET_NETWORK_STRUCT_END
 
 /**
  * Remove a record from the namestore
  * Memory layout:
  * [struct RecordRemoveMessage][char *name][struct GNUNET_NAMESTORE_RecordData]
  */
-GNUNET_NETWORK_STRUCT_BEGIN
 struct RecordRemoveMessage
 {
   /**
