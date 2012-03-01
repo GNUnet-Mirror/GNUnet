@@ -115,6 +115,11 @@ run (void *cls, char *const *args, const char *cfgfile,
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Element [%i]: EQUAL\n", c);
   }
+
+  for (c = 0; c < rd_count; c++)
+  {
+    GNUNET_free ((void *)src[c].data);
+  }
 }
 
 static int
