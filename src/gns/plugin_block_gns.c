@@ -69,8 +69,9 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
   GNUNET_HashCode mhash;
   GNUNET_HashCode chash;
   struct GNSNameRecordBlock *nrb;
-  struct GNSRecordBlock *rb;
   uint32_t rd_count;
+  char* rd_data = NULL;
+  int rd_len;
   unsigned int record_match;
 
   if (type != GNUNET_BLOCK_TYPE_GNS_NAMERECORD)
@@ -94,53 +95,56 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
   
   record_match = 0;
   rd_count = ntohl(nrb->rd_count);
+  rd_data = (char*)&nrb[1];
+  rd_data += strlen(name) + 1;
+  rd_len = reply_block_size - (strlen(name) + 1
+                               + sizeof(struct GNSNameRecordBlock));
   {
     struct GNUNET_NAMESTORE_RecordData rd[rd_count];
     unsigned int i;
     uint32_t record_xquery = ntohl(*((uint32_t*)xquery));
-
-    rb = (struct GNSRecordBlock*)(&name[strlen(name) + 1]);
+    
+    if (GNUNET_SYSERR == GNUNET_NAMESTORE_records_deserialize (rd_len,
+                                                               rd_data,
+                                                               rd_count,
+                                                               rd))
+    {
+      return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
+    }
+    
     for (i=0; i<rd_count; i++)
     {
-      rd[i].record_type = ntohl(rb->type);
-      rd[i].expiration =
-	GNUNET_TIME_absolute_ntoh(rb->expiration);
-      rd[i].data_size = ntohl(rb->data_length);
-      rd[i].flags = ntohl(rb->flags);
-      rd[i].data = (char*)&rb[1];
-      rb = (struct GNSRecordBlock *)((char*)&rb[1] + rd[i].data_size);
-      
-      if (xquery_size == 0)
-	continue;
+      if (xquery_size < sizeof(uint32_t))
+        continue;
       
       if (rd[i].record_type == record_xquery)
-	record_match++;	
+        record_match++;
     }
-  }  
 
-  /*if (GNUNET_OK != GNUNET_NAMESTORE_verify_signature (&nrb->public_key,
-                                                      name,
-                                                      rd_count,
-                                                      rd,
-                                                      NULL))
-  {
-    GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Signature invalid\n");
-    return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
-  }*/
+    if (GNUNET_OK != GNUNET_NAMESTORE_verify_signature (&nrb->public_key,
+                                                        name,
+                                                        rd_count,
+                                                        rd,
+                                                        NULL))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Signature invalid\n");
+      return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
+    }
+  }
   
   //No record matches query
   if ((xquery_size > 0) && (record_match == 0))
     return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
 
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Records match\n");
-  //FIXME do bf check before or after crypto??
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Records match\n");
+  
   if (NULL != bf)
   {
     GNUNET_CRYPTO_hash(reply_block, reply_block_size, &chash);
     GNUNET_BLOCK_mingle_hash(&chash, bf_mutator, &mhash);
     if (NULL != *bf)
     {
-      GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Check BF\n");
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Check BF\n");
       if (GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test(*bf, &mhash))
         return GNUNET_BLOCK_EVALUATION_OK_DUPLICATE;
     }
@@ -150,7 +154,6 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
     }
     GNUNET_CONTAINER_bloomfilter_add(*bf, &mhash);
   }
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "No dup\n");
   return GNUNET_BLOCK_EVALUATION_OK_MORE;
 }
 

@@ -42,12 +42,15 @@
 #include "gnunet_dht_service.h"
 #include "block_dns.h"
 #include "gnunet_signatures.h"
+#include "gnunet_namestore_service.h"
+#include "gnunet_dnsparser_lib.h"
+#include "gnunet_gns_service.h"
 
 /* DEFINES */
 #define VERBOSE GNUNET_YES
 
 /* Timeout for entire testcase */
-#define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 40)
+#define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 80)
 
 /* If number of peers not in config file, use this number */
 #define DEFAULT_NUM_PEERS 2
@@ -349,6 +352,12 @@ run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
 
+  struct GNUNET_NAMESTORE_Handle* namestore_handle;
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded alice_pkey, bob_pkey;
+  struct GNUNET_CRYPTO_RsaPrivateKey *alice_key, *bob_key;
+  char* bob_keyfile;
+  char* alice_keyfile;
+
   /* Get path from configuration file */
   if (GNUNET_YES !=
       GNUNET_CONFIGURATION_get_value_string (cfg, "paths", "servicehome",
@@ -366,25 +375,11 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   /* Set peers_left so we know when all peers started */
   peers_left = num_peers;
-
-  /* Set up a task to end testing if peer start fails */
-  die_task =
-      GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly,
-                                    "didn't start all daemons in reasonable amount of time!!!");
-  
-  alice_online = 0;
-  bob_online = 0;
-  expected_connections = 1;
-  
-  /* Start alice */
-  d1 = GNUNET_TESTING_daemon_start(cfg, TIMEOUT, GNUNET_NO, NULL, NULL, 0,
-                                   NULL, NULL, NULL, &alice_started, NULL);
   
   /* Somebody care to explain? */
   uint16_t port = 6000;
   uint32_t upnum = 23;
   uint32_t fdnum = 42;
-  
   
   /**
    * Modify some config options for bob
@@ -400,8 +395,89 @@ run (void *cls, char *const *args, const char *cfgfile,
                                         "NO");
   GNUNET_CONFIGURATION_set_value_string (cfg2, "gns", "ZONEKEY",
                                          "/tmp/bobkey");
-  GNUNET_CONFIGURATION_set_value_string (cfg2, "gns", "TRUSTED",
-                                         "alice:/tmp/alicekey");
+  
+  /* put records into namestore */
+  namestore_handle = GNUNET_NAMESTORE_connect(cfg);
+  if (NULL == namestore_handle)
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to connect to namestore\n");
+    ok = -1;
+    return;
+  }
+
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (cfg, "gns",
+                                                          "ZONEKEY",
+                                                          &alice_keyfile))
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to get alice's key from cfg\n");
+    ok = -1;
+    return;
+  }
+
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (cfg2, "gns",
+                                                          "ZONEKEY",
+                                                          &bob_keyfile))
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to get bob's key from cfg\n");
+    ok = -1;
+    return;
+  }
+  
+  alice_key = GNUNET_CRYPTO_rsa_key_create_from_file (alice_keyfile);
+  bob_key = GNUNET_CRYPTO_rsa_key_create_from_file (bob_keyfile);
+
+  GNUNET_CRYPTO_rsa_key_get_public (alice_key, &alice_pkey);
+  GNUNET_CRYPTO_rsa_key_get_public (bob_key, &bob_pkey);
+
+  struct GNUNET_NAMESTORE_RecordData rd;
+  rd.data = &bob_pkey;
+  rd.expiration = GNUNET_TIME_absolute_get_forever ();
+  rd.data_size = sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded);
+  rd.record_type = GNUNET_GNS_RECORD_PKEY;
+
+  GNUNET_NAMESTORE_record_create (namestore_handle,
+                                  alice_key,
+                                  "bob",
+                                  &rd,
+                                  NULL,
+                                  NULL);
+  
+  rd.data = &alice_pkey;
+  GNUNET_NAMESTORE_record_create (namestore_handle,
+                                  bob_key,
+                                  "alice",
+                                  &rd,
+                                  NULL,
+                                  NULL);
+
+  char* ip = "127.0.0.1";
+  struct in_addr *web = GNUNET_malloc(sizeof(struct in_addr));
+  GNUNET_assert(1 == inet_pton (AF_INET, ip, web));
+
+  rd.data_size = sizeof(struct in_addr);
+  rd.data = web;
+  rd.record_type = GNUNET_DNSPARSER_TYPE_A;
+
+  GNUNET_NAMESTORE_record_create (namestore_handle,
+                                  bob_key,
+                                  "www",
+                                  &rd,
+                                  NULL,
+                                  NULL);
+  
+  /* Set up a task to end testing if peer start fails */
+  die_task =
+      GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly,
+                                    "didn't start all daemons in reasonable amount of time!!!");
+  
+  alice_online = 0;
+  bob_online = 0;
+  expected_connections = 1;
+  
+  /* Start alice */
+  d1 = GNUNET_TESTING_daemon_start(cfg, TIMEOUT, GNUNET_NO, NULL, NULL, 0,
+                                   NULL, NULL, NULL, &alice_started, NULL);
+  
   
   //Start bob
   d2 = GNUNET_TESTING_daemon_start(cfg2, TIMEOUT, GNUNET_NO, NULL, NULL, 0,

@@ -38,9 +38,11 @@ test_gns_twopeer_SOURCES = \
   test_gns_twopeer.c
 test_gns_twopeer_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/namestore/libgnunetnamestore.la \
   $(top_builddir)/src/testing/libgnunettesting.la
 test_gns_twopeer_DEPENDENCIES = \
   $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/namestore/libgnunetnamestore.la \
   $(top_builddir)/src/testing/libgnunettesting.la
 
 #gnunet_gns_lookup_SOURCES = \
@@ -62,7 +64,7 @@ gnunet_service_gns_LDADD = \
 	$(top_builddir)/src/dns/libgnunetdns.la \
 	$(top_builddir)/src/dns/libgnunetdnsparser.la \
 	$(top_builddir)/src/dht/libgnunetdht.la \
-	$(top_builddir)/src/gns/libgnunetnamestore.la \
+	$(top_builddir)/src/namestore/libgnunetnamestore.la \
   $(GN_LIBINTL)
 gnunet_service_gns_DEPENDENCIES = \
   $(top_builddir)/src/tun/libgnunettun.la \
