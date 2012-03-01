@@ -212,7 +212,6 @@ handle_lookup_name_it (void *cls,
   struct GNUNET_NAMESTORE_RecordData *rd_selected = NULL;
   char *rd_tmp;
   char *name_tmp;
-  char *rd_ser;
   size_t rd_ser_len;
   struct GNUNET_CRYPTO_RsaSignature *signature_tmp;
 
@@ -254,17 +253,21 @@ handle_lookup_name_it (void *cls,
       copied_elements = rd_count;
       rd_selected = (struct GNUNET_NAMESTORE_RecordData *) rd;
     }
-    rd_ser_len = GNUNET_NAMESTORE_records_serialize(&rd_ser, copied_elements, rd_selected);
   }
   else
   {
     /* No results */
     copied_elements = 0;
     rd_selected = NULL;
-    rd_ser = NULL;
-    rd_ser_len = 0;
     expire = GNUNET_TIME_UNIT_ZERO_ABS;
   }
+
+
+
+  rd_ser_len = GNUNET_NAMESTORE_records_get_size(copied_elements, rd_selected);
+  char rd_ser[rd_ser_len];
+  GNUNET_NAMESTORE_records_serialize(copied_elements, rd_selected, rd_ser_len, rd_ser);
+
 
   if ((copied_elements == rd_count) && (signature != NULL))
       contains_signature = GNUNET_YES;
@@ -283,6 +286,7 @@ handle_lookup_name_it (void *cls,
   lnr_msg->gns_header.header.type = ntohs (GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_NAME_RESPONSE);
   lnr_msg->gns_header.header.size = ntohs (r_size);
   lnr_msg->gns_header.r_id = htonl (lnc->request_id);
+  lnr_msg->rd_count = htons (rd_count);
   lnr_msg->rd_len = htons (rd_ser_len);
   lnr_msg->name_len = htons (name_len);
   lnr_msg->expire = GNUNET_TIME_absolute_hton(expire);
@@ -303,7 +307,6 @@ handle_lookup_name_it (void *cls,
   }
   memcpy (name_tmp, name, name_len);
   memcpy (rd_tmp, rd_ser, rd_ser_len);
-  GNUNET_free_non_null (rd_ser);
 
   if (GNUNET_YES == contains_signature)
     memcpy (signature_tmp, signature, sizeof (struct GNUNET_CRYPTO_RsaSignature));
@@ -379,7 +382,6 @@ static void handle_record_put (void *cls,
   struct GNUNET_NAMESTORE_Client *nc;
   struct GNUNET_TIME_Absolute expire;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key;
-  struct GNUNET_NAMESTORE_RecordData *rd;
   struct GNUNET_CRYPTO_RsaSignature *signature;
   struct RecordPutResponseMessage rpr_msg;
   size_t name_len;
@@ -411,10 +413,11 @@ static void handle_record_put (void *cls,
   struct RecordPutMessage * rp_msg = (struct RecordPutMessage *) message;
 
   rid = ntohl (rp_msg->gns_header.r_id);
+  msg_size = ntohs (rp_msg->gns_header.header.size);
   key_len = sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded);
   name_len = ntohs (rp_msg->name_len);
+  rd_count = ntohs (rp_msg->rd_count);
   rd_ser_len = ntohs(rp_msg->rd_len);
-  msg_size = ntohs (message->size);
   msg_size_exp = sizeof (struct RecordPutMessage) + key_len + name_len  + rd_ser_len;
 
   if (msg_size != msg_size_exp)
@@ -445,8 +448,10 @@ static void handle_record_put (void *cls,
 
   expire = GNUNET_TIME_absolute_ntoh(rp_msg->expire);
   signature = (struct GNUNET_CRYPTO_RsaSignature *) &rp_msg->signature;
+
   rd_ser = &name[name_len];
-  rd_count = GNUNET_NAMESTORE_records_deserialize(&rd, rd_ser, rd_ser_len);
+  struct GNUNET_NAMESTORE_RecordData rd[rd_count];
+  GNUNET_NAMESTORE_records_deserialize(rd_ser_len, rd_ser, rd_count, rd);
 
   GNUNET_HashCode zone_hash;
   GNUNET_CRYPTO_hash (zone_key, key_len, &zone_hash);
@@ -460,8 +465,6 @@ static void handle_record_put (void *cls,
                                 name,
                                 rd_count, rd,
                                 signature);
-
-  GNUNET_NAMESTORE_records_free (rd_count, rd);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Putting record for name `%s': %s\n",
       name, (res == GNUNET_OK) ? "OK" : "FAIL");
@@ -496,9 +499,11 @@ GNUNET_NAMESTORE_create_signature (const struct GNUNET_CRYPTO_RsaPrivateKey *key
   struct GNUNET_CRYPTO_RsaSignature *sig = GNUNET_malloc(sizeof (struct GNUNET_CRYPTO_RsaSignature));
   struct GNUNET_CRYPTO_RsaSignaturePurpose *sig_purpose;
   size_t rd_ser_len;
-  char *rd_ser;
 
-  rd_ser_len = GNUNET_NAMESTORE_records_serialize(&rd_ser, rd_count, rd);
+  rd_ser_len = GNUNET_NAMESTORE_records_get_size(rd_count, rd);
+  char rd_ser[rd_ser_len];
+  GNUNET_NAMESTORE_records_serialize(rd_count, rd, rd_ser_len, rd_ser);
+
   sig_purpose = GNUNET_malloc(sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose) + rd_ser_len);
 
   sig_purpose->size = htonl (sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose)+ rd_ser_len);
@@ -566,7 +571,6 @@ static void handle_record_create (void *cls,
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "NAMESTORE_RECORD_CREATE");
   struct GNUNET_NAMESTORE_Client *nc;
-  struct GNUNET_NAMESTORE_RecordData *rd;
   struct CreateRecordContext crc;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pub;
   GNUNET_HashCode pubkey_hash;
@@ -603,6 +607,7 @@ static void handle_record_create (void *cls,
   rid = ntohl (rp_msg->gns_header.r_id);
   name_len = ntohs (rp_msg->name_len);
   msg_size = ntohs (message->size);
+  rd_count = ntohs (rp_msg->rd_count);
   rd_ser_len = ntohs (rp_msg->rd_len);
   key_len = ntohs (rp_msg->pkey_len);
   msg_size_exp = sizeof (struct RecordCreateMessage) + key_len + name_len + rd_ser_len;
@@ -633,7 +638,8 @@ static void handle_record_create (void *cls,
     return;
   }
 
-  rd_count = GNUNET_NAMESTORE_records_deserialize(&rd, rd_ser, rd_ser_len);
+  struct GNUNET_NAMESTORE_RecordData rd[rd_count];
+  GNUNET_NAMESTORE_records_deserialize(rd_ser_len, rd_ser, rd_count, rd);
   GNUNET_assert (rd_count == 1);
 
   /* Extracting and converting private key */
@@ -649,9 +655,6 @@ static void handle_record_create (void *cls,
 
   /* Get existing records for name */
   res = GSN_database->iterate_records(GSN_database->cls, &pubkey_hash, name_tmp, 0, &handle_create_record_it, &crc);
-
-  GNUNET_CRYPTO_rsa_key_free(pkey);
-  GNUNET_NAMESTORE_records_free(rd_count, rd);
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
@@ -788,7 +791,9 @@ void zone_iteration_proc (void *cls,
 
   if ((rd_count > 0) && (rd != NULL))
   {
-    len = GNUNET_NAMESTORE_records_serialize (&zipr->rd_ser, rd_count, rd);
+    len = GNUNET_NAMESTORE_records_get_size(rd_count, rd);
+    zipr->rd_ser = GNUNET_malloc (len);
+    GNUNET_NAMESTORE_records_serialize(rd_count, rd, len, zipr->rd_ser);
     zipr->rd_ser_len = len;
   }
 }

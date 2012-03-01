@@ -141,6 +141,8 @@ struct LookupNameResponseMessage
 
   uint16_t rd_len;
 
+  uint16_t rd_count;
+
   int32_t contains_sig;
 
   /* Requested record type */
@@ -166,6 +168,8 @@ struct RecordPutMessage
 
   /* Length of serialized rd data */
   uint16_t rd_len;
+
+  uint16_t rd_count;
 
   /* Length of pubkey */
   uint16_t key_len;
@@ -219,6 +223,9 @@ struct RecordCreateMessage
 
   /* Record data length */
   uint16_t rd_len;
+
+  /* Record count */
+  uint16_t rd_count;
 
   /* private key length */
   uint16_t pkey_len;

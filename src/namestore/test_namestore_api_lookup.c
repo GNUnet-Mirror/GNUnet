@@ -232,7 +232,7 @@ run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   endbadly_task = GNUNET_SCHEDULER_add_delayed(TIMEOUT,endbadly, NULL);
-  char * rd_ser;
+
   size_t rd_ser_len;
 
   /* load privat key */
@@ -244,7 +244,10 @@ run (void *cls, char *const *args, const char *cfgfile,
   /* create record */
   s_name = "dummy.dummy.gnunet";
   s_rd = create_record (RECORDS);
-  rd_ser_len = GNUNET_NAMESTORE_records_serialize(&rd_ser, RECORDS, s_rd);
+
+  rd_ser_len = GNUNET_NAMESTORE_records_get_size(RECORDS, s_rd);
+  char rd_ser[rd_ser_len];
+  GNUNET_NAMESTORE_records_serialize(RECORDS, s_rd, rd_ser_len, rd_ser);
 
   /* sign */
   struct GNUNET_CRYPTO_RsaSignaturePurpose *sig_purpose = GNUNET_malloc(sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose) + rd_ser_len);

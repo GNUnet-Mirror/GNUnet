@@ -815,7 +815,7 @@ GNUNET_NAMESTORE_record_put (struct GNUNET_NAMESTORE_Handle *h,
   memcpy (name_tmp, name, name_len);
   msg->expire = GNUNET_TIME_absolute_hton (expire);
   msg->rd_len = htons (rd_ser_len);
-
+  msg->rd_count = htons (rd_count);
 
   memcpy (rd_tmp, rd_ser, rd_ser_len);
   GNUNET_free (rd_ser);
@@ -928,6 +928,7 @@ GNUNET_NAMESTORE_record_create (struct GNUNET_NAMESTORE_Handle *h,
   msg->gns_header.header.size = htons (msg_size);
   msg->gns_header.r_id = htonl (rid);
   msg->name_len = htons (name_len);
+  msg->rd_count = htons (1);
   msg->rd_len = htons (rd_ser_len);
   msg->pkey_len = htons (key_len);
   memcpy (pkey_tmp, pkey_enc, key_len);
