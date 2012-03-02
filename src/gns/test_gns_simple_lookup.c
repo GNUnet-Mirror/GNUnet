@@ -56,7 +56,7 @@
 
 /* test records to resolve */
 #define TEST_DOMAIN "www.gnunet"
-#define TEST_IP
+#define TEST_IP "127.0.0.1"
 #define TEST_RECORD_NAME "www"
 
 /* Globals */
