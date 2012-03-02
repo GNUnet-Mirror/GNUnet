@@ -209,6 +209,7 @@ dht_lookup_timeout(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
              rh->name, rh->query->type);
 
   GNUNET_DHT_get_stop (rh->get_handle);
+  reply_to_dns(rh, 0, NULL);
 }
 
 /**
