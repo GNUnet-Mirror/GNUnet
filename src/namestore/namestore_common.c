@@ -185,7 +185,7 @@ GNUNET_NAMESTORE_records_deserialize (size_t len,
     dest[i].flags = ntohl (rec.flags);
     off += sizeof (rec);
 
-    if (off + sizeof (dest[i].data_size) > len)
+    if (off + dest[i].data_size > len)
       return GNUNET_SYSERR;
     dest[i].data = &src[off];
     off += dest[i].data_size;
