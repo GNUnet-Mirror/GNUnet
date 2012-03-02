@@ -158,7 +158,8 @@ static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   /* Kill zone task for it may make the scheduler hang */
-  GNUNET_SCHEDULER_cancel(zone_update_taskid);
+  if (zone_update_taskid)
+    GNUNET_SCHEDULER_cancel(zone_update_taskid);
 
   GNUNET_DNS_disconnect(dns_handle);
   GNUNET_NAMESTORE_disconnect(namestore_handle, 1);
@@ -1356,48 +1357,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     return;
   }
   
-  char* trusted_start;
-  char* trusted_name;
-  char *trusted_key;
-  int trusted_len;
-  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (c, "gns",
-                                                      "TRUSTED",
-                                                      &trusted_entities))
-  {
-    trusted_start = trusted_entities;
-    trusted_len = strlen(trusted_entities);
-    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-               "Found trusted entities in config file, importing\n");
-    while ((trusted_entities-trusted_start) < trusted_len)
-    {
-      trusted_name = trusted_entities;
-      while (*trusted_entities != ':')
-        trusted_entities++;
-      *trusted_entities = '\0';
-      trusted_entities++;
-      trusted_key = trusted_entities;
-      while (*trusted_entities != ',' && (*trusted_entities != '\0'))
-        trusted_entities++;
-      *trusted_entities = '\0';
-      trusted_entities++;
-      
-      if (GNUNET_YES == GNUNET_DISK_file_test (trusted_key))
-      {
-        GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Adding %s:%s to root zone\n",
-                 trusted_name,
-                 trusted_key);
-        put_trusted(trusted_name, trusted_key);
-      }
-      else
-      {
-        GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Keyfile %s does not exist!\n",
-                   trusted_key);
-        //put_trusted(trusted_name, trusted_key); //FIXME for testing
-      }
-    }
-
-  }
-
   /**
    * handle to the dht
    */
@@ -1408,7 +1367,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Could not connect to DHT!\n");
   }
 
-  put_some_records(); //FIXME for testing
+  //put_some_records(); //FIXME for testing
   
   /**
    * Schedule periodic put

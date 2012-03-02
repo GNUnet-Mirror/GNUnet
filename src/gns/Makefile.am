@@ -16,7 +16,7 @@ pkgcfg_DATA = \
   gns.conf
 
 lib_LTLIBRARIES = \
-  libgnunetgns.la libgnunetnamestore.la
+  libgnunetgns.la
 
 bin_PROGRAMS = \
   gnunet-service-gns
@@ -28,19 +28,30 @@ check_SCRIPTS = \
  test_gnunet_gns.sh
 
 check_PROGRAMS = \
-  test_gns_twopeer
+  test_gns_simple_lookup
 
 
 plugin_LTLIBRARIES = \
   libgnunet_plugin_block_gns.la
 
-test_gns_twopeer_SOURCES = \
-  test_gns_twopeer.c
-test_gns_twopeer_LDADD = \
+#test_gns_twopeer_SOURCES = \
+#  test_gns_twopeer.c
+#test_gns_twopeer_LDADD = \
+#  $(top_builddir)/src/util/libgnunetutil.la \
+#  $(top_builddir)/src/namestore/libgnunetnamestore.la \
+#  $(top_builddir)/src/testing/libgnunettesting.la
+#test_gns_twopeer_DEPENDENCIES = \
+#  $(top_builddir)/src/util/libgnunetutil.la \
+#  $(top_builddir)/src/namestore/libgnunetnamestore.la \
+#  $(top_builddir)/src/testing/libgnunettesting.la
+
+test_gns_simple_lookup_SOURCES = \
+  test_gns_simple_lookup.c
+test_gns_simple_lookup_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la \
   $(top_builddir)/src/testing/libgnunettesting.la
-test_gns_twopeer_DEPENDENCIES = \
+test_gns_simple_lookup_DEPENDENCIES = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la \
   $(top_builddir)/src/testing/libgnunettesting.la
@@ -114,4 +125,4 @@ endif
 
 EXTRA_DIST = \
   $(check_SCRIPTS) \
-  test_gns_twopeer.conf
+  test_gns_simple_lookup.conf
