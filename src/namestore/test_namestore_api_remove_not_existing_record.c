@@ -195,10 +195,29 @@ create_record (int count)
   return rd;
 }
 
+void
+delete_existing_db (const struct GNUNET_CONFIGURATION_Handle *cfg)
+{
+  char *afsdir;
+
+  if (GNUNET_OK ==
+      GNUNET_CONFIGURATION_get_value_filename (cfg, "namestore-sqlite",
+                                               "FILENAME", &afsdir))
+  {
+    if (GNUNET_OK == GNUNET_DISK_file_test (afsdir))
+      if (GNUNET_OK == GNUNET_DISK_file_test (afsdir))
+        if (GNUNET_OK == GNUNET_DISK_directory_remove(afsdir))
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Deleted existing database `%s' \n", afsdir);
+   GNUNET_free (afsdir);
+  }
+
+}
+
 static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
+  delete_existing_db(cfg);
   endbadly_task = GNUNET_SCHEDULER_add_delayed(TIMEOUT,endbadly, NULL);
   size_t rd_ser_len;
 
