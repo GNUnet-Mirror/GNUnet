@@ -75,7 +75,7 @@ GNUNET_SCHEDULER_TaskIdentifier die_task;
 /* Global return value (0 for success, anything else for failure) */
 static int ok;
 
-static struct GNUNUET_NAMESTORE_Handle *namestore_handle;
+static struct GNUNET_NAMESTORE_Handle *namestore_handle;
 
 const struct GNUNET_CONFIGURATION_Handle *cfg;
 
@@ -95,8 +95,8 @@ shutdown_callback (void *cls, const char *emsg)
 }
 
 /**
- * Function scheduled to be run on the successful completion of this
- * testcase.  Specifically, called when our get request completes.
+ * Function scheduled to be run on the successful start of services
+ * tries to look up the dns record for TEST_DOMAIN
  */
 static void
 finish_testing (void *cls, int32_t success, const char *emsg)
@@ -168,7 +168,9 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 static void
-do_lookup(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_lookup(void *cls, const struct GNUNET_PeerIdentity *id,
+          const struct GNUNET_CONFIGURATION_Handle *cfg,
+          struct GNUNET_TESTING_Daemon *d, const char *emsg)
 {
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded alice_pkey;
   struct GNUNET_CRYPTO_RsaPrivateKey *alice_key;
@@ -189,7 +191,7 @@ do_lookup(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                                           "ZONEKEY",
                                                           &alice_keyfile))
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to get alice's key from cfg\n");
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to get key from cfg\n");
     ok = -1;
     return;
   }

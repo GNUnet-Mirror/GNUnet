@@ -606,30 +606,29 @@ process_authority_lookup(void* cls,
     if (rd[i].record_type != GNUNET_GNS_RECORD_PKEY)
       continue;
     
-      if ((GNUNET_TIME_absolute_get_remaining (rd[i].expiration)).rel_value
-          == 0)
+    if ((GNUNET_TIME_absolute_get_remaining (rd[i].expiration)).rel_value
+         == 0)
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "This pkey is expired.\n");
+      if (remaining_time.rel_value == 0)
       {
-        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "This pkey is expired.\n");
-        if (remaining_time.rel_value == 0)
-        {
-          GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                     "This dht entry is expired. Refreshing\n");
-          resolve_authority_dht(rh);
-        }
-
-        continue;
+        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                   "This dht entry is expired. Refreshing\n");
+        resolve_authority_dht(rh);
       }
 
-      /**
-       * Resolve rest of query with new authority
-       */
-      GNUNET_assert(rd[i].record_type == GNUNET_GNS_RECORD_PKEY);
-      GNUNET_CRYPTO_hash(rd[i].data,
-                         sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
-                         &rh->authority);
-      resolve_name(rh);
-      return;
-      
+      continue;
+    }
+
+    /**
+     * Resolve rest of query with new authority
+     */
+    GNUNET_assert(rd[i].record_type == GNUNET_GNS_RECORD_PKEY);
+    GNUNET_CRYPTO_hash(rd[i].data,
+                       sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+                       &rh->authority);
+    resolve_name(rh);
+    return;
   }
     
   /**
