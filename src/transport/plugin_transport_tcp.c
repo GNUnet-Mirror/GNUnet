@@ -901,13 +901,7 @@ tcp_plugin_send (void *cls,
 
   GNUNET_assert (plugin != NULL);
   GNUNET_assert (session != NULL);
-  GNUNET_assert (session->client != NULL);
 
-  GNUNET_SERVER_client_set_timeout (session->client,
-                                    GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
-  GNUNET_STATISTICS_update (plugin->env->stats,
-                            gettext_noop ("# bytes currently in TCP buffers"),
-                            msgbuf_size, GNUNET_NO);
   /* create new message entry */
   pm = GNUNET_malloc (sizeof (struct PendingMessage) + msgbuf_size);
   pm->msg = (const char *) &pm[1];
@@ -917,16 +911,51 @@ tcp_plugin_send (void *cls,
   pm->transmit_cont = cont;
   pm->transmit_cont_cls = cont_cls;
 
-  /* append pm to pending_messages list */
-  GNUNET_CONTAINER_DLL_insert_tail (session->pending_messages_head,
-                                    session->pending_messages_tail, pm);
 
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
                    "Asked to transmit %u bytes to `%s', added message to list.\n",
                    msgbuf_size, GNUNET_i2s (&session->target));
 
-  process_pending_messages (session);
-  return msgbuf_size;
+  if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains_value(plugin->sessionmap, &session->target.hashPubKey, session))
+  {
+    GNUNET_assert (session->client != NULL);
+
+    GNUNET_SERVER_client_set_timeout (session->client,
+                                      GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
+    GNUNET_STATISTICS_update (plugin->env->stats,
+                              gettext_noop ("# bytes currently in TCP buffers"),
+                              msgbuf_size, GNUNET_NO);
+
+    /* append pm to pending_messages list */
+    GNUNET_CONTAINER_DLL_insert_tail (session->pending_messages_head,
+                                      session->pending_messages_tail, pm);
+
+    process_pending_messages (session);
+    return msgbuf_size;
+  }
+  else if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains_value(plugin->nat_wait_conns, &session->target.hashPubKey, session))
+  {
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
+                     "This NAT WAIT session for peer `%s' is not yet ready!\n",
+                     GNUNET_i2s (&session->target));
+
+    GNUNET_STATISTICS_update (plugin->env->stats,
+                              gettext_noop ("# bytes currently in TCP buffers"),
+                              msgbuf_size, GNUNET_NO);
+
+    /* append pm to pending_messages list */
+    GNUNET_CONTAINER_DLL_insert_tail (session->pending_messages_head,
+                                      session->pending_messages_tail, pm);
+    return msgbuf_size;
+  }
+  else
+  {
+    if (cont != NULL)
+      cont (cont_cls, &session->target, GNUNET_SYSERR);
+    GNUNET_break (0);
+    GNUNET_free (pm);
+    return GNUNET_SYSERR; /* session does not exist here */
+  }
 }
 
 struct SessionItCtx
@@ -1133,7 +1162,6 @@ tcp_plugin_get_session (void *cls,
       return session;
     else
     {
-      /* This is necessary for disconnect_session() to work */
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
                        "Running NAT client for `%4s' at `%s' failed\n",
                        GNUNET_i2s (&session->target), GNUNET_a2s (sb, sbs));
