@@ -99,14 +99,14 @@ libgnunet_plugin_block_gns_la_DEPENDENCIES = \
   $(top_builddir)/src/namestore/libgnunetnamestore.la
 
 #Build stub api
-libgnunetnamestore_la_SOURCES = \
- namestore_stub_api.c
-libgnunetnamestore_la_LIBADD = \
- $(top_builddir)/src/util/libgnunetutil.la $(XLIB)
-libgnunetnamestore_la_LDFLAGS = \
-  $(GN_LIB_LDFLAGS)
-libgnunetnamestore_la_DEPENDENCIES = \
- $(top_builddir)/src/util/libgnunetutil.la
+#libgnunetnamestore_la_SOURCES = \
+# namestore_stub_api.c
+#libgnunetnamestore_la_LIBADD = \
+# $(top_builddir)/src/util/libgnunetutil.la $(XLIB)
+#libgnunetnamestore_la_LDFLAGS = \
+#  $(GN_LIB_LDFLAGS)
+#libgnunetnamestore_la_DEPENDENCIES = \
+# $(top_builddir)/src/util/libgnunetutil.la
 
 if ENABLE_TEST_RUN
 TESTS = $(check_PROGRAMS)  $(check_SCRIPTS)
