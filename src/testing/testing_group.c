@@ -2927,15 +2927,12 @@ create_and_copy_friend_files (struct GNUNET_TESTING_PeerGroup *pg)
     if (pg->peers[pg_iter].daemon->hostname == NULL)    /* Local, just copy the file */
     {
       GNUNET_asprintf (&arg, "%s/friends", temp_service_path);
-      procarr[pg_iter] =
- 	GNUNET_OS_start_process (GNUNET_NO, NULL, NULL, "mv", "mv", mytemp, arg, NULL);
-      GNUNET_assert (procarr[pg_iter] != NULL);
 #if VERBOSE_TESTING
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Copying file with command cp %s %s\n", mytemp, arg);
+                  "Copying file with RENAME(%s,%s)\n", mytemp, arg);
 #endif
-      ret = GNUNET_OS_process_wait (procarr[pg_iter]);  /* FIXME: schedule this, throttle! */
-      GNUNET_OS_process_close (procarr[pg_iter]);
+      RENAME (mytemp, arg);
+      procarr[pg_iter] = NULL;
       GNUNET_free (arg);
     }
     else                        /* Remote, scp the file to the correct place */
@@ -3126,11 +3123,11 @@ create_and_copy_blacklist_files (struct GNUNET_TESTING_PeerGroup *pg,
     if (pg->peers[pg_iter].daemon->hostname == NULL)    /* Local, just copy the file */
     {
       GNUNET_asprintf (&arg, "%s/blacklist", temp_service_path);
-      procarr[pg_iter] =
-	GNUNET_OS_start_process (GNUNET_NO, NULL, NULL, "mv", "mv", mytemp, arg, NULL);
+      RENAME (mytemp, arg);
+      procarr[pg_iter] = NULL;
 #if VERBOSE_TESTING
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  _("Copying file with command cp %s %s\n"), mytemp, arg);
+                  _("Copying file with RENAME (%s,%s)\n"), mytemp, arg);
 #endif
 
       GNUNET_free (arg);
