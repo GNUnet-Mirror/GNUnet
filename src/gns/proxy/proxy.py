@@ -104,9 +104,10 @@ class ProxyHandler (BaseHTTPServer.BaseHTTPRequestHandler):
                     data = i.recv(8192)
                     if data:
                         if (re.match("(\w+\.)*gnunet", self.host_port[0])):
-                            arr = self.host_port[0].split(' ')
+                            arr = self.host_port[0].split('.')
                             arr.pop(0)
-                            data = re.sub(r'(a href="http://(\w+\.)*)(\+)', r'\1'+self.host_port[0], data)
+                            data = re.sub(r'(a href="http://(\w+\.)*)(\+)',
+                                r'\1'+'.'.join(arr), data)
                         print data
                         out.send(data)
                         count = 0
