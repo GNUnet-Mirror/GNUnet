@@ -5,6 +5,6 @@ HOME = $SERVICEHOME
 CONFIG = $DEFAULTCONFIG
 BINARY = gnunet-service-gns
 UNIXPATH = /tmp/gnunet-service-gns.sock
-ZONEKEY = $SERVICEHOME/zonekey
+ZONEKEY = zonekey
 HIJACK_DNS = YES
 OPTIONS = -L INFO
