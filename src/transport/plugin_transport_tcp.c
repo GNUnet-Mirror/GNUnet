@@ -43,6 +43,14 @@
 
 #define DEBUG_TCP_NAT GNUNET_EXTRA_LOGGING
 
+
+/**
+ * How long until we give up on establishing an NAT connection?
+ * Must be > 4 RTT
+ */
+#define NAT_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
+
+
 GNUNET_NETWORK_STRUCT_BEGIN
 
 /**
@@ -238,6 +246,11 @@ struct Session
    * The client (used to identify this connection)
    */
   struct GNUNET_SERVER_Client *client;
+
+  /**
+   * Task cleaning up a NAT client connection establishment attempt;
+   */
+  GNUNET_SCHEDULER_TaskIdentifier nat_connection_timeout;
 
   /**
    * Messages currently pending for transmission
@@ -807,7 +820,8 @@ disconnect_session (struct Session *session)
                    GNUNET_i2s (&session->target),
                    tcp_address_to_string(NULL, session->addr, session->addrlen));
 
-  GNUNET_assert (GNUNET_YES  == GNUNET_CONTAINER_multihashmap_remove(plugin->sessionmap, &session->target.hashPubKey, session));
+  GNUNET_assert (GNUNET_YES  == GNUNET_CONTAINER_multihashmap_remove(plugin->sessionmap, &session->target.hashPubKey, session) ||
+                 GNUNET_YES  == GNUNET_CONTAINER_multihashmap_remove(plugin->nat_wait_conns, &session->target.hashPubKey, session));
 
   /* clean up state */
   if (session->transmit_handle != NULL)
@@ -817,6 +831,13 @@ disconnect_session (struct Session *session)
   }
   session->plugin->env->session_end (session->plugin->env->cls,
                                      &session->target, session);
+
+  if (session->nat_connection_timeout != GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel (session->nat_connection_timeout);
+    session->nat_connection_timeout = GNUNET_SCHEDULER_NO_TASK;
+  }
+
   while (NULL != (pm = session->pending_messages_head))
   {
 #if DEBUG_TCP
@@ -840,7 +861,6 @@ disconnect_session (struct Session *session)
                          GNUNET_SYSERR);
     GNUNET_free (pm);
   }
-  GNUNET_break (session->client != NULL);
   if (session->receive_delay_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (session->receive_delay_task);
@@ -1008,6 +1028,22 @@ int session_lookup_it (void *cls,
   return GNUNET_NO;
 }
 
+/**
+ * Task cleaning up a NAT connection attempt after timeout
+ */
+
+static void
+nat_connect_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct Session *session = cls;
+
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
+                   "NAT WAIT connection to `%4s' at `%s' could not be established, removing session\n",
+                   GNUNET_i2s (&session->target), tcp_address_to_string(NULL, session->addr, session->addrlen));
+
+  disconnect_session (session);
+
+}
 
 /**
  * Create a new session to transmit data to the target
@@ -1148,6 +1184,9 @@ tcp_plugin_get_session (void *cls,
     session->addrlen = 0;
     session->addr = NULL;
     session->ats_address_network_type = ats.value;
+    session->nat_connection_timeout = GNUNET_SCHEDULER_add_delayed(NAT_TIMEOUT,
+        &nat_connect_timeout,
+        session);
     GNUNET_assert (session != NULL);
 
     GNUNET_assert (GNUNET_CONTAINER_multihashmap_put
@@ -1166,33 +1205,7 @@ tcp_plugin_get_session (void *cls,
                        "Running NAT client for `%4s' at `%s' failed\n",
                        GNUNET_i2s (&session->target), GNUNET_a2s (sb, sbs));
 
-      GNUNET_assert (GNUNET_YES == GNUNET_CONTAINER_multihashmap_remove (
-                                            plugin->nat_wait_conns,
-                                            &address->peer.hashPubKey,
-                                            session));
-
-      /* cleaning up welcome msg and update statistics */
-      struct PendingMessage *pm;
-      while (NULL != (pm = session->pending_messages_head))
-      {
-        GNUNET_STATISTICS_update (session->plugin->env->stats,
-                                  gettext_noop ("# bytes currently in TCP buffers"),
-                                  -(int64_t) pm->message_size, GNUNET_NO);
-        GNUNET_STATISTICS_update (session->plugin->env->stats,
-                                  gettext_noop
-                                  ("# bytes discarded by TCP (disconnect)"),
-                                  pm->message_size, GNUNET_NO);
-        GNUNET_CONTAINER_DLL_remove (session->pending_messages_head,
-                                     session->pending_messages_tail, pm);
-        GNUNET_free (pm);
-      }
-
-      GNUNET_STATISTICS_update (session->plugin->env->stats,
-                                gettext_noop ("# TCP sessions active"), -1,
-                                GNUNET_NO);
-      GNUNET_free_non_null (session->addr);
-      GNUNET_free (session);
-      session = NULL;
+      disconnect_session (session);
       return NULL;
     }
   }
@@ -1253,26 +1266,6 @@ int session_disconnect_it (void *cls,
   return GNUNET_YES;
 }
 
-int session_nat_disconnect_it (void *cls,
-               const GNUNET_HashCode * key,
-               void *value)
-{
-  struct Session *session = value;
-
-  if (session != NULL)
-  {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
-                     "Cleaning up pending NAT session for peer `%4s'\n", GNUNET_i2s (&session->target));
-    GNUNET_assert (GNUNET_YES == GNUNET_CONTAINER_multihashmap_remove (session->plugin->nat_wait_conns, &session->target.hashPubKey, session));
-    GNUNET_SERVER_client_drop (session->client);
-    GNUNET_SERVER_receive_done (session->client, GNUNET_SYSERR);
-    GNUNET_free (session);
-  }
-
-  return GNUNET_YES;
-}
-
-
 /**
  * Function that can be called to force a disconnect from the
  * specified neighbour.  This should also cancel all previously
@@ -1305,10 +1298,7 @@ tcp_plugin_disconnect (void *cls, const struct GNUNET_PeerIdentity *target)
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
                      "Cleaning up pending NAT session for peer `%4s'\n", GNUNET_i2s (target));
-    GNUNET_assert (GNUNET_YES == GNUNET_CONTAINER_multihashmap_remove (plugin->nat_wait_conns, &target->hashPubKey, nat_session));
-    GNUNET_SERVER_client_drop (nat_session->client);
-    GNUNET_SERVER_receive_done (nat_session->client, GNUNET_SYSERR);
-    GNUNET_free (nat_session);
+    disconnect_session (nat_session);
   }
 }
 
@@ -1564,6 +1554,12 @@ handle_tcp_nat_probe (void *cls, struct GNUNET_SERVER_Client *client,
   }
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
                    "Found session for NAT probe!\n");
+
+  if (session->nat_connection_timeout != GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel (session->nat_connection_timeout);
+    session->nat_connection_timeout = GNUNET_SCHEDULER_NO_TASK;
+  }
 
   GNUNET_assert (GNUNET_CONTAINER_multihashmap_remove
                  (plugin->nat_wait_conns,
@@ -2153,7 +2149,7 @@ libgnunet_plugin_transport_tcp_done (void *cls)
   /* Removing leftover sessions */
   GNUNET_CONTAINER_multihashmap_iterate(plugin->sessionmap, &session_disconnect_it, NULL);
   /* Removing leftover NAT sessions */
-  GNUNET_CONTAINER_multihashmap_iterate(plugin->nat_wait_conns, &session_nat_disconnect_it, NULL);
+  GNUNET_CONTAINER_multihashmap_iterate(plugin->nat_wait_conns, &session_disconnect_it, NULL);
 
   if (plugin->service != NULL)
     GNUNET_SERVICE_stop (plugin->service);
