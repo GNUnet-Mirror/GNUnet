@@ -1124,13 +1124,49 @@ tcp_plugin_get_session (void *cls,
     GNUNET_assert (GNUNET_CONTAINER_multihashmap_put
                    (plugin->nat_wait_conns, &address->peer.hashPubKey, session,
                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY) == GNUNET_OK);
-#if DEBUG_TCP_NAT
+
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
                      "Created NAT WAIT connection to `%4s' at `%s'\n",
                      GNUNET_i2s (&session->target), GNUNET_a2s (sb, sbs));
-#endif
-    GNUNET_NAT_run_client (plugin->nat, &a4);
-    return session;
+
+    if (GNUNET_OK == GNUNET_NAT_run_client (plugin->nat, &a4))
+      return session;
+    else
+    {
+      /* This is necessary for disconnect_session() to work */
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
+                       "Running NAT client for `%4s' at `%s' failed\n",
+                       GNUNET_i2s (&session->target), GNUNET_a2s (sb, sbs));
+
+      GNUNET_assert (GNUNET_YES == GNUNET_CONTAINER_multihashmap_remove (
+                                            plugin->nat_wait_conns,
+                                            &address->peer.hashPubKey,
+                                            session));
+
+      /* cleaning up welcome msg and update statistics */
+      struct PendingMessage *pm;
+      while (NULL != (pm = session->pending_messages_head))
+      {
+        GNUNET_STATISTICS_update (session->plugin->env->stats,
+                                  gettext_noop ("# bytes currently in TCP buffers"),
+                                  -(int64_t) pm->message_size, GNUNET_NO);
+        GNUNET_STATISTICS_update (session->plugin->env->stats,
+                                  gettext_noop
+                                  ("# bytes discarded by TCP (disconnect)"),
+                                  pm->message_size, GNUNET_NO);
+        GNUNET_CONTAINER_DLL_remove (session->pending_messages_head,
+                                     session->pending_messages_tail, pm);
+        GNUNET_free (pm);
+      }
+
+      GNUNET_STATISTICS_update (session->plugin->env->stats,
+                                gettext_noop ("# TCP sessions active"), -1,
+                                GNUNET_NO);
+      GNUNET_free_non_null (session->addr);
+      GNUNET_free (session);
+      session = NULL;
+      return NULL;
+    }
   }
 
   /* create new outbound session */

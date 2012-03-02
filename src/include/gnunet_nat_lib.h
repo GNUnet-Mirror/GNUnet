@@ -117,8 +117,11 @@ GNUNET_NAT_test_address (struct GNUNET_NAT_Handle *h, const void *addr,
  *
  * @param h handle (used for configuration)
  * @param sa the address of the peer (IPv4-only)
+ *
+ * @return GNUNET_SYSERR on error, GNUNET_NO if nat client is disabled,
+ *         GNUNET_OK otherwise
  */
-void
+int
 GNUNET_NAT_run_client (struct GNUNET_NAT_Handle *h,
                        const struct sockaddr_in *sa);
 
