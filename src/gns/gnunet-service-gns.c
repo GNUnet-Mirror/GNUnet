@@ -161,7 +161,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_SCHEDULER_cancel(zone_update_taskid);
 
   GNUNET_DNS_disconnect(dns_handle);
-  GNUNET_NAMESTORE_disconnect(namestore_handle, 0);
+  GNUNET_NAMESTORE_disconnect(namestore_handle, 1);
   GNUNET_DHT_disconnect(dht_handle);
 }
 
@@ -558,6 +558,9 @@ process_authority_lookup(void* cls,
   struct GNUNET_GNS_ResolverHandle *rh;
   struct GNUNET_TIME_Relative remaining_time;
   GNUNET_HashCode zone;
+  
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Got %d records from authority lookup\n",
+             rd_count);
 
   rh = (struct GNUNET_GNS_ResolverHandle *)cls;
   GNUNET_CRYPTO_hash(key,
@@ -575,9 +578,12 @@ process_authority_lookup(void* cls,
      * _IF_ the current authoritative zone is us we cannot resolve
      * _ELSE_ we can still check the _expired_ dht
      */
-    if (0 != GNUNET_CRYPTO_hash_cmp(&zone, &zone_hash) &&
+    if ((0 != GNUNET_CRYPTO_hash_cmp(&rh->authority, &zone_hash)) &&
         (remaining_time.rel_value == 0))
     {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                 "Authority %s unknown in namestore, trying dht\n",
+                 rh->authority_name);
       resolve_authority_dht(rh);
       return;
     }
@@ -950,8 +956,9 @@ start_resolution(struct GNUNET_DNS_RequestHandle *request,
 {
   struct GNUNET_GNS_ResolverHandle *rh;
   
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting resolution for (%s)!\n",
-              q->name);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Starting resolution for %s (type=%d)!\n",
+              q->name, q->type);
   
   rh = GNUNET_malloc(sizeof (struct GNUNET_GNS_ResolverHandle));
   rh->packet = p;
@@ -1410,7 +1417,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
    */
   dht_update_interval = GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS,
                                                       1);
-  zone_update_taskid = GNUNET_SCHEDULER_add_now (&update_zone_dht_start, NULL);
+  //zone_update_taskid = GNUNET_SCHEDULER_add_now (&update_zone_dht_start, NULL);
 
 }
 
