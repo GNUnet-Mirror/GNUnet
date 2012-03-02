@@ -40,6 +40,7 @@
 #include "gns.h"
 
 #define DHT_OPERATION_TIMEOUT  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+#define DHT_LOOKUP_TIMEOUT DHT_OPERATION_TIMEOUT
 #define DHT_GNS_REPLICATION_LEVEL 5
 
 /* Ignore for now not used anyway and probably never will */
@@ -81,6 +82,9 @@ struct GNUNET_GNS_ResolverHandle
 
   /* a handle for dht lookups. should be NULL if no lookups are in progress */
   struct GNUNET_DHT_GetHandle *get_handle;
+
+  /* timeout task for dht lookups */
+  GNUNET_SCHEDULER_TaskIdentifier dht_timeout_task;
 
 };
 
@@ -190,6 +194,24 @@ on_namestore_record_put_result(void *cls,
 }
 
 /**
+ * Handle timeout for DHT requests
+ *
+ * @param cls the request handle as closure
+ * @param tc the task context
+ */
+static void
+dht_lookup_timeout(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_GNS_ResolverHandle *rh = cls;
+
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "dht lookup for query %s (type=%d) timed out.\n",
+             rh->name, rh->query->type);
+
+  GNUNET_DHT_get_stop (rh->get_handle);
+}
+
+/**
  * Function called when we get a result from the dht
  * for our query
  *
@@ -232,7 +254,9 @@ process_authority_dht_result(void* cls,
   rh = (struct GNUNET_GNS_ResolverHandle *)cls;
   nrb = (struct GNSNameRecordBlock*)data;
   
+  /* stop dht lookup and timeout task */
   GNUNET_DHT_get_stop (rh->get_handle);
+  GNUNET_SCHEDULER_cancel(rh->dht_timeout_task);
 
   rh->get_handle = NULL;
   num_records = ntohl(nrb->rd_count);
@@ -328,7 +352,9 @@ resolve_authority_dht(struct GNUNET_GNS_ResolverHandle *rh)
                      &name_hash);
   GNUNET_CRYPTO_hash_xor(&name_hash, &rh->authority, &lookup_key);
 
-  
+  rh->dht_timeout_task = GNUNET_SCHEDULER_add_delayed (DHT_LOOKUP_TIMEOUT,
+                                                       &dht_lookup_timeout, rh);
+
   xquery = htonl(GNUNET_GNS_RECORD_PKEY);
   //FIXME how long to wait for results?
   rh->get_handle = GNUNET_DHT_get_start(dht_handle,
@@ -388,8 +414,10 @@ process_name_dht_result(void* cls,
   
   rh = (struct GNUNET_GNS_ResolverHandle *)cls;
   nrb = (struct GNSNameRecordBlock*)data;
-
+  
+  /* stop lookup and timeout task */
   GNUNET_DHT_get_stop (rh->get_handle);
+  GNUNET_SCHEDULER_cancel(rh->dht_timeout_task);
   
   rh->get_handle = NULL;
   name = (char*)&nrb[1];
@@ -456,6 +484,9 @@ process_name_dht_result(void* cls,
 
 }
 
+
+
+
 /**
  * Start DHT lookup for a (name -> query->record_type) record in
  * query->authority's zone
@@ -479,10 +510,13 @@ resolve_name_dht(struct GNUNET_GNS_ResolverHandle *rh, const char* name)
              "starting dht lookup for %s with key: %s\n",
              name, (char*)&lookup_key_string);
 
+  rh->dht_timeout_task = GNUNET_SCHEDULER_add_delayed(DHT_LOOKUP_TIMEOUT,
+                                                      &dht_lookup_timeout, rh);
+
   xquery = htonl(rh->query->type);
   //FIXME how long to wait for results?
   rh->get_handle = GNUNET_DHT_get_start(dht_handle, 
-					DHT_OPERATION_TIMEOUT,
+                       DHT_OPERATION_TIMEOUT,
                        GNUNET_BLOCK_TYPE_GNS_NAMERECORD,
                        &lookup_key,
                        DHT_GNS_REPLICATION_LEVEL,
@@ -1161,7 +1195,7 @@ put_gns_record(void *cls,
                   (char*)nrb,
                   expiration,
                   DHT_OPERATION_TIMEOUT,
-                  &record_dht_put, //FIXME continuation needed? success check? yes ofc
+                  &record_dht_put,
                   NULL); //cls for cont
   
   num_public_records++;
