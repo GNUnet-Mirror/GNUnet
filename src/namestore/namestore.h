@@ -43,6 +43,8 @@
 #define GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_NEXT 441
 #define GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_STOP 442
 
+#define GNUNET_MESSAGE_TYPE_NAMESTORE_DISCONNECT 443
+
 
 struct GNUNET_CRYPTO_RsaSignature *
 GNUNET_NAMESTORE_create_signature (const struct GNUNET_CRYPTO_RsaPrivateKey *key, const char *name, struct GNUNET_NAMESTORE_RecordData *rd, unsigned int rd_count);
@@ -101,6 +103,25 @@ struct StartMessage
   struct GNUNET_MessageHeader header;
 
 };
+
+/**
+ * Connect to namestore service.  FIXME: UNNECESSARY.
+ */
+struct DisconnectMessage
+{
+
+  /**
+   * Type will be GNUNET_MESSAGE_TYPE_NAMESTORE_DISCONNECT
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Drop namestore?
+   * GNUNET_YES or _NO in NBO
+   */
+  uint32_t drop;
+};
+
 
 /**
  * Generic namestore message with op id
@@ -262,9 +283,9 @@ struct RecordCreateResponseMessage
   /* Contenct starts here */
 
   /**
-   *  name length: GNUNET_NO (0) on error, GNUNET_OK (1) on success
+   *  name length: GNUNET_NO already existsw, GNUNET_YES on success, GNUNET_SYSERR error
    */
-  uint16_t op_result;
+  int16_t op_result;
 
 
 };

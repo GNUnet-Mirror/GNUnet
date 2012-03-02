@@ -316,29 +316,30 @@ handle_record_create_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
               "RECORD_CREATE_RESPONSE");
 
   struct GNUNET_NAMESTORE_Handle *h = qe->nsh;
-  int res = GNUNET_OK;
 
-  if (ntohs (msg->op_result) == GNUNET_OK)
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' %i\n",
+              "RECORD_CREATE_RESPONSE", ntohs (msg->op_result));
+  if (ntohs (msg->op_result) == GNUNET_YES)
   {
-    res = GNUNET_OK;
     if (qe->cont != NULL)
     {
-      qe->cont (qe->cont_cls, res, _("Namestore added record successfully"));
+      qe->cont (qe->cont_cls, GNUNET_YES, _("Namestore added record successfully"));
     }
 
   }
   else if (ntohs (msg->op_result) == GNUNET_NO)
   {
-    res = GNUNET_SYSERR;
     if (qe->cont != NULL)
     {
-      qe->cont (qe->cont_cls, res, _("Namestore failed to add record"));
+      qe->cont (qe->cont_cls, GNUNET_NO, _("Namestore record already existed"));
     }
   }
   else
   {
-    GNUNET_break_op (0);
-    return;
+    if (qe->cont != NULL)
+    {
+      qe->cont (qe->cont_cls, GNUNET_SYSERR, _("Namestore failed to add record\n"));
+    }
   }
 
   /* Operation done, remove */
@@ -742,23 +743,21 @@ GNUNET_NAMESTORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
   return h;
 }
 
+struct DisconnectContext
+{
+  struct GNUNET_NAMESTORE_Handle *h;
+  int drop;
+};
 
-/**
- * Disconnect from the namestore service (and free associated
- * resources).
- *
- * @param h handle to the namestore
- * @param drop set to GNUNET_YES to delete all data in namestore (!)
- */
-void
-GNUNET_NAMESTORE_disconnect (struct GNUNET_NAMESTORE_Handle *h, int drop)
+static void
+clean_up_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct PendingMessage *p;
   struct GNUNET_NAMESTORE_QueueEntry *q;
   struct GNUNET_NAMESTORE_ZoneIterator *z;
-
+  struct GNUNET_NAMESTORE_Handle *h = cls;
   GNUNET_assert (h != NULL);
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Cleaning up\n");
   while (NULL != (p = h->pending_head))
   {
     GNUNET_CONTAINER_DLL_remove (h->pending_head, h->pending_tail, p);
@@ -790,6 +789,61 @@ GNUNET_NAMESTORE_disconnect (struct GNUNET_NAMESTORE_Handle *h, int drop)
   }
   GNUNET_free(h);
   h = NULL;
+};
+
+static size_t
+transmit_disconnect_to_namestore (void *cls, size_t size, void *buf)
+{
+  struct DisconnectContext * d_ctx = cls;
+  struct DisconnectMessage d_msg;
+  struct GNUNET_NAMESTORE_Handle *h = d_ctx->h;
+  int res;
+
+  d_msg.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_DISCONNECT);
+  d_msg.header.size = htons (sizeof (struct DisconnectMessage));
+  d_msg.drop = htonl (d_ctx->drop);
+
+  h->th = NULL;
+  if ((size == 0) || (buf == NULL) || (size < sizeof (struct DisconnectMessage)))
+  {
+    GNUNET_break (0);
+    res = 0;
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message to service \n", "NAMESTORE_DISCONNECT");
+    memcpy (buf, &d_msg, sizeof (struct DisconnectMessage));
+    res = sizeof (struct DisconnectMessage);
+  }
+
+  GNUNET_SCHEDULER_add_now (&clean_up_task, h);
+  GNUNET_free (d_ctx);
+  return res;
+}
+
+/**
+ * Disconnect from the namestore service (and free associated
+ * resources).
+ *
+ * @param h handle to the namestore
+ * @param drop set to GNUNET_YES to delete all data in namestore (!)
+ */
+void
+GNUNET_NAMESTORE_disconnect (struct GNUNET_NAMESTORE_Handle *h, int drop)
+{
+  if (h->th != NULL)
+  {
+    GNUNET_CLIENT_notify_transmit_ready_cancel(h->th);
+  }
+
+  struct DisconnectContext *d_ctx = GNUNET_malloc (sizeof (struct DisconnectContext));
+  d_ctx->h = h;
+  d_ctx->drop = drop;
+
+  h->th = GNUNET_CLIENT_notify_transmit_ready (h->client, sizeof (struct DisconnectMessage),
+                                           GNUNET_TIME_UNIT_FOREVER_REL,
+                                           GNUNET_NO, &transmit_disconnect_to_namestore,
+                                           d_ctx);
 }
 
 

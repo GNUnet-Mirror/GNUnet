@@ -92,7 +92,6 @@ endbadly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if (NULL != arm)
     stop_arm();
-
   res = 1;
 }
 
@@ -114,7 +113,7 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_NAMESTORE_disconnect (nsh, GNUNET_YES);
   nsh = NULL;
 
-  if (NULL != arm)
+ if (NULL != arm)
     stop_arm();
 }
 

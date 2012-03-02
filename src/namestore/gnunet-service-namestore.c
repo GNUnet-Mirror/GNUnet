@@ -138,7 +138,6 @@ client_lookup (struct GNUNET_SERVER_Client *client)
   return nc;
 }
 
-
 /**
  * Called whenever a client is disconnected.  Frees our
  * resources associated with that client.
@@ -172,6 +171,8 @@ client_disconnect_notification (void *cls, struct GNUNET_SERVER_Client *client)
   GNUNET_free (nc);
 }
 
+
+
 static void handle_start (void *cls,
                           struct GNUNET_SERVER_Client * client,
                           const struct GNUNET_MessageHeader * message)
@@ -195,8 +196,80 @@ struct LookupNameContext
   char * name;
 };
 
+void drop_iterator (void *cls,
+                   const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
+                   struct GNUNET_TIME_Absolute expire,
+                   const char *name,
+                   unsigned int rd_len,
+                   const struct GNUNET_NAMESTORE_RecordData *rd,
+                   const struct GNUNET_CRYPTO_RsaSignature *signature)
+{
+  GNUNET_HashCode zone_hash;
+  int * stop = cls;
+  if (NULL != zone_key)
+  {
+    GNUNET_CRYPTO_hash(zone_key, sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), &zone_hash);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Deleting zone `%s'\n", GNUNET_h2s (&zone_hash));
+    GSN_database->delete_zone (GSN_database->cls, &zone_hash);
+  }
+  else
+  {
+    (*stop) = GNUNET_YES;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "NULL \n");
+  }
+}
 
 
+/**
+ * Called whenever a client is disconnected.  Frees our
+ * resources associated with that client.
+ *
+ * @param cls closure
+ * @param client identification of the client
+ */
+static void handle_stop (void *cls,
+                          struct GNUNET_SERVER_Client * client,
+                          const struct GNUNET_MessageHeader * message)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "NAMESTORE_RECORD_REMOVE");
+  struct DisconnectMessage * msg = (struct DisconnectMessage *) message;
+  struct GNUNET_NAMESTORE_ZoneIteration * no;
+  struct GNUNET_NAMESTORE_Client * nc;
+  int drop;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Client %p disconnected \n", client);
+
+  nc = client_lookup (client);
+  if (nc == NULL)
+  {
+    GNUNET_break (0);
+    return;
+  }
+
+  for (no = nc->op_head; no != NULL; no = no->next)
+  {
+    GNUNET_CONTAINER_DLL_remove (nc->op_head, nc->op_tail, no);
+    GNUNET_free (no);
+  }
+
+  drop = ntohl(msg->drop);
+  if (GNUNET_YES == drop)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Dropping namestore content\n");
+    int stop = GNUNET_NO;
+    int offset = 0;
+    while (stop == GNUNET_NO)
+    {
+      GSN_database->iterate_records (GSN_database->cls, NULL, NULL, offset, &drop_iterator, &stop);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "STOP %u \n");
+      offset ++;
+    }
+  }
+
+  GNUNET_SERVER_client_drop(nc->client);
+  GNUNET_CONTAINER_DLL_remove (client_head, client_tail, nc);
+  GNUNET_free (nc);
+}
 
 static void
 handle_lookup_name_it (void *cls,
@@ -532,35 +605,91 @@ handle_create_record_it (void *cls,
     const struct GNUNET_CRYPTO_RsaSignature *signature)
 {
   struct CreateRecordContext * crc = cls;
-  struct GNUNET_CRYPTO_RsaSignature *signature_new;
+  struct GNUNET_CRYPTO_RsaSignature *signature_new = NULL;
+  struct GNUNET_NAMESTORE_RecordData *rd_new = NULL;
   int res;
+  int exist = GNUNET_SYSERR;
+  int update = GNUNET_NO;
+  int c;
+  int rd_count_new = 0;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found %u existing records for `%s'\n", rd_count, crc->name);
-  struct GNUNET_NAMESTORE_RecordData *rd_new = GNUNET_malloc ((rd_count+1) * sizeof (struct GNUNET_NAMESTORE_RecordData));
-  memcpy (rd_new, rd, rd_count * sizeof (struct GNUNET_NAMESTORE_RecordData));
 
-  rd_new[rd_count] = *(crc->rd);
-
-  signature_new = GNUNET_NAMESTORE_create_signature (crc->pkey, crc->name, rd_new, rd_count+1);
-  if (NULL == signature_new)
+  for (c = 0; c < rd_count; c++)
   {
-    GNUNET_break (0);
-    res = GNUNET_SYSERR;
+
+    if ((crc->rd->record_type == rd[c].record_type) &&
+        (crc->rd->data_size == rd[c].data_size) &&
+        (0 == memcmp (crc->rd->data, rd[c].data, rd[c].data_size)))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found existing records for `%s' to update!\n", crc->name);
+      exist = c;
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "exp %llu %llu!\n", rd[c].expiration.abs_value, crc->rd->expiration.abs_value);
+      if (crc->rd->expiration.abs_value != rd[c].expiration.abs_value)
+
+        update = GNUNET_YES;
+       break;
+    }
+  }
+
+  if (exist == GNUNET_SYSERR)
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "NO existing records for `%s' to update!\n", crc->name);
+
+  if (exist == GNUNET_SYSERR)
+  {
+    rd_new = GNUNET_malloc ((rd_count+1) * sizeof (struct GNUNET_NAMESTORE_RecordData));
+    memcpy (rd_new, rd, rd_count * sizeof (struct GNUNET_NAMESTORE_RecordData));
+    rd_count_new = rd_count + 1;
+    rd_new[rd_count] = *(crc->rd);
+    signature_new = GNUNET_NAMESTORE_create_signature (crc->pkey, crc->name, rd_new, rd_count+1);
+
+    if (NULL == signature_new)
+    {
+      GNUNET_break (0);
+      res = GNUNET_SYSERR;
+      goto end;
+    }
+  }
+  else if (update == GNUNET_NO)
+  {
+    /* Exact same record already exists */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "No update for %s' record required!\n", crc->name);
+    res = GNUNET_NO;
+    goto end;
+  }
+  else if (update == GNUNET_YES)
+  {
+    /* Update record */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Updating existing records for `%s'!\n", crc->name);
+    rd_new = GNUNET_malloc ((rd_count) * sizeof (struct GNUNET_NAMESTORE_RecordData));
+    memcpy (rd_new, rd, rd_count * sizeof (struct GNUNET_NAMESTORE_RecordData));
+    rd_count_new = rd_count;
+    rd_new[exist].expiration = crc->rd->expiration;
+    signature_new = GNUNET_NAMESTORE_create_signature (crc->pkey, crc->name, rd_new, rd_count_new);
+    if (NULL == signature_new)
+    {
+      GNUNET_break (0);
+      res = GNUNET_SYSERR;
+      goto end;
+    }
   }
 
   /* Database operation */
+  GNUNET_assert ((rd_new != NULL) && (rd_count_new > 0));
   res = GSN_database->put_records(GSN_database->cls,
                                 (const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *) crc->pubkey,
                                 crc->expire,
                                 crc->name,
-                                rd_count +1, rd_new,
+                                rd_count_new, rd_new,
                                 signature_new);
   GNUNET_break (GNUNET_OK == res);
+  res = GNUNET_YES;
 
-  GNUNET_free (rd_new);
-  GNUNET_free (signature_new);
+end:
+  GNUNET_free_non_null (rd_new);
+  GNUNET_free_non_null (signature_new);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Update result for name `%s' %s\n", crc->name, (res == GNUNET_OK) ? "SUCCESS" : "FAIL");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Update result for name `%s' %u\n", crc->name, res);
   crc->res = res;
 }
 
@@ -671,10 +800,12 @@ send:
   rcr_msg.gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_CREATE_RESPONSE);
   rcr_msg.gns_header.r_id = htonl (rid);
   rcr_msg.gns_header.header.size = htons (sizeof (struct RecordCreateResponseMessage));
-  if ((GNUNET_OK == res) && (crc.res == GNUNET_OK))
-    rcr_msg.op_result = htons (GNUNET_OK);
-  else
+  if ((GNUNET_OK == res) && (crc.res == GNUNET_YES))
+    rcr_msg.op_result = htons (GNUNET_YES);
+  else if ((GNUNET_OK == res) && (crc.res == GNUNET_NO))
     rcr_msg.op_result = htons (GNUNET_NO);
+  else
+    rcr_msg.op_result = htons (GNUNET_SYSERR);
   GNUNET_SERVER_notification_context_unicast (snc, nc->client, (const struct GNUNET_MessageHeader *) &rcr_msg, GNUNET_NO);
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -1128,6 +1259,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
     {&handle_start, NULL,
      GNUNET_MESSAGE_TYPE_NAMESTORE_START, sizeof (struct StartMessage)},
+    {&handle_stop, NULL,
+     GNUNET_MESSAGE_TYPE_NAMESTORE_DISCONNECT, sizeof (struct DisconnectMessage)},
     {&handle_lookup_name, NULL,
      GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_NAME, 0},
     {&handle_record_put, NULL,
