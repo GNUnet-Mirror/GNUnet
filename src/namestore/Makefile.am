@@ -2,10 +2,11 @@ INCLUDES = -I$(top_srcdir)/src/include
 
 plugindir = $(libdir)/gnunet
 
-pkgcfgdir= $(pkgnamedir)/config.d/
+pkgcfgdir= $(pkgdatadir)/config.d/
 
-pkgcfg_NAME = \
-  namestore.conf
+pkgcfg_DATA = \
+   namestore.conf
+
 
 if MINGW
   WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols

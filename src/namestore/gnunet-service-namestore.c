@@ -464,7 +464,13 @@ static void handle_record_put (void *cls,
 
   rd_ser = &name[name_len];
   struct GNUNET_NAMESTORE_RecordData rd[rd_count];
-  GNUNET_NAMESTORE_records_deserialize(rd_ser_len, rd_ser, rd_count, rd);
+  res = GNUNET_NAMESTORE_records_deserialize(rd_ser_len, rd_ser, rd_count, rd);
+  if (res != GNUNET_OK)
+  {
+    GNUNET_break_op (0);
+    goto send;
+  }
+
 
   GNUNET_HashCode zone_hash;
   GNUNET_CRYPTO_hash (zone_key, key_len, &zone_hash);
@@ -483,7 +489,7 @@ static void handle_record_put (void *cls,
       name, (res == GNUNET_OK) ? "OK" : "FAIL");
 
   /* Send response */
-
+send:
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message\n", "RECORD_PUT_RESPONSE");
   rpr_msg.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_PUT_RESPONSE);
   rpr_msg.op_id = rp_msg->gns_header.r_id;
@@ -502,8 +508,6 @@ struct CreateRecordContext
   struct GNUNET_NAMESTORE_RecordData *rd;
   struct GNUNET_CRYPTO_RsaPrivateKey *pkey;
   struct GNUNET_TIME_Absolute expire;
-  uint32_t op_id;
-  struct GNUNET_NAMESTORE_Client *nc;
 };
 
 
@@ -518,7 +522,6 @@ handle_create_record_it (void *cls,
 {
   struct CreateRecordContext * crc = cls;
   struct GNUNET_CRYPTO_RsaSignature *signature_new;
-  struct RecordCreateResponseMessage rcr_msg;
   int res;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found %u existing records for `%s'\n", rd_count, name);
@@ -541,18 +544,6 @@ handle_create_record_it (void *cls,
   GNUNET_free (signature_new);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Update result for name %u\n", res);
-  /* Send response */
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message\n", "RECORD_CREATE_RESPONSE");
-  rcr_msg.gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_CREATE_RESPONSE);
-  rcr_msg.gns_header.r_id = htonl (crc->op_id);
-  rcr_msg.gns_header.header.size = htons (sizeof (struct RecordCreateResponseMessage));
-  if (GNUNET_OK == res)
-    rcr_msg.op_result = htons (GNUNET_OK);
-  else
-    rcr_msg.op_result = htons (GNUNET_NO);
-  GNUNET_SERVER_notification_context_unicast (snc, crc->nc->client, (const struct GNUNET_MessageHeader *) &rcr_msg, GNUNET_NO);
-
 }
 
 static void handle_record_create (void *cls,
@@ -564,6 +555,7 @@ static void handle_record_create (void *cls,
   struct CreateRecordContext crc;
   struct GNUNET_CRYPTO_RsaPrivateKey *pkey;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pub;
+  struct RecordCreateResponseMessage rcr_msg;
   GNUNET_HashCode pubkey_hash;
   size_t name_len;
   size_t msg_size;
@@ -575,7 +567,6 @@ static void handle_record_create (void *cls,
   char *name_tmp;
   char *rd_ser;
   int rd_count;
-
 
   int res = GNUNET_SYSERR;
 
@@ -630,7 +621,12 @@ static void handle_record_create (void *cls,
   }
 
   struct GNUNET_NAMESTORE_RecordData rd[rd_count];
-  GNUNET_NAMESTORE_records_deserialize(rd_ser_len, rd_ser, rd_count, rd);
+  res = GNUNET_NAMESTORE_records_deserialize(rd_ser_len, rd_ser, rd_count, rd);
+  if (res != GNUNET_OK)
+  {
+    GNUNET_break_op (0);
+    goto send;
+  }
   GNUNET_assert (rd_count == 1);
 
   /* Extracting and converting private key */
@@ -641,8 +637,6 @@ static void handle_record_create (void *cls,
 
   crc.pkey = pkey;
   crc.rd = rd;
-  crc.nc = nc;
-  crc.op_id = rid;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Creating record for name `%s' in zone `%s'\n", name_tmp, GNUNET_h2s(&pubkey_hash));
 
@@ -650,6 +644,18 @@ static void handle_record_create (void *cls,
   res = GSN_database->iterate_records(GSN_database->cls, &pubkey_hash, name_tmp, 0, &handle_create_record_it, &crc);
 
   GNUNET_CRYPTO_rsa_key_free(pkey);
+
+  /* Send response */
+send:
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message\n", "RECORD_CREATE_RESPONSE");
+  rcr_msg.gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_CREATE_RESPONSE);
+  rcr_msg.gns_header.r_id = htonl (rid);
+  rcr_msg.gns_header.header.size = htons (sizeof (struct RecordCreateResponseMessage));
+  if (GNUNET_OK == res)
+    rcr_msg.op_result = htons (GNUNET_OK);
+  else
+    rcr_msg.op_result = htons (GNUNET_NO);
+  GNUNET_SERVER_notification_context_unicast (snc, nc->client, (const struct GNUNET_MessageHeader *) &rcr_msg, GNUNET_NO);
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
