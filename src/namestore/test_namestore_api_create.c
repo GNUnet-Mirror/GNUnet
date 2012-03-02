@@ -50,8 +50,8 @@ static struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pubkey;
 struct GNUNET_CRYPTO_RsaSignature *s_signature;
 struct GNUNET_CRYPTO_RsaSignature *s_signature_updated;
 static GNUNET_HashCode s_zone;
-struct GNUNET_NAMESTORE_RecordData *s_rd;
-struct GNUNET_NAMESTORE_RecordData *s_create_rd;
+struct GNUNET_NAMESTORE_RecordData *s_first_record;
+struct GNUNET_NAMESTORE_RecordData *s_second_record;
 static char *s_name;
 
 
@@ -117,11 +117,9 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     endbadly_task = GNUNET_SCHEDULER_NO_TASK;
   }
 
-  int c;
-  for (c = 0; c < RECORDS; c++)
-    GNUNET_free_non_null((void *) s_rd[c].data);
-  GNUNET_free (s_rd);
-  //GNUNET_free (s_create_rd);
+  GNUNET_free ((void *) s_first_record->data);
+  GNUNET_free (s_first_record);
+  GNUNET_free_non_null (s_second_record);
 
   if (privkey != NULL)
     GNUNET_CRYPTO_rsa_key_free (privkey);
@@ -135,7 +133,7 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     stop_arm();
 }
 
-void name_lookup_proc (void *cls,
+void name_lookup_second_proc (void *cls,
                             const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
                             struct GNUNET_TIME_Absolute expire,
                             const char *n,
@@ -143,6 +141,105 @@ void name_lookup_proc (void *cls,
                             const struct GNUNET_NAMESTORE_RecordData *rd,
                             const struct GNUNET_CRYPTO_RsaSignature *signature)
 {
+  static int found = GNUNET_NO;
+  int failed = GNUNET_NO;
+  int c;
+
+  if (n != NULL)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Checking returned results\n");
+    if (0 != memcmp (zone_key, &pubkey, sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded)))
+    {
+      GNUNET_break (0);
+      failed = GNUNET_YES;
+    }
+
+    if (0 != strcmp(n, s_name))
+    {
+      GNUNET_break (0);
+      failed = GNUNET_YES;
+    }
+
+    if (2 != rd_count)
+    {
+      GNUNET_break (0);
+      failed = GNUNET_YES;
+    }
+
+    for (c = 0; c < rd_count; c++)
+    {
+      if ((GNUNET_NO == GNUNET_NAMESTORE_records_cmp(&rd[c], s_first_record)) &&
+          (GNUNET_NO == GNUNET_NAMESTORE_records_cmp(&rd[c], s_second_record)))
+      {
+        GNUNET_break (0);
+        failed = GNUNET_YES;
+      }
+    }
+
+    if (GNUNET_OK != GNUNET_NAMESTORE_verify_signature(&pubkey, n, rd_count, rd, signature))
+    {
+      GNUNET_break (0);
+      failed = GNUNET_YES;
+    }
+
+    struct GNUNET_NAMESTORE_RecordData rd_new[2];
+    rd_new[0] = *s_first_record;
+    rd_new[1] = *s_second_record;
+    s_signature_updated = GNUNET_NAMESTORE_create_signature(privkey, s_name, rd_new, 2);
+
+    if (0 != memcmp (s_signature_updated, signature, sizeof (struct GNUNET_CRYPTO_RsaSignature)))
+    {
+      GNUNET_break (0);
+      failed = GNUNET_YES;
+    }
+
+    found = GNUNET_YES;
+    if (failed == GNUNET_NO)
+      res = 0;
+    else
+      res = 1;
+  }
+  else
+  {
+    if (found != GNUNET_YES)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to lookup records for name `%s'\n", s_name);
+      res = 1;
+    }
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Lookup done for name %s'\n", s_name);
+  }
+  GNUNET_SCHEDULER_add_now(&end, NULL);
+}
+
+
+void
+create_second_cont (void *cls, int32_t success, const char *emsg)
+{
+  char *name = cls;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Create second record for `%s': %s\n", name, (success == GNUNET_OK) ? "SUCCESS" : "FAIL");
+  if (success == GNUNET_OK)
+  {
+    res = 0;
+    GNUNET_NAMESTORE_lookup_record (nsh, &s_zone, name, 0, &name_lookup_second_proc, name);
+  }
+  else
+  {
+    res = 1;
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to put records for name `%s'\n", name);
+    GNUNET_SCHEDULER_add_now(&end, NULL);
+  }
+
+}
+
+void name_lookup_initial_proc (void *cls,
+                            const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
+                            struct GNUNET_TIME_Absolute expire,
+                            const char *n,
+                            unsigned int rd_count,
+                            const struct GNUNET_NAMESTORE_RecordData *rd,
+                            const struct GNUNET_CRYPTO_RsaSignature *signature)
+{
+  char * name = cls;
   static int found = GNUNET_NO;
   int failed = GNUNET_NO;
   int c;
@@ -170,10 +267,11 @@ void name_lookup_proc (void *cls,
 
     for (c = 0; c < RECORDS; c++)
     {
-      GNUNET_break (rd[c].expiration.abs_value == s_rd[c].expiration.abs_value);
-      GNUNET_break (rd[c].record_type == TEST_RECORD_TYPE);
-      GNUNET_break (rd[c].data_size == TEST_RECORD_DATALEN);
-      GNUNET_break (0 == memcmp (rd[c].data, s_rd[c].data, TEST_RECORD_DATALEN));
+      if (GNUNET_NO == GNUNET_NAMESTORE_records_cmp(&rd[c], &s_first_record[c]))
+      {
+        GNUNET_break (0);
+        failed = GNUNET_YES;
+      }
     }
 
     if (GNUNET_OK != GNUNET_NAMESTORE_verify_signature(&pubkey, n, rd_count, rd, signature))
@@ -193,6 +291,18 @@ void name_lookup_proc (void *cls,
       res = 0;
     else
       res = 1;
+
+    /* create a second record */
+    s_second_record = GNUNET_malloc(sizeof (struct GNUNET_NAMESTORE_RecordData) + TEST_CREATE_RECORD_DATALEN);
+    s_second_record->expiration = GNUNET_TIME_absolute_get_forever();
+    s_second_record->record_type = TEST_CREATE_RECORD_TYPE;
+    s_second_record->flags = GNUNET_NAMESTORE_RF_AUTHORITY;
+    s_second_record->data = &s_second_record[1];
+    s_second_record->data_size = TEST_CREATE_RECORD_DATALEN;
+    memset ((char *) s_second_record->data, TEST_CREATE_RECORD_DATA, TEST_CREATE_RECORD_DATALEN);
+
+    GNUNET_NAMESTORE_record_create (nsh, privkey, name, s_second_record, &create_second_cont, name);
+
   }
   else
   {
@@ -202,19 +312,20 @@ void name_lookup_proc (void *cls,
       res = 1;
     }
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Lookup done for name %s'\n", s_name);
+    GNUNET_SCHEDULER_add_now (&end, NULL);
   }
-  GNUNET_SCHEDULER_add_now(&end, NULL);
 }
 
 void
-create_cont (void *cls, int32_t success, const char *emsg)
+create_first_cont (void *cls, int32_t success, const char *emsg)
 {
   char *name = cls;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Create record for `%s': %s\n", name, (success == GNUNET_OK) ? "SUCCESS" : "FAIL");
   if (success == GNUNET_OK)
   {
     res = 0;
-    GNUNET_NAMESTORE_lookup_record (nsh, &s_zone, name, 0, &name_lookup_proc, name);
+    /* check if record was created correct */
+    GNUNET_NAMESTORE_lookup_record (nsh, &s_zone, name, 0, &name_lookup_initial_proc, name);
   }
   else
   {
@@ -232,16 +343,7 @@ put_cont (void *cls, int32_t success, const char *emsg)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Name store added record for `%s': %s\n", name, (success == GNUNET_OK) ? "SUCCESS" : "FAIL");
   if (success == GNUNET_OK)
   {
-    res = 0;
-    s_create_rd = GNUNET_malloc(sizeof (struct GNUNET_NAMESTORE_RecordData) + TEST_CREATE_RECORD_DATALEN);
-    s_create_rd->expiration = GNUNET_TIME_absolute_get_forever();
-    s_create_rd->record_type = TEST_CREATE_RECORD_TYPE;
-    s_create_rd->flags = GNUNET_NAMESTORE_RF_AUTHORITY;
-    s_create_rd->data = &s_create_rd[1];
-    s_create_rd->data_size = TEST_CREATE_RECORD_DATALEN;
-    memset ((char *) s_create_rd->data, TEST_CREATE_RECORD_DATA, TEST_CREATE_RECORD_DATALEN);
 
-    GNUNET_NAMESTORE_record_create (nsh, privkey, name, s_create_rd, &create_cont, name);
   }
   else
   {
@@ -305,13 +407,13 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   /* create record */
   s_name = "dummy.dummy.gnunet";
-  s_rd = create_record (1);
+  s_first_record = create_record (1);
 
-  rd_ser_len = GNUNET_NAMESTORE_records_get_size(1, s_rd);
+  rd_ser_len = GNUNET_NAMESTORE_records_get_size(1, s_first_record);
   char rd_ser[rd_ser_len];
-  GNUNET_NAMESTORE_records_serialize(1, s_rd, rd_ser_len, rd_ser);
+  GNUNET_NAMESTORE_records_serialize(1, s_first_record, rd_ser_len, rd_ser);
 
-  s_signature = GNUNET_NAMESTORE_create_signature(privkey, s_name, s_rd, 1);
+  s_signature = GNUNET_NAMESTORE_create_signature(privkey, s_name, s_first_record, 1);
 
   /* create random zone hash */
   GNUNET_CRYPTO_hash (&pubkey, sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), &s_zone);
@@ -324,11 +426,11 @@ run (void *cls, char *const *args, const char *cfgfile,
   nsh = GNUNET_NAMESTORE_connect (cfg);
   GNUNET_break (NULL != nsh);
 
-  GNUNET_break (s_rd != NULL);
+  GNUNET_break (s_first_record != NULL);
   GNUNET_break (s_name != NULL);
 
   /* create initial record */
-  GNUNET_NAMESTORE_record_create (nsh, privkey, s_name, s_rd, &create_cont, s_name);
+  GNUNET_NAMESTORE_record_create (nsh, privkey, s_name, s_first_record, &create_first_cont, s_name);
 }
 
 static int

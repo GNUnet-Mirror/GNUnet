@@ -43,7 +43,7 @@ static struct GNUNET_OS_Process *arm;
 static struct GNUNET_CRYPTO_RsaPrivateKey * privkey;
 static struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pubkey;
 
-struct GNUNET_NAMESTORE_RecordData *s_rd;
+struct GNUNET_NAMESTORE_RecordData *first_record;
 
 static int res;
 
@@ -191,23 +191,23 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   /* create record */
   char * s_name = "dummy.dummy.gnunet";
-  s_rd = create_record (RECORDS);
+  first_record = create_record (RECORDS);
 
-  signature = GNUNET_NAMESTORE_create_signature(privkey, s_name, s_rd, RECORDS);
+  signature = GNUNET_NAMESTORE_create_signature(privkey, s_name, first_record, RECORDS);
 
-  GNUNET_break (s_rd != NULL);
+  GNUNET_break (first_record != NULL);
   GNUNET_break (s_name != NULL);
 
   GNUNET_NAMESTORE_record_put (nsh, &pubkey, s_name,
                               GNUNET_TIME_absolute_get_forever(),
-                              RECORDS, s_rd, signature, put_cont, s_name);
+                              RECORDS, first_record, signature, put_cont, s_name);
 
   GNUNET_free (signature);
 
   int c;
   for (c = 0; c < RECORDS; c++)
-    GNUNET_free_non_null((void *) s_rd[c].data);
-  GNUNET_free (s_rd);
+    GNUNET_free_non_null((void *) first_record[c].data);
+  GNUNET_free (first_record);
 
 }
 

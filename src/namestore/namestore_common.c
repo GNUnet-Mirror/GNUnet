@@ -131,6 +131,27 @@ GNUNET_NAMESTORE_records_serialize (unsigned int rd_count,
   return off;
 }
 
+/**
+ * Compares if two records are equal
+ *
+ * @param a record
+ * @param b record
+ *
+ * @return GNUNET_YES or GNUNET_NO
+ */
+int
+GNUNET_NAMESTORE_records_cmp (const struct GNUNET_NAMESTORE_RecordData *a,
+                              const struct GNUNET_NAMESTORE_RecordData *b)
+{
+  if ((a->record_type == b->record_type) &&
+      (a->expiration.abs_value == b->expiration.abs_value) &&
+      (a->data_size == b->data_size) &&
+      (0 == memcmp (a->data, b->data, a->data_size)))
+    return GNUNET_YES;
+  else
+    return GNUNET_NO;
+}
+
 
 /**
  * Deserialize the given records to the given destination.

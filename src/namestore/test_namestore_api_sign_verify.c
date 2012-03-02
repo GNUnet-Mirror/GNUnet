@@ -41,7 +41,7 @@
 static struct GNUNET_CRYPTO_RsaPrivateKey * privkey;
 static struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pubkey;
 struct GNUNET_CRYPTO_RsaSignature s_signature;
-struct GNUNET_NAMESTORE_RecordData *s_rd;
+struct GNUNET_NAMESTORE_RecordData *first_record;
 static char *s_name;
 
 static int res;
@@ -84,21 +84,21 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   /* create record */
   s_name = "dummy.dummy.gnunet";
-  s_rd = create_record (RECORDS);
+  first_record = create_record (RECORDS);
 
-  signature = GNUNET_NAMESTORE_create_signature (privkey, s_name, s_rd, RECORDS);
+  signature = GNUNET_NAMESTORE_create_signature (privkey, s_name, first_record, RECORDS);
   GNUNET_assert (signature != NULL);
 
-  res_c = GNUNET_NAMESTORE_verify_signature(&pubkey, s_name, RECORDS, s_rd, signature);
+  res_c = GNUNET_NAMESTORE_verify_signature(&pubkey, s_name, RECORDS, first_record, signature);
   GNUNET_break (res == GNUNET_OK);
 
   GNUNET_free (signature);
 
-  signature = GNUNET_NAMESTORE_create_signature (privkey, s_name, s_rd, RECORDS);
+  signature = GNUNET_NAMESTORE_create_signature (privkey, s_name, first_record, RECORDS);
   GNUNET_break (signature != NULL);
 
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "FYI: The next warning is intended!\n");
-  res_w = GNUNET_NAMESTORE_verify_signature(&pubkey, s_name, RECORDS - 1, s_rd, signature);
+  res_w = GNUNET_NAMESTORE_verify_signature(&pubkey, s_name, RECORDS - 1, first_record, signature);
   GNUNET_break (res_w == GNUNET_SYSERR);
 
   GNUNET_free (signature);
