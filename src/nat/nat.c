@@ -1308,32 +1308,34 @@ GNUNET_NAT_unregister (struct GNUNET_NAT_Handle *h)
  * gnunet-helper-nat-client to send dummy ICMP responses to cause
  * that peer to connect to us (connection reversal).
  *
- * @param h NAT handle for us (largely used for configuration)
- * @param sa the address of the peer (IPv4-only)
+ * @return GNUNET_SYSERR on error, GNUNET_NO if nat client is disabled,
+ *         GNUNET_OK otherwise
  */
-void
+int
 GNUNET_NAT_run_client (struct GNUNET_NAT_Handle *h,
                        const struct sockaddr_in *sa)
+
+
 {
   char inet4[INET_ADDRSTRLEN];
   char port_as_string[6];
   struct GNUNET_OS_Process *proc;
 
   if (GNUNET_YES != h->enable_nat_client)
-    return;                     /* not permitted / possible */
+    return GNUNET_NO;                     /* not permitted / possible */
 
   if (h->internal_address == NULL)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING, "nat",
          _
          ("Internal IP address not known, cannot use ICMP NAT traversal method\n"));
-    return;
+    return GNUNET_SYSERR;
   }
   GNUNET_assert (sa->sin_family == AF_INET);
   if (NULL == inet_ntop (AF_INET, &sa->sin_addr, inet4, INET_ADDRSTRLEN))
   {
     GNUNET_log_from_strerror (GNUNET_ERROR_TYPE_WARNING, "nat", "inet_ntop");
-    return;
+    return GNUNET_SYSERR;
   }
   GNUNET_snprintf (port_as_string, sizeof (port_as_string), "%d", h->adv_port);
 #if DEBUG_NAT
@@ -1347,11 +1349,12 @@ GNUNET_NAT_run_client (struct GNUNET_NAT_Handle *h,
                                "gnunet-helper-nat-client", h->internal_address,
                                inet4, port_as_string, NULL);
   if (NULL == proc)
-    return;
+    return GNUNET_SYSERR;
   /* we know that the gnunet-helper-nat-client will terminate virtually
    * instantly */
   GNUNET_OS_process_wait (proc);
   GNUNET_OS_process_close (proc);
+  return GNUNET_OK;
 }
 
 
