@@ -3,12 +3,12 @@
 #endif
 
 if HAVE_EXPERIMENTAL
- EXP_DIR = chat dv gns stream
+ EXP_DIR = chat dv stream
 endif
 
 if LINUX
 # All of these currently only work on GNU/Linux
- LINUX_DIR = dns exit vpn pt
+ LINUX_DIR = dns gns exit vpn pt
 endif
 
 
