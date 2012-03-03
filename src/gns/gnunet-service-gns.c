@@ -1062,36 +1062,6 @@ handle_dns_request(void *cls,
 }
 
 /**
- * test function that stores some data in the namestore
- * This will also be replaced by a test progrm that
- * directl interfaces with the namestore
- */
-static void
-put_some_records(void)
-{
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Populating namestore\n");
-  /* put an A record into namestore FIXME use gnunet.org */
-  char* ipB = "5.6.7.8";
-
-  struct in_addr *web = GNUNET_malloc(sizeof(struct in_addr));
-  struct GNUNET_NAMESTORE_RecordData rdb_web;
-
-  GNUNET_assert(1 == inet_pton (AF_INET, ipB, web));
-
-  rdb_web.data_size = sizeof(struct in_addr);
-  rdb_web.data = web;
-  rdb_web.record_type = GNUNET_DNSPARSER_TYPE_A;
-  rdb_web.expiration = GNUNET_TIME_absolute_get_forever ();
-  
-  GNUNET_NAMESTORE_record_create (namestore_handle,
-                                  zone_key,
-                                  "www",
-                                  &rdb_web,
-                                  NULL,
-                                  NULL);
-}
-
-/**
  * Method called periodicattluy that triggers
  * iteration over root zone
  *
@@ -1226,40 +1196,6 @@ put_gns_record(void *cls,
 }
 
 /**
- * Puts a single trusted entity into the
- * namestore. Will be replaced in a testcase
- * that directly interacts with a persistent
- * namestore.
- *
- * @param name name of entity
- * @param keyfile keyfile
- */
-static void
-put_trusted(char* name, char* keyfile)
-{
-  struct GNUNET_NAMESTORE_RecordData rd;
-  struct GNUNET_CRYPTO_RsaPrivateKey *key;
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *pkey;
-  pkey = GNUNET_malloc(sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
-
-  key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
-  GNUNET_CRYPTO_rsa_key_get_public (key, pkey);
-  rd.data = pkey;
-  rd.expiration = GNUNET_TIME_absolute_get_forever ();
-  rd.data_size = sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded);
-  rd.record_type = GNUNET_GNS_RECORD_PKEY;
-
-  GNUNET_NAMESTORE_record_create (namestore_handle,
-                                  zone_key,
-                                  name,
-                                  &rd,
-                                  NULL,
-                                  NULL);
-}
-
-
-
-/**
  * Periodically iterate over our zone and store everything in dht
  *
  * @param cls NULL
@@ -1305,7 +1241,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Initializing GNS\n");
 
   char* keyfile;
-  char* trusted_entities;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pkey;
 
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (c, "gns",
