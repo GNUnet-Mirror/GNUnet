@@ -112,7 +112,7 @@ finish_testing (void *cls, int32_t success, const char *emsg)
 
   if (!he)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "gethostbyname failed, rp_filtering?\n");
     ok = 2;
   }
