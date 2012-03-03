@@ -24,9 +24,6 @@ bin_PROGRAMS = \
 #noinst_PROGRAMS = \
 #  gnunet-gns-lookup
 
-check_SCRIPTS = \
- test_gnunet_gns.sh
-
 check_PROGRAMS = \
   test_gns_simple_lookup \
   test_gns_simple_delegated_lookup \
@@ -146,9 +143,8 @@ libgnunet_plugin_block_gns_la_DEPENDENCIES = \
 # $(top_builddir)/src/util/libgnunetutil.la
 
 if ENABLE_TEST_RUN
-TESTS = $(check_PROGRAMS)  $(check_SCRIPTS)
+TESTS = $(check_PROGRAMS)
 endif
 
 EXTRA_DIST = \
-  $(check_SCRIPTS) \
   test_gns_simple_lookup.conf
