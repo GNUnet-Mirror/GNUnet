@@ -266,8 +266,8 @@ process_authority_dht_result(void* cls,
   {
     struct GNUNET_NAMESTORE_RecordData rd[num_records];
     
-    rd_data += strlen(name) + sizeof(struct GNSNameRecordBlock);
-    rd_size = size - strlen(name) - sizeof(struct GNSNameRecordBlock);
+    rd_data += strlen(name) + 1 + sizeof(struct GNSNameRecordBlock);
+    rd_size = size - strlen(name) - 1 - sizeof(struct GNSNameRecordBlock);
   
     if (GNUNET_SYSERR == GNUNET_NAMESTORE_records_deserialize (rd_size,
                                                                rd_data,
@@ -427,8 +427,8 @@ process_name_dht_result(void* cls,
   {
     struct GNUNET_NAMESTORE_RecordData rd[num_records];
 
-    rd_data += strlen(name) + sizeof(struct GNSNameRecordBlock);
-    rd_size = size - strlen(name) - sizeof(struct GNSNameRecordBlock);
+    rd_data += strlen(name) + 1 + sizeof(struct GNSNameRecordBlock);
+    rd_size = size - strlen(name) - 1 - sizeof(struct GNSNameRecordBlock);
   
     if (GNUNET_SYSERR == GNUNET_NAMESTORE_records_deserialize (rd_size,
                                                                rd_data,
@@ -503,6 +503,9 @@ resolve_name_dht(struct GNUNET_GNS_ResolverHandle *rh, const char* name)
   GNUNET_HashCode name_hash;
   GNUNET_HashCode lookup_key;
   struct GNUNET_CRYPTO_HashAsciiEncoded lookup_key_string;
+
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "A\n");
 
   GNUNET_CRYPTO_hash(name, strlen(name), &name_hash);
   GNUNET_CRYPTO_hash_xor(&name_hash, &rh->authority, &lookup_key);
@@ -793,7 +796,7 @@ process_authoritative_result(void* cls,
       {
         GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                    "trying dht...\n");
-        resolve_name_dht(rh, name);
+        resolve_name_dht(rh, rh->name);
         return;
       }
       else
@@ -1181,7 +1184,9 @@ put_gns_record(void *cls,
                                                 rd_payload_length,
                                                 nrb_data))
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Recor serialization failed!\n");
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Record serialization failed!\n");
+    return;
+    //FIXME what to do
   }
 
 

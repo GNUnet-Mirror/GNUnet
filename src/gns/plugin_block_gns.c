@@ -109,6 +109,8 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
                                                                rd_count,
                                                                rd))
     {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                 "Data invalid (%d bytes, %d records)\n", rd_len, rd_count);
       return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
     }
     
@@ -125,7 +127,7 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
                                                         name,
                                                         rd_count,
                                                         rd,
-                                                        NULL))
+                                                        &nrb->signature))
     {
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Signature invalid\n");
       return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
