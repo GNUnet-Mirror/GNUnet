@@ -44,6 +44,11 @@ extern "C"
 #endif
 
 /**
+ * Record type for GNS zone transfer ("PKEY").
+ */
+#define GNUNET_GNS_TYPE_PKEY 65536
+
+/**
  * Entry in the queue.
  */
 struct GNUNET_NAMESTORE_QueueEntry;
