@@ -8,3 +8,7 @@ UNIXPATH = /tmp/gnunet-service-gns.sock
 ZONEKEY = zonekey
 HIJACK_DNS = YES
 OPTIONS = -L INFO
+
+[fcfsd]
+HTTPPORT = 18080
+ZONEKEY = $SERVICEHOME/fcfsd/.zonekey
