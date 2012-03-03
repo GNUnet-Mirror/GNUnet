@@ -18,6 +18,10 @@
   Boston, MA 02111-1307, USA.
 */
 
+/* TODO:
+ * Checks for matching the sender and socket->other_peer in server
+ * message handlers  */
+
 /**
  * @file stream/stream_api.c
  * @brief Implementation of the stream library
@@ -257,6 +261,11 @@ struct GNUNET_STREAM_Socket
   unsigned int retries;
 
   /**
+   * The application port number (type: uint32_t)
+   */
+  GNUNET_MESH_ApplicationType app_port;
+
+  /**
    * The session id associated with this stream connection
    * FIXME: Not used currently, may be removed
    */
@@ -328,6 +337,7 @@ struct GNUNET_STREAM_ListenSocket
 
   /**
    * The service port
+   * FIXME: Remove if not required!
    */
   GNUNET_MESH_ApplicationType port;
 };
@@ -1314,6 +1324,12 @@ server_handle_hello (void *cls,
   struct GNUNET_STREAM_HelloAckMessage *reply;
 
   GNUNET_assert (socket->tunnel == tunnel);
+
+  /* Catch possible protocol breaks */
+  GNUNET_break_op (0 != memcmp (&socket->other_peer, 
+                                sender,
+                                sizeof (struct GNUNET_PeerIdentity)));
+
   if (STATE_INIT == socket->state)
     {
       /* Get the random sequence number */
@@ -1791,140 +1807,6 @@ mesh_peer_disconnect_callback (void *cls,
 }
 
 
-/*****************/
-/* API functions */
-/*****************/
-
-
-/**
- * Tries to open a stream to the target peer
- *
- * @param cfg configuration to use
- * @param target the target peer to which the stream has to be opened
- * @param app_port the application port number which uniquely identifies this
- *            stream
- * @param open_cb this function will be called after stream has be established 
- * @param open_cb_cls the closure for open_cb
- * @param ... options to the stream, terminated by GNUNET_STREAM_OPTION_END
- * @return if successful it returns the stream socket; NULL if stream cannot be
- *         opened 
- */
-struct GNUNET_STREAM_Socket *
-GNUNET_STREAM_open (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                    const struct GNUNET_PeerIdentity *target,
-                    GNUNET_MESH_ApplicationType app_port,
-                    GNUNET_STREAM_OpenCallback open_cb,
-                    void *open_cb_cls,
-                    ...)
-{
-  struct GNUNET_STREAM_Socket *socket;
-  enum GNUNET_STREAM_Option option;
-  va_list vargs;                /* Variable arguments */
-
-  socket = GNUNET_malloc (sizeof (struct GNUNET_STREAM_Socket));
-  socket->other_peer = *target;
-  socket->open_cb = open_cb;
-  socket->open_cls = open_cb_cls;
-
-  /* Set defaults */
-  socket->retransmit_timeout = 
-    GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, default_timeout);
-
-  va_start (vargs, open_cb_cls); /* Parse variable args */
-  do {
-    option = va_arg (vargs, enum GNUNET_STREAM_Option);
-    switch (option)
-      {
-      case GNUNET_STREAM_OPTION_INITIAL_RETRANSMIT_TIMEOUT:
-        /* Expect struct GNUNET_TIME_Relative */
-        socket->retransmit_timeout = va_arg (vargs,
-                                             struct GNUNET_TIME_Relative);
-        break;
-      case GNUNET_STREAM_OPTION_END:
-        break;
-      }
-  } while (GNUNET_STREAM_OPTION_END != option);
-  va_end (vargs);               /* End of variable args parsing */
-
-  socket->mesh = GNUNET_MESH_connect (cfg, /* the configuration handle */
-                                      1,  /* QUEUE size as parameter? */
-                                      socket, /* cls */
-                                      NULL, /* No inbound tunnel handler */
-                                      NULL, /* No inbound tunnel cleaner */
-                                      client_message_handlers,
-                                      NULL); /* We don't get inbound tunnels */
-  // FIXME: if (NULL == socket->mesh) ...
-
-  /* Now create the mesh tunnel to target */
-  socket->tunnel = GNUNET_MESH_tunnel_create (socket->mesh,
-                                              NULL, /* Tunnel context */
-                                              &mesh_peer_connect_callback,
-                                              &mesh_peer_disconnect_callback,
-                                              socket);
-  // FIXME: if (NULL == socket->tunnel) ...
-
-  return socket;
-}
-
-
-/**
- * Closes the stream
- *
- * @param socket the stream socket
- */
-void
-GNUNET_STREAM_close (struct GNUNET_STREAM_Socket *socket)
-{
-  struct MessageQueue *head;
-
-  if (socket->read_task != GNUNET_SCHEDULER_NO_TASK)
-  {
-    /* socket closed with read task pending!? */
-    GNUNET_break (0);
-    GNUNET_SCHEDULER_cancel (socket->read_task);
-    socket->read_task = GNUNET_SCHEDULER_NO_TASK;
-  }
-
-  /* Clear Transmit handles */
-  if (NULL != socket->transmit_handle)
-    {
-      GNUNET_MESH_notify_transmit_ready_cancel (socket->transmit_handle);
-      socket->transmit_handle = NULL;
-    }
-
-  /* Clear existing message queue */
-  while (NULL != (head = socket->queue_head)) {
-    GNUNET_CONTAINER_DLL_remove (socket->queue_head,
-				 socket->queue_tail,
-				 head);
-    GNUNET_free (head->message);
-    GNUNET_free (head);
-  }
-
-  /* Close associated tunnel */
-  if (NULL != socket->tunnel)
-    {
-      GNUNET_MESH_tunnel_destroy (socket->tunnel);
-      socket->tunnel = NULL;
-    }
-
-  /* Close mesh connection */
-  if (NULL != socket->mesh)
-    {
-      GNUNET_MESH_disconnect (socket->mesh);
-      socket->mesh = NULL;
-    }
-  
-  /* Release receive buffer */
-  if (NULL != socket->receive_buffer)
-    {
-      GNUNET_free (socket->receive_buffer);
-    }
-
-  GNUNET_free (socket);
-}
-
-
 /**
  * Method called whenever a peer creates a tunnel to us
  *
@@ -1994,6 +1876,159 @@ tunnel_cleaner (void *cls,
       socket->transmit_handle = NULL;
     }
   socket->tunnel = NULL;
+}
+
+
+/*****************/
+/* API functions */
+/*****************/
+
+
+/**
+ * Tries to open a stream to the target peer
+ *
+ * @param cfg configuration to use
+ * @param target the target peer to which the stream has to be opened
+ * @param app_port the application port number which uniquely identifies this
+ *            stream
+ * @param open_cb this function will be called after stream has be established 
+ * @param open_cb_cls the closure for open_cb
+ * @param ... options to the stream, terminated by GNUNET_STREAM_OPTION_END
+ * @return if successful it returns the stream socket; NULL if stream cannot be
+ *         opened 
+ */
+struct GNUNET_STREAM_Socket *
+GNUNET_STREAM_open (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                    const struct GNUNET_PeerIdentity *target,
+                    GNUNET_MESH_ApplicationType app_port,
+                    GNUNET_STREAM_OpenCallback open_cb,
+                    void *open_cb_cls,
+                    ...)
+{
+  struct GNUNET_STREAM_Socket *socket;
+  enum GNUNET_STREAM_Option option;
+  va_list vargs;                /* Variable arguments */
+  GNUNET_MESH_ApplicationType no_port;
+
+  socket = GNUNET_malloc (sizeof (struct GNUNET_STREAM_Socket));
+  socket->other_peer = *target;
+  socket->open_cb = open_cb;
+  socket->open_cls = open_cb_cls;
+
+  /* Set defaults */
+  socket->retransmit_timeout = 
+    GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, default_timeout);
+
+  va_start (vargs, open_cb_cls); /* Parse variable args */
+  do {
+    option = va_arg (vargs, enum GNUNET_STREAM_Option);
+    switch (option)
+      {
+      case GNUNET_STREAM_OPTION_INITIAL_RETRANSMIT_TIMEOUT:
+        /* Expect struct GNUNET_TIME_Relative */
+        socket->retransmit_timeout = va_arg (vargs,
+                                             struct GNUNET_TIME_Relative);
+        break;
+      case GNUNET_STREAM_OPTION_END:
+        break;
+      }
+  } while (GNUNET_STREAM_OPTION_END != option);
+  va_end (vargs);               /* End of variable args parsing */
+  no_port = 0;
+  socket->mesh = GNUNET_MESH_connect (cfg, /* the configuration handle */
+                                      1,  /* QUEUE size as parameter? */
+                                      socket, /* cls */
+                                      NULL, /* No inbound tunnel handler */
+                                      NULL, /* No inbound tunnel cleaner */
+                                      client_message_handlers,
+                                      &no_port); /* We don't get inbound tunnels */
+  if (NULL == socket->mesh)   /* Fail if we cannot connect to mesh */
+    {
+      GNUNET_free (socket);
+      return NULL;
+    }
+
+  /* Now create the mesh tunnel to target */
+  socket->tunnel = GNUNET_MESH_tunnel_create (socket->mesh,
+                                              NULL, /* Tunnel context */
+                                              &mesh_peer_connect_callback,
+                                              &mesh_peer_disconnect_callback,
+                                              socket);
+  // FIXME: if (NULL == socket->tunnel) ...
+
+  return socket;
+}
+
+
+/**
+ * Shutdown the stream for reading or writing (man 2 shutdown).
+ *
+ * @param socket the stream socket
+ * @param how SHUT_RD, SHUT_WR or SHUT_RDWR 
+ */
+void
+GNUNET_STREAM_shutdown (struct GNUNET_STREAM_Socket *socket,
+			int how)
+{
+  return;
+}
+
+
+/**
+ * Closes the stream
+ *
+ * @param socket the stream socket
+ */
+void
+GNUNET_STREAM_close (struct GNUNET_STREAM_Socket *socket)
+{
+  struct MessageQueue *head;
+
+  if (socket->read_task != GNUNET_SCHEDULER_NO_TASK)
+  {
+    /* socket closed with read task pending!? */
+    GNUNET_break (0);
+    GNUNET_SCHEDULER_cancel (socket->read_task);
+    socket->read_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+
+  /* Clear Transmit handles */
+  if (NULL != socket->transmit_handle)
+    {
+      GNUNET_MESH_notify_transmit_ready_cancel (socket->transmit_handle);
+      socket->transmit_handle = NULL;
+    }
+
+  /* Clear existing message queue */
+  while (NULL != (head = socket->queue_head)) {
+    GNUNET_CONTAINER_DLL_remove (socket->queue_head,
+				 socket->queue_tail,
+				 head);
+    GNUNET_free (head->message);
+    GNUNET_free (head);
+  }
+
+  /* Close associated tunnel */
+  if (NULL != socket->tunnel)
+    {
+      GNUNET_MESH_tunnel_destroy (socket->tunnel);
+      socket->tunnel = NULL;
+    }
+
+  /* Close mesh connection */
+  if (NULL != socket->mesh)
+    {
+      GNUNET_MESH_disconnect (socket->mesh);
+      socket->mesh = NULL;
+    }
+  
+  /* Release receive buffer */
+  if (NULL != socket->receive_buffer)
+    {
+      GNUNET_free (socket->receive_buffer);
+    }
+
+  GNUNET_free (socket);
 }
 
 
@@ -2177,4 +2212,28 @@ GNUNET_STREAM_read (struct GNUNET_STREAM_Socket *socket,
                                                                &read_io_timeout,
                                                                socket);
   return read_handle;
+}
+
+
+/**
+ * Cancel pending write operation.
+ *
+ * @param ioh handle to operation to cancel
+ */
+void
+GNUNET_STREAM_io_write_cancel (struct GNUNET_STREAM_IOWriteHandle *ioh)
+{
+  return;
+}
+
+
+/**
+ * Cancel pending read operation.
+ *
+ * @param ioh handle to operation to cancel
+ */
+void
+GNUNET_STREAM_io_read_cancel (struct GNUNET_STREAM_IOReadHandle *ioh)
+{
+  return;
 }

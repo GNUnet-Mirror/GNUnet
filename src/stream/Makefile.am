@@ -33,7 +33,8 @@ test_stream_local_SOURCES = \
  test_stream_local.c
 test_stream_local_LDADD = \
  $(top_builddir)/src/stream/libgnunetstream.la \
- $(top_builddir)/src/util/libgnunetutil.la  
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/testing/libgnunettesting.la 
 
 #test_stream_halfclose_SOURCES = \
 # test_stream_halfclose.c

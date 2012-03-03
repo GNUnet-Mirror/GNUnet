@@ -30,6 +30,7 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_mesh_service.h"
 #include "gnunet_stream_lib.h"
+#include "gnunet_testing_lib.h"
 
 #define VERBOSE 1
 
@@ -44,9 +45,14 @@ struct PeerData
   struct GNUNET_STREAM_Socket *socket;
 
   /**
-   * Peer's io handle
+   * Peer's io write handle
    */
-  struct GNUNET_STREAM_IOHandle *io_handle;
+  struct GNUNET_STREAM_IOWriteHandle *io_write_handle;
+
+  /**
+   * Peer's io read handle
+   */
+  struct GNUNET_STREAM_IOReadHandle *io_read_handle;
 
   /**
    * Bytes the peer has written
@@ -63,6 +69,7 @@ static struct GNUNET_OS_Process *arm_pid;
 static struct PeerData peer1;
 static struct PeerData peer2;
 static struct GNUNET_STREAM_ListenSocket *peer2_listen_socket;
+static struct GNUNET_CONFIGURATION_Handle *config;
 
 static GNUNET_SCHEDULER_TaskIdentifier abort_task;
 static GNUNET_SCHEDULER_TaskIdentifier test_task;
@@ -78,7 +85,8 @@ static void
 do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_STREAM_close (peer1.socket);
-  GNUNET_STREAM_close (peer2.socket);
+  if (NULL != peer2.socket)
+    GNUNET_STREAM_close (peer2.socket);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: shutdown\n");
   if (0 != abort_task)
   {
@@ -90,6 +98,8 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: Wait\n");
+  /* Free the duplicated configuration */
+  GNUNET_CONFIGURATION_destroy (config);
   GNUNET_assert (GNUNET_OK == GNUNET_OS_process_wait (arm_pid));
   GNUNET_OS_process_close (arm_pid);
 }
@@ -115,6 +125,22 @@ do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   do_shutdown (cls, tc);
 }
 
+/**
+ * Signature for input processor 
+ *
+ * @param cls the closure from GNUNET_STREAM_write/read
+ * @param status the status of the stream at the time this function is called
+ * @param data traffic from the other side
+ * @param size the number of bytes available in data read 
+ * @return number of bytes of processed from 'data' (any data remaining should be
+ *         given to the next time the read processor is called).
+ */
+static size_t
+input_processor (void *cls,
+                 enum GNUNET_STREAM_Status status,
+                 const void *input_data,
+                 size_t size);
+
 
 /**
  * The write completion function; called upon writing some data to stream or
@@ -138,26 +164,28 @@ write_completion (void *cls,
 
   if (peer->bytes_wrote < strlen(data)) /* Have more data to send */
     {
-      peer->io_handle = GNUNET_STREAM_write (peer->socket,
-                                             (void *) data,
-                                             strlen(data) - peer->bytes_wrote,
-                                             GNUNET_TIME_relative_multiply
-                                             (GNUNET_TIME_UNIT_SECONDS, 5),
-                                             &write_completion,
-                                             cls);
-      GNUNET_assert (NULL != peer->io_handle);
+      peer->io_write_handle =
+        GNUNET_STREAM_write (peer->socket,
+                             (void *) data,
+                             strlen(data) - peer->bytes_wrote,
+                             GNUNET_TIME_relative_multiply
+                             (GNUNET_TIME_UNIT_SECONDS, 5),
+                             &write_completion,
+                             cls);
+      GNUNET_assert (NULL != peer->io_write_handle);
     }
   else
     {
       if (&peer1 == peer)   /* Peer1 has finished writing; should read now */
         {
-          peer->io_handle = GNUNET_STREAM_read ((struct GNUNET_STREAM_Socket *)
-                                                peer->socket,
-                                                GNUNET_TIME_relative_multiply
-                                                (GNUNET_TIME_UNIT_SECONDS, 5),
-                                                &input_processor,
-                                                cls);
-          GNUNET_assert (NULL!=peer->io_handle);
+          peer->io_read_handle =
+            GNUNET_STREAM_read ((struct GNUNET_STREAM_Socket *)
+                                peer->socket,
+                                GNUNET_TIME_relative_multiply
+                                (GNUNET_TIME_UNIT_SECONDS, 5),
+                                &input_processor,
+                                cls);
+          GNUNET_assert (NULL!=peer->io_read_handle);
         }
     }
 }
@@ -175,18 +203,19 @@ stream_open_cb (void *cls,
 {
   struct PeerData *peer;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stream established from peer1\n");
   peer = (struct PeerData *) cls;
   peer->bytes_wrote = 0;
   GNUNET_assert (socket == peer1.socket);
   GNUNET_assert (socket == peer->socket);
-  peer->io_handle = GNUNET_STREAM_write (peer->socket, /* socket */
-                                         (void *) data, /* data */
-                                         strlen(data),
-                                         GNUNET_TIME_relative_multiply
-                                         (GNUNET_TIME_UNIT_SECONDS, 5),
-                                         &write_completion,
+  peer->io_write_handle = GNUNET_STREAM_write (peer->socket, /* socket */
+                                               (void *) data, /* data */
+                                               strlen(data),
+                                               GNUNET_TIME_relative_multiply
+                                               (GNUNET_TIME_UNIT_SECONDS, 5),
+                                               &write_completion,
                                          cls);
-  GNUNET_assert (NULL != peer->io_handle);
+  GNUNET_assert (NULL != peer->io_write_handle);
 }
 
 
@@ -210,7 +239,7 @@ input_processor (void *cls,
 
   peer = (struct PeerData *) cls;
 
-  GNUNET_assert (GNUNET_STERAM_OK == status);
+  GNUNET_assert (GNUNET_STREAM_OK == status);
   GNUNET_assert (size < strlen (data));
   GNUNET_assert (strncmp ((const char *) data + peer->bytes_read, 
                           (const char *) input_data,
@@ -219,27 +248,28 @@ input_processor (void *cls,
   
   if (peer->bytes_read < strlen (data))
     {
-      peer->io_handle = GNUNET_STREAM_read ((struct GNUNET_STREAM_Socket *)
-                                            peer->socket,
-                                            GNUNET_TIME_relative_multiply
-                                            (GNUNET_TIME_UNIT_SECONDS, 5),
-                                            &input_processor,
-                                            cls);
-      GNUNET_assert (NULL != peer->io_handle);
+      peer->io_read_handle = GNUNET_STREAM_read ((struct GNUNET_STREAM_Socket *)
+                                                 peer->socket,
+                                                 GNUNET_TIME_relative_multiply
+                                                 (GNUNET_TIME_UNIT_SECONDS, 5),
+                                                 &input_processor,
+                                                 cls);
+      GNUNET_assert (NULL != peer->io_read_handle);
     }
   else 
     {
       if (&peer2 == peer)    /* Peer2 has completed reading; should write */
         {
           peer->bytes_wrote = 0;
-          peer->io_handle = GNUNET_STREAM_write ((struct GNUNET_STREAM_Socket *)
-                                                 peer->socket,
-                                                 (void *) data,
-                                                 strlen(data),
-                                                 GNUNET_TIME_relative_multiply
-                                                 (GNUNET_TIME_UNIT_SECONDS, 5),
-                                                 &write_completion,
-                                                 cls);
+          peer->io_write_handle = 
+            GNUNET_STREAM_write ((struct GNUNET_STREAM_Socket *)
+                                 peer->socket,
+                                 (void *) data,
+                                 strlen(data),
+                                 GNUNET_TIME_relative_multiply
+                                 (GNUNET_TIME_UNIT_SECONDS, 5),
+                                 &write_completion,
+                                 cls);
         }
       else                      /* Peer1 has completed reading. End of tests */
         {
@@ -261,12 +291,13 @@ stream_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_assert (NULL != cls);
   peer2.bytes_read = 0;
   GNUNET_STREAM_listen_close (peer2_listen_socket); /* Close listen socket */
-  peer2.io_handle = GNUNET_STREAM_read ((struct GNUNET_STREAM_Socket *) cls,
-                                        GNUNET_TIME_relative_multiply
-                                        (GNUNET_TIME_UNIT_SECONDS, 5),
-                                        &input_processor,
-                                        (void *) &peer2);
-  GNUNET_assert (NULL != peer2.io_handle);
+  peer2.io_read_handle =
+    GNUNET_STREAM_read ((struct GNUNET_STREAM_Socket *) cls,
+                        GNUNET_TIME_relative_multiply
+                        (GNUNET_TIME_UNIT_SECONDS, 5),
+                        &input_processor,
+                        (void *) &peer2);
+  GNUNET_assert (NULL != peer2.io_read_handle);
 }
 
 
@@ -289,6 +320,9 @@ stream_listen_cb (void *cls,
   GNUNET_assert (NULL == initiator);   /* Local peer=NULL? */
   GNUNET_assert (socket != peer1.socket);
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Peer connected: %s\n", GNUNET_i2s(initiator));
+
   peer2.socket = socket;
   read_task = GNUNET_SCHEDULER_add_now (&stream_read, (void *) socket);
   return GNUNET_OK;
@@ -297,23 +331,33 @@ stream_listen_cb (void *cls,
 
 /**
  * Testing function
+ *
+ * @param cls NULL
+ * @param tc the task context
  */
 static void
 test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  test_task = GNUNET_SCHEDULER_NO_TASK;
+  struct GNUNET_PeerIdentity self;
 
-  /* Connect to stream library */
-  peer1.socket = GNUNET_STREAM_open (NULL,         /* Null for local peer? */
-                                     10,           /* App port */
-                                     &stream_open_cb,
-                                     (void *) &peer1);
-  GNUNET_assert (NULL != peer1.socket);
-  peer2_listen_socket = GNUNET_STREAM_listen (10 /* App port */
+  test_task = GNUNET_SCHEDULER_NO_TASK;
+  /* Get our identity */
+  GNUNET_assert (GNUNET_OK == GNUNET_TESTING_get_peer_identity (config,
+                                                                &self));
+
+  peer2_listen_socket = GNUNET_STREAM_listen (config,
+                                              10, /* App port */
                                               &stream_listen_cb,
                                               NULL);
   GNUNET_assert (NULL != peer2_listen_socket);
-                  
+
+  /* Connect to stream library */
+  peer1.socket = GNUNET_STREAM_open (config,
+                                     &self,         /* Null for local peer? */
+                                     10,           /* App port */
+                                     &stream_open_cb,
+                                     (void *) &peer1);
+  GNUNET_assert (NULL != peer1.socket);                  
 }
 
 /**
@@ -330,6 +374,8 @@ run (void *cls, char *const *args, const char *cfgfile,
                     "WARNING",
 #endif
                     NULL);
+   /* Duplicate the configuration */
+   config = GNUNET_CONFIGURATION_dup (cfg);
    arm_pid =
      GNUNET_OS_start_process (GNUNET_YES, NULL, NULL, "gnunet-service-arm",
                               "gnunet-service-arm",
@@ -342,8 +388,8 @@ run (void *cls, char *const *args, const char *cfgfile,
      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                    (GNUNET_TIME_UNIT_SECONDS, 20), &do_abort,
                                     NULL);
-
-   test_task = GNUNET_SCHEDULER_add_now (&test, (void *) cfg);
+   
+   test_task = GNUNET_SCHEDULER_add_now (&test, NULL);
 
 }
 
@@ -355,7 +401,7 @@ int main (int argc, char **argv)
   int ret;
 
   char *const argv2[] = { "test-stream-local",
-                          "-c", "test_stream.conf",
+                          "-c", "test_stream_local.conf",
 #if VERBOSE
                           "-L", "DEBUG",
 #endif
