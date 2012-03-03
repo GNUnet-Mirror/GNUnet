@@ -90,6 +90,7 @@ shutdown_callback (void *cls, const char *emsg)
 {
   if (emsg != NULL)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Error on shutdown! ret=%d\n", ok);
     if (ok == 0)
       ok = 2;
   }
@@ -114,6 +115,8 @@ finish_testing (void *cls, int32_t success, const char *emsg)
 
   if (!he)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "gethostbyname failed, rp_filtering?\n");
     ok = 2;
   }
   else
@@ -133,7 +136,7 @@ finish_testing (void *cls, int32_t success, const char *emsg)
       }
       else
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_INFO, "No resolution!\n");
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "No resolution!\n");
       }
     }
   }
@@ -164,7 +167,7 @@ end_badly_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Failing test with error: `%s'!\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failing test with error: `%s'!\n",
               (char *) cls);
   GNUNET_SCHEDULER_add_now (&end_badly_cont, NULL);
   ok = 1;

@@ -87,7 +87,7 @@ shutdown_callback (void *cls, const char *emsg)
 {
   if (emsg != NULL)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Error on shutdown!\n", ok);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Error on shutdown! ret=%d\n", ok);
     if (ok == 0)
       ok = 2;
   }
