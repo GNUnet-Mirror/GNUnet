@@ -23,9 +23,12 @@
  * @author Christian Grothoff
  *
  * TODO:
+ * - actually parse uploaded public key and store it
  * - the code currently contains a 'race' between checking that the
  *   domain name is available and allocating it to the new public key
  *   (should this race be solved by namestore or by fcfsd?)
+ * - nicer error reporting to browser
+ * - figure out where this binary should go (is gns the right directory!?)
  */
 #include "platform.h"
 #include <gnunet_util_lib.h>
@@ -58,12 +61,34 @@
 #define COOKIE_NAME "gns-fcfs"
 
 
+/**
+ * Phases a request goes through.
+ */
 enum Phase
   {
+    /**
+     * Start phase (parsing POST, checking).
+     */
     RP_START = 0,
+
+    /**
+     * Lookup to see if the domain name is taken.
+     */
     RP_LOOKUP,
+
+    /**
+     * Storing of the record.
+     */
     RP_PUT,
+
+    /**
+     * We're done with success.
+     */
     RP_SUCCESS,
+
+    /**
+     * Send failure message.
+     */
     RP_FAIL
   };
 
@@ -234,28 +259,27 @@ post_iterator (void *cls,
 
   if (0 == strcmp ("domain", key))
     {
-      if (size + off > sizeof(request->domain_name))
-	size = sizeof (request->domain_name) - off;
+      if (size + off >= sizeof(request->domain_name))
+	size = sizeof (request->domain_name) - off - 1;
       memcpy (&request->domain_name[off],
 	      data,
 	      size);
-      if (size + off < sizeof (request->domain_name))
-	request->domain_name[size+off] = '\0';
+      request->domain_name[size+off] = '\0';
       return MHD_YES;
     }
   if (0 == strcmp ("pkey", key))
     {
-      if (size + off > sizeof(request->public_key))
-	size = sizeof (request->public_key) - off;
+      if (size + off >= sizeof(request->public_key))
+	size = sizeof (request->public_key) - off - 1;
       memcpy (&request->public_key[off],
 	      data,
 	      size);
-      if (size + off < sizeof (request->public_key))
-	request->public_key[size+off] = '\0';
+      request->public_key[size+off] = '\0';
       return MHD_YES;
     }
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-	      "Unsupported form value `%s'\n", key);
+	      _("Unsupported form value `%s'\n"),
+	      key);
   return MHD_YES;
 }
 
@@ -467,7 +491,6 @@ create_response (void *cls,
 	  return fill_s_reply ("Failed to parse given public key",
 			       request, connection);
 	}
-      fprintf (stderr, "Now in phase %d\n", request->phase);
       switch (request->phase)
 	{
 	case RP_START:
