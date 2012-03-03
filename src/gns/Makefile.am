@@ -108,7 +108,7 @@ gnunet_service_gns_DEPENDENCIES = \
 	$(top_builddir)/src/dns/libgnunetdns.la \
 	$(top_builddir)/src/dns/libgnunetdnsparser.la \
 	$(top_builddir)/src/dht/libgnunetdht.la \
-	libgnunetnamestore.la
+	$(top_builddir)/src/namestore/libgnunetnamestore.la
 
 libgnunetgns_la_SOURCES = \
  gns_api.c gns.h
