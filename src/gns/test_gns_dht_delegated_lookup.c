@@ -117,10 +117,9 @@ finish_testing (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct hostent *he;
   struct in_addr a;
   char* addr;
-  GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "A\n");
+ 
   GNUNET_NAMESTORE_disconnect(namestore_handle, GNUNET_YES);
   GNUNET_DHT_disconnect(dht_handle);
-  GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "B\n");
 
   he = gethostbyname (TEST_DOMAIN);
 
@@ -204,8 +203,6 @@ put_dht(void *cls, int32_t success, const char *emsg)
   rd.record_type = GNUNET_DNSPARSER_TYPE_A;
   sig = GNUNET_NAMESTORE_create_signature(bob_key, TEST_RECORD_NAME,
                                           &rd, 1);
-  
-  GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "B\n");
   rd_payload_length = GNUNET_NAMESTORE_records_get_size (1, &rd);
   nrb = GNUNET_malloc(rd_payload_length + strlen(TEST_RECORD_NAME) + 1
                       + sizeof(struct GNSNameRecordBlock));
@@ -216,7 +213,6 @@ put_dht(void *cls, int32_t success, const char *emsg)
   memcpy(&nrb[1], TEST_RECORD_NAME, strlen(TEST_RECORD_NAME));
   nrb_data = (char*)&nrb[1];
   nrb_data += strlen(TEST_RECORD_NAME) + 1;
-  GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "C\n");
 
   if (-1 == GNUNET_NAMESTORE_records_serialize (1,
                                                 &rd,
@@ -227,13 +223,11 @@ put_dht(void *cls, int32_t success, const char *emsg)
     ok = 3;
     return;
   }
-  GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "D\n");
   GNUNET_CRYPTO_hash(TEST_RECORD_NAME, strlen(TEST_RECORD_NAME), &name_hash);
   GNUNET_CRYPTO_hash(&bob_pkey,
                      sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
                      &zone_hash);
   GNUNET_CRYPTO_hash_xor(&zone_hash, &name_hash, &xor_hash);
-  GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "E\n");
 
   rd_payload_length += sizeof(struct GNSNameRecordBlock) +
     strlen(TEST_RECORD_NAME) + 1;
@@ -248,7 +242,6 @@ put_dht(void *cls, int32_t success, const char *emsg)
                   NULL,
                   NULL);
   GNUNET_SCHEDULER_add_delayed(TIMEOUT, &finish_testing, NULL);
-  GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "F\n");
 }
 
 static void

@@ -1179,6 +1179,9 @@ put_gns_record(void *cls,
   nrb_data = (char*)&nrb[1];
   nrb_data += strlen(name) + 1;
 
+  rd_payload_length += sizeof(struct GNSNameRecordBlock) +
+    strlen(name) + 1;
+
   if (-1 == GNUNET_NAMESTORE_records_serialize (rd_count,
                                                 rd,
                                                 rd_payload_length,
