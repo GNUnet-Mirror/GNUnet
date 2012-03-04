@@ -7,6 +7,7 @@
  * limitation that it does NOT allow passing command line arguments
  * with spaces to the new process.
  *
+ * @param pipe_control should a pipe be used to send signals to the child?
  * @param lsocks array of listen sockets to dup starting at fd3 (systemd-style), or NULL
  * @param first_arg first argument for argv (may be an empty string)
  * @param ... more arguments, NULL terminated
