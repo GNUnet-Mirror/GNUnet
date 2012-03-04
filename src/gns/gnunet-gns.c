@@ -48,6 +48,41 @@ static struct GNUNET_CRYPTO_RsaPrivateKey *zone_pkey;
  * Keyfile to manipulate.
  */
 static char *keyfile;	
+
+/**
+ * Desired action is to add a record.
+ */
+static int add;
+
+/**
+ * Desired action is to list records.
+ */
+static int list;
+
+/**
+ * Desired action is to remove a record.
+ */
+static int del;
+
+/**
+ * Name of the records to add/list/remove.
+ */
+static char *name;
+
+/**
+ * Value of the record to add/remove.
+ */
+static char *value;
+
+/**
+ * Type of the record to add/remove, NULL to remove all.
+ */
+static char *typestring;
+
+/**
+ * Desired expiration time.
+ */
+static char *expirationstring;
 		
 
 /**
@@ -113,8 +148,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 		  _("Failed to connect to namestore\n"));
       return;
     }
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-				&do_shutdown, NULL);
+  GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
 }
 
 
@@ -129,6 +163,27 @@ int
 main (int argc, char *const *argv)
 {
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
+    {'a', "add", NULL,
+     gettext_noop ("add record"), 0,
+     &GNUNET_GETOPT_set_one, &add},   
+    {'d', "delete", NULL,
+     gettext_noop ("delete record"), 0,
+     &GNUNET_GETOPT_set_one, &del},   
+    {'D', "display", NULL,
+     gettext_noop ("display records"), 0,
+     &GNUNET_GETOPT_set_one, &list},   
+    {'e', "expiration", "TIME",
+     gettext_noop ("expiration time to use (for adding only)"), 1,
+     &GNUNET_GETOPT_set_string, &expirationstring},   
+    {'n', "name", "NAME",
+     gettext_noop ("name of the record to add/delete/display"), 1,
+     &GNUNET_GETOPT_set_string, &name},   
+    {'t', "type", "TYPE",
+     gettext_noop ("type of the record to add/delete/display"), 1,
+     &GNUNET_GETOPT_set_string, &typestring},   
+    {'V', "value", "VALUE",
+     gettext_noop ("value of the record to add/delete"), 1,
+     &GNUNET_GETOPT_set_string, &value},   
     {'z', "zonekey", "FILENAME",
      gettext_noop ("filename with the zone key"), 1,
      &GNUNET_GETOPT_set_string, &keyfile},   

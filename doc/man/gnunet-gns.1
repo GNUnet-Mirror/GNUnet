@@ -13,11 +13,20 @@ gnunet\-gns \- manipulate GNUnet GNS zones
 
 .SH OPTIONS
 .B
-.IP "\-z FILENAME, \-\-zonekey=FILENAME"
-Specifies the filename with the private key for the zone (mandatory option)
+.IP "\-a, \-\-add"
+Desired operation is adding a record
 .B
 .IP "\-c FILENAME,  \-\-config=FILENAME"
 Use the configuration file FILENAME.
+.B
+.IP "\-d, \-\-delete"
+Desired operation is deleting a record
+.B
+.IP "\-D, \-\-display"
+Desired operation is listing of matching records
+.B
+.IP "\-e TIME, \-\-expiration=TIME"
+Specifies expiration time of record to add; format is relative time, i.e "1 h" or "7 d 30 m".  Supported units are "ms", "s", "min" or "minutes", "h" (hours), "d" (days) and "a" (years).
 .B
 .IP "\-h, \-\-help"
 Print short help on options.
@@ -25,8 +34,20 @@ Print short help on options.
 .IP "\-L LOGLEVEL, \-\-loglevel=LOGLEVEL"
 Use LOGLEVEL for logging.  Valid values are DEBUG, INFO, WARNING and ERROR.
 .B
+.IP "\-n NAME, \-\-name=NAME"
+Name of the record to add/delete/display
+.B
+.IP "\-t TYPE, \-\-type=TYPE"
+Type of the record to add/delete/display (i.e. "A", "AAAA", "NS", "PKEY", "MX" etc.)
+.B
 .IP "\-v, \-\-version"
 Print GNUnet version number.
+.B
+.IP "\-V VALUE, \-\-value=VALUE"
+Value to store or remove from the GNS zone.  Specific format depends on the record type.  A records expect a dotted decimal IPv4 address, AAAA records an IPv6 address, PKEY a public key in GNUnet's printable format, and CNAME and NS records should be a domain name.
+.B
+.IP "\-z FILENAME, \-\-zonekey=FILENAME"
+Specifies the filename with the private key for the zone (mandatory option)
 
 
 .SH BUGS
