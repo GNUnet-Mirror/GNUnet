@@ -27,7 +27,6 @@
 
 #include "gnunet_common.h"
 
-#define DEBUG_STATISTICS GNUNET_EXTRA_LOGGING
 
 GNUNET_NETWORK_STRUCT_BEGIN
 

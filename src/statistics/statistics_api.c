@@ -385,10 +385,8 @@ try_connect (struct GNUNET_STATISTICS_Handle *h)
       schedule_watch_request (h, h->watches[i]);
     return GNUNET_YES;
   }
-#if DEBUG_STATISTICS
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       _("Failed to connect to statistics service!\n"));
-#endif
+       "Failed to connect to statistics service!\n");
   return GNUNET_NO;
 }
 
@@ -444,9 +442,7 @@ process_statistics_value_message (struct GNUNET_STATISTICS_Handle *h,
 
   if (h->current->aborted)
   {
-#if DEBUG_STATISTICS
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Iteration was aborted, ignoring VALUE\n");
-#endif
     return GNUNET_OK;           /* don't bother */
   }
   size = ntohs (msg->size);
@@ -464,25 +460,19 @@ process_statistics_value_message (struct GNUNET_STATISTICS_Handle *h,
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-#if DEBUG_STATISTICS
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Received valid statistic on `%s:%s': %llu\n",
        service, name, GNUNET_ntohll (smsg->value));
-#endif
   if (GNUNET_OK !=
       h->current->proc (h->current->cls, service, name,
                         GNUNET_ntohll (smsg->value),
                         0 !=
                         (ntohl (smsg->uid) & GNUNET_STATISTICS_PERSIST_BIT)))
   {
-#if DEBUG_STATISTICS
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Processing of remaining statistics aborted by client.\n");
-#endif
     h->current->aborted = GNUNET_YES;
   }
-#if DEBUG_STATISTICS
   LOG (GNUNET_ERROR_TYPE_DEBUG, "VALUE processed successfully\n");
-#endif
   return GNUNET_OK;
 }
 
@@ -541,10 +531,8 @@ receive_stats (void *cls, const struct GNUNET_MessageHeader *msg)
 
   if (msg == NULL)
   {
-#if DEBUG_STATISTICS
     LOG (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
          "Error receiving statistics from service, is the service running?\n");
-#endif
     do_disconnect (h);
     reconnect_later (h);
     return;
@@ -552,9 +540,7 @@ receive_stats (void *cls, const struct GNUNET_MessageHeader *msg)
   switch (ntohs (msg->type))
   {
   case GNUNET_MESSAGE_TYPE_STATISTICS_END:
-#if DEBUG_STATISTICS
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Received end of statistics marker\n");
-#endif
     if (NULL == (c = h->current))
     {
       GNUNET_break (0);
@@ -586,10 +572,8 @@ receive_stats (void *cls, const struct GNUNET_MessageHeader *msg)
       return;     
     }
     /* finally, look for more! */
-#if DEBUG_STATISTICS
     LOG (GNUNET_ERROR_TYPE_DEBUG,
 	 "Processing VALUE done, now reading more\n");
-#endif
     GNUNET_CLIENT_receive (h->client, &receive_stats, h,
 			   GNUNET_TIME_absolute_get_remaining (h->
 							       current->timeout));
@@ -641,10 +625,8 @@ transmit_get (struct GNUNET_STATISTICS_Handle *handle, size_t size, void *buf)
   if (buf == NULL)
   {
     /* timeout / error */
-#if DEBUG_STATISTICS
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Transmission of request for statistics failed!\n");
-#endif  
     do_disconnect (handle);
     reconnect_later (handle);
     return 0;
@@ -662,10 +644,8 @@ transmit_get (struct GNUNET_STATISTICS_Handle *handle, size_t size, void *buf)
                                              c->name));
   if (GNUNET_YES != handle->receiving)
   {
-#if DEBUG_STATISTICS
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Transmission of GET done, now reading response\n");
-#endif
     handle->receiving = GNUNET_YES;
     GNUNET_CLIENT_receive (handle->client, &receive_stats, handle,
                            GNUNET_TIME_absolute_get_remaining (c->timeout));
@@ -694,18 +674,14 @@ transmit_watch (struct GNUNET_STATISTICS_Handle *handle, size_t size, void *buf)
   if (buf == NULL)
   {
     /* timeout / error */
-#if DEBUG_STATISTICS
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Transmission of request for statistics failed!\n");
-#endif
     do_disconnect (handle);
     reconnect_later (handle);
     return 0;
   }
-#if DEBUG_STATISTICS
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Transmitting watch request for `%s'\n",
        handle->current->name);
-#endif
   slen1 = strlen (handle->current->subsystem) + 1;
   slen2 = strlen (handle->current->name) + 1;
   msize = slen1 + slen2 + sizeof (struct GNUNET_MessageHeader);
@@ -977,10 +953,8 @@ schedule_action (struct GNUNET_STATISTICS_Handle *h)
                                             timeout, GNUNET_YES,
                                             &transmit_action, h)))
   {
-#if DEBUG_STATISTICS
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Failed to transmit request to statistics service.\n");
-#endif
     do_disconnect (h);
     reconnect_later (h);
   }
