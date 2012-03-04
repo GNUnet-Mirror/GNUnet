@@ -142,7 +142,7 @@ gnunet_rsa_SOURCES = \
 gnunet_rsa_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
-gnunet_resolver_DEPENDENCIES = \
+gnunet_rsa_DEPENDENCIES = \
   libgnunetutil.la
 
 plugin_LTLIBRARIES = \
