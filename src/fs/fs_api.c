@@ -1711,6 +1711,8 @@ GNUNET_FS_download_sync_ (struct GNUNET_FS_DownloadContext *dc)
   char *fn;
   char *dir;
 
+  if (0 != (dc->options & GNUNET_FS_DOWNLOAD_IS_PROBE))
+    return; /* we don't sync probes */
   if (NULL == dc->serialization)
   {
     dir = get_download_sync_filename (dc, "", "");
