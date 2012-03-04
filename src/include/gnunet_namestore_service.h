@@ -307,6 +307,27 @@ GNUNET_NAMESTORE_lookup_record (struct GNUNET_NAMESTORE_Handle *h,
 
 
 /**
+ * Look for an existing PKEY delegation record for a given public key.
+ * Returns at most one result to the processor.
+ *
+ * @param h handle to the namestore
+ * @param zone hash of public key of the zone to look up in, never NULL
+ * @param value_zone hash of the public key of the target zone (value), never NULL
+ * @param proc function to call on the matching records, or with
+ *        NULL (rd_count == 0) if there are no matching records
+ * @param proc_cls closure for proc
+ * @return a handle that can be used to
+ *         cancel
+ */
+struct GNUNET_NAMESTORE_QueueEntry *
+GNUNET_NAMESTORE_zone_to_name (struct GNUNET_NAMESTORE_Handle *h, 
+			       const GNUNET_HashCode *zone,
+			       const GNUNET_HashCode *value_zone,
+			       GNUNET_NAMESTORE_RecordProcessor proc, void *proc_cls);
+
+
+
+/**
  * Starts a new zone iteration (used to periodically PUT all of our
  * records into our DHT). This MUST lock the GNUNET_NAMESTORE_Handle
  * for any other calls than GNUNET_NAMESTORE_zone_iterator_next and
