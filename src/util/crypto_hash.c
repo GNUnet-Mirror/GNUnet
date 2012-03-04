@@ -264,7 +264,7 @@ getValue__ (unsigned char a)
  * Convert binary data to ASCII encoding.  The ASCII encoding is rather
  * GNUnet specific.  It was chosen such that it only uses characters
  * in [0-9A-V], can be produced without complex arithmetics and uses a
- * small number of characters.  The GNUnet encoding uses 103 characters.
+ * small number of characters.  
  * Does not append 0-terminator, but returns a pointer to the place where
  * it should be placed, if needed.
  *

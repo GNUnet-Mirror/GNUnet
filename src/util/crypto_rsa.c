@@ -215,6 +215,70 @@ GNUNET_CRYPTO_rsa_key_get_public (const struct GNUNET_CRYPTO_RsaPrivateKey
 
 
 /**
+ * Convert a public key to a string.
+ *
+ * @param pub key to convert
+ * @return string representing  'pub'
+ */
+char *
+GNUNET_CRYPTO_rsa_public_key_to_string (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *pub)
+{
+  char *pubkeybuf;
+  size_t keylen = (sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded)) * 8;
+  char *end;
+
+  if (keylen % 5 > 0)
+    keylen += 5 - keylen % 5;
+  keylen /= 5;
+  pubkeybuf = GNUNET_malloc (keylen + 1);
+  end = GNUNET_CRYPTO_data_to_string ((unsigned char *) &pub, 
+				      sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), 
+				      pubkeybuf, 
+				      keylen);
+  if (NULL == end)
+    {
+      GNUNET_free (pubkeybuf);
+      return NULL;
+    }
+  *end = '\0';
+  return pubkeybuf;
+}
+
+
+/**
+ * Convert a string representing a public key to a public key.
+ *
+ * @param enc encoded public key
+ * @param enclen number of bytes in enc (without 0-terminator)
+ * @param pub where to store the public key
+ * @return GNUNET_OK on success
+ */
+int
+GNUNET_CRYPTO_rsa_public_key_from_string (const char *enc, 
+					  size_t enclen,
+					  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *pub)
+{
+  size_t keylen = (sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded)) * 8;
+
+  if (keylen % 5 > 0)
+    keylen += 5 - keylen % 5;
+  keylen /= 5;
+  if (enclen != keylen)
+    return GNUNET_SYSERR;
+
+  if (GNUNET_OK != GNUNET_CRYPTO_string_to_data (enc, enclen,
+						 (unsigned char*) pub,
+						 sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded)))
+    return GNUNET_SYSERR;
+  if ( (ntohs (pub->len) != sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded)) ||
+       (ntohs (pub->padding) != 0) ||
+       (ntohs (pub->sizen) != GNUNET_CRYPTO_RSA_DATA_ENCODING_LENGTH) )
+    return GNUNET_SYSERR;
+  return GNUNET_OK;
+}
+
+
+/**
  * Internal: publicKey => RSA-Key.
  *
  * Note that the return type is not actually a private
@@ -270,6 +334,7 @@ public2PrivateKey (const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded
   ret->sexp = result;
   return ret;
 }
+
 
 /**
  * Encode the private key in a format suitable for
@@ -358,6 +423,7 @@ GNUNET_CRYPTO_rsa_encode_key (const struct GNUNET_CRYPTO_RsaPrivateKey *hostkey)
   }
   return retval;
 }
+
 
 /**
  * Decode the private key from the file-format back
@@ -796,6 +862,7 @@ GNUNET_CRYPTO_rsa_encrypt (const void *block, size_t size,
           sizeof (struct GNUNET_CRYPTO_RsaEncryptedData));
   return GNUNET_OK;
 }
+
 
 /**
  * Decrypt a given block with the hostkey.

@@ -86,7 +86,7 @@ enum GNUNET_CRYPTO_Quality
 
 
 /**
- * Length of an RSA KEY (d,e,len), 2048 bit (=256 octests) key d, 2 byte e
+ * Length of an RSA KEY (n,e,len), 2048 bit (=256 octests) key n, 2 byte e
  */
 #define GNUNET_CRYPTO_RSA_KEY_LENGTH 258
 
@@ -760,6 +760,31 @@ GNUNET_CRYPTO_kdf (void *result, size_t out_len, const void *xts,
  */
 struct GNUNET_CRYPTO_RsaPrivateKey *
 GNUNET_CRYPTO_rsa_key_create (void);
+
+
+/**
+ * Convert a public key to a string.
+ *
+ * @param pub key to convert
+ * @return string representing  'pub'
+ */
+char *
+GNUNET_CRYPTO_rsa_public_key_to_string (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *pub);
+
+
+/**
+ * Convert a string representing a public key to a public key.
+ *
+ * @param enc encoded public key
+ * @param enclen number of bytes in enc (without 0-terminator)
+ * @param pub where to store the public key
+ * @return GNUNET_OK on success
+ */
+int
+GNUNET_CRYPTO_rsa_public_key_from_string (const char *enc, 
+					  size_t enclen,
+					  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *pub);
+
 
 /**
  * Encode the private key in a format suitable for
