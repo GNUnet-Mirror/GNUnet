@@ -20,7 +20,8 @@ lib_LTLIBRARIES = \
 
 bin_PROGRAMS = \
   gnunet-service-gns \
-  gnunet-gns-fcfsd
+  gnunet-gns-fcfsd \
+  gnunet-gns
 
 #noinst_PROGRAMS = \
 #  gnunet-gns-lookup
@@ -118,7 +119,18 @@ gnunet_gns_fcfsd_LDADD = -lmicrohttpd \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la \
   $(GN_LIBINTL)
-gnunet_service_gns_DEPENDENCIES = \
+gnunet_gns_fcfsd_DEPENDENCIES = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/namestore/libgnunetnamestore.la
+
+
+gnunet_gns_SOURCES = \
+ gnunet-gns.c 
+gnunet_gns_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/namestore/libgnunetnamestore.la \
+  $(GN_LIBINTL)
+gnunet_gns_DEPENDENCIES = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la
 
