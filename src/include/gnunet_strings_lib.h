@@ -213,6 +213,42 @@ GNUNET_STRINGS_relative_time_to_string (struct GNUNET_TIME_Relative delta);
 const char *
 GNUNET_STRINGS_get_short_name (const char *filename);
 
+
+/**
+ * Convert binary data to ASCII encoding.  The ASCII encoding is rather
+ * GNUnet specific.  It was chosen such that it only uses characters
+ * in [0-9A-V], can be produced without complex arithmetics and uses a
+ * small number of characters.  The GNUnet encoding uses 103 characters.
+ * Does not append 0-terminator, but returns a pointer to the place where
+ * it should be placed, if needed.
+ *
+ * @param data data to encode
+ * @param size size of data (in bytes)
+ * @param out buffer to fill
+ * @param out_size size of the buffer. Must be large enough to hold
+ * ((size*8) + (((size*8) % 5) > 0 ? 5 - ((size*8) % 5) : 0)) / 5
+ * @return pointer to the next byte in 'out' or NULL on error.
+ */
+char *
+GNUNET_STRINGS_data_to_string (unsigned char *data, size_t size,
+                              char *out, size_t out_size);
+
+
+/**
+ * Convert ASCII encoding back to data
+ * out_size must match exactly the size of the data before it was encoded.
+ *
+ * @param enc the encoding
+ * @param enclen number of characters in 'enc' (without 0-terminator, which can be missing)
+ * @param out location where to store the decoded data
+ * @param out_size sizeof the output buffer
+ * @return GNUNET_OK on success, GNUNET_SYSERR if result has the wrong encoding
+ */
+int
+GNUNET_STRINGS_string_to_data (const char *enc, size_t enclen,
+                              unsigned char *out, size_t out_size);
+
+
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif
