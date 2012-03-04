@@ -30,6 +30,15 @@
 #include "fs_api.h"
 #include "fs_tree.h"
 
+/**
+ * How many block requests can we have outstanding in parallel at a time by default?
+ */
+#define DEFAULT_MAX_PARALLEL_REQUESTS (1024 * 10)
+
+/**
+ * How many downloads can we have outstanding in parallel at a time by default?
+ */
+#define DEFAULT_MAX_PARALLEL_DOWNLOADS 16
 
 /**
  * Start the given job (send signal, remove from pending queue, update
@@ -2795,8 +2804,8 @@ GNUNET_FS_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   ret->upcb = upcb;
   ret->upcb_cls = upcb_cls;
   ret->flags = flags;
-  ret->max_parallel_downloads = 1;
-  ret->max_parallel_requests = 1;
+  ret->max_parallel_downloads = DEFAULT_MAX_PARALLEL_DOWNLOADS;
+  ret->max_parallel_requests = DEFAULT_MAX_PARALLEL_REQUESTS;
   ret->avg_block_latency = GNUNET_TIME_UNIT_MINUTES;    /* conservative starting point */
   va_start (ap, flags);
   while (GNUNET_FS_OPTIONS_END != (opt = va_arg (ap, enum GNUNET_FS_OPTIONS)))
