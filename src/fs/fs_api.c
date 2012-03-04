@@ -99,6 +99,8 @@ process_job_queue (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_TIME_Absolute end_time;
 
   h->queue_job = GNUNET_SCHEDULER_NO_TASK;
+  restart_at = GNUNET_TIME_UNIT_FOREVER_REL;
+  /* first, see if we can start all the jobs */
   next = h->pending_head;
   while (NULL != (qe = next))
   {
@@ -109,7 +111,7 @@ process_job_queue (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       continue;
     }
     if ((qe->blocks + h->active_blocks <= h->max_parallel_requests) &&
-        (h->active_downloads + 1 <= h->max_parallel_downloads))
+        (h->active_downloads < h->max_parallel_downloads))
     {
       start_job (qe);
       continue;
@@ -117,7 +119,7 @@ process_job_queue (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   if (h->pending_head == NULL)
     return;                     /* no need to stop anything */
-  restart_at = GNUNET_TIME_UNIT_FOREVER_REL;
+  /* then, check if we should stop some jobs */
   next = h->running_head;
   while (NULL != (qe = next))
   {
@@ -125,12 +127,40 @@ process_job_queue (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     run_time =
         GNUNET_TIME_relative_multiply (h->avg_block_latency,
                                        qe->blocks * qe->start_times);
+    switch (qe->priority)
+      {
+      case GNUNET_FS_QUEUE_PRIORITY_PROBE:
+	/* run probes for at most 1s * number-of-restarts; note that
+	   as the total runtime of a probe is limited to 2m, we don't
+	   need to additionally limit the total time of a probe to 
+	   strictly limit its lifetime. */
+	run_time = GNUNET_TIME_relative_min (run_time,
+					     GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
+									    1 + qe->start_times));
+	break;
+      case GNUNET_FS_QUEUE_PRIORITY_NORMAL:
+	break;
+      default:
+	GNUNET_break (0);
+      }
     end_time = GNUNET_TIME_absolute_add (qe->start_time, run_time);
     rst = GNUNET_TIME_absolute_get_remaining (end_time);
     restart_at = GNUNET_TIME_relative_min (rst, restart_at);
     if (rst.rel_value > 0)
       continue;
     stop_job (qe);
+  }
+  /* finally, start some more tasks if we now have empty slots */
+  next = h->pending_head;
+  while (NULL != (qe = next))
+  {
+    next = qe->next;
+    if ((qe->blocks + h->active_blocks <= h->max_parallel_requests) &&
+        (h->active_downloads < h->max_parallel_downloads))
+    {
+      start_job (qe);
+      continue;
+    }
   }
   h->queue_job =
       GNUNET_SCHEDULER_add_delayed (restart_at, &process_job_queue, h);
