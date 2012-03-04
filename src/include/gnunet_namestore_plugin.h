@@ -129,6 +129,23 @@ struct GNUNET_NAMESTORE_PluginFunctions
 
 
   /**
+   * Look for an existing PKEY delegation record for a given public key.
+   * Returns at most one result to the iterator.
+   *
+   * @param cls closure (internal context for the plugin)
+   * @param zone hash of public key of the zone to look up in, never NULL
+   * @param value_zone hash of the public key of the target zone (value), never NULL
+   * @param iter function to call with the result
+   * @param iter_cls closure for iter
+   * @return GNUNET_OK on success, GNUNET_NO if there were no results, GNUNET_SYSERR on error
+   */
+  int (*zone_to_name) (void *cls, 
+		       const GNUNET_HashCode *zone,
+		       const GNUNET_HashCode *value_zone,
+		       GNUNET_NAMESTORE_RecordIterator iter, void *iter_cls);
+
+
+  /**
    * Delete an entire zone (all records).  Not used in normal operation.
    *
    * @param cls closure (internal context for the plugin)
