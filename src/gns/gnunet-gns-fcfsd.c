@@ -23,7 +23,6 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - actually parse uploaded public key and store it
  * - the code currently contains a 'race' between checking that the
  *   domain name is available and allocating it to the new public key
  *   (should this race be solved by namestore or by fcfsd?)
@@ -369,7 +368,12 @@ lookup_result_processor (void *cls,
 {
   struct Request *request = cls;
   struct GNUNET_NAMESTORE_RecordData r;
-
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pub;
+  
+  GNUNET_assert (GNUNET_OK ==
+		 GNUNET_CRYPTO_rsa_public_key_from_string (request->public_key,
+							   strlen (request->public_key),
+							   &pub));
   request->qe = NULL;
   if (0 != rd_count)
   {
@@ -381,9 +385,9 @@ lookup_result_processor (void *cls,
     run_httpd_now ();
     return;
   }
-  r.data = "binary public key";
+  r.data = &pub;
+  r.data_size = sizeof (pub);
   r.expiration = GNUNET_TIME_UNIT_FOREVER_ABS;
-  r.data_size = sizeof ("binary public key");
   r.record_type = htonl (GNUNET_GNS_TYPE_PKEY);
   r.flags = htonl (GNUNET_NAMESTORE_RF_AUTHORITY);
   request->qe = GNUNET_NAMESTORE_record_create (ns,
@@ -431,6 +435,7 @@ create_response (void *cls,
   struct MHD_Response *response;
   struct Request *request;
   int ret;
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pub;
 
   if ( (0 == strcmp (method, MHD_HTTP_METHOD_GET)) ||
        (0 == strcmp (method, MHD_HTTP_METHOD_HEAD)) )
@@ -475,12 +480,15 @@ create_response (void *cls,
 	MHD_destroy_post_processor (request->pp);
 	request->pp = NULL;
       }
-      if (strlen (request->public_key) != 2)
-	{
-	  /* parse error */
-	  return fill_s_reply ("Failed to parse given public key",
-			       request, connection);
-	}
+      if (GNUNET_OK !=
+	  GNUNET_CRYPTO_rsa_public_key_from_string (request->public_key,
+						    strlen (request->public_key),
+						    &pub))
+      {
+	/* parse error */
+	return fill_s_reply ("Failed to parse given public key",
+			     request, connection);
+      }
       switch (request->phase)
 	{
 	case RP_START:
