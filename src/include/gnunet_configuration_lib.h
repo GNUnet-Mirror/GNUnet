@@ -87,6 +87,19 @@ GNUNET_CONFIGURATION_load (struct GNUNET_CONFIGURATION_Handle *cfg,
 
 
 /**
+ * Load default configuration.  This function will parse the
+ * defaults from the given defaults_d directory.
+ *
+ * @param cfg configuration to update
+ * @param defaults_d directory with the defaults
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ */
+int
+GNUNET_CONFIGURATION_load_from (struct GNUNET_CONFIGURATION_Handle *cfg,
+				const char *defaults_d);
+
+
+/**
  * Parse a configuration file, add all of the options in the
  * file to the configuration environment.
  *

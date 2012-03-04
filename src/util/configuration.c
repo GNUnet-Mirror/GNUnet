@@ -1236,6 +1236,25 @@ parse_configuration_file (void *cls, const char *filename)
 
 
 /**
+ * Load default configuration.  This function will parse the
+ * defaults from the given defaults_d directory.
+ *
+ * @param cfg configuration to update
+ * @param defaults_d directory with the defaults
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ */
+int
+GNUNET_CONFIGURATION_load_from (struct GNUNET_CONFIGURATION_Handle *cfg,
+				const char *defaults_d)
+{
+  if (GNUNET_SYSERR ==
+      GNUNET_DISK_directory_scan (defaults_d, &parse_configuration_file, cfg))
+    return GNUNET_SYSERR;       /* no configuration at all found */
+  return GNUNET_OK;
+}
+
+
+/**
  * Load configuration (starts with defaults, then loads
  * system-specific configuration).
  *
