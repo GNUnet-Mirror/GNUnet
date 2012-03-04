@@ -2165,7 +2165,10 @@ GNUNET_FS_download_start_downloading_ (struct GNUNET_FS_DownloadContext *dc)
   GNUNET_assert (dc->job_queue == NULL);
   dc->job_queue =
       GNUNET_FS_queue_ (dc->h, &activate_fs_download, &deactivate_fs_download,
-                        dc, (dc->length + DBLOCK_SIZE - 1) / DBLOCK_SIZE);
+                        dc, (dc->length + DBLOCK_SIZE - 1) / DBLOCK_SIZE,
+			(0 == (dc->options & GNUNET_FS_DOWNLOAD_IS_PROBE))
+			? GNUNET_FS_QUEUE_PRIORITY_NORMAL 
+			: GNUNET_FS_QUEUE_PRIORITY_PROBE);
 }
 
 

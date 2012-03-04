@@ -417,6 +417,24 @@ typedef void (*GNUNET_FS_QueueStart) (void *cls,
 typedef void (*GNUNET_FS_QueueStop) (void *cls);
 
 
+
+/**
+ * Priorities for the queue.
+ */ 
+enum GNUNET_FS_QueuePriority
+  {
+    /**
+     * This is a probe (low priority).
+     */
+    GNUNET_FS_QUEUE_PRIORITY_PROBE,
+
+    /**
+     * Default priority.
+     */
+    GNUNET_FS_QUEUE_PRIORITY_NORMAL
+  };
+
+
 /**
  * Entry in the job queue.
  */
@@ -477,6 +495,11 @@ struct GNUNET_FS_QueueEntry
    * How many blocks do the active downloads have?
    */
   unsigned int blocks;
+
+  /**
+   * How important is this download?
+   */
+  enum GNUNET_FS_QueuePriority priority;
 
   /**
    * How often have we (re)started this download?
@@ -599,11 +622,13 @@ struct GNUNET_FS_SearchResult
  * @param stop function to call to pause the job, or on dequeue (if the job was running)
  * @param cls closure for start and stop
  * @param blocks number of blocks this download has
+ * @param priority how important is this download
  * @return queue handle
  */
 struct GNUNET_FS_QueueEntry *
 GNUNET_FS_queue_ (struct GNUNET_FS_Handle *h, GNUNET_FS_QueueStart start,
-                  GNUNET_FS_QueueStop stop, void *cls, unsigned int blocks);
+                  GNUNET_FS_QueueStop stop, void *cls, unsigned int blocks,
+		  enum GNUNET_FS_QueuePriority priority);
 
 
 /**

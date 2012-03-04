@@ -145,11 +145,13 @@ process_job_queue (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param stop function to call to pause the job, or on dequeue (if the job was running)
  * @param cls closure for start and stop
  * @param blocks number of blocks this jobs uses
+ * @param priority how important is this download
  * @return queue handle
  */
 struct GNUNET_FS_QueueEntry *
 GNUNET_FS_queue_ (struct GNUNET_FS_Handle *h, GNUNET_FS_QueueStart start,
-                  GNUNET_FS_QueueStop stop, void *cls, unsigned int blocks)
+                  GNUNET_FS_QueueStop stop, void *cls, unsigned int blocks,
+		  enum GNUNET_FS_QueuePriority priority)
 {
   struct GNUNET_FS_QueueEntry *qe;
 
@@ -160,6 +162,7 @@ GNUNET_FS_queue_ (struct GNUNET_FS_Handle *h, GNUNET_FS_QueueStart start,
   qe->cls = cls;
   qe->queue_time = GNUNET_TIME_absolute_get ();
   qe->blocks = blocks;
+  qe->priority = priority;
   GNUNET_CONTAINER_DLL_insert_after (h->pending_head, h->pending_tail,
                                      h->pending_tail, qe);
   if (h->queue_job != GNUNET_SCHEDULER_NO_TASK)
