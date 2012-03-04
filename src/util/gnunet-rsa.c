@@ -25,7 +25,6 @@
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
-#include "gnunet_rsa_service.h"
 
 
 /**
@@ -50,12 +49,12 @@ run (void *cls, char *const *args, const char *cfgfile,
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pub;
   char *s;
 
-  if (argc == 0)
+  if (NULL == args[0])
   {
     fprintf (stderr, _("No hostkey file specified on command line\n"));
     return;
   }
-  pk = GNUNET_CRYPTO_rsa_key_create_from_file (argv[0]);
+  pk = GNUNET_CRYPTO_rsa_key_create_from_file (args[0]);
   if (print)
   {
     GNUNET_CRYPTO_rsa_key_get_public (pk, &pub);
