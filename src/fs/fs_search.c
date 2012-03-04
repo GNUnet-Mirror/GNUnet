@@ -121,7 +121,7 @@ notify_client_chk_update (struct GNUNET_FS_SearchContext *sc,
                           struct GNUNET_FS_SearchResult *sr)
 {
   struct GNUNET_FS_ProgressInfo pi;
-
+ 
   pi.status = GNUNET_FS_STATUS_SEARCH_UPDATE;
   pi.value.search.specifics.update.cctx = sr->client_info;
   pi.value.search.specifics.update.meta = sr->meta;
@@ -184,7 +184,7 @@ signal_probe_result (struct GNUNET_FS_SearchResult *sr)
 {
   struct GNUNET_FS_ProgressInfo pi;
 
-  pi.status = GNUNET_FS_STATUS_SEARCH_START;
+  pi.status = GNUNET_FS_STATUS_SEARCH_UPDATE;
   pi.value.search.specifics.update.cctx = sr->client_info;
   pi.value.search.specifics.update.meta = sr->meta;
   pi.value.search.specifics.update.uri = sr->uri;
@@ -208,7 +208,10 @@ probe_failure_handler (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_FS_SearchResult *sr = cls;
 
+  sr->probe_cancel_task = GNUNET_SCHEDULER_NO_TASK;
   sr->availability_trials++;
+  GNUNET_FS_download_stop (sr->probe_ctx, GNUNET_YES);
+  sr->probe_ctx = NULL;
   GNUNET_FS_search_result_sync_ (sr);
   signal_probe_result (sr);
 }
@@ -225,8 +228,11 @@ probe_success_handler (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_FS_SearchResult *sr = cls;
 
+  sr->probe_cancel_task = GNUNET_SCHEDULER_NO_TASK;
   sr->availability_trials++;
   sr->availability_success++;
+  GNUNET_FS_download_stop (sr->probe_ctx, GNUNET_YES);
+  sr->probe_ctx = NULL;
   GNUNET_FS_search_result_sync_ (sr);
   signal_probe_result (sr);
 }
@@ -287,8 +293,7 @@ GNUNET_FS_search_probe_progress_ (void *cls,
       sr->probe_cancel_task = GNUNET_SCHEDULER_NO_TASK;
     }
     sr->probe_cancel_task =
-        GNUNET_SCHEDULER_add_delayed (sr->remaining_probe_time,
-                                      &probe_success_handler, sr);
+        GNUNET_SCHEDULER_add_now (&probe_success_handler, sr);
     break;
   case GNUNET_FS_STATUS_DOWNLOAD_STOPPED:
     if (sr->probe_cancel_task != GNUNET_SCHEDULER_NO_TASK)
