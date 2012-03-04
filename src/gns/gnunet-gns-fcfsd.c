@@ -363,7 +363,7 @@ lookup_result_processor (void *cls,
 			 const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
 			 struct GNUNET_TIME_Absolute expire,			    
 			 const char *name,
-			 unsigned int rd_len,
+			 unsigned int rd_count,
 			 const struct GNUNET_NAMESTORE_RecordData *rd,
 			 const struct GNUNET_CRYPTO_RsaSignature *signature)
 {
@@ -371,11 +371,11 @@ lookup_result_processor (void *cls,
   struct GNUNET_NAMESTORE_RecordData r;
 
   request->qe = NULL;
-  if (0 != rd_len)
+  if (0 != rd_count)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		_("Found %u existing records for domain `%s'\n"),
-		rd_len,
+		rd_count,
 		request->domain_name);
     request->phase = RP_FAIL;
     run_httpd_now ();
@@ -398,9 +398,8 @@ lookup_result_processor (void *cls,
 /**
  * Main MHD callback for handling requests.
  *
- *
- * @param cls argument given together with the function
- *        pointer when the handler was registered with MHD
+ * @param cls unused
+ * @param connection MHD connection handle
  * @param url the requested url
  * @param method the HTTP method used ("GET", "PUT", etc.)
  * @param version the HTTP version string (i.e. "HTTP/1.1")
@@ -414,16 +413,7 @@ lookup_result_processor (void *cls,
  * @param upload_data_size set initially to the size of the
  *        upload_data provided; the method must update this
  *        value to the number of bytes NOT processed;
- * @param con_cls pointer that the callback can set to some
- *        address and that will be preserved by MHD for future
- *        calls for this request; since the access handler may
- *        be called many times (i.e., for a PUT/POST operation
- *        with plenty of upload data) this allows the application
- *        to easily associate some request-specific state.
- *        If necessary, this state can be cleaned up in the
- *        global "MHD_RequestCompleted" callback (which
- *        can be set with the MHD_OPTION_NOTIFY_COMPLETED).
- *        Initially, <tt>*con_cls</tt> will be NULL.
+ * @param ptr pointer to location where we store the 'struct Request'
  * @return MHS_YES if the connection was handled successfully,
  *         MHS_NO if the socket must be closed due to a serios
  *         error while handling the request

@@ -2840,9 +2840,10 @@ wlan_data_helper (void *cls, struct Session_light *session_light,
 }
 
 /**
- * Function to print mac addresses nice *
- * @param pointer to 6 byte with the mac address
- * @return pointer to the chars which hold the print out
+ * Function to print mac addresses nicely.
+ *
+ * @param mac the mac address
+ * @return string to a static buffer with the human-readable mac, will be overwritten during the next call to this function
  */
 static const char *
 macprinter (const u_int8_t * mac)
