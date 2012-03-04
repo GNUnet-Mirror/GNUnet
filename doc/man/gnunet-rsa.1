@@ -1,0 +1,34 @@
+.TH GNUNET\-RSA 1 "Jan 4, 2012" "GNUnet"
+
+.SH NAME
+gnunet\-rsa \- manipulate GNUnet RSA key files
+
+.SH SYNOPSIS
+.B gnunet\-rsa
+.RI [ options ] FILENAME
+.br
+
+.SH DESCRIPTION
+\fBgnunet\-rsa\fP can be used to create an RSA private key and to print the corresponding public key.  You must specify a filename containing an RSA private key in GNUnet format as an argument.  If the file does not exist, gnunet\-rsa will create a key.  This may then take a while.  If the option \-p is given, the corresponding public key will be printed to the console.
+
+.SH OPTIONS
+.B
+.IP "\-p, \-\-print"
+Print the corresponding public key (to stdout).
+.B
+.IP "\-c FILENAME,  \-\-config=FILENAME"
+Use the configuration file FILENAME.
+.B
+.IP "\-h, \-\-help"
+Print short help on options.
+.B
+.IP "\-L LOGLEVEL, \-\-loglevel=LOGLEVEL"
+Use LOGLEVEL for logging.  Valid values are DEBUG, INFO, WARNING and ERROR.
+.B
+.IP "\-v, \-\-version"
+Print GNUnet version number.
+
+
+.SH BUGS
+Report bugs by using Mantis <https://gnunet.org/bugs/> or by sending electronic mail to <gnunet\-developers@gnu.org>
+

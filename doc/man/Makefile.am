@@ -8,6 +8,7 @@ man_MANS = \
   gnunet-peerinfo.1 \
   gnunet-pseudonym.1 \
   gnunet-publish.1 \
+  gnunet-rsa.1 \
   gnunet-search.1 \
   gnunet-statistics.1 \
   gnunet-transport.1 \

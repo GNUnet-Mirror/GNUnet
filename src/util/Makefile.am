@@ -37,6 +37,7 @@ noinst_PROGRAMS = \
  gnunet-config-diff \
  test_common_logging_dummy
 
+
 gnunet_config_diff_SOURCES = \
  gnunet-config-diff.c
 gnunet_config_diff_LDADD = \
@@ -114,7 +115,9 @@ libgnunetutil_la_LDFLAGS = \
 
 bin_PROGRAMS = \
  gnunet-service-resolver \
- gnunet-resolver
+ gnunet-resolver \
+ gnunet-rsa
+
 
 gnunet_service_resolver_SOURCES = \
  gnunet-service-resolver.c         
@@ -128,6 +131,15 @@ gnunet_service_resolver_DEPENDENCIES = \
 gnunet_resolver_SOURCES = \
  gnunet-resolver.c         
 gnunet_resolver_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(GN_LIBINTL)
+gnunet_resolver_DEPENDENCIES = \
+  libgnunetutil.la
+
+
+gnunet_rsa_SOURCES = \
+ gnunet-rsa.c         
+gnunet_rsa_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
 gnunet_resolver_DEPENDENCIES = \
