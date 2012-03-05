@@ -18,7 +18,7 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file gnunet-gns.c
+ * @file gnunet-namestore.c
  * @brief command line tool to manipulate the local zone
  * @author Christian Grothoff
  *
@@ -28,8 +28,6 @@
  * - test
  * - parsing SOA, PTR and MX value specifications (and define format!)
  * - add options to list/lookup individual records
- * - add option to shorten name (lookup PKEY, then lookup name by zone,
- *   then possibly lookup PSEU for the zone and update our zone)
  */
 #include "platform.h"
 #include <gnunet_util_lib.h>
@@ -353,11 +351,11 @@ run (void *cls, char *const *args, const char *cfgfile,
       data = &value_aaaa;
       data_size = sizeof (value_aaaa);
       break;
-    case GNUNET_GNS_TYPE_PKEY:
+    case GNUNET_NAMESTORE_TYPE_PKEY:
       fprintf (stderr, _("Record type `%s' not implemented yet\n"), typestring);
       GNUNET_SCHEDULER_shutdown ();
       return;
-    case GNUNET_GNS_TYPE_PSEU:
+    case GNUNET_NAMESTORE_TYPE_PSEU:
       data = value;
       data_size = strlen (value);
       break;
@@ -448,7 +446,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 
 
 /**
- * The main function for gnunet-gns.
+ * The main function for gnunet-namestore.
  *
  * @param argc number of arguments from the command line
  * @param argv command line arguments
@@ -487,15 +485,15 @@ main (int argc, char *const *argv)
 
   int ret;
 
-  GNUNET_log_setup ("gnunet-gns", "WARNING", NULL);
+  GNUNET_log_setup ("gnunet-namestore", "WARNING", NULL);
   ret =
       (GNUNET_OK ==
-       GNUNET_PROGRAM_run (argc, argv, "gnunet-gns",
-                           _("GNUnet GNS zone manipulation tool"), 
+       GNUNET_PROGRAM_run (argc, argv, "gnunet-namestore",
+                           _("GNUnet zone manipulation tool"), 
 			   options,
                            &run, NULL)) ? 0 : 1;
 
   return ret;
 }
 
-/* end of gnunet-gns.c */
+/* end of gnunet-namestore.c */

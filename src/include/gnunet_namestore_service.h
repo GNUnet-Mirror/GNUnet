@@ -46,12 +46,12 @@ extern "C"
 /**
  * Record type for GNS zone transfer ("PKEY").
  */
-#define GNUNET_GNS_TYPE_PKEY 65536
+#define GNUNET_NAMESTORE_TYPE_PKEY 65536
 
 /**
  * Record type for GNS zone transfer ("PSEU").
  */
-#define GNUNET_GNS_TYPE_PSEU 65537
+#define GNUNET_NAMESTORE_TYPE_PSEU 65537
 
 /**
  * Entry in the queue.

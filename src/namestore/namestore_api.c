@@ -223,8 +223,8 @@ GNUNET_NAMESTORE_typename_to_number (const char *typename)
     { "MX", GNUNET_DNSPARSER_TYPE_MX },
     { "TXT", GNUNET_DNSPARSER_TYPE_TXT },
     { "AAAA", GNUNET_DNSPARSER_TYPE_AAAA },
-    { "PKEY",  GNUNET_GNS_TYPE_PKEY },
-    { "PSEU",  GNUNET_GNS_TYPE_PSEU },
+    { "PKEY",  GNUNET_NAMESTORE_TYPE_PKEY },
+    { "PSEU",  GNUNET_NAMESTORE_TYPE_PSEU },
     { NULL, UINT32_MAX }
   };
   unsigned int i;
