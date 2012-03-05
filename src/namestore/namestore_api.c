@@ -834,16 +834,26 @@ GNUNET_NAMESTORE_disconnect (struct GNUNET_NAMESTORE_Handle *h, int drop)
   if (h->th != NULL)
   {
     GNUNET_CLIENT_notify_transmit_ready_cancel(h->th);
+    h->th = NULL;
   }
+  if (h->client != NULL)
+  {
+    struct DisconnectContext *d_ctx = GNUNET_malloc (sizeof (struct DisconnectContext));
+    d_ctx->h = h;
+    d_ctx->drop = drop;
 
-  struct DisconnectContext *d_ctx = GNUNET_malloc (sizeof (struct DisconnectContext));
-  d_ctx->h = h;
-  d_ctx->drop = drop;
-
-  h->th = GNUNET_CLIENT_notify_transmit_ready (h->client, sizeof (struct DisconnectMessage),
+    h->th = GNUNET_CLIENT_notify_transmit_ready (h->client, sizeof (struct DisconnectMessage),
                                            GNUNET_TIME_UNIT_FOREVER_REL,
                                            GNUNET_NO, &transmit_disconnect_to_namestore,
                                            d_ctx);
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Could not send disconnect notification to namestore service, we are not connected!\n");
+    if (GNUNET_YES == drop)
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "NAMESTORE will not drop content\n");
+    GNUNET_SCHEDULER_add_now (&clean_up_task, h);
+  }
 }
 
 
