@@ -121,8 +121,6 @@ typedef void (*GNUNET_GNS_LookupIterator) (void *cls,
  * @param handle handle to the GNS service
  * @param timeout how long to wait for transmission of this request to the service
  * // FIXME: what happens afterwards?
- * @param handle handle to the GNS service
- * @param timeout timeout of request
  * @param name the name to look up
  * @param type the GNUNET_GNS_RecordType to look for
  * @param iter function to call on each result

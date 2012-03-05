@@ -95,7 +95,7 @@ GNUNET_NAMESTORE_records_get_size (unsigned int rd_count,
 /**
  * Serialize the given records to the given destination buffer.
  *
- * @param rd_cound number of records in the rd array
+ * @param rd_count number of records in the rd array
  * @param rd array of GNUNET_NAMESTORE_RecordData with rd_count elements
  * @param dest_size size of the destination array
  * @param dest where to write the result
@@ -158,7 +158,7 @@ GNUNET_NAMESTORE_records_cmp (const struct GNUNET_NAMESTORE_RecordData *a,
  *
  * @param len size of the serialized record data
  * @param src the serialized record data
- * @param rd_cound number of records in the rd array
+ * @param rd_count number of records in the rd array
  * @param dest where to put the data
  *
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
@@ -193,8 +193,21 @@ GNUNET_NAMESTORE_records_deserialize (size_t len,
   return GNUNET_OK; 
 }
 
+/**
+ * Sign name and records
+ *
+ * @param key the private key
+ * @param name the name
+ * @param rd record data
+ * @param rd_count number of records
+ *
+ * @return the signature
+ */
 struct GNUNET_CRYPTO_RsaSignature *
-GNUNET_NAMESTORE_create_signature (const struct GNUNET_CRYPTO_RsaPrivateKey *key, const char *name, struct GNUNET_NAMESTORE_RecordData *rd, unsigned int rd_count)
+GNUNET_NAMESTORE_create_signature (const struct GNUNET_CRYPTO_RsaPrivateKey *key,
+    const char *name,
+    struct GNUNET_NAMESTORE_RecordData *rd,
+    unsigned int rd_count)
 {
   struct GNUNET_CRYPTO_RsaSignature *sig = GNUNET_malloc(sizeof (struct GNUNET_CRYPTO_RsaSignature));
   struct GNUNET_CRYPTO_RsaSignaturePurpose *sig_purpose;

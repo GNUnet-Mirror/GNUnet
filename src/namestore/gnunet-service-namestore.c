@@ -225,6 +225,7 @@ void drop_iterator (void *cls,
  *
  * @param cls closure
  * @param client identification of the client
+ * @param message the stop message
  */
 static void handle_stop (void *cls,
                           struct GNUNET_SERVER_Client * client,

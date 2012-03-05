@@ -111,7 +111,7 @@ GNUNET_NAMESTORE_disconnect (struct GNUNET_NAMESTORE_Handle *h, int drop);
  *
  * @param cls closure
  * @param success GNUNET_SYSERR on failure (including timeout/queue drop/failure to validate)
- *                GNUNET_NO if content was already there
+ *                GNUNET_NO if content was already there or not found
  *                GNUNET_YES (or other positive value) on success
  * @param emsg NULL on success, otherwise an error message
  */
@@ -419,7 +419,7 @@ GNUNET_NAMESTORE_records_get_size (unsigned int rd_count,
 /**
  * Serialize the given records to the given destination buffer.
  *
- * @param rd_cound number of records in the rd array
+ * @param rd_count number of records in the rd array
  * @param rd array of GNUNET_NAMESTORE_RecordData with rd_count elements
  * @param dest_size size of the destination array
  * @param dest where to write the result
@@ -438,7 +438,7 @@ GNUNET_NAMESTORE_records_serialize (unsigned int rd_count,
  *
  * @param len size of the serialized record data
  * @param src the serialized record data
- * @param rd_cound number of records in the rd array
+ * @param rd_count number of records in the rd array
  * @param dest where to put the data
  *
  * @return GNUNET_OK on success, GNUNET_SYSERR on error

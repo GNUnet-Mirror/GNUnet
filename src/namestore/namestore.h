@@ -45,7 +45,16 @@
 
 #define GNUNET_MESSAGE_TYPE_NAMESTORE_DISCONNECT 443
 
-
+/**
+ * Sign name and records
+ *
+ * @param key the private key
+ * @param name the name
+ * @param rd record data
+ * @param rd_count number of records
+ *
+ * @return the signature
+ */
 struct GNUNET_CRYPTO_RsaSignature *
 GNUNET_NAMESTORE_create_signature (const struct GNUNET_CRYPTO_RsaPrivateKey *key, const char *name, struct GNUNET_NAMESTORE_RecordData *rd, unsigned int rd_count);
 

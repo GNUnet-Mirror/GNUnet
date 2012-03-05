@@ -385,9 +385,7 @@ dv_plugin_check_address (void *cls, const void *addr, size_t addrlen)
  * notify us by calling the env->session_end function
  *
  * @param cls the plugin
- * @param target the neighbour id
- * @param addr pointer to the address
- * @param addrlen length of addr
+ * @param address the address
  * @return the session if the address is valid, NULL otherwise
  */
 static struct Session * 
