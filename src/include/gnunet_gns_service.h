@@ -57,6 +57,10 @@ struct GNUNET_GNS_Handle;
 struct GNUNET_GNS_LookupHandle;
 
 /**
+ * Handle to control a shorten operation
+ */
+
+/**
  * Record types
  * Based on GNUNET_DNSPARSER_TYPEs (standard DNS)
  */
@@ -107,13 +111,13 @@ GNUNET_GNS_disconnect (struct GNUNET_GNS_Handle *handle);
  *
  * @param cls closure
  * @param name "name" of the original lookup
- * @param record the records in reply
- * @param num_records the number of records in reply
+ * @param rd_count number of records
+ * @param rd the records in reply
  */
 typedef void (*GNUNET_GNS_LookupIterator) (void *cls,
                                         const char * name,
-                                        const struct GNUNET_NAMESTORE_RecordData *record,
-                                        unsigned int num_records);
+                                        uint32_t rd_count,
+                                        const struct GNUNET_NAMESTORE_RecordData *rd);
 
 
 
@@ -121,8 +125,6 @@ typedef void (*GNUNET_GNS_LookupIterator) (void *cls,
  * Perform an asynchronous lookup operation on the GNS.
  *
  * @param handle handle to the GNS service
- * @param timeout how long to wait for transmission of this request to the service
- * // FIXME: what happens afterwards?
  * @param name the name to look up
  * @param type the GNUNET_GNS_RecordType to look for
  * @param iter function to call on each result
@@ -132,7 +134,6 @@ typedef void (*GNUNET_GNS_LookupIterator) (void *cls,
  */
 struct GNUNET_GNS_LookupHandle *
 GNUNET_GNS_lookup_start (struct GNUNET_GNS_Handle *handle,
-                         struct GNUNET_TIME_Relative timeout,
                          const char * name,
                          enum GNUNET_GNS_RecordType type,
                          GNUNET_GNS_LookupIterator iter,
@@ -150,7 +151,37 @@ GNUNET_GNS_lookup_start (struct GNUNET_GNS_Handle *handle,
 void
 GNUNET_GNS_lookup_stop (struct GNUNET_GNS_LookupHandle *lookup_handle);
 
+/* *************** Standard API: shorten ******************* */
 
+
+/**
+ * Processor called on for a name shortening result
+ * called only once
+ *
+ * @param cls closure
+ * @param name "name" of the original lookup
+ * @param short_name the shortened name or NULL if no result
+ */
+typedef void (*GNUNET_GNS_ShortenResultProcessor) (void *cls,
+                                        const char * name,
+                                        const char* short_name);
+
+
+/**
+ * Perform a shorten operation on name using the GNS.
+ *
+ * @param handle handle to the GNS service
+ * @param name the name to shorten
+ * @param proc processor to call on result
+ * @param iter_cls closure for processor
+ *
+ * @return handle to the shorten operation
+ */
+struct GNUNET_GNS_ShortenHandle *
+GNUNET_GNS_shorten (struct GNUNET_GNS_Handle *handle,
+                         const char * name,
+                         GNUNET_GNS_ShortenResultProcessor proc,
+                         void *iter_cls);
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif

@@ -18,6 +18,8 @@
       Boston, MA 02111-1307, USA.
  */
 
+#include "gnunet_gns_service.h"
+
 /**
  * @file gns/gns.h
  * @brief IPC messages between GNS API and GNS service
@@ -46,14 +48,13 @@ struct GNUNET_GNS_ClientLookupMessage
   /**
    * Unique identifier for this request (for key collisions).
    */
-  // FIXME: unaligned
-  uint64_t unique_id;
+  uint64_t unique_id GNUNET_PACKED;
 
   /**
    * the type of record to look up
    */
   // FIXME: bad type - should be of GNUNET_GNS_RecordType
-  int type;
+  enum GNUNET_GNS_RecordType type;
 
   /* Followed by the name to look up */
 };
@@ -62,7 +63,7 @@ struct GNUNET_GNS_ClientLookupMessage
 /**
  * Message from GNS service to client: new results.
  */
-struct GNUNET_GNS_ClientResultMessage
+struct GNUNET_GNS_ClientLookupResultMessage
 {
   /**
     * Header of type GNUNET_MESSAGE_TYPE_GNS_CLIENT_RESULT
@@ -84,14 +85,63 @@ struct GNUNET_GNS_ClientResultMessage
   /**
    * The number of records contained in response
    */  
-  uint32_t num_records;
+  uint32_t rd_count;
 
   // FIXME: what format has a GNS_Record?
-  /* followed by num_records GNUNET_GNS_Records*/
+  /* followed by rd_count GNUNET_NAMESTORE_RecordData structs*/
 
 };
 
+/**
+ * Message from client to GNS service to lookup records.
+ */
+struct GNUNET_GNS_ClientShortenMessage
+{
+  /**
+    * Header of type GNUNET_MESSAGE_TYPE_GNS_CLIENT_SHORTEN
+   */
+  struct GNUNET_MessageHeader header;
 
+  /**
+   * A key. TODO some uid
+   */
+  GNUNET_HashCode key;
+
+  /**
+   * Unique identifier for this request (for key collisions).
+   */
+  // FIXME: unaligned
+  uint64_t unique_id GNUNET_PACKED;
+
+  /* Followed by the name to shorten up */
+};
+
+
+/**
+ * Message from GNS service to client: shorten result.
+ */
+struct GNUNET_GNS_ClientShortenResultMessage
+{
+  /**
+    * Header of type GNUNET_MESSAGE_TYPE_GNS_CLIENT_SHORTEN_RESULT
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Unique identifier for this request (for key collisions).
+   */
+  // FIXME: unaligned
+  uint64_t unique_id GNUNET_PACKED;
+
+  /**
+   * A key. TODO some uid
+   * // FIXME: why hash?
+   */
+  GNUNET_HashCode key;
+
+  /* followed by the shortened name or '\0' for no result*/
+
+};
 GNUNET_NETWORK_STRUCT_END
 
 #endif
