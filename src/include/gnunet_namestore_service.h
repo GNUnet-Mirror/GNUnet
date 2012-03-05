@@ -49,6 +49,11 @@ extern "C"
 #define GNUNET_GNS_TYPE_PKEY 65536
 
 /**
+ * Record type for GNS zone transfer ("PSEU").
+ */
+#define GNUNET_GNS_TYPE_PSEU 65537
+
+/**
  * Entry in the queue.
  */
 struct GNUNET_NAMESTORE_QueueEntry;
@@ -67,6 +72,17 @@ struct GNUNET_NAMESTORE_ZoneIterator;
  * Maximum size of a value that can be stored in the namestore.
  */
 #define GNUNET_NAMESTORE_MAX_VALUE_SIZE (63 * 1024)
+
+
+/**
+ * Convert a type name (i.e. "AAAA") to the corresponding number.
+ *
+ * @param typename name to convert
+ * @return corresponding number, UINT32_MAX on error
+ */
+uint32_t
+GNUNET_NAMESTORE_typename_to_number (const char *typename);
+
 
 /**
  * Connect to the namestore service.

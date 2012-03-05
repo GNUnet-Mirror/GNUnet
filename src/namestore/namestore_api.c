@@ -29,6 +29,7 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_crypto_lib.h"
 #include "gnunet_constants.h"
+#include "gnunet_dnsparser_lib.h"
 #include "gnunet_arm_service.h"
 #include "gnunet_signatures.h"
 #include "gnunet_namestore_service.h"
@@ -43,7 +44,15 @@
  */
 struct GNUNET_NAMESTORE_QueueEntry
 {
+
+  /**
+   * Kept in a DLL.
+   */
   struct GNUNET_NAMESTORE_QueueEntry *next;
+
+  /**
+   * Kept in a DLL.
+   */
   struct GNUNET_NAMESTORE_QueueEntry *prev;
 
   struct GNUNET_NAMESTORE_Handle *nsh;
@@ -65,7 +74,15 @@ struct GNUNET_NAMESTORE_QueueEntry
  */
 struct GNUNET_NAMESTORE_ZoneIterator
 {
+
+  /**
+   * Kept in a DLL.
+   */
   struct GNUNET_NAMESTORE_ZoneIterator *next;
+
+  /**
+   * Kept in a DLL.
+   */
   struct GNUNET_NAMESTORE_ZoneIterator *prev;
 
   uint32_t op_id;
@@ -182,6 +199,42 @@ struct GNUNET_NAMESTORE_SimpleRecord
   size_t data_size;
   const void *data;
 };
+
+
+
+/**
+ * Convert a type name (i.e. "AAAA") to the corresponding number.
+ *
+ * @param typename name to convert
+ * @return corresponding number, UINT32_MAX on error
+ */
+uint32_t
+GNUNET_NAMESTORE_typename_to_number (const char *typename)
+{
+  static struct { 
+    const char *name; 
+    uint32_t number; 
+  } map[] = {
+    { "A", GNUNET_DNSPARSER_TYPE_A },
+    { "NS", GNUNET_DNSPARSER_TYPE_NS },
+    { "CNAME", GNUNET_DNSPARSER_TYPE_CNAME },
+    { "SOA", GNUNET_DNSPARSER_TYPE_SOA },
+    { "PTR", GNUNET_DNSPARSER_TYPE_PTR },
+    { "MX", GNUNET_DNSPARSER_TYPE_MX },
+    { "TXT", GNUNET_DNSPARSER_TYPE_TXT },
+    { "AAAA", GNUNET_DNSPARSER_TYPE_AAAA },
+    { "PKEY",  GNUNET_GNS_TYPE_PKEY },
+    { "PSEU",  GNUNET_GNS_TYPE_PSEU },
+    { NULL, UINT32_MAX }
+  };
+  unsigned int i;
+
+  i=0;
+  while ( (map[i].name != NULL) &&
+	  (0 != strcasecmp (typename, map[i].name)) )
+    i++;
+  return map[i].number;  
+}
 
 
 /**
