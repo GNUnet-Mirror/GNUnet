@@ -766,5 +766,188 @@ GNUNET_STRINGS_string_to_data (const char *enc, size_t enclen,
 }
 
 
+/**
+ * Parse a path that might be an URI.
+ *
+ * @param path path to parse. Must be NULL-terminated.
+ * @param scheme_part a pointer to 'char *' where a pointer to a string that
+ *        represents the URI scheme will be stored. Can be NULL. The string is
+ *        allocated by the function, and should be freed by GNUNET_free() when
+ *        it is no longer needed.
+ * @param path_part a pointer to 'const char *' where a pointer to the path
+ *        part of the URI will be stored. Can be NULL. Points to the same block
+ *        of memory as 'path', and thus must not be freed. Might point to '\0',
+ *        if path part is zero-length.
+ * @return GNUNET_YES if it's an URI, GNUNET_NO otherwise. If 'path' is not
+ *         an URI, '* scheme_part' and '*path_part' will remain unchanged
+ *         (if they weren't NULL).
+ */
+int
+GNUNET_STRINGS_parse_uri (const char *path, char **scheme_part,
+    const char **path_part)
+{
+  size_t len;
+  int i, end;
+  int pp_state = 0;
+  const char *post_scheme_part = NULL;
+  len = strlen (path);
+  for (end = 0, i = 0; !end && i < len; i++)
+  {
+    switch (pp_state)
+    {
+    case 0:
+      if (path[i] == ':' && i > 0)
+      {
+        pp_state += 1;
+        continue;
+      }
+      if (!((path[i] >= 'A' && path[i] <= 'Z') || (path[i] >= 'a' && path[i] <= 'z')
+          || (path[i] >= '0' && path[i] <= '9') || path[i] == '+' || path[i] == '-'
+          || (path[i] == '.')))
+        end = 1;
+      break;
+    case 1:
+    case 2:
+      if (path[i] == '/')
+      {
+        pp_state += 1;
+        continue;
+      }
+      end = 1;
+      break;
+    case 3:
+      post_scheme_part = &path[i];
+      end = 1;
+      break;
+    default:
+      end = 1;
+    }
+  }
+  if (post_scheme_part == NULL)
+    return GNUNET_NO;
+  if (scheme_part)
+  {
+    *scheme_part = GNUNET_malloc (post_scheme_part - path + 1);
+    memcpy (*scheme_part, path, post_scheme_part - path);
+    (*scheme_part)[post_scheme_part - path] = '\0';
+  }
+  if (path_part)
+    *path_part = post_scheme_part;
+  return GNUNET_YES;
+}
+
+
+/**
+ * Check whether @filename is absolute or not, and if it's an URI
+ *
+ * @param filename filename to check
+ * @param can_be_uri GNUNET_YES to check for being URI, GNUNET_NO - to
+ *        assume it's not URI
+ * @param r_is_uri a pointer to an int that is set to GNUNET_YES if @filename
+ *        is URI and to GNUNET_NO otherwise. Can be NULL. If @can_be_uri is
+ *        not GNUNET_YES, *r_is_uri is set to GNUNET_NO.
+ * @param r_uri a pointer to a char * that is set to a pointer to URI scheme.
+ *        The string is allocated by the function, and should be freed with
+ *        GNUNET_free (). Can be NULL.
+ * @return GNUNET_YES if @filaneme is absolute, GNUNET_NO otherwise.
+ */
+int
+GNUNET_STRINGS_path_is_absolute (const char *filename, int can_be_uri,
+    int *r_is_uri, char **r_uri_scheme)
+{
+#if WINDOWS
+  size_t len;
+#endif
+  const char *post_scheme_path;
+  int is_uri;
+  char * uri;
+  /* consider POSIX paths to be absolute too, even on W32,
+   * as plibc expansion will fix them for us.
+   */
+  if (filename[0] == '/')
+    return GNUNET_YES;
+  if (can_be_uri)
+  {
+    is_uri = GNUNET_STRINGS_parse_uri (filename, &uri, &post_scheme_path);
+    if (r_is_uri)
+      *r_is_uri = is_uri;
+    if (is_uri)
+    {
+      if (r_uri_scheme)
+        *r_uri_scheme = uri;
+      else
+        GNUNET_free_non_null (uri);
+#if WINDOWS
+      len = strlen(post_scheme_path);
+      /* Special check for file:///c:/blah
+       * We want to parse 'c:/', not '/c:/'
+       */
+      if (post_scheme_path[0] == '/' && len >= 3 && post_scheme_path[2] == ':')
+        post_scheme_path = &post_scheme_path[1];
+#endif
+      return GNUNET_STRINGS_path_is_absolute (post_scheme_path, GNUNET_NO, NULL, NULL);
+    }
+  }
+  else
+  {
+    is_uri = GNUNET_NO;
+    if (r_is_uri)
+      *r_is_uri = GNUNET_NO;
+  }
+#if WINDOWS
+  len = strlen (filename);
+  if (len >= 3 &&
+      ((filename[0] >= 'A' && filename[0] <= 'Z')
+      || (filename[0] >= 'a' && filename[0] <= 'z'))
+      && filename[1] == ':' && (filename[2] == '/' || filename[2] == '\\'))
+    return GNUNET_YES;
+#endif
+  return GNUNET_NO;
+}
+
+#if MINGW
+#define  	_IFMT		0170000 /* type of file */
+#define  	_IFLNK		0120000 /* symbolic link */
+#define  S_ISLNK(m)	(((m)&_IFMT) == _IFLNK)
+#endif
+
+/**
+ * Perform @checks on @filename
+ * 
+ * @param filename file to check
+ * @param checks checks to perform
+ * @return GNUNET_YES if all @checks pass, GNUNET_NO if at least one of them
+ *         fails, GNUNET_SYSERR when a check can't be performed
+ */
+int
+GNUNET_STRINGS_check_filename (const char *filename,
+    enum GNUNET_STRINGS_FilenameCheck checks)
+{
+  struct stat st;
+  if (filename == NULL || filename[0] == '\0')
+    return GNUNET_SYSERR;
+  if (checks & GNUNET_STRINGS_CHECK_IS_ABSOLUTE)
+    if (!GNUNET_STRINGS_path_is_absolute (filename, GNUNET_NO, NULL, NULL))
+      return GNUNET_NO;
+  if (checks & (GNUNET_STRINGS_CHECK_EXISTS
+      | GNUNET_STRINGS_CHECK_IS_DIRECTORY
+      | GNUNET_STRINGS_CHECK_IS_LINK))
+  {
+    if (STAT (filename, &st))
+    {
+      if (checks & GNUNET_STRINGS_CHECK_EXISTS)
+        return GNUNET_NO;
+      else
+        return GNUNET_SYSERR;
+    }
+  }
+  if (checks & GNUNET_STRINGS_CHECK_IS_DIRECTORY)
+    if (!S_ISDIR (st.st_mode))
+      return GNUNET_NO;
+  if (checks & GNUNET_STRINGS_CHECK_IS_LINK)
+    if (!S_ISLNK (st.st_mode))
+      return GNUNET_NO;
+  return GNUNET_YES;
+}
 
 /* end of strings.c */

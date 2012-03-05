@@ -256,6 +256,64 @@ GNUNET_STRINGS_string_to_data (const char *enc, size_t enclen,
 }
 #endif
 
+enum GNUNET_STRINGS_FilenameCheck
+{
+  GNUNET_STRINGS_CHECK_EXISTS = 0x00000001,
+  GNUNET_STRINGS_CHECK_IS_DIRECTORY = 0x00000002,
+  GNUNET_STRINGS_CHECK_IS_LINK = 0x00000004,
+  GNUNET_STRINGS_CHECK_IS_ABSOLUTE = 0x00000008
+};
+
+/**
+ * Parse a path that might be an URI.
+ *
+ * @param path path to parse. Must be NULL-terminated.
+ * @param scheme_part a pointer to 'char *' where a pointer to a string that
+ *        represents the URI scheme will be stored. Can be NULL. The string is
+ *        allocated by the function, and should be freed by GNUNET_free() when
+ *        it is no longer needed.
+ * @param path_part a pointer to 'const char *' where a pointer to the path
+ *        part of the URI will be stored. Can be NULL. Points to the same block
+ *        of memory as 'path', and thus must not be freed. Might point to '\0',
+ *        if path part is zero-length.
+ * @return GNUNET_YES if it's an URI, GNUNET_NO otherwise. If 'path' is not
+ *         an URI, '* scheme_part' and '*path_part' will remain unchanged
+ *         (if they weren't NULL).
+ */
+int
+GNUNET_STRINGS_parse_uri (const char *path, char **scheme_part,
+    const char **path_part);
+
+/**
+ * Check whether @filename is absolute or not, and if it's an URI
+ *
+ * @param filename filename to check
+ * @param can_be_uri GNUNET_YES to check for being URI, GNUNET_NO - to
+ *        assume it's not URI
+ * @param r_is_uri a pointer to an int that is set to GNUNET_YES if @filename
+ *        is URI and to GNUNET_NO otherwise. Can be NULL. If @can_be_uri is
+ *        not GNUNET_YES, *r_is_uri is set to GNUNET_NO.
+ * @param r_uri a pointer to a char * that is set to a pointer to URI scheme.
+ *        The string is allocated by the function, and should be freed with
+ *        GNUNET_free (). Can be NULL.
+ * @return GNUNET_YES if @filaneme is absolute, GNUNET_NO otherwise.
+ */
+int
+GNUNET_STRINGS_path_is_absolute (const char *filename, int can_be_uri,
+    int *r_is_uri, char **r_uri_scheme);
+
+/**
+ * Perform @checks on @filename
+ * 
+ * @param filename file to check
+ * @param checks checks to perform
+ * @return GNUNET_YES if all @checks pass, GNUNET_NO if at least one of them
+ *         fails, GNUNET_SYSERR when a check can't be performed
+ */
+int
+GNUNET_STRINGS_check_filename (const char *filename,
+    enum GNUNET_STRINGS_FilenameCheck checks);
+
 
 /* ifndef GNUNET_UTIL_STRING_H */
 #endif
