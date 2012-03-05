@@ -23,7 +23,13 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - everything
+ * - printing records
+ * - allow users to set record options (not just 'RF_AUTHORITY')
+ * - test
+ * - parsing SOA, PTR and MX value specifications (and define format!)
+ * - add options to list/lookup individual records
+ * - add option to shorten name (lookup PKEY, then lookup name by zone,
+ *   then possibly lookup PSEU for the zone and update our zone)
  */
 #include "platform.h"
 #include <gnunet_util_lib.h>
@@ -56,14 +62,29 @@ static char *keyfile;
 static int add;
 
 /**
+ * Queue entry for the 'add' operation.
+ */
+static struct GNUNET_NAMESTORE_QueueEntry *add_qe;
+
+/**
  * Desired action is to list records.
  */
 static int list;
 
 /**
+ * List iterator for the 'list' operation.
+ */
+static struct GNUNET_NAMESTORE_ZoneIterator *list_it;
+
+/**
  * Desired action is to remove a record.
  */
 static int del;
+
+/**
+ * Queue entry for the 'del' operation.
+ */
+static struct GNUNET_NAMESTORE_QueueEntry *del_qe;
 
 /**
  * Name of the records to add/list/remove.
@@ -110,6 +131,96 @@ do_shutdown (void *cls,
 
 
 /**
+ * Continuation called to notify client about result of the
+ * operation.
+ *
+ * @param cls closure, unused
+ * @param success GNUNET_SYSERR on failure (including timeout/queue drop/failure to validate)
+ *                GNUNET_NO if content was already there
+ *                GNUNET_YES (or other positive value) on success
+ * @param emsg NULL on success, otherwise an error message
+ */
+static void
+add_continuation (void *cls,
+		  int32_t success,
+		  const char *emsg)
+{
+  add_qe = NULL;
+  if (success != GNUNET_YES)
+    fprintf (stderr,
+	     _("Adding record failed: %s\n"),
+	     (success == GNUNET_NO) ? "record exists" : emsg);
+  if ( (NULL == del_qe) &&
+       (NULL == list_it) )
+    GNUNET_SCHEDULER_shutdown ();
+}
+
+
+/**
+ * Continuation called to notify client about result of the
+ * operation.
+ *
+ * @param cls closure, unused
+ * @param success GNUNET_SYSERR on failure (including timeout/queue drop/failure to validate)
+ *                GNUNET_NO if content was already there
+ *                GNUNET_YES (or other positive value) on success
+ * @param emsg NULL on success, otherwise an error message
+ */
+static void
+del_continuation (void *cls,
+		  int32_t success,
+		  const char *emsg)
+{
+  del_qe = NULL;
+  if (success != GNUNET_YES)
+    fprintf (stderr,
+	     _("Deleting record failed: %s\n"),
+	     emsg);
+  if ( (NULL == add_qe) &&
+       (NULL == list_it) )
+    GNUNET_SCHEDULER_shutdown ();
+}
+
+
+/**
+ * Process a record that was stored in the namestore.
+ *
+ * @param cls closure
+ * @param zone_key public key of the zone
+ * @param expire when does the corresponding block in the DHT expire (until
+ *               when should we never do a DHT lookup for the same name again)?; 
+ *               GNUNET_TIME_UNIT_ZERO_ABS if there are no records of any type in the namestore,
+ *               or the expiration time of the block in the namestore (even if there are zero
+ *               records matching the desired record type)
+ * @param name name that is being mapped (at most 255 characters long)
+ * @param rd_count number of entries in 'rd' array
+ * @param rd array of records with data to store
+ * @param signature signature of the record block, NULL if signature is unavailable (i.e. 
+ *        because the user queried for a particular record type only)
+ */
+static void
+display_record (void *cls,
+		const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
+		struct GNUNET_TIME_Absolute expire,			    
+		const char *name,
+		unsigned int rd_len,
+		const struct GNUNET_NAMESTORE_RecordData *rd,
+		const struct GNUNET_CRYPTO_RsaSignature *signature)
+{
+  if (NULL == name)
+  {
+    list_it = NULL;
+    if ( (NULL == del_qe) &&
+	 (NULL == add_qe) )
+      GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+  // FIXME: display record!
+  GNUNET_NAMESTORE_zone_iterator_next (list_it);
+}
+
+
+/**
  * Main function that will be run.
  *
  * @param cls closure
@@ -128,6 +239,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   struct in_addr value_a;
   struct in6_addr value_aaaa;
   struct GNUNET_TIME_Relative etime;
+  struct GNUNET_NAMESTORE_RecordData rd;
 
   if (NULL == keyfile)
   {
@@ -163,7 +275,8 @@ run (void *cls, char *const *args, const char *cfgfile,
 		_("Failed to connect to namestore\n"));
     return;
   }
-  GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
+				&do_shutdown, NULL);
   if (NULL == typestring)
     type = 0;
   else
@@ -173,11 +286,11 @@ run (void *cls, char *const *args, const char *cfgfile,
     fprintf (stderr, _("Unsupported type `%s'\n"), typestring);
     GNUNET_SCHEDULER_shutdown ();
     return;
-  } else if (add)
+  } else if (add | del)
   {
     fprintf (stderr,
 	     _("Missing option `%s' for operation `%s'\n"),
-	     "-t", _("add"));
+	     "-t", _("add/del"));
     GNUNET_SCHEDULER_shutdown ();
     return;     
   }
@@ -210,14 +323,17 @@ run (void *cls, char *const *args, const char *cfgfile,
       data_size = strlen (value);
       break;
     case GNUNET_DNSPARSER_TYPE_SOA:
+      // FIXME
       fprintf (stderr, _("Record type `%s' not implemented yet\n"), typestring);
       GNUNET_SCHEDULER_shutdown ();
       return;
     case GNUNET_DNSPARSER_TYPE_PTR:
+      // FIXME
       fprintf (stderr, _("Record type `%s' not implemented yet\n"), typestring);
       GNUNET_SCHEDULER_shutdown ();
       return;
     case GNUNET_DNSPARSER_TYPE_MX:
+      // FIXME
       fprintf (stderr, _("Record type `%s' not implemented yet\n"), typestring);
       GNUNET_SCHEDULER_shutdown ();
       return;
@@ -248,11 +364,11 @@ run (void *cls, char *const *args, const char *cfgfile,
     default:
       GNUNET_assert (0);
     }
-  } else if (add)
+  } else if (add | del)
   {
     fprintf (stderr,
 	     _("Missing option `%s' for operation `%s'\n"),
-	     "-V", _("add"));
+	     "-V", _("add/del"));
     GNUNET_SCHEDULER_shutdown ();
     return;     
   }
@@ -268,25 +384,65 @@ run (void *cls, char *const *args, const char *cfgfile,
       GNUNET_SCHEDULER_shutdown ();
       return;     
     }
-  } else if (add)
+  } else if (add | del)
   {
     fprintf (stderr,
 	     _("Missing option `%s' for operation `%s'\n"),
-	     "-e", _("add"));
+	     "-e", _("add/del"));
     GNUNET_SCHEDULER_shutdown ();
     return;     
   }
   if (add)
   {
-    // FIXME
+    if (NULL == name)
+    {
+      fprintf (stderr,
+	       _("Missing option `%s' for operation `%s'\n"),
+	       "-n", _("add"));
+      GNUNET_SCHEDULER_shutdown ();
+      return;     
+    }
+    rd.data = data;
+    rd.data_size = data_size;
+    rd.record_type = type;
+    rd.expiration = GNUNET_TIME_relative_to_absolute (etime);
+    rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY; // FIXME: not always...
+    add_qe = GNUNET_NAMESTORE_record_create (ns,
+					     zone_pkey,
+					     name,
+					     &rd,
+					     &add_continuation,
+					     NULL);
   }
   if (del)
   {
-    // FIXME
+    if (NULL == name)
+    {
+      fprintf (stderr,
+	       _("Missing option `%s' for operation `%s'\n"),
+	       "-n", _("del"));
+      GNUNET_SCHEDULER_shutdown ();
+      return;     
+    }
+    rd.data = data;
+    rd.data_size = data_size;
+    rd.record_type = type;
+    rd.expiration = GNUNET_TIME_relative_to_absolute (etime);
+    rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY; // FIXME: not always...
+    del_qe = GNUNET_NAMESTORE_record_create (ns,
+					     zone_pkey,
+					     name,
+					     &rd,
+					     &del_continuation,
+					     NULL);
   }
   if (list)
   {
-    // FIXME
+    list_it = GNUNET_NAMESTORE_zone_iteration_start (ns,
+						     &zone,
+						     0, 0,
+						     &display_record,
+						     NULL);
   }
 }
 
