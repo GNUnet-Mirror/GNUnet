@@ -252,7 +252,6 @@ print_my_uri (void *cls, const struct GNUNET_PeerIdentity *peer,
 {
   struct GNUNET_CRYPTO_HashAsciiEncoded enc;
   struct PrintContext *pc = cls;
-  char *pkey;
 
   if (peer == NULL)
   {
