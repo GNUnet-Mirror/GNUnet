@@ -127,6 +127,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   size_t data_size;
   struct in_addr value_a;
   struct in6_addr value_aaaa;
+  struct GNUNET_TIME_Relative etime;
 
   if (NULL == keyfile)
   {
@@ -138,6 +139,13 @@ run (void *cls, char *const *args, const char *cfgfile,
   zone_pkey = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
   GNUNET_free (keyfile);
   keyfile = NULL;
+  if (! (add|del|list))
+  {
+    /* nothing more to be done */  
+    GNUNET_CRYPTO_rsa_key_free (zone_pkey);
+    zone_pkey = NULL;
+    return; 
+  }
   if (NULL == zone_pkey)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -147,6 +155,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_CRYPTO_rsa_key_get_public (zone_pkey,
 				    &pub);
   GNUNET_CRYPTO_hash (&pub, sizeof (pub), &zone);
+
   ns = GNUNET_NAMESTORE_connect (cfg);
   if (NULL == ns)
   {
@@ -164,6 +173,13 @@ run (void *cls, char *const *args, const char *cfgfile,
     fprintf (stderr, _("Unsupported type `%s'\n"), typestring);
     GNUNET_SCHEDULER_shutdown ();
     return;
+  } else if (add)
+  {
+    fprintf (stderr,
+	     _("Missing option `%s' for operation `%s'\n"),
+	     "-t", _("add"));
+    GNUNET_SCHEDULER_shutdown ();
+    return;     
   }
   if (NULL != value)
   {
@@ -232,9 +248,46 @@ run (void *cls, char *const *args, const char *cfgfile,
     default:
       GNUNET_assert (0);
     }
+  } else if (add)
+  {
+    fprintf (stderr,
+	     _("Missing option `%s' for operation `%s'\n"),
+	     "-V", _("add"));
+    GNUNET_SCHEDULER_shutdown ();
+    return;     
   }
-
-
+  if (NULL != expirationstring)
+  {
+    if (GNUNET_OK !=
+	GNUNET_STRINGS_fancy_time_to_relative (expirationstring,
+					       &etime))
+    {
+      fprintf (stderr,
+	       _("Invalid time format `%s'\n"),
+	       expirationstring);
+      GNUNET_SCHEDULER_shutdown ();
+      return;     
+    }
+  } else if (add)
+  {
+    fprintf (stderr,
+	     _("Missing option `%s' for operation `%s'\n"),
+	     "-e", _("add"));
+    GNUNET_SCHEDULER_shutdown ();
+    return;     
+  }
+  if (add)
+  {
+    // FIXME
+  }
+  if (del)
+  {
+    // FIXME
+  }
+  if (list)
+  {
+    // FIXME
+  }
 }
 
 
