@@ -215,7 +215,6 @@ void drop_iterator (void *cls,
   else
   {
     (*stop) = GNUNET_YES;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "NULL \n");
   }
 }
 
@@ -261,7 +260,6 @@ static void handle_stop (void *cls,
     while (stop == GNUNET_NO)
     {
       GSN_database->iterate_records (GSN_database->cls, NULL, NULL, offset, &drop_iterator, &stop);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "STOP %u \n");
       offset ++;
     }
   }
@@ -291,8 +289,6 @@ handle_lookup_name_it (void *cls,
   size_t rd_ser_len;
   struct GNUNET_CRYPTO_RsaSignature *signature_tmp;
 
-
-
   size_t r_size = 0;
 
   size_t name_len = 0;
@@ -312,6 +308,8 @@ handle_lookup_name_it (void *cls,
       for (c = 0; c < rd_count; c ++)
         if (rd[c].record_type == lnc->record_type)
           copied_elements++; /* found matching record */
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found %u records with type %u for name `%s' in zone `%s'\n",
+          copied_elements, lnc->record_type, lnc->name, GNUNET_h2s(lnc->zone));
       rd_selected = GNUNET_malloc (copied_elements * sizeof (struct GNUNET_NAMESTORE_RecordData));
       copied_elements = 0;
       for (c = 0; c < rd_count; c ++)
@@ -337,8 +335,6 @@ handle_lookup_name_it (void *cls,
     rd_selected = NULL;
     expire = GNUNET_TIME_UNIT_ZERO_ABS;
   }
-
-
 
   rd_ser_len = GNUNET_NAMESTORE_records_get_size(copied_elements, rd_selected);
   char rd_ser[rd_ser_len];
@@ -366,7 +362,7 @@ handle_lookup_name_it (void *cls,
   lnr_msg->gns_header.header.type = ntohs (GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_NAME_RESPONSE);
   lnr_msg->gns_header.header.size = ntohs (r_size);
   lnr_msg->gns_header.r_id = htonl (lnc->request_id);
-  lnr_msg->rd_count = htons (rd_count);
+  lnr_msg->rd_count = htons (copied_elements);
   lnr_msg->rd_len = htons (rd_ser_len);
   lnr_msg->name_len = htons (name_len);
   lnr_msg->expire = GNUNET_TIME_absolute_hton(expire);
@@ -443,8 +439,10 @@ static void handle_lookup_name (void *cls,
     return;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Looking up record for name `%s' in zone `%s'\n", name, GNUNET_h2s(&ln_msg->zone));
-
+  if (0 == type)
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Looking up all records for name `%s' in zone `%s'\n", name, GNUNET_h2s(&ln_msg->zone));
+  else
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Looking up records with type %u for name `%s' in zone `%s'\n", type, name, GNUNET_h2s(&ln_msg->zone));
   /* do the actual lookup */
   lnc.request_id = rid;
   lnc.nc = nc;

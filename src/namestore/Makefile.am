@@ -29,6 +29,7 @@ check_PROGRAMS = \
  test_namestore_api \
  test_namestore_api_put \
  test_namestore_api_lookup \
+ test_namestore_api_lookup_specific_type \
  test_namestore_api_create \
  test_namestore_api_create_update \
  test_namestore_api_remove \
@@ -105,6 +106,13 @@ test_namestore_api_lookup_SOURCES = \
 test_namestore_api_lookup_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la
+
+test_namestore_api_lookup_specific_type_SOURCES = \
+ test_namestore_api_lookup_specific_type.c
+test_namestore_api_lookup_specific_type_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/namestore/libgnunetnamestore.la
+
 
 test_namestore_api_create_SOURCES = \
  test_namestore_api_create.c
