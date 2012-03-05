@@ -682,13 +682,13 @@ do_shutdown ()
 {
   struct WatchEntry *we;
   struct StatsEntry *se;
+  struct GNUNET_SERVER_Handle *s;
 
+  if (NULL == nc)
+    return;
   save ();
-  if (NULL != nc)
-  {
-    GNUNET_SERVER_notification_context_destroy (nc);
-    nc = NULL;
-  }
+  GNUNET_SERVER_notification_context_destroy (nc);
+  nc = NULL;  
   GNUNET_assert (NULL == client_head);
   while (NULL != (se = start))
   {
@@ -701,7 +701,10 @@ do_shutdown ()
     }
     GNUNET_free (se);
   }
-  GNUNET_SERVER_destroy (srv);
+  GNUNET_assert (NULL != srv);
+  s = srv;
+  srv = NULL;
+  GNUNET_SERVER_destroy (s);
 }
 
 
