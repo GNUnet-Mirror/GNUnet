@@ -4,7 +4,7 @@ man_MANS = \
   gnunet-download.1 \
   gnunet-download-manager.1 \
   gnunet-fs.1 \
-  gnunet-gns.1 \
+  gnunet-namestore.1 \
   gnunet-nat-server.1 \
   gnunet-peerinfo.1 \
   gnunet-pseudonym.1 \

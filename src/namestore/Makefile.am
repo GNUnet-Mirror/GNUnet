@@ -55,7 +55,21 @@ libgnunetnamestore_la_LDFLAGS = \
   -version-info 0:0:0
 
 bin_PROGRAMS = \
- gnunet-service-namestore
+ gnunet-service-namestore \
+ gnunet-namestore
+
+
+gnunet_namestore_SOURCES = \
+ gnunet-namestore.c 
+gnunet_namestore_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  libgnunetnamestore.la \
+  $(GN_LIBINTL)
+gnunet_namestore_DEPENDENCIES = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  libgnunetnamestore.la
+
+
 
 gnunet_service_namestore_SOURCES = \
  gnunet-service-namestore.c
