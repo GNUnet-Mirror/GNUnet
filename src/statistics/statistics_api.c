@@ -416,6 +416,18 @@ static void
 reconnect_later (struct GNUNET_STATISTICS_Handle *h)
 {
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == h->backoff_task);
+  if (h->do_destroy)
+  {
+    /* So we are shutting down and the service is not reachable.
+     * Chances are that it's down for good and we are not going to connect to
+     * it anymore.
+     * Give up and don't sync the rest of the data.
+     */
+    GNUNET_break (0);
+    h->do_destroy = GNUNET_NO;
+    GNUNET_STATISTICS_destroy (h, GNUNET_NO);
+    return;
+  }
   h->backoff_task =
     GNUNET_SCHEDULER_add_delayed (h->backoff, &reconnect_task, h);
   h->backoff = GNUNET_TIME_relative_multiply (h->backoff, 2);
@@ -837,6 +849,7 @@ GNUNET_STATISTICS_destroy (struct GNUNET_STATISTICS_Handle *h, int sync_first)
 
   if (h == NULL)
     return;
+  GNUNET_assert (GNUNET_NO == h->do_destroy); // Don't call twice.
   if (GNUNET_SCHEDULER_NO_TASK != h->backoff_task)
   {
     GNUNET_SCHEDULER_cancel (h->backoff_task);
