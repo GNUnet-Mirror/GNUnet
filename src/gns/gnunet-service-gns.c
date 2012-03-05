@@ -314,6 +314,8 @@ dht_lookup_timeout(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   reply_to_dns(rh, 0, NULL);
 }
 
+
+
 /**
  * Function called when we get a result from the dht
  * for our query
@@ -597,6 +599,39 @@ resolve_record(struct GNUNET_GNS_ResolverHandle *rh)
 
 }
 
+
+/**
+ * Handle timeout for DHT requests
+ *
+ * @param cls the request handle as closure
+ * @param tc the task context
+ */
+static void
+dht_authority_lookup_timeout(void *cls,
+                             const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_GNS_ResolverHandle *rh = cls;
+
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "dht lookup for query %s (type=%d) timed out.\n",
+             rh->name, rh->query->type);
+  
+  if (strcmp(rh->name, "") == 0)
+  {
+    /*
+     * promote authority back to name and try to resolve record
+     */
+    strcpy(rh->name, rh->authority_name);
+    resolve_record(rh);
+  }
+  else
+  {
+    GNUNET_DHT_get_stop (rh->get_handle);
+    reply_to_dns(rh, 0, NULL);
+  }
+}
+
+
 /**
  * Function called when we get a result from the dht
  * for our query
@@ -752,7 +787,7 @@ resolve_authority_dht(struct GNUNET_GNS_ResolverHandle *rh)
   GNUNET_CRYPTO_hash_xor(&name_hash, &rh->authority, &lookup_key);
 
   rh->dht_timeout_task = GNUNET_SCHEDULER_add_delayed (DHT_LOOKUP_TIMEOUT,
-                                                       &dht_lookup_timeout,
+                                                  &dht_authority_lookup_timeout,
                                                        rh);
 
   xquery = htonl(GNUNET_GNS_RECORD_PKEY);
