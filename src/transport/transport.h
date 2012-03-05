@@ -289,7 +289,7 @@ struct AddressLookupMessage
 {
 
   /**
-   * Type will be GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_LOOKUP
+   * Type will be GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_TO_STRING
    */
   struct GNUNET_MessageHeader header;
 

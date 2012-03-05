@@ -537,6 +537,109 @@ tcp_address_to_string (void *cls, const void *addr, size_t addrlen)
   return rbuf;
 }
 
+#define MAX_IPV6_ADDRLEN 47
+
+int
+tcp_string_to_address_ipv6 (void *cls, const char *addr, uint16_t addrlen,
+    void **buf, size_t *added)
+{
+  char zt_addr[MAX_IPV6_ADDRLEN + 1];
+  int ret;
+  char *port_colon;
+  unsigned int port;
+  struct IPv6TcpAddress *ipv6addr;
+
+  if (addrlen < 6)
+    return GNUNET_SYSERR;
+
+  memset (zt_addr, 0, MAX_IPV6_ADDRLEN + 1);
+  strncpy (zt_addr, addr, addrlen <= MAX_IPV6_ADDRLEN ? addrlen : MAX_IPV6_ADDRLEN);
+
+  port_colon = strrchr (zt_addr, ':');
+  if (port_colon == NULL)
+    return GNUNET_SYSERR;
+  ret = sscanf (port_colon, ":%u", &port);
+  if (ret != 1 || port > 65535)
+    return GNUNET_SYSERR;
+  port_colon[0] = '\0';
+
+  ipv6addr = GNUNET_malloc (sizeof (struct IPv6TcpAddress));
+  ret = inet_pton (AF_INET6, zt_addr, &ipv6addr->ipv6_addr);
+  if (ret <= 0)
+  {
+    GNUNET_free (ipv6addr);
+    return GNUNET_SYSERR;
+  }
+  ipv6addr->t6_port = port;
+  *buf = ipv6addr;
+  *added = sizeof (struct IPv6TcpAddress);
+  return GNUNET_OK;
+}
+
+#define MAX_IPV4_ADDRLEN 21
+
+int
+tcp_string_to_address_ipv4 (void *cls, const char *addr, uint16_t addrlen,
+    void **buf, size_t *added)
+{
+  unsigned int temps[5];
+  unsigned int port;
+  int cnt;
+  char zt_addr[MAX_IPV4_ADDRLEN + 1];
+  struct IPv4TcpAddress *ipv4addr;
+
+  if (addrlen < 9)
+    return GNUNET_SYSERR;
+
+  memset (zt_addr, 0, MAX_IPV4_ADDRLEN + 1);
+  strncpy (zt_addr, addr, addrlen <= MAX_IPV4_ADDRLEN ? addrlen : MAX_IPV4_ADDRLEN);
+
+  cnt = sscanf (zt_addr, "%u.%u.%u.%u:%u", &temps[0], &temps[1], &temps[2], &temps[3], &port);
+  if (cnt != 5)
+    return GNUNET_SYSERR;
+
+  for (cnt = 0; cnt < 4; cnt++)
+    if (temps[cnt] > 0xFF)
+      return GNUNET_SYSERR;
+  if (port > 65535)
+    return GNUNET_SYSERR;
+
+  ipv4addr = GNUNET_malloc (sizeof (struct IPv4TcpAddress));
+  ipv4addr->ipv4_addr = 
+      htonl ((temps[0] << 24) + (temps[1] << 16) + (temps[2] << 8) +
+             temps[3]);
+  ipv4addr->t4_port = htonl (port);
+  *buf = ipv4addr;
+  *added = sizeof (struct IPv4TcpAddress);
+  return GNUNET_OK;
+}
+
+/**
+ * Function called to convert a string address to
+ * a binary address.
+ *
+ * @param cls closure ('struct Plugin*')
+ * @param addr string address
+ * @param addrlen length of the address
+ * @param buf location to store the buffer
+ * @param max size of the buffer
+ * @param added location to store the number of bytes in the buffer.
+ *        If the function returns GNUNET_SYSERR, its contents are undefined.
+ * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+ */
+int
+tcp_string_to_address (void *cls, const char *addr, uint16_t addrlen,
+    void **buf, size_t *added)
+{
+  if (addrlen < 1)
+    return GNUNET_SYSERR;
+
+  if (addr[0] == '(')
+    return tcp_string_to_address_ipv6 (cls, addr, addrlen, buf, added);
+  else
+    return tcp_string_to_address_ipv4 (cls, addr, addrlen, buf, added);
+}
+
 
 struct SessionClientCtx
 {
@@ -2084,6 +2187,7 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   api->address_pretty_printer = &tcp_plugin_address_pretty_printer;
   api->check_address = &tcp_plugin_check_address;
   api->address_to_string = &tcp_address_to_string;
+  api->string_to_address = &tcp_string_to_address;
   plugin->service = service;
   if (service != NULL)
   {

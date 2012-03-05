@@ -13,11 +13,14 @@ bin_PROGRAMS = \
  gnunet-peerinfo 
 
 gnunet_peerinfo_SOURCES = \
- gnunet-peerinfo.c         
+ gnunet-peerinfo.c \
+ ../transport/gnunet-service-transport_plugins.c
+
 gnunet_peerinfo_LDADD = \
   $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
   $(top_builddir)/src/transport/libgnunettransport.la \
   $(top_builddir)/src/hello/libgnunethello.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la 
 
 if HAVE_PYTHON_PEXPECT

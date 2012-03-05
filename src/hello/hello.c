@@ -641,5 +641,46 @@ GNUNET_HELLO_get_last_expiration (const struct GNUNET_HELLO_Message *msg)
   return ret;
 }
 
+/**
+ * GNUnet URIs are of the general form "gnunet://MODULE/IDENTIFIER".
+ * The specific structure of "IDENTIFIER" depends on the module and
+ * maybe differenciated into additional subcategories if applicable.
+ * This module only deals with hello identifiers (MODULE = "hello").
+ * <p>
+ * 
+ * The concrete URI format is:
+ * 
+ * "gnunet://hello/PEER[!YYYYMMDDHHNNSS!<TYPE>!<ADDRESS>]...".
+ * These URIs can be used to add a peer record to peerinfo service.
+ * PEER is the string representation of peer's public key.
+ * YYYYMMDDHHNNSS is the expiration date.
+ * TYPE is a transport type.
+ * ADDRESS is the address, its format depends upon the transport type.
+ * The concrete transport types and corresponding address formats are:
+ * 
+ * <ul><li>
+ * 
+ * <TCP|UDP>!IPADDRESS
+ * IPVDDRESS is either IPV4 .-delimited address in form of XXX.XXX.XXX.XXX:PPPPP
+ * or IPV6 :-delimited address, but with '(' and ')' instead of '[' and ']' (RFC2396 advises against using square brackets in URIs):
+ * (XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX):PPPPP
+ * PPPPP is the port number. May be 0.
+ * 
+ * </li><li>
+ * 
+ * [add SMTP, HTTP and other addresses here]
+ * 
+ * </li></ul>
+ * 
+ * The encoding for hexadecimal values is defined in the crypto_hash.c
+ * module in the gnunetutil library and discussed there.
+ * 
+ * Examples:
+ * 
+ * gnunet://hello/0430205UC7D56PTQK8NV05776671CNN44FK4TL6D0GQ35OMF8MEN4RNMKA5UF6AL3DQO8B1SC5AQF50SQ2MABIRU4HC8H2HAJKJ59JL1JVRJAK308F9GASRFLMGUBB5TQ5AKR94AS5T3MDG8B9O1EMPRKB0HVCG7T6QPP4CDJ913LAEHVJ2DI1TOBB15Q1JIT5ARBOD12U4SIGRFDV3Q7T66G4TBVSJJ90UQF1BG29TGJJKLGEIMSPHHKO544D6EALQ4F2K0416311JC22GVAD48R616I7VK03K7MP7N0RS2MBV1TE9JV8CK1LSQMR7KCDRTLDA6917UGA67DHTGHERIACCGQ54TGSR48RMSGS9BA5HLMOKASFC1I6V4TT09TUGCU8GNDHQF0JF3H7LPV59UL5I38QID040G000!20120302010059!TCP!192.168.0.1:2086!TCP!64.23.8.174:0
+ * gnunet://hello/0430205UC7D56PTQK8NV05776671CNN44FK4TL6D0GQ35OMF8MEN4RNMKA5UF6AL3DQO8B1SC5AQF50SQ2MABIRU4HC8H2HAJKJ59JL1JVRJAK308F9GASRFLMGUBB5TQ5AKR94AS5T3MDG8B9O1EMPRKB0HVCG7T6QPP4CDJ913LAEHVJ2DI1TOBB15Q1JIT5ARBOD12U4SIGRFDV3Q7T66G4TBVSJJ90UQF1BG29TGJJKLGEIMSPHHKO544D6EALQ4F2K0416311JC22GVAD48R616I7VK03K7MP7N0RS2MBV1TE9JV8CK1LSQMR7KCDRTLDA6917UGA67DHTGHERIACCGQ54TGSR48RMSGS9BA5HLMOKASFC1I6V4TT09TUGCU8GNDHQF0JF3H7LPV59UL5I38QID040G000!20120302010059!TCP!(2001:db8:85a3:8d3:1319:8a2e:370:7348):2086
+ * 
+ * <p>
+ */
 
 /* end of hello.c */
