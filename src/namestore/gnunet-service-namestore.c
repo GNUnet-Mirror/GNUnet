@@ -1062,6 +1062,146 @@ send:
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
+
+struct ZoneToNameCtx
+{
+  struct GNUNET_NAMESTORE_Client *nc;
+  uint32_t rid;
+};
+
+static void
+handle_zone_to_name_it (void *cls,
+    const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
+    struct GNUNET_TIME_Absolute expire,
+    const char *name,
+    unsigned int rd_count,
+    const struct GNUNET_NAMESTORE_RecordData *rd,
+    const struct GNUNET_CRYPTO_RsaSignature *signature)
+{
+  struct ZoneToNameCtx * ztn_ctx = cls;
+  struct ZoneToNameResponseMessage *ztnr_msg;
+  int16_t res = GNUNET_SYSERR;
+  uint16_t name_len = 0;
+  uint16_t rd_ser_len = 0 ;
+  int32_t contains_sig = 0;
+  size_t msg_size = 0;
+
+  char *rd_ser;
+  char *name_tmp;
+  char *rd_tmp;
+  char *sig_tmp;
+
+  if ((zone_key != NULL) && (name != NULL))
+  {
+    /* found result */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found results: name ist \n");
+    res = GNUNET_YES;
+    name_len = strlen (name);
+  }
+  else
+  {
+    /* no result found */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found no results\n");
+    res = GNUNET_NO;
+    name_len = 0;
+  }
+
+  if (rd_count > 0)
+  {
+    rd_ser_len = GNUNET_NAMESTORE_records_get_size (rd_count, rd);
+    char rd_ser[rd_ser_len];
+    GNUNET_NAMESTORE_records_serialize(rd_count, rd, rd_ser_len, rd_ser);
+  }
+  else
+    rd_ser_len = 0;
+
+  if (signature != NULL)
+    contains_sig = GNUNET_YES;
+  else
+    contains_sig = GNUNET_NO;
+
+  msg_size = sizeof (struct ZoneToNameResponseMessage) + name_len + rd_ser_len + contains_sig * sizeof (struct GNUNET_CRYPTO_RsaSignature);
+  ztnr_msg = GNUNET_malloc (msg_size);
+
+  name_tmp = (char *) &ztnr_msg[1];
+  rd_tmp = &name_tmp[name_len];
+  sig_tmp = &rd_tmp[rd_ser_len];
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message\n", "ZONE_TO_NAME_RESPONSE");
+  ztnr_msg->gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_TO_NAME_RESPONSE);
+  ztnr_msg->gns_header.header.size = htons (msg_size);
+  ztnr_msg->gns_header.r_id = htonl (ztn_ctx->rid);
+  ztnr_msg->res = htons (res);
+  ztnr_msg->rd_len = htons (rd_ser_len);
+  ztnr_msg->rd_count = htons (rd_count);
+  ztnr_msg->name_len = htons (name_len);
+  ztnr_msg->contains_sig = htons (contains_sig);
+  if (zone_key != NULL)
+    ztnr_msg->zone_key = *zone_key;
+  else
+    memset (&ztnr_msg->zone_key, '\0', sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
+
+  memcpy (&name_tmp, name, name_len);
+  memcpy (&rd_tmp, &rd_ser, rd_ser_len);
+  memcpy (&sig_tmp, signature, contains_sig * sizeof (struct GNUNET_CRYPTO_RsaSignature));
+
+  GNUNET_SERVER_notification_context_unicast (snc, ztn_ctx->nc->client, (const struct GNUNET_MessageHeader *) ztnr_msg, GNUNET_NO);
+  GNUNET_free (ztnr_msg);
+}
+
+
+static void handle_zone_to_name (void *cls,
+                          struct GNUNET_SERVER_Client * client,
+                          const struct GNUNET_MessageHeader * message)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "ZONE_TO_NAME");
+  struct GNUNET_NAMESTORE_Client *nc;
+  struct ZoneToNameCtx ztn_ctx;
+  size_t msg_size = 0;
+  uint32_t rid = 0;
+  int res;
+
+
+  if (ntohs (message->size) != sizeof (struct ZoneToNameMessage))
+  {
+    GNUNET_break_op (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
+
+  nc = client_lookup(client);
+  if (nc == NULL)
+  {
+    GNUNET_break_op (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
+
+  struct ZoneToNameMessage *ztn_msg = (struct ZoneToNameMessage *) message;
+
+  if (msg_size > GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  {
+    GNUNET_break_op (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
+
+  rid = ntohl (ztn_msg->gns_header.r_id);
+
+  ztn_ctx.rid = rid;
+  ztn_ctx.nc = nc;
+
+  char * z_tmp = strdup (GNUNET_h2s (&ztn_msg->zone));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Looking up name for zone `%s' in zone `%s''\n",
+      z_tmp,
+      GNUNET_h2s (&ztn_msg->value_zone));
+  GNUNET_free (z_tmp);
+
+  res = GSN_database->zone_to_name (GSN_database->cls, &ztn_msg->zone, &ztn_msg->value_zone, &handle_zone_to_name_it, &ztn_ctx);
+
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
+
 struct ZoneIterationProcResult
 {
   int have_zone_key;
@@ -1289,6 +1429,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
      GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_CREATE, 0},
     {&handle_record_remove, NULL,
      GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_REMOVE, 0},
+    {&handle_zone_to_name, NULL,
+      GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_TO_NAME, 0},
     {&handle_iteration_start, NULL,
      GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_START, sizeof (struct ZoneIterationStartMessage)},
     {&handle_iteration_stop, NULL,

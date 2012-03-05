@@ -467,6 +467,37 @@ handle_record_remove_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
   GNUNET_free (qe);
 }
 
+static void
+handle_zone_to_name_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
+                             struct ZoneToNameResponseMessage* msg,
+                             size_t size)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' \n",
+              "ZONE_TO_NAME_RESPONSE");
+
+  struct GNUNET_NAMESTORE_Handle *h = qe->nsh;
+  int res = ntohs (msg->res);
+
+  switch (res) {
+    case GNUNET_SYSERR:
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "An error occured during zone to name operation\n");
+      if (qe->proc != NULL)
+        qe->proc (qe->proc_cls, NULL, GNUNET_TIME_absolute_get_zero(), NULL, 0, NULL, NULL);
+      break;
+    case GNUNET_NO:
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Namestore has no result for zone to name mapping \n");
+      if (qe->proc != NULL)
+        qe->proc (qe->proc_cls, NULL, GNUNET_TIME_absolute_get_zero(), NULL, 0, NULL, NULL);
+      break;
+    default:
+      break;
+  }
+
+  /* Operation done, remove */
+  GNUNET_CONTAINER_DLL_remove(h->op_head, h->op_tail, qe);
+  GNUNET_free (qe);
+}
+
 
 static void
 manage_record_operations (struct GNUNET_NAMESTORE_QueueEntry *qe,
@@ -507,6 +538,14 @@ manage_record_operations (struct GNUNET_NAMESTORE_QueueEntry *qe,
           break;
         }
         handle_record_remove_response (qe, (struct RecordRemoveResponseMessage *) msg, size);
+      break;
+    case GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_TO_NAME_RESPONSE:
+        if (size < sizeof (struct ZoneToNameResponseMessage))
+        {
+          GNUNET_break_op (0);
+          break;
+        }
+        handle_zone_to_name_response (qe, (struct ZoneToNameResponseMessage *) msg, size);
       break;
     default:
       GNUNET_break_op (0);
@@ -1312,6 +1351,72 @@ GNUNET_NAMESTORE_lookup_record (struct GNUNET_NAMESTORE_Handle *h,
   memcpy (&msg[1], name, name_len);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message for name `%s'\n", "NAMESTORE_LOOKUP_NAME", name);
+
+  /* transmit message */
+  GNUNET_CONTAINER_DLL_insert_tail (h->pending_head, h->pending_tail, pe);
+  do_transmit(h);
+
+  return qe;
+}
+
+
+/**
+ * Look for an existing PKEY delegation record for a given public key.
+ * Returns at most one result to the processor.
+ *
+ * @param h handle to the namestore
+ * @param zone hash of public key of the zone to look up in, never NULL
+ * @param value_zone hash of the public key of the target zone (value), never NULL
+ * @param proc function to call on the matching records, or with
+ *        NULL (rd_count == 0) if there are no matching records
+ * @param proc_cls closure for proc
+ * @return a handle that can be used to
+ *         cancel
+ */
+struct GNUNET_NAMESTORE_QueueEntry *
+GNUNET_NAMESTORE_zone_to_name (struct GNUNET_NAMESTORE_Handle *h,
+                               const GNUNET_HashCode *zone,
+                               const GNUNET_HashCode *value_zone,
+                               GNUNET_NAMESTORE_RecordProcessor proc, void *proc_cls)
+{
+  struct GNUNET_NAMESTORE_QueueEntry *qe;
+  struct PendingMessage *pe;
+  size_t msg_size = 0;
+  uint32_t rid = 0;
+
+  GNUNET_assert (NULL != h);
+  GNUNET_assert (NULL != zone);
+  GNUNET_assert (NULL != value_zone);
+
+  rid = get_op_id(h);
+  qe = GNUNET_malloc(sizeof (struct GNUNET_NAMESTORE_QueueEntry));
+  qe->nsh = h;
+  qe->proc = proc;
+  qe->proc_cls = proc_cls;
+  qe->op_id = rid;
+  GNUNET_CONTAINER_DLL_insert_tail(h->op_head, h->op_tail, qe);
+
+  /* set msg_size*/
+  msg_size = sizeof (struct ZoneToNameMessage);
+  pe = GNUNET_malloc(sizeof (struct PendingMessage) + msg_size);
+
+  /* create msg here */
+  struct ZoneToNameMessage * msg;
+  pe->size = msg_size;
+  pe->is_init = GNUNET_NO;
+  msg = (struct ZoneToNameMessage *) &pe[1];
+  msg->gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_TO_NAME);
+  msg->gns_header.header.size = htons (msg_size);
+  msg->gns_header.r_id = htonl (rid);
+  msg->zone = *zone;
+  msg->value_zone = *value_zone;
+
+  char * z_tmp = strdup (GNUNET_h2s (zone));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message for zone `%s' in zone `%s'\n",
+      "NAMESTORE_ZONE_TO_NAME",
+      z_tmp,
+      GNUNET_h2s (value_zone));
+  GNUNET_free (z_tmp);
 
   /* transmit message */
   GNUNET_CONTAINER_DLL_insert_tail (h->pending_head, h->pending_tail, pe);

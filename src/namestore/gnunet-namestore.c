@@ -191,7 +191,7 @@ del_continuation (void *cls,
  *               or the expiration time of the block in the namestore (even if there are zero
  *               records matching the desired record type)
  * @param name name that is being mapped (at most 255 characters long)
- * @param rd_count number of entries in 'rd' array
+ * @param rd_len number of entries in 'rd' array
  * @param rd array of records with data to store
  * @param signature signature of the record block, NULL if signature is unavailable (i.e. 
  *        because the user queried for a particular record type only)

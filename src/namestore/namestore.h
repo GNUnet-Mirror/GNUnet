@@ -37,13 +37,14 @@
 #define GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_CREATE_RESPONSE 436
 #define GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_REMOVE 437
 #define GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_REMOVE_RESPONSE 438
+#define GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_TO_NAME 439
+#define GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_TO_NAME_RESPONSE 440
 
-#define GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_START 439
-#define GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_RESPONSE 440
-#define GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_NEXT 441
-#define GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_STOP 442
-
-#define GNUNET_MESSAGE_TYPE_NAMESTORE_DISCONNECT 443
+#define GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_START 445
+#define GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_RESPONSE 446
+#define GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_NEXT 447
+#define GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_STOP 448
+#define GNUNET_MESSAGE_TYPE_NAMESTORE_DISCONNECT 449
 
 /**
  * Sign name and records
@@ -299,6 +300,7 @@ struct RecordCreateResponseMessage
 
 };
 
+
 /**
  * Remove a record from the namestore
  * Memory layout:
@@ -325,13 +327,11 @@ struct RecordRemoveMessage
   /* Length of pubkey */
   uint16_t key_len;
 };
-GNUNET_NETWORK_STRUCT_END
 
 
 /**
  * Remove a record from the namestore response
  */
-GNUNET_NETWORK_STRUCT_BEGIN
 struct RecordRemoveResponseMessage
 {
   /**
@@ -351,13 +351,51 @@ struct RecordRemoveResponseMessage
    */
   uint16_t op_result;
 };
-GNUNET_NETWORK_STRUCT_END
+
+
+/**
+ * Connect to namestore service
+ */
+struct ZoneToNameMessage
+{
+  struct GNUNET_NAMESTORE_Header gns_header;
+
+  /* The hash of public key of the zone to look up in */
+  GNUNET_HashCode zone;
+
+  /* The  hash of the public key of the target zone  */
+  GNUNET_HashCode value_zone;
+};
+
+/**
+ * Connect to namestore service
+ */
+struct ZoneToNameResponseMessage
+{
+  struct GNUNET_NAMESTORE_Header gns_header;
+
+  struct GNUNET_TIME_AbsoluteNBO expire;
+
+  uint16_t name_len;
+
+  uint16_t rd_len;
+
+  uint16_t rd_count;
+
+  int32_t contains_sig;
+
+  /* result in NBO: GNUNET_OK on success, GNUNET_NO if there were no results, GNUNET_SYSERR on error */
+  int16_t res;
+
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded zone_key;
+
+};
+
 
 
 /**
  * Start a zone iteration for the given zone
  */
-GNUNET_NETWORK_STRUCT_BEGIN
 struct ZoneIterationStartMessage
 {
   /**
@@ -372,12 +410,11 @@ struct ZoneIterationStartMessage
 
   GNUNET_HashCode zone;
 };
-GNUNET_NETWORK_STRUCT_END
+
 
 /**
  * Ask for next result of zone iteration for the given operation
  */
-GNUNET_NETWORK_STRUCT_BEGIN
 struct ZoneIterationNextMessage
 {
   /**
@@ -385,13 +422,11 @@ struct ZoneIterationNextMessage
    */
   struct GNUNET_NAMESTORE_Header gns_header;
 };
-GNUNET_NETWORK_STRUCT_END
 
 
 /**
  * Stop zone iteration for the given operation
  */
-GNUNET_NETWORK_STRUCT_BEGIN
 struct ZoneIterationStopMessage
 {
   /**
@@ -399,12 +434,10 @@ struct ZoneIterationStopMessage
    */
   struct GNUNET_NAMESTORE_Header gns_header;
 };
-GNUNET_NETWORK_STRUCT_END
 
 /**
  * Ask for next result of zone iteration for the given operation
  */
-GNUNET_NETWORK_STRUCT_BEGIN
 struct ZoneIterationResponseMessage
 {
   /**
