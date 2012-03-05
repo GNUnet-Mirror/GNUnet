@@ -19,7 +19,7 @@
 */
 /**
  * @file namestore/test_namestore_api.c
- * @brief testcase for namestore_api.c
+ * @brief testcase for namestore_api.c for updating an existing record
  */
 #include "platform.h"
 #include "gnunet_common.h"
@@ -321,36 +321,40 @@ void
 create_updated_cont (void *cls, int32_t success, const char *emsg)
 {
   char *name = cls;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Create record for `%s': %s `%s'\n", name, ((success == GNUNET_YES) || (success == GNUNET_NO)) ? "SUCCESS" : "FAIL", emsg);
-  if (success == GNUNET_OK)
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Updating expiration for record `%s': %s `%s'\n", name, ((success == GNUNET_YES) || (success == GNUNET_NO)) ? "SUCCESS" : "FAIL", emsg);
+  if (success == GNUNET_NO)
   {
     res = 0;
-    GNUNET_SCHEDULER_add_now(&end, NULL);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Updated record for name `%s'\n", name);
+  }
+  if (success == GNUNET_OK)
+  {
+    res = 1;
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "FAIL, Create new record for name `%s'\n", name);
   }
   else
   {
     res = 1;
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to put records for name `%s'\n", name);
-    GNUNET_SCHEDULER_add_now(&end, NULL);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to create records for name `%s'\n", name);
   }
-
+  GNUNET_SCHEDULER_add_now(&end, NULL);
 }
 
 void
 create_identical_cont (void *cls, int32_t success, const char *emsg)
 {
   char *name = cls;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Create updated record for `%s': %s `%s'\n", name, ((success == GNUNET_YES) || (success == GNUNET_NO)) ? "SUCCESS" : "FAIL", emsg);
-  if (success == GNUNET_OK)
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Updating identical record for `%s': %s `%s'\n", name, ((success == GNUNET_YES) || (success == GNUNET_NO)) ? "SUCCESS" : "FAIL", emsg);
+  if (success == GNUNET_NO)
   {
     res = 0;
-    s_first_record->expiration = GNUNET_TIME_absolute_get_zero();
+    s_first_record->expiration = GNUNET_TIME_absolute_get ();
     GNUNET_NAMESTORE_record_create (nsh, privkey, s_name, s_first_record, &create_updated_cont, s_name);
   }
   else
   {
     res = 1;
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to put records for name `%s'\n", name);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Updating identical record for `%s': %s `%s'\n", name, ((success == GNUNET_YES) || (success == GNUNET_NO)) ? "SUCCESS" : "FAIL", emsg);
     GNUNET_SCHEDULER_add_now(&end, NULL);
   }
 
@@ -402,7 +406,7 @@ create_record (int count)
 
   for (c = 0; c < count; c++)
   {
-  rd[c].expiration = GNUNET_TIME_absolute_get();
+  rd[c].expiration = GNUNET_TIME_absolute_get_zero();
   rd[c].record_type = TEST_RECORD_TYPE;
   rd[c].data_size = TEST_RECORD_DATALEN;
   rd[c].data = GNUNET_malloc(TEST_RECORD_DATALEN);

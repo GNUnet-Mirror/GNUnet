@@ -622,11 +622,9 @@ handle_create_record_it (void *cls,
         (crc->rd->data_size == rd[c].data_size) &&
         (0 == memcmp (crc->rd->data, rd[c].data, rd[c].data_size)))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found existing records for `%s' to update!\n", crc->name);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found existing records for `%s' to update expiration date!\n", crc->name);
       exist = c;
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "exp %llu %llu!\n", rd[c].expiration.abs_value, crc->rd->expiration.abs_value);
       if (crc->rd->expiration.abs_value != rd[c].expiration.abs_value)
-
         update = GNUNET_YES;
        break;
     }
@@ -664,6 +662,7 @@ handle_create_record_it (void *cls,
     rd_new = GNUNET_malloc ((rd_count) * sizeof (struct GNUNET_NAMESTORE_RecordData));
     memcpy (rd_new, rd, rd_count * sizeof (struct GNUNET_NAMESTORE_RecordData));
     rd_count_new = rd_count;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Updating expiration from %llu to %llu!\n", rd_new[exist].expiration.abs_value, crc->rd->expiration.abs_value);
     rd_new[exist].expiration = crc->rd->expiration;
     signature_new = GNUNET_NAMESTORE_create_signature (crc->pkey, crc->name, rd_new, rd_count_new);
     if (NULL == signature_new)
@@ -689,8 +688,30 @@ end:
   GNUNET_free_non_null (rd_new);
   GNUNET_free_non_null (signature_new);
 
+  switch (res) {
+    case GNUNET_SYSERR:
+       /* failed to create the record */
+       crc->res = GNUNET_SYSERR;
+      break;
+    case GNUNET_YES:
+      /* database operations OK */
+      if (GNUNET_YES == update)
+        /* we updated an existing record */
+        crc->res = GNUNET_NO;
+      else
+        /* we created a new record */
+        crc->res = GNUNET_YES;
+      break;
+    case GNUNET_NO:
+        /* identical entry existed, so we did nothing */
+        crc->res = GNUNET_NO;
+      break;
+    default:
+      break;
+  }
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Update result for name `%s' %u\n", crc->name, res);
-  crc->res = res;
+
 }
 
 static void handle_record_create (void *cls,
