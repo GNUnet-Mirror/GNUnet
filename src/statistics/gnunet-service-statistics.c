@@ -391,6 +391,11 @@ make_client_entry (struct GNUNET_SERVER_Client *client)
       return ce;
     ce = ce->next;
   }
+  if (NULL == nc)
+  {
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return NULL;
+  }
   ce = GNUNET_malloc (sizeof (struct ClientEntry));
   ce->client = client;
   GNUNET_SERVER_client_keep (client);
@@ -419,8 +424,9 @@ handle_get (void *cls, struct GNUNET_SERVER_Client *client,
   struct StatsEntry *pos;
   size_t size;
 
-  if (client != NULL)
-    make_client_entry (client);
+  if ( (NULL != client) &&
+       (NULL == make_client_entry (client)) )
+    return; /* new client during shutdown */
   size = ntohs (message->size) - sizeof (struct GNUNET_MessageHeader);
   if (size !=
       GNUNET_STRINGS_buffer_tokenize ((const char *) &message[1], size, 2,
@@ -494,8 +500,9 @@ handle_set (void *cls, struct GNUNET_SERVER_Client *client,
   int64_t delta;
   int changed;
 
-  if (client != NULL)
-    make_client_entry (client);
+  if ( (NULL != client) &&
+       (NULL == make_client_entry (client)) )
+    return; /* new client during shutdown */
   msize = ntohs (message->size);
   if (msize < sizeof (struct GNUNET_STATISTICS_SetMessage))
   {
@@ -606,6 +613,11 @@ handle_watch (void *cls, struct GNUNET_SERVER_Client *client,
   struct WatchEntry *we;
   size_t slen;
 
+  if (NULL == nc)
+  {
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
   ce = make_client_entry (client);
   msize = ntohs (message->size);
   if (msize < sizeof (struct GNUNET_MessageHeader))
@@ -672,8 +684,11 @@ do_shutdown ()
   struct StatsEntry *se;
 
   save ();
-  GNUNET_SERVER_notification_context_destroy (nc);
-  nc = NULL;
+  if (NULL != nc)
+  {
+    GNUNET_SERVER_notification_context_destroy (nc);
+    nc = NULL;
+  }
   GNUNET_assert (NULL == client_head);
   while (NULL != (se = start))
   {
