@@ -34,6 +34,7 @@
 #define GNUNET_GNS_SERVICE_H
 
 #include "gnunet_util_lib.h"
+#include "gnunet_dnsparser_lib.h"
 #include "gnunet_namestore_service.h"
 
 #ifdef __cplusplus
