@@ -1086,7 +1086,7 @@ handle_zone_to_name_it (void *cls,
   int32_t contains_sig = 0;
   size_t msg_size = 0;
 
-  char *rd_ser;
+  char *rd_ser = NULL;
   char *name_tmp;
   char *rd_tmp;
   char *sig_tmp;
@@ -1094,7 +1094,7 @@ handle_zone_to_name_it (void *cls,
   if ((zone_key != NULL) && (name != NULL))
   {
     /* found result */
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found results: name ist \n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found results: name is `%s', has %u records\n", name, rd_count);
     res = GNUNET_YES;
     name_len = strlen (name);
   }
@@ -1109,7 +1109,7 @@ handle_zone_to_name_it (void *cls,
   if (rd_count > 0)
   {
     rd_ser_len = GNUNET_NAMESTORE_records_get_size (rd_count, rd);
-    char rd_ser[rd_ser_len];
+    rd_ser = GNUNET_malloc (rd_ser_len);
     GNUNET_NAMESTORE_records_serialize(rd_count, rd, rd_ser_len, rd_ser);
   }
   else
@@ -1119,6 +1119,8 @@ handle_zone_to_name_it (void *cls,
     contains_sig = GNUNET_YES;
   else
     contains_sig = GNUNET_NO;
+
+
 
   msg_size = sizeof (struct ZoneToNameResponseMessage) + name_len + rd_ser_len + contains_sig * sizeof (struct GNUNET_CRYPTO_RsaSignature);
   ztnr_msg = GNUNET_malloc (msg_size);
@@ -1136,17 +1138,21 @@ handle_zone_to_name_it (void *cls,
   ztnr_msg->rd_count = htons (rd_count);
   ztnr_msg->name_len = htons (name_len);
   ztnr_msg->contains_sig = htons (contains_sig);
+  ztnr_msg->expire = GNUNET_TIME_absolute_hton(expire);
   if (zone_key != NULL)
     ztnr_msg->zone_key = *zone_key;
   else
     memset (&ztnr_msg->zone_key, '\0', sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
 
-  memcpy (&name_tmp, name, name_len);
-  memcpy (&rd_tmp, &rd_ser, rd_ser_len);
-  memcpy (&sig_tmp, signature, contains_sig * sizeof (struct GNUNET_CRYPTO_RsaSignature));
+  memcpy (name_tmp, name, name_len);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Name is `%s', has %u records, rd ser len %u msg_size %u\n", name, rd_count, rd_ser_len, msg_size);
+  memcpy (rd_tmp, rd_ser, rd_ser_len);
+  memcpy (sig_tmp, signature, contains_sig * sizeof (struct GNUNET_CRYPTO_RsaSignature));
 
   GNUNET_SERVER_notification_context_unicast (snc, ztn_ctx->nc->client, (const struct GNUNET_MessageHeader *) ztnr_msg, GNUNET_NO);
   GNUNET_free (ztnr_msg);
+  GNUNET_free_non_null (rd_ser);
 }
 
 
@@ -1192,7 +1198,7 @@ static void handle_zone_to_name (void *cls,
   ztn_ctx.nc = nc;
 
   char * z_tmp = strdup (GNUNET_h2s (&ztn_msg->zone));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Looking up name for zone `%s' in zone `%s''\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Looking up name for zone `%s' in zone `%s'\n",
       z_tmp,
       GNUNET_h2s (&ztn_msg->value_zone));
   GNUNET_free (z_tmp);

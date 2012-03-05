@@ -478,20 +478,54 @@ handle_zone_to_name_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
   struct GNUNET_NAMESTORE_Handle *h = qe->nsh;
   int res = ntohs (msg->res);
 
-  switch (res) {
-    case GNUNET_SYSERR:
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "An error occured during zone to name operation\n");
-      if (qe->proc != NULL)
-        qe->proc (qe->proc_cls, NULL, GNUNET_TIME_absolute_get_zero(), NULL, 0, NULL, NULL);
-      break;
-    case GNUNET_NO:
+  struct GNUNET_TIME_Absolute expire;
+  size_t name_len;
+  size_t rd_ser_len;
+  unsigned int rd_count;
+  int have_signature;
+
+  char * name_tmp;
+  char * rd_tmp;
+  struct GNUNET_CRYPTO_RsaSignature* sig_tmp;
+
+  if (res == GNUNET_SYSERR)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "An error occured during zone to name operation\n");
+    if (qe->proc != NULL)
+      qe->proc (qe->proc_cls, NULL, GNUNET_TIME_absolute_get_zero(), NULL, 0, NULL, NULL);
+  }
+  else if (res == GNUNET_NO)
+  {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Namestore has no result for zone to name mapping \n");
       if (qe->proc != NULL)
         qe->proc (qe->proc_cls, NULL, GNUNET_TIME_absolute_get_zero(), NULL, 0, NULL, NULL);
-      break;
-    default:
-      break;
   }
+  else if (res == GNUNET_YES)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Namestore has result for zone to name mapping \n");
+
+    name_len = ntohs (msg->name_len);
+    rd_count = ntohs (msg->rd_count);
+    rd_ser_len = ntohs (msg->rd_len);
+    have_signature = ntohl (msg->contains_sig);
+    expire = GNUNET_TIME_absolute_ntoh(msg->expire);
+
+    name_tmp = (char *) &msg[1];
+    rd_tmp = &name_tmp[name_len];
+    if (have_signature == GNUNET_YES)
+      sig_tmp = (struct GNUNET_CRYPTO_RsaSignature *) &rd_tmp[rd_ser_len];
+    else
+      sig_tmp = NULL;
+
+    struct GNUNET_NAMESTORE_RecordData rd[rd_count];
+    GNUNET_NAMESTORE_records_deserialize(rd_ser_len, rd_tmp, rd_count, rd);
+
+    if (qe->proc != NULL)
+      qe->proc (qe->proc_cls, &msg->zone_key, expire, name_tmp, rd_count, rd, sig_tmp);
+
+  }
+  else
+    GNUNET_break_op (0);
 
   /* Operation done, remove */
   GNUNET_CONTAINER_DLL_remove(h->op_head, h->op_tail, qe);

@@ -258,7 +258,7 @@ put_cont (void *cls, int32_t success, const char *emsg)
   if (success == GNUNET_OK)
   {
     res = 0;
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Looking up non-existing record type %u for name `%s'\n", TEST_RECORD_LOOKUP_TYPE_NOT_EXISTING, name);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Looking up non-existing record type %u for name `%s'\n", TEST_RECORD_LOOKUP_TYPE_NOT_EXISTING, name);
     GNUNET_NAMESTORE_lookup_record (nsh, &s_zone, name, TEST_RECORD_LOOKUP_TYPE_NOT_EXISTING, &name_lookup_non_existing_record_type, NULL);
   }
   else
