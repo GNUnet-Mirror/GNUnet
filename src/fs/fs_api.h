@@ -1616,6 +1616,11 @@ struct DownloadRequest
   unsigned int depth;
 
   /**
+   * Offset of the CHK for this block in the parent block.
+   */
+  unsigned int chk_idx;
+
+  /**
    * State in the FSM.
    */
   enum BlockRequestState state;

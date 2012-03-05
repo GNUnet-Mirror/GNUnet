@@ -1103,13 +1103,13 @@ process_result_with_request (void *cls, const GNUNET_HashCode * key,
               dr->depth, (unsigned long long) dr->offset);
   GNUNET_assert (0 == (prc->size % sizeof (struct ContentHashKey)));
   chkarr = (struct ContentHashKey *) pt;
-  for (i = (prc->size / sizeof (struct ContentHashKey)) - 1; i >= 0; i--)
+  for (i = dr->num_children - 1; i >= 0; i--)
   {
     drc = dr->children[i];
     switch (drc->state)
     {
     case BRS_INIT:
-      drc->chk = chkarr[i];
+      drc->chk = chkarr[dr->chk_idx];
       drc->state = BRS_CHK_SET;
       schedule_block_download (dc, drc);
       break;
@@ -1474,6 +1474,7 @@ deactivate_fs_download (void *cls)
  * (recursively) Create a download request structure.
  *
  * @param parent parent of the current entry
+ * @param chk_idx index of the chk for this block in the parent block
  * @param depth depth of the current entry, 0 are the DBLOCKs,
  *              top level block is 'dc->treedepth - 1'
  * @param dr_offset offset in the original file this block maps to
@@ -1489,7 +1490,9 @@ deactivate_fs_download (void *cls)
  *         the specified depth
  */
 static struct DownloadRequest *
-create_download_request (struct DownloadRequest *parent, unsigned int depth,
+create_download_request (struct DownloadRequest *parent, 
+			 unsigned int chk_idx,
+			 unsigned int depth,
                          uint64_t dr_offset, uint64_t file_start_offset,
                          uint64_t desired_length)
 {
@@ -1502,6 +1505,7 @@ create_download_request (struct DownloadRequest *parent, unsigned int depth,
   dr->parent = parent;
   dr->depth = depth;
   dr->offset = dr_offset;
+  dr->chk_idx = chk_idx;
   if (depth > 0)
   {
     child_block_size = GNUNET_FS_tree_compute_tree_size (depth - 1);
@@ -1515,7 +1519,7 @@ create_download_request (struct DownloadRequest *parent, unsigned int depth,
       head_skip = dr_offset / child_block_size;
 
     /* calculate index of last block at this level that is interesting (rounded up) */
-    dr->num_children = file_start_offset + desired_length / child_block_size;
+    dr->num_children = (file_start_offset + desired_length) / child_block_size;
     if (dr->num_children * child_block_size <
         file_start_offset + desired_length)
       dr->num_children++;       /* round up */
@@ -1532,8 +1536,8 @@ create_download_request (struct DownloadRequest *parent, unsigned int depth,
         GNUNET_malloc (dr->num_children * sizeof (struct DownloadRequest *));
     for (i = 0; i < dr->num_children; i++)
       dr->children[i] =
-          create_download_request (dr, depth - 1,
-                                   dr_offset + i * child_block_size,
+          create_download_request (dr, i + head_skip, depth - 1,				   
+                                   dr_offset + (i + head_skip) * child_block_size,
                                    file_start_offset, desired_length);
   }
   return dr;
@@ -1787,7 +1791,7 @@ GNUNET_FS_download_start_task_ (void *cls,
   if (dc->top_request == NULL)
   {
     dc->top_request =
-        create_download_request (NULL, dc->treedepth - 1, 0, dc->offset,
+      create_download_request (NULL, 0, dc->treedepth - 1, 0, dc->offset,
                                  dc->length);
     dc->top_request->state = BRS_CHK_SET;
     dc->top_request->chk =

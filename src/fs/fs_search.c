@@ -1514,8 +1514,6 @@ GNUNET_FS_search_stop (struct GNUNET_FS_SearchContext *sc)
     GNUNET_FS_end_top (sc->h, sc->top);
   if (sc->psearch_result != NULL)
     sc->psearch_result->update_search = NULL;
-  GNUNET_CONTAINER_multihashmap_iterate (sc->master_result_map,
-                                         &search_result_free, sc);
   if (sc->serialization != NULL)
   {
     GNUNET_FS_remove_sync_file_ (sc->h,
@@ -1537,6 +1535,8 @@ GNUNET_FS_search_stop (struct GNUNET_FS_SearchContext *sc)
     GNUNET_SCHEDULER_cancel (sc->task);
   if (NULL != sc->client)
     GNUNET_CLIENT_disconnect (sc->client, GNUNET_NO);
+  GNUNET_CONTAINER_multihashmap_iterate (sc->master_result_map,
+                                         &search_result_free, sc);
   GNUNET_CONTAINER_multihashmap_destroy (sc->master_result_map);
   if (sc->requests != NULL)
   {
