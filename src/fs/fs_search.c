@@ -1443,6 +1443,30 @@ GNUNET_FS_search_continue (struct GNUNET_FS_SearchContext *sc)
 
 
 /**
+ * Signal stop for the given search result.
+ *
+ * @param cls the global FS handle
+ * @param key the key for the search result (unused)
+ * @param value the search result to free
+ * @return GNUNET_OK
+ */
+static int
+search_result_stop (void *cls, const GNUNET_HashCode * key, void *value)
+{
+  struct GNUNET_FS_SearchContext *sc = cls;
+  struct GNUNET_FS_SearchResult *sr = value;
+  struct GNUNET_FS_ProgressInfo pi;
+
+  pi.status = GNUNET_FS_STATUS_SEARCH_RESULT_STOPPED;
+  pi.value.search.specifics.result_stopped.cctx = sr->client_info;
+  pi.value.search.specifics.result_stopped.meta = sr->meta;
+  pi.value.search.specifics.result_stopped.uri = sr->uri;
+  sr->client_info = GNUNET_FS_search_make_status_ (&pi, sc);
+  return GNUNET_OK;
+}
+
+
+/**
  * Free the given search result.
  *
  * @param cls the global FS handle
@@ -1480,11 +1504,6 @@ search_result_free (void *cls, const GNUNET_HashCode * key, void *value)
     GNUNET_FS_search_stop (sr->update_search);
     GNUNET_assert (sr->update_search == NULL);
   }
-  pi.status = GNUNET_FS_STATUS_SEARCH_RESULT_STOPPED;
-  pi.value.search.specifics.result_stopped.cctx = sr->client_info;
-  pi.value.search.specifics.result_stopped.meta = sr->meta;
-  pi.value.search.specifics.result_stopped.uri = sr->uri;
-  sr->client_info = GNUNET_FS_search_make_status_ (&pi, sc);
   GNUNET_break (NULL == sr->client_info);
   GNUNET_free_non_null (sr->serialization);
   GNUNET_FS_uri_destroy (sr->uri);
@@ -1512,6 +1531,8 @@ GNUNET_FS_search_stop (struct GNUNET_FS_SearchContext *sc)
 
   if (sc->top != NULL)
     GNUNET_FS_end_top (sc->h, sc->top);
+  GNUNET_CONTAINER_multihashmap_iterate (sc->master_result_map,
+                                         &search_result_stop, sc);
   if (sc->psearch_result != NULL)
     sc->psearch_result->update_search = NULL;
   if (sc->serialization != NULL)
