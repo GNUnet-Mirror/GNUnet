@@ -192,7 +192,7 @@ signal_probe_result (struct GNUNET_FS_SearchResult *sr)
   pi.value.search.specifics.update.availability_certainty =
       sr->availability_trials;
   pi.value.search.specifics.update.applicability_rank = sr->optional_support;
-  sr->sc->client_info = GNUNET_FS_search_make_status_ (&pi, sr->sc);
+  sr->client_info = GNUNET_FS_search_make_status_ (&pi, sr->sc);
   GNUNET_FS_search_start_probe_ (sr);
 }
 
