@@ -682,7 +682,6 @@ do_shutdown ()
 {
   struct WatchEntry *we;
   struct StatsEntry *se;
-  struct GNUNET_SERVER_Handle *s;
 
   if (NULL == nc)
     return;
@@ -701,10 +700,6 @@ do_shutdown ()
     }
     GNUNET_free (se);
   }
-  GNUNET_assert (NULL != srv);
-  s = srv;
-  srv = NULL;
-  GNUNET_SERVER_destroy (s);
 }
 
 
