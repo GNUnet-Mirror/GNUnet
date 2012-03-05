@@ -82,6 +82,10 @@ libgnunet_plugin_namestore_sqlite_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) -lsqlite3
 libgnunet_plugin_namestore_sqlite_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
+libgnunet_plugin_namestore_sqlite_la_DEPENDENCIES = \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  libgnunetnamestore.la
 
 test_namestore_api_sign_verify_SOURCES = \
  test_namestore_api_sign_verify.c
