@@ -327,7 +327,7 @@ create_updated_cont (void *cls, int32_t success, const char *emsg)
     res = 0;
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Updated record for name `%s'\n", name);
   }
-  if (success == GNUNET_OK)
+  else if (success == GNUNET_OK)
   {
     res = 1;
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "FAIL, Create new record for name `%s'\n", name);
