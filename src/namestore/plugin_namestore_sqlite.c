@@ -101,6 +101,11 @@ struct Plugin
   sqlite3_stmt *iterate_records;
 
   /**
+   * Precompiled SQL to get the name for a given zone-value.
+   */
+  sqlite3_stmt *zone_to_name;
+
+  /**
    * Precompiled SQL for delete zone
    */
   sqlite3_stmt *delete_zone;
@@ -141,19 +146,22 @@ create_indices (sqlite3 * dbh)
 {
   /* create indices */
   if ( (SQLITE_OK !=
-	sqlite3_exec (dbh, "CREATE INDEX IF NOT EXISTS ir_zone_name_rv ON ns090records (zone_hash,record_name_hash,rvalue)",
+	sqlite3_exec (dbh, "CREATE INDEX IF NOT EXISTS ir_zone_name_rv ON ns091records (zone_hash,record_name_hash,rvalue)",
 		      NULL, NULL, NULL)) ||
        (SQLITE_OK !=
-	sqlite3_exec (dbh, "CREATE INDEX IF NOT EXISTS ir_zone_rv ON ns090records (zone_hash,rvalue)",
+	sqlite3_exec (dbh, "CREATE INDEX IF NOT EXISTS ir_zone_delegation ON ns091records (zone_hash,zone_delegation)",
 		      NULL, NULL, NULL)) ||
        (SQLITE_OK !=
-	sqlite3_exec (dbh, "CREATE INDEX IF NOT EXISTS ir_zone ON ns090records (zone_hash)",
+	sqlite3_exec (dbh, "CREATE INDEX IF NOT EXISTS ir_zone_rv ON ns091records (zone_hash,rvalue)",
 		      NULL, NULL, NULL)) ||
        (SQLITE_OK !=
-	sqlite3_exec (dbh, "CREATE INDEX IF NOT EXISTS ir_name_rv ON ns090records (record_name_hash,rvalue)",
+	sqlite3_exec (dbh, "CREATE INDEX IF NOT EXISTS ir_zone ON ns091records (zone_hash)",
 		      NULL, NULL, NULL)) ||
        (SQLITE_OK !=
-	sqlite3_exec (dbh, "CREATE INDEX IF NOT EXISTS ir_rv ON ns090records (rvalue)",
+	sqlite3_exec (dbh, "CREATE INDEX IF NOT EXISTS ir_name_rv ON ns091records (record_name_hash,rvalue)",
+		      NULL, NULL, NULL)) ||
+       (SQLITE_OK !=
+	sqlite3_exec (dbh, "CREATE INDEX IF NOT EXISTS ir_rv ON ns091records (rvalue)",
 		      NULL, NULL, NULL)) )    
     LOG (GNUNET_ERROR_TYPE_ERROR, 
 	 "Failed to create indices: %s\n", sqlite3_errmsg (dbh));
@@ -252,13 +260,14 @@ database_setup (struct Plugin *plugin)
   /* Create tables */
   CHECK (SQLITE_OK ==
          sq_prepare (plugin->dbh,
-                     "SELECT 1 FROM sqlite_master WHERE tbl_name = 'ns090records'",
+                     "SELECT 1 FROM sqlite_master WHERE tbl_name = 'ns091records'",
                      &stmt));
   if ((sqlite3_step (stmt) == SQLITE_DONE) &&
       (sqlite3_exec
        (plugin->dbh,
-        "CREATE TABLE ns090records (" 
+        "CREATE TABLE ns091records (" 
         " zone_key BLOB NOT NULL DEFAULT ''," 
+        " zone_delegation BLOB NOT NULL DEFAULT ''," 
         " zone_hash BLOB NOT NULL DEFAULT ''," 
 	" record_count INT NOT NULL DEFAULT 0,"
         " record_data BLOB NOT NULL DEFAULT '',"
@@ -281,36 +290,41 @@ database_setup (struct Plugin *plugin)
 #define ALL "zone_key, record_name, record_count, record_data, block_expiration_time, signature"
   if ((sq_prepare
        (plugin->dbh,
-        "INSERT INTO ns090records (" ALL ", zone_hash, record_name_hash, rvalue) VALUES "
-	"(?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO ns091records (" ALL ", zone_delegation, zone_hash, record_name_hash, rvalue) VALUES "
+	"(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         &plugin->put_records) != SQLITE_OK) ||
       (sq_prepare
        (plugin->dbh,
-        "DELETE FROM ns090records WHERE zone_hash=? AND record_name_hash=?",
+        "DELETE FROM ns091records WHERE zone_hash=? AND record_name_hash=?",
         &plugin->remove_records) != SQLITE_OK) ||
       (sq_prepare
        (plugin->dbh,
         "SELECT " ALL
-	" FROM ns090records WHERE zone_hash=? AND record_name_hash=? ORDER BY rvalue LIMIT 1 OFFSET ?",
+	" FROM ns091records WHERE zone_hash=? AND record_name_hash=? ORDER BY rvalue LIMIT 1 OFFSET ?",
         &plugin->iterate_records) != SQLITE_OK) ||
       (sq_prepare
        (plugin->dbh,
         "SELECT " ALL
-	" FROM ns090records WHERE zone_hash=? ORDER BY rvalue  LIMIT 1 OFFSET ?",
+	" FROM ns091records WHERE zone_hash=? ORDER BY rvalue  LIMIT 1 OFFSET ?",
         &plugin->iterate_by_zone) != SQLITE_OK) ||
       (sq_prepare
        (plugin->dbh,
         "SELECT " ALL 
-	" FROM ns090records WHERE record_name_hash=? ORDER BY rvalue LIMIT 1 OFFSET ?",
+	" FROM ns091records WHERE record_name_hash=? ORDER BY rvalue LIMIT 1 OFFSET ?",
         &plugin->iterate_by_name) != SQLITE_OK) ||
       (sq_prepare
 	(plugin->dbh,
         "SELECT " ALL
-	" FROM ns090records ORDER BY rvalue LIMIT 1 OFFSET ?",
+	" FROM ns091records ORDER BY rvalue LIMIT 1 OFFSET ?",
         &plugin->iterate_all) != SQLITE_OK) ||
       (sq_prepare
+	(plugin->dbh,
+        "SELECT " ALL
+	" FROM ns091records WHERE zone_hash=? AND zone_delegation=?",
+        &plugin->zone_to_name) != SQLITE_OK) ||
+      (sq_prepare
        (plugin->dbh,
-        "DELETE FROM ns090records WHERE zone_hash=?",
+        "DELETE FROM ns091records WHERE zone_hash=?",
         &plugin->delete_zone) != SQLITE_OK) )
   {
     LOG_SQLITE (plugin,GNUNET_ERROR_TYPE_ERROR, "precompiling");
@@ -338,12 +352,14 @@ database_shutdown (struct Plugin *plugin)
     sqlite3_finalize (plugin->remove_records);
   if (NULL != plugin->iterate_records)
     sqlite3_finalize (plugin->iterate_records);
-  if (NULL != plugin->iterate_records)
+  if (NULL != plugin->iterate_by_zone)
     sqlite3_finalize (plugin->iterate_by_zone);
-  if (NULL != plugin->iterate_records)
+  if (NULL != plugin->iterate_by_name)
     sqlite3_finalize (plugin->iterate_by_name);
-  if (NULL != plugin->iterate_records)
+  if (NULL != plugin->iterate_all)
     sqlite3_finalize (plugin->iterate_all);
+  if (NULL != plugin->zone_to_name)
+    sqlite3_finalize (plugin->zone_to_name);
   if (NULL != plugin->delete_zone)
     sqlite3_finalize (plugin->delete_zone);
   result = sqlite3_close (plugin->dbh);
@@ -451,16 +467,27 @@ namestore_sqlite_put_records (void *cls,
   struct Plugin *plugin = cls;
   int n;
   GNUNET_HashCode zone;
+  GNUNET_HashCode zone_delegation;
   GNUNET_HashCode nh;
   size_t name_len;
   uint64_t rvalue;
   size_t data_size;
+  unsigned int i;
 
   GNUNET_CRYPTO_hash (zone_key, sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), &zone);
   (void) namestore_sqlite_remove_records (plugin, &zone, name);
   name_len = strlen (name);
   GNUNET_CRYPTO_hash (name, name_len, &nh);
-
+  memset (&zone_delegation, 0, sizeof (zone_delegation));
+  for (i=0;i<rd_count;i++)
+    if (rd->record_type == GNUNET_GNS_TYPE_PKEY)
+    {
+      GNUNET_assert (sizeof (GNUNET_HashCode) == rd->data_size);
+      memcpy (&zone_delegation,
+	      rd->data,
+	      sizeof (GNUNET_HashCode));
+      break;
+    }
   rvalue = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK, UINT64_MAX);
   data_size = GNUNET_NAMESTORE_records_get_size (rd_count, rd);
   if (data_size > 64 * 65536)
@@ -483,9 +510,10 @@ namestore_sqlite_put_records (void *cls,
 	(SQLITE_OK != sqlite3_bind_blob (plugin->put_records, 4, data, data_size, SQLITE_STATIC)) ||
 	(SQLITE_OK != sqlite3_bind_int64 (plugin->put_records, 5, expire.abs_value)) ||
 	(SQLITE_OK != sqlite3_bind_blob (plugin->put_records, 6, signature, sizeof (struct GNUNET_CRYPTO_RsaSignature), SQLITE_STATIC)) ||
-	(SQLITE_OK != sqlite3_bind_blob (plugin->put_records, 7, &zone, sizeof (GNUNET_HashCode), SQLITE_STATIC)) ||
-	(SQLITE_OK != sqlite3_bind_blob (plugin->put_records, 8, &nh, sizeof (GNUNET_HashCode), SQLITE_STATIC)) ||
-	(SQLITE_OK != sqlite3_bind_int64 (plugin->put_records, 9, rvalue)) )
+	(SQLITE_OK != sqlite3_bind_blob (plugin->put_records, 7, &zone_delegation, sizeof (GNUNET_HashCode), SQLITE_STATIC)) ||
+	(SQLITE_OK != sqlite3_bind_blob (plugin->put_records, 8, &zone, sizeof (GNUNET_HashCode), SQLITE_STATIC)) ||
+	(SQLITE_OK != sqlite3_bind_blob (plugin->put_records, 9, &nh, sizeof (GNUNET_HashCode), SQLITE_STATIC)) ||
+	(SQLITE_OK != sqlite3_bind_int64 (plugin->put_records, 10, rvalue)) )
     {
       LOG_SQLITE (plugin, 
 		  GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
@@ -662,6 +690,103 @@ namestore_sqlite_iterate_records (void *cls,
 
 
 /**
+ * Look for an existing PKEY delegation record for a given public key.
+ * Returns at most one result to the iterator.
+ *
+ * @param cls closure (internal context for the plugin)
+ * @param zone hash of public key of the zone to look up in, never NULL
+ * @param value_zone hash of the public key of the target zone (value), never NULL
+ * @param iter function to call with the result
+ * @param iter_cls closure for iter
+ * @return GNUNET_OK on success, GNUNET_NO if there were no results, GNUNET_SYSERR on error
+ */
+static int
+namestore_sqlite_zone_to_name (void *cls, 
+			       const GNUNET_HashCode *zone,
+			       const GNUNET_HashCode *value_zone,
+			       GNUNET_NAMESTORE_RecordIterator iter, void *iter_cls)
+{
+  struct Plugin *plugin = cls;
+  sqlite3_stmt *stmt;
+  int ret;
+  int sret;
+
+  stmt = plugin->zone_to_name;
+  if ( (SQLITE_OK != sqlite3_bind_blob (stmt, 1, 
+					zone, sizeof (GNUNET_HashCode), 
+					SQLITE_STATIC)) ||
+       (SQLITE_OK != sqlite3_bind_blob (stmt, 2, 
+					value_zone, sizeof (GNUNET_HashCode), 
+					SQLITE_STATIC)) )
+  {
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+		"sqlite3_bind_XXXX");
+    if (SQLITE_OK != sqlite3_reset (stmt))
+      LOG_SQLITE (plugin,
+		  GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+		  "sqlite3_reset");
+    return GNUNET_SYSERR;
+  }      
+  ret = GNUNET_NO;
+  if (SQLITE_ROW == (sret = sqlite3_step (stmt)))
+  {
+    unsigned int record_count;
+    size_t data_size;
+    const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key;
+    const struct GNUNET_CRYPTO_RsaSignature *sig;
+    struct GNUNET_TIME_Absolute expiration;
+    const char *data;
+    const char *name;
+      
+    ret = GNUNET_YES;
+    zone_key =  sqlite3_column_blob (stmt, 0);
+    name = (const char*) sqlite3_column_text (stmt, 1);
+    record_count = sqlite3_column_int (stmt, 2);
+    data_size = sqlite3_column_bytes (stmt, 3);
+    data = sqlite3_column_blob (stmt, 3);
+    expiration.abs_value = (uint64_t) sqlite3_column_int64 (stmt, 4);
+    sig = sqlite3_column_blob (stmt, 5);
+
+    if ( (sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded) != sqlite3_column_bytes (stmt, 0)) ||
+	 (sizeof (struct GNUNET_CRYPTO_RsaSignature) != sqlite3_column_bytes (stmt, 5)) )
+    {
+      GNUNET_break (0);
+      ret = GNUNET_SYSERR;
+    }
+    else
+    {
+      struct GNUNET_NAMESTORE_RecordData rd[record_count];
+
+      if (GNUNET_OK !=
+	  GNUNET_NAMESTORE_records_deserialize (data_size, data,
+						record_count, rd))
+      {
+	GNUNET_break (0);
+	ret = GNUNET_SYSERR;
+	record_count = 0;
+      }
+      else
+      {
+	iter (iter_cls, zone_key, expiration, name, 
+	      record_count, rd, sig);
+      }
+    }
+  }
+  else
+  {
+    if (SQLITE_DONE != sret)
+      LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR, "sqlite_step");
+    iter (iter_cls, NULL, GNUNET_TIME_UNIT_ZERO_ABS, NULL, 0, NULL, NULL);
+  }
+  if (SQLITE_OK != sqlite3_reset (stmt))
+    LOG_SQLITE (plugin,
+		GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+		"sqlite3_reset");
+  return ret;
+}
+
+
+/**
  * Delete an entire zone (all records).  Not used in normal operation.
  *
  * @param cls closure (internal context for the plugin)
@@ -733,6 +858,7 @@ libgnunet_plugin_namestore_sqlite_init (void *cls)
   api->put_records = &namestore_sqlite_put_records;
   api->remove_records = &namestore_sqlite_remove_records;
   api->iterate_records = &namestore_sqlite_iterate_records;
+  api->zone_to_name = &namestore_sqlite_zone_to_name;
   api->delete_zone = &namestore_sqlite_delete_zone;
   LOG (GNUNET_ERROR_TYPE_INFO, 
        _("Sqlite database running\n"));
