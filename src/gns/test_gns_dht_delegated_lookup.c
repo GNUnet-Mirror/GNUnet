@@ -255,7 +255,7 @@ do_lookup(void *cls, const struct GNUNET_PeerIdentity *id,
   
   
   char* alice_keyfile;
-
+  GNUNET_HashCode bob_hash;
   
 
   GNUNET_SCHEDULER_cancel (die_task);
@@ -292,11 +292,12 @@ do_lookup(void *cls, const struct GNUNET_PeerIdentity *id,
 
   GNUNET_CRYPTO_rsa_key_get_public (alice_key, &alice_pkey);
   GNUNET_CRYPTO_rsa_key_get_public (bob_key, &bob_pkey);
+  GNUNET_CRYPTO_hash(&bob_pkey, sizeof(bob_pkey), &bob_hash);
 
   struct GNUNET_NAMESTORE_RecordData rd;
   rd.expiration = GNUNET_TIME_absolute_get_forever ();
-  rd.data_size = sizeof(bob_pkey);
-  rd.data = &bob_pkey;
+  rd.data_size = sizeof(GNUNET_HashCode);
+  rd.data = &bob_hash;
   rd.record_type = GNUNET_GNS_RECORD_PKEY;
 
   GNUNET_NAMESTORE_record_create (namestore_handle,

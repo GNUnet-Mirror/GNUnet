@@ -39,7 +39,7 @@
 #include "block_gns.h"
 #include "gns.h"
 
-#define DHT_OPERATION_TIMEOUT  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+#define DHT_OPERATION_TIMEOUT  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 3)
 #define DHT_LOOKUP_TIMEOUT DHT_OPERATION_TIMEOUT
 #define DHT_GNS_REPLICATION_LEVEL 5
 #define MAX_DNS_LABEL_LENGTH 63
@@ -49,6 +49,23 @@
 #define GNUNET_MESSAGE_TYPE_GNS_LOOKUP_RESULT 24
 #define GNUNET_MESSAGE_TYPE_GNS_SHORTEN 25
 #define GNUNET_MESSAGE_TYPE_GNS_SHORTEN_RESULT 26
+
+
+struct AuthorityChain
+{
+  struct AuthorityChain *prev;
+
+  struct AuthorityChain *next;
+
+  GNUNET_HashCode zone;
+};
+
+struct GNUNET_GNS_ResolverHandle;
+
+typedef void (*ResolutionResultProcessor) (void *cls,
+                                  struct GNUNET_GNS_ResolverHandle *rh,
+                                  uint32_t rd_count,
+                                  const struct GNUNET_NAMESTORE_RecordData *rd);
 
 /**
  * Handle to a currenty pending resolution
@@ -89,6 +106,13 @@ struct GNUNET_GNS_ResolverHandle
   /* timeout task for dht lookups */
   GNUNET_SCHEDULER_TaskIdentifier dht_timeout_task;
 
+  ResolutionResultProcessor proc;
+
+  void* proc_cls;
+
+  struct AuthorityChain *authority_chain_head;
+  struct AuthorityChain *authority_chain_tail;
+
 };
 
 struct ClientShortenHandle
@@ -96,6 +120,8 @@ struct ClientShortenHandle
   struct GNUNET_SERVER_Client *client;
   uint64_t unique_id;
   GNUNET_HashCode key;
+  char* name;
+  uint32_t offset;
 };
 
 /**
@@ -161,7 +187,7 @@ static void resolve_name(struct GNUNET_GNS_ResolverHandle *rh);
  * @param rd the record data
  */
 static void
-reply_to_dns(struct GNUNET_GNS_ResolverHandle *rh, uint32_t rd_count,
+reply_to_dns(void* cls, struct GNUNET_GNS_ResolverHandle *rh, uint32_t rd_count,
              const struct GNUNET_NAMESTORE_RecordData *rd)
 {
   int i;
@@ -319,7 +345,7 @@ dht_lookup_timeout(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
              rh->name, rh->query->type);
 
   GNUNET_DHT_get_stop (rh->get_handle);
-  reply_to_dns(rh, 0, NULL);
+  rh->proc(rh->proc_cls, rh, 0, NULL);
 }
 
 
@@ -431,9 +457,9 @@ process_record_dht_result(void* cls,
                                  NULL); //cls
   
     if (rh->answered)
-      reply_to_dns(rh, num_records, rd);
+      rh->proc(rh->proc_cls, rh, num_records, rd);
     else
-      reply_to_dns(rh, 0, NULL);
+      rh->proc(rh->proc_cls, rh, 0, NULL);
   }
 
 }
@@ -523,7 +549,7 @@ process_record_lookup(void* cls,
      * Not our root and no record found. Try dht if expired
      */
     if ((0 != GNUNET_CRYPTO_hash_cmp(&rh->authority, &zone_hash)) &&
-        (remaining_time.rel_value != 0))
+        ((name == NULL) || (remaining_time.rel_value != 0)))
     {
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                  "Record %s unknown in namestore, trying dht\n",
@@ -536,7 +562,7 @@ process_record_lookup(void* cls,
      * Our zone and no result? Cannot resolve TT
      */
     GNUNET_assert(rh->answered == 0);
-    reply_to_dns(rh, 0, NULL);
+    rh->proc(rh->proc_cls, rh, 0, NULL);
     return;
 
   }
@@ -570,14 +596,14 @@ process_record_lookup(void* cls,
     {
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, 
                  "No answers found. This is odd!\n");
-      reply_to_dns(rh, 0, NULL);
+      rh->proc(rh->proc_cls, rh, 0, NULL);
       return;
     }
     
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Found %d answer(s) to query!\n",
                rh->answered);
 
-    reply_to_dns(rh, rd_count, rd);
+    rh->proc(rh->proc_cls, rh, rd_count, rd);
   }
 }
 
@@ -623,7 +649,8 @@ dht_authority_lookup_timeout(void *cls,
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
              "dht lookup for query %s (type=%d) timed out.\n",
              rh->name, rh->query->type);
-  
+
+  GNUNET_DHT_get_stop (rh->get_handle);
   if (strcmp(rh->name, "") == 0)
   {
     /*
@@ -634,8 +661,7 @@ dht_authority_lookup_timeout(void *cls,
   }
   else
   {
-    GNUNET_DHT_get_stop (rh->get_handle);
-    reply_to_dns(rh, 0, NULL);
+    rh->proc(rh->proc_cls, rh, 0, NULL);
   }
 }
 
@@ -725,10 +751,13 @@ process_authority_dht_result(void* cls,
       {
         GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Authority found in DHT\n");
         rh->answered = 1;
-        GNUNET_CRYPTO_hash(
-                   (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *)rd[i].data,
-                   rd[i].data_size,
-                   &rh->authority);
+        memcpy(&rh->authority, rd[i].data, sizeof(GNUNET_HashCode));
+        struct AuthorityChain *auth =
+          GNUNET_malloc(sizeof(struct AuthorityChain));
+        auth->zone = rh->authority;
+        GNUNET_CONTAINER_DLL_insert (rh->authority_chain_head,
+                                     rh->authority_chain_tail,
+                                     auth);
       }
 
     }
@@ -772,7 +801,7 @@ process_authority_dht_result(void* cls,
     return;
   }
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "No authority in records\n");
-  reply_to_dns(rh, 0, NULL);
+  rh->proc(rh->proc_cls, rh, 0, NULL);
 }
 
 /**
@@ -807,7 +836,7 @@ resolve_authority_dht(struct GNUNET_GNS_ResolverHandle *rh)
                        DHT_GNS_REPLICATION_LEVEL,
                        GNUNET_DHT_RO_NONE,
                        NULL,
-                       0,//sizeof(xquery),
+                       sizeof(xquery),
                        &process_authority_dht_result,
                        rh);
 
@@ -877,10 +906,10 @@ process_authority_lookup(void* cls,
       else
       {
         GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                   "Authority %s unknown in namestore, cannot resolve\n",
-                   rh->authority_name);
+                   "Authority %s for %s unknown in namestore, cannot resolve\n",
+                   rh->authority_name, rh->name);
       }
-      reply_to_dns(rh, 0, NULL);
+      rh->proc(rh->proc_cls, rh, 0, NULL);
       return;
     }
     
@@ -891,11 +920,22 @@ process_authority_lookup(void* cls,
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "AAAA %d\n", remaining_time.rel_value);
     if ((0 != GNUNET_CRYPTO_hash_cmp(&rh->authority, &zone_hash)))
     {
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "Authority %s unknown in namestore, trying dht\n",
-                 rh->authority_name);
-      resolve_authority_dht(rh);
-      return;
+      if (strcmp(rh->name, "") == 0)
+      {
+        /**
+         * Promote this authority back to a name
+         */
+        strcpy(rh->name, rh->authority_name);
+        resolve_record(rh);
+      }
+      else
+      {
+        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                   "Authority %s for %s unknown in namestore, trying dht\n",
+                  rh->authority_name, rh->name);
+        resolve_authority_dht(rh);
+      }
+        return;
     }
     
     /**
@@ -903,7 +943,7 @@ process_authority_lookup(void* cls,
      */
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Authority %s unknown\n",
                rh->authority_name);
-    reply_to_dns(rh, 0, NULL);
+    rh->proc(rh->proc_cls, rh, 0, NULL);
     return;
   }
 
@@ -938,9 +978,13 @@ process_authority_lookup(void* cls,
      * Resolve rest of query with new authority
      */
     GNUNET_assert(rd[i].record_type == GNUNET_GNS_RECORD_PKEY);
-    GNUNET_CRYPTO_hash(rd[i].data,
-                       sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
-                       &rh->authority);
+    memcpy(&rh->authority, rd[i].data, sizeof(GNUNET_HashCode));
+    struct AuthorityChain *auth = GNUNET_malloc(sizeof(struct AuthorityChain));
+    auth->zone = rh->authority;
+    GNUNET_CONTAINER_DLL_insert (rh->authority_chain_head,
+                                 rh->authority_chain_tail,
+                                 auth);
+
     if (strcmp(rh->name, "") == 0)
       resolve_record(rh);
     else
@@ -953,7 +997,7 @@ process_authority_lookup(void* cls,
    */
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
              "Authority lookup successful but no PKEY... never get here\n");
-  reply_to_dns(rh, 0, NULL);
+  rh->proc(rh->proc_cls, rh, 0, NULL);
 }
 
 
@@ -1049,9 +1093,9 @@ resolve_name(struct GNUNET_GNS_ResolverHandle *rh)
  * @param q the DNS query we received parsed from p
  */
 static void
-start_resolution(struct GNUNET_DNS_RequestHandle *request,
-                 struct GNUNET_DNSPARSER_Packet *p,
-                 struct GNUNET_DNSPARSER_Query *q)
+start_resolution_from_dns(struct GNUNET_DNS_RequestHandle *request,
+                          struct GNUNET_DNSPARSER_Packet *p,
+                          struct GNUNET_DNSPARSER_Query *q)
 {
   struct GNUNET_GNS_ResolverHandle *rh;
   
@@ -1063,6 +1107,7 @@ start_resolution(struct GNUNET_DNS_RequestHandle *request,
   rh->packet = p;
   rh->query = q;
   rh->authority = zone_hash;
+  rh->proc = &reply_to_dns;
   
   rh->name = GNUNET_malloc(strlen(q->name)
                               - strlen(gnunet_tld) + 1);
@@ -1074,6 +1119,10 @@ start_resolution(struct GNUNET_DNS_RequestHandle *request,
   rh->authority_name = GNUNET_malloc(sizeof(char)*MAX_DNS_LABEL_LENGTH);
 
   rh->request_handle = request;
+
+  rh->authority_chain_head = GNUNET_malloc(sizeof(struct AuthorityChain));
+  rh->authority_chain_tail = rh->authority_chain_head;
+  rh->authority_chain_head->zone = zone_hash;
 
   /* Start resolution in our zone */
   resolve_name(rh);
@@ -1145,7 +1194,7 @@ handle_dns_request(void *cls,
   
   if (0 == strcmp(tldoffset, gnunet_tld))
   {
-    start_resolution(rh, p, p->queries);
+    start_resolution_from_dns(rh, p, p->queries);
   }
   else
   {
@@ -1324,6 +1373,82 @@ update_zone_dht_start(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                                           NULL);
 }
 
+//Prototype
+static void send_shorten_response(const char* name,
+                                  struct ClientShortenHandle *csh);
+
+void
+handle_local_zone_to_name(void *cls,
+                 const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
+                 struct GNUNET_TIME_Absolute expire,
+                 const char *name,
+                 unsigned int rd_len,
+                 const struct GNUNET_NAMESTORE_RecordData *rd,
+                 const struct GNUNET_CRYPTO_RsaSignature *signature)
+{
+  struct GNUNET_GNS_ResolverHandle *rh = 
+    (struct GNUNET_GNS_ResolverHandle *)cls;
+  struct ClientShortenHandle* csh = (struct ClientShortenHandle*) rh->proc_cls;
+  /* we found a match in our own zone */
+  if (rd_len != 0)
+  {
+    send_shorten_response(name, csh);
+    //FIXME free, add .gnunet
+  }
+  else
+  {
+    
+  }
+}
+
+void
+handle_shorten_result(void* cls,
+                      struct GNUNET_GNS_ResolverHandle *rh,
+                      uint32_t rd_count,
+                      const struct GNUNET_NAMESTORE_RecordData *rd)
+{
+  struct ClientShortenHandle* csh = (struct ClientShortenHandle*) cls;
+  struct AuthorityChain *auth_chain;
+  
+  /**
+   * Couldn't completely resolve
+   * Search authority chain
+   */
+  
+  if (rd_count == 0)
+  {
+    /* Nothing we can do. That name is unknown */
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "PKEY for %s unknown!\n", csh->name);
+    if (GNUNET_CRYPTO_hash_cmp(&rh->authority_chain_head->zone,
+                               &zone_hash) == 0)
+    {
+      /* either we can shorten completely or we don't know this name */
+      if (rh->authority_chain_head->next == NULL)
+        send_shorten_response('\0', csh);
+      else
+        send_shorten_response(rh->name, csh); //FIXME +.gnunet!
+      //FIXME free
+      return;
+    }
+    csh->offset++;
+    auth_chain = rh->authority_chain_head;
+    /* backtrack authorities for pseu */
+    GNUNET_NAMESTORE_zone_to_name (namestore_handle,
+                                   &zone_hash, //ours
+                                   &auth_chain->zone,
+                                   &handle_local_zone_to_name,
+                                   rh);
+  }
+  else /* we can use the result directly */
+  {
+    /* First check local namestore for name */
+    /* Then try dht/namestore for PSEU */
+  }
+
+
+}
+
 typedef void (*ShortenResponseProc) (void* cls, const char* name);
 
 /**
@@ -1334,24 +1459,57 @@ typedef void (*ShortenResponseProc) (void* cls, const char* name);
  * @praram cls the closure to the processor
  */
 static void
-shorten_name(char* name, ShortenResponseProc proc, void* cls)
+shorten_name(char* name, struct ClientShortenHandle* csh)
 {
-  char* result = name;
-  proc(cls, result);
+
+  struct GNUNET_GNS_ResolverHandle *rh;
+  
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Starting resolution for %s (type=%d)!\n",
+              name, GNUNET_GNS_RECORD_PKEY);
+  
+  rh = GNUNET_malloc(sizeof (struct GNUNET_GNS_ResolverHandle));
+  rh->authority = zone_hash;
+  
+  rh->name = GNUNET_malloc(strlen(name)
+                              - strlen(gnunet_tld) + 1);
+  memset(rh->name, 0,
+         strlen(name)-strlen(gnunet_tld) + 1);
+  memcpy(rh->name, name,
+         strlen(name)-strlen(gnunet_tld));
+
+  csh->name = GNUNET_malloc(strlen(name)
+                            - strlen(gnunet_tld) + 1);
+  memset(rh->name, 0,
+         strlen(name)-strlen(gnunet_tld) + 1);
+  memcpy(rh->name, name,
+         strlen(name)-strlen(gnunet_tld));
+
+  rh->authority_name = GNUNET_malloc(sizeof(char)*MAX_DNS_LABEL_LENGTH);
+
+  rh->authority_chain_head = GNUNET_malloc(sizeof(struct AuthorityChain));
+  rh->authority_chain_tail = rh->authority_chain_head;
+  rh->authority_chain_head->zone = zone_hash;
+  rh->proc = handle_shorten_result;
+  rh->proc_cls = (void*)csh;
+
+  /* Start resolution in our zone */
+  resolve_name(rh);
+
 }
 
 /**
  * Send shorten response back to client
+ * FIXME this is without .gnunet!
  * 
  * @param cls the client handle in closure
  * @param name the shortened name result or NULL if cannot be shortened
  */
 static void
-send_shorten_response(void* cls, const char* name)
+send_shorten_response(const char* name, struct ClientShortenHandle *csh)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message\n",
               "SHORTEN_RESULT");
-  struct ClientShortenHandle *csh = (struct ClientShortenHandle *)cls;
   struct GNUNET_GNS_ClientShortenResultMessage *rmsg;
   
   if (name == NULL)
@@ -1365,6 +1523,9 @@ send_shorten_response(void* cls, const char* name)
   rmsg->unique_id = csh->unique_id;
   rmsg->key = csh->key;
   rmsg->header.type = htons(GNUNET_MESSAGE_TYPE_GNS_SHORTEN_RESULT);
+  rmsg->header.size = 
+    htons(sizeof(struct GNUNET_GNS_ClientShortenResultMessage *) +
+          strlen(name));
 
   strcpy((char*)&rmsg[1], name);
 
@@ -1419,8 +1580,11 @@ static void handle_shorten(void *cls,
   csh->unique_id = sh_msg->unique_id;
   csh->key = sh_msg->key;
   
+  //Offset in original name
+  csh->offset = 0;
+  
 
-  shorten_name((char*)&sh_msg[1], &send_shorten_response, csh);
+  shorten_name((char*)&sh_msg[1], csh);
 
 }
 
