@@ -282,7 +282,7 @@ put_cont (void *cls, int32_t success, const char *emsg)
   if (c == 2)
   {
     zi = GNUNET_NAMESTORE_zone_iteration_start(nsh,
-                                        NULL,
+                                        &zone,
                                         GNUNET_NAMESTORE_RF_NONE,
                                         GNUNET_NAMESTORE_RF_NONE,
                                         zone_proc,

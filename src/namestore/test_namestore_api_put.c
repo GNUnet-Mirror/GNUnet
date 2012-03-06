@@ -146,7 +146,6 @@ create_record (int count)
   rd[c].data = GNUNET_malloc(TEST_RECORD_DATALEN);
   memset ((char *) rd[c].data, TEST_RECORD_DATA, TEST_RECORD_DATALEN);
   }
-
   return rd;
 }
 

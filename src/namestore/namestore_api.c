@@ -365,8 +365,6 @@ handle_record_create_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
   struct GNUNET_NAMESTORE_Handle *h = qe->nsh;
   int res = ntohl (msg->op_result);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' %i\n",
-              "RECORD_CREATE_RESPONSE", ntohs (msg->op_result));
   if (res == GNUNET_YES)
   {
     if (qe->cont != NULL)
@@ -582,12 +580,66 @@ handle_zone_iteration_response (struct GNUNET_NAMESTORE_ZoneIterator *ze,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' \n",
               "ZONE_ITERATION_RESPONSE");
 
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pubdummy;
+  size_t msg_len = 0;
+  size_t exp_msg_len = 0;
+  size_t name_len = 0;
+  size_t rd_len = 0;
+  unsigned rd_count = 0;
+
+  char *name_tmp;
+  char *rd_ser_tmp;
+  struct GNUNET_TIME_Absolute expire;
+
+  msg_len = ntohs (msg->gns_header.header.size);
+  rd_len = ntohs (msg->rd_len);
+  rd_count = ntohs (msg->rd_count);
+  name_len = ntohs (msg->name_len);
+  expire = GNUNET_TIME_absolute_ntoh (msg->expire);
+
+  exp_msg_len = sizeof (struct ZoneIterationResponseMessage) + name_len + rd_len;
+  if (msg_len != exp_msg_len)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Message size describes with `%u' bytes but calculated size is %u bytes \n",
+                msg_len, exp_msg_len);
+    GNUNET_break_op (0);
+    return;
+  }
+  if (0 != ntohs (msg->reserved))
+  {
+    GNUNET_break_op (0);
+    return;
+  }
+
+  memset (&pubdummy, '\0', sizeof (pubdummy));
+  if ((0 == name_len) && (0 == (memcmp (&msg->public_key, &pubdummy, sizeof (pubdummy)))))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Zone iteration is completed!\n");
+
+    if (ze->proc != NULL)
+      ze->proc(ze->proc_cls, NULL, GNUNET_TIME_absolute_get_zero (), NULL , 0, NULL, NULL);
+
+    GNUNET_CONTAINER_DLL_remove(ze->h->z_head, ze->h->z_tail, ze);
+    GNUNET_free (ze);
+    return;
+  }
+
+  name_tmp = (char *) &msg[1];
+  if ((name_tmp[name_len -1] != '\0') || (name_len > 256))
+  {
+    GNUNET_break_op (0);
+    return;
+  }
+  rd_ser_tmp = (char *) &name_tmp[name_len];
+  struct GNUNET_NAMESTORE_RecordData rd[rd_count];
+  if (GNUNET_OK != GNUNET_NAMESTORE_records_deserialize (rd_len, rd_ser_tmp, rd_count, rd))
+  {
+    GNUNET_break_op (0);
+    return;
+  }
 
   if (ze->proc != NULL)
-  {
-    // FIXME
-    ze->proc(ze->proc_cls, NULL, GNUNET_TIME_absolute_get_forever(), "dummy", 0, NULL, NULL);
-  }
+    ze->proc(ze->proc_cls, &msg->public_key, expire, name_tmp, rd_count, rd, &msg->signature);
 }
 
 
@@ -1425,7 +1477,7 @@ GNUNET_NAMESTORE_zone_iteration_start (struct GNUNET_NAMESTORE_Handle *h,
   uint32_t rid = 0;
 
   GNUNET_assert (NULL != h);
-  GNUNET_assert (NULL != zone);
+
 
   rid = get_op_id(h);
   it = GNUNET_malloc (sizeof (struct GNUNET_NAMESTORE_ZoneIterator));
@@ -1448,7 +1500,10 @@ GNUNET_NAMESTORE_zone_iteration_start (struct GNUNET_NAMESTORE_Handle *h,
   msg->gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_START);
   msg->gns_header.header.size = htons (msg_size);
   msg->gns_header.r_id = htonl (rid);
-  msg->zone = *zone;
+  if (NULL == zone)
+    msg->zone = *zone;
+  else
+    memset (&msg->zone, '\0', sizeof (msg->zone));
   msg->must_have_flags = ntohs (must_have_flags);
   msg->must_not_have_flags = ntohs (must_not_have_flags);
 

@@ -36,6 +36,7 @@ check_PROGRAMS = \
  test_namestore_api_remove_not_existing_record \
  test_namestore_api_zone_to_name \
  test_namestore_api_zone_iteration \
+ test_namestore_api_zone_iteration_specific_zone \
  test_namestore_record_serialization
 
 if ENABLE_TEST_RUN
@@ -167,6 +168,12 @@ test_namestore_api_zone_to_name_LDADD = \
 test_namestore_api_zone_iteration_SOURCES = \
  test_namestore_api_zone_iteration.c
 test_namestore_api_zone_iteration_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/namestore/libgnunetnamestore.la  
+  
+test_namestore_api_zone_iteration_specific_zone_SOURCES = \
+ test_namestore_api_zone_iteration_specific_zone.c
+test_namestore_api_zone_iteration_specific_zone_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la  
 
