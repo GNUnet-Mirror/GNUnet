@@ -20,7 +20,8 @@ libgnunetstream_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)
 
 check_PROGRAMS = \
- test_stream_local 
+ test_stream_local \
+ test_stream_api
 # test_stream_halfclose
 
 EXTRA_DIST = test_stream_local.conf
@@ -34,7 +35,14 @@ test_stream_local_SOURCES = \
 test_stream_local_LDADD = \
  $(top_builddir)/src/stream/libgnunetstream.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/testing/libgnunettesting.la 
+ $(top_builddir)/src/testing/libgnunettesting.la
+
+test_stream_api_SOURCES = \
+ test_stream_api.c
+test_stream_api_LDADD = \
+ $(top_builddir)/src/stream/libgnunetstream.la \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/testing/libgnunettesting.la
 
 #test_stream_halfclose_SOURCES = \
 # test_stream_halfclose.c

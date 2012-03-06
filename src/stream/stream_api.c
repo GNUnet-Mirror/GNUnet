@@ -19,6 +19,8 @@
 */
 
 /* TODO:
+ * Copy MESH handle from lsocket to socket
+ *
  * Checks for matching the sender and socket->other_peer in server
  * message handlers  */
 
@@ -434,7 +436,7 @@ send_message_notify (void *cls, size_t size, void *buf)
   memcpy (buf, head->message, ret);
   if (NULL != head->finish_cb)
     {
-      head->finish_cb (socket, head->finish_cb_cls);
+      head->finish_cb (head->finish_cb_cls, socket);
     }
   GNUNET_CONTAINER_DLL_remove (socket->queue_head,
 			       socket->queue_tail,
@@ -476,6 +478,10 @@ queue_message (struct GNUNET_STREAM_Socket *socket,
 {
   struct MessageQueue *queue_entity;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Queueing message of type %d and size %d\n",
+              ntohs (message->header.type),
+              ntohs (message->header.size));
   queue_entity = GNUNET_malloc (sizeof (struct MessageQueue));
   queue_entity->message = message;
   queue_entity->finish_cb = finish_cb;
@@ -959,6 +965,8 @@ set_state_established (void *cls,
   socket->write_offset = 0;
   socket->read_offset = 0;
   socket->state = STATE_ESTABLISHED;
+  if (socket->open_cb)
+    socket->open_cb (socket->open_cls, socket);
 }
 
 
@@ -1324,6 +1332,8 @@ server_handle_hello (void *cls,
   struct GNUNET_STREAM_HelloAckMessage *reply;
 
   GNUNET_assert (socket->tunnel == tunnel);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received HELLO from %s\n", GNUNET_i2s(sender));
 
   /* Catch possible protocol breaks */
   GNUNET_break_op (0 != memcmp (&socket->other_peer, 
@@ -1786,10 +1796,6 @@ mesh_peer_connect_callback (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "STREAM_open callback is NULL\n");
     }
-  else
-    {
-      socket->open_cb (socket->open_cls, socket);
-    }
 }
 
 
@@ -1826,11 +1832,14 @@ new_tunnel_notify (void *cls,
   struct GNUNET_STREAM_ListenSocket *lsocket = cls;
   struct GNUNET_STREAM_Socket *socket;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Peer %s initiated tunnel to us\n", GNUNET_i2s (initiator));
   socket = GNUNET_malloc (sizeof (struct GNUNET_STREAM_Socket));
   socket->tunnel = tunnel;
   socket->session_id = 0;       /* FIXME */
   socket->other_peer = *initiator;
   socket->state = STATE_INIT;
+  /* FIXME: Copy MESH handle from lsocket to socket */
 
   if (GNUNET_SYSERR == lsocket->listen_cb (lsocket->listen_cb_cls,
                                            socket,
@@ -1908,7 +1917,9 @@ GNUNET_STREAM_open (const struct GNUNET_CONFIGURATION_Handle *cfg,
   struct GNUNET_STREAM_Socket *socket;
   enum GNUNET_STREAM_Option option;
   va_list vargs;                /* Variable arguments */
-  GNUNET_MESH_ApplicationType no_port;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "%s\n", __func__);
 
   socket = GNUNET_malloc (sizeof (struct GNUNET_STREAM_Socket));
   socket->other_peer = *target;
@@ -1934,14 +1945,13 @@ GNUNET_STREAM_open (const struct GNUNET_CONFIGURATION_Handle *cfg,
       }
   } while (GNUNET_STREAM_OPTION_END != option);
   va_end (vargs);               /* End of variable args parsing */
-  no_port = 0;
   socket->mesh = GNUNET_MESH_connect (cfg, /* the configuration handle */
-                                      1,  /* QUEUE size as parameter? */
+                                      10,  /* QUEUE size as parameter? */
                                       socket, /* cls */
                                       NULL, /* No inbound tunnel handler */
-                                      NULL, /* No inbound tunnel cleaner */
+                                      &tunnel_cleaner,
                                       client_message_handlers,
-                                      &no_port); /* We don't get inbound tunnels */
+                                      &app_port); /* We don't get inbound tunnels */
   if (NULL == socket->mesh)   /* Fail if we cannot connect to mesh */
     {
       GNUNET_free (socket);
@@ -1949,13 +1959,19 @@ GNUNET_STREAM_open (const struct GNUNET_CONFIGURATION_Handle *cfg,
     }
 
   /* Now create the mesh tunnel to target */
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Creating MESH Tunnel\n");
   socket->tunnel = GNUNET_MESH_tunnel_create (socket->mesh,
                                               NULL, /* Tunnel context */
                                               &mesh_peer_connect_callback,
                                               &mesh_peer_disconnect_callback,
                                               socket);
-  // FIXME: if (NULL == socket->tunnel) ...
-
+  GNUNET_assert (NULL != socket->tunnel);
+  GNUNET_MESH_peer_request_connect_add (socket->tunnel,
+                                        target);
+  
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "%s() END\n", __func__);
   return socket;
 }
 
@@ -2050,10 +2066,7 @@ GNUNET_STREAM_listen (const struct GNUNET_CONFIGURATION_Handle *cfg,
 {
   /* FIXME: Add variable args for passing configration options? */
   struct GNUNET_STREAM_ListenSocket *lsocket;
-  GNUNET_MESH_ApplicationType app_types[2];
 
-  app_types[0] = app_port;
-  app_types[1] = 0;
   lsocket = GNUNET_malloc (sizeof (struct GNUNET_STREAM_ListenSocket));
   lsocket->port = app_port;
   lsocket->listen_cb = listen_cb;
@@ -2064,7 +2077,8 @@ GNUNET_STREAM_listen (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                        &new_tunnel_notify,
                                        &tunnel_cleaner,
                                        server_message_handlers,
-                                       app_types);
+                                       &app_port);
+  GNUNET_assert (NULL != lsocket->mesh);
   return lsocket;
 }
 
