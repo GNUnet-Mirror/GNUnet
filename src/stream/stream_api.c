@@ -263,6 +263,11 @@ struct GNUNET_STREAM_Socket
   unsigned int retries;
 
   /**
+   * Is this socket derived from listen socket?
+   */
+  unsigned int derived;
+  
+  /**
    * The application port number (type: uint32_t)
    */
   GNUNET_MESH_ApplicationType app_port;
@@ -1839,6 +1844,8 @@ new_tunnel_notify (void *cls,
   socket->session_id = 0;       /* FIXME */
   socket->other_peer = *initiator;
   socket->state = STATE_INIT;
+  socket->derived = GNUNET_YES;
+
   /* FIXME: Copy MESH handle from lsocket to socket */
 
   if (GNUNET_SYSERR == lsocket->listen_cb (lsocket->listen_cb_cls,
@@ -2032,7 +2039,7 @@ GNUNET_STREAM_close (struct GNUNET_STREAM_Socket *socket)
     }
 
   /* Close mesh connection */
-  if (NULL != socket->mesh)
+  if (NULL != socket->mesh && GNUNET_YES != socket->derived)
     {
       GNUNET_MESH_disconnect (socket->mesh);
       socket->mesh = NULL;
@@ -2092,6 +2099,7 @@ void
 GNUNET_STREAM_listen_close (struct GNUNET_STREAM_ListenSocket *lsocket)
 {
   /* Close MESH connection */
+  GNUNET_assert (NULL != lsocket->mesh);
   GNUNET_MESH_disconnect (lsocket->mesh);
   
   GNUNET_free (lsocket);
