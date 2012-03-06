@@ -323,23 +323,20 @@ handle_record_put_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
               "RECORD_PUT_RESPONSE");
 
   struct GNUNET_NAMESTORE_Handle *h = qe->nsh;
-  int res = GNUNET_OK;
 
   if (ntohs (msg->op_result) == GNUNET_OK)
   {
-    res = GNUNET_OK;
     if (qe->cont != NULL)
     {
-      qe->cont (qe->cont_cls, res, _("Namestore added record successfully"));
+      qe->cont (qe->cont_cls, GNUNET_OK, _("Namestore added record successfully"));
     }
 
   }
-  else if (ntohs (msg->op_result) == GNUNET_NO)
+  else if (ntohs (msg->op_result) == GNUNET_SYSERR)
   {
-    res = GNUNET_SYSERR;
     if (qe->cont != NULL)
     {
-      qe->cont (qe->cont_cls, res, _("Namestore failed to add record"));
+      qe->cont (qe->cont_cls, GNUNET_SYSERR, _("Namestore failed to add record"));
     }
   }
   else
@@ -952,7 +949,6 @@ GNUNET_NAMESTORE_record_put (struct GNUNET_NAMESTORE_Handle *h,
   size_t msg_size = 0;
   size_t name_len = 0;
   size_t rd_ser_len = 0;
-  size_t pubkey_len = 0;
   uint32_t rid = 0;
 
   GNUNET_assert (NULL != h);
@@ -981,9 +977,8 @@ GNUNET_NAMESTORE_record_put (struct GNUNET_NAMESTORE_Handle *h,
   char rd_ser[rd_ser_len];
   GNUNET_NAMESTORE_records_serialize(rd_count, rd, rd_ser_len, rd_ser);
 
-  pubkey_len = sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded);
   struct RecordPutMessage * msg;
-  msg_size = sizeof (struct RecordPutMessage) + pubkey_len + name_len  + rd_ser_len;
+  msg_size = sizeof (struct RecordPutMessage) + name_len  + rd_ser_len;
 
   /* create msg here */
   pe = GNUNET_malloc(sizeof (struct PendingMessage) + msg_size);
@@ -1042,13 +1037,20 @@ GNUNET_NAMESTORE_verify_signature (const struct GNUNET_CRYPTO_RsaPublicKeyBinary
 
   GNUNET_assert (public_key != NULL);
   GNUNET_assert (name != NULL);
+  GNUNET_assert (rd != NULL);
   GNUNET_assert (signature != NULL);
+
 
   rd_ser_len = GNUNET_NAMESTORE_records_get_size(rd_count, rd);
   char rd_ser[rd_ser_len];
   GNUNET_NAMESTORE_records_serialize(rd_count, rd, rd_ser_len, rd_ser);
 
   name_len = strlen (name) + 1;
+  if (name_len > 256)
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
 
   sig_purpose = GNUNET_malloc(sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose) + rd_ser_len + name_len);
   sig_purpose->size = htonl (sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose)+ rd_ser_len + name_len);

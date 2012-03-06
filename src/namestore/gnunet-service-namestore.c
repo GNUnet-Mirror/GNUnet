@@ -231,8 +231,6 @@ handle_lookup_name_it (void *cls,
   /* send response */
   struct LookupNameContext *lnc = cls;
   struct LookupNameResponseMessage *lnr_msg;
-
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key_tmp;
   struct GNUNET_NAMESTORE_RecordData *rd_selected = NULL;
   char *rd_tmp;
   char *name_tmp;
@@ -313,17 +311,16 @@ handle_lookup_name_it (void *cls,
   lnr_msg->rd_len = htons (rd_ser_len);
   lnr_msg->name_len = htons (name_len);
   lnr_msg->expire = GNUNET_TIME_absolute_hton(expire);
+  lnr_msg->public_key = (*zone_key);
   lnr_msg->contains_sig = htons (contains_signature);
   if (GNUNET_YES == contains_signature)
     lnr_msg->signature = *signature;
   else
     memset (&lnr_msg->signature, '\0', sizeof (lnr_msg->signature));
 
-  zone_key_tmp =  (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *) &lnr_msg[1];
-  name_tmp = (char *) &zone_key_tmp[1];
+  name_tmp = (char *) &lnr_msg[1];
   rd_tmp = &name_tmp[name_len];
 
-  memcpy (zone_key_tmp, zone_key, sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
   memcpy (name_tmp, name, name_len);
   memcpy (rd_tmp, rd_ser, rd_ser_len);
 
@@ -488,7 +485,6 @@ static void handle_record_put (void *cls,
     goto send;
   }
 
-
   GNUNET_HashCode zone_hash;
   GNUNET_CRYPTO_hash (&rp_msg->public_key, sizeof (rp_msg->public_key), &zone_hash);
 
@@ -511,11 +507,7 @@ send:
   rpr_msg.gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_PUT_RESPONSE);
   rpr_msg.gns_header.header.size = htons (sizeof (struct RecordPutResponseMessage));
   rpr_msg.gns_header.r_id = rp_msg->gns_header.r_id;
-
-  if (GNUNET_OK == res)
-    rpr_msg.op_result = htons (GNUNET_OK);
-  else
-    rpr_msg.op_result = htons (GNUNET_NO);
+  rpr_msg.op_result = htons (res);
   GNUNET_SERVER_notification_context_unicast (snc, nc->client, (const struct GNUNET_MessageHeader *) &rpr_msg, GNUNET_NO);
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);

@@ -277,7 +277,9 @@ struct RecordPutResponseMessage
   struct GNUNET_NAMESTORE_Header gns_header;
 
   /**
-   * name length: GNUNET_NO (0) on error, GNUNET_OK (1) on success
+   * result:
+   * GNUNET_SYSERR on failure
+   * GNUNET_OK on success
    */
   int32_t op_result;
 };
@@ -286,7 +288,6 @@ struct RecordPutResponseMessage
 /**
  * Create a record and put it to the namestore
  * Memory layout:
- * [struct RecordCreateMessage][char *name][rc_count * struct GNUNET_NAMESTORE_RecordData]
  */
 struct RecordCreateMessage
 {
