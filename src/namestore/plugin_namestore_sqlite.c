@@ -467,7 +467,7 @@ namestore_sqlite_put_records (void *cls,
   struct Plugin *plugin = cls;
   int n;
   GNUNET_HashCode zone;
-  GNUNET_HashCode zone_delegation;
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded zone_delegation;
   GNUNET_HashCode nh;
   size_t name_len;
   uint64_t rvalue;
@@ -483,6 +483,7 @@ namestore_sqlite_put_records (void *cls,
     if (rd[i].record_type == GNUNET_NAMESTORE_TYPE_PKEY)
     {
       GNUNET_assert (sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded) == rd[i].data_size);
+      GNUNET_break (0);
       memcpy (&zone_delegation,
 	      rd[i].data,
 	      sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
