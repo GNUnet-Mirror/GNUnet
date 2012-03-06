@@ -40,10 +40,10 @@
 #define LOG(kind,...) GNUNET_log_from (kind, "gns-api",__VA_ARGS__)
 
 /* TODO into gnunet_protocols */
-#define GNUNET_MESSAGE_TYPE_GNS_CLIENT_LOOKUP 23
-#define GNUNET_MESSAGE_TYPE_GNS_CLIENT_LOOKUP_RESULT 24
-#define GNUNET_MESSAGE_TYPE_GNS_CLIENT_SHORTEN 25
-#define GNUNET_MESSAGE_TYPE_GNS_CLIENT_SHORTEN_RESULT 26
+#define GNUNET_MESSAGE_TYPE_GNS_LOOKUP 23
+#define GNUNET_MESSAGE_TYPE_GNS_LOOKUP_RESULT 24
+#define GNUNET_MESSAGE_TYPE_GNS_SHORTEN 25
+#define GNUNET_MESSAGE_TYPE_GNS_SHORTEN_RESULT 26
 
 /**
  * Entry in our list of messages to be (re-)transmitted.
@@ -608,7 +608,7 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     return;
   }
 
-  if (ntohs (msg->type) == GNUNET_MESSAGE_TYPE_GNS_CLIENT_LOOKUP_RESULT)
+  if (ntohs (msg->type) == GNUNET_MESSAGE_TYPE_GNS_LOOKUP_RESULT)
   {
     lookup_msg = (const struct GNUNET_GNS_ClientLookupResultMessage *) msg;
     GNUNET_CONTAINER_multihashmap_get_multiple (handle->active_lookup_requests,
@@ -616,7 +616,7 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
                                                 &process_lookup_reply,
                                                 (void *) lookup_msg);
   }
-  else if (ntohs (msg->type) == GNUNET_MESSAGE_TYPE_GNS_CLIENT_SHORTEN_RESULT)
+  else if (ntohs (msg->type) == GNUNET_MESSAGE_TYPE_GNS_SHORTEN_RESULT)
   {
     shorten_msg = (const struct GNUNET_GNS_ClientShortenResultMessage *) msg;
     GNUNET_CONTAINER_multihashmap_get_multiple (handle->active_shorten_requests,
@@ -715,7 +715,7 @@ GNUNET_GNS_lookup_start (struct GNUNET_GNS_Handle *handle,
   pending->handle = handle;
   pending->free_on_send = GNUNET_NO;
   lookup_msg->header.size = htons (msize);
-  lookup_msg->header.type = htons (GNUNET_MESSAGE_TYPE_GNS_CLIENT_LOOKUP);
+  lookup_msg->header.type = htons (GNUNET_MESSAGE_TYPE_GNS_LOOKUP);
   lookup_msg->key = key;
   memcpy(&lookup_msg[1], name, strlen(name));
   handle->uid_gen++;
@@ -783,7 +783,7 @@ GNUNET_GNS_shorten (struct GNUNET_GNS_Handle *handle,
   pending->handle = handle;
   pending->free_on_send = GNUNET_NO;
   shorten_msg->header.size = htons (msize);
-  shorten_msg->header.type = htons (GNUNET_MESSAGE_TYPE_GNS_CLIENT_SHORTEN);
+  shorten_msg->header.type = htons (GNUNET_MESSAGE_TYPE_GNS_SHORTEN);
   memcpy(&shorten_msg[1], name, strlen(name));
   handle->uid_gen++;
   shorten_msg->unique_id = handle->uid_gen;

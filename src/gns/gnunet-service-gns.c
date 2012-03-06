@@ -45,8 +45,10 @@
 #define MAX_DNS_LABEL_LENGTH 63
 
 /* Ignore for now not used anyway and probably never will */
-#define GNUNET_MESSAGE_TYPE_GNS_CLIENT_LOOKUP 23
-#define GNUNET_MESSAGE_TYPE_GNS_CLIENT_RESULT 24
+#define GNUNET_MESSAGE_TYPE_GNS_LOOKUP 23
+#define GNUNET_MESSAGE_TYPE_GNS_LOOKUP_RESULT 24
+#define GNUNET_MESSAGE_TYPE_GNS_SHORTEN 25
+#define GNUNET_MESSAGE_TYPE_GNS_SHORTEN_RESULT 26
 
 /**
  * Handle to a currenty pending resolution
@@ -89,6 +91,12 @@ struct GNUNET_GNS_ResolverHandle
 
 };
 
+struct ClientShortenHandle
+{
+  struct GNUNET_SERVER_Client *client;
+  uint64_t unique_id;
+  GNUNET_HashCode key;
+};
 
 /**
  * Our handle to the DNS handler library
@@ -1316,10 +1324,120 @@ update_zone_dht_start(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                                           NULL);
 }
 
+typedef void (*ShortenResponseProc) (void* cls, const char* name);
+
+/**
+ * Shorten a given name
+ *
+ * @param name the name to shorten
+ * @param proc the processor to call when finished
+ * @praram cls the closure to the processor
+ */
+static void
+shorten_name(char* name, ShortenResponseProc proc, void* cls)
+{
+  char* result = name;
+  proc(cls, result);
+}
+
+/**
+ * Send shorten response back to client
+ * 
+ * @param cls the client handle in closure
+ * @param name the shortened name result or NULL if cannot be shortened
+ */
+static void
+send_shorten_response(void* cls, const char* name)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message\n",
+              "SHORTEN_RESULT");
+  struct ClientShortenHandle *csh = (struct ClientShortenHandle *)cls;
+  struct GNUNET_GNS_ClientShortenResultMessage *rmsg;
+  
+  if (name == NULL)
+  {
+    name = '\0';
+  }
+
+  rmsg = GNUNET_malloc(sizeof(struct GNUNET_GNS_ClientShortenResultMessage *)
+                       + strlen(name));
+  
+  rmsg->unique_id = csh->unique_id;
+  rmsg->key = csh->key;
+  rmsg->header.type = htons(GNUNET_MESSAGE_TYPE_GNS_SHORTEN_RESULT);
+
+  strcpy((char*)&rmsg[1], name);
+
+  GNUNET_SERVER_notification_context_unicast (nc, csh->client,
+                              (const struct GNUNET_MessageHeader *) &rmsg,
+                              GNUNET_NO);
+
+  GNUNET_SERVER_receive_done (csh->client, GNUNET_OK);
+  
+  GNUNET_free(csh);
+  GNUNET_free(rmsg);
+
+}
+
+/**
+ * Handle a shorten message from the api
+ *
+ * @param cls the closure
+ * @param client the client
+ * @param message the message
+ */
+static void handle_shorten(void *cls,
+                           struct GNUNET_SERVER_Client * client,
+                           const struct GNUNET_MessageHeader * message)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "SHORTEN");
+
+  size_t msg_size = 0;
+  struct ClientShortenHandle *csh;
+
+  if (ntohs (message->size) != sizeof (struct GNUNET_GNS_ClientShortenMessage))
+  {
+    GNUNET_break_op (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
+
+  struct GNUNET_GNS_ClientShortenMessage *sh_msg =
+    (struct GNUNET_GNS_ClientShortenMessage *) message;
+  
+  msg_size = ntohs(message->size);
+
+  if (msg_size > GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  {
+    GNUNET_break_op (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
+
+  csh = GNUNET_malloc(sizeof(struct ClientShortenHandle));
+  csh->client = client;
+  csh->unique_id = sh_msg->unique_id;
+  csh->key = sh_msg->key;
+  
+
+  shorten_name((char*)&sh_msg[1], &send_shorten_response, csh);
+
+}
+
+/**
+ * TODO
+ */
+static void
+handle_lookup(void *cls,
+              struct GNUNET_SERVER_Client * client,
+              const struct GNUNET_MessageHeader * message)
+{
+}
+
 /**
  * Process GNS requests.
  *
- * @param cls closure
+ * @param cls closure)
  * @param server the initialized server
  * @param c configuration to use
  */
@@ -1332,6 +1450,11 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 
   char* keyfile;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pkey;
+
+  static const struct GNUNET_SERVER_MessageHandler handlers[] = {
+    {&handle_shorten, NULL, GNUNET_MESSAGE_TYPE_GNS_SHORTEN, 0},
+    {&handle_lookup, NULL, GNUNET_MESSAGE_TYPE_GNS_LOOKUP, 0}
+  };
 
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (c, "gns",
                                              "ZONEKEY", &keyfile))
@@ -1348,10 +1471,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   GNUNET_CRYPTO_hash(&pkey, sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
                      &zone_hash);
   
-  nc = GNUNET_SERVER_notification_context_create (server, 1);
-
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
-                                NULL);
 
   if (GNUNET_YES ==
       GNUNET_CONFIGURATION_get_value_yesno (c, "gns",
@@ -1410,6 +1529,17 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
                                                       1);
   //zone_update_taskid = GNUNET_SCHEDULER_add_now (&update_zone_dht_start, NULL);
 
+  GNUNET_SERVER_add_handlers (server, handlers);
+  
+  //FIXME
+  //GNUNET_SERVER_disconnect_notify (server,
+  //                                 &client_disconnect_notification,
+  //                                 NULL);
+
+  nc = GNUNET_SERVER_notification_context_create (server, 1);
+
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
+                                NULL);
 }
 
 
