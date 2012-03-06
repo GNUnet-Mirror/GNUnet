@@ -195,14 +195,15 @@ void name_lookup_non_existing_record_type (void *cls,
                             const struct GNUNET_CRYPTO_RsaSignature *signature)
 {
   int failed = GNUNET_NO;
-
-  if ((NULL == zone_key) || (0 != memcmp(zone_key, &pubkey, sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded))))
+  /* We expect zone key != NULL, name != NULL, rd_count 0, rd NULL, signature NULL */
+  if (NULL == zone_key)
   {
     GNUNET_break(0);
     failed = GNUNET_YES;
   }
-  if ((NULL == n) || (0 != strcmp(n, s_name)))
+  if (NULL == n)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Name %s!\n", n);
     GNUNET_break(0);
     failed = GNUNET_YES;
   }

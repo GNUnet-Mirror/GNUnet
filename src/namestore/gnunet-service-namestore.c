@@ -292,7 +292,7 @@ handle_lookup_name_it (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found %u records for name `%s' in zone `%s'\n",
       copied_elements, lnc->name, GNUNET_h2s(lnc->zone));
 
-  if ((copied_elements == rd_count) && (signature != NULL))
+  if ((copied_elements == rd_count) && (NULL != signature))
     contains_signature = GNUNET_YES;
   else
     contains_signature = GNUNET_NO;

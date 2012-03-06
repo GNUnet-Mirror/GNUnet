@@ -300,7 +300,8 @@ handle_lookup_name_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
     signature = &msg->signature;
   if (name_len == 0)
     name = NULL;
-  if ((name != NULL) && (signature != NULL) && (rd_count > 0))
+
+  if (name != NULL)
       public_key_tmp =  &msg->public_key;
   else
       public_key_tmp = NULL;
