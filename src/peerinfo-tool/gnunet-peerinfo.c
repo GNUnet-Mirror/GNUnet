@@ -539,7 +539,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     FPRINTF (stderr, "%s", _("--put-uri and --get-uri are mutually exclusive\n"));
     return;
   }
-  if (put_uri != NULL || get_uri == GNUNET_YES)
+  if (put_uri != NULL || get_uri == GNUNET_YES || get_self != GNUNET_YES)
   {
     peerinfo = GNUNET_PEERINFO_connect (cfg);
     if (peerinfo == NULL)
