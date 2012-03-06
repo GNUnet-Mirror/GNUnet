@@ -310,13 +310,13 @@ handle_lookup_name_it (void *cls,
   lnr_msg->rd_count = htons (copied_elements);
   lnr_msg->rd_len = htons (rd_ser_len);
   lnr_msg->name_len = htons (name_len);
+  lnr_msg->contains_sig = htons (contains_signature);
   lnr_msg->expire = GNUNET_TIME_absolute_hton(expire);
+
   if (zone_key != NULL)
     lnr_msg->public_key = (*zone_key);
   else
     memset(&lnr_msg->public_key, '\0', sizeof (lnr_msg->public_key));
-
-  lnr_msg->contains_sig = htons (contains_signature);
   if (GNUNET_YES == contains_signature)
     lnr_msg->signature = *signature;
   else
@@ -511,7 +511,7 @@ send:
   rpr_msg.gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_PUT_RESPONSE);
   rpr_msg.gns_header.header.size = htons (sizeof (struct RecordPutResponseMessage));
   rpr_msg.gns_header.r_id = rp_msg->gns_header.r_id;
-  rpr_msg.op_result = htons (res);
+  rpr_msg.op_result = htonl (res);
   GNUNET_SERVER_notification_context_unicast (snc, nc->client, (const struct GNUNET_MessageHeader *) &rpr_msg, GNUNET_NO);
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -752,14 +752,14 @@ static void handle_record_create (void *cls,
 send:
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message\n", "RECORD_CREATE_RESPONSE");
   rcr_msg.gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_CREATE_RESPONSE);
-  rcr_msg.gns_header.r_id = htonl (rid);
   rcr_msg.gns_header.header.size = htons (sizeof (struct RecordCreateResponseMessage));
+  rcr_msg.gns_header.r_id = htonl (rid);
   if ((GNUNET_OK == res) && (crc.res == GNUNET_YES))
-    rcr_msg.op_result = htons (GNUNET_YES);
+    rcr_msg.op_result = htonl (GNUNET_YES);
   else if ((GNUNET_OK == res) && (crc.res == GNUNET_NO))
-    rcr_msg.op_result = htons (GNUNET_NO);
+    rcr_msg.op_result = htonl (GNUNET_NO);
   else
-    rcr_msg.op_result = htons (GNUNET_SYSERR);
+    rcr_msg.op_result = htonl (GNUNET_SYSERR);
   GNUNET_SERVER_notification_context_unicast (snc, nc->client, (const struct GNUNET_MessageHeader *) &rcr_msg, GNUNET_NO);
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -986,9 +986,9 @@ static void handle_record_remove (void *cls,
 send:
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message\n", "RECORD_REMOVE_RESPONSE");
   rrr_msg.gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_REMOVE_RESPONSE);
-  rrr_msg.gns_header.r_id = rr_msg->gns_header.r_id;
   rrr_msg.gns_header.header.size = htons (sizeof (struct RecordRemoveResponseMessage));
-  rrr_msg.op_result = htons (res);
+  rrr_msg.gns_header.r_id = rr_msg->gns_header.r_id;
+  rrr_msg.op_result = htonl (res);
   GNUNET_SERVER_notification_context_unicast (snc, nc->client, (const struct GNUNET_MessageHeader *) &rrr_msg, GNUNET_NO);
 
   GNUNET_CRYPTO_rsa_key_free (pkey);
@@ -1252,12 +1252,10 @@ static void handle_iteration_start (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message\n", "ZONE_ITERATION_RESPONSE");
   zir_msg.gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_RESPONSE);
-  zir_msg.gns_header.r_id = htonl(zi->request_id);
   zir_msg.gns_header.header.size = htons (sizeof (struct ZoneIterationResponseMessage));
-
+  zir_msg.gns_header.r_id = htonl(zi->request_id);
 
   GNUNET_SERVER_notification_context_unicast (snc, zi->client->client, (const struct GNUNET_MessageHeader *) &zir_msg, GNUNET_NO);
-
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }

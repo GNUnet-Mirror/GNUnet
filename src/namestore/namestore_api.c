@@ -324,22 +324,22 @@ handle_record_put_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' \n",
               "RECORD_PUT_RESPONSE");
-
   struct GNUNET_NAMESTORE_Handle *h = qe->nsh;
+  int res = ntohl (msg->op_result);
 
-  if (ntohs (msg->op_result) == GNUNET_OK)
+  if (res == GNUNET_OK)
   {
     if (qe->cont != NULL)
     {
-      qe->cont (qe->cont_cls, GNUNET_OK, _("Namestore added record successfully"));
+      qe->cont (qe->cont_cls, res, _("Namestore added record successfully"));
     }
 
   }
-  else if (ntohs (msg->op_result) == GNUNET_SYSERR)
+  else if (res == GNUNET_SYSERR)
   {
     if (qe->cont != NULL)
     {
-      qe->cont (qe->cont_cls, GNUNET_SYSERR, _("Namestore failed to add record"));
+      qe->cont (qe->cont_cls, res, _("Namestore failed to add record"));
     }
   }
   else
@@ -362,24 +362,24 @@ handle_record_create_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' \n",
               "RECORD_CREATE_RESPONSE");
-
   struct GNUNET_NAMESTORE_Handle *h = qe->nsh;
+  int res = ntohl (msg->op_result);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' %i\n",
               "RECORD_CREATE_RESPONSE", ntohs (msg->op_result));
-  if (ntohs (msg->op_result) == GNUNET_YES)
+  if (res == GNUNET_YES)
   {
     if (qe->cont != NULL)
     {
-      qe->cont (qe->cont_cls, GNUNET_YES, _("Namestore added record successfully"));
+      qe->cont (qe->cont_cls, res, _("Namestore added record successfully"));
     }
 
   }
-  else if (ntohs (msg->op_result) == GNUNET_NO)
+  else if (res == GNUNET_NO)
   {
     if (qe->cont != NULL)
     {
-      qe->cont (qe->cont_cls, GNUNET_NO, _("Namestore record already existed"));
+      qe->cont (qe->cont_cls, res, _("Namestore record already existed"));
     }
   }
   else
@@ -406,7 +406,7 @@ handle_record_remove_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
               "RECORD_REMOVE_RESPONSE");
 
   struct GNUNET_NAMESTORE_Handle *h = qe->nsh;
-  int res = ntohs (msg->op_result);
+  int res = ntohl (msg->op_result);
 
   /**
    *  result:
@@ -909,7 +909,7 @@ void
 GNUNET_NAMESTORE_disconnect (struct GNUNET_NAMESTORE_Handle *h, int drop)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Disconnecting from namestore service\n");
-    GNUNET_SCHEDULER_add_now (&clean_up_task, h);
+  GNUNET_SCHEDULER_add_now (&clean_up_task, h);
 }
 
 
@@ -1312,8 +1312,8 @@ GNUNET_NAMESTORE_lookup_record (struct GNUNET_NAMESTORE_Handle *h,
   msg->gns_header.header.size = htons (msg_size);
   msg->gns_header.r_id = htonl (rid);
   msg->record_type = htonl (record_type);
-  msg->zone = *zone;
   msg->name_len = htonl (name_len);
+  msg->zone = *zone;
   memcpy (&msg[1], name, name_len);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message for name `%s'\n", "NAMESTORE_LOOKUP_NAME", name);
