@@ -158,21 +158,29 @@ struct LookupNameMessage
 {
   struct GNUNET_NAMESTORE_Header gns_header;
 
-  /* The zone */
+  /**
+   * The zone 
+   */
   GNUNET_HashCode zone;
 
-  /* Requested record type */
+  /**
+   * Requested record type 
+   */
   uint32_t record_type;
 
-  /* Requested record type */
+  /**
+   * Length of the name
+   */
   uint32_t name_len;
+
+  /* 0-terminated name here */
 };
 
 
 /**
  * Lookup response
  * Memory layout:
- * [struct LookupNameResponseMessage][struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded][char *name][rc_count * struct GNUNET_NAMESTORE_RecordData][struct GNUNET_CRYPTO_RsaSignature]
+ * [struct LookupNameResponseMessage][char *name][rc_count * struct GNUNET_NAMESTORE_RecordData]
  */
 struct LookupNameResponseMessage
 {
@@ -189,16 +197,26 @@ struct LookupNameResponseMessage
 
   uint16_t rd_count;
 
-  int32_t contains_sig;
+  int16_t contains_sig;
 
-  /* Requested record type */
+  /**
+   * All zeros if 'contains_sig' is GNUNET_NO.
+   */
+  struct GNUNET_CRYPTO_RsaSignature signature;
+
+  /**
+   *
+   */
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded public_key;
+
+  /* 0-terminated name and serialized record data */
 };
 
 
 /**
  * Put a record to the namestore
  * Memory layout:
- * [struct RecordPutMessage][struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded][char *name][rc_count * struct GNUNET_NAMESTORE_RecordData]
+ * [struct RecordPutMessage][char *name][rc_count * struct GNUNET_NAMESTORE_RecordData]
  */
 struct RecordPutMessage
 {
@@ -207,23 +225,43 @@ struct RecordPutMessage
    */
   struct GNUNET_NAMESTORE_Header gns_header;
 
-  /* Contenct starts here */
-
-  /* name length */
-  uint16_t name_len;
-
-  /* Length of serialized rd data */
-  uint16_t rd_len;
-
-  /* Number of records contained */
-  uint16_t rd_count;
-
-  /* Length of pubkey */
-  uint16_t key_len;
-
+  /**
+   *
+   */
   struct GNUNET_TIME_AbsoluteNBO expire;
 
+  /**
+   * name length 
+   */
+  uint16_t name_len;
+
+  /**
+   * Length of serialized rd data 
+   */
+  uint16_t rd_len;
+
+  /**
+   * Number of records contained 
+   */
+  uint16_t rd_count;
+
+  /**
+   * always zero (for alignment)
+   */
+  uint16_t reserved;
+
+  /**
+   *
+   */
   struct GNUNET_CRYPTO_RsaSignature signature;
+
+  /**
+   *
+   */
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded public_key;
+
+  /* name (0-terminated) followed by "rd_count" serialized records */
+
 };
 
 
@@ -235,19 +273,12 @@ struct RecordPutResponseMessage
   /**
    * Type will be GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_PUT_RESPONSE
    */
-  struct GNUNET_MessageHeader header;
+  struct GNUNET_NAMESTORE_Header gns_header;
 
   /**
-   * Operation ID in NBO
+   * name length: GNUNET_NO (0) on error, GNUNET_OK (1) on success
    */
-  uint32_t op_id;
-
-  /* Contenct starts here */
-
-  /**
-   *  name length: GNUNET_NO (0) on error, GNUNET_OK (1) on success
-   */
-  uint16_t op_result;
+  int32_t op_result;
 };
 
 
@@ -263,19 +294,29 @@ struct RecordCreateMessage
    */
   struct GNUNET_NAMESTORE_Header gns_header;
 
-  /* Contenct starts here */
+  struct GNUNET_TIME_AbsoluteNBO expire;
 
-  /* name length */
+  /**
+   * name length 
+   */
   uint16_t name_len;
 
-  /* Record data length */
+  /**
+   * Record data length 
+   */
   uint16_t rd_len;
 
-  /* Record count */
+  /**
+   * Record count 
+   */
   uint16_t rd_count;
 
-  /* private key length */
+  /**
+   * private key length 
+   */
   uint16_t pkey_len;
+
+  /* followed by: name and serialized record data --- PK??? */
 };
 
 
@@ -290,13 +331,10 @@ struct RecordCreateResponseMessage
    */
   struct GNUNET_NAMESTORE_Header gns_header;
 
-  /* Contenct starts here */
-
   /**
-   *  name length: GNUNET_NO already existsw, GNUNET_YES on success, GNUNET_SYSERR error
+   *  name length: GNUNET_NO already exists, GNUNET_YES on success, GNUNET_SYSERR error
    */
-  int16_t op_result;
-
+  int32_t op_result;
 
 };
 
@@ -313,18 +351,24 @@ struct RecordRemoveMessage
    */
   struct GNUNET_NAMESTORE_Header gns_header;
 
-  /* Contenct starts here */
-
-  /* Name length */
+  /**
+   * Name length 
+   */
   uint16_t name_len;
 
-  /* Length of serialized rd data */
+  /**
+   * Length of serialized rd data 
+   */
   uint16_t rd_len;
 
-  /* Number of records contained */
+  /**
+   * Number of records contained 
+   */
   uint16_t rd_count;
 
-  /* Length of pubkey */
+  /**
+   * Length of pubkey 
+   */
   uint16_t key_len;
 };
 
@@ -339,8 +383,6 @@ struct RecordRemoveResponseMessage
    */
   struct GNUNET_NAMESTORE_Header gns_header;
 
-  /* Contenct starts here */
-
   /**
    *  result:
    *  0 : successful
@@ -349,7 +391,7 @@ struct RecordRemoveResponseMessage
    *  3 : Failed to create new signature
    *  4 : Failed to put new set of records in database
    */
-  uint16_t op_result;
+  int32_t op_result;
 };
 
 
@@ -360,10 +402,14 @@ struct ZoneToNameMessage
 {
   struct GNUNET_NAMESTORE_Header gns_header;
 
-  /* The hash of public key of the zone to look up in */
+  /**
+   * The hash of public key of the zone to look up in 
+   */
   GNUNET_HashCode zone;
 
-  /* The  hash of the public key of the target zone  */
+  /**
+   * The  hash of the public key of the target zone  
+   */
   GNUNET_HashCode value_zone;
 };
 
@@ -382,10 +428,13 @@ struct ZoneToNameResponseMessage
 
   uint16_t rd_count;
 
-  int32_t contains_sig;
-
   /* result in NBO: GNUNET_OK on success, GNUNET_NO if there were no results, GNUNET_SYSERR on error */
   int16_t res;
+
+  /**
+   *
+   */
+  struct GNUNET_CRYPTO_RsaSignature signature;
 
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded zone_key;
 
@@ -403,12 +452,12 @@ struct ZoneIterationStartMessage
    */
   struct GNUNET_NAMESTORE_Header gns_header;
 
-  /* Contenct starts here */
+  GNUNET_HashCode zone;
 
   uint16_t must_have_flags;
+
   uint16_t must_not_have_flags;
 
-  GNUNET_HashCode zone;
 };
 
 
@@ -436,7 +485,9 @@ struct ZoneIterationStopMessage
 };
 
 /**
- * Ask for next result of zone iteration for the given operation
+ * Next result of zone iteration for the given operation
+ * // FIXME: use 'struct LookupResponseMessage' instead? (identical except
+ * for having 'contains_sig' instead of 'reserved', but fully compatible otherwise).
  */
 struct ZoneIterationResponseMessage
 {
@@ -449,11 +500,31 @@ struct ZoneIterationResponseMessage
 
   uint16_t name_len;
 
-  uint16_t contains_sig;
-
   /* Record data length */
   uint16_t rd_len;
 
+  /**
+   * Number of records contained 
+   */
+  uint16_t rd_count;
+
+  /**
+   * always zero (for alignment)
+   */
+  uint16_t reserved;
+
+  /**
+   * All zeros if 'contains_sig' is GNUNET_NO.
+   */
+  struct GNUNET_CRYPTO_RsaSignature signature;
+
+  /**
+   *
+   */
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded public_key;
+
+ 
+ 
 };
 GNUNET_NETWORK_STRUCT_END
 
