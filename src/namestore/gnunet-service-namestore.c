@@ -344,7 +344,6 @@ static void handle_lookup_name (void *cls,
   char * name;
   uint32_t rid = 0;
   uint32_t type = 0;
-  int res;
 
   if (ntohs (message->size) < sizeof (struct LookupNameMessage))
   {
@@ -392,7 +391,7 @@ static void handle_lookup_name (void *cls,
   lnc.record_type = type;
   lnc.name = name;
   lnc.zone = &ln_msg->zone;
-  res = GSN_database->iterate_records(GSN_database->cls, &ln_msg->zone, name, 0, &handle_lookup_name_it, &lnc);
+  GSN_database->iterate_records(GSN_database->cls, &ln_msg->zone, name, 0, &handle_lookup_name_it, &lnc);
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
@@ -510,7 +509,7 @@ send:
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message\n", "RECORD_PUT_RESPONSE");
   rpr_msg.gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_PUT_RESPONSE);
   rpr_msg.gns_header.header.size = htons (sizeof (struct RecordPutResponseMessage));
-  rpr_msg.gns_header.r_id = rp_msg->gns_header.r_id;
+  rpr_msg.gns_header.r_id = htonl (rid);
   rpr_msg.op_result = htonl (res);
   GNUNET_SERVER_notification_context_unicast (snc, nc->client, (const struct GNUNET_MessageHeader *) &rpr_msg, GNUNET_NO);
 
@@ -987,7 +986,7 @@ send:
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message\n", "RECORD_REMOVE_RESPONSE");
   rrr_msg.gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_REMOVE_RESPONSE);
   rrr_msg.gns_header.header.size = htons (sizeof (struct RecordRemoveResponseMessage));
-  rrr_msg.gns_header.r_id = rr_msg->gns_header.r_id;
+  rrr_msg.gns_header.r_id = htonl (rid);
   rrr_msg.op_result = htonl (res);
   GNUNET_SERVER_notification_context_unicast (snc, nc->client, (const struct GNUNET_MessageHeader *) &rrr_msg, GNUNET_NO);
 
@@ -1098,8 +1097,6 @@ static void handle_zone_to_name (void *cls,
   struct ZoneToNameCtx ztn_ctx;
   size_t msg_size = 0;
   uint32_t rid = 0;
-  int res;
-
 
   if (ntohs (message->size) != sizeof (struct ZoneToNameMessage))
   {
@@ -1136,7 +1133,7 @@ static void handle_zone_to_name (void *cls,
       GNUNET_h2s (&ztn_msg->value_zone));
   GNUNET_free (z_tmp);
 
-  res = GSN_database->zone_to_name (GSN_database->cls, &ztn_msg->zone, &ztn_msg->value_zone, &handle_zone_to_name_it, &ztn_ctx);
+  GSN_database->zone_to_name (GSN_database->cls, &ztn_msg->zone, &ztn_msg->value_zone, &handle_zone_to_name_it, &ztn_ctx);
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
@@ -1309,7 +1306,6 @@ static void handle_iteration_next (void *cls,
   struct GNUNET_NAMESTORE_ZoneIteration *zi;
   struct ZoneIterationStopMessage * zis_msg = (struct ZoneIterationStopMessage *) message;
   uint32_t rid;
-  int res;
 
   nc = client_lookup(client);
   if (nc == NULL)
@@ -1333,7 +1329,7 @@ static void handle_iteration_next (void *cls,
   }
 
   zi->offset++;
-  res = GSN_database->iterate_records (GSN_database->cls, &zi->zone, NULL, zi->offset , &zone_iteration_proc, zi);
+  GSN_database->iterate_records (GSN_database->cls, &zi->zone, NULL, zi->offset , &zone_iteration_proc, zi);
 }
 
 
