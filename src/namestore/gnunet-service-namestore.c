@@ -311,7 +311,11 @@ handle_lookup_name_it (void *cls,
   lnr_msg->rd_len = htons (rd_ser_len);
   lnr_msg->name_len = htons (name_len);
   lnr_msg->expire = GNUNET_TIME_absolute_hton(expire);
-  lnr_msg->public_key = (*zone_key);
+  if (zone_key != NULL)
+    lnr_msg->public_key = (*zone_key);
+  else
+    memset(&lnr_msg->public_key, '\0', sizeof (lnr_msg->public_key));
+
   lnr_msg->contains_sig = htons (contains_signature);
   if (GNUNET_YES == contains_signature)
     lnr_msg->signature = *signature;

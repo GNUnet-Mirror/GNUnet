@@ -259,6 +259,7 @@ handle_lookup_name_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
 
   struct GNUNET_CRYPTO_RsaSignature *signature = NULL;
   struct GNUNET_TIME_Absolute expire;
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *public_key_tmp;
   size_t exp_msg_len;
   size_t msg_len = 0;
   size_t name_len = 0;
@@ -284,11 +285,6 @@ handle_lookup_name_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
     GNUNET_break_op (0);
     return;
   }
-  if (name_len == 0)
-  {
-    GNUNET_break_op (0);
-    return;
-  }
 
   name = (char *) &msg[1];
   rd_tmp = &name[name_len];
@@ -302,10 +298,16 @@ handle_lookup_name_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
     signature = NULL;
   else
     signature = &msg->signature;
+  if (name_len == 0)
+    name = NULL;
+  if ((name != NULL) && (signature != NULL) && (rd_count > 0))
+      public_key_tmp =  &msg->public_key;
+  else
+      public_key_tmp = NULL;
 
   if (qe->proc != NULL)
   {
-    qe->proc (qe->proc_cls, &msg->public_key, expire, name, rd_count, (rd_count > 0) ? rd : NULL, signature);
+    qe->proc (qe->proc_cls, public_key_tmp, expire, name, rd_count, (rd_count > 0) ? rd : NULL, signature);
   }
 
   /* Operation done, remove */
