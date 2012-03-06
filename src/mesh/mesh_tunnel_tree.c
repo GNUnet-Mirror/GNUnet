@@ -837,7 +837,7 @@ tree_add_path (struct MeshTunnelTree *t, const struct MeshPeerPath *p,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "tree:   Adding peer %s.\n",
                 GNUNET_i2s (&id));
     GNUNET_PEER_resolve (parent->peer, &id);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "tree:     to %s.\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "tree:            to %s.\n",
                 GNUNET_i2s (&id));
 #endif
 
@@ -860,11 +860,11 @@ tree_add_path (struct MeshTunnelTree *t, const struct MeshPeerPath *p,
 #endif
       n = tree_node_new (parent, p->peers[i]);
       n->status = MESH_PEER_RELAY;
-      if (n->peer == 1)
-      {
-        t->me = n;
-        me = i;
-      }
+    }
+    if (n->peer == 1)
+    {
+      t->me = n;
+      me = i;
     }
     i++;
     parent = n;
