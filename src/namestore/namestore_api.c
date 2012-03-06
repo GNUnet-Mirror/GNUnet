@@ -254,12 +254,10 @@ handle_lookup_name_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
               "LOOKUP_NAME_RESPONSE");
 
   struct GNUNET_NAMESTORE_Handle *h = qe->nsh;
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key;
   char *name;
   char * rd_tmp;
 
   struct GNUNET_CRYPTO_RsaSignature *signature = NULL;
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded dummy;
   struct GNUNET_TIME_Absolute expire;
   size_t exp_msg_len;
   size_t msg_len = 0;
@@ -277,9 +275,7 @@ handle_lookup_name_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
 
   exp_msg_len = sizeof (struct LookupNameResponseMessage) +
       sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded) +
-      name_len +
-      rd_len +
-      contains_sig * sizeof (struct GNUNET_CRYPTO_RsaSignature);
+      name_len + rd_len;
 
   if (msg_len != exp_msg_len)
   {
@@ -288,11 +284,16 @@ handle_lookup_name_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
     GNUNET_break_op (0);
     return;
   }
+  if (name_len == 0)
+  {
+    GNUNET_break_op (0);
+    return;
+  }
 
-  zone_key = (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *) &msg[1];
-  name = (char *) &zone_key[1];
+  name = (char *) &msg[1];
   rd_tmp = &name[name_len];
 
+  /* deserialize records */
   struct GNUNET_NAMESTORE_RecordData rd[rd_count];
   GNUNET_NAMESTORE_records_deserialize(rd_len, rd_tmp, rd_count, rd);
 
@@ -300,17 +301,11 @@ handle_lookup_name_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
   if (contains_sig == GNUNET_NO)
     signature = NULL;
   else
-    signature = (struct GNUNET_CRYPTO_RsaSignature *) &rd_tmp[rd_len];
-  if (name_len == 0)
-    name = NULL;
-
-  memset (&dummy, '0', sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
-  if (0 == memcmp (zone_key, &dummy, sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded)))
-      zone_key = NULL;
+    signature = &msg->signature;
 
   if (qe->proc != NULL)
   {
-    qe->proc (qe->proc_cls, zone_key, expire, name, rd_count, (rd_count > 0) ? rd : NULL, signature);
+    qe->proc (qe->proc_cls, &msg->public_key, expire, name, rd_count, (rd_count > 0) ? rd : NULL, signature);
   }
 
   /* Operation done, remove */
@@ -482,11 +477,9 @@ handle_zone_to_name_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
   size_t name_len;
   size_t rd_ser_len;
   unsigned int rd_count;
-  int have_signature;
 
   char * name_tmp;
   char * rd_tmp;
-  struct GNUNET_CRYPTO_RsaSignature* sig_tmp;
 
   if (res == GNUNET_SYSERR)
   {
@@ -507,22 +500,16 @@ handle_zone_to_name_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
     name_len = ntohs (msg->name_len);
     rd_count = ntohs (msg->rd_count);
     rd_ser_len = ntohs (msg->rd_len);
-    have_signature = ntohl (msg->contains_sig);
     expire = GNUNET_TIME_absolute_ntoh(msg->expire);
 
     name_tmp = (char *) &msg[1];
     rd_tmp = &name_tmp[name_len];
-    if (have_signature == GNUNET_YES)
-      sig_tmp = (struct GNUNET_CRYPTO_RsaSignature *) &rd_tmp[rd_ser_len];
-    else
-      sig_tmp = NULL;
 
     struct GNUNET_NAMESTORE_RecordData rd[rd_count];
     GNUNET_NAMESTORE_records_deserialize(rd_ser_len, rd_tmp, rd_count, rd);
 
     if (qe->proc != NULL)
-      qe->proc (qe->proc_cls, &msg->zone_key, expire, name_tmp, rd_count, rd, sig_tmp);
-
+      qe->proc (qe->proc_cls, &msg->zone_key, expire, name_tmp, rd_count, rd, &msg->signature);
   }
   else
     GNUNET_break_op (0);
@@ -869,12 +856,6 @@ GNUNET_NAMESTORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
   return h;
 }
 
-struct DisconnectContext
-{
-  struct GNUNET_NAMESTORE_Handle *h;
-  int drop;
-};
-
 static void
 clean_up_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -917,36 +898,6 @@ clean_up_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   h = NULL;
 };
 
-static size_t
-transmit_disconnect_to_namestore (void *cls, size_t size, void *buf)
-{
-  struct DisconnectContext * d_ctx = cls;
-  struct DisconnectMessage d_msg;
-  struct GNUNET_NAMESTORE_Handle *h = d_ctx->h;
-  int res;
-
-  d_msg.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_DISCONNECT);
-  d_msg.header.size = htons (sizeof (struct DisconnectMessage));
-  d_msg.drop = htonl (d_ctx->drop);
-
-  h->th = NULL;
-  if ((size == 0) || (buf == NULL) || (size < sizeof (struct DisconnectMessage)))
-  {
-    GNUNET_break (0);
-    res = 0;
-  }
-  else
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message to service \n", "NAMESTORE_DISCONNECT");
-    memcpy (buf, &d_msg, sizeof (struct DisconnectMessage));
-    res = sizeof (struct DisconnectMessage);
-  }
-
-  GNUNET_SCHEDULER_add_now (&clean_up_task, h);
-  GNUNET_free (d_ctx);
-  return res;
-}
-
 /**
  * Disconnect from the namestore service (and free associated
  * resources).
@@ -957,29 +908,8 @@ transmit_disconnect_to_namestore (void *cls, size_t size, void *buf)
 void
 GNUNET_NAMESTORE_disconnect (struct GNUNET_NAMESTORE_Handle *h, int drop)
 {
-  if (h->th != NULL)
-  {
-    GNUNET_CLIENT_notify_transmit_ready_cancel(h->th);
-    h->th = NULL;
-  }
-  if (h->client != NULL)
-  {
-    struct DisconnectContext *d_ctx = GNUNET_malloc (sizeof (struct DisconnectContext));
-    d_ctx->h = h;
-    d_ctx->drop = drop;
-
-    h->th = GNUNET_CLIENT_notify_transmit_ready (h->client, sizeof (struct DisconnectMessage),
-                                           GNUNET_TIME_UNIT_FOREVER_REL,
-                                           GNUNET_NO, &transmit_disconnect_to_namestore,
-                                           d_ctx);
-  }
-  else
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Could not send disconnect notification to namestore service, we are not connected!\n");
-    if (GNUNET_YES == drop)
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "NAMESTORE will not drop content\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Disconnecting from namestore service\n");
     GNUNET_SCHEDULER_add_now (&clean_up_task, h);
-  }
 }
 
 
@@ -1016,7 +946,6 @@ GNUNET_NAMESTORE_record_put (struct GNUNET_NAMESTORE_Handle *h,
   struct PendingMessage *pe;
 
   /* pointer to elements */
-  char * zone_key_tmp;
   char * rd_tmp;
   char * name_tmp;
 
@@ -1061,22 +990,20 @@ GNUNET_NAMESTORE_record_put (struct GNUNET_NAMESTORE_Handle *h,
   pe->size = msg_size;
   pe->is_init = GNUNET_NO;
   msg = (struct RecordPutMessage *) &pe[1];
-  zone_key_tmp = (char *) &msg[1];
-  name_tmp = (char *) &zone_key_tmp[pubkey_len];
+  name_tmp = (char *) &msg[1];
   rd_tmp = &name_tmp[name_len];
 
   msg->gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_PUT);
   msg->gns_header.header.size = htons (msg_size);
   msg->gns_header.r_id = htonl (rid);
-  msg->key_len = htons (pubkey_len);
-  memcpy (zone_key_tmp, zone_key, pubkey_len);
   msg->signature = *signature;
   msg->name_len = htons (name_len);
-  memcpy (name_tmp, name, name_len);
   msg->expire = GNUNET_TIME_absolute_hton (expire);
   msg->rd_len = htons (rd_ser_len);
   msg->rd_count = htons (rd_count);
 
+  msg->public_key = *zone_key;
+  memcpy (name_tmp, name, name_len);
   memcpy (rd_tmp, rd_ser, rd_ser_len);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message for name `%s' with size %u\n", "NAMESTORE_RECORD_PUT", name, msg_size);
@@ -1306,7 +1233,7 @@ GNUNET_NAMESTORE_record_remove (struct GNUNET_NAMESTORE_Handle *h,
   msg->name_len = htons (name_len);
   msg->rd_len = htons (rd_ser_len);
   msg->rd_count = htons (1);
-  msg->key_len = htons (key_len);
+  msg->pkey_len = htons (key_len);
   memcpy (pkey_tmp, pkey_enc, key_len);
   memcpy (name_tmp, name, name_len);
   memcpy (rd_tmp, rd_ser, rd_ser_len);

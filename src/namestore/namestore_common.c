@@ -206,7 +206,7 @@ GNUNET_NAMESTORE_records_deserialize (size_t len,
 struct GNUNET_CRYPTO_RsaSignature *
 GNUNET_NAMESTORE_create_signature (const struct GNUNET_CRYPTO_RsaPrivateKey *key,
     const char *name,
-    struct GNUNET_NAMESTORE_RecordData *rd,
+    const struct GNUNET_NAMESTORE_RecordData *rd,
     unsigned int rd_count)
 {
   struct GNUNET_CRYPTO_RsaSignature *sig = GNUNET_malloc(sizeof (struct GNUNET_CRYPTO_RsaSignature));

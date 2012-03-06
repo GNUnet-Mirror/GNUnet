@@ -480,7 +480,7 @@ namestore_sqlite_put_records (void *cls,
   GNUNET_CRYPTO_hash (name, name_len, &nh);
   memset (&zone_delegation, 0, sizeof (zone_delegation));
   for (i=0;i<rd_count;i++)
-    if (rd[i].record_type == GNUNET_GNS_TYPE_PKEY)
+    if (rd[i].record_type == GNUNET_NAMESTORE_TYPE_PKEY)
     {
       GNUNET_assert (sizeof (GNUNET_HashCode) == rd[i].data_size);
       memcpy (&zone_delegation,
