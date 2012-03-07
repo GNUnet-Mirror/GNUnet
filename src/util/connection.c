@@ -1388,6 +1388,7 @@ transmit_error (struct GNUNET_CONNECTION_Handle *sock)
     GNUNET_NETWORK_socket_shutdown (sock->sock, SHUT_RDWR);
     GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (sock->sock));
     sock->sock = NULL;
+    GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == sock->write_task);
   }
   if (sock->read_task != GNUNET_SCHEDULER_NO_TASK)
   {
@@ -1464,6 +1465,7 @@ transmit_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
          _
          ("Could not satisfy pending transmission request, socket closed or connect failed (%p).\n"),
          sock);
+    GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == sock->write_task);
     transmit_error (sock);
     return;                     /* connect failed for good, we're finished */
   }
@@ -1495,6 +1497,11 @@ RETRY:
     if (errno == EINTR)
       goto RETRY;
     LOG_STRERROR (GNUNET_ERROR_TYPE_DEBUG, "send");
+    if (GNUNET_SCHEDULER_NO_TASK != sock->write_task)
+    {
+      GNUNET_SCHEDULER_cancel (sock->write_task);
+      sock->write_task = GNUNET_SCHEDULER_NO_TASK;
+    }
     transmit_error (sock);
     return;
   }
