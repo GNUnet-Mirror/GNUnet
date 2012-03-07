@@ -220,6 +220,11 @@ handle_lookup_name_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
               "LOOKUP_NAME_RESPONSE");
 
   struct GNUNET_NAMESTORE_Handle *h = qe->nsh;
+
+  /* Operation done, remove */
+  GNUNET_CONTAINER_DLL_remove(h->op_head, h->op_tail, qe);
+
+
   char *name;
   char * rd_tmp;
 
@@ -276,9 +281,6 @@ handle_lookup_name_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
   {
     qe->proc (qe->proc_cls, public_key_tmp, expire, name, rd_count, (rd_count > 0) ? rd : NULL, signature);
   }
-
-  /* Operation done, remove */
-  GNUNET_CONTAINER_DLL_remove(h->op_head, h->op_tail, qe);
   GNUNET_free (qe);
 }
 
@@ -290,7 +292,11 @@ handle_record_put_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' \n",
               "RECORD_PUT_RESPONSE");
+
   struct GNUNET_NAMESTORE_Handle *h = qe->nsh;
+  /* Operation done, remove */
+  GNUNET_CONTAINER_DLL_remove(h->op_head, h->op_tail, qe);
+
   int res = ntohl (msg->op_result);
 
   if (res == GNUNET_OK)
@@ -314,9 +320,6 @@ handle_record_put_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
     return;
   }
 
-  /* Operation done, remove */
-  GNUNET_CONTAINER_DLL_remove(h->op_head, h->op_tail, qe);
-
   GNUNET_free (qe);
 }
 
@@ -328,9 +331,12 @@ handle_record_create_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' \n",
               "RECORD_CREATE_RESPONSE");
-  struct GNUNET_NAMESTORE_Handle *h = qe->nsh;
-  int res = ntohl (msg->op_result);
 
+  struct GNUNET_NAMESTORE_Handle *h = qe->nsh;
+  /* Operation done, remove */
+  GNUNET_CONTAINER_DLL_remove(h->op_head, h->op_tail, qe);
+
+  int res = ntohl (msg->op_result);
   if (res == GNUNET_YES)
   {
     if (qe->cont != NULL)
@@ -354,9 +360,6 @@ handle_record_create_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
     }
   }
 
-  /* Operation done, remove */
-  GNUNET_CONTAINER_DLL_remove(h->op_head, h->op_tail, qe);
-
   GNUNET_free (qe);
 }
 
@@ -370,8 +373,11 @@ handle_record_remove_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
               "RECORD_REMOVE_RESPONSE");
 
   struct GNUNET_NAMESTORE_Handle *h = qe->nsh;
-  int res = ntohl (msg->op_result);
+  /* Operation done, remove */
+  GNUNET_CONTAINER_DLL_remove(h->op_head, h->op_tail, qe);
 
+
+  int res = ntohl (msg->op_result);
   /**
    *  result:
    *  0 : successful
@@ -420,9 +426,6 @@ handle_record_remove_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
       break;
   }
 
-  /* Operation done, remove */
-  GNUNET_CONTAINER_DLL_remove(h->op_head, h->op_tail, qe);
-
   GNUNET_free (qe);
 }
 
@@ -435,6 +438,9 @@ handle_zone_to_name_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
               "ZONE_TO_NAME_RESPONSE");
 
   struct GNUNET_NAMESTORE_Handle *h = qe->nsh;
+  /* Operation done, remove */
+  GNUNET_CONTAINER_DLL_remove(h->op_head, h->op_tail, qe);
+
   int res = ntohs (msg->res);
 
   struct GNUNET_TIME_Absolute expire;
@@ -478,8 +484,6 @@ handle_zone_to_name_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
   else
     GNUNET_break_op (0);
 
-  /* Operation done, remove */
-  GNUNET_CONTAINER_DLL_remove(h->op_head, h->op_tail, qe);
   GNUNET_free (qe);
 }
 
@@ -582,10 +586,11 @@ handle_zone_iteration_response (struct GNUNET_NAMESTORE_ZoneIterator *ze,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Zone iteration is completed!\n");
 
+    GNUNET_CONTAINER_DLL_remove(ze->h->z_head, ze->h->z_tail, ze);
+
     if (ze->proc != NULL)
       ze->proc(ze->proc_cls, NULL, GNUNET_TIME_absolute_get_zero (), NULL , 0, NULL, NULL);
 
-    GNUNET_CONTAINER_DLL_remove(ze->h->z_head, ze->h->z_tail, ze);
     GNUNET_free (ze);
     return;
   }
