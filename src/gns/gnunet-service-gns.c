@@ -110,8 +110,10 @@ struct GNUNET_GNS_ResolverHandle
   /* timeout task for dht lookups */
   GNUNET_SCHEDULER_TaskIdentifier dht_timeout_task;
 
+  /* called when resolution phase finishes */
   ResolutionResultProcessor proc;
-
+  
+  /* closure passed to proc */
   void* proc_cls;
 
   struct AuthorityChain *authority_chain_head;
@@ -132,7 +134,7 @@ struct RecordLookupHandle
   /* the name to look up */
   char *name;
 
-  /* Method to call on resolution result */
+  /* Method to call on record resolution result */
   ResolutionResultProcessor proc;
 
   /* closure to pass to proc */
@@ -140,23 +142,47 @@ struct RecordLookupHandle
 
 };
 
+/**
+ * Handle to a shorten operation from api
+ */
 struct ClientShortenHandle
 {
+  /* the requesting client that */
   struct GNUNET_SERVER_Client *client;
+
+  /* request id */
   uint64_t unique_id;
+
+  /* request key */
   GNUNET_HashCode key;
+
+  /* name to shorten */
   char* name;
-  uint32_t offset;
+
 };
 
+/**
+ * Handle to a lookup operation from api
+ */
 struct ClientLookupHandle
 {
+  /* the requesting client that */
   struct GNUNET_SERVER_Client *client;
+
+  /* request id */
   uint64_t unique_id;
+
+  /* request key */
   GNUNET_HashCode key;
+
+  /* the name to look up */
   char* name; //Needed?
 };
 
+/**
+ * Handle to a DNS intercepted
+ * reslution request
+ */
 struct InterceptLookupHandle
 {
   /* the request handle to reply to */
@@ -166,7 +192,6 @@ struct InterceptLookupHandle
   struct GNUNET_DNSPARSER_Packet *packet;
   
   /* the query parsed from the packet */
-
   struct GNUNET_DNSPARSER_Query *query;
 };
 
@@ -223,7 +248,29 @@ static int num_public_records =  3600;
 struct GNUNET_TIME_Relative dht_update_interval;
 GNUNET_SCHEDULER_TaskIdentifier zone_update_taskid = GNUNET_SCHEDULER_NO_TASK;
 
-//static void resolve_name(struct GNUNET_GNS_ResolverHandle *rh);
+/**
+ * Helper function to free resolver handle
+ */
+static void
+free_resolver_handle(struct GNUNET_GNS_ResolverHandle* rh)
+{
+  struct AuthorityChain *ac;
+
+  if (NULL == rh)
+    return;
+
+  GNUNET_free_non_null (rh->name);
+  GNUNET_free_non_null (rh->authority_name);
+
+  ac = rh->authority_chain_head;
+
+  for (; NULL != ac; ac = ac->next)
+  {
+    GNUNET_free_non_null (ac->name);
+    GNUNET_free(ac);
+  }
+}
+
 
 /**
  * Reply to client with the result from our lookup.
@@ -326,8 +373,8 @@ reply_to_dns(void* cls, struct GNUNET_GNS_ResolverHandle *rh, uint32_t rd_count,
   }
 
   //FIXME free more!
-  GNUNET_free(rh->name);
-  GNUNET_free(rh->proc_cls);
+  free_resolver_handle(rh);
+  GNUNET_free((struct RecordLookupHandle*)rh->proc_cls);
   GNUNET_free(rh);
   GNUNET_free(ilh);
 }
@@ -1363,6 +1410,8 @@ start_resolution_from_dns(struct GNUNET_DNS_RequestHandle *request,
   resolve_delegation_from_ns(rh);
 }
 
+
+
 /**
  * The DNS request handler
  * Called for every incoming DNS request.
@@ -1948,10 +1997,12 @@ handle_shorten_delegation_result(void* cls,
      * shorten to our zone to a "" record??)
      **/
     send_shorten_response(rh->name, csh); //FIXME +.gnunet!
-    //FIXME free
+    free_resolver_handle(rh);
+    GNUNET_free(csh->name);
+    GNUNET_free(csh);
     return;
   }
-  csh->offset++; //FIXME needed?
+  
   auth_chain = rh->authority_chain_head;
   /* backtrack authorities for pseu */
   GNUNET_NAMESTORE_zone_to_name (namestore_handle,
@@ -2048,8 +2099,7 @@ send_shorten_response(const char* name, struct ClientShortenHandle *csh)
 
   GNUNET_SERVER_receive_done (csh->client, GNUNET_OK);
   
-  //GNUNET_free(csh);
-  //GNUNET_free(rmsg);
+  GNUNET_free(rmsg);
 
 }
 
@@ -2096,10 +2146,6 @@ static void handle_shorten(void *cls,
   csh->unique_id = sh_msg->unique_id;
   csh->key = sh_msg->key;
   
-  //Offset in original name
-  csh->offset = 0;
-  
-
   shorten_name((char*)&sh_msg[1], csh);
 
 }
