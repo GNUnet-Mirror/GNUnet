@@ -205,6 +205,10 @@ display_record (void *cls,
 		const struct GNUNET_NAMESTORE_RecordData *rd,
 		const struct GNUNET_CRYPTO_RsaSignature *signature)
 {
+  const char *typestring;
+  char *s;
+  unsigned int i;
+
   if (NULL == name)
   {
     list_it = NULL;
@@ -213,7 +217,25 @@ display_record (void *cls,
       GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  // FIXME: display record!
+  FPRINTF (stdout,
+	   "%s:\n",
+	   name);
+  for (i=0;i<rd_len;i++)
+  {
+    typestring = GNUNET_NAMESTORE_number_to_typename (rd[i].record_type);
+    s = GNUNET_NAMESTORE_value_to_string (rd[i].record_type,
+					  rd[i].data,
+					  rd[i].data_size);
+    if (NULL == s)
+    {
+      FPRINTF (stdout, _("\tCorrupt or unsupported record of type %u\n"),
+	       (unsigned int) rd[i].record_type);
+      continue;
+    }
+    FPRINTF (stdout, "\t%s: %s\n", typestring, s);
+    GNUNET_free (s);    
+  }
+  FPRINTF (stdout, "%s", "\n");
   GNUNET_NAMESTORE_zone_iterator_next (list_it);
 }
 
@@ -232,10 +254,8 @@ run (void *cls, char *const *args, const char *cfgfile,
 {
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pub;
   uint32_t type;
-  const void *data;
-  size_t data_size;
-  struct in_addr value_a;
-  struct in6_addr value_aaaa;
+  void *data = NULL;
+  size_t data_size = 0;
   struct GNUNET_TIME_Relative etime;
   struct GNUNET_NAMESTORE_RecordData rd;
 
@@ -294,14 +314,11 @@ run (void *cls, char *const *args, const char *cfgfile,
   }
   if (NULL != value)
   {
-    switch (type)
-    {
-    case 0:
-      fprintf (stderr, _("Need a record type to interpret value `%s'\n"), value);
-      GNUNET_SCHEDULER_shutdown ();
-      break;
-    case GNUNET_DNSPARSER_TYPE_A:
-      if (1 != inet_pton (AF_INET, value, &value_a))
+    if (GNUNET_OK !=
+	GNUNET_NAMESTORE_string_to_value (type,
+					  value,
+					  &data,
+					  &data_size))
       {
 	fprintf (stderr, _("Value `%s' invalid for record type `%s'\n"), 
 		 value,
@@ -309,59 +326,6 @@ run (void *cls, char *const *args, const char *cfgfile,
 	GNUNET_SCHEDULER_shutdown ();
 	return;
       }
-      data = &value_a;
-      data_size = sizeof (value_a);
-      break;
-    case GNUNET_DNSPARSER_TYPE_NS:
-      data = value;
-      data_size = strlen (value);
-      break;
-    case GNUNET_DNSPARSER_TYPE_CNAME:
-      data = value;
-      data_size = strlen (value);
-      break;
-    case GNUNET_DNSPARSER_TYPE_SOA:
-      // FIXME
-      fprintf (stderr, _("Record type `%s' not implemented yet\n"), typestring);
-      GNUNET_SCHEDULER_shutdown ();
-      return;
-    case GNUNET_DNSPARSER_TYPE_PTR:
-      // FIXME
-      fprintf (stderr, _("Record type `%s' not implemented yet\n"), typestring);
-      GNUNET_SCHEDULER_shutdown ();
-      return;
-    case GNUNET_DNSPARSER_TYPE_MX:
-      // FIXME
-      fprintf (stderr, _("Record type `%s' not implemented yet\n"), typestring);
-      GNUNET_SCHEDULER_shutdown ();
-      return;
-    case GNUNET_DNSPARSER_TYPE_TXT:
-      data = value;
-      data_size = strlen (value);
-      break;
-    case GNUNET_DNSPARSER_TYPE_AAAA:
-      if (1 != inet_pton (AF_INET6, value, &value_aaaa))
-      {
-	fprintf (stderr, _("Value `%s' invalid for record type `%s'\n"), 
-		 value,
-		 typestring);
-	GNUNET_SCHEDULER_shutdown ();
-	return;
-      }
-      data = &value_aaaa;
-      data_size = sizeof (value_aaaa);
-      break;
-    case GNUNET_NAMESTORE_TYPE_PKEY:
-      fprintf (stderr, _("Record type `%s' not implemented yet\n"), typestring);
-      GNUNET_SCHEDULER_shutdown ();
-      return;
-    case GNUNET_NAMESTORE_TYPE_PSEU:
-      data = value;
-      data_size = strlen (value);
-      break;
-    default:
-      GNUNET_assert (0);
-    }
   } else if (add | del)
   {
     fprintf (stderr,
@@ -442,6 +406,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 						     &display_record,
 						     NULL);
   }
+  GNUNET_free_non_null (data);
 }
 
 

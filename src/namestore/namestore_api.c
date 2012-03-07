@@ -204,41 +204,6 @@ struct GNUNET_NAMESTORE_SimpleRecord
 
 
 /**
- * Convert a type name (i.e. "AAAA") to the corresponding number.
- *
- * @param typename name to convert
- * @return corresponding number, UINT32_MAX on error
- */
-uint32_t
-GNUNET_NAMESTORE_typename_to_number (const char *typename)
-{
-  static struct { 
-    const char *name; 
-    uint32_t number; 
-  } map[] = {
-    { "A", GNUNET_DNSPARSER_TYPE_A },
-    { "NS", GNUNET_DNSPARSER_TYPE_NS },
-    { "CNAME", GNUNET_DNSPARSER_TYPE_CNAME },
-    { "SOA", GNUNET_DNSPARSER_TYPE_SOA },
-    { "PTR", GNUNET_DNSPARSER_TYPE_PTR },
-    { "MX", GNUNET_DNSPARSER_TYPE_MX },
-    { "TXT", GNUNET_DNSPARSER_TYPE_TXT },
-    { "AAAA", GNUNET_DNSPARSER_TYPE_AAAA },
-    { "PKEY",  GNUNET_NAMESTORE_TYPE_PKEY },
-    { "PSEU",  GNUNET_NAMESTORE_TYPE_PSEU },
-    { NULL, UINT32_MAX }
-  };
-  unsigned int i;
-
-  i=0;
-  while ( (map[i].name != NULL) &&
-	  (0 != strcasecmp (typename, map[i].name)) )
-    i++;
-  return map[i].number;  
-}
-
-
-/**
  * Disconnect from service and then reconnect.
  *
  * @param h our handle

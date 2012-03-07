@@ -31,6 +31,7 @@
 #include "gnunet_signatures.h"
 #include "gnunet_arm_service.h"
 #include "gnunet_namestore_service.h"
+#include "gnunet_dnsparser_lib.h"
 #include "namestore.h"
 #define DEBUG_GNS_API GNUNET_EXTRA_LOGGING
 
@@ -251,4 +252,156 @@ GNUNET_NAMESTORE_create_signature (const struct GNUNET_CRYPTO_RsaPrivateKey *key
   return sig;
 }
 
-/* end of namestore_api.c */
+
+/**
+ * Convert the 'value' of a record to a string.
+ *
+ * @param type type of the record
+ * @param data value in binary encoding
+ * @param data_size number of bytes in data
+ * @return NULL on error, otherwise human-readable representation of the value
+ */
+char *
+GNUNET_NAMESTORE_value_to_string (uint32_t type,
+				   const void *data,
+				   size_t data_size)
+{
+  GNUNET_break (0); // not implemented
+  return NULL;
+}
+
+
+/**
+ * Convert human-readable version of a 'value' of a record to the binary
+ * representation.
+ *
+ * @param type type of the record
+ * @param s human-readable string
+ * @param data set to value in binary encoding (will be allocated)
+ * @param data_size set to number of bytes in data
+ * @return GNUNET_OK on success
+ */
+int
+GNUNET_NAMESTORE_string_to_value (uint32_t type,
+				  const char *s,
+				  void **data,
+				  size_t *data_size)
+{
+  struct in_addr value_a;
+  struct in6_addr value_aaaa;
+
+  switch (type)
+  {
+  case 0:
+    return GNUNET_SYSERR;
+    break;
+  case GNUNET_DNSPARSER_TYPE_A:
+    if (1 != inet_pton (AF_INET, s, &value_a))
+      return GNUNET_SYSERR;
+    *data = GNUNET_malloc (sizeof (struct in_addr));
+    memcpy (*data, &value_a, sizeof (value_a));
+    *data_size = sizeof (value_a);
+    break;
+  case GNUNET_DNSPARSER_TYPE_NS:
+    *data = GNUNET_strdup (s);
+    *data_size = strlen (s);
+    break;
+  case GNUNET_DNSPARSER_TYPE_CNAME:
+    *data = GNUNET_strdup (s);
+    *data_size = strlen (s);
+    break;
+  case GNUNET_DNSPARSER_TYPE_SOA:
+    GNUNET_break (0);
+    // FIXME
+    return GNUNET_SYSERR;
+  case GNUNET_DNSPARSER_TYPE_PTR:
+    GNUNET_break (0);
+    // FIXME
+    return GNUNET_SYSERR;
+  case GNUNET_DNSPARSER_TYPE_MX:
+    GNUNET_break (0);
+    // FIXME
+    return GNUNET_SYSERR;
+  case GNUNET_DNSPARSER_TYPE_TXT:
+    *data = GNUNET_strdup (s);
+    *data_size = strlen (s);
+    break;
+  case GNUNET_DNSPARSER_TYPE_AAAA:
+    if (1 != inet_pton (AF_INET6, s, &value_aaaa))    
+      return GNUNET_SYSERR;    
+    *data = GNUNET_malloc (sizeof (struct in6_addr));
+    memcpy (*data, &value_aaaa, sizeof (value_aaaa));
+    break;
+  case GNUNET_NAMESTORE_TYPE_PKEY:
+    GNUNET_break (0);
+    // FIXME
+    return GNUNET_SYSERR;
+  case GNUNET_NAMESTORE_TYPE_PSEU:
+    *data = GNUNET_strdup (s);
+    *data_size = strlen (s);
+    break;
+  default:
+    GNUNET_break (0);
+  }
+  return GNUNET_SYSERR;
+}
+
+
+static struct { 
+  const char *name; 
+  uint32_t number; 
+} name_map[] = {
+  { "A", GNUNET_DNSPARSER_TYPE_A },
+  { "NS", GNUNET_DNSPARSER_TYPE_NS },
+  { "CNAME", GNUNET_DNSPARSER_TYPE_CNAME },
+  { "SOA", GNUNET_DNSPARSER_TYPE_SOA },
+  { "PTR", GNUNET_DNSPARSER_TYPE_PTR },
+  { "MX", GNUNET_DNSPARSER_TYPE_MX },
+  { "TXT", GNUNET_DNSPARSER_TYPE_TXT },
+  { "AAAA", GNUNET_DNSPARSER_TYPE_AAAA },
+  { "PKEY",  GNUNET_NAMESTORE_TYPE_PKEY },
+  { "PSEU",  GNUNET_NAMESTORE_TYPE_PSEU },
+  { NULL, UINT32_MAX }
+};
+
+
+/**
+ * Convert a type name (i.e. "AAAA") to the corresponding number.
+ *
+ * @param typename name to convert
+ * @return corresponding number, UINT32_MAX on error
+ */
+uint32_t
+GNUNET_NAMESTORE_typename_to_number (const char *typename)
+{
+  unsigned int i;
+
+  i=0;
+  while ( (name_map[i].name != NULL) &&
+	  (0 != strcasecmp (typename, name_map[i].name)) )
+    i++;
+  return name_map[i].number;  
+}
+
+
+/**
+ * Convert a type number (i.e. 1) to the corresponding type string (i.e. "A")
+ *
+ * @param type number of a type to convert
+ * @return corresponding typestring, NULL on error
+ */
+const char *
+GNUNET_NAMESTORE_number_to_typename (uint32_t type)
+{
+  unsigned int i;
+
+  i=0;
+  while ( (name_map[i].name != NULL) &&
+	  (type != name_map[i].number) )
+    i++;
+  return name_map[i].name;  
+}
+
+
+
+/* end of namestore_common.c */

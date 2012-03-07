@@ -74,15 +74,6 @@ struct GNUNET_NAMESTORE_ZoneIterator;
 #define GNUNET_NAMESTORE_MAX_VALUE_SIZE (63 * 1024)
 
 
-/**
- * Convert a type name (i.e. "AAAA") to the corresponding number.
- *
- * @param typename name to convert
- * @return corresponding number, UINT32_MAX on error
- */
-uint32_t
-GNUNET_NAMESTORE_typename_to_number (const char *typename);
-
 
 /**
  * Connect to the namestore service.
@@ -448,6 +439,58 @@ GNUNET_NAMESTORE_records_deserialize (size_t len,
 				      const char *src,
 				      unsigned int rd_count,
 				      struct GNUNET_NAMESTORE_RecordData *dest);
+
+
+
+/**
+ * Convert the 'value' of a record to a string.
+ *
+ * @param type type of the record
+ * @param data value in binary encoding
+ * @param data_size number of bytes in data
+ * @return NULL on error, otherwise human-readable representation of the value
+ */
+char *
+GNUNET_NAMESTORE_value_to_string (uint32_t type,
+				  const void *data,
+				  size_t data_size);
+
+
+/**
+ * Convert human-readable version of a 'value' of a record to the binary
+ * representation.
+ *
+ * @param type type of the record
+ * @param s human-readable string
+ * @param data set to value in binary encoding (will be allocated)
+ * @param data_size set to number of bytes in data
+ * @return GNUNET_OK on success
+ */
+int
+GNUNET_NAMESTORE_string_to_value (uint32_t type,
+				  const char *s,
+				  void **data,
+				  size_t *data_size);
+
+
+/**
+ * Convert a type name (i.e. "AAAA") to the corresponding number.
+ *
+ * @param typename name to convert
+ * @return corresponding number, UINT32_MAX on error
+ */
+uint32_t
+GNUNET_NAMESTORE_typename_to_number (const char *typename);
+
+
+/**
+ * Convert a type number (i.e. 1) to the corresponding type string (i.e. "A")
+ *
+ * @param type number of a type to convert
+ * @return corresponding typestring, NULL on error
+ */
+const char *
+GNUNET_NAMESTORE_number_to_typename (uint32_t type);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */
