@@ -376,7 +376,6 @@ handle_record_remove_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
   /* Operation done, remove */
   GNUNET_CONTAINER_DLL_remove(h->op_head, h->op_tail, qe);
 
-
   int res = ntohl (msg->op_result);
   /**
    *  result:
@@ -896,7 +895,6 @@ clean_up_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   while (NULL != (q = h->op_head))
   {
-    GNUNET_break (0);
     GNUNET_CONTAINER_DLL_remove (h->op_head, h->op_tail, q);
     GNUNET_free (q);
   }
