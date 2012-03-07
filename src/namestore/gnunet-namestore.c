@@ -103,7 +103,11 @@ static char *typestring;
  * Desired expiration time.
  */
 static char *expirationstring;
-		
+
+/**
+ * Desired block expiration time.
+ */
+static char *blockexpirationstring;
 
 /**
  * Task run on shutdown.  Cleans up everything.
@@ -257,6 +261,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   void *data = NULL;
   size_t data_size = 0;
   struct GNUNET_TIME_Relative etime;
+  struct GNUNET_TIME_Relative btime;
   struct GNUNET_NAMESTORE_RecordData rd;
 
   if (NULL == keyfile)
@@ -354,6 +359,27 @@ run (void *cls, char *const *args, const char *cfgfile,
     GNUNET_SCHEDULER_shutdown ();
     return;     
   }
+  if (NULL != blockexpirationstring)
+  {
+    if (GNUNET_OK !=
+        GNUNET_STRINGS_fancy_time_to_relative (blockexpirationstring,
+                                               &btime))
+    {
+      fprintf (stderr,
+               _("Invalid time format `%s'\n"),
+               blockexpirationstring);
+      GNUNET_SCHEDULER_shutdown ();
+      return;
+    }
+  } else if (add | del)
+  {
+    fprintf (stderr,
+             _("Missing option `%s' for operation `%s'\n"),
+             "-b", _("add/del"));
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+
   if (add)
   {
     if (NULL == name)
@@ -371,6 +397,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY; // FIXME: not always...
     add_qe = GNUNET_NAMESTORE_record_create (ns,
 					     zone_pkey,
+                                             GNUNET_TIME_relative_to_absolute (btime),
 					     name,
 					     &rd,
 					     &add_continuation,
@@ -391,7 +418,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     rd.record_type = type;
     rd.expiration = GNUNET_TIME_relative_to_absolute (etime);
     rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY; // FIXME: not always...
-    del_qe = GNUNET_NAMESTORE_record_create (ns,
+    del_qe = GNUNET_NAMESTORE_record_remove (ns,
 					     zone_pkey,
 					     name,
 					     &rd,
@@ -423,7 +450,10 @@ main (int argc, char *const *argv)
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
     {'a', "add", NULL,
      gettext_noop ("add record"), 0,
-     &GNUNET_GETOPT_set_one, &add},   
+     &GNUNET_GETOPT_set_one, &add},
+    {'b', "name-expiration", "TIME",
+     gettext_noop ("expiration time for name to use (for adding only)"), 1,
+     &GNUNET_GETOPT_set_string, &blockexpirationstring},
     {'d', "delete", NULL,
      gettext_noop ("delete record"), 0,
      &GNUNET_GETOPT_set_one, &del},   
@@ -431,7 +461,7 @@ main (int argc, char *const *argv)
      gettext_noop ("display records"), 0,
      &GNUNET_GETOPT_set_one, &list},   
     {'e', "expiration", "TIME",
-     gettext_noop ("expiration time to use (for adding only)"), 1,
+     gettext_noop ("expiration time for record to use (for adding only)"), 1,
      &GNUNET_GETOPT_set_string, &expirationstring},   
     {'n', "name", "NAME",
      gettext_noop ("name of the record to add/delete/display"), 1,

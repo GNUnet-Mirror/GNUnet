@@ -170,6 +170,7 @@ client_disconnect_notification (void *cls, struct GNUNET_SERVER_Client *client)
     GNUNET_free (no);
   }
 
+
   GNUNET_SERVER_client_drop(nc->client);
   GNUNET_CONTAINER_DLL_remove (client_head, client_tail, nc);
   GNUNET_free (nc);
@@ -543,6 +544,7 @@ handle_create_record_it (void *cls,
   struct CreateRecordContext * crc = cls;
   struct GNUNET_CRYPTO_RsaSignature *signature_new = NULL;
   struct GNUNET_NAMESTORE_RecordData *rd_new = NULL;
+  struct GNUNET_TIME_Absolute block_expiration;
   int res;
   int exist = GNUNET_SYSERR;
   int update = GNUNET_NO;
@@ -609,11 +611,16 @@ handle_create_record_it (void *cls,
     }
   }
 
+  block_expiration = GNUNET_TIME_absolute_max(crc->expire, expire);
+  if (block_expiration.abs_value != expire.abs_value)
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Updated block expiration time\n");
+
+
   /* Database operation */
   GNUNET_assert ((rd_new != NULL) && (rd_count_new > 0));
   res = GSN_database->put_records(GSN_database->cls,
                                 (const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *) crc->pubkey,
-                                crc->expire,
+                                block_expiration,
                                 crc->name,
                                 rd_count_new, rd_new,
                                 signature_new);
@@ -729,6 +736,7 @@ static void handle_record_create (void *cls,
   }
 
   struct GNUNET_NAMESTORE_RecordData rd[rd_count];
+
   res = GNUNET_NAMESTORE_records_deserialize(rd_ser_len, rd_ser, rd_count, rd);
   if ((res != GNUNET_OK) || (rd_count != 1))
   {
@@ -742,6 +750,8 @@ static void handle_record_create (void *cls,
   GNUNET_CRYPTO_rsa_key_get_public(pkey, &pub);
   GNUNET_CRYPTO_hash (&pub, sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), &pubkey_hash);
 
+  crc.expire = GNUNET_TIME_absolute_ntoh(rp_msg->expire);
+  crc.res = GNUNET_SYSERR;
   crc.pkey = pkey;
   crc.pubkey = &pub;
   crc.rd = rd;
@@ -1288,7 +1298,6 @@ static void handle_iteration_start (void *cls,
   }
 
   GNUNET_CONTAINER_DLL_insert (nc->op_head, nc->op_tail, zi);
-
 
   res = GSN_database->iterate_records (GSN_database->cls, zone_tmp , NULL, zi->offset , &zone_iteration_proc, zi);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);

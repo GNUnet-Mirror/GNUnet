@@ -392,6 +392,7 @@ lookup_result_processor (void *cls,
   r.flags = htonl (GNUNET_NAMESTORE_RF_AUTHORITY);
   request->qe = GNUNET_NAMESTORE_record_create (ns,
 						fcfs_zone_pkey,
+						GNUNET_TIME_absolute_get_forever(),
 						request->domain_name,
 						&r,
 						&put_continuation,

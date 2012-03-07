@@ -226,6 +226,7 @@ do_lookup(void *cls, const struct GNUNET_PeerIdentity *id,
 
   GNUNET_NAMESTORE_record_create (namestore_handle,
                                   alice_key,
+                                  GNUNET_TIME_absolute_get_forever(),
                                   TEST_AUTHORITY_NAME,
                                   &rd,
                                   NULL,

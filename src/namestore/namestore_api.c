@@ -1095,6 +1095,7 @@ GNUNET_NAMESTORE_verify_signature (const struct GNUNET_CRYPTO_RsaPublicKeyBinary
  *
  * @param h handle to the namestore
  * @param pkey private key of the zone
+ * @param expire block expiration time
  * @param name name that is being mapped (at most 255 characters long)
  * @param rd record data to store
  * @param cont continuation to call when done
@@ -1104,6 +1105,7 @@ GNUNET_NAMESTORE_verify_signature (const struct GNUNET_CRYPTO_RsaPublicKeyBinary
 struct GNUNET_NAMESTORE_QueueEntry *
 GNUNET_NAMESTORE_record_create (struct GNUNET_NAMESTORE_Handle *h,
 				const struct GNUNET_CRYPTO_RsaPrivateKey *pkey,
+				const struct GNUNET_TIME_Absolute expire,
 				const char *name,
 				const struct GNUNET_NAMESTORE_RecordData *rd,
 				GNUNET_NAMESTORE_ContinuationWithStatus cont,
@@ -1169,6 +1171,7 @@ GNUNET_NAMESTORE_record_create (struct GNUNET_NAMESTORE_Handle *h,
   msg->rd_count = htons (1);
   msg->rd_len = htons (rd_ser_len);
   msg->pkey_len = htons (key_len);
+  msg->expire = GNUNET_TIME_absolute_hton(expire);
   memcpy (pkey_tmp, pkey_enc, key_len);
   memcpy (name_tmp, name, name_len);
   memcpy (rd_tmp, rd_ser, rd_ser_len);

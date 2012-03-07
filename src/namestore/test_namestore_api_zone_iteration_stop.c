@@ -28,7 +28,7 @@
 
 #define VERBOSE GNUNET_NO
 
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15)
 
 static struct GNUNET_NAMESTORE_Handle * nsh;
 
@@ -430,7 +430,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_asprintf(&s_name_1, "dummy1");
   s_rd_1 = create_record(1);
   sig_1 = GNUNET_NAMESTORE_create_signature(privkey, s_name_1, s_rd_1, 1);
-  GNUNET_NAMESTORE_record_create(nsh, privkey, s_name_1, s_rd_1, &put_cont, NULL);
+  GNUNET_NAMESTORE_record_create(nsh, privkey, GNUNET_TIME_absolute_get_forever(), s_name_1, s_rd_1, &put_cont, NULL);
 
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created record 2 \n");
@@ -438,7 +438,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   s_rd_2 = create_record(1);
 
   sig_2 = GNUNET_NAMESTORE_create_signature(privkey, s_name_2, s_rd_2, 1);
-  GNUNET_NAMESTORE_record_create(nsh, privkey, s_name_2, s_rd_2, &put_cont, NULL);
+  GNUNET_NAMESTORE_record_create(nsh, privkey,GNUNET_TIME_absolute_get_forever(),  s_name_2, s_rd_2, &put_cont, NULL);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created record 3\n");
   /* name in different zone */
