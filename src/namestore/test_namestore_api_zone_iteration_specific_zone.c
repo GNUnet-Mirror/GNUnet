@@ -40,6 +40,10 @@ static struct GNUNET_CRYPTO_RsaPrivateKey * privkey;
 static struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pubkey;
 static GNUNET_HashCode zone;
 
+static struct GNUNET_CRYPTO_RsaPrivateKey * privkey2;
+static struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pubkey2;
+static GNUNET_HashCode zone2;
+
 static struct GNUNET_NAMESTORE_ZoneIterator *zi;
 static int res;
 
@@ -50,6 +54,10 @@ struct GNUNET_NAMESTORE_RecordData *s_rd_1;
 struct GNUNET_CRYPTO_RsaSignature *sig_2;
 char * s_name_2;
 struct GNUNET_NAMESTORE_RecordData *s_rd_2;
+
+struct GNUNET_CRYPTO_RsaSignature *sig_3;
+char * s_name_3;
+struct GNUNET_NAMESTORE_RecordData *s_rd_3;
 
 static void
 start_arm (const char *cfgname)
@@ -334,6 +342,12 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_CRYPTO_rsa_key_get_public(privkey, &pubkey);
   GNUNET_CRYPTO_hash(&pubkey, sizeof (pubkey), &zone);
 
+  privkey2 = GNUNET_CRYPTO_rsa_key_create_from_file("hostkey2");
+  GNUNET_assert (privkey2 != NULL);
+  GNUNET_CRYPTO_rsa_key_get_public(privkey2, &pubkey2);
+  GNUNET_CRYPTO_hash(&pubkey2, sizeof (pubkey), &zone2);
+
+
   start_arm (cfgfile);
   GNUNET_assert (arm != NULL);
 
@@ -354,6 +368,13 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   sig_2 = GNUNET_NAMESTORE_create_signature(privkey, s_name_2, s_rd_2, 1);
   GNUNET_NAMESTORE_record_create(nsh, privkey, s_name_2, s_rd_2, &put_cont, NULL);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created record 3\n");
+  /* name in different zone */
+  GNUNET_asprintf(&s_name_3, "dummy3");
+  s_rd_3 = create_record(1);
+  sig_3 = GNUNET_NAMESTORE_create_signature(privkey, s_name_3, s_rd_3, 1);
+  GNUNET_NAMESTORE_record_put (nsh, &pubkey2, s_name_3, GNUNET_TIME_absolute_get_forever(), 1, s_rd_3, sig_3, &put_cont, NULL);
 }
 
 static int

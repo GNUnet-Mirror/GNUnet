@@ -93,6 +93,7 @@ struct GNUNET_NAMESTORE_ZoneIterator
   GNUNET_HashCode zone;
   uint32_t no_flags;
   uint32_t flags;
+  int has_zone;
 };
 
 
@@ -1485,7 +1486,17 @@ GNUNET_NAMESTORE_zone_iteration_start (struct GNUNET_NAMESTORE_Handle *h,
   it->proc = proc;
   it->proc_cls = proc;
   it->op_id = rid;
-  it->zone = *zone;
+
+  if (NULL != zone)
+  {
+    it->zone = *zone;
+    it->has_zone = GNUNET_YES;
+  }
+  else
+  {
+    memset (&it->zone, '\0', sizeof (it->zone));
+    it->has_zone = GNUNET_NO;
+  }
   GNUNET_CONTAINER_DLL_insert_tail(h->z_head, h->z_tail, it);
 
   /* set msg_size*/
@@ -1500,7 +1511,7 @@ GNUNET_NAMESTORE_zone_iteration_start (struct GNUNET_NAMESTORE_Handle *h,
   msg->gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_START);
   msg->gns_header.header.size = htons (msg_size);
   msg->gns_header.r_id = htonl (rid);
-  if (NULL == zone)
+  if (NULL != zone)
     msg->zone = *zone;
   else
     memset (&msg->zone, '\0', sizeof (msg->zone));
