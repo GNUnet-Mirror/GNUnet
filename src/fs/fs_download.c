@@ -243,7 +243,8 @@ encrypt_existing_match (struct GNUNET_FS_DownloadContext *dc,
     return GNUNET_SYSERR;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Matching block for `%s' at offset %llu already present, no need for download!\n",
+              "Matching %u byte block for `%s' at offset %llu already present, no need for download!\n",
+	      (unsigned int) len,
               dc->filename, (unsigned long long) dr->offset);
   /* already got it! */
   prc.dc = dc;
@@ -386,6 +387,16 @@ check_completed (struct GNUNET_FS_DownloadContext *dc)
     GNUNET_FS_dequeue_ (dc->job_queue);
     dc->job_queue = NULL;
   }
+  if (GNUNET_SCHEDULER_NO_TASK != dc->task)
+  {
+    GNUNET_SCHEDULER_cancel (dc->task);
+    dc->task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  if (dc->rfh != NULL)
+  {
+    GNUNET_break (GNUNET_OK == GNUNET_DISK_file_close (dc->rfh));
+    dc->rfh = NULL;
+  }
   GNUNET_FS_download_sync_ (dc);
 
   /* signal completion */
@@ -520,6 +531,7 @@ try_match_block (struct GNUNET_FS_DownloadContext *dc,
     pi.value.download.specifics.progress.data_len = dlen;
     pi.value.download.specifics.progress.depth = 0;
     pi.value.download.specifics.progress.trust_offered = 0;
+    pi.value.download.specifics.progress.block_download_duration = GNUNET_TIME_UNIT_ZERO;
     GNUNET_FS_download_make_status_ (&pi, dc);
     if ((NULL != dc->filename) &&
         (0 !=
@@ -621,7 +633,6 @@ try_top_down_reconstruction (struct GNUNET_FS_DownloadContext *dc,
   uint64_t total;
   size_t len;
   unsigned int i;
-  unsigned int chk_off;
   struct DownloadRequest *drc;
   uint64_t child_block_size;
   const struct ContentHashKey *chks;
@@ -673,12 +684,11 @@ try_top_down_reconstruction (struct GNUNET_FS_DownloadContext *dc,
     drc = dr->children[i];
     GNUNET_assert (drc->offset >= dr->offset);
     child_block_size = GNUNET_FS_tree_compute_tree_size (drc->depth);
-    GNUNET_assert (0 == (drc->offset - dr->offset) % child_block_size);
-    chk_off = (drc->offset - dr->offset) / child_block_size;
+    GNUNET_assert (0 == (drc->offset - dr->offset) % child_block_size);     
     if (drc->state == BRS_INIT)
     {
       drc->state = BRS_CHK_SET;
-      drc->chk = chks[chk_off];
+      drc->chk = chks[drc->chk_idx];
       try_top_down_reconstruction (dc, drc);
     }
     if (drc->state != BRS_DOWNLOAD_UP)
@@ -1113,9 +1123,10 @@ process_result_with_request (void *cls, const GNUNET_HashCode * key,
     switch (drc->state)
     {
     case BRS_INIT:
-      drc->chk = chkarr[dr->chk_idx];
+      drc->chk = chkarr[drc->chk_idx];
       drc->state = BRS_CHK_SET;
-      schedule_block_download (dc, drc);
+      if (GNUNET_YES == dc->issue_requests)
+	schedule_block_download (dc, drc);
       break;
     case BRS_RECONSTRUCT_DOWN:
       GNUNET_assert (0);
@@ -1527,6 +1538,11 @@ create_download_request (struct DownloadRequest *parent,
     if (dr->num_children * child_block_size <
         file_start_offset + desired_length)
       dr->num_children++;       /* round up */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Block at offset %llu and depth %u has %u children\n",
+		(unsigned long long) dr_offset,
+		depth,
+		dr->num_children);
 
     /* now we can get the total number of children for this block */
     dr->num_children -= head_skip;
@@ -1560,12 +1576,7 @@ reconstruct_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_FS_DownloadContext *dc = cls;
 
-  /* clean up state from tree encoder */
-  if (dc->te != NULL)
-  {
-    GNUNET_FS_tree_encoder_finish (dc->te, NULL, NULL);
-    dc->te = NULL;
-  }
+  /* clean up state from tree encoder */  
   if (dc->task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (dc->task);
@@ -1577,6 +1588,9 @@ reconstruct_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     dc->rfh = NULL;
   }
   /* start "normal" download */
+  dc->issue_requests = GNUNET_YES;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Starting normal download\n");
   schedule_block_download (dc, dc->top_request);
 }
 
@@ -1630,11 +1644,34 @@ reconstruct_cb (void *cls, const struct ContentHashKey *chk, uint64_t offset,
   dr = dc->top_request;
   while (dr->depth > depth)
   {
-    blen = GNUNET_FS_tree_compute_tree_size (dr->depth);
+    GNUNET_assert (dr->num_children > 0);
+    blen = GNUNET_FS_tree_compute_tree_size (dr->depth - 1);
     chld = (offset - dr->offset) / blen;
-    GNUNET_assert (chld < dr->num_children);
-    dr = dr->children[chld];
+    if (chld < dr->children[0]->chk_idx)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Block %u < %u irrelevant for our range\n",
+		  chld,
+		  dr->children[dr->num_children-1]->chk_idx);
+      dc->task = GNUNET_SCHEDULER_add_now (&get_next_block, dc);
+      return; /* irrelevant block */
+    }
+    if (chld > dr->children[dr->num_children-1]->chk_idx)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Block %u > %u irrelevant for our range\n",
+		  chld,
+		  dr->children[dr->num_children-1]->chk_idx);
+      dc->task = GNUNET_SCHEDULER_add_now (&get_next_block, dc);
+      return; /* irrelevant block */
+    }
+    dr = dr->children[chld - dr->children[0]->chk_idx];
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Matched TE block with request at offset %llu and depth %u in state %d\n",
+	      (unsigned long long) dr->offset,
+	      dr->depth,
+	      dr->state);
   /* FIXME: this code needs more testing and might
      need to handle more states... */
   switch (dr->state)
@@ -1650,11 +1687,14 @@ reconstruct_cb (void *cls, const struct ContentHashKey *chk, uint64_t offset,
   case BRS_CHK_SET:
     if (0 == memcmp (chk, &dr->chk, sizeof (struct ContentHashKey)))
     {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Reconstruction succeeded, can use block at offset %llu, depth %u\n",
+		  (unsigned long long) offset,
+		  depth);
       /* block matches, hence tree below matches;
        * this request is done! */
       dr->state = BRS_DOWNLOAD_UP;
-      GNUNET_break (GNUNET_NO ==
-		    GNUNET_CONTAINER_multihashmap_remove (dc->active, &dr->chk.query, dr));
+      (void) GNUNET_CONTAINER_multihashmap_remove (dc->active, &dr->chk.query, dr);
       if (GNUNET_YES == dr->is_pending)
       {
 	GNUNET_break (0); /* how did we get here? */
@@ -1674,6 +1714,7 @@ reconstruct_cb (void *cls, const struct ContentHashKey *chk, uint64_t offset,
       pi.value.download.specifics.progress.data_len = 0;
       pi.value.download.specifics.progress.depth = 0;
       pi.value.download.specifics.progress.trust_offered = 0;
+      pi.value.download.specifics.progress.block_download_duration = GNUNET_TIME_UNIT_ZERO;
       GNUNET_FS_download_make_status_ (&pi, dc);
       /* FIXME: duplicated code from 'process_result_with_request - refactor */
       if (dc->completed == dc->length)
@@ -1694,6 +1735,11 @@ reconstruct_cb (void *cls, const struct ContentHashKey *chk, uint64_t offset,
 	}
       }
     }
+    else
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Reconstruction failed, need to download block at offset %llu, depth %u\n",
+		  (unsigned long long) offset,
+		  depth);
     break;
   case BRS_DOWNLOAD_DOWN:
     break;
@@ -1705,12 +1751,9 @@ reconstruct_cb (void *cls, const struct ContentHashKey *chk, uint64_t offset,
     GNUNET_assert (0);
     break;
   }
-  if ((dr == dc->top_request) && (dr->state == BRS_DOWNLOAD_UP))
-  {
-    check_completed (dc);
-    return;
-  }
   dc->task = GNUNET_SCHEDULER_add_now (&get_next_block, dc);
+  if ((dr == dc->top_request) && (dr->state == BRS_DOWNLOAD_UP))
+    check_completed (dc);
 }
 
 
@@ -1876,18 +1919,21 @@ GNUNET_FS_download_start_task_ (void *cls,
   }
   if (dc->rfh != NULL)
   {
-    /* finally, try bottom-up */
+    /* finally, actually run bottom-up */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Trying bottom-up reconstruction of file `%s'\n", dc->filename);
     dc->te =
-        GNUNET_FS_tree_encoder_create (dc->h, dc->old_file_size, dc, &fh_reader,
-                                       &reconstruct_cb, NULL,
-                                       &reconstruct_cont);
+      GNUNET_FS_tree_encoder_create (dc->h, 
+				     GNUNET_FS_uri_chk_get_file_size (dc->uri),
+				     dc, &fh_reader,
+				     &reconstruct_cb, NULL,
+				     &reconstruct_cont);
     dc->task = GNUNET_SCHEDULER_add_now (&get_next_block, dc);
   }
   else
   {
     /* simple, top-level download */
+    dc->issue_requests = GNUNET_YES;
     schedule_block_download (dc, dc->top_request);
   }
   if (dc->top_request->state == BRS_DOWNLOAD_UP)
@@ -2194,8 +2240,6 @@ GNUNET_FS_download_stop (struct GNUNET_FS_DownloadContext *dc, int do_delete)
 
   if (dc->top != NULL)
     GNUNET_FS_end_top (dc->h, dc->top);
-
-
   if (dc->task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (dc->task);

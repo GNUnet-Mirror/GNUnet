@@ -1616,7 +1616,7 @@ struct DownloadRequest
   unsigned int depth;
 
   /**
-   * Offset of the CHK for this block in the parent block.
+   * Offset of the CHK for this block in the parent block
    */
   unsigned int chk_idx;
 
@@ -1850,6 +1850,11 @@ struct GNUNET_FS_DownloadContext
    * Have we started the receive continuation yet?
    */
   int in_receive;
+
+  /**
+   * Are we ready to issue requests (reconstructions are finished)?
+   */
+  int issue_requests;
 
 };
 
