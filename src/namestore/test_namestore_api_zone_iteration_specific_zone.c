@@ -100,6 +100,7 @@ endbadly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_free_non_null(sig_2);
   GNUNET_free_non_null(s_name_1);
   GNUNET_free_non_null(s_name_2);
+
   if (s_rd_1 != NULL)
   {
     GNUNET_free ((void *)s_rd_1->data);
@@ -137,15 +138,14 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     endbadly_task = GNUNET_SCHEDULER_NO_TASK;
   }
 
-
   if (privkey != NULL)
     GNUNET_CRYPTO_rsa_key_free (privkey);
   privkey = NULL;
 
-  GNUNET_free_non_null(sig_1);
-  GNUNET_free_non_null(sig_2);
-  GNUNET_free_non_null(s_name_1);
-  GNUNET_free_non_null(s_name_2);
+  GNUNET_free (sig_1);
+  GNUNET_free (sig_2);
+  GNUNET_free (s_name_1);
+  GNUNET_free (s_name_2);
   if (s_rd_1 != NULL)
   {
     GNUNET_free ((void *)s_rd_1->data);
@@ -164,8 +164,6 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if (NULL != arm)
     stop_arm();
-
-  res = 0;
 }
 
 void zone_proc (void *cls,
@@ -227,7 +225,6 @@ void zone_proc (void *cls,
         failed = GNUNET_YES;
         GNUNET_break (0);
       }
-
     }
     else
     {
@@ -238,6 +235,7 @@ void zone_proc (void *cls,
 
     if (failed == GNUNET_NO)
     {
+      res --;
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Telling namestore to send the next result\n");
       GNUNET_NAMESTORE_zone_iterator_next (zi);
     }
@@ -276,11 +274,20 @@ put_cont (void *cls, int32_t success, const char *emsg)
   {
     c++;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created record %u \n", c);
-
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to created records\n");
+    GNUNET_break (0);
+    GNUNET_SCHEDULER_cancel (endbadly_task);
+    endbadly_task = GNUNET_SCHEDULER_add_now (&endbadly, NULL);
   }
 
   if (c == 2)
   {
+    res = 2;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "All records created, starting iteration over zone `%s'\n",
+        GNUNET_h2s(&zone));
     zi = GNUNET_NAMESTORE_zone_iteration_start(nsh,
                                         &zone,
                                         GNUNET_NAMESTORE_RF_NONE,
@@ -289,6 +296,7 @@ put_cont (void *cls, int32_t success, const char *emsg)
                                         &zone);
     if (zi == NULL)
     {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to create zone iterator\n");
       GNUNET_break (0);
       GNUNET_SCHEDULER_cancel (endbadly_task);
       endbadly_task = GNUNET_SCHEDULER_add_now (&endbadly, NULL);
@@ -305,11 +313,11 @@ create_record (int count)
 
   for (c = 0; c < count; c++)
   {
-  rd[c].expiration = GNUNET_TIME_absolute_get();
-  rd[c].record_type = 1111;
-  rd[c].data_size = 50;
-  rd[c].data = GNUNET_malloc(50);
-  memset ((char *) rd[c].data, 'a', 50);
+    rd[c].expiration = GNUNET_TIME_absolute_get();
+    rd[c].record_type = 1111;
+    rd[c].data_size = 50;
+    rd[c].data = GNUNET_malloc(50);
+    memset ((char *) rd[c].data, 'a', 50);
   }
   return rd;
 }
@@ -333,8 +341,6 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_break (NULL != nsh);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created record 1\n");
-
-
 
   GNUNET_asprintf(&s_name_1, "dummy1");
   s_rd_1 = create_record(1);
