@@ -87,15 +87,7 @@ struct GNUNET_GNS_ResolverHandle
   /* The name to resolve */
   char *name;
 
-  /* the request handle to reply to */
-  struct GNUNET_DNS_RequestHandle *request_handle;
   
-  /* the dns parser packet received */
-  struct GNUNET_DNSPARSER_Packet *packet;
-  
-  /* the query parsed from the packet */
-
-  struct GNUNET_DNSPARSER_Query *query;
   
   /* has this query been answered? how many matches */
   int answered;
@@ -129,6 +121,25 @@ struct GNUNET_GNS_ResolverHandle
 
 };
 
+/**
+ * Handle to a record lookup
+ */
+struct RecordLookupHandle
+{
+  /* the record type to look up */
+  enum GNUNET_GNS_RecordType record_type;
+
+  /* the name to look up */
+  char *name;
+
+  /* Method to call on resolution result */
+  ResolutionResultProcessor proc;
+
+  /* closure to pass to proc */
+  void* proc_cls;
+
+};
+
 struct ClientShortenHandle
 {
   struct GNUNET_SERVER_Client *client;
@@ -136,6 +147,27 @@ struct ClientShortenHandle
   GNUNET_HashCode key;
   char* name;
   uint32_t offset;
+};
+
+struct ClientLookupHandle
+{
+  struct GNUNET_SERVER_Client *client;
+  uint64_t unique_id;
+  GNUNET_HashCode key;
+  char* name; //Needed?
+};
+
+struct InterceptLookupHandle
+{
+  /* the request handle to reply to */
+  struct GNUNET_DNS_RequestHandle *request_handle;
+  
+  /* the dns parser packet received */
+  struct GNUNET_DNSPARSER_Packet *packet;
+  
+  /* the query parsed from the packet */
+
+  struct GNUNET_DNSPARSER_Query *query;
 };
 
 /**
@@ -208,7 +240,8 @@ reply_to_dns(void* cls, struct GNUNET_GNS_ResolverHandle *rh, uint32_t rd_count,
   size_t len;
   int ret;
   char *buf;
-  struct GNUNET_DNSPARSER_Packet *packet = rh->packet;
+  struct InterceptLookupHandle* ilh = (struct InterceptLookupHandle*)cls;
+  struct GNUNET_DNSPARSER_Packet *packet = ilh->packet;
   struct GNUNET_DNSPARSER_Record answer_records[rh->answered];
   struct GNUNET_DNSPARSER_Record additional_records[rd_count-(rh->answered)];
   packet->answers = answer_records;
@@ -225,13 +258,13 @@ reply_to_dns(void* cls, struct GNUNET_GNS_ResolverHandle *rh, uint32_t rd_count,
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                "Adding type %d to DNS response\n", rd[i].record_type);
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Name: %s\n", rh->name);
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "QName: %s\n", rh->query->name);
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "QName: %s\n", ilh->query->name);
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Record %d/%d\n", i+1, rd_count);
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Record len %d\n", rd[i].data_size);
     
-    if (rd[i].record_type == rh->query->type)
+    if (rd[i].record_type == ilh->query->type)
     {
-      answer_records[i].name = rh->query->name;
+      answer_records[i].name = ilh->query->name;
       answer_records[i].type = rd[i].record_type;
       answer_records[i].data.raw.data_len = rd[i].data_size;
       answer_records[i].data.raw.data = (char*)rd[i].data;
@@ -240,7 +273,7 @@ reply_to_dns(void* cls, struct GNUNET_GNS_ResolverHandle *rh, uint32_t rd_count,
     }
     else
     {
-      additional_records[i].name = rh->query->name;
+      additional_records[i].name = ilh->query->name;
       additional_records[i].type = rd[i].record_type;
       additional_records[i].data.raw.data_len = rd[i].data_size;
       additional_records[i].data.raw.data = (char*)rd[i].data;
@@ -280,7 +313,7 @@ reply_to_dns(void* cls, struct GNUNET_GNS_ResolverHandle *rh, uint32_t rd_count,
   {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                "Answering DNS request\n");
-    GNUNET_DNS_request_answer(rh->request_handle,
+    GNUNET_DNS_request_answer(ilh->request_handle,
                               len,
                               buf);
     //GNUNET_free(answer);
@@ -292,8 +325,11 @@ reply_to_dns(void* cls, struct GNUNET_GNS_ResolverHandle *rh, uint32_t rd_count,
                "Error building DNS response! (ret=%d)", ret);
   }
 
+  //FIXME free more!
   GNUNET_free(rh->name);
+  GNUNET_free(rh->proc_cls);
   GNUNET_free(rh);
+  GNUNET_free(ilh);
 }
 
 
@@ -355,8 +391,8 @@ dht_lookup_timeout(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_GNS_ResolverHandle *rh = cls;
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "dht lookup for query %s (type=%d) timed out.\n",
-             rh->name, rh->query->type);
+             "dht lookup for query %s timed out.\n",
+             rh->name);
 
   GNUNET_DHT_get_stop (rh->get_handle);
   rh->proc(rh->proc_cls, rh, 0, NULL);
@@ -391,6 +427,7 @@ process_record_dht_result(void* cls,
                  size_t size, const void *data)
 {
   struct GNUNET_GNS_ResolverHandle *rh;
+  struct RecordLookupHandle *rlh;
   struct GNSNameRecordBlock *nrb;
   uint32_t num_records;
   char* name = NULL;
@@ -407,6 +444,7 @@ process_record_dht_result(void* cls,
   //FIXME maybe check expiration here, check block type
   
   rh = (struct GNUNET_GNS_ResolverHandle *)cls;
+  rlh = (struct RecordLookupHandle *) rh->proc_cls;
   nrb = (struct GNSNameRecordBlock*)data;
   
   /* stop lookup and timeout task */
@@ -436,15 +474,15 @@ process_record_dht_result(void* cls,
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                "Got name: %s (wanted %s)\n", name, rh->name);
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "Got type: %d (wanted %d)\n",
-               rd[i].record_type, rh->query->type);
+               "Got type: %d\n",
+               rd[i].record_type);
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                "Got data length: %d\n", rd[i].data_size);
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                "Got flag %d\n", rd[i].flags);
     
      if ((strcmp(name, rh->name) == 0) &&
-         (rd[i].record_type == rh->query->type))
+         (rd[i].record_type == rlh->record_type))
       {
         rh->answered++;
       }
@@ -493,6 +531,7 @@ resolve_record_from_dht(struct GNUNET_GNS_ResolverHandle *rh)
   GNUNET_HashCode name_hash;
   GNUNET_HashCode lookup_key;
   struct GNUNET_CRYPTO_HashAsciiEncoded lookup_key_string;
+  struct RecordLookupHandle *rlh = (struct RecordLookupHandle *)rh->proc_cls;
 
   GNUNET_CRYPTO_hash(rh->name, strlen(rh->name), &name_hash);
   GNUNET_CRYPTO_hash_xor(&name_hash, &rh->authority, &lookup_key);
@@ -505,7 +544,7 @@ resolve_record_from_dht(struct GNUNET_GNS_ResolverHandle *rh)
   rh->dht_timeout_task = GNUNET_SCHEDULER_add_delayed(DHT_LOOKUP_TIMEOUT,
                                                       &dht_lookup_timeout, rh);
 
-  xquery = htonl(rh->query->type);
+  xquery = htonl(rlh->record_type);
   rh->get_handle = GNUNET_DHT_get_start(dht_handle, 
                        DHT_OPERATION_TIMEOUT,
                        GNUNET_BLOCK_TYPE_GNS_NAMERECORD,
@@ -541,10 +580,12 @@ process_record_lookup_ns(void* cls,
                   const struct GNUNET_CRYPTO_RsaSignature *signature)
 {
   struct GNUNET_GNS_ResolverHandle *rh;
+  struct RecordLookupHandle *rlh;
   struct GNUNET_TIME_Relative remaining_time;
   GNUNET_HashCode zone;
 
   rh = (struct GNUNET_GNS_ResolverHandle *) cls;
+  rlh = (struct RecordLookupHandle *)rh->proc_cls;
   GNUNET_CRYPTO_hash(key,
                      sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
                      &zone);
@@ -591,7 +632,7 @@ process_record_lookup_ns(void* cls,
     for (i=0; i<rd_count;i++)
     {
       
-      if (rd[i].record_type != rh->query->type)
+      if (rd[i].record_type != rlh->record_type)
         continue;
       
       if ((GNUNET_TIME_absolute_get_remaining (rd[i].expiration)).rel_value
@@ -632,7 +673,7 @@ process_record_lookup_ns(void* cls,
 static void
 resolve_record_from_ns(struct GNUNET_GNS_ResolverHandle *rh)
 {
-  
+  struct RecordLookupHandle *rlh = (struct RecordLookupHandle *)rh->proc_cls;
   /**
    * Try to resolve this record in our namestore.
    * The name to resolve is now in rh->authority_name
@@ -642,7 +683,7 @@ resolve_record_from_ns(struct GNUNET_GNS_ResolverHandle *rh)
   GNUNET_NAMESTORE_lookup_record(namestore_handle,
                                  &rh->authority,
                                  rh->name,
-                                 rh->query->type,
+                                 rlh->record_type,
                                  &process_record_lookup_ns,
                                  rh);
 
@@ -662,8 +703,8 @@ dht_authority_lookup_timeout(void *cls,
   struct GNUNET_GNS_ResolverHandle *rh = cls;
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "dht lookup for query %s (type=%d) timed out.\n",
-             rh->name, rh->query->type);
+             "dht lookup for query %s timed out.\n",
+             rh->name);
 
   GNUNET_DHT_get_stop (rh->get_handle);
   if (strcmp(rh->name, "") == 0)
@@ -832,20 +873,24 @@ process_record_result_dht(void* cls, struct GNUNET_GNS_ResolverHandle *rh,
                        unsigned int rd_count,
                        const struct GNUNET_NAMESTORE_RecordData *rd)
 {
+  struct RecordLookupHandle* rlh;
+  rlh = (struct RecordLookupHandle*)cls;
   if (rd_count == 0)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                "No records for %s found in DHT. Aborting\n",
                rh->name);
     /* give up, cannot resolve */
-    reply_to_dns(NULL, rh, 0, NULL);
+    rlh->proc(rlh->proc_cls, rh, 0, NULL);
+    //reply_to_dns(NULL, rh, 0, NULL);
     return;
   }
 
   /* results found yay */
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
              "Record resolved from namestore!");
-  reply_to_dns(NULL, rh, rd_count, rd);
+  rlh->proc(rlh->proc_cls, rh, rd_count, rd);
+  //reply_to_dns(NULL, rh, rd_count, rd);
 
 }
 
@@ -863,6 +908,8 @@ process_record_result_ns(void* cls, struct GNUNET_GNS_ResolverHandle *rh,
                        unsigned int rd_count,
                        const struct GNUNET_NAMESTORE_RecordData *rd)
 {
+  struct RecordLookupHandle* rlh;
+  rlh = (struct RecordLookupHandle*) cls;
   if (rd_count == 0)
   {
     /* ns entry expired. try dht */
@@ -873,14 +920,16 @@ process_record_result_ns(void* cls, struct GNUNET_GNS_ResolverHandle *rh,
       return;
     }
     /* give up, cannot resolve */
-    reply_to_dns(NULL, rh, 0, NULL);
+    rlh->proc(rlh->proc_cls, rh, 0, NULL);
+    //reply_to_dns(NULL, rh, 0, NULL);
     return;
   }
 
   /* results found yay */
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
              "Record resolved from namestore!");
-  reply_to_dns(NULL, rh, rd_count, rd);
+  rlh->proc(rlh->proc_cls, rh, rd_count, rd);
+  //reply_to_dns(NULL, rh, rd_count, rd);
 
 }
 
@@ -955,6 +1004,9 @@ process_dht_delegation_dns(void* cls, struct GNUNET_GNS_ResolverHandle *rh,
                           unsigned int rd_count,
                           const struct GNUNET_NAMESTORE_RecordData *rd)
 {
+  struct RecordLookupHandle* rlh;
+  rlh = (struct RecordLookupHandle*) cls;
+  
   if (strcmp(rh->name, "") == 0)
   {
     /* We resolved full name for delegation. resolving record */
@@ -980,7 +1032,8 @@ process_dht_delegation_dns(void* cls, struct GNUNET_GNS_ResolverHandle *rh,
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
              "Cannot fully resolve delegation for %s via DHT!\n",
              rh->name);
-  reply_to_dns(NULL, rh, 0, NULL);
+  rlh->proc(rlh->proc_cls, rh, 0, NULL);
+  //reply_to_dns(NULL, rh, 0, NULL);
 }
 
 
@@ -1036,6 +1089,9 @@ process_ns_delegation_dns(void* cls, struct GNUNET_GNS_ResolverHandle *rh,
                           unsigned int rd_count,
                           const struct GNUNET_NAMESTORE_RecordData *rd)
 {
+  struct RecordLookupHandle* rlh;
+  rlh = (struct RecordLookupHandle*) cls;
+  
   if (strcmp(rh->name, "") == 0)
   {
     /* We resolved full name for delegation. resolving record */
@@ -1065,7 +1121,8 @@ process_ns_delegation_dns(void* cls, struct GNUNET_GNS_ResolverHandle *rh,
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                  "Cannot fully resolve delegation for %s!\n",
                  rh->name);
-      reply_to_dns(NULL, rh, 0, NULL);
+      rlh->proc(rlh->proc_cls, rh, 0, NULL);
+      //reply_to_dns(NULL, rh, 0, NULL);
     }
     return;
   }
@@ -1264,17 +1321,30 @@ start_resolution_from_dns(struct GNUNET_DNS_RequestHandle *request,
                           struct GNUNET_DNSPARSER_Query *q)
 {
   struct GNUNET_GNS_ResolverHandle *rh;
+  struct RecordLookupHandle* rlh;
+  struct InterceptLookupHandle* ilh;
   
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Starting resolution for %s (type=%d)!\n",
               q->name, q->type);
   
   rh = GNUNET_malloc(sizeof (struct GNUNET_GNS_ResolverHandle));
-  rh->packet = p;
-  rh->query = q;
+  rlh = GNUNET_malloc(sizeof(struct RecordLookupHandle));
+  ilh = GNUNET_malloc(sizeof(struct InterceptLookupHandle));
+  ilh->packet = p;
+  ilh->query = q;
+  ilh->request_handle = request;
+  
   rh->authority = zone_hash;
+
+  rlh->record_type = q->type;
+  rlh->name = q->name;
+  rlh->proc = &reply_to_dns;
+  rlh->proc_cls = ilh;
+
+  rh->proc_cls = rlh;
   
-  
+  rh->authority = zone_hash;
   rh->name = GNUNET_malloc(strlen(q->name)
                               - strlen(gnunet_tld) + 1);
   memset(rh->name, 0,
@@ -1283,9 +1353,7 @@ start_resolution_from_dns(struct GNUNET_DNS_RequestHandle *request,
          strlen(q->name)-strlen(gnunet_tld));
 
   rh->authority_name = GNUNET_malloc(sizeof(char)*MAX_DNS_LABEL_LENGTH);
-
-  rh->request_handle = request;
-
+  
   rh->authority_chain_head = GNUNET_malloc(sizeof(struct AuthorityChain));
   rh->authority_chain_tail = rh->authority_chain_head;
   rh->authority_chain_head->zone = zone_hash;

@@ -109,6 +109,8 @@ finish_testing (void *cls, int32_t success, const char *emsg)
   struct in_addr a;
   char* addr;
   
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "disconnecting from namestore\n");
   GNUNET_NAMESTORE_disconnect(namestore_handle, GNUNET_YES);
 
   he = gethostbyname (TEST_DOMAIN);
