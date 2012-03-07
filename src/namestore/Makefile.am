@@ -193,7 +193,8 @@ test_namestore_record_serialization_LDADD = \
 EXTRA_DIST = \
   test_namestore_api.conf \
   test_plugin_namestore_sqlite.conf\
-  hostkey
+  hostkey \
+  hostkey2
 
 
 test_plugin_namestore_sqlite_SOURCES = \
