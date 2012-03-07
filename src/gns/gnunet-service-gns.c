@@ -58,6 +58,9 @@ struct AuthorityChain
   struct AuthorityChain *next;
 
   GNUNET_HashCode zone;
+
+  /* was the ns entry fresh */
+  int fresh;
 };
 
 struct GNUNET_GNS_ResolverHandle;
@@ -66,6 +69,12 @@ typedef void (*ResolutionResultProcessor) (void *cls,
                                   struct GNUNET_GNS_ResolverHandle *rh,
                                   uint32_t rd_count,
                                   const struct GNUNET_NAMESTORE_RecordData *rd);
+
+enum ResolutionStatus
+{
+  EXISTS = 1,
+  EXPIRED = 2
+};
 
 /**
  * Handle to a currenty pending resolution
@@ -112,6 +121,8 @@ struct GNUNET_GNS_ResolverHandle
 
   struct AuthorityChain *authority_chain_head;
   struct AuthorityChain *authority_chain_tail;
+
+  enum ResolutionStatus status;
 
 };
 
@@ -177,7 +188,7 @@ static int num_public_records =  3600;
 struct GNUNET_TIME_Relative dht_update_interval;
 GNUNET_SCHEDULER_TaskIdentifier zone_update_taskid = GNUNET_SCHEDULER_NO_TASK;
 
-static void resolve_name(struct GNUNET_GNS_ResolverHandle *rh);
+//static void resolve_name(struct GNUNET_GNS_ResolverHandle *rh);
 
 /**
  * Reply to client with the result from our lookup.
@@ -473,7 +484,7 @@ process_record_dht_result(void* cls,
  * @param name the name to query record
  */
 static void
-resolve_record_dht(struct GNUNET_GNS_ResolverHandle *rh)
+resolve_record_from_dht(struct GNUNET_GNS_ResolverHandle *rh)
 {
   uint32_t xquery;
   GNUNET_HashCode name_hash;
@@ -519,7 +530,7 @@ resolve_record_dht(struct GNUNET_GNS_ResolverHandle *rh)
  * @param signature the signature of the authority for the record data
  */
 static void
-process_record_lookup(void* cls,
+process_record_lookup_ns(void* cls,
                   const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *key,
                   struct GNUNET_TIME_Absolute expiration,
                   const char *name, unsigned int rd_count,
@@ -536,32 +547,34 @@ process_record_lookup(void* cls,
                      &zone);
   remaining_time = GNUNET_TIME_absolute_get_remaining (expiration);
 
+  rh->status = 0;
+  
+  if (name != NULL)
+  {
+    rh->status |= EXISTS;
+  }
+  
+  if (remaining_time.rel_value == 0)
+  {
+    rh->status |= EXPIRED;
+  }
+  
   if (rd_count == 0)
   {
     /**
      * Lookup terminated and no results
-     * -> DHT Phase unless data is recent
      */
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                "Namestore lookup for %s terminated without results\n", name);
     
-    /**
-     * Not our root and no record found. Try dht if expired
-     */
-    if ((0 != GNUNET_CRYPTO_hash_cmp(&rh->authority, &zone_hash)) &&
-        ((name == NULL) || (remaining_time.rel_value != 0)))
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "Record %s unknown in namestore, trying dht\n",
-                 rh->name);
-      resolve_record_dht(rh);
-      return;
-    }
     
+
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "Record %s unknown in namestore\n",
+               rh->name);
     /**
      * Our zone and no result? Cannot resolve TT
      */
-    GNUNET_assert(rh->answered == 0);
     rh->proc(rh->proc_cls, rh, 0, NULL);
     return;
 
@@ -607,7 +620,6 @@ process_record_lookup(void* cls,
   }
 }
 
-
 /**
  * The final phase of resolution.
  * This is a name that is canonical and we do not have a delegation.
@@ -615,7 +627,7 @@ process_record_lookup(void* cls,
  * @param rh the pending lookup
  */
 static void
-resolve_record(struct GNUNET_GNS_ResolverHandle *rh)
+resolve_record_from_ns(struct GNUNET_GNS_ResolverHandle *rh)
 {
   
   /**
@@ -628,7 +640,7 @@ resolve_record(struct GNUNET_GNS_ResolverHandle *rh)
                                  &rh->authority,
                                  rh->name,
                                  rh->query->type,
-                                 &process_record_lookup,
+                                 &process_record_lookup_ns,
                                  rh);
 
 }
@@ -657,14 +669,12 @@ dht_authority_lookup_timeout(void *cls,
      * promote authority back to name and try to resolve record
      */
     strcpy(rh->name, rh->authority_name);
-    resolve_record(rh);
   }
-  else
-  {
-    rh->proc(rh->proc_cls, rh, 0, NULL);
-  }
+  rh->proc(rh->proc_cls, rh, 0, NULL);
 }
 
+// Prototype
+static void resolve_delegation_from_dht(struct GNUNET_GNS_ResolverHandle *rh);
 
 /**
  * Function called when we get a result from the dht
@@ -786,218 +796,88 @@ process_authority_dht_result(void* cls,
     rh->answered = 0;
     /* delegate */
     if (strcmp(rh->name, "") == 0)
-      resolve_record(rh);
+      rh->proc(rh->proc_cls, rh, 0, NULL);
     else
-      resolve_name(rh);
+      resolve_delegation_from_dht(rh);
     return;
   }
 
-  /* resolve */
+  /* resolve never get here, should timeout??*/
+  
+  
   if (strcmp(rh->name, "") == 0)
   {
     /* promote authority back to name */
     strcpy(rh->name, rh->authority_name);
-    resolve_record(rh);
-    return;
   }
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "No authority in records\n");
   rh->proc(rh->proc_cls, rh, 0, NULL);
 }
 
+
 /**
- * Start DHT lookup for a name -> PKEY (compare NS) record in
- * query->authority's zone
+ * DHT lookup result for record.
  *
- * @param rh the pending gns query
- * @param name the name of the PKEY record
+ * @param cls the closure
+ * @param rh resolver handle
+ * @param rd_count number of results (always 0)
+ * @param rd record data (always NULL)
  */
 static void
-resolve_authority_dht(struct GNUNET_GNS_ResolverHandle *rh)
+process_record_result_dht(void* cls, struct GNUNET_GNS_ResolverHandle *rh,
+                       unsigned int rd_count,
+                       const struct GNUNET_NAMESTORE_RecordData *rd)
 {
-  uint32_t xquery;
-  GNUNET_HashCode name_hash;
-  GNUNET_HashCode lookup_key;
+  if (rd_count == 0)
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "No records for %s found in DHT. Aborting\n",
+               rh->name);
+    /* give up, cannot resolve */
+    reply_to_dns(NULL, rh, 0, NULL);
+    return;
+  }
 
-  GNUNET_CRYPTO_hash(rh->authority_name,
-                     strlen(rh->authority_name),
-                     &name_hash);
-  GNUNET_CRYPTO_hash_xor(&name_hash, &rh->authority, &lookup_key);
-
-  rh->dht_timeout_task = GNUNET_SCHEDULER_add_delayed (DHT_LOOKUP_TIMEOUT,
-                                                  &dht_authority_lookup_timeout,
-                                                       rh);
-
-  xquery = htonl(GNUNET_GNS_RECORD_PKEY);
-  //FIXME how long to wait for results?
-  rh->get_handle = GNUNET_DHT_get_start(dht_handle,
-                       DHT_OPERATION_TIMEOUT,
-                       GNUNET_BLOCK_TYPE_GNS_NAMERECORD,
-                       &lookup_key,
-                       DHT_GNS_REPLICATION_LEVEL,
-                       GNUNET_DHT_RO_NONE,
-                       NULL,
-                       sizeof(xquery),
-                       &process_authority_dht_result,
-                       rh);
+  /* results found yay */
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Record resolved from namestore!");
+  reply_to_dns(NULL, rh, rd_count, rd);
 
 }
 
+
 /**
- * This is a callback function that should give us only PKEY
- * records. Used to query the namestore for the authority (PKEY)
- * for 'name'
+ * Namestore lookup result for record.
  *
- * @param cls the pending query
- * @param key the key of the zone we did the lookup
- * @param expiration expiration date of the record data set in the namestore
- * @param name the name for which we need an authority
- * @param rd_count the number of records with 'name'
- * @param rd the record data
- * @param signature the signature of the authority for the record data
+ * @param cls the closure
+ * @param rh resolver handle
+ * @param rd_count number of results (always 0)
+ * @param rd record data (always NULL)
  */
 static void
-process_authority_lookup(void* cls,
-                   const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *key,
-                   struct GNUNET_TIME_Absolute expiration,
-                   const char *name,
-                   unsigned int rd_count,
-                   const struct GNUNET_NAMESTORE_RecordData *rd,
-                   const struct GNUNET_CRYPTO_RsaSignature *signature)
+process_record_result_ns(void* cls, struct GNUNET_GNS_ResolverHandle *rh,
+                       unsigned int rd_count,
+                       const struct GNUNET_NAMESTORE_RecordData *rd)
 {
-  struct GNUNET_GNS_ResolverHandle *rh;
-  struct GNUNET_TIME_Relative remaining_time;
-  GNUNET_HashCode zone;
-  
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Got %d records from authority lookup\n",
-             rd_count);
-
-  rh = (struct GNUNET_GNS_ResolverHandle *)cls;
-  GNUNET_CRYPTO_hash(key,
-                     sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
-                     &zone);
-  remaining_time = GNUNET_TIME_absolute_get_remaining (expiration);
-  
-  /**
-   * No authority found in namestore.
-   */
   if (rd_count == 0)
   {
-    /**
-     * We did not find an authority in the namestore
-     * _IF_ the current authoritative zone is us we cannot resolve
-     * _ELSE_ we can still check the _expired_ dht
-     */
-    
-    /**
-     * No PKEY in our root. Try to resolve actual type in our zone
-     * if name is canonical. Else we cannot resolve.
-     */
-    if (0 == GNUNET_CRYPTO_hash_cmp(&rh->authority, &zone_hash))
+    /* ns entry expired. try dht */
+    if (rh->status & (EXPIRED | !EXISTS))
     {
-      if (strcmp(rh->name, "") == 0)
-      {
-        /**
-         * Promote this authority back to a name
-         */
-        strcpy(rh->name, rh->authority_name);
-        resolve_record(rh);
-        return;
-      }
-      else
-      {
-        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                   "Authority %s for %s unknown in namestore, cannot resolve\n",
-                   rh->authority_name, rh->name);
-      }
-      rh->proc(rh->proc_cls, rh, 0, NULL);
+      rh->proc = &process_record_result_dht;
+      resolve_record_from_dht(rh);
       return;
     }
-    
-    /**
-     * Not our root and no PKEY found. Try dht if expired
-     * FIXME only do when expired?
-     */
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "AAAA %d\n", remaining_time.rel_value);
-    if ((0 != GNUNET_CRYPTO_hash_cmp(&rh->authority, &zone_hash)))
-    {
-      if (strcmp(rh->name, "") == 0)
-      {
-        /**
-         * Promote this authority back to a name
-         */
-        strcpy(rh->name, rh->authority_name);
-        resolve_record(rh);
-      }
-      else
-      {
-        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                   "Authority %s for %s unknown in namestore, trying dht\n",
-                  rh->authority_name, rh->name);
-        resolve_authority_dht(rh);
-      }
-        return;
-    }
-    
-    /**
-     * Not our root and not expired or no records. Cannot resolve
-     */
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Authority %s unknown\n",
-               rh->authority_name);
-    rh->proc(rh->proc_cls, rh, 0, NULL);
+    /* give up, cannot resolve */
+    reply_to_dns(NULL, rh, 0, NULL);
     return;
   }
 
-  //Note only 1 pkey should have been returned.. anything else would be strange
-  /**
-   * We found an authority that may be able to help us
-   * move on with query
-   */
-  int i;
-  for (i=0; i<rd_count;i++)
-  {
-  
-    if (rd[i].record_type != GNUNET_GNS_RECORD_PKEY)
-      continue;
-    
-    if ((GNUNET_TIME_absolute_get_remaining (rd[i].expiration)).rel_value
-         == 0)
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "This pkey is expired.\n");
-      if (remaining_time.rel_value == 0)
-      {
-        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                   "This dht entry is expired. Refreshing\n");
-        resolve_authority_dht(rh);
-        return;
-      }
-
-      continue;
-    }
-
-    /**
-     * Resolve rest of query with new authority
-     */
-    GNUNET_assert(rd[i].record_type == GNUNET_GNS_RECORD_PKEY);
-    memcpy(&rh->authority, rd[i].data, sizeof(GNUNET_HashCode));
-    struct AuthorityChain *auth = GNUNET_malloc(sizeof(struct AuthorityChain));
-    auth->zone = rh->authority;
-    GNUNET_CONTAINER_DLL_insert (rh->authority_chain_head,
-                                 rh->authority_chain_tail,
-                                 auth);
-
-    if (strcmp(rh->name, "") == 0)
-      resolve_record(rh);
-    else
-      resolve_name(rh);
-    return;
-  }
-    
-  /**
-   * no answers found
-   */
+  /* results found yay */
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Authority lookup successful but no PKEY... never get here\n");
-  rh->proc(rh->proc_cls, rh, 0, NULL);
+             "Record resolved from namestore!");
+  reply_to_dns(NULL, rh, rd_count, rd);
+
 }
 
 
@@ -1058,6 +938,287 @@ pop_tld(char* name, char* dest)
   strcpy(dest, (name+len+1));
 }
 
+/**
+ * Namestore resolution for delegation finished. Processing result.
+ *
+ * @param cls the closure
+ * @param rh resolver handle
+ * @param rd_count number of results (always 0)
+ * @param rd record data (always NULL)
+ */
+static void
+process_dht_delegation_dns(void* cls, struct GNUNET_GNS_ResolverHandle *rh,
+                          unsigned int rd_count,
+                          const struct GNUNET_NAMESTORE_RecordData *rd)
+{
+  if (strcmp(rh->name, "") == 0)
+  {
+    /* We resolved full name for delegation. resolving record */
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+      "Resolved full name for delegation via DHT. resolving record '' in ns\n");
+    rh->proc = &process_record_result_ns;
+    resolve_record_from_ns(rh);
+    return;
+  }
+
+  /**
+   * we still have some left
+   **/
+  if (is_canonical(rh->name))
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "Resolving canonical record %s in ns\n", rh->name);
+    rh->proc = &process_record_result_ns;
+    resolve_record_from_ns(rh);
+    return;
+  }
+  /* give up, cannot resolve */
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Cannot fully resolve delegation for %s via DHT!\n",
+             rh->name);
+  reply_to_dns(NULL, rh, 0, NULL);
+}
+
+
+/**
+ * Start DHT lookup for a name -> PKEY (compare NS) record in
+ * rh->authority's zone
+ *
+ * @param rh the pending gns query
+ * @param name the name of the PKEY record
+ */
+static void
+resolve_delegation_from_dht(struct GNUNET_GNS_ResolverHandle *rh)
+{
+  uint32_t xquery;
+  GNUNET_HashCode name_hash;
+  GNUNET_HashCode lookup_key;
+
+  GNUNET_CRYPTO_hash(rh->authority_name,
+                     strlen(rh->authority_name),
+                     &name_hash);
+  GNUNET_CRYPTO_hash_xor(&name_hash, &rh->authority, &lookup_key);
+
+  rh->dht_timeout_task = GNUNET_SCHEDULER_add_delayed (DHT_LOOKUP_TIMEOUT,
+                                                  &dht_authority_lookup_timeout,
+                                                       rh);
+
+  xquery = htonl(GNUNET_GNS_RECORD_PKEY);
+  //FIXME how long to wait for results?
+  rh->get_handle = GNUNET_DHT_get_start(dht_handle,
+                       DHT_OPERATION_TIMEOUT,
+                       GNUNET_BLOCK_TYPE_GNS_NAMERECORD,
+                       &lookup_key,
+                       DHT_GNS_REPLICATION_LEVEL,
+                       GNUNET_DHT_RO_NONE,
+                       NULL,
+                       sizeof(xquery),
+                       &process_authority_dht_result,
+                       rh);
+
+}
+
+
+/**
+ * Namestore resolution for delegation finished. Processing result.
+ *
+ * @param cls the closure
+ * @param rh resolver handle
+ * @param rd_count number of results (always 0)
+ * @param rd record data (always NULL)
+ */
+static void
+process_ns_delegation_dns(void* cls, struct GNUNET_GNS_ResolverHandle *rh,
+                          unsigned int rd_count,
+                          const struct GNUNET_NAMESTORE_RecordData *rd)
+{
+  if (strcmp(rh->name, "") == 0)
+  {
+    /* We resolved full name for delegation. resolving record */
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "Resolved full name for delegation. resolving record ''\n");
+    rh->proc = &process_record_result_ns;
+    resolve_record_from_ns(rh);
+    return;
+  }
+
+  /**
+   * we still have some left
+   * check if ns entry is fresh
+   **/
+  if (rh->status & (EXISTS | !EXPIRED))
+  {
+    if (is_canonical(rh->name))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                 "Resolving canonical record %s\n", rh->name);
+      rh->proc = &process_record_result_ns;
+      resolve_record_from_ns(rh);
+    }
+    else
+    {
+      /* give up, cannot resolve */
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                 "Cannot fully resolve delegation for %s!\n",
+                 rh->name);
+      reply_to_dns(NULL, rh, 0, NULL);
+    }
+    return;
+  }
+  
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Trying to resolve delegation for %s via DHT\n",
+             rh->name);
+  rh->proc = &process_dht_delegation_dns;
+  resolve_delegation_from_dht(rh);
+}
+
+//Prototype
+static void resolve_delegation_from_ns(struct GNUNET_GNS_ResolverHandle *rh);
+
+/**
+ * This is a callback function that should give us only PKEY
+ * records. Used to query the namestore for the authority (PKEY)
+ * for 'name'
+ *
+ * @param cls the pending query
+ * @param key the key of the zone we did the lookup
+ * @param expiration expiration date of the record data set in the namestore
+ * @param name the name for which we need an authority
+ * @param rd_count the number of records with 'name'
+ * @param rd the record data
+ * @param signature the signature of the authority for the record data
+ */
+static void
+process_authority_lookup_ns(void* cls,
+                   const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *key,
+                   struct GNUNET_TIME_Absolute expiration,
+                   const char *name,
+                   unsigned int rd_count,
+                   const struct GNUNET_NAMESTORE_RecordData *rd,
+                   const struct GNUNET_CRYPTO_RsaSignature *signature)
+{
+  struct GNUNET_GNS_ResolverHandle *rh;
+  struct GNUNET_TIME_Relative remaining_time;
+  GNUNET_HashCode zone;
+  char* new_name;
+  
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Got %d records from authority lookup\n",
+             rd_count);
+
+  rh = (struct GNUNET_GNS_ResolverHandle *)cls;
+  GNUNET_CRYPTO_hash(key,
+                     sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+                     &zone);
+  remaining_time = GNUNET_TIME_absolute_get_remaining (expiration);
+  
+  rh->status = 0;
+  
+  if (name != NULL)
+  {
+    rh->status |= EXISTS;
+  }
+  
+  if (remaining_time.rel_value == 0)
+  {
+    rh->status |= EXPIRED;
+  }
+  
+  /**
+   * No authority found in namestore.
+   */
+  if (rd_count == 0)
+  {
+    /**
+     * We did not find an authority in the namestore
+     */
+    
+    /**
+     * No PKEY in zone.
+     * Promote this authority back to a name maybe it is
+     * our record.
+     */
+    if (strcmp(rh->name, "") == 0)
+    {
+      /* simply promote back */
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                 "Promoting %s back to name\n", rh->authority_name);
+      strcpy(rh->name, rh->authority_name);
+    }
+    else
+    {
+      /* add back to existing name */
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                 "Adding %s back to %s\n",
+                 rh->authority_name, rh->name);
+      new_name = GNUNET_malloc(strlen(rh->name)
+                               + strlen(rh->authority_name) + 2);
+      memset(new_name, 0, strlen(rh->name) + strlen(rh->authority_name) + 2);
+      strcpy(new_name, rh->name);
+      strcpy(new_name+strlen(new_name)+1, ".");
+      strcpy(new_name+strlen(new_name)+2, rh->authority_name);
+      GNUNET_free(rh->name);
+      rh->name = new_name;
+    }
+    rh->proc(rh->proc_cls, rh, 0, NULL);
+    return;
+  }
+
+  //Note only 1 pkey should have been returned.. anything else would be strange
+  /**
+   * We found an authority that may be able to help us
+   * move on with query
+   */
+  int i;
+  for (i=0; i<rd_count;i++)
+  {
+  
+    if (rd[i].record_type != GNUNET_GNS_RECORD_PKEY)
+      continue;
+    
+    if ((GNUNET_TIME_absolute_get_remaining (rd[i].expiration)).rel_value
+         == 0)
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "This pkey is expired.\n");
+      if (remaining_time.rel_value == 0)
+      {
+        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                   "This dht entry is expired.\n");
+        rh->authority_chain_head->fresh = 0;
+        rh->proc(rh->proc_cls, rh, 0, NULL);
+        return;
+      }
+
+      continue;
+    }
+
+    /**
+     * Resolve rest of query with new authority
+     */
+    GNUNET_assert(rd[i].record_type == GNUNET_GNS_RECORD_PKEY);
+    memcpy(&rh->authority, rd[i].data, sizeof(GNUNET_HashCode));
+    struct AuthorityChain *auth = GNUNET_malloc(sizeof(struct AuthorityChain));
+    auth->zone = rh->authority;
+    GNUNET_CONTAINER_DLL_insert (rh->authority_chain_head,
+                                 rh->authority_chain_tail,
+                                 auth);
+
+    if (strcmp(rh->name, "") == 0)
+      rh->proc(rh->proc_cls, rh, 0, NULL);
+    else
+      resolve_delegation_from_ns(rh);
+    return;
+  }
+    
+  /**
+   * no answers found
+   */
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Authority lookup successful but no PKEY... never get here\n");
+  rh->proc(rh->proc_cls, rh, 0, NULL);
+}
+
+
 
 /**
  * The first phase of resolution.
@@ -1067,8 +1228,24 @@ pop_tld(char* name, char* dest)
  *
  * @param rh the pending lookup
  */
-static void
+/*static void
 resolve_name(struct GNUNET_GNS_ResolverHandle *rh)
+{
+  
+  pop_tld(rh->name, rh->authority_name);
+  GNUNET_NAMESTORE_lookup_record(namestore_handle,
+                                 &rh->authority,
+                                 rh->authority_name,
+                                 GNUNET_GNS_RECORD_PKEY,
+                                 &process_authority_lookup,
+                                 rh);
+
+}*/
+
+
+
+static void
+resolve_delegation_from_ns(struct GNUNET_GNS_ResolverHandle *rh)
 {
   
   /**
@@ -1079,7 +1256,7 @@ resolve_name(struct GNUNET_GNS_ResolverHandle *rh)
                                  &rh->authority,
                                  rh->authority_name,
                                  GNUNET_GNS_RECORD_PKEY,
-                                 &process_authority_lookup,
+                                 &process_authority_lookup_ns,
                                  rh);
 
 }
@@ -1107,7 +1284,7 @@ start_resolution_from_dns(struct GNUNET_DNS_RequestHandle *request,
   rh->packet = p;
   rh->query = q;
   rh->authority = zone_hash;
-  rh->proc = &reply_to_dns;
+  
   
   rh->name = GNUNET_malloc(strlen(q->name)
                               - strlen(gnunet_tld) + 1);
@@ -1125,7 +1302,9 @@ start_resolution_from_dns(struct GNUNET_DNS_RequestHandle *request,
   rh->authority_chain_head->zone = zone_hash;
 
   /* Start resolution in our zone */
-  resolve_name(rh);
+  rh->proc = &process_ns_delegation_dns;
+  resolve_delegation_from_ns(rh);
+  //resolve_name(rh);
 }
 
 /**
@@ -1494,7 +1673,7 @@ shorten_name(char* name, struct ClientShortenHandle* csh)
   rh->proc_cls = (void*)csh;
 
   /* Start resolution in our zone */
-  resolve_name(rh);
+  //resolve_name(rh);
 
 }
 
