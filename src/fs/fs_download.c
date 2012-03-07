@@ -1531,23 +1531,23 @@ create_download_request (struct DownloadRequest *parent,
     if (dr_offset < file_start_offset)
       head_skip = file_start_offset / child_block_size;
     else
-      head_skip = dr_offset / child_block_size;
+      head_skip = 0;
 
     /* calculate index of last block at this level that is interesting (rounded up) */
-    dr->num_children = (file_start_offset + desired_length) / child_block_size;
+    dr->num_children = (file_start_offset + desired_length - dr_offset) / child_block_size;
     if (dr->num_children * child_block_size <
-        file_start_offset + desired_length)
+        file_start_offset + desired_length - dr_offset)
       dr->num_children++;       /* round up */
+    if (dr->num_children > CHK_PER_INODE)
+      dr->num_children = CHK_PER_INODE; /* cap at max */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Block at offset %llu and depth %u has %u children\n",
 		(unsigned long long) dr_offset,
 		depth,
 		dr->num_children);
 
-    /* now we can get the total number of children for this block */
+    /* now we can get the total number of *interesting* children for this block */
     dr->num_children -= head_skip;
-    if (dr->num_children > CHK_PER_INODE)
-      dr->num_children = CHK_PER_INODE; /* cap at max */
 
     /* why else would we have gotten here to begin with? (that'd be a bad logic error) */
     GNUNET_assert (dr->num_children > 0);
