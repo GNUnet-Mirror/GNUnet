@@ -263,9 +263,54 @@ GNUNET_NAMESTORE_create_signature (const struct GNUNET_CRYPTO_RsaPrivateKey *key
  */
 char *
 GNUNET_NAMESTORE_value_to_string (uint32_t type,
-				   const void *data,
-				   size_t data_size)
+				  const void *data,
+				  size_t data_size)
 {
+  char tmp[INET6_ADDRSTRLEN];
+
+  switch (type)
+  {
+  case 0:
+    return NULL;
+  case GNUNET_DNSPARSER_TYPE_A:
+    if (data_size != sizeof (struct in_addr))
+      return NULL;
+    if (NULL == inet_ntop (AF_INET, data, tmp, sizeof (tmp)))
+      return NULL;
+    return GNUNET_strdup (tmp);
+  case GNUNET_DNSPARSER_TYPE_NS:
+    return GNUNET_strndup (data, data_size);
+  case GNUNET_DNSPARSER_TYPE_CNAME:
+    return GNUNET_strndup (data, data_size);
+  case GNUNET_DNSPARSER_TYPE_SOA:
+    GNUNET_break (0);
+    // FIXME
+    return NULL;
+  case GNUNET_DNSPARSER_TYPE_PTR:
+    GNUNET_break (0);
+    // FIXME
+    return NULL;
+  case GNUNET_DNSPARSER_TYPE_MX:
+    GNUNET_break (0);
+    // FIXME
+    return NULL;
+  case GNUNET_DNSPARSER_TYPE_TXT:
+    return GNUNET_strndup (data, data_size);
+  case GNUNET_DNSPARSER_TYPE_AAAA:
+    if (data_size != sizeof (struct in6_addr))
+      return NULL;
+    if (NULL == inet_ntop (AF_INET6, data, tmp, sizeof (tmp)))
+      return NULL;
+    return GNUNET_strdup (tmp);
+  case GNUNET_NAMESTORE_TYPE_PKEY:
+    if (data_size != sizeof (GNUNET_HashCode))
+      return NULL;
+    return GNUNET_strdup (GNUNET_h2s_full (data));
+  case GNUNET_NAMESTORE_TYPE_PSEU:
+    return GNUNET_strndup (data, data_size);
+  default:
+    GNUNET_break (0);
+  }
   GNUNET_break (0); // not implemented
   return NULL;
 }
@@ -289,27 +334,27 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
 {
   struct in_addr value_a;
   struct in6_addr value_aaaa;
+  GNUNET_HashCode pkey;
 
   switch (type)
   {
   case 0:
     return GNUNET_SYSERR;
-    break;
   case GNUNET_DNSPARSER_TYPE_A:
     if (1 != inet_pton (AF_INET, s, &value_a))
       return GNUNET_SYSERR;
     *data = GNUNET_malloc (sizeof (struct in_addr));
     memcpy (*data, &value_a, sizeof (value_a));
     *data_size = sizeof (value_a);
-    break;
+    return GNUNET_OK;
   case GNUNET_DNSPARSER_TYPE_NS:
     *data = GNUNET_strdup (s);
     *data_size = strlen (s);
-    break;
+    return GNUNET_OK;
   case GNUNET_DNSPARSER_TYPE_CNAME:
     *data = GNUNET_strdup (s);
     *data_size = strlen (s);
-    break;
+    return GNUNET_OK;
   case GNUNET_DNSPARSER_TYPE_SOA:
     GNUNET_break (0);
     // FIXME
@@ -325,21 +370,24 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
   case GNUNET_DNSPARSER_TYPE_TXT:
     *data = GNUNET_strdup (s);
     *data_size = strlen (s);
-    break;
+    return GNUNET_OK;
   case GNUNET_DNSPARSER_TYPE_AAAA:
     if (1 != inet_pton (AF_INET6, s, &value_aaaa))    
       return GNUNET_SYSERR;    
     *data = GNUNET_malloc (sizeof (struct in6_addr));
     memcpy (*data, &value_aaaa, sizeof (value_aaaa));
-    break;
+    return GNUNET_OK;
   case GNUNET_NAMESTORE_TYPE_PKEY:
-    GNUNET_break (0);
-    // FIXME
-    return GNUNET_SYSERR;
+    if (GNUNET_OK !=
+	GNUNET_CRYPTO_hash_from_string (s, &pkey))
+      return GNUNET_SYSERR;
+    *data = GNUNET_malloc (sizeof (GNUNET_HashCode));
+    memcpy (*data, &pkey, sizeof (pkey));
+    return GNUNET_OK;
   case GNUNET_NAMESTORE_TYPE_PSEU:
     *data = GNUNET_strdup (s);
     *data_size = strlen (s);
-    break;
+    return GNUNET_OK;
   default:
     GNUNET_break (0);
   }
