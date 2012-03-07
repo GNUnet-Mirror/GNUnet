@@ -25,6 +25,7 @@ endif
 
 check_PROGRAMS = \
  $(SQLITE_TESTS) \
+ test_namestore_record_serialization \
  test_namestore_api_sign_verify \
  test_namestore_api \
  test_namestore_api_put \
@@ -37,8 +38,7 @@ check_PROGRAMS = \
  test_namestore_api_zone_to_name \
  test_namestore_api_zone_iteration \
  test_namestore_api_zone_iteration_specific_zone \
- test_namestore_api_zone_iteration_stop \
- test_namestore_record_serialization
+ test_namestore_api_zone_iteration_stop 
 
 if ENABLE_TEST_RUN
 TESTS = $(check_PROGRAMS)
