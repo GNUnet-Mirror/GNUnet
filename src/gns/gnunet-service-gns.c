@@ -1563,8 +1563,6 @@ process_shorten_pseu_lookup_ns(void *cls,
     rh->status |= EXPIRED;
   }
 
-
-  
   rh->proc(cls, rh, rd_len, rd);
 }
 
@@ -1592,7 +1590,7 @@ resolve_pseu_from_dht(struct GNUNET_GNS_ResolverHandle *rh)
 
   rh->dht_timeout_task = GNUNET_SCHEDULER_add_delayed (DHT_LOOKUP_TIMEOUT,
                                                   &dht_lookup_timeout,
-                                                       rh);
+                                                  rh);
 
   xquery = htonl(GNUNET_GNS_RECORD_PSEU);
   
