@@ -18,7 +18,7 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file namestore/test_namestore_api_zone_iteration_specific_zone.c
+ * @file namestore/test_namestore_api_zone_iteration.c
  * @brief testcase for zone iteration functionality: iterate of a specific zone
  */
 #include "platform.h"
@@ -28,7 +28,7 @@
 
 #define VERBOSE GNUNET_NO
 
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
 static struct GNUNET_NAMESTORE_Handle * nsh;
 
@@ -192,9 +192,13 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_NAMESTORE_disconnect (nsh, GNUNET_YES);
   nsh = NULL;
 
-
   if (NULL != arm)
     stop_arm();
+  if (returned_records == 1)
+    res = 0;
+  else
+    res = 1;
+
 }
 
 void zone_proc (void *cls,
@@ -206,16 +210,16 @@ void zone_proc (void *cls,
                 const struct GNUNET_CRYPTO_RsaSignature *signature)
 {
   int failed = GNUNET_NO;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Callback for zone `%s'\n", GNUNET_h2s (&zone));
+
   if ((zone_key == NULL) &&  (name == NULL))
   {
-    GNUNET_break (2 == returned_records);
-    if (2 == returned_records)
+    GNUNET_break (3 == returned_records);
+    if (3 == returned_records)
       res = 0;
     else
       res = 1;
 
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received last result, iteration done after %u records\n", returned_records);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received last result, iteration done after receing %u results\n",returned_records );
     GNUNET_SCHEDULER_add_now (&end, NULL);
   }
   else
@@ -263,6 +267,27 @@ void zone_proc (void *cls,
         GNUNET_break (0);
       }
     }
+    else if (0 == strcmp (name, s_name_3))
+    {
+      if (rd_count == 1)
+      {
+        if (GNUNET_YES != GNUNET_NAMESTORE_records_cmp(rd, s_rd_3))
+        {
+          failed = GNUNET_YES;
+          GNUNET_break (0);
+        }
+      }
+      else
+      {
+        failed = GNUNET_YES;
+        GNUNET_break (0);
+      }
+      if (0 != memcmp (signature, sig_3, sizeof (struct GNUNET_CRYPTO_RsaSignature)))
+      {
+        failed = GNUNET_YES;
+        GNUNET_break (0);
+      }
+    }
     else
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Comparing result failed: got name `%s'\n", name);
@@ -274,8 +299,24 @@ void zone_proc (void *cls,
     if (failed == GNUNET_NO)
     {
       returned_records ++;
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Telling namestore to send the next result\n");
-      GNUNET_NAMESTORE_zone_iterator_next (zi);
+
+      if (1 == returned_records)
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping zone iteration after %u received record \n",returned_records );
+        GNUNET_NAMESTORE_zone_iteration_stop (zi);
+        if (endbadly_task != GNUNET_SCHEDULER_NO_TASK)
+        {
+          GNUNET_SCHEDULER_cancel (endbadly_task);
+          endbadly_task = GNUNET_SCHEDULER_NO_TASK;
+        }
+        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 3), &end , NULL);
+        return;
+      }
+      else
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Telling namestore to send the next result\n");
+        GNUNET_NAMESTORE_zone_iterator_next (zi);
+      }
     }
     else
     {
@@ -325,10 +366,9 @@ put_cont (void *cls, int32_t success, const char *emsg)
   {
     res = 1;
     returned_records = 0;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "All records created, starting iteration over zone `%s'\n",
-        GNUNET_h2s(&zone));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "All records created, starting iteration over all zones \n");
     zi = GNUNET_NAMESTORE_zone_iteration_start(nsh,
-                                        &zone,
+                                        NULL,
                                         GNUNET_NAMESTORE_RF_NONE,
                                         GNUNET_NAMESTORE_RF_NONE,
                                         zone_proc,
@@ -439,4 +479,4 @@ main (int argc, char *argv[])
   return ret;
 }
 
-/* end of test_namestore_api_zone_iteration_specific_zone.c */
+/* end of test_namestore_api_zone_iteration.c */

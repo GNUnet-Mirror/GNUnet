@@ -43,10 +43,14 @@ struct GNUNET_NAMESTORE_ZoneIteration
 
   struct GNUNET_NAMESTORE_Client * client;
 
+  int has_zone;
+
   GNUNET_HashCode zone;
 
   uint64_t request_id;
   uint32_t offset;
+
+
 
 };
 
@@ -1174,7 +1178,11 @@ void zone_iteration_proc (void *cls,
   if ((zone_key == NULL) && (name == NULL))
   {
     struct ZoneIterationResponseMessage zir_msg;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "No more results for zone `%s'\n", GNUNET_h2s(&zi->zone));
+    if (zi->has_zone == GNUNET_YES)
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "No more results for zone `%s'\n", GNUNET_h2s(&zi->zone));
+    else
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "No more results for all zones\n");
+
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending empty `%s' message\n", "ZONE_ITERATION_RESPONSE");
     zir_msg.gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_RESPONSE);
     zir_msg.gns_header.header.size = htons (sizeof (struct ZoneIterationResponseMessage));
@@ -1196,7 +1204,13 @@ void zone_iteration_proc (void *cls,
   else
   {
     struct ZoneIterationResponseMessage *zir_msg;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending name `%s' for iterating zone `%s'\n", name, GNUNET_h2s(&zi->zone));
+    if (zi->has_zone == GNUNET_YES)
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending name `%s' for iteration over zone `%s'\n",
+          name, GNUNET_h2s(&zi->zone));
+    if (zi->has_zone == GNUNET_NO)
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending name `%s' for iteration over all zones\n",
+          name);
+
     size_t name_len;
     size_t rd_ser_len;
     size_t msg_size;
@@ -1263,11 +1277,13 @@ static void handle_iteration_start (void *cls,
   if (0 == memcmp (&dummy, &zis_msg->zone, sizeof (dummy)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting to iterate over all zones\n");
+    zi->has_zone = GNUNET_NO;
     zone_tmp = NULL;
   }
   else
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting to iterate over zone  `%s'\n", GNUNET_h2s (&zis_msg->zone));
+    zi->has_zone = GNUNET_YES;
     zone_tmp = &zis_msg->zone;
   }
 
@@ -1311,7 +1327,10 @@ static void handle_iteration_stop (void *cls,
   }
 
   GNUNET_CONTAINER_DLL_remove(nc->op_head, nc->op_tail, zi);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopped zone iteration for zone `%s'\n", GNUNET_h2s (&zi->zone));
+  if (GNUNET_YES == zi->has_zone)
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopped zone iteration for zone `%s'\n", GNUNET_h2s (&zi->zone));
+  else
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopped zone iteration all zones\n");
   GNUNET_free (zi);
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -1325,6 +1344,7 @@ static void handle_iteration_next (void *cls,
 
   struct GNUNET_NAMESTORE_Client *nc;
   struct GNUNET_NAMESTORE_ZoneIteration *zi;
+  GNUNET_HashCode *zone_tmp;
   struct ZoneIterationStopMessage * zis_msg = (struct ZoneIterationStopMessage *) message;
   uint32_t rid;
 
@@ -1348,9 +1368,14 @@ static void handle_iteration_next (void *cls,
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
-  zi->offset++;
 
-  GSN_database->iterate_records (GSN_database->cls, &zi->zone, NULL, zi->offset , &zone_iteration_proc, zi);
+  if (GNUNET_YES == zi->has_zone)
+    zone_tmp = &zi->zone;
+  else
+    zone_tmp = NULL;
+
+  zi->offset++;
+  GSN_database->iterate_records (GSN_database->cls, zone_tmp, NULL, zi->offset , &zone_iteration_proc, zi);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 

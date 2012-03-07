@@ -1477,13 +1477,19 @@ GNUNET_NAMESTORE_zone_iteration_start (struct GNUNET_NAMESTORE_Handle *h,
   msg->gns_header.header.size = htons (msg_size);
   msg->gns_header.r_id = htonl (rid);
   if (NULL != zone)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message for zone `%s'\n", "ZONE_ITERATION_START", GNUNET_h2s(zone));
     msg->zone = *zone;
+  }
   else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message for all zones\n", "ZONE_ITERATION_START");
     memset (&msg->zone, '\0', sizeof (msg->zone));
+  }
   msg->must_have_flags = ntohs (must_have_flags);
   msg->must_not_have_flags = ntohs (must_not_have_flags);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message for zone `%s'\n", "ZONE_ITERATION_START", GNUNET_h2s(zone));
+
 
   /* transmit message */
   GNUNET_CONTAINER_DLL_insert_tail (h->pending_head, h->pending_tail, pe);
@@ -1522,7 +1528,7 @@ GNUNET_NAMESTORE_zone_iterator_next (struct GNUNET_NAMESTORE_ZoneIterator *it)
   msg->gns_header.header.size = htons (msg_size);
   msg->gns_header.r_id = htonl (it->op_id);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message for name `%s'\n", "ZONE_ITERATION_NEXT", GNUNET_h2s(&it->zone));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message\n", "ZONE_ITERATION_NEXT");
 
   /* transmit message */
   GNUNET_CONTAINER_DLL_insert_tail (h->pending_head, h->pending_tail, pe);
@@ -1556,7 +1562,10 @@ GNUNET_NAMESTORE_zone_iteration_stop (struct GNUNET_NAMESTORE_ZoneIterator *it)
   msg->gns_header.header.size = htons (msg_size);
   msg->gns_header.r_id = htonl (it->op_id);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message for name `%s'\n", "ZONE_ITERATION_STOP", GNUNET_h2s(&it->zone));
+  if (GNUNET_YES == it->has_zone)
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message for zone `%s'\n", "ZONE_ITERATION_STOP", GNUNET_h2s(&it->zone));
+  else
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message for all zones\n", "ZONE_ITERATION_STOP");
 
   /* transmit message */
   GNUNET_CONTAINER_DLL_insert_tail (h->pending_head, h->pending_tail, pe);

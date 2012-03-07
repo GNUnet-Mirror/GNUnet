@@ -37,6 +37,7 @@ check_PROGRAMS = \
  test_namestore_api_zone_to_name \
  test_namestore_api_zone_iteration \
  test_namestore_api_zone_iteration_specific_zone \
+ test_namestore_api_zone_iteration_stop \
  test_namestore_record_serialization
 
 if ENABLE_TEST_RUN
@@ -176,6 +177,12 @@ test_namestore_api_zone_iteration_specific_zone_SOURCES = \
 test_namestore_api_zone_iteration_specific_zone_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la  
+  
+test_namestore_api_zone_iteration_stop_SOURCES = \
+ test_namestore_api_zone_iteration_stop.c
+test_namestore_api_zone_iteration_stop_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/namestore/libgnunetnamestore.la    
 
 test_namestore_record_serialization_SOURCES = \
  test_namestore_record_serialization.c
