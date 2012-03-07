@@ -193,7 +193,7 @@ GNUNET_TIME_absolute_min (struct GNUNET_TIME_Absolute t1,
  *
  * @param t1 first timestamp
  * @param t2 other timestamp
- * @return timestamp that is smaller
+ * @return timestamp that is bigger
  */
 struct GNUNET_TIME_Absolute
 GNUNET_TIME_absolute_max (struct GNUNET_TIME_Absolute t1,
