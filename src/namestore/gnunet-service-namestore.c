@@ -800,11 +800,10 @@ handle_record_remove_it (void *cls,
     const struct GNUNET_CRYPTO_RsaSignature *signature)
 {
   struct RemoveRecordContext *rrc = cls;
-  unsigned int rd_count_new = rd_count -1;
-  struct GNUNET_NAMESTORE_RecordData rd_new[rd_count_new];
   unsigned int c;
   int res;
-  int found = GNUNET_NO;
+  int found;
+  unsigned int rd_count_new;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Name `%s 'currently has %u records\n", name, rd_count);
 
@@ -816,7 +815,7 @@ handle_record_remove_it (void *cls,
   }
 
   /* Find record to remove */
-  unsigned int c2 = 0;
+  found = GNUNET_SYSERR;
   for (c = 0; c < rd_count; c++)
   {
     if ((rd[c].expiration.abs_value == rrc->rd->expiration.abs_value) &&
@@ -826,21 +825,31 @@ handle_record_remove_it (void *cls,
         (0 == memcmp (rd[c].data, rrc->rd->data, rrc->rd->data_size)))
         {
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found record to remove!\n", rd_count);
-          found = GNUNET_YES;
-          continue;
+          found = c;
+          break;
         }
-    else
-    {
-      rd_new[c2] = rd[c];
-      c2 ++;
-    }
   }
-  if ((c2 != rd_count_new) || (found == GNUNET_NO))
+  if (GNUNET_SYSERR == found)
   {
     /* Could not find record to remove */
     rrc->op_res = 2;
     return;
   }
+
+  rd_count_new = rd_count -1;
+  struct GNUNET_NAMESTORE_RecordData rd_new[rd_count_new];
+
+  unsigned int c2 = 0;
+  for (c = 0; c < rd_count; c++)
+  {
+    if (c != found)
+    {
+      GNUNET_assert (c2 < rd_count_new);
+      rd_new[c2] = rd[c];
+      c2++;
+    }
+  }
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Name `%s' now has %u records\n", name, rd_count_new);
 
   /* Create new signature */
