@@ -237,7 +237,6 @@ GNUNET_NAMESTORE_verify_signature (const struct GNUNET_CRYPTO_RsaPublicKeyBinary
 struct GNUNET_NAMESTORE_QueueEntry *
 GNUNET_NAMESTORE_record_create (struct GNUNET_NAMESTORE_Handle *h,
                                 const struct GNUNET_CRYPTO_RsaPrivateKey *pkey,
-                                const struct GNUNET_TIME_Absolute expire,
                                 const char *name,
                                 const struct GNUNET_NAMESTORE_RecordData *rd,
                                 GNUNET_NAMESTORE_ContinuationWithStatus cont,

@@ -301,7 +301,7 @@ void name_lookup_initial_proc (void *cls,
     s_second_record->data_size = TEST_CREATE_RECORD_DATALEN;
     memset ((char *) s_second_record->data, TEST_CREATE_RECORD_DATA, TEST_CREATE_RECORD_DATALEN);
 
-    GNUNET_NAMESTORE_record_create (nsh, privkey, GNUNET_TIME_absolute_get_forever(), name, s_second_record, &create_second_cont, name);
+    GNUNET_NAMESTORE_record_create (nsh, privkey, name, s_second_record, &create_second_cont, name);
 
   }
   else
@@ -349,7 +349,7 @@ create_identical_cont (void *cls, int32_t success, const char *emsg)
   {
     res = 0;
     s_first_record->expiration = GNUNET_TIME_absolute_get ();
-    GNUNET_NAMESTORE_record_create (nsh, privkey, GNUNET_TIME_absolute_get_forever(), s_name, s_first_record, &create_updated_cont, s_name);
+    GNUNET_NAMESTORE_record_create (nsh, privkey, s_name, s_first_record, &create_updated_cont, s_name);
   }
   else
   {
@@ -369,7 +369,7 @@ create_first_cont (void *cls, int32_t success, const char *emsg)
   {
     res = 0;
     /* check if record was created correct */
-    GNUNET_NAMESTORE_record_create (nsh, privkey, GNUNET_TIME_absolute_get_forever(), s_name, s_first_record, &create_identical_cont, s_name);
+    GNUNET_NAMESTORE_record_create (nsh, privkey, s_name, s_first_record, &create_identical_cont, s_name);
   }
   else
   {
@@ -474,7 +474,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_break (s_name != NULL);
 
   /* create initial record */
-  GNUNET_NAMESTORE_record_create (nsh, privkey, GNUNET_TIME_absolute_get_forever(), s_name, s_first_record, &create_first_cont, s_name);
+  GNUNET_NAMESTORE_record_create (nsh, privkey, s_name, s_first_record, &create_first_cont, s_name);
 }
 
 static int

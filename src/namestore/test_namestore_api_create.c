@@ -301,7 +301,7 @@ void name_lookup_initial_proc (void *cls,
     s_second_record->data_size = TEST_CREATE_RECORD_DATALEN;
     memset ((char *) s_second_record->data, TEST_CREATE_RECORD_DATA, TEST_CREATE_RECORD_DATALEN);
 
-    GNUNET_NAMESTORE_record_create (nsh, privkey, GNUNET_TIME_absolute_get_forever(), name, s_second_record, &create_second_cont, name);
+    GNUNET_NAMESTORE_record_create (nsh, privkey, name, s_second_record, &create_second_cont, name);
 
   }
   else
@@ -430,7 +430,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_break (s_name != NULL);
 
   /* create initial record */
-  GNUNET_NAMESTORE_record_create (nsh, privkey, GNUNET_TIME_absolute_get_forever(), s_name, s_first_record, &create_first_cont, s_name);
+  GNUNET_NAMESTORE_record_create (nsh, privkey, s_name, s_first_record, &create_first_cont, s_name);
 }
 
 static int
