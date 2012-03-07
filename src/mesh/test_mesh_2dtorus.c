@@ -171,7 +171,7 @@ topo_cb (void *cls, const struct GNUNET_PeerIdentity *first,
       if (disconnect_task != GNUNET_SCHEDULER_NO_TASK)
       {
         GNUNET_SCHEDULER_cancel (disconnect_task);
-        GNUNET_SCHEDULER_add_now (&disconnect_peers, NULL);
+        disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_peers, NULL);
       }
       return;
     }
