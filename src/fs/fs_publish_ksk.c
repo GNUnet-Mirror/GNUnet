@@ -188,7 +188,7 @@ publish_ksk_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   keyword = pkc->ksk_uri->data.ksk.keywords[pkc->i++];
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Publishing under keyword `%s'\n",
-              keyword);
+              &keyword[1]);
   /* first character of keyword indicates if it is
    * mandatory or not -- ignore for hashing */
   GNUNET_CRYPTO_hash (&keyword[1], strlen (&keyword[1]), &key);
