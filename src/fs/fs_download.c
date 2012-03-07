@@ -183,6 +183,9 @@ struct ProcessResultClosure
    */
   int do_store;
 
+  /**
+   * When did we last transmit the request?
+   */
   struct GNUNET_TIME_Absolute last_transmission;
 
 };
@@ -937,7 +940,8 @@ process_result_with_request (void *cls, const GNUNET_HashCode * key,
   struct ContentHashKey *chkarr;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received block `%s' matching pending request at depth %u and offset %llu/%llu\n",
+              "Received %u byte block `%s' matching pending request at depth %u and offset %llu/%llu\n",
+	      (unsigned int) prc->size,
               GNUNET_h2s (key), dr->depth, (unsigned long long) dr->offset,
               (unsigned long long) GNUNET_ntohll (dc->uri->data.
                                                   chk.file_length));
@@ -1063,11 +1067,11 @@ process_result_with_request (void *cls, const GNUNET_HashCode * key,
   pi.value.download.specifics.progress.depth = dr->depth;
   pi.value.download.specifics.progress.trust_offered = 0;
   if (prc->last_transmission.abs_value != GNUNET_TIME_UNIT_FOREVER_ABS.abs_value)
-    pi.value.download.specifics.progress.block_download_duration =
-        GNUNET_TIME_absolute_get_duration (prc->last_transmission);
+    pi.value.download.specifics.progress.block_download_duration 
+      = GNUNET_TIME_absolute_get_duration (prc->last_transmission);
   else
-    pi.value.download.specifics.progress.block_download_duration.rel_value = 
-        GNUNET_TIME_UNIT_FOREVER_REL.rel_value;
+    pi.value.download.specifics.progress.block_download_duration
+      = GNUNET_TIME_UNIT_ZERO; /* found locally */
   GNUNET_FS_download_make_status_ (&pi, dc);
   if (dr->depth == 0)
     propagate_up (dr);
