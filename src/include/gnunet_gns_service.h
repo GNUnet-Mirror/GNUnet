@@ -83,15 +83,13 @@ enum GNUNET_GNS_RecordType
 
 /**
  * Initialize the connection with the GNS service.
- * FIXME: Do we need the ht_len?
  *
  * @param cfg configuration to use
- * @param ht_len size of the internal hash table to use for parallel lookups
- * @return NULL on error
+ * @param ht_len size of the internal hash table to use for parallel requests
+ * @return handle to the GNS service, or NULL on error
  */
 struct GNUNET_GNS_Handle *
-GNUNET_GNS_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                    unsigned int ht_len);
+GNUNET_GNS_connect (const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /**
