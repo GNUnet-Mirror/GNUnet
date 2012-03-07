@@ -33,6 +33,7 @@
 #include "gnunet_common.h"
 #include "gnunet_crypto_lib.h"
 #include "gnunet_stream_lib.h"
+#include "gnunet_testing_lib.h"
 #include "stream_protocol.h"
 
 
@@ -161,6 +162,11 @@ struct GNUNET_STREAM_Socket
    * The peer identity of the peer at the other end of the stream
    */
   struct GNUNET_PeerIdentity other_peer;
+
+  /**
+   * Our Peer Identity (for debugging)
+   */
+  struct GNUNET_PeerIdentity our_id;
 
   /**
    * Retransmission timeout
@@ -326,6 +332,11 @@ struct GNUNET_STREAM_Socket
  */
 struct GNUNET_STREAM_ListenSocket
 {
+
+  /**
+   * Our Peer's identity
+   */
+  struct GNUNET_PeerIdentity our_id;
 
   /**
    * The mesh handle
@@ -644,7 +655,7 @@ static void
 write_data (struct GNUNET_STREAM_Socket *socket)
 {
   struct GNUNET_STREAM_IOWriteHandle *io_handle = socket->write_handle;
-  unsigned int packet;
+  int packet;                   /* Although an int, should never be negative */
   int ack_packet;
 
   ack_packet = -1;
@@ -920,7 +931,9 @@ handle_data (struct GNUNET_STREAM_Socket *socket,
       break;
 
     default:
-      /* FIXME: call statistics */
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "%s: Received data message when it cannot be handled\n",
+                  GNUNET_i2s (&socket->our_id));
       break;
     }
   return GNUNET_YES;
@@ -966,7 +979,9 @@ static void
 set_state_established (void *cls,
                        struct GNUNET_STREAM_Socket *socket)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Attaining ESTABLISHED state\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+              "%s: Attaining ESTABLISHED state\n",
+              GNUNET_i2s (&socket->our_id));
   socket->write_offset = 0;
   socket->read_offset = 0;
   socket->state = STATE_ESTABLISHED;
@@ -986,7 +1001,9 @@ set_state_hello_wait (void *cls,
                       struct GNUNET_STREAM_Socket *socket)
 {
   GNUNET_assert (STATE_INIT == socket->state);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Attaining HELLO_WAIT state\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+              "%s: Attaining HELLO_WAIT state\n",
+              GNUNET_i2s (&socket->our_id));
   socket->state = STATE_HELLO_WAIT;
 }
 
@@ -1015,6 +1032,10 @@ client_handle_hello_ack (void *cls,
   const struct GNUNET_STREAM_HelloAckMessage *ack_msg;
   struct GNUNET_STREAM_HelloAckMessage *reply;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "%s: Received HELLO_ACK from %s\n",
+              GNUNET_i2s (&socket->our_id),
+              GNUNET_i2s (sender));
   ack_msg = (const struct GNUNET_STREAM_HelloAckMessage *) message;
   GNUNET_assert (socket->tunnel == tunnel);
   switch (socket->state)
@@ -1045,7 +1066,9 @@ client_handle_hello_ack (void *cls,
   case STATE_INIT:
   default:
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Server sent HELLO_ACK when in state %d\n", socket->state);
+		"%s: Server sent HELLO_ACK when in state %d\n", 
+                GNUNET_i2s (&socket->our_id),
+                socket->state);
     socket->state = STATE_CLOSED; // introduce STATE_ERROR?
     return GNUNET_SYSERR;
   }
@@ -1341,7 +1364,7 @@ server_handle_hello (void *cls,
               "Received HELLO from %s\n", GNUNET_i2s(sender));
 
   /* Catch possible protocol breaks */
-  GNUNET_break_op (0 != memcmp (&socket->other_peer, 
+  GNUNET_break_op (0 == memcmp (&socket->other_peer, 
                                 sender,
                                 sizeof (struct GNUNET_PeerIdentity)));
 
@@ -1775,7 +1798,9 @@ mesh_peer_connect_callback (void *cls,
                    sizeof (struct GNUNET_PeerIdentity)))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "A peer (%s) which is not our target has connected to our tunnel", 
+                  "%s: A peer (%s) which is not our target has connected",
+                  "to our tunnel",
+                  GNUNET_i2s (&socket->our_id),
 		  GNUNET_i2s (peer));
       return;
     }
@@ -1838,14 +1863,18 @@ new_tunnel_notify (void *cls,
   struct GNUNET_STREAM_Socket *socket;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Peer %s initiated tunnel to us\n", GNUNET_i2s (initiator));
+              "%s: Peer %s initiated tunnel to us\n", 
+              GNUNET_i2s (&lsocket->our_id),
+              GNUNET_i2s (initiator));
+
   socket = GNUNET_malloc (sizeof (struct GNUNET_STREAM_Socket));
   socket->tunnel = tunnel;
   socket->session_id = 0;       /* FIXME */
   socket->other_peer = *initiator;
   socket->state = STATE_INIT;
   socket->derived = GNUNET_YES;
-
+  socket->our_id = lsocket->our_id;
+  
   /* FIXME: Copy MESH handle from lsocket to socket */
 
   if (GNUNET_SYSERR == lsocket->listen_cb (lsocket->listen_cb_cls,
@@ -1881,7 +1910,8 @@ tunnel_cleaner (void *cls,
   struct GNUNET_STREAM_Socket *socket = tunnel_ctx;
   
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Peer %s has terminated connection abruptly\n",
+              "%s: Peer %s has terminated connection abruptly\n",
+              GNUNET_i2s (&socket->our_id),
               GNUNET_i2s (&socket->other_peer));
 
   socket->status = GNUNET_STREAM_SHUTDOWN;
@@ -1932,6 +1962,7 @@ GNUNET_STREAM_open (const struct GNUNET_CONFIGURATION_Handle *cfg,
   socket->other_peer = *target;
   socket->open_cb = open_cb;
   socket->open_cls = open_cb_cls;
+  GNUNET_TESTING_get_peer_identity (cfg, &socket->our_id);
 
   /* Set defaults */
   socket->retransmit_timeout = 
@@ -2078,6 +2109,7 @@ GNUNET_STREAM_listen (const struct GNUNET_CONFIGURATION_Handle *cfg,
   lsocket->port = app_port;
   lsocket->listen_cb = listen_cb;
   lsocket->listen_cb_cls = listen_cb_cls;
+  GNUNET_TESTING_get_peer_identity (cfg, &lsocket->our_id);
   lsocket->mesh = GNUNET_MESH_connect (cfg,
                                        10, /* FIXME: QUEUE size as parameter? */
                                        lsocket, /* Closure */
@@ -2133,6 +2165,9 @@ GNUNET_STREAM_write (struct GNUNET_STREAM_Socket *socket,
   struct GNUNET_STREAM_DataMessage *data_msg;
   const void *sweep;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "%s\n", __func__);
+
   /* Return NULL if there is already a write request pending */
   if (NULL != socket->write_handle)
   {
@@ -2144,8 +2179,9 @@ GNUNET_STREAM_write (struct GNUNET_STREAM_Socket *socket,
         || (STATE_RECEIVE_CLOSED == socket->state)))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "Attempting to write on a closed (OR) not-yet-established"
-                  "stream\n"); 
+                  "%s: Attempting to write on a closed (OR) not-yet-established"
+                  "stream\n",
+                  GNUNET_i2s (&socket->our_id));
       return NULL;
     } 
   if (GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH * max_payload_size < size)
@@ -2192,6 +2228,9 @@ GNUNET_STREAM_write (struct GNUNET_STREAM_Socket *socket,
   write_data (socket);
 
   return io_handle;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "%s() END\n", __func__);
 }
 
 

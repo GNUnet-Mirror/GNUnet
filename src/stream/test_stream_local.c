@@ -299,9 +299,8 @@ input_processor (void *cls,
         {
           peer->bytes_wrote = 0;
           peer->io_write_handle = 
-            GNUNET_STREAM_write ((struct GNUNET_STREAM_Socket *)
-                                 peer->socket,
-                                 (void *) data,
+            GNUNET_STREAM_write (peer->socket,
+                                 data,
                                  strlen(data),
                                  GNUNET_TIME_relative_multiply
                                  (GNUNET_TIME_UNIT_SECONDS, 5),
@@ -327,7 +326,6 @@ stream_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   read_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_assert (NULL != cls);
   peer2.bytes_read = 0;
-  GNUNET_STREAM_listen_close (peer2_listen_socket); /* Close listen socket */
   peer2.io_read_handle =
     GNUNET_STREAM_read ((struct GNUNET_STREAM_Socket *) cls,
                         GNUNET_TIME_relative_multiply
