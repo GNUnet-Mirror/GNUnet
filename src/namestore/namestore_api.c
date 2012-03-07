@@ -960,7 +960,7 @@ clean_up_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 void
 GNUNET_NAMESTORE_disconnect (struct GNUNET_NAMESTORE_Handle *h, int drop)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Disconnecting from namestore service\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from namestore service\n");
   GNUNET_SCHEDULER_add_now (&clean_up_task, h);
 }
 
