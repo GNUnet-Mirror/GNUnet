@@ -769,6 +769,9 @@ process_authority_dht_result(void* cls,
         struct AuthorityChain *auth =
           GNUNET_malloc(sizeof(struct AuthorityChain));
         auth->zone = rh->authority;
+        auth->name = GNUNET_malloc(strlen(rh->authority_name)+1);
+        memset(auth->name, 0, strlen(rh->authority_name)+1);
+        strcpy(auth->name, rh->authority_name);
         GNUNET_CONTAINER_DLL_insert (rh->authority_chain_head,
                                      rh->authority_chain_tail,
                                      auth);
@@ -1201,6 +1204,9 @@ process_authority_lookup_ns(void* cls,
     memcpy(&rh->authority, rd[i].data, sizeof(GNUNET_HashCode));
     struct AuthorityChain *auth = GNUNET_malloc(sizeof(struct AuthorityChain));
     auth->zone = rh->authority;
+    auth->name = GNUNET_malloc(strlen(rh->authority_name)+1);
+    memset(auth->name, 0, strlen(rh->authority_name)+1);
+    strcpy(auth->name, rh->authority_name);
     GNUNET_CONTAINER_DLL_insert (rh->authority_chain_head,
                                  rh->authority_chain_tail,
                                  auth);
@@ -1738,7 +1744,8 @@ handle_shorten_pseu_dht_result(void* cls,
   GNUNET_CONTAINER_DLL_remove(rh->authority_chain_head,
                               rh->authority_chain_tail,
                               auth_chain);
-
+  GNUNET_free(auth_chain->name);
+  GNUNET_free(auth_chain);
   GNUNET_NAMESTORE_zone_to_name (namestore_handle,
                                  &zone_hash,
                                  &rh->authority_chain_head->zone,
