@@ -23,7 +23,6 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - printing records
  * - allow users to set record options (not just 'RF_AUTHORITY')
  * - test
  * - parsing SOA, PTR and MX value specifications (and define format!)
