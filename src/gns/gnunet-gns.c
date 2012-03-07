@@ -39,7 +39,7 @@ static struct GNUNET_GNS_Handle *gns;
 /**
  * GNS name to shorten. (-s option)
  */
-static struct char *name;
+static char *name;
 
 /**
  * Task run on shutdown.  Cleans up everything.
@@ -58,6 +58,12 @@ do_shutdown (void *cls,
   }
 }
 
+
+static void
+process_shorten_result(void* cls, const char* nlong, const char* nshort)
+{
+  printf("%s shortened to %s\n", nlong, nshort);
+}
 
 /**
  * Main function that will be run.
@@ -78,11 +84,13 @@ run (void *cls, char *const *args, const char *cfgfile,
 		_("Failed to connect to GNS\n"));
     return;
   }
-  if (NULL == s)
+  
+  if (name != NULL)
   {
-    GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
-    return;
+    /** shorten name */
+    GNUNET_GNS_shorten(gns, name, &process_shorten_result, NULL);
   }
+
   // FIXME: do work here...
   GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
 }
@@ -100,7 +108,7 @@ main (int argc, char *const *argv)
 {
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
     {'s', "shorten", NULL,
-     gettext_noop ("try to shorten a given GNS name"), 0,
+     gettext_noop ("try to shorten a given GNS name"), 1,
      &GNUNET_GETOPT_set_string, &name},   
     GNUNET_GETOPT_OPTION_END
   };

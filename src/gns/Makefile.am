@@ -20,7 +20,8 @@ lib_LTLIBRARIES = \
 
 bin_PROGRAMS = \
   gnunet-service-gns \
-  gnunet-gns-fcfsd 
+  gnunet-gns-fcfsd \
+  gnunet-gns
 
 #noinst_PROGRAMS = \
 #  gnunet-gns-lookup
@@ -80,14 +81,14 @@ test_gns_dht_delegated_lookup_DEPENDENCIES = \
   $(top_builddir)/src/dht/libgnunetdht.la \
   $(top_builddir)/src/testing/libgnunettesting.la
 
-#gnunet_gns_lookup_SOURCES = \
-# gnunet-gns-lookup.c
-#gnunet_gns_lookup_LDADD = \
-#  $(top_builddir)/src/gns/libgnunetgns.la \
-#  $(top_builddir)/src/util/libgnunetutil.la \
-#  $(GN_LIBINTL)
-#gnunet_dns_lookup_DEPENDENCIES = \
-#  libgnunetgns.la
+gnunet_gns_SOURCES = \
+ gnunet-gns.c
+gnunet_gns_LDADD = \
+  $(top_builddir)/src/gns/libgnunetgns.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(GN_LIBINTL)
+gnunet_gns_DEPENDENCIES = \
+  libgnunetgns.la
 
 gnunet_service_gns_SOURCES = \
  gnunet-service-gns.c 

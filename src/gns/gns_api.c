@@ -496,7 +496,7 @@ process_shorten_reply (void *cls, const GNUNET_HashCode * key, void *value)
 {
   const struct GNUNET_GNS_ClientShortenResultMessage *gns_msg = cls;
   struct GNUNET_GNS_ShortenHandle *shorten_handle = value;
-  const char *name = (const char*) &shorten_handle[1];
+  const char *name = (const char*)&((struct GNUNET_GNS_ClientShortenMessage *) &((shorten_handle->message)[1]))[1]; //FIXME
   const char *short_name;
 
   if (ntohs (((struct GNUNET_MessageHeader*)gns_msg)->size) <
@@ -599,7 +599,9 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
   struct GNUNET_GNS_Handle *handle = cls;
   const struct GNUNET_GNS_ClientLookupResultMessage *lookup_msg;
   const struct GNUNET_GNS_ClientShortenResultMessage *shorten_msg;
-
+  
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Got message\n");
   if (msg == NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -610,6 +612,8 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 
   if (ntohs (msg->type) == GNUNET_MESSAGE_TYPE_GNS_LOOKUP_RESULT)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Got lookup msg\n");
     lookup_msg = (const struct GNUNET_GNS_ClientLookupResultMessage *) msg;
     GNUNET_CONTAINER_multihashmap_get_multiple (handle->active_lookup_requests,
                                                 &lookup_msg->key,
@@ -618,6 +622,8 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
   }
   else if (ntohs (msg->type) == GNUNET_MESSAGE_TYPE_GNS_SHORTEN_RESULT)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Got shorten msg\n");
     shorten_msg = (const struct GNUNET_GNS_ClientShortenResultMessage *) msg;
     GNUNET_CONTAINER_multihashmap_get_multiple (handle->active_shorten_requests,
                                                 &shorten_msg->key,
@@ -642,8 +648,7 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
  * @return handle to the GNS service, or NULL on error
  */
 struct GNUNET_GNS_Handle *
-GNUNET_GNS_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                    unsigned int ht_len)
+GNUNET_GNS_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_GNS_Handle *handle;
 
@@ -652,9 +657,9 @@ GNUNET_GNS_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
   handle->uid_gen =
       GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK, UINT64_MAX);
   handle->active_lookup_requests =
-    GNUNET_CONTAINER_multihashmap_create (ht_len);
+    GNUNET_CONTAINER_multihashmap_create (5);
   handle->active_shorten_requests =
-    GNUNET_CONTAINER_multihashmap_create (ht_len);
+    GNUNET_CONTAINER_multihashmap_create (5);
   if (GNUNET_NO == try_connect (handle))
   {
     GNUNET_GNS_disconnect (handle);
@@ -790,7 +795,7 @@ GNUNET_GNS_shorten (struct GNUNET_GNS_Handle *handle,
   GNUNET_CONTAINER_DLL_insert (handle->pending_head, handle->pending_tail,
                                pending);
   pending->in_pending_queue = GNUNET_YES;
-  shorten_handle = GNUNET_malloc (sizeof (struct GNUNET_GNS_LookupHandle));
+  shorten_handle = GNUNET_malloc (sizeof (struct GNUNET_GNS_ShortenHandle));
   shorten_handle->proc = proc;
   shorten_handle->proc_cls = proc_cls;
   shorten_handle->message = pending;

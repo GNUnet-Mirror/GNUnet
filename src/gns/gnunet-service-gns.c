@@ -1969,19 +1969,19 @@ send_shorten_response(const char* name, struct ClientShortenHandle *csh)
   rmsg->key = csh->key;
   rmsg->header.type = htons(GNUNET_MESSAGE_TYPE_GNS_SHORTEN_RESULT);
   rmsg->header.size = 
-    htons(sizeof(struct GNUNET_GNS_ClientShortenResultMessage *) +
+    htons(sizeof(struct GNUNET_GNS_ClientShortenResultMessage) +
           strlen(name));
 
   strcpy((char*)&rmsg[1], name);
 
   GNUNET_SERVER_notification_context_unicast (nc, csh->client,
-                              (const struct GNUNET_MessageHeader *) &rmsg,
+                              (const struct GNUNET_MessageHeader *) rmsg,
                               GNUNET_NO);
 
   GNUNET_SERVER_receive_done (csh->client, GNUNET_OK);
   
-  GNUNET_free(csh);
-  GNUNET_free(rmsg);
+  //GNUNET_free(csh);
+  //GNUNET_free(rmsg);
 
 }
 
@@ -2001,12 +2001,15 @@ static void handle_shorten(void *cls,
   size_t msg_size = 0;
   struct ClientShortenHandle *csh;
 
-  if (ntohs (message->size) != sizeof (struct GNUNET_GNS_ClientShortenMessage))
+  if (ntohs (message->size) < sizeof (struct GNUNET_GNS_ClientShortenMessage))
   {
     GNUNET_break_op (0);
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
+
+  GNUNET_SERVER_notification_context_add (nc, client);
+  GNUNET_SERVER_client_keep (client);
 
   struct GNUNET_GNS_ClientShortenMessage *sh_msg =
     (struct GNUNET_GNS_ClientShortenMessage *) message;
