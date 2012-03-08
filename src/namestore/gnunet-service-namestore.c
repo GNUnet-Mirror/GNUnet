@@ -362,6 +362,10 @@ handle_lookup_name_it (void *cls,
   struct LookupNameContext *lnc = cls;
   struct LookupNameResponseMessage *lnr_msg;
   struct GNUNET_NAMESTORE_RecordData *rd_selected = NULL;
+  struct GNUNET_NAMESTORE_CryptoContainer *cc;
+  struct GNUNET_CRYPTO_RsaSignature *signature_new = NULL;
+  const struct GNUNET_CRYPTO_RsaSignature *sig_to_use;
+  GNUNET_HashCode zone_key_hash;
   char *rd_tmp;
   char *name_tmp;
   size_t rd_ser_len;
@@ -416,9 +420,6 @@ handle_lookup_name_it (void *cls,
   char rd_ser[rd_ser_len];
   GNUNET_NAMESTORE_records_serialize(copied_elements, rd_selected, rd_ser_len, rd_ser);
 
-  if (rd_selected != rd)
-    GNUNET_free (rd_selected);
-
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found %u records for name `%s' in zone `%s'\n",
       copied_elements, lnc->name, GNUNET_h2s(lnc->zone));
 
@@ -426,6 +427,26 @@ handle_lookup_name_it (void *cls,
     contains_signature = GNUNET_YES;
   else
     contains_signature = GNUNET_NO;
+
+  if ((NULL != zone_key) && (copied_elements == rd_count))
+  {
+    GNUNET_CRYPTO_hash(zone_key, sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), &zone_key_hash);
+    if (GNUNET_CONTAINER_multihashmap_contains(zonekeys, &zone_key_hash))
+    {
+      cc = GNUNET_CONTAINER_multihashmap_get(zonekeys, &zone_key_hash);
+      signature_new = GNUNET_NAMESTORE_create_signature(cc->privkey, name, rd_selected, copied_elements);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Creating signature for name `%s' in zone `%s'\n",name, GNUNET_h2s(&zone_key_hash));
+      sig_to_use = signature_new;
+      contains_signature = GNUNET_YES;
+    }
+  }
+  else
+  {
+    sig_to_use = signature;
+  }
+
+  if (rd_selected != rd)
+    GNUNET_free (rd_selected);
 
   r_size = sizeof (struct LookupNameResponseMessage) +
            sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded) +
@@ -448,9 +469,10 @@ handle_lookup_name_it (void *cls,
   else
     memset(&lnr_msg->public_key, '\0', sizeof (lnr_msg->public_key));
   if (GNUNET_YES == contains_signature)
-    lnr_msg->signature = *signature;
+    lnr_msg->signature = *sig_to_use;
   else
     memset (&lnr_msg->signature, '\0', sizeof (lnr_msg->signature));
+
 
   name_tmp = (char *) &lnr_msg[1];
   rd_tmp = &name_tmp[name_len];
@@ -459,7 +481,7 @@ handle_lookup_name_it (void *cls,
   memcpy (rd_tmp, rd_ser, rd_ser_len);
 
   GNUNET_SERVER_notification_context_unicast (snc, lnc->nc->client, (const struct GNUNET_MessageHeader *) lnr_msg, GNUNET_NO);
-
+  GNUNET_free_non_null(signature_new);
   GNUNET_free (lnr_msg);
 }
 
@@ -667,8 +689,8 @@ handle_create_record_it (void *cls,
     const struct GNUNET_CRYPTO_RsaSignature *signature)
 {
   struct CreateRecordContext * crc = cls;
-  struct GNUNET_CRYPTO_RsaSignature *signature_new = NULL;
   struct GNUNET_NAMESTORE_RecordData *rd_new = NULL;
+  struct GNUNET_CRYPTO_RsaSignature dummy_signature;
   struct GNUNET_TIME_Absolute block_expiration;
   int res;
   int exist = GNUNET_SYSERR;
@@ -702,14 +724,6 @@ handle_create_record_it (void *cls,
     memcpy (rd_new, rd, rd_count * sizeof (struct GNUNET_NAMESTORE_RecordData));
     rd_count_new = rd_count + 1;
     rd_new[rd_count] = *(crc->rd);
-    signature_new = GNUNET_NAMESTORE_create_signature (crc->pkey, crc->name, rd_new, rd_count+1);
-
-    if (NULL == signature_new)
-    {
-      GNUNET_break (0);
-      res = GNUNET_SYSERR;
-      goto end;
-    }
   }
   else if (update == GNUNET_NO)
   {
@@ -727,19 +741,13 @@ handle_create_record_it (void *cls,
     rd_count_new = rd_count;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Updating expiration from %llu to %llu!\n", rd_new[exist].expiration.abs_value, crc->rd->expiration.abs_value);
     rd_new[exist].expiration = crc->rd->expiration;
-    signature_new = GNUNET_NAMESTORE_create_signature (crc->pkey, crc->name, rd_new, rd_count_new);
-    if (NULL == signature_new)
-    {
-      GNUNET_break (0);
-      res = GNUNET_SYSERR;
-      goto end;
-    }
   }
 
   block_expiration = GNUNET_TIME_absolute_max(crc->expire, expire);
   if (block_expiration.abs_value != expire.abs_value)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Updated block expiration time\n");
 
+  memset (&dummy_signature, '\0', sizeof (dummy_signature));
 
   /* Database operation */
   GNUNET_assert ((rd_new != NULL) && (rd_count_new > 0));
@@ -748,7 +756,7 @@ handle_create_record_it (void *cls,
                                 block_expiration,
                                 crc->name,
                                 rd_count_new, rd_new,
-                                signature_new);
+                                &dummy_signature);
   GNUNET_break (GNUNET_OK == res);
   if (res == GNUNET_OK)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Successfully put record for `%s' in database \n", crc->name);
@@ -758,7 +766,6 @@ handle_create_record_it (void *cls,
 
 end:
   GNUNET_free_non_null (rd_new);
-  GNUNET_free_non_null (signature_new);
 
   switch (res) {
     case GNUNET_SYSERR:
@@ -978,16 +985,10 @@ handle_record_remove_it (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Name `%s' now has %u records\n", name, rd_count_new);
 
-  /* Create new signature */
-  struct GNUNET_CRYPTO_RsaSignature * new_signature;
-  new_signature = GNUNET_NAMESTORE_create_signature (rrc->pkey, name, rd_new, rd_count_new);
+  /* Create dummy signature */
+  struct GNUNET_CRYPTO_RsaSignature dummy_signature;
+  memset (&dummy_signature, '\0', sizeof (dummy_signature));
 
-  if (new_signature == NULL)
-  {
-    /* Signature failed */
-    rrc->op_res = 3;
-    return;
-  }
 
   /* Put records */
   res = GSN_database->put_records(GSN_database->cls,
@@ -995,9 +996,7 @@ handle_record_remove_it (void *cls,
                                   expire,
                                   name,
                                   rd_count_new, rd_new,
-                                  new_signature);
-  GNUNET_free (new_signature);
-
+                                  &dummy_signature);
   if (GNUNET_OK != res)
   {
     /* Could put records into database */
