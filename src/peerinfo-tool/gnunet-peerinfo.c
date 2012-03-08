@@ -457,7 +457,7 @@ parse_hello (const struct GNUNET_CONFIGURATION_Handle *c,
   ctx.tmp_len = strlen (path_part);
   exc = strstr (ctx.tmp, "!");
   if (exc == NULL)
-    exc = ctx.pos + ctx.tmp_len;
+    exc = ctx.pos + ctx.tmp_len; // FIXME-LRN: ctx.pos is uninitialized here!
   ctx.pos = exc;
 
   std_result = GNUNET_STRINGS_string_to_data (ctx.tmp, exc - ctx.tmp,
