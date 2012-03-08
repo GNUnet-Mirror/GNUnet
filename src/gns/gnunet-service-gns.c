@@ -269,6 +269,7 @@ free_resolver_handle(struct GNUNET_GNS_ResolverHandle* rh)
     GNUNET_free_non_null (ac->name);
     GNUNET_free(ac);
   }
+  GNUNET_free(rh);
 }
 
 
@@ -363,7 +364,8 @@ reply_to_dns(void* cls, struct GNUNET_GNS_ResolverHandle *rh, uint32_t rd_count,
     GNUNET_DNS_request_answer(ilh->request_handle,
                               len,
                               buf);
-    //GNUNET_free(answer);
+
+    GNUNET_free(buf);
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Answered DNS request\n");
   }
   else
@@ -371,11 +373,15 @@ reply_to_dns(void* cls, struct GNUNET_GNS_ResolverHandle *rh, uint32_t rd_count,
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
                "Error building DNS response! (ret=%d)", ret);
   }
-
+  
+  packet->num_answers = 0;
+  packet->answers = NULL;
+  packet->num_additional_records = 0;
+  packet->additional_records = NULL;
+  GNUNET_DNSPARSER_free_packet(packet);
   //FIXME free more!
-  free_resolver_handle(rh);
   GNUNET_free((struct RecordLookupHandle*)rh->proc_cls);
-  GNUNET_free(rh);
+  free_resolver_handle(rh);
   GNUNET_free(ilh);
 }
 
@@ -1402,6 +1408,8 @@ start_resolution_from_dns(struct GNUNET_DNS_RequestHandle *request,
   rh->authority_name = GNUNET_malloc(sizeof(char)*MAX_DNS_LABEL_LENGTH);
   
   rh->authority_chain_head = GNUNET_malloc(sizeof(struct AuthorityChain));
+  rh->authority_chain_head->prev = NULL;
+  rh->authority_chain_head->next = NULL;
   rh->authority_chain_tail = rh->authority_chain_head;
   rh->authority_chain_head->zone = zone_hash;
 
@@ -1428,6 +1436,7 @@ handle_dns_request(void *cls,
                    const char *request)
 {
   struct GNUNET_DNSPARSER_Packet *p;
+  int i;
   char *tldoffset;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Hijacked a DNS request...processing\n");
@@ -1438,6 +1447,7 @@ handle_dns_request(void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Received malformed DNS packet, leaving it untouched\n");
     GNUNET_DNS_request_forward (rh);
+    GNUNET_DNSPARSER_free_packet (p);
     return;
   }
   
@@ -1471,12 +1481,15 @@ handle_dns_request(void *cls,
   /**
    * Check for .gnunet
    */
-  tldoffset = p->queries[0].name + strlen(p->queries[0].name);
-
-  while ((*tldoffset) != '.')
-    tldoffset--;
+  tldoffset = p->queries[0].name + strlen(p->queries[0].name) - 1;
   
-  if (0 == strcmp(tldoffset, gnunet_tld))
+  for (i=0; i<strlen(p->queries[0].name); i++)
+  {
+    if (*(tldoffset-i) == '.')
+      break;
+  }
+  
+  if ((i==strlen(gnunet_tld)-1) && (0 == strcmp(tldoffset-i, gnunet_tld)))
   {
     start_resolution_from_dns(rh, p, p->queries);
   }
@@ -1488,6 +1501,7 @@ handle_dns_request(void *cls,
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                "Request for %s is forwarded to DNS\n", p->queries[0].name);
     GNUNET_DNS_request_forward (rh);
+    GNUNET_DNSPARSER_free_packet (p);
   }
 
 }
@@ -1623,6 +1637,8 @@ put_gns_record(void *cls,
   zone_update_taskid = GNUNET_SCHEDULER_add_delayed (dht_update_interval,
                                 &update_zone_dht_next,
                                 NULL);
+
+  GNUNET_free(nrb);
 
 }
 
@@ -1844,7 +1860,7 @@ handle_shorten_pseu_dht_result(void* cls,
     strcpy(result+strlen(rh->name)+1, ".");
     strcpy(result+strlen(rh->name)+2, auth_chain->name);
     send_shorten_response(result, csh);
-
+    GNUNET_free(result);
     return;
   }
 
@@ -1861,6 +1877,8 @@ handle_shorten_pseu_dht_result(void* cls,
   GNUNET_CONTAINER_DLL_remove(rh->authority_chain_head,
                               rh->authority_chain_tail,
                               auth_chain);
+  GNUNET_free(rh->name);
+  rh->name = new_name;
   GNUNET_free(auth_chain->name);
   GNUNET_free(auth_chain);
   GNUNET_NAMESTORE_zone_to_name (namestore_handle,
@@ -1936,7 +1954,9 @@ handle_shorten_pseu_ns_result(void* cls,
     strcpy(new_name, rh->name);
     strcpy(new_name+strlen(rh->name)+1, ".");
     strcpy(new_name+strlen(rh->name)+2, auth_chain->name);
-
+    
+    GNUNET_free(rh->name);
+    rh->name = new_name;
     GNUNET_CONTAINER_DLL_remove(rh->authority_chain_head,
                                 rh->authority_chain_tail,
                                 auth_chain);
@@ -2196,7 +2216,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 
   GNUNET_CRYPTO_hash(&pkey, sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
                      &zone_hash);
-  
+  GNUNET_free(keyfile);
 
   if (GNUNET_YES ==
       GNUNET_CONFIGURATION_get_value_yesno (c, "gns",
