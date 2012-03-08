@@ -1061,8 +1061,7 @@ handle_p2p_size_estimate (void *cls, const struct GNUNET_PeerIdentity *peer,
   else if (ts.abs_value ==
            current_timestamp.abs_value - gnunet_nse_interval.rel_value)
     idx = (estimate_index + HISTORY_SIZE - 1) % HISTORY_SIZE;
-  else if (ts.abs_value ==
-           next_timestamp.abs_value - gnunet_nse_interval.rel_value)
+  else if (ts.abs_value == next_timestamp.abs_value)
   {
     if (matching_bits <= ntohl (next_message.matching_bits))
       return GNUNET_OK;         /* ignore, simply too early/late */
