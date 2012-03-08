@@ -35,10 +35,6 @@
 #include "gns.h"
 #include "gnunet_gns_service.h"
 
-#define DEBUG_GNS_API GNUNET_EXTRA_LOGGING
-
-#define LOG(kind,...) GNUNET_log_from (kind, "gns-api",__VA_ARGS__)
-
 /* TODO into gnunet_protocols */
 #define GNUNET_MESSAGE_TYPE_GNS_LOOKUP 23
 #define GNUNET_MESSAGE_TYPE_GNS_LOOKUP_RESULT 24
@@ -67,7 +63,10 @@ struct GNUNET_GNS_QueueEntry
   struct GNUNET_GNS_Handle *gns_handle;
   
   /* processor to call on shorten result */
-  GNUNET_GNS_ShortenResultProcessor proc;
+  GNUNET_GNS_ShortenResultProcessor shorten_proc;
+  
+  /* processor to call on lookup result */
+  GNUNET_GNS_LookupResultProcessor lookup_proc;
   
   /* processor closure */
   void *proc_cls;
@@ -355,7 +354,7 @@ process_shorten_reply (struct GNUNET_GNS_QueueEntry *qe,
               "Received shortened reply `%s' from GNS service\n",
               short_name);
   
-  qe->proc(qe->proc_cls, short_name);
+  qe->shorten_proc(qe->proc_cls, short_name);
 
 }
 
@@ -373,6 +372,31 @@ static void
 process_lookup_reply (struct GNUNET_GNS_QueueEntry *qe,
                       const struct GNUNET_GNS_ClientLookupResultMessage *msg)
 {
+  struct GNUNET_GNS_Handle *h = qe->gns_handle;
+  int rd_count = ntohl(msg->rd_count);
+  size_t len = ntohs (((struct GNUNET_MessageHeader*)msg)->size);
+  struct GNUNET_NAMESTORE_RecordData rd[rd_count];
+
+  GNUNET_CONTAINER_DLL_remove(h->lookup_head, h->lookup_tail, qe);
+
+  if (len < sizeof (struct GNUNET_GNS_ClientLookupResultMessage))
+  {
+    GNUNET_break (0);
+    force_reconnect (h);
+    return;
+  }
+
+  len -= sizeof(struct GNUNET_GNS_ClientLookupResultMessage);
+
+  GNUNET_NAMESTORE_records_deserialize (len, (char*)&msg[1],
+                                        rd_count,
+                                        rd);
+  
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received lookup reply from GNS service (count=%d)\n",
+              ntohl(msg->rd_count));
+  
+  qe->lookup_proc(qe->proc_cls, rd_count, rd);
 }
 
 /**
@@ -522,12 +546,51 @@ get_request_id (struct GNUNET_GNS_Handle *h)
  */
 struct GNUNET_GNS_QueueEntry *
 GNUNET_GNS_lookup (struct GNUNET_GNS_Handle *handle,
-                         const char * name,
-                         enum GNUNET_GNS_RecordType type,
-                         GNUNET_GNS_LookupIterator iter,
-                         void *iter_cls)
+                   const char * name,
+                   enum GNUNET_GNS_RecordType type,
+                   GNUNET_GNS_LookupResultProcessor proc,
+                   void *proc_cls)
 {
-  return NULL;
+  /* IPC to shorten gns names, return shorten_handle */
+  struct GNUNET_GNS_ClientLookupMessage *lookup_msg;
+  struct GNUNET_GNS_QueueEntry *qe;
+  size_t msize;
+  struct PendingMessage *pending;
+
+  if (NULL == name)
+  {
+    return NULL;
+  }
+
+  msize = sizeof (struct GNUNET_GNS_ClientLookupMessage) + strlen(name) + 1;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Trying to shorten %s in GNS\n", name);
+
+  qe = GNUNET_malloc(sizeof (struct GNUNET_GNS_QueueEntry));
+  qe->gns_handle = handle;
+  qe->lookup_proc = proc;
+  qe->proc_cls = proc_cls;
+  qe->r_id = get_request_id(handle);
+  GNUNET_CONTAINER_DLL_insert_tail(handle->lookup_head,
+                                   handle->lookup_tail, qe);
+
+  pending = GNUNET_malloc (sizeof (struct PendingMessage) + msize);
+  memset(pending, 0, (sizeof (struct PendingMessage) + msize));
+  
+  pending->size = msize;
+
+  lookup_msg = (struct GNUNET_GNS_ClientLookupMessage *) &pending[1];
+  lookup_msg->header.type = htons (GNUNET_MESSAGE_TYPE_GNS_LOOKUP);
+  lookup_msg->header.size = htons (msize);
+  lookup_msg->id = htonl(qe->r_id);
+  lookup_msg->type = htonl(type);
+
+  memcpy(&lookup_msg[1], name, strlen(name));
+
+  GNUNET_CONTAINER_DLL_insert (handle->pending_head, handle->pending_tail,
+                               pending);
+  
+  process_pending_messages (handle);
+  return qe;
 }
 
 
@@ -562,7 +625,7 @@ GNUNET_GNS_shorten (struct GNUNET_GNS_Handle *handle,
 
   qe = GNUNET_malloc(sizeof (struct GNUNET_GNS_QueueEntry));
   qe->gns_handle = handle;
-  qe->proc = proc;
+  qe->shorten_proc = proc;
   qe->proc_cls = proc_cls;
   qe->r_id = get_request_id(handle);
   GNUNET_CONTAINER_DLL_insert_tail(handle->shorten_head,

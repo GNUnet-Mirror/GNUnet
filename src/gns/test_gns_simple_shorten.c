@@ -93,7 +93,7 @@ shutdown_callback (void *cls, const char *emsg)
  * Called when gns shorten finishes
  */
 static void
-process_shorten_result(void* cls, const char* lname, const char* sname)
+process_shorten_result(void* cls, const char* sname)
 {
   GNUNET_GNS_disconnect(gns_handle);
 
@@ -108,12 +108,12 @@ process_shorten_result(void* cls, const char* lname, const char* sname)
   else
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "%s shortened to %s\n", lname, sname);
+                "%s shortened to %s\n", (char*)cls, sname);
     if (0 != strcmp(sname, TEST_EXPECTED_RESULT))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   "shorten test failed! (wanted: %s got: %s\n",
-                  lname, sname);
+                  (char*)cls, sname);
       ok = 1;
     }
 
@@ -152,7 +152,8 @@ commence_testing (void *cls, int32_t success, const char *emsg)
     return;
   }
 
-  GNUNET_GNS_shorten(gns_handle, TEST_DOMAIN, &process_shorten_result, NULL);
+  GNUNET_GNS_shorten(gns_handle, TEST_DOMAIN, &process_shorten_result,
+                     TEST_DOMAIN);
   
 }
 

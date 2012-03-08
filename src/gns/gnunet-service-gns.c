@@ -153,8 +153,8 @@ struct ClientShortenHandle
   /* request id */
   uint64_t unique_id;
 
-  /* request key */
-  GNUNET_HashCode key;
+  /* request type */
+  enum GNUNET_GNS_RecordType type;
 
   /* name to shorten */
   char* name;
@@ -172,8 +172,8 @@ struct ClientLookupHandle
   /* request id */
   uint64_t unique_id;
 
-  /* request key */
-  GNUNET_HashCode key;
+  /* request type */
+  enum GNUNET_GNS_RecordType type;
 
   /* the name to look up */
   char* name; //Needed?
@@ -2229,13 +2229,142 @@ static void handle_shorten(void *cls,
 }
 
 /**
- * TODO
+ * Reply to client with the result from our lookup.
+ *
+ * @param cls the closure (our client lookup handle)
+ * @param rh the request handle of the lookup
+ * @param rd_count the number of records
+ * @param rd the record data
+ */
+static void
+reply_to_client(void* cls, struct GNUNET_GNS_ResolverHandle *rh,
+                uint32_t rd_count,
+                const struct GNUNET_NAMESTORE_RecordData *rd)
+{
+  struct ClientLookupHandle* clh = (struct ClientLookupHandle*)cls;
+  struct GNUNET_GNS_ClientLookupResultMessage *rmsg;
+  size_t len;
+  
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message with %d results\n",
+              "LOOKUP_RESULT", rd_count);
+  
+  len = GNUNET_NAMESTORE_records_get_size (rd_count, rd);
+  rmsg = GNUNET_malloc(len+sizeof(struct GNUNET_GNS_ClientLookupResultMessage));
+  
+  rmsg->id = clh->unique_id;
+  rmsg->rd_count = htonl(rd_count);
+  rmsg->header.type = htons(GNUNET_MESSAGE_TYPE_GNS_LOOKUP_RESULT);
+  rmsg->header.size = 
+    htons(len+sizeof(struct GNUNET_GNS_ClientLookupResultMessage));
+
+  GNUNET_NAMESTORE_records_serialize (rd_count, rd, len, (char*)&rmsg[1]);
+  
+  GNUNET_SERVER_notification_context_unicast (nc, clh->client,
+                                (const struct GNUNET_MessageHeader *) rmsg,
+                                GNUNET_NO);
+  GNUNET_SERVER_receive_done (clh->client, GNUNET_OK);
+  GNUNET_free(rmsg);
+  GNUNET_free(clh->name);
+  GNUNET_free(clh);
+
+}
+
+/**
+ * Lookup a given name
+ *
+ * @param name the name to looku[
+ * @param clh the client lookup handle
+ */
+static void
+lookup_name(char* name, struct ClientLookupHandle* clh)
+{
+
+  struct GNUNET_GNS_ResolverHandle *rh;
+  struct RecordLookupHandle* rlh;
+  
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Starting resolution for %s (type=%d)!\n",
+              name, clh->type);
+  
+  rh = GNUNET_malloc(sizeof (struct GNUNET_GNS_ResolverHandle));
+  rlh = GNUNET_malloc(sizeof(struct RecordLookupHandle));
+  
+  rh->authority = zone_hash;
+
+  rlh->record_type = clh->type;
+  rlh->name = clh->name;
+  rlh->proc = &reply_to_client;
+  rlh->proc_cls = clh;
+
+  rh->proc_cls = rlh;
+  
+  rh->name = GNUNET_malloc(strlen(name)
+                              - strlen(gnunet_tld) + 1);
+  memset(rh->name, 0,
+         strlen(name)-strlen(gnunet_tld) + 1);
+  memcpy(rh->name, name,
+         strlen(name)-strlen(gnunet_tld));
+
+  rh->authority_name = GNUNET_malloc(sizeof(char)*MAX_DNS_LABEL_LENGTH);
+  
+  rh->authority_chain_head = GNUNET_malloc(sizeof(struct AuthorityChain));
+  rh->authority_chain_head->prev = NULL;
+  rh->authority_chain_head->next = NULL;
+  rh->authority_chain_tail = rh->authority_chain_head;
+  rh->authority_chain_head->zone = zone_hash;
+
+  /* Start resolution in our zone */
+  rh->proc = &process_ns_delegation_dns; //FIXME rename
+  resolve_delegation_from_ns(rh);
+}
+
+
+/**
+ * Handle lookup requests from client
+ *
+ * @param cls the closure
+ * @param client the client
+ * @param message the message
  */
 static void
 handle_lookup(void *cls,
               struct GNUNET_SERVER_Client * client,
               const struct GNUNET_MessageHeader * message)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "LOOKUP");
+
+  size_t msg_size = 0;
+  struct ClientLookupHandle *clh;
+
+  if (ntohs (message->size) < sizeof (struct GNUNET_GNS_ClientLookupMessage))
+  {
+    GNUNET_break_op (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
+
+  GNUNET_SERVER_notification_context_add (nc, client);
+
+  struct GNUNET_GNS_ClientLookupMessage *sh_msg =
+    (struct GNUNET_GNS_ClientLookupMessage *) message;
+  
+  msg_size = ntohs(message->size);
+
+  if (msg_size > GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  {
+    GNUNET_break_op (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
+
+  clh = GNUNET_malloc(sizeof(struct ClientLookupHandle));
+  clh->client = client;
+  clh->name = GNUNET_malloc(strlen((char*)&sh_msg[1]) + 1);
+  strcpy(clh->name, (char*)&sh_msg[1]);
+  clh->unique_id = sh_msg->id;
+  clh->type = ntohl(sh_msg->type);
+  
+  lookup_name((char*)&sh_msg[1], clh);
 }
 
 /**

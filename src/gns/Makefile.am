@@ -27,7 +27,8 @@ bin_PROGRAMS = \
 #  gnunet-gns-lookup
 
 check_PROGRAMS = \
-  test_gns_simple_shorten
+  test_gns_simple_shorten \
+  test_gns_simple_lookup
 
 
 #  test_gns_simple_lookup
@@ -49,16 +50,18 @@ plugin_LTLIBRARIES = \
 #  $(top_builddir)/src/namestore/libgnunetnamestore.la \
 #  $(top_builddir)/src/testing/libgnunettesting.la
 
-#test_gns_simple_lookup_SOURCES = \
-#  test_gns_simple_lookup.c
-#test_gns_simple_lookup_LDADD = \
-#  $(top_builddir)/src/util/libgnunetutil.la \
-#  $(top_builddir)/src/namestore/libgnunetnamestore.la \
-#  $(top_builddir)/src/testing/libgnunettesting.la
-#test_gns_simple_lookup_DEPENDENCIES = \
-#  $(top_builddir)/src/util/libgnunetutil.la \
-#  $(top_builddir)/src/namestore/libgnunetnamestore.la \
-#  $(top_builddir)/src/testing/libgnunettesting.la
+test_gns_simple_lookup_SOURCES = \
+  test_gns_simple_lookup.c
+test_gns_simple_lookup_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/namestore/libgnunetnamestore.la \
+  $(top_builddir)/src/gns/libgnunetgns.la \
+  $(top_builddir)/src/testing/libgnunettesting.la
+test_gns_simple_lookup_DEPENDENCIES = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/namestore/libgnunetnamestore.la \
+  $(top_builddir)/src/gns/libgnunetgns.la \
+  $(top_builddir)/src/testing/libgnunettesting.la
 
 #test_gns_simple_delegated_lookup_SOURCES = \
 #  test_gns_simple_delegated_lookup.c
@@ -104,6 +107,7 @@ gnunet_gns_SOURCES = \
 gnunet_gns_LDADD = \
   $(top_builddir)/src/gns/libgnunetgns.la \
   $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/namestore/libgnunetnamestore.la \
   $(GN_LIBINTL)
 gnunet_gns_DEPENDENCIES = \
   libgnunetgns.la
@@ -145,11 +149,13 @@ gnunet_gns_fcfsd_DEPENDENCIES = \
 libgnunetgns_la_SOURCES = \
  gns_api.c gns.h
 libgnunetgns_la_LIBADD = \
- $(top_builddir)/src/util/libgnunetutil.la $(XLIB)
+ $(top_builddir)/src/util/libgnunetutil.la $(XLIB) \
+ $(top_builddir)/src/namestore/libgnunetnamestore.la
 libgnunetgns_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)
 libgnunetgns_la_DEPENDENCIES = \
- $(top_builddir)/src/util/libgnunetutil.la
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/namestore/libgnunetnamestore.la
 
 libgnunet_plugin_block_gns_la_SOURCES = \
   plugin_block_gns.c

@@ -104,7 +104,7 @@ GNUNET_GNS_disconnect (struct GNUNET_GNS_Handle *handle);
 /* *************** Standard API: lookup ******************* */
 
 /**
- * Iterator called on each result obtained for a GNS
+ * Iterator called on obtained result for a GNS
  * lookup
  *
  * @param cls closure
@@ -112,8 +112,7 @@ GNUNET_GNS_disconnect (struct GNUNET_GNS_Handle *handle);
  * @param rd_count number of records
  * @param rd the records in reply
  */
-typedef void (*GNUNET_GNS_LookupIterator) (void *cls,
-                                        const char * name,
+typedef void (*GNUNET_GNS_LookupResultProcessor) (void *cls,
                                         uint32_t rd_count,
                                         const struct GNUNET_NAMESTORE_RecordData *rd);
 
@@ -125,17 +124,17 @@ typedef void (*GNUNET_GNS_LookupIterator) (void *cls,
  * @param handle handle to the GNS service
  * @param name the name to look up
  * @param type the GNUNET_GNS_RecordType to look for
- * @param iter function to call on each result
- * @param iter_cls closure for iter
+ * @param proc function to call on result
+ * @param proc_cls closure for iter
  *
- * @return handle to stop the async lookup
+ * @return handle to the queued request
  */
 struct GNUNET_GNS_QueueEntry *
 GNUNET_GNS_lookup (struct GNUNET_GNS_Handle *handle,
                          const char * name,
                          enum GNUNET_GNS_RecordType type,
-                         GNUNET_GNS_LookupIterator iter,
-                         void *iter_cls);
+                         GNUNET_GNS_LookupResultProcessor proc,
+                         void *proc_cls);
 
 
 /* *************** Standard API: shorten ******************* */
