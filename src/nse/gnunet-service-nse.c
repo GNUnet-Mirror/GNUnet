@@ -979,7 +979,8 @@ update_flood_times (void *cls, const GNUNET_HashCode * key, void *value)
   {
     /* still stuck in previous round, no point to update, check that
      * we are active here though... */
-    GNUNET_break (peer_entry->transmit_task != GNUNET_SCHEDULER_NO_TASK);
+    GNUNET_break (peer_entry->transmit_task != GNUNET_SCHEDULER_NO_TASK ||
+                  peer_entry->th != NULL);
     return GNUNET_OK;
   }
   if (peer_entry->transmit_task != GNUNET_SCHEDULER_NO_TASK)
