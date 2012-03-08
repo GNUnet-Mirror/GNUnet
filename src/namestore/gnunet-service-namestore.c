@@ -71,9 +71,6 @@ struct GNUNET_NAMESTORE_Client
 
 struct GNUNET_NAMESTORE_CryptoContainer
 {
-  struct GNUNET_NAMESTORE_CryptoContainer *next;
-  struct GNUNET_NAMESTORE_CryptoContainer *prev;
-
   char * filename;
 
   GNUNET_HashCode zone;
@@ -108,8 +105,7 @@ static struct GNUNET_SERVER_NotificationContext *snc;
 static struct GNUNET_NAMESTORE_Client *client_head;
 static struct GNUNET_NAMESTORE_Client *client_tail;
 
-struct GNUNET_NAMESTORE_CryptoContainer *c_head;
-struct GNUNET_NAMESTORE_CryptoContainer *c_tail;
+struct GNUNET_CONTAINER_MultiHashMap *zonekeys;
 
 
 /**
@@ -192,6 +188,29 @@ int write_key_to_file (const char *filename, struct GNUNET_NAMESTORE_CryptoConta
   return GNUNET_OK;
 }
 
+int zone_to_disk_it (void *cls,
+                     const GNUNET_HashCode * key,
+                     void *value)
+{
+  struct GNUNET_NAMESTORE_CryptoContainer * c = value;
+
+  if (c->filename != NULL)
+    write_key_to_file(c->filename, c);
+  else
+  {
+    GNUNET_asprintf(&c->filename, "%s/%s.zone", zonefile_directory, GNUNET_h2s_full (&c->zone));
+    write_key_to_file(c->filename, c);
+  }
+
+  GNUNET_CONTAINER_multihashmap_remove (zonekeys, key, value);;
+  GNUNET_CRYPTO_rsa_key_free(c->privkey);
+  GNUNET_free (c->pubkey);
+  GNUNET_free(c->filename);
+  GNUNET_free (c);
+
+  return GNUNET_OK;
+}
+
 
 /**
  * Task run during shutdown.
@@ -207,27 +226,11 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_NAMESTORE_ZoneIteration * tmp;
   struct GNUNET_NAMESTORE_Client * nc;
   struct GNUNET_NAMESTORE_Client * next;
-  struct GNUNET_NAMESTORE_CryptoContainer *c;
 
   GNUNET_SERVER_notification_context_destroy (snc);
   snc = NULL;
 
-  for (c = c_head; c != NULL; c = c_head)
-  {
-    if (c->filename != NULL)
-      write_key_to_file(c->filename, c);
-    else
-    {
-      GNUNET_asprintf(&c->filename, "%s/%s.zone", zonefile_directory, GNUNET_h2s_full (&c->zone));
-      write_key_to_file(c->filename, c);
-    }
-
-    GNUNET_CONTAINER_DLL_remove(c_head, c_tail, c);
-    GNUNET_CRYPTO_rsa_key_free(c->privkey);
-    GNUNET_free (c->pubkey);
-    GNUNET_free(c->filename);
-    GNUNET_free (c);
-  }
+  GNUNET_CONTAINER_multihashmap_iterate(zonekeys, &zone_to_disk_it, NULL);
 
   for (nc = client_head; nc != NULL; nc = next)
   {
@@ -1544,7 +1547,7 @@ int zonekey_file_it (void *cls, const char *filename)
 
      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found zonefile for zone `%s'\n", GNUNET_h2s (&c->zone));
 
-     GNUNET_CONTAINER_DLL_insert(c_head, c_tail, c);
+     GNUNET_CONTAINER_multihashmap_put(zonekeys, &c->zone, c, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
      (*counter) ++;
    }
    return GNUNET_OK;
@@ -1612,6 +1615,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Scanning directory `%s' for zone files\n", zonefile_directory);
+  zonekeys = GNUNET_CONTAINER_multihashmap_create (10);
   GNUNET_DISK_directory_scan (zonefile_directory, zonekey_file_it, &counter);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found %u zone files\n", counter);
 
