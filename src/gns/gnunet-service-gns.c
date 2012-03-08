@@ -406,7 +406,10 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_SCHEDULER_cancel(zone_update_taskid);
   
   GNUNET_SERVER_notification_context_destroy (nc);
-  GNUNET_DNS_disconnect(dns_handle);
+  
+  if (dns_handle)
+    GNUNET_DNS_disconnect(dns_handle);
+  
   GNUNET_NAMESTORE_disconnect(namestore_handle, 1);
   GNUNET_DHT_disconnect(dht_handle);
 }
@@ -2264,6 +2267,9 @@ reply_to_client(void* cls, struct GNUNET_GNS_ResolverHandle *rh,
                                 (const struct GNUNET_MessageHeader *) rmsg,
                                 GNUNET_NO);
   GNUNET_SERVER_receive_done (clh->client, GNUNET_OK);
+  
+  GNUNET_free(rh->proc_cls);
+  free_resolver_handle(rh);
   GNUNET_free(rmsg);
   GNUNET_free(clh->name);
   GNUNET_free(clh);
@@ -2405,7 +2411,9 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   GNUNET_CRYPTO_hash(&pkey, sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
                      &zone_hash);
   GNUNET_free(keyfile);
+  
 
+  dns_handle = NULL;
   if (GNUNET_YES ==
       GNUNET_CONFIGURATION_get_value_yesno (c, "gns",
                                             "HIJACK_DNS"))
