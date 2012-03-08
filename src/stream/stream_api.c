@@ -1989,8 +1989,8 @@ mesh_peer_connect_callback (void *cls,
   
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%s: Target peer %s connected\n", 
-              GNUNET_i2s (&socket->our_id),
-              GNUNET_i2s (peer));
+              GNUNET_i2s (&(socket->our_id)),
+              GNUNET_i2s (&(socket->other_peer)));
   
   /* Set state to INIT */
   socket->state = STATE_INIT;

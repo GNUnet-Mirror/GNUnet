@@ -60,6 +60,11 @@ struct PeerData
   struct GNUNET_STREAM_IOReadHandle *io_read_handle;
 
   /**
+   * Our Peer id
+   */
+  struct GNUNET_PeerIdentity our_id;
+
+  /**
    * Bytes the peer has written
    */
   unsigned int bytes_wrote;
@@ -240,7 +245,10 @@ stream_open_cb (void *cls,
 {
   struct PeerData *peer;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stream established from peer1\n");
+  GNUNET_assert (socket == peer1.socket);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "%s: Stream established from peer1\n",
+              GNUNET_i2s (&peer1.our_id));
   peer = (struct PeerData *) cls;
   peer->bytes_wrote = 0;
   GNUNET_assert (socket == peer1.socket);
@@ -356,7 +364,9 @@ stream_listen_cb (void *cls,
   GNUNET_assert (socket != peer1.socket);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Peer connected: %s\n", GNUNET_i2s(initiator));
+              "%s: Peer connected: %s\n",
+              GNUNET_i2s (&peer2.our_id),
+              GNUNET_i2s(initiator));
 
   peer2.socket = socket;
   read_task = GNUNET_SCHEDULER_add_now (&stream_read, (void *) socket);
@@ -389,6 +399,19 @@ peergroup_ready (void *cls, const char *emsg)
   
   d2 = GNUNET_TESTING_daemon_get (pg, 1);
   GNUNET_assert (NULL != d2);
+
+  GNUNET_TESTING_get_peer_identity (d1->cfg,
+                                    &peer1.our_id);
+  GNUNET_TESTING_get_peer_identity (d2->cfg,
+                                    &peer2.our_id);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "%s : %s\n",
+              GNUNET_i2s (&peer1.our_id),
+              GNUNET_i2s (&d1->id));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "%s : %s\n",
+              GNUNET_i2s (&peer2.our_id),
+              GNUNET_i2s (&d2->id));
 
   peer2_listen_socket = GNUNET_STREAM_listen (d2->cfg,
                                               10, /* App port */
