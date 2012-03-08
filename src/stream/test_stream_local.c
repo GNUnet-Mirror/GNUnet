@@ -380,7 +380,7 @@ peergroup_ready (void *cls, const char *emsg)
       return;
     }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Peer group is now read \n");
+              "Peer group is now ready\n");
   
   GNUNET_assert (2 == GNUNET_TESTING_daemons_running (pg));
   
