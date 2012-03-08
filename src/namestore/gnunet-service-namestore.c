@@ -1623,11 +1623,11 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 
   GNUNET_asprintf (&db_lib_name, "libgnunet_plugin_namestore_%s", database);
   GSN_database = GNUNET_PLUGIN_load (db_lib_name, (void *) GSN_cfg);
+  GNUNET_free (database);
   if (GSN_database == NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not load database backend `%s'\n",
         db_lib_name);
-    GNUNET_free (database);
     GNUNET_SCHEDULER_add_now (&cleanup_task, NULL);
     return;
   }
