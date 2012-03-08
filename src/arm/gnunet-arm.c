@@ -361,6 +361,7 @@ cps_loop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	      GNUNET_SCHEDULER_add_now (&cps_loop, NULL);
 	      return;
 	    }
+	  break;
         case 5:
           if (list) {
               GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
