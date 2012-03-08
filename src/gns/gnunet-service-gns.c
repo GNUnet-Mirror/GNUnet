@@ -1702,7 +1702,7 @@ process_shorten_pseu_lookup_ns(void *cls,
     rh->status |= EXPIRED;
   }
 
-  rh->proc(cls, rh, rd_len, rd);
+  rh->proc(rh->proc_cls, rh, rd_len, rd);
 }
 
 
@@ -1767,14 +1767,21 @@ handle_shorten_zone_to_name(void *cls,
   struct ClientShortenHandle* csh = (struct ClientShortenHandle*) rh->proc_cls;
 
   char* result;
+  size_t answer_len;
   
   /* we found a match in our own zone */
   if (rd_len != 0)
   {
-    result = GNUNET_malloc(strlen(rh->name) + strlen(name) + 1);
-    memset(result, 0, strlen(rh->name) + strlen(name) + 1);
-    memcpy(result, rh->name, strlen(rh->name));
-    memcpy(result+strlen(rh->name)+1, name, strlen(name));
+    answer_len = strlen(rh->name) + strlen(name) + strlen(gnunet_tld) + 2;
+    result = GNUNET_malloc(answer_len);
+    memset(result, 0, answer_len);
+    strcpy(result, rh->name);
+    strcpy(result+strlen(rh->name), ".");
+    strcpy(result+strlen(rh->name)+1, name);
+    strcpy(result+strlen(rh->name)+strlen(name), gnunet_tld);
+    
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "Sending shorten result %s\n", result);
 
     send_shorten_response(result, csh);
 
@@ -1816,6 +1823,7 @@ handle_shorten_pseu_dht_result(void* cls,
   char* pseu;
   char* result;
   char* new_name;
+  size_t answer_len;
   int i;
   
   /**
@@ -1826,15 +1834,25 @@ handle_shorten_pseu_dht_result(void* cls,
     for (i=0; i < rd_len; i++)
     {
       if (rd[i].record_type == GNUNET_GNS_RECORD_PSEU)
+      {
+        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                   "Found PSEU %s\n", (char*) rd[i].data);
         break;
+      }
     }
-    
-    pseu = (char*) rd[i].data;
-    result = GNUNET_malloc(strlen(rh->name) + strlen(pseu) + 1);
-    memset(result, 0, strlen(rh->name) + strlen(pseu) + 1);
-    memcpy(result, rh->name, strlen(rh->name));
-    memcpy(result+strlen(rh->name)+1, pseu, strlen(pseu));
 
+    pseu = (char*) rd[i].data;
+    answer_len = strlen(rh->name) + strlen(pseu) + strlen(gnunet_tld) + 2;
+    result = GNUNET_malloc(answer_len);
+    memset(result, 0, answer_len);
+    strcpy(result, rh->name);
+    strcpy(result+strlen(rh->name), ".");
+    strcpy(result+strlen(rh->name)+1, pseu);
+    strcpy(result+strlen(rh->name)+strlen(pseu), gnunet_tld);
+    
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "Sending pseudonym shorten result %s\n", result);
+    
     send_shorten_response(result, csh);
 
     GNUNET_free(result);
@@ -1854,11 +1872,18 @@ handle_shorten_pseu_dht_result(void* cls,
     /**
      * Our zone is next
      */
-    result = GNUNET_malloc(strlen(rh->name) + strlen(auth_chain->name) + 2);
-    memset(result, 0, strlen(rh->name) + strlen(auth_chain->name) + 2);
+    answer_len = strlen(rh->name) + strlen(auth_chain->name)
+      + strlen(gnunet_tld) + 2;
+
+    result = GNUNET_malloc(answer_len);
+    memset(result, 0, answer_len);
     strcpy(result, rh->name);
-    strcpy(result+strlen(rh->name)+1, ".");
-    strcpy(result+strlen(rh->name)+2, auth_chain->name);
+    strcpy(result+strlen(rh->name), ".");
+    strcpy(result+strlen(rh->name)+1, auth_chain->name);
+    strcpy(result+strlen(rh->name)+strlen(auth_chain->name)+1, gnunet_tld);
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "Sending non pseudonym shorten result %s\n", result);
+    
     send_shorten_response(result, csh);
     GNUNET_free(result);
     return;
@@ -1912,6 +1937,7 @@ handle_shorten_pseu_ns_result(void* cls,
   char* pseu;
   char* result;
   char* new_name;
+  size_t answer_len;
   int i;
   
   /**
@@ -1922,15 +1948,25 @@ handle_shorten_pseu_ns_result(void* cls,
     for (i=0; i < rd_len; i++)
     {
       if (rd[i].record_type == GNUNET_GNS_RECORD_PSEU)
+      {
+        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                   "Found PSEU %s\n", (char*) rd[i].data);
         break;
+      }
     }
     
     pseu = (char*) rd[i].data;
-    result = GNUNET_malloc(strlen(rh->name) + strlen(pseu) + 1);
-    memset(result, 0, strlen(rh->name) + strlen(pseu) + 1);
-    memcpy(result, rh->name, strlen(rh->name));
-    memcpy(result+strlen(rh->name)+1, pseu, strlen(pseu));
-
+    answer_len = strlen(rh->name) + strlen(pseu) + strlen(gnunet_tld) + 2;
+    result = GNUNET_malloc(answer_len);
+    memset(result, 0, answer_len);
+    strcpy(result, rh->name);
+    strcpy(result+strlen(rh->name), ".");
+    strcpy(result+strlen(rh->name)+1, pseu);
+    strcpy(result+strlen(rh->name)+strlen(pseu)+1, gnunet_tld);
+    
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "Sending shorten result %s\n", result);
+    
     send_shorten_response(result, csh);
 
     GNUNET_free(result);
@@ -1997,6 +2033,8 @@ handle_shorten_delegation_result(void* cls,
 {
   struct ClientShortenHandle* csh = (struct ClientShortenHandle*) cls;
   struct AuthorityChain *auth_chain;
+  char* result;
+  size_t answer_len;
   
   /**
    * At this point rh->name contains the part of the name
@@ -2016,10 +2054,22 @@ handle_shorten_delegation_result(void* cls,
      * (it shouldn't be, usually FIXME what happens if we
      * shorten to our zone to a "" record??)
      **/
+    
+    answer_len = strlen(rh->name) + strlen(gnunet_tld) + 2;
+    result = GNUNET_malloc(answer_len);
+    memset(result, 0, answer_len);
+    strcpy(result, rh->name);
+    strcpy(result+strlen(rh->name), ".");
+    strcpy(result+strlen(rh->name)+1, gnunet_tld);
+
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "Our zone: Sending name as shorten result %s\n", rh->name);
+    
     send_shorten_response(rh->name, csh); //FIXME +.gnunet!
     free_resolver_handle(rh);
     GNUNET_free(csh->name);
     GNUNET_free(csh);
+    GNUNET_free(result);
     return;
   }
   
@@ -2092,8 +2142,8 @@ shorten_name(char* name, struct ClientShortenHandle* csh)
 static void
 send_shorten_response(const char* name, struct ClientShortenHandle *csh)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message\n",
-              "SHORTEN_RESULT");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message with %s\n",
+              "SHORTEN_RESULT", name);
   struct GNUNET_GNS_ClientShortenResultMessage *rmsg;
   
   if (name == NULL)
@@ -2101,15 +2151,15 @@ send_shorten_response(const char* name, struct ClientShortenHandle *csh)
     name = '\0';
   }
 
-  rmsg = GNUNET_malloc(sizeof(struct GNUNET_GNS_ClientShortenResultMessage *)
-                       + strlen(name));
+  rmsg = GNUNET_malloc(sizeof(struct GNUNET_GNS_ClientShortenResultMessage)
+                       + strlen(name) + 1);
   
   rmsg->unique_id = csh->unique_id;
   rmsg->key = csh->key;
   rmsg->header.type = htons(GNUNET_MESSAGE_TYPE_GNS_SHORTEN_RESULT);
   rmsg->header.size = 
     htons(sizeof(struct GNUNET_GNS_ClientShortenResultMessage) +
-          strlen(name));
+          strlen(name) + 1);
 
   strcpy((char*)&rmsg[1], name);
 
@@ -2147,7 +2197,6 @@ static void handle_shorten(void *cls,
   }
 
   GNUNET_SERVER_notification_context_add (nc, client);
-  GNUNET_SERVER_client_keep (client);
 
   struct GNUNET_GNS_ClientShortenMessage *sh_msg =
     (struct GNUNET_GNS_ClientShortenMessage *) message;

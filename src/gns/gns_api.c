@@ -508,8 +508,8 @@ process_shorten_reply (void *cls, const GNUNET_HashCode * key, void *value)
   }
   
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received reply for `%s' from GNS service %p\n",
-              name, shorten_handle->gns_handle);
+              "Received reply for `%s' from GNS service\n",
+              name);
   
   if (gns_msg->unique_id != shorten_handle->unique_id)
   {
@@ -780,9 +780,10 @@ GNUNET_GNS_shorten (struct GNUNET_GNS_Handle *handle,
     return NULL;
   }
 
-  msize = sizeof (struct GNUNET_GNS_ClientShortenMessage) + strlen(name);
+  msize = sizeof (struct GNUNET_GNS_ClientShortenMessage) + strlen(name) +1;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Trying to shorten %s in GNS\n", name);
   pending = GNUNET_malloc (sizeof (struct PendingMessage) + msize);
+  memset(pending, 0, (sizeof (struct PendingMessage) + msize));
   shorten_msg = (struct GNUNET_GNS_ClientShortenMessage *) &pending[1];
   pending->msg = &shorten_msg->header;
   pending->handle = handle;
