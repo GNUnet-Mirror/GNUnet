@@ -398,6 +398,9 @@ reply_to_dns(void* cls, struct GNUNET_GNS_ResolverHandle *rh, uint32_t rd_count,
 static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Shutting down!");
   /* Kill zone task for it may make the scheduler hang */
   if (zone_update_taskid)
     GNUNET_SCHEDULER_cancel(zone_update_taskid);
@@ -2175,6 +2178,7 @@ send_shorten_response(const char* name, struct ClientShortenHandle *csh)
   GNUNET_SERVER_receive_done (csh->client, GNUNET_OK);
   
   GNUNET_free(rmsg);
+  GNUNET_free(csh->name);
   GNUNET_free(csh);
 
 }
