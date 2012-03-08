@@ -31,7 +31,7 @@
 #include "gnunet_signatures.h"
 #include "namestore.h"
 
-
+#define LOG_STRERROR_FILE(kind,syscall,filename) GNUNET_log_from_strerror_file (kind, "util", syscall, filename)
 
 /**
  * A namestore operation.
@@ -69,24 +69,128 @@ struct GNUNET_NAMESTORE_Client
   struct GNUNET_NAMESTORE_ZoneIteration *op_tail;
 };
 
+struct GNUNET_NAMESTORE_CryptoContainer
+{
+  struct GNUNET_NAMESTORE_CryptoContainer *next;
+  struct GNUNET_NAMESTORE_CryptoContainer *prev;
+
+  char * filename;
+
+  GNUNET_HashCode zone;
+  struct GNUNET_CRYPTO_RsaPrivateKey *privkey;
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *pubkey;
+};
 
 
 /**
- * Configuration handle.
- */
+* Configuration handle.
+*/
 const struct GNUNET_CONFIGURATION_Handle *GSN_cfg;
 
-static struct GNUNET_NAMESTORE_PluginFunctions *GSN_database;
+/**
+* Database handle
+*/
+struct GNUNET_NAMESTORE_PluginFunctions *GSN_database;
+
+/**
+* Zonefile directory
+*/
+static char *zonefile_directory;
+
+static char *db_lib_name;
+
 
 /**
  * Our notification context.
  */
 static struct GNUNET_SERVER_NotificationContext *snc;
 
-static char *db_lib_name;
-
 static struct GNUNET_NAMESTORE_Client *client_head;
 static struct GNUNET_NAMESTORE_Client *client_tail;
+
+struct GNUNET_NAMESTORE_CryptoContainer *c_head;
+struct GNUNET_NAMESTORE_CryptoContainer *c_tail;
+
+
+/**
+ * Write zonefile to disk
+ * @param file where to write
+ * @param ret the key
+ *
+ * @return GNUNET_OK on success, GNUNET_SYSERR on fail
+ */
+
+int write_key_to_file (const char *filename, struct GNUNET_NAMESTORE_CryptoContainer *c)
+{
+  struct GNUNET_CRYPTO_RsaPrivateKey *ret = c->privkey;
+  struct GNUNET_CRYPTO_RsaPrivateKeyBinaryEncoded *enc;
+  struct GNUNET_DISK_FileHandle *fd;
+
+  if (GNUNET_YES == GNUNET_DISK_file_test (filename))
+  {
+    GNUNET_HashCode zone;
+    struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pubkey;
+    struct GNUNET_CRYPTO_RsaPrivateKey * privkey;
+
+    privkey = GNUNET_CRYPTO_rsa_key_create_from_file(filename);
+    if (privkey == NULL)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+           _("File zone `%s' but corrupt content already exists, failed to write! \n"), GNUNET_h2s (&zone));
+      return GNUNET_SYSERR;
+    }
+
+    GNUNET_CRYPTO_rsa_key_get_public(privkey, &pubkey);
+    GNUNET_CRYPTO_hash(&pubkey, sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), &zone);
+    GNUNET_CRYPTO_rsa_key_free(privkey);
+
+    if (0 == memcmp (&zone, &c->zone, sizeof(zone)))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+           _("File zone `%s' containing this key already exists\n"), GNUNET_h2s (&zone));
+      return GNUNET_OK;
+    }
+    else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+           _("File zone `%s' but different zone key already exists, failed to write! \n"), GNUNET_h2s (&zone));
+      return GNUNET_OK;
+    }
+  }
+  fd = GNUNET_DISK_file_open (filename, GNUNET_DISK_OPEN_WRITE | GNUNET_DISK_OPEN_CREATE | GNUNET_DISK_OPEN_FAILIFEXISTS, GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE);
+  if (NULL == fd)
+  {
+    if (errno == EEXIST)
+    {
+      if (GNUNET_YES != GNUNET_DISK_file_test (filename))
+      {
+        /* must exist but not be accessible, fail for good! */
+        if (0 != ACCESS (filename, R_OK))
+          LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_ERROR, "access", filename);
+        else
+          GNUNET_break (0);   /* what is going on!? */
+        return GNUNET_SYSERR;
+      }
+    }
+    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_ERROR, "open", filename);
+    return GNUNET_SYSERR;
+  }
+
+  if (GNUNET_YES != GNUNET_DISK_file_lock (fd, 0, sizeof (struct GNUNET_CRYPTO_RsaPrivateKeyBinaryEncoded), GNUNET_YES))
+    return GNUNET_SYSERR;
+  enc = GNUNET_CRYPTO_rsa_encode_key (ret);
+  GNUNET_assert (enc != NULL);
+  GNUNET_assert (ntohs (enc->len) == GNUNET_DISK_file_write (fd, enc, ntohs (enc->len)));
+  GNUNET_free (enc);
+  GNUNET_DISK_file_sync (fd);
+  if (GNUNET_YES != GNUNET_DISK_file_unlock (fd, 0, sizeof (struct GNUNET_CRYPTO_RsaPrivateKeyBinaryEncoded)))
+    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "fcntl", filename);
+  GNUNET_assert (GNUNET_YES == GNUNET_DISK_file_close (fd));
+
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+       _("Stored zonekey for zone `%s' in file `%s'\n"),GNUNET_h2s(&c->zone), c->filename);
+  return GNUNET_OK;
+}
 
 
 /**
@@ -99,14 +203,31 @@ static void
 cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping namestore service\n");
-
   struct GNUNET_NAMESTORE_ZoneIteration * no;
   struct GNUNET_NAMESTORE_ZoneIteration * tmp;
   struct GNUNET_NAMESTORE_Client * nc;
   struct GNUNET_NAMESTORE_Client * next;
+  struct GNUNET_NAMESTORE_CryptoContainer *c;
 
   GNUNET_SERVER_notification_context_destroy (snc);
   snc = NULL;
+
+  for (c = c_head; c != NULL; c = c_head)
+  {
+    if (c->filename != NULL)
+      write_key_to_file(c->filename, c);
+    else
+    {
+      GNUNET_asprintf(&c->filename, "%s/%s.zone", zonefile_directory, GNUNET_h2s_full (&c->zone));
+      write_key_to_file(c->filename, c);
+    }
+
+    GNUNET_CONTAINER_DLL_remove(c_head, c_tail, c);
+    GNUNET_CRYPTO_rsa_key_free(c->privkey);
+    GNUNET_free (c->pubkey);
+    GNUNET_free(c->filename);
+    GNUNET_free (c);
+  }
 
   for (nc = client_head; nc != NULL; nc = next)
   {
@@ -125,6 +246,7 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GNUNET_break (NULL == GNUNET_PLUGIN_unload (db_lib_name, GSN_database));
   GNUNET_free (db_lib_name);
+  GNUNET_free_non_null(zonefile_directory);
 }
 
 static struct GNUNET_NAMESTORE_Client *
@@ -1403,6 +1525,30 @@ static void handle_iteration_next (void *cls,
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
+int zonekey_file_it (void *cls, const char *filename)
+{
+  int *counter = cls;
+   if ((filename != NULL) && (NULL != strstr(filename, ".zone")))
+   {
+     struct GNUNET_CRYPTO_RsaPrivateKey * privkey;
+     struct GNUNET_NAMESTORE_CryptoContainer *c;
+     privkey = GNUNET_CRYPTO_rsa_key_create_from_file(filename);
+     if (privkey == NULL)
+       return GNUNET_OK;
+
+     c = GNUNET_malloc (sizeof (struct GNUNET_NAMESTORE_CryptoContainer));
+     c->pubkey = GNUNET_malloc(sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
+     c->privkey = privkey;
+     GNUNET_CRYPTO_rsa_key_get_public(privkey, c->pubkey);
+     GNUNET_CRYPTO_hash(c->pubkey, sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), &c->zone);
+
+     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found zonefile for zone `%s'\n", GNUNET_h2s (&c->zone));
+
+     GNUNET_CONTAINER_DLL_insert(c_head, c_tail, c);
+     (*counter) ++;
+   }
+   return GNUNET_OK;
+}
 
 
 /**
@@ -1417,7 +1563,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   char * database;
-
+  int counter = 0;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting namestore service\n");
 
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
@@ -1444,6 +1590,31 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 
   GSN_cfg = cfg;
 
+  /* Load private keys from disk */
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_filename (cfg, "namestore", "zonefile_directory",
+                                             &zonefile_directory))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("No directory to load zonefiles specified in configuration\n"));
+    GNUNET_SCHEDULER_add_now (&cleanup_task, NULL);
+    return;
+  }
+
+  if (GNUNET_NO == GNUNET_DISK_file_test (zonefile_directory))
+  {
+    if (GNUNET_SYSERR == GNUNET_DISK_directory_create (zonefile_directory))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Creating directory `%s' for zone files failed!\n"), zonefile_directory);
+      GNUNET_SCHEDULER_add_now (&cleanup_task, NULL);
+      return;
+    }
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created directory `%s' for zone files\n", zonefile_directory);
+  }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Scanning directory `%s' for zone files\n", zonefile_directory);
+  GNUNET_DISK_directory_scan (zonefile_directory, zonekey_file_it, &counter);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found %u zone files\n", counter);
+
   /* Loading database plugin */
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg, "namestore", "database",
@@ -1453,9 +1624,13 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   GNUNET_asprintf (&db_lib_name, "libgnunet_plugin_namestore_%s", database);
   GSN_database = GNUNET_PLUGIN_load (db_lib_name, (void *) GSN_cfg);
   if (GSN_database == NULL)
+  {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not load database backend `%s'\n",
         db_lib_name);
-  GNUNET_free (database);
+    GNUNET_free (database);
+    GNUNET_SCHEDULER_add_now (&cleanup_task, NULL);
+    return;
+  }
 
   /* Configuring server handles */
   GNUNET_SERVER_add_handlers (server, handlers);

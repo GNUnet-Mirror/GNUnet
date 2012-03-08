@@ -408,12 +408,19 @@ run (void *cls, char *const *args, const char *cfgfile,
   delete_existing_db(cfg);
   endbadly_task = GNUNET_SCHEDULER_add_delayed(TIMEOUT,&endbadly, NULL);
 
-  privkey = GNUNET_CRYPTO_rsa_key_create_from_file("hostkey");
+  char *hostkey_file;
+  GNUNET_asprintf(&hostkey_file,"zonefiles%s%s",DIR_SEPARATOR_STR, "4UCICULTINKC87UO4326KEEDQ9MTEP2AJT88MJFVGTGNK12QNGMQI2S41VI07UUU6EO19BTB06PDL0HE6VP1OM50HOJEI75RHP4JP80.zone");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Using zonekey file `%s' \n", hostkey_file);
+  privkey = GNUNET_CRYPTO_rsa_key_create_from_file(hostkey_file);
+  GNUNET_free (hostkey_file);
   GNUNET_assert (privkey != NULL);
   GNUNET_CRYPTO_rsa_key_get_public(privkey, &pubkey);
   GNUNET_CRYPTO_hash(&pubkey, sizeof (pubkey), &zone);
 
-  privkey2 = GNUNET_CRYPTO_rsa_key_create_from_file("hostkey2");
+  GNUNET_asprintf(&hostkey_file,"zonefiles%s%s",DIR_SEPARATOR_STR, "KJI3AL00K91EDPFJF58DAJM7H61D189TLP70N56JL8SVDCJE1SJ3SNNBOQPPONTL37FMHPS39SMK2NMVC0GQMGA6QCMHITT78O8GF80.zone");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Using zonekey file `%s' \n", hostkey_file);
+  privkey2 = GNUNET_CRYPTO_rsa_key_create_from_file(hostkey_file);
+  GNUNET_free (hostkey_file);
   GNUNET_assert (privkey2 != NULL);
   GNUNET_CRYPTO_rsa_key_get_public(privkey2, &pubkey2);
   GNUNET_CRYPTO_hash(&pubkey2, sizeof (pubkey), &zone2);
