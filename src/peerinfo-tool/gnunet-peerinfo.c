@@ -270,11 +270,12 @@ print_my_uri (void *cls, const struct GNUNET_PeerIdentity *peer,
       return;
   }
   pc->peer = *peer;
-  GNUNET_HELLO_iterate_addresses (hello, GNUNET_NO, &count_address, pc);
-  GNUNET_HELLO_iterate_addresses (hello, GNUNET_NO, &compose_uri, pc);
+  if (NULL != hello)
+  {
+    GNUNET_HELLO_iterate_addresses (hello, GNUNET_NO, &count_address, pc);
+    GNUNET_HELLO_iterate_addresses (hello, GNUNET_NO, &compose_uri, pc);
+  }
   printf ("%s\n", pc->uri);
-  GNUNET_free (pc->uri);
-  GNUNET_free (pc);
 }
 
 struct GNUNET_PEERINFO_HelloAddressParsingContext
@@ -473,6 +474,7 @@ parse_hello (const struct GNUNET_CONFIGURATION_Handle *c,
 
   /* WARNING: this adds the address from URI WITHOUT verification! */
   GNUNET_PEERINFO_add_peer (peerinfo, hello);
+  GNUNET_free (hello);
 }
 
 static struct GNUNET_TIME_Relative
@@ -598,6 +600,7 @@ run (void *cls, char *const *args, const char *cfgfile,
       struct PrintContext *pc;
       char *pkey;
       ssize_t l, pl;
+
       pc = GNUNET_malloc (sizeof (struct PrintContext));
       pkey = GNUNET_CRYPTO_rsa_public_key_to_string (&pub);
       pl = strlen ("gnunet://hello/");
@@ -609,6 +612,8 @@ run (void *cls, char *const *args, const char *cfgfile,
       GNUNET_PEERINFO_iterate (peerinfo, &pid,
           GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5),
           print_my_uri, pc);
+      GNUNET_free (pc->uri);
+      GNUNET_free (pc);
     }
   }
 }
