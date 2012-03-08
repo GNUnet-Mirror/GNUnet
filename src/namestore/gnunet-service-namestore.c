@@ -684,6 +684,7 @@ static void handle_record_create (void *cls,
   int rd_count;
 
   int res = GNUNET_SYSERR;
+  crc.res = GNUNET_SYSERR;
 
   if (ntohs (message->size) < sizeof (struct RecordCreateMessage))
   {
@@ -1103,11 +1104,14 @@ handle_zone_to_name_it (void *cls,
   else
     memset (&ztnr_msg->zone_key, '\0', sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
 
-  memcpy (name_tmp, name, name_len);
+  if ((name_len > 0) && (name != NULL))
+    memcpy (name_tmp, name, name_len);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Name is `%s', has %u records, rd ser len %u msg_size %u\n", name, rd_count, rd_ser_len, msg_size);
-  memcpy (rd_tmp, rd_ser, rd_ser_len);
-  memcpy (sig_tmp, signature, contains_sig * sizeof (struct GNUNET_CRYPTO_RsaSignature));
+  if ((rd_ser_len > 0) && (rd_ser != NULL))
+    memcpy (rd_tmp, rd_ser, rd_ser_len);
+  if ((GNUNET_YES == contains_sig) && (signature != NULL))
+    memcpy (sig_tmp, signature, contains_sig * sizeof (struct GNUNET_CRYPTO_RsaSignature));
 
   GNUNET_SERVER_notification_context_unicast (snc, ztn_ctx->nc->client, (const struct GNUNET_MessageHeader *) ztnr_msg, GNUNET_NO);
   GNUNET_free (ztnr_msg);
@@ -1255,7 +1259,9 @@ void zone_iteration_proc (void *cls,
     zir_msg->rd_count = htons (rd_count);
     zir_msg->rd_len = htons (rd_ser_len);
     zir_msg->signature = *signature;
-    zir_msg->public_key = *zone_key;
+    GNUNET_assert (NULL == zone_key);
+    if (zone_key != NULL)
+      zir_msg->public_key = *zone_key;
     memcpy (name_tmp, name, name_len);
     memcpy (rd_tmp, rd_ser, rd_ser_len);
 
