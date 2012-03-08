@@ -130,24 +130,13 @@ typedef void (*GNUNET_GNS_LookupIterator) (void *cls,
  *
  * @return handle to stop the async lookup
  */
-struct GNUNET_GNS_LookupHandle *
-GNUNET_GNS_lookup_start (struct GNUNET_GNS_Handle *handle,
+struct GNUNET_GNS_QueueEntry *
+GNUNET_GNS_lookup (struct GNUNET_GNS_Handle *handle,
                          const char * name,
                          enum GNUNET_GNS_RecordType type,
                          GNUNET_GNS_LookupIterator iter,
                          void *iter_cls);
 
-
-/**
- * Stop async GNS lookup.  Frees associated resources.
- *
- * @param lookup_handle lookup operation to stop.
- *
- * On return lookup_handle will no longer be valid, caller
- * must not use again!!!
- */
-void
-GNUNET_GNS_lookup_stop (struct GNUNET_GNS_LookupHandle *lookup_handle);
 
 /* *************** Standard API: shorten ******************* */
 
@@ -161,7 +150,6 @@ GNUNET_GNS_lookup_stop (struct GNUNET_GNS_LookupHandle *lookup_handle);
  * @param short_name the shortened name or NULL if no result
  */
 typedef void (*GNUNET_GNS_ShortenResultProcessor) (void *cls,
-                                        const char * name,
                                         const char* short_name);
 
 
@@ -175,7 +163,7 @@ typedef void (*GNUNET_GNS_ShortenResultProcessor) (void *cls,
  *
  * @return handle to the shorten operation
  */
-struct GNUNET_GNS_ShortenHandle *
+struct GNUNET_GNS_QueueEntry *
 GNUNET_GNS_shorten (struct GNUNET_GNS_Handle *handle,
                          const char * name,
                          GNUNET_GNS_ShortenResultProcessor proc,

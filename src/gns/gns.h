@@ -41,14 +41,9 @@ struct GNUNET_GNS_ClientLookupMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * A key. TODO some uid
-   */
-  GNUNET_HashCode key;
-
-  /**
    * Unique identifier for this request (for key collisions).
    */
-  uint64_t unique_id GNUNET_PACKED;
+  uint32_t id GNUNET_PACKED;
 
   /**
    * the type of record to look up
@@ -73,14 +68,7 @@ struct GNUNET_GNS_ClientLookupResultMessage
   /**
    * Unique identifier for this request (for key collisions).
    */
-  // FIXME: unaligned
-  uint64_t unique_id;
-
-  /**
-   * A key. TODO some uid
-   * // FIXME: why hash?
-   */
-  GNUNET_HashCode key;
+  uint32_t id GNUNET_PACKED;
 
   /**
    * The number of records contained in response
@@ -103,15 +91,9 @@ struct GNUNET_GNS_ClientShortenMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * A key. TODO some uid
+   * Unique identifier for this request
    */
-  GNUNET_HashCode key;
-
-  /**
-   * Unique identifier for this request (for key collisions).
-   */
-  // FIXME: unaligned
-  uint64_t unique_id GNUNET_PACKED;
+  uint32_t id GNUNET_PACKED;
 
   /* Followed by the name to shorten up */
 };
@@ -130,14 +112,7 @@ struct GNUNET_GNS_ClientShortenResultMessage
   /**
    * Unique identifier for this request (for key collisions).
    */
-  // FIXME: unaligned
-  uint64_t unique_id GNUNET_PACKED;
-
-  /**
-   * A key. TODO some uid
-   * // FIXME: why hash?
-   */
-  GNUNET_HashCode key;
+  uint32_t id GNUNET_PACKED;
 
   /* followed by the shortened name or '\0' for no result*/
 

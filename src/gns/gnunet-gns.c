@@ -60,9 +60,9 @@ do_shutdown (void *cls,
 
 
 static void
-process_shorten_result(void* cls, const char* nlong, const char* nshort)
+process_shorten_result(void* cls, const char* nshort)
 {
-  printf("%s shortened to %s\n", nlong, nshort);
+  printf("%s shortened to %s\n", (char*) cls, nshort);
 }
 
 /**
@@ -88,7 +88,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   if (name != NULL)
   {
     /** shorten name */
-    GNUNET_GNS_shorten(gns, name, &process_shorten_result, NULL);
+    GNUNET_GNS_shorten(gns, name, &process_shorten_result, name);
   }
 
   // FIXME: do work here...

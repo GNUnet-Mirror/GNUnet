@@ -255,6 +255,7 @@ static void
 free_resolver_handle(struct GNUNET_GNS_ResolverHandle* rh)
 {
   struct AuthorityChain *ac;
+  struct AuthorityChain *ac_next;
 
   if (NULL == rh)
     return;
@@ -264,10 +265,12 @@ free_resolver_handle(struct GNUNET_GNS_ResolverHandle* rh)
 
   ac = rh->authority_chain_head;
 
-  for (; NULL != ac; ac = ac->next)
+  while (NULL != ac)
   {
+    ac_next = ac->next;
     GNUNET_free_non_null (ac->name);
     GNUNET_free(ac);
+    ac = ac_next;
   }
   GNUNET_free(rh);
 }
@@ -398,7 +401,8 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   /* Kill zone task for it may make the scheduler hang */
   if (zone_update_taskid)
     GNUNET_SCHEDULER_cancel(zone_update_taskid);
-
+  
+  GNUNET_SERVER_notification_context_destroy (nc);
   GNUNET_DNS_disconnect(dns_handle);
   GNUNET_NAMESTORE_disconnect(namestore_handle, 1);
   GNUNET_DHT_disconnect(dht_handle);
@@ -1468,6 +1472,8 @@ handle_dns_request(void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "No Queries in DNS packet... forwarding\n");
     GNUNET_DNS_request_forward (rh);
+    GNUNET_DNSPARSER_free_packet(p);
+    return;
   }
 
   if (p->num_queries > 1)
@@ -1784,7 +1790,7 @@ handle_shorten_zone_to_name(void *cls,
                "Sending shorten result %s\n", result);
 
     send_shorten_response(result, csh);
-
+    free_resolver_handle(rh);
     GNUNET_free(result);
   }
   else
@@ -1854,7 +1860,7 @@ handle_shorten_pseu_dht_result(void* cls,
                "Sending pseudonym shorten result %s\n", result);
     
     send_shorten_response(result, csh);
-
+    free_resolver_handle(rh);
     GNUNET_free(result);
     return;
   }
@@ -1885,6 +1891,7 @@ handle_shorten_pseu_dht_result(void* cls,
                "Sending non pseudonym shorten result %s\n", result);
     
     send_shorten_response(result, csh);
+    free_resolver_handle(rh);
     GNUNET_free(result);
     return;
   }
@@ -1968,7 +1975,7 @@ handle_shorten_pseu_ns_result(void* cls,
                "Sending shorten result %s\n", result);
     
     send_shorten_response(result, csh);
-
+    free_resolver_handle(rh);
     GNUNET_free(result);
     return;
   }
@@ -2154,8 +2161,7 @@ send_shorten_response(const char* name, struct ClientShortenHandle *csh)
   rmsg = GNUNET_malloc(sizeof(struct GNUNET_GNS_ClientShortenResultMessage)
                        + strlen(name) + 1);
   
-  rmsg->unique_id = csh->unique_id;
-  rmsg->key = csh->key;
+  rmsg->id = csh->unique_id;
   rmsg->header.type = htons(GNUNET_MESSAGE_TYPE_GNS_SHORTEN_RESULT);
   rmsg->header.size = 
     htons(sizeof(struct GNUNET_GNS_ClientShortenResultMessage) +
@@ -2166,10 +2172,10 @@ send_shorten_response(const char* name, struct ClientShortenHandle *csh)
   GNUNET_SERVER_notification_context_unicast (nc, csh->client,
                               (const struct GNUNET_MessageHeader *) rmsg,
                               GNUNET_NO);
-
   GNUNET_SERVER_receive_done (csh->client, GNUNET_OK);
   
   GNUNET_free(rmsg);
+  GNUNET_free(csh);
 
 }
 
@@ -2212,8 +2218,7 @@ static void handle_shorten(void *cls,
 
   csh = GNUNET_malloc(sizeof(struct ClientShortenHandle));
   csh->client = client;
-  csh->unique_id = sh_msg->unique_id;
-  csh->key = sh_msg->key;
+  csh->unique_id = sh_msg->id;
   
   shorten_name((char*)&sh_msg[1], csh);
 

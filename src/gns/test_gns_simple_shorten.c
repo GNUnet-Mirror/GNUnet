@@ -76,7 +76,7 @@ const struct GNUNET_CONFIGURATION_Handle *cfg;
 /**
  * Check whether peers successfully shut down.
  */
-void
+static void
 shutdown_callback (void *cls, const char *emsg)
 {
   if (emsg != NULL)
