@@ -808,6 +808,7 @@ GNUNET_CRYPTO_setup_hostkey (const char *cfg_name)
     pk = GNUNET_CRYPTO_rsa_key_create_from_file (fn);
     if (NULL != pk)
       GNUNET_CRYPTO_rsa_key_free (pk);
+    GNUNET_free (fn);
   }
   GNUNET_CONFIGURATION_destroy (cfg);
 }

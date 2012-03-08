@@ -763,8 +763,8 @@ handle_list_response (void *cls, const struct GNUNET_MessageHeader *msg)
       if (NULL == end)
       {
 	GNUNET_break (0);
-	GNUNET_free (sc);
 	sc->callback (sc->cls, GNUNET_NO, 0, NULL);
+	GNUNET_free (sc);
 	return;
       }
       list[i] = pos;
