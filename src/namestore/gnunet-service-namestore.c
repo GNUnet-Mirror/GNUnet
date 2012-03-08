@@ -1259,7 +1259,7 @@ void zone_iteration_proc (void *cls,
     zir_msg->rd_count = htons (rd_count);
     zir_msg->rd_len = htons (rd_ser_len);
     zir_msg->signature = *signature;
-    GNUNET_assert (NULL == zone_key);
+    GNUNET_assert (NULL != zone_key);
     if (zone_key != NULL)
       zir_msg->public_key = *zone_key;
     memcpy (name_tmp, name, name_len);

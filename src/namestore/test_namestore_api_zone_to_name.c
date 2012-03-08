@@ -145,7 +145,7 @@ void zone_to_name_proc (void *cls,
   else
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Result found: `%s'\n", n);
-    if (0 != strcmp(n, s_name))
+    if ((n == NULL) || (0 != strcmp(n, s_name)))
     {
       fail = GNUNET_YES;
       GNUNET_break (0);
@@ -155,7 +155,7 @@ void zone_to_name_proc (void *cls,
       fail = GNUNET_YES;
       GNUNET_break (0);
     }
-    if (0 != memcmp (zone_key, &pubkey, sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded)))
+    if ((zone_key == NULL) || (0 != memcmp (zone_key, &pubkey, sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded))))
     {
       fail = GNUNET_YES;
       GNUNET_break (0);

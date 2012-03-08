@@ -262,7 +262,12 @@ handle_lookup_name_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
 
   /* deserialize records */
   struct GNUNET_NAMESTORE_RecordData rd[rd_count];
-  GNUNET_NAMESTORE_records_deserialize(rd_len, rd_tmp, rd_count, rd);
+  if (GNUNET_OK != GNUNET_NAMESTORE_records_deserialize(rd_len, rd_tmp, rd_count, rd))
+  {
+    GNUNET_break_op (0);
+    return;
+  }
+
 
   /* reset values if values not contained */
   if (contains_sig == GNUNET_NO)
@@ -475,7 +480,11 @@ handle_zone_to_name_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
     rd_tmp = &name_tmp[name_len];
 
     struct GNUNET_NAMESTORE_RecordData rd[rd_count];
-    GNUNET_NAMESTORE_records_deserialize(rd_ser_len, rd_tmp, rd_count, rd);
+    if (GNUNET_OK != GNUNET_NAMESTORE_records_deserialize(rd_ser_len, rd_tmp, rd_count, rd))
+    {
+      GNUNET_break_op (0);
+      return;
+    }
 
     if (qe->proc != NULL)
       qe->proc (qe->proc_cls, &msg->zone_key, expire, name_tmp, rd_count, rd, &msg->signature);

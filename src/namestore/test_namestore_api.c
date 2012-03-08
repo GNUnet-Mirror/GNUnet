@@ -175,6 +175,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 
 
   struct GNUNET_CRYPTO_RsaSignature signature;
+  memset (&signature, '\0', sizeof (signature));
   struct GNUNET_NAMESTORE_RecordData rd;
 
   rd.expiration = GNUNET_TIME_absolute_get();
