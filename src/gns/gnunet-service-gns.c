@@ -1612,6 +1612,7 @@ put_gns_record(void *cls,
                                                 nrb_data))
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Record serialization failed!\n");
+    GNUNET_free(nrb);
     return;
     //FIXME what to do
   }
@@ -1698,7 +1699,7 @@ process_shorten_pseu_lookup_ns(void *cls,
     (struct GNUNET_GNS_ResolverHandle *)cls;
   struct GNUNET_TIME_Relative remaining_time;
 
-  
+  GNUNET_TIME_absolute_get_remaining (expire);
   rh->status = 0;
   
   if (name != NULL)
@@ -2158,7 +2159,7 @@ send_shorten_response(const char* name, struct ClientShortenHandle *csh)
   
   if (name == NULL)
   {
-    name = '\0';
+    name = "";
   }
 
   rmsg = GNUNET_malloc(sizeof(struct GNUNET_GNS_ClientShortenResultMessage)
