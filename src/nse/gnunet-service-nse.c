@@ -768,8 +768,10 @@ update_flood_message (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   estimate_index = (estimate_index + 1) % HISTORY_SIZE;
   if (estimate_count < HISTORY_SIZE)
     estimate_count++;
-  if (next_timestamp.abs_value ==
-      GNUNET_TIME_absolute_ntoh (next_message.timestamp).abs_value)
+  if ((current_timestamp.abs_value ==
+      GNUNET_TIME_absolute_ntoh (next_message.timestamp).abs_value) &&
+      (get_matching_bits (current_timestamp, &my_identity) >
+      ntohl(next_message.matching_bits)))
   {
     /* we received a message for this round way early, use it! */
     size_estimate_messages[estimate_index] = next_message;
@@ -1054,7 +1056,6 @@ handle_p2p_size_estimate (void *cls, const struct GNUNET_PeerIdentity *peer,
 #endif
 
   ts = GNUNET_TIME_absolute_ntoh (incoming_flood->timestamp);
-
   if (ts.abs_value == current_timestamp.abs_value)
     idx = estimate_index;
   else if (ts.abs_value ==
@@ -1319,9 +1320,7 @@ core_init (void *cls, struct GNUNET_CORE_Handle *server,
 
   if (server == NULL)
   {
-#if DEBUG_NSE
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connection to core FAILED!\n");
-#endif
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Connection to core FAILED!\n");
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
