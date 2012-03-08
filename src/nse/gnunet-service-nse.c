@@ -762,15 +762,15 @@ update_flood_message (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         GNUNET_SCHEDULER_add_delayed (offset, &update_flood_message, NULL);
     return;
   }
-  current_timestamp = next_timestamp;
-  next_timestamp =
-      GNUNET_TIME_absolute_add (current_timestamp, gnunet_nse_interval);
   estimate_index = (estimate_index + 1) % HISTORY_SIZE;
   if (estimate_count < HISTORY_SIZE)
     estimate_count++;
+  current_timestamp = next_timestamp;
+  next_timestamp =
+      GNUNET_TIME_absolute_add (current_timestamp, gnunet_nse_interval);
   if ((current_timestamp.abs_value ==
       GNUNET_TIME_absolute_ntoh (next_message.timestamp).abs_value) &&
-      (get_matching_bits (current_timestamp, &my_identity) >
+      (get_matching_bits (current_timestamp, &my_identity) <
       ntohl(next_message.matching_bits)))
   {
     /* we received a message for this round way early, use it! */
