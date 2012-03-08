@@ -990,8 +990,6 @@ GNUNET_SERVER_connect_socket (struct GNUNET_SERVER_Handle *server,
 
   client = GNUNET_malloc (sizeof (struct GNUNET_SERVER_Client));
   client->connection = connection;
-  client->mst =
-      GNUNET_SERVER_mst_create (&client_message_tokenizer_callback, server);
   client->reference_count = 1;
   client->server = server;
   client->last_activity = GNUNET_TIME_absolute_get ();
