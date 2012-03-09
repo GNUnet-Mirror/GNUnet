@@ -487,7 +487,6 @@ handle_lookup_name_it (void *cls,
   memcpy (rd_tmp, rd_ser, rd_ser_len);
 
   GNUNET_SERVER_notification_context_unicast (snc, lnc->nc->client, (const struct GNUNET_MessageHeader *) lnr_msg, GNUNET_NO);
-  GNUNET_free_non_null(signature_new);
   GNUNET_free (lnr_msg);
 }
 

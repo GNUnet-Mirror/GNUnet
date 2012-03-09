@@ -226,7 +226,7 @@ void zone_proc (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Comparing results name %s \n", name);
     if (0 == strcmp (name, s_name_1))
-    {
+    { /* name_1 */
       if (rd_count == 1)
       {
         if (GNUNET_YES != GNUNET_NAMESTORE_records_cmp(rd, s_rd_1))
@@ -247,7 +247,7 @@ void zone_proc (void *cls,
       }
     }
     else if (0 == strcmp (name, s_name_2))
-    {
+    { /* name_2 */
       if (rd_count == 1)
       {
         if (GNUNET_YES != GNUNET_NAMESTORE_records_cmp(rd, s_rd_2))
@@ -261,6 +261,7 @@ void zone_proc (void *cls,
         failed = GNUNET_YES;
         GNUNET_break (0);
       }
+      GNUNET_assert (GNUNET_OK == GNUNET_NAMESTORE_verify_signature(&pubkey2, s_name_2, rd_count, rd, sig_2));
       if (0 != memcmp (signature, sig_2, sizeof (struct GNUNET_CRYPTO_RsaSignature)))
       {
         failed = GNUNET_YES;
@@ -268,7 +269,7 @@ void zone_proc (void *cls,
       }
     }
     else if (0 == strcmp (name, s_name_3))
-    {
+    { /* name_3 */
       if (rd_count == 1)
       {
         if (GNUNET_YES != GNUNET_NAMESTORE_records_cmp(rd, s_rd_3))
