@@ -124,6 +124,7 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
     }
 
     if (GNUNET_OK != GNUNET_NAMESTORE_verify_signature (&nrb->public_key,
+                                                        GNUNET_TIME_absolute_get_forever(),
                                                         name,
                                                         rd_count,
                                                         rd,
