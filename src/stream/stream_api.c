@@ -970,7 +970,7 @@ handle_data (struct GNUNET_STREAM_Socket *socket,
     case STATE_ESTABLISHED:
     case STATE_TRANSMIT_CLOSED:
     case STATE_TRANSMIT_CLOSE_WAIT:
-
+      
       /* check if the message's sequence number is in the range we are
          expecting */
       relative_sequence_number = 
@@ -983,6 +983,14 @@ handle_data (struct GNUNET_STREAM_Socket *socket,
                       ntohl (msg->sequence_number));
           return GNUNET_YES;
         }
+
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "%x: Receiving DATA with sequence number: %u and size: %d "
+                  "from %x\n",
+                  socket->our_id,
+                  ntohl (msg->sequence_number),
+                  ntohs (msg->header.header.size),
+                  socket->other_peer);
 
       /* Check if we have to allocate the buffer */
       size -= sizeof (struct GNUNET_STREAM_DataMessage);
@@ -1181,7 +1189,7 @@ client_handle_hello_ack (void *cls,
     reply = 
       GNUNET_malloc (sizeof (struct GNUNET_STREAM_HelloAckMessage));
     reply->header.header.size = 
-      htons (sizeof (struct GNUNET_STREAM_MessageHeader));
+      htons (sizeof (struct GNUNET_STREAM_HelloAckMessage));
     reply->header.header.type = 
       htons (GNUNET_MESSAGE_TYPE_STREAM_HELLO_ACK);
     reply->sequence_number = htonl (socket->write_sequence_number);
@@ -1508,11 +1516,6 @@ server_handle_hello (void *cls,
               socket->our_id,
               socket->other_peer);
 
-  /* Catch possible protocol breaks */
-  GNUNET_break_op (0 == memcmp (&socket->other_peer, 
-                                sender,
-                                sizeof (struct GNUNET_PeerIdentity)));
-
   if (STATE_INIT == socket->state)
     {
       /* Get the random sequence number */
@@ -1525,7 +1528,7 @@ server_handle_hello (void *cls,
       reply = 
         GNUNET_malloc (sizeof (struct GNUNET_STREAM_HelloAckMessage));
       reply->header.header.size = 
-        htons (sizeof (struct GNUNET_STREAM_MessageHeader));
+        htons (sizeof (struct GNUNET_STREAM_HelloAckMessage));
       reply->header.header.type = 
         htons (GNUNET_MESSAGE_TYPE_STREAM_HELLO_ACK);
       reply->sequence_number = htonl (socket->write_sequence_number);
@@ -1574,6 +1577,10 @@ server_handle_hello_ack (void *cls,
   ack_message = (struct GNUNET_STREAM_HelloAckMessage *) message;
   if (STATE_HELLO_WAIT == socket->state)
     {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "%x: Received HELLO_ACK from %x\n",
+                  socket->our_id,
+                  socket->other_peer);
       socket->read_sequence_number = ntohl (ack_message->sequence_number);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "%x: Read sequence number %u\n",
