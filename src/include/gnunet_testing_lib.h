@@ -304,9 +304,34 @@ struct GNUNET_TESTING_Daemon
   void *update_cb_cls;
 
   /**
-   * PID of the process that we started last.
+   * PID of the process we used to run gnunet-arm or SSH to start the peer.
    */
-  struct GNUNET_OS_Process *proc;
+  struct GNUNET_OS_Process *proc_arm_start;
+
+  /**
+   * PID of the process we used to run gnunet-arm or SSH to stop the peer.
+   */
+  struct GNUNET_OS_Process *proc_arm_stop;
+
+  /**
+   * PID of the process we used to run gnunet-arm or SSH to manage services at the peer.
+   */
+  struct GNUNET_OS_Process *proc_arm_srv_start;
+
+  /**
+   * PID of the process we used to run gnunet-arm or SSH to manage services at the peer.
+   */
+  struct GNUNET_OS_Process *proc_arm_srv_stop;
+
+  /**
+   * PID of the process we used to run copy files
+   */
+  struct GNUNET_OS_Process *proc_arm_copying;
+
+  /**
+   * PID of the process we used to run gnunet-peerinfo.
+   */
+  struct GNUNET_OS_Process *proc_arm_peerinfo;
 
   /**
    * Handle to the server.
