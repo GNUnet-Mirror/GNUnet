@@ -603,6 +603,8 @@ process_hello (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 _("Error in communication with PEERINFO service\n"));
     kx->pitr = NULL;
+    if (GNUNET_SCHEDULER_NO_TASK != kx->retry_set_key_task)
+      GNUNET_SCHEDULER_cancel (kx->retry_set_key_task);
     kx->retry_set_key_task =
         GNUNET_SCHEDULER_add_delayed (kx->set_key_retry_frequency,
                                       &set_key_retry_task, kx);
@@ -622,6 +624,8 @@ process_hello (void *cls, const struct GNUNET_PeerIdentity *peer,
                               gettext_noop
                               ("# Delayed connecting due to lack of public key"),
                               1, GNUNET_NO);
+    if (GNUNET_SCHEDULER_NO_TASK != kx->retry_set_key_task)
+      GNUNET_SCHEDULER_cancel (kx->retry_set_key_task);
     kx->retry_set_key_task =
         GNUNET_SCHEDULER_add_delayed (kx->set_key_retry_frequency,
                                       &set_key_retry_task, kx);

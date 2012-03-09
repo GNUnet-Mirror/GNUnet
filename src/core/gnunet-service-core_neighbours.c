@@ -129,6 +129,8 @@ static struct GNUNET_TRANSPORT_Handle *transport;
 static struct Neighbour *
 find_neighbour (const struct GNUNET_PeerIdentity *peer)
 {
+  if (NULL == neighbours)
+    return NULL;
   return GNUNET_CONTAINER_multihashmap_get (neighbours, &peer->hashPubKey);
 }
 
