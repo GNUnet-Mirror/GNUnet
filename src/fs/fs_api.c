@@ -1539,7 +1539,10 @@ GNUNET_FS_unindex_sync_ (struct GNUNET_FS_UnindexContext *uc)
     GNUNET_break (0);
     goto cleanup;
   }
-  uris = GNUNET_FS_uri_to_string (uc->ksk_uri);
+  if (NULL != uc->ksk_uri)
+    uris = GNUNET_FS_uri_to_string (uc->ksk_uri);
+  else
+    uris = NULL;
   if ((GNUNET_OK != GNUNET_BIO_write_string (wh, uc->filename)) ||
       (GNUNET_OK != GNUNET_BIO_write_int64 (wh, uc->file_size)) ||
       (GNUNET_OK != write_start_time (wh, uc->start_time)) ||
