@@ -219,6 +219,13 @@ void zone_proc (void *cls,
   }
   else
   {
+    /* verify signature returned from name store */
+    if (GNUNET_OK != GNUNET_NAMESTORE_verify_signature(zone_key, name, rd_count, rd, signature))
+    {
+      failed = GNUNET_YES;
+      GNUNET_break (0);
+    }
+
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Comparing results name %s \n", name);
     if (0 == strcmp (name, s_name_1))
     {
@@ -277,6 +284,12 @@ void zone_proc (void *cls,
         failed = GNUNET_YES;
         GNUNET_break (0);
       }
+      if (GNUNET_OK != GNUNET_NAMESTORE_verify_signature(zone_key, name, rd_count, rd, signature))
+      {
+        failed = GNUNET_YES;
+        GNUNET_break (0);
+      }
+
       if (0 != memcmp (signature, sig_3, sizeof (struct GNUNET_CRYPTO_RsaSignature)))
       {
         failed = GNUNET_YES;
@@ -432,7 +445,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   /* name in different zone */
   GNUNET_asprintf(&s_name_3, "dummy3");
   s_rd_3 = create_record(1);
-  sig_3 = GNUNET_NAMESTORE_create_signature(privkey, s_name_3, s_rd_3, 1);
+  sig_3 = GNUNET_NAMESTORE_create_signature(privkey2, s_name_3, s_rd_3, 1);
   GNUNET_NAMESTORE_record_put (nsh, &pubkey2, s_name_3, GNUNET_TIME_absolute_get_forever(), 1, s_rd_3, sig_3, &put_cont, NULL);
 }
 
