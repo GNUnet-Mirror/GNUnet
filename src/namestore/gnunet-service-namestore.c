@@ -424,9 +424,9 @@ handle_lookup_name_it (void *cls,
       copied_elements, lnc->name, GNUNET_h2s(lnc->zone));
 
   if ((copied_elements == rd_count) && (NULL != signature))
-    contains_signature = GNUNET_YES;
+    contains_signature = GNUNET_YES; /* returning all records, so include signature */
   else
-    contains_signature = GNUNET_NO;
+    contains_signature = GNUNET_NO; /* returning not all records, so do not include signature */
 
 
   if ((NULL != zone_key) && (copied_elements == rd_count))
@@ -1332,7 +1332,10 @@ void zone_iteration_proc (void *cls,
 {
   struct GNUNET_NAMESTORE_ZoneIteration *zi = cls;
   struct GNUNET_NAMESTORE_Client *nc = zi->client;
-  //size_t len;
+  struct GNUNET_NAMESTORE_CryptoContainer * cc;
+  struct GNUNET_CRYPTO_RsaSignature *signature_new = NULL;
+  GNUNET_HashCode zone_key_hash;
+  int authoritative = GNUNET_NO;
 
   if ((zone_key == NULL) && (name == NULL))
   {
@@ -1386,6 +1389,17 @@ void zone_iteration_proc (void *cls,
     name_tmp = (char *) &zir_msg[1];
     rd_tmp = &name_tmp[name_len];
 
+    GNUNET_CRYPTO_hash(zone_key, sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), &zone_key_hash);
+    if (GNUNET_CONTAINER_multihashmap_contains(zonekeys, &zone_key_hash))
+    {
+      cc = GNUNET_CONTAINER_multihashmap_get(zonekeys, &zone_key_hash);
+      signature_new = GNUNET_NAMESTORE_create_signature(cc->privkey, name, rd, rd_count);
+      GNUNET_assert (signature_new != NULL);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Creating signature for name `%s' with %u records in zone `%s'\n",name, rd_count, GNUNET_h2s(&zone_key_hash));
+      authoritative = GNUNET_YES;
+    }
+
+
     zir_msg->gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_RESPONSE);
     zir_msg->gns_header.header.size = htons (msg_size);
     zir_msg->gns_header.r_id = htonl(zi->request_id);
@@ -1394,7 +1408,13 @@ void zone_iteration_proc (void *cls,
     zir_msg->name_len = htons (name_len);
     zir_msg->rd_count = htons (rd_count);
     zir_msg->rd_len = htons (rd_ser_len);
-    zir_msg->signature = *signature;
+    if ((GNUNET_YES == authoritative) && (NULL != signature_new))
+    {
+      zir_msg->signature = *signature_new;
+      GNUNET_free (signature_new);
+    }
+    else
+      zir_msg->signature = *signature;
     GNUNET_assert (NULL != zone_key);
     if (zone_key != NULL)
       zir_msg->public_key = *zone_key;
