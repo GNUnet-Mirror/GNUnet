@@ -461,7 +461,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   /* name in different zone */
   GNUNET_asprintf(&s_name_3, "dummy3");
   s_rd_3 = create_record(1);
-  sig_3 = GNUNET_NAMESTORE_create_signature(privkey, s_name_3, s_rd_3, 1);
+  sig_3 = GNUNET_NAMESTORE_create_signature(privkey2, s_name_3, s_rd_3, 1);
   GNUNET_NAMESTORE_record_put (nsh, &pubkey2, s_name_3, GNUNET_TIME_absolute_get_forever(), 1, s_rd_3, sig_3, &put_cont, NULL);
 }
 
