@@ -299,7 +299,7 @@ npipe_open (const char *fn,
   } 
   if (-1 == fd)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		(flags == GNUNET_DISK_OPEN_READ) 
 		? _("Failed to open named pipe `%s' for reading: %s\n")
 		: _("Failed to open named pipe `%s' for writing: %s\n"),

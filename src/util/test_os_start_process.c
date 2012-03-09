@@ -51,12 +51,11 @@ static GNUNET_SCHEDULER_TaskIdentifier die_task;
 static void
 end_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-
   if (0 != GNUNET_OS_process_kill (proc, SIGTERM))
   {
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
   }
-  GNUNET_OS_process_wait (proc);
+  GNUNET_assert (GNUNET_OK == GNUNET_OS_process_wait (proc));
   GNUNET_OS_process_close (proc);
   proc = NULL;
   GNUNET_DISK_pipe_close (hello_pipe_stdout);
@@ -106,7 +105,7 @@ read_call (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+run_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   char *fn;
   const struct GNUNET_DISK_FileHandle *stdout_read_handle;
@@ -160,19 +159,76 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
                                   stdout_read_handle, &read_call,
                                   (void *) stdout_read_handle);
-
 }
+
 
 /**
  * Main method, starts scheduler with task1,
  * checks that "ok" is correct at the end.
  */
 static int
-check ()
+check_run ()
 {
   ok = 1;
-  GNUNET_SCHEDULER_run (&task, &ok);
+  GNUNET_SCHEDULER_run (&run_task, &ok);
   return ok;
+}
+
+
+/**
+ * Test killing via pipe.
+ */
+static int
+check_kill ()
+{
+  hello_pipe_stdin = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_YES, GNUNET_YES, GNUNET_NO);
+  hello_pipe_stdout = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_YES, GNUNET_NO, GNUNET_YES);
+  if ((hello_pipe_stdout == NULL) || (hello_pipe_stdin == NULL))
+  {
+    return 1;
+  }
+  proc =
+    GNUNET_OS_start_process (GNUNET_YES, hello_pipe_stdin, hello_pipe_stdout, "cat",
+			     "gnunet-service-resolver", "-", NULL); 
+  sleep (1); /* give process time to start and open pipe */
+  if (0 != GNUNET_OS_process_kill (proc, SIGTERM))
+  {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
+  }
+  GNUNET_assert (GNUNET_OK == GNUNET_OS_process_wait (proc));
+  GNUNET_OS_process_close (proc);
+  proc = NULL;
+  GNUNET_DISK_pipe_close (hello_pipe_stdout);
+  GNUNET_DISK_pipe_close (hello_pipe_stdin);
+  return 0;
+}
+
+
+/**
+ * Test killing via pipe.
+ */
+static int
+check_instant_kill ()
+{
+  hello_pipe_stdin = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_YES, GNUNET_YES, GNUNET_NO);
+  hello_pipe_stdout = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_YES, GNUNET_NO, GNUNET_YES);
+  if ((hello_pipe_stdout == NULL) || (hello_pipe_stdin == NULL))
+  {
+    return 1;
+  }
+  proc =
+    GNUNET_OS_start_process (GNUNET_YES, hello_pipe_stdin, hello_pipe_stdout, "cat",
+			     "gnunet-service-resolver", "-", NULL); 
+  if (0 != GNUNET_OS_process_kill (proc, SIGTERM))
+  {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
+  }
+  GNUNET_assert (GNUNET_OK == GNUNET_OS_process_wait (proc));
+  GNUNET_OS_process_close (proc);
+  proc = NULL;
+  GNUNET_DISK_pipe_close (hello_pipe_stdout);
+  GNUNET_DISK_pipe_close (hello_pipe_stdin);
+  return 0;
 }
 
 
@@ -188,7 +244,10 @@ main (int argc, char *argv[])
                     "WARNING",
 #endif
                     NULL);
-  ret = check ();
+  ret = 0;
+  ret |= check_run ();
+  ret |= check_kill ();
+  ret |= check_instant_kill ();
 
   return ret;
 }
