@@ -405,6 +405,7 @@ continue_after_remove (void *cls,
 {
   struct GNUNET_FS_UnindexContext *uc = cls;
 
+  uc->dqe = NULL;
   if (success != GNUNET_YES)  
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		_("Failed to remove KBlock: %s\n"),
