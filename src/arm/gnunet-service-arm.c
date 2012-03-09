@@ -146,6 +146,12 @@ struct ServiceList
   struct GNUNET_TIME_Absolute restart_at;
 
   /**
+   * Time we asked the service to shut down (used to calculate time it took
+   * the service to terminate).
+   */
+  struct GNUNET_TIME_Absolute killed_at;
+
+  /**
    * Is this service to be started by default (or did a client tell us explicitly
    * to start it)?  GNUNET_NO if the service is started only upon 'accept' on a
    * listen socket or possibly explicitly by a client changing the value.
@@ -694,6 +700,7 @@ handle_stop (void *cls, struct GNUNET_SERVER_Client *client,
 	      "Sending kill signal to service `%s', waiting for process to die.\n",
 	      servicename);
 #endif
+  sl->killed_at = GNUNET_TIME_absolute_get ();
   if (0 != GNUNET_OS_process_kill (sl->proc, SIGTERM))
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
   sl->killing_client = client;
@@ -824,6 +831,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	{
 	  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stopping service `%s'\n",
 		      pos->name);
+	  pos->killed_at = GNUNET_TIME_absolute_get ();
 	  if (0 != GNUNET_OS_process_kill (pos->proc, SIGTERM))
 	    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
 	}
@@ -955,11 +963,11 @@ maint_child_death (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       next = pos->next;
 
       if (pos->proc == NULL)
-	{
-	  if (GNUNET_YES == in_shutdown)
-	    free_service (pos);
-	  continue;
-	}
+      {
+	if (GNUNET_YES == in_shutdown)
+	  free_service (pos);
+	continue;
+      }
       if ((GNUNET_SYSERR ==
 	   (ret =
 	    GNUNET_OS_process_status (pos->proc, &statusType, &statusCode)))
@@ -967,20 +975,27 @@ maint_child_death (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	      || (statusType == GNUNET_OS_PROCESS_RUNNING)))
 	continue;
       if (statusType == GNUNET_OS_PROCESS_EXITED)
-	{
-	  statstr = _( /* process termination method */ "exit");
-	  statcode = statusCode;
-	}
+      {
+	statstr = _( /* process termination method */ "exit");
+	statcode = statusCode;
+      }
       else if (statusType == GNUNET_OS_PROCESS_SIGNALED)
-	{
-	  statstr = _( /* process termination method */ "signal");
-	  statcode = statusCode;
-	}
+      {
+	statstr = _( /* process termination method */ "signal");
+	statcode = statusCode;
+      }
       else
-	{
-	  statstr = _( /* process termination method */ "unknown");
-	  statcode = 0;
-	}
+      {
+	statstr = _( /* process termination method */ "unknown");
+	statcode = 0;
+      }
+      if (0 != pos->killed_at.abs_value)
+      {
+	GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		    _("Service `%s' took %llu ms to terminate\n"),
+		    pos->name,
+		    GNUNET_TIME_absolute_get_duration (pos->killed_at).rel_value);
+      }
       GNUNET_OS_process_close (pos->proc);
       pos->proc = NULL;
       if (NULL != pos->killing_client)
