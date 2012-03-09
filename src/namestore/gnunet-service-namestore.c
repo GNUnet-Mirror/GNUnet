@@ -298,6 +298,7 @@ client_disconnect_notification (void *cls, struct GNUNET_SERVER_Client *client)
   GNUNET_SERVER_client_drop(nc->client);
   GNUNET_CONTAINER_DLL_remove (client_head, client_tail, nc);
   GNUNET_free (nc);
+  nc = NULL;
 }
 
 
@@ -434,8 +435,9 @@ handle_lookup_name_it (void *cls,
     if (GNUNET_CONTAINER_multihashmap_contains(zonekeys, &zone_key_hash))
     {
       cc = GNUNET_CONTAINER_multihashmap_get(zonekeys, &zone_key_hash);
-      signature_new = GNUNET_NAMESTORE_create_signature(cc->privkey, name, rd_selected, copied_elements);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Creating signature for name `%s' in zone `%s'\n",name, GNUNET_h2s(&zone_key_hash));
+      signature_new = GNUNET_NAMESTORE_create_signature(cc->privkey, name, rd, rd_count);
+      GNUNET_assert (signature_new != NULL);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Creating signature for name `%s' with %u records in zone `%s'\n",name, copied_elements, GNUNET_h2s(&zone_key_hash));
       authoritative = GNUNET_YES;
     }
     else
@@ -466,19 +468,24 @@ handle_lookup_name_it (void *cls,
     memset(&lnr_msg->public_key, '\0', sizeof (lnr_msg->public_key));
 
   if (GNUNET_YES == authoritative)
-  {
+  { /* use new created signature */
     lnr_msg->contains_sig = htons (GNUNET_YES);
+    GNUNET_assert (signature_new != NULL);
     lnr_msg->signature = *signature_new;
     GNUNET_free (signature_new);
   }
-  if (GNUNET_YES == contains_signature)
+  else if (GNUNET_YES == contains_signature)
   {
+    /* use existing signature */
     lnr_msg->contains_sig = htons (GNUNET_YES);
+    GNUNET_assert (signature != NULL);
     lnr_msg->signature = *signature;
   }
   else
+  {
+    /* use no signature */
     memset (&lnr_msg->signature, '\0', sizeof (lnr_msg->signature));
-
+  }
 
   name_tmp = (char *) &lnr_msg[1];
   rd_tmp = &name_tmp[name_len];
@@ -721,7 +728,7 @@ handle_create_record_it (void *cls,
   }
 
   if (exist == GNUNET_SYSERR)
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "NO existing records for `%s' to update!\n", crc->name);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "New record does not exist for name `%s'!\n", crc->name);
 
   if (exist == GNUNET_SYSERR)
   {
