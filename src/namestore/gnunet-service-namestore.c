@@ -237,7 +237,6 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     next = nc->next;
     for (no = nc->op_head; no != NULL; no = tmp)
     {
-      GNUNET_break (0);
       GNUNET_CONTAINER_DLL_remove (nc->op_head, nc->op_tail, no);
       tmp = no->next;
       GNUNET_free (no);
@@ -364,7 +363,6 @@ handle_lookup_name_it (void *cls,
   struct GNUNET_NAMESTORE_RecordData *rd_selected = NULL;
   struct GNUNET_NAMESTORE_CryptoContainer *cc;
   struct GNUNET_CRYPTO_RsaSignature *signature_new = NULL;
-  const struct GNUNET_CRYPTO_RsaSignature *sig_to_use;
   GNUNET_HashCode zone_key_hash;
   char *rd_tmp;
   char *name_tmp;
@@ -373,7 +371,8 @@ handle_lookup_name_it (void *cls,
   size_t name_len = 0;
 
   int copied_elements = 0;
-  int contains_signature = 0;
+  int contains_signature = GNUNET_NO;
+  int authoritative = GNUNET_NO;
   int c;
 
   if (NULL != name)
@@ -428,6 +427,7 @@ handle_lookup_name_it (void *cls,
   else
     contains_signature = GNUNET_NO;
 
+
   if ((NULL != zone_key) && (copied_elements == rd_count))
   {
     GNUNET_CRYPTO_hash(zone_key, sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), &zone_key_hash);
@@ -436,13 +436,10 @@ handle_lookup_name_it (void *cls,
       cc = GNUNET_CONTAINER_multihashmap_get(zonekeys, &zone_key_hash);
       signature_new = GNUNET_NAMESTORE_create_signature(cc->privkey, name, rd_selected, copied_elements);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Creating signature for name `%s' in zone `%s'\n",name, GNUNET_h2s(&zone_key_hash));
-      sig_to_use = signature_new;
-      contains_signature = GNUNET_YES;
+      authoritative = GNUNET_YES;
     }
-  }
-  else
-  {
-    sig_to_use = signature;
+    else
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "I am not authoritative for name `%s' in zone `%s'\n",name, GNUNET_h2s(&zone_key_hash));
   }
 
   if (rd_selected != rd)
@@ -461,15 +458,24 @@ handle_lookup_name_it (void *cls,
   lnr_msg->rd_count = htons (copied_elements);
   lnr_msg->rd_len = htons (rd_ser_len);
   lnr_msg->name_len = htons (name_len);
-  lnr_msg->contains_sig = htons (contains_signature);
   lnr_msg->expire = GNUNET_TIME_absolute_hton(expire);
 
   if (zone_key != NULL)
     lnr_msg->public_key = (*zone_key);
   else
     memset(&lnr_msg->public_key, '\0', sizeof (lnr_msg->public_key));
+
+  if (GNUNET_YES == authoritative)
+  {
+    lnr_msg->contains_sig = htons (GNUNET_YES);
+    lnr_msg->signature = *signature_new;
+    GNUNET_free (signature_new);
+  }
   if (GNUNET_YES == contains_signature)
-    lnr_msg->signature = *sig_to_use;
+  {
+    lnr_msg->contains_sig = htons (GNUNET_YES);
+    lnr_msg->signature = *signature;
+  }
   else
     memset (&lnr_msg->signature, '\0', sizeof (lnr_msg->signature));
 
