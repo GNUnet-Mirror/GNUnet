@@ -446,7 +446,6 @@ process_kblock_for_unindex (void *cls,
 {
   struct GNUNET_FS_UnindexContext *uc = cls;
   const struct KBlock *kb;
-  const char *uris;
   struct GNUNET_FS_Uri *chk_uri;
 
   uc->dqe = NULL;
@@ -476,17 +475,33 @@ process_kblock_for_unindex (void *cls,
     goto get_next;
   }
   kb = data;
-  uris = (const char*) &kb[1];
-  if (NULL == memchr (uris, 0, size - sizeof (struct KBlock)))
   {
-    GNUNET_break (0);
-    goto get_next;
-  }
-  chk_uri = GNUNET_FS_uri_parse (uris, NULL);
-  if (NULL == chk_uri)
-  {
-    GNUNET_break (0);
-    goto get_next;
+    char pt[size - sizeof (struct KBlock)];  
+    struct GNUNET_CRYPTO_AesSessionKey skey;
+    struct GNUNET_CRYPTO_AesInitializationVector iv;
+ 
+    GNUNET_CRYPTO_hash_to_aes_key (&uc->key, &skey, &iv);
+    if (-1 ==
+	GNUNET_CRYPTO_aes_decrypt (&kb[1], size - sizeof (struct KBlock), &skey,
+				   &iv, pt))
+    {
+      GNUNET_break (0);
+      goto get_next;
+    }       
+    if (NULL == memchr (pt, 0, sizeof (pt)))
+    {
+      GNUNET_break (0);
+      goto get_next;
+    }
+    chk_uri = GNUNET_FS_uri_parse (pt, NULL);
+    if (NULL == chk_uri)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  _("Failed to parse URI `%s' from KBlock!\n"),
+		  pt);
+      GNUNET_break (0);
+      goto get_next;
+    }
   }
   if (0 != memcmp (&uc->chk,
 		   &chk_uri->data.chk.chk,
@@ -507,7 +522,7 @@ process_kblock_for_unindex (void *cls,
  get_next:
   uc->dqe = GNUNET_DATASTORE_get_key (uc->dsh,
 				      uc->roff++,
-				      &uc->key,
+				      &uc->query,
 				      GNUNET_BLOCK_TYPE_FS_KBLOCK,
 				      0 /* priority */, 1 /* queue size */,
 				      GNUNET_TIME_UNIT_FOREVER_REL,
@@ -525,7 +540,6 @@ void
 GNUNET_FS_unindex_do_remove_kblocks_ (struct GNUNET_FS_UnindexContext *uc)
 {
   const char *keyword;
-  GNUNET_HashCode hc;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pub;
   struct GNUNET_CRYPTO_RsaPrivateKey *pk;
 
@@ -547,19 +561,19 @@ GNUNET_FS_unindex_do_remove_kblocks_ (struct GNUNET_FS_UnindexContext *uc)
   }
   /* FIXME: code duplication with fs_search.c here... */
   keyword = &uc->ksk_uri->data.ksk.keywords[uc->ksk_offset][1];
-  GNUNET_CRYPTO_hash (keyword, strlen (keyword), &hc);
-  pk = GNUNET_CRYPTO_rsa_key_create_from_hash (&hc);
+  GNUNET_CRYPTO_hash (keyword, strlen (keyword), &uc->key);
+  pk = GNUNET_CRYPTO_rsa_key_create_from_hash (&uc->key);
   GNUNET_assert (pk != NULL);
   GNUNET_CRYPTO_rsa_key_get_public (pk, &pub);
   GNUNET_CRYPTO_rsa_key_free (pk);
   GNUNET_CRYPTO_hash (&pub,
 		      sizeof (struct
 			      GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
-		      &uc->key);
+		      &uc->query);
   uc->first_uid = 0;
   uc->dqe = GNUNET_DATASTORE_get_key (uc->dsh,
 				      uc->roff++,
-				      &uc->key,
+				      &uc->query,
 				      GNUNET_BLOCK_TYPE_FS_KBLOCK,
 				      0 /* priority */, 1 /* queue size */,
 				      GNUNET_TIME_UNIT_FOREVER_REL,

@@ -1382,9 +1382,14 @@ struct GNUNET_FS_UnindexContext
   struct GNUNET_DATASTORE_QueueEntry *dqe;
 
   /**
-   * Current query key of 'get_key' operation.
+   * Current key for decrypting KBLocks from 'get_key' operation.
    */
   GNUNET_HashCode key;
+
+  /**
+   * Current query of 'get_key' operation.
+   */
+  GNUNET_HashCode query;
 
   /**
    * First content UID, 0 for none.

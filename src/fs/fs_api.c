@@ -1991,7 +1991,7 @@ deserialize_unindex_file (void *cls, const char *filename)
       (GNUNET_OK != read_start_time (rh, &uc->start_time)) ||
       (GNUNET_OK != GNUNET_BIO_read_int32 (rh, &state)) ||
       (GNUNET_OK != GNUNET_BIO_read (rh, "uri", &uc->chk, sizeof (struct ContentHashKey))) ||
-      (GNUNET_BIO_read_string (rh, "unindex-kskuri", &uris, 10 * 1024)) ||
+      (GNUNET_OK != GNUNET_BIO_read_string (rh, "unindex-kskuri", &uris, 10 * 1024)) ||
       (GNUNET_OK != GNUNET_BIO_read_int32 (rh, &uc->ksk_offset)) )
   {
     GNUNET_break (0);
