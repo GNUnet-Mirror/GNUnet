@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009, 2010 Christian Grothoff (and other contributing authors)
+     (C) 2009, 2010, 2012 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -81,6 +81,11 @@ struct ShutdownContext
    * Closure for shutdown continuation
    */
   void *cont_cls;
+
+  /**
+   * Handle for transmission request.
+   */
+  struct GNUNET_CLIENT_TransmitHandle *th;
 
   /**
    * Result of the operation
@@ -177,9 +182,10 @@ service_shutdown_cancel (void *cls,
 static size_t
 write_shutdown (void *cls, size_t size, void *buf)
 {
-  struct GNUNET_MessageHeader *msg;
   struct ShutdownContext *shutdown_ctx = cls;
+  struct GNUNET_MessageHeader *msg;
 
+  shutdown_ctx->th = NULL;
   if (size < sizeof (struct GNUNET_MessageHeader))
     {
       LOG (GNUNET_ERROR_TYPE_WARNING,
@@ -229,11 +235,10 @@ arm_service_shutdown (struct GNUNET_CLIENT_Connection *sock,
   shutdown_ctx->sock = sock;
   shutdown_ctx->timeout = GNUNET_TIME_relative_to_absolute (timeout);
   shutdown_ctx->confirmed = GNUNET_ARM_PROCESS_COMMUNICATION_ERROR;    
-  /* FIXME: store return value? */
-  GNUNET_CLIENT_notify_transmit_ready (sock,
-				       sizeof (struct GNUNET_MessageHeader),
-				       timeout, GNUNET_YES, &write_shutdown,
-				       shutdown_ctx);
+  shutdown_ctx->th = GNUNET_CLIENT_notify_transmit_ready (sock,
+							  sizeof (struct GNUNET_MessageHeader),
+							  timeout, GNUNET_NO, &write_shutdown,
+							  shutdown_ctx);
 }
 
 
