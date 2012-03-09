@@ -30,6 +30,7 @@
 #include "gnunet_protocols.h"
 #include "fs_api.h"
 #include "fs_tree.h"
+#include "block_fs.h"
 
 
 /**
@@ -203,6 +204,7 @@ unindex_process (void *cls, const struct ContentHashKey *chk, uint64_t offset,
               "Sending REMOVE request to DATASTORE service\n");
   GNUNET_DATASTORE_remove (uc->dsh, &chk->query, size, data, -2, 1,
                            GNUNET_CONSTANTS_SERVICE_TIMEOUT, &process_cont, uc);
+  uc->chk = *chk;
 }
 
 
@@ -258,16 +260,15 @@ process_fs_response (void *cls, const struct GNUNET_MessageHeader *msg)
 
 
 /**
- * Function called when the tree encoder has
- * processed all blocks.  Clean up.
+ * Function called when we are done with removing KBlocks.
+ * Disconnect from datastore and notify FS service about
+ * the unindex event.
  *
- * @param cls our unindexing context
- * @param tc not used
+ * @param uc our unindexing context
  */
 static void
-unindex_finish (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+unindex_finish (struct GNUNET_FS_UnindexContext *uc)
 {
-  struct GNUNET_FS_UnindexContext *uc = cls;
   char *emsg;
   struct GNUNET_FS_Uri *uri;
   struct UnindexMessage req;
@@ -310,6 +311,281 @@ unindex_finish (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
+
+/**
+ * Function called by the directory scanner as we extract keywords
+ * that we will need to remove KBlocks.
+ *
+ * @param cls the 'struct GNUNET_FS_UnindexContext *'
+ * @param filename which file we are making progress on
+ * @param is_directory GNUNET_YES if this is a directory,
+ *                     GNUNET_NO if this is a file
+ *                     GNUNET_SYSERR if it is neither (or unknown)
+ * @param reason kind of progress we are making
+ */
+static void
+unindex_directory_scan_cb (void *cls, 
+			   const char *filename, 
+			   int is_directory,
+			   enum GNUNET_FS_DirScannerProgressUpdateReason reason)
+{
+  struct GNUNET_FS_UnindexContext *uc = cls;
+  static struct GNUNET_FS_ShareTreeItem * directory_scan_result;
+
+  switch (reason)
+  {
+  case GNUNET_FS_DIRSCANNER_FINISHED:
+    directory_scan_result = GNUNET_FS_directory_scan_get_result (uc->dscan);
+    uc->dscan = NULL;
+    if (NULL != directory_scan_result->ksk_uri)
+    {
+      uc->ksk_uri = GNUNET_FS_uri_dup (directory_scan_result->ksk_uri);
+      uc->state = UNINDEX_STATE_DS_REMOVE_KBLOCKS;
+      uc->emsg = GNUNET_strdup (_("Failed to connect to `datastore' service."));
+      GNUNET_FS_unindex_sync_ (uc);
+      GNUNET_FS_unindex_do_remove_kblocks_ (uc);
+    }
+    else
+    {
+      unindex_finish (uc);
+    }
+    GNUNET_FS_share_tree_free (directory_scan_result);
+    break;
+  case GNUNET_FS_DIRSCANNER_INTERNAL_ERROR:
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		_("Internal error scanning `%s'.\n"),
+		uc->filename);
+    break;
+  default:
+    break;
+  }
+
+}
+
+
+/**
+ * If necessary, connect to the datastore and remove the KBlocks.
+ *
+ * @param uc context for the unindex operation.
+ */
+void
+GNUNET_FS_unindex_do_extract_keywords_ (struct GNUNET_FS_UnindexContext *uc)
+{
+  char *ex;
+
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_string (uc->h->cfg, "FS", "EXTRACTORS", &ex))
+    ex = NULL;
+  uc->dscan = GNUNET_FS_directory_scan_start (uc->filename,
+					      GNUNET_NO, ex,
+					      &unindex_directory_scan_cb, 
+					      uc);
+  GNUNET_free_non_null (ex);
+}
+
+
+/**
+ * Continuation called to notify client about result of the remove
+ * operation for the KBlock.
+ *
+ * @param cls the 'struct GNUNET_FS_UnindexContext *' 
+ * @param success GNUNET_SYSERR on failure (including timeout/queue drop)
+ *                GNUNET_NO if content was already there
+ *                GNUNET_YES (or other positive value) on success
+ * @param min_expiration minimum expiration time required for 0-priority content to be stored
+ *                by the datacache at this time, zero for unknown, forever if we have no
+ *                space for 0-priority content
+ * @param msg NULL on success, otherwise an error message
+ */
+static void
+continue_after_remove (void *cls,
+		       int32_t success,
+		       struct GNUNET_TIME_Absolute min_expiration,
+		       const char *msg)
+{
+  struct GNUNET_FS_UnindexContext *uc = cls;
+
+  if (success != GNUNET_YES)  
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		_("Failed to remove KBlock: %s\n"),
+		msg);  
+  uc->ksk_offset++;
+  GNUNET_FS_unindex_do_remove_kblocks_ (uc);
+}
+
+
+/**
+ * Function called from datastore with result from us looking for
+ * a KBlock.  There are four cases:
+ * 1) no result, means we move on to the next keyword
+ * 2) UID is the same as the first UID, means we move on to next keyword
+ * 3) KBlock for a different CHK, means we keep looking for more
+ * 4) KBlock is for our CHK, means we remove the block and then move
+ *           on to the next keyword
+ *
+ * @param cls the 'struct GNUNET_FS_UnindexContext *'
+ * @param key key for the content
+ * @param size number of bytes in data
+ * @param data content stored
+ * @param type type of the content
+ * @param priority priority of the content
+ * @param anonymity anonymity-level for the content
+ * @param expiration expiration time for the content
+ * @param uid unique identifier for the datum;
+ *        maybe 0 if no unique identifier is available
+ */
+static void
+process_kblock_for_unindex (void *cls,
+			    const GNUNET_HashCode * key,
+			    size_t size, const void *data,
+			    enum GNUNET_BLOCK_Type type,
+			    uint32_t priority,
+			    uint32_t anonymity,
+			    struct GNUNET_TIME_Absolute
+			    expiration, uint64_t uid)
+{
+  struct GNUNET_FS_UnindexContext *uc = cls;
+  const struct KBlock *kb;
+  const char *uris;
+  struct GNUNET_FS_Uri *chk_uri;
+
+  uc->dqe = NULL;
+  if (NULL == data)
+  {
+    /* no result */
+    uc->ksk_offset++;
+    GNUNET_FS_unindex_do_remove_kblocks_ (uc);
+    return;
+  }
+  if (0 == uc->first_uid)
+  {
+    /* remember UID of first result to detect cycles */
+    uc->first_uid = uid;    
+  }
+  else if (uid == uc->first_uid)
+  {
+    /* no more additional results */
+    uc->ksk_offset++;
+    GNUNET_FS_unindex_do_remove_kblocks_ (uc);
+    return;  
+  }
+  GNUNET_assert (GNUNET_BLOCK_TYPE_FS_KBLOCK == type);
+  if (size < sizeof (struct KBlock))
+  {
+    GNUNET_break (0);
+    goto get_next;
+  }
+  kb = data;
+  uris = (const char*) &kb[1];
+  if (NULL == memchr (uris, 0, size - sizeof (struct KBlock)))
+  {
+    GNUNET_break (0);
+    goto get_next;
+  }
+  chk_uri = GNUNET_FS_uri_parse (uris, NULL);
+  if (NULL == chk_uri)
+  {
+    GNUNET_break (0);
+    goto get_next;
+  }
+  if (0 != memcmp (&uc->chk,
+		   &chk_uri->data.chk.chk,
+		   sizeof (struct ContentHashKey)))
+  {
+    /* different CHK, ignore */
+    GNUNET_FS_uri_destroy (chk_uri);
+    goto get_next;
+  }
+  /* matches! */
+  uc->dqe = GNUNET_DATASTORE_remove (uc->dsh,
+				     key, size, data,
+				     0 /* priority */, 1 /* queue size */,
+				     GNUNET_TIME_UNIT_FOREVER_REL,
+				     &continue_after_remove,
+				     uc);
+  return;
+ get_next:
+  uc->dqe = GNUNET_DATASTORE_get_key (uc->dsh,
+				      uc->roff++,
+				      &uc->key,
+				      GNUNET_BLOCK_TYPE_FS_KBLOCK,
+				      0 /* priority */, 1 /* queue size */,
+				      GNUNET_TIME_UNIT_FOREVER_REL,
+				      &process_kblock_for_unindex,
+				      uc);
+}
+
+
+/**
+ * If necessary, connect to the datastore and remove the KBlocks.
+ *
+ * @param uc context for the unindex operation.
+ */
+void
+GNUNET_FS_unindex_do_remove_kblocks_ (struct GNUNET_FS_UnindexContext *uc)
+{
+  const char *keyword;
+  GNUNET_HashCode hc;
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pub;
+  struct GNUNET_CRYPTO_RsaPrivateKey *pk;
+
+  if (NULL != uc->dsh)
+    uc->dsh = GNUNET_DATASTORE_connect (uc->h->cfg);
+  if (NULL == uc->dsh)
+  {
+    uc->state = UNINDEX_STATE_ERROR;
+    uc->emsg = GNUNET_strdup (_("Failed to connect to `datastore' service."));
+    GNUNET_FS_unindex_sync_ (uc);
+    signal_unindex_error (uc);
+    return;
+  }
+  if ( (NULL == uc->ksk_uri) ||
+       (uc->ksk_offset >= uc->ksk_uri->data.ksk.keywordCount) )
+  {
+    unindex_finish (uc);
+    return;
+  }
+  /* FIXME: code duplication with fs_search.c here... */
+  keyword = &uc->ksk_uri->data.ksk.keywords[uc->ksk_offset][1];
+  GNUNET_CRYPTO_hash (keyword, strlen (keyword), &hc);
+  pk = GNUNET_CRYPTO_rsa_key_create_from_hash (&hc);
+  GNUNET_assert (pk != NULL);
+  GNUNET_CRYPTO_rsa_key_get_public (pk, &pub);
+  GNUNET_CRYPTO_rsa_key_free (pk);
+  GNUNET_CRYPTO_hash (&pub,
+		      sizeof (struct
+			      GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+		      &uc->key);
+  uc->first_uid = 0;
+  uc->dqe = GNUNET_DATASTORE_get_key (uc->dsh,
+				      uc->roff++,
+				      &uc->key,
+				      GNUNET_BLOCK_TYPE_FS_KBLOCK,
+				      0 /* priority */, 1 /* queue size */,
+				      GNUNET_TIME_UNIT_FOREVER_REL,
+				      &process_kblock_for_unindex,
+				      uc);
+}
+
+
+/**
+ * Function called when the tree encoder has
+ * processed all blocks.  Clean up.
+ *
+ * @param cls our unindexing context
+ * @param tc not used
+ */
+static void
+unindex_extract_keywords (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_FS_UnindexContext *uc = cls;
+
+  uc->state = UNINDEX_STATE_EXTRACT_KEYWORDS;
+  GNUNET_FS_unindex_sync_ (uc);
+  GNUNET_FS_unindex_do_extract_keywords_ (uc);
+}
+
+
 /**
  * Connect to the datastore and remove the blocks.
  *
@@ -343,7 +619,7 @@ GNUNET_FS_unindex_do_remove_ (struct GNUNET_FS_UnindexContext *uc)
   uc->tc =
       GNUNET_FS_tree_encoder_create (uc->h, uc->file_size, uc, &unindex_reader,
                                      &unindex_process, &unindex_progress,
-                                     &unindex_finish);
+                                     &unindex_extract_keywords);
   GNUNET_FS_tree_encoder_next (uc->tc);
 }
 
@@ -393,10 +669,26 @@ GNUNET_FS_unindex_signal_suspend_ (void *cls)
   struct GNUNET_FS_UnindexContext *uc = cls;
   struct GNUNET_FS_ProgressInfo pi;
 
+  /* FIXME: lots of duplication with unindex_stop here! */
+  if (uc->dscan != NULL)
+  {
+    GNUNET_FS_directory_scan_abort (uc->dscan);
+    uc->dscan = NULL;
+  }
+  if (NULL != uc->dqe)
+  {
+    GNUNET_DATASTORE_cancel (uc->dqe);
+    uc->dqe = NULL;
+  }
   if (uc->fhc != NULL)
   {
     GNUNET_CRYPTO_hash_file_cancel (uc->fhc);
     uc->fhc = NULL;
+  }
+  if (NULL != uc->ksk_uri)
+  {
+    GNUNET_FS_uri_destroy (uc->ksk_uri);
+    uc->ksk_uri = NULL;
   }
   if (uc->client != NULL)
   {
@@ -478,6 +770,16 @@ GNUNET_FS_unindex_stop (struct GNUNET_FS_UnindexContext *uc)
 {
   struct GNUNET_FS_ProgressInfo pi;
 
+  if (uc->dscan != NULL)
+  {
+    GNUNET_FS_directory_scan_abort (uc->dscan);
+    uc->dscan = NULL;
+  }
+  if (NULL != uc->dqe)
+  {
+    GNUNET_DATASTORE_cancel (uc->dqe);
+    uc->dqe = NULL;
+  }
   if (uc->fhc != NULL)
   {
     GNUNET_CRYPTO_hash_file_cancel (uc->fhc);
@@ -492,6 +794,11 @@ GNUNET_FS_unindex_stop (struct GNUNET_FS_UnindexContext *uc)
   {
     GNUNET_DATASTORE_disconnect (uc->dsh, GNUNET_NO);
     uc->dsh = NULL;
+  }
+  if (NULL != uc->ksk_uri)
+  {
+    GNUNET_FS_uri_destroy (uc->ksk_uri);
+    uc->ksk_uri = NULL;
   }
   if (NULL != uc->tc)
   {

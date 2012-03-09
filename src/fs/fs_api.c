@@ -1524,6 +1524,7 @@ void
 GNUNET_FS_unindex_sync_ (struct GNUNET_FS_UnindexContext *uc)
 {
   struct GNUNET_BIO_WriteHandle *wh;
+  char *uris;
 
   if (NULL == uc->serialization)
     uc->serialization =
@@ -1538,10 +1539,15 @@ GNUNET_FS_unindex_sync_ (struct GNUNET_FS_UnindexContext *uc)
     GNUNET_break (0);
     goto cleanup;
   }
+  uris = GNUNET_FS_uri_to_string (uc->ksk_uri);
   if ((GNUNET_OK != GNUNET_BIO_write_string (wh, uc->filename)) ||
       (GNUNET_OK != GNUNET_BIO_write_int64 (wh, uc->file_size)) ||
       (GNUNET_OK != write_start_time (wh, uc->start_time)) ||
       (GNUNET_OK != GNUNET_BIO_write_int32 (wh, (uint32_t) uc->state)) ||
+      (GNUNET_OK !=
+       GNUNET_BIO_write (wh, &uc->chk, sizeof (struct ContentHashKey))) ||
+      (GNUNET_OK != GNUNET_BIO_write_string (wh, uris)) ||
+      (GNUNET_OK != GNUNET_BIO_write_int32 (wh, (uint32_t) uc->ksk_offset)) ||
       ((uc->state == UNINDEX_STATE_FS_NOTIFY) &&
        (GNUNET_OK !=
         GNUNET_BIO_write (wh, &uc->file_id, sizeof (GNUNET_HashCode)))) ||
@@ -1964,6 +1970,7 @@ deserialize_unindex_file (void *cls, const char *filename)
   struct GNUNET_FS_UnindexContext *uc;
   struct GNUNET_FS_ProgressInfo pi;
   char *emsg;
+  char *uris;
   uint32_t state;
 
   uc = GNUNET_malloc (sizeof (struct GNUNET_FS_UnindexContext));
@@ -1979,11 +1986,31 @@ deserialize_unindex_file (void *cls, const char *filename)
        GNUNET_BIO_read_string (rh, "unindex-fn", &uc->filename, 10 * 1024)) ||
       (GNUNET_OK != GNUNET_BIO_read_int64 (rh, &uc->file_size)) ||
       (GNUNET_OK != read_start_time (rh, &uc->start_time)) ||
-      (GNUNET_OK != GNUNET_BIO_read_int32 (rh, &state)))
+      (GNUNET_OK != GNUNET_BIO_read_int32 (rh, &state)) ||
+      (GNUNET_OK != GNUNET_BIO_read (rh, "uri", &uc->chk, sizeof (struct ContentHashKey))) ||
+      (GNUNET_BIO_read_string (rh, "unindex-kskuri", &uris, 10 * 1024)) ||
+      (GNUNET_OK != GNUNET_BIO_read_int32 (rh, &uc->ksk_offset)) )
   {
     GNUNET_break (0);
     goto cleanup;
   }
+  if (NULL != uris)
+  {
+    uc->ksk_uri = GNUNET_FS_uri_parse (uris, &emsg);
+    GNUNET_free (uris);
+    if (NULL == uc->ksk_uri)
+    {
+      GNUNET_break (0);
+      goto cleanup;
+    }
+  }
+  if ( (uc->ksk_offset > 0) &&
+       ( (NULL == uc->ksk_uri) ||
+	 (uc->ksk_offset > uc->ksk_uri->data.ksk.keywordCount) ) )
+  {
+    GNUNET_break (0);
+    goto cleanup;
+  }  
   uc->state = (enum UnindexState) state;
   switch (state)
   {
@@ -1999,6 +2026,8 @@ deserialize_unindex_file (void *cls, const char *filename)
     }
     break;
   case UNINDEX_STATE_DS_REMOVE:
+  case UNINDEX_STATE_EXTRACT_KEYWORDS:
+  case UNINDEX_STATE_DS_REMOVE_KBLOCKS:
     break;
   case UNINDEX_STATE_COMPLETE:
     break;
@@ -2034,6 +2063,12 @@ deserialize_unindex_file (void *cls, const char *filename)
     break;
   case UNINDEX_STATE_DS_REMOVE:
     GNUNET_FS_unindex_do_remove_ (uc);
+    break;
+  case UNINDEX_STATE_EXTRACT_KEYWORDS:
+    GNUNET_FS_unindex_do_extract_keywords_ (uc);
+    break;
+  case UNINDEX_STATE_DS_REMOVE_KBLOCKS:
+    GNUNET_FS_unindex_do_remove_kblocks_ (uc);
     break;
   case UNINDEX_STATE_COMPLETE:
   case UNINDEX_STATE_ERROR:
