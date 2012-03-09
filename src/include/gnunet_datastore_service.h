@@ -292,8 +292,8 @@ typedef void (*GNUNET_DATASTORE_DatumProcessor) (void *cls,
  * @param max_queue_size at what queue size should this request be dropped
  *        (if other requests of higher priority are in the queue)
  * @param timeout how long to wait at most for a response
- * @param proc function to call on each matching value;
- *        will be called once with a NULL value at the end
+ * @param proc function to call on a matching value;
+ *        or with a NULL value if no datum matches
  * @param proc_cls closure for proc
  * @return NULL if the entry was not queued, otherwise a handle that can be used to
  *         cancel
