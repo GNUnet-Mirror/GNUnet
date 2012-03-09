@@ -415,7 +415,6 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     break;
   case SP_TOPOLOGY_SETUP:      /* Indicates topology setup has completed! */
     /* start GNUnet on remote host */
-    fprintf (stderr, "Starting\n");
     if (NULL == d->hostname)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1329,7 +1328,6 @@ GNUNET_TESTING_daemon_restart (struct GNUNET_TESTING_Daemon *d,
   d->phase = SP_START_ARMING;
 
   /* Check if this is a local or remote process */
-    fprintf (stderr, "Stopping\n");
   if (NULL != d->hostname)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1421,7 +1419,6 @@ GNUNET_TESTING_daemon_stop_service (struct GNUNET_TESTING_Daemon *d,
     else
       arg = GNUNET_strdup (d->hostname);
     
-    fprintf (stderr, "Stopping\n");
     d->proc_arm_srv_stop = GNUNET_OS_start_process (GNUNET_NO, NULL, NULL, "ssh", "ssh",
 #if !DEBUG_TESTING
                                        "-q",
@@ -1459,6 +1456,20 @@ GNUNET_TESTING_daemon_stop_service (struct GNUNET_TESTING_Daemon *d,
 
 
 /**
+ * Forcefully terminate a process and clean up the child.
+ *
+ * @param proc handle to process to kill
+ */
+static void
+kill_and_close_process (struct GNUNET_OS_Process *proc)
+{
+  (void) GNUNET_OS_process_kill (proc, SIGKILL);      
+  GNUNET_break (GNUNET_OK == GNUNET_OS_process_wait (proc));
+  GNUNET_OS_process_close (proc);
+}
+
+
+/**
  * Stops a GNUnet daemon.
  *
  * @param d the daemon that should be stopped
@@ -1489,7 +1500,31 @@ GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
     d->dead = GNUNET_YES;
     return;
   }
-
+  if (NULL != d->proc_arm_start)
+  {
+    kill_and_close_process (d->proc_arm_start);
+    d->proc_arm_start = NULL;
+  }
+  if (NULL != d->proc_arm_srv_start)
+  {
+    kill_and_close_process (d->proc_arm_srv_start);
+    d->proc_arm_srv_start = NULL;
+  }
+  if (NULL != d->proc_arm_srv_stop)
+  {
+    kill_and_close_process (d->proc_arm_srv_stop);
+    d->proc_arm_srv_stop = NULL;
+  }
+  if (NULL != d->proc_arm_copying)
+  {
+    kill_and_close_process (d->proc_arm_copying);
+    d->proc_arm_copying = NULL;
+  }
+  if (NULL != d->proc_arm_peerinfo)
+  {
+    kill_and_close_process (d->proc_arm_peerinfo);
+    d->proc_arm_peerinfo = NULL;
+  }
   if ((d->running == GNUNET_NO) && (d->churn == GNUNET_YES))    /* Peer has already been stopped in churn context! */
   {
     /* Free what was left from churning! */
@@ -1507,6 +1542,7 @@ GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
     GNUNET_free_non_null (d->username);
     if (NULL != d->dead_cb)
       d->dead_cb (d->dead_cb_cls, NULL);
+    GNUNET_assert (NULL == d->proc_arm_stop);
     GNUNET_free (d);
     return;
   }
@@ -1544,7 +1580,8 @@ GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
     d->th = NULL;
   }
   /* Check if this is a local or remote process */
-  fprintf (stderr, "Stopping\n");
+
+
   if (NULL != d->hostname)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
