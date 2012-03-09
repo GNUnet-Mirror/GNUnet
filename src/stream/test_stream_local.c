@@ -201,7 +201,7 @@ write_completion (void *cls,
 
   peer = (struct PeerData *) cls;
   GNUNET_assert (GNUNET_STREAM_OK == status);
-  GNUNET_assert (size < strlen (data));
+  GNUNET_assert (size <= strlen (data));
   peer->bytes_wrote += size;
 
   if (peer->bytes_wrote < strlen(data)) /* Have more data to send */

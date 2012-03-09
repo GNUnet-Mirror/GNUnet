@@ -315,7 +315,7 @@ struct GNUNET_STREAM_Socket
   /**
    * receiver's available buffer after the last acknowledged packet
    */
-  uint32_t receive_window_available;
+  uint32_t receiver_window_available;
 
   /**
    * The offset pointer used during write operation
@@ -595,16 +595,16 @@ send_ack_notify (void *cls, size_t size, void *buf)
                   "%s called with size 0\n", __func__);
       return 0;
     }
-  GNUNET_assert (ack_msg->header.header.size <= size);
+  GNUNET_assert (ntohs (ack_msg->header.header.size) <= size);
   
-  size = ack_msg->header.header.size;
+  size = ntohs (ack_msg->header.header.size);
   memcpy (buf, ack_msg, size);
   return size;
 }
 
 /**
  * Writes data using the given socket. The amount of data written is limited by
- * the receive_window_size
+ * the receiver_window_size
  *
  * @param socket the socket to use
  */
@@ -735,7 +735,7 @@ write_data_finish_cb (void *cls,
 
 /**
  * Writes data using the given socket. The amount of data written is limited by
- * the receive_window_size
+ * the receiver_window_size
  *
  * @param socket the socket to use
  */
@@ -765,8 +765,7 @@ write_data (struct GNUNET_STREAM_Socket *socket)
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       "%x: Placing DATA message with sequence %u in send queue\n",
                       socket->our_id,
-                      (unsigned int) 
-                      io_handle->messages[packet]->sequence_number);
+                      ntohl (io_handle->messages[packet]->sequence_number));
 
           copy_and_queue_message (socket,
                                   &io_handle->messages[packet]->header,
@@ -777,15 +776,14 @@ write_data (struct GNUNET_STREAM_Socket *socket)
   packet = ack_packet + 1;
   /* Now send new packets if there is enough buffer space */
   while ( (NULL != io_handle->messages[packet]) &&
-	  (socket->receive_window_available >= ntohs (io_handle->messages[packet]->header.header.size)) )
+	  (socket->receiver_window_available >= ntohs (io_handle->messages[packet]->header.header.size)) )
     {
-      socket->receive_window_available -= 
+      socket->receiver_window_available -= 
         ntohs (io_handle->messages[packet]->header.header.size);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "%x: Placing DATA message with sequence %u in send queue\n",
                   socket->our_id,
-                  (unsigned int) 
-                  io_handle->messages[packet]->sequence_number);
+                  ntohl (io_handle->messages[packet]->sequence_number));
       copy_and_queue_message (socket,
                               &io_handle->messages[packet]->header,
                               &write_data_finish_cb,
@@ -985,8 +983,7 @@ handle_data (struct GNUNET_STREAM_Socket *socket,
         }
 
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "%x: Receiving DATA with sequence number: %u and size: %d "
-                  "from %x\n",
+                  "%x: Receiving DATA with sequence number: %u and size: %d from %x\n",
                   socket->our_id,
                   ntohl (msg->sequence_number),
                   ntohs (msg->header.header.size),
@@ -1178,7 +1175,7 @@ client_handle_hello_ack (void *cls,
                 "%x: Read sequence number %u\n",
                 socket->our_id,
                 (unsigned int) socket->read_sequence_number);
-    socket->receive_window_available = ntohl (ack_msg->receive_window_size);
+    socket->receiver_window_available = ntohl (ack_msg->receiver_window_size);
     /* Get the random sequence number */
     socket->write_sequence_number = 
       GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
@@ -1193,7 +1190,7 @@ client_handle_hello_ack (void *cls,
     reply->header.header.type = 
       htons (GNUNET_MESSAGE_TYPE_STREAM_HELLO_ACK);
     reply->sequence_number = htonl (socket->write_sequence_number);
-    reply->receive_window_size = htonl (RECEIVE_BUFFER_SIZE);
+    reply->receiver_window_size = htonl (RECEIVE_BUFFER_SIZE);
     queue_message (socket, 
                    &reply->header, 
                    &set_state_established, 
@@ -1532,6 +1529,7 @@ server_handle_hello (void *cls,
       reply->header.header.type = 
         htons (GNUNET_MESSAGE_TYPE_STREAM_HELLO_ACK);
       reply->sequence_number = htonl (socket->write_sequence_number);
+      reply->receiver_window_size = htonl (RECEIVE_BUFFER_SIZE);
       queue_message (socket, 
 		     &reply->header,
                      &set_state_hello_wait, 
@@ -1586,8 +1584,8 @@ server_handle_hello_ack (void *cls,
                   "%x: Read sequence number %u\n",
                   socket->our_id,
                   (unsigned int) socket->read_sequence_number);
-      socket->receive_window_available = 
-        ntohl (ack_message->receive_window_size);
+      socket->receiver_window_available = 
+        ntohl (ack_message->receiver_window_size);
       /* Attain ESTABLISHED state */
       set_state_established (NULL, socket);
     }
@@ -1849,7 +1847,7 @@ handle_ack (struct GNUNET_STREAM_Socket *socket,
         }
          
       socket->write_handle->ack_bitmap = GNUNET_ntohll (ack->bitmap);
-      socket->receive_window_available = 
+      socket->receiver_window_available = 
         ntohl (ack->receive_window_remaining);
 
       /* Check if we have received all acknowledgements */
@@ -2452,8 +2450,8 @@ GNUNET_STREAM_write (struct GNUNET_STREAM_Socket *socket,
       io_handle->messages[packet]->header.header.type =
         htons (GNUNET_MESSAGE_TYPE_STREAM_DATA);
       io_handle->messages[packet]->sequence_number =
-        htons (socket->write_sequence_number++);
-      io_handle->messages[packet]->offset = htons (socket->write_offset);
+        htonl (socket->write_sequence_number++);
+      io_handle->messages[packet]->offset = htonl (socket->write_offset);
 
       /* FIXME: Remove the fixed delay for ack deadline; Set it to the value
          determined from RTT */

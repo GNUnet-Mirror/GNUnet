@@ -163,7 +163,7 @@ struct GNUNET_STREAM_HelloAckMessage
    *
    * FIXME: Remove if not needed
    */
-  uint32_t receive_window_size;
+  uint32_t receiver_window_size;
 };
 
 
