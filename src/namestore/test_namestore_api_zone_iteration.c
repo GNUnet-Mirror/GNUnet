@@ -220,8 +220,12 @@ void zone_proc (void *cls,
   else
   {
     /* verify signature returned from name store */
-    if (GNUNET_OK != GNUNET_NAMESTORE_verify_signature(zone_key, name, rd_count, rd, signature))
+    if (GNUNET_OK != GNUNET_NAMESTORE_verify_signature (zone_key, expire, name, rd_count, rd, signature))
     {
+      GNUNET_HashCode zone_key_hash;
+      GNUNET_CRYPTO_hash (zone_key, sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), &zone_key_hash);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Verifying signature for `%s' in zone `%s' with %u records  and expiration %llu failed\n", name, GNUNET_h2s(&zone_key_hash), rd_count, expire.abs_value);
+
       failed = GNUNET_YES;
       GNUNET_break (0);
     }
@@ -284,7 +288,7 @@ void zone_proc (void *cls,
         failed = GNUNET_YES;
         GNUNET_break (0);
       }
-      if (GNUNET_OK != GNUNET_NAMESTORE_verify_signature(zone_key, name, rd_count, rd, signature))
+      if (GNUNET_OK != GNUNET_NAMESTORE_verify_signature(zone_key, expire, name, rd_count, rd, signature))
       {
         failed = GNUNET_YES;
         GNUNET_break (0);
@@ -430,7 +434,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   GNUNET_asprintf(&s_name_1, "dummy1");
   s_rd_1 = create_record(1);
-  sig_1 = GNUNET_NAMESTORE_create_signature(privkey, s_name_1, s_rd_1, 1);
+  sig_1 = GNUNET_NAMESTORE_create_signature(privkey, s_rd_1->expiration, s_name_1, s_rd_1, 1);
   GNUNET_NAMESTORE_record_create(nsh, privkey, s_name_1, s_rd_1, &put_cont, NULL);
 
 
@@ -438,14 +442,14 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_asprintf(&s_name_2, "dummy2");
   s_rd_2 = create_record(1);
 
-  sig_2 = GNUNET_NAMESTORE_create_signature(privkey, s_name_2, s_rd_2, 1);
+  sig_2 = GNUNET_NAMESTORE_create_signature(privkey, s_rd_2->expiration, s_name_2, s_rd_2, 1);
   GNUNET_NAMESTORE_record_create(nsh, privkey, s_name_2, s_rd_2, &put_cont, NULL);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created record 3\n");
   /* name in different zone */
   GNUNET_asprintf(&s_name_3, "dummy3");
   s_rd_3 = create_record(1);
-  sig_3 = GNUNET_NAMESTORE_create_signature(privkey2, s_name_3, s_rd_3, 1);
+  sig_3 = GNUNET_NAMESTORE_create_signature(privkey2, s_rd_3->expiration, s_name_3, s_rd_3, 1);
   GNUNET_NAMESTORE_record_put (nsh, &pubkey2, s_name_3, GNUNET_TIME_absolute_get_forever(), 1, s_rd_3, sig_3, &put_cont, NULL);
 }
 

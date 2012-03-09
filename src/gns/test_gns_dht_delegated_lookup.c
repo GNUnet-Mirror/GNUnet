@@ -204,7 +204,8 @@ put_dht(void *cls, int32_t success, const char *emsg)
   rd.data_size = sizeof(struct in_addr);
   rd.data = web;
   rd.record_type = GNUNET_DNSPARSER_TYPE_A;
-  sig = GNUNET_NAMESTORE_create_signature(bob_key, TEST_RECORD_NAME,
+
+  sig = GNUNET_NAMESTORE_create_signature(bob_key, GNUNET_TIME_absolute_get_forever(), TEST_RECORD_NAME,
                                           &rd, 1);
   rd_payload_length = GNUNET_NAMESTORE_records_get_size (1, &rd);
   nrb = GNUNET_malloc(rd_payload_length + strlen(TEST_RECORD_NAME) + 1

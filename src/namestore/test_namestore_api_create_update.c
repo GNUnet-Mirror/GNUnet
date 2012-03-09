@@ -176,7 +176,7 @@ void name_lookup_second_proc (void *cls,
       }
     }
 
-    if (GNUNET_OK != GNUNET_NAMESTORE_verify_signature(&pubkey, n, rd_count, rd, signature))
+    if (GNUNET_OK != GNUNET_NAMESTORE_verify_signature(&pubkey, expire, n, rd_count, rd, signature))
     {
       GNUNET_break (0);
       failed = GNUNET_YES;
@@ -185,7 +185,7 @@ void name_lookup_second_proc (void *cls,
     struct GNUNET_NAMESTORE_RecordData rd_new[2];
     rd_new[0] = *s_first_record;
     rd_new[1] = *s_second_record;
-    s_signature_updated = GNUNET_NAMESTORE_create_signature(privkey, s_name, rd_new, 2);
+    s_signature_updated = GNUNET_NAMESTORE_create_signature(privkey, expire, s_name, rd_new, 2);
 
     if (0 != memcmp (s_signature_updated, signature, sizeof (struct GNUNET_CRYPTO_RsaSignature)))
     {
@@ -274,7 +274,7 @@ void name_lookup_initial_proc (void *cls,
       }
     }
 
-    if (GNUNET_OK != GNUNET_NAMESTORE_verify_signature(&pubkey, n, rd_count, rd, signature))
+    if (GNUNET_OK != GNUNET_NAMESTORE_verify_signature(&pubkey, expire, n, rd_count, rd, signature))
     {
       GNUNET_break (0);
       failed = GNUNET_YES;
@@ -462,7 +462,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   char rd_ser[rd_ser_len];
   GNUNET_NAMESTORE_records_serialize(1, s_first_record, rd_ser_len, rd_ser);
 
-  s_signature = GNUNET_NAMESTORE_create_signature(privkey, s_name, s_first_record, 1);
+  s_signature = GNUNET_NAMESTORE_create_signature(privkey, s_first_record->expiration, s_name, s_first_record, 1);
 
   /* create random zone hash */
   GNUNET_CRYPTO_hash (&pubkey, sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), &s_zone);

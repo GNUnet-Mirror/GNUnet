@@ -240,7 +240,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_NAMESTORE_records_serialize(RECORDS, s_rd, rd_ser_len, rd_ser);
 
   /* sign */
-  s_signature = GNUNET_NAMESTORE_create_signature(privkey, s_name, s_rd, RECORDS);
+  s_signature = GNUNET_NAMESTORE_create_signature(privkey, s_rd[0].expiration, s_name, s_rd, RECORDS);
 
   /* create random zone hash */
   GNUNET_CRYPTO_hash (&pubkey, sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), &s_zone);

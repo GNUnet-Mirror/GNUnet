@@ -47,9 +47,10 @@
 #define GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_STOP 448
 
 /**
- * Create a signature based on name and records
+ * Sign name and records
  *
  * @param key the private key
+ * @param expire block expiration
  * @param name the name
  * @param rd record data
  * @param rd_count number of records
@@ -58,9 +59,10 @@
  */
 struct GNUNET_CRYPTO_RsaSignature *
 GNUNET_NAMESTORE_create_signature (const struct GNUNET_CRYPTO_RsaPrivateKey *key,
-                                   const char *name,
-                                   const struct GNUNET_NAMESTORE_RecordData *rd,
-                                   unsigned int rd_count);
+    struct GNUNET_TIME_Absolute expire,
+    const char *name,
+    const struct GNUNET_NAMESTORE_RecordData *rd,
+    unsigned int rd_count);
 
 /**
  * Compares if two records are equal

@@ -198,6 +198,7 @@ GNUNET_NAMESTORE_records_deserialize (size_t len,
  * Sign name and records
  *
  * @param key the private key
+ * @param expire block expiration
  * @param name the name
  * @param rd record data
  * @param rd_count number of records
@@ -206,14 +207,18 @@ GNUNET_NAMESTORE_records_deserialize (size_t len,
  */
 struct GNUNET_CRYPTO_RsaSignature *
 GNUNET_NAMESTORE_create_signature (const struct GNUNET_CRYPTO_RsaPrivateKey *key,
+    struct GNUNET_TIME_Absolute expire,
     const char *name,
     const struct GNUNET_NAMESTORE_RecordData *rd,
     unsigned int rd_count)
 {
   struct GNUNET_CRYPTO_RsaSignature *sig = GNUNET_malloc(sizeof (struct GNUNET_CRYPTO_RsaSignature));
   struct GNUNET_CRYPTO_RsaSignaturePurpose *sig_purpose;
+  struct GNUNET_TIME_AbsoluteNBO expire_nbo = GNUNET_TIME_absolute_hton(expire);
   size_t rd_ser_len;
   size_t name_len;
+
+  struct GNUNET_TIME_AbsoluteNBO *expire_tmp;
   char * name_tmp;
   char * rd_tmp;
   int res;
@@ -230,12 +235,13 @@ GNUNET_NAMESTORE_create_signature (const struct GNUNET_CRYPTO_RsaPrivateKey *key
   char rd_ser[rd_ser_len];
   GNUNET_NAMESTORE_records_serialize(rd_count, rd, rd_ser_len, rd_ser);
 
-  sig_purpose = GNUNET_malloc(sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose) + rd_ser_len + name_len);
-
+  sig_purpose = GNUNET_malloc(sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose) + sizeof (struct GNUNET_TIME_AbsoluteNBO) + rd_ser_len + name_len);
   sig_purpose->size = htonl (sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose)+ rd_ser_len + name_len);
   sig_purpose->purpose = htonl (GNUNET_SIGNATURE_PURPOSE_GNS_RECORD_SIGN);
-  name_tmp = (char *) &sig_purpose[1];
+  expire_tmp = (struct GNUNET_TIME_AbsoluteNBO *) &sig_purpose[1];
+  name_tmp = (char *) &expire_tmp[1];
   rd_tmp = &name_tmp[name_len];
+  memcpy (expire_tmp, &expire_nbo, sizeof (struct GNUNET_TIME_AbsoluteNBO));
   memcpy (name_tmp, name, name_len);
   memcpy (rd_tmp, rd_ser, rd_ser_len);
 

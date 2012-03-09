@@ -254,7 +254,7 @@ do_shorten(void *cls, const struct GNUNET_PeerIdentity *id,
   /* put alice into bobs zone */
   GNUNET_CRYPTO_hash(&alice_pkey, sizeof(alice_pkey), &alice_hash);
   rd.data = &alice_hash;
-  sig = GNUNET_NAMESTORE_create_signature(bob_key, TEST_AUTHORITY_ALICE,
+  sig = GNUNET_NAMESTORE_create_signature(bob_key, GNUNET_TIME_absolute_get_forever(), TEST_AUTHORITY_ALICE,
                                           &rd, 1);
 
   GNUNET_NAMESTORE_record_put (namestore_handle,
@@ -272,7 +272,7 @@ do_shorten(void *cls, const struct GNUNET_PeerIdentity *id,
   rd.data_size = sizeof(struct in_addr);
   rd.data = web;
   rd.record_type = GNUNET_DNSPARSER_TYPE_A;
-  sig = GNUNET_NAMESTORE_create_signature(alice_key, TEST_RECORD_NAME,
+  sig = GNUNET_NAMESTORE_create_signature(alice_key,GNUNET_TIME_absolute_get_forever(),  TEST_RECORD_NAME,
                                           &rd, 1);
 
   GNUNET_NAMESTORE_record_put (namestore_handle,
@@ -290,7 +290,7 @@ do_shorten(void *cls, const struct GNUNET_PeerIdentity *id,
   rd.record_type = GNUNET_GNS_RECORD_PSEU;
   GNUNET_free(sig);
 
-  sig = GNUNET_NAMESTORE_create_signature(alice_key, "",
+  sig = GNUNET_NAMESTORE_create_signature(alice_key,GNUNET_TIME_absolute_get_forever(),  "",
                                           &rd, 1);
 
   GNUNET_NAMESTORE_record_put (namestore_handle,

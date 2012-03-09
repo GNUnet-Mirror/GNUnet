@@ -1048,6 +1048,7 @@ GNUNET_NAMESTORE_record_put (struct GNUNET_NAMESTORE_Handle *h,
  * to validate signatures received from the network.
  *
  * @param public_key public key of the zone
+ * @param expire block expiration
  * @param name name that is being mapped (at most 255 characters long)
  * @param rd_count number of entries in 'rd' array
  * @param rd array of records with data to store
@@ -1056,6 +1057,7 @@ GNUNET_NAMESTORE_record_put (struct GNUNET_NAMESTORE_Handle *h,
  */
 int
 GNUNET_NAMESTORE_verify_signature (const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *public_key,
+                                   const struct GNUNET_TIME_Absolute expire,
 				   const char *name,
 				   unsigned int rd_count,
 				   const struct GNUNET_NAMESTORE_RecordData *rd,
@@ -1067,6 +1069,8 @@ GNUNET_NAMESTORE_verify_signature (const struct GNUNET_CRYPTO_RsaPublicKeyBinary
   char * name_tmp;
   char * rd_tmp;
   struct GNUNET_CRYPTO_RsaSignaturePurpose *sig_purpose;
+  struct GNUNET_TIME_AbsoluteNBO *expire_tmp;
+  struct GNUNET_TIME_AbsoluteNBO expire_nbo = GNUNET_TIME_absolute_hton(expire);
 
   GNUNET_assert (public_key != NULL);
   GNUNET_assert (name != NULL);
@@ -1085,11 +1089,13 @@ GNUNET_NAMESTORE_verify_signature (const struct GNUNET_CRYPTO_RsaPublicKeyBinary
     return GNUNET_SYSERR;
   }
 
-  sig_purpose = GNUNET_malloc(sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose) + rd_ser_len + name_len);
+  sig_purpose = GNUNET_malloc(sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose) + sizeof (struct GNUNET_TIME_AbsoluteNBO) + rd_ser_len + name_len);
   sig_purpose->size = htonl (sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose)+ rd_ser_len + name_len);
   sig_purpose->purpose = htonl (GNUNET_SIGNATURE_PURPOSE_GNS_RECORD_SIGN);
-  name_tmp = (char *) &sig_purpose[1];
+  expire_tmp = (struct GNUNET_TIME_AbsoluteNBO *) &sig_purpose[1];
+  name_tmp = (char *) &expire_tmp[1];
   rd_tmp = &name_tmp[name_len];
+  memcpy (expire_tmp, &expire_nbo, sizeof (struct GNUNET_TIME_AbsoluteNBO));
   memcpy (name_tmp, name, name_len);
   memcpy (rd_tmp, rd_ser, rd_ser_len);
 

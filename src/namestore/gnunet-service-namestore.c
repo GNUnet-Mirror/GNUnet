@@ -212,6 +212,21 @@ int zone_to_disk_it (void *cls,
 }
 
 
+struct GNUNET_TIME_Absolute
+get_block_expiration_time (unsigned int rd_count, const struct GNUNET_NAMESTORE_RecordData *rd)
+{
+  int c;
+  struct GNUNET_TIME_Absolute expire = GNUNET_TIME_absolute_get_forever();
+  if (NULL == rd)
+    return GNUNET_TIME_absolute_get_zero();
+  for (c = 0; c < rd_count; c++)
+  {
+    if (rd[c].expiration.abs_value < expire.abs_value)
+      expire = rd[c].expiration;
+  }
+  return expire;
+}
+
 /**
  * Task run during shutdown.
  *
@@ -231,6 +246,7 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   snc = NULL;
 
   GNUNET_CONTAINER_multihashmap_iterate(zonekeys, &zone_to_disk_it, NULL);
+  GNUNET_CONTAINER_multihashmap_destroy(zonekeys);
 
   for (nc = client_head; nc != NULL; nc = next)
   {
@@ -364,6 +380,7 @@ handle_lookup_name_it (void *cls,
   struct GNUNET_NAMESTORE_RecordData *rd_selected = NULL;
   struct GNUNET_NAMESTORE_CryptoContainer *cc;
   struct GNUNET_CRYPTO_RsaSignature *signature_new = NULL;
+  struct GNUNET_TIME_Absolute e;
   GNUNET_HashCode zone_key_hash;
   char *rd_tmp;
   char *name_tmp;
@@ -435,7 +452,8 @@ handle_lookup_name_it (void *cls,
     if (GNUNET_CONTAINER_multihashmap_contains(zonekeys, &zone_key_hash))
     {
       cc = GNUNET_CONTAINER_multihashmap_get(zonekeys, &zone_key_hash);
-      signature_new = GNUNET_NAMESTORE_create_signature(cc->privkey, name, rd, rd_count);
+      e = get_block_expiration_time(rd_count, rd);
+      signature_new = GNUNET_NAMESTORE_create_signature(cc->privkey, e, name, rd, rd_count);
       GNUNET_assert (signature_new != NULL);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Creating signature for name `%s' with %u records in zone `%s'\n",name, copied_elements, GNUNET_h2s(&zone_key_hash));
       authoritative = GNUNET_YES;
@@ -443,9 +461,6 @@ handle_lookup_name_it (void *cls,
     else
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "I am not authoritative for name `%s' in zone `%s'\n",name, GNUNET_h2s(&zone_key_hash));
   }
-
-  if (rd_selected != rd)
-    GNUNET_free (rd_selected);
 
   r_size = sizeof (struct LookupNameResponseMessage) +
            sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded) +
@@ -460,7 +475,10 @@ handle_lookup_name_it (void *cls,
   lnr_msg->rd_count = htons (copied_elements);
   lnr_msg->rd_len = htons (rd_ser_len);
   lnr_msg->name_len = htons (name_len);
-  lnr_msg->expire = GNUNET_TIME_absolute_hton(expire);
+  lnr_msg->expire = GNUNET_TIME_absolute_hton(get_block_expiration_time(copied_elements, rd_selected));
+
+  if (rd_selected != rd)
+    GNUNET_free (rd_selected);
 
   if (zone_key != NULL)
     lnr_msg->public_key = (*zone_key);
@@ -811,6 +829,7 @@ static void handle_record_create (void *cls,
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "NAMESTORE_RECORD_CREATE");
   struct GNUNET_NAMESTORE_Client *nc;
+  struct GNUNET_NAMESTORE_CryptoContainer *cc;
   struct CreateRecordContext crc;
   struct GNUNET_CRYPTO_RsaPrivateKey *pkey;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pub;
@@ -895,6 +914,19 @@ static void handle_record_create (void *cls,
   GNUNET_CRYPTO_rsa_key_get_public(pkey, &pub);
   GNUNET_CRYPTO_hash (&pub, sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), &pubkey_hash);
 
+  if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains(zonekeys, &pubkey_hash))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received new private key for zone `%s'\n",GNUNET_h2s(&pubkey_hash));
+
+    cc = GNUNET_malloc (sizeof (struct GNUNET_NAMESTORE_CryptoContainer));
+    cc->privkey = GNUNET_CRYPTO_rsa_decode_key((char *) pkey_tmp, key_len);
+    cc->pubkey = GNUNET_malloc(sizeof (pub));
+    memcpy (cc->pubkey, &pub, sizeof(pub));
+    cc->zone = pubkey_hash;
+
+    GNUNET_CONTAINER_multihashmap_put(zonekeys, &pubkey_hash, cc, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+  }
+
   crc.expire = GNUNET_TIME_absolute_ntoh(rp_msg->expire);
   crc.res = GNUNET_SYSERR;
   crc.pkey = pkey;
@@ -909,6 +941,7 @@ static void handle_record_create (void *cls,
   if (res != GNUNET_SYSERR)
     res = GNUNET_OK;
   GNUNET_CRYPTO_rsa_key_free(pkey);
+  pkey = NULL;
 
   /* Send response */
 send:
@@ -1027,6 +1060,7 @@ static void handle_record_remove (void *cls,
   struct GNUNET_NAMESTORE_Client *nc;
   struct RecordRemoveResponseMessage rrr_msg;
   struct GNUNET_CRYPTO_RsaPrivateKey *pkey;
+  struct GNUNET_NAMESTORE_CryptoContainer *cc = NULL;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pub;
   GNUNET_HashCode pubkey_hash;
   char * pkey_tmp = NULL;
@@ -1119,6 +1153,18 @@ static void handle_record_remove (void *cls,
   GNUNET_assert (pkey != NULL);
   GNUNET_CRYPTO_rsa_key_get_public(pkey, &pub);
   GNUNET_CRYPTO_hash (&pub, sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), &pubkey_hash);
+
+  if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains(zonekeys, &pubkey_hash))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received new private key for zone `%s'\n",GNUNET_h2s(&pubkey_hash));
+    cc = GNUNET_malloc (sizeof (struct GNUNET_NAMESTORE_CryptoContainer));
+    cc->privkey = GNUNET_CRYPTO_rsa_decode_key((char *) pkey_tmp, key_len);
+    cc->pubkey = GNUNET_malloc(sizeof (pub));
+    memcpy (cc->pubkey, &pub, sizeof(pub));
+    cc->zone = pubkey_hash;
+
+    GNUNET_CONTAINER_multihashmap_put(zonekeys, &pubkey_hash, cc, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+  }
 
   struct GNUNET_NAMESTORE_RecordData rd[rd_count];
   res = GNUNET_NAMESTORE_records_deserialize(rd_ser_len, rd_ser, rd_count, rd);
@@ -1334,6 +1380,7 @@ void zone_iteration_proc (void *cls,
   struct GNUNET_NAMESTORE_Client *nc = zi->client;
   struct GNUNET_NAMESTORE_CryptoContainer * cc;
   struct GNUNET_CRYPTO_RsaSignature *signature_new = NULL;
+  struct GNUNET_TIME_Absolute e;
   GNUNET_HashCode zone_key_hash;
   int authoritative = GNUNET_NO;
 
@@ -1393,9 +1440,11 @@ void zone_iteration_proc (void *cls,
     if (GNUNET_CONTAINER_multihashmap_contains(zonekeys, &zone_key_hash))
     {
       cc = GNUNET_CONTAINER_multihashmap_get(zonekeys, &zone_key_hash);
-      signature_new = GNUNET_NAMESTORE_create_signature(cc->privkey, name, rd, rd_count);
+      e = get_block_expiration_time(rd_count, rd);
+      expire = e;
+      signature_new = GNUNET_NAMESTORE_create_signature(cc->privkey, e, name, rd, rd_count);
       GNUNET_assert (signature_new != NULL);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Creating signature for name `%s' with %u records in zone `%s'\n",name, rd_count, GNUNET_h2s(&zone_key_hash));
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Creating signature for `%s' in zone `%s' with %u records  and expiration %llu\n", name, GNUNET_h2s(&zone_key_hash), rd_count, e.abs_value);
       authoritative = GNUNET_YES;
     }
 

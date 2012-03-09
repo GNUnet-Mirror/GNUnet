@@ -247,7 +247,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_break (NULL != nsh);
 
   expire = GNUNET_TIME_absolute_get ();
-  s_signature = GNUNET_NAMESTORE_create_signature(privkey, s_name, &rd, 1);
+  s_signature = GNUNET_NAMESTORE_create_signature(privkey, rd.expiration, s_name, &rd, 1);
   GNUNET_NAMESTORE_record_put(nsh, &pubkey, s_name, expire, 1, &rd, s_signature, put_cont, NULL);
 
   GNUNET_free ((void *) rd.data);

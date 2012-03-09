@@ -196,7 +196,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   char * s_name = "dummy.dummy.gnunet";
   s_rd = create_record (RECORDS);
 
-  signature = GNUNET_NAMESTORE_create_signature(privkey, s_name, s_rd, RECORDS);
+  signature = GNUNET_NAMESTORE_create_signature(privkey, s_rd[0].expiration, s_name, s_rd, RECORDS);
 
   GNUNET_break (s_rd != NULL);
   GNUNET_break (s_name != NULL);
