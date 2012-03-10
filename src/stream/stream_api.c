@@ -791,10 +791,12 @@ write_data (struct GNUNET_STREAM_Socket *socket)
       packet++;
     }
 
-  GNUNET_SCHEDULER_add_delayed
-    (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5),
-     &retransmission_timeout_task,
-     socket);                                
+  if (GNUNET_SCHEDULER_NO_TASK == socket->retransmission_timeout_task_id)
+    socket->retransmission_timeout_task_id = 
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply 
+                                    (GNUNET_TIME_UNIT_SECONDS, 5),
+                                    &retransmission_timeout_task,
+                                    socket);
 }
 
 
@@ -1837,6 +1839,11 @@ handle_ack (struct GNUNET_STREAM_Socket *socket,
         }
       /* FIXME: include the case when write_handle is cancelled - ignore the 
          acks */
+
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "%x: Received DATA_ACK from %x\n",
+                  socket->our_id,
+                  socket->other_peer);
       
       /* Cancel the retransmission task */
       if (GNUNET_SCHEDULER_NO_TASK != socket->retransmission_timeout_task_id)
@@ -1845,7 +1852,7 @@ handle_ack (struct GNUNET_STREAM_Socket *socket,
           socket->retransmission_timeout_task_id = 
             GNUNET_SCHEDULER_NO_TASK;
         }
-         
+
       socket->write_handle->ack_bitmap = GNUNET_ntohll (ack->bitmap);
       socket->receiver_window_available = 
         ntohl (ack->receive_window_remaining);
@@ -1868,7 +1875,6 @@ handle_ack (struct GNUNET_STREAM_Socket *socket,
         }
       else      /* We have to call the write continuation callback now */
         {
-
           /* Free the packets */
           for (packet=0; packet < 64; packet++)
             {
@@ -1879,6 +1885,9 @@ handle_ack (struct GNUNET_STREAM_Socket *socket,
               (socket->write_handle->write_cont_cls,
                socket->status,
                socket->write_handle->size);
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      "%x: Write completion callback completed\n",
+                      socket->our_id);
           /* We are done with the write handle - Freeing it */
           GNUNET_free (socket->write_handle);
           socket->write_handle = NULL;

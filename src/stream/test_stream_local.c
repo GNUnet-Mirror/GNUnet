@@ -204,6 +204,9 @@ write_completion (void *cls,
   GNUNET_assert (size <= strlen (data));
   peer->bytes_wrote += size;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Writing completed\n");
+
   if (peer->bytes_wrote < strlen(data)) /* Have more data to send */
     {
       peer->io_write_handle =
@@ -319,7 +322,7 @@ input_processor (void *cls,
         {
           GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
         }
-    } 
+    }
   return size;
 }
 
