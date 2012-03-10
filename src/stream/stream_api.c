@@ -375,7 +375,7 @@ struct GNUNET_STREAM_IOWriteHandle
   /**
    * The packet_buffers associated with this Handle
    */
-  struct GNUNET_STREAM_DataMessage *messages[64];
+  struct GNUNET_STREAM_DataMessage *messages[GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH];
 
   /**
    * The write continuation callback
@@ -692,7 +692,7 @@ ackbitmap_modify_bit (GNUNET_STREAM_AckBitmap *bitmap,
 		      unsigned int bit, 
 		      int value)
 {
-  GNUNET_assert (bit < 64);
+  GNUNET_assert (bit < GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH);
   if (GNUNET_YES == value)
     *bitmap |= (1LL << bit);
   else
@@ -711,7 +711,7 @@ static uint8_t
 ackbitmap_is_bit_set (const GNUNET_STREAM_AckBitmap *bitmap,
                       unsigned int bit)
 {
-  GNUNET_assert (bit < 64);
+  GNUNET_assert (bit < GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH);
   return 0 != (*bitmap & (1LL << bit));
 }
 
@@ -748,7 +748,7 @@ write_data (struct GNUNET_STREAM_Socket *socket)
 
   ack_packet = -1;
   /* Find the last acknowledged packet */
-  for (packet=0; packet < 64; packet++)
+  for (packet=0; packet < GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH; packet++)
     {      
       if (GNUNET_YES == ackbitmap_is_bit_set (&io_handle->ack_bitmap,
                                               packet))
@@ -849,6 +849,10 @@ call_read_processor (void *cls,
                                socket->status,
                                socket->receive_buffer + socket->copy_offset,
                                valid_read_size);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "%x: Read processor completed successfully\n",
+              socket->our_id);
+
   /* Free the read handle */
   GNUNET_free (socket->read_handle);
   socket->read_handle = NULL;
@@ -975,7 +979,7 @@ handle_data (struct GNUNET_STREAM_Socket *socket,
          expecting */
       relative_sequence_number = 
         ntohl (msg->sequence_number) - socket->read_sequence_number;
-      if ( relative_sequence_number > 64)
+      if ( relative_sequence_number > GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH)
         {
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       "%x: Ignoring received message with sequence number %u\n",
@@ -984,8 +988,21 @@ handle_data (struct GNUNET_STREAM_Socket *socket,
           return GNUNET_YES;
         }
 
+      /* Check if we have already seen this message */
+      if (GNUNET_YES == ackbitmap_is_bit_set (&socket->ack_bitmap,
+                                              relative_sequence_number))
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      "%x: Ignoring already received message with sequence "
+                      "number %u\n",
+                      socket->our_id,
+                      ntohl (msg->sequence_number));
+          return GNUNET_YES;
+        }
+
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "%x: Receiving DATA with sequence number: %u and size: %d from %x\n",
+                  "%x: Receiving DATA with sequence number: %u and size: %d "
+                  "from %x\n",
                   socket->our_id,
                   ntohl (msg->sequence_number),
                   ntohs (msg->header.header.size),
@@ -995,7 +1012,6 @@ handle_data (struct GNUNET_STREAM_Socket *socket,
       size -= sizeof (struct GNUNET_STREAM_DataMessage);
       relative_offset = ntohl (msg->offset) - socket->read_offset;
       bytes_needed = relative_offset + size;
-      
       if (bytes_needed > socket->receive_buffer_size)
         {
           if (bytes_needed <= RECEIVE_BUFFER_SIZE)
@@ -1030,7 +1046,7 @@ handle_data (struct GNUNET_STREAM_Socket *socket,
                             GNUNET_YES);
 
       /* Start ACK sending task if one is not already present */
-      if (0 == socket->ack_task_id)
+      if (GNUNET_SCHEDULER_NO_TASK == socket->ack_task_id)
        {
          socket->ack_task_id = 
            GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_ntoh
@@ -1829,7 +1845,7 @@ handle_ack (struct GNUNET_STREAM_Socket *socket,
         }
       
       if (!((socket->write_sequence_number 
-             - htonl (ack->base_sequence_number)) < 64))
+             - htonl (ack->base_sequence_number)) < GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH))
         {
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       "%x: Received DATA_ACK with unexpected base sequence",
@@ -1859,7 +1875,7 @@ handle_ack (struct GNUNET_STREAM_Socket *socket,
 
       /* Check if we have received all acknowledgements */
       need_retransmission = GNUNET_NO;
-      for (packet=0; packet < 64; packet++)
+      for (packet=0; packet < GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH; packet++)
         {
           if (NULL == socket->write_handle->messages[packet]) break;
           if (GNUNET_YES != ackbitmap_is_bit_set 
@@ -1876,7 +1892,7 @@ handle_ack (struct GNUNET_STREAM_Socket *socket,
       else      /* We have to call the write continuation callback now */
         {
           /* Free the packets */
-          for (packet=0; packet < 64; packet++)
+          for (packet=0; packet < GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH; packet++)
             {
               GNUNET_free_non_null (socket->write_handle->messages[packet]);
             }
@@ -2501,6 +2517,9 @@ GNUNET_STREAM_read (struct GNUNET_STREAM_Socket *socket,
 {
   struct GNUNET_STREAM_IOReadHandle *read_handle;
   
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "%s()\n", __func__);
+
   /* Return NULL if there is already a read handle; the user has to cancel that
   first before continuing or has to wait until it is completed */
   if (NULL != socket->read_handle) return NULL;
@@ -2522,6 +2541,8 @@ GNUNET_STREAM_read (struct GNUNET_STREAM_Socket *socket,
   socket->read_io_timeout_task = GNUNET_SCHEDULER_add_delayed (timeout,
                                                                &read_io_timeout,
                                                                socket);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "%s() END\n", __func__);
   return read_handle;
 }
 
