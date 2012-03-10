@@ -326,6 +326,7 @@ parent_control_handler (void *cls,
 {
   struct GNUNET_DISK_FileHandle *control_pipe = cls;
   char sig;
+  ssize_t ret;
   
   LOG (GNUNET_ERROR_TYPE_DEBUG, "`%s' invoked because of %d\n", __FUNCTION__,
        tc->reason);
@@ -336,10 +337,11 @@ parent_control_handler (void *cls,
     GNUNET_DISK_file_close (control_pipe);
     return;
   }
-  if (GNUNET_DISK_file_read (control_pipe, &sig, sizeof (sig)) !=
-      sizeof (sig))
+  ret = GNUNET_DISK_file_read (control_pipe, &sig, sizeof (sig));
+  if (sizeof (sig) != ret)
   {
-    LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "GNUNET_DISK_file_read");
+    if (-1 == ret)
+      LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "GNUNET_DISK_file_read");
     GNUNET_DISK_file_close (control_pipe);
     return;
   }
