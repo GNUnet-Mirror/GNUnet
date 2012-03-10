@@ -325,8 +325,8 @@ parent_control_handler (void *cls,
                         const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_DISK_FileHandle *control_pipe = cls;
-  int sig;
-
+  char sig;
+  
   LOG (GNUNET_ERROR_TYPE_DEBUG, "`%s' invoked because of %d\n", __FUNCTION__,
        tc->reason);
   if (tc->reason &
@@ -347,7 +347,7 @@ parent_control_handler (void *cls,
   GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
 				  control_pipe, &parent_control_handler,
 				  control_pipe);
-  raise (sig);
+  raise ((int) sig);
 }
 
 
@@ -425,7 +425,9 @@ int
 GNUNET_OS_process_kill (struct GNUNET_OS_Process *proc, int sig)
 {
   int ret;
+  char csig;
 
+  csig = (char) sig;
 #if !WINDOWS
   if ( (NULL == proc->control_pipe) &&
        (NULL != proc->childpipename) )
@@ -442,8 +444,8 @@ GNUNET_OS_process_kill (struct GNUNET_OS_Process *proc, int sig)
     return kill (proc->pid, sig);
 #endif    
   }
-  ret = GNUNET_DISK_file_write (proc->control_pipe, &sig, sizeof (sig));
-  if (ret == sizeof (sig))  
+  ret = GNUNET_DISK_file_write (proc->control_pipe, &csig, sizeof (csig));
+  if (ret == sizeof (csig))  
     return 0;
   /* pipe failed, try other methods */
   switch (sig)
