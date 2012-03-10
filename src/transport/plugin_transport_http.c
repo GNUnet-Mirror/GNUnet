@@ -1373,6 +1373,18 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   struct Plugin *plugin;
   int res;
 
+  if (NULL == env->receive)
+  {
+    /* run in 'stub' mode (i.e. as part of gnunet-peerinfo), don't fully
+       initialze the plugin or the API */
+    api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
+    api->cls = NULL;
+    api->address_pretty_printer = &http_plugin_address_pretty_printer;
+    api->address_to_string = &http_plugin_address_to_string;
+    api->string_to_address = NULL; // FIXME!
+    return api;
+  }
+
   plugin = GNUNET_malloc (sizeof (struct Plugin));
   plugin->env = env;
   api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
@@ -1381,6 +1393,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   api->address_pretty_printer = &http_plugin_address_pretty_printer;
   api->check_address = &http_plugin_address_suggested;
   api->address_to_string = &http_plugin_address_to_string;
+  api->string_to_address = NULL; // FIXME!
   api->get_session = &http_get_session;
   api->send = &http_plugin_send;
 
@@ -1452,7 +1465,13 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
 {
   struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;
-  struct Session *s = NULL;
+  struct Session *s;
+
+  if (NULL == plugin)
+  {
+    GNUNET_free (api);
+    return NULL;
+  }
 
   /* Stop reporting addresses to transport service */
   stop_report_addresses (plugin);

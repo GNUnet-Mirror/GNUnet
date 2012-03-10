@@ -1027,6 +1027,18 @@ libgnunet_plugin_transport_unix_init (void *cls)
   struct Plugin *plugin;
   int sockets_created;
 
+  if (NULL == env->receive)
+  {
+    /* run in 'stub' mode (i.e. as part of gnunet-peerinfo), don't fully
+       initialze the plugin or the API */
+    api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
+    api->cls = NULL;
+    api->address_pretty_printer = &unix_plugin_address_pretty_printer;
+    api->address_to_string = &unix_address_to_string;
+    api->string_to_address = NULL; // FIXME!
+    return api;
+  }
+
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (env->cfg, "transport-unix", "PORT",
                                              &port))
@@ -1062,6 +1074,11 @@ libgnunet_plugin_transport_unix_done (void *cls)
   struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;
 
+  if (NULL == plugin)
+  {
+    GNUNET_free (api);
+    return NULL;
+  }
   unix_transport_server_stop (plugin);
 
   GNUNET_CONTAINER_multihashmap_iterate (plugin->session_map, &get_session_delete_it, plugin);

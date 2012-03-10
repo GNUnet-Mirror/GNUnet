@@ -218,7 +218,11 @@ struct GNUNET_TRANSPORT_PluginEnvironment
 
   /**
    * Function that should be called by the transport plugin
-   * whenever a message is received.
+   * whenever a message is received.  If this field is "NULL",
+   * the plugin should load in 'stub' mode and NOT fully
+   * initialize and instead only return an API with the 
+   * 'address_pretty_printer', 'address_to_string' and
+   * 'string_to_address' functions.
    */
   GNUNET_TRANSPORT_PluginReceiveCallback receive;
 

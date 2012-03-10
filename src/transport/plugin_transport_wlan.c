@@ -3080,6 +3080,8 @@ wlan_process_helper (void *cls, void *client,
   }
 }
 
+
+
 /**
  * Exit point from the plugin.
  * @param cls pointer to the api struct
@@ -3091,15 +3093,21 @@ libgnunet_plugin_transport_wlan_done (void *cls)
 {
   struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;
-  struct MacEndpoint *endpoint = plugin->mac_head;
+  struct MacEndpoint *endpoint;
   struct MacEndpoint *endpoint_next;
 
+  if (NULL == plugin)
+  {
+    GNUNET_free (api);
+    return NULL;
+  }
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, PLUGIN_LOG_NAME,
                    "libgnunet_plugin_transport_wlan_done started\n");
   wlan_transport_stop_wlan_helper (plugin);
 
   GNUNET_assert (cls != NULL);
   //free sessions
+  endpoint = plugin->mac_head;
   while (endpoint != NULL)
   {
     endpoint_next = endpoint->next;
@@ -3121,6 +3129,7 @@ libgnunet_plugin_transport_wlan_done (void *cls)
   return NULL;
 }
 
+
 /**
  * Entry point for the plugin.
  *
@@ -3130,12 +3139,21 @@ libgnunet_plugin_transport_wlan_done (void *cls)
 void *
 libgnunet_plugin_transport_wlan_init (void *cls)
 {
-  //struct GNUNET_SERVICE_Context *service;
   struct GNUNET_TRANSPORT_PluginEnvironment *env = cls;
   struct GNUNET_TRANSPORT_PluginFunctions *api;
   struct Plugin *plugin;
 
-  GNUNET_assert (cls != NULL);
+  if (NULL == env->receive)
+  {
+    /* run in 'stub' mode (i.e. as part of gnunet-peerinfo), don't fully
+       initialze the plugin or the API */
+    api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
+    api->cls = NULL;
+    api->address_pretty_printer = &wlan_plugin_address_pretty_printer;
+    api->address_to_string = &wlan_plugin_address_to_string;
+    api->string_to_address = NULL; // FIXME!
+    return api;
+  }
 
   plugin = GNUNET_malloc (sizeof (struct Plugin));
   plugin->env = env;
@@ -3198,5 +3216,8 @@ libgnunet_plugin_transport_wlan_init (void *cls)
                    "wlan init finished\n");
   return api;
 }
+
+
+
 
 /* end of plugin_transport_wlan.c */

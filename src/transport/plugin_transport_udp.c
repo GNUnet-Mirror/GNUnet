@@ -2053,6 +2053,18 @@ libgnunet_plugin_transport_udp_init (void *cls)
 
   int res;
 
+  if (NULL == env->receive)
+  {
+    /* run in 'stub' mode (i.e. as part of gnunet-peerinfo), don't fully
+       initialze the plugin or the API */
+    api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
+    api->cls = NULL;
+    api->address_pretty_printer = &udp_plugin_address_pretty_printer;
+    api->address_to_string = &udp_address_to_string;
+    api->string_to_address = NULL; // FIXME!
+    return api;
+  }
+
   /* Get port number */
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (env->cfg, "transport-udp", "PORT",
@@ -2158,6 +2170,7 @@ libgnunet_plugin_transport_udp_init (void *cls)
   api->disconnect = &udp_disconnect;
   api->address_pretty_printer = &udp_plugin_address_pretty_printer;
   api->address_to_string = &udp_address_to_string;
+  api->string_to_address = NULL; // FIXME!
   api->check_address = &udp_plugin_check_address;
   api->get_session = &udp_plugin_get_session;
   api->send = &udp_plugin_send;
@@ -2182,11 +2195,13 @@ libgnunet_plugin_transport_udp_init (void *cls)
   return api;
 }
 
-int heap_cleanup_iterator (void *cls,
-                          struct GNUNET_CONTAINER_HeapNode *
-                          node, void *element,
-                          GNUNET_CONTAINER_HeapCostType
-                          cost)
+
+static int
+heap_cleanup_iterator (void *cls,
+		       struct GNUNET_CONTAINER_HeapNode *
+		       node, void *element,
+		       GNUNET_CONTAINER_HeapCostType
+		       cost)
 {
   struct DefragContext * d_ctx = element;
 
@@ -2203,13 +2218,20 @@ int heap_cleanup_iterator (void *cls,
  * returns the udp transport API.
  *
  * @param cls our 'struct GNUNET_TRANSPORT_PluginEnvironment'
- * @return our 'struct GNUNET_TRANSPORT_PluginFunctions'
+ * @return NULL
  */
 void *
 libgnunet_plugin_transport_udp_done (void *cls)
 {
   struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;
+
+  if (NULL == plugin)
+  {
+    GNUNET_free (api);
+    return NULL;
+  }
+
   stop_broadcast (plugin);
 
   if (plugin->select_task != GNUNET_SCHEDULER_NO_TASK)

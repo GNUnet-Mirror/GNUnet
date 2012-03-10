@@ -2105,6 +2105,18 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   struct sockaddr **addrs;
   socklen_t *addrlens;
 
+  if (NULL == env->receive)
+  {
+    /* run in 'stub' mode (i.e. as part of gnunet-peerinfo), don't fully
+       initialze the plugin or the API */
+    api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
+    api->cls = NULL;
+    api->address_pretty_printer = &tcp_plugin_address_pretty_printer;
+    api->address_to_string = &tcp_address_to_string;
+    api->string_to_address = &tcp_string_to_address;
+    return api;
+  }
+
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (env->cfg, "transport-tcp",
                                              "MAX_CONNECTIONS",
@@ -2142,8 +2154,6 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   }
   else
     service = NULL;
-
-
 
   plugin = GNUNET_malloc (sizeof (struct Plugin));
   plugin->sessionmap = GNUNET_CONTAINER_multihashmap_create(max_connections);
@@ -2247,8 +2257,12 @@ libgnunet_plugin_transport_tcp_done (void *cls)
   struct Plugin *plugin = api->cls;
   struct TCPProbeContext *tcp_probe;
 
+  if (NULL == plugin)
+  {
+    GNUNET_free (api);
+    return NULL;
+  }
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp", "Shutting down TCP plugin\n");
-
 
   /* Removing leftover sessions */
   GNUNET_CONTAINER_multihashmap_iterate(plugin->sessionmap, &session_disconnect_it, NULL);
