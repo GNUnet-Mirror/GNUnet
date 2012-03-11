@@ -519,7 +519,9 @@ add_addr_to_hello (void *cls, size_t max, void *buffer)
       return 0;
     return add_addr_to_hello (cls, max, buffer);
   }
-  if (GNUNET_OK == papi->string_to_address (papi->cls, &exp1[1], exp2 - &exp1[1], &addr, &addr_len))
+  if ((papi->string_to_address != NULL) && (GNUNET_OK ==
+      papi->string_to_address (papi->cls, &exp1[1], exp2 - &exp1[1], &addr,
+      &addr_len)))
   {
     struct GNUNET_HELLO_Address address;
     int ret;
