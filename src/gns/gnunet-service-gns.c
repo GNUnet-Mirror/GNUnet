@@ -66,13 +66,27 @@ struct AuthorityChain
   int fresh;
 };
 
+/* handle to a resolution process */
 struct GNUNET_GNS_ResolverHandle;
 
+/**
+ * processor for a resultion result
+ *
+ * @param cls the closure
+ * @param rh the resolution handle
+ * @param rd_count number of results
+ * @pram rd resukt data
+ */
 typedef void (*ResolutionResultProcessor) (void *cls,
                                   struct GNUNET_GNS_ResolverHandle *rh,
                                   uint32_t rd_count,
                                   const struct GNUNET_NAMESTORE_RecordData *rd);
 
+/**
+ * Resoltion status indicator
+ * EXISTS: the name to lookup exists
+ * EXPIRED: the name in the record expired
+ */
 enum ResolutionStatus
 {
   EXISTS = 1,
@@ -87,8 +101,6 @@ struct GNUNET_GNS_ResolverHandle
   /* The name to resolve */
   char *name;
 
-  
-  
   /* has this query been answered? how many matches */
   int answered;
 
@@ -116,9 +128,13 @@ struct GNUNET_GNS_ResolverHandle
   /* closure passed to proc */
   void* proc_cls;
 
+  /* DLL to store the authority chain */
   struct AuthorityChain *authority_chain_head;
-  struct AuthorityChain *authority_chain_tail;
 
+  /* DLL to store the authority chain */
+  struct AuthorityChain *authority_chain_tail;
+  
+  /* status of the resolution result */
   enum ResolutionStatus status;
 
 };
@@ -195,6 +211,7 @@ struct InterceptLookupHandle
   struct GNUNET_DNSPARSER_Query *query;
 };
 
+
 /**
  * Our handle to the DNS handler library
  */
@@ -245,11 +262,17 @@ const char* gnunet_tld = ".gnunet";
  * Useful for zone update for DHT put
  */
 static int num_public_records =  3600;
-struct GNUNET_TIME_Relative dht_update_interval;
+
+/* dht update interval FIXME define? */
+static struct GNUNET_TIME_Relative dht_update_interval;
+
+/* zone update task */
 GNUNET_SCHEDULER_TaskIdentifier zone_update_taskid = GNUNET_SCHEDULER_NO_TASK;
 
 /**
  * Helper function to free resolver handle
+ *
+ * @rh the handle to free
  */
 static void
 free_resolver_handle(struct GNUNET_GNS_ResolverHandle* rh)
@@ -277,8 +300,9 @@ free_resolver_handle(struct GNUNET_GNS_ResolverHandle* rh)
 
 
 /**
- * Reply to client with the result from our lookup.
+ * Reply to dns request with the result from our lookup.
  *
+ * @param cls the closure to the request (an InterceptLookupHandle)
  * @param rh the request handle of the lookup
  * @param rd_count the number of records to return
  * @param rd the record data
@@ -414,6 +438,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_DHT_disconnect(dht_handle);
 }
 
+
 /**
  * Callback when record data is put into namestore
  *
@@ -442,6 +467,7 @@ on_namestore_record_put_result(void *cls,
              "Error putting records into namestore: %s\n", emsg);
 }
 
+
 /**
  * Handle timeout for DHT requests
  *
@@ -462,10 +488,9 @@ dht_lookup_timeout(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
-
 /**
  * Function called when we get a result from the dht
- * for our query
+ * for our record query
  *
  * @param cls the request handle
  * @param exp lifetime
@@ -585,10 +610,9 @@ process_record_dht_result(void* cls,
  * rh->authority's zone
  *
  * @param rh the pending gns query context
- * @param name the name to query record
  */
 static void
-resolve_record_from_dht(struct GNUNET_GNS_ResolverHandle *rh)
+resolve_record_dht(struct GNUNET_GNS_ResolverHandle *rh)
 {
   uint32_t xquery;
   GNUNET_HashCode name_hash;
@@ -673,8 +697,6 @@ process_record_lookup_ns(void* cls,
      */
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                "Namestore lookup for %s terminated without results\n", name);
-    
-    
 
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                "Record %s unknown in namestore\n",
@@ -727,16 +749,19 @@ process_record_lookup_ns(void* cls,
   }
 }
 
+
 /**
  * The final phase of resolution.
- * This is a name that is canonical and we do not have a delegation.
+ * rh->name is a name that is canonical and we do not have a delegation.
+ * Query namestore for this record
  *
  * @param rh the pending lookup
  */
 static void
-resolve_record_from_ns(struct GNUNET_GNS_ResolverHandle *rh)
+resolve_record_ns(struct GNUNET_GNS_ResolverHandle *rh)
 {
   struct RecordLookupHandle *rlh = (struct RecordLookupHandle *)rh->proc_cls;
+  
   /**
    * Try to resolve this record in our namestore.
    * The name to resolve is now in rh->authority_name
@@ -749,7 +774,6 @@ resolve_record_from_ns(struct GNUNET_GNS_ResolverHandle *rh)
                                  rlh->record_type,
                                  &process_record_lookup_ns,
                                  rh);
-
 }
 
 
@@ -780,12 +804,12 @@ dht_authority_lookup_timeout(void *cls,
   rh->proc(rh->proc_cls, rh, 0, NULL);
 }
 
-// Prototype
-static void resolve_delegation_from_dht(struct GNUNET_GNS_ResolverHandle *rh);
+/* Prototype */
+static void resolve_delegation_dht(struct GNUNET_GNS_ResolverHandle *rh);
 
 /**
  * Function called when we get a result from the dht
- * for our query. Recursively tries to resolve PKEYs
+ * for our query. Recursively tries to resolve authorities
  * for name in DHT.
  *
  * @param cls the request handle
@@ -800,7 +824,7 @@ static void resolve_delegation_from_dht(struct GNUNET_GNS_ResolverHandle *rh);
  * @param data the record data
  */
 static void
-process_authority_dht_result(void* cls,
+process_delegation_result_dht(void* cls,
                  struct GNUNET_TIME_Absolute exp,
                  const GNUNET_HashCode * key,
                  const struct GNUNET_PeerIdentity *get_path,
@@ -905,11 +929,14 @@ process_authority_dht_result(void* cls,
   if (rh->answered)
   {
     rh->answered = 0;
-    /* delegate */
+    /**
+     * delegate
+     * FIXME in this case. should we ask namestore again?
+     */
     if (strcmp(rh->name, "") == 0)
       rh->proc(rh->proc_cls, rh, 0, NULL);
     else
-      resolve_delegation_from_dht(rh);
+      resolve_delegation_dht(rh);
     return;
   }
 
@@ -917,7 +944,6 @@ process_authority_dht_result(void* cls,
    * should never get here unless false dht key/put
    * block plugin should handle this
    **/
-  
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "DHT authority lookup error!\n");
   GNUNET_break(0);
 }
@@ -945,7 +971,6 @@ process_record_result_dht(void* cls, struct GNUNET_GNS_ResolverHandle *rh,
                rh->name);
     /* give up, cannot resolve */
     rlh->proc(rlh->proc_cls, rh, 0, NULL);
-    //reply_to_dns(NULL, rh, 0, NULL);
     return;
   }
 
@@ -953,7 +978,6 @@ process_record_result_dht(void* cls, struct GNUNET_GNS_ResolverHandle *rh,
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
              "Record resolved from namestore!");
   rlh->proc(rlh->proc_cls, rh, rd_count, rd);
-  //reply_to_dns(NULL, rh, rd_count, rd);
 
 }
 
@@ -979,12 +1003,11 @@ process_record_result_ns(void* cls, struct GNUNET_GNS_ResolverHandle *rh,
     if (rh->status & (EXPIRED | !EXISTS))
     {
       rh->proc = &process_record_result_dht;
-      resolve_record_from_dht(rh);
+      resolve_record_dht(rh);
       return;
     }
     /* give up, cannot resolve */
     rlh->proc(rlh->proc_cls, rh, 0, NULL);
-    //reply_to_dns(NULL, rh, 0, NULL);
     return;
   }
 
@@ -992,7 +1015,6 @@ process_record_result_ns(void* cls, struct GNUNET_GNS_ResolverHandle *rh,
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
              "Record resolved from namestore!");
   rlh->proc(rlh->proc_cls, rh, rd_count, rd);
-  //reply_to_dns(NULL, rh, rd_count, rd);
 
 }
 
@@ -1063,7 +1085,7 @@ pop_tld(char* name, char* dest)
  * @param rd record data (always NULL)
  */
 static void
-process_dht_delegation_dns(void* cls, struct GNUNET_GNS_ResolverHandle *rh,
+process_delegation_dht(void* cls, struct GNUNET_GNS_ResolverHandle *rh,
                           unsigned int rd_count,
                           const struct GNUNET_NAMESTORE_RecordData *rd)
 {
@@ -1076,7 +1098,7 @@ process_dht_delegation_dns(void* cls, struct GNUNET_GNS_ResolverHandle *rh,
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
       "Resolved full name for delegation via DHT. resolving record '' in ns\n");
     rh->proc = &process_record_result_ns;
-    resolve_record_from_ns(rh);
+    resolve_record_ns(rh);
     return;
   }
 
@@ -1088,7 +1110,7 @@ process_dht_delegation_dns(void* cls, struct GNUNET_GNS_ResolverHandle *rh,
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                "Resolving canonical record %s in ns\n", rh->name);
     rh->proc = &process_record_result_ns;
-    resolve_record_from_ns(rh);
+    resolve_record_ns(rh);
     return;
   }
   /* give up, cannot resolve */
@@ -1096,7 +1118,6 @@ process_dht_delegation_dns(void* cls, struct GNUNET_GNS_ResolverHandle *rh,
              "Cannot fully resolve delegation for %s via DHT!\n",
              rh->name);
   rlh->proc(rlh->proc_cls, rh, 0, NULL);
-  //reply_to_dns(NULL, rh, 0, NULL);
 }
 
 
@@ -1108,7 +1129,7 @@ process_dht_delegation_dns(void* cls, struct GNUNET_GNS_ResolverHandle *rh,
  * @param name the name of the PKEY record
  */
 static void
-resolve_delegation_from_dht(struct GNUNET_GNS_ResolverHandle *rh)
+resolve_delegation_dht(struct GNUNET_GNS_ResolverHandle *rh)
 {
   uint32_t xquery;
   GNUNET_HashCode name_hash;
@@ -1133,7 +1154,7 @@ resolve_delegation_from_dht(struct GNUNET_GNS_ResolverHandle *rh)
                        GNUNET_DHT_RO_NONE,
                        &xquery,
                        sizeof(xquery),
-                       &process_authority_dht_result,
+                       &process_delegation_result_dht,
                        rh);
 
 }
@@ -1148,7 +1169,7 @@ resolve_delegation_from_dht(struct GNUNET_GNS_ResolverHandle *rh)
  * @param rd record data (always NULL)
  */
 static void
-process_ns_delegation_dns(void* cls, struct GNUNET_GNS_ResolverHandle *rh,
+process_delegation_ns(void* cls, struct GNUNET_GNS_ResolverHandle *rh,
                           unsigned int rd_count,
                           const struct GNUNET_NAMESTORE_RecordData *rd)
 {
@@ -1161,7 +1182,7 @@ process_ns_delegation_dns(void* cls, struct GNUNET_GNS_ResolverHandle *rh,
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                "Resolved full name for delegation. resolving record ''\n");
     rh->proc = &process_record_result_ns;
-    resolve_record_from_ns(rh);
+    resolve_record_ns(rh);
     return;
   }
 
@@ -1176,7 +1197,7 @@ process_ns_delegation_dns(void* cls, struct GNUNET_GNS_ResolverHandle *rh,
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                  "Resolving canonical record %s\n", rh->name);
       rh->proc = &process_record_result_ns;
-      resolve_record_from_ns(rh);
+      resolve_record_ns(rh);
     }
     else
     {
@@ -1185,7 +1206,6 @@ process_ns_delegation_dns(void* cls, struct GNUNET_GNS_ResolverHandle *rh,
                  "Cannot fully resolve delegation for %s!\n",
                  rh->name);
       rlh->proc(rlh->proc_cls, rh, 0, NULL);
-      //reply_to_dns(NULL, rh, 0, NULL);
     }
     return;
   }
@@ -1193,12 +1213,12 @@ process_ns_delegation_dns(void* cls, struct GNUNET_GNS_ResolverHandle *rh,
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
              "Trying to resolve delegation for %s via DHT\n",
              rh->name);
-  rh->proc = &process_dht_delegation_dns;
-  resolve_delegation_from_dht(rh);
+  rh->proc = &process_delegation_dht;
+  resolve_delegation_dht(rh);
 }
 
 //Prototype
-static void resolve_delegation_from_ns(struct GNUNET_GNS_ResolverHandle *rh);
+static void resolve_delegation_ns(struct GNUNET_GNS_ResolverHandle *rh);
 
 /**
  * This is a callback function that should give us only PKEY
@@ -1215,7 +1235,7 @@ static void resolve_delegation_from_ns(struct GNUNET_GNS_ResolverHandle *rh);
  * @param signature the signature of the authority for the record data
  */
 static void
-process_authority_lookup_ns(void* cls,
+process_delegation_result_ns(void* cls,
                    const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *key,
                    struct GNUNET_TIME_Absolute expiration,
                    const char *name,
@@ -1338,7 +1358,7 @@ process_authority_lookup_ns(void* cls,
     if (strcmp(rh->name, "") == 0)
       rh->proc(rh->proc_cls, rh, 0, NULL);
     else
-      resolve_delegation_from_ns(rh);
+      resolve_delegation_ns(rh);
     return;
   }
     
@@ -1352,12 +1372,12 @@ process_authority_lookup_ns(void* cls,
 
 
 /**
- * Resolve the delegation chain for the request
+ * Resolve the delegation chain for the request in our namestore
  *
  * @param rh the resolver handle
  */
 static void
-resolve_delegation_from_ns(struct GNUNET_GNS_ResolverHandle *rh)
+resolve_delegation_ns(struct GNUNET_GNS_ResolverHandle *rh)
 {
   
   pop_tld(rh->name, rh->authority_name);
@@ -1365,7 +1385,7 @@ resolve_delegation_from_ns(struct GNUNET_GNS_ResolverHandle *rh)
                                  &rh->authority,
                                  rh->authority_name,
                                  GNUNET_GNS_RECORD_PKEY,
-                                 &process_authority_lookup_ns,
+                                 &process_delegation_result_ns,
                                  rh);
 
 }
@@ -1379,7 +1399,7 @@ resolve_delegation_from_ns(struct GNUNET_GNS_ResolverHandle *rh)
  * @param q the DNS query we received parsed from p
  */
 static void
-start_resolution_from_dns(struct GNUNET_DNS_RequestHandle *request,
+start_resolution_for_dns(struct GNUNET_DNS_RequestHandle *request,
                           struct GNUNET_DNSPARSER_Packet *p,
                           struct GNUNET_DNSPARSER_Query *q)
 {
@@ -1407,7 +1427,6 @@ start_resolution_from_dns(struct GNUNET_DNS_RequestHandle *request,
 
   rh->proc_cls = rlh;
   
-  rh->authority = zone_hash;
   rh->name = GNUNET_malloc(strlen(q->name)
                               - strlen(gnunet_tld) + 1);
   memset(rh->name, 0,
@@ -1424,8 +1443,8 @@ start_resolution_from_dns(struct GNUNET_DNS_RequestHandle *request,
   rh->authority_chain_head->zone = zone_hash;
 
   /* Start resolution in our zone */
-  rh->proc = &process_ns_delegation_dns;
-  resolve_delegation_from_ns(rh);
+  rh->proc = &process_delegation_ns;
+  resolve_delegation_ns(rh);
 }
 
 
@@ -1503,7 +1522,7 @@ handle_dns_request(void *cls,
   
   if ((i==strlen(gnunet_tld)-1) && (0 == strcmp(tldoffset-i, gnunet_tld)))
   {
-    start_resolution_from_dns(rh, p, p->queries);
+    start_resolution_for_dns(rh, p, p->queries);
   }
   else
   {
@@ -1724,10 +1743,9 @@ process_shorten_pseu_lookup_ns(void *cls,
  * rh->authority's zone
  *
  * @param rh the pending gns query
- * @param name the name of the PKEY record
  */
 static void
-resolve_pseu_from_dht(struct GNUNET_GNS_ResolverHandle *rh)
+resolve_pseu_dht(struct GNUNET_GNS_ResolverHandle *rh)
 {
   uint32_t xquery;
   GNUNET_HashCode name_hash;
@@ -1754,7 +1772,7 @@ resolve_pseu_from_dht(struct GNUNET_GNS_ResolverHandle *rh)
                        GNUNET_DHT_RO_NONE,
                        &xquery,
                        sizeof(xquery),
-                       &process_authority_dht_result,
+                       &process_delegation_result_dht,
                        rh);
 
 }
@@ -2024,7 +2042,7 @@ handle_shorten_pseu_ns_result(void* cls,
    */
   rh->authority = rh->authority_chain_head->zone;
   rh->proc = &handle_shorten_pseu_dht_result;
-  resolve_pseu_from_dht(rh);
+  resolve_pseu_dht(rh);
 
 }
 
@@ -2103,8 +2121,7 @@ typedef void (*ShortenResponseProc) (void* cls, const char* name);
  * Shorten a given name
  *
  * @param name the name to shorten
- * @param proc the processor to call when finished
- * @praram cls the closure to the processor
+ * @param csh the shorten handle of the request
  */
 static void
 shorten_name(char* name, struct ClientShortenHandle* csh)
@@ -2142,16 +2159,15 @@ shorten_name(char* name, struct ClientShortenHandle* csh)
   rh->proc_cls = (void*)csh;
 
   /* Start delegation resolution in our namestore */
-  resolve_delegation_from_ns(rh);
+  resolve_delegation_ns(rh);
 
 }
 
 /**
  * Send shorten response back to client
- * FIXME this is without .gnunet!
  * 
- * @param cls the client handle in closure
  * @param name the shortened name result or NULL if cannot be shortened
+ * @param csh the handle to the shorten request
  */
 static void
 send_shorten_response(const char* name, struct ClientShortenHandle *csh)
@@ -2321,8 +2337,8 @@ lookup_name(char* name, struct ClientLookupHandle* clh)
   rh->authority_chain_head->zone = zone_hash;
 
   /* Start resolution in our zone */
-  rh->proc = &process_ns_delegation_dns; //FIXME rename
-  resolve_delegation_from_ns(rh);
+  rh->proc = &process_delegation_ns;
+  resolve_delegation_ns(rh);
 }
 
 
