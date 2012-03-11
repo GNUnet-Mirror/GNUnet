@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2001, 2002, 2003, 2004, 2006, 2009, 2010 Christian Grothoff (and other contributing authors)
+     (C) 2001-2012 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -68,6 +68,20 @@ struct PrintContext
    * Length of 'uri' (FIXME: not nice)
    */
   size_t uri_len;
+};
+
+
+/**
+ * Context used for building our own URI.
+ */
+struct GetUriContext
+{
+  /**
+   * Final URI.
+   */
+  char *uri;
+
+  struct PrintContext *pc;
 };
 
 
@@ -197,6 +211,9 @@ dump_pc (struct PrintContext *pc)
 }
 
 
+/* ************************* list all known addresses **************** */
+
+
 /**
  * Function to call with a human-readable format of an address
  *
@@ -222,9 +239,9 @@ process_resolved_address (void *cls, const char *address)
 
 
 /**
- * Iterator callback to go over all addresses.
+ * Iterator callback to go over all addresses and count them.
  *
- * @param cls closure
+ * @param cls 'struct PrintContext' with 'off' to increment
  * @param address the address
  * @param expiration expiration time
  * @return GNUNET_OK to keep the address and continue
@@ -302,23 +319,28 @@ print_peer_info (void *cls, const struct GNUNET_PeerIdentity *peer,
 }
 
 
+/* ************************* GET URI ************************** */
 
 
-
-
-
-
-
-
-
-
+/**
+ * Function that is called on each address of this peer.
+ * Expands the corresponding URI string.
+ *
+ * @param cls the 'GetUriContext'
+ * @param address address to add
+ * @param expiration expiration time for the address
+ * @return GNUNET_OK (continue iteration).
+ */
 static int
 compose_uri (void *cls, const struct GNUNET_HELLO_Address *address,
              struct GNUNET_TIME_Absolute expiration)
 {
-  struct PrintContext *pc = cls;
+  struct GetUriContext *guc = cls;
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
-  static const char *addr;
+  const char *addr;
+  char *ret;
+  struct tm *t;
+  time_t seconds;
 
   papi = GPI_plugins_find (address->transport_name);
   if (papi == NULL)
@@ -326,63 +348,70 @@ compose_uri (void *cls, const struct GNUNET_HELLO_Address *address,
     /* Not an error - we might just not have the right plugin. */
     return GNUNET_OK;
   }
-
-  addr = papi->address_to_string (papi->cls, address->address, address->address_length);
-  if (addr != NULL)
+  if (NULL == papi->address_to_string)
   {
-    ssize_t l = strlen (addr);
-    if (l > 0)
-    {
-      struct tm *t;
-      time_t seconds;
-      int s;
-      seconds = expiration.abs_value / 1000;
-      t = gmtime(&seconds);
-      pc->uri = GNUNET_realloc (pc->uri, pc->uri_len + 1 + 14 + 1 + strlen (address->transport_name) + 1 + l + 1 /* 0 */);
-      s = sprintf (&pc->uri[pc->uri_len], "!%04u%02u%02u%02u%02u%02u!%s!%s",
-          t->tm_year, t->tm_mon, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec,
-          address->transport_name, addr);
-      if (s > 0)
-        pc->uri_len += s;
-    }
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"URI conversion not implemented for plugin `%s'\n",
+		address->transport_name);
+    return GNUNET_OK;
   }
+  addr = papi->address_to_string (papi->cls, address->address, address->address_length);
+  if ( (addr == NULL) || (strlen(addr) == 0) )
+    return GNUNET_OK;
+  seconds = expiration.abs_value / 1000;
+  t = gmtime (&seconds);
+  GNUNET_asprintf (&ret,
+		   "%s!%04u%02u%02u%02u%02u%02u!%s!%s",
+		   guc->uri,
+		   t->tm_year,
+		   t->tm_mon, 
+		   t->tm_mday, 
+		   t->tm_hour,
+		   t->tm_min,
+		   t->tm_sec,
+		   address->transport_name, 
+		   addr);
+  GNUNET_free (guc->uri);
+  guc->uri = ret;
   return GNUNET_OK;
 }
 
 
 /**
- * Print information about the peer.
+ * Print URI of the peer.
+ *
+ * @param cls the 'struct GetUriContext'
+ * @param peer identity of the peer (unused)
+ * @param hello addresses of the peer
+ * @param err_msg error message
  */
 static void
 print_my_uri (void *cls, const struct GNUNET_PeerIdentity *peer,
-              const struct GNUNET_HELLO_Message *hello, const char *err_msg)
+              const struct GNUNET_HELLO_Message *hello, 
+	      const char *err_msg)
 {
-  struct GNUNET_CRYPTO_HashAsciiEncoded enc;
-  struct PrintContext *pc = cls;
+  struct GetUriContext *guc = cls;
 
   if (peer == NULL)
   {
     if (err_msg != NULL)
-      FPRINTF (stderr, "%s",  _("Error in communication with PEERINFO service\n"));
-    GNUNET_free (pc->uri);
-    return;
-  }
-  if ((be_quiet) || (NULL == hello))
+      FPRINTF (stderr,
+	       _("Error in communication with PEERINFO service: %s\n"), 
+	       err_msg);
+  } 
+  else
   {
-    GNUNET_CRYPTO_hash_to_enc (&peer->hashPubKey, &enc);
-    printf ("%s\n", (const char *) &enc);
-    if (be_quiet && get_uri != GNUNET_YES)
-      return;
+    if (NULL != hello)
+      GNUNET_HELLO_iterate_addresses (hello, GNUNET_NO, &compose_uri, guc);   
+    printf ("%s\n", (const char *) guc->uri);
   }
-  pc->peer = *peer;
-  if (NULL != hello)
-  {
-    GNUNET_HELLO_iterate_addresses (hello, GNUNET_NO, &count_address, pc);
-    GNUNET_HELLO_iterate_addresses (hello, GNUNET_NO, &compose_uri, pc);
-  }
-  printf ("%s\n", pc->uri);
+  GNUNET_free (guc->uri);
+  GNUNET_free (guc);  
+  tt = GNUNET_SCHEDULER_add_now (&state_machine, NULL);
 }
 
+
+/* ************************* import HELLO by URI ********************* */
 
 
 static size_t
@@ -592,6 +621,9 @@ parse_hello (const struct GNUNET_CONFIGURATION_Handle *c,
 }
 
 
+/* ************************ Main state machine ********************* */
+
+
 /**
  * Main state machine that goes over all options and
  * runs the next requested function.
@@ -671,6 +703,8 @@ run (void *cls, char *const *args, const char *cfgfile,
     }
     GNUNET_free (fn);
     GNUNET_CRYPTO_rsa_key_get_public (priv, &my_public_key);
+    fprintf (stderr, "PK: `%s\n", 
+	     GNUNET_CRYPTO_rsa_public_key_to_string (&my_public_key));
     GNUNET_CRYPTO_rsa_key_free (priv);
     GNUNET_CRYPTO_hash (&my_public_key, sizeof (my_public_key), &my_peer_identity.hashPubKey);
   }
@@ -725,25 +759,20 @@ state_machine (void *cls,
   }
   if (GNUNET_YES == get_uri)
   {
-    struct PrintContext *pc;
+    struct GetUriContext *guc;
     char *pkey;
-    ssize_t l;
-    ssize_t pl;
 
-    // FIXME...
-    pc = GNUNET_malloc (sizeof (struct PrintContext));
+    guc = GNUNET_malloc (sizeof (struct GetUriContext));
     pkey = GNUNET_CRYPTO_rsa_public_key_to_string (&my_public_key);
-    pl = strlen ("gnunet://hello/");
-    l = strlen (pkey) + pl;
-    pc->uri = GNUNET_malloc (l + 1);
-    strcpy (pc->uri, "gnunet://hello/");
-    strcpy (&pc->uri[pl], pkey);
-    pc->uri_len = l;
-
+    GNUNET_asprintf (&guc->uri,
+		     "gnunet://hello/%s",
+		     pkey);
+    GNUNET_free (pkey);
     GPI_plugins_load (cfg);
     pic = GNUNET_PEERINFO_iterate (peerinfo, &my_peer_identity,
 				   GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5),
-				   &print_my_uri, pc);
+				   &print_my_uri, guc);
+    get_uri = GNUNET_NO;
     return;
   }
   GNUNET_SCHEDULER_shutdown ();
