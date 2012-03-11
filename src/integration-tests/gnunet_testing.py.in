@@ -224,7 +224,11 @@ class Peer:
         server.spawn (None, [self.test.gnunetstatistics, '-c', self.cfg ,'-q','-n', name, '-s', subsystem ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         #server.expect ("stdout", re.compile (r""))
         test = server.read("stdout", 10240)
-        tests = test.partition('\n')[0]
+        tests = test.partition('\n')
+        # On W32 GNUnet outputs with \r\n, rather than \n
+        if os.name == 'nt' and tests[1] == '\n' and tests[0][-1] == '\r':
+            tests = (tests[0][:-1], tests[1], tests[2])
+        tests = tests[0]
         if (tests.isdigit() == True):
             return tests
         else:
