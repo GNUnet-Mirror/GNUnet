@@ -436,20 +436,13 @@ GNUNET_OS_process_kill (struct GNUNET_OS_Process *proc, int sig)
     proc->control_pipe = npipe_open (proc->childpipename,
 				     GNUNET_DISK_OPEN_WRITE);
 #endif
-  if (NULL == proc->control_pipe)
+  if (NULL != proc->control_pipe)
   {
-#if WINDOWS
-    /* no pipe and windows? can't do this */
-    errno = EINVAL;
-    return -1;
-#else
-    return kill (proc->pid, sig);
-#endif    
+    ret = GNUNET_DISK_file_write (proc->control_pipe, &csig, sizeof (csig));
+    if (ret == sizeof (csig))  
+      return 0;
   }
-  ret = GNUNET_DISK_file_write (proc->control_pipe, &csig, sizeof (csig));
-  if (ret == sizeof (csig))  
-    return 0;
-  /* pipe failed, try other methods */
+  /* pipe failed or non-existent, try other methods */
   switch (sig)
   {
 #if !WINDOWS
@@ -473,7 +466,7 @@ GNUNET_OS_process_kill (struct GNUNET_OS_Process *proc, int sig)
     errno = EINVAL;
     return -1;
 #else
-    return kill (proc->pid, sig);
+    return PLIBC_kill (proc->pid, sig);
 #endif    
   }
 }
