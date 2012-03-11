@@ -315,6 +315,50 @@ GNUNET_STRINGS_check_filename (const char *filename,
     enum GNUNET_STRINGS_FilenameCheck checks);
 
 
+/**
+ * Tries to convert @zt_addr string to an IPv6 address.
+ * 
+ * @param zt_addr 0-terminated string. May be mangled by the function.
+ * @param addrlen length of zt_addr (not counting 0-terminator).
+ * @param r_buf a buffer to fill. Initially gets filled with zeroes,
+ *        then its sin6_port, sin6_family and sin6_addr are set appropriately.
+ * @return GNUNET_OK if conversion succeded. GNUNET_SYSERR otherwise, in which
+ *         case the contents of r_buf are undefined.
+ */
+int
+GNUNET_STRINGS_to_address_ipv6 (char *zt_addr, uint16_t addrlen,
+    struct sockaddr_in6 *r_buf);
+
+/**
+ * Tries to convert @zt_addr string to an IPv4 address.
+ * 
+ * @param zt_addr 0-terminated string. May be mangled by the function.
+ * @param addrlen length of zt_addr (not counting 0-terminator).
+ * @param r_buf a buffer to fill.
+ * @return GNUNET_OK if conversion succeded. GNUNET_SYSERR otherwise, in which case
+ *         the contents of r_buf are undefined.
+ */
+int
+GNUNET_STRINGS_to_address_ipv4 (char *zt_addr, uint16_t addrlen,
+    struct sockaddr_in *r_buf);
+
+/**
+ * Tries to convert @addr string to an IP (v4 or v6) address.
+ * IPv6 address must have its address part enclosed in '()' parens
+ * instead of '[]'.
+ * Will automatically decide whether to treat @addr as v4 or v6 address.
+ * 
+ * @param addr a string, may not be 0-terminated.
+ * @param addrlen number of bytes in addr (if addr is 0-terminated,
+ *        0-terminator should not be counted towards addrlen).
+ * @param r_buf a buffer to fill.
+ * @return GNUNET_OK if conversion succeded. GNUNET_SYSERR otherwise, in which
+ *         case the contents of r_buf are undefined.
+ */
+int
+GNUNET_STRINGS_to_address_ip (const char *addr, uint16_t addrlen,
+    struct sockaddr_storage *r_buf);
+
 /* ifndef GNUNET_UTIL_STRING_H */
 #endif
 /* end of gnunet_util_string.h */

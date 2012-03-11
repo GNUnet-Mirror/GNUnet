@@ -950,4 +950,136 @@ GNUNET_STRINGS_check_filename (const char *filename,
   return GNUNET_YES;
 }
 
+#define MAX_IPV6_ADDRLEN 47
+#define MAX_IPV4_ADDRLEN 21
+#define MAX_IP_ADDRLEN MAX_IPV6_ADDRLEN
+
+/**
+ * Tries to convert @zt_addr string to an IPv6 address.
+ * 
+ * @param zt_addr 0-terminated string. May be mangled by the function.
+ * @param addrlen length of zt_addr (not counting 0-terminator).
+ * @param r_buf a buffer to fill. Initially gets filled with zeroes,
+ *        then its sin6_port, sin6_family and sin6_addr are set appropriately.
+ * @return GNUNET_OK if conversion succeded. GNUNET_SYSERR otherwise, in which
+ *         case the contents of r_buf are undefined.
+ */
+int
+GNUNET_STRINGS_to_address_ipv6 (char *zt_addr, uint16_t addrlen,
+    struct sockaddr_in6 *r_buf)
+{
+  int ret;
+  char *port_colon;
+  unsigned int port;
+
+  if (addrlen < 6)
+    return GNUNET_SYSERR;
+
+  port_colon = strrchr (zt_addr, ':');
+  if (port_colon == NULL)
+    return GNUNET_SYSERR;
+  ret = sscanf (port_colon, ":%u", &port);
+  if (ret != 1 || port > 65535)
+    return GNUNET_SYSERR;
+  port_colon[0] = '\0';
+
+  memset (r_buf, 0, sizeof (struct sockaddr_in6));
+  ret = inet_pton (AF_INET6, zt_addr, &r_buf->sin6_addr);
+  if (ret <= 0)
+    return GNUNET_SYSERR;
+  r_buf->sin6_port = htonl (port);
+  r_buf->sin6_family = AF_INET6;
+  return GNUNET_OK;
+}
+
+/**
+ * Tries to convert @zt_addr string to an IPv4 address.
+ * 
+ * @param zt_addr 0-terminated string. May be mangled by the function.
+ * @param addrlen length of zt_addr (not counting 0-terminator).
+ * @param r_buf a buffer to fill.
+ * @return GNUNET_OK if conversion succeded. GNUNET_SYSERR otherwise, in which case
+ *         the contents of r_buf are undefined.
+ */
+int
+GNUNET_STRINGS_to_address_ipv4 (char *zt_addr, uint16_t addrlen,
+    struct sockaddr_in *r_buf)
+{
+  unsigned int temps[5];
+  unsigned int port;
+  int cnt;
+
+  if (addrlen < 9)
+    return GNUNET_SYSERR;
+
+  cnt = sscanf (zt_addr, "%u.%u.%u.%u:%u", &temps[0], &temps[1], &temps[2], &temps[3], &port);
+  if (cnt != 5)
+    return GNUNET_SYSERR;
+
+  for (cnt = 0; cnt < 4; cnt++)
+    if (temps[cnt] > 0xFF)
+      return GNUNET_SYSERR;
+  if (port > 65535)
+    return GNUNET_SYSERR;
+
+  r_buf->sin_family = AF_INET;
+  r_buf->sin_port = htonl (port);
+  r_buf->sin_addr.s_addr = htonl ((temps[0] << 24) + (temps[1] << 16) +
+      (temps[2] << 8) + temps[3]);
+  return GNUNET_OK;
+}
+
+/**
+ * Tries to convert @addr string to an IP (v4 or v6) address.
+ * IPv6 address must have its address part enclosed in '()' parens
+ * instead of '[]'.
+ * Will automatically decide whether to treat @addr as v4 or v6 address.
+ * 
+ * @param addr a string, may not be 0-terminated.
+ * @param addrlen number of bytes in addr (if addr is 0-terminated,
+ *        0-terminator should not be counted towards addrlen).
+ * @param r_buf a buffer to fill.
+ * @return GNUNET_OK if conversion succeded. GNUNET_SYSERR otherwise, in which
+ *         case the contents of r_buf are undefined.
+ */
+int
+GNUNET_STRINGS_to_address_ip (const char *addr, uint16_t addrlen,
+    struct sockaddr_storage *r_buf)
+{
+  uint16_t i;
+  char zt_addr[MAX_IP_ADDRLEN + 1];
+  uint16_t zt_len = addrlen <= MAX_IP_ADDRLEN ? addrlen : MAX_IP_ADDRLEN;
+
+  if (addrlen < 1)
+    return GNUNET_SYSERR;
+
+  memset (zt_addr, 0, MAX_IP_ADDRLEN + 1);
+  strncpy (zt_addr, addr, zt_len);
+
+  /* For URIs we use '(' and ')' instead of '[' and ']'. Do the substitution
+   * now, as GNUNET_STRINGS_to_address_ipv6() takes a proper []-enclosed IPv6
+   * address.
+   */
+  if (zt_addr[0] == '(')
+  {
+    for (i = 0; i < zt_len; i++)
+    {
+      switch (zt_addr[i])
+      {
+      case '(':
+        zt_addr[i] = '[';
+        break;
+      case ')':
+        zt_addr[i] = ']';
+        break;
+      default:
+        break;
+      }
+    }
+    return GNUNET_STRINGS_to_address_ipv6 (zt_addr, zt_len, (struct sockaddr_in6 *) r_buf);
+  }
+  else
+    return GNUNET_STRINGS_to_address_ipv4 (zt_addr, zt_len, (struct sockaddr_in *) r_buf);
+}
+
 /* end of strings.c */
