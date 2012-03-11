@@ -31,60 +31,153 @@
 #include "gnunet_transport_service.h"
 #include "gnunet_program_lib.h"
 #include "gnunet_transport_plugin.h"
-#include "../transport/gnunet-service-transport_plugins.h"
+#include "gnunet-peerinfo_plugins.h"
 
+
+/**
+ * Structure we use to collect printable address information.
+ */
+struct PrintContext
+{
+  /**
+   * Identity of the peer.
+   */
+  struct GNUNET_PeerIdentity peer;
+  
+  /**
+   * List of printable addresses.
+   */
+  char **address_list;
+
+  /**
+   * Number of addresses in 'address_list'.
+   */
+  unsigned int num_addresses;
+
+  /**
+   * Current offset in 'address_list'
+   */
+  uint32_t off;
+
+  /**
+   * URI (FIXME: overloaded struct!)
+   */
+  char *uri;
+
+  /**
+   * Length of 'uri' (FIXME: not nice)
+   */
+  size_t uri_len;
+};
+
+
+/**
+ * FIXME.
+ */
+struct GNUNET_PEERINFO_HelloAddressParsingContext
+{
+  /**
+   * FIXME.
+   */
+  char *tmp;
+  
+  /**
+   * FIXME.
+   */
+  char *pos;
+
+  /**
+   * FIXME.
+   */
+  size_t tmp_len;
+};
+
+
+/**
+ * Option '-n'
+ */
 static int no_resolve;
 
+/**
+ * Option '-q'
+ */
 static int be_quiet;
 
+/**
+ * Option '-s'
+ */
 static int get_self;
 
+/**
+ * Option 
+ */
 static int get_uri;
 
+/**
+ * Option '-i'
+ */
+static int get_info;
+
+/**
+ * Option 
+ */
 static char *put_uri;
 
+/**
+ * Handle to peerinfo service.
+ */
 static struct GNUNET_PEERINFO_Handle *peerinfo;
 
 /**
  * Configuration handle.
  */
-const struct GNUNET_CONFIGURATION_Handle *GST_cfg;
-
-/**
- * Statistics handle.
- */
-struct GNUNET_STATISTICS_Handle *GST_stats;
-
-/**
- * Configuration handle.
- */
-struct GNUNET_PeerIdentity GST_my_identity;
-
-struct GNUNET_MessageHeader *our_hello = NULL;
-
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
-struct PrintContext
-{
-  struct GNUNET_PeerIdentity peer;
-  char **address_list;
-  unsigned int num_addresses;
-  uint32_t off;
-  char *uri;
-  size_t uri_len;
-};
+/**
+ * Main state machine task (if active).
+ */
+static GNUNET_SCHEDULER_TaskIdentifier tt;
 
 /**
- * Obtain this peers HELLO message.
- *
- * @return our HELLO message
+ * Current iterator context (if active, otherwise NULL).
  */
-const struct GNUNET_MessageHeader *
-GST_hello_get ()
-{
-  return (struct GNUNET_MessageHeader *) our_hello;
-}
+static struct GNUNET_PEERINFO_IteratorContext *pic;
 
+/**
+ * Current address-to-string context (if active, otherwise NULL).
+ */
+static struct GNUNET_TRANSPORT_AddressToStringContext *atsc;
+
+/**
+ * My peer identity.
+ */
+static struct GNUNET_PeerIdentity my_peer_identity;
+
+/**
+ * My public key.
+ */
+static struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded my_public_key;
+
+
+/**
+ * Main state machine that goes over all options and
+ * runs the next requested function.
+ *
+ * @param cls unused
+ * @param tc unused
+ */
+static void
+state_machine (void *cls,
+	       const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+
+/* ********************* 'get_info' ******************* */
+
+/**
+ * Print the collected address information to the console and free 'pc'.
+ *
+ * @param pc printing context
+ */
 static void
 dump_pc (struct PrintContext *pc)
 {
@@ -115,6 +208,7 @@ process_resolved_address (void *cls, const char *address)
 {
   struct PrintContext *pc = cls;
 
+  atsc = NULL;
   if (address == NULL)
   {
     pc->off--;
@@ -160,10 +254,11 @@ print_address (void *cls, const struct GNUNET_HELLO_Address *address,
 {
   struct PrintContext *pc = cls;
 
-  GNUNET_TRANSPORT_address_to_string (cfg, address, no_resolve,
-                                      GNUNET_TIME_relative_multiply
-                                      (GNUNET_TIME_UNIT_SECONDS, 10),
-                                      &process_resolved_address, pc);
+  // FIXME: this is called many times in parallel!
+  atsc = GNUNET_TRANSPORT_address_to_string (cfg, address, no_resolve,
+					     GNUNET_TIME_relative_multiply
+					     (GNUNET_TIME_UNIT_SECONDS, 10),
+					     &process_resolved_address, pc);
   return GNUNET_OK;
 }
 
@@ -184,9 +279,9 @@ print_peer_info (void *cls, const struct GNUNET_PeerIdentity *peer,
   {
     if (err_msg != NULL)
       FPRINTF (stderr, "%s",  _("Error in communication with PEERINFO service\n"));
-    GNUNET_PEERINFO_disconnect (peerinfo);
-    GST_plugins_unload ();
-    GNUNET_STATISTICS_destroy (GST_stats, GNUNET_NO);
+    // FIXME: this doesn't mean we're fully done with the printing!
+    // (as the a2s calls happen asynchronously!)
+    tt = GNUNET_SCHEDULER_add_now (&state_machine, NULL);
     return;
   }
   if ((be_quiet) || (NULL == hello))
@@ -206,6 +301,17 @@ print_peer_info (void *cls, const struct GNUNET_PeerIdentity *peer,
   GNUNET_HELLO_iterate_addresses (hello, GNUNET_NO, &print_address, pc);
 }
 
+
+
+
+
+
+
+
+
+
+
+
 static int
 compose_uri (void *cls, const struct GNUNET_HELLO_Address *address,
              struct GNUNET_TIME_Absolute expiration)
@@ -214,7 +320,7 @@ compose_uri (void *cls, const struct GNUNET_HELLO_Address *address,
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
   static const char *addr;
 
-  papi = GST_plugins_find (address->transport_name);
+  papi = GPI_plugins_find (address->transport_name);
   if (papi == NULL)
   {
     /* Not an error - we might just not have the right plugin. */
@@ -243,6 +349,7 @@ compose_uri (void *cls, const struct GNUNET_HELLO_Address *address,
   return GNUNET_OK;
 }
 
+
 /**
  * Print information about the peer.
  */
@@ -257,9 +364,7 @@ print_my_uri (void *cls, const struct GNUNET_PeerIdentity *peer,
   {
     if (err_msg != NULL)
       FPRINTF (stderr, "%s",  _("Error in communication with PEERINFO service\n"));
-    GNUNET_PEERINFO_disconnect (peerinfo);
-    GST_plugins_unload ();
-    GNUNET_STATISTICS_destroy (GST_stats, GNUNET_NO);
+    GNUNET_free (pc->uri);
     return;
   }
   if ((be_quiet) || (NULL == hello))
@@ -278,12 +383,7 @@ print_my_uri (void *cls, const struct GNUNET_PeerIdentity *peer,
   printf ("%s\n", pc->uri);
 }
 
-struct GNUNET_PEERINFO_HelloAddressParsingContext
-{
-  char *tmp;
-  char *pos;
-  size_t tmp_len;
-};
+
 
 static size_t
 add_addr_to_hello (void *cls, size_t max, void *buffer)
@@ -397,7 +497,7 @@ add_addr_to_hello (void *cls, size_t max, void *buffer)
   if (exp2 == NULL)
     exp2 = &ctx->tmp[ctx->tmp_len];
 
-  papi = GST_plugins_find (ctx->pos);
+  papi = GPI_plugins_find (ctx->pos);
   if (papi == NULL)
   {
     /* Not an error - we might just not have the right plugin.
@@ -409,7 +509,16 @@ add_addr_to_hello (void *cls, size_t max, void *buffer)
       return 0;
     return add_addr_to_hello (cls, max, buffer);
   }
-
+  if (NULL == papi->string_to_address)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		_("Plugin `%s' does not support URIs yet\n"),
+		ctx->pos);
+    ctx->pos = exp2 + 1;
+    if (ctx->pos - ctx->tmp >= ctx->tmp_len)
+      return 0;
+    return add_addr_to_hello (cls, max, buffer);
+  }
   if (GNUNET_OK == papi->string_to_address (papi->cls, &exp1[1], exp2 - &exp1[1], &addr, &addr_len))
   {
     struct GNUNET_HELLO_Address address;
@@ -427,7 +536,8 @@ add_addr_to_hello (void *cls, size_t max, void *buffer)
   return 0;
 }
 
-void
+
+static void
 parse_hello (const struct GNUNET_CONFIGURATION_Handle *c,
              const char *put_uri)
 {
@@ -435,7 +545,6 @@ parse_hello (const struct GNUNET_CONFIGURATION_Handle *c,
   char *scheme_part = NULL;
   char *path_part = NULL;
   char *exc;
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pub;
   int std_result;
   struct GNUNET_HELLO_Message *hello;
   struct GNUNET_PEERINFO_HelloAddressParsingContext ctx;
@@ -462,53 +571,54 @@ parse_hello (const struct GNUNET_CONFIGURATION_Handle *c,
   ctx.pos = exc;
 
   std_result = GNUNET_STRINGS_string_to_data (ctx.tmp, exc - ctx.tmp,
-      (unsigned char *) &pub, sizeof (pub));
+      (unsigned char *) &my_public_key, sizeof (my_public_key));
   if (std_result != GNUNET_OK)
   {
     GNUNET_free (ctx.tmp);
     return;
   }
 
-  hello = GNUNET_HELLO_create (&pub, add_addr_to_hello, &ctx);
+  hello = GNUNET_HELLO_create (&my_public_key, add_addr_to_hello, &ctx);
   GNUNET_free (ctx.tmp);
 
   /* WARNING: this adds the address from URI WITHOUT verification! */
   GNUNET_PEERINFO_add_peer (peerinfo, hello);
   GNUNET_free (hello);
+  /* wait 1s to give peerinfo operation a chance to succeed */
+  tt = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+				     &state_machine, NULL);
 }
 
-static struct GNUNET_TIME_Relative
-receive_stub (void *cls, const struct GNUNET_PeerIdentity *peer,
-    const struct GNUNET_MessageHeader *message,
-    const struct GNUNET_ATS_Information *ats, uint32_t ats_count,
-    struct Session *session, const char *sender_address,
-    uint16_t sender_address_len)
-{
-  struct GNUNET_TIME_Relative t;
-  t.rel_value = 0;
-  return t;
-}
 
+/**
+ * Main state machine that goes over all options and
+ * runs the next requested function.
+ *
+ * @param cls unused
+ * @param tc scheduler context
+ */
 static void
-address_notification_stub (void *cls, int add_remove,
-    const void *addr, size_t addrlen)
+shutdown_task (void *cls,
+	       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-}
-
-static void
-session_end_stub (void *cls, const struct GNUNET_PeerIdentity *peer,
-    struct Session * session)
-{
-}
-
-static const struct GNUNET_ATS_Information
-address_to_type_stub (void *cls, const struct sockaddr *addr,
-    size_t addrlen)
-{
-  struct GNUNET_ATS_Information t;
-  t.type = 0;
-  t.value = 0;
-  return t;
+  if (GNUNET_SCHEDULER_NO_TASK != tt)
+  {
+    GNUNET_SCHEDULER_cancel (tt);
+    tt = GNUNET_SCHEDULER_NO_TASK;
+  }
+  if (NULL != pic)
+  {
+    GNUNET_PEERINFO_iterate_cancel (pic);
+    pic = NULL;
+  }
+  if (NULL != atsc)
+  {
+    GNUNET_TRANSPORT_address_to_string_cancel (atsc);
+    atsc = NULL;
+  }
+  GPI_plugins_unload ();
+  GNUNET_PEERINFO_disconnect (peerinfo);
+  peerinfo = NULL;
 }
 
 
@@ -525,9 +635,6 @@ run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   struct GNUNET_CRYPTO_RsaPrivateKey *priv;
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pub;
-  struct GNUNET_PeerIdentity pid;
-  struct GNUNET_CRYPTO_HashAsciiEncoded enc;
   char *fn;
 
   cfg = c;
@@ -536,86 +643,108 @@ run (void *cls, char *const *args, const char *cfgfile,
     FPRINTF (stderr, _("Invalid command line argument `%s'\n"), args[0]);
     return;
   }
-  if (put_uri != NULL && get_uri == GNUNET_YES)
+  peerinfo = GNUNET_PEERINFO_connect (cfg);
+  if (peerinfo == NULL)
   {
-    FPRINTF (stderr, "%s", _("--put-uri and --get-uri are mutually exclusive\n"));
+    FPRINTF (stderr, "%s",  _("Could not access PEERINFO service.  Exiting.\n"));
     return;
   }
-  if (put_uri != NULL || get_uri == GNUNET_YES || get_self != GNUNET_YES)
+  if ( (GNUNET_YES == get_self) || (GNUNET_YES == get_uri) )
   {
-    peerinfo = GNUNET_PEERINFO_connect (cfg);
-    if (peerinfo == NULL)
-    {
-      FPRINTF (stderr, "%s",  _("Could not access PEERINFO service.  Exiting.\n"));
-      return;
-    }
-    GST_cfg = c;
-    GST_stats = GNUNET_STATISTICS_create ("transport", c);
-    /* FIXME: shouldn't we free GST_stats somewhere? */
-    GST_plugins_load (receive_stub, address_notification_stub,
-        session_end_stub, address_to_type_stub);
-  }
-  if (put_uri != NULL)
-  {
-    parse_hello (c, put_uri);
-    GST_plugins_unload ();
-    GNUNET_STATISTICS_destroy (GST_stats, GNUNET_NO);
-    return;
-  }
-  if (get_self != GNUNET_YES)
-  {
-    GNUNET_PEERINFO_iterate (peerinfo, NULL,
-                             GNUNET_TIME_relative_multiply
-                             (GNUNET_TIME_UNIT_SECONDS, 5), &print_peer_info,
-                             NULL);
-  }
-  else
-  {
+    /* load private key */
     if (GNUNET_OK !=
-        GNUNET_CONFIGURATION_get_value_filename (cfg, "GNUNETD", "HOSTKEY",
-                                                 &fn))
+	GNUNET_CONFIGURATION_get_value_filename (cfg, "GNUNETD", "HOSTKEY",
+						 &fn))
     {
       FPRINTF (stderr, _("Could not find option `%s:%s' in configuration.\n"),
-               "GNUNETD", "HOSTKEYFILE");
+	       "GNUNETD", "HOSTKEYFILE");
       return;
     }
-    priv = GNUNET_CRYPTO_rsa_key_create_from_file (fn);
-    if (priv == NULL)
+
+    if (NULL == (priv = GNUNET_CRYPTO_rsa_key_create_from_file (fn)))
     {
       FPRINTF (stderr, _("Loading hostkey from `%s' failed.\n"), fn);
       GNUNET_free (fn);
       return;
     }
     GNUNET_free (fn);
-    GNUNET_CRYPTO_rsa_key_get_public (priv, &pub);
+    GNUNET_CRYPTO_rsa_key_get_public (priv, &my_public_key);
     GNUNET_CRYPTO_rsa_key_free (priv);
-    GNUNET_CRYPTO_hash (&pub, sizeof (pub), &pid.hashPubKey);
-    GNUNET_CRYPTO_hash_to_enc (&pid.hashPubKey, &enc);
+    GNUNET_CRYPTO_hash (&my_public_key, sizeof (my_public_key), &my_peer_identity.hashPubKey);
+  }
+
+  tt = GNUNET_SCHEDULER_add_now (&state_machine, NULL);
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
+				&shutdown_task,
+				NULL);
+}
+
+
+/**
+ * Main state machine that goes over all options and
+ * runs the next requested function.
+ *
+ * @param cls unused
+ * @param tc scheduler context
+ */
+static void
+state_machine (void *cls,
+	       const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  tt = GNUNET_SCHEDULER_NO_TASK;
+
+  if (NULL != put_uri)
+  {
+    GPI_plugins_load (cfg);
+    parse_hello (cfg, put_uri);
+    put_uri = NULL;
+    return;
+  }
+  if (GNUNET_YES == get_info)
+  {
+    get_info = GNUNET_NO;
+    GPI_plugins_load (cfg);
+    GNUNET_PEERINFO_iterate (peerinfo, NULL,
+                             GNUNET_TIME_relative_multiply
+                             (GNUNET_TIME_UNIT_SECONDS, 5), &print_peer_info,
+			     NULL);
+    return;
+  }
+  if (GNUNET_YES == get_self)
+  {
+    struct GNUNET_CRYPTO_HashAsciiEncoded enc;
+
+    get_self = GNUNET_NO;
+    GNUNET_CRYPTO_hash_to_enc (&my_peer_identity.hashPubKey, &enc);
     if (be_quiet)
       printf ("%s\n", (char *) &enc);
     else
       printf (_("I am peer `%s'.\n"), (const char *) &enc);
-    if (get_uri == GNUNET_YES)
-    {
-      struct PrintContext *pc;
-      char *pkey;
-      ssize_t l, pl;
-
-      pc = GNUNET_malloc (sizeof (struct PrintContext));
-      pkey = GNUNET_CRYPTO_rsa_public_key_to_string (&pub);
-      pl = strlen ("gnunet://hello/");
-      l = strlen (pkey) + pl;
-      pc->uri = GNUNET_malloc (l + 1);
-      strcpy (pc->uri, "gnunet://hello/");
-      strcpy (&pc->uri[pl], pkey);
-      pc->uri_len = l;
-      GNUNET_PEERINFO_iterate (peerinfo, &pid,
-          GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5),
-          print_my_uri, pc);
-      GNUNET_free (pc->uri);
-      GNUNET_free (pc);
-    }
   }
+  if (GNUNET_YES == get_uri)
+  {
+    struct PrintContext *pc;
+    char *pkey;
+    ssize_t l;
+    ssize_t pl;
+
+    // FIXME...
+    pc = GNUNET_malloc (sizeof (struct PrintContext));
+    pkey = GNUNET_CRYPTO_rsa_public_key_to_string (&my_public_key);
+    pl = strlen ("gnunet://hello/");
+    l = strlen (pkey) + pl;
+    pc->uri = GNUNET_malloc (l + 1);
+    strcpy (pc->uri, "gnunet://hello/");
+    strcpy (&pc->uri[pl], pkey);
+    pc->uri_len = l;
+
+    GPI_plugins_load (cfg);
+    pic = GNUNET_PEERINFO_iterate (peerinfo, &my_peer_identity,
+				   GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5),
+				   &print_my_uri, pc);
+    return;
+  }
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 
@@ -639,6 +768,9 @@ main (int argc, char *const *argv)
     {'s', "self", NULL,
      gettext_noop ("output our own identity only"),
      0, &GNUNET_GETOPT_set_one, &get_self},
+    {'i', "info", NULL,
+     gettext_noop ("list all known peers"),
+     0, &GNUNET_GETOPT_set_one, &get_info},
     {'g', "get-hello", NULL,
      gettext_noop ("also output HELLO uri(s)"),
      0, &GNUNET_GETOPT_set_one, &get_uri},

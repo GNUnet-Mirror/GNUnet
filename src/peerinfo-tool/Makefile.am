@@ -14,7 +14,7 @@ bin_PROGRAMS = \
 
 gnunet_peerinfo_SOURCES = \
  gnunet-peerinfo.c \
- ../transport/gnunet-service-transport_plugins.c
+ gnunet-peerinfo_plugins.c
 
 gnunet_peerinfo_LDADD = \
   $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
