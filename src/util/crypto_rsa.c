@@ -232,15 +232,15 @@ GNUNET_CRYPTO_rsa_public_key_to_string (struct GNUNET_CRYPTO_RsaPublicKeyBinaryE
     keylen += 5 - keylen % 5;
   keylen /= 5;
   pubkeybuf = GNUNET_malloc (keylen + 1);
-  end = GNUNET_STRINGS_data_to_string ((unsigned char *) &pub, 
-				      sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), 
-				      pubkeybuf, 
-				      keylen);
+  end = GNUNET_STRINGS_data_to_string ((unsigned char *) pub, 
+				       sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), 
+				       pubkeybuf, 
+				       keylen);
   if (NULL == end)
-    {
-      GNUNET_free (pubkeybuf);
-      return NULL;
-    }
+  {
+    GNUNET_free (pubkeybuf);
+    return NULL;
+  }
   *end = '\0';
   return pubkeybuf;
 }
