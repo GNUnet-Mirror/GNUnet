@@ -197,19 +197,19 @@ GNUNET_CONFIGURATION_parse (struct GNUNET_CONFIGURATION_Handle *cfg,
     for (i = strlen (line) - 1; (i >= 0) && (isspace ((unsigned char) line[i]));
          i--)
       line[i] = '\0';
-    if (1 == sscanf (line, "@INLINE@ %191[^\n]", value))
+    if (1 == SSCANF (line, "@INLINE@ %191[^\n]", value))
     {
       /* @INLINE@ value */
       if (GNUNET_OK != GNUNET_CONFIGURATION_parse (cfg, value))
         ret = GNUNET_SYSERR;    /* failed to parse included config */
     }
-    else if (1 == sscanf (line, "[%99[^]]]", value))
+    else if (1 == SSCANF (line, "[%99[^]]]", value))
     {
       /* [value] */
       GNUNET_free (section);
       section = GNUNET_strdup (value);
     }
-    else if (2 == sscanf (line, " %63[^= ] = %191[^\n]", tag, value))
+    else if (2 == SSCANF (line, " %63[^= ] = %191[^\n]", tag, value))
     {
       /* tag = value */
       /* Strip LF */
@@ -233,7 +233,7 @@ GNUNET_CONFIGURATION_parse (struct GNUNET_CONFIGURATION_Handle *cfg,
       }
       GNUNET_CONFIGURATION_set_value_string (cfg, section, tag, &value[i]);
     }
-    else if (1 == sscanf (line, " %63[^= ] =[^\n]", tag))
+    else if (1 == SSCANF (line, " %63[^= ] =[^\n]", tag))
     {
       /* tag = */
       GNUNET_CONFIGURATION_set_value_string (cfg, section, tag, "");

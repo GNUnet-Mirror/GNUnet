@@ -932,7 +932,7 @@ GNUNET_TESTING_peergroup_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                              "connect_topology_option_modifier",
                                              &temp_str))
   {
-    if (sscanf
+    if (SSCANF
         (temp_str, "%lf", &pg_start_ctx->connect_topology_option_modifier) != 1)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,

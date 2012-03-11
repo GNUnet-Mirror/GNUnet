@@ -378,7 +378,7 @@ process_refresh_output (void *cls, const char *line)
   if (NULL == strstr (s, pstr))
     return;                     /* skip */
   if (1 !=
-      sscanf (line,
+      SSCANF (line,
               (mini->is_tcp) ? "%*u TCP  %u->%*s:%*u %*s" :
               "%*u UDP  %u->%*s:%*u %*s", &nport))
     return;                     /* skip */
@@ -446,7 +446,7 @@ process_map_output (void *cls, const char *line)
    */
   if ((NULL == (ipaddr = strstr (line, " "))) ||
       (NULL == (pstr = strstr (ipaddr, ":"))) ||
-      (1 != sscanf (pstr + 1, "%u", &port)))
+      (1 != SSCANF (pstr + 1, "%u", &port)))
   {
     return;                     /* skip line */
   }

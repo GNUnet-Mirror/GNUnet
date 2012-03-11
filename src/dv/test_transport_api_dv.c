@@ -1127,7 +1127,7 @@ run (void *cls, char *const *args, const char *cfgfile,
                                              "connect_topology_option_modifier",
                                              &connect_topology_option_modifier_string))
   {
-    if (sscanf
+    if (SSCANF
         (connect_topology_option_modifier_string, "%lf",
          &connect_topology_option_modifier) != 1)
     {

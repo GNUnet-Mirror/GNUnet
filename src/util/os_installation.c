@@ -62,7 +62,7 @@ get_path_from_proc_maps ()
   while (NULL != fgets (line, sizeof (line), f))
   {
     if ((1 ==
-         sscanf (line, "%*x-%*x %*c%*c%*c%*c %*x %*2u:%*2u %*u%*[ ]%s", dir)) &&
+         SSCANF (line, "%*x-%*x %*c%*c%*c%*c %*x %*2u:%*2u %*u%*[ ]%s", dir)) &&
         (NULL != (lgu = strstr (dir, "libgnunetutil"))))
     {
       lgu[0] = '\0';

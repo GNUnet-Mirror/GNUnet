@@ -235,7 +235,7 @@ GNUNET_STRINGS_fancy_size_to_bytes (const char *fancy_size,
     {
       ret += last;
       last = 0;
-      if (1 != sscanf (tok, "%llu", &last))
+      if (1 != SSCANF (tok, "%llu", &last))
       {
         GNUNET_free (in);
         return GNUNET_SYSERR;   /* expected number */
@@ -314,7 +314,7 @@ GNUNET_STRINGS_fancy_time_to_relative (const char *fancy_size,
     {
       ret += last;
       last = 0;
-      if (1 != sscanf (tok, "%llu", &last))
+      if (1 != SSCANF (tok, "%llu", &last))
       {
         GNUNET_free (in);
         return GNUNET_SYSERR;   /* expected number */
@@ -978,7 +978,7 @@ GNUNET_STRINGS_to_address_ipv6 (char *zt_addr, uint16_t addrlen,
   port_colon = strrchr (zt_addr, ':');
   if (port_colon == NULL)
     return GNUNET_SYSERR;
-  ret = sscanf (port_colon, ":%u", &port);
+  ret = SSCANF (port_colon, ":%u", &port);
   if (ret != 1 || port > 65535)
     return GNUNET_SYSERR;
   port_colon[0] = '\0';
@@ -1012,7 +1012,7 @@ GNUNET_STRINGS_to_address_ipv4 (char *zt_addr, uint16_t addrlen,
   if (addrlen < 9)
     return GNUNET_SYSERR;
 
-  cnt = sscanf (zt_addr, "%u.%u.%u.%u:%u", &temps[0], &temps[1], &temps[2], &temps[3], &port);
+  cnt = SSCANF (zt_addr, "%u.%u.%u.%u:%u", &temps[0], &temps[1], &temps[2], &temps[3], &port);
   if (cnt != 5)
     return GNUNET_SYSERR;
 

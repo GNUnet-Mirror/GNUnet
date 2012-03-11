@@ -136,7 +136,7 @@ main (int argc, char *argv[])
     return 1;
   }
   if (6 !=
-      sscanf (argv[3], "%x-%x-%x-%x-%x-%x", &temp[0], &temp[1], &temp[2],
+      SSCANF (argv[3], "%x-%x-%x-%x-%x-%x", &temp[0], &temp[1], &temp[2],
               &temp[3], &temp[4], &temp[5]))
   {
     fprintf (stderr,
@@ -145,7 +145,7 @@ main (int argc, char *argv[])
     return 1;
   }
   if (6 !=
-      sscanf (argv[2], "%x-%x-%x-%x-%x-%x", &temp[0], &temp[1], &temp[2],
+      SSCANF (argv[2], "%x-%x-%x-%x-%x-%x", &temp[0], &temp[1], &temp[2],
               &temp[3], &temp[4], &temp[5]))
   {
     fprintf (stderr,

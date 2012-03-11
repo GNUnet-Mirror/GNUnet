@@ -1357,7 +1357,7 @@ update_config (void *cls, const char *section, const char *option,
   GNUNET_asprintf (&single_variable, "single_%s_per_host", section);
   GNUNET_asprintf (&per_host_variable, "num_%s_per_host", section);
 
-  if ((0 == strcmp (option, "PORT")) && (1 == sscanf (value, "%u", &ival)))
+  if ((0 == strcmp (option, "PORT")) && (1 == SSCANF (value, "%u", &ival)))
   {
     if ((ival != 0) &&
         (GNUNET_YES !=
@@ -1904,7 +1904,7 @@ create_small_world_ring (struct GNUNET_TESTING_PeerGroup *pg,
       GNUNET_CONFIGURATION_get_value_string (pg->cfg, "TESTING", "PERCENTAGE",
                                              &p_string))
   {
-    if (sscanf (p_string, "%lf", &logNModifier) != 1)
+    if (SSCANF (p_string, "%lf", &logNModifier) != 1)
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   _
                   ("Invalid value `%s' for option `%s' in section `%s': expected float\n"),
@@ -1916,7 +1916,7 @@ create_small_world_ring (struct GNUNET_TESTING_PeerGroup *pg,
       GNUNET_CONFIGURATION_get_value_string (pg->cfg, "TESTING", "PROBABILITY",
                                              &p_string))
   {
-    if (sscanf (p_string, "%lf", &probability) != 1)
+    if (SSCANF (p_string, "%lf", &probability) != 1)
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   _
                   ("Invalid value `%s' for option `%s' in section `%s': expected float\n"),
@@ -2017,7 +2017,7 @@ create_nated_internet (struct GNUNET_TESTING_PeerGroup *pg,
       GNUNET_CONFIGURATION_get_value_string (pg->cfg, "TESTING", "PERCENTAGE",
                                              &p_string))
   {
-    if (sscanf (p_string, "%lf", &nat_percentage) != 1)
+    if (SSCANF (p_string, "%lf", &nat_percentage) != 1)
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   _
                   ("Invalid value `%s' for option `%s' in section `%s': expected float\n"),
@@ -2076,7 +2076,7 @@ create_nated_internet_copy (struct GNUNET_TESTING_PeerGroup *pg,
       GNUNET_CONFIGURATION_get_value_string (pg->cfg, "TESTING", "PERCENTAGE",
                                              &p_string))
   {
-    if (sscanf (p_string, "%lf", &nat_percentage) != 1)
+    if (SSCANF (p_string, "%lf", &nat_percentage) != 1)
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   _
                   ("Invalid value `%s' for option `%s' in section `%s': expected float\n"),
@@ -2165,7 +2165,7 @@ create_small_world (struct GNUNET_TESTING_PeerGroup *pg,
       GNUNET_CONFIGURATION_get_value_string (pg->cfg, "TESTING", "PERCENTAGE",
                                              &p_string))
   {
-    if (sscanf (p_string, "%lf", &percentage) != 1)
+    if (SSCANF (p_string, "%lf", &percentage) != 1)
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   _
                   ("Invalid value `%s' for option `%s' in section `%s': expected float\n"),
@@ -2185,7 +2185,7 @@ create_small_world (struct GNUNET_TESTING_PeerGroup *pg,
       GNUNET_CONFIGURATION_get_value_string (pg->cfg, "TESTING", "PROBABILITY",
                                              &p_string))
   {
-    if (sscanf (p_string, "%lf", &probability) != 1)
+    if (SSCANF (p_string, "%lf", &probability) != 1)
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   _
                   ("Invalid value `%s' for option `%s' in section `%s': expected float\n"),
@@ -2322,7 +2322,7 @@ create_erdos_renyi (struct GNUNET_TESTING_PeerGroup *pg,
       GNUNET_CONFIGURATION_get_value_string (pg->cfg, "TESTING", "PROBABILITY",
                                              &p_string))
   {
-    if (sscanf (p_string, "%lf", &probability) != 1)
+    if (SSCANF (p_string, "%lf", &probability) != 1)
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   _
                   ("Invalid value `%s' for option `%s' in section `%s': expected float\n"),
@@ -7031,7 +7031,7 @@ GNUNET_TESTING_hosts_load (const struct GNUNET_CONFIGURATION_Handle *cfg)
         data[count] = '\0';
         temphost = GNUNET_malloc (sizeof (struct GNUNET_TESTING_Host));
         ret =
-            sscanf (buf, "%a[a-zA-Z0-9_]@%a[a-zA-Z0-9.]:%hd",
+            SSCANF (buf, "%a[a-zA-Z0-9_]@%a[a-zA-Z0-9.]:%hd",
                     &temphost->username, &temphost->hostname, &temphost->port);
         if (3 == ret)
         {

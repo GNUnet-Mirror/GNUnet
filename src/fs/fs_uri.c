@@ -214,7 +214,7 @@ percent_decode_keyword (const char *in, char **emsg)
   {
     if (out[rpos] == '%')
     {
-      if (1 != sscanf (&out[rpos + 1], "%2X", &hx))
+      if (1 != SSCANF (&out[rpos + 1], "%2X", &hx))
       {
         GNUNET_free (out);
         *emsg = GNUNET_strdup (_("`%' must be followed by HEX number"));

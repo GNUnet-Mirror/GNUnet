@@ -106,7 +106,7 @@ parse_ipv4_specification (const char *routeList)
   while (i < count)
   {
     cnt =
-        sscanf (&routeList[pos], "%u.%u.%u.%u/%u.%u.%u.%u;", &temps[0],
+        SSCANF (&routeList[pos], "%u.%u.%u.%u/%u.%u.%u.%u;", &temps[0],
                 &temps[1], &temps[2], &temps[3], &temps[4], &temps[5],
                 &temps[6], &temps[7]);
     if (cnt == 8)
@@ -133,7 +133,7 @@ parse_ipv4_specification (const char *routeList)
     }
     /* try second notation */
     cnt =
-        sscanf (&routeList[pos], "%u.%u.%u.%u/%u;", &temps[0], &temps[1],
+        SSCANF (&routeList[pos], "%u.%u.%u.%u/%u;", &temps[0], &temps[1],
                 &temps[2], &temps[3], &slash);
     if (cnt == 5)
     {
@@ -176,7 +176,7 @@ parse_ipv4_specification (const char *routeList)
     /* try third notation */
     slash = 32;
     cnt =
-        sscanf (&routeList[pos], "%u.%u.%u.%u;", &temps[0], &temps[1],
+        SSCANF (&routeList[pos], "%u.%u.%u.%u;", &temps[0], &temps[1],
                 &temps[2], &temps[3]);
     if (cnt == 4)
     {
@@ -1268,9 +1268,9 @@ setup_service (struct GNUNET_SERVICE_Context *sctx)
 #ifndef MINGW
   errno = 0;
   if ((NULL != (lpid = getenv ("LISTEN_PID"))) &&
-      (1 == sscanf (lpid, "%u", &pid)) && (getpid () == (pid_t) pid) &&
+      (1 == SSCANF (lpid, "%u", &pid)) && (getpid () == (pid_t) pid) &&
       (NULL != (nfds = getenv ("LISTEN_FDS"))) &&
-      (1 == sscanf (nfds, "%u", &cnt)) && (cnt > 0) && (cnt < FD_SETSIZE) &&
+      (1 == SSCANF (nfds, "%u", &cnt)) && (cnt > 0) && (cnt < FD_SETSIZE) &&
       (cnt + 4 < FD_SETSIZE))
   {
     sctx->lsocks =

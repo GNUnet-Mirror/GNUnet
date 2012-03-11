@@ -171,7 +171,7 @@ run (void *cls, char *const *args, const char *cfgfile,
         data[count] = '\0';
         temphost = GNUNET_malloc (sizeof (struct GNUNET_TESTING_Host));
         ret =
-            sscanf (buf, "%a[a-zA-Z0-9]@%a[a-zA-Z0-9.]:%hd",
+            SSCANF (buf, "%a[a-zA-Z0-9]@%a[a-zA-Z0-9.]:%hd",
                     &temphost->username, &temphost->hostname, &temphost->port);
         if (3 == ret)
         {

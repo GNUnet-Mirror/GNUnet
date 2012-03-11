@@ -795,7 +795,7 @@ nat_server_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 #if HAVE_SOCKADDR_IN_SIN_LEN
   sin_addr.sin_len = sizeof (sin_addr);
 #endif
-  if ((NULL == port_start) || (1 != sscanf (port_start, "%d", &port)) ||
+  if ((NULL == port_start) || (1 != SSCANF (port_start, "%d", &port)) ||
       (-1 == inet_pton (AF_INET, mybuf, &sin_addr.sin_addr)))
   {
     /* should we restart gnunet-helper-nat-server? */

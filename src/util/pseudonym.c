@@ -461,7 +461,7 @@ GNUNET_PSEUDONYM_name_to_id (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
   idx = -1;
   slen = strlen (ns_uname);
-  while ((slen > 0) && (1 != sscanf (&ns_uname[slen - 1], "-%u", &idx)))
+  while ((slen > 0) && (1 != SSCANF (&ns_uname[slen - 1], "-%u", &idx)))
     slen--;
   if (slen == 0)
     return GNUNET_SYSERR;

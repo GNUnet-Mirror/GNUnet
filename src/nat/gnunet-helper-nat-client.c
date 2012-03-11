@@ -473,7 +473,7 @@ main (int argc, char *const *argv)
     global_ret = 7;
     goto cleanup;
   }
-  if ((1 != sscanf (argv[3], "%u", &p)) || (0 == p) || (0xFFFF < p))
+  if ((1 != SSCANF (argv[3], "%u", &p)) || (0 == p) || (0xFFFF < p))
   {
     fprintf (stderr, "Error parsing port value `%s'\n", argv[3]);
     global_ret = 8;
