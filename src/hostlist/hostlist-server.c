@@ -537,7 +537,13 @@ GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
 {
   unsigned long long port;
   char *hostname;
+  char *ip;
   size_t size;
+  struct in_addr i4;
+  struct in6_addr i6;
+  struct sockaddr_in v4;
+  struct sockaddr_in6 v6;
+  const struct sockaddr *sa;
 
   advertising = advertise;
   if (!advertising)
@@ -589,6 +595,50 @@ GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
     }
     GNUNET_free (hostname);
   }
+
+  if (GNUNET_CONFIGURATION_have_value (cfg, "HOSTLIST", "BINDTOIP"))
+  {
+    GNUNET_break (GNUNET_OK ==
+                  GNUNET_CONFIGURATION_get_value_string (cfg, "HOSTLIST",
+                                                         "BINDTOIP", &ip));
+  }
+  else 
+    ip = NULL;
+  if (ip != NULL)
+  {
+    if (1 == inet_pton (AF_INET, ip, &i4))
+    {
+      memset (&v4, 0, sizeof (v4));
+      v4.sin_family = AF_INET;
+      v4.sin_addr = i4;
+      v4.sin_port = htons (port);
+#if HAVE_SOCKADDR_IN_SIN_LEN
+      v4.sin_len = sizeof (v4);
+#endif
+      sa = (const struct sockaddr *) &v4;
+    }
+    else if (1 == inet_pton (AF_INET6, ip, &i6))
+    {
+      memset (&v6, 0, sizeof (v6));
+      v6.sin6_family = AF_INET6;
+      v6.sin6_addr = i6;
+      v6.sin6_port = htons (port);
+#if HAVE_SOCKADDR_IN_SIN_LEN
+      v6.sin6_len = sizeof (v6);
+#endif
+      sa = (const struct sockaddr *) &v6;
+    }
+    else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  _("`%s' is not a valid IP address! Ignoring BINDTOIP.\n"),
+                  ip);
+      sa = NULL;
+    }
+  }
+  else
+    sa = NULL;
+
   daemon_handle_v6 = MHD_start_daemon (MHD_USE_IPv6
 #if DEBUG_HOSTLIST_SERVER
                                        | MHD_USE_DEBUG
@@ -603,7 +653,10 @@ GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
                                        MHD_OPTION_CONNECTION_TIMEOUT,
                                        (unsigned int) 16,
                                        MHD_OPTION_CONNECTION_MEMORY_LIMIT,
-                                       (size_t) (16 * 1024), MHD_OPTION_END);
+                                       (size_t) (16 * 1024),
+                                       MHD_OPTION_SOCK_ADDR,
+                                       sa,
+                                       MHD_OPTION_END);
   daemon_handle_v4 = MHD_start_daemon (MHD_NO_FLAG
 #if DEBUG_HOSTLIST_SERVER
                                        | MHD_USE_DEBUG
@@ -618,7 +671,10 @@ GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
                                        MHD_OPTION_CONNECTION_TIMEOUT,
                                        (unsigned int) 16,
                                        MHD_OPTION_CONNECTION_MEMORY_LIMIT,
-                                       (size_t) (16 * 1024), MHD_OPTION_END);
+                                       (size_t) (16 * 1024),
+                                       MHD_OPTION_SOCK_ADDR,
+                                       sa,
+                                       MHD_OPTION_END);
 
   if ((daemon_handle_v6 == NULL) && (daemon_handle_v4 == NULL))
   {
