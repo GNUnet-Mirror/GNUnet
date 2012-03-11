@@ -364,6 +364,53 @@ udp_address_to_string (void *cls, const void *addr, size_t addrlen)
 
 
 /**
+ * Function called to convert a string address to
+ * a binary address.
+ *
+ * @param cls closure ('struct Plugin*')
+ * @param addr string address
+ * @param addrlen length of the address
+ * @param buf location to store the buffer
+ * @param added location to store the number of bytes in the buffer.
+ *        If the function returns GNUNET_SYSERR, its contents are undefined.
+ * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+ */
+int
+udp_string_to_address (void *cls, const char *addr, uint16_t addrlen,
+    void **buf, size_t *added)
+{
+  struct sockaddr_storage socket_address;
+  int ret = GNUNET_STRINGS_to_address_ip (addr, addrlen,
+    &socket_address);
+
+  if (ret != GNUNET_OK)
+    return GNUNET_SYSERR;
+
+  if (socket_address.ss_family == AF_INET)
+  {
+    struct IPv4UdpAddress *u4;
+    struct sockaddr_in *in4 = (struct sockaddr_in *) &socket_address;
+    u4 = GNUNET_malloc (sizeof (struct IPv4UdpAddress));
+    u4->ipv4_addr = in4->sin_addr.s_addr;
+    u4->u4_port = in4->sin_port;
+    *buf = u4;
+    *added = sizeof (struct IPv4UdpAddress);
+  }
+  else if (socket_address.ss_family == AF_INET6)
+  {
+    struct IPv6UdpAddress *u6;
+    struct sockaddr_in6 *in6 = (struct sockaddr_in6 *) &socket_address;
+    u6 = GNUNET_malloc (sizeof (struct IPv6UdpAddress));
+    u6->ipv6_addr = in6->sin6_addr;
+    u6->u6_port = in6->sin6_port;
+    *buf = u6;
+    *added = sizeof (struct IPv6UdpAddress);
+  }
+  return GNUNET_SYSERR;
+}
+
+
+/**
  * Append our port and forward the result.
  *
  * @param cls a 'struct PrettyPrinterContext'
@@ -2061,7 +2108,7 @@ libgnunet_plugin_transport_udp_init (void *cls)
     api->cls = NULL;
     api->address_pretty_printer = &udp_plugin_address_pretty_printer;
     api->address_to_string = &udp_address_to_string;
-    api->string_to_address = NULL; // FIXME!
+    api->string_to_address = &udp_string_to_address;
     return api;
   }
 
@@ -2170,7 +2217,7 @@ libgnunet_plugin_transport_udp_init (void *cls)
   api->disconnect = &udp_disconnect;
   api->address_pretty_printer = &udp_plugin_address_pretty_printer;
   api->address_to_string = &udp_address_to_string;
-  api->string_to_address = NULL; // FIXME!
+  api->string_to_address = &udp_string_to_address;
   api->check_address = &udp_plugin_check_address;
   api->get_session = &udp_plugin_get_session;
   api->send = &udp_plugin_send;
