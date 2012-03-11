@@ -37,8 +37,46 @@
 /**
  * Structure we use to collect printable address information.
  */
+struct PrintContext;
+
+/**
+ * Record we keep for each printable address.
+ */
+struct AddressRecord
+{
+  /**
+   * Current address-to-string context (if active, otherwise NULL).
+   */
+  struct GNUNET_TRANSPORT_AddressToStringContext *atsc;
+
+  /**
+   * Printable address.
+   */
+  char *result;
+  
+  /**
+   * Print context this address record belongs to.
+   */
+  struct PrintContext *pc;
+};
+
+
+/**
+ * Structure we use to collect printable address information.
+ */
 struct PrintContext
 {
+
+  /**
+   * Kept in DLL.
+   */
+  struct PrintContext *next;
+
+  /**
+   * Kept in DLL.
+   */
+  struct PrintContext *prev;
+
   /**
    * Identity of the peer.
    */
@@ -47,27 +85,23 @@ struct PrintContext
   /**
    * List of printable addresses.
    */
-  char **address_list;
+  struct AddressRecord *address_list;
 
   /**
-   * Number of addresses in 'address_list'.
+   * Number of completed addresses in 'address_list'.
    */
   unsigned int num_addresses;
 
   /**
-   * Current offset in 'address_list'
+   * Number of addresses allocated in 'address_list'.
    */
-  uint32_t off;
+  unsigned int address_list_size;
 
   /**
-   * URI (FIXME: overloaded struct!)
+   * Current offset in 'address_list' (counted down).
    */
-  char *uri;
+  unsigned int off;
 
-  /**
-   * Length of 'uri' (FIXME: not nice)
-   */
-  size_t uri_len;
 };
 
 
@@ -81,7 +115,6 @@ struct GetUriContext
    */
   char *uri;
 
-  struct PrintContext *pc;
 };
 
 
@@ -158,11 +191,6 @@ static GNUNET_SCHEDULER_TaskIdentifier tt;
 static struct GNUNET_PEERINFO_IteratorContext *pic;
 
 /**
- * Current address-to-string context (if active, otherwise NULL).
- */
-static struct GNUNET_TRANSPORT_AddressToStringContext *atsc;
-
-/**
  * My peer identity.
  */
 static struct GNUNET_PeerIdentity my_peer_identity;
@@ -171,6 +199,16 @@ static struct GNUNET_PeerIdentity my_peer_identity;
  * My public key.
  */
 static struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded my_public_key;
+
+/**
+ * Head of list of print contexts.
+ */
+static struct PrintContext *pc_head;
+
+/**
+ * Tail of list of print contexts.
+ */
+static struct PrintContext *pc_tail;
 
 
 /**
@@ -199,15 +237,25 @@ dump_pc (struct PrintContext *pc)
   unsigned int i;
 
   GNUNET_CRYPTO_hash_to_enc (&pc->peer.hashPubKey, &enc);
-  printf (_("Peer `%s'\n"), (const char *) &enc);
+  printf (_("Peer `%s'\n"), 
+	  (const char *) &enc);
   for (i = 0; i < pc->num_addresses; i++)
   {
-    printf ("\t%s\n", pc->address_list[i]);
-    GNUNET_free (pc->address_list[i]);
+    if (NULL != pc->address_list[i].result)
+    {
+      printf ("\t%s\n", pc->address_list[i].result);
+      GNUNET_free (pc->address_list[i].result);
+    }
   }
   printf ("\n");
-  GNUNET_array_grow (pc->address_list, pc->num_addresses, 0);
+  GNUNET_free_non_null (pc->address_list);
+  GNUNET_CONTAINER_DLL_remove (pc_head,
+			       pc_tail,
+			       pc);
   GNUNET_free (pc);
+  if ( (NULL == pc_head) &&
+       (NULL == pic) )
+    tt = GNUNET_SCHEDULER_add_now (&state_machine, NULL);  
 }
 
 
@@ -223,18 +271,19 @@ dump_pc (struct PrintContext *pc)
 static void
 process_resolved_address (void *cls, const char *address)
 {
-  struct PrintContext *pc = cls;
+  struct AddressRecord * ar = cls;
+  struct PrintContext *pc = ar->pc;
 
-  atsc = NULL;
-  if (address == NULL)
+  if (NULL != address)
   {
-    pc->off--;
-    if (pc->off == 0)
-      dump_pc (pc);
+    if (NULL == ar->result)
+      ar->result = GNUNET_strdup (address);
     return;
   }
-  GNUNET_array_append (pc->address_list, pc->num_addresses,
-                       GNUNET_strdup (address));
+  ar->atsc = NULL;
+  pc->num_addresses++;
+  if (pc->num_addresses == pc->address_list_size)
+    dump_pc (pc);
 }
 
 
@@ -270,20 +319,27 @@ print_address (void *cls, const struct GNUNET_HELLO_Address *address,
                struct GNUNET_TIME_Absolute expiration)
 {
   struct PrintContext *pc = cls;
+  struct AddressRecord *ar;
 
-  // FIXME: this is called many times in parallel!
-  atsc = GNUNET_TRANSPORT_address_to_string (cfg, address, no_resolve,
-					     GNUNET_TIME_relative_multiply
-					     (GNUNET_TIME_UNIT_SECONDS, 10),
-					     &process_resolved_address, pc);
+  GNUNET_assert (0 < pc->off);
+  ar = &pc->address_list[--pc->off];
+  ar->pc = pc;
+  ar->atsc = GNUNET_TRANSPORT_address_to_string (cfg, address, no_resolve,
+						 GNUNET_TIME_relative_multiply
+						 (GNUNET_TIME_UNIT_SECONDS, 10),
+						 &process_resolved_address, ar);
   return GNUNET_OK;
 }
 
 
 /**
  * Print information about the peer.
- * Currently prints the GNUNET_PeerIdentity and the IP.
- * Could of course do more (e.g. resolve via DNS).
+ * Currently prints the GNUNET_PeerIdentity and the transport address.
+ *
+ * @param cls the 'struct PrintContext'
+ * @param peer identity of the peer 
+ * @param hello addresses of the peer
+ * @param err_msg error message
  */
 static void
 print_peer_info (void *cls, const struct GNUNET_PeerIdentity *peer,
@@ -294,28 +350,41 @@ print_peer_info (void *cls, const struct GNUNET_PeerIdentity *peer,
 
   if (peer == NULL)
   {
+    pic = NULL; /* end of iteration */
     if (err_msg != NULL)
-      FPRINTF (stderr, "%s",  _("Error in communication with PEERINFO service\n"));
-    // FIXME: this doesn't mean we're fully done with the printing!
-    // (as the a2s calls happen asynchronously!)
-    tt = GNUNET_SCHEDULER_add_now (&state_machine, NULL);
+    {
+      FPRINTF (stderr, 
+	       _("Error in communication with PEERINFO service: %s\n"),
+	       err_msg);
+    }
+    if (NULL == pc_head)
+      tt = GNUNET_SCHEDULER_add_now (&state_machine, NULL);
     return;
   }
-  if ((be_quiet) || (NULL == hello))
+  if ((GNUNET_YES == be_quiet) || (NULL == hello))
   {
     GNUNET_CRYPTO_hash_to_enc (&peer->hashPubKey, &enc);
     printf ("%s\n", (const char *) &enc);
     return;
   }
   pc = GNUNET_malloc (sizeof (struct PrintContext));
+  GNUNET_CONTAINER_DLL_insert (pc_head,
+			       pc_tail, 
+			       pc);
   pc->peer = *peer;
-  GNUNET_HELLO_iterate_addresses (hello, GNUNET_NO, &count_address, pc);
+  GNUNET_HELLO_iterate_addresses (hello, 
+				  GNUNET_NO, 
+				  &count_address, 
+				  pc);
   if (0 == pc->off)
   {
     dump_pc (pc);
     return;
   }
-  GNUNET_HELLO_iterate_addresses (hello, GNUNET_NO, &print_address, pc);
+  pc->address_list_size = pc->off;
+  pc->address_list = GNUNET_malloc (sizeof (struct AddressRecord) * pc->off);
+  GNUNET_HELLO_iterate_addresses (hello, GNUNET_NO, 
+				  &print_address, pc);
 }
 
 
@@ -635,6 +704,10 @@ static void
 shutdown_task (void *cls,
 	       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  struct PrintContext *pc;
+  struct AddressRecord *ar;
+  unsigned int i;
+
   if (GNUNET_SCHEDULER_NO_TASK != tt)
   {
     GNUNET_SCHEDULER_cancel (tt);
@@ -645,14 +718,30 @@ shutdown_task (void *cls,
     GNUNET_PEERINFO_iterate_cancel (pic);
     pic = NULL;
   }
-  if (NULL != atsc)
+  while (NULL != (pc = pc_head))
   {
-    GNUNET_TRANSPORT_address_to_string_cancel (atsc);
-    atsc = NULL;
+    GNUNET_CONTAINER_DLL_remove (pc_head,
+				 pc_tail,
+				 pc);
+    for (i=0;i<pc->address_list_size;i++)
+    {
+      ar = &pc->address_list[i];
+      GNUNET_free_non_null (ar->result);
+      if (NULL != ar->atsc)
+      {
+	GNUNET_TRANSPORT_address_to_string_cancel (ar->atsc);
+	ar->atsc = NULL;
+      }
+    }
+    GNUNET_free_non_null (pc->address_list);
+    GNUNET_free (pc);
   }
   GPI_plugins_unload ();
-  GNUNET_PEERINFO_disconnect (peerinfo);
-  peerinfo = NULL;
+  if (NULL != peerinfo)
+  {
+    GNUNET_PEERINFO_disconnect (peerinfo);
+    peerinfo = NULL;
+  }
 }
 
 
@@ -740,10 +829,9 @@ state_machine (void *cls,
   {
     get_info = GNUNET_NO;
     GPI_plugins_load (cfg);
-    GNUNET_PEERINFO_iterate (peerinfo, NULL,
-                             GNUNET_TIME_relative_multiply
-                             (GNUNET_TIME_UNIT_SECONDS, 5), &print_peer_info,
-			     NULL);
+    pic = GNUNET_PEERINFO_iterate (peerinfo, NULL,
+				   GNUNET_TIME_UNIT_FOREVER_REL, 
+				   &print_peer_info, NULL);
     return;
   }
   if (GNUNET_YES == get_self)
@@ -770,7 +858,7 @@ state_machine (void *cls,
     GNUNET_free (pkey);
     GPI_plugins_load (cfg);
     pic = GNUNET_PEERINFO_iterate (peerinfo, &my_peer_identity,
-				   GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5),
+				   GNUNET_TIME_UNIT_FOREVER_REL,
 				   &print_my_uri, guc);
     get_uri = GNUNET_NO;
     return;
