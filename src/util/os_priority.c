@@ -466,7 +466,7 @@ GNUNET_OS_process_kill (struct GNUNET_OS_Process *proc, int sig)
     errno = EINVAL;
     return -1;
 #else
-    return PLIBC_kill (proc->pid, sig);
+    return PLIBC_KILL (proc->pid, sig);
 #endif    
   }
 }
