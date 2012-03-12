@@ -63,7 +63,7 @@
 
 #define TEST_AUTHORITY_NAME "bob"
 
-#define DHT_OPERATION_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+#define DHT_OPERATION_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
 
 /* Globals */
 

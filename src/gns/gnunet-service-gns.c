@@ -1761,6 +1761,123 @@ process_shorten_pseu_lookup_ns(void *cls,
 
 
 /**
+ * Function called when we get a result from the dht
+ * for our record query
+ *
+ * @param cls the request handle
+ * @param exp lifetime
+ * @param key the key the record was stored under
+ * @param get_path get path
+ * @param get_path_length get path length
+ * @param put_path put path
+ * @param put_path_length put path length
+ * @param type the block type
+ * @param size the size of the record
+ * @param data the record data
+ */
+static void
+process_pseu_dht_result(void* cls,
+                 struct GNUNET_TIME_Absolute exp,
+                 const GNUNET_HashCode * key,
+                 const struct GNUNET_PeerIdentity *get_path,
+                 unsigned int get_path_length,
+                 const struct GNUNET_PeerIdentity *put_path,
+                 unsigned int put_path_length,
+                 enum GNUNET_BLOCK_Type type,
+                 size_t size, const void *data)
+{
+  struct GNUNET_GNS_ResolverHandle *rh;
+  struct RecordLookupHandle *rlh;
+  struct GNSNameRecordBlock *nrb;
+  uint32_t num_records;
+  char* name = NULL;
+  char* rd_data = (char*)data;
+  int i;
+  int rd_size;
+  
+  GNUNET_HashCode zone, name_hash;
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "got PSEU dht result (size=%d)\n", size);
+  
+  if (data == NULL)
+    return;
+
+  //FIXME maybe check expiration here, check block type
+  
+  rh = (struct GNUNET_GNS_ResolverHandle *)cls;
+  rlh = (struct RecordLookupHandle *) rh->proc_cls;
+  nrb = (struct GNSNameRecordBlock*)data;
+  
+  /* stop lookup and timeout task */
+  GNUNET_DHT_get_stop (rh->get_handle);
+  GNUNET_SCHEDULER_cancel(rh->dht_timeout_task);
+  
+  rh->get_handle = NULL;
+  name = (char*)&nrb[1];
+  num_records = ntohl(nrb->rd_count);
+  {
+    struct GNUNET_NAMESTORE_RecordData rd[num_records];
+
+    rd_data += strlen(name) + 1 + sizeof(struct GNSNameRecordBlock);
+    rd_size = size - strlen(name) - 1 - sizeof(struct GNSNameRecordBlock);
+  
+    if (GNUNET_SYSERR == GNUNET_NAMESTORE_records_deserialize (rd_size,
+                                                               rd_data,
+                                                               num_records,
+                                                               rd))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Error deserializing data!\n");
+      return;
+    }
+
+    for (i=0; i<num_records; i++)
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "Got name: %s (wanted %s)\n", name, rh->name);
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "Got type: %d\n",
+               rd[i].record_type);
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "Got data length: %d\n", rd[i].data_size);
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "Got flag %d\n", rd[i].flags);
+    
+     if ((strcmp(name, "+") == 0) &&
+         (rd[i].record_type == GNUNET_GNS_RECORD_PSEU))
+      {
+        rh->answered++;
+      }
+
+    }
+
+    GNUNET_CRYPTO_hash(name, strlen(name), &name_hash);
+    GNUNET_CRYPTO_hash_xor(key, &name_hash, &zone);
+  
+    /**
+     * FIXME check pubkey against existing key in namestore?
+     * https://gnunet.org/bugs/view.php?id=2179
+     */
+
+    /* Save to namestore */
+    GNUNET_NAMESTORE_record_put (namestore_handle,
+                                 &nrb->public_key,
+                                 name,
+                                 exp,
+                                 num_records,
+                                 rd,
+                                 &nrb->signature,
+                                 &on_namestore_record_put_result, //cont
+                                 NULL); //cls
+  
+    if (rh->answered)
+      rh->proc(rh->proc_cls, rh, num_records, rd);
+    else
+      rh->proc(rh->proc_cls, rh, 0, NULL);
+  }
+
+}
+
+
+/**
  * Start DHT lookup for a PSEUdonym record in
  * rh->authority's zone
  *
@@ -1773,9 +1890,8 @@ resolve_pseu_dht(struct GNUNET_GNS_ResolverHandle *rh)
   GNUNET_HashCode name_hash;
   GNUNET_HashCode lookup_key;
 
-  //Empty string
-  GNUNET_CRYPTO_hash("",
-                     1,
+  GNUNET_CRYPTO_hash("+",
+                     strlen("+"),
                      &name_hash);
 
   GNUNET_CRYPTO_hash_xor(&name_hash, &rh->authority, &lookup_key);
@@ -1794,7 +1910,7 @@ resolve_pseu_dht(struct GNUNET_GNS_ResolverHandle *rh)
                        GNUNET_DHT_RO_NONE,
                        &xquery,
                        sizeof(xquery),
-                       &process_delegation_result_dht,
+                       &process_pseu_dht_result,
                        rh);
 
 }
@@ -1849,7 +1965,7 @@ handle_shorten_zone_to_name(void *cls,
     rh->proc = &handle_shorten_pseu_ns_result;
     GNUNET_NAMESTORE_lookup_record(namestore_handle,
                                    &rh->authority_chain_head->zone,
-                                   "",
+                                   "+",
                                    GNUNET_GNS_RECORD_PSEU,
                                    &process_shorten_pseu_lookup_ns,
                                    rh);
@@ -1901,7 +2017,7 @@ handle_shorten_pseu_dht_result(void* cls,
     strcpy(result, rh->name);
     strcpy(result+strlen(rh->name), ".");
     strcpy(result+strlen(rh->name)+1, pseu);
-    strcpy(result+strlen(rh->name)+strlen(pseu), gnunet_tld);
+    strcpy(result+strlen(rh->name)+strlen(pseu)+1, gnunet_tld);
     
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                "Sending pseudonym shorten result %s\n", result);
