@@ -1485,7 +1485,6 @@ static void handle_iteration_start (void *cls,
   struct ZoneIterationStartMessage * zis_msg = (struct ZoneIterationStartMessage *) message;
   struct GNUNET_NAMESTORE_Client *nc;
   struct GNUNET_NAMESTORE_ZoneIteration *zi;
-  int res;
 
   nc = client_lookup(client);
   if (nc == NULL)
@@ -1519,7 +1518,7 @@ static void handle_iteration_start (void *cls,
 
   GNUNET_CONTAINER_DLL_insert (nc->op_head, nc->op_tail, zi);
 
-  res = GSN_database->iterate_records (GSN_database->cls, zone_tmp , NULL, zi->offset , &zone_iteration_proc, zi);
+  GSN_database->iterate_records (GSN_database->cls, zone_tmp , NULL, zi->offset , &zone_iteration_proc, zi);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
