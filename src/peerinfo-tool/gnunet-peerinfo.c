@@ -514,6 +514,8 @@ add_address_to_hello (void *cls, size_t max, void *buffer)
     ctx->ret = GNUNET_SYSERR;
     return 0;
   }
+  ctx->pos++;
+  memset (&expiration_time, 0, sizeof (expiration_time));
   tname = strptime (ctx->pos,
 		    "%Y%m%d%H%M%S",
 		    &expiration_time);
@@ -772,6 +774,7 @@ state_machine (void *cls,
       fprintf (stderr,
 	       _("Invalid URI `%s'\n"),
 	       put_uri);    
+    GNUNET_free (put_uri);
     put_uri = NULL;
     return;
   }
