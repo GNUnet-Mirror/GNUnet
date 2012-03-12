@@ -72,6 +72,7 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
   uint32_t rd_count;
   char* rd_data = NULL;
   int rd_len;
+  uint32_t record_xquery;
   unsigned int record_match;
 
   if (type != GNUNET_BLOCK_TYPE_GNS_NAMERECORD)
@@ -102,7 +103,7 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
   {
     struct GNUNET_NAMESTORE_RecordData rd[rd_count];
     unsigned int i;
-    uint32_t record_xquery = ntohl(*((uint32_t*)xquery));
+    struct GNUNET_TIME_Absolute exp = GNUNET_TIME_absolute_get_forever();
     
     if (GNUNET_SYSERR == GNUNET_NAMESTORE_records_deserialize (rd_len,
                                                                rd_data,
@@ -113,18 +114,26 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
                  "Data invalid (%d bytes, %d records)\n", rd_len, rd_count);
       return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
     }
+
+    if (xquery_size < sizeof(uint32_t))
+      record_xquery = 0;
+    else
+      record_xquery = ntohl(*((uint32_t*)xquery));
     
     for (i=0; i<rd_count; i++)
     {
-      if (xquery_size < sizeof(uint32_t))
-        continue;
       
-      if (rd[i].record_type == record_xquery)
+      exp = GNUNET_TIME_absolute_min (exp, rd[i].expiration);
+
+      if ((record_xquery != 0)
+          && (rd[i].record_type == record_xquery))
+      {
         record_match++;
+      }
     }
 
     if (GNUNET_OK != GNUNET_NAMESTORE_verify_signature (&nrb->public_key,
-                                                        GNUNET_TIME_absolute_get_forever(),
+                                                        exp,
                                                         name,
                                                         rd_count,
                                                         rd,
@@ -136,7 +145,7 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
   }
   
   //No record matches query
-  if ((xquery_size > 0) && (record_match == 0))
+  if ((record_xquery != 0) && (record_match == 0))
     return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Records match\n");

@@ -145,7 +145,6 @@ GNUNET_GNS_lookup (struct GNUNET_GNS_Handle *handle,
  * called only once
  *
  * @param cls closure
- * @param name "name" of the original lookup
  * @param short_name the shortened name or NULL if no result
  */
 typedef void (*GNUNET_GNS_ShortenResultProcessor) (void *cls,
@@ -158,7 +157,7 @@ typedef void (*GNUNET_GNS_ShortenResultProcessor) (void *cls,
  * @param handle handle to the GNS service
  * @param name the name to shorten
  * @param proc processor to call on result
- * @param iter_cls closure for processor
+ * @param cls closure for processor
  *
  * @return handle to the shorten operation
  */
@@ -166,7 +165,39 @@ struct GNUNET_GNS_QueueEntry *
 GNUNET_GNS_shorten (struct GNUNET_GNS_Handle *handle,
                          const char * name,
                          GNUNET_GNS_ShortenResultProcessor proc,
-                         void *iter_cls);
+                         void *cls);
+
+
+/* *************** Standard API: get authority ******************* */
+
+
+/**
+ * Processor called on for a name shortening result
+ * called only once
+ *
+ * @param cls closure
+ * @param auth_name the name of the auhtority or NULL
+ */
+typedef void (*GNUNET_GNS_GetAuthResultProcessor) (void *cls,
+                                        const char* short_name);
+
+
+/**
+ * Perform a shorten operation on name using the GNS.
+ *
+ * @param handle handle to the GNS service
+ * @param name the name to look up authority for
+ * @param proc processor to call on result
+ * @param cls closure for processor
+ *
+ * @return handle to the get authority operation
+ */
+struct GNUNET_GNS_QueueEntry *
+GNUNET_GNS_get_authority (struct GNUNET_GNS_Handle *handle,
+                         const char * name,
+                         GNUNET_GNS_GetAuthResultProcessor proc,
+                         void *cls);
+
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif

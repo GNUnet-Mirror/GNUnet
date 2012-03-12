@@ -40,6 +40,8 @@
 #define GNUNET_MESSAGE_TYPE_GNS_LOOKUP_RESULT 24
 #define GNUNET_MESSAGE_TYPE_GNS_SHORTEN 25
 #define GNUNET_MESSAGE_TYPE_GNS_SHORTEN_RESULT 26
+#define GNUNET_MESSAGE_TYPE_GNS_GET_AUTH 27
+#define GNUNET_MESSAGE_TYPE_GNS_GET_AUTH_RESULT 28
 
 /**
  * A QueueEntry.
@@ -67,6 +69,9 @@ struct GNUNET_GNS_QueueEntry
   
   /* processor to call on lookup result */
   GNUNET_GNS_LookupResultProcessor lookup_proc;
+
+  /* processor to call on authority lookup result */
+  GNUNET_GNS_GetAuthResultProcessor auth_proc;
   
   /* processor closure */
   void *proc_cls;
@@ -150,6 +155,16 @@ struct GNUNET_GNS_Handle
    */
   struct GNUNET_GNS_QueueEntry *lookup_tail;
   
+  /**
+   * Head of linked list of authority lookup messages we would like to transmit.
+   */
+  struct GNUNET_GNS_QueueEntry *get_auth_head;
+
+  /**
+   * Tail of linked list of authority lookup messages we would like to transmit.
+   */
+  struct GNUNET_GNS_QueueEntry *get_auth_tail;
+
   /**
    * Reconnect task
    */
@@ -360,6 +375,39 @@ process_shorten_reply (struct GNUNET_GNS_QueueEntry *qe,
 
 
 /**
+ * Process a given reply that might match the given
+ * request.
+ *
+ * @param qe the handle to the request
+ * @param msg the message to process
+ */
+static void
+process_get_auth_reply (struct GNUNET_GNS_QueueEntry *qe,
+                       const struct GNUNET_GNS_ClientGetAuthResultMessage *msg)
+{
+  struct GNUNET_GNS_Handle *h = qe->gns_handle;
+  const char *auth_name;
+
+  GNUNET_CONTAINER_DLL_remove(h->get_auth_head, h->get_auth_tail, qe);
+
+  auth_name = (char*)(&msg[1]);
+
+  if (ntohs (((struct GNUNET_MessageHeader*)msg)->size) <
+      sizeof (struct GNUNET_GNS_ClientGetAuthResultMessage))
+  {
+    GNUNET_break (0);
+    force_reconnect (h);
+    return;
+  }
+  
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received GET_AUTH reply `%s' from GNS service\n",
+              auth_name);
+  
+  qe->auth_proc(qe->proc_cls, auth_name);
+
+}
+/**
  * Process a given reply to the lookup request
  *
  * @param cls the 'struct GNUNET_GNS_ClientResultMessage'
@@ -412,6 +460,7 @@ process_message (void *cls, const struct GNUNET_MessageHeader *msg)
   struct GNUNET_GNS_QueueEntry *qe;
   const struct GNUNET_GNS_ClientLookupResultMessage *lookup_msg;
   const struct GNUNET_GNS_ClientShortenResultMessage *shorten_msg;
+  const struct GNUNET_GNS_ClientGetAuthResultMessage *get_auth_msg;
   uint16_t size;
   uint16_t type;
   uint32_t r_id;
@@ -457,7 +506,7 @@ process_message (void *cls, const struct GNUNET_MessageHeader *msg)
   else if (type == GNUNET_MESSAGE_TYPE_GNS_SHORTEN_RESULT)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Got shorten msg\n");
+                "Got SHORTEN_RESULT msg\n");
     shorten_msg = (struct GNUNET_GNS_ClientShortenResultMessage *) msg;
     
     r_id = ntohl (shorten_msg->id);
@@ -477,6 +526,30 @@ process_message (void *cls, const struct GNUNET_MessageHeader *msg)
     }
     if (qe)
       process_shorten_reply(qe, shorten_msg);
+  }
+  else if (type == GNUNET_MESSAGE_TYPE_GNS_GET_AUTH_RESULT)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Got GET_AUTH_RESULT msg\n");
+    get_auth_msg = (struct GNUNET_GNS_ClientGetAuthResultMessage *) msg;
+
+    r_id = ntohl (get_auth_msg->id);
+
+    if (r_id > handle->r_id)
+    {
+      /** no request found */
+      GNUNET_break_op (0);
+      GNUNET_CLIENT_receive (handle->client, &process_message, handle,
+                             GNUNET_TIME_UNIT_FOREVER_REL);
+    }
+
+    for (qe = handle->get_auth_head; qe != NULL; qe = qe->next)
+    {
+      if (qe->r_id == r_id)
+        break;
+    }
+    if (qe)
+      process_get_auth_reply(qe, get_auth_msg);
   }
 
   GNUNET_CLIENT_receive (handle->client, &process_message, handle,
@@ -650,6 +723,62 @@ GNUNET_GNS_shorten (struct GNUNET_GNS_Handle *handle,
   return qe;
 }
 
+
+/**
+ * Perform an authority lookup for a given name.
+ *
+ * @param handle handle to the GNS service
+ * @param name the name to look up authority for
+ * @param proc function to call on result
+ * @param proc_cls closure for processor
+ * @return handle to the operation
+ */
+struct GNUNET_GNS_QueueEntry *
+GNUNET_GNS_get_authority (struct GNUNET_GNS_Handle *handle,
+                    const char * name,
+                    GNUNET_GNS_GetAuthResultProcessor proc,
+                    void *proc_cls)
+{
+  struct GNUNET_GNS_ClientGetAuthMessage *get_auth_msg;
+  struct GNUNET_GNS_QueueEntry *qe;
+  size_t msize;
+  struct PendingMessage *pending;
+
+  if (NULL == name)
+  {
+    return NULL;
+  }
+
+  msize = sizeof (struct GNUNET_GNS_ClientGetAuthMessage) + strlen(name) + 1;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Trying to look up authority for %s in GNS\n", name);
+
+  qe = GNUNET_malloc(sizeof (struct GNUNET_GNS_QueueEntry));
+  qe->gns_handle = handle;
+  qe->shorten_proc = proc;
+  qe->proc_cls = proc_cls;
+  qe->r_id = get_request_id(handle);
+  GNUNET_CONTAINER_DLL_insert_tail(handle->get_auth_head,
+                                   handle->get_auth_tail, qe);
+
+  pending = GNUNET_malloc (sizeof (struct PendingMessage) + msize);
+  memset(pending, 0, (sizeof (struct PendingMessage) + msize));
+  
+  pending->size = msize;
+
+  get_auth_msg = (struct GNUNET_GNS_ClientGetAuthMessage *) &pending[1];
+  get_auth_msg->header.type = htons (GNUNET_MESSAGE_TYPE_GNS_GET_AUTH);
+  get_auth_msg->header.size = htons (msize);
+  get_auth_msg->id = htonl(qe->r_id);
+
+  memcpy(&get_auth_msg[1], name, strlen(name));
+
+  GNUNET_CONTAINER_DLL_insert (handle->pending_head, handle->pending_tail,
+                               pending);
+  
+  process_pending_messages (handle);
+  return qe;
+}
 
 
 /* end of gns_api.c */

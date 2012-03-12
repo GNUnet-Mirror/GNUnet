@@ -81,7 +81,7 @@ struct GNUNET_GNS_ClientLookupResultMessage
 };
 
 /**
- * Message from client to GNS service to lookup records.
+ * Message from client to GNS service to shorten names.
  */
 struct GNUNET_GNS_ClientShortenMessage
 {
@@ -115,6 +115,44 @@ struct GNUNET_GNS_ClientShortenResultMessage
   uint32_t id GNUNET_PACKED;
 
   /* followed by the shortened name or '\0' for no result*/
+
+};
+
+/**
+ * Message from client to GNS service to lookup an authority of a name.
+ */
+struct GNUNET_GNS_ClientGetAuthMessage
+{
+  /**
+    * Header of type GNUNET_MESSAGE_TYPE_GNS_CLIENT_GET_AUTH
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Unique identifier for this request
+   */
+  uint32_t id GNUNET_PACKED;
+
+  /* Followed by the name to get authority for */
+};
+
+
+/**
+ * Message from GNS service to client: authority result.
+ */
+struct GNUNET_GNS_ClientGetAuthResultMessage
+{
+  /**
+    * Header of type GNUNET_MESSAGE_TYPE_GNS_CLIENT_GET_AUTH_RESULT
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Unique identifier for this request (for key collisions).
+   */
+  uint32_t id GNUNET_PACKED;
+
+  /* followed by the authority part of the name or '\0' for no result*/
 
 };
 GNUNET_NETWORK_STRUCT_END

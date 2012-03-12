@@ -44,11 +44,13 @@
 #define DHT_GNS_REPLICATION_LEVEL 5
 #define MAX_DNS_LABEL_LENGTH 63
 
-/* Ignore for now not used anyway and probably never will */
+/* FIXME move to proper header in include */
 #define GNUNET_MESSAGE_TYPE_GNS_LOOKUP 23
 #define GNUNET_MESSAGE_TYPE_GNS_LOOKUP_RESULT 24
 #define GNUNET_MESSAGE_TYPE_GNS_SHORTEN 25
 #define GNUNET_MESSAGE_TYPE_GNS_SHORTEN_RESULT 26
+#define GNUNET_MESSAGE_TYPE_GNS_GET_AUTH 27
+#define GNUNET_MESSAGE_TYPE_GNS_GET_AUTH_RESULT 28
 
 
 struct AuthorityChain
@@ -176,6 +178,24 @@ struct ClientShortenHandle
   char* name;
 
 };
+
+
+/**
+ * Handle to a get auhtority operation from api
+ */
+struct ClientGetAuthHandle
+{
+  /* the requesting client that */
+  struct GNUNET_SERVER_Client *client;
+
+  /* request id */
+  uint64_t unique_id;
+
+  /* name to lookup authority */
+  char* name;
+
+};
+
 
 /**
  * Handle to a lookup operation from api
@@ -2097,10 +2117,8 @@ handle_shorten_delegation_result(void* cls,
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                "Our zone: Sending name as shorten result %s\n", rh->name);
     
-    send_shorten_response(rh->name, csh); //FIXME +.gnunet!
+    send_shorten_response(result, csh); //FIXME +.gnunet!
     free_resolver_handle(rh);
-    GNUNET_free(csh->name);
-    GNUNET_free(csh);
     GNUNET_free(result);
     return;
   }
@@ -2145,9 +2163,9 @@ shorten_name(char* name, struct ClientShortenHandle* csh)
 
   csh->name = GNUNET_malloc(strlen(name)
                             - strlen(gnunet_tld) + 1);
-  memset(rh->name, 0,
+  memset(csh->name, 0,
          strlen(name)-strlen(gnunet_tld) + 1);
-  memcpy(rh->name, name,
+  memcpy(csh->name, name,
          strlen(name)-strlen(gnunet_tld));
 
   rh->authority_name = GNUNET_malloc(sizeof(char)*MAX_DNS_LABEL_LENGTH);
@@ -2247,6 +2265,211 @@ static void handle_shorten(void *cls,
   shorten_name((char*)&sh_msg[1], csh);
 
 }
+
+
+/**
+ * Send get authority response back to client
+ * 
+ * @param name the shortened name result or NULL if cannot be shortened
+ * @param cah the handle to the get authority request
+ */
+static void
+send_get_auth_response(const char* name, struct ClientGetAuthHandle *cah)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message with %s\n",
+              "GET_AUTH_RESULT", name);
+  struct GNUNET_GNS_ClientGetAuthResultMessage *rmsg;
+  
+  if (name == NULL)
+  {
+    name = "";
+  }
+
+  rmsg = GNUNET_malloc(sizeof(struct GNUNET_GNS_ClientGetAuthResultMessage)
+                       + strlen(name) + 1);
+  
+  rmsg->id = cah->unique_id;
+  rmsg->header.type = htons(GNUNET_MESSAGE_TYPE_GNS_GET_AUTH_RESULT);
+  rmsg->header.size = 
+    htons(sizeof(struct GNUNET_GNS_ClientGetAuthResultMessage) +
+          strlen(name) + 1);
+
+  strcpy((char*)&rmsg[1], name);
+
+  GNUNET_SERVER_notification_context_unicast (nc, cah->client,
+                              (const struct GNUNET_MessageHeader *) rmsg,
+                              GNUNET_NO);
+  GNUNET_SERVER_receive_done (cah->client, GNUNET_OK);
+  
+  GNUNET_free(rmsg);
+  GNUNET_free(cah->name);
+  GNUNET_free(cah);
+
+}
+
+/**
+ * Process result from namestore delegation lookup
+ * for get authority operation
+ *
+ * @param cls the client get auth handle
+ * @param rh the resolver handle
+ * @param rd_count number of results (0)
+ * @param rd data (NULL)
+ */
+void
+handle_get_auth_delegation_result(void* cls,
+                      struct GNUNET_GNS_ResolverHandle *rh,
+                      uint32_t rd_count,
+                      const struct GNUNET_NAMESTORE_RecordData *rd)
+{
+  struct ClientGetAuthHandle* cah = (struct ClientGetAuthHandle*) cls;
+  struct AuthorityChain *auth_chain;
+  char* result;
+  size_t answer_len;
+  
+  /**
+   * At this point rh->name contains the part of the name
+   * that we do not have a PKEY in our namestore to resolve.
+   * The authority chain in the resolver handle is now
+   * useful to backtrack if needed
+   */
+  
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "PKEY resolved as far as possible in ns up to %s!\n", rh->name);
+
+  if (is_canonical(rh->name))
+  {
+    /**
+     * We successfully resolved the authority in the ns
+     * FIXME for our purposes this is fine
+     * but maybe we want to have an api that also looks
+     * into the dht (i.e. option in message)
+     **/
+    if (strlen(rh->name) > strlen(cah->name))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                 "Record name longer than original lookup name... odd!\n");
+      //FIXME to sth here
+    }
+
+
+    answer_len = strlen(cah->name) - strlen(rh->name);
+    result = GNUNET_malloc(answer_len);
+    memset(result, 0, answer_len);
+    strcpy(result, cah->name + strlen(rh->name) + 1);
+
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "Our zone: Sending authority result %s\n", result);
+    
+    send_get_auth_response(result, cah);
+    free_resolver_handle(rh);
+    GNUNET_free(result);
+    return;
+  }
+  
+  auth_chain = rh->authority_chain_head;
+  /* backtrack authorities for pseu */
+  GNUNET_NAMESTORE_zone_to_name (namestore_handle,
+                                 &zone_hash, //ours
+                                 &auth_chain->zone,
+                                 &handle_shorten_zone_to_name,
+                                 rh);
+
+}
+
+
+/**
+ * Get authority for a given name
+ *
+ * @param name the name to shorten
+ * @param csh the shorten handle of the request
+ */
+static void
+get_authority(char* name, struct ClientGetAuthHandle* cah)
+{
+
+  struct GNUNET_GNS_ResolverHandle *rh;
+  
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Starting authority resolution for %s (type=%d)!\n",
+              name, GNUNET_GNS_RECORD_PKEY);
+  
+  rh = GNUNET_malloc(sizeof (struct GNUNET_GNS_ResolverHandle));
+  rh->authority = zone_hash;
+  
+  rh->name = GNUNET_malloc(strlen(name)
+                              - strlen(gnunet_tld) + 1);
+  memset(rh->name, 0,
+         strlen(name)-strlen(gnunet_tld) + 1);
+  memcpy(rh->name, name,
+         strlen(name)-strlen(gnunet_tld));
+
+  cah->name = GNUNET_malloc(strlen(name)
+                            - strlen(gnunet_tld) + 1);
+  memset(cah->name, 0,
+         strlen(name)-strlen(gnunet_tld) + 1);
+  memcpy(cah->name, name,
+         strlen(name)-strlen(gnunet_tld));
+
+  rh->authority_name = GNUNET_malloc(sizeof(char)*MAX_DNS_LABEL_LENGTH);
+
+  rh->authority_chain_head = GNUNET_malloc(sizeof(struct AuthorityChain));
+  rh->authority_chain_tail = rh->authority_chain_head;
+  rh->authority_chain_head->zone = zone_hash;
+  rh->proc = &handle_get_auth_delegation_result;
+  rh->proc_cls = (void*)cah;
+
+  /* Start delegation resolution in our namestore */
+  resolve_delegation_ns(rh);
+
+}
+
+
+/**
+ * Handle a get authority message from the api
+ *
+ * @param cls the closure
+ * @param client the client
+ * @param message the message
+ */
+static void handle_get_authority(void *cls,
+                           struct GNUNET_SERVER_Client * client,
+                           const struct GNUNET_MessageHeader * message)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "GET_AUTH");
+
+  size_t msg_size = 0;
+  struct ClientGetAuthHandle *cah;
+
+  if (ntohs (message->size) < sizeof (struct GNUNET_GNS_ClientGetAuthMessage))
+  {
+    GNUNET_break_op (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
+
+  GNUNET_SERVER_notification_context_add (nc, client);
+
+  struct GNUNET_GNS_ClientGetAuthMessage *sh_msg =
+    (struct GNUNET_GNS_ClientGetAuthMessage *) message;
+  
+  msg_size = ntohs(message->size);
+
+  if (msg_size > GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  {
+    GNUNET_break_op (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
+
+  cah = GNUNET_malloc(sizeof(struct ClientGetAuthHandle));
+  cah->client = client;
+  cah->unique_id = sh_msg->id;
+  
+  get_authority((char*)&sh_msg[1], cah);
+
+}
+
 
 /**
  * Reply to client with the result from our lookup.
@@ -2390,6 +2613,8 @@ handle_lookup(void *cls,
   lookup_name((char*)&sh_msg[1], clh);
 }
 
+
+
 /**
  * Process GNS requests.
  *
@@ -2409,7 +2634,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
     {&handle_shorten, NULL, GNUNET_MESSAGE_TYPE_GNS_SHORTEN, 0},
-    {&handle_lookup, NULL, GNUNET_MESSAGE_TYPE_GNS_LOOKUP, 0}
+    {&handle_lookup, NULL, GNUNET_MESSAGE_TYPE_GNS_LOOKUP, 0},
+    {&handle_get_authority, NULL, GNUNET_MESSAGE_TYPE_GNS_GET_AUTH, 0}
   };
 
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (c, "gns",
