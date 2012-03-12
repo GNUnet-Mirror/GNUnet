@@ -755,7 +755,7 @@ GNUNET_GNS_get_authority (struct GNUNET_GNS_Handle *handle,
 
   qe = GNUNET_malloc(sizeof (struct GNUNET_GNS_QueueEntry));
   qe->gns_handle = handle;
-  qe->shorten_proc = proc;
+  qe->auth_proc = proc;
   qe->proc_cls = proc_cls;
   qe->r_id = get_request_id(handle);
   GNUNET_CONTAINER_DLL_insert_tail(handle->get_auth_head,

@@ -28,6 +28,7 @@ bin_PROGRAMS = \
 
 check_PROGRAMS = \
   test_gns_simple_shorten \
+  test_gns_simple_get_authority \
   test_gns_simple_lookup \
   test_gns_simple_delegated_lookup
 
@@ -96,14 +97,26 @@ test_gns_simple_shorten_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la \
   $(top_builddir)/src/gns/libgnunetgns.la \
-  $(top_builddir)/src/dht/libgnunetdht.la \
   $(top_builddir)/src/testing/libgnunettesting.la
 test_gns_simple_shorten_DEPENDENCIES = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la \
   $(top_builddir)/src/gns/libgnunetgns.la \
-  $(top_builddir)/src/dht/libgnunetdht.la \
   $(top_builddir)/src/testing/libgnunettesting.la
+
+test_gns_simple_get_authority_SOURCES = \
+  test_gns_simple_get_authority.c
+test_gns_simple_get_authority_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/namestore/libgnunetnamestore.la \
+  $(top_builddir)/src/gns/libgnunetgns.la \
+  $(top_builddir)/src/testing/libgnunettesting.la
+test_gns_simple_get_authority_DEPENDENCIES = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/namestore/libgnunetnamestore.la \
+  $(top_builddir)/src/gns/libgnunetgns.la \
+  $(top_builddir)/src/testing/libgnunettesting.la
+
 
 gnunet_gns_SOURCES = \
  gnunet-gns.c

@@ -2301,9 +2301,13 @@ send_get_auth_response(const char* name, struct ClientGetAuthHandle *cah)
                               GNUNET_NO);
   GNUNET_SERVER_receive_done (cah->client, GNUNET_OK);
   
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Cleaning up handles...\n");
+
   GNUNET_free(rmsg);
   GNUNET_free(cah->name);
   GNUNET_free(cah);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "done.\n");
 
 }
 
@@ -2353,13 +2357,14 @@ handle_get_auth_delegation_result(void* cls,
     }
 
 
-    answer_len = strlen(cah->name) - strlen(rh->name);
+    answer_len = strlen(cah->name) - strlen(rh->name) + strlen(gnunet_tld) + 1;
     result = GNUNET_malloc(answer_len);
     memset(result, 0, answer_len);
     strcpy(result, cah->name + strlen(rh->name) + 1);
+    strcpy(result+strlen(result), gnunet_tld);
 
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "Our zone: Sending authority result %s\n", result);
+               "Got authority result %s\n", result);
     
     send_get_auth_response(result, cah);
     free_resolver_handle(rh);
