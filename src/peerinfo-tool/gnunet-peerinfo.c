@@ -33,6 +33,10 @@
 #include "gnunet_transport_plugin.h"
 #include "gnunet-peerinfo_plugins.h"
 
+/**
+ * Prefix that every HELLO URI must start with.
+ */
+#define HELLO_URI_PREFIX "gnunet://hello/"
 
 /**
  * Structure we use to collect printable address information.
@@ -119,24 +123,20 @@ struct GetUriContext
 
 
 /**
- * FIXME.
+ * Context for 'add_address_to_hello'.
  */
 struct GNUNET_PEERINFO_HelloAddressParsingContext
 {
   /**
-   * FIXME.
+   * Position in the URI with the next address to parse.
    */
-  char *tmp;
-  
-  /**
-   * FIXME.
-   */
-  char *pos;
+  const char *pos;
 
   /**
-   * FIXME.
+   * Set to GNUNET_SYSERR to indicate parse errors.
    */
-  size_t tmp_len;
+  int ret;
+
 };
 
 
@@ -408,6 +408,7 @@ compose_uri (void *cls, const struct GNUNET_HELLO_Address *address,
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
   const char *addr;
   char *ret;
+  char tbuf[16];
   struct tm *t;
   time_t seconds;
 
@@ -429,15 +430,13 @@ compose_uri (void *cls, const struct GNUNET_HELLO_Address *address,
     return GNUNET_OK;
   seconds = expiration.abs_value / 1000;
   t = gmtime (&seconds);
+  GNUNET_assert (0 != strftime (tbuf, sizeof (tbuf),
+				"%Y%m%d%H%M%S",
+				t));
   GNUNET_asprintf (&ret,
-		   "%s!%04u%02u%02u%02u%02u%02u!%s!%s",
+		   "%s!%s!%s!%s",
 		   guc->uri,
-		   t->tm_year,
-		   t->tm_mon, 
-		   t->tm_mday, 
-		   t->tm_hour,
-		   t->tm_min,
-		   t->tm_sec,
+		   tbuf,
 		   address->transport_name, 
 		   addr);
   GNUNET_free (guc->uri);
@@ -463,230 +462,180 @@ print_my_uri (void *cls, const struct GNUNET_PeerIdentity *peer,
 
   if (peer == NULL)
   {
+    pic = NULL;
     if (err_msg != NULL)
       FPRINTF (stderr,
 	       _("Error in communication with PEERINFO service: %s\n"), 
 	       err_msg);
+    GNUNET_free_non_null (guc->uri);
+    GNUNET_free (guc);  
+    tt = GNUNET_SCHEDULER_add_now (&state_machine, NULL);
+    return;
   } 
-  else
-  {
-    if (NULL != hello)
-      GNUNET_HELLO_iterate_addresses (hello, GNUNET_NO, &compose_uri, guc);   
-    printf ("%s\n", (const char *) guc->uri);
-  }
-  GNUNET_free (guc->uri);
-  GNUNET_free (guc);  
-  tt = GNUNET_SCHEDULER_add_now (&state_machine, NULL);
+  if (NULL != hello)
+    GNUNET_HELLO_iterate_addresses (hello, GNUNET_NO, &compose_uri, guc);   
+  printf ("%s\n", (const char *) guc->uri);
 }
 
 
 /* ************************* import HELLO by URI ********************* */
 
 
+/**
+ * We're building a HELLO.  Parse the next address from the
+ * parsing context and append it.
+ *
+ * @param cls the 'struct GNUNET_PEERINFO_HelloAddressParsingContext'
+ * @param max number of bytes available for HELLO construction
+ * @param buffer where to copy the next address (in binary format)
+ * @return number of bytes added to buffer
+ */ 
 static size_t
-add_addr_to_hello (void *cls, size_t max, void *buffer)
+add_address_to_hello (void *cls, size_t max, void *buffer)
 {
+  struct GNUNET_PEERINFO_HelloAddressParsingContext *ctx = cls;
+  const char *tname;
+  const char *address;
+  const char *end;
+  char *plugin_name;
   struct tm expiration_time;
-  char buf[5];
-  long l;
   time_t expiration_seconds;
   struct GNUNET_TIME_Absolute expire;
-
-  struct GNUNET_PEERINFO_HelloAddressParsingContext *ctx = cls;
-  char *exp1, *exp2;
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
   void *addr;
   size_t addr_len;
+  struct GNUNET_HELLO_Address haddr;
+  size_t ret;
 
-  /* End of string */
-  if (ctx->pos - ctx->tmp == ctx->tmp_len)
+  if (NULL == ctx->pos)
     return 0;
-
-  /* Parsed past the end of string, OR wrong format */
-  if ((ctx->pos - ctx->tmp > ctx->tmp_len) || ctx->pos[0] != '!')
+  if ('!' != ctx->pos[0])
   {
-    GNUNET_break (0);
+    ctx->ret = GNUNET_SYSERR;
     return 0;
   }
-
-  /* Not enough bytes (3 for three '!', 14 for expiration date, and
-   * at least 1 for type and 1 for address (1-byte long address is a joke,
-   * but it is not completely unrealistic. Zero-length address is.
-   */
-  if (ctx->tmp_len - (ctx->pos - ctx->tmp) < 1 /*!*/ * 3 + 14 + /* at least */ 2)
+  tname = strptime (ctx->pos,
+		    "%Y%m%d%H%M%S",
+		    &expiration_time);
+  if (NULL == tname)
   {
-    GNUNET_break (0);
+    ctx->ret = GNUNET_SYSERR;
     return 0;
   }
-  /* Go past the first '!', now we're on expiration date */
-  ctx->pos += 1;
-  /* Its length is known, so check for the next '!' right away */
-  if (ctx->pos[14] != '!')
-  {
-    GNUNET_break (0);
-    return 0;
-  }
-
-  memset (&expiration_time, 0, sizeof (struct tm));
-
-  /* This is FAR more strict than strptime(ctx->pos, "%Y%m%d%H%M%S", ...); */
-  /* FIXME: make it a separate function, since expiration is specified to every address */
-#define GETNDIGITS(n,cond) \
-  strncpy (buf, &ctx->pos[0], n); \
-  buf[n] = '\0'; \
-  errno = 0; \
-  l = strtol (buf, NULL, 10); \
-  if (errno != 0 || cond) \
-  { \
-    GNUNET_break (0); \
-    return 0; \
-  } \
-  ctx->pos += n;
-
-  GETNDIGITS (4, l < 1900)
-  expiration_time.tm_year = l - 1900;
-
-  GETNDIGITS (2, l < 1 || l > 12)
-  expiration_time.tm_mon = l;
-
-  GETNDIGITS (2, l < 1 || l > 31)
-  expiration_time.tm_mday = l;
-
-  GETNDIGITS (2, l < 0 || l > 23)
-  expiration_time.tm_hour = l;
-
-  GETNDIGITS (2, l < 0 || l > 59)
-  expiration_time.tm_min = l;
-
-  /* 60 - with a leap second */
-  GETNDIGITS (2, l < 0 || l > 60)
-  expiration_time.tm_sec = l;
-
-  expiration_time.tm_isdst = -1;
-
-#undef GETNDIGITS
-
   expiration_seconds = mktime (&expiration_time);
   if (expiration_seconds == (time_t) -1)
   {
-    GNUNET_break (0);
+    ctx->ret = GNUNET_SYSERR;
     return 0;
   }
   expire.abs_value = expiration_seconds * 1000;
-
-  /* Now we're at '!', advance to the transport type */
-  ctx->pos += 1;
-
-  /* Find the next '!' that separates transport type from
-   * the address
-   */
-  exp1 = strstr (ctx->pos, "!");
-  if (exp1 == NULL)
+  if ('!' != tname[0])
   {
-    GNUNET_break (0);
+    ctx->ret = GNUNET_SYSERR;
     return 0;
   }
-  /* We need it 0-terminated */
-  exp1[0] = '\0';
-  /* Find the '!' that separates address from the next record.
-   * It might not be there, if this is the last record.
-   */
-  exp2 = strstr (&exp1[1], "!");
-  if (exp2 == NULL)
-    exp2 = &ctx->tmp[ctx->tmp_len];
-
-  papi = GPI_plugins_find (ctx->pos);
-  if (papi == NULL)
+  tname++;
+  address = strchr (tname, (int) '!');
+  if (NULL == address)
+  {
+    ctx->ret = GNUNET_SYSERR;
+    return 0;
+  }
+  address++;
+  end = strchr (address, (int) '!');
+  if (NULL == end)
+  {
+    ctx->pos = NULL;
+    end = address + strlen (address);
+  }
+  else
+  {
+    ctx->pos = end;
+  }
+  plugin_name = GNUNET_strndup (tname, address - tname);  
+  papi = GPI_plugins_find (plugin_name);
+  if (NULL == papi)
   {
     /* Not an error - we might just not have the right plugin.
      * Skip this part, advance to the next one and recurse.
      * But only if this is not the end of string.
      */
-    ctx->pos = exp2 + 1;
-    if (ctx->pos - ctx->tmp >= ctx->tmp_len)
-      return 0;
-    return add_addr_to_hello (cls, max, buffer);
+    GNUNET_free (plugin_name);
+    return 0;
   }
   if (NULL == papi->string_to_address)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		_("Plugin `%s' does not support URIs yet\n"),
 		ctx->pos);
-    ctx->pos = exp2 + 1;
-    if (ctx->pos - ctx->tmp >= ctx->tmp_len)
-      return 0;
-    return add_addr_to_hello (cls, max, buffer);
+    GNUNET_free (plugin_name);
+    return 0;
   }
-  if ((papi->string_to_address != NULL) && (GNUNET_OK ==
-      papi->string_to_address (papi->cls, &exp1[1], exp2 - &exp1[1], &addr,
-      &addr_len)))
+  if (GNUNET_OK !=
+      papi->string_to_address (papi->cls, 
+			       address,
+			       end - address,
+			       &addr,
+			       &addr_len))
   {
-    struct GNUNET_HELLO_Address address;
-    int ret;
-
-    /* address.peer is unset - not used by add_address() */
-    address.address_length = addr_len;
-    address.address = addr;
-    address.transport_name = ctx->pos;
-    ret = GNUNET_HELLO_add_address (&address, expire, buffer, max);
-    GNUNET_free (addr);
-    ctx->pos = exp2;
-    return ret;
+    GNUNET_free (plugin_name);  
+    return GNUNET_SYSERR;
   }
-  return 0;
+  /* address.peer is unset - not used by add_address() */
+  haddr.address_length = addr_len;
+  haddr.address = addr;
+  haddr.transport_name = plugin_name;
+  ret = GNUNET_HELLO_add_address (&haddr, expire, buffer, max);
+  GNUNET_free (addr);
+  GNUNET_free (plugin_name);
+  return ret;
 }
 
 
-static void
-parse_hello (const struct GNUNET_CONFIGURATION_Handle *c,
-             const char *put_uri)
+/**
+ * Parse the PUT URI given at the command line and add it to our peerinfo 
+ * database.
+ *
+ * @param put_uri URI string to parse
+ * @return GNUNET_OK on success, GNUNET_SYSERR if the URI was invalid, GNUNET_NO on other errors
+ */
+static int
+parse_hello_uri (const char *put_uri)
 {
-  int r;
-  char *scheme_part = NULL;
-  char *path_part = NULL;
-  char *exc;
-  int std_result;
+  const char *pks;
+  const char *exc;
   struct GNUNET_HELLO_Message *hello;
   struct GNUNET_PEERINFO_HelloAddressParsingContext ctx;
 
-  r = GNUNET_STRINGS_parse_uri (put_uri, &scheme_part, (const char **) &path_part);
-  if (r == GNUNET_NO)
-    return;
-  if (scheme_part == NULL || strcmp (scheme_part, "gnunet://") != 0)
-  {
-    GNUNET_free_non_null (scheme_part);
-    return;
-  }
-  GNUNET_free (scheme_part);
-
-  if (strncmp (path_part, "hello/", 6) != 0)
-    return;
-
-  path_part = &path_part[6];
-  ctx.tmp = GNUNET_strdup (path_part);
-  ctx.tmp_len = strlen (path_part);
-  exc = strstr (ctx.tmp, "!");
-  if (exc == NULL)
-    exc = ctx.tmp + ctx.tmp_len;
+  if (0 != strncmp (put_uri,
+		    HELLO_URI_PREFIX,
+		    strlen (HELLO_URI_PREFIX)))
+    return GNUNET_SYSERR;
+  pks = &put_uri[strlen (HELLO_URI_PREFIX)];
+  exc = strstr (pks, "!");
+  if (GNUNET_OK != GNUNET_STRINGS_string_to_data (pks,
+						  (NULL == exc) ? strlen (pks) : (exc - pks),
+						  (unsigned char *) &my_public_key, 
+						  sizeof (my_public_key)))
+    return GNUNET_SYSERR;
   ctx.pos = exc;
+  ctx.ret = GNUNET_OK;
+  hello = GNUNET_HELLO_create (&my_public_key, &add_address_to_hello, &ctx);
 
-  std_result = GNUNET_STRINGS_string_to_data (ctx.tmp, exc - ctx.tmp,
-      (unsigned char *) &my_public_key, sizeof (my_public_key));
-  if (std_result != GNUNET_OK)
+  if (NULL != hello)
   {
-    GNUNET_free (ctx.tmp);
-    return;
+    /* WARNING: this adds the address from URI WITHOUT verification! */
+    if (GNUNET_OK == ctx.ret)
+      GNUNET_PEERINFO_add_peer (peerinfo, hello);
+    GNUNET_free (hello);
   }
 
-  hello = GNUNET_HELLO_create (&my_public_key, add_addr_to_hello, &ctx);
-  GNUNET_free (ctx.tmp);
-
-  /* WARNING: this adds the address from URI WITHOUT verification! */
-  GNUNET_PEERINFO_add_peer (peerinfo, hello);
-  GNUNET_free (hello);
   /* wait 1s to give peerinfo operation a chance to succeed */
+  /* FIXME: current peerinfo API sucks to require this; not to mention
+     that we get no feedback to determine if the operation actually succeeded */
   tt = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
 				     &state_machine, NULL);
+  return ctx.ret;
 }
 
 
@@ -792,8 +741,6 @@ run (void *cls, char *const *args, const char *cfgfile,
     }
     GNUNET_free (fn);
     GNUNET_CRYPTO_rsa_key_get_public (priv, &my_public_key);
-    fprintf (stderr, "PK: `%s\n", 
-	     GNUNET_CRYPTO_rsa_public_key_to_string (&my_public_key));
     GNUNET_CRYPTO_rsa_key_free (priv);
     GNUNET_CRYPTO_hash (&my_public_key, sizeof (my_public_key), &my_peer_identity.hashPubKey);
   }
@@ -821,7 +768,10 @@ state_machine (void *cls,
   if (NULL != put_uri)
   {
     GPI_plugins_load (cfg);
-    parse_hello (cfg, put_uri);
+    if (GNUNET_SYSERR == parse_hello_uri (put_uri))
+      fprintf (stderr,
+	       _("Invalid URI `%s'\n"),
+	       put_uri);    
     put_uri = NULL;
     return;
   }
@@ -853,7 +803,8 @@ state_machine (void *cls,
     guc = GNUNET_malloc (sizeof (struct GetUriContext));
     pkey = GNUNET_CRYPTO_rsa_public_key_to_string (&my_public_key);
     GNUNET_asprintf (&guc->uri,
-		     "gnunet://hello/%s",
+		     "%s%s",
+		     HELLO_URI_PREFIX,
 		     pkey);
     GNUNET_free (pkey);
     GPI_plugins_load (cfg);
