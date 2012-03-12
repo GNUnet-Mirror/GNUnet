@@ -83,6 +83,8 @@ static int ok;
 
 static struct GNUNET_NAMESTORE_Handle *namestore_handle;
 
+static struct GNUNET_GNS_Handle *gns_handle;
+
 static struct GNUNET_DHT_Handle *dht_handle;
 
 const struct GNUNET_CONFIGURATION_Handle *cfg;
@@ -108,42 +110,39 @@ shutdown_callback (void *cls, const char *emsg)
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "done(ret=%d)!\n", ok);
 }
 
-/**
- * Function scheduled to be run on the successful start of services
- * tries to look up the dns record for TEST_DOMAIN
- */
+
 static void
-finish_testing (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+on_lookup_result(void *cls, uint32_t rd_count,
+                 const struct GNUNET_NAMESTORE_RecordData *rd)
 {
-  struct hostent *he;
   struct in_addr a;
+  int i;
   char* addr;
- 
-  GNUNET_NAMESTORE_disconnect(namestore_handle, GNUNET_YES);
-  GNUNET_DHT_disconnect(dht_handle);
-
-  he = gethostbyname (TEST_DOMAIN);
-
-  if (!he)
+  
+  if (rd_count == 0)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "gethostbyname failed, rp_filtering?\n");
+                "Lookup failed, rp_filtering?\n");
     ok = 2;
   }
   else
   {
     ok = 1;
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "name: %s\n", he->h_name);
-    while (*he->h_addr_list)
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "name: %s\n", (char*)cls);
+    for (i=0; i<rd_count; i++)
     {
-      memcpy(&a, *he->h_addr_list++, sizeof(a));
-      addr = inet_ntoa(a);
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "address: %s\n", addr);
-      if (0 == strcmp(addr, TEST_IP))
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "type: %d\n", rd[i].record_type);
+      if (rd[i].record_type == GNUNET_GNS_RECORD_TYPE_A)
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+        memcpy(&a, rd[i].data, sizeof(a));
+        addr = inet_ntoa(a);
+        GNUNET_log (GNUNET_ERROR_TYPE_INFO, "address: %s\n", addr);
+        if (0 == strcmp(addr, TEST_IP))
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                     "%s correctly resolved to %s!\n", TEST_DOMAIN, addr);
-        ok = 0;
+          ok = 0;
+        }
       }
       else
       {
@@ -154,6 +153,28 @@ finish_testing (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Shutting down peer1!\n");
   GNUNET_TESTING_daemon_stop (d1, TIMEOUT, &shutdown_callback, NULL,
                               GNUNET_YES, GNUNET_NO);
+}
+
+
+/**
+ * Function scheduled to be run on the successful start of services
+ * tries to look up the dns record for TEST_DOMAIN
+ */
+static void
+commence_testing (void *cls, int32_t success, const char *emsg)
+{
+  GNUNET_NAMESTORE_disconnect(namestore_handle, GNUNET_YES);
+
+  gns_handle = GNUNET_GNS_connect(cfg);
+
+  if (NULL == gns_handle)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Failed to connect to GNS!\n");
+  }
+
+  GNUNET_GNS_lookup(gns_handle, TEST_DOMAIN, GNUNET_GNS_RECORD_TYPE_A,
+                    &on_lookup_result, TEST_DOMAIN);
 }
 
 /**
@@ -214,7 +235,7 @@ put_dht(void *cls, int32_t success, const char *emsg)
   nrb->public_key = bob_pkey;
   nrb->rd_count = htonl(1);
   memset(&nrb[1], 0, strlen(TEST_RECORD_NAME) + 1);
-  memcpy(&nrb[1], TEST_RECORD_NAME, strlen(TEST_RECORD_NAME));
+  strcpy(&nrb[1], TEST_RECORD_NAME);
   nrb_data = (char*)&nrb[1];
   nrb_data += strlen(TEST_RECORD_NAME) + 1;
 
@@ -247,7 +268,7 @@ put_dht(void *cls, int32_t success, const char *emsg)
                   NULL,
                   NULL);
   GNUNET_free (nrb);
-  GNUNET_SCHEDULER_add_delayed(TIMEOUT, &finish_testing, NULL);
+  GNUNET_SCHEDULER_add_delayed(TIMEOUT, &commence_testing, NULL);
 }
 
 static void
@@ -345,7 +366,7 @@ check ()
   int ret;
 
   /* Arguments for GNUNET_PROGRAM_run */
-  char *const argv[] = { "test-gns-simple-lookup", /* Name to give running binary */
+  char *const argv[] = { "test-gns-dht-delegated-lookup", /* Name to give running binary */
     "-c",
     "test_gns_simple_lookup.conf",       /* Config file to use */
 #if VERBOSE
@@ -359,12 +380,12 @@ check ()
   /* Run the run function as a new program */
   ret =
       GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv,
-                          "test-gns-simple-lookup", "nohelp", options, &run,
+                          "test-gns-dht-delegated-lookup", "nohelp", options, &run,
                           &ok);
   if (ret != GNUNET_OK)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "`test-gns-simple-lookup': Failed with error code %d\n", ret);
+                "`test-gns-dht-delegated-lookup': Failed with error code %d\n", ret);
   }
   return ok;
 }

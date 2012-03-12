@@ -75,6 +75,9 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
   uint32_t record_xquery;
   unsigned int record_match;
 
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "BLOCK_TEST\n");
+
   if (type != GNUNET_BLOCK_TYPE_GNS_NAMERECORD)
     return GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED;
   if (reply_block_size == 0)
@@ -90,6 +93,15 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
 
   GNUNET_CRYPTO_hash_xor(&pkey_hash, &name_hash, &query_key);
   
+  struct GNUNET_CRYPTO_HashAsciiEncoded xor_exp;
+  struct GNUNET_CRYPTO_HashAsciiEncoded xor_got;
+  GNUNET_CRYPTO_hash_to_enc (&query_key, &xor_exp);
+  GNUNET_CRYPTO_hash_to_enc (query, &xor_got);
+
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "BLOCK_TEST for %s got %s expected %s\n",
+             name, (char*) &xor_got, (char*) &xor_exp);
+
   /* Check query key against public key */
   if (0 != GNUNET_CRYPTO_hash_cmp(query, &query_key))
     return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
@@ -124,6 +136,9 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
     {
       
       exp = GNUNET_TIME_absolute_min (exp, rd[i].expiration);
+      
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                 "Got record of size %d\n", rd[i].data_size);
 
       if ((record_xquery != 0)
           && (rd[i].record_type == record_xquery))
@@ -131,6 +146,10 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
         record_match++;
       }
     }
+    
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "Verifying signature of %d records for name %s\n",
+               rd_count, name);
 
     if (GNUNET_OK != GNUNET_NAMESTORE_verify_signature (&nrb->public_key,
                                                         exp,
@@ -144,9 +163,12 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
     }
   }
   
-  //No record matches query
   if ((record_xquery != 0) && (record_match == 0))
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "No record matches query!\n");
     return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
+  }
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Records match\n");
   

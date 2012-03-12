@@ -636,7 +636,7 @@ GNUNET_GNS_lookup (struct GNUNET_GNS_Handle *handle,
   }
 
   msize = sizeof (struct GNUNET_GNS_ClientLookupMessage) + strlen(name) + 1;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Trying to shorten %s in GNS\n", name);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Trying to lookup %s in GNS\n", name);
 
   qe = GNUNET_malloc(sizeof (struct GNUNET_GNS_QueueEntry));
   qe->gns_handle = handle;

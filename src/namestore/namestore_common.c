@@ -86,7 +86,7 @@ GNUNET_NAMESTORE_records_get_size (unsigned int rd_count,
   ret = sizeof (struct NetworkRecord) * rd_count;
   for (i=0;i<rd_count;i++)
   {
-    GNUNET_assert (ret + rd[i].data_size >= ret);
+    GNUNET_assert ((ret + rd[i].data_size) >= ret);
     ret += rd[i].data_size;
   }
   return ret;  

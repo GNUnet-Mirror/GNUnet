@@ -863,6 +863,8 @@ process_delegation_result_dht(void* cls,
   int rd_size;
   GNUNET_HashCode zone, name_hash;
   
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Got DHT result\n");
+
   if (data == NULL)
     return;
   
