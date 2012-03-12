@@ -102,7 +102,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   signature = GNUNET_NAMESTORE_create_signature (privkey, expire, s_name, s_rd, RECORDS);
   GNUNET_break (signature != NULL);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "FYI: The next warning is intended!\n");
+  GNUNET_log_skip(1, GNUNET_NO);
   res_w = GNUNET_NAMESTORE_verify_signature(&pubkey, expire, s_name, RECORDS - 1, s_rd, signature);
   GNUNET_break (res_w == GNUNET_SYSERR);
 
