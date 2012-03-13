@@ -19,6 +19,9 @@ libgnunethello_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) \
   -version-info 0:0:0
 
+noinst_PROGRAMS = \
+ gnunet-hello
+
 check_PROGRAMS = \
  test_hello
 
@@ -29,6 +32,13 @@ endif
 test_hello_SOURCES = \
  test_hello.c
 test_hello_LDADD = \
+ $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/util/libgnunetutil.la  
+
+
+gnunet_hello_SOURCES = \
+ gnunet-hello.c
+gnunet_hello_LDADD = \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la  
 
