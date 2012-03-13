@@ -445,7 +445,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   /* load privat key */
   char *hostkey_file;
-  GNUNET_asprintf(&hostkey_file,"zonefiles%s%s",DIR_SEPARATOR_STR, "4UCICULTINKC87UO4326KEEDQ9MTEP2AJT88MJFVGTGNK12QNGMQI2S41VI07UUU6EO19BTB06PDL0HE6VP1OM50HOJEI75RHP4JP80.zone");
+  GNUNET_asprintf(&hostkey_file,"zonefiles%s%s",DIR_SEPARATOR_STR, "4UCICULTINKC87UO4326KEEDQ9MTEP2AJT88MJFVGTGNK12QNGMQI2S41VI07UUU6EO19BTB06PDL0HE6VP1OM50HOJEI75RHP4JP80.zkey");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Using zonekey file `%s' \n", hostkey_file);
   privkey = GNUNET_CRYPTO_rsa_key_create_from_file(hostkey_file);
   GNUNET_free (hostkey_file);

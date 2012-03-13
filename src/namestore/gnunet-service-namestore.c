@@ -198,7 +198,7 @@ int zone_to_disk_it (void *cls,
     write_key_to_file(c->filename, c);
   else
   {
-    GNUNET_asprintf(&c->filename, "%s/%s.zone", zonefile_directory, GNUNET_h2s_full (&c->zone));
+    GNUNET_asprintf(&c->filename, "%s/%s.zkey", zonefile_directory, GNUNET_h2s_full (&c->zone));
     write_key_to_file(c->filename, c);
   }
 
@@ -1610,7 +1610,7 @@ static void handle_iteration_next (void *cls,
 int zonekey_file_it (void *cls, const char *filename)
 {
   int *counter = cls;
-   if ((filename != NULL) && (NULL != strstr(filename, ".zone")))
+   if ((filename != NULL) && (NULL != strstr(filename, ".zkey")))
    {
      struct GNUNET_CRYPTO_RsaPrivateKey * privkey;
      struct GNUNET_NAMESTORE_CryptoContainer *c;
