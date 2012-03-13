@@ -177,6 +177,42 @@ notify_all (struct HostEntry *entry)
 
 
 /**
+ * Try to read the HELLO in the given filename and discard expired addresses.
+ * 
+ * @param fn name of the file
+ * @return HELLO of the file, NULL on error
+ */
+static struct GNUNET_HELLO_Message *
+read_host_file (const char *fn)
+{
+  char buffer[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1];
+  const struct GNUNET_HELLO_Message *hello;
+  struct GNUNET_HELLO_Message *hello_clean;
+  int size;
+  struct GNUNET_TIME_Absolute now;
+
+  if (GNUNET_YES != GNUNET_DISK_file_test (fn))
+    return NULL;
+  size = GNUNET_DISK_fn_read (fn, buffer, sizeof (buffer));
+  hello = (const struct GNUNET_HELLO_Message *) buffer;
+  if ((size < sizeof (struct GNUNET_MessageHeader)) ||
+      (size != ntohs ((((const struct GNUNET_MessageHeader *) hello)->size)))
+      || (size != GNUNET_HELLO_size (hello)))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		_("Failed to parse HELLO in file `%s'\n"),
+		fn);
+    return NULL;
+  }
+  now = GNUNET_TIME_absolute_get ();
+  hello_clean =
+    GNUNET_HELLO_iterate_addresses (hello, GNUNET_YES, &discard_expired,
+				    &now);
+  return hello_clean; 
+}
+
+
+/**
  * Add a host to the list.
  *
  * @param identity the identity of the host
@@ -185,11 +221,6 @@ static void
 add_host_to_known_hosts (const struct GNUNET_PeerIdentity *identity)
 {
   struct HostEntry *entry;
-  char buffer[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1];
-  const struct GNUNET_HELLO_Message *hello;
-  struct GNUNET_HELLO_Message *hello_clean;
-  int size;
-  struct GNUNET_TIME_Absolute now;
   char *fn;
 
   entry = GNUNET_CONTAINER_multihashmap_get (hostmap, &identity->hashPubKey);
@@ -199,32 +230,11 @@ add_host_to_known_hosts (const struct GNUNET_PeerIdentity *identity)
                             GNUNET_NO);
   entry = GNUNET_malloc (sizeof (struct HostEntry));
   entry->identity = *identity;
-
-  fn = get_host_filename (identity);
-  if (GNUNET_DISK_file_test (fn) == GNUNET_YES)
-  {
-    size = GNUNET_DISK_fn_read (fn, buffer, sizeof (buffer));
-    hello = (const struct GNUNET_HELLO_Message *) buffer;
-    if ((size < sizeof (struct GNUNET_MessageHeader)) ||
-        (size != ntohs ((((const struct GNUNET_MessageHeader *) hello)->size)))
-        || (size != GNUNET_HELLO_size (hello)))
-    {
-      GNUNET_break (0);
-      if (0 != UNLINK (fn))
-        GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "unlink", fn);
-    }
-    else
-    {
-      now = GNUNET_TIME_absolute_get ();
-      hello_clean =
-          GNUNET_HELLO_iterate_addresses (hello, GNUNET_YES, &discard_expired,
-                                          &now);
-      entry->hello = hello_clean;
-    }
-  }
-  GNUNET_free (fn);
   GNUNET_CONTAINER_multihashmap_put (hostmap, &identity->hashPubKey, entry,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+  fn = get_host_filename (identity);
+  entry->hello = read_host_file (fn);
+  GNUNET_free (fn);
   notify_all (entry);
 }
 
@@ -264,6 +274,8 @@ hosts_directory_scan_callback (void *cls, const char *fullname)
   unsigned int *matched = cls;
   struct GNUNET_PeerIdentity identity;
   const char *filename;
+  struct HostEntry *entry;
+  struct GNUNET_HELLO_Message *hello;
 
   if (GNUNET_DISK_file_test (fullname) != GNUNET_YES)
     return GNUNET_OK;           /* ignore non-files */
@@ -285,6 +297,21 @@ hosts_directory_scan_callback (void *cls, const char *fullname)
   if (GNUNET_OK !=
       GNUNET_CRYPTO_hash_from_string (filename, &identity.hashPubKey))
   {
+    if (NULL != (hello = read_host_file (filename)))
+    {
+      entry = GNUNET_malloc (sizeof (struct HostEntry));
+      if (GNUNET_OK ==
+	  GNUNET_HELLO_get_id (hello,
+			       &entry->identity))
+      {
+	GNUNET_CONTAINER_multihashmap_put (hostmap, &entry->identity.hashPubKey, entry,
+					   GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+	entry->hello = hello;
+	notify_all (entry);
+	return GNUNET_OK;
+      }
+      GNUNET_free (entry);
+    }
     if (NULL != matched)
       remove_garbage (fullname);
     return GNUNET_OK;
