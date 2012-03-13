@@ -32,12 +32,9 @@
  */
 
 #include "platform.h"
-#include "gnunet_crypto_lib.h"
-#include "gnunet_container_lib.h"
-#include "gnunet_disk_lib.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_hello_lib.h"
 #include "gnunet_protocols.h"
-#include "gnunet_service_lib.h"
 #include "gnunet_statistics_service.h"
 #include "peerinfo.h"
 
@@ -50,6 +47,7 @@
  * How often do we discard old entries in data/hosts/?
  */
 #define DATA_HOST_CLEAN_FREQ GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 60)
+
 
 /**
  * In-memory cache of known hosts.
@@ -95,6 +93,9 @@ static struct GNUNET_STATISTICS_Handle *stats;
 /**
  * Notify all clients in the notify list about the
  * given host entry changing.
+ *
+ * @param he entry of the host for which we generate a notification
+ * @return generated notification message
  */
 static struct InfoMessage *
 make_info_message (const struct HostEntry *he)
@@ -141,6 +142,8 @@ discard_expired (void *cls, const struct GNUNET_HELLO_Address *address,
 /**
  * Get the filename under which we would store the GNUNET_HELLO_Message
  * for the given host and protocol.
+ *
+ * @param id peer for which we need the filename for the HELLO
  * @return filename of the form DIRECTORY/HOSTID
  */
 static char *
@@ -229,6 +232,8 @@ add_host_to_known_hosts (const struct GNUNET_PeerIdentity *identity)
 /**
  * Remove a file that should not be there.  LOG
  * success or failure.
+ *
+ * @param fullname name of the file to remove
  */
 static void
 remove_garbage (const char *fullname)
@@ -244,6 +249,15 @@ remove_garbage (const char *fullname)
 }
 
 
+/**
+ * Function that is called on each HELLO file in a particular directory.
+ * Try to parse the file and add the HELLO to our list.
+ *
+ * @param cls pointer to 'unsigned int' to increment for each file, or NULL
+ *            if the file is from a read-only, read-once resource directory
+ * @param fullname name of the file to parse
+ * @return GNUNET_OK (continue iteration)
+ */
 static int
 hosts_directory_scan_callback (void *cls, const char *fullname)
 {
@@ -255,7 +269,8 @@ hosts_directory_scan_callback (void *cls, const char *fullname)
     return GNUNET_OK;           /* ignore non-files */
   if (strlen (fullname) < sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded))
   {
-    remove_garbage (fullname);
+    if (NULL != matched)
+      remove_garbage (fullname);
     return GNUNET_OK;
   }
   filename =
@@ -263,16 +278,19 @@ hosts_directory_scan_callback (void *cls, const char *fullname)
                 sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) + 1];
   if (filename[-1] != DIR_SEPARATOR)
   {
-    remove_garbage (fullname);
+    if (NULL != matched)
+      remove_garbage (fullname);
     return GNUNET_OK;
   }
   if (GNUNET_OK !=
       GNUNET_CRYPTO_hash_from_string (filename, &identity.hashPubKey))
   {
-    remove_garbage (fullname);
+    if (NULL != matched)
+      remove_garbage (fullname);
     return GNUNET_OK;
   }
-  (*matched)++;
+  if (NULL != matched)
+    (*matched)++;
   add_host_to_known_hosts (&identity);
   return GNUNET_OK;
 }
@@ -280,6 +298,9 @@ hosts_directory_scan_callback (void *cls, const char *fullname)
 
 /**
  * Call this method periodically to scan data/hosts for new hosts.
+ *
+ * @param cls unused
+ * @param tc scheduler context, aborted if reason is shutdown
  */
 static void
 cron_scan_directory_data_hosts (void *cls,
@@ -362,7 +383,6 @@ bind_address (const struct GNUNET_PeerIdentity *peer,
 }
 
 
-
 /**
  * Do transmit info about peer to given host.
  *
@@ -401,6 +421,10 @@ add_to_tc (void *cls, const GNUNET_HashCode * key, void *value)
 
 /**
  * @brief delete expired HELLO entries in data/hosts/
+ *
+ * @param cls pointer to current time (struct GNUNET_TIME_Absolute)
+ * @param fn filename to test to see if the HELLO expired
+ * @return GNUNET_OK (continue iteration)
  */
 static int
 discard_hosts_helper (void *cls, const char *fn)
@@ -442,7 +466,11 @@ discard_hosts_helper (void *cls, const char *fn)
 
 
 /**
- * Call this method periodically to scan data/hosts for new hosts.
+ * Call this method periodically to scan data/hosts for ancient
+ * HELLOs to expire.
+ *
+ * @param cls unused
+ * @param tc scheduler context, aborted if reason is shutdown
  */
 static void
 cron_clean_data_hosts (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -541,6 +569,9 @@ handle_get_all (void *cls, struct GNUNET_SERVER_Client *client,
 }
 
 
+/**
+ * FIXME.
+ */
 static int
 do_notify_entry (void *cls, const GNUNET_HashCode * key, void *value)
 {
@@ -576,6 +607,9 @@ handle_notify (void *cls, struct GNUNET_SERVER_Client *client,
 }
 
 
+/**
+ * FIXME.
+ */
 static int
 free_host_entry (void *cls, const GNUNET_HashCode * key, void *value)
 {
@@ -585,6 +619,7 @@ free_host_entry (void *cls, const GNUNET_HashCode * key, void *value)
   GNUNET_free (he);
   return GNUNET_YES;
 }
+
 
 /**
  * Clean up our state.  Called during shutdown.
@@ -608,7 +643,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
- * Process statistics requests.
+ * Start up peerinfo service.
  *
  * @param cls closure
  * @param server the initialized server
@@ -628,6 +663,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
      sizeof (struct GNUNET_MessageHeader)},
     {NULL, NULL, 0, 0}
   };
+  char *peerdir;
+  char *ip;
 
   hostmap = GNUNET_CONTAINER_multihashmap_create (1024);
   stats = GNUNET_STATISTICS_create ("peerinfo", cfg);
@@ -644,11 +681,22 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
                                 NULL);
   GNUNET_SERVER_add_handlers (server, handlers);
+  ip = GNUNET_OS_installation_get_path (GNUNET_OS_IPK_DATADIR);
+  GNUNET_asprintf (&peerdir,
+		   "%shellos",
+		   ip);
+  GNUNET_free (ip);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+	      _("Importing HELLOs from `%s'\n"),
+	      peerdir);
+  GNUNET_DISK_directory_scan (peerdir,
+			      &hosts_directory_scan_callback, NULL);
+  GNUNET_free (peerdir);
 }
 
 
 /**
- * The main function for the statistics service.
+ * The main function for the peerinfo service.
  *
  * @param argc number of arguments from the command line
  * @param argv command line arguments
