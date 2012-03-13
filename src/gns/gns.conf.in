@@ -5,9 +5,9 @@ HOME = $SERVICEHOME
 CONFIG = $DEFAULTCONFIG
 BINARY = gnunet-service-gns
 UNIXPATH = /tmp/gnunet-service-gns.sock
-ZONEKEY = $SERVICEHOME/gns/zonekey
+ZONEKEY = $SERVICEHOME/gns/zonekey.zkey
 HIJACK_DNS = NO
 
 [fcfsd]
 HTTPPORT = 18080
-ZONEKEY = $SERVICEHOME/fcfsd/.zonekey
+ZONEKEY = $SERVICEHOME/fcfsd/zonekey.zkey
