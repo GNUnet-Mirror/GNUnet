@@ -22,7 +22,7 @@ Any help will be greatly appreciated.   SUZUKI Hisao
 
 __version__ = "0.2.1"
 
-import BaseHTTPServer, select, socket, SocketServer, urlparse, re
+import BaseHTTPServer, select, socket, SocketServer, urlparse, re, string, os
 
 class ProxyHandler (BaseHTTPServer.BaseHTTPRequestHandler):
     __base = BaseHTTPServer.BaseHTTPRequestHandler
@@ -31,6 +31,7 @@ class ProxyHandler (BaseHTTPServer.BaseHTTPRequestHandler):
     server_version = "TinyHTTPProxy/" + __version__
     rbufsize = 0                        # self.rfile Be unbuffered
     host_port = ()
+    to_replace = ""
 
     def handle(self):
         (ip, port) =  self.client_address
@@ -43,8 +44,18 @@ class ProxyHandler (BaseHTTPServer.BaseHTTPRequestHandler):
     def _connect_to(self, netloc, soc):
         i = netloc.find(':')
         if i >= 0:
+            print 'calling gnunet-gns -a '+netloc[:i]
+            auth = os.popen("gnunet-gns -a "+netloc[:i])
+            lines = auth.readlines()
+            print 'result: '+lines[0].split(" ")[-1].rstrip()
+            self.to_replace = lines[0].split(" ")[-1].rstrip()
             self.host_port = netloc[:i], int(netloc[i+1:])
         else:
+            print 'calling gnunet-gns -a '+netloc
+            auth = os.popen("gnunet-gns -a "+netloc)
+            lines = auth.readlines()
+            print 'result: '+lines[0].split(" ")[-1].rstrip()
+            self.to_replace = lines[0].split(" ")[-1].rstrip()
             self.host_port = netloc, 80
         print "\t" "connect to %s:%d" % self.host_port
         try: soc.connect(self.host_port)
@@ -69,6 +80,14 @@ class ProxyHandler (BaseHTTPServer.BaseHTTPRequestHandler):
             print "\t" "bye"
             soc.close()
             self.connection.close()
+
+    def replace_and_shorten(self, mo):
+      full = string.replace(mo.group(1)+self.to_replace, 'a href="', "")
+      print 'calling gnunet-gns -s '+full
+      s = os.popen("gnunet-gns -s "+full)
+      lines = s.readlines()
+      print 'short: '+lines[0].split(" ")[-1].rstrip()
+      return 'a href="'+lines[0].split(" ")[-1].rstrip()
 
     def do_GET(self):
         (scm, netloc, path, params, query, fragment) = urlparse.urlparse(
@@ -116,8 +135,8 @@ class ProxyHandler (BaseHTTPServer.BaseHTTPRequestHandler):
                         if (re.match("(\w+\.)*gnunet", self.host_port[0])):
                             arr = self.host_port[0].split('.')
                             arr.pop(0)
-                            data = re.sub(r'(a href="http://(\w+\.)*)(\+)',
-                                r'\1'+'.'.join(arr), data)
+                            data = re.sub('(a href="http://(\w+\.)*)(\+)',
+                                self.replace_and_shorten, data)
                         print data
                         out.send(data)
                         count = 0

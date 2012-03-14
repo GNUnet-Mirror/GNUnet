@@ -107,7 +107,6 @@ reply_to_dns(void* cls, uint32_t rd_count,
     
     if (rd[i].record_type == ilh->query->type)
     {
-      num_answers++;
       answer_records[i].name = ilh->query->name;
       answer_records[i].type = rd[i].record_type;
       answer_records[i].data.raw.data_len = rd[i].data_size;
@@ -279,6 +278,8 @@ handle_dns_request(void *cls,
     if (*(tldoffset-i) == '.')
       break;
   }
+
+  i--;
   
   if ((i==strlen(GNUNET_GNS_TLD)-1)
       && (0 == strcmp(tldoffset-i, GNUNET_GNS_TLD)))
