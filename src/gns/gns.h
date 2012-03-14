@@ -28,6 +28,8 @@
 #ifndef GNS_H
 #define GNS_H
 
+#define GNUNET_GNS_TLD "gnunet"
+
 GNUNET_NETWORK_STRUCT_BEGIN
 
 /**

@@ -285,25 +285,18 @@ do_shorten(void *cls, const struct GNUNET_PeerIdentity *id,
                                NULL,
                                NULL);
 
-  rd.data_size = strlen(TEST_ALICE_PSEU);
-  rd.data = TEST_ALICE_PSEU;
-  rd.record_type = GNUNET_GNS_RECORD_PSEU;
+  rd.data_size = sizeof(GNUNET_HashCode);
+  rd.data = &alice_hash;
+  rd.record_type = GNUNET_GNS_RECORD_PKEY;
   GNUNET_free(sig);
 
-  sig = GNUNET_NAMESTORE_create_signature(alice_key,GNUNET_TIME_absolute_get_forever(),  "+",
-                                          &rd, 1);
-
-  GNUNET_NAMESTORE_record_put (namestore_handle,
-                               &alice_pkey,
-                               "+",
-                               GNUNET_TIME_absolute_get_forever(),
-                               1,
+  GNUNET_NAMESTORE_record_create (namestore_handle,
+                               our_key,
+                               TEST_ALICE_PSEU,
                                &rd,
-                               sig,
                                &commence_testing,
                                NULL);
 
-  GNUNET_free(sig);
 
 }
 
