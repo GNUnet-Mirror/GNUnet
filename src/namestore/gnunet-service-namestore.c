@@ -1239,7 +1239,7 @@ handle_zone_to_name_it (void *cls,
     /* found result */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found results: name is `%s', has %u records\n", name, rd_count);
     res = GNUNET_YES;
-    name_len = strlen (name);
+    name_len = strlen (name) +1;
   }
   else
   {
