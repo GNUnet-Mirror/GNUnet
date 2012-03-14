@@ -461,7 +461,6 @@ process_message (void *cls, const struct GNUNET_MessageHeader *msg)
   const struct GNUNET_GNS_ClientLookupResultMessage *lookup_msg;
   const struct GNUNET_GNS_ClientShortenResultMessage *shorten_msg;
   const struct GNUNET_GNS_ClientGetAuthResultMessage *get_auth_msg;
-  uint16_t size;
   uint16_t type;
   uint32_t r_id;
   
@@ -475,7 +474,6 @@ process_message (void *cls, const struct GNUNET_MessageHeader *msg)
     return;
   }
 
-  size = ntohs (msg->size);
   type = ntohs (msg->type);
 
   if (type == GNUNET_MESSAGE_TYPE_GNS_LOOKUP_RESULT)

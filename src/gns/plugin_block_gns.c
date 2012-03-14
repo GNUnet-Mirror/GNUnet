@@ -75,9 +75,6 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
   uint32_t record_xquery;
   unsigned int record_match;
 
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "BLOCK_TEST\n");
-
   if (type != GNUNET_BLOCK_TYPE_GNS_NAMERECORD)
     return GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED;
   if (reply_block_size == 0)
@@ -221,7 +218,6 @@ block_plugin_gns_get_key (void *cls, enum GNUNET_BLOCK_Type type,
 
   GNUNET_CRYPTO_hash_xor(&name_hash, &pkey_hash, key);
   
-  //FIXME calculate key from name and hash(pkey) here
   return GNUNET_OK;
 }
 

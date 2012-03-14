@@ -21,8 +21,8 @@
 /**
  *
  *
- * @file gns/gns_resolver.c
- * @brief GNUnet GNS service
+ * @file gns/gnunet-service-gns_resolver.c
+ * @brief GNUnet GNS resolver logic
  * @author Martin Schanzenbach
  */
 #include "platform.h"
@@ -46,12 +46,17 @@
 
 /**
  * Our handle to the namestore service
- * FIXME maybe need a second handle for iteration
  */
 struct GNUNET_NAMESTORE_Handle *namestore_handle;
 
+/**
+ * Resolver handle to the dht
+ */
 struct GNUNET_DHT_Handle *dht_handle;
 
+/**
+ * Connects resolver to the dht
+ */
 static void
 connect_to_dht()
 {
@@ -596,7 +601,7 @@ process_delegation_result_dht(void* cls,
    * should never get here unless false dht key/put
    * block plugin should handle this
    **/
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "DHT authority lookup error!\n");
+  GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "DHT authority lookup error!\n");
   GNUNET_break(0);
 }
 
@@ -606,8 +611,8 @@ process_delegation_result_dht(void* cls,
  *
  * @param cls the closure
  * @param rh resolver handle
- * @param rd_count number of results (always 0)
- * @param rd record data (always NULL)
+ * @param rd_count number of results
+ * @param rd record data
  */
 static void
 handle_record_dht(void* cls, struct ResolverHandle *rh,
@@ -628,7 +633,7 @@ handle_record_dht(void* cls, struct ResolverHandle *rh,
 
   /* results found yay */
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Record resolved from namestore!");
+             "Record resolved from DHT!");
   rlh->proc(rlh->proc_cls, rd_count, rd);
 
 }
@@ -639,8 +644,8 @@ handle_record_dht(void* cls, struct ResolverHandle *rh,
  *
  * @param cls the closure
  * @param rh resolver handle
- * @param rd_count number of results (always 0)
- * @param rd record data (always NULL)
+ * @param rd_count number of results
+ * @param rd record data
  */
 static void
 handle_record_ns(void* cls, struct ResolverHandle *rh,
@@ -780,7 +785,6 @@ handle_delegation_dht(void* cls, struct ResolverHandle *rh,
  * rh->authority's zone
  *
  * @param rh the pending gns query
- * @param name the name of the PKEY record
  */
 static void
 resolve_delegation_dht(struct ResolverHandle *rh)
@@ -842,9 +846,10 @@ handle_delegation_ns(void* cls, struct ResolverHandle *rh,
 
   /**
    * we still have some left
-   * check if ns entry is fresh
+   * check if authority in ns is fresh
+   * and exists
+   * or we are authority
    **/
-
   if ((rh->status & (EXISTS | !EXPIRED)) ||
       !GNUNET_CRYPTO_hash_cmp(&rh->authority_chain_head->zone,
                              &rh->authority_chain_tail->zone))
@@ -874,7 +879,7 @@ handle_delegation_ns(void* cls, struct ResolverHandle *rh,
   resolve_delegation_dht(rh);
 }
 
-//Prototype
+/* Prototype */
 static void resolve_delegation_ns(struct ResolverHandle *rh);
 
 
@@ -967,10 +972,10 @@ process_delegation_result_ns(void* cls,
     return;
   }
 
-  //Note only 1 pkey should have been returned.. anything else would be strange
   /**
    * We found an authority that may be able to help us
    * move on with query
+   * Note only 1 pkey should have been returned.. anything else would be strange
    */
   int i;
   for (i=0; i<rd_count;i++)
@@ -1056,7 +1061,8 @@ resolve_delegation_ns(struct ResolverHandle *rh)
  *
  * @param zone the root zone
  * @param record_type the record type to look up
- * @param proc the processor to call
+ * @param name the name to look up
+ * @param proc the processor to call on result
  * @param cls the closure to pass to proc
  */
 void
@@ -1103,198 +1109,18 @@ gns_resolver_lookup_record(GNUNET_HashCode zone,
 /******** END Record Resolver ***********/
 
 
-static void
-process_pseu_result_ns_shorten(void *cls,
-                 const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
-                 struct GNUNET_TIME_Absolute expire,
-                 const char *name,
-                 unsigned int rd_len,
-                 const struct GNUNET_NAMESTORE_RecordData *rd,
-                 const struct GNUNET_CRYPTO_RsaSignature *signature)
-{
-  struct ResolverHandle *rh = 
-    (struct ResolverHandle *)cls;
-  struct GNUNET_TIME_Relative remaining_time;
-
-  GNUNET_TIME_absolute_get_remaining (expire);
-  rh->status = 0;
-  
-  if (name != NULL)
-  {
-    rh->status |= EXISTS;
-  }
-  
-  if (remaining_time.rel_value == 0)
-  {
-    rh->status |= EXPIRED;
-  }
-
-  rh->proc(rh->proc_cls, rh, rd_len, rd);
-}
-
-
 /**
- * Function called when we get a result from the dht
- * for our record query
+ * Callback calles by namestore for a zone to name
+ * result
  *
- * @param cls the request handle
- * @param exp lifetime
- * @param key the key the record was stored under
- * @param get_path get path
- * @param get_path_length get path length
- * @param put_path put path
- * @param put_path_length put path length
- * @param type the block type
- * @param size the size of the record
- * @param data the record data
+ * @param cls the closure
+ * @param zone_key the zone we queried
+ * @param expire the expiration time of the name
+ * @param name the name found or NULL
+ * @param rd_len number of records for the name
+ * @param rd the record data (PKEY) for the name
+ * @param signature the signature for the record data
  */
-static void
-process_pseu_dht_result(void* cls,
-                 struct GNUNET_TIME_Absolute exp,
-                 const GNUNET_HashCode * key,
-                 const struct GNUNET_PeerIdentity *get_path,
-                 unsigned int get_path_length,
-                 const struct GNUNET_PeerIdentity *put_path,
-                 unsigned int put_path_length,
-                 enum GNUNET_BLOCK_Type type,
-                 size_t size, const void *data)
-{
-  struct ResolverHandle *rh;
-  struct RecordLookupHandle *rlh;
-  struct GNSNameRecordBlock *nrb;
-  uint32_t num_records;
-  char* name = NULL;
-  char* rd_data = (char*)data;
-  int i;
-  int rd_size;
-  
-  GNUNET_HashCode zone, name_hash;
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "got PSEU dht result (size=%d)\n", size);
-  
-  if (data == NULL)
-    return;
-
-  //FIXME maybe check expiration here, check block type
-  
-  rh = (struct ResolverHandle *)cls;
-  rlh = (struct RecordLookupHandle *) rh->proc_cls;
-  nrb = (struct GNSNameRecordBlock*)data;
-  
-  /* stop lookup and timeout task */
-  GNUNET_DHT_get_stop (rh->get_handle);
-  GNUNET_SCHEDULER_cancel(rh->dht_timeout_task);
-  
-  rh->get_handle = NULL;
-  name = (char*)&nrb[1];
-  num_records = ntohl(nrb->rd_count);
-  {
-    struct GNUNET_NAMESTORE_RecordData rd[num_records];
-
-    rd_data += strlen(name) + 1 + sizeof(struct GNSNameRecordBlock);
-    rd_size = size - strlen(name) - 1 - sizeof(struct GNSNameRecordBlock);
-  
-    if (GNUNET_SYSERR == GNUNET_NAMESTORE_records_deserialize (rd_size,
-                                                               rd_data,
-                                                               num_records,
-                                                               rd))
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Error deserializing data!\n");
-      return;
-    }
-
-    for (i=0; i<num_records; i++)
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "Got name: %s (wanted %s)\n", name, rh->name);
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "Got type: %d\n",
-               rd[i].record_type);
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "Got data length: %d\n", rd[i].data_size);
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "Got flag %d\n", rd[i].flags);
-    
-     if ((strcmp(name, "+") == 0) &&
-         (rd[i].record_type == GNUNET_GNS_RECORD_PSEU))
-      {
-        rh->answered++;
-      }
-
-    }
-
-    GNUNET_CRYPTO_hash(name, strlen(name), &name_hash);
-    GNUNET_CRYPTO_hash_xor(key, &name_hash, &zone);
-  
-    /**
-     * FIXME check pubkey against existing key in namestore?
-     * https://gnunet.org/bugs/view.php?id=2179
-     */
-
-    /* Save to namestore */
-    GNUNET_NAMESTORE_record_put (namestore_handle,
-                                 &nrb->public_key,
-                                 name,
-                                 exp,
-                                 num_records,
-                                 rd,
-                                 &nrb->signature,
-                                 &on_namestore_record_put_result, //cont
-                                 NULL); //cls
-  
-    if (rh->answered)
-      rh->proc(rh->proc_cls, rh, num_records, rd);
-    else
-      rh->proc(rh->proc_cls, rh, 0, NULL);
-  }
-
-}
-
-
-/**
- * Start DHT lookup for a PSEUdonym record in
- * rh->authority's zone
- *
- * @param rh the pending gns query
- */
-static void
-resolve_pseu_dht(struct ResolverHandle *rh)
-{
-  uint32_t xquery;
-  GNUNET_HashCode name_hash;
-  GNUNET_HashCode lookup_key;
-
-  GNUNET_CRYPTO_hash("+",
-                     strlen("+"),
-                     &name_hash);
-
-  GNUNET_CRYPTO_hash_xor(&name_hash, &rh->authority, &lookup_key);
-
-  rh->dht_timeout_task = GNUNET_SCHEDULER_add_delayed (DHT_LOOKUP_TIMEOUT,
-                                                  &dht_lookup_timeout,
-                                                  rh);
-
-  xquery = htonl(GNUNET_GNS_RECORD_PSEU);
-  
-  rh->get_handle = GNUNET_DHT_get_start(dht_handle,
-                       DHT_OPERATION_TIMEOUT,
-                       GNUNET_BLOCK_TYPE_GNS_NAMERECORD,
-                       &lookup_key,
-                       DHT_GNS_REPLICATION_LEVEL,
-                       GNUNET_DHT_RO_NONE,
-                       &xquery,
-                       sizeof(xquery),
-                       &process_pseu_dht_result,
-                       rh);
-
-}
-
-//Prototype
-static void
-handle_shorten_pseu_ns_result(void* cls,
-                              struct ResolverHandle *rh,
-                              uint32_t rd_count,
-                              const struct GNUNET_NAMESTORE_RecordData *rd);
-
 static void
 process_zone_to_name_shorten(void *cls,
                  const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
@@ -1304,8 +1130,7 @@ process_zone_to_name_shorten(void *cls,
                  const struct GNUNET_NAMESTORE_RecordData *rd,
                  const struct GNUNET_CRYPTO_RsaSignature *signature)
 {
-  struct ResolverHandle *rh = 
-    (struct ResolverHandle *)cls;
+  struct ResolverHandle *rh = (struct ResolverHandle *)cls;
   struct NameShortenHandle* nsh = (struct NameShortenHandle*)rh->proc_cls;
   struct AuthorityChain *next_authority;
 
@@ -1348,7 +1173,7 @@ process_zone_to_name_shorten(void *cls,
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                "Our zone: Sending name as shorten result %s\n", rh->name);
     
-    nsh->proc(nsh->proc_cls, result); //FIXME +.gnunet!
+    nsh->proc(nsh->proc_cls, result);
     free_resolver_handle(rh);
     GNUNET_free(result);
   }
@@ -1380,96 +1205,6 @@ process_zone_to_name_shorten(void *cls,
                                    rh);
   }
 }
-
-
-/**
- * Process result from namestore PSEU lookup
- * for shorten operation
- *
- * @param cls the client shorten handle
- * @param rh the resolver handle
- * @param rd_count number of results (0 if none found)
- * @param rd data (NULL if none found)
- */
-static void
-handle_pseu_ns_result_shorten(void* cls,
-                      struct ResolverHandle *rh,
-                      uint32_t rd_len,
-                      const struct GNUNET_NAMESTORE_RecordData *rd)
-{
-  struct NameShortenHandle* nsh = (struct NameShortenHandle*) cls;
-  struct AuthorityChain *next_authority;
-  char* pseu;
-  char* result;
-  char* new_name;
-  size_t answer_len;
-  int i;
-  
-  /**
-   * PSEU found
-   */
-  if (rd_len != 0)
-  {
-    for (i=0; i < rd_len; i++)
-    {
-      if (rd[i].record_type == GNUNET_GNS_RECORD_PSEU)
-      {
-        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                   "Found PSEU %s len %d\n", (char*) rd[i].data,
-                   strlen((char*) rd[i].data));
-        break;
-      }
-    }
-    
-    pseu = (char*) rd[i].data;
-    answer_len = strlen(rh->name) + strlen(pseu) + strlen(GNUNET_GNS_TLD) + 3;
-    result = GNUNET_malloc(answer_len);
-    memset(result, 0, answer_len);
-    strcpy(result, rh->name);
-    strcpy(result+strlen(rh->name), ".");
-    strcpy(result+strlen(rh->name)+1, pseu);
-    strcpy(result+strlen(rh->name)+strlen(pseu)+1, ".");
-    strcpy(result+strlen(rh->name)+strlen(pseu)+2, GNUNET_GNS_TLD);
-    
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "Sending shorten result %s\n", result);
-    
-    nsh->proc(nsh->proc_cls, result);
-    free_resolver_handle(rh);
-    GNUNET_free(result);
-    return;
-  }
-  
-  /**
-   * No PSEU found.
-   * continue with next authority
-   * Note that we never have <2 authorities
-   * in our list at this point since tail is always our root
-   * And we filter fot this in handle_delegation_ns_shorten
-   */
-  next_authority = rh->authority_chain_head;
-  new_name = GNUNET_malloc(strlen(rh->name)+
-                           strlen(next_authority->name) + 2);
-  memset(new_name, 0, strlen(rh->name)+
-                      strlen(next_authority->name) + 2);
-  strcpy(new_name, rh->name);
-  strcpy(new_name+strlen(rh->name)+1, ".");
-  strcpy(new_name+strlen(rh->name)+2, next_authority->name);
-  
-  GNUNET_free(rh->name);
-  rh->name = new_name;
-  GNUNET_CONTAINER_DLL_remove(rh->authority_chain_head,
-                              rh->authority_chain_tail,
-                              next_authority);
-
-  GNUNET_NAMESTORE_zone_to_name (namestore_handle,
-                                 &rh->authority_chain_tail->zone,
-                                 &rh->authority_chain_head->zone,
-                                 &process_zone_to_name_shorten,
-                                 rh);
-
-}
-
 
 
 /**
@@ -1522,7 +1257,7 @@ handle_delegation_ns_shorten(void* cls,
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                "Our zone: Sending name as shorten result %s\n", rh->name);
     
-    nsh->proc(nsh->proc_cls, result); //FIXME +.gnunet!
+    nsh->proc(nsh->proc_cls, result);
     free_resolver_handle(rh);
     GNUNET_free(result);
     return;
@@ -1714,4 +1449,4 @@ gns_resolver_get_authority(GNUNET_HashCode zone,
 
 /******** END GET AUTHORITY *************/
 
-/* end of gns_resolver.c */
+/* end of gnunet-service-gns_resolver.c */
