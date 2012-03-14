@@ -389,6 +389,7 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
       return GNUNET_SYSERR;
     *data = GNUNET_malloc (sizeof (GNUNET_HashCode));
     memcpy (*data, &pkey, sizeof (pkey));
+    *data_size = sizeof (GNUNET_HashCode);
     return GNUNET_OK;
   case GNUNET_NAMESTORE_TYPE_PSEU:
     *data = GNUNET_strdup (s);
