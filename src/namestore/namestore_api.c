@@ -477,6 +477,7 @@ handle_zone_to_name_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
     expire = GNUNET_TIME_absolute_ntoh(msg->expire);
 
     name_tmp = (char *) &msg[1];
+    GNUNET_assert ('\0' == name_tmp[name_len]);
     rd_tmp = &name_tmp[name_len];
 
     struct GNUNET_NAMESTORE_RecordData rd[rd_count];
