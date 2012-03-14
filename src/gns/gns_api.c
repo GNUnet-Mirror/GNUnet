@@ -591,6 +591,7 @@ GNUNET_GNS_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
 void
 GNUNET_GNS_disconnect (struct GNUNET_GNS_Handle *handle)
 {
+  GNUNET_CLIENT_disconnect (handle->client, 0);
   /* disco from GNS */
 }
 

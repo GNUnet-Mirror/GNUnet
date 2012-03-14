@@ -651,8 +651,10 @@ handle_record_ns(void* cls, struct ResolverHandle *rh,
   rlh = (struct RecordLookupHandle*) cls;
   if (rd_count == 0)
   {
-    /* ns entry expired. try dht */
-    if (rh->status & (EXPIRED | !EXISTS))
+    /* ns entry expired and not ours. try dht */
+    if (rh->status & (EXPIRED | !EXISTS) &&
+        GNUNET_CRYPTO_hash_cmp(&rh->authority_chain_head->zone,
+                               &rh->authority_chain_tail->zone))
     {
       rh->proc = &handle_record_dht;
       resolve_record_dht(rh);
@@ -842,7 +844,10 @@ handle_delegation_ns(void* cls, struct ResolverHandle *rh,
    * we still have some left
    * check if ns entry is fresh
    **/
-  if (rh->status & (EXISTS | !EXPIRED))
+
+  if ((rh->status & (EXISTS | !EXPIRED)) ||
+      !GNUNET_CRYPTO_hash_cmp(&rh->authority_chain_head->zone,
+                             &rh->authority_chain_tail->zone))
   {
     if (is_canonical(rh->name))
     {

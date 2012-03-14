@@ -39,7 +39,25 @@ static struct GNUNET_GNS_Handle *gns;
 /**
  * GNS name to shorten. (-s option)
  */
-static char *name;
+static char *shorten_name;
+
+/**
+ * GNS name to lookup. (-u option)
+ */
+static char *lookup_name;
+
+
+/**
+ * record type to look up (-t option)
+ */
+static char *lookup_type;
+
+/**
+ * name to look up authority for (-a option)
+ */
+static char *auth_name;
+
+static enum GNUNET_GNS_RecordType rtype;
 
 /**
  * Task run on shutdown.  Cleans up everything.
@@ -65,6 +83,43 @@ process_shorten_result(void* cls, const char* nshort)
   printf("%s shortened to %s\n", (char*) cls, nshort);
 }
 
+static void
+process_lookup_result(void* cls, uint32_t rd_count,
+                      const struct GNUNET_NAMESTORE_RecordData *rd)
+{
+  int i;
+  char* addr;
+  char* name = (char*) cls;
+
+  if (rd_count == 0)
+    printf("No results.\n");
+
+  for (i=0; i<rd_count; i++)
+  {
+    if (rd[i].record_type != rtype)
+      continue;
+    if (rd[i].record_type == GNUNET_GNS_RECORD_TYPE_A)
+    {
+      addr = inet_ntoa(*((struct in_addr*)rd[i].data));
+      printf("Got A record for %s: %s\n", name, addr);
+    }
+    if (rd[i].record_type == GNUNET_GNS_RECORD_MX)
+    {
+      printf("Got MX record for %s: %s\n", name, (char*)rd[i].data);
+    }
+
+    //FIXME others? maybe to string method for records?
+  }
+
+  GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+}
+
+static void
+process_auth_result(void* cls, const char* auth)
+{
+  printf ("%s\n", auth);
+}
+
 /**
  * Main function that will be run.
  *
@@ -78,6 +133,8 @@ run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   gns = GNUNET_GNS_connect (cfg);
+  rtype = GNUNET_GNS_RECORD_TYPE_A;
+
   if (NULL == gns)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -85,14 +142,26 @@ run (void *cls, char *const *args, const char *cfgfile,
     return;
   }
   
-  if (name != NULL)
+  if (shorten_name != NULL)
   {
     /** shorten name */
-    GNUNET_GNS_shorten(gns, name, &process_shorten_result, name);
+    GNUNET_GNS_shorten(gns, shorten_name, &process_shorten_result,
+                       shorten_name);
   }
 
+  if (lookup_name != NULL)
+  {
+    GNUNET_GNS_lookup(gns, lookup_name, rtype,
+                      &process_lookup_result, lookup_name);
+  }
+
+  if (auth_name != NULL)
+  {
+    GNUNET_GNS_get_authority(gns, auth_name, &process_auth_result, auth_name);
+  }
+  
   // FIXME: do work here...
-  GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+  //GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
 }
 
 
@@ -109,7 +178,16 @@ main (int argc, char *const *argv)
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
     {'s', "shorten", NULL,
      gettext_noop ("try to shorten a given GNS name"), 1,
-     &GNUNET_GETOPT_set_string, &name},   
+     &GNUNET_GETOPT_set_string, &shorten_name},
+    {'u', "lookup", NULL,
+      gettext_noop ("Lookup a record using GNS (NOT IMPLEMENTED)"), 1,
+      &GNUNET_GETOPT_set_string, &lookup_name},
+    {'a', "authority", NULL,
+      gettext_noop ("Get the authority of a particular name"), 1,
+      &GNUNET_GETOPT_set_string, &auth_name},
+    {'t', "type", NULL,
+      gettext_noop ("Specify the type of the record lookup"), 1,
+      &GNUNET_GETOPT_set_string, &lookup_type},
     GNUNET_GETOPT_OPTION_END
   };
 
