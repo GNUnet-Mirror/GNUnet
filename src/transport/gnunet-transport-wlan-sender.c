@@ -46,35 +46,22 @@
 #define IEEE80211_FC0_TYPE_CTL                  0x04
 #define IEEE80211_FC0_TYPE_DATA                 0x08
 
-GNUNET_NETWORK_STRUCT_BEGIN
-
-/*
- * generic definitions for IEEE 802.11 frames
- */
-struct ieee80211_frame
-{
-  u_int8_t i_fc[2];
-  u_int8_t i_dur[2];
-  u_int8_t i_addr1[IEEE80211_ADDR_LEN];
-  u_int8_t i_addr2[IEEE80211_ADDR_LEN];
-  u_int8_t i_addr3[IEEE80211_ADDR_LEN];
-  u_int8_t i_seq[2];
-  u_int8_t llc[4];
-} GNUNET_PACKED;
-GNUNET_NETWORK_STRUCT_END
 
 /**
  * function to fill the radiotap header
  * @param header pointer to the radiotap header
+ * @param size total message size
  * @return GNUNET_YES at success
  */
 static int
-getRadiotapHeader (struct Radiotap_Send *header)
+getRadiotapHeader (struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage *header,
+		   uint16_t size)
 {
+  header->header.size = htons (size);
+  header->header.type = htons (GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA);
   header->rate = 255;
   header->tx_power = 0;
   header->antenna = 0;
-
   return GNUNET_YES;
 }
 
@@ -87,23 +74,21 @@ getRadiotapHeader (struct Radiotap_Send *header)
  * @return GNUNET_YES if there was no error
  */
 static int
-getWlanHeader (struct ieee80211_frame *Header, const char *to_mac_addr,
-               const char *mac, unsigned int size)
+getWlanHeader (struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame *Header, 
+	       const struct GNUNET_TRANSPORT_WLAN_MacAddress *to_mac_addr,
+               const struct GNUNET_TRANSPORT_WLAN_MacAddress *mac, unsigned int size)
 {
-  uint16_t *tmp16;
   const int rate = 11000000;
 
-  Header->i_fc[0] = IEEE80211_FC0_TYPE_DATA;
-  Header->i_fc[1] = 0x00;
-  memcpy (&Header->i_addr3, &mac_bssid_gnunet, sizeof (mac_bssid_gnunet));
-  memcpy (&Header->i_addr2, mac, sizeof (mac_bssid_gnunet));
-  memcpy (&Header->i_addr1, to_mac_addr, sizeof (mac_bssid_gnunet));
-
-  tmp16 = (uint16_t *) Header->i_dur;
-  *tmp16 = (uint16_t) GNUNET_htole16 ((size * 1000000) / rate + 290);
+  Header->frame_control = htons (IEEE80211_FC0_TYPE_DATA);
+  Header->addr3 = mac_bssid_gnunet;
+  Header->addr2 = *mac;
+  Header->addr1 = *to_mac_addr;
+  Header->duration = GNUNET_htole16 ((size * 1000000) / rate + 290);
   Header->llc[0] = WLAN_LLC_DSAP_FIELD;
   Header->llc[1] = WLAN_LLC_SSAP_FIELD;
-
+  Header->llc[2] = 0; // FIXME
+  Header->llc[3] = 0; // FIXME
   return GNUNET_YES;
 }
 
@@ -112,13 +97,10 @@ int
 main (int argc, char *argv[])
 {
   char msg_buf[WLAN_MTU];
-  struct GNUNET_MessageHeader *msg;
-  struct ieee80211_frame *wlan_header;
-  struct Radiotap_Send *radiotap;
-
+  struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage *radiotap;
   unsigned int temp[6];
-  char inmac[6];
-  char outmac[6];
+  struct GNUNET_TRANSPORT_WLAN_MacAddress inmac;
+  struct GNUNET_TRANSPORT_WLAN_MacAddress outmac;
   int pos;
   long long count;
   double bytes_per_s;
@@ -144,6 +126,8 @@ main (int argc, char *argv[])
              "e.g. mon0 11-22-33-44-55-66 12-34-56-78-90-ab\n");
     return 1;
   }
+  for (i = 0; i < 6; i++)
+    outmac.mac[i] = temp[i];
   if (6 !=
       SSCANF (argv[2], "%x-%x-%x-%x-%x-%x", &temp[0], &temp[1], &temp[2],
               &temp[3], &temp[4], &temp[5]))
@@ -154,9 +138,7 @@ main (int argc, char *argv[])
     return 1;
   }
   for (i = 0; i < 6; i++)
-    inmac[i] = temp[i];
-  for (i = 0; i < 6; i++)
-    outmac[i] = temp[i];
+    inmac.mac[i] = temp[i];
 
   pid_t pid;
   int commpipe[2];              /* This holds the fd for the input & output of the pipe */
@@ -185,22 +167,16 @@ main (int argc, char *argv[])
     setvbuf (stdout, (char *) NULL, _IONBF, 0); /* Set non-buffered output on stdout */
 
 
-    msg = (struct GNUNET_MessageHeader *) msg_buf;
-    msg->type = htons (GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA);
-    msg->size = htons (WLAN_MTU);
-    radiotap = (struct Radiotap_Send *) &msg[1];
-    wlan_header = (struct ieee80211_frame *) &radiotap[1];
+    radiotap = (struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage *) msg_buf;
+    getRadiotapHeader (radiotap, WLAN_MTU);
     pos = 0;
-
-    getRadiotapHeader (radiotap);
-    getWlanHeader (wlan_header, outmac, inmac,
-                   WLAN_MTU - sizeof (struct GNUNET_MessageHeader));
-
+    getWlanHeader (&radiotap->frame, &outmac, &inmac,
+                   WLAN_MTU);
     start = time (NULL);
     count = 0;
     while (1)
     {
-      pos += write (commpipe[1], msg, WLAN_MTU - pos);
+      pos += write (commpipe[1], msg_buf, WLAN_MTU - pos);
       if (pos % WLAN_MTU == 0)
       {
         pos = 0;

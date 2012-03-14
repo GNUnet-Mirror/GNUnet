@@ -297,6 +297,10 @@ struct ieee80211_radiotap_header
    * compatible new fields does not count.
    */
   uint8_t it_version;
+
+  /**
+   *
+   */
   uint8_t it_pad;
 
   /**
@@ -375,23 +379,6 @@ static struct SendBuffer write_pout;
 static struct SendBuffer write_std;
 
 
-GNUNET_NETWORK_STRUCT_BEGIN
-
-/**
- * generic definitions for IEEE 802.11 frames
- */
-struct ieee80211_frame
-{
-  uint8_t i_fc[2];
-  uint8_t i_dur[2];
-  uint8_t i_addr1[IEEE80211_ADDR_LEN];
-  uint8_t i_addr2[IEEE80211_ADDR_LEN];
-  uint8_t i_addr3[IEEE80211_ADDR_LEN];
-  uint8_t i_seq[2];
-  /* possibly followed by addr4[IEEE80211_ADDR_LEN]; */
-  /* see below */
-} GNUNET_PACKED;
-GNUNET_NETWORK_STRUCT_END
 
 
 /**
@@ -1439,19 +1426,19 @@ test_wlan_interface (const char *iface)
 /**
  * Function to test incoming packets mac for being our own.
  *
- * @param uint8_taIeeeHeader buffer of the packet
+ * @param taIeeeHeader buffer of the packet
  * @param dev the Hardware_Infos struct
  * @return 0 if mac belongs to us, 1 if mac is for another target
  */
 static int
-mac_test (const struct ieee80211_frame *uint8_taIeeeHeader,
+mac_test (const struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame *taIeeeHeader,
           const struct HardwareInfos *dev)
 {
-  if (0 != memcmp (uint8_taIeeeHeader->i_addr3, &mac_bssid_gnunet, MAC_ADDR_SIZE))
+  if (0 != memcmp (&taIeeeHeader->addr3, &mac_bssid_gnunet, MAC_ADDR_SIZE))
     return 1;
-  if (0 == memcmp (uint8_taIeeeHeader->i_addr1, &dev->pl_mac, MAC_ADDR_SIZE))
+  if (0 == memcmp (&taIeeeHeader->addr1, &dev->pl_mac, MAC_ADDR_SIZE))
     return 0;
-  if (0 == memcmp (uint8_taIeeeHeader->i_addr1, &bc_all_mac, MAC_ADDR_SIZE))
+  if (0 == memcmp (&taIeeeHeader->addr1, &bc_all_mac, MAC_ADDR_SIZE))
     return 0;
   return 1;
 }
@@ -1459,17 +1446,16 @@ mac_test (const struct ieee80211_frame *uint8_taIeeeHeader,
 
 /**
  * function to set the wlan header to make attacks more difficult
- * @param uint8_taIeeeHeader pointer to the header of the packet
+ * @param taIeeeHeader pointer to the header of the packet
  * @param dev pointer to the Hardware_Infos struct
  */
 static void
-mac_set (struct ieee80211_frame *uint8_taIeeeHeader,
+mac_set (struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame *taIeeeHeader,
          const struct HardwareInfos *dev)
 {
-  uint8_taIeeeHeader->i_fc[0] = 0x08;
-  uint8_taIeeeHeader->i_fc[1] = 0x00;
-  memcpy (uint8_taIeeeHeader->i_addr2, &dev->pl_mac, MAC_ADDR_SIZE);
-  memcpy (uint8_taIeeeHeader->i_addr3, &mac_bssid_gnunet, MAC_ADDR_SIZE);
+  taIeeeHeader->frame_control = ntohs (0x08); // FIXME: need to shift by 8?
+  taIeeeHeader->addr2 = dev->pl_mac;
+  taIeeeHeader->addr3 = mac_bssid_gnunet;
 }
 
 
@@ -1482,47 +1468,39 @@ static void
 stdin_send_hw (void *cls, const struct GNUNET_MessageHeader *hdr)
 {
   struct HardwareInfos *dev = cls;
-  struct Radiotap_Send *header = (struct Radiotap_Send *) &hdr[1];
-  struct ieee80211_frame *wlanheader;
+  const struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage *header;
+  struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame *wlanheader;
   size_t sendsize;
   struct RadioTapheader rtheader;
 
-  rtheader.header.it_version = 0; /* radiotap version */
-  rtheader.header.it_len = GNUNET_htole16 (0x0c); /* radiotap header length */
-  rtheader.header.it_present = GNUNET_le16toh (0x00008004); /* our bitmap */
-  rtheader.rate = 0x00;
-  rtheader.pad1 = 0x00;
-  rtheader.txflags =
-      GNUNET_htole16 (IEEE80211_RADIOTAP_F_TX_NOACK | IEEE80211_RADIOTAP_F_TX_NOSEQ);
-
   sendsize = ntohs (hdr->size);
-  if (sendsize <
-      sizeof (struct Radiotap_Send) + sizeof (struct GNUNET_MessageHeader))
+  if ( (sendsize <
+	sizeof (struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage)) ||
+       (GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA != ntohs (hdr->type)) ) 
   {
-    fprintf (stderr, "Function stdin_send_hw: malformed packet (too small)\n");
+    fprintf (stderr, "Received malformed message\n");
     exit (1);
   }
-  sendsize -=
-      sizeof (struct Radiotap_Send) + sizeof (struct GNUNET_MessageHeader);
-
+  sendsize -= (sizeof (struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage) - sizeof (struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame));
   if (MAXLINE < sendsize)
   {
     fprintf (stderr, "Function stdin_send_hw: Packet too big for buffer\n");
     exit (1);
   }
-  if (GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA != ntohs (hdr->type))
-  {
-    fprintf (stderr, "Function stdin_send_hw: wrong packet type\n");
-    exit (1);
-  }
-
+  header = (const struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage *) hdr;
+  rtheader.header.it_version = 0; /* radiotap version */
+  rtheader.header.it_len = GNUNET_htole16 (0x0c); /* radiotap header length */
+  rtheader.header.it_present = GNUNET_htole16 (0x00008004); /* our bitmap */
+  rtheader.rate = 0x00;
+  rtheader.pad1 = 0x00;
+  rtheader.txflags = GNUNET_htole16 (IEEE80211_RADIOTAP_F_TX_NOACK | IEEE80211_RADIOTAP_F_TX_NOSEQ);
   rtheader.header.it_len = GNUNET_htole16 (sizeof (rtheader));
   rtheader.rate = header->rate;
   memcpy (write_pout.buf, &rtheader, sizeof (rtheader));
-  memcpy (write_pout.buf + sizeof (rtheader), &header[1], sendsize);
+  wlanheader = (struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame *) &write_pout.buf[sizeof (rtheader)];
+  memcpy (wlanheader, &header->frame, sendsize);
   /* payload contains MAC address, but we don't trust it, so we'll
    * overwrite it with OUR MAC address again to prevent mischief */
-  wlanheader = (struct ieee80211_frame *) (write_pout.buf + sizeof (rtheader));
   mac_set (wlanheader, dev);
   write_pout.size = sendsize + sizeof (rtheader);
 }
@@ -1723,12 +1701,12 @@ main (int argc, char *argv[])
     {
       struct GNUNET_MessageHeader *header;
       struct Radiotap_rx *rxinfo;
-      struct ieee80211_frame *datastart;
+      struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame *datastart;
       ssize_t ret;
 
       header = (struct GNUNET_MessageHeader *) write_std.buf;
       rxinfo = (struct Radiotap_rx *) &header[1];
-      datastart = (struct ieee80211_frame *) &rxinfo[1];
+      datastart = (struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame *) &rxinfo[1];
       ret =
           linux_read (&dev, (unsigned char *) datastart,
                       sizeof (write_std.buf) - sizeof (struct Radiotap_rx) -

@@ -76,9 +76,66 @@ static const struct GNUNET_TRANSPORT_WLAN_MacAddress bc_all_mac = {
   {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}
 };
 
+GNUNET_NETWORK_STRUCT_BEGIN
 
-struct Radiotap_Send
+/**
+ * generic definitions for IEEE 802.11 frames
+ */
+struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame
 {
+  /**
+   * 802.11 Frame Control field,
+   */
+  uint16_t frame_control;
+
+  /**
+   * Microseconds to reserve link (duration), 0 by default
+   */
+  uint16_t duration;
+
+  /**
+   * Address 1: destination address in ad-hoc mode or AP, BSSID if station,
+   */
+  struct GNUNET_TRANSPORT_WLAN_MacAddress addr1;
+
+  /**
+   * Address 2: source address if in ad-hoc-mode or station, BSSID if AP
+   */
+  struct GNUNET_TRANSPORT_WLAN_MacAddress addr2;
+
+  /**
+   * Address 3: BSSID in ad-hoc mode, Destination if station, source if AP
+   */
+  struct GNUNET_TRANSPORT_WLAN_MacAddress addr3;
+
+  /**
+   * 802.11 sequence control field.
+   */
+  uint16_t sequence_control;
+
+  /**
+   * Link layer control (LLC).  Set to a GNUnet-specific value.
+   */
+  u_int8_t llc[4];
+
+  /* payload */
+
+} GNUNET_PACKED;
+
+
+
+/**
+ * Message from the plugin to the WLAN helper: send the given message with the
+ * given connection parameters.
+ */
+struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage
+{
+
+  /**
+   * Type is 'GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA'.
+   */
+  struct GNUNET_MessageHeader header;
+
   /**
    * wlan send rate
    */
@@ -94,7 +151,17 @@ struct Radiotap_Send
    * 0 is max power. Monotonically nondecreasing with lower power levels.
    */
   uint16_t tx_power;
+
+  /**
+   * IEEE Frame to transmit (the sender MAC address will be overwritten by the helper as it does not
+   * trust the plugin to set it correctly).
+   */
+  struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame frame;
+
+  /* actual payload follows */
 };
+
+GNUNET_NETWORK_STRUCT_END
 
 
 /**

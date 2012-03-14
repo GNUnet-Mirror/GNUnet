@@ -72,6 +72,7 @@ send_mac_to_plugin (char *buffer, struct GNUNET_TRANSPORT_WLAN_MacAddress *mac)
   return sizeof (struct GNUNET_TRANSPORT_WLAN_HelperControlMessage);
 }
 
+
 static void
 stdin_send (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
 {
@@ -83,8 +84,9 @@ stdin_send (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
   char *to_start;
 
   sendsize =
-      ntohs (hdr->size) - sizeof (struct Radiotap_Send) +
-      sizeof (struct Radiotap_rx);
+      ntohs (hdr->size) - sizeof (struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage) +
+    sizeof (struct Radiotap_rx) + sizeof (struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame) + 
+    sizeof (struct GNUNET_MessageHeader);
 
   if (GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA != ntohs (hdr->type))
   {
@@ -110,13 +112,14 @@ stdin_send (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
 
   to_data = to_radiotap + sizeof (struct Radiotap_rx);
   memcpy (to_data,
-          ((char *) hdr) + sizeof (struct Radiotap_Send) +
-          sizeof (struct GNUNET_MessageHeader),
-          ntohs (hdr->size) - sizeof (struct Radiotap_Send) -
-          sizeof (struct GNUNET_MessageHeader));
+          ((char *) hdr) + 
+	  sizeof (struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage) -
+	  - sizeof (struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame),
+          ntohs (hdr->size) - (sizeof (struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage)
+			       - sizeof (struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame)));
   write_pout->size +=
-      ntohs (hdr->size) - sizeof (struct Radiotap_Send) -
-      sizeof (struct GNUNET_MessageHeader);
+    ntohs (hdr->size) - (sizeof (struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage)
+			 - sizeof (struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame));
 }
 
 
