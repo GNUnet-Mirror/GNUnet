@@ -303,7 +303,8 @@ run (void *cls, char *const *args, const char *cfgfile,
     fprintf (stderr, _("Unsupported type `%s'\n"), typestring);
     GNUNET_SCHEDULER_shutdown ();
     return;
-  } else if (add | del)
+  }
+  if ((NULL == typestring) && (add | del))
   {
     fprintf (stderr,
 	     _("Missing option `%s' for operation `%s'\n"),
