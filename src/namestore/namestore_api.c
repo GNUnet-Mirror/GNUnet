@@ -258,8 +258,11 @@ handle_lookup_name_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
   }
 
   name = (char *) &msg[1];
-  GNUNET_assert ('\0' == name[name_len -1]);
-  GNUNET_assert ((name_len - 1) == strlen(name));
+  if (name_len > 0)
+  {
+    GNUNET_assert ('\0' == name[name_len -1]);
+    GNUNET_assert ((name_len - 1) == strlen(name));
+  }
   rd_tmp = &name[name_len];
 
   /* deserialize records */
@@ -479,8 +482,11 @@ handle_zone_to_name_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
     expire = GNUNET_TIME_absolute_ntoh(msg->expire);
 
     name_tmp = (char *) &msg[1];
-    GNUNET_assert ('\0' == name_tmp[name_len -1]);
-    GNUNET_assert (name_len -1 == strlen(name_tmp));
+    if (name_len > 0)
+    {
+      GNUNET_assert ('\0' == name_tmp[name_len -1]);
+      GNUNET_assert (name_len -1 == strlen(name_tmp));
+    }
     rd_tmp = &name_tmp[name_len];
 
     struct GNUNET_NAMESTORE_RecordData rd[rd_count];

@@ -216,7 +216,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   delete_existing_db(cfg);
 
   endbadly_task = GNUNET_SCHEDULER_add_delayed(TIMEOUT,endbadly, NULL);
-  GNUNET_asprintf(&s_name, "dummy.dummy.gnunet");
+  GNUNET_asprintf(&s_name, "dummy");
 
 
   /* load privat key */
