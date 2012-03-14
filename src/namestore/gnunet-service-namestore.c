@@ -1267,6 +1267,7 @@ handle_zone_to_name_it (void *cls,
 
   msg_size = sizeof (struct ZoneToNameResponseMessage) + name_len + rd_ser_len + contains_sig * sizeof (struct GNUNET_CRYPTO_RsaSignature);
   ztnr_msg = GNUNET_malloc (msg_size);
+  memset(ztnr_msg, 0, msg_size);
 
   name_tmp = (char *) &ztnr_msg[1];
   rd_tmp = &name_tmp[name_len];
