@@ -56,12 +56,13 @@ struct GNUNET_DHT_Handle *dht_handle;
 
 /**
  * Connects resolver to the dht
- */
+ *
 static void
 connect_to_dht()
 {
   //FIXME
 }
+*/
 
 /**
  * Helper function to free resolver handle
