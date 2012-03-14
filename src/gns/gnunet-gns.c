@@ -81,6 +81,7 @@ static void
 process_shorten_result(void* cls, const char* nshort)
 {
   printf("%s shortened to %s\n", (char*) cls, nshort);
+  GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
 }
 
 static void
@@ -118,6 +119,7 @@ static void
 process_auth_result(void* cls, const char* auth)
 {
   printf ("%s\n", auth);
+  GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
 }
 
 /**
