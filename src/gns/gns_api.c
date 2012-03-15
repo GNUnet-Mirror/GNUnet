@@ -505,7 +505,8 @@ process_message (void *cls, const struct GNUNET_MessageHeader *msg)
     }
     if (qe)
       process_lookup_reply(qe, lookup_msg);
-
+    
+    return;
 
   }
   else if (type == GNUNET_MESSAGE_TYPE_GNS_SHORTEN_RESULT)
@@ -532,6 +533,7 @@ process_message (void *cls, const struct GNUNET_MessageHeader *msg)
     }
     if (qe)
       process_shorten_reply(qe, shorten_msg);
+    return;
   }
   else if (type == GNUNET_MESSAGE_TYPE_GNS_GET_AUTH_RESULT)
   {
@@ -557,6 +559,7 @@ process_message (void *cls, const struct GNUNET_MessageHeader *msg)
     }
     if (qe)
       process_get_auth_reply(qe, get_auth_msg);
+    return;
   }
 
 
@@ -604,7 +607,7 @@ GNUNET_GNS_disconnect (struct GNUNET_GNS_Handle *h)
     GNUNET_SCHEDULER_cancel (h->reconnect_task);
     h->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
   }
-  //GNUNET_free(h);
+  GNUNET_free(h);
   /* disco from GNS */
 }
 
