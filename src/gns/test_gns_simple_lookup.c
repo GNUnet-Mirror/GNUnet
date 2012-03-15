@@ -217,7 +217,7 @@ do_lookup(void *cls, const struct GNUNET_PeerIdentity *id,
     return;
   }
 
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (cfg, "gns",
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
                                                           "ZONEKEY",
                                                           &alice_keyfile))
   {

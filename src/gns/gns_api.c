@@ -369,6 +369,8 @@ process_shorten_reply (struct GNUNET_GNS_QueueEntry *qe,
               "Received shortened reply `%s' from GNS service\n",
               short_name);
   
+  GNUNET_CLIENT_receive (h->client, &process_message, h,
+                         GNUNET_TIME_UNIT_FOREVER_REL);
   qe->shorten_proc(qe->proc_cls, short_name);
 
 }
@@ -404,6 +406,8 @@ process_get_auth_reply (struct GNUNET_GNS_QueueEntry *qe,
               "Received GET_AUTH reply `%s' from GNS service\n",
               auth_name);
   
+  GNUNET_CLIENT_receive (h->client, &process_message, h,
+                         GNUNET_TIME_UNIT_FOREVER_REL);
   qe->auth_proc(qe->proc_cls, auth_name);
 
 }
@@ -444,6 +448,8 @@ process_lookup_reply (struct GNUNET_GNS_QueueEntry *qe,
               "Received lookup reply from GNS service (count=%d)\n",
               ntohl(msg->rd_count));
   
+  GNUNET_CLIENT_receive (h->client, &process_message, h,
+                         GNUNET_TIME_UNIT_FOREVER_REL);
   qe->lookup_proc(qe->proc_cls, rd_count, rd);
 }
 
@@ -553,8 +559,6 @@ process_message (void *cls, const struct GNUNET_MessageHeader *msg)
       process_get_auth_reply(qe, get_auth_msg);
   }
 
-  GNUNET_CLIENT_receive (handle->client, &process_message, handle,
-                         GNUNET_TIME_UNIT_FOREVER_REL);
 
   if (GNUNET_YES == handle->reconnect)
     force_reconnect (handle);
@@ -575,9 +579,11 @@ GNUNET_GNS_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
   struct GNUNET_GNS_Handle *handle;
 
   handle = GNUNET_malloc (sizeof (struct GNUNET_GNS_Handle));
+  handle->reconnect = GNUNET_NO;
   handle->cfg = cfg;
   reconnect (handle);
   //handle->reconnect_task = GNUNET_SCHEDULER_add_now (&reconnect_task, handle);
+  handle->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
   handle->r_id = 0;
   handle->in_receive = GNUNET_NO;
   return handle;
@@ -598,7 +604,7 @@ GNUNET_GNS_disconnect (struct GNUNET_GNS_Handle *h)
     GNUNET_SCHEDULER_cancel (h->reconnect_task);
     h->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
   }
-  GNUNET_free(h);
+  //GNUNET_free(h);
   /* disco from GNS */
 }
 

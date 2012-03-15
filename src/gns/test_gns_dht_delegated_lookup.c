@@ -161,7 +161,7 @@ on_lookup_result(void *cls, uint32_t rd_count,
  * tries to look up the dns record for TEST_DOMAIN
  */
 static void
-commence_testing (void *cls, int32_t success, const char *emsg)
+commence_testing (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_NAMESTORE_disconnect(namestore_handle, GNUNET_YES);
 
@@ -235,7 +235,7 @@ put_dht(void *cls, int32_t success, const char *emsg)
   nrb->public_key = bob_pkey;
   nrb->rd_count = htonl(1);
   memset(&nrb[1], 0, strlen(TEST_RECORD_NAME) + 1);
-  strcpy(&nrb[1], TEST_RECORD_NAME);
+  strcpy((char*)&nrb[1], TEST_RECORD_NAME);
   nrb_data = (char*)&nrb[1];
   nrb_data += strlen(TEST_RECORD_NAME) + 1;
 
@@ -302,7 +302,7 @@ do_lookup(void *cls, const struct GNUNET_PeerIdentity *id,
     return;
   }
 
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (cfg, "gns",
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
                                                           "ZONEKEY",
                                                           &alice_keyfile))
   {

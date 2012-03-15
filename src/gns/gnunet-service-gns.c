@@ -652,7 +652,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 {
   
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Initializing GNS\n");
-
+  
   char* keyfile;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pkey;
 
@@ -662,14 +662,17 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     {&handle_get_authority, NULL, GNUNET_MESSAGE_TYPE_GNS_GET_AUTH, 0}
   };
 
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (c, "gns",
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (c, "gns",
                                              "ZONEKEY", &keyfile))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "No private key for root zone specified%s!\n", keyfile);
+                "No private key for root zone specified!\n");
     GNUNET_SCHEDULER_shutdown(0);
     return;
   }
+
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Using keyfile %s for root zone.\n", keyfile);
 
   zone_key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
   GNUNET_CRYPTO_rsa_key_get_public (zone_key, &pkey);
