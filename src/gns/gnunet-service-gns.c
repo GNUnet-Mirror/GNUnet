@@ -414,7 +414,7 @@ send_shorten_response(void* cls, const char* name)
   GNUNET_SERVER_receive_done (csh->client, GNUNET_OK);
   
   GNUNET_free(rmsg);
-  GNUNET_free(csh->name);
+  GNUNET_free_non_null(csh->name);
   GNUNET_free(csh);
 
 }
@@ -462,6 +462,23 @@ static void handle_shorten(void *cls,
   csh->unique_id = sh_msg->id;
   
   name = (char*)&sh_msg[1];
+
+  if (strlen (name) < strlen(GNUNET_GNS_TLD)) {
+    csh->name = NULL;
+    send_shorten_response(csh, name);
+    return;
+  }
+  
+  if (strcmp(name+strlen(name)-strlen(GNUNET_GNS_TLD),
+             GNUNET_GNS_TLD) != 0)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "%s is not our domain. Returning\n", name);
+    csh->name = NULL;
+    send_shorten_response(csh, name);
+    return;
+  }
+  
   csh->name = GNUNET_malloc(strlen(name)
                             - strlen(GNUNET_GNS_TLD) + 1);
   memset(csh->name, 0,
@@ -512,7 +529,7 @@ send_get_auth_response(void *cls, const char* name)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Cleaning up handles...\n");
 
   GNUNET_free(rmsg);
-  GNUNET_free(cah->name);
+  GNUNET_free_non_null(cah->name);
   GNUNET_free(cah);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "done.\n");
@@ -557,12 +574,32 @@ static void handle_get_authority(void *cls,
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
+  
+  name = (char*)&sh_msg[1];
 
   cah = GNUNET_malloc(sizeof(struct ClientGetAuthHandle));
   cah->client = client;
   cah->unique_id = sh_msg->id;
+
+  if (strlen(name) < strlen(GNUNET_GNS_TLD))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "%s is too short. Returning\n", name);
+    cah->name = NULL;
+    send_get_auth_response(cah, name);
+    return;
+  }
+
+  if (strcmp(name+strlen(name)-strlen(GNUNET_GNS_TLD),
+             GNUNET_GNS_TLD) != 0)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "%s is not our domain. Returning\n", name);
+    cah->name = NULL;
+    send_get_auth_response(cah, name);
+    return;
+  }
   
-  name = (char*)&sh_msg[1];
   cah->name = GNUNET_malloc(strlen(name)
                             - strlen(GNUNET_GNS_TLD) + 1);
   memset(cah->name, 0,

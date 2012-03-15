@@ -1095,17 +1095,36 @@ gns_resolver_lookup_record(GNUNET_HashCode zone,
               "Starting resolution for %s (type=%d)!\n",
               name, record_type);
 
+  
+  if (is_canonical((char*)name) && (strcmp(GNUNET_GNS_TLD, name) != 0))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "%s is canonical and gnunet not our TLD!\n", name);
+    proc(cls, 0, NULL);
+    return;
+  }
+  
   rlh = GNUNET_malloc(sizeof(struct RecordLookupHandle));
   rh = GNUNET_malloc(sizeof (struct ResolverHandle));
 
   rh->authority = zone;
   rh->proc_cls = rlh;
-  rh->name = GNUNET_malloc(strlen(name)
-                           - strlen(GNUNET_GNS_TLD));
-  memset(rh->name, 0,
-         strlen(name)-strlen(GNUNET_GNS_TLD));
-  memcpy(rh->name, name,
-         strlen(name)-strlen(GNUNET_GNS_TLD) - 1);
+  
+  if (strcmp(GNUNET_GNS_TLD, name) == 0)
+  {
+    rh->name = GNUNET_malloc(2);
+    strcpy(rh->name, "");
+  }
+  else
+  {
+    rh->name = GNUNET_malloc(strlen(name)
+                             - strlen(GNUNET_GNS_TLD));
+    memset(rh->name, 0,
+           strlen(name)-strlen(GNUNET_GNS_TLD));
+    memcpy(rh->name, name,
+           strlen(name)-strlen(GNUNET_GNS_TLD) - 1);
+  }
+  
   rh->authority_name = GNUNET_malloc(sizeof(char)*MAX_DNS_LABEL_LENGTH);
   rh->authority_chain_head = GNUNET_malloc(sizeof(struct AuthorityChain));
   rh->authority_chain_head->prev = NULL;
@@ -1164,11 +1183,15 @@ process_zone_to_name_shorten(void *cls,
     answer_len = strlen(rh->name) + strlen(name) + strlen(GNUNET_GNS_TLD) + 3;
     result = GNUNET_malloc(answer_len);
     memset(result, 0, answer_len);
-    strcpy(result, rh->name);
-    strcpy(result+strlen(rh->name), ".");
-    strcpy(result+strlen(rh->name)+1, name);
-    strcpy(result+strlen(rh->name)+strlen(name)+1, ".");
-    strcpy(result+strlen(rh->name)+strlen(name)+2, GNUNET_GNS_TLD);
+    if (strlen(rh->name) > 0)
+    {
+      strcpy(result, rh->name);
+      strcpy(result+strlen(rh->name), ".");
+    }
+    
+    strcpy(result+strlen(result), name);
+    strcpy(result+strlen(result), ".");
+    strcpy(result+strlen(result), GNUNET_GNS_TLD);
     
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                "Sending shorten result %s\n", result);
@@ -1313,7 +1336,20 @@ gns_resolver_shorten_name(GNUNET_HashCode zone,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Starting shorten for %s!\n", name);
   
+  if (is_canonical((char*)name))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "%s is canonical. Returning verbatim\n", name);
+    proc(cls, name);
+    return;
+  }
+
   nsh = GNUNET_malloc(sizeof (struct NameShortenHandle));
+  
+
+  nsh->proc = proc;
+  nsh->proc_cls = cls;
+  
   rh = GNUNET_malloc(sizeof (struct ResolverHandle));
   rh->authority = zone;
   rh->name = GNUNET_malloc(strlen(name)
@@ -1329,9 +1365,6 @@ gns_resolver_shorten_name(GNUNET_HashCode zone,
   rh->authority_chain_head->zone = zone;
   rh->proc = &handle_delegation_ns_shorten;
   rh->proc_cls = nsh;
-
-  nsh->proc = proc;
-  nsh->proc_cls = cls;
   
   /* Start delegation resolution in our namestore */
   resolve_delegation_ns(rh);

@@ -31,7 +31,6 @@ class ProxyHandler (BaseHTTPServer.BaseHTTPRequestHandler):
     server_version = "TinyHTTPProxy/" + __version__
     rbufsize = 0                        # self.rfile Be unbuffered
     host_port = ()
-    to_replace = ""
 
     def handle(self):
         (ip, port) =  self.client_address
@@ -43,19 +42,20 @@ class ProxyHandler (BaseHTTPServer.BaseHTTPRequestHandler):
 
     def _connect_to(self, netloc, soc):
         i = netloc.find(':')
+        to_replace = ""
         if i >= 0:
             print 'calling gnunet-gns -a '+netloc[:i]
             auth = os.popen("gnunet-gns -a "+netloc[:i])
             lines = auth.readlines()
             print 'result: '+lines[0].split(" ")[-1].rstrip()
-            self.to_replace = lines[0].split(" ")[-1].rstrip()
+            to_replace = lines[0].split(" ")[-1].rstrip()
             self.host_port = netloc[:i], int(netloc[i+1:])
         else:
             print 'calling gnunet-gns -a '+netloc
             auth = os.popen("gnunet-gns -a "+netloc)
             lines = auth.readlines()
             print 'result: '+lines[0].split(" ")[-1].rstrip()
-            self.to_replace = lines[0].split(" ")[-1].rstrip()
+            to_replace = lines[0].split(" ")[-1].rstrip()
             self.host_port = netloc, 80
         print "\t" "connect to %s:%d" % self.host_port
         try: soc.connect(self.host_port)
@@ -63,31 +63,33 @@ class ProxyHandler (BaseHTTPServer.BaseHTTPRequestHandler):
             try: msg = arg[1]
             except: msg = arg
             self.send_error(404, msg)
-            return 0
-        return 1
+            return (0, 0)
+        return (1, to_replace)
 
     def do_CONNECT(self):
         soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
-            if self._connect_to(self.path, soc):
+            res, to_repl = self._connect_to(self.path, soc)
+            if res:
                 self.log_request(200)
                 self.wfile.write(self.protocol_version +
                                  " 200 Connection established\r\n")
                 self.wfile.write("Proxy-agent: %s\r\n" % self.version_string())
                 self.wfile.write("\r\n")
-                self._read_write(soc, 300)
+                self._read_write(soc, to_repl, 300)
         finally:
             print "\t" "bye"
             soc.close()
             self.connection.close()
 
-    def replace_and_shorten(self, mo):
-      full = string.replace(mo.group(1)+self.to_replace, 'a href="', "")
-      print 'calling gnunet-gns -s '+full
-      s = os.popen("gnunet-gns -s "+full)
-      lines = s.readlines()
-      print 'short: '+lines[0].split(" ")[-1].rstrip()
-      return 'a href="'+lines[0].split(" ")[-1].rstrip()
+    def replace_and_shorten(self, to_repl):
+      return lambda mo: 'a href="http://'+os.popen("gnunet-gns -s "+string.replace(mo.group(1)+to_repl, 'a href="http://', "")).readlines()[0].split(" ")[-1].rstrip()
+    #full = string.replace(mo.group(1)+to_repl, 'a href="http://', "")
+        #print 'calling gnunet-gns -s '+full
+        #s = os.popen("gnunet-gns -s "+full)
+        #lines = s.readlines()
+        #print 'short: '+lines[0].split(" ")[-1].rstrip()
+        #return 'a href="'+lines[0].split(" ")[-1].rstrip()
 
     def do_GET(self):
         (scm, netloc, path, params, query, fragment) = urlparse.urlparse(
@@ -97,7 +99,8 @@ class ProxyHandler (BaseHTTPServer.BaseHTTPRequestHandler):
             return
         soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
-            if self._connect_to(netloc, soc):
+            res, to_repl = self._connect_to(netloc, soc)
+            if res:
                 self.log_request()
                 soc.send("%s %s %s\r\n" % (
                     self.command,
@@ -108,13 +111,13 @@ class ProxyHandler (BaseHTTPServer.BaseHTTPRequestHandler):
                 for key_val in self.headers.items():
                     soc.send("%s: %s\r\n" % key_val)
                 soc.send("\r\n")
-                self._read_write(soc)
+                self._read_write(soc, to_repl)
         finally:
             print "\t" "bye"
             soc.close()
             self.connection.close()
 
-    def _read_write(self, soc, max_idling=20):
+    def _read_write(self, soc, to_repl="", max_idling=20):
         iw = [self.connection, soc]
         ow = []
         count = 0
@@ -136,7 +139,7 @@ class ProxyHandler (BaseHTTPServer.BaseHTTPRequestHandler):
                             arr = self.host_port[0].split('.')
                             arr.pop(0)
                             data = re.sub('(a href="http://(\w+\.)*)(\+)',
-                                self.replace_and_shorten, data)
+                                self.replace_and_shorten(to_repl), data)
                         print data
                         out.send(data)
                         count = 0
