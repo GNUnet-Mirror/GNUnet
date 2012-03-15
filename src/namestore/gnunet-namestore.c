@@ -260,10 +260,17 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   if (NULL == keyfile)
   {
-    fprintf (stderr,
-	     _("Option `%s' not given, but I need a zone key file!\n"),
-	     "z");
-    return;
+      if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
+                                                 "ZONEKEY", &keyfile))
+      {
+        fprintf (stderr,
+                 _("Option `%s' not given, but I need a zone key file!\n"),
+                 "z");
+        return;
+      }
+      fprintf (stderr,
+               _("Using default zone file `%s'\n"),
+               keyfile);
   }
   zone_pkey = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
   GNUNET_free (keyfile);
@@ -271,6 +278,8 @@ run (void *cls, char *const *args, const char *cfgfile,
   if (! (add|del|list))
   {
     /* nothing more to be done */  
+    fprintf (stderr,
+             _("No options given\n"));
     GNUNET_CRYPTO_rsa_key_free (zone_pkey);
     zone_pkey = NULL;
     return; 
