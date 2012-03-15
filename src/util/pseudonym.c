@@ -288,6 +288,7 @@ read_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
   return GNUNET_OK;
 }
 
+
 /**
  * Return unique variant of the namespace name.
  * Use it after GNUNET_PSEUDONYM_get_info() to make sure
@@ -319,7 +320,7 @@ GNUNET_PSEUDONYM_name_uniquify (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
   len = 0;
   if (0 == STAT (fn, &sbuf))
-    GNUNET_DISK_file_size (fn, &len, GNUNET_YES);
+    GNUNET_break (GNUNET_OK == GNUNET_DISK_file_size (fn, &len, GNUNET_YES));
   fh = GNUNET_DISK_file_open (fn,
                               GNUNET_DISK_OPEN_CREATE |
                               GNUNET_DISK_OPEN_READWRITE,
