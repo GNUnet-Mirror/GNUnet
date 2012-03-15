@@ -183,8 +183,8 @@ int write_key_to_file (const char *filename, struct GNUNET_NAMESTORE_CryptoConta
     LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "fcntl", filename);
   GNUNET_assert (GNUNET_YES == GNUNET_DISK_file_close (fd));
 
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-       _("Stored zonekey for zone `%s' in file `%s'\n"),GNUNET_h2s(&c->zone), c->filename);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+       _("Stored zonekey for zone `%s' in file `%s'\n"), GNUNET_h2s(&c->zone), c->filename);
   return GNUNET_OK;
 }
 
@@ -1470,7 +1470,7 @@ void zone_iteration_proc (void *cls,
     memcpy (name_tmp, name, name_len);
     memcpy (rd_tmp, rd_ser, rd_ser_len);
 
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending empty `%s' message with size %u\n", "ZONE_ITERATION_RESPONSE", msg_size);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message with size %u\n", "ZONE_ITERATION_RESPONSE", msg_size);
     GNUNET_SERVER_notification_context_unicast (snc, nc->client, (const struct GNUNET_MessageHeader *) zir_msg, GNUNET_NO);
     GNUNET_free (zir_msg);
   }

@@ -1544,6 +1544,15 @@ GNUNET_NAMESTORE_zone_iterator_next (struct GNUNET_NAMESTORE_ZoneIterator *it)
 
   GNUNET_assert (NULL != it);
   h = it->h;
+  struct GNUNET_NAMESTORE_ZoneIterator *tmp = it->h->z_head;
+
+  while (tmp != NULL)
+  {
+    if (tmp == it)
+      break;
+    tmp = tmp->next;
+  }
+  GNUNET_assert (NULL != tmp);
 
   /* set msg_size*/
   msg_size = sizeof (struct ZoneIterationNextMessage);
@@ -1578,6 +1587,15 @@ GNUNET_NAMESTORE_zone_iteration_stop (struct GNUNET_NAMESTORE_ZoneIterator *it)
   struct PendingMessage *pe;
   size_t msg_size = 0;
   struct GNUNET_NAMESTORE_Handle *h = it->h;
+  struct GNUNET_NAMESTORE_ZoneIterator *tmp = it->h->z_head;
+
+  while (tmp != NULL)
+  {
+    if (tmp == it)
+      break;
+    tmp = tmp->next;
+  }
+  GNUNET_assert (NULL != tmp);
 
   /* set msg_size*/
   msg_size = sizeof (struct ZoneIterationStopMessage);
