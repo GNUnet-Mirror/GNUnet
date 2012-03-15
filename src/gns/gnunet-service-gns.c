@@ -241,7 +241,6 @@ put_gns_record(void *cls,
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                "Zone iteration finished. Rescheduling put in %ds\n",
                GNUNET_GNS_DHT_MAX_UPDATE_INTERVAL);
-    GNUNET_NAMESTORE_zone_iteration_stop (namestore_iter);
     zone_update_taskid = GNUNET_SCHEDULER_add_delayed (
                                         GNUNET_TIME_relative_multiply(
                                             GNUNET_TIME_UNIT_SECONDS,
