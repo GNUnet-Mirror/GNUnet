@@ -137,6 +137,7 @@ on_lookup_result(void *cls, uint32_t rd_count,
       }
     }
   }
+  GNUNET_GNS_disconnect(gns_handle);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Shutting down peer1!\n");
   GNUNET_TESTING_daemon_stop (d1, TIMEOUT, &shutdown_callback, NULL,
                               GNUNET_YES, GNUNET_NO);

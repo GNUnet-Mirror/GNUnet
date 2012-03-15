@@ -468,7 +468,7 @@ process_message (void *cls, const struct GNUNET_MessageHeader *msg)
               "Got message\n");
   if (msg == NULL)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
          "Error receiving data from GNS service, reconnecting\n");
     force_reconnect (handle);
     return;
@@ -489,6 +489,7 @@ process_message (void *cls, const struct GNUNET_MessageHeader *msg)
       GNUNET_break_op (0);
       GNUNET_CLIENT_receive (handle->client, &process_message, handle,
                              GNUNET_TIME_UNIT_FOREVER_REL);
+      return;
     }
 
     for (qe = handle->lookup_head; qe != NULL; qe = qe->next)
@@ -515,6 +516,7 @@ process_message (void *cls, const struct GNUNET_MessageHeader *msg)
       GNUNET_break_op (0);
       GNUNET_CLIENT_receive (handle->client, &process_message, handle,
                              GNUNET_TIME_UNIT_FOREVER_REL);
+      return;
     }
 
     for (qe = handle->shorten_head; qe != NULL; qe = qe->next)
@@ -539,6 +541,7 @@ process_message (void *cls, const struct GNUNET_MessageHeader *msg)
       GNUNET_break_op (0);
       GNUNET_CLIENT_receive (handle->client, &process_message, handle,
                              GNUNET_TIME_UNIT_FOREVER_REL);
+      return;
     }
 
     for (qe = handle->get_auth_head; qe != NULL; qe = qe->next)
@@ -587,9 +590,15 @@ GNUNET_GNS_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
  * @param handle handle of the GNS connection to stop
  */
 void
-GNUNET_GNS_disconnect (struct GNUNET_GNS_Handle *handle)
+GNUNET_GNS_disconnect (struct GNUNET_GNS_Handle *h)
 {
-  GNUNET_CLIENT_disconnect (handle->client, 0);
+  GNUNET_CLIENT_disconnect (h->client, GNUNET_NO);
+  if (GNUNET_SCHEDULER_NO_TASK != h->reconnect_task)
+  {
+    GNUNET_SCHEDULER_cancel (h->reconnect_task);
+    h->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  GNUNET_free(h);
   /* disco from GNS */
 }
 
