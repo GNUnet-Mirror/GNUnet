@@ -1,4 +1,4 @@
-.TH GNUNET\-RSA 1 "Jan 4, 2012" "GNUnet"
+.TH GNUNET\-RSA 1 "Mar 15, 2012" "GNUnet"
 
 .SH NAME
 gnunet\-rsa \- manipulate GNUnet RSA key files
@@ -13,8 +13,11 @@ gnunet\-rsa \- manipulate GNUnet RSA key files
 
 .SH OPTIONS
 .B
-.IP "\-p, \-\-print"
-Print the corresponding public key (to stdout).
+.IP "\-p, \-\-print-public-key"
+Print the corresponding public key to stdout.
+.B
+.IP "\-P, \-\-print-peer-identity"
+Print the corresponding peer identity (hash of the public key) to stdout.
 .B
 .IP "\-c FILENAME,  \-\-config=FILENAME"
 Use the configuration file FILENAME.

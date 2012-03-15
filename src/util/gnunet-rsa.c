@@ -28,9 +28,14 @@
 
 
 /**
- * Flag for reverse lookup.
+ * Flag for printing public key.
  */
-static int print;
+static int print_public_key;
+
+/**
+ * Flag for printing hash of public key.
+ */
+static int print_peer_identity;
 
 
 /**
@@ -47,7 +52,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 {
   struct GNUNET_CRYPTO_RsaPrivateKey *pk;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pub;
-  char *s;
+  struct GNUNET_PeerIdentity pid;
 
   if (NULL == args[0])
   {
@@ -55,12 +60,23 @@ run (void *cls, char *const *args, const char *cfgfile,
     return;
   }
   pk = GNUNET_CRYPTO_rsa_key_create_from_file (args[0]);
-  if (print)
+  if (print_public_key)
   {
+    char *s;
+
     GNUNET_CRYPTO_rsa_key_get_public (pk, &pub);
     s = GNUNET_CRYPTO_rsa_public_key_to_string (&pub);
     fprintf (stdout, "%s\n", s);
     GNUNET_free (s);
+  }
+  if (print_peer_identity)
+  {
+    struct GNUNET_CRYPTO_HashAsciiEncoded enc;
+
+    GNUNET_CRYPTO_rsa_key_get_public (pk, &pub);
+    GNUNET_CRYPTO_hash (&pub, sizeof (pub), &pid.hashPubKey);
+    GNUNET_CRYPTO_hash_to_enc (&pid.hashPubKey, &enc);
+    fprintf (stdout, "%s\n", enc.encoding);
   }
   GNUNET_CRYPTO_rsa_key_free (pk);
 }
@@ -77,9 +93,12 @@ int
 main (int argc, char *const *argv)
 {
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    { 'p', "print", NULL,
+    { 'p', "print-public-key", NULL,
       gettext_noop ("print the public key in ASCII format"),
-      0, &GNUNET_GETOPT_set_one, &print },
+      0, &GNUNET_GETOPT_set_one, &print_public_key },
+    { 'P', "print-peer-identity", NULL,
+      gettext_noop ("print the hash of the public key in ASCII format"),
+      0, &GNUNET_GETOPT_set_one, &print_peer_identity },
     GNUNET_GETOPT_OPTION_END
   };
   return (GNUNET_OK ==
