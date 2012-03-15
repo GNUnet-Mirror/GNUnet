@@ -181,7 +181,7 @@ serve_main_page (struct MHD_Connection *connection)
 					      (void *) MAIN_PAGE,
 					      MHD_RESPMEM_PERSISTENT);
   MHD_add_response_header (response,
-			   MHD_HTTP_HEADER_CONTENT_ENCODING,
+			   MHD_HTTP_HEADER_CONTENT_TYPE,
 			   MIME_HTML);
   ret = MHD_queue_response (connection, 
 			    MHD_HTTP_OK, 
