@@ -520,7 +520,7 @@ iterator_start_receive (void *cls, int transmit_success)
     if (ic->callback != NULL)
       ic->callback (ic->callback_cls, NULL, NULL,
                     _
-                    ("Failed to transmit iteration request to `PEERINFO' service\n"));
+                    ("Failed to transmit iteration request to `PEERINFO' service"));
     GNUNET_free (ic);
     return;
   }
