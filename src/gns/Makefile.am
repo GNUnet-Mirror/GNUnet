@@ -18,9 +18,13 @@ pkgcfg_DATA = \
 lib_LTLIBRARIES = \
   libgnunetgns.la
 
+if HAVE_MHD
+ DO_FCFSD=gnunet-gns-fcfsd
+endif
+
 bin_PROGRAMS = \
   gnunet-service-gns \
-  gnunet-gns-fcfsd \
+  $(DO_FCFSD) \
   gnunet-gns
 
 #noinst_PROGRAMS = \
