@@ -39,6 +39,11 @@
 #define HELLO_URI_PREFIX "gnunet://hello/"
 
 /**
+ * How long until we time out during peerinfo iterations?
+ */
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+
+/**
  * Structure we use to collect printable address information.
  */
 struct PrintContext;
@@ -783,7 +788,7 @@ state_machine (void *cls,
     get_info = GNUNET_NO;
     GPI_plugins_load (cfg);
     pic = GNUNET_PEERINFO_iterate (peerinfo, NULL,
-				   GNUNET_TIME_UNIT_FOREVER_REL, 
+				   TIMEOUT,
 				   &print_peer_info, NULL);
     return;
   }
@@ -812,7 +817,7 @@ state_machine (void *cls,
     GNUNET_free (pkey);
     GPI_plugins_load (cfg);
     pic = GNUNET_PEERINFO_iterate (peerinfo, &my_peer_identity,
-				   GNUNET_TIME_UNIT_FOREVER_REL,
+				   TIMEOUT,
 				   &print_my_uri, guc);
     get_uri = GNUNET_NO;
     return;
