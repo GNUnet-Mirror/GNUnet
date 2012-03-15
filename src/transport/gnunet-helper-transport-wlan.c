@@ -1158,6 +1158,7 @@ linux_read (struct HardwareInfos *dev, unsigned char *buf, size_t buf_size,
     struct ieee80211_radiotap_iterator iterator;
     struct ieee80211_radiotap_header *rthdr;
 
+    memset (&iterator, 0, sizeof (iterator));
     rthdr = (struct ieee80211_radiotap_header *) tmpbuf;
 
     if (0 != ieee80211_radiotap_iterator_init (&iterator, rthdr, caplen))
