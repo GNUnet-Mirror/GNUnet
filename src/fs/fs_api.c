@@ -1985,6 +1985,7 @@ deserialize_unindex_file (void *cls, const char *filename)
     GNUNET_break (0);
     goto cleanup;
   }
+  uris = NULL;
   if ((GNUNET_OK !=
        GNUNET_BIO_read_string (rh, "unindex-fn", &uc->filename, 10 * 1024)) ||
       (GNUNET_OK != GNUNET_BIO_read_int64 (rh, &uc->file_size)) ||
@@ -1994,6 +1995,7 @@ deserialize_unindex_file (void *cls, const char *filename)
       (GNUNET_OK != GNUNET_BIO_read_string (rh, "unindex-kskuri", &uris, 10 * 1024)) ||
       (GNUNET_OK != GNUNET_BIO_read_int32 (rh, &uc->ksk_offset)) )
   {
+    GNUNET_free_non_null (uris);
     GNUNET_break (0);
     goto cleanup;
   }
