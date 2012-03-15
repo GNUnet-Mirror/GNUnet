@@ -602,8 +602,8 @@ process_delegation_result_dht(void* cls,
    * should never get here unless false dht key/put
    * block plugin should handle this
    **/
-  GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "DHT authority lookup error!\n");
-  GNUNET_break(0);
+  GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "DHT authority lookup found no match!\n");
+  rh->proc(rh->proc_cls, rh, 0, NULL);
 }
 
 
