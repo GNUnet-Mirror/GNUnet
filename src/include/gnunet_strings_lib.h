@@ -284,39 +284,43 @@ int
 GNUNET_STRINGS_parse_uri (const char *path, char **scheme_part,
     const char **path_part);
 
+
 /**
- * Check whether @filename is absolute or not, and if it's an URI
+ * Check whether filename is absolute or not, and if it's an URI
  *
  * @param filename filename to check
  * @param can_be_uri GNUNET_YES to check for being URI, GNUNET_NO - to
  *        assume it's not URI
- * @param r_is_uri a pointer to an int that is set to GNUNET_YES if @filename
- *        is URI and to GNUNET_NO otherwise. Can be NULL. If @can_be_uri is
+ * @param r_is_uri a pointer to an int that is set to GNUNET_YES if 'filename'
+ *        is URI and to GNUNET_NO otherwise. Can be NULL. If 'can_be_uri' is
  *        not GNUNET_YES, *r_is_uri is set to GNUNET_NO.
  * @param r_uri a pointer to a char * that is set to a pointer to URI scheme.
  *        The string is allocated by the function, and should be freed with
  *        GNUNET_free (). Can be NULL.
- * @return GNUNET_YES if @filaneme is absolute, GNUNET_NO otherwise.
+ * @return GNUNET_YES if 'filaname' is absolute, GNUNET_NO otherwise.
  */
 int
-GNUNET_STRINGS_path_is_absolute (const char *filename, int can_be_uri,
-    int *r_is_uri, char **r_uri_scheme);
+GNUNET_STRINGS_path_is_absolute (const char *filename, 
+				 int can_be_uri,
+				 int *r_is_uri, 
+				 char **r_uri_scheme);
+
 
 /**
- * Perform @checks on @filename
+ * Perform checks on 'filename;
  * 
  * @param filename file to check
  * @param checks checks to perform
- * @return GNUNET_YES if all @checks pass, GNUNET_NO if at least one of them
+ * @return GNUNET_YES if all checks pass, GNUNET_NO if at least one of them
  *         fails, GNUNET_SYSERR when a check can't be performed
  */
 int
 GNUNET_STRINGS_check_filename (const char *filename,
-    enum GNUNET_STRINGS_FilenameCheck checks);
+			       enum GNUNET_STRINGS_FilenameCheck checks);
 
 
 /**
- * Tries to convert @zt_addr string to an IPv6 address.
+ * Tries to convert 'zt_addr' string to an IPv6 address.
  * 
  * @param zt_addr 0-terminated string. May be mangled by the function.
  * @param addrlen length of zt_addr (not counting 0-terminator).
@@ -326,11 +330,13 @@ GNUNET_STRINGS_check_filename (const char *filename,
  *         case the contents of r_buf are undefined.
  */
 int
-GNUNET_STRINGS_to_address_ipv6 (char *zt_addr, uint16_t addrlen,
-    struct sockaddr_in6 *r_buf);
+GNUNET_STRINGS_to_address_ipv6 (const char *zt_addr, 
+				uint16_t addrlen,
+				struct sockaddr_in6 *r_buf);
+
 
 /**
- * Tries to convert @zt_addr string to an IPv4 address.
+ * Tries to convert 'zt_addr' string to an IPv4 address.
  * 
  * @param zt_addr 0-terminated string. May be mangled by the function.
  * @param addrlen length of zt_addr (not counting 0-terminator).
@@ -339,14 +345,16 @@ GNUNET_STRINGS_to_address_ipv6 (char *zt_addr, uint16_t addrlen,
  *         the contents of r_buf are undefined.
  */
 int
-GNUNET_STRINGS_to_address_ipv4 (char *zt_addr, uint16_t addrlen,
-    struct sockaddr_in *r_buf);
+GNUNET_STRINGS_to_address_ipv4 (const char *zt_addr, 
+				uint16_t addrlen,
+				struct sockaddr_in *r_buf);
+
 
 /**
- * Tries to convert @addr string to an IP (v4 or v6) address.
+ * Tries to convert 'addr' string to an IP (v4 or v6) address.
  * IPv6 address must have its address part enclosed in '()' parens
  * instead of '[]'.
- * Will automatically decide whether to treat @addr as v4 or v6 address.
+ * Will automatically decide whether to treat 'addr' as v4 or v6 address.
  * 
  * @param addr a string, may not be 0-terminated.
  * @param addrlen number of bytes in addr (if addr is 0-terminated,
@@ -356,8 +364,10 @@ GNUNET_STRINGS_to_address_ipv4 (char *zt_addr, uint16_t addrlen,
  *         case the contents of r_buf are undefined.
  */
 int
-GNUNET_STRINGS_to_address_ip (const char *addr, uint16_t addrlen,
-    struct sockaddr_storage *r_buf);
+GNUNET_STRINGS_to_address_ip (const char *addr,
+			      uint16_t addrlen,
+			      struct sockaddr_storage *r_buf);
+
 
 /* ifndef GNUNET_UTIL_STRING_H */
 #endif
