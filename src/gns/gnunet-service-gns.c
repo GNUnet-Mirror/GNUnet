@@ -633,6 +633,8 @@ handle_lookup(void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "LOOKUP");
 
   size_t msg_size = 0;
+  size_t namelen;
+  char* name;
   struct ClientLookupHandle *clh;
 
   if (ntohs (message->size) < sizeof (struct GNUNET_GNS_ClientLookupMessage))
@@ -655,15 +657,17 @@ handle_lookup(void *cls,
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
-
+  
+  name = (char*)&sh_msg[1];
+  namelen = strlen(name)+1;
   clh = GNUNET_malloc(sizeof(struct ClientLookupHandle));
   clh->client = client;
-  clh->name = GNUNET_malloc(strlen((char*)&sh_msg[1]) + 1);
-  strcpy(clh->name, (char*)&sh_msg[1]);
+  clh->name = GNUNET_malloc(namelen);
+  strcpy(clh->name, name);
   clh->unique_id = sh_msg->id;
   clh->type = ntohl(sh_msg->type);
   
-  gns_resolver_lookup_record(zone_hash, clh->type, (char*)&sh_msg[1],
+  gns_resolver_lookup_record(zone_hash, clh->type, name,
                              &send_lookup_response, clh);
 }
 

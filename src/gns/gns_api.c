@@ -440,17 +440,25 @@ process_lookup_reply (struct GNUNET_GNS_QueueEntry *qe,
 
   len -= sizeof(struct GNUNET_GNS_ClientLookupResultMessage);
 
-  GNUNET_NAMESTORE_records_deserialize (len, (char*)&msg[1],
-                                        rd_count,
-                                        rd);
-  
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received lookup reply from GNS service (count=%d)\n",
-              ntohl(msg->rd_count));
-  
   GNUNET_CLIENT_receive (h->client, &process_message, h,
                          GNUNET_TIME_UNIT_FOREVER_REL);
-  qe->lookup_proc(qe->proc_cls, rd_count, rd);
+  if (GNUNET_SYSERR == GNUNET_NAMESTORE_records_deserialize (len,
+                                                             (char*)&msg[1],
+                                                             rd_count,
+                                                             rd))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Failed to serialize lookup reply from GNS service!\n");
+    qe->lookup_proc(qe->proc_cls, 0, NULL);
+  }
+  else
+  {
+  
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Received lookup reply from GNS service (count=%d)\n",
+                ntohl(msg->rd_count));
+    qe->lookup_proc(qe->proc_cls, rd_count, rd);
+  }
 }
 
 /**
