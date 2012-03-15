@@ -622,11 +622,8 @@ transmit_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 static void
 connect_fail_continuation (struct GNUNET_CONNECTION_Handle *h)
 {
-  LOG ((0 !=
-        strncmp (h->hostname, "localhost:",
-                 10)) ? GNUNET_ERROR_TYPE_INFO : GNUNET_ERROR_TYPE_WARNING,
-       _
-       ("Failed to establish TCP connection to `%s:%u', no further addresses to try.\n"),
+  LOG (GNUNET_ERROR_TYPE_INFO,
+       _("Failed to establish TCP connection to `%s:%u', no further addresses to try.\n"),
        h->hostname, h->port);
   /* connect failed / timed out */
   GNUNET_break (h->ap_head == NULL);
