@@ -388,8 +388,8 @@ lookup_result_processor (void *cls,
   r.data = &pub;
   r.data_size = sizeof (pub);
   r.expiration = GNUNET_TIME_UNIT_FOREVER_ABS;
-  r.record_type = htonl (GNUNET_NAMESTORE_TYPE_PKEY);
-  r.flags = htonl (GNUNET_NAMESTORE_RF_AUTHORITY);
+  r.record_type = GNUNET_NAMESTORE_TYPE_PKEY;
+  r.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
   request->qe = GNUNET_NAMESTORE_record_create (ns,
 						fcfs_zone_pkey,
 						request->domain_name,
