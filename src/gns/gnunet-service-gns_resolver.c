@@ -1474,13 +1474,21 @@ gns_resolver_get_authority(GNUNET_HashCode zone,
   nah = GNUNET_malloc(sizeof (struct GetNameAuthorityHandle));
   rh = GNUNET_malloc(sizeof (struct ResolverHandle));
   rh->authority = zone;
-
-  rh->name = GNUNET_malloc(strlen(name)
-                           - strlen(GNUNET_GNS_TLD));
-  memset(rh->name, 0,
-         strlen(name)-strlen(GNUNET_GNS_TLD));
-  memcpy(rh->name, name,
-         strlen(name)-strlen(GNUNET_GNS_TLD) - 1);
+  
+  if (strcmp(GNUNET_GNS_TLD, name) == 0)
+  {
+    rh->name = GNUNET_malloc(2);
+    strcpy(rh->name, "");
+  }
+  else
+  {
+    rh->name = GNUNET_malloc(strlen(name)
+                             - strlen(GNUNET_GNS_TLD));
+    memset(rh->name, 0,
+           strlen(name)-strlen(GNUNET_GNS_TLD));
+    memcpy(rh->name, name,
+           strlen(name)-strlen(GNUNET_GNS_TLD) - 1);
+  }
 
   nah->name = GNUNET_malloc(strlen(name)+1);
   memset(nah->name, 0,

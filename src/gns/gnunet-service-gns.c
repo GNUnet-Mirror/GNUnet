@@ -599,6 +599,15 @@ static void handle_get_authority(void *cls,
     send_get_auth_response(cah, name);
     return;
   }
+
+  if (strcmp(name, GNUNET_GNS_TLD) == 0)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "%s is us. Returning\n", name);
+    cah->name = NULL;
+    send_get_auth_response(cah, name);
+    return;
+  }
   
   cah->name = GNUNET_malloc(strlen(name)
                             - strlen(GNUNET_GNS_TLD) + 1);
