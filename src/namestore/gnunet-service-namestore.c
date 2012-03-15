@@ -304,12 +304,13 @@ client_disconnect_notification (void *cls, struct GNUNET_SERVER_Client *client)
   if ((NULL == client) || (NULL == nc))
     return;
 
-  for (no = nc->op_head; no != NULL; no = no->next)
+  no = nc->op_head;
+  while (NULL != no)
   {
     GNUNET_CONTAINER_DLL_remove (nc->op_head, nc->op_tail, no);
     GNUNET_free (no);
+    no = nc->op_head;
   }
-
 
   GNUNET_SERVER_client_drop(nc->client);
   GNUNET_CONTAINER_DLL_remove (client_head, client_tail, nc);
