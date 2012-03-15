@@ -233,15 +233,36 @@ put_gns_record(void *cls,
   struct GNUNET_CRYPTO_HashAsciiEncoded xor_hash_string;
   uint32_t rd_payload_length;
   char* nrb_data = NULL;
+  size_t namelen;
 
   /* we're done */
   if (NULL == name)
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Zone iteration finished\n");
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "Zone iteration finished. Rescheduling put in %ds\n",
+               GNUNET_GNS_DHT_MAX_UPDATE_INTERVAL);
     GNUNET_NAMESTORE_zone_iteration_stop (namestore_iter);
-    zone_update_taskid = GNUNET_SCHEDULER_add_now (&update_zone_dht_start,
+    zone_update_taskid = GNUNET_SCHEDULER_add_delayed (
+                                        GNUNET_TIME_relative_multiply(
+                                            GNUNET_TIME_UNIT_SECONDS,
+                                            GNUNET_GNS_DHT_MAX_UPDATE_INTERVAL
+                                            ),
+                                            &update_zone_dht_start,
+                                            NULL);
+    return;
+  }
+  
+  namelen = strlen(name) + 1;
+  
+  if (signature == NULL)
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+               "No signature for %s record data provided! Skipping...\n",
+               name);
+    zone_update_taskid = GNUNET_SCHEDULER_add_now (&update_zone_dht_next,
                                                    NULL);
     return;
+
   }
   
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
@@ -249,34 +270,33 @@ put_gns_record(void *cls,
   
   rd_payload_length = GNUNET_NAMESTORE_records_get_size (rd_count, rd);
   
-  nrb = GNUNET_malloc(rd_payload_length + strlen(name) + 1 
+  nrb = GNUNET_malloc(rd_payload_length + namelen
                       + sizeof(struct GNSNameRecordBlock));
   
-  if (signature != NULL)
-    nrb->signature = *signature;
+  nrb->signature = *signature;
   
   nrb->public_key = *key;
 
   nrb->rd_count = htonl(rd_count);
   
-  memset(&nrb[1], 0, strlen(name) + 1);
-  memcpy(&nrb[1], name, strlen(name));
+  memcpy(&nrb[1], name, namelen);
 
   nrb_data = (char*)&nrb[1];
-  nrb_data += strlen(name) + 1;
+  nrb_data += namelen;
 
-  rd_payload_length += sizeof(struct GNSNameRecordBlock) +
-    strlen(name) + 1;
+  rd_payload_length += sizeof(struct GNSNameRecordBlock) + namelen;
 
   if (-1 == GNUNET_NAMESTORE_records_serialize (rd_count,
                                                 rd,
                                                 rd_payload_length,
                                                 nrb_data))
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Record serialization failed!\n");
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+               "Record serialization failed! Skipping...\n");
     GNUNET_free(nrb);
+    zone_update_taskid = GNUNET_SCHEDULER_add_now (&update_zone_dht_next,
+                                                   NULL);
     return;
-    //FIXME what to do
   }
 
 
@@ -286,6 +306,7 @@ put_gns_record(void *cls,
   GNUNET_CRYPTO_hash(name, strlen(name), &name_hash);
   GNUNET_CRYPTO_hash_xor(&zone_hash, &name_hash, &xor_hash);
   GNUNET_CRYPTO_hash_to_enc (&xor_hash, &xor_hash_string);
+
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
              "putting records for %s under key: %s with size %d\n",
              name, (char*)&xor_hash_string, rd_payload_length);
@@ -323,26 +344,35 @@ put_gns_record(void *cls,
 static void
 update_zone_dht_start(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Starting DHT zone update!\n");
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Scheduling DHT zone update!\n");
   if (0 == num_public_records)
   {
     dht_update_interval = GNUNET_TIME_relative_multiply(
-                                                      GNUNET_TIME_UNIT_SECONDS,
-                                                      1);
+                                            GNUNET_TIME_UNIT_SECONDS,
+                                            GNUNET_GNS_DHT_MAX_UPDATE_INTERVAL);
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "No records in db. Adjusted DHT update interval to %ds\n",
+               GNUNET_GNS_DHT_MAX_UPDATE_INTERVAL);
   }
   else
   {
+    
     dht_update_interval = GNUNET_TIME_relative_multiply(
                                                       GNUNET_TIME_UNIT_SECONDS,
                                                      (3600/num_public_records));
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "Adjusted DHT update interval to %ds!\n",
+               (3600/num_public_records));
   }
-  num_public_records = 0; //start counting again
+
+  /* start counting again */
+  num_public_records = 0;
   namestore_iter = GNUNET_NAMESTORE_zone_iteration_start (namestore_handle,
-                                                          &zone_hash,
-                                                          GNUNET_NAMESTORE_RF_AUTHORITY,
-                                                          GNUNET_NAMESTORE_RF_PRIVATE,
-                                                          &put_gns_record,
-                                                          NULL);
+                                                 &zone_hash,
+                                                 GNUNET_NAMESTORE_RF_AUTHORITY,
+                                                 GNUNET_NAMESTORE_RF_PRIVATE,
+                                                 &put_gns_record,
+                                                 NULL);
 }
 
 
@@ -731,7 +761,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
    */
   dht_update_interval = GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS,
                                                       1);
-  //zone_update_taskid = GNUNET_SCHEDULER_add_now (&update_zone_dht_start, NULL);
+  zone_update_taskid = GNUNET_SCHEDULER_add_now (&update_zone_dht_start, NULL);
 
   GNUNET_SERVER_add_handlers (server, handlers);
   
