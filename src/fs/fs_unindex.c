@@ -512,6 +512,7 @@ process_kblock_for_unindex (void *cls,
     GNUNET_FS_uri_destroy (chk_uri);
     goto get_next;
   }
+  GNUNET_FS_uri_destroy (chk_uri);
   /* matches! */
   uc->dqe = GNUNET_DATASTORE_remove (uc->dsh,
 				     key, size, data,
