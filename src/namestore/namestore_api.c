@@ -1479,7 +1479,7 @@ GNUNET_NAMESTORE_zone_iteration_start (struct GNUNET_NAMESTORE_Handle *h,
   it = GNUNET_malloc (sizeof (struct GNUNET_NAMESTORE_ZoneIterator));
   it->h = h;
   it->proc = proc;
-  it->proc_cls = proc;
+  it->proc_cls = proc_cls;
   it->op_id = rid;
 
   if (NULL != zone)
