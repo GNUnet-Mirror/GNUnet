@@ -11,3 +11,8 @@ HIJACK_DNS = NO
 [fcfsd]
 HTTPPORT = 18080
 ZONEKEY = $SERVICEHOME/fcfsd/zonekey.zkey
+HOSTNAME = localhost
+HOME = $SERVICEHOME
+CONFIG = $DEFAULTCONFIG
+BINARY = gnunet-gns-fcfsd
+
