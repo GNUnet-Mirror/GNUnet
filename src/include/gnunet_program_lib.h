@@ -60,6 +60,28 @@ typedef void (*GNUNET_PROGRAM_Main) (void *cls, char *const *args,
  * @param argc number of command line arguments
  * @param argv command line arguments
  * @param binaryName our expected name
+ * @param binaryHelp help text for the program
+ * @param options command line options
+ * @param task main function to run
+ * @param task_cls closure for task
+ * @param run_with_schedule GNUNET_YES start the scheduler, GNUNET_NO do not
+ *        start the scheduler just run the main task
+ * @return GNUNET_SYSERR on error, GNUNET_OK on success
+ */
+int
+GNUNET_PROGRAM_run2 (int argc, char *const *argv, const char *binaryName,
+                    const char *binaryHelp,
+                    const struct GNUNET_GETOPT_CommandLineOption *options,
+                    GNUNET_PROGRAM_Main task, void *task_cls,
+                    int run_with_schedule);
+
+/**
+ * Run a standard GNUnet command startup sequence (initialize loggers
+ * and configuration, parse options).
+ *
+ * @param argc number of command line arguments
+ * @param argv command line arguments
+ * @param binaryName our expected name
  * @param binaryHelp helptext for "-h" option (about the app)
  * @param options command line options
  * @param task main function to run

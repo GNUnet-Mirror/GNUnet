@@ -125,13 +125,16 @@ cmd_sorter (__const void *a1, __const void *a2)
  * @param options command line options
  * @param task main function to run
  * @param task_cls closure for task
+ * @param run_with_schedule GNUNET_NO start the scheduler, GNUNET_YES do not
+ *        start the scheduler just run the main task
  * @return GNUNET_SYSERR on error, GNUNET_OK on success
  */
 int
-GNUNET_PROGRAM_run (int argc, char *const *argv, const char *binaryName,
+GNUNET_PROGRAM_run2 (int argc, char *const *argv, const char *binaryName,
                     const char *binaryHelp,
                     const struct GNUNET_GETOPT_CommandLineOption *options,
-                    GNUNET_PROGRAM_Main task, void *task_cls)
+                    GNUNET_PROGRAM_Main task, void *task_cls,
+                    int run_with_schedule)
 {
   struct CommandContext cc;
   char *path;
@@ -247,8 +250,15 @@ GNUNET_PROGRAM_run (int argc, char *const *argv, const char *binaryName,
   }
   /* run */
   cc.args = &argv[ret];
-  GNUNET_SCHEDULER_run (&program_main, &cc);
-
+  if (GNUNET_NO == run_with_schedule)
+  {
+          GNUNET_SCHEDULER_run (&program_main, &cc);
+  }
+  else
+  {
+          GNUNET_RESOLVER_connect (cc.cfg);
+          cc.task (cc.task_cls, cc.args, cc.cfgfile, cc.cfg);
+  }
   /* clean up */
   GNUNET_CONFIGURATION_destroy (cfg);
   GNUNET_free_non_null (cc.cfgfile);
@@ -256,6 +266,29 @@ GNUNET_PROGRAM_run (int argc, char *const *argv, const char *binaryName,
   GNUNET_free_non_null (logfile);
   return GNUNET_OK;
 }
+
+/**
+ * Run a standard GNUnet command startup sequence (initialize loggers
+ * and configuration, parse options).
+ *
+ * @param argc number of command line arguments
+ * @param argv command line arguments
+ * @param binaryName our expected name
+ * @param binaryHelp help text for the program
+ * @param options command line options
+ * @param task main function to run
+ * @param task_cls closure for task
+ * @return GNUNET_SYSERR on error, GNUNET_OK on success
+ */
+int
+GNUNET_PROGRAM_run (int argc, char *const *argv, const char *binaryName,
+                    const char *binaryHelp,
+                    const struct GNUNET_GETOPT_CommandLineOption *options,
+                    GNUNET_PROGRAM_Main task, void *task_cls)
+{
+        return GNUNET_PROGRAM_run2 (argc, argv, binaryName, binaryHelp, options, task, task_cls, GNUNET_NO);
+}
+
 
 
 /* end of program.c */
