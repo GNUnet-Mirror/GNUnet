@@ -125,7 +125,7 @@ cmd_sorter (__const void *a1, __const void *a2)
  * @param options command line options
  * @param task main function to run
  * @param task_cls closure for task
- * @param run_with_schedule GNUNET_NO start the scheduler, GNUNET_YES do not
+ * @param run_without_scheduler GNUNET_NO start the scheduler, GNUNET_YES do not
  *        start the scheduler just run the main task
  * @return GNUNET_SYSERR on error, GNUNET_OK on success
  */
@@ -134,7 +134,7 @@ GNUNET_PROGRAM_run2 (int argc, char *const *argv, const char *binaryName,
                     const char *binaryHelp,
                     const struct GNUNET_GETOPT_CommandLineOption *options,
                     GNUNET_PROGRAM_Main task, void *task_cls,
-                    int run_with_schedule)
+                    int run_without_scheduler)
 {
   struct CommandContext cc;
   char *path;
@@ -250,7 +250,7 @@ GNUNET_PROGRAM_run2 (int argc, char *const *argv, const char *binaryName,
   }
   /* run */
   cc.args = &argv[ret];
-  if (GNUNET_NO == run_with_schedule)
+  if (GNUNET_NO == run_without_scheduler)
   {
           GNUNET_SCHEDULER_run (&program_main, &cc);
   }
