@@ -629,6 +629,9 @@ handle_record_dht(void* cls, struct ResolverHandle *rh,
                rh->name);
     /* give up, cannot resolve */
     rlh->proc(rlh->proc_cls, 0, NULL);
+    GNUNET_free(rlh->name);
+    GNUNET_free(rlh);
+    free_resolver_handle(rh);
     return;
   }
 
@@ -636,6 +639,9 @@ handle_record_dht(void* cls, struct ResolverHandle *rh,
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
              "Record resolved from DHT!");
   rlh->proc(rlh->proc_cls, rd_count, rd);
+  GNUNET_free(rlh->name);
+  GNUNET_free(rlh);
+  free_resolver_handle(rh);
 
 }
 
@@ -668,6 +674,9 @@ handle_record_ns(void* cls, struct ResolverHandle *rh,
     }
     /* give up, cannot resolve */
     rlh->proc(rlh->proc_cls, 0, NULL);
+    GNUNET_free(rlh->name);
+    GNUNET_free(rlh);
+    free_resolver_handle(rh);
     return;
   }
 
@@ -675,6 +684,9 @@ handle_record_ns(void* cls, struct ResolverHandle *rh,
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
              "Record resolved from namestore!");
   rlh->proc(rlh->proc_cls, rd_count, rd);
+  GNUNET_free(rlh->name);
+  GNUNET_free(rlh);
+  free_resolver_handle(rh);
 
 }
 
@@ -778,6 +790,9 @@ handle_delegation_dht(void* cls, struct ResolverHandle *rh,
              "Cannot fully resolve delegation for %s via DHT!\n",
              rh->name);
   rlh->proc(rlh->proc_cls, 0, NULL);
+  GNUNET_free(rlh->name);
+  GNUNET_free(rlh);
+  free_resolver_handle(rh);
 }
 
 
@@ -1099,7 +1114,9 @@ gns_resolver_lookup_record(GNUNET_HashCode zone,
   rh->authority_chain_head->zone = zone;
 
   rlh->record_type = record_type;
-  rlh->name = (char*)name; //FIXME
+  rlh->name = GNUNET_malloc(strlen(name) + 1);
+  memset(rlh->name, 0, strlen(name) + 1);
+  strcpy(rlh->name, name); //FIXME
   rlh->proc = proc;
   rlh->proc_cls = cls;
 
@@ -1157,6 +1174,7 @@ process_zone_to_name_shorten(void *cls,
                "Sending shorten result %s\n", result);
 
     nsh->proc(nsh->proc_cls, result);
+    GNUNET_free(nsh);
     free_resolver_handle(rh);
     GNUNET_free(result);
   }
@@ -1175,6 +1193,7 @@ process_zone_to_name_shorten(void *cls,
                "Our zone: Sending name as shorten result %s\n", rh->name);
     
     nsh->proc(nsh->proc_cls, result);
+    GNUNET_free(nsh);
     free_resolver_handle(rh);
     GNUNET_free(result);
   }
@@ -1259,6 +1278,7 @@ handle_delegation_ns_shorten(void* cls,
                "Our zone: Sending name as shorten result %s\n", rh->name);
     
     nsh->proc(nsh->proc_cls, result);
+    GNUNET_free(nsh);
     free_resolver_handle(rh);
     GNUNET_free(result);
     return;
@@ -1378,17 +1398,19 @@ handle_delegation_result_ns_get_auth(void* cls,
                "Got authority result %s\n", result);
     
     nah->proc(nah->proc_cls, result);
+    GNUNET_free(nah->name);
+    GNUNET_free(nah);
     free_resolver_handle(rh);
     GNUNET_free(result);
-    GNUNET_free(nah);
   }
   else
   {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                "Unable to resolve authority for remaining %s!\n", rh->name);
     nah->proc(nah->proc_cls, "");
-    free_resolver_handle(rh);
+    GNUNET_free(nah->name);
     GNUNET_free(nah);
+    free_resolver_handle(rh);
   }
 
 
