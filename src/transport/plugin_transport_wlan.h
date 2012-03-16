@@ -35,6 +35,7 @@
 #define MAC_ADDR_SIZE 6
 
 GNUNET_NETWORK_STRUCT_BEGIN
+
 /**
  * A MAC Address.
  */
@@ -59,24 +60,7 @@ struct GNUNET_TRANSPORT_WLAN_HelperControlMessage
    */
   struct GNUNET_TRANSPORT_WLAN_MacAddress mac;
 };
-GNUNET_NETWORK_STRUCT_END
 
-/**
- * GNUnet bssid
- */
-static const struct GNUNET_TRANSPORT_WLAN_MacAddress mac_bssid_gnunet = {
-  {0x13, 0x22, 0x33, 0x44, 0x55, 0x66}
-};
-
-
-/**
- * Broadcast MAC
- */
-static const struct GNUNET_TRANSPORT_WLAN_MacAddress bc_all_mac = {
-  {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}
-};
-
-GNUNET_NETWORK_STRUCT_BEGIN
 
 /**
  * generic definitions for IEEE 802.11 frames
@@ -86,12 +70,12 @@ struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame
   /**
    * 802.11 Frame Control field,
    */
-  uint16_t frame_control;
+  uint16_t frame_control GNUNET_PACKED;
 
   /**
    * Microseconds to reserve link (duration), 0 by default
    */
-  uint16_t duration;
+  uint16_t duration GNUNET_PACKED;
 
   /**
    * Address 1: destination address in ad-hoc mode or AP, BSSID if station,
@@ -111,7 +95,7 @@ struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame
   /**
    * 802.11 sequence control field.
    */
-  uint16_t sequence_control;
+  uint16_t sequence_control GNUNET_PACKED;
 
   /**
    * Link layer control (LLC).  Set to a GNUnet-specific value.
@@ -150,7 +134,7 @@ struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage
    * Transmit power expressed as unitless distance from max power set at factory calibration.
    * 0 is max power. Monotonically nondecreasing with lower power levels.
    */
-  uint16_t tx_power;
+  uint16_t tx_power GNUNET_PACKED;
 
   /**
    * IEEE Frame to transmit (the sender MAC address will be overwritten by the helper as it does not
@@ -161,59 +145,89 @@ struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage
   /* actual payload follows */
 };
 
-GNUNET_NETWORK_STRUCT_END
 
-
+/**
+ * Message from the WLAN helper to the plugin: we have received the given message with the
+ * given performance characteristics.
+ */
 /**
  * struct to represent infos gathered form the radiotap fields, see RadiotapHeader for more Infos
  */
-struct Radiotap_rx
+struct GNUNET_TRANSPORT_WLAN_RadiotapReceiveMessage
 {
+
+  /**
+   * Type is 'GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA'.
+   */
+  struct GNUNET_MessageHeader header;
+
   /**
    * FIXME: not initialized properly so far. (supposed to contain
    * information about which of the fields below are actually valid).
    */
-  uint32_t ri_present;
+  uint32_t ri_present GNUNET_PACKED;
 
   /**
    * IEEE80211_RADIOTAP_TSFT
    */
-  uint64_t ri_mactime;
+  uint64_t ri_mactime GNUNET_PACKED;
 
   /**
    * from radiotap
    * either IEEE80211_RADIOTAP_DBM_ANTSIGNAL
    * or IEEE80211_RADIOTAP_DB_ANTSIGNAL
    */
-  int32_t ri_power;
+  int32_t ri_power GNUNET_PACKED;
 
   /**
    * either IEEE80211_RADIOTAP_DBM_ANTNOISE
    * or IEEE80211_RADIOTAP_DB_ANTNOISE
    */
-  int32_t ri_noise;
+  int32_t ri_noise GNUNET_PACKED;
 
   /**
    * IEEE80211_RADIOTAP_CHANNEL
    */
-  uint32_t ri_channel;
+  uint32_t ri_channel GNUNET_PACKED;
 
   /**
    * Frequency we use.  FIXME: not properly initialized so far!
    */
-  uint32_t ri_freq;
+  uint32_t ri_freq GNUNET_PACKED;
 
   /**
    * IEEE80211_RADIOTAP_RATE * 50000
    */
-  uint32_t ri_rate;
+  uint32_t ri_rate GNUNET_PACKED;
 
   /**
    * IEEE80211_RADIOTAP_ANTENNA
    */
-  uint32_t ri_antenna;
+  uint32_t ri_antenna GNUNET_PACKED;
+
+  /**
+   * IEEE Frame.
+   */
+  struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame frame;
+
+  /* followed by payload */
+};
+
+GNUNET_NETWORK_STRUCT_END
+
+/**
+ * GNUnet bssid
+ */
+static const struct GNUNET_TRANSPORT_WLAN_MacAddress mac_bssid_gnunet = {
+  {0x13, 0x22, 0x33, 0x44, 0x55, 0x66}
 };
 
 
+/**
+ * Broadcast MAC
+ */
+static const struct GNUNET_TRANSPORT_WLAN_MacAddress bc_all_mac = {
+  {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}
+};
 
 #endif

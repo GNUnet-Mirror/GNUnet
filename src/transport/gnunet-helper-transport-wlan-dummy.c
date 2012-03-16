@@ -77,49 +77,35 @@ static void
 stdin_send (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
 {
   struct sendbuf *write_pout = cls;
-  int sendsize;
-  struct GNUNET_MessageHeader newheader;
-  char *to_data;
-  char *to_radiotap;
-  char *to_start;
+  const struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage *in;
+  size_t payload_size;
+  struct GNUNET_TRANSPORT_WLAN_RadiotapReceiveMessage newheader;
 
-  sendsize =
-      ntohs (hdr->size) - sizeof (struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage) +
-    sizeof (struct Radiotap_rx) + sizeof (struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame) + 
-    sizeof (struct GNUNET_MessageHeader);
-
-  if (GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA != ntohs (hdr->type))
+  in = (const struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage *) hdr;
+  if ( (GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA != ntohs (hdr->type)) ||
+       (sizeof (struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage) < ntohs (hdr->size)) )
   {
-    fprintf (stderr, "Function stdin_send: wrong packet type\n");
+    fprintf (stderr, "Function stdin_send: wrong packet type or size\n");
     exit (1);
   }
-  if ((sendsize + write_pout->size) > MAXLINE * 2)
+  payload_size = ntohs (hdr->size) - sizeof (struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage);
+  if ((payload_size + sizeof (struct GNUNET_TRANSPORT_WLAN_RadiotapReceiveMessage) + write_pout->size) > MAXLINE * 2)
   {
     fprintf (stderr, "Function stdin_send: Packet too big for buffer\n");
     exit (1);
   }
-
-  newheader.size = htons (sendsize);
-  newheader.type = htons (GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA);
-
-  to_start = write_pout->buf + write_pout->size;
-  memcpy (to_start, &newheader, sizeof (struct GNUNET_MessageHeader));
-  write_pout->size += sizeof (struct GNUNET_MessageHeader);
-
-  to_radiotap = to_start + sizeof (struct GNUNET_MessageHeader);
-  memset (to_radiotap, 0, sizeof (struct Radiotap_rx));
-  write_pout->size += sizeof (struct Radiotap_rx);
-
-  to_data = to_radiotap + sizeof (struct Radiotap_rx);
-  memcpy (to_data,
-          ((char *) hdr) + 
-	  sizeof (struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage) -
-	  - sizeof (struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame),
-          ntohs (hdr->size) - (sizeof (struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage)
-			       - sizeof (struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame)));
-  write_pout->size +=
-    ntohs (hdr->size) - (sizeof (struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage)
-			 - sizeof (struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame));
+  memset (&newheader, 0, sizeof (newheader));
+  newheader.header.size = htons (payload_size + sizeof (newheader));
+  newheader.header.type = htons (GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA);
+  newheader.frame = in->frame;
+  memcpy (write_pout->buf + write_pout->size,
+	  &newheader,
+	  sizeof (newheader));
+  write_pout->size += sizeof (newheader);
+  memcpy (write_pout->buf + write_pout->size,
+	  &in[1],
+	  payload_size);
+  write_pout->size += payload_size;
 }
 
 

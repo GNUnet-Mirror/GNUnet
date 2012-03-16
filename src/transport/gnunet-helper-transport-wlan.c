@@ -70,10 +70,10 @@
  * Modifications to fit into the linux IEEE 802.11 stack,
  * Mike Kershaw (dragorn@kismetwireless.net)
  */
-
-/**
+/*
  * parts taken from aircrack-ng, parts changend.
  */
+
 #define _GNU_SOURCE
 #include <sys/socket.h>
 #include <sys/ioctl.h>
@@ -106,10 +106,6 @@
 #define ARPHRD_IEEE80211_PRISM  802
 #define ARPHRD_IEEE80211_FULL   803
 
-/**
- * size of 802.11 address
- */
-#define IEEE80211_ADDR_LEN      6
 
 /**
  * Maximum size of a message allowed in either direction.
@@ -368,18 +364,6 @@ struct SendBuffer
   char buf[MAXLINE * 2];
 };
 
-/**
- * Buffer for data read from stdin to be transmitted to the wirless card.
- */
-static struct SendBuffer write_pout;
-
-/**
- * Buffer for data read from the wireless card to be transmitted to stdout.
- */
-static struct SendBuffer write_std;
-
-
-
 
 /**
  * struct for storing the information of the hardware
@@ -458,6 +442,17 @@ struct ieee80211_radiotap_iterator
 };
 
 
+/**
+ * Buffer for data read from stdin to be transmitted to the wirless card.
+ */
+static struct SendBuffer write_pout;
+
+/**
+ * Buffer for data read from the wireless card to be transmitted to stdout.
+ */
+static struct SendBuffer write_std;
+
+
 
 /* specialized version of server_mst.c begins here */
 
@@ -518,7 +513,6 @@ struct MessageStreamTokenizer
   struct GNUNET_MessageHeader *hdr;
 
 };
-
 
 
 /**
@@ -1095,12 +1089,13 @@ linux_get_channel (const struct HardwareInfos *dev)
  * @param dev pointer to the struct of the wlan card
  * @param buf buffer to read to
  * @param buf_size size of the buffer
- * @param ri radiotap_rx info
+ * @param ri where to write radiotap_rx info
  * @return size read from the buffer
  */
 static ssize_t
-linux_read (struct HardwareInfos *dev, unsigned char *buf, size_t buf_size,
-            struct Radiotap_rx *ri)
+linux_read (struct HardwareInfos *dev, 
+	    unsigned char *buf, size_t buf_size,
+            struct GNUNET_TRANSPORT_WLAN_RadiotapReceiveMessage *ri)
 {
   unsigned char tmpbuf[buf_size];
   ssize_t caplen;
@@ -1701,33 +1696,30 @@ main (int argc, char *argv[])
 
     if (FD_ISSET (dev.fd_raw, &rfds))
     {
-      struct GNUNET_MessageHeader *header;
-      struct Radiotap_rx *rxinfo;
-      struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame *datastart;
+      struct GNUNET_TRANSPORT_WLAN_RadiotapReceiveMessage *rrm;
       ssize_t ret;
 
-      header = (struct GNUNET_MessageHeader *) write_std.buf;
-      rxinfo = (struct Radiotap_rx *) &header[1];
-      datastart = (struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame *) &rxinfo[1];
+      rrm = (struct GNUNET_TRANSPORT_WLAN_RadiotapReceiveMessage *) write_std.buf;
       ret =
-          linux_read (&dev, (unsigned char *) datastart,
-                      sizeof (write_std.buf) - sizeof (struct Radiotap_rx) -
-                      sizeof (struct GNUNET_MessageHeader), rxinfo);
+          linux_read (&dev, (unsigned char *) &rrm->frame,
+                      sizeof (write_std.buf) 
+		      - sizeof (struct GNUNET_TRANSPORT_WLAN_RadiotapReceiveMessage) 
+		      + sizeof (struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame), 
+		      rrm);
       if (0 > ret)
       {
         fprintf (stderr, "Read error from raw socket: %s\n", strerror (errno));
         break;
       }
-      if ((0 < ret) && (0 == mac_test (datastart, &dev)))
+      if ((0 < ret) && (0 == mac_test (&rrm->frame, &dev)))
       {
-        write_std.size =
-            ret + sizeof (struct GNUNET_MessageHeader) +
-            sizeof (struct Radiotap_rx);
-        header->size = htons (write_std.size);
-        header->type = htons (GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA);
+        write_std.size = ret 
+	  + sizeof (struct GNUNET_TRANSPORT_WLAN_RadiotapReceiveMessage) 
+	  - sizeof (struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame);
+        rrm->header.size = htons (write_std.size);
+        rrm->header.type = htons (GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA);
       }
     }
-
   }
   /* Error handling, try to clean up a bit at least */
   mst_destroy (stdin_mst);
