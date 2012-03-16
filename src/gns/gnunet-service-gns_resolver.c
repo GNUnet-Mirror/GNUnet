@@ -93,7 +93,9 @@ process_pseu_lookup_ns(void* cls,
 
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                "Trying delegated name %s\n", gph->name);
-    gph->new_name = gph->name;
+    GNUNET_free(gph->new_name);
+    gph->new_name = GNUNET_malloc(strlen(gph->name)+1);
+    memcpy(gph->new_name, gph->name, strlen(gph->name)+1);
     GNUNET_NAMESTORE_lookup_record(namestore_handle,
                                    &gph->zone,
                                    gph->new_name,
