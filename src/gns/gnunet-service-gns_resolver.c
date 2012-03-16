@@ -47,22 +47,29 @@
 /**
  * Our handle to the namestore service
  */
-struct GNUNET_NAMESTORE_Handle *namestore_handle;
+static struct GNUNET_NAMESTORE_Handle *namestore_handle;
 
 /**
  * Resolver handle to the dht
  */
-struct GNUNET_DHT_Handle *dht_handle;
+static struct GNUNET_DHT_Handle *dht_handle;
 
 /**
- * Connects resolver to the dht
- *
-static void
-connect_to_dht()
+ * Initialize the resolver
+ */
+int
+gns_resolver_init(struct GNUNET_NAMESTORE_Handle *nh,
+                  struct GNUNET_DHT_Handle *dh)
 {
-  //FIXME
+  namestore_handle = nh;
+  dht_handle = dh;
+  if ((namestore_handle != NULL) && (dht_handle != NULL))
+  {
+    return GNUNET_OK;
+  }
+  return GNUNET_SYSERR;
 }
-*/
+
 
 /**
  * Helper function to free resolver handle
@@ -274,7 +281,7 @@ resolve_record_dht(struct ResolverHandle *rh)
   GNUNET_HashCode lookup_key;
   struct GNUNET_CRYPTO_HashAsciiEncoded lookup_key_string;
   struct RecordLookupHandle *rlh = (struct RecordLookupHandle *)rh->proc_cls;
-
+  
   GNUNET_CRYPTO_hash(rh->name, strlen(rh->name), &name_hash);
   GNUNET_CRYPTO_hash_xor(&name_hash, &rh->authority, &lookup_key);
   GNUNET_CRYPTO_hash_to_enc (&lookup_key, &lookup_key_string);
@@ -597,12 +604,11 @@ process_delegation_result_dht(void* cls,
       resolve_delegation_dht(rh);
     return;
   }
-
+  
   /**
-   * should never get here unless false dht key/put
-   * block plugin should handle this
-   **/
-  GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "DHT authority lookup found no match!\n");
+   * No pkey but name exists
+   */
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "DHT authority lookup found no match!\n");
   rh->proc(rh->proc_cls, rh, 0, NULL);
 }
 
@@ -808,7 +814,7 @@ resolve_delegation_dht(struct ResolverHandle *rh)
   uint32_t xquery;
   GNUNET_HashCode name_hash;
   GNUNET_HashCode lookup_key;
-
+  
   GNUNET_CRYPTO_hash(rh->authority_name,
                      strlen(rh->authority_name),
                      &name_hash);

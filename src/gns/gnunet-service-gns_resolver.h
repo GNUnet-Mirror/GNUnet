@@ -2,6 +2,7 @@
 #define GNS_RESOLVER_H
 
 #include "gns.h"
+#include "gnunet_dht_service.h"
 
 #define DHT_OPERATION_TIMEOUT  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 3)
 #define DHT_LOOKUP_TIMEOUT DHT_OPERATION_TIMEOUT
@@ -185,6 +186,16 @@ struct GetNameAuthorityHandle
 
 };
 
+/**
+ * Initialize the resolver
+ *
+ * @param nh handle to the namestore
+ * @param dh handle to the dht
+ * @returns GNUNET_OK on success
+ */
+int
+gns_resolver_init(struct GNUNET_NAMESTORE_Handle *nh,
+                  struct GNUNET_DHT_Handle *dh);
 
 /**
  * Lookup of a record in a specific zone

@@ -108,7 +108,7 @@ struct ClientLookupHandle
 /**
  * Our handle to the DHT
  */
-struct GNUNET_DHT_Handle *dht_handle;
+static struct GNUNET_DHT_Handle *dht_handle;
 
 /**
  * Our zone's private key
@@ -760,23 +760,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
                      &zone_hash);
   GNUNET_free(keyfile);
   
-
-  if (GNUNET_YES ==
-      GNUNET_CONFIGURATION_get_value_yesno (c, "gns",
-                                            "HIJACK_DNS"))
-  {
-    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-               "DNS hijacking enabled... connecting to service.\n");
-
-    if (gns_interceptor_init(zone_hash, c) == GNUNET_SYSERR)
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-               "Failed to enable the dns interceptor!\n");
-    }
-  }
-
-  
-
   /**
    * handle to our local namestore
    */
@@ -799,6 +782,28 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   if (NULL == dht_handle)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Could not connect to DHT!\n");
+  }
+
+  if (gns_resolver_init(namestore_handle, dht_handle) == GNUNET_SYSERR)
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+               "Unable to initialize resolver!\n");
+    GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
+    return;
+  }
+
+  if (GNUNET_YES ==
+      GNUNET_CONFIGURATION_get_value_yesno (c, "gns",
+                                            "HIJACK_DNS"))
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+               "DNS hijacking enabled... connecting to service.\n");
+
+    if (gns_interceptor_init(zone_hash, c) == GNUNET_SYSERR)
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+               "Failed to enable the dns interceptor!\n");
+    }
   }
 
   //put_some_records(); //FIXME for testing
