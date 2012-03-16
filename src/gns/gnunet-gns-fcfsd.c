@@ -216,7 +216,7 @@ fill_s_reply (const char *info,
 					      (void *) reply,
 					      MHD_RESPMEM_MUST_FREE);
   MHD_add_response_header (response,
-			   MHD_HTTP_HEADER_CONTENT_ENCODING,
+			   MHD_HTTP_HEADER_CONTENT_TYPE,
 			   MIME_HTML);
   ret = MHD_queue_response (connection, 
 			    MHD_HTTP_OK, 
