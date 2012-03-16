@@ -297,7 +297,7 @@ GNUNET_STRINGS_parse_uri (const char *path, char **scheme_part,
  * @param r_uri a pointer to a char * that is set to a pointer to URI scheme.
  *        The string is allocated by the function, and should be freed with
  *        GNUNET_free (). Can be NULL.
- * @return GNUNET_YES if 'filaname' is absolute, GNUNET_NO otherwise.
+ * @return GNUNET_YES if 'filename' is absolute, GNUNET_NO otherwise.
  */
 int
 GNUNET_STRINGS_path_is_absolute (const char *filename, 

@@ -136,7 +136,6 @@ extern "C"
 /**
  * Control messages between the gnunet-wlan-helper and the daemon
  */
-
 #define GNUNET_MESSAGE_TYPE_WLAN_HELPER_CONTROL 41
 
 /**

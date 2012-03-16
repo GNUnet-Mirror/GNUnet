@@ -838,18 +838,18 @@ GNUNET_STRINGS_parse_uri (const char *path, char **scheme_part,
 
 
 /**
- * Check whether @filename is absolute or not, and if it's an URI
+ * Check whether 'filename' is absolute or not, and if it's an URI
  *
  * @param filename filename to check
  * @param can_be_uri GNUNET_YES to check for being URI, GNUNET_NO - to
  *        assume it's not URI
- * @param r_is_uri a pointer to an int that is set to GNUNET_YES if @filename
- *        is URI and to GNUNET_NO otherwise. Can be NULL. If @can_be_uri is
+ * @param r_is_uri a pointer to an int that is set to GNUNET_YES if 'filename'
+ *        is URI and to GNUNET_NO otherwise. Can be NULL. If 'can_be_uri' is
  *        not GNUNET_YES, *r_is_uri is set to GNUNET_NO.
  * @param r_uri a pointer to a char * that is set to a pointer to URI scheme.
  *        The string is allocated by the function, and should be freed with
  *        GNUNET_free (). Can be NULL.
- * @return GNUNET_YES if @filaneme is absolute, GNUNET_NO otherwise.
+ * @return GNUNET_YES if 'filename' is absolute, GNUNET_NO otherwise.
  */
 int
 GNUNET_STRINGS_path_is_absolute (const char *filename, int can_be_uri,
@@ -912,11 +912,11 @@ GNUNET_STRINGS_path_is_absolute (const char *filename, int can_be_uri,
 #endif
 
 /**
- * Perform @checks on @filename
+ * Perform 'checks' on 'filename'
  * 
  * @param filename file to check
  * @param checks checks to perform
- * @return GNUNET_YES if all @checks pass, GNUNET_NO if at least one of them
+ * @return GNUNET_YES if all checks pass, GNUNET_NO if at least one of them
  *         fails, GNUNET_SYSERR when a check can't be performed
  */
 int
