@@ -32,6 +32,7 @@ struct AuthorityChain
 /* handle to a resolution process */
 struct ResolverHandle;
 
+
 /**
  * processor for a resultion result
  *
@@ -131,6 +132,8 @@ struct ResolverHandle
   /* status of the resolution result */
   enum ResolutionStatus status;
 
+  struct GNUNET_CRYPTO_RsaPrivateKey *priv_key;
+
 };
 
 
@@ -187,6 +190,33 @@ struct GetNameAuthorityHandle
 };
 
 /**
+ * Handle to a pseu lookup
+ */
+struct GetPseuAuthorityHandle
+{
+  /* the name given from delegation */
+  char* name;
+
+  /* name to store the pseu under */
+  char* new_name;
+  
+  /* the zone of discovered authority */
+  GNUNET_HashCode new_zone;
+
+  /* the zone of our authority */
+  GNUNET_HashCode zone;
+
+  /* the private key of the zone to store the pseu in */
+  struct GNUNET_CRYPTO_RsaPrivateKey *key;
+
+  /* a handle for dht lookups. should be NULL if no lookups are in progress */
+  struct GNUNET_DHT_GetHandle *get_handle;
+
+  /* timeout task for dht lookups */
+  GNUNET_SCHEDULER_TaskIdentifier dht_timeout;
+};
+
+/**
  * Initialize the resolver
  *
  * @param nh handle to the namestore
@@ -203,6 +233,8 @@ gns_resolver_init(struct GNUNET_NAMESTORE_Handle *nh,
  *
  * @param zone the root zone
  * @param record_type the record type to look up
+ * @param name the name to look up
+ * @param key optional private key for authority caching
  * @param proc the processor to call
  * @param cls the closure to pass to proc
  */
@@ -210,6 +242,7 @@ void
 gns_resolver_lookup_record(GNUNET_HashCode zone,
                            uint32_t record_type,
                            const char* name,
+                           struct GNUNET_CRYPTO_RsaPrivateKey *key,
                            RecordLookupProcessor proc,
                            void* cls);
 

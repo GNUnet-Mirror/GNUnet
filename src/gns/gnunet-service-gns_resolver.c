@@ -55,6 +55,324 @@ static struct GNUNET_NAMESTORE_Handle *namestore_handle;
 static struct GNUNET_DHT_Handle *dht_handle;
 
 /**
+ * Namestore calls this function if we have record for this name.
+ * (or with rd_count=0 to indicate no matches)
+ *
+ * @param cls the pending query
+ * @param key the key of the zone we did the lookup
+ * @param expiration expiration date of the namestore entry
+ * @param name the name for which we need an authority
+ * @param rd_count the number of records with 'name'
+ * @param rd the record data
+ * @param signature the signature of the authority for the record data
+ */
+static void
+process_pseu_lookup_ns(void* cls,
+                      const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *key,
+                      struct GNUNET_TIME_Absolute expiration,
+                      const char *name, unsigned int rd_count,
+                      const struct GNUNET_NAMESTORE_RecordData *rd,
+                      const struct GNUNET_CRYPTO_RsaSignature *signature)
+{
+  struct GetPseuAuthorityHandle* gph = (struct GetPseuAuthorityHandle*)cls;
+  struct GNUNET_NAMESTORE_RecordData new_pkey;
+
+  if (rd_count > 0)
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "Name %s already taken in NS!\n", name);
+    if (0 == strcmp(gph->name, name))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                 "Intelligent replacement not implemented\n", name);
+      GNUNET_free(gph->new_name);
+      GNUNET_free(gph->name);
+      GNUNET_free(gph);
+      return;
+    }
+
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "Trying delegated name %s\n", gph->name);
+    gph->new_name = gph->name;
+    GNUNET_NAMESTORE_lookup_record(namestore_handle,
+                                   &gph->zone,
+                                   gph->new_name,
+                                   GNUNET_GNS_RECORD_PSEU,
+                                   &process_pseu_lookup_ns,
+                                   gph);
+    return;
+  }
+
+  /** name is free */
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Name %s not taken in NS! Adding\n", gph->new_name);
+
+  new_pkey.expiration = GNUNET_TIME_absolute_get_forever ();
+  new_pkey.data_size = sizeof(GNUNET_HashCode);
+  new_pkey.data = &gph->new_zone;
+  new_pkey.record_type = GNUNET_GNS_RECORD_PKEY;
+  GNUNET_NAMESTORE_record_create (namestore_handle,
+                                  gph->key,
+                                  gph->new_name,
+                                  &new_pkey,
+                                  NULL, //cont
+                                  NULL); //cls
+  GNUNET_free(gph->new_name);
+  GNUNET_free(gph->name);
+  GNUNET_free(gph);
+
+}
+
+/**
+ * process result of a dht pseu lookup
+ *
+ * @param gph the handle
+ * @param name the pseu result or NULL
+ */
+static void
+process_pseu_result(struct GetPseuAuthorityHandle* gph, char* name)
+{
+  if (NULL == name)
+  {
+    gph->new_name = GNUNET_malloc(strlen(gph->name)+1);
+    memcpy(gph->new_name, name, strlen(gph->name)+1);
+  }
+  else
+  {
+    gph->new_name = GNUNET_malloc(strlen(name)+1);
+    memcpy(gph->new_name, name, strlen(name)+1);
+  }
+
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Checking %s for collision in NS\n", gph->new_name);
+
+  /**
+   * Check for collision
+   */
+  GNUNET_NAMESTORE_lookup_record(namestore_handle,
+                                 &gph->zone,
+                                 gph->new_name,
+                                 GNUNET_GNS_RECORD_PSEU,
+                                 &process_pseu_lookup_ns,
+                                 gph);
+}
+
+/**
+ * Handle timeout for dht request
+ *
+ * @param cls the request handle as closure
+ * @param tc the task context
+ */
+static void
+handle_auth_discovery_timeout(void *cls,
+                              const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GetPseuAuthorityHandle* gph = (struct GetPseuAuthorityHandle*)cls;
+
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "dht lookup for query PSEU timed out.\n");
+  GNUNET_DHT_get_stop (gph->get_handle);
+  process_pseu_result(gph, NULL);
+}
+
+/**
+ * Function called when we find a PSEU entry in the DHT
+ *
+ * @param cls the request handle
+ * @param exp lifetime
+ * @param key the key the record was stored under
+ * @param get_path get path
+ * @param get_path_length get path length
+ * @param put_path put path
+ * @param put_path_length put path length
+ * @param type the block type
+ * @param size the size of the record
+ * @param data the record data
+ */
+static void
+process_auth_discovery_dht_result(void* cls,
+                                  struct GNUNET_TIME_Absolute exp,
+                                  const GNUNET_HashCode * key,
+                                  const struct GNUNET_PeerIdentity *get_path,
+                                  unsigned int get_path_length,
+                                  const struct GNUNET_PeerIdentity *put_path,
+                                  unsigned int put_path_length,
+                                  enum GNUNET_BLOCK_Type type,
+                                  size_t size, const void *data)
+{
+  struct GetPseuAuthorityHandle* gph = (struct GetPseuAuthorityHandle*)cls;
+  struct GNSNameRecordBlock *nrb;
+  char* rd_data = (char*)data;
+  char* name;
+  int num_records;
+  size_t rd_size;
+  int i;
+
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "got dht result (size=%d)\n", size);
+
+  if (data == NULL)
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "got dht result null!\n", size);
+    GNUNET_break(0);
+    GNUNET_free(gph->new_name);
+    GNUNET_free(gph->name);
+    GNUNET_free(gph);
+    return;
+  }
+  
+  nrb = (struct GNSNameRecordBlock*)data;
+
+  /* stop lookup and timeout task */
+  GNUNET_DHT_get_stop (gph->get_handle);
+  GNUNET_SCHEDULER_cancel(gph->dht_timeout);
+
+  gph->get_handle = NULL;
+
+  nrb = (struct GNSNameRecordBlock*)data;
+  
+  name = (char*)&nrb[1];
+  num_records = ntohl(nrb->rd_count);
+  {
+    struct GNUNET_NAMESTORE_RecordData rd[num_records];
+
+    rd_data += strlen(name) + 1 + sizeof(struct GNSNameRecordBlock);
+    rd_size = size - strlen(name) - 1 - sizeof(struct GNSNameRecordBlock);
+
+    if (GNUNET_SYSERR == GNUNET_NAMESTORE_records_deserialize (rd_size,
+                                                               rd_data,
+                                                               num_records,
+                                                               rd))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Error deserializing data!\n");
+      GNUNET_break(0);
+      GNUNET_free(gph->new_name);
+      GNUNET_free(gph->name);
+      GNUNET_free(gph);
+      return;
+    }
+
+    for (i=0; i<num_records; i++)
+    {
+      if ((strcmp(name, "+") == 0) &&
+          (rd[i].record_type == GNUNET_GNS_RECORD_PSEU))
+      {
+        /* found pseu */
+        process_pseu_result(gph, (char*)rd[i].data);
+        return;
+      }
+    }
+  }
+
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "no pseu in dht!\n");
+  process_pseu_result(gph, NULL);
+}
+
+/**
+ * Callback called by namestore for a zone to name
+ * result
+ *
+ * @param cls the closure
+ * @param zone_key the zone we queried
+ * @param expire the expiration time of the name
+ * @param name the name found or NULL
+ * @param rd_len number of records for the name
+ * @param rd the record data (PKEY) for the name
+ * @param signature the signature for the record data
+ */
+static void
+process_zone_to_name_discover(void *cls,
+                 const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
+                 struct GNUNET_TIME_Absolute expire,
+                 const char *name,
+                 unsigned int rd_len,
+                 const struct GNUNET_NAMESTORE_RecordData *rd,
+                 const struct GNUNET_CRYPTO_RsaSignature *signature)
+{
+  struct GetPseuAuthorityHandle* gph = (struct GetPseuAuthorityHandle*)cls;
+
+  /* we found a match in our own zone */
+  if (rd_len != 0)
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "name for zone in our root %d\n", strlen(name));
+    GNUNET_free(gph->new_name);
+    GNUNET_free(gph->name);
+    GNUNET_free(gph);
+  }
+  else
+  {
+    /**
+     * No name found.
+     * check dht
+     */
+    uint32_t xquery;
+    GNUNET_HashCode name_hash;
+    GNUNET_HashCode lookup_key;
+    struct GNUNET_CRYPTO_HashAsciiEncoded lookup_key_string;
+
+    GNUNET_CRYPTO_hash("+", strlen("+"), &name_hash);
+    GNUNET_CRYPTO_hash_xor(&name_hash, &gph->new_zone, &lookup_key);
+    GNUNET_CRYPTO_hash_to_enc (&lookup_key, &lookup_key_string);
+
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "starting dht lookup for %s with key: %s\n",
+               "+", (char*)&lookup_key_string);
+
+    gph->dht_timeout = GNUNET_SCHEDULER_add_delayed(DHT_LOOKUP_TIMEOUT,
+                                         &handle_auth_discovery_timeout, gph);
+
+    xquery = htonl(GNUNET_GNS_RECORD_PSEU);
+
+    gph->get_handle = GNUNET_DHT_get_start(dht_handle,
+                                           DHT_OPERATION_TIMEOUT,
+                                           GNUNET_BLOCK_TYPE_GNS_NAMERECORD,
+                                           &lookup_key,
+                                           DHT_GNS_REPLICATION_LEVEL,
+                                           GNUNET_DHT_RO_NONE,
+                                           &xquery,
+                                           sizeof(xquery),
+                                           &process_auth_discovery_dht_result,
+                                           gph);
+
+  }
+}
+
+
+/**
+ * Callback for new authories
+ *
+ * @param name the name given by delegation
+ * @param zone the authority
+ * @param the private key of our authority
+ */
+static void process_discovered_authority(char* name, GNUNET_HashCode zone,
+                                         GNUNET_HashCode our_zone,
+                                       struct GNUNET_CRYPTO_RsaPrivateKey *key)
+{
+  struct GetPseuAuthorityHandle *gph;
+  size_t namelen;
+
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "New authority %s discovered\n",
+             name);
+
+  gph = GNUNET_malloc(sizeof(struct GetPseuAuthorityHandle));
+  namelen = strlen(name) + 1;
+  gph->name = GNUNET_malloc(namelen);
+  memcpy(gph->name, name, namelen);
+  
+  gph->new_zone = zone;
+  gph->zone = our_zone;
+  gph->key = key;
+
+  GNUNET_NAMESTORE_zone_to_name (namestore_handle,
+                                 &our_zone,
+                                 &gph->new_zone,
+                                 &process_zone_to_name_discover,
+                                 gph);
+
+}
+
+/**
  * Initialize the resolver
  *
  * @param nh the namestore handle
@@ -74,18 +392,6 @@ gns_resolver_init(struct GNUNET_NAMESTORE_Handle *nh,
   return GNUNET_SYSERR;
 }
 
-/**
- * Set the callback to call when we discover a
- * new authority via the DHT
- *
- * @param adb the callback to set
- *
-void
-gns_resolver_set_auth_discovered_cb(AuthorityDiscoveredProcessor adb)
-{
-  auth_discovered = adb;
-}
-*/
 
 /**
  * Helper function to free resolver handle
@@ -584,6 +890,12 @@ process_delegation_result_dht(void* cls,
         GNUNET_CONTAINER_DLL_insert (rh->authority_chain_head,
                                      rh->authority_chain_tail,
                                      auth);
+
+        /** call process new authority */
+        if (rh->priv_key)
+          process_discovered_authority(name, auth->zone,
+                                       rh->authority_chain_tail->zone,
+                                       rh->priv_key);
       }
 
     }
@@ -1107,6 +1419,7 @@ void
 gns_resolver_lookup_record(GNUNET_HashCode zone,
                            uint32_t record_type,
                            const char* name,
+                           struct GNUNET_CRYPTO_RsaPrivateKey *key,
                            RecordLookupProcessor proc,
                            void* cls)
 {
@@ -1131,6 +1444,7 @@ gns_resolver_lookup_record(GNUNET_HashCode zone,
 
   rh->authority = zone;
   rh->proc_cls = rlh;
+  rh->priv_key = key;
   
   if (strcmp(GNUNET_GNS_TLD, name) == 0)
   {

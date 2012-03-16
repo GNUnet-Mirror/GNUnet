@@ -10,6 +10,7 @@
  */
 int
 gns_interceptor_init(GNUNET_HashCode zone,
+                     struct GNUNET_CRYPTO_RsaPrivateKey *key,
                      const struct GNUNET_CONFIGURATION_Handle *c);
 
 void

@@ -54,12 +54,17 @@ struct InterceptLookupHandle
 /**
  * Our handle to the DNS handler library
  */
-struct GNUNET_DNS_Handle *dns_handle;
+static struct GNUNET_DNS_Handle *dns_handle;
 
 /**
  * The root zone for this interceptor
  */
 static GNUNET_HashCode our_zone;
+
+/**
+ * Our priv key
+ */
+static struct GNUNET_CRYPTO_RsaPrivateKey *our_key;
 
 /**
  * Reply to dns request with the result from our lookup.
@@ -203,7 +208,9 @@ start_resolution_for_dns(struct GNUNET_DNS_RequestHandle *request,
   ilh->request_handle = request;
   
   /* Start resolution in our zone */
-  gns_resolver_lookup_record(our_zone, q->type, q->name, &reply_to_dns, ilh);
+  gns_resolver_lookup_record(our_zone, q->type, q->name,
+                             our_key,
+                             &reply_to_dns, ilh);
 }
 
 
@@ -300,14 +307,24 @@ handle_dns_request(void *cls,
 }
 
 
+/**
+ * Initialized the interceptor
+ *
+ * @param zone the zone to work in
+ * @param the prov key of the zone (can be null, needed for caching)
+ * @param c the configuration
+ * @return GNUNET_OK on success
+ */
 int
 gns_interceptor_init(GNUNET_HashCode zone,
+                     struct GNUNET_CRYPTO_RsaPrivateKey *key,
                      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   GNUNET_log(GNUNET_ERROR_TYPE_INFO,
              "DNS hijacking enabled... connecting to service.\n");
 
   our_zone = zone;
+  our_key = key;
   /**
    * Do gnunet dns init here
    */

@@ -713,6 +713,7 @@ handle_lookup(void *cls,
   clh->type = ntohl(sh_msg->type);
   
   gns_resolver_lookup_record(zone_hash, clh->type, name,
+                             zone_key,
                              &send_lookup_response, clh);
 }
 
@@ -799,7 +800,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     GNUNET_log(GNUNET_ERROR_TYPE_INFO,
                "DNS hijacking enabled... connecting to service.\n");
 
-    if (gns_interceptor_init(zone_hash, c) == GNUNET_SYSERR)
+    if (gns_interceptor_init(zone_hash, zone_key, c) == GNUNET_SYSERR)
     {
       GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
                "Failed to enable the dns interceptor!\n");

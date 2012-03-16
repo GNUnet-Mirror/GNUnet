@@ -74,6 +74,8 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
   int rd_len;
   uint32_t record_xquery;
   unsigned int record_match;
+  
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "RB SIZE %d\n", reply_block_size);
 
   if (type != GNUNET_BLOCK_TYPE_GNS_NAMERECORD)
     return GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED;
@@ -166,7 +168,7 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
                                                         rd,
                                                         &nrb->signature))
     {
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Signature invalid\n");
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Signature invalid for name %s\n");
       return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
     }
   }
