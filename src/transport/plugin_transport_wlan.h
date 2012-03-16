@@ -34,6 +34,25 @@
  */
 #define MAC_ADDR_SIZE 6
 
+/**
+ * Value for "Management" in the 'frame_control' field of the
+ * struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame.  
+ */
+#define IEEE80211_FC0_TYPE_MGT                  0x00
+
+/**
+ * Value for "Control" in the 'frame_control' field of the
+ * struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame.
+ */
+#define IEEE80211_FC0_TYPE_CTL                  0x04
+
+/**
+ * Value for DATA in the 'frame_control' field of the
+ * struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame.
+ */
+#define IEEE80211_FC0_TYPE_DATA                 0x08
+
+
 GNUNET_NETWORK_STRUCT_BEGIN
 
 /**
@@ -68,7 +87,13 @@ struct GNUNET_TRANSPORT_WLAN_HelperControlMessage
 struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame
 {
   /**
-   * 802.11 Frame Control field,
+   * 802.11 Frame Control field.  A bitmask.  The overall field is a
+   * 16-bit mask of the respecitve fields.  The lowest two bits should
+   * be 0, then comes the "type" (2 bits, see IEEE80211_FC0_TYPE_*
+   * constants), followed by 4-bit subtype (all zeros for ad-hoc),
+   * followed by various flags (to DS, from DS, more frag, retry,
+   * power management, more data, WEP, strict), all of which we also
+   * keep at zero.
    */
   uint16_t frame_control GNUNET_PACKED;
 
@@ -93,7 +118,8 @@ struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame
   struct GNUNET_TRANSPORT_WLAN_MacAddress addr3;
 
   /**
-   * 802.11 sequence control field.
+   * 802.11 sequence control field; contains fragment number an sequence
+   * number (we set this to all zeros).
    */
   uint16_t sequence_control GNUNET_PACKED;
 
@@ -162,46 +188,46 @@ struct GNUNET_TRANSPORT_WLAN_RadiotapReceiveMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * FIXME: not initialized properly so far. (supposed to contain
-   * information about which of the fields below are actually valid).
+   * Information about which of the fields below are actually valid.
+   * 0 for none.  FIXME: not properly initialized so far (always zero).
    */
   uint32_t ri_present GNUNET_PACKED;
 
   /**
-   * IEEE80211_RADIOTAP_TSFT
+   * IEEE80211_RADIOTAP_TSFT, 0 if unknown.
    */
   uint64_t ri_mactime GNUNET_PACKED;
 
   /**
    * from radiotap
    * either IEEE80211_RADIOTAP_DBM_ANTSIGNAL
-   * or IEEE80211_RADIOTAP_DB_ANTSIGNAL
+   * or IEEE80211_RADIOTAP_DB_ANTSIGNAL, 0 if unknown.
    */
   int32_t ri_power GNUNET_PACKED;
 
   /**
    * either IEEE80211_RADIOTAP_DBM_ANTNOISE
-   * or IEEE80211_RADIOTAP_DB_ANTNOISE
+   * or IEEE80211_RADIOTAP_DB_ANTNOISE, 0 if unknown.
    */
   int32_t ri_noise GNUNET_PACKED;
 
   /**
-   * IEEE80211_RADIOTAP_CHANNEL
+   * IEEE80211_RADIOTAP_CHANNEL, 0 if unknown.
    */
   uint32_t ri_channel GNUNET_PACKED;
 
   /**
-   * Frequency we use.  FIXME: not properly initialized so far!
+   * Frequency we use.  0 if unknown.
    */
   uint32_t ri_freq GNUNET_PACKED;
 
   /**
-   * IEEE80211_RADIOTAP_RATE * 50000
+   * IEEE80211_RADIOTAP_RATE * 50000, 0 if unknown.
    */
   uint32_t ri_rate GNUNET_PACKED;
 
   /**
-   * IEEE80211_RADIOTAP_ANTENNA
+   * IEEE80211_RADIOTAP_ANTENNA, 0 if unknown.
    */
   uint32_t ri_antenna GNUNET_PACKED;
 

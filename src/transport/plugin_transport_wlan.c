@@ -93,6 +93,7 @@
  * max messages in in queue
  */
 #define MESSAGES_IN_QUEUE_SIZE 10
+
 /**
  * max messages in in queue per session/client
  */
@@ -105,17 +106,6 @@
 #define WLAN_LLC_DSAP_FIELD 0x1f
 #define WLAN_LLC_SSAP_FIELD 0x1f
 
-
-#define IEEE80211_ADDR_LEN      6       /* size of 802.11 address */
-
-#define IEEE80211_FC0_VERSION_MASK              0x03
-#define IEEE80211_FC0_VERSION_SHIFT             0
-#define IEEE80211_FC0_VERSION_0                 0x00
-#define IEEE80211_FC0_TYPE_MASK                 0x0c
-#define IEEE80211_FC0_TYPE_SHIFT                2
-#define IEEE80211_FC0_TYPE_MGT                  0x00
-#define IEEE80211_FC0_TYPE_CTL                  0x04
-#define IEEE80211_FC0_TYPE_DATA                 0x08
 
 
 /**
@@ -1266,7 +1256,7 @@ getWlanHeader (struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame *Header,
 {
   const int rate = 11000000;
 
-  Header->frame_control = htons (IEEE80211_FC0_TYPE_DATA); // FIXME: check: might need to shift by 8?
+  Header->frame_control = htons (IEEE80211_FC0_TYPE_DATA);
   Header->addr1 = *to_mac_addr;
   Header->addr2 = plugin->mac_address;
   Header->addr3 = mac_bssid_gnunet;
