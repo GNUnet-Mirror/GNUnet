@@ -702,7 +702,7 @@ process_record_result_ns(void* cls,
     int i;
     for (i=0; i<rd_count;i++)
     {
-      
+
       if (rd[i].record_type != rlh->record_type)
         continue;
       
@@ -942,6 +942,67 @@ process_delegation_result_dht(void* cls,
   rh->proc(rh->proc_cls, rh, 0, NULL);
 }
 
+/**
+ * finish lookup
+ */
+static void
+finish_lookup(struct RecordLookupHandle* rlh, unsigned int rd_count,
+              const struct GNUNET_NAMESTORE_RecordData *rd)
+{
+  int i;
+  char* s_value;
+  char new_s_value[256];
+  int s_len;
+  struct GNUNET_NAMESTORE_RecordData p_rd[rd_count];
+
+  if (rd_count > 0)
+    memcpy(p_rd, rd, rd_count*sizeof(struct GNUNET_NAMESTORE_RecordData));
+
+  for (i = 0; i < rd_count; i++)
+  {
+
+    if (rd[i].record_type != GNUNET_GNS_RECORD_TYPE_NS &&
+        rd[i].record_type != GNUNET_GNS_RECORD_TYPE_CNAME &&
+        rd[i].record_type != GNUNET_GNS_RECORD_MX)
+    {
+      p_rd[i].data = rd[i].data;
+      continue;
+    }
+    
+
+    /**
+     * for all those records we 'should'
+     * also try to resolve the A/AAAA records (RFC1035)
+     * FIXME
+     */
+    s_value = (char*)rd[i].data;
+    s_len = rd[i].data_size;
+
+    if (s_len < 3)
+    {
+      p_rd[i].data = rd[i].data;
+      continue;
+    }
+
+    if (0 == strcmp(s_value+s_len-2, ".+"))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                 "Expanding .+ for %s\n", s_value);
+      memset(new_s_value, 0, s_len+strlen(GNUNET_GNS_TLD));
+      strcpy(new_s_value, s_value);
+      memcpy(new_s_value+s_len-1, GNUNET_GNS_TLD, strlen(GNUNET_GNS_TLD));
+      p_rd[i].data = new_s_value;
+      p_rd[i].data_size = strlen(new_s_value)+1;
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                 "Expanded to %s\n", new_s_value);
+    }
+  }
+
+  rlh->proc(rlh->proc_cls, rd_count, p_rd);
+  GNUNET_free(rlh->name);
+  GNUNET_free(rlh);
+  
+}
 
 /**
  * Process DHT lookup result for record.
@@ -957,6 +1018,7 @@ handle_record_dht(void* cls, struct ResolverHandle *rh,
                        const struct GNUNET_NAMESTORE_RecordData *rd)
 {
   struct RecordLookupHandle* rlh;
+
   rlh = (struct RecordLookupHandle*)cls;
   if (rd_count == 0)
   {
@@ -964,9 +1026,7 @@ handle_record_dht(void* cls, struct ResolverHandle *rh,
                "No records for %s found in DHT. Aborting\n",
                rh->name);
     /* give up, cannot resolve */
-    rlh->proc(rlh->proc_cls, 0, NULL);
-    GNUNET_free(rlh->name);
-    GNUNET_free(rlh);
+    finish_lookup(rlh, 0, NULL);
     free_resolver_handle(rh);
     return;
   }
@@ -974,9 +1034,8 @@ handle_record_dht(void* cls, struct ResolverHandle *rh,
   /* results found yay */
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
              "Record resolved from DHT!");
-  rlh->proc(rlh->proc_cls, rd_count, rd);
-  GNUNET_free(rlh->name);
-  GNUNET_free(rlh);
+
+  finish_lookup(rlh, rd_count, rd);
   free_resolver_handle(rh);
 
 }
@@ -1009,9 +1068,7 @@ handle_record_ns(void* cls, struct ResolverHandle *rh,
       return;
     }
     /* give up, cannot resolve */
-    rlh->proc(rlh->proc_cls, 0, NULL);
-    GNUNET_free(rlh->name);
-    GNUNET_free(rlh);
+    finish_lookup(rlh, 0, NULL);
     free_resolver_handle(rh);
     return;
   }
@@ -1019,9 +1076,8 @@ handle_record_ns(void* cls, struct ResolverHandle *rh,
   /* results found yay */
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
              "Record resolved from namestore!");
-  rlh->proc(rlh->proc_cls, rd_count, rd);
-  GNUNET_free(rlh->name);
-  GNUNET_free(rlh);
+
+  finish_lookup(rlh, rd_count, rd);
   free_resolver_handle(rh);
 
 }
