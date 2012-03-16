@@ -946,7 +946,9 @@ process_delegation_result_dht(void* cls,
  * finish lookup
  */
 static void
-finish_lookup(struct RecordLookupHandle* rlh, unsigned int rd_count,
+finish_lookup(struct ResolverHandle *rh,
+              struct RecordLookupHandle* rlh,
+              unsigned int rd_count,
               const struct GNUNET_NAMESTORE_RecordData *rd)
 {
   int i;
@@ -954,6 +956,8 @@ finish_lookup(struct RecordLookupHandle* rlh, unsigned int rd_count,
   char new_s_value[256];
   int s_len;
   struct GNUNET_NAMESTORE_RecordData p_rd[rd_count];
+  char* pos;
+  char* trailer;
 
   if (rd_count > 0)
     memcpy(p_rd, rd, rd_count*sizeof(struct GNUNET_NAMESTORE_RecordData));
@@ -968,7 +972,6 @@ finish_lookup(struct RecordLookupHandle* rlh, unsigned int rd_count,
       p_rd[i].data = rd[i].data;
       continue;
     }
-    
 
     /**
      * for all those records we 'should'
@@ -984,13 +987,26 @@ finish_lookup(struct RecordLookupHandle* rlh, unsigned int rd_count,
       continue;
     }
 
-    if (0 == strcmp(s_value+s_len-2, ".+"))
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "Postprocessing %s\n", s_value);
+
+    if (0 == strcmp(s_value+s_len-3, ".+"))
     {
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "Expanding .+ for %s\n", s_value);
-      memset(new_s_value, 0, s_len+strlen(GNUNET_GNS_TLD));
+                 "Expanding .+ in %s\n", s_value);
+      if (strcmp(rh->name, "+") == 0)
+      {
+        trailer = rlh->name;
+      }
+      else
+      {
+        trailer = rlh->name+strlen(rh->name)+1;
+      }
+      memset(new_s_value, 0, s_len+strlen(trailer)+strlen(GNUNET_GNS_TLD));
       strcpy(new_s_value, s_value);
-      memcpy(new_s_value+s_len-1, GNUNET_GNS_TLD, strlen(GNUNET_GNS_TLD));
+      pos = new_s_value+s_len-2;
+      strcpy(pos, trailer);
+      pos += strlen(trailer);
       p_rd[i].data = new_s_value;
       p_rd[i].data_size = strlen(new_s_value)+1;
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
@@ -1026,7 +1042,7 @@ handle_record_dht(void* cls, struct ResolverHandle *rh,
                "No records for %s found in DHT. Aborting\n",
                rh->name);
     /* give up, cannot resolve */
-    finish_lookup(rlh, 0, NULL);
+    finish_lookup(rh, rlh, 0, NULL);
     free_resolver_handle(rh);
     return;
   }
@@ -1035,7 +1051,7 @@ handle_record_dht(void* cls, struct ResolverHandle *rh,
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
              "Record resolved from DHT!");
 
-  finish_lookup(rlh, rd_count, rd);
+  finish_lookup(rh, rlh, rd_count, rd);
   free_resolver_handle(rh);
 
 }
@@ -1068,7 +1084,7 @@ handle_record_ns(void* cls, struct ResolverHandle *rh,
       return;
     }
     /* give up, cannot resolve */
-    finish_lookup(rlh, 0, NULL);
+    finish_lookup(rh, rlh, 0, NULL);
     free_resolver_handle(rh);
     return;
   }
@@ -1077,7 +1093,7 @@ handle_record_ns(void* cls, struct ResolverHandle *rh,
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
              "Record resolved from namestore!");
 
-  finish_lookup(rlh, rd_count, rd);
+  finish_lookup(rh, rlh, rd_count, rd);
   free_resolver_handle(rh);
 
 }
@@ -1158,9 +1174,20 @@ handle_delegation_dht(void* cls, struct ResolverHandle *rh,
   
   if (strcmp(rh->name, "") == 0)
   {
+    if ((rlh->record_type == GNUNET_GNS_RECORD_PKEY))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                 "Resolved queried PKEY via DHT.\n");
+      finish_lookup(rh, rlh, rd_count, rd);
+      free_resolver_handle(rh);
+      return;
+    }
     /* We resolved full name for delegation. resolving record */
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
       "Resolved full name for delegation via DHT. resolving record '' in ns\n");
+    GNUNET_free(rh->name);
+    rh->name = GNUNET_malloc(strlen("+")+1);
+    strcpy(rh->name, "+\0");
     rh->proc = &handle_record_ns;
     resolve_record_ns(rh);
     return;
@@ -1181,9 +1208,7 @@ handle_delegation_dht(void* cls, struct ResolverHandle *rh,
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
              "Cannot fully resolve delegation for %s via DHT!\n",
              rh->name);
-  rlh->proc(rlh->proc_cls, 0, NULL);
-  GNUNET_free(rlh->name);
-  GNUNET_free(rlh);
+  finish_lookup(rh, rlh, 0, NULL);
   free_resolver_handle(rh);
 }
 
@@ -1244,9 +1269,20 @@ handle_delegation_ns(void* cls, struct ResolverHandle *rh,
   
   if (strcmp(rh->name, "") == 0)
   {
+    if ((rlh->record_type == GNUNET_GNS_RECORD_PKEY))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                 "Resolved queried PKEY in NS.\n");
+      finish_lookup(rh, rlh, rd_count, rd);
+      free_resolver_handle(rh);
+      return;
+    }
     /* We resolved full name for delegation. resolving record */
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "Resolved full name for delegation. resolving record ''\n");
+               "Resolved full name for delegation. resolving record '+'\n");
+    GNUNET_free(rh->name);
+    rh->name = GNUNET_malloc(strlen("+")+1);
+    strcpy(rh->name, "+\0");
     rh->proc = &handle_record_ns;
     resolve_record_ns(rh);
     return;
