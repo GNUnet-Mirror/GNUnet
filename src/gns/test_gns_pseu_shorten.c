@@ -255,7 +255,7 @@ put_pseu_dht(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_NAMESTORE_RecordData rd;
   
   rd.expiration = GNUNET_TIME_absolute_get_forever ();
-  rd.data_size = strlen(TEST_PSEU_ALICE);
+  rd.data_size = strlen(TEST_PSEU_ALICE)+1;
   rd.data = TEST_PSEU_ALICE;
   rd.record_type = GNUNET_GNS_RECORD_PSEU;
 
