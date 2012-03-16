@@ -362,6 +362,7 @@ process_shorten_reply (struct GNUNET_GNS_QueueEntry *qe,
   {
     GNUNET_break (0);
     force_reconnect (h);
+    GNUNET_free(qe);
     return;
   }
   
@@ -372,6 +373,7 @@ process_shorten_reply (struct GNUNET_GNS_QueueEntry *qe,
   GNUNET_CLIENT_receive (h->client, &process_message, h,
                          GNUNET_TIME_UNIT_FOREVER_REL);
   qe->shorten_proc(qe->proc_cls, short_name);
+  GNUNET_free(qe);
 
 }
 
@@ -397,6 +399,7 @@ process_get_auth_reply (struct GNUNET_GNS_QueueEntry *qe,
   if (ntohs (((struct GNUNET_MessageHeader*)msg)->size) <
       sizeof (struct GNUNET_GNS_ClientGetAuthResultMessage))
   {
+    GNUNET_free(qe);
     GNUNET_break (0);
     force_reconnect (h);
     return;
@@ -409,6 +412,7 @@ process_get_auth_reply (struct GNUNET_GNS_QueueEntry *qe,
   GNUNET_CLIENT_receive (h->client, &process_message, h,
                          GNUNET_TIME_UNIT_FOREVER_REL);
   qe->auth_proc(qe->proc_cls, auth_name);
+  GNUNET_free(qe);
 
 }
 /**
@@ -433,6 +437,7 @@ process_lookup_reply (struct GNUNET_GNS_QueueEntry *qe,
 
   if (len < sizeof (struct GNUNET_GNS_ClientLookupResultMessage))
   {
+    GNUNET_free(qe);
     GNUNET_break (0);
     force_reconnect (h);
     return;
@@ -459,6 +464,7 @@ process_lookup_reply (struct GNUNET_GNS_QueueEntry *qe,
                 ntohl(msg->rd_count));
     qe->lookup_proc(qe->proc_cls, rd_count, rd);
   }
+  GNUNET_free(qe);
 }
 
 /**

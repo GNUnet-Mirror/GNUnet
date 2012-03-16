@@ -229,6 +229,8 @@ do_lookup(void *cls, const struct GNUNET_PeerIdentity *id,
   alice_key = GNUNET_CRYPTO_rsa_key_create_from_file (alice_keyfile);
 
   GNUNET_CRYPTO_rsa_key_get_public (alice_key, &alice_pkey);
+  
+  GNUNET_free(alice_keyfile);
 
   struct GNUNET_NAMESTORE_RecordData rd;
   char* ip = TEST_IP;
@@ -245,6 +247,9 @@ do_lookup(void *cls, const struct GNUNET_PeerIdentity *id,
                                   &rd,
                                   &commence_testing,
                                   NULL);
+  
+  GNUNET_CRYPTO_rsa_key_free(alice_key);
+  GNUNET_free(web);
 
 }
 

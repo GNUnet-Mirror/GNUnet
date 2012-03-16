@@ -56,6 +56,10 @@ static struct GNUNET_DHT_Handle *dht_handle;
 
 /**
  * Initialize the resolver
+ *
+ * @param nh the namestore handle
+ * @param dh the dht handle
+ * @return GNUNET_OK on success
  */
 int
 gns_resolver_init(struct GNUNET_NAMESTORE_Handle *nh,
@@ -70,6 +74,18 @@ gns_resolver_init(struct GNUNET_NAMESTORE_Handle *nh,
   return GNUNET_SYSERR;
 }
 
+/**
+ * Set the callback to call when we discover a
+ * new authority via the DHT
+ *
+ * @param adb the callback to set
+ *
+void
+gns_resolver_set_auth_discovered_cb(AuthorityDiscoveredProcessor adb)
+{
+  auth_discovered = adb;
+}
+*/
 
 /**
  * Helper function to free resolver handle

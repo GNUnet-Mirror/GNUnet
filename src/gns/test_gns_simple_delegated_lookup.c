@@ -270,7 +270,9 @@ do_lookup(void *cls, const struct GNUNET_PeerIdentity *id,
                                sig,
                                &commence_testing,
                                NULL);
-
+  GNUNET_free(sig);
+  GNUNET_CRYPTO_rsa_key_free(bob_key);
+  GNUNET_CRYPTO_rsa_key_free(alice_key);
 }
 
 static void

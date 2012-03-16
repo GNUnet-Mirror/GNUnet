@@ -254,7 +254,9 @@ do_shorten(void *cls, const struct GNUNET_PeerIdentity *id,
   /* put alice into bobs zone */
   GNUNET_CRYPTO_hash(&alice_pkey, sizeof(alice_pkey), &alice_hash);
   rd.data = &alice_hash;
-  sig = GNUNET_NAMESTORE_create_signature(bob_key, GNUNET_TIME_absolute_get_forever(), TEST_AUTHORITY_ALICE,
+  sig = GNUNET_NAMESTORE_create_signature(bob_key,
+                                          GNUNET_TIME_absolute_get_forever(),
+                                          TEST_AUTHORITY_ALICE,
                                           &rd, 1);
 
   GNUNET_NAMESTORE_record_put (namestore_handle,
@@ -266,13 +268,15 @@ do_shorten(void *cls, const struct GNUNET_PeerIdentity *id,
                                sig,
                                NULL,
                                NULL);
-
+  GNUNET_free(sig);
   /* put www A record and PSEU into alice's zone */
 
   rd.data_size = sizeof(struct in_addr);
   rd.data = web;
   rd.record_type = GNUNET_DNSPARSER_TYPE_A;
-  sig = GNUNET_NAMESTORE_create_signature(alice_key,GNUNET_TIME_absolute_get_forever(),  TEST_RECORD_NAME,
+  sig = GNUNET_NAMESTORE_create_signature(alice_key,
+                                          GNUNET_TIME_absolute_get_forever(),
+                                          TEST_RECORD_NAME,
                                           &rd, 1);
 
   GNUNET_NAMESTORE_record_put (namestore_handle,
@@ -284,7 +288,7 @@ do_shorten(void *cls, const struct GNUNET_PeerIdentity *id,
                                sig,
                                NULL,
                                NULL);
-
+  
   rd.data_size = sizeof(GNUNET_HashCode);
   rd.data = &alice_hash;
   rd.record_type = GNUNET_GNS_RECORD_PKEY;
@@ -297,7 +301,10 @@ do_shorten(void *cls, const struct GNUNET_PeerIdentity *id,
                                &commence_testing,
                                NULL);
 
-
+  GNUNET_free(web);
+  GNUNET_CRYPTO_rsa_key_free(our_key);
+  GNUNET_CRYPTO_rsa_key_free(bob_key);
+  GNUNET_CRYPTO_rsa_key_free(alice_key);
 }
 
 static void
