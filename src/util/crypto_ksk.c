@@ -557,202 +557,65 @@ makeKblockKeyInternal (const GNUNET_HashCode * hc)
 
 
 /**
- * Decode the internal format into the format used
- * by libgcrypt.
+ * Entry in the KSK cache.
  */
-static struct GNUNET_CRYPTO_RsaPrivateKey *
-ksk_decode_key (const struct KskRsaPrivateKeyBinaryEncoded *encoding)
-{
-  struct GNUNET_CRYPTO_RsaPrivateKey *ret;
-  gcry_sexp_t res;
-  gcry_mpi_t n, e, d, p, q, u;
-  int rc;
-  size_t size;
-  int pos;
-
-  pos = 0;
-  size = ntohs (encoding->sizen);
-  rc = gcry_mpi_scan (&n, GCRYMPI_FMT_USG,
-                      &((const unsigned char *) (&encoding[1]))[pos], size,
-                      &size);
-  pos += ntohs (encoding->sizen);
-  if (rc)
-  {
-    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
-    return NULL;
-  }
-  size = ntohs (encoding->sizee);
-  rc = gcry_mpi_scan (&e, GCRYMPI_FMT_USG,
-                      &((const unsigned char *) (&encoding[1]))[pos], size,
-                      &size);
-  pos += ntohs (encoding->sizee);
-  if (rc)
-  {
-    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
-    gcry_mpi_release (n);
-    return NULL;
-  }
-  size = ntohs (encoding->sized);
-  rc = gcry_mpi_scan (&d, GCRYMPI_FMT_USG,
-                      &((const unsigned char *) (&encoding[1]))[pos], size,
-                      &size);
-  pos += ntohs (encoding->sized);
-  if (rc)
-  {
-    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
-    gcry_mpi_release (n);
-    gcry_mpi_release (e);
-    return NULL;
-  }
-  /* swap p and q! */
-  size = ntohs (encoding->sizep);
-  if (size > 0)
-  {
-    rc = gcry_mpi_scan (&q, GCRYMPI_FMT_USG,
-                        &((const unsigned char *) (&encoding[1]))[pos], size,
-                        &size);
-    pos += ntohs (encoding->sizep);
-    if (rc)
-    {
-      LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
-      gcry_mpi_release (n);
-      gcry_mpi_release (e);
-      gcry_mpi_release (d);
-      return NULL;
-    }
-  }
-  else
-    q = NULL;
-  size = ntohs (encoding->sizeq);
-  if (size > 0)
-  {
-    rc = gcry_mpi_scan (&p, GCRYMPI_FMT_USG,
-                        &((const unsigned char *) (&encoding[1]))[pos], size,
-                        &size);
-    pos += ntohs (encoding->sizeq);
-    if (rc)
-    {
-      LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
-      gcry_mpi_release (n);
-      gcry_mpi_release (e);
-      gcry_mpi_release (d);
-      if (q != NULL)
-        gcry_mpi_release (q);
-      return NULL;
-    }
-  }
-  else
-    p = NULL;
-  pos += ntohs (encoding->sizedmp1);
-  pos += ntohs (encoding->sizedmq1);
-  size =
-      ntohs (encoding->len) - sizeof (struct KskRsaPrivateKeyBinaryEncoded) -
-      pos;
-  if (size > 0)
-  {
-    rc = gcry_mpi_scan (&u, GCRYMPI_FMT_USG,
-                        &((const unsigned char *) (&encoding[1]))[pos], size,
-                        &size);
-    if (rc)
-    {
-      LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
-      gcry_mpi_release (n);
-      gcry_mpi_release (e);
-      gcry_mpi_release (d);
-      if (p != NULL)
-        gcry_mpi_release (p);
-      if (q != NULL)
-        gcry_mpi_release (q);
-      return NULL;
-    }
-  }
-  else
-    u = NULL;
-
-  if ((p != NULL) && (q != NULL) && (u != NULL))
-  {
-    rc = gcry_sexp_build (&res, &size,  /* erroff */
-                          "(private-key(rsa(n %m)(e %m)(d %m)(p %m)(q %m)(u %m)))",
-                          n, e, d, p, q, u);
-  }
-  else
-  {
-    if ((p != NULL) && (q != NULL))
-    {
-      rc = gcry_sexp_build (&res, &size,        /* erroff */
-                            "(private-key(rsa(n %m)(e %m)(d %m)(p %m)(q %m)))",
-                            n, e, d, p, q);
-    }
-    else
-    {
-      rc = gcry_sexp_build (&res, &size,        /* erroff */
-                            "(private-key(rsa(n %m)(e %m)(d %m)))", n, e, d);
-    }
-  }
-  gcry_mpi_release (n);
-  gcry_mpi_release (e);
-  gcry_mpi_release (d);
-  if (p != NULL)
-    gcry_mpi_release (p);
-  if (q != NULL)
-    gcry_mpi_release (q);
-  if (u != NULL)
-    gcry_mpi_release (u);
-
-  if (rc)
-    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
-#if EXTRA_CHECKS
-  if (gcry_pk_testkey (res))
-  {
-    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_pk_testkey", rc);
-    return NULL;
-  }
-#endif
-  ret = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_RsaPrivateKey));
-  ret->sexp = res;
-  return ret;
-}
-
-
 struct KBlockKeyCacheLine
 {
+  /**
+   * Hash from which the key was generated.
+   */
   GNUNET_HashCode hc;
+
+  /**
+   * The encoded key.
+   */
   struct KskRsaPrivateKeyBinaryEncoded *pke;
 };
 
+
+/**
+ * Cached KSK keys so that we don't have to recompute them
+ * all the time.
+ */
 static struct KBlockKeyCacheLine **cache;
 
+
+/**
+ * Size of the 'cache' array.
+ */
 static unsigned int cacheSize;
+
 
 /**
  * Deterministically (!) create a hostkey using only the
  * given HashCode as input to the PRNG.
+ *
+ * @param hc hash code to generate the key from
+ * @return corresponding private key; must not be freed!
  */
 struct GNUNET_CRYPTO_RsaPrivateKey *
 GNUNET_CRYPTO_rsa_key_create_from_hash (const GNUNET_HashCode * hc)
 {
-  struct GNUNET_CRYPTO_RsaPrivateKey *ret;
   struct KBlockKeyCacheLine *line;
   unsigned int i;
 
-  for (i = 0; i < cacheSize; i++)
-  {
+  for (i = 0; i < cacheSize; i++)  
     if (0 == memcmp (hc, &cache[i]->hc, sizeof (GNUNET_HashCode)))
-    {
-      ret = ksk_decode_key (cache[i]->pke);
-      return ret;
-    }
-  }
-
+      return GNUNET_CRYPTO_rsa_decode_key ((const char*) cache[i]->pke,
+					   ntohs (cache[i]->pke->len));  
   line = GNUNET_malloc (sizeof (struct KBlockKeyCacheLine));
   line->hc = *hc;
   line->pke = makeKblockKeyInternal (hc);
   GNUNET_array_grow (cache, cacheSize, cacheSize + 1);
   cache[cacheSize - 1] = line;
-  return ksk_decode_key (line->pke);
+  return GNUNET_CRYPTO_rsa_decode_key ((const char*) line->pke,
+				       ntohs (line->pke->len));
 }
 
 
+/**
+ * Destructor that frees the KSK cache.
+ */
 void __attribute__ ((destructor)) GNUNET_CRYPTO_ksk_fini ()
 {
   unsigned int i;
