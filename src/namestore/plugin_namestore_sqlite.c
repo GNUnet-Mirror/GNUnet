@@ -545,6 +545,83 @@ namestore_sqlite_put_records (void *cls,
     return GNUNET_SYSERR;  
   }
 }
+
+
+/**
+ * The given 'sqlite' statement has been prepared to be run.
+ * It will return a record which should be given to the iterator.
+ * Runs the statement and parses the returned record.
+ *
+ * @param plugin plugin context
+ * @param stmt to run (and then clean up)
+ * @param iter iterator to call with the result
+ * @param iter_cls closure for 'iter'
+ * @return GNUNET_OK on success, GNUNET_NO if there were no results, GNUNET_SYSERR on error
+ */
+static int
+get_record_and_call_iterator (struct Plugin *plugin,
+			      sqlite3_stmt *stmt,			      
+			      GNUNET_NAMESTORE_RecordIterator iter, void *iter_cls)
+{
+  int ret;
+  int sret;
+  unsigned int record_count;
+  size_t data_size;
+  const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key;
+  const struct GNUNET_CRYPTO_RsaSignature *sig;
+  struct GNUNET_TIME_Absolute expiration;
+  const char *data;
+  const char *name;
+
+  ret = GNUNET_NO;
+  if (SQLITE_ROW == (sret = sqlite3_step (stmt)))
+  {     
+    ret = GNUNET_YES;
+    zone_key =  sqlite3_column_blob (stmt, 0);
+    name = (const char*) sqlite3_column_text (stmt, 1);
+    record_count = sqlite3_column_int (stmt, 2);
+    data_size = sqlite3_column_bytes (stmt, 3);
+    data = sqlite3_column_blob (stmt, 3);
+    expiration.abs_value = (uint64_t) sqlite3_column_int64 (stmt, 4);
+    sig = sqlite3_column_blob (stmt, 5);
+
+    if ( (sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded) != sqlite3_column_bytes (stmt, 0)) ||
+	 (sizeof (struct GNUNET_CRYPTO_RsaSignature) != sqlite3_column_bytes (stmt, 5)) )
+    {
+      GNUNET_break (0);
+      ret = GNUNET_SYSERR;
+    }
+    else
+    {
+      struct GNUNET_NAMESTORE_RecordData rd[record_count];
+
+      if (GNUNET_OK !=
+	  GNUNET_NAMESTORE_records_deserialize (data_size, data,
+						record_count, rd))
+      {
+	GNUNET_break (0);
+	ret = GNUNET_SYSERR;
+	record_count = 0;
+      }
+      else
+      {
+	iter (iter_cls, zone_key, expiration, name, 
+	      record_count, rd, sig);
+      }
+    }
+  }
+  else
+  {
+    if (SQLITE_DONE != sret)
+      LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR, "sqlite_step");
+    iter (iter_cls, NULL, GNUNET_TIME_UNIT_ZERO_ABS, NULL, 0, NULL, NULL);
+  }
+  if (SQLITE_OK != sqlite3_reset (stmt))
+    LOG_SQLITE (plugin,
+		GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+		"sqlite3_reset");
+  return ret;
+}
   
   
 /**
@@ -570,8 +647,6 @@ namestore_sqlite_iterate_records (void *cls,
   sqlite3_stmt *stmt;
   GNUNET_HashCode name_hase;
   unsigned int boff;
-  int ret;
-  int sret;
 
   if (NULL == zone)
     if (NULL == name)
@@ -630,62 +705,8 @@ namestore_sqlite_iterate_records (void *cls,
                   "sqlite3_reset");
     return GNUNET_SYSERR;
   }
-  ret = GNUNET_NO;
-  if (SQLITE_ROW == (sret = sqlite3_step (stmt)))
-  {
-    unsigned int record_count;
-    size_t data_size;
-    const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key;
-    const struct GNUNET_CRYPTO_RsaSignature *sig;
-    struct GNUNET_TIME_Absolute expiration;
-    const char *data;
-    const char *name;
-      
-    ret = GNUNET_YES;
-    zone_key =  sqlite3_column_blob (stmt, 0);
-    name = (const char*) sqlite3_column_text (stmt, 1);
-    record_count = sqlite3_column_int (stmt, 2);
-    data_size = sqlite3_column_bytes (stmt, 3);
-    data = sqlite3_column_blob (stmt, 3);
-    expiration.abs_value = (uint64_t) sqlite3_column_int64 (stmt, 4);
-    sig = sqlite3_column_blob (stmt, 5);
 
-    if ( (sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded) != sqlite3_column_bytes (stmt, 0)) ||
-	 (sizeof (struct GNUNET_CRYPTO_RsaSignature) != sqlite3_column_bytes (stmt, 5)) )
-    {
-      GNUNET_break (0);
-      ret = GNUNET_SYSERR;
-    }
-    else
-    {
-      struct GNUNET_NAMESTORE_RecordData rd[record_count];
-
-      if (GNUNET_OK !=
-	  GNUNET_NAMESTORE_records_deserialize (data_size, data,
-						record_count, rd))
-      {
-	GNUNET_break (0);
-	ret = GNUNET_SYSERR;
-	record_count = 0;
-      }
-      else
-      {
-	iter (iter_cls, zone_key, expiration, name, 
-	      record_count, rd, sig);
-      }
-    }
-  }
-  else
-  {
-    if (SQLITE_DONE != sret)
-      LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR, "sqlite_step");
-    iter (iter_cls, NULL, GNUNET_TIME_UNIT_ZERO_ABS, NULL, 0, NULL, NULL);
-  }
-  if (SQLITE_OK != sqlite3_reset (stmt))
-    LOG_SQLITE (plugin,
-		GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-		"sqlite3_reset");
-  return ret;
+  return get_record_and_call_iterator (plugin, stmt, iter, iter_cls);
 }
 
 
@@ -708,8 +729,6 @@ namestore_sqlite_zone_to_name (void *cls,
 {
   struct Plugin *plugin = cls;
   sqlite3_stmt *stmt;
-  int ret;
-  int sret;
 
   stmt = plugin->zone_to_name;
   if ( (SQLITE_OK != sqlite3_bind_blob (stmt, 1, 
@@ -727,62 +746,8 @@ namestore_sqlite_zone_to_name (void *cls,
 		  "sqlite3_reset");
     return GNUNET_SYSERR;
   }      
-  ret = GNUNET_NO;
-  if (SQLITE_ROW == (sret = sqlite3_step (stmt)))
-  {
-    unsigned int record_count;
-    size_t data_size;
-    const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key;
-    const struct GNUNET_CRYPTO_RsaSignature *sig;
-    struct GNUNET_TIME_Absolute expiration;
-    const char *data;
-    const char *name;
-      
-    ret = GNUNET_YES;
-    zone_key =  sqlite3_column_blob (stmt, 0);
-    name = (const char*) sqlite3_column_text (stmt, 1);
-    record_count = sqlite3_column_int (stmt, 2);
-    data_size = sqlite3_column_bytes (stmt, 3);
-    data = sqlite3_column_blob (stmt, 3);
-    expiration.abs_value = (uint64_t) sqlite3_column_int64 (stmt, 4);
-    sig = sqlite3_column_blob (stmt, 5);
 
-    if ( (sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded) != sqlite3_column_bytes (stmt, 0)) ||
-	 (sizeof (struct GNUNET_CRYPTO_RsaSignature) != sqlite3_column_bytes (stmt, 5)) )
-    {
-      GNUNET_break (0);
-      ret = GNUNET_SYSERR;
-    }
-    else
-    {
-      struct GNUNET_NAMESTORE_RecordData rd[record_count];
-
-      if (GNUNET_OK !=
-	  GNUNET_NAMESTORE_records_deserialize (data_size, data,
-						record_count, rd))
-      {
-	GNUNET_break (0);
-	ret = GNUNET_SYSERR;
-	record_count = 0;
-      }
-      else
-      {
-	iter (iter_cls, zone_key, expiration, name, 
-	      record_count, rd, sig);
-      }
-    }
-  }
-  else
-  {
-    if (SQLITE_DONE != sret)
-      LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR, "sqlite_step");
-    iter (iter_cls, NULL, GNUNET_TIME_UNIT_ZERO_ABS, NULL, 0, NULL, NULL);
-  }
-  if (SQLITE_OK != sqlite3_reset (stmt))
-    LOG_SQLITE (plugin,
-		GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-		"sqlite3_reset");
-  return ret;
+  return get_record_and_call_iterator (plugin, stmt, iter, iter_cls);
 }
 
 
