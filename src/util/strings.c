@@ -170,6 +170,73 @@ GNUNET_STRINGS_byte_size_fancy (unsigned long long size)
 
 
 /**
+ * Unit conversion table entry for 'convert_with_table'.
+ */
+struct ConversionTable
+{
+  /**
+   * Name of the unit (or NULL for end of table).
+   */
+  const char *name;
+
+  /**
+   * Factor to apply for this unit.
+   */
+  unsigned long long value;
+};
+
+
+/**
+ * Convert a string of the form "4 X 5 Y" into a numeric value
+ * by interpreting "X" and "Y" as units and then multiplying
+ * the numbers with the values associated with the respective
+ * unit from the conversion table.
+ *
+ * @param input input string to parse
+ * @param table table with the conversion of unit names to numbers
+ * @param output where to store the result
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ */
+static int
+convert_with_table (const char *input,
+		    const struct ConversionTable *table,
+		    unsigned long long *output)
+{
+  unsigned long long ret;
+  char *in;
+  const char *tok;
+  unsigned long long last;
+  unsigned int i;
+
+  ret = 0;
+  last = 0;
+  in = GNUNET_strdup (input);
+  for (tok = strtok (in, " "); tok != NULL; tok = strtok (NULL, " "))
+  {
+    i = 0;
+    while ((table[i].name != NULL) && (0 != strcasecmp (table[i].name, tok)))
+      i++;
+    if (table[i].name != NULL)
+      last *= table[i].value;
+    else
+    {
+      ret += last;
+      last = 0;
+      if (1 != SSCANF (tok, "%llu", &last))
+      {
+        GNUNET_free (in);
+        return GNUNET_SYSERR;   /* expected number */
+      }
+    }
+  }
+  ret += last;
+  *output = ret;
+  GNUNET_free (in);
+  return GNUNET_OK;
+}
+
+
+/**
  * Convert a given fancy human-readable size to bytes.
  *
  * @param fancy_size human readable string (i.e. 1 MB)
@@ -180,72 +247,27 @@ int
 GNUNET_STRINGS_fancy_size_to_bytes (const char *fancy_size,
                                     unsigned long long *size)
 {
-  struct
+  static const struct ConversionTable table[] =
   {
-    const char *name;
-    unsigned long long value;
-  } table[] =
-  {
-    {
-    "B", 1},
-    {
-    "KiB", 1024},
-    {
-    "kB", 1000},
-    {
-    "MiB", 1024 * 1024},
-    {
-    "MB", 1000 * 1000},
-    {
-    "GiB", 1024 * 1024 * 1024},
-    {
-    "GB", 1000 * 1000 * 1000},
-    {
-    "TiB", 1024LL * 1024LL * 1024LL * 1024LL},
-    {
-    "TB", 1000LL * 1000LL * 1000LL * 1024LL},
-    {
-    "PiB", 1024LL * 1024LL * 1024LL * 1024LL * 1024LL},
-    {
-    "PB", 1000LL * 1000LL * 1000LL * 1024LL * 1000LL},
-    {
-    "EiB", 1024LL * 1024LL * 1024LL * 1024LL * 1024LL * 1024LL},
-    {
-    "EB", 1000LL * 1000LL * 1000LL * 1024LL * 1000LL * 1000LL},
-    {
-    NULL, 0}
+    { "B", 1},
+    { "KiB", 1024},
+    { "kB", 1000},
+    { "MiB", 1024 * 1024},
+    { "MB", 1000 * 1000},
+    { "GiB", 1024 * 1024 * 1024},
+    { "GB", 1000 * 1000 * 1000},
+    { "TiB", 1024LL * 1024LL * 1024LL * 1024LL},
+    { "TB", 1000LL * 1000LL * 1000LL * 1024LL},
+    { "PiB", 1024LL * 1024LL * 1024LL * 1024LL * 1024LL},
+    { "PB", 1000LL * 1000LL * 1000LL * 1024LL * 1000LL},
+    { "EiB", 1024LL * 1024LL * 1024LL * 1024LL * 1024LL * 1024LL},
+    { "EB", 1000LL * 1000LL * 1000LL * 1024LL * 1000LL * 1000LL},
+    { NULL, 0}
   };
-  unsigned long long ret;
-  char *in;
-  const char *tok;
-  unsigned long long last;
-  unsigned int i;
 
-  ret = 0;
-  last = 0;
-  in = GNUNET_strdup (fancy_size);
-  for (tok = strtok (in, " "); tok != NULL; tok = strtok (NULL, " "))
-  {
-    i = 0;
-    while ((table[i].name != NULL) && (0 != strcasecmp (table[i].name, tok)))
-      i++;
-    if (table[i].name != NULL)
-      last *= table[i].value;
-    else
-    {
-      ret += last;
-      last = 0;
-      if (1 != SSCANF (tok, "%llu", &last))
-      {
-        GNUNET_free (in);
-        return GNUNET_SYSERR;   /* expected number */
-      }
-    }
-  }
-  ret += last;
-  *size = ret;
-  GNUNET_free (in);
-  return GNUNET_OK;
+  return convert_with_table (fancy_size,
+			     table,
+			     size);
 }
 
 
@@ -253,78 +275,35 @@ GNUNET_STRINGS_fancy_size_to_bytes (const char *fancy_size,
  * Convert a given fancy human-readable time to our internal
  * representation.
  *
- * @param fancy_size human readable string (i.e. 1 minute)
+ * @param fancy_time human readable string (i.e. 1 minute)
  * @param rtime set to the relative time
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
 int
-GNUNET_STRINGS_fancy_time_to_relative (const char *fancy_size,
+GNUNET_STRINGS_fancy_time_to_relative (const char *fancy_time,
                                        struct GNUNET_TIME_Relative *rtime)
 {
-  struct
+  static const struct ConversionTable table[] =
   {
-    const char *name;
-    unsigned long long value;
-  } table[] =
-  {
-    {
-    "ms", 1},
-    {
-    "s", 1000},
-    {
-    "\"", 1000},
-    {
-    "min", 60 * 1000},
-    {
-    "minutes", 60 * 1000},
-    {
-    "'", 60 * 1000},
-    {
-    "h", 60 * 60 * 1000},
-    {
-    "d", 24 * 60 * 60 * 1000},
-    {
-    "a", 31557600 /* year */ },
-    {
-    NULL, 0}
+    { "ms", 1},
+    { "s", 1000},
+    { "\"", 1000},
+    { "min", 60 * 1000},
+    { "minutes", 60 * 1000},
+    { "'", 60 * 1000},
+    { "h", 60 * 60 * 1000},
+    { "d", 24 * 60 * 60 * 1000},
+    { "a", 31557600 /* year */ },
+    { NULL, 0}
   };
-  unsigned long long ret;
-  char *in;
-  const char *tok;
-  unsigned long long last;
-  unsigned int i;
+  int ret;
+  unsigned long long val;
 
-  if ((0 == strcasecmp (fancy_size, "infinity")) ||
-      (0 == strcasecmp (fancy_size, "forever")))
-  {
-    *rtime = GNUNET_TIME_UNIT_FOREVER_REL;
-    return GNUNET_OK;
-  }
-  ret = 0;
-  last = 0;
-  in = GNUNET_strdup (fancy_size);
-  for (tok = strtok (in, " "); tok != NULL; tok = strtok (NULL, " "))
-  {
-    i = 0;
-    while ((table[i].name != NULL) && (0 != strcasecmp (table[i].name, tok)))
-      i++;
-    if (table[i].name != NULL)
-      last *= table[i].value;
-    else
-    {
-      ret += last;
-      last = 0;
-      if (1 != SSCANF (tok, "%llu", &last))
-      {
-        GNUNET_free (in);
-        return GNUNET_SYSERR;   /* expected number */
-      }
-    }
-  }
-  ret += last;
-  rtime->rel_value = (uint64_t) ret;
-  GNUNET_free (in);
-  return GNUNET_OK;
+  ret = convert_with_table (fancy_time,
+			    table,
+			    &val);
+  rtime->rel_value = (uint64_t) val;
+  return ret;
 }
 
 /**
