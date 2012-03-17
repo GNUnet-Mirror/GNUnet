@@ -34,6 +34,8 @@
 
 /**
  * Create a new SessionKey (for AES-256).
+ *
+ * @param key session key to initialize
  */
 void
 GNUNET_CRYPTO_aes_create_session_key (struct GNUNET_CRYPTO_AesSessionKey *key)
@@ -43,6 +45,7 @@ GNUNET_CRYPTO_aes_create_session_key (struct GNUNET_CRYPTO_AesSessionKey *key)
   key->crc32 =
       htonl (GNUNET_CRYPTO_crc32_n (key, GNUNET_CRYPTO_AES_KEY_LENGTH));
 }
+
 
 /**
  * Check that a new session key is well-formed.
@@ -64,8 +67,45 @@ GNUNET_CRYPTO_aes_check_session_key (const struct GNUNET_CRYPTO_AesSessionKey
 
 
 /**
+ * Initialize AES cipher.
+ *
+ * @param handle handle to initialize
+ * @param sessionkey session key to use
+ * @param iv initialization vector to use
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ */
+static int
+setup_cipher (gcry_cipher_hd_t *handle,
+	      const struct GNUNET_CRYPTO_AesSessionKey *
+	      sessionkey,
+	      const struct GNUNET_CRYPTO_AesInitializationVector *
+	      iv)
+{
+  int rc;
+
+  if (GNUNET_OK !=
+      GNUNET_CRYPTO_aes_check_session_key (sessionkey))
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  GNUNET_assert (0 ==
+                 gcry_cipher_open (handle, GCRY_CIPHER_AES256,
+                                   GCRY_CIPHER_MODE_CFB, 0));
+  rc = gcry_cipher_setkey (*handle, sessionkey, GNUNET_CRYPTO_AES_KEY_LENGTH);
+  GNUNET_assert ((0 == rc) || ((char) rc == GPG_ERR_WEAK_KEY));
+  rc = gcry_cipher_setiv (*handle, iv,
+                          sizeof (struct
+                                  GNUNET_CRYPTO_AesInitializationVector));
+  GNUNET_assert ((0 == rc) || ((char) rc == GPG_ERR_WEAK_KEY));
+  return GNUNET_OK;
+}
+
+
+/**
  * Encrypt a block with the public key of another
  * host that uses the same cyper.
+ *
  * @param block the block to encrypt
  * @param len the size of the block
  * @param sessionkey the key used to encrypt
@@ -82,27 +122,14 @@ GNUNET_CRYPTO_aes_encrypt (const void *block, size_t len,
                            iv, void *result)
 {
   gcry_cipher_hd_t handle;
-  int rc;
 
-  if (sessionkey->crc32 !=
-      htonl (GNUNET_CRYPTO_crc32_n (sessionkey, GNUNET_CRYPTO_AES_KEY_LENGTH)))
-  {
-    GNUNET_break (0);
+  if (GNUNET_OK != setup_cipher (&handle, sessionkey, iv))
     return -1;
-  }
-  GNUNET_assert (0 ==
-                 gcry_cipher_open (&handle, GCRY_CIPHER_AES256,
-                                   GCRY_CIPHER_MODE_CFB, 0));
-  rc = gcry_cipher_setkey (handle, sessionkey, GNUNET_CRYPTO_AES_KEY_LENGTH);
-  GNUNET_assert ((0 == rc) || ((char) rc == GPG_ERR_WEAK_KEY));
-  rc = gcry_cipher_setiv (handle, iv,
-                          sizeof (struct
-                                  GNUNET_CRYPTO_AesInitializationVector));
-  GNUNET_assert ((0 == rc) || ((char) rc == GPG_ERR_WEAK_KEY));
   GNUNET_assert (0 == gcry_cipher_encrypt (handle, result, len, block, len));
   gcry_cipher_close (handle);
   return len;
 }
+
 
 /**
  * Decrypt a given block with the sessionkey.
@@ -123,30 +150,18 @@ GNUNET_CRYPTO_aes_decrypt (const void *block, size_t size,
                            iv, void *result)
 {
   gcry_cipher_hd_t handle;
-  int rc;
 
-  if (sessionkey->crc32 !=
-      htonl (GNUNET_CRYPTO_crc32_n (sessionkey, GNUNET_CRYPTO_AES_KEY_LENGTH)))
-  {
-    GNUNET_break (0);
+  if (GNUNET_OK != setup_cipher (&handle, sessionkey, iv))
     return -1;
-  }
-  GNUNET_assert (0 ==
-                 gcry_cipher_open (&handle, GCRY_CIPHER_AES256,
-                                   GCRY_CIPHER_MODE_CFB, 0));
-  rc = gcry_cipher_setkey (handle, sessionkey, GNUNET_CRYPTO_AES_KEY_LENGTH);
-  GNUNET_assert ((0 == rc) || ((char) rc == GPG_ERR_WEAK_KEY));
-  rc = gcry_cipher_setiv (handle, iv,
-                          sizeof (struct
-                                  GNUNET_CRYPTO_AesInitializationVector));
-  GNUNET_assert ((0 == rc) || ((char) rc == GPG_ERR_WEAK_KEY));
   GNUNET_assert (0 == gcry_cipher_decrypt (handle, result, size, block, size));
   gcry_cipher_close (handle);
   return size;
 }
 
+
 /**
  * @brief Derive an IV
+ *
  * @param iv initialization vector
  * @param skey session key
  * @param salt salt for the derivation
@@ -165,8 +180,10 @@ GNUNET_CRYPTO_aes_derive_iv (struct GNUNET_CRYPTO_AesInitializationVector *iv,
   va_end (argp);
 }
 
+
 /**
  * @brief Derive an IV
+ *
  * @param iv initialization vector
  * @param skey session key
  * @param salt salt for the derivation
