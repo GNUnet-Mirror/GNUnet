@@ -115,7 +115,7 @@ struct RedirectToServiceRequestMessage
   /**
    * Service descriptor identifying the service.
    */
-  GNUNET_HashCode service_descriptor GNUNET_PACKED;
+  GNUNET_HashCode service_descriptor;
 
   /**
    * Unique ID to match a future response to this request.

@@ -129,7 +129,7 @@ struct GetMessage
    * Hashcodes of the file(s) we're looking for.
    * Details depend on the query type.
    */
-  GNUNET_HashCode query GNUNET_PACKED;
+  GNUNET_HashCode query;
 
   /* this is followed by hash codes as specified in the "hash_bitmap";
    * after that, an optional bloomfilter (with bits set for replies

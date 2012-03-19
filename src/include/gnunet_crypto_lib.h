@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007 Christian Grothoff (and other contributing authors)
+     (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2012 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -134,6 +134,26 @@ GNUNET_NETWORK_STRUCT_END
 struct GNUNET_CRYPTO_HashAsciiEncoded
 {
   unsigned char encoding[104];
+};
+
+
+
+
+/**
+ * @brief 256-bit hashcode
+ */
+struct GNUNET_CRYPTO_ShortHashCode
+{
+  uint32_t bits[256 / 8 / sizeof (uint32_t)];   /* = 8 */
+};
+
+
+/**
+ * @brief 0-terminated ASCII encoding of a 'struct GNUNET_ShortHashCode'.
+ */
+struct GNUNET_CRYPTO_ShortHashAsciiEncoded
+{
+  unsigned char short_encoding[53];
 };
 
 
@@ -433,7 +453,19 @@ GNUNET_CRYPTO_hash_to_enc (const GNUNET_HashCode * block,
 
 
 /**
- * Convert ASCII encoding back to GNUNET_CRYPTO_hash
+ * Convert short hash to ASCII encoding.
+ *
+ * @param block the hash code
+ * @param result where to store the encoding (struct GNUNET_CRYPTO_ShortHashAsciiEncoded can be
+ *  safely cast to char*, a '\\0' termination is set).
+ */
+void
+GNUNET_CRYPTO_short_hash_to_enc (const struct GNUNET_CRYPTO_ShortHashCode * block,
+				 struct GNUNET_CRYPTO_ShortHashAsciiEncoded *result);
+
+
+/**
+ * Convert ASCII encoding back to a 'GNUNET_HashCode'
  *
  * @param enc the encoding
  * @param enclen number of characters in 'enc' (without 0-terminator, which can be missing)
@@ -446,13 +478,38 @@ GNUNET_CRYPTO_hash_from_string2 (const char *enc, size_t enclen,
 
 
 /**
- * Convert ASCII encoding back to GNUNET_CRYPTO_hash
+ * Convert ASCII encoding back to a 'struct GNUNET_CRYPTO_ShortHash'
+ *
  * @param enc the encoding
+ * @param enclen number of characters in 'enc' (without 0-terminator, which can be missing)
  * @param result where to store the GNUNET_CRYPTO_hash code
+ * @return GNUNET_OK on success, GNUNET_SYSERR if result has the wrong encoding
+ */
+int
+GNUNET_CRYPTO_short_hash_from_string2 (const char *enc, size_t enclen,
+				       struct GNUNET_CRYPTO_ShortHashCode * result);
+
+
+/**
+ * Convert ASCII encoding back to GNUNET_HashCode
+ *
+ * @param enc the encoding
+ * @param result where to store the hash code
  * @return GNUNET_OK on success, GNUNET_SYSERR if result has the wrong encoding
  */
 #define GNUNET_CRYPTO_hash_from_string(enc, result) \
   GNUNET_CRYPTO_hash_from_string2 (enc, strlen(enc), result)
+
+
+/**
+ * Convert ASCII encoding back to a 'struct GNUNET_CRYPTO_ShortHash'
+ *
+ * @param enc the encoding
+ * @param result where to store the GNUNET_CRYPTO_ShortHash 
+ * @return GNUNET_OK on success, GNUNET_SYSERR if result has the wrong encoding
+ */
+#define GNUNET_CRYPTO_short_hash_from_string(enc, result) \
+  GNUNET_CRYPTO_short_hash_from_string2 (enc, strlen(enc), result)
 
 
 /**
@@ -480,6 +537,42 @@ GNUNET_CRYPTO_hash_distance_u32 (const GNUNET_HashCode * a,
  */
 void
 GNUNET_CRYPTO_hash (const void *block, size_t size, GNUNET_HashCode * ret);
+
+
+/**
+ * Compute short (256-bit) hash of a given block.
+ *
+ * @param block the data to hash
+ * @param size size of the block
+ * @param ret pointer to where to write the hashcode
+ */
+void
+GNUNET_CRYPTO_short_hash (const void *block, size_t size, 
+			  struct GNUNET_CRYPTO_ShortHashCode * ret);
+
+
+/**
+ * Double short (256-bit) hash to create a long hash.
+ *
+ * @param sh short hash to double
+ * @param dh where to store the (doubled) long hash (not really a hash)
+ */
+void
+GNUNET_CRYPTO_short_hash_double (const struct GNUNET_CRYPTO_ShortHashCode *sh,
+				 struct GNUNET_HashCode *dh);
+
+
+/**
+ * Truncate doubled short hash back to a short hash.
+ *
+ * @param lh doubled short hash to reduce again
+ * @param sh where to store the short hash
+ * @return GNUNET_OK on success, GNUNET_SYSERR if this was not a
+ *         doubled short hash
+ */
+int
+GNUNET_CRYPTO_short_hash_from_truncation (const struct GNUNET_HashCode *dh,
+					  struct GNUNET_CRYPTO_ShortHashCode *sh);
 
 
 /**

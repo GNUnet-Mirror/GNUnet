@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2001, 2002, 2003, 2004, 2005, 2006, 2009 Christian Grothoff (and other contributing authors)
+     (C) 2001, 2002, 2003, 2004, 2005, 2006, 2009, 2012 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -34,6 +34,7 @@
 #include "gnunet_common.h"
 #include "gnunet_crypto_lib.h"
 #include "gnunet_disk_lib.h"
+#include "gnunet_strings_lib.h"
 #include <gcrypt.h>
 
 #define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
@@ -51,6 +52,21 @@ void
 GNUNET_CRYPTO_hash (const void *block, size_t size, GNUNET_HashCode * ret)
 {
   gcry_md_hash_buffer (GCRY_MD_SHA512, ret, block, size);
+}
+
+
+/**
+ * Compute short (256-bit) hash of a given block.
+ *
+ * @param block the data to GNUNET_CRYPTO_hash, length is given as a second argument
+ * @param size the length of the data to GNUNET_CRYPTO_hash
+ * @param ret pointer to where to write the hashcode
+ */
+void
+GNUNET_CRYPTO_short_hash (const void *block, size_t size, 
+			  struct GNUNET_CRYPTO_ShortHashCode * ret)
+{
+  gcry_md_hash_buffer (GCRY_MD_SHA256, ret, block, size);
 }
 
 
@@ -243,24 +259,6 @@ GNUNET_CRYPTO_hash_file_cancel (struct GNUNET_CRYPTO_FileHashContext *fhc)
 
 /* ***************** binary-ASCII encoding *************** */
 
-/* FIXME: should use GNUNET_STRINGS_data_to_string and strings_to_data below!!! */
-
-/**
- * Get the numeric value corresponding to a character.
- *
- * @param a a character
- * @return corresponding numeric value
- */
-static unsigned int
-getValue__ (unsigned char a)
-{
-  if ((a >= '0') && (a <= '9'))
-    return a - '0';
-  if ((a >= 'A') && (a <= 'V'))
-    return (a - 'A' + 10);
-  return -1;
-}
-
 
 /**
  * Convert GNUNET_CRYPTO_hash to ASCII encoding.  The ASCII encoding is rather
@@ -277,88 +275,32 @@ void
 GNUNET_CRYPTO_hash_to_enc (const GNUNET_HashCode * block,
                            struct GNUNET_CRYPTO_HashAsciiEncoded *result)
 {
-  /**
-   * 32 characters for encoding (GNUNET_CRYPTO_hash => 32 characters)
-   */
-  static char *encTable__ = "0123456789ABCDEFGHIJKLMNOPQRSTUV";
-  unsigned int wpos;
-  unsigned int rpos;
-  unsigned int bits;
-  unsigned int vbit;
+  char *np;
 
-  GNUNET_assert (block != NULL);
-  GNUNET_assert (result != NULL);
-  vbit = 0;
-  wpos = 0;
-  rpos = 0;
-  bits = 0;
-  while ((rpos < sizeof (GNUNET_HashCode)) || (vbit > 0))
-  {
-    if ((rpos < sizeof (GNUNET_HashCode)) && (vbit < 5))
-    {
-      bits = (bits << 8) | ((unsigned char *) block)[rpos++];   /* eat 8 more bits */
-      vbit += 8;
-    }
-    if (vbit < 5)
-    {
-      bits <<= (5 - vbit);      /* zero-padding */
-      GNUNET_assert (vbit == 2);        /* padding by 3: 512+3 mod 5 == 0 */
-      vbit = 5;
-    }
-    GNUNET_assert (wpos < sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) - 1);
-    result->encoding[wpos++] = encTable__[(bits >> (vbit - 5)) & 31];
-    vbit -= 5;
-  }
-  GNUNET_assert (wpos == sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) - 1);
-  GNUNET_assert (vbit == 0);
-  result->encoding[wpos] = '\0';
+  np = GNUNET_STRINGS_data_to_string ((const unsigned char *) block,
+				      sizeof (struct GNUNET_HashCode),
+				      (char*) result,
+				      sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) - 1);
+  GNUNET_assert (NULL != np);
+  *np = '\0';
 }
 
 
 /**
- * Convert ASCII encoding back to GNUNET_CRYPTO_hash
+ * Convert ASCII encoding back to hash code.
  *
  * @param enc the encoding
  * @param enclen number of characters in 'enc' (without 0-terminator, which can be missing)
- * @param result where to store the GNUNET_CRYPTO_hash code
+ * @param result where to store the hash code
  * @return GNUNET_OK on success, GNUNET_SYSERR if result has the wrong encoding
  */
 int
 GNUNET_CRYPTO_hash_from_string2 (const char *enc, size_t enclen,
                                 GNUNET_HashCode * result)
 {
-  unsigned int rpos;
-  unsigned int wpos;
-  unsigned int bits;
-  unsigned int vbit;
-  int ret;
-
-  if (enclen != sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) - 1)
-    return GNUNET_SYSERR;
-
-  vbit = 2;                     /* padding! */
-  wpos = sizeof (GNUNET_HashCode);
-  rpos = sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) - 1;
-  bits = (ret = getValue__ (enc[--rpos])) >> 3;
-  if (-1 == ret)
-    return GNUNET_SYSERR;
-  while (wpos > 0)
-  {
-    GNUNET_assert (rpos > 0);
-    bits = ((ret = getValue__ (enc[--rpos])) << vbit) | bits;
-    if (-1 == ret)
-      return GNUNET_SYSERR;
-    vbit += 5;
-    if (vbit >= 8)
-    {
-      ((unsigned char *) result)[--wpos] = (unsigned char) bits;
-      bits >>= 8;
-      vbit -= 8;
-    }
-  }
-  GNUNET_assert (rpos == 0);
-  GNUNET_assert (vbit == 0);
-  return GNUNET_OK;
+  return GNUNET_STRINGS_string_to_data (enc, enclen,
+					(unsigned char*) result,
+					sizeof (struct GNUNET_HashCode));
 }
 
 
@@ -643,6 +585,90 @@ GNUNET_CRYPTO_hmac (const struct GNUNET_CRYPTO_AuthKey *key,
     memcpy (hmac->bits, mc, sizeof (hmac->bits));
   gcry_md_close (md);
 }
+
+
+
+/**
+ * Double short (256-bit) hash to create a long hash.
+ *
+ * @param sh short hash to double
+ * @param dh where to store the (doubled) long hash (not really a hash)
+ */
+void
+GNUNET_CRYPTO_short_hash_double (const struct GNUNET_CRYPTO_ShortHashCode *sh,
+				 struct GNUNET_HashCode *dh)
+{
+  char *ptr;
+
+  ptr = (char*) dh;
+  memcpy (ptr, sh, sizeof (struct GNUNET_CRYPTO_ShortHashCode));
+  memcpy (&ptr[sizeof (struct GNUNET_CRYPTO_ShortHashCode)], sh, sizeof (struct GNUNET_CRYPTO_ShortHashCode));
+}
+
+
+/**
+ * Truncate doubled short hash back to a short hash.
+ *
+ * @param lh doubled short hash to reduce again
+ * @param sh where to store the short hash
+ * @return GNUNET_OK on success, GNUNET_SYSERR if this was not a
+ *         doubled short hash
+ */
+int
+GNUNET_CRYPTO_short_hash_from_truncation (const struct GNUNET_HashCode *dh,
+					  struct GNUNET_CRYPTO_ShortHashCode *sh)
+{
+  const struct GNUNET_CRYPTO_ShortHashCode *s;
+
+  s = (const struct GNUNET_CRYPTO_ShortHashCode *) dh;
+  if (0 != memcmp (&s[0],
+		   &s[1],
+		   sizeof (struct GNUNET_CRYPTO_ShortHashCode)))
+    return GNUNET_SYSERR;
+  *sh = *s;
+  return GNUNET_OK;
+}
+
+
+/**
+ * Convert ASCII encoding back to a 'struct GNUNET_CRYPTO_ShortHash'
+ *
+ * @param enc the encoding
+ * @param enclen number of characters in 'enc' (without 0-terminator, which can be missing)
+ * @param result where to store the GNUNET_CRYPTO_hash code
+ * @return GNUNET_OK on success, GNUNET_SYSERR if result has the wrong encoding
+ */
+int
+GNUNET_CRYPTO_short_hash_from_string2 (const char *enc, size_t enclen,
+				       struct GNUNET_CRYPTO_ShortHashCode * result)
+{
+  return GNUNET_STRINGS_string_to_data (enc, enclen,
+					(unsigned char*) result,
+					sizeof (struct GNUNET_CRYPTO_ShortHashCode));
+}
+
+
+/**
+ * Convert short hash to ASCII encoding.
+ *
+ * @param block the hash code
+ * @param result where to store the encoding (struct GNUNET_CRYPTO_ShortHashAsciiEncoded can be
+ *  safely cast to char*, a '\\0' termination is set).
+ */
+void
+GNUNET_CRYPTO_short_hash_to_enc (const struct GNUNET_CRYPTO_ShortHashCode * block,
+				 struct GNUNET_CRYPTO_ShortHashAsciiEncoded *result)
+{
+  char *np;
+
+  np = GNUNET_STRINGS_data_to_string ((const unsigned char *) block,
+				      sizeof (struct GNUNET_CRYPTO_ShortHashCode),
+				      (char*) result,
+				      sizeof (struct GNUNET_CRYPTO_ShortHashAsciiEncoded) - 1);
+  GNUNET_assert (NULL != np);
+  *np = '\0';
+}
+
 
 
 /* end of crypto_hash.c */

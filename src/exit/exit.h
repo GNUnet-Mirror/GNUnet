@@ -49,7 +49,7 @@ struct GNUNET_EXIT_TcpServiceStartMessage
   /**
    * Identification for the desired service.
    */
-  GNUNET_HashCode service_descriptor GNUNET_PACKED;
+  GNUNET_HashCode service_descriptor;
 
   /**
    * Skeleton of the TCP header to send.  Port numbers are to
@@ -142,7 +142,7 @@ struct GNUNET_EXIT_UdpServiceMessage
   /**
    * Identification for the desired service.
    */
-  GNUNET_HashCode service_descriptor GNUNET_PACKED;
+  GNUNET_HashCode service_descriptor;
 
   /* followed by UDP payload */
 };
@@ -230,7 +230,7 @@ struct GNUNET_EXIT_IcmpServiceMessage
   /**
    * Identification for the desired service.
    */
-  GNUNET_HashCode service_descriptor GNUNET_PACKED;
+  GNUNET_HashCode service_descriptor;
 
   /**
    * ICMP header to use.

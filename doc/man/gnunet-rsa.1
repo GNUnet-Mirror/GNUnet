@@ -17,7 +17,10 @@ gnunet\-rsa \- manipulate GNUnet RSA key files
 Print the corresponding public key to stdout.
 .B
 .IP "\-P, \-\-print-peer-identity"
-Print the corresponding peer identity (hash of the public key) to stdout.
+Print the corresponding peer identity (hash of the public key) to stdout.  This hash is used for the name of peers.
+.B
+.IP "\-s, \-\-print-short-identity"
+Print the corresponding short hash (256-bit hash of the public key) to stdout.  This hash is used for names in the zkey zone.
 .B
 .IP "\-c FILENAME,  \-\-config=FILENAME"
 Use the configuration file FILENAME.

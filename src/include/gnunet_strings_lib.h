@@ -230,8 +230,8 @@ GNUNET_STRINGS_get_short_name (const char *filename);
  * @return pointer to the next byte in 'out' or NULL on error.
  */
 char *
-GNUNET_STRINGS_data_to_string (unsigned char *data, size_t size,
-                              char *out, size_t out_size);
+GNUNET_STRINGS_data_to_string (const unsigned char *data, size_t size,
+			       char *out, size_t out_size);
 
 
 /**

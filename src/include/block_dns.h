@@ -64,7 +64,7 @@ struct GNUNET_DNS_Record
    * The descriptor for the service
    * (a peer may provide more than one service)
    */
-  GNUNET_HashCode service_descriptor GNUNET_PACKED;
+  GNUNET_HashCode service_descriptor;
 
   /**
    * When does this record expire?

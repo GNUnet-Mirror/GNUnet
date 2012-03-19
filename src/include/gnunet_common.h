@@ -208,19 +208,17 @@ struct GNUNET_MessageHeader
   uint16_t type GNUNET_PACKED;
 
 };
-GNUNET_NETWORK_STRUCT_END
+
 
 /**
  * @brief 512-bit hashcode
  */
-typedef struct
+typedef struct GNUNET_HashCode
 {
   uint32_t bits[512 / 8 / sizeof (uint32_t)];   /* = 16 */
 }
 GNUNET_HashCode;
 
-
-GNUNET_NETWORK_STRUCT_BEGIN
 
 /**
  * The identity of the host (basically the SHA-512 hashcode of
@@ -228,7 +226,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
  */
 struct GNUNET_PeerIdentity
 {
-  GNUNET_HashCode hashPubKey GNUNET_PACKED;
+  GNUNET_HashCode hashPubKey;
 };
 GNUNET_NETWORK_STRUCT_END
 

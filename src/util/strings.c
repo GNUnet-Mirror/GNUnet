@@ -643,10 +643,10 @@ getValue__ (unsigned char a)
  * @return pointer to the next byte in 'out' or NULL on error.
  */
 char *
-GNUNET_STRINGS_data_to_string (unsigned char *data, size_t size, char *out, size_t out_size)
+GNUNET_STRINGS_data_to_string (const unsigned char *data, size_t size, char *out, size_t out_size)
 {
   /**
-   * 32 characters for encoding (GNUNET_CRYPTO_hash => 32 characters)
+   * 32 characters for encoding 
    */
   static char *encTable__ = "0123456789ABCDEFGHIJKLMNOPQRSTUV";
   unsigned int wpos;
@@ -656,7 +656,11 @@ GNUNET_STRINGS_data_to_string (unsigned char *data, size_t size, char *out, size
 
   GNUNET_assert (data != NULL);
   GNUNET_assert (out != NULL);
-  GNUNET_assert (out_size >= (((size*8) + ((size*8) % 5)) % 5));
+  if (out_size < (((size*8) + ((size*8) % 5)) % 5))
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
   vbit = 0;
   wpos = 0;
   rpos = 0;
@@ -675,12 +679,18 @@ GNUNET_STRINGS_data_to_string (unsigned char *data, size_t size, char *out, size
       vbit = 5;
     }
     if (wpos >= out_size)
+    {
+      GNUNET_break (0);
       return NULL;
+    }
     out[wpos++] = encTable__[(bits >> (vbit - 5)) & 31];
     vbit -= 5;
   }
   if (wpos != out_size)
+  {
+    GNUNET_break (0);
     return NULL;
+  }
   GNUNET_assert (vbit == 0);
   return &out[wpos];
 }
