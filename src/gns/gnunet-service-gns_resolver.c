@@ -1544,7 +1544,7 @@ gns_resolver_lookup_record(GNUNET_HashCode zone,
 {
   struct ResolverHandle *rh;
   struct RecordLookupHandle* rlh;
-  char* string_hash = "";
+  char string_hash[MAX_DNS_NAME_LENGTH]; //FIXME name len as soon as shorthash
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Starting resolution for %s (type=%d)!\n",
@@ -1575,8 +1575,12 @@ gns_resolver_lookup_record(GNUNET_HashCode zone,
   }
   else
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Checking for TLD...\n");
     if (is_zkey_tld(name) == GNUNET_YES)
     {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "TLD is zkey\n");
       /**
        * This is a zkey tld
        * build hash and use as initial authority
@@ -1586,6 +1590,9 @@ gns_resolver_lookup_record(GNUNET_HashCode zone,
       memcpy(rh->name, name,
              strlen(name)-strlen(GNUNET_GNS_TLD_ZKEY) - 1);
       pop_tld(rh->name, string_hash);
+
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "ZKEY is %s!\n", string_hash);
 
       if (GNUNET_OK != GNUNET_CRYPTO_hash_from_string(string_hash,
                                                       &rh->authority))
@@ -1601,6 +1608,8 @@ gns_resolver_lookup_record(GNUNET_HashCode zone,
     }
     else
     {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "TLD is gnunet\n");
       /**
        * Presumably GNUNET tld
        */
@@ -1772,7 +1781,7 @@ handle_delegation_ns_shorten(void* cls,
      * This is our zone append .gnunet unless name is empty
      * (it shouldn't be, usually FIXME what happens if we
      * shorten to our zone to a "" record??)
-     **/
+     */
     
     answer_len = strlen(rh->name) + strlen(GNUNET_GNS_TLD) + 2;
     memset(result, 0, answer_len);
