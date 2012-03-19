@@ -266,4 +266,21 @@ gns_resolver_get_authority(GNUNET_HashCode zone,
                            GetAuthorityResultProcessor proc,
                            void* cls);
 
+/**
+ * Generic function to check for TLDs
+ *
+ * @param name the name to check
+ * @param tld the tld to check
+ * @return GNUNET_YES or GNUNET_NO
+ */
+int
+is_tld(const char* name, const char* tld);
+
+/**
+ * Checks for gnunet/zkey
+ */
+#define is_gnunet_tld(name) is_tld(name, GNUNET_GNS_TLD)
+#define is_zkey_tld(name) is_tld(name, GNUNET_GNS_TLD_ZKEY)
+
+
 #endif

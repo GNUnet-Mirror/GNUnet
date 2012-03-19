@@ -210,9 +210,6 @@ reply_to_dns(void* cls, uint32_t rd_count,
   packet->num_additional_records = 0;
   packet->additional_records = NULL;
   GNUNET_DNSPARSER_free_packet(packet);
-  //FIXME free resolver handle in resp functions in resolver!
-  //GNUNET_free((struct RecordLookupHandle*)rh->proc_cls);
-  //free_resolver_handle(rh);
   GNUNET_free(ilh);
 }
 
@@ -265,8 +262,6 @@ handle_dns_request(void *cls,
                    const char *request)
 {
   struct GNUNET_DNSPARSER_Packet *p;
-  int i;
-  char *tldoffset;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Hijacked a DNS request...processing\n");
   p = GNUNET_DNSPARSER_parse (request, request_length);
@@ -310,20 +305,11 @@ handle_dns_request(void *cls,
 
   
   /**
-   * Check for .gnunet
+   * Check for .gnunet/.zkey
    */
-  tldoffset = p->queries[0].name + strlen(p->queries[0].name) - 1;
   
-  for (i=0; i<strlen(p->queries[0].name); i++)
-  {
-    if (*(tldoffset-i) == '.')
-      break;
-  }
-
-  i--;
-  
-  if ((i==strlen(GNUNET_GNS_TLD)-1)
-      && (0 == strcmp(tldoffset-i, GNUNET_GNS_TLD)))
+  if ((is_gnunet_tld(p->queries[0].name) == GNUNET_YES) ||
+      (is_zkey_tld(p->queries[0].name) == GNUNET_YES))
   {
     start_resolution_for_dns(rh, p, p->queries);
   }

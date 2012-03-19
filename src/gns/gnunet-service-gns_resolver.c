@@ -1164,26 +1164,26 @@ pop_tld(char* name, char* dest)
 }
 
 /**
- * Checks if name is in .zkey TLD
+ * Checks if name is in tld
  *
  * @param name the name to check
  * @return GNUNET_YES or GNUNET_NO
  */
 int
-is_zkey_tld(const char* name)
+is_tld(const char* name, const char* tld)
 {
   int offset = 0;
 
-  if (strlen(name) <= strlen(GNUNET_GNS_TLD_ZKEY))
+  if (strlen(name) <= strlen(tld))
   {
     return GNUNET_NO;
   }
   
-  offset = strlen(name)-strlen(GNUNET_GNS_TLD_ZKEY);
-  if (strcmp(name+offset, GNUNET_GNS_TLD_ZKEY) != 0)
+  offset = strlen(name)-strlen(tld);
+  if (strcmp(name+offset, tld) != 0)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-               "%s is not in zkey TLD\n", name);
+               "%s is not in .%s TLD\n", name, tld);
     return GNUNET_NO;
   }
   return GNUNET_YES;
@@ -1823,6 +1823,7 @@ gns_resolver_shorten_name(GNUNET_HashCode zone,
 {
   struct ResolverHandle *rh;
   struct NameShortenHandle *nsh;
+  char string_hash[MAX_DNS_NAME_LENGTH]; //FIXME LABEL length when shorthash
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Starting shorten for %s!\n", name);
@@ -1843,10 +1844,50 @@ gns_resolver_shorten_name(GNUNET_HashCode zone,
   
   rh = GNUNET_malloc(sizeof (struct ResolverHandle));
   rh->authority = zone;
-  memset(rh->name, 0,
-         strlen(name)-strlen(GNUNET_GNS_TLD));
-  memcpy(rh->name, name,
-         strlen(name)-strlen(GNUNET_GNS_TLD)-1);
+  
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Checking for TLD...\n");
+  if (is_zkey_tld(name) == GNUNET_YES)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "TLD is zkey\n");
+    /**
+     * This is a zkey tld
+     * build hash and use as initial authority
+     */
+    memset(rh->name, 0,
+           strlen(name)-strlen(GNUNET_GNS_TLD_ZKEY));
+    memcpy(rh->name, name,
+           strlen(name)-strlen(GNUNET_GNS_TLD_ZKEY) - 1);
+    pop_tld(rh->name, string_hash);
+
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "ZKEY is %s!\n", string_hash);
+
+    if (GNUNET_OK != GNUNET_CRYPTO_hash_from_string(string_hash,
+                                                    &rh->authority))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Cannot convert ZKEY %s to hash!\n", string_hash);
+      GNUNET_free(rh);
+      GNUNET_free(nsh);
+      proc(cls, name);
+      return;
+    }
+
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "TLD is gnunet\n");
+    /**
+     * Presumably GNUNET tld
+     */
+    memset(rh->name, 0,
+           strlen(name)-strlen(GNUNET_GNS_TLD));
+    memcpy(rh->name, name,
+           strlen(name)-strlen(GNUNET_GNS_TLD) - 1);
+  }
 
   rh->authority_chain_head = GNUNET_malloc(sizeof(struct AuthorityChain));
   rh->authority_chain_tail = rh->authority_chain_head;
