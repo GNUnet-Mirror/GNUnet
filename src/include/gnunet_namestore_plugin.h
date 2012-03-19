@@ -105,7 +105,7 @@ struct GNUNET_NAMESTORE_PluginFunctions
    * @return GNUNET_OK on success
    */
   int (*remove_records) (void *cls, 
-			 const GNUNET_HashCode *zone,
+			 const struct GNUNET_CRYPTO_ShortHashCode *zone,
 			 const char *name);
 
 
@@ -122,7 +122,7 @@ struct GNUNET_NAMESTORE_PluginFunctions
    * @return GNUNET_OK on success, GNUNET_NO if there were no results, GNUNET_SYSERR on error
    */
   int (*iterate_records) (void *cls, 
-			  const GNUNET_HashCode *zone,
+			  const struct GNUNET_CRYPTO_ShortHashCode *zone,
 			  const char *name,
 			  uint64_t offset,
 			  GNUNET_NAMESTORE_RecordIterator iter, void *iter_cls);
@@ -140,8 +140,8 @@ struct GNUNET_NAMESTORE_PluginFunctions
    * @return GNUNET_OK on success, GNUNET_NO if there were no results, GNUNET_SYSERR on error
    */
   int (*zone_to_name) (void *cls, 
-		       const GNUNET_HashCode *zone,
-		       const GNUNET_HashCode *value_zone,
+		       const struct GNUNET_CRYPTO_ShortHashCode *zone,
+		       const struct GNUNET_CRYPTO_ShortHashCode *value_zone,
 		       GNUNET_NAMESTORE_RecordIterator iter, void *iter_cls);
 
 
@@ -152,7 +152,7 @@ struct GNUNET_NAMESTORE_PluginFunctions
    * @param zone zone to delete
    */
   void (*delete_zone) (void *cls,
-		       const GNUNET_HashCode *zone);
+		       const struct GNUNET_CRYPTO_ShortHashCode *zone);
 
 
 };

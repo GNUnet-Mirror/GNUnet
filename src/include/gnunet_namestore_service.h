@@ -309,7 +309,7 @@ typedef void (*GNUNET_NAMESTORE_RecordProcessor) (void *cls,
  */
 struct GNUNET_NAMESTORE_QueueEntry *
 GNUNET_NAMESTORE_lookup_record (struct GNUNET_NAMESTORE_Handle *h, 
-			      const GNUNET_HashCode *zone,
+			      const struct GNUNET_CRYPTO_ShortHashCode *zone,
 			      const char *name,
 			      uint32_t record_type,
 			      GNUNET_NAMESTORE_RecordProcessor proc, void *proc_cls);
@@ -330,8 +330,8 @@ GNUNET_NAMESTORE_lookup_record (struct GNUNET_NAMESTORE_Handle *h,
  */
 struct GNUNET_NAMESTORE_QueueEntry *
 GNUNET_NAMESTORE_zone_to_name (struct GNUNET_NAMESTORE_Handle *h, 
-			       const GNUNET_HashCode *zone,
-			       const GNUNET_HashCode *value_zone,
+			       const struct GNUNET_CRYPTO_ShortHashCode *zone,
+			       const struct GNUNET_CRYPTO_ShortHashCode *value_zone,
 			       GNUNET_NAMESTORE_RecordProcessor proc, void *proc_cls);
 
 
@@ -354,7 +354,7 @@ GNUNET_NAMESTORE_zone_to_name (struct GNUNET_NAMESTORE_Handle *h,
  */
 struct GNUNET_NAMESTORE_ZoneIterator *
 GNUNET_NAMESTORE_zone_iteration_start (struct GNUNET_NAMESTORE_Handle *h,
-				       const GNUNET_HashCode *zone,
+				       const struct GNUNET_CRYPTO_ShortHashCode *zone,
 				       enum GNUNET_NAMESTORE_RecordFlags must_have_flags,
 				       enum GNUNET_NAMESTORE_RecordFlags must_not_have_flags,
 				       GNUNET_NAMESTORE_RecordProcessor proc,
