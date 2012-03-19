@@ -106,7 +106,7 @@ process_pseu_lookup_ns(void* cls,
              "Name %s not taken in NS! Adding\n", gph->new_name);
 
   new_pkey.expiration = GNUNET_TIME_absolute_get_forever ();
-  new_pkey.data_size = sizeof(GNUNET_HashCode);
+  new_pkey.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
   new_pkey.data = &gph->new_zone;
   new_pkey.record_type = GNUNET_GNS_RECORD_PKEY;
   GNUNET_NAMESTORE_record_create (namestore_handle,
@@ -294,12 +294,16 @@ process_zone_to_name_discover(void *cls,
      * check dht
      */
     uint32_t xquery;
-    GNUNET_HashCode name_hash;
+    struct GNUNET_CRYPTO_ShortHashCode name_hash;
     GNUNET_HashCode lookup_key;
     struct GNUNET_CRYPTO_HashAsciiEncoded lookup_key_string;
+    GNUNET_HashCode name_hash_double;
+    GNUNET_HashCode zone_hash_double;
 
-    GNUNET_CRYPTO_hash("+", strlen("+"), &name_hash);
-    GNUNET_CRYPTO_hash_xor(&name_hash, &gph->new_zone, &lookup_key);
+    GNUNET_CRYPTO_short_hash("+", strlen("+"), &name_hash);
+    GNUNET_CRYPTO_short_hash_double (&name_hash, &name_hash_double);
+    GNUNET_CRYPTO_short_hash_double (&gph->new_zone, &zone_hash_double);
+    GNUNET_CRYPTO_hash_xor(&name_hash_double, &zone_hash_double, &lookup_key);
     GNUNET_CRYPTO_hash_to_enc (&lookup_key, &lookup_key_string);
 
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
@@ -333,8 +337,8 @@ process_zone_to_name_discover(void *cls,
  * @param zone the authority
  * @param the private key of our authority
  */
-static void process_discovered_authority(char* name, GNUNET_HashCode zone,
-                                         GNUNET_HashCode our_zone,
+static void process_discovered_authority(char* name, struct GNUNET_CRYPTO_ShortHashCode zone,
+                                         struct GNUNET_CRYPTO_ShortHashCode our_zone,
                                        struct GNUNET_CRYPTO_RsaPrivateKey *key)
 {
   struct GetPseuAuthorityHandle *gph;
@@ -490,7 +494,6 @@ process_record_result_dht(void* cls,
   int i;
   int rd_size;
   
-  GNUNET_HashCode zone, name_hash;
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "got dht result (size=%d)\n", size);
   
   if (data == NULL)
@@ -544,9 +547,6 @@ process_record_result_dht(void* cls,
 
     }
 
-    GNUNET_CRYPTO_hash(name, strlen(name), &name_hash);
-    GNUNET_CRYPTO_hash_xor(key, &name_hash, &zone);
-  
     /**
      * FIXME check pubkey against existing key in namestore?
      * https://gnunet.org/bugs/view.php?id=2179
@@ -582,13 +582,17 @@ static void
 resolve_record_dht(struct ResolverHandle *rh)
 {
   uint32_t xquery;
-  GNUNET_HashCode name_hash;
+  struct GNUNET_CRYPTO_ShortHashCode name_hash;
   GNUNET_HashCode lookup_key;
+  GNUNET_HashCode name_hash_double;
+  GNUNET_HashCode zone_hash_double;
   struct GNUNET_CRYPTO_HashAsciiEncoded lookup_key_string;
   struct RecordLookupHandle *rlh = (struct RecordLookupHandle *)rh->proc_cls;
   
-  GNUNET_CRYPTO_hash(rh->name, strlen(rh->name), &name_hash);
-  GNUNET_CRYPTO_hash_xor(&name_hash, &rh->authority, &lookup_key);
+  GNUNET_CRYPTO_short_hash(rh->name, strlen(rh->name), &name_hash);
+  GNUNET_CRYPTO_short_hash_double(&name_hash, &name_hash_double);
+  GNUNET_CRYPTO_short_hash_double(&rh->authority, &zone_hash_double);
+  GNUNET_CRYPTO_hash_xor(&name_hash_double, &zone_hash_double, &lookup_key);
   GNUNET_CRYPTO_hash_to_enc (&lookup_key, &lookup_key_string);
   
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
@@ -636,11 +640,11 @@ process_record_result_ns(void* cls,
   struct ResolverHandle *rh;
   struct RecordLookupHandle *rlh;
   struct GNUNET_TIME_Relative remaining_time;
-  GNUNET_HashCode zone;
+  struct GNUNET_CRYPTO_ShortHashCode zone;
 
   rh = (struct ResolverHandle *) cls;
   rlh = (struct RecordLookupHandle *)rh->proc_cls;
-  GNUNET_CRYPTO_hash(key,
+  GNUNET_CRYPTO_short_hash(key,
                      sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
                      &zone);
   remaining_time = GNUNET_TIME_absolute_get_remaining (expiration);
@@ -809,7 +813,8 @@ process_delegation_result_dht(void* cls,
   char* rd_data = (char*) data;
   int i;
   int rd_size;
-  GNUNET_HashCode zone, name_hash;
+  struct GNUNET_CRYPTO_ShortHashCode zone, name_hash;
+  GNUNET_HashCode zone_hash_double, name_hash_double;
   
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Got DHT result\n");
 
@@ -863,7 +868,7 @@ process_delegation_result_dht(void* cls,
       {
         GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Authority found in DHT\n");
         rh->answered = 1;
-        memcpy(&rh->authority, rd[i].data, sizeof(GNUNET_HashCode));
+        memcpy(&rh->authority, rd[i].data, sizeof(struct GNUNET_CRYPTO_ShortHashCode));
         struct AuthorityChain *auth =
           GNUNET_malloc(sizeof(struct AuthorityChain));
         auth->zone = rh->authority;
@@ -883,11 +888,14 @@ process_delegation_result_dht(void* cls,
     }
 
 
-    GNUNET_CRYPTO_hash(name, strlen(name), &name_hash);
-    GNUNET_CRYPTO_hash_xor(key, &name_hash, &zone);
+    GNUNET_CRYPTO_short_hash(name, strlen(name), &name_hash);
+    GNUNET_CRYPTO_short_hash_double(&name_hash, &name_hash_double);
+    GNUNET_CRYPTO_hash_xor(key, &name_hash_double, &zone_hash_double);
+    GNUNET_CRYPTO_short_hash_from_truncation (&zone_hash_double, &zone);
 
     /* Save to namestore */
-    if (0 != GNUNET_CRYPTO_hash_cmp(&rh->authority_chain_tail->zone, &zone))
+    if (0 != GNUNET_CRYPTO_short_hash_cmp(&rh->authority_chain_tail->zone,
+                                          &zone))
     {
       GNUNET_NAMESTORE_record_put (namestore_handle,
                                  &nrb->public_key,
@@ -1083,8 +1091,8 @@ handle_record_ns(void* cls, struct ResolverHandle *rh,
   {
     /* ns entry expired and not ours. try dht */
     if (rh->status & (EXPIRED | !EXISTS) &&
-        GNUNET_CRYPTO_hash_cmp(&rh->authority_chain_head->zone,
-                               &rh->authority_chain_tail->zone))
+        GNUNET_CRYPTO_short_hash_cmp(&rh->authority_chain_head->zone,
+                                     &rh->authority_chain_tail->zone))
     {
       rh->proc = &handle_record_dht;
       resolve_record_dht(rh);
@@ -1254,13 +1262,17 @@ static void
 resolve_delegation_dht(struct ResolverHandle *rh)
 {
   uint32_t xquery;
-  GNUNET_HashCode name_hash;
+  struct GNUNET_CRYPTO_ShortHashCode name_hash;
+  GNUNET_HashCode name_hash_double;
+  GNUNET_HashCode zone_hash_double;
   GNUNET_HashCode lookup_key;
   
-  GNUNET_CRYPTO_hash(rh->authority_name,
+  GNUNET_CRYPTO_short_hash(rh->authority_name,
                      strlen(rh->authority_name),
                      &name_hash);
-  GNUNET_CRYPTO_hash_xor(&name_hash, &rh->authority, &lookup_key);
+  GNUNET_CRYPTO_short_hash_double(&name_hash, &name_hash_double);
+  GNUNET_CRYPTO_short_hash_double(&rh->authority, &zone_hash_double);
+  GNUNET_CRYPTO_hash_xor(&name_hash_double, &zone_hash_double, &lookup_key);
 
   rh->dht_timeout_task = GNUNET_SCHEDULER_add_delayed (DHT_LOOKUP_TIMEOUT,
                                                   &dht_authority_lookup_timeout,
@@ -1324,7 +1336,7 @@ handle_delegation_ns(void* cls, struct ResolverHandle *rh,
    * or we are authority
    **/
   if ((rh->status & (EXISTS | !EXPIRED)) ||
-      !GNUNET_CRYPTO_hash_cmp(&rh->authority_chain_head->zone,
+      !GNUNET_CRYPTO_short_hash_cmp(&rh->authority_chain_head->zone,
                              &rh->authority_chain_tail->zone))
   {
     if (is_canonical(rh->name))
@@ -1381,14 +1393,14 @@ process_delegation_result_ns(void* cls,
 {
   struct ResolverHandle *rh;
   struct GNUNET_TIME_Relative remaining_time;
-  GNUNET_HashCode zone;
+  struct GNUNET_CRYPTO_ShortHashCode zone;
   char new_name[MAX_DNS_NAME_LENGTH];
   
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Got %d records from authority lookup\n",
              rd_count);
 
   rh = (struct ResolverHandle *)cls;
-  GNUNET_CRYPTO_hash(key,
+  GNUNET_CRYPTO_short_hash(key,
                      sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
                      &zone);
   remaining_time = GNUNET_TIME_absolute_get_remaining (expiration);
@@ -1474,7 +1486,7 @@ process_delegation_result_ns(void* cls,
      * Resolve rest of query with new authority
      */
     GNUNET_assert(rd[i].record_type == GNUNET_GNS_RECORD_PKEY);
-    memcpy(&rh->authority, rd[i].data, sizeof(GNUNET_HashCode));
+    memcpy(&rh->authority, rd[i].data, sizeof(struct GNUNET_CRYPTO_ShortHashCode));
     struct AuthorityChain *auth = GNUNET_malloc(sizeof(struct AuthorityChain));
     auth->zone = rh->authority;
     memset(auth->name, 0, strlen(rh->authority_name)+1);
@@ -1535,7 +1547,7 @@ resolve_delegation_ns(struct ResolverHandle *rh)
  * @param cls the closure to pass to proc
  */
 void
-gns_resolver_lookup_record(GNUNET_HashCode zone,
+gns_resolver_lookup_record(struct GNUNET_CRYPTO_ShortHashCode zone,
                            uint32_t record_type,
                            const char* name,
                            struct GNUNET_CRYPTO_RsaPrivateKey *key,
@@ -1594,7 +1606,7 @@ gns_resolver_lookup_record(GNUNET_HashCode zone,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "ZKEY is %s!\n", string_hash);
 
-      if (GNUNET_OK != GNUNET_CRYPTO_hash_from_string(string_hash,
+      if (GNUNET_OK != GNUNET_CRYPTO_short_hash_from_string(string_hash,
                                                       &rh->authority))
       {
         GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -1698,8 +1710,8 @@ process_zone_to_name_shorten(void *cls,
     GNUNET_free(nsh);
     free_resolver_handle(rh);
   }
-  else if (GNUNET_CRYPTO_hash_cmp(&rh->authority_chain_head->zone,
-                                  &rh->authority_chain_tail->zone))
+  else if (GNUNET_CRYPTO_short_hash_cmp(&rh->authority_chain_head->zone,
+                                        &rh->authority_chain_tail->zone))
   {
     /* our zone, just append .gnunet */
     answer_len = strlen(rh->name) + strlen(GNUNET_GNS_TLD) + 2;
@@ -1774,8 +1786,8 @@ handle_delegation_ns_shorten(void* cls,
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
              "PKEY resolved as far as possible in ns up to %s!\n", rh->name);
 
-  if (GNUNET_CRYPTO_hash_cmp(&rh->authority_chain_head->zone,
-                             &rh->authority_chain_tail->zone) == 0)
+  if (GNUNET_CRYPTO_short_hash_cmp(&rh->authority_chain_head->zone,
+                                   &rh->authority_chain_tail->zone) == 0)
   {
     /**
      * This is our zone append .gnunet unless name is empty
@@ -1816,7 +1828,7 @@ handle_delegation_ns_shorten(void* cls,
  * @param cls closure to pass to proc
  */
 void
-gns_resolver_shorten_name(GNUNET_HashCode zone,
+gns_resolver_shorten_name(struct GNUNET_CRYPTO_ShortHashCode zone,
                           const char* name,
                           ShortenResultProcessor proc,
                           void* cls)
@@ -1864,8 +1876,8 @@ gns_resolver_shorten_name(GNUNET_HashCode zone,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "ZKEY is %s!\n", string_hash);
 
-    if (GNUNET_OK != GNUNET_CRYPTO_hash_from_string(string_hash,
-                                                    &rh->authority))
+    if (GNUNET_OK != GNUNET_CRYPTO_short_hash_from_string(string_hash,
+                                                          &rh->authority))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   "Cannot convert ZKEY %s to hash!\n", string_hash);
@@ -1985,7 +1997,7 @@ handle_delegation_result_ns_get_auth(void* cls,
  * @param cls the closure to pass to the processor
  */
 void
-gns_resolver_get_authority(GNUNET_HashCode zone,
+gns_resolver_get_authority(struct GNUNET_CRYPTO_ShortHashCode zone,
                            const char* name,
                            GetAuthorityResultProcessor proc,
                            void* cls)

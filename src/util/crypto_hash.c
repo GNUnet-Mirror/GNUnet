@@ -669,6 +669,32 @@ GNUNET_CRYPTO_short_hash_to_enc (const struct GNUNET_CRYPTO_ShortHashCode * bloc
   *np = '\0';
 }
 
+/**
+ * Compare function for ShortHashCodes, producing a total ordering
+ * of all hashcodes.
+ *
+ * @param h1 some hash code
+ * @param h2 some hash code
+ * @return 1 if h1 > h2, -1 if h1 < h2 and 0 if h1 == h2.
+ */
+int
+GNUNET_CRYPTO_short_hash_cmp (const struct GNUNET_CRYPTO_ShortHashCode * h1,
+                        const struct GNUNET_CRYPTO_ShortHashCode * h2)
+{
+  unsigned int *i1;
+  unsigned int *i2;
+  int i;
 
+  i1 = (unsigned int *) h1;
+  i2 = (unsigned int *) h2;
+  for (i = (sizeof (struct GNUNET_CRYPTO_ShortHashCode) / sizeof (unsigned int)) - 1; i >= 0; i--)
+  {
+    if (i1[i] > i2[i])
+      return 1;
+    if (i1[i] < i2[i])
+      return -1;
+  }
+  return 0;
+}
 
 /* end of crypto_hash.c */

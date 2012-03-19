@@ -59,7 +59,7 @@ static struct GNUNET_DNS_Handle *dns_handle;
 /**
  * The root zone for this interceptor
  */
-static GNUNET_HashCode our_zone;
+static struct GNUNET_CRYPTO_ShortHashCode our_zone;
 
 /**
  * Our priv key
@@ -336,7 +336,7 @@ handle_dns_request(void *cls,
  * @return GNUNET_OK on success
  */
 int
-gns_interceptor_init(GNUNET_HashCode zone,
+gns_interceptor_init(struct GNUNET_CRYPTO_ShortHashCode zone,
                      struct GNUNET_CRYPTO_RsaPrivateKey *key,
                      const struct GNUNET_CONFIGURATION_Handle *c)
 {

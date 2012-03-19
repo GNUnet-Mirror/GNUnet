@@ -84,8 +84,8 @@ struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded our_pkey;
 struct GNUNET_CRYPTO_RsaPrivateKey *alice_key;
 struct GNUNET_CRYPTO_RsaPrivateKey *bob_key;
 struct GNUNET_CRYPTO_RsaPrivateKey *our_key;
-GNUNET_HashCode alice_hash;
-GNUNET_HashCode bob_hash;
+struct GNUNET_CRYPTO_ShortHashCode alice_hash;
+struct GNUNET_CRYPTO_ShortHashCode bob_hash;
 
 /**
  * Check whether peers successfully shut down.
@@ -246,9 +246,11 @@ static void
 put_pseu_dht(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNSNameRecordBlock *nrb;
-  GNUNET_HashCode name_hash;
+  struct GNUNET_CRYPTO_ShortHashCode name_hash;
+  struct GNUNET_CRYPTO_ShortHashCode zone_hash;
   GNUNET_HashCode xor_hash;
-  GNUNET_HashCode zone_hash;
+  GNUNET_HashCode name_hash_double;
+  GNUNET_HashCode zone_hash_double;
   uint32_t rd_payload_length;
   char* nrb_data = NULL;
   struct GNUNET_CRYPTO_RsaSignature *sig;
@@ -291,11 +293,14 @@ put_pseu_dht(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_free (nrb);
     return;
   }
-  GNUNET_CRYPTO_hash("+", strlen("+"), &name_hash);
-  GNUNET_CRYPTO_hash(&alice_pkey,
+  GNUNET_CRYPTO_short_hash("+", strlen("+"), &name_hash);
+  GNUNET_CRYPTO_short_hash(&alice_pkey,
                      sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
                      &zone_hash);
-  GNUNET_CRYPTO_hash_xor(&zone_hash, &name_hash, &xor_hash);
+
+  GNUNET_CRYPTO_short_hash_double(&name_hash, &name_hash_double);
+  GNUNET_CRYPTO_short_hash_double(&zone_hash, &zone_hash_double);
+  GNUNET_CRYPTO_hash_xor(&zone_hash_double, &name_hash_double, &xor_hash);
 
   rd_payload_length += sizeof(struct GNSNameRecordBlock) +
     strlen("+") + 1;
@@ -319,9 +324,11 @@ static void
 put_www_dht(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNSNameRecordBlock *nrb;
-  GNUNET_HashCode name_hash;
+  struct GNUNET_CRYPTO_ShortHashCode name_hash;
+  struct GNUNET_CRYPTO_ShortHashCode zone_hash;
   GNUNET_HashCode xor_hash;
-  GNUNET_HashCode zone_hash;
+  GNUNET_HashCode name_hash_double;
+  GNUNET_HashCode zone_hash_double;
   uint32_t rd_payload_length;
   char* nrb_data = NULL;
   struct GNUNET_CRYPTO_RsaSignature *sig;
@@ -366,11 +373,13 @@ put_www_dht(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_free (nrb);
     return;
   }
-  GNUNET_CRYPTO_hash(TEST_RECORD_NAME, strlen(TEST_RECORD_NAME), &name_hash);
-  GNUNET_CRYPTO_hash(&alice_pkey,
+  GNUNET_CRYPTO_short_hash(TEST_RECORD_NAME, strlen(TEST_RECORD_NAME), &name_hash);
+  GNUNET_CRYPTO_short_hash(&alice_pkey,
                      sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
                      &zone_hash);
-  GNUNET_CRYPTO_hash_xor(&zone_hash, &name_hash, &xor_hash);
+  GNUNET_CRYPTO_short_hash_double(&zone_hash, &zone_hash_double);
+  GNUNET_CRYPTO_short_hash_double(&name_hash, &name_hash_double);
+  GNUNET_CRYPTO_hash_xor(&zone_hash_double, &name_hash_double, &xor_hash);
 
   rd_payload_length += sizeof(struct GNSNameRecordBlock) +
     strlen(TEST_RECORD_NAME) + 1;
@@ -395,16 +404,18 @@ static void
 put_pkey_dht(void *cls, int32_t success, const char *emsg)
 {
   struct GNSNameRecordBlock *nrb;
-  GNUNET_HashCode name_hash;
+  struct GNUNET_CRYPTO_ShortHashCode name_hash;
+  struct GNUNET_CRYPTO_ShortHashCode zone_hash;
   GNUNET_HashCode xor_hash;
-  GNUNET_HashCode zone_hash;
+  GNUNET_HashCode name_hash_double;
+  GNUNET_HashCode zone_hash_double;
   uint32_t rd_payload_length;
   char* nrb_data = NULL;
   struct GNUNET_CRYPTO_RsaSignature *sig;
   struct GNUNET_NAMESTORE_RecordData rd;
   
   rd.expiration = GNUNET_TIME_absolute_get_forever ();
-  rd.data_size = sizeof(GNUNET_HashCode);
+  rd.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
   rd.data = &alice_hash;
   rd.record_type = GNUNET_GNS_RECORD_PKEY;
 
@@ -442,12 +453,14 @@ put_pkey_dht(void *cls, int32_t success, const char *emsg)
   }
 
 
-  GNUNET_CRYPTO_hash(TEST_AUTHORITY_ALICE,
+  GNUNET_CRYPTO_short_hash(TEST_AUTHORITY_ALICE,
                      strlen(TEST_AUTHORITY_ALICE), &name_hash);
-  GNUNET_CRYPTO_hash(&bob_pkey,
+  GNUNET_CRYPTO_short_hash(&bob_pkey,
                      sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
                      &zone_hash);
-  GNUNET_CRYPTO_hash_xor(&zone_hash, &name_hash, &xor_hash);
+  GNUNET_CRYPTO_short_hash_double(&zone_hash, &zone_hash_double);
+  GNUNET_CRYPTO_short_hash_double(&name_hash, &name_hash_double);
+  GNUNET_CRYPTO_hash_xor(&zone_hash_double, &name_hash_double, &xor_hash); 
 
   rd_payload_length += sizeof(struct GNSNameRecordBlock) +
     strlen(TEST_AUTHORITY_ALICE) + 1;
@@ -513,12 +526,12 @@ do_lookup(void *cls, const struct GNUNET_PeerIdentity *id,
   GNUNET_CRYPTO_rsa_key_get_public (our_key, &our_pkey);
   GNUNET_CRYPTO_rsa_key_get_public (bob_key, &bob_pkey);
   GNUNET_CRYPTO_rsa_key_get_public (alice_key, &alice_pkey);
-  GNUNET_CRYPTO_hash(&bob_pkey, sizeof(bob_pkey), &bob_hash);
-  GNUNET_CRYPTO_hash(&alice_pkey, sizeof(alice_pkey), &alice_hash);
+  GNUNET_CRYPTO_short_hash(&bob_pkey, sizeof(bob_pkey), &bob_hash);
+  GNUNET_CRYPTO_short_hash(&alice_pkey, sizeof(alice_pkey), &alice_hash);
 
   struct GNUNET_NAMESTORE_RecordData rd;
   rd.expiration = GNUNET_TIME_absolute_get_forever ();
-  rd.data_size = sizeof(GNUNET_HashCode);
+  rd.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
   rd.data = &bob_hash;
   rd.record_type = GNUNET_GNS_RECORD_PKEY;
 

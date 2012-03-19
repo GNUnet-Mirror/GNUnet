@@ -139,7 +139,7 @@ static struct GNUNET_SERVER_NotificationContext *nc;
 /**
  * Our zone hash
  */
-GNUNET_HashCode zone_hash;
+struct GNUNET_CRYPTO_ShortHashCode zone_hash;
 
 /**
  * Useful for zone update for DHT put
@@ -228,8 +228,10 @@ put_gns_record(void *cls,
 {
   
   struct GNSNameRecordBlock *nrb;
-  GNUNET_HashCode name_hash;
+  struct GNUNET_CRYPTO_ShortHashCode name_hash;
   GNUNET_HashCode xor_hash;
+  GNUNET_HashCode name_hash_double;
+  GNUNET_HashCode zone_hash_double;
   struct GNUNET_CRYPTO_HashAsciiEncoded xor_hash_string;
   uint32_t rd_payload_length;
   char* nrb_data = NULL;
@@ -302,8 +304,10 @@ put_gns_record(void *cls,
   /*
    * calculate DHT key: H(name) xor H(pubkey)
    */
-  GNUNET_CRYPTO_hash(name, strlen(name), &name_hash);
-  GNUNET_CRYPTO_hash_xor(&zone_hash, &name_hash, &xor_hash);
+  GNUNET_CRYPTO_short_hash(name, strlen(name), &name_hash);
+  GNUNET_CRYPTO_short_hash_double (&name_hash, &name_hash_double);
+  GNUNET_CRYPTO_short_hash_double (&zone_hash, &zone_hash_double);
+  GNUNET_CRYPTO_hash_xor(&zone_hash_double, &name_hash_double, &xor_hash);
   GNUNET_CRYPTO_hash_to_enc (&xor_hash, &xor_hash_string);
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
@@ -757,7 +761,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   zone_key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
   GNUNET_CRYPTO_rsa_key_get_public (zone_key, &pkey);
 
-  GNUNET_CRYPTO_hash(&pkey, sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+  GNUNET_CRYPTO_short_hash(&pkey,
+                     sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
                      &zone_hash);
   GNUNET_free(keyfile);
   

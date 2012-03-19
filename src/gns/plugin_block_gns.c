@@ -63,11 +63,13 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
                           size_t reply_block_size)
 {
   char* name;
-  GNUNET_HashCode pkey_hash;
+  GNUNET_HashCode pkey_hash_double;
   GNUNET_HashCode query_key;
-  GNUNET_HashCode name_hash;
+  GNUNET_HashCode name_hash_double;
   GNUNET_HashCode mhash;
   GNUNET_HashCode chash;
+  struct GNUNET_CRYPTO_ShortHashCode pkey_hash;
+  struct GNUNET_CRYPTO_ShortHashCode name_hash;
   struct GNSNameRecordBlock *nrb;
   uint32_t rd_count;
   char* rd_data = NULL;
@@ -95,13 +97,16 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
 
   nrb = (struct GNSNameRecordBlock *)reply_block;
   name = (char*)&nrb[1];
-  GNUNET_CRYPTO_hash(&nrb->public_key,
+  GNUNET_CRYPTO_short_hash(&nrb->public_key,
                      sizeof(nrb->public_key),
                      &pkey_hash);
 
-  GNUNET_CRYPTO_hash(name, strlen(name), &name_hash);
+  GNUNET_CRYPTO_short_hash(name, strlen(name), &name_hash);
+  
+  GNUNET_CRYPTO_short_hash_double(&name_hash, &name_hash_double);
+  GNUNET_CRYPTO_short_hash_double(&pkey_hash, &pkey_hash_double);
 
-  GNUNET_CRYPTO_hash_xor(&pkey_hash, &name_hash, &query_key);
+  GNUNET_CRYPTO_hash_xor(&pkey_hash_double, &name_hash_double, &query_key);
   
   struct GNUNET_CRYPTO_HashAsciiEncoded xor_exp;
   struct GNUNET_CRYPTO_HashAsciiEncoded xor_got;

@@ -70,7 +70,7 @@ static struct GNUNET_GNS_Handle *gns_handle;
 
 const struct GNUNET_CONFIGURATION_Handle *cfg;
 
-GNUNET_HashCode bob_hash;
+struct GNUNET_CRYPTO_ShortHashCode bob_hash;
 
 /**
  * Check whether peers successfully shut down.
@@ -143,7 +143,7 @@ commence_testing (void *cls, int32_t success, const char *emsg)
 {
   char name[MAX_DNS_NAME_LENGTH];
   char* pos;
-  struct GNUNET_CRYPTO_HashAsciiEncoded hash_str;
+  struct GNUNET_CRYPTO_ShortHashAsciiEncoded hash_str;
   
   GNUNET_NAMESTORE_disconnect(namestore_handle, GNUNET_YES);
 
@@ -160,7 +160,7 @@ commence_testing (void *cls, int32_t success, const char *emsg)
   pos += strlen(TEST_RECORD_NAME);
   strcpy(pos, ".");
   pos++;
-  GNUNET_CRYPTO_hash_to_enc(&bob_hash, &hash_str);
+  GNUNET_CRYPTO_short_hash_to_enc(&bob_hash, &hash_str);
   strcpy(pos, (char*)&hash_str);
   pos += strlen((char*)&hash_str);
   strcpy(pos, ".");
@@ -243,9 +243,9 @@ do_lookup(void *cls, const struct GNUNET_PeerIdentity *id,
   rd.expiration = GNUNET_TIME_absolute_get_forever ();
   GNUNET_assert(1 == inet_pton (AF_INET, ip, web));
   
-  GNUNET_CRYPTO_hash(&bob_pkey, sizeof(bob_pkey), &bob_hash);
+  GNUNET_CRYPTO_short_hash(&bob_pkey, sizeof(bob_pkey), &bob_hash);
 
-  rd.data_size = sizeof(GNUNET_HashCode);
+  rd.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
   rd.data = &bob_hash;
   rd.record_type = GNUNET_GNS_RECORD_PKEY;
 

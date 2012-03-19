@@ -19,7 +19,7 @@ struct AuthorityChain
   struct AuthorityChain *next;
   
   /* the zone hash of the authority */
-  GNUNET_HashCode zone;
+  struct GNUNET_CRYPTO_ShortHashCode zone;
 
   /* (local) name of the authority */
   char name[MAX_DNS_LABEL_LENGTH];
@@ -99,7 +99,7 @@ struct ResolverHandle
   int answered;
 
   /* the authoritative zone to query */
-  GNUNET_HashCode authority;
+  struct GNUNET_CRYPTO_ShortHashCode authority;
 
   /* the name of the authoritative zone to query */
   char authority_name[MAX_DNS_LABEL_LENGTH];
@@ -200,10 +200,10 @@ struct GetPseuAuthorityHandle
   char new_name[MAX_DNS_LABEL_LENGTH];
   
   /* the zone of discovered authority */
-  GNUNET_HashCode new_zone;
+  struct GNUNET_CRYPTO_ShortHashCode new_zone;
 
   /* the zone of our authority */
-  GNUNET_HashCode zone;
+  struct GNUNET_CRYPTO_ShortHashCode zone;
 
   /* the private key of the zone to store the pseu in */
   struct GNUNET_CRYPTO_RsaPrivateKey *key;
@@ -238,7 +238,7 @@ gns_resolver_init(struct GNUNET_NAMESTORE_Handle *nh,
  * @param cls the closure to pass to proc
  */
 void
-gns_resolver_lookup_record(GNUNET_HashCode zone,
+gns_resolver_lookup_record(struct GNUNET_CRYPTO_ShortHashCode zone,
                            uint32_t record_type,
                            const char* name,
                            struct GNUNET_CRYPTO_RsaPrivateKey *key,
@@ -246,7 +246,7 @@ gns_resolver_lookup_record(GNUNET_HashCode zone,
                            void* cls);
 
 void
-gns_resolver_shorten_name(GNUNET_HashCode zone,
+gns_resolver_shorten_name(struct GNUNET_CRYPTO_ShortHashCode zone,
                           const char* name,
                           ShortenResultProcessor proc,
                           void* cls);
@@ -261,7 +261,7 @@ gns_resolver_shorten_name(GNUNET_HashCode zone,
  * @param cls the closure to pass to the processor
  */
 void
-gns_resolver_get_authority(GNUNET_HashCode zone,
+gns_resolver_get_authority(struct GNUNET_CRYPTO_ShortHashCode zone,
                            const char* name,
                            GetAuthorityResultProcessor proc,
                            void* cls);

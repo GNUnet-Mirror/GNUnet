@@ -220,7 +220,7 @@ do_lookup(void *cls, const struct GNUNET_PeerIdentity *id,
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded bob_pkey;
   struct GNUNET_CRYPTO_RsaPrivateKey *alice_key;
   struct GNUNET_CRYPTO_RsaPrivateKey *bob_key;
-  GNUNET_HashCode bob_hash;
+  struct GNUNET_CRYPTO_ShortHashCode bob_hash;
   struct GNUNET_CRYPTO_RsaSignature *sig;
   char* alice_keyfile;
 
@@ -257,9 +257,9 @@ do_lookup(void *cls, const struct GNUNET_PeerIdentity *id,
   rd.expiration = GNUNET_TIME_absolute_get_forever ();
   GNUNET_assert(1 == inet_pton (AF_INET, ip, mail));
   
-  GNUNET_CRYPTO_hash(&bob_pkey, sizeof(bob_pkey), &bob_hash);
+  GNUNET_CRYPTO_short_hash(&bob_pkey, sizeof(bob_pkey), &bob_hash);
 
-  rd.data_size = sizeof(GNUNET_HashCode);
+  rd.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
   rd.data = &bob_hash;
   rd.record_type = GNUNET_GNS_RECORD_PKEY;
 

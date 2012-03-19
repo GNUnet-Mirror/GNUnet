@@ -9,7 +9,7 @@
  * @return GNUNET_YES on success GNUNET_SYSERR on error
  */
 int
-gns_interceptor_init(GNUNET_HashCode zone,
+gns_interceptor_init(struct GNUNET_CRYPTO_ShortHashCode zone,
                      struct GNUNET_CRYPTO_RsaPrivateKey *key,
                      const struct GNUNET_CONFIGURATION_Handle *c);
 

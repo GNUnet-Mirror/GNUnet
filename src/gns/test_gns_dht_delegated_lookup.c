@@ -211,9 +211,11 @@ static void
 put_dht(void *cls, int32_t success, const char *emsg)
 {
   struct GNSNameRecordBlock *nrb;
-  GNUNET_HashCode name_hash;
+  struct GNUNET_CRYPTO_ShortHashCode name_hash;
+  struct GNUNET_CRYPTO_ShortHashCode zone_hash;
   GNUNET_HashCode xor_hash;
-  GNUNET_HashCode zone_hash;
+  GNUNET_HashCode name_hash_double;
+  GNUNET_HashCode zone_hash_double;
   uint32_t rd_payload_length;
   char* nrb_data = NULL;
   struct GNUNET_CRYPTO_RsaSignature *sig;
@@ -250,11 +252,13 @@ put_dht(void *cls, int32_t success, const char *emsg)
     GNUNET_free (nrb);
     return;
   }
-  GNUNET_CRYPTO_hash(TEST_RECORD_NAME, strlen(TEST_RECORD_NAME), &name_hash);
-  GNUNET_CRYPTO_hash(&bob_pkey,
+  GNUNET_CRYPTO_short_hash(TEST_RECORD_NAME, strlen(TEST_RECORD_NAME), &name_hash);
+  GNUNET_CRYPTO_short_hash(&bob_pkey,
                      sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
                      &zone_hash);
-  GNUNET_CRYPTO_hash_xor(&zone_hash, &name_hash, &xor_hash);
+  GNUNET_CRYPTO_short_hash_double(&zone_hash, &zone_hash_double);
+  GNUNET_CRYPTO_short_hash_double(&name_hash, &name_hash_double);
+  GNUNET_CRYPTO_hash_xor(&zone_hash_double, &name_hash_double, &xor_hash);
 
   rd_payload_length += sizeof(struct GNSNameRecordBlock) +
     strlen(TEST_RECORD_NAME) + 1;
@@ -280,7 +284,7 @@ do_lookup(void *cls, const struct GNUNET_PeerIdentity *id,
   
   
   char* alice_keyfile;
-  GNUNET_HashCode bob_hash;
+  struct GNUNET_CRYPTO_ShortHashCode bob_hash;
   
 
   GNUNET_SCHEDULER_cancel (die_task);
@@ -319,11 +323,11 @@ do_lookup(void *cls, const struct GNUNET_PeerIdentity *id,
 
   GNUNET_CRYPTO_rsa_key_get_public (alice_key, &alice_pkey);
   GNUNET_CRYPTO_rsa_key_get_public (bob_key, &bob_pkey);
-  GNUNET_CRYPTO_hash(&bob_pkey, sizeof(bob_pkey), &bob_hash);
+  GNUNET_CRYPTO_short_hash(&bob_pkey, sizeof(bob_pkey), &bob_hash);
 
   struct GNUNET_NAMESTORE_RecordData rd;
   rd.expiration = GNUNET_TIME_absolute_get_forever ();
-  rd.data_size = sizeof(GNUNET_HashCode);
+  rd.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
   rd.data = &bob_hash;
   rd.record_type = GNUNET_GNS_RECORD_PKEY;
 

@@ -513,6 +513,18 @@ GNUNET_CRYPTO_short_hash_from_string2 (const char *enc, size_t enclen,
 
 
 /**
+ * Compare function for ShortHashCodes, producing a total ordering
+ * of all hashcodes.
+ *
+ * @param h1 some hash code
+ * @param h2 some hash code
+ * @return 1 if h1 > h2, -1 if h1 < h2 and 0 if h1 == h2.
+ */
+int
+GNUNET_CRYPTO_short_hash_cmp (const struct GNUNET_CRYPTO_ShortHashCode * h1,
+                              const struct GNUNET_CRYPTO_ShortHashCode * h2);
+
+/**
  * Compute the distance between 2 hashcodes.
  * The computation must be fast, not involve
  * a.a or a.e (they're used elsewhere), and

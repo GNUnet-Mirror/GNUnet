@@ -196,8 +196,8 @@ do_shorten(void *cls, const struct GNUNET_PeerIdentity *id,
   struct GNUNET_CRYPTO_RsaPrivateKey *our_key;
   struct GNUNET_CRYPTO_RsaPrivateKey *alice_key;
   struct GNUNET_CRYPTO_RsaPrivateKey *bob_key;
-  GNUNET_HashCode bob_hash;
-  GNUNET_HashCode alice_hash;
+  struct GNUNET_CRYPTO_ShortHashCode bob_hash;
+  struct GNUNET_CRYPTO_ShortHashCode alice_hash;
   struct GNUNET_CRYPTO_RsaSignature *sig;
   char* our_keyfile;
 
@@ -237,9 +237,9 @@ do_shorten(void *cls, const struct GNUNET_PeerIdentity *id,
   rd.expiration = GNUNET_TIME_absolute_get_forever ();
   GNUNET_assert(1 == inet_pton (AF_INET, ip, web));
   
-  GNUNET_CRYPTO_hash(&bob_pkey, sizeof(bob_pkey), &bob_hash);
+  GNUNET_CRYPTO_short_hash(&bob_pkey, sizeof(bob_pkey), &bob_hash);
 
-  rd.data_size = sizeof(GNUNET_HashCode);
+  rd.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
   rd.data = &bob_hash;
   rd.record_type = GNUNET_GNS_RECORD_PKEY;
   
@@ -252,7 +252,7 @@ do_shorten(void *cls, const struct GNUNET_PeerIdentity *id,
                                   NULL);
   
   /* put alice into bobs zone */
-  GNUNET_CRYPTO_hash(&alice_pkey, sizeof(alice_pkey), &alice_hash);
+  GNUNET_CRYPTO_short_hash(&alice_pkey, sizeof(alice_pkey), &alice_hash);
   rd.data = &alice_hash;
   sig = GNUNET_NAMESTORE_create_signature(bob_key,
                                           GNUNET_TIME_absolute_get_forever(),
@@ -289,7 +289,7 @@ do_shorten(void *cls, const struct GNUNET_PeerIdentity *id,
                                NULL,
                                NULL);
   
-  rd.data_size = sizeof(GNUNET_HashCode);
+  rd.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
   rd.data = &alice_hash;
   rd.record_type = GNUNET_GNS_RECORD_PKEY;
   GNUNET_free(sig);
