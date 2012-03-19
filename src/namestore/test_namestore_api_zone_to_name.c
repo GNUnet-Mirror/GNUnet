@@ -236,9 +236,9 @@ run (void *cls, char *const *args, const char *cfgfile,
   struct GNUNET_NAMESTORE_RecordData rd;
   rd.expiration = GNUNET_TIME_absolute_get();
   rd.record_type = GNUNET_NAMESTORE_TYPE_PKEY;
-  rd.data_size = sizeof (GNUNET_HashCode);
-  rd.data = GNUNET_malloc(sizeof (GNUNET_HashCode));
-  memcpy ((char *) rd.data, &s_zone_value, sizeof (GNUNET_HashCode));
+  rd.data_size = sizeof (struct GNUNET_CRYPTO_ShortHashCode);
+  rd.data = GNUNET_malloc(sizeof (struct GNUNET_CRYPTO_ShortHashCode));
+  memcpy ((char *) rd.data, &s_zone_value, sizeof (struct GNUNET_CRYPTO_ShortHashCode));
 
   start_arm (cfgfile);
   GNUNET_assert (arm != NULL);
