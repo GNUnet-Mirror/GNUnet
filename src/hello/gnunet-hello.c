@@ -122,7 +122,7 @@ main (int argc, char *argv[])
 	     _("Call with name of HELLO file to modify.\n"));
     return 1;
   }
-  if (GNUNET_OK != GNUNET_DISK_file_size (argv[1], &fsize, GNUNET_YES))
+  if (GNUNET_OK != GNUNET_DISK_file_size (argv[1], &fsize, GNUNET_YES, GNUNET_YES))
   {
     FPRINTF (stderr,
 	     _("Error accessing file `%s': %s\n"),

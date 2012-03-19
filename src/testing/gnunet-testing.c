@@ -170,7 +170,7 @@ create_hostkeys (const unsigned int no)
       return 1;
     }
 
-    if (GNUNET_YES != GNUNET_DISK_file_size (hostkey_src_file, &fs, GNUNET_YES))
+    if (GNUNET_OK != GNUNET_DISK_file_size (hostkey_src_file, &fs, GNUNET_YES, GNUNET_YES))
       fs = 0;
 
     if (0 != (fs % HOSTKEYFILESIZE))

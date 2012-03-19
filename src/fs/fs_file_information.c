@@ -107,7 +107,7 @@ GNUNET_FS_file_information_create_from_file (struct GNUNET_FS_Handle *h,
                                              *bo)
 {
   struct FileInfo *fi;
-  struct stat sbuf;
+  uint64_t fsize;
   struct GNUNET_FS_FileInformation *ret;
   const char *fn;
   const char *ss;
@@ -116,7 +116,8 @@ GNUNET_FS_file_information_create_from_file (struct GNUNET_FS_Handle *h,
   char fn_conv[MAX_PATH];
 #endif
 
-  if (0 != STAT (filename, &sbuf))
+  /* FIXME: should includeSymLinks be GNUNET_NO or GNUNET_YES here? */
+  if (GNUNET_OK != GNUNET_DISK_file_size (filename, &fsize, GNUNET_NO, GNUNET_YES))
   {
     GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "stat", filename);
     return NULL;
@@ -129,7 +130,7 @@ GNUNET_FS_file_information_create_from_file (struct GNUNET_FS_Handle *h,
   }
   ret =
       GNUNET_FS_file_information_create_from_reader (h, client_info,
-                                                     sbuf.st_size,
+                                                     fsize,
                                                      &GNUNET_FS_data_reader_file_,
                                                      fi, keywords, meta,
                                                      do_index, bo);
@@ -145,6 +146,9 @@ GNUNET_FS_file_information_create_from_file (struct GNUNET_FS_Handle *h,
 #endif
   while (NULL != (ss = strstr (fn, DIR_SEPARATOR_STR)))
     fn = ss + 1;
+/* FIXME: If we assume that on other platforms CRT is UTF-8-aware, then
+ * this should be changed to EXTRACTOR_METAFORMAT_UTF8
+ */
 #if !WINDOWS
   GNUNET_CONTAINER_meta_data_insert (ret->meta, "<gnunet>",
                                      EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME,

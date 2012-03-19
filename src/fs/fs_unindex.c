@@ -755,7 +755,7 @@ GNUNET_FS_unindex_start (struct GNUNET_FS_Handle *h, const char *filename,
   struct GNUNET_FS_ProgressInfo pi;
   uint64_t size;
 
-  if (GNUNET_OK != GNUNET_DISK_file_size (filename, &size, GNUNET_YES))
+  if (GNUNET_OK != GNUNET_DISK_file_size (filename, &size, GNUNET_YES, GNUNET_YES))
     return NULL;
   ret = GNUNET_malloc (sizeof (struct GNUNET_FS_UnindexContext));
   ret->h = h;

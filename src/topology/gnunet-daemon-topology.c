@@ -970,7 +970,7 @@ read_friends_file (const struct GNUNET_CONFIGURATION_Handle *cfg)
   char *data;
   size_t pos;
   struct GNUNET_PeerIdentity pid;
-  struct stat frstat;
+  uint64_t fsize;
   struct GNUNET_CRYPTO_HashAsciiEncoded enc;
   unsigned int entries_found;
   struct Peer *fl;
@@ -987,7 +987,8 @@ read_friends_file (const struct GNUNET_CONFIGURATION_Handle *cfg)
     GNUNET_DISK_fn_write (fn, NULL, 0,
                           GNUNET_DISK_PERM_USER_READ |
                           GNUNET_DISK_PERM_USER_WRITE);
-  if (0 != STAT (fn, &frstat))
+  if (GNUNET_OK != GNUNET_DISK_file_size (fn,
+      &fsize, GNUNET_NO, GNUNET_YES))
   {
     if ((friends_only) || (minimum_friend_count > 0))
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -995,14 +996,14 @@ read_friends_file (const struct GNUNET_CONFIGURATION_Handle *cfg)
     GNUNET_free (fn);
     return;
   }
-  if (frstat.st_size == 0)
+  if (fsize == 0)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _("Friends file `%s' is empty.\n"),
                 fn);
     GNUNET_free (fn);
     return;
   }
-  data = GNUNET_malloc_large (frstat.st_size);
+  data = GNUNET_malloc_large (fsize);
   if (data == NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -1011,7 +1012,7 @@ read_friends_file (const struct GNUNET_CONFIGURATION_Handle *cfg)
     GNUNET_free (fn);
     return;
   }
-  if (frstat.st_size != GNUNET_DISK_fn_read (fn, data, frstat.st_size))
+  if (fsize != GNUNET_DISK_fn_read (fn, data, fsize))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Failed to read friends list from `%s'\n"), fn);
@@ -1021,11 +1022,11 @@ read_friends_file (const struct GNUNET_CONFIGURATION_Handle *cfg)
   }
   entries_found = 0;
   pos = 0;
-  while ((pos < frstat.st_size) && isspace ((unsigned char) data[pos]))
+  while ((pos < fsize) && isspace ((unsigned char) data[pos]))
     pos++;
-  while ((frstat.st_size >= sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded)) &&
+  while ((fsize >= sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded)) &&
          (pos <=
-          frstat.st_size - sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded)))
+          fsize - sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded)))
   {
     memcpy (&enc, &data[pos], sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded));
     if (!isspace
@@ -1037,7 +1038,7 @@ read_friends_file (const struct GNUNET_CONFIGURATION_Handle *cfg)
                   ("Syntax error in topology specification at offset %llu, skipping bytes.\n"),
                   (unsigned long long) pos);
       pos++;
-      while ((pos < frstat.st_size) && (!isspace ((unsigned char) data[pos])))
+      while ((pos < fsize) && (!isspace ((unsigned char) data[pos])))
         pos++;
       continue;
     }
@@ -1068,7 +1069,7 @@ read_friends_file (const struct GNUNET_CONFIGURATION_Handle *cfg)
       }
     }
     pos = pos + sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded);
-    while ((pos < frstat.st_size) && isspace ((unsigned char) data[pos]))
+    while ((pos < fsize) && isspace ((unsigned char) data[pos]))
       pos++;
   }
   GNUNET_free (data);

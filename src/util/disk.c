@@ -112,6 +112,11 @@ struct GetFileSizeData
    * GNUNET_YES if symbolic links should be included.
    */
   int include_sym_links;
+
+  /**
+   * GNUNET_YES if mode is file-only (return total == -1 for directories).
+   */
+  int single_file_mode;
 };
 
 
@@ -176,6 +181,11 @@ getSizeRec (void *cls, const char *fn)
     return GNUNET_SYSERR;
   }
 #endif
+  if ((S_ISDIR (buf.st_mode)) && (gfsd->single_file_mode == GNUNET_YES))
+  {
+    errno = EISDIR;
+    return GNUNET_SYSERR;
+  }
   if ((!S_ISLNK (buf.st_mode)) || (gfsd->include_sym_links == GNUNET_YES))
     gfsd->total += buf.st_size;
   if ((S_ISDIR (buf.st_mode)) && (0 == ACCESS (fn, X_OK)) &&
@@ -290,11 +300,13 @@ GNUNET_DISK_file_seek (const struct GNUNET_DISK_FileHandle * h, OFF_T offset,
  *             of all sizes of files in the directory)
  * @param includeSymLinks should symbolic links be
  *        included?
+ * @param singleFileMode GNUNET_YES to only get size of one file
+ *        and return GNUNET_SYSERR for directories.
  * @return GNUNET_SYSERR on error, GNUNET_OK on success
  */
 int
 GNUNET_DISK_file_size (const char *filename, uint64_t * size,
-                       int includeSymLinks)
+                       int includeSymLinks, int singleFileMode)
 {
   struct GetFileSizeData gfsd;
   int ret;
@@ -302,6 +314,7 @@ GNUNET_DISK_file_size (const char *filename, uint64_t * size,
   GNUNET_assert (size != NULL);
   gfsd.total = 0;
   gfsd.include_sym_links = includeSymLinks;
+  gfsd.single_file_mode = singleFileMode;
   ret = getSizeRec (&gfsd, filename);
   *size = gfsd.total;
   return ret;
@@ -1350,7 +1363,7 @@ GNUNET_DISK_file_copy (const char *src, const char *dst)
   struct GNUNET_DISK_FileHandle *in;
   struct GNUNET_DISK_FileHandle *out;
 
-  if (GNUNET_OK != GNUNET_DISK_file_size (src, &size, GNUNET_YES))
+  if (GNUNET_OK != GNUNET_DISK_file_size (src, &size, GNUNET_YES, GNUNET_YES))
     return GNUNET_SYSERR;
   pos = 0;
   in = GNUNET_DISK_file_open (src, GNUNET_DISK_OPEN_READ,

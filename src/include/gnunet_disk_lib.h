@@ -302,8 +302,8 @@ GNUNET_DISK_file_seek (const struct GNUNET_DISK_FileHandle *h, OFF_T offset,
 
 
 /**
- * Get the size of the file (or directory)
- * of the given file (in bytes).
+ * Get the size of the file (or directory) of the given file (in
+ * bytes).
  *
  * @param filename name of the file or directory
  * @param size set to the size of the file (or,
@@ -311,11 +311,13 @@ GNUNET_DISK_file_seek (const struct GNUNET_DISK_FileHandle *h, OFF_T offset,
  *             of all sizes of files in the directory)
  * @param includeSymLinks should symbolic links be
  *        included?
- * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ * @param singleFileMode GNUNET_YES to only get size of one file
+ *        and return GNUNET_SYSERR for directories.
+ * @return GNUNET_SYSERR on error, GNUNET_OK on success
  */
 int
 GNUNET_DISK_file_size (const char *filename, uint64_t * size,
-                       int includeSymLinks);
+                       int includeSymLinks, int singleFileMode);
 
 
 /**

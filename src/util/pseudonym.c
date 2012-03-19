@@ -320,7 +320,7 @@ GNUNET_PSEUDONYM_name_uniquify (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
   len = 0;
   if (0 == STAT (fn, &sbuf))
-    GNUNET_break (GNUNET_OK == GNUNET_DISK_file_size (fn, &len, GNUNET_YES));
+    GNUNET_break (GNUNET_OK == GNUNET_DISK_file_size (fn, &len, GNUNET_YES, GNUNET_YES));
   fh = GNUNET_DISK_file_open (fn,
                               GNUNET_DISK_OPEN_CREATE |
                               GNUNET_DISK_OPEN_READWRITE,
@@ -475,7 +475,7 @@ GNUNET_PSEUDONYM_name_to_id (const struct GNUNET_CONFIGURATION_Handle *cfg,
   GNUNET_assert (fn != NULL);
 
   if ((GNUNET_OK != GNUNET_DISK_file_test (fn) ||
-       (GNUNET_OK != GNUNET_DISK_file_size (fn, &len, GNUNET_YES))) ||
+       (GNUNET_OK != GNUNET_DISK_file_size (fn, &len, GNUNET_YES, GNUNET_YES))) ||
       ((idx + 1) * sizeof (GNUNET_HashCode) > len))
   {
     GNUNET_free (fn);

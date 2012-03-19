@@ -2068,7 +2068,7 @@ GNUNET_FS_download_start (struct GNUNET_FS_Handle *h,
   {
     dc->filename = GNUNET_strdup (filename);
     if (GNUNET_YES == GNUNET_DISK_file_test (filename))
-      GNUNET_break (GNUNET_OK == GNUNET_DISK_file_size (filename, &dc->old_file_size, GNUNET_YES));
+      GNUNET_break (GNUNET_OK == GNUNET_DISK_file_size (filename, &dc->old_file_size, GNUNET_YES, GNUNET_YES));
   }
   if (GNUNET_FS_uri_test_loc (dc->uri))
     GNUNET_assert (GNUNET_OK ==
@@ -2178,7 +2178,7 @@ GNUNET_FS_download_start_from_search (struct GNUNET_FS_Handle *h,
   {
     dc->filename = GNUNET_strdup (filename);
     if (GNUNET_YES == GNUNET_DISK_file_test (filename))
-      GNUNET_break (GNUNET_OK == GNUNET_DISK_file_size (filename, &dc->old_file_size, GNUNET_YES));
+      GNUNET_break (GNUNET_OK == GNUNET_DISK_file_size (filename, &dc->old_file_size, GNUNET_YES, GNUNET_YES));
   }
   if (GNUNET_FS_uri_test_loc (dc->uri))
     GNUNET_assert (GNUNET_OK ==

@@ -224,6 +224,7 @@ load (struct GNUNET_SERVER_Handle *server)
   char *fn;
   struct GNUNET_BIO_ReadHandle *rh;
   struct stat sb;
+  uint64_t fsize;
   char *buf;
   struct GNUNET_SERVER_MessageStreamTokenizer *mst;
   char *emsg;
@@ -232,12 +233,12 @@ load (struct GNUNET_SERVER_Handle *server)
                                       NULL);
   if (fn == NULL)
     return;
-  if ((0 != stat (fn, &sb)) || (sb.st_size == 0))
+  if ((GNUNET_OK != GNUNET_DISK_file_size (fn, &fsize, GNUNET_NO, GNUNET_YES)) || (fsize == 0))
   {
     GNUNET_free (fn);
     return;
   }
-  buf = GNUNET_malloc (sb.st_size);
+  buf = GNUNET_malloc (fsize);
   rh = GNUNET_BIO_read_open (fn);
   if (!rh)
   {
@@ -245,7 +246,7 @@ load (struct GNUNET_SERVER_Handle *server)
     GNUNET_free (fn);
     return;
   }
-  if (GNUNET_OK != GNUNET_BIO_read (rh, fn, buf, sb.st_size))
+  if (GNUNET_OK != GNUNET_BIO_read (rh, fn, buf, fsize))
   {
     GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "read", fn);
     GNUNET_break (GNUNET_OK == GNUNET_BIO_read_close (rh, &emsg));
@@ -256,10 +257,10 @@ load (struct GNUNET_SERVER_Handle *server)
   }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               _("Loading %llu bytes of statistics from `%s'\n"),
-              (unsigned long long) sb.st_size, fn);
+              fsize, fn);
   mst = GNUNET_SERVER_mst_create (&inject_message, server);
   GNUNET_break (GNUNET_OK ==
-                GNUNET_SERVER_mst_receive (mst, NULL, buf, sb.st_size,
+                GNUNET_SERVER_mst_receive (mst, NULL, buf, fsize,
                                            GNUNET_YES, GNUNET_NO));
   GNUNET_SERVER_mst_destroy (mst);
   GNUNET_free (buf);

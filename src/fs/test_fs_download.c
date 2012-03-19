@@ -118,7 +118,7 @@ abort_download_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_FS_download_stop (download, GNUNET_YES);
     download = NULL;
   }
-  GNUNET_assert (GNUNET_OK == GNUNET_DISK_file_size (fn, &size, GNUNET_YES));
+  GNUNET_assert (GNUNET_OK == GNUNET_DISK_file_size (fn, &size, GNUNET_YES, GNUNET_NO));
   GNUNET_assert (size == FILESIZE);
   GNUNET_DISK_directory_remove (fn);
   GNUNET_free (fn);

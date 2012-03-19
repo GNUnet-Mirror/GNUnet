@@ -221,7 +221,7 @@ read_blacklist_file ()
   size_t colon_pos;
   int tsize;
   struct GNUNET_PeerIdentity pid;
-  struct stat frstat;
+  uint64_t fsize;
   struct GNUNET_CRYPTO_HashAsciiEncoded enc;
   unsigned int entries_found;
   char *transport_name;
@@ -241,14 +241,15 @@ read_blacklist_file ()
     GNUNET_DISK_fn_write (fn, NULL, 0,
                           GNUNET_DISK_PERM_USER_READ |
                           GNUNET_DISK_PERM_USER_WRITE);
-  if (0 != STAT (fn, &frstat))
+  if (GNUNET_OK != GNUNET_DISK_file_size (fn,
+      &fsize, GNUNET_NO, GNUNET_YES))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Could not read blacklist file `%s'\n"), fn);
     GNUNET_free (fn);
     return;
   }
-  if (frstat.st_size == 0)
+  if (fsize == 0)
   {
 #if DEBUG_TRANSPORT
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Blacklist file `%s' is empty.\n"),
@@ -258,9 +259,9 @@ read_blacklist_file ()
     return;
   }
   /* FIXME: use mmap */
-  data = GNUNET_malloc_large (frstat.st_size);
+  data = GNUNET_malloc_large (fsize);
   GNUNET_assert (data != NULL);
-  if (frstat.st_size != GNUNET_DISK_fn_read (fn, data, frstat.st_size))
+  if (fsize != GNUNET_DISK_fn_read (fn, data, fsize))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Failed to read blacklist from `%s'\n"), fn);
@@ -270,17 +271,17 @@ read_blacklist_file ()
   }
   entries_found = 0;
   pos = 0;
-  while ((pos < frstat.st_size) && isspace ((unsigned char) data[pos]))
+  while ((pos < fsize) && isspace ((unsigned char) data[pos]))
     pos++;
-  while ((frstat.st_size >= sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded)) &&
+  while ((fsize >= sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded)) &&
          (pos <=
-          frstat.st_size - sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded)))
+          fsize - sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded)))
   {
     colon_pos = pos;
-    while ((colon_pos < frstat.st_size) && (data[colon_pos] != ':') &&
+    while ((colon_pos < fsize) && (data[colon_pos] != ':') &&
            (!isspace ((unsigned char) data[colon_pos])))
       colon_pos++;
-    if (colon_pos >= frstat.st_size)
+    if (colon_pos >= fsize)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   _
@@ -298,12 +299,12 @@ read_blacklist_file ()
                   ("Syntax error in blacklist file at offset %llu, skipping bytes.\n"),
                   (unsigned long long) colon_pos);
       pos = colon_pos;
-      while ((pos < frstat.st_size) && isspace ((unsigned char) data[pos]))
+      while ((pos < fsize) && isspace ((unsigned char) data[pos]))
         pos++;
       continue;
     }
     tsize = colon_pos - pos;
-    if ((pos >= frstat.st_size) || (pos + tsize >= frstat.st_size) ||
+    if ((pos >= fsize) || (pos + tsize >= fsize) ||
         (tsize == 0))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -336,7 +337,7 @@ read_blacklist_file ()
                   ("Syntax error in blacklist file at offset %llu, skipping bytes.\n"),
                   (unsigned long long) pos);
       pos++;
-      while ((pos < frstat.st_size) && (!isspace ((unsigned char) data[pos])))
+      while ((pos < fsize) && (!isspace ((unsigned char) data[pos])))
         pos++;
       GNUNET_free_non_null (transport_name);
       continue;
@@ -367,7 +368,7 @@ read_blacklist_file ()
     }
     pos = pos + sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded);
     GNUNET_free_non_null (transport_name);
-    while ((pos < frstat.st_size) && isspace ((unsigned char) data[pos]))
+    while ((pos < fsize) && isspace ((unsigned char) data[pos]))
       pos++;
   }
   GNUNET_STATISTICS_update (GST_stats, "# Transport entries blacklisted",

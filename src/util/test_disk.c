@@ -97,7 +97,7 @@ testOpenClose ()
   GNUNET_break (5 == GNUNET_DISK_file_write (fh, "Hello", 5));
   GNUNET_DISK_file_close (fh);
   GNUNET_break (GNUNET_OK ==
-                GNUNET_DISK_file_size (".testfile", &size, GNUNET_NO));
+                GNUNET_DISK_file_size (".testfile", &size, GNUNET_NO, GNUNET_YES));
   if (size != 5)
     return 1;
   GNUNET_break (0 == UNLINK (".testfile"));

@@ -726,7 +726,7 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
 
       return NULL;
     }
-    if (GNUNET_YES != GNUNET_DISK_file_size (filename, &fs, GNUNET_YES))
+    if (GNUNET_OK != GNUNET_DISK_file_size (filename, &fs, GNUNET_YES, GNUNET_YES))
       fs = 0;
     if (fs < sizeof (struct GNUNET_CRYPTO_RsaPrivateKeyBinaryEncoded))
     {

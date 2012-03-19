@@ -661,7 +661,7 @@ GNUNET_TRANSPORT_TESTING_init ()
       return NULL;
     }
 
-    if (GNUNET_YES != GNUNET_DISK_file_size (hostkeys_file, &fs, GNUNET_YES))
+    if (GNUNET_OK != GNUNET_DISK_file_size (hostkeys_file, &fs, GNUNET_YES, GNUNET_YES))
       fs = 0;
 
     if (0 != (fs % HOSTKEYFILESIZE))

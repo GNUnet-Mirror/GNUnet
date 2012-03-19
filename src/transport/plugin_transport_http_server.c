@@ -95,12 +95,13 @@ static char *
 server_load_file (const char *file)
 {
   struct GNUNET_DISK_FileHandle *gn_file;
-  struct stat fstat;
+  uint64_t fsize;
   char *text = NULL;
 
-  if (0 != STAT (file, &fstat))
+  if (GNUNET_OK != GNUNET_DISK_file_size (file,
+      &fsize, GNUNET_NO, GNUNET_YES))
     return NULL;
-  text = GNUNET_malloc (fstat.st_size + 1);
+  text = GNUNET_malloc (fsize + 1);
   gn_file =
       GNUNET_DISK_file_open (file, GNUNET_DISK_OPEN_READ,
                              GNUNET_DISK_PERM_USER_READ);
@@ -109,13 +110,13 @@ server_load_file (const char *file)
     GNUNET_free (text);
     return NULL;
   }
-  if (GNUNET_SYSERR == GNUNET_DISK_file_read (gn_file, text, fstat.st_size))
+  if (GNUNET_SYSERR == GNUNET_DISK_file_read (gn_file, text, fsize))
   {
     GNUNET_free (text);
     GNUNET_DISK_file_close (gn_file);
     return NULL;
   }
-  text[fstat.st_size] = '\0';
+  text[fsize] = '\0';
   GNUNET_DISK_file_close (gn_file);
   return text;
 }

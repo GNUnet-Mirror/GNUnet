@@ -6078,7 +6078,7 @@ GNUNET_TESTING_daemons_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
         return NULL;
       }
 
-      if (GNUNET_YES != GNUNET_DISK_file_size (hostkeys_file, &fs, GNUNET_YES))
+      if (GNUNET_OK != GNUNET_DISK_file_size (hostkeys_file, &fs, GNUNET_YES, GNUNET_YES))
         fs = 0;
 #if DEBUG_TESTING
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

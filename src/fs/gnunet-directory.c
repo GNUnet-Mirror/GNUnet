@@ -136,7 +136,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   i = 0;
   while (NULL != (filename = args[i++]))
   {
-    if ((GNUNET_OK != GNUNET_DISK_file_size (filename, &size, GNUNET_YES)) ||
+    if ((GNUNET_OK != GNUNET_DISK_file_size (filename, &size, GNUNET_YES, GNUNET_YES)) ||
         (NULL ==
          (h =
           GNUNET_DISK_file_open (filename, GNUNET_DISK_OPEN_READ,

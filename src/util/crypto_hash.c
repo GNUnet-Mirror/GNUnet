@@ -220,7 +220,7 @@ GNUNET_CRYPTO_hash_file (enum GNUNET_SCHEDULER_Priority priority,
     return NULL;
   }
   fhc->bsize = blocksize;
-  if (GNUNET_OK != GNUNET_DISK_file_size (filename, &fhc->fsize, GNUNET_NO))
+  if (GNUNET_OK != GNUNET_DISK_file_size (filename, &fhc->fsize, GNUNET_NO, GNUNET_YES))
   {
     GNUNET_free (fhc->filename);
     GNUNET_free (fhc);

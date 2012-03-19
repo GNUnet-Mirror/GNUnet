@@ -69,7 +69,8 @@ struct ScanTreeNode
   char *filename;
 
   /**
-   * Size of the file (if it is a file), in bytes
+   * Size of the file (if it is a file), in bytes.
+   * At the moment it is set to 0 for directories.
    */
   uint64_t file_size;
 
@@ -275,8 +276,11 @@ preprocess_file (const char *filename,
 {
   struct ScanTreeNode *item;
   struct stat sbuf;
+  uint64_t fsize = 0;
 
-  if (0 != STAT (filename, &sbuf))
+  if ((0 != STAT (filename, &sbuf)) ||
+      ((!S_ISDIR (sbuf.st_mode)) && (GNUNET_OK != GNUNET_DISK_file_size (
+      filename, &fsize, GNUNET_NO, GNUNET_YES))))
   {
     /* If the file doesn't exist (or is not stat-able for any other reason)
        skip it (but report it), but do continue. */
@@ -297,7 +301,7 @@ preprocess_file (const char *filename,
   item = GNUNET_malloc (sizeof (struct ScanTreeNode));
   item->filename = GNUNET_strdup (filename);
   item->is_directory = (S_ISDIR (sbuf.st_mode)) ? GNUNET_YES : GNUNET_NO;
-  item->file_size = (uint64_t) sbuf.st_size;
+  item->file_size = fsize;
   if (item->is_directory == GNUNET_YES)
   {
     struct RecursionContext rc;
