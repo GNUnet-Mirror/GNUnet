@@ -1346,11 +1346,11 @@ static void handle_zone_to_name (void *cls,
   ztn_ctx.rid = rid;
   ztn_ctx.nc = nc;
 
-  char * z_tmp = strdup (GNUNET_short_h2s (&ztn_msg->zone));
+  struct GNUNET_CRYPTO_ShortHashAsciiEncoded z_tmp;
+  GNUNET_CRYPTO_short_hash_to_enc(&ztn_msg->zone, &z_tmp);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Looking up name for zone `%s' in zone `%s'\n",
-      z_tmp,
+      (char *) &z_tmp,
       GNUNET_short_h2s (&ztn_msg->value_zone));
-  GNUNET_free (z_tmp);
 
   GSN_database->zone_to_name (GSN_database->cls, &ztn_msg->zone, &ztn_msg->value_zone, &handle_zone_to_name_it, &ztn_ctx);
 
@@ -1633,7 +1633,6 @@ int zonekey_file_it (void *cls, const char *filename)
      GNUNET_CRYPTO_rsa_key_get_public(privkey, c->pubkey);
      GNUNET_CRYPTO_short_hash(c->pubkey, sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), &c->zone);
 
-     //GNUNET_CRYPTO_short_hash_to_enc (&name_hase, &name_enc);
      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found zonefile for zone `%s'\n", GNUNET_short_h2s (&c->zone));
      GNUNET_CRYPTO_short_hash_double (&c->zone, &long_hash);
      GNUNET_CONTAINER_multihashmap_put(zonekeys, &long_hash, c, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);

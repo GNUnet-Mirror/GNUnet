@@ -255,7 +255,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   size_t rd_ser_len;
 
-  /* load privat key */
+  /* load privat key from file not included in zonekey dir */
   privkey = GNUNET_CRYPTO_rsa_key_create_from_file("test_hostkey");
   GNUNET_assert (privkey != NULL);
   /* get public key */
@@ -274,7 +274,6 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   /* create random zone hash */
   GNUNET_CRYPTO_short_hash (&pubkey, sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), &s_zone);
-
   start_arm (cfgfile);
   GNUNET_assert (arm != NULL);
 

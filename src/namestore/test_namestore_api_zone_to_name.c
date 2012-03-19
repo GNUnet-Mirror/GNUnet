@@ -233,6 +233,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   /* zone hash */
   GNUNET_CRYPTO_short_hash (&pubkey, sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), &s_zone);
   GNUNET_CRYPTO_short_hash (s_name, strlen (s_name) + 1, &s_zone_value);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Using PKEY `%s' \n", GNUNET_short_h2s (&s_zone_value));
 
   struct GNUNET_NAMESTORE_RecordData rd;
   rd.expiration = GNUNET_TIME_absolute_get();
