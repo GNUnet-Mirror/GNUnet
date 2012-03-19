@@ -229,7 +229,6 @@ GNUNET_NAMESTORE_verify_signature (const struct GNUNET_CRYPTO_RsaPublicKeyBinary
  *
  * @param h handle to the namestore
  * @param pkey private key of the zone
- * @param expire block expiration time
  * @param name name that is being mapped (at most 255 characters long)
  * @param rd record data to store
  * @param cont continuation to call when done
@@ -339,9 +338,7 @@ GNUNET_NAMESTORE_zone_to_name (struct GNUNET_NAMESTORE_Handle *h,
 
 /**
  * Starts a new zone iteration (used to periodically PUT all of our
- * records into our DHT). This MUST lock the GNUNET_NAMESTORE_Handle
- * for any other calls than GNUNET_NAMESTORE_zone_iterator_next and
- * GNUNET_NAMESTORE_zone_iteration_stop.  "proc" will be called once
+ * records into our DHT). "proc" will be called once
  * immediately, and then again after
  * "GNUNET_NAMESTORE_zone_iterator_next" is invoked.
  *

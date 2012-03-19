@@ -54,7 +54,7 @@ struct AddContext
 /**
  * Add the given address with infinit expiration to the buffer.
  *
- * @param ac add context
+ * @param cls closure
  * @param address address to add
  * @param expiration old expiration
  * @return GNUNET_OK keep iterating

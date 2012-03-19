@@ -110,13 +110,14 @@ struct GNUNET_CONTAINER_MultiHashMap *zonekeys;
 
 /**
  * Write zonefile to disk
- * @param file where to write
- * @param ret the key
+ * @param filename where to write
+ * @param c the crypto container
  *
  * @return GNUNET_OK on success, GNUNET_SYSERR on fail
  */
 
-int write_key_to_file (const char *filename, struct GNUNET_NAMESTORE_CryptoContainer *c)
+int
+write_key_to_file (const char *filename, struct GNUNET_NAMESTORE_CryptoContainer *c)
 {
   struct GNUNET_CRYPTO_RsaPrivateKey *ret = c->privkey;
   struct GNUNET_CRYPTO_RsaPrivateKeyBinaryEncoded *enc;

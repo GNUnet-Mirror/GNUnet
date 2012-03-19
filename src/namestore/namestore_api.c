@@ -1123,7 +1123,6 @@ GNUNET_NAMESTORE_verify_signature (const struct GNUNET_CRYPTO_RsaPublicKeyBinary
  *
  * @param h handle to the namestore
  * @param pkey private key of the zone
- * @param expire block expiration time
  * @param name name that is being mapped (at most 255 characters long)
  * @param rd record data to store
  * @param cont continuation to call when done
