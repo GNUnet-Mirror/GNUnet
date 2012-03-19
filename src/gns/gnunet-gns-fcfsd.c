@@ -133,7 +133,7 @@ struct Request
   /**
    * Public key submitted via form.
    */
-  char public_key[1024];
+  char public_key[64];
 
 };
 
@@ -368,12 +368,12 @@ lookup_result_processor (void *cls,
 {
   struct Request *request = cls;
   struct GNUNET_NAMESTORE_RecordData r;
-  GNUNET_HashCode pub;
+  struct GNUNET_CRYPTO_ShortHashCode pub;
   
   GNUNET_assert (GNUNET_OK ==
-		 GNUNET_CRYPTO_hash_from_string2 (request->public_key,
-						  strlen (request->public_key),
-						  &pub));
+		 GNUNET_CRYPTO_short_hash_from_string2 (request->public_key,
+							strlen (request->public_key),
+							&pub));
   request->qe = NULL;
   if (0 != rd_count)
   {
@@ -435,7 +435,7 @@ create_response (void *cls,
   struct MHD_Response *response;
   struct Request *request;
   int ret;
-  GNUNET_HashCode pub;
+  struct GNUNET_CRYPTO_ShortHashCode pub;
 
   if ( (0 == strcmp (method, MHD_HTTP_METHOD_GET)) ||
        (0 == strcmp (method, MHD_HTTP_METHOD_HEAD)) )
@@ -481,9 +481,9 @@ create_response (void *cls,
 	request->pp = NULL;
       }
       if (GNUNET_OK !=
-	  GNUNET_CRYPTO_hash_from_string2 (request->public_key,
-					   strlen (request->public_key),
-					   &pub))
+	  GNUNET_CRYPTO_short_hash_from_string2 (request->public_key,
+						 strlen (request->public_key),
+						 &pub))
       {
 	/* parse error */
 	return fill_s_reply ("Failed to parse given public key",
