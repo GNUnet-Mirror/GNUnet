@@ -97,7 +97,7 @@ on_lookup_result(void *cls, uint32_t rd_count,
   char* addr;
   int mx_found = 0;
   int ip_found = 0;
-  char* mx;
+  struct GNUNET_DNSPARSER_MxRecord *mx;
   
   if (rd_count == 0)
   {
@@ -126,8 +126,11 @@ on_lookup_result(void *cls, uint32_t rd_count,
       }
       else if (rd[i].record_type == GNUNET_GNS_RECORD_MX)
       {
-        mx = (char*)rd[i].data;
-        if (0 == strcmp(mx, TEST_EXPECTED_MX))
+        mx = (struct GNUNET_DNSPARSER_MxRecord*)rd[i].data;
+        mx->mxhost = (char*)&mx[1];
+        GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                    "Got MX %s\n", mx->mxhost);
+        if (0 == strcmp(mx->mxhost, TEST_EXPECTED_MX))
         {
           GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                       "%s correctly resolved to %s!\n", TEST_DOMAIN,
@@ -250,6 +253,7 @@ do_lookup(void *cls, const struct GNUNET_PeerIdentity *id,
   struct GNUNET_NAMESTORE_RecordData rd;
   char* ip = TEST_IP;
   struct in_addr *mail = GNUNET_malloc(sizeof(struct in_addr));
+  struct GNUNET_DNSPARSER_MxRecord *mx_record;
   rd.expiration = GNUNET_TIME_absolute_get_forever ();
   GNUNET_assert(1 == inet_pton (AF_INET, ip, mail));
   
@@ -283,9 +287,13 @@ do_lookup(void *cls, const struct GNUNET_PeerIdentity *id,
                                sig,
                                NULL,
                                NULL);
-
-  rd.data_size = strlen(TEST_MX_NAME)+1;
-  rd.data = TEST_MX_NAME;
+  
+  rd.data_size = sizeof(struct GNUNET_DNSPARSER_MxRecord)+strlen(TEST_MX_NAME)+1;
+  mx_record = GNUNET_malloc(rd.data_size);
+  mx_record->preference = 1;
+  mx_record->mxhost = (char*)&mx_record[1];
+  strcpy(mx_record->mxhost, TEST_MX_NAME);
+  rd.data = mx_record;
   rd.record_type = GNUNET_GNS_RECORD_MX;
   sig = GNUNET_NAMESTORE_create_signature(bob_key,
                                           GNUNET_TIME_absolute_get_forever(),
@@ -300,6 +308,7 @@ do_lookup(void *cls, const struct GNUNET_PeerIdentity *id,
                                sig,
                                &commence_testing,
                                NULL);
+  GNUNET_free(mx_record);
   GNUNET_free(mail);
   GNUNET_free(sig);
   GNUNET_CRYPTO_rsa_key_free(bob_key);
