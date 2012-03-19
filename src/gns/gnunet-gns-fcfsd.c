@@ -156,7 +156,7 @@ static struct GNUNET_NAMESTORE_Handle *ns;
 /**
  * Hash of the public key of the fcfsd zone.
  */
-static GNUNET_HashCode fcfsd_zone;
+static struct GNUNET_CRYPTO_ShortHashCode fcfsd_zone;
 
 /**
  * Private key for the fcfsd zone.
@@ -697,11 +697,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   }
   GNUNET_CRYPTO_rsa_key_get_public (fcfs_zone_pkey,
 				    &pub);
-  GNUNET_CRYPTO_hash (&pub, sizeof (pub), &fcfsd_zone);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-	      _("Managing `%s' as FCFS zone on port %llu\n"),
-	      GNUNET_h2s_full (&fcfsd_zone),
-	      port);
+  GNUNET_CRYPTO_short_hash (&pub, sizeof (pub), &fcfsd_zone);
   ns = GNUNET_NAMESTORE_connect (cfg);
   if (NULL == ns)
     {

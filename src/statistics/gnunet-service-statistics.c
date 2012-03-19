@@ -223,7 +223,6 @@ load (struct GNUNET_SERVER_Handle *server)
 {
   char *fn;
   struct GNUNET_BIO_ReadHandle *rh;
-  struct stat sb;
   uint64_t fsize;
   char *buf;
   struct GNUNET_SERVER_MessageStreamTokenizer *mst;
