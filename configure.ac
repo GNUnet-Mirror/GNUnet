@@ -152,7 +152,7 @@ netbsd*)
      LDFLAGS="$LDFLAGS -Wl,-no-undefined -Wl,--export-all-symbols"
      LIBS="$LIBS -lws2_32 -lplibc -lgnurx -lole32"
      CFLAGS="-mms-bitfields $CFLAGS"
-     CPPFLAGS="-D_WIN32_WINNT=0x0501 $CPPFLAGS"
+     CPPFLAGS="-D_WIN32_WINNT=0x0501 -DHAVE_STAT64=1 $CPPFLAGS"
      build_target="mingw"
      AC_PROG_CXX
      LIBPREFIX=lib
