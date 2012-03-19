@@ -172,6 +172,7 @@ AC_SUBST(DEFAULT_INTERFACE)
 # sockets in default configuratin:
 AC_SUBST(UNIXONLY)
 
+
 AC_MSG_CHECKING([for build target])
 AM_CONDITIONAL(DARWIN,  test "$build_target" = "darwin")
 AM_CONDITIONAL(CYGWIN,  test "$build_target" = "cygwin")
@@ -777,11 +778,26 @@ AM_CONDITIONAL([ENABLE_TEST_RUN], [test "x$enable_tests_run" = "xyes"])
 # should expensive tests be run?
 AC_MSG_CHECKING(whether to run expensive tests)
 AC_ARG_ENABLE([expensivetests],
-   [AS_HELP_STRING([--enable-expensive-tests], [enable running expensive testcases])],
+   [AS_HELP_STRING([--enable-expensivetests], [enable running expensive testcases])],
    [enable_expensive=${enableval}],
    [enable_expensive=no])
 AC_MSG_RESULT($enable_expensive)
 AM_CONDITIONAL([HAVE_EXPENSIVE_TESTS], [test "x$enable_expensive" = "xyes"])
+
+# should ports be open for Java services?
+AC_MSG_CHECKING(whether to enable ports for gnunet-java)
+AC_ARG_ENABLE([javaports],
+   [AS_HELP_STRING([--enable-javaports], [use non-zero ports for services with Java bindings (default is NO)])],
+   [enable_java_ports=${enableval}],
+   [enable_java_ports=no])
+AC_MSG_RESULT($enable_java_ports)
+if test "x$enable_java_ports" = "xyes"
+then
+  JAVAPORT=""
+else
+  JAVAPORT="$UNIXONLY"
+fi
+AC_SUBST(JAVAPORT)
 
 # should benchmarks be run?
 AC_MSG_CHECKING(whether to run benchmarks during make check)
@@ -928,6 +944,12 @@ fi
 if test "x$sqlite" = "x0"
 then
   AC_MSG_NOTICE([NOTICE: sqlite not found.  sqLite support will not be compiled.])
+fi
+
+# java ports
+if test "x$enable_java_ports" = "xyes"
+then
+  AC_MSG_NOTICE([NOTICE: opening ports for gnunet-java bindings by default.])
 fi
 
 if test "x$lmhd" != "x1"
