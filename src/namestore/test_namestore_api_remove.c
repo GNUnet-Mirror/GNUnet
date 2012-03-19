@@ -48,7 +48,7 @@ static struct GNUNET_OS_Process *arm;
 static struct GNUNET_CRYPTO_RsaPrivateKey * privkey;
 static struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pubkey;
 struct GNUNET_CRYPTO_RsaSignature *s_signature;
-static GNUNET_HashCode s_zone;
+static struct GNUNET_CRYPTO_ShortHashCode s_zone;
 struct GNUNET_NAMESTORE_RecordData *s_rd;
 static char *s_name;
 
@@ -309,9 +309,9 @@ run (void *cls, char *const *args, const char *cfgfile,
   s_signature = GNUNET_NAMESTORE_create_signature(privkey, s_rd[0].expiration, s_name, s_rd, RECORDS);
 
   /* create random zone hash */
-  GNUNET_CRYPTO_hash (&pubkey, sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), &s_zone);
+  GNUNET_CRYPTO_short_hash (&pubkey, sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), &s_zone);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Name: `%s' Zone: `%s' \n", s_name, GNUNET_h2s_full(&s_zone));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Name: `%s' Zone: `%s' \n", s_name, GNUNET_short_h2s (&s_zone));
 
 
   start_arm (cfgfile);

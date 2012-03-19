@@ -66,6 +66,25 @@ struct NetworkRecord
   
 };
 
+
+/**
+ * Convert a short hash to a string (for printing debug messages).
+ * This is one of the very few calls in the entire API that is
+ * NOT reentrant!
+ *
+ * @param hc the short hash code
+ * @return string form; will be overwritten by next call to GNUNET_h2s.
+ */
+const char *
+GNUNET_short_h2s (const struct GNUNET_CRYPTO_ShortHashCode * hc)
+{
+  static struct GNUNET_CRYPTO_ShortHashAsciiEncoded ret;
+
+  GNUNET_CRYPTO_short_hash_to_enc (hc, &ret);
+  return (const char *) &ret;
+}
+
+
 /**
  * Calculate how many bytes we will need to serialize the given
  * records.

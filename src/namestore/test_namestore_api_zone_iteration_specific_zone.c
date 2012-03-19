@@ -38,11 +38,11 @@ static struct GNUNET_OS_Process *arm;
 
 static struct GNUNET_CRYPTO_RsaPrivateKey * privkey;
 static struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pubkey;
-static GNUNET_HashCode zone;
+static struct GNUNET_CRYPTO_ShortHashCode zone;
 
 static struct GNUNET_CRYPTO_RsaPrivateKey * privkey2;
 static struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pubkey2;
-static GNUNET_HashCode zone2;
+static struct GNUNET_CRYPTO_ShortHashCode zone2;
 
 static struct GNUNET_NAMESTORE_ZoneIterator *zi;
 static int res;
@@ -206,7 +206,7 @@ void zone_proc (void *cls,
                 const struct GNUNET_CRYPTO_RsaSignature *signature)
 {
   int failed = GNUNET_NO;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Callback for zone `%s'\n", GNUNET_h2s (&zone));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Callback for zone `%s'\n", GNUNET_short_h2s (&zone));
   if ((zone_key == NULL) &&  (name == NULL))
   {
     GNUNET_break (2 == returned_records);
@@ -326,7 +326,7 @@ put_cont (void *cls, int32_t success, const char *emsg)
     res = 1;
     returned_records = 0;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "All records created, starting iteration over zone `%s'\n",
-        GNUNET_h2s(&zone));
+        GNUNET_short_h2s(&zone));
     zi = GNUNET_NAMESTORE_zone_iteration_start(nsh,
                                         &zone,
                                         GNUNET_NAMESTORE_RF_NONE,
@@ -375,7 +375,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_free (hostkey_file);
   GNUNET_assert (privkey != NULL);
   GNUNET_CRYPTO_rsa_key_get_public(privkey, &pubkey);
-  GNUNET_CRYPTO_hash(&pubkey, sizeof (pubkey), &zone);
+  GNUNET_CRYPTO_short_hash (&pubkey, sizeof (pubkey), &zone);
 
   GNUNET_asprintf(&hostkey_file,"zonefiles%s%s",DIR_SEPARATOR_STR, "KJI3AL00K91EDPFJF58DAJM7H61D189TLP70N56JL8SVDCJE1SJ3SNNBOQPPONTL37FMHPS39SMK2NMVC0GQMGA6QCMHITT78O8GF80.zkey");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Using zonekey file `%s' \n", hostkey_file);
@@ -383,7 +383,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_free (hostkey_file);
   GNUNET_assert (privkey2 != NULL);
   GNUNET_CRYPTO_rsa_key_get_public(privkey2, &pubkey2);
-  GNUNET_CRYPTO_hash(&pubkey2, sizeof (pubkey), &zone2);
+  GNUNET_CRYPTO_short_hash (&pubkey2, sizeof (pubkey), &zone2);
 
 
   start_arm (cfgfile);

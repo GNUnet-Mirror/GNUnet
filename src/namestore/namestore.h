@@ -47,6 +47,17 @@
 #define GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_STOP 448
 
 /**
+ * Convert a short hash to a string (for printing debug messages).
+ * This is one of the very few calls in the entire API that is
+ * NOT reentrant!
+ *
+ * @param hc the short hash code
+ * @return string form; will be overwritten by next call to GNUNET_h2s.
+ */
+const char *
+GNUNET_short_h2s (const struct GNUNET_CRYPTO_ShortHashCode * hc);
+
+/**
  * Sign name and records
  *
  * @param key the private key
@@ -150,7 +161,7 @@ struct LookupNameMessage
   /**
    * The zone 
    */
-  GNUNET_HashCode zone;
+  struct GNUNET_CRYPTO_ShortHashCode zone;
 
   /**
    * Requested record type 
@@ -419,12 +430,12 @@ struct ZoneToNameMessage
   /**
    * The hash of public key of the zone to look up in 
    */
-  GNUNET_HashCode zone;
+  struct GNUNET_CRYPTO_ShortHashCode zone;
 
   /**
    * The  hash of the public key of the target zone  
    */
-  GNUNET_HashCode value_zone;
+  struct GNUNET_CRYPTO_ShortHashCode value_zone;
 };
 
 /**
@@ -487,7 +498,7 @@ struct ZoneIterationStartMessage
   /**
    * Zone hash
    */
-  GNUNET_HashCode zone;
+  struct GNUNET_CRYPTO_ShortHashCode zone;
 
   /**
    * Which flags must be included

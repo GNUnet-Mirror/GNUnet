@@ -36,7 +36,7 @@ static struct GNUNET_OS_Process *arm;
 
 static struct GNUNET_CRYPTO_RsaPrivateKey * privkey;
 static struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pubkey;
-static GNUNET_HashCode zone;
+static struct GNUNET_CRYPTO_ShortHashCode zone;
 
 static int res;
 
@@ -175,7 +175,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_assert (privkey != NULL);
   GNUNET_CRYPTO_rsa_key_get_public(privkey, &pubkey);
 
-  GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK, &zone);
+  GNUNET_CRYPTO_short_hash (&pubkey, sizeof (pubkey), &zone);
 
 
   struct GNUNET_CRYPTO_RsaSignature signature;

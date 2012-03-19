@@ -90,7 +90,7 @@ struct GNUNET_NAMESTORE_ZoneIterator
   struct GNUNET_NAMESTORE_Handle *h;
   GNUNET_NAMESTORE_RecordProcessor proc;
   void* proc_cls;
-  GNUNET_HashCode zone;
+  struct GNUNET_CRYPTO_ShortHashCode zone;
   uint32_t no_flags;
   uint32_t flags;
   int has_zone;
@@ -193,7 +193,7 @@ struct GNUNET_NAMESTORE_SimpleRecord
   struct GNUNET_NAMESTORE_SimpleRecord *prev;
   
   const char *name;
-  const GNUNET_HashCode *zone;
+  const struct GNUNET_CRYPTO_ShortHashCode *zone;
   uint32_t record_type;
   struct GNUNET_TIME_Absolute expiration;
   enum GNUNET_NAMESTORE_RecordFlags flags;
@@ -1316,7 +1316,7 @@ GNUNET_NAMESTORE_record_remove (struct GNUNET_NAMESTORE_Handle *h,
  */
 struct GNUNET_NAMESTORE_QueueEntry *
 GNUNET_NAMESTORE_lookup_record (struct GNUNET_NAMESTORE_Handle *h, 
-			      const GNUNET_HashCode *zone,
+			      const struct GNUNET_CRYPTO_ShortHashCode *zone,
 			      const char *name,
 			      uint32_t record_type,
 			      GNUNET_NAMESTORE_RecordProcessor proc, void *proc_cls)
@@ -1388,8 +1388,8 @@ GNUNET_NAMESTORE_lookup_record (struct GNUNET_NAMESTORE_Handle *h,
  */
 struct GNUNET_NAMESTORE_QueueEntry *
 GNUNET_NAMESTORE_zone_to_name (struct GNUNET_NAMESTORE_Handle *h,
-                               const GNUNET_HashCode *zone,
-                               const GNUNET_HashCode *value_zone,
+                               const struct GNUNET_CRYPTO_ShortHashCode *zone,
+                               const struct GNUNET_CRYPTO_ShortHashCode *value_zone,
                                GNUNET_NAMESTORE_RecordProcessor proc, void *proc_cls)
 {
   struct GNUNET_NAMESTORE_QueueEntry *qe;
@@ -1424,11 +1424,11 @@ GNUNET_NAMESTORE_zone_to_name (struct GNUNET_NAMESTORE_Handle *h,
   msg->zone = *zone;
   msg->value_zone = *value_zone;
 
-  char * z_tmp = strdup (GNUNET_h2s (zone));
+  char * z_tmp = strdup (GNUNET_short_h2s (zone));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message for zone `%s' in zone `%s'\n",
       "NAMESTORE_ZONE_TO_NAME",
       z_tmp,
-      GNUNET_h2s (value_zone));
+      GNUNET_short_h2s (value_zone));
   GNUNET_free (z_tmp);
 
   /* transmit message */
@@ -1460,7 +1460,7 @@ GNUNET_NAMESTORE_zone_to_name (struct GNUNET_NAMESTORE_Handle *h,
  */
 struct GNUNET_NAMESTORE_ZoneIterator *
 GNUNET_NAMESTORE_zone_iteration_start (struct GNUNET_NAMESTORE_Handle *h,
-				       const GNUNET_HashCode *zone,
+				       const struct GNUNET_CRYPTO_ShortHashCode *zone,
 				       enum GNUNET_NAMESTORE_RecordFlags must_have_flags,
 				       enum GNUNET_NAMESTORE_RecordFlags must_not_have_flags,
 				       GNUNET_NAMESTORE_RecordProcessor proc,
@@ -1507,7 +1507,7 @@ GNUNET_NAMESTORE_zone_iteration_start (struct GNUNET_NAMESTORE_Handle *h,
   msg->gns_header.r_id = htonl (rid);
   if (NULL != zone)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message for zone `%s'\n", "ZONE_ITERATION_START", GNUNET_h2s(zone));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message for zone `%s'\n", "ZONE_ITERATION_START", GNUNET_short_h2s(zone));
     msg->zone = *zone;
   }
   else
@@ -1610,7 +1610,7 @@ GNUNET_NAMESTORE_zone_iteration_stop (struct GNUNET_NAMESTORE_ZoneIterator *it)
   msg->gns_header.r_id = htonl (it->op_id);
 
   if (GNUNET_YES == it->has_zone)
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message for zone `%s'\n", "ZONE_ITERATION_STOP", GNUNET_h2s(&it->zone));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message for zone `%s'\n", "ZONE_ITERATION_STOP", GNUNET_short_h2s(&it->zone));
   else
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message for all zones\n", "ZONE_ITERATION_STOP");
 

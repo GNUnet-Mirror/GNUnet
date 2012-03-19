@@ -397,19 +397,18 @@ database_shutdown (struct Plugin *plugin)
  */
 static int 
 namestore_sqlite_remove_records (void *cls, 
-				 const GNUNET_HashCode *zone,
+				 const struct GNUNET_CRYPTO_ShortHashCode *zone,
 				 const char *name)
 {
   struct Plugin *plugin = cls;
-  GNUNET_HashCode nh;
+  struct GNUNET_CRYPTO_ShortHashCode nh;
   size_t name_len;
   int n;
-
   name_len = strlen (name);
-  GNUNET_CRYPTO_hash (name, name_len, &nh);
+  GNUNET_CRYPTO_short_hash (name, name_len, &nh);
 
-  if ((SQLITE_OK != sqlite3_bind_blob (plugin->remove_records, 1, zone, sizeof (GNUNET_HashCode), SQLITE_STATIC)) ||
-      (SQLITE_OK != sqlite3_bind_blob (plugin->remove_records, 2, &nh, sizeof (GNUNET_HashCode), SQLITE_STATIC)))
+  if ((SQLITE_OK != sqlite3_bind_blob (plugin->remove_records, 1, zone, sizeof (struct GNUNET_CRYPTO_ShortHashCode), SQLITE_STATIC)) ||
+      (SQLITE_OK != sqlite3_bind_blob (plugin->remove_records, 2, &nh, sizeof (struct GNUNET_CRYPTO_ShortHashCode), SQLITE_STATIC)))
   {
     LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "sqlite3_bind_XXXX");
@@ -466,26 +465,26 @@ namestore_sqlite_put_records (void *cls,
 {
   struct Plugin *plugin = cls;
   int n;
-  GNUNET_HashCode zone;
-  GNUNET_HashCode zone_delegation;
-  GNUNET_HashCode nh;
+  struct GNUNET_CRYPTO_ShortHashCode zone;
+  struct GNUNET_CRYPTO_ShortHashCode zone_delegation;
+  struct GNUNET_CRYPTO_ShortHashCode nh;
   size_t name_len;
   uint64_t rvalue;
   size_t data_size;
   unsigned int i;
 
-  GNUNET_CRYPTO_hash (zone_key, sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), &zone);
+  GNUNET_CRYPTO_short_hash (zone_key, sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), &zone);
   (void) namestore_sqlite_remove_records (plugin, &zone, name);
   name_len = strlen (name);
-  GNUNET_CRYPTO_hash (name, name_len, &nh);
+  GNUNET_CRYPTO_short_hash (name, name_len, &nh);
   memset (&zone_delegation, 0, sizeof (zone_delegation));
   for (i=0;i<rd_count;i++)
     if (rd[i].record_type == GNUNET_NAMESTORE_TYPE_PKEY)
     {
-      GNUNET_assert (sizeof (GNUNET_HashCode) == rd[i].data_size);
+      GNUNET_assert (sizeof (struct GNUNET_CRYPTO_ShortHashCode) == rd[i].data_size);
       memcpy (&zone_delegation,
 	      rd[i].data,
-	      sizeof (GNUNET_HashCode));
+	      sizeof (struct GNUNET_CRYPTO_ShortHashCode));
       break;
     }
   rvalue = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK, UINT64_MAX);
@@ -510,9 +509,9 @@ namestore_sqlite_put_records (void *cls,
 	(SQLITE_OK != sqlite3_bind_blob (plugin->put_records, 4, data, data_size, SQLITE_STATIC)) ||
 	(SQLITE_OK != sqlite3_bind_int64 (plugin->put_records, 5, expire.abs_value)) ||
 	(SQLITE_OK != sqlite3_bind_blob (plugin->put_records, 6, signature, sizeof (struct GNUNET_CRYPTO_RsaSignature), SQLITE_STATIC)) ||
-	(SQLITE_OK != sqlite3_bind_blob (plugin->put_records, 7, &zone_delegation, sizeof (GNUNET_HashCode), SQLITE_STATIC)) ||
-	(SQLITE_OK != sqlite3_bind_blob (plugin->put_records, 8, &zone, sizeof (GNUNET_HashCode), SQLITE_STATIC)) ||
-	(SQLITE_OK != sqlite3_bind_blob (plugin->put_records, 9, &nh, sizeof (GNUNET_HashCode), SQLITE_STATIC)) ||
+	(SQLITE_OK != sqlite3_bind_blob (plugin->put_records, 7, &zone_delegation, sizeof (struct GNUNET_CRYPTO_ShortHashCode), SQLITE_STATIC)) ||
+	(SQLITE_OK != sqlite3_bind_blob (plugin->put_records, 8, &zone, sizeof (struct GNUNET_CRYPTO_ShortHashCode), SQLITE_STATIC)) ||
+	(SQLITE_OK != sqlite3_bind_blob (plugin->put_records, 9, &nh, sizeof (struct GNUNET_CRYPTO_ShortHashCode), SQLITE_STATIC)) ||
 	(SQLITE_OK != sqlite3_bind_int64 (plugin->put_records, 10, rvalue)) )
     {
       LOG_SQLITE (plugin, 
@@ -638,14 +637,14 @@ get_record_and_call_iterator (struct Plugin *plugin,
  */
 static int 
 namestore_sqlite_iterate_records (void *cls, 
-				  const GNUNET_HashCode *zone,
+				  const struct GNUNET_CRYPTO_ShortHashCode *zone,
 				  const char *name,
 				  uint64_t offset,
 				  GNUNET_NAMESTORE_RecordIterator iter, void *iter_cls)
 {
   struct Plugin *plugin = cls;
   sqlite3_stmt *stmt;
-  GNUNET_HashCode name_hase;
+  struct GNUNET_CRYPTO_ShortHashCode name_hase;
   unsigned int boff;
 
   if (NULL == zone)
@@ -653,7 +652,7 @@ namestore_sqlite_iterate_records (void *cls,
       stmt = plugin->iterate_all;
     else
     {
-      GNUNET_CRYPTO_hash (name, strlen(name), &name_hase);
+      GNUNET_CRYPTO_short_hash (name, strlen(name), &name_hase);
       stmt = plugin->iterate_by_name;
     }
   else
@@ -661,14 +660,14 @@ namestore_sqlite_iterate_records (void *cls,
       stmt = plugin->iterate_by_zone;
     else
     {
-      GNUNET_CRYPTO_hash (name, strlen(name), &name_hase);
+      GNUNET_CRYPTO_short_hash (name, strlen(name), &name_hase);
       stmt = plugin->iterate_records;
     }
 
   boff = 0;
   if ( (NULL != zone) &&
        (SQLITE_OK != sqlite3_bind_blob (stmt, ++boff, 
-					zone, sizeof (GNUNET_HashCode), 
+					zone, sizeof (struct GNUNET_CRYPTO_ShortHashCode),
 					SQLITE_STATIC)) )
   {
     LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
@@ -681,10 +680,10 @@ namestore_sqlite_iterate_records (void *cls,
   }      
   if ( (NULL != name) &&
        (SQLITE_OK != sqlite3_bind_blob (stmt, ++boff, 
-					&name_hase, sizeof (GNUNET_HashCode),
+					&name_hase, sizeof (struct GNUNET_CRYPTO_ShortHashCode),
 					SQLITE_STATIC)) )
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ITERATE NAME HASH: `%s'", GNUNET_h2s_full(&name_hase));
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ITERATE NAME HASH: `%8s'", GNUNET_short_h2s(&name_hase));
     LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
 		"sqlite3_bind_XXXX");
     if (SQLITE_OK != sqlite3_reset (stmt))
@@ -723,8 +722,8 @@ namestore_sqlite_iterate_records (void *cls,
  */
 static int
 namestore_sqlite_zone_to_name (void *cls, 
-			       const GNUNET_HashCode *zone,
-			       const GNUNET_HashCode *value_zone,
+			       const struct GNUNET_CRYPTO_ShortHashCode *zone,
+			       const struct GNUNET_CRYPTO_ShortHashCode *value_zone,
 			       GNUNET_NAMESTORE_RecordIterator iter, void *iter_cls)
 {
   struct Plugin *plugin = cls;
@@ -732,10 +731,10 @@ namestore_sqlite_zone_to_name (void *cls,
 
   stmt = plugin->zone_to_name;
   if ( (SQLITE_OK != sqlite3_bind_blob (stmt, 1, 
-					zone, sizeof (GNUNET_HashCode), 
+					zone, sizeof (struct GNUNET_CRYPTO_ShortHashCode),
 					SQLITE_STATIC)) ||
        (SQLITE_OK != sqlite3_bind_blob (stmt, 2, 
-					value_zone, sizeof (GNUNET_HashCode), 
+					value_zone, sizeof (struct GNUNET_CRYPTO_ShortHashCode),
 					SQLITE_STATIC)) )
   {
     LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
@@ -759,13 +758,13 @@ namestore_sqlite_zone_to_name (void *cls,
  */
 static void 
 namestore_sqlite_delete_zone (void *cls,
-			      const GNUNET_HashCode *zone)
+			      const struct GNUNET_CRYPTO_ShortHashCode *zone)
 {
   struct Plugin *plugin = cls;
   sqlite3_stmt *stmt = plugin->delete_zone;
   int n;
 
-  if (SQLITE_OK != sqlite3_bind_blob (stmt, 1, zone, sizeof (GNUNET_HashCode), SQLITE_STATIC))
+  if (SQLITE_OK != sqlite3_bind_blob (stmt, 1, zone, sizeof (struct GNUNET_CRYPTO_ShortHashCode), SQLITE_STATIC))
   {
     LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "sqlite3_bind_XXXX");

@@ -41,7 +41,7 @@ static struct GNUNET_NAMESTORE_Handle *ns;
 /**
  * Hash of the public key of our zone.
  */
-static GNUNET_HashCode zone;
+static struct GNUNET_CRYPTO_ShortHashCode zone;
 
 /**
  * Private key for the our zone.
@@ -292,7 +292,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   }
   GNUNET_CRYPTO_rsa_key_get_public (zone_pkey,
 				    &pub);
-  GNUNET_CRYPTO_hash (&pub, sizeof (pub), &zone);
+  GNUNET_CRYPTO_short_hash (&pub, sizeof (pub), &zone);
 
   ns = GNUNET_NAMESTORE_connect (cfg);
   if (NULL == ns)

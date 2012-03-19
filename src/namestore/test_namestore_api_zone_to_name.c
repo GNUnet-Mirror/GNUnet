@@ -46,8 +46,8 @@ static struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pubkey;
 
 struct GNUNET_TIME_Absolute expire;
 
-static GNUNET_HashCode s_zone;
-static GNUNET_HashCode s_zone_value;
+static struct GNUNET_CRYPTO_ShortHashCode s_zone;
+static struct GNUNET_CRYPTO_ShortHashCode s_zone_value;
 
 char * s_name;
 
@@ -230,8 +230,8 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_CRYPTO_rsa_key_get_public(privkey, &pubkey);
 
   /* zone hash */
-  GNUNET_CRYPTO_hash (&pubkey, sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), &s_zone);
-  GNUNET_CRYPTO_hash (s_name, strlen (s_name) + 1, &s_zone_value);
+  GNUNET_CRYPTO_short_hash (&pubkey, sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), &s_zone);
+  GNUNET_CRYPTO_short_hash (s_name, strlen (s_name) + 1, &s_zone_value);
 
   struct GNUNET_NAMESTORE_RecordData rd;
   rd.expiration = GNUNET_TIME_absolute_get();
