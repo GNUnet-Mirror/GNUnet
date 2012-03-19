@@ -92,7 +92,7 @@ plugin_LTLIBRARIES = \
   $(SQLITE_PLUGIN) 
 
 libgnunet_plugin_namestore_sqlite_la_SOURCES = \
-  plugin_namestore_sqlite.c
+  plugin_namestore_sqlite.c namestore_common.c
 libgnunet_plugin_namestore_sqlite_la_LIBADD = \
   $(top_builddir)/src/namestore/libgnunetnamestore.la  \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
@@ -194,8 +194,8 @@ EXTRA_DIST = \
   test_namestore_api.conf \
   test_plugin_namestore_sqlite.conf\
   test_hostkey \
-  zonefiles/4UCICULTINKC87UO4326KEEDQ9MTEP2AJT88MJFVGTGNK12QNGMQI2S41VI07UUU6EO19BTB06PDL0HE6VP1OM50HOJEI75RHP4JP80.zone \
-  zonefiles/KJI3AL00K91EDPFJF58DAJM7H61D189TLP70N56JL8SVDCJE1SJ3SNNBOQPPONTL37FMHPS39SMK2NMVC0GQMGA6QCMHITT78O8GF80.zone
+  HGU0A0VCU334DN7F2I9UIUMVQMM7JMSD142LIMNUGTTV9R0CF4EG.zkey \
+  N0UJMP015AFUNR2BTNM3FKPBLG38913BL8IDMCO2H0A1LIB81960.zkey
 
 
 test_plugin_namestore_sqlite_SOURCES = \

@@ -194,7 +194,6 @@ int zone_to_disk_it (void *cls,
                      void *value)
 {
   struct GNUNET_NAMESTORE_CryptoContainer * c = value;
-
   if (c->filename != NULL)
     write_key_to_file(c->filename, c);
   else
@@ -205,9 +204,9 @@ int zone_to_disk_it (void *cls,
 
 
   GNUNET_CONTAINER_multihashmap_remove (zonekeys, key, value);
-  GNUNET_CRYPTO_rsa_key_free(c->privkey);
+  GNUNET_CRYPTO_rsa_key_free (c->privkey);
   GNUNET_free (c->pubkey);
-  GNUNET_free(c->filename);
+  GNUNET_free (c->filename);
   GNUNET_free (c);
 
   return GNUNET_OK;
@@ -246,7 +245,6 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GNUNET_SERVER_notification_context_destroy (snc);
   snc = NULL;
-
   GNUNET_CONTAINER_multihashmap_iterate(zonekeys, &zone_to_disk_it, NULL);
   GNUNET_CONTAINER_multihashmap_destroy(zonekeys);
 

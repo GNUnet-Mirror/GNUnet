@@ -46,6 +46,7 @@
 #define GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_NEXT 447
 #define GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_STOP 448
 
+
 /**
  * Convert a short hash to a string (for printing debug messages).
  * This is one of the very few calls in the entire API that is
@@ -56,6 +57,7 @@
  */
 const char *
 GNUNET_short_h2s (const struct GNUNET_CRYPTO_ShortHashCode * hc);
+
 
 /**
  * Sign name and records
