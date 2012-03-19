@@ -85,16 +85,12 @@ process_pseu_lookup_ns(void* cls,
     {
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                  "Intelligent replacement not implemented\n", name);
-      GNUNET_free(gph->new_name);
-      GNUNET_free(gph->name);
       GNUNET_free(gph);
       return;
     }
 
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                "Trying delegated name %s\n", gph->name);
-    GNUNET_free(gph->new_name);
-    gph->new_name = GNUNET_malloc(strlen(gph->name)+1);
     memcpy(gph->new_name, gph->name, strlen(gph->name)+1);
     GNUNET_NAMESTORE_lookup_record(namestore_handle,
                                    &gph->zone,
@@ -119,8 +115,6 @@ process_pseu_lookup_ns(void* cls,
                                   &new_pkey,
                                   NULL, //cont
                                   NULL); //cls
-  GNUNET_free(gph->new_name);
-  GNUNET_free(gph->name);
   GNUNET_free(gph);
 
 }
@@ -136,12 +130,10 @@ process_pseu_result(struct GetPseuAuthorityHandle* gph, char* name)
 {
   if (NULL == name)
   {
-    gph->new_name = GNUNET_malloc(strlen(gph->name)+1);
     memcpy(gph->new_name, name, strlen(gph->name)+1);
   }
   else
   {
-    gph->new_name = GNUNET_malloc(strlen(name)+1);
     memcpy(gph->new_name, name, strlen(name)+1);
   }
 
@@ -216,8 +208,6 @@ process_auth_discovery_dht_result(void* cls,
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "got dht result null!\n", size);
     GNUNET_break(0);
-    GNUNET_free(gph->new_name);
-    GNUNET_free(gph->name);
     GNUNET_free(gph);
     return;
   }
@@ -247,8 +237,6 @@ process_auth_discovery_dht_result(void* cls,
     {
       GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Error deserializing data!\n");
       GNUNET_break(0);
-      GNUNET_free(gph->new_name);
-      GNUNET_free(gph->name);
       GNUNET_free(gph);
       return;
     }
@@ -297,8 +285,6 @@ process_zone_to_name_discover(void *cls,
   {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                "name for zone in our root %d\n", strlen(name));
-    GNUNET_free(gph->new_name);
-    GNUNET_free(gph->name);
     GNUNET_free(gph);
   }
   else
@@ -359,7 +345,6 @@ static void process_discovered_authority(char* name, GNUNET_HashCode zone,
 
   gph = GNUNET_malloc(sizeof(struct GetPseuAuthorityHandle));
   namelen = strlen(name) + 1;
-  gph->name = GNUNET_malloc(namelen);
   memcpy(gph->name, name, namelen);
   
   gph->new_zone = zone;
@@ -409,15 +394,11 @@ free_resolver_handle(struct ResolverHandle* rh)
   if (NULL == rh)
     return;
 
-  GNUNET_free_non_null (rh->name);
-  GNUNET_free_non_null (rh->authority_name);
-
   ac = rh->authority_chain_head;
 
   while (NULL != ac)
   {
     ac_next = ac->next;
-    GNUNET_free_non_null (ac->name);
     GNUNET_free(ac);
     ac = ac_next;
   }
@@ -886,7 +867,6 @@ process_delegation_result_dht(void* cls,
         struct AuthorityChain *auth =
           GNUNET_malloc(sizeof(struct AuthorityChain));
         auth->zone = rh->authority;
-        auth->name = GNUNET_malloc(strlen(rh->authority_name)+1);
         memset(auth->name, 0, strlen(rh->authority_name)+1);
         strcpy(auth->name, rh->authority_name);
         GNUNET_CONTAINER_DLL_insert (rh->authority_chain_head,
@@ -1043,7 +1023,6 @@ finish_lookup(struct ResolverHandle *rh,
   }
 
   rlh->proc(rlh->proc_cls, rd_count, p_rd);
-  GNUNET_free(rlh->name);
   GNUNET_free(rlh);
   
 }
@@ -1185,6 +1164,32 @@ pop_tld(char* name, char* dest)
 }
 
 /**
+ * Checks if name is in .zkey TLD
+ *
+ * @param name the name to check
+ * @return GNUNET_YES or GNUNET_NO
+ */
+int
+is_zkey_tld(const char* name)
+{
+  int offset = 0;
+
+  if (strlen(name) <= strlen(GNUNET_GNS_TLD_ZKEY))
+  {
+    return GNUNET_NO;
+  }
+  
+  offset = strlen(name)-strlen(GNUNET_GNS_TLD_ZKEY);
+  if (strcmp(name+offset, GNUNET_GNS_TLD_ZKEY) != 0)
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+               "%s is not in zkey TLD\n", name);
+    return GNUNET_NO;
+  }
+  return GNUNET_YES;
+}
+
+/**
  * DHT resolution for delegation finished. Processing result.
  *
  * @param cls the closure
@@ -1213,8 +1218,6 @@ handle_delegation_dht(void* cls, struct ResolverHandle *rh,
     /* We resolved full name for delegation. resolving record */
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
       "Resolved full name for delegation via DHT. resolving record '' in ns\n");
-    GNUNET_free(rh->name);
-    rh->name = GNUNET_malloc(strlen("+")+1);
     strcpy(rh->name, "+\0");
     rh->proc = &handle_record_ns;
     resolve_record_ns(rh);
@@ -1308,8 +1311,6 @@ handle_delegation_ns(void* cls, struct ResolverHandle *rh,
     /* We resolved full name for delegation. resolving record */
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                "Resolved full name for delegation. resolving record '+'\n");
-    GNUNET_free(rh->name);
-    rh->name = GNUNET_malloc(strlen("+")+1);
     strcpy(rh->name, "+\0");
     rh->proc = &handle_record_ns;
     resolve_record_ns(rh);
@@ -1381,7 +1382,7 @@ process_delegation_result_ns(void* cls,
   struct ResolverHandle *rh;
   struct GNUNET_TIME_Relative remaining_time;
   GNUNET_HashCode zone;
-  char* new_name;
+  char new_name[MAX_DNS_NAME_LENGTH];
   
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Got %d records from authority lookup\n",
              rd_count);
@@ -1431,14 +1432,11 @@ process_delegation_result_ns(void* cls,
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                  "Adding %s back to %s\n",
                  rh->authority_name, rh->name);
-      new_name = GNUNET_malloc(strlen(rh->name)
-                               + strlen(rh->authority_name) + 2);
       memset(new_name, 0, strlen(rh->name) + strlen(rh->authority_name) + 2);
       strcpy(new_name, rh->name);
       strcpy(new_name+strlen(new_name)+1, ".");
       strcpy(new_name+strlen(new_name)+2, rh->authority_name);
-      GNUNET_free(rh->name);
-      rh->name = new_name;
+      strcpy(rh->name, new_name);
     }
     rh->proc(rh->proc_cls, rh, 0, NULL);
     return;
@@ -1479,7 +1477,6 @@ process_delegation_result_ns(void* cls,
     memcpy(&rh->authority, rd[i].data, sizeof(GNUNET_HashCode));
     struct AuthorityChain *auth = GNUNET_malloc(sizeof(struct AuthorityChain));
     auth->zone = rh->authority;
-    auth->name = GNUNET_malloc(strlen(rh->authority_name)+1);
     memset(auth->name, 0, strlen(rh->authority_name)+1);
     strcpy(auth->name, rh->authority_name);
     GNUNET_CONTAINER_DLL_insert (rh->authority_chain_head,
@@ -1547,6 +1544,7 @@ gns_resolver_lookup_record(GNUNET_HashCode zone,
 {
   struct ResolverHandle *rh;
   struct RecordLookupHandle* rlh;
+  char* string_hash = "";
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Starting resolution for %s (type=%d)!\n",
@@ -1556,7 +1554,7 @@ gns_resolver_lookup_record(GNUNET_HashCode zone,
   if (is_canonical((char*)name) && (strcmp(GNUNET_GNS_TLD, name) != 0))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "%s is canonical and gnunet not our TLD!\n", name);
+                "%s is canonical and not gnunet -> cannot resolve!\n", name);
     proc(cls, 0, NULL);
     return;
   }
@@ -1570,30 +1568,64 @@ gns_resolver_lookup_record(GNUNET_HashCode zone,
   
   if (strcmp(GNUNET_GNS_TLD, name) == 0)
   {
-    rh->name = GNUNET_malloc(2);
-    strcpy(rh->name, "");
+    /**
+     * Only 'gnunet' given
+     */
+    strcpy(rh->name, "\0");
   }
   else
   {
-    rh->name = GNUNET_malloc(strlen(name)
-                             - strlen(GNUNET_GNS_TLD));
-    memset(rh->name, 0,
-           strlen(name)-strlen(GNUNET_GNS_TLD));
-    memcpy(rh->name, name,
-           strlen(name)-strlen(GNUNET_GNS_TLD) - 1);
+    if (is_zkey_tld(name) == GNUNET_YES)
+    {
+      /**
+       * This is a zkey tld
+       * build hash and use as initial authority
+       */
+      memset(rh->name, 0,
+             strlen(name)-strlen(GNUNET_GNS_TLD_ZKEY));
+      memcpy(rh->name, name,
+             strlen(name)-strlen(GNUNET_GNS_TLD_ZKEY) - 1);
+      pop_tld(rh->name, string_hash);
+
+      if (GNUNET_OK != GNUNET_CRYPTO_hash_from_string(string_hash,
+                                                      &rh->authority))
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    "Cannot convert ZKEY %s to hash!\n", string_hash);
+        GNUNET_free(rh);
+        GNUNET_free(rlh);
+        proc(cls, 0, NULL);
+        return;
+      }
+
+    }
+    else
+    {
+      /**
+       * Presumably GNUNET tld
+       */
+      memset(rh->name, 0,
+             strlen(name)-strlen(GNUNET_GNS_TLD));
+      memcpy(rh->name, name,
+             strlen(name)-strlen(GNUNET_GNS_TLD) - 1);
+    }
   }
   
-  rh->authority_name = GNUNET_malloc(sizeof(char)*MAX_DNS_LABEL_LENGTH);
+  /**
+   * Initialize authority chain
+   */
   rh->authority_chain_head = GNUNET_malloc(sizeof(struct AuthorityChain));
   rh->authority_chain_head->prev = NULL;
   rh->authority_chain_head->next = NULL;
   rh->authority_chain_tail = rh->authority_chain_head;
-  rh->authority_chain_head->zone = zone;
-
+  rh->authority_chain_head->zone = rh->authority;
+  
+  /**
+   * Copy original query into lookup handle
+   */
   rlh->record_type = record_type;
-  rlh->name = GNUNET_malloc(strlen(name) + 1);
   memset(rlh->name, 0, strlen(name) + 1);
-  strcpy(rlh->name, name); //FIXME
+  strcpy(rlh->name, name);
   rlh->proc = proc;
   rlh->proc_cls = cls;
 
@@ -1629,8 +1661,8 @@ process_zone_to_name_shorten(void *cls,
   struct NameShortenHandle* nsh = (struct NameShortenHandle*)rh->proc_cls;
   struct AuthorityChain *next_authority;
 
-  char* result;
-  char* next_authority_name;
+  char result[MAX_DNS_NAME_LENGTH];
+  char next_authority_name[MAX_DNS_LABEL_LENGTH];
   size_t answer_len;
   
   /* we found a match in our own zone */
@@ -1639,7 +1671,6 @@ process_zone_to_name_shorten(void *cls,
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                "result strlen %d\n", strlen(name));
     answer_len = strlen(rh->name) + strlen(name) + strlen(GNUNET_GNS_TLD) + 3;
-    result = GNUNET_malloc(answer_len);
     memset(result, 0, answer_len);
     if (strlen(rh->name) > 0)
     {
@@ -1657,14 +1688,12 @@ process_zone_to_name_shorten(void *cls,
     nsh->proc(nsh->proc_cls, result);
     GNUNET_free(nsh);
     free_resolver_handle(rh);
-    GNUNET_free(result);
   }
   else if (GNUNET_CRYPTO_hash_cmp(&rh->authority_chain_head->zone,
                                   &rh->authority_chain_tail->zone))
   {
     /* our zone, just append .gnunet */
     answer_len = strlen(rh->name) + strlen(GNUNET_GNS_TLD) + 2;
-    result = GNUNET_malloc(answer_len);
     memset(result, 0, answer_len);
     strcpy(result, rh->name);
     strcpy(result+strlen(rh->name), ".");
@@ -1676,7 +1705,6 @@ process_zone_to_name_shorten(void *cls,
     nsh->proc(nsh->proc_cls, result);
     GNUNET_free(nsh);
     free_resolver_handle(rh);
-    GNUNET_free(result);
   }
   else
   {
@@ -1685,16 +1713,14 @@ process_zone_to_name_shorten(void *cls,
      * continue with next authority
      */
     next_authority = rh->authority_chain_head;
-    next_authority_name = GNUNET_malloc(strlen(rh->name)+
-                             strlen(next_authority->name) + 2);
+    //                         strlen(next_authority->name) + 2);
     memset(next_authority_name, 0, strlen(rh->name)+
                       strlen(next_authority->name) + 2);
     strcpy(next_authority_name, rh->name);
     strcpy(next_authority_name+strlen(rh->name)+1, ".");
     strcpy(next_authority_name+strlen(rh->name)+2, next_authority->name);
   
-    GNUNET_free(rh->name);
-    rh->name = next_authority_name;
+    strcpy(rh->name, next_authority_name);
     GNUNET_CONTAINER_DLL_remove(rh->authority_chain_head,
                               rh->authority_chain_tail,
                               next_authority);
@@ -1724,7 +1750,7 @@ handle_delegation_ns_shorten(void* cls,
                       const struct GNUNET_NAMESTORE_RecordData *rd)
 {
   struct NameShortenHandle *nsh;
-  char* result;
+  char result[MAX_DNS_NAME_LENGTH];
   size_t answer_len;
 
   nsh = (struct NameShortenHandle *)cls;
@@ -1749,7 +1775,6 @@ handle_delegation_ns_shorten(void* cls,
      **/
     
     answer_len = strlen(rh->name) + strlen(GNUNET_GNS_TLD) + 2;
-    result = GNUNET_malloc(answer_len);
     memset(result, 0, answer_len);
     strcpy(result, rh->name);
     strcpy(result+strlen(rh->name), ".");
@@ -1761,7 +1786,6 @@ handle_delegation_ns_shorten(void* cls,
     nsh->proc(nsh->proc_cls, result);
     GNUNET_free(nsh);
     free_resolver_handle(rh);
-    GNUNET_free(result);
     return;
   }
   
@@ -1810,14 +1834,11 @@ gns_resolver_shorten_name(GNUNET_HashCode zone,
   
   rh = GNUNET_malloc(sizeof (struct ResolverHandle));
   rh->authority = zone;
-  rh->name = GNUNET_malloc(strlen(name)
-                           - strlen(GNUNET_GNS_TLD));
   memset(rh->name, 0,
          strlen(name)-strlen(GNUNET_GNS_TLD));
   memcpy(rh->name, name,
          strlen(name)-strlen(GNUNET_GNS_TLD)-1);
 
-  rh->authority_name = GNUNET_malloc(sizeof(char)*MAX_DNS_LABEL_LENGTH);
   rh->authority_chain_head = GNUNET_malloc(sizeof(struct AuthorityChain));
   rh->authority_chain_tail = rh->authority_chain_head;
   rh->authority_chain_head->zone = zone;
@@ -1847,7 +1868,7 @@ handle_delegation_result_ns_get_auth(void* cls,
                       const struct GNUNET_NAMESTORE_RecordData *rd)
 {
   struct GetNameAuthorityHandle* nah;
-  char* result;
+  char result[MAX_DNS_NAME_LENGTH];
   size_t answer_len;
 
   nah = (struct GetNameAuthorityHandle*) rh->proc_cls;
@@ -1881,7 +1902,6 @@ handle_delegation_result_ns_get_auth(void* cls,
 
     answer_len = strlen(nah->name) - strlen(rh->name)
       + strlen(GNUNET_GNS_TLD) + 1;
-    result = GNUNET_malloc(answer_len);
     memset(result, 0, answer_len);
     strcpy(result, nah->name + strlen(rh->name) + 1);
 
@@ -1889,17 +1909,14 @@ handle_delegation_result_ns_get_auth(void* cls,
                "Got authority result %s\n", result);
     
     nah->proc(nah->proc_cls, result);
-    GNUNET_free(nah->name);
     GNUNET_free(nah);
     free_resolver_handle(rh);
-    GNUNET_free(result);
   }
   else
   {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                "Unable to resolve authority for remaining %s!\n", rh->name);
     nah->proc(nah->proc_cls, "");
-    GNUNET_free(nah->name);
     GNUNET_free(nah);
     free_resolver_handle(rh);
   }
@@ -1935,26 +1952,20 @@ gns_resolver_get_authority(GNUNET_HashCode zone,
   
   if (strcmp(GNUNET_GNS_TLD, name) == 0)
   {
-    rh->name = GNUNET_malloc(2);
-    strcpy(rh->name, "");
+    strcpy(rh->name, "\0");
   }
   else
   {
-    rh->name = GNUNET_malloc(strlen(name)
-                             - strlen(GNUNET_GNS_TLD));
     memset(rh->name, 0,
            strlen(name)-strlen(GNUNET_GNS_TLD));
     memcpy(rh->name, name,
            strlen(name)-strlen(GNUNET_GNS_TLD) - 1);
   }
 
-  nah->name = GNUNET_malloc(strlen(name)+1);
   memset(nah->name, 0,
          strlen(name)+1);
   strcpy(nah->name, name);
   
-  rh->authority_name = GNUNET_malloc(MAX_DNS_LABEL_LENGTH);
-
   rh->authority_chain_head = GNUNET_malloc(sizeof(struct AuthorityChain));
   rh->authority_chain_tail = rh->authority_chain_head;
   rh->authority_chain_head->zone = zone;

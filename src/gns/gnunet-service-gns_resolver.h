@@ -8,6 +8,7 @@
 #define DHT_LOOKUP_TIMEOUT DHT_OPERATION_TIMEOUT
 #define DHT_GNS_REPLICATION_LEVEL 5
 #define MAX_DNS_LABEL_LENGTH 63
+#define MAX_DNS_NAME_LENGTH 253
 
 /*
  * DLL to hold the authority chain
@@ -23,7 +24,7 @@ struct AuthorityChain
   GNUNET_HashCode zone;
 
   /* (local) name of the authority */
-  char* name;
+  char name[MAX_DNS_LABEL_LENGTH];
 
   /* was the ns entry fresh */
   int fresh;
@@ -94,7 +95,7 @@ enum ResolutionStatus
 struct ResolverHandle
 {
   /* The name to resolve */
-  char *name;
+  char name[MAX_DNS_NAME_LENGTH];
 
   /* has this query been answered? how many matches */
   int answered;
@@ -103,7 +104,7 @@ struct ResolverHandle
   GNUNET_HashCode authority;
 
   /* the name of the authoritative zone to query */
-  char *authority_name;
+  char authority_name[MAX_DNS_LABEL_LENGTH];
 
   /**
    * we have an authority in namestore that
@@ -146,7 +147,7 @@ struct RecordLookupHandle
   enum GNUNET_GNS_RecordType record_type;
 
   /* the name to look up */
-  char *name;
+  char name[MAX_DNS_NAME_LENGTH];
 
   /* Method to call on record resolution result */
   RecordLookupProcessor proc;
@@ -179,7 +180,7 @@ struct GetNameAuthorityHandle
 {
   
   /* the name to look up authority for */
-  char* name;
+  char name[MAX_DNS_NAME_LENGTH];
   
   /* Method to call on result */
   GetAuthorityResultProcessor proc;
@@ -195,10 +196,10 @@ struct GetNameAuthorityHandle
 struct GetPseuAuthorityHandle
 {
   /* the name given from delegation */
-  char* name;
+  char name[MAX_DNS_LABEL_LENGTH];
 
   /* name to store the pseu under */
-  char* new_name;
+  char new_name[MAX_DNS_LABEL_LENGTH];
   
   /* the zone of discovered authority */
   GNUNET_HashCode new_zone;

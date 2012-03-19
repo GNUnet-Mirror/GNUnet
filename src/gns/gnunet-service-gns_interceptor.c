@@ -140,8 +140,25 @@ reply_to_dns(void* cls, uint32_t rd_count,
     {
       additional_records[i].name = ilh->query->name;
       additional_records[i].type = rd[i].record_type;
-      additional_records[i].data.raw.data_len = rd[i].data_size;
-      additional_records[i].data.raw.data = (char*)rd[i].data;
+      switch(rd[i].record_type)
+      {
+       case GNUNET_GNS_RECORD_TYPE_NS:
+       case GNUNET_GNS_RECORD_TYPE_CNAME:
+       case GNUNET_GNS_RECORD_TYPE_PTR:
+         additional_records[i].data.hostname = (char*)rd[i].data;
+         break;
+       case GNUNET_GNS_RECORD_TYPE_SOA:
+         additional_records[i].data.soa =
+           (struct GNUNET_DNSPARSER_SoaRecord *)rd[i].data;
+         break;
+       case GNUNET_GNS_RECORD_MX:
+         additional_records[i].data.mx =
+           (struct GNUNET_DNSPARSER_MxRecord *)rd[i].data;
+         break;
+       default:
+        additional_records[i].data.raw.data_len = rd[i].data_size;
+        additional_records[i].data.raw.data = (char*)rd[i].data;
+      }
       additional_records[i].expiration_time = rd[i].expiration;
       additional_records[i].class = GNUNET_DNSPARSER_CLASS_INTERNET;//hmmn
     }
