@@ -41,4 +41,7 @@ gnunet_hello_SOURCES = \
 gnunet_hello_LDADD = \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la  
+gnunet_hello_DEPENDENCIES = \
+ libgnunethello.la \
+ $(top_builddir)/src/util/libgnunetutil.la
 

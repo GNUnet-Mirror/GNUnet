@@ -78,11 +78,14 @@ gnunet_service_namestore_SOURCES = \
  gnunet-service-namestore.c
 
 gnunet_service_namestore_LDADD = \
-  $(top_builddir)/src/namestore/libgnunetnamestore.la  \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   libgnunetnamestore.la \
   $(GN_LIBINTL)
+gnunet_service_namestore_DEPENDENCIES = \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  libgnunetnamestore.la
 
 if HAVE_SQLITE
  SQLITE_PLUGIN = libgnunet_plugin_namestore_sqlite.la
