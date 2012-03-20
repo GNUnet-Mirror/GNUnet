@@ -102,7 +102,6 @@ src/fs/plugin_block_fs.c
 src/gns/gns_api.c
 src/gns/gnunet-gns-lookup.c
 src/gns/gnunet-service-gns.c
-src/gns/namestore_stub_api.c
 src/hello/address.c
 src/hello/hello.c
 src/hostlist/gnunet-daemon-hostlist.c
