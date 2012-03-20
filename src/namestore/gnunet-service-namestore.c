@@ -732,11 +732,23 @@ handle_create_record_it (void *cls,
   int rd_count_new = 0;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found %u existing records for `%s'\n", rd_count, crc->name);
-
   for (c = 0; c < rd_count; c++)
   {
-
-    if ((crc->rd->record_type == rd[c].record_type) &&
+    if ((crc->rd->record_type == GNUNET_NAMESTORE_TYPE_PKEY) && (rd[c].record_type == GNUNET_NAMESTORE_TYPE_PKEY))
+    {
+      /* Update unique PKEY */
+      exist = c;
+      update = GNUNET_YES;
+     break;
+    }
+    else if ((crc->rd->record_type == GNUNET_NAMESTORE_TYPE_PSEU) && (rd[c].record_type == GNUNET_NAMESTORE_TYPE_PSEU))
+    {
+      /* Update unique PSEU */
+      exist = c;
+      update = GNUNET_YES;
+     break;
+    }
+    else if ((crc->rd->record_type == rd[c].record_type) &&
         (crc->rd->data_size == rd[c].data_size) &&
         (0 == memcmp (crc->rd->data, rd[c].data, rd[c].data_size)))
     {
@@ -773,7 +785,7 @@ handle_create_record_it (void *cls,
     memcpy (rd_new, rd, rd_count * sizeof (struct GNUNET_NAMESTORE_RecordData));
     rd_count_new = rd_count;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Updating expiration from %llu to %llu!\n", rd_new[exist].expiration.abs_value, crc->rd->expiration.abs_value);
-    rd_new[exist].expiration = crc->rd->expiration;
+    rd_new[exist] = *(crc->rd);
   }
 
   block_expiration = GNUNET_TIME_absolute_max(crc->expire, expire);
@@ -808,14 +820,19 @@ end:
     case GNUNET_YES:
       /* database operations OK */
       if (GNUNET_YES == update)
+      {
         /* we updated an existing record */
         crc->res = GNUNET_NO;
+      }
       else
+      {
         /* we created a new record */
         crc->res = GNUNET_YES;
+      }
       break;
     case GNUNET_NO:
         /* identical entry existed, so we did nothing */
+      GNUNET_break(0);
         crc->res = GNUNET_NO;
       break;
     default:
@@ -911,7 +928,6 @@ static void handle_record_create (void *cls,
     GNUNET_break_op (0);
     goto send;
   }
-
   /* Extracting and converting private key */
   pkey = GNUNET_CRYPTO_rsa_decode_key((char *) pkey_tmp, key_len);
   GNUNET_assert (pkey != NULL);
