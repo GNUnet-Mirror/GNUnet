@@ -21,7 +21,7 @@ if HAVE_EXPENSIVE_TESTS
    test_testing_topology_clique_minimum \
    test_testing_topology_clique_dfs \
    test_testing_topology_churn \
-   test_testing_topology_line
+   test_testing_topology_line \
    test_testing_topology_blacklist \
    test_testing_group_remote \
    test_testing_topology_ring \
