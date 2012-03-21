@@ -204,9 +204,6 @@ write_completion (void *cls,
   GNUNET_assert (size <= strlen (data));
   peer->bytes_wrote += size;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Writing completed\n");
-
   if (peer->bytes_wrote < strlen(data)) /* Have more data to send */
     {
       peer->io_write_handle =
@@ -221,6 +218,9 @@ write_completion (void *cls,
     }
   else
     {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Writing completed\n");
+
       if (&peer1 == peer)   /* Peer1 has finished writing; should read now */
         {
           peer->io_read_handle =
@@ -359,8 +359,8 @@ stream_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  */
 static int
 stream_listen_cb (void *cls,
-           struct GNUNET_STREAM_Socket *socket,
-           const struct GNUNET_PeerIdentity *initiator)
+                  struct GNUNET_STREAM_Socket *socket,
+                  const struct GNUNET_PeerIdentity *initiator)
 {
   GNUNET_assert (NULL != socket);
   GNUNET_assert (NULL != initiator);
@@ -372,6 +372,7 @@ stream_listen_cb (void *cls,
               GNUNET_i2s(initiator));
 
   peer2.socket = socket;
+  /* FIXME: reading should be done right now instead of a scheduled call */
   read_task = GNUNET_SCHEDULER_add_now (&stream_read, (void *) socket);
   return GNUNET_OK;
 }

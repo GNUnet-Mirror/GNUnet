@@ -231,6 +231,12 @@ struct GNUNET_STREAM_Socket
   void *receive_buffer;
 
   /**
+   * The listen socket from which this socket is derived. Should be NULL if it
+   * is not a derived socket
+   */
+  struct GNUNET_STREAM_ListenSocket *lsocket;
+
+  /**
    * Task identifier for the read io timeout task
    */
   GNUNET_SCHEDULER_TaskIdentifier read_io_timeout_task;
@@ -265,11 +271,6 @@ struct GNUNET_STREAM_Socket
    */
   unsigned int retries;
 
-  /**
-   * Is this socket derived from listen socket?
-   */
-  unsigned int derived;
-  
   /**
    * The peer identity of the peer at the other end of the stream
    */
@@ -1118,13 +1119,33 @@ static void
 set_state_established (void *cls,
                        struct GNUNET_STREAM_Socket *socket)
 {
+  struct GNUNET_PeerIdentity initiator_pid;
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
               "%x: Attaining ESTABLISHED state\n",
               socket->our_id);
   socket->write_offset = 0;
   socket->read_offset = 0;
   socket->state = STATE_ESTABLISHED;
-  if (socket->open_cb)
+  /* FIXME: What if listen_cb is NULL */
+  if (NULL != socket->lsocket)
+    {
+      GNUNET_PEER_resolve (socket->other_peer, &initiator_pid);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "%x: Calling listen callback\n",
+                  socket->our_id);
+      if (GNUNET_SYSERR == 
+          socket->lsocket->listen_cb (socket->lsocket->listen_cb_cls,
+                                      socket,
+                                      &initiator_pid))
+        {
+          socket->state = STATE_CLOSED;
+          /* FIXME: We should close in a decent way */
+          GNUNET_MESH_tunnel_destroy (socket->tunnel); /* Destroy the tunnel */
+          GNUNET_free (socket);
+        }
+    }
+  else if (socket->open_cb)
     socket->open_cb (socket->open_cls, socket);
 }
 
@@ -1869,6 +1890,8 @@ handle_ack (struct GNUNET_STREAM_Socket *socket,
             GNUNET_SCHEDULER_NO_TASK;
         }
 
+      /* FIXME: Bits in the ack_bitmap are only to be set; Once set they cannot
+         be unset */
       socket->write_handle->ack_bitmap = GNUNET_ntohll (ack->bitmap);
       socket->receiver_window_available = 
         ntohl (ack->receive_window_remaining);
@@ -2122,7 +2145,7 @@ new_tunnel_notify (void *cls,
   socket->tunnel = tunnel;
   socket->session_id = 0;       /* FIXME */
   socket->state = STATE_INIT;
-  socket->derived = GNUNET_YES;
+  socket->lsocket = lsocket;
   socket->our_id = lsocket->our_id;
   
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -2131,16 +2154,7 @@ new_tunnel_notify (void *cls,
               socket->other_peer);
   
   /* FIXME: Copy MESH handle from lsocket to socket */
-  /* FIXME: What if listen_cb is NULL */
-  if (GNUNET_SYSERR == lsocket->listen_cb (lsocket->listen_cb_cls,
-                                           socket,
-                                           initiator))
-    {
-      socket->state = STATE_CLOSED;
-      /* FIXME: Send CLOSE message and then free */
-      GNUNET_free (socket);
-      GNUNET_MESH_tunnel_destroy (tunnel); /* Destroy the tunnel */
-    }
+  
   return socket;
 }
 
@@ -2328,7 +2342,7 @@ GNUNET_STREAM_close (struct GNUNET_STREAM_Socket *socket)
     }
 
   /* Close mesh connection */
-  if (NULL != socket->mesh && GNUNET_YES != socket->derived)
+  if (NULL != socket->mesh && NULL == socket->lsocket)
     {
       GNUNET_MESH_disconnect (socket->mesh);
       socket->mesh = NULL;
