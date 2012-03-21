@@ -287,11 +287,26 @@ input_processor (void *cls,
 
   peer = (struct PeerData *) cls;
 
+  if (GNUNET_STREAM_TIMEOUT == status)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Read operation timedout - reading again!\n");
+      GNUNET_assert (0 == size);
+      peer->io_read_handle = GNUNET_STREAM_read ((struct GNUNET_STREAM_Socket *)
+                                                 peer->socket,
+                                                 GNUNET_TIME_relative_multiply
+                                                 (GNUNET_TIME_UNIT_SECONDS, 5),
+                                                 &input_processor,
+                                                 cls);
+      GNUNET_assert (NULL != peer->io_read_handle);
+      return 0;
+    }
+
   GNUNET_assert (GNUNET_STREAM_OK == status);
-  GNUNET_assert (size < strlen (data));
-  GNUNET_assert (strncmp ((const char *) data + peer->bytes_read, 
-                          (const char *) input_data,
-                          size));
+  GNUNET_assert (size <= strlen (data));
+  GNUNET_assert (0 == strncmp ((const char *) data + peer->bytes_read, 
+                               (const char *) input_data,
+                               size));
   peer->bytes_read += size;
   
   if (peer->bytes_read < strlen (data))
