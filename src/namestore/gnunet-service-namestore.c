@@ -985,6 +985,7 @@ struct RemoveRecordContext
 {
   struct GNUNET_NAMESTORE_RecordData *rd;
   struct GNUNET_CRYPTO_RsaPrivateKey *pkey;
+  int remove_name;
   uint16_t op_res;
 };
 
@@ -1043,6 +1044,26 @@ handle_record_remove_it (void *cls,
   {
     /* Could not find record to remove */
     rrc->op_res = 2;
+    return;
+  }
+
+  if (rd_count-1 == 0)
+  {
+    struct GNUNET_CRYPTO_ShortHashCode pubkey_hash;
+    GNUNET_CRYPTO_short_hash (zone_key, sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), &pubkey_hash);
+    res = GSN_database->remove_records (GSN_database->cls,
+                                        &pubkey_hash,
+                                        name);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "No records left for name `%s', removing name\n",
+                name, res);
+    if (GNUNET_OK != res)
+    {
+      /* Could put records into database */
+      rrc->op_res = 4;
+      return;
+    }
+    rrc->op_res = 0;
     return;
   }
 
