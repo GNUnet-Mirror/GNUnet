@@ -1016,8 +1016,6 @@ handle_record_remove_it (void *cls,
   found = GNUNET_SYSERR;
   for (c = 0; c < rd_count; c++)
   {
-    if (rd[c].expiration.abs_value != rrc->rd->expiration.abs_value)
-      continue;
     GNUNET_break(0);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "SENT FLAGES: %u \n",rd[c].flags);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "STORED FLAGES: %u \n",rrc->rd->flags);

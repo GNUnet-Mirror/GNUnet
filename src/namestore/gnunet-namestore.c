@@ -355,11 +355,11 @@ run (void *cls, char *const *args, const char *cfgfile,
       GNUNET_SCHEDULER_shutdown ();
       return;     
     }
-  } else if (add | del)
+  } else if (add)
   {
     fprintf (stderr,
 	     _("Missing option `%s' for operation `%s'\n"),
-	     "-e", _("add/del"));
+	     "-e", _("add"));
     GNUNET_SCHEDULER_shutdown ();
     return;     
   }
@@ -377,7 +377,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     rd.data_size = data_size;
     rd.record_type = type;
     rd.expiration = GNUNET_TIME_relative_to_absolute (etime);
-    rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY; // FIXME: not always...
+    rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
     add_qe = GNUNET_NAMESTORE_record_create (ns,
 					     zone_pkey,
 					     name,
@@ -398,8 +398,8 @@ run (void *cls, char *const *args, const char *cfgfile,
     rd.data = data;
     rd.data_size = data_size;
     rd.record_type = type;
-    rd.expiration = GNUNET_TIME_relative_to_absolute (etime);
-    rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY; // FIXME: not always...
+    rd.expiration.abs_value = 0;
+    rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
     del_qe = GNUNET_NAMESTORE_record_remove (ns,
 					     zone_pkey,
 					     name,
