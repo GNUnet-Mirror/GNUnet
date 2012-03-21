@@ -100,6 +100,7 @@ libgnunet_plugin_datastore_sqlite_la_LDFLAGS = \
 libgnunet_plugin_datastore_mysql_la_SOURCES = \
   plugin_datastore_mysql.c
 libgnunet_plugin_datastore_mysql_la_LIBADD = \
+  $(top_builddir)/src/mysql/libgnunetmysql.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) -lz -lmysqlclient
 libgnunet_plugin_datastore_mysql_la_LDFLAGS = \

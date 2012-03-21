@@ -119,46 +119,11 @@
 #include "platform.h"
 #include "gnunet_datastore_plugin.h"
 #include "gnunet_util_lib.h"
-#include <mysql/mysql.h>
+#include "gnunet_mysql_lib.h"
 
 #define DEBUG_MYSQL GNUNET_EXTRA_LOGGING
 
 #define MAX_DATUM_SIZE 65536
-
-/**
- * Maximum number of supported parameters for a prepared
- * statement.  Increase if needed.
- */
-#define MAX_PARAM 16
-
-/**
- * Die with an error message that indicates
- * a failure of the command 'cmd' with the message given
- * by strerror(errno).
- */
-#define DIE_MYSQL(cmd, dbh) do { GNUNET_log(GNUNET_ERROR_TYPE_ERROR, _("`%s' failed at %s:%d with error: %s\n"), cmd, __FILE__, __LINE__, mysql_error((dbh)->dbf)); GNUNET_abort(); } while(0);
-
-/**
- * Log an error message at log-level 'level' that indicates
- * a failure of the command 'cmd' on file 'filename'
- * with the message given by strerror(errno).
- */
-#define LOG_MYSQL(level, cmd, dbh) do { GNUNET_log(level, _("`%s' failed at %s:%d with error: %s\n"), cmd, __FILE__, __LINE__, mysql_error((dbh)->dbf)); } while(0);
-
-
-struct GNUNET_MysqlStatementHandle
-{
-  struct GNUNET_MysqlStatementHandle *next;
-
-  struct GNUNET_MysqlStatementHandle *prev;
-
-  char *query;
-
-  MYSQL_STMT *statement;
-
-  int valid;
-
-};
 
 
 /**
@@ -174,64 +139,49 @@ struct Plugin
   /**
    * Handle to talk to MySQL.
    */
-  MYSQL *dbf;
-
-  /**
-   * We keep all prepared statements in a DLL.  This is the head.
-   */
-  struct GNUNET_MysqlStatementHandle *shead;
-
-  /**
-   * We keep all prepared statements in a DLL.  This is the tail.
-   */
-  struct GNUNET_MysqlStatementHandle *stail;
-
-  /**
-   * Filename of "my.cnf" (msyql configuration).
-   */
-  char *cnffile;
+  struct GNUNET_MYSQL_Context *mc;
 
   /**
    * Prepared statements.
    */
 #define INSERT_ENTRY "INSERT INTO gn090 (repl,type,prio,anonLevel,expire,rvalue,hash,vhash,value) VALUES (?,?,?,?,?,?,?,?,?)"
-  struct GNUNET_MysqlStatementHandle *insert_entry;
+  struct GNUNET_MYSQL_StatementHandle *insert_entry;
 
 #define DELETE_ENTRY_BY_UID "DELETE FROM gn090 WHERE uid=?"
-  struct GNUNET_MysqlStatementHandle *delete_entry_by_uid;
+  struct GNUNET_MYSQL_StatementHandle *delete_entry_by_uid;
 
 #define COUNT_ENTRY_BY_HASH "SELECT count(*) FROM gn090 FORCE INDEX (idx_hash) WHERE hash=?"
-  struct GNUNET_MysqlStatementHandle *count_entry_by_hash;
+  struct GNUNET_MYSQL_StatementHandle *count_entry_by_hash;
 
 #define SELECT_ENTRY_BY_HASH "SELECT type,prio,anonLevel,expire,hash,value,uid FROM gn090 FORCE INDEX (idx_hash) WHERE hash=? ORDER BY uid LIMIT 1 OFFSET ?"
-  struct GNUNET_MysqlStatementHandle *select_entry_by_hash;
+  struct GNUNET_MYSQL_StatementHandle *select_entry_by_hash;
 
 #define COUNT_ENTRY_BY_HASH_AND_VHASH "SELECT count(*) FROM gn090 FORCE INDEX (idx_hash_vhash) WHERE hash=? AND vhash=?"
-  struct GNUNET_MysqlStatementHandle *count_entry_by_hash_and_vhash;
+  struct GNUNET_MYSQL_StatementHandle *count_entry_by_hash_and_vhash;
 
 #define SELECT_ENTRY_BY_HASH_AND_VHASH "SELECT type,prio,anonLevel,expire,hash,value,uid FROM gn090 FORCE INDEX (idx_hash_vhash) WHERE hash=? AND vhash=? ORDER BY uid LIMIT 1 OFFSET ?"
-  struct GNUNET_MysqlStatementHandle *select_entry_by_hash_and_vhash;
+  struct GNUNET_MYSQL_StatementHandle *select_entry_by_hash_and_vhash;
 
 #define COUNT_ENTRY_BY_HASH_AND_TYPE "SELECT count(*) FROM gn090 FORCE INDEX (idx_hash_type_uid) WHERE hash=? AND type=?"
-  struct GNUNET_MysqlStatementHandle *count_entry_by_hash_and_type;
+  struct GNUNET_MYSQL_StatementHandle *count_entry_by_hash_and_type;
 
 #define SELECT_ENTRY_BY_HASH_AND_TYPE "SELECT type,prio,anonLevel,expire,hash,value,uid FROM gn090 FORCE INDEX (idx_hash_type_uid) WHERE hash=? AND type=? ORDER BY uid LIMIT 1 OFFSET ?"
-  struct GNUNET_MysqlStatementHandle *select_entry_by_hash_and_type;
+  struct GNUNET_MYSQL_StatementHandle *select_entry_by_hash_and_type;
 
 #define COUNT_ENTRY_BY_HASH_VHASH_AND_TYPE "SELECT count(*) FROM gn090 FORCE INDEX (idx_hash_vhash) WHERE hash=? AND vhash=? AND type=?"
-  struct GNUNET_MysqlStatementHandle *count_entry_by_hash_vhash_and_type;
+  struct GNUNET_MYSQL_StatementHandle *count_entry_by_hash_vhash_and_type;
 
 #define SELECT_ENTRY_BY_HASH_VHASH_AND_TYPE "SELECT type,prio,anonLevel,expire,hash,value,uid FROM gn090 FORCE INDEX (idx_hash_vhash) WHERE hash=? AND vhash=? AND type=? ORDER BY uid ASC LIMIT 1 OFFSET ?"
-  struct GNUNET_MysqlStatementHandle *select_entry_by_hash_vhash_and_type;
+  struct GNUNET_MYSQL_StatementHandle *select_entry_by_hash_vhash_and_type;
 
 #define UPDATE_ENTRY "UPDATE gn090 SET prio=prio+?,expire=IF(expire>=?,expire,?) WHERE uid=?"
-  struct GNUNET_MysqlStatementHandle *update_entry;
+  struct GNUNET_MYSQL_StatementHandle *update_entry;
 
 #define DEC_REPL "UPDATE gn090 SET repl=GREATEST (0, repl - 1) WHERE uid=?"
-  struct GNUNET_MysqlStatementHandle *dec_repl;
+  struct GNUNET_MYSQL_StatementHandle *dec_repl;
 
 #define SELECT_SIZE "SELECT SUM(BIT_LENGTH(value) DIV 8) FROM gn090"
-  struct GNUNET_MysqlStatementHandle *get_size;
+  struct GNUNET_MYSQL_StatementHandle *get_size;
 
 #define SELECT_IT_NON_ANONYMOUS "SELECT type,prio,anonLevel,expire,hash,value,uid "\
    "FROM gn090 FORCE INDEX (idx_anonLevel_type_rvalue) "\
@@ -239,13 +189,13 @@ struct Plugin
    "(rvalue >= ? OR"\
    "  NOT EXISTS (SELECT 1 FROM gn090 FORCE INDEX (idx_anonLevel_type_rvalue) WHERE anonLevel=0 AND type=? AND rvalue>=?)) "\
    "ORDER BY rvalue ASC LIMIT 1"
-  struct GNUNET_MysqlStatementHandle *zero_iter;
+  struct GNUNET_MYSQL_StatementHandle *zero_iter;
 
 #define SELECT_IT_EXPIRATION "SELECT type,prio,anonLevel,expire,hash,value,uid FROM gn090 FORCE INDEX (idx_expire) WHERE expire < ? ORDER BY expire ASC LIMIT 1"
-  struct GNUNET_MysqlStatementHandle *select_expiration;
+  struct GNUNET_MYSQL_StatementHandle *select_expiration;
 
 #define SELECT_IT_PRIORITY "SELECT type,prio,anonLevel,expire,hash,value,uid FROM gn090 FORCE INDEX (idx_prio) ORDER BY prio ASC LIMIT 1"
-  struct GNUNET_MysqlStatementHandle *select_priority;
+  struct GNUNET_MYSQL_StatementHandle *select_priority;
 
 #define SELECT_IT_REPLICATION "SELECT type,prio,anonLevel,expire,hash,value,uid "\
   "FROM gn090 FORCE INDEX (idx_repl_rvalue) "\
@@ -254,510 +204,15 @@ struct Plugin
   "  NOT EXISTS (SELECT 1 FROM gn090 FORCE INDEX (idx_repl_rvalue) WHERE repl=? AND rvalue>=?)) "\
   "ORDER BY rvalue ASC "\
   "LIMIT 1"
-  struct GNUNET_MysqlStatementHandle *select_replication;
+  struct GNUNET_MYSQL_StatementHandle *select_replication;
 
 #define SELECT_MAX_REPL "SELECT MAX(repl) FROM gn090"
-  struct GNUNET_MysqlStatementHandle *max_repl;
+  struct GNUNET_MYSQL_StatementHandle *max_repl;
+
+#define GET_ALL_KEYS "SELECT hash from gn090"
+  struct GNUNET_MYSQL_StatementHandle *get_all_keys;
 
 };
-
-
-/**
- * Obtain the location of ".my.cnf".
- *
- * @param cfg our configuration
- * @return NULL on error
- */
-static char *
-get_my_cnf_path (const struct GNUNET_CONFIGURATION_Handle *cfg)
-{
-  char *cnffile;
-  char *home_dir;
-  struct stat st;
-
-#ifndef WINDOWS
-  struct passwd *pw;
-#endif
-  int configured;
-
-#ifndef WINDOWS
-  pw = getpwuid (getuid ());
-  if (!pw)
-  {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "getpwuid");
-    return NULL;
-  }
-  if (GNUNET_YES ==
-      GNUNET_CONFIGURATION_have_value (cfg, "datastore-mysql", "CONFIG"))
-  {
-    GNUNET_assert (GNUNET_OK ==
-                   GNUNET_CONFIGURATION_get_value_filename (cfg,
-                                                            "datastore-mysql",
-                                                            "CONFIG",
-                                                            &cnffile));
-    configured = GNUNET_YES;
-  }
-  else
-  {
-    home_dir = GNUNET_strdup (pw->pw_dir);
-    GNUNET_asprintf (&cnffile, "%s/.my.cnf", home_dir);
-    GNUNET_free (home_dir);
-    configured = GNUNET_NO;
-  }
-#else
-  home_dir = (char *) GNUNET_malloc (_MAX_PATH + 1);
-  plibc_conv_to_win_path ("~/", home_dir);
-  GNUNET_asprintf (&cnffile, "%s/.my.cnf", home_dir);
-  GNUNET_free (home_dir);
-  configured = GNUNET_NO;
-#endif
-
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              _("Trying to use file `%s' for MySQL configuration.\n"), cnffile);
-  if ((0 != STAT (cnffile, &st)) || (0 != ACCESS (cnffile, R_OK)) ||
-      (!S_ISREG (st.st_mode)))
-  {
-    if (configured == GNUNET_YES)
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _("Could not access file `%s': %s\n"), cnffile,
-                  STRERROR (errno));
-    GNUNET_free (cnffile);
-    return NULL;
-  }
-  return cnffile;
-}
-
-
-/**
- * Close database connection and all prepared statements (we got a DB
- * disconnect error).
- *
- * @param plugin plugin context
- */
-static int
-iclose (struct Plugin *plugin)
-{
-  struct GNUNET_MysqlStatementHandle *s;
-
-  for (s = plugin->shead; s != NULL; s = s->next)
-  {
-    if (s->valid)
-    {
-      mysql_stmt_close (s->statement);
-      s->valid = GNUNET_NO;
-    }
-  }
-  if (plugin->dbf != NULL)
-  {
-    mysql_close (plugin->dbf);
-    plugin->dbf = NULL;
-  }
-  return GNUNET_OK;
-}
-
-
-/**
- * Open the connection with the database (and initialize
- * our default options).
- *
- * @param plugin plugin context
- * @return GNUNET_OK on success
- */
-static int
-iopen (struct Plugin *plugin)
-{
-  char *mysql_dbname;
-  char *mysql_server;
-  char *mysql_user;
-  char *mysql_password;
-  unsigned long long mysql_port;
-  my_bool reconnect;
-  unsigned int timeout;
-
-  plugin->dbf = mysql_init (NULL);
-  if (plugin->dbf == NULL)
-    return GNUNET_SYSERR;
-  if (plugin->cnffile != NULL)
-    mysql_options (plugin->dbf, MYSQL_READ_DEFAULT_FILE, plugin->cnffile);
-  mysql_options (plugin->dbf, MYSQL_READ_DEFAULT_GROUP, "client");
-  reconnect = 0;
-  mysql_options (plugin->dbf, MYSQL_OPT_RECONNECT, &reconnect);
-  timeout = 120;                /* in seconds */
-  mysql_options (plugin->dbf, MYSQL_OPT_CONNECT_TIMEOUT,
-                 (const void *) &timeout);
-  mysql_options (plugin->dbf, MYSQL_SET_CHARSET_NAME, "UTF8");
-  timeout = 60;                 /* in seconds */
-  mysql_options (plugin->dbf, MYSQL_OPT_READ_TIMEOUT, (const void *) &timeout);
-  mysql_options (plugin->dbf, MYSQL_OPT_WRITE_TIMEOUT, (const void *) &timeout);
-  mysql_dbname = NULL;
-  if (GNUNET_YES ==
-      GNUNET_CONFIGURATION_have_value (plugin->env->cfg, "datastore-mysql",
-                                       "DATABASE"))
-    GNUNET_assert (GNUNET_OK ==
-                   GNUNET_CONFIGURATION_get_value_string (plugin->env->cfg,
-                                                          "datastore-mysql",
-                                                          "DATABASE",
-                                                          &mysql_dbname));
-  else
-    mysql_dbname = GNUNET_strdup ("gnunet");
-  mysql_user = NULL;
-  if (GNUNET_YES ==
-      GNUNET_CONFIGURATION_have_value (plugin->env->cfg, "datastore-mysql",
-                                       "USER"))
-  {
-    GNUNET_assert (GNUNET_OK ==
-                   GNUNET_CONFIGURATION_get_value_string (plugin->env->cfg,
-                                                          "datastore-mysql",
-                                                          "USER", &mysql_user));
-  }
-  mysql_password = NULL;
-  if (GNUNET_YES ==
-      GNUNET_CONFIGURATION_have_value (plugin->env->cfg, "datastore-mysql",
-                                       "PASSWORD"))
-  {
-    GNUNET_assert (GNUNET_OK ==
-                   GNUNET_CONFIGURATION_get_value_string (plugin->env->cfg,
-                                                          "datastore-mysql",
-                                                          "PASSWORD",
-                                                          &mysql_password));
-  }
-  mysql_server = NULL;
-  if (GNUNET_YES ==
-      GNUNET_CONFIGURATION_have_value (plugin->env->cfg, "datastore-mysql",
-                                       "HOST"))
-  {
-    GNUNET_assert (GNUNET_OK ==
-                   GNUNET_CONFIGURATION_get_value_string (plugin->env->cfg,
-                                                          "datastore-mysql",
-                                                          "HOST",
-                                                          &mysql_server));
-  }
-  mysql_port = 0;
-  if (GNUNET_YES ==
-      GNUNET_CONFIGURATION_have_value (plugin->env->cfg, "datastore-mysql",
-                                       "PORT"))
-  {
-    GNUNET_assert (GNUNET_OK ==
-                   GNUNET_CONFIGURATION_get_value_number (plugin->env->cfg,
-                                                          "datastore-mysql",
-                                                          "PORT", &mysql_port));
-  }
-
-  GNUNET_assert (mysql_dbname != NULL);
-  mysql_real_connect (plugin->dbf, mysql_server, mysql_user, mysql_password,
-                      mysql_dbname, (unsigned int) mysql_port, NULL,
-                      CLIENT_IGNORE_SIGPIPE);
-  GNUNET_free_non_null (mysql_server);
-  GNUNET_free_non_null (mysql_user);
-  GNUNET_free_non_null (mysql_password);
-  GNUNET_free (mysql_dbname);
-  if (mysql_error (plugin->dbf)[0])
-  {
-    LOG_MYSQL (GNUNET_ERROR_TYPE_ERROR, "mysql_real_connect", plugin);
-    return GNUNET_SYSERR;
-  }
-  return GNUNET_OK;
-}
-
-
-/**
- * Run the given MySQL statement.
- *
- * @param plugin plugin context
- * @param statement SQL statement to run
- * @return GNUNET_OK on success, GNUNET_SYSERR on error
- */
-static int
-run_statement (struct Plugin *plugin, const char *statement)
-{
-  if ((NULL == plugin->dbf) && (GNUNET_OK != iopen (plugin)))
-    return GNUNET_SYSERR;
-  mysql_query (plugin->dbf, statement);
-  if (mysql_error (plugin->dbf)[0])
-  {
-    LOG_MYSQL (GNUNET_ERROR_TYPE_ERROR, "mysql_query", plugin);
-    iclose (plugin);
-    return GNUNET_SYSERR;
-  }
-  return GNUNET_OK;
-}
-
-
-/**
- * Create a prepared statement.
- *
- * @param plugin plugin context
- * @param statement SQL statement text to prepare
- * @return NULL on error
- */
-static struct GNUNET_MysqlStatementHandle *
-prepared_statement_create (struct Plugin *plugin, const char *statement)
-{
-  struct GNUNET_MysqlStatementHandle *ret;
-
-  ret = GNUNET_malloc (sizeof (struct GNUNET_MysqlStatementHandle));
-  ret->query = GNUNET_strdup (statement);
-  GNUNET_CONTAINER_DLL_insert (plugin->shead, plugin->stail, ret);
-  return ret;
-}
-
-
-/**
- * Prepare a statement for running.
- *
- * @param plugin plugin context
- * @param ret handle to prepared statement
- * @return GNUNET_OK on success
- */
-static int
-prepare_statement (struct Plugin *plugin,
-                   struct GNUNET_MysqlStatementHandle *ret)
-{
-  if (GNUNET_YES == ret->valid)
-    return GNUNET_OK;
-  if ((NULL == plugin->dbf) && (GNUNET_OK != iopen (plugin)))
-    return GNUNET_SYSERR;
-  ret->statement = mysql_stmt_init (plugin->dbf);
-  if (ret->statement == NULL)
-  {
-    iclose (plugin);
-    return GNUNET_SYSERR;
-  }
-  if (mysql_stmt_prepare (ret->statement, ret->query, strlen (ret->query)))
-  {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "mysql",
-                     _("Failed to prepare statement `%s'\n"), ret->query);
-    LOG_MYSQL (GNUNET_ERROR_TYPE_ERROR, "mysql_stmt_prepare", plugin);
-    mysql_stmt_close (ret->statement);
-    ret->statement = NULL;
-    iclose (plugin);
-    return GNUNET_SYSERR;
-  }
-  ret->valid = GNUNET_YES;
-  return GNUNET_OK;
-
-}
-
-
-/**
- * Bind the parameters for the given MySQL statement
- * and run it.
- *
- * @param plugin plugin context
- * @param s statement to bind and run
- * @param ap arguments for the binding
- * @return GNUNET_SYSERR on error, GNUNET_OK on success
- */
-static int
-init_params (struct Plugin *plugin, struct GNUNET_MysqlStatementHandle *s,
-             va_list ap)
-{
-  MYSQL_BIND qbind[MAX_PARAM];
-  unsigned int pc;
-  unsigned int off;
-  enum enum_field_types ft;
-
-  pc = mysql_stmt_param_count (s->statement);
-  if (pc > MAX_PARAM)
-  {
-    /* increase internal constant! */
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  memset (qbind, 0, sizeof (qbind));
-  off = 0;
-  ft = 0;
-  while ((pc > 0) && (-1 != (int) (ft = va_arg (ap, enum enum_field_types))))
-  {
-    qbind[off].buffer_type = ft;
-    switch (ft)
-    {
-    case MYSQL_TYPE_FLOAT:
-      qbind[off].buffer = va_arg (ap, float *);
-
-      break;
-    case MYSQL_TYPE_LONGLONG:
-      qbind[off].buffer = va_arg (ap, unsigned long long *);
-      qbind[off].is_unsigned = va_arg (ap, int);
-
-      break;
-    case MYSQL_TYPE_LONG:
-      qbind[off].buffer = va_arg (ap, unsigned int *);
-      qbind[off].is_unsigned = va_arg (ap, int);
-
-      break;
-    case MYSQL_TYPE_VAR_STRING:
-    case MYSQL_TYPE_STRING:
-    case MYSQL_TYPE_BLOB:
-      qbind[off].buffer = va_arg (ap, void *);
-      qbind[off].buffer_length = va_arg (ap, unsigned long);
-      qbind[off].length = va_arg (ap, unsigned long *);
-
-      break;
-    default:
-      /* unsupported type */
-      GNUNET_break (0);
-      return GNUNET_SYSERR;
-    }
-    pc--;
-    off++;
-  }
-  if (!((pc == 0) && (-1 != (int) ft) && (va_arg (ap, int) == -1)))
-  {
-    GNUNET_assert (0);
-    return GNUNET_SYSERR;
-  }
-  if (mysql_stmt_bind_param (s->statement, qbind))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("`%s' failed at %s:%d with error: %s\n"),
-                "mysql_stmt_bind_param", __FILE__, __LINE__,
-                mysql_stmt_error (s->statement));
-    iclose (plugin);
-    return GNUNET_SYSERR;
-  }
-  if (mysql_stmt_execute (s->statement))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("`%s' for `%s' failed at %s:%d with error: %s\n"),
-                "mysql_stmt_execute", s->query, __FILE__, __LINE__,
-                mysql_stmt_error (s->statement));
-    iclose (plugin);
-    return GNUNET_SYSERR;
-  }
-  return GNUNET_OK;
-}
-
-
-/**
- * Run a prepared SELECT statement.
- *
- * @param plugin plugin context
- * @param s statement to run
- * @param result_size number of elements in results array
- * @param results pointer to already initialized MYSQL_BIND
- *        array (of sufficient size) for passing results
- * @param ap pairs and triplets of "MYSQL_TYPE_XXX" keys and their respective
- *        values (size + buffer-reference for pointers); terminated
- *        with "-1"
- * @return GNUNET_SYSERR on error, otherwise GNUNET_OK or GNUNET_NO (no result)
- */
-static int
-prepared_statement_run_select_va (struct Plugin *plugin,
-                                  struct GNUNET_MysqlStatementHandle *s,
-                                  unsigned int result_size,
-                                  MYSQL_BIND * results, va_list ap)
-{
-  int ret;
-  unsigned int rsize;
-
-  if (GNUNET_OK != prepare_statement (plugin, s))
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  if (GNUNET_OK != init_params (plugin, s, ap))
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  rsize = mysql_stmt_field_count (s->statement);
-  if (rsize > result_size)
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  if (mysql_stmt_bind_result (s->statement, results))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("`%s' failed at %s:%d with error: %s\n"),
-                "mysql_stmt_bind_result", __FILE__, __LINE__,
-                mysql_stmt_error (s->statement));
-    iclose (plugin);
-    return GNUNET_SYSERR;
-  }
-  ret = mysql_stmt_fetch (s->statement);
-  if (ret == MYSQL_NO_DATA)
-    return GNUNET_NO;
-  if (ret != 0)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("`%s' failed at %s:%d with error: %s\n"), "mysql_stmt_fetch",
-                __FILE__, __LINE__, mysql_stmt_error (s->statement));
-    iclose (plugin);
-    return GNUNET_SYSERR;
-  }
-  mysql_stmt_reset (s->statement);
-  return GNUNET_OK;
-}
-
-
-/**
- * Run a prepared SELECT statement.
- *
- * @param plugin plugin context
- * @param s statement to run
- * @param result_size number of elements in results array
- * @param results pointer to already initialized MYSQL_BIND
- *        array (of sufficient size) for passing results
- * @param ... pairs and triplets of "MYSQL_TYPE_XXX" keys and their respective
- *        values (size + buffer-reference for pointers); terminated
- *        with "-1"
- * @return GNUNET_SYSERR on error, otherwise
- *         the number of successfully affected (or queried) rows
- */
-static int
-prepared_statement_run_select (struct Plugin *plugin,
-                               struct GNUNET_MysqlStatementHandle *s,
-                               unsigned int result_size, MYSQL_BIND * results,
-                               ...)
-{
-  va_list ap;
-  int ret;
-
-  va_start (ap, results);
-  ret = prepared_statement_run_select_va (plugin, s, result_size, results, ap);
-  va_end (ap);
-  return ret;
-}
-
-
-/**
- * Run a prepared statement that does NOT produce results.
- *
- * @param plugin plugin context
- * @param s statement to run
- * @param insert_id NULL or address where to store the row ID of whatever
- *        was inserted (only for INSERT statements!)
- * @param ... pairs and triplets of "MYSQL_TYPE_XXX" keys and their respective
- *        values (size + buffer-reference for pointers); terminated
- *        with "-1"
- * @return GNUNET_SYSERR on error, otherwise
- *         the number of successfully affected rows
- */
-static int
-prepared_statement_run (struct Plugin *plugin,
-                        struct GNUNET_MysqlStatementHandle *s,
-                        unsigned long long *insert_id, ...)
-{
-  va_list ap;
-  int affected;
-
-  if (GNUNET_OK != prepare_statement (plugin, s))
-    return GNUNET_SYSERR;
-  va_start (ap, insert_id);
-  if (GNUNET_OK != init_params (plugin, s, ap))
-  {
-    va_end (ap);
-    return GNUNET_SYSERR;
-  }
-  va_end (ap);
-  affected = mysql_stmt_affected_rows (s->statement);
-  if (NULL != insert_id)
-    *insert_id = (unsigned long long) mysql_stmt_insert_id (s->statement);
-  mysql_stmt_reset (s->statement);
-  return affected;
-}
 
 
 /**
@@ -776,9 +231,9 @@ do_delete_entry (struct Plugin *plugin, unsigned long long uid)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Deleting value %llu from gn090 table\n",
               uid);
 #endif
-  ret =
-      prepared_statement_run (plugin, plugin->delete_entry_by_uid, NULL,
-                              MYSQL_TYPE_LONGLONG, &uid, GNUNET_YES, -1);
+  ret = GNUNET_MYSQL_statement_run_prepared (plugin->mc,
+					     plugin->delete_entry_by_uid, NULL,
+					     MYSQL_TYPE_LONGLONG, &uid, GNUNET_YES, -1);
   if (ret >= 0)
     return GNUNET_OK;
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -807,7 +262,7 @@ mysql_plugin_estimate_size (void *cls)
   cbind[0].buffer = &total;
   cbind[0].is_unsigned = GNUNET_NO;
   if (GNUNET_OK !=
-      prepared_statement_run_select (plugin, plugin->get_size, 1, cbind, -1))
+      GNUNET_MYSQL_statement_run_prepared_select (plugin->mc, plugin->get_size, 1, cbind, NULL, NULL, -1))
     return 0;
   return total;
 }
@@ -857,7 +312,7 @@ mysql_plugin_put (void *cls, const GNUNET_HashCode * key, uint32_t size,
   lsize = size;
   GNUNET_CRYPTO_hash (data, size, &vhash);
   if (GNUNET_OK !=
-      prepared_statement_run (plugin, plugin->insert_entry, NULL,
+      GNUNET_MYSQL_statement_run_prepared (plugin->mc, plugin->insert_entry, NULL,
                               MYSQL_TYPE_LONG, &irepl, GNUNET_YES,
                               MYSQL_TYPE_LONG, &type, GNUNET_YES,
                               MYSQL_TYPE_LONG, &ipriority, GNUNET_YES,
@@ -917,8 +372,8 @@ mysql_plugin_update (void *cls, uint64_t uid, int delta,
               vkey, delta, lexpire);
 #endif
   ret =
-      prepared_statement_run (plugin, plugin->update_entry, NULL,
-                              MYSQL_TYPE_LONG, &delta, GNUNET_NO,
+    GNUNET_MYSQL_statement_run_prepared (plugin->mc, plugin->update_entry, NULL,
+					 MYSQL_TYPE_LONG, &delta, GNUNET_NO,
                               MYSQL_TYPE_LONGLONG, &lexpire, GNUNET_YES,
                               MYSQL_TYPE_LONGLONG, &lexpire, GNUNET_YES,
                               MYSQL_TYPE_LONGLONG, &vkey, GNUNET_YES, -1);
@@ -942,7 +397,7 @@ mysql_plugin_update (void *cls, uint64_t uid, int delta,
  * @param ... arguments to initialize stmt
  */
 static void
-execute_select (struct Plugin *plugin, struct GNUNET_MysqlStatementHandle *stmt,
+execute_select (struct Plugin *plugin, struct GNUNET_MYSQL_StatementHandle *stmt,
                 PluginDatumProcessor proc, void *proc_cls, ...)
 {
   va_list ap;
@@ -986,7 +441,7 @@ execute_select (struct Plugin *plugin, struct GNUNET_MysqlStatementHandle *stmt,
   rbind[6].is_unsigned = 1;
 
   va_start (ap, proc_cls);
-  ret = prepared_statement_run_select_va (plugin, stmt, 7, rbind, ap);
+  ret = GNUNET_MYSQL_statement_run_prepared_select_va (plugin->mc, stmt, 7, rbind, NULL, NULL, ap);
   va_end (ap);
   if (ret <= 0)
   {
@@ -1067,10 +522,10 @@ mysql_plugin_get_key (void *cls, uint64_t offset, const GNUNET_HashCode * key,
     if (vhash != NULL)
     {
       ret =
-          prepared_statement_run_select (plugin,
+	GNUNET_MYSQL_statement_run_prepared_select (plugin->mc,
                                          plugin->
                                          count_entry_by_hash_vhash_and_type, 1,
-                                         cbind, MYSQL_TYPE_BLOB, key, hashSize,
+						    cbind, NULL, NULL, MYSQL_TYPE_BLOB, key, hashSize,
                                          &hashSize, MYSQL_TYPE_BLOB, vhash,
                                          hashSize2, &hashSize2, MYSQL_TYPE_LONG,
                                          &type, GNUNET_YES, -1);
@@ -1078,9 +533,9 @@ mysql_plugin_get_key (void *cls, uint64_t offset, const GNUNET_HashCode * key,
     else
     {
       ret =
-          prepared_statement_run_select (plugin,
+	GNUNET_MYSQL_statement_run_prepared_select (plugin->mc,
                                          plugin->count_entry_by_hash_and_type,
-                                         1, cbind, MYSQL_TYPE_BLOB, key,
+						    1, cbind, NULL, NULL, MYSQL_TYPE_BLOB, key,
                                          hashSize, &hashSize, MYSQL_TYPE_LONG,
                                          &type, GNUNET_YES, -1);
     }
@@ -1090,9 +545,9 @@ mysql_plugin_get_key (void *cls, uint64_t offset, const GNUNET_HashCode * key,
     if (vhash != NULL)
     {
       ret =
-          prepared_statement_run_select (plugin,
+	GNUNET_MYSQL_statement_run_prepared_select (plugin->mc,
                                          plugin->count_entry_by_hash_and_vhash,
-                                         1, cbind, MYSQL_TYPE_BLOB, key,
+						    1, cbind, NULL, NULL, MYSQL_TYPE_BLOB, key,
                                          hashSize, &hashSize, MYSQL_TYPE_BLOB,
                                          vhash, hashSize2, &hashSize2, -1);
 
@@ -1100,8 +555,8 @@ mysql_plugin_get_key (void *cls, uint64_t offset, const GNUNET_HashCode * key,
     else
     {
       ret =
-          prepared_statement_run_select (plugin, plugin->count_entry_by_hash, 1,
-                                         cbind, MYSQL_TYPE_BLOB, key, hashSize,
+	GNUNET_MYSQL_statement_run_prepared_select (plugin->mc, plugin->count_entry_by_hash, 1,
+						    cbind, NULL, NULL, MYSQL_TYPE_BLOB, key, hashSize,
                                          &hashSize, -1);
     }
   }
@@ -1244,8 +699,8 @@ repl_proc (void *cls, const GNUNET_HashCode * key, uint32_t size,
   {
     oid = (unsigned long long) uid;
     iret =
-        prepared_statement_run (plugin, plugin->dec_repl, NULL,
-                                MYSQL_TYPE_LONGLONG, &oid, GNUNET_YES, -1);
+      GNUNET_MYSQL_statement_run_prepared (plugin->mc, plugin->dec_repl, NULL,
+					   MYSQL_TYPE_LONGLONG, &oid, GNUNET_YES, -1);
     if (iret == GNUNET_SYSERR)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -1287,7 +742,7 @@ mysql_plugin_get_replication (void *cls, PluginDatumProcessor proc,
   results.is_unsigned = GNUNET_YES;
 
   if (1 !=
-      prepared_statement_run_select (plugin, plugin->max_repl, 1, &results, -1))
+      GNUNET_MYSQL_statement_run_prepared_select (plugin->mc, plugin->max_repl, 1, &results, NULL, NULL, -1))
   {
     proc (proc_cls, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
     return;
@@ -1324,19 +779,18 @@ mysql_plugin_get_keys (void *cls,
   MYSQL_BIND cbind[1];
   unsigned long length;
  
-  statement = mysql_stmt_init (plugin->dbf);
+  statement = GNUNET_MYSQL_statement_get_stmt (plugin->mc,
+					       plugin->get_all_keys);
   if (statement == NULL)
   {
-    iclose (plugin);
+    GNUNET_MYSQL_statements_invalidate (plugin->mc);
     return;
   }
   if (mysql_stmt_prepare (statement, query, strlen (query)))
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "mysql",
                      _("Failed to prepare statement `%s'\n"), query);
-    LOG_MYSQL (GNUNET_ERROR_TYPE_ERROR, "mysql_stmt_prepare", plugin);
-    mysql_stmt_close (statement);
-    iclose (plugin);
+    GNUNET_MYSQL_statements_invalidate (plugin->mc);
     return;
   }
   GNUNET_assert (proc != NULL);
@@ -1346,8 +800,7 @@ mysql_plugin_get_keys (void *cls,
                 _("`%s' for `%s' failed at %s:%d with error: %s\n"),
                 "mysql_stmt_execute", query, __FILE__, __LINE__,
                 mysql_stmt_error (statement));
-    mysql_stmt_close (statement);
-    iclose (plugin);
+    GNUNET_MYSQL_statements_invalidate (plugin->mc);
     return;
   }
   memset (cbind, 0, sizeof (cbind));
@@ -1362,7 +815,7 @@ mysql_plugin_get_keys (void *cls,
                 _("`%s' failed at %s:%d with error: %s\n"),
                 "mysql_stmt_bind_result", __FILE__, __LINE__,
                 mysql_stmt_error (statement));
-    iclose (plugin);
+    GNUNET_MYSQL_statements_invalidate (plugin->mc);
     return;
   }
   while (0 == (ret = mysql_stmt_fetch (statement)))
@@ -1376,11 +829,10 @@ mysql_plugin_get_keys (void *cls,
                 _("`%s' failed at %s:%d with error: %s\n"),
 		     "mysql_stmt_fetch", __FILE__, __LINE__,
 		     mysql_stmt_error (statement));    
-    mysql_stmt_close (statement);
-    iclose (plugin);
+    GNUNET_MYSQL_statements_invalidate (plugin->mc);
     return;
   }
-  mysql_stmt_close (statement);
+  mysql_stmt_reset (statement);
 }
 
 
@@ -1484,7 +936,7 @@ mysql_plugin_drop (void *cls)
 {
   struct Plugin *plugin = cls;
 
-  if (GNUNET_OK != run_statement (plugin, "DROP TABLE gn090"))
+  if (GNUNET_OK != GNUNET_MYSQL_statement_run (plugin->mc, "DROP TABLE gn090"))
     return;                     /* error */
   plugin->env->duc (plugin->env->cls, 0);
 }
@@ -1505,16 +957,14 @@ libgnunet_plugin_datastore_mysql_init (void *cls)
 
   plugin = GNUNET_malloc (sizeof (struct Plugin));
   plugin->env = env;
-  plugin->cnffile = get_my_cnf_path (env->cfg);
-  if (GNUNET_OK != iopen (plugin))
+  plugin->mc = GNUNET_MYSQL_context_create (env->cfg, "datastore-mysql");
+  if (NULL == plugin->mc)
   {
-    iclose (plugin);
-    GNUNET_free_non_null (plugin->cnffile);
     GNUNET_free (plugin);
     return NULL;
   }
-#define MRUNS(a) (GNUNET_OK != run_statement (plugin, a) )
-#define PINIT(a,b) (NULL == (a = prepared_statement_create(plugin, b)))
+#define MRUNS(a) (GNUNET_OK != GNUNET_MYSQL_statement_run (plugin->mc, a) )
+#define PINIT(a,b) (NULL == (a = GNUNET_MYSQL_statement_prepare (plugin->mc, b)))
   if (MRUNS
       ("CREATE TABLE IF NOT EXISTS gn090 ("
        " repl INT(11) UNSIGNED NOT NULL DEFAULT 0,"
@@ -1556,10 +1006,10 @@ libgnunet_plugin_datastore_mysql_init (void *cls)
       PINIT (plugin->select_expiration, SELECT_IT_EXPIRATION) ||
       PINIT (plugin->select_priority, SELECT_IT_PRIORITY) ||
       PINIT (plugin->max_repl, SELECT_MAX_REPL) ||
+      PINIT (plugin->get_all_keys, GET_ALL_KEYS) ||
       PINIT (plugin->select_replication, SELECT_IT_REPLICATION))
   {
-    iclose (plugin);
-    GNUNET_free_non_null (plugin->cnffile);
+    GNUNET_MYSQL_context_destroy (plugin->mc);
     GNUNET_free (plugin);
     return NULL;
   }
@@ -1593,19 +1043,10 @@ libgnunet_plugin_datastore_mysql_done (void *cls)
 {
   struct GNUNET_DATASTORE_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;
-  struct GNUNET_MysqlStatementHandle *s;
 
-  iclose (plugin);
-  while (NULL != (s = plugin->shead))
-  {
-    GNUNET_CONTAINER_DLL_remove (plugin->shead, plugin->stail, s);
-    GNUNET_free (s->query);
-    GNUNET_free (s);
-  }
-  GNUNET_free_non_null (plugin->cnffile);
+  GNUNET_MYSQL_context_destroy (plugin->mc);
   GNUNET_free (plugin);
   GNUNET_free (api);
-  mysql_library_end ();
   return NULL;
 }
 

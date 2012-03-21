@@ -86,6 +86,31 @@ GNUNET_MYSQL_context_destroy (struct GNUNET_MYSQL_Context *mc);
 
 
 /**
+ * Close database connection and all prepared statements (we got a DB
+ * error).  The connection will automatically be re-opened and
+ * statements will be re-prepared if they are needed again later.
+ *
+ * @param mc mysql context
+ */
+void
+GNUNET_MYSQL_statements_invalidate (struct GNUNET_MYSQL_Context *mc);
+
+
+/**
+ * Get internal handle for a prepared statement.  This function should rarely
+ * be used, and if, with caution!  On failures during the interaction with
+ * the handle, you must call 'GNUNET_MYSQL_statements_invalidate'!
+ *
+ * @param mc mysql context
+ * @param sh prepared statement to introspect
+ * @return MySQL statement handle, NULL on error
+ */
+MYSQL_STMT *
+GNUNET_MYSQL_statement_get_stmt (struct GNUNET_MYSQL_Context *mc,
+				 struct GNUNET_MYSQL_StatementHandle *sh);
+
+
+/**
  * Prepare a statement.  Prepared statements are automatically discarded
  * when the MySQL context is destroyed.
  *
@@ -133,6 +158,30 @@ GNUNET_MYSQL_statement_run_prepared_select (struct GNUNET_MYSQL_Context *mc,
 					    unsigned int result_size, MYSQL_BIND * results,
 					    GNUNET_MYSQL_DataProcessor processor,
 					    void *processor_cls, ...);
+
+
+/**
+ * Run a prepared SELECT statement.
+ *
+ * @param mc mysql context
+ * @param s statement to run
+ * @param result_size number of elements in results array
+ * @param results pointer to already initialized MYSQL_BIND
+ *        array (of sufficient size) for passing results
+ * @param ap pairs and triplets of "MYSQL_TYPE_XXX" keys and their respective
+ *        values (size + buffer-reference for pointers); terminated
+ *        with "-1"
+ * @return GNUNET_SYSERR on error, otherwise
+ *         the number of successfully affected (or queried) rows
+ */
+int
+GNUNET_MYSQL_statement_run_prepared_select_va (struct GNUNET_MYSQL_Context *mc,
+					       struct GNUNET_MYSQL_StatementHandle *s,
+					       unsigned int result_size,
+					       MYSQL_BIND * results,
+					       GNUNET_MYSQL_DataProcessor processor,
+					       void *processor_cls,
+					       va_list ap);
 
 
 /**

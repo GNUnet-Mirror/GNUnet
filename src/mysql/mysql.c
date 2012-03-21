@@ -315,12 +315,12 @@ GNUNET_MYSQL_context_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 /**
  * Close database connection and all prepared statements (we got a DB
- * disconnect error).
+ * error).
  *
  * @param mc mysql context
  */
-static void
-iclose (struct GNUNET_MYSQL_Context *mc)
+void
+GNUNET_MYSQL_statements_invalidate (struct GNUNET_MYSQL_Context *mc)
 {
   struct GNUNET_MYSQL_StatementHandle *sh;
 
@@ -351,7 +351,7 @@ GNUNET_MYSQL_context_destroy (struct GNUNET_MYSQL_Context *mc)
 {
   struct GNUNET_MYSQL_StatementHandle *sh;
 
-  iclose (mc);
+  GNUNET_MYSQL_statements_invalidate (mc);
   while (NULL != (sh = mc->shead))
   {
     GNUNET_CONTAINER_DLL_remove (mc->shead, mc->stail, sh);
@@ -402,7 +402,7 @@ GNUNET_MYSQL_statement_run (struct GNUNET_MYSQL_Context *mc,
   if (mysql_error (mc->dbf)[0])
   {
     LOG_MYSQL (GNUNET_ERROR_TYPE_ERROR, "mysql_query", mc);
-    iclose (mc);
+    GNUNET_MYSQL_statements_invalidate (mc);
     return GNUNET_SYSERR;
   }
   return GNUNET_OK;
@@ -427,7 +427,7 @@ prepare_statement (struct GNUNET_MYSQL_Context *mc,
   sh->statement = mysql_stmt_init (mc->dbf);
   if (NULL == sh->statement)
   {
-    iclose (mc);
+    GNUNET_MYSQL_statements_invalidate (mc);
     return GNUNET_SYSERR;
   }
   if (0 != mysql_stmt_prepare (sh->statement, sh->query, strlen (sh->query)))
@@ -435,11 +435,29 @@ prepare_statement (struct GNUNET_MYSQL_Context *mc,
     LOG_MYSQL (GNUNET_ERROR_TYPE_ERROR, "mysql_stmt_prepare", mc);
     mysql_stmt_close (sh->statement);
     sh->statement = NULL;
-    iclose (mc);
+    GNUNET_MYSQL_statements_invalidate (mc);
     return GNUNET_SYSERR;
   }
   sh->valid = GNUNET_YES;
   return GNUNET_OK;
+}
+
+
+/**
+ * Get internal handle for a prepared statement.  This function should rarely
+ * be used, and if, with caution!  On failures during the interaction with
+ * the handle, you must call 'GNUNET_MYSQL_statements_invalidate'!
+ *
+ * @param mc mysql context
+ * @param sh prepared statement to introspect
+ * @return MySQL statement handle, NULL on error
+ */
+MYSQL_STMT *
+GNUNET_MYSQL_statement_get_stmt (struct GNUNET_MYSQL_Context *mc,
+				 struct GNUNET_MYSQL_StatementHandle *sh)
+{
+  (void) prepare_statement (mc, sh);
+  return sh->statement;
 }
 
 
@@ -519,7 +537,7 @@ init_params (struct GNUNET_MYSQL_Context *mc,
 		     _("`%s' failed at %s:%d with error: %s\n"),
 		     "mysql_stmt_bind_param", __FILE__, __LINE__,
 		     mysql_stmt_error (sh->statement));
-    iclose (mc);
+    GNUNET_MYSQL_statements_invalidate (mc);
     return GNUNET_SYSERR;
   }
   if (mysql_stmt_execute (sh->statement))
@@ -529,10 +547,90 @@ init_params (struct GNUNET_MYSQL_Context *mc,
 		     _("`%s' failed at %s:%d with error: %s\n"),
 		     "mysql_stmt_execute", __FILE__, __LINE__,
 		     mysql_stmt_error (sh->statement));
-    iclose (mc);
+    GNUNET_MYSQL_statements_invalidate (mc);
     return GNUNET_SYSERR;
   }
   return GNUNET_OK;
+}
+
+
+
+/**
+ * Run a prepared SELECT statement.
+ *
+ * @param mc mysql context
+ * @param s statement to run
+ * @param result_size number of elements in results array
+ * @param results pointer to already initialized MYSQL_BIND
+ *        array (of sufficient size) for passing results
+ * @param ap pairs and triplets of "MYSQL_TYPE_XXX" keys and their respective
+ *        values (size + buffer-reference for pointers); terminated
+ *        with "-1"
+ * @return GNUNET_SYSERR on error, otherwise
+ *         the number of successfully affected (or queried) rows
+ */
+int
+GNUNET_MYSQL_statement_run_prepared_select_va (struct GNUNET_MYSQL_Context *mc,
+					       struct GNUNET_MYSQL_StatementHandle *s,
+					       unsigned int result_size,
+					       MYSQL_BIND * results,
+					       GNUNET_MYSQL_DataProcessor processor,
+					       void *processor_cls,
+					       va_list ap)
+{
+  int ret;
+  unsigned int rsize;
+  int total;
+
+  if (GNUNET_OK != prepare_statement (mc, s))
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  if (GNUNET_OK != init_params (mc, s, ap))
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  rsize = mysql_stmt_field_count (s->statement);
+  if (rsize > result_size)
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  if (mysql_stmt_bind_result (s->statement, results))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("`%s' failed at %s:%d with error: %s\n"),
+                "mysql_stmt_bind_result", __FILE__, __LINE__,
+                mysql_stmt_error (s->statement));
+    GNUNET_MYSQL_statements_invalidate (mc);
+    return GNUNET_SYSERR;
+  }
+ 
+  total = 0;
+  while (1)
+  {
+    ret = mysql_stmt_fetch (s->statement);
+    if (ret == MYSQL_NO_DATA)
+      break;
+    if (ret != 0)
+    {
+      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+		       "mysql",
+		       _("`%s' failed at %s:%d with error: %s\n"),
+		       "mysql_stmt_fetch", __FILE__, __LINE__,
+		       mysql_stmt_error (s->statement));
+      GNUNET_MYSQL_statements_invalidate (mc);
+      return GNUNET_SYSERR;
+    }
+    total++;
+    if ( (NULL == processor) ||
+	 (GNUNET_OK != processor (processor_cls, rsize, results)) )
+      break;
+  }
+  mysql_stmt_reset (s->statement);
+  return total;
 }
 
 
@@ -561,62 +659,11 @@ GNUNET_MYSQL_statement_run_prepared_select (struct GNUNET_MYSQL_Context *mc,
 {
   va_list ap;
   int ret;
-  unsigned int rsize;
-  int total;
 
-  if (GNUNET_OK != prepare_statement (mc, sh))
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
   va_start (ap, processor_cls);
-  if (GNUNET_OK != init_params (mc, sh, ap))
-  {
-    GNUNET_break (0);
-    va_end (ap);
-    return GNUNET_SYSERR;
-  }
+  ret = GNUNET_MYSQL_statement_run_prepared_select_va (mc, sh, result_size, results, processor, processor_cls, ap);
   va_end (ap);
-  rsize = mysql_stmt_field_count (sh->statement);
-  if (rsize > result_size)
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  if (mysql_stmt_bind_result (sh->statement, results))
-  {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
-		     "mysql",
-		     _("`%s' failed at %s:%d with error: %s\n"),
-		     "mysql_stmt_bind_result", __FILE__, __LINE__,
-		     mysql_stmt_error (sh->statement));
-    iclose (mc);
-    return GNUNET_SYSERR;
-  }
-
-  total = 0;
-  while (1)
-  {
-    ret = mysql_stmt_fetch (sh->statement);
-    if (ret == MYSQL_NO_DATA)
-      break;
-    if (ret != 0)
-    {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
-		       "mysql",
-		       _("`%s' failed at %s:%d with error: %s\n"),
-		       "mysql_stmt_fetch", __FILE__, __LINE__,
-		       mysql_stmt_error (sh->statement));
-      iclose (mc);
-      return GNUNET_SYSERR;
-    }
-    if (processor != NULL)
-      if (GNUNET_OK != processor (processor_cls, rsize, results))
-        break;
-    total++;
-  }
-  mysql_stmt_reset (sh->statement);
-  return total;
+  return ret;
 }
 
 
