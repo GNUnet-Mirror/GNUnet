@@ -931,6 +931,44 @@ process_delegation_result_dht(void* cls,
   rh->proc(rh->proc_cls, rh, 0, NULL);
 }
 
+#define MAX_SOA_LENGTH sizeof(uint32_t)+sizeof(uint32_t)+sizeof(uint32_t)+sizeof(uint32_t)\
+                        +(MAX_DNS_NAME_LENGTH*2)
+#define MAX_MX_LENGTH sizeof(uint16_t)+MAX_DNS_NAME_LENGTH
+
+
+static void
+expand_plus(char** dest, char* src, char* repl)
+{
+  char* pos;
+  unsigned int s_len = strlen(src)+1;
+
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Got %s to expand with %s\n", src, repl);
+
+  if (s_len < 3)
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "%s to short\n", src);
+
+    /* no postprocessing */
+    memcpy(*dest, src, s_len+1);
+    return;
+  }
+  
+  if (0 == strcmp(src+s_len-3, ".+"))
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "Expanding .+ in %s\n", src);
+    memset(*dest, 0, s_len+strlen(repl)+strlen(GNUNET_GNS_TLD));
+    strcpy(*dest, src);
+    pos = *dest+s_len-2;
+    strcpy(pos, repl);
+    pos += strlen(repl);
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "Expanded to %s\n", *dest);
+  }
+}
+
 /**
  * finish lookup
  */
@@ -941,13 +979,13 @@ finish_lookup(struct ResolverHandle *rh,
               const struct GNUNET_NAMESTORE_RecordData *rd)
 {
   int i;
-  char* s_value;
-  char new_s_value[256];
-  char new_mx_value[sizeof(uint16_t)+256];
-  int s_len;
+  char new_rr_data[MAX_DNS_NAME_LENGTH];
+  char new_mx_data[MAX_MX_LENGTH];
+  char new_soa_data[MAX_SOA_LENGTH];
   struct GNUNET_NAMESTORE_RecordData p_rd[rd_count];
+  char* repl_string;
   char* pos;
-  char* trailer;
+  unsigned int offset;
 
   if (rd_count > 0)
     memcpy(p_rd, rd, rd_count*sizeof(struct GNUNET_NAMESTORE_RecordData));
@@ -957,7 +995,8 @@ finish_lookup(struct ResolverHandle *rh,
 
     if (rd[i].record_type != GNUNET_GNS_RECORD_TYPE_NS &&
         rd[i].record_type != GNUNET_GNS_RECORD_TYPE_CNAME &&
-        rd[i].record_type != GNUNET_GNS_RECORD_MX)
+        rd[i].record_type != GNUNET_GNS_RECORD_MX &&
+        rd[i].record_type != GNUNET_GNS_RECORD_TYPE_SOA)
     {
       p_rd[i].data = rd[i].data;
       continue;
@@ -966,65 +1005,52 @@ finish_lookup(struct ResolverHandle *rh,
     /**
      * for all those records we 'should'
      * also try to resolve the A/AAAA records (RFC1035)
-     * FIXME
+     * This is a feature and not important
      */
+    
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "Postprocessing\n");
+
+    if (strcmp(rh->name, "+") == 0)
+      repl_string = rlh->name;
+    else
+      repl_string = rlh->name+strlen(rh->name)+1;
+
+    offset = 0;
     if (rd[i].record_type == GNUNET_GNS_RECORD_MX)
     {
-      s_value = (char*)rd[i].data+sizeof(uint16_t);
+      memcpy(new_mx_data, (char*)rd[i].data, sizeof(uint16_t));
+      offset = sizeof(uint16_t);
+      pos = new_mx_data+offset;
+      expand_plus(&pos, (char*)rd[i].data+sizeof(uint16_t),
+                  repl_string);
+      offset += strlen(new_mx_data+sizeof(uint16_t))+1;
+      p_rd[i].data = new_mx_data;
+      p_rd[i].data_size = offset;
+    }
+    else if (rd[i].record_type == GNUNET_GNS_RECORD_TYPE_SOA)
+    {
+      /* expand mname and rname */
+      pos = new_soa_data;
+      expand_plus(&pos, (char*)rd[i].data, repl_string);
+      offset = strlen(new_soa_data)+1;
+      pos = new_soa_data+offset;
+      expand_plus(&pos, (char*)rd[i].data+offset, repl_string);
+      offset += strlen(new_soa_data+offset)+1;
+      /* cpy the 4 numbers serial refresh retry and expire */
+      memcpy(new_soa_data+offset, (char*)rd[i].data+offset, sizeof(uint32_t)*4);
+      offset += sizeof(uint32_t)*4;
+      p_rd[i].data_size = offset;
+      p_rd[i].data = new_soa_data;
     }
     else
     {
-      s_value = (char*)rd[i].data;
+      pos = new_rr_data;
+      expand_plus(&pos, (char*)rd[i].data, repl_string);
+      p_rd[i].data_size = strlen(new_rr_data)+1;
+      p_rd[i].data = new_rr_data;
     }
     
-    s_len = strlen(s_value)+1;
-
-    if (s_len < 3)
-    {
-      /* no postprocessing */
-      p_rd[i].data = rd[i].data;
-      continue;
-    }
-
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "Postprocessing %s\n", s_value);
-
-    if (0 == strcmp(s_value+s_len-3, ".+"))
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "Expanding .+ in %s\n", s_value);
-      if (strcmp(rh->name, "+") == 0)
-      {
-        trailer = rlh->name;
-      }
-      else
-      {
-        trailer = rlh->name+strlen(rh->name)+1;
-      }
-      memset(new_s_value, 0, s_len+strlen(trailer)+strlen(GNUNET_GNS_TLD));
-      strcpy(new_s_value, s_value);
-      pos = new_s_value+s_len-2;
-      strcpy(pos, trailer);
-      pos += strlen(trailer);
-      if (rd[i].record_type == GNUNET_GNS_RECORD_MX)
-      {
-
-        p_rd[i].data_size = sizeof(uint16_t)+strlen(new_s_value)+1;
-        
-        p_rd[i].data = new_mx_value;
-        /* cpy preference */
-        memcpy(new_mx_value, (char*)rd[i].data, sizeof(uint16_t));
-        /* cpy string */
-        memcpy(new_mx_value+sizeof(uint16_t), new_s_value, strlen(new_s_value)+1);
-      }
-      else
-      {
-        p_rd[i].data = new_s_value;
-        p_rd[i].data_size = strlen(new_s_value)+1;
-      }
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "Expanded to %s\n", new_s_value);
-    }
   }
 
   rlh->proc(rlh->proc_cls, rd_count, p_rd);
