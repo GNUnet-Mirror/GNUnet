@@ -887,6 +887,7 @@ src/include/gnunet_directories.h
 src/hostlist/Makefile
 src/mesh/Makefile
 src/mesh/mesh.conf
+src/mysql/Makefile
 src/namestore/Makefile
 src/namestore/namestore.conf
 src/nat/Makefile

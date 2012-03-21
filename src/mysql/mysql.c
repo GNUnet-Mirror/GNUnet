@@ -359,6 +359,7 @@ GNUNET_MYSQL_context_destroy (struct GNUNET_MYSQL_Context *mc)
     GNUNET_free (sh);
   }
   GNUNET_free (mc);
+  mysql_library_end ();
 }
 
 
