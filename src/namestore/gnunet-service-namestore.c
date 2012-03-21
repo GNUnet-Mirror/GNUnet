@@ -1016,16 +1016,30 @@ handle_record_remove_it (void *cls,
   found = GNUNET_SYSERR;
   for (c = 0; c < rd_count; c++)
   {
-    if ((rd[c].expiration.abs_value == rrc->rd->expiration.abs_value) &&
-        (rd[c].flags == rrc->rd->flags) &&
-        (rd[c].record_type == rrc->rd->record_type) &&
-        (rd[c].data_size == rrc->rd->data_size) &&
-        (0 == memcmp (rd[c].data, rrc->rd->data, rrc->rd->data_size)))
-        {
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found record to remove!\n", rd_count);
-          found = c;
-          break;
-        }
+    if (rd[c].expiration.abs_value != rrc->rd->expiration.abs_value)
+      continue;
+    GNUNET_break(0);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "SENT FLAGES: %u \n",rd[c].flags);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "STORED FLAGES: %u \n",rrc->rd->flags);
+    /*
+    if (rd[c].flags != rrc->rd->flags)
+       continue;*/
+    GNUNET_break(0);
+    if (rd[c].record_type != rrc->rd->record_type)
+       continue;
+    GNUNET_break(0);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "SENT FLAGES: %u \n",rd[c].data_size);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "STORED FLAGES: %u \n",rrc->rd->data_size);
+    /*
+    if (rd[c].data_size != rrc->rd->data_size)
+       continue;
+    GNUNET_break(0);
+    if (0 != memcmp (rd[c].data, rrc->rd->data, rrc->rd->data_size))
+        continue;
+    GNUNET_break(0); */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found record to remove!\n", rd_count);
+    found = c;
+    break;
   }
   if (GNUNET_SYSERR == found)
   {
@@ -1127,7 +1141,7 @@ static void handle_record_remove (void *cls,
     return;
   }
 
-  if ((rd_count != 1) || (rd_ser_len < 1) || (name_len >=256) || (name_len == 0))
+  if ((name_len >=256) || (name_len == 0))
   {
     GNUNET_break_op (0);
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -1138,13 +1152,6 @@ static void handle_record_remove (void *cls,
   if (msg_size != msg_size_exp)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Expected message %u size but message size is %u \n", msg_size_exp, msg_size);
-    GNUNET_break_op (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_OK);
-    return;
-  }
-
-  if ((rd_count != 1) || (rd_ser_len < 1) || (name_len >=256) || (name_len == 0))
-  {
     GNUNET_break_op (0);
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
@@ -1188,31 +1195,51 @@ static void handle_record_remove (void *cls,
     GNUNET_CONTAINER_multihashmap_put(zonekeys, &long_hash, cc, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
   }
 
+
   struct GNUNET_NAMESTORE_RecordData rd[rd_count];
   res = GNUNET_NAMESTORE_records_deserialize(rd_ser_len, rd_ser, rd_count, rd);
-  if ((res != GNUNET_OK) || (rd_count != 1))
+  if ((res != GNUNET_OK) || (rd_count > 1))
   {
     GNUNET_break_op (0);
     goto send;
   }
 
-  struct RemoveRecordContext rrc;
-  rrc.rd = rd;
-  rrc.pkey = pkey;
+  if (0 == rd_count)
+  {
+    /* remove the whole name and all records */
+    /* Database operation */
+    res = GSN_database->remove_records (GSN_database->cls,
+                                         &pubkey_hash,
+                                         name_tmp);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Removing name `%s': %s\n",
+        name_tmp, (GNUNET_OK == res) ? "OK" : "FAIL");
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Removing record for name `%s' in zone `%s'\n", name_tmp, GNUNET_short_h2s(&pubkey_hash));
+    if (GNUNET_OK != res)
+      /* Could not remove entry from database */
+      res = 4;
+    else
+      res = 0;
+  }
+  else
+  {
+    /* remove a single record */
+    struct RemoveRecordContext rrc;
+    rrc.rd = rd;
+    rrc.pkey = pkey;
 
-  /* Database operation */
-  res = GSN_database->iterate_records (GSN_database->cls,
-                                       &pubkey_hash,
-                                       name_tmp,
-                                       0,
-                                       handle_record_remove_it, &rrc);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Removing record for name `%s' in zone `%s'\n", name_tmp, GNUNET_short_h2s(&pubkey_hash));
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Removing record for name `%s': %s\n",
-      name_tmp, (rrc.op_res == 0) ? "OK" : "FAIL");
-  res = rrc.op_res;
+    /* Database operation */
+    res = GSN_database->iterate_records (GSN_database->cls,
+                                         &pubkey_hash,
+                                         name_tmp,
+                                         0,
+                                         handle_record_remove_it, &rrc);
 
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Removing record for name `%s': %s\n",
+        name_tmp, (rrc.op_res == 0) ? "OK" : "FAIL");
+    res = rrc.op_res;
+  }
   /* Send response */
 send:
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message\n", "RECORD_REMOVE_RESPONSE");

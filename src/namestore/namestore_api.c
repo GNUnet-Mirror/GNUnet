@@ -1221,7 +1221,7 @@ GNUNET_NAMESTORE_record_create (struct GNUNET_NAMESTORE_Handle *h,
  * @param h handle to the namestore
  * @param pkey private key of the zone
  * @param name name that is being mapped (at most 255 characters long)
- * @param rd record data
+ * @param rd record data, remove specific record,  NULL to remove the name and all records
  * @param cont continuation to call when done
  * @param cont_cls closure for cont
  * @return handle to abort the request
@@ -1244,6 +1244,7 @@ GNUNET_NAMESTORE_record_remove (struct GNUNET_NAMESTORE_Handle *h,
   size_t name_len = 0;
   size_t key_len = 0;
   uint32_t rid = 0;
+  uint16_t rd_count = 1;
 
   GNUNET_assert (NULL != h);
 
@@ -1260,9 +1261,13 @@ GNUNET_NAMESTORE_record_remove (struct GNUNET_NAMESTORE_Handle *h,
   GNUNET_assert (pkey_enc != NULL);
   key_len = ntohs (pkey_enc->len);
 
-  rd_ser_len = GNUNET_NAMESTORE_records_get_size(1, rd);
+  if (NULL == rd)
+    rd_count = 0;
+  else
+    rd_count = 1;
+  rd_ser_len = GNUNET_NAMESTORE_records_get_size (rd_count, rd);
   char rd_ser[rd_ser_len];
-  GNUNET_NAMESTORE_records_serialize(1, rd, rd_ser_len, rd_ser);
+  GNUNET_NAMESTORE_records_serialize (rd_count, rd, rd_ser_len, rd_ser);
 
   name_len = strlen (name) + 1;
 
@@ -1284,7 +1289,7 @@ GNUNET_NAMESTORE_record_remove (struct GNUNET_NAMESTORE_Handle *h,
   msg->gns_header.r_id = htonl (rid);
   msg->name_len = htons (name_len);
   msg->rd_len = htons (rd_ser_len);
-  msg->rd_count = htons (1);
+  msg->rd_count = htons (rd_count);
   msg->pkey_len = htons (key_len);
   memcpy (pkey_tmp, pkey_enc, key_len);
   memcpy (name_tmp, name, name_len);
