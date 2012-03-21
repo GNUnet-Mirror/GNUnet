@@ -468,7 +468,6 @@ libgnunet_plugin_datacache_mysql_done (void *cls)
   GNUNET_MYSQL_context_destroy (plugin->mc);
   GNUNET_free (plugin);
   GNUNET_free (api);
-  mysql_library_end ();
   return NULL;
 }
 
