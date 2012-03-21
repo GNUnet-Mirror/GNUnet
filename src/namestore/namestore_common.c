@@ -292,6 +292,7 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
 				  size_t data_size)
 {
   char tmp[INET6_ADDRSTRLEN];
+  struct GNUNET_CRYPTO_ShortHashAsciiEncoded enc;
 
   switch (type)
   {
@@ -328,9 +329,11 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
       return NULL;
     return GNUNET_strdup (tmp);
   case GNUNET_NAMESTORE_TYPE_PKEY:
-    if (data_size != sizeof (GNUNET_HashCode))
+    if (data_size != sizeof (struct GNUNET_ShortHashCode))
       return NULL;
-    return GNUNET_strdup (GNUNET_h2s_full (data));
+    GNUNET_CRYPTO_short_hash_to_enc (data,
+				     &enc);
+    return GNUNET_strdup (enc.short_encoding);
   case GNUNET_NAMESTORE_TYPE_PSEU:
     return GNUNET_strndup (data, data_size);
   default:
