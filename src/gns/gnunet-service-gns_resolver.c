@@ -943,12 +943,11 @@ finish_lookup(struct ResolverHandle *rh,
   int i;
   char* s_value;
   char new_s_value[256];
-  char new_mx_value[sizeof(struct GNUNET_DNSPARSER_MxRecord)+256];
+  char new_mx_value[sizeof(uint16_t)+256];
   int s_len;
   struct GNUNET_NAMESTORE_RecordData p_rd[rd_count];
   char* pos;
   char* trailer;
-  struct GNUNET_DNSPARSER_MxRecord *mx;
 
   if (rd_count > 0)
     memcpy(p_rd, rd, rd_count*sizeof(struct GNUNET_NAMESTORE_RecordData));
@@ -971,8 +970,7 @@ finish_lookup(struct ResolverHandle *rh,
      */
     if (rd[i].record_type == GNUNET_GNS_RECORD_MX)
     {
-      mx = (struct GNUNET_DNSPARSER_MxRecord*)rd[i].data;
-      s_value = (char*)&mx[1];
+      s_value = (char*)rd[i].data+sizeof(uint16_t);
     }
     else
     {
@@ -1011,15 +1009,13 @@ finish_lookup(struct ResolverHandle *rh,
       if (rd[i].record_type == GNUNET_GNS_RECORD_MX)
       {
 
-        p_rd[i].data_size = sizeof(struct GNUNET_DNSPARSER_MxRecord)
-          +strlen(new_s_value)+1;
+        p_rd[i].data_size = sizeof(uint16_t)+strlen(new_s_value)+1;
         
         p_rd[i].data = new_mx_value;
-        mx = (struct GNUNET_DNSPARSER_MxRecord*)p_rd[i].data;
-        mx->preference =
-          ((struct GNUNET_DNSPARSER_MxRecord*)rd[i].data)->preference;
-        memcpy((char*)&mx[1], new_s_value, strlen(new_s_value)+1);
-        mx->mxhost = (char*)&mx[1];
+        /* cpy preference */
+        memcpy(new_mx_value, (char*)rd[i].data, sizeof(uint16_t));
+        /* cpy string */
+        memcpy(new_mx_value+sizeof(uint16_t), new_s_value, strlen(new_s_value)+1);
       }
       else
       {

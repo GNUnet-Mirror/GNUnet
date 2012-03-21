@@ -97,7 +97,8 @@ on_lookup_result(void *cls, uint32_t rd_count,
   char* addr;
   int mx_found = 0;
   int ip_found = 0;
-  struct GNUNET_DNSPARSER_MxRecord *mx;
+  uint16_t mx_preference;
+  char* mx;
   
   if (rd_count == 0)
   {
@@ -126,11 +127,11 @@ on_lookup_result(void *cls, uint32_t rd_count,
       }
       else if (rd[i].record_type == GNUNET_GNS_RECORD_MX)
       {
-        mx = (struct GNUNET_DNSPARSER_MxRecord*)rd[i].data;
-        mx->mxhost = (char*)&mx[1];
+        mx = (char*)rd[i].data+sizeof(uint16_t);
+        mx_preference = *(uint16_t*)rd[i].data;
         GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                    "Got MX %s\n", mx->mxhost);
-        if (0 == strcmp(mx->mxhost, TEST_EXPECTED_MX))
+                    "Got MX %s with preference %d\n", mx, mx_preference);
+        if (0 == strcmp(mx, TEST_EXPECTED_MX))
         {
           GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                       "%s correctly resolved to %s!\n", TEST_DOMAIN,
@@ -253,7 +254,8 @@ do_lookup(void *cls, const struct GNUNET_PeerIdentity *id,
   struct GNUNET_NAMESTORE_RecordData rd;
   char* ip = TEST_IP;
   struct in_addr *mail = GNUNET_malloc(sizeof(struct in_addr));
-  struct GNUNET_DNSPARSER_MxRecord *mx_record;
+  char *mx_record;
+  uint16_t mx_preference = 1;
   rd.expiration = GNUNET_TIME_absolute_get_forever ();
   GNUNET_assert(1 == inet_pton (AF_INET, ip, mail));
   
@@ -289,10 +291,9 @@ do_lookup(void *cls, const struct GNUNET_PeerIdentity *id,
                                NULL);
   
   rd.data_size = sizeof(struct GNUNET_DNSPARSER_MxRecord)+strlen(TEST_MX_NAME)+1;
-  mx_record = GNUNET_malloc(rd.data_size);
-  mx_record->preference = 1;
-  mx_record->mxhost = (char*)&mx_record[1];
-  strcpy(mx_record->mxhost, TEST_MX_NAME);
+  mx_record = GNUNET_malloc(sizeof(uint16_t)+strlen(TEST_MX_NAME)+1);
+  memcpy(mx_record, &mx_preference, sizeof(uint16_t));
+  strcpy(mx_record+sizeof(uint16_t), TEST_MX_NAME);
   rd.data = mx_record;
   rd.record_type = GNUNET_GNS_RECORD_MX;
   sig = GNUNET_NAMESTORE_create_signature(bob_key,
