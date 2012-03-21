@@ -52,6 +52,7 @@ gnunetinclude_HEADERS = \
   gnunet_helper_lib.h \
   gnunet_load_lib.h \
   gnunet_mesh_service.h \
+  gnunet_mysql_lib.h \
   gnunet_namestore_plugin.h \
   gnunet_namestore_service.h \
   gnunet_nat_lib.h \

@@ -11,6 +11,10 @@ if LINUX
  LINUX_DIR = dns gns exit vpn pt
 endif
 
+if HAVE_MYSQL
+ MYSQL_DIR = mysql
+endif
+
 
 SUBDIRS = \
   include $(INTLEMU_SUBDIRS) \
@@ -21,6 +25,7 @@ SUBDIRS = \
   statistics \
   arm \
   peerinfo \
+  $(MYSQL_DIR) \
   datacache \
   datastore \
   namestore \
