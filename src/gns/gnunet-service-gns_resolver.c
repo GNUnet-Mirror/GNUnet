@@ -337,9 +337,10 @@ process_zone_to_name_discover(void *cls,
  * @param zone the authority
  * @param the private key of our authority
  */
-static void process_discovered_authority(char* name, struct GNUNET_CRYPTO_ShortHashCode zone,
-                                         struct GNUNET_CRYPTO_ShortHashCode our_zone,
-                                       struct GNUNET_CRYPTO_RsaPrivateKey *key)
+static void process_discovered_authority(char* name,
+                                    struct GNUNET_CRYPTO_ShortHashCode zone,
+                                    struct GNUNET_CRYPTO_ShortHashCode our_zone,
+                                    struct GNUNET_CRYPTO_RsaPrivateKey *key)
 {
   struct GetPseuAuthorityHandle *gph;
   size_t namelen;
@@ -878,7 +879,7 @@ process_delegation_result_dht(void* cls,
                                      rh->authority_chain_tail,
                                      auth);
 
-        /** call process new authority */
+        /** try to import pkey if private key available */
         if (rh->priv_key)
           process_discovered_authority(name, auth->zone,
                                        rh->authority_chain_tail->zone,

@@ -152,6 +152,9 @@ static struct GNUNET_TIME_Relative dht_update_interval;
 /* zone update task */
 GNUNET_SCHEDULER_TaskIdentifier zone_update_taskid = GNUNET_SCHEDULER_NO_TASK;
 
+/* automatic pkey import for name shortening */
+static int auto_import_pkey;
+
 /**
  * Task run during shutdown.
  *
@@ -716,9 +719,18 @@ handle_lookup(void *cls,
   clh->unique_id = sh_msg->id;
   clh->type = ntohl(sh_msg->type);
   
-  gns_resolver_lookup_record(zone_hash, clh->type, name,
-                             zone_key,
-                             &send_lookup_response, clh);
+  if (GNUNET_YES == auto_import_pkey)
+  {
+    gns_resolver_lookup_record(zone_hash, clh->type, name,
+                               zone_key,
+                               &send_lookup_response, clh);
+  }
+  else
+  {
+    gns_resolver_lookup_record(zone_hash, clh->type, name,
+                               NULL,
+                               &send_lookup_response, clh);
+  }
 }
 
 
@@ -790,7 +802,18 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Could not connect to DHT!\n");
   }
 
-  if (gns_resolver_init(namestore_handle, dht_handle) == GNUNET_SYSERR)
+  if (GNUNET_YES ==
+      GNUNET_CONFIGURATION_get_value_yesno (c, "gns",
+                                            "AUTO_IMPORT_PKEY"))
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+               "Automatic PKEY import is enabled.\n");
+    auto_import_pkey = GNUNET_YES;
+
+  }
+  
+  if (gns_resolver_init(namestore_handle, dht_handle)
+      == GNUNET_SYSERR)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
                "Unable to initialize resolver!\n");
@@ -811,7 +834,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
                "Failed to enable the dns interceptor!\n");
     }
   }
-
+  
   //put_some_records(); //FIXME for testing
   
   /**
