@@ -329,11 +329,11 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
       return NULL;
     return GNUNET_strdup (tmp);
   case GNUNET_NAMESTORE_TYPE_PKEY:
-    if (data_size != sizeof (struct GNUNET_ShortHashCode))
+    if (data_size != sizeof (struct GNUNET_CRYPTO_ShortHashCode))
       return NULL;
     GNUNET_CRYPTO_short_hash_to_enc (data,
 				     &enc);
-    return GNUNET_strdup (enc.short_encoding);
+    return GNUNET_strdup ((const char*) enc.short_encoding);
   case GNUNET_NAMESTORE_TYPE_PSEU:
     return GNUNET_strndup (data, data_size);
   default:
