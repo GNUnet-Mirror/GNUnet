@@ -378,7 +378,7 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
 {
   struct in_addr value_a;
   struct in6_addr value_aaaa;
-  GNUNET_HashCode pkey;
+  struct GNUNET_CRYPTO_ShortHashCode pkey;
 
   switch (type)
   {
@@ -424,11 +424,11 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
     return GNUNET_OK;
   case GNUNET_NAMESTORE_TYPE_PKEY:
     if (GNUNET_OK !=
-	GNUNET_CRYPTO_hash_from_string (s, &pkey))
+	GNUNET_CRYPTO_short_hash_from_string (s, &pkey))
       return GNUNET_SYSERR;
-    *data = GNUNET_malloc (sizeof (GNUNET_HashCode));
+    *data = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_ShortHashCode));
     memcpy (*data, &pkey, sizeof (pkey));
-    *data_size = sizeof (GNUNET_HashCode);
+    *data_size = sizeof (struct GNUNET_CRYPTO_ShortHashCode);
     return GNUNET_OK;
   case GNUNET_NAMESTORE_TYPE_PSEU:
     *data = GNUNET_strdup (s);
