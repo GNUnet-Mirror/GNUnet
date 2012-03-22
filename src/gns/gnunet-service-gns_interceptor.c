@@ -241,6 +241,7 @@ start_resolution_for_dns(struct GNUNET_DNS_RequestHandle *request,
   /* Start resolution in our zone */
   gns_resolver_lookup_record(our_zone, q->type, q->name,
                              our_key,
+                             GNUNET_GNS_DEFAULT_LOOKUP_TIMEOUT,
                              &reply_to_dns, ilh);
 }
 

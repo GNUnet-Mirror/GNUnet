@@ -5,8 +5,12 @@
 #include "gnunet_dht_service.h"
 
 #define DHT_OPERATION_TIMEOUT  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 3)
+#define GNUNET_GNS_DEFAULT_LOOKUP_TIMEOUT \
+  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 #define DHT_LOOKUP_TIMEOUT DHT_OPERATION_TIMEOUT
 #define DHT_GNS_REPLICATION_LEVEL 5
+
+#define GNUNET_GNS_MAX_PARALLEL_LOOKUPS 500
 
 /*
  * DLL to hold the authority chain
@@ -113,8 +117,17 @@ struct ResolverHandle
   /* a handle for dht lookups. should be NULL if no lookups are in progress */
   struct GNUNET_DHT_GetHandle *get_handle;
 
-  /* timeout task for dht lookups */
-  GNUNET_SCHEDULER_TaskIdentifier dht_timeout_task;
+  /* timeout set for this lookup task */
+  struct GNUNET_TIME_Relative timeout;
+
+  /* timeout task for the lookup */
+  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+
+  /* continuation to call on timeout */
+  GNUNET_SCHEDULER_Task timeout_cont;
+
+  /* closure for timeout cont */
+  void* timeout_cont_cls;
 
   /* called when resolution phase finishes */
   ResolutionResultProcessor proc;
@@ -127,11 +140,14 @@ struct ResolverHandle
 
   /* DLL to store the authority chain */
   struct AuthorityChain *authority_chain_tail;
-  
+
   /* status of the resolution result */
   enum ResolutionStatus status;
 
   struct GNUNET_CRYPTO_RsaPrivateKey *priv_key;
+
+  /* the heap node associated with this lookup, null if timeout is set */
+  struct GNUNET_CONTAINER_HeapNode *dht_heap_node;
 
 };
 
@@ -211,8 +227,8 @@ struct GetPseuAuthorityHandle
   /* a handle for dht lookups. should be NULL if no lookups are in progress */
   struct GNUNET_DHT_GetHandle *get_handle;
 
-  /* timeout task for dht lookups */
-  GNUNET_SCHEDULER_TaskIdentifier dht_timeout;
+  /* timeout task for lookup */
+  GNUNET_SCHEDULER_TaskIdentifier timeout;
 };
 
 /**
@@ -242,6 +258,7 @@ gns_resolver_lookup_record(struct GNUNET_CRYPTO_ShortHashCode zone,
                            uint32_t record_type,
                            const char* name,
                            struct GNUNET_CRYPTO_RsaPrivateKey *key,
+                           struct GNUNET_TIME_Relative timeout,
                            RecordLookupProcessor proc,
                            void* cls);
 

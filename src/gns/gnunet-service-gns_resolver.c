@@ -55,6 +55,11 @@ static struct GNUNET_NAMESTORE_Handle *namestore_handle;
 static struct GNUNET_DHT_Handle *dht_handle;
 
 /**
+ * Heap for parallel DHT lookups
+ */
+static struct GNUNET_CONTAINER_Heap *dht_lookup_heap;
+
+/**
  * Namestore calls this function if we have record for this name.
  * (or with rd_count=0 to indicate no matches)
  *
@@ -216,7 +221,7 @@ process_auth_discovery_dht_result(void* cls,
 
   /* stop lookup and timeout task */
   GNUNET_DHT_get_stop (gph->get_handle);
-  GNUNET_SCHEDULER_cancel(gph->dht_timeout);
+  GNUNET_SCHEDULER_cancel(gph->timeout);
 
   gph->get_handle = NULL;
 
@@ -310,8 +315,8 @@ process_zone_to_name_discover(void *cls,
                "starting dht lookup for %s with key: %s\n",
                "+", (char*)&lookup_key_string);
 
-    gph->dht_timeout = GNUNET_SCHEDULER_add_delayed(DHT_LOOKUP_TIMEOUT,
-                                         &handle_auth_discovery_timeout, gph);
+    //gph->timeout = GNUNET_SCHEDULER_add_delayed(DHT_LOOKUP_TIMEOUT,
+    //                                     &handle_auth_discovery_timeout, gph);
 
     xquery = htonl(GNUNET_GNS_RECORD_PSEU);
 
@@ -377,6 +382,8 @@ gns_resolver_init(struct GNUNET_NAMESTORE_Handle *nh,
 {
   namestore_handle = nh;
   dht_handle = dh;
+  dht_lookup_heap =
+    GNUNET_CONTAINER_heap_create(GNUNET_CONTAINER_HEAP_ORDER_MIN);
   if ((namestore_handle != NULL) && (dht_handle != NULL))
   {
     return GNUNET_OK;
@@ -441,6 +448,23 @@ on_namestore_record_put_result(void *cls,
 
 
 /**
+ * Processor for background lookups in the DHT
+ *
+ * @param cls closure (NULL)
+ * @param rd_count number of records found (not 0)
+ * @param rd record data
+ */
+static void
+background_lookup_result_processor(void *cls,
+                                   uint32_t rd_count,
+                                   const struct GNUNET_NAMESTORE_RecordData *rd)
+{
+  //We could do sth verbose/more useful here but it doesn't make any difference
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "background dht lookup finished.\n");
+}
+
+/**
  * Handle timeout for DHT requests
  *
  * @param cls the request handle as closure
@@ -450,11 +474,26 @@ static void
 dht_lookup_timeout(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct ResolverHandle *rh = cls;
+  struct RecordLookupHandle *rlh = (struct RecordLookupHandle *)rh->proc_cls;
+  char new_name[MAX_DNS_NAME_LENGTH];
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
              "dht lookup for query %s timed out.\n",
              rh->name);
+  /**
+   * Start resolution in bg
+   */
+  strcpy(new_name, rh->name);
+  memcpy(new_name+strlen(new_name), GNUNET_GNS_TLD, strlen(GNUNET_GNS_TLD));
 
+  gns_resolver_lookup_record(rh->authority,
+                             rlh->record_type,
+                             new_name,
+                             rh->priv_key,
+                             GNUNET_TIME_UNIT_FOREVER_REL,
+                             &background_lookup_result_processor,
+                             NULL);
+  
   GNUNET_DHT_get_stop (rh->get_handle);
   rh->proc(rh->proc_cls, rh, 0, NULL);
 }
@@ -508,8 +547,16 @@ process_record_result_dht(void* cls,
   
   /* stop lookup and timeout task */
   GNUNET_DHT_get_stop (rh->get_handle);
-  GNUNET_SCHEDULER_cancel(rh->dht_timeout_task);
   
+  if (rh->dht_heap_node != NULL)
+  {
+    GNUNET_CONTAINER_heap_remove_node(rh->dht_heap_node);
+    rh->dht_heap_node = NULL;
+  }
+  
+  if (rh->timeout_task != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel(rh->timeout_task);
+
   rh->get_handle = NULL;
   name = (char*)&nrb[1];
   num_records = ntohl(nrb->rd_count);
@@ -563,6 +610,7 @@ process_record_result_dht(void* cls,
                                  &nrb->signature,
                                  &on_namestore_record_put_result, //cont
                                  NULL); //cls
+
   
     if (rh->answered)
       rh->proc(rh->proc_cls, rh, num_records, rd);
@@ -589,6 +637,7 @@ resolve_record_dht(struct ResolverHandle *rh)
   GNUNET_HashCode zone_hash_double;
   struct GNUNET_CRYPTO_HashAsciiEncoded lookup_key_string;
   struct RecordLookupHandle *rlh = (struct RecordLookupHandle *)rh->proc_cls;
+  struct ResolverHandle *rh_heap_root;
   
   GNUNET_CRYPTO_short_hash(rh->name, strlen(rh->name), &name_hash);
   GNUNET_CRYPTO_short_hash_double(&name_hash, &name_hash_double);
@@ -600,9 +649,35 @@ resolve_record_dht(struct ResolverHandle *rh)
              "starting dht lookup for %s with key: %s\n",
              rh->name, (char*)&lookup_key_string);
 
-  rh->dht_timeout_task = GNUNET_SCHEDULER_add_delayed(DHT_LOOKUP_TIMEOUT,
-                                                      &dht_lookup_timeout, rh);
+  rh->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  rh->dht_heap_node = NULL;
 
+  if (rh->timeout.rel_value != GNUNET_TIME_UNIT_FOREVER_REL.rel_value)
+  {
+    //rh->timeout_task = GNUNET_SCHEDULER_add_delayed (DHT_LOOKUP_TIMEOUT,
+    //                                                   &dht_lookup_timeout,
+    //                                                   rh);
+    rh->timeout_cont = &dht_lookup_timeout;
+    rh->timeout_cont_cls = rh;
+  }
+  else 
+  {
+    if (GNUNET_GNS_MAX_PARALLEL_LOOKUPS >
+        GNUNET_CONTAINER_heap_get_size (dht_lookup_heap))
+    {
+      rh_heap_root = GNUNET_CONTAINER_heap_remove_root (dht_lookup_heap);
+      GNUNET_DHT_get_stop(rh_heap_root->get_handle);
+      rh_heap_root->dht_heap_node = NULL;
+      rh_heap_root->proc(rh_heap_root->proc_cls,
+                         rh_heap_root,
+                         0,
+                         NULL);
+    }
+    rh->dht_heap_node = GNUNET_CONTAINER_heap_insert (dht_lookup_heap,
+                                         rh,
+                                         GNUNET_TIME_absolute_get().abs_value);
+  }
+  
   xquery = htonl(rlh->record_type);
   rh->get_handle = GNUNET_DHT_get_start(dht_handle, 
                        DHT_OPERATION_TIMEOUT,
@@ -649,6 +724,9 @@ process_record_result_ns(void* cls,
                      sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
                      &zone);
   remaining_time = GNUNET_TIME_absolute_get_remaining (expiration);
+  
+  if (rh->timeout_task != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel(rh->timeout_task);
 
   rh->status = 0;
   
@@ -749,6 +827,14 @@ resolve_record_ns(struct ResolverHandle *rh)
                                  rh);
 }
 
+static void
+handle_lookup_timeout(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct ResolverHandle *rh = cls;
+
+  if (rh->timeout_cont)
+    rh->timeout_cont(rh->timeout_cont_cls, tc);
+}
 
 /**
  * Handle timeout for DHT requests
@@ -761,19 +847,43 @@ dht_authority_lookup_timeout(void *cls,
                              const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct ResolverHandle *rh = cls;
+  struct RecordLookupHandle *rlh = rh->proc_cls;
+  char new_name[MAX_DNS_NAME_LENGTH];
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
              "dht lookup for query %s timed out.\n",
              rh->name);
 
-  GNUNET_DHT_get_stop (rh->get_handle);
+  
   if (strcmp(rh->name, "") == 0)
   {
     /*
      * promote authority back to name and try to resolve record
      */
     strcpy(rh->name, rh->authority_name);
+    rh->proc(rh->proc_cls, rh, 0, NULL);
+    return;
   }
+  
+  /**
+   * Start resolution in bg
+   */
+  strcpy(new_name, rh->name);
+  strcpy(new_name+strlen(new_name), ".");
+  memcpy(new_name+strlen(new_name), rh->authority_name,
+         strlen(rh->authority_name));
+  memcpy(new_name+strlen(new_name), GNUNET_GNS_TLD, strlen(GNUNET_GNS_TLD));
+
+  gns_resolver_lookup_record(rh->authority,
+                             rlh->record_type,
+                             new_name,
+                             rh->priv_key,
+                             GNUNET_TIME_UNIT_FOREVER_REL,
+                             &background_lookup_result_processor,
+                             NULL);
+
+  GNUNET_DHT_get_stop (rh->get_handle);
+  
   rh->proc(rh->proc_cls, rh, 0, NULL);
 }
 
@@ -829,9 +939,15 @@ process_delegation_result_dht(void* cls,
   
   /* stop dht lookup and timeout task */
   GNUNET_DHT_get_stop (rh->get_handle);
-  GNUNET_SCHEDULER_cancel(rh->dht_timeout_task);
 
   rh->get_handle = NULL;
+
+  if (rh->dht_heap_node != NULL)
+  {
+    GNUNET_CONTAINER_heap_remove_node(rh->dht_heap_node);
+    rh->dht_heap_node = NULL;
+  }
+
   num_records = ntohl(nrb->rd_count);
   name = (char*)&nrb[1];
   {
@@ -1132,6 +1248,7 @@ handle_record_ns(void* cls, struct ResolverHandle *rh,
              "Record resolved from namestore!");
 
   finish_lookup(rh, rlh, rd_count, rd);
+
   free_resolver_handle(rh);
 
 }
@@ -1289,6 +1406,7 @@ resolve_delegation_dht(struct ResolverHandle *rh)
   GNUNET_HashCode name_hash_double;
   GNUNET_HashCode zone_hash_double;
   GNUNET_HashCode lookup_key;
+  struct ResolverHandle *rh_heap_root;
   
   GNUNET_CRYPTO_short_hash(rh->authority_name,
                      strlen(rh->authority_name),
@@ -1296,13 +1414,38 @@ resolve_delegation_dht(struct ResolverHandle *rh)
   GNUNET_CRYPTO_short_hash_double(&name_hash, &name_hash_double);
   GNUNET_CRYPTO_short_hash_double(&rh->authority, &zone_hash_double);
   GNUNET_CRYPTO_hash_xor(&name_hash_double, &zone_hash_double, &lookup_key);
-
-  rh->dht_timeout_task = GNUNET_SCHEDULER_add_delayed (DHT_LOOKUP_TIMEOUT,
-                                                  &dht_authority_lookup_timeout,
-                                                       rh);
-
-  xquery = htonl(GNUNET_GNS_RECORD_PKEY);
   
+  rh->dht_heap_node = NULL;
+
+  if (rh->timeout.rel_value != GNUNET_TIME_UNIT_FOREVER_REL.rel_value)
+  {
+    //rh->timeout_task = GNUNET_SCHEDULER_add_delayed (DHT_LOOKUP_TIMEOUT,
+    //                                          &dht_authority_lookup_timeout,
+    //                                                   rh);
+    rh->timeout_cont = &dht_authority_lookup_timeout;
+    rh->timeout_cont_cls = rh;
+  }
+  else 
+  {
+    if (GNUNET_GNS_MAX_PARALLEL_LOOKUPS >
+        GNUNET_CONTAINER_heap_get_size (dht_lookup_heap))
+    {
+      /* terminate oldest lookup */
+      rh_heap_root = GNUNET_CONTAINER_heap_remove_root (dht_lookup_heap);
+      GNUNET_DHT_get_stop(rh_heap_root->get_handle);
+      rh_heap_root->dht_heap_node = NULL;
+      rh_heap_root->proc(rh_heap_root->proc_cls,
+                         rh_heap_root,
+                         0,
+                         NULL);
+    }
+    rh->dht_heap_node = GNUNET_CONTAINER_heap_insert (dht_lookup_heap,
+                                         rh,
+                                         GNUNET_TIME_absolute_get().abs_value);
+  }
+  
+  xquery = htonl(GNUNET_GNS_RECORD_PKEY);
+
   rh->get_handle = GNUNET_DHT_get_start(dht_handle,
                        DHT_OPERATION_TIMEOUT,
                        GNUNET_BLOCK_TYPE_GNS_NAMERECORD,
@@ -1574,12 +1717,13 @@ gns_resolver_lookup_record(struct GNUNET_CRYPTO_ShortHashCode zone,
                            uint32_t record_type,
                            const char* name,
                            struct GNUNET_CRYPTO_RsaPrivateKey *key,
+                           struct GNUNET_TIME_Relative timeout,
                            RecordLookupProcessor proc,
                            void* cls)
 {
   struct ResolverHandle *rh;
   struct RecordLookupHandle* rlh;
-  char string_hash[MAX_DNS_NAME_LENGTH]; //FIXME name len as soon as shorthash
+  char string_hash[MAX_DNS_LABEL_LENGTH];
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Starting resolution for %s (type=%d)!\n",
@@ -1600,6 +1744,19 @@ gns_resolver_lookup_record(struct GNUNET_CRYPTO_ShortHashCode zone,
   rh->authority = zone;
   rh->proc_cls = rlh;
   rh->priv_key = key;
+  rh->timeout = timeout;
+  if (timeout.rel_value != GNUNET_TIME_UNIT_FOREVER_REL.rel_value)
+  {
+    rh->timeout_task = GNUNET_SCHEDULER_add_delayed(timeout,
+                                                &handle_lookup_timeout,
+                                                rh);
+    rh->timeout_cont = &handle_auth_discovery_timeout;
+    rh->timeout_cont_cls = rh;
+  }
+  else
+  {
+    rh->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   
   if (strcmp(GNUNET_GNS_TLD, name) == 0)
   {

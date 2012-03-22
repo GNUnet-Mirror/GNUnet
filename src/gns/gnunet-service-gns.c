@@ -723,12 +723,14 @@ handle_lookup(void *cls,
   {
     gns_resolver_lookup_record(zone_hash, clh->type, name,
                                zone_key,
+                               GNUNET_GNS_DEFAULT_LOOKUP_TIMEOUT,
                                &send_lookup_response, clh);
   }
   else
   {
     gns_resolver_lookup_record(zone_hash, clh->type, name,
                                NULL,
+                               GNUNET_GNS_DEFAULT_LOOKUP_TIMEOUT,
                                &send_lookup_response, clh);
   }
 }
