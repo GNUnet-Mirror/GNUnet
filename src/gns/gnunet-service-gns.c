@@ -20,10 +20,6 @@
 
 /**
  *
- * TODO:
- *    - Write xquery and block plugin
- *    - The smaller FIXME issues all around
- *
  * @file gns/gnunet-service-gns.c
  * @brief GNUnet GNS service
  * @author Martin Schanzenbach
@@ -155,6 +151,9 @@ GNUNET_SCHEDULER_TaskIdentifier zone_update_taskid = GNUNET_SCHEDULER_NO_TASK;
 /* automatic pkey import for name shortening */
 static int auto_import_pkey;
 
+/* lookup timeout */
+static struct GNUNET_TIME_Relative default_lookup_timeout;
+
 /**
  * Task run during shutdown.
  *
@@ -174,6 +173,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_SERVER_notification_context_destroy (nc);
   
   gns_interceptor_stop();
+  gns_resolver_cleanup();
 
   GNUNET_NAMESTORE_disconnect(namestore_handle, 1);
   GNUNET_DHT_disconnect(dht_handle);
@@ -723,14 +723,14 @@ handle_lookup(void *cls,
   {
     gns_resolver_lookup_record(zone_hash, clh->type, name,
                                zone_key,
-                               GNUNET_GNS_DEFAULT_LOOKUP_TIMEOUT,
+                               default_lookup_timeout,
                                &send_lookup_response, clh);
   }
   else
   {
     gns_resolver_lookup_record(zone_hash, clh->type, name,
                                NULL,
-                               GNUNET_GNS_DEFAULT_LOOKUP_TIMEOUT,
+                               default_lookup_timeout,
                                &send_lookup_response, clh);
   }
 }
@@ -753,6 +753,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   
   char* keyfile;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pkey;
+  unsigned long long max_parallel_bg_queries = 0;
+  unsigned long long default_lookup_timeout_secs = 0;
 
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
     {&handle_shorten, NULL, GNUNET_MESSAGE_TYPE_GNS_SHORTEN, 0},
@@ -813,8 +815,31 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     auto_import_pkey = GNUNET_YES;
 
   }
+
+  if (GNUNET_OK ==
+      GNUNET_CONFIGURATION_get_value_number(c, "gns",
+                                            "MAX_PARALLEL_BACKGROUND_QUERIES",
+                                            &max_parallel_bg_queries))
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+               "Number of allowed parallel background queries: %d\n",
+               max_parallel_bg_queries);
+  }
+
+  if (GNUNET_OK ==
+      GNUNET_CONFIGURATION_get_value_number(c, "gns",
+                                            "DEFAULT_LOOKUP_TIMEOUT",
+                                            &default_lookup_timeout_secs))
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+               "Default lookup timeout: %ds\n", default_lookup_timeout_secs);
+    default_lookup_timeout = GNUNET_TIME_relative_multiply(
+                                            GNUNET_TIME_UNIT_SECONDS,
+                                            default_lookup_timeout_secs);
+  }
   
-  if (gns_resolver_init(namestore_handle, dht_handle)
+  if (gns_resolver_init(namestore_handle, dht_handle, zone_hash,
+                        max_parallel_bg_queries)
       == GNUNET_SYSERR)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR,

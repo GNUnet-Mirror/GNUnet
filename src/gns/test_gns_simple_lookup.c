@@ -18,23 +18,9 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file gns/test_gns_twopeer.c
- * @brief base testcase for testing DHT service with
- *        two running peers.
+ * @file gns/test_gns_simple_lookup.c
+ * @brief base testcase for testing a local GNS record lookup
  *
- * This testcase starts peers using the GNUNET_TESTING_daemons_start
- * function call.  On peer start, connects to the peers DHT service
- * by calling GNUNET_DHT_connected.  Once notified about all peers
- * being started (by the peers_started_callback function), calls
- * GNUNET_TESTING_connect_topology, which connects the peers in a
- * "straight line" topology.  On notification that all peers have
- * been properly connected, calls the do_get function which initiates
- * a GNUNET_DHT_get from the *second* peer. Once the GNUNET_DHT_get
- * function starts, runs the do_put function to insert data at the first peer.
- *   If the GET is successful, schedules finish_testing
- * to stop the test and shut down peers.  If GET is unsuccessful
- * after GET_TIMEOUT seconds, prints an error message and shuts down
- * the peers.
  */
 #include "platform.h"
 #include "gnunet_testing_lib.h"

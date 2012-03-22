@@ -88,7 +88,8 @@ typedef void (*ResolutionResultProcessor) (void *cls,
 enum ResolutionStatus
 {
   EXISTS = 1,
-  EXPIRED = 2
+  EXPIRED = 2,
+  TIMED_OUT = 4
 };
 
 /**
@@ -244,11 +245,21 @@ struct GetPseuAuthorityHandle
  *
  * @param nh handle to the namestore
  * @param dh handle to the dht
+ * @param local_zone the local zone
+ * @param max_bg_queries maximum amount of background queries
  * @returns GNUNET_OK on success
  */
 int
 gns_resolver_init(struct GNUNET_NAMESTORE_Handle *nh,
-                  struct GNUNET_DHT_Handle *dh);
+                  struct GNUNET_DHT_Handle *dh,
+                  struct GNUNET_CRYPTO_ShortHashCode local_zone,
+                  unsigned long long max_bg_queries);
+
+/**
+ * Cleanup resolver: Terminate pending lookups
+ */
+void
+gns_resolver_cleanup(void);
 
 /**
  * Lookup of a record in a specific zone
