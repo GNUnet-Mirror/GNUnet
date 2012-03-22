@@ -169,15 +169,22 @@ nfa_create_state (int accepting)
 }
 
 void
+nfa_destroy_state (struct State *s)
+{
+  if (s->tcnt > 0)
+    GNUNET_free (s->transitions);
+  GNUNET_free (s);
+}
+
+void
 nfa_add_transition (struct State *from_state, const char literal,
                     struct State *to_state)
 {
   struct Transition t;
 
-  if (NULL == to_state)
+  if (NULL == from_state || NULL == to_state)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Could not create Transition. to_state was NULL.\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not create Transition.\n");
     return;
   }
 
@@ -200,75 +207,6 @@ mark_all_states (struct GNUNET_REGEX_Nfa *n, int visited)
   {
     n->states[i]->visited = visited;
   }
-}
-
-void
-print_states (struct GNUNET_REGEX_Nfa *n, char **out_str)
-{
-  struct State *s;
-  int i_s;
-  int i_t;
-  char *s_all;
-
-  mark_all_states (n, 0);
-
-  s_all = GNUNET_malloc (sizeof (char));
-  *s_all = '\0';
-
-  for (i_s = 0; i_s < n->statecnt; i_s++)
-  {
-    struct Transition *ctran;
-    char *s_acc = NULL;
-    char *s_tran = NULL;
-
-    s = n->states[i_s];
-
-    if (s->accepting)
-    {
-      GNUNET_asprintf (&s_acc, "s%i [shape=doublecircle];\n", s->id);
-
-      s_all = GNUNET_realloc (s_all, strlen (s_all) + strlen (s_acc) + 1);
-      strcat (s_all, s_acc);
-      GNUNET_free (s_acc);
-    }
-
-    ctran = s->transitions;
-    s->visited = 1;
-
-    for (i_t = 0; i_t < s->tcnt && NULL != s->transitions; i_t++)
-    {
-      if (NULL == ctran)
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "s->transitions was NULL\n");
-      }
-
-      if (NULL == ctran->state)
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                    "Transition from State %i has has no state for transitioning\n",
-                    s->id);
-      }
-
-      if (ctran->literal == 0)
-      {
-        GNUNET_asprintf (&s_tran, "s%i -> s%i [label = \"epsilon\"];\n", s->id,
-                         ctran->state->id);
-      }
-      else
-      {
-        GNUNET_asprintf (&s_tran, "s%i -> s%i [label = \"%c\"];\n", s->id,
-                         ctran->state->id, ctran->literal);
-      }
-
-      s_all = GNUNET_realloc (s_all, strlen (s_all) + strlen (s_tran) + 1);
-      strcat (s_all, s_tran);
-      GNUNET_free (s_tran);
-
-      ctran++;
-    }
-  }
-
-  *out_str = s_all;
 }
 
 void
@@ -527,8 +465,11 @@ GNUNET_REGEX_destroy_nfa (struct GNUNET_REGEX_Nfa *n)
 
   for (i = 0; i < n->statecnt; i++)
   {
-    GNUNET_free (n->states[i]);
+    nfa_destroy_state (n->states[i]);
   }
+
+  GNUNET_free (n->states);
+  GNUNET_free (n);
 }
 
 void
