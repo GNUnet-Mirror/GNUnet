@@ -35,15 +35,15 @@
  * @param ret return value from database operation to check
  * @param expected_status desired status
  * @param command description of the command that was run
- * @param args arguments given to the command 
+ * @param args arguments given to the command
  * @param filename name of the source file where the command was run
  * @param line line number in the source file
  * @return GNUNET_OK if the result is acceptable
  */
 int
-GNUNET_POSTGRES_check_result_ (PGconn *dbh, PGresult * ret, int expected_status,
-			      const char *command, const char *args, const char *filename,
-			      int line)
+GNUNET_POSTGRES_check_result_ (PGconn * dbh, PGresult * ret,
+                               int expected_status, const char *command,
+                               const char *args, const char *filename, int line)
 {
   if (ret == NULL)
   {
@@ -56,9 +56,8 @@ GNUNET_POSTGRES_check_result_ (PGconn *dbh, PGresult * ret, int expected_status,
   if (PQresultStatus (ret) != expected_status)
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                     "postgres",
-                     _("`%s:%s' failed at %s:%d with error: %s"), command, args,
-                     filename, line, PQerrorMessage (dbh));
+                     "postgres", _("`%s:%s' failed at %s:%d with error: %s"),
+                     command, args, filename, line, PQerrorMessage (dbh));
     PQclear (ret);
     return GNUNET_SYSERR;
   }
@@ -72,19 +71,19 @@ GNUNET_POSTGRES_check_result_ (PGconn *dbh, PGresult * ret, int expected_status,
  * @param dbh database handle
  * @param sql statement to run
  * @param filename filename for error reporting
- * @param line code line for error reporting 
+ * @param line code line for error reporting
  * @return GNUNET_OK on success
  */
 int
-GNUNET_POSTGRES_exec_ (PGconn *dbh, const char *sql,
-		      const char *filename,
-		      int line)
+GNUNET_POSTGRES_exec_ (PGconn * dbh, const char *sql, const char *filename,
+                       int line)
 {
   PGresult *ret;
 
   ret = PQexec (dbh, sql);
   if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result_ (dbh, ret, PGRES_COMMAND_OK, "PQexec", sql, filename, line))
+      GNUNET_POSTGRES_check_result_ (dbh, ret, PGRES_COMMAND_OK, "PQexec", sql,
+                                     filename, line))
     return GNUNET_SYSERR;
   PQclear (ret);
   return GNUNET_OK;
@@ -103,14 +102,15 @@ GNUNET_POSTGRES_exec_ (PGconn *dbh, const char *sql,
  * @return GNUNET_OK on success
  */
 int
-GNUNET_POSTGRES_prepare_ (PGconn *dbh, const char *name, const char *sql,
-			 int nparms, const char *filename, int line)
+GNUNET_POSTGRES_prepare_ (PGconn * dbh, const char *name, const char *sql,
+                          int nparms, const char *filename, int line)
 {
   PGresult *ret;
 
   ret = PQprepare (dbh, name, sql, nparms, NULL);
   if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result_ (dbh, ret, PGRES_COMMAND_OK, "PQprepare", sql, filename, line))
+      GNUNET_POSTGRES_check_result_ (dbh, ret, PGRES_COMMAND_OK, "PQprepare",
+                                     sql, filename, line))
     return GNUNET_SYSERR;
   PQclear (ret);
   return GNUNET_OK;
@@ -125,17 +125,15 @@ GNUNET_POSTGRES_prepare_ (PGconn *dbh, const char *name, const char *sql,
  * @return the postgres handle
  */
 PGconn *
-GNUNET_POSTGRES_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
-			 const char *section)
+GNUNET_POSTGRES_connect (const struct GNUNET_CONFIGURATION_Handle * cfg,
+                         const char *section)
 {
   PGconn *dbh;
   char *conninfo;
 
   /* Open database and precompile statements */
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (cfg,
-                                             section, "CONFIG",
-                                             &conninfo))
+      GNUNET_CONFIGURATION_get_value_string (cfg, section, "CONFIG", &conninfo))
     conninfo = NULL;
   dbh = PQconnectdb (conninfo == NULL ? "" : conninfo);
   GNUNET_free_non_null (conninfo);
@@ -166,9 +164,7 @@ GNUNET_POSTGRES_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @return GNUNET_OK on success
  */
 int
-GNUNET_POSTGRES_delete_by_rowid (PGconn *dbh,
-				 const char *stmt,
-				 uint32_t rowid)
+GNUNET_POSTGRES_delete_by_rowid (PGconn * dbh, const char *stmt, uint32_t rowid)
 {
   uint32_t brow = htonl (rowid);
   const char *paramValues[] = { (const char *) &brow };
@@ -177,12 +173,11 @@ GNUNET_POSTGRES_delete_by_rowid (PGconn *dbh,
   PGresult *ret;
 
   ret =
-    PQexecPrepared (dbh, stmt, 1, paramValues, paramLengths,
-                      paramFormats, 1);
+      PQexecPrepared (dbh, stmt, 1, paramValues, paramLengths, paramFormats, 1);
   if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result_ (dbh, ret, PGRES_COMMAND_OK, "PQexecPrepared", "delrow",
-				    __FILE__,
-				    __LINE__))
+      GNUNET_POSTGRES_check_result_ (dbh, ret, PGRES_COMMAND_OK,
+                                     "PQexecPrepared", "delrow", __FILE__,
+                                     __LINE__))
   {
     return GNUNET_SYSERR;
   }
