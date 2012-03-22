@@ -441,6 +441,14 @@ GNUNET_NAMESTORE_records_deserialize (size_t len,
 				      struct GNUNET_NAMESTORE_RecordData *dest);
 
 
+/**
+ * Checks if a name is wellformed
+ *
+ * @param name the name to check
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ */
+int
+GNUNET_NAMESTORE_check_name (const char * name);
 
 /**
  * Convert the 'value' of a record to a string.
