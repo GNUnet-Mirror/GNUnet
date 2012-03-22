@@ -898,6 +898,7 @@ src/peerinfo/peerinfo.conf
 src/peerinfo-tool/Makefile
 src/postgres/Makefile
 src/pt/Makefile
+src/regex/Makefile
 src/statistics/Makefile
 src/statistics/statistics.conf
 src/stream/Makefile
@@ -927,6 +928,7 @@ pkgconfig/gnunethello.pc
 pkgconfig/gnunetnat.pc
 pkgconfig/gnunetnse.pc
 pkgconfig/gnunetpeerinfo.pc
+pkgconfig/gnunetregex.pc
 pkgconfig/gnunetstatistics.pc
 pkgconfig/gnunettesting.pc
 pkgconfig/gnunettransport.pc

@@ -1,0 +1,12 @@
+prefix=/usr/local
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: GNUnet regex
+Description: Provides API for parsing regular expressions into finite automata
+URL: http://gnunet.org
+Version: 0.9.2
+Requires:
+Libs: -L${libdir} -lgnunetregex
+Cflags: -I${includedir}
