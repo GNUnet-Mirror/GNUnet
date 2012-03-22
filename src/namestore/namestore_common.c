@@ -286,10 +286,11 @@ GNUNET_NAMESTORE_create_signature (const struct GNUNET_CRYPTO_RsaPrivateKey *key
 int
 GNUNET_NAMESTORE_check_name (const char * name)
 {
-  int res = GNUNET_OK;
+  if (name == NULL)
+    return GNUNET_SYSERR;
   if (strlen (name) > 63)
-    res = GNUNET_SYSERR;
-  return res;
+    return GNUNET_SYSERR;
+  return GNUNET_OK;
 }
 
 
