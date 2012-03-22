@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     (C) 2009, 2010, 2011 Christian Grothoff (and other contributing authors)
+     (C) 2009, 2010, 2011, 2012 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -26,6 +26,7 @@
 
 #include "platform.h"
 #include "gnunet_datastore_plugin.h"
+#include "gnunet_postgres_lib.h"
 #include <postgresql/libpq-fe.h>
 
 #define DEBUG_POSTGRES GNUNET_EXTRA_LOGGING
@@ -62,87 +63,6 @@ struct Plugin
 
 
 /**
- * Check if the result obtained from Postgres has
- * the desired status code.  If not, log an error, clear the
- * result and return GNUNET_SYSERR.
- *
- * @param plugin global context
- * @param ret result to check
- * @param expected_status expected return value
- * @param command name of SQL command that was run
- * @param args arguments to SQL command
- * @param line line number for error reporting
- * @return GNUNET_OK if the result is acceptable
- */
-static int
-check_result (struct Plugin *plugin, PGresult * ret, int expected_status,
-              const char *command, const char *args, int line)
-{
-  if (ret == NULL)
-  {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                     "datastore-postgres",
-                     "Postgres failed to allocate result for `%s:%s' at %d\n",
-                     command, args, line);
-    return GNUNET_SYSERR;
-  }
-  if (PQresultStatus (ret) != expected_status)
-  {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                     "datastore-postgres",
-                     _("`%s:%s' failed at %s:%d with error: %s"), command, args,
-                     __FILE__, line, PQerrorMessage (plugin->dbh));
-    PQclear (ret);
-    return GNUNET_SYSERR;
-  }
-  return GNUNET_OK;
-}
-
-/**
- * Run simple SQL statement (without results).
- *
- * @param plugin global context
- * @param sql statement to run
- * @param line code line for error reporting
- */
-static int
-pq_exec (struct Plugin *plugin, const char *sql, int line)
-{
-  PGresult *ret;
-
-  ret = PQexec (plugin->dbh, sql);
-  if (GNUNET_OK !=
-      check_result (plugin, ret, PGRES_COMMAND_OK, "PQexec", sql, line))
-    return GNUNET_SYSERR;
-  PQclear (ret);
-  return GNUNET_OK;
-}
-
-/**
- * Prepare SQL statement.
- *
- * @param plugin global context
- * @param name name for the prepared SQL statement
- * @param sql SQL code to prepare
- * @param nparams number of parameters in sql
- * @param line code line for error reporting
- * @return GNUNET_OK on success
- */
-static int
-pq_prepare (struct Plugin *plugin, const char *name, const char *sql,
-            int nparams, int line)
-{
-  PGresult *ret;
-
-  ret = PQprepare (plugin->dbh, name, sql, nparams, NULL);
-  if (GNUNET_OK !=
-      check_result (plugin, ret, PGRES_COMMAND_OK, "PQprepare", sql, line))
-    return GNUNET_SYSERR;
-  PQclear (ret);
-  return GNUNET_OK;
-}
-
-/**
  * @brief Get a database handle
  *
  * @param plugin global context
@@ -151,33 +71,11 @@ pq_prepare (struct Plugin *plugin, const char *name, const char *sql,
 static int
 init_connection (struct Plugin *plugin)
 {
-  char *conninfo;
   PGresult *ret;
 
-  /* Open database and precompile statements */
-  conninfo = NULL;
-  (void) GNUNET_CONFIGURATION_get_value_string (plugin->env->cfg,
-                                                "datastore-postgres", "CONFIG",
-                                                &conninfo);
-  plugin->dbh = PQconnectdb (conninfo == NULL ? "" : conninfo);
+  plugin->dbh = GNUNET_POSTGRES_connect (plugin->env->cfg, "datastore-postgres");
   if (NULL == plugin->dbh)
-  {
-    /* FIXME: warn about out-of-memory? */
-    GNUNET_free_non_null (conninfo);
     return GNUNET_SYSERR;
-  }
-  if (PQstatus (plugin->dbh) != CONNECTION_OK)
-  {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "datastore-postgres",
-                     _
-                     ("Unable to initialize Postgres with configuration `%s': %s"),
-                     conninfo, PQerrorMessage (plugin->dbh));
-    PQfinish (plugin->dbh);
-    plugin->dbh = NULL;
-    GNUNET_free_non_null (conninfo);
-    return GNUNET_SYSERR;
-  }
-  GNUNET_free_non_null (conninfo);
   ret =
       PQexec (plugin->dbh,
               "CREATE TABLE gn090 (" "  repl INTEGER NOT NULL DEFAULT 0,"
@@ -194,8 +92,7 @@ init_connection (struct Plugin *plugin)
                                                                                     (ret,
                                                                                      PG_DIAG_SQLSTATE)))))
   {
-    (void) check_result (plugin, ret, PGRES_COMMAND_OK, "CREATE TABLE", "gn090",
-                         __LINE__);
+    (void) GNUNET_POSTGRES_check_result (plugin->dbh, ret, PGRES_COMMAND_OK, "CREATE TABLE", "gn090");
     PQfinish (plugin->dbh);
     plugin->dbh = NULL;
     return GNUNET_SYSERR;
@@ -203,29 +100,23 @@ init_connection (struct Plugin *plugin)
   if (PQresultStatus (ret) == PGRES_COMMAND_OK)
   {
     if ((GNUNET_OK !=
-         pq_exec (plugin, "CREATE INDEX idx_hash ON gn090 (hash)", __LINE__)) ||
+         GNUNET_POSTGRES_exec (plugin->dbh, "CREATE INDEX idx_hash ON gn090 (hash)")) ||
         (GNUNET_OK !=
-         pq_exec (plugin, "CREATE INDEX idx_hash_vhash ON gn090 (hash,vhash)",
-                  __LINE__)) ||
+         GNUNET_POSTGRES_exec (plugin->dbh, "CREATE INDEX idx_hash_vhash ON gn090 (hash,vhash)")) ||
         (GNUNET_OK !=
-         pq_exec (plugin, "CREATE INDEX idx_prio ON gn090 (prio)", __LINE__)) ||
+         GNUNET_POSTGRES_exec (plugin->dbh, "CREATE INDEX idx_prio ON gn090 (prio)")) ||
         (GNUNET_OK !=
-         pq_exec (plugin, "CREATE INDEX idx_expire ON gn090 (expire)",
-                  __LINE__)) ||
+         GNUNET_POSTGRES_exec (plugin->dbh, "CREATE INDEX idx_expire ON gn090 (expire)")) ||
         (GNUNET_OK !=
-         pq_exec (plugin,
-                  "CREATE INDEX idx_prio_anon ON gn090 (prio,anonLevel)",
-                  __LINE__)) ||
+         GNUNET_POSTGRES_exec (plugin->dbh,
+                  "CREATE INDEX idx_prio_anon ON gn090 (prio,anonLevel)")) ||
         (GNUNET_OK !=
-         pq_exec (plugin,
-                  "CREATE INDEX idx_prio_hash_anon ON gn090 (prio,hash,anonLevel)",
-                  __LINE__)) ||
+         GNUNET_POSTGRES_exec (plugin->dbh,
+                  "CREATE INDEX idx_prio_hash_anon ON gn090 (prio,hash,anonLevel)")) ||
         (GNUNET_OK !=
-         pq_exec (plugin, "CREATE INDEX idx_repl_rvalue ON gn090 (repl,rvalue)",
-                  __LINE__)) ||
+         GNUNET_POSTGRES_exec (plugin->dbh, "CREATE INDEX idx_repl_rvalue ON gn090 (repl,rvalue)")) ||
         (GNUNET_OK !=
-         pq_exec (plugin, "CREATE INDEX idx_expire_hash ON gn090 (expire,hash)",
-                  __LINE__)))
+         GNUNET_POSTGRES_exec (plugin->dbh, "CREATE INDEX idx_expire_hash ON gn090 (expire,hash)")))
     {
       PQclear (ret);
       PQfinish (plugin->dbh);
@@ -238,8 +129,7 @@ init_connection (struct Plugin *plugin)
       PQexec (plugin->dbh,
               "ALTER TABLE gn090 ALTER value SET STORAGE EXTERNAL");
   if (GNUNET_OK !=
-      check_result (plugin, ret, PGRES_COMMAND_OK, "ALTER TABLE", "gn090",
-                    __LINE__))
+      GNUNET_POSTGRES_check_result (plugin->dbh, ret, PGRES_COMMAND_OK, "ALTER TABLE", "gn090"))
   {
     PQfinish (plugin->dbh);
     plugin->dbh = NULL;
@@ -248,8 +138,7 @@ init_connection (struct Plugin *plugin)
   PQclear (ret);
   ret = PQexec (plugin->dbh, "ALTER TABLE gn090 ALTER hash SET STORAGE PLAIN");
   if (GNUNET_OK !=
-      check_result (plugin, ret, PGRES_COMMAND_OK, "ALTER TABLE", "gn090",
-                    __LINE__))
+      GNUNET_POSTGRES_check_result (plugin->dbh, ret, PGRES_COMMAND_OK, "ALTER TABLE", "gn090"))
   {
     PQfinish (plugin->dbh);
     plugin->dbh = NULL;
@@ -258,8 +147,7 @@ init_connection (struct Plugin *plugin)
   PQclear (ret);
   ret = PQexec (plugin->dbh, "ALTER TABLE gn090 ALTER vhash SET STORAGE PLAIN");
   if (GNUNET_OK !=
-      check_result (plugin, ret, PGRES_COMMAND_OK, "ALTER TABLE", "gn090",
-                    __LINE__))
+      GNUNET_POSTGRES_check_result (plugin->dbh, ret, PGRES_COMMAND_OK, "ALTER TABLE", "gn090"))
   {
     PQfinish (plugin->dbh);
     plugin->dbh = NULL;
@@ -267,97 +155,61 @@ init_connection (struct Plugin *plugin)
   }
   PQclear (ret);
   if ((GNUNET_OK !=
-       pq_prepare (plugin, "getvt",
+       GNUNET_POSTGRES_prepare (plugin->dbh, "getvt",
                    "SELECT type, prio, anonLevel, expire, hash, value, oid FROM gn090 "
                    "WHERE hash=$1 AND vhash=$2 AND type=$3 "
-                   "ORDER BY oid ASC LIMIT 1 OFFSET $4", 4, __LINE__)) ||
+                   "ORDER BY oid ASC LIMIT 1 OFFSET $4", 4)) ||
       (GNUNET_OK !=
-       pq_prepare (plugin, "gett",
+       GNUNET_POSTGRES_prepare (plugin->dbh, "gett",
                    "SELECT type, prio, anonLevel, expire, hash, value, oid FROM gn090 "
                    "WHERE hash=$1 AND type=$2 "
-                   "ORDER BY oid ASC LIMIT 1 OFFSET $3", 3, __LINE__)) ||
+                   "ORDER BY oid ASC LIMIT 1 OFFSET $3", 3)) ||
       (GNUNET_OK !=
-       pq_prepare (plugin, "getv",
+       GNUNET_POSTGRES_prepare (plugin->dbh, "getv",
                    "SELECT type, prio, anonLevel, expire, hash, value, oid FROM gn090 "
                    "WHERE hash=$1 AND vhash=$2 "
-                   "ORDER BY oid ASC LIMIT 1 OFFSET $3", 3, __LINE__)) ||
+                   "ORDER BY oid ASC LIMIT 1 OFFSET $3", 3)) ||
       (GNUNET_OK !=
-       pq_prepare (plugin, "get",
+       GNUNET_POSTGRES_prepare (plugin->dbh, "get",
                    "SELECT type, prio, anonLevel, expire, hash, value, oid FROM gn090 "
-                   "WHERE hash=$1 " "ORDER BY oid ASC LIMIT 1 OFFSET $2", 2,
-                   __LINE__)) ||
+                   "WHERE hash=$1 " "ORDER BY oid ASC LIMIT 1 OFFSET $2", 2)) ||
       (GNUNET_OK !=
-       pq_prepare (plugin, "put",
+       GNUNET_POSTGRES_prepare (plugin->dbh, "put",
                    "INSERT INTO gn090 (repl, type, prio, anonLevel, expire, rvalue, hash, vhash, value) "
-                   "VALUES ($1, $2, $3, $4, $5, RANDOM(), $6, $7, $8)", 9,
-                   __LINE__)) ||
+                   "VALUES ($1, $2, $3, $4, $5, RANDOM(), $6, $7, $8)", 9)) ||
       (GNUNET_OK !=
-       pq_prepare (plugin, "update",
+       GNUNET_POSTGRES_prepare (plugin->dbh, "update",
                    "UPDATE gn090 SET prio = prio + $1, expire = CASE WHEN expire < $2 THEN $2 ELSE expire END "
-                   "WHERE oid = $3", 3, __LINE__)) ||
+                   "WHERE oid = $3", 3)) ||
       (GNUNET_OK !=
-       pq_prepare (plugin, "decrepl",
+       GNUNET_POSTGRES_prepare (plugin->dbh, "decrepl",
                    "UPDATE gn090 SET repl = GREATEST (repl - 1, 0) "
-                   "WHERE oid = $1", 1, __LINE__)) ||
+                   "WHERE oid = $1", 1)) ||
       (GNUNET_OK !=
-       pq_prepare (plugin, "select_non_anonymous",
+       GNUNET_POSTGRES_prepare (plugin->dbh, "select_non_anonymous",
                    "SELECT type, prio, anonLevel, expire, hash, value, oid FROM gn090 "
                    "WHERE anonLevel = 0 AND type = $1 ORDER BY oid DESC LIMIT 1 OFFSET $2",
-                   1, __LINE__)) ||
+                   1)) ||
       (GNUNET_OK !=
-       pq_prepare (plugin, "select_expiration_order",
+       GNUNET_POSTGRES_prepare (plugin->dbh, "select_expiration_order",
                    "(SELECT type, prio, anonLevel, expire, hash, value, oid FROM gn090 "
                    "WHERE expire < $1 ORDER BY prio ASC LIMIT 1) " "UNION "
                    "(SELECT type, prio, anonLevel, expire, hash, value, oid FROM gn090 "
                    "ORDER BY prio ASC LIMIT 1) " "ORDER BY expire ASC LIMIT 1",
-                   1, __LINE__)) ||
+                   1)) ||
       (GNUNET_OK !=
-       pq_prepare (plugin, "select_replication_order",
+       GNUNET_POSTGRES_prepare (plugin->dbh, "select_replication_order",
                    "SELECT type, prio, anonLevel, expire, hash, value, oid FROM gn090 "
-                   "ORDER BY repl DESC,RANDOM() LIMIT 1", 0, __LINE__)) ||
+                   "ORDER BY repl DESC,RANDOM() LIMIT 1", 0)) ||
       (GNUNET_OK !=
-       pq_prepare (plugin, "delrow", "DELETE FROM gn090 " "WHERE oid=$1", 1,
-                   __LINE__)) ||
+       GNUNET_POSTGRES_prepare (plugin->dbh, "delrow", "DELETE FROM gn090 " "WHERE oid=$1", 1)) ||
       (GNUNET_OK !=
-       pq_prepare (plugin, "get_keys", "SELECT hash FROM gn090", 0,
-                   __LINE__)))
+       GNUNET_POSTGRES_prepare (plugin->dbh, "get_keys", "SELECT hash FROM gn090", 0)))
   {
     PQfinish (plugin->dbh);
     plugin->dbh = NULL;
     return GNUNET_SYSERR;
   }
-  return GNUNET_OK;
-}
-
-
-/**
- * Delete the row identified by the given rowid (qid
- * in postgres).
- *
- * @param plugin global context
- * @param rowid which row to delete
- * @return GNUNET_OK on success
- */
-static int
-delete_by_rowid (struct Plugin *plugin, uint32_t rowid)
-{
-  uint32_t browid;
-  const char *paramValues[] = { (const char *) &browid };
-  int paramLengths[] = { sizeof (browid) };
-  const int paramFormats[] = { 1 };
-  PGresult *ret;
-
-  browid = htonl (rowid);
-  ret =
-      PQexecPrepared (plugin->dbh, "delrow", 1, paramValues, paramLengths,
-                      paramFormats, 1);
-  if (GNUNET_OK !=
-      check_result (plugin, ret, PGRES_COMMAND_OK, "PQexecPrepared", "delrow",
-                    __LINE__))
-  {
-    return GNUNET_SYSERR;
-  }
-  PQclear (ret);
   return GNUNET_OK;
 }
 
@@ -381,8 +233,7 @@ postgres_plugin_estimate_size (void *cls)
                     "SELECT SUM(LENGTH(value))+256*COUNT(*) FROM gn090", 0,
                     NULL, NULL, NULL, NULL, 1);
   if (GNUNET_OK !=
-      check_result (plugin, ret, PGRES_TUPLES_OK, "PQexecParams", "get_size",
-                    __LINE__))
+      GNUNET_POSTGRES_check_result (plugin->dbh, ret, PGRES_TUPLES_OK, "PQexecParams", "get_size"))
   {
     return 0;
   }
@@ -457,8 +308,7 @@ postgres_plugin_put (void *cls, const GNUNET_HashCode * key, uint32_t size,
       PQexecPrepared (plugin->dbh, "put", 8, paramValues, paramLengths,
                       paramFormats, 1);
   if (GNUNET_OK !=
-      check_result (plugin, ret, PGRES_COMMAND_OK, "PQexecPrepared", "put",
-                    __LINE__))
+      GNUNET_POSTGRES_check_result (plugin->dbh, ret, PGRES_COMMAND_OK, "PQexecPrepared", "put"))
     return GNUNET_SYSERR;
   PQclear (ret);
   plugin->env->duc (plugin->env->cls, size + GNUNET_DATASTORE_ENTRY_OVERHEAD);
@@ -478,11 +328,13 @@ postgres_plugin_put (void *cls, const GNUNET_HashCode * key, uint32_t size,
  * @param proc function to call the value (once only).
  * @param proc_cls closure for proc
  * @param res result from exec
+ * @param filename filename for error messages
  * @param line line number for error messages
  */
 static void
 process_result (struct Plugin *plugin, PluginDatumProcessor proc,
-                void *proc_cls, PGresult * res, int line)
+                void *proc_cls, PGresult * res, 
+		const char *filename, int line)
 {
   int iret;
   enum GNUNET_BLOCK_Type type;
@@ -494,8 +346,8 @@ process_result (struct Plugin *plugin, PluginDatumProcessor proc,
   GNUNET_HashCode key;
 
   if (GNUNET_OK !=
-      check_result (plugin, res, PGRES_TUPLES_OK, "PQexecPrepared", "select",
-                    line))
+      GNUNET_POSTGRES_check_result_ (plugin->dbh, res, PGRES_TUPLES_OK, "PQexecPrepared", "select",
+				     filename, line))
   {
 #if DEBUG_POSTGRES
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "datastore-postgres",
@@ -534,7 +386,7 @@ process_result (struct Plugin *plugin, PluginDatumProcessor proc,
   {
     GNUNET_break (0);
     PQclear (res);
-    delete_by_rowid (plugin, rowid);
+    GNUNET_POSTGRES_delete_by_rowid (plugin->dbh, "delrow", rowid);
     proc (proc_cls, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
     return;
   }
@@ -562,7 +414,7 @@ process_result (struct Plugin *plugin, PluginDatumProcessor proc,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Processor asked for item %u to be removed.\n", rowid);
 #endif
-    if (GNUNET_OK == delete_by_rowid (plugin, rowid))
+    if (GNUNET_OK == GNUNET_POSTGRES_delete_by_rowid (plugin->dbh, "delrow", rowid))
     {
 #if DEBUG_POSTGRES
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "datastore-postgres",
@@ -679,8 +531,7 @@ postgres_plugin_get_key (void *cls, uint64_t offset,
     }
   }
   if (GNUNET_OK !=
-      check_result (plugin, ret, PGRES_TUPLES_OK, "PQexecParams", pname,
-                    __LINE__))
+      GNUNET_POSTGRES_check_result (plugin->dbh, ret, PGRES_TUPLES_OK, "PQexecParams", pname))
   {
     proc (proc_cls, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
     return;
@@ -704,7 +555,7 @@ postgres_plugin_get_key (void *cls, uint64_t offset,
   ret =
       PQexecPrepared (plugin->dbh, pname, nparams, paramValues, paramLengths,
                       paramFormats, 1);
-  process_result (plugin, proc, proc_cls, ret, __LINE__);
+  process_result (plugin, proc, proc_cls, ret, __FILE__, __LINE__);
 }
 
 
@@ -739,7 +590,7 @@ postgres_plugin_get_zero_anonymity (void *cls, uint64_t offset,
   ret =
       PQexecPrepared (plugin->dbh, "select_non_anonymous", 2, paramValues,
                       paramLengths, paramFormats, 1);
-  process_result (plugin, proc, proc_cls, ret, __LINE__);
+  process_result (plugin, proc, proc_cls, ret, __FILE__, __LINE__);
 }
 
 
@@ -815,8 +666,8 @@ repl_proc (void *cls, const GNUNET_HashCode * key, uint32_t size,
         PQexecPrepared (plugin->dbh, "decrepl", 1, paramValues, paramLengths,
                         paramFormats, 1);
     if (GNUNET_OK !=
-        check_result (plugin, qret, PGRES_COMMAND_OK, "PQexecPrepared",
-                      "decrepl", __LINE__))
+        GNUNET_POSTGRES_check_result (plugin->dbh, qret, PGRES_COMMAND_OK, "PQexecPrepared",
+                      "decrepl"))
       return GNUNET_SYSERR;
     PQclear (qret);
   }
@@ -848,7 +699,7 @@ postgres_plugin_get_replication (void *cls, PluginDatumProcessor proc,
   ret =
       PQexecPrepared (plugin->dbh, "select_replication_order", 0, NULL, NULL,
                       NULL, 1);
-  process_result (plugin, &repl_proc, &rc, ret, __LINE__);
+  process_result (plugin, &repl_proc, &rc, ret, __FILE__, __LINE__);
 }
 
 
@@ -875,7 +726,7 @@ postgres_plugin_get_expiration (void *cls, PluginDatumProcessor proc,
   ret =
       PQexecPrepared (plugin->dbh, "select_expiration_order", 1, paramValues,
                       paramLengths, paramFormats, 1);
-  process_result (plugin, proc, proc_cls, ret, __LINE__);
+  process_result (plugin, proc, proc_cls, ret, __FILE__, __LINE__);
 }
 
 
@@ -928,8 +779,7 @@ postgres_plugin_update (void *cls, uint64_t uid, int delta,
       PQexecPrepared (plugin->dbh, "update", 3, paramValues, paramLengths,
                       paramFormats, 1);
   if (GNUNET_OK !=
-      check_result (plugin, ret, PGRES_COMMAND_OK, "PQexecPrepared", "update",
-                    __LINE__))
+      GNUNET_POSTGRES_check_result (plugin->dbh, ret, PGRES_COMMAND_OK, "PQexecPrepared", "update"))
     return GNUNET_SYSERR;
   PQclear (ret);
   return GNUNET_OK;
@@ -978,7 +828,7 @@ postgres_plugin_drop (void *cls)
 {
   struct Plugin *plugin = cls;
 
-  pq_exec (plugin, "DROP TABLE gn090", __LINE__);
+  GNUNET_POSTGRES_exec (plugin->dbh, "DROP TABLE gn090");
 }
 
 

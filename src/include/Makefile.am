@@ -62,6 +62,7 @@ gnunetinclude_HEADERS = \
   gnunet_peer_lib.h \
   gnunet_peerinfo_service.h \
   gnunet_plugin_lib.h \
+  gnunet_postgres_lib.h \
   gnunet_program_lib.h \
   gnunet_protocols.h \
   gnunet_pseudonym_lib.h \

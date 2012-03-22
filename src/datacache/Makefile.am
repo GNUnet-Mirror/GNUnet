@@ -70,6 +70,7 @@ libgnunet_plugin_datacache_mysql_la_LDFLAGS = \
 libgnunet_plugin_datacache_postgres_la_SOURCES = \
   plugin_datacache_postgres.c
 libgnunet_plugin_datacache_postgres_la_LIBADD = \
+  $(top_builddir)/src/postgres/libgnunetpostgres.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_PLUGIN_LDFLAGS) $(POSTGRES_LDFLAGS) -lpq

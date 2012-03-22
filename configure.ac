@@ -896,6 +896,7 @@ src/nse/nse.conf
 src/peerinfo/Makefile
 src/peerinfo/peerinfo.conf
 src/peerinfo-tool/Makefile
+src/postgres/Makefile
 src/pt/Makefile
 src/statistics/Makefile
 src/statistics/statistics.conf

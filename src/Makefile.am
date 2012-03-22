@@ -15,6 +15,10 @@ if HAVE_MYSQL
  MYSQL_DIR = mysql
 endif
 
+if HAVE_POSTGRES
+ POSTGRES_DIR = postgres
+endif
+
 
 SUBDIRS = \
   include $(INTLEMU_SUBDIRS) \
@@ -26,6 +30,7 @@ SUBDIRS = \
   arm \
   peerinfo \
   $(MYSQL_DIR) \
+  $(POSTGRES_DIR) \
   datacache \
   datastore \
   namestore \
