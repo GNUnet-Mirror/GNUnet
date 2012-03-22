@@ -87,7 +87,10 @@ check_result (struct Plugin *plugin, PGresult * ret, int expected_status,
 
 /**
  * Run simple SQL statement (without results).
- */
+ *
+ * @param plugin global context
+ * @param sql statement to run
+ * @param line code line for error reporting */
 static int
 pq_exec (struct Plugin *plugin, const char *sql, int line)
 {
@@ -104,6 +107,13 @@ pq_exec (struct Plugin *plugin, const char *sql, int line)
 
 /**
  * Prepare SQL statement.
+ *
+ * @param plugin global context
+ * @param name name for the prepared SQL statement
+ * @param sql SQL code to prepare
+ * @param nparams number of parameters in sql
+ * @param line code line for error reporting
+ * @return GNUNET_OK on success
  */
 static int
 pq_prepare (struct Plugin *plugin, const char *name, const char *sql,
@@ -122,6 +132,8 @@ pq_prepare (struct Plugin *plugin, const char *name, const char *sql,
 
 /**
  * @brief Get a database handle
+ *
+ * @param plugin global context
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
 static int
@@ -185,7 +197,6 @@ init_connection (struct Plugin *plugin)
     }
   }
   PQclear (ret);
-#if 1
   ret =
       PQexec (plugin->dbh,
               "ALTER TABLE gn090dc ALTER value SET STORAGE EXTERNAL");
@@ -208,7 +219,6 @@ init_connection (struct Plugin *plugin)
     return GNUNET_SYSERR;
   }
   PQclear (ret);
-#endif
   if ((GNUNET_OK !=
        pq_prepare (plugin, "getkt",
                    "SELECT discard_time,type,value FROM gn090dc "
@@ -241,6 +251,8 @@ init_connection (struct Plugin *plugin)
  * Delete the row identified by the given rowid (qid
  * in postgres).
  *
+ * @param plugin global context
+ * @param rowid which row to delete
  * @return GNUNET_OK on success
  */
 static int

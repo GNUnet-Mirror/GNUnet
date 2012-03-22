@@ -339,7 +339,7 @@ init_connection (struct Plugin *plugin)
  * @return GNUNET_OK on success
  */
 static int
-delete_by_rowid (struct Plugin *plugin, unsigned int rowid)
+delete_by_rowid (struct Plugin *plugin, uint32_t rowid)
 {
   uint32_t browid;
   const char *paramValues[] = { (const char *) &browid };
