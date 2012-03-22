@@ -144,9 +144,16 @@ struct ResolverHandle
   /* status of the resolution result */
   enum ResolutionStatus status;
 
+  /**
+   * private key of an/our authoritative zone
+   * can be NULL but automatical PKEY import will not work
+   */
   struct GNUNET_CRYPTO_RsaPrivateKey *priv_key;
 
-  /* the heap node associated with this lookup, null if timeout is set */
+  /**
+   * the heap node associated with this lookup, null if timeout is set
+   * used for DHT background lookups.
+   */
   struct GNUNET_CONTAINER_HeapNode *dht_heap_node;
 
 };
@@ -233,6 +240,7 @@ struct GetPseuAuthorityHandle
 
 /**
  * Initialize the resolver
+ * MUST be called before other gns_resolver_* methods
  *
  * @param nh handle to the namestore
  * @param dh handle to the dht
@@ -262,6 +270,18 @@ gns_resolver_lookup_record(struct GNUNET_CRYPTO_ShortHashCode zone,
                            RecordLookupProcessor proc,
                            void* cls);
 
+/**
+ * Shortens a name if possible. If the shortening fails
+ * name will be returned as shortened string. Else
+ * a shorter version of the name will be returned.
+ * There is no guarantee that the shortened name will
+ * actually be canonical/short etc.
+ *
+ * @param zone the zone to perform the operation in
+ * @param name name to shorten
+ * @param proc the processor to call on shorten result
+ * @param proc_cls teh closure to pass to proc
+ */
 void
 gns_resolver_shorten_name(struct GNUNET_CRYPTO_ShortHashCode zone,
                           const char* name,
