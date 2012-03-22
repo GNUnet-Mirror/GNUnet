@@ -419,6 +419,7 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
     if (1 != inet_pton (AF_INET6, s, &value_aaaa))    
       return GNUNET_SYSERR;    
     *data = GNUNET_malloc (sizeof (struct in6_addr));
+    *data_size = sizeof (struct in6_addr);
     memcpy (*data, &value_aaaa, sizeof (value_aaaa));
     return GNUNET_OK;
   case GNUNET_NAMESTORE_TYPE_PKEY:
