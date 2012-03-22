@@ -113,8 +113,8 @@ GNUNET_GNS_disconnect (struct GNUNET_GNS_Handle *handle);
  * @param rd the records in reply
  */
 typedef void (*GNUNET_GNS_LookupResultProcessor) (void *cls,
-                                        uint32_t rd_count,
-                                        const struct GNUNET_NAMESTORE_RecordData *rd);
+                                 uint32_t rd_count,
+                                 const struct GNUNET_NAMESTORE_RecordData *rd);
 
 
 
@@ -125,7 +125,7 @@ typedef void (*GNUNET_GNS_LookupResultProcessor) (void *cls,
  * @param name the name to look up
  * @param type the GNUNET_GNS_RecordType to look for
  * @param proc function to call on result
- * @param proc_cls closure for iter
+ * @param proc_cls closure for processor
  *
  * @return handle to the queued request
  */
