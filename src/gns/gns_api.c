@@ -342,9 +342,8 @@ transmit_pending (void *cls, size_t size, void *buf)
  * Process a given reply that might match the given
  * request.
  *
- * @param cls the 'struct GNUNET_GNS_ClientResultMessage'
- * @param key query of the request
- * @param value the 'struct GNUNET_GNS_LookupHandle' of a request matching the same key
+ * @param qe a queue entry
+ * @param msg the shorten msg received
  */
 static void
 process_shorten_reply (struct GNUNET_GNS_QueueEntry *qe,
@@ -418,11 +417,8 @@ process_get_auth_reply (struct GNUNET_GNS_QueueEntry *qe,
 /**
  * Process a given reply to the lookup request
  *
- * @param cls the 'struct GNUNET_GNS_ClientResultMessage'
- * @param key query of the request
- * @param value the 'struct GNUNET_GNS_LookupHandle' of a request matching the same key
- * @return GNUNET_YES to continue to iterate over all results,
- *         GNUNET_NO if the reply is malformed
+ * @param qe a queue entry
+ * @param msg the lookup message received
  */
 static void
 process_lookup_reply (struct GNUNET_GNS_QueueEntry *qe,
@@ -587,7 +583,6 @@ process_message (void *cls, const struct GNUNET_MessageHeader *msg)
  * Initialize the connection with the GNS service.
  *
  * @param cfg configuration to use
- * @param ht_len size of the internal hash table to use for parallel requests
  * @return handle to the GNS service, or NULL on error
  */
 struct GNUNET_GNS_Handle *
@@ -610,7 +605,7 @@ GNUNET_GNS_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
 /**
  * Shutdown connection with the GNS service.
  *
- * @param handle handle of the GNS connection to stop
+ * @param h handle of the GNS connection to stop
  */
 void
 GNUNET_GNS_disconnect (struct GNUNET_GNS_Handle *h)

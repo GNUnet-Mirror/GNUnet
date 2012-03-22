@@ -350,6 +350,7 @@ process_zone_to_name_discover(void *cls,
  *
  * @param name the name given by delegation
  * @param zone the authority
+ * @param our_zone our local zone
  * @param the private key of our authority
  */
 static void process_discovered_authority(char* name,
@@ -384,6 +385,7 @@ static void process_discovered_authority(char* name,
  *
  * @param nh the namestore handle
  * @param dh the dht handle
+ * @param lz the local zone's hash
  * @return GNUNET_OK on success
  */
 int
@@ -408,6 +410,12 @@ gns_resolver_init(struct GNUNET_NAMESTORE_Handle *nh,
 
 /**
  * Cleanup background lookups
+ *
+ * @param cks closure to iterator
+ * @param node heap nodes
+ * @param element the resolver handle
+ * @param cost heap cost
+ * @return always GNUNET_YES
  */
 static int
 cleanup_pending_background_queries(void* cls,
@@ -445,7 +453,7 @@ gns_resolver_cleanup()
 /**
  * Helper function to free resolver handle
  *
- * @rh the handle to free
+ * @param rh the handle to free
  */
 static void
 free_resolver_handle(struct ResolverHandle* rh)
@@ -871,8 +879,9 @@ process_record_result_ns(void* cls,
       return;
     }
     
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Found %d answer(s) to query!\n",
-               rh->answered);
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "Found %d answer(s) to query in %d records!\n",
+               rh->answered, rd_count);
 
     rh->proc(rh->proc_cls, rh, rd_count, rd);
   }
@@ -1406,6 +1415,7 @@ pop_tld(char* name, char* dest)
  * Checks if name is in tld
  *
  * @param name the name to check
+ * @param tld the TLD to check for
  * @return GNUNET_YES or GNUNET_NO
  */
 int
@@ -1804,6 +1814,8 @@ resolve_delegation_ns(struct ResolverHandle *rh)
  * @param zone the root zone
  * @param record_type the record type to look up
  * @param name the name to look up
+ * @param key a private key for use with PSEU import (can be NULL)
+ * @param timeout timeout for resolution
  * @param proc the processor to call on result
  * @param cls the closure to pass to proc
  */

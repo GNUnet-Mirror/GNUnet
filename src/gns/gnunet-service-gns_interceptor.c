@@ -20,7 +20,7 @@
 
 /**
  *
- * @file gns/gns_interceptor.c
+ * @file gns/gnunet-service-gns_interceptor.c
  * @brief GNUnet GNS interceptor logic
  * @author Martin Schanzenbach
  */
@@ -70,7 +70,6 @@ static struct GNUNET_CRYPTO_RsaPrivateKey *our_key;
  * Reply to dns request with the result from our lookup.
  *
  * @param cls the closure to the request (an InterceptLookupHandle)
- * @param rh the request handle of the lookup
  * @param rd_count the number of records to return
  * @param rd the record data
  */

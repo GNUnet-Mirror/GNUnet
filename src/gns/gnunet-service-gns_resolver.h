@@ -40,7 +40,6 @@ struct ResolverHandle;
  * processor for a resultion result
  *
  * @param cls the closure
- * @param rh the resolution handle
  * @param rd_count number of results
  * @pram rd resukt data
  */
@@ -269,6 +268,7 @@ gns_resolver_cleanup(void);
  * @param record_type the record type to look up
  * @param name the name to look up
  * @param key optional private key for authority caching
+ * @param timeout timeout for the resolution
  * @param proc the processor to call
  * @param cls the closure to pass to proc
  */

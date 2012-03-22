@@ -387,8 +387,8 @@ update_zone_dht_start(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * Send shorten response back to client
  * 
+ * @param cls the closure containing a client shorten handle
  * @param name the shortened name result or NULL if cannot be shortened
- * @param csh the handle to the shorten request
  */
 static void
 send_shorten_response(void* cls, const char* name)
@@ -500,8 +500,8 @@ static void handle_shorten(void *cls,
 /**
  * Send get authority response back to client
  * 
+ * @param cls the closure containing a client get auth handle
  * @param name the shortened name result or NULL if cannot be shortened
- * @param cah the handle to the get authority request
  */
 static void
 send_get_auth_response(void *cls, const char* name)
@@ -631,7 +631,6 @@ static void handle_get_authority(void *cls,
  * Reply to client with the result from our lookup.
  *
  * @param cls the closure (our client lookup handle)
- * @param rh the request handle of the lookup
  * @param rd_count the number of records
  * @param rd the record data
  */
