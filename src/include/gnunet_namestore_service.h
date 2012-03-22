@@ -254,7 +254,7 @@ GNUNET_NAMESTORE_record_create (struct GNUNET_NAMESTORE_Handle *h,
  * @param h handle to the namestore
  * @param pkey private key of the zone
  * @param name name that is being mapped (at most 255 characters long)
- * @param rd record data
+ * @param rd record data, remove specific record,  NULL to remove the name and all records
  * @param cont continuation to call when done
  * @param cont_cls closure for cont
  * @return handle to abort the request

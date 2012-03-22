@@ -277,6 +277,21 @@ GNUNET_NAMESTORE_create_signature (const struct GNUNET_CRYPTO_RsaPrivateKey *key
   return sig;
 }
 
+/**
+ * Checks if a name is wellformed
+ *
+ * @param name the name to check
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ */
+int
+GNUNET_NAMESTORE_check_name (const char * name)
+{
+  int res = GNUNET_OK;
+  if (strlen (name) > 63)
+    res = GNUNET_SYSERR;
+  return res;
+}
+
 
 /**
  * Convert the 'value' of a record to a string.

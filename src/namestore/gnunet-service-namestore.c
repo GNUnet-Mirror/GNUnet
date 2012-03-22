@@ -1453,6 +1453,8 @@ void zone_iteration_proc (void *cls,
   GNUNET_HashCode long_hash;
   int authoritative = GNUNET_NO;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ZONE RESULT `%s'\n", name);
+
   if ((zone_key == NULL) && (name == NULL))
   {
     struct ZoneIterationResponseMessage zir_msg;
@@ -1517,7 +1519,6 @@ void zone_iteration_proc (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Creating signature for `%s' in zone `%s' with %u records  and expiration %llu\n", name, GNUNET_short_h2s(&zone_key_hash), rd_count, e.abs_value);
       authoritative = GNUNET_YES;
     }
-
 
     zir_msg->gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_RESPONSE);
     zir_msg->gns_header.header.size = htons (msg_size);

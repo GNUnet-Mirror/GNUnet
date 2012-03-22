@@ -77,6 +77,7 @@ GNUNET_NAMESTORE_create_signature (const struct GNUNET_CRYPTO_RsaPrivateKey *key
     const struct GNUNET_NAMESTORE_RecordData *rd,
     unsigned int rd_count);
 
+
 /**
  * Compares if two records are equal
  *
