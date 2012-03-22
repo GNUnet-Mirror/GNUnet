@@ -89,27 +89,25 @@ process_lookup_result(void* cls, uint32_t rd_count,
                       const struct GNUNET_NAMESTORE_RecordData *rd)
 {
   int i;
-  char* addr;
   char* name = (char*) cls;
+  const char* typename;
+  char* string_val;
 
   if (rd_count == 0)
     printf("No results.\n");
+  else
+    printf("%s:\n", name);
+
+
 
   for (i=0; i<rd_count; i++)
   {
-    if (rd[i].record_type != rtype)
-      continue;
-    if (rd[i].record_type == GNUNET_GNS_RECORD_TYPE_A)
-    {
-      addr = inet_ntoa(*((struct in_addr*)rd[i].data));
-      printf("Got A record for %s: %s\n", name, addr);
-    }
-    if (rd[i].record_type == GNUNET_GNS_RECORD_MX)
-    {
-      printf("Got MX record for %s: %s\n", name, (char*)rd[i].data);
-    }
+    typename = GNUNET_NAMESTORE_number_to_typename (rd[i].record_type);
+    string_val = GNUNET_NAMESTORE_value_to_string(rd[i].record_type,
+                                                  rd[i].data,
+                                                  rd[i].data_size);
+    printf("Got %s record: %s\n", typename, string_val);
 
-    //FIXME others? maybe to string method for records?
   }
 
   GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
@@ -135,7 +133,10 @@ run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   gns = GNUNET_GNS_connect (cfg);
-  rtype = GNUNET_GNS_RECORD_TYPE_A;
+  if (lookup_type != NULL)
+    rtype = GNUNET_NAMESTORE_typename_to_number(lookup_type);
+  else
+    rtype = GNUNET_GNS_RECORD_TYPE_A;
 
   if (NULL == gns)
   {
@@ -153,6 +154,8 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   if (lookup_name != NULL)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Lookup\n");
     GNUNET_GNS_lookup(gns, lookup_name, rtype,
                       &process_lookup_result, lookup_name);
   }

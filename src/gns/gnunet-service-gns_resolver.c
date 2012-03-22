@@ -1168,6 +1168,10 @@ expand_plus(char** dest, char* src, char* repl)
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                "Expanded to %s\n", *dest);
   }
+  else
+  {
+    memcpy(*dest, src, s_len+1);
+  }
 }
 
 /**

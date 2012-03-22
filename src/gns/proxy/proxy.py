@@ -140,7 +140,7 @@ class ProxyHandler (BaseHTTPServer.BaseHTTPRequestHandler):
                             arr.pop(0)
                             data = re.sub('(a href="http://(\w+\.)*)(\+)',
                                 self.replace_and_shorten(to_repl), data)
-                        print data
+                        #print data
                         out.send(data)
                         count = 0
             else:
