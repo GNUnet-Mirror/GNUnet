@@ -100,9 +100,15 @@ src/fs/gnunet-service-fs_put.c
 src/fs/gnunet-unindex.c
 src/fs/plugin_block_fs.c
 src/gns/gns_api.c
+src/gns/gnunet-gns.c
+src/gns/gnunet-gns-fcfsd.c
 src/gns/gnunet-gns-lookup.c
 src/gns/gnunet-service-gns.c
+src/gns/gnunet-service-gns_interceptor.c
+src/gns/gnunet-service-gns_resolver.c
+src/gns/plugin_block_gns.c
 src/hello/address.c
+src/hello/gnunet-hello.c
 src/hello/hello.c
 src/hostlist/gnunet-daemon-hostlist.c
 src/hostlist/hostlist-client.c
@@ -110,8 +116,11 @@ src/hostlist/hostlist-server.c
 src/mesh/gnunet-service-mesh.c
 src/mesh/mesh_api.c
 src/mesh/mesh_tunnel_tree.c
+src/mysql/mysql.c
+src/namestore/gnunet-namestore.c
 src/namestore/gnunet-service-namestore.c
 src/namestore/namestore_api.c
+src/namestore/namestore_common.c
 src/namestore/plugin_namestore_sqlite.c
 src/nat/gnunet-helper-nat-client.c
 src/nat/gnunet-helper-nat-client-windows.c
@@ -128,6 +137,8 @@ src/peerinfo/gnunet-service-peerinfo.c
 src/peerinfo/peerinfo_api.c
 src/peerinfo/peerinfo_api_notify.c
 src/peerinfo-tool/gnunet-peerinfo.c
+src/peerinfo-tool/gnunet-peerinfo_plugins.c
+src/postgres/postgres.c
 src/pt/gnunet-daemon-pt.c
 src/statistics/gnunet-service-statistics.c
 src/statistics/gnunet-statistics.c
@@ -196,6 +207,7 @@ src/util/getopt.c
 src/util/getopt_helpers.c
 src/util/gnunet-config-diff.c
 src/util/gnunet-resolver.c
+src/util/gnunet-rsa.c
 src/util/gnunet-service-resolver.c
 src/util/helper.c
 src/util/load.c
@@ -223,3 +235,4 @@ src/vpn/gnunet-service-vpn.c
 src/vpn/gnunet-vpn.c
 src/vpn/vpn_api.c
 src/include/gnunet_common.h
+src/include/gnunet_postgres_lib.h
