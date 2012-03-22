@@ -18,7 +18,7 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file gns/test_gns_max_queries_test.c
+ * @file gns/test_gns_max_queries.c
  * @brief base testcase for testing GNS background queries
  * in particular query replacement and clean shutdown
  */
@@ -26,6 +26,7 @@
 #include "gnunet_testing_lib.h"
 #include "gnunet_core_service.h"
 #include "block_dns.h"
+#include "gns.h"
 #include "gnunet_signatures.h"
 #include "gnunet_namestore_service.h"
 #include "gnunet_dnsparser_lib.h"
@@ -42,10 +43,11 @@
 
 /* test records to resolve */
 #define TEST_DOMAIN "www.gnunet"
-#define TEST_DOMAIN_NACK "doesnotexist.gnunet"
+#define TEST_DOMAIN_NACK "doesnotexist.bob.gnunet"
 #define TEST_IP "127.0.0.1"
 #define TEST_RECORD_NAME "www"
-#define TEST_ADDITIONAL_LOOKUPS 10
+#define TEST_ADDITIONAL_LOOKUPS 5
+#define TEST_AUTHORITY_NAME "bob"
 
 /* Globals */
 
@@ -87,6 +89,18 @@ shutdown_callback (void *cls, const char *emsg)
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "done(ret=%d)!\n", ok);
 }
 
+static void
+on_lookup_result_dummy(void *cls, uint32_t rd_count,
+                       const struct GNUNET_NAMESTORE_RecordData *rd)
+{
+  if (rd_count != 0)
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+               "Got %d results from dummy lookup! Wanted: 0\n",
+               rd_count);
+    ok = -1;
+  }
+}
 
 static void
 on_lookup_result(void *cls, uint32_t rd_count,
@@ -142,6 +156,7 @@ static void
 commence_testing (void *cls, int32_t success, const char *emsg)
 {
   int i;
+  char lookup_name[MAX_DNS_NAME_LENGTH];
   
   GNUNET_NAMESTORE_disconnect(namestore_handle, GNUNET_YES);
   
@@ -160,7 +175,10 @@ commence_testing (void *cls, int32_t success, const char *emsg)
   /* Now lookup some non existing records */
   for (i=0; i<max_parallel_lookups+TEST_ADDITIONAL_LOOKUPS; i++)
   {
-    GNUNET_GNS_lookup(gns_handle, TEST_DOMAIN_NACK, GNUNET_GNS_RECORD_TYPE_A,
+    GNUNET_snprintf(lookup_name,
+                    MAX_DNS_NAME_LENGTH,
+                    "doesnotexist-%d.bob.gnunet", i);
+    GNUNET_GNS_lookup(gns_handle, lookup_name, GNUNET_GNS_RECORD_TYPE_A,
                       &on_lookup_result_dummy, NULL);
   }
 }
@@ -200,8 +218,11 @@ do_lookup(void *cls, const struct GNUNET_PeerIdentity *id,
           struct GNUNET_TESTING_Daemon *d, const char *emsg)
 {
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded alice_pkey;
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded bob_pkey;
   struct GNUNET_CRYPTO_RsaPrivateKey *alice_key;
+  struct GNUNET_CRYPTO_RsaPrivateKey *bob_key;
   char* alice_keyfile;
+  struct GNUNET_CRYPTO_ShortHashCode bob_hash;
 
   GNUNET_SCHEDULER_cancel (die_task);
 
@@ -233,8 +254,10 @@ do_lookup(void *cls, const struct GNUNET_PeerIdentity *id,
   }
 
   alice_key = GNUNET_CRYPTO_rsa_key_create_from_file (alice_keyfile);
+  bob_key = GNUNET_CRYPTO_rsa_key_create ();
 
   GNUNET_CRYPTO_rsa_key_get_public (alice_key, &alice_pkey);
+  GNUNET_CRYPTO_rsa_key_get_public (bob_key, &bob_pkey);
   
   GNUNET_free(alice_keyfile);
 
@@ -251,10 +274,23 @@ do_lookup(void *cls, const struct GNUNET_PeerIdentity *id,
                                   alice_key,
                                   TEST_RECORD_NAME,
                                   &rd,
+                                  NULL,
+                                  NULL);
+
+  GNUNET_CRYPTO_short_hash(&bob_pkey, sizeof(bob_pkey), &bob_hash);
+  rd.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
+  rd.data = &bob_hash;
+  rd.record_type = GNUNET_GNS_RECORD_PKEY;
+
+  GNUNET_NAMESTORE_record_create (namestore_handle,
+                                  alice_key,
+                                  TEST_AUTHORITY_NAME,
+                                  &rd,
                                   &commence_testing,
                                   NULL);
   
   GNUNET_CRYPTO_rsa_key_free(alice_key);
+  GNUNET_CRYPTO_rsa_key_free(bob_key);
   GNUNET_free(web);
 
 }
@@ -290,7 +326,7 @@ check ()
   int ret;
 
   /* Arguments for GNUNET_PROGRAM_run */
-  char *const argv[] = { "test-gns-simple-lookup", /* Name to give running binary */
+  char *const argv[] = { "test-gns-max-queries", /* Name to give running binary */
     "-c",
     "test_gns_simple_lookup.conf",       /* Config file to use */
 #if VERBOSE
@@ -304,7 +340,7 @@ check ()
   /* Run the run function as a new program */
   ret =
       GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv,
-                          "test-gns-simple-lookup", "nohelp", options, &run,
+                          "test-gns-max-queries", "nohelp", options, &run,
                           &ok);
   if (ret != GNUNET_OK)
   {
