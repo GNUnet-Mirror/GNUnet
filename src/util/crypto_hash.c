@@ -609,7 +609,7 @@ GNUNET_CRYPTO_short_hash_double (const struct GNUNET_CRYPTO_ShortHashCode *sh,
 /**
  * Truncate doubled short hash back to a short hash.
  *
- * @param lh doubled short hash to reduce again
+ * @param dh doubled short hash to reduce again
  * @param sh where to store the short hash
  * @return GNUNET_OK on success, GNUNET_SYSERR if this was not a
  *         doubled short hash

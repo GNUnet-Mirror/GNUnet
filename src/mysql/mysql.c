@@ -563,6 +563,8 @@ init_params (struct GNUNET_MYSQL_Context *mc,
  * @param result_size number of elements in results array
  * @param results pointer to already initialized MYSQL_BIND
  *        array (of sufficient size) for passing results
+ * @param processor function to call on each result
+ * @param processor_cls extra argument to processor
  * @param ap pairs and triplets of "MYSQL_TYPE_XXX" keys and their respective
  *        values (size + buffer-reference for pointers); terminated
  *        with "-1"
