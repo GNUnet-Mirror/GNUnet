@@ -870,13 +870,21 @@ call_read_processor (void *cls,
 
   /* Determine upto which packet we can remove from the buffer */
   for (packet = 0; packet < GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH; packet++)
-    if (socket->copy_offset < socket->receive_buffer_boundaries[packet])
-      break;
+    {
+      if (socket->copy_offset = socket->receive_buffer_boundaries[packet])
+        { packet++; break; }
+      if (socket->copy_offset < socket->receive_buffer_boundaries[packet])
+        break;
+    }
 
   /* If no packets can be removed we can't move the buffer */
   if (0 == packet) return;
 
   sequence_increase = packet;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "%x: Sequence increase after read processor completion: %u\n",
+              socket->our_id,
+              sequence_increase);
 
   /* Shift the data in the receive buffer */
   memmove (socket->receive_buffer,
@@ -1886,6 +1894,7 @@ handle_ack (struct GNUNET_STREAM_Socket *socket,
 {
   unsigned int packet;
   int need_retransmission;
+  
 
   if (GNUNET_PEER_search (sender) != socket->other_peer)
     {
@@ -1908,12 +1917,17 @@ handle_ack (struct GNUNET_STREAM_Socket *socket,
       /* FIXME: increment in the base sequence number is breaking current flow
        */
       if (!((socket->write_sequence_number 
-             - htonl (ack->base_sequence_number)) < GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH))
+             - ntohl (ack->base_sequence_number)) < GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH))
         {
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       "%x: Received DATA_ACK with unexpected base sequence "
                       "number\n",
                       socket->our_id);
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      "%x: Current write sequence: %u; Ack's base sequence: %u\n",
+                      socket->our_id,
+                      socket->write_sequence_number,
+                      ntohl (ack->base_sequence_number));
           return GNUNET_OK;
         }
       /* FIXME: include the case when write_handle is cancelled - ignore the 
@@ -1932,9 +1946,27 @@ handle_ack (struct GNUNET_STREAM_Socket *socket,
             GNUNET_SCHEDULER_NO_TASK;
         }
 
-      /* FIXME: Bits in the ack_bitmap are only to be set; Once set they cannot
-         be unset */
-      socket->write_handle->ack_bitmap = GNUNET_ntohll (ack->bitmap);
+      for (packet=0; packet < GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH; packet++)
+        {
+          if (NULL == socket->write_handle->messages[packet]) break;
+          if (ntohl (ack->base_sequence_number)
+              >= ntohl (socket->write_handle->messages[packet]->sequence_number))
+            ackbitmap_modify_bit (&socket->write_handle->ack_bitmap,
+                                  packet,
+                                  GNUNET_YES);
+          else
+            if (GNUNET_YES == 
+                ackbitmap_is_bit_set (&socket->write_handle->ack_bitmap,
+                                      ntohl (socket->write_handle->messages[packet]->sequence_number)
+                                      - ntohl (ack->base_sequence_number)))
+              ackbitmap_modify_bit (&socket->write_handle->ack_bitmap,
+                                    packet,
+                                    GNUNET_YES);
+        }
+
+      /* Update the receive window remaining
+       FIXME : Should update with the value from a data ack with greater
+       sequence number */
       socket->receiver_window_available = 
         ntohl (ack->receive_window_remaining);
 
@@ -2353,12 +2385,19 @@ GNUNET_STREAM_close (struct GNUNET_STREAM_Socket *socket)
   struct MessageQueue *head;
 
   if (socket->read_task_id != GNUNET_SCHEDULER_NO_TASK)
-  {
-    /* socket closed with read task pending!? */
-    GNUNET_break (0);
-    GNUNET_SCHEDULER_cancel (socket->read_task_id);
-    socket->read_task_id = GNUNET_SCHEDULER_NO_TASK;
-  }
+    {
+      /* socket closed with read task pending!? */
+      GNUNET_break (0);
+      GNUNET_SCHEDULER_cancel (socket->read_task_id);
+      socket->read_task_id = GNUNET_SCHEDULER_NO_TASK;
+    }
+  
+  /* Terminate the ack'ing tasks if they are still present */
+  if (socket->ack_task_id != GNUNET_SCHEDULER_NO_TASK)
+    {
+      GNUNET_SCHEDULER_cancel (socket->ack_task_id);
+      socket->ack_task_id = GNUNET_SCHEDULER_NO_TASK;
+    }
 
   /* Clear Transmit handles */
   if (NULL != socket->transmit_handle)
