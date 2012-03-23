@@ -309,6 +309,8 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
 {
   char tmp[INET6_ADDRSTRLEN];
   struct GNUNET_CRYPTO_ShortHashAsciiEncoded enc;
+  uint16_t mx_pref;
+  char* result;
 
   switch (type)
   {
@@ -329,13 +331,14 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
     // FIXME
     return NULL;
   case GNUNET_DNSPARSER_TYPE_PTR:
-    GNUNET_break (0);
-    // FIXME
-    return NULL;
+    return GNUNET_strndup (data, data_size);
   case GNUNET_DNSPARSER_TYPE_MX:
-    GNUNET_break (0);
-    // FIXME
-    return NULL;
+    mx_pref = ntohs(*((uint16_t*)data));
+    if (GNUNET_asprintf(&result, "%hu,%s", mx_pref, data+sizeof(uint16_t))
+        != 0)
+      return result;
+    else
+      return NULL;
   case GNUNET_DNSPARSER_TYPE_TXT:
     return GNUNET_strndup (data, data_size);
   case GNUNET_DNSPARSER_TYPE_AAAA:
@@ -379,6 +382,9 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
   struct in_addr value_a;
   struct in6_addr value_aaaa;
   struct GNUNET_CRYPTO_ShortHashCode pkey;
+  uint16_t mx_pref;
+  uint16_t mx_pref_n;
+  char result[253];
 
   switch (type)
   {
@@ -408,9 +414,14 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
     // FIXME
     return GNUNET_SYSERR;
   case GNUNET_DNSPARSER_TYPE_MX:
-    GNUNET_break (0);
-    // FIXME
-    return GNUNET_SYSERR;
+    if (SSCANF(s, "%hu,%s", &mx_pref, result) != 2)
+      return GNUNET_SYSERR;
+    *data_size = sizeof (uint16_t)+strlen(result)+1;
+    *data = GNUNET_malloc (*data_size);
+    mx_pref_n = htons(mx_pref);
+    memcpy(*data, &mx_pref_n, sizeof (uint16_t));
+    strcpy((*data)+sizeof (uint16_t), result);
+    return GNUNET_OK;
   case GNUNET_DNSPARSER_TYPE_TXT:
     *data = GNUNET_strdup (s);
     *data_size = strlen (s);
