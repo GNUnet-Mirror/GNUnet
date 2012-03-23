@@ -293,7 +293,7 @@ GNUNET_STRINGS_fancy_time_to_relative (const char *fancy_time,
     { "'", 60 * 1000},
     { "h", 60 * 60 * 1000},
     { "d", 24 * 60 * 60 * 1000},
-    { "a", 31536000000 /* year */ },
+    { "a", 31536000000LL /* year */ },
     { NULL, 0}
   };
   int ret;
