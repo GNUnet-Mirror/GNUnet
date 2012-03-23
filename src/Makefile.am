@@ -3,7 +3,7 @@
 #endif
 
 if HAVE_EXPERIMENTAL
- EXP_DIR = chat dv stream
+ EXP_DIR = chat dv stream regex
 endif
 
 if LINUX
