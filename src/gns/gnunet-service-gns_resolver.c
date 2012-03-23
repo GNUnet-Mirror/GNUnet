@@ -145,7 +145,7 @@ process_pseu_result(struct GetPseuAuthorityHandle* gph, char* name)
 {
   if (NULL == name)
   {
-    memcpy(gph->new_name, name, strlen(gph->name)+1);
+    memcpy(gph->new_name, gph->name, strlen(gph->name)+1);
   }
   else
   {
@@ -549,8 +549,10 @@ dht_lookup_timeout(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   /**
    * Start resolution in bg
    */
-  strcpy(new_name, rh->name);
-  memcpy(new_name+strlen(new_name), GNUNET_GNS_TLD, strlen(GNUNET_GNS_TLD));
+  //strcpy(new_name, rh->name);
+  //memcpy(new_name+strlen(new_name), GNUNET_GNS_TLD, strlen(GNUNET_GNS_TLD));
+  GNUNET_snprintf(new_name, MAX_DNS_NAME_LENGTH, "%s.%s",
+                  rh->name, GNUNET_GNS_TLD);
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
              "Starting background lookup for %s type %d\n",
