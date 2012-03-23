@@ -80,22 +80,28 @@ top (struct Stack **stack)
   return (*stack)->data;
 }
 
-struct GNUNET_REGEX_Nfa
-{
-  struct State *start;
-  struct State *end;
-
-  unsigned int statecnt;
-  struct State **states;
-};
-
 struct State
 {
   unsigned int id;
   int accepting;
   unsigned int tcnt;
   struct Transition *transitions;
-  int visited;
+  int marked;
+  char *name;
+};
+
+struct StateSet
+{
+  struct State **states;
+  unsigned int count;
+};
+
+struct GNUNET_REGEX_Automaton
+{
+  struct State *start;
+  struct State *end;
+
+  struct StateSet sset;
 };
 
 struct Transition
@@ -105,30 +111,72 @@ struct Transition
   struct State *state;
 };
 
-static unsigned int state_id = 0;
-static unsigned int transition_id = 0;
+struct GNUNET_REGEX_Context
+{
+  unsigned int state_id;
+  unsigned int transition_id;
+};
 
-struct GNUNET_REGEX_Nfa *
+struct State *
+dfa_create_state (struct GNUNET_REGEX_Context *ctx, struct StateSet *sset, int accepting)
+{
+  int i;
+  struct State *s;
+  char *name;
+
+  s = GNUNET_malloc (sizeof (struct State));
+  s->id = ctx->state_id++;
+  s->accepting = accepting;
+  s->tcnt = 0;
+  s->transitions = NULL;
+  s->marked = 0;
+  s->name = NULL;
+
+  if (0 == sset->count)
+    return s;
+
+  s->name = GNUNET_malloc ( strlen ("{"));
+  strcat (s->name, "{");
+
+  for (i=0; i<sset->count; i++)
+  {
+    name = GNUNET_malloc (sizeof (char));
+    GNUNET_asprintf (&name, "%i,", sset->states[i]->id);
+    s->name = GNUNET_realloc (s->name, strlen (s->name) + strlen (name) + 1);
+    strcat (s->name, name);
+    GNUNET_free (name);
+  }
+  s->name[strlen (s->name)-1] = '}';
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created DFA state with name: %s\n", s->name);
+
+  return s;
+}
+
+struct GNUNET_REGEX_Automaton *
 nfa_create (struct State *start, struct State *end)
 {
-  struct GNUNET_REGEX_Nfa *n;
+  struct GNUNET_REGEX_Automaton *n;
+  struct StateSet sset;
 
-  n = GNUNET_malloc (sizeof (struct GNUNET_REGEX_Nfa));
+  n = GNUNET_malloc (sizeof (struct GNUNET_REGEX_Automaton));
 
   if (NULL == start && NULL == end)
   {
-    n->states = NULL;
-    n->statecnt = 0;
+    sset.states = NULL;
+    sset.count = 0;
+    n->sset = sset;
     n->start = NULL;
     n->end = NULL;
 
     return n;
   }
 
-  n->states = GNUNET_malloc ((sizeof (struct State *)) * 2);
-  n->states[0] = start;
-  n->states[1] = end;
-  n->statecnt = 2;
+  sset.states = GNUNET_malloc ((sizeof (struct State *)) * 2);
+  sset.states[0] = start;
+  sset.states[1] = end;
+  sset.count = 2;
+  n->sset = sset;
 
   n->start = start;
   n->end = end;
@@ -138,46 +186,49 @@ nfa_create (struct State *start, struct State *end)
 
 
 void
-nfa_add_states (struct GNUNET_REGEX_Nfa *n, struct State **states,
-                unsigned int count)
+nfa_add_states (struct GNUNET_REGEX_Automaton *n, struct StateSet *sset)
 {
   unsigned int i;
   unsigned int j;
 
-  i = n->statecnt;
-  GNUNET_array_grow (n->states, n->statecnt, n->statecnt + count);
-  for (j = 0; i < n->statecnt && j < count; i++, j++)
+  i = n->sset.count;
+  GNUNET_array_grow (n->sset.states, n->sset.count, n->sset.count + sset->count);
+  for (j = 0; i < n->sset.count && j < sset->count; i++, j++)
   {
-    n->states[i] = states[j];
+    n->sset.states[i] = sset->states[j];
   }
 }
 
 
 struct State *
-nfa_create_state (int accepting)
+nfa_create_state (struct GNUNET_REGEX_Context *ctx, int accepting)
 {
   struct State *s;
 
   s = GNUNET_malloc (sizeof (struct State));
-  s->id = state_id++;
+  s->id = ctx->state_id++;
   s->accepting = accepting;
   s->tcnt = 0;
   s->transitions = NULL;
-  s->visited = 0;
+  s->marked = 0;
+  s->name = NULL;
+  GNUNET_asprintf (&s->name, "s%i", s->id);
 
   return s;
 }
 
 void
-nfa_destroy_state (struct State *s)
+automaton_destroy_state (struct State *s)
 {
   if (s->tcnt > 0)
     GNUNET_free (s->transitions);
+  if (NULL != s->name)
+    GNUNET_free (s->name);
   GNUNET_free (s);
 }
 
 void
-nfa_add_transition (struct State *from_state, const char literal,
+nfa_add_transition (struct GNUNET_REGEX_Context *ctx, struct State *from_state, const char literal,
                     struct State *to_state)
 {
   struct Transition t;
@@ -188,7 +239,7 @@ nfa_add_transition (struct State *from_state, const char literal,
     return;
   }
 
-  t.id = transition_id++;
+  t.id = ctx->transition_id++;
   t.literal = literal;
   t.state = to_state;
 
@@ -199,22 +250,22 @@ nfa_add_transition (struct State *from_state, const char literal,
 }
 
 void
-mark_all_states (struct GNUNET_REGEX_Nfa *n, int visited)
+mark_all_states (struct GNUNET_REGEX_Automaton *n, int marked)
 {
   int i;
 
-  for (i = 0; i < n->statecnt; i++)
+  for (i = 0; i < n->sset.count; i++)
   {
-    n->states[i]->visited = visited;
+    n->sset.states[i]->marked = marked;
   }
 }
 
 void
-nfa_add_concatenation ()
+nfa_add_concatenation (struct GNUNET_REGEX_Context *ctx)
 {
-  struct GNUNET_REGEX_Nfa *A;
-  struct GNUNET_REGEX_Nfa *B;
-  struct GNUNET_REGEX_Nfa *new;
+  struct GNUNET_REGEX_Automaton *A;
+  struct GNUNET_REGEX_Automaton *B;
+  struct GNUNET_REGEX_Automaton *new;
 
   B = pop (&nfa_stack);
   A = pop (&nfa_stack);
@@ -226,28 +277,26 @@ nfa_add_concatenation ()
     return;
   }
 
-  nfa_add_transition (A->end, 0, B->start);
+  nfa_add_transition (ctx, A->end, 0, B->start);
   A->end->accepting = 0;
   B->end->accepting = 1;
 
   new = nfa_create (NULL, NULL);
-  nfa_add_states (new, A->states, A->statecnt);
-  nfa_add_states (new, B->states, B->statecnt);
+  nfa_add_states (new, &A->sset);
+  nfa_add_states (new, &B->sset);
   new->start = A->start;
   new->end = B->end;
-  GNUNET_free (A->states);
   GNUNET_free (A);
-  GNUNET_free (B->states);
   GNUNET_free (B);
 
   push (new, &nfa_stack);
 }
 
 void
-nfa_add_star_op ()
+nfa_add_star_op (struct GNUNET_REGEX_Context *ctx)
 {
-  struct GNUNET_REGEX_Nfa *A;
-  struct GNUNET_REGEX_Nfa *new;
+  struct GNUNET_REGEX_Automaton *A;
+  struct GNUNET_REGEX_Automaton *new;
   struct State *start;
   struct State *end;
 
@@ -260,29 +309,28 @@ nfa_add_star_op ()
     return;
   }
 
-  start = nfa_create_state (0);
-  end = nfa_create_state (1);
+  start = nfa_create_state (ctx, 0);
+  end = nfa_create_state (ctx, 1);
 
-  nfa_add_transition (start, 0, A->start);
-  nfa_add_transition (start, 0, end);
-  nfa_add_transition (A->end, 0, A->start);
-  nfa_add_transition (A->end, 0, end);
+  nfa_add_transition (ctx, start, 0, A->start);
+  nfa_add_transition (ctx, start, 0, end);
+  nfa_add_transition (ctx, A->end, 0, A->start);
+  nfa_add_transition (ctx, A->end, 0, end);
 
   A->end->accepting = 0;
   end->accepting = 1;
 
   new = nfa_create (start, end);
-  nfa_add_states (new, A->states, A->statecnt);
-  GNUNET_free (A->states);
+  nfa_add_states (new, &A->sset);
   GNUNET_free (A);
 
   push (new, &nfa_stack);
 }
 
 void
-nfa_add_plus_op ()
+nfa_add_plus_op (struct GNUNET_REGEX_Context *ctx)
 {
-  struct GNUNET_REGEX_Nfa *A;
+  struct GNUNET_REGEX_Automaton *A;
 
   A = pop (&nfa_stack);
 
@@ -293,17 +341,17 @@ nfa_add_plus_op ()
     return;
   }
 
-  nfa_add_transition (A->end, 0, A->start);
+  nfa_add_transition (ctx, A->end, 0, A->start);
 
   push (A, &nfa_stack);
 }
 
 void
-nfa_add_alternation ()
+nfa_add_alternation (struct GNUNET_REGEX_Context *ctx)
 {
-  struct GNUNET_REGEX_Nfa *A;
-  struct GNUNET_REGEX_Nfa *B;
-  struct GNUNET_REGEX_Nfa *new;
+  struct GNUNET_REGEX_Automaton *A;
+  struct GNUNET_REGEX_Automaton *B;
+  struct GNUNET_REGEX_Automaton *new;
   struct State *start;
   struct State *end;
 
@@ -317,74 +365,131 @@ nfa_add_alternation ()
     return;
   }
 
-  start = nfa_create_state (0);
-  end = nfa_create_state (1);
-  nfa_add_transition (start, 0, A->start);
-  nfa_add_transition (start, 0, B->start);
+  start = nfa_create_state (ctx, 0);
+  end = nfa_create_state (ctx, 1);
+  nfa_add_transition (ctx, start, 0, A->start);
+  nfa_add_transition (ctx, start, 0, B->start);
 
-  nfa_add_transition (A->end, 0, end);
-  nfa_add_transition (B->end, 0, end);
+  nfa_add_transition (ctx, A->end, 0, end);
+  nfa_add_transition (ctx, B->end, 0, end);
 
   A->end->accepting = 0;
   B->end->accepting = 0;
   end->accepting = 1;
 
   new = nfa_create (start, end);
-  nfa_add_states (new, A->states, A->statecnt);
-  nfa_add_states (new, B->states, B->statecnt);
-  GNUNET_free (A->states);
+  nfa_add_states (new, &A->sset);
+  nfa_add_states (new, &B->sset);
   GNUNET_free (A);
-  GNUNET_free (B->states);
   GNUNET_free (B);
 
   push (new, &nfa_stack);
 }
 
 void
-nfa_add_literal (const char lit)
+nfa_add_literal (struct GNUNET_REGEX_Context *ctx, const char lit)
 {
-  struct GNUNET_REGEX_Nfa *n;
+  struct GNUNET_REGEX_Automaton *n;
   struct State *start;
   struct State *end;
 
-  start = nfa_create_state (0);
-  end = nfa_create_state (1);
-  nfa_add_transition (start, lit, end);
+  start = nfa_create_state (ctx, 0);
+  end = nfa_create_state (ctx, 1);
+  nfa_add_transition (ctx, start, lit, end);
   n = nfa_create (start, end);
   push (n, &nfa_stack);
 }
 
-struct GNUNET_REGEX_Nfa *
+/**
+ * Calculates the closure set for the given set of states.
+ *
+ * @param states set of states for which to calculate the closure
+ * @param count number of states in 'states'
+ * @param literal for the transition
+ *
+ * @return set of states that can be reached from the given 'states' when
+ *         using only 'literal' transitions
+ */
+struct StateSet
+nfa_closure (struct State **states, unsigned int count, const char literal)
+{
+  struct Stack *cls_check;
+  unsigned int scnt;
+  unsigned int tcnt;
+  struct StateSet cls;
+  struct State *s;
+  struct State *currentstate;
+  struct State *clsstate;
+
+
+  for (scnt=0; scnt < count; scnt++)
+  {
+    s = states[scnt];
+    cls_check = NULL;
+    cls.states = NULL;
+    cls.count = 0;
+
+    // Add start state to closure
+    GNUNET_array_append (cls.states, cls.count, s);
+    push (s, &cls_check);
+
+    while (!empty(&cls_check))
+    {
+      currentstate = pop(&cls_check);
+
+      for (tcnt=0; tcnt<currentstate->tcnt; tcnt++)
+      {
+        if (NULL != currentstate->transitions[tcnt].state 
+            && literal == currentstate->transitions[tcnt].literal)
+        {
+          clsstate = currentstate->transitions[tcnt].state;
+
+          if (NULL == clsstate)
+            break;
+
+          GNUNET_array_append (cls.states, cls.count, clsstate);
+          push (clsstate, &cls_check);
+        }
+      }
+    }
+  }
+
+  return cls;
+}
+
+struct GNUNET_REGEX_Automaton *
 GNUNET_REGEX_construct_nfa (const char *regex, size_t len)
 {
-  struct GNUNET_REGEX_Nfa *nfa;
+  struct GNUNET_REGEX_Context ctx;
+  struct GNUNET_REGEX_Automaton *nfa;
+  char *error_msg;
   unsigned int count;
   unsigned int altcount;
   unsigned int atomcount;
   unsigned int pcount;
-  struct p_stage
+  struct
   {
     int altcount;
     int atomcount;
-  };
-  struct p_stage *p;
+  }*p;
 
   p = NULL;
-
+  error_msg = NULL;
   altcount = 0;
   atomcount = 0;
   pcount = 0;
+  ctx.state_id = 0;
+  ctx.transition_id = 0;
 
   for (count = 0; count < len && *regex; count++, regex++)
   {
-
     switch (*regex)
     {
     case '(':
       if (atomcount > 1)
       {
         --atomcount;
-        nfa_add_concatenation ();
+        nfa_add_concatenation (&ctx);
       }
       GNUNET_array_grow (p, pcount, pcount + 1);
       p[pcount - 1].altcount = altcount;
@@ -394,20 +499,32 @@ GNUNET_REGEX_construct_nfa (const char *regex, size_t len)
       break;
     case '|':
       if (0 == atomcount)
+      {
+        error_msg = "Cannot append '|' to nothing";
         goto error;
+      }
       while (--atomcount > 0)
-        nfa_add_concatenation ();
+        nfa_add_concatenation (&ctx);
       altcount++;
       break;
     case ')':
       if (0 == pcount)
+      {
+        error_msg = "Missing opening '('";
         goto error;
-      if (atomcount == 0)
-        goto error;
+      }
+      if (0 == atomcount)
+      {
+        // Ignore this: "()"
+        pcount--;
+        altcount = p[pcount].altcount;
+        atomcount = p[pcount].atomcount;
+        break;
+      }
       while (--atomcount > 0)
-        nfa_add_concatenation ();
+        nfa_add_concatenation (&ctx);
       for (; altcount > 0; altcount--)
-        nfa_add_alternation ();
+        nfa_add_alternation (&ctx);
       pcount--;
       altcount = p[pcount].altcount;
       atomcount = p[pcount].atomcount;
@@ -415,13 +532,19 @@ GNUNET_REGEX_construct_nfa (const char *regex, size_t len)
       break;
     case '*':
       if (atomcount == 0)
+      {
+        error_msg = "Cannot append '+' to nothing";
         goto error;
-      nfa_add_star_op ();
+      }
+      nfa_add_star_op (&ctx);
       break;
     case '+':
       if (atomcount == 0)
+      {
+        error_msg = "Cannot append '+' to nothing";
         goto error;
-      nfa_add_plus_op ();
+      }
+      nfa_add_plus_op (&ctx);
       break;
     case 92:                   /* escape: \ */
       regex++;
@@ -430,63 +553,77 @@ GNUNET_REGEX_construct_nfa (const char *regex, size_t len)
       if (atomcount > 1)
       {
         --atomcount;
-        nfa_add_concatenation ();
+        nfa_add_concatenation (&ctx);
       }
-      nfa_add_literal (*regex);
+      nfa_add_literal (&ctx, *regex);
       atomcount++;
       break;
     }
   }
   if (0 != pcount)
+  {
+    error_msg = "Unbalanced parenthesis";
     goto error;
+  }
   while (--atomcount > 0)
-    nfa_add_concatenation ();
+    nfa_add_concatenation (&ctx);
   for (; altcount > 0; altcount--)
-    nfa_add_alternation ();
+    nfa_add_alternation (&ctx);
 
   if (NULL != p)
     GNUNET_free (p);
 
   nfa = pop (&nfa_stack);
 
+  if (!empty (&nfa_stack))
+  {
+    error_msg = "Creating the NFA failed. NFA stack was not empty!";
+    goto error;
+  }
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Created NFA with %i States and a total of %i Transitions\n",
-              state_id, transition_id);
+              ctx.state_id, ctx.transition_id);
 
   return nfa;
 
 error:
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not parse regex\n");
+  if (NULL != error_msg)
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s\n", error_msg);
   GNUNET_free (p);
   while (!empty (&nfa_stack))
-    GNUNET_REGEX_destroy_nfa (pop (&nfa_stack));
+    GNUNET_REGEX_destroy_automaton (pop (&nfa_stack));
   return NULL;
 }
 
 void
-GNUNET_REGEX_destroy_nfa (struct GNUNET_REGEX_Nfa *n)
+GNUNET_REGEX_destroy_automaton (struct GNUNET_REGEX_Automaton *a)
 {
   int i;
 
-  for (i = 0; i < n->statecnt; i++)
+  if (NULL == a)
+    return;
+
+  for (i = 0; i < a->sset.count; i++)
   {
-    nfa_destroy_state (n->states[i]);
+    automaton_destroy_state (a->sset.states[i]);
   }
 
-  GNUNET_free (n->states);
-  GNUNET_free (n);
+  if (NULL != a->sset.states)
+    GNUNET_free (a->sset.states);
+  GNUNET_free (a);
 }
 
 void
-GNUNET_REGEX_save_nfa_graph (struct GNUNET_REGEX_Nfa *n, const char *filename)
+GNUNET_REGEX_save_nfa_graph (struct GNUNET_REGEX_Automaton *n, const char *filename)
 {
   struct State *s;
   char *start;
   char *end;
-  char *states;
   FILE *p;
-  int i_s;
-  int i_t;
+  int scnt;
+  int tcnt;
 
   if (NULL == n)
   {
@@ -494,38 +631,44 @@ GNUNET_REGEX_save_nfa_graph (struct GNUNET_REGEX_Nfa *n, const char *filename)
     return;
   }
 
-  mark_all_states (n, 0);
+  if (NULL == filename || strlen (filename) < 1)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "No Filename given!");
+    return;
+  }
 
-  states = GNUNET_malloc (sizeof (char));
-  *states = '\0';
+  p = fopen (filename, "w");
 
-  for (i_s = 0; i_s < n->statecnt; i_s++)
+  if (p == NULL)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not open file for writing: %s",
+                filename);
+    return;
+  }
+
+  start = "digraph G {\nrankdir=LR\n";
+  fwrite (start, strlen (start), 1, p);
+
+  for (scnt = 0; scnt < n->sset.count; scnt++)
   {
     struct Transition *ctran;
     char *s_acc = NULL;
     char *s_tran = NULL;
 
-    s = n->states[i_s];
+    s = n->sset.states[scnt];
 
     if (s->accepting)
     {
       GNUNET_asprintf (&s_acc, "s%i [shape=doublecircle];\n", s->id);
-
-      states = GNUNET_realloc (states, strlen (states) + strlen (s_acc) + 1);
-      strcat (states, s_acc);
+      fwrite (s_acc, strlen (s_acc), 1, p);
       GNUNET_free (s_acc);
     }
 
     ctran = s->transitions;
-    s->visited = 1;
+    s->marked = 1;
 
-    for (i_t = 0; i_t < s->tcnt && NULL != s->transitions; i_t++)
+    for (tcnt = 0; tcnt < s->tcnt && NULL != ctran; tcnt++)
     {
-      if (NULL == ctran)
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "s->transitions was NULL\n");
-      }
-
       if (NULL == ctran->state)
       {
         GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -544,42 +687,37 @@ GNUNET_REGEX_save_nfa_graph (struct GNUNET_REGEX_Nfa *n, const char *filename)
                          ctran->state->id, ctran->literal);
       }
 
-      states = GNUNET_realloc (states, strlen (states) + strlen (s_tran) + 1);
-      strcat (states, s_tran);
-      GNUNET_free (s_tran);
+      fwrite (s_tran, strlen (s_tran), 1, p);
 
       ctran++;
     }
   }
 
-  if (NULL == states)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not print NFA");
-    return;
-  }
-
-  if (NULL == filename || strlen (filename) < 1)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "No Filename given!");
-    GNUNET_free (states);
-    return;
-  }
-
-  p = fopen (filename, "w");
-  if (p == NULL)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not open file for writing: %s",
-                filename);
-    GNUNET_free (states);
-    return;
-  }
-
-  start = "digraph G {\nrankdir=LR\n";
   end = "\n}\n";
-  fwrite (start, strlen (start), 1, p);
-  fwrite (states, strlen (states), 1, p);
   fwrite (end, strlen (end), 1, p);
   fclose (p);
+}
 
-  GNUNET_free (states);
+struct GNUNET_REGEX_Automaton *
+GNUNET_REGEX_construct_dfa (const char *regex, size_t len)
+{
+  struct GNUNET_REGEX_Context ctx;
+  struct GNUNET_REGEX_Automaton *dfa;
+  struct GNUNET_REGEX_Automaton *nfa;
+  struct StateSet dfa_start_set;
+  struct State *dfa_start;
+
+  ctx.state_id = 0;
+  ctx.transition_id = 0;
+
+  // Create NFA
+  nfa = GNUNET_REGEX_construct_nfa (regex, len);
+
+  // Create DFA start state from epsilon closure
+  dfa_start_set = nfa_closure (&nfa->start, 1, 0);
+  dfa_start = dfa_create_state (&ctx, &dfa_start_set, 0);
+
+  // ecls (move (dfa_start, lit))
+
+  return dfa;
 }

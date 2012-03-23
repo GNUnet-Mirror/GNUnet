@@ -38,19 +38,28 @@ main (int argc, char *argv[])
 #endif
                     NULL);
 
-  struct GNUNET_REGEX_Nfa *nfa;
+  struct GNUNET_REGEX_Automaton *nfa;
+  struct GNUNET_REGEX_Automaton *dfa;
   char *regex;
 
+  nfa = NULL;
+  dfa = NULL;
+
   regex = "a\\*b(c|d)+c*(a(b|c)d)+";
+  /*regex = "a(ab)b";*/
   nfa = GNUNET_REGEX_construct_nfa (regex, strlen (regex));
 
   if (nfa)
   {
     GNUNET_REGEX_save_nfa_graph (nfa, "nfa_graph.dot");
-    GNUNET_REGEX_destroy_nfa (nfa);
+    GNUNET_REGEX_destroy_automaton (nfa);
   }
   else
     err = 1;
+
+  dfa = GNUNET_REGEX_construct_dfa (regex, strlen (regex));
+  if (dfa)
+    GNUNET_REGEX_destroy_automaton (dfa);
 
   return err;
 }
