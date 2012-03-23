@@ -311,6 +311,14 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
   struct GNUNET_CRYPTO_ShortHashAsciiEncoded enc;
   uint16_t mx_pref;
   char* result;
+  char* soa_rname;
+  char* soa_mname;
+  uint32_t* soa_data;
+  uint32_t soa_serial;
+  uint32_t soa_refresh;
+  uint32_t soa_retry;
+  uint32_t soa_expire;
+  uint32_t soa_min;
 
   switch (type)
   {
@@ -327,9 +335,20 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
   case GNUNET_DNSPARSER_TYPE_CNAME:
     return GNUNET_strndup (data, data_size);
   case GNUNET_DNSPARSER_TYPE_SOA:
-    GNUNET_break (0);
-    // FIXME
-    return NULL;
+    soa_rname = (char*)data;
+    soa_mname = (char*)data+strlen(soa_rname)+1;
+    soa_data = (uint32_t*)(soa_mname+strlen(soa_mname)+1);
+    soa_serial = ntohl(soa_data[0]);
+    soa_refresh = ntohl(soa_data[1]);
+    soa_retry = ntohl(soa_data[2]);
+    soa_expire = ntohl(soa_data[3]);
+    soa_min = ntohl(soa_data[4]);
+    if (GNUNET_asprintf(&result, "rname=%s mname=%s %lu,%lu,%lu,%lu,%lu", 
+                     soa_rname, soa_mname,
+                     soa_serial, soa_refresh, soa_retry, soa_expire, soa_min))
+      return result;
+    else
+      return NULL;
   case GNUNET_DNSPARSER_TYPE_PTR:
     return GNUNET_strndup (data, data_size);
   case GNUNET_DNSPARSER_TYPE_MX:
@@ -384,8 +403,16 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
   struct GNUNET_CRYPTO_ShortHashCode pkey;
   uint16_t mx_pref;
   uint16_t mx_pref_n;
+  uint32_t soa_data[5];
   char result[253];
-
+  char soa_rname[63];
+  char soa_mname[63];
+  uint32_t soa_serial;
+  uint32_t soa_refresh;
+  uint32_t soa_retry;
+  uint32_t soa_expire;
+  uint32_t soa_min;
+  
   switch (type)
   {
   case 0:
@@ -406,13 +433,30 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
     *data_size = strlen (s);
     return GNUNET_OK;
   case GNUNET_DNSPARSER_TYPE_SOA:
-    GNUNET_break (0);
-    // FIXME
-    return GNUNET_SYSERR;
+    
+    if (SSCANF(s, "rname=%s mname=%s %u,%u,%u,%u,%u",
+               soa_rname, soa_mname,
+               &soa_serial, &soa_refresh, &soa_retry, &soa_expire, &soa_min) 
+        != 7)
+      return GNUNET_SYSERR;
+    
+    *data_size = sizeof (soa_data)+strlen(soa_rname)+strlen(soa_mname)+2;
+    *data = GNUNET_malloc (*data_size);
+    soa_data[0] = htonl(soa_serial);
+    soa_data[1] = htonl(soa_refresh);
+    soa_data[2] = htonl(soa_retry);
+    soa_data[3] = htonl(soa_expire);
+    soa_data[4] = htonl(soa_min);
+    strcpy(*data, soa_rname);
+    strcpy(*data+strlen(*data)+1, soa_mname);
+    memcpy(*data+strlen(*data)+1+strlen(soa_mname)+1,
+           soa_data, sizeof(soa_data));
+    return GNUNET_OK;
+
   case GNUNET_DNSPARSER_TYPE_PTR:
-    GNUNET_break (0);
-    // FIXME
-    return GNUNET_SYSERR;
+    *data = GNUNET_strdup (s);
+    *data_size = strlen (s);
+    return GNUNET_OK;
   case GNUNET_DNSPARSER_TYPE_MX:
     if (SSCANF(s, "%hu,%s", &mx_pref, result) != 2)
       return GNUNET_SYSERR;
