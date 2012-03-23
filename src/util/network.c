@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009 Christian Grothoff (and other contributing authors)
+     (C) 2009, 2012 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -193,6 +193,61 @@ socket_set_nodelay (const struct GNUNET_NETWORK_Handle *h)
 
 
 /**
+ * Perform proper canonical initialization for a network handle.
+ * Set it to non-blocking, make it non-inheritable to child
+ * processes, disable SIGPIPE, enable "nodelay" (if non-UNIX
+ * stream socket) and check that it is smaller than FS_SETSIZE.
+ *
+ * @param h socket to initialize
+ * @param af address family of the socket
+ * @param type socket type
+ * @return GNUNET_OK on success, GNUNET_SYSERR if initialization
+ *         failed and the handle was destroyed
+ */
+static int
+initialize_network_handle (struct GNUNET_NETWORK_Handle *h,
+			   int af, int type)
+{
+  h->af = af;
+  if (h->fd == INVALID_SOCKET)
+  {
+#ifdef MINGW
+    SetErrnoFromWinsockError (WSAGetLastError ());
+#endif
+    GNUNET_free (h);
+    return GNUNET_SYSERR;
+  }
+#ifndef MINGW
+  if (h->fd >= FD_SETSIZE)
+  {
+    GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (h));
+    errno = EMFILE;
+    return GNUNET_SYSERR;
+  }
+  if (GNUNET_OK != socket_set_inheritable (h))
+    LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                  "socket_set_inheritable");
+#endif
+  if (GNUNET_SYSERR == socket_set_blocking (h, GNUNET_NO))
+  {
+    GNUNET_break (0);
+    GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (h));
+    return GNUNET_SYSERR;
+  }
+#ifdef DARWIN
+  socket_set_nosigpipe (h);
+#endif
+  if ( (type == SOCK_STREAM) 
+#ifdef AF_UNIX
+       && (af != AF_UNIX)
+#endif
+       )
+    socket_set_nodelay (h);
+  return GNUNET_OK;
+}
+
+
+/**
  * accept a new connection on a socket
  *
  * @param desc bound socket
@@ -219,49 +274,10 @@ GNUNET_NETWORK_socket_accept (const struct GNUNET_NETWORK_Handle *desc,
   }
 #endif
   ret->fd = accept (desc->fd, address, address_len);
-  if (address != NULL)
-    ret->af = address->sa_family;
-  else
-    ret->af = desc->af;
-  if (ret->fd == INVALID_SOCKET)
-  {
-#ifdef MINGW
-    SetErrnoFromWinsockError (WSAGetLastError ());
-#endif
-    GNUNET_free (ret);
+  if (GNUNET_OK != initialize_network_handle (ret,
+					      (NULL != address) ? address->sa_family : desc->af,
+					      SOCK_STREAM))
     return NULL;
-  }
-#ifndef MINGW
-  if (ret->fd >= FD_SETSIZE)
-  {
-    GNUNET_break (0 == close (ret->fd));
-    GNUNET_free (ret);
-    errno = EMFILE;
-    return NULL;
-  }
-#endif
-  if (GNUNET_SYSERR == socket_set_blocking (ret, GNUNET_NO))
-
-  {
-
-    /* we might want to treat this one as fatal... */
-    GNUNET_break (0);
-    GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (ret));
-    return NULL;
-  }
-
-#ifndef MINGW
-  if (GNUNET_OK != socket_set_inheritable (ret))
-    LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                  "socket_set_inheritable");
-#endif
-#ifdef DARWIN
-  socket_set_nosigpipe (ret);
-#endif
-#ifdef AF_UNIX
-  if (ret->af != AF_UNIX)
-#endif
-    socket_set_nodelay (ret);
   return ret;
 }
 
@@ -677,49 +693,10 @@ GNUNET_NETWORK_socket_create (int domain, int type, int protocol)
   struct GNUNET_NETWORK_Handle *ret;
 
   ret = GNUNET_malloc (sizeof (struct GNUNET_NETWORK_Handle));
-  ret->af = domain;
   ret->fd = socket (domain, type, protocol);
-  if (INVALID_SOCKET == ret->fd)
-  {
-#ifdef MINGW
-    SetErrnoFromWinsockError (WSAGetLastError ());
-#endif
-    GNUNET_free (ret);
+  if (GNUNET_OK !=
+      initialize_network_handle (ret, domain, type))
     return NULL;
-  }
-
-#ifndef MINGW
-  if (ret->fd >= FD_SETSIZE)
-  {
-    GNUNET_break (0 == close (ret->fd));
-    GNUNET_free (ret);
-    errno = EMFILE;
-    return NULL;
-  }
-
-#endif
-  if (GNUNET_SYSERR == socket_set_blocking (ret, GNUNET_NO))
-  {
-    /* we might want to treat this one as fatal... */
-    GNUNET_break (0);
-    GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (ret));
-    return NULL;
-  }
-
-#ifndef MINGW
-  if (GNUNET_OK != socket_set_inheritable (ret))
-    LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                  "socket_set_inheritable");
-#endif
-#ifdef DARWIN
-  socket_set_nosigpipe (ret);
-#endif
-  if ((type == SOCK_STREAM)
-#ifdef AF_UNIX
-      && (domain != AF_UNIX)
-#endif
-      )
-    socket_set_nodelay (ret);
   return ret;
 }
 
