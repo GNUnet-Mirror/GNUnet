@@ -182,6 +182,7 @@ handle_auth_discovery_timeout(void *cls,
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
              "GNS_GET_AUTH: dht lookup for query PSEU timed out.\n");
   GNUNET_DHT_get_stop (gph->get_handle);
+  gph->get_handle = NULL;
   process_pseu_result(gph, NULL);
 }
 
@@ -234,6 +235,7 @@ process_auth_discovery_dht_result(void* cls,
 
   /* stop lookup and timeout task */
   GNUNET_DHT_get_stop (gph->get_handle);
+  gph->get_handle = NULL;
   GNUNET_SCHEDULER_cancel(gph->timeout);
 
   gph->get_handle = NULL;
@@ -333,7 +335,8 @@ process_zone_to_name_discover(void *cls,
                                          &handle_auth_discovery_timeout, gph);
 
     xquery = htonl(GNUNET_GNS_RECORD_PSEU);
-
+    
+    GNUNET_assert(gph->get_handle == NULL);
     gph->get_handle = GNUNET_DHT_get_start(dht_handle,
                                            GNUNET_TIME_UNIT_FOREVER_REL,
                                            GNUNET_BLOCK_TYPE_GNS_NAMERECORD,
@@ -416,7 +419,7 @@ gns_resolver_init(struct GNUNET_NAMESTORE_Handle *nh,
 /**
  * Cleanup background lookups
  *
- * @param cks closure to iterator
+ * @param cls closure to iterator
  * @param node heap nodes
  * @param element the resolver handle
  * @param cost heap cost
@@ -429,12 +432,20 @@ cleanup_pending_background_queries(void* cls,
                                    GNUNET_CONTAINER_HeapCostType cost)
 {
   struct ResolverHandle *rh = (struct ResolverHandle *)element;
+  ResolverCleanupContinuation cont = cls;
   
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
              "GNS_CLEANUP: Terminating background lookup for %s\n",
              rh->name);
   GNUNET_DHT_get_stop(rh->get_handle);
+  rh->get_handle = NULL;
   rh->proc(rh->proc_cls, rh, 0, NULL);
+
+  GNUNET_CONTAINER_heap_remove_node(node);
+
+  if (GNUNET_CONTAINER_heap_get_size(dht_lookup_heap) == 0)
+    cont();
+
 
   return GNUNET_YES;
 }
@@ -444,18 +455,18 @@ cleanup_pending_background_queries(void* cls,
  * Shutdown resolver
  */
 void
-gns_resolver_cleanup()
+gns_resolver_cleanup(ResolverCleanupContinuation cont)
 {
   unsigned int s = GNUNET_CONTAINER_heap_get_size(dht_lookup_heap);
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
              "GNS_CLEANUP: %d pending background queries to terminate\n", s);
 
   if (0 != s)
-  {
     GNUNET_CONTAINER_heap_iterate (dht_lookup_heap,
                                    &cleanup_pending_background_queries,
-                                   NULL);
-  }
+                                   cont);
+  else
+    cont();
 }
 
 
@@ -537,7 +548,7 @@ background_lookup_result_processor(void *cls,
 {
   //We could do sth verbose/more useful here but it doesn't make any difference
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "GNS_BG: background dht lookup finished.\n");
+             "GNS_BG: background dht lookup for finished.\n");
 }
 
 /**
@@ -578,6 +589,7 @@ dht_lookup_timeout(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   rh->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   
   GNUNET_DHT_get_stop (rh->get_handle);
+  rh->get_handle = NULL;
   rh->proc(rh->proc_cls, rh, 0, NULL);
 }
 
@@ -631,6 +643,7 @@ process_record_result_dht(void* cls,
   
   /* stop lookup and timeout task */
   GNUNET_DHT_get_stop (rh->get_handle);
+  rh->get_handle = NULL;
   
   if (rh->dht_heap_node != NULL)
   {
@@ -770,7 +783,12 @@ resolve_record_dht(struct ResolverHandle *rh)
     {
       rh_heap_root = GNUNET_CONTAINER_heap_remove_root (dht_lookup_heap);
       GNUNET_DHT_get_stop(rh_heap_root->get_handle);
+      rh_heap_root->get_handle = NULL;
       rh_heap_root->dht_heap_node = NULL;
+      
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+           "GNS_PHASE_REC: Replacing oldest background query for %s\n",
+                 rh_heap_root->name);
       rh_heap_root->proc(rh_heap_root->proc_cls,
                          rh_heap_root,
                          0,
@@ -782,6 +800,8 @@ resolve_record_dht(struct ResolverHandle *rh)
   }
   
   xquery = htonl(rlh->record_type);
+  
+  GNUNET_assert(rh->get_handle == NULL);
   rh->get_handle = GNUNET_DHT_get_start(dht_handle, 
                        GNUNET_TIME_UNIT_FOREVER_REL,
                        GNUNET_BLOCK_TYPE_GNS_NAMERECORD,
@@ -957,11 +977,14 @@ dht_authority_lookup_timeout(void *cls,
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
              "GNS_PHASE_DELEGATE: dht lookup for query %s timed out.\n",
-             rh->name);
+             rh->authority_name);
 
   rh->status |= TIMED_OUT;
 
   rh->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  
+  GNUNET_DHT_get_stop (rh->get_handle);
+  rh->get_handle = NULL;
   
   if (strcmp(rh->name, "") == 0)
   {
@@ -994,8 +1017,6 @@ dht_authority_lookup_timeout(void *cls,
                              &background_lookup_result_processor,
                              NULL);
 
-  GNUNET_DHT_get_stop (rh->get_handle);
-  
   rh->proc(rh->proc_cls, rh, 0, NULL);
 }
 
@@ -1584,6 +1605,11 @@ resolve_delegation_dht(struct ResolverHandle *rh)
       rh_heap_root = GNUNET_CONTAINER_heap_remove_root (dht_lookup_heap);
       GNUNET_DHT_get_stop(rh_heap_root->get_handle);
       rh_heap_root->dht_heap_node = NULL;
+      
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "GNS_PHASE_DELEGATE: Replacing oldest background query for %s\n",
+                 rh_heap_root->authority_name);
+      
       rh_heap_root->proc(rh_heap_root->proc_cls,
                          rh_heap_root,
                          0,
@@ -1595,7 +1621,8 @@ resolve_delegation_dht(struct ResolverHandle *rh)
   }
   
   xquery = htonl(GNUNET_GNS_RECORD_PKEY);
-
+  
+  GNUNET_assert(rh->get_handle == NULL);
   rh->get_handle = GNUNET_DHT_get_start(dht_handle,
                        GNUNET_TIME_UNIT_FOREVER_REL,
                        GNUNET_BLOCK_TYPE_GNS_NAMERECORD,
@@ -1903,6 +1930,7 @@ gns_resolver_lookup_record(struct GNUNET_CRYPTO_ShortHashCode zone,
   rh->proc_cls = rlh;
   rh->priv_key = key;
   rh->timeout = timeout;
+  rh->get_handle = NULL;
   if (timeout.rel_value != GNUNET_TIME_UNIT_FOREVER_REL.rel_value)
   {
     /*

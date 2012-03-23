@@ -155,6 +155,16 @@ static int auto_import_pkey;
 static struct GNUNET_TIME_Relative default_lookup_timeout;
 
 /**
+ * Continue shutdown
+ */
+static void
+on_resolver_cleanup(void)
+{
+  GNUNET_NAMESTORE_disconnect(namestore_handle, 1);
+  GNUNET_DHT_disconnect(dht_handle);
+}
+
+/**
  * Task run during shutdown.
  *
  * @param cls unused
@@ -173,10 +183,8 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_SERVER_notification_context_destroy (nc);
   
   gns_interceptor_stop();
-  gns_resolver_cleanup();
+  gns_resolver_cleanup(&on_resolver_cleanup);
 
-  GNUNET_NAMESTORE_disconnect(namestore_handle, 1);
-  GNUNET_DHT_disconnect(dht_handle);
 }
 
 
