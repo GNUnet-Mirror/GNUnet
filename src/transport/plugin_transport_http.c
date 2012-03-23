@@ -741,14 +741,12 @@ http_plugin_disconnect (void *cls, const struct GNUNET_PeerIdentity *target)
   }
 }
 
-static void
-nat_add_address (void *cls, int add_remove, const struct sockaddr *addr,
-                 socklen_t addrlen)
+static void *
+find_address (struct Plugin *plugin, const struct sockaddr *addr, socklen_t addrlen)
 {
-  struct Plugin *plugin = cls;
+  int af;
   struct IPv4HttpAddressWrapper *w_t4 = NULL;
   struct IPv6HttpAddressWrapper *w_t6 = NULL;
-  int af;
 
   af = addr->sa_family;
   switch (af)
@@ -773,25 +771,7 @@ nat_add_address (void *cls, int add_remove, const struct sockaddr *addr,
         break;
       w_t4 = w_t4->next;
     }
-    if (w_t4 == NULL)
-    {
-      w_t4 = GNUNET_malloc (sizeof (struct IPv4HttpAddressWrapper));
-      memcpy (&w_t4->addr.ipv4_addr, &a4->sin_addr, sizeof (struct in_addr));
-      w_t4->addr.u4_port = a4->sin_port;
-
-      GNUNET_CONTAINER_DLL_insert (plugin->ipv4_addr_head,
-                                   plugin->ipv4_addr_tail, w_t4);
-    }
-#if DEBUG_HTTP
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                     "Notifying transport to add IPv4 address `%s'\n",
-                     http_plugin_address_to_string (NULL, &w_t4->addr,
-                                                    sizeof (struct
-                                                            IPv4HttpAddress)));
-#endif
-    plugin->env->notify_address (plugin->env->cls, add_remove, &w_t4->addr,
-                                 sizeof (struct IPv4HttpAddress));
-
+    return w_t4;
     break;
   case AF_INET6:
     w_t6 = plugin->ipv6_addr_head;
@@ -811,10 +791,56 @@ nat_add_address (void *cls, int add_remove, const struct sockaddr *addr,
         break;
       w_t6 = w_t6->next;
     }
+    return w_t6;
+    break;
+  default:
+    return NULL;
+  }
+
+
+}
+
+static void
+nat_add_address (void *cls, int add_remove, const struct sockaddr *addr,
+                 socklen_t addrlen)
+{
+  struct Plugin *plugin = cls;
+  struct IPv4HttpAddressWrapper *w_t4 = NULL;
+  struct IPv6HttpAddressWrapper *w_t6 = NULL;
+  int af;
+
+  af = addr->sa_family;
+  switch (af)
+  {
+  case AF_INET:
+    w_t4 = find_address (plugin, addr, addrlen);
+    if (w_t4 == NULL)
+    {
+      struct sockaddr_in *a4 = (struct sockaddr_in *) addr;
+      w_t4 = GNUNET_malloc (sizeof (struct IPv4HttpAddressWrapper));
+      memcpy (&w_t4->addr.ipv4_addr, &a4->sin_addr, sizeof (struct in_addr));
+      w_t4->addr.u4_port = a4->sin_port;
+
+      GNUNET_CONTAINER_DLL_insert (plugin->ipv4_addr_head,
+                                   plugin->ipv4_addr_tail, w_t4);
+    }
+#if DEBUG_HTTP
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                     "Notifying transport to add IPv4 address `%s'\n",
+                     http_plugin_address_to_string (NULL, &w_t4->addr,
+                                                    sizeof (struct
+                                                            IPv4HttpAddress)));
+#endif
+    plugin->env->notify_address (plugin->env->cls, add_remove, &w_t4->addr,
+                                 sizeof (struct IPv4HttpAddress));
+
+    break;
+  case AF_INET6:
+    w_t6 = find_address (plugin, addr, addrlen);
     if (w_t6 == NULL)
     {
       w_t6 = GNUNET_malloc (sizeof (struct IPv6HttpAddressWrapper));
-
+      struct sockaddr_in6 *a6 = (struct sockaddr_in6 *) addr;
       memcpy (&w_t6->addr6.ipv6_addr, &a6->sin6_addr, sizeof (struct in6_addr));
       w_t6->addr6.u6_port = a6->sin6_port;
 
@@ -850,26 +876,7 @@ nat_remove_address (void *cls, int add_remove, const struct sockaddr *addr,
   switch (af)
   {
   case AF_INET:
-    w_t4 = plugin->ipv4_addr_head;
-    struct sockaddr_in *a4 = (struct sockaddr_in *) addr;
-
-    while (w_t4 != NULL)
-    {
-      int res = memcmp (&w_t4->addr.ipv4_addr,
-                        &a4->sin_addr,
-                        sizeof (struct in_addr));
-
-      if (res == 0)
-      {
-        if (a4->sin_port != w_t4->addr.u4_port)
-          res = -1;
-      }
-
-      if (0 == res)
-        break;
-      w_t4 = w_t4->next;
-    }
-    if (w_t4 == NULL)
+    w_t4 = find_address (plugin, addr, addrlen);
       return;
 
 #if DEBUG_HTTP
@@ -887,23 +894,7 @@ nat_remove_address (void *cls, int add_remove, const struct sockaddr *addr,
     GNUNET_free (w_t4);
     break;
   case AF_INET6:
-    w_t6 = plugin->ipv6_addr_head;
-    struct sockaddr_in6 *a6 = (struct sockaddr_in6 *) addr;
-
-    while (w_t6)
-    {
-      int res = memcmp (&w_t6->addr6.ipv6_addr, &a6->sin6_addr,
-                        sizeof (struct in6_addr));
-
-      if (res == 0)
-      {
-        if (a6->sin6_port != w_t6->addr6.u6_port)
-          res = -1;
-      }
-      if (0 == res)
-        break;
-      w_t6 = w_t6->next;
-    }
+    w_t6 = find_address (plugin, addr, addrlen);
     if (w_t6 == NULL)
       return;
 #if DEBUG_HTTP
