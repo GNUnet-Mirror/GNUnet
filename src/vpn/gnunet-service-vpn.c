@@ -2483,6 +2483,65 @@ expire_destination (struct DestinationEntry *except)
 
 
 /**
+ * Allocate an IP address for the response.  
+ *
+ * @param result_af desired address family; set to the actual
+ *        address family; can initially be AF_UNSPEC if there
+ *        is no preference; will be set to AF_UNSPEC if the
+ *        allocation failed
+ * @param addr set to either v4 or v6 depending on which 
+ *         storage location was used; set to NULL if allocation failed
+ * @param v4 storage space for an IPv4 address
+ * @param v6 storage space for an IPv6 address
+ * @return GNUNET_OK normally, GNUNET_SYSERR if '*result_af' was
+ *         an unsupported address family (not AF_INET, AF_INET6 or AF_UNSPEC)
+ */
+static int
+allocate_response_ip (int *result_af,
+		      void **addr,
+		      struct in_addr *v4,
+		      struct in6_addr *v6)
+{
+  *addr = NULL;
+  switch (*result_af)
+  {
+  case AF_INET:
+    if (GNUNET_OK !=
+	allocate_v4_address (v4))
+      *result_af = AF_UNSPEC;
+    else
+      *addr = v4;
+    break;
+  case AF_INET6:
+    if (GNUNET_OK !=
+	allocate_v6_address (v6))
+      *result_af = AF_UNSPEC;
+    else
+      *addr = v6;
+    break;
+  case AF_UNSPEC:
+    if (GNUNET_OK ==
+	allocate_v4_address (v4))
+    {
+      *addr = v4;
+      *result_af = AF_INET;
+    }
+    else if (GNUNET_OK ==
+	allocate_v6_address (v6))
+    {
+      *addr = v6;
+      *result_af = AF_INET6;
+    }
+    break;
+  default:
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
+}		      
+
+
+/**
  * A client asks us to setup a redirection via some exit
  * node to a particular IP.  Setup the redirection and
  * give the client the allocated IP.
@@ -2543,40 +2602,11 @@ service_redirect_to_ip (void *cls GNUNET_UNUSED, struct GNUNET_SERVER_Client *cl
   }
 
   /* allocate response IP */
-  addr = NULL;
   result_af = (int) htonl (msg->result_af);
-  switch (result_af)
+  if (GNUNET_OK != allocate_response_ip (&result_af,
+					 &addr,
+					 &v4, &v6))
   {
-  case AF_INET:
-    if (GNUNET_OK !=
-	allocate_v4_address (&v4))
-      result_af = AF_UNSPEC;
-    else
-      addr = &v4;
-    break;
-  case AF_INET6:
-    if (GNUNET_OK !=
-	allocate_v6_address (&v6))
-      result_af = AF_UNSPEC;
-    else
-      addr = &v6;
-    break;
-  case AF_UNSPEC:
-    if (GNUNET_OK ==
-	allocate_v4_address (&v4))
-    {
-      addr = &v4;
-      result_af = AF_INET;
-    }
-    else if (GNUNET_OK ==
-	allocate_v6_address (&v6))
-    {
-      addr = &v6;
-      result_af = AF_INET6;
-    }
-    break;
-  default:
-    GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;      
   }
@@ -2679,40 +2709,11 @@ service_redirect_to_service (void *cls GNUNET_UNUSED, struct GNUNET_SERVER_Clien
   msg = (const struct RedirectToServiceRequestMessage *) message;
 
   /* allocate response IP */
-  addr = NULL;
   result_af = (int) htonl (msg->result_af);
-  switch (result_af)
+  if (GNUNET_OK != allocate_response_ip (&result_af,
+					 &addr,
+					 &v4, &v6))
   {
-  case AF_INET:
-    if (GNUNET_OK !=
-	allocate_v4_address (&v4))
-      result_af = AF_UNSPEC;
-    else
-      addr = &v4;
-    break;
-  case AF_INET6:
-    if (GNUNET_OK !=
-	allocate_v6_address (&v6))
-      result_af = AF_UNSPEC;
-    else
-      addr = &v6;
-    break;
-  case AF_UNSPEC:
-    if (GNUNET_OK ==
-	allocate_v4_address (&v4))
-    {
-      addr = &v4;
-      result_af = AF_INET;
-    }
-    else if (GNUNET_OK ==
-	allocate_v6_address (&v6))
-    {
-      addr = &v6;
-      result_af = AF_INET6;
-    }
-    break;
-  default:
-    GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;      
   }
