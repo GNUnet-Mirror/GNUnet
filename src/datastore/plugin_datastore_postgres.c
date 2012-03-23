@@ -253,7 +253,7 @@ postgres_plugin_estimate_size (void *cls)
 /**
  * Store an item in the datastore.
  *
- * @param cls closure
+ * @param cls closure with the 'struct Plugin' 
  * @param key key for the item
  * @param size number of bytes in data
  * @param data content stored
@@ -436,7 +436,7 @@ process_result (struct Plugin *plugin, PluginDatumProcessor proc,
  * Iterate over the results for a particular key
  * in the datastore.
  *
- * @param cls closure
+ * @param cls closure with the 'struct Plugin'
  * @param offset offset of the result (modulo num-results);
  *        specific ordering does not matter for the offset
  * @param key maybe NULL (to match all entries)
@@ -622,7 +622,7 @@ struct ReplCtx
  * Decrements the replication counter and calls the original
  * iterator.
  *
- * @param cls closure
+ * @param cls closure with the 'struct ReplCtx*'
  * @param key key for the content
  * @param size number of bytes in data
  * @param data content stored
@@ -681,7 +681,7 @@ repl_proc (void *cls, const GNUNET_HashCode * key, uint32_t size,
  * replication counter is decremented by one IF it was positive before.
  * Call 'proc' with all values ZERO or NULL if the datastore is empty.
  *
- * @param cls closure
+ * @param cls closure with the 'struct Plugin'
  * @param proc function to call the value (once only).
  * @param proc_cls closure for proc
  */
@@ -707,7 +707,7 @@ postgres_plugin_get_replication (void *cls, PluginDatumProcessor proc,
  * Get a random item for expiration.
  * Call 'proc' with all values ZERO or NULL if the datastore is empty.
  *
- * @param cls closure
+ * @param cls closure with the 'struct Plugin'
  * @param proc function to call the value (once only).
  * @param proc_cls closure for proc
  */
@@ -790,7 +790,7 @@ postgres_plugin_update (void *cls, uint64_t uid, int delta,
 /**
  * Get all of the keys in the datastore.
  *
- * @param cls closure
+ * @param cls closure with the 'struct Plugin'
  * @param proc function to call on each key
  * @param proc_cls closure for proc
  */
@@ -822,6 +822,8 @@ postgres_plugin_get_keys (void *cls,
 
 /**
  * Drop database.
+ *
+ * @param cls closure with the 'struct Plugin'
  */
 static void
 postgres_plugin_drop (void *cls)
