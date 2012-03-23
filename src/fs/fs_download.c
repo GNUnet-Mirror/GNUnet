@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2001-2011 Christian Grothoff (and other contributing authors)
+     (C) 2001-2012 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -21,9 +21,6 @@
  * @file fs/fs_download.c
  * @brief download methods
  * @author Christian Grothoff
- *
- * TODO:
- * - different priority for scheduling probe downloads?
  */
 #include "platform.h"
 #include "gnunet_constants.h"
@@ -2003,6 +2000,82 @@ GNUNET_FS_download_signal_suspend_ (void *cls)
 
 
 /**
+ * Helper function to setup the download context.
+ *
+ * @param h handle to the file sharing subsystem
+ * @param uri the URI of the file (determines what to download); CHK or LOC URI
+ * @param meta known metadata for the file (can be NULL)
+ * @param filename where to store the file, maybe NULL (then no file is
+ *        created on disk and data must be grabbed from the callbacks)
+ * @param tempname where to store temporary file data, not used if filename is non-NULL;
+ *        can be NULL (in which case we will pick a name if needed); the temporary file
+ *        may already exist, in which case we will try to use the data that is there and
+ *        if it is not what is desired, will overwrite it
+ * @param offset at what offset should we start the download (typically 0)
+ * @param length how many bytes should be downloaded starting at offset
+ * @param anonymity anonymity level to use for the download
+ * @param options various options
+ * @param cctx initial value for the client context for this download
+ * @return context that can be used to control this download
+ */
+struct GNUNET_FS_DownloadContext *
+create_download_context (struct GNUNET_FS_Handle *h,
+			 const struct GNUNET_FS_Uri *uri,
+			 const struct GNUNET_CONTAINER_MetaData *meta,
+			 const char *filename, const char *tempname,
+			 uint64_t offset, uint64_t length, uint32_t anonymity,
+			 enum GNUNET_FS_DownloadOptions options, void *cctx)
+{
+  struct GNUNET_FS_DownloadContext *dc;
+
+  GNUNET_assert (GNUNET_FS_uri_test_chk (uri) || GNUNET_FS_uri_test_loc (uri));
+  if ((offset + length < offset) ||
+      (offset + length > GNUNET_FS_uri_chk_get_file_size (uri)))
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
+  dc = GNUNET_malloc (sizeof (struct GNUNET_FS_DownloadContext));
+  dc->h = h;
+  dc->uri = GNUNET_FS_uri_dup (uri);
+  dc->meta = GNUNET_CONTAINER_meta_data_duplicate (meta);
+  dc->client_info = cctx;
+  dc->start_time = GNUNET_TIME_absolute_get ();
+  if (NULL != filename)
+  {
+    dc->filename = GNUNET_strdup (filename);
+    if (GNUNET_YES == GNUNET_DISK_file_test (filename))
+      GNUNET_break (GNUNET_OK == GNUNET_DISK_file_size (filename, &dc->old_file_size, GNUNET_YES, GNUNET_YES));
+  }
+  if (GNUNET_FS_uri_test_loc (dc->uri))
+    GNUNET_assert (GNUNET_OK ==
+                   GNUNET_FS_uri_loc_get_peer_identity (dc->uri, &dc->target));
+  dc->offset = offset;
+  dc->length = length;
+  dc->anonymity = anonymity;
+  dc->options = options;
+  dc->active =
+      GNUNET_CONTAINER_multihashmap_create (1 + 2 * (length / DBLOCK_SIZE));
+  dc->treedepth =
+      GNUNET_FS_compute_depth (GNUNET_FS_uri_chk_get_file_size (dc->uri));
+  if ((NULL == filename) && (is_recursive_download (dc)))
+  {
+    if (NULL != tempname)
+      dc->temp_filename = GNUNET_strdup (tempname);
+    else
+      dc->temp_filename = GNUNET_DISK_mktemp ("gnunet-directory-download-tmp");
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Starting download `%s' of %llu bytes with tree depth %u\n",
+	      filename,
+	      (unsigned long long) length,
+              dc->treedepth);
+  dc->task = GNUNET_SCHEDULER_add_now (&GNUNET_FS_download_start_task_, dc);
+  return dc;
+}
+
+
+/**
  * Download parts of a file.  Note that this will store
  * the blocks at the respective offset in the given file.  Also, the
  * download is still using the blocking of the underlying FS
@@ -2043,60 +2116,16 @@ GNUNET_FS_download_start (struct GNUNET_FS_Handle *h,
 {
   struct GNUNET_FS_DownloadContext *dc;
 
-  GNUNET_assert (GNUNET_FS_uri_test_chk (uri) || GNUNET_FS_uri_test_loc (uri));
-
-  if ((offset + length < offset) ||
-      (offset + length > GNUNET_FS_uri_chk_get_file_size (uri)))
-  {
-    GNUNET_break (0);
+  dc = create_download_context (h, uri, meta, filename, tempname,
+				offset, length, anonymity, options, cctx);
+  if (NULL == dc)
     return NULL;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting download `%s' of %llu bytes\n",
-              filename, (unsigned long long) length);
-  dc = GNUNET_malloc (sizeof (struct GNUNET_FS_DownloadContext));
-  dc->h = h;
   dc->parent = parent;
-  if (parent != NULL)
-  {
+  if (NULL != parent)
     GNUNET_CONTAINER_DLL_insert (parent->child_head, parent->child_tail, dc);
-  }
-  dc->uri = GNUNET_FS_uri_dup (uri);
-  dc->meta = GNUNET_CONTAINER_meta_data_duplicate (meta);
-  dc->client_info = cctx;
-  dc->start_time = GNUNET_TIME_absolute_get ();
-  if (NULL != filename)
-  {
-    dc->filename = GNUNET_strdup (filename);
-    if (GNUNET_YES == GNUNET_DISK_file_test (filename))
-      GNUNET_break (GNUNET_OK == GNUNET_DISK_file_size (filename, &dc->old_file_size, GNUNET_YES, GNUNET_YES));
-  }
-  if (GNUNET_FS_uri_test_loc (dc->uri))
-    GNUNET_assert (GNUNET_OK ==
-                   GNUNET_FS_uri_loc_get_peer_identity (dc->uri, &dc->target));
-  dc->offset = offset;
-  dc->length = length;
-  dc->anonymity = anonymity;
-  dc->options = options;
-  dc->active =
-      GNUNET_CONTAINER_multihashmap_create (1 + 2 * (length / DBLOCK_SIZE));
-  dc->treedepth =
-      GNUNET_FS_compute_depth (GNUNET_FS_uri_chk_get_file_size (dc->uri));
-  if ((filename == NULL) && (is_recursive_download (dc)))
-  {
-    if (tempname != NULL)
-      dc->temp_filename = GNUNET_strdup (tempname);
-    else
-      dc->temp_filename = GNUNET_DISK_mktemp ("gnunet-directory-download-tmp");
-  }
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Download tree has depth %u\n",
-              dc->treedepth);
-  if (parent == NULL)
-  {
+  else
     dc->top =
         GNUNET_FS_make_top (dc->h, &GNUNET_FS_download_signal_suspend_, dc);
-  }
-  dc->task = GNUNET_SCHEDULER_add_now (&GNUNET_FS_download_start_task_, dc);
   return dc;
 }
 
@@ -2146,62 +2175,22 @@ GNUNET_FS_download_start_from_search (struct GNUNET_FS_Handle *h,
 {
   struct GNUNET_FS_DownloadContext *dc;
 
-  if ((sr == NULL) || (sr->download != NULL))
+  if ((NULL == sr) || (NULL != sr->download))
   {
     GNUNET_break (0);
     return NULL;
   }
-  GNUNET_assert (GNUNET_FS_uri_test_chk (sr->uri) ||
-                 GNUNET_FS_uri_test_loc (sr->uri));
-  if ((offset + length < offset) ||
-      (offset + length > sr->uri->data.chk.file_length))
-  {
-    GNUNET_break (0);
+  dc = create_download_context (h, sr->uri, sr->meta, filename, tempname,
+				offset, length, anonymity, options, cctx);
+  if (NULL == dc)
     return NULL;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting download `%s' of %llu bytes\n",
-              filename, (unsigned long long) length);
-  dc = GNUNET_malloc (sizeof (struct GNUNET_FS_DownloadContext));
-  dc->h = h;
   dc->search = sr;
   sr->download = dc;
-  if (sr->probe_ctx != NULL)
+  if (NULL != sr->probe_ctx)
   {
     GNUNET_FS_download_stop (sr->probe_ctx, GNUNET_YES);
     sr->probe_ctx = NULL;
   }
-  dc->uri = GNUNET_FS_uri_dup (sr->uri);
-  dc->meta = GNUNET_CONTAINER_meta_data_duplicate (sr->meta);
-  dc->client_info = cctx;
-  dc->start_time = GNUNET_TIME_absolute_get ();
-  if (NULL != filename)
-  {
-    dc->filename = GNUNET_strdup (filename);
-    if (GNUNET_YES == GNUNET_DISK_file_test (filename))
-      GNUNET_break (GNUNET_OK == GNUNET_DISK_file_size (filename, &dc->old_file_size, GNUNET_YES, GNUNET_YES));
-  }
-  if (GNUNET_FS_uri_test_loc (dc->uri))
-    GNUNET_assert (GNUNET_OK ==
-                   GNUNET_FS_uri_loc_get_peer_identity (dc->uri, &dc->target));
-  dc->offset = offset;
-  dc->length = length;
-  dc->anonymity = anonymity;
-  dc->options = options;
-  dc->active =
-      GNUNET_CONTAINER_multihashmap_create (1 + 2 * (length / DBLOCK_SIZE));
-  dc->treedepth =
-      GNUNET_FS_compute_depth (GNUNET_ntohll (dc->uri->data.chk.file_length));
-  if ((filename == NULL) && (is_recursive_download (dc)))
-  {
-    if (tempname != NULL)
-      dc->temp_filename = GNUNET_strdup (tempname);
-    else
-      dc->temp_filename = GNUNET_DISK_mktemp ("gnunet-directory-download-tmp");
-  }
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Download tree has depth %u\n",
-              dc->treedepth);
-  dc->task = GNUNET_SCHEDULER_add_now (&GNUNET_FS_download_start_task_, dc);
   return dc;
 }
 
