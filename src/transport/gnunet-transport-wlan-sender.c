@@ -58,7 +58,7 @@ getRadiotapHeader (struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage *header,
 		   uint16_t size)
 {
   header->header.size = htons (size);
-  header->header.type = htons (GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA);
+  header->header.type = htons (GNUNET_MESSAGE_TYPE_WLAN_DATA_TO_HELPER);
   header->rate = 255;
   header->tx_power = 0;
   header->antenna = 0;

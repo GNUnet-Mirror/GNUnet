@@ -1795,7 +1795,7 @@ stdin_send_hw (void *cls, const struct GNUNET_MessageHeader *hdr)
   sendsize = ntohs (hdr->size);
   if ( (sendsize <
 	sizeof (struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage)) ||
-       (GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA != ntohs (hdr->type)) ) 
+       (GNUNET_MESSAGE_TYPE_WLAN_DATA_TO_HELPER != ntohs (hdr->type)) ) 
   {
     fprintf (stderr, "Received malformed message\n");
     exit (1);
@@ -2039,7 +2039,7 @@ main (int argc, char *argv[])
 	  + sizeof (struct GNUNET_TRANSPORT_WLAN_RadiotapReceiveMessage) 
 	  - sizeof (struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame);
         rrm->header.size = htons (write_std.size);
-        rrm->header.type = htons (GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA);
+        rrm->header.type = htons (GNUNET_MESSAGE_TYPE_WLAN_DATA_FROM_HELPER);
       }
     }
   }

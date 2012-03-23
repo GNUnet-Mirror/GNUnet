@@ -82,7 +82,7 @@ stdin_send (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
   struct GNUNET_TRANSPORT_WLAN_RadiotapReceiveMessage newheader;
 
   in = (const struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage *) hdr;
-  if ( (GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA != ntohs (hdr->type)) ||
+  if ( (GNUNET_MESSAGE_TYPE_WLAN_DATA_TO_HELPER != ntohs (hdr->type)) ||
        (sizeof (struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage) < ntohs (hdr->size)) )
   {
     fprintf (stderr, "Function stdin_send: wrong packet type or size\n");
@@ -96,7 +96,7 @@ stdin_send (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
   }
   memset (&newheader, 0, sizeof (newheader));
   newheader.header.size = htons (payload_size + sizeof (newheader));
-  newheader.header.type = htons (GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA);
+  newheader.header.type = htons (GNUNET_MESSAGE_TYPE_WLAN_DATA_FROM_HELPER);
   newheader.frame = in->frame;
   memcpy (write_pout->buf + write_pout->size,
 	  &newheader,
@@ -116,12 +116,6 @@ file_in_send (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
   uint16_t sendsize;
 
   sendsize = ntohs (hdr->size);
-
-  if (GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA != ntohs (hdr->type))
-  {
-    fprintf (stderr, "Function file_in_send: wrong packet type\n");
-    exit (1);
-  }
   if ((sendsize + write_std->size) > MAXLINE * 2)
   {
     fprintf (stderr, "Function file_in_send: Packet too big for buffer\n");

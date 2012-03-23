@@ -1221,7 +1221,7 @@ getRadiotapHeader (struct Plugin *plugin, struct MacEndpoint *endpoint,
                    struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage *header,
 		   uint16_t size)
 {
-  header->header.type = ntohs (GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA);
+  header->header.type = ntohs (GNUNET_MESSAGE_TYPE_WLAN_DATA_TO_HELPER);
   header->header.size = ntohs (size);
   if (endpoint != NULL)
   {
@@ -2778,12 +2778,12 @@ wlan_process_helper (void *cls, void *client,
   GNUNET_assert (plugin != NULL);
   switch (ntohs (hdr->type))
   {
-  case GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA:
+  case GNUNET_MESSAGE_TYPE_WLAN_DATA_FROM_HELPER:
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, PLUGIN_LOG_NAME,
-                     "Func wlan_process_helper got GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA size: %u\n",
+                     "Got data message from helper with %u bytes\n",
                      ntohs (hdr->size));
     GNUNET_STATISTICS_update (plugin->env->stats,
-                              _("# wlan WLAN_HELPER_DATA received"), 1,
+                              _("# wlan data messages received"), 1,
                               GNUNET_NO);
     //call wlan_process_helper with the message inside, later with wlan: analyze signal
     if (ntohs (hdr->size) < sizeof (struct GNUNET_TRANSPORT_WLAN_RadiotapReceiveMessage))

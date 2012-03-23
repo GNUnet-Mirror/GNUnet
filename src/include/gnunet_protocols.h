@@ -128,13 +128,17 @@ extern "C"
  ******************************************************************************/
 
 /**
- * Type of messages between the gnunet-wlan-helper and the daemon
- *
+ * Type of data messages from the plugin to the gnunet-wlan-helper 
  */
-#define GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA 40
+#define GNUNET_MESSAGE_TYPE_WLAN_DATA_TO_HELPER 39
 
 /**
- * Control messages between the gnunet-wlan-helper and the daemon
+ * Type of data messages from the gnunet-wlan-helper to the plugin
+ */
+#define GNUNET_MESSAGE_TYPE_WLAN_DATA_FROM_HELPER 40
+
+/**
+ * Control message between the gnunet-wlan-helper and the daemon (with the MAC).
  */
 #define GNUNET_MESSAGE_TYPE_WLAN_HELPER_CONTROL 41
 

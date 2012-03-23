@@ -142,7 +142,7 @@ struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage
 {
 
   /**
-   * Type is 'GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA'.
+   * Type is 'GNUNET_MESSAGE_TYPE_WLAN_DATA_TO_HELPER'.
    */
   struct GNUNET_MessageHeader header;
 
@@ -183,7 +183,7 @@ struct GNUNET_TRANSPORT_WLAN_RadiotapReceiveMessage
 {
 
   /**
-   * Type is 'GNUNET_MESSAGE_TYPE_WLAN_HELPER_DATA'.
+   * Type is 'GNUNET_MESSAGE_TYPE_WLAN_DATA_FROM_HELPER'.
    */
   struct GNUNET_MessageHeader header;
 
