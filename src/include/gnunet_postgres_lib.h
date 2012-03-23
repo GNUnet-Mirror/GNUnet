@@ -101,7 +101,7 @@ GNUNET_POSTGRES_exec_ (PGconn *dbh, const char *sql, const char *filename, int l
  * @param dbh database handle
  * @param name name for the prepared SQL statement
  * @param sql SQL code to prepare
- * @param nparams number of parameters in sql
+ * @param nparms number of parameters in sql
  * @param filename filename for error reporting
  * @param line code line for error reporting
  * @return GNUNET_OK on success

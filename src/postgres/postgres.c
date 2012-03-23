@@ -96,7 +96,7 @@ GNUNET_POSTGRES_exec_ (PGconn * dbh, const char *sql, const char *filename,
  * @param dbh database handle
  * @param name name for the prepared SQL statement
  * @param sql SQL code to prepare
- * @param nparams number of parameters in sql
+ * @param nparms number of parameters in sql
  * @param filename filename for error reporting
  * @param line code line for error reporting
  * @return GNUNET_OK on success
@@ -158,7 +158,7 @@ GNUNET_POSTGRES_connect (const struct GNUNET_CONFIGURATION_Handle * cfg,
  * Delete the row identified by the given rowid (qid
  * in postgres).
  *
- * @param database handle
+ * @param dbh database handle
  * @param stmt name of the prepared statement
  * @param rowid which row to delete
  * @return GNUNET_OK on success
