@@ -26,6 +26,7 @@
  * @author Martin Schanzenbach
  */
 #include "platform.h"
+#include <unicase.h>
 #include "gnunet_util_lib.h"
 #include "gnunet_transport_service.h"
 #include "gnunet_dns_service.h"
@@ -1910,6 +1911,9 @@ gns_resolver_lookup_record(struct GNUNET_CRYPTO_ShortHashCode zone,
   struct ResolverHandle *rh;
   struct RecordLookupHandle* rlh;
   char string_hash[MAX_DNS_LABEL_LENGTH];
+  char* normalized_zkey;
+  char nzkey[MAX_DNS_LABEL_LENGTH];
+  size_t normal_len;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Starting resolution for %s (type=%d)!\n",
@@ -1977,8 +1981,15 @@ gns_resolver_lookup_record(struct GNUNET_CRYPTO_ShortHashCode zone,
 
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "ZKEY is %s!\n", string_hash);
+      
+      normalized_zkey = u8_toupper ((uint8_t*)string_hash, strlen ((char *) string_hash),
+                                  NULL, UNINORM_NFD, NULL, &normal_len);
 
-      if (GNUNET_OK != GNUNET_CRYPTO_short_hash_from_string(string_hash,
+      memcpy(nzkey, normalized_zkey, normal_len);
+      nzkey[normal_len] = '\0';
+      free(normalized_zkey);
+      
+      if (GNUNET_OK != GNUNET_CRYPTO_short_hash_from_string(nzkey,
                                                       &rh->authority))
       {
         GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -2275,6 +2286,9 @@ gns_resolver_shorten_name(struct GNUNET_CRYPTO_ShortHashCode zone,
   struct NameShortenHandle *nsh;
   char string_hash[MAX_DNS_LABEL_LENGTH];
   struct GNUNET_CRYPTO_ShortHashCode zkey;
+  char* normalized_zkey;
+  size_t normal_len;
+  char nzkey[MAX_DNS_LABEL_LENGTH];
 
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -2318,11 +2332,18 @@ gns_resolver_shorten_name(struct GNUNET_CRYPTO_ShortHashCode zone,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "ZKEY is %s!\n", string_hash);
 
-    if (GNUNET_OK != GNUNET_CRYPTO_short_hash_from_string(string_hash,
+    normalized_zkey = u8_toupper ((uint8_t*)string_hash, strlen ((char *) string_hash),
+                                  NULL, UNINORM_NFD, NULL, &normal_len);
+
+    memcpy(nzkey, normalized_zkey, normal_len);
+    nzkey[normal_len] = '\0';
+    free(normalized_zkey);
+
+    if (GNUNET_OK != GNUNET_CRYPTO_short_hash_from_string(nzkey,
                                                           &zkey))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Cannot convert ZKEY %s to hash!\n", string_hash);
+                  "Cannot convert ZKEY %s to hash!\n", nzkey);
       GNUNET_free(rh);
       GNUNET_free(nsh);
       proc(proc_cls, name);
