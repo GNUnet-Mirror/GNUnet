@@ -871,7 +871,7 @@ call_read_processor (void *cls,
   /* Determine upto which packet we can remove from the buffer */
   for (packet = 0; packet < GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH; packet++)
     {
-      if (socket->copy_offset = socket->receive_buffer_boundaries[packet])
+      if (socket->copy_offset == socket->receive_buffer_boundaries[packet])
         { packet++; break; }
       if (socket->copy_offset < socket->receive_buffer_boundaries[packet])
         break;
