@@ -250,6 +250,7 @@ do_lookup(void *cls, const struct GNUNET_PeerIdentity *id,
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to get max queries from cfg\n");
     ok = -1;
+    GNUNET_free (alice_keyfile);
     return;
   }
 
