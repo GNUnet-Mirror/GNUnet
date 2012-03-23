@@ -358,7 +358,7 @@ process_zone_to_name_discover(void *cls,
  * @param name the name given by delegation
  * @param zone the authority
  * @param our_zone our local zone
- * @param the private key of our authority
+ * @param key the private key of our authority
  */
 static void process_discovered_authority(char* name,
                                     struct GNUNET_CRYPTO_ShortHashCode zone,
@@ -394,6 +394,7 @@ static void process_discovered_authority(char* name,
  * @param nh the namestore handle
  * @param dh the dht handle
  * @param lz the local zone's hash
+ * @param max_bg_queries maximum number of parallel background queries in dht
  * @return GNUNET_OK on success
  */
 int
@@ -2196,13 +2197,13 @@ handle_delegation_ns_shorten(void* cls,
  * @param zone the zone to use
  * @param name the name to shorten
  * @param proc the processor to call with result
- * @param cls closure to pass to proc
+ * @param proc_cls closure to pass to proc
  */
 void
 gns_resolver_shorten_name(struct GNUNET_CRYPTO_ShortHashCode zone,
                           const char* name,
                           ShortenResultProcessor proc,
-                          void* cls)
+                          void* proc_cls)
 {
   struct ResolverHandle *rh;
   struct NameShortenHandle *nsh;
@@ -2215,7 +2216,7 @@ gns_resolver_shorten_name(struct GNUNET_CRYPTO_ShortHashCode zone,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "%s is canonical. Returning verbatim\n", name);
-    proc(cls, name);
+    proc(proc_cls, name);
     return;
   }
 
@@ -2223,7 +2224,7 @@ gns_resolver_shorten_name(struct GNUNET_CRYPTO_ShortHashCode zone,
   
 
   nsh->proc = proc;
-  nsh->proc_cls = cls;
+  nsh->proc_cls = proc_cls;
   
   rh = GNUNET_malloc(sizeof (struct ResolverHandle));
   rh->authority = zone;
@@ -2254,7 +2255,7 @@ gns_resolver_shorten_name(struct GNUNET_CRYPTO_ShortHashCode zone,
                   "Cannot convert ZKEY %s to hash!\n", string_hash);
       GNUNET_free(rh);
       GNUNET_free(nsh);
-      proc(cls, name);
+      proc(proc_cls, name);
       return;
     }
 
@@ -2365,13 +2366,13 @@ handle_delegation_result_ns_get_auth(void* cls,
  * @param zone the root zone to look up for
  * @param name the name to lookup up
  * @param proc the processor to call when finished
- * @param cls the closure to pass to the processor
+ * @param proc_cls the closure to pass to the processor
  */
 void
 gns_resolver_get_authority(struct GNUNET_CRYPTO_ShortHashCode zone,
                            const char* name,
                            GetAuthorityResultProcessor proc,
-                           void* cls)
+                           void* proc_cls)
 {
   struct ResolverHandle *rh;
   struct GetNameAuthorityHandle *nah;
@@ -2406,7 +2407,7 @@ gns_resolver_get_authority(struct GNUNET_CRYPTO_ShortHashCode zone,
   rh->proc_cls = (void*)nah;
 
   nah->proc = proc;
-  nah->proc_cls = cls;
+  nah->proc_cls = proc_cls;
 
   /* Start delegation resolution in our namestore */
   resolve_delegation_ns(rh);

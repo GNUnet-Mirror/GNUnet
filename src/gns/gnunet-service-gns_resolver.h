@@ -248,14 +248,14 @@ struct GetPseuAuthorityHandle
  *
  * @param nh handle to the namestore
  * @param dh handle to the dht
- * @param local_zone the local zone
+ * @param lz the local zone
  * @param max_bg_queries maximum amount of background queries
  * @returns GNUNET_OK on success
  */
 int
 gns_resolver_init(struct GNUNET_NAMESTORE_Handle *nh,
                   struct GNUNET_DHT_Handle *dh,
-                  struct GNUNET_CRYPTO_ShortHashCode local_zone,
+                  struct GNUNET_CRYPTO_ShortHashCode lz,
                   unsigned long long max_bg_queries);
 
 /**
@@ -297,13 +297,13 @@ gns_resolver_lookup_record(struct GNUNET_CRYPTO_ShortHashCode zone,
  * @param zone the zone to perform the operation in
  * @param name name to shorten
  * @param proc the processor to call on shorten result
- * @param proc_cls teh closure to pass to proc
+ * @param proc_cls the closure to pass to proc
  */
 void
 gns_resolver_shorten_name(struct GNUNET_CRYPTO_ShortHashCode zone,
                           const char* name,
                           ShortenResultProcessor proc,
-                          void* cls);
+                          void* proc_cls);
 
 /**
  * Tries to resolve the authority for name
@@ -312,13 +312,13 @@ gns_resolver_shorten_name(struct GNUNET_CRYPTO_ShortHashCode zone,
  * @param zone the root zone to look up for
  * @param name the name to lookup up
  * @param proc the processor to call when finished
- * @param cls the closure to pass to the processor
+ * @param proc_cls the closure to pass to the processor
  */
 void
 gns_resolver_get_authority(struct GNUNET_CRYPTO_ShortHashCode zone,
                            const char* name,
                            GetAuthorityResultProcessor proc,
-                           void* cls);
+                           void* proc_cls);
 
 /**
  * Generic function to check for TLDs

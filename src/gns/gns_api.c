@@ -605,18 +605,18 @@ GNUNET_GNS_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
 /**
  * Shutdown connection with the GNS service.
  *
- * @param h handle of the GNS connection to stop
+ * @param handle handle of the GNS connection to stop
  */
 void
-GNUNET_GNS_disconnect (struct GNUNET_GNS_Handle *h)
+GNUNET_GNS_disconnect (struct GNUNET_GNS_Handle *handle)
 {
-  GNUNET_CLIENT_disconnect (h->client, GNUNET_NO);
-  if (GNUNET_SCHEDULER_NO_TASK != h->reconnect_task)
+  GNUNET_CLIENT_disconnect (handle->client, GNUNET_NO);
+  if (GNUNET_SCHEDULER_NO_TASK != handle->reconnect_task)
   {
-    GNUNET_SCHEDULER_cancel (h->reconnect_task);
-    h->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+    GNUNET_SCHEDULER_cancel (handle->reconnect_task);
+    handle->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
   }
-  GNUNET_free(h);
+  GNUNET_free(handle);
   /* disco from GNS */
 }
 
@@ -639,9 +639,10 @@ get_request_id (struct GNUNET_GNS_Handle *h)
  *
  * @param handle handle to the GNS service
  * @param name the name to look up
- * @param iter function to call on each result
- * @param iter_cls closure for iter
- * @return handle to stop the async get
+ * @param type the record type to look up
+ * @param proc processor to call on result
+ * @param proc_cls closure for processor
+ * @return handle to the get
  */
 struct GNUNET_GNS_QueueEntry *
 GNUNET_GNS_lookup (struct GNUNET_GNS_Handle *handle,

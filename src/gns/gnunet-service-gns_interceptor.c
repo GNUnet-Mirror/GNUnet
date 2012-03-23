@@ -331,7 +331,7 @@ handle_dns_request(void *cls,
  * Initialized the interceptor
  *
  * @param zone the zone to work in
- * @param the prov key of the zone (can be null, needed for caching)
+ * @param key the prov key of the zone (can be null, needed for caching)
  * @param c the configuration
  * @return GNUNET_OK on success
  */
