@@ -576,7 +576,7 @@ check ()
   int ret;
 
   /* Arguments for GNUNET_PROGRAM_run */
-  char *const argv[] = { "test-gns-dht-delegated-lookup", /* Name to give running binary */
+  char *const argv[] = { "test-gns-pseu-shorten", /* Name to give running binary */
     "-c",
     "test_gns_simple_lookup.conf",       /* Config file to use */
 #if VERBOSE
@@ -590,7 +590,7 @@ check ()
   /* Run the run function as a new program */
   ret =
       GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv,
-                          "test-gns-dht-delegated-lookup", "nohelp", options, &run,
+                          "test-gns-pseu-shorten", "nohelp", options, &run,
                           &ok);
   if (ret != GNUNET_OK)
   {

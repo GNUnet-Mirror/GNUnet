@@ -325,8 +325,8 @@ process_zone_to_name_discover(void *cls,
                "starting dht lookup for %s with key: %s\n",
                "+", (char*)&lookup_key_string);
 
-    //gph->timeout = GNUNET_SCHEDULER_add_delayed(DHT_LOOKUP_TIMEOUT,
-    //                                     &handle_auth_discovery_timeout, gph);
+    gph->timeout = GNUNET_SCHEDULER_add_delayed(DHT_LOOKUP_TIMEOUT,
+                                         &handle_auth_discovery_timeout, gph);
 
     xquery = htonl(GNUNET_GNS_RECORD_PSEU);
 
@@ -814,7 +814,10 @@ process_record_result_ns(void* cls,
   remaining_time = GNUNET_TIME_absolute_get_remaining (expiration);
   
   if (rh->timeout_task != GNUNET_SCHEDULER_NO_TASK)
+  {
     GNUNET_SCHEDULER_cancel(rh->timeout_task);
+    rh->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  }
 
   rh->status = 0;
   
@@ -986,6 +989,9 @@ dht_authority_lookup_timeout(void *cls,
 /* Prototype */
 static void resolve_delegation_dht(struct ResolverHandle *rh);
 
+/* Prototype */
+static void resolve_delegation_ns(struct ResolverHandle *rh);
+
 /**
  * Function called when we get a result from the dht
  * for our query. Recursively tries to resolve authorities
@@ -1132,7 +1138,7 @@ process_delegation_result_dht(void* cls,
     if (strcmp(rh->name, "") == 0)
       rh->proc(rh->proc_cls, rh, 0, NULL);
     else
-      resolve_delegation_dht(rh);
+      resolve_delegation_ns(rh);
     return;
   }
   
@@ -1203,12 +1209,15 @@ finish_lookup(struct ResolverHandle *rh,
   char* pos;
   unsigned int offset;
 
+  if (rh->timeout_task != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel(rh->timeout_task);
+
   if (rd_count > 0)
     memcpy(p_rd, rd, rd_count*sizeof(struct GNUNET_NAMESTORE_RecordData));
 
   for (i = 0; i < rd_count; i++)
   {
-
+    
     if (rd[i].record_type != GNUNET_GNS_RECORD_TYPE_NS &&
         rd[i].record_type != GNUNET_GNS_RECORD_TYPE_CNAME &&
         rd[i].record_type != GNUNET_GNS_RECORD_MX &&
@@ -1254,8 +1263,8 @@ finish_lookup(struct ResolverHandle *rh,
       expand_plus(&pos, (char*)rd[i].data+offset, repl_string);
       offset += strlen(new_soa_data+offset)+1;
       /* cpy the 4 numbers serial refresh retry and expire */
-      memcpy(new_soa_data+offset, (char*)rd[i].data+offset, sizeof(uint32_t)*4);
-      offset += sizeof(uint32_t)*4;
+      memcpy(new_soa_data+offset, (char*)rd[i].data+offset, sizeof(uint32_t)*5);
+      offset += sizeof(uint32_t)*5;
       p_rd[i].data_size = offset;
       p_rd[i].data = new_soa_data;
     }
@@ -1585,6 +1594,7 @@ handle_delegation_ns(void* cls, struct ResolverHandle *rh,
   {
     if ((rlh->record_type == GNUNET_GNS_RECORD_PKEY))
     {
+      GNUNET_assert(rd_count == 1);
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                  "Resolved queried PKEY in NS.\n");
       finish_lookup(rh, rlh, rd_count, rd);
@@ -1635,8 +1645,6 @@ handle_delegation_ns(void* cls, struct ResolverHandle *rh,
   resolve_delegation_dht(rh);
 }
 
-/* Prototype */
-static void resolve_delegation_ns(struct ResolverHandle *rh);
 
 
 /**
@@ -1773,7 +1781,7 @@ process_delegation_result_ns(void* cls,
      * else resolve again with new authority
      */
     if (strcmp(rh->name, "") == 0)
-      rh->proc(rh->proc_cls, rh, 0, NULL);
+      rh->proc(rh->proc_cls, rh, rd_count, rd);
     else
       resolve_delegation_ns(rh);
     return;
