@@ -235,7 +235,9 @@ nfa_add_concatenation ()
   nfa_add_states (new, B->states, B->statecnt);
   new->start = A->start;
   new->end = B->end;
+  GNUNET_free (A->states);
   GNUNET_free (A);
+  GNUNET_free (B->states);
   GNUNET_free (B);
 
   push (new, &nfa_stack);
@@ -271,6 +273,7 @@ nfa_add_star_op ()
 
   new = nfa_create (start, end);
   nfa_add_states (new, A->states, A->statecnt);
+  GNUNET_free (A->states);
   GNUNET_free (A);
 
   push (new, &nfa_stack);
@@ -329,7 +332,9 @@ nfa_add_alternation ()
   new = nfa_create (start, end);
   nfa_add_states (new, A->states, A->statecnt);
   nfa_add_states (new, B->states, B->statecnt);
+  GNUNET_free (A->states);
   GNUNET_free (A);
+  GNUNET_free (B->states);
   GNUNET_free (B);
 
   push (new, &nfa_stack);
