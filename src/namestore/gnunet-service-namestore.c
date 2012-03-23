@@ -174,7 +174,10 @@ write_key_to_file (const char *filename, struct GNUNET_NAMESTORE_CryptoContainer
   }
 
   if (GNUNET_YES != GNUNET_DISK_file_lock (fd, 0, sizeof (struct GNUNET_CRYPTO_RsaPrivateKeyBinaryEncoded), GNUNET_YES))
+  {
+    GNUNET_assert (GNUNET_YES == GNUNET_DISK_file_close (fd));
     return GNUNET_SYSERR;
+  }
   enc = GNUNET_CRYPTO_rsa_encode_key (ret);
   GNUNET_assert (enc != NULL);
   GNUNET_assert (ntohs (enc->len) == GNUNET_DISK_file_write (fd, enc, ntohs (enc->len)));
@@ -203,7 +206,7 @@ int zone_to_disk_it (void *cls,
   }
 
 
-  GNUNET_CONTAINER_multihashmap_remove (zonekeys, key, value);
+  GNUNET_assert (GNUNET_OK == GNUNET_CONTAINER_multihashmap_remove (zonekeys, key, value));
   GNUNET_CRYPTO_rsa_key_free (c->privkey);
   GNUNET_free (c->pubkey);
   GNUNET_free (c->filename);
