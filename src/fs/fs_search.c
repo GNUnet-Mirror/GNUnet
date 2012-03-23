@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2001-2006, 2008-2011 Christian Grothoff (and other contributing authors)
+     (C) 2001-2006, 2008-2012 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -513,28 +513,32 @@ process_sks_result (struct GNUNET_FS_SearchContext *sc, const char *id_update,
 
 
 /**
- * Process a keyword-search result.
+ * Decrypt a block using a 'keyword' as the passphrase.  Given the
+ * KSK public key derived from the keyword, this function looks up
+ * the original keyword in the search context and decrypts the
+ * given ciphertext block.
  *
- * @param sc our search context
- * @param kb the kblock
- * @param size size of kb
+ * @param sc search context with the keywords
+ * @param public_key public key to use to lookup the keyword
+ * @param edata encrypted data
+ * @param edata_size number of bytes in 'edata' (and 'data')
+ * @param data where to store the plaintext
+ * @return keyword index on success, GNUNET_SYSERR on error (no such 
+ *        keyword, internal error)
  */
-static void
-process_kblock (struct GNUNET_FS_SearchContext *sc, const struct KBlock *kb,
-                size_t size)
-{
-  unsigned int i;
-  size_t j;
+static int
+decrypt_block_with_keyword (const struct GNUNET_FS_SearchContext *sc,
+			    const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *public_key,
+			    const void *edata,
+			    size_t edata_size,
+			    char *data)
+{ 
   GNUNET_HashCode q;
-  char pt[size - sizeof (struct KBlock)];
   struct GNUNET_CRYPTO_AesSessionKey skey;
   struct GNUNET_CRYPTO_AesInitializationVector iv;
-  const char *eos;
-  struct GNUNET_CONTAINER_MetaData *meta;
-  struct GNUNET_FS_Uri *uri;
-  char *emsg;
+  int i;
 
-  GNUNET_CRYPTO_hash (&kb->keyspace,
+  GNUNET_CRYPTO_hash (public_key,
                       sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
                       &q);
   /* find key */
@@ -545,17 +549,46 @@ process_kblock (struct GNUNET_FS_SearchContext *sc, const struct KBlock *kb,
   {
     /* oops, does not match any of our keywords!? */
     GNUNET_break (0);
-    return;
+    return GNUNET_SYSERR;
   }
   /* decrypt */
   GNUNET_CRYPTO_hash_to_aes_key (&sc->requests[i].key, &skey, &iv);
   if (-1 ==
-      GNUNET_CRYPTO_aes_decrypt (&kb[1], size - sizeof (struct KBlock), &skey,
-                                 &iv, pt))
+      GNUNET_CRYPTO_aes_decrypt (edata, edata_size, &skey,
+                                 &iv, data))
   {
     GNUNET_break (0);
-    return;
+    return GNUNET_SYSERR;
   }
+  return i;
+}
+
+
+/**
+ * Process a keyword-search result.
+ *
+ * @param sc our search context
+ * @param kb the kblock
+ * @param size size of kb
+ */
+static void
+process_kblock (struct GNUNET_FS_SearchContext *sc, const struct KBlock *kb,
+                size_t size)
+{
+  size_t j;
+  char pt[size - sizeof (struct KBlock)];
+  const char *eos;
+  struct GNUNET_CONTAINER_MetaData *meta;
+  struct GNUNET_FS_Uri *uri;
+  char *emsg;
+  int i;
+
+  if (-1 == (i = decrypt_block_with_keyword (sc,
+					     &kb->keyspace,
+					     &kb[1],
+					     size - sizeof (struct KBlock),
+					     pt)))
+    return;
   /* parse */
   eos = memchr (pt, 0, sizeof (pt));
   if (NULL == eos)
@@ -601,39 +634,20 @@ static void
 process_nblock (struct GNUNET_FS_SearchContext *sc, const struct NBlock *nb,
                 size_t size)
 {
-  unsigned int i;
   size_t j;
-  GNUNET_HashCode q;
   char pt[size - sizeof (struct NBlock)];
-  struct GNUNET_CRYPTO_AesSessionKey skey;
-  struct GNUNET_CRYPTO_AesInitializationVector iv;
   const char *eos;
   struct GNUNET_CONTAINER_MetaData *meta;
   struct GNUNET_FS_Uri *uri;
   char *uris;
+  int i;
 
-  GNUNET_CRYPTO_hash (&nb->keyspace,
-                      sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
-                      &q);
-  /* find key */
-  for (i = 0; i < sc->uri->data.ksk.keywordCount; i++)
-    if (0 == memcmp (&q, &sc->requests[i].query, sizeof (GNUNET_HashCode)))
-      break;
-  if (i == sc->uri->data.ksk.keywordCount)
-  {
-    /* oops, does not match any of our keywords!? */
-    GNUNET_break (0);
+  if (-1 == (i = decrypt_block_with_keyword (sc,
+					     &nb->keyspace,
+					     &nb[1],
+					     size - sizeof (struct NBlock),
+					     pt)))
     return;
-  }
-  /* decrypt */
-  GNUNET_CRYPTO_hash_to_aes_key (&sc->requests[i].key, &skey, &iv);
-  if (-1 ==
-      GNUNET_CRYPTO_aes_decrypt (&nb[1], size - sizeof (struct NBlock), &skey,
-                                 &iv, pt))
-  {
-    GNUNET_break (0);
-    return;
-  }
   /* parse */
   eos = memchr (pt, 0, sizeof (pt));
   if (NULL == eos)
