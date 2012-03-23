@@ -483,8 +483,7 @@ static void handle_shorten(void *cls,
     return;
   }
   
-  if (strcmp(name+strlen(name)-strlen(GNUNET_GNS_TLD),
-             GNUNET_GNS_TLD) != 0)
+  if (!is_gnunet_tld(name) && !is_zkey_tld(name))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "%s is not our domain. Returning\n", name);
@@ -493,13 +492,6 @@ static void handle_shorten(void *cls,
     return;
   }
   
-  csh->name = GNUNET_malloc(strlen(name)
-                            - strlen(GNUNET_GNS_TLD) + 1);
-  memset(csh->name, 0,
-         strlen(name)-strlen(GNUNET_GNS_TLD) + 1);
-  memcpy(csh->name, name,
-         strlen(name)-strlen(GNUNET_GNS_TLD));
-
   /* Start shortening */
   gns_resolver_shorten_name(zone_hash, name, &send_shorten_response, csh);
 }
@@ -856,8 +848,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   }
 
   if (GNUNET_YES ==
-      GNUNET_CONFIGURATION_get_value_yesno (c, "gns",
-                                            "HIJACK_DNS"))
+      GNUNET_CONFIGURATION_get_value_yesno (c, "gns", "HIJACK_DNS"))
   {
     GNUNET_log(GNUNET_ERROR_TYPE_INFO,
                "DNS hijacking enabled... connecting to service.\n");

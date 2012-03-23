@@ -2191,6 +2191,72 @@ handle_delegation_ns_shorten(void* cls,
 
 }
 
+
+/**
+ * Callback calles by namestore for a zone to name
+ * result
+ *
+ * @param cls the closure
+ * @param zone_key the zone we queried
+ * @param expire the expiration time of the name
+ * @param name the name found or NULL
+ * @param rd_len number of records for the name
+ * @param rd the record data (PKEY) for the name
+ * @param signature the signature for the record data
+ */
+static void
+process_zone_to_name_zkey(void *cls,
+                 const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
+                 struct GNUNET_TIME_Absolute expire,
+                 const char *name,
+                 unsigned int rd_len,
+                 const struct GNUNET_NAMESTORE_RecordData *rd,
+                 const struct GNUNET_CRYPTO_RsaSignature *signature)
+{
+  struct ResolverHandle *rh = cls;
+  struct NameShortenHandle *nsh = rh->proc_cls;
+  struct GNUNET_CRYPTO_ShortHashAsciiEncoded enc;
+  char new_name[MAX_DNS_NAME_LENGTH];
+
+  /* zkey not in our zone */
+  if (name == NULL)
+  {
+    GNUNET_CRYPTO_short_hash_to_enc ((struct GNUNET_CRYPTO_ShortHashCode*)rd,
+                                     &enc);
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "No name found for zkey %s returning verbatim!\n", enc);
+    if (strcmp(rh->name, "") != 0)
+      GNUNET_snprintf(new_name, MAX_DNS_NAME_LENGTH, "%s.%s.%s",
+                      rh->name, enc, GNUNET_GNS_TLD_ZKEY);
+    else
+      GNUNET_snprintf(new_name, MAX_DNS_NAME_LENGTH, "%s.%s",
+                      enc, GNUNET_GNS_TLD_ZKEY);
+    nsh->proc(nsh->proc_cls, new_name);
+    GNUNET_free(nsh);
+    free_resolver_handle(rh);
+    return;
+  }
+  
+  if (strcmp(rh->name, "") != 0)
+    GNUNET_snprintf(new_name, MAX_DNS_NAME_LENGTH, "%s.%s",
+                    rh->name, name);
+  else
+    strcpy(new_name, name);
+
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Continue shorten for %s!\n", new_name);
+
+  strcpy(rh->name, new_name);
+  
+  rh->authority_chain_head = GNUNET_malloc(sizeof(struct AuthorityChain));
+  rh->authority_chain_tail = rh->authority_chain_head;
+  rh->authority_chain_head->zone = rh->authority;
+  
+  
+  /* Start delegation resolution in our namestore */
+  resolve_delegation_ns(rh);
+}
+  
 /**
  * Shorten api from resolver
  *
@@ -2207,7 +2273,9 @@ gns_resolver_shorten_name(struct GNUNET_CRYPTO_ShortHashCode zone,
 {
   struct ResolverHandle *rh;
   struct NameShortenHandle *nsh;
-  char string_hash[MAX_DNS_NAME_LENGTH]; //FIXME LABEL length when shorthash
+  char string_hash[MAX_DNS_LABEL_LENGTH];
+  struct GNUNET_CRYPTO_ShortHashCode zkey;
+
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Starting shorten for %s!\n", name);
@@ -2221,13 +2289,14 @@ gns_resolver_shorten_name(struct GNUNET_CRYPTO_ShortHashCode zone,
   }
 
   nsh = GNUNET_malloc(sizeof (struct NameShortenHandle));
-  
 
   nsh->proc = proc;
   nsh->proc_cls = proc_cls;
   
   rh = GNUNET_malloc(sizeof (struct ResolverHandle));
   rh->authority = zone;
+  rh->proc = &handle_delegation_ns_shorten;
+  rh->proc_cls = nsh;
   
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Checking for TLD...\n");
@@ -2238,6 +2307,7 @@ gns_resolver_shorten_name(struct GNUNET_CRYPTO_ShortHashCode zone,
     /**
      * This is a zkey tld
      * build hash and use as initial authority
+     * FIXME sscanf
      */
     memset(rh->name, 0,
            strlen(name)-strlen(GNUNET_GNS_TLD_ZKEY));
@@ -2249,7 +2319,7 @@ gns_resolver_shorten_name(struct GNUNET_CRYPTO_ShortHashCode zone,
                 "ZKEY is %s!\n", string_hash);
 
     if (GNUNET_OK != GNUNET_CRYPTO_short_hash_from_string(string_hash,
-                                                          &rh->authority))
+                                                          &zkey))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   "Cannot convert ZKEY %s to hash!\n", string_hash);
@@ -2258,6 +2328,13 @@ gns_resolver_shorten_name(struct GNUNET_CRYPTO_ShortHashCode zone,
       proc(proc_cls, name);
       return;
     }
+
+    GNUNET_NAMESTORE_zone_to_name (namestore_handle,
+                                   &zone, //ours
+                                   &zkey,
+                                   &process_zone_to_name_zkey,
+                                   rh);
+    return;
 
   }
   else
@@ -2276,8 +2353,7 @@ gns_resolver_shorten_name(struct GNUNET_CRYPTO_ShortHashCode zone,
   rh->authority_chain_head = GNUNET_malloc(sizeof(struct AuthorityChain));
   rh->authority_chain_tail = rh->authority_chain_head;
   rh->authority_chain_head->zone = zone;
-  rh->proc = &handle_delegation_ns_shorten;
-  rh->proc_cls = nsh;
+  
   
   /* Start delegation resolution in our namestore */
   resolve_delegation_ns(rh);
