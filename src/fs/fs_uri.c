@@ -1500,6 +1500,10 @@ find_duplicate (const char *s, const char **array, int array_length)
   return GNUNET_NO;
 }
 
+
+/**
+ * FIXME: comment
+ */
 static char *
 normalize_metadata (enum EXTRACTOR_MetaFormat format, const char *data,
     size_t data_len)
