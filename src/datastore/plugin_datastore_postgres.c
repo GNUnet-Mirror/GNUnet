@@ -827,8 +827,9 @@ static void
 postgres_plugin_drop (void *cls)
 {
   struct Plugin *plugin = cls;
-
-  GNUNET_POSTGRES_exec (plugin->dbh, "DROP TABLE gn090");
+  
+  if (GNUNET_OK != GNUNET_POSTGRES_exec (plugin->dbh, "DROP TABLE gn090"))
+    GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, "postgres", _("Failed to drop table from database.\n"));
 }
 
 
