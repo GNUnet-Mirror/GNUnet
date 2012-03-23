@@ -125,6 +125,7 @@ struct GNUNET_MYSQL_StatementHandle
  * Obtain the location of ".my.cnf".
  *
  * @param cfg our configuration
+ * @param section the section
  * @return NULL on error
  */
 static char *

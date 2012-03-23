@@ -45,7 +45,7 @@ typedef void (*ResolverCleanupContinuation) (void);
  *
  * @param cls the closure
  * @param rd_count number of results
- * @pram rd resukt data
+ * @param rd resukt data
  */
 typedef void (*RecordLookupProcessor) (void *cls,
                                   uint32_t rd_count,

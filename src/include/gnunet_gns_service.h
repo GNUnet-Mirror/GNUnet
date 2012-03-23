@@ -85,7 +85,7 @@ enum GNUNET_GNS_RecordType
  * Initialize the connection with the GNS service.
  *
  * @param cfg configuration to use
- * @param ht_len size of the internal hash table to use for parallel requests
+ *
  * @return handle to the GNS service, or NULL on error
  */
 struct GNUNET_GNS_Handle *
@@ -152,20 +152,19 @@ typedef void (*GNUNET_GNS_ShortenResultProcessor) (void *cls,
 
 
 /**
- * Perform a shorten operation on name using the GNS.
+ * Perform a name shortening operation on the GNS.
  *
  * @param handle handle to the GNS service
- * @param name the name to shorten
- * @param proc processor to call on result
- * @param cls closure for processor
- *
- * @return handle to the shorten operation
+ * @param name the name to look up
+ * @param proc function to call on result
+ * @param proc_cls closure for processor
+ * @return handle to the operation
  */
 struct GNUNET_GNS_QueueEntry *
 GNUNET_GNS_shorten (struct GNUNET_GNS_Handle *handle,
-                         const char * name,
-                         GNUNET_GNS_ShortenResultProcessor proc,
-                         void *cls);
+                    const char * name,
+                    GNUNET_GNS_ShortenResultProcessor proc,
+                    void *proc_cls);
 
 
 /* *************** Standard API: get authority ******************* */
@@ -183,20 +182,19 @@ typedef void (*GNUNET_GNS_GetAuthResultProcessor) (void *cls,
 
 
 /**
- * Perform a shorten operation on name using the GNS.
+ * Perform an authority lookup for a given name.
  *
  * @param handle handle to the GNS service
  * @param name the name to look up authority for
- * @param proc processor to call on result
- * @param cls closure for processor
- *
- * @return handle to the get authority operation
+ * @param proc function to call on result
+ * @param proc_cls closure for processor
+ * @return handle to the operation
  */
 struct GNUNET_GNS_QueueEntry *
 GNUNET_GNS_get_authority (struct GNUNET_GNS_Handle *handle,
-                         const char * name,
-                         GNUNET_GNS_GetAuthResultProcessor proc,
-                         void *cls);
+                    const char * name,
+                    GNUNET_GNS_GetAuthResultProcessor proc,
+                    void *proc_cls);
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

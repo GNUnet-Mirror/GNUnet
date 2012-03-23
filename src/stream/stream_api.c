@@ -2480,10 +2480,10 @@ GNUNET_STREAM_listen (const struct GNUNET_CONFIGURATION_Handle *cfg,
 /**
  * Closes the listen socket
  *
- * @param lsocket the listen socket
+ * @param socket the listen socket
  */
 void
-GNUNET_STREAM_listen_close (struct GNUNET_STREAM_ListenSocket *lsocket)
+GNUNET_STREAM_listen_close (struct GNUNET_STREAM_ListenSocket *socket)
 {
   /* Close MESH connection */
   GNUNET_assert (NULL != lsocket->mesh);
