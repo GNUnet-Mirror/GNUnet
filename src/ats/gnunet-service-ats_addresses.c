@@ -67,6 +67,23 @@ static unsigned int active_addr_count;
 static int ats_mode;
 
 
+static void
+send_bw_notification (struct ATS_Address *aa)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "New bandwidth for peer %s is %u/%u\n",
+              GNUNET_i2s (&aa->peer), ntohl (aa->assigned_bw_in.value__),
+              ntohl (aa->assigned_bw_out.value__));
+  GAS_scheduling_transmit_address_suggestion (&aa->peer, aa->plugin, aa->addr,
+                                              aa->addr_len, aa->session_id,
+                                              aa->ats, aa->ats_count,
+                                              aa->assigned_bw_out,
+                                              aa->assigned_bw_in);
+  GAS_reservations_set_bandwidth (&aa->peer, aa->assigned_bw_in);
+  GAS_performance_notify_clients (&aa->peer, aa->plugin, aa->addr, aa->addr_len,
+                                  aa->ats, aa->ats_count, aa->assigned_bw_out,
+                                  aa->assigned_bw_in);
+}
+
 /**
  * Update a bandwidth assignment for a peer.  This trivial method currently
  * simply assigns the same share to all active connections.
@@ -90,18 +107,8 @@ update_bw_simple_it (void *cls, const GNUNET_HashCode * key, void *value)
   aa->assigned_bw_in.value__ = htonl (wan_quota_in / active_addr_count);
   aa->assigned_bw_out.value__ = htonl (wan_quota_out / active_addr_count);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "New bandwidth for peer %s is %u/%u\n",
-              GNUNET_i2s (&aa->peer), ntohl (aa->assigned_bw_in.value__),
-              ntohl (aa->assigned_bw_out.value__));
-  GAS_scheduling_transmit_address_suggestion (&aa->peer, aa->plugin, aa->addr,
-                                              aa->addr_len, aa->session_id,
-                                              aa->ats, aa->ats_count,
-                                              aa->assigned_bw_out,
-                                              aa->assigned_bw_in);
-  GAS_reservations_set_bandwidth (&aa->peer, aa->assigned_bw_in);
-  GAS_performance_notify_clients (&aa->peer, aa->plugin, aa->addr, aa->addr_len,
-                                  aa->ats, aa->ats_count, aa->assigned_bw_out,
-                                  aa->assigned_bw_in);
+  send_bw_notification (aa);
+
   return GNUNET_OK;
 }
 
@@ -617,18 +624,7 @@ void request_address_mlp (const struct GNUNET_PeerIdentity *peer)
     aa->active = GNUNET_YES;
     active_addr_count++;
 
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "New bandwidth for peer %s is %u/%u\n",
-                GNUNET_i2s (&aa->peer), ntohl (aa->assigned_bw_in.value__),
-                ntohl (aa->assigned_bw_out.value__));
-    GAS_scheduling_transmit_address_suggestion (&aa->peer, aa->plugin, aa->addr,
-                                                aa->addr_len, aa->session_id,
-                                                aa->ats, aa->ats_count,
-                                                aa->assigned_bw_out,
-                                                aa->assigned_bw_in);
-    GAS_reservations_set_bandwidth (&aa->peer, aa->assigned_bw_in);
-    GAS_performance_notify_clients (&aa->peer, aa->plugin, aa->addr, aa->addr_len,
-                                    aa->ats, aa->ats_count, aa->assigned_bw_out,
-                                    aa->assigned_bw_in);
+    send_bw_notification (aa);
   }
   else
   {
