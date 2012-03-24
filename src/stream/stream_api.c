@@ -1219,6 +1219,37 @@ set_state_hello_wait (void *cls,
 
 
 /**
+ * Returns a new HelloAckMessage. Also sets the write sequence number for the
+ * socket
+ *
+ * @param socket the socket for which this HelloAckMessage has to be generated
+ * @return the HelloAckMessage
+ */
+static struct GNUNET_STREAM_HelloAckMessage *
+generate_hello_ack_msg (struct GNUNET_STREAM_Socket *socket)
+{
+  struct GNUNET_STREAM_HelloAckMessage *msg;
+
+  /* Get the random sequence number */
+  socket->write_sequence_number = 
+    GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "%x: Generated write sequence number %u\n",
+              socket->our_id,
+              (unsigned int) socket->write_sequence_number);
+  
+  msg = GNUNET_malloc (sizeof (struct GNUNET_STREAM_HelloAckMessage));
+  msg->header.header.size = 
+    htons (sizeof (struct GNUNET_STREAM_HelloAckMessage));
+  msg->header.header.type = htons (GNUNET_MESSAGE_TYPE_STREAM_HELLO_ACK);
+  msg->sequence_number = htonl (socket->write_sequence_number);
+  msg->receiver_window_size = htonl (RECEIVE_BUFFER_SIZE);
+
+  return msg;
+}
+
+
+/**
  * Client's message handler for GNUNET_MESSAGE_TYPE_STREAM_HELLO_ACK
  *
  * @param cls the socket (set from GNUNET_MESH_connect)
@@ -1265,22 +1296,8 @@ client_handle_hello_ack (void *cls,
                 socket->our_id,
                 (unsigned int) socket->read_sequence_number);
     socket->receiver_window_available = ntohl (ack_msg->receiver_window_size);
-    /* Get the random sequence number */
-    socket->write_sequence_number = 
-      GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "%x: Generated write sequence number %u\n",
-                  socket->our_id,
-                  (unsigned int) socket->write_sequence_number);
-    reply = 
-      GNUNET_malloc (sizeof (struct GNUNET_STREAM_HelloAckMessage));
-    reply->header.header.size = 
-      htons (sizeof (struct GNUNET_STREAM_HelloAckMessage));
-    reply->header.header.type = 
-      htons (GNUNET_MESSAGE_TYPE_STREAM_HELLO_ACK);
-    reply->sequence_number = htonl (socket->write_sequence_number);
-    reply->receiver_window_size = htonl (RECEIVE_BUFFER_SIZE);
-    queue_message (socket, 
+    reply = generate_hello_ack_msg (socket);
+    queue_message (socket,
                    &reply->header, 
                    &set_state_established, 
                    NULL);      
@@ -1604,21 +1621,7 @@ server_handle_hello (void *cls,
 
   if (STATE_INIT == socket->state)
     {
-      /* Get the random sequence number */
-      socket->write_sequence_number = 
-        GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "%x: Generated write sequence number %u\n",
-                  socket->our_id,
-                  (unsigned int) socket->write_sequence_number);
-      reply = 
-        GNUNET_malloc (sizeof (struct GNUNET_STREAM_HelloAckMessage));
-      reply->header.header.size = 
-        htons (sizeof (struct GNUNET_STREAM_HelloAckMessage));
-      reply->header.header.type = 
-        htons (GNUNET_MESSAGE_TYPE_STREAM_HELLO_ACK);
-      reply->sequence_number = htonl (socket->write_sequence_number);
-      reply->receiver_window_size = htonl (RECEIVE_BUFFER_SIZE);
+      reply = generate_hello_ack_msg (socket);
       queue_message (socket, 
 		     &reply->header,
                      &set_state_hello_wait, 
