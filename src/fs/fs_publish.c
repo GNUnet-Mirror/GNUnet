@@ -385,6 +385,7 @@ encode_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   char *emsg;
   uint64_t flen;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Finished with tree encoder\n");
   p = pc->fi_pos;
   GNUNET_FS_tree_encoder_finish (p->te, &p->chk_uri, &emsg);
   p->te = NULL;
@@ -398,17 +399,19 @@ encode_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     pi.value.publish.specifics.error.message = p->emsg;
     p->client_info = GNUNET_FS_publish_make_status_ (&pi, pc, p, 0);
   }
-  GNUNET_FS_file_information_sync_ (p);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Finished with tree encoder\n");
+  else
+  {
   /* final progress event */
-  flen = GNUNET_FS_uri_chk_get_file_size (p->chk_uri);
-  pi.status = GNUNET_FS_STATUS_PUBLISH_PROGRESS;
-  pi.value.publish.specifics.progress.data = NULL;
-  pi.value.publish.specifics.progress.offset = flen;
-  pi.value.publish.specifics.progress.data_len = 0;
-  pi.value.publish.specifics.progress.depth = GNUNET_FS_compute_depth (flen);
-  p->client_info = GNUNET_FS_publish_make_status_ (&pi, pc, p, flen);
-
+    GNUNET_assert (NULL != p->chk_uri);
+    flen = GNUNET_FS_uri_chk_get_file_size (p->chk_uri);
+    pi.status = GNUNET_FS_STATUS_PUBLISH_PROGRESS;
+    pi.value.publish.specifics.progress.data = NULL;
+    pi.value.publish.specifics.progress.offset = flen;
+    pi.value.publish.specifics.progress.data_len = 0;
+    pi.value.publish.specifics.progress.depth = GNUNET_FS_compute_depth (flen);
+    p->client_info = GNUNET_FS_publish_make_status_ (&pi, pc, p, flen);
+  }
+  GNUNET_FS_file_information_sync_ (p);
   /* continue with main */
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == pc->upload_task);
   pc->upload_task =
