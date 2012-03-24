@@ -221,18 +221,18 @@ Running http on port 80 and https on port 443
 In order to hide GNUnet's HTTP/HTTPS traffic perfectly, you might
 consider running GNUnet's HTTP/HTTPS transport on port 80/443.
 However, we do not recommend running GNUnet as root.  Instead, forward
-port 80 to say 8080 with this command (as root, in your startup
+port 80 to say 1080 with this command (as root, in your startup
 scripts):
 
-# iptables -t nat -A PREROUTING -p tcp -m tcp --dport 80 -j REDIRECT --to-ports 8080
+# iptables -t nat -A PREROUTING -p tcp -m tcp --dport 80 -j REDIRECT --to-ports 1080
 
 or for HTTPS
 
 # iptables -t nat -A PREROUTING -p tcp -m tcp --dport 443 -j REDIRECT --to-ports 4433
 
-Then set in the HTTP section of gnunet.conf the "ADVERTISED-PORT" to
-"80" and "PORT" to 8080 and similarly in the HTTPS section the
-"ADVERTISED-PORT" to "443" and "PORT" to 4433.
+Then set in the HTTP section of gnunet.conf the "ADVERTISED_PORT" to
+"80" and "PORT" to 1080 and similarly in the HTTPS section the
+"ADVERTISED_PORT" to "443" and "PORT" to 4433.
 
 You can do the same trick for the TCP and UDP transports if you want
 to map them to a priviledged port (from the point of view of the
