@@ -254,7 +254,6 @@ udp_ipv4_broadcast_send (void *cls,
   int sent;
   uint16_t msg_size;
   char buf[65536];
-  struct UDP_Beacon_Message msg;
   struct BroadcastAddress *baddr;
 
   plugin->send_ipv4_broadcast_task = GNUNET_SCHEDULER_NO_TASK;
