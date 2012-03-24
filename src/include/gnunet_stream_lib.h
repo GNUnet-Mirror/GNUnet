@@ -185,10 +185,10 @@ GNUNET_STREAM_listen (const struct GNUNET_CONFIGURATION_Handle *cfg,
 /**
  * Closes the listen socket
  *
- * @param socket the listen socket
+ * @param lsocket the listen socket
  */
 void
-GNUNET_STREAM_listen_close (struct GNUNET_STREAM_ListenSocket *socket);
+GNUNET_STREAM_listen_close (struct GNUNET_STREAM_ListenSocket *lsocket);
 
 
 /**
@@ -243,7 +243,7 @@ GNUNET_STREAM_write (struct GNUNET_STREAM_Socket *socket,
  * @param cls the closure from GNUNET_STREAM_read
  * @param status the status of the stream at the time this function is called
  * @param data traffic from the other side
- * @param size the number of bytes available in data read 
+ * @param size the number of bytes available in data read; will be 0 on timeout 
  * @return number of bytes of processed from 'data' (any data remaining should be
  *         given to the next time the read processor is called).
  */
@@ -275,7 +275,7 @@ GNUNET_STREAM_read (struct GNUNET_STREAM_Socket *socket,
  * @param ioh handle to operation to cancel
  */
 void
-GNUNET_STREAM_io_write_cancel (struct GNUNET_STREAM_IOWriteHandle *ioh);
+GNUNET_STREAM_io_write_cancel (struct GNUNET_STREAM_IOWriteHandle *iowh);
 
 
 /**
@@ -284,7 +284,7 @@ GNUNET_STREAM_io_write_cancel (struct GNUNET_STREAM_IOWriteHandle *ioh);
  * @param ioh handle to operation to cancel
  */
 void
-GNUNET_STREAM_io_read_cancel (struct GNUNET_STREAM_IOReadHandle *ioh);
+GNUNET_STREAM_io_read_cancel (struct GNUNET_STREAM_IOReadHandle *iorh);
 
 
 #if 0

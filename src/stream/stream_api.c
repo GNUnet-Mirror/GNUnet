@@ -431,7 +431,7 @@ struct GNUNET_STREAM_IOReadHandle
 static unsigned int default_timeout = 10;
 
 /**
- * Callback function for sending hello message
+ * Callback function for sending queued message
  *
  * @param cls closure the socket
  * @param size number of bytes available in buf
@@ -777,7 +777,8 @@ write_data (struct GNUNET_STREAM_Socket *socket)
   packet = ack_packet + 1;
   /* Now send new packets if there is enough buffer space */
   while ( (NULL != io_handle->messages[packet]) &&
-	  (socket->receiver_window_available >= ntohs (io_handle->messages[packet]->header.header.size)) )
+	  (socket->receiver_window_available 
+           >= ntohs (io_handle->messages[packet]->header.header.size)) )
     {
       socket->receiver_window_available -= 
         ntohs (io_handle->messages[packet]->header.header.size);
@@ -2480,10 +2481,10 @@ GNUNET_STREAM_listen (const struct GNUNET_CONFIGURATION_Handle *cfg,
 /**
  * Closes the listen socket
  *
- * @param socket the listen socket
+ * @param lsocket the listen socket
  */
 void
-GNUNET_STREAM_listen_close (struct GNUNET_STREAM_ListenSocket *socket)
+GNUNET_STREAM_listen_close (struct GNUNET_STREAM_ListenSocket *lsocket)
 {
   /* Close MESH connection */
   GNUNET_assert (NULL != lsocket->mesh);
