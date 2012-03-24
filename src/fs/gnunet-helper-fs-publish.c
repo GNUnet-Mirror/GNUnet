@@ -373,8 +373,13 @@ extract_files (struct ScanTreeNode *item)
     
     memcpy (buf, item->filename, slen);
     size = GNUNET_CONTAINER_meta_data_serialize (meta,
-						 &dst, size - slen,
+						 &dst, size,
 						 GNUNET_CONTAINER_META_DATA_SERIALIZE_PART);
+    if (size < 0)
+    {
+      GNUNET_break (0);
+      size = 0;
+    }
     GNUNET_CONTAINER_meta_data_destroy (meta);
     if (GNUNET_OK !=
 	write_message (GNUNET_MESSAGE_TYPE_FS_PUBLISH_HELPER_META_DATA,
