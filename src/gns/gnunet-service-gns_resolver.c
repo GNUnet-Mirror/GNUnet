@@ -1911,7 +1911,7 @@ gns_resolver_lookup_record(struct GNUNET_CRYPTO_ShortHashCode zone,
   struct ResolverHandle *rh;
   struct RecordLookupHandle* rlh;
   char string_hash[MAX_DNS_LABEL_LENGTH];
-  char* normalized_zkey;
+  uint8_t* normalized_zkey;
   char nzkey[MAX_DNS_LABEL_LENGTH];
   size_t normal_len;
 
@@ -2286,7 +2286,7 @@ gns_resolver_shorten_name(struct GNUNET_CRYPTO_ShortHashCode zone,
   struct NameShortenHandle *nsh;
   char string_hash[MAX_DNS_LABEL_LENGTH];
   struct GNUNET_CRYPTO_ShortHashCode zkey;
-  char* normalized_zkey;
+  uint8_t* normalized_zkey;
   size_t normal_len;
   char nzkey[MAX_DNS_LABEL_LENGTH];
 
