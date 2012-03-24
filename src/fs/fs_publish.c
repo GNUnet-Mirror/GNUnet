@@ -388,7 +388,6 @@ encode_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   p = pc->fi_pos;
   GNUNET_FS_tree_encoder_finish (p->te, &p->chk_uri, &emsg);
   p->te = NULL;
-  GNUNET_FS_file_information_sync_ (p);
   if (NULL != emsg)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Error during tree walk: %s\n", emsg);
@@ -399,6 +398,7 @@ encode_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     pi.value.publish.specifics.error.message = p->emsg;
     p->client_info = GNUNET_FS_publish_make_status_ (&pi, pc, p, 0);
   }
+  GNUNET_FS_file_information_sync_ (p);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Finished with tree encoder\n");
   /* final progress event */
   flen = GNUNET_FS_uri_chk_get_file_size (p->chk_uri);

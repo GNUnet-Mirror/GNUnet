@@ -361,8 +361,8 @@ GNUNET_FS_tree_encoder_next (struct GNUNET_FS_TreeEncoder *te)
     if (pt_size !=
         te->reader (te->cls, te->publish_offset, pt_size, iob, &te->emsg))
     {
-      te->cont (te->cls, NULL);
       te->in_next = GNUNET_NO;
+      te->cont (te->cls, NULL);
       return;
     }
     pt_block = iob;
