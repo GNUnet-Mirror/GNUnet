@@ -82,6 +82,9 @@ class ProxyHandler (BaseHTTPServer.BaseHTTPRequestHandler):
             soc.close()
             self.connection.close()
 
+    def shorten_zkey(self):
+      return lambda mo: 'a href="http://'+os.popen("gnunet-gns -s"+string.replace(mo.group(1), 'a href="http://', "")).readlines()[0].split(" ")[-1].rstrip()
+
     def replace_and_shorten(self, to_repl):
       return lambda mo: 'a href="http://'+os.popen("gnunet-gns -s "+string.replace(mo.group(1)+to_repl, 'a href="http://', "")).readlines()[0].split(" ")[-1].rstrip()
     #full = string.replace(mo.group(1)+to_repl, 'a href="http://', "")
@@ -135,11 +138,13 @@ class ProxyHandler (BaseHTTPServer.BaseHTTPRequestHandler):
                         out = soc
                     data = i.recv(8192)
                     if data:
-                        if (re.match("(\w+\.)*gnunet", self.host_port[0]) or 1):
+                        if (re.match("(\w+\.)*gnunet", self.host_port[0])):
                             arr = self.host_port[0].split('.')
                             arr.pop(0)
                             data = re.sub('(a href="http://(\w+\.)*)(\+)',
                                 self.replace_and_shorten(to_repl), data)
+                        data = re.sub('(a href="http://(\w+\.)*zkey)',
+                            self.shorten_zkey(), data)
                         #print data
                         out.send(data)
                         count = 0
