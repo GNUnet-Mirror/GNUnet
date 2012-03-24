@@ -626,9 +626,10 @@ check_access (void *cls, const struct GNUNET_CONNECTION_Credentials *uc,
       /* UID match required */
       ret = (uc != NULL) && (uc->uid == geteuid ());
     }
-    else if (sctx->match_gid == GNUNET_YES) 
+    else if ( (sctx->match_gid == GNUNET_YES) &&
+	      ( (uc == NULL) || (uc->uid != geteuid ()) ) )
     {
-      /* group match required */
+      /* group match required and UID does not match */
       if (uc == NULL) 
       {
 	/* no credentials, group match not possible */
