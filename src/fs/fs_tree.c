@@ -429,6 +429,7 @@ void
 GNUNET_FS_tree_encoder_finish (struct GNUNET_FS_TreeEncoder *te,
                                struct GNUNET_FS_Uri **uri, char **emsg)
 {
+  (void) te->reader (te->cls, UINT64_MAX, 0, 0, NULL);
   GNUNET_assert (GNUNET_NO == te->in_next);
   if (uri != NULL)
     *uri = te->uri;

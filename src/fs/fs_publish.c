@@ -355,6 +355,8 @@ block_reader (void *cls, uint64_t offset, size_t max, void *buf, char **emsg)
   }
   else
   {
+    if (UINT64_MAX == offset)
+      return p->data.file.reader (p->data.file.reader_cls, offset, 0, NULL, NULL);
     pt_size = GNUNET_MIN (max, p->data.file.file_size - offset);
     if (pt_size == 0)
       return 0;                 /* calling reader with pt_size==0

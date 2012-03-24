@@ -291,7 +291,11 @@ struct FileInfo
  * @param cls closure (points to the file information)
  * @param offset offset to read from; it is possible
  *            that the caller might need to go backwards
- *            a bit at times
+ *            a bit at times; set to UINT64_MAX to tell
+ *            the reader that we won't be reading for a while
+ *            (used to close the file descriptor but NOT fully
+ *             clean up the reader's state); in this case,
+ *            a value of '0' for max should be ignored
  * @param max maximum number of bytes that should be
  *            copied to buf; readers are not allowed
  *            to provide less data unless there is an error;
@@ -308,20 +312,29 @@ GNUNET_FS_data_reader_file_ (void *cls, uint64_t offset, size_t max, void *buf,
   struct FileInfo *fi = cls;
   ssize_t ret;
 
-  if (max == 0)
+  if (UINT64_MAX == offset)
   {
-    if (fi->fd != NULL)
+    if (NULL != fi->fd)
+    {
+      GNUNET_DISK_file_close (fi->fd);
+      fi->fd = NULL;
+    }
+    return 0;
+  }
+  if (0 == max)
+  {
+    if (NULL != fi->fd)
       GNUNET_DISK_file_close (fi->fd);
     GNUNET_free (fi->filename);
     GNUNET_free (fi);
     return 0;
   }
-  if (fi->fd == NULL)
+  if (NULL == fi->fd)
   {
     fi->fd =
         GNUNET_DISK_file_open (fi->filename, GNUNET_DISK_OPEN_READ,
                                GNUNET_DISK_PERM_NONE);
-    if (fi->fd == NULL)
+    if (NULL == fi->fd)
     {
       GNUNET_asprintf (emsg, _("Could not open file `%s': %s"), fi->filename,
                        STRERROR (errno));
@@ -330,7 +343,7 @@ GNUNET_FS_data_reader_file_ (void *cls, uint64_t offset, size_t max, void *buf,
   }
   GNUNET_DISK_file_seek (fi->fd, offset, GNUNET_DISK_SEEK_SET);
   ret = GNUNET_DISK_file_read (fi->fd, buf, max);
-  if (ret == -1)
+  if (-1 == ret)
   {
     GNUNET_asprintf (emsg, _("Could not read file `%s': %s"), fi->filename,
                      STRERROR (errno));
@@ -374,7 +387,11 @@ GNUNET_FS_make_file_reader_context_ (const char *filename)
  * @param cls closure (points to the buffer)
  * @param offset offset to read from; it is possible
  *            that the caller might need to go backwards
- *            a bit at times
+ *            a bit at times; set to UINT64_MAX to tell
+ *            the reader that we won't be reading for a while
+ *            (used to close the file descriptor but NOT fully
+ *             clean up the reader's state); in this case,
+ *            a value of '0' for max should be ignored
  * @param max maximum number of bytes that should be
  *            copied to buf; readers are not allowed
  *            to provide less data unless there is an error;
@@ -390,6 +407,8 @@ GNUNET_FS_data_reader_copy_ (void *cls, uint64_t offset, size_t max, void *buf,
 {
   char *data = cls;
 
+  if (UINT64_MAX == offset)
+    return 0;
   if (max == 0)
   {
     GNUNET_free_non_null (data);
