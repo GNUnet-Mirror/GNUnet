@@ -23,8 +23,6 @@
  * @brief code for maintaining the mesh topology
  * @author Christian Grothoff
  */
-
-#include <stdlib.h>
 #include "platform.h"
 #include "gnunet_constants.h"
 #include "gnunet_core_service.h"
@@ -34,8 +32,6 @@
 #include "gnunet_transport_service.h"
 #include "gnunet_util_lib.h"
 
-
-#define DEBUG_TOPOLOGY GNUNET_YES
 
 /**
  * For how long do we blacklist a peer after a failed connection
@@ -50,24 +46,24 @@
 #define GREYLIST_AFTER_ATTEMPT_FRIEND GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 2)
 
 /**
- * For how long do we blacklist anyone under any cirumstances after a failed connection
+ * For how long do we blacklist anyone under any cirumstances at least after a failed connection
  * attempt?
  */
 #define GREYLIST_AFTER_ATTEMPT_MIN GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15)
 
 /**
- * For how long do we blacklist anyone under any cirumstances after a failed connection
+ * For how long do we blacklist anyone under any cirumstances at most after a failed connection
  * attempt?
  */
 #define GREYLIST_AFTER_ATTEMPT_MAX GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 1)
 
 /**
- * How often do we at most advertise any HELLO to a peer?
+ * At what frequency do we sent HELLOs to a peer?
  */
-#define HELLO_ADVERTISEMENT_MIN_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 4)
+#define HELLO_ADVERTISEMENT_MIN_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5)
 
 /**
- * How often do we at most advertise the same HELLO to the same peer?
+ * After what time period do we expire the HELLO Bloom filter?
  */
 #define HELLO_ADVERTISEMENT_MIN_REPEAT_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 4)
 
@@ -278,20 +274,16 @@ is_connection_allowed (struct Peer *peer)
     return GNUNET_OK;
   if (GNUNET_YES == friends_only)
   {
-#if DEBUG_TOPOLOGY
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Determined that `%s' is not allowed to connect (not a friend)\n",
                 GNUNET_i2s (&peer->pid));
-#endif
     return GNUNET_SYSERR;
   }
   if (friend_count >= minimum_friend_count)
     return GNUNET_OK;
-#if DEBUG_TOPOLOGY
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Determined that `%s' is not allowed to connect (not enough connected friends)\n",
               GNUNET_i2s (&peer->pid));
-#endif
   return GNUNET_SYSERR;
 }
 
@@ -371,10 +363,8 @@ attempt_connect (struct Peer *pos)
     GNUNET_SCHEDULER_cancel (pos->greylist_clean_task);
   pos->greylist_clean_task =
       GNUNET_SCHEDULER_add_delayed (rem, &remove_from_greylist, pos);
-#if DEBUG_TOPOLOGY
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Asking  to connect to `%s'\n",
               GNUNET_i2s (&pos->pid));
-#endif
   GNUNET_STATISTICS_update (stats,
                             gettext_noop
                             ("# connect requests issued to transport"), 1,
@@ -642,11 +632,9 @@ connect_notify (void *cls, const struct GNUNET_PeerIdentity *peer,
 {
   struct Peer *pos;
 
-#if DEBUG_TOPOLOGY
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Core told us that we are connecting to `%s'\n",
               GNUNET_i2s (peer));
-#endif
   if (0 == memcmp (&my_identity, peer, sizeof (struct GNUNET_PeerIdentity)))
     return;
 
@@ -725,11 +713,9 @@ disconnect_notify (void *cls, const struct GNUNET_PeerIdentity *peer)
 
   if (0 == memcmp (&my_identity, peer, sizeof (struct GNUNET_PeerIdentity)))
     return;
-#if DEBUG_TOPOLOGY
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Core told us that we disconnected from `%s'\n",
               GNUNET_i2s (peer));
-#endif
   pos = GNUNET_CONTAINER_multihashmap_get (peers, &peer->hashPubKey);
   if (pos == NULL)
   {
@@ -828,11 +814,9 @@ consider_for_advertising (const struct GNUNET_HELLO_Message *hello)
     if (dt.abs_value == GNUNET_TIME_UNIT_FOREVER_ABS.abs_value)
       return;                   /* nothing new here */
   }
-#if DEBUG_TOPOLOGY
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Found `%s' from peer `%s' for advertising\n", "HELLO",
               GNUNET_i2s (&pid));
-#endif
   if (peer->hello != NULL)
   {
     nh = GNUNET_HELLO_merge (peer->hello, hello);
@@ -909,24 +893,18 @@ process_peer (void *cls, const struct GNUNET_PeerIdentity *peer,
   GNUNET_assert (NULL != pos);
   if (GNUNET_YES == pos->is_connected)
   {
-#if DEBUG_TOPOLOGY
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Already connected to peer `%s'\n",
                 GNUNET_i2s (peer));
-#endif
     return;
   }
   if (GNUNET_TIME_absolute_get_remaining (pos->greylisted_until).rel_value > 0)
   {
-#if DEBUG_TOPOLOGY
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Already tried peer `%s' recently\n",
                 GNUNET_i2s (peer));
-#endif
     return;                     /* peer still greylisted */
   }
-#if DEBUG_TOPOLOGY
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Considering connecting to peer `%s'\n",
               GNUNET_i2s (peer));
-#endif
   attempt_connect (pos);
 }
 
@@ -953,9 +931,7 @@ core_init (void *cls, struct GNUNET_CORE_Handle *server,
   }
   handle = server;
   my_identity = *my_id;
-#if DEBUG_TOPOLOGY
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "I am peer `%s'\n", GNUNET_i2s (my_id));
-#endif
   peerinfo_notify = GNUNET_PEERINFO_notify (cfg, &process_peer, NULL);
 }
 
@@ -1114,10 +1090,8 @@ handle_encrypted_hello (void *cls, const struct GNUNET_PeerIdentity *other,
   struct Peer *peer;
   struct GNUNET_PeerIdentity pid;
 
-#if DEBUG_TOPOLOGY
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received encrypted `%s' from peer `%s'",
               "HELLO", GNUNET_i2s (other));
-#endif
   if (GNUNET_OK !=
       GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *) message, &pid))
   {
@@ -1176,10 +1150,8 @@ hello_advertising_ready (void *cls, size_t size, void *buf)
     GNUNET_assert (want <= size);
     memcpy (buf, fah.result->hello, want);
     GNUNET_CONTAINER_bloomfilter_add (fah.result->filter, &pl->pid.hashPubKey);
-#if DEBUG_TOPOLOGY
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' with %u bytes", "HELLO",
                 (unsigned int) want);
-#endif
     GNUNET_STATISTICS_update (stats,
                               gettext_noop ("# HELLO messages gossipped"), 1,
                               GNUNET_NO);
@@ -1270,12 +1242,10 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   if ((friends_only == GNUNET_YES) || (minimum_friend_count > 0))
     read_friends_file (cfg);
-#if DEBUG_TOPOLOGY
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Topology would like %u connections with at least %u friends (%s)\n",
               target_connection_count, minimum_friend_count,
               autoconnect ? "autoconnect enabled" : "autoconnect disabled");
-#endif
   if ((friend_count < minimum_friend_count) && (blacklist == NULL))
     blacklist = GNUNET_TRANSPORT_blacklist (cfg, &blacklist_check, NULL);
   transport = GNUNET_TRANSPORT_connect (cfg, NULL, NULL, NULL, NULL, NULL);
