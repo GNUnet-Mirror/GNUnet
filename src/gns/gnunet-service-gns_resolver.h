@@ -296,12 +296,14 @@ gns_resolver_lookup_record(struct GNUNET_CRYPTO_ShortHashCode zone,
  *
  * @param zone the zone to perform the operation in
  * @param name name to shorten
+ * @param key optional private key for background lookups and PSEU import
  * @param proc the processor to call on shorten result
  * @param proc_cls the closure to pass to proc
  */
 void
 gns_resolver_shorten_name(struct GNUNET_CRYPTO_ShortHashCode zone,
                           const char* name,
+                          struct GNUNET_CRYPTO_RsaPrivateKey *key,
                           ShortenResultProcessor proc,
                           void* proc_cls);
 

@@ -493,7 +493,12 @@ static void handle_shorten(void *cls,
   }
   
   /* Start shortening */
-  gns_resolver_shorten_name(zone_hash, name, &send_shorten_response, csh);
+  if (GNUNET_YES == auto_import_pkey)
+    gns_resolver_shorten_name(zone_hash, name, zone_key,
+                              &send_shorten_response, csh);
+  else
+    gns_resolver_shorten_name(zone_hash, name, NULL,
+                              &send_shorten_response, csh);
 }
 
 

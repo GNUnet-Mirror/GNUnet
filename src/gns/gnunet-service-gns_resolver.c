@@ -2137,6 +2137,26 @@ process_zone_to_name_shorten(void *cls,
   }
 }
 
+/**
+ * DHT resolution for delegation finished. Processing result.
+ *
+ * @param cls the closure
+ * @param rh resolver handle
+ * @param rd_count number of results (always 0)
+ * @param rd record data (always NULL)
+ */
+static void
+handle_delegation_dht_bg_shorten(void* cls, struct ResolverHandle *rh,
+                          unsigned int rd_count,
+                          const struct GNUNET_NAMESTORE_RecordData *rd)
+{
+  
+  /* We resolved full name for delegation. resolving record */
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+    "GNS_SHORTEN: Resolved up to %s for delegation via DHT in background.\n",
+    rh->name);
+  free_resolver_handle(rh);
+}
 
 /**
  * Process result from namestore delegation lookup
@@ -2156,6 +2176,7 @@ handle_delegation_ns_shorten(void* cls,
   struct NameShortenHandle *nsh;
   char result[MAX_DNS_NAME_LENGTH];
   size_t answer_len;
+  struct ResolverHandle *rh_bg;
 
   nsh = (struct NameShortenHandle *)cls;
   
@@ -2193,12 +2214,46 @@ handle_delegation_ns_shorten(void* cls,
     return;
   }
   
+  /**
+   * we have to this before zone to name for rh might
+   * be freed by then
+   */
+  rh_bg = NULL;
+  if (!is_canonical(rh->name))
+  {
+    rh_bg = GNUNET_malloc(sizeof(struct ResolverHandle));
+    memcpy(rh_bg, rh, sizeof(struct ResolverHandle));
+  }
+
   /* backtrack authorities for names */
   GNUNET_NAMESTORE_zone_to_name (namestore_handle,
                                  &rh->authority_chain_tail->zone, //ours
                                  &rh->authority_chain_head->zone,
                                  &process_zone_to_name_shorten,
                                  rh);
+  
+  if (rh_bg == NULL)
+  {
+    return;
+  }
+
+  /**
+   * If authority resolution is incomplete we can do a background lookup
+   * of the full name so that next time we can (likely) fully or at least
+   * further shorten the name
+   */
+  rh_bg->authority_chain_head = GNUNET_malloc(sizeof(struct AuthorityChain));
+  rh_bg->authority_chain_tail = rh_bg->authority_chain_head;
+  rh_bg->authority_chain_head->zone = rh_bg->authority;
+  
+  rh_bg->proc = &handle_delegation_dht_bg_shorten;
+  rh_bg->proc_cls = NULL;
+  
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "GNS_SHORTEN: Starting background lookup for %s\n",
+             rh_bg->name);
+
+  resolve_delegation_dht(rh_bg);
 
 }
 
@@ -2232,6 +2287,13 @@ process_zone_to_name_zkey(void *cls,
   /* zkey not in our zone */
   if (name == NULL)
   {
+    /**
+     * In this case we have not given this PKEY a name (yet)
+     * It is either just not in our zone or not even cached
+     * Since we do not know at this point we will not try to shorten
+     * because PKEY import will happen if the user follows the zkey
+     * link.
+     */
     GNUNET_CRYPTO_short_hash_to_enc ((struct GNUNET_CRYPTO_ShortHashCode*)rd,
                                      &enc);
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
@@ -2273,12 +2335,14 @@ process_zone_to_name_zkey(void *cls,
  *
  * @param zone the zone to use
  * @param name the name to shorten
+ * @param key optional private key for background lookups and PSEU import
  * @param proc the processor to call with result
  * @param proc_cls closure to pass to proc
  */
 void
 gns_resolver_shorten_name(struct GNUNET_CRYPTO_ShortHashCode zone,
                           const char* name,
+                          struct GNUNET_CRYPTO_RsaPrivateKey *key,
                           ShortenResultProcessor proc,
                           void* proc_cls)
 {
@@ -2309,6 +2373,7 @@ gns_resolver_shorten_name(struct GNUNET_CRYPTO_ShortHashCode zone,
   
   rh = GNUNET_malloc(sizeof (struct ResolverHandle));
   rh->authority = zone;
+  rh->priv_key = key;
   rh->proc = &handle_delegation_ns_shorten;
   rh->proc_cls = nsh;
   
