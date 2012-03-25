@@ -101,6 +101,9 @@ static GNUNET_SCHEDULER_TaskIdentifier read_task;
 static char *data = "ABCD";
 static int result;
 
+static int writing_success;
+static int reading_success;
+
 
 /**
  * Check whether peers successfully shut down.
@@ -197,9 +200,8 @@ write_completion (void *cls,
                   enum GNUNET_STREAM_Status status,
                   size_t size)
 {
-  struct PeerData *peer;
+  struct PeerData *peer = cls;
 
-  peer = (struct PeerData *) cls;
   GNUNET_assert (GNUNET_STREAM_OK == status);
   GNUNET_assert (size <= strlen (data));
   peer->bytes_wrote += size;
@@ -231,6 +233,12 @@ write_completion (void *cls,
                                 &input_processor,
                                 cls);
           GNUNET_assert (NULL!=peer->io_read_handle);
+        }
+      else
+        {
+          writing_success = GNUNET_YES;
+          if (GNUNET_YES == reading_success) 
+            GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
         }
     }
 }
@@ -335,7 +343,9 @@ input_processor (void *cls,
         }
       else                      /* Peer1 has completed reading. End of tests */
         {
-          GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+          reading_success = GNUNET_YES;
+          if (GNUNET_YES == writing_success)
+            GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
         }
     }
   return size;

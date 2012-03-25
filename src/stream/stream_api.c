@@ -25,6 +25,8 @@
  *
  * Decrement PEER intern count during socket close and listen close to free the
  * memory used for PEER interning
+ *
+ * Add code for write io timeout
  **/
 
 /**
@@ -32,6 +34,8 @@
  * @brief Implementation of the stream library
  * @author Sree Harsha Totakura
  */
+
+
 #include "platform.h"
 #include "gnunet_common.h"
 #include "gnunet_crypto_lib.h"
@@ -46,15 +50,15 @@
 #define MAX_PACKET_SIZE 64000
 
 /**
+ * Receive buffer
+ */
+#define RECEIVE_BUFFER_SIZE 4096000
+
+/**
  * The maximum payload a data message packet can carry
  */
 static size_t max_payload_size = 
   MAX_PACKET_SIZE - sizeof (struct GNUNET_STREAM_DataMessage);
-
-/**
- * Receive buffer
- */
-#define RECEIVE_BUFFER_SIZE 4096000
 
 /**
  * states in the Protocol
@@ -239,7 +243,7 @@ struct GNUNET_STREAM_Socket
   /**
    * Task identifier for the read io timeout task
    */
-  GNUNET_SCHEDULER_TaskIdentifier read_io_timeout_task;
+  GNUNET_SCHEDULER_TaskIdentifier read_io_timeout_task_id;
 
   /**
    * Task identifier for retransmission task after timeout
@@ -374,6 +378,11 @@ struct GNUNET_STREAM_ListenSocket
 struct GNUNET_STREAM_IOWriteHandle
 {
   /**
+   * The socket to which this write handle is associated
+   */
+  struct GNUNET_STREAM_Socket *socket;
+
+  /**
    * The packet_buffers associated with this Handle
    */
   struct GNUNET_STREAM_DataMessage *messages[GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH];
@@ -398,13 +407,6 @@ struct GNUNET_STREAM_IOWriteHandle
    * Number of bytes in this write handle
    */
   size_t size;
-
-  /**
-   * Number of packets sent before waiting for an ack
-   *
-   * FIXME: Do we need this?
-   */
-  unsigned int sent_packets;
 };
 
 
@@ -717,23 +719,6 @@ ackbitmap_is_bit_set (const GNUNET_STREAM_AckBitmap *bitmap,
 }
 
 
-
-/**
- * Function called when Data Message is sent
- *
- * @param cls the io_handle corresponding to the Data Message
- * @param socket the socket which was used
- */
-static void
-write_data_finish_cb (void *cls,
-                      struct GNUNET_STREAM_Socket *socket)
-{
-  struct GNUNET_STREAM_IOWriteHandle *io_handle = cls;
-
-  io_handle->sent_packets++;
-}
-
-
 /**
  * Writes data using the given socket. The amount of data written is limited by
  * the receiver_window_size
@@ -788,15 +773,15 @@ write_data (struct GNUNET_STREAM_Socket *socket)
                   ntohl (io_handle->messages[packet]->sequence_number));
       copy_and_queue_message (socket,
                               &io_handle->messages[packet]->header,
-                              &write_data_finish_cb,
-                              io_handle);
+                              NULL,
+                              NULL);
       packet++;
     }
 
   if (GNUNET_SCHEDULER_NO_TASK == socket->retransmission_timeout_task_id)
     socket->retransmission_timeout_task_id = 
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply 
-                                    (GNUNET_TIME_UNIT_SECONDS, 5),
+                                    (GNUNET_TIME_UNIT_SECONDS, 8),
                                     &retransmission_timeout_task,
                                     socket);
 }
@@ -810,7 +795,7 @@ write_data (struct GNUNET_STREAM_Socket *socket)
  */
 static void
 call_read_processor (void *cls,
-                          const struct GNUNET_SCHEDULER_TaskContext *tc)
+                     const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_STREAM_Socket *socket = cls;
   size_t read_size;
@@ -842,8 +827,8 @@ call_read_processor (void *cls,
   GNUNET_assert (0 != valid_read_size);
 
   /* Cancel the read_io_timeout_task */
-  GNUNET_SCHEDULER_cancel (socket->read_io_timeout_task);
-  socket->read_io_timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_SCHEDULER_cancel (socket->read_io_timeout_task_id);
+  socket->read_io_timeout_task_id = GNUNET_SCHEDULER_NO_TASK;
 
   /* Call the data processor */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -891,7 +876,8 @@ call_read_processor (void *cls,
   memmove (socket->receive_buffer,
            socket->receive_buffer 
            + socket->receive_buffer_boundaries[sequence_increase-1],
-           socket->receive_buffer_size - socket->receive_buffer_boundaries[sequence_increase-1]);
+           socket->receive_buffer_size
+           - socket->receive_buffer_boundaries[sequence_increase-1]);
   
   /* Shift the bitmap */
   socket->ack_bitmap = socket->ack_bitmap >> sequence_increase;
@@ -936,7 +922,7 @@ read_io_timeout (void *cls,
   GNUNET_STREAM_DataProcessor proc;
   void *proc_cls;
 
-  socket->read_io_timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  socket->read_io_timeout_task_id = GNUNET_SCHEDULER_NO_TASK;
   if (socket->read_task_id != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1128,6 +1114,7 @@ handle_data (struct GNUNET_STREAM_Socket *socket,
     }
   return GNUNET_YES;
 }
+
 
 /**
  * Client's message Handler for GNUNET_MESSAGE_TYPE_STREAM_DATA
@@ -2388,6 +2375,9 @@ GNUNET_STREAM_close (struct GNUNET_STREAM_Socket *socket)
 {
   struct MessageQueue *head;
 
+  GNUNET_break (NULL == socket->read_handle);
+  GNUNET_break (NULL == socket->write_handle);
+
   if (socket->read_task_id != GNUNET_SCHEDULER_NO_TASK)
     {
       /* socket closed with read task pending!? */
@@ -2548,6 +2538,7 @@ GNUNET_STREAM_write (struct GNUNET_STREAM_Socket *socket,
     size = GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH  * max_payload_size;
   num_needed_packets = (size + (max_payload_size - 1)) / max_payload_size;
   io_handle = GNUNET_malloc (sizeof (struct GNUNET_STREAM_IOWriteHandle));
+  io_handle->socket = socket;
   io_handle->write_cont = write_cont;
   io_handle->write_cont_cls = write_cont_cls;
   io_handle->size = size;
@@ -2642,9 +2633,10 @@ GNUNET_STREAM_read (struct GNUNET_STREAM_Socket *socket,
     }
   
   /* Setup the read timeout task */
-  socket->read_io_timeout_task = GNUNET_SCHEDULER_add_delayed (timeout,
-                                                               &read_io_timeout,
-                                                               socket);
+  socket->read_io_timeout_task_id =
+    GNUNET_SCHEDULER_add_delayed (timeout,
+                                  &read_io_timeout,
+                                  socket);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%x: %s() END\n",
               socket->our_id,
@@ -2661,7 +2653,26 @@ GNUNET_STREAM_read (struct GNUNET_STREAM_Socket *socket,
 void
 GNUNET_STREAM_io_write_cancel (struct GNUNET_STREAM_IOWriteHandle *ioh)
 {
-  /* FIXME: Should cancel the write retransmission task */
+  struct GNUNET_STREAM_Socket *socket = ioh->socket;
+  unsigned int packet;
+
+  GNUNET_assert (NULL != socket->write_handle);
+  GNUNET_assert (socket->write_handle == ioh);
+
+  if (GNUNET_SCHEDULER_NO_TASK != socket->retransmission_timeout_task_id)
+    {
+      GNUNET_SCHEDULER_cancel (socket->retransmission_timeout_task_id);
+      socket->retransmission_timeout_task_id = GNUNET_SCHEDULER_NO_TASK;
+    }
+
+  for (packet=0; packet < GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH; packet++)
+    {
+      if (NULL == ioh->messages[packet]) break;
+      GNUNET_free (ioh->messages[packet]);
+    }
+      
+  GNUNET_free (socket->write_handle);
+  socket->write_handle = NULL;
   return;
 }
 
