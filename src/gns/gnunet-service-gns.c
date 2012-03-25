@@ -31,6 +31,7 @@
 #include "gnunet_dnsparser_lib.h"
 #include "gnunet_dht_service.h"
 #include "gnunet_namestore_service.h"
+#include <unicase.h>
 #include "gnunet_gns_service.h"
 #include "block_gns.h"
 #include "gns.h"
@@ -154,6 +155,25 @@ static int auto_import_pkey;
 /* lookup timeout */
 static struct GNUNET_TIME_Relative default_lookup_timeout;
 
+/**
+ * Normalizes the name in old
+ *
+ * @param old the old name to normalize
+ * @param new the buffer to write the new name to
+ */
+static void
+normalize_name(const char* old, char** new)
+{
+  uint8_t *tmp_name;
+  size_t n_len;
+
+  tmp_name = u8_tolower ((uint8_t*)old, strlen ((char *) old),
+                       NULL, UNINORM_NFD, NULL, &n_len);
+
+  memcpy(*new, tmp_name, n_len);
+  (*new)[n_len] = '\0';
+  free(tmp_name);
+}
 /**
  * Continue shutdown
  */
@@ -448,7 +468,7 @@ static void handle_shorten(void *cls,
 
   size_t msg_size = 0;
   struct ClientShortenHandle *csh;
-  const char* name;
+  char name[MAX_DNS_NAME_LENGTH];
 
   if (ntohs (message->size) < sizeof (struct GNUNET_GNS_ClientShortenMessage))
   {
@@ -475,7 +495,7 @@ static void handle_shorten(void *cls,
   csh->client = client;
   csh->unique_id = sh_msg->id;
   
-  name = (char*)&sh_msg[1];
+  normalize_name((char*)&sh_msg[1], (char**)&name);
 
   if (strlen (name) < strlen(GNUNET_GNS_TLD)) {
     csh->name = NULL;
@@ -563,7 +583,7 @@ static void handle_get_authority(void *cls,
 
   size_t msg_size = 0;
   struct ClientGetAuthHandle *cah;
-  const char* name;
+  char name[MAX_DNS_NAME_LENGTH];
 
   if (ntohs (message->size) < sizeof (struct GNUNET_GNS_ClientGetAuthMessage))
   {
@@ -586,7 +606,8 @@ static void handle_get_authority(void *cls,
     return;
   }
   
-  name = (char*)&sh_msg[1];
+  normalize_name((char*)&sh_msg[1], (char**)&name);
+
 
   cah = GNUNET_malloc(sizeof(struct ClientGetAuthHandle));
   cah->client = client;
@@ -690,7 +711,7 @@ handle_lookup(void *cls,
 
   size_t msg_size = 0;
   size_t namelen;
-  char* name;
+  char name[MAX_DNS_NAME_LENGTH];
   struct ClientLookupHandle *clh;
 
   if (ntohs (message->size) < sizeof (struct GNUNET_GNS_ClientLookupMessage))
@@ -714,7 +735,7 @@ handle_lookup(void *cls,
     return;
   }
   
-  name = (char*)&sh_msg[1];
+  normalize_name((char*)&sh_msg[1], (char**)&name);
   namelen = strlen(name)+1;
   clh = GNUNET_malloc(sizeof(struct ClientLookupHandle));
   clh->client = client;

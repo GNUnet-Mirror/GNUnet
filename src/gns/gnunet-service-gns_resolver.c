@@ -1993,8 +1993,10 @@ gns_resolver_lookup_record(struct GNUNET_CRYPTO_ShortHashCode zone,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "ZKEY is %s!\n", string_hash);
       
-      normalized_zkey = u8_toupper ((uint8_t*)string_hash, strlen ((char *) string_hash),
-                                  NULL, UNINORM_NFD, NULL, &normal_len);
+      normalized_zkey = u8_toupper ((uint8_t*)string_hash,
+                                    strlen ((char *) string_hash),
+                                    NULL, UNINORM_NFD, NULL, &normal_len);
+
 
       memcpy(nzkey, normalized_zkey, normal_len);
       nzkey[normal_len] = '\0';
