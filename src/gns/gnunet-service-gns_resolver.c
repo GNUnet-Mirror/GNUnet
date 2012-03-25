@@ -1395,12 +1395,23 @@ handle_record_ns(void* cls, struct ResolverHandle *rh,
   if (rd_count == 0)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "GNS_PHASE_REC: Resolution status: %d!\n", rh->status);
+               "GNS_PHASE_REC: NS returned no records. (status: %d)!\n",
+               rh->status);
     
-    /* ns entry expired and not ours. try dht */
+    /**
+     * There are 4 conditions that have to met for us to consult the DHT:
+     * 1. The entry in the DHT is EXPIRED AND
+     * 2. No entry in the NS existed AND
+     * 3. The zone queried is not the local resolver's zone AND
+     * 4. The name that was looked up is '+'
+     *    because if it was any other canonical name we either already queried
+     *    the DHT for the authority in the authority lookup phase (and thus
+     *    would already have an entry in the NS for the record)
+     */
     if (rh->status & (EXPIRED | !EXISTS) &&
         GNUNET_CRYPTO_short_hash_cmp(&rh->authority_chain_head->zone,
-                                     &local_zone))
+                                     &local_zone) &&
+        (strcmp(rh->name, "+") == 0))
     {
       rh->proc = &handle_record_dht;
       resolve_record_dht(rh);
