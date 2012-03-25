@@ -35,25 +35,29 @@
 
 /**
  * For how long do we blacklist a peer after a failed connection
- * attempt?
+ * attempt?  This is the baseline factor which is then multiplied by
+ * two to the power of the number of failed attempts.
  */
-#define GREYLIST_AFTER_ATTEMPT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 15)
+#define GREYLIST_AFTER_ATTEMPT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 1)
 
 /**
  * For how long do we blacklist a friend after a failed connection
- * attempt?
+ * attempt?  This is the baseline factor which is then multiplied by
+ * two to the power of the number of failed attempts.
  */
-#define GREYLIST_AFTER_ATTEMPT_FRIEND GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 2)
+#define GREYLIST_AFTER_ATTEMPT_FRIEND GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 2)
 
 /**
  * For how long do we blacklist anyone under any cirumstances at least after a failed connection
- * attempt?
+ * attempt?  This is the absolute minimum, regardless of what the calculation based on
+ * exponential backoff returns.
  */
-#define GREYLIST_AFTER_ATTEMPT_MIN GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15)
+#define GREYLIST_AFTER_ATTEMPT_MIN GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
 /**
  * For how long do we blacklist anyone under any cirumstances at most after a failed connection
- * attempt?
+ * attempt?  This is the absolute maximum, regardless of what the calculation based on 
+ * exponential back-off returns.
  */
 #define GREYLIST_AFTER_ATTEMPT_MAX GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 1)
 
