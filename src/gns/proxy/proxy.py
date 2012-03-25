@@ -138,16 +138,20 @@ class ProxyHandler (BaseHTTPServer.BaseHTTPRequestHandler):
                         out = soc
                     data = i.recv(8192)
                     if data:
-                        if (re.match("(\w+\.)*gnunet", self.host_port[0])):
-                            arr = self.host_port[0].split('.')
-                            arr.pop(0)
-                            data = re.sub('(a href="http://(\w+\.)*)(\+)',
-                                self.replace_and_shorten(to_repl), data)
-                        data = re.sub('(a href="http://(\w+\.)*zkey)',
-                            self.shorten_zkey(), data)
-                        #print data
-                        out.send(data)
-                        count = 0
+                        try:
+                          data = re.sub('(a href="http://(\w+\.)*zkey)',
+                              self.shorten_zkey(), data)
+                          if (re.match("(\w+\.)*gnunet", self.host_port[0])):
+                              arr = self.host_port[0].split('.')
+                              arr.pop(0)
+                              data = re.sub('(a href="http://(\w+\.)*)(\+)',
+                                  self.replace_and_shorten(to_repl), data)
+                          #print data
+                          out.send(data)
+                          count = 0
+                        except:
+                          print "GNS exception:", sys.exc_info()[0]
+
             else:
                 print "\t" "idle", count
                 print msg
