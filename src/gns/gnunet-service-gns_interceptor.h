@@ -18,6 +18,6 @@ gns_interceptor_init(struct GNUNET_CRYPTO_ShortHashCode zone,
  * Stops the interceptor
  */
 void
-gns_interceptor_stop(void){};
+gns_interceptor_stop(void);
 
 #endif

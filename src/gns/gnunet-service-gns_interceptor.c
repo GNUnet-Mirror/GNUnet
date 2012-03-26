@@ -362,4 +362,14 @@ gns_interceptor_init(struct GNUNET_CRYPTO_ShortHashCode zone,
   return GNUNET_YES;
 }
 
+/**
+ * Disconnect from interceptor
+ */
+void
+gns_interceptor_stop(void)
+{
+  if (dns_handle)
+    GNUNET_DNS_disconnect(dns_handle);
+}
+
 /* end of gns_interceptor.c */
