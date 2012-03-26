@@ -309,7 +309,8 @@ handle_dns_request(void *cls,
    */
   
   if ((is_gnunet_tld(p->queries[0].name) == GNUNET_YES) ||
-      (is_zkey_tld(p->queries[0].name) == GNUNET_YES))
+      (is_zkey_tld(p->queries[0].name) == GNUNET_YES) ||
+      (strcmp(p->queries[0].name, GNUNET_GNS_TLD) == 0))
   {
     start_resolution_for_dns(rh, p, p->queries);
   }
