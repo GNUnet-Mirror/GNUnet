@@ -469,6 +469,7 @@ static void handle_shorten(void *cls,
   size_t msg_size = 0;
   struct ClientShortenHandle *csh;
   char name[MAX_DNS_NAME_LENGTH];
+  char* nameptr = name;
 
   if (ntohs (message->size) < sizeof (struct GNUNET_GNS_ClientShortenMessage))
   {
@@ -495,7 +496,7 @@ static void handle_shorten(void *cls,
   csh->client = client;
   csh->unique_id = sh_msg->id;
   
-  normalize_name((char*)&sh_msg[1], (char**)&name);
+  normalize_name((char*)&sh_msg[1], &nameptr);
 
   if (strlen (name) < strlen(GNUNET_GNS_TLD)) {
     csh->name = NULL;
@@ -584,6 +585,7 @@ static void handle_get_authority(void *cls,
   size_t msg_size = 0;
   struct ClientGetAuthHandle *cah;
   char name[MAX_DNS_NAME_LENGTH];
+  char* nameptr = name;
 
   if (ntohs (message->size) < sizeof (struct GNUNET_GNS_ClientGetAuthMessage))
   {
@@ -606,7 +608,7 @@ static void handle_get_authority(void *cls,
     return;
   }
   
-  normalize_name((char*)&sh_msg[1], (char**)&name);
+  normalize_name((char*)&sh_msg[1], &nameptr);
 
 
   cah = GNUNET_malloc(sizeof(struct ClientGetAuthHandle));
@@ -713,6 +715,7 @@ handle_lookup(void *cls,
   size_t namelen;
   char name[MAX_DNS_NAME_LENGTH];
   struct ClientLookupHandle *clh;
+  char* nameptr = name;
 
   if (ntohs (message->size) < sizeof (struct GNUNET_GNS_ClientLookupMessage))
   {
@@ -735,7 +738,7 @@ handle_lookup(void *cls,
     return;
   }
   
-  normalize_name((char*)&sh_msg[1], (char**)&name);
+  normalize_name((char*)&sh_msg[1], &nameptr);
   namelen = strlen(name)+1;
   clh = GNUNET_malloc(sizeof(struct ClientLookupHandle));
   clh->client = client;
