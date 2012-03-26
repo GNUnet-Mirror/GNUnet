@@ -2164,7 +2164,7 @@ process_zone_to_name_shorten(void *cls,
     free_resolver_handle(rh);
   }
   else if (GNUNET_CRYPTO_short_hash_cmp(&rh->authority_chain_head->zone,
-                                        &local_zone))
+                                        &local_zone) == 0)
   {
     /* our zone, just append .gnunet */
     answer_len = strlen(rh->name) + strlen(GNUNET_GNS_TLD) + 2;
@@ -2190,11 +2190,17 @@ process_zone_to_name_shorten(void *cls,
     //                         strlen(next_authority->name) + 2);
     memset(next_authority_name, 0, strlen(rh->name)+
                       strlen(next_authority->name) + 2);
-    strcpy(next_authority_name, rh->name);
-    strcpy(next_authority_name+strlen(rh->name)+1, ".");
-    strcpy(next_authority_name+strlen(rh->name)+2, next_authority->name);
-  
+    GNUNET_snprintf(next_authority_name, MAX_DNS_NAME_LENGTH,
+                    "%s.%s", rh->name, next_authority->name);
+    //strcpy(next_authority_name, rh->name);
+    //strcpy(next_authority_name+strlen(rh->name)+1, ".");
+    //strcpy(next_authority_name+strlen(rh->name)+2, next_authority->name);
+    
     strcpy(rh->name, next_authority_name);
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "No PSEU found for authority %s. Promoting back: %s\n",
+               next_authority->name, rh->name);
+    
     GNUNET_CONTAINER_DLL_remove(rh->authority_chain_head,
                               rh->authority_chain_tail,
                               next_authority);
