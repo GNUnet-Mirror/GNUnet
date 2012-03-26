@@ -374,6 +374,8 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
     return GNUNET_strdup ((const char*) enc.short_encoding);
   case GNUNET_NAMESTORE_TYPE_PSEU:
     return GNUNET_strndup (data, data_size);
+  case GNUNET_NAMESTORE_TYPE_LEHO:
+    return GNUNET_strndup (data, data_size);
   default:
     GNUNET_break (0);
   }
@@ -489,6 +491,10 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
     *data = GNUNET_strdup (s);
     *data_size = strlen (s);
     return GNUNET_OK;
+  case GNUNET_NAMESTORE_TYPE_LEHO:
+    *data = GNUNET_strdup (s);
+    *data_size = strlen (s);
+    return GNUNET_OK;
   default:
     GNUNET_break (0);
   }
@@ -510,6 +516,7 @@ static struct {
   { "AAAA", GNUNET_DNSPARSER_TYPE_AAAA },
   { "PKEY",  GNUNET_NAMESTORE_TYPE_PKEY },
   { "PSEU",  GNUNET_NAMESTORE_TYPE_PSEU },
+  { "LEHO",  GNUNET_NAMESTORE_TYPE_LEHO },
   { NULL, UINT32_MAX }
 };
 
