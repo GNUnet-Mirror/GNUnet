@@ -43,6 +43,7 @@ extern "C"
 #endif
 #endif
 
+
 /**
  * Record type for GNS zone transfer ("PKEY").
  */
@@ -52,6 +53,11 @@ extern "C"
  * Record type for GNS zone transfer ("PSEU").
  */
 #define GNUNET_NAMESTORE_TYPE_PSEU 65537
+
+/**
+ * Record type for GNS legacy hostnames ("LEHO").
+ */
+#define GNUNET_NAMESTORE_TYPE_LEHO 65538
 
 /**
  * Entry in the queue.
