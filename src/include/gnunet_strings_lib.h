@@ -121,6 +121,27 @@ GNUNET_STRINGS_to_utf8 (const char *input, size_t len, const char *charset);
 char *
 GNUNET_STRINGS_from_utf8 (const char *input, size_t len, const char *charset);
 
+/**
+ * Convert the utf-8 input string to lowercase
+ * Output needs to be allocated appropriately
+ *
+ * @param input input string
+ * @param output output buffer
+ */
+void
+GNUNET_STRINGS_utf8_tolower(const char* input, char** output);
+
+
+/**
+ * Convert the utf-8 input string to lowercase
+ * Output needs to be allocated appropriately
+ *
+ * @param input input string
+ * @param output output buffer
+ */
+void
+GNUNET_STRINGS_utf8_toupper(const char* input, char** output);
+
 
 /**
  * Complete filename (a la shell) from abbrevition.

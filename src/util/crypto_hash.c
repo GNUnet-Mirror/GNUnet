@@ -298,7 +298,12 @@ int
 GNUNET_CRYPTO_hash_from_string2 (const char *enc, size_t enclen,
                                 GNUNET_HashCode * result)
 {
-  return GNUNET_STRINGS_string_to_data (enc, enclen,
+  char upper_enc[enclen];
+  char* up_ptr = upper_enc;
+
+  GNUNET_STRINGS_utf8_toupper(enc, &up_ptr);
+
+  return GNUNET_STRINGS_string_to_data (upper_enc, enclen,
 					(unsigned char*) result,
 					sizeof (struct GNUNET_HashCode));
 }
@@ -642,7 +647,12 @@ int
 GNUNET_CRYPTO_short_hash_from_string2 (const char *enc, size_t enclen,
 				       struct GNUNET_CRYPTO_ShortHashCode * result)
 {
-  return GNUNET_STRINGS_string_to_data (enc, enclen,
+
+  char upper_enc[enclen];
+  char* up_ptr = upper_enc;
+
+  GNUNET_STRINGS_utf8_toupper(enc, &up_ptr);
+  return GNUNET_STRINGS_string_to_data (upper_enc, enclen,
 					(unsigned char*) result,
 					sizeof (struct GNUNET_CRYPTO_ShortHashCode));
 }

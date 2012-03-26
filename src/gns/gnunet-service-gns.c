@@ -31,7 +31,6 @@
 #include "gnunet_dnsparser_lib.h"
 #include "gnunet_dht_service.h"
 #include "gnunet_namestore_service.h"
-#include <unicase.h>
 #include "gnunet_gns_service.h"
 #include "block_gns.h"
 #include "gns.h"
@@ -160,7 +159,7 @@ static struct GNUNET_TIME_Relative default_lookup_timeout;
  *
  * @param old the old name to normalize
  * @param new the buffer to write the new name to
- */
+ *
 static void
 normalize_name(const char* old, char** new)
 {
@@ -174,6 +173,9 @@ normalize_name(const char* old, char** new)
   (*new)[n_len] = '\0';
   free(tmp_name);
 }
+*/
+
+
 /**
  * Continue shutdown
  */
@@ -496,7 +498,7 @@ static void handle_shorten(void *cls,
   csh->client = client;
   csh->unique_id = sh_msg->id;
   
-  normalize_name((char*)&sh_msg[1], &nameptr);
+  GNUNET_STRINGS_utf8_tolower((char*)&sh_msg[1], &nameptr);
 
   if (strlen (name) < strlen(GNUNET_GNS_TLD)) {
     csh->name = NULL;
@@ -608,7 +610,7 @@ static void handle_get_authority(void *cls,
     return;
   }
   
-  normalize_name((char*)&sh_msg[1], &nameptr);
+  GNUNET_STRINGS_utf8_tolower((char*)&sh_msg[1], &nameptr);
 
 
   cah = GNUNET_malloc(sizeof(struct ClientGetAuthHandle));
@@ -738,7 +740,7 @@ handle_lookup(void *cls,
     return;
   }
   
-  normalize_name((char*)&sh_msg[1], &nameptr);
+  GNUNET_STRINGS_utf8_tolower((char*)&sh_msg[1], &nameptr);
   namelen = strlen(name)+1;
   clh = GNUNET_malloc(sizeof(struct ClientLookupHandle));
   clh->client = client;

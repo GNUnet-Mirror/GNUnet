@@ -31,6 +31,7 @@
 #endif
 #include "gnunet_common.h"
 #include "gnunet_strings_lib.h"
+#include <unicase.h>
 
 #define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
 
@@ -401,6 +402,45 @@ GNUNET_STRINGS_from_utf8 (const char *input, size_t len, const char *charset)
   return GNUNET_STRINGS_conv (input, len, "UTF-8", charset);
 }
 
+/**
+ * Convert the utf-8 input string to lowercase
+ * Output needs to be allocated appropriately
+ *
+ * @param input input string
+ * @param output output buffer
+ */
+void
+GNUNET_STRINGS_utf8_tolower(const char* input, char** output)
+{
+  uint8_t *tmp_in;
+  size_t len;
+
+  tmp_in = u8_tolower ((uint8_t*)input, strlen ((char *) input),
+                       NULL, UNINORM_NFD, NULL, &len);
+  memcpy(*output, tmp_in, len);
+  (*output)[len] = '\0';
+  free(tmp_in);
+}
+
+/**
+ * Convert the utf-8 input string to uppercase
+ * Output needs to be allocated appropriately
+ *
+ * @param input input string
+ * @param output output buffer
+ */
+void
+GNUNET_STRINGS_utf8_toupper(const char* input, char** output)
+{
+  uint8_t *tmp_in;
+  size_t len;
+
+  tmp_in = u8_toupper ((uint8_t*)input, strlen ((char *) input),
+                       NULL, UNINORM_NFD, NULL, &len);
+  memcpy(*output, tmp_in, len);
+  (*output)[len] = '\0';
+  free(tmp_in);
+}
 
 
 /**
