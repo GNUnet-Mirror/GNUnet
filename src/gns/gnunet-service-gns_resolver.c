@@ -279,6 +279,69 @@ process_auth_discovery_dht_result(void* cls,
   process_pseu_result(gph, NULL);
 }
 
+static void
+process_auth_discovery_ns_result(void* cls,
+                      const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *key,
+                      struct GNUNET_TIME_Absolute expiration,
+                      const char *name, unsigned int rd_count,
+                      const struct GNUNET_NAMESTORE_RecordData *rd,
+                      const struct GNUNET_CRYPTO_RsaSignature *signature)
+{
+  uint32_t xquery;
+  struct GNUNET_CRYPTO_ShortHashCode name_hash;
+  GNUNET_HashCode lookup_key;
+  struct GNUNET_CRYPTO_HashAsciiEncoded lookup_key_string;
+  GNUNET_HashCode name_hash_double;
+  GNUNET_HashCode zone_hash_double;
+  int i;
+  struct GetPseuAuthorityHandle* gph = (struct GetPseuAuthorityHandle*)cls;
+  
+  /* no pseu found */
+  if (rd_count == 0)
+  {
+    /**
+     * check dht
+     */
+    GNUNET_CRYPTO_short_hash("+", strlen("+"), &name_hash);
+    GNUNET_CRYPTO_short_hash_double (&name_hash, &name_hash_double);
+    GNUNET_CRYPTO_short_hash_double (&gph->new_zone, &zone_hash_double);
+    GNUNET_CRYPTO_hash_xor(&name_hash_double, &zone_hash_double, &lookup_key);
+    GNUNET_CRYPTO_hash_to_enc (&lookup_key, &lookup_key_string);
+
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "GNS_AUTO_PSEU: starting dht lookup for %s with key: %s\n",
+               "+", (char*)&lookup_key_string);
+
+    gph->timeout = GNUNET_SCHEDULER_add_delayed(DHT_LOOKUP_TIMEOUT,
+                                         &handle_auth_discovery_timeout, gph);
+
+    xquery = htonl(GNUNET_GNS_RECORD_PSEU);
+    
+    GNUNET_assert(gph->get_handle == NULL);
+    gph->get_handle = GNUNET_DHT_get_start(dht_handle,
+                                           GNUNET_TIME_UNIT_FOREVER_REL,
+                                           GNUNET_BLOCK_TYPE_GNS_NAMERECORD,
+                                           &lookup_key,
+                                           DHT_GNS_REPLICATION_LEVEL,
+                                           GNUNET_DHT_RO_NONE,
+                                           &xquery,
+                                           sizeof(xquery),
+                                           &process_auth_discovery_dht_result,
+                                           gph);
+    return;
+  }
+  for (i=0; i<rd_count; i++)
+  {
+    if ((strcmp(name, "+") == 0) &&
+        (rd[i].record_type == GNUNET_GNS_RECORD_PSEU))
+    {
+      /* found pseu */
+      process_pseu_result(gph, (char*)rd[i].data);
+      return;
+    }
+  }
+}
+
 /**
  * Callback called by namestore for a zone to name
  * result
@@ -306,50 +369,21 @@ process_zone_to_name_discover(void *cls,
   if (rd_len != 0)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "GNS_AUTO_PSEU: name for zone in our root %d\n", strlen(name));
+               "GNS_AUTO_PSEU: name for zone in our root %s\n", name);
     GNUNET_free(gph);
   }
   else
   {
-    /**
-     * No name found.
-     * check dht
-     */
-    uint32_t xquery;
-    struct GNUNET_CRYPTO_ShortHashCode name_hash;
-    GNUNET_HashCode lookup_key;
-    struct GNUNET_CRYPTO_HashAsciiEncoded lookup_key_string;
-    GNUNET_HashCode name_hash_double;
-    GNUNET_HashCode zone_hash_double;
 
-    GNUNET_CRYPTO_short_hash("+", strlen("+"), &name_hash);
-    GNUNET_CRYPTO_short_hash_double (&name_hash, &name_hash_double);
-    GNUNET_CRYPTO_short_hash_double (&gph->new_zone, &zone_hash_double);
-    GNUNET_CRYPTO_hash_xor(&name_hash_double, &zone_hash_double, &lookup_key);
-    GNUNET_CRYPTO_hash_to_enc (&lookup_key, &lookup_key_string);
-
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "GNS_AUTO_PSEU: starting dht lookup for %s with key: %s\n",
-               "+", (char*)&lookup_key_string);
-
-    gph->timeout = GNUNET_SCHEDULER_add_delayed(DHT_LOOKUP_TIMEOUT,
-                                         &handle_auth_discovery_timeout, gph);
-
-    xquery = htonl(GNUNET_GNS_RECORD_PSEU);
-    
-    GNUNET_assert(gph->get_handle == NULL);
-    gph->get_handle = GNUNET_DHT_get_start(dht_handle,
-                                           GNUNET_TIME_UNIT_FOREVER_REL,
-                                           GNUNET_BLOCK_TYPE_GNS_NAMERECORD,
-                                           &lookup_key,
-                                           DHT_GNS_REPLICATION_LEVEL,
-                                           GNUNET_DHT_RO_NONE,
-                                           &xquery,
-                                           sizeof(xquery),
-                                           &process_auth_discovery_dht_result,
-                                           gph);
-
+    GNUNET_NAMESTORE_lookup_record(namestore_handle,
+                                   &gph->new_zone,
+                                   "+",
+                                   GNUNET_GNS_RECORD_PSEU,
+                                   &process_auth_discovery_ns_result,
+                                   gph);
   }
+   
+
 }
 
 
@@ -550,7 +584,8 @@ background_lookup_result_processor(void *cls,
 {
   //We could do sth verbose/more useful here but it doesn't make any difference
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "GNS_BG: background dht lookup for finished.\n");
+             "GNS_BG: background dht lookup for finished. (%d results)\n",
+             rd_count);
 }
 
 /**
@@ -1002,14 +1037,16 @@ dht_authority_lookup_timeout(void *cls,
    * Start resolution in bg
    */
   GNUNET_snprintf(new_name, MAX_DNS_NAME_LENGTH,
-                  "%s.%s", rh->name, GNUNET_GNS_TLD);
+                  "%s.%s.%s", rh->name, rh->authority_name, GNUNET_GNS_TLD);
   //strcpy(new_name, rh->name);
   //strcpy(new_name+strlen(new_name), ".");
   //memcpy(new_name+strlen(new_name), GNUNET_GNS_TLD, strlen(GNUNET_GNS_TLD));
   
+  strcpy(rh->name, new_name);
+
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
              "GNS_PHASE_DELEGATE: Starting background query for %s type %d\n",
-             new_name, rlh->record_type);
+             rh->name, rlh->record_type);
 
   gns_resolver_lookup_record(rh->authority,
                              rlh->record_type,
@@ -1540,14 +1577,14 @@ handle_delegation_dht(void* cls, struct ResolverHandle *rh,
     if ((rlh->record_type == GNUNET_GNS_RECORD_PKEY))
     {
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "GNS_PHASE_DELEGATE: Resolved queried PKEY via DHT.\n");
+                 "GNS_PHASE_DELEGATE_DHT: Resolved queried PKEY via DHT.\n");
       finish_lookup(rh, rlh, rd_count, rd);
       free_resolver_handle(rh);
       return;
     }
     /* We resolved full name for delegation. resolving record */
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-      "GNS_PHASE_DELEGATE: Resolved full name for delegation via DHT.\n");
+      "GNS_PHASE_DELEGATE_DHT: Resolved full name for delegation via DHT.\n");
     strcpy(rh->name, "+\0");
     rh->proc = &handle_record_ns;
     resolve_record_ns(rh);
@@ -1560,7 +1597,7 @@ handle_delegation_dht(void* cls, struct ResolverHandle *rh,
   if (is_canonical(rh->name))
   {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "GNS_PHASE_DELEGATE: Resolving canonical record %s in ns\n",
+               "GNS_PHASE_DELEGATE_DHT: Resolving canonical record %s in ns\n",
                rh->name);
     rh->proc = &handle_record_ns;
     resolve_record_ns(rh);
@@ -1568,7 +1605,7 @@ handle_delegation_dht(void* cls, struct ResolverHandle *rh,
   }
   /* give up, cannot resolve */
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-        "GNS_PHASE_DELEGATE: Cannot fully resolve delegation for %s via DHT!\n",
+    "GNS_PHASE_DELEGATE_DHT: Cannot fully resolve delegation for %s via DHT!\n",
              rh->name);
   finish_lookup(rh, rlh, 0, NULL);
   free_resolver_handle(rh);
@@ -1672,14 +1709,14 @@ handle_delegation_ns(void* cls, struct ResolverHandle *rh,
     {
       GNUNET_assert(rd_count == 1);
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "GNS_PHASE_DELEGATE: Resolved queried PKEY in NS.\n");
+                 "GNS_PHASE_DELEGATE_NS: Resolved queried PKEY in NS.\n");
       finish_lookup(rh, rlh, rd_count, rd);
       free_resolver_handle(rh);
       return;
     }
     /* We resolved full name for delegation. resolving record */
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "GNS_PHASE_DELEGATE: Resolved full name for delegation.\n");
+               "GNS_PHASE_DELEGATE_NS: Resolved full name for delegation.\n");
     strcpy(rh->name, "+\0");
     rh->proc = &handle_record_ns;
     resolve_record_ns(rh);
@@ -1699,7 +1736,7 @@ handle_delegation_ns(void* cls, struct ResolverHandle *rh,
     if (is_canonical(rh->name))
     {
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "GNS_PHASE_DELEGATE: Resolving canonical record %s\n",
+                 "GNS_PHASE_DELEGATE_NS: Resolving canonical record %s\n",
                  rh->name);
       rh->proc = &handle_record_ns;
       resolve_record_ns(rh);
@@ -1708,15 +1745,16 @@ handle_delegation_ns(void* cls, struct ResolverHandle *rh,
     {
       /* give up, cannot resolve */
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                "GNS_PHASE_DELEGATE: Cannot fully resolve delegation for %s!\n",
+             "GNS_PHASE_DELEGATE_NS: Cannot fully resolve delegation for %s!\n",
                 rh->name);
-      rlh->proc(rlh->proc_cls, 0, NULL);
+      finish_lookup(rh, rlh, rd_count, rd);
+      //rlh->proc(rlh->proc_cls, 0, NULL);
     }
     return;
   }
   
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-            "GNS_PHASE_DELEGATE: Trying to resolve delegation for %s via DHT\n",
+         "GNS_PHASE_DELEGATE_NS: Trying to resolve delegation for %s via DHT\n",
             rh->name);
   rh->proc = &handle_delegation_dht;
   resolve_delegation_dht(rh);
@@ -1857,6 +1895,11 @@ process_delegation_result_ns(void* cls,
                                  rh->authority_chain_tail,
                                  auth);
     
+    /** try to import pkey if private key available */
+    if (rh->priv_key)
+      process_discovered_authority((char*)name, auth->zone,
+                                   rh->authority_chain_tail->zone,
+                                   rh->priv_key);
     /**
      * We are done with PKEY resolution if name is empty
      * else resolve again with new authority
