@@ -150,7 +150,6 @@ class ProxyHandler (BaseHTTPServer.BaseHTTPRequestHandler):
                     data = i.recv(8192)
                     if data:
                         try:
-                          print self.headers
                           data = re.sub(r'\nAccept-Ranges: \w+', r'', data)
                           data = re.sub('(a href="http://(\w+\.)*zkey)',
                               self.shorten_zkey(), data)
@@ -159,7 +158,6 @@ class ProxyHandler (BaseHTTPServer.BaseHTTPRequestHandler):
                               arr.pop(0)
                               data = re.sub('(a href="http://(\w+\.)*)(\+)',
                                   self.replace_and_shorten(to_repl), data)
-                          print data
                           out.send(data)
                           count = 0
                         except:

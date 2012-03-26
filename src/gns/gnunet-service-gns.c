@@ -155,28 +155,6 @@ static int auto_import_pkey;
 static struct GNUNET_TIME_Relative default_lookup_timeout;
 
 /**
- * Normalizes the name in old
- *
- * @param old the old name to normalize
- * @param new the buffer to write the new name to
- *
-static void
-normalize_name(const char* old, char** new)
-{
-  uint8_t *tmp_name;
-  size_t n_len;
-
-  tmp_name = u8_tolower ((uint8_t*)old, strlen ((char *) old),
-                       NULL, UNINORM_NFD, NULL, &n_len);
-
-  memcpy(*new, tmp_name, n_len);
-  (*new)[n_len] = '\0';
-  free(tmp_name);
-}
-*/
-
-
-/**
  * Continue shutdown
  */
 static void
