@@ -109,6 +109,16 @@ class ProxyHandler (BaseHTTPServer.BaseHTTPRequestHandler):
                     self.command,
                     urlparse.urlunparse(('', '', path, params, query, '')),
                     self.request_version))
+                if (re.match("(\w+\.)*gnunet", self.headers['Host'])):
+                  leho = os.popen("gnunet-gns -t LEHO -u "+self.headers['Host']).readlines()
+                  if (len(leho) < 2):
+                    print "Legacy hostname lookup failed!"
+                  elif (len(leho) == 1):
+                    print "Legacy hostname not present!"
+                  else:
+                    newhost = leho[1].split(" ")[-1].rstrip()
+                    print "Changing Host: "+self.headers['Host']+" to "+newhost
+                    self.headers['Host'] = newhost
                 self.headers['Connection'] = 'close'
                 del self.headers['Proxy-Connection']
                 for key_val in self.headers.items():
