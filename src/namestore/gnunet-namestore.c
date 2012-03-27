@@ -79,6 +79,16 @@ static struct GNUNET_NAMESTORE_ZoneIterator *list_it;
 static int del;
 
 /**
+ * Is record public
+ */
+static int public;
+
+/**
+ * Is record authority
+ */
+static int nonauthority;
+
+/**
  * Queue entry for the 'del' operation.
  */
 static struct GNUNET_NAMESTORE_QueueEntry *del_qe;
@@ -377,7 +387,10 @@ run (void *cls, char *const *args, const char *cfgfile,
     rd.data_size = data_size;
     rd.record_type = type;
     rd.expiration = GNUNET_TIME_relative_to_absolute (etime);
-    rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
+    if (1 != nonauthority)
+      rd.flags |= GNUNET_NAMESTORE_RF_AUTHORITY;
+    if (1 != public)
+      rd.flags |= GNUNET_NAMESTORE_RF_PRIVATE;
     add_qe = GNUNET_NAMESTORE_record_create (ns,
 					     zone_pkey,
 					     name,
@@ -409,9 +422,18 @@ run (void *cls, char *const *args, const char *cfgfile,
   }
   if (list)
   {
+    uint32_t must_not_flags = 0;
+
+    if (1 == nonauthority) /* List non-authority records */
+      must_not_flags |= GNUNET_NAMESTORE_RF_AUTHORITY;
+
+    if (1 == public)
+      must_not_flags |= GNUNET_NAMESTORE_RF_PRIVATE;
+
     list_it = GNUNET_NAMESTORE_zone_iteration_start (ns,
 						     &zone,
-						     0, 0,
+						     0,
+						     must_not_flags,
 						     &display_record,
 						     NULL);
   }
@@ -429,6 +451,9 @@ run (void *cls, char *const *args, const char *cfgfile,
 int
 main (int argc, char *const *argv)
 {
+  nonauthority = -1;
+  public = -1;
+
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
     {'a', "add", NULL,
      gettext_noop ("add record"), 0,
@@ -451,6 +476,12 @@ main (int argc, char *const *argv)
     {'V', "value", "VALUE",
      gettext_noop ("value of the record to add/delete"), 1,
      &GNUNET_GETOPT_set_string, &value},   
+    {'p', "public", NULL,
+     gettext_noop ("create or list public record"), 0,
+     &GNUNET_GETOPT_set_one, &public},
+    {'N', "non-authority", NULL,
+     gettext_noop ("create or list non-authority record"), 0,
+     &GNUNET_GETOPT_set_one, &nonauthority},
     {'z', "zonekey", "FILENAME",
      gettext_noop ("filename with the zone key"), 1,
      &GNUNET_GETOPT_set_string, &keyfile},   
