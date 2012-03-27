@@ -1020,7 +1020,7 @@ dht_authority_lookup_timeout(void *cls,
   char new_name[MAX_DNS_NAME_LENGTH];
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-         "GNS_PHASE_DELEGATE_DHT-%d: dht lookup for query %s (%ds)timed out.\n",
+         "GNS_PHASE_DELEGATE_DHT-%llu: dht lookup for query %s (%ds)timed out.\n",
          rh->id, rh->authority_name, rh->timeout.rel_value);
 
   rh->status |= TIMED_OUT;
@@ -1052,7 +1052,7 @@ dht_authority_lookup_timeout(void *cls,
   strcpy(rh->name, new_name);
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-        "GNS_PHASE_DELEGATE_DHT-%d: Starting background query for %s type %d\n",
+        "GNS_PHASE_DELEGATE_DHT-%llu: Starting background query for %s type %d\n",
         rh->id, rh->name, rlh->record_type);
 
   gns_resolver_lookup_record(rh->authority,
@@ -1127,7 +1127,7 @@ process_delegation_result_dht(void* cls,
   rh = (struct ResolverHandle *)cls;
   
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "GNS_PHASE_DELEGATE_DHT-%d: Got DHT result\n", rh->id);
+             "GNS_PHASE_DELEGATE_DHT-%llu: Got DHT result\n", rh->id);
 
   if (data == NULL)
     return;
@@ -1159,35 +1159,35 @@ process_delegation_result_dht(void* cls,
                                                                rd))
     {
       GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-                 "GNS_PHASE_DELEGATE_DHT-%d: Error deserializing data!\n",
+                 "GNS_PHASE_DELEGATE_DHT-%llu: Error deserializing data!\n",
                  rh->id);
       return;
     }
 
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "GNS_PHASE_DELEGATE_DHT-%d: Got name: %s (wanted %s)\n",
+               "GNS_PHASE_DELEGATE_DHT-%llu: Got name: %s (wanted %s)\n",
                rh->id, name, rh->authority_name);
     for (i=0; i<num_records; i++)
     {
     
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                "GNS_PHASE_DELEGATE_DHT-%d: Got name: %s (wanted %s)\n",
+                "GNS_PHASE_DELEGATE_DHT-%llu: Got name: %s (wanted %s)\n",
                 rh->id, name, rh->authority_name);
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "GNS_PHASE_DELEGATE_DHT-%d: Got type: %d (wanted %d)\n",
+                 "GNS_PHASE_DELEGATE_DHT-%llu: Got type: %d (wanted %d)\n",
                  rh->id, rd[i].record_type, GNUNET_GNS_RECORD_PKEY);
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "GNS_PHASE_DELEGATE_DHT-%d: Got data length: %d\n",
+                 "GNS_PHASE_DELEGATE_DHT-%llu: Got data length: %d\n",
                  rh->id, rd[i].data_size);
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "GNS_PHASE_DELEGATE_DHT-%d: Got flag %d\n",
+                 "GNS_PHASE_DELEGATE_DHT-%llu: Got flag %d\n",
                  rh->id, rd[i].flags);
 
       if ((strcmp(name, rh->authority_name) == 0) &&
           (rd[i].record_type == GNUNET_GNS_RECORD_PKEY))
       {
         GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                   "GNS_PHASE_DELEGATE_DHT-%d: Authority found in DHT\n",
+                   "GNS_PHASE_DELEGATE_DHT-%llu: Authority found in DHT\n",
                    rh->id);
         rh->answered = 1;
         memcpy(&rh->authority, rd[i].data, sizeof(struct GNUNET_CRYPTO_ShortHashCode));
@@ -1239,7 +1239,7 @@ process_delegation_result_dht(void* cls,
      * FIXME in this case. should we ask namestore again?
      */
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-      "GNS_PHASE_DELEGATE_DHT-%d: Answer from DHT for %s. Yet to resolve: %s\n",
+      "GNS_PHASE_DELEGATE_DHT-%llu: Answer from DHT for %s. Yet to resolve: %s\n",
       rh->id, rh->authority_name, rh->name);
     if (strcmp(rh->name, "") == 0)
     {
@@ -1258,7 +1258,7 @@ process_delegation_result_dht(void* cls,
    * promote back
    */
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "GNS_PHASE_DELEGATE_DHT-%d: Adding %s back to %s\n",
+             "GNS_PHASE_DELEGATE_DHT-%llu: Adding %s back to %s\n",
              rh->id, rh->authority_name, rh->name);
   if (strcmp(rh->name, "") == 0)
     strcpy(rh->name, rh->authority_name);
@@ -1267,9 +1267,9 @@ process_delegation_result_dht(void* cls,
                   rh->name, rh->authority_name); //FIXME ret
   
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "GNS_PHASE_DELEGATE_DHT-%d: %s restored\n", rh->id, rh->name);
+             "GNS_PHASE_DELEGATE_DHT-%llu: %s restored\n", rh->id, rh->name);
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-           "GNS_PHASE_DELEGATE_DHT-%d: DHT authority lookup found no match!\n",
+           "GNS_PHASE_DELEGATE_DHT-%llu: DHT authority lookup found no match!\n",
            rh->id);
   rh->proc(rh->proc_cls, rh, 0, NULL);
 }
@@ -1609,7 +1609,7 @@ handle_delegation_dht(void* cls, struct ResolverHandle *rh,
     if ((rlh->record_type == GNUNET_GNS_RECORD_PKEY))
     {
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "GNS_PHASE_DELEGATE_DHT-%d: Resolved queried PKEY via DHT.\n",
+                 "GNS_PHASE_DELEGATE_DHT-%llu: Resolved queried PKEY via DHT.\n",
                  rh->id);
       finish_lookup(rh, rlh, rd_count, rd);
       free_resolver_handle(rh);
@@ -1617,7 +1617,7 @@ handle_delegation_dht(void* cls, struct ResolverHandle *rh,
     }
     /* We resolved full name for delegation. resolving record */
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-     "GNS_PHASE_DELEGATE_DHT-%d: Resolved full name for delegation via DHT.\n",
+     "GNS_PHASE_DELEGATE_DHT-%llu: Resolved full name for delegation via DHT.\n",
      rh->id);
     strcpy(rh->name, "+\0");
     rh->proc = &handle_record_ns;
@@ -1631,7 +1631,7 @@ handle_delegation_dht(void* cls, struct ResolverHandle *rh,
   if (is_canonical(rh->name))
   {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "GNS_PHASE_DELEGATE_DHT-%d: Resolving canonical record %s in ns\n",
+             "GNS_PHASE_DELEGATE_DHT-%llu: Resolving canonical record %s in ns\n",
              rh->id,
              rh->name);
     rh->proc = &handle_record_ns;
@@ -1640,7 +1640,7 @@ handle_delegation_dht(void* cls, struct ResolverHandle *rh,
   }
   /* give up, cannot resolve */
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
- "GNS_PHASE_DELEGATE_DHT-%d: Cannot fully resolve delegation for %s via DHT!\n",
+ "GNS_PHASE_DELEGATE_DHT-%llu: Cannot fully resolve delegation for %s via DHT!\n",
  rh->id, rh->name);
   finish_lookup(rh, rlh, 0, NULL);
   free_resolver_handle(rh);
@@ -1692,7 +1692,7 @@ resolve_delegation_dht(struct ResolverHandle *rh)
       rh_heap_root->dht_heap_node = NULL;
       
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-        "GNS_PHASE_DELEGATE_DHT-%d: Replacing oldest background query for %s\n",
+        "GNS_PHASE_DELEGATE_DHT-%llu: Replacing oldest background query for %s\n",
         rh->id, rh_heap_root->authority_name);
       
       rh_heap_root->proc(rh_heap_root->proc_cls,
@@ -1744,7 +1744,7 @@ handle_delegation_ns(void* cls, struct ResolverHandle *rh,
     {
       GNUNET_assert(rd_count == 1);
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "GNS_PHASE_DELEGATE_NS-%d: Resolved queried PKEY in NS.\n",
+                 "GNS_PHASE_DELEGATE_NS-%llu: Resolved queried PKEY in NS.\n",
                  rh->id);
       finish_lookup(rh, rlh, rd_count, rd);
       free_resolver_handle(rh);
@@ -1752,7 +1752,7 @@ handle_delegation_ns(void* cls, struct ResolverHandle *rh,
     }
     /* We resolved full name for delegation. resolving record */
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-              "GNS_PHASE_DELEGATE_NS-%d: Resolved full name for delegation.\n",
+              "GNS_PHASE_DELEGATE_NS-%llu: Resolved full name for delegation.\n",
               rh->id);
     strcpy(rh->name, "+\0");
     rh->proc = &handle_record_ns;
@@ -1773,7 +1773,7 @@ handle_delegation_ns(void* cls, struct ResolverHandle *rh,
     if (is_canonical(rh->name))
     {
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "GNS_PHASE_DELEGATE_NS-%d: Resolving canonical record %s\n",
+                 "GNS_PHASE_DELEGATE_NS-%llu: Resolving canonical record %s\n",
                  rh->id,
                  rh->name);
       rh->proc = &handle_record_ns;
@@ -1783,7 +1783,7 @@ handle_delegation_ns(void* cls, struct ResolverHandle *rh,
     {
       /* give up, cannot resolve */
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-          "GNS_PHASE_DELEGATE_NS-%d: Cannot fully resolve delegation for %s!\n",
+          "GNS_PHASE_DELEGATE_NS-%llu: Cannot fully resolve delegation for %s!\n",
           rh->id,
           rh->name);
       finish_lookup(rh, rlh, rd_count, rd);
@@ -1793,7 +1793,7 @@ handle_delegation_ns(void* cls, struct ResolverHandle *rh,
   }
   
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-      "GNS_PHASE_DELEGATE_NS-%d: Trying to resolve delegation for %s via DHT\n",
+      "GNS_PHASE_DELEGATE_NS-%llu: Trying to resolve delegation for %s via DHT\n",
       rh->id, rh->name);
   rh->proc = &handle_delegation_dht;
   resolve_delegation_dht(rh);
@@ -1831,7 +1831,7 @@ process_delegation_result_ns(void* cls,
  
   rh = (struct ResolverHandle *)cls; 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "GNS_PHASE_DELEGATE_NS-%d: Got %d records from authority lookup\n",
+             "GNS_PHASE_DELEGATE_NS-%llu: Got %d records from authority lookup\n",
              rh->id, rd_count);
 
   GNUNET_CRYPTO_short_hash(key,
@@ -1869,7 +1869,7 @@ process_delegation_result_ns(void* cls,
     {
       /* simply promote back */
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "GNS_PHASE_DELEGATE_NS-%d: Promoting %s back to name\n",
+                 "GNS_PHASE_DELEGATE_NS-%llu: Promoting %s back to name\n",
                  rh->id, rh->authority_name);
       strcpy(rh->name, rh->authority_name);
     }
@@ -1877,7 +1877,7 @@ process_delegation_result_ns(void* cls,
     {
       /* add back to existing name */
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "GNS_PHASE_DELEGATE_NS-%d: Adding %s back to %s\n",
+                 "GNS_PHASE_DELEGATE_NS-%llu: Adding %s back to %s\n",
                  rh->id, rh->authority_name, rh->name);
       //memset(new_name, 0, strlen(rh->name) + strlen(rh->authority_name) + 2);
       GNUNET_snprintf(new_name, MAX_DNS_NAME_LENGTH, "%s.%s",
@@ -1887,7 +1887,7 @@ process_delegation_result_ns(void* cls,
       //strcpy(new_name+strlen(new_name), rh->authority_name);
       strcpy(rh->name, new_name);
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "GNS_PHASE_DELEGATE_NS-%d: %s restored\n", rh->id, rh->name);
+                 "GNS_PHASE_DELEGATE_NS-%llu: %s restored\n", rh->id, rh->name);
     }
     rh->proc(rh->proc_cls, rh, 0, NULL);
     return;
@@ -1909,12 +1909,12 @@ process_delegation_result_ns(void* cls,
          == 0)
     {
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "GNS_PHASE_DELEGATE_NS-%d: This pkey is expired.\n",
+                 "GNS_PHASE_DELEGATE_NS-%llu: This pkey is expired.\n",
                  rh->id);
       if (remaining_time.rel_value == 0)
       {
         GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                   "GNS_PHASE_DELEGATE_NS-%d: This dht entry is expired.\n",
+                   "GNS_PHASE_DELEGATE_NS-%llu: This dht entry is expired.\n",
                    rh->id);
         rh->authority_chain_head->fresh = 0;
         rh->proc(rh->proc_cls, rh, 0, NULL);
@@ -1958,7 +1958,7 @@ process_delegation_result_ns(void* cls,
    * no answers found
    */
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-    "GNS_PHASE_DELEGATE_NS-%d: Authority lookup and no PKEY...\n", rh->id);
+    "GNS_PHASE_DELEGATE_NS-%llu: Authority lookup and no PKEY...\n", rh->id);
   rh->proc(rh->proc_cls, rh, 0, NULL);
 }
 
@@ -1972,7 +1972,7 @@ static void
 resolve_delegation_ns(struct ResolverHandle *rh)
 {
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "GNS_PHASE_DELEGATE_NS-%d: Resolving delegation for %s\n",
+             "GNS_PHASE_DELEGATE_NS-%llu: Resolving delegation for %s\n",
              rh->id, rh->name);
   pop_tld(rh->name, rh->authority_name);
   GNUNET_NAMESTORE_lookup_record(namestore_handle,
