@@ -46,9 +46,9 @@ main (int argc, char *argv[])
   dfa = NULL;
 
   regex = "a\\*b(c|d)+c*(a(b|c)d)+";
-  /*regex = "\\*a(a|b)b";*/
-  /*regex = "a(a|b)c";*/
-  /*regex = "(a|aa)+";*/
+  /*regex = "\\*a(a|b)b"; */
+  /*regex = "a(a|b)c"; */
+  /*regex = "(a|aa)+"; */
   nfa = GNUNET_REGEX_construct_nfa (regex, strlen (regex));
 
   if (nfa)

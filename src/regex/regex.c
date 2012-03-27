@@ -57,7 +57,7 @@ stack_pop (struct GNUNET_CONTAINER_SList *stack, size_t length)
 }
 
 void *
-stack_top (struct GNUNET_CONTAINER_SList *stack, size_t *len)
+stack_top (struct GNUNET_CONTAINER_SList *stack, size_t * len)
 {
   struct GNUNET_CONTAINER_SList_Iterator it;
 
@@ -108,21 +108,22 @@ GNUNET_REGEX_context_init (struct GNUNET_REGEX_Context *ctx)
   }
   ctx->state_id = 0;
   ctx->transition_id = 0;
-  ctx->stack = GNUNET_CONTAINER_slist_create();
+  ctx->stack = GNUNET_CONTAINER_slist_create ();
 }
 
 void
 GNUNET_REGEX_context_destroy (struct GNUNET_REGEX_Context *ctx)
 {
   if (NULL != ctx->stack)
-    GNUNET_CONTAINER_slist_destroy(ctx->stack);
+    GNUNET_CONTAINER_slist_destroy (ctx->stack);
 }
 
 void
 debug_print_state (struct State *s)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "State %i: %s marked: %i accepting: %i\n",
-              s->id, s->name, s->marked, s->accepting);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "State %i: %s marked: %i accepting: %i\n", s->id, s->name,
+              s->marked, s->accepting);
 }
 
 void
@@ -153,7 +154,7 @@ debug_print_transitions (struct State *s)
        GNUNET_YES != GNUNET_CONTAINER_slist_end (&it);
        GNUNET_CONTAINER_slist_next (&it))
   {
-    t = GNUNET_CONTAINER_slist_get(&it, NULL);
+    t = GNUNET_CONTAINER_slist_get (&it, NULL);
 
     if (0 == t->literal)
       literal = '0';
@@ -165,14 +166,16 @@ debug_print_transitions (struct State *s)
     else
       state = t->state->name;
 
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Transition %i: On %c to %s\n", t->id, literal, state);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Transition %i: On %c to %s\n", t->id,
+                literal, state);
   }
 
   GNUNET_CONTAINER_slist_iter_destroy (&it);
 }
 
 int
-set_compare (const void *buf1, const size_t len1, const void *buf2, const size_t len2)
+set_compare (const void *buf1, const size_t len1, const void *buf2,
+             const size_t len2)
 {
   int c1;
   int c2;
@@ -189,13 +192,12 @@ set_compare (const void *buf1, const size_t len1, const void *buf2, const size_t
   int rslt;
   int contains;
 
-  if (len1 != len2
-      && len1 != sizeof (struct State)
-      && len2 != sizeof (struct State))
+  if (len1 != len2 && len1 != sizeof (struct State) &&
+      len2 != sizeof (struct State))
     return 1;
 
-  s1 = (struct State *)buf1;
-  s2 = (struct State *)buf2;
+  s1 = (struct State *) buf1;
+  s2 = (struct State *) buf2;
 
   l1 = s1->nfa_set;
   l2 = s2->nfa_set;
@@ -203,7 +205,7 @@ set_compare (const void *buf1, const size_t len1, const void *buf2, const size_t
   c1 = GNUNET_CONTAINER_slist_count (l1);
   c2 = GNUNET_CONTAINER_slist_count (l2);
 
-  if (c1 != c2) 
+  if (c1 != c2)
     return ((c1 > c2) ? 1 : -1);
 
   rslt = 0;
@@ -223,10 +225,11 @@ set_compare (const void *buf1, const size_t len1, const void *buf2, const size_t
 
       if (length1 != length2)
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Comparing lists failed, element size mismatch\n");
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    "Comparing lists failed, element size mismatch\n");
         break;
       }
-      if (((struct State*)el1)->id == ((struct State*)el2)->id)
+      if (((struct State *) el1)->id == ((struct State *) el2)->id)
       {
         contains = 1;
         break;
@@ -246,32 +249,32 @@ set_compare (const void *buf1, const size_t len1, const void *buf2, const size_t
 }
 
 int
-transition_literal_compare (const void *buf1, const size_t len1, const void *buf2, const size_t len2)
+transition_literal_compare (const void *buf1, const size_t len1,
+                            const void *buf2, const size_t len2)
 {
   struct Transition *t1;
   struct Transition *t2;
 
-  if (len1 != len2
-      && len1 != sizeof (struct Transition)
-      && len2 != sizeof (struct Transition))
+  if (len1 != len2 && len1 != sizeof (struct Transition) &&
+      len2 != sizeof (struct Transition))
   {
     return 1;
   }
 
-  t1 = (struct Transition *)buf1;
-  t2 = (struct Transition *)buf2;
+  t1 = (struct Transition *) buf1;
+  t2 = (struct Transition *) buf2;
 
   if (t1->literal == t2->literal)
     return 0;
   else if (t1->literal > t2->literal)
     return 1;
-  else 
+  else
     return -1;
 }
 
 void
-add_transition (struct GNUNET_REGEX_Context *ctx, struct State *from_state, const char literal,
-                    struct State *to_state)
+add_transition (struct GNUNET_REGEX_Context *ctx, struct State *from_state,
+                const char literal, struct State *to_state)
 {
   struct Transition t;
 
@@ -285,13 +288,14 @@ add_transition (struct GNUNET_REGEX_Context *ctx, struct State *from_state, cons
   t.literal = literal;
   t.state = to_state;
 
-  GNUNET_CONTAINER_slist_add (from_state->transitions, 
-                              GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT, 
-                              &t, sizeof t);
+  GNUNET_CONTAINER_slist_add (from_state->transitions,
+                              GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT, &t,
+                              sizeof t);
 }
 
 struct State *
-dfa_create_state (struct GNUNET_REGEX_Context *ctx, struct GNUNET_CONTAINER_SList *states)
+dfa_create_state (struct GNUNET_REGEX_Context *ctx,
+                  struct GNUNET_CONTAINER_SList *states)
 {
   struct State *s;
   char *name;
@@ -304,7 +308,7 @@ dfa_create_state (struct GNUNET_REGEX_Context *ctx, struct GNUNET_CONTAINER_SLis
   s = GNUNET_malloc (sizeof (struct State));
   s->id = ctx->state_id++;
   s->accepting = 0;
-  s->transitions = GNUNET_CONTAINER_slist_create();
+  s->transitions = GNUNET_CONTAINER_slist_create ();
   s->marked = 0;
   s->name = NULL;
 
@@ -322,9 +326,9 @@ dfa_create_state (struct GNUNET_REGEX_Context *ctx, struct GNUNET_CONTAINER_SLis
   strcat (s->name, "{");
   name = NULL;
 
-  for (stateit = GNUNET_CONTAINER_slist_begin(states);
-      GNUNET_NO == GNUNET_CONTAINER_slist_end (&stateit);
-      GNUNET_CONTAINER_slist_next (&stateit))
+  for (stateit = GNUNET_CONTAINER_slist_begin (states);
+       GNUNET_NO == GNUNET_CONTAINER_slist_end (&stateit);
+       GNUNET_CONTAINER_slist_next (&stateit))
   {
     cstate = GNUNET_CONTAINER_slist_get (&stateit, NULL);
     GNUNET_CONTAINER_slist_iter_destroy (&tranit);
@@ -340,13 +344,15 @@ dfa_create_state (struct GNUNET_REGEX_Context *ctx, struct GNUNET_CONTAINER_SLis
     }
 
     // Add a transition for each distinct literal to NULL state
-    for (tranit = GNUNET_CONTAINER_slist_begin(cstate->transitions);
-        GNUNET_NO == GNUNET_CONTAINER_slist_end (&tranit);
-        GNUNET_CONTAINER_slist_next (&tranit))
+    for (tranit = GNUNET_CONTAINER_slist_begin (cstate->transitions);
+         GNUNET_NO == GNUNET_CONTAINER_slist_end (&tranit);
+         GNUNET_CONTAINER_slist_next (&tranit))
     {
-      ctran = GNUNET_CONTAINER_slist_get(&tranit, NULL);
-      if (0 != ctran->literal
-          && NULL == GNUNET_CONTAINER_slist_contains2 (s->transitions, ctran, sizeof *ctran, &transition_literal_compare))
+      ctran = GNUNET_CONTAINER_slist_get (&tranit, NULL);
+      if (0 != ctran->literal &&
+          NULL == GNUNET_CONTAINER_slist_contains2 (s->transitions, ctran,
+                                                    sizeof *ctran,
+                                                    &transition_literal_compare))
       {
         add_transition (ctx, s, ctran->literal, NULL);
       }
@@ -357,9 +363,30 @@ dfa_create_state (struct GNUNET_REGEX_Context *ctx, struct GNUNET_CONTAINER_SLis
   }
   GNUNET_CONTAINER_slist_iter_destroy (&stateit);
 
-  s->name[strlen (s->name)-1] = '}';
+  s->name[strlen (s->name) - 1] = '}';
 
   return s;
+}
+
+void
+dfa_clear_nfa_set (struct GNUNET_CONTAINER_SList *states)
+{
+  struct GNUNET_CONTAINER_SList_Iterator it;
+  struct State *s;
+
+  for (it = GNUNET_CONTAINER_slist_begin (states);
+       GNUNET_YES != GNUNET_CONTAINER_slist_end (&it);
+       GNUNET_CONTAINER_slist_next (&it))
+  {
+    s = GNUNET_CONTAINER_slist_get (&it, NULL);
+    if (NULL != s->nfa_set) 
+    {
+      GNUNET_CONTAINER_slist_destroy (s->nfa_set);
+      s->nfa_set = NULL;
+    }
+  }
+
+  GNUNET_CONTAINER_slist_iter_destroy (&it);
 }
 
 struct GNUNET_REGEX_Automaton *
@@ -377,13 +404,11 @@ nfa_create (struct State *start, struct State *end)
     return n;
 
   GNUNET_CONTAINER_slist_add (n->states,
-                              GNUNET_CONTAINER_SLIST_DISPOSITION_STATIC,
-                              end,
+                              GNUNET_CONTAINER_SLIST_DISPOSITION_STATIC, end,
                               sizeof *end);
 
   GNUNET_CONTAINER_slist_add (n->states,
-                              GNUNET_CONTAINER_SLIST_DISPOSITION_STATIC,
-                              start,
+                              GNUNET_CONTAINER_SLIST_DISPOSITION_STATIC, start,
                               sizeof *start);
 
   n->start = start;
@@ -393,7 +418,8 @@ nfa_create (struct State *start, struct State *end)
 }
 
 void
-nfa_add_states (struct GNUNET_REGEX_Automaton *n, struct GNUNET_CONTAINER_SList *states)
+nfa_add_states (struct GNUNET_REGEX_Automaton *n,
+                struct GNUNET_CONTAINER_SList *states)
 {
   // This isn't very pretty. Would be better to use GNUNET_CONTAINER_slist_append, but
   // this function adds to the beginning of dst, which currently breaks "pretty"
@@ -422,7 +448,7 @@ nfa_create_state (struct GNUNET_REGEX_Context *ctx, int accepting)
   s = GNUNET_malloc (sizeof (struct State));
   s->id = ctx->state_id++;
   s->accepting = accepting;
-  s->transitions = GNUNET_CONTAINER_slist_create();
+  s->transitions = GNUNET_CONTAINER_slist_create ();
   s->marked = 0;
   s->name = NULL;
   GNUNET_asprintf (&s->name, "s%i", s->id);
@@ -447,7 +473,7 @@ automaton_destroy_state (struct State *s)
   if (NULL != s->name)
     GNUNET_free (s->name);
   if (NULL != s->nfa_set)
-    GNUNET_CONTAINER_slist_destroy(s->nfa_set);
+    GNUNET_CONTAINER_slist_destroy (s->nfa_set);
   GNUNET_free (s);
 }
 
@@ -621,35 +647,36 @@ create_nfa_closure (struct GNUNET_CONTAINER_SList *states, const char literal)
     // Add start state to closure only for epsilon closure
     if (0 == literal)
     {
-      GNUNET_CONTAINER_slist_add (cls, 
-                                  GNUNET_CONTAINER_SLIST_DISPOSITION_STATIC, 
-                                  s, sizeof *s);
+      GNUNET_CONTAINER_slist_add (cls,
+                                  GNUNET_CONTAINER_SLIST_DISPOSITION_STATIC, s,
+                                  sizeof *s);
     }
 
     stack_push (cls_check, s, sizeof *s);
 
-    while (!stack_empty(cls_check))
+    while (!stack_empty (cls_check))
     {
-      currentstate = stack_pop(cls_check, sizeof (struct State));
+      currentstate = stack_pop (cls_check, sizeof (struct State));
 
       for (tranit = GNUNET_CONTAINER_slist_begin (currentstate->transitions);
-          GNUNET_CONTAINER_slist_end (&tranit) != GNUNET_YES;
-          GNUNET_CONTAINER_slist_next (&tranit))
+           GNUNET_CONTAINER_slist_end (&tranit) != GNUNET_YES;
+           GNUNET_CONTAINER_slist_next (&tranit))
       {
         currenttransition = GNUNET_CONTAINER_slist_get (&tranit, NULL);
 
-        if (NULL != currenttransition->state 
-            && literal == currenttransition->literal)
+        if (NULL != currenttransition->state &&
+            literal == currenttransition->literal)
         {
           clsstate = currenttransition->state;
 
           if (NULL == clsstate)
             break;
 
-          if (GNUNET_YES != GNUNET_CONTAINER_slist_contains (cls, clsstate, sizeof *clsstate))
+          if (GNUNET_YES !=
+              GNUNET_CONTAINER_slist_contains (cls, clsstate, sizeof *clsstate))
           {
-            GNUNET_CONTAINER_slist_add (cls, 
-                                        GNUNET_CONTAINER_SLIST_DISPOSITION_STATIC, 
+            GNUNET_CONTAINER_slist_add (cls,
+                                        GNUNET_CONTAINER_SLIST_DISPOSITION_STATIC,
                                         clsstate, sizeof *clsstate);
             stack_push (cls_check, clsstate, sizeof *clsstate);
           }
@@ -667,7 +694,8 @@ create_nfa_closure (struct GNUNET_CONTAINER_SList *states, const char literal)
 }
 
 struct GNUNET_CONTAINER_SList *
-GNUNET_REGEX_move (struct GNUNET_REGEX_Automaton *a, struct State *s, const char literal)
+GNUNET_REGEX_move (struct GNUNET_REGEX_Automaton *a, struct State *s,
+                   const char literal)
 {
   struct GNUNET_CONTAINER_SList *l;
   struct GNUNET_CONTAINER_SList_Iterator it;
@@ -675,7 +703,7 @@ GNUNET_REGEX_move (struct GNUNET_REGEX_Automaton *a, struct State *s, const char
 
   if (!GNUNET_CONTAINER_slist_contains (a->states, s, sizeof *s))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "State %s is not part of the given automaton", s->name);
     return NULL;
   }
@@ -710,7 +738,7 @@ GNUNET_REGEX_construct_nfa (const char *regex, const size_t len)
   {
     int altcount;
     int atomcount;
-  }*p;
+  }     *p;
 
   GNUNET_REGEX_context_init (&ctx);
 
@@ -822,8 +850,7 @@ GNUNET_REGEX_construct_nfa (const char *regex, const size_t len)
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Created NFA with %i States and a total of %i Transitions\n",
-              GNUNET_CONTAINER_slist_count (nfa->states),
-              ctx.transition_id);
+              GNUNET_CONTAINER_slist_count (nfa->states), ctx.transition_id);
 
   GNUNET_REGEX_context_destroy (&ctx);
 
@@ -835,7 +862,9 @@ error:
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s\n", error_msg);
   GNUNET_free (p);
   while (!stack_empty (ctx.stack))
-    GNUNET_REGEX_destroy_automaton (stack_pop (ctx.stack, sizeof (struct GNUNET_REGEX_Automaton)));
+    GNUNET_REGEX_destroy_automaton (stack_pop
+                                    (ctx.stack,
+                                     sizeof (struct GNUNET_REGEX_Automaton)));
   GNUNET_REGEX_context_destroy (&ctx);
   return NULL;
 }
@@ -894,35 +923,37 @@ GNUNET_REGEX_construct_dfa (const char *regex, const size_t len)
   nfa_set = create_nfa_closure (sset, 0);
   GNUNET_CONTAINER_slist_destroy (sset);
   dfa->start = dfa_create_state (&ctx, nfa_set);
-  GNUNET_CONTAINER_slist_add (dfa->states, GNUNET_CONTAINER_SLIST_DISPOSITION_STATIC,
-                            dfa->start, sizeof *(dfa->start));
+  GNUNET_CONTAINER_slist_add (dfa->states,
+                              GNUNET_CONTAINER_SLIST_DISPOSITION_STATIC,
+                              dfa->start, sizeof *(dfa->start));
   stack_push (dfa_stack, dfa->start, sizeof *(dfa->start));
 
-  while (!stack_empty(dfa_stack))
+  while (!stack_empty (dfa_stack))
   {
     dfa_state = stack_pop (dfa_stack, sizeof (struct State));
 
-    for (tranit = GNUNET_CONTAINER_slist_begin(dfa_state->transitions);
-        GNUNET_YES != GNUNET_CONTAINER_slist_end (&tranit);
-        GNUNET_CONTAINER_slist_next (&tranit))
+    for (tranit = GNUNET_CONTAINER_slist_begin (dfa_state->transitions);
+         GNUNET_YES != GNUNET_CONTAINER_slist_end (&tranit);
+         GNUNET_CONTAINER_slist_next (&tranit))
     {
       currenttransition = GNUNET_CONTAINER_slist_get (&tranit, NULL);
 
-      if (0 != currenttransition->literal
-          && NULL == currenttransition->state)
+      if (0 != currenttransition->literal && NULL == currenttransition->state)
       {
-        tmp = create_nfa_closure (dfa_state->nfa_set, currenttransition->literal);
+        tmp = create_nfa_closure (dfa_state->nfa_set, 
+                                  currenttransition->literal);
         nfa_set = create_nfa_closure (tmp, 0);
         new_dfa_state = dfa_create_state (&ctx, nfa_set);
         GNUNET_CONTAINER_slist_destroy (tmp);
 
-        state_contains = GNUNET_CONTAINER_slist_contains2 (dfa->states,
-                                                           new_dfa_state,
-                                                           sizeof *new_dfa_state,
-                                                           &set_compare);
+        state_contains =
+            GNUNET_CONTAINER_slist_contains2 (dfa->states, new_dfa_state,
+                                              sizeof *new_dfa_state,
+                                              &set_compare);
         if (NULL == state_contains)
         {
-          GNUNET_CONTAINER_slist_add_end (dfa->states, GNUNET_CONTAINER_SLIST_DISPOSITION_STATIC,
+          GNUNET_CONTAINER_slist_add_end (dfa->states,
+                                          GNUNET_CONTAINER_SLIST_DISPOSITION_STATIC,
                                           new_dfa_state, sizeof *new_dfa_state);
           stack_push (dfa_stack, new_dfa_state, sizeof *new_dfa_state);
           currenttransition->state = new_dfa_state;
@@ -931,22 +962,23 @@ GNUNET_REGEX_construct_dfa (const char *regex, const size_t len)
           currenttransition->state = state_contains;
       }
     }
-    
+
     GNUNET_CONTAINER_slist_iter_destroy (&tranit);
   }
   GNUNET_CONTAINER_slist_destroy (dfa_stack);
   GNUNET_REGEX_destroy_automaton (nfa);
   GNUNET_REGEX_context_destroy (&ctx);
+  dfa_clear_nfa_set (dfa->states);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Created DFA with %i States\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created DFA with %i States\n",
               GNUNET_CONTAINER_slist_count (dfa->states));
 
   return dfa;
 }
 
 void
-GNUNET_REGEX_save_nfa_graph (struct GNUNET_REGEX_Automaton *n, const char *filename)
+GNUNET_REGEX_save_nfa_graph (struct GNUNET_REGEX_Automaton *n,
+                             const char *filename)
 {
   struct GNUNET_CONTAINER_SList_Iterator stateit;
   struct GNUNET_CONTAINER_SList_Iterator tranit;
@@ -998,9 +1030,9 @@ GNUNET_REGEX_save_nfa_graph (struct GNUNET_REGEX_Automaton *n, const char *filen
 
     s->marked = 1;
 
-    for (tranit = GNUNET_CONTAINER_slist_begin(s->transitions);
-        GNUNET_YES != GNUNET_CONTAINER_slist_end (&tranit);
-        GNUNET_CONTAINER_slist_next (&tranit))
+    for (tranit = GNUNET_CONTAINER_slist_begin (s->transitions);
+         GNUNET_YES != GNUNET_CONTAINER_slist_end (&tranit);
+         GNUNET_CONTAINER_slist_next (&tranit))
     {
       ctran = GNUNET_CONTAINER_slist_get (&tranit, NULL);
 
@@ -1014,13 +1046,13 @@ GNUNET_REGEX_save_nfa_graph (struct GNUNET_REGEX_Automaton *n, const char *filen
 
       if (ctran->literal == 0)
       {
-        GNUNET_asprintf (&s_tran, "\"%s\" -> \"%s\" [label = \"epsilon\"];\n", s->name,
-                         ctran->state->name);
+        GNUNET_asprintf (&s_tran, "\"%s\" -> \"%s\" [label = \"epsilon\"];\n",
+                         s->name, ctran->state->name);
       }
       else
       {
-        GNUNET_asprintf (&s_tran, "\"%s\" -> \"%s\" [label = \"%c\"];\n", s->name,
-                         ctran->state->name, ctran->literal);
+        GNUNET_asprintf (&s_tran, "\"%s\" -> \"%s\" [label = \"%c\"];\n",
+                         s->name, ctran->state->name, ctran->literal);
       }
 
       fwrite (s_tran, strlen (s_tran), 1, p);
