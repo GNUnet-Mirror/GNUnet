@@ -814,6 +814,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Could not connect to DHT!\n");
   }
 
+  auto_import_pkey = GNUNET_NO;
+
   if (GNUNET_YES ==
       GNUNET_CONFIGURATION_get_value_yesno (c, "gns",
                                             "AUTO_IMPORT_PKEY"))
@@ -868,8 +870,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
                "Failed to enable the dns interceptor!\n");
     }
   }
-  
-  //put_some_records(); //FIXME for testing
   
   /**
    * Schedule periodic put

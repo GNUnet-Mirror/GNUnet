@@ -2212,14 +2212,9 @@ process_zone_to_name_shorten(void *cls,
      * continue with next authority
      */
     next_authority = rh->authority_chain_head;
-    //                         strlen(next_authority->name) + 2);
-    memset(next_authority_name, 0, strlen(rh->name)+
-                      strlen(next_authority->name) + 2);
+    
     GNUNET_snprintf(next_authority_name, MAX_DNS_NAME_LENGTH,
                     "%s.%s", rh->name, next_authority->name);
-    //strcpy(next_authority_name, rh->name);
-    //strcpy(next_authority_name+strlen(rh->name)+1, ".");
-    //strcpy(next_authority_name+strlen(rh->name)+2, next_authority->name);
     
     strcpy(rh->name, next_authority_name);
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
@@ -2239,12 +2234,12 @@ process_zone_to_name_shorten(void *cls,
 }
 
 /**
- * DHT resolution for delegation finished. Processing result.
+ * DHT resolution for delegation. Processing result.
  *
  * @param cls the closure
  * @param rh resolver handle
- * @param rd_count number of results (always 0)
- * @param rd record data (always NULL)
+ * @param rd_count number of results
+ * @param rd record data
  */
 static void
 handle_delegation_dht_bg_shorten(void* cls, struct ResolverHandle *rh,
@@ -2431,7 +2426,8 @@ process_zone_to_name_zkey(void *cls,
   /* Start delegation resolution in our namestore */
   resolve_delegation_ns(rh);
 }
-  
+
+
 /**
  * Shorten api from resolver
  *
