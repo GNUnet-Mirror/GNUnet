@@ -67,6 +67,11 @@ static struct GNUNET_CRYPTO_ShortHashCode our_zone;
 static struct GNUNET_CRYPTO_RsaPrivateKey *our_key;
 
 /**
+ * Default timeout
+ */
+static struct GNUNET_TIME_Relative default_lookup_timeout;
+
+/**
  * Reply to dns request with the result from our lookup.
  *
  * @param cls the closure to the request (an InterceptLookupHandle)
@@ -240,7 +245,7 @@ start_resolution_for_dns(struct GNUNET_DNS_RequestHandle *request,
   /* Start resolution in our zone */
   gns_resolver_lookup_record(our_zone, q->type, q->name,
                              our_key,
-                             GNUNET_GNS_DEFAULT_LOOKUP_TIMEOUT,
+                             default_lookup_timeout,
                              &reply_to_dns, ilh);
 }
 
@@ -341,6 +346,8 @@ gns_interceptor_init(struct GNUNET_CRYPTO_ShortHashCode zone,
                      struct GNUNET_CRYPTO_RsaPrivateKey *key,
                      const struct GNUNET_CONFIGURATION_Handle *c)
 {
+  unsigned long long default_lookup_timeout_secs = 0;
+
   GNUNET_log(GNUNET_ERROR_TYPE_INFO,
              "DNS hijacking enabled... connecting to service.\n");
 
@@ -353,6 +360,17 @@ gns_interceptor_init(struct GNUNET_CRYPTO_ShortHashCode zone,
                                   GNUNET_DNS_FLAG_PRE_RESOLUTION,
                                   &handle_dns_request, /* rh */
                                   NULL); /* Closure */
+
+  if (GNUNET_OK ==
+      GNUNET_CONFIGURATION_get_value_number(c, "gns",
+                                            "DEFAULT_LOOKUP_TIMEOUT",
+                                            &default_lookup_timeout_secs))
+  {
+    default_lookup_timeout = GNUNET_TIME_relative_multiply(
+                                                  GNUNET_TIME_UNIT_SECONDS,
+                                                  default_lookup_timeout_secs);
+  }
+
   if (NULL == dns_handle)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR,

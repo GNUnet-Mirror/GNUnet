@@ -18,25 +18,17 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file gns/test_gns_twopeer.c
- * @brief base testcase for testing DHT service with
- *        two running peers.
+ * @file gns/test_gns_dht_threepeer.c
+ * @brief tests dht lookup over 3 peers
  *
- * This testcase starts peers using the GNUNET_TESTING_daemons_start
- * function call.  On peer start, connects to the peers DHT service
- * by calling GNUNET_DHT_connected.  Once notified about all peers
- * being started (by the peers_started_callback function), calls
- * GNUNET_TESTING_connect_topology, which connects the peers in a
- * "straight line" topology.  On notification that all peers have
- * been properly connected, calls the do_get function which initiates
- * a GNUNET_DHT_get from the *second* peer. Once the GNUNET_DHT_get
- * function starts, runs the do_put function to insert data at the first peer.
- *   If the GET is successful, schedules finish_testing
- * to stop the test and shut down peers.  If GET is unsuccessful
- * after GET_TIMEOUT seconds, prints an error message and shuts down
- * the peers.
+ * topology:
+ * alice <----> bob <-----> dave
+ *
+ * alice queries for www.buddy.bob.gnunet
+ *
  */
 #include "platform.h"
+#include "gnunet_disk_lib.h"
 #include "gnunet_testing_lib.h"
 #include "gnunet_core_service.h"
 #include "gnunet_dht_service.h"
@@ -54,6 +46,9 @@
 
 /* If number of peers not in config file, use this number */
 #define DEFAULT_NUM_PEERS 2
+
+#define TEST_DOMAIN "www.buddy.bob.gnunet"
+#define TEST_IP "1.1.1.1"
 
 /* Globals */
 
@@ -74,6 +69,7 @@ static unsigned long long peers_left;
 
 struct GNUNET_TESTING_Daemon *d1;
 struct GNUNET_TESTING_Daemon *d2;
+struct GNUNET_TESTING_Daemon *d3;
 
 
 /**
@@ -103,7 +99,11 @@ GNUNET_SCHEDULER_TaskIdentifier bob_task;
 /* Global return value (0 for success, anything else for failure) */
 static int ok;
 
-int bob_online, alice_online;
+int bob_online, alice_online, dave_online;
+
+struct GNUNET_CONFIGURATION_Handle *cfg_alice;
+struct GNUNET_CONFIGURATION_Handle *cfg_bob;
+struct GNUNET_CONFIGURATION_Handle *cfg_dave;
 
 /**
  * Check whether peers successfully shut down.
@@ -126,13 +126,17 @@ static void
 finish_testing (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   ok = 0;
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Shutting down peer1!\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Shutting down alice!\n");
   GNUNET_TESTING_daemon_stop (d1, TIMEOUT, &shutdown_callback, NULL,
                               GNUNET_YES, GNUNET_NO);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Shutting down peer2!\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Shutting down bob!\n");
   GNUNET_TESTING_daemon_stop (d2, TIMEOUT, &shutdown_callback, NULL,
                               GNUNET_YES, GNUNET_NO);
-  GNUNET_SCHEDULER_cancel(bob_task);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Shutting down dave\n");
+  GNUNET_TESTING_daemon_stop (d3, TIMEOUT, &shutdown_callback, NULL,
+                              GNUNET_YES, GNUNET_NO);
+  GNUNET_DISK_file_copy ("testdb/sqlite-alice.db.bak",
+                         "testdb/sqlite-alice.db.bak");
   GNUNET_SCHEDULER_cancel(die_task);
 }
 
@@ -149,6 +153,10 @@ end_badly_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (d2 != NULL)
     GNUNET_TESTING_daemon_stop (d2, TIMEOUT, &shutdown_callback, NULL,
                                 GNUNET_YES, GNUNET_NO);
+;
+  if (d3 != NULL)
+    GNUNET_TESTING_daemon_stop (d3, TIMEOUT, &shutdown_callback, NULL,
+                                GNUNET_YES, GNUNET_NO);
 }
 
 /**
@@ -161,49 +169,39 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Failing test with error: `%s'!\n",
               (char *) cls);
-  GNUNET_SCHEDULER_cancel(bob_task);
   GNUNET_SCHEDULER_add_now (&end_badly_cont, NULL);
   ok = 1;
 }
 
 static void
-do_lookup(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+commence_testing(void)
 {
+  struct hostent *he;
+  struct in_addr a;
+  char* addr;
+
+  he = gethostbyname (TEST_DOMAIN);
+
+  if (he)
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO, "name: %s\n", he->h_name);
+    while (*he->h_addr_list)
+    {
+      bcopy(*he->h_addr_list++, (char *) &a, sizeof(a));
+      addr = inet_ntoa(a);
+      GNUNET_log(GNUNET_ERROR_TYPE_INFO, "address: %s\n", addr);
+      if (strcmp(addr, TEST_IP) == 0)
+        ok = 0;
+    }
+  }
+  else
+    ok = 1;
   //do lookup here
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                 (GNUNET_TIME_UNIT_SECONDS, 30),
                                  &finish_testing, NULL);
 }
 
-static void
-gns_started(void *cls, const struct GNUNET_PeerIdentity *id,
-            const struct GNUNET_CONFIGURATION_Handle *cfg,
-            struct GNUNET_TESTING_Daemon *d, const char *emsg)
-{
-  if (NULL != emsg)
-  {
-    if (d == d1)
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "GNS failed to start alice\n");
-    else
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "GNS failed to start bob\n");
-    return;
-  }
-  if (d == d1)
-  {
-    /* start gns for bob */
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "GNS started on alice\n");
-    GNUNET_TESTING_daemon_start_service (d2, "gns", TIMEOUT, &gns_started,
-                                        NULL);
-    return;
-  }
-
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "GNS started on bob\n");
-
-  /* start the lookup tests */
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                  (GNUNET_TIME_UNIT_SECONDS, 1),
-                                  &do_lookup, NULL);
-}
 
 /**
  * This function is called whenever a connection attempt is finished between two of
@@ -251,10 +249,8 @@ notify_connect (void *cls, const struct GNUNET_PeerIdentity *first,
 #endif
     GNUNET_SCHEDULER_cancel (die_task);
     die_task =
-        GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, "from test lookup");
-    
-    /* start gns for alice */
-    GNUNET_TESTING_daemon_start_service (d1, "gns", TIMEOUT, &gns_started, NULL);
+        GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, "from connect");
+    commence_testing();
     
   }
   else if (total_connections + failed_connections == expected_connections)
@@ -264,39 +260,65 @@ notify_connect (void *cls, const struct GNUNET_PeerIdentity *first,
         GNUNET_SCHEDULER_add_now (&end_badly,
                                   "from topology_callback (too many failed connections)");
   }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Connecting peers dave, bob\n");
+    GNUNET_TESTING_daemons_connect (d3, d2, TIMEOUT, 5, 1,
+                                         &notify_connect, NULL);
+  }
 }
 
 /**
  * Set up some data, and call API PUT function
  */
 static void
-alice_idle (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+connect_ab (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   
-  alice_online = 1;
-  if (!bob_online)
-  {
-    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                  (GNUNET_TIME_UNIT_SECONDS, 2),
-                                   &alice_idle, NULL);
-    return;
-  }
-
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Connecting peers\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Connecting peers alice, bob\n");
   GNUNET_TESTING_daemons_connect (d1, d2, TIMEOUT, 5, 1,
                                          &notify_connect, NULL);
 }
 
+
 static void
-bob_idle (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+dave_started (void *cls, const struct GNUNET_PeerIdentity *id,
+                        const struct GNUNET_CONFIGURATION_Handle *cfg,
+                        struct GNUNET_TESTING_Daemon *d, const char *emsg)
 {
-  /* he's lazy FIXME forever */
-  bob_online = 1;
-  bob_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                  (GNUNET_TIME_UNIT_SECONDS, 20),
-                                   &bob_idle, NULL);
+  if (emsg != NULL)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Failed to start daemon with error: `%s'\n", emsg);
+    return;
+  }
+  GNUNET_assert (id != NULL);
+  
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                (GNUNET_TIME_UNIT_SECONDS, 2),
+                                &connect_ab, NULL);
 }
 
+
+
+static void
+bob_started (void *cls, const struct GNUNET_PeerIdentity *id,
+                        const struct GNUNET_CONFIGURATION_Handle *cfg,
+                        struct GNUNET_TESTING_Daemon *d, const char *emsg)
+{
+  if (emsg != NULL)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Failed to start daemon with error: `%s'\n", emsg);
+    return;
+  }
+  GNUNET_assert (id != NULL);
+  
+  //Start bob
+  d3 = GNUNET_TESTING_daemon_start(cfg_dave, TIMEOUT, GNUNET_NO, NULL, NULL, 0,
+                                   NULL, NULL, NULL, &dave_started, NULL);
+
+}
 
 
 
@@ -324,39 +346,16 @@ alice_started (void *cls, const struct GNUNET_PeerIdentity *id,
   }
   GNUNET_assert (id != NULL);
   
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                (GNUNET_TIME_UNIT_SECONDS, 2),
-                                &alice_idle, NULL);
-}
-
-static void
-bob_started (void *cls, const struct GNUNET_PeerIdentity *id,
-                        const struct GNUNET_CONFIGURATION_Handle *cfg,
-                        struct GNUNET_TESTING_Daemon *d, const char *emsg)
-{
-  if (emsg != NULL)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "Failed to start daemon with error: `%s'\n", emsg);
-    return;
-  }
-  GNUNET_assert (id != NULL);
+  //Start bob
+  d2 = GNUNET_TESTING_daemon_start(cfg_bob, TIMEOUT, GNUNET_NO, NULL, NULL, 0,
+                                   NULL, NULL, NULL, &bob_started, NULL);
   
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                (GNUNET_TIME_UNIT_SECONDS, 2),
-                                &bob_idle, NULL);
 }
 
 static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-
-  struct GNUNET_NAMESTORE_Handle* namestore_handle;
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded alice_pkey, bob_pkey;
-  struct GNUNET_CRYPTO_RsaPrivateKey *alice_key, *bob_key;
-  char* bob_keyfile;
-  char* alice_keyfile;
 
   /* Get path from configuration file */
   if (GNUNET_YES !=
@@ -376,95 +375,22 @@ run (void *cls, char *const *args, const char *cfgfile,
   /* Set peers_left so we know when all peers started */
   peers_left = num_peers;
   
-  /* Somebody care to explain? */
-  uint16_t port = 6000;
-  uint32_t upnum = 23;
-  uint32_t fdnum = 42;
-  
   /**
-   * Modify some config options for bob
-   * namely swap keys and disable dns hijacking
+   * Modify some config options for peers
    */
-  struct GNUNET_CONFIGURATION_Handle *cfg2 = GNUNET_TESTING_create_cfg(cfg,
-                                              23, &port, &upnum,
-                                              NULL, &fdnum);
+  cfg_alice = GNUNET_CONFIGURATION_create();
+  GNUNET_CONFIGURATION_load (cfg_alice, "test_gns_dht_alice.conf");
+
+  cfg_bob = GNUNET_CONFIGURATION_create();
+  GNUNET_CONFIGURATION_load (cfg_bob, "test_gns_dht_bob.conf");
   
-  GNUNET_CONFIGURATION_set_value_string (cfg2, "paths", "servicehome",
-                                         "/tmp/test-gnunetd-gns-peer-2/");
-  GNUNET_CONFIGURATION_set_value_string (cfg2, "gns", "HIJACK_DNS",
-                                        "NO");
-  GNUNET_CONFIGURATION_set_value_string (cfg2, "gns", "ZONEKEY",
-                                         "/tmp/bobkey");
-  
-  /* put records into namestore */
-  namestore_handle = GNUNET_NAMESTORE_connect(cfg);
-  if (NULL == namestore_handle)
-  {
-    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to connect to namestore\n");
-    ok = -1;
-    return;
-  }
+  cfg_dave = GNUNET_CONFIGURATION_create();
+  GNUNET_CONFIGURATION_load (cfg_dave, "test_gns_dht_dave.conf");
 
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (cfg, "gns",
-                                                          "ZONEKEY",
-                                                          &alice_keyfile))
-  {
-    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to get alice's key from cfg\n");
-    ok = -1;
-    return;
-  }
+  GNUNET_CONFIGURATION_load (cfg_alice, "test_gns_dht_alice.conf");
+  GNUNET_CONFIGURATION_load (cfg_bob, "test_gns_dht_bob.conf");
+  GNUNET_CONFIGURATION_load (cfg_dave, "test_gns_dht_dave.conf");
 
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (cfg2, "gns",
-                                                          "ZONEKEY",
-                                                          &bob_keyfile))
-  {
-    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to get bob's key from cfg\n");
-    ok = -1;
-    return;
-  }
-  
-  alice_key = GNUNET_CRYPTO_rsa_key_create_from_file (alice_keyfile);
-  bob_key = GNUNET_CRYPTO_rsa_key_create_from_file (bob_keyfile);
-
-  GNUNET_CRYPTO_rsa_key_get_public (alice_key, &alice_pkey);
-  GNUNET_CRYPTO_rsa_key_get_public (bob_key, &bob_pkey);
-
-  struct GNUNET_NAMESTORE_RecordData rd;
-  rd.data = &bob_pkey;
-  rd.expiration = GNUNET_TIME_absolute_get_forever ();
-  rd.data_size = sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded);
-  rd.record_type = GNUNET_GNS_RECORD_PKEY;
-
-  GNUNET_NAMESTORE_record_create (namestore_handle,
-                                  alice_key,
-                                  "bob",
-                                  &rd,
-                                  NULL,
-                                  NULL);
-  
-  rd.data = &alice_pkey;
-  GNUNET_NAMESTORE_record_create (namestore_handle,
-                                  bob_key,
-                                  "alice",
-                                  &rd,
-                                  NULL,
-                                  NULL);
-
-  char* ip = "127.0.0.1";
-  struct in_addr *web = GNUNET_malloc(sizeof(struct in_addr));
-  GNUNET_assert(1 == inet_pton (AF_INET, ip, web));
-
-  rd.data_size = sizeof(struct in_addr);
-  rd.data = web;
-  rd.record_type = GNUNET_DNSPARSER_TYPE_A;
-
-  GNUNET_NAMESTORE_record_create (namestore_handle,
-                                  bob_key,
-                                  "www",
-                                  &rd,
-                                  NULL,
-                                  NULL);
-  
   /* Set up a task to end testing if peer start fails */
   die_task =
       GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly,
@@ -472,16 +398,14 @@ run (void *cls, char *const *args, const char *cfgfile,
   
   alice_online = 0;
   bob_online = 0;
-  expected_connections = 1;
+  dave_online = 0;
+  expected_connections = 2;
   
   /* Start alice */
-  d1 = GNUNET_TESTING_daemon_start(cfg, TIMEOUT, GNUNET_NO, NULL, NULL, 0,
+  d1 = GNUNET_TESTING_daemon_start(cfg_alice, TIMEOUT, GNUNET_NO, NULL, NULL, 0,
                                    NULL, NULL, NULL, &alice_started, NULL);
   
   
-  //Start bob
-  d2 = GNUNET_TESTING_daemon_start(cfg2, TIMEOUT, GNUNET_NO, NULL, NULL, 0,
-                                   NULL, NULL, NULL, &bob_started, NULL);
 
 
 }

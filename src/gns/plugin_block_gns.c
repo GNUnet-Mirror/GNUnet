@@ -77,7 +77,7 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
   uint32_t record_xquery;
   unsigned int record_match;
   
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "RB SIZE %d\n", reply_block_size);
+  //GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "RB SIZE %d\n", reply_block_size);
 
   if (type != GNUNET_BLOCK_TYPE_GNS_NAMERECORD)
     return GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED;
@@ -113,9 +113,9 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
   GNUNET_CRYPTO_hash_to_enc (&query_key, &xor_exp);
   GNUNET_CRYPTO_hash_to_enc (query, &xor_got);
 
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "BLOCK_TEST for %s got %s expected %s\n",
-             name, (char*) &xor_got, (char*) &xor_exp);
+  //GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+  //           "BLOCK_TEST for %s got %s expected %s\n",
+  //           name, (char*) &xor_got, (char*) &xor_exp);
 
   /* Check query key against public key */
   if (0 != GNUNET_CRYPTO_hash_cmp(query, &query_key))
@@ -184,7 +184,6 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
     GNUNET_BLOCK_mingle_hash(&chash, bf_mutator, &mhash);
     if (NULL != *bf)
     {
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Check BF\n");
       if (GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test(*bf, &mhash))
         return GNUNET_BLOCK_EVALUATION_OK_DUPLICATE;
     }

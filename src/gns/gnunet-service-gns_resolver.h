@@ -160,6 +160,11 @@ struct ResolverHandle
    */
   struct GNUNET_CONTAINER_HeapNode *dht_heap_node;
 
+  /**
+   * Id for resolution process
+   */
+  unsigned long long id;
+
 };
 
 
