@@ -25,7 +25,6 @@
  * TODO:
  * - allow users to set record options (not just 'RF_AUTHORITY')
  * - test
- * - parsing SOA, PTR and MX value specifications (and define format!)
  * - add options to list/lookup individual records
  */
 #include "platform.h"
@@ -355,7 +354,11 @@ run (void *cls, char *const *args, const char *cfgfile,
   }
   if (NULL != expirationstring)
   {
-    if (GNUNET_OK !=
+    if (0 == strcmp (expirationstring, "never"))
+    {
+      etime = GNUNET_TIME_relative_get_forever();
+    }
+    else if (GNUNET_OK !=
 	GNUNET_STRINGS_fancy_time_to_relative (expirationstring,
 					       &etime))
     {
@@ -465,7 +468,7 @@ main (int argc, char *const *argv)
      gettext_noop ("display records"), 0,
      &GNUNET_GETOPT_set_one, &list},   
     {'e', "expiration", "TIME",
-     gettext_noop ("expiration time for record to use (for adding only)"), 1,
+     gettext_noop ("expiration time for record to use (for adding only), \"never\" is possible"), 1,
      &GNUNET_GETOPT_set_string, &expirationstring},   
     {'n', "name", "NAME",
      gettext_noop ("name of the record to add/delete/display"), 1,
