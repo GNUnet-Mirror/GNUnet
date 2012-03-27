@@ -250,10 +250,11 @@ GNUNET_CONTAINER_slist_clear (struct GNUNET_CONTAINER_SList *l)
 
 /**
  * Check if a list contains a certain element
- *
  * @param l list
  * @param buf payload buffer to find
  * @param len length of the payload (number of bytes in buf)
+ *
+ * @return GNUNET_YES if found, GNUNET_NO otherwise
  */
 int
 GNUNET_CONTAINER_slist_contains (const struct GNUNET_CONTAINER_SList *l,
@@ -265,6 +266,31 @@ GNUNET_CONTAINER_slist_contains (const struct GNUNET_CONTAINER_SList *l,
     if ((e->len == len) && (memcmp (buf, e->elem, len) == 0))
       return GNUNET_YES;
   return GNUNET_NO;
+}
+
+
+/**
+ * Check if a list contains a certain element
+ *
+ * @param l list
+ * @param buf payload buffer to find
+ * @param len length of the payload (number of bytes in buf)
+ * @param compare comparison function, should return 0 if compared elements match
+ *
+ * @return NULL if the 'buf' could not be found, pointer to the
+ *         list element, if found
+ */
+void *
+GNUNET_CONTAINER_slist_contains2 (const struct GNUNET_CONTAINER_SList *l,
+                                  const void *buf, size_t len,
+                                  int (*compare)(const void *, const size_t, const void *, const size_t))
+{
+  struct GNUNET_CONTAINER_SList_Elem *e;
+
+  for (e = l->head; e != NULL; e = e->next)
+    if ((e->len == len) && (*compare)(buf, len, e->elem, e->len) == 0)
+      return e->elem;
+  return NULL;
 }
 
 

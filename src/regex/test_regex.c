@@ -46,7 +46,9 @@ main (int argc, char *argv[])
   dfa = NULL;
 
   regex = "a\\*b(c|d)+c*(a(b|c)d)+";
-  /*regex = "a(ab)b";*/
+  /*regex = "\\*a(a|b)b";*/
+  /*regex = "a(a|b)c";*/
+  /*regex = "(a|aa)+";*/
   nfa = GNUNET_REGEX_construct_nfa (regex, strlen (regex));
 
   if (nfa)
@@ -59,7 +61,9 @@ main (int argc, char *argv[])
 
   dfa = GNUNET_REGEX_construct_dfa (regex, strlen (regex));
   if (dfa)
+  {
+    GNUNET_REGEX_save_nfa_graph (dfa, "dfa_graph.dot");
     GNUNET_REGEX_destroy_automaton (dfa);
-
+  }
   return err;
 }
