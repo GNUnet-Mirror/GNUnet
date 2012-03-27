@@ -1026,18 +1026,11 @@ handle_record_remove_it (void *cls,
   found = GNUNET_SYSERR;
   for (c = 0; c < rd_count; c++)
   {
-    GNUNET_break(0);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "SENT FLAGES: %u \n",rd[c].flags);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "STORED FLAGES: %u \n",rrc->rd->flags);
     /*
     if (rd[c].flags != rrc->rd->flags)
        continue;*/
-    GNUNET_break(0);
     if (rd[c].record_type != rrc->rd->record_type)
        continue;
-    GNUNET_break(0);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "SENT FLAGES: %u \n",rd[c].data_size);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "STORED FLAGES: %u \n",rrc->rd->data_size);
     /*
     if (rd[c].data_size != rrc->rd->data_size)
        continue;
@@ -1590,8 +1583,8 @@ void find_next_zone_iteration_result (struct ZoneIterationProcResult *proc)
 
   do
   {
+    GSN_database->iterate_records (GSN_database->cls, zone , NULL, proc->zi->offset, &zone_iteraterate_proc, proc);
     proc->zi->offset++;
-    GSN_database->iterate_records (GSN_database->cls, NULL , NULL, proc->zi->offset, &zone_iteraterate_proc, proc);
   }
   while ((proc->records_included == 0) && (GNUNET_NO == proc->res_iteration_finished));
 }
