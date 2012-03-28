@@ -43,8 +43,7 @@ extern "C"
 struct GNUNET_REGEX_Automaton;
 
 /**
- * Construct an NFA data structure by parsing the regex string of 
- * length len.
+ * Construct an NFA by parsing the regex string of length 'len'.
  *
  * @param regex regular expression string
  * @param len length of the string
@@ -53,26 +52,6 @@ struct GNUNET_REGEX_Automaton;
  */
 struct GNUNET_REGEX_Automaton *
 GNUNET_REGEX_construct_nfa(const char *regex, const size_t len);
-
-/**
- * Free the memory allocated by constructing the GNUNET_REGEX_Automaton
- * data structure.
- *
- * @param a automaton to be destroyed
- */
-void
-GNUNET_REGEX_destroy_automaton(struct GNUNET_REGEX_Automaton *a);
-
-/**
- * Save the given NFA as a GraphViz dot file
- *
- * @param n NFA to be saved
- * @param filename where to save the file
- */
-void
-GNUNET_REGEX_save_nfa_graph(struct GNUNET_REGEX_Automaton *n,
-                            const char *filename);
-
 
 /**
  * Construct DFA for the given 'regex' of lenght 'len'
@@ -84,6 +63,25 @@ GNUNET_REGEX_save_nfa_graph(struct GNUNET_REGEX_Automaton *n,
  */
 struct GNUNET_REGEX_Automaton *
 GNUNET_REGEX_construct_dfa (const char *regex, const size_t len);
+
+/**
+ * Free the memory allocated by constructing the GNUNET_REGEX_Automaton
+ * data structure.
+ *
+ * @param a automaton to be destroyed
+ */
+void
+GNUNET_REGEX_automaton_destroy(struct GNUNET_REGEX_Automaton *a);
+
+/**
+ * Save the given automaton as a GraphViz dot file
+ *
+ * @param a the automaton to be saved
+ * @param filename where to save the file
+ */
+void
+GNUNET_REGEX_automaton_save_graph(struct GNUNET_REGEX_Automaton *a,
+                                  const char *filename);
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

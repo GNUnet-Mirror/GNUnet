@@ -53,8 +53,8 @@ main (int argc, char *argv[])
 
   if (nfa)
   {
-    GNUNET_REGEX_save_nfa_graph (nfa, "nfa_graph.dot");
-    GNUNET_REGEX_destroy_automaton (nfa);
+    GNUNET_REGEX_automaton_save_graph (nfa, "nfa_graph.dot");
+    GNUNET_REGEX_automaton_destroy (nfa);
   }
   else
     err = 1;
@@ -62,8 +62,8 @@ main (int argc, char *argv[])
   dfa = GNUNET_REGEX_construct_dfa (regex, strlen (regex));
   if (dfa)
   {
-    GNUNET_REGEX_save_nfa_graph (dfa, "dfa_graph.dot");
-    GNUNET_REGEX_destroy_automaton (dfa);
+    GNUNET_REGEX_automaton_save_graph (dfa, "dfa_graph.dot");
+    GNUNET_REGEX_automaton_destroy (dfa);
   }
   return err;
 }

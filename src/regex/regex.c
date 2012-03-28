@@ -724,8 +724,16 @@ GNUNET_REGEX_move (struct GNUNET_REGEX_Automaton *a, struct State *s,
   return l;
 }
 
+/**
+ * Construct an NFA by parsing the regex string of length 'len'.
+ *
+ * @param regex regular expression string
+ * @param len length of the string
+ *
+ * @return NFA.Needs to be freed using GNUNET_REGEX_destroy_automaton
+ */
 struct GNUNET_REGEX_Automaton *
-GNUNET_REGEX_construct_nfa (const char *regex, const size_t len)
+GNUNET_REGEX_construct_nfa(const char *regex, const size_t len)
 {
   struct GNUNET_REGEX_Context ctx;
   struct GNUNET_REGEX_Automaton *nfa;
@@ -862,15 +870,20 @@ error:
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s\n", error_msg);
   GNUNET_free (p);
   while (!stack_empty (ctx.stack))
-    GNUNET_REGEX_destroy_automaton (stack_pop
-                                    (ctx.stack,
-                                     sizeof (struct GNUNET_REGEX_Automaton)));
+    GNUNET_REGEX_automaton_destroy (stack_pop (ctx.stack,
+                                               sizeof (struct GNUNET_REGEX_Automaton)));
   GNUNET_REGEX_context_destroy (&ctx);
   return NULL;
 }
 
+/**
+ * Free the memory allocated by constructing the GNUNET_REGEX_Automaton
+ * data structure.
+ *
+ * @param a automaton to be destroyed
+ */
 void
-GNUNET_REGEX_destroy_automaton (struct GNUNET_REGEX_Automaton *a)
+GNUNET_REGEX_automaton_destroy(struct GNUNET_REGEX_Automaton *a)
 {
   struct GNUNET_CONTAINER_SList_Iterator it;
 
@@ -888,7 +901,14 @@ GNUNET_REGEX_destroy_automaton (struct GNUNET_REGEX_Automaton *a)
   GNUNET_free (a);
 }
 
-
+/**
+ * Construct DFA for the given 'regex' of lenght 'len'
+ *
+ * @param regex regular expression string
+ * @param len length of the regular expression
+ *
+ * @return DFA. Needs to be freed using GNUNET_REGEX_destroy_automaton
+ */
 struct GNUNET_REGEX_Automaton *
 GNUNET_REGEX_construct_dfa (const char *regex, const size_t len)
 {
@@ -966,7 +986,7 @@ GNUNET_REGEX_construct_dfa (const char *regex, const size_t len)
     GNUNET_CONTAINER_slist_iter_destroy (&tranit);
   }
   GNUNET_CONTAINER_slist_destroy (dfa_stack);
-  GNUNET_REGEX_destroy_automaton (nfa);
+  GNUNET_REGEX_automaton_destroy (nfa);
   GNUNET_REGEX_context_destroy (&ctx);
   dfa_clear_nfa_set (dfa->states);
 
@@ -976,9 +996,15 @@ GNUNET_REGEX_construct_dfa (const char *regex, const size_t len)
   return dfa;
 }
 
+/**
+ * Save the given automaton as a GraphViz dot file
+ *
+ * @param a the automaton to be saved
+ * @param filename where to save the file
+ */
 void
-GNUNET_REGEX_save_nfa_graph (struct GNUNET_REGEX_Automaton *n,
-                             const char *filename)
+GNUNET_REGEX_automaton_save_graph(struct GNUNET_REGEX_Automaton *a,
+                                  const char *filename)
 {
   struct GNUNET_CONTAINER_SList_Iterator stateit;
   struct GNUNET_CONTAINER_SList_Iterator tranit;
@@ -990,7 +1016,7 @@ GNUNET_REGEX_save_nfa_graph (struct GNUNET_REGEX_Automaton *n,
   char *end;
   FILE *p;
 
-  if (NULL == n)
+  if (NULL == a)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not print NFA, was NULL!");
     return;
@@ -1014,7 +1040,7 @@ GNUNET_REGEX_save_nfa_graph (struct GNUNET_REGEX_Automaton *n,
   start = "digraph G {\nrankdir=LR\n";
   fwrite (start, strlen (start), 1, p);
 
-  for (stateit = GNUNET_CONTAINER_slist_begin (n->states);
+  for (stateit = GNUNET_CONTAINER_slist_begin (a->states);
        GNUNET_YES != GNUNET_CONTAINER_slist_end (&stateit);
        GNUNET_CONTAINER_slist_next (&stateit))
   {
