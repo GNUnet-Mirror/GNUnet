@@ -132,6 +132,9 @@ process_pseu_lookup_ns(void* cls,
   new_pkey.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
   new_pkey.data = &gph->new_zone;
   new_pkey.record_type = GNUNET_GNS_RECORD_PKEY;
+  new_pkey.flags = GNUNET_NAMESTORE_RF_AUTHORITY
+                 | GNUNET_NAMESTORE_RF_PRIVATE
+                 | GNUNET_NAMESTORE_RF_PENDING;
   GNUNET_NAMESTORE_record_create (namestore_handle,
                                   gph->key,
                                   gph->new_name,
