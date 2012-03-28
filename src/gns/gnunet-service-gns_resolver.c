@@ -65,6 +65,11 @@ static struct GNUNET_CONTAINER_Heap *dht_lookup_heap;
 static unsigned long long max_allowed_background_queries;
 
 /**
+ * Wheather or not to ignore pending records
+ */
+static int ignore_pending_records;
+
+/**
  * Our local zone
  */
 static struct GNUNET_CRYPTO_ShortHashCode local_zone;
@@ -118,7 +123,7 @@ process_pseu_lookup_ns(void* cls,
     GNUNET_NAMESTORE_lookup_record(namestore_handle,
                                    &gph->zone,
                                    gph->new_name,
-                                   GNUNET_GNS_RECORD_PSEU,
+                                   GNUNET_NAMESTORE_TYPE_ANY,
                                    &process_pseu_lookup_ns,
                                    gph);
     return;
@@ -439,13 +444,16 @@ static void process_discovered_authority(char* name,
  * @param dh the dht handle
  * @param lz the local zone's hash
  * @param max_bg_queries maximum number of parallel background queries in dht
+ * @param ignore_pending ignore records that still require user confirmation
+ *        on lookup
  * @return GNUNET_OK on success
  */
 int
 gns_resolver_init(struct GNUNET_NAMESTORE_Handle *nh,
                   struct GNUNET_DHT_Handle *dh,
                   struct GNUNET_CRYPTO_ShortHashCode lz,
-                  unsigned long long max_bg_queries)
+                  unsigned long long max_bg_queries,
+                  int ignore_pending)
 {
   namestore_handle = nh;
   dht_handle = dh;
@@ -453,6 +461,7 @@ gns_resolver_init(struct GNUNET_NAMESTORE_Handle *nh,
   dht_lookup_heap =
     GNUNET_CONTAINER_heap_create(GNUNET_CONTAINER_HEAP_ORDER_MIN);
   max_allowed_background_queries = max_bg_queries;
+  ignore_pending_records = ignore_pending;
 
   if ((namestore_handle != NULL) && (dht_handle != NULL))
   {
@@ -944,6 +953,15 @@ process_record_result_ns(void* cls,
 
       if (rd[i].record_type != rlh->record_type)
         continue;
+
+      if (ignore_pending_records &&
+          (rd[i].flags & GNUNET_NAMESTORE_RF_PENDING))
+      {
+        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+        "GNS_PHASE_REC-%d: Record %s is awaiting user confirmation. Skipping\n",
+        rh->id, name);
+        continue;
+      }
       
       if ((GNUNET_TIME_absolute_get_remaining (rd[i].expiration)).rel_value
           == 0)
@@ -1913,7 +1931,8 @@ process_delegation_result_ns(void* cls,
     if (rd[i].record_type != GNUNET_GNS_RECORD_PKEY)
       continue;
 
-    if (rd[i].flags & GNUNET_NAMESTORE_RF_PENDING)
+    if (ignore_pending_records &&
+        (rd[i].flags & GNUNET_NAMESTORE_RF_PENDING))
     {
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
       "GNS_PHASE_DELEGATE_NS-%llu: PKEY for %s is pending user confirmation.\n",

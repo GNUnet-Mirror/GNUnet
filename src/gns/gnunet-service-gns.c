@@ -763,6 +763,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pkey;
   unsigned long long max_parallel_bg_queries = 0;
   unsigned long long default_lookup_timeout_secs = 0;
+  int ignore_pending = GNUNET_NO;
 
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
     {&handle_shorten, NULL, GNUNET_MESSAGE_TYPE_GNS_SHORTEN, 0},
@@ -804,15 +805,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     return;
   }
   
-  /**
-   * handle to the dht
-   */
-  dht_handle = GNUNET_DHT_connect(c, 1); //FIXME get ht_len from cfg
-
-  if (NULL == dht_handle)
-  {
-    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Could not connect to DHT!\n");
-  }
+  
 
   auto_import_pkey = GNUNET_NO;
 
@@ -827,13 +820,22 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   }
 
   if (GNUNET_OK ==
-      GNUNET_CONFIGURATION_get_value_number(c, "gns",
+      GNUNET_CONFIGURATION_get_value_number (c, "gns",
                                             "MAX_PARALLEL_BACKGROUND_QUERIES",
                                             &max_parallel_bg_queries))
   {
     GNUNET_log(GNUNET_ERROR_TYPE_INFO,
                "Number of allowed parallel background queries: %d\n",
                max_parallel_bg_queries);
+  }
+
+  if (GNUNET_YES ==
+      GNUNET_CONFIGURATION_get_value_yesno (c, "gns",
+                                            "AUTO_IMPORT_CONFIRMATION_REQ"))
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+               "Auto import requires user confirmation\n");
+    ignore_pending = GNUNET_YES;
   }
 
   if (GNUNET_OK ==
@@ -848,8 +850,20 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
                                             default_lookup_timeout_secs);
   }
   
+  /**
+   * handle to the dht
+   */
+  dht_handle = GNUNET_DHT_connect(c,
+                          max_parallel_bg_queries); //FIXME get ht_len from cfg
+
+  if (NULL == dht_handle)
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Could not connect to DHT!\n");
+  }
+  
   if (gns_resolver_init(namestore_handle, dht_handle, zone_hash,
-                        max_parallel_bg_queries)
+                        max_parallel_bg_queries,
+                        ignore_pending)
       == GNUNET_SYSERR)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR,

@@ -255,13 +255,16 @@ struct GetPseuAuthorityHandle
  * @param dh handle to the dht
  * @param lz the local zone
  * @param max_bg_queries maximum amount of background queries
+ * @param ignore_pending ignore records that still require user confirmation
+ *        on lookup
  * @returns GNUNET_OK on success
  */
 int
 gns_resolver_init(struct GNUNET_NAMESTORE_Handle *nh,
                   struct GNUNET_DHT_Handle *dh,
                   struct GNUNET_CRYPTO_ShortHashCode lz,
-                  unsigned long long max_bg_queries);
+                  unsigned long long max_bg_queries,
+                  int ignore_pending);
 
 /**
  * Cleanup resolver: Terminate pending lookups
