@@ -616,12 +616,11 @@ nfa_add_literal (struct GNUNET_REGEX_Context *ctx, const char lit)
 /**
  * Calculates the closure set for the given set of states.
  *
- * @param states set of states for which to calculate the closure
- * @param count number of states in 'states'
- * @param literal for the transition
+ * @param states list of states on which to base the closure on
+ * @param literal transitioning literal for which to base the closure on,
+ *                pass 0 for epsilon transition
  *
- * @return set of states that can be reached from the given 'states' when
- *         using only 'literal' transitions
+ * @return nfa closure on literal (epsilon closure if 'literal' == 0)
  */
 struct GNUNET_CONTAINER_SList *
 create_nfa_closure (struct GNUNET_CONTAINER_SList *states, const char literal)

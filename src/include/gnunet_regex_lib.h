@@ -48,7 +48,7 @@ struct GNUNET_REGEX_Automaton;
  * @param regex regular expression string
  * @param len length of the string
  *
- * @return NFA.Needs to be freed using GNUNET_REGEX_destroy_automaton
+ * @return NFA, needs to be freed using GNUNET_REGEX_destroy_automaton
  */
 struct GNUNET_REGEX_Automaton *
 GNUNET_REGEX_construct_nfa(const char *regex, const size_t len);
@@ -59,7 +59,7 @@ GNUNET_REGEX_construct_nfa(const char *regex, const size_t len);
  * @param regex regular expression string
  * @param len length of the regular expression
  *
- * @return DFA. Needs to be freed using GNUNET_REGEX_destroy_automaton
+ * @return DFA, needs to be freed using GNUNET_REGEX_destroy_automaton
  */
 struct GNUNET_REGEX_Automaton *
 GNUNET_REGEX_construct_dfa (const char *regex, const size_t len);
