@@ -43,6 +43,10 @@ extern "C"
 #endif
 #endif
 
+/**
+ * Record type indicating any record/'*'
+ */
+#define GNUNET_NAMESTORE_TYPE_ANY 0
 
 /**
  * Record type for GNS zone transfer ("PKEY").
@@ -139,7 +143,13 @@ enum GNUNET_NAMESTORE_RecordFlags
    * This is a private record of this peer and it should
    * thus not be handed out to other peers.
    */
-  GNUNET_NAMESTORE_RF_PRIVATE = 2
+  GNUNET_NAMESTORE_RF_PRIVATE = 2,
+
+  /**
+   * This record was added by the system
+   * and is pending user confimation
+   */
+  GNUNET_NAMESTORE_RF_PENDING = 4
 
 };
 

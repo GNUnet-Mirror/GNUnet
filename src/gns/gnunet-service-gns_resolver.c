@@ -69,6 +69,11 @@ static unsigned long long max_allowed_background_queries;
  */
 static struct GNUNET_CRYPTO_ShortHashCode local_zone;
 
+/**
+ * a resolution identifier pool variable
+ * FIXME overflow?
+ * This is a non critical identifier useful for debugging
+ */
 static unsigned long long rid = 0;
 
 /**
@@ -164,7 +169,7 @@ process_pseu_result(struct GetPseuAuthorityHandle* gph, char* name)
   GNUNET_NAMESTORE_lookup_record(namestore_handle,
                                  &gph->zone,
                                  gph->new_name,
-                                 GNUNET_GNS_RECORD_PSEU,
+                                 GNUNET_NAMESTORE_TYPE_ANY,
                                  &process_pseu_lookup_ns,
                                  gph);
 }
@@ -1904,6 +1909,15 @@ process_delegation_result_ns(void* cls,
   
     if (rd[i].record_type != GNUNET_GNS_RECORD_PKEY)
       continue;
+
+    if (rd[i].flags & GNUNET_NAMESTORE_RF_PENDING)
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+      "GNS_PHASE_DELEGATE_NS-%llu: PKEY for %s is pending user confirmation.\n",
+        name,
+        rh->id);
+      continue;
+    }
     
     if ((GNUNET_TIME_absolute_get_remaining (rd[i].expiration)).rel_value
          == 0)
