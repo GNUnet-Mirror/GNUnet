@@ -489,7 +489,7 @@ cleanup_pending_background_queries(void* cls,
   ResolverCleanupContinuation cont = cls;
   
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "GNS_CLEANUP-%d: Terminating background lookup for %s\n",
+             "GNS_CLEANUP-%llu: Terminating background lookup for %s\n",
              rh->id, rh->name);
   GNUNET_DHT_get_stop(rh->get_handle);
   rh->get_handle = NULL;
@@ -914,12 +914,12 @@ process_record_result_ns(void* cls,
   
   if (name != NULL)
   {
-    rh->status |= EXISTS;
+    rh->status |= RSL_RECORD_EXISTS;
   }
   
   if (remaining_time.rel_value == 0)
   {
-    rh->status |= EXPIRED;
+    rh->status |= RSL_RECORD_EXPIRED;
   }
   
   if (rd_count == 0)
@@ -1049,7 +1049,7 @@ dht_authority_lookup_timeout(void *cls,
          "GNS_PHASE_DELEGATE_DHT-%llu: dht lookup for query %s (%ds)timed out.\n",
          rh->id, rh->authority_name, rh->timeout.rel_value);
 
-  rh->status |= TIMED_OUT;
+  rh->status |= RSL_TIMED_OUT;
 
   rh->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   
@@ -1495,7 +1495,7 @@ handle_record_ns(void* cls, struct ResolverHandle *rh,
     
     /**
      * There are 4 conditions that have to met for us to consult the DHT:
-     * 1. The entry in the DHT is EXPIRED AND
+     * 1. The entry in the DHT is RSL_RECORD_EXPIRED AND
      * 2. No entry in the NS existed AND
      * 3. The zone queried is not the local resolver's zone AND
      * 4. The name that was looked up is '+'
@@ -1503,7 +1503,7 @@ handle_record_ns(void* cls, struct ResolverHandle *rh,
      *    the DHT for the authority in the authority lookup phase (and thus
      *    would already have an entry in the NS for the record)
      */
-    if (rh->status & (EXPIRED | !EXISTS) &&
+    if (rh->status & (RSL_RECORD_EXPIRED | !RSL_RECORD_EXISTS) &&
         GNUNET_CRYPTO_short_hash_cmp(&rh->authority_chain_head->zone,
                                      &local_zone) &&
         (strcmp(rh->name, "+") == 0))
@@ -1792,9 +1792,9 @@ handle_delegation_ns(void* cls, struct ResolverHandle *rh,
    * and exists
    * or we are authority
    **/
-  if ((rh->status & (EXISTS | !EXPIRED)) ||
-      !GNUNET_CRYPTO_short_hash_cmp(&rh->authority_chain_head->zone,
-                             &rh->authority_chain_tail->zone))
+  if (((rh->status & RSL_RECORD_EXISTS) && (rh->status & !RSL_RECORD_EXPIRED))
+      || !GNUNET_CRYPTO_short_hash_cmp(&rh->authority_chain_head->zone,
+                                       &local_zone))
   {
     if (is_canonical(rh->name))
     {
@@ -1869,12 +1869,12 @@ process_delegation_result_ns(void* cls,
   
   if (name != NULL)
   {
-    rh->status |= EXISTS;
+    rh->status |= RSL_RECORD_EXISTS;
   }
   
   if (remaining_time.rel_value == 0)
   {
-    rh->status |= EXPIRED;
+    rh->status |= RSL_RECORD_EXPIRED;
   }
   
   /**

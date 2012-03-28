@@ -41,11 +41,11 @@ struct ResolverHandle;
 typedef void (*ResolverCleanupContinuation) (void);
 
 /**
- * processor for a resultion result
+ * processor for a record lookup result
  *
  * @param cls the closure
  * @param rd_count number of results
- * @param rd resukt data
+ * @param rd result data
  */
 typedef void (*RecordLookupProcessor) (void *cls,
                                   uint32_t rd_count,
@@ -70,7 +70,7 @@ typedef void (*ShortenResultProcessor) (void *cls, const char* name);
 typedef void (*GetAuthorityResultProcessor) (void *cls, const char* name);
 
 /**
- * processor for a resultion result
+ * processor for a resolution result
  *
  * @param cls the closure
  * @param rh the resolution handle
@@ -84,19 +84,27 @@ typedef void (*ResolutionResultProcessor) (void *cls,
 
 
 /**
- * Resoltion status indicator
- * EXISTS: the name to lookup exists
- * EXPIRED: the name in the record expired
+ * Resolution status indicator
+ * RSL_RECORD_EXISTS: the name to lookup exists
+ * RSL_RECORD_EXPIRED: the name in the record expired
+ * RSL_TIMED_OUT: resolution timed out
  */
 enum ResolutionStatus
 {
-  EXISTS = 1,
-  EXPIRED = 2,
-  TIMED_OUT = 4
+  RSL_RECORD_EXISTS = 1,
+  RSL_RECORD_EXPIRED = 2,
+  RSL_TIMED_OUT = 4
 };
 
 /**
  * Handle to a currenty pending resolution
+ * a ResolverHandle is passed to, for example
+ * resolve_record_ns to resolve a record in the namestore.
+ * On result (positive or negative) the ResolutionResultProcessor
+ * is called.
+ * If a timeout is set timeout_cont will be called.
+ * If no timeout is set (ie timeout forever) then background resolutions
+ * might be triggered.
  */
 struct ResolverHandle
 {
@@ -111,12 +119,6 @@ struct ResolverHandle
 
   /* the name of the authoritative zone to query */
   char authority_name[MAX_DNS_LABEL_LENGTH];
-
-  /**
-   * we have an authority in namestore that
-   * may be able to resolve
-   */
-  int authority_found;
 
   /* a handle for dht lookups. should be NULL if no lookups are in progress */
   struct GNUNET_DHT_GetHandle *get_handle;
@@ -193,14 +195,11 @@ struct RecordLookupHandle
  */
 struct NameShortenHandle
 {
-
-
   /* Method to call on shorten result */
   ShortenResultProcessor proc;
 
   /* closure to pass to proc */
   void* proc_cls;
-
 };
 
 /**
@@ -208,7 +207,6 @@ struct NameShortenHandle
  */
 struct GetNameAuthorityHandle
 {
-  
   /* the name to look up authority for */
   char name[MAX_DNS_NAME_LENGTH];
   
@@ -217,7 +215,6 @@ struct GetNameAuthorityHandle
 
   /* closure to pass to proc */
   void* proc_cls;
-
 };
 
 /**
@@ -276,7 +273,7 @@ gns_resolver_cleanup(ResolverCleanupContinuation cont);
 
 /**
  * Lookup of a record in a specific zone
- * calls lookup result processor on result
+ * calls RecordLookupProcessor on result or timeout
  *
  * @param zone the root zone
  * @param record_type the record type to look up

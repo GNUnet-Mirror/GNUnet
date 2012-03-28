@@ -686,7 +686,7 @@ GNUNET_GNS_lookup (struct GNUNET_GNS_Handle *handle,
 
   memcpy(&lookup_msg[1], name, strlen(name));
 
-  GNUNET_CONTAINER_DLL_insert (handle->pending_head, handle->pending_tail,
+  GNUNET_CONTAINER_DLL_insert_tail (handle->pending_head, handle->pending_tail,
                                pending);
   
   process_pending_messages (handle);
@@ -743,7 +743,7 @@ GNUNET_GNS_shorten (struct GNUNET_GNS_Handle *handle,
 
   memcpy(&shorten_msg[1], name, strlen(name));
 
-  GNUNET_CONTAINER_DLL_insert (handle->pending_head, handle->pending_tail,
+  GNUNET_CONTAINER_DLL_insert_tail (handle->pending_head, handle->pending_tail,
                                pending);
   
   process_pending_messages (handle);
@@ -800,7 +800,7 @@ GNUNET_GNS_get_authority (struct GNUNET_GNS_Handle *handle,
 
   memcpy(&get_auth_msg[1], name, strlen(name));
 
-  GNUNET_CONTAINER_DLL_insert (handle->pending_head, handle->pending_tail,
+  GNUNET_CONTAINER_DLL_insert_tail (handle->pending_head, handle->pending_tail,
                                pending);
   
   process_pending_messages (handle);
