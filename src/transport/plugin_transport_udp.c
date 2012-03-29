@@ -1773,16 +1773,15 @@ udp_select_send (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *sock)
 
   if (GNUNET_SYSERR == sent)
   {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "sendto");
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "UDP transmitted %u-byte message to %s (%d: %s)\n",
-         (unsigned int) (udpw->msg_size), GNUNET_a2s (sa, slen), (int) sent,
-         (sent < 0) ? STRERROR (errno) : "ok");
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         "UDP could not transmit %u-byte message to `%s': `%s'\n",
+         (unsigned int) (udpw->msg_size), GNUNET_a2s (sa, slen),
+         STRERROR (errno));
     if (udpw->cont != NULL)
       udpw->cont (udpw->cont_cls, &udpw->session->target, GNUNET_SYSERR);
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "UDP transmitted %u-byte message to %s (%d: %s)\n",
+       "UDP transmitted %u-byte message to `%s' (%d: %s)\n",
        (unsigned int) (udpw->msg_size), GNUNET_a2s (sa, slen), (int) sent,
        (sent < 0) ? STRERROR (errno) : "ok");
 
