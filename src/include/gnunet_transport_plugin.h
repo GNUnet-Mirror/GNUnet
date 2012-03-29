@@ -434,11 +434,9 @@ typedef const char *(*GNUNET_TRANSPORT_AddressToString) (void *cls,
  * @param cls closure ('struct Plugin*')
  * @param addr string address
  * @param addrlen length of the address
- * @param buf location to store a buffer pointer
+ * @param buf location to store the buffer
  *        If the function returns GNUNET_SYSERR, its contents are undefined.
- * @param max size of the buffer
- * @param buf_len location to store buffer size.
- *        If the function returns GNUNET_SYSERR, its contents are undefined.
+ * @param added length of created address
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
 typedef int (*GNUNET_TRANSPORT_StringToAddress) (void *cls,

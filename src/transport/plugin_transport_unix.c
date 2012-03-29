@@ -979,6 +979,42 @@ unix_plugin_address_pretty_printer (void *cls, const char *type,
 }
 
 /**
+ * Function called to convert a string address to
+ * a binary address.
+ *
+ * @param cls closure ('struct Plugin*')
+ * @param addr string address
+ * @param addrlen length of the address
+ * @param buf location to store the buffer
+ *        If the function returns GNUNET_SYSERR, its contents are undefined.
+ * @param added length of created address
+ * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+ */
+int
+unix_string_to_address (void *cls, const char *addr, uint16_t addrlen,
+    void **buf, size_t *added)
+{
+  if ((NULL == addr) || (addrlen == 0))
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+
+  if ((strlen (addr) + 1) != addrlen)
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+
+  (*buf) = strdup (addr);
+  (*added) = strlen (addr) + 1;
+  return GNUNET_OK;
+}
+
+
+
+
+/**
  * Function called for a quick conversion of the binary address to
  * a numeric address.  Note that the caller must not free the
  * address and that the next call to this function is allowed
@@ -1058,9 +1094,12 @@ libgnunet_plugin_transport_unix_init (void *cls)
   api->address_pretty_printer = &unix_plugin_address_pretty_printer;
   api->address_to_string = &unix_address_to_string;
   api->check_address = &unix_check_address;
+  api->string_to_address = &unix_string_to_address;
   sockets_created = unix_transport_server_start (plugin);
   if (sockets_created == 0)
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _("Failed to open UNIX sockets\n"));
+
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("UNIX\n"));
 
   plugin->session_map = GNUNET_CONTAINER_multihashmap_create(10);
 
