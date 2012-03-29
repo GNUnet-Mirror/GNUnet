@@ -332,7 +332,7 @@ struct SendMessage
   struct GNUNET_TIME_AbsoluteNBO deadline;
 
   /**
-   * Identity of the receiver or sender.
+   * Identity of the intended receiver.
    */
   struct GNUNET_PeerIdentity peer;
 
