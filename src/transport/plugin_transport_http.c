@@ -151,6 +151,9 @@ append_port (void *cls, const char *hostname)
 }
 
 
+
+
+
 /**
  * Convert the transports address to a nice, human-readable
  * format.
@@ -317,6 +320,80 @@ http_plugin_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
                             2, s, s->addr, s->addrlen);
   return delay;
 }
+
+
+/**
+ * Function called to convert a string address to
+ * a binary address.
+ *
+ * @param cls closure ('struct Plugin*')
+ * @param addr string address
+ * @param addrlen length of the address
+ * @param buf location to store the buffer
+ *        If the function returns GNUNET_SYSERR, its contents are undefined.
+ * @param added length of created address
+ * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+ */
+int http_string_to_address (void *cls,
+                           const char *addr,
+                           uint16_t addrlen,
+                           void **buf,
+                           size_t *added)
+{
+#if !BUILD_HTTPS
+  char *protocol = "http";
+#else
+  char *protocol = "https";
+#endif
+  char *addr_str = NULL;
+  struct sockaddr_in addr_4;
+  struct sockaddr_in6 addr_6;
+  struct IPv4HttpAddress * http_4addr;
+  struct IPv6HttpAddress * http_6addr;
+  GNUNET_break (0);
+  if ((addr == NULL) || (addrlen == 0) || (buf == NULL))
+    return GNUNET_SYSERR;
+
+  /* protocoll + "://" + ":" */
+  if (addrlen <= strlen (protocol) + 4);
+    return GNUNET_SYSERR;
+
+  if (NULL == (addr = strstr(addr_str, "://")))
+      return GNUNET_SYSERR;
+
+  addr_str = &addr_str[3];
+
+  if (GNUNET_OK == GNUNET_STRINGS_to_address_ipv4(addr, strlen(addr_str), &addr_4))
+  {
+    http_4addr = GNUNET_malloc (sizeof (struct IPv4HttpAddress));
+    http_4addr = GNUNET_malloc (sizeof (struct IPv6HttpAddress));
+    http_4addr->u4_port = addr_4.sin_port;
+    http_4addr->ipv4_addr = (uint32_t) addr_4.sin_addr.s_addr;
+
+    (*buf) = http_4addr;
+    (*added) = sizeof (struct IPv4HttpAddress);
+    GNUNET_break (0);
+    return GNUNET_OK;
+  }
+  else if (GNUNET_OK == GNUNET_STRINGS_to_address_ipv6(addr, strlen(addr_str), &addr_6))
+  {
+    http_6addr = GNUNET_malloc (sizeof (struct IPv6HttpAddress));
+    http_6addr->u6_port = addr_6.sin6_port;
+    http_6addr->ipv6_addr = addr_6.sin6_addr;
+
+    (*buf) = http_6addr;
+    (*added) = sizeof (struct IPv6HttpAddress);
+    GNUNET_break (0);
+    return GNUNET_OK;
+
+  }
+  else
+  {
+    return GNUNET_SYSERR;
+  }
+}
+
+
 
 /**
  * Function called for a quick conversion of the binary address to
@@ -1384,7 +1461,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   api->address_pretty_printer = &http_plugin_address_pretty_printer;
   api->check_address = &http_plugin_address_suggested;
   api->address_to_string = &http_plugin_address_to_string;
-  api->string_to_address = NULL; // FIXME!
+  api->string_to_address = &http_string_to_address;
   api->get_session = &http_get_session;
   api->send = &http_plugin_send;
 
