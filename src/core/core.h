@@ -349,32 +349,6 @@ struct SendMessage
 };
 
 
-/**
- * Client asking core to connect to a particular target.  There is no
- * response from the core to this type of request (however, if an
- * actual connection is created or destroyed, be it because of this
- * type request or not, the core generally needs to notify the
- * clients).
- */
-struct ConnectMessage
-{
-  /**
-   * Header with type GNUNET_MESSAGE_TYPE_REQUEST_CONNECT or
-   * GNUNET_MESSAGE_TYPE_REQUEST_DISCONNECT.
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * For alignment.
-   */
-  uint32_t reserved GNUNET_PACKED;
-
-  /**
-   * Identity of the other peer.
-   */
-  struct GNUNET_PeerIdentity peer;
-
-};
 GNUNET_NETWORK_STRUCT_END
 #endif
 /* end of core.h */
