@@ -1153,12 +1153,18 @@ GDS_CLIENTS_done ()
     GNUNET_SCHEDULER_cancel (retry_task);
     retry_task = GNUNET_SCHEDULER_NO_TASK;
   }
-  GNUNET_assert (0 == GNUNET_CONTAINER_heap_get_size (retry_heap));
-  GNUNET_CONTAINER_heap_destroy (retry_heap);
-  retry_heap = NULL;
-  GNUNET_assert (0 == GNUNET_CONTAINER_multihashmap_size (forward_map));
-  GNUNET_CONTAINER_multihashmap_destroy (forward_map);
-  forward_map = NULL;
+  if (NULL != retry_heap)
+  {
+    GNUNET_assert (0 == GNUNET_CONTAINER_heap_get_size (retry_heap));
+    GNUNET_CONTAINER_heap_destroy (retry_heap);
+    retry_heap = NULL;
+  }
+  if (NULL != forward_map)
+  {
+    GNUNET_assert (0 == GNUNET_CONTAINER_multihashmap_size (forward_map));
+    GNUNET_CONTAINER_multihashmap_destroy (forward_map);
+    forward_map = NULL;
+  }
 }
 
 /* end of gnunet-service-dht_clients.c */
