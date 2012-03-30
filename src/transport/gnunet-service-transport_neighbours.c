@@ -1527,7 +1527,7 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
     {
       n->fast_reconnect_attempts ++;
 
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "FAST RECONNECT to peer `%s' and address '%s' with identical address attempt %u\n",
                 GNUNET_i2s (&n->id), GST_plugins_a2s (address), n->fast_reconnect_attempts);
     }
