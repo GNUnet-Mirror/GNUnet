@@ -319,10 +319,11 @@ static struct Session *
 find_session (struct GNUNET_ATS_SchedulingHandle *sh, uint32_t session_id,
               const struct GNUNET_PeerIdentity *peer)
 {
-#if DEBUG_ATS
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Find session %u from peer %s in %p\n",
+
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "ats-scheduling-api",
+              "Find session %u from peer %s in %p\n",
               (unsigned int) session_id, GNUNET_i2s (peer), sh);
-#endif
+
   if (session_id >= sh->session_array_size)
   {
     GNUNET_break (0);
@@ -366,11 +367,11 @@ get_session_id (struct GNUNET_ATS_SchedulingHandle *sh, struct Session *session,
   unsigned int i;
   unsigned int f;
 
-#if DEBUG_ATS
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "ats-scheduling-api",
               "Get session ID for session %p from peer %s in %p\n", session,
               GNUNET_i2s (peer), sh);
-#endif
+
   if (NULL == session)
     return 0;
   f = 0;
@@ -396,11 +397,11 @@ get_session_id (struct GNUNET_ATS_SchedulingHandle *sh, struct Session *session,
   sh->session_array[f].session = session;
   sh->session_array[f].peer = *peer;
   sh->session_array[f].slot_used = GNUNET_YES;
-#if DEBUG_ATS
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "ats-scheduling-api",
               "Assigning session ID %u for session %p of peer %s in %p\n", f,
               session, GNUNET_i2s (peer), sh);
-#endif
+
   return f;
 }
 
@@ -417,11 +418,9 @@ static void
 remove_session (struct GNUNET_ATS_SchedulingHandle *sh, uint32_t session_id,
                 const struct GNUNET_PeerIdentity *peer)
 {
-#if DEBUG_ATS
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Remove sessionID %u from peer %s in %p\n",
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "ats-scheduling-api",
+              "Remove sessionID %u from peer %s in %p\n", "ats-scheduling-api",
               (unsigned int) session_id, GNUNET_i2s (peer), sh);
-#endif
   if (0 == session_id)
     return;
   GNUNET_assert (session_id < sh->session_array_size);
@@ -445,11 +444,11 @@ static void
 release_session (struct GNUNET_ATS_SchedulingHandle *sh, uint32_t session_id,
                  const struct GNUNET_PeerIdentity *peer)
 {
-#if DEBUG_ATS
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "ats-scheduling-api",
               "Release sessionID %u from peer %s in %p\n",
               (unsigned int) session_id, GNUNET_i2s (peer), sh);
-#endif
+
   if (session_id >= sh->session_array_size)
   {
     GNUNET_break (0);
@@ -552,11 +551,10 @@ process_ats_message (void *cls, const struct GNUNET_MessageHeader *msg)
     s = find_session (sh, session_id, &m->peer);
     if (s == NULL)
     {
-#if DEBUG_ATS
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "ats-scheduling-api",
                   "ATS tries to use outdated session `%s'\n",
                   GNUNET_i2s (&m->peer));
-#endif
       GNUNET_CLIENT_receive (sh->client, &process_ats_message, sh,
                              GNUNET_TIME_UNIT_FOREVER_REL);
       return;
@@ -807,7 +805,8 @@ GNUNET_ATS_address_get_type (struct GNUNET_ATS_SchedulingHandle * sh, const stru
       if (((a4->sin_addr.s_addr & mask4->sin_addr.s_addr)) == net4->sin_addr.s_addr)
       {
         char * net = GNUNET_strdup (GNUNET_a2s ((const struct sockaddr *) net4, addrlen));
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "`%s' is in network `%s'\n",
+        GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "ats-scheduling-api",
+            "`%s' is in network `%s'\n",
             GNUNET_a2s ((const struct sockaddr *)a4, addrlen),
             net);
         GNUNET_free (net);
@@ -862,9 +861,6 @@ GNUNET_ATS_address_get_type (struct GNUNET_ATS_SchedulingHandle * sh, const stru
 
       break;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "`%s' is in network `%s'\n",
-        GNUNET_a2s ((const struct sockaddr *) addr, addrlen),
-        range);
 #endif
 
   ats.type = htonl (GNUNET_ATS_NETWORK_TYPE);
