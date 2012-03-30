@@ -145,9 +145,6 @@ GNUNET_TRANSPORT_address_to_string (const struct GNUNET_CONFIGURATION_Handle
   client = GNUNET_CLIENT_connect ("transport", cfg);
   if (client == NULL)
     return NULL;
-#if DEBUG_TRANSPORT
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "GNUNET_TRANSPORT_address_to_string\n");
-#endif
   msg = GNUNET_malloc (len);
   msg->header.size = htons (len);
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_TO_STRING);
