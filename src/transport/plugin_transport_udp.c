@@ -1760,7 +1760,6 @@ udp_select_send (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *sock)
         udpw = udpw->next;
       }
     }
-
   }
 
   if (udpw == NULL)
@@ -1780,11 +1779,13 @@ udp_select_send (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *sock)
     if (udpw->cont != NULL)
       udpw->cont (udpw->cont_cls, &udpw->session->target, GNUNET_SYSERR);
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "UDP transmitted %u-byte message to `%s' (%d: %s)\n",
-       (unsigned int) (udpw->msg_size), GNUNET_a2s (sa, slen), (int) sent,
-       (sent < 0) ? STRERROR (errno) : "ok");
-
+  else
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "UDP transmitted %u-byte message to `%s' (%d: %s)\n",
+         (unsigned int) (udpw->msg_size), GNUNET_a2s (sa, slen), (int) sent,
+         (sent < 0) ? STRERROR (errno) : "ok");
+  }
   /* This was just a message fragment */
   if (udpw->frag_ctx != NULL)
   {
