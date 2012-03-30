@@ -1211,13 +1211,16 @@ GST_validation_get_addresses (const struct GNUNET_PeerIdentity *target,
  * @param session the session
  * @param in_use GNUNET_YES if we are now using the address for a connection,
  *               GNUNET_NO if we are no longer using the address for a connection
+ * @param line line of caller just for DEBUGGING!
  */
 void
 GST_validation_set_address_use (const struct GNUNET_HELLO_Address *address,
                                 struct Session *session,
-                                int in_use)
+                                int in_use,
+                                int line)
 {
   struct ValidationEntry *ve;
+  static int last_calling_line = 0;
 
   if (NULL != address)
     ve = find_validation_entry (NULL, address);
@@ -1229,10 +1232,16 @@ GST_validation_set_address_use (const struct GNUNET_HELLO_Address *address,
     return;
   }
   if (ve->in_use == in_use)
+  {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "GST_validation_set_address_use: %s %s: ve->in_use %i <-> in_use %i\n",
-                GNUNET_i2s (&address->peer), GST_plugins_a2s (address), ve->in_use,
-                in_use);
+                "Error setting address in use for peer `%s' `%s': %s -> %s; set last time by %i, called now by %i\n",
+
+                GNUNET_i2s (&address->peer), GST_plugins_a2s (address),
+                (GNUNET_NO == ve->in_use) ? "NOT USED" : "USED",
+                (GNUNET_NO == in_use) ? "NOT USED" : "USED",
+                last_calling_line, line);
+  }
+  last_calling_line = line;
   GNUNET_break (ve->in_use != in_use);  /* should be different... */
   ve->in_use = in_use;
   if (in_use == GNUNET_YES)
