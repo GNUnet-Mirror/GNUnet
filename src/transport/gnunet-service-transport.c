@@ -462,6 +462,10 @@ neighbours_connect_notification (void *cls,
   struct ConnectInfoMessage *connect_msg = (struct ConnectInfoMessage *) buf;
   struct GNUNET_ATS_Information *ap;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "We are now connected to peer `%s'\n",
+              GNUNET_i2s (peer));
+
   connect_msg->header.size = htons (sizeof (buf));
   connect_msg->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT);
   connect_msg->ats_count = htonl (ats_count);
@@ -484,6 +488,10 @@ neighbours_disconnect_notification (void *cls,
                                     const struct GNUNET_PeerIdentity *peer)
 {
   struct DisconnectInfoMessage disconnect_msg;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Peer `%s' disconnected\n",
+              GNUNET_i2s (peer));
 
   disconnect_msg.header.size = htons (sizeof (struct DisconnectInfoMessage));
   disconnect_msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_DISCONNECT);
