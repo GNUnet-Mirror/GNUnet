@@ -1099,8 +1099,6 @@ libgnunet_plugin_transport_unix_init (void *cls)
   if (sockets_created == 0)
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _("Failed to open UNIX sockets\n"));
 
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("UNIX\n"));
-
   plugin->session_map = GNUNET_CONTAINER_multihashmap_create(10);
 
   GNUNET_SCHEDULER_add_now (address_notification, plugin);
