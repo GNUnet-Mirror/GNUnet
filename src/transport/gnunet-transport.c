@@ -37,8 +37,9 @@
 
 /**
  * How long do we wait for the NAT test to report success?
+ * Should match NAT_SERVER_TIMEOUT in 'nat_test.c'.
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
 /**
  * Which peer should we connect to?
