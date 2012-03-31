@@ -30,6 +30,8 @@
 
 #define LOG(kind,...) GNUNET_log_from (kind, "nat", __VA_ARGS__)
 
+#define NAT_SERVER_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
+
 /**
  * Entry we keep for each incoming connection.
  */
@@ -353,7 +355,7 @@ addr_cb (void *cls, int add_remove, const struct sockaddr *addr,
   GNUNET_CONTAINER_DLL_insert (h->ca_head, h->ca_tail, ca);
   GNUNET_break (GNUNET_OK ==
                 GNUNET_CLIENT_transmit_and_get_response (client, &msg.header,
-                                                         GNUNET_TIME_UNIT_SECONDS,
+                                                         NAT_SERVER_TIMEOUT,
                                                          GNUNET_YES, NULL,
                                                          NULL));
 }
