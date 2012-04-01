@@ -1398,21 +1398,14 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
   }
 
   handle_array[nhandles] = NULL;
-
-#if DEBUG_NETWORK
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Number nfds : %d\n", nfds);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Number of handles : %d\n", nhandles);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "retcode : %d\n", newretcode);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Will wait : %d\n", ms_total);
-#endif
-
+  LOG (GNUNET_ERROR_TYPE_DEBUG, 
+       "Number nfds: %d, handles: %d, return code: %u will wait: %d ms\n", 
+       nfds, nhandles, newretcode, ms_total);
   if (nhandles)
     returncode =
         WaitForMultipleObjects (nhandles, handle_array, FALSE, ms_total);
-#if DEBUG_NETWORK
   LOG (GNUNET_ERROR_TYPE_DEBUG, "WaitForMultipleObjects Returned : %d\n",
        returncode);
-#endif
 
   returnedpos = returncode - WAIT_OBJECT_0;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "return pos is : %d\n", returnedpos);
