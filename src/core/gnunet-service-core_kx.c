@@ -37,6 +37,7 @@
 #include "gnunet_protocols.h"
 #include "core.h"
 
+
 /**
  * How long do we wait for SET_KEY confirmation initially?
  */
@@ -46,6 +47,12 @@
  * What is the minimum frequency for a PING message?
  */
 #define MIN_PING_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+
+/**
+ * How often do we rekey?
+ */
+#define REKEY_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 90)
+
 
 /**
  * What is the maximum age of a message for us to consider processing
@@ -216,6 +223,8 @@ struct EncryptedMessage
 
 };
 GNUNET_NETWORK_STRUCT_END
+
+
 /**
  * Number of bytes (at the beginning) of "struct EncryptedMessage"
  * that are NOT encrypted.
@@ -253,7 +262,19 @@ enum KxStateMachine
    * encrypted with his session key (which we got).  Key exchange
    * is done.
    */
-  KX_STATE_UP
+  KX_STATE_UP,
+
+  /**
+   * We're rekeying, so we have received the other peer's session
+   * key, but he didn't get ours yet.
+   */
+  KX_STATE_REKEY,
+
+  /**
+   * We're rekeying but have not yet received confirmation for our new
+   * key from the other peer.
+   */
+  KX_STATE_REKEY_SENT
 };
 
 
@@ -391,7 +412,6 @@ struct GSC_KeyExchangeInfo
 };
 
 
-
 /**
  * Handle to peerinfo service.
  */
@@ -413,9 +433,13 @@ static struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded my_public_key;
 static struct GNUNET_SERVER_MessageStreamTokenizer *mst;
 
 
-
 /**
  * Derive an authentication key from "set key" information
+ *
+ * @param akey authentication key to derive
+ * @param skey session key to use
+ * @param seed seed to use
+ * @param creation_time creation time to use
  */
 static void
 derive_auth_key (struct GNUNET_CRYPTO_AuthKey *akey,
@@ -424,7 +448,6 @@ derive_auth_key (struct GNUNET_CRYPTO_AuthKey *akey,
 {
   static const char ctx[] = "authentication key";
   struct GNUNET_TIME_AbsoluteNBO ctbe;
-
 
   ctbe = GNUNET_TIME_absolute_hton (creation_time);
   GNUNET_CRYPTO_hmac_derive_key (akey, skey, &seed, sizeof (seed), &skey->key,
@@ -435,6 +458,11 @@ derive_auth_key (struct GNUNET_CRYPTO_AuthKey *akey,
 
 /**
  * Derive an IV from packet information
+ *
+ * @param iv initialization vector to initialize
+ * @param skey session key to use
+ * @param seed seed to use
+ * @param creation_time creation time to use
  */
 static void
 derive_iv (struct GNUNET_CRYPTO_AesInitializationVector *iv,
@@ -449,8 +477,15 @@ derive_iv (struct GNUNET_CRYPTO_AesInitializationVector *iv,
                                sizeof (ctx), NULL);
 }
 
+
 /**
  * Derive an IV from pong packet information
+ *
+ * @param iv initialization vector to initialize
+ * @param skey session key to use
+ * @param seed seed to use
+ * @param creation_time creation time to use
+ * @param identity identity of the other peer to use
  */
 static void
 derive_pong_iv (struct GNUNET_CRYPTO_AesInitializationVector *iv,
@@ -492,7 +527,9 @@ do_encrypt (struct GSC_KeyExchangeInfo *kx,
                                             &kx->encrypt_key, iv, out));
   GNUNET_STATISTICS_update (GSC_stats, gettext_noop ("# bytes encrypted"), size,
                             GNUNET_NO);
-#if DEBUG_CORE > 2
+  /* the following is too sensitive to write to log files by accident,
+     so we require manual intervention to get this one... */
+#if 0
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Encrypted %u bytes for `%4s' using key %u, IV %u\n",
               (unsigned int) size, GNUNET_i2s (&kx->peer),
@@ -502,8 +539,6 @@ do_encrypt (struct GSC_KeyExchangeInfo *kx,
 #endif
   return GNUNET_OK;
 }
-
-
 
 
 /**
@@ -528,7 +563,8 @@ do_decrypt (struct GSC_KeyExchangeInfo *kx,
     GNUNET_break (0);
     return GNUNET_NO;
   }
-  if ((kx->status != KX_STATE_KEY_RECEIVED) && (kx->status != KX_STATE_UP))
+  if ( (kx->status != KX_STATE_KEY_RECEIVED) && (kx->status != KX_STATE_UP) &&
+       (kx->status != KX_STATE_REKEY_SENT) )
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
@@ -542,7 +578,9 @@ do_decrypt (struct GSC_KeyExchangeInfo *kx,
   }
   GNUNET_STATISTICS_update (GSC_stats, gettext_noop ("# bytes decrypted"), size,
                             GNUNET_NO);
-#if DEBUG_CORE > 1
+  /* the following is too sensitive to write to log files by accident,
+     so we require manual intervention to get this one... */
+#if 0
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Decrypted %u bytes from `%4s' using key %u, IV %u\n",
               (unsigned int) size, GNUNET_i2s (&kx->peer),
@@ -615,11 +653,9 @@ process_hello (void *cls, const struct GNUNET_PeerIdentity *peer,
     kx->pitr = NULL;
     if (kx->public_key != NULL)
       return;                   /* done here */
-#if DEBUG_CORE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Failed to obtain public key for peer `%4s', delaying processing of SET_KEY\n",
                 GNUNET_i2s (&kx->peer));
-#endif
     GNUNET_STATISTICS_update (GSC_stats,
                               gettext_noop
                               ("# Delayed connecting due to lack of public key"),
@@ -669,10 +705,8 @@ GSC_KX_start (const struct GNUNET_PeerIdentity *pid)
 {
   struct GSC_KeyExchangeInfo *kx;
 
-#if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Initiating key exchange with `%s'\n",
               GNUNET_i2s (pid));
-#endif
   GNUNET_STATISTICS_update (GSC_stats,
                             gettext_noop ("# key exchanges initiated"), 1,
                             GNUNET_NO);
@@ -750,11 +784,9 @@ GSC_KX_handle_set_key (struct GSC_KeyExchangeInfo *kx,
   GNUNET_STATISTICS_update (GSC_stats, gettext_noop ("# session keys received"),
                             1, GNUNET_NO);
 
-#if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Core service receives `%s' request from `%4s'.\n", "SET_KEY",
               GNUNET_i2s (&kx->peer));
-#endif
   if (kx->public_key == NULL)
   {
     GNUNET_free_non_null (kx->skm_received);
@@ -806,10 +838,8 @@ GSC_KX_handle_set_key (struct GSC_KeyExchangeInfo *kx,
   GNUNET_STATISTICS_update (GSC_stats,
                             gettext_noop ("# SET_KEY messages decrypted"), 1,
                             GNUNET_NO);
-#if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received SET_KEY from `%s'\n",
               GNUNET_i2s (&kx->peer));
-#endif
   kx->decrypt_key = k;
   if (kx->decrypt_key_created.abs_value != t.abs_value)
   {
@@ -819,7 +849,6 @@ GSC_KX_handle_set_key (struct GSC_KeyExchangeInfo *kx,
     kx->decrypt_key_created = t;
   }
   sender_status = (enum KxStateMachine) ntohl (m->sender_status);
-
   switch (kx->status)
   {
   case KX_STATE_DOWN:
@@ -833,7 +862,17 @@ GSC_KX_handle_set_key (struct GSC_KeyExchangeInfo *kx,
   case KX_STATE_KEY_RECEIVED:
     /* we're not up, so we are already doing 'send_key' */
     break;
-  case KX_STATE_UP:
+  case KX_STATE_UP: 
+    if ((sender_status == KX_STATE_DOWN) ||
+        (sender_status == KX_STATE_KEY_SENT))
+      send_key (kx);            /* we are up, but other peer is not! */
+    break;
+  case KX_STATE_REKEY:
+    if ((sender_status == KX_STATE_DOWN) ||
+        (sender_status == KX_STATE_KEY_SENT))
+      send_key (kx);            /* we are up, but other peer is not! */
+    break;
+  case KX_STATE_REKEY_SENT:
     if ((sender_status == KX_STATE_DOWN) ||
         (sender_status == KX_STATE_KEY_SENT))
       send_key (kx);            /* we are up, but other peer is not! */
@@ -886,7 +925,8 @@ GSC_KX_handle_ping (struct GSC_KeyExchangeInfo *kx,
   GNUNET_STATISTICS_update (GSC_stats,
                             gettext_noop ("# PING messages received"), 1,
                             GNUNET_NO);
-  if ((kx->status != KX_STATE_KEY_RECEIVED) && (kx->status != KX_STATE_UP))
+  if ((kx->status != KX_STATE_KEY_RECEIVED) && (kx->status != KX_STATE_UP) &&
+      (kx->status != KX_STATE_REKEY_SENT))
   {
     /* defer */
     GNUNET_free_non_null (kx->ping_received);
@@ -894,11 +934,9 @@ GSC_KX_handle_ping (struct GSC_KeyExchangeInfo *kx,
     return;
   }
   m = (const struct PingMessage *) msg;
-#if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Core service receives `%s' request from `%4s'.\n", "PING",
               GNUNET_i2s (&kx->peer));
-#endif
   derive_iv (&iv, &kx->decrypt_key, m->iv_seed, &GSC_my_identity);
   if (GNUNET_OK !=
       do_decrypt (kx, &iv, &m->target, &t.target,
@@ -923,10 +961,8 @@ GSC_KX_handle_ping (struct GSC_KeyExchangeInfo *kx,
     GNUNET_break_op (0);
     return;
   }
-#if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received PING from `%s'\n",
               GNUNET_i2s (&kx->peer));
-#endif
   /* construct PONG */
   tx.reserved = GNUNET_BANDWIDTH_VALUE_MAX;
   tx.challenge = t.challenge;
@@ -1033,10 +1069,8 @@ send_keep_alive (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     kx->status = KX_STATE_DOWN;
     return;
   }
-#if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending KEEPALIVE to `%s'\n",
               GNUNET_i2s (&kx->peer));
-#endif
   GNUNET_STATISTICS_update (GSC_stats,
                             gettext_noop ("# keepalive messages sent"), 1,
                             GNUNET_NO);
@@ -1074,6 +1108,48 @@ update_timeout (struct GSC_KeyExchangeInfo *kx)
 
 
 /**
+ * Trigger rekeying event.
+ * 
+ * @param cls the 'struct GSC_KeyExchangeInfo'
+ * @param tc schedule context (unused)
+ */
+static void
+trigger_rekey (void *cls,
+	       const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GSC_KeyExchangeInfo *kx = cls;
+  
+  kx->status = KX_STATE_REKEY;
+  kx->set_key_retry_frequency = INITIAL_SET_KEY_RETRY_FREQUENCY;
+  kx->retry_set_key_task =
+    GNUNET_SCHEDULER_add_delayed (kx->set_key_retry_frequency,
+				  &set_key_retry_task, kx);
+}
+
+
+/**
+ * Schedule rekey operation.
+ *
+ * @param kx key exchange to schedule rekey for
+ */
+static void
+schedule_rekey (struct GSC_KeyExchangeInfo *kx)
+{
+  struct GNUNET_TIME_Relative rdelay;
+
+  if (GNUNET_SCHEDULER_NO_TASK != kx->retry_set_key_task)  
+    GNUNET_SCHEDULER_cancel (kx->retry_set_key_task);
+  rdelay = REKEY_FREQUENCY;
+  /* randomize rekey frequency by one minute to avoid synchronization */
+  rdelay.rel_value += GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+						60 * 1000);
+  kx->retry_set_key_task = GNUNET_SCHEDULER_add_delayed (REKEY_FREQUENCY,
+							 &trigger_rekey,
+							 kx);   
+}
+
+
+/**
  * We received a PONG message.  Validate and update our status.
  *
  * @param kx key exchange context for the the PONG
@@ -1098,21 +1174,30 @@ GSC_KX_handle_pong (struct GSC_KeyExchangeInfo *kx,
   GNUNET_STATISTICS_update (GSC_stats,
                             gettext_noop ("# PONG messages received"), 1,
                             GNUNET_NO);
-  if ((kx->status != KX_STATE_KEY_RECEIVED) && (kx->status != KX_STATE_UP))
+  switch (kx->status)
   {
-    if (kx->status == KX_STATE_KEY_SENT)
-    {
-      GNUNET_free_non_null (kx->pong_received);
-      kx->pong_received = (struct PongMessage *) GNUNET_copy_message (msg);
-    }
+  case KX_STATE_DOWN:
+    return;
+  case KX_STATE_KEY_SENT:
+    GNUNET_free_non_null (kx->pong_received);
+    kx->pong_received = (struct PongMessage *) GNUNET_copy_message (msg);    
+    return;
+  case KX_STATE_KEY_RECEIVED:
+    break;
+  case KX_STATE_UP:
+    break;
+  case KX_STATE_REKEY:
+    break;
+  case KX_STATE_REKEY_SENT:
+    break;
+  default:
+    GNUNET_break (0);
     return;
   }
   m = (const struct PongMessage *) msg;
-#if DEBUG_HANDSHAKE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Core service receives `%s' response from `%4s'.\n", "PONG",
               GNUNET_i2s (&kx->peer));
-#endif
   /* mark as garbage, just to be sure */
   memset (&t, 255, sizeof (t));
   derive_pong_iv (&iv, &kx->decrypt_key, m->iv_seed, kx->ping_challenge,
@@ -1132,7 +1217,6 @@ GSC_KX_handle_pong (struct GSC_KeyExchangeInfo *kx,
       || (kx->ping_challenge != t.challenge))
   {
     /* PONG malformed */
-#if DEBUG_CORE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Received malformed `%s' wanted sender `%4s' with challenge %u\n",
                 "PONG", GNUNET_i2s (&kx->peer),
@@ -1140,13 +1224,10 @@ GSC_KX_handle_pong (struct GSC_KeyExchangeInfo *kx,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Received malformed `%s' received from `%4s' with challenge %u\n",
                 "PONG", GNUNET_i2s (&t.target), (unsigned int) t.challenge);
-#endif
     return;
   }
-#if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received PONG from `%s'\n",
               GNUNET_i2s (&kx->peer));
-#endif
   switch (kx->status)
   {
   case KX_STATE_DOWN:
@@ -1162,11 +1243,7 @@ GSC_KX_handle_pong (struct GSC_KeyExchangeInfo *kx,
                               GNUNET_NO);
     kx->status = KX_STATE_UP;
     GSC_SESSIONS_create (&kx->peer, kx);
-    if (GNUNET_SCHEDULER_NO_TASK != kx->retry_set_key_task)
-    {
-      GNUNET_SCHEDULER_cancel (kx->retry_set_key_task);
-      kx->retry_set_key_task = GNUNET_SCHEDULER_NO_TASK;
-    }
+    schedule_rekey (kx);
     GNUNET_assert (kx->keep_alive_task == GNUNET_SCHEDULER_NO_TASK);
     if (kx->emsg_received != NULL)
     {
@@ -1179,6 +1256,18 @@ GSC_KX_handle_pong (struct GSC_KeyExchangeInfo *kx,
     update_timeout (kx);
     break;
   case KX_STATE_UP:
+    update_timeout (kx);
+    break;
+  case KX_STATE_REKEY:
+    update_timeout (kx);
+    break;
+  case KX_STATE_REKEY_SENT:
+    GNUNET_STATISTICS_update (GSC_stats,
+                              gettext_noop
+                              ("# rekey operations confirmed via PONG"), 1,
+                              GNUNET_NO);
+    kx->status = KX_STATE_UP;
+    schedule_rekey (kx);
     update_timeout (kx);
     break;
   default:
@@ -1202,11 +1291,9 @@ send_key (struct GSC_KeyExchangeInfo *kx)
   if (kx->public_key == NULL)
   {
     /* lookup public key, then try again */
-#if DEBUG_CORE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Trying to obtain public key for `%s'\n",
                 GNUNET_i2s (&kx->peer));
-#endif
     kx->pitr =
         GNUNET_PEERINFO_iterate (peerinfo, &kx->peer,
                                  GNUNET_TIME_UNIT_FOREVER_REL /* timeout? */ ,
@@ -1234,17 +1321,33 @@ send_key (struct GSC_KeyExchangeInfo *kx)
   case KX_STATE_UP:
     GNUNET_break (0);
     return;
+  case KX_STATE_REKEY:
+    kx->status = KX_STATE_REKEY_SENT;
+    /* setup fresh SET KEY message */
+    setup_fresh_setkey (kx);
+    setup_fresh_ping (kx);
+    GNUNET_STATISTICS_update (GSC_stats,
+                              gettext_noop
+                              ("# SET_KEY and PING messages created"), 1,
+                              GNUNET_NO);
+    GNUNET_STATISTICS_update (GSC_stats,
+                              gettext_noop
+                              ("# REKEY operations performed"), 1,
+                              GNUNET_NO);
+    break;
+  case KX_STATE_REKEY_SENT:
+    break;
   default:
     GNUNET_break (0);
     return;
   }
 
   /* always update sender status in SET KEY message */
-  kx->skm.sender_status = htonl ((int32_t) kx->status);
-#if DEBUG_CORE
+  /* Not sending rekey sent state to be compatible with GNUnet 0.9.2 */
+  kx->skm.sender_status = htonl ((int32_t) ((kx->status == KX_STATE_REKEY_SENT) ? 
+					    KX_STATE_KEY_RECEIVED : kx->status));  
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending SET_KEY and PING to `%s'\n",
               GNUNET_i2s (&kx->peer));
-#endif
   GSC_NEIGHBOURS_transmit (&kx->peer, &kx->skm.header,
                            kx->set_key_retry_frequency);
   GSC_NEIGHBOURS_transmit (&kx->peer, &kx->ping.header,
@@ -1292,10 +1395,8 @@ GSC_KX_encrypt_and_transmit (struct GSC_KeyExchangeInfo *kx,
                  do_encrypt (kx, &iv, &ph->sequence_number,
                              &em->sequence_number,
                              used - ENCRYPTED_HEADER_SIZE));
-#if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Encrypted %u bytes for %s\n",
               used - ENCRYPTED_HEADER_SIZE, GNUNET_i2s (&kx->peer));
-#endif
   derive_auth_key (&auth_key, &kx->encrypt_key, ph->iv_seed,
                    kx->encrypt_key_created);
   GNUNET_CRYPTO_hmac (&auth_key, &em->sequence_number,
@@ -1361,7 +1462,8 @@ GSC_KX_handle_encrypted_message (struct GSC_KeyExchangeInfo *kx,
     return;
   }
   m = (const struct EncryptedMessage *) msg;
-  if ((kx->status != KX_STATE_KEY_RECEIVED) && (kx->status != KX_STATE_UP))
+  if ((kx->status != KX_STATE_KEY_RECEIVED) && (kx->status != KX_STATE_UP) &&
+      (kx->status != KX_STATE_REKEY_SENT) )
   {
     GNUNET_STATISTICS_update (GSC_stats,
                               gettext_noop
@@ -1393,10 +1495,8 @@ GSC_KX_handle_encrypted_message (struct GSC_KeyExchangeInfo *kx,
       do_decrypt (kx, &iv, &m->sequence_number, &buf[ENCRYPTED_HEADER_SIZE],
                   size - ENCRYPTED_HEADER_SIZE))
     return;
-#if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Decrypted %u bytes from %s\n",
               size - ENCRYPTED_HEADER_SIZE, GNUNET_i2s (&kx->peer));
-#endif
   pt = (struct EncryptedMessage *) buf;
 
   /* validate sequence number */
