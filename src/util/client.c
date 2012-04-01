@@ -277,10 +277,8 @@ do_connect (const char *service_name,
       sock = GNUNET_CONNECTION_create_from_connect_to_unixpath (cfg, unixpath);
       if (sock != NULL)
       {
-#if DEBUG_CLIENT
         LOG (GNUNET_ERROR_TYPE_DEBUG, "Connected to unixpath `%s'!\n",
              unixpath);
-#endif
         GNUNET_free (unixpath);
         return sock;
       }
@@ -343,11 +341,9 @@ do_connect (const char *service_name,
       GNUNET_free_non_null (unixpath);
     }
 #endif
-#if DEBUG_CLIENT
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Port is 0 for service `%s', UNIXPATH did not work, returning NULL!\n",
          service_name);
-#endif
     GNUNET_free_non_null (hostname);
     return NULL;
   }
@@ -474,12 +470,10 @@ receive_helper (void *cls, const void *buf, size_t available,
   if ((available == 0) || (conn->sock == NULL) || (errCode != 0))
   {
     /* signal timeout! */
-#if DEBUG_CLIENT
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Timeout in receive_helper, available %u, conn->sock %s, errCode `%s'\n",
          (unsigned int) available, conn->sock == NULL ? "NULL" : "non-NULL",
          STRERROR (errCode));
-#endif
     if (NULL != (receive_handler = conn->receiver_handler))
     {
       receive_handler_cls = conn->receiver_handler_cls;
@@ -533,10 +527,8 @@ receive_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   char mbuf[msize];
   struct GNUNET_MessageHeader *msg = (struct GNUNET_MessageHeader *) mbuf;
 
-#if DEBUG_CLIENT
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Received message of type %u and size %u\n",
        ntohs (cmsg->type), msize);
-#endif
   sock->receive_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_assert (GNUNET_YES == sock->msg_complete);
   GNUNET_assert (sock->received_pos >= msize);
@@ -585,9 +577,7 @@ GNUNET_CLIENT_receive (struct GNUNET_CLIENT_Connection *sock,
   {
     GNUNET_assert (sock->in_receive == GNUNET_NO);
     sock->in_receive = GNUNET_YES;
-#if DEBUG_CLIENT
     LOG (GNUNET_ERROR_TYPE_DEBUG, "calling GNUNET_CONNECTION_receive\n");
-#endif
     GNUNET_CONNECTION_receive (sock->sock, GNUNET_SERVER_MAX_MESSAGE_SIZE - 1,
                                timeout, &receive_helper, sock);
   }
@@ -621,10 +611,8 @@ confirm_handler (void *cls, const struct GNUNET_MessageHeader *msg)
    * correct service? FIXME! */
   if (msg != NULL)
   {
-#if DEBUG_CLIENT
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Received confirmation that service is running.\n");
-#endif
     GNUNET_SCHEDULER_add_continuation (conn->test_cb, conn->test_cb_cls,
                                        GNUNET_SCHEDULER_REASON_PREREQ_DONE);
   }
@@ -653,16 +641,12 @@ write_test (void *cls, size_t size, void *buf)
 
   if (size < sizeof (struct GNUNET_MessageHeader))
   {
-#if DEBUG_CLIENT
     LOG (GNUNET_ERROR_TYPE_DEBUG, _("Failure to transmit TEST request.\n"));
-#endif
     service_test_error (conn->test_cb, conn->test_cb_cls);
     GNUNET_CLIENT_disconnect (conn, GNUNET_NO);
     return 0;                   /* client disconnected */
   }
-#if DEBUG_CLIENT
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Transmitting `%s' request.\n", "TEST");
-#endif
   msg = (struct GNUNET_MessageHeader *) buf;
   msg->type = htons (GNUNET_MESSAGE_TYPE_TEST);
   msg->size = htons (sizeof (struct GNUNET_MessageHeader));
@@ -697,10 +681,8 @@ GNUNET_CLIENT_service_test (const char *service,
   struct GNUNET_NETWORK_Handle *sock;
   struct GNUNET_CLIENT_Connection *conn;
 
-#if DEBUG_CLIENT
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Testing if service `%s' is running.\n",
        service);
-#endif
 #ifdef AF_UNIX
   {
     /* probe UNIX support */
@@ -910,9 +892,7 @@ client_delayed_retry (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   th->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
-#if DEBUG_CLIENT
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Transmission failed due to shutdown.\n");
-#endif
     th->sock->th = NULL;
     th->notify (th->notify_cls, 0, NULL);
     GNUNET_free (th);
@@ -930,12 +910,10 @@ client_delayed_retry (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         GNUNET_TIME_relative_min (GNUNET_TIME_relative_multiply
                                   (th->sock->back_off, 2),
                                   GNUNET_TIME_UNIT_SECONDS);
-#if DEBUG_CLIENT
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Transmission failed %u times, trying again in %llums.\n",
          MAX_ATTEMPTS - th->attempts_left,
          (unsigned long long) delay.rel_value);
-#endif
     th->reconnect_task =
         GNUNET_SCHEDULER_add_delayed (delay, &client_delayed_retry, th);
     return;
@@ -983,21 +961,17 @@ client_notify (void *cls, size_t size, void *buf)
         (GNUNET_YES != th->auto_retry) || (0 == --th->attempts_left) ||
         (delay.rel_value < 1))
     {
-#if DEBUG_CLIENT
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "Transmission failed %u times, giving up.\n",
            MAX_ATTEMPTS - th->attempts_left);
-#endif
       GNUNET_break (0 == th->notify (th->notify_cls, 0, NULL));
       GNUNET_free (th);
       return 0;
     }
     /* auto-retry */
-#if DEBUG_CLIENT
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Failed to connect to `%s', automatically trying again.\n",
          th->sock->service_name);
-#endif
     GNUNET_CONNECTION_destroy (th->sock->sock, GNUNET_NO);
     th->sock->sock = NULL;
     delay = GNUNET_TIME_relative_min (delay, th->sock->back_off);
@@ -1005,12 +979,10 @@ client_notify (void *cls, size_t size, void *buf)
         GNUNET_TIME_relative_min (GNUNET_TIME_relative_multiply
                                   (th->sock->back_off, 2),
                                   GNUNET_TIME_UNIT_SECONDS);
-#if DEBUG_CLIENT
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Transmission failed %u times, trying again in %llums.\n",
          MAX_ATTEMPTS - th->attempts_left,
          (unsigned long long) delay.rel_value);
-#endif
     th->sock->th = th;
     th->reconnect_task =
         GNUNET_SCHEDULER_add_delayed (delay, &client_delayed_retry, th);
@@ -1138,10 +1110,8 @@ transmit_for_response (void *cls, size_t size, void *buf)
   msize = ntohs (tc->hdr->size);
   if (NULL == buf)
   {
-#if DEBUG_CLIENT
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          _("Could not submit request, not expecting to receive a response.\n"));
-#endif
     if (NULL != tc->rn)
       tc->rn (tc->rn_cls, NULL);
     GNUNET_free (tc);
