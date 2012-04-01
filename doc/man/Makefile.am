@@ -1,5 +1,6 @@
 man_MANS = \
   gnunet-arm.1 \
+  gnunet-core.1 \
   gnunet-directory.1 \
   gnunet-download.1 \
   gnunet-download-manager.1 \

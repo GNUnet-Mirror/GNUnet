@@ -1,0 +1,35 @@
+.TH gnunet\-core "1" "1 Apr 2012" "GNUnet"
+.SH NAME
+gnunet\-core \- measure and control the core subsystem
+
+.SH SYNOPSIS
+.B gnunet\-core
+[\fIOPTIONS\fR]
+.SH DESCRIPTION
+.PP
+
+gnunet\-core is a tool to access various functions of GNUnet's core subsystem from the command\-line.  The only function right now is to list the peers that are directly connected to this peer (with successful cryptographic handshake).
+
+.TP
+\fB\-c \fIFILENAME\fR, \fB\-\-config=FILENAME\fR
+configuration file to use
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+print help page
+.TP
+\fB\-L \fILOGLEVEL\fR, \fB\-\-loglevel=LOGLEVEL\fR
+Change the loglevel.  Possible values for LOGLEVEL are ERROR, WARNING, INFO and DEBUG.
+.TP
+\fB\-v\fR, \fB\-\-version\fR
+print the version number
+.TP
+\fB\-V\fR, \fB\-\-verbose\fR
+be verbose
+
+.SH NOTES
+
+
+.SH "REPORTING BUGS"
+Report bugs by using mantis <https://gnunet.org/bugs/> or by sending electronic mail to <gnunet\-developers@gnu.org>
+.SH "SEE ALSO"
+\fBgnunet\-transport\fP(1)

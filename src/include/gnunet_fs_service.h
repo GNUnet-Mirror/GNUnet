@@ -1820,7 +1820,11 @@ GNUNET_FS_file_information_create_from_data (struct GNUNET_FS_Handle *h,
  * @param cls closure
  * @param offset offset to read from; it is possible
  *            that the caller might need to go backwards
- *            a bit at times
+ *            a bit at times; set to UINT64_MAX to tell
+ *            the reader that we won't be reading for a while
+ *            (used to close the file descriptor but NOT fully
+ *             clean up the reader's state); in this case,
+ *            a value of '0' for max should be ignored
  * @param max maximum number of bytes that should be
  *            copied to buf; readers are not allowed
  *            to provide less data unless there is an error;
