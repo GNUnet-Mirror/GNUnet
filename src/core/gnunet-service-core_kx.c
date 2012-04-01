@@ -564,7 +564,8 @@ do_decrypt (struct GSC_KeyExchangeInfo *kx,
     return GNUNET_NO;
   }
   if ( (kx->status != KX_STATE_KEY_RECEIVED) && (kx->status != KX_STATE_UP) &&
-       (kx->status != KX_STATE_REKEY_SENT) )
+       (kx->status != KX_STATE_REKEY_SENT) &&
+       (kx->status != KX_STATE_REKEY) )
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
