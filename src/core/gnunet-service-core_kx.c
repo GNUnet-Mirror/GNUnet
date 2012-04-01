@@ -1286,7 +1286,11 @@ GSC_KX_handle_pong (struct GSC_KeyExchangeInfo *kx,
 static void
 send_key (struct GSC_KeyExchangeInfo *kx)
 {
-  GNUNET_assert (kx->retry_set_key_task == GNUNET_SCHEDULER_NO_TASK);
+  if (kx->retry_set_key_task != GNUNET_SCHEDULER_NO_TASK)
+  {
+     GNUNET_SCHEDULER_cancel (kx->retry_set_key_task);
+     kx->retry_set_key_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   if (KX_STATE_UP == kx->status)
     return;                     /* nothing to do */
   if (kx->public_key == NULL)
