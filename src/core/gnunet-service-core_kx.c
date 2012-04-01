@@ -462,7 +462,7 @@ derive_auth_key (struct GNUNET_CRYPTO_AuthKey *akey,
  * @param iv initialization vector to initialize
  * @param skey session key to use
  * @param seed seed to use
- * @param creation_time creation time to use
+ * @param identity identity of the other peer to use
  */
 static void
 derive_iv (struct GNUNET_CRYPTO_AesInitializationVector *iv,
@@ -484,7 +484,7 @@ derive_iv (struct GNUNET_CRYPTO_AesInitializationVector *iv,
  * @param iv initialization vector to initialize
  * @param skey session key to use
  * @param seed seed to use
- * @param creation_time creation time to use
+ * @param challenge nonce to use
  * @param identity identity of the other peer to use
  */
 static void
