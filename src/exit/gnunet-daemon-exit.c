@@ -3027,9 +3027,9 @@ run (void *cls, char *const *args GNUNET_UNUSED,
   if (GNUNET_YES !=
       GNUNET_OS_check_helper_binary ("gnunet-helper-exit"))
   {
-    fprintf (stderr,
-	     "`%s' is not SUID, refusing to run.\n",
-	     "gnunet-helper-exit");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		_("`%s' must be installed SUID, refusing to run\n"),
+		"gnunet-helper-exit");
     global_ret = 1;
     return;
   }

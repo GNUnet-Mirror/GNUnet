@@ -290,6 +290,11 @@ struct TunnelState
 
 
 /**
+ * Global return value from 'main'.
+ */
+static int global_ret;
+
+/**
  * The configuration to use
  */
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
@@ -1552,6 +1557,16 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   struct in6_addr dns_exit6;
 
   cfg = cfg_;
+  if (GNUNET_YES !=
+      GNUNET_OS_check_helper_binary ("gnunet-helper-dns"))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		_("`%s' must be installed SUID, refusing to run\n"),
+		"gnunet-helper-dns");
+    global_ret = 1;
+    return;
+  }
+
   stats = GNUNET_STATISTICS_create ("dns", cfg);
   nc = GNUNET_SERVER_notification_context_create (server, 1);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleanup_task,
@@ -1662,7 +1677,7 @@ main (int argc, char *const *argv)
 {
   return (GNUNET_OK ==
           GNUNET_SERVICE_run (argc, argv, "dns", GNUNET_SERVICE_OPTION_NONE,
-                              &run, NULL)) ? 0 : 1;
+                              &run, NULL)) ? global_ret : 1;
 }
 
 
