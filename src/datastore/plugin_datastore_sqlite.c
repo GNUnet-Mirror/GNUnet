@@ -28,10 +28,6 @@
 #include "gnunet_datastore_plugin.h"
 #include <sqlite3.h>
 
-/**
- * Enable or disable logging debug messages.
- */
-#define DEBUG_SQLITE GNUNET_EXTRA_LOGGING
 
 /**
  * We allocate items on the stack at times.  To prevent a stack
@@ -147,10 +143,8 @@ sq_prepare (sqlite3 * dbh, const char *zSql, sqlite3_stmt ** ppStmt)
   result =
       sqlite3_prepare_v2 (dbh, zSql, strlen (zSql), ppStmt,
                           (const char **) &dummy);
-#if DEBUG_SQLITE && 0
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "sqlite",
                    "Prepared `%s' / %p: %d\n", zSql, *ppStmt, result);
-#endif
   return result;
 }
 
@@ -415,10 +409,8 @@ database_shutdown (struct Plugin *plugin)
     stmt = sqlite3_next_stmt (plugin->dbh, NULL);
     while (stmt != NULL)
     {
-#if DEBUG_SQLITE
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "sqlite",
                        "Closing statement %p\n", stmt);
-#endif
       result = sqlite3_finalize (stmt);
       if (result != SQLITE_OK)
         GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, "sqlite",
@@ -502,14 +494,12 @@ sqlite_plugin_put (void *cls, const GNUNET_HashCode * key, uint32_t size,
 
   if (size > MAX_ITEM_SIZE)
     return GNUNET_SYSERR;
-#if DEBUG_SQLITE
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "sqlite",
                    "Storing in database block with type %u/key `%s'/priority %u/expiration in %llu ms (%lld).\n",
                    type, GNUNET_h2s (key), priority,
                    (unsigned long long)
                    GNUNET_TIME_absolute_get_remaining (expiration).rel_value,
                    (long long) expiration.abs_value);
-#endif
   GNUNET_CRYPTO_hash (data, size, &vhash);
   stmt = plugin->insertContent;
   rvalue = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK, UINT64_MAX);
@@ -540,11 +530,9 @@ sqlite_plugin_put (void *cls, const GNUNET_HashCode * key, uint32_t size,
   {
   case SQLITE_DONE:
     plugin->env->duc (plugin->env->cls, size + GNUNET_DATASTORE_ENTRY_OVERHEAD);
-#if DEBUG_SQLITE
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "sqlite",
                      "Stored new entry (%u bytes)\n",
                      size + GNUNET_DATASTORE_ENTRY_OVERHEAD);
-#endif
     ret = GNUNET_OK;
     break;
   case SQLITE_BUSY:
@@ -621,9 +609,7 @@ sqlite_plugin_update (void *cls, uint64_t uid, int delta,
   switch (n)
   {
   case SQLITE_DONE:
-#if DEBUG_SQLITE
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "sqlite", "Block updated\n");
-#endif
     return GNUNET_OK;
   case SQLITE_BUSY:
     LOG_SQLITE (plugin, msg, GNUNET_ERROR_TYPE_WARNING | GNUNET_ERROR_TYPE_BULK,
@@ -677,11 +663,9 @@ execute_get (struct Plugin *plugin, sqlite3_stmt * stmt,
       break;
     }
     expiration.abs_value = sqlite3_column_int64 (stmt, 3);
-#if DEBUG_SQLITE
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "sqlite",
                      "Found reply in database with expiration %llu\n",
                      (unsigned long long) expiration.abs_value);
-#endif
     ret = proc (proc_cls, sqlite3_column_blob (stmt, 4) /* key */ ,
                 size, sqlite3_column_blob (stmt, 5) /* data */ ,
                 sqlite3_column_int (stmt, 0) /* type */ ,
@@ -972,10 +956,8 @@ sqlite_plugin_get_replication (void *cls, PluginDatumProcessor proc,
   uint32_t repl;
   sqlite3_stmt *stmt;
 
-#if DEBUG_SQLITE
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "sqlite",
                    "Getting random block based on replication order.\n");
-#endif
   rc.have_uid = GNUNET_NO;
   rc.proc = proc;
   rc.proc_cls = proc_cls;
@@ -1061,10 +1043,8 @@ sqlite_plugin_get_expiration (void *cls, PluginDatumProcessor proc,
   sqlite3_stmt *stmt;
   struct GNUNET_TIME_Absolute now;
 
-#if DEBUG_SQLITE
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "sqlite",
                    "Getting random block based on expiration and priority order.\n");
-#endif
   now = GNUNET_TIME_absolute_get ();
   stmt = plugin->selExpi;
   if (SQLITE_OK != sqlite3_bind_int64 (stmt, 1, now.abs_value))
@@ -1233,18 +1213,13 @@ libgnunet_plugin_datastore_sqlite_done (void *cls)
   struct GNUNET_DATASTORE_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;
 
-#if DEBUG_SQLITE
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "sqlite",
                    "sqlite plugin is done\n");
-#endif
-
   fn = NULL;
   if (plugin->drop_on_shutdown)
     fn = GNUNET_strdup (plugin->fn);
-#if DEBUG_SQLITE
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "sqlite",
                    "Shutting down database\n");
-#endif
   database_shutdown (plugin);
   plugin->env = NULL;
   GNUNET_free (api);
@@ -1254,10 +1229,8 @@ libgnunet_plugin_datastore_sqlite_done (void *cls)
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "unlink", fn);
     GNUNET_free (fn);
   }
-#if DEBUG_SQLITE
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "sqlite",
                    "sqlite plugin is finished\n");
-#endif
   return NULL;
 }
 

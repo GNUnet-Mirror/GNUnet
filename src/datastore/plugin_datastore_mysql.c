@@ -121,7 +121,6 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_mysql_lib.h"
 
-#define DEBUG_MYSQL GNUNET_EXTRA_LOGGING
 
 #define MAX_DATUM_SIZE 65536
 
@@ -227,10 +226,8 @@ do_delete_entry (struct Plugin *plugin, unsigned long long uid)
 {
   int ret;
 
-#if DEBUG_MYSQL
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Deleting value %llu from gn090 table\n",
               uid);
-#endif
   ret = GNUNET_MYSQL_statement_run_prepared (plugin->mc,
 					     plugin->delete_entry_by_uid, NULL,
 					     MYSQL_TYPE_LONGLONG, &uid, GNUNET_YES, -1);
@@ -323,11 +320,9 @@ mysql_plugin_put (void *cls, const GNUNET_HashCode * key, uint32_t size,
                               MYSQL_TYPE_BLOB, &vhash, hashSize2, &hashSize2,
                               MYSQL_TYPE_BLOB, data, lsize, &lsize, -1))
     return GNUNET_SYSERR;
-#if DEBUG_MYSQL
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Inserted value `%s' with size %u into gn090 table\n",
               GNUNET_h2s (key), (unsigned int) size);
-#endif
   if (size > 0)
     plugin->env->duc (plugin->env->cls, size);
   return GNUNET_OK;
@@ -366,11 +361,9 @@ mysql_plugin_update (void *cls, uint64_t uid, int delta,
   unsigned long long lexpire = expire.abs_value;
   int ret;
 
-#if DEBUG_MYSQL
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Updating value %llu adding %d to priority and maxing exp at %llu\n",
               vkey, delta, lexpire);
-#endif
   ret =
     GNUNET_MYSQL_statement_run_prepared (plugin->mc, plugin->update_entry, NULL,
 					 MYSQL_TYPE_LONG, &delta, GNUNET_NO,
@@ -456,11 +449,9 @@ execute_select (struct Plugin *plugin, struct GNUNET_MYSQL_StatementHandle *stmt
     proc (proc_cls, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
     return;
   }
-#if DEBUG_MYSQL
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Found %u-byte value under key `%s' with prio %u, anon %u, expire %llu selecting from gn090 table\n",
               (unsigned int) size, GNUNET_h2s (&key), priority, anonymity, exp);
-#endif
   GNUNET_assert (size < MAX_DATUM_SIZE);
   expiration.abs_value = exp;
   ret =
@@ -567,12 +558,9 @@ mysql_plugin_get_key (void *cls, uint64_t offset, const GNUNET_HashCode * key,
   }
   offset = offset % total;
   off = (unsigned long long) offset;
-#if DEBUG_MYSQL
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Obtaining %llu/%lld result for GET `%s'\n", off, total,
               GNUNET_h2s (key));
-#endif
-
   if (type != GNUNET_BLOCK_TYPE_ANY)
   {
     if (NULL != vhash)

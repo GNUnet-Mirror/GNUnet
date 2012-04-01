@@ -29,7 +29,6 @@
 #include "gnunet_postgres_lib.h"
 #include <postgresql/libpq-fe.h>
 
-#define DEBUG_POSTGRES GNUNET_EXTRA_LOGGING
 
 /**
  * After how many ms "busy" should a DB operation fail for good?
@@ -312,10 +311,8 @@ postgres_plugin_put (void *cls, const GNUNET_HashCode * key, uint32_t size,
     return GNUNET_SYSERR;
   PQclear (ret);
   plugin->env->duc (plugin->env->cls, size + GNUNET_DATASTORE_ENTRY_OVERHEAD);
-#if DEBUG_POSTGRES
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "datastore-postgres",
                    "Stored %u bytes in database\n", (unsigned int) size);
-#endif
   return GNUNET_OK;
 }
 
@@ -349,10 +346,8 @@ process_result (struct Plugin *plugin, PluginDatumProcessor proc,
       GNUNET_POSTGRES_check_result_ (plugin->dbh, res, PGRES_TUPLES_OK, "PQexecPrepared", "select",
 				     filename, line))
   {
-#if DEBUG_POSTGRES
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "datastore-postgres",
                      "Ending iteration (postgres error)\n");
-#endif
     proc (proc_cls, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
     return;
   }
@@ -360,10 +355,8 @@ process_result (struct Plugin *plugin, PluginDatumProcessor proc,
   if (0 == PQntuples (res))
   {
     /* no result */
-#if DEBUG_POSTGRES
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "datastore-postgres",
                      "Ending iteration (no more results)\n");
-#endif
     proc (proc_cls, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
     PQclear (res);
     return;
@@ -398,11 +391,9 @@ process_result (struct Plugin *plugin, PluginDatumProcessor proc,
       GNUNET_ntohll (*(uint64_t *) PQgetvalue (res, 0, 3));
   memcpy (&key, PQgetvalue (res, 0, 4), sizeof (GNUNET_HashCode));
   size = PQgetlength (res, 0, 5);
-#if DEBUG_POSTGRES
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "datastore-postgres",
                    "Found result of size %u bytes and type %u in database\n",
                    (unsigned int) size, (unsigned int) type);
-#endif
   iret =
       proc (proc_cls, &key, size, PQgetvalue (res, 0, 5),
             (enum GNUNET_BLOCK_Type) type, priority, anonymity, expiration_time,
@@ -410,23 +401,17 @@ process_result (struct Plugin *plugin, PluginDatumProcessor proc,
   PQclear (res);
   if (iret == GNUNET_NO)
   {
-#if DEBUG_POSTGRES
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Processor asked for item %u to be removed.\n", rowid);
-#endif
     if (GNUNET_OK == GNUNET_POSTGRES_delete_by_rowid (plugin->dbh, "delrow", rowid))
     {
-#if DEBUG_POSTGRES
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "datastore-postgres",
                        "Deleting %u bytes from database\n",
                        (unsigned int) size);
-#endif
       plugin->env->duc (plugin->env->cls,
                         -(size + GNUNET_DATASTORE_ENTRY_OVERHEAD));
-#if DEBUG_POSTGRES
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "datastore-postgres",
                        "Deleted %u bytes from database\n", (unsigned int) size);
-#endif
     }
   }
 }
