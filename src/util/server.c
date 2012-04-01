@@ -39,7 +39,6 @@
 
 #define LOG_STRERROR_FILE(kind,syscall,filename) GNUNET_log_from_strerror_file (kind, "util", syscall, filename)
 
-#define DEBUG_SERVER GNUNET_EXTRA_LOGGING
 
 /**
  * List of arrays of message handlers.
@@ -308,9 +307,7 @@ process_listen_socket (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                                 server->listen_sockets[i]);
       if (sock != NULL)
       {
-#if DEBUG_SERVER
         LOG (GNUNET_ERROR_TYPE_DEBUG, "Server accepted incoming connection.\n");
-#endif
         client = GNUNET_SERVER_connect_socket (server, sock);
         GNUNET_CONNECTION_ignore_shutdown (sock,
                                            server->clients_ignore_shutdown);
@@ -423,11 +420,9 @@ open_listen_socket (const struct sockaddr *serverAddr, socklen_t socklen)
     errno = 0;
     return NULL;
   }
-#if DEBUG_SERVER
   if (port != 0)
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Server starts to listen on port %u.\n",
          port);
-#endif
   return sock;
 }
 
@@ -546,9 +541,7 @@ GNUNET_SERVER_destroy (struct GNUNET_SERVER_Handle *s)
   struct NotifyList *npos;
   unsigned int i;
 
-#if DEBUG_SERVER
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Server shutting down.\n");
-#endif
   if (GNUNET_SCHEDULER_NO_TASK != s->listen_task)
   {
     GNUNET_SCHEDULER_cancel (s->listen_task);
@@ -691,12 +684,9 @@ GNUNET_SERVER_inject (struct GNUNET_SERVER_Handle *server,
 
   type = ntohs (message->type);
   size = ntohs (message->size);
-#if DEBUG_SERVER
-
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Server schedules transmission of %u-byte message of type %u to client.\n",
        size, type);
-#endif
   pos = server->handlers;
   found = GNUNET_NO;
   while (pos != NULL)
@@ -784,21 +774,17 @@ process_mst (struct GNUNET_SERVER_Client *client, int ret)
     if (ret == GNUNET_OK)
     {
       client->receive_pending = GNUNET_YES;
-#if DEBUG_SERVER
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "Server re-enters receive loop, timeout: %llu.\n",
            client->idle_timeout.rel_value);
-#endif
       GNUNET_CONNECTION_receive (client->connection,
                                  GNUNET_SERVER_MAX_MESSAGE_SIZE - 1,
                                  client->idle_timeout, &process_incoming,
                                  client);
       break;
     }
-#if DEBUG_SERVER
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Server processes additional messages instantly.\n");
-#endif
     if (client->server->mst_receive != NULL)
       ret =
           client->server->mst_receive (client->server->mst_cls, client->mst,
@@ -808,18 +794,13 @@ process_mst (struct GNUNET_SERVER_Client *client, int ret)
           GNUNET_SERVER_mst_receive (client->mst, client, NULL, 0, GNUNET_NO,
                                      GNUNET_YES);
   }
-#if DEBUG_SERVER
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Server leaves instant processing loop: ret = %d, server = %p, shutdown = %d, suspended = %u\n",
        ret, client->server, client->shutdown_now, client->suspended);
-#endif
-
   if (ret == GNUNET_NO)
   {
-#if DEBUG_SERVER
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Server has more data pending but is suspended.\n");
-#endif
     client->receive_pending = GNUNET_SYSERR;    /* data pending */
   }
   if ((ret == GNUNET_SYSERR) || (GNUNET_YES == client->shutdown_now))
@@ -859,11 +840,9 @@ process_incoming (void *cls, const void *buf, size_t available,
       (end.abs_value > now.abs_value))
   {
     /* wait longer, timeout changed (i.e. due to us sending) */
-#if DEBUG_SERVER
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Receive time out, but no disconnect due to sending (%p)\n",
          GNUNET_a2s (addr, addrlen));
-#endif
     client->receive_pending = GNUNET_YES;
     GNUNET_CONNECTION_receive (client->connection,
                                GNUNET_SERVER_MAX_MESSAGE_SIZE - 1,
@@ -879,10 +858,8 @@ process_incoming (void *cls, const void *buf, size_t available,
     GNUNET_SERVER_client_disconnect (client);
     return;
   }
-#if DEBUG_SERVER
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Server receives %u bytes from `%s'.\n",
        (unsigned int) available, GNUNET_a2s (addr, addrlen));
-#endif
   GNUNET_SERVER_client_keep (client);
   client->last_activity = now;
 
@@ -921,19 +898,15 @@ restart_processing (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   if (client->receive_pending == GNUNET_NO)
   {
-#if DEBUG_SERVER
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Server begins to read again from client.\n");
-#endif
     client->receive_pending = GNUNET_YES;
     GNUNET_CONNECTION_receive (client->connection,
                                GNUNET_SERVER_MAX_MESSAGE_SIZE - 1,
                                client->idle_timeout, &process_incoming, client);
     return;
   }
-#if DEBUG_SERVER
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Server continues processing messages still in the buffer.\n");
-#endif
   GNUNET_SERVER_client_keep (client);
   client->receive_pending = GNUNET_NO;
   process_mst (client, GNUNET_NO);
@@ -956,12 +929,9 @@ client_message_tokenizer_callback (void *cls, void *client,
   struct GNUNET_SERVER_Client *sender = client;
   int ret;
 
-#if DEBUG_SERVER
-
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Tokenizer gives server message of type %u from client\n",
        ntohs (message->type));
-#endif
   sender->in_process_client_buffer = GNUNET_YES;
   ret = GNUNET_SERVER_inject (server, sender, message);
   sender->in_process_client_buffer = GNUNET_NO;
@@ -1165,10 +1135,8 @@ GNUNET_SERVER_client_disconnect (struct GNUNET_SERVER_Client *client)
   struct NotifyList *n;
   unsigned int rc;
 
-#if DEBUG_SERVER
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Client is being disconnected from the server.\n");
-#endif
   if (client->restart_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (client->restart_task);
@@ -1221,18 +1189,14 @@ GNUNET_SERVER_client_disconnect (struct GNUNET_SERVER_Client *client)
   }
   if (rc > 0)
   {
-#if DEBUG_SERVER
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "RC still positive, not destroying everything.\n");
-#endif
     return;
   }
   if (client->in_process_client_buffer == GNUNET_YES)
   {
-#if DEBUG_SERVER
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Still processing inputs, not destroying everything.\n");
-#endif
     return;
   }
 
@@ -1351,19 +1315,15 @@ GNUNET_SERVER_receive_done (struct GNUNET_SERVER_Client *client, int success)
   client->suspended--;
   if (success != GNUNET_OK)
   {
-#if DEBUG_SERVER
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "GNUNET_SERVER_receive_done called with failure indication\n");
-#endif
     GNUNET_SERVER_client_disconnect (client);
     return;
   }
   if (client->suspended > 0)
   {
-#if DEBUG_SERVER
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "GNUNET_SERVER_receive_done called, but more clients pending\n");
-#endif
     return;
   }
   if (GNUNET_SCHEDULER_NO_TASK != client->warn_task)
@@ -1373,10 +1333,8 @@ GNUNET_SERVER_receive_done (struct GNUNET_SERVER_Client *client, int success)
   }
   if (client->in_process_client_buffer == GNUNET_YES)
   {
-#if DEBUG_SERVER
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "GNUNET_SERVER_receive_done called while still in processing loop\n");
-#endif
     return;
   }
   if ((client->server == NULL) || (GNUNET_YES == client->shutdown_now))
@@ -1384,10 +1342,8 @@ GNUNET_SERVER_receive_done (struct GNUNET_SERVER_Client *client, int success)
     GNUNET_SERVER_client_disconnect (client);
     return;
   }
-#if DEBUG_SERVER
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "GNUNET_SERVER_receive_done causes restart in reading from the socket\n");
-#endif
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == client->restart_task);
   client->restart_task = GNUNET_SCHEDULER_add_now (&restart_processing, client);
 }

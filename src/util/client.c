@@ -34,7 +34,6 @@
 #include "gnunet_server_lib.h"
 #include "gnunet_scheduler_lib.h"
 
-#define DEBUG_CLIENT GNUNET_EXTRA_LOGGING
 
 /**
  * How often do we re-try tranmsitting requests before giving up?
