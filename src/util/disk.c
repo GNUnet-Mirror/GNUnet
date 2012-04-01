@@ -171,13 +171,13 @@ getSizeRec (void *cls, const char *fn)
 #ifdef HAVE_STAT64
   if (0 != STAT64 (fn, &buf))
   {
-    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "stat64", fn);
+    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_DEBUG, "stat64", fn);
     return GNUNET_SYSERR;
   }
 #else
   if (0 != STAT (fn, &buf))
   {
-    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "stat", fn);
+    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_DEBUG, "stat", fn);
     return GNUNET_SYSERR;
   }
 #endif

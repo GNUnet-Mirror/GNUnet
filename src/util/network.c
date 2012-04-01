@@ -1516,10 +1516,8 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
       }
     }
   }
-#if DEBUG_NETWORK
   if (!nhandles || (returnedpos >= nhandles))
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Returning from _select() with nothing!\n");
-#endif
   if (rfds)
   {
     struct GNUNET_CONTAINER_SList_Iterator t;
