@@ -161,11 +161,9 @@ process_notification (void *cls, const struct GNUNET_MessageHeader *msg)
       return;
     }
   }
-#if DEBUG_PEERINFO
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Received information about peer `%s' from peerinfo database\n",
        GNUNET_i2s (&im->peer));
-#endif
   nc->callback (nc->callback_cls, &im->peer, hello, NULL);
   receive_notifications (nc);
 }

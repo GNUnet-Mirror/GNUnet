@@ -534,10 +534,8 @@ handle_hello (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-#if DEBUG_PEERINFO
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "`%s' message received for peer `%4s'\n",
               "HELLO", GNUNET_i2s (&pid));
-#endif
   bind_address (&pid, hello);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
@@ -559,10 +557,8 @@ handle_get (void *cls, struct GNUNET_SERVER_Client *client,
 
   lpm = (const struct ListPeerMessage *) message;
   GNUNET_break (0 == ntohl (lpm->reserved));
-#if DEBUG_PEERINFO
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "`%s' message received for peer `%4s'\n",
               "GET", GNUNET_i2s (&lpm->peer));
-#endif
   tc = GNUNET_SERVER_transmit_context_create (client);
   GNUNET_CONTAINER_multihashmap_get_multiple (hostmap, &lpm->peer.hashPubKey,
                                               &add_to_tc, tc);
@@ -585,9 +581,7 @@ handle_get_all (void *cls, struct GNUNET_SERVER_Client *client,
 {
   struct GNUNET_SERVER_TransmitContext *tc;
 
-#if DEBUG_PEERINFO
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "`%s' message received\n", "GET_ALL");
-#endif
   tc = GNUNET_SERVER_transmit_context_create (client);
   GNUNET_CONTAINER_multihashmap_iterate (hostmap, &add_to_tc, tc);
   GNUNET_SERVER_transmit_context_append_data (tc, NULL, 0,
@@ -625,9 +619,7 @@ static void
 handle_notify (void *cls, struct GNUNET_SERVER_Client *client,
                const struct GNUNET_MessageHeader *message)
 {
-#if DEBUG_PEERINFO
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "`%s' message received\n", "NOTIFY");
-#endif
   GNUNET_SERVER_notification_context_add (notify_list, client);
   GNUNET_CONTAINER_multihashmap_iterate (hostmap, &do_notify_entry, client);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);

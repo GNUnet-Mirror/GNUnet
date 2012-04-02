@@ -27,7 +27,6 @@
 #include "gnunet_time_lib.h"
 #include "gnunet_peerinfo_service.h"
 
-#define DEBUG_PEERINFO GNUNET_EXTRA_LOGGING
 
 GNUNET_NETWORK_STRUCT_BEGIN
 
