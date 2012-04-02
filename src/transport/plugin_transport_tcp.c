@@ -2195,6 +2195,10 @@ libgnunet_plugin_transport_tcp_init (void *cls)
                      _
                      ("TCP transport advertises itself as being on port %llu\n"),
                      aport);
+  /* Initially set connections to 0 */
+  GNUNET_STATISTICS_set(plugin->env->stats,
+                        gettext_noop ("# TCP sessions active"), 0,
+                        GNUNET_NO);
   return api;
 }
 
