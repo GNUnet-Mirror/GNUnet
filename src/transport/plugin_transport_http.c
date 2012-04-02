@@ -873,8 +873,7 @@ find_address (struct Plugin *plugin, const struct sockaddr *addr, socklen_t addr
   default:
     return NULL;
   }
-
-
+  return NULL;
 }
 
 static void
@@ -900,17 +899,15 @@ nat_add_address (void *cls, int add_remove, const struct sockaddr *addr,
 
       GNUNET_CONTAINER_DLL_insert (plugin->ipv4_addr_head,
                                    plugin->ipv4_addr_tail, w_t4);
-    }
-#if DEBUG_HTTP
+
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                      "Notifying transport to add IPv4 address `%s'\n",
                      http_plugin_address_to_string (NULL, &w_t4->addr,
                                                     sizeof (struct
                                                             IPv4HttpAddress)));
-#endif
     plugin->env->notify_address (plugin->env->cls, add_remove, &w_t4->addr,
                                  sizeof (struct IPv4HttpAddress));
-
+    }
     break;
   case AF_INET6:
     w_t6 = find_address (plugin, addr, addrlen);
@@ -923,16 +920,15 @@ nat_add_address (void *cls, int add_remove, const struct sockaddr *addr,
 
       GNUNET_CONTAINER_DLL_insert (plugin->ipv6_addr_head,
                                    plugin->ipv6_addr_tail, w_t6);
-    }
-#if DEBUG_HTTP
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                      "Notifying transport to add IPv6 address `%s'\n",
                      http_plugin_address_to_string (NULL, &w_t6->addr6,
                                                     sizeof (struct
                                                             IPv6HttpAddress)));
-#endif
-    plugin->env->notify_address (plugin->env->cls, add_remove, &w_t6->addr6,
+      plugin->env->notify_address (plugin->env->cls, add_remove, &w_t6->addr6,
                                  sizeof (struct IPv6HttpAddress));
+    }
     break;
   default:
     return;
@@ -954,15 +950,15 @@ nat_remove_address (void *cls, int add_remove, const struct sockaddr *addr,
   {
   case AF_INET:
     w_t4 = find_address (plugin, addr, addrlen);
+    if (w_t4 == NULL)
       return;
 
-#if DEBUG_HTTP
+
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                      "Notifying transport to remove IPv4 address `%s'\n",
                      http_plugin_address_to_string (NULL, &w_t4->addr,
                                                     sizeof (struct
                                                             IPv4HttpAddress)));
-#endif
     plugin->env->notify_address (plugin->env->cls, add_remove, &w_t4->addr,
                                  sizeof (struct IPv4HttpAddress));
 
@@ -974,13 +970,13 @@ nat_remove_address (void *cls, int add_remove, const struct sockaddr *addr,
     w_t6 = find_address (plugin, addr, addrlen);
     if (w_t6 == NULL)
       return;
-#if DEBUG_HTTP
+
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                      "Notifying transport to remove IPv6 address `%s'\n",
                      http_plugin_address_to_string (NULL, &w_t6->addr6,
                                                     sizeof (struct
                                                             IPv6HttpAddress)));
-#endif
+
     plugin->env->notify_address (plugin->env->cls, add_remove, &w_t6->addr6,
                                  sizeof (struct IPv6HttpAddress));
 
@@ -1008,15 +1004,13 @@ nat_port_map_callback (void *cls, int add_remove, const struct sockaddr *addr,
                        socklen_t addrlen)
 {
   GNUNET_assert (cls != NULL);
-#if DEBUG_HTTP
   struct Plugin *plugin = cls;
-#endif
-#if DEBUG_HTTP
+
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                    "NPMC called %s to address `%s'\n",
                    (add_remove == GNUNET_NO) ? "remove" : "add",
                    GNUNET_a2s (addr, addrlen));
-#endif
+
   switch (add_remove)
   {
   case GNUNET_YES:
