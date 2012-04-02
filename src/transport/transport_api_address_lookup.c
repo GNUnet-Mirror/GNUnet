@@ -294,17 +294,17 @@ peer_address_response_processor (void *cls,
 
 /**
  * Return all the known addresses for a specific peer or all peers.
- * Returns continously all address if one_shot is set to GNUNET_NO
+ * Returns continuously all address if one_shot is set to GNUNET_NO
  *
  * CHANGE: Returns the address(es) that we are currently using for this
  * peer.  Upon completion, the 'AddressLookUpCallback' is called one more
  * time with 'NULL' for the address and the peer.  After this, the operation must no
- * longer be explicitly cancelled.
+ * longer be explicitly canceled.
  *
  * @param cfg configuration to use
  * @param peer peer identity to look up the addresses of, CHANGE: allow NULL for all (connected) peers
  * @param one_shot GNUNET_YES to return the current state and then end (with NULL+NULL),
- *                 GNUNET_NO to monitor the set of addresses used (continuously, must be explicitly cancelled)
+ *                 GNUNET_NO to monitor the set of addresses used (continuously, must be explicitly canceled)
  * @param timeout how long is the lookup allowed to take at most (irrelevant if one_shot is set to GNUNET_NO)
  * @param peer_address_callback function to call with the results
  * @param peer_address_callback_cls closure for peer_address_callback
