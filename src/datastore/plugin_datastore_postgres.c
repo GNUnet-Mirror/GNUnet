@@ -236,10 +236,15 @@ postgres_plugin_estimate_size (void *cls)
   {
     return 0;
   }
-  if ((PQntuples (ret) != 1) || (PQnfields (ret) != 1) ||
-      (PQgetlength (ret, 0, 0) != sizeof (unsigned long long)))
+  if ((PQntuples (ret) != 1) || (PQnfields (ret) != 1) )
   {
     GNUNET_break (0);
+    PQclear (ret);
+    return 0;
+  }
+  if (PQgetlength (ret, 0, 0) != sizeof (unsigned long long))
+  {
+    GNUNET_break (0 == PQgetlength (ret, 0, 0));
     PQclear (ret);
     return 0;
   }
