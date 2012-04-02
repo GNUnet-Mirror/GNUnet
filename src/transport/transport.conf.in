@@ -9,7 +9,7 @@ BINARY = gnunet-service-transport
 NEIGHBOUR_LIMIT = 50
 ACCEPT_FROM = 127.0.0.1;
 ACCEPT_FROM6 = ::1;
-PLUGINS = tcp http
+PLUGINS = tcp
 UNIXPATH = /tmp/gnunet-service-transport.sock
 BLACKLIST_FILE = $SERVICEHOME/blacklist
 # This could possibly be relaxed
