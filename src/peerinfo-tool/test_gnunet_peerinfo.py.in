@@ -43,7 +43,7 @@ elif os.name == 'nt':
 
 pinfo = pexpect ()
 pinfo.spawn (None, [peerinfo, '-i', '-c', 'test_gnunet_peerinfo_data.conf', '-L', 'ERROR'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-pinfo.expect ("stdout", re.compile (r'Error in communication with PEERINFO service: Failed to transmit iteration request to `PEERINFO\' service\r?\n'))
+pinfo.expect ("stdout", re.compile (r'Error in communication with PEERINFO service: Timeout transmitting iteration request to `PEERINFO\' service.\r?\n'))
 pinfo.expect ("stdout", "EOF")
 
 if os.name == "nt":
