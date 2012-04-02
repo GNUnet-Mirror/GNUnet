@@ -48,7 +48,9 @@ main (int argc, char *argv[])
   dfa = NULL;
 
   regex = "a\\*b(c|d)+c*(a(b|c)d)+";
-  string = "a*bcabd";
+  string = "a*bcdcdcdcdddddabd";
+  /*regex = "VPN TCP (IPv4|IPv6) Port53"; */
+  /*string = "VPN TCP IPv4 Port53"; */
   /*regex = "\\*a(a|b)b"; */
   /*regex = "a(a|b)c"; */
   /*regex = "(a|aa)+"; */

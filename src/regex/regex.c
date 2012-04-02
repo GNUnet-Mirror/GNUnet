@@ -246,6 +246,22 @@ state_set_contains (struct StateSet *set, struct State *elem)
 }
 
 /**
+ * Clears the given StateSet 'set'
+ *
+ * @param set set to be cleared
+ */
+void
+state_set_clear (struct StateSet *set)
+{
+  if (NULL != set)
+  {
+    if (NULL != set->states)
+      GNUNET_free (set->states);
+    GNUNET_free (set);
+  }
+}
+
+/**
  * Adds a transition from one state to another on 'literal'
  *
  * @param ctx context
@@ -313,12 +329,7 @@ automaton_destroy_state (struct State *s)
     t = next_t;
   }
 
-  if (NULL != s->nfa_set)
-  {
-    if (s->nfa_set->len > 0)
-      GNUNET_free (s->nfa_set->states);
-    GNUNET_free (s->nfa_set);
-  }
+  state_set_clear (s->nfa_set);
 
   GNUNET_free (s);
 }
@@ -758,12 +769,7 @@ nfa_closure_set_create (struct StateSet *states, const char literal)
     for (j = 0; j < sset->len; j++)
       GNUNET_array_append (cls->states, cls->len, sset->states[j]);
 
-    if (NULL != sset)
-    {
-      if (sset->len > 0)
-        GNUNET_free (sset->states);
-      GNUNET_free (sset);
-    }
+    state_set_clear (sset);
   }
 
   return cls;
@@ -999,12 +1005,7 @@ GNUNET_REGEX_construct_dfa (const char *regex, const size_t len)
       {
         tmp = nfa_closure_set_create (dfa_state->nfa_set, ctran->literal);
         nfa_set = nfa_closure_set_create (tmp, 0);
-        if (NULL != tmp)
-        {
-          if (tmp->len > 0)
-            GNUNET_free (tmp->states);
-          GNUNET_free (tmp);
-        }
+        state_set_clear (tmp);
         new_dfa_state = dfa_state_create (&ctx, nfa_set);
         state_contains = NULL;
         for (state_iter = dfa->states_head; NULL != state_iter;
@@ -1125,13 +1126,26 @@ GNUNET_REGEX_automaton_save_graph (struct GNUNET_REGEX_Automaton *a,
   fclose (p);
 }
 
+/**
+ * Evaluates the given string using the given DFA automaton
+ *
+ * @param a automaton, type must be DFA
+ * @param string string that should be evaluated
+ *
+ * @return GNUNET_YES if string matches, GNUNET_NO if not, GNUNET_SYSERR otherwise
+ */
 int
 evaluate_dfa (struct GNUNET_REGEX_Automaton *a, const char *string)
 {
   const char *strp;
   struct State *s;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Evaluating '%s' using DFA\n", string);
+  if (DFA != a->type)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Tried to evaluate NFA, but DFA automaton given");
+    return GNUNET_SYSERR;
+  }
 
   s = a->start;
 
@@ -1148,12 +1162,56 @@ evaluate_dfa (struct GNUNET_REGEX_Automaton *a, const char *string)
   return GNUNET_NO;
 }
 
+/**
+ * Evaluates the given string using the given NFA automaton
+ *
+ * @param a automaton, type must be NFA
+ * @param string string that should be evaluated
+ *
+ * @return GNUNET_YES if string matches, GNUNET_NO if not, GNUNET_SYSERR otherwise
+ */
 int
 evaluate_nfa (struct GNUNET_REGEX_Automaton *a, const char *string)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Evaluating '%s' using NFA\n", string);
+  const char *strp;
+  struct State *s;
+  struct StateSet *sset;
+  struct StateSet *new_sset;
+  int i;
+  int eval;
 
-  return GNUNET_YES;
+  if (NFA != a->type)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Tried to evaluate NFA, but DFA automaton given");
+    return GNUNET_SYSERR;
+  }
+
+  eval = GNUNET_NO;
+  strp = string;
+  sset = GNUNET_malloc (sizeof (struct StateSet));
+  GNUNET_array_append (sset->states, sset->len, a->start);
+
+  for (strp = string; NULL != strp && *strp; strp++)
+  {
+    new_sset = nfa_closure_set_create (sset, *strp);
+    state_set_clear (sset);
+    sset = nfa_closure_set_create (new_sset, 0);
+    state_set_clear (new_sset);
+  }
+
+  for (i = 0; i < sset->len; i++)
+  {
+    s = sset->states[i];
+    if (NULL != s && s->accepting)
+    {
+      eval = GNUNET_YES;
+      break;
+    }
+  }
+
+  state_set_clear (sset);
+  return eval;
 }
 
 
