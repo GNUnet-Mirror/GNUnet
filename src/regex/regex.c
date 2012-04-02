@@ -43,6 +43,12 @@ struct GNUNET_REGEX_Context
   struct GNUNET_REGEX_Automaton *stack_tail;
 };
 
+enum GNUNET_REGEX_automaton_type
+{
+  NFA,
+  DFA
+};
+
 /**
  * Automaton representation
  */
@@ -56,6 +62,8 @@ struct GNUNET_REGEX_Automaton
 
   struct State *states_head;
   struct State *states_tail;
+
+  enum GNUNET_REGEX_automaton_type type;
 };
 
 /**
@@ -268,6 +276,54 @@ add_transition (struct GNUNET_REGEX_Context *ctx, struct State *from_state,
 }
 
 /**
+ * Clears an automaton fragment. Does not destroy the states inside
+ * the automaton.
+ *
+ * @param a automaton to be cleared
+ */
+void
+automaton_fragment_clear (struct GNUNET_REGEX_Automaton *a)
+{
+  a->start = NULL;
+  a->end = NULL;
+  a->states_head = NULL;
+  a->states_tail = NULL;
+  GNUNET_free (a);
+}
+
+/**
+ * Frees the memory used by State 's'
+ *
+ * @param s state that should be destroyed
+ */
+void
+automaton_destroy_state (struct State *s)
+{
+  struct Transition *t;
+  struct Transition *next_t;
+
+  if (NULL != s->name)
+    GNUNET_free (s->name);
+
+  for (t = s->transitions_head; NULL != t;)
+  {
+    next_t = t->next;
+    GNUNET_CONTAINER_DLL_remove (s->transitions_head, s->transitions_tail, t);
+    GNUNET_free (t);
+    t = next_t;
+  }
+
+  if (NULL != s->nfa_set)
+  {
+    if (s->nfa_set->len > 0)
+      GNUNET_free (s->nfa_set->states);
+    GNUNET_free (s->nfa_set);
+  }
+
+  GNUNET_free (s);
+}
+
+/**
  * Creates a new DFA state based on a set of NFA states. Needs to be freed
  * using automaton_destroy_state.
  *
@@ -352,6 +408,29 @@ dfa_state_create (struct GNUNET_REGEX_Context *ctx, struct StateSet *nfa_states)
   return s;
 }
 
+struct State *
+dfa_move (struct State *s, const char literal)
+{
+  struct Transition *t;
+  struct State *new_s;
+
+  if (NULL == s)
+    return NULL;
+
+  new_s = NULL;
+
+  for (t = s->transitions_head; NULL != t; t = t->next)
+  {
+    if (literal == t->literal)
+    {
+      new_s = t->state;
+      break;
+    }
+  }
+
+  return new_s;
+}
+
 /**
  * Creates a new NFA fragment. Needs to be cleared using automaton_fragment_clear.
  *
@@ -367,6 +446,7 @@ nfa_fragment_create (struct State *start, struct State *end)
 
   n = GNUNET_malloc (sizeof (struct GNUNET_REGEX_Automaton));
 
+  n->type = NFA;
   n->start = NULL;
   n->end = NULL;
 
@@ -434,54 +514,6 @@ nfa_state_create (struct GNUNET_REGEX_Context *ctx, int accepting)
   GNUNET_asprintf (&s->name, "s%i", s->id);
 
   return s;
-}
-
-/**
- * Clears an automaton fragment. Does not destroy the states inside
- * the automaton.
- *
- * @param a automaton to be cleared
- */
-void
-automaton_fragment_clear (struct GNUNET_REGEX_Automaton *a)
-{
-  a->start = NULL;
-  a->end = NULL;
-  a->states_head = NULL;
-  a->states_tail = NULL;
-  GNUNET_free (a);
-}
-
-/**
- * Frees the memory used by State 's'
- *
- * @param s state that should be destroyed
- */
-void
-automaton_destroy_state (struct State *s)
-{
-  struct Transition *t;
-  struct Transition *next_t;
-
-  if (NULL != s->name)
-    GNUNET_free (s->name);
-
-  for (t = s->transitions_head; NULL != t;)
-  {
-    next_t = t->next;
-    GNUNET_CONTAINER_DLL_remove (s->transitions_head, s->transitions_tail, t);
-    GNUNET_free (t);
-    t = next_t;
-  }
-
-  if (NULL != s->nfa_set)
-  {
-    if (s->nfa_set->len > 0)
-      GNUNET_free (s->nfa_set->states);
-    GNUNET_free (s->nfa_set);
-  }
-
-  GNUNET_free (s);
 }
 
 /**
@@ -750,6 +782,7 @@ GNUNET_REGEX_construct_nfa (const char *regex, const size_t len)
 {
   struct GNUNET_REGEX_Context ctx;
   struct GNUNET_REGEX_Automaton *nfa;
+  const char *regexp;
   char *error_msg;
   unsigned int count;
   unsigned int altcount;
@@ -763,15 +796,16 @@ GNUNET_REGEX_construct_nfa (const char *regex, const size_t len)
 
   GNUNET_REGEX_context_init (&ctx);
 
+  regexp = regex;
   p = NULL;
   error_msg = NULL;
   altcount = 0;
   atomcount = 0;
   pcount = 0;
 
-  for (count = 0; count < len && *regex; count++, regex++)
+  for (count = 0; count < len && *regexp; count++, regexp++)
   {
-    switch (*regex)
+    switch (*regexp)
     {
     case '(':
       if (atomcount > 1)
@@ -835,7 +869,7 @@ GNUNET_REGEX_construct_nfa (const char *regex, const size_t len)
       nfa_add_plus_op (&ctx);
       break;
     case 92:                   /* escape: \ */
-      regex++;
+      regexp++;
       count++;
     default:
       if (atomcount > 1)
@@ -843,7 +877,7 @@ GNUNET_REGEX_construct_nfa (const char *regex, const size_t len)
         --atomcount;
         nfa_add_concatenation (&ctx);
       }
-      nfa_add_literal (&ctx, *regex);
+      nfa_add_literal (&ctx, *regexp);
       atomcount++;
       break;
     }
@@ -945,6 +979,7 @@ GNUNET_REGEX_construct_dfa (const char *regex, const size_t len)
   nfa = GNUNET_REGEX_construct_nfa (regex, len);
 
   dfa = GNUNET_malloc (sizeof (struct GNUNET_REGEX_Automaton));
+  dfa->type = DFA;
 
   // Create DFA start state from epsilon closure
   dfa_stack = GNUNET_malloc (sizeof (struct StateSet));
@@ -1088,4 +1123,67 @@ GNUNET_REGEX_automaton_save_graph (struct GNUNET_REGEX_Automaton *a,
   end = "\n}\n";
   fwrite (end, strlen (end), 1, p);
   fclose (p);
+}
+
+int
+evaluate_dfa (struct GNUNET_REGEX_Automaton *a, const char *string)
+{
+  const char *strp;
+  struct State *s;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Evaluating '%s' using DFA\n", string);
+
+  s = a->start;
+
+  for (strp = string; NULL != strp && *strp; strp++)
+  {
+    s = dfa_move (s, *strp);
+    if (NULL == s)
+      break;
+  }
+
+  if (NULL != s && s->accepting)
+    return GNUNET_YES;
+
+  return GNUNET_NO;
+}
+
+int
+evaluate_nfa (struct GNUNET_REGEX_Automaton *a, const char *string)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Evaluating '%s' using NFA\n", string);
+
+  return GNUNET_YES;
+}
+
+
+/**
+ * Evaluates the given 'string' against the given compiled regex
+ *
+ * @param a automaton
+ * @param string string to check
+ *
+ * @return GNUNET_YES if 'a' matches 'string', GNUNET_NO otherwise
+ */
+int
+GNUNET_REGEX_eval (struct GNUNET_REGEX_Automaton *a, const char *string)
+{
+  int eval;
+
+  switch (a->type)
+  {
+  case DFA:
+    eval = evaluate_dfa (a, string);
+    break;
+  case NFA:
+    eval = evaluate_nfa (a, string);
+    break;
+  default:
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Evaluating regex failed, automaton has no type!\n");
+    eval = GNUNET_SYSERR;
+    break;
+  }
+
+  return eval;
 }

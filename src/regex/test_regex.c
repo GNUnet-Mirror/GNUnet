@@ -41,11 +41,14 @@ main (int argc, char *argv[])
   struct GNUNET_REGEX_Automaton *nfa;
   struct GNUNET_REGEX_Automaton *dfa;
   char *regex;
+  char *string;
+  int eval;
 
   nfa = NULL;
   dfa = NULL;
 
   regex = "a\\*b(c|d)+c*(a(b|c)d)+";
+  string = "a*bcabd";
   /*regex = "\\*a(a|b)b"; */
   /*regex = "a(a|b)c"; */
   /*regex = "(a|aa)+"; */
@@ -54,6 +57,11 @@ main (int argc, char *argv[])
   if (nfa)
   {
     GNUNET_REGEX_automaton_save_graph (nfa, "nfa_graph.dot");
+    eval = GNUNET_REGEX_eval (nfa, string);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Evaluating %s result: %i\n", string,
+                eval);
+    if (GNUNET_YES != eval)
+      err = 1;
     GNUNET_REGEX_automaton_destroy (nfa);
   }
   else
@@ -63,6 +71,11 @@ main (int argc, char *argv[])
   if (dfa)
   {
     GNUNET_REGEX_automaton_save_graph (dfa, "dfa_graph.dot");
+    eval = GNUNET_REGEX_eval (dfa, string);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Evaluating %s result: %i\n", string,
+                eval);
+    if (GNUNET_YES != eval)
+      err = 1;
     GNUNET_REGEX_automaton_destroy (dfa);
   }
   return err;
