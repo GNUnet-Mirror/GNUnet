@@ -1387,7 +1387,8 @@ ack_proc (void *cls, uint32_t id, const struct GNUNET_MessageHeader *msg)
       &l_ctx);
   s = l_ctx.res;
 
-  GNUNET_assert (s != NULL);
+  if (NULL == s)
+    return;
 
   if (s->flow_delay_for_other_peer.rel_value <= UINT32_MAX)
     delay = s->flow_delay_for_other_peer.rel_value;
