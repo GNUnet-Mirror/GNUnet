@@ -612,7 +612,6 @@ GNUNET_PEERINFO_iterate (struct GNUNET_PEERINFO_Handle *h,
   tqe->timeout = GNUNET_TIME_UNIT_FOREVER_ABS;
   tqe->cont = &iterator_start_receive;
   tqe->cont_cls = ic;
-  tqe->timeout = ic->timeout;
   GNUNET_CONTAINER_DLL_insert_after (h->tq_head, h->tq_tail, h->tq_tail, tqe);
   trigger_transmit (h);
   return ic;
