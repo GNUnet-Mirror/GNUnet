@@ -1369,6 +1369,8 @@ struct PrettyPrinterContext
    * Port to add after the IP address.
    */
   uint16_t port;
+
+  int ipv6;
 };
 
 
@@ -1390,7 +1392,10 @@ append_port (void *cls, const char *hostname)
     GNUNET_free (ppc);
     return;
   }
-  GNUNET_asprintf (&ret, "%s:%d", hostname, ppc->port);
+  if (GNUNET_YES == ppc->ipv6)
+    GNUNET_asprintf (&ret, "[%s]:%d", hostname, ppc->port);
+  else
+    GNUNET_asprintf (&ret, "%s:%d", hostname, ppc->port);
   ppc->asc (ppc->asc_cls, ret);
   GNUNET_free (ret);
 }
@@ -1452,11 +1457,17 @@ tcp_plugin_address_pretty_printer (void *cls, const char *type,
   else
   {
     /* invalid address */
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "tcp",
+        "Invalid address to string request: plugin `%s', address length: %u bytes\n");
     GNUNET_break_op (0);
     asc (asc_cls, NULL);
     return;
   }
   ppc = GNUNET_malloc (sizeof (struct PrettyPrinterContext));
+  if (addrlen == sizeof (struct IPv6TcpAddress))
+    ppc->ipv6 = GNUNET_YES;
+  else
+    ppc->ipv6 = GNUNET_NO;
   ppc->asc = asc;
   ppc->asc_cls = asc_cls;
   ppc->port = port;
