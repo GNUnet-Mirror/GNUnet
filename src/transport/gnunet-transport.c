@@ -40,6 +40,7 @@
  * Should match NAT_SERVER_TIMEOUT in 'nat_test.c'.
  */
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
+#define RESOLUTION_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 
 /**
  * Which peer should we connect to?
@@ -121,6 +122,8 @@ static struct GNUNET_PeerIdentity pid;
  * Task scheduled for cleanup / termination of the process.
  */
 static GNUNET_SCHEDULER_TaskIdentifier end;
+
+static struct GNUNET_CONTAINER_MultiHashMap *peers;
 
 /**
  * Selected level of verbosity.
@@ -444,19 +447,31 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
   traffic_received += ntohs (message->size);
 }
 
+struct ResolutionContext
+{
+  struct GNUNET_HELLO_Address *addrcp;
+
+  int printed;
+};
+
 void
 process_string (void *cls, const char *address)
 {
-  struct GNUNET_HELLO_Address *addrcp = cls;
+  struct ResolutionContext *rc = cls;
+  struct GNUNET_HELLO_Address *addrcp = rc->addrcp;
 
-  if ((address != NULL))
+  if (address != NULL)
   {
     FPRINTF (stdout, _("Peer `%s': %s %s\n"), GNUNET_i2s (&addrcp->peer), addrcp->transport_name, address);
+    rc->printed = GNUNET_YES;
   }
   else
   {
     /* done */
-    GNUNET_free (addrcp);
+    if (GNUNET_NO == rc->printed)
+      FPRINTF (stdout, _("Peer `%s': %s <unable to resolve address>\n"), GNUNET_i2s (&addrcp->peer), addrcp->transport_name);
+    GNUNET_free (rc->addrcp);
+    GNUNET_free (rc);
   }
 }
 
@@ -472,6 +487,7 @@ process_address (void *cls, const struct GNUNET_PeerIdentity *peer,
                  const struct GNUNET_HELLO_Address *address)
 {
   const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
+  struct ResolutionContext *rc;
 
   if (peer == NULL)
   {
@@ -485,10 +501,16 @@ process_address (void *cls, const struct GNUNET_PeerIdentity *peer,
     return;
   }
 
+  rc = GNUNET_malloc(sizeof (struct ResolutionContext));
+  rc->addrcp = GNUNET_HELLO_address_copy(address);
+  rc->printed = GNUNET_NO;
+
+  GNUNET_assert (NULL != rc);
+
   /* Resolve address to string */
   GNUNET_TRANSPORT_address_to_string (cfg, address, numeric,
-                                      GNUNET_TIME_UNIT_MINUTES, &process_string,
-                                      GNUNET_HELLO_address_copy(address));
+                                      RESOLUTION_TIMEOUT, &process_string,
+                                      rc);
 }
 
 
@@ -505,7 +527,13 @@ shutdown_task (void *cls,
 {
   struct GNUNET_TRANSPORT_PeerIterateContext *pic = cls;
 
-  GNUNET_TRANSPORT_peer_get_active_addresses_cancel (pic);  
+  GNUNET_TRANSPORT_peer_get_active_addresses_cancel (pic);
+
+  if (NULL != peers)
+  {
+    GNUNET_CONTAINER_multihashmap_destroy (peers);
+    peers = NULL;
+  }
 }
 
 
@@ -562,8 +590,9 @@ run (void *cls, char *const *args, const char *cfgfile,
   }
   if (iterate_connections)
   {
+    peers = GNUNET_CONTAINER_multihashmap_create (20);
     GNUNET_TRANSPORT_peer_get_active_addresses (cfg, NULL, GNUNET_YES,
-                                                GNUNET_TIME_UNIT_MINUTES,
+                                                TIMEOUT,
                                                 &process_address, (void *) cfg);
   }
   if (monitor_connections)
