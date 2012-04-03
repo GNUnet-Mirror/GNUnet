@@ -142,6 +142,11 @@ struct GNUNET_CRYPTO_ShortHashCode zone_hash;
  */
 static int num_public_records =  3600;
 
+/**
+ * update interval in seconds
+ */
+static unsigned long long int dht_max_update_interval;
+
 /* dht update interval FIXME define? */
 static struct GNUNET_TIME_Relative dht_update_interval;
 
@@ -253,11 +258,11 @@ put_gns_record(void *cls,
   {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                "Zone iteration finished. Rescheduling put in %ds\n",
-               GNUNET_GNS_DHT_MAX_UPDATE_INTERVAL);
+               dht_max_update_interval);
     zone_update_taskid = GNUNET_SCHEDULER_add_delayed (
                                         GNUNET_TIME_relative_multiply(
                                             GNUNET_TIME_UNIT_SECONDS,
-                                            GNUNET_GNS_DHT_MAX_UPDATE_INTERVAL
+                                            dht_max_update_interval
                                             ),
                                             &update_zone_dht_start,
                                             NULL);
@@ -324,6 +329,9 @@ put_gns_record(void *cls,
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
              "putting records for %s under key: %s with size %d\n",
              name, (char*)&xor_hash_string, rd_payload_length);
+  
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "DHT req to %d\n", DHT_OPERATION_TIMEOUT.rel_value);
 
   GNUNET_DHT_put (dht_handle, &xor_hash,
                   DHT_GNS_REPLICATION_LEVEL,
@@ -363,20 +371,20 @@ update_zone_dht_start(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     dht_update_interval = GNUNET_TIME_relative_multiply(
                                             GNUNET_TIME_UNIT_SECONDS,
-                                            GNUNET_GNS_DHT_MAX_UPDATE_INTERVAL);
+                                            dht_max_update_interval);
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                "No records in db. Adjusted DHT update interval to %ds\n",
-               GNUNET_GNS_DHT_MAX_UPDATE_INTERVAL);
+               dht_max_update_interval);
   }
   else
   {
     
     dht_update_interval = GNUNET_TIME_relative_multiply(
-                                                      GNUNET_TIME_UNIT_SECONDS,
-                                                     (3600/num_public_records));
+                                  GNUNET_TIME_UNIT_SECONDS,
+                                  (dht_max_update_interval/num_public_records));
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                "Adjusted DHT update interval to %ds!\n",
-               (3600/num_public_records));
+               (dht_max_update_interval/num_public_records));
   }
 
   /* start counting again */
@@ -566,6 +574,7 @@ static void handle_get_authority(void *cls,
   struct ClientGetAuthHandle *cah;
   char name[MAX_DNS_NAME_LENGTH];
   char* nameptr = name;
+
 
   if (ntohs (message->size) < sizeof (struct GNUNET_GNS_ClientGetAuthMessage))
   {
@@ -819,6 +828,18 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 
   }
 
+  dht_max_update_interval = GNUNET_GNS_DHT_MAX_UPDATE_INTERVAL;
+
+  if (GNUNET_OK ==
+      GNUNET_CONFIGURATION_get_value_number (c, "gns",
+                                             "DHT_MAX_UPDATE_INTERVAL",
+                                             &dht_max_update_interval))
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+               "DHT zone update interval: %d\n",
+               dht_max_update_interval);
+  }
+
   if (GNUNET_OK ==
       GNUNET_CONFIGURATION_get_value_number (c, "gns",
                                             "MAX_PARALLEL_BACKGROUND_QUERIES",
@@ -854,7 +875,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
    * handle to the dht
    */
   dht_handle = GNUNET_DHT_connect(c,
-                          max_parallel_bg_queries); //FIXME get ht_len from cfg
+                       //max_parallel_bg_queries); //FIXME get ht_len from cfg
+                       1024);
 
   if (NULL == dht_handle)
   {

@@ -4,7 +4,7 @@
 #include "gns.h"
 #include "gnunet_dht_service.h"
 
-#define DHT_OPERATION_TIMEOUT  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 3)
+#define DHT_OPERATION_TIMEOUT  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
 #define GNUNET_GNS_DEFAULT_LOOKUP_TIMEOUT \
   GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 #define DHT_LOOKUP_TIMEOUT DHT_OPERATION_TIMEOUT

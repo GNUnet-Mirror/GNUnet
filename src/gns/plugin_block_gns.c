@@ -215,16 +215,22 @@ block_plugin_gns_get_key (void *cls, enum GNUNET_BLOCK_Type type,
 {
   if (type != GNUNET_BLOCK_TYPE_GNS_NAMERECORD)
     return GNUNET_SYSERR;
-  GNUNET_HashCode name_hash;
-  GNUNET_HashCode pkey_hash;
+  struct GNUNET_CRYPTO_ShortHashCode name_hash;
+  struct GNUNET_CRYPTO_ShortHashCode pkey_hash;
+  GNUNET_HashCode name_hash_double;
+  GNUNET_HashCode pkey_hash_double;
+
   struct GNSNameRecordBlock *nrb = (struct GNSNameRecordBlock *)block;
 
-  GNUNET_CRYPTO_hash(&nrb[1], strlen((char*)&nrb[1]), &name_hash);
-  GNUNET_CRYPTO_hash(&nrb->public_key,
+  GNUNET_CRYPTO_short_hash(&nrb[1], strlen((char*)&nrb[1]), &name_hash);
+  GNUNET_CRYPTO_short_hash(&nrb->public_key,
                      sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
                      &pkey_hash);
+  
+  GNUNET_CRYPTO_short_hash_double(&name_hash, &name_hash_double);
+  GNUNET_CRYPTO_short_hash_double(&pkey_hash, &pkey_hash_double);
 
-  GNUNET_CRYPTO_hash_xor(&name_hash, &pkey_hash, key);
+  GNUNET_CRYPTO_hash_xor(&name_hash_double, &pkey_hash_double, key);
   
   return GNUNET_OK;
 }

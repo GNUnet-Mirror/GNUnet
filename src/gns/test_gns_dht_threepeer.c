@@ -43,12 +43,16 @@
 
 /* Timeout for entire testcase */
 #define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 80)
+#define ZONE_PUT_WAIT_TIME GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30)
 
 /* If number of peers not in config file, use this number */
 #define DEFAULT_NUM_PEERS 2
 
 #define TEST_DOMAIN "www.buddy.bob.gnunet"
 #define TEST_IP "1.1.1.1"
+#define TEST_DAVE_PSEU "hagbard"
+#define TEST_NUM_PEERS 3
+#define TEST_NUM_CON 3
 
 /* Globals */
 
@@ -101,43 +105,27 @@ static int ok;
 
 int bob_online, alice_online, dave_online;
 
-struct GNUNET_CONFIGURATION_Handle *cfg_alice;
+struct GNUNET_CONFIGURATION_Handle *alice_cfg;
 struct GNUNET_CONFIGURATION_Handle *cfg_bob;
 struct GNUNET_CONFIGURATION_Handle *cfg_dave;
 
-/**
- * Check whether peers successfully shut down.
- */
-void
-shutdown_callback (void *cls, const char *emsg)
-{
-  if (emsg != NULL)
-  {
-    if (ok == 0)
-      ok = 2;
-  }
-}
+struct GNUNET_CRYPTO_ShortHashCode bob_hash;
+struct GNUNET_CRYPTO_ShortHashCode dave_hash;
+struct GNUNET_TESTING_Daemon *alice_daemon;
+struct GNUNET_TESTING_Daemon *bob_daemon;
+struct GNUNET_TESTING_Daemon *dave_daemon;
+
+struct GNUNET_TESTING_PeerGroup *pg;
+struct GNUNET_GNS_Handle *gh;
 
 /**
  * Function scheduled to be run on the successful completion of this
  * testcase.  Specifically, called when our get request completes.
  */
 static void
-finish_testing (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+finish_testing (void *cls, const char *emsg)
 {
-  ok = 0;
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Shutting down alice!\n");
-  GNUNET_TESTING_daemon_stop (d1, TIMEOUT, &shutdown_callback, NULL,
-                              GNUNET_YES, GNUNET_NO);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Shutting down bob!\n");
-  GNUNET_TESTING_daemon_stop (d2, TIMEOUT, &shutdown_callback, NULL,
-                              GNUNET_YES, GNUNET_NO);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Shutting down dave\n");
-  GNUNET_TESTING_daemon_stop (d3, TIMEOUT, &shutdown_callback, NULL,
-                              GNUNET_YES, GNUNET_NO);
-  GNUNET_DISK_file_copy ("testdb/sqlite-alice.db.bak",
-                         "testdb/sqlite-alice.db.bak");
-  GNUNET_SCHEDULER_cancel(die_task);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Test finished! (ret=%d)\n", ok);
 }
 
 /**
@@ -147,16 +135,7 @@ finish_testing (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 end_badly_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  if (d1 != NULL)
-    GNUNET_TESTING_daemon_stop (d1, TIMEOUT, &shutdown_callback, NULL,
-                                GNUNET_YES, GNUNET_NO);
-  if (d2 != NULL)
-    GNUNET_TESTING_daemon_stop (d2, TIMEOUT, &shutdown_callback, NULL,
-                                GNUNET_YES, GNUNET_NO);
-;
-  if (d3 != NULL)
-    GNUNET_TESTING_daemon_stop (d3, TIMEOUT, &shutdown_callback, NULL,
-                                GNUNET_YES, GNUNET_NO);
+  GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &finish_testing, NULL);
 }
 
 /**
@@ -173,33 +152,58 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   ok = 1;
 }
 
+
 static void
-commence_testing(void)
+on_lookup_result(void *cls, uint32_t rd_count,
+                 const struct GNUNET_NAMESTORE_RecordData *rd)
 {
-  struct hostent *he;
-  struct in_addr a;
-  char* addr;
+  int i;
+  char* string_val;
+  const char* typename;
 
-  he = gethostbyname (TEST_DOMAIN);
-
-  if (he)
+  if (rd_count == 0)
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_INFO, "name: %s\n", he->h_name);
-    while (*he->h_addr_list)
-    {
-      bcopy(*he->h_addr_list++, (char *) &a, sizeof(a));
-      addr = inet_ntoa(a);
-      GNUNET_log(GNUNET_ERROR_TYPE_INFO, "address: %s\n", addr);
-      if (strcmp(addr, TEST_IP) == 0)
-        ok = 0;
-    }
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Lookup failed!\n");
+    ok = 2;
   }
   else
+  {
     ok = 1;
-  //do lookup here
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                (GNUNET_TIME_UNIT_SECONDS, 30),
-                                 &finish_testing, NULL);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "name: %s\n", (char*)cls);
+    for (i=0; i<rd_count; i++)
+    {
+      typename = GNUNET_NAMESTORE_number_to_typename (rd[i].record_type);
+      string_val = GNUNET_NAMESTORE_value_to_string(rd[i].record_type,
+                                                    rd[i].data,
+                                                    rd[i].data_size);
+      printf("Got %s record: %s\n", typename, string_val);
+      if (0 == strcmp(string_val, TEST_IP))
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                    "%s correctly resolved to %s!\n", TEST_DOMAIN, string_val);
+        ok = 0;
+      }
+    }
+  }
+  GNUNET_GNS_disconnect(gh);
+  GNUNET_SCHEDULER_cancel(die_task);
+  GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &finish_testing, NULL);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Shutting down!\n");
+
+}
+
+static void
+commence_testing(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  
+
+  gh = GNUNET_GNS_connect(alice_cfg);
+
+  GNUNET_GNS_lookup(gh, TEST_DOMAIN, GNUNET_GNS_RECORD_TYPE_A,
+                    &on_lookup_result, TEST_DOMAIN);
+  die_task =
+    GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, "from lookup");
 }
 
 
@@ -213,7 +217,7 @@ commence_testing(void)
  * failure (peers failed to connect).
  */
 void
-notify_connect (void *cls, const struct GNUNET_PeerIdentity *first,
+daemon_connected (void *cls, const struct GNUNET_PeerIdentity *first,
                    const struct GNUNET_PeerIdentity *second, uint32_t distance,
                    const struct GNUNET_CONFIGURATION_Handle *first_cfg,
                    const struct GNUNET_CONFIGURATION_Handle *second_cfg,
@@ -248,9 +252,10 @@ notify_connect (void *cls, const struct GNUNET_PeerIdentity *first,
                 total_connections);
 #endif
     GNUNET_SCHEDULER_cancel (die_task);
-    die_task =
-        GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, "from connect");
-    commence_testing();
+    //die_task =
+    //    GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, "from connect");
+   
+    //commence_testing();
     
   }
   else if (total_connections + failed_connections == expected_connections)
@@ -260,96 +265,154 @@ notify_connect (void *cls, const struct GNUNET_PeerIdentity *first,
         GNUNET_SCHEDULER_add_now (&end_badly,
                                   "from topology_callback (too many failed connections)");
   }
-  else
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Connecting peers dave, bob\n");
-    GNUNET_TESTING_daemons_connect (d3, d2, TIMEOUT, 5, 1,
-                                         &notify_connect, NULL);
-  }
 }
 
-/**
- * Set up some data, and call API PUT function
- */
-static void
-connect_ab (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+void
+all_connected(void *cls, const char *emsg)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Created all connections!  Starting next phase of testing.\n");
+  GNUNET_SCHEDULER_add_delayed (ZONE_PUT_WAIT_TIME, &commence_testing, NULL);
+}
+
+void
+ns_create_cont(void *cls, int32_t s, const char *emsg)
+{
+  GNUNET_NAMESTORE_disconnect((struct GNUNET_NAMESTORE_Handle *)cls, 0);
+}
+
+static void
+daemon_started (void *cls, const struct GNUNET_PeerIdentity *id,
+                const struct GNUNET_CONFIGURATION_Handle *cfg,
+                struct GNUNET_TESTING_Daemon *d, const char *emsg)
+{
+  struct GNUNET_NAMESTORE_Handle *ns;
+  char* keyfile;
+  struct GNUNET_CRYPTO_RsaPrivateKey *key;
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pkey;
+  struct in_addr *web;
+  struct GNUNET_NAMESTORE_RecordData rd;
+
+  rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY | GNUNET_NAMESTORE_RF_NONE;
+  rd.expiration = GNUNET_TIME_UNIT_FOREVER_ABS;
   
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Connecting peers alice, bob\n");
-  GNUNET_TESTING_daemons_connect (d1, d2, TIMEOUT, 5, 1,
-                                         &notify_connect, NULL);
-}
-
-
-static void
-dave_started (void *cls, const struct GNUNET_PeerIdentity *id,
-                        const struct GNUNET_CONFIGURATION_Handle *cfg,
-                        struct GNUNET_TESTING_Daemon *d, const char *emsg)
-{
-  if (emsg != NULL)
+  if (NULL == dave_daemon)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "Failed to start daemon with error: `%s'\n", emsg);
+    if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
+                                                              "ZONEKEY",
+                                                              &keyfile))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to get key from cfg\n");
+      ok = -1;
+      return;
+    }
+    dave_daemon = d;
+
+    key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
+
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "This is now dave\n");
+    ns = GNUNET_NAMESTORE_connect(cfg);
+    
+    GNUNET_CRYPTO_rsa_key_get_public (key, &pkey);
+    GNUNET_CRYPTO_short_hash(&pkey, sizeof(pkey), &dave_hash);
+    
+    web = GNUNET_malloc(sizeof(struct in_addr));
+    GNUNET_assert(1 == inet_pton (AF_INET, TEST_IP, web));
+    rd.data_size = sizeof(struct in_addr);
+    rd.data = web;
+    rd.record_type = GNUNET_GNS_RECORD_TYPE_A;
+
+    GNUNET_NAMESTORE_record_create (ns, key, "www", &rd, NULL, NULL);
+
+    rd.data_size = strlen(TEST_DAVE_PSEU);
+    rd.data = TEST_DAVE_PSEU;
+    rd.record_type = GNUNET_GNS_RECORD_PSEU;
+
+    GNUNET_NAMESTORE_record_create (ns, key, "+", &rd, ns_create_cont, ns);
+
+    GNUNET_CRYPTO_rsa_key_free(key);
+    GNUNET_free(keyfile);
+    GNUNET_free(web);
+
     return;
   }
-  GNUNET_assert (id != NULL);
   
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                (GNUNET_TIME_UNIT_SECONDS, 2),
-                                &connect_ab, NULL);
-}
-
-
-
-static void
-bob_started (void *cls, const struct GNUNET_PeerIdentity *id,
-                        const struct GNUNET_CONFIGURATION_Handle *cfg,
-                        struct GNUNET_TESTING_Daemon *d, const char *emsg)
-{
-  if (emsg != NULL)
+  
+  if (NULL == bob_daemon)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "Failed to start daemon with error: `%s'\n", emsg);
+    if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
+                                                              "ZONEKEY",
+                                                              &keyfile))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to get key from cfg\n");
+      ok = -1;
+      return;
+    }
+    bob_daemon = d;
+
+    key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
+
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "This is now bob\n");
+    ns = GNUNET_NAMESTORE_connect(cfg);
+    
+    GNUNET_CRYPTO_rsa_key_get_public (key, &pkey);
+    GNUNET_CRYPTO_short_hash(&pkey, sizeof(pkey), &bob_hash);
+    
+    rd.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
+    rd.data = &dave_hash;
+    rd.record_type = GNUNET_GNS_RECORD_PKEY;
+
+    GNUNET_NAMESTORE_record_create (ns, key, "buddy", &rd, ns_create_cont, ns);
+
+    GNUNET_CRYPTO_rsa_key_free(key);
+    GNUNET_free(keyfile);
+
     return;
   }
-  GNUNET_assert (id != NULL);
+
   
-  //Start bob
-  d3 = GNUNET_TESTING_daemon_start(cfg_dave, TIMEOUT, GNUNET_NO, NULL, NULL, 0,
-                                   NULL, NULL, NULL, &dave_started, NULL);
-
-}
-
-
-
-/**
- * Callback which is called whenever a peer is started (as a result of the
- * GNUNET_TESTING_daemons_start call.
- *
- * @param cls closure argument given to GNUNET_TESTING_daemons_start
- * @param id the GNUNET_PeerIdentity of the started peer
- * @param cfg the configuration for this specific peer (needed to connect
- *            to the DHT)
- * @param d the handle to the daemon started
- * @param emsg NULL if peer started, non-NULL on error
- */
-static void
-alice_started (void *cls, const struct GNUNET_PeerIdentity *id,
-                        const struct GNUNET_CONFIGURATION_Handle *cfg,
-                        struct GNUNET_TESTING_Daemon *d, const char *emsg)
-{
-  if (emsg != NULL)
+  
+  if (NULL == alice_daemon)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "Failed to start daemon with error: `%s'\n", emsg);
+
+    if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
+                                                              "ZONEKEY",
+                                                              &keyfile))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to get key from cfg\n");
+      ok = -1;
+      return;
+    }
+    alice_daemon = d;
+    alice_cfg = cfg;
+
+    key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
+
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "This is now alice\n");
+    ns = GNUNET_NAMESTORE_connect(cfg);
+    
+    rd.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
+    rd.data = &bob_hash;
+    rd.record_type = GNUNET_GNS_RECORD_PKEY;
+
+    GNUNET_NAMESTORE_record_create (ns, key, "bob", &rd, ns_create_cont, ns);
+
+    GNUNET_CRYPTO_rsa_key_free(key);
+    GNUNET_free(keyfile);
+
+    GNUNET_TESTING_connect_topology (pg, GNUNET_TESTING_TOPOLOGY_CLIQUE,
+                                     GNUNET_TESTING_TOPOLOGY_OPTION_ALL,
+                                     0,
+                                     TIMEOUT,
+                                     3,
+                                     &all_connected, NULL);
     return;
+
   }
-  GNUNET_assert (id != NULL);
+
   
-  //Start bob
-  d2 = GNUNET_TESTING_daemon_start(cfg_bob, TIMEOUT, GNUNET_NO, NULL, NULL, 0,
-                                   NULL, NULL, NULL, &bob_started, NULL);
-  
+
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "This is a random guy\n");
 }
 
 static void
@@ -366,6 +429,8 @@ run (void *cls, char *const *args, const char *cfgfile,
     return;
   }
 
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "starting\n");
+
   /* Get number of peers to start from configuration (should be two) */
   if (GNUNET_SYSERR ==
       GNUNET_CONFIGURATION_get_value_number (cfg, "testing", "num_peers",
@@ -375,22 +440,14 @@ run (void *cls, char *const *args, const char *cfgfile,
   /* Set peers_left so we know when all peers started */
   peers_left = num_peers;
   
-  /**
-   * Modify some config options for peers
-   */
-  cfg_alice = GNUNET_CONFIGURATION_create();
-  GNUNET_CONFIGURATION_load (cfg_alice, "test_gns_dht_alice.conf");
+  bob_daemon = NULL;
+  dave_daemon = NULL;
+  alice_daemon = NULL;
 
-  cfg_bob = GNUNET_CONFIGURATION_create();
-  GNUNET_CONFIGURATION_load (cfg_bob, "test_gns_dht_bob.conf");
+  pg = GNUNET_TESTING_daemons_start (cfg, TEST_NUM_PEERS, TEST_NUM_CON,
+                                TEST_NUM_CON, TIMEOUT, NULL, NULL, &daemon_started, NULL,
+                                &daemon_connected, NULL, NULL);
   
-  cfg_dave = GNUNET_CONFIGURATION_create();
-  GNUNET_CONFIGURATION_load (cfg_dave, "test_gns_dht_dave.conf");
-
-  GNUNET_CONFIGURATION_load (cfg_alice, "test_gns_dht_alice.conf");
-  GNUNET_CONFIGURATION_load (cfg_bob, "test_gns_dht_bob.conf");
-  GNUNET_CONFIGURATION_load (cfg_dave, "test_gns_dht_dave.conf");
-
   /* Set up a task to end testing if peer start fails */
   die_task =
       GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly,
@@ -402,8 +459,8 @@ run (void *cls, char *const *args, const char *cfgfile,
   expected_connections = 2;
   
   /* Start alice */
-  d1 = GNUNET_TESTING_daemon_start(cfg_alice, TIMEOUT, GNUNET_NO, NULL, NULL, 0,
-                                   NULL, NULL, NULL, &alice_started, NULL);
+  //d1 = GNUNET_TESTING_daemon_start(cfg_alice, TIMEOUT, GNUNET_NO, NULL, NULL, 0,
+  //                                 NULL, NULL, NULL, &alice_started, NULL);
   
   
 
@@ -418,7 +475,7 @@ check ()
   /* Arguments for GNUNET_PROGRAM_run */
   char *const argv[] = { "test-gns-twopeer",    /* Name to give running binary */
     "-c",
-    "test_gns_twopeer.conf",       /* Config file to use */
+    "test_gns_dht_default.conf",       /* Config file to use */
 #if VERBOSE
     "-L", "DEBUG",
 #endif
