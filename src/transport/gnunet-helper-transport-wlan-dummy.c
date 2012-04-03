@@ -133,7 +133,7 @@ stdin_send (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
   if ( (GNUNET_MESSAGE_TYPE_WLAN_DATA_TO_HELPER != ntohs (hdr->type)) ||
        (sizeof (struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage) > sendsize) )
   {
-    fprintf (stderr, "Received malformed message\n");
+    FPRINTF (stderr, "%s", "Received malformed message\n");
     exit (1);
   }
   payload_size = sendsize - sizeof (struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage);
