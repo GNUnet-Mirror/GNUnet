@@ -16,7 +16,9 @@ check_PROGRAMS =
 noinst_SCRIPTS = \
  gnunet_testing.py \
  gnunet_pyexpect.py \
- test_integration_connection_values_tcp.py
+ test_integration_connection_values_tcp.py \
+ test_integration_connection_values_tcp_udp.py \
+ test_integration_connection_values_tcp_udp_http.py
 
 if HAVE_PYTHON_PEXPECT
 check_SCRIPTS = \
@@ -86,11 +88,20 @@ test_integration_connection_values_tcp.py: test_integration_connection_values_tc
 	$(do_subst) < $(srcdir)/test_integration_connection_values_tcp.py.in > test_integration_connection_values_tcp.py
 	chmod +x test_integration_connection_values_tcp.py		
 
+test_integration_connection_values_tcp_udp.py: test_integration_connection_values_tcp_udp.py.in Makefile
+	$(do_subst) < $(srcdir)/test_integration_connection_values_tcp_udp.py.in > test_integration_connection_values_tcp_udp.py
+	chmod +x test_integration_connection_values_tcp_udp.py		
+
+test_integration_connection_values_tcp_udp_http.py: test_integration_connection_values_tcp_udp_http.py.in Makefile
+	$(do_subst) < $(srcdir)/test_integration_connection_values_tcp_udp_http.py.in > test_integration_connection_values_tcp_udp_http.py
+	chmod +x test_integration_connection_values_tcp_udp_http.py		
+
 
 EXTRA_DIST = \
    gnunet_testing.py.in \
    gnunet_pyexpect.py.in \
-   test_integration_connection_value.py.in \
+   test_integration_connection_value_tcp.py.in \
+   test_integration_connection_value_tcp_udp.py.in \
    test_integration_bootstrap_and_connect.py.in \
    test_integration_bootstrap_and_connect_and_disconnect.py.in \
    test_integration_bootstrap_and_connect_and_disconnect_nat.py.in \
@@ -103,6 +114,8 @@ EXTRA_DIST = \
    confs/c_no_nat_client_2.conf \
    confs/c_no_nat_client.conf \
    confs/c_normal_client_tcp.conf \
+   confs/c_normal_client_tcp_udp.conf \
+   confs/c_normal_client_tcp_udp_http.conf \
    hostkeys/0000-hostkey \
    hostkeys/0001-hostkey \
    hostkeys/0002-hostkey \
