@@ -76,6 +76,11 @@ struct GNUNET_CRYPTO_RsaPrivateKey *GST_my_private_key;
  */
 struct GNUNET_ATS_SchedulingHandle *GST_ats;
 
+/**
+ * DEBUGGING connection counter
+ */
+static int connections;
+
 
 /**
  * Transmit our HELLO message to the given (connected) neighbour.
@@ -346,7 +351,7 @@ plugin_env_session_end (void *cls, const struct GNUNET_PeerIdentity *peer,
               session, GNUNET_i2s (peer));
 #endif
   if (NULL != session)
-    GNUNET_log_from (GNUNET_ERROR_TYPE_INFO | GNUNET_ERROR_TYPE_BULK,
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
                      "transport-ats",
                      "Telling ATS to destroy session %p from peer %s\n",
                      session, GNUNET_i2s (peer));
@@ -462,9 +467,10 @@ neighbours_connect_notification (void *cls,
   struct ConnectInfoMessage *connect_msg = (struct ConnectInfoMessage *) buf;
   struct GNUNET_ATS_Information *ap;
 
+  connections++;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "We are now connected to peer `%s'\n",
-              GNUNET_i2s (peer));
+              "We are now connected to peer `%s' and %u peers in total\n",
+              GNUNET_i2s (peer), connections);
 
   connect_msg->header.size = htons (sizeof (buf));
   connect_msg->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT);
@@ -489,9 +495,10 @@ neighbours_disconnect_notification (void *cls,
 {
   struct DisconnectInfoMessage disconnect_msg;
 
+  connections--;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Peer `%s' disconnected\n",
-              GNUNET_i2s (peer));
+              "Peer `%s' disconnected and we are connected to %u peers\n",
+              GNUNET_i2s (peer), connections);
 
   disconnect_msg.header.size = htons (sizeof (struct DisconnectInfoMessage));
   disconnect_msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_DISCONNECT);
