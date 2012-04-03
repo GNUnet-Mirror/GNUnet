@@ -1803,7 +1803,7 @@ stdin_send_hw (void *cls, const struct GNUNET_MessageHeader *hdr)
   sendsize -= (sizeof (struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage) - sizeof (struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame));
   if (MAXLINE < sendsize)
   {
-    fprintf (stderr, "Function stdin_send_hw: Packet too big for buffer\n");
+    fprintf (stderr, "Packet too big for buffer\n");
     exit (1);
   }
   header = (const struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage *) hdr;

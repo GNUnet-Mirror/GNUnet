@@ -80,18 +80,22 @@ stdin_send (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
   const struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage *in;
   size_t payload_size;
   struct GNUNET_TRANSPORT_WLAN_RadiotapReceiveMessage newheader;
+  uint16_t sendsize;
 
+  sendsize = ntohs (hdr->size);
   in = (const struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage *) hdr;
   if ( (GNUNET_MESSAGE_TYPE_WLAN_DATA_TO_HELPER != ntohs (hdr->type)) ||
-       (sizeof (struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage) < ntohs (hdr->size)) )
+       (sizeof (struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage) > sendsize) )
   {
-    fprintf (stderr, "Function stdin_send: wrong packet type or size\n");
+    fprintf (stderr, "Received malformed message\n",
+	     (unsigned int) sendsize,
+	     (unsigned int) ntohs (hdr->type));
     exit (1);
   }
-  payload_size = ntohs (hdr->size) - sizeof (struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage);
+  payload_size = sendsize - sizeof (struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage);
   if ((payload_size + sizeof (struct GNUNET_TRANSPORT_WLAN_RadiotapReceiveMessage) + write_pout->size) > MAXLINE * 2)
   {
-    fprintf (stderr, "Function stdin_send: Packet too big for buffer\n");
+    fprintf (stderr, "Packet too big for buffer\n");
     exit (1);
   }
   memset (&newheader, 0, sizeof (newheader));
