@@ -16,7 +16,7 @@ check_PROGRAMS =
 noinst_SCRIPTS = \
  gnunet_testing.py \
  gnunet_pyexpect.py \
- test_integration_connection_value.py
+ test_integration_connection_values_tcp.py
 
 if HAVE_PYTHON_PEXPECT
 check_SCRIPTS = \
@@ -82,9 +82,9 @@ test_integration_clique_nat.py: test_integration_clique_nat.py.in Makefile
 	$(do_subst) < $(srcdir)/test_integration_clique_nat.py.in > test_integration_clique_nat.py
 	chmod +x test_integration_clique_nat.py	
 
-test_integration_connection_value.py: test_integration_connection_value.py.in Makefile
-	$(do_subst) < $(srcdir)/test_integration_connection_value.py.in > test_integration_connection_value.py
-	chmod +x test_integration_connection_value.py		
+test_integration_connection_values_tcp.py: test_integration_connection_values_tcp.py.in Makefile
+	$(do_subst) < $(srcdir)/test_integration_connection_values_tcp.py.in > test_integration_connection_values_tcp.py
+	chmod +x test_integration_connection_values_tcp.py		
 
 
 EXTRA_DIST = \
@@ -102,6 +102,7 @@ EXTRA_DIST = \
    confs/c_nat_client.conf \
    confs/c_no_nat_client_2.conf \
    confs/c_no_nat_client.conf \
+   confs/c_normal_client_tcp.conf \
    hostkeys/0000-hostkey \
    hostkeys/0001-hostkey \
    hostkeys/0002-hostkey \

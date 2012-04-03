@@ -67,6 +67,8 @@ def check_connect ():
   check.add (EqualStatisticsCondition (client, 'transport', '# peers connected', client,  'core', '# neighbour entries allocated'))
   check.add (EqualStatisticsCondition (client, 'transport', '# peers connected', client,  'core', '# entries in session map'))
   check.add (EqualStatisticsCondition (client, 'core', '# neighbour entries allocated', client,  'core', '# entries in session map'))
+  check.add (EqualStatisticsCondition (client, 'transport', '# peers connected', client, 'topology', '# peers connected'))
+  check.add (EqualStatisticsCondition (client, 'topology', '# peers connected', client, 'core', '# entries in session map'))
   
   while True:
 	check.reset()
@@ -90,7 +92,7 @@ def run ():
 	
 	test = Test ('test_integration_connection_value', verbose)
 	
-	client = Peer(test, './confs/c_normal_client.conf');
+	client = Peer(test, './confs/c_normal_client_tcp.conf');
 	client.start();
 	
 	if (client.started == True):
