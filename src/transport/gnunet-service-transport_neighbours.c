@@ -1134,9 +1134,13 @@ ats_suggest_cancel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   n->ats_suggest = GNUNET_SCHEDULER_NO_TASK;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "ATS did not suggested address to connect to peer `%s'\n",
               GNUNET_i2s (&n->id));
+
+  GNUNET_STATISTICS_update (GST_stats, gettext_noop ("# ATS address suggestions failed"), 1,
+                            GNUNET_NO);
+
 
   disconnect_neighbour (n);
 }
