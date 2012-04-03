@@ -1850,6 +1850,14 @@ handle_tcp_data (void *cls, struct GNUNET_SERVER_Client *client,
   if (NULL == session)
   {
     /* No inbound session found */
+    void *vaddr;
+    size_t alen;
+    GNUNET_SERVER_client_get_address (client, &vaddr, &alen);
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "tcp",
+                     "Received unexpected %u bytes of type %u from `%s'\n",
+                     (unsigned int) ntohs (message->size),
+                     (unsigned int) ntohs (message->type),
+                     GNUNET_a2s(vaddr, alen));
     GNUNET_break_op (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
