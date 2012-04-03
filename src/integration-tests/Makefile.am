@@ -15,7 +15,8 @@ check_PROGRAMS =
 
 noinst_SCRIPTS = \
  gnunet_testing.py \
- gnunet_pyexpect.py
+ gnunet_pyexpect.py \
+ test_integration_connection_value.py
 
 if HAVE_PYTHON_PEXPECT
 check_SCRIPTS = \
@@ -24,8 +25,7 @@ check_SCRIPTS = \
  test_integration_bootstrap_and_connect_and_disconnect_nat.py \
  test_integration_restart.py \
  test_integration_clique.py \
- test_integration_clique_nat.py \
- test_integration_connection_value.py
+ test_integration_clique_nat.py
 endif
 # test_integration_disconnect.py 
 
@@ -90,6 +90,7 @@ test_integration_connection_value.py: test_integration_connection_value.py.in Ma
 EXTRA_DIST = \
    gnunet_testing.py.in \
    gnunet_pyexpect.py.in \
+   test_integration_connection_value.py.in \
    test_integration_bootstrap_and_connect.py.in \
    test_integration_bootstrap_and_connect_and_disconnect.py.in \
    test_integration_bootstrap_and_connect_and_disconnect_nat.py.in \
