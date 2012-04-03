@@ -30,18 +30,39 @@
  * interface.  It will force traffic to be in 'ad-hoc' mode, use the
  * proper MAC address of the WLAN interface and use a GNUnet-specific
  * SSID (and a GNUnet-specific SNAP header).  It only takes a single
- * argument, which is the name of the interface to use.  Since it uses
- * RAW sockets, it must be installed SUID or run as 'root'.  In order
- * to keep the security risk of the resulting SUID binary minimal, the
- * program ONLY opens the RAW socket with root privileges, then drops
- * them and only then starts to process command line arguments.  The
- * code also does not link against any shared libraries (except libc)
- * and is strictly minimal (except for checking for errors).  The
- * following list of people have reviewed this code and considered it
- * safe since the last modification (if you reviewed it, please have
- * your name added to the list):
+ * argument, which is the name of the WLAN interface to use.  The
+ * program detects if the interface is not a WLAN interface and exits
+ * with an error in that case.
  *
- * - Christian Grothoff (Mar 16th 2012)
+ * Once initialized, the program will first send a 'struct
+ * GNUNET_TRANSPORT_WLAN_HelperControlMessage' to 'stdout'.  That
+ * message contains the MAC address of the WLAN interface.  It will
+ * then read messages from the WLAN interface and send them together
+ * with performance information as 'struct
+ * GNUNET_TRANSPORT_WLAN_RadiotapReceiveMessage' messages to 'stdout'.
+ * Furthermore, it will read a stream of messages from 'stdin' that
+ * have the format from 'struct
+ * GNUNET_TRANSPORT_WLAN_RadiotapSendMessage'.  Those messages will
+ * then be sent via the WLAN interface; however, the sender MAC
+ * address will be forced to be the correct address from our WLAN
+ * card.  If 'stdin' closes, receiving from the WLAN interface will
+ * continue.  If 'stdout' causes a SIGPIPE, the process dies from the
+ * signal.  Errors cause an error message to be reported to 'stderr',
+ * in most cases the process also exits (with status code '1').  The
+ * program never terminates normally; it is safe to kill the
+ * process with SIGTERM or SIGKILL at any time.
+ *
+ * Since it uses RAW sockets, the binary must be installed SUID or run
+ * as 'root'.  In order to keep the security risk of the resulting
+ * SUID binary minimal, the program ONLY opens the RAW socket with
+ * root privileges, then drops them and only then starts to process
+ * command line arguments.  The code also does not link against any
+ * shared libraries (except libc) and is strictly minimal (except for
+ * checking for errors).  The following list of people have reviewed
+ * this code and considered it safe since the last modification (if
+ * you reviewed it, please have your name added to the list):
+ *
+ * - Christian Grothoff (Apr 3rd 2012)
  */
 
 /*-

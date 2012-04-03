@@ -1003,12 +1003,13 @@ set_next_beacon_time (struct Plugin *const plugin)
   }
 }
 
+
 /**
  * Function to set the timer for the next timeout of the fragment queue
  * @param plugin the handle to the plugin struct
  */
 static void
-set_next_send (struct Plugin *const plugin)
+set_next_send (struct Plugin *plugin)
 {
   struct GNUNET_TIME_Relative next_send;
 
@@ -1185,7 +1186,6 @@ free_fragment_message (struct Plugin *plugin, struct FragmentMessage *fm)
     }
     fmq = fmq_next;
   }
-
   session->mac->fragment_messages_out_count--;
   session->fragment_messages_out_count--;
   plugin->pending_Fragment_Messages--;
@@ -1766,10 +1766,8 @@ fragmentmessage_timeout (void *cls,
 
   GNUNET_assert (fm != NULL);
   fm->timeout_task = GNUNET_SCHEDULER_NO_TASK;
-  if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
-  {
-    return;
-  }
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))  
+    return;  
   free_fragment_message (fm->session->mac->plugin, fm);
 }
 
@@ -1908,7 +1906,6 @@ do_transmit (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct FragmentMessage_queue *fmq;
   ssize_t bytes;
 
-
   GNUNET_assert (plugin != NULL);
   plugin->server_write_task = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
@@ -1926,8 +1923,7 @@ do_transmit (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   if (NULL == plugin->sending_messages_head)
   {
-    /* do_transmit did nothing, should not happen */  
-    GNUNET_break (0);
+    /* nothing to do right now, check when to go again */  
     set_next_send (plugin);
     return;
   }
@@ -2241,10 +2237,8 @@ free_session (struct Plugin *plugin, struct Sessionqueue *queue,
   while (fm != NULL)
   {
     fmnext = fm->next;
-    if (fm->session == queue->content)
-    {
-      free_fragment_message (plugin, fm);
-    }
+    if (fm->session == queue->content)    
+      free_fragment_message (plugin, fm);    
     fm = fmnext;
   }
 
