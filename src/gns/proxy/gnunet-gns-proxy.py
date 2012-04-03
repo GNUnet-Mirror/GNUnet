@@ -47,15 +47,21 @@ class ProxyHandler (BaseHTTPServer.BaseHTTPRequestHandler):
             print 'calling gnunet-gns -a '+netloc[:i]
             auth = os.popen("gnunet-gns -a "+netloc[:i])
             lines = auth.readlines()
-            print 'result: '+lines[0].split(" ")[-1].rstrip()
-            to_replace = lines[0].split(" ")[-1].rstrip()
+            if (len(lines) > 0):
+              print 'result: '+lines[0].split(" ")[-1].rstrip()
+              to_replace = lines[0].split(" ")[-1].rstrip()
+            else:
+              to_replace = "+"
             self.host_port = netloc[:i], int(netloc[i+1:])
         else:
             print 'calling gnunet-gns -a '+netloc
             auth = os.popen("gnunet-gns -a "+netloc)
             lines = auth.readlines()
-            print 'result: '+lines[0].split(" ")[-1].rstrip()
-            to_replace = lines[0].split(" ")[-1].rstrip()
+            if (len(lines) > 0):
+              print 'result: '+lines[0].split(" ")[-1].rstrip()
+              to_replace = lines[0].split(" ")[-1].rstrip()
+            else:
+              to_replace = "+"
             self.host_port = netloc, 80
         print "\t" "connect to %s:%d" % self.host_port
         try: soc.connect(self.host_port)
@@ -84,9 +90,20 @@ class ProxyHandler (BaseHTTPServer.BaseHTTPRequestHandler):
 
     def shorten_zkey(self):
       return lambda mo: 'a href="http://'+os.popen("gnunet-gns -s"+string.replace(mo.group(1), 'a href="http://', "")).readlines()[0].split(" ")[-1].rstrip()
+    
+    def test_re(self, to_repl, mo):
+      short = os.popen("gnunet-gns -s "+string.replace(mo.group(1)+to_repl, 'a href="http://', ""))
+      lines = short.readlines()
+      if (len(lines) < 1):
+        return to_repl
+      elif (len(lines.split(" ")) > 0):
+        return 'a href="http://'+lines.split(" ")[-1].rstrip()
+      else:
+        return to_repl
 
     def replace_and_shorten(self, to_repl):
-      return lambda mo: 'a href="http://'+os.popen("gnunet-gns -s "+string.replace(mo.group(1)+to_repl, 'a href="http://', "")).readlines()[0].split(" ")[-1].rstrip()
+      return lambda mo: test_re(self, to_repl, mo)
+    #  return lambda mo: 'a href="http://'+os.popen("gnunet-gns -s "+string.replace(mo.group(1)+to_repl, 'a href="http://', "")).readlines()[0].split(" ")[-1].rstrip()
     #full = string.replace(mo.group(1)+to_repl, 'a href="http://', "")
         #print 'calling gnunet-gns -s '+full
         #s = os.popen("gnunet-gns -s "+full)
