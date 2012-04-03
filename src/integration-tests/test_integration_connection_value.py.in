@@ -47,10 +47,9 @@ check_timeout = 30
 
 def cleanup ():
 	if os.name == "nt":
-	    shutil.rmtree (os.path.join (os.getenv ("TEMP"), "gnunet-test-fs-py-ns"), True)
-	    shutil.rmtree (os.path.join (os.getenv ("TEMP"), "c_no_nat_client"), True)
+	    shutil.rmtree (os.path.join (os.getenv ("TEMP"), "c_normal_client"), True)
 	else:
-	    shutil.rmtree ("/tmp/c_no_nat_client/", True)
+	    shutil.rmtree ("/tmp/c_normal_client/", True)
 
 
 def success_cont (check):
@@ -66,13 +65,17 @@ def fail_cont (check):
 def check_connect ():
   check = Check (test)
   check.add (EqualStatisticsCondition (client, 'transport', '# peers connected', client,  'core', '# neighbour entries allocated'))
+  #check.add (EqualStatisticsCondition (client, 'transport', '# peers connected', client,  'core', '# entries in session map'))
+  #check.add (EqualStatisticsCondition (client, 'core', '# neighbour entries allocated', client,  'core', '# entries in session map'))
   
-#  while True ==  check.run_once (check_timeout, None, None):
-#  	print "Yes"
+  while True:
+   	res = check.run_once (None, None)
+ 	print "Values are equal"
+ 	check.evaluate (False)
+ 	if (False == res):
+ 		break
+ 	time.sleep (1)
 	
-  res = check.run_once (None, None)
-  print "RES " + str(res)
-
 # 
 # Test execution
 # 
@@ -86,7 +89,7 @@ def run ():
 	
 	test = Test ('test_integration_connection_value', verbose)
 	
-	client = Peer(test, './confs/c_no_nat_client.conf');
+	client = Peer(test, './confs/c_normal_client.conf');
 	client.start();
 	
 	if (client.started == True):
@@ -108,9 +111,7 @@ try:
     run ()
 except (KeyboardInterrupt, SystemExit):    
     print 'Test interrupted'
-    server.stop ()
     client.stop ()
-    client2.stop ()
     cleanup ()
 if (success == False):
 	sys.exit(1)   
