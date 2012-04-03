@@ -22,7 +22,7 @@ Any help will be greatly appreciated.   SUZUKI Hisao
 
 __version__ = "0.2.1"
 
-import BaseHTTPServer, select, socket, SocketServer, urlparse, re, string, os
+import BaseHTTPServer, select, socket, SocketServer, urlparse, re, string, os, sys
 
 class ProxyHandler (BaseHTTPServer.BaseHTTPRequestHandler):
     __base = BaseHTTPServer.BaseHTTPRequestHandler
@@ -87,22 +87,33 @@ class ProxyHandler (BaseHTTPServer.BaseHTTPRequestHandler):
             print "\t" "bye"
             soc.close()
             self.connection.close()
+    
+    def test_re2(self, mo):
+      short = os.popen("gnunet-gns -s"+string.replace(mo.group(1), 'a href="http://', ""))
+      lines = short.readlines()
+      if (len(lines) < 1):
+        return mo.group(1)
+      elif (len(lines[0].split(" ")) > 0):
+        return 'a href="http://'+lines[0].split(" ")[-1].rstrip()
+      else:
+        return mo.group(1)
 
     def shorten_zkey(self):
-      return lambda mo: 'a href="http://'+os.popen("gnunet-gns -s"+string.replace(mo.group(1), 'a href="http://', "")).readlines()[0].split(" ")[-1].rstrip()
+      return lambda mo: self.test_re2(mo)
+      #return lambda mo: 'a href="http://'+os.popen("gnunet-gns -s"+string.replace(mo.group(1), 'a href="http://', "")).readlines()[0].split(" ")[-1].rstrip()
     
     def test_re(self, to_repl, mo):
       short = os.popen("gnunet-gns -s "+string.replace(mo.group(1)+to_repl, 'a href="http://', ""))
       lines = short.readlines()
       if (len(lines) < 1):
         return to_repl
-      elif (len(lines.split(" ")) > 0):
-        return 'a href="http://'+lines.split(" ")[-1].rstrip()
+      elif (len(lines[0].split(" ")) > 0):
+        return 'a href="http://'+lines[0].split(" ")[-1].rstrip()
       else:
         return to_repl
 
     def replace_and_shorten(self, to_repl):
-      return lambda mo: test_re(self, to_repl, mo)
+      return lambda mo: self.test_re(to_repl, mo)
     #  return lambda mo: 'a href="http://'+os.popen("gnunet-gns -s "+string.replace(mo.group(1)+to_repl, 'a href="http://', "")).readlines()[0].split(" ")[-1].rstrip()
     #full = string.replace(mo.group(1)+to_repl, 'a href="http://', "")
         #print 'calling gnunet-gns -s '+full
@@ -166,7 +177,7 @@ class ProxyHandler (BaseHTTPServer.BaseHTTPRequestHandler):
                         out = soc
                     data = i.recv(8192)
                     if data:
-                        try:
+                        #try:
                           data = re.sub(r'\nAccept-Ranges: \w+', r'', data)
                           data = re.sub('(a href="http://(\w+\.)*zkey)',
                               self.shorten_zkey(), data)
@@ -177,8 +188,8 @@ class ProxyHandler (BaseHTTPServer.BaseHTTPRequestHandler):
                                   self.replace_and_shorten(to_repl), data)
                           out.send(data)
                           count = 0
-                        except:
-                          print "GNS exception:", sys.exc_info()[0]
+                        #except:
+                        #  print "GNS exception:", sys.exc_info()[0]
 
             else:
                 print "\t" "idle", count
