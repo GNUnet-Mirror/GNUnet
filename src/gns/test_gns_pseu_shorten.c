@@ -52,7 +52,7 @@
 #define TEST_PSEU_ALICE "carol"
 #define TEST_EXPECTED_RESULT "www.carol.gnunet"
 
-#define DHT_OPERATION_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
+#define DHT_OPERATION_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
 /* Globals */
 
