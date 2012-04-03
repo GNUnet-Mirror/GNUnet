@@ -24,7 +24,8 @@ check_SCRIPTS = \
  test_integration_bootstrap_and_connect_and_disconnect_nat.py \
  test_integration_restart.py \
  test_integration_clique.py \
- test_integration_clique_nat.py
+ test_integration_clique_nat.py \
+ test_integration_connection_value.py
 endif
 # test_integration_disconnect.py 
 
@@ -80,6 +81,10 @@ test_integration_clique.py: test_integration_clique.py.in Makefile
 test_integration_clique_nat.py: test_integration_clique_nat.py.in Makefile
 	$(do_subst) < $(srcdir)/test_integration_clique_nat.py.in > test_integration_clique_nat.py
 	chmod +x test_integration_clique_nat.py	
+
+test_integration_connection_value.py: test_integration_connection_value.py.in Makefile
+	$(do_subst) < $(srcdir)/test_integration_connection_value.py.in > test_integration_connection_value.py
+	chmod +x test_integration_connection_value.py		
 
 
 EXTRA_DIST = \

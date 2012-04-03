@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!@PYTHON@
 #    This file is part of GNUnet.
 #    (C) 2010 Christian Grothoff (and other contributing authors)
 #
@@ -55,6 +55,16 @@ class Check:
             neg_cont (self)
         else:
             pos_cont (self)
+        return res            
+    def run_once (self, pos_cont, neg_cont):
+        execs = 0;
+        res = False
+        res = self.run()
+        if ((res == False) and (neg_cont != None)):
+            neg_cont (self)
+        if ((res == True) and (pos_cont != None)):
+            pos_cont (self)            
+        return res
     def evaluate (self, failed_only):
         pos = 0
         neg = 0
@@ -139,6 +149,52 @@ class StatisticsCondition (Condition):
         elif (failed_only == False): 
             print self.peer.id[:4] + " " +self.peer.cfg + " " +  str(self.type) + ' condition in subsystem "' + self.subsystem.ljust(12) +'" : "' + self.name.ljust(30) +'" : (expected/real value) ' + str(self.value) + op + res + fail 
         return self.fulfilled    
+
+# Specify two statistic values and check if they are equal  
+class EqualStatisticsCondition (Condition):
+    def __init__(self, peer, subsystem, name, peer2, subsystem2, name2):
+        self.fulfilled = False
+        self.type = 'equalstatistics'
+        self.peer = peer;
+        self.subsystem = subsystem;
+        self.name = name;
+        self.result = -1;
+        self.peer2 = peer2;
+        self.subsystem2 = subsystem2;
+        self.name2 = name2;
+        self.result2 = -1;
+    def check(self):
+        if (self.fulfilled == False):
+            self.result = self.peer.get_statistics_value (self.subsystem, self.name);
+            self.result2 = self.peer2.get_statistics_value (self.subsystem2, self.name2);
+            if (str(self.result) == str(self.result2)):
+                self.fulfilled = True
+                return True
+            else:
+                return False
+        else:
+            return True
+    def evaluate (self, failed_only):
+        if (self.result == -1):
+            res = 'NaN'
+        else:
+            res = str(self.result)
+        if (self.result2 == -1):
+            res2 = 'NaN'
+        else:
+            res2 = str(self.result2)            
+        if (self.fulfilled == False):
+            fail = " FAIL!" 
+            op = " != "
+        else: 
+            fail = ""
+            op = " == "
+        if ((self.fulfilled == False) and (failed_only == True)):
+            print self.peer.id[:4] + " "  + self.subsystem.ljust(12) + " " + self.result +" " + self.peer2.id[:4] + " "  + self.subsystem2.ljust(12) + " " + self.result2 
+            #print self.peer.id[:4] + " " + str(self.type) + ' condition in subsystem "' + self.subsystem.ljust(12) +'" : "' + self.name.ljust(30) +'" : (expected/real value) ' + str(self.value) + op + res + fail
+        elif (failed_only == False): 
+            print self.peer.id[:4] + " "  + self.subsystem.ljust(12) + " " + self.result +" " + self.peer2.id[:4] + " "  + self.subsystem2.ljust(12) + " " + self.result2 
+        return self.fulfilled                    
         
 class Test:
     def __init__(self, testname, verbose):
