@@ -105,7 +105,7 @@ static int ok;
 
 int bob_online, alice_online, dave_online;
 
-struct GNUNET_CONFIGURATION_Handle *alice_cfg;
+const struct GNUNET_CONFIGURATION_Handle *alice_cfg;
 struct GNUNET_CONFIGURATION_Handle *cfg_bob;
 struct GNUNET_CONFIGURATION_Handle *cfg_dave;
 
