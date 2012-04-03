@@ -11,7 +11,7 @@ endif
 lib_LTLIBRARIES = libgnunetregex.la
 
 libgnunetregex_la_SOURCES = \
-  regex.c regex.h
+  regex.c
 libgnunetregex_la_LIBADD = -lm \
  $(top_builddir)/src/util/libgnunetutil.la
 libgnunetregex_la_LDFLAGS = \

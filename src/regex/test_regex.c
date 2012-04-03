@@ -22,10 +22,60 @@
  * @brief test for regex.c
  * @author Maximilian Szengel
  */
+#include <regex.h>
+
 #include "platform.h"
 #include "gnunet_regex_lib.h"
 
-static int err = 0;
+enum Match_Result
+{
+  match = 0,
+  nomatch = 1
+};
+
+struct Regex_String_Pair
+{
+  char *regex;
+  char *string;
+  enum Match_Result expected_result;
+};
+
+
+int
+test_automaton (struct GNUNET_REGEX_Automaton *a, struct Regex_String_Pair *rxstr)
+{
+  regex_t rx;
+  int result;
+  int eval;
+  int eval_check;
+
+  if (NULL == a)
+    return 1;
+
+  result = 0;
+
+  eval = GNUNET_REGEX_eval (a, rxstr->string);
+  regcomp (&rx, rxstr->regex, REG_EXTENDED);
+  eval_check = regexec (&rx, rxstr->string, 0, NULL, 0);
+
+  if ((rxstr->expected_result == match
+       && (0 != eval || 0 != eval_check))
+      ||
+      (rxstr->expected_result == nomatch
+       && (0 == eval || 0 == eval_check)))
+  {
+      result = 1;
+      char error[200];
+      regerror (eval_check, &rx, error, sizeof error);
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+                  "Unexpected result:\nregex: %s\nstring: %s\nexpected result: %i\ngnunet regex: %i\nglibc regex: %i\nglibc error: %s\n\n", 
+                  rxstr->regex, rxstr->string, rxstr->expected_result, eval, eval_check, error);
+  }
+
+  regfree (&rx);
+
+  return result;
+}
 
 int
 main (int argc, char *argv[])
@@ -38,47 +88,36 @@ main (int argc, char *argv[])
 #endif
                     NULL);
 
-  struct GNUNET_REGEX_Automaton *nfa;
-  struct GNUNET_REGEX_Automaton *dfa;
-  char *regex;
-  char *string;
-  int eval;
+  int check_nfa;
+  int check_dfa;
+  struct Regex_String_Pair rxstr[3];
+  struct GNUNET_REGEX_Automaton *a;
+  int i;
 
-  nfa = NULL;
-  dfa = NULL;
+  rxstr[0].regex = "ab(c|d)+c*(a(b|c)d)+";
+  rxstr[0].string = "abcdcdcdcdddddabd";
+  rxstr[0].expected_result = match;
 
-  regex = "a\\*b(c|d)+c*(a(b|c)d)+";
-  string = "a*bcdcdcdcdddddabd";
-  /*regex = "VPN TCP (IPv4|IPv6) Port53"; */
-  /*string = "VPN TCP IPv4 Port53"; */
-  /*regex = "\\*a(a|b)b"; */
-  /*regex = "a(a|b)c"; */
-  /*regex = "(a|aa)+"; */
-  nfa = GNUNET_REGEX_construct_nfa (regex, strlen (regex));
+  rxstr[1].regex = "a*";
+  rxstr[1].string = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+  rxstr[1].expected_result = match;
 
-  if (nfa)
+  rxstr[2].regex = "a*b*c*d+";
+  rxstr[2].string = "a";
+  rxstr[2].expected_result = nomatch;
+
+  for (i=0; i<3; i++)
   {
-    GNUNET_REGEX_automaton_save_graph (nfa, "nfa_graph.dot");
-    eval = GNUNET_REGEX_eval (nfa, string);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Evaluating %s result: %i\n", string,
-                eval);
-    if (GNUNET_YES != eval)
-      err = 1;
-    GNUNET_REGEX_automaton_destroy (nfa);
-  }
-  else
-    err = 1;
+    // NFA test
+    a = GNUNET_REGEX_construct_nfa (rxstr[i].regex, strlen (rxstr[i].regex));
+    check_nfa += test_automaton (a, &rxstr[i]);
+    GNUNET_REGEX_automaton_destroy (a);
 
-  dfa = GNUNET_REGEX_construct_dfa (regex, strlen (regex));
-  if (dfa)
-  {
-    GNUNET_REGEX_automaton_save_graph (dfa, "dfa_graph.dot");
-    eval = GNUNET_REGEX_eval (dfa, string);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Evaluating %s result: %i\n", string,
-                eval);
-    if (GNUNET_YES != eval)
-      err = 1;
-    GNUNET_REGEX_automaton_destroy (dfa);
+    // DFA test
+    a = GNUNET_REGEX_construct_dfa (rxstr[i].regex, strlen (rxstr[i].regex));
+    check_dfa += test_automaton (a, &rxstr[i]);
+    GNUNET_REGEX_automaton_destroy (a);
   }
-  return err;
+
+  return check_nfa + check_dfa;
 }

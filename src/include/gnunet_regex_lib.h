@@ -89,7 +89,7 @@ GNUNET_REGEX_automaton_save_graph (struct GNUNET_REGEX_Automaton *a,
  * @param a automaton
  * @param string string to check
  *
- * @return GNUNET_YES if 'a' matches 'string', GNUNET_NO otherwise
+ * @return 0 if string matches, non 0 otherwise
  */
 int
 GNUNET_REGEX_eval (struct GNUNET_REGEX_Automaton *a, 
