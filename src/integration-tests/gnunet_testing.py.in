@@ -147,10 +147,8 @@ class StatisticsCondition (Condition):
         else: 
             fail = ""
             op = " == "
-        if ((self.fulfilled == False) and (failed_only == True)):
+        if (((self.fulfilled == False) and (failed_only == True)) or (failed_only == False)):
             print self.peer.id[:4] + " " +self.peer.cfg + " " +  str(self.type) + ' condition in subsystem "' + self.subsystem.ljust(12) +'" : "' + self.name.ljust(30) +'" : (expected/real value) ' + str(self.value) + op + res + fail
-        elif (failed_only == False): 
-            print self.peer.id[:4] + " " +self.peer.cfg + " " +  str(self.type) + ' condition in subsystem "' + self.subsystem.ljust(12) +'" : "' + self.name.ljust(30) +'" : (expected/real value) ' + str(self.value) + op + res + fail 
         return self.fulfilled    
 
 # Specify two statistic values and check if they are equal  
@@ -192,11 +190,8 @@ class EqualStatisticsCondition (Condition):
         else: 
             fail = ""
             op = " == "
-        if ((self.fulfilled == False) and (failed_only == True)):
-            print self.peer.id[:4] + " "  + self.subsystem.ljust(12) + " " + str(self.result) +" " + self.peer2.id[:4] + " "  + self.subsystem2.ljust(12) + " " + str(self.result2) 
-            #print self.peer.id[:4] + " " + str(self.type) + ' condition in subsystem "' + self.subsystem.ljust(12) +'" : "' + self.name.ljust(30) +'" : (expected/real value) ' + str(self.value) + op + res + fail
-        elif (failed_only == False): 
-            print self.peer.id[:4] + " "  + self.subsystem.ljust(12) + " " + str(self.result) +" " + self.peer2.id[:4] + " "  + self.subsystem2.ljust(12) + " " + str(self.result2) 
+        if (((self.fulfilled == False) and (failed_only == True)) or (failed_only == False)):
+            print self.peer.id[:4] + ' "'  + self.subsystem.ljust(12) + '" "' + self.name.ljust(30) + '" == ' + str(self.result) +" " + self.peer2.id[:4] + ' "'  + self.subsystem2.ljust(12) + '" '+ self.name2.ljust(30) +  '" ' + str(self.result2) 
         return self.fulfilled                    
         
 class Test:

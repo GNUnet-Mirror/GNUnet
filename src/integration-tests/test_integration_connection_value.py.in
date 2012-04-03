@@ -69,14 +69,13 @@ def check_connect ():
   check.add (EqualStatisticsCondition (client, 'core', '# neighbour entries allocated', client,  'core', '# entries in session map'))
   
   while True:
-	time.sleep (5)
 	check.reset()
 	res = check.run_once (None, None)
 	print "Values are equal"
 	check.evaluate (False)
 #if (False == res):
 #	break
-	
+	time.sleep (5)
 	
 # 
 # Test execution
