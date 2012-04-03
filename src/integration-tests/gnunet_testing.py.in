@@ -42,7 +42,6 @@ class Check:
                 neg += 1
             else:
                 pos += 1
-        self.test.p (str(pos) +' out of '+ str (pos+neg) + ' conditions fulfilled')
         return fulfilled
     def run_blocking (self, timeout, pos_cont, neg_cont):
         execs = 0;
@@ -75,6 +74,10 @@ class Check:
                 pos += 1
         print (str(pos) +' out of '+ str (pos+neg) + ' conditions fulfilled')
         return self.fulfilled
+    def reset (self):
+		self.fulfilled = False     
+		for c in self.conditions:
+			c.fulfilled = False
         
 class Condition:
     def __init__(self):
@@ -125,7 +128,7 @@ class StatisticsCondition (Condition):
         self.result = -1;
     def check(self):
         if (self.fulfilled == False):
-            self.result = self.peer.get_statistics_value (self.subsystem, self.name);
+            self.result = self.peer.get_statistics_value (self.subsystem, self.name)
             if (str(self.result) == str(self.value)):
                 self.fulfilled = True
                 return True
