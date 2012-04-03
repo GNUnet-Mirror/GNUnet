@@ -44,6 +44,8 @@ class ProxyHandler (BaseHTTPServer.BaseHTTPRequestHandler):
         i = netloc.find(':')
         to_replace = ""
         if i >= 0:
+          self.host_port = netloc[:i], int(netloc[i+1:])
+          if (re.match("(\w+\.)*gnunet$", self.host_port[0])):
             print 'calling gnunet-gns -a '+netloc[:i]
             auth = os.popen("gnunet-gns -a "+netloc[:i])
             lines = auth.readlines()
@@ -52,8 +54,9 @@ class ProxyHandler (BaseHTTPServer.BaseHTTPRequestHandler):
               to_replace = lines[0].split(" ")[-1].rstrip()
             else:
               to_replace = "+"
-            self.host_port = netloc[:i], int(netloc[i+1:])
         else:
+          self.host_port = netloc, 80
+          if (re.match("(\w+\.)*gnunet$", self.host_port[0])):
             print 'calling gnunet-gns -a '+netloc
             auth = os.popen("gnunet-gns -a "+netloc)
             lines = auth.readlines()
@@ -62,7 +65,7 @@ class ProxyHandler (BaseHTTPServer.BaseHTTPRequestHandler):
               to_replace = lines[0].split(" ")[-1].rstrip()
             else:
               to_replace = "+"
-            self.host_port = netloc, 80
+
         print "\t" "connect to %s:%d" % self.host_port
         try: soc.connect(self.host_port)
         except socket.error, arg:
@@ -137,7 +140,7 @@ class ProxyHandler (BaseHTTPServer.BaseHTTPRequestHandler):
                     self.command,
                     urlparse.urlunparse(('', '', path, params, query, '')),
                     self.request_version))
-                if (re.match("(\w+\.)*gnunet", self.headers['Host'])):
+                if (re.match("(\w+\.)*gnunet$", self.headers['Host'])):
                   leho = os.popen("gnunet-gns -t LEHO -u "+self.headers['Host']).readlines()
                   if (len(leho) < 2):
                     print "Legacy hostname lookup failed!"
@@ -181,12 +184,13 @@ class ProxyHandler (BaseHTTPServer.BaseHTTPRequestHandler):
                           data = re.sub(r'\nAccept-Ranges: \w+', r'', data)
                           data = re.sub('(a href="http://(\w+\.)*zkey)',
                               self.shorten_zkey(), data)
-                          if (re.match("(\w+\.)*gnunet", self.host_port[0])):
+                          if (re.match("(\w+\.)*gnunet$", self.host_port[0])):
                               arr = self.host_port[0].split('.')
                               arr.pop(0)
                               data = re.sub('(a href="http://(\w+\.)*)(\+)',
                                   self.replace_and_shorten(to_repl), data)
                           out.send(data)
+                          print data
                           count = 0
                         #except:
                         #  print "GNS exception:", sys.exc_info()[0]
