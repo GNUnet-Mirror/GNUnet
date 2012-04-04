@@ -36,22 +36,34 @@
 
 
 #define CHECK_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+#define STATS_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+#define REPEATED_STATS_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
+#define STATS_VALUES 4
 
 /**
  * Final status code.
  */
 static int ret;
-static int retry;
 
-struct GNUNET_TRANSPORT_Handle *th;
-struct GNUNET_CORE_Handle *ch;
-struct GNUNET_PeerIdentity my_peer_id;
+static struct GNUNET_TRANSPORT_Handle *th;
+static struct GNUNET_CORE_Handle *ch;
+static struct GNUNET_PeerIdentity my_peer_id;
+static const struct GNUNET_CONFIGURATION_Handle *mycfg;
+static struct GNUNET_STATISTICS_Handle *stats;
+
 
 static unsigned int transport_connections;
 static unsigned int core_connections;
 
 static GNUNET_SCHEDULER_TaskIdentifier check_task;
+static GNUNET_SCHEDULER_TaskIdentifier statistics_task;
 
+static uint64_t statistics_transport_connections;
+static uint64_t statistics_transport_tcp_connections;
+static uint64_t statistics_core_neighbour_entries;
+static uint64_t statistics_core_entries_session_map;
+
+int stat_check_running;
 
 static struct GNUNET_CONTAINER_MultiHashMap *peers;
 
@@ -106,14 +118,114 @@ map_check (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   int fail = 0;
   check_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_CONTAINER_multihashmap_iterate (peers, &map_check_it, &fail);
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+  if (0 > fail)
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
        "Inconsistent peers after connection consistency check: %u\n", fail);
+  else
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+       "Inconsistent peers after connection consistency check: %u\n", fail);
+
 
   if (NULL != cls)
   {
     GNUNET_SCHEDULER_add_now (cls, NULL);
   }
 }
+
+static void
+stats_check (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+int stats_check_cb (void *cls, const char *subsystem,
+                   const char *name, uint64_t value,
+                   int is_persistent)
+{
+  static int counter;
+  uint64_t *val = cls;
+
+  if (NULL != val)
+    (*val) = value;
+
+  counter ++;
+  if (STATS_VALUES == counter)
+  {
+    int fail = GNUNET_NO;
+    if (transport_connections != core_connections)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+           "Transport connections are inconsistent: %u transport notifications <-> %u core notifications\n",
+           transport_connections, core_connections);
+      fail = GNUNET_YES;
+    }
+
+    if (transport_connections != statistics_transport_connections)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+           "Transport connections are inconsistent: %u transport notifications <-> %u in statistics (peers connected)\n",
+           transport_connections, statistics_transport_connections);
+      fail = GNUNET_YES;
+    }
+
+    if (transport_connections != statistics_transport_tcp_connections)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+           "Transport connections are inconsistent: %u transport notifications <-> %u in statistics (statistics_transport_tcp_connections)\n",
+           transport_connections, statistics_transport_tcp_connections);
+      fail = GNUNET_YES;
+    }
+
+    if (core_connections != statistics_core_entries_session_map)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+           "Transport connections are inconsistent: %u core notifications <-> %u in statistics (entries session map)\n",
+           core_connections, statistics_core_entries_session_map);
+      fail = GNUNET_YES;
+    }
+
+    if (core_connections != statistics_core_neighbour_entries)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+           "Transport connections are inconsistent: %u core notifications <-> %u in statistics (neighbour entries allocated)\n",
+           core_connections, statistics_core_neighbour_entries);
+      fail = GNUNET_YES;
+    }
+
+    if (GNUNET_NO == fail)
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+         "Statistics consistency check successful : (%u transport / %u core) connections established\n", transport_connections, core_connections);
+
+
+    if (GNUNET_SCHEDULER_NO_TASK == statistics_task)
+      statistics_task = GNUNET_SCHEDULER_add_delayed(REPEATED_STATS_DELAY, &stats_check, NULL);
+
+    stat_check_running = GNUNET_NO;
+    counter = 0;
+  }
+
+  return GNUNET_OK;
+}
+
+static void
+stats_check (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  statistics_task = GNUNET_SCHEDULER_NO_TASK;
+
+  if (GNUNET_YES == stat_check_running)
+  {
+    statistics_task = GNUNET_SCHEDULER_add_delayed(STATS_DELAY, &stats_check, NULL);
+  }
+
+  stat_check_running = GNUNET_YES;
+
+  statistics_transport_connections = 0 ;
+  statistics_core_entries_session_map = 0;
+  statistics_core_neighbour_entries = 0;
+
+  GNUNET_STATISTICS_get (stats, "transport", "# peers connected", GNUNET_TIME_UNIT_MINUTES, NULL, &stats_check_cb, &statistics_transport_connections);
+  GNUNET_STATISTICS_get (stats, "transport", "# TCP sessions active", GNUNET_TIME_UNIT_MINUTES, NULL, &stats_check_cb, &statistics_transport_tcp_connections);
+  GNUNET_STATISTICS_get (stats, "core", "# neighbour entries allocated", GNUNET_TIME_UNIT_MINUTES, NULL, &stats_check_cb, &statistics_core_neighbour_entries);
+  GNUNET_STATISTICS_get (stats, "core", "# entries in session map", GNUNET_TIME_UNIT_MINUTES, NULL, &stats_check_cb, &statistics_core_entries_session_map);
+}
+
 
 static void
 map_connect (const struct GNUNET_PeerIdentity *peer, void * source)
@@ -164,6 +276,10 @@ map_connect (const struct GNUNET_PeerIdentity *peer, void * source)
   if (GNUNET_SCHEDULER_NO_TASK != check_task)
     GNUNET_SCHEDULER_cancel(check_task);
   check_task = GNUNET_SCHEDULER_add_delayed(CHECK_DELAY, &map_check, NULL);
+
+  if (GNUNET_SCHEDULER_NO_TASK != statistics_task)
+    GNUNET_SCHEDULER_cancel(statistics_task);
+  statistics_task = GNUNET_SCHEDULER_add_delayed(STATS_DELAY, &stats_check, NULL);
 }
 
 
@@ -236,6 +352,9 @@ map_disconnect (const struct GNUNET_PeerIdentity * peer, void * source)
     GNUNET_SCHEDULER_cancel(check_task);
   check_task = GNUNET_SCHEDULER_add_delayed(CHECK_DELAY, &map_check, NULL);
 
+  if (GNUNET_SCHEDULER_NO_TASK != statistics_task)
+    GNUNET_SCHEDULER_cancel(statistics_task);
+  statistics_task = GNUNET_SCHEDULER_add_delayed(STATS_DELAY, &stats_check, NULL);
 }
 
 
@@ -253,6 +372,12 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Disconnecting from core service\n");
     GNUNET_CORE_disconnect (ch);
     ch = NULL;
+  }
+
+  if (GNUNET_SCHEDULER_NO_TASK != statistics_task)
+  {
+    GNUNET_SCHEDULER_cancel(statistics_task);
+    statistics_task = GNUNET_SCHEDULER_NO_TASK;
   }
 
   if (GNUNET_SCHEDULER_NO_TASK != check_task)
@@ -360,7 +485,8 @@ run (void *cls, char *const *args, const char *cfgfile,
 {
   transport_connections = 0;
   core_connections = 0;
-
+  mycfg = cfg;
+  stats = GNUNET_STATISTICS_create ("watchdog", cfg);
   peers = GNUNET_CONTAINER_multihashmap_create (20);
 
   th = GNUNET_TRANSPORT_connect(cfg, NULL, NULL, NULL,
