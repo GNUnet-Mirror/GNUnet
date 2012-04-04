@@ -1773,16 +1773,19 @@ fh_reader (void *cls, uint64_t offset, size_t max, void *buf, char **emsg)
   struct GNUNET_DISK_FileHandle *fh = dc->rfh;
   ssize_t ret;
 
-  *emsg = NULL;
+  if (NULL != emsg)
+    *emsg = NULL;
   if (offset != GNUNET_DISK_file_seek (fh, offset, GNUNET_DISK_SEEK_SET))
   {
-    *emsg = GNUNET_strdup (strerror (errno));
+    if (NULL != emsg)
+      *emsg = GNUNET_strdup (strerror (errno));
     return 0;
   }
   ret = GNUNET_DISK_file_read (fh, buf, max);
   if (ret < 0)
   {
-    *emsg = GNUNET_strdup (strerror (errno));
+    if (NULL != emsg)
+      *emsg = GNUNET_strdup (strerror (errno));
     return 0;
   }
   return ret;

@@ -226,6 +226,11 @@ check_SCRIPTS = \
  test_gnunet_fs_ns.py 
 endif
 
+if ENABLE_MONKEY
+ TESTS_ENVIRONMENT = @MONKEYPREFIX@
+ AM_LDFLAGS = -no-install
+endif
+
 
 if ENABLE_TEST_RUN
 TESTS = \
