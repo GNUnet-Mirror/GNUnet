@@ -775,6 +775,24 @@ AC_ARG_ENABLE([testruns],
 AC_MSG_RESULT($enable_test_run)
 AM_CONDITIONAL([ENABLE_TEST_RUN], [test "x$enable_tests_run" = "xyes"])
 
+
+# should monkey be used when running (certain) services?
+AC_MSG_CHECKING(whether to run with monkey)
+AC_ARG_ENABLE([monkey],
+   [AS_HELP_STRING([--enable-monkey], [enable running with monkey])],
+   [enable_monkey=${enableval}],
+   [enable_monkey=no])
+AC_MSG_RESULT($enable_monkey)
+AM_CONDITIONAL([ENABLE_MONKEY], [test "x$enable_monkey" = "xyes"])
+if test "x$enable_monkey" = "xyes"
+then
+  MONKEYPREFIX=""
+else
+  MONKEYPREFIX="monkey"
+fi
+AC_SUBST(MONKEYPREFIX)
+
+
 # should expensive tests be run?
 AC_MSG_CHECKING(whether to run expensive tests)
 AC_ARG_ENABLE([expensivetests],
