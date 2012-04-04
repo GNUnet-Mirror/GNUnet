@@ -9,9 +9,12 @@ if USE_COVERAGE
   XLIB = -lgcov
 endif
 
-bin_PROGRAMS =
+#bin_PROGRAMS = \
+# connection_watchdog
 
 check_PROGRAMS =
+
+noinst_PROGRAMS = connection_watchdog
 
 noinst_SCRIPTS = \
  gnunet_testing.py \
@@ -37,6 +40,13 @@ if ENABLE_TEST_RUN
 TESTS = \
  $(check_SCRIPTS)  
 endif
+
+connection_watchdog_SOURCE = \
+ connection_watchdog.c      
+connection_watchdog_LDADD = \
+  $(top_builddir)/src/core/libgnunetcore.la \
+  $(top_builddir)/src/transport/libgnunettransport.la \
+  $(top_builddir)/src/util/libgnunetutil.la
 
 do_subst = $(SED) -e 's,[@]PYTHON[@],$(PYTHON),g'
 
