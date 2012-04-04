@@ -34,10 +34,14 @@
 #include "gnunet_transport_service.h"
 #include "gnunet_statistics_service.h"
 
+
+#define CHECK_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+
 /**
  * Final status code.
  */
 static int ret;
+static int retry;
 
 struct GNUNET_TRANSPORT_Handle *th;
 struct GNUNET_CORE_Handle *ch;
@@ -46,6 +50,7 @@ struct GNUNET_PeerIdentity my_peer_id;
 static unsigned int transport_connections;
 static unsigned int core_connections;
 
+static GNUNET_SCHEDULER_TaskIdentifier check_task;
 
 
 static struct GNUNET_CONTAINER_MultiHashMap *peers;
@@ -62,6 +67,7 @@ int map_check_it (void *cls,
                   const GNUNET_HashCode * key,
                   void *value)
 {
+  int *fail = cls;
   struct PeerContainer *pc = value;
   if (pc->core_connected != pc->transport_connected)
   {
@@ -70,6 +76,7 @@ int map_check_it (void *cls,
      GNUNET_i2s (&pc->id),
      (GNUNET_YES == pc->transport_connected) ? "YES" : "NO",
      (GNUNET_YES == pc->core_connected) ? "YES" : "NO");
+    (*fail) ++;
   }
 
   return GNUNET_OK;
@@ -86,10 +93,26 @@ int map_cleanup_it (void *cls,
   return GNUNET_OK;
 }
 
-static void map_check (void)
+static void
+map_cleanup (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  GNUNET_CONTAINER_multihashmap_iterate (peers, &map_cleanup_it, NULL);
+  GNUNET_CONTAINER_multihashmap_destroy(peers);
+}
 
-  GNUNET_CONTAINER_multihashmap_iterate (peers, &map_check_it, NULL);
+static void
+map_check (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  int fail = 0;
+  check_task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_CONTAINER_multihashmap_iterate (peers, &map_check_it, &fail);
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+       "Inconsistent peers after connection consistency check: %u\n", fail);
+
+  if (NULL != cls)
+  {
+    GNUNET_SCHEDULER_add_now (cls, NULL);
+  }
 }
 
 static void
@@ -111,7 +134,6 @@ map_connect (const struct GNUNET_PeerIdentity *peer, void * source)
     if (GNUNET_NO == pc->transport_connected)
     {
       pc->transport_connected = GNUNET_YES;
-      return;
     }
     else
     {
@@ -128,7 +150,6 @@ map_connect (const struct GNUNET_PeerIdentity *peer, void * source)
     if (GNUNET_NO == pc->core_connected)
     {
       pc->core_connected = GNUNET_YES;
-      return;
     }
     else
     {
@@ -138,9 +159,11 @@ map_connect (const struct GNUNET_PeerIdentity *peer, void * source)
            GNUNET_i2s (&pc->id),
                "TRANSPORT", (pc->transport_connected == GNUNET_YES) ? "yes" : "no");
       GNUNET_break (0);
-      return;
     }
   }
+  if (GNUNET_SCHEDULER_NO_TASK != check_task)
+    GNUNET_SCHEDULER_cancel(check_task);
+  check_task = GNUNET_SCHEDULER_add_delayed(CHECK_DELAY, &map_check, NULL);
 }
 
 
@@ -209,6 +232,10 @@ map_disconnect (const struct GNUNET_PeerIdentity * peer, void * source)
     GNUNET_free (pc);
   }
 
+  if (GNUNET_SCHEDULER_NO_TASK != check_task)
+    GNUNET_SCHEDULER_cancel(check_task);
+  check_task = GNUNET_SCHEDULER_add_delayed(CHECK_DELAY, &map_check, NULL);
+
 }
 
 
@@ -228,10 +255,12 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     ch = NULL;
   }
 
-  map_check();
-
-  GNUNET_CONTAINER_multihashmap_iterate (peers, &map_cleanup_it, NULL);
-  GNUNET_CONTAINER_multihashmap_destroy(peers);
+  if (GNUNET_SCHEDULER_NO_TASK != check_task)
+  {
+    GNUNET_SCHEDULER_cancel(check_task);
+    check_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  check_task = GNUNET_SCHEDULER_add_now (&map_check, &map_cleanup);
 }
 
 void
@@ -349,7 +378,6 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_assert (ch != NULL);
 
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleanup_task, NULL);
-
 }
 
 
