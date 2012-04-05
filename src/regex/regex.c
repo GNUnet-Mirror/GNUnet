@@ -298,6 +298,7 @@ automaton_fragment_clear (struct GNUNET_REGEX_Automaton *a)
   a->end = NULL;
   a->states_head = NULL;
   a->states_tail = NULL;
+  a->state_count = 0;
   GNUNET_free (a);
 }
 
@@ -326,6 +327,23 @@ automaton_destroy_state (struct State *s)
   state_set_clear (s->nfa_set);
 
   GNUNET_free (s);
+}
+
+static void
+automaton_remove_state (struct GNUNET_REGEX_Automaton *a, struct State *s)
+{
+  struct State *ss;
+  ss = s;
+  GNUNET_CONTAINER_DLL_remove (a->states_head, a->states_tail, s);
+  a->state_count--;
+  automaton_destroy_state (ss);
+}
+
+static void
+automaton_add_state (struct GNUNET_REGEX_Automaton *a, struct State *s)
+{
+  GNUNET_CONTAINER_DLL_insert (a->states_head, a->states_tail, s);
+  a->state_count++;
 }
 
 /**
@@ -457,34 +475,44 @@ dfa_move (struct State *s, const char literal)
 static void
 dfa_remove_unreachable_states (struct GNUNET_REGEX_Automaton *a)
 {
-  /*
-   * struct StateSet *unreachable;
-   * struct State *stack[a->size];
-   * struct State *s;
-   *
-   * unreachable = GNUNET_malloc (sizeof (struct StateSet));
-   *
-   * // 1. add all states to unreachable set
-   * for (s = a->states_head; NULL != s; s = s->next)
-   * {
-   * GNUNET_array_append (unreachable->states, unreachable->len; s);
-   * }
-   *
-   * // 2. traverse dfa from start state and remove every visited state from unreachable set
-   * s = a->start;
-   * // push a->start
-   * while (stack->len > 0)
-   * {
-   * s = stack->states[stack->len - 1];
-   * GNUNET_array_grow (stack->states; stack->len; stack->len-1);
-   * GNUNET_array_
-   * for (t = s->transitions_head; NULL != t; t = t->next)
-   * {
-   *
-   * }
-   * }
-   * // 3. delete all states that are still in the unreachable set
-   */
+  struct State *stack[a->state_count];
+  int stack_len;
+  struct State *s;
+  struct Transition *t;
+
+  stack_len = 0;
+
+  // 1. unmark all states
+  for (s = a->states_head; NULL != s; s = s->next)
+  {
+    s->marked = 0;
+  }
+
+  // 2. traverse dfa from start state and mark all visited states
+  stack[stack_len] = a->start;
+  stack_len++;
+  while (stack_len > 0)
+  {
+    s = stack[stack_len-1];
+    stack_len--;
+    s->marked = 1; // mark s as visited
+    for (t = s->transitions_head; NULL != t; t = t->next)
+    {
+      if (NULL != t->state && 0 == t->state->marked)
+      {
+        // add next states to stack
+        stack[stack_len] = t->state;
+        stack_len++;
+      }
+    }
+  }
+
+  // 3. delete all states that were not visited
+  for (s = a->states_head; NULL != s; s = s->next)
+  {
+    if (0 == s->marked)
+      automaton_remove_state (a, s);
+  }
 }
 
 /**
@@ -537,7 +565,7 @@ dfa_remove_dead_states (struct GNUNET_REGEX_Automaton *a)
       }
     }
     // 2. remove state
-    GNUNET_CONTAINER_DLL_remove (a->states_head, a->states_tail, s);
+    automaton_remove_state (a, s);
   }
 }
 
@@ -595,8 +623,8 @@ nfa_fragment_create (struct State *start, struct State *end)
   if (NULL == start && NULL == end)
     return n;
 
-  GNUNET_CONTAINER_DLL_insert (n->states_head, n->states_tail, end);
-  GNUNET_CONTAINER_DLL_insert (n->states_head, n->states_tail, start);
+  automaton_add_state (n, end);
+  automaton_add_state (n, start);
 
   n->start = start;
   n->end = end;
@@ -615,6 +643,8 @@ static void
 nfa_add_states (struct GNUNET_REGEX_Automaton *n, struct State *states_head,
                 struct State *states_tail)
 {
+  struct State *s;
+
   if (NULL == n || NULL == states_head)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not add states\n");
@@ -633,6 +663,9 @@ nfa_add_states (struct GNUNET_REGEX_Automaton *n, struct State *states_head,
     n->states_tail->next = states_head;
     n->states_tail = states_tail;
   }
+
+  for (s = states_head; NULL != s; s = s->next)
+    n->state_count++;
 }
 
 /**
@@ -1137,7 +1170,7 @@ GNUNET_REGEX_construct_dfa (const char *regex, const size_t len)
   dfa_stack = GNUNET_malloc (sizeof (struct StateSet));
   nfa_set = nfa_closure_create (nfa->start, 0);
   dfa->start = dfa_state_create (&ctx, nfa_set);
-  GNUNET_CONTAINER_DLL_insert (dfa->states_head, dfa->states_tail, dfa->start);
+  automaton_add_state (dfa, dfa->start);
   GNUNET_array_append (dfa_stack->states, dfa_stack->len, dfa->start);
   while (dfa_stack->len > 0)
   {
@@ -1164,8 +1197,7 @@ GNUNET_REGEX_construct_dfa (const char *regex, const size_t len)
 
         if (NULL == state_contains)
         {
-          GNUNET_CONTAINER_DLL_insert_tail (dfa->states_head, dfa->states_tail,
-                                            new_dfa_state);
+          automaton_add_state (dfa, new_dfa_state);
           GNUNET_array_append (dfa_stack->states, dfa_stack->len,
                                new_dfa_state);
           ctran->state = new_dfa_state;

@@ -156,6 +156,7 @@ test_random (unsigned int rx_length, unsigned int max_str_len, unsigned int str_
     }
 
     eval_check = regexec (&rx, matching_str[i], 1, matchptr, 0);
+    regfree (&rx);
 
     // We only want to match the whole string, because that's what our DFA does, too.
     if (eval_check == 0 && (matchptr[0].rm_so != 0 || matchptr[0].rm_eo != strlen (matching_str[i])))
@@ -210,8 +211,10 @@ test_automaton (struct GNUNET_REGEX_Automaton *a, regex_t *rx, struct Regex_Stri
         result = 1;
         regerror (eval_check, rx, error, sizeof error);
         GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                    "Unexpected result:\nregex: %s\nstring: %s\nexpected result: %i\ngnunet regex: %i\nglibc regex: %i\nglibc error: %s\nrm_so: %i\nrm_eo: %i\n\n",
-                    rxstr->regex, rxstr->strings[i], rxstr->expected_results[i], eval, eval_check, error, matchptr[0].rm_so, matchptr[0].rm_eo);
+                    "Unexpected result:\nregex: %s\nstring: %s\nexpected result: %i\n"
+                    "gnunet regex: %i\nglibc regex: %i\nglibc error: %s\nrm_so: %i\nrm_eo: %i\n\n",
+                    rxstr->regex, rxstr->strings[i], rxstr->expected_results[i],
+                    eval, eval_check, error, matchptr[0].rm_so, matchptr[0].rm_eo);
     }
   }
   return result;
@@ -228,6 +231,9 @@ main (int argc, char *argv[])
 #endif
                     NULL);
 
+  struct GNUNET_REGEX_Automaton *a;
+  regex_t rx;
+  int i;
   int check_nfa;
   int check_dfa;
   int check_rand;
@@ -238,9 +244,6 @@ main (int argc, char *argv[])
     {"ab+c*(a(bx|c)d)+", 5, 
      {"abcdcdcdcdddddabd", "abcd", "abcddddddccccccccccccccccccccccccabdacdabd", "abccccca", "abcdcdcdccdabdabd"}, 
      {nomatch, nomatch, nomatch, nomatch, nomatch}}};
-  struct GNUNET_REGEX_Automaton *a;
-  regex_t rx;
-  int i;
 
   check_nfa = 0;
   check_dfa = 0;
@@ -269,7 +272,7 @@ main (int argc, char *argv[])
 
   srand (time(NULL));
   for (i=0; i< 100; i++)
-    check_rand += test_random (100, 100, 10);
+    check_rand += test_random (100, 150, 10);
 
   return check_nfa + check_dfa + check_rand;
 }
