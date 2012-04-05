@@ -466,7 +466,6 @@ static void handle_shorten(void *cls,
     return;
   }
 
-  GNUNET_SERVER_notification_context_add (nc, client);
 
   struct GNUNET_GNS_ClientShortenMessage *sh_msg =
     (struct GNUNET_GNS_ClientShortenMessage *) message;
@@ -487,6 +486,16 @@ static void handle_shorten(void *cls,
   GNUNET_STRINGS_utf8_tolower((char*)&sh_msg[1], &nameptr);
 
   if (strlen (name) < strlen(GNUNET_GNS_TLD)) {
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "SHORTEN: %s is too short", name);
+    csh->name = NULL;
+    send_shorten_response(csh, name);
+    return;
+  }
+
+  if (strlen (name) > MAX_DNS_NAME_LENGTH) {
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "SHORTEN: %s is too long", name);
     csh->name = NULL;
     send_shorten_response(csh, name);
     return;
@@ -500,6 +509,8 @@ static void handle_shorten(void *cls,
     send_shorten_response(csh, name);
     return;
   }
+  
+  GNUNET_SERVER_notification_context_add (nc, client);
   
   /* Start shortening */
   if (GNUNET_YES == auto_import_pkey)
@@ -607,17 +618,25 @@ static void handle_get_authority(void *cls,
   if (strlen(name) < strlen(GNUNET_GNS_TLD))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "%s is too short. Returning\n", name);
+                "GET_AUTH: %s is too short. Returning\n", name);
     cah->name = NULL;
     send_get_auth_response(cah, name);
     return;
   }
-
+  
+  if (strlen (name) > MAX_DNS_NAME_LENGTH) {
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "GET_AUTH: %s is too long", name);
+    cah->name = NULL;
+    send_get_auth_response(cah, name);
+    return;
+  }
+  
   if (strcmp(name+strlen(name)-strlen(GNUNET_GNS_TLD),
              GNUNET_GNS_TLD) != 0)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "%s is not our domain. Returning\n", name);
+                "GET_AUTH: %s is not our domain. Returning\n", name);
     cah->name = NULL;
     send_get_auth_response(cah, name);
     return;
@@ -626,7 +645,7 @@ static void handle_get_authority(void *cls,
   if (strcmp(name, GNUNET_GNS_TLD) == 0)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "%s is us. Returning\n", name);
+                "GET_AUTH: %s is us. Returning\n", name);
     cah->name = NULL;
     send_get_auth_response(cah, name);
     return;
@@ -735,6 +754,14 @@ handle_lookup(void *cls,
   strcpy(clh->name, name);
   clh->unique_id = sh_msg->id;
   clh->type = ntohl(sh_msg->type);
+  
+  if (strlen (name) > MAX_DNS_NAME_LENGTH) {
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "LOOKUP: %s is too long", name);
+    clh->name = NULL;
+    send_lookup_response(clh, 0, NULL);
+    return;
+  }
   
   if (GNUNET_YES == auto_import_pkey)
   {
