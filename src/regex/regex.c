@@ -416,6 +416,15 @@ dfa_state_create (struct GNUNET_REGEX_Context *ctx, struct StateSet *nfa_states)
   return s;
 }
 
+/**
+ * Move from the given state 's' to the next state on
+ * transition 'literal'
+ *
+ * @param s starting state
+ * @param literal edge label to follow
+ *
+ * @return new state or NULL, if transition on literal not possible
+ */
 static struct State *
 dfa_move (struct State *s, const char literal)
 {
@@ -439,6 +448,12 @@ dfa_move (struct State *s, const char literal)
   return new_s;
 }
 
+/**
+ * Remove all unreachable states from DFA 'a'. Unreachable states
+ * are those states that are not reachable from the starting state.
+ *
+ * @param a DFA automaton
+ */
 static void
 dfa_remove_unreachable_states (struct GNUNET_REGEX_Automaton *a)
 {
@@ -472,6 +487,12 @@ dfa_remove_unreachable_states (struct GNUNET_REGEX_Automaton *a)
    */
 }
 
+/**
+ * Remove all dead states from the DFA 'a'. Dead states are those
+ * states that do not transition to any other state but themselfes.
+ *
+ * @param a DFA automaton
+ */
 static void
 dfa_remove_dead_states (struct GNUNET_REGEX_Automaton *a)
 {
@@ -520,12 +541,23 @@ dfa_remove_dead_states (struct GNUNET_REGEX_Automaton *a)
   }
 }
 
+/**
+ * Merge all non distinguishable states in the DFA 'a'
+ *
+ * @param a DFA automaton
+ */
 static void
 dfa_merge_nondistinguishable_states (struct GNUNET_REGEX_Automaton *a)
 {
 
 }
 
+/**
+ * Minimize the given DFA 'a' by removing all unreachable states,
+ * removing all dead states and merging all non distinguishable states
+ *
+ * @param a DFA automaton
+ */
 static void
 dfa_minimize (struct GNUNET_REGEX_Automaton *a)
 {
@@ -1029,10 +1061,6 @@ GNUNET_REGEX_construct_nfa (const char *regex, const size_t len)
     goto error;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Created NFA with %i States and a total of %i Transitions\n",
-              ctx.state_id, ctx.transition_id);
-
   return nfa;
 
 error:
@@ -1155,9 +1183,6 @@ GNUNET_REGEX_construct_dfa (const char *regex, const size_t len)
   GNUNET_REGEX_automaton_destroy (nfa);
 
   dfa_minimize (dfa);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created DFA with %i States\n",
-              ctx.state_id);
 
   return dfa;
 }
