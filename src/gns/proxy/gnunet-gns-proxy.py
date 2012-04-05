@@ -190,7 +190,6 @@ class ProxyHandler (BaseHTTPServer.BaseHTTPRequestHandler):
                               data = re.sub('(a href="http://(\w+\.)*)(\+)',
                                   self.replace_and_shorten(to_repl), data)
                           out.send(data)
-                          print data
                           count = 0
                         #except:
                         #  print "GNS exception:", sys.exc_info()[0]
