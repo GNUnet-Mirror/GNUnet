@@ -37,14 +37,20 @@ struct Regex_String_Pair
 {
   char *regex;
   int string_count;
-  char **strings;
-  enum Match_Result *expected_results;
+  char *strings[20];
+  enum Match_Result expected_results[20];
 };
+
+static const char allowed_literals[] =
+        "0123456789"
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "abcdefghijklmnopqrstuvwxyz";
 
 int
 test_random (unsigned int rx_length, unsigned int max_str_len, unsigned int str_count)
 {
   int i;
+  int j;
   int rx_exp;
   char rand_rx[rx_length+1];
   char matching_str[str_count][max_str_len+1];
@@ -58,9 +64,9 @@ test_random (unsigned int rx_length, unsigned int max_str_len, unsigned int str_
   struct GNUNET_REGEX_Automaton *dfa;
   regex_t rx;
   regmatch_t matchptr[1];
-  int char_offset;
   char error[200];
   int result;
+  unsigned int str_len;
 
   // At least one string is needed for matching
   GNUNET_assert (str_count > 0);
@@ -74,7 +80,6 @@ test_random (unsigned int rx_length, unsigned int max_str_len, unsigned int str_
   for (i=0; i<rx_length; i++)
   {
     char_op_switch = 0 + (int)(1.0 * rand() / (RAND_MAX + 1.0));
-    char_offset = (rand()%2) ? 65 : 97;
 
     if (0 == char_op_switch
         && !last_was_op)
@@ -91,16 +96,16 @@ test_random (unsigned int rx_length, unsigned int max_str_len, unsigned int str_
           current_char = '*';
           break;
         case 2:
-          if (i < rx_length -1)
+          if (i < rx_length -1) // '|' cannot be at the end
             current_char = '|';
           else
-            current_char = (char)(char_offset + (int)( 25.0 * rand() / (RAND_MAX + 1.0)));
+            current_char = allowed_literals[rand() % (sizeof(allowed_literals) - 1)];
           break;
       }
     }
     else
     {
-      current_char = (char)(char_offset + (int)( 25.0 * rand() / (RAND_MAX + 1.0)));
+      current_char = allowed_literals[rand() % (sizeof(allowed_literals) - 1)];
       last_was_op = 0;
     }
 
@@ -118,8 +123,18 @@ test_random (unsigned int rx_length, unsigned int max_str_len, unsigned int str_
   *rand_rxp = '\0';
   *matching_strp = '\0';
 
-  result = 0;
+  // Generate some random strings for matching...
+  // Start at 1, because the first string is generated above during regex generation
+  for (i=1; i<str_count; i++)
+  {
+    str_len = rand() % max_str_len;
+    for (j=0; j<str_len; j++)
+      matching_str[i][j] = allowed_literals[rand() % (sizeof(allowed_literals) - 1)];
+    matching_str[i][str_len] = '\0';
+  }
 
+  // Now match
+  result = 0;
   for (i=0; i<str_count; i++)
   {
     // Match string using DFA
@@ -166,6 +181,7 @@ test_automaton (struct GNUNET_REGEX_Automaton *a, regex_t *rx, struct Regex_Stri
   int eval;
   int eval_check;
   char error[200];
+  regmatch_t matchptr[1];
   int i;
 
   if (NULL == a)
@@ -179,7 +195,11 @@ test_automaton (struct GNUNET_REGEX_Automaton *a, regex_t *rx, struct Regex_Stri
   for (i=0; i<rxstr->string_count; i++)
   {
     eval = GNUNET_REGEX_eval (a, rxstr->strings[i]);
-    eval_check = regexec (rx, rxstr->strings[i], 0, NULL, 0);
+    eval_check = regexec (rx, rxstr->strings[i], 1, matchptr, 0);
+
+    // We only want to match the whole string, because that's what our DFA does, too.
+    if (eval_check == 0 && (matchptr[0].rm_so != 0 || matchptr[0].rm_eo != strlen (rxstr->strings[i])))
+      eval_check = 1;
 
     if ((rxstr->expected_results[i] == match
          && (0 != eval || 0 != eval_check))
@@ -190,8 +210,8 @@ test_automaton (struct GNUNET_REGEX_Automaton *a, regex_t *rx, struct Regex_Stri
         result = 1;
         regerror (eval_check, rx, error, sizeof error);
         GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                    "Unexpected result:\nregex: %s\nstring: %s\nexpected result: %i\ngnunet regex: %i\nglibc regex: %i\nglibc error: %s\n\n",
-                    rxstr->regex, rxstr->strings[i], rxstr->expected_results[i], eval, eval_check, error);
+                    "Unexpected result:\nregex: %s\nstring: %s\nexpected result: %i\ngnunet regex: %i\nglibc regex: %i\nglibc error: %s\nrm_so: %i\nrm_eo: %i\n\n",
+                    rxstr->regex, rxstr->strings[i], rxstr->expected_results[i], eval, eval_check, error, matchptr[0].rm_so, matchptr[0].rm_eo);
     }
   }
   return result;
@@ -211,7 +231,13 @@ main (int argc, char *argv[])
   int check_nfa;
   int check_dfa;
   int check_rand;
-  struct Regex_String_Pair rxstr[3];
+  struct Regex_String_Pair rxstr[2] = {
+    {"ab(c|d)+c*(a(b|c)d)+", 5, 
+     {"abcdcdcdcdddddabd", "abcd", "abcddddddccccccccccccccccccccccccabdacdabd", "abccccca", "abcdcdcdccdabdabd"}, 
+     {match, nomatch, match, nomatch, match}},
+    {"ab+c*(a(bx|c)d)+", 5, 
+     {"abcdcdcdcdddddabd", "abcd", "abcddddddccccccccccccccccccccccccabdacdabd", "abccccca", "abcdcdcdccdabdabd"}, 
+     {nomatch, nomatch, nomatch, nomatch, nomatch}}};
   struct GNUNET_REGEX_Automaton *a;
   regex_t rx;
   int i;
@@ -220,24 +246,9 @@ main (int argc, char *argv[])
   check_dfa = 0;
   check_rand = 0;
 
-  rxstr[0].regex = "ab(c|d)+c*(a(b|c)d)+";
-  rxstr[0].string_count = 5;
-  rxstr[0].strings = GNUNET_malloc (sizeof (char *) * rxstr[0].string_count);
-  rxstr[0].strings[0] = "abcdcdcdcdddddabd";
-  rxstr[0].strings[1] = "abcd";
-  rxstr[0].strings[2] = "abcddddddccccccccccccccccccccccccabdacdabd";
-  rxstr[0].strings[3] = "abccccca";
-  rxstr[0].strings[4] = "abcdcdcdccdabdabd";
-  rxstr[0].expected_results = GNUNET_malloc (sizeof (enum Match_Result) * rxstr[0].string_count);
-  rxstr[0].expected_results[0] = match;
-  rxstr[0].expected_results[1] = nomatch;
-  rxstr[0].expected_results[2] = match;
-  rxstr[0].expected_results[3] = nomatch;
-  rxstr[0].expected_results[4] = match;
-
-  for (i=0; i<1; i++)
+  for (i=0; i<2; i++)
   {
-    if (0 != regcomp (&rx, rxstr->regex, REG_EXTENDED | REG_NOSUB))
+    if (0 != regcomp (&rx, rxstr[i].regex, REG_EXTENDED))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not compile regex using regcomp()\n");
       return 1;
@@ -258,7 +269,7 @@ main (int argc, char *argv[])
 
   srand (time(NULL));
   for (i=0; i< 100; i++)
-    check_rand += test_random (100, 100, 1);
+    check_rand += test_random (100, 100, 10);
 
   return check_nfa + check_dfa + check_rand;
 }
