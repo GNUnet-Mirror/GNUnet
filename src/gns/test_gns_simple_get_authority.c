@@ -36,7 +36,7 @@
 #define VERBOSE GNUNET_YES
 
 /* Timeout for entire testcase */
-#define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 10)
+#define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 20)
 
 /* If number of peers not in config file, use this number */
 #define DEFAULT_NUM_PEERS 2
