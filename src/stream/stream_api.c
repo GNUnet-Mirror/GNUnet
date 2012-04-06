@@ -2370,15 +2370,20 @@ GNUNET_STREAM_open (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 
 /**
- * Shutdown the stream for reading or writing (man 2 shutdown).
+ * Shutdown the stream for reading or writing (similar to man 2 shutdown).
  *
  * @param socket the stream socket
- * @param how SHUT_RD, SHUT_WR or SHUT_RDWR 
+ * @param opertion SHUT_RD, SHUT_WR or SHUT_RDWR
+ * @param completion_cb the callback that will be called upon successful
+ *          shutdown of given operation
+ * @param completion_cls the closure for the completion callback
  * @return the shutdown handle
  */
 struct GNUNET_STREAM_ShutdownHandle *
 GNUNET_STREAM_shutdown (struct GNUNET_STREAM_Socket *socket,
-			int how)
+			int operation,
+                        GNUNET_STREAM_ShutdownCompletion completion_cb,
+                        void *completion_cls)
 {
   return NULL;
 }

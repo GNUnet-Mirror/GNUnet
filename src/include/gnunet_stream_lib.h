@@ -131,15 +131,31 @@ struct GNUNET_STREAM_ShutdownHandle;
 
 
 /**
+ * Completion callback for shutdown
+ *
+ * @param cls the closure from GNUNET_STREAM_shutdown call
+ * @param operation the operation that was shutdown (SHUT_RD, SHUT_WR,
+ *          SHUT_RDWR) 
+ */
+typedef void (*GNUNET_STREAM_ShutdownCompletion) (void *cls,
+                                                  int operation);
+
+
+/**
  * Shutdown the stream for reading or writing (man 2 shutdown).
  *
  * @param socket the stream socket
- * @param how SHUT_RD, SHUT_WR or SHUT_RDWR 
+ * @param opertion SHUT_RD, SHUT_WR or SHUT_RDWR
+ * @param completion_cb the callback that will be called upon successful
+ *          shutdown of given operation
+ * @param completion_cls the closure for the completion callback
  * @return the shutdown handle
  */
 struct GNUNET_STREAM_ShutdownHandle *
 GNUNET_STREAM_shutdown (struct GNUNET_STREAM_Socket *socket,
-			int how);
+			int operation,
+                        GNUNET_STREAM_ShutdownCompletion completion_cb,
+                        void *completion_cls);
 
 
 /**
