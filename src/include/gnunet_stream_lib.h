@@ -142,14 +142,14 @@ typedef void (*GNUNET_STREAM_ShutdownCompletion) (void *cls,
 
 
 /**
- * Shutdown the stream for reading or writing (man 2 shutdown).
+ * Shutdown the stream for reading or writing (similar to man 2 shutdown).
  *
  * @param socket the stream socket
- * @param opertion SHUT_RD, SHUT_WR or SHUT_RDWR
+ * @param operation SHUT_RD, SHUT_WR or SHUT_RDWR
  * @param completion_cb the callback that will be called upon successful
  *          shutdown of given operation
  * @param completion_cls the closure for the completion callback
- * @return the shutdown handle
+ * @return the shutdown handle; NULL in case of any error
  */
 struct GNUNET_STREAM_ShutdownHandle *
 GNUNET_STREAM_shutdown (struct GNUNET_STREAM_Socket *socket,
@@ -161,7 +161,7 @@ GNUNET_STREAM_shutdown (struct GNUNET_STREAM_Socket *socket,
 /**
  * Cancels a pending shutdown
  *
- * @param the shutdown handle returned from GNUNET_STREAM_shutdown
+ * @param handle the shutdown handle returned from GNUNET_STREAM_shutdown
  */
 void
 GNUNET_STREAM_shutdown_cancel (struct GNUNET_STREAM_ShutdownHandle *handle);
