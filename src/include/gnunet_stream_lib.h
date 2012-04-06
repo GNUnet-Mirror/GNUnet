@@ -125,18 +125,35 @@ GNUNET_STREAM_open (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 
 /**
+ * Handle for shutdown
+ */
+struct GNUNET_STREAM_ShutdownHandle;
+
+
+/**
  * Shutdown the stream for reading or writing (man 2 shutdown).
  *
  * @param socket the stream socket
  * @param how SHUT_RD, SHUT_WR or SHUT_RDWR 
+ * @return the shutdown handle
  */
-void
+struct GNUNET_STREAM_ShutdownHandle *
 GNUNET_STREAM_shutdown (struct GNUNET_STREAM_Socket *socket,
 			int how);
 
 
 /**
- * Closes the stream
+ * Cancels a pending shutdown
+ *
+ * @param the shutdown handle returned from GNUNET_STREAM_shutdown
+ */
+void
+GNUNET_STREAM_shutdown_cancel (struct GNUNET_STREAM_ShutdownHandle *handle);
+
+
+/**
+ * Closes the stream and frees the associated state. The stream should be
+ * shutdown before closing.
  *
  * @param socket the stream socket
  */

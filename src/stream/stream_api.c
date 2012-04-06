@@ -428,9 +428,27 @@ struct GNUNET_STREAM_IOReadHandle
 
 
 /**
+ * Handle for Shutdown
+ */
+struct GNUNET_STREAM_ShutdownHandle
+{
+  /**
+   * The socket associated with this shutdown handle
+   */
+  struct GNUNET_STREAM_Socket *socket;
+
+  /**
+   * Which operation to shutdown? SHUT_RD, SHUT_WR or SHUT_RDWR
+   */
+  int operation;
+};
+
+
+/**
  * Default value in seconds for various timeouts
  */
 static unsigned int default_timeout = 10;
+
 
 /**
  * Callback function for sending queued message
@@ -2356,10 +2374,23 @@ GNUNET_STREAM_open (const struct GNUNET_CONFIGURATION_Handle *cfg,
  *
  * @param socket the stream socket
  * @param how SHUT_RD, SHUT_WR or SHUT_RDWR 
+ * @return the shutdown handle
  */
-void
+struct GNUNET_STREAM_ShutdownHandle *
 GNUNET_STREAM_shutdown (struct GNUNET_STREAM_Socket *socket,
 			int how)
+{
+  return NULL;
+}
+
+
+/**
+ * Cancels a pending shutdown
+ *
+ * @param the shutdown handle returned from GNUNET_STREAM_shutdown
+ */
+void
+GNUNET_STREAM_shutdown_cancel (struct GNUNET_STREAM_ShutdownHandle *handle)
 {
   return;
 }
