@@ -1558,7 +1558,6 @@ client_handle_receive_close_ack (void *cls,
  *
  * @param socket the socket
  * @param tunnel connection to the other end
- * @param tunnel_ctx this is NULL
  * @param sender who sent the message
  * @param message the actual message
  * @param atsi performance data for the connection
@@ -1630,7 +1629,6 @@ client_handle_close (void *cls,
  *
  * @param socket the socket
  * @param tunnel connection to the other end
- * @param tunnel_ctx this is NULL
  * @param sender who sent the message
  * @param message the actual message
  * @param atsi performance data for the connection
