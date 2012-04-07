@@ -232,6 +232,11 @@ struct GNUNET_STREAM_Socket
   struct GNUNET_STREAM_IOReadHandle *read_handle;
 
   /**
+   * The shutdown handle associated with this socket
+   */
+  struct GNUNET_STREAM_ShutdownHandle *shutdown_handle;
+
+  /**
    * Buffer for storing received messages
    */
   void *receive_buffer;
@@ -443,6 +448,16 @@ struct GNUNET_STREAM_ShutdownHandle
    * Which operation to shutdown? SHUT_RD, SHUT_WR or SHUT_RDWR
    */
   int operation;
+
+  /**
+   * Shutdown completion callback
+   */
+  GNUNET_STREAM_ShutdownCompletion completion_cb;
+
+  /**
+   * Closure for completion callback
+   */
+  void *completion_cls;
 };
 
 
@@ -1559,6 +1574,10 @@ handle_close (struct GNUNET_STREAM_Socket *socket,
 {
   struct GNUNET_STREAM_MessageHeader *close_ack;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "%x: Received CLOSE from %x\n",
+              socket->our_id,
+              socket->other_peer);
   close_ack = GNUNET_malloc (sizeof (struct GNUNET_STREAM_MessageHeader));
   close_ack->header.size = htons (sizeof (struct GNUNET_STREAM_MessageHeader));
   close_ack->header.type = htons (GNUNET_MESSAGE_TYPE_STREAM_CLOSE_ACK);
@@ -1625,10 +1644,30 @@ handle_close_ack (struct GNUNET_STREAM_Socket *socket,
                   const struct GNUNET_STREAM_MessageHeader *message,
                   const struct GNUNET_ATS_Information*atsi)
 {
+  struct GNUNET_STREAM_ShutdownHandle *shutdown_handle;
+
+  shutdown_handle = socket->shutdown_handle;
   switch (socket->state)
     {
     case STATE_CLOSE_WAIT:
       socket->state = STATE_CLOSED;
+      if ( (NULL == shutdown_handle) ||
+           (SHUT_RDWR != shutdown_handle->operation) )
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      "%x: Received CLOSE_ACK when shutdown handle is NULL or "
+                      "not for SHUT_RDWR\n",
+                      socket->our_id);
+          return GNUNET_OK;
+        }
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "%x: Received CLOSE_ACK from %x\n",
+                  socket->our_id,
+                  socket->other_peer);
+      if (NULL != shutdown_handle->completion_cb) /* Shutdown completion */
+        shutdown_handle->completion_cb(shutdown_handle->completion_cls,
+                                       SHUT_RDWR);
+      GNUNET_free (shutdown_handle); /* Free shutdown handle */
       break;
     default:
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -2515,16 +2554,25 @@ GNUNET_STREAM_shutdown (struct GNUNET_STREAM_Socket *socket,
 {
   struct GNUNET_STREAM_ShutdownHandle *handle;
   struct GNUNET_STREAM_MessageHeader *msg;
+  
+  GNUNET_assert (NULL == socket->shutdown_handle);
 
   handle = GNUNET_malloc (sizeof (struct GNUNET_STREAM_ShutdownHandle));
   handle->socket = socket;
+  handle->completion_cb = completion_cb;
+  handle->completion_cls = completion_cls;
+  socket->shutdown_handle = handle;
+
   msg = GNUNET_malloc (sizeof (struct GNUNET_STREAM_MessageHeader));
   msg->header.size = htons (sizeof (struct GNUNET_STREAM_MessageHeader));
   switch (operation)
     {
     case SHUT_RD:
       handle->operation = SHUT_RD;
-
+      if (NULL != socket->read_handle)
+        GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                    "Existing read handle should be cancelled before shutting"
+                    " down reading\n");
       break;
     case SHUT_WR:
       handle->operation = SHUT_WR;

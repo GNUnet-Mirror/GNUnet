@@ -60,6 +60,11 @@ struct PeerData
   struct GNUNET_STREAM_IOReadHandle *io_read_handle;
 
   /**
+   * Peer's shutdown handle
+   */
+  struct GNUNET_STREAM_ShutdownHandle *shutdown_handle;
+
+  /**
    * Our Peer id
    */
   struct GNUNET_PeerIdentity our_id;
@@ -109,7 +114,7 @@ static int reading_success;
  * Check whether peers successfully shut down.
  */
 static void
-shutdown_callback (void *cls, const char *emsg)
+peergroup_shutdown_callback (void *cls, const char *emsg)
 {
   if (emsg != NULL)
   {
@@ -126,10 +131,10 @@ shutdown_callback (void *cls, const char *emsg)
 
 
 /**
- * Shutdown nicely
+ * Close sockets and stop testing deamons nicely
  */
 static void
-do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_close (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   if (NULL != peer1.socket)
     GNUNET_STREAM_close (peer1.socket);
@@ -149,8 +154,40 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_TESTING_daemons_stop (pg,
                                GNUNET_TIME_relative_multiply
                                (GNUNET_TIME_UNIT_SECONDS, 5),
-                               &shutdown_callback,
+                               &peergroup_shutdown_callback,
                                NULL);
+}
+
+
+/**
+ * Completion callback for shutdown
+ *
+ * @param cls the closure from GNUNET_STREAM_shutdown call
+ * @param operation the operation that was shutdown (SHUT_RD, SHUT_WR,
+ *          SHUT_RDWR) 
+ */
+static void 
+shutdown_completion (void *cls,
+                     int operation)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "STREAM shutdown successful\n");
+  GNUNET_SCHEDULER_add_now (&do_close,
+                            cls);
+}
+
+
+
+/**
+ * Shutdown sockets gracefully
+ */
+static void
+do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  peer1.shutdown_handle = GNUNET_STREAM_shutdown (peer1.socket, 
+                                                  SHUT_RDWR,
+                                                  &shutdown_completion,
+                                                  cls);
 }
 
 
@@ -167,7 +204,7 @@ do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     }
   result = GNUNET_SYSERR;
   abort_task = 0;
-  do_shutdown (cls, tc);
+  do_close (cls, tc);  
 }
 
 /**
@@ -237,7 +274,7 @@ write_completion (void *cls,
       else
         {
           writing_success = GNUNET_YES;
-          if (GNUNET_YES == reading_success) 
+          if (GNUNET_YES == reading_success)
             GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
         }
     }
