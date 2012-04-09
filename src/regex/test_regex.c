@@ -75,6 +75,8 @@ test_random (unsigned int rx_length, unsigned int max_str_len, unsigned int str_
 
   rand_rxp = rand_rx;
   matching_strp = matching_str[0];
+  current_char = 0;
+  last_was_op = 1;
 
   // Generate random regex and a string that matches the regex
   for (i=0; i<rx_length; i++)

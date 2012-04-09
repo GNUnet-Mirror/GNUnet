@@ -589,6 +589,9 @@ dfa_merge_nondistinguishable_states (struct GNUNET_REGEX_Automaton *a)
 static void
 dfa_minimize (struct GNUNET_REGEX_Automaton *a)
 {
+  if (NULL == a)
+    return;
+
   GNUNET_assert (DFA == a->type);
 
   // 1. remove unreachable states
@@ -1100,7 +1103,8 @@ error:
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not parse regex\n");
   if (NULL != error_msg)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s\n", error_msg);
-  GNUNET_free (p);
+  if (NULL != p)
+    GNUNET_free (p);
   while (NULL != ctx.stack_tail)
   {
     GNUNET_REGEX_automaton_destroy (ctx.stack_tail);
@@ -1162,6 +1166,13 @@ GNUNET_REGEX_construct_dfa (const char *regex, const size_t len)
 
   // Create NFA
   nfa = GNUNET_REGEX_construct_nfa (regex, len);
+
+  if (NULL == nfa)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+                "Could not create DFA, because NFA creation failed\n");
+    return NULL;
+  }
 
   dfa = GNUNET_malloc (sizeof (struct GNUNET_REGEX_Automaton));
   dfa->type = DFA;
