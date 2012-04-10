@@ -1036,7 +1036,7 @@ GNUNET_NAMESTORE_record_put (struct GNUNET_NAMESTORE_Handle *h,
   msg->gns_header.r_id = htonl (rid);
   msg->signature = *signature;
   msg->name_len = htons (name_len);
-  msg->expire = GNUNET_TIME_absolute_hton (expire);
+  msg->expire = GNUNET_TIME_absolute_hton (freshness);
   msg->rd_len = htons (rd_ser_len);
   msg->rd_count = htons (rd_count);
 
