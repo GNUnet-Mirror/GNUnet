@@ -42,7 +42,7 @@
 #define VERBOSE GNUNET_YES
 
 /* Timeout for entire testcase */
-#define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 80)
+#define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 180)
 #define ZONE_PUT_WAIT_TIME GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30)
 
 /* If number of peers not in config file, use this number */
@@ -487,12 +487,12 @@ check ()
   /* Run the run function as a new program */
   ret =
       GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv,
-                          "test-gns-twopeer", "nohelp", options, &run,
+                          "test-gns-threepeer", "nohelp", options, &run,
                           &ok);
   if (ret != GNUNET_OK)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "`test-gns-twopeer': Failed with error code %d\n", ret);
+                "`test-gns-threepeer': Failed with error code %d\n", ret);
   }
   return ok;
 }
@@ -502,7 +502,7 @@ main (int argc, char *argv[])
 {
   int ret;
 
-  GNUNET_log_setup ("test-gns-twopeer",
+  GNUNET_log_setup ("test-gns-threepeer",
 #if VERBOSE
                     "DEBUG",
 #else
@@ -517,4 +517,4 @@ main (int argc, char *argv[])
   return ret;
 }
 
-/* end of test_gns_twopeer.c */
+/* end of test_gns_threepeer.c */
