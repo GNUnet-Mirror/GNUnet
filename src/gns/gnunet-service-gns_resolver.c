@@ -1762,6 +1762,10 @@ handle_delegation_ns(void* cls, struct ResolverHandle *rh,
 {
   struct RecordLookupHandle* rlh;
   rlh = (struct RecordLookupHandle*) cls;
+
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "GNS_PHASE_DELEGATE_NS-%llu: Resolution status: %d.\n",
+             rh->id, rh->status);
   
   if (strcmp(rh->name, "") == 0)
   {
@@ -1791,7 +1795,7 @@ handle_delegation_ns(void* cls, struct ResolverHandle *rh,
    * and exists
    * or we are authority
    **/
-  if (((rh->status & RSL_RECORD_EXISTS) && (rh->status & !RSL_RECORD_EXPIRED))
+  if (((rh->status & RSL_RECORD_EXISTS) && (!(rh->status & RSL_RECORD_EXPIRED)))
       || !GNUNET_CRYPTO_short_hash_cmp(&rh->authority_chain_head->zone,
                                        &local_zone))
   {
@@ -1868,11 +1872,17 @@ process_delegation_result_ns(void* cls,
   
   if (name != NULL)
   {
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "GNS_PHASE_DELEGATE_NS-%llu: Records with name %s exist.\n",
+               rh->id, name);
     rh->status |= RSL_RECORD_EXISTS;
   }
   
   if (remaining_time.rel_value == 0)
   {
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "GNS_PHASE_DELEGATE_NS-%llu: Record set %s expired.\n",
+               rh->id, name);
     rh->status |= RSL_RECORD_EXPIRED;
   }
   
@@ -1994,7 +2004,23 @@ process_delegation_result_ns(void* cls,
    */
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
     "GNS_PHASE_DELEGATE_NS-%llu: Authority lookup and no PKEY...\n", rh->id);
-  rh->proc(rh->proc_cls, rh, 0, NULL);
+  /**
+   * If we have found some records for the LAST label
+   * we return the results. Else null.
+   */
+  if (strcmp(rh->name, "") == 0)
+  {
+    /* simply promote back */
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "GNS_PHASE_DELEGATE_NS-%llu: Promoting %s back to name\n",
+               rh->id, rh->authority_name);
+    strcpy(rh->name, rh->authority_name);
+    rh->proc(rh->proc_cls, rh, rd_count, rd);
+  }
+  else
+  {
+    rh->proc(rh->proc_cls, rh, 0, NULL);
+  }
 }
 
 
@@ -2013,7 +2039,7 @@ resolve_delegation_ns(struct ResolverHandle *rh)
   GNUNET_NAMESTORE_lookup_record(namestore_handle,
                                  &rh->authority,
                                  rh->authority_name,
-                                 GNUNET_GNS_RECORD_PKEY,
+                                 GNUNET_GNS_RECORD_ANY,
                                  &process_delegation_result_ns,
                                  rh);
 

@@ -103,6 +103,13 @@ shutdown_callback (void *cls, const char *emsg)
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "done(ret=%d)!\n", ok);
 }
 
+static void
+disco_dht(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_DHT_disconnect(dht_handle);
+  dht_handle = NULL;
+}
+
 /**
  * Called when gns shorten finishes
  */
@@ -110,6 +117,7 @@ static void
 process_shorten_result(void* cls, const char* sname)
 {
   GNUNET_GNS_disconnect(gns_handle);
+  //GNUNET_SCHEDULER_add_now(disco_dht, NULL);
   ok = 0;
 
   if (sname == NULL)
@@ -196,7 +204,8 @@ on_lookup_result(void *cls, uint32_t rd_count,
 static void
 commence_testing (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_DHT_disconnect(dht_handle);
+  GNUNET_SCHEDULER_add_now(disco_dht, NULL);
+  //GNUNET_DHT_disconnect(dht_handle);
 
   GNUNET_CRYPTO_rsa_key_free(our_key);
   GNUNET_CRYPTO_rsa_key_free(bob_key);
@@ -595,7 +604,7 @@ check ()
   if (ret != GNUNET_OK)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "`test-gns-dht-delegated-lookup': Failed with error code %d\n", ret);
+                "`test-gns-pseu-shorten': Failed with error code %d\n", ret);
   }
   return ok;
 }
@@ -605,7 +614,7 @@ main (int argc, char *argv[])
 {
   int ret;
 
-  GNUNET_log_setup ("test-gns-simple-lookup",
+  GNUNET_log_setup ("test-gns-pseu-shorten",
 #if VERBOSE
                     "DEBUG",
 #else
