@@ -49,6 +49,8 @@
 #define TEST_ADDITIONAL_LOOKUPS 5
 #define TEST_AUTHORITY_NAME "bob"
 
+#define KEYFILE_BOB "../namestore/zonefiles/HGU0A0VCU334DN7F2I9UIUMVQMM7JMSD142LIMNUGTTV9R0CF4EG.zkey"
+
 /* Globals */
 
 /**
@@ -256,7 +258,7 @@ do_lookup(void *cls, const struct GNUNET_PeerIdentity *id,
   }
 
   alice_key = GNUNET_CRYPTO_rsa_key_create_from_file (alice_keyfile);
-  bob_key = GNUNET_CRYPTO_rsa_key_create ();
+  bob_key = GNUNET_CRYPTO_rsa_key_create (KEYFILE_BOB);
 
   GNUNET_CRYPTO_rsa_key_get_public (alice_key, &alice_pkey);
   GNUNET_CRYPTO_rsa_key_get_public (bob_key, &bob_pkey);
