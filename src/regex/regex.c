@@ -403,7 +403,7 @@ automaton_merge_states (struct GNUNET_REGEX_Context *ctx,
     for (t_check = s_check->transitions_head; NULL != t_check;
          t_check = t_check->next)
     {
-      if (s_check != s2 && s2 == t_check->state)
+      if (s_check != s1 && s2 == t_check->state)
         t_check->state = s1;
     }
   }
@@ -1343,6 +1343,8 @@ GNUNET_REGEX_construct_dfa (const char *regex, const size_t len)
   dfa->start = dfa_state_create (&ctx, nfa_set);
   automaton_add_state (dfa, dfa->start);
   GNUNET_array_append (dfa_stack->states, dfa_stack->len, dfa->start);
+
+  // Create dfa states by combining nfa states
   while (dfa_stack->len > 0)
   {
     dfa_state = dfa_stack->states[dfa_stack->len - 1];
@@ -1385,7 +1387,7 @@ GNUNET_REGEX_construct_dfa (const char *regex, const size_t len)
   GNUNET_free (dfa_stack);
   GNUNET_REGEX_automaton_destroy (nfa);
 
-  /*dfa_minimize (&ctx, dfa);*/
+  dfa_minimize (&ctx, dfa);
 
   return dfa;
 }
