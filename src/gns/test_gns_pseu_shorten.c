@@ -54,6 +54,9 @@
 
 #define DHT_OPERATION_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
+#define KEYFILE_BOB "../namestore/zonefiles/HGU0A0VCU334DN7F2I9UIUMVQMM7JMSD142LIMNUGTTV9R0CF4EG.zkey"
+#define KEYFILE_ALICE "../namestore/zonefiles/N0UJMP015AFUNR2BTNM3FKPBLG38913BL8IDMCO2H0A1LIB81960.zkey"
+
 /* Globals */
 
 /**
@@ -527,8 +530,8 @@ do_lookup(void *cls, const struct GNUNET_PeerIdentity *id,
   }
 
   our_key = GNUNET_CRYPTO_rsa_key_create_from_file (our_keyfile);
-  bob_key = GNUNET_CRYPTO_rsa_key_create ();
-  alice_key = GNUNET_CRYPTO_rsa_key_create ();
+  bob_key = GNUNET_CRYPTO_rsa_key_create_from_file (KEYFILE_BOB);
+  alice_key = GNUNET_CRYPTO_rsa_key_create_from_file (KEYFILE_ALICE);
   
   GNUNET_free(our_keyfile);
 
