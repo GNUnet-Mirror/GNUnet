@@ -227,8 +227,8 @@ do_shorten(void *cls, const struct GNUNET_PeerIdentity *id,
   our_key = GNUNET_CRYPTO_rsa_key_create_from_file (our_keyfile);
   GNUNET_free(our_keyfile);
 
-  bob_key = GNUNET_CRYPTO_rsa_key_create (KEYFILE_BOB);
-  alice_key = GNUNET_CRYPTO_rsa_key_create (KEYFILE_ALICE);
+  bob_key = GNUNET_CRYPTO_rsa_key_create_from_file (KEYFILE_BOB);
+  alice_key = GNUNET_CRYPTO_rsa_key_create_from_file (KEYFILE_ALICE);
   
   GNUNET_CRYPTO_rsa_key_get_public (our_key, &our_pkey);
   GNUNET_CRYPTO_rsa_key_get_public (alice_key, &alice_pkey);

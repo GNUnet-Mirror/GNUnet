@@ -305,7 +305,7 @@ do_lookup(void *cls, const struct GNUNET_PeerIdentity *id,
   }
 
   alice_key = GNUNET_CRYPTO_rsa_key_create_from_file (alice_keyfile);
-  bob_key = GNUNET_CRYPTO_rsa_key_create (KEYFILE_BOB);
+  bob_key = GNUNET_CRYPTO_rsa_key_create_from_file (KEYFILE_BOB);
   
   GNUNET_free(alice_keyfile);
 
