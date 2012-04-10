@@ -196,7 +196,7 @@ struct GNUNET_NAMESTORE_RecordData
  * @param h handle to the namestore
  * @param zone_key public key of the zone
  * @param name name that is being mapped (at most 255 characters long)
- * @param expire when does the corresponding block in the DHT expire (until
+ * @param freshness when does the corresponding block in the DHT expire (until
  *               when should we never do a DHT lookup for the same name again)?
  * @param rd_count number of entries in 'rd' array
  * @param rd array of records with data to store
@@ -209,7 +209,7 @@ struct GNUNET_NAMESTORE_QueueEntry *
 GNUNET_NAMESTORE_record_put (struct GNUNET_NAMESTORE_Handle *h,
 			     const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
 			     const char *name,
-			     struct GNUNET_TIME_Absolute expire,
+			     struct GNUNET_TIME_Absolute freshness,
 			     unsigned int rd_count,
 			     const struct GNUNET_NAMESTORE_RecordData *rd,
 			     const struct GNUNET_CRYPTO_RsaSignature *signature,
@@ -231,7 +231,7 @@ GNUNET_NAMESTORE_record_put (struct GNUNET_NAMESTORE_Handle *h,
  */
 int
 GNUNET_NAMESTORE_verify_signature (const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *public_key,
-                                   const struct GNUNET_TIME_Absolute expire,
+                                   const struct GNUNET_TIME_Absolute freshness,
                                    const char *name,
                                    unsigned int rd_count,
                                    const struct GNUNET_NAMESTORE_RecordData *rd,
@@ -302,7 +302,7 @@ GNUNET_NAMESTORE_record_remove (struct GNUNET_NAMESTORE_Handle *h,
  */
 typedef void (*GNUNET_NAMESTORE_RecordProcessor) (void *cls,
 						  const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
-						  struct GNUNET_TIME_Absolute expire,			    
+						  struct GNUNET_TIME_Absolute freshness,			    
 						  const char *name,
 						  unsigned int rd_len,
 						  const struct GNUNET_NAMESTORE_RecordData *rd,
