@@ -177,6 +177,16 @@ debug_print_transitions (struct State *s)
   }
 }
 
+/**
+ * Compare two states. Used for sorting.
+ *
+ * @param a first state
+ * @param b second state
+ *
+ * @return an integer less than, equal to, or greater than zero
+ *         if the first argument is considered to be respectively
+ *         less than, equal to, or greater than the second.
+ */
 static int
 state_compare (const void *a, const void *b)
 {
@@ -329,16 +339,110 @@ automaton_destroy_state (struct State *s)
   GNUNET_free (s);
 }
 
+/**
+ * Remove a state from the given automaton 'a'. Always use this function
+ * when altering the states of an automaton. Will also remove all transitions
+ * leading to this state, before destroying it.
+ *
+ * @param a automaton
+ * @param s state to remove
+ */
 static void
 automaton_remove_state (struct GNUNET_REGEX_Automaton *a, struct State *s)
 {
   struct State *ss;
+  struct State *s_check;
+  struct Transition *t_check;
+
+  // remove state
   ss = s;
   GNUNET_CONTAINER_DLL_remove (a->states_head, a->states_tail, s);
   a->state_count--;
+
+  // remove all transitions leading to this state
+  for (s_check = a->states_head; NULL != s_check; s_check = s_check->next)
+  {
+    for (t_check = s_check->transitions_head; NULL != t_check;
+         t_check = t_check->next)
+    {
+      if (t_check->state == ss)
+      {
+        GNUNET_CONTAINER_DLL_remove (s_check->transitions_head,
+                                     s_check->transitions_tail, t_check);
+        s_check->transition_count--;
+      }
+    }
+  }
+
   automaton_destroy_state (ss);
 }
 
+/**
+ * Merge two states into one. Will merge 's1' and 's2' into 's1' and destroy 's2'.
+ *
+ * @param ctx context
+ * @param a automaton
+ * @param s1 first state
+ * @param s2 second state, will be destroyed
+ */
+static void
+automaton_merge_states (struct GNUNET_REGEX_Context *ctx,
+                        struct GNUNET_REGEX_Automaton *a, struct State *s1,
+                        struct State *s2)
+{
+  struct State *s_check;
+  struct Transition *t_check;
+  struct Transition *t;
+  char *new_name;
+
+  GNUNET_assert (NULL != ctx && NULL != a && NULL != s1 && NULL != s2);
+
+  // 1. Make all transitions pointing to s2 point to s1
+  for (s_check = a->states_head; NULL != s_check; s_check = s_check->next)
+  {
+    for (t_check = s_check->transitions_head; NULL != t_check;
+         t_check = t_check->next)
+    {
+      if (s_check != s2 && s2 == t_check->state)
+        t_check->state = s1;
+    }
+  }
+
+  // 2. Add all transitions from s2 to sX to s1
+  for (t_check = s2->transitions_head; NULL != t_check; t_check = t_check->next)
+  {
+    for (t = s1->transitions_head; NULL != t; t = t->next)
+    {
+      if (t_check->literal != t->literal && NULL != t_check->state &&
+          t_check->state != t->state && t_check->state != s2)
+      {
+        add_transition (ctx, s1, t_check->literal, t_check->state);
+      }
+    }
+  }
+
+  // 3. Rename s1 to {s1,s2}
+  new_name = GNUNET_malloc (strlen (s1->name) + strlen (s2->name) + 1);
+  strncat (new_name, s1->name, strlen (s1->name));
+  strncat (new_name, s2->name, strlen (s2->name));
+  if (NULL != s1->name)
+    GNUNET_free (s1->name);
+  s1->name = new_name;
+
+  // remove state
+  s_check = s2;
+  GNUNET_CONTAINER_DLL_remove (a->states_head, a->states_tail, s_check);
+  a->state_count--;
+  automaton_destroy_state (s_check);
+}
+
+/**
+ * Add a state to the automaton 'a', always use this function to
+ * alter the states DLL of the automaton.
+ *
+ * @param a automaton to add the state to
+ * @param s state that should be added
+ */
 static void
 automaton_add_state (struct GNUNET_REGEX_Automaton *a, struct State *s)
 {
@@ -493,9 +597,9 @@ dfa_remove_unreachable_states (struct GNUNET_REGEX_Automaton *a)
   stack_len++;
   while (stack_len > 0)
   {
-    s = stack[stack_len-1];
+    s = stack[stack_len - 1];
     stack_len--;
-    s->marked = 1; // mark s as visited
+    s->marked = 1;              // mark s as visited
     for (t = s->transitions_head; NULL != t; t = t->next)
     {
       if (NULL != t->state && 0 == t->state->marked)
@@ -525,9 +629,7 @@ static void
 dfa_remove_dead_states (struct GNUNET_REGEX_Automaton *a)
 {
   struct State *s;
-  struct State *s_check;
   struct Transition *t;
-  struct Transition *t_check;
   int dead;
 
   GNUNET_assert (DFA == a->type);
@@ -551,20 +653,6 @@ dfa_remove_dead_states (struct GNUNET_REGEX_Automaton *a)
       continue;
 
     // state s is dead, remove it
-    // 1. remove all transitions to this state
-    for (s_check = a->states_head; NULL != s_check; s_check = s_check->next)
-    {
-      for (t_check = s_check->transitions_head; NULL != t_check;
-           t_check = t_check->next)
-      {
-        if (t_check->state == s)
-        {
-          GNUNET_CONTAINER_DLL_remove (s_check->transitions_head,
-                                       s_check->transitions_tail, t_check);
-        }
-      }
-    }
-    // 2. remove state
     automaton_remove_state (a, s);
   }
 }
@@ -575,9 +663,80 @@ dfa_remove_dead_states (struct GNUNET_REGEX_Automaton *a)
  * @param a DFA automaton
  */
 static void
-dfa_merge_nondistinguishable_states (struct GNUNET_REGEX_Automaton *a)
+dfa_merge_nondistinguishable_states (struct GNUNET_REGEX_Context *ctx,
+                                     struct GNUNET_REGEX_Automaton *a)
 {
+  int i;
+  int table[a->state_count][a->state_count];
+  struct State *s1;
+  struct State *s2;
+  struct Transition *t1;
+  struct Transition *t2;
+  int change;
 
+  change = 1;
+  for (i = 0, s1 = a->states_head; i < a->state_count && NULL != s1;
+       i++, s1 = s1->next)
+    s1->marked = i;
+
+  // Mark all pairs of accepting/!accepting states
+  for (s1 = a->states_head; NULL != s1; s1 = s1->next)
+  {
+    for (s2 = a->states_head; NULL != s2 && s1 != s2; s2 = s2->next)
+    {
+      if ((s1->accepting && !s2->accepting) ||
+          (!s1->accepting && s2->accepting))
+      {
+        table[s1->marked][s2->marked] = 1;
+      }
+      else
+        table[s1->marked][s2->marked] = 0;
+    }
+  }
+
+  while (0 != change)
+  {
+    change = 0;
+    for (s1 = a->states_head; NULL != s1; s1 = s1->next)
+    {
+      for (s2 = a->states_head; NULL != s2 && s1 != s2; s2 = s2->next)
+      {
+        if (0 != table[s1->marked][s2->marked])
+          continue;
+
+        for (t1 = s1->transitions_head; NULL != t1; t1 = t1->next)
+        {
+          for (t2 = s2->transitions_head; NULL != t2; t2 = t2->next)
+          {
+            if (t1->literal == t2->literal && t1->state == t2->state &&
+                (0 != table[t1->state->marked][t2->state->marked] ||
+                 0 != table[t2->state->marked][t1->state->marked]))
+            {
+              table[s1->marked][s2->marked] = t1->literal;
+              change = 1;
+            }
+            else if (t1->literal != t2->literal && t1->state != t2->state)
+            {
+              table[s1->marked][s2->marked] = -1;
+              change = 1;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  struct State *s2_next;
+
+  for (i = 0, s1 = a->states_head; NULL != s1; s1 = s1->next)
+  {
+    for (s2 = a->states_head; NULL != s2 && s1 != s2; s2 = s2_next)
+    {
+      s2_next = s2->next;
+      if (s1 != s2 && table[s1->marked][s2->marked] == 0)
+        automaton_merge_states (ctx, a, s1, s2);
+    }
+  }
 }
 
 /**
@@ -587,7 +746,8 @@ dfa_merge_nondistinguishable_states (struct GNUNET_REGEX_Automaton *a)
  * @param a DFA automaton
  */
 static void
-dfa_minimize (struct GNUNET_REGEX_Automaton *a)
+dfa_minimize (struct GNUNET_REGEX_Context *ctx,
+              struct GNUNET_REGEX_Automaton *a)
 {
   if (NULL == a)
     return;
@@ -601,7 +761,7 @@ dfa_minimize (struct GNUNET_REGEX_Automaton *a)
   dfa_remove_dead_states (a);
 
   // 3. Merge nondistinguishable states
-  dfa_merge_nondistinguishable_states (a);
+  dfa_merge_nondistinguishable_states (ctx, a);
 }
 
 /**
@@ -1169,7 +1329,7 @@ GNUNET_REGEX_construct_dfa (const char *regex, const size_t len)
 
   if (NULL == nfa)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Could not create DFA, because NFA creation failed\n");
     return NULL;
   }
@@ -1225,7 +1385,7 @@ GNUNET_REGEX_construct_dfa (const char *regex, const size_t len)
   GNUNET_free (dfa_stack);
   GNUNET_REGEX_automaton_destroy (nfa);
 
-  dfa_minimize (dfa);
+  /*dfa_minimize (&ctx, dfa);*/
 
   return dfa;
 }
@@ -1400,7 +1560,6 @@ evaluate_nfa (struct GNUNET_REGEX_Automaton *a, const char *string)
   state_set_clear (sset);
   return result;
 }
-
 
 /**
  * Evaluates the given 'string' against the given compiled regex
