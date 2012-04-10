@@ -403,6 +403,44 @@ struct Plugin
 
 };
 
+/* DEBUG CODE */
+static const char *
+tcp_address_to_string (void *cls, const void *addr, size_t addrlen);
+
+static unsigned int sessions;
+
+static void inc_sessions (struct Plugin *plugin, struct Session *session, int line)
+{
+  sessions ++;
+  unsigned int size = GNUNET_CONTAINER_multihashmap_size(plugin->sessionmap);
+  if (sessions != size)
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp", "Inconsistent sessions %u <-> session map size: %u\n",
+        sessions, size);
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp", "%4i Session increased to %u (session map size: %u): `%s' `%s'\n",
+      line,
+      sessions,
+      size,
+      GNUNET_i2s (&session->target),
+      tcp_address_to_string (NULL, session->addr, session->addrlen));
+}
+
+static void dec_sessions (struct Plugin *plugin, struct Session *session, int line)
+{
+  GNUNET_assert (sessions > 0);
+  unsigned int size = GNUNET_CONTAINER_multihashmap_size(plugin->sessionmap);
+  sessions --;
+  if (sessions != size)
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp", "Inconsistent sessions %u <-> session map size: %u\n",
+      sessions, size);
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp", "%4i Session decreased to %u (session map size: %u): `%s' `%s'\n",
+      line,
+      sessions,
+      size,
+      GNUNET_i2s (&session->target),
+      tcp_address_to_string (NULL, session->addr, session->addrlen));
+}
+/* DEBUG CODE */
+
 
 /**
  * Function to check if an inbound connection is acceptable.
@@ -678,9 +716,11 @@ create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
   GNUNET_CONTAINER_DLL_insert (ret->pending_messages_head,
                                ret->pending_messages_tail, pm);
   if (is_nat != GNUNET_YES)
+  {
     GNUNET_STATISTICS_update (plugin->env->stats,
                               gettext_noop ("# TCP sessions active"), 1,
                               GNUNET_NO);
+  }
   return ret;
 }
 
@@ -867,8 +907,14 @@ disconnect_session (struct Session *session)
                    GNUNET_i2s (&session->target),
                    tcp_address_to_string(NULL, session->addr, session->addrlen));
 
-  GNUNET_assert (GNUNET_YES  == GNUNET_CONTAINER_multihashmap_remove(plugin->sessionmap, &session->target.hashPubKey, session) ||
-                 GNUNET_YES  == GNUNET_CONTAINER_multihashmap_remove(plugin->nat_wait_conns, &session->target.hashPubKey, session));
+   if (GNUNET_YES  == GNUNET_CONTAINER_multihashmap_remove(plugin->sessionmap, &session->target.hashPubKey, session))
+   {
+     GNUNET_STATISTICS_update (session->plugin->env->stats,
+                               gettext_noop ("# TCP sessions active"), -1,
+                               GNUNET_NO);
+     dec_sessions (plugin, session, __LINE__);
+   }
+   else GNUNET_assert (GNUNET_YES  == GNUNET_CONTAINER_multihashmap_remove(plugin->nat_wait_conns, &session->target.hashPubKey, session));
 
   /* clean up state */
   if (session->transmit_handle != NULL)
@@ -919,9 +965,8 @@ disconnect_session (struct Session *session)
     GNUNET_SERVER_client_drop (session->client);
     session->client = NULL;
   }
-  GNUNET_STATISTICS_update (session->plugin->env->stats,
-                            gettext_noop ("# TCP sessions active"), -1,
-                            GNUNET_NO);
+
+
   GNUNET_free_non_null (session->addr);
   GNUNET_assert (NULL == session->transmit_handle);
   GNUNET_free (session);
@@ -1285,7 +1330,7 @@ tcp_plugin_get_session (void *cls,
   session->ats_address_network_type = ats.value;
 
   GNUNET_CONTAINER_multihashmap_put(plugin->sessionmap, &address->peer.hashPubKey, session, GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-
+  inc_sessions (plugin, session, __LINE__);
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
                    "Creating new session for `%s' address `%s' session %p\n",
                    GNUNET_i2s (&address->peer),
@@ -1674,7 +1719,7 @@ handle_tcp_nat_probe (void *cls, struct GNUNET_SERVER_Client *client,
   GNUNET_free (vaddr);
 
   GNUNET_CONTAINER_multihashmap_put(plugin->sessionmap, &session->target.hashPubKey, session, GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-
+  inc_sessions (plugin, session, __LINE__);
   GNUNET_STATISTICS_update (plugin->env->stats,
                             gettext_noop ("# TCP sessions active"), 1,
                             GNUNET_NO);
@@ -1774,6 +1819,7 @@ handle_tcp_welcome (void *cls, struct GNUNET_SERVER_Client *client,
 #endif
     }
     GNUNET_CONTAINER_multihashmap_put(plugin->sessionmap, &wm->clientIdentity.hashPubKey, session, GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+    inc_sessions (plugin, session, __LINE__);
   }
 
   if (session->expecting_welcome != GNUNET_YES)
@@ -2192,6 +2238,9 @@ libgnunet_plugin_transport_tcp_init (void *cls)
     plugin->server =
         GNUNET_SERVER_create_with_sockets (&plugin_tcp_access_check, plugin,
                                            NULL, idle_timeout, GNUNET_YES);
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "tcp",
+                     _("%s in section %s : %u\n"),
+                     "TIMEOUT", idle_timeout);
   }
   plugin->handlers = GNUNET_malloc (sizeof (my_handlers));
   memcpy (plugin->handlers, my_handlers, sizeof (my_handlers));
