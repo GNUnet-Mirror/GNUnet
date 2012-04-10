@@ -164,15 +164,6 @@ int stats_check_cb (void *cls, const char *subsystem,
            transport_connections, statistics_transport_connections);
       fail = GNUNET_YES;
     }
-
-    if (transport_connections != statistics_transport_tcp_connections)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-           "Transport connections are inconsistent: %u transport notifications <-> %u in statistics (statistics_transport_tcp_connections)\n",
-           transport_connections, statistics_transport_tcp_connections);
-      fail = GNUNET_YES;
-    }
-
     if (core_connections != statistics_core_entries_session_map)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -193,6 +184,20 @@ int stats_check_cb (void *cls, const char *subsystem,
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
          "Statistics consistency check successful : (%u transport / %u core) connections established\n", transport_connections, core_connections);
 
+    /* This is only an issue when transport_connections > statistics_transport_tcp_connections */
+    if (transport_connections > statistics_transport_tcp_connections)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+           "Transport connections are inconsistent: %u transport notifications <-> %u in statistics (statistics_transport_tcp_connections)\n",
+           transport_connections, statistics_transport_tcp_connections);
+      fail = GNUNET_YES;
+    }
+    else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+           "Transport connections are inconsistent: %u transport notifications <-> %u in statistics (statistics_transport_tcp_connections)\n",
+           transport_connections, statistics_transport_tcp_connections);
+    }
 
     if (GNUNET_SCHEDULER_NO_TASK == statistics_task)
       statistics_task = GNUNET_SCHEDULER_add_delayed(REPEATED_STATS_DELAY, &stats_check, NULL);
@@ -522,7 +527,7 @@ main (int argc, char *const *argv)
     GNUNET_GETOPT_OPTION_END
   };
   return (GNUNET_OK ==
-          GNUNET_PROGRAM_run (argc, argv, "gnunet-template",
+          GNUNET_PROGRAM_run (argc, argv, "connection-watchdog",
                               gettext_noop ("help text"), options, &run,
                               NULL)) ? ret : 1;
 }
