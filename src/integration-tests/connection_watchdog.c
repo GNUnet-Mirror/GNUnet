@@ -18,7 +18,7 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file integration-test/connection_watchdog.c
+ * @file integration-tests/connection_watchdog.c
  * @brief tool to monitor core and transport connections for consistency
  * @author Matthias Wachs
  */
