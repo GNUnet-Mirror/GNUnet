@@ -126,6 +126,12 @@ struct NSEPeerEntry
    */
   int previous_round;
 
+  /**
+   * Where a variable has been modified to cause a bug.
+   * FIXME DELETE AFTER DEBUG
+   */
+  const char *where;
+
 #if ENABLE_HISTOGRAM
 
   /**
@@ -597,7 +603,7 @@ transmit_ready (void *cls, size_t size, void *buf)
     GNUNET_STATISTICS_update (stats,
                               "# flood messages not generated (lack of history)",
                               1, GNUNET_NO);
-    return 0;
+    return 0; // FIXME necessary?
   }
 #if DEBUG_NSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -713,15 +719,17 @@ schedule_current_round (void *cls, const GNUNET_HashCode * key, void *value)
   struct NSEPeerEntry *peer_entry = value;
   struct GNUNET_TIME_Relative delay;
 
-  if (peer_entry->th != NULL)
+  if (NULL != peer_entry->th)
   {
     peer_entry->previous_round = GNUNET_NO;
+    peer_entry->where =  __FUNCTION__;
     return GNUNET_OK;
   }
-  if (peer_entry->transmit_task != GNUNET_SCHEDULER_NO_TASK)
+  if (GNUNET_SCHEDULER_NO_TASK != peer_entry->transmit_task)
   {
     GNUNET_SCHEDULER_cancel (peer_entry->transmit_task);
     peer_entry->previous_round = GNUNET_NO;
+    peer_entry->where = __FUNCTION__;
   }
 #if ENABLE_HISTOGRAM
   if (peer_entry->received_messages > 1)
@@ -979,8 +987,8 @@ update_flood_times (void *cls, const GNUNET_HashCode * key, void *value)
   {
     /* still stuck in previous round, no point to update, check that
      * we are active here though... */
-    GNUNET_break (peer_entry->transmit_task != GNUNET_SCHEDULER_NO_TASK ||
-                  peer_entry->th != NULL);
+    GNUNET_break (GNUNET_SCHEDULER_NO_TASK != peer_entry->transmit_task ||
+                  NULL != peer_entry->th);
     return GNUNET_OK;
   }
   if (peer_entry->transmit_task != GNUNET_SCHEDULER_NO_TASK)
@@ -1118,8 +1126,10 @@ handle_p2p_size_estimate (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
   if (matching_bits < ntohl (size_estimate_messages[idx].matching_bits))
   {
-    if ((idx < estimate_index) && (peer_entry->previous_round == GNUNET_YES))
+    if ((idx < estimate_index) && (peer_entry->previous_round == GNUNET_YES)) {
       peer_entry->previous_round = GNUNET_NO;
+      peer_entry->where = __FUNCTION__ ;
+    }
     /* push back our result now, that peer is spreading bad information... */
     if (NULL == peer_entry->th)
     {
@@ -1182,7 +1192,8 @@ handle_p2p_size_estimate (void *cls, const struct GNUNET_PeerIdentity *peer,
 
 
 /**
- * Method called whenever a peer connects.
+ * Method called whenever a peer connects. Sets up the PeerEntry and
+ * schedules the initial size info transmission to this peer.
  *
  * @param cls closure
  * @param peer peer identity this notification is about
@@ -1209,12 +1220,14 @@ handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
   peer_entry->transmit_task =
       GNUNET_SCHEDULER_add_delayed (get_transmit_delay (-1), &transmit_task_cb,
                                     peer_entry);
+  peer_entry->where = "core connect";
   GNUNET_STATISTICS_update (stats, "# peers", 1, GNUNET_NO);
 }
 
 
 /**
- * Method called whenever a peer disconnects.
+ * Method called whenever a peer disconnects. Deletes the PeerEntry and cancels
+ * any pending transmission requests to that peer.
  *
  * @param cls closure
  * @param peer peer identity this notification is about
@@ -1237,8 +1250,10 @@ handle_core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multihashmap_remove (peers, &peer->hashPubKey,
                                                        pos));
-  if (pos->transmit_task != GNUNET_SCHEDULER_NO_TASK)
+  if (pos->transmit_task != GNUNET_SCHEDULER_NO_TASK) {
     GNUNET_SCHEDULER_cancel (pos->transmit_task);
+    pos->transmit_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   if (pos->th != NULL)
   {
     GNUNET_CORE_notify_transmit_ready_cancel (pos->th);
