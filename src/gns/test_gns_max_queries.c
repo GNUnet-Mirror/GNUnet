@@ -58,8 +58,7 @@
  */
 static char *test_directory;
 
-struct GNUNET_TESTING_Daemon *d1;
-
+static struct GNUNET_TESTING_PeerGroup *pg;
 
 /* Task handle to use to schedule test failure */
 GNUNET_SCHEDULER_TaskIdentifier die_task;
@@ -145,8 +144,9 @@ on_lookup_result(void *cls, uint32_t rd_count,
   }
   GNUNET_GNS_disconnect(gns_handle);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Shutting down peer1!\n");
-  GNUNET_TESTING_daemon_stop (d1, TIMEOUT, &shutdown_callback, NULL,
-                              GNUNET_YES, GNUNET_NO);
+  //GNUNET_TESTING_daemon_stop (d1, TIMEOUT, &shutdown_callback, NULL,
+  //                            GNUNET_YES, GNUNET_NO);
+  GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
 }
 
 
@@ -195,9 +195,8 @@ static void
 end_badly_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
 
-  if (d1 != NULL)
-    GNUNET_TESTING_daemon_stop (d1, TIMEOUT, &shutdown_callback, NULL,
-                                GNUNET_YES, GNUNET_NO);
+  if (pg != NULL)
+    GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
   GNUNET_SCHEDULER_cancel (die_task);
 }
 
@@ -217,7 +216,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 static void
 do_lookup(void *cls, const struct GNUNET_PeerIdentity *id,
-          const struct GNUNET_CONFIGURATION_Handle *cfg,
+          const struct GNUNET_CONFIGURATION_Handle *_cfg,
           struct GNUNET_TESTING_Daemon *d, const char *emsg)
 {
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded alice_pkey;
@@ -226,6 +225,8 @@ do_lookup(void *cls, const struct GNUNET_PeerIdentity *id,
   struct GNUNET_CRYPTO_RsaPrivateKey *bob_key;
   char* alice_keyfile;
   struct GNUNET_CRYPTO_ShortHashCode bob_hash;
+
+  cfg = _cfg;
 
   GNUNET_SCHEDULER_cancel (die_task);
 
@@ -320,8 +321,11 @@ run (void *cls, char *const *args, const char *cfgfile,
                                     "didn't start all daemons in reasonable amount of time!!!");
   
   /* Start alice */
-  d1 = GNUNET_TESTING_daemon_start(cfg, TIMEOUT, GNUNET_NO, NULL, NULL, 0,
-                                   NULL, NULL, NULL, &do_lookup, NULL);
+  //d1 = GNUNET_TESTING_daemon_start(cfg, TIMEOUT, GNUNET_NO, NULL, NULL, 0,
+  //                                 NULL, NULL, NULL, &do_lookup, NULL);
+  pg = GNUNET_TESTING_daemons_start(cfg, 1, 1, 1, TIMEOUT,
+                                    NULL, NULL, &do_lookup, NULL,
+                                    NULL, NULL, NULL);
 }
 
 static int
