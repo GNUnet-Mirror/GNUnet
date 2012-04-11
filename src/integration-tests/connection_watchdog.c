@@ -45,6 +45,12 @@
  */
 static int ret;
 
+static int have_tcp;
+static int have_udp;
+static int have_http;
+static int have_https;
+static int have_unix;
+
 static struct GNUNET_TRANSPORT_Handle *th;
 static struct GNUNET_CORE_Handle *ch;
 static struct GNUNET_PeerIdentity my_peer_id;
@@ -74,6 +80,38 @@ struct PeerContainer
   int core_connected;
 };
 
+
+enum protocol
+{
+  tcp,
+  udp,
+  unixdomain
+};
+
+struct TransportPlugin
+{
+  /**
+   * This is a doubly-linked list.
+   */
+  struct TransportPlugin *next;
+
+  /**
+   * This is a doubly-linked list.
+   */
+  struct TransportPlugin *prev;
+
+  /**
+   * Short name for the plugin (i.e. "tcp").
+   */
+  char *short_name;
+
+  int port;
+
+  int protocol;
+};
+
+struct TransportPlugin *phead;
+struct TransportPlugin *ptail;
 
 int map_check_it (void *cls,
                   const GNUNET_HashCode * key,
@@ -135,13 +173,6 @@ map_check (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 static void
 stats_check (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
-
-enum protocol
-{
-  tcp,
-  udp,
-  unixdomain
-};
 
 static int
 check_lowlevel_connections (int port, int protocol)
@@ -205,6 +236,20 @@ check_lowlevel_connections (int port, int protocol)
 #endif
 }
 
+
+static struct TransportPlugin *
+find_plugin (char * name)
+{
+  struct TransportPlugin *cur = NULL;
+
+  for (cur = phead; cur != NULL; cur = phead)
+  {
+    if (0 == strcmp(name, cur->short_name))
+      return cur;
+  }
+  return cur;
+}
+
 int stats_check_cb (void *cls, const char *subsystem,
                    const char *name, uint64_t value,
                    int is_persistent)
@@ -217,16 +262,18 @@ int stats_check_cb (void *cls, const char *subsystem,
     (*val) = value;
 
   counter ++;
-  if (STATS_VALUES == counter)
+  if ((STATS_VALUES == counter) || ((GNUNET_NO == have_tcp) && (STATS_VALUES - 1 == counter)))
   {
     int fail = GNUNET_NO;
-    int low_level_connections_tcp = check_lowlevel_connections (2086, tcp);
+
+
+
     int low_level_connections_udp = check_lowlevel_connections (2086, udp);
 
     if (transport_connections != core_connections)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-           "Transport connections are inconsistent:\n %u transport notifications <-> %u core notifications\n",
+           "%u transport notifications <-> %u core notifications\n",
            transport_connections, core_connections);
       fail = GNUNET_YES;
     }
@@ -234,14 +281,15 @@ int stats_check_cb (void *cls, const char *subsystem,
     if (transport_connections != statistics_transport_connections)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-           "Transport connections are inconsistent:\n %u transport notifications <-> %u in statistics (peers connected)\n",
+           "%u transport notifications <-> %u in statistics (peers connected)\n",
            transport_connections, statistics_transport_connections);
       fail = GNUNET_YES;
     }
+
     if (core_connections != statistics_core_entries_session_map)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-           "Transport connections are inconsistent:\n %u core notifications <-> %u in statistics (entries session map)\n",
+           "%u core notifications <-> %u in statistics (entries session map)\n",
            core_connections, statistics_core_entries_session_map);
       fail = GNUNET_YES;
     }
@@ -249,48 +297,50 @@ int stats_check_cb (void *cls, const char *subsystem,
     if (core_connections != statistics_core_neighbour_entries)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-           "Transport connections are inconsistent:\n %u core notifications <-> %u in statistics (neighbour entries allocated)\n",
+           "%u core notifications <-> %u in statistics (neighbour entries allocated)\n",
            core_connections, statistics_core_neighbour_entries);
       fail = GNUNET_YES;
     }
 
     if (GNUNET_NO == fail)
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-         "Statistics consistency check successful : (%u transport / %u core) connections established\n", transport_connections, core_connections);
+         "Check successful : (%u transport / %u core) connections established\n", transport_connections, core_connections);
 
-    /* This is only an issue when transport_connections > statistics_transport_tcp_connections */
-    if ((low_level_connections_tcp != -1) && (statistics_transport_tcp_connections > low_level_connections_tcp))
+    /* TCP plugin specific checks */
+    if (GNUNET_YES == have_tcp)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-           "Lowlevel connections are inconsistent:\n %u transport tcp sessions <-> %i established tcp connections\n",
-           statistics_transport_tcp_connections, low_level_connections_tcp);
-      fail = GNUNET_YES;
-    }
-    else if (low_level_connections_tcp != -1)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-           "%u TCP connections, %u UDP connections \n",
-           low_level_connections_tcp, low_level_connections_udp);
-    }
-    else
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-           "Error obtaining TCP connections\n");
-    }
+      struct TransportPlugin * p = find_plugin ("tcp");
+      int low_level_connections_tcp = check_lowlevel_connections (p->port, tcp);
 
-
-    if (transport_connections > statistics_transport_tcp_connections)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-           "Transport connections are inconsistent: %u transport notifications <-> %u in statistics (statistics_transport_tcp_connections)\n",
-           transport_connections, statistics_transport_tcp_connections);
-      fail = GNUNET_YES;
-    }
-    else
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-           "Transport connections are inconsistent: %u transport notifications <-> %u in statistics (statistics_transport_tcp_connections)\n",
-           transport_connections, statistics_transport_tcp_connections);
+      if (low_level_connections_tcp != -1)
+      {
+        if (statistics_transport_tcp_connections > low_level_connections_tcp)
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+               "%u transport tcp sessions <-> %i established tcp connections\n",
+               statistics_transport_tcp_connections, low_level_connections_tcp);
+          fail = GNUNET_YES;
+        }
+        else if (low_level_connections_tcp != -1)
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+               "%u TCP connections, %u UDP connections \n",
+               low_level_connections_tcp, low_level_connections_udp);
+        }
+      }
+      if (transport_connections > statistics_transport_tcp_connections)
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+             "%u transport notifications <-> %u in statistics (statistics_transport_tcp_connections)\n",
+             transport_connections, statistics_transport_tcp_connections);
+        fail = GNUNET_YES;
+      }
+      else
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+             " %u transport notifications <-> %u in statistics (statistics_transport_tcp_connections)\n",
+             transport_connections, statistics_transport_tcp_connections);
+      }
     }
 
     if (GNUNET_SCHEDULER_NO_TASK == statistics_task)
@@ -321,9 +371,14 @@ stats_check (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   statistics_core_neighbour_entries = 0;
 
   GNUNET_STATISTICS_get (stats, "transport", "# peers connected", GNUNET_TIME_UNIT_MINUTES, NULL, &stats_check_cb, &statistics_transport_connections);
-  GNUNET_STATISTICS_get (stats, "transport", "# TCP sessions active", GNUNET_TIME_UNIT_MINUTES, NULL, &stats_check_cb, &statistics_transport_tcp_connections);
   GNUNET_STATISTICS_get (stats, "core", "# neighbour entries allocated", GNUNET_TIME_UNIT_MINUTES, NULL, &stats_check_cb, &statistics_core_neighbour_entries);
   GNUNET_STATISTICS_get (stats, "core", "# entries in session map", GNUNET_TIME_UNIT_MINUTES, NULL, &stats_check_cb, &statistics_core_entries_session_map);
+
+  /* TCP plugin specific checks */
+  if (GNUNET_YES == have_tcp)
+    GNUNET_STATISTICS_get (stats, "transport", "# TCP sessions active", GNUNET_TIME_UNIT_MINUTES, NULL, &stats_check_cb, &statistics_transport_tcp_connections);
+
+
 }
 
 
@@ -461,6 +516,8 @@ map_disconnect (const struct GNUNET_PeerIdentity * peer, void * source)
 static void
 cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  struct TransportPlugin * cur = phead;
+
   if (NULL != th)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Disconnecting from transport service\n");
@@ -485,6 +542,14 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_SCHEDULER_cancel(check_task);
     check_task = GNUNET_SCHEDULER_NO_TASK;
   }
+
+  for (cur = phead; cur != NULL; cur = phead)
+  {
+    GNUNET_CONTAINER_DLL_remove(phead, ptail, cur);
+    GNUNET_free (cur->short_name);
+    GNUNET_free (cur);
+  }
+
   check_task = GNUNET_SCHEDULER_add_now (&map_check, &map_cleanup);
 }
 
@@ -568,7 +633,78 @@ core_init_cb (void *cls, struct GNUNET_CORE_Handle *server,
                    const struct GNUNET_PeerIdentity *my_identity)
 {
   my_peer_id = *my_identity;
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Connected to core service\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Connected to core service\n");
+}
+
+
+static void
+init ()
+{
+  struct TransportPlugin * cur;
+  char *plugs;
+  char *pos;
+  char *secname;
+  int counter;
+  long long unsigned int port;
+
+  have_tcp = GNUNET_NO;
+  have_udp = GNUNET_NO;
+  have_http = GNUNET_NO;
+  have_https = GNUNET_NO;
+  have_unix = GNUNET_NO;
+
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (mycfg, "TRANSPORT", "PLUGINS", &plugs))
+    return;
+  counter = 0;
+  for (pos = strtok (plugs, " "); pos != NULL; pos = strtok (NULL, " "))
+  {
+    counter++;
+
+    GNUNET_asprintf(&secname, "transport-%s", pos);
+
+    if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_number (mycfg, secname, "PORT", &port))
+    {
+      GNUNET_free (secname);
+      continue;
+    }
+
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Transport plugin: `%s' port %llu\n"), pos, port);
+    cur = GNUNET_malloc(sizeof (struct TransportPlugin));
+    cur->short_name = strdup (pos);
+    cur->port = port;
+    if (0 == strcmp("tcp", pos))
+    {
+      have_tcp = GNUNET_YES;
+      cur->protocol = tcp;
+    }
+    if (0 == strcmp("udp", pos))
+    {
+      have_udp = GNUNET_YES;
+      cur->protocol = udp;
+    }
+    if (0 == strcmp("http", pos))
+    {
+      have_http = GNUNET_YES;
+      cur->protocol = tcp;
+    }
+    if (0 == strcmp("https", pos))
+    {
+      have_https = GNUNET_YES;
+      cur->protocol = tcp;
+    }
+    if (0 == strcmp("unix", pos))
+    {
+      have_unix = GNUNET_YES;
+      cur->protocol = unixdomain;
+    }
+
+    GNUNET_CONTAINER_DLL_insert(phead, ptail, cur);
+    GNUNET_free (secname);
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Found %u transport plugins: `%s'\n"),
+              counter, plugs);
+
+  GNUNET_free (plugs);
 }
 
 /**
@@ -587,6 +723,8 @@ run (void *cls, char *const *args, const char *cfgfile,
   core_connections = 0;
   mycfg = cfg;
 
+  init();
+
   stats = GNUNET_STATISTICS_create ("watchdog", cfg);
   peers = GNUNET_CONTAINER_multihashmap_create (20);
 
@@ -594,7 +732,7 @@ run (void *cls, char *const *args, const char *cfgfile,
                                 &transport_notify_connect_cb,
                                 &transport_notify_disconnect_cb);
   GNUNET_assert (th != NULL);
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Connected to transport service\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Connected to transport service\n");
   ch =  GNUNET_CORE_connect (cfg, 1, NULL,
                              &core_init_cb,
                              &core_connect_cb,
