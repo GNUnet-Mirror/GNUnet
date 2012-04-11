@@ -33,16 +33,30 @@
  */
 struct GNUNET_REGEX_Context
 {
+  /**
+   * Unique state id.
+   */
   unsigned int state_id;
+
+  /**
+   * Unique transition id.
+   */
   unsigned int transition_id;
 
   /**
-   * DLL of GNUNET_REGEX_Automaton's used as a stack
+   * DLL of GNUNET_REGEX_Automaton's used as a stack.
    */
   struct GNUNET_REGEX_Automaton *stack_head;
+
+  /**
+   * DLL of GNUNET_REGEX_Automaton's used as a stack.
+   */
   struct GNUNET_REGEX_Automaton *stack_tail;
 };
 
+/**
+ * Type of an automaton.
+ */
 enum GNUNET_REGEX_automaton_type
 {
   NFA,
@@ -50,20 +64,51 @@ enum GNUNET_REGEX_automaton_type
 };
 
 /**
- * Automaton representation
+ * Automaton representation.
  */
 struct GNUNET_REGEX_Automaton
 {
+  /**
+   * This is a linked list.
+   */
   struct GNUNET_REGEX_Automaton *prev;
+
+  /**
+   * This is a linked list.
+   */
   struct GNUNET_REGEX_Automaton *next;
 
+  /**
+   * First state of the automaton. This is mainly
+   * used for constructing an NFA, where each NFA
+   * itself consists of one or more NFAs linked
+   * together.
+   */
   struct State *start;
+
+  /**
+   * End state of the automaton.
+   */
   struct State *end;
 
+  /**
+   * Number of states in the automaton.
+   */
   unsigned int state_count;
+
+  /**
+   * DLL of states.
+   */
   struct State *states_head;
+
+  /**
+   * DLL of states
+   */
   struct State *states_tail;
 
+  /**
+   * Type of the automaton.
+   */
   enum GNUNET_REGEX_automaton_type type;
 };
 
@@ -72,18 +117,58 @@ struct GNUNET_REGEX_Automaton
  */
 struct State
 {
+  /**
+   * This is a linked list.
+   */
   struct State *prev;
+
+  /**
+   * This is a linked list.
+   */
   struct State *next;
 
+  /**
+   * Unique state id.
+   */
   unsigned int id;
+
+  /**
+   * If this is an accepting state or not.
+   */
   int accepting;
+
+  /**
+   * Marking of the state. This is used for marking all visited
+   * states when traversing all states of an automaton and for
+   * cases where the state id cannot be used (dfa minimization).
+   */
   int marked;
+
+  /**
+   * Human readable name of the automaton. Used for debugging
+   * and graph creation.
+   */
   char *name;
 
+  /**
+   * Number of transitions from this state to other states.
+   */
   unsigned int transition_count;
+
+  /**
+   * DLL of transitions.
+   */
   struct Transition *transitions_head;
+
+  /**
+   * DLL of transitions.
+   */
   struct Transition *transitions_tail;
 
+  /**
+   * Set of states on which this state is based on. Used when
+   * creating a DFA out of several NFA states.
+   */
   struct StateSet *nfa_set;
 };
 
@@ -93,23 +178,46 @@ struct State
  */
 struct Transition
 {
+  /**
+   * This is a linked list.
+   */
   struct Transition *prev;
+
+  /**
+   * This is a linked list.
+   */
   struct Transition *next;
 
+  /**
+   * Unique id of this transition.
+   */
   unsigned int id;
+
+  /**
+   * Literal for this transition. This is basically the edge label for
+   * the graph.
+   */
   char literal;
+
+  /**
+   * State to which this transition leads.
+   */
   struct State *state;
 };
 
 /**
- * Set of states
+ * Set of states.
  */
 struct StateSet
 {
   /**
-   * Array of states
+   * Array of states.
    */
   struct State **states;
+
+  /**
+   * Length of the 'states' array.
+   */
   unsigned int len;
 };
 
