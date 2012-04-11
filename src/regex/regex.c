@@ -660,6 +660,7 @@ dfa_remove_dead_states (struct GNUNET_REGEX_Automaton *a)
 /**
  * Merge all non distinguishable states in the DFA 'a'
  *
+ * @param ctx context
  * @param a DFA automaton
  */
 static void
@@ -743,6 +744,7 @@ dfa_merge_nondistinguishable_states (struct GNUNET_REGEX_Context *ctx,
  * Minimize the given DFA 'a' by removing all unreachable states,
  * removing all dead states and merging all non distinguishable states
  *
+ * @param ctx context
  * @param a DFA automaton
  */
 static void
