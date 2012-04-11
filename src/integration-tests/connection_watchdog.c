@@ -226,7 +226,7 @@ int stats_check_cb (void *cls, const char *subsystem,
     if (transport_connections != core_connections)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-           "Transport connections are inconsistent: %u transport notifications <-> %u core notifications\n",
+           "Transport connections are inconsistent:\n %u transport notifications <-> %u core notifications\n",
            transport_connections, core_connections);
       fail = GNUNET_YES;
     }
@@ -234,14 +234,14 @@ int stats_check_cb (void *cls, const char *subsystem,
     if (transport_connections != statistics_transport_connections)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-           "Transport connections are inconsistent: %u transport notifications <-> %u in statistics (peers connected)\n",
+           "Transport connections are inconsistent:\n %u transport notifications <-> %u in statistics (peers connected)\n",
            transport_connections, statistics_transport_connections);
       fail = GNUNET_YES;
     }
     if (core_connections != statistics_core_entries_session_map)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-           "Transport connections are inconsistent: %u core notifications <-> %u in statistics (entries session map)\n",
+           "Transport connections are inconsistent:\n %u core notifications <-> %u in statistics (entries session map)\n",
            core_connections, statistics_core_entries_session_map);
       fail = GNUNET_YES;
     }
@@ -249,7 +249,7 @@ int stats_check_cb (void *cls, const char *subsystem,
     if (core_connections != statistics_core_neighbour_entries)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-           "Transport connections are inconsistent: %u core notifications <-> %u in statistics (neighbour entries allocated)\n",
+           "Transport connections are inconsistent:\n %u core notifications <-> %u in statistics (neighbour entries allocated)\n",
            core_connections, statistics_core_neighbour_entries);
       fail = GNUNET_YES;
     }
@@ -262,15 +262,20 @@ int stats_check_cb (void *cls, const char *subsystem,
     if ((low_level_connections_tcp != -1) && (statistics_transport_tcp_connections > low_level_connections_tcp))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-           "Lowlevel connections are inconsistent: %u transport tcp sessions <-> %i established tcp connections\n",
+           "Lowlevel connections are inconsistent:\n %u transport tcp sessions <-> %i established tcp connections\n",
            statistics_transport_tcp_connections, low_level_connections_tcp);
       fail = GNUNET_YES;
     }
-    else
+    else if (low_level_connections_tcp != -1)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
            "%u TCP connections, %u UDP connections \n",
            low_level_connections_tcp, low_level_connections_udp);
+    }
+    else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+           "Error obtaining TCP connections\n");
     }
 
 
@@ -492,7 +497,7 @@ transport_notify_connect_cb (void *cls,
                 uint32_t ats_count)
 {
   transport_connections ++;
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "TRANSPORT connect notification for peer `%s' (%u total)\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "TRANSPORT connect for peer `%s' (%u total)\n",
       GNUNET_i2s (peer), transport_connections);
   map_connect (peer, th);
 }
@@ -510,7 +515,7 @@ transport_notify_disconnect_cb (void *cls,
                                GNUNET_PeerIdentity * peer)
 {
   GNUNET_assert (transport_connections > 0);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "TRANSPORT disconnect notification for peer `%s' (%u total)\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "TRANSPORT disconnect for peer `%s' (%u total)\n",
       GNUNET_i2s (peer), transport_connections) ;
   map_disconnect (peer, th);
   transport_connections --;
@@ -526,13 +531,13 @@ core_connect_cb (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (0 != memcmp (peer, &my_peer_id, sizeof (struct GNUNET_PeerIdentity)))
   {
     core_connections ++;
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "CORE      connect notification for peer `%s' (%u total)\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "CORE      connect for peer `%s' (%u total)\n",
       GNUNET_i2s (peer), core_connections);
     map_connect (peer, ch);
   }
   else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "CORE      connect notification for myself `%s' (%u total)\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "CORE      connect for myself `%s' (%u total)\n",
       GNUNET_i2s (peer), core_connections);
   }
 }
@@ -545,14 +550,14 @@ core_disconnect_cb (void *cls,
   if (0 != memcmp (peer, &my_peer_id, sizeof (struct GNUNET_PeerIdentity)))
   {
     GNUNET_assert (core_connections >= 0);
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "CORE      disconnect notification for peer `%s' (%u total)\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "CORE      disconnect for peer `%s' (%u total)\n",
       GNUNET_i2s (peer), core_connections);
     map_disconnect (peer, ch);
     core_connections --;
   }
   else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "CORE      disconnect notification for myself `%s' (%u total)\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "CORE      disconnect for myself `%s' (%u total)\n",
       GNUNET_i2s (peer), core_connections);
   }
 
@@ -619,7 +624,7 @@ main (int argc, char *const *argv)
     GNUNET_GETOPT_OPTION_END
   };
   return (GNUNET_OK ==
-          GNUNET_PROGRAM_run (argc, argv, "connection-watchdog",
+          GNUNET_PROGRAM_run (argc, argv, "cn",
                               gettext_noop ("help text"), options, &run,
                               NULL)) ? ret : 1;
 }
