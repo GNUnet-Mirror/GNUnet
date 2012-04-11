@@ -132,14 +132,85 @@ map_check (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
 }
 
+
 static void
 stats_check (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+enum protocol
+{
+  tcp,
+  udp,
+  unixdomain
+};
+
+static int
+check_lowlevel_connections (int port, int protocol)
+{
+  FILE *f;
+  char * cmdline;
+  char * proto;
+  char line[1024];
+  int count = -1;
+#ifdef MINGW
+  /* not supported */
+  return count;
+#else
+
+  switch (protocol) {
+    case tcp:
+      proto = "-t";
+      break;
+    case udp:
+      proto = "-u";
+      break;
+    case unixdomain:
+      proto = "-x";
+      break;
+    default:
+      proto = "";
+      break;
+  }
+
+
+  GNUNET_asprintf(&cmdline, "ss %s \\( sport = :%u or dport = :%u \\)", proto, port, port);
+
+  if (system ("ss > /dev/null 2> /dev/null"))
+    if (system ("ss > /dev/null 2> /dev/null") == 0)
+      f = popen (cmdline, "r");
+    else
+      f = NULL;
+  else
+    f = popen (cmdline, "r");
+  if (!f)
+  {
+    GNUNET_log_strerror(GNUNET_ERROR_TYPE_ERROR, "ss");
+    GNUNET_free (cmdline);
+    return -1;
+  }
+
+  while (NULL != fgets (line, sizeof (line), f))
+  {
+    /* read */
+
+    //printf ("%s", line);
+    count ++;
+  }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%i TCP connections established with port %u\n",
+       count, port);
+
+  pclose (f);
+  GNUNET_free (cmdline);
+  return count;
+#endif
+}
 
 int stats_check_cb (void *cls, const char *subsystem,
                    const char *name, uint64_t value,
                    int is_persistent)
 {
   static int counter;
+
   uint64_t *val = cls;
 
   if (NULL != val)
@@ -149,6 +220,9 @@ int stats_check_cb (void *cls, const char *subsystem,
   if (STATS_VALUES == counter)
   {
     int fail = GNUNET_NO;
+    int low_level_connections_tcp = check_lowlevel_connections (2086, tcp);
+    int low_level_connections_udp = check_lowlevel_connections (2086, udp);
+
     if (transport_connections != core_connections)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -185,6 +259,21 @@ int stats_check_cb (void *cls, const char *subsystem,
          "Statistics consistency check successful : (%u transport / %u core) connections established\n", transport_connections, core_connections);
 
     /* This is only an issue when transport_connections > statistics_transport_tcp_connections */
+    if ((low_level_connections_tcp != -1) && (statistics_transport_tcp_connections > low_level_connections_tcp))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+           "Lowlevel connections are inconsistent: %u transport tcp sessions <-> %i established tcp connections\n",
+           statistics_transport_tcp_connections, low_level_connections_tcp);
+      fail = GNUNET_YES;
+    }
+    else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+           "%u TCP connections, %u UDP connections \n",
+           low_level_connections_tcp, low_level_connections_udp);
+    }
+
+
     if (transport_connections > statistics_transport_tcp_connections)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -208,6 +297,7 @@ int stats_check_cb (void *cls, const char *subsystem,
 
   return GNUNET_OK;
 }
+
 
 static void
 stats_check (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -491,6 +581,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   transport_connections = 0;
   core_connections = 0;
   mycfg = cfg;
+
   stats = GNUNET_STATISTICS_create ("watchdog", cfg);
   peers = GNUNET_CONTAINER_multihashmap_create (20);
 
@@ -509,6 +600,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_assert (ch != NULL);
 
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleanup_task, NULL);
+
 }
 
 
