@@ -880,10 +880,10 @@ server_v4_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
-
+#if 0
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                    "Running IPv4 server\n");
-
+#endif
   GNUNET_assert (MHD_YES == MHD_run (plugin->server_v4));
   if (plugin->server_v4 != NULL)
     plugin->server_v4_task =
@@ -908,10 +908,10 @@ server_v6_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
-
+#if 0
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                    "Running IPv6 server\n");
-
+#endif
   GNUNET_assert (MHD_YES == MHD_run (plugin->server_v6));
   if (plugin->server_v6 != NULL)
     plugin->server_v6_task =
@@ -982,7 +982,7 @@ server_schedule (struct Plugin *plugin, struct MHD_Daemon *daemon_handle,
       GNUNET_SCHEDULER_cancel (plugin->server_v4_task);
       plugin->server_v4_task = GNUNET_SCHEDULER_NO_TASK;
     }
-#if VERBOSE_SERVER
+#if 0
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                      "Scheduling IPv4 server task in %llu ms\n", tv);
 #endif
@@ -998,7 +998,7 @@ server_schedule (struct Plugin *plugin, struct MHD_Daemon *daemon_handle,
       GNUNET_SCHEDULER_cancel (plugin->server_v6_task);
       plugin->server_v6_task = GNUNET_SCHEDULER_NO_TASK;
     }
-#if VERBOSE_SERVER
+#if 0
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                      "Scheduling IPv6 server task in %llu ms\n", tv);
 #endif
