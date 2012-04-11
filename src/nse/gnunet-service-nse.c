@@ -126,14 +126,6 @@ struct NSEPeerEntry
    */
   int previous_round;
 
-  /**
-   * Where a variable has been modified to cause a bug.
-   * FIXME DELETE AFTER DEBUG
-   */
-  int where_task;
-  int where_round;
-  int where_th;
-
 #if ENABLE_HISTOGRAM
 
   /**
@@ -577,7 +569,6 @@ transmit_ready (void *cls, size_t size, void *buf)
   unsigned int idx;
 
   peer_entry->th = NULL;
-  peer_entry->where_th = __LINE__;
   if (NULL == buf)
   {
     /* client disconnected */
@@ -606,7 +597,7 @@ transmit_ready (void *cls, size_t size, void *buf)
     GNUNET_STATISTICS_update (stats,
                               "# flood messages not generated (lack of history)",
                               1, GNUNET_NO);
-    return 0; // FIXME necessary?
+    return 0;
   }
 #if DEBUG_NSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -644,8 +635,7 @@ transmit_task_cb (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct NSEPeerEntry *peer_entry = cls;
 
   peer_entry->transmit_task = GNUNET_SCHEDULER_NO_TASK;
-  peer_entry->where_task = __LINE__;
-  
+
   GNUNET_assert (NULL == peer_entry->th);
   peer_entry->th =
       GNUNET_CORE_notify_transmit_ready (coreAPI, GNUNET_NO, NSE_PRIORITY,
@@ -654,7 +644,6 @@ transmit_task_cb (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                          sizeof (struct
                                                  GNUNET_NSE_FloodMessage),
                                          &transmit_ready, peer_entry);
-  peer_entry->where_th = __LINE__;
 }
 
 
@@ -728,14 +717,12 @@ schedule_current_round (void *cls, const GNUNET_HashCode * key, void *value)
   if (NULL != peer_entry->th)
   {
     peer_entry->previous_round = GNUNET_NO;
-    peer_entry->where_round = __LINE__;
     return GNUNET_OK;
   }
   if (GNUNET_SCHEDULER_NO_TASK != peer_entry->transmit_task)
   {
     GNUNET_SCHEDULER_cancel (peer_entry->transmit_task);
     peer_entry->previous_round = GNUNET_NO;
-    peer_entry->where_round = __LINE__;
   }
 #if ENABLE_HISTOGRAM
   if (peer_entry->received_messages > 1)
@@ -997,10 +984,6 @@ update_flood_times (void *cls, const GNUNET_HashCode * key, void *value)
                   NULL == peer_entry->th)
     {
         GNUNET_break (0);
-        GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "ROUND%d TASK%d TH%d\n",
-                    peer_entry->where_round,
-                    peer_entry->where_task,
-                    peer_entry->where_th);
     }
     return GNUNET_OK;
   }
@@ -1008,7 +991,6 @@ update_flood_times (void *cls, const GNUNET_HashCode * key, void *value)
   {
     GNUNET_SCHEDULER_cancel (peer_entry->transmit_task);
     peer_entry->transmit_task = GNUNET_SCHEDULER_NO_TASK;
-    peer_entry->where_task = __LINE__;
   }
   delay = get_transmit_delay (0);
   peer_entry->transmit_task =
@@ -1130,13 +1112,11 @@ handle_p2p_size_estimate (void *cls, const struct GNUNET_PeerIdentity *peer,
     {
       GNUNET_SCHEDULER_cancel (peer_entry->transmit_task);
       peer_entry->transmit_task = GNUNET_SCHEDULER_NO_TASK;
-      peer_entry->where_task = __LINE__;
     }
     if (peer_entry->th != NULL)
     {
       GNUNET_CORE_notify_transmit_ready_cancel (peer_entry->th);
       peer_entry->th = NULL;
-      peer_entry->where_th = __LINE__;
     }
     return GNUNET_OK;
   }
@@ -1144,7 +1124,6 @@ handle_p2p_size_estimate (void *cls, const struct GNUNET_PeerIdentity *peer,
   {
     if ((idx < estimate_index) && (peer_entry->previous_round == GNUNET_YES)) {
       peer_entry->previous_round = GNUNET_NO;
-      peer_entry->where_round = __LINE__;
     }
     /* push back our result now, that peer is spreading bad information... */
     if (NULL == peer_entry->th)
@@ -1170,19 +1149,21 @@ handle_p2p_size_estimate (void *cls, const struct GNUNET_PeerIdentity *peer,
   /* cancel transmission from us to this peer for this round */
   if (idx == estimate_index)
   {
+      /* Cancel transmission in the other direction, as this peer clearly has
+       up-to-date information already. Even if we didn't talk to this peer in
+       the previous round, we should no longer send it stale information as it
+       told us about the current round! */
+      peer_entry->previous_round = GNUNET_YES;
       /* cancel any activity for current round */
-      // FIXME what if previous round was pending? (lost message?)
       if (peer_entry->transmit_task != GNUNET_SCHEDULER_NO_TASK)
       {
         GNUNET_SCHEDULER_cancel (peer_entry->transmit_task);
         peer_entry->transmit_task = GNUNET_SCHEDULER_NO_TASK;
-        peer_entry->where_task = __LINE__;
       }
       if (peer_entry->th != NULL)
       {
         GNUNET_CORE_notify_transmit_ready_cancel (peer_entry->th);
         peer_entry->th = NULL;
-        peer_entry->where_th = __LINE__;
       }
   }
   else
@@ -1240,9 +1221,6 @@ handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
       GNUNET_SCHEDULER_add_delayed (get_transmit_delay (-1), &transmit_task_cb,
                                     peer_entry);
   GNUNET_STATISTICS_update (stats, "# peers", 1, GNUNET_NO);
-  peer_entry->where_task = 0;
-  peer_entry->where_round = __LINE__;
-  peer_entry->where_th = __LINE__;
 }
 
 
@@ -1274,13 +1252,11 @@ handle_core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
   if (pos->transmit_task != GNUNET_SCHEDULER_NO_TASK) {
     GNUNET_SCHEDULER_cancel (pos->transmit_task);
     pos->transmit_task = GNUNET_SCHEDULER_NO_TASK;
-    pos->where_task = __LINE__;
   }
   if (pos->th != NULL)
   {
     GNUNET_CORE_notify_transmit_ready_cancel (pos->th);
     pos->th = NULL;
-    pos->where_th = __LINE__;
   }
   GNUNET_free (pos);
   GNUNET_STATISTICS_update (stats, "# peers", -1, GNUNET_NO);
