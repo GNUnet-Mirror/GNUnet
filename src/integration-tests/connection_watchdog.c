@@ -78,6 +78,11 @@ struct PeerContainer
   struct GNUNET_PeerIdentity id;
   int transport_connected;
   int core_connected;
+  struct GNUNET_TRANSPORT_TransmitHandle *th_ping;
+  struct GNUNET_CORE_TransmitHandle *ch_ping;
+
+  struct GNUNET_TRANSPORT_TransmitHandle *th_pong;
+  struct GNUNET_CORE_TransmitHandle *ch_pong;
 };
 
 
@@ -122,7 +127,7 @@ int map_check_it (void *cls,
   if (pc->core_connected != pc->transport_connected)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-     "Inconsistend peer `%s': TRANSPORT %s <-> CORE %s\n",
+     "Inconsistent peer `%s': TRANSPORT %s <-> CORE %s\n",
      GNUNET_i2s (&pc->id),
      (GNUNET_YES == pc->transport_connected) ? "YES" : "NO",
      (GNUNET_YES == pc->core_connected) ? "YES" : "NO");
@@ -139,6 +144,26 @@ int map_cleanup_it (void *cls,
 {
   struct PeerContainer *pc = value;
   GNUNET_CONTAINER_multihashmap_remove(peers, key, value);
+  if (NULL != pc->th_ping)
+  {
+    GNUNET_TRANSPORT_notify_transmit_ready_cancel(pc->th_ping);
+    pc->th_ping = NULL;
+  }
+  if (NULL != pc->th_pong)
+  {
+    GNUNET_TRANSPORT_notify_transmit_ready_cancel(pc->th_pong);
+    pc->th_pong = NULL;
+  }
+  if (NULL != pc->ch_ping)
+  {
+    GNUNET_CORE_notify_transmit_ready_cancel (pc->ch_ping);
+    pc->ch_ping = NULL;
+  }
+  if (NULL != pc->ch_pong)
+  {
+    GNUNET_CORE_notify_transmit_ready_cancel(pc->ch_pong);
+    pc->ch_pong = NULL;
+  }
   GNUNET_free (pc);
   return GNUNET_OK;
 }
@@ -381,6 +406,121 @@ stats_check (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 }
 
+GNUNET_NETWORK_STRUCT_BEGIN
+
+struct PING
+{
+  struct GNUNET_MessageHeader header;
+
+  uint16_t src;
+};
+
+struct PONG
+{
+  struct GNUNET_MessageHeader header;
+
+  uint16_t src;
+};
+GNUNET_NETWORK_STRUCT_END
+
+
+ size_t send_transport_ping_cb (void *cls, size_t size, void *buf)
+{
+  struct PeerContainer * pc = cls;
+  struct PING ping;
+  size_t mlen = sizeof (struct PING);
+
+  if (size < mlen)
+  {
+    GNUNET_break (0);
+    return 0;
+  }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+       "Sending transport ping to `%s'\n", GNUNET_i2s  (&pc->id));
+  ping.header.size = htons (mlen);
+  ping.header.type = htons (1234);
+  ping.src = htons (0);
+
+  pc->th_ping = NULL;
+
+  memcpy (buf, &ping, mlen);
+  return mlen;
+}
+
+size_t send_core_ping_cb (void *cls, size_t size, void *buf)
+{
+ struct PeerContainer * pc = cls;
+ struct PING ping;
+ size_t mlen = sizeof (struct PING);
+
+ if (size < mlen)
+ {
+   GNUNET_break (0);
+   return 0;
+ }
+
+ GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      "Sending core ping to `%s'\n", GNUNET_i2s  (&pc->id));
+ ping.header.size = htons (mlen);
+ ping.header.type = htons (1234);
+ ping.src = htons (1);
+
+ pc->ch_ping = NULL;
+
+ memcpy (buf, &ping, mlen);
+ return mlen;
+}
+
+
+size_t send_transport_pong_cb (void *cls, size_t size, void *buf)
+{
+ struct PeerContainer * pc = cls;
+ struct PING ping;
+ size_t mlen = sizeof (struct PING);
+
+ if (size < mlen)
+ {
+   GNUNET_break (0);
+   return 0;
+ }
+
+ GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      "Sending transport pong to `%s'\n", GNUNET_i2s  (&pc->id));
+ ping.header.size = htons (mlen);
+ ping.header.type = htons (4321);
+ ping.src = htons (0);
+
+ pc->th_pong = NULL;
+
+ memcpy (buf, &ping, mlen);
+ return mlen;
+}
+
+size_t send_core_pong_cb (void *cls, size_t size, void *buf)
+{
+struct PeerContainer * pc = cls;
+struct PING ping;
+size_t mlen = sizeof (struct PING);
+
+if (size < mlen)
+{
+  GNUNET_break (0);
+  return 0;
+}
+
+GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+     "Sending core pong to `%s'\n", GNUNET_i2s  (&pc->id));
+ping.header.size = htons (mlen);
+ping.header.type = htons (4321);
+ping.src = htons (1);
+
+pc->ch_pong = NULL;
+
+memcpy (buf, &ping, mlen);
+return mlen;
+}
+
 
 static void
 map_connect (const struct GNUNET_PeerIdentity *peer, void * source)
@@ -401,6 +541,10 @@ map_connect (const struct GNUNET_PeerIdentity *peer, void * source)
     if (GNUNET_NO == pc->transport_connected)
     {
       pc->transport_connected = GNUNET_YES;
+      if (NULL == pc->th_ping)
+        pc->th_ping = GNUNET_TRANSPORT_notify_transmit_ready(th, peer, sizeof (struct PING), UINT_MAX, GNUNET_TIME_relative_get_forever(), &send_transport_ping_cb, pc);
+      else
+        GNUNET_break(0);
     }
     else
     {
@@ -417,6 +561,15 @@ map_connect (const struct GNUNET_PeerIdentity *peer, void * source)
     if (GNUNET_NO == pc->core_connected)
     {
       pc->core_connected = GNUNET_YES;
+      if (NULL == pc->ch_ping)
+        pc->ch_ping = GNUNET_CORE_notify_transmit_ready(ch,
+                                                 GNUNET_NO, UINT_MAX,
+                                                 GNUNET_TIME_relative_get_forever(),
+                                                 peer,
+                                                 sizeof (struct PING),
+                                                 send_core_ping_cb, pc);
+      else
+        GNUNET_break (0);
     }
     else
     {
@@ -465,6 +618,17 @@ map_disconnect (const struct GNUNET_PeerIdentity * peer, void * source)
   pc = GNUNET_CONTAINER_multihashmap_get(peers, &peer->hashPubKey);
   if (source == th)
   {
+    if (NULL != pc->th_ping)
+    {
+      GNUNET_TRANSPORT_notify_transmit_ready_cancel(pc->th_ping);
+      pc->th_ping = NULL;
+    }
+    if (NULL != pc->th_pong)
+    {
+      GNUNET_TRANSPORT_notify_transmit_ready_cancel(pc->th_pong);
+      pc->th_pong = NULL;
+    }
+
     if (GNUNET_YES == pc->transport_connected)
     {
       pc->transport_connected = GNUNET_NO;
@@ -481,6 +645,17 @@ map_disconnect (const struct GNUNET_PeerIdentity * peer, void * source)
   }
   if (source == ch)
   {
+    if (NULL != pc->ch_ping)
+    {
+      GNUNET_CORE_notify_transmit_ready_cancel (pc->ch_ping);
+      pc->ch_ping = NULL;
+    }
+    if (NULL != pc->ch_pong)
+    {
+      GNUNET_CORE_notify_transmit_ready_cancel (pc->ch_pong);
+      pc->ch_pong = NULL;
+    }
+
     if (GNUNET_YES == pc->core_connected)
     {
       pc->core_connected = GNUNET_NO;
@@ -500,6 +675,8 @@ map_disconnect (const struct GNUNET_PeerIdentity * peer, void * source)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Removing peer `%s'\n", GNUNET_i2s (&pc->id));
     GNUNET_assert (GNUNET_OK == GNUNET_CONTAINER_multihashmap_remove (peers, &peer->hashPubKey, pc));
+
+
     GNUNET_free (pc);
   }
 
@@ -524,6 +701,8 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_TRANSPORT_disconnect (th);
     th = NULL;
   }
+
+
   if (NULL != ch)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Disconnecting from core service\n");
@@ -587,6 +766,97 @@ transport_notify_disconnect_cb (void *cls,
 
 }
 
+static void
+transport_notify_receive_cb (void *cls,
+                            const struct
+                            GNUNET_PeerIdentity * peer,
+                            const struct
+                            GNUNET_MessageHeader *
+                            message,
+                            const struct
+                            GNUNET_ATS_Information * ats,
+                            uint32_t ats_count)
+{
+
+
+  struct PeerContainer *pc = NULL;
+
+  pc = GNUNET_CONTAINER_multihashmap_get(peers, &peer->hashPubKey);
+
+  if (NULL == pc)
+  {
+    GNUNET_break (0);
+    return;
+  }
+
+  if ((message->size == ntohs (sizeof (struct PING))) && (message->type == ntohs (1234)))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Received %s %s from peer `%s'\n",
+        "TRANSPORT",
+        "PING",
+        GNUNET_i2s (peer)) ;
+    if (NULL == pc->th_pong)
+      pc->th_pong = GNUNET_TRANSPORT_notify_transmit_ready(th,
+          peer, sizeof (struct PONG),
+          UINT_MAX, GNUNET_TIME_relative_get_forever(),
+          &send_transport_pong_cb, pc);
+    else
+      GNUNET_break (0);
+
+  }
+  if ((message->size == ntohs (sizeof (struct PONG))) && (message->type == ntohs (4321)))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Received %s %s from peer `%s'\n",
+        "TRANSPORT",
+        "PONG",
+        GNUNET_i2s (peer));
+  }
+}
+
+int core_notify_receive_cb (void *cls,
+                                const struct GNUNET_PeerIdentity * peer,
+                                const struct GNUNET_MessageHeader * message,
+                                const struct GNUNET_ATS_Information* atsi,
+                                unsigned int atsi_count)
+{
+  struct PeerContainer *pc = NULL;
+
+  pc = GNUNET_CONTAINER_multihashmap_get(peers, &peer->hashPubKey);
+
+  if (NULL == pc)
+  {
+    GNUNET_break (0);
+    return GNUNET_OK;
+  }
+
+  if ((message->size == ntohs (sizeof (struct PING))) && (message->type == ntohs (1234)))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Received %s %s from peer `%s'\n",
+        "CORE",
+        "PING",
+        GNUNET_i2s (peer));
+    if (NULL == pc->ch_pong)
+      pc->ch_pong = GNUNET_CORE_notify_transmit_ready(ch,
+                                               GNUNET_NO, UINT_MAX,
+                                               GNUNET_TIME_relative_get_forever(),
+                                               peer,
+                                               sizeof (struct PONG),
+                                               send_core_pong_cb, pc);
+    else
+      GNUNET_break (0);
+  }
+
+  if ((message->size == ntohs (sizeof (struct PONG))) && (message->type == ntohs (4321)))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Received %s %s from peer `%s'\n",
+        "CORE",
+        "PONG",
+        GNUNET_i2s (peer));
+
+  }
+
+  return GNUNET_OK;
+}
 
 static void
 core_connect_cb (void *cls, const struct GNUNET_PeerIdentity *peer,
@@ -728,7 +998,8 @@ run (void *cls, char *const *args, const char *cfgfile,
   stats = GNUNET_STATISTICS_create ("watchdog", cfg);
   peers = GNUNET_CONTAINER_multihashmap_create (20);
 
-  th = GNUNET_TRANSPORT_connect(cfg, NULL, NULL, NULL,
+  th = GNUNET_TRANSPORT_connect(cfg, NULL, NULL,
+                                &transport_notify_receive_cb,
                                 &transport_notify_connect_cb,
                                 &transport_notify_disconnect_cb);
   GNUNET_assert (th != NULL);
@@ -737,7 +1008,7 @@ run (void *cls, char *const *args, const char *cfgfile,
                              &core_init_cb,
                              &core_connect_cb,
                              &core_disconnect_cb,
-                             NULL, GNUNET_NO,
+                             &core_notify_receive_cb, GNUNET_NO,
                              NULL, GNUNET_NO,
                              NULL);
   GNUNET_assert (ch != NULL);
