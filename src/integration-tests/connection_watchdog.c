@@ -378,34 +378,6 @@ int stats_check_cb (void *cls, const char *subsystem,
   return GNUNET_OK;
 }
 
-
-static void
-stats_check (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  statistics_task = GNUNET_SCHEDULER_NO_TASK;
-
-  if (GNUNET_YES == stat_check_running)
-  {
-    statistics_task = GNUNET_SCHEDULER_add_delayed(STATS_DELAY, &stats_check, NULL);
-  }
-
-  stat_check_running = GNUNET_YES;
-
-  statistics_transport_connections = 0 ;
-  statistics_core_entries_session_map = 0;
-  statistics_core_neighbour_entries = 0;
-
-  GNUNET_STATISTICS_get (stats, "transport", "# peers connected", GNUNET_TIME_UNIT_MINUTES, NULL, &stats_check_cb, &statistics_transport_connections);
-  GNUNET_STATISTICS_get (stats, "core", "# neighbour entries allocated", GNUNET_TIME_UNIT_MINUTES, NULL, &stats_check_cb, &statistics_core_neighbour_entries);
-  GNUNET_STATISTICS_get (stats, "core", "# entries in session map", GNUNET_TIME_UNIT_MINUTES, NULL, &stats_check_cb, &statistics_core_entries_session_map);
-
-  /* TCP plugin specific checks */
-  if (GNUNET_YES == have_tcp)
-    GNUNET_STATISTICS_get (stats, "transport", "# TCP sessions active", GNUNET_TIME_UNIT_MINUTES, NULL, &stats_check_cb, &statistics_transport_tcp_connections);
-
-
-}
-
 GNUNET_NETWORK_STRUCT_BEGIN
 
 struct PING
@@ -424,31 +396,7 @@ struct PONG
 GNUNET_NETWORK_STRUCT_END
 
 
- size_t send_transport_ping_cb (void *cls, size_t size, void *buf)
-{
-  struct PeerContainer * pc = cls;
-  struct PING ping;
-  size_t mlen = sizeof (struct PING);
-
-  if (size < mlen)
-  {
-    GNUNET_break (0);
-    return 0;
-  }
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-       "Sending transport ping to `%s'\n", GNUNET_i2s  (&pc->id));
-  ping.header.size = htons (mlen);
-  ping.header.type = htons (1234);
-  ping.src = htons (0);
-
-  pc->th_ping = NULL;
-
-  memcpy (buf, &ping, mlen);
-  return mlen;
-}
-
-size_t send_core_ping_cb (void *cls, size_t size, void *buf)
+size_t send_transport_ping_cb (void *cls, size_t size, void *buf)
 {
  struct PeerContainer * pc = cls;
  struct PING ping;
@@ -461,16 +409,96 @@ size_t send_core_ping_cb (void *cls, size_t size, void *buf)
  }
 
  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-      "Sending core ping to `%s'\n", GNUNET_i2s  (&pc->id));
+      "Sending transport ping to `%s'\n", GNUNET_i2s  (&pc->id));
  ping.header.size = htons (mlen);
  ping.header.type = htons (1234);
- ping.src = htons (1);
+ ping.src = htons (0);
 
- pc->ch_ping = NULL;
+ pc->th_ping = NULL;
 
  memcpy (buf, &ping, mlen);
  return mlen;
 }
+
+size_t send_core_ping_cb (void *cls, size_t size, void *buf)
+{
+struct PeerContainer * pc = cls;
+struct PING ping;
+size_t mlen = sizeof (struct PING);
+
+if (size < mlen)
+{
+  GNUNET_break (0);
+  return 0;
+}
+
+GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+     "Sending core ping to `%s'\n", GNUNET_i2s  (&pc->id));
+ping.header.size = htons (mlen);
+ping.header.type = htons (1234);
+ping.src = htons (1);
+
+pc->ch_ping = NULL;
+
+memcpy (buf, &ping, mlen);
+return mlen;
+}
+
+
+int map_ping_it (void *cls,
+                  const GNUNET_HashCode * key,
+                  void *value)
+{
+  struct PeerContainer *pc = value;
+
+  if ((GNUNET_YES == pc->transport_connected) && (NULL == pc->th_ping))
+    pc->th_ping = GNUNET_TRANSPORT_notify_transmit_ready(th, &pc->id,
+        sizeof (struct PING), UINT_MAX,
+        GNUNET_TIME_relative_get_forever(), &send_transport_ping_cb, pc);
+  else
+    GNUNET_break(0);
+
+  if ((GNUNET_YES == pc->core_connected) && (NULL == pc->ch_ping))
+    pc->ch_ping = GNUNET_CORE_notify_transmit_ready(ch,
+                                             GNUNET_NO, UINT_MAX,
+                                             GNUNET_TIME_relative_get_forever(),
+                                             &pc->id,
+                                             sizeof (struct PING),
+                                             send_core_ping_cb, pc);
+  else
+    GNUNET_break (0);
+
+  return GNUNET_OK;
+}
+
+
+static void
+stats_check (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  statistics_task = GNUNET_SCHEDULER_NO_TASK;
+
+  if (GNUNET_YES == stat_check_running)
+  {
+    statistics_task = GNUNET_SCHEDULER_add_delayed(STATS_DELAY, &stats_check, NULL);
+  }
+
+  GNUNET_CONTAINER_multihashmap_iterate (peers, &map_ping_it, NULL);
+
+  stat_check_running = GNUNET_YES;
+
+  statistics_transport_connections = 0 ;
+  statistics_core_entries_session_map = 0;
+  statistics_core_neighbour_entries = 0;
+
+  GNUNET_STATISTICS_get (stats, "transport", "# peers connected", GNUNET_TIME_UNIT_MINUTES, NULL, &stats_check_cb, &statistics_transport_connections);
+  GNUNET_STATISTICS_get (stats, "core", "# neighbour entries allocated", GNUNET_TIME_UNIT_MINUTES, NULL, &stats_check_cb, &statistics_core_neighbour_entries);
+  GNUNET_STATISTICS_get (stats, "core", "# entries in session map", GNUNET_TIME_UNIT_MINUTES, NULL, &stats_check_cb, &statistics_core_entries_session_map);
+
+  /* TCP plugin specific checks */
+  if (GNUNET_YES == have_tcp)
+    GNUNET_STATISTICS_get (stats, "transport", "# TCP sessions active", GNUNET_TIME_UNIT_MINUTES, NULL, &stats_check_cb, &statistics_transport_tcp_connections);
+}
+
 
 
 size_t send_transport_pong_cb (void *cls, size_t size, void *buf)
