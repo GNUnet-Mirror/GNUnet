@@ -203,10 +203,10 @@ check_lowlevel_connections (int port, int protocol)
   }
 
 
-  GNUNET_asprintf(&cmdline, "ss %s \\( sport = :%u or dport = :%u \\)", proto, port, port);
+  GNUNET_asprintf(&cmdline, "netstat -n %s | grep %u", proto, port);
 
-  if (system ("ss > /dev/null 2> /dev/null"))
-    if (system ("ss > /dev/null 2> /dev/null") == 0)
+  if (system ("netstat -n > /dev/null 2> /dev/null"))
+    if (system ("netstat -n > /dev/null 2> /dev/null") == 0)
       f = popen (cmdline, "r");
     else
       f = NULL;
@@ -219,10 +219,10 @@ check_lowlevel_connections (int port, int protocol)
     return -1;
   }
 
+  count = 0;
   while (NULL != fgets (line, sizeof (line), f))
   {
     /* read */
-
     //printf ("%s", line);
     count ++;
   }
@@ -310,7 +310,7 @@ int stats_check_cb (void *cls, const char *subsystem,
     if (GNUNET_YES == have_tcp)
     {
       struct TransportPlugin * p = find_plugin ("tcp");
-      int low_level_connections_tcp = check_lowlevel_connections (p->port, tcp);
+      int low_level_connections_tcp = check_lowlevel_connections (p->port, p->protocol);
 
       if (low_level_connections_tcp != -1)
       {
