@@ -1379,6 +1379,7 @@ core_init (void *cls, struct GNUNET_CORE_Handle *server,
     prev_time.abs_value =
         current_timestamp.abs_value - gnunet_nse_interval.rel_value;
     setup_flood_message (idx, prev_time);
+    setup_flood_message (estimate_index, current_timestamp);
     estimate_count++;
   }
   flood_task =
