@@ -452,23 +452,25 @@ int map_ping_it (void *cls,
 {
   struct PeerContainer *pc = value;
 
-  if ((GNUNET_YES == pc->transport_connected) && (NULL == pc->th_ping))
-    pc->th_ping = GNUNET_TRANSPORT_notify_transmit_ready(th, &pc->id,
-        sizeof (struct PING), UINT_MAX,
-        GNUNET_TIME_relative_get_forever(), &send_transport_ping_cb, pc);
-  else
-    GNUNET_break(0);
+  if (ping == GNUNET_YES)
+  {
+    if ((GNUNET_YES == pc->transport_connected) && (NULL == pc->th_ping))
+      pc->th_ping = GNUNET_TRANSPORT_notify_transmit_ready(th, &pc->id,
+          sizeof (struct PING), UINT_MAX,
+          GNUNET_TIME_relative_get_forever(), &send_transport_ping_cb, pc);
+    else
+      GNUNET_break(0);
 
-  if ((GNUNET_YES == pc->core_connected) && (NULL == pc->ch_ping))
-    pc->ch_ping = GNUNET_CORE_notify_transmit_ready(ch,
-                                             GNUNET_NO, UINT_MAX,
-                                             GNUNET_TIME_relative_get_forever(),
-                                             &pc->id,
-                                             sizeof (struct PING),
-                                             send_core_ping_cb, pc);
-  else
-    GNUNET_break (0);
-
+    if ((GNUNET_YES == pc->core_connected) && (NULL == pc->ch_ping))
+      pc->ch_ping = GNUNET_CORE_notify_transmit_ready(ch,
+                                               GNUNET_NO, UINT_MAX,
+                                               GNUNET_TIME_relative_get_forever(),
+                                               &pc->id,
+                                               sizeof (struct PING),
+                                               send_core_ping_cb, pc);
+    else
+      GNUNET_break (0);
+  }
   return GNUNET_OK;
 }
 
