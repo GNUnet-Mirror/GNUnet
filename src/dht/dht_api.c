@@ -748,6 +748,7 @@ timeout_put_request (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param exp desired expiration time for the value
  * @param timeout how long to wait for transmission of this request
  * @param cont continuation to call when done (transmitting request to service)
+ *        You must not call GNUNET_DHT_DISCONNECT in this continuation
  * @param cont_cls closure for cont
  */
 void
