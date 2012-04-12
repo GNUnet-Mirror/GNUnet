@@ -1017,7 +1017,7 @@ GNUNET_STRINGS_to_address_ipv6 (const char *zt_addr,
   ret = inet_pton (AF_INET6, zt_addr, &r_buf->sin6_addr);
   if (ret <= 0)
     return GNUNET_SYSERR;
-  r_buf->sin6_port = htonl (port);
+  r_buf->sin6_port = htons (port);
   r_buf->sin6_family = AF_INET6;
   return GNUNET_OK;
 }
@@ -1037,7 +1037,7 @@ GNUNET_STRINGS_to_address_ipv4 (const char *zt_addr, uint16_t addrlen,
 				struct sockaddr_in *r_buf)
 {
   unsigned int temps[5];
-  unsigned int port;
+  int port;
   int cnt;
 
   if (addrlen < 9)
@@ -1053,8 +1053,10 @@ GNUNET_STRINGS_to_address_ipv4 (const char *zt_addr, uint16_t addrlen,
   if (port > 65535)
     return GNUNET_SYSERR;
 
+
+
   r_buf->sin_family = AF_INET;
-  r_buf->sin_port = htonl (port);
+  r_buf->sin_port = htons (port);
   r_buf->sin_addr.s_addr = htonl ((temps[0] << 24) + (temps[1] << 16) +
       (temps[2] << 8) + temps[3]);
   return GNUNET_OK;
