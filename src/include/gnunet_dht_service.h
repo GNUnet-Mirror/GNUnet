@@ -135,6 +135,7 @@ GNUNET_DHT_disconnect (struct GNUNET_DHT_Handle *handle);
  * @param exp desired expiration time for the value
  * @param timeout how long to wait for transmission of this request
  * @param cont continuation to call when done (transmitting request to service)
+ *        You must not call GNUNET_DHT_DISCONNECT in this continuation
  * @param cont_cls closure for cont
  */
 void
