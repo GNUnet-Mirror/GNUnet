@@ -350,45 +350,56 @@ int http_string_to_address (void *cls,
   struct sockaddr_in6 addr_6;
   struct IPv4HttpAddress * http_4addr;
   struct IPv6HttpAddress * http_6addr;
-  GNUNET_break (0);
   if ((addr == NULL) || (addrlen == 0) || (buf == NULL))
     return GNUNET_SYSERR;
 
   /* protocoll + "://" + ":" */
-  if (addrlen <= strlen (protocol) + 4);
+  if (addrlen <= (strlen (protocol) + 4))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                     "Invalid address string `%s' to convert to address\n",
+                     addr);
+    GNUNET_break (0);
     return GNUNET_SYSERR;
+  }
 
-  if (NULL == (addr = strstr(addr_str, "://")))
-      return GNUNET_SYSERR;
-
+  if (NULL == (addr_str = strstr(addr, "://")))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+               "Invalid address string `%s' to convert to address\n",
+               addr);
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
   addr_str = &addr_str[3];
 
-  if (GNUNET_OK == GNUNET_STRINGS_to_address_ipv4(addr, strlen(addr_str), &addr_4))
+  if (addr_str[strlen(addr_str)-1] == '/')
+    addr_str[strlen(addr_str)-1] = '\0';
+
+  if (GNUNET_OK == GNUNET_STRINGS_to_address_ipv4(addr_str, strlen(addr_str), &addr_4))
   {
     http_4addr = GNUNET_malloc (sizeof (struct IPv4HttpAddress));
-    http_4addr = GNUNET_malloc (sizeof (struct IPv6HttpAddress));
     http_4addr->u4_port = addr_4.sin_port;
     http_4addr->ipv4_addr = (uint32_t) addr_4.sin_addr.s_addr;
-
     (*buf) = http_4addr;
     (*added) = sizeof (struct IPv4HttpAddress);
-    GNUNET_break (0);
     return GNUNET_OK;
   }
-  else if (GNUNET_OK == GNUNET_STRINGS_to_address_ipv6(addr, strlen(addr_str), &addr_6))
+  else if (GNUNET_OK == GNUNET_STRINGS_to_address_ipv6(addr_str, strlen(addr_str), &addr_6))
   {
     http_6addr = GNUNET_malloc (sizeof (struct IPv6HttpAddress));
     http_6addr->u6_port = addr_6.sin6_port;
     http_6addr->ipv6_addr = addr_6.sin6_addr;
-
     (*buf) = http_6addr;
     (*added) = sizeof (struct IPv6HttpAddress);
-    GNUNET_break (0);
     return GNUNET_OK;
-
   }
   else
   {
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+                     "Invalid address string `%s' to convert to address\n",
+                     addr);
+    GNUNET_break (0);
     return GNUNET_SYSERR;
   }
 }
@@ -1443,7 +1454,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
     api->cls = NULL;
     api->address_pretty_printer = &http_plugin_address_pretty_printer;
     api->address_to_string = &http_plugin_address_to_string;
-    api->string_to_address = NULL; // FIXME!
+    api->string_to_address = &http_string_to_address;
     return api;
   }
 
