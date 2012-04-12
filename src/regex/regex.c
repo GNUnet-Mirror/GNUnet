@@ -202,7 +202,12 @@ struct Transition
   /**
    * State to which this transition leads.
    */
-  struct State *state;
+  struct State *to_state;
+
+  /**
+   * State from which this transition origins.
+   */
+  struct State *from_state;
 };
 
 /**
@@ -275,10 +280,10 @@ debug_print_transitions (struct State *s)
     else
       literal = t->literal;
 
-    if (NULL == t->state)
+    if (NULL == t->to_state)
       state = "NULL";
     else
-      state = t->state->name;
+      state = t->to_state->name;
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Transition %i: On %c to %s\n", t->id,
                 literal, state);
@@ -387,8 +392,9 @@ state_set_clear (struct StateSet *set)
  * @param to_state state to where the transition should point to
  */
 static void
-add_transition (struct GNUNET_REGEX_Context *ctx, struct State *from_state,
-                const char literal, struct State *to_state)
+state_add_transition (struct GNUNET_REGEX_Context *ctx,
+                      struct State *from_state, const char literal,
+                      struct State *to_state)
 {
   struct Transition *t;
 
@@ -402,7 +408,8 @@ add_transition (struct GNUNET_REGEX_Context *ctx, struct State *from_state,
 
   t->id = ctx->transition_id++;
   t->literal = literal;
-  t->state = to_state;
+  t->to_state = to_state;
+  t->from_state = from_state;
 
   GNUNET_CONTAINER_DLL_insert (from_state->transitions_head,
                                from_state->transitions_tail, t);
@@ -487,7 +494,7 @@ automaton_remove_state (struct GNUNET_REGEX_Automaton *a, struct State *s)
     for (t_check = s_check->transitions_head; NULL != t_check;
          t_check = t_check->next)
     {
-      if (t_check->state == ss)
+      if (t_check->to_state == ss)
       {
         GNUNET_CONTAINER_DLL_remove (s_check->transitions_head,
                                      s_check->transitions_tail, t_check);
@@ -525,8 +532,8 @@ automaton_merge_states (struct GNUNET_REGEX_Context *ctx,
     for (t_check = s_check->transitions_head; NULL != t_check;
          t_check = t_check->next)
     {
-      if (s_check != s1 && s2 == t_check->state)
-        t_check->state = s1;
+      if (s_check != s1 && s2 == t_check->to_state)
+        t_check->to_state = s1;
     }
   }
 
@@ -535,10 +542,10 @@ automaton_merge_states (struct GNUNET_REGEX_Context *ctx,
   {
     for (t = s1->transitions_head; NULL != t; t = t->next)
     {
-      if (t_check->literal != t->literal && NULL != t_check->state &&
-          t_check->state != t->state && t_check->state != s2)
+      if (t_check->literal != t->literal && NULL != t_check->to_state &&
+          t_check->to_state != t->to_state && t_check->to_state != s2)
       {
-        add_transition (ctx, s1, t_check->literal, t_check->state);
+        state_add_transition (ctx, s1, t_check->literal, t_check->to_state);
       }
     }
   }
@@ -646,7 +653,7 @@ dfa_state_create (struct GNUNET_REGEX_Context *ctx, struct StateSet *nfa_states)
         }
 
         if (insert)
-          add_transition (ctx, s, ctran->literal, NULL);
+          state_add_transition (ctx, s, ctran->literal, NULL);
       }
     }
 
@@ -684,7 +691,7 @@ dfa_move (struct State *s, const char literal)
   {
     if (literal == t->literal)
     {
-      new_s = t->state;
+      new_s = t->to_state;
       break;
     }
   }
@@ -701,40 +708,41 @@ dfa_move (struct State *s, const char literal)
 static void
 dfa_remove_unreachable_states (struct GNUNET_REGEX_Automaton *a)
 {
-  struct State *stack[a->state_count];
+  struct State *stack[a->state_count * a->state_count];
   int stack_len;
   struct State *s;
+  struct State *s_next;
   struct Transition *t;
 
   stack_len = 0;
 
   // 1. unmark all states
   for (s = a->states_head; NULL != s; s = s->next)
-  {
     s->marked = 0;
-  }
 
   // 2. traverse dfa from start state and mark all visited states
-  stack[stack_len] = a->start;
-  stack_len++;
+  stack[stack_len++] = a->start;
   while (stack_len > 0)
   {
-    s = stack[stack_len - 1];
-    stack_len--;
+    s = stack[--stack_len];
     s->marked = 1;              // mark s as visited
     for (t = s->transitions_head; NULL != t; t = t->next)
     {
       // add next states to stack
-      if (NULL != t->state && 0 == t->state->marked)
-        stack[++stack_len] = t->state;
+      if (NULL != t->to_state && 0 == t->to_state->marked)
+        stack[stack_len++] = t->to_state;
     }
   }
 
   // 3. delete all states that were not visited
-  for (s = a->states_head; NULL != s; s = s->next)
+  for (s = a->states_head; NULL != s; s = s_next)
   {
+    s_next = s->next;
     if (0 == s->marked)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Removed state %s\n", s->name);
       automaton_remove_state (a, s);
+    }
   }
 }
 
@@ -761,7 +769,7 @@ dfa_remove_dead_states (struct GNUNET_REGEX_Automaton *a)
     dead = 1;
     for (t = s->transitions_head; NULL != t; t = t->next)
     {
-      if (NULL != t->state && t->state != s)
+      if (NULL != t->to_state && t->to_state != s)
       {
         dead = 0;
         break;
@@ -828,14 +836,14 @@ dfa_merge_nondistinguishable_states (struct GNUNET_REGEX_Context *ctx,
         {
           for (t2 = s2->transitions_head; NULL != t2; t2 = t2->next)
           {
-            if (t1->literal == t2->literal && t1->state == t2->state &&
-                (0 != table[t1->state->marked][t2->state->marked] ||
-                 0 != table[t2->state->marked][t1->state->marked]))
+            if (t1->literal == t2->literal && t1->to_state == t2->to_state &&
+                (0 != table[t1->to_state->marked][t2->to_state->marked] ||
+                 0 != table[t2->to_state->marked][t1->to_state->marked]))
             {
               table[s1->marked][s2->marked] = t1->literal;
               change = 1;
             }
-            else if (t1->literal != t2->literal && t1->state != t2->state)
+            else if (t1->literal != t2->literal && t1->to_state != t2->to_state)
             {
               table[s1->marked][s2->marked] = -1;
               change = 1;
@@ -1012,9 +1020,9 @@ nfa_closure_create (struct State *s, const char literal)
     for (ctran = currentstate->transitions_head; NULL != ctran;
          ctran = ctran->next)
     {
-      if (NULL != ctran->state && literal == ctran->literal)
+      if (NULL != ctran->to_state && literal == ctran->literal)
       {
-        clsstate = ctran->state;
+        clsstate = ctran->to_state;
 
         if (NULL != clsstate &&
             GNUNET_YES != state_set_contains (cls, clsstate))
@@ -1104,7 +1112,7 @@ nfa_add_concatenation (struct GNUNET_REGEX_Context *ctx)
   a = ctx->stack_tail;
   GNUNET_CONTAINER_DLL_remove (ctx->stack_head, ctx->stack_tail, a);
 
-  add_transition (ctx, a->end, 0, b->start);
+  state_add_transition (ctx, a->end, 0, b->start);
   a->end->accepting = 0;
   b->end->accepting = 1;
 
@@ -1145,10 +1153,10 @@ nfa_add_star_op (struct GNUNET_REGEX_Context *ctx)
   start = nfa_state_create (ctx, 0);
   end = nfa_state_create (ctx, 1);
 
-  add_transition (ctx, start, 0, a->start);
-  add_transition (ctx, start, 0, end);
-  add_transition (ctx, a->end, 0, a->start);
-  add_transition (ctx, a->end, 0, end);
+  state_add_transition (ctx, start, 0, a->start);
+  state_add_transition (ctx, start, 0, end);
+  state_add_transition (ctx, a->end, 0, a->start);
+  state_add_transition (ctx, a->end, 0, end);
 
   a->end->accepting = 0;
   end->accepting = 1;
@@ -1173,7 +1181,7 @@ nfa_add_plus_op (struct GNUNET_REGEX_Context *ctx)
   a = ctx->stack_tail;
   GNUNET_CONTAINER_DLL_remove (ctx->stack_head, ctx->stack_tail, a);
 
-  add_transition (ctx, a->end, 0, a->start);
+  state_add_transition (ctx, a->end, 0, a->start);
 
   GNUNET_CONTAINER_DLL_insert_tail (ctx->stack_head, ctx->stack_tail, a);
 }
@@ -1204,9 +1212,9 @@ nfa_add_question_op (struct GNUNET_REGEX_Context *ctx)
   start = nfa_state_create (ctx, 0);
   end = nfa_state_create (ctx, 1);
 
-  add_transition (ctx, start, 0, a->start);
-  add_transition (ctx, start, 0, end);
-  add_transition (ctx, a->end, 0, end);
+  state_add_transition (ctx, start, 0, a->start);
+  state_add_transition (ctx, start, 0, end);
+  state_add_transition (ctx, a->end, 0, end);
 
   a->end->accepting = 0;
 
@@ -1239,11 +1247,11 @@ nfa_add_alternation (struct GNUNET_REGEX_Context *ctx)
 
   start = nfa_state_create (ctx, 0);
   end = nfa_state_create (ctx, 1);
-  add_transition (ctx, start, 0, a->start);
-  add_transition (ctx, start, 0, b->start);
+  state_add_transition (ctx, start, 0, a->start);
+  state_add_transition (ctx, start, 0, b->start);
 
-  add_transition (ctx, a->end, 0, end);
-  add_transition (ctx, b->end, 0, end);
+  state_add_transition (ctx, a->end, 0, end);
+  state_add_transition (ctx, b->end, 0, end);
 
   a->end->accepting = 0;
   b->end->accepting = 0;
@@ -1275,7 +1283,7 @@ nfa_add_literal (struct GNUNET_REGEX_Context *ctx, const char lit)
 
   start = nfa_state_create (ctx, 0);
   end = nfa_state_create (ctx, 1);
-  add_transition (ctx, start, lit, end);
+  state_add_transition (ctx, start, lit, end);
   n = nfa_fragment_create (start, end);
   GNUNET_assert (NULL != n);
   GNUNET_CONTAINER_DLL_insert_tail (ctx->stack_head, ctx->stack_tail, n);
@@ -1521,7 +1529,7 @@ GNUNET_REGEX_construct_dfa (const char *regex, const size_t len)
     for (ctran = dfa_state->transitions_head; NULL != ctran;
          ctran = ctran->next)
     {
-      if (0 != ctran->literal && NULL == ctran->state)
+      if (0 != ctran->literal && NULL == ctran->to_state)
       {
         tmp = nfa_closure_set_create (dfa_state->nfa_set, ctran->literal);
         nfa_set = nfa_closure_set_create (tmp, 0);
@@ -1541,11 +1549,11 @@ GNUNET_REGEX_construct_dfa (const char *regex, const size_t len)
           automaton_add_state (dfa, new_dfa_state);
           GNUNET_array_append (dfa_stack->states, dfa_stack->len,
                                new_dfa_state);
-          ctran->state = new_dfa_state;
+          ctran->to_state = new_dfa_state;
         }
         else
         {
-          ctran->state = state_contains;
+          ctran->to_state = state_contains;
           automaton_destroy_state (new_dfa_state);
         }
       }
@@ -1615,7 +1623,7 @@ GNUNET_REGEX_automaton_save_graph (struct GNUNET_REGEX_Automaton *a,
 
     for (ctran = s->transitions_head; NULL != ctran; ctran = ctran->next)
     {
-      if (NULL == ctran->state)
+      if (NULL == ctran->to_state)
       {
         GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                     "Transition from State %i has has no state for transitioning\n",
@@ -1626,12 +1634,12 @@ GNUNET_REGEX_automaton_save_graph (struct GNUNET_REGEX_Automaton *a,
       if (ctran->literal == 0)
       {
         GNUNET_asprintf (&s_tran, "\"%s\" -> \"%s\" [label = \"epsilon\"];\n",
-                         s->name, ctran->state->name);
+                         s->name, ctran->to_state->name);
       }
       else
       {
         GNUNET_asprintf (&s_tran, "\"%s\" -> \"%s\" [label = \"%c\"];\n",
-                         s->name, ctran->state->name, ctran->literal);
+                         s->name, ctran->to_state->name, ctran->literal);
       }
 
       fwrite (s_tran, strlen (s_tran), 1, p);
