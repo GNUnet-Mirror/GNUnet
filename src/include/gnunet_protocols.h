@@ -255,12 +255,6 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_CORE_INIT_REPLY 65
 
 /**
- * Notify clients about new peer-to-peer connections (before
- * key exchange and authentication).
- */
-#define GNUNET_MESSAGE_TYPE_CORE_NOTIFY_PRE_CONNECT 66
-
-/**
  * Notify clients about new peer-to-peer connections (triggered
  * after key exchange).
  */
