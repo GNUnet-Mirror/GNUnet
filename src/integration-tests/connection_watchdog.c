@@ -570,10 +570,13 @@ map_connect (const struct GNUNET_PeerIdentity *peer, void * source)
     if (GNUNET_NO == pc->transport_connected)
     {
       pc->transport_connected = GNUNET_YES;
-      if ((GNUNET_YES == ping) && (NULL == pc->th_ping))
-        pc->th_ping = GNUNET_TRANSPORT_notify_transmit_ready(th, peer, sizeof (struct PING), UINT_MAX, GNUNET_TIME_relative_get_forever(), &send_transport_ping_cb, pc);
-      else
-        GNUNET_break(0);
+      if (GNUNET_YES == ping)
+      {
+        if (NULL == pc->th_ping)
+          pc->th_ping = GNUNET_TRANSPORT_notify_transmit_ready(th, peer, sizeof (struct PING), UINT_MAX, GNUNET_TIME_relative_get_forever(), &send_transport_ping_cb, pc);
+        else
+          GNUNET_break(0);
+      }
     }
     else
     {
@@ -590,15 +593,18 @@ map_connect (const struct GNUNET_PeerIdentity *peer, void * source)
     if (GNUNET_NO == pc->core_connected)
     {
       pc->core_connected = GNUNET_YES;
-      if ((GNUNET_YES == ping) && (NULL == pc->ch_ping))
-        pc->ch_ping = GNUNET_CORE_notify_transmit_ready(ch,
+      if (GNUNET_YES == ping)
+      {
+        if (NULL == pc->ch_ping)
+          pc->ch_ping = GNUNET_CORE_notify_transmit_ready(ch,
                                                  GNUNET_NO, UINT_MAX,
                                                  GNUNET_TIME_relative_get_forever(),
                                                  peer,
                                                  sizeof (struct PING),
                                                  send_core_ping_cb, pc);
-      else
-        GNUNET_break (0);
+        else
+          GNUNET_break (0);
+      }
     }
     else
     {
@@ -824,13 +830,16 @@ transport_notify_receive_cb (void *cls,
         "TRANSPORT",
         "PING",
         GNUNET_i2s (peer)) ;
-    if ((GNUNET_YES == ping) && (NULL == pc->th_pong))
-      pc->th_pong = GNUNET_TRANSPORT_notify_transmit_ready(th,
+    if (GNUNET_YES == ping)
+    {
+      if (NULL == pc->th_pong)
+        pc->th_pong = GNUNET_TRANSPORT_notify_transmit_ready(th,
           peer, sizeof (struct PONG),
           UINT_MAX, GNUNET_TIME_relative_get_forever(),
           &send_transport_pong_cb, pc);
-    else
-      GNUNET_break (0);
+      else
+        GNUNET_break (0);
+    }
 
   }
   if ((message->size == ntohs (sizeof (struct PONG))) && (message->type == ntohs (4321)))
@@ -864,15 +873,18 @@ int core_notify_receive_cb (void *cls,
         "CORE",
         "PING",
         GNUNET_i2s (peer));
-    if ((GNUNET_YES == ping) && (NULL == pc->ch_pong))
-      pc->ch_pong = GNUNET_CORE_notify_transmit_ready(ch,
+    if (GNUNET_YES == ping)
+    {
+      if (NULL == pc->ch_pong)
+        pc->ch_pong = GNUNET_CORE_notify_transmit_ready(ch,
                                                GNUNET_NO, UINT_MAX,
                                                GNUNET_TIME_relative_get_forever(),
                                                peer,
                                                sizeof (struct PONG),
                                                send_core_pong_cb, pc);
-    else
-      GNUNET_break (0);
+      else
+        GNUNET_break (0);
+    }
   }
 
   if ((message->size == ntohs (sizeof (struct PONG))) && (message->type == ntohs (4321)))
