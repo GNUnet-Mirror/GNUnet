@@ -85,7 +85,7 @@ test_random (unsigned int rx_length, unsigned int max_str_len,
     if (0 == char_op_switch && !last_was_op)
     {
       last_was_op = 1;
-      rx_exp = rand () % 3;
+      rx_exp = rand () % 4;
 
       switch (rx_exp)
       {
@@ -96,6 +96,9 @@ test_random (unsigned int rx_length, unsigned int max_str_len,
         current_char = '*';
         break;
       case 2:
+        current_char = '?';
+        break;
+      case 3:
         if (i < rx_length - 1)  // '|' cannot be at the end
           current_char = '|';
         else
@@ -111,7 +114,8 @@ test_random (unsigned int rx_length, unsigned int max_str_len,
       last_was_op = 0;
     }
 
-    if (current_char != '+' && current_char != '*' && current_char != '|')
+    if (current_char != '+' && current_char != '*' && current_char != '?' &&
+        current_char != '|')
     {
       *matching_strp = current_char;
       matching_strp++;
@@ -256,9 +260,9 @@ main (int argc, char *argv[])
     {"k|a+X*y+c|Q*e|p|R|Z*K*y*R+w|Y*6+n+h*k*w+V*F|W*B*e*g|N+V|t+L|P*j*3*9+X*h*J|J*6|b|E*i*f*R+S|Z|R|Y*Z|g*", 1,
      {"kaXycQepRZKyRwY6nhkwVFWBegNVtLPj39XhJJ6bEifRSZRYZg"},
      {nomatch}},
-    {"k|a+X*y+c|Q*e|p|R|Z*K*y*R+w|Y*6+n+h*k*w+V*F|W*B*e*g|N+V|t+L|P*j*3*9+X*h*J|J*6|b|E*i*f*R+S|Z|R|Y*Z|g*", 1,
-     {"kaXycQepRZKyRwY6nhkwVFWBegNVtLPj39XhJJ6bEifRSZRYZg"},
-     {nomatch}}
+    {"ab?(abcd)?", 5,
+     {"ababcd", "abab", "aabcd", "a", "abb"},
+     {match, nomatch, match, match, nomatch}}
   };
 
   check_nfa = 0;

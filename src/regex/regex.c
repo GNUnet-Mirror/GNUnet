@@ -314,24 +314,29 @@ state_compare (const void *a, const void *b)
  * @param sset1 first state set
  * @param sset2 second state set
  *
- * @return 0 if they are equal, non 0 otherwise
+ * @return an integer less than, equal to, or greater than zero
+ *         if the first argument is considered to be respectively
+ *         less than, equal to, or greater than the second.
  */
 static int
 state_set_compare (struct StateSet *sset1, struct StateSet *sset2)
 {
+  int result;
   int i;
 
-  if (sset1->len != sset2->len)
+  if (NULL == sset1 || NULL == sset2)
     return 1;
+
+  result = sset1->len - sset2->len;
 
   for (i = 0; i < sset1->len; i++)
   {
-    if (sset1->states[i]->id != sset2->states[i]->id)
-    {
-      return 1;
-    }
+    if (0 != result)
+      break;
+
+    result = state_compare (&sset1->states[i], &sset2->states[i]);
   }
-  return 0;
+  return result;
 }
 
 /**
@@ -412,6 +417,9 @@ add_transition (struct GNUNET_REGEX_Context *ctx, struct State *from_state,
 static void
 automaton_fragment_clear (struct GNUNET_REGEX_Automaton *a)
 {
+  if (NULL == a)
+    return;
+
   a->start = NULL;
   a->end = NULL;
   a->states_head = NULL;
@@ -430,6 +438,9 @@ automaton_destroy_state (struct State *s)
 {
   struct Transition *t;
   struct Transition *next_t;
+
+  if (NULL == s)
+    return;
 
   if (NULL != s->name)
     GNUNET_free (s->name);
@@ -461,6 +472,9 @@ automaton_remove_state (struct GNUNET_REGEX_Automaton *a, struct State *s)
   struct State *ss;
   struct State *s_check;
   struct Transition *t_check;
+
+  if (NULL == a || NULL == s)
+    return;
 
   // remove state
   ss = s;
@@ -710,12 +724,9 @@ dfa_remove_unreachable_states (struct GNUNET_REGEX_Automaton *a)
     s->marked = 1;              // mark s as visited
     for (t = s->transitions_head; NULL != t; t = t->next)
     {
+      // add next states to stack
       if (NULL != t->state && 0 == t->state->marked)
-      {
-        // add next states to stack
-        stack[stack_len] = t->state;
-        stack_len++;
-      }
+        stack[++stack_len] = t->state;
     }
   }
 
@@ -965,13 +976,13 @@ nfa_state_create (struct GNUNET_REGEX_Context *ctx, int accepting)
 }
 
 /**
- * Calculates the NFA closure set for the given state
+ * Calculates the NFA closure set for the given state.
  *
  * @param s starting point state
  * @param literal transitioning literal on which to base the closure on,
  *                pass 0 for epsilon transition
  *
- * @return nfa closure on 'literal' (epsilon closure if 'literal' is 0)
+ * @return sorted nfa closure on 'literal' (epsilon closure if 'literal' is 0)
  */
 static struct StateSet *
 nfa_closure_create (struct State *s, const char literal)
@@ -1030,7 +1041,7 @@ nfa_closure_create (struct State *s, const char literal)
  * @param literal transitioning literal for which to base the closure on,
  *                pass 0 for epsilon transition
  *
- * @return nfa closure on 'literal' (epsilon closure if 'literal' is 0)
+ * @return sorted nfa closure on 'literal' (epsilon closure if 'literal' is 0)
  */
 static struct StateSet *
 nfa_closure_set_create (struct StateSet *states, const char literal)
@@ -1165,6 +1176,45 @@ nfa_add_plus_op (struct GNUNET_REGEX_Context *ctx)
   add_transition (ctx, a->end, 0, a->start);
 
   GNUNET_CONTAINER_DLL_insert_tail (ctx->stack_head, ctx->stack_tail, a);
+}
+
+/**
+ * Pops an NFA fragment (a) from the stack and adds a new fragment (a?)
+ *
+ * @param ctx context
+ */
+static void
+nfa_add_question_op (struct GNUNET_REGEX_Context *ctx)
+{
+  struct GNUNET_REGEX_Automaton *a;
+  struct GNUNET_REGEX_Automaton *new;
+  struct State *start;
+  struct State *end;
+
+  a = ctx->stack_tail;
+  GNUNET_CONTAINER_DLL_remove (ctx->stack_head, ctx->stack_tail, a);
+
+  if (NULL == a)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "nfa_add_question_op failed, because there was no element on the stack");
+    return;
+  }
+
+  start = nfa_state_create (ctx, 0);
+  end = nfa_state_create (ctx, 1);
+
+  add_transition (ctx, start, 0, a->start);
+  add_transition (ctx, start, 0, end);
+  add_transition (ctx, a->end, 0, end);
+
+  a->end->accepting = 0;
+
+  new = nfa_fragment_create (start, end);
+  nfa_add_states (new, a->states_head, a->states_tail);
+  automaton_fragment_clear (a);
+
+  GNUNET_CONTAINER_DLL_insert_tail (ctx->stack_head, ctx->stack_tail, new);
 }
 
 /**
@@ -1329,6 +1379,14 @@ GNUNET_REGEX_construct_nfa (const char *regex, const size_t len)
         goto error;
       }
       nfa_add_plus_op (&ctx);
+      break;
+    case '?':
+      if (atomcount == 0)
+      {
+        error_msg = "Cannot append '?' to nothing";
+        goto error;
+      }
+      nfa_add_question_op (&ctx);
       break;
     case 92:                   /* escape: \ */
       regexp++;
