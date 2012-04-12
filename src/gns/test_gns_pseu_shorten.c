@@ -67,7 +67,9 @@ static char *test_directory;
 static struct GNUNET_TESTING_PeerGroup *pg;
 
 /* Task handle to use to schedule test failure */
-GNUNET_SCHEDULER_TaskIdentifier die_task;
+static GNUNET_SCHEDULER_TaskIdentifier die_task;
+
+static GNUNET_SCHEDULER_TaskIdentifier disco_task;
 
 /* Global return value (0 for success, anything else for failure) */
 static int ok;
@@ -95,6 +97,14 @@ struct GNUNET_CRYPTO_ShortHashCode bob_hash;
 void
 shutdown_callback (void *cls, const char *emsg)
 {
+  if (disco_task != GNUNET_SCHEDULER_NO_TASK)
+  {
+    disco_task = GNUNET_SCHEDULER_NO_TASK;
+    GNUNET_SCHEDULER_cancel(disco_task);
+    GNUNET_DHT_disconnect(dht_handle);
+    dht_handle = NULL;
+  }
+
   if (emsg != NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Error on shutdown! ret=%d\n", ok);
@@ -108,6 +118,7 @@ shutdown_callback (void *cls, const char *emsg)
 static void
 disco_dht(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  disco_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_DHT_disconnect(dht_handle);
   dht_handle = NULL;
 }
@@ -229,26 +240,22 @@ commence_testing (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * down the peers without freeing memory associated with GET request.
  */
 static void
-end_badly_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-
-  if (pg != NULL)
-    GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
-  GNUNET_SCHEDULER_cancel (die_task);
-}
-
-/**
- * Check if the get_handle is being used, if so stop the request.  Either
- * way, schedule the end_badly_cont function which actually shuts down the
- * test.
- */
-static void
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failing test with error: `%s'!\n",
               (char *) cls);
-  GNUNET_SCHEDULER_add_now (&end_badly_cont, NULL);
   ok = 1;
+  
+  if (disco_task != GNUNET_SCHEDULER_NO_TASK)
+  {
+    disco_task = GNUNET_SCHEDULER_NO_TASK;
+    GNUNET_SCHEDULER_cancel(disco_task);
+    GNUNET_DHT_disconnect(dht_handle);
+    dht_handle = NULL;
+  }
+  if (pg != NULL)
+    GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
+  GNUNET_SCHEDULER_cancel (die_task);
 }
 
 static void
