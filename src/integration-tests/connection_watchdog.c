@@ -44,6 +44,7 @@
  * Final status code.
  */
 static int ret;
+static int ping;
 
 static int have_tcp;
 static int have_udp;
@@ -569,7 +570,7 @@ map_connect (const struct GNUNET_PeerIdentity *peer, void * source)
     if (GNUNET_NO == pc->transport_connected)
     {
       pc->transport_connected = GNUNET_YES;
-      if (NULL == pc->th_ping)
+      if ((GNUNET_YES == ping) && (NULL == pc->th_ping))
         pc->th_ping = GNUNET_TRANSPORT_notify_transmit_ready(th, peer, sizeof (struct PING), UINT_MAX, GNUNET_TIME_relative_get_forever(), &send_transport_ping_cb, pc);
       else
         GNUNET_break(0);
@@ -589,7 +590,7 @@ map_connect (const struct GNUNET_PeerIdentity *peer, void * source)
     if (GNUNET_NO == pc->core_connected)
     {
       pc->core_connected = GNUNET_YES;
-      if (NULL == pc->ch_ping)
+      if ((GNUNET_YES == ping) && (NULL == pc->ch_ping))
         pc->ch_ping = GNUNET_CORE_notify_transmit_ready(ch,
                                                  GNUNET_NO, UINT_MAX,
                                                  GNUNET_TIME_relative_get_forever(),
@@ -823,7 +824,7 @@ transport_notify_receive_cb (void *cls,
         "TRANSPORT",
         "PING",
         GNUNET_i2s (peer)) ;
-    if (NULL == pc->th_pong)
+    if ((GNUNET_YES == ping) && (NULL == pc->th_pong))
       pc->th_pong = GNUNET_TRANSPORT_notify_transmit_ready(th,
           peer, sizeof (struct PONG),
           UINT_MAX, GNUNET_TIME_relative_get_forever(),
@@ -863,7 +864,7 @@ int core_notify_receive_cb (void *cls,
         "CORE",
         "PING",
         GNUNET_i2s (peer));
-    if (NULL == pc->ch_pong)
+    if ((GNUNET_YES == ping) && (NULL == pc->ch_pong))
       pc->ch_pong = GNUNET_CORE_notify_transmit_ready(ch,
                                                GNUNET_NO, UINT_MAX,
                                                GNUNET_TIME_relative_get_forever(),
@@ -1056,8 +1057,10 @@ run (void *cls, char *const *args, const char *cfgfile,
 int
 main (int argc, char *const *argv)
 {
+  ping = GNUNET_NO;
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    /* FIMXE: add options here */
+   {'p', "ping", NULL, gettext_noop ("Send ping messages to test connectivity (default == NO)"),
+    GNUNET_NO, &GNUNET_GETOPT_set_one, &ping},
     GNUNET_GETOPT_OPTION_END
   };
   return (GNUNET_OK ==
