@@ -511,12 +511,12 @@ add_address_to_hello (void *cls, size_t max, void *buffer)
   size_t addr_len;
   struct GNUNET_HELLO_Address haddr;
   size_t ret;
-
   if (NULL == ctx->pos)
     return 0;
   if ('!' != ctx->pos[0])
   {
     ctx->ret = GNUNET_SYSERR;
+    GNUNET_break (0);
     return 0;
   }
   ctx->pos++;
@@ -524,21 +524,25 @@ add_address_to_hello (void *cls, size_t max, void *buffer)
   tname = strptime (ctx->pos,
 		    "%Y%m%d%H%M%S",
 		    &expiration_time);
+
   if (NULL == tname)
   {
     ctx->ret = GNUNET_SYSERR;
+    GNUNET_break (0);
     return 0;
   }
   expiration_seconds = mktime (&expiration_time);
   if (expiration_seconds == (time_t) -1)
   {
     ctx->ret = GNUNET_SYSERR;
+    GNUNET_break (0);
     return 0;
   }
   expire.abs_value = expiration_seconds * 1000;
   if ('!' != tname[0])
   {
     ctx->ret = GNUNET_SYSERR;
+    GNUNET_break (0);
     return 0;
   }
   tname++;
@@ -546,6 +550,7 @@ add_address_to_hello (void *cls, size_t max, void *buffer)
   if (NULL == address)
   {
     ctx->ret = GNUNET_SYSERR;
+    GNUNET_break (0);
     return 0;
   }
   address++;
@@ -559,7 +564,7 @@ add_address_to_hello (void *cls, size_t max, void *buffer)
   {
     ctx->pos = end;
   }
-  plugin_name = GNUNET_strndup (tname, address - tname);  
+  plugin_name = GNUNET_strndup (tname, address - (tname+1));
   papi = GPI_plugins_find (plugin_name);
   if (NULL == papi)
   {
@@ -567,15 +572,21 @@ add_address_to_hello (void *cls, size_t max, void *buffer)
      * Skip this part, advance to the next one and recurse.
      * But only if this is not the end of string.
      */
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Plugin `%s' not found\n"),
+                plugin_name);
     GNUNET_free (plugin_name);
+
+    GNUNET_break (0);
     return 0;
   }
   if (NULL == papi->string_to_address)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		_("Plugin `%s' does not support URIs yet\n"),
-		ctx->pos);
+		plugin_name);
     GNUNET_free (plugin_name);
+    GNUNET_break (0);
     return 0;
   }
   if (GNUNET_OK !=
@@ -585,8 +596,8 @@ add_address_to_hello (void *cls, size_t max, void *buffer)
 			       &addr,
 			       &addr_len))
   {
-    GNUNET_free (plugin_name);  
-    return GNUNET_SYSERR;
+    GNUNET_free (plugin_name);
+    return 0;
   }
   /* address.peer is unset - not used by add_address() */
   haddr.address_length = addr_len;
@@ -620,6 +631,7 @@ parse_hello_uri (const char *put_uri)
     return GNUNET_SYSERR;
   pks = &put_uri[strlen (HELLO_URI_PREFIX)];
   exc = strstr (pks, "!");
+
   if (GNUNET_OK != GNUNET_STRINGS_string_to_data (pks,
 						  (NULL == exc) ? strlen (pks) : (exc - pks),
 						  (unsigned char *) &my_public_key, 
