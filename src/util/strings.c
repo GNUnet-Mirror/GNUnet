@@ -1037,7 +1037,7 @@ GNUNET_STRINGS_to_address_ipv4 (const char *zt_addr, uint16_t addrlen,
 				struct sockaddr_in *r_buf)
 {
   unsigned int temps[5];
-  unsigned port;
+  unsigned int port;
   int cnt;
 
   if (addrlen < 9)
