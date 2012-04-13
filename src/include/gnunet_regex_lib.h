@@ -38,62 +38,107 @@ extern "C"
 #endif
 
 /**
- * Automaton (NFA/DFA) representation
+ * Automaton (NFA/DFA) representation.
  */
 struct GNUNET_REGEX_Automaton;
 
 /**
+ * State representation.
+ */
+struct GNUNET_REGEX_State;
+
+/**
  * Construct an NFA by parsing the regex string of length 'len'.
  *
- * @param regex regular expression string
- * @param len length of the string
+ * @param regex regular expression string.
+ * @param len length of the string.
  *
- * @return NFA, needs to be freed using GNUNET_REGEX_destroy_automaton
+ * @return NFA, needs to be freed using GNUNET_REGEX_destroy_automaton.
  */
 struct GNUNET_REGEX_Automaton *
 GNUNET_REGEX_construct_nfa (const char *regex, const size_t len);
 
 /**
- * Construct DFA for the given 'regex' of length 'len'
+ * Construct DFA for the given 'regex' of length 'len'.
  *
- * @param regex regular expression string
- * @param len length of the regular expression
+ * @param regex regular expression string.
+ * @param len length of the regular expression.
  *
- * @return DFA, needs to be freed using GNUNET_REGEX_destroy_automaton
+ * @return DFA, needs to be freed using GNUNET_REGEX_destroy_automaton.
  */
 struct GNUNET_REGEX_Automaton *
 GNUNET_REGEX_construct_dfa (const char *regex, const size_t len);
 
 /**
- * Free the memory allocated by constructing the GNUNET_REGEX_Automaton
+ * Free the memory allocated by constructing the GNUNET_REGEX_Automaton.
  * data structure.
  *
- * @param a automaton to be destroyed
+ * @param a automaton to be destroyed.
  */
 void
 GNUNET_REGEX_automaton_destroy (struct GNUNET_REGEX_Automaton *a);
 
 /**
- * Save the given automaton as a GraphViz dot file
+ * Save the given automaton as a GraphViz dot file.
  *
- * @param a the automaton to be saved
- * @param filename where to save the file
+ * @param a the automaton to be saved.
+ * @param filename where to save the file.
  */
 void
 GNUNET_REGEX_automaton_save_graph (struct GNUNET_REGEX_Automaton *a,
                                    const char *filename);
 
 /**
- * Evaluates the given 'string' against the given compiled regex
+ * Evaluates the given 'string' against the given compiled regex.
  *
- * @param a automaton
- * @param string string to check
+ * @param a automaton.
+ * @param string string to check.
  *
- * @return 0 if string matches, non 0 otherwise
+ * @return 0 if string matches, non 0 otherwise.
  */
 int
-GNUNET_REGEX_eval (struct GNUNET_REGEX_Automaton *a, 
+GNUNET_REGEX_eval (struct GNUNET_REGEX_Automaton *a,
                    const char *string);
+
+
+/**
+ * Get the starting state of the given automaton 'a'.
+ *
+ * @param a automaton.
+ *
+ * @return starting state.
+ */
+struct GNUNET_REGEX_State *
+GNUNET_REGEX_automaton_get_start (struct GNUNET_REGEX_Automaton *a);
+
+/**
+ * Get the next states, starting from states 's'.
+ *
+ * @param a automaton.
+ * @param s states.
+ * @param count number of states given in 's'. Will contain number of
+ *              states that were returned upon return.
+ *
+ * @return next states, 'count' will contain the number of states.
+ */
+struct GNUNET_REGEX_State **
+GNUNET_REGEX_automaton_states_get_next (struct GNUNET_REGEX_Automaton *a,
+                                        struct GNUNET_REGEX_State **s,
+                                        unsigned int *count);
+
+/**
+ * Hash a set of states.
+ *
+ * @param a automaton.
+ * @param s states.
+ * @param count number of states.
+ *
+ * @return hash.
+ */
+struct GNUNET_HashCode
+GNUNET_REGEX_automaton_states_hash (struct GNUNET_REGEX_Automaton *a,
+                                    struct GNUNET_REGEX_State **s,
+                                    unsigned int count);
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
@@ -104,3 +149,4 @@ GNUNET_REGEX_eval (struct GNUNET_REGEX_Automaton *a,
 
 /* end of gnunet_regex_lib.h */
 #endif
+

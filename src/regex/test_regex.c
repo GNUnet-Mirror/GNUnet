@@ -249,6 +249,9 @@ main (int argc, char *argv[])
   int check_rand;
 
   struct Regex_String_Pair rxstr[4] = {
+    {"ab?(abcd)?", 5,
+     {"ababcd", "abab", "aabcd", "a", "abb"},
+     {match, nomatch, match, match, nomatch}},
     {"ab(c|d)+c*(a(b|c)d)+", 5,
      {"abcdcdcdcdddddabd", "abcd", "abcddddddccccccccccccccccccccccccabdacdabd",
       "abccccca", "abcdcdcdccdabdabd"},
@@ -259,10 +262,7 @@ main (int argc, char *argv[])
      {nomatch, nomatch, nomatch, nomatch, nomatch}},
     {"k|a+X*y+c|Q*e|p|R|Z*K*y*R+w|Y*6+n+h*k*w+V*F|W*B*e*g|N+V|t+L|P*j*3*9+X*h*J|J*6|b|E*i*f*R+S|Z|R|Y*Z|g*", 1,
      {"kaXycQepRZKyRwY6nhkwVFWBegNVtLPj39XhJJ6bEifRSZRYZg"},
-     {nomatch}},
-    {"ab?(abcd)?", 5,
-     {"ababcd", "abab", "aabcd", "a", "abb"},
-     {match, nomatch, match, match, nomatch}}
+     {nomatch}}
   };
 
   check_nfa = 0;
