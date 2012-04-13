@@ -157,8 +157,8 @@ typedef void (*GNUNET_CORE_StartupCallback) (void *cls,
  * @param cfg configuration to use
  * @param queue_size size of the per-peer message queue
  * @param cls closure for the various callbacks that follow (including handlers in the handlers array)
- * @param init callback to call on timeout or once we have successfully
- *        connected to the core service; note that timeout is only meaningful if init is not NULL
+ * @param init callback to call once we have successfully
+ *        connected to the core service
  * @param connects function to call on peer connect, can be NULL
  * @param disconnects function to call on peer disconnect / timeout, can be NULL
  * @param inbound_notify function to call for all inbound messages, can be NULL

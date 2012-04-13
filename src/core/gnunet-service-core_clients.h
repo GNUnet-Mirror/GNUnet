@@ -105,7 +105,8 @@ GSC_CLIENTS_deliver_message (const struct GNUNET_PeerIdentity *sender,
                              const struct GNUNET_ATS_Information *atsi,
                              unsigned int atsi_count,
                              const struct GNUNET_MessageHeader *msg,
-                             uint16_t msize, int options);
+                             uint16_t msize,
+			     uint32_t options);
 
 
 /**
