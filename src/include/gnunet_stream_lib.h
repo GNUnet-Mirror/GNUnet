@@ -262,7 +262,10 @@ struct GNUNET_STREAM_IOReadHandle;
  * @param write_cont the function to call upon writing some bytes into the
  *          stream 
  * @param write_cont_cls the closure
- * @return handle to cancel the operation; NULL if a previous write is pending
+ *
+ * @return handle to cancel the operation; if a previous write is pending or
+ *           the stream has been shutdown for this operation then write_cont is
+ *           immediately called and NULL is returned.
  */
 struct GNUNET_STREAM_IOWriteHandle *
 GNUNET_STREAM_write (struct GNUNET_STREAM_Socket *socket,
@@ -291,13 +294,16 @@ typedef size_t (*GNUNET_STREAM_DataProcessor) (void *cls,
 
 
 /**
- * Tries to read data from the stream
+ * Tries to read data from the stream.
  *
  * @param socket the socket representing a stream
  * @param timeout the timeout period
  * @param proc function to call with data (once only)
  * @param proc_cls the closure for proc
- * @return handle to cancel the operation
+ *
+ * @return handle to cancel the operation; if the stream has been shutdown for
+ *           this type of opeartion then the DataProcessor is immediately
+ *           called with GNUNET_STREAM_SHUTDOWN as status and NULL if returned
  */
 struct GNUNET_STREAM_IOReadHandle *
 GNUNET_STREAM_read (struct GNUNET_STREAM_Socket *socket,

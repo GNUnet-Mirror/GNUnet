@@ -696,7 +696,7 @@ ack_task (void *cls,
       return;
     }
 
-  socket->ack_task_id = 0;
+  socket->ack_task_id = GNUNET_SCHEDULER_NO_TASK;
 
   /* Create the ACK Message */
   ack_msg = GNUNET_malloc (sizeof (struct GNUNET_STREAM_AckMessage));
@@ -1562,6 +1562,141 @@ client_handle_transmit_close (void *cls,
 
 
 /**
+ * Generic handler for GNUNET_MESSAGE_TYPE_STREAM_*_CLOSE_ACK messages
+ *
+ * @param socket the socket
+ * @param tunnel connection to the other end
+ * @param sender who sent the message
+ * @param message the actual message
+ * @param atsi performance data for the connection
+ * @param operation the close operation which is being ACK'ed
+ * @return GNUNET_OK to keep the connection open,
+ *         GNUNET_SYSERR to close it (signal serious error)
+ */
+static int
+handle_generic_close_ack (struct GNUNET_STREAM_Socket *socket,
+                          struct GNUNET_MESH_Tunnel *tunnel,
+                          const struct GNUNET_PeerIdentity *sender,
+                          const struct GNUNET_STREAM_MessageHeader *message,
+                          const struct GNUNET_ATS_Information *atsi,
+                          int operation)
+{
+  struct GNUNET_STREAM_ShutdownHandle *shutdown_handle;
+
+  shutdown_handle = socket->shutdown_handle;
+  if (NULL == shutdown_handle)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "%x: Received *CLOSE_ACK when shutdown handle is NULL\n",
+                  socket->our_id);
+      return GNUNET_OK;
+    }
+
+  switch (operation)
+    {
+    case SHUT_RDWR:
+      switch (socket->state)
+        {
+        case STATE_CLOSE_WAIT:
+          if (SHUT_RDWR != shutdown_handle->operation)
+            {
+              GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                          "%x: Received CLOSE_ACK when shutdown handle "
+                          "is not for SHUT_RDWR\n",
+                          socket->our_id);
+              return GNUNET_OK;
+            }
+
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      "%x: Received CLOSE_ACK from %x\n",
+                      socket->our_id,
+                      socket->other_peer);
+          socket->state = STATE_CLOSED;
+          break;
+        default:
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      "%x: Received CLOSE_ACK when in it not expected\n",
+                      socket->our_id);
+          return GNUNET_OK;
+        }
+      break;
+
+    case SHUT_RD:
+      switch (socket->state)
+        {
+        case STATE_RECEIVE_CLOSE_WAIT:
+          if (SHUT_RD != shutdown_handle->operation)
+            {
+              GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                          "%x: Received RECEIVE_CLOSE_ACK when shutdown handle "
+                          "is not for SHUT_RD\n",
+                          socket->our_id);
+              return GNUNET_OK;
+            }
+
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      "%x: Received RECEIVE_CLOSE_ACK from %x\n",
+                      socket->our_id,
+                      socket->other_peer);
+          socket->state = STATE_RECEIVE_CLOSED;
+          break;
+        default:
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      "%x: Received RECEIVE_CLOSE_ACK when in it not expected\n",
+                      socket->our_id);
+          return GNUNET_OK;
+        }
+
+      break;
+    case SHUT_WR:
+      switch (socket->state)
+        {
+        case STATE_TRANSMIT_CLOSE_WAIT:
+          if (SHUT_WR != shutdown_handle->operation)
+            {
+              GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                          "%x: Received TRANSMIT_CLOSE_ACK when shutdown handle "
+                          "is not for SHUT_WR\n",
+                          socket->our_id);
+              return GNUNET_OK;
+            }
+
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      "%x: Received TRAMSMIT_CLOSE_ACK from %x\n",
+                      socket->our_id,
+                      socket->other_peer);
+          socket->state = STATE_TRANSMIT_CLOSED;
+          break;
+        default:
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      "%x: Received TRANSMIT_CLOSE_ACK when in it not expected\n",
+                      socket->our_id);
+          
+          return GNUNET_OK;
+        }
+      break;
+    default:
+      GNUNET_assert (0);
+    }
+
+  if (NULL != shutdown_handle->completion_cb) /* Shutdown completion */
+    shutdown_handle->completion_cb(shutdown_handle->completion_cls,
+                                   operation);
+  GNUNET_free (shutdown_handle); /* Free shutdown handle */
+  socket->shutdown_handle = NULL;
+  if (GNUNET_SCHEDULER_NO_TASK
+      != shutdown_handle->close_msg_retransmission_task_id)
+    {
+      GNUNET_SCHEDULER_cancel
+        (shutdown_handle->close_msg_retransmission_task_id);
+      shutdown_handle->close_msg_retransmission_task_id =
+        GNUNET_SCHEDULER_NO_TASK;
+    }
+  return GNUNET_OK;
+}
+
+
+/**
  * Client's message handler for GNUNET_MESSAGE_TYPE_STREAM_TRANSMIT_CLOSE_ACK
  *
  * @param cls the socket (set from GNUNET_MESH_connect)
@@ -1583,6 +1718,67 @@ client_handle_transmit_close_ack (void *cls,
 {
   struct GNUNET_STREAM_Socket *socket = cls;
 
+  return handle_generic_close_ack (socket,
+                                   tunnel,
+                                   sender,
+                                   (const struct GNUNET_STREAM_MessageHeader *)
+                                   message,
+                                   atsi,
+                                   SHUT_WR);
+}
+
+
+/**
+ * Generic handler for GNUNET_MESSAGE_TYPE_STREAM_RECEIVE_CLOSE
+ *
+ * @param socket the socket
+ * @param tunnel connection to the other end
+ * @param sender who sent the message
+ * @param message the actual message
+ * @param atsi performance data for the connection
+ * @return GNUNET_OK to keep the connection open,
+ *         GNUNET_SYSERR to close it (signal serious error)
+ */
+static int
+handle_receive_close (struct GNUNET_STREAM_Socket *socket,
+                      struct GNUNET_MESH_Tunnel *tunnel,
+                      const struct GNUNET_PeerIdentity *sender,
+                      const struct GNUNET_STREAM_MessageHeader *message,
+                      const struct GNUNET_ATS_Information *atsi)
+{
+  struct GNUNET_STREAM_MessageHeader *receive_close_ack;
+
+  switch (socket->state)
+    {
+    case STATE_INIT:
+    case STATE_LISTEN:
+    case STATE_HELLO_WAIT:
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "%x: Ignoring RECEIVE_CLOSE as it cannot be handled now\n",
+                  socket->our_id);
+      return GNUNET_OK;
+    default:
+      break;
+    }
+  
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "%x: Received RECEIVE_CLOSE from %x\n",
+              socket->our_id,
+              socket->other_peer);
+  receive_close_ack =
+    GNUNET_malloc (sizeof (struct GNUNET_STREAM_MessageHeader));
+  receive_close_ack->header.size =
+    htons (sizeof (struct GNUNET_STREAM_MessageHeader));
+  receive_close_ack->header.type =
+    htons (GNUNET_MESSAGE_TYPE_STREAM_RECEIVE_CLOSE_ACK);
+  queue_message (socket,
+                 receive_close_ack,
+                 &set_state_closed,
+                 NULL);
+  
+  /* FIXME: Handle the case where write handle is present; the write operation
+              should be deemed as finised and the write continuation callback
+              has to be called with the stream status GNUNET_STREAM_SHUTDOWN */
   return GNUNET_OK;
 }
 
@@ -1609,7 +1805,12 @@ client_handle_receive_close (void *cls,
 {
   struct GNUNET_STREAM_Socket *socket = cls;
 
-  return GNUNET_OK;
+  return
+    handle_receive_close (socket,
+                          tunnel,
+                          sender,
+                          (const struct GNUNET_STREAM_MessageHeader *) message,
+                          atsi);
 }
 
 
@@ -1635,7 +1836,13 @@ client_handle_receive_close_ack (void *cls,
 {
   struct GNUNET_STREAM_Socket *socket = cls;
 
-  return GNUNET_OK;
+  return handle_generic_close_ack (socket,
+                                   tunnel,
+                                   sender,
+                                   (const struct GNUNET_STREAM_MessageHeader *)
+                                   message,
+                                   atsi,
+                                   SHUT_RD);
 }
 
 
@@ -1658,6 +1865,19 @@ handle_close (struct GNUNET_STREAM_Socket *socket,
               const struct GNUNET_ATS_Information*atsi)
 {
   struct GNUNET_STREAM_MessageHeader *close_ack;
+
+  switch (socket->state)
+    {
+    case STATE_INIT:
+    case STATE_LISTEN:
+    case STATE_HELLO_WAIT:
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "%x: Ignoring RECEIVE_CLOSE as it cannot be handled now\n",
+                  socket->our_id);
+      return GNUNET_OK;
+    default:
+      break;
+    }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%x: Received CLOSE from %x\n",
@@ -1711,69 +1931,6 @@ client_handle_close (void *cls,
 
 
 /**
- * Generic handler for GNUNET_MESSAGE_TYPE_STREAM_CLOSE_ACK
- *
- * @param socket the socket
- * @param tunnel connection to the other end
- * @param sender who sent the message
- * @param message the actual message
- * @param atsi performance data for the connection
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
- */
-static int
-handle_close_ack (struct GNUNET_STREAM_Socket *socket,
-                  struct GNUNET_MESH_Tunnel *tunnel,
-                  const struct GNUNET_PeerIdentity *sender,
-                  const struct GNUNET_STREAM_MessageHeader *message,
-                  const struct GNUNET_ATS_Information *atsi)
-{
-  struct GNUNET_STREAM_ShutdownHandle *shutdown_handle;
-
-  shutdown_handle = socket->shutdown_handle;
-  switch (socket->state)
-    {
-    case STATE_CLOSE_WAIT:
-      if ( (NULL == shutdown_handle) ||
-           (SHUT_RDWR != shutdown_handle->operation) )
-        {
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "%x: Received CLOSE_ACK when shutdown handle is NULL or "
-                      "not for SHUT_RDWR\n",
-                      socket->our_id);
-          return GNUNET_OK;
-        }
-
-      if (GNUNET_SCHEDULER_NO_TASK
-          != shutdown_handle->close_msg_retransmission_task_id)
-        {
-          GNUNET_SCHEDULER_cancel 
-            (shutdown_handle->close_msg_retransmission_task_id);
-          shutdown_handle->close_msg_retransmission_task_id =
-            GNUNET_SCHEDULER_NO_TASK;
-        }
-
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "%x: Received CLOSE_ACK from %x\n",
-                  socket->our_id,
-                  socket->other_peer);
-      socket->state = STATE_CLOSED;
-      if (NULL != shutdown_handle->completion_cb) /* Shutdown completion */
-        shutdown_handle->completion_cb(shutdown_handle->completion_cls,
-                                       SHUT_RDWR);
-      GNUNET_free (shutdown_handle); /* Free shutdown handle */
-      break;
-    default:
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "%x: Received CLOSE_ACK when in it not expected\n",
-                  socket->our_id);
-      break;
-    }
-  return GNUNET_OK;
-}
-
-
-/**
  * Client's message handler for GNUNET_MESSAGE_TYPE_STREAM_CLOSE_ACK
  *
  * @param cls the socket (set from GNUNET_MESH_connect)
@@ -1795,12 +1952,13 @@ client_handle_close_ack (void *cls,
 {
   struct GNUNET_STREAM_Socket *socket = cls;
 
-  return handle_close_ack (socket,
-                           tunnel,
-                           sender,
-                           (const struct GNUNET_STREAM_MessageHeader *) 
-                           message,
-                           atsi);
+  return handle_generic_close_ack (socket,
+                                   tunnel,
+                                   sender,
+                                   (const struct GNUNET_STREAM_MessageHeader *) 
+                                   message,
+                                   atsi,
+                                   SHUT_RDWR);
 }
 
 /*****************************/
@@ -2027,7 +2185,13 @@ server_handle_transmit_close_ack (void *cls,
 {
   struct GNUNET_STREAM_Socket *socket = *tunnel_ctx;
 
-  return GNUNET_OK;
+  return handle_generic_close_ack (socket,
+                                   tunnel,
+                                   sender,
+                                   (const struct GNUNET_STREAM_MessageHeader *)
+                                   message,
+                                   atsi,
+                                   SHUT_WR);
 }
 
 
@@ -2053,7 +2217,12 @@ server_handle_receive_close (void *cls,
 {
   struct GNUNET_STREAM_Socket *socket = *tunnel_ctx;
 
-  return GNUNET_OK;
+  return
+    handle_receive_close (socket,
+                          tunnel,
+                          sender,
+                          (const struct GNUNET_STREAM_MessageHeader *) message,
+                          atsi);
 }
 
 
@@ -2079,7 +2248,13 @@ server_handle_receive_close_ack (void *cls,
 {
   struct GNUNET_STREAM_Socket *socket = *tunnel_ctx;
 
-  return GNUNET_OK;
+  return handle_generic_close_ack (socket,
+                                   tunnel,
+                                   sender,
+                                   (const struct GNUNET_STREAM_MessageHeader *)
+                                   message,
+                                   atsi,
+                                   SHUT_RD);
 }
 
 
@@ -2136,16 +2311,18 @@ server_handle_close_ack (void *cls,
 {
   struct GNUNET_STREAM_Socket *socket = *tunnel_ctx;
 
-  return handle_close_ack (socket,
-                           tunnel,
-                           sender,
-                           (const struct GNUNET_STREAM_MessageHeader *) message,
-                           atsi);
+  return handle_generic_close_ack (socket,
+                                   tunnel,
+                                   sender,
+                                   (const struct GNUNET_STREAM_MessageHeader *) 
+                                   message,
+                                   atsi,
+                                   SHUT_RDWR);
 }
 
 
 /**
- * Message Handler for mesh
+ * Handler for DATA_ACK messages
  *
  * @param socket the socket through which the ack was received
  * @param tunnel connection to the other end
@@ -2177,6 +2354,8 @@ handle_ack (struct GNUNET_STREAM_Socket *socket,
   switch (socket->state)
     {
     case (STATE_ESTABLISHED):
+    case (STATE_RECEIVE_CLOSED):
+    case (STATE_RECEIVE_CLOSE_WAIT):
       if (NULL == socket->write_handle)
         {
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -2284,7 +2463,7 @@ handle_ack (struct GNUNET_STREAM_Socket *socket,
 
 
 /**
- * Message Handler for mesh
+ * Handler for DATA_ACK messages
  *
  * @param cls the 'struct GNUNET_STREAM_Socket'
  * @param tunnel connection to the other end
@@ -2311,7 +2490,7 @@ client_handle_ack (void *cls,
 
 
 /**
- * Message Handler for mesh
+ * Handler for DATA_ACK messages
  *
  * @param cls the server's listen socket
  * @param tunnel connection to the other end
@@ -2855,15 +3034,22 @@ GNUNET_STREAM_listen_close (struct GNUNET_STREAM_ListenSocket *lsocket)
 
 
 /**
- * Tries to write the given data to the stream
+ * Tries to write the given data to the stream. The maximum size of data that
+ * can be written as part of a write operation is (64 * (64000 - sizeof (struct
+ * GNUNET_STREAM_DataMessage))). If size is greater than this it is not an API
+ * violation, however only the said number of maximum bytes will be written.
  *
  * @param socket the socket representing a stream
  * @param data the data buffer from where the data is written into the stream
  * @param size the number of bytes to be written from the data buffer
  * @param timeout the timeout period
- * @param write_cont the function to call upon writing some bytes into the stream
+ * @param write_cont the function to call upon writing some bytes into the
+ *          stream 
  * @param write_cont_cls the closure
- * @return handle to cancel the operation
+ *
+ * @return handle to cancel the operation; if a previous write is pending or
+ *           the stream has been shutdown for this operation then write_cont is
+ *           immediately called and NULL is returned.
  */
 struct GNUNET_STREAM_IOWriteHandle *
 GNUNET_STREAM_write (struct GNUNET_STREAM_Socket *socket,
@@ -2891,16 +3077,33 @@ GNUNET_STREAM_write (struct GNUNET_STREAM_Socket *socket,
     GNUNET_break (0);
     return NULL;
   }
-  if (!((STATE_ESTABLISHED == socket->state)
-        || (STATE_RECEIVE_CLOSE_WAIT == socket->state)
-        || (STATE_RECEIVE_CLOSED == socket->state)))
+
+  switch (socket->state)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "%x: Attempting to write on a closed (OR) not-yet-established"
-                  "stream\n",
-                  socket->our_id);
+    case STATE_TRANSMIT_CLOSED:
+    case STATE_TRANSMIT_CLOSE_WAIT:
+    case STATE_CLOSED:
+    case STATE_CLOSE_WAIT:
+      if (NULL != write_cont)
+        write_cont (write_cont_cls, GNUNET_STREAM_SHUTDOWN, 0);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "%s() END\n", __func__);
       return NULL;
-    } 
+    case STATE_INIT:
+    case STATE_LISTEN:
+    case STATE_HELLO_WAIT:
+      if (NULL != write_cont)
+        /* FIXME: GNUNET_STREAM_SYSERR?? */
+        write_cont (write_cont_cls, GNUNET_STREAM_SYSERR, 0);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "%s() END\n", __func__);
+      return NULL;
+    case STATE_ESTABLISHED:
+    case STATE_RECEIVE_CLOSED:
+    case STATE_RECEIVE_CLOSE_WAIT:
+      break;
+    }
+
   if (GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH * max_payload_size < size)
     size = GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH  * max_payload_size;
   num_needed_packets = (size + (max_payload_size - 1)) / max_payload_size;
@@ -2957,14 +3160,18 @@ GNUNET_STREAM_write (struct GNUNET_STREAM_Socket *socket,
 }
 
 
+
 /**
- * Tries to read data from the stream
+ * Tries to read data from the stream.
  *
  * @param socket the socket representing a stream
  * @param timeout the timeout period
  * @param proc function to call with data (once only)
  * @param proc_cls the closure for proc
- * @return handle to cancel the operation
+ *
+ * @return handle to cancel the operation; if the stream has been shutdown for
+ *           this type of opeartion then the DataProcessor is immediately
+ *           called with GNUNET_STREAM_SHUTDOWN as status and NULL if returned
  */
 struct GNUNET_STREAM_IOReadHandle *
 GNUNET_STREAM_read (struct GNUNET_STREAM_Socket *socket,
@@ -2984,6 +3191,22 @@ GNUNET_STREAM_read (struct GNUNET_STREAM_Socket *socket,
   if (NULL != socket->read_handle) return NULL;
 
   GNUNET_assert (NULL != proc);
+
+  switch (socket->state)
+    {
+    case STATE_RECEIVE_CLOSED:
+    case STATE_RECEIVE_CLOSE_WAIT:
+    case STATE_CLOSED:
+    case STATE_CLOSE_WAIT:
+      proc (proc_cls, GNUNET_STREAM_SHUTDOWN, NULL, 0);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "%x: %s() END\n",
+                  socket->our_id,
+                  __func__);
+      return NULL;
+    default:
+      break;
+    }
 
   read_handle = GNUNET_malloc (sizeof (struct GNUNET_STREAM_IOReadHandle));
   read_handle->proc = proc;
