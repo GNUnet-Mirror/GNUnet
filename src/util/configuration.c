@@ -1228,7 +1228,16 @@ static int
 parse_configuration_file (void *cls, const char *filename)
 {
   struct GNUNET_CONFIGURATION_Handle *cfg = cls;
+  char * ext;
   int ret;
+
+  /* Examine file extension */
+  ext = strrchr (filename, '.');
+  if ((NULL == ext) || (0 != strcmp (ext, ".conf")))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Skipping file `%s'\n", filename);
+    return GNUNET_OK;
+  }
 
   ret = GNUNET_CONFIGURATION_parse (cfg, filename);
   return ret;
