@@ -35,12 +35,17 @@
 #define MLP_MAX_EXEC_DURATION   GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 3)
 #define MLP_MAX_ITERATIONS      INT_MAX
 
+#define DEF_PEERS 10
+#define DEF_ADDRESSES_PER_PEER 5
+
+static unsigned int peers;
+static unsigned int addresses;
 
 static int ret;
 
 struct GNUNET_STATISTICS_Handle * stats;
 
-struct GNUNET_CONTAINER_MultiHashMap * addresses;
+//struct GNUNET_CONTAINER_MultiHashMap * addresses;
 
 struct GAS_MLP_Handle *mlp;
 
@@ -53,55 +58,25 @@ check (void *cls, char *const *args, const char *cfgfile,
   ret = 1;
   return;
 #endif
-  struct ATS_Address addr[10];
 
-  stats = GNUNET_STATISTICS_create("ats", cfg);
+  if (peers == 0)
+    peers = DEF_PEERS;
+  if (addresses == 0)
+    addresses = DEF_ADDRESSES_PER_PEER;
 
-  addresses = GNUNET_CONTAINER_multihashmap_create (10);
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Setting up %u peers with %u addresses per peer\n", peers, addresses);
 
-  GNUNET_CRYPTO_hash_create_random(GNUNET_CRYPTO_QUALITY_WEAK, &addr[0].peer.hashPubKey);
-  addr[0].mlp_information = NULL;
-  addr[0].next = NULL;
-  addr[0].prev = NULL;
-  addr[0].plugin = strdup ("dummy");
-
-  addr[1].peer = addr[0].peer;
-  addr[1].mlp_information = NULL;
-  addr[1].next = NULL;
-  addr[1].prev = NULL;
-  addr[1].plugin = strdup ("dummy2");
-
-  GNUNET_CONTAINER_multihashmap_put(addresses, &addr[0].peer.hashPubKey, &addr[0], GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+  GNUNET_HashCode hash;
+  //memset (&hash, '\0', sizeof (GNUNET_HashCode));
+  //hash.bits[0] = 1;
+  //GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "peer %s\n", GNUNET_h2s_full (&hash));
 
   mlp = GAS_mlp_init (cfg, NULL, MLP_MAX_EXEC_DURATION, MLP_MAX_ITERATIONS);
+  mlp->auto_solve = GNUNET_NO;
 
-  /* Add a new address */
-#if 0
-  GAS_mlp_address_update (mlp, addresses, &addr[0]);
 
-  GNUNET_assert (mlp != NULL);
-  GNUNET_assert (mlp->addr_in_problem == 1);
 
-  /* Update an new address */
-  GAS_mlp_address_update (mlp, addresses, &addr[0]);
-  GNUNET_assert (mlp->addr_in_problem == 1);
-
-  /* Add a second address for same peer */
-  GNUNET_CONTAINER_multihashmap_put(addresses, &addr[0].peer.hashPubKey, &addr[1], GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-  GAS_mlp_address_update (mlp, addresses, &addr[1]);
-  GNUNET_assert (mlp->addr_in_problem == 2);
-
-  /* Delete an address */
-  GNUNET_CONTAINER_multihashmap_remove (addresses, &addr[0].peer.hashPubKey, &addr[0]);
-  GAS_mlp_address_delete (mlp, addresses, &addr[0]);
-  GAS_mlp_address_delete (mlp, addresses, &addr[1]);
-#endif
   GAS_mlp_done (mlp);
-
-  GNUNET_free (addr[0].plugin);
-  GNUNET_free (addr[1].plugin);
-  GNUNET_CONTAINER_multihashmap_destroy (addresses);
-  GNUNET_STATISTICS_destroy(stats, GNUNET_NO);
 
   ret = 0;
   return;
@@ -124,6 +99,12 @@ main (int argc, char *argv[])
   };
 
   static struct GNUNET_GETOPT_CommandLineOption options[] = {
+    {'a', "addresses", NULL,
+     gettext_noop ("addresses per peer"), 1,
+     &GNUNET_GETOPT_set_uint, &addresses},
+    {'p', "peers", NULL,
+     gettext_noop ("peers"), 1,
+     &GNUNET_GETOPT_set_uint, &peers},
     GNUNET_GETOPT_OPTION_END
   };
 

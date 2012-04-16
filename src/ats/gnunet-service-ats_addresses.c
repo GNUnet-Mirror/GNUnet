@@ -615,7 +615,7 @@ void request_address_mlp (const struct GNUNET_PeerIdentity *peer)
 
   if (aa == NULL)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
                 "Cannot suggest address for peer `%s'\n", GNUNET_i2s (peer));
     return;
   }
@@ -648,7 +648,7 @@ void request_address_simple (const struct GNUNET_PeerIdentity *peer)
                                               &find_address_it, &aa);
   if (aa == NULL)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
                 "Cannot suggest address for peer `%s'\n", GNUNET_i2s (peer));
     return;
   }

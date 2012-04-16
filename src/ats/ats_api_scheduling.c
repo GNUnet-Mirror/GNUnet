@@ -418,9 +418,13 @@ static void
 remove_session (struct GNUNET_ATS_SchedulingHandle *sh, uint32_t session_id,
                 const struct GNUNET_PeerIdentity *peer)
 {
+  GNUNET_assert (peer != NULL);
+  GNUNET_assert (sh != NULL);
+
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "ats-scheduling-api",
-              "Remove sessionID %u from peer %s in %p\n", "ats-scheduling-api",
+              "Release sessionID %u from peer %s in %p\n",
               (unsigned int) session_id, GNUNET_i2s (peer), sh);
+
   if (0 == session_id)
     return;
   GNUNET_assert (session_id < sh->session_array_size);

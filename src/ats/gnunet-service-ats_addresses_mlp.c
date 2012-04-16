@@ -869,8 +869,8 @@ lp_solv:
   mlp->lp_total_duration =+ duration.rel_value;
 
   GNUNET_STATISTICS_update (mlp->stats,"# LP problem solved", 1, GNUNET_NO);
-  GNUNET_STATISTICS_set (mlp->stats,"# LP execution time", duration.rel_value, GNUNET_NO);
-  GNUNET_STATISTICS_set (mlp->stats,"# LP execution time average",
+  GNUNET_STATISTICS_set (mlp->stats,"# LP execution time (ms)", duration.rel_value, GNUNET_NO);
+  GNUNET_STATISTICS_set (mlp->stats,"# LP execution time average (ms)",
                          mlp->lp_total_duration / mlp->lp_solved,  GNUNET_NO);
 
 
@@ -945,8 +945,8 @@ mlp_solve_mlp_problem (struct GAS_MLP_Handle *mlp)
   mlp->mlp_total_duration =+ duration.rel_value;
 
   GNUNET_STATISTICS_update (mlp->stats,"# MLP problem solved", 1, GNUNET_NO);
-  GNUNET_STATISTICS_set (mlp->stats,"# MLP execution time", duration.rel_value, GNUNET_NO);
-  GNUNET_STATISTICS_set (mlp->stats,"# MLP execution time average",
+  GNUNET_STATISTICS_set (mlp->stats,"# MLP execution time (ms)", duration.rel_value, GNUNET_NO);
+  GNUNET_STATISTICS_set (mlp->stats,"# MLP execution time average (ms)",
                          mlp->mlp_total_duration / mlp->mlp_solved,  GNUNET_NO);
 
   /* Analyze problem status  */
@@ -1244,7 +1244,7 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
     }
     else if (GNUNET_ATS_NET_UNSPECIFIED == quotas[c])
     {
-      quota_out = 0;
+      quota_out = mlp->BIG_M;
     }
     else
     {
@@ -1262,7 +1262,7 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
     }
     else if (GNUNET_ATS_NET_UNSPECIFIED == quotas[c])
     {
-      quota_in = 0;
+      quota_in = mlp->BIG_M;
     }
     else
     {
@@ -1510,7 +1510,7 @@ GAS_mlp_address_update (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_Mult
   int new;
   struct MLP_information *mlpi;
 
-  GNUNET_STATISTICS_update (mlp->stats,"# LP address updates", 1, GNUNET_NO);
+  GNUNET_STATISTICS_update (mlp->stats, "# MLP address updates", 1, GNUNET_NO);
 
   /* We add a new address */
   if (address->mlp_information == NULL)
@@ -1536,6 +1536,7 @@ GAS_mlp_address_update (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_Mult
 
     address->mlp_information = mlpi;
     mlp->addr_in_problem ++;
+    GNUNET_STATISTICS_update (mlp->stats, "# addresses in MLP", 1, GNUNET_NO);
 
     /* Check for and add peer */
     struct ATS_Peer *peer = mlp_find_peer (mlp, &address->peer);
@@ -1562,6 +1563,7 @@ GAS_mlp_address_update (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_Mult
       GNUNET_CONTAINER_DLL_insert (peer->head, peer->tail, address);
       GNUNET_CONTAINER_DLL_insert (mlp->peer_head, mlp->peer_tail, peer);
       mlp->c_p ++;
+      GNUNET_STATISTICS_update (mlp->stats, "# peers in MLP", 1, GNUNET_NO);
     }
     else
     {
@@ -1617,6 +1619,7 @@ GAS_mlp_address_delete (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_Mult
     address->mlp_information = NULL;
 
     mlp->addr_in_problem --;
+    GNUNET_STATISTICS_update (mlp->stats, "# addresses in MLP", -1, GNUNET_NO);
   }
 
   /* Remove from peer list */
@@ -1635,6 +1638,7 @@ GAS_mlp_address_delete (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_Mult
     GNUNET_CONTAINER_DLL_remove (mlp->peer_head, mlp->peer_tail, head);
     GNUNET_free (head);
     mlp->c_p --;
+    GNUNET_STATISTICS_update (mlp->stats, "# peers in MLP", -1, GNUNET_NO);
   }
 
   /* Update problem */
