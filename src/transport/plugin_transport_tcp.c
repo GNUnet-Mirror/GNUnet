@@ -2238,9 +2238,6 @@ libgnunet_plugin_transport_tcp_init (void *cls)
     plugin->server =
         GNUNET_SERVER_create_with_sockets (&plugin_tcp_access_check, plugin,
                                            NULL, idle_timeout, GNUNET_YES);
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "tcp",
-                     _("%s in section %s : %u\n"),
-                     "TIMEOUT", idle_timeout);
   }
   plugin->handlers = GNUNET_malloc (sizeof (my_handlers));
   memcpy (plugin->handlers, my_handlers, sizeof (my_handlers));
