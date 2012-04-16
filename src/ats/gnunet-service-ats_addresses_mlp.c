@@ -1110,6 +1110,8 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   unsigned int n_min;
   struct GNUNET_TIME_Relative i_exec;
   int c;
+  char * quota_out_str;
+  char * quota_in_str;
 
   /* Init GLPK environment */
   GNUNET_assert (glp_init_env() == 0);
@@ -1118,7 +1120,7 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   mlp->prob = glp_create_prob();
   GNUNET_assert (mlp->prob != NULL);
 
-  mlp->BIG_M = (double) (UINT32_MAX) /10;
+  mlp->BIG_M = (double) BIG_M_VALUE;
 
   /* Get diversity coefficient from configuration */
   if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (cfg, "ats",
@@ -1231,37 +1233,57 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
     if ((entry_in == NULL) || (entry_out == NULL))
       continue;
 
-    if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_size (cfg, "ats", entry_out, &quota_out))
+    if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(cfg, "ats", entry_out, &quota_out_str))
+    {
+      if (0 == strcmp(quota_out_str, BIG_M_STRING) ||
+          (GNUNET_SYSERR == GNUNET_STRINGS_fancy_size_to_bytes (quota_out_str, &quota_out)))
+        quota_out = mlp->BIG_M;
+
+      GNUNET_free (quota_out_str);
+      quota_out_str = NULL;
+    }
+    else if (GNUNET_ATS_NET_UNSPECIFIED == quotas[c])
+    {
+      quota_out = 0;
+    }
+    else
     {
       quota_out = mlp->BIG_M;
     }
-    if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_size (cfg, "ats", entry_in, &quota_in))
+
+    if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(cfg, "ats", entry_in, &quota_in_str))
+    {
+      if (0 == strcmp(quota_in_str, BIG_M_STRING) ||
+          (GNUNET_SYSERR == GNUNET_STRINGS_fancy_size_to_bytes (quota_in_str, &quota_in)))
+        quota_in = mlp->BIG_M;
+
+      GNUNET_free (quota_in_str);
+      quota_in_str = NULL;
+    }
+    else if (GNUNET_ATS_NET_UNSPECIFIED == quotas[c])
+    {
+      quota_in = 0;
+    }
+    else
     {
       quota_in = mlp->BIG_M;
     }
+
     /* Check if defined quota could make problem unsolvable */
-    if ((n_min * b_min) > quota_out)
+    if (((n_min * b_min) > quota_out) && (GNUNET_ATS_NET_UNSPECIFIED != quotas[c]))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Inconsistent quota configuration value `%s': " \
           "outbound quota (%u Bps) too small for combination of minimum connections and minimum bandwidth per peer (%u * %u Bps = %u)\n", entry_out, quota_out, n_min, b_min, n_min * b_min);
-      unsigned int default_min = ntohl (GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT.value__);
-      if ((quota_out / n_min) > default_min)
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,  "Reducing minimum bandwidth per peer to %u Bps\n",
-            (quota_out / n_min));
-        b_min = (quota_out / n_min);
-      }
-      else
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,  "Reducing minimum bandwidth per peer to %u Bps and minimum connections to %u \n",
-            default_min, (quota_out / default_min));
-        b_min = default_min;
-        n_min = (quota_out / default_min);
-      }
+
+      GAS_mlp_done(mlp);
+      mlp = NULL;
+      return NULL;
     }
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found `%s' quota %llu and `%s' quota %llu\n",
                 entry_out, quota_out, entry_in, quota_in);
+    GNUNET_STATISTICS_update ((struct GNUNET_STATISTICS_Handle *) stats, entry_out, quota_out, GNUNET_NO);
+    GNUNET_STATISTICS_update ((struct GNUNET_STATISTICS_Handle *) stats, entry_in, quota_in, GNUNET_NO);
     mlp->quota_out[c] = quota_out;
     mlp->quota_in[c] = quota_in;
   }

@@ -713,41 +713,81 @@ void
 GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
                     const struct GNUNET_STATISTICS_Handle *stats)
 {
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONFIGURATION_get_value_size (cfg, "ats",
-                                                      "WAN_QUOTA_IN",
-                                                      &wan_quota_in));
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONFIGURATION_get_value_size (cfg, "ats",
-                                                      "WAN_QUOTA_OUT",
-                                                      &wan_quota_out));
+  int mode;
 
-  switch (GNUNET_CONFIGURATION_get_value_yesno (cfg, "ats", "MLP"))
+  char *quota_wan_in_str;
+  char *quota_wan_out_str;
+
+  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(cfg, "ats", "WAN_QUOTA_IN", &quota_wan_in_str))
   {
-	/* MLP = YES */
-	case GNUNET_YES:
-#if HAVE_LIBGLPK
-          ats_mode = MLP;
-          /* Init the MLP solver with default values */
-          mlp = GAS_mlp_init (cfg, stats, MLP_MAX_EXEC_DURATION, MLP_MAX_ITERATIONS);
-          break;
-#else
-          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "MLP mode was configured, but libglpk is not installed, switching to simple mode");
-          ats_mode = SIMPLE;
-          break;
-#endif
-	/* MLP = NO */
-	case GNUNET_NO:
-		ats_mode = SIMPLE;
-		break;
-	/* No configuration value */
-	case GNUNET_SYSERR:
-		ats_mode = SIMPLE;
-		break;
-	default:
-		break;
+    if (0 == strcmp(quota_wan_in_str, "unlimited") ||
+        (GNUNET_SYSERR == GNUNET_STRINGS_fancy_size_to_bytes (quota_wan_in_str, &wan_quota_in)))
+      wan_quota_in = (UINT32_MAX) /10;
+
+    GNUNET_free (quota_wan_in_str);
+    quota_wan_in_str = NULL;
+  }
+  else
+  {
+    wan_quota_in = (UINT32_MAX) /10;
   }
 
+  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(cfg, "ats", "WAN_QUOTA_OUT", &quota_wan_out_str))
+  {
+    if (0 == strcmp(quota_wan_out_str, "unlimited") ||
+        (GNUNET_SYSERR == GNUNET_STRINGS_fancy_size_to_bytes (quota_wan_out_str, &wan_quota_out)))
+      wan_quota_out = (UINT32_MAX) /10;
+
+    GNUNET_free (quota_wan_out_str);
+    quota_wan_out_str = NULL;
+  }
+  else
+  {
+    wan_quota_out = (UINT32_MAX) /10;
+  }
+
+
+  mode = GNUNET_CONFIGURATION_get_value_yesno (cfg, "ats", "MLP");
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "MLP mode %u", mode);
+  switch (mode)
+  {
+    /* MLP = YES */
+    case GNUNET_YES:
+#if HAVE_LIBGLPK
+      ats_mode = MLP;
+      /* Init the MLP solver with default values */
+      mlp = GAS_mlp_init (cfg, stats, MLP_MAX_EXEC_DURATION, MLP_MAX_ITERATIONS);
+      if (NULL == mlp)
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "MLP mode was configured, but libglpk is not installed, switching to simple mode\n");
+        GNUNET_STATISTICS_update (GSA_stats, "MLP mode enabled", 0, GNUNET_NO);
+        break;
+      }
+      else
+      {
+        GNUNET_STATISTICS_update (GSA_stats, "MLP enabled", 1, GNUNET_NO);
+        break;
+      }
+#else
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "MLP mode was configured, but libglpk is not installed, switching to simple mode");
+      GNUNET_STATISTICS_update (GSA_stats, "MLP enabled", 0, GNUNET_NO);
+      ats_mode = SIMPLE;
+      break;
+#endif
+    /* MLP = NO */
+    case GNUNET_NO:
+      GNUNET_STATISTICS_update (GSA_stats, "MLP enabled", 0, GNUNET_NO);
+      ats_mode = SIMPLE;
+      break;
+    /* No configuration value */
+    case GNUNET_SYSERR:
+      GNUNET_STATISTICS_update (GSA_stats, "MLP enabled", 0, GNUNET_NO);
+      ats_mode = SIMPLE;
+      break;
+    default:
+      break;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ATS started with %s mode\n", (SIMPLE == ats_mode) ? "SIMPLE" : "MLP");
   addresses = GNUNET_CONTAINER_multihashmap_create (128);
 }
 

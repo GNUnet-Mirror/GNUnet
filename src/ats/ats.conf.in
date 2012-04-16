@@ -10,10 +10,24 @@ ACCEPT_FROM6 = ::1;
 UNIXPATH = /tmp/gnunet-service-ats.sock
 UNIX_MATCH_UID = YES
 UNIX_MATCH_GID = YES
+
+# Enable MLP mode (default: NO)
 MLP = NO
-WAN_QUOTA_IN = 65536
-WAN_QUOTA_OUT = 65536
+# Network specific inbound/outbound quotas
+# LOOPBACK
+LOOPBACK_QUOTA_IN = unlimited
+LOOPBACK_QUOTA_OUT = unlimited
+# LAN
+LAN_QUOTA_IN = unlimited
+LAN_QUOTA_OUT = unlimited
+# WAN
+WAN_QUOTA_IN = 64 KiB
+WAN_QUOTA_OUT = 64 KiB
+# WLAN
+WLAN_QUOTA_IN = 1 MiB
+WLAN_QUOTA_OUT = 1 MiB
 # ATS options
+
 DUMP_MLP = NO
 DUMP_SOLUTION = NO
 DUMP_OVERWRITE = NO 
