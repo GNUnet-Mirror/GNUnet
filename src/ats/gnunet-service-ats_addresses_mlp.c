@@ -1341,13 +1341,12 @@ update_quality (struct GAS_MLP_Handle *mlp, struct ATS_Address * address)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Updating quality metrics for peer `%s'\n",
       GNUNET_i2s (&address->peer));
-
+  GNUNET_assert (NULL != address->ats);
   struct MLP_information *mlpi = address->mlp_information;
   struct GNUNET_ATS_Information *ats = address->ats;
   GNUNET_assert (mlpi != NULL);
 
   int c;
-
   for (c = 0; c < GNUNET_ATS_QualityPropertiesCount; c++)
   {
     int index = mlp_lookup_ats(address, mlp->q[c]);
@@ -1573,7 +1572,6 @@ GAS_mlp_address_update (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_Mult
 
       GNUNET_CONTAINER_DLL_insert (peer->head, peer->tail, address);
     }
-
     update_quality (mlp, address);
   }
   else
