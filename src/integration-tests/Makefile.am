@@ -133,6 +133,8 @@ EXTRA_DIST = \
    confs/c_normal_client_tcp.conf \
    confs/c_normal_client_tcp_udp.conf \
    confs/c_normal_client_tcp_udp_http.conf \
+   c_no_nat_client_http.conf \
+   c_no_nat_client_http_2.conf \
    hostkeys/0000-hostkey \
    hostkeys/0001-hostkey \
    hostkeys/0002-hostkey \
