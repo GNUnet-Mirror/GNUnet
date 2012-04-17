@@ -18,8 +18,8 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file ats/test_ats_mlp.c
- * @brief test for the MLP solver
+ * @file ats/perf_ats_mlp
+ * @brief performance test for the MLP solver
  * @author Christian Grothoff
  * @author Matthias Wachs
 
@@ -82,7 +82,6 @@ check (void *cls, char *const *args, const char *cfgfile,
   unsigned int c = 0;
   unsigned int c2 = 0;
   unsigned int ca = 0;
-  //char * pid;
 
   if (peers == 0)
     peers = DEF_PEERS;
@@ -106,9 +105,16 @@ check (void *cls, char *const *args, const char *cfgfile,
     for (c2=0; c2 < addresses; c2++)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Setting up address %u for peer %u\n", c2, c);
+      /* Setting required information */
       a[ca].mlp_information = NULL;
+      a[ca].prev = NULL;
+      a[ca].next = NULL;
+
+      /* Setting address */
       a[ca].peer = p[c].id;
       a[ca].plugin = strdup("test");
+      a[ca].atsp_network_type = GNUNET_ATS_NET_LOOPBACK;
+
       //a[ca].addr = GNUNET_HELLO_address_allocate(&a[ca].peer, a[ca].plugin, NULL, 0);
       //a[ca].addr_len = GNUNET_HELLO_address_get_size(a[ca].addr);
       a[ca].ats = GNUNET_malloc (2 * sizeof (struct GNUNET_ATS_Information));
@@ -118,22 +124,18 @@ check (void *cls, char *const *args, const char *cfgfile,
       a[ca].ats[1].value = 2;
       a[ca].ats_count = 2;
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Setting up address %u\n", ca);
-      ca++;
-      /*
       GNUNET_CONTAINER_multihashmap_put (amap, &a[ca].peer.hashPubKey, &a[ca], GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
       GAS_mlp_address_update(mlp, amap, &a[ca]);
-      */
+
+      ca++;
     }
-
   }
-
-
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Problem contains %u peers and %u adresses\n", mlp->c_p, mlp->addr_in_problem);
+
   /* Solving the problem */
   //GAS_mlp_solve_problem(mlp);
 
-
-  //GAS_mlp_done (mlp);
+  GAS_mlp_done (mlp);
 
   for (ca=0; ca < (peers * addresses); ca++)
   {
@@ -141,6 +143,7 @@ check (void *cls, char *const *args, const char *cfgfile,
     GNUNET_free (a[ca].ats);
    // GNUNET_free ((void *) a[c2].addr);
   }
+  GNUNET_CONTAINER_multihashmap_destroy(amap);
 
   ret = 0;
   return;
@@ -150,17 +153,6 @@ check (void *cls, char *const *args, const char *cfgfile,
 int
 main (int argc, char *argv[])
 {
-
-  static char *const argv2[] = { "test_ats_mlp",
-    "-c",
-    "test_ats_api.conf",
-#if VERBOSE
-    "-L", "DEBUG",
-#else
-    "-L", "WARNING",
-#endif
-    NULL
-  };
 
   static struct GNUNET_GETOPT_CommandLineOption options[] = {
     {'a', "addresses", NULL,
@@ -172,12 +164,12 @@ main (int argc, char *argv[])
     GNUNET_GETOPT_OPTION_END
   };
 
-  GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
-                      "test_ats_mlp", "nohelp", options,
+  GNUNET_PROGRAM_run (argc, argv,
+                      "perf_ats_mlp", "nohelp", options,
                       &check, NULL);
 
 
   return ret;
 }
 
-/* end of file test_ats_api_bandwidth_consumption.c */
+/* end of file perf_ats_mlp.c */

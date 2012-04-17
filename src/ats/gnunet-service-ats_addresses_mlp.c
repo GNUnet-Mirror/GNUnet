@@ -1733,7 +1733,7 @@ void
 GAS_mlp_done (struct GAS_MLP_Handle *mlp)
 {
   struct ATS_Peer * peer;
-  struct ATS_Peer * tmp;
+  struct ATS_Address *addr;
 
   GNUNET_assert (mlp != NULL);
 
@@ -1747,10 +1747,16 @@ GAS_mlp_done (struct GAS_MLP_Handle *mlp)
   peer = mlp->peer_head;
   while (peer != NULL)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Cleaning up peer `%s'\n", GNUNET_i2s (&peer->id));
     GNUNET_CONTAINER_DLL_remove(mlp->peer_head, mlp->peer_tail, peer);
-    tmp = peer->next;
+    for (addr = peer->head; NULL != addr; addr = peer->head)
+    {
+      GNUNET_CONTAINER_DLL_remove(peer->head, peer->tail, addr);
+      GNUNET_free (addr->mlp_information);
+      addr->mlp_information = NULL;
+    }
     GNUNET_free (peer);
-    peer = tmp;
+    peer = mlp->peer_head;
   }
   mlp_delete_problem (mlp);
 
