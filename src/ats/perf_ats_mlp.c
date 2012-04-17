@@ -84,15 +84,23 @@ do_shutdown (void *cls,
              const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   unsigned int ca;
-  for (ca=0; ca < (peers * addresses); ca++)
+  if (NULL != a)
   {
-    GNUNET_free (a[ca].plugin);
-    GNUNET_free (a[ca].ats);
+    for (ca=0; ca < (peers * addresses); ca++)
+    {
+      GNUNET_free (a[ca].plugin);
+      GNUNET_free (a[ca].ats);
+    }
   }
-  GNUNET_CONTAINER_multihashmap_destroy(amap);
-  GNUNET_free (a);
-  GNUNET_free (p);
-  GNUNET_STATISTICS_destroy(stats,GNUNET_NO);
+  if (NULL != mlp)
+    GAS_mlp_done (mlp);
+
+  if (NULL != amap)
+    GNUNET_CONTAINER_multihashmap_destroy(amap);
+  GNUNET_free_non_null (a);
+  GNUNET_free_non_null (p);
+  if (stats != NULL)
+    GNUNET_STATISTICS_destroy (stats,GNUNET_NO);
 
   if (NULL != stats_proc)
   {
@@ -103,13 +111,13 @@ do_shutdown (void *cls,
     GNUNET_OS_process_close (stats_proc);
     stats_proc = NULL;
   }
-  ret = 0;
 }
 
-int stat_it (void *cls, const char *subsystem,
+int stat_lp_it (void *cls, const char *subsystem,
                                            const char *name, uint64_t value,
                                            int is_persistent)
 {
+  GNUNET_break (0);
   static int calls;
   static long long unsigned lp_time;
   static long long unsigned mlp_time;
@@ -119,6 +127,7 @@ int stat_it (void *cls, const char *subsystem,
   if (0 == strcmp (name, "# MLP execution time (ms)"))
     mlp_time = value;
 
+  GNUNET_break (0);
   calls ++;
 
   if (2 == calls)
@@ -131,30 +140,32 @@ int stat_it (void *cls, const char *subsystem,
   return GNUNET_OK;
 }
 
-static void
-check (void *cls, char *const *args, const char *cfgfile,
-       const struct GNUNET_CONFIGURATION_Handle *cfg)
+int stat_ready_it (void *cls, const char *subsystem,
+                                           const char *name, uint64_t value,
+                                           int is_persistent)
 {
-#if !HAVE_LIBGLPK
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "GLPK not installed!");
-  ret = 1;
-  return;
-#endif
   unsigned int c = 0;
   unsigned int c2 = 0;
   unsigned int ca = 0;
+  struct GNUNET_CONFIGURATION_Handle *cfg = cls;
 
-  stats_proc = GNUNET_OS_start_process (GNUNET_YES, NULL, NULL, "gnunet-service-statistics",
-        "gnunet-service-statistics", NULL);
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Statistics service ready\n");
 
-  if (NULL == stats_proc)
+  GNUNET_STATISTICS_watch (stats, "ats", "# LP execution time (ms)", &stat_lp_it, NULL);
+  GNUNET_STATISTICS_watch (stats, "ats", "# MLP execution time (ms)", &stat_lp_it, NULL);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Setting up %u peers with %u addresses per peer\n", peers, addresses);
+
+  mlp = GAS_mlp_init (cfg, stats, MLP_MAX_EXEC_DURATION, MLP_MAX_ITERATIONS);
+  if (NULL == mlp)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to start statistics service \n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to init MLP\n");
     ret = 1;
-    return;
+    if (GNUNET_SCHEDULER_NO_TASK != shutdown_task)
+      GNUNET_SCHEDULER_cancel(shutdown_task);
+    shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+    return GNUNET_NO;
   }
-
-  shutdown_task = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_HOURS, &do_shutdown, NULL);
 
   if (peers == 0)
     peers = DEF_PEERS;
@@ -164,13 +175,8 @@ check (void *cls, char *const *args, const char *cfgfile,
   p = GNUNET_malloc (peers * sizeof (struct ATS_Peer));
   a = GNUNET_malloc (peers * addresses * sizeof (struct ATS_Address));
 
-  stats = GNUNET_STATISTICS_create("ats", cfg);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Setting up %u peers with %u addresses per peer\n", peers, addresses);
-
   amap = GNUNET_CONTAINER_multihashmap_create(addresses * peers);
 
-  mlp = GAS_mlp_init (cfg, stats, MLP_MAX_EXEC_DURATION, MLP_MAX_ITERATIONS);
   mlp->auto_solve = GNUNET_NO;
   for (c=0; c < peers; c++)
   {
@@ -209,14 +215,43 @@ check (void *cls, char *const *args, const char *cfgfile,
 
   /* Solving the problem */
   if (GNUNET_OK == GAS_mlp_solve_problem(mlp))
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Problem solved successfully \n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Problem solved successfully \n");
   else
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Solving problem with %u peers and %u addresses failed\n", peers, addresses);
 
-  GAS_mlp_done (mlp);
+  GNUNET_log ( GNUNET_ERROR_TYPE_WARNING, "Waiting for statistics\n");
 
-  GNUNET_STATISTICS_get (stats, "ats", "# LP execution time (ms)", GNUNET_TIME_UNIT_MINUTES, NULL, &stat_it, NULL);
-  GNUNET_STATISTICS_get (stats, "ats", "# MLP execution time (ms)", GNUNET_TIME_UNIT_MINUTES, NULL, &stat_it, NULL);
+
+  return GNUNET_OK;
+}
+
+static void
+check (void *cls, char *const *args, const char *cfgfile,
+       const struct GNUNET_CONFIGURATION_Handle *cfg)
+{
+#if !HAVE_LIBGLPK
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "GLPK not installed!");
+  ret = 1;
+  return;
+#endif
+
+  stats_proc = GNUNET_OS_start_process (GNUNET_YES, NULL, NULL, "gnunet-service-statistics",
+        "gnunet-service-statistics", NULL);
+
+  if (NULL == stats_proc)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to start statistics service \n");
+    ret = 1;
+    if (GNUNET_SCHEDULER_NO_TASK != shutdown_task)
+      GNUNET_SCHEDULER_cancel(shutdown_task);
+    shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+    return;
+  }
+
+  stats = GNUNET_STATISTICS_create("ats", cfg);
+
+  GNUNET_STATISTICS_watch (stats, "ats", "watch", &stat_ready_it, (void *) cfg);
+  GNUNET_STATISTICS_set(stats, "watch", 1, GNUNET_NO);
   return;
 }
 

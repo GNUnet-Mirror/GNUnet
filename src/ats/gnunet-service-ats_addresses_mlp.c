@@ -877,13 +877,15 @@ lp_solv:
   mlp->lp_solved++;
   mlp->lp_total_duration =+ duration.rel_value;
   s_ctx->lp_duration = duration;
-
+GNUNET_assert (mlp->stats!= NULL);
   GNUNET_STATISTICS_update (mlp->stats,"# LP problem solved", 1, GNUNET_NO);
   GNUNET_STATISTICS_set (mlp->stats,"# LP execution time (ms)", duration.rel_value, GNUNET_NO);
   GNUNET_STATISTICS_set (mlp->stats,"# LP execution time average (ms)",
                          mlp->lp_total_duration / mlp->lp_solved,  GNUNET_NO);
 
-
+  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+      "ats-mlp",
+      "%llu %llu \n", duration.rel_value, mlp->lp_total_duration / mlp->lp_solved);
   /* Analyze problem status  */
   res = glp_get_status (mlp->prob);
   switch (res) {
@@ -960,7 +962,7 @@ mlp_solve_mlp_problem (struct GAS_MLP_Handle *mlp, struct SolveContext *s_ctx)
   GNUNET_STATISTICS_set (mlp->stats,"# MLP execution time (ms)", duration.rel_value, GNUNET_NO);
   GNUNET_STATISTICS_set (mlp->stats,"# MLP execution time average (ms)",
                          mlp->mlp_total_duration / mlp->mlp_solved,  GNUNET_NO);
-
+GNUNET_break(0);
   /* Analyze problem status  */
   res = glp_mip_status(mlp->prob);
   switch (res) {
@@ -1027,7 +1029,7 @@ GAS_mlp_solve_problem (struct GAS_MLP_Handle *mlp)
   res = mlp_solve_lp_problem (mlp, &s_ctx);
   if (res != GNUNET_OK)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "LP Problem solving failed\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "LP Problem solving failed\n");
     return GNUNET_SYSERR;
   }
 #if WRITE_MLP
@@ -1041,7 +1043,7 @@ GAS_mlp_solve_problem (struct GAS_MLP_Handle *mlp)
   res = mlp_solve_mlp_problem (mlp, &s_ctx);
   if (res != GNUNET_OK)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MLP Problem solving failed\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "MLP Problem solving failed\n");
     return GNUNET_SYSERR;
   }
 #if WRITE_MLP
@@ -1119,7 +1121,13 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   char * quota_in_str;
 
   /* Init GLPK environment */
-  GNUNET_assert (glp_init_env() == 0);
+  int res = 0;
+  if (0 != (res = glp_init_env()))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not init GLPK %u\n", res);
+    GNUNET_free(mlp);
+    return NULL;
+  }
 
   /* Create initial MLP problem */
   mlp->prob = glp_create_prob();
