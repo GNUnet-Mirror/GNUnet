@@ -41,6 +41,9 @@
 static unsigned int peers;
 static unsigned int addresses;
 
+struct PeerContext *p;
+struct ATS_Address *a;
+
 static int ret;
 
 struct GNUNET_STATISTICS_Handle * stats;
@@ -48,6 +51,12 @@ struct GNUNET_STATISTICS_Handle * stats;
 struct GNUNET_CONTAINER_MultiHashMap * amap;
 
 struct GAS_MLP_Handle *mlp;
+
+struct GNUNET_STATISTICS_Handle * stats;
+
+struct GNUNET_OS_Process *stats_proc;
+
+GNUNET_SCHEDULER_TaskIdentifier shutdown_task;
 
 struct PeerContext
 {
@@ -70,6 +79,50 @@ struct Address
   void *session;
 };
 
+void
+do_shutdown (void *cls,
+             const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  unsigned int ca;
+  for (ca=0; ca < (peers * addresses); ca++)
+  {
+    GNUNET_free (a[ca].plugin);
+    GNUNET_free (a[ca].ats);
+  }
+  GNUNET_CONTAINER_multihashmap_destroy(amap);
+  GNUNET_free (a);
+  GNUNET_free (p);
+  GNUNET_STATISTICS_destroy(stats,GNUNET_NO);
+
+  if (NULL != stats_proc)
+  {
+    if (0 != GNUNET_OS_process_kill (stats_proc, SIGTERM))
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
+    if (GNUNET_OS_process_wait (stats_proc) != GNUNET_OK)
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");
+    GNUNET_OS_process_close (stats_proc);
+    stats_proc = NULL;
+  }
+  ret = 0;
+}
+
+int stat_it (void *cls, const char *subsystem,
+                                           const char *name, uint64_t value,
+                                           int is_persistent)
+{
+  static int calls;
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s : %llu\n", name, value);
+  calls ++;
+
+  if (2 == calls)
+  {
+    if (GNUNET_SCHEDULER_NO_TASK != shutdown_task)
+      GNUNET_SCHEDULER_cancel(shutdown_task);
+    shutdown_task = GNUNET_SCHEDULER_add_now(&do_shutdown, NULL);
+  }
+  return GNUNET_OK;
+}
+
 static void
 check (void *cls, char *const *args, const char *cfgfile,
        const struct GNUNET_CONFIGURATION_Handle *cfg)
@@ -83,19 +136,33 @@ check (void *cls, char *const *args, const char *cfgfile,
   unsigned int c2 = 0;
   unsigned int ca = 0;
 
+  stats_proc = GNUNET_OS_start_process (GNUNET_YES, NULL, NULL, "gnunet-service-statistics",
+        "gnunet-service-statistics", NULL);
+
+  if (NULL == stats_proc)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to start statistics service \n");
+    ret = 1;
+    return;
+  }
+
+  shutdown_task = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_HOURS, &do_shutdown, NULL);
+
   if (peers == 0)
     peers = DEF_PEERS;
   if (addresses == 0)
     addresses = DEF_ADDRESSES_PER_PEER;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Setting up %u peers with %u addresses per peer\n", peers, addresses);
+  p = GNUNET_malloc (peers * sizeof (struct ATS_Peer));
+  a = GNUNET_malloc (peers * addresses * sizeof (struct ATS_Address));
 
-  struct PeerContext p[peers];
-  struct ATS_Address a[addresses * peers];
+  stats = GNUNET_STATISTICS_create("ats", cfg);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Setting up %u peers with %u addresses per peer\n", peers, addresses);
 
   amap = GNUNET_CONTAINER_multihashmap_create(addresses * peers);
 
-  mlp = GAS_mlp_init (cfg, NULL, MLP_MAX_EXEC_DURATION, MLP_MAX_ITERATIONS);
+  mlp = GAS_mlp_init (cfg, stats, MLP_MAX_EXEC_DURATION, MLP_MAX_ITERATIONS);
   mlp->auto_solve = GNUNET_NO;
   for (c=0; c < peers; c++)
   {
@@ -115,8 +182,6 @@ check (void *cls, char *const *args, const char *cfgfile,
       a[ca].plugin = strdup("test");
       a[ca].atsp_network_type = GNUNET_ATS_NET_LOOPBACK;
 
-      //a[ca].addr = GNUNET_HELLO_address_allocate(&a[ca].peer, a[ca].plugin, NULL, 0);
-      //a[ca].addr_len = GNUNET_HELLO_address_get_size(a[ca].addr);
       a[ca].ats = GNUNET_malloc (2 * sizeof (struct GNUNET_ATS_Information));
       a[ca].ats[0].type = GNUNET_ATS_QUALITY_NET_DELAY;
       a[ca].ats[0].value = 20;
@@ -129,7 +194,10 @@ check (void *cls, char *const *args, const char *cfgfile,
       ca++;
     }
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Problem contains %u peers and %u adresses\n", mlp->c_p, mlp->addr_in_problem);
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Problem contains %u peers and %u adresses\n", mlp->c_p, mlp->addr_in_problem);
+
+  GNUNET_assert (peers == mlp->c_p);
+  GNUNET_assert (peers * addresses == mlp->addr_in_problem);
 
   /* Solving the problem */
   if (GNUNET_OK == GAS_mlp_solve_problem(mlp))
@@ -137,20 +205,12 @@ check (void *cls, char *const *args, const char *cfgfile,
   else
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Problem solved failed \n");
 
+
+
   GAS_mlp_done (mlp);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Execution duration %llu\n", mlp->max_exec_duration);
-
-
-  for (ca=0; ca < (peers * addresses); ca++)
-  {
-    GNUNET_free (a[ca].plugin);
-    GNUNET_free (a[ca].ats);
-   // GNUNET_free ((void *) a[c2].addr);
-  }
-  GNUNET_CONTAINER_multihashmap_destroy(amap);
-
-  ret = 0;
+  GNUNET_STATISTICS_get (stats, "ats", "# LP execution time (ms)", GNUNET_TIME_UNIT_MINUTES, NULL, &stat_it, NULL);
+  GNUNET_STATISTICS_get (stats, "ats", "# MLP execution time (ms)", GNUNET_TIME_UNIT_MINUTES, NULL, &stat_it, NULL);
   return;
 }
 
@@ -168,6 +228,7 @@ main (int argc, char *argv[])
      &GNUNET_GETOPT_set_uint, &peers},
     GNUNET_GETOPT_OPTION_END
   };
+
 
   GNUNET_PROGRAM_run (argc, argv,
                       "perf_ats_mlp", "nohelp", options,
