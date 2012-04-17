@@ -1341,7 +1341,11 @@ update_quality (struct GAS_MLP_Handle *mlp, struct ATS_Address * address)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Updating quality metrics for peer `%s'\n",
       GNUNET_i2s (&address->peer));
+
+  GNUNET_assert (NULL != address);
+  GNUNET_assert (NULL != address->mlp_information);
   GNUNET_assert (NULL != address->ats);
+
   struct MLP_information *mlpi = address->mlp_information;
   struct GNUNET_ATS_Information *ats = address->ats;
   GNUNET_assert (mlpi != NULL);

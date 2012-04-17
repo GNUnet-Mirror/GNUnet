@@ -87,7 +87,7 @@ perf_ats_mlp_SOURCES = \
 perf_ats_mlp_LDADD = \
   $(GN_LIBGLPK) \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/statistics/libgnunetstatistics.la  
+  $(top_builddir)/src/statistics/libgnunetstatistics.la
 endif
 
 test_ats_api_scheduling_SOURCES = \

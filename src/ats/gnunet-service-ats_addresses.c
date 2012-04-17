@@ -748,7 +748,7 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 
   mode = GNUNET_CONFIGURATION_get_value_yesno (cfg, "ats", "MLP");
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "MLP mode %u", mode);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MLP mode %u", mode);
   switch (mode)
   {
     /* MLP = YES */

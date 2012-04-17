@@ -100,31 +100,46 @@ check (void *cls, char *const *args, const char *cfgfile,
   mlp->auto_solve = GNUNET_NO;
   for (c=0; c < peers; c++)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Setting up peer %u\n", c);
     GNUNET_CRYPTO_hash_create_random(GNUNET_CRYPTO_QUALITY_WEAK, &p[c].id.hashPubKey);
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "peer %s\n", GNUNET_h2s_full(&p[c].id.hashPubKey));
 
     for (c2=0; c2 < addresses; c2++)
     {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Setting up address %u for peer %u\n", c2, c);
+      a[ca].mlp_information = NULL;
       a[ca].peer = p[c].id;
       a[ca].plugin = strdup("test");
-      a[ca].addr = GNUNET_HELLO_address_allocate(&a[ca].peer, a[ca].plugin, NULL, 0);
-      a[ca].addr_len = GNUNET_HELLO_address_get_size(a[ca].addr);
-      a[ca].ats = NULL;
+      //a[ca].addr = GNUNET_HELLO_address_allocate(&a[ca].peer, a[ca].plugin, NULL, 0);
+      //a[ca].addr_len = GNUNET_HELLO_address_get_size(a[ca].addr);
+      a[ca].ats = GNUNET_malloc (2 * sizeof (struct GNUNET_ATS_Information));
+      a[ca].ats[0].type = GNUNET_ATS_QUALITY_NET_DELAY;
+      a[ca].ats[0].value = 20;
+      a[ca].ats[1].type = GNUNET_ATS_QUALITY_NET_DISTANCE;
+      a[ca].ats[1].value = 2;
+      a[ca].ats_count = 2;
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Setting up address %u\n", ca);
       ca++;
-      GAS_mlp_address_update(mlp, amap, &a[c2]);
+      /*
+      GNUNET_CONTAINER_multihashmap_put (amap, &a[ca].peer.hashPubKey, &a[ca], GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+      GAS_mlp_address_update(mlp, amap, &a[ca]);
+      */
     }
+
   }
 
-  GAS_mlp_solve_problem(mlp);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Problem contains %u peers and %u adresses\n", mlp->c_p, mlp->addr_in_problem);
+  /* Solving the problem */
+  //GAS_mlp_solve_problem(mlp);
 
 
-  GAS_mlp_done (mlp);
+  //GAS_mlp_done (mlp);
 
-  for (c2=0; c2 < (peers * addresses); c2++)
+  for (ca=0; ca < (peers * addresses); ca++)
   {
-    GNUNET_free (a[c2].plugin);
-    GNUNET_free (a[c2].addr);
-//      GAS_mlp_address_update(mlp, amap, &a[c2]);
+    GNUNET_free (a[ca].plugin);
+    GNUNET_free (a[ca].ats);
+   // GNUNET_free ((void *) a[c2].addr);
   }
 
   ret = 0;
