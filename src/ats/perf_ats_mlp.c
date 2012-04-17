@@ -111,11 +111,19 @@ int stat_it (void *cls, const char *subsystem,
                                            int is_persistent)
 {
   static int calls;
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s : %llu\n", name, value);
+  static long long unsigned lp_time;
+  static long long unsigned mlp_time;
+
+  if (0 == strcmp (name, "# LP execution time (ms)"))
+    lp_time = value;
+  if (0 == strcmp (name, "# MLP execution time (ms)"))
+    mlp_time = value;
+
   calls ++;
 
   if (2 == calls)
   {
+    printf ("%u;%u;%llu;%llu\n",peers, addresses, lp_time, mlp_time);
     if (GNUNET_SCHEDULER_NO_TASK != shutdown_task)
       GNUNET_SCHEDULER_cancel(shutdown_task);
     shutdown_task = GNUNET_SCHEDULER_add_now(&do_shutdown, NULL);
@@ -194,7 +202,7 @@ check (void *cls, char *const *args, const char *cfgfile,
       ca++;
     }
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Problem contains %u peers and %u adresses\n", mlp->c_p, mlp->addr_in_problem);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Problem contains %u peers and %u adresses\n", mlp->c_p, mlp->addr_in_problem);
 
   GNUNET_assert (peers == mlp->c_p);
   GNUNET_assert (peers * addresses == mlp->addr_in_problem);
@@ -203,9 +211,7 @@ check (void *cls, char *const *args, const char *cfgfile,
   if (GNUNET_OK == GAS_mlp_solve_problem(mlp))
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Problem solved successfully \n");
   else
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Problem solved failed \n");
-
-
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Solving problem with %u peers and %u addresses failed\n", peers, addresses);
 
   GAS_mlp_done (mlp);
 
