@@ -88,7 +88,7 @@ check (void *cls, char *const *args, const char *cfgfile,
   if (addresses == 0)
     addresses = DEF_ADDRESSES_PER_PEER;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Setting up %u peers with %u addresses per peer\n", peers, addresses);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Setting up %u peers with %u addresses per peer\n", peers, addresses);
 
   struct PeerContext p[peers];
   struct ATS_Address a[addresses * peers];
@@ -99,12 +99,12 @@ check (void *cls, char *const *args, const char *cfgfile,
   mlp->auto_solve = GNUNET_NO;
   for (c=0; c < peers; c++)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Setting up peer %u\n", c);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Setting up peer %u\n", c);
     GNUNET_CRYPTO_hash_create_random(GNUNET_CRYPTO_QUALITY_WEAK, &p[c].id.hashPubKey);
 
     for (c2=0; c2 < addresses; c2++)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Setting up address %u for peer %u\n", c2, c);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Setting up address %u for peer %u\n", c2, c);
       /* Setting required information */
       a[ca].mlp_information = NULL;
       a[ca].prev = NULL;
@@ -123,19 +123,24 @@ check (void *cls, char *const *args, const char *cfgfile,
       a[ca].ats[1].type = GNUNET_ATS_QUALITY_NET_DISTANCE;
       a[ca].ats[1].value = 2;
       a[ca].ats_count = 2;
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Setting up address %u\n", ca);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Setting up address %u\n", ca);
       GNUNET_CONTAINER_multihashmap_put (amap, &a[ca].peer.hashPubKey, &a[ca], GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
       GAS_mlp_address_update(mlp, amap, &a[ca]);
-
       ca++;
     }
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Problem contains %u peers and %u adresses\n", mlp->c_p, mlp->addr_in_problem);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Problem contains %u peers and %u adresses\n", mlp->c_p, mlp->addr_in_problem);
 
   /* Solving the problem */
-  //GAS_mlp_solve_problem(mlp);
+  if (GNUNET_OK == GAS_mlp_solve_problem(mlp))
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Problem solved successfully \n");
+  else
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Problem solved failed \n");
 
   GAS_mlp_done (mlp);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Execution duration %llu\n", mlp->max_exec_duration);
+
 
   for (ca=0; ca < (peers * addresses); ca++)
   {

@@ -806,6 +806,14 @@ mlp_create_problem (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_MultiHas
   return res;
 }
 
+
+struct SolveContext
+{
+  struct GNUNET_TIME_Relative lp_duration;
+  struct GNUNET_TIME_Relative mlp_duration;
+};
+
+
 /**
  * Solves the LP problem
  *
@@ -813,7 +821,7 @@ mlp_create_problem (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_MultiHas
  * @return GNUNET_OK if could be solved, GNUNET_SYSERR on failure
  */
 static int
-mlp_solve_lp_problem (struct GAS_MLP_Handle *mlp)
+mlp_solve_lp_problem (struct GAS_MLP_Handle *mlp, struct SolveContext *s_ctx)
 {
   int res;
   struct GNUNET_TIME_Relative duration;
@@ -867,6 +875,7 @@ lp_solv:
   duration = GNUNET_TIME_absolute_get_difference (start, end);
   mlp->lp_solved++;
   mlp->lp_total_duration =+ duration.rel_value;
+  s_ctx->lp_duration = duration;
 
   GNUNET_STATISTICS_update (mlp->stats,"# LP problem solved", 1, GNUNET_NO);
   GNUNET_STATISTICS_set (mlp->stats,"# LP execution time (ms)", duration.rel_value, GNUNET_NO);
@@ -906,7 +915,7 @@ lp_solv:
  * @return GNUNET_OK if could be solved, GNUNET_SYSERR on failure
  */
 int
-mlp_solve_mlp_problem (struct GAS_MLP_Handle *mlp)
+mlp_solve_mlp_problem (struct GAS_MLP_Handle *mlp, struct SolveContext *s_ctx)
 {
   int res;
   struct GNUNET_TIME_Relative duration;
@@ -943,6 +952,7 @@ mlp_solve_mlp_problem (struct GAS_MLP_Handle *mlp)
   duration = GNUNET_TIME_absolute_get_difference (start, end);
   mlp->mlp_solved++;
   mlp->mlp_total_duration =+ duration.rel_value;
+  s_ctx->mlp_duration = duration;
 
   GNUNET_STATISTICS_update (mlp->stats,"# MLP problem solved", 1, GNUNET_NO);
   GNUNET_STATISTICS_set (mlp->stats,"# MLP execution time (ms)", duration.rel_value, GNUNET_NO);
@@ -989,7 +999,6 @@ mlp_scheduler (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GAS_mlp_solve_problem(mlp);
 }
 
-
 /**
  * Solves the MLP problem
  *
@@ -1000,11 +1009,10 @@ int
 GAS_mlp_solve_problem (struct GAS_MLP_Handle *mlp)
 {
   int res;
+  struct SolveContext s_ctx;
   mlp->last_execution = GNUNET_TIME_absolute_get ();
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Problem solving\n");
-
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Solve LP problem\n");
 #if WRITE_MLP
   char * name;
   static int i;
@@ -1014,39 +1022,34 @@ GAS_mlp_solve_problem (struct GAS_MLP_Handle *mlp)
   GNUNET_free (name);
 # endif
 
-  res = mlp_solve_lp_problem (mlp);
-
+  res = mlp_solve_lp_problem (mlp, &s_ctx);
+  if (res != GNUNET_OK)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "LP Problem solving failed\n");
+    return GNUNET_SYSERR;
+  }
 #if WRITE_MLP
   GNUNET_asprintf(&name, "problem_%i_lp_solution", i);
   glp_print_sol (mlp->prob,  name);
   GNUNET_free (name);
 # endif
 
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Solve MLP problem\n");
+  res = mlp_solve_mlp_problem (mlp, &s_ctx);
   if (res != GNUNET_OK)
   {
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "LP Problem solving failed\n");
-
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MLP Problem solving failed\n");
     return GNUNET_SYSERR;
   }
-
-  res = mlp_solve_mlp_problem (mlp);
-
 #if WRITE_MLP
   GNUNET_asprintf(&name, "problem_%i_mlp_solution", i);
   glp_print_mip (mlp->prob, name);
   GNUNET_free (name);
 # endif
-  if (res != GNUNET_OK)
-  {
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MLP Problem solving failed\n");
-
-    return GNUNET_SYSERR;
-  }
-
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Problem solved\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Problem solved %s (LP duration %llu / MLP duration %llu)\n",
+      (GNUNET_OK == res) ? "successfully" : "failed", s_ctx.lp_duration, s_ctx.mlp_duration);
   /* Process result */
   struct ATS_Peer *p = NULL;
   struct ATS_Address *a = NULL;
