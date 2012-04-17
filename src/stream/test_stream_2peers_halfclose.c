@@ -19,8 +19,8 @@
 */
 
 /**
- * @file stream/test_stream_local.c
- * @brief Stream API testing between local peers
+ * @file stream/test_stream_2peers_halfclose.c
+ * @brief Testcases for Stream API halfclosed connections between 2 peers
  * @author Sree Harsha Totakura
  */
 
@@ -31,6 +31,7 @@
 #include "gnunet_mesh_service.h"
 #include "gnunet_stream_lib.h"
 #include "gnunet_testing_lib.h"
+#include "gnunet_scheduler_lib.h"
 
 #define VERBOSE 1
 
@@ -78,6 +79,16 @@ struct PeerData
    * Byte the peer has read
    */
   unsigned int bytes_read;
+
+  /**
+   * GNUNET_YES if the peer has successfully completed the current test
+   */
+  unsigned int test_ok;
+
+  /**
+   * The shutdown operation that has to be used by the stream_shutdown_task
+   */
+  int shutdown_operation;
 };
 
 /**
@@ -95,6 +106,14 @@ static struct GNUNET_TESTING_Daemon *d1;
  */
 static struct GNUNET_TESTING_Daemon *d2;
 
+
+/**
+ * Peer1 writes first and then calls for SHUT_WR
+ * Peer2 reads first and then calls for SHUT_RD
+ * Attempt to write again by Peer1 should be rejected
+ * Attempt to read again by Peer2 should be rejected
+ * Peer1 then reads from Peer2 which writes
+ */
 static struct PeerData peer1;
 static struct PeerData peer2;
 static struct GNUNET_STREAM_ListenSocket *peer2_listen_socket;
@@ -106,8 +125,152 @@ static GNUNET_SCHEDULER_TaskIdentifier read_task;
 static char *data = "ABCD";
 static int result;
 
-static int writing_success;
-static int reading_success;
+/**
+ * Enumeration for various tests that are to be passed in the same order as
+ * below
+ */
+enum Test
+  {
+    /**
+     * Peer1 writing; Peer2 reading
+     */
+    PEER1_WRITE,
+
+    /**
+     * Peer1 write shutdown; Peer2 should get an error when it tries to read;
+     */
+    PEER1_WRITE_SHUTDOWN,
+
+    /**
+     * Peer1 reads; Peer2 writes (connection is halfclosed)
+     */
+    PEER1_HALFCLOSE_READ,
+
+    /**
+     * Peer1 attempts to write; Should fail with stream already shutdown error
+     */
+    PEER1_HALFCLOSE_WRITE_FAIL,
+
+    /**
+     * Peer1 read shutdown; Peer2 should get stream shutdown error during write
+     */
+    PEER1_READ_SHUTDOWN,
+
+    /**
+     * All tests successfully finished
+     */
+    SUCCESS
+  };
+
+/**
+ * Current running test
+ */
+enum Test current_test;
+
+/**
+ * Input processor
+ *
+ * @param cls the closure from GNUNET_STREAM_write/read
+ * @param status the status of the stream at the time this function is called
+ * @param data traffic from the other side
+ * @param size the number of bytes available in data read 
+ * @return number of bytes of processed from 'data' (any data remaining should be
+ *         given to the next time the read processor is called).
+ */
+static size_t
+input_processor (void *cls,
+                 enum GNUNET_STREAM_Status status,
+                 const void *input_data,
+                 size_t size);
+
+
+/**
+ * The transition function; responsible for the transitions among tests
+ */
+static void
+transition();
+
+
+/**
+ * Task for calling STREAM_read
+ *
+ * @param cls the peer data entity
+ * @param tc the task context
+ */
+static void
+stream_read_task (void *cls,
+                  const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct PeerData *peer = cls;
+  
+  peer->io_read_handle = GNUNET_STREAM_read (peer->socket,
+                                             GNUNET_TIME_relative_multiply
+                                             (GNUNET_TIME_UNIT_SECONDS, 5),
+                                             &input_processor,
+                                             cls);
+  switch (current_test)
+    {
+    case PEER1_WRITE_SHUTDOWN:
+      GNUNET_assert (&peer2 == peer);
+      GNUNET_assert (NULL == peer->io_read_handle);
+      transition ();            /* to PEER1_HALFCLOSE_READ */
+      break;
+    default:
+      GNUNET_assert (NULL != peer->io_read_handle);
+    }
+}
+
+
+/**
+ * The write completion function; called upon writing some data to stream or
+ * upon error
+ *
+ * @param cls the closure from GNUNET_STREAM_write/read
+ * @param status the status of the stream at the time this function is called
+ * @param size the number of bytes read or written
+ */
+static void 
+write_completion (void *cls,
+                  enum GNUNET_STREAM_Status status,
+                  size_t size);
+
+
+/**
+ * Task for calling STREAM_write
+ *
+ * @param cls the peer data entity
+ * @param tc the task context
+ */
+static void
+stream_write_task (void *cls,
+                   const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct PeerData *peer = cls;
+  
+  peer->io_write_handle = 
+    GNUNET_STREAM_write (peer->socket,
+                         (void *) data,
+                         strlen(data) - peer->bytes_wrote,
+                         GNUNET_TIME_relative_multiply
+                         (GNUNET_TIME_UNIT_SECONDS, 5),
+                         &write_completion,
+                         peer);
+  switch (current_test)
+    {
+    case PEER1_HALFCLOSE_WRITE_FAIL:
+      GNUNET_assert (&peer1 == peer);
+      GNUNET_assert (NULL == peer->io_write_handle);
+      transition();             /* To PEER1_READ_SHUTDOWN */
+      break;
+    case PEER1_READ_SHUTDOWN:
+      GNUNET_assert (&peer2 == peer);
+      GNUNET_assert (NULL == peer->io_write_handle);
+      transition ();            /* To SUCCESS */
+      break;
+    default:
+        GNUNET_assert (NULL != peer->io_write_handle);
+    }
+}
 
 
 /**
@@ -166,28 +329,50 @@ do_close (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param operation the operation that was shutdown (SHUT_RD, SHUT_WR,
  *          SHUT_RDWR) 
  */
-static void 
+void 
 shutdown_completion (void *cls,
                      int operation)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "STREAM shutdown successful\n");
-  GNUNET_SCHEDULER_add_now (&do_close,
-                            cls);
+  switch (current_test)
+    {
+    case PEER1_WRITE:
+      GNUNET_assert (0);
+    case PEER1_WRITE_SHUTDOWN:
+      peer1.test_ok = GNUNET_YES;
+      /* Peer2 should read with error */
+      peer2.bytes_read = 0;
+      GNUNET_SCHEDULER_add_now (&stream_read_task, &peer2);
+      break;
+    case PEER1_READ_SHUTDOWN:
+      peer1.test_ok = GNUNET_YES;
+      peer2.bytes_wrote = 0;
+      GNUNET_SCHEDULER_add_now (&stream_write_task, &peer2);
+      break;
+    case PEER1_HALFCLOSE_READ:
+    case PEER1_HALFCLOSE_WRITE_FAIL:
+    case SUCCESS:
+      GNUNET_assert (0);        /* We shouldn't reach here */
+    }
 }
 
 
-
 /**
- * Shutdown sockets gracefully
+ * Task for calling STREAM_shutdown
+ *
+ * @param cls the peer entity
+ * @param tc the TaskContext
  */
 static void
-do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+stream_shutdown_task (void *cls,
+                      const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  peer1.shutdown_handle = GNUNET_STREAM_shutdown (peer1.socket, 
-                                                  SHUT_RDWR,
+  struct PeerData *peer = cls;
+
+  peer->shutdown_handle = GNUNET_STREAM_shutdown (peer->socket,
+                                                  peer->shutdown_operation,
                                                   &shutdown_completion,
-                                                  cls);
+                                                  peer);
+  GNUNET_assert (NULL != peer->shutdown_handle);
 }
 
 
@@ -207,22 +392,61 @@ do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   do_close (cls, tc);  
 }
 
-/**
- * Signature for input processor 
- *
- * @param cls the closure from GNUNET_STREAM_write/read
- * @param status the status of the stream at the time this function is called
- * @param data traffic from the other side
- * @param size the number of bytes available in data read 
- * @return number of bytes of processed from 'data' (any data remaining should be
- *         given to the next time the read processor is called).
- */
-static size_t
-input_processor (void *cls,
-                 enum GNUNET_STREAM_Status status,
-                 const void *input_data,
-                 size_t size);
 
+/**
+ * The transition function; responsible for the transitions among tests
+ */
+static void
+transition()
+{
+  if ((GNUNET_YES == peer1.test_ok) && (GNUNET_YES == peer2.test_ok))
+    {
+      peer1.test_ok = GNUNET_NO;
+      peer2.test_ok = GNUNET_NO;
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "TEST %d SUCCESSFULL\n", current_test);
+      switch (current_test)
+        {
+        case PEER1_WRITE:
+          current_test = PEER1_WRITE_SHUTDOWN;
+          /* Peer1 should shutdown writing */
+          peer1.shutdown_operation = SHUT_WR;
+          GNUNET_SCHEDULER_add_now (&stream_shutdown_task, &peer1);
+          break;
+        case PEER1_WRITE_SHUTDOWN:
+          current_test = PEER1_HALFCLOSE_READ;
+          /* Peer2 should be able to write successfully */
+          peer2.bytes_wrote = 0;
+          GNUNET_SCHEDULER_add_now (&stream_write_task, &peer2);
+          
+          /* Peer1 should be able to read successfully */
+          peer1.bytes_read = 0;
+          GNUNET_SCHEDULER_add_now (&stream_read_task, &peer1);
+          break;
+        case PEER1_HALFCLOSE_READ:
+          current_test = PEER1_HALFCLOSE_WRITE_FAIL;
+          peer1.bytes_wrote = 0;
+          peer2.bytes_read = 0;
+          peer2.test_ok = GNUNET_YES;
+          GNUNET_SCHEDULER_add_now (&stream_write_task, &peer1);
+          break;
+        case PEER1_HALFCLOSE_WRITE_FAIL:
+          current_test = PEER1_READ_SHUTDOWN;
+          peer1.shutdown_operation = SHUT_RD;
+          GNUNET_SCHEDULER_add_now (&stream_shutdown_task, &peer1);
+          break;
+        case PEER1_READ_SHUTDOWN:
+          current_test = SUCCESS;
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      "All tests successful\n");
+          GNUNET_SCHEDULER_add_now (&do_close, NULL);
+          break;
+        case SUCCESS:
+          GNUNET_assert (0);    /* We shouldn't reach here */
+          
+        }
+    }
+}
 
 /**
  * The write completion function; called upon writing some data to stream or
@@ -239,45 +463,52 @@ write_completion (void *cls,
 {
   struct PeerData *peer = cls;
 
-  GNUNET_assert (GNUNET_STREAM_OK == status);
-  GNUNET_assert (size <= strlen (data));
-  peer->bytes_wrote += size;
-
-  if (peer->bytes_wrote < strlen(data)) /* Have more data to send */
+  switch (current_test)
     {
-      peer->io_write_handle =
-        GNUNET_STREAM_write (peer->socket,
-                             (void *) data,
-                             strlen(data) - peer->bytes_wrote,
-                             GNUNET_TIME_relative_multiply
-                             (GNUNET_TIME_UNIT_SECONDS, 5),
-                             &write_completion,
-                             cls);
-      GNUNET_assert (NULL != peer->io_write_handle);
-    }
-  else
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Writing completed\n");
+    case PEER1_WRITE:
+    case PEER1_HALFCLOSE_READ:
 
-      if (&peer1 == peer)   /* Peer1 has finished writing; should read now */
-        {
-          peer->io_read_handle =
-            GNUNET_STREAM_read ((struct GNUNET_STREAM_Socket *)
-                                peer->socket,
-                                GNUNET_TIME_relative_multiply
-                                (GNUNET_TIME_UNIT_SECONDS, 5),
-                                &input_processor,
-                                cls);
-          GNUNET_assert (NULL!=peer->io_read_handle);
-        }
-      else
-        {
-          writing_success = GNUNET_YES;
-          if (GNUNET_YES == reading_success)
-            GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
-        }
-    }
+    GNUNET_assert (GNUNET_STREAM_OK == status);
+    GNUNET_assert (size <= strlen (data));
+    peer->bytes_wrote += size;
+
+    if (peer->bytes_wrote < strlen(data)) /* Have more data to send */
+      {
+        GNUNET_SCHEDULER_add_now (&stream_write_task, peer);
+      }
+    else
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    "Writing completed\n");
+
+        if (&peer1 == peer)
+          {
+            peer1.test_ok = GNUNET_YES;
+            transition ();       /* to PEER1_WRITE_SHUTDOWN */
+          }
+        else            /* This will happen during PEER1_HALFCLOSE_READ */
+          {
+            peer2.test_ok = GNUNET_YES;
+            transition ();      /* to PEER1_HALFCLOSE_WRITE_FAIL */
+          }
+      }
+    break;
+    case PEER1_HALFCLOSE_WRITE_FAIL:
+      GNUNET_assert (peer == &peer1);
+      GNUNET_assert (GNUNET_STREAM_SHUTDOWN == status);
+      GNUNET_assert (0 == size);
+      peer1.test_ok = GNUNET_YES;
+      break;
+    case PEER1_READ_SHUTDOWN:
+      GNUNET_assert (peer == &peer2);
+      GNUNET_assert (GNUNET_STREAM_SHUTDOWN == status);
+      GNUNET_assert (0 == size);
+      peer2.test_ok = GNUNET_YES;
+      break;
+    case PEER1_WRITE_SHUTDOWN:
+    case SUCCESS:
+      GNUNET_assert (0);        /* We shouldn't reach here */
+    } 
 }
 
 
@@ -301,14 +532,10 @@ stream_open_cb (void *cls,
   peer->bytes_wrote = 0;
   GNUNET_assert (socket == peer1.socket);
   GNUNET_assert (socket == peer->socket);
-  peer->io_write_handle = GNUNET_STREAM_write (peer->socket, /* socket */
-                                               (void *) data, /* data */
-                                               strlen(data),
-                                               GNUNET_TIME_relative_multiply
-                                               (GNUNET_TIME_UNIT_SECONDS, 5),
-                                               &write_completion,
-                                         cls);
-  GNUNET_assert (NULL != peer->io_write_handle);
+  peer1.test_ok = GNUNET_NO;
+  peer2.test_ok = GNUNET_NO;
+  current_test = PEER1_WRITE;
+  GNUNET_SCHEDULER_add_now (&stream_write_task, peer);
 }
 
 
@@ -332,59 +559,54 @@ input_processor (void *cls,
 
   peer = (struct PeerData *) cls;
 
-  if (GNUNET_STREAM_TIMEOUT == status)
+  switch (current_test)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Read operation timedout - reading again!\n");
-      GNUNET_assert (0 == size);
-      peer->io_read_handle = GNUNET_STREAM_read ((struct GNUNET_STREAM_Socket *)
-                                                 peer->socket,
-                                                 GNUNET_TIME_relative_multiply
-                                                 (GNUNET_TIME_UNIT_SECONDS, 5),
-                                                 &input_processor,
-                                                 cls);
-      GNUNET_assert (NULL != peer->io_read_handle);
-      return 0;
-    }
+    case PEER1_WRITE:
+    case PEER1_HALFCLOSE_READ:
+      if (GNUNET_STREAM_TIMEOUT == status)
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      "Read operation timedout - reading again!\n");
+          GNUNET_assert (0 == size);
+          GNUNET_SCHEDULER_add_now (&stream_read_task, peer);
+          return 0;
+        }
 
-  GNUNET_assert (GNUNET_STREAM_OK == status);
-  GNUNET_assert (size <= strlen (data));
-  GNUNET_assert (0 == strncmp ((const char *) data + peer->bytes_read, 
-                               (const char *) input_data,
-                               size));
-  peer->bytes_read += size;
+      GNUNET_assert (GNUNET_STREAM_OK == status);
+      GNUNET_assert (size <= strlen (data));
+      GNUNET_assert (0 == strncmp ((const char *) data + peer->bytes_read,
+                                   (const char *) input_data,
+                                   size));
+      peer->bytes_read += size;
   
-  if (peer->bytes_read < strlen (data))
-    {
-      peer->io_read_handle = GNUNET_STREAM_read ((struct GNUNET_STREAM_Socket *)
-                                                 peer->socket,
-                                                 GNUNET_TIME_relative_multiply
-                                                 (GNUNET_TIME_UNIT_SECONDS, 5),
-                                                 &input_processor,
-                                                 cls);
-      GNUNET_assert (NULL != peer->io_read_handle);
-    }
-  else 
-    {
-      if (&peer2 == peer)    /* Peer2 has completed reading; should write */
+      if (peer->bytes_read < strlen (data))
         {
-          peer->bytes_wrote = 0;
-          peer->io_write_handle = 
-            GNUNET_STREAM_write (peer->socket,
-                                 data,
-                                 strlen(data),
-                                 GNUNET_TIME_relative_multiply
-                                 (GNUNET_TIME_UNIT_SECONDS, 5),
-                                 &write_completion,
-                                 cls);
+          GNUNET_SCHEDULER_add_now (&stream_read_task, peer);
         }
-      else                      /* Peer1 has completed reading. End of tests */
+      else  
         {
-          reading_success = GNUNET_YES;
-          if (GNUNET_YES == writing_success)
-            GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+          if (&peer2 == peer) /* Peer2 has completed reading; should write */
+            {
+              peer2.test_ok = GNUNET_YES;
+              transition ();    /* Transition to PEER1_WRITE_SHUTDOWN */
+            }
+          else         /* Peer1 has completed reading. End of tests */
+            {
+              peer1.test_ok = GNUNET_YES;
+              transition ();    /* to PEER1_HALFCLOSE_WRITE_FAIL */
+            }
         }
+      break;
+    case PEER1_WRITE_SHUTDOWN:
+      GNUNET_assert (GNUNET_STREAM_SHUTDOWN == status);
+      peer2.test_ok = GNUNET_YES;
+      break;
+    case PEER1_HALFCLOSE_WRITE_FAIL:
+    case PEER1_READ_SHUTDOWN:
+    case SUCCESS:
+      GNUNET_assert (0);        /* We shouldn't reach here */
     }
+  
   return size;
 }
 
@@ -399,13 +621,7 @@ stream_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   read_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_assert (NULL != cls);
   peer2.bytes_read = 0;
-  peer2.io_read_handle =
-    GNUNET_STREAM_read ((struct GNUNET_STREAM_Socket *) cls,
-                        GNUNET_TIME_relative_multiply
-                        (GNUNET_TIME_UNIT_SECONDS, 5),
-                        &input_processor,
-                        (void *) &peer2);
-  GNUNET_assert (NULL != peer2.io_read_handle);
+  GNUNET_SCHEDULER_add_now (&stream_read_task, &peer2);
 }
 
 
