@@ -818,6 +818,7 @@ struct SolveContext
  * Solves the LP problem
  *
  * @param mlp the MLP Handle
+ * @param s_ctx context to return results
  * @return GNUNET_OK if could be solved, GNUNET_SYSERR on failure
  */
 static int
@@ -912,6 +913,7 @@ lp_solv:
  * Solves the MLP problem
  *
  * @param mlp the MLP Handle
+ * @param s_ctx context to return results
  * @return GNUNET_OK if could be solved, GNUNET_SYSERR on failure
  */
 int
