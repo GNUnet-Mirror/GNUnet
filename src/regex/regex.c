@@ -24,8 +24,11 @@
  */
 #include "platform.h"
 #include "gnunet_container_lib.h"
+#include "gnunet_crypto_lib.h"
 #include "gnunet_regex_lib.h"
 #include "regex.h"
+
+#define initial_bits 10
 
 /**
  * Context that contains an id counter for states and transitions
@@ -177,6 +180,8 @@ struct GNUNET_REGEX_State
    */
   char *name;
 
+  GNUNET_HashCode hash;
+
   /**
    * Number of transitions from this state to other states.
    */
@@ -201,7 +206,7 @@ struct GNUNET_REGEX_State
 
 /**
  * Transition between two states. Each state can have 0-n transitions.
- * If literal is 0, this is considered to be an epsilon transition.
+ * If label is 0, this is considered to be an epsilon transition.
  */
 struct Transition
 {
@@ -221,10 +226,10 @@ struct Transition
   unsigned int id;
 
   /**
-   * Literal for this transition. This is basically the edge label for
+   * label for this transition. This is basically the edge label for
    * the graph.
    */
-  char literal;
+  char label;
 
   /**
    * State to which this transition leads.
@@ -279,14 +284,14 @@ debug_print_transitions (struct GNUNET_REGEX_State *s)
 {
   struct Transition *t;
   char *state;
-  char literal;
+  char label;
 
   for (t = s->transitions_head; NULL != t; t = t->next)
   {
-    if (0 == t->literal)
-      literal = '0';
+    if (0 == t->label)
+      label = '0';
     else
-      literal = t->literal;
+      label = t->label;
 
     if (NULL == t->to_state)
       state = "NULL";
@@ -294,7 +299,7 @@ debug_print_transitions (struct GNUNET_REGEX_State *s)
       state = t->to_state->name;
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Transition %i: On %c to %s\n", t->id,
-                literal, state);
+                label, state);
   }
 }
 
@@ -460,16 +465,16 @@ state_set_clear (struct GNUNET_REGEX_StateSet *set)
 }
 
 /**
- * Adds a transition from one state to another on 'literal'
+ * Adds a transition from one state to another on 'label'
  *
  * @param ctx context
  * @param from_state starting state for the transition
- * @param literal transition label
+ * @param label transition label
  * @param to_state state to where the transition should point to
  */
 static void
 state_add_transition (struct GNUNET_REGEX_Context *ctx,
-                      struct GNUNET_REGEX_State *from_state, const char literal,
+                      struct GNUNET_REGEX_State *from_state, const char label,
                       struct GNUNET_REGEX_State *to_state)
 {
   struct Transition *t;
@@ -483,7 +488,7 @@ state_add_transition (struct GNUNET_REGEX_Context *ctx,
   t = GNUNET_malloc (sizeof (struct Transition));
 
   t->id = ctx->transition_id++;
-  t->literal = literal;
+  t->label = label;
   t->to_state = to_state;
   t->from_state = from_state;
 
@@ -620,10 +625,10 @@ automaton_merge_states (struct GNUNET_REGEX_Context *ctx,
   {
     for (t = s1->transitions_head; NULL != t; t = t->next)
     {
-      if (t_check->literal != t->literal && NULL != t_check->to_state &&
+      if (t_check->label != t->label && NULL != t_check->to_state &&
           t_check->to_state != t->to_state && t_check->to_state != s2)
       {
-        state_add_transition (ctx, s1, t_check->literal, t_check->to_state);
+        state_add_transition (ctx, s1, t_check->label, t_check->to_state);
       }
     }
   }
@@ -656,6 +661,54 @@ automaton_add_state (struct GNUNET_REGEX_Automaton *a,
 {
   GNUNET_CONTAINER_DLL_insert (a->states_head, a->states_tail, s);
   a->state_count++;
+}
+
+typedef void (*GNUNET_REGEX_traverse_action)(void *cls, struct
+                                             GNUNET_REGEX_State *s);
+
+/**
+ * Traverses all states that are reachable from state 's'. Expects
+ * the states to be unmarked (s->marked == GNUNET_NO). Performs
+ * 'action' on each visited state.
+ *
+ * @param s start state.
+ * @param action action to be performed on each state.
+ */
+static void
+automaton_state_traverse (void *cls, struct GNUNET_REGEX_State *s,
+                          GNUNET_REGEX_traverse_action action)
+{
+  struct Transition *t;
+
+  if (GNUNET_NO == s->marked)
+  {
+    s->marked = GNUNET_YES;
+
+    if (NULL != action)
+      action (cls, s);
+
+    for (t = s->transitions_head; NULL != t; t = t->next)
+      automaton_state_traverse (cls, t->to_state, action);
+  }
+}
+
+/**
+ * Traverses the given automaton from it's start state, visiting all
+ * reachable states and calling 'action' on each one of them.
+ *
+ * @param a automaton.
+ * @param action action to be performed on each state.
+ */
+static void
+automaton_traverse (void *cls, struct GNUNET_REGEX_Automaton *a,
+                    GNUNET_REGEX_traverse_action action)
+{
+  struct GNUNET_REGEX_State *s;
+
+  for (s = a->start; NULL != s; s = s->next)
+    s->marked = GNUNET_NO;
+
+  automaton_state_traverse (cls, a->start, action);
 }
 
 /**
@@ -720,16 +773,16 @@ dfa_state_create (struct GNUNET_REGEX_Context *ctx,
       name = NULL;
     }
 
-    // Add a transition for each distinct literal to NULL state
+    // Add a transition for each distinct label to NULL state
     for (ctran = cstate->transitions_head; NULL != ctran; ctran = ctran->next)
     {
-      if (0 != ctran->literal)
+      if (0 != ctran->label)
       {
         insert = 1;
 
         for (t = s->transitions_head; NULL != t; t = t->next)
         {
-          if (t->literal == ctran->literal)
+          if (t->label == ctran->label)
           {
             insert = 0;
             break;
@@ -737,7 +790,7 @@ dfa_state_create (struct GNUNET_REGEX_Context *ctx,
         }
 
         if (insert)
-          state_add_transition (ctx, s, ctran->literal, NULL);
+          state_add_transition (ctx, s, ctran->label, NULL);
       }
     }
 
@@ -753,15 +806,15 @@ dfa_state_create (struct GNUNET_REGEX_Context *ctx,
 
 /**
  * Move from the given state 's' to the next state on
- * transition 'literal'
+ * transition 'label'
  *
  * @param s starting state
- * @param literal edge label to follow
+ * @param label edge label to follow
  *
- * @return new state or NULL, if transition on literal not possible
+ * @return new state or NULL, if transition on label not possible
  */
 static struct GNUNET_REGEX_State *
-dfa_move (struct GNUNET_REGEX_State *s, const char literal)
+dfa_move (struct GNUNET_REGEX_State *s, const char label)
 {
   struct Transition *t;
   struct GNUNET_REGEX_State *new_s;
@@ -773,7 +826,7 @@ dfa_move (struct GNUNET_REGEX_State *s, const char literal)
 
   for (t = s->transitions_head; NULL != t; t = t->next)
   {
-    if (literal == t->literal)
+    if (label == t->label)
     {
       new_s = t->to_state;
       break;
@@ -782,6 +835,7 @@ dfa_move (struct GNUNET_REGEX_State *s, const char literal)
 
   return new_s;
 }
+
 
 /**
  * Remove all unreachable states from DFA 'a'. Unreachable states
@@ -792,37 +846,21 @@ dfa_move (struct GNUNET_REGEX_State *s, const char literal)
 static void
 dfa_remove_unreachable_states (struct GNUNET_REGEX_Automaton *a)
 {
-  struct GNUNET_REGEX_State *stack[a->state_count * a->state_count];
-  int stack_len;
   struct GNUNET_REGEX_State *s;
   struct GNUNET_REGEX_State *s_next;
-  struct Transition *t;
-
-  stack_len = 0;
 
   // 1. unmark all states
   for (s = a->states_head; NULL != s; s = s->next)
-    s->marked = 0;
+    s->marked = GNUNET_NO;
 
   // 2. traverse dfa from start state and mark all visited states
-  stack[stack_len++] = a->start;
-  while (stack_len > 0)
-  {
-    s = stack[--stack_len];
-    s->marked = 1;              // mark s as visited
-    for (t = s->transitions_head; NULL != t; t = t->next)
-    {
-      // add next states to stack
-      if (NULL != t->to_state && 0 == t->to_state->marked)
-        stack[stack_len++] = t->to_state;
-    }
-  }
+  automaton_traverse (NULL, a, NULL);
 
   // 3. delete all states that were not visited
   for (s = a->states_head; NULL != s; s = s_next)
   {
     s_next = s->next;
-    if (0 == s->marked)
+    if (GNUNET_NO == s->marked)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Removed state %s\n", s->name);
       automaton_remove_state (a, s);
@@ -920,14 +958,14 @@ dfa_merge_nondistinguishable_states (struct GNUNET_REGEX_Context *ctx,
         {
           for (t2 = s2->transitions_head; NULL != t2; t2 = t2->next)
           {
-            if (t1->literal == t2->literal && t1->to_state == t2->to_state &&
+            if (t1->label == t2->label && t1->to_state == t2->to_state &&
                 (0 != table[t1->to_state->marked][t2->to_state->marked] ||
                  0 != table[t2->to_state->marked][t1->to_state->marked]))
             {
-              table[s1->marked][s2->marked] = t1->literal;
+              table[s1->marked][s2->marked] = t1->label;
               change = 1;
             }
-            else if (t1->literal != t2->literal && t1->to_state != t2->to_state)
+            else if (t1->label != t2->label && t1->to_state != t2->to_state)
             {
               table[s1->marked][s2->marked] = -1;
               change = 1;
@@ -1078,14 +1116,14 @@ nfa_state_create (struct GNUNET_REGEX_Context *ctx, int accepting)
  *
  * @param nfa the NFA containing 's'
  * @param s starting point state
- * @param literal transitioning literal on which to base the closure on,
+ * @param label transitioning label on which to base the closure on,
  *                pass 0 for epsilon transition
  *
- * @return sorted nfa closure on 'literal' (epsilon closure if 'literal' is 0)
+ * @return sorted nfa closure on 'label' (epsilon closure if 'label' is 0)
  */
 static struct GNUNET_REGEX_StateSet *
 nfa_closure_create (struct GNUNET_REGEX_Automaton *nfa,
-                    struct GNUNET_REGEX_State *s, const char literal)
+                    struct GNUNET_REGEX_State *s, const char label)
 {
   struct GNUNET_REGEX_StateSet *cls;
   struct GNUNET_REGEX_StateSet *cls_check;
@@ -1103,7 +1141,7 @@ nfa_closure_create (struct GNUNET_REGEX_Automaton *nfa,
     clsstate->contained = 0;
 
   // Add start state to closure only for epsilon closure
-  if (0 == literal)
+  if (0 == label)
     GNUNET_array_append (cls->states, cls->len, s);
 
   GNUNET_array_append (cls_check->states, cls_check->len, s);
@@ -1115,7 +1153,7 @@ nfa_closure_create (struct GNUNET_REGEX_Automaton *nfa,
     for (ctran = currentstate->transitions_head; NULL != ctran;
          ctran = ctran->next)
     {
-      if (NULL != ctran->to_state && literal == ctran->literal)
+      if (NULL != ctran->to_state && label == ctran->label)
       {
         clsstate = ctran->to_state;
 
@@ -1143,15 +1181,15 @@ nfa_closure_create (struct GNUNET_REGEX_Automaton *nfa,
  *
  * @param nfa the NFA containing 's'
  * @param states list of states on which to base the closure on
- * @param literal transitioning literal for which to base the closure on,
+ * @param label transitioning label for which to base the closure on,
  *                pass 0 for epsilon transition
  *
- * @return sorted nfa closure on 'literal' (epsilon closure if 'literal' is 0)
+ * @return sorted nfa closure on 'label' (epsilon closure if 'label' is 0)
  */
 static struct GNUNET_REGEX_StateSet *
 nfa_closure_set_create (struct GNUNET_REGEX_Automaton *nfa,
                         struct GNUNET_REGEX_StateSet *states,
-                        const char literal)
+                        const char label)
 {
   struct GNUNET_REGEX_State *s;
   struct GNUNET_REGEX_StateSet *sset;
@@ -1169,7 +1207,7 @@ nfa_closure_set_create (struct GNUNET_REGEX_Automaton *nfa,
   for (i = 0; i < states->len; i++)
   {
     s = states->states[i];
-    sset = nfa_closure_create (nfa, s, literal);
+    sset = nfa_closure_create (nfa, s, label);
 
     for (j = 0; j < sset->len; j++)
     {
@@ -1370,10 +1408,10 @@ nfa_add_alternation (struct GNUNET_REGEX_Context *ctx)
  * Adds a new nfa fragment to the stack
  *
  * @param ctx context
- * @param lit literal for nfa transition
+ * @param lit label for nfa transition
  */
 static void
-nfa_add_literal (struct GNUNET_REGEX_Context *ctx, const char lit)
+nfa_add_label (struct GNUNET_REGEX_Context *ctx, const char lit)
 {
   struct GNUNET_REGEX_Automaton *n;
   struct GNUNET_REGEX_State *start;
@@ -1525,7 +1563,7 @@ GNUNET_REGEX_construct_nfa (const char *regex, const size_t len)
         --atomcount;
         nfa_add_concatenation (&ctx);
       }
-      nfa_add_literal (&ctx, *regexp);
+      nfa_add_label (&ctx, *regexp);
       atomcount++;
       break;
     }
@@ -1624,9 +1662,9 @@ GNUNET_REGEX_construct_dfa (const char *regex, const size_t len)
     for (ctran = dfa_state->transitions_head; NULL != ctran;
          ctran = ctran->next)
     {
-      if (0 != ctran->literal && NULL == ctran->to_state)
+      if (0 != ctran->label && NULL == ctran->to_state)
       {
-        tmp = nfa_closure_set_create (nfa, dfa_state->nfa_set, ctran->literal);
+        tmp = nfa_closure_set_create (nfa, dfa_state->nfa_set, ctran->label);
         nfa_set = nfa_closure_set_create (nfa, tmp, 0);
         state_set_clear (tmp);
         new_dfa_state = dfa_state_create (&ctx, nfa_set);
@@ -1761,7 +1799,7 @@ GNUNET_REGEX_automaton_save_graph (struct GNUNET_REGEX_Automaton *a,
         continue;
       }
 
-      if (ctran->literal == 0)
+      if (ctran->label == 0)
       {
         GNUNET_asprintf (&s_tran,
                          "\"%s\" -> \"%s\" [label = \"epsilon\", color=\"0.%i 0.8 0.95\"];\n",
@@ -1771,7 +1809,7 @@ GNUNET_REGEX_automaton_save_graph (struct GNUNET_REGEX_Automaton *a,
       {
         GNUNET_asprintf (&s_tran,
                          "\"%s\" -> \"%s\" [label = \"%c\", color=\"0.%i 0.8 0.95\"];\n",
-                         s->name, ctran->to_state->name, ctran->literal,
+                         s->name, ctran->to_state->name, ctran->label,
                          s->scc_id);
       }
 
@@ -1904,72 +1942,130 @@ GNUNET_REGEX_eval (struct GNUNET_REGEX_Automaton *a, const char *string)
 }
 
 /**
- * Get the starting state of the given automaton 'a'.
+ * Get the first key for the given 'input_string'. This hashes
+ * the first x bits of the 'input_strings'.
  *
- * @param a automaton.
+ * @param input_string string.
+ * @param string_len length of the 'input_string'.
+ * @param key pointer to where to write the hash code.
  *
- * @return starting state.
+ * @return number of bits of 'input_string' that have been consumed
+ *         to construct the key
  */
-struct GNUNET_REGEX_State *
-GNUNET_REGEX_automaton_get_start (struct GNUNET_REGEX_Automaton *a)
+unsigned int
+GNUNET_REGEX_get_first_key (const char *input_string,
+                            unsigned int string_len,
+                            GNUNET_HashCode *key)
 {
-  return a->start;
-}
+  unsigned int size;
 
-/**
- * Get the next states, starting from states 's'.
- *
- * @param a automaton.
- * @param s states.
- * @param count number of states given in 's'. Will contain number of
- *              states that were returned upon return.
- *
- * @return next states, 'count' will contain the number of states.
- */
-struct GNUNET_REGEX_State **
-GNUNET_REGEX_automaton_states_get_next (struct GNUNET_REGEX_Automaton *a,
-                                        struct GNUNET_REGEX_State **s,
-                                        unsigned int *count)
-{
-  struct GNUNET_REGEX_State *states[a->state_count];
-  struct GNUNET_REGEX_State *state;
-  struct Transition *t;
-  unsigned int cnt;
-  int i;
+  size = string_len < initial_bits ? string_len : initial_bits;
 
-
-  for (cnt = 0, i = 0; i < *count; i++)
+  if (NULL == input_string)
   {
-    state = s[i];
-    for (t = state->transitions_head; NULL != t; t = t->next)
-    {
-      if (NULL != t && NULL != t->to_state)
-      {
-        states[cnt++] = t->to_state;
-      }
-    }
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Given input string was NULL!\n");
+    return 0;
   }
 
-  *count = cnt;
+  GNUNET_CRYPTO_hash (input_string, size, key);
 
-  return NULL;
+  return size;
 }
 
 /**
- * Hash a set of states.
+ * Check if the given 'proof' matches the given 'key'.
+ *
+ * @param proof partial regex
+ * @param key hash
+ *
+ * @return GNUNET_OK if the proof is valid for the given key
+ */
+int
+GNUNET_REGEX_check_proof (const char *proof,
+                          const GNUNET_HashCode *key)
+{
+  return GNUNET_OK;
+}
+
+/**
+ * Get all edges leaving state 's'.
+ *
+ * @param s state.
+ * @param edges all edges leaving 's'.
+ *
+ * @return number of edges.
+ */
+static unsigned int
+state_get_edges (struct GNUNET_REGEX_State *s, struct GNUNET_REGEX_Edge *edges)
+{
+  struct Transition *t;
+  unsigned int count;
+
+  if (NULL == s)
+    return 0;
+
+  count = 0;
+
+  for (t = s->transitions_head; NULL != t; t = t->next)
+  {
+    if (NULL != t->to_state)
+    {
+      edges[count].label = &t->label;
+      edges[count].destination = t->to_state->hash;
+      count++;
+    }
+  }
+  return count;
+}
+
+/**
+ * Iterate over all edges helper function starting from state 's', calling
+ * iterator on for each edge.
+ *
+ * @param s state.
+ * @param iterator iterator function called for each edge.
+ * @param iterator_cls closure.
+ */
+static void
+iterate_edge (struct GNUNET_REGEX_State *s,
+              GNUNET_REGEX_KeyIterator iterator,
+              void *iterator_cls)
+{
+  struct Transition *t;
+  struct GNUNET_REGEX_Edge edges[s->transition_count];
+  unsigned int num_edges;
+
+  if (GNUNET_NO == s->marked)
+  {
+    s->marked = GNUNET_YES;
+
+    num_edges = state_get_edges (s, edges);
+
+    iterator (iterator_cls,
+              &s->hash,
+              NULL,
+
+              num_edges,
+              edges);
+
+
+    for (t = s->transitions_head; NULL != t; t = t->next)
+      iterate_edge (t->to_state, iterator, iterator_cls);
+  }
+}
+
+/**
+ * Iterate over all edges starting from start state of automaton 'a'. Calling
+ * iterator for each edge.
  *
  * @param a automaton.
- * @param s states.
- * @param count number of states.
- *
- * @return hash.
+ * @param iterator iterator called for each edge.
+ * @param iterator_cls closure.
  */
-struct GNUNET_HashCode
-GNUNET_REGEX_automaton_states_hash (struct GNUNET_REGEX_Automaton *a,
-                                    struct GNUNET_REGEX_State **s,
-                                    unsigned int count)
+void
+GNUNET_REGEX_iterate_all_edges (struct GNUNET_REGEX_Automaton *a,
+                                GNUNET_REGEX_KeyIterator iterator,
+                                void *iterator_cls)
 {
-  struct GNUNET_HashCode hash;
-
-  return hash;
+  iterate_edge (a->start, iterator, iterator_cls);
 }

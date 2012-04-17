@@ -43,9 +43,20 @@ extern "C"
 struct GNUNET_REGEX_Automaton;
 
 /**
- * State representation.
+ * Edge representation.
  */
-struct GNUNET_REGEX_State;
+struct GNUNET_REGEX_Edge
+{
+  /**
+   * Label of the edge.
+   */
+  const char *label;
+
+  /**
+   * Destionation of the edge.
+   */
+  GNUNET_HashCode destination;
+};
 
 /**
  * Construct an NFA by parsing the regex string of length 'len'.
@@ -100,87 +111,57 @@ int
 GNUNET_REGEX_eval (struct GNUNET_REGEX_Automaton *a,
                    const char *string);
 
-
-
-/**
- * Get the starting state of the given automaton 'a'.
- *
- * @param a automaton.
- *
- * @return starting state.
- */
-struct GNUNET_REGEX_State *
-GNUNET_REGEX_automaton_get_start (struct GNUNET_REGEX_Automaton *a);
-
-
 /**
  * @return number of bits of 'input_string' that have been consumed
  *         to construct the key
  */
 unsigned int
 GNUNET_REGEX_get_first_key (const char *input_string,
-			    GNUNET_HashCode *key);
-
+                            unsigned int string_len,
+                            GNUNET_HashCode *key);
 
 
 /**
+ * Check if the given 'proof' matches the given 'key'.
+ *
+ * @param proof partial regex
+ * @param key hash
+ *
  * @return GNUNET_OK if the proof is valid for the given key
  */
 int
 GNUNET_REGEX_check_proof (const char *proof,
-			  const GNUNET_HashCode *key);
+                          const GNUNET_HashCode *key);
 
 
-struct GNUNET_REGEX_Edge
-{
-  const char *label;
-  GNUNET_HashCode destination;
-};
-
-
+/**
+ * Iterator callback function.
+ *
+ * @param cls closure.
+ * @param key hash for current state.
+ * @param proof proof for current state.
+ * @param num_edges number of edges leaving current state.
+ * @param edges edges leaving current state.
+ */
 typedef void (*GNUNET_REGEX_KeyIterator)(void *cls,
-					 const GNUNET_HashCode *key,
-					 const char *proof,
-					 unsigned int num_edges,
-					 const struct GNUNET_REGEX_Edge *edges);
+                                         const GNUNET_HashCode *key,
+                                         const char *proof,
+                                         unsigned int num_edges,
+                                         const struct GNUNET_REGEX_Edge *edges);
 
 
-int
+/**
+ * Iterate over all edges starting from start state of automaton 'a'. Calling
+ * iterator for each edge.
+ *
+ * @param a automaton.
+ * @param iterator iterator called for each edge.
+ * @param iterator_cls closure.
+ */
+void
 GNUNET_REGEX_iterate_all_edges (struct GNUNET_REGEX_Automaton *a,
-				GNUNET_REGEX_KeyIterator iterator,
-				void *iterator_cls);
-
-
-/**
- * Get the next states, starting from states 's'.
- *
- * @param a automaton.
- * @param s states.
- * @param count number of states given in 's'. Will contain number of
- *              states that were returned upon return.
- *
- * @return next states, 'count' will contain the number of states.
- */
-struct GNUNET_REGEX_State **
-GNUNET_REGEX_automaton_states_get_next (struct GNUNET_REGEX_Automaton *a,
-                                        struct GNUNET_REGEX_State **s,
-                                        unsigned int *count);
-
-/**
- * Hash a set of states.
- *
- * @param a automaton.
- * @param s states.
- * @param count number of states.
- *
- * @return hash.
- */
-struct GNUNET_HashCode
-GNUNET_REGEX_automaton_states_hash (struct GNUNET_REGEX_Automaton *a,
-                                    struct GNUNET_REGEX_State **s,
-                                    unsigned int count);
-
-
+                                GNUNET_REGEX_KeyIterator iterator,
+                                void *iterator_cls);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */
