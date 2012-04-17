@@ -121,7 +121,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   if (GDS_stats != NULL)
   {
-    GNUNET_STATISTICS_destroy (GDS_stats, GNUNET_YES);
+    GNUNET_STATISTICS_destroy (GDS_stats, GNUNET_NO);
     GDS_stats = NULL;
   }
   GNUNET_free_non_null (GDS_my_hello);

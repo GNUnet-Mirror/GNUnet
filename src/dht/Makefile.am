@@ -50,6 +50,7 @@ libgnunet_plugin_block_dht_la_DEPENDENCIES = \
 
 bin_PROGRAMS = \
  gnunet-service-dht \
+ gnunet-dht-monitor \
  gnunet-dht-get \
  gnunet-dht-put
 
@@ -91,6 +92,16 @@ gnunet_dht_put_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la 
 gnunet_dht_put_DEPENDENCIES = \
   libgnunetdht.la			      
+
+gnunet_dht_monitor_SOURCES = \
+ gnunet-dht-monitor.c         
+gnunet_dht_monitor_LDADD = \
+  $(top_builddir)/src/dht/libgnunetdht.la \
+  $(top_builddir)/src/core/libgnunetcore.la \
+  $(top_builddir)/src/util/libgnunetutil.la 
+gnunet_dht_monitor_DEPENDENCIES = \
+  libgnunetdht.la			      
+
 
 check_PROGRAMS = \
  test_dht_api \

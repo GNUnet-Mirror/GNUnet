@@ -990,6 +990,7 @@ GNUNET_DHT_monitor_stop (struct GNUNET_DHT_MonitorHandle *handle)
   GNUNET_CONTAINER_DLL_remove (handle->dht_handle->monitor_head,
                                handle->dht_handle->monitor_tail,
                                handle);
+  /* FIXME notify service of stop */
   GNUNET_free (handle);
 }
 
