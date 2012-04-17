@@ -2637,7 +2637,13 @@ static void
 mesh_peer_disconnect_callback (void *cls,
                                const struct GNUNET_PeerIdentity *peer)
 {
-
+  struct GNUNET_STREAM_Socket *socket=cls;
+  
+  /* If the state is SHUTDOWN its ok; else set the state of the socket to SYSERR */
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "%x: Other peer %x disconnected \n",
+              socket->our_id,
+              socket->other_peer);
 }
 
 
