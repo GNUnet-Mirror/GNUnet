@@ -73,6 +73,14 @@ struct ATS_PreferedAddress
   struct ATS_Address *address;
 };
 
+struct GAS_MLP_SolutionContext
+{
+  int lp_result;
+  int mlp_result;
+  struct GNUNET_TIME_Relative lp_duration;
+  struct GNUNET_TIME_Relative mlp_duration;
+};
+
 /**
  * MLP Handle
  */
@@ -324,7 +332,7 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @return GNUNET_OK if could be solved, GNUNET_SYSERR on failure
  */
 int
-GAS_mlp_solve_problem (struct GAS_MLP_Handle *mlp);
+GAS_mlp_solve_problem (struct GAS_MLP_Handle *mlp, struct GAS_MLP_SolutionContext *ctx);
 
 
 /**
