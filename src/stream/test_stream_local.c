@@ -288,9 +288,9 @@ input_processor (void *cls,
 
   GNUNET_assert (GNUNET_STREAM_OK == status);
   GNUNET_assert (size <= strlen (data));
-  GNUNET_assert (strncmp ((const char *) data + peer->bytes_read, 
-                          (const char *) input_data,
-                          size));
+  GNUNET_assert (0 == strncmp ((const char *) data + peer->bytes_read, 
+                               (const char *) input_data,
+                               size));
   peer->bytes_read += size;
   
   if (peer->bytes_read < strlen (data))
