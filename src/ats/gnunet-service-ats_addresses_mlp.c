@@ -877,7 +877,7 @@ lp_solv:
   mlp->lp_solved++;
   mlp->lp_total_duration =+ duration.rel_value;
   s_ctx->lp_duration = duration;
-GNUNET_assert (mlp->stats!= NULL);
+
   GNUNET_STATISTICS_update (mlp->stats,"# LP problem solved", 1, GNUNET_NO);
   GNUNET_STATISTICS_set (mlp->stats,"# LP execution time (ms)", duration.rel_value, GNUNET_NO);
   GNUNET_STATISTICS_set (mlp->stats,"# LP execution time average (ms)",
