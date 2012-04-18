@@ -281,6 +281,8 @@ schedule_watch_request (struct GNUNET_STATISTICS_Handle *h,
   size_t nsize;
 
   GNUNET_assert (h != NULL);
+  GNUNET_assert (watch != NULL);
+
   slen = strlen (watch->subsystem) + 1;
   nlen = strlen (watch->name) + 1;
   nsize = sizeof (struct GNUNET_MessageHeader) + slen + nlen;
@@ -382,7 +384,10 @@ try_connect (struct GNUNET_STATISTICS_Handle *h)
       }
     }
     for (i = 0; i < h->watches_size; i++)
-      schedule_watch_request (h, h->watches[i]);
+    {
+      if (NULL != h->watches[i])
+        schedule_watch_request (h, h->watches[i]);
+    }
     return GNUNET_YES;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
