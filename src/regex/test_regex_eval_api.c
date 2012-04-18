@@ -18,7 +18,7 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file regex/test_regex.c
+ * @file regex/test_regex_eval_api.c
  * @brief test for regex.c
  * @author Maximilian Szengel
  */
@@ -293,7 +293,7 @@ main (int argc, char *argv[])
 
   srand (time (NULL));
   for (i = 0; i < 100; i++)
-    check_rand += test_random (200, 250, 20);
+    check_rand += test_random (100, 150, 20);
 
   return check_nfa + check_dfa + check_rand;
 }

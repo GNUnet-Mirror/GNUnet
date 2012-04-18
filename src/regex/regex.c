@@ -927,9 +927,12 @@ dfa_merge_nondistinguishable_states (struct GNUNET_REGEX_Context *ctx,
   int change;
 
   change = 1;
-  for (i = 0, s1 = a->states_head; i < a->state_count && NULL != s1;
+  for (i = 0, s1 = a->states_head; 
+       i < a->state_count && NULL != s1;
        i++, s1 = s1->next)
+  {
     s1->marked = i;
+  }
 
   // Mark all pairs of accepting/!accepting states
   for (s1 = a->states_head; NULL != s1; s1 = s1->next)
@@ -980,7 +983,7 @@ dfa_merge_nondistinguishable_states (struct GNUNET_REGEX_Context *ctx,
 
   struct GNUNET_REGEX_State *s2_next;
 
-  for (i = 0, s1 = a->states_head; NULL != s1; s1 = s1->next)
+  for (s1 = a->states_head; NULL != s1; s1 = s1->next)
   {
     for (s2 = a->states_head; NULL != s2 && s1 != s2; s2 = s2_next)
     {
@@ -1697,8 +1700,10 @@ GNUNET_REGEX_construct_dfa (const char *regex, const size_t len)
   GNUNET_free (dfa_stack);
   GNUNET_REGEX_automaton_destroy (nfa);
 
+  GNUNET_REGEX_automaton_save_graph (dfa, "dfa_before.dot");
   dfa_minimize (&ctx, dfa);
-  scc_tarjan (&ctx, dfa);
+  /*GNUNET_REGEX_automaton_save_graph (dfa, "dfa_after.dot");*/
+  /*scc_tarjan (&ctx, dfa);*/
 
   return dfa;
 }
@@ -1760,7 +1765,7 @@ GNUNET_REGEX_automaton_save_graph (struct GNUNET_REGEX_Automaton *a,
 
   p = fopen (filename, "w");
 
-  if (p == NULL)
+  if (NULL == p)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not open file for writing: %s",
                 filename);
@@ -1787,8 +1792,6 @@ GNUNET_REGEX_automaton_save_graph (struct GNUNET_REGEX_Automaton *a,
       fwrite (s_acc, strlen (s_acc), 1, p);
       GNUNET_free (s_acc);
     }
-
-    s->marked = 1;
 
     for (ctran = s->transitions_head; NULL != ctran; ctran = ctran->next)
     {
@@ -2009,8 +2012,8 @@ state_get_edges (struct GNUNET_REGEX_State *s, struct GNUNET_REGEX_Edge *edges)
   {
     if (NULL != t->to_state)
     {
-      edges[count].label = &t->label;
-      edges[count].destination = t->to_state->hash;
+      /*edges[count].label = &t->label;*/
+      /*edges[count].destination = t->to_state->hash;*/
       count++;
     }
   }
@@ -2041,7 +2044,6 @@ iterate_edge (struct GNUNET_REGEX_State *s, GNUNET_REGEX_KeyIterator iterator,
 
     iterator (iterator_cls, &s->hash, NULL, s->accepting, num_edges, edges);
 
-
     for (t = s->transitions_head; NULL != t; t = t->next)
       iterate_edge (t->to_state, iterator, iterator_cls);
   }
@@ -2060,5 +2062,10 @@ GNUNET_REGEX_iterate_all_edges (struct GNUNET_REGEX_Automaton *a,
                                 GNUNET_REGEX_KeyIterator iterator,
                                 void *iterator_cls)
 {
+  struct GNUNET_REGEX_State *s;
+
+  for (s = a->start; NULL != s; s = s->next)
+    s->marked = GNUNET_NO;
+
   iterate_edge (a->start, iterator, iterator_cls);
 }

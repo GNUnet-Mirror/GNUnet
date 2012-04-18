@@ -19,15 +19,22 @@ libgnunetregex_la_LDFLAGS = \
   -version-info 0:0:0
 
 check_PROGRAMS = \
- test_regex
+ test_regex_eval_api \
+ test_regex_iterate_api
 
 if ENABLE_TEST_RUN
 TESTS = $(check_PROGRAMS)
 endif
 
-test_regex_SOURCES = \
- test_regex.c
-test_regex_LDADD = \
+test_regex_eval_api_SOURCES = \
+ test_regex_eval_api.c
+test_regex_eval_api_LDADD = \
+ $(top_builddir)/src/regex/libgnunetregex.la \
+ $(top_builddir)/src/util/libgnunetutil.la
+
+test_regex_iterate_api_SOURCES = \
+ test_regex_iterate_api.c
+test_regex_iterate_api_LDADD = \
  $(top_builddir)/src/regex/libgnunetregex.la \
  $(top_builddir)/src/util/libgnunetutil.la
 

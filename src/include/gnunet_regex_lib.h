@@ -112,14 +112,19 @@ GNUNET_REGEX_eval (struct GNUNET_REGEX_Automaton *a,
                    const char *string);
 
 /**
+ * Get the first key for the given 'input_string'. This hashes
+ * the first x bits of the 'input_strings'.
+ *
+ * @param input_string string.
+ * @param string_len length of the 'input_string'.
+ * @param key pointer to where to write the hash code.
+ *
  * @return number of bits of 'input_string' that have been consumed
  *         to construct the key
  */
 unsigned int
-GNUNET_REGEX_get_first_key (const char *input_string,
-                            unsigned int string_len,
-                            GNUNET_HashCode *key);
-
+GNUNET_REGEX_get_first_key (const char *input_string, unsigned int string_len,
+                            GNUNET_HashCode * key);
 
 /**
  * Check if the given 'proof' matches the given 'key'.
@@ -132,7 +137,6 @@ GNUNET_REGEX_get_first_key (const char *input_string,
 int
 GNUNET_REGEX_check_proof (const char *proof,
                           const GNUNET_HashCode *key);
-
 
 /**
  * Iterator callback function.
@@ -151,7 +155,6 @@ typedef void (*GNUNET_REGEX_KeyIterator)(void *cls,
                                          unsigned int num_edges,
                                          const struct GNUNET_REGEX_Edge *edges);
 
-
 /**
  * Iterate over all edges starting from start state of automaton 'a'. Calling
  * iterator for each edge.
@@ -164,7 +167,6 @@ void
 GNUNET_REGEX_iterate_all_edges (struct GNUNET_REGEX_Automaton *a,
                                 GNUNET_REGEX_KeyIterator iterator,
                                 void *iterator_cls);
-
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
