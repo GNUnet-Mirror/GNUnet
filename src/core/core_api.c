@@ -767,7 +767,7 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
   uint16_t et;
   uint32_t ats_count;
 
-  if (msg == NULL)
+  if (NULL == msg)
   {
     LOG (GNUNET_ERROR_TYPE_INFO,
          _
@@ -813,7 +813,7 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     }
     /* fake 'connect to self' */
     pr = GNUNET_CONTAINER_multihashmap_get (h->peers, &h->me.hashPubKey);
-    GNUNET_assert (pr == NULL);
+    GNUNET_assert (NULL == pr);
     pr = GNUNET_malloc (sizeof (struct PeerRecord));
     pr->peer = h->me;
     pr->ch = h;
@@ -851,7 +851,7 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
       return;
     }
     pr = GNUNET_CONTAINER_multihashmap_get (h->peers, &cnm->peer.hashPubKey);
-    if (pr != NULL)
+    if (NULL != pr)
     {
       GNUNET_break (0);
       reconnect_later (h);
@@ -887,7 +887,7 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
          "Received notification about disconnect from `%s'.\n",
          GNUNET_i2s (&dnm->peer));
     pr = GNUNET_CONTAINER_multihashmap_get (h->peers, &dnm->peer.hashPubKey);
-    if (pr == NULL)
+    if (NULL == pr)
     {
       GNUNET_break (0);
       reconnect_later (h);
@@ -923,13 +923,6 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Received message of type %u and size %u from peer `%4s'\n",
          ntohs (em->type), ntohs (em->size), GNUNET_i2s (&ntm->peer));
-    pr = GNUNET_CONTAINER_multihashmap_get (h->peers, &ntm->peer.hashPubKey);
-    if (pr == NULL)
-    {
-      GNUNET_break (0);
-      reconnect_later (h);
-      return;
-    }
     if ((GNUNET_NO == h->inbound_hdr_only) &&
         (msize !=
          ntohs (em->size) + sizeof (struct NotifyTrafficMessage) +
@@ -952,6 +945,13 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
                     htons (em->size), mh->type, GNUNET_i2s (&ntm->peer));
         GNUNET_break_op (0);
         continue;
+      }
+      pr = GNUNET_CONTAINER_multihashmap_get (h->peers, &ntm->peer.hashPubKey);
+      if (NULL == pr)
+      {
+	GNUNET_break (0);
+	reconnect_later (h);
+	return;
       }
       if (GNUNET_OK !=
           h->handlers[hpos].callback (h->cls, &ntm->peer, em, &ntm->ats,
@@ -990,13 +990,6 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
       return;
     }
     em = (const struct GNUNET_MessageHeader *) &(&ntm->ats)[ats_count + 1];
-    pr = GNUNET_CONTAINER_multihashmap_get (h->peers, &ntm->peer.hashPubKey);
-    if (pr == NULL)
-    {
-      GNUNET_break (0);
-      reconnect_later (h);
-      return;
-    }
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Received notification about transmission to `%s'.\n",
          GNUNET_i2s (&ntm->peer));
@@ -1025,7 +1018,7 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     }
     smr = (const struct SendMessageReady *) msg;
     pr = GNUNET_CONTAINER_multihashmap_get (h->peers, &smr->peer.hashPubKey);
-    if (pr == NULL)
+    if (NULL == pr)
     {
       GNUNET_break (0);
       reconnect_later (h);
@@ -1034,7 +1027,7 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Received notification about transmission readiness to `%s'.\n",
          GNUNET_i2s (&smr->peer));
-    if (pr->pending_head == NULL)
+    if (NULL == pr->pending_head)
     {
       /* request must have been cancelled between the original request
        * and the response from core, ignore core's readiness */
@@ -1048,7 +1041,7 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
        * ignore! (we should have already sent another request) */
       break;
     }
-    if ((pr->prev != NULL) || (pr->next != NULL) || (h->ready_peer_head == pr))
+    if ((NULL != pr->prev) || (NULL != pr->next) || (h->ready_peer_head == pr))
     {
       /* we should not already be on the ready list... */
       GNUNET_break (0);
@@ -1079,9 +1072,9 @@ init_done_task (void *cls, int success)
 {
   struct GNUNET_CORE_Handle *h = cls;
 
-  if (success == GNUNET_SYSERR)
+  if (GNUNET_SYSERR == success)
     return;                     /* shutdown */
-  if (success == GNUNET_NO)
+  if (GNUNET_NO == success)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Failed to exchange INIT with core, retrying\n");
@@ -1110,10 +1103,10 @@ reconnect (struct GNUNET_CORE_Handle *h)
   uint16_t *ts;
   unsigned int hpos;
 
-  GNUNET_assert (h->client == NULL);
+  GNUNET_assert (NULL == h->client);
   GNUNET_assert (h->currently_down == GNUNET_YES);
   h->client = GNUNET_CLIENT_connect ("core", h->cfg);
-  if (h->client == NULL)
+  if (NULL == h->client)
   {
     reconnect_later (h);
     return;

@@ -223,16 +223,18 @@ send_to_all_clients (const struct GNUNET_PeerIdentity *partner,
                      uint32_t options, uint16_t type)
 {
   struct GSC_Client *c;
+  int tm;
 
   for (c = client_head; c != NULL; c = c->next)
   {
+    tm = type_match (type, c);
     if (!  ( (0 != (c->options & options)) ||
 	     ( (0 != (options & GNUNET_CORE_OPTION_SEND_FULL_INBOUND)) &&
-	       (GNUNET_YES == type_match (type, c)) ) ) )
+	       (GNUNET_YES == tm) ) ) )
       continue;  /* neither options nor type match permit the message */
     if ( (0 != (options & GNUNET_CORE_OPTION_SEND_HDR_INBOUND)) &&
 	 ( (0 != (c->options & GNUNET_CORE_OPTION_SEND_FULL_INBOUND)) ||
-	   (GNUNET_YES == type_match (type, c)) ) )
+	   (GNUNET_YES == tm) ) )
       continue;
     if ( (0 != (options & GNUNET_CORE_OPTION_SEND_HDR_OUTBOUND)) &&
 	 (0 != (c->options & GNUNET_CORE_OPTION_SEND_FULL_OUTBOUND)) )
@@ -242,9 +244,11 @@ send_to_all_clients (const struct GNUNET_PeerIdentity *partner,
 		options,
 		ntohs (msg->size),
                 (unsigned int) type);
-    GNUNET_assert (GNUNET_YES ==
-                   GNUNET_CONTAINER_multihashmap_contains (c->connectmap,
-                                                           &partner->hashPubKey));
+    GNUNET_assert ( (0 == (c->options & GNUNET_CORE_OPTION_SEND_FULL_INBOUND)) ||
+		    (GNUNET_YES != tm) ||
+		    (GNUNET_YES ==
+		     GNUNET_CONTAINER_multihashmap_contains (c->connectmap,
+							     &partner->hashPubKey)) );
     send_to_client (c, msg, can_drop);
   }
 }
