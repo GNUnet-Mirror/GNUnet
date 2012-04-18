@@ -883,9 +883,6 @@ lp_solv:
   GNUNET_STATISTICS_set (mlp->stats,"# LP execution time average (ms)",
                          mlp->lp_total_duration / mlp->lp_solved,  GNUNET_NO);
 
-  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
-      "ats-mlp",
-      "%llu %llu \n", duration.rel_value, mlp->lp_total_duration / mlp->lp_solved);
   /* Analyze problem status  */
   res = glp_get_status (mlp->prob);
   switch (res) {
@@ -1121,12 +1118,30 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   char * quota_in_str;
 
   /* Init GLPK environment */
-  int res = 0;
-  if (0 != (res = glp_init_env()))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not init GLPK %u\n", res);
-    GNUNET_free(mlp);
-    return NULL;
+  int res = glp_init_env();
+  switch (res) {
+    case 0:
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "GLPK: `%s'\n",
+          "initialization successful");
+      break;
+    case 1:
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "GLPK: `%s'\n",
+          "environment is already initialized");
+      break;
+    case 2:
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not init GLPK: `%s'\n",
+          "initialization failed (insufficient memory)");
+      GNUNET_free(mlp);
+      return NULL;
+      break;
+    case 3:
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not init GLPK: `%s'\n",
+          "initialization failed (unsupported programming model)");
+      GNUNET_free(mlp);
+      return NULL;
+      break;
+    default:
+      break;
   }
 
   /* Create initial MLP problem */

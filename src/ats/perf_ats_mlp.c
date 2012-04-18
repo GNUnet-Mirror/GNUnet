@@ -40,6 +40,7 @@
 
 static unsigned int peers;
 static unsigned int addresses;
+static unsigned int numeric;
 
 struct PeerContext *p;
 struct ATS_Address *a;
@@ -84,6 +85,15 @@ do_shutdown (void *cls,
              const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   unsigned int ca;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown\n");
+
+  if (NULL != mlp)
+  {
+    GAS_mlp_done (mlp);
+    mlp = NULL;
+  }
+
   if (NULL != a)
   {
     for (ca=0; ca < (peers * addresses); ca++)
@@ -92,8 +102,6 @@ do_shutdown (void *cls,
       GNUNET_free (a[ca].ats);
     }
   }
-  if (NULL != mlp)
-    GAS_mlp_done (mlp);
 
   if (NULL != amap)
     GNUNET_CONTAINER_multihashmap_destroy(amap);
@@ -117,22 +125,28 @@ int stat_lp_it (void *cls, const char *subsystem,
                                            const char *name, uint64_t value,
                                            int is_persistent)
 {
-  GNUNET_break (0);
-  static int calls;
   static long long unsigned lp_time;
   static long long unsigned mlp_time;
+  static long long unsigned lp_time_set;
+  static long long unsigned mlp_time_set;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received: `%s' : %u \n", name, value);
 
   if (0 == strcmp (name, "# LP execution time (ms)"))
-    lp_time = value;
-  if (0 == strcmp (name, "# MLP execution time (ms)"))
-    mlp_time = value;
-
-  GNUNET_break (0);
-  calls ++;
-
-  if (2 == calls)
   {
-    printf ("%u;%u;%llu;%llu\n",peers, addresses, lp_time, mlp_time);
+    lp_time = value;
+    lp_time_set = GNUNET_YES;
+  }
+  if (0 == strcmp (name, "# MLP execution time (ms)"))
+  {
+    mlp_time = value;
+    mlp_time_set = GNUNET_YES;
+  }
+
+  if ((GNUNET_YES == lp_time_set) && (GNUNET_YES == mlp_time_set))
+  {
+    if (GNUNET_YES == numeric)
+      printf ("%u;%u;%llu;%llu\n",peers, addresses, lp_time, mlp_time);
     if (GNUNET_SCHEDULER_NO_TASK != shutdown_task)
       GNUNET_SCHEDULER_cancel(shutdown_task);
     shutdown_task = GNUNET_SCHEDULER_add_now(&do_shutdown, NULL);
@@ -149,7 +163,7 @@ int stat_ready_it (void *cls, const char *subsystem,
   unsigned int ca = 0;
   struct GNUNET_CONFIGURATION_Handle *cfg = cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Statistics service ready\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Statistics service ready\n");
 
   GNUNET_STATISTICS_watch (stats, "ats", "# LP execution time (ms)", &stat_lp_it, NULL);
   GNUNET_STATISTICS_watch (stats, "ats", "# MLP execution time (ms)", &stat_lp_it, NULL);
@@ -215,7 +229,7 @@ int stat_ready_it (void *cls, const char *subsystem,
 
   /* Solving the problem */
   if (GNUNET_OK == GAS_mlp_solve_problem(mlp))
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Problem solved successfully \n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Problem solved successfully \n");
   else
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Solving problem with %u peers and %u addresses failed\n", peers, addresses);
 
@@ -267,6 +281,9 @@ main (int argc, char *argv[])
     {'p', "peers", NULL,
      gettext_noop ("peers"), 1,
      &GNUNET_GETOPT_set_uint, &peers},
+     {'n', "numeric", NULL,
+      gettext_noop ("numeric output only"), 0,
+      &GNUNET_GETOPT_set_one, &numeric},
     GNUNET_GETOPT_OPTION_END
   };
 
