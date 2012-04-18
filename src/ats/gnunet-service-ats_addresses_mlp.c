@@ -962,7 +962,7 @@ mlp_solve_mlp_problem (struct GAS_MLP_Handle *mlp, struct SolveContext *s_ctx)
   GNUNET_STATISTICS_set (mlp->stats,"# MLP execution time (ms)", duration.rel_value, GNUNET_NO);
   GNUNET_STATISTICS_set (mlp->stats,"# MLP execution time average (ms)",
                          mlp->mlp_total_duration / mlp->mlp_solved,  GNUNET_NO);
-GNUNET_break(0);
+
   /* Analyze problem status  */
   res = glp_mip_status(mlp->prob);
   switch (res) {
