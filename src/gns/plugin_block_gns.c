@@ -88,9 +88,11 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
      *  FIXME we could check for the record types here
      **/
     if (xquery_size < sizeof(uint32_t))
+    {
+      GNUNET_break_op (0);
       return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
-    else
-      return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
+    }
+    return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
   }
   
   /* this is a reply */
@@ -119,7 +121,10 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
 
   /* Check query key against public key */
   if (0 != GNUNET_CRYPTO_hash_cmp(query, &query_key))
+  {
+    GNUNET_break_op (0);
     return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
+  }
   
   record_match = 0;
   rd_count = ntohl(nrb->rd_count);
@@ -139,6 +144,7 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
     {
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                  "Data invalid (%d bytes, %d records)\n", rd_len, rd_count);
+      GNUNET_break_op (0);
       return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
     }
 
@@ -174,6 +180,7 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
                                                         &nrb->signature))
     {
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Signature invalid for name %s\n");
+      GNUNET_break_op (0);
       return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
     }
   }

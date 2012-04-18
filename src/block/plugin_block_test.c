@@ -66,8 +66,11 @@ block_plugin_test_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
   if (type != GNUNET_BLOCK_TYPE_TEST)
     return GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED;
   if (xquery_size != 0)
+  {
+    GNUNET_break_op (0);
     return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
-  if (reply_block_size == 0)
+  }
+  if (NULL == reply_block)
     return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
 
   if (NULL != bf)

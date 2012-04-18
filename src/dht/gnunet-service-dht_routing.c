@@ -227,6 +227,8 @@ process (void *cls, const GNUNET_HashCode * key, void *value)
                               1, GNUNET_NO);
     return GNUNET_SYSERR;
   case GNUNET_BLOCK_EVALUATION_REQUEST_VALID:
+    GNUNET_break (0);
+    return GNUNET_OK;
   case GNUNET_BLOCK_EVALUATION_REQUEST_INVALID:
     GNUNET_break (0);
     return GNUNET_OK;
@@ -280,6 +282,16 @@ GDS_ROUTING_process (enum GNUNET_BLOCK_Type type,
   pc.get_path = get_path;
   pc.data = data;
   pc.data_size = data_size;
+  if (NULL == data)
+  {
+    /* Some apps might have an 'empty' reply as a valid reply; however,
+       'process' will call GNUNET_BLOCK_evaluate' which treats a 'NULL'
+       reply as request-validation (but we need response-validation).
+       So we set 'data' to a 0-byte non-NULL value just to be sure */
+    GNUNET_break (0 == data_size);
+    data_size = 0;
+    pc.data = ""; /* something not null */
+  }
   GNUNET_CONTAINER_multihashmap_get_multiple (recent_map, key, &process, &pc);
 }
 

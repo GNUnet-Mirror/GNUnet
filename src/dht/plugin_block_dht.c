@@ -65,17 +65,29 @@ block_plugin_dht_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
   if (type != GNUNET_BLOCK_TYPE_DHT_HELLO)
     return GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED;
   if (xquery_size != 0)
+  {
+    GNUNET_break_op (0);
     return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
-  if (reply_block_size == 0)
+  }
+  if (NULL == reply_block)
     return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
   if (reply_block_size < sizeof (struct GNUNET_MessageHeader))
+  {
+    GNUNET_break_op (0);
     return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
+  }
   msg = reply_block;
   if (reply_block_size != ntohs (msg->size))
+  {
+    GNUNET_break_op (0);
     return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
+  }
   hello = reply_block;
   if (GNUNET_OK != GNUNET_HELLO_get_id (hello, &pid))
+  {
+    GNUNET_break_op (0);
     return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
+  }
   if (NULL != bf)
   {
     GNUNET_BLOCK_mingle_hash (&pid.hashPubKey, bf_mutator, &mhash);
