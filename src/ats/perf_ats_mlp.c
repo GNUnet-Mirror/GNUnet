@@ -42,6 +42,9 @@ static unsigned int peers;
 static unsigned int addresses;
 static unsigned int numeric;
 
+static int start;
+static int end;
+
 struct PeerContext *p;
 struct ATS_Address *a;
 
@@ -145,6 +148,14 @@ check (void *cls, char *const *args, const char *cfgfile,
   amap = GNUNET_CONTAINER_multihashmap_create(addresses * peers);
 
   mlp->auto_solve = GNUNET_NO;
+  if (start == 0)
+      start = 0;
+  if (end == 0)
+      end = -1;
+  if ((start != -1) && (end != -1))
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Solving problem starting from %u to %u\n", start , end);
+  else
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Solving problem for %u peers\n", peers);
   for (c=0; c < peers; c++)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Setting up peer %u\n", c);
@@ -174,27 +185,33 @@ check (void *cls, char *const *args, const char *cfgfile,
       GAS_mlp_address_update(mlp, amap, &a[ca]);
       ca++;
     }
+
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Problem contains %u peers and %u adresses\n", mlp->c_p, mlp->addr_in_problem);
+
+    if ((((start >= 0) && ((c+1) >= start)) && (c <= end)) || ((c+1) == peers))
+    {
+      GNUNET_assert ((c+1) == mlp->c_p);
+      GNUNET_assert ((c+1) * addresses == mlp->addr_in_problem);
+
+      /* Solving the problem */
+      struct GAS_MLP_SolutionContext ctx;
+
+      if (GNUNET_OK == GAS_mlp_solve_problem(mlp, &ctx))
+      {
+        GNUNET_assert (GNUNET_OK == ctx.lp_result);
+        GNUNET_assert (GNUNET_OK == ctx.mlp_result);
+        if (GNUNET_YES == numeric)
+          printf ("%u;%u;%llu;%llu\n",mlp->c_p, mlp->addr_in_problem, (long long unsigned int) ctx.lp_duration.rel_value, (long long unsigned int) ctx.mlp_duration.rel_value);
+        else
+          GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Problem solved for %u peers with %u address successfully (LP: %llu ms / MLP: %llu ms)\n",
+              mlp->c_p, mlp->addr_in_problem, ctx.lp_duration.rel_value, ctx.mlp_duration.rel_value);
+
+      }
+      else
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Solving problem with %u peers and %u addresses failed\n", peers, addresses);
+    }
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Problem contains %u peers and %u adresses\n", mlp->c_p, mlp->addr_in_problem);
 
-  GNUNET_assert (peers == mlp->c_p);
-  GNUNET_assert (peers * addresses == mlp->addr_in_problem);
-
-  /* Solving the problem */
-  struct GAS_MLP_SolutionContext ctx;
-
-  if (GNUNET_OK == GAS_mlp_solve_problem(mlp, &ctx))
-  {
-    GNUNET_assert (GNUNET_OK == ctx.lp_result);
-    GNUNET_assert (GNUNET_OK == ctx.mlp_result);
-    if (GNUNET_YES == numeric)
-      printf ("%u;%u;%llu;%llu\n",mlp->c_p, mlp->addr_in_problem, (long long unsigned int) ctx.lp_duration.rel_value, (long long unsigned int) ctx.mlp_duration.rel_value);
-    else
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Problem solved successfully (LP: %llu ms / MLP: %llu ms)\n", ctx.lp_duration.rel_value, ctx.mlp_duration.rel_value);
-
-  }
-  else
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Solving problem with %u peers and %u addresses failed\n", peers, addresses);
   if (GNUNET_SCHEDULER_NO_TASK != shutdown_task)
     GNUNET_SCHEDULER_cancel(shutdown_task);
   shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
@@ -216,6 +233,12 @@ main (int argc, char *argv[])
      {'n', "numeric", NULL,
       gettext_noop ("numeric output only"), 0,
       &GNUNET_GETOPT_set_one, &numeric},
+    {'e', "end", NULL,
+     gettext_noop ("end solving problem"), 1,
+     &GNUNET_GETOPT_set_uint, &end},
+     {'s', "start", NULL,
+      gettext_noop ("start solving problem"), 1,
+      &GNUNET_GETOPT_set_uint, &start},
     GNUNET_GETOPT_OPTION_END
   };
 
