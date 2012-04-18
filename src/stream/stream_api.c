@@ -2753,6 +2753,7 @@ GNUNET_STREAM_open (const struct GNUNET_CONFIGURATION_Handle *cfg,
   struct GNUNET_STREAM_Socket *socket;
   struct GNUNET_PeerIdentity own_peer_id;
   enum GNUNET_STREAM_Option option;
+  GNUNET_MESH_ApplicationType ports[] = {app_port, 0};
   va_list vargs;                /* Variable arguments */
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -2790,7 +2791,7 @@ GNUNET_STREAM_open (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                       NULL, /* No inbound tunnel handler */
                                       &tunnel_cleaner, /* FIXME: not required? */
                                       client_message_handlers,
-                                      &app_port); /* We don't get inbound tunnels */
+                                      ports); /* We don't get inbound tunnels */
   if (NULL == socket->mesh)   /* Fail if we cannot connect to mesh */
     {
       GNUNET_free (socket);
@@ -3003,6 +3004,7 @@ GNUNET_STREAM_listen (const struct GNUNET_CONFIGURATION_Handle *cfg,
 {
   /* FIXME: Add variable args for passing configration options? */
   struct GNUNET_STREAM_ListenSocket *lsocket;
+  GNUNET_MESH_ApplicationType ports[] = {app_port, 0};
   struct GNUNET_PeerIdentity our_peer_id;
 
   lsocket = GNUNET_malloc (sizeof (struct GNUNET_STREAM_ListenSocket));
@@ -3017,7 +3019,7 @@ GNUNET_STREAM_listen (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                        &new_tunnel_notify,
                                        &tunnel_cleaner,
                                        server_message_handlers,
-                                       &app_port);
+                                       ports);
   GNUNET_assert (NULL != lsocket->mesh);
   return lsocket;
 }

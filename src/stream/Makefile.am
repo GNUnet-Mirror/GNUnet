@@ -21,13 +21,14 @@ libgnunetstream_la_LDFLAGS = \
 
 check_PROGRAMS = \
  test_stream_2peers \
- test_stream_2peers_halfclose
-# test_stream_local
+ test_stream_2peers_halfclose \
+ test_stream_local
 
 EXTRA_DIST = test_stream_local.conf
 
 if ENABLE_TEST_RUN
-TESTS = $(check_PROGRAMS)
+TESTS = test_stream_2peers \
+ test_stream_2peers_halfclose
 endif
 
 test_stream_2peers_SOURCES = \
