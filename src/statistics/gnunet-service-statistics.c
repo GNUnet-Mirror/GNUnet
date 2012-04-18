@@ -66,6 +66,12 @@ struct WatchEntry
    */
   uint32_t wid;
 
+  /**
+   * Is last_value valid
+   * GNUNET_NO : last_value is n/a, GNUNET_YES: last_value is valid
+   */
+  int last_value_set;
+
 };
 
 
@@ -151,6 +157,12 @@ struct StatsEntry
    * Is this value persistent?
    */
   int persistent;
+
+  /**
+   * Is this value set?
+   * GNUNET_NO : value is n/a, GNUNET_YES: value is valid
+   */
+  int set;
 
 };
 
@@ -462,8 +474,15 @@ notify_change (struct StatsEntry *se)
 
   for (pos = se->we_head; NULL != pos; pos = pos->next)
   {
-    if (pos->last_value == se->value)
-      continue;
+    if (GNUNET_YES == pos->last_value_set)
+    {
+      if (pos->last_value == se->value)
+        continue;
+    }
+    else
+    {
+      pos->last_value_set = GNUNET_YES;
+    }
     wvm.header.type = htons (GNUNET_MESSAGE_TYPE_STATISTICS_WATCH_VALUE);
     wvm.header.size =
       htons (sizeof (struct GNUNET_STATISTICS_WatchValueMessage));
@@ -499,6 +518,7 @@ handle_set (void *cls, struct GNUNET_SERVER_Client *client,
   uint64_t value;
   int64_t delta;
   int changed;
+  int initial_set;
 
   if ( (NULL != client) &&
        (NULL == make_client_entry (client)) )
@@ -532,6 +552,7 @@ handle_set (void *cls, struct GNUNET_SERVER_Client *client,
   {
     if (matches (pos, service, name))
     {
+      initial_set = 0;
       if ((flags & GNUNET_STATISTICS_SETFLAG_RELATIVE) == 0)
       {
         changed = (pos->value != value);
@@ -552,6 +573,11 @@ handle_set (void *cls, struct GNUNET_SERVER_Client *client,
           pos->value += delta;
         }
       }
+      if (GNUNET_NO == pos->set)
+      {
+        pos->set = GNUNET_YES;
+        initial_set = 1;
+      }
       pos->msg->value = GNUNET_htonll (pos->value);
       pos->msg->flags = msg->flags;
       pos->persistent = (0 != (flags & GNUNET_STATISTICS_SETFLAG_PERSISTENT));
@@ -565,7 +591,7 @@ handle_set (void *cls, struct GNUNET_SERVER_Client *client,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Statistic `%s:%s' updated to value %llu.\n", service, name,
                   pos->value);
-      if (changed)
+      if ((changed) || (1 == initial_set))
         notify_change (pos);
       GNUNET_SERVER_receive_done (client, GNUNET_OK);
       return;
@@ -577,7 +603,14 @@ handle_set (void *cls, struct GNUNET_SERVER_Client *client,
   pos->next = start;
   if (((flags & GNUNET_STATISTICS_SETFLAG_RELATIVE) == 0) ||
       (0 < (int64_t) GNUNET_ntohll (msg->value)))
+  {
     pos->value = GNUNET_ntohll (msg->value);
+    pos->set = GNUNET_YES;
+  }
+  else
+  {
+    pos->set = GNUNET_NO;
+  }
   pos->uid = uidgen++;
   pos->persistent = (0 != (flags & GNUNET_STATISTICS_SETFLAG_PERSISTENT));
   pos->msg = (void *) &pos[1];
@@ -652,6 +685,7 @@ handle_watch (void *cls, struct GNUNET_SERVER_Client *client,
                        sizeof (struct GNUNET_STATISTICS_SetMessage) + size);
     pos->next = start;
     pos->uid = uidgen++;
+    pos->set = GNUNET_NO;
     pos->msg = (void *) &pos[1];
     pos->msg->header.size =
         htons (sizeof (struct GNUNET_STATISTICS_SetMessage) + size);
@@ -662,9 +696,13 @@ handle_watch (void *cls, struct GNUNET_SERVER_Client *client,
     pos->name = &pos->service[slen];
     memcpy ((void *) pos->name, name, strlen (name) + 1);
     start = pos;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "New statistic on `%s:%s' with value %llu created.\n", service,
+                name, pos->value);
   }
   we = GNUNET_malloc (sizeof (struct WatchEntry));
   we->client = client;
+  we->last_value_set = GNUNET_NO;
   GNUNET_SERVER_client_keep (client);
   we->wid = ce->max_wid++;
   GNUNET_CONTAINER_DLL_insert (pos->we_head, pos->we_tail, we);
