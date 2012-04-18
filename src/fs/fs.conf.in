@@ -20,7 +20,6 @@ CONTENT_PUSHING = YES
 UNIXPATH = /tmp/gnunet-service-fs.sock
 UNIX_MATCH_UID = NO
 UNIX_MATCH_GID = YES
-# DISABLE_SOCKET_FORWARDING = NO
 # DEBUG = YES
 MAX_PENDING_REQUESTS = 65536
 # Maximum frequency we're allowed to poll the datastore
