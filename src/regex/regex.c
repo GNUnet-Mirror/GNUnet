@@ -663,14 +663,15 @@ automaton_add_state (struct GNUNET_REGEX_Automaton *a,
   a->state_count++;
 }
 
-typedef void (*GNUNET_REGEX_traverse_action)(void *cls, struct
-                                             GNUNET_REGEX_State *s);
+typedef void (*GNUNET_REGEX_traverse_action) (void *cls,
+                                              struct GNUNET_REGEX_State * s);
 
 /**
  * Traverses all states that are reachable from state 's'. Expects
  * the states to be unmarked (s->marked == GNUNET_NO). Performs
  * 'action' on each visited state.
  *
+ * @param cls closure.
  * @param s start state.
  * @param action action to be performed on each state.
  */
@@ -696,6 +697,7 @@ automaton_state_traverse (void *cls, struct GNUNET_REGEX_State *s,
  * Traverses the given automaton from it's start state, visiting all
  * reachable states and calling 'action' on each one of them.
  *
+ * @param cls closure.
  * @param a automaton.
  * @param action action to be performed on each state.
  */
@@ -1188,8 +1190,7 @@ nfa_closure_create (struct GNUNET_REGEX_Automaton *nfa,
  */
 static struct GNUNET_REGEX_StateSet *
 nfa_closure_set_create (struct GNUNET_REGEX_Automaton *nfa,
-                        struct GNUNET_REGEX_StateSet *states,
-                        const char label)
+                        struct GNUNET_REGEX_StateSet *states, const char label)
 {
   struct GNUNET_REGEX_State *s;
   struct GNUNET_REGEX_StateSet *sset;
@@ -1953,9 +1954,8 @@ GNUNET_REGEX_eval (struct GNUNET_REGEX_Automaton *a, const char *string)
  *         to construct the key
  */
 unsigned int
-GNUNET_REGEX_get_first_key (const char *input_string,
-                            unsigned int string_len,
-                            GNUNET_HashCode *key)
+GNUNET_REGEX_get_first_key (const char *input_string, unsigned int string_len,
+                            GNUNET_HashCode * key)
 {
   unsigned int size;
 
@@ -1981,8 +1981,7 @@ GNUNET_REGEX_get_first_key (const char *input_string,
  * @return GNUNET_OK if the proof is valid for the given key
  */
 int
-GNUNET_REGEX_check_proof (const char *proof,
-                          const GNUNET_HashCode *key)
+GNUNET_REGEX_check_proof (const char *proof, const GNUNET_HashCode * key)
 {
   return GNUNET_OK;
 }
@@ -2027,8 +2026,7 @@ state_get_edges (struct GNUNET_REGEX_State *s, struct GNUNET_REGEX_Edge *edges)
  * @param iterator_cls closure.
  */
 static void
-iterate_edge (struct GNUNET_REGEX_State *s,
-              GNUNET_REGEX_KeyIterator iterator,
+iterate_edge (struct GNUNET_REGEX_State *s, GNUNET_REGEX_KeyIterator iterator,
               void *iterator_cls)
 {
   struct Transition *t;
@@ -2041,12 +2039,7 @@ iterate_edge (struct GNUNET_REGEX_State *s,
 
     num_edges = state_get_edges (s, edges);
 
-    iterator (iterator_cls,
-              &s->hash,
-              NULL,
-
-              num_edges,
-              edges);
+    iterator (iterator_cls, &s->hash, NULL, s->accepting, num_edges, edges);
 
 
     for (t = s->transitions_head; NULL != t; t = t->next)

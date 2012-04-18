@@ -140,12 +140,14 @@ GNUNET_REGEX_check_proof (const char *proof,
  * @param cls closure.
  * @param key hash for current state.
  * @param proof proof for current state.
+ * @param accepting GNUNET_YES if this is an accepting state, GNUNET_NO if not.
  * @param num_edges number of edges leaving current state.
  * @param edges edges leaving current state.
  */
 typedef void (*GNUNET_REGEX_KeyIterator)(void *cls,
                                          const GNUNET_HashCode *key,
                                          const char *proof,
+                                         int accepting,
                                          unsigned int num_edges,
                                          const struct GNUNET_REGEX_Edge *edges);
 
