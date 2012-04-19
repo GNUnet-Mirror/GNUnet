@@ -115,11 +115,6 @@ struct Task
   GNUNET_SCHEDULER_TaskIdentifier id;
 
   /**
-   * Identifier of a prerequisite task.
-   */
-  GNUNET_SCHEDULER_TaskIdentifier prereq_id;
-
-  /**
    * Absolute timeout value for the task, or
    * GNUNET_TIME_UNIT_FOREVER_ABS for "no timeout".
    */
@@ -216,13 +211,6 @@ static struct Task *ready[GNUNET_SCHEDULER_PRIORITY_COUNT];
 static GNUNET_SCHEDULER_TaskIdentifier last_id;
 
 /**
- * Highest number so that all tasks with smaller identifiers
- * have already completed.  Also the lowest number of a task
- * still waiting to be executed.
- */
-static GNUNET_SCHEDULER_TaskIdentifier lowest_pending_id;
-
-/**
  * Number of tasks on the ready list.
  */
 static unsigned int ready_count;
@@ -293,60 +281,6 @@ check_priority (enum GNUNET_SCHEDULER_Priority p)
 
 
 /**
- * Is a task with this identifier still pending?  Also updates
- * "lowest_pending_id" as a side-effect (for faster checks in the
- * future), but only if the return value is "GNUNET_NO" (and
- * the "lowest_pending_id" check failed).
- *
- * @param id which task are we checking for
- * @return GNUNET_YES if so, GNUNET_NO if not
- */
-static int
-is_pending (GNUNET_SCHEDULER_TaskIdentifier id)
-{
-  struct Task *pos;
-  enum GNUNET_SCHEDULER_Priority p;
-  GNUNET_SCHEDULER_TaskIdentifier min;
-
-  if (id < lowest_pending_id)
-    return GNUNET_NO;
-  min = -1;                     /* maximum value */
-  pos = pending;
-  while (pos != NULL)
-  {
-    if (pos->id == id)
-      return GNUNET_YES;
-    if (pos->id < min)
-      min = pos->id;
-    pos = pos->next;
-  }
-  pos = pending_timeout;
-  while (pos != NULL)
-  {
-    if (pos->id == id)
-      return GNUNET_YES;
-    if (pos->id < min)
-      min = pos->id;
-    pos = pos->next;
-  }
-  for (p = 0; p < GNUNET_SCHEDULER_PRIORITY_COUNT; p++)
-  {
-    pos = ready[p];
-    while (pos != NULL)
-    {
-      if (pos->id == id)
-        return GNUNET_YES;
-      if (pos->id < min)
-        min = pos->id;
-      pos = pos->next;
-    }
-  }
-  lowest_pending_id = min;
-  return GNUNET_NO;
-}
-
-
-/**
  * Update all sets and timeout for select.
  *
  * @param rs read-set, set to all FDs we would like to read (updated)
@@ -374,12 +308,6 @@ update_sets (struct GNUNET_NETWORK_FDSet *rs, struct GNUNET_NETWORK_FDSet *ws,
   pos = pending;
   while (pos != NULL)
   {
-    if ((pos->prereq_id != GNUNET_SCHEDULER_NO_TASK) &&
-        (GNUNET_YES == is_pending (pos->prereq_id)))
-    {
-      pos = pos->next;
-      continue;
-    }
     if (pos->timeout.abs_value != GNUNET_TIME_UNIT_FOREVER_ABS.abs_value)
     {
       to = GNUNET_TIME_absolute_get_difference (now, pos->timeout);
@@ -459,15 +387,7 @@ is_ready (struct Task *task, struct GNUNET_TIME_Absolute now,
     reason |= GNUNET_SCHEDULER_REASON_WRITE_READY;
   if (reason == 0)
     return GNUNET_NO;           /* not ready */
-  if (task->prereq_id != GNUNET_SCHEDULER_NO_TASK)
-  {
-    if (GNUNET_YES == is_pending (task->prereq_id))
-    {
-      task->reason = reason;
-      return GNUNET_NO;         /* prereq waiting */
-    }
-    reason |= GNUNET_SCHEDULER_REASON_PREREQ_DONE;
-  }
+  reason |= GNUNET_SCHEDULER_REASON_PREREQ_DONE;  
   task->reason = reason;
   return GNUNET_YES;
 }
@@ -1373,7 +1293,6 @@ add_without_sets (struct GNUNET_TIME_Relative delay,
 #if PROFILE_DELAYS
   t->start_time = GNUNET_TIME_absolute_get ();
 #endif
-  t->prereq_id = GNUNET_SCHEDULER_NO_TASK;
   t->timeout = GNUNET_TIME_relative_to_absolute (delay);
   t->priority = check_priority ((priority == GNUNET_SCHEDULER_PRIORITY_KEEP) ? current_priority : priority);
   t->lifeness = current_lifeness;
