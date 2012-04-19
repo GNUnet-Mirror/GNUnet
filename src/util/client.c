@@ -842,11 +842,10 @@ GNUNET_CLIENT_service_test (const char *service,
   conn->test_cb = task;
   conn->test_cb_cls = task_cls;
   conn->test_deadline = GNUNET_TIME_relative_to_absolute (timeout);
-  conn->th = GNUNET_CLIENT_notify_transmit_ready (conn,
-						  sizeof (struct GNUNET_MessageHeader),
-						  timeout, GNUNET_YES, &write_test,
-						  conn);
-  if (NULL == conn->th)
+  if (NULL == GNUNET_CLIENT_notify_transmit_ready (conn,
+						   sizeof (struct GNUNET_MessageHeader),
+						   timeout, GNUNET_YES, &write_test,
+						   conn))
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
          _("Failure to transmit request to service `%s'\n"), service);
