@@ -490,6 +490,12 @@ handle_dht_local_put (void *cls, struct GNUNET_SERVER_Client *client,
                              peer_bf, &dht_msg->key, 0, NULL, &dht_msg[1],
                              size -
                              sizeof (struct GNUNET_DHT_ClientPutMessage));
+  GDS_CLIENTS_process_monitor (GNUNET_MESSAGE_TYPE_DHT_MONITOR_PUT,
+    GNUNET_TIME_absolute_ntoh (dht_msg->expiration), &dht_msg->key,
+    1, GDS_NEIGHBOURS_get_id(), 0, NULL,
+    ntohl (dht_msg->desired_replication_level),
+    ntohl (dht_msg->type), &(dht_msg[1].header),
+    size - sizeof (struct GNUNET_DHT_ClientPutMessage));
   GNUNET_CONTAINER_bloomfilter_free (peer_bf);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
@@ -548,6 +554,11 @@ handle_dht_local_get (void *cls, struct GNUNET_SERVER_Client *client,
   cqr->type = ntohl (get->type);
   GNUNET_CONTAINER_multihashmap_put (forward_map, &get->key, cqr,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+  GDS_CLIENTS_process_monitor (GNUNET_MESSAGE_TYPE_DHT_MONITOR_GET,
+    GNUNET_TIME_UNIT_FOREVER_ABS, &get->key,
+    0, NULL, 1, GDS_NEIGHBOURS_get_id(),
+    ntohl (get->desired_replication_level),
+    ntohl (get->type), NULL, 0);
   /* start remote requests */
   if (GNUNET_SCHEDULER_NO_TASK != retry_task)
     GNUNET_SCHEDULER_cancel (retry_task);

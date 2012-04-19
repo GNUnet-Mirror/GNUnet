@@ -1826,6 +1826,7 @@ handle_dht_p2p_get (void *cls, const struct GNUNET_PeerIdentity *peer,
                               1, GNUNET_NO);
   }
 
+  /* FIXME Path */
   GDS_CLIENTS_process_monitor (GNUNET_MESSAGE_TYPE_DHT_MONITOR_GET,
     GNUNET_TIME_UNIT_FOREVER_ABS, &get->key, 0, NULL, 0, NULL,
     ntohl (get->desired_replication_level), type, NULL, 0);
@@ -2023,6 +2024,17 @@ GDS_NEIGHBOURS_done ()
     GNUNET_SCHEDULER_cancel (find_peer_task);
     find_peer_task = GNUNET_SCHEDULER_NO_TASK;
   }
+}
+
+/**
+ * Get the ID of the local node.
+ * 
+ * @return identity of the local node
+ */
+struct GNUNET_PeerIdentity *
+GDS_NEIGHBOURS_get_id ()
+{
+    return &my_identity;
 }
 
 

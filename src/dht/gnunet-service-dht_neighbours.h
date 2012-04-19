@@ -135,4 +135,13 @@ void
 GDS_NEIGHBOURS_done (void);
 
 
+/**
+ * Get the ID of the local node.
+ * 
+ * @return identity of the local node
+ */
+struct GNUNET_PeerIdentity *
+GDS_NEIGHBOURS_get_id ();
+
+
 #endif
