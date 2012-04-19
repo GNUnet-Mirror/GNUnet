@@ -123,6 +123,7 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param put_path peers on the PUT path (or NULL if not recorded).
  * @param put_path_length number of entries in get_path.
  * @param desired_replication_level Desired replication level.
+ * @param options Options of the route (record, demultiplex, etc)
  * @param type Type of the result/request.
  * @param data Pointer to the result data.
  * @param size Number of bytes in data.
