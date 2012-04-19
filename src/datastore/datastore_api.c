@@ -270,6 +270,22 @@ GNUNET_DATASTORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
 
 
 /**
+ * Task used by 'transmit_drop' to disconnect the datastore.
+ *
+ * @param cls the datastore handle
+ * @param tc scheduler context
+ */
+static void
+disconnect_after_drop (void *cls,
+		       const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_DATASTORE_Handle *h = cls;
+
+  GNUNET_DATASTORE_disconnect (h, GNUNET_NO);
+}
+
+
+/**
  * Transmit DROP message to datastore service.
  *
  * @param cls the 'struct GNUNET_DATASTORE_Handle'
@@ -287,14 +303,16 @@ transmit_drop (void *cls, size_t size, void *buf)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
          _("Failed to transmit request to drop database.\n"));
-    GNUNET_DATASTORE_disconnect (h, GNUNET_NO);
+    GNUNET_SCHEDULER_add_continuation (&disconnect_after_drop, h,
+				       GNUNET_SCHEDULER_REASON_PREREQ_DONE);
     return 0;
   }
   GNUNET_assert (size >= sizeof (struct GNUNET_MessageHeader));
   hdr = buf;
   hdr->size = htons (sizeof (struct GNUNET_MessageHeader));
   hdr->type = htons (GNUNET_MESSAGE_TYPE_DATASTORE_DROP);
-  GNUNET_DATASTORE_disconnect (h, GNUNET_NO);
+  GNUNET_SCHEDULER_add_continuation (&disconnect_after_drop, h,
+				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
   return sizeof (struct GNUNET_MessageHeader);
 }
 
