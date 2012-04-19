@@ -884,15 +884,15 @@ GNUNET_CONNECTION_create_from_sockaddr (int af_family,
  * Note that a connection that is still trying to connect is considered
  * valid.
  *
- * @param sock connection to check
+ * @param connection connection to check
  * @return GNUNET_YES if valid, GNUNET_NO otherwise
  */
 int
-GNUNET_CONNECTION_check (struct GNUNET_CONNECTION_Handle *sock)
+GNUNET_CONNECTION_check (struct GNUNET_CONNECTION_Handle *connection)
 {
-  if ((sock->ap_head != NULL) || (sock->dns_active != NULL))
+  if ((connection->ap_head != NULL) || (connection->dns_active != NULL))
     return GNUNET_YES;          /* still trying to connect */
-  return (sock->sock == NULL) ? GNUNET_NO : GNUNET_YES;
+  return (connection->sock == NULL) ? GNUNET_NO : GNUNET_YES;
 }
 
 
