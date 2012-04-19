@@ -140,7 +140,7 @@ struct GSF_LocalClient
   /**
    * Context for sending replies.
    */
-  struct GNUNET_CONNECTION_TransmitHandle *th;
+  struct GNUNET_SERVER_TransmitHandle *th;
 
 };
 
@@ -498,7 +498,7 @@ GSF_client_disconnect_handler_ (void *cls, struct GNUNET_SERVER_Client *client)
   }
   if (pos->th != NULL)
   {
-    GNUNET_CONNECTION_notify_transmit_ready_cancel (pos->th);
+    GNUNET_SERVER_notify_transmit_ready_cancel (pos->th);
     pos->th = NULL;
   }
   GSF_handle_local_client_disconnect_ (pos);

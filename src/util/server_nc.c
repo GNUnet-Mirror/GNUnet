@@ -92,7 +92,7 @@ struct ClientList
   /**
    * Handle for pending transmission request to the client (or NULL).
    */
-  struct GNUNET_CONNECTION_TransmitHandle *th;
+  struct GNUNET_SERVER_TransmitHandle *th;
 
   /**
    * Head of linked list of requests queued for transmission.
@@ -187,7 +187,7 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
   }
   if (pos->th != NULL)
   {
-    GNUNET_CONNECTION_notify_transmit_ready_cancel (pos->th);
+    GNUNET_SERVER_notify_transmit_ready_cancel (pos->th);
     pos->th = NULL;
   }
   GNUNET_SERVER_client_drop (client);

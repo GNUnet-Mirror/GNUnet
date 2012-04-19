@@ -55,11 +55,15 @@ extern "C"
  */
 struct GNUNET_SERVER_Handle;
 
-
 /**
  * @brief opaque handle for a client of the server
  */
 struct GNUNET_SERVER_Client;
+
+/**
+ * @brief opaque handle server returns for aborting transmission to a client.
+ */
+struct GNUNET_SERVER_TransmitHandle;
 
 
 /**
@@ -190,15 +194,24 @@ GNUNET_SERVER_add_handlers (struct GNUNET_SERVER_Handle *server,
  * @param callback_cls closure for callback
  * @return non-NULL if the notify callback was queued; can be used
  *           to cancel the request using
- *           GNUNET_CONNECTION_notify_transmit_ready_cancel.
+ *           GNUNET_SERVER_notify_transmit_ready_cancel.
  *         NULL if we are already going to notify someone else (busy)
  */
-struct GNUNET_CONNECTION_TransmitHandle *
+struct GNUNET_SERVER_TransmitHandle *
 GNUNET_SERVER_notify_transmit_ready (struct GNUNET_SERVER_Client *client,
                                      size_t size,
                                      struct GNUNET_TIME_Relative timeout,
                                      GNUNET_CONNECTION_TransmitReadyNotify
                                      callback, void *callback_cls);
+
+
+/**
+ * Abort transmission request.
+ *
+ * @param th request to abort
+ */
+void
+GNUNET_SERVER_notify_transmit_ready_cancel (struct GNUNET_SERVER_TransmitHandle *th);
 
 
 /**

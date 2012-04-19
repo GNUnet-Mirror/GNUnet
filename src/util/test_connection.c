@@ -103,6 +103,7 @@ receive_check (void *cls, const void *buf, size_t available,
 #endif
     *ok = 0;
     GNUNET_CONNECTION_destroy (asock);
+    GNUNET_CONNECTION_destroy (csock);
   }
 }
 
@@ -142,7 +143,6 @@ make_hello (void *cls, size_t size, void *buf)
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test destroys client socket\n");
 #endif
-  GNUNET_CONNECTION_destroy (csock);
   return 12;
 }
 

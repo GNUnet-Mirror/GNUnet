@@ -41,18 +41,18 @@ static struct GNUNET_SERVICE_Context *sctx;
 
 static int ok = 1;
 
+static struct GNUNET_CLIENT_Connection *client;
+
 
 static size_t
 build_msg (void *cls, size_t size, void *buf)
 {
-  struct GNUNET_CLIENT_Connection *client = cls;
   struct GNUNET_MessageHeader *msg = buf;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Client connected, transmitting\n");
   GNUNET_assert (size >= sizeof (struct GNUNET_MessageHeader));
   msg->type = htons (MY_TYPE);
   msg->size = htons (sizeof (struct GNUNET_MessageHeader));
-  GNUNET_CLIENT_disconnect (client);
   return sizeof (struct GNUNET_MessageHeader);
 }
 
@@ -72,23 +72,24 @@ ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_CLIENT_notify_transmit_ready (client,
                                        sizeof (struct GNUNET_MessageHeader),
                                        GNUNET_TIME_UNIT_SECONDS, GNUNET_NO,
-                                       &build_msg, client);
+                                       &build_msg, NULL);
 }
 
 
 static void
 do_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  GNUNET_CLIENT_disconnect (client);
   GNUNET_SERVICE_stop (sctx);
 }
 
 
 static void
-recv_cb (void *cls, struct GNUNET_SERVER_Client *client,
+recv_cb (void *cls, struct GNUNET_SERVER_Client *sc,
          const struct GNUNET_MessageHeader *message)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Receiving client message...\n");
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  GNUNET_SERVER_receive_done (sc, GNUNET_OK);
   if (sctx != NULL)
     GNUNET_SCHEDULER_add_now (&do_stop, NULL);
   else
@@ -146,7 +147,6 @@ static void
 ready6 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
-  struct GNUNET_CLIENT_Connection *client;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "V6 ready\n");
   GNUNET_assert (0 != (tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE));
@@ -156,7 +156,7 @@ ready6 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_CLIENT_notify_transmit_ready (client,
                                        sizeof (struct GNUNET_MessageHeader),
                                        GNUNET_TIME_UNIT_SECONDS, GNUNET_NO,
-                                       &build_msg, client);
+                                       &build_msg, NULL);
 }
 
 static void

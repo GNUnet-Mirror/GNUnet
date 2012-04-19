@@ -230,10 +230,9 @@ GNUNET_CONNECTION_get_address (struct GNUNET_CONNECTION_Handle *connection,
 
 
 /**
- * Close the connection and free associated resources.  A pending
- * request for transmission is automatically cancelled (we might
- * want to change this in the future).  We require that there
- * are no active pending requests for reading from the connection.
+ * Close the connection and free associated resources.  There must
+ * not be any pending requests for reading or writing to the
+ * connection at this time.
  *
  * @param connection connection to destroy
  */

@@ -139,10 +139,48 @@ struct GNUNET_SERVER_Handle
    */
   int clients_ignore_shutdown;
 
+  /**
+   * Alternative function to create a MST instance.
+   */
   GNUNET_SERVER_MstCreateCallback mst_create;
+
+  /**
+   * Alternative function to destroy a MST instance.
+   */
   GNUNET_SERVER_MstDestroyCallback mst_destroy;
+
+  /**
+   * Alternative function to give data to a MST instance.
+   */
   GNUNET_SERVER_MstReceiveCallback mst_receive;
+
+  /**
+   * Closure for 'mst_'-callbacks.
+   */
   void *mst_cls;
+};
+
+
+/**
+ * Handle server returns for aborting transmission to a client.
+ */
+struct GNUNET_SERVER_TransmitHandle
+{
+  /**
+   * Function to call to get the message.
+   */
+  GNUNET_CONNECTION_TransmitReadyNotify callback;
+
+  /**
+   * Closure for 'callback'
+   */
+  void *callback_cls;
+
+  /**
+   * Active connection transmission handle.
+   */
+  struct GNUNET_CONNECTION_TransmitHandle *cth;
+
 };
 
 
@@ -194,14 +232,10 @@ struct GNUNET_SERVER_Client
   struct GNUNET_TIME_Absolute last_activity;
 
   /**
-   *
+   * Transmission handle we return for this client from
+   * GNUNET_SERVER_notify_transmit_ready.
    */
-  GNUNET_CONNECTION_TransmitReadyNotify callback;
-
-  /**
-   * callback
-   */
-  void *callback_cls;
+  struct GNUNET_SERVER_TransmitHandle th;
 
   /**
    * After how long should an idle connection time
@@ -966,9 +1000,7 @@ GNUNET_SERVER_connect_socket (struct GNUNET_SERVER_Handle *server,
   client->next = server->clients;
   client->idle_timeout = server->idle_timeout;
   server->clients = client;
-  client->callback = NULL;
-  client->callback_cls = NULL;
-  if (server->mst_create != NULL)
+  if (NULL != server->mst_create)
     client->mst =
         server->mst_create (server->mst_cls, client);
   else
@@ -1231,9 +1263,13 @@ static size_t
 transmit_ready_callback_wrapper (void *cls, size_t size, void *buf)
 {
   struct GNUNET_SERVER_Client *client = cls;
+  GNUNET_CONNECTION_TransmitReadyNotify callback;
   size_t ret;
 
-  ret = client->callback (client->callback_cls, size, buf);
+  client->th.cth = NULL;
+  callback = client->th.callback;
+  client->th.callback = NULL;
+  ret = callback (client->th.callback_cls, size, buf);
   if (ret > 0)
     client->last_activity = GNUNET_TIME_absolute_get ();
   return ret;
@@ -1252,22 +1288,39 @@ transmit_ready_callback_wrapper (void *cls, size_t size, void *buf)
  * @param callback_cls closure for callback
  * @return non-NULL if the notify callback was queued; can be used
  *           to cancel the request using
- *           GNUNET_CONNECTION_notify_transmit_ready_cancel.
+ *           GNUNET_SERVER_notify_transmit_ready_cancel.
  *         NULL if we are already going to notify someone else (busy)
  */
-struct GNUNET_CONNECTION_TransmitHandle *
+struct GNUNET_SERVER_TransmitHandle *
 GNUNET_SERVER_notify_transmit_ready (struct GNUNET_SERVER_Client *client,
                                      size_t size,
                                      struct GNUNET_TIME_Relative timeout,
                                      GNUNET_CONNECTION_TransmitReadyNotify
                                      callback, void *callback_cls)
 {
-  client->callback_cls = callback_cls;
-  client->callback = callback;
-  return GNUNET_CONNECTION_notify_transmit_ready (client->connection, size,
-                                                  timeout,
-                                                  &transmit_ready_callback_wrapper,
-                                                  client);
+  if (NULL != client->th.callback)
+    return NULL;
+  client->th.callback_cls = callback_cls;
+  client->th.callback = callback;
+  client->th.cth = GNUNET_CONNECTION_notify_transmit_ready (client->connection, size,
+							    timeout,
+							    &transmit_ready_callback_wrapper,
+							    client);
+  return &client->th;
+}
+
+
+/**
+ * Abort transmission request.
+ *
+ * @param th request to abort
+ */
+void
+GNUNET_SERVER_notify_transmit_ready_cancel (struct GNUNET_SERVER_TransmitHandle *th)
+{
+  GNUNET_CONNECTION_notify_transmit_ready_cancel (th->cth);
+  th->cth = NULL;
+  th->callback = NULL;
 }
 
 

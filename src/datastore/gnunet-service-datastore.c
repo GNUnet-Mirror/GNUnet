@@ -250,7 +250,7 @@ struct TransmitCallbackContext
   /**
    * Handle for the transmission request.
    */
-  struct GNUNET_CONNECTION_TransmitHandle *th;
+  struct GNUNET_SERVER_TransmitHandle *th;
 
   /**
    * Client that we are transmitting to.
@@ -1409,7 +1409,7 @@ cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_CONTAINER_DLL_remove (tcc_head, tcc_tail, tcc);
     if (tcc->th != NULL)
     {
-      GNUNET_CONNECTION_notify_transmit_ready_cancel (tcc->th);
+      GNUNET_SERVER_notify_transmit_ready_cancel (tcc->th);
       GNUNET_SERVER_client_drop (tcc->client);
     }
     GNUNET_free (tcc->msg);

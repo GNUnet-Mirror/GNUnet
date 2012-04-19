@@ -267,7 +267,7 @@ struct Session
   /**
    * Handle for pending transmission request.
    */
-  struct GNUNET_CONNECTION_TransmitHandle *transmit_handle;
+  struct GNUNET_SERVER_TransmitHandle *transmit_handle;
 
   /**
    * To whom are we talking to (set to our identity
@@ -919,7 +919,7 @@ disconnect_session (struct Session *session)
   /* clean up state */
   if (session->transmit_handle != NULL)
   {
-    GNUNET_CONNECTION_notify_transmit_ready_cancel (session->transmit_handle);
+    GNUNET_SERVER_notify_transmit_ready_cancel (session->transmit_handle);
     session->transmit_handle = NULL;
   }
   session->plugin->env->session_end (session->plugin->env->cls,

@@ -62,12 +62,8 @@ enum ConnectContinuations
     /**
      * Call "transmit_ready".
      */
-  COCO_TRANSMIT_READY = 2,
+  COCO_TRANSMIT_READY = 2
 
-    /**
-     * Call "destroy_continuation".
-     */
-  COCO_DESTROY_CONTINUATION = 4
 };
 
 
@@ -241,11 +237,6 @@ struct GNUNET_CONNECTION_Handle
    * Write task that we may need to wait for.
    */
   GNUNET_SCHEDULER_TaskIdentifier write_task;
-
-  /**
-   * Destroy task (if already scheduled).
-   */
-  GNUNET_SCHEDULER_TaskIdentifier destroy_task;
 
   /**
    * Handle to a pending DNS lookup request.
@@ -515,96 +506,6 @@ receive_again (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
- * Scheduler let us know that the connect task is finished (or was
- * cancelled due to shutdown).  Now really clean up.
- *
- * @param cls our "struct GNUNET_CONNECTION_Handle *"
- * @param tc unused
- */
-static void
-destroy_continuation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct GNUNET_CONNECTION_Handle *connection = cls;
-  GNUNET_CONNECTION_TransmitReadyNotify notify;
-  struct AddressProbe *pos;
-
-  connection->destroy_task = GNUNET_SCHEDULER_NO_TASK;
-  GNUNET_assert (connection->dns_active == NULL);
-  if (0 != (connection->ccs & COCO_TRANSMIT_READY))
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Destroy waits for CCS-TR to be done (%p)\n",
-         connection);
-    connection->ccs |= COCO_DESTROY_CONTINUATION;
-    return;
-  }
-  if (connection->write_task != GNUNET_SCHEDULER_NO_TASK)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Destroy waits for write_task to be done (%p)\n", connection);
-    GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == connection->destroy_task);
-    connection->destroy_task =
-        GNUNET_SCHEDULER_add_after (connection->write_task, &destroy_continuation,
-                                    connection);
-    return;
-  }
-  if (0 != (connection->ccs & COCO_RECEIVE_AGAIN))
-  {
-    connection->ccs |= COCO_DESTROY_CONTINUATION;
-    return;
-  }
-  if (connection->sock != NULL)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Shutting down connection (%p)\n", connection);
-    if (connection->persist != GNUNET_YES)
-    {
-      if ((GNUNET_YES != GNUNET_NETWORK_socket_shutdown (connection->sock, SHUT_RDWR))
-          && (errno != ENOTCONN) && (errno != ECONNRESET))
-        LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "shutdown");
-    }
-  }
-  if (connection->read_task != GNUNET_SCHEDULER_NO_TASK)
-  {
-    GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == connection->destroy_task);
-    connection->destroy_task =
-        GNUNET_SCHEDULER_add_after (connection->read_task, &destroy_continuation,
-                                    connection);
-    return;
-  }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Destroy actually runs (%p)!\n", connection);
-  while (NULL != (pos = connection->ap_head))
-  {
-    GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (pos->sock));
-    GNUNET_SCHEDULER_cancel (pos->task);
-    GNUNET_CONTAINER_DLL_remove (connection->ap_head, connection->ap_tail, pos);
-    GNUNET_free (pos);
-  }
-  GNUNET_assert (connection->nth.timeout_task == GNUNET_SCHEDULER_NO_TASK);
-  GNUNET_assert (connection->ccs == COCO_NONE);
-  if (NULL != (notify = connection->nth.notify_ready))
-  {
-    connection->nth.notify_ready = NULL;
-    notify (connection->nth.notify_ready_cls, 0, NULL);
-  }
-
-  if (connection->sock != NULL)
-  {
-    if (connection->persist != GNUNET_YES)
-      GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (connection->sock));
-    else
-      GNUNET_free (connection->sock); /* at least no memory leak (we deliberately
-                                 * leak the socket in this special case) ... */
-  }
-  GNUNET_free_non_null (connection->addr);
-  GNUNET_free_non_null (connection->hostname);
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == connection->destroy_task);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Freeing memory of connection %p.\n", connection);
-  GNUNET_free (connection->write_buffer);
-  GNUNET_free (connection);
-}
-
-
-
-/**
  * See if we are now connected.  If not, wait longer for
  * connect to succeed.  If connected, we should be able
  * to write now as well, unless we timed out.
@@ -654,14 +555,6 @@ connect_fail_continuation (struct GNUNET_CONNECTION_Handle *h)
     GNUNET_assert (h->write_task == GNUNET_SCHEDULER_NO_TASK);
     h->write_task = GNUNET_SCHEDULER_add_now (&transmit_ready, h);
   }
-  if (0 != (h->ccs & COCO_DESTROY_CONTINUATION))
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "connect_fail_continuation runs destroy_continuation (%p)\n", h);
-    h->ccs -= COCO_DESTROY_CONTINUATION;
-    GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == h->destroy_task);
-    h->destroy_task = GNUNET_SCHEDULER_add_now (&destroy_continuation, h);
-  }
 }
 
 
@@ -698,14 +591,6 @@ connect_success_continuation (struct GNUNET_CONNECTION_Handle *connection)
         GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_absolute_get_remaining
                                         (connection->nth.transmit_timeout), connection->sock,
                                         &transmit_ready, connection);
-  }
-  if (0 != (connection->ccs & COCO_DESTROY_CONTINUATION))
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "connect_success_continuation runs destroy_continuation (%p)\n", connection);
-    connection->ccs -= COCO_DESTROY_CONTINUATION;
-    GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == connection->destroy_task);
-    connection->destroy_task = GNUNET_SCHEDULER_add_now (&destroy_continuation, connection);
   }
 }
 
@@ -1012,16 +897,19 @@ GNUNET_CONNECTION_check (struct GNUNET_CONNECTION_Handle *sock)
 
 
 /**
- * Close the connection and free associated resources.  A pending
- * request for transmission is automatically cancelled (we might
- * want to change this in the future).  We require that there
- * are no active pending requests for reading from the connection.
+ * Close the connection and free associated resources.  There must
+ * not be any pending requests for reading or writing to the
+ * connection at this time.
  *
  * @param connection connection to destroy
  */
 void
 GNUNET_CONNECTION_destroy (struct GNUNET_CONNECTION_Handle *connection)
 {
+  struct AddressProbe *pos;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Shutting down connection (%p)\n", connection);
+  GNUNET_assert (NULL == connection->nth.notify_ready);
   GNUNET_assert (NULL == connection->receiver);
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == connection->read_task);
   if (connection->write_task != GNUNET_SCHEDULER_NO_TASK)
@@ -1030,14 +918,49 @@ GNUNET_CONNECTION_destroy (struct GNUNET_CONNECTION_Handle *connection)
     connection->write_task = GNUNET_SCHEDULER_NO_TASK;
     connection->write_buffer_off = 0;
   }
+  if (connection->read_task != GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel (connection->read_task);
+    connection->read_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  if (connection->nth.timeout_task != GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel (connection->nth.timeout_task);
+    connection->nth.timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   connection->nth.notify_ready = NULL;
-  if (connection->dns_active != NULL)
+  if (NULL != connection->dns_active)
   {
     GNUNET_RESOLVER_request_cancel (connection->dns_active);
     connection->dns_active = NULL;
   }
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == connection->destroy_task);
-  connection->destroy_task = GNUNET_SCHEDULER_add_now (&destroy_continuation, connection);
+  while (NULL != (pos = connection->ap_head))
+  {
+    GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (pos->sock));
+    GNUNET_SCHEDULER_cancel (pos->task);
+    GNUNET_CONTAINER_DLL_remove (connection->ap_head, connection->ap_tail, pos);
+    GNUNET_free (pos);
+  }
+  if ( (NULL != connection->sock) &&
+       (connection->persist != GNUNET_YES) )
+  {
+    if ((GNUNET_YES != GNUNET_NETWORK_socket_shutdown (connection->sock, SHUT_RDWR)) && 
+	(errno != ENOTCONN) && 
+	(errno != ECONNRESET) )
+      LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "shutdown");    
+  }
+  if (connection->sock != NULL)
+  {
+    if (connection->persist != GNUNET_YES)
+      GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (connection->sock));
+    else
+      GNUNET_free (connection->sock); /* at least no memory leak (we deliberately
+				       * leak the socket in this special case) ... */
+  }
+  GNUNET_free_non_null (connection->addr);
+  GNUNET_free_non_null (connection->hostname);
+  GNUNET_free (connection->write_buffer);
+  GNUNET_free (connection);
 }
 
 
@@ -1045,15 +968,15 @@ GNUNET_CONNECTION_destroy (struct GNUNET_CONNECTION_Handle *connection)
  * Tell the receiver callback that a timeout was reached.
  */
 static void
-signal_timeout (struct GNUNET_CONNECTION_Handle *sh)
+signal_timeout (struct GNUNET_CONNECTION_Handle *connection)
 {
   GNUNET_CONNECTION_Receiver receiver;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Network signals time out to receiver (%p)!\n",
-       sh);
-  GNUNET_assert (NULL != (receiver = sh->receiver));
-  sh->receiver = NULL;
-  receiver (sh->receiver_cls, NULL, 0, NULL, 0, 0);
+       connection);
+  GNUNET_assert (NULL != (receiver = connection->receiver));
+  connection->receiver = NULL;
+  receiver (connection->receiver_cls, NULL, 0, NULL, 0, 0);
 }
 
 
@@ -1061,13 +984,13 @@ signal_timeout (struct GNUNET_CONNECTION_Handle *sh)
  * Tell the receiver callback that we had an IO error.
  */
 static void
-signal_error (struct GNUNET_CONNECTION_Handle *sh, int errcode)
+signal_error (struct GNUNET_CONNECTION_Handle *connection, int errcode)
 {
   GNUNET_CONNECTION_Receiver receiver;
 
-  GNUNET_assert (NULL != (receiver = sh->receiver));
-  sh->receiver = NULL;
-  receiver (sh->receiver_cls, NULL, 0, sh->addr, sh->addrlen, errcode);
+  GNUNET_assert (NULL != (receiver = connection->receiver));
+  connection->receiver = NULL;
+  receiver (connection->receiver_cls, NULL, 0, connection->addr, connection->addrlen, errcode);
 }
 
 
