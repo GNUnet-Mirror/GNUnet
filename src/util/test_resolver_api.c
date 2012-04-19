@@ -64,10 +64,8 @@ check_localhost_num (void *cls, const char *hostname)
     return;
   if (0 == strcmp (hostname, "127.0.0.1"))
   {
-#if DEBUG_RESOLVER
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received correct hostname `%s'.\n",
                 hostname);
-#endif
     (*ok) &= ~4;
   }
   else
@@ -88,10 +86,8 @@ check_localhost (void *cls, const char *hostname)
     return;
   if (0 == strcmp (hostname, "localhost"))
   {
-#if DEBUG_RESOLVER
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received correct hostname `%s'.\n",
                 hostname);
-#endif
     (*ok) &= ~2;
   }
   else
@@ -113,9 +109,7 @@ check_127 (void *cls, const struct sockaddr *sa, socklen_t salen)
   GNUNET_assert (sizeof (struct sockaddr_in) == salen);
   if (sai->sin_addr.s_addr == htonl (INADDR_LOOPBACK))
   {
-#if DEBUG_RESOLVER
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received correct address.\n");
-#endif
     (*ok) &= ~1;
   }
   else
@@ -142,10 +136,8 @@ check_local_fqdn (void *cls, const char *gnunet_fqdn)
                          "gethostname");
     return;
   }
-#if DEBUG_RESOLVER
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Resolving our FQDN `%s'\n"),
               hostname);
-#endif
   host = gethostbyname (hostname);
   if (NULL == host)
   {
@@ -180,18 +172,14 @@ check_rootserver_ip (void *cls, const struct sockaddr *sa, socklen_t salen)
 
   if (0 == strcmp (inet_ntoa (sai->sin_addr), ROOTSERVER_IP))
   {
-#if DEBUG_RESOLVER
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Received correct rootserver ip address.\n");
-#endif
     (*ok) &= ~1;
   }
   else
   {
-#if DEBUG_RESOLVER
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Received incorrect rootserver ip address.\n");
-#endif
     GNUNET_break (0);
   }
 }
@@ -206,10 +194,8 @@ check_rootserver_name (void *cls, const char *hostname)
 
   if (0 == strcmp (hostname, ROOTSERVER_NAME))
   {
-#if DEBUG_RESOLVER
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Received correct rootserver hostname `%s'.\n", hostname);
-#endif
     (*ok) &= ~2;
   }
   else
@@ -270,10 +256,8 @@ run (void *cls, char *const *args, const char *cfgfile,
     count_ips++;
   if (count_ips > 1)
   {
-#if DEBUG_RESOLVER
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "IP received range for root name server, but a root name server has only 1 IP\n");
-#endif
     GNUNET_break (0);
   }
 
@@ -286,11 +270,8 @@ run (void *cls, char *const *args, const char *cfgfile,
                 "IP received and IP for root name server differ\n");
     GNUNET_break (0);
   }
-#if DEBUG_RESOLVER
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "System's own forward name resolution is working\n");
-#endif
-
   /* Resolve the same using GNUNET */
   GNUNET_RESOLVER_ip_get (ROOTSERVER_NAME, AF_INET, timeout,
                           &check_rootserver_ip, cls);
@@ -305,10 +286,8 @@ run (void *cls, char *const *args, const char *cfgfile,
   rootserver->h_name = "";
   if (1 != inet_pton (AF_INET, ROOTSERVER_IP, &rootserver_addr))
   {
-#if DEBUG_RESOLVER
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Could not transform root name server IP address\n");
-#endif
     GNUNET_break (0);
   }
 
@@ -326,19 +305,14 @@ run (void *cls, char *const *args, const char *cfgfile,
   {
     if (0 != strcmp (rootserver->h_name, ROOTSERVER_NAME))
     {
-#if DEBUG_RESOLVER
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Received hostname and hostname for root name server differ\n");
-#endif
       GNUNET_break (0);
     }
   }
 
-#if DEBUG_RESOLVER
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "System's own reverse name resolution is working\n");
-#endif
-
   /* Resolve the same using GNUNET */
   memset (&sa, 0, sizeof (sa));
   sa.sin_family = AF_INET;
