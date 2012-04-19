@@ -943,11 +943,12 @@ static size_t
 client_notify (void *cls, size_t size, void *buf)
 {
   struct GNUNET_CLIENT_TransmitHandle *th = cls;
+  struct GNUNET_CLIENT_Connection *sock = th->sock;
   size_t ret;
   struct GNUNET_TIME_Relative delay;
 
   th->th = NULL;
-  th->sock->th = NULL;
+  sock->th = NULL;
   if (buf == NULL)
   {
     delay = GNUNET_TIME_absolute_get_remaining (th->timeout);
@@ -967,19 +968,24 @@ client_notify (void *cls, size_t size, void *buf)
     /* auto-retry */
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Failed to connect to `%s', automatically trying again.\n",
-         th->sock->service_name);
-    GNUNET_CONNECTION_destroy (th->sock->sock);
-    th->sock->sock = NULL;
-    delay = GNUNET_TIME_relative_min (delay, th->sock->back_off);
-    th->sock->back_off =
+         sock->service_name);
+    if (sock->in_receive == GNUNET_YES)
+    {
+      GNUNET_CONNECTION_receive_cancel (sock->sock);
+      sock->in_receive = GNUNET_NO;
+    }    
+    GNUNET_CONNECTION_destroy (sock->sock);
+    sock->sock = NULL;
+    delay = GNUNET_TIME_relative_min (delay, sock->back_off);
+    sock->back_off =
         GNUNET_TIME_relative_min (GNUNET_TIME_relative_multiply
-                                  (th->sock->back_off, 2),
+                                  (sock->back_off, 2),
                                   GNUNET_TIME_UNIT_SECONDS);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Transmission failed %u times, trying again in %llums.\n",
          MAX_ATTEMPTS - th->attempts_left,
          (unsigned long long) delay.rel_value);
-    th->sock->th = th;
+    sock->th = th;
     th->reconnect_task =
         GNUNET_SCHEDULER_add_delayed (delay, &client_delayed_retry, th);
     return 0;

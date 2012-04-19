@@ -773,10 +773,10 @@ process_mst (struct GNUNET_SERVER_Client *client, int ret)
   {
     if (ret == GNUNET_OK)
     {
-      client->receive_pending = GNUNET_YES;
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "Server re-enters receive loop, timeout: %llu.\n",
            client->idle_timeout.rel_value);
+      client->receive_pending = GNUNET_YES;
       GNUNET_CONNECTION_receive (client->connection,
                                  GNUNET_SERVER_MAX_MESSAGE_SIZE - 1,
                                  client->idle_timeout, &process_incoming,
@@ -966,17 +966,15 @@ GNUNET_SERVER_connect_socket (struct GNUNET_SERVER_Handle *server,
   client->next = server->clients;
   client->idle_timeout = server->idle_timeout;
   server->clients = client;
-  client->receive_pending = GNUNET_YES;
   client->callback = NULL;
   client->callback_cls = NULL;
-
   if (server->mst_create != NULL)
     client->mst =
         server->mst_create (server->mst_cls, client);
   else
     client->mst =
         GNUNET_SERVER_mst_create (&client_message_tokenizer_callback, server);
-
+  client->receive_pending = GNUNET_YES;
   GNUNET_CONNECTION_receive (client->connection,
                              GNUNET_SERVER_MAX_MESSAGE_SIZE - 1,
                              client->idle_timeout, &process_incoming, client);
