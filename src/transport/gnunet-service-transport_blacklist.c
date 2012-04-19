@@ -113,7 +113,7 @@ struct GST_BlacklistCheck
    * Current transmission request handle for this client, or NULL if no
    * request is pending.
    */
-  struct GNUNET_CONNECTION_TransmitHandle *th;
+  struct GNUNET_SERVER_TransmitHandle *th;
 
   /**
    * Our current position in the blacklisters list.
@@ -191,7 +191,7 @@ client_disconnect_notification (void *cls, struct GNUNET_SERVER_Client *client)
       bc->bl_pos = bl->next;
       if (bc->th != NULL)
       {
-        GNUNET_CONNECTION_notify_transmit_ready_cancel (bc->th);
+        GNUNET_SERVER_notify_transmit_ready_cancel (bc->th);
         bc->th = NULL;
       }
       if (bc->task == GNUNET_SCHEDULER_NO_TASK)
@@ -813,7 +813,7 @@ GST_blacklist_test_cancel (struct GST_BlacklistCheck *bc)
   }
   if (NULL != bc->th)
   {
-    GNUNET_CONNECTION_notify_transmit_ready_cancel (bc->th);
+    GNUNET_SERVER_notify_transmit_ready_cancel (bc->th);
     bc->th = NULL;
   }
   GNUNET_free (bc);

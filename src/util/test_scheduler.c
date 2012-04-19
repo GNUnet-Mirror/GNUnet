@@ -30,37 +30,25 @@
 #define VERBOSE GNUNET_NO
 
 static void
-task3 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  int *ok = cls;
-
-  /* t4 should be ready (albeit with lower priority) */
-  GNUNET_assert (1 ==
-                 GNUNET_SCHEDULER_get_load (GNUNET_SCHEDULER_PRIORITY_COUNT));
-  GNUNET_assert (3 == *ok);
-  (*ok) = 4;
-}
-
-
-static void
 task2 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   int *ok = cls;
 
+  /* t3 should be ready (albeit with lower priority) */
+  GNUNET_assert (1 ==
+                 GNUNET_SCHEDULER_get_load (GNUNET_SCHEDULER_PRIORITY_COUNT));
   GNUNET_assert (2 == *ok);
   (*ok) = 3;
-  /* t3 will go before t4: higher priority */
-  GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_UI, &task3,
-                                      cls);
 }
 
+
 static void
-task4 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+task3 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   int *ok = cls;
 
-  GNUNET_assert (4 == *ok);
-  (*ok) = 5;
+  GNUNET_assert (3 == *ok);
+  (*ok) = 4;
 }
 
 struct GNUNET_DISK_PipeHandle *p;
@@ -113,11 +101,11 @@ taskRd (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-task5 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+task4 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   int *ok = cls;
 
-  GNUNET_assert (5 == *ok);
+  GNUNET_assert (4 == *ok);
   (*ok) = 6;
   p = GNUNET_DISK_pipe (GNUNET_NO, GNUNET_NO, GNUNET_NO, GNUNET_NO);
   GNUNET_assert (NULL != p);
@@ -134,17 +122,13 @@ static void
 task1 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   int *ok = cls;
-  GNUNET_SCHEDULER_TaskIdentifier t2;
-  GNUNET_SCHEDULER_TaskIdentifier t4;
 
   GNUNET_assert (1 == *ok);
   (*ok) = 2;
-  /* t2 will go first -- prereq for all */
-  t2 = GNUNET_SCHEDULER_add_after (GNUNET_SCHEDULER_NO_TASK, &task2, cls);
-  /* t4 will go after t2 ('add after') and after t3 (priority) */
-  t4 = GNUNET_SCHEDULER_add_after (t2, &task4, cls);
-  /* t5 will go last (after p4) */
-  GNUNET_SCHEDULER_add_after (t4, &task5, cls);
+  GNUNET_SCHEDULER_add_now (&task3, cls);
+  GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_UI, &task2,
+                                      cls);
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &task4, cls);
 }
 
 
@@ -225,8 +209,8 @@ taskCancel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GNUNET_assert (1 == *ok);
   *ok = 0;
-  GNUNET_SCHEDULER_cancel (GNUNET_SCHEDULER_add_after
-                           (GNUNET_SCHEDULER_NO_TASK, &taskNeverRun, NULL));
+  GNUNET_SCHEDULER_cancel (GNUNET_SCHEDULER_add_now
+                           (&taskNeverRun, NULL));
 }
 
 

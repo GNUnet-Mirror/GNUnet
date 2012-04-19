@@ -642,7 +642,7 @@ run_httpd ()
   GNUNET_NETWORK_fdset_copy_native (wes, &es, max + 1);
   httpd_task =
       GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_HIGH,
-                                   GNUNET_SCHEDULER_NO_TASK, tv, wrs, wws,
+                                   tv, wrs, wws,
                                    &do_httpd, NULL);
   GNUNET_NETWORK_fdset_destroy (wrs);
   GNUNET_NETWORK_fdset_destroy (wws);

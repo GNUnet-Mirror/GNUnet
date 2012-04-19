@@ -309,26 +309,6 @@ GNUNET_SCHEDULER_add_continuation_with_priority (GNUNET_SCHEDULER_Task task, voi
 
 
 /**
- * Schedule a new task to be run after the specified prerequisite task
- * has completed. It will be run with DEFAULT priority.
- *
- * * @param prerequisite_task run this task after the task with the given
- *        task identifier completes (and any of our other
- *        conditions, such as delay, read or write-readiness
- *        are satisfied).  Use  GNUNET_SCHEDULER_NO_TASK to not have any dependency
- *        on completion of other tasks (this will cause the task to run as
- *        soon as possible).
- * @param task main function of the task
- * @param task_cls closure of task
- * @return unique task identifier for the job
- *         only valid until "task" is started!
- */
-GNUNET_SCHEDULER_TaskIdentifier
-GNUNET_SCHEDULER_add_after (GNUNET_SCHEDULER_TaskIdentifier prerequisite_task,
-                            GNUNET_SCHEDULER_Task task, void *task_cls);
-
-
-/**
  * Schedule a new task to be run with a specified priority.
  *
  * * @param prio how important is the new task?
@@ -511,12 +491,7 @@ GNUNET_SCHEDULER_add_write_file (struct GNUNET_TIME_Relative delay,
  *     || shutdown-active)
  * </code>
  *
- * * @param prio how important is this task?
- * @param prerequisite_task run this task after the task with the given
- *        task identifier completes (and any of our other
- *        conditions, such as delay, read or write-readiness
- *        are satisfied).  Use GNUNET_SCHEDULER_NO_TASK to not have any dependency
- *        on completion of other tasks.
+ * @param prio how important is this task?
  * @param delay how long should we wait? Use GNUNET_TIME_UNIT_FOREVER_REL for "forever",
  *        which means that the task will only be run after we receive SIGTERM
  * @param rs set of file descriptors we want to read (can be NULL)
@@ -527,8 +502,7 @@ GNUNET_SCHEDULER_add_write_file (struct GNUNET_TIME_Relative delay,
  *         only valid until "task" is started!
  */
 GNUNET_SCHEDULER_TaskIdentifier
-GNUNET_SCHEDULER_add_select (enum GNUNET_SCHEDULER_Priority prio,
-                             GNUNET_SCHEDULER_TaskIdentifier prerequisite_task,
+GNUNET_SCHEDULER_add_select (enum GNUNET_SCHEDULER_Priority prio,                            
                              struct GNUNET_TIME_Relative delay,
                              const struct GNUNET_NETWORK_FDSet *rs,
                              const struct GNUNET_NETWORK_FDSet *ws,

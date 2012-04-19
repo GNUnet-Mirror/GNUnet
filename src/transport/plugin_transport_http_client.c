@@ -133,7 +133,7 @@ client_schedule (struct Plugin *plugin, int now)
 
   plugin->client_perform_task =
       GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                                   GNUNET_SCHEDULER_NO_TASK, timeout, grs, gws,
+                                   timeout, grs, gws,
                                    &client_run, plugin);
   GNUNET_NETWORK_fdset_destroy (gws);
   GNUNET_NETWORK_fdset_destroy (grs);

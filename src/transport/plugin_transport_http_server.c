@@ -988,7 +988,7 @@ server_schedule (struct Plugin *plugin, struct MHD_Daemon *daemon_handle,
 #endif
     ret =
         GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                                     GNUNET_SCHEDULER_NO_TASK, tv, wrs, wws,
+                                     tv, wrs, wws,
                                      &server_v4_run, plugin);
   }
   if (daemon_handle == plugin->server_v6)
@@ -1004,7 +1004,7 @@ server_schedule (struct Plugin *plugin, struct MHD_Daemon *daemon_handle,
 #endif
     ret =
         GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                                     GNUNET_SCHEDULER_NO_TASK, tv, wrs, wws,
+                                     tv, wrs, wws,
                                      &server_v6_run, plugin);
   }
   GNUNET_NETWORK_fdset_destroy (wrs);

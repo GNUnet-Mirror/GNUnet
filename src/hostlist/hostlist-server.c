@@ -512,7 +512,7 @@ prepare_daemon (struct MHD_Daemon *daemon_handle)
   GNUNET_NETWORK_fdset_copy_native (wes, &es, max + 1);
   ret =
       GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_HIGH,
-                                   GNUNET_SCHEDULER_NO_TASK, tv, wrs, wws,
+				   tv, wrs, wws,
                                    &run_daemon, daemon_handle);
   GNUNET_NETWORK_fdset_destroy (wrs);
   GNUNET_NETWORK_fdset_destroy (wws);

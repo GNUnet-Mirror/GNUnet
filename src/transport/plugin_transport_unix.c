@@ -644,7 +644,6 @@ unix_plugin_send (void *cls,
 
     plugin->select_task =
         GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                                     GNUNET_SCHEDULER_NO_TASK,
                                      GNUNET_TIME_UNIT_FOREVER_REL,
                                      plugin->rs,
                                      plugin->ws,
@@ -835,7 +834,6 @@ unix_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_SCHEDULER_cancel (plugin->select_task);
   plugin->select_task =
       GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                                   GNUNET_SCHEDULER_NO_TASK,
                                    GNUNET_TIME_UNIT_FOREVER_REL,
                                    plugin->rs,
                                    (plugin->msg_head != NULL) ? plugin->ws : NULL,
@@ -906,7 +904,6 @@ unix_transport_server_start (void *cls)
 
   plugin->select_task =
       GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                                   GNUNET_SCHEDULER_NO_TASK,
                                    GNUNET_TIME_UNIT_FOREVER_REL,
                                    plugin->rs,
                                    NULL,

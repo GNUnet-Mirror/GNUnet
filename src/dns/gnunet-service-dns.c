@@ -734,7 +734,6 @@ get_request_socket (int af)
   if (NULL != rs->dnsout6)
     GNUNET_NETWORK_fdset_set (rset, rs->dnsout6);
   rs->read_task = GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-					       GNUNET_SCHEDULER_NO_TASK,
 					       REQUEST_TIMEOUT,
 					       rset,
 					       NULL,
@@ -1100,7 +1099,6 @@ read_response (void *cls,
   if (NULL != rs->dnsout6)
     GNUNET_NETWORK_fdset_set (rset, rs->dnsout6);
   rs->read_task = GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-					       GNUNET_SCHEDULER_NO_TASK,
 					       GNUNET_TIME_absolute_get_remaining (rs->timeout),
 					       rset,
 					       NULL,

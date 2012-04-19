@@ -766,7 +766,7 @@ download_prepare ()
 #endif
   ti_download =
       GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                                   GNUNET_SCHEDULER_NO_TASK, rtime, grs, gws,
+                                   rtime, grs, gws,
                                    &task_download, multi);
   GNUNET_NETWORK_fdset_destroy (gws);
   GNUNET_NETWORK_fdset_destroy (grs);

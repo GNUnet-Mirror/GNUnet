@@ -1107,31 +1107,6 @@ GNUNET_SCHEDULER_add_continuation (GNUNET_SCHEDULER_Task task, void *task_cls,
 
 
 /**
- * Schedule a new task to be run after the specified prerequisite task
- * has completed. It will be run with the DEFAULT priority.
- *
- * @param prerequisite_task run this task after the task with the given
- *        task identifier completes (and any of our other
- *        conditions, such as delay, read or write-readiness
- *        are satisfied).  Use  GNUNET_SCHEDULER_NO_TASK to not have any dependency
- *        on completion of other tasks (this will cause the task to run as
- *        soon as possible).
- * @param task main function of the task
- * @param task_cls closure of task
- * @return unique task identifier for the job
- *         only valid until "task" is started!
- */
-GNUNET_SCHEDULER_TaskIdentifier
-GNUNET_SCHEDULER_add_after (GNUNET_SCHEDULER_TaskIdentifier prerequisite_task,
-                            GNUNET_SCHEDULER_Task task, void *task_cls)
-{
-  return GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                                      prerequisite_task, GNUNET_TIME_UNIT_ZERO,
-                                      NULL, NULL, task, task_cls);
-}
-
-
-/**
  * Schedule a new task to be run with a specified priority.
  *
  * @param prio how important is the new task?
@@ -1144,7 +1119,7 @@ GNUNET_SCHEDULER_TaskIdentifier
 GNUNET_SCHEDULER_add_with_priority (enum GNUNET_SCHEDULER_Priority prio,
                                     GNUNET_SCHEDULER_Task task, void *task_cls)
 {
-  return GNUNET_SCHEDULER_add_select (prio, GNUNET_SCHEDULER_NO_TASK,
+  return GNUNET_SCHEDULER_add_select (prio, 
                                       GNUNET_TIME_UNIT_ZERO, NULL, NULL, task,
                                       task_cls);
 }
@@ -1299,7 +1274,6 @@ GNUNET_SCHEDULER_add_now_with_lifeness (int lifeness,
 
   ret =
       GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                                   GNUNET_SCHEDULER_NO_TASK,
                                    GNUNET_TIME_UNIT_ZERO, NULL, NULL, task,
                                    task_cls);
   GNUNET_assert (pending->id == ret);
@@ -1450,7 +1424,7 @@ GNUNET_SCHEDULER_add_read_net (struct GNUNET_TIME_Relative delay,
   GNUNET_NETWORK_fdset_set (rs, rfd);
   ret =
     GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-				 GNUNET_SCHEDULER_NO_TASK, delay, rs, NULL,
+				 delay, rs, NULL,
 				 task, task_cls);
   GNUNET_NETWORK_fdset_destroy (rs);
   return ret;
@@ -1493,7 +1467,7 @@ GNUNET_SCHEDULER_add_write_net (struct GNUNET_TIME_Relative delay,
   GNUNET_NETWORK_fdset_set (ws, wfd);
   ret =
     GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-				 GNUNET_SCHEDULER_NO_TASK, delay, NULL, ws,
+				 delay, NULL, ws,
                                    task, task_cls);
   GNUNET_NETWORK_fdset_destroy (ws);
   return ret;
@@ -1536,7 +1510,7 @@ GNUNET_SCHEDULER_add_read_file (struct GNUNET_TIME_Relative delay,
   GNUNET_NETWORK_fdset_handle_set (rs, rfd);
   ret =
       GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                                   GNUNET_SCHEDULER_NO_TASK, delay, rs, NULL,
+                                   delay, rs, NULL,
                                    task, task_cls);
   GNUNET_NETWORK_fdset_destroy (rs);
   return ret;
@@ -1581,7 +1555,7 @@ GNUNET_SCHEDULER_add_write_file (struct GNUNET_TIME_Relative delay,
   GNUNET_NETWORK_fdset_handle_set (ws, wfd);
   ret =
       GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                                   GNUNET_SCHEDULER_NO_TASK, delay, NULL, ws,
+                                   delay, NULL, ws,
                                    task, task_cls);
   GNUNET_NETWORK_fdset_destroy (ws);
   return ret;
@@ -1617,11 +1591,6 @@ GNUNET_SCHEDULER_add_write_file (struct GNUNET_TIME_Relative delay,
  * </code>
  *
  * @param prio how important is this task?
- * @param prerequisite_task run this task after the task with the given
- *        task identifier completes (and any of our other
- *        conditions, such as delay, read or write-readiness
- *        are satisfied).  Use GNUNET_SCHEDULER_NO_TASK to not have any dependency
- *        on completion of other tasks.
  * @param delay how long should we wait? Use GNUNET_TIME_UNIT_FOREVER_REL for "forever",
  *        which means that the task will only be run after we receive SIGTERM
  * @param rs set of file descriptors we want to read (can be NULL)
@@ -1633,7 +1602,6 @@ GNUNET_SCHEDULER_add_write_file (struct GNUNET_TIME_Relative delay,
  */
 GNUNET_SCHEDULER_TaskIdentifier
 GNUNET_SCHEDULER_add_select (enum GNUNET_SCHEDULER_Priority prio,
-                             GNUNET_SCHEDULER_TaskIdentifier prerequisite_task,
                              struct GNUNET_TIME_Relative delay,
                              const struct GNUNET_NETWORK_FDSet *rs,
                              const struct GNUNET_NETWORK_FDSet *ws,
@@ -1671,7 +1639,6 @@ GNUNET_SCHEDULER_add_select (enum GNUNET_SCHEDULER_Priority prio,
 #if PROFILE_DELAYS
   t->start_time = GNUNET_TIME_absolute_get ();
 #endif
-  t->prereq_id = prerequisite_task;
   t->timeout = GNUNET_TIME_relative_to_absolute (delay);
   t->priority =
       check_priority ((prio ==

@@ -936,7 +936,6 @@ enqueue_fragment (void *cls, const struct GNUNET_MessageHeader *msg)
 
       plugin->select_task =
           GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                                       GNUNET_SCHEDULER_NO_TASK,
                                        GNUNET_TIME_UNIT_FOREVER_REL,
                                        plugin->rs_v4,
                                        plugin->ws_v4,
@@ -954,7 +953,6 @@ enqueue_fragment (void *cls, const struct GNUNET_MessageHeader *msg)
 
       plugin->select_task_v6 =
           GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                                       GNUNET_SCHEDULER_NO_TASK,
                                        GNUNET_TIME_UNIT_FOREVER_REL,
                                        plugin->rs_v6,
                                        plugin->ws_v6,
@@ -1096,7 +1094,6 @@ udp_plugin_send (void *cls,
 
       plugin->select_task =
           GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                                       GNUNET_SCHEDULER_NO_TASK,
                                        GNUNET_TIME_UNIT_FOREVER_REL,
                                        plugin->rs_v4,
                                        plugin->ws_v4,
@@ -1114,7 +1111,6 @@ udp_plugin_send (void *cls,
 
       plugin->select_task_v6 =
         GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                                     GNUNET_SCHEDULER_NO_TASK,
                                      GNUNET_TIME_UNIT_FOREVER_REL,
                                      plugin->rs_v6,
                                      plugin->ws_v6,
@@ -1847,7 +1843,6 @@ udp_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (plugin->select_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (plugin->select_task);
   plugin->select_task = GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                                   GNUNET_SCHEDULER_NO_TASK,
                                    GNUNET_TIME_UNIT_FOREVER_REL,
                                    plugin->rs_v4,
                                    (plugin->ipv4_queue_head != NULL) ? plugin->ws_v4 : NULL,
@@ -1895,7 +1890,6 @@ udp_plugin_select_v6 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (plugin->select_task_v6 != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (plugin->select_task_v6);
   plugin->select_task_v6 = GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                                   GNUNET_SCHEDULER_NO_TASK,
                                    GNUNET_TIME_UNIT_FOREVER_REL,
                                    plugin->rs_v6,
                                    (plugin->ipv6_queue_head != NULL) ? plugin->ws_v6 : NULL,
@@ -2034,7 +2028,6 @@ setup_sockets (struct Plugin *plugin, struct sockaddr_in6 *serverAddrv6, struct 
 
   plugin->select_task =
       GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                                   GNUNET_SCHEDULER_NO_TASK,
                                    GNUNET_TIME_UNIT_FOREVER_REL,
                                    plugin->rs_v4,
                                    NULL,
@@ -2055,7 +2048,6 @@ setup_sockets (struct Plugin *plugin, struct sockaddr_in6 *serverAddrv6, struct 
 
     plugin->select_task_v6 =
         GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                                     GNUNET_SCHEDULER_NO_TASK,
                                      GNUNET_TIME_UNIT_FOREVER_REL,
                                      plugin->rs_v6,
                                      NULL,

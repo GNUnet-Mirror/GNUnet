@@ -102,7 +102,7 @@ struct TransportClient
   /**
    * Current transmit request handle.
    */
-  struct GNUNET_CONNECTION_TransmitHandle *th;
+  struct GNUNET_SERVER_TransmitHandle *th;
 
   /**
    * Length of the list of messages pending for this client.
@@ -417,7 +417,7 @@ client_disconnect_notification (void *cls, struct GNUNET_SERVER_Client *client)
   GNUNET_CONTAINER_DLL_remove (clients_head, clients_tail, tc);
   if (tc->th != NULL)
   {
-    GNUNET_CONNECTION_notify_transmit_ready_cancel (tc->th);
+    GNUNET_SERVER_notify_transmit_ready_cancel (tc->th);
     tc->th = NULL;
   }
   GNUNET_break (0 == tc->message_count);
