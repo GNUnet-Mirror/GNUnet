@@ -976,6 +976,7 @@ mlp_solve_mlp_problem (struct GAS_MLP_Handle *mlp, struct GAS_MLP_SolutionContex
 
 int GAS_mlp_solve_problem (struct GAS_MLP_Handle *mlp, struct GAS_MLP_SolutionContext *ctx);
 
+
 static void
 mlp_scheduler (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -993,6 +994,7 @@ mlp_scheduler (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GAS_mlp_solve_problem(mlp, &ctx);
 }
 
+
 /**
  * Solves the MLP problem
  *
@@ -1003,6 +1005,19 @@ int
 GAS_mlp_solve_problem (struct GAS_MLP_Handle *mlp, struct GAS_MLP_SolutionContext *ctx)
 {
   int res;
+  /* Check if solving is already running */
+  if (GNUNET_YES == mlp->semaphore)
+  {
+    if (mlp->mlp_task != GNUNET_SCHEDULER_NO_TASK)
+    {
+      GNUNET_SCHEDULER_cancel(mlp->mlp_task);
+      mlp->mlp_task = GNUNET_SCHEDULER_NO_TASK;
+    }
+    mlp->mlp_task = GNUNET_SCHEDULER_add_delayed (mlp->exec_interval, &mlp_scheduler, mlp);
+    return GNUNET_SYSERR;
+  }
+  mlp->semaphore = GNUNET_YES;
+
   mlp->last_execution = GNUNET_TIME_absolute_get ();
 
   ctx->lp_result = GNUNET_SYSERR;
@@ -1025,6 +1040,7 @@ GAS_mlp_solve_problem (struct GAS_MLP_Handle *mlp, struct GAS_MLP_SolutionContex
   if (res != GNUNET_OK)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "LP Problem solving failed\n");
+    mlp->semaphore = GNUNET_NO;
     return GNUNET_SYSERR;
   }
 
@@ -1041,6 +1057,7 @@ GAS_mlp_solve_problem (struct GAS_MLP_Handle *mlp, struct GAS_MLP_SolutionContex
   if (res != GNUNET_OK)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "MLP Problem solving failed\n");
+    mlp->semaphore = GNUNET_NO;
     return GNUNET_SYSERR;
   }
 #if WRITE_MLP
@@ -1085,7 +1102,8 @@ GAS_mlp_solve_problem (struct GAS_MLP_Handle *mlp, struct GAS_MLP_SolutionContex
     GNUNET_SCHEDULER_cancel(mlp->mlp_task);
     mlp->mlp_task = GNUNET_SCHEDULER_NO_TASK;
   }
-  //mlp->mlp_task = GNUNET_SCHEDULER_add_delayed (mlp->exec_interval, &mlp_scheduler, mlp);
+  mlp->mlp_task = GNUNET_SCHEDULER_add_delayed (mlp->exec_interval, &mlp_scheduler, mlp);
+  mlp->semaphore = GNUNET_NO;
   return res;
 }
 
@@ -1360,7 +1378,7 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   mlp->b_min = b_min;
   mlp->n_min = n_min;
   mlp->m_q = GNUNET_ATS_QualityPropertiesCount;
-
+  mlp->semaphore = GNUNET_NO;
   return mlp;
 }
 

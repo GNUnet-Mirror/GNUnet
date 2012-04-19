@@ -76,6 +76,7 @@ check (void *cls, char *const *args, const char *cfgfile,
   struct ATS_Address addr[10];
   struct ATS_PreferedAddress *res[10];
   struct MLP_information *mlpi;
+  struct GAS_MLP_SolutionContext ctx;
 
   stats = GNUNET_STATISTICS_create("ats", cfg);
 
@@ -129,7 +130,9 @@ check (void *cls, char *const *args, const char *cfgfile,
   GNUNET_assert (mlp->addr_in_problem == 1);
 
 
-  GNUNET_assert (GNUNET_OK == GAS_mlp_solve_problem(mlp));
+  GNUNET_assert (GNUNET_OK == GAS_mlp_solve_problem(mlp, &ctx));
+  GNUNET_assert (GNUNET_OK == ctx.lp_result);
+  GNUNET_assert (GNUNET_OK == ctx.mlp_result);
 
   res[0] = GAS_mlp_get_preferred_address(mlp, addresses, &p[0]);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Preferred address `%s' outbound bandwidth: %u Bps\n",res[0]->address->plugin, res[0]->bandwidth_out);

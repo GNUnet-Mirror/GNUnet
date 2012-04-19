@@ -139,6 +139,8 @@ struct GAS_MLP_Handle
    */
   int auto_solve;
 
+  int semaphore;
+
   /* state information */
 
   /**

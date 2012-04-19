@@ -41,6 +41,7 @@
 static unsigned int peers;
 static unsigned int addresses;
 static unsigned int numeric;
+static unsigned int updates;
 
 static int start;
 static int end;
