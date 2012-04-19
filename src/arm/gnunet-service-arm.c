@@ -314,11 +314,9 @@ start_process (struct ServiceList *sl)
   use_debug = GNUNET_CONFIGURATION_get_value_yesno (cfg, sl->name, "DEBUG");
 
   /* actually start process */
-#if DEBUG_ARM
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Starting service `%s' using binary `%s' and configuration `%s'\n",
 	      sl->name, sl->binary, sl->config);
-#endif
   GNUNET_assert (NULL == sl->proc);
   if (GNUNET_YES == use_debug)
     sl->proc =
@@ -363,10 +361,8 @@ write_result (void *cls, size_t size, void *buf)
 		_("Could not send status result to client\n"));
     return 0;			/* error, not much we can do */
   }
-#if DEBUG_ARM
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Sending status response %u to client\n", (unsigned int) *res);
-#endif
   GNUNET_assert (size >= sizeof (struct GNUNET_ARM_ResultMessage));
   msg = buf;
   msg->header.size = htons (sizeof (struct GNUNET_ARM_ResultMessage));
@@ -695,11 +691,9 @@ handle_stop (void *cls, struct GNUNET_SERVER_Client *client,
       signal_result (client, servicename, GNUNET_ARM_PROCESS_ALREADY_DOWN);
       return;
     }
-#if DEBUG_ARM
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Sending kill signal to service `%s', waiting for process to die.\n",
 	      servicename);
-#endif
   sl->killed_at = GNUNET_TIME_absolute_get ();
   if (0 != GNUNET_OS_process_kill (sl->proc, SIGTERM))
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
@@ -799,47 +793,47 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct ServiceListeningInfo *sli;
 
   if (GNUNET_SCHEDULER_NO_TASK != child_restart_task)
-    {
-      GNUNET_SCHEDULER_cancel (child_restart_task);
-      child_restart_task = GNUNET_SCHEDULER_NO_TASK;
-    }
+  {
+    GNUNET_SCHEDULER_cancel (child_restart_task);
+    child_restart_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   in_shutdown = GNUNET_YES;
   /* first, stop listening */
   for (pos = running_head; NULL != pos; pos = pos->next)
-    {
-      while (NULL != (sli = pos->listen_head))
-	{
-	  GNUNET_CONTAINER_DLL_remove (pos->listen_head,
-				       pos->listen_tail, sli);
-	  if (sli->accept_task != GNUNET_SCHEDULER_NO_TASK)
-	    {
-	      GNUNET_SCHEDULER_cancel (sli->accept_task);
-	      sli->accept_task = GNUNET_SCHEDULER_NO_TASK;
-	    }
-	  GNUNET_break (GNUNET_OK ==
-			GNUNET_NETWORK_socket_close (sli->listen_socket));
-	  GNUNET_free (sli->service_addr);
-	  GNUNET_free (sli);
-	}
-    }
+  {
+    while (NULL != (sli = pos->listen_head))
+      {
+	GNUNET_CONTAINER_DLL_remove (pos->listen_head,
+				     pos->listen_tail, sli);
+	if (sli->accept_task != GNUNET_SCHEDULER_NO_TASK)
+	  {
+	    GNUNET_SCHEDULER_cancel (sli->accept_task);
+	    sli->accept_task = GNUNET_SCHEDULER_NO_TASK;
+	  }
+	GNUNET_break (GNUNET_OK ==
+		      GNUNET_NETWORK_socket_close (sli->listen_socket));
+	GNUNET_free (sli->service_addr);
+	GNUNET_free (sli);
+      }
+  }
   /* then, shutdown all existing service processes */
   nxt = running_head;
   while (NULL != (pos = nxt))
+  {
+    nxt = pos->next;
+    if (pos->proc != NULL)
     {
-      nxt = pos->next;
-      if (pos->proc != NULL)
-	{
-	  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stopping service `%s'\n",
-		      pos->name);
-	  pos->killed_at = GNUNET_TIME_absolute_get ();
-	  if (0 != GNUNET_OS_process_kill (pos->proc, SIGTERM))
-	    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-	}
-      else
-	{
-	  free_service (pos);
-	}
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stopping service `%s'\n",
+		  pos->name);
+      pos->killed_at = GNUNET_TIME_absolute_get ();
+      if (0 != GNUNET_OS_process_kill (pos->proc, SIGTERM))
+	GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
     }
+    else
+    {
+      free_service (pos);
+    }
+  }
   /* finally, should all service processes be already gone, terminate for real */
   if (running_head == NULL)
     do_shutdown ();
@@ -869,56 +863,53 @@ delayed_restart_task (void *cls,
   /* check for services that need to be restarted due to
    * configuration changes or because the last restart failed */
   for (sl = running_head; NULL != sl; sl = sl->next)
+  {
+    if (NULL != sl->proc)
+      continue;
+    /* service is currently not running */
+    if (GNUNET_TIME_absolute_get_remaining (sl->restart_at).rel_value ==
+	0)
     {
-      if (sl->proc == NULL)
-	{
-	  /* service is currently not running */
-	  if (GNUNET_TIME_absolute_get_remaining (sl->restart_at).rel_value ==
-	      0)
-	    {
-	      /* restart is now allowed */
-	      if (sl->is_default)
-		{
-		  /* process should run by default, start immediately */
-		  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-			      _("Restarting service `%s'.\n"), sl->name);
-		  start_process (sl);
-		}
-	      else
-		{
-		  /* process is run on-demand, ensure it is re-started if there is demand */
-		  for (sli = sl->listen_head; NULL != sli; sli = sli->next)
-		    if (GNUNET_SCHEDULER_NO_TASK == sli->accept_task)
-		      {
-			/* accept was actually paused, so start it again */
-			sli->accept_task =
-			  GNUNET_SCHEDULER_add_read_net
-			  (GNUNET_TIME_UNIT_FOREVER_REL, sli->listen_socket,
-			   &accept_connection, sli);
-		      }
-		}
-	    }
-	  else
-	    {
-	      /* update calculation for earliest time to reactivate a service */
-	      lowestRestartDelay =
-		GNUNET_TIME_relative_min (lowestRestartDelay,
-					  GNUNET_TIME_absolute_get_remaining
-					  (sl->restart_at));
-	    }
-	}
+      /* restart is now allowed */
+      if (sl->is_default)
+      {
+	/* process should run by default, start immediately */
+	GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		    _("Restarting service `%s'.\n"), sl->name);
+	start_process (sl);
+      }
+      else
+      {
+	/* process is run on-demand, ensure it is re-started if there is demand */
+	for (sli = sl->listen_head; NULL != sli; sli = sli->next)
+	  if (GNUNET_SCHEDULER_NO_TASK == sli->accept_task)
+	  {
+	    /* accept was actually paused, so start it again */
+	    sli->accept_task =
+	      GNUNET_SCHEDULER_add_read_net
+	      (GNUNET_TIME_UNIT_FOREVER_REL, sli->listen_socket,
+	       &accept_connection, sli);
+	  }
+      }
     }
+    else
+    {
+      /* update calculation for earliest time to reactivate a service */
+      lowestRestartDelay =
+	GNUNET_TIME_relative_min (lowestRestartDelay,
+				  GNUNET_TIME_absolute_get_remaining
+				  (sl->restart_at));
+    }
+  }
   if (lowestRestartDelay.rel_value != GNUNET_TIME_UNIT_FOREVER_REL.rel_value)
-    {
-#if DEBUG_ARM
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Will restart process in %llums\n",
-		  (unsigned long long) lowestRestartDelay.rel_value);
-#endif
-      child_restart_task =
-	GNUNET_SCHEDULER_add_delayed_with_priority (lowestRestartDelay,
-						    GNUNET_SCHEDULER_PRIORITY_IDLE, 
-						    &delayed_restart_task, NULL);
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Will restart process in %llums\n",
+		(unsigned long long) lowestRestartDelay.rel_value);
+    child_restart_task =
+      GNUNET_SCHEDULER_add_delayed_with_priority (lowestRestartDelay,
+						  GNUNET_SCHEDULER_PRIORITY_IDLE, 
+						  &delayed_restart_task, NULL);
+  }
 }
 
 

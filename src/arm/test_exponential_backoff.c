@@ -113,58 +113,46 @@ service_shutdown_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 {
   struct ShutdownContext *shutdown_ctx = cls;
 
-  if ((msg == NULL) && (shutdown_ctx->confirmed != GNUNET_YES))
-    {
-      /* Means the other side closed the connection and never confirmed a shutdown */
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		  "Service handle shutdown before ACK!\n");
-      if (shutdown_ctx->cont != NULL)
-	shutdown_ctx->cont (shutdown_ctx->cont_cls, GNUNET_SYSERR);
-      GNUNET_SCHEDULER_cancel (shutdown_ctx->cancel_task);
-      GNUNET_CLIENT_disconnect (shutdown_ctx->sock);
-      GNUNET_free (shutdown_ctx);
-    }
-  else if ((msg == NULL) && (shutdown_ctx->confirmed == GNUNET_YES))
-    {
+  if (msg == NULL) 
+  {
 #if VERBOSE
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Service shutdown complete.\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Service shutdown complete.\n");
 #endif
-      if (shutdown_ctx->cont != NULL)
-	shutdown_ctx->cont (shutdown_ctx->cont_cls, GNUNET_NO);
-
-      GNUNET_SCHEDULER_cancel (shutdown_ctx->cancel_task);
-      GNUNET_CLIENT_disconnect (shutdown_ctx->sock);
-      GNUNET_free (shutdown_ctx);
-    }
-  else
-    {
-      GNUNET_assert (ntohs (msg->size) ==
-		     sizeof (struct GNUNET_MessageHeader));
-      switch (ntohs (msg->type))
-	{
-	case GNUNET_MESSAGE_TYPE_ARM_SHUTDOWN:
+    if (shutdown_ctx->cont != NULL)
+      shutdown_ctx->cont (shutdown_ctx->cont_cls, GNUNET_NO);
+    
+    GNUNET_SCHEDULER_cancel (shutdown_ctx->cancel_task);
+    GNUNET_CLIENT_disconnect (shutdown_ctx->sock);
+    GNUNET_free (shutdown_ctx);
+    return;
+  }
+  GNUNET_assert (ntohs (msg->size) ==
+		 sizeof (struct GNUNET_MessageHeader));
+  switch (ntohs (msg->type))
+  {
+  case GNUNET_MESSAGE_TYPE_ARM_SHUTDOWN:
 #if VERBOSE
-	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		      "Received confirmation for service shutdown.\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Received confirmation for service shutdown.\n");
 #endif
-	  shutdown_ctx->confirmed = GNUNET_YES;
-	  GNUNET_CLIENT_receive (shutdown_ctx->sock,
-				 &service_shutdown_handler, shutdown_ctx,
-				 GNUNET_TIME_UNIT_FOREVER_REL);
-	  break;
-	default:		/* Fall through */
-	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		      "Service shutdown refused!\n");
-	  if (shutdown_ctx->cont != NULL)
-	    shutdown_ctx->cont (shutdown_ctx->cont_cls, GNUNET_YES);
-
-	  GNUNET_SCHEDULER_cancel (shutdown_ctx->cancel_task);
-	  GNUNET_CLIENT_disconnect (shutdown_ctx->sock);
-	  GNUNET_free (shutdown_ctx);
-	  break;
-	}
-    }
+    shutdown_ctx->confirmed = GNUNET_YES;
+    GNUNET_CLIENT_receive (shutdown_ctx->sock,
+			   &service_shutdown_handler, shutdown_ctx,
+			   GNUNET_TIME_UNIT_FOREVER_REL);
+    break;
+  default:		/* Fall through */
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		"Service shutdown refused!\n");
+    if (shutdown_ctx->cont != NULL)
+      shutdown_ctx->cont (shutdown_ctx->cont_cls, GNUNET_YES);
+    
+    GNUNET_SCHEDULER_cancel (shutdown_ctx->cancel_task);
+    GNUNET_CLIENT_disconnect (shutdown_ctx->sock);
+    GNUNET_free (shutdown_ctx);
+    break;
+  }
 }
+
 
 /**
  * Shutting down took too long, cancel receive and return error.
