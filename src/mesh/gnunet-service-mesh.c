@@ -4026,7 +4026,7 @@ handle_local_tunnel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
     return;
   }
   send_client_tunnel_disconnect(t, c);
-  if (c != t->owner)
+  if (c != t->owner || tid >= GNUNET_MESH_LOCAL_TUNNEL_ID_SERV)
   {
     client_ignore_tunnel (c, t);
 #if 0
