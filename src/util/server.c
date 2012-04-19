@@ -1221,6 +1221,8 @@ GNUNET_SERVER_client_disconnect (struct GNUNET_SERVER_Client *client)
 
   if (client->persist == GNUNET_YES)
     GNUNET_CONNECTION_persist_ (client->connection);
+  if (NULL != client->th.cth)
+    GNUNET_SERVER_notify_transmit_ready_cancel (&client->th);
   GNUNET_CONNECTION_destroy (client->connection);
 
   if (client->server->mst_destroy != NULL)
