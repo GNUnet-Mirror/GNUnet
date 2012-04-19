@@ -1227,7 +1227,8 @@ process_notify (struct GNUNET_CONNECTION_Handle *connection)
       notify (connection->nth.notify_ready_cls, avail,
               &connection->write_buffer[connection->write_buffer_off]);
   GNUNET_assert (size <= avail);
-  connection->write_buffer_off += size;
+  if (0 != size)
+    connection->write_buffer_off += size;
   return GNUNET_YES;
 }
 
