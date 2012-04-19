@@ -86,11 +86,10 @@ dead_receive (void *cls, const void *buf, size_t available,
 static void
 run_accept_cancel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-
   asock = GNUNET_CONNECTION_create_from_accept (NULL, NULL, ls);
   GNUNET_assert (asock != NULL);
   GNUNET_assert (GNUNET_YES == GNUNET_CONNECTION_check (asock));
-  GNUNET_CONNECTION_destroy (lsock, GNUNET_YES);
+  GNUNET_CONNECTION_destroy (lsock);
   GNUNET_CONNECTION_receive (asock, 1024,
                              GNUNET_TIME_relative_multiply
                              (GNUNET_TIME_UNIT_SECONDS, 5), &dead_receive, cls);
@@ -103,8 +102,8 @@ receive_cancel_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   int *ok = cls;
 
   GNUNET_CONNECTION_receive_cancel (asock);
-  GNUNET_CONNECTION_destroy (csock, GNUNET_YES);
-  GNUNET_CONNECTION_destroy (asock, GNUNET_YES);
+  GNUNET_CONNECTION_destroy (csock);
+  GNUNET_CONNECTION_destroy (asock);
   *ok = 0;
 }
 

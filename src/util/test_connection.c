@@ -102,7 +102,7 @@ receive_check (void *cls, const void *buf, size_t available,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Receive closes accepted socket\n");
 #endif
     *ok = 0;
-    GNUNET_CONNECTION_destroy (asock, GNUNET_YES);
+    GNUNET_CONNECTION_destroy (asock);
   }
 }
 
@@ -119,7 +119,7 @@ run_accept (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test destroys listen socket\n");
 #endif
-  GNUNET_CONNECTION_destroy (lsock, GNUNET_YES);
+  GNUNET_CONNECTION_destroy (lsock);
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Test asks to receive on accepted socket\n");
@@ -142,7 +142,7 @@ make_hello (void *cls, size_t size, void *buf)
 #if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test destroys client socket\n");
 #endif
-  GNUNET_CONNECTION_destroy (csock, GNUNET_YES);
+  GNUNET_CONNECTION_destroy (csock);
   return 12;
 }
 

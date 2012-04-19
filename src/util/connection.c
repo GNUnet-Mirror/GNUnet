@@ -1019,15 +1019,11 @@ GNUNET_CONNECTION_check (struct GNUNET_CONNECTION_Handle *sock)
  * should be called explicitly first.
  *
  * @param sock socket to destroy
- * @param finish_pending_write should pending writes be completed or aborted?
- *        (this applies to transmissions where the data has already been
- *        read from the application; all other transmissions should be
- *        aborted using 'GNUNET_CONNECTION_notify_transmit_ready_cancel').
  */
 void
-GNUNET_CONNECTION_destroy (struct GNUNET_CONNECTION_Handle *sock,
-                           int finish_pending_write)
+GNUNET_CONNECTION_destroy (struct GNUNET_CONNECTION_Handle *sock)
 {
+  int finish_pending_write = GNUNET_NO;
   if (GNUNET_NO == finish_pending_write)
   {
     if (sock->write_task != GNUNET_SCHEDULER_NO_TASK)

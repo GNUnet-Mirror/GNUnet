@@ -99,7 +99,8 @@ receive_check (void *cls, const void *buf, size_t available,
   else
   {
     *ok = 0;
-    GNUNET_CONNECTION_destroy (asock, GNUNET_YES);
+    GNUNET_CONNECTION_destroy (csock);
+    GNUNET_CONNECTION_destroy (asock);
   }
 }
 
@@ -128,7 +129,7 @@ run_accept (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   expect.sin_addr.s_addr = htonl (INADDR_LOOPBACK);
   GNUNET_assert (0 == memcmp (&expect, v4, alen));
   GNUNET_free (addr);
-  GNUNET_CONNECTION_destroy (lsock, GNUNET_YES);
+  GNUNET_CONNECTION_destroy (lsock);
   GNUNET_CONNECTION_receive (asock, 1024,
                              GNUNET_TIME_relative_multiply
                              (GNUNET_TIME_UNIT_SECONDS, 5), &receive_check,
@@ -142,6 +143,7 @@ make_hello (void *cls, size_t size, void *buf)
   strcpy ((char *) buf, "Hello World");
   return 12;
 }
+
 
 static void
 task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -167,7 +169,6 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                  GNUNET_CONNECTION_notify_transmit_ready (csock, 12,
                                                           GNUNET_TIME_UNIT_SECONDS,
                                                           &make_hello, NULL));
-  GNUNET_CONNECTION_destroy (csock, GNUNET_YES);
   GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL, ls, &run_accept,
                                  cls);
 }

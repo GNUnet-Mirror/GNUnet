@@ -83,8 +83,8 @@ send_kilo (void *cls, size_t size, void *buf)
 #endif
     GNUNET_assert (buf == NULL);
     *ok = 0;
-    GNUNET_CONNECTION_destroy (lsock, GNUNET_YES);
-    GNUNET_CONNECTION_destroy (csock, GNUNET_YES);
+    GNUNET_CONNECTION_destroy (lsock);
+    GNUNET_CONNECTION_destroy (csock);
     return 0;
   }
 #if VERBOSE

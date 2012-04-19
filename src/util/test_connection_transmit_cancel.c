@@ -56,7 +56,7 @@ task_transmit_cancel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                                 &not_run, cls);
   GNUNET_assert (NULL != th);
   GNUNET_CONNECTION_notify_transmit_ready_cancel (th);
-  GNUNET_CONNECTION_destroy (csock, GNUNET_YES);
+  GNUNET_CONNECTION_destroy (csock);
   *ok = 0;
 }
 

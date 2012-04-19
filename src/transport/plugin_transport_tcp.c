@@ -2026,7 +2026,7 @@ notify_send_probe (void *cls, size_t size, void *buf)
                                tcp_probe_ctx);
   if (buf == NULL)
   {
-    GNUNET_CONNECTION_destroy (tcp_probe_ctx->sock, GNUNET_NO);
+    GNUNET_CONNECTION_destroy (tcp_probe_ctx->sock);
     GNUNET_free (tcp_probe_ctx);
     return 0;
   }
@@ -2301,7 +2301,7 @@ libgnunet_plugin_transport_tcp_done (void *cls)
   {
     GNUNET_CONTAINER_DLL_remove (plugin->probe_head, plugin->probe_tail,
                                  tcp_probe);
-    GNUNET_CONNECTION_destroy (tcp_probe->sock, GNUNET_NO);
+    GNUNET_CONNECTION_destroy (tcp_probe->sock);
     GNUNET_free (tcp_probe);
   }
   GNUNET_CONTAINER_multihashmap_destroy (plugin->nat_wait_conns);

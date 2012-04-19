@@ -406,7 +406,7 @@ GNUNET_CLIENT_disconnect (struct GNUNET_CLIENT_Connection *sock)
   }
   if (NULL != sock->sock)
   {
-    GNUNET_CONNECTION_destroy (sock->sock, GNUNET_NO);
+    GNUNET_CONNECTION_destroy (sock->sock);
     sock->sock = NULL;
   }
   if (sock->receive_task != GNUNET_SCHEDULER_NO_TASK)
@@ -968,7 +968,7 @@ client_notify (void *cls, size_t size, void *buf)
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Failed to connect to `%s', automatically trying again.\n",
          th->sock->service_name);
-    GNUNET_CONNECTION_destroy (th->sock->sock, GNUNET_NO);
+    GNUNET_CONNECTION_destroy (th->sock->sock);
     th->sock->sock = NULL;
     delay = GNUNET_TIME_relative_min (delay, th->sock->back_off);
     th->sock->back_off =
