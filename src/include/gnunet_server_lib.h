@@ -240,14 +240,6 @@ GNUNET_SERVER_client_set_timeout (struct GNUNET_SERVER_Client *client,
 
 
 /**
- * Set if a client should finish a pending write when disconnecting.
- */
-void
-GNUNET_SERVER_client_set_finish_pending_write (struct GNUNET_SERVER_Client *client,
-                                               int finish);
-
-
-/**
  * Disable the warning the server issues if a message is not acknowledged
  * in a timely fashion.  Use this call if a client is intentionally delayed
  * for a while.  Only applies to the current message.

@@ -1000,14 +1000,6 @@ GNUNET_SERVER_client_set_timeout (struct GNUNET_SERVER_Client *client,
 }
 
 
-void
-GNUNET_SERVER_client_set_finish_pending_write (struct GNUNET_SERVER_Client *client,
-                                               int finish)
-{
-  client->finish_pending_write = finish;
-}
-
-
 /**
  * Notify the server that the given client handle should
  * be kept (keeps the connection up if possible, increments
@@ -1202,7 +1194,7 @@ GNUNET_SERVER_client_disconnect (struct GNUNET_SERVER_Client *client)
 
   if (client->persist == GNUNET_YES)
     GNUNET_CONNECTION_persist_ (client->connection);
-  GNUNET_CONNECTION_destroy (client->connection, client->finish_pending_write);
+  GNUNET_CONNECTION_destroy (client->connection, GNUNET_NO);
 
   if (client->server->mst_destroy != NULL)
     client->server->mst_destroy (client->server->mst_cls, client->mst);
