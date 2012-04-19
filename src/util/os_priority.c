@@ -330,11 +330,11 @@ parent_control_handler (void *cls,
   
   LOG (GNUNET_ERROR_TYPE_DEBUG, "`%s' invoked because of %d\n", __FUNCTION__,
        tc->reason);
-  if (tc->reason &
-      (GNUNET_SCHEDULER_REASON_SHUTDOWN | GNUNET_SCHEDULER_REASON_TIMEOUT |
-       GNUNET_SCHEDULER_REASON_PREREQ_DONE))
+  if (0 != (tc->reason &
+	    (GNUNET_SCHEDULER_REASON_SHUTDOWN | GNUNET_SCHEDULER_REASON_TIMEOUT)))
   {
     GNUNET_DISK_file_close (control_pipe);
+    control_pipe = NULL;
     return;
   }
   ret = GNUNET_DISK_file_read (control_pipe, &sig, sizeof (sig));
@@ -343,6 +343,7 @@ parent_control_handler (void *cls,
     if (-1 == ret)
       LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "GNUNET_DISK_file_read");
     GNUNET_DISK_file_close (control_pipe);
+    control_pipe = NULL;
     return;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Got control code %d from parent\n", sig);
