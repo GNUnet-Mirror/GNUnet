@@ -37,11 +37,14 @@
 
 #define DEF_PEERS 10
 #define DEF_ADDRESSES_PER_PEER 5
+#define DEF_ATS_VALUES 2
+#define DEF_ATS_MAX_DELAY 30
+#define DEF_ATS_MAX_DISTANCE 3
 
 static unsigned int peers;
 static unsigned int addresses;
 static unsigned int numeric;
-static unsigned int updates;
+static unsigned int update_percentage;
 
 static int start;
 static int end;
@@ -111,6 +114,63 @@ do_shutdown (void *cls,
 
 }
 
+static void
+update_addresses (struct ATS_Address * a, unsigned int addrs, unsigned int percentage)
+{
+  if (percentage == 0)
+    return;
+
+  unsigned int ua = (addrs) * ((float) percentage / 100);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Updating %u of %u addresses per peer\n", ua, addrs);
+
+  unsigned int updated[addrs];
+  unsigned int u_types[DEF_ATS_VALUES];
+  unsigned int updates = 0;
+  unsigned int u_type = 0;
+  unsigned int u_val = 0;
+  unsigned int cur = 0;
+
+  u_types[0] = 0;
+  u_types[1] = 0;
+
+  while (updates < ua)
+  {
+    cur = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, addrs);
+    if (0 == updated[cur])
+    {
+      u_type = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, DEF_ATS_VALUES);
+      switch (u_type) {
+        case 0:
+            do
+            {
+            u_val = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, DEF_ATS_MAX_DELAY);
+            GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Updating DELAY from %u to %u\n",a[cur].ats[u_type].value, u_val);
+            }
+            while (a[cur].ats[u_type].value == u_val);
+          break;
+        case 1:
+          do
+          {
+            u_val = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, DEF_ATS_MAX_DISTANCE);
+            GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Updating DISTANCE from %u to %u\n",a[cur].ats[u_type].value, u_val);
+          }
+          while (a[cur].ats[u_type].value == u_val);
+          break;
+        default:
+          GNUNET_break (0);
+          break;
+      }
+      u_types[u_type]++;
+
+      a[cur].ats[u_type].value = u_val;
+      updated[cur] = 1;
+      updates++;
+    }
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Updated %u delay and %u distance values\n", u_types[0], u_types[1]);
+
+}
+
 
 static void
 check (void *cls, char *const *args, const char *cfgfile,
@@ -119,6 +179,9 @@ check (void *cls, char *const *args, const char *cfgfile,
   unsigned int c = 0;
   unsigned int c2 = 0;
   unsigned int ca = 0;
+  int update = GNUNET_NO;
+  int range = GNUNET_NO;
+  int res;
 
 #if !HAVE_LIBGLPK
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "GLPK not installed!");
@@ -154,9 +217,25 @@ check (void *cls, char *const *args, const char *cfgfile,
   if (end == 0)
       end = -1;
   if ((start != -1) && (end != -1))
+  {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Solving problem starting from %u to %u\n", start , end);
+    range = GNUNET_YES;
+  }
   else
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Solving problem for %u peers\n", peers);
+
+  if ((update_percentage >= 0) && (update_percentage <= 100))
+  {
+    update = GNUNET_YES;
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Benchmarking with existing presolution and %u \% updated addresses\n", update_percentage);
+  }
+  else if ((update_percentage > 100) && (update_percentage != UINT_MAX))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Invalid percentage: %u\n", update_percentage);
+    ret = 1;
+    return;
+  }
+
   for (c=0; c < peers; c++)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Setting up peer %u\n", c);
@@ -175,11 +254,11 @@ check (void *cls, char *const *args, const char *cfgfile,
       a[ca].plugin = strdup("test");
       a[ca].atsp_network_type = GNUNET_ATS_NET_LOOPBACK;
 
-      a[ca].ats = GNUNET_malloc (2 * sizeof (struct GNUNET_ATS_Information));
+      a[ca].ats = GNUNET_malloc (DEF_ATS_VALUES * sizeof (struct GNUNET_ATS_Information));
       a[ca].ats[0].type = GNUNET_ATS_QUALITY_NET_DELAY;
-      a[ca].ats[0].value = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, 10);
+      a[ca].ats[0].value = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, DEF_ATS_MAX_DELAY);
       a[ca].ats[1].type = GNUNET_ATS_QUALITY_NET_DISTANCE;
-      a[ca].ats[1].value = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, 2);
+      a[ca].ats[1].value = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, DEF_ATS_MAX_DISTANCE);
       a[ca].ats_count = 2;
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Setting up address %u\n", ca);
       GNUNET_CONTAINER_multihashmap_put (amap, &a[ca].peer.hashPubKey, &a[ca], GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
@@ -189,7 +268,7 @@ check (void *cls, char *const *args, const char *cfgfile,
 
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Problem contains %u peers and %u adresses\n", mlp->c_p, mlp->addr_in_problem);
 
-    if ((((start >= 0) && ((c+1) >= start)) && (c <= end)) || ((c+1) == peers))
+    if (((GNUNET_YES == range) && (((start >= 0) && ((c+1) >= start)) && (c <= end))) || ((c+1) == peers))
     {
       GNUNET_assert ((c+1) == mlp->c_p);
       GNUNET_assert ((c+1) * addresses == mlp->addr_in_problem);
@@ -197,19 +276,49 @@ check (void *cls, char *const *args, const char *cfgfile,
       /* Solving the problem */
       struct GAS_MLP_SolutionContext ctx;
 
-      if (GNUNET_OK == GAS_mlp_solve_problem(mlp, &ctx))
-      {
-        GNUNET_assert (GNUNET_OK == ctx.lp_result);
-        GNUNET_assert (GNUNET_OK == ctx.mlp_result);
-        if (GNUNET_YES == numeric)
-          printf ("%u;%u;%llu;%llu\n",mlp->c_p, mlp->addr_in_problem, (long long unsigned int) ctx.lp_duration.rel_value, (long long unsigned int) ctx.mlp_duration.rel_value);
-        else
-          GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Problem solved for %u peers with %u address successfully (LP: %llu ms / MLP: %llu ms)\n",
-              mlp->c_p, mlp->addr_in_problem, ctx.lp_duration.rel_value, ctx.mlp_duration.rel_value);
+      res = GAS_mlp_solve_problem(mlp, &ctx);
 
+      if (GNUNET_NO == update)
+      {
+        if (GNUNET_OK == res)
+        {
+          GNUNET_assert (GNUNET_OK == ctx.lp_result);
+          GNUNET_assert (GNUNET_OK == ctx.mlp_result);
+          if (GNUNET_YES == numeric)
+            printf ("%u;%u;%llu;%llu\n",mlp->c_p, mlp->addr_in_problem, (long long unsigned int) ctx.lp_duration.rel_value, (long long unsigned int) ctx.mlp_duration.rel_value);
+          else
+            GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Problem solved for %u peers with %u address successfully (LP: %llu ms / MLP: %llu ms)\n",
+                mlp->c_p, mlp->addr_in_problem, ctx.lp_duration.rel_value, ctx.mlp_duration.rel_value);
+        }
+        else
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Solving problem with %u peers and %u addresses failed\n", c, c2);
       }
       else
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Solving problem with %u peers and %u addresses failed\n", peers, addresses);
+      {
+        struct GAS_MLP_SolutionContext uctx;
+        /* Update addresses */
+        update_addresses (a, (c+1) * c2, update_percentage);
+
+        /* Solve again */
+        res = GAS_mlp_solve_problem(mlp, &uctx);
+
+        if (GNUNET_OK == res)
+        {
+          GNUNET_assert (GNUNET_OK == uctx.lp_result);
+          GNUNET_assert (GNUNET_OK == uctx.mlp_result);
+          if (GNUNET_YES == numeric)
+            printf ("%u;%u;%llu;%llu;%llu;%llu\n",mlp->c_p, mlp->addr_in_problem,
+                (long long unsigned int) ctx.lp_duration.rel_value, (long long unsigned int) ctx.mlp_duration.rel_value,
+                (long long unsigned int) uctx.lp_duration.rel_value, (long long unsigned int) uctx.mlp_duration.rel_value);
+          else
+            GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Updated Problem solved for %u peers with %u address successfully (Initial: LP/MLP: %llu/%llu ms, Update: %llu/%llu ms)\n",
+                mlp->c_p, mlp->addr_in_problem,
+                (long long unsigned int) ctx.lp_duration.rel_value, (long long unsigned int) ctx.mlp_duration.rel_value,
+                (long long unsigned int) uctx.lp_duration.rel_value, (long long unsigned int) uctx.mlp_duration.rel_value);
+        }
+        else
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Solving updated problem with %u peers and %u addresses failed\n", c, c2);
+      }
     }
   }
 
@@ -223,7 +332,8 @@ check (void *cls, char *const *args, const char *cfgfile,
 int
 main (int argc, char *argv[])
 {
-
+  /* Init invalid */
+  update_percentage = UINT_MAX;
   static struct GNUNET_GETOPT_CommandLineOption options[] = {
     {'a', "addresses", NULL,
      gettext_noop ("addresses per peer"), 1,
@@ -237,9 +347,12 @@ main (int argc, char *argv[])
     {'e', "end", NULL,
      gettext_noop ("end solving problem"), 1,
      &GNUNET_GETOPT_set_uint, &end},
-     {'s', "start", NULL,
-      gettext_noop ("start solving problem"), 1,
-      &GNUNET_GETOPT_set_uint, &start},
+   {'s', "start", NULL,
+    gettext_noop ("start solving problem"), 1,
+    &GNUNET_GETOPT_set_uint, &start},
+    {'u', "update", NULL,
+     gettext_noop ("benchmark with existing solution (address updates)"), 1,
+     &GNUNET_GETOPT_set_uint, &update_percentage},
     GNUNET_GETOPT_OPTION_END
   };
 
