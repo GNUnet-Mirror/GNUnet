@@ -932,6 +932,16 @@ GNUNET_STATISTICS_destroy (struct GNUNET_STATISTICS_Handle *h, int sync_first)
 }
 
 
+static void
+destroy_task (void *cls,
+	      const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_STATISTICS_Handle *h = cls;
+
+  GNUNET_STATISTICS_destroy (h, GNUNET_YES);
+}
+
+
 /**
  * Schedule the next action to be performed.
  *
@@ -959,7 +969,8 @@ schedule_action (struct GNUNET_STATISTICS_Handle *h)
     if (h->do_destroy)
     {
       h->do_destroy = GNUNET_NO;
-      GNUNET_STATISTICS_destroy (h, GNUNET_YES);
+      GNUNET_SCHEDULER_add_continuation (&destroy_task, h,
+					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
     }
     return;
   }
