@@ -907,19 +907,18 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
       return;
     }
     ntm = (const struct NotifyTrafficMessage *) msg;
-
     ats_count = ntohl (ntm->ats_count);
     if ((msize <
          sizeof (struct NotifyTrafficMessage) +
          ats_count * sizeof (struct GNUNET_ATS_Information) +
-         sizeof (struct GNUNET_MessageHeader)) ||
-        (GNUNET_ATS_ARRAY_TERMINATOR != ntohl ((&ntm->ats)[ats_count].type)))
+         sizeof (struct GNUNET_MessageHeader)) )
     {
       GNUNET_break (0);
       reconnect_later (h);
       return;
     }
-    em = (const struct GNUNET_MessageHeader *) &(&ntm->ats)[ats_count + 1];
+    ats = (const struct GNUNET_ATS_Information*) &ntm[1];
+    em = (const struct GNUNET_MessageHeader *) &ats[ats_count];
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Received message of type %u and size %u from peer `%4s'\n",
          ntohs (em->type), ntohs (em->size), GNUNET_i2s (&ntm->peer));
@@ -954,7 +953,7 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 	return;
       }
       if (GNUNET_OK !=
-          h->handlers[hpos].callback (h->cls, &ntm->peer, em, &ntm->ats,
+          h->handlers[hpos].callback (h->cls, &ntm->peer, em, ats,
                                       ats_count))
       {
         /* error in processing, do not process other messages! */
@@ -962,7 +961,7 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
       }
     }
     if (NULL != h->inbound_notify)
-      h->inbound_notify (h->cls, &ntm->peer, em, &ntm->ats, ats_count);
+      h->inbound_notify (h->cls, &ntm->peer, em, ats, ats_count);
     break;
   case GNUNET_MESSAGE_TYPE_CORE_NOTIFY_OUTBOUND:
     if (msize < sizeof (struct NotifyTrafficMessage))
@@ -982,14 +981,14 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     if ((msize <
          sizeof (struct NotifyTrafficMessage) +
          ats_count * sizeof (struct GNUNET_ATS_Information) +
-         sizeof (struct GNUNET_MessageHeader)) ||
-        (GNUNET_ATS_ARRAY_TERMINATOR != ntohl ((&ntm->ats)[ats_count].type)))
+         sizeof (struct GNUNET_MessageHeader)) )
     {
       GNUNET_break (0);
       reconnect_later (h);
       return;
     }
-    em = (const struct GNUNET_MessageHeader *) &(&ntm->ats)[ats_count + 1];
+    ats = (const struct GNUNET_ATS_Information*) &ntm[1];    
+    em = (const struct GNUNET_MessageHeader *) &ats[ats_count];
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Received notification about transmission to `%s'.\n",
          GNUNET_i2s (&ntm->peer));
@@ -1007,7 +1006,7 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
       GNUNET_break (0);
       break;
     }
-    h->outbound_notify (h->cls, &ntm->peer, em, &ntm->ats, ats_count);
+    h->outbound_notify (h->cls, &ntm->peer, em, ats, ats_count);
     break;
   case GNUNET_MESSAGE_TYPE_CORE_SEND_READY:
     if (msize != sizeof (struct SendMessageReady))

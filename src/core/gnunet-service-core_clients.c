@@ -846,11 +846,9 @@ GSC_CLIENTS_deliver_message (const struct GNUNET_PeerIdentity *sender,
     ntm->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_OUTBOUND);
   ntm->ats_count = htonl (atsi_count);
   ntm->peer = *sender;
-  a = &ntm->ats;
+  a = (struct GNUNET_ATS_Information*) &ntm[1];
   memcpy (a, atsi, sizeof (struct GNUNET_ATS_Information) * atsi_count);
-  a[atsi_count].type = htonl (GNUNET_ATS_ARRAY_TERMINATOR);
-  a[atsi_count].value = htonl (0);
-  memcpy (&a[atsi_count + 1], msg, msize);
+  memcpy (&a[atsi_count], msg, msize);
   send_to_all_clients (sender, &ntm->header, GNUNET_YES, options,
                        ntohs (msg->type));
 }

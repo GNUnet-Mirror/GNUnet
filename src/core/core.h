@@ -222,12 +222,11 @@ struct NotifyTrafficMessage
    */
   struct GNUNET_PeerIdentity peer;
 
-  /**
-   * First of the ATS information blocks (we must have at least
-   * one due to the 0-termination requirement).
+  /* Followed by ATS information blocks:
+   * struct GNUNET_ATS_Information ats[ats_count]
    */
-  struct GNUNET_ATS_Information ats;
 
+  /* Followed by payload (message or just header), variable size */
 };
 
 
