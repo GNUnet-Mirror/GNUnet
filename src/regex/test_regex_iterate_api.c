@@ -31,7 +31,13 @@ void key_iterator(void *cls, const GNUNET_HashCode *key, const char *proof,
                   int accepting, unsigned int num_edges,
                   const struct GNUNET_REGEX_Edge *edges)
 {
+  int i;
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Iterating...\n");
+  for (i=0; i<num_edges; i++)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Edge %i: %s\n", i, edges[i].label);
+  }
 }
 
 int

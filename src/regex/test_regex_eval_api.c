@@ -248,7 +248,7 @@ main (int argc, char *argv[])
   int check_dfa;
   int check_rand;
 
-  struct Regex_String_Pair rxstr[4] = {
+  struct Regex_String_Pair rxstr[5] = {
     {"ab?(abcd)?", 5,
      {"ababcd", "abab", "aabcd", "a", "abb"},
      {match, nomatch, match, match, nomatch}},
@@ -262,6 +262,9 @@ main (int argc, char *argv[])
      {nomatch, nomatch, nomatch, nomatch, nomatch}},
     {"k|a+X*y+c|Q*e|p|R|Z*K*y*R+w|Y*6+n+h*k*w+V*F|W*B*e*g|N+V|t+L|P*j*3*9+X*h*J|J*6|b|E*i*f*R+S|Z|R|Y*Z|g*", 1,
      {"kaXycQepRZKyRwY6nhkwVFWBegNVtLPj39XhJJ6bEifRSZRYZg"},
+     {nomatch}},
+    {"F?W+m+2*6*c*s|P?U?a|B|y*i+t+A|V|6*C*7*e?Z*n*i|J?5+g?W*V?7*j?p?1|r?B?C+E+3+6*i+W*P?K?0|D+7?y*m+3?g?K?", 1,
+     {"osfjsodfonONONOnosndfsdnfsd"},
      {nomatch}}
   };
 
@@ -269,7 +272,7 @@ main (int argc, char *argv[])
   check_dfa = 0;
   check_rand = 0;
 
-  for (i = 0; i < 4; i++)
+  for (i = 0; i < 5; i++)
   {
     if (0 != regcomp (&rx, rxstr[i].regex, REG_EXTENDED))
     {

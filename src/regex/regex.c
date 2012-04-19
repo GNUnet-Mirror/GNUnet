@@ -262,8 +262,8 @@ static void
 debug_print_state (struct GNUNET_REGEX_State *s)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "State %i: %s marked: %i accepting: %i scc_id: %i\n", s->id,
-              s->name, s->marked, s->accepting, s->scc_id);
+              "State %i: %s marked: %i accepting: %i scc_id: %i transitions: %i\n", s->id,
+              s->name, s->marked, s->accepting, s->scc_id, s->transition_count);
 }
 
 static void
@@ -465,7 +465,8 @@ state_set_clear (struct GNUNET_REGEX_StateSet *set)
 }
 
 /**
- * Adds a transition from one state to another on 'label'
+ * Adds a transition from one state to another on 'label'. Does not add
+ * duplicate states.
  *
  * @param ctx context
  * @param from_state starting state for the transition
@@ -477,6 +478,7 @@ state_add_transition (struct GNUNET_REGEX_Context *ctx,
                       struct GNUNET_REGEX_State *from_state, const char label,
                       struct GNUNET_REGEX_State *to_state)
 {
+  int is_dup;
   struct Transition *t;
 
   if (NULL == from_state)
@@ -485,12 +487,30 @@ state_add_transition (struct GNUNET_REGEX_Context *ctx,
     return;
   }
 
+  // Do not add duplicate states
+  is_dup = GNUNET_NO;
+  for (t = from_state->transitions_head; NULL != t; t = t->next)
+  {
+    if (t->to_state == to_state
+        && t->label == label
+        && t->from_state == from_state)
+    {
+      is_dup = GNUNET_YES;
+      break;
+    }
+  }
+
+  if (is_dup)
+    return;
+
   t = GNUNET_malloc (sizeof (struct Transition));
 
   t->id = ctx->transition_id++;
   t->label = label;
   t->to_state = to_state;
   t->from_state = from_state;
+
+  from_state->transition_count++;
 
   GNUNET_CONTAINER_DLL_insert (from_state->transitions_head,
                                from_state->transitions_tail, t);
@@ -533,12 +553,11 @@ automaton_destroy_state (struct GNUNET_REGEX_State *s)
   if (NULL != s->name)
     GNUNET_free (s->name);
 
-  for (t = s->transitions_head; NULL != t;)
+  for (t = s->transitions_head; NULL != t; t = next_t)
   {
     next_t = t->next;
     GNUNET_CONTAINER_DLL_remove (s->transitions_head, s->transitions_tail, t);
     GNUNET_free (t);
-    t = next_t;
   }
 
   state_set_clear (s->nfa_set);
@@ -604,7 +623,6 @@ automaton_merge_states (struct GNUNET_REGEX_Context *ctx,
 {
   struct GNUNET_REGEX_State *s_check;
   struct Transition *t_check;
-  struct Transition *t;
   char *new_name;
 
   GNUNET_assert (NULL != ctx && NULL != a && NULL != s1 && NULL != s2);
@@ -615,7 +633,7 @@ automaton_merge_states (struct GNUNET_REGEX_Context *ctx,
     for (t_check = s_check->transitions_head; NULL != t_check;
          t_check = t_check->next)
     {
-      if (s_check != s1 && s2 == t_check->to_state)
+      if (s2 == t_check->to_state)
         t_check->to_state = s1;
     }
   }
@@ -623,29 +641,24 @@ automaton_merge_states (struct GNUNET_REGEX_Context *ctx,
   // 2. Add all transitions from s2 to sX to s1
   for (t_check = s2->transitions_head; NULL != t_check; t_check = t_check->next)
   {
-    for (t = s1->transitions_head; NULL != t; t = t->next)
-    {
-      if (t_check->label != t->label && NULL != t_check->to_state &&
-          t_check->to_state != t->to_state && t_check->to_state != s2)
-      {
+    if (t_check->to_state != s1)
         state_add_transition (ctx, s1, t_check->label, t_check->to_state);
-      }
-    }
   }
 
   // 3. Rename s1 to {s1,s2}
-  new_name = GNUNET_malloc (strlen (s1->name) + strlen (s2->name) + 1);
-  strncat (new_name, s1->name, strlen (s1->name));
-  strncat (new_name, s2->name, strlen (s2->name));
+  new_name = GNUNET_strdup (s1->name);
   if (NULL != s1->name)
+  {
     GNUNET_free (s1->name);
-  s1->name = new_name;
+    s1->name = NULL;
+  }
+  GNUNET_asprintf (&s1->name, "{%s,%s}", new_name, s2->name);
+  GNUNET_free (new_name);
 
   // remove state
-  s_check = s2;
-  GNUNET_CONTAINER_DLL_remove (a->states_head, a->states_tail, s_check);
+  GNUNET_CONTAINER_DLL_remove (a->states_head, a->states_tail, s2);
   a->state_count--;
-  automaton_destroy_state (s_check);
+  automaton_destroy_state (s2);
 }
 
 /**
@@ -925,8 +938,8 @@ dfa_merge_nondistinguishable_states (struct GNUNET_REGEX_Context *ctx,
   struct Transition *t1;
   struct Transition *t2;
   int change;
+  int common_labels;
 
-  change = 1;
   for (i = 0, s1 = a->states_head; 
        i < a->state_count && NULL != s1;
        i++, s1 = s1->next)
@@ -949,6 +962,7 @@ dfa_merge_nondistinguishable_states (struct GNUNET_REGEX_Context *ctx,
     }
   }
 
+  change = 1;
   while (0 != change)
   {
     change = 0;
@@ -959,24 +973,26 @@ dfa_merge_nondistinguishable_states (struct GNUNET_REGEX_Context *ctx,
         if (0 != table[s1->marked][s2->marked])
           continue;
 
+        common_labels = GNUNET_NO;
         for (t1 = s1->transitions_head; NULL != t1; t1 = t1->next)
         {
           for (t2 = s2->transitions_head; NULL != t2; t2 = t2->next)
           {
-            if (t1->label == t2->label && t1->to_state == t2->to_state &&
-                (0 != table[t1->to_state->marked][t2->to_state->marked] ||
-                 0 != table[t2->to_state->marked][t1->to_state->marked]))
+            if (t1->label == t2->label)
             {
-              table[s1->marked][s2->marked] = t1->label;
-              change = 1;
-            }
-            else if (t1->label != t2->label && t1->to_state != t2->to_state)
-            {
-              table[s1->marked][s2->marked] = -1;
-              change = 1;
+              common_labels = GNUNET_YES;
+
+              if (0 != table[t1->to_state->marked][t2->to_state->marked] ||
+                  0 != table[t2->to_state->marked][t1->to_state->marked])
+              {
+                table[s1->marked][s2->marked] = t1->label != 0 ? t1->label : 1;
+                change = 1;
+              }
             }
           }
         }
+        if (GNUNET_NO == common_labels)
+          table[s1->marked][s2->marked] = -2;
       }
     }
   }
@@ -988,7 +1004,7 @@ dfa_merge_nondistinguishable_states (struct GNUNET_REGEX_Context *ctx,
     for (s2 = a->states_head; NULL != s2 && s1 != s2; s2 = s2_next)
     {
       s2_next = s2->next;
-      if (s1 != s2 && table[s1->marked][s2->marked] == 0)
+      if (table[s1->marked][s2->marked] == 0)
         automaton_merge_states (ctx, a, s1, s2);
     }
   }
@@ -1700,10 +1716,8 @@ GNUNET_REGEX_construct_dfa (const char *regex, const size_t len)
   GNUNET_free (dfa_stack);
   GNUNET_REGEX_automaton_destroy (nfa);
 
-  GNUNET_REGEX_automaton_save_graph (dfa, "dfa_before.dot");
   dfa_minimize (&ctx, dfa);
-  /*GNUNET_REGEX_automaton_save_graph (dfa, "dfa_after.dot");*/
-  /*scc_tarjan (&ctx, dfa);*/
+  scc_tarjan (&ctx, dfa);
 
   return dfa;
 }
@@ -1782,16 +1796,21 @@ GNUNET_REGEX_automaton_save_graph (struct GNUNET_REGEX_Automaton *a,
       GNUNET_asprintf (&s_acc,
                        "\"%s\" [shape=doublecircle, color=\"0.%i 0.8 0.95\"];\n",
                        s->name, s->scc_id);
-      fwrite (s_acc, strlen (s_acc), 1, p);
-      GNUNET_free (s_acc);
     }
     else
     {
       GNUNET_asprintf (&s_acc, "\"%s\" [color=\"0.%i 0.8 0.95\"];\n", s->name,
                        s->scc_id);
-      fwrite (s_acc, strlen (s_acc), 1, p);
-      GNUNET_free (s_acc);
     }
+
+    if (NULL == s_acc)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not print state %s\n", s->name);
+      return;
+    }
+    fwrite (s_acc, strlen (s_acc), 1, p);
+    GNUNET_free (s_acc);
+    s_acc = NULL;
 
     for (ctran = s->transitions_head; NULL != ctran; ctran = ctran->next)
     {
@@ -1817,8 +1836,15 @@ GNUNET_REGEX_automaton_save_graph (struct GNUNET_REGEX_Automaton *a,
                          s->scc_id);
       }
 
+      if (NULL == s_tran)
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not print state %s\n", s->name);
+        return;
+      }
+
       fwrite (s_tran, strlen (s_tran), 1, p);
       GNUNET_free (s_tran);
+      s_tran = NULL;
     }
   }
 
@@ -2012,8 +2038,8 @@ state_get_edges (struct GNUNET_REGEX_State *s, struct GNUNET_REGEX_Edge *edges)
   {
     if (NULL != t->to_state)
     {
-      /*edges[count].label = &t->label;*/
-      /*edges[count].destination = t->to_state->hash;*/
+      edges[count].label = &t->label;
+      edges[count].destination = t->to_state->hash;
       count++;
     }
   }
@@ -2036,7 +2062,7 @@ iterate_edge (struct GNUNET_REGEX_State *s, GNUNET_REGEX_KeyIterator iterator,
   struct GNUNET_REGEX_Edge edges[s->transition_count];
   unsigned int num_edges;
 
-  if (GNUNET_NO == s->marked)
+  if (GNUNET_YES != s->marked)
   {
     s->marked = GNUNET_YES;
 
@@ -2064,7 +2090,7 @@ GNUNET_REGEX_iterate_all_edges (struct GNUNET_REGEX_Automaton *a,
 {
   struct GNUNET_REGEX_State *s;
 
-  for (s = a->start; NULL != s; s = s->next)
+  for (s = a->states_head; NULL != s; s = s->next)
     s->marked = GNUNET_NO;
 
   iterate_edge (a->start, iterator, iterator_cls);
