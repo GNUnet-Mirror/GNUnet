@@ -223,6 +223,7 @@ GNUNET_SERVER_notify_transmit_ready_cancel (struct GNUNET_SERVER_TransmitHandle 
 void
 GNUNET_SERVER_client_persist_ (struct GNUNET_SERVER_Client *client);
 
+
 /**
  * Resume receiving from this client, we are done processing the
  * current request.  This function must be called from within each

@@ -191,7 +191,7 @@ do_report (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   char *fancy;
   struct StatMaster *sm;
 
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE))
+  if (0 == (tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT))
   {
     del = GNUNET_TIME_absolute_get_duration (start_time);
     if (del.rel_value == 0)

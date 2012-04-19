@@ -66,7 +66,7 @@ do_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     cc = NULL;
   }
   GNUNET_FS_TEST_daemons_stop (2, daemons);
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE))
+  if (0 == (tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT))
   {
     del = GNUNET_TIME_absolute_get_duration (start_time);
     if (del.rel_value == 0)
@@ -146,7 +146,7 @@ static void
 do_publish (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   cc = NULL;
-  if (0 == (tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE))
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT))
   {
     GNUNET_FS_TEST_daemons_stop (2, daemons);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
