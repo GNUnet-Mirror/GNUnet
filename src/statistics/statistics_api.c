@@ -412,6 +412,22 @@ reconnect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
+
+/**
+ * Task used by 'reconnect_later' to shutdown the handle
+ *
+ * @param cls the statistics handle
+ * @param tc scheduler context
+ */
+static void
+do_destroy (void *cls,
+	       const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_STATISTICS_Handle *h = cls;
+
+  GNUNET_STATISTICS_destroy (h, GNUNET_NO);
+}
+
 /**
  * Reconnect at a later time, respecting back-off.
  *
@@ -430,7 +446,8 @@ reconnect_later (struct GNUNET_STATISTICS_Handle *h)
      */
     GNUNET_break (0);
     h->do_destroy = GNUNET_NO;
-    GNUNET_STATISTICS_destroy (h, GNUNET_NO);
+    GNUNET_SCHEDULER_add_continuation (&do_destroy, h,
+				       GNUNET_SCHEDULER_REASON_PREREQ_DONE);
     return;
   }
   h->backoff_task =
