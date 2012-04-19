@@ -87,7 +87,7 @@ struct ClientList
    * Handle to the current transmission request, NULL
    * if none pending.
    */
-  struct GNUNET_CONNECTION_TransmitHandle *transmit_handle;
+  struct GNUNET_SERVER_TransmitHandle *transmit_handle;
 
   /**
    * Linked list of pending messages for this client
@@ -326,7 +326,7 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
   pos = find_active_client (client);
   GNUNET_CONTAINER_DLL_remove (client_head, client_tail, pos);
   if (pos->transmit_handle != NULL)
-    GNUNET_CONNECTION_notify_transmit_ready_cancel (pos->transmit_handle);
+    GNUNET_SERVER_notify_transmit_ready_cancel (pos->transmit_handle);
   while (NULL != (reply = pos->pending_head))
   {
     GNUNET_CONTAINER_DLL_remove (pos->pending_head, pos->pending_tail, reply);
