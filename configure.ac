@@ -568,9 +568,9 @@ AC_ARG_WITH(microhttpd,
 	  AC_CHECK_DECL(MHD_OPTION_PER_IP_CONNECTION_LIMIT,
             AC_CHECK_LIB([microhttpd], [MHD_start_daemon],
               lmhd=1),
-	    [],[#include "src/include/platform.h"
+	    [],[#include "$srcdir/src/include/platform.h"
                 #include <microhttpd.h>]),,
-            [#include "src/include/platform.h"])
+            [#include "$srcdir/src/include/platform.h"])
         ;;
       *)
         LDFLAGS="-L$with_microhttpd/lib $LDFLAGS"
@@ -580,9 +580,9 @@ AC_ARG_WITH(microhttpd,
             AC_CHECK_LIB([microhttpd], [MHD_start_daemon],
               EXT_LIB_PATH="-L$with_microhttpd/lib $EXT_LIB_PATH"
               lmhd=1),
-	    [],[#include "src/include/platform.h"
+	    [],[#include "$srcdir/src/include/platform.h"
                 #include <microhttpd.h>]),,
-            [#include "src/include/platform.h"])
+            [#include "$srcdir/src/include/platform.h"])
         ;;
     esac
    ],
@@ -591,9 +591,9 @@ AC_ARG_WITH(microhttpd,
       AC_CHECK_DECL(MHD_OPTION_PER_IP_CONNECTION_LIMIT,
         AC_CHECK_LIB([microhttpd], [MHD_start_daemon],
           lmhd=1),
-	[],[#include "src/include/platform.h"
+	[],[#include "$srcdir/src/include/platform.h"
             #include <microhttpd.h>]),,
-       [#include "src/include/platform.h"])])
+       [#include "$srcdir/src/include/platform.h"])])
 AM_CONDITIONAL(HAVE_MHD, test x$lmhd = x1)
 AC_DEFINE_UNQUOTED([HAVE_MHD], $lmhd, [We have libmicrohttpd])
 
