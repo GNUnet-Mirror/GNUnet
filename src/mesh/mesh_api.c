@@ -675,7 +675,7 @@ do_reconnect (struct GNUNET_MESH_Handle *h)
   }
   if (NULL != h->client)
   {
-    GNUNET_CLIENT_disconnect (h->client, GNUNET_NO);
+    GNUNET_CLIENT_disconnect (h->client);
   }
 
   /* connect again */
@@ -1375,7 +1375,7 @@ GNUNET_MESH_disconnect (struct GNUNET_MESH_Handle *handle)
   }
   if (NULL != handle->client)
   {
-    GNUNET_CLIENT_disconnect (handle->client, GNUNET_NO);
+    GNUNET_CLIENT_disconnect (handle->client);
     handle->client = NULL;
   }
   if (GNUNET_SCHEDULER_NO_TASK != handle->reconnect_task)

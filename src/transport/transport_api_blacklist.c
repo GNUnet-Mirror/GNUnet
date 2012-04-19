@@ -168,7 +168,7 @@ static void
 reconnect (struct GNUNET_TRANSPORT_Blacklist *br)
 {
   if (br->client != NULL)
-    GNUNET_CLIENT_disconnect (br->client, GNUNET_NO);
+    GNUNET_CLIENT_disconnect (br->client);
   br->client = GNUNET_CLIENT_connect ("transport", br->cfg);
   GNUNET_assert (br->client != NULL);
   br->th =
@@ -288,7 +288,7 @@ GNUNET_TRANSPORT_blacklist_cancel (struct GNUNET_TRANSPORT_Blacklist *br)
     GNUNET_CLIENT_notify_transmit_ready_cancel (br->th);
     br->th = NULL;
   }
-  GNUNET_CLIENT_disconnect (br->client, GNUNET_NO);
+  GNUNET_CLIENT_disconnect (br->client);
   GNUNET_free (br);
 }
 

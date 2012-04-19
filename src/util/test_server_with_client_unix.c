@@ -68,7 +68,7 @@ recv_cb (void *cls, struct GNUNET_SERVER_Client *argclient,
     break;
   case 4:
     ok++;
-    GNUNET_CLIENT_disconnect (client, GNUNET_YES);
+    GNUNET_CLIENT_disconnect (client);
     GNUNET_SERVER_receive_done (argclient, GNUNET_OK);
     break;
   default:

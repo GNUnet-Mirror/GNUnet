@@ -1166,7 +1166,7 @@ signal_error:
     GNUNET_CLIENT_notify_transmit_ready_cancel (dc->th);
     dc->th = NULL;
   }
-  GNUNET_CLIENT_disconnect (dc->client, GNUNET_NO);
+  GNUNET_CLIENT_disconnect (dc->client);
   dc->in_receive = GNUNET_NO;
   dc->client = NULL;
   GNUNET_FS_free_download_request_ (dc->top_request);
@@ -1404,7 +1404,7 @@ try_reconnect (struct GNUNET_FS_DownloadContext *dc)
     dc->pending_head = NULL;
     dc->pending_tail = NULL;
     GNUNET_CONTAINER_multihashmap_iterate (dc->active, &retry_entry, dc);
-    GNUNET_CLIENT_disconnect (dc->client, GNUNET_NO);
+    GNUNET_CLIENT_disconnect (dc->client);
     dc->in_receive = GNUNET_NO;
     dc->client = NULL;
   }
@@ -1471,7 +1471,7 @@ deactivate_fs_download (void *cls)
   }
   if (NULL != dc->client)
   {
-    GNUNET_CLIENT_disconnect (dc->client, GNUNET_NO);
+    GNUNET_CLIENT_disconnect (dc->client);
     dc->in_receive = GNUNET_NO;
     dc->client = NULL;
   }

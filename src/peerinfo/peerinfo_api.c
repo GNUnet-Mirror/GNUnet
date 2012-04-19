@@ -172,7 +172,7 @@ GNUNET_PEERINFO_disconnect (struct GNUNET_PEERINFO_Handle *h)
   }
   if (NULL != h->client)
   {
-    GNUNET_CLIENT_disconnect (h->client, GNUNET_NO);
+    GNUNET_CLIENT_disconnect (h->client);
     h->client = NULL;
   }
   if (GNUNET_SCHEDULER_NO_TASK != h->r_task)
@@ -238,7 +238,7 @@ reconnect (struct GNUNET_PEERINFO_Handle *h)
   }
   if (NULL != h->client)
   {
-    GNUNET_CLIENT_disconnect (h->client, GNUNET_SYSERR);
+    GNUNET_CLIENT_disconnect (h->client);
     h->client = NULL;
   }
   h->client = GNUNET_CLIENT_connect ("peerinfo", h->cfg);

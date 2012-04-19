@@ -337,7 +337,7 @@ do_disconnect (struct GNUNET_STATISTICS_Handle *h)
   } 
   if (NULL != h->client)
   {
-    GNUNET_CLIENT_disconnect (h->client, GNUNET_NO);
+    GNUNET_CLIENT_disconnect (h->client);
     h->client = NULL;
   }
   h->receiving = GNUNET_NO;

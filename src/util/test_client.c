@@ -109,7 +109,7 @@ recv_bounce (void *cls, const struct GNUNET_MessageHeader *got)
   msg.type = htons (MY_TYPE);
   msg.size = htons (sizeof (struct GNUNET_MessageHeader));
   GNUNET_assert (0 == memcmp (got, &msg, sizeof (struct GNUNET_MessageHeader)));
-  GNUNET_CLIENT_disconnect (client, GNUNET_YES);
+  GNUNET_CLIENT_disconnect (client);
   client = NULL;
   GNUNET_SERVER_destroy (server);
   server = NULL;

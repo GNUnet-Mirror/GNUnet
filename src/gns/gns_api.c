@@ -229,7 +229,7 @@ static void
 force_reconnect (struct GNUNET_GNS_Handle *h)
 {
   h->reconnect = GNUNET_NO;
-  GNUNET_CLIENT_disconnect (h->client, GNUNET_NO);
+  GNUNET_CLIENT_disconnect (h->client);
   h->client = NULL;
   h->reconnect_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
                                                     &reconnect_task,
@@ -610,7 +610,7 @@ GNUNET_GNS_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
 void
 GNUNET_GNS_disconnect (struct GNUNET_GNS_Handle *handle)
 {
-  GNUNET_CLIENT_disconnect (handle->client, GNUNET_NO);
+  GNUNET_CLIENT_disconnect (handle->client);
   if (GNUNET_SCHEDULER_NO_TASK != handle->reconnect_task)
   {
     GNUNET_SCHEDULER_cancel (handle->reconnect_task);

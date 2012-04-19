@@ -460,7 +460,7 @@ GNUNET_NAT_test_stop (struct GNUNET_NAT_Test *tst)
   while (NULL != (cpos = tst->ca_head))
   {
     GNUNET_CONTAINER_DLL_remove (tst->ca_head, tst->ca_tail, cpos);
-    GNUNET_CLIENT_disconnect (cpos->client, GNUNET_NO);
+    GNUNET_CLIENT_disconnect (cpos->client);
     GNUNET_free (cpos);
   }
   while (NULL != (pos = tst->na_head))

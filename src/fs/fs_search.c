@@ -30,7 +30,6 @@
 #include "gnunet_protocols.h"
 #include "fs_api.h"
 
-#define DEBUG_SEARCH GNUNET_EXTRA_LOGGING
 
 /**
  * Number of availability trials we perform per search result.
@@ -1152,7 +1151,7 @@ try_reconnect (struct GNUNET_FS_SearchContext *sc)
 {
   if (NULL != sc->client)
   {
-    GNUNET_CLIENT_disconnect (sc->client, GNUNET_NO);
+    GNUNET_CLIENT_disconnect (sc->client);
     sc->client = NULL;
   }
   sc->task =
@@ -1369,7 +1368,7 @@ GNUNET_FS_search_signal_suspend_ (void *cls)
   if (sc->task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (sc->task);
   if (NULL != sc->client)
-    GNUNET_CLIENT_disconnect (sc->client, GNUNET_NO);
+    GNUNET_CLIENT_disconnect (sc->client);
   GNUNET_CONTAINER_multihashmap_destroy (sc->master_result_map);
   if (sc->requests != NULL)
   {
@@ -1425,7 +1424,7 @@ GNUNET_FS_search_pause (struct GNUNET_FS_SearchContext *sc)
     GNUNET_SCHEDULER_cancel (sc->task);
   sc->task = GNUNET_SCHEDULER_NO_TASK;
   if (NULL != sc->client)
-    GNUNET_CLIENT_disconnect (sc->client, GNUNET_NO);
+    GNUNET_CLIENT_disconnect (sc->client);
   sc->client = NULL;
   GNUNET_FS_search_sync_ (sc);
   GNUNET_CONTAINER_multihashmap_iterate (sc->master_result_map,
@@ -1569,7 +1568,7 @@ GNUNET_FS_search_stop (struct GNUNET_FS_SearchContext *sc)
   if (sc->task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (sc->task);
   if (NULL != sc->client)
-    GNUNET_CLIENT_disconnect (sc->client, GNUNET_NO);
+    GNUNET_CLIENT_disconnect (sc->client);
   GNUNET_CONTAINER_multihashmap_iterate (sc->master_result_map,
                                          &search_result_free, sc);
   GNUNET_CONTAINER_multihashmap_destroy (sc->master_result_map);

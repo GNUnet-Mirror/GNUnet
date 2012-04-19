@@ -52,7 +52,7 @@ build_msg (void *cls, size_t size, void *buf)
   GNUNET_assert (size >= sizeof (struct GNUNET_MessageHeader));
   msg->type = htons (MY_TYPE);
   msg->size = htons (sizeof (struct GNUNET_MessageHeader));
-  GNUNET_CLIENT_disconnect (client, GNUNET_NO);
+  GNUNET_CLIENT_disconnect (client);
   return sizeof (struct GNUNET_MessageHeader);
 }
 

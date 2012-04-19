@@ -202,7 +202,7 @@ disconnect (struct GNUNET_DNS_Handle *dh)
   }
   if (NULL != dh->dns_connection)
   {
-    GNUNET_CLIENT_disconnect (dh->dns_connection, GNUNET_NO);
+    GNUNET_CLIENT_disconnect (dh->dns_connection);
     dh->dns_connection = NULL;
   }
   while (NULL != (qe = dh->rq_head))

@@ -155,7 +155,7 @@ static void
 reconnect (struct GNUNET_TRANSPORT_PeerIterateContext *pal_ctx)
 {
   GNUNET_assert (GNUNET_NO == pal_ctx->one_shot);
-  GNUNET_CLIENT_disconnect (pal_ctx->client, GNUNET_NO);
+  GNUNET_CLIENT_disconnect (pal_ctx->client);
   pal_ctx->client = NULL;
   pal_ctx->backoff = GNUNET_TIME_relative_max (GNUNET_TIME_UNIT_MILLISECONDS,
 					       GNUNET_TIME_relative_min (GNUNET_TIME_relative_multiply (pal_ctx->backoff, 2),
@@ -354,7 +354,7 @@ GNUNET_TRANSPORT_peer_get_active_addresses_cancel (struct
 {
   if (NULL != alc->client)
   {
-    GNUNET_CLIENT_disconnect (alc->client, GNUNET_NO);
+    GNUNET_CLIENT_disconnect (alc->client);
     alc->client = NULL;
   }
   if (GNUNET_SCHEDULER_NO_TASK != alc->reconnect_task)

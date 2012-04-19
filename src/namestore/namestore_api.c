@@ -35,7 +35,6 @@
 #include "gnunet_namestore_service.h"
 #include "namestore.h"
 
-#define DEBUG_GNS_API GNUNET_EXTRA_LOGGING
 
 #define LOG(kind,...) GNUNET_log_from (kind, "gns-api",__VA_ARGS__)
 
@@ -864,7 +863,7 @@ static void
 force_reconnect (struct GNUNET_NAMESTORE_Handle *h)
 {
   h->reconnect = GNUNET_NO;
-  GNUNET_CLIENT_disconnect (h->client, GNUNET_NO);
+  GNUNET_CLIENT_disconnect (h->client);
   h->client = NULL;
   h->reconnect_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
                                     &reconnect_task,
@@ -926,7 +925,7 @@ clean_up_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if (NULL != h->client)
   {
-    GNUNET_CLIENT_disconnect (h->client, GNUNET_NO);
+    GNUNET_CLIENT_disconnect (h->client);
     h->client = NULL;
   }
   if (GNUNET_SCHEDULER_NO_TASK != h->reconnect_task)

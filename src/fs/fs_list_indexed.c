@@ -176,7 +176,7 @@ GNUNET_FS_get_indexed_files (struct GNUNET_FS_Handle *h,
 void
 GNUNET_FS_get_indexed_files_cancel (struct GNUNET_FS_GetIndexedContext *gic)
 {
-  GNUNET_CLIENT_disconnect (gic->client, GNUNET_NO);
+  GNUNET_CLIENT_disconnect (gic->client);
   GNUNET_free (gic);
 }
 

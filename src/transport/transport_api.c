@@ -940,7 +940,7 @@ disconnect_and_schedule_reconnect (struct GNUNET_TRANSPORT_Handle *h)
   }
   if (NULL != h->client)
   {
-    GNUNET_CLIENT_disconnect (h->client, GNUNET_YES);
+    GNUNET_CLIENT_disconnect (h->client);
     h->client = NULL;
   }
   /* Forget about all neighbours that we used to be connected to */

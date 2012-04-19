@@ -448,7 +448,7 @@ reconnect_later (struct GNUNET_CORE_Handle *h)
   }
   if (h->client != NULL)
   {
-    GNUNET_CLIENT_disconnect (h->client, GNUNET_NO);
+    GNUNET_CLIENT_disconnect (h->client);
     h->client = NULL;
   }
   h->currently_down = GNUNET_YES;
@@ -1243,7 +1243,7 @@ GNUNET_CORE_disconnect (struct GNUNET_CORE_Handle *handle)
   }
   if (handle->client != NULL)
   {
-    GNUNET_CLIENT_disconnect (handle->client, GNUNET_NO);
+    GNUNET_CLIENT_disconnect (handle->client);
     handle->client = NULL;
   }
   GNUNET_CONTAINER_multihashmap_iterate (handle->peers,

@@ -321,7 +321,7 @@ GNUNET_DATASTORE_disconnect (struct GNUNET_DATASTORE_Handle *h, int drop)
   }
   if (h->client != NULL)
   {
-    GNUNET_CLIENT_disconnect (h->client, GNUNET_NO);
+    GNUNET_CLIENT_disconnect (h->client);
     h->client = NULL;
   }
   if (h->reconnect_task != GNUNET_SCHEDULER_NO_TASK)
@@ -346,7 +346,7 @@ GNUNET_DATASTORE_disconnect (struct GNUNET_DATASTORE_Handle *h, int drop)
                                                GNUNET_TIME_UNIT_MINUTES,
                                                GNUNET_YES, &transmit_drop, h))
         return;
-      GNUNET_CLIENT_disconnect (h->client, GNUNET_NO);
+      GNUNET_CLIENT_disconnect (h->client);
       h->client = NULL;
     }
     GNUNET_break (0);
@@ -540,7 +540,7 @@ do_disconnect (struct GNUNET_DATASTORE_Handle *h)
   GNUNET_STATISTICS_update (stats, gettext_noop ("# reconnected to DATASTORE"),
                             1, GNUNET_NO);
 #endif
-  GNUNET_CLIENT_disconnect (h->client, GNUNET_NO);
+  GNUNET_CLIENT_disconnect (h->client);
   h->skip_next_messages = 0;
   h->client = NULL;
   h->reconnect_task =

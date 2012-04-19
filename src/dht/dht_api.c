@@ -368,7 +368,7 @@ do_disconnect (struct GNUNET_DHT_Handle *handle)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Disconnecting from DHT service, will try to reconnect in %llu ms\n",
               (unsigned long long) handle->retry_time.rel_value);
-  GNUNET_CLIENT_disconnect (handle->client, GNUNET_NO);
+  GNUNET_CLIENT_disconnect (handle->client);
   handle->client = NULL;
   handle->reconnect_task =
       GNUNET_SCHEDULER_add_delayed (handle->retry_time, &try_reconnect, handle);
@@ -701,7 +701,7 @@ GNUNET_DHT_disconnect (struct GNUNET_DHT_Handle *handle)
   }
   if (handle->client != NULL)
   {
-    GNUNET_CLIENT_disconnect (handle->client, GNUNET_YES);
+    GNUNET_CLIENT_disconnect (handle->client);
     handle->client = NULL;
   }
   if (handle->reconnect_task != GNUNET_SCHEDULER_NO_TASK)
@@ -735,7 +735,11 @@ timeout_put_request (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
- * Perform a PUT operation storing data in the DHT.
+ * Perform a PUT operation storing data in the DHT.  FIXME: we should
+ * change the protocol to get a confirmation for the PUT from the DHT
+ * and call 'cont' only after getting the confirmation; otherwise, the
+ * client has no good way of telling if the 'PUT' message actually got
+ * to the DHT service!
  *
  * @param handle handle to DHT service
  * @param key the key to store under

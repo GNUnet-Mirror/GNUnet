@@ -128,7 +128,7 @@ service_shutdown_handler (void *cls, const struct GNUNET_MessageHeader *msg)
       }
     }
     GNUNET_SCHEDULER_cancel (shutdown_ctx->cancel_task);
-    GNUNET_CLIENT_disconnect (shutdown_ctx->sock, GNUNET_NO);
+    GNUNET_CLIENT_disconnect (shutdown_ctx->sock);
     GNUNET_free (shutdown_ctx);
     return;
   }
@@ -142,7 +142,7 @@ service_shutdown_handler (void *cls, const struct GNUNET_MessageHeader *msg)
       /* ARM is not shutting down, well, report the error and be done with it... */
       shutdown_ctx->cont (shutdown_ctx->cont_cls, shutdown_ctx->confirmed);
       GNUNET_SCHEDULER_cancel (shutdown_ctx->cancel_task);
-      GNUNET_CLIENT_disconnect (shutdown_ctx->sock, GNUNET_NO);
+      GNUNET_CLIENT_disconnect (shutdown_ctx->sock);
       GNUNET_free (shutdown_ctx);
       return;
     }
@@ -165,7 +165,7 @@ service_shutdown_cancel (void *cls,
   struct ShutdownContext *shutdown_ctx = cls;
 
   shutdown_ctx->cont (shutdown_ctx->cont_cls, GNUNET_ARM_PROCESS_COMMUNICATION_TIMEOUT);
-  GNUNET_CLIENT_disconnect (shutdown_ctx->sock, GNUNET_NO);
+  GNUNET_CLIENT_disconnect (shutdown_ctx->sock);
   GNUNET_free (shutdown_ctx);
 }
 
@@ -191,7 +191,7 @@ write_shutdown (void *cls, size_t size, void *buf)
       LOG (GNUNET_ERROR_TYPE_WARNING,
 	   _("Failed to transmit shutdown request to client.\n"));
       shutdown_ctx->cont (shutdown_ctx->cont_cls, GNUNET_ARM_PROCESS_COMMUNICATION_ERROR);
-      GNUNET_CLIENT_disconnect (shutdown_ctx->sock, GNUNET_NO);
+      GNUNET_CLIENT_disconnect (shutdown_ctx->sock);
       GNUNET_free (shutdown_ctx);
       return 0;			/* client disconnected */
     }
@@ -273,7 +273,7 @@ void
 GNUNET_ARM_disconnect (struct GNUNET_ARM_Handle *h)
 {
   if (h->client != NULL)
-    GNUNET_CLIENT_disconnect (h->client, GNUNET_NO);
+    GNUNET_CLIENT_disconnect (h->client);
   GNUNET_CONFIGURATION_destroy (h->cfg);
   GNUNET_free (h);
 }
@@ -471,7 +471,7 @@ handle_response (void *cls, const struct GNUNET_MessageHeader *msg)
 	   ("Error receiving response to `%s' request from ARM for service `%s'\n"),
 	   (sc->type == GNUNET_MESSAGE_TYPE_ARM_START) ? "START" : "STOP",
 	   (const char *) &sc[1]);
-      GNUNET_CLIENT_disconnect (sc->h->client, GNUNET_NO);
+      GNUNET_CLIENT_disconnect (sc->h->client);
       sc->h->client = GNUNET_CLIENT_connect ("arm", sc->h->cfg);
       GNUNET_assert (NULL != sc->h->client);
       if (sc->callback != NULL)
@@ -730,7 +730,7 @@ handle_list_response (void *cls, const struct GNUNET_MessageHeader *msg)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
 	 "Error receiving response to LIST request from ARM\n");
-    GNUNET_CLIENT_disconnect (sc->h->client, GNUNET_NO);
+    GNUNET_CLIENT_disconnect (sc->h->client);
     sc->h->client = GNUNET_CLIENT_connect ("arm", sc->h->cfg);
     GNUNET_assert (NULL != sc->h->client);
     if (sc->callback != NULL)

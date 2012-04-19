@@ -71,7 +71,7 @@ address_response_processor (void *cls, const struct GNUNET_MessageHeader *msg)
   if (msg == NULL)
   {
     alucb->cb (alucb->cb_cls, NULL);
-    GNUNET_CLIENT_disconnect (alucb->client, GNUNET_NO);
+    GNUNET_CLIENT_disconnect (alucb->client);
     GNUNET_free (alucb);
     return;
   }
@@ -82,7 +82,7 @@ address_response_processor (void *cls, const struct GNUNET_MessageHeader *msg)
   {
     /* done! */
     alucb->cb (alucb->cb_cls, NULL);
-    GNUNET_CLIENT_disconnect (alucb->client, GNUNET_NO);
+    GNUNET_CLIENT_disconnect (alucb->client);
     GNUNET_free (alucb);
     return;
   }
@@ -92,7 +92,7 @@ address_response_processor (void *cls, const struct GNUNET_MessageHeader *msg)
     /* invalid reply */
     GNUNET_break (0);
     alucb->cb (alucb->cb_cls, NULL);
-    GNUNET_CLIENT_disconnect (alucb->client, GNUNET_NO);
+    GNUNET_CLIENT_disconnect (alucb->client);
     GNUNET_free (alucb);
     return;
   }
@@ -180,7 +180,7 @@ GNUNET_TRANSPORT_address_to_string_cancel (struct
                                            GNUNET_TRANSPORT_AddressToStringContext
                                            *alc)
 {
-  GNUNET_CLIENT_disconnect (alc->client, GNUNET_NO);
+  GNUNET_CLIENT_disconnect (alc->client);
   GNUNET_free (alc);
 }
 

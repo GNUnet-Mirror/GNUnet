@@ -54,7 +54,7 @@ finish_up (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_assert (ok == 6);
   ok = 0;
   GNUNET_SERVER_destroy (server);
-  GNUNET_CLIENT_disconnect (cc, GNUNET_NO);
+  GNUNET_CLIENT_disconnect (cc);
   GNUNET_CONFIGURATION_destroy (cfg);
 }
 

@@ -80,7 +80,7 @@ receive_info (void *cls, const struct GNUNET_MessageHeader *msg)
   {
     if (request_context->peer_cb != NULL)
       request_context->peer_cb (request_context->cb_cls, NULL, NULL, 0);
-    GNUNET_CLIENT_disconnect (request_context->client, GNUNET_NO);
+    GNUNET_CLIENT_disconnect (request_context->client);
     GNUNET_free (request_context);
     return;
   }
@@ -93,7 +93,7 @@ receive_info (void *cls, const struct GNUNET_MessageHeader *msg)
     GNUNET_break (0);
     if (request_context->peer_cb != NULL)
       request_context->peer_cb (request_context->cb_cls, NULL, NULL, 0);
-    GNUNET_CLIENT_disconnect (request_context->client, GNUNET_NO);
+    GNUNET_CLIENT_disconnect (request_context->client);
     GNUNET_free (request_context);
     return;
   }
@@ -106,7 +106,7 @@ receive_info (void *cls, const struct GNUNET_MessageHeader *msg)
     GNUNET_break (0);
     if (request_context->peer_cb != NULL)
       request_context->peer_cb (request_context->cb_cls, NULL, NULL, 0);
-    GNUNET_CLIENT_disconnect (request_context->client, GNUNET_NO);
+    GNUNET_CLIENT_disconnect (request_context->client);
     GNUNET_free (request_context);
     return;
   }

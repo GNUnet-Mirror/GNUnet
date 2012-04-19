@@ -395,7 +395,7 @@ process_ats_message (void *cls, const struct GNUNET_MessageHeader *msg)
                          GNUNET_TIME_UNIT_FOREVER_REL);
   return;
 reconnect:
-  GNUNET_CLIENT_disconnect (ph->client, GNUNET_NO);
+  GNUNET_CLIENT_disconnect (ph->client);
   ph->client = NULL;
   ph->task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &reconnect_task,
@@ -493,7 +493,7 @@ GNUNET_ATS_performance_done (struct GNUNET_ATS_PerformanceHandle *ph)
   }
   if (NULL != ph->client)
   {
-    GNUNET_CLIENT_disconnect (ph->client, GNUNET_NO);
+    GNUNET_CLIENT_disconnect (ph->client);
     ph->client = NULL;
   }
   GNUNET_free (ph);

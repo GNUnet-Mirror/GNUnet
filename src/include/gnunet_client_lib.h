@@ -70,12 +70,9 @@ GNUNET_CLIENT_connect (const char *service_name,
  * which case the message may still be lost).
  *
  * @param sock handle to the service connection
- * @param finish_pending_write should a transmission already passed to the
- *          handle be completed?
  */
 void
-GNUNET_CLIENT_disconnect (struct GNUNET_CLIENT_Connection *sock,
-                          int finish_pending_write);
+GNUNET_CLIENT_disconnect (struct GNUNET_CLIENT_Connection *sock);
 
 
 /**

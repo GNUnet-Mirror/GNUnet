@@ -98,7 +98,7 @@ publish_cleanup (struct GNUNET_FS_PublishContext *pc)
   }
   if (pc->client != NULL)
   {
-    GNUNET_CLIENT_disconnect (pc->client, GNUNET_NO);
+    GNUNET_CLIENT_disconnect (pc->client);
     pc->client = NULL;
   }
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == pc->upload_task);
@@ -611,7 +611,7 @@ process_index_start_response (void *cls, const struct GNUNET_MessageHeader *msg)
   const char *emsg;
   uint16_t msize;
 
-  GNUNET_CLIENT_disconnect (pc->client, GNUNET_NO);
+  GNUNET_CLIENT_disconnect (pc->client);
   pc->client = NULL;
   p = pc->fi_pos;
   if (msg == NULL)

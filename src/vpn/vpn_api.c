@@ -402,7 +402,7 @@ reconnect (struct GNUNET_VPN_Handle *vh)
     GNUNET_CLIENT_notify_transmit_ready_cancel (vh->th);
     vh->th = NULL;
   }  
-  GNUNET_CLIENT_disconnect (vh->client, GNUNET_NO);
+  GNUNET_CLIENT_disconnect (vh->client);
   vh->client = NULL;
   vh->request_id_gen = 0;
   for (rr = vh->rr_head; NULL != rr; rr = rr->next)
@@ -591,7 +591,7 @@ GNUNET_VPN_disconnect (struct GNUNET_VPN_Handle *vh)
   }
   if (NULL != vh->client)
   {
-    GNUNET_CLIENT_disconnect (vh->client, GNUNET_NO);
+    GNUNET_CLIENT_disconnect (vh->client);
     vh->client = NULL;
   }
   if (GNUNET_SCHEDULER_NO_TASK != vh->rt)

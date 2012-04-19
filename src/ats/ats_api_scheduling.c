@@ -27,7 +27,6 @@
 #include "gnunet_ats_service.h"
 #include "ats.h"
 
-#define DEBUG_ATS GNUNET_EXTRA_LOGGING
 
 #define INTERFACE_PROCESSING_INTERVALL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
 
@@ -213,7 +212,7 @@ static void
 force_reconnect (struct GNUNET_ATS_SchedulingHandle *sh)
 {
   sh->reconnect = GNUNET_NO;
-  GNUNET_CLIENT_disconnect (sh->client, GNUNET_NO);
+  GNUNET_CLIENT_disconnect (sh->client);
   sh->client = NULL;
   sh->task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &reconnect_task,
@@ -918,7 +917,7 @@ GNUNET_ATS_scheduling_done (struct GNUNET_ATS_SchedulingHandle *sh)
   }
   if (NULL != sh->client)
   {
-    GNUNET_CLIENT_disconnect (sh->client, GNUNET_NO);
+    GNUNET_CLIENT_disconnect (sh->client);
     sh->client = NULL;
   }
   if (GNUNET_SCHEDULER_NO_TASK != sh->task)

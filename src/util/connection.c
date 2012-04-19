@@ -323,6 +323,7 @@ GNUNET_CONNECTION_disable_corking (struct GNUNET_CONNECTION_Handle *sock)
   return GNUNET_NETWORK_socket_disable_corking (sock->sock);
 }
 
+
 /**
  * Create a socket handle by boxing an existing OS socket.  The OS
  * socket should henceforth be no longer used directly.
@@ -476,6 +477,7 @@ GNUNET_CONNECTION_create_from_accept (GNUNET_CONNECTION_AccessCheck access,
        GNUNET_a2s (uaddr, addrlen), ret);
   return ret;
 }
+
 
 /**
  * Obtain the network address of the other party.
@@ -1041,7 +1043,6 @@ GNUNET_CONNECTION_destroy (struct GNUNET_CONNECTION_Handle *sock,
     GNUNET_RESOLVER_request_cancel (sock->dns_active);
     sock->dns_active = NULL;
   }
-
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == sock->destroy_task);
   sock->destroy_task = GNUNET_SCHEDULER_add_now (&destroy_continuation, sock);
 }

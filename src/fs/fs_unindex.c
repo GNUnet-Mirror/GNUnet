@@ -223,7 +223,7 @@ process_fs_response (void *cls, const struct GNUNET_MessageHeader *msg)
 
   if (uc->client != NULL)
   {
-    GNUNET_CLIENT_disconnect (uc->client, GNUNET_NO);
+    GNUNET_CLIENT_disconnect (uc->client);
     uc->client = NULL;
   }
   if (uc->state != UNINDEX_STATE_FS_NOTIFY)
@@ -708,7 +708,7 @@ GNUNET_FS_unindex_signal_suspend_ (void *cls)
   }
   if (uc->client != NULL)
   {
-    GNUNET_CLIENT_disconnect (uc->client, GNUNET_NO);
+    GNUNET_CLIENT_disconnect (uc->client);
     uc->client = NULL;
   }
   if (NULL != uc->dsh)
@@ -803,7 +803,7 @@ GNUNET_FS_unindex_stop (struct GNUNET_FS_UnindexContext *uc)
   }
   if (uc->client != NULL)
   {
-    GNUNET_CLIENT_disconnect (uc->client, GNUNET_NO);
+    GNUNET_CLIENT_disconnect (uc->client);
     uc->client = NULL;
   }
   if (NULL != uc->dsh)

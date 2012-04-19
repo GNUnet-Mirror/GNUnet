@@ -253,7 +253,7 @@ GNUNET_RESOLVER_disconnect ()
 #if DEBUG_RESOLVER
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from DNS service\n");
 #endif
-    GNUNET_CLIENT_disconnect (client, GNUNET_NO);
+    GNUNET_CLIENT_disconnect (client);
     client = NULL;
   }
   if (r_task != GNUNET_SCHEDULER_NO_TASK)
@@ -374,7 +374,7 @@ handle_response (void *cls, const struct GNUNET_MessageHeader *msg)
     }
     GNUNET_CONTAINER_DLL_remove (req_head, req_tail, rh);
     GNUNET_free (rh);
-    GNUNET_CLIENT_disconnect (client, GNUNET_NO);
+    GNUNET_CLIENT_disconnect (client);
     client = NULL;
     reconnect ();
     return;
@@ -382,7 +382,7 @@ handle_response (void *cls, const struct GNUNET_MessageHeader *msg)
   if (GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE != ntohs (msg->type))
   {
     GNUNET_break (0);
-    GNUNET_CLIENT_disconnect (client, GNUNET_NO);
+    GNUNET_CLIENT_disconnect (client);
     client = NULL;
     reconnect ();
     return;
@@ -417,7 +417,7 @@ handle_response (void *cls, const struct GNUNET_MessageHeader *msg)
         rh->name_callback (rh->cls, NULL);
       GNUNET_CONTAINER_DLL_remove (req_head, req_tail, rh);
       GNUNET_free (rh);
-      GNUNET_CLIENT_disconnect (client, GNUNET_NO);
+      GNUNET_CLIENT_disconnect (client);
       client = NULL;
       reconnect ();
       return;
@@ -473,7 +473,7 @@ handle_response (void *cls, const struct GNUNET_MessageHeader *msg)
         rh->addr_callback (rh->cls, NULL, 0);
       GNUNET_CONTAINER_DLL_remove (req_head, req_tail, rh);
       GNUNET_free (rh);
-      GNUNET_CLIENT_disconnect (client, GNUNET_NO);
+      GNUNET_CLIENT_disconnect (client);
       client = NULL;
       reconnect ();
       return;
@@ -643,7 +643,7 @@ process_requests ()
                                                (rh->timeout), GNUNET_YES,
                                                &handle_response, rh))
   {
-    GNUNET_CLIENT_disconnect (client, GNUNET_NO);
+    GNUNET_CLIENT_disconnect (client);
     client = NULL;
     reconnect ();
     return;

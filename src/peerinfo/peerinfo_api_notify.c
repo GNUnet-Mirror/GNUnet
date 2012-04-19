@@ -133,7 +133,7 @@ process_notification (void *cls, const struct GNUNET_MessageHeader *msg)
 
   if (msg == NULL)
   {
-    GNUNET_CLIENT_disconnect (nc->client, GNUNET_NO);
+    GNUNET_CLIENT_disconnect (nc->client);
     reconnect (nc, NULL);
     return;
   }
@@ -142,7 +142,7 @@ process_notification (void *cls, const struct GNUNET_MessageHeader *msg)
       (ntohs (msg->type) != GNUNET_MESSAGE_TYPE_PEERINFO_INFO))
   {
     GNUNET_break (0);
-    GNUNET_CLIENT_disconnect (nc->client, GNUNET_NO);
+    GNUNET_CLIENT_disconnect (nc->client);
     nc->client = GNUNET_CLIENT_connect ("peerinfo", nc->cfg);
     request_notifications (nc);
     return;
@@ -155,7 +155,7 @@ process_notification (void *cls, const struct GNUNET_MessageHeader *msg)
     if (ms != sizeof (struct InfoMessage) + GNUNET_HELLO_size (hello))
     {
       GNUNET_break (0);
-      GNUNET_CLIENT_disconnect (nc->client, GNUNET_NO);
+      GNUNET_CLIENT_disconnect (nc->client);
       nc->client = GNUNET_CLIENT_connect ("peerinfo", nc->cfg);
       request_notifications (nc);
       return;
@@ -200,7 +200,7 @@ transmit_notify_request (void *cls, size_t size, void *buf)
   nc->init = NULL;
   if (buf == NULL)
   {
-    GNUNET_CLIENT_disconnect (nc->client, GNUNET_NO);
+    GNUNET_CLIENT_disconnect (nc->client);
     nc->client = GNUNET_CLIENT_connect ("peerinfo", nc->cfg);
     request_notifications (nc);
     return 0;
@@ -281,7 +281,7 @@ GNUNET_PEERINFO_notify_cancel (struct GNUNET_PEERINFO_NotifyContext *nc)
     nc->init = NULL;
   }
   if (NULL != nc->client)
-    GNUNET_CLIENT_disconnect (nc->client, GNUNET_NO);
+    GNUNET_CLIENT_disconnect (nc->client);
   if (GNUNET_SCHEDULER_NO_TASK != nc->task)
     GNUNET_SCHEDULER_cancel (nc->task);
   GNUNET_free (nc);
