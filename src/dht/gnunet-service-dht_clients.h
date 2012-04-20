@@ -57,33 +57,77 @@ GDS_CLIENTS_handle_reply (struct GNUNET_TIME_Absolute expiration,
 
 
 /**
- * Check if some client is monitoring messages of this type and notify
- * him in that case.
+ * Check if some client is monitoring GET messages and notify
+ * them in that case.
  *
- * @param mtype Type of the DHT message.
- * @param exp When will this value expire.
- * @param key Key of the result/request.
- * @param putl number of entries in get_path.
- * @param put_path peers on the PUT path (or NULL if not recorded).
- * @param getl number of entries in get_path.
- * @param get_path Peers on reply path (or NULL if not recorded).
+ * @param options Options, for instance RecordRoute, DemultiplexEverywhere.
+ * @param type The type of data in the request.
+ * @param hop_count Hop count so far.
+ * @param path_length number of entries in path (or 0 if not recorded).
+ * @param path peers on the GET path (or NULL if not recorded).
  * @param desired_replication_level Desired replication level.
- * @param type Type of the result/request.
+ * @param key Key of the requested data.
+ */
+void
+GDS_CLIENTS_process_get (uint32_t options,
+                         enum GNUNET_BLOCK_Type type,
+                         uint32_t hop_count,
+                         uint32_t desired_replication_level, 
+                         unsigned int path_length,
+                         const struct GNUNET_PeerIdentity *path,
+                         const GNUNET_HashCode * key);
+
+/**
+ * Check if some client is monitoring GET RESP messages and notify
+ * them in that case.
+ *
+ * @param type The type of data in the result.
+ * @param get_path Peers on GET path (or NULL if not recorded).
+ * @param get_path_length number of entries in get_path.
+ * @param put_path peers on the PUT path (or NULL if not recorded).
+ * @param put_path_length number of entries in get_path.
+ * @param exp Expiration time of the data.
+ * @param key Key of the data.
  * @param data Pointer to the result data.
  * @param size Number of bytes in data.
  */
 void
-GDS_CLIENTS_process_monitor (uint16_t mtype,
-                             const struct GNUNET_TIME_Absolute exp,
-                             const GNUNET_HashCode *key,
-                             uint32_t putl,
-                             const struct GNUNET_PeerIdentity *put_path,
-                             uint32_t getl,
-                             const struct GNUNET_PeerIdentity *get_path,
-                             uint32_t desired_replication_level,
-                             enum GNUNET_BLOCK_Type type,
-                             const struct GNUNET_MessageHeader *data,
-                             uint16_t size);
+GDS_CLIENTS_process_get_resp (enum GNUNET_BLOCK_Type type,
+                              const struct GNUNET_PeerIdentity *get_path,
+                              unsigned int get_path_length,
+                              const struct GNUNET_PeerIdentity *put_path,
+                              unsigned int put_path_length,
+                              struct GNUNET_TIME_Absolute exp,
+                              const GNUNET_HashCode * key,
+                              const void *data,
+                              size_t size);
+
+/**
+ * Check if some client is monitoring PUT messages and notify
+ * them in that case.
+ *
+ * @param options Options, for instance RecordRoute, DemultiplexEverywhere.
+ * @param type The type of data in the request.
+ * @param hop_count Hop count so far.
+ * @param path_length number of entries in path (or 0 if not recorded).
+ * @param path peers on the PUT path (or NULL if not recorded).
+ * @param desired_replication_level Desired replication level.
+ * @param exp Expiration time of the data.
+ * @param key Key under which data is to be stored.
+ * @param data Pointer to the data carried.
+ * @param size Number of bytes in data.
+ */
+void
+GDS_CLIENTS_process_put (uint32_t options,
+                         enum GNUNET_BLOCK_Type type,
+                         uint32_t hop_count,
+                         uint32_t desired_replication_level, 
+                         unsigned int path_length,
+                         const struct GNUNET_PeerIdentity *path,
+                         struct GNUNET_TIME_Absolute exp,
+                         const GNUNET_HashCode * key,
+                         const void *data,
+                         size_t size);
 
 /**
  * Initialize client subsystem.

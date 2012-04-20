@@ -1617,10 +1617,15 @@ handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
                                pp, payload, payload_size);
   }
   GNUNET_CONTAINER_bloomfilter_free (bf);
-  GDS_CLIENTS_process_monitor (GNUNET_MESSAGE_TYPE_DHT_MONITOR_PUT,
-    GNUNET_TIME_absolute_ntoh (put->expiration_time), &put->key,
-    putlen, put_path, 0, NULL, ntohl(put->desired_replication_level),
-    ntohl (put->type), payload, payload_size);
+  GDS_CLIENTS_process_put (options,
+                           ntohl (put->type),
+                           ntohl (put->hop_count),
+                           ntohl (put->desired_replication_level),
+                           putlen, put_path,
+                           GNUNET_TIME_absolute_ntoh (put->expiration_time),
+                           &put->key,
+                           payload,
+                           payload_size);
   return GNUNET_YES;
 }
 
@@ -1827,9 +1832,12 @@ handle_dht_p2p_get (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
 
   /* FIXME Path */
-  GDS_CLIENTS_process_monitor (GNUNET_MESSAGE_TYPE_DHT_MONITOR_GET,
-    GNUNET_TIME_UNIT_FOREVER_ABS, &get->key, 0, NULL, 0, NULL,
-    ntohl (get->desired_replication_level), type, NULL, 0);
+  GDS_CLIENTS_process_get (options,
+                           type,
+                           ntohl(get->hop_count),
+                           ntohl(get->desired_replication_level),
+                           0, NULL,
+                           &get->key);
 
   /* P2P forwarding */
   if (eval != GNUNET_BLOCK_EVALUATION_OK_LAST)
@@ -1963,10 +1971,16 @@ handle_dht_p2p_result (void *cls, const struct GNUNET_PeerIdentity *peer,
                          xget_path, data, data_size);
   }
 
-  GDS_CLIENTS_process_monitor (GNUNET_MESSAGE_TYPE_DHT_MONITOR_GET_RESP,
-    GNUNET_TIME_absolute_ntoh (prm->expiration_time), &prm->key,
-    put_path_length, put_path, get_path_length, get_path,
-    0, type, data, data_size);
+  GDS_CLIENTS_process_get_resp (type,
+                                get_path,
+                                get_path_length,
+                                put_path,
+                                put_path_length,
+                                GNUNET_TIME_absolute_ntoh (
+                                  prm->expiration_time),
+                                &prm->key,
+                                data,
+                                data_size);
 
   return GNUNET_YES;
 }

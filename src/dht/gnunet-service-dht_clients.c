@@ -204,6 +204,21 @@ struct ClientMonitorRecord
   GNUNET_HashCode         *key;
 
   /**
+   * Flag whether to notify about GET messages.
+   */
+  int16_t get;
+
+  /**
+   * Flag whether to notify about GET_REPONSE messages.
+   */
+  int16_t get_resp;
+
+  /**
+   * Flag whether to notify about PUT messages.
+   */
+  uint16_t put;
+
+  /**
    * Client to notify of these requests.
    */
   struct ClientList             *client;
@@ -490,12 +505,16 @@ handle_dht_local_put (void *cls, struct GNUNET_SERVER_Client *client,
                              peer_bf, &dht_msg->key, 0, NULL, &dht_msg[1],
                              size -
                              sizeof (struct GNUNET_DHT_ClientPutMessage));
-  GDS_CLIENTS_process_monitor (GNUNET_MESSAGE_TYPE_DHT_MONITOR_PUT,
-    GNUNET_TIME_absolute_ntoh (dht_msg->expiration), &dht_msg->key,
-    1, GDS_NEIGHBOURS_get_id(), 0, NULL,
-    ntohl (dht_msg->desired_replication_level),
-    ntohl (dht_msg->type), &(dht_msg[1].header),
-    size - sizeof (struct GNUNET_DHT_ClientPutMessage));
+  GDS_CLIENTS_process_put (ntohl (dht_msg->options),
+                           ntohl (dht_msg->type),
+                           0,
+                           ntohl (dht_msg->desired_replication_level),
+                           1,
+                           GDS_NEIGHBOURS_get_id(),
+                           GNUNET_TIME_absolute_ntoh (dht_msg->expiration),
+                           &dht_msg->key,
+                           &dht_msg[1],
+                           size - sizeof (struct GNUNET_DHT_ClientPutMessage));
   GNUNET_CONTAINER_bloomfilter_free (peer_bf);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
@@ -554,11 +573,13 @@ handle_dht_local_get (void *cls, struct GNUNET_SERVER_Client *client,
   cqr->type = ntohl (get->type);
   GNUNET_CONTAINER_multihashmap_put (forward_map, &get->key, cqr,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-  GDS_CLIENTS_process_monitor (GNUNET_MESSAGE_TYPE_DHT_MONITOR_GET,
-    GNUNET_TIME_UNIT_FOREVER_ABS, &get->key,
-    0, NULL, 1, GDS_NEIGHBOURS_get_id(),
-    ntohl (get->desired_replication_level),
-    ntohl (get->type), NULL, 0);
+  GDS_CLIENTS_process_get (ntohl (get->options),
+                           ntohl (get->type),
+                           0,
+                           ntohl (get->desired_replication_level),
+                           1,
+                           GDS_NEIGHBOURS_get_id(),
+                           &get->key);
   /* start remote requests */
   if (GNUNET_SCHEDULER_NO_TASK != retry_task)
     GNUNET_SCHEDULER_cancel (retry_task);
@@ -659,15 +680,18 @@ handle_dht_local_monitor (void *cls, struct GNUNET_SERVER_Client *client,
                           const struct GNUNET_MessageHeader *message)
 {
   struct ClientMonitorRecord *r;
-  const struct GNUNET_DHT_MonitorMessage *msg;
+  const struct GNUNET_DHT_MonitorStartMessage *msg;
   unsigned int i;
   char *c;
 
-  msg = (struct GNUNET_DHT_MonitorMessage *) message;
+  msg = (struct GNUNET_DHT_MonitorStartMessage *) message;
   r = GNUNET_malloc (sizeof(struct ClientMonitorRecord));
 
   r->client = find_active_client(client);
   r->type = ntohl(msg->type);
+  r->get = msg->get;
+  r->get_resp = msg->get_resp;
+  r->put = msg->put;
   c = (char *) &msg->key;
   for (i = 0; i < sizeof (GNUNET_HashCode) && c[i] == 0; i++);
   if (sizeof (GNUNET_HashCode) == i)
@@ -1038,33 +1062,25 @@ GDS_CLIENTS_handle_reply (struct GNUNET_TIME_Absolute expiration,
 
 
 /**
- * Check if some client is monitoring messages of this type and notify
- * him in that case.
+ * Check if some client is monitoring GET messages and notify
+ * them in that case.
  *
- * @param mtype Type of the DHT message.
- * @param exp When will this value expire.
- * @param key Key of the result/request.
- * @param putl number of entries in get_path.
- * @param put_path peers on the PUT path (or NULL if not recorded).
- * @param getl number of entries in get_path.
- * @param get_path Peers on reply path (or NULL if not recorded).
+ * @param options Options, for instance RecordRoute, DemultiplexEverywhere.
+ * @param type The type of data in the request.
+ * @param hop_count Hop count so far.
+ * @param path_length number of entries in path (or 0 if not recorded).
+ * @param path peers on the GET path (or NULL if not recorded).
  * @param desired_replication_level Desired replication level.
- * @param type Type of the result/request.
- * @param data Pointer to the result data.
- * @param size Number of bytes in data.
+ * @param key Key of the requested data.
  */
 void
-GDS_CLIENTS_process_monitor (uint16_t mtype,
-                             const struct GNUNET_TIME_Absolute exp,
-                             const GNUNET_HashCode *key,
-                             uint32_t putl,
-                             const struct GNUNET_PeerIdentity *put_path,
-                             uint32_t getl,
-                             const struct GNUNET_PeerIdentity *get_path,
-                             uint32_t desired_replication_level,
-                             enum GNUNET_BLOCK_Type type,
-                             const struct GNUNET_MessageHeader *data,
-                             uint16_t size)
+GDS_CLIENTS_process_get (uint32_t options,
+                         enum GNUNET_BLOCK_Type type,
+                         uint32_t hop_count,
+                         uint32_t desired_replication_level, 
+                         unsigned int path_length,
+                         const struct GNUNET_PeerIdentity *path,
+                         const GNUNET_HashCode * key)
 {
   struct ClientMonitorRecord *m;
   struct ClientList **cl;
@@ -1079,7 +1095,83 @@ GDS_CLIENTS_process_monitor (uint16_t mtype,
          memcmp (key, m->key, sizeof(GNUNET_HashCode)) == 0))
     {
       struct PendingMessage *pm;
-      struct GNUNET_DHT_MonitorMessage *mmsg;
+      struct GNUNET_DHT_MonitorGetMessage *mmsg;
+      struct GNUNET_PeerIdentity *msg_path;
+      size_t msize;
+      unsigned int i;
+
+      /* Don't send duplicates */
+      for (i = 0; i < cl_size; i++)
+        if (cl[i] == m->client)
+          break;
+      if (i < cl_size)
+        continue;
+      GNUNET_array_append (cl, cl_size, m->client);
+
+      msize = path_length * sizeof (struct GNUNET_PeerIdentity);
+      msize += sizeof (struct GNUNET_DHT_MonitorGetMessage);
+      msize += sizeof (struct PendingMessage);
+      pm = (struct PendingMessage *) GNUNET_malloc (msize);
+      mmsg = (struct GNUNET_DHT_MonitorGetMessage *) &pm[1];
+      pm->msg = (struct GNUNET_MessageHeader *) mmsg;
+      mmsg->header.size = htons (msize - sizeof (struct PendingMessage));
+      mmsg->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_MONITOR_GET);
+      mmsg->options = htonl(options);
+      mmsg->type = htonl(type);
+      mmsg->hop_count = htonl(hop_count);
+      mmsg->desired_replication_level = htonl(desired_replication_level);
+      mmsg->get_path_length = htonl(path_length);
+      memcpy (&mmsg->key, key, sizeof (GNUNET_HashCode));
+      msg_path = (struct GNUNET_PeerIdentity *) &mmsg[1];
+      if (path_length > 0)
+        memcpy (msg_path, path,
+                path_length * sizeof (struct GNUNET_PeerIdentity));
+      add_pending_message (m->client, pm);
+    }
+  }
+  GNUNET_free_non_null (cl);
+}
+
+
+/**
+ * Check if some client is monitoring GET RESP messages and notify
+ * them in that case.
+ *
+ * @param type The type of data in the result.
+ * @param get_path Peers on GET path (or NULL if not recorded).
+ * @param get_path_length number of entries in get_path.
+ * @param put_path peers on the PUT path (or NULL if not recorded).
+ * @param put_path_length number of entries in get_path.
+ * @param exp Expiration time of the data.
+ * @param key Key of the data.
+ * @param data Pointer to the result data.
+ * @param size Number of bytes in data.
+ */
+void
+GDS_CLIENTS_process_get_resp (enum GNUNET_BLOCK_Type type,
+                              const struct GNUNET_PeerIdentity *get_path,
+                              unsigned int get_path_length,
+                              const struct GNUNET_PeerIdentity *put_path,
+                              unsigned int put_path_length,
+                              struct GNUNET_TIME_Absolute exp,
+                              const GNUNET_HashCode * key,
+                              const void *data,
+                              size_t size)
+{
+  struct ClientMonitorRecord *m;
+  struct ClientList **cl;
+  unsigned int cl_size;
+
+  cl = NULL;
+  cl_size = 0;
+  for (m = monitor_head; NULL != m; m = m->next)
+  {
+    if ((GNUNET_BLOCK_TYPE_ANY == m->type || m->type == type) &&
+        (NULL == m->key ||
+         memcmp (key, m->key, sizeof(GNUNET_HashCode)) == 0))
+    {
+      struct PendingMessage *pm;
+      struct GNUNET_DHT_MonitorGetRespMessage *mmsg;
       struct GNUNET_PeerIdentity *path;
       size_t msize;
       unsigned int i;
@@ -1093,29 +1185,116 @@ GDS_CLIENTS_process_monitor (uint16_t mtype,
       GNUNET_array_append (cl, cl_size, m->client);
 
       msize = size;
-      msize += (getl + putl) * sizeof (struct GNUNET_PeerIdentity);
-      msize += sizeof (struct GNUNET_DHT_MonitorMessage);
+      msize += (get_path_length + put_path_length)
+               * sizeof (struct GNUNET_PeerIdentity);
+      msize += sizeof (struct GNUNET_DHT_MonitorGetRespMessage);
       msize += sizeof (struct PendingMessage);
       pm = (struct PendingMessage *) GNUNET_malloc (msize);
-      mmsg = (struct GNUNET_DHT_MonitorMessage *) &pm[1];
+      mmsg = (struct GNUNET_DHT_MonitorGetRespMessage *) &pm[1];
       pm->msg = (struct GNUNET_MessageHeader *) mmsg;
       mmsg->header.size = htons (msize - sizeof (struct PendingMessage));
-      mmsg->header.type = htons (mtype);
-      mmsg->expiration = GNUNET_TIME_absolute_hton(exp);
-      memcpy (&mmsg->key, key, sizeof (GNUNET_HashCode));
-      mmsg->put_path_length = htonl(putl);
-      mmsg->get_path_length = htonl(getl);
-      mmsg->desired_replication_level = htonl (desired_replication_level);
+      mmsg->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_MONITOR_GET_RESP);
+      mmsg->type = htonl(type);
+      mmsg->put_path_length = htonl(put_path_length);
+      mmsg->get_path_length = htonl(get_path_length);
       path = (struct GNUNET_PeerIdentity *) &mmsg[1];
-      if (putl > 0)
+      if (put_path_length > 0)
       {
-        memcpy (path, put_path, putl * sizeof (struct GNUNET_PeerIdentity));
-        path = &path[putl];
+        memcpy (path, put_path,
+                put_path_length * sizeof (struct GNUNET_PeerIdentity));
+        path = &path[put_path_length];
       }
-      if (getl > 0)
-        memcpy (path, get_path, getl * sizeof (struct GNUNET_PeerIdentity));
+      if (get_path_length > 0)
+        memcpy (path, get_path,
+                get_path_length * sizeof (struct GNUNET_PeerIdentity));
+      mmsg->expiration_time = GNUNET_TIME_absolute_hton(exp);
+      memcpy (&mmsg->key, key, sizeof (GNUNET_HashCode));
       if (size > 0)
-        memcpy (&path[getl], data, size);
+        memcpy (&path[get_path_length], data, size);
+      add_pending_message (m->client, pm);
+    }
+  }
+  GNUNET_free_non_null (cl);
+}
+
+
+/**
+ * Check if some client is monitoring PUT messages and notify
+ * them in that case.
+ *
+ * @param options Options, for instance RecordRoute, DemultiplexEverywhere.
+ * @param type The type of data in the request.
+ * @param hop_count Hop count so far.
+ * @param path_length number of entries in path (or 0 if not recorded).
+ * @param path peers on the PUT path (or NULL if not recorded).
+ * @param desired_replication_level Desired replication level.
+ * @param exp Expiration time of the data.
+ * @param key Key under which data is to be stored.
+ * @param data Pointer to the data carried.
+ * @param size Number of bytes in data.
+ */
+void
+GDS_CLIENTS_process_put (uint32_t options,
+                         enum GNUNET_BLOCK_Type type,
+                         uint32_t hop_count,
+                         uint32_t desired_replication_level, 
+                         unsigned int path_length,
+                         const struct GNUNET_PeerIdentity *path,
+                         struct GNUNET_TIME_Absolute exp,
+                         const GNUNET_HashCode * key,
+                         const void *data,
+                         size_t size)
+{
+  struct ClientMonitorRecord *m;
+  struct ClientList **cl;
+  unsigned int cl_size;
+
+  cl = NULL;
+  cl_size = 0;
+  for (m = monitor_head; NULL != m; m = m->next)
+  {
+    if ((GNUNET_BLOCK_TYPE_ANY == m->type || m->type == type) &&
+        (NULL == m->key ||
+         memcmp (key, m->key, sizeof(GNUNET_HashCode)) == 0))
+    {
+      struct PendingMessage *pm;
+      struct GNUNET_DHT_MonitorPutMessage *mmsg;
+      struct GNUNET_PeerIdentity *msg_path;
+      size_t msize;
+      unsigned int i;
+
+      /* Don't send duplicates */
+      for (i = 0; i < cl_size; i++)
+        if (cl[i] == m->client)
+          break;
+      if (i < cl_size)
+        continue;
+      GNUNET_array_append (cl, cl_size, m->client);
+
+      msize = size;
+      msize += path_length * sizeof (struct GNUNET_PeerIdentity);
+      msize += sizeof (struct GNUNET_DHT_MonitorPutMessage);
+      msize += sizeof (struct PendingMessage);
+      pm = (struct PendingMessage *) GNUNET_malloc (msize);
+      mmsg = (struct GNUNET_DHT_MonitorPutMessage *) &pm[1];
+      pm->msg = (struct GNUNET_MessageHeader *) mmsg;
+      mmsg->header.size = htons (msize - sizeof (struct PendingMessage));
+      mmsg->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_MONITOR_PUT);
+      mmsg->options = htonl(options);
+      mmsg->type = htonl(type);
+      mmsg->hop_count = htonl(hop_count);
+      mmsg->desired_replication_level = htonl(desired_replication_level);
+      mmsg->put_path_length = htonl(path_length);
+      msg_path = (struct GNUNET_PeerIdentity *) &mmsg[1];
+      if (path_length > 0)
+      {
+        memcpy (msg_path, path,
+                path_length * sizeof (struct GNUNET_PeerIdentity));
+      }
+      mmsg->expiration_time = GNUNET_TIME_absolute_hton(exp);
+      memcpy (&mmsg->key, key, sizeof (GNUNET_HashCode));
+      if (size > 0)
+        memcpy (&msg_path[path_length], data, size);
       add_pending_message (m->client, pm);
     }
   }
@@ -1140,8 +1319,8 @@ GDS_CLIENTS_init (struct GNUNET_SERVER_Handle *server)
      GNUNET_MESSAGE_TYPE_DHT_CLIENT_GET_STOP,
      sizeof (struct GNUNET_DHT_ClientGetStopMessage)},
     {&handle_dht_local_monitor, NULL,
-     GNUNET_MESSAGE_TYPE_DHT_MONITOR_GET,
-     sizeof (struct GNUNET_DHT_MonitorMessage)},
+     GNUNET_MESSAGE_TYPE_DHT_MONITOR_START,
+     sizeof (struct GNUNET_DHT_MonitorStartMessage)},
     {NULL, NULL, 0, 0}
   };
   forward_map = GNUNET_CONTAINER_multihashmap_create (1024);

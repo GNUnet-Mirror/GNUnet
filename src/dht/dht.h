@@ -249,6 +249,48 @@ struct GNUNET_DHT_MonitorPutMessage
 
 
 /**
+ * Message to request monitoring messages, clients --> DHT service.
+ */
+struct GNUNET_DHT_MonitorStartMessage
+{
+  /**
+   * Type: GNUNET_MESSAGE_TYPE_DHT_MONITOR_START
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * The type of data desired, GNUNET_BLOCK_TYPE_ANY for all.
+   */
+  uint32_t type GNUNET_PACKED;
+
+  /**
+   * Flag whether to notify about GET messages.
+   */
+  int16_t get GNUNET_PACKED;
+
+  /**
+   * Flag whether to notify about GET_REPONSE messages.
+   */
+  int16_t get_resp GNUNET_PACKED;
+
+  /**
+   * Flag whether to notify about PUT messages.
+   */
+  int16_t put GNUNET_PACKED;
+
+  /**
+   * Flag whether to use the provided key to filter messages.
+   */
+  int16_t filter_key GNUNET_PACKED;
+
+  /**
+   * The key to filter messages by..
+   */
+  GNUNET_HashCode key;
+};
+
+
+/**
  * Message to monitor get requests going through peer, DHT service --> clients.
  */
 struct GNUNET_DHT_MonitorGetMessage
@@ -296,7 +338,7 @@ struct GNUNET_DHT_MonitorGetMessage
 /**
  * Message to monitor get results going through peer, DHT service --> clients.
  */
-struct GNUNET_DHT_MonitorGetResultMessage
+struct GNUNET_DHT_MonitorGetRespMessage
 {
   /**
    * Type: GNUNET_MESSAGE_TYPE_DHT_P2P_RESULT
