@@ -133,6 +133,12 @@ update_addresses (struct ATS_Address * a, unsigned int addrs, unsigned int perce
   u_types[0] = 0;
   u_types[1] = 0;
 
+  for (cur = 0; cur < addrs; cur ++)
+  {
+    updated[cur] = 0;
+  }
+  cur = 0;
+
   while (updates < ua)
   {
     cur = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, addrs);
@@ -311,7 +317,7 @@ check (void *cls, char *const *args, const char *cfgfile,
                 (long long unsigned int) ctx.lp_duration.rel_value, (long long unsigned int) ctx.mlp_duration.rel_value,
                 (long long unsigned int) uctx.lp_duration.rel_value, (long long unsigned int) uctx.mlp_duration.rel_value);
           else
-            GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Updated Problem solved for %u peers with %u address successfully (Initial: LP/MLP: %llu/%llu ms, Update: %llu/%llu ms)\n",
+            GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Updated problem solved for %u peers with %u address successfully (Initial: LP/MLP: %llu/%llu ms, Update: %llu/%llu ms)\n",
                 mlp->c_p, mlp->addr_in_problem,
                 (long long unsigned int) ctx.lp_duration.rel_value, (long long unsigned int) ctx.mlp_duration.rel_value,
                 (long long unsigned int) uctx.lp_duration.rel_value, (long long unsigned int) uctx.mlp_duration.rel_value);
