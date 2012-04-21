@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2001, 2002, 2003, 2004, 2006, 2008, 2011 Christian Grothoff (and other contributing authors)
+     (C) 2001, 2002, 2003, 2004, 2006, 2008, 2011, 2012 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -350,14 +350,16 @@ iterateBits (const struct GNUNET_CONTAINER_BloomFilter *bf,
   bitCount = bf->addressesPerElement;
   tmp[0] = *key;
   round = 0;
+  GNUNET_assert (bf->bitArraySize > 0);
+  GNUNET_assert (bf->bitArraySize * 8LL > bf->bitArraySize);
   while (bitCount > 0)
   {
     while (slot < (sizeof (GNUNET_HashCode) / sizeof (uint32_t)))
     {
       if (GNUNET_YES !=
           callback (arg, bf,
-                    (((uint32_t *) & tmp[round & 1])[slot]) &
-                    ((bf->bitArraySize * 8) - 1)))
+                    (((uint32_t *) & tmp[round & 1])[slot]) %
+                    ((bf->bitArraySize * 8LL) - 1)))
         return;
       slot++;
       bitCount--;
@@ -442,7 +444,8 @@ testBitCallback (void *cls, const struct GNUNET_CONTAINER_BloomFilter *bf,
  *
  * @param filename the name of the file (or the prefix)
  * @param size the size of the bloom-filter (number of
- *        bytes of storage space to use)
+ *        bytes of storage space to use); will be rounded up
+ *        to next power of 2
  * @param k the number of GNUNET_CRYPTO_hash-functions to apply per
  *        element (number of bits set per element in the set)
  * @return the bloomfilter
@@ -549,8 +552,6 @@ GNUNET_CONTAINER_bloomfilter_load (const char *filename, size_t size,
   }
   bf->bitArraySize = size;
   bf->addressesPerElement = k;
-  memset (bf->bitArray, 0, bf->bitArraySize);
-
   if (GNUNET_YES != must_read)      
     return bf; /* already done! */  
   /* Read from the file what bits we can */
@@ -606,33 +607,22 @@ GNUNET_CONTAINER_bloomfilter_init (const char *data, size_t size,
                                    unsigned int k)
 {
   struct GNUNET_CONTAINER_BloomFilter *bf;
-  size_t ui;
 
-  if ((k == 0) || (size == 0))
+  if ((0 == k) || (0 == size))
     return NULL;
-  ui = 1;
-  while (ui < size)
-    ui *= 2;
-  if (size != ui)
-  {
-    GNUNET_break (0);
-    return NULL;
-  }
   bf = GNUNET_malloc (sizeof (struct GNUNET_CONTAINER_BloomFilter));
   bf->filename = NULL;
   bf->fh = NULL;
   bf->bitArray = GNUNET_malloc_large (size);
-  if (bf->bitArray == NULL)
+  if (NULL == bf->bitArray)
   {
     GNUNET_free (bf);
     return NULL;
   }
   bf->bitArraySize = size;
   bf->addressesPerElement = k;
-  if (data != NULL)
+  if (NULL != data)
     memcpy (bf->bitArray, data, size);
-  else
-    memset (bf->bitArray, 0, bf->bitArraySize);
   return bf;
 }
 
@@ -848,7 +838,6 @@ GNUNET_CONTAINER_bloomfilter_resize (struct GNUNET_CONTAINER_BloomFilter *bf,
 
   bf->bitArraySize = size;
   bf->bitArray = GNUNET_malloc (size);
-  memset (bf->bitArray, 0, bf->bitArraySize);
   if (bf->filename != NULL)
     make_empty_file (bf->fh, bf->bitArraySize * 4LL);
   while (GNUNET_YES == iterator (iterator_cls, &hc))
