@@ -40,10 +40,6 @@
 
 #define LOG_STRERROR_FILE(kind,syscall,filename) GNUNET_log_from_strerror_file (kind, "util", syscall, filename)
 
-#define DEBUG_NPIPE GNUNET_EXTRA_LOGGING
-
-#define DEBUG_PIPE GNUNET_EXTRA_LOGGING
-
 /**
  * Block size for IO for copying files.
  */
@@ -732,27 +728,18 @@ GNUNET_DISK_file_read (const struct GNUNET_DISK_FileHandle * h, void *result,
   }
   else
   {
-#if DEBUG_PIPE
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "It is a pipe trying to read\n");
-#endif
     if (!ReadFile (h->h, result, len, &bytesRead, h->oOverlapRead))
     {
       if (GetLastError () != ERROR_IO_PENDING)
       {
-#if DEBUG_PIPE
         LOG (GNUNET_ERROR_TYPE_DEBUG, "Error reading from pipe: %u\n", GetLastError ());
-#endif
         SetErrnoFromWinError (GetLastError ());
         return GNUNET_SYSERR;
       }
-#if DEBUG_PIPE
       LOG (GNUNET_ERROR_TYPE_DEBUG, "Will get overlapped result\n");
-#endif
       GetOverlappedResult (h->h, h->oOverlapRead, &bytesRead, TRUE);
     }
-#if DEBUG_PIPE
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Read %u bytes\n", bytesRead);
-#endif
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Read %u bytes from pipe\n", bytesRead);
   }
   return bytesRead;
 #else
@@ -794,33 +781,24 @@ GNUNET_DISK_file_read_non_blocking (const struct GNUNET_DISK_FileHandle * h,
   }
   else
   {
-#if DEBUG_PIPE
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "It is a pipe, trying to read\n");
-#endif
     if (!ReadFile (h->h, result, len, &bytesRead, h->oOverlapRead))
     {
       if (GetLastError () != ERROR_IO_PENDING)
       {
-#if DEBUG_PIPE
         LOG (GNUNET_ERROR_TYPE_DEBUG, "Error reading from pipe: %u\n", GetLastError ());
-#endif
         SetErrnoFromWinError (GetLastError ());
         return GNUNET_SYSERR;
       }
       else
       {
-#if DEBUG_PIPE
         LOG (GNUNET_ERROR_TYPE_DEBUG,
             "ReadFile() queued a read, cancelling\n");
-#endif
         CancelIo (h->h);
         errno = EAGAIN;
         return GNUNET_SYSERR;
       }
     }
-#if DEBUG_PIPE
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Read %u bytes\n", bytesRead);
-#endif
   }
   return bytesRead;
 #else
@@ -893,31 +871,23 @@ GNUNET_DISK_file_write (const struct GNUNET_DISK_FileHandle * h,
   }
   else
   {
-#if DEBUG_PIPE
     LOG (GNUNET_ERROR_TYPE_DEBUG, "It is a pipe trying to write %u bytes\n", n);
-#endif
     if (!WriteFile (h->h, buffer, n, &bytesWritten, h->oOverlapWrite))
     {
       if (GetLastError () != ERROR_IO_PENDING)
       {
         SetErrnoFromWinError (GetLastError ());
-#if DEBUG_PIPE
         LOG (GNUNET_ERROR_TYPE_DEBUG, "Error writing to pipe: %u\n",
             GetLastError ());
-#endif
         return GNUNET_SYSERR;
       }
-#if DEBUG_PIPE
       LOG (GNUNET_ERROR_TYPE_DEBUG, "Will get overlapped result\n");
-#endif
       if (!GetOverlappedResult (h->h, h->oOverlapWrite, &bytesWritten, TRUE))
       {
         SetErrnoFromWinError (GetLastError ());
-#if DEBUG_PIPE
         LOG (GNUNET_ERROR_TYPE_DEBUG,
             "Error getting overlapped result while writing to pipe: %u\n",
             GetLastError ());
-#endif
         return GNUNET_SYSERR;
       }
     }
@@ -926,35 +896,27 @@ GNUNET_DISK_file_write (const struct GNUNET_DISK_FileHandle * h,
       DWORD ovr;
       if (!GetOverlappedResult (h->h, h->oOverlapWrite, &ovr, TRUE))
       {
-#if DEBUG_PIPE
         LOG (GNUNET_ERROR_TYPE_DEBUG,
             "Error getting control overlapped result while writing to pipe: %u\n",
             GetLastError ());
-#endif
       }
       else
       {
-#if DEBUG_PIPE
         LOG (GNUNET_ERROR_TYPE_DEBUG,
             "Wrote %u bytes (ovr says %u), picking the greatest\n",
             bytesWritten, ovr);
-#endif
       }
     }
     if (bytesWritten == 0)
     {
       if (n > 0)
       {
-#if DEBUG_PIPE
         LOG (GNUNET_ERROR_TYPE_DEBUG, "Wrote %u bytes, returning -1 with EAGAIN\n", bytesWritten);
-#endif
         errno = EAGAIN;
         return GNUNET_SYSERR;
       }
     }
-#if DEBUG_PIPE
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Wrote %u bytes\n", bytesWritten);
-#endif
   }
   return bytesWritten;
 #else
@@ -983,37 +945,27 @@ GNUNET_DISK_file_write_blocking (const struct GNUNET_DISK_FileHandle * h,
 #ifdef MINGW
   DWORD bytesWritten;
   /* We do a non-overlapped write, which is as blocking as it gets */
-#if DEBUG_PIPE
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Writing %u bytes\n", n);
-#endif
   if (!WriteFile (h->h, buffer, n, &bytesWritten, NULL))
   {
     SetErrnoFromWinError (GetLastError ());
-#if DEBUG_PIPE
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Error writing to pipe: %u\n",
         GetLastError ());
-#endif
     return GNUNET_SYSERR;
   }
   if (bytesWritten == 0 && n > 0)
   {
-#if DEBUG_PIPE
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Waiting for pipe to clean\n");
-#endif
     WaitForSingleObject (h->h, INFINITE);
     if (!WriteFile (h->h, buffer, n, &bytesWritten, NULL))
     {
       SetErrnoFromWinError (GetLastError ());
-#if DEBUG_PIPE
       LOG (GNUNET_ERROR_TYPE_DEBUG, "Error writing to pipe: %u\n",
           GetLastError ());
-#endif
       return GNUNET_SYSERR;
     }
   }
-#if DEBUG_PIPE
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Wrote %u bytes\n", bytesWritten);
-#endif
   return bytesWritten;
 #else
   int flags;
@@ -2021,10 +1973,8 @@ create_selectable_pipe (PHANDLE read_pipe_ptr, PHANDLE write_pipe_ptr,
 
     snprintf (pipename, sizeof pipename, "\\\\.\\pipe\\gnunet-%d-%ld",
               getpid (), InterlockedIncrement ((LONG *) & pipe_unique_id));
-#if DEBUG_PIPE
     LOG (GNUNET_ERROR_TYPE_DEBUG, "CreateNamedPipe: name = %s, size = %lu\n",
          pipename, psize);
-#endif
     /* Use CreateNamedPipe instead of CreatePipe, because the latter
      * returns a write handle that does not permit FILE_READ_ATTRIBUTES
      * access, on versions of win32 earlier than WinXP SP2.
@@ -2041,9 +1991,7 @@ create_selectable_pipe (PHANDLE read_pipe_ptr, PHANDLE write_pipe_ptr,
 
     if (read_pipe != INVALID_HANDLE_VALUE)
     {
-#if DEBUG_PIPE
       LOG (GNUNET_ERROR_TYPE_DEBUG, "pipe read handle = %p\n", read_pipe);
-#endif
       break;
     }
 
@@ -2054,33 +2002,24 @@ create_selectable_pipe (PHANDLE read_pipe_ptr, PHANDLE write_pipe_ptr,
     case ERROR_PIPE_BUSY:
       /* The pipe is already open with compatible parameters.
        * Pick a new name and retry.  */
-#if DEBUG_PIPE
       LOG (GNUNET_ERROR_TYPE_DEBUG, "pipe busy, retrying\n");
-#endif
       continue;
     case ERROR_ACCESS_DENIED:
       /* The pipe is already open with incompatible parameters.
        * Pick a new name and retry.  */
-#if DEBUG_PIPE
       LOG (GNUNET_ERROR_TYPE_DEBUG, "pipe access denied, retrying\n");
-#endif
       continue;
     case ERROR_CALL_NOT_IMPLEMENTED:
       /* We are on an older Win9x platform without named pipes.
        * Return an anonymous pipe as the best approximation.  */
-#if DEBUG_PIPE
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "CreateNamedPipe not implemented, resorting to "
            "CreatePipe: size = %lu\n", psize);
-#endif
       if (CreatePipe (read_pipe_ptr, write_pipe_ptr, sa_ptr, psize))
       {
-#if DEBUG_PIPE
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "pipe read handle = %p\n",
-             *read_pipe_ptr);
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "pipe write handle = %p\n",
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "pipe read handle = %p, write handle = %p\n",
+             *read_pipe_ptr,
              *write_pipe_ptr);
-#endif
         return GNUNET_OK;
       }
       err = GetLastError ();
@@ -2092,9 +2031,7 @@ create_selectable_pipe (PHANDLE read_pipe_ptr, PHANDLE write_pipe_ptr,
     }
     /* NOTREACHED */
   }
-#if DEBUG_PIPE
   LOG (GNUNET_ERROR_TYPE_DEBUG, "CreateFile: name = %s\n", pipename);
-#endif
 
   /* Open the named pipe for writing.
    * Be sure to permit FILE_READ_ATTRIBUTES access.  */
@@ -2107,15 +2044,11 @@ create_selectable_pipe (PHANDLE read_pipe_ptr, PHANDLE write_pipe_ptr,
     /* Failure. */
     DWORD err = GetLastError ();
 
-#if DEBUG_PIPE
     LOG (GNUNET_ERROR_TYPE_DEBUG, "CreateFile failed: %d\n", err);
-#endif
     CloseHandle (read_pipe);
     return err;
   }
-#if DEBUG_PIPE
   LOG (GNUNET_ERROR_TYPE_DEBUG, "pipe write handle = %p\n", write_pipe);
-#endif
   /* Success. */
   *read_pipe_ptr = read_pipe;
   *write_pipe_ptr = write_pipe;

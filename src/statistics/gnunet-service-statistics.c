@@ -824,7 +824,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   cfg = c;
   srv = server;
   GNUNET_SERVER_add_handlers (server, handlers);
-  GNUNET_SERVER_ignore_shutdown (server, GNUNET_YES);
   nc = GNUNET_SERVER_notification_context_create (server, 16);
   GNUNET_SERVER_disconnect_notify (server, &handle_client_disconnect, NULL);
   load (server);

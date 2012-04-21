@@ -27,7 +27,6 @@
 #include "platform.h"
 #include "gnunet_common.h"
 
-#define DEBUG_WINPROC 0
 
 #ifdef MINGW
 

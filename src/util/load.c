@@ -26,7 +26,6 @@
 #include "platform.h"
 #include "gnunet_load_lib.h"
 
-#define DEBUG_LOAD GNUNET_EXTRA_LOGGING
 
 #define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
 

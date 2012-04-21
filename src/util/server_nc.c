@@ -36,8 +36,6 @@
 #define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
 
 
-#define DEBUG_SERVER_NC GNUNET_EXTRA_LOGGING
-
 /**
  * Entry in list of messages pending to be transmitted.
  */
@@ -171,11 +169,9 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
   }
   if (pos == NULL)
     return;
-#if DEBUG_SERVER_NC
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Client disconnected, cleaning up %u messages in NC queue\n",
        pos->num_pending);
-#endif
   if (prev == NULL)
     nc->clients = pos->next;
   else
@@ -297,10 +293,8 @@ transmit_message (void *cls, size_t size, void *buf)
   if (buf == NULL)
   {
     /* 'cl' should be freed via disconnect notification shortly */
-#if DEBUG_SERVER_NC
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Failed to transmit message from NC queue to client\n");
-#endif
     return 0;
   }
   ret = 0;
@@ -310,11 +304,9 @@ transmit_message (void *cls, size_t size, void *buf)
     if (size < msize)
       break;
     GNUNET_CONTAINER_DLL_remove (cl->pending_head, cl->pending_tail, pml);
-#if DEBUG_SERVER_NC
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Copying message of type %u and size %u from pending queue to transmission buffer\n",
          ntohs (pml->msg->type), msize);
-#endif
     memcpy (&cbuf[ret], pml->msg, msize);
     ret += msize;
     size -= msize;
@@ -323,11 +315,9 @@ transmit_message (void *cls, size_t size, void *buf)
   }
   if (pml != NULL)
   {
-#if DEBUG_SERVER_NC
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Have %u messages left in NC queue, will try transmission again\n",
          cl->num_pending);
-#endif
     cl->th =
         GNUNET_SERVER_notify_transmit_ready (cl->client, ntohs (pml->msg->size),
                                              GNUNET_TIME_UNIT_FOREVER_REL,
@@ -372,11 +362,9 @@ do_unicast (struct GNUNET_SERVER_NotificationContext *nc,
   pml = GNUNET_malloc (sizeof (struct PendingMessageList) + size);
   pml->msg = (const struct GNUNET_MessageHeader *) &pml[1];
   pml->can_drop = can_drop;
-#if DEBUG_SERVER_NC
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Adding message of type %u and size %u to pending queue (which has %u entries)\n",
        ntohs (msg->type), ntohs (msg->size), (unsigned int) nc->queue_length);
-#endif
   memcpy (&pml[1], msg, size);
   /* append */
   GNUNET_CONTAINER_DLL_insert_tail (client->pending_head, client->pending_tail,

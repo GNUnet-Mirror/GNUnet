@@ -21,7 +21,6 @@
 /**
  * @file src/util/configuration.c
  * @brief configuration management
- *
  * @author Christian Grothoff
  */
 

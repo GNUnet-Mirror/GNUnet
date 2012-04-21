@@ -1224,7 +1224,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *serv,
   cfg = c;
   server = serv;
   GNUNET_assert (serv != NULL);
-  GNUNET_SERVER_ignore_shutdown (serv, GNUNET_YES);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
 				NULL);
   child_death_task =

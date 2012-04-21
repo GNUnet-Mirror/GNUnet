@@ -1024,9 +1024,6 @@ GNUNET_NETWORK_fdset_overlap (const struct GNUNET_NETWORK_FDSet *fds1,
     if (GNUNET_CONTAINER_slist_contains
         (fds2->handles, h, sizeof (struct GNUNET_DISK_FileHandle)))
     {
-#if DEBUG_NETWORK
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "Match!\n");
-#endif
       return GNUNET_YES;
     }
     GNUNET_CONTAINER_slist_next (&it);

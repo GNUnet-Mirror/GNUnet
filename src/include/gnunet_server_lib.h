@@ -398,22 +398,6 @@ GNUNET_SERVER_client_disconnect (struct GNUNET_SERVER_Client *client);
 
 
 /**
- * Configure this server's connections to continue handling client
- * requests as usual even after we get a shutdown signal.  The change
- * only applies to clients that connect to the server from the outside
- * using TCP after this call.  Clients managed previously or those
- * added using GNUNET_SERVER_connect_socket and
- * GNUNET_SERVER_connect_callback are not affected by this option.
- *
- * @param h server handle
- * @param do_ignore GNUNET_YES to ignore, GNUNET_NO to restore default
- */
-void
-GNUNET_SERVER_ignore_shutdown (struct GNUNET_SERVER_Handle *h, int do_ignore);
-
-
-
-/**
  * Disable the "CORK" feature for communication with the given client,
  * forcing the OS to immediately flush the buffer on transmission
  * instead of potentially buffering multiple messages.

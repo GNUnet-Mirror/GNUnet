@@ -87,7 +87,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     {NULL, NULL, 0, 0}
   };
   /* process client requests */
-  GNUNET_SERVER_ignore_shutdown (server, GNUNET_YES);
   GNUNET_SERVER_add_handlers (server, handlers);
 }
 
