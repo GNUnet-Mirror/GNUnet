@@ -21,7 +21,7 @@ src/chat/gnunet-chat.c
 src/chat/gnunet-service-chat.c
 src/core/core_api.c
 src/core/core_api_iterate_peers.c
-src/core/gnunet-core-list-connections.c
+src/core/gnunet-core.c
 src/core/gnunet-service-core.c
 src/core/gnunet-service-core_clients.c
 src/core/gnunet-service-core_kx.c
