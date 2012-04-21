@@ -202,7 +202,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   {
     timeout = GNUNET_TIME_UNIT_FOREVER_REL;
     if (verbose)
-      FPRINTF (stderr, "Monitoring indefinitely (close with Ctrl+C)\n");
+      FPRINTF (stderr, "%s", "Monitoring indefinitely (close with Ctrl+C)\n");
   }
 
   GNUNET_SCHEDULER_add_delayed (timeout, &cleanup_task, NULL);
@@ -211,7 +211,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   monitor_handle = GNUNET_DHT_monitor_start (dht_handle, block_type, key,
                                              &monitor_callback, NULL);
   if (verbose)
-    FPRINTF (stderr, "MONITOR started!\n");
+    FPRINTF (stderr, "%s", "MONITOR started!\n");
   GNUNET_free_non_null (key);
 
 }
