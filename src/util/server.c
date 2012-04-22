@@ -161,7 +161,9 @@ struct GNUNET_SERVER_Handle
   /**
    * Set to GNUNET_YES once we are in 'soft' shutdown where we wait for
    * all non-monitor clients to disconnect before we call
-   * GNUNET_SERVER_destroy.  See 'test_monitor_clients'.
+   * GNUNET_SERVER_destroy.  See 'test_monitor_clients'.  Set to
+   * GNUNET_SYSERR once the final destroy task has been scheduled
+   * (we cannot run it in the same task).
    */
   int in_soft_shutdown;
 };
@@ -591,6 +593,22 @@ GNUNET_SERVER_client_mark_monitor (struct GNUNET_SERVER_Client *client)
 
 
 /**
+ * Helper function for 'test_monitor_clients' to trigger
+ * 'GNUNET_SERVER_destroy' after the stack has unwound.
+ *
+ * @param cls the 'struct GNUNET_SERVER_Handle' to destroy
+ * @param tc unused
+ */
+static void
+do_destroy (void *cls,
+	    const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_SERVER_Handle *server = cls;
+  GNUNET_SERVER_destroy (server);
+}
+
+
+/**
  * Check if only 'monitor' clients are left.  If so, destroy the
  * server completely.
  *
@@ -606,7 +624,9 @@ test_monitor_clients (struct GNUNET_SERVER_Handle *server)
   for (client = server->clients; NULL != client; client = client->next)
     if (GNUNET_NO == client->is_monitor)
       return; /* not done yet */
-  GNUNET_SERVER_destroy (server);
+  server->in_soft_shutdown = GNUNET_SYSERR;
+  GNUNET_SCHEDULER_add_continuation (&do_destroy, server,
+				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
 }
 
 
@@ -636,7 +656,8 @@ GNUNET_SERVER_stop_listening (struct GNUNET_SERVER_Handle *server)
     GNUNET_free (server->listen_sockets);
     server->listen_sockets = NULL;
   }
-  server->in_soft_shutdown = GNUNET_YES;
+  if (GNUNET_NO == server->in_soft_shutdown)
+    server->in_soft_shutdown = GNUNET_YES;
   test_monitor_clients (server);
 }
 
