@@ -69,10 +69,10 @@ GNUNET_CLIENT_connect (const char *service_name,
  * destroyed (unless, of course, there is an error with the server in
  * which case the message may still be lost).
  *
- * @param sock handle to the service connection
+ * @param client handle to the service connection
  */
 void
-GNUNET_CLIENT_disconnect (struct GNUNET_CLIENT_Connection *sock);
+GNUNET_CLIENT_disconnect (struct GNUNET_CLIENT_Connection *client);
 
 
 /**
@@ -103,13 +103,13 @@ typedef void (*GNUNET_CLIENT_ShutdownTask) (void *cls, int reason);
 /**
  * Read from the service.
  *
- * @param sock the service
+ * @param client connection to the service
  * @param handler function to call with the message
  * @param handler_cls closure for handler
  * @param timeout how long to wait until timing out
  */
 void
-GNUNET_CLIENT_receive (struct GNUNET_CLIENT_Connection *sock,
+GNUNET_CLIENT_receive (struct GNUNET_CLIENT_Connection *client,
                        GNUNET_CLIENT_MessageHandler handler, void *handler_cls,
                        struct GNUNET_TIME_Relative timeout);
 
@@ -125,7 +125,7 @@ struct GNUNET_CLIENT_TransmitHandle;
  * are free in the transmission buffer.  May call the notify
  * method immediately if enough space is available.
  *
- * @param sock connection to the service
+ * @param client connection to the service
  * @param size number of bytes to send
  * @param timeout after how long should we give up (and call
  *        notify with buf NULL and size 0)?
@@ -141,7 +141,7 @@ struct GNUNET_CLIENT_TransmitHandle;
  *         using GNUNET_CONNECTION_notify_transmit_ready_cancel)
  */
 struct GNUNET_CLIENT_TransmitHandle *
-GNUNET_CLIENT_notify_transmit_ready (struct GNUNET_CLIENT_Connection *sock,
+GNUNET_CLIENT_notify_transmit_ready (struct GNUNET_CLIENT_Connection *client,
                                      size_t size,
                                      struct GNUNET_TIME_Relative timeout,
                                      int auto_retry,
@@ -166,7 +166,7 @@ GNUNET_CLIENT_notify_transmit_ready_cancel (struct GNUNET_CLIENT_TransmitHandle
  * will be called with a "NULL" response (in which
  * case the connection should probably be destroyed).
  *
- * @param sock connection to use
+ * @param client connection to use
  * @param hdr message to transmit
  * @param timeout when to give up (for both transmission
  *         and for waiting for a response)
@@ -181,7 +181,7 @@ GNUNET_CLIENT_notify_transmit_ready_cancel (struct GNUNET_CLIENT_TransmitHandle
  *         is already pending
  */
 int
-GNUNET_CLIENT_transmit_and_get_response (struct GNUNET_CLIENT_Connection *sock,
+GNUNET_CLIENT_transmit_and_get_response (struct GNUNET_CLIENT_Connection *client,
                                          const struct GNUNET_MessageHeader *hdr,
                                          struct GNUNET_TIME_Relative timeout,
                                          int auto_retry,

@@ -157,10 +157,10 @@ GNUNET_SERVER_create (GNUNET_CONNECTION_AccessCheck access, void *access_cls,
 /**
  * Free resources held by this server.
  *
- * @param s server to destroy
+ * @param server server to destroy
  */
 void
-GNUNET_SERVER_destroy (struct GNUNET_SERVER_Handle *s);
+GNUNET_SERVER_destroy (struct GNUNET_SERVER_Handle *server);
 
 
 /**
