@@ -302,65 +302,123 @@ put_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 /**
- * Callback called on each request going through the DHT.
+ * Callback called on each GET request going through the DHT.
  * Prints the info about the intercepted packet and increments a counter.
  *
- * @param cls Closure (long) # of daemon that got the monitor event.
- * @param mtype Type of the DHT message monitored.
- * @param exp When will this value expire.
- * @param key Key of the result/request.
- * @param get_path Peers on reply path (or NULL if not recorded).
- * @param get_path_length number of entries in get_path.
- * @param put_path peers on the PUT path (or NULL if not recorded).
- * @param put_path_length number of entries in get_path.
+ * @param cls Closure.
+ * @param options Options, for instance RecordRoute, DemultiplexEverywhere.
+ * @param type The type of data in the request.
+ * @param hop_count Hop count so far.
+ * @param path_length number of entries in path (or 0 if not recorded).
+ * @param path peers on the GET path (or NULL if not recorded).
  * @param desired_replication_level Desired replication level.
- * @param type Type of the result/request.
- * @param data Pointer to the result data.
- * @param size Number of bytes in data.
+ * @param key Key of the requested data.
  */
 void
-monitor_dht_cb (void *cls,
-                uint16_t mtype,
-                struct GNUNET_TIME_Absolute exp,
-                const GNUNET_HashCode * key,
-                const struct GNUNET_PeerIdentity * get_path,
-                unsigned int get_path_length,
-                const struct GNUNET_PeerIdentity * put_path,
-                unsigned int put_path_length,
-                uint32_t desired_replication_level,
+monitor_get_cb (void *cls,
                 enum GNUNET_DHT_RouteOption options,
                 enum GNUNET_BLOCK_Type type,
-                const void *data,
-                size_t size)
+                uint32_t hop_count,
+                uint32_t desired_replication_level,
+                unsigned int path_length,
+                const struct GNUNET_PeerIdentity *path,
+                const GNUNET_HashCode * key)
 {
   const char *s_key;
-  const char *mtype_s;
   unsigned int i;
 
   i = (unsigned int) (long) cls;
   s_key = GNUNET_h2s(key);
-  switch (mtype)
-  {
-    case 149:
-      mtype_s = "GET   ";
-      break;
-    case 150:
-      mtype_s = "RESULT";
-      break;
-    case 151:
-      mtype_s = "PUT   ";
-      break;
-    default:
-      GNUNET_break (0);
-      mtype_s = "UNKNOWN!!!";
-  }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "%u got a message of type %s for key %s\n",
-              i, mtype_s, s_key);
+              "%u got a GET message for key %s\n",
+              i, s_key);
 
-  if ((mtype == GNUNET_MESSAGE_TYPE_DHT_MONITOR_GET ||
-       mtype == GNUNET_MESSAGE_TYPE_DHT_MONITOR_PUT) &&
-      strncmp (s_key, id_far, 4) == 0 && in_test == GNUNET_YES)
+  if (strncmp (s_key, id_far, 4) == 0 && in_test == GNUNET_YES)
+    monitor_counter++;
+}
+
+
+/**
+ * Callback called on each PUT request going through the DHT.
+ * Prints the info about the intercepted packet and increments a counter.
+ *
+ * @param cls Closure.
+ * @param options Options, for instance RecordRoute, DemultiplexEverywhere.
+ * @param type The type of data in the request.
+ * @param hop_count Hop count so far.
+ * @param path_length number of entries in path (or 0 if not recorded).
+ * @param path peers on the PUT path (or NULL if not recorded).
+ * @param desired_replication_level Desired replication level.
+ * @param exp Expiration time of the data.
+ * @param key Key under which data is to be stored.
+ * @param data Pointer to the data carried.
+ * @param size Number of bytes in data.
+ */
+void
+monitor_put_cb (void *cls,
+                enum GNUNET_DHT_RouteOption options,
+                enum GNUNET_BLOCK_Type type,
+                uint32_t hop_count,
+                uint32_t desired_replication_level,
+                unsigned int path_length,
+                const struct GNUNET_PeerIdentity *path,
+                struct GNUNET_TIME_Absolute exp,
+                const GNUNET_HashCode * key,
+                const void *data,
+                size_t size)
+{
+  const char *s_key;
+  unsigned int i;
+
+  i = (unsigned int) (long) cls;
+  s_key = GNUNET_h2s(key);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "%u got a PUT message for key %s with %u bytes\n",
+              i, s_key, size);
+
+  if (strncmp (s_key, id_far, 4) == 0 && in_test == GNUNET_YES)
+    monitor_counter++;
+}
+
+
+/**
+ * Callback called on each GET reply going through the DHT.
+ * Prints the info about the intercepted packet and increments a counter.
+ *
+ * @param cls Closure.
+ * @param type The type of data in the result.
+ * @param get_path Peers on GET path (or NULL if not recorded).
+ * @param get_path_length number of entries in get_path.
+ * @param put_path peers on the PUT path (or NULL if not recorded).
+ * @param put_path_length number of entries in get_path.
+ * @param exp Expiration time of the data.
+ * @param key Key of the data.
+ * @param data Pointer to the result data.
+ * @param size Number of bytes in data.
+ */
+void
+monitor_res_cb (void *cls,
+                enum GNUNET_BLOCK_Type type,
+                const struct GNUNET_PeerIdentity *get_path,
+                unsigned int get_path_length,
+                const struct GNUNET_PeerIdentity *put_path,
+                unsigned int put_path_length,
+                struct GNUNET_TIME_Absolute exp,
+                const GNUNET_HashCode * key,
+                const void *data,
+                size_t size)
+{
+  const char *s_key;
+  unsigned int i;
+
+  i = (unsigned int) (long) cls;
+  s_key = GNUNET_h2s(key);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "%u got a REPLY message for key %s with %u bytes\n",
+              i, s_key, size);
+
+  if (strncmp (s_key, id_far, 4) == 0 && in_test == GNUNET_YES)
     monitor_counter++;
 }
 
@@ -419,8 +477,13 @@ peergroup_ready (void *cls, const char *emsg)
   {
     d = GNUNET_TESTING_daemon_get (pg, i);
     hs[i] = GNUNET_DHT_connect (d->cfg, 32);
-    mhs[i] = GNUNET_DHT_monitor_start(hs[i], GNUNET_BLOCK_TYPE_ANY, NULL,
-                                      &monitor_dht_cb, (void *)(long)i);
+    mhs[i] = GNUNET_DHT_monitor_start(hs[i],
+                                      GNUNET_BLOCK_TYPE_ANY,
+                                      NULL,
+                                      &monitor_get_cb,
+                                      &monitor_res_cb,
+                                      &monitor_put_cb,
+                                      (void *)(long)i);
   }
 
   if ((NULL == o) || (NULL == d_far))
