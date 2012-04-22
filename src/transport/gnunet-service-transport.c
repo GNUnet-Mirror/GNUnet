@@ -642,7 +642,7 @@ main (int argc, char *const *argv)
 {
   return (GNUNET_OK ==
           GNUNET_SERVICE_run (argc, argv, "transport",
-                              GNUNET_SERVICE_OPTION_NONE, &run, NULL)) ? 0 : 1;
+                              GNUNET_SERVICE_OPTION_SOFT_SHUTDOWN, &run, NULL)) ? 0 : 1;
 }
 
-/* end of file gnunet-service-transport-new.c */
+/* end of file gnunet-service-transport.c */

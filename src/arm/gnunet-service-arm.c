@@ -1301,7 +1301,8 @@ main (int argc, char *const *argv)
     GNUNET_SIGNAL_handler_install (GNUNET_SIGCHLD, &sighandler_child_death);
   ret =
     (GNUNET_OK ==
-     GNUNET_SERVICE_run (argc, argv, "arm", GNUNET_YES, &run, NULL)) ? 0 : 1;
+     GNUNET_SERVICE_run (argc, argv, "arm", 
+			 GNUNET_SERVICE_OPTION_MANUAL_SHUTDOWN, &run, NULL)) ? 0 : 1;
   GNUNET_SIGNAL_handler_uninstall (shc_chld);
   shc_chld = NULL;
   GNUNET_DISK_pipe_close (sigpipe);

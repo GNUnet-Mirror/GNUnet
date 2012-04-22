@@ -85,16 +85,22 @@ typedef void (*GNUNET_SERVICE_Main) (void *cls,
  */
 enum GNUNET_SERVICE_Options
 {
-    /**
-     * Use defaults.
-     */
+  /**
+   * Use defaults.
+   */
   GNUNET_SERVICE_OPTION_NONE = 0,
 
-    /**
-     * Do not trigger server shutdown on signals, allow for the user
-     * to terminate the server explicitly when needed.
-     */
-  GNUNET_SERVICE_OPTION_MANUAL_SHUTDOWN = 1
+  /**
+   * Do not trigger server shutdown on signals, allow for the user
+   * to terminate the server explicitly when needed.
+   */
+  GNUNET_SERVICE_OPTION_MANUAL_SHUTDOWN = 1,
+
+  /**
+   * Trigger a SOFT server shutdown on signals, allowing active
+   * non-monitor clients to complete their transactions.
+   */
+  GNUNET_SERVICE_OPTION_SOFT_SHUTDOWN = 2
 };
 
 
@@ -104,16 +110,16 @@ enum GNUNET_SERVICE_Options
  *
  * @param argc number of command line arguments
  * @param argv command line arguments
- * @param serviceName our service name
- * @param opt service options
+ * @param service_name our service name
+ * @param options service options
  * @param task main task of the service
  * @param task_cls closure for task
  * @return GNUNET_SYSERR on error, GNUNET_OK
  *         if we shutdown nicely
  */
 int
-GNUNET_SERVICE_run (int argc, char *const *argv, const char *serviceName,
-                    enum GNUNET_SERVICE_Options opt, GNUNET_SERVICE_Main task,
+GNUNET_SERVICE_run (int argc, char *const *argv, const char *service_name,
+                    enum GNUNET_SERVICE_Options options, GNUNET_SERVICE_Main task,
                     void *task_cls);
 
 
@@ -123,13 +129,15 @@ struct GNUNET_SERVICE_Context;
  * Run a service startup sequence within an existing
  * initialized system.
  *
- * @param serviceName our service name
+ * @param service_name our service name
  * @param cfg configuration to use
+ * @param options service options
  * @return NULL on error, service handle
  */
 struct GNUNET_SERVICE_Context *
-GNUNET_SERVICE_start (const char *serviceName,
-                      const struct GNUNET_CONFIGURATION_Handle *cfg);
+GNUNET_SERVICE_start (const char *service_name,
+                      const struct GNUNET_CONFIGURATION_Handle *cfg,
+		      enum GNUNET_SERVICE_Options options);
 
 
 /**

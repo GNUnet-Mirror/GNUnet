@@ -230,11 +230,9 @@ read_blacklist_file ()
       GNUNET_CONFIGURATION_get_value_filename (GST_cfg, "TRANSPORT",
                                                "BLACKLIST_FILE", &fn))
   {
-#if DEBUG_TRANSPORT
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Option `%s' in section `%s' not specified!\n",
                 "BLACKLIST_FILE", "TRANSPORT");
-#endif
     return;
   }
   if (GNUNET_OK != GNUNET_DISK_file_test (fn))
@@ -251,10 +249,8 @@ read_blacklist_file ()
   }
   if (fsize == 0)
   {
-#if DEBUG_TRANSPORT
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Blacklist file `%s' is empty.\n"),
                 fn);
-#endif
     GNUNET_free (fn);
     return;
   }
@@ -322,11 +318,9 @@ read_blacklist_file ()
     transport_name = GNUNET_malloc (tsize + 1);
     memcpy (transport_name, &data[pos], tsize);
     pos = colon_pos + 1;
-#if DEBUG_TRANSPORT
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Read transport name `%s' in blacklist file.\n",
                 transport_name);
-#endif
     memcpy (&enc, &data[pos], sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded));
     if (!isspace
         ((unsigned char)
@@ -451,11 +445,9 @@ transmit_blacklist_message (void *cls, size_t size, void *buf)
                 GNUNET_i2s (&bc->peer));
     return 0;
   }
-#if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Sending blacklist test for peer `%s' to client\n",
               GNUNET_i2s (&bc->peer));
-#endif
   bl = bc->bl_pos;
   bm.header.size = htons (sizeof (struct BlacklistMessage));
   bm.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_QUERY);
@@ -484,11 +476,9 @@ do_blacklist_check (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   bl = bc->bl_pos;
   if (bl == NULL)
   {
-#if DEBUG_TRANSPORT
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "No other blacklist clients active, will allow neighbour `%s'\n",
                 GNUNET_i2s (&bc->peer));
-#endif
     bc->cont (bc->cont_cls, &bc->peer, GNUNET_OK);
     GNUNET_CONTAINER_DLL_remove(bc_head, bc_tail, bc);
     GNUNET_free (bc);
@@ -579,7 +569,6 @@ test_connection_ok (void *cls, const struct GNUNET_PeerIdentity *neighbour,
 }
 
 
-
 /**
  * Initialize a blacklisting client.  We got a blacklist-init
  * message from this client, add him to the list of clients
@@ -607,6 +596,7 @@ GST_blacklist_handle_init (void *cls, struct GNUNET_SERVER_Client *client,
     }
     bl = bl->next;
   }
+  GNUNET_SERVER_client_mark_monitor (client);
   bl = GNUNET_malloc (sizeof (struct Blacklisters));
   bl->client = client;
   GNUNET_SERVER_client_keep (client);
@@ -640,9 +630,7 @@ GST_blacklist_handle_reply (void *cls, struct GNUNET_SERVER_Client *client,
     bl = bl->next;
   if (bl == NULL)
   {
-#if DEBUG_TRANSPORT
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Blacklist client disconnected\n");
-#endif
     /* FIXME: other error handling here!? */
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
@@ -656,20 +644,16 @@ GST_blacklist_handle_reply (void *cls, struct GNUNET_SERVER_Client *client,
      * cancelled in the meantime... */
     if (ntohl (msg->is_allowed) == GNUNET_SYSERR)
     {
-#if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Blacklist check failed, peer not allowed\n");
-#endif
       bc->cont (bc->cont_cls, &bc->peer, GNUNET_NO);
       GNUNET_CONTAINER_DLL_remove (bc_head, bc_tail, bc);
       GNUNET_free (bc);
     }
     else
     {
-#if DEBUG_TRANSPORT
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Blacklist check succeeded, continuing with checks\n");
-#endif
       bc->bl_pos = bc->bl_pos->next;
       bc->task = GNUNET_SCHEDULER_add_now (&do_blacklist_check, bc);
     }
@@ -695,11 +679,9 @@ void
 GST_blacklist_add_peer (const struct GNUNET_PeerIdentity *peer,
                         const char *transport_name)
 {
-#if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Adding peer `%s' with plugin `%s' to blacklist\n",
               GNUNET_i2s (peer), transport_name);
-#endif
   if (blacklist == NULL)
     blacklist =
         GNUNET_CONTAINER_multihashmap_create (TRANSPORT_BLACKLIST_HT_SIZE);

@@ -620,6 +620,7 @@ handle_notify (void *cls, struct GNUNET_SERVER_Client *client,
                const struct GNUNET_MessageHeader *message)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "`%s' message received\n", "NOTIFY");
+  GNUNET_SERVER_client_mark_monitor (client);
   GNUNET_SERVER_notification_context_add (notify_list, client);
   GNUNET_CONTAINER_multihashmap_iterate (hostmap, &do_notify_entry, client);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -728,7 +729,7 @@ main (int argc, char *const *argv)
 
   ret =
       (GNUNET_OK ==
-       GNUNET_SERVICE_run (argc, argv, "peerinfo", GNUNET_SERVICE_OPTION_NONE,
+       GNUNET_SERVICE_run (argc, argv, "peerinfo", GNUNET_SERVICE_OPTION_SOFT_SHUTDOWN,
                            &run, NULL)) ? 0 : 1;
   GNUNET_free_non_null (networkIdDirectory);
   return ret;

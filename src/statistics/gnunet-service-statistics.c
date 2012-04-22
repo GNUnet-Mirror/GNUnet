@@ -651,6 +651,7 @@ handle_watch (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
+  GNUNET_SERVER_client_mark_monitor (client);
   ce = make_client_entry (client);
   msize = ntohs (message->size);
   if (msize < sizeof (struct GNUNET_MessageHeader))
@@ -844,7 +845,7 @@ main (int argc, char *const *argv)
 {
   return (GNUNET_OK ==
           GNUNET_SERVICE_run (argc, argv, "statistics",
-                              GNUNET_SERVICE_OPTION_NONE, &run, NULL)) ? 0 : 1;
+                              GNUNET_SERVICE_OPTION_SOFT_SHUTDOWN, &run, NULL)) ? 0 : 1;
 }
 
 /* end of gnunet-service-statistics.c */

@@ -155,6 +155,16 @@ GNUNET_SERVER_create (GNUNET_CONNECTION_AccessCheck access, void *access_cls,
 
 
 /**
+ * Stop the listen socket and get ready to shutdown the server
+ * once only 'monitor' clients are left.
+ *
+ * @param server server to stop listening on
+ */
+void
+GNUNET_SERVER_stop_listening (struct GNUNET_SERVER_Handle *server);
+
+
+/**
  * Free resources held by this server.
  *
  * @param server server to destroy
@@ -212,6 +222,22 @@ GNUNET_SERVER_notify_transmit_ready (struct GNUNET_SERVER_Client *client,
  */
 void
 GNUNET_SERVER_notify_transmit_ready_cancel (struct GNUNET_SERVER_TransmitHandle *th);
+
+
+/**
+ * Set the 'monitor' flag on this client.  Clients which have been
+ * marked as 'monitors' won't prevent the server from shutting down
+ * once 'GNUNET_SERVER_stop_listening' has been invoked.  The idea is
+ * that for "normal" clients we likely want to allow them to process
+ * their requests; however, monitor-clients are likely to 'never'
+ * disconnect during shutdown and thus will not be considered when
+ * determining if the server should continue to exist after
+ * 'GNUNET_SERVER_destroy' has been called.
+ *
+ * @param client the client to set the 'monitor' flag on
+ */
+void
+GNUNET_SERVER_client_mark_monitor (struct GNUNET_SERVER_Client *client);
 
 
 /**

@@ -436,7 +436,7 @@ struct GNUNET_SERVICE_Context
   /**
    * Name of our service.
    */
-  const char *serviceName;
+  const char *service_name;
 
   /**
    * Main service-specific task to run.
@@ -697,7 +697,7 @@ check_access (void *cls, const struct GNUNET_CONNECTION_Credentials *uc,
     LOG (GNUNET_ERROR_TYPE_WARNING,
          _("Access from `%s' denied to service `%s'\n"), 
 	 GNUNET_a2s (addr, addrlen),
-         sctx->serviceName);
+         sctx->service_name);
   }
   return ret;
 }
@@ -716,7 +716,7 @@ get_pid_file_name (struct GNUNET_SERVICE_Context *sctx)
   char *pif;
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (sctx->cfg, sctx->serviceName,
+      GNUNET_CONFIGURATION_get_value_filename (sctx->cfg, sctx->service_name,
                                                "PIDFILE", &pif))
     return NULL;
   return pif;
@@ -738,20 +738,20 @@ process_acl4 (struct IPv4NetworkSet **ret, struct GNUNET_SERVICE_Context *sctx,
 {
   char *opt;
 
-  if (!GNUNET_CONFIGURATION_have_value (sctx->cfg, sctx->serviceName, option))
+  if (!GNUNET_CONFIGURATION_have_value (sctx->cfg, sctx->service_name, option))
   {
     *ret = NULL;    
     return GNUNET_OK;
   }
   GNUNET_break (GNUNET_OK ==
                 GNUNET_CONFIGURATION_get_value_string (sctx->cfg,
-                                                       sctx->serviceName,
+                                                       sctx->service_name,
                                                        option, &opt));
   if (NULL == (*ret = parse_ipv4_specification (opt)))
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
          _("Could not parse IPv4 network specification `%s' for `%s:%s'\n"),
-         opt, sctx->serviceName, option);
+         opt, sctx->service_name, option);
     GNUNET_free (opt);
     return GNUNET_SYSERR;
   }
@@ -775,20 +775,20 @@ process_acl6 (struct IPv6NetworkSet **ret, struct GNUNET_SERVICE_Context *sctx,
 {
   char *opt;
 
-  if (!GNUNET_CONFIGURATION_have_value (sctx->cfg, sctx->serviceName, option))
+  if (!GNUNET_CONFIGURATION_have_value (sctx->cfg, sctx->service_name, option))
   {
     *ret = NULL;
     return GNUNET_OK;
   }
   GNUNET_break (GNUNET_OK ==
                 GNUNET_CONFIGURATION_get_value_string (sctx->cfg,
-                                                       sctx->serviceName,
+                                                       sctx->service_name,
                                                        option, &opt));
   if (NULL == (*ret = parse_ipv6_specification (opt)))
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
          _("Could not parse IPv6 network specification `%s' for `%s:%s'\n"),
-         opt, sctx->serviceName, option);
+         opt, sctx->service_name, option);
     GNUNET_free (opt);
     return GNUNET_SYSERR;
   }
@@ -841,7 +841,7 @@ add_unixpath (struct sockaddr **saddrs, socklen_t * saddrlens,
  * Get the list of addresses that a server for the given service
  * should bind to.
  *
- * @param serviceName name of the service
+ * @param service_name name of the service
  * @param cfg configuration (which specifies the addresses)
  * @param addrs set (call by reference) to an array of pointers to the
  *              addresses the server should bind to and listen on; the
@@ -858,7 +858,7 @@ add_unixpath (struct sockaddr **saddrs, socklen_t * saddrlens,
  *              set to NULL).
  */
 int
-GNUNET_SERVICE_get_server_addresses (const char *serviceName,
+GNUNET_SERVICE_get_server_addresses (const char *service_name,
                                      const struct GNUNET_CONFIGURATION_Handle
                                      *cfg, struct sockaddr ***addrs,
                                      socklen_t ** addr_lens)
@@ -881,11 +881,11 @@ GNUNET_SERVICE_get_server_addresses (const char *serviceName,
   *addrs = NULL;
   *addr_lens = NULL;
   desc = NULL;
-  if (GNUNET_CONFIGURATION_have_value (cfg, serviceName, "DISABLEV6"))
+  if (GNUNET_CONFIGURATION_have_value (cfg, service_name, "DISABLEV6"))
   {
     if (GNUNET_SYSERR ==
         (disablev6 =
-         GNUNET_CONFIGURATION_get_value_yesno (cfg, serviceName, "DISABLEV6")))
+         GNUNET_CONFIGURATION_get_value_yesno (cfg, service_name, "DISABLEV6")))
       return GNUNET_SYSERR;
   }
   else
@@ -906,7 +906,7 @@ GNUNET_SERVICE_get_server_addresses (const char *serviceName,
       LOG (GNUNET_ERROR_TYPE_INFO,
            _
            ("Disabling IPv6 support for service `%s', failed to create IPv6 socket: %s\n"),
-           serviceName, STRERROR (errno));
+           service_name, STRERROR (errno));
       disablev6 = GNUNET_YES;
     }
     else
@@ -917,24 +917,24 @@ GNUNET_SERVICE_get_server_addresses (const char *serviceName,
   }
 
   port = 0;
-  if (GNUNET_CONFIGURATION_have_value (cfg, serviceName, "PORT"))
+  if (GNUNET_CONFIGURATION_have_value (cfg, service_name, "PORT"))
   {
     GNUNET_break (GNUNET_OK ==
-                  GNUNET_CONFIGURATION_get_value_number (cfg, serviceName,
+                  GNUNET_CONFIGURATION_get_value_number (cfg, service_name,
                                                          "PORT", &port));
     if (port > 65535)
     {
       LOG (GNUNET_ERROR_TYPE_ERROR,
            _("Require valid port number for service `%s' in configuration!\n"),
-           serviceName);
+           service_name);
       return GNUNET_SYSERR;
     }
   }
 
-  if (GNUNET_CONFIGURATION_have_value (cfg, serviceName, "BINDTO"))
+  if (GNUNET_CONFIGURATION_have_value (cfg, service_name, "BINDTO"))
   {
     GNUNET_break (GNUNET_OK ==
-                  GNUNET_CONFIGURATION_get_value_string (cfg, serviceName,
+                  GNUNET_CONFIGURATION_get_value_string (cfg, service_name,
                                                          "BINDTO", &hostname));
   }
   else
@@ -943,9 +943,9 @@ GNUNET_SERVICE_get_server_addresses (const char *serviceName,
   unixpath = NULL;
 #ifdef AF_UNIX
   if ((GNUNET_YES ==
-       GNUNET_CONFIGURATION_have_value (cfg, serviceName, "UNIXPATH")) &&
+       GNUNET_CONFIGURATION_have_value (cfg, service_name, "UNIXPATH")) &&
       (GNUNET_OK ==
-       GNUNET_CONFIGURATION_get_value_string (cfg, serviceName, "UNIXPATH",
+       GNUNET_CONFIGURATION_get_value_string (cfg, service_name, "UNIXPATH",
                                               &unixpath)) &&
       (0 < strlen (unixpath)))
   {
@@ -976,7 +976,7 @@ GNUNET_SERVICE_get_server_addresses (const char *serviceName,
       LOG (GNUNET_ERROR_TYPE_INFO,
            _
            ("Disabling UNIX domain socket support for service `%s', failed to create UNIX domain socket: %s\n"),
-           serviceName, STRERROR (errno));
+           service_name, STRERROR (errno));
       GNUNET_free (unixpath);
       unixpath = NULL;
     }
@@ -993,7 +993,7 @@ GNUNET_SERVICE_get_server_addresses (const char *serviceName,
     LOG (GNUNET_ERROR_TYPE_ERROR,
          _
          ("Have neither PORT nor UNIXPATH for service `%s', but one is required\n"),
-         serviceName);
+         service_name);
     GNUNET_free_non_null (hostname);
     return GNUNET_SYSERR;
   }
@@ -1013,7 +1013,7 @@ GNUNET_SERVICE_get_server_addresses (const char *serviceName,
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Resolving `%s' since that is where `%s' will bind to.\n", hostname,
-         serviceName);
+         service_name);
     memset (&hints, 0, sizeof (struct addrinfo));
     if (disablev6)
       hints.ai_family = AF_INET;
@@ -1066,7 +1066,7 @@ GNUNET_SERVICE_get_server_addresses (const char *serviceName,
       if ((SOCK_STREAM != pos->ai_socktype) && (0 != pos->ai_socktype))
         continue;               /* huh? */
       LOG (GNUNET_ERROR_TYPE_DEBUG, "Service `%s' will bind to `%s'\n",
-           serviceName, GNUNET_a2s (pos->ai_addr, pos->ai_addrlen));
+           service_name, GNUNET_a2s (pos->ai_addr, pos->ai_addrlen));
       if (AF_INET == pos->ai_family)
       {
         GNUNET_assert (sizeof (struct sockaddr_in) == pos->ai_addrlen);
@@ -1269,15 +1269,15 @@ setup_service (struct GNUNET_SERVICE_Context *sctx)
   int flags;
 #endif
 
-  if (GNUNET_CONFIGURATION_have_value (sctx->cfg, sctx->serviceName, "TIMEOUT"))
+  if (GNUNET_CONFIGURATION_have_value (sctx->cfg, sctx->service_name, "TIMEOUT"))
   {
     if (GNUNET_OK !=
-        GNUNET_CONFIGURATION_get_value_time (sctx->cfg, sctx->serviceName,
+        GNUNET_CONFIGURATION_get_value_time (sctx->cfg, sctx->service_name,
                                              "TIMEOUT", &idleout))
     {
       LOG (GNUNET_ERROR_TYPE_ERROR,
            _("Specified value for `%s' of service `%s' is invalid\n"),
-           "TIMEOUT", sctx->serviceName);
+           "TIMEOUT", sctx->service_name);
       return GNUNET_SYSERR;
     }
     sctx->timeout = idleout;
@@ -1286,16 +1286,16 @@ setup_service (struct GNUNET_SERVICE_Context *sctx)
     sctx->timeout = GNUNET_TIME_UNIT_FOREVER_REL;
 
   if (GNUNET_CONFIGURATION_have_value
-      (sctx->cfg, sctx->serviceName, "TOLERANT"))
+      (sctx->cfg, sctx->service_name, "TOLERANT"))
   {
     if (GNUNET_SYSERR ==
         (tolerant =
-         GNUNET_CONFIGURATION_get_value_yesno (sctx->cfg, sctx->serviceName,
+         GNUNET_CONFIGURATION_get_value_yesno (sctx->cfg, sctx->service_name,
                                                "TOLERANT")))
     {
       LOG (GNUNET_ERROR_TYPE_ERROR,
            _("Specified value for `%s' of service `%s' is invalid\n"),
-           "TOLERANT", sctx->serviceName);
+           "TOLERANT", sctx->service_name);
       return GNUNET_SYSERR;
     }
   }
@@ -1344,15 +1344,15 @@ setup_service (struct GNUNET_SERVICE_Context *sctx)
 
   if ((NULL == sctx->lsocks) &&
       (GNUNET_SYSERR ==
-       GNUNET_SERVICE_get_server_addresses (sctx->serviceName, sctx->cfg,
+       GNUNET_SERVICE_get_server_addresses (sctx->service_name, sctx->cfg,
                                             &sctx->addrs, &sctx->addrlens)))
     return GNUNET_SYSERR;
   sctx->require_found = tolerant ? GNUNET_NO : GNUNET_YES;
   sctx->match_uid =
-      GNUNET_CONFIGURATION_get_value_yesno (sctx->cfg, sctx->serviceName,
+      GNUNET_CONFIGURATION_get_value_yesno (sctx->cfg, sctx->service_name,
                                             "UNIX_MATCH_UID");
   sctx->match_gid =
-      GNUNET_CONFIGURATION_get_value_yesno (sctx->cfg, sctx->serviceName,
+      GNUNET_CONFIGURATION_get_value_yesno (sctx->cfg, sctx->service_name,
                                             "UNIX_MATCH_GID");
   process_acl4 (&sctx->v4_denied, sctx, "REJECT_FROM");
   process_acl4 (&sctx->v4_allowed, sctx, "ACCEPT_FROM");
@@ -1376,7 +1376,7 @@ get_user_name (struct GNUNET_SERVICE_Context *sctx)
   char *un;
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (sctx->cfg, sctx->serviceName,
+      GNUNET_CONFIGURATION_get_value_filename (sctx->cfg, sctx->service_name,
                                                "USERNAME", &un))
     return NULL;
   return un;
@@ -1443,19 +1443,21 @@ write_pid_file (struct GNUNET_SERVICE_Context *sctx, pid_t pid)
 
 
 /**
- * Task run during shutdown.
+ * Task run during shutdown.  Stops the server/service.
  *
- * @param cls unused
+ * @param cls the 'struct GNUNET_SERVICE_Context'
  * @param tc unused
  */
 static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct GNUNET_SERVER_Handle *server = cls;
+  struct GNUNET_SERVICE_Context *service = cls;
+  struct GNUNET_SERVER_Handle *server = service->server;
 
-  // FIXME: we should not unconditionally destroy the server
-  // here (often only stopping 'listening' would be better)
-  GNUNET_SERVER_destroy (server);
+  if (0 != (service->options & GNUNET_SERVICE_OPTION_SOFT_SHUTDOWN))
+    GNUNET_SERVER_stop_listening (server);
+  else
+    GNUNET_SERVER_destroy (server);
 }
 
 
@@ -1488,7 +1490,7 @@ service_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       while (NULL != sctx->addrs[i])
       {
         LOG (GNUNET_ERROR_TYPE_INFO, _("Failed to start `%s' at `%s'\n"),
-             sctx->serviceName, GNUNET_a2s (sctx->addrs[i], sctx->addrlens[i]));
+             sctx->service_name, GNUNET_a2s (sctx->addrs[i], sctx->addrlens[i]));
         i++;
       }
     }
@@ -1500,7 +1502,7 @@ service_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     /* install a task that will kill the server
      * process if the scheduler ever gets a shutdown signal */
     GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
-                                  sctx->server);
+                                  sctx);
   }
   sctx->my_handlers = GNUNET_malloc (sizeof (defhandlers));
   memcpy (sctx->my_handlers, defhandlers, sizeof (defhandlers));
@@ -1521,7 +1523,7 @@ service_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     while (NULL != sctx->addrs[i])
     {
       LOG (GNUNET_ERROR_TYPE_INFO, _("Service `%s' runs at %s\n"),
-           sctx->serviceName, GNUNET_a2s (sctx->addrs[i], sctx->addrlens[i]));
+           sctx->service_name, GNUNET_a2s (sctx->addrs[i], sctx->addrlens[i]));
       i++;
     }
   }
@@ -1681,16 +1683,16 @@ pid_file_delete (struct GNUNET_SERVICE_Context *sctx)
  *
  * @param argc number of command line arguments
  * @param argv command line arguments
- * @param serviceName our service name
- * @param opt service options
+ * @param service_name our service name
+ * @param options service options
  * @param task main task of the service
  * @param task_cls closure for task
  * @return GNUNET_SYSERR on error, GNUNET_OK
  *         if we shutdown nicely
  */
 int
-GNUNET_SERVICE_run (int argc, char *const *argv, const char *serviceName,
-                    enum GNUNET_SERVICE_Options opt, GNUNET_SERVICE_Main task,
+GNUNET_SERVICE_run (int argc, char *const *argv, const char *service_name,
+                    enum GNUNET_SERVICE_Options options, GNUNET_SERVICE_Main task,
                     void *task_cls)
 {
 #define HANDLE_ERROR do { GNUNET_break (0); goto shutdown; } while (0)
@@ -1724,19 +1726,19 @@ GNUNET_SERVICE_run (int argc, char *const *argv, const char *serviceName,
   loglev = NULL;
   cfg_fn = GNUNET_strdup (GNUNET_DEFAULT_USER_CONFIG_FILE);
   memset (&sctx, 0, sizeof (sctx));
-  sctx.options = opt;
+  sctx.options = options;
   sctx.ready_confirm_fd = -1;
   sctx.ret = GNUNET_OK;
   sctx.timeout = GNUNET_TIME_UNIT_FOREVER_REL;
   sctx.task = task;
   sctx.task_cls = task_cls;
-  sctx.serviceName = serviceName;
+  sctx.service_name = service_name;
   sctx.cfg = cfg = GNUNET_CONFIGURATION_create ();
   /* setup subsystems */
   if (GNUNET_SYSERR ==
-      GNUNET_GETOPT_run (serviceName, service_options, argc, argv))
+      GNUNET_GETOPT_run (service_name, service_options, argc, argv))
     goto shutdown;
-  if (GNUNET_OK != GNUNET_log_setup (serviceName, loglev, logfile))
+  if (GNUNET_OK != GNUNET_log_setup (service_name, loglev, logfile))
     HANDLE_ERROR;
   if (GNUNET_OK != GNUNET_CONFIGURATION_load (cfg, cfg_fn))
     goto shutdown;
@@ -1747,7 +1749,7 @@ GNUNET_SERVICE_run (int argc, char *const *argv, const char *serviceName,
   if (GNUNET_OK != set_user_id (&sctx))
     goto shutdown;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Service `%s' runs with configuration from `%s'\n", serviceName, cfg_fn);
+       "Service `%s' runs with configuration from `%s'\n", service_name, cfg_fn);
   if ((GNUNET_OK ==
        GNUNET_CONFIGURATION_get_value_number (sctx.cfg, "TESTING",
                                               "SKEW_OFFSET", &skew_offset)) &&
@@ -1799,13 +1801,15 @@ shutdown:
  * Run a service startup sequence within an existing
  * initialized system.
  *
- * @param serviceName our service name
+ * @param service_name our service name
  * @param cfg configuration to use
+ * @param options service options
  * @return NULL on error, service handle
  */
 struct GNUNET_SERVICE_Context *
-GNUNET_SERVICE_start (const char *serviceName,
-                      const struct GNUNET_CONFIGURATION_Handle *cfg)
+GNUNET_SERVICE_start (const char *service_name,
+                      const struct GNUNET_CONFIGURATION_Handle *cfg,
+		      enum GNUNET_SERVICE_Options options)
 {
   int i;
   struct GNUNET_SERVICE_Context *sctx;
@@ -1814,8 +1818,9 @@ GNUNET_SERVICE_start (const char *serviceName,
   sctx->ready_confirm_fd = -1;  /* no daemonizing */
   sctx->ret = GNUNET_OK;
   sctx->timeout = GNUNET_TIME_UNIT_FOREVER_REL;
-  sctx->serviceName = serviceName;
+  sctx->service_name = service_name;
   sctx->cfg = cfg;
+  sctx->options = options;
 
   /* setup subsystems */
   if (GNUNET_OK != setup_service (sctx))

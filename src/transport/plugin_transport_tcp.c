@@ -2161,7 +2161,7 @@ libgnunet_plugin_transport_tcp_init (void *cls)
     aport = 0;
   if (bport != 0)
   {
-    service = GNUNET_SERVICE_start ("transport-tcp", env->cfg);
+    service = GNUNET_SERVICE_start ("transport-tcp", env->cfg, GNUNET_SERVICE_OPTION_NONE);
     if (service == NULL)
     {
       GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, "tcp",

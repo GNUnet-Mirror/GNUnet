@@ -133,12 +133,6 @@ struct GNUNET_SERVER_Handle
   GNUNET_SCHEDULER_TaskIdentifier listen_task;
 
   /**
-   * Do we ignore messages of types that we do not understand or do we
-   * require that a handler is found (and if not kill the connection)?
-   */
-  int require_found;
-
-  /**
    * Alternative function to create a MST instance.
    */
   GNUNET_SERVER_MstCreateCallback mst_create;
@@ -157,6 +151,19 @@ struct GNUNET_SERVER_Handle
    * Closure for 'mst_'-callbacks.
    */
   void *mst_cls;
+
+  /**
+   * Do we ignore messages of types that we do not understand or do we
+   * require that a handler is found (and if not kill the connection)?
+   */
+  int require_found;
+
+  /**
+   * Set to GNUNET_YES once we are in 'soft' shutdown where we wait for
+   * all non-monitor clients to disconnect before we call
+   * GNUNET_SERVER_destroy.  See 'test_monitor_clients'.
+   */
+  int in_soft_shutdown;
 };
 
 
@@ -289,6 +296,13 @@ struct GNUNET_SERVER_Client
    * be used in special cases!
    */
   int persist;
+
+  /**
+   * Is this client a 'monitor' client that should not be counted
+   * when deciding on destroying the server during soft shutdown?
+   * (see also GNUNET_SERVICE_start)
+   */
+  int is_monitor;
 
   /**
    * Type of last message processed (for warn_no_receive_done).
@@ -554,6 +568,76 @@ GNUNET_SERVER_create (GNUNET_CONNECTION_AccessCheck access, void *access_cls,
   }
   return GNUNET_SERVER_create_with_sockets (access, access_cls, lsocks,
                                             idle_timeout, require_found);
+}
+
+
+/**
+ * Set the 'monitor' flag on this client.  Clients which have been
+ * marked as 'monitors' won't prevent the server from shutting down
+ * once 'GNUNET_SERVER_stop_listening' has been invoked.  The idea is
+ * that for "normal" clients we likely want to allow them to process
+ * their requests; however, monitor-clients are likely to 'never'
+ * disconnect during shutdown and thus will not be considered when
+ * determining if the server should continue to exist after
+ * 'GNUNET_SERVER_destroy' has been called.
+ *
+ * @param client the client to set the 'monitor' flag on
+ */
+void
+GNUNET_SERVER_client_mark_monitor (struct GNUNET_SERVER_Client *client)
+{
+  client->is_monitor = GNUNET_YES;
+}
+
+
+/**
+ * Check if only 'monitor' clients are left.  If so, destroy the
+ * server completely.
+ *
+ * @param server server to test for full shutdown
+ */
+static void
+test_monitor_clients (struct GNUNET_SERVER_Handle *server)
+{
+  struct GNUNET_SERVER_Client *client;
+
+  if (GNUNET_YES != server->in_soft_shutdown)
+    return;
+  for (client = server->clients; NULL != client; client = client->next)
+    if (GNUNET_NO == client->is_monitor)
+      return; /* not done yet */
+  GNUNET_SERVER_destroy (server);
+}
+
+
+/**
+ * Stop the listen socket and get ready to shutdown the server
+ * once only 'monitor' clients are left.
+ *
+ * @param server server to stop listening on
+ */
+void
+GNUNET_SERVER_stop_listening (struct GNUNET_SERVER_Handle *server)
+{
+  unsigned int i;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Server in soft shutdown\n");
+  if (GNUNET_SCHEDULER_NO_TASK != server->listen_task)
+  {
+    GNUNET_SCHEDULER_cancel (server->listen_task);
+    server->listen_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  if (NULL != server->listen_sockets)
+  {
+    i = 0;
+    while (NULL != server->listen_sockets[i])
+      GNUNET_break (GNUNET_OK ==
+                    GNUNET_NETWORK_socket_close (server->listen_sockets[i++]));
+    GNUNET_free (server->listen_sockets);
+    server->listen_sockets = NULL;
+  }
+  server->in_soft_shutdown = GNUNET_YES;
+  test_monitor_clients (server);
 }
 
 
@@ -1163,10 +1247,10 @@ GNUNET_SERVER_client_disconnect (struct GNUNET_SERVER_Client *client)
     GNUNET_CONNECTION_receive_cancel (client->connection);
     client->receive_pending = GNUNET_NO;
   }
+  server = client->server;
   rc = client->reference_count;
   if (GNUNET_YES != client->shutdown_now)
   {
-    server = client->server;
     client->shutdown_now = GNUNET_YES;
     prev = NULL;
     pos = server->clients;
@@ -1212,11 +1296,13 @@ GNUNET_SERVER_client_disconnect (struct GNUNET_SERVER_Client *client)
     GNUNET_SERVER_notify_transmit_ready_cancel (&client->th);
   GNUNET_CONNECTION_destroy (client->connection);
 
-  if (NULL != client->server->mst_destroy)
-    client->server->mst_destroy (client->server->mst_cls, client->mst);
+  if (NULL != server->mst_destroy)
+    server->mst_destroy (server->mst_cls, client->mst);
   else
     GNUNET_SERVER_mst_destroy (client->mst);
   GNUNET_free (client);
+  /* we might be in soft-shutdown, test if we're done */
+  test_monitor_clients (server);
 }
 
 

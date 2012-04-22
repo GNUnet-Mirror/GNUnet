@@ -175,7 +175,7 @@ int
 main (int argc, char *const *argv)
 {
   return (GNUNET_OK ==
-          GNUNET_SERVICE_run (argc, argv, "ats", GNUNET_SERVICE_OPTION_NONE,
+          GNUNET_SERVICE_run (argc, argv, "ats", GNUNET_SERVICE_OPTION_SOFT_SHUTDOWN,
                               &run, NULL)) ? 0 : 1;
 }
 
