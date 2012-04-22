@@ -123,6 +123,9 @@ GNUNET_SERVICE_run (int argc, char *const *argv, const char *service_name,
                     void *task_cls);
 
 
+/**
+ * Opaque handle for a service.
+ */
 struct GNUNET_SERVICE_Context;
 
 /**

@@ -206,7 +206,7 @@ start_stop_main (void *cls, char *const *args, const char *cfgfile,
   int *ret = cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting service using start method\n");
-  sctx = GNUNET_SERVICE_start ("test_service", cfg);
+  sctx = GNUNET_SERVICE_start ("test_service", cfg, GNUNET_SERVICE_OPTION_NONE);
   GNUNET_assert (NULL != sctx);
   runner (cls, GNUNET_SERVICE_get_server (sctx), cfg);
   *ret = 0;
