@@ -567,7 +567,14 @@ AC_ARG_WITH(microhttpd,
         AC_CHECK_HEADERS([microhttpd.h],
 	  AC_CHECK_DECL(MHD_OPTION_PER_IP_CONNECTION_LIMIT,
             AC_CHECK_LIB([microhttpd], [MHD_start_daemon],
-              lmhd=1),
+              [AC_MSG_CHECKING([for libmicrohttpd >= 0.9.18])
+              AC_RUN_IFELSE([
+                #include "$srcdir/src/include/platform.h"
+                #include <microhttpd.h>
+                int main () { return MHD_VERSION >= 0x0091200 ? 0 : 1; }
+               ], [
+               AC_MSG_RESULT(ok)
+               lmhd=1],[AC_MSG_RESULT(failed)],lmhd=1)]),
 	    [],[#include "$srcdir/src/include/platform.h"
                 #include <microhttpd.h>]),,
             [#include "$srcdir/src/include/platform.h"])
@@ -579,7 +586,14 @@ AC_ARG_WITH(microhttpd,
 	  AC_CHECK_DECL(MHD_OPTION_PER_IP_CONNECTION_LIMIT,
             AC_CHECK_LIB([microhttpd], [MHD_start_daemon],
               EXT_LIB_PATH="-L$with_microhttpd/lib $EXT_LIB_PATH"
-              lmhd=1),
+              [AC_MSG_CHECKING([for libmicrohttpd >= 0.9.18])
+               AC_RUN_IFELSE([
+                #include "$srcdir/src/include/platform.h"
+                #include <microhttpd.h>
+                int main () { return MHD_VERSION >= 0x0091200 ? 0 : 1; }
+               ], [
+               AC_MSG_RESULT(ok)
+               lmhd=1],[AC_MSG_RESULT(failed)],lmhd=1)]),
 	    [],[#include "$srcdir/src/include/platform.h"
                 #include <microhttpd.h>]),,
             [#include "$srcdir/src/include/platform.h"])
@@ -590,7 +604,14 @@ AC_ARG_WITH(microhttpd,
     AC_CHECK_HEADERS([microhttpd.h],
       AC_CHECK_DECL(MHD_OPTION_PER_IP_CONNECTION_LIMIT,
         AC_CHECK_LIB([microhttpd], [MHD_start_daemon],
-          lmhd=1),
+          [AC_MSG_CHECKING([for libmicrohttpd >= 0.9.18])
+              AC_RUN_IFELSE([
+                #include "$srcdir/src/include/platform.h"
+		#include <microhttpd.h>
+                int main () { return MHD_VERSION >= 0x0091200 ? 0 : 1; }
+               ], [
+               AC_MSG_RESULT(ok)
+               lmhd=1],[AC_MSG_RESULT(failed)],lmhd=1)]),
 	[],[#include "$srcdir/src/include/platform.h"
             #include <microhttpd.h>]),,
        [#include "$srcdir/src/include/platform.h"])])
