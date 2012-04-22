@@ -291,7 +291,7 @@ struct GNUNET_DHT_MonitorStartMessage
 
 
 /**
- * Message to monitor get requests going through peer, DHT service --> clients.
+ * Message to monitor get requests going through peer, DHT service -> clients.
  */
 struct GNUNET_DHT_MonitorGetMessage
 {
