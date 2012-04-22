@@ -133,10 +133,11 @@ get_callback (void *cls,
               const struct GNUNET_PeerIdentity *path,
               const GNUNET_HashCode * key)
 {
-  FPRINTF (stdout, "Result %d, operation: %s, type %d\n",
+  FPRINTF (stdout, "Result %d, operation: %s, type %d\n Key: %s",
            result_count,
            "GET",
-           type);
+           type,
+           GNUNET_h2s_full(key));
   result_count++;
 }
 
@@ -166,10 +167,11 @@ get_resp_callback (void *cls,
                    const void *data,
                    size_t size)
 {
-  FPRINTF (stdout, "Result %d, operation: %s, type %d:\n%.*s\n",
+  FPRINTF (stdout, "Result %d, operation: %s, type %d:\n Key: %s\n %.*s\n",
            result_count,
            "GET_RESP",
            type,
+           GNUNET_h2s_full(key),
            (unsigned int) size,
            (char *) data);
   result_count++;
@@ -203,10 +205,11 @@ put_callback (void *cls,
               const void *data,
               size_t size)
 {
-  FPRINTF (stdout, "Result %d, operation: %s, type %d:\n%.*s\n",
+  FPRINTF (stdout, "Result %d, operation: %s, type %d:\n Key: %s\n %.*s\n",
            result_count,
            "PUT",
            type,
+           GNUNET_h2s_full(key),
            (unsigned int) size,
            (char *) data);
   result_count++;
