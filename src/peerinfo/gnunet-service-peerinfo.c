@@ -729,7 +729,7 @@ main (int argc, char *const *argv)
 
   ret =
       (GNUNET_OK ==
-       GNUNET_SERVICE_run (argc, argv, "peerinfo", GNUNET_SERVICE_OPTION_SOFT_SHUTDOWN,
+       GNUNET_SERVICE_run (argc, argv, "peerinfo", GNUNET_SERVICE_OPTION_NONE,
                            &run, NULL)) ? 0 : 1;
   GNUNET_free_non_null (networkIdDirectory);
   return ret;
