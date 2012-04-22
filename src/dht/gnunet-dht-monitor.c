@@ -112,45 +112,105 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
- * Callback called on each request going through the DHT.
+ * Callback called on each GET request going through the DHT.
  *
  * @param cls Closure.
- * @param mtype Type of the DHT message monitored.
- * @param exp When will this value expire.
- * @param key Key of the result/request.
- * @param get_path Peers on reply path (or NULL if not recorded).
+ * @param options Options, for instance RecordRoute, DemultiplexEverywhere.
+ * @param type The type of data in the request.
+ * @param hop_count Hop count so far.
+ * @param path_length number of entries in path (or 0 if not recorded).
+ * @param path peers on the GET path (or NULL if not recorded).
+ * @param desired_replication_level Desired replication level.
+ * @param key Key of the requested data.
+ */
+void
+get_callback (void *cls,
+              enum GNUNET_DHT_RouteOption options,
+              enum GNUNET_BLOCK_Type type,
+              uint32_t hop_count,
+              uint32_t desired_replication_level,
+              unsigned int path_length,
+              const struct GNUNET_PeerIdentity *path,
+              const GNUNET_HashCode * key)
+{
+  FPRINTF (stdout, "Result %d, operation: %s, type %d\n",
+           result_count,
+           "GET",
+           type);
+  result_count++;
+}
+
+/**
+ * Callback called on each GET reply going through the DHT.
+ *
+ * @param cls Closure.
+ * @param type The type of data in the result.
+ * @param get_path Peers on GET path (or NULL if not recorded).
  * @param get_path_length number of entries in get_path.
  * @param put_path peers on the PUT path (or NULL if not recorded).
  * @param put_path_length number of entries in get_path.
- * @param desired_replication_level Desired replication level.
- * @param options Options of the route (record, demultiplex, etc)
- * @param type Type of the result/request.
+ * @param exp Expiration time of the data.
+ * @param key Key of the data.
  * @param data Pointer to the result data.
  * @param size Number of bytes in data.
  */
 void
-monitor_callback (void *cls,
-                  uint16_t mtype,
-                  struct GNUNET_TIME_Absolute exp,
-                  const GNUNET_HashCode * key,
-                  const struct GNUNET_PeerIdentity *get_path,
-                  unsigned int get_path_length,
-                  const struct GNUNET_PeerIdentity *put_path,
-                  unsigned int put_path_length,
-                  uint32_t desired_replication_level,
-                  enum GNUNET_DHT_RouteOption options,
-                  enum GNUNET_BLOCK_Type type,
-                  const void *data,
-                  size_t size)
+get_resp_callback (void *cls,
+                   enum GNUNET_BLOCK_Type type,
+                   const struct GNUNET_PeerIdentity *get_path,
+                   unsigned int get_path_length,
+                   const struct GNUNET_PeerIdentity *put_path,
+                   unsigned int put_path_length,
+                   struct GNUNET_TIME_Absolute exp,
+                   const GNUNET_HashCode * key,
+                   const void *data,
+                   size_t size)
 {
-  FPRINTF (stdout, "Result %d, type %d:\n%.*s\n",
+  FPRINTF (stdout, "Result %d, operation: %s, type %d:\n%.*s\n",
            result_count,
+           "GET_RESP",
            type,
            (unsigned int) size,
            (char *) data);
   result_count++;
 }
 
+/**
+ * Callback called on each PUT request going through the DHT.
+ *
+ * @param cls Closure.
+ * @param options Options, for instance RecordRoute, DemultiplexEverywhere.
+ * @param type The type of data in the request.
+ * @param hop_count Hop count so far.
+ * @param path_length number of entries in path (or 0 if not recorded).
+ * @param path peers on the PUT path (or NULL if not recorded).
+ * @param desired_replication_level Desired replication level.
+ * @param exp Expiration time of the data.
+ * @param key Key under which data is to be stored.
+ * @param data Pointer to the data carried.
+ * @param size Number of bytes in data.
+ */
+void
+put_callback (void *cls,
+              enum GNUNET_DHT_RouteOption options,
+              enum GNUNET_BLOCK_Type type,
+              uint32_t hop_count,
+              uint32_t desired_replication_level,
+              unsigned int path_length,
+              const struct GNUNET_PeerIdentity *path,
+              struct GNUNET_TIME_Absolute exp,
+              const GNUNET_HashCode * key,
+              const void *data,
+              size_t size)
+{
+  FPRINTF (stdout, "Result %d, operation: %s, type %d:\n%.*s\n",
+           result_count,
+           "PUT",
+           type,
+           (unsigned int) size,
+           (char *) data);
+  result_count++;
+}
 
 /**
  * Main function that will be run by the scheduler.
@@ -208,8 +268,13 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_SCHEDULER_add_delayed (timeout, &cleanup_task, NULL);
   if (verbose)
     FPRINTF (stderr, "Issuing MONITOR request for %s!\n", query_key);
-  monitor_handle = GNUNET_DHT_monitor_start (dht_handle, block_type, key,
-                                             &monitor_callback, NULL);
+  monitor_handle = GNUNET_DHT_monitor_start (dht_handle,
+                                             block_type,
+                                             key,
+                                             &get_callback,
+                                             &get_resp_callback,
+                                             &put_callback,
+                                             NULL);
   if (verbose)
     FPRINTF (stderr, "%s", "MONITOR started!\n");
   GNUNET_free_non_null (key);
