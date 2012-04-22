@@ -536,11 +536,12 @@ struct GNUNET_SERVICE_Context
 /* ****************** message handlers ****************** */
 
 /**
+ * Send a 'TEST' message back to the client.
  *
- * @param cls
- * @param size
- * @param buf
- * @return 
+ * @param cls the 'struct GNUNET_SERVER_Client' to send TEST to
+ * @param size number of bytes available in 'buf'
+ * @param buf where to copy the message
+ * @return number of bytes written to 'buf'
  */
 static size_t
 write_test (void *cls, size_t size, void *buf)
@@ -725,10 +726,11 @@ get_pid_file_name (struct GNUNET_SERVICE_Context *sctx)
 /**
  * Parse an IPv4 access control list.
  *
- * @param ret
- * @param sctx
- * @param option
- * @return 
+ * @param ret location where to write the ACL (set)
+ * @param sctx service context to use to get the configuration 
+ * @param option name of the ACL option to parse
+ * @return GNUNET_SYSERR on parse error, GNUNET_OK on success (including 
+ *         no ACL configured)
  */
 static int
 process_acl4 (struct IPv4NetworkSet **ret, struct GNUNET_SERVICE_Context *sctx,
@@ -737,7 +739,10 @@ process_acl4 (struct IPv4NetworkSet **ret, struct GNUNET_SERVICE_Context *sctx,
   char *opt;
 
   if (!GNUNET_CONFIGURATION_have_value (sctx->cfg, sctx->serviceName, option))
+  {
+    *ret = NULL;    
     return GNUNET_OK;
+  }
   GNUNET_break (GNUNET_OK ==
                 GNUNET_CONFIGURATION_get_value_string (sctx->cfg,
                                                        sctx->serviceName,
@@ -758,10 +763,11 @@ process_acl4 (struct IPv4NetworkSet **ret, struct GNUNET_SERVICE_Context *sctx,
 /**
  * Parse an IPv6 access control list.
  *
- * @param ret
- * @param sctx
- * @param option
- * @return
+ * @param ret location where to write the ACL (set)
+ * @param sctx service context to use to get the configuration 
+ * @param option name of the ACL option to parse
+ * @return GNUNET_SYSERR on parse error, GNUNET_OK on success (including 
+ *         no ACL configured)
  */
 static int
 process_acl6 (struct IPv6NetworkSet **ret, struct GNUNET_SERVICE_Context *sctx,
@@ -770,7 +776,10 @@ process_acl6 (struct IPv6NetworkSet **ret, struct GNUNET_SERVICE_Context *sctx,
   char *opt;
 
   if (!GNUNET_CONFIGURATION_have_value (sctx->cfg, sctx->serviceName, option))
+  {
+    *ret = NULL;
     return GNUNET_OK;
+  }
   GNUNET_break (GNUNET_OK ==
                 GNUNET_CONFIGURATION_get_value_string (sctx->cfg,
                                                        sctx->serviceName,
@@ -1146,9 +1155,9 @@ GNUNET_SERVICE_get_server_addresses (const char *serviceName,
 
 #ifdef MINGW
 /**
+ * Read listen sockets from the parent process (ARM).
  *
- *
- * @param sctx 
+ * @param sctx service context to initialize
  * @return GNUNET_YES if ok, GNUNET_NO if not ok (must bind yourself),
  * and GNUNET_SYSERR on error.
  */
@@ -1243,7 +1252,7 @@ receive_sockets_from_parent (struct GNUNET_SERVICE_Context *sctx)
  * - REJECT_FROM  (disallow allow connections from specified IPv4 subnets)
  * - REJECT_FROM6 (disallow allow connections from specified IPv6 subnets)
  *
- * @param sctx
+ * @param sctx service context to initialize
  * @return GNUNET_OK if configuration succeeded
  */
 static int
@@ -1358,8 +1367,8 @@ setup_service (struct GNUNET_SERVICE_Context *sctx)
  * Get the name of the user that'll be used
  * to provide the service.
  *
- * @param sctx
- * @return 
+ * @param sctx service context
+ * @return value of the 'USERNAME' option
  */
 static char *
 get_user_name (struct GNUNET_SERVICE_Context *sctx)
@@ -1376,9 +1385,9 @@ get_user_name (struct GNUNET_SERVICE_Context *sctx)
 /**
  * Write PID file.
  *
- * @param sctx
- * @param pid
- * @return 
+ * @param sctx service context
+ * @param pid PID to write (should be equal to 'getpid()'
+ * @return  GNUNET_OK on success (including no work to be done)
  */
 static int
 write_pid_file (struct GNUNET_SERVICE_Context *sctx, pid_t pid)
@@ -1524,7 +1533,7 @@ service_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Detach from terminal.
  *
  * @param sctx service context
- * @return
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
 static int
 detach_terminal (struct GNUNET_SERVICE_Context *sctx)
@@ -1605,7 +1614,7 @@ detach_terminal (struct GNUNET_SERVICE_Context *sctx)
  * Set user ID.
  *
  * @param sctx service context
- * @return
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
 static int
 set_user_id (struct GNUNET_SERVICE_Context *sctx)
