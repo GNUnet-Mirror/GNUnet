@@ -43,7 +43,7 @@ extern "C"
  * Get the list of addresses that a server for the given service
  * should bind to.
  *
- * @param serviceName name of the service
+ * @param service_name name of the service
  * @param cfg configuration (which specifies the addresses)
  * @param addrs set (call by reference) to an array of pointers to the
  *              addresses the server should bind to and listen on; the
@@ -60,7 +60,7 @@ extern "C"
  *              set to NULL).
  */
 int
-GNUNET_SERVICE_get_server_addresses (const char *serviceName,
+GNUNET_SERVICE_get_server_addresses (const char *service_name,
                                      const struct GNUNET_CONFIGURATION_Handle
                                      *cfg, struct sockaddr ***addrs,
                                      socklen_t ** addr_lens);

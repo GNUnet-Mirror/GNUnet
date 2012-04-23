@@ -196,7 +196,7 @@ struct GNUNET_DHT_ClientPutMessage
 
 
 /**
- * Message to monitor put requests going through peer, DHT service --> clients.
+ * Message to monitor put requests going through peer, DHT service -> clients.
  */
 struct GNUNET_DHT_MonitorPutMessage
 {
@@ -249,7 +249,7 @@ struct GNUNET_DHT_MonitorPutMessage
 
 
 /**
- * Message to request monitoring messages, clients --> DHT service.
+ * Message to request monitoring messages, clients -> DHT service.
  */
 struct GNUNET_DHT_MonitorStartMessage
 {
@@ -336,7 +336,7 @@ struct GNUNET_DHT_MonitorGetMessage
 };
 
 /**
- * Message to monitor get results going through peer, DHT service --> clients.
+ * Message to monitor get results going through peer, DHT service -> clients.
  */
 struct GNUNET_DHT_MonitorGetRespMessage
 {
