@@ -126,6 +126,8 @@ terminate_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_CORE_Handle *ch;
 
   err_task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_STATISTICS_destroy (p1.stats, GNUNET_NO);
+  GNUNET_STATISTICS_destroy (p2.stats, GNUNET_NO);
   GNUNET_TRANSPORT_get_hello_cancel (p2.ghh);
   GNUNET_TRANSPORT_get_hello_cancel (p1.ghh);
   if (p1.nth != NULL)

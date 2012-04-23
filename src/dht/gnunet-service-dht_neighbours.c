@@ -1555,7 +1555,7 @@ handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
     break;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "PUT for `%s' from %s\n",
-              GNUNET_h2s (&put->key), GNUNET_i2s (&peer->hashPubKey));
+              GNUNET_h2s (&put->key), GNUNET_i2s (peer));
   bf = GNUNET_CONTAINER_bloomfilter_init (put->bloomfilter, DHT_BLOOM_SIZE,
                                           GNUNET_CONSTANTS_BLOOMFILTER_K);
   GNUNET_break_op (GNUNET_YES ==
