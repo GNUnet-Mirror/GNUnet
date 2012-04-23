@@ -610,7 +610,7 @@ unindex_extract_keywords (void *cls, const struct GNUNET_SCHEDULER_TaskContext *
 void
 GNUNET_FS_unindex_do_remove_ (struct GNUNET_FS_UnindexContext *uc)
 {
-  if (NULL != uc->dsh)
+  if (NULL == uc->dsh)
     uc->dsh = GNUNET_DATASTORE_connect (uc->h->cfg);
   if (NULL == uc->dsh)
   {
