@@ -260,7 +260,6 @@ curl_main ()
 				    &ws,
 				    max + 1);
   curl_task_id = GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-					      GNUNET_SCHEDULER_NO_TASK,
 					      delay,
 					      &nrs,
 					      &nws,
@@ -378,7 +377,6 @@ mhd_main ()
 				    &ws,
 				    max_fd + 1);
   mhd_task_id = GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-					     GNUNET_SCHEDULER_NO_TASK,
 					     delay,
 					     &nrs,
 					     &nws,
