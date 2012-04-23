@@ -341,7 +341,7 @@ unindex_directory_scan_cb (void *cls,
     {
       uc->ksk_uri = GNUNET_FS_uri_dup (directory_scan_result->ksk_uri);
       uc->state = UNINDEX_STATE_DS_REMOVE_KBLOCKS;
-      uc->emsg = GNUNET_strdup (_("Failed to connect to `datastore' service."));
+      uc->emsg = GNUNET_strdup (_("Failed to get KSKs from directory scan."));
       GNUNET_FS_unindex_sync_ (uc);
       GNUNET_FS_unindex_do_remove_kblocks_ (uc);
     }
@@ -545,7 +545,7 @@ GNUNET_FS_unindex_do_remove_kblocks_ (struct GNUNET_FS_UnindexContext *uc)
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pub;
   struct GNUNET_CRYPTO_RsaPrivateKey *pk;
 
-  if (NULL != uc->dsh)
+  if (NULL == uc->dsh)
     uc->dsh = GNUNET_DATASTORE_connect (uc->h->cfg);
   if (NULL == uc->dsh)
   {
@@ -610,7 +610,8 @@ unindex_extract_keywords (void *cls, const struct GNUNET_SCHEDULER_TaskContext *
 void
 GNUNET_FS_unindex_do_remove_ (struct GNUNET_FS_UnindexContext *uc)
 {
-  uc->dsh = GNUNET_DATASTORE_connect (uc->h->cfg);
+  if (NULL != uc->dsh)
+    uc->dsh = GNUNET_DATASTORE_connect (uc->h->cfg);
   if (NULL == uc->dsh)
   {
     uc->state = UNINDEX_STATE_ERROR;
@@ -840,6 +841,7 @@ GNUNET_FS_unindex_stop (struct GNUNET_FS_UnindexContext *uc)
                                   (uc->state ==
                                    UNINDEX_STATE_COMPLETE) ? uc->file_size : 0);
   GNUNET_break (NULL == uc->client_info);
+  GNUNET_free_non_null (uc->emsg);
   GNUNET_free (uc->filename);
   GNUNET_free (uc);
 }
