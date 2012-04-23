@@ -359,7 +359,7 @@ iterateBits (const struct GNUNET_CONTAINER_BloomFilter *bf,
       if (GNUNET_YES !=
           callback (arg, bf,
                     (((uint32_t *) & tmp[round & 1])[slot]) %
-                    ((bf->bitArraySize * 8LL) - 1)))
+                    ((bf->bitArraySize * 8LL))))
         return;
       slot++;
       bitCount--;
