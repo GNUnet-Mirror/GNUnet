@@ -599,7 +599,7 @@ GNUNET_CHAT_leave_room (struct GNUNET_CHAT_Room *chat_room)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Leaving the room '%s'\n",
               chat_room->room_name);
 #endif
-  GNUNET_CLIENT_disconnect (chat_room->client, GNUNET_NO);
+  GNUNET_CLIENT_disconnect (chat_room->client);
   GNUNET_free (chat_room->room_name);
   GNUNET_CONTAINER_meta_data_destroy (chat_room->member_info);
   GNUNET_CRYPTO_rsa_key_free (chat_room->my_private_key);
