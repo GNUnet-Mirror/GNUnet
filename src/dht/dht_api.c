@@ -1123,7 +1123,7 @@ GNUNET_DHT_monitor_start (struct GNUNET_DHT_Handle *handle,
   pending->msg = &m->header;
   pending->handle = handle;
   pending->free_on_send = GNUNET_YES;
-  m->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_MONITOR_GET);
+  m->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_MONITOR_START);
   m->header.size = htons (sizeof (struct GNUNET_DHT_MonitorStartMessage));
   m->type = htonl(type);
   m->get = (NULL != get_cb);
