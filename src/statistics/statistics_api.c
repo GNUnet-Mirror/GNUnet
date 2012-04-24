@@ -436,6 +436,9 @@ do_destroy (void *cls,
 static void
 reconnect_later (struct GNUNET_STATISTICS_Handle *h)
 {
+  int loss;
+  struct GNUNET_STATISTICS_GetHandle *gh;
+
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == h->backoff_task);
   if (h->do_destroy)
   {
@@ -444,7 +447,13 @@ reconnect_later (struct GNUNET_STATISTICS_Handle *h)
      * it anymore.
      * Give up and don't sync the rest of the data.
      */
-    GNUNET_break (0);
+    loss = GNUNET_NO;
+    for (gh = h->action_head; NULL != gh; gh = gh->next)
+      if ( (gh->make_persistent) && (gh->type == ACTION_SET) )
+	loss = GNUNET_YES;
+    if (GNUNET_YES == loss)
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  _("Could not save some persistent statistics\n"));
     h->do_destroy = GNUNET_NO;
     GNUNET_SCHEDULER_add_continuation (&do_destroy, h,
 				       GNUNET_SCHEDULER_REASON_PREREQ_DONE);
@@ -907,7 +916,7 @@ GNUNET_STATISTICS_destroy (struct GNUNET_STATISTICS_Handle *h, int sync_first)
 				   h->action_tail,
 				   h->current);
     h->do_destroy = GNUNET_YES;
-    if ((h->current != NULL) && (h->th == NULL)&&
+    if ((h->current != NULL) && (h->th == NULL) &&
 	(NULL != h->client))
     {
       timeout = GNUNET_TIME_absolute_get_remaining (h->current->timeout);
