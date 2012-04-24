@@ -305,6 +305,7 @@ free_peer (void *cls, const GNUNET_HashCode * pid, void *value)
 {
   struct Peer *pos = value;
 
+  GNUNET_break (GNUNET_NO == pos->is_connected);
   GNUNET_break (GNUNET_OK ==
                 GNUNET_CONTAINER_multihashmap_remove (peers, pid, pos));
   if (pos->hello_req != NULL)
@@ -646,7 +647,7 @@ connect_notify (void *cls, const struct GNUNET_PeerIdentity *peer,
   GNUNET_STATISTICS_set (stats, gettext_noop ("# peers connected"),
                          connection_count, GNUNET_NO);
   pos = GNUNET_CONTAINER_multihashmap_get (peers, &peer->hashPubKey);
-  if (pos == NULL)
+  if (NULL == pos)
   {
     pos = make_peer (peer, NULL, GNUNET_NO);
     GNUNET_break (GNUNET_OK == is_connection_allowed (pos));
@@ -721,7 +722,7 @@ disconnect_notify (void *cls, const struct GNUNET_PeerIdentity *peer)
               "Core told us that we disconnected from `%s'\n",
               GNUNET_i2s (peer));
   pos = GNUNET_CONTAINER_multihashmap_get (peers, &peer->hashPubKey);
-  if (pos == NULL)
+  if (NULL == pos)
   {
     GNUNET_break (0);
     return;
@@ -808,7 +809,7 @@ consider_for_advertising (const struct GNUNET_HELLO_Message *hello)
   if (GNUNET_NO == have_address)
     return;                     /* no point in advertising this one... */
   peer = GNUNET_CONTAINER_multihashmap_get (peers, &pid.hashPubKey);
-  if (peer == NULL)
+  if (NULL == peer)
   {
     peer = make_peer (&pid, hello, GNUNET_NO);
   }
@@ -882,7 +883,7 @@ process_peer (void *cls, const struct GNUNET_PeerIdentity *peer,
         GNUNET_CONTAINER_bloomfilter_free (pos->filter);
         pos->filter = NULL;
       }
-      if ((!pos->is_connected) && (!pos->is_friend) &&
+      if ((GNUNET_NO == pos->is_connected) && (GNUNET_NO == pos->is_friend) &&
           (0 ==
            GNUNET_TIME_absolute_get_remaining (pos->
                                                greylisted_until).rel_value))
@@ -1105,7 +1106,7 @@ handle_encrypted_hello (void *cls, const struct GNUNET_PeerIdentity *other,
   GNUNET_STATISTICS_update (stats, gettext_noop ("# HELLO messages received"),
                             1, GNUNET_NO);
   peer = GNUNET_CONTAINER_multihashmap_get (peers, &pid.hashPubKey);
-  if (peer == NULL)
+  if (NULL == peer)
   {
     if ((GNUNET_YES == friends_only) || (friend_count < minimum_friend_count))
       return GNUNET_OK;
@@ -1192,14 +1193,15 @@ cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   GNUNET_TRANSPORT_disconnect (transport);
   transport = NULL;
-  GNUNET_CONTAINER_multihashmap_iterate (peers, &free_peer, NULL);
-  GNUNET_CONTAINER_multihashmap_destroy (peers);
   if (handle != NULL)
   {
     GNUNET_CORE_disconnect (handle);
     handle = NULL;
   }
   whitelist_peers ();
+  GNUNET_CONTAINER_multihashmap_iterate (peers, &free_peer, NULL);
+  GNUNET_CONTAINER_multihashmap_destroy (peers);
+  peers = NULL;
   if (stats != NULL)
   {
     GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
