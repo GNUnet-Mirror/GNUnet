@@ -505,7 +505,9 @@ mlp_add_constraints_all_addresses (struct GAS_MLP_Handle *mlp, struct GNUNET_CON
    * c 10) obey network specific quota
    */
 
+  /* Row for c4) minimum connection */
   int min = mlp->n_min;
+  /* Number of minimum connections is min(|Peers|, n_min) */
   if (mlp->n_min > mlp->c_p)
     min = mlp->c_p;
 
@@ -565,6 +567,7 @@ mlp_add_constraints_all_addresses (struct GAS_MLP_Handle *mlp, struct GNUNET_CON
   mlp->ci++;
 
   struct ATS_Peer * peer = mlp->peer_head;
+  /* For all peers */
   while (peer != NULL)
   {
     struct ATS_Address *addr = peer->head;
@@ -593,13 +596,12 @@ mlp_add_constraints_all_addresses (struct GAS_MLP_Handle *mlp, struct GNUNET_CON
     ar[mlp->ci] = -1;
     mlp->ci++;
 #endif
-
+    /* For all addresses of this peer */
     while (addr != NULL)
     {
       mlpi = (struct MLP_information *) addr->mlp_information;
 
       /* coefficient for c 2) */
-
       ia[mlp->ci] = peer->r_c2;
       ja[mlp->ci] = mlpi->c_n;
       ar[mlp->ci] = 1;
@@ -625,8 +627,6 @@ mlp_add_constraints_all_addresses (struct GAS_MLP_Handle *mlp, struct GNUNET_CON
   }
 
   /* c 7) For all quality metrics */
-
-
   for (c = 0; c < mlp->m_q; c++)
   {
     struct ATS_Peer *tp;
@@ -640,7 +640,7 @@ mlp_add_constraints_all_addresses (struct GAS_MLP_Handle *mlp, struct GNUNET_CON
     glp_set_row_name (mlp->prob, mlp->r_q[c], name);
     GNUNET_free (name);
     /* Set row bound == 0 */
-    glp_set_row_bnds (mlp->prob, mlp->r_q[c], GLP_LO, 0.0, 0.0);
+    glp_set_row_bnds (mlp->prob, mlp->r_q[c], GLP_FX, 0.0, 0.0);
 
     ia[mlp->ci] = mlp->r_q[c];
     ja[mlp->ci] = mlp->c_q[c];
@@ -657,7 +657,7 @@ mlp_add_constraints_all_addresses (struct GAS_MLP_Handle *mlp, struct GNUNET_CON
 
           ia[mlp->ci] = mlp->r_q[c];
           ja[mlp->ci] = mlpi->c_b;
-          ar[mlp->ci] = tp->f * value;
+          ar[mlp->ci] = tp->f_q[c] * value;
           mlp->ci++;
         }
   }
@@ -747,7 +747,6 @@ mlp_create_problem (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_MultiHas
   /* Adding invariant columns */
 
   /* Diversity d column  */
-
   col = glp_add_cols (mlp->prob, 1);
   mlp->c_d = col;
   /* Column name */
@@ -758,7 +757,6 @@ mlp_create_problem (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_MultiHas
   glp_set_col_bnds (mlp->prob, col, GLP_LO, 0.0, 0.0);
 
   /* Utilization u column  */
-
   col = glp_add_cols (mlp->prob, 1);
   mlp->c_u = col;
   /* Column name */
