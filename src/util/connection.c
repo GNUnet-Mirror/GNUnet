@@ -1064,7 +1064,7 @@ RETRY:
  *
  * @param connection connection handle
  * @param max maximum number of bytes to read
- * @param timeout maximum amount of time to wait (use -1 for "forever")
+ * @param timeout maximum amount of time to wait
  * @param receiver function to call with received data
  * @param receiver_cls closure for receiver
  */
@@ -1076,6 +1076,7 @@ GNUNET_CONNECTION_receive (struct GNUNET_CONNECTION_Handle *connection, size_t m
 {
   GNUNET_assert ((GNUNET_SCHEDULER_NO_TASK == connection->read_task) &&
                  (NULL == connection->receiver));
+  GNUNET_assert (NULL != receiver);
   connection->receiver = receiver;
   connection->receiver_cls = receiver_cls;
   connection->receive_timeout = GNUNET_TIME_relative_to_absolute (timeout);

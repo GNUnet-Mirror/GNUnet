@@ -465,6 +465,7 @@ receive_helper (void *cls, const void *buf, size_t available,
   void *receive_handler_cls;
 
   GNUNET_assert (GNUNET_NO == client->msg_complete);
+  GNUNET_assert (GNUNET_YES == client->in_receive);
   client->in_receive = GNUNET_NO;
   if ((0 == available) || (NULL == client->connection) || (0 != errCode))
   {
@@ -572,9 +573,9 @@ GNUNET_CLIENT_receive (struct GNUNET_CLIENT_Connection *client,
   }
   else
   {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "calling GNUNET_CONNECTION_receive\n");
     GNUNET_assert (GNUNET_NO == client->in_receive);
     client->in_receive = GNUNET_YES;
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "calling GNUNET_CONNECTION_receive\n");
     GNUNET_CONNECTION_receive (client->connection, GNUNET_SERVER_MAX_MESSAGE_SIZE - 1,
                                timeout, &receive_helper, client);
   }
