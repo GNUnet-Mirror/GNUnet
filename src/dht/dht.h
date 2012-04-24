@@ -284,7 +284,7 @@ struct GNUNET_DHT_MonitorStartMessage
   int16_t filter_key GNUNET_PACKED;
 
   /**
-   * The key to filter messages by..
+   * The key to filter messages by.
    */
   GNUNET_HashCode key;
 };
