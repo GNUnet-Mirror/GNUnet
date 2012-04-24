@@ -32,7 +32,6 @@
 #include "gnunet-daemon-hostlist.h"
 #include "gnunet_resolver_service.h"
 
-#define DEBUG_HOSTLIST_SERVER GNUNET_EXTRA_LOGGING
 
 /**
  * Handle to the HTTP server as provided by libmicrohttpd for IPv6.
@@ -118,11 +117,9 @@ finish_response (struct HostSet *results)
 {
   if (response != NULL)
     MHD_destroy_response (response);
-#if DEBUG_HOSTLIST_SERVER
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Creating hostlist response with %u bytes\n",
               (unsigned int) results->size);
-#endif
   response =
       MHD_create_response_from_data (results->size, results->data, MHD_YES,
                                      MHD_NO);
@@ -208,11 +205,9 @@ host_processor (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
   old = results->size;
   s = GNUNET_HELLO_size (hello);
-#if DEBUG_HOSTLIST_SERVER
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received %u bytes of `%s' from peer `%s' for hostlist.\n",
               (unsigned int) s, "HELLO", GNUNET_i2s (peer));
-#endif
   if ((old + s >= GNUNET_MAX_MALLOC_CHECKED) ||
       (old + s >= MAX_BYTES_PER_HOSTLISTS))
   {
@@ -222,11 +217,9 @@ host_processor (void *cls, const struct GNUNET_PeerIdentity *peer,
                               s, GNUNET_NO);
     return;                     /* too large, skip! */
   }
-#if DEBUG_HOSTLIST_SERVER
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Adding peer `%s' to hostlist (%u bytes)\n", GNUNET_i2s (peer),
               (unsigned int) s);
-#endif
   GNUNET_array_grow (results->data, results->size, old + s);
   memcpy (&results->data[old], hello, s);
 }
@@ -242,10 +235,8 @@ accept_policy_callback (void *cls, const struct sockaddr *addr,
 {
   if (NULL == response)
   {
-#if DEBUG_HOSTLIST_SERVER
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Received request for hostlist, but I am not yet ready; rejecting!\n");
-#endif
     return MHD_NO;
   }
   return MHD_YES;               /* accept all */
@@ -276,9 +267,7 @@ access_handler_callback (void *cls, struct MHD_Connection *connection,
   if (NULL == *con_cls)
   {
     (*con_cls) = &dummy;
-#if DEBUG_HOSTLIST_SERVER
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Sending 100 CONTINUE reply\n"));
-#endif
     return MHD_YES;             /* send 100 continue */
   }
   if (*upload_data_size != 0)
@@ -426,10 +415,8 @@ process_notify (void *cls, const struct GNUNET_PeerIdentity *peer,
 {
   struct HostSet *results;
 
-#if DEBUG_HOSTLIST_SERVER
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Peerinfo is notifying us to rebuild our hostlist\n");
-#endif
   if (err_msg != NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -519,7 +506,6 @@ prepare_daemon (struct MHD_Daemon *daemon_handle)
   GNUNET_NETWORK_fdset_destroy (wes);
   return ret;
 }
-
 
 
 /**
@@ -639,11 +625,8 @@ GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
   else
     sa = NULL;
 
-  daemon_handle_v6 = MHD_start_daemon (MHD_USE_IPv6
-#if DEBUG_HOSTLIST_SERVER
-                                       | MHD_USE_DEBUG
-#endif
-                                       , (unsigned short) port,
+  daemon_handle_v6 = MHD_start_daemon (MHD_USE_IPv6 | MHD_USE_DEBUG,
+                                       (uint16_t) port,
                                        &accept_policy_callback, NULL,
                                        &access_handler_callback, NULL,
                                        MHD_OPTION_CONNECTION_LIMIT,
@@ -657,11 +640,8 @@ GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
                                        MHD_OPTION_SOCK_ADDR,
                                        sa,
                                        MHD_OPTION_END);
-  daemon_handle_v4 = MHD_start_daemon (MHD_NO_FLAG
-#if DEBUG_HOSTLIST_SERVER
-                                       | MHD_USE_DEBUG
-#endif
-                                       , (unsigned short) port,
+  daemon_handle_v4 = MHD_start_daemon (MHD_NO_FLAG | MHD_USE_DEBUG,
+				       (uint16_t) port,
                                        &accept_policy_callback, NULL,
                                        &access_handler_callback, NULL,
                                        MHD_OPTION_CONNECTION_LIMIT,
@@ -685,10 +665,8 @@ GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
   }
 
   core = co;
-
   *server_ch = &connect_handler;
   *server_dh = &disconnect_handler;
-
   if (daemon_handle_v4 != NULL)
     hostlist_task_v4 = prepare_daemon (daemon_handle_v4);
   if (daemon_handle_v6 != NULL)
@@ -699,15 +677,14 @@ GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
   return GNUNET_OK;
 }
 
+
 /**
  * Stop server offering our hostlist.
  */
 void
 GNUNET_HOSTLIST_server_stop ()
 {
-#if DEBUG_HOSTLIST_SERVER
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Hostlist server shutdown\n");
-#endif
   if (NULL != notify)
   {
     GNUNET_PEERINFO_notify_cancel (notify);
