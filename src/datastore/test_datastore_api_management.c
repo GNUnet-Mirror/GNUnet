@@ -253,7 +253,7 @@ run_tests (void *cls, int success, struct GNUNET_TIME_Absolute min_expiration, c
   if (success != GNUNET_YES)
   {
     FPRINTF (stderr,
-             "Test 'put' operation failed with error `%s' database likely not setup, skipping test.",
+             "Test 'put' operation failed with error `%s' database likely not setup, skipping test.\n",
              msg);
     GNUNET_DATASTORE_disconnect (datastore, GNUNET_YES);
     GNUNET_free (crc);
