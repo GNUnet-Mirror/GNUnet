@@ -150,7 +150,9 @@
 #endif
 
 /**
- * gcc-ism to force alignment
+ * gcc-ism to force alignment; we use this to align char-arrays
+ * that may then be cast to 'struct's.  See also gcc
+ * bug #33594.
  */
 #define GNUNET_ALIGN __attribute__((aligned (__BIGGEST_ALIGNMENT__)))
 
