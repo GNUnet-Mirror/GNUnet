@@ -111,12 +111,12 @@ shutdown_testcase ()
   }
   if (NULL != adv_peer.stats)
   {
-    GNUNET_STATISTICS_destroy (adv_peer.stats);
+    GNUNET_STATISTICS_destroy (adv_peer.stats, GNUNET_NO);
     adv_peer.stats = NULL;
   }
   if (NULL != learn_peer.stats)
   {
-    GNUNET_STATISTICS_destroy (learn_peer.stats);
+    GNUNET_STATISTICS_destroy (learn_peer.stats, GNUNET_NO);
     learn_peer.stats = NULL;
   }
   if (check_task != GNUNET_SCHEDULER_NO_TASK)
