@@ -1186,11 +1186,6 @@ cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_PEERINFO_notify_cancel (peerinfo_notify);
     peerinfo_notify = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != add_task)
-  {
-    GNUNET_SCHEDULER_cancel (add_task);
-    add_task = GNUNET_SCHEDULER_NO_TASK;
-  }
   GNUNET_TRANSPORT_disconnect (transport);
   transport = NULL;
   if (handle != NULL)
@@ -1199,6 +1194,11 @@ cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     handle = NULL;
   }
   whitelist_peers ();
+  if (GNUNET_SCHEDULER_NO_TASK != add_task)
+  {
+    GNUNET_SCHEDULER_cancel (add_task);
+    add_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   GNUNET_CONTAINER_multihashmap_iterate (peers, &free_peer, NULL);
   GNUNET_CONTAINER_multihashmap_destroy (peers);
   peers = NULL;
