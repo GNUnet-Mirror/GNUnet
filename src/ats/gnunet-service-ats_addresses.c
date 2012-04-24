@@ -66,6 +66,8 @@ static unsigned int active_addr_count;
 
 static int ats_mode;
 
+static int running;
+
 
 static void
 send_bw_notification (struct ATS_Address *aa)
@@ -339,6 +341,11 @@ GAS_addresses_update (const struct GNUNET_PeerIdentity *peer,
   struct ATS_Address *old;
   uint32_t i;
 
+  if (GNUNET_NO == running)
+    return;
+
+  GNUNET_assert (NULL != addresses);
+
   aa = create_address (peer,
                        plugin_name,
                        plugin_addr, plugin_addr_len,
@@ -510,6 +517,9 @@ GAS_addresses_destroy (const struct GNUNET_PeerIdentity *peer,
 {
   struct ATS_Address *aa;
 
+  if (GNUNET_NO == running)
+    return;
+
   GNUNET_break (0 < strlen (plugin_name));
   aa = create_address (peer, plugin_name, plugin_addr, plugin_addr_len, session_id);
 
@@ -580,6 +590,8 @@ GAS_addresses_in_use (const struct GNUNET_PeerIdentity *peer,
   struct ATS_Address *aa;
   struct ATS_Address *old;
 
+  if (GNUNET_NO == running)
+    return;
 
   aa = create_address(peer, plugin_name, plugin_addr, plugin_addr_len, session_id);
   old = find_exact_address (peer, aa);
@@ -677,6 +689,9 @@ void request_address_simple (const struct GNUNET_PeerIdentity *peer)
 void
 GAS_addresses_request_address (const struct GNUNET_PeerIdentity *peer)
 {
+  if (GNUNET_NO == running)
+    return;
+
   if (ats_mode == SIMPLE)
   {
     request_address_simple (peer);
@@ -695,6 +710,8 @@ GAS_addresses_change_preference (const struct GNUNET_PeerIdentity *peer,
                                  enum GNUNET_ATS_PreferenceKind kind,
                                  float score)
 {
+  if (GNUNET_NO == running)
+    return;
 #if HAVE_LIBGLPK
   if (ats_mode == MLP)
     GAS_mlp_address_change_preference (mlp, peer, kind, score);
@@ -717,6 +734,11 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
   char *quota_wan_in_str;
   char *quota_wan_out_str;
+
+  running = GNUNET_NO;
+
+  addresses = GNUNET_CONTAINER_multihashmap_create (128);
+  GNUNET_assert (NULL != addresses);
 
   if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(cfg, "ats", "WAN_QUOTA_IN", &quota_wan_in_str))
   {
@@ -745,7 +767,6 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   {
     wan_quota_out = (UINT32_MAX) /10;
   }
-
 
   mode = GNUNET_CONFIGURATION_get_value_yesno (cfg, "ats", "MLP");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MLP mode %u", mode);
@@ -788,7 +809,7 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
       break;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ATS started with %s mode\n", (SIMPLE == ats_mode) ? "SIMPLE" : "MLP");
-  addresses = GNUNET_CONTAINER_multihashmap_create (128);
+  running = GNUNET_YES;
 }
 
 
@@ -813,6 +834,9 @@ free_address_it (void *cls, const GNUNET_HashCode * key, void *value)
 void
 GAS_addresses_destroy_all ()
 {
+  if (GNUNET_NO == running)
+    return;
+
   if (addresses != NULL)
     GNUNET_CONTAINER_multihashmap_iterate (addresses, &free_address_it, NULL);
   GNUNET_assert (active_addr_count == 0);
@@ -825,6 +849,7 @@ GAS_addresses_destroy_all ()
 void
 GAS_addresses_done ()
 {
+  running = GNUNET_NO;
   GAS_addresses_destroy_all ();
   GNUNET_CONTAINER_multihashmap_destroy (addresses);
   addresses = NULL;

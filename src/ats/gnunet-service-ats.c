@@ -39,6 +39,9 @@
  */
 struct GNUNET_STATISTICS_Handle *GSA_stats;
 
+static struct GNUNET_SERVER_Handle *GSA_server;
+
+
 /**
  * We have received a 'ClientStartMessage' from a client.  Find out which
  * type of client it is and notify the respective subsystem.
@@ -107,6 +110,8 @@ client_disconnect_handler (void *cls, struct GNUNET_SERVER_Client *client)
 static void
 cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  GNUNET_SERVER_destroy (GSA_server);
+  GSA_server = NULL;
   GAS_addresses_done ();
   GAS_scheduling_done ();
   GAS_performance_done ();
@@ -152,6 +157,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
      GNUNET_MESSAGE_TYPE_ATS_PREFERENCE_CHANGE, 0},
     {NULL, NULL, 0, 0}
   };
+  GSA_server = server;
   GSA_stats = GNUNET_STATISTICS_create ("ats", cfg);
   GAS_reservations_init ();
   GAS_performance_init (server);
