@@ -253,7 +253,7 @@ udp_ipv4_broadcast_send (void *cls,
   struct Plugin *plugin = cls;
   int sent;
   uint16_t msg_size;
-  char buf[65536];
+  char buf[65536] GNUNET_ALIGN;
   struct BroadcastAddress *baddr;
 
   plugin->send_ipv4_broadcast_task = GNUNET_SCHEDULER_NO_TASK;
@@ -294,7 +294,7 @@ udp_ipv6_broadcast_send (void *cls,
   struct Plugin *plugin = cls;
   int sent;
   uint16_t msg_size;
-  char buf[65536];
+  char buf[65536] GNUNET_ALIGN;
 
   plugin->send_ipv6_broadcast_task = GNUNET_SCHEDULER_NO_TASK;
 

@@ -606,7 +606,7 @@ static void
 process_requests ()
 {
   struct GNUNET_RESOLVER_GetMessage *msg;
-  char buf[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1];
+  char buf[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1] GNUNET_ALIGN;
   struct GNUNET_RESOLVER_RequestHandle *rh;
 
   if (NULL == client)

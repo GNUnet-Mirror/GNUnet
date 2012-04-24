@@ -114,7 +114,7 @@ GAS_scheduling_transmit_address_suggestion (const struct GNUNET_PeerIdentity
       sizeof (struct AddressSuggestionMessage) +
       atsi_count * sizeof (struct GNUNET_ATS_Information) + plugin_addr_len +
       plugin_name_length;
-  char buf[msize];
+  char buf[msize] GNUNET_ALIGN;
   struct GNUNET_ATS_Information *atsp;
   char *addrp;
 

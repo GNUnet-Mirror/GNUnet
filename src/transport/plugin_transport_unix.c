@@ -690,7 +690,7 @@ unix_demultiplexer (struct Plugin *plugin, struct GNUNET_PeerIdentity *sender,
 static void
 unix_plugin_select_read (struct Plugin * plugin)
 {
-  char buf[65536];
+  char buf[65536] GNUNET_ALIGN;
   struct UNIXMessage *msg;
   struct GNUNET_PeerIdentity sender;
   struct sockaddr_un un;

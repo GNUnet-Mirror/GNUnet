@@ -156,7 +156,7 @@ main (int argc, char *argv[])
     return 1;
   }
   {
-    char buf[fsize];
+    char buf[fsize] GNUNET_ALIGN;
     
     GNUNET_assert (fsize == 
 		   GNUNET_DISK_file_read (fh, buf, fsize));

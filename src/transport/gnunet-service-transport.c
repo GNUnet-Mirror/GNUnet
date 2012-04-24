@@ -144,7 +144,7 @@ process_payload (const struct GNUNET_PeerIdentity *peer,
   size_t size =
       sizeof (struct InboundMessage) + msg_size +
       sizeof (struct GNUNET_ATS_Information) * (ats_count + 1);
-  char buf[size];
+  char buf[size] GNUNET_ALIGN;
   struct GNUNET_ATS_Information *ap;
 
   ret = GNUNET_TIME_UNIT_ZERO;
@@ -463,7 +463,7 @@ neighbours_connect_notification (void *cls,
   size_t len =
       sizeof (struct ConnectInfoMessage) +
       ats_count * sizeof (struct GNUNET_ATS_Information);
-  char buf[len];
+  char buf[len] GNUNET_ALIGN;
   struct ConnectInfoMessage *connect_msg = (struct ConnectInfoMessage *) buf;
   struct GNUNET_ATS_Information *ap;
 

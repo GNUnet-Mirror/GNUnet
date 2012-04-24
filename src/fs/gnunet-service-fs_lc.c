@@ -259,7 +259,7 @@ client_response_handler (void *cls, enum GNUNET_BLOCK_EvaluationResult eval,
   lc = cr->lc;
   msize = sizeof (struct ClientPutMessage) + data_len;
   {
-    char buf[msize];
+    char buf[msize] GNUNET_ALIGN;
 
     pm = (struct ClientPutMessage *) buf;
     pm->header.type = htons (GNUNET_MESSAGE_TYPE_FS_PUT);

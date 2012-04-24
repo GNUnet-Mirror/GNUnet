@@ -460,7 +460,7 @@ send_client_reply (struct GNUNET_SERVER_Client *client,
 		   int result_af,
 		   const void *addr)
 {
-  char buf[sizeof (struct RedirectToIpResponseMessage) + sizeof (struct in6_addr)];
+  char buf[sizeof (struct RedirectToIpResponseMessage) + sizeof (struct in6_addr)] GNUNET_ALIGN;
   struct RedirectToIpResponseMessage *res;
   size_t rlen;
 
@@ -1742,7 +1742,7 @@ receive_icmp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
       {
 	/* reserve some extra space in case we have an ICMP type here where
 	   we will need to make up the payload ourselves */
-	char buf[size + sizeof (struct GNUNET_TUN_IPv4Header) + 8];
+	char buf[size + sizeof (struct GNUNET_TUN_IPv4Header) + 8] GNUNET_ALIGN;
 	struct GNUNET_MessageHeader *msg = (struct GNUNET_MessageHeader *) buf;
 	struct GNUNET_TUN_Layer2PacketHeader *tun = (struct GNUNET_TUN_Layer2PacketHeader*) &msg[1];
 	struct GNUNET_TUN_IPv4Header *ipv4 = (struct GNUNET_TUN_IPv4Header *) &tun[1];
@@ -1879,7 +1879,7 @@ receive_icmp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
 	sizeof (struct GNUNET_TUN_Layer2PacketHeader) +
 	mlen;
       {
-	char buf[size + sizeof (struct GNUNET_TUN_IPv6Header) + 8];
+	char buf[size + sizeof (struct GNUNET_TUN_IPv6Header) + 8] GNUNET_ALIGN;
 	struct GNUNET_MessageHeader *msg = (struct GNUNET_MessageHeader *) buf;
 	struct GNUNET_TUN_Layer2PacketHeader *tun = (struct GNUNET_TUN_Layer2PacketHeader*) &msg[1];
 	struct GNUNET_TUN_IPv6Header *ipv6 = (struct GNUNET_TUN_IPv6Header *) &tun[1];
@@ -2083,7 +2083,7 @@ receive_udp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
 	sizeof (struct GNUNET_TUN_Layer2PacketHeader) +
 	mlen;
       {
-	char buf[size];
+	char buf[size] GNUNET_ALIGN;
 	struct GNUNET_MessageHeader *msg = (struct GNUNET_MessageHeader *) buf;
 	struct GNUNET_TUN_Layer2PacketHeader *tun = (struct GNUNET_TUN_Layer2PacketHeader*) &msg[1];
 	struct GNUNET_TUN_IPv4Header *ipv4 = (struct GNUNET_TUN_IPv4Header *) &tun[1];
@@ -2128,7 +2128,7 @@ receive_udp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
 	sizeof (struct GNUNET_TUN_Layer2PacketHeader) +
 	mlen;
       {
-	char buf[size];
+	char buf[size] GNUNET_ALIGN;
 	struct GNUNET_MessageHeader *msg = (struct GNUNET_MessageHeader *) buf;
 	struct GNUNET_TUN_Layer2PacketHeader *tun = (struct GNUNET_TUN_Layer2PacketHeader*) &msg[1];
 	struct GNUNET_TUN_IPv6Header *ipv6 = (struct GNUNET_TUN_IPv6Header *) &tun[1];
@@ -2241,7 +2241,7 @@ receive_tcp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
 	sizeof (struct GNUNET_TUN_Layer2PacketHeader) +
 	mlen;
       {
-	char buf[size];
+	char buf[size] GNUNET_ALIGN;
 	struct GNUNET_MessageHeader *msg = (struct GNUNET_MessageHeader *) buf;
 	struct GNUNET_TUN_Layer2PacketHeader *tun = (struct GNUNET_TUN_Layer2PacketHeader*) &msg[1];
 	struct GNUNET_TUN_IPv4Header *ipv4 = (struct GNUNET_TUN_IPv4Header *) &tun[1];
@@ -2280,7 +2280,7 @@ receive_tcp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
 	sizeof (struct GNUNET_TUN_Layer2PacketHeader) +
 	mlen;
       {
-	char buf[size];
+	char buf[size] GNUNET_ALIGN;
 	struct GNUNET_MessageHeader *msg = (struct GNUNET_MessageHeader *) buf;
 	struct GNUNET_TUN_Layer2PacketHeader *tun = (struct GNUNET_TUN_Layer2PacketHeader*) &msg[1];
 	struct GNUNET_TUN_IPv6Header *ipv6 = (struct GNUNET_TUN_IPv6Header *) &tun[1];

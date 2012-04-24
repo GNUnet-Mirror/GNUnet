@@ -4370,7 +4370,7 @@ handle_local_unicast (void *cls, struct GNUNET_SERVER_Client *client,
    * (pretend we got it from a mesh peer)
    */
   {
-    char buf[ntohs (message->size)];
+    char buf[ntohs (message->size)] GNUNET_ALIGN;
     struct GNUNET_MESH_Unicast *copy;
 
     /* Work around const limitation */
@@ -4454,7 +4454,7 @@ handle_local_to_origin (void *cls, struct GNUNET_SERVER_Client *client,
    * (pretend we got it from a mesh peer)
    */
   {
-    char buf[ntohs (message->size)];
+    char buf[ntohs (message->size)] GNUNET_ALIGN;
     struct GNUNET_MESH_ToOrigin *copy;
 
     /* Work around const limitation */
@@ -4527,7 +4527,7 @@ handle_local_multicast (void *cls, struct GNUNET_SERVER_Client *client,
   }
 
   {
-    char buf[ntohs (message->size)];
+    char buf[ntohs (message->size)] GNUNET_ALIGN;
     struct GNUNET_MESH_Multicast *copy;
 
     copy = (struct GNUNET_MESH_Multicast *) buf;

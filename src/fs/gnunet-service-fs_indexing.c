@@ -368,7 +368,7 @@ GNUNET_FS_handle_index_list_get (void *cls, struct GNUNET_SERVER_Client *client,
 {
   struct GNUNET_SERVER_TransmitContext *tc;
   struct IndexInfoMessage *iim;
-  char buf[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1];
+  char buf[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1] GNUNET_ALIGN;
   size_t slen;
   const char *fn;
   struct IndexInfo *pos;

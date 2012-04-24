@@ -876,7 +876,7 @@ tcp_from_helper (const struct GNUNET_TUN_TcpHeader *tcp,
 		 const void *source_ip)
 {
   struct TunnelState *state;
-  char buf[pktlen];
+  char buf[pktlen] GNUNET_ALIGN;
   struct GNUNET_TUN_TcpHeader *mtcp;
   struct GNUNET_EXIT_TcpDataMessage *tdm;
   struct TunnelMessageQueue *tnq;
@@ -1493,7 +1493,7 @@ send_tcp_packet_via_tun (const struct SocketAddress *destination_address,
     return;
   }
   {
-    char buf[len];
+    char buf[len] GNUNET_ALIGN;
     struct GNUNET_MessageHeader *hdr;
     struct GNUNET_TUN_Layer2PacketHeader *tun;
     
@@ -1852,7 +1852,7 @@ send_icmp_packet_via_tun (const struct SocketAddress *destination_address,
     return;
   }
   {
-    char buf[len];
+    char buf[len] GNUNET_ALIGN;
     struct GNUNET_MessageHeader *hdr;
     struct GNUNET_TUN_Layer2PacketHeader *tun;
     
@@ -1985,7 +1985,7 @@ receive_icmp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
   const struct in_addr *v4;
   const struct in6_addr *v6;  
   const void *payload;
-  char buf[sizeof (struct GNUNET_TUN_IPv6Header) + 8];
+  char buf[sizeof (struct GNUNET_TUN_IPv6Header) + 8] GNUNET_ALIGN;
   int af;
 
   GNUNET_STATISTICS_update (stats,
@@ -2227,7 +2227,7 @@ receive_icmp_service (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel
   const struct GNUNET_EXIT_IcmpServiceMessage *msg;
   uint16_t pkt_len = ntohs (message->size);
   struct GNUNET_TUN_IcmpHeader icmp;
-  char buf[sizeof (struct GNUNET_TUN_IPv6Header) + 8];
+  char buf[sizeof (struct GNUNET_TUN_IPv6Header) + 8] GNUNET_ALIGN;
   const void *payload;
 
   GNUNET_STATISTICS_update (stats,
@@ -2435,7 +2435,7 @@ send_udp_packet_via_tun (const struct SocketAddress *destination_address,
     return;
   }
   {
-    char buf[len];
+    char buf[len] GNUNET_ALIGN;
     struct GNUNET_MessageHeader *hdr;
     struct GNUNET_TUN_Layer2PacketHeader *tun;
     

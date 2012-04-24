@@ -1458,7 +1458,7 @@ GSC_KX_handle_encrypted_message (struct GSC_KeyExchangeInfo *kx,
   struct GNUNET_CRYPTO_AuthKey auth_key;
   struct DeliverMessageContext dmc;
   uint16_t size = ntohs (msg->size);
-  char buf[size];
+  char buf[size] GNUNET_ALIGN;
 
   if (size <
       sizeof (struct EncryptedMessage) + sizeof (struct GNUNET_MessageHeader))

@@ -445,7 +445,7 @@ notify_client_about_neighbour (void *cls,
   size_t size =
       sizeof (struct ConnectInfoMessage) +
       ats_count * sizeof (struct GNUNET_ATS_Information);
-  char buf[size];
+  char buf[size] GNUNET_ALIGN;
 
   GNUNET_assert (size < GNUNET_SERVER_MAX_MESSAGE_SIZE);
   cim = (struct ConnectInfoMessage *) buf;

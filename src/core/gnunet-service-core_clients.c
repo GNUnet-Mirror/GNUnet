@@ -694,7 +694,7 @@ GSC_CLIENTS_notify_client_about_neighbour (struct GSC_Client *client,
 {
   struct ConnectNotifyMessage *cnm;
   size_t size;
-  char buf[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1];
+  char buf[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1] GNUNET_ALIGN;
   struct GNUNET_ATS_Information *a;
   struct DisconnectNotifyMessage dcm;
   int old_match;
@@ -813,7 +813,7 @@ GSC_CLIENTS_deliver_message (const struct GNUNET_PeerIdentity *sender,
   size_t size =
       msize + sizeof (struct NotifyTrafficMessage) +
       atsi_count * sizeof (struct GNUNET_ATS_Information);
-  char buf[size];
+  char buf[size] GNUNET_ALIGN;
   struct NotifyTrafficMessage *ntm;
   struct GNUNET_ATS_Information *a;
 

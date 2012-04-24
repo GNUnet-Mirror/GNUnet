@@ -185,7 +185,7 @@ notify_all (struct HostEntry *entry)
 static struct GNUNET_HELLO_Message *
 read_host_file (const char *fn)
 {
-  char buffer[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1];
+  char buffer[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1] GNUNET_ALIGN;
   const struct GNUNET_HELLO_Message *hello;
   struct GNUNET_HELLO_Message *hello_clean;
   int size;
@@ -425,7 +425,7 @@ add_to_tc (void *cls, const GNUNET_HashCode * key, void *value)
   struct HostEntry *pos = value;
   struct InfoMessage *im;
   uint16_t hs;
-  char buf[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1];
+  char buf[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1] GNUNET_ALIGN;
 
   hs = 0;
   im = (struct InfoMessage *) buf;
@@ -457,7 +457,7 @@ static int
 discard_hosts_helper (void *cls, const char *fn)
 {
   struct GNUNET_TIME_Absolute *now = cls;
-  char buffer[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1];
+  char buffer[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1] GNUNET_ALIGN;
   const struct GNUNET_HELLO_Message *hello;
   struct GNUNET_HELLO_Message *new_hello;
   int size;

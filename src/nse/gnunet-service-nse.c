@@ -826,7 +826,7 @@ check_proof_of_work (const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *pkey,
                      uint64_t val)
 {
   char buf[sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded) +
-           sizeof (val)];
+           sizeof (val)] GNUNET_ALIGN;
   GNUNET_HashCode result;
 
   memcpy (buf, &val, sizeof (val));
@@ -871,7 +871,7 @@ find_proof (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 #define ROUND_SIZE 10
   uint64_t counter;
   char buf[sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded) +
-           sizeof (uint64_t)];
+           sizeof (uint64_t)] GNUNET_ALIGN;
   GNUNET_HashCode result;
   unsigned int i;
 

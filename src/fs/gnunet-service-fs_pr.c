@@ -1057,7 +1057,7 @@ GSF_dht_lookup_ (struct GSF_PendingRequest *pr)
   const void *xquery;
   size_t xquery_size;
   struct GNUNET_PeerIdentity pi;
-  char buf[sizeof (GNUNET_HashCode) * 2];
+  char buf[sizeof (GNUNET_HashCode) * 2] GNUNET_ALIGN;
 
   if (0 != pr->public_data.anonymity_level)
     return;

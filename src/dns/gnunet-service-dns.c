@@ -540,7 +540,7 @@ request_done (struct RequestRecord *rr)
     return;    
   }
   {
-    char buf[reply_len];
+    char buf[reply_len] GNUNET_ALIGN;
     size_t off;
     struct GNUNET_TUN_IPv4Header ip4;
     struct GNUNET_TUN_IPv6Header ip6;
@@ -655,7 +655,7 @@ static void
 send_request_to_client (struct RequestRecord *rr,
 			struct GNUNET_SERVER_Client *client)
 {
-  char buf[sizeof (struct GNUNET_DNS_Request) + rr->payload_length];
+  char buf[sizeof (struct GNUNET_DNS_Request) + rr->payload_length] GNUNET_ALIGN;
   struct GNUNET_DNS_Request *req;
 
   if (sizeof (buf) >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
@@ -986,7 +986,7 @@ do_dns_read (struct GNUNET_NETWORK_Handle *dnsout)
 #endif
 
   {
-    unsigned char buf[len];
+    unsigned char buf[len] GNUNET_ALIGN;
 
     addrlen = sizeof (addr);
     memset (&addr, 0, sizeof (addr));  
@@ -1409,7 +1409,7 @@ receive_dns_request (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
   const struct GNUNET_TUN_DnsHeader *dns;
   size_t mlen = ntohs (message->size);
   size_t dlen = mlen - sizeof (struct GNUNET_MessageHeader);
-  char buf[dlen];
+  char buf[dlen] GNUNET_ALIGN;
   struct GNUNET_TUN_DnsHeader *dout;
   struct sockaddr_in v4;
   struct sockaddr_in6 v6;

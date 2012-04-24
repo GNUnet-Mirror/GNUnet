@@ -150,6 +150,11 @@
 #endif
 
 /**
+ * gcc-ism to force alignment
+ */
+#define GNUNET_ALIGN __attribute__((aligned (__BIGGEST_ALIGNMENT__)))
+
+/**
  * gcc-ism to document unused arguments
  */
 #define GNUNET_UNUSED __attribute__((unused))

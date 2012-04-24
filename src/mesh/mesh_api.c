@@ -618,7 +618,7 @@ send_connect (struct GNUNET_MESH_Handle *h)
   size += h->n_applications * sizeof (GNUNET_MESH_ApplicationType);
   size += h->n_handlers * sizeof (uint16_t);
   {
-    char buf[size];
+    char buf[size] GNUNET_ALIGN;
     struct GNUNET_MESH_ClientConnect *msg;
     GNUNET_MESH_ApplicationType *apps;
     uint16_t napps;

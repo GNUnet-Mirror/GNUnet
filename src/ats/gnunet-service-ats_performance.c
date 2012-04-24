@@ -166,7 +166,7 @@ GAS_performance_notify_clients (const struct GNUNET_PeerIdentity *peer,
       sizeof (struct PeerInformationMessage) +
       atsi_count * sizeof (struct GNUNET_ATS_Information) + plugin_addr_len +
       plugin_name_length;
-  char buf[msize];
+  char buf[msize] GNUNET_ALIGN;
   struct GNUNET_ATS_Information *atsp;
   char *addrp;
 

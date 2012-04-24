@@ -1620,7 +1620,7 @@ udp_select_read (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *rsock)
 {
   socklen_t fromlen;
   char addr[32];
-  char buf[65536];
+  char buf[65536] GNUNET_ALIGN;
   ssize_t size;
   const struct GNUNET_MessageHeader *msg;
 

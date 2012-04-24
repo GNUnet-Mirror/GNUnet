@@ -220,7 +220,7 @@ helper_read (void *cls,
 	     const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_HELPER_Handle *h = cls;
-  char buf[GNUNET_SERVER_MAX_MESSAGE_SIZE];
+  char buf[GNUNET_SERVER_MAX_MESSAGE_SIZE] GNUNET_ALIGN;
   ssize_t t;
 
   h->read_task = GNUNET_SCHEDULER_NO_TASK;
