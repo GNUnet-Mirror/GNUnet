@@ -225,8 +225,9 @@ curl_main ()
     {
       if (msg->data.result != CURLE_OK)
       {
-	printf ("%s failed at %s:%d: `%s'\n",
-		"curl_multi_perform",
+	fprintf (stderr,
+		 "%s failed at %s:%d: `%s'\n",
+		 "curl_multi_perform",
 		__FILE__,
 		__LINE__, curl_easy_strerror (msg->data.result));
 	global_ret = 1;
@@ -238,9 +239,15 @@ curl_main ()
     curl = NULL;
     multi = NULL;
     if (cbc.pos != strlen ("/hello_world"))
+    {
+      GNUNET_break (0);
       global_ret = 2;
+    }
     if (0 != strncmp ("/hello_world", cbc.buf, strlen ("/hello_world")))
+    {
+      GNUNET_break (0);
       global_ret = 3;
+    }
 #if VERBOSE
     fprintf (stderr, "Download complete, shutting down!\n");
 #endif
@@ -342,6 +349,7 @@ ctrl_c_shutdown (void *cls,
 {
   ctrl_c_task_id = GNUNET_SCHEDULER_NO_TASK;
   do_shutdown ();
+  GNUNET_break (0);
   global_ret = 1;
 }
 
@@ -584,7 +592,10 @@ main (int argc, char *const *argv)
 
 
   if (0 != curl_global_init (CURL_GLOBAL_WIN32))
+  {
+    fprintf (stderr, "failed to initialize curl\n");
     return 2;
+  }
   setup_peer (&p1, "test_gnunet_vpn.conf");
   GNUNET_log_setup ("test_gnunet_vpn",
 #if VERBOSE
