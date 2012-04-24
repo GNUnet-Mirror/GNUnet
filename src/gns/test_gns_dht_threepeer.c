@@ -135,6 +135,7 @@ finish_testing (void *cls, const char *emsg)
 static void
 end_badly_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  die_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &finish_testing, NULL);
 }
 
@@ -146,9 +147,10 @@ end_badly_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  die_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Failing test with error: `%s'!\n",
               (char *) cls);
-  GNUNET_SCHEDULER_add_now (&end_badly_cont, NULL);
+  die_task = GNUNET_SCHEDULER_add_now (&end_badly_cont, NULL);
   ok = 1;
 }
 
@@ -188,6 +190,7 @@ on_lookup_result(void *cls, uint32_t rd_count,
   }
   GNUNET_GNS_disconnect(gh);
   GNUNET_SCHEDULER_cancel(die_task);
+  die_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &finish_testing, NULL);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Shutting down!\n");
 
@@ -252,6 +255,7 @@ daemon_connected (void *cls, const struct GNUNET_PeerIdentity *first,
                 total_connections);
 #endif
     GNUNET_SCHEDULER_cancel (die_task);
+    die_task = GNUNET_SCHEDULER_NO_TASK;
     //die_task =
     //    GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, "from connect");
    
