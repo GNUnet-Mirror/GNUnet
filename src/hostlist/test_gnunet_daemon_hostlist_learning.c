@@ -109,6 +109,16 @@ shutdown_testcase ()
     GNUNET_STATISTICS_get_cancel (advsent_stat);
     advsent_stat = NULL;
   }
+  if (NULL != adv_peer.stats)
+  {
+    GNUNET_STATISTICS_destroy (adv_peer.stats);
+    adv_peer.stats = NULL;
+  }
+  if (NULL != learn_peer.stats)
+  {
+    GNUNET_STATISTICS_destroy (learn_peer.stats);
+    learn_peer.stats = NULL;
+  }
   if (check_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (check_task);
