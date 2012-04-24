@@ -907,22 +907,15 @@ GNUNET_STATISTICS_destroy (struct GNUNET_STATISTICS_Handle *h, int sync_first)
 				   h->action_tail,
 				   h->current);
     h->do_destroy = GNUNET_YES;
-    if ((h->current != NULL) && (h->th == NULL))
+    if ((h->current != NULL) && (h->th == NULL)&&
+	(NULL != h->client))
     {
-      if (NULL == h->client)
-      {
-	/* instant-connect (regardless of back-off) to submit final value */
-	h->client = GNUNET_CLIENT_connect ("statistics", h->cfg);
-      }
-      if (NULL != h->client)
-      {
-	timeout = GNUNET_TIME_absolute_get_remaining (h->current->timeout);
-	h->th =
-          GNUNET_CLIENT_notify_transmit_ready (h->client, h->current->msize,
-                                               timeout, GNUNET_YES,
-                                               &transmit_action, h);
-	GNUNET_assert (NULL != h->th);
-      }
+      timeout = GNUNET_TIME_absolute_get_remaining (h->current->timeout);
+      h->th =
+	GNUNET_CLIENT_notify_transmit_ready (h->client, h->current->msize,
+					     timeout, GNUNET_YES,
+					     &transmit_action, h);
+      GNUNET_assert (NULL != h->th);      
     }
     if (h->th != NULL)
       return; /* do not finish destruction just yet */
