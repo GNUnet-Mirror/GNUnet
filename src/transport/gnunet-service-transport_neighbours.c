@@ -65,8 +65,6 @@
 
 #define SETUP_CONNECTION_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15)
 
-#define  TEST_NEW_CODE GNUNET_NO
-
 /**
  * Entry in neighbours.
  */
@@ -1431,7 +1429,8 @@ send_connect_ack_continuation (void *cls,
               "Failed to send CONNECT_MSG to peer `%4s' with address '%s' session %X, asking ATS for new address \n",
               GNUNET_i2s (&n->id), GST_plugins_a2s (n->address), n->session);
 #endif
-  change_state (n, S_NOT_CONNECTED);
+  if (n->state != S_NOT_CONNECTED)
+    change_state (n, S_NOT_CONNECTED);
   GNUNET_assert (strlen (cc->address->transport_name) > 0);
   GNUNET_ATS_address_destroyed (GST_ats, cc->address, cc->session);
 
@@ -1504,7 +1503,7 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
   }
 
   /* checks successful and neighbour != NULL */
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
               "ATS tells us to switch to address '%s' session %p for peer `%s' in state `%s'\n",
               (address->address_length != 0) ? GST_plugins_a2s (address): "<inbound>",
               session,
