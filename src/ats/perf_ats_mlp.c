@@ -170,6 +170,7 @@ update_addresses (struct ATS_Address * a, unsigned int addrs, unsigned int perce
 
       a[cur].ats[u_type].value = u_val;
       updated[cur] = 1;
+      GAS_mlp_address_update(mlp, amap, &a[cur]);
       updates++;
     }
   }

@@ -331,6 +331,7 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * Solves the MLP problem on demand
  *
  * @param mlp the MLP Handle
+ * @param ctx solution context
  * @return GNUNET_OK if could be solved, GNUNET_SYSERR on failure
  */
 int

@@ -999,6 +999,7 @@ mlp_scheduler (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Solves the MLP problem
  *
  * @param mlp the MLP Handle
+ * @param ctx solution context
  * @return GNUNET_OK if could be solved, GNUNET_SYSERR on failure
  */
 int
