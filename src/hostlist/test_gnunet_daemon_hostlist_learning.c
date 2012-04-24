@@ -191,6 +191,14 @@ process_downloads_done (void *cls, int success)
 }
 
 
+static void
+do_shutdown (void *cls,
+	     const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  shutdown_testcase ();
+}
+
+
 static int
 process_downloads (void *cls, const char *subsystem, const char *name,
                    uint64_t value, int is_persistent)
@@ -201,7 +209,9 @@ process_downloads (void *cls, const char *subsystem, const char *name,
                 "Peer has successfully downloaded advertised URI\n");
     learned_hostlist_downloaded = GNUNET_YES;
     if ((learned_hostlist_saved == GNUNET_YES) && (adv_sent == GNUNET_YES))
-      shutdown_testcase ();
+    {
+      GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+    }
   }
   return GNUNET_OK;
 }

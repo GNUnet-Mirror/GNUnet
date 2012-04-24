@@ -1437,6 +1437,7 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
   char *filename;
   int result;
 
+  GNUNET_assert (NULL != st);
   if (0 != curl_global_init (CURL_GLOBAL_WIN32))
   {
     GNUNET_break (0);
