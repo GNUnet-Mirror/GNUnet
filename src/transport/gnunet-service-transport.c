@@ -575,7 +575,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   char *keyfile;
-
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded tmp;
   /* setup globals */
   GST_cfg = c;
   if (GNUNET_OK !=
@@ -599,9 +599,15 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   }
   GST_stats = GNUNET_STATISTICS_create ("transport", c);
   GST_peerinfo = GNUNET_PEERINFO_connect (c);
+  memset (&GST_my_public_key, '\0', sizeof (GST_my_public_key));
+  memset (&tmp, '\0', sizeof (tmp));
   GNUNET_CRYPTO_rsa_key_get_public (GST_my_private_key, &GST_my_public_key);
   GNUNET_CRYPTO_hash (&GST_my_public_key, sizeof (GST_my_public_key),
                       &GST_my_identity.hashPubKey);
+
+  GNUNET_assert (NULL != GST_my_private_key);
+  GNUNET_assert (0 != memcmp (&GST_my_public_key, &tmp, sizeof (GST_my_public_key)));
+
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
                                 NULL);
   if (GST_peerinfo == NULL)
@@ -614,6 +620,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 
   /* start subsystems */
   GST_hello_start (&process_hello_update, NULL);
+  GNUNET_assert (NULL != GST_hello_get());
   GST_blacklist_start (server);
   GST_ats =
       GNUNET_ATS_scheduling_init (GST_cfg, &ats_request_address_change, NULL);

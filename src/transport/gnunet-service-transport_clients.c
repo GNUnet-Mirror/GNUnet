@@ -339,6 +339,12 @@ unicast (struct TransportClient *tc, const struct GNUNET_MessageHeader *msg,
   struct ClientMessageQueueEntry *q;
   uint16_t msize;
 
+  if (msg == NULL)
+  {
+    GNUNET_break (0);
+    return;
+  }
+
   if ((tc->message_count >= MAX_PENDING) && (GNUNET_YES == may_drop))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
