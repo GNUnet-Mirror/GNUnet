@@ -462,12 +462,14 @@ run_tests (void *cls, int32_t success, struct GNUNET_TIME_Absolute min_expiratio
     return;
   case GNUNET_NO:
     FPRINTF (stderr, "%s", "Test 'put' operation failed, key already exists (!?)\n");
+    GNUNET_DATASTORE_disconnect (datastore, GNUNET_YES);
     GNUNET_free (crc);
     return;
   case GNUNET_SYSERR:
     FPRINTF (stderr,
              "Test 'put' operation failed with error `%s' database likely not setup, skipping test.\n",
              msg);
+    GNUNET_DATASTORE_disconnect (datastore, GNUNET_YES);
     GNUNET_free (crc);
     return;
   default:
