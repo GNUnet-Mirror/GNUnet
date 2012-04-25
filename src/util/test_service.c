@@ -44,10 +44,30 @@ static int ok = 1;
 static struct GNUNET_CLIENT_Connection *client;
 
 
+
+
+static void
+do_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_CLIENT_disconnect (client);
+  client = NULL;
+  GNUNET_SERVICE_stop (sctx);
+  sctx = NULL;
+}
+
+
 static size_t
 build_msg (void *cls, size_t size, void *buf)
 {
   struct GNUNET_MessageHeader *msg = buf;
+
+  if (size < sizeof (struct GNUNET_MessageHeader))
+  {
+    /* timeout */
+    GNUNET_SCHEDULER_add_now (&do_stop, NULL);
+    ok = 1;
+    return 0;
+  }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Client connected, transmitting\n");
   GNUNET_assert (size >= sizeof (struct GNUNET_MessageHeader));
@@ -72,14 +92,6 @@ ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                        sizeof (struct GNUNET_MessageHeader),
                                        GNUNET_TIME_UNIT_SECONDS, GNUNET_NO,
                                        &build_msg, NULL);
-}
-
-
-static void
-do_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  GNUNET_CLIENT_disconnect (client);
-  GNUNET_SERVICE_stop (sctx);
 }
 
 
