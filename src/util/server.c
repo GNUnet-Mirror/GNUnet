@@ -554,13 +554,14 @@ GNUNET_SERVER_create (GNUNET_CONNECTION_AccessCheck access, void *access_cls,
     while (NULL != serverAddr[i])
     {
       seen = 0;
-      for (k=0;k<i-1;k++)
-	if ( (socklen[k] == socklen[i]) &&
-	     (0 == memcmp (serverAddr[k], serverAddr[i], socklen[i])) )
-	{
-	  seen = 1;
-	  break;
-	}
+      if (i > 0)
+	for (k=0;k<i-1;k++)
+	  if ( (socklen[k] == socklen[i]) &&
+	       (0 == memcmp (serverAddr[k], serverAddr[i], socklen[i])) )
+	  {
+	    seen = 1;
+	    break;
+	  }
       if (0 != seen)
       {
 	/* duplicate address, skip */

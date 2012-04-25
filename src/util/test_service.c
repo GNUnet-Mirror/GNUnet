@@ -31,7 +31,7 @@
 #include "gnunet_time_lib.h"
 
 
-#define VERBOSE GNUNET_NO
+#define VERBOSE GNUNET_YES
 
 #define PORT 12435
 
@@ -59,6 +59,10 @@ do_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_SERVICE_stop (sctx);
     sctx = NULL;
   }
+  else
+  {
+    GNUNET_SCHEDULER_shutdown ();
+  }
 }
 
 
@@ -70,6 +74,7 @@ build_msg (void *cls, size_t size, void *buf)
   if (size < sizeof (struct GNUNET_MessageHeader))
   {
     /* timeout */
+    GNUNET_break (0);
     GNUNET_SCHEDULER_add_now (&do_stop, NULL);
     ok = 1;
     return 0;
@@ -273,7 +278,6 @@ main (int argc, char *argv[])
                     NULL);
   ret += check ();
   ret += check ();
-
   // FIXME
 #ifndef MINGW
   s = GNUNET_NETWORK_socket_create (PF_INET6, SOCK_STREAM, 0);
@@ -296,7 +300,6 @@ main (int argc, char *argv[])
     ret += check6 ();
   }
   ret += check_start_stop ();
-
   return ret;
 }
 
