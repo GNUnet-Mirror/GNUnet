@@ -49,10 +49,16 @@ static struct GNUNET_CLIENT_Connection *client;
 static void
 do_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_CLIENT_disconnect (client);
-  client = NULL;
-  GNUNET_SERVICE_stop (sctx);
-  sctx = NULL;
+  if (NULL != client)
+  {
+    GNUNET_CLIENT_disconnect (client);
+    client = NULL;
+  }
+  if (NULL != sctx)
+  {
+    GNUNET_SERVICE_stop (sctx);
+    sctx = NULL;
+  }
 }
 
 
@@ -99,12 +105,11 @@ static void
 recv_cb (void *cls, struct GNUNET_SERVER_Client *sc,
          const struct GNUNET_MessageHeader *message)
 {
+  if (NULL == message)
+    return;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Receiving client message...\n");
   GNUNET_SERVER_receive_done (sc, GNUNET_OK);
-  if (sctx != NULL)
-    GNUNET_SCHEDULER_add_now (&do_stop, NULL);
-  else
-    GNUNET_SCHEDULER_shutdown ();
+  GNUNET_SCHEDULER_add_now (&do_stop, NULL);
   ok = 0;
 }
 
