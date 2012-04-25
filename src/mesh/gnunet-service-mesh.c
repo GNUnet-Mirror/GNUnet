@@ -4025,7 +4025,6 @@ handle_local_tunnel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  send_client_tunnel_disconnect(t, c);
   if (c != t->owner || tid >= GNUNET_MESH_LOCAL_TUNNEL_ID_SERV)
   {
     client_ignore_tunnel (c, t);
@@ -4045,6 +4044,7 @@ handle_local_tunnel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
+  send_client_tunnel_disconnect(t, c);
   client_delete_tunnel(c, t);
 
   /* Don't try to ACK the client about the tunnel_destroy multicast packet */
