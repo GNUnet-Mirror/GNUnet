@@ -1906,6 +1906,7 @@ handle_tcp_data (void *cls, struct GNUNET_SERVER_Client *client,
                      GNUNET_a2s(vaddr, alen));
     GNUNET_break_op (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    GNUNET_free_non_null(vaddr);
     return;
   }
   else if (GNUNET_YES == session->expecting_welcome)
@@ -1921,6 +1922,7 @@ handle_tcp_data (void *cls, struct GNUNET_SERVER_Client *client,
                      GNUNET_a2s(vaddr, alen));
     GNUNET_break_op (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    GNUNET_free_non_null(vaddr);
     return;
   }
 

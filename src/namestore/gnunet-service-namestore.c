@@ -1480,7 +1480,7 @@ void zone_iteraterate_proc (void *cls,
     proc->rd = NULL;
     proc->name = NULL;
   }
-  else
+  else if ((zone_key != NULL) && (name != NULL)) /* just a safety check */
   {
     rd_filtered = GNUNET_malloc (rd_count * sizeof (struct GNUNET_NAMESTORE_RecordData));
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received result for zone iteration: `%s'\n", name);
@@ -1567,6 +1567,11 @@ void zone_iteraterate_proc (void *cls,
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "No signature provided for `%s'\n", name);
       }
     }
+  }
+  else
+  {
+    GNUNET_break (0);
+    return;
   }
 
 }

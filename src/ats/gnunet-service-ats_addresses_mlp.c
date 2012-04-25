@@ -593,7 +593,7 @@ mlp_add_constraints_all_addresses (struct GAS_MLP_Handle *mlp, struct GNUNET_CON
     /* Set -r */
     ia[mlp->ci] = peer->r_c9;
     ja[mlp->ci] = mlp->c_r;
-    ar[mlp->ci] = -1;
+    ar[mlp->ci] = -peer->f;
     mlp->ci++;
 #endif
     /* For all addresses of this peer */

@@ -144,7 +144,7 @@ int map_cleanup_it (void *cls,
                   void *value)
 {
   struct PeerContainer *pc = value;
-  GNUNET_CONTAINER_multihashmap_remove(peers, key, value);
+  GNUNET_assert (GNUNET_OK == GNUNET_CONTAINER_multihashmap_remove(peers, key, value));
   if (NULL != pc->th_ping)
   {
     GNUNET_TRANSPORT_notify_transmit_ready_cancel(pc->th_ping);
@@ -927,7 +927,7 @@ core_disconnect_cb (void *cls,
 {
   if (0 != memcmp (peer, &my_peer_id, sizeof (struct GNUNET_PeerIdentity)))
   {
-    GNUNET_assert (core_connections >= 0);
+    GNUNET_assert (core_connections > 0);
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "CORE      disconnect for peer `%s' (%u total)\n",
       GNUNET_i2s (peer), core_connections);
     map_disconnect (peer, ch);
