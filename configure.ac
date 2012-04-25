@@ -68,6 +68,8 @@ fi
 # Use Linux interface name unless the OS has a different preference
 DEFAULT_INTERFACE="\"eth0\""
 
+funcstocheck="socket select inet_ntoa getnameinfo gethostname gethostbyname gethostbyaddr getaddrinfo"
+
 # Check system type
 case "$host_os" in
 *darwin* | *rhapsody* | *macosx*)
@@ -158,6 +160,7 @@ netbsd*)
      LIBPREFIX=lib
      DLLDIR=bin
      UNIXONLY=""
+     funcstocheck=""
      ;;
 *)
      AC_MSG_RESULT(Unrecognised OS $host_os)
@@ -686,7 +689,7 @@ AC_FUNC_VPRINTF
 AC_HEADER_SYS_WAIT
 AC_TYPE_OFF_T
 AC_TYPE_UID_T
-AC_CHECK_FUNCS([floor gethostname memmove rmdir strncasecmp strrchr strtol atoll dup2 fdatasync ftruncate gettimeofday memset mkdir mkfifo select socket strcasecmp strchr strdup strerror strstr clock_gettime getrusage rand uname setlocale getcwd mktime gmtime_r gmtime strlcpy strlcat ftruncate stat64 sbrk mmap mremap setrlimit sysconf gethostbyaddr initgroups getifaddrs freeifaddrs getnameinfo getaddrinfo inet_ntoa localtime_r nl_langinfo putenv realpath strndup gethostbyname2 gethostbyname getpeerucred getpeereid setresuid])
+AC_CHECK_FUNCS([floor memmove rmdir strncasecmp strrchr strtol atoll dup2 fdatasync ftruncate gettimeofday memset mkdir mkfifo strcasecmp strchr strdup strerror strstr clock_gettime getrusage rand uname setlocale getcwd mktime gmtime_r gmtime strlcpy strlcat ftruncate stat64 sbrk mmap mremap setrlimit sysconf initgroups getifaddrs freeifaddrs localtime_r nl_langinfo putenv realpath strndup gethostbyname2 gethostbyname getpeerucred getpeereid setresuid $funcstocheck])
 
 # restore LIBS
 LIBS=$SAVE_LIBS
@@ -861,6 +864,96 @@ AM_CONDITIONAL([HAVE_EXPERIMENTAL], [test "x$enable_experimental" = "xyes"])
 if test $build_target = "mingw"
 then
 	workarounds=1
+
+AC_LINK_IFELSE(
+ [AC_LANG_PROGRAM(
+  [#include <ws2tcpip.h>
+  ],[
+  int s = socket (0, 0, 0);])
+ ],[
+  AC_DEFINE_UNQUOTED([HAVE_SOCKET],1,[Define this if socket() is available])
+ ],[
+  AC_DEFINE_UNQUOTED([HAVE_SOCKET],0,[Define this if socket() is available])
+ ])
+
+AC_LINK_IFELSE(
+ [AC_LANG_PROGRAM(
+  [#include <ws2tcpip.h>
+  ],[
+  int s = select (0, NULL, NULL, NULL, NULL);])
+ ],[
+  AC_DEFINE_UNQUOTED([HAVE_SELECT],1,[Define this if select() is available])
+ ],[
+  AC_DEFINE_UNQUOTED([HAVE_SELECT],0,[Define this if select() is available])
+ ])
+
+AC_LINK_IFELSE(
+ [AC_LANG_PROGRAM(
+  [#include <ws2tcpip.h>
+  ],[
+  struct in_addr i;
+  char *s = inet_ntoa (i);])
+ ],[
+  AC_DEFINE_UNQUOTED([HAVE_INET_NTOA],1,[Define this if inet_ntoa() is available])
+ ],[
+  AC_DEFINE_UNQUOTED([HAVE_INET_NTOA],0,[Define this if inet_ntoa() is available])
+ ])
+
+AC_LINK_IFELSE(
+ [AC_LANG_PROGRAM(
+  [#include <ws2tcpip.h>
+  ],[
+  int s = getnameinfo (NULL, 0, NULL, 0, NULL, 0, 0);])
+ ],[
+  AC_DEFINE_UNQUOTED([HAVE_GETNAMEINFO],1,[Define this if getnameinfo() is available])
+ ],[
+  AC_DEFINE_UNQUOTED([HAVE_GETNAMEINFO],0,[Define this if getnameinfo() is available])
+ ])
+
+AC_LINK_IFELSE(
+ [AC_LANG_PROGRAM(
+  [#include <ws2tcpip.h>
+  ],[
+  int s = gethostname (NULL, 0);])
+ ],[
+  AC_DEFINE_UNQUOTED([HAVE_GETHOSTNAME],1,[Define this if gethostname() is available])
+ ],[
+  AC_DEFINE_UNQUOTED([HAVE_GETHOSTNAME],0,[Define this if gethostname() is available])
+ ])
+
+AC_LINK_IFELSE(
+ [AC_LANG_PROGRAM(
+  [#include <ws2tcpip.h>
+  ],[
+  void *s = gethostbyname (NULL);])
+ ],[
+  AC_DEFINE_UNQUOTED([HAVE_GETHOSTBYNAME],1,[Define this if gethostbyname() is available])
+ ],[
+  AC_DEFINE_UNQUOTED([HAVE_GETHOSTBYNAME],0,[Define this if gethostbyname() is available])
+ ])
+
+AC_LINK_IFELSE(
+ [AC_LANG_PROGRAM(
+  [#include <ws2tcpip.h>
+  ],[
+  void *s = gethostbyaddr (NULL, 0, 0);])
+ ],[
+  AC_DEFINE_UNQUOTED([HAVE_GETHOSTBYADDR],1,[Define this if gethostbyaddr() is available])
+ ],[
+  AC_DEFINE_UNQUOTED([HAVE_GETHOSTBYADDR],0,[Define this if gethostbyaddr() is available])
+ ])
+
+AC_LINK_IFELSE(
+ [AC_LANG_PROGRAM(
+  [#include <ws2tcpip.h>
+  ],[
+  int s = getaddrinfo (NULL, NULL, NULL, NULL);])
+ ],[
+  AC_DEFINE_UNQUOTED([HAVE_GETADDRINFO],1,[Define this if getaddrinfo() is available])
+ ],[
+  AC_DEFINE_UNQUOTED([HAVE_GETADDRINFO],1,[Define this if getaddrinfo() is available])
+ ])
+
 else
   AC_MSG_CHECKING(whether to enable windows workarounds)
   AC_ARG_ENABLE([windows_workarounds], 
