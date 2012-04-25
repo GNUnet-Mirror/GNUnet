@@ -754,7 +754,7 @@ int main (int argc, char **argv)
 {
   int ret;
 
-  char *argv2[] = { "test-stream-local",
+  char *argv2[] = { "test-stream-2peers-halfclose",
                     "-L", "DEBUG",
                     "-c", "test_stream_local.conf",
                     NULL};
@@ -765,7 +765,7 @@ int main (int argc, char **argv)
 
   ret =
       GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
-                          "test-stream-local", "nohelp", options, &run, NULL);
+                          "test-stream-2peers-halfclose", "nohelp", options, &run, NULL);
 
   if (GNUNET_OK != ret)
   {
