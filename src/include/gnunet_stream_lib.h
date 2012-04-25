@@ -62,7 +62,12 @@ enum GNUNET_STREAM_Status
     /**
      * A serious error occured while operating on this stream
      */
-    GNUNET_STREAM_SYSERR = 3
+    GNUNET_STREAM_SYSERR = 3,
+    
+    /**
+     * An error resulted in an unusable stream
+     */
+    GNUNET_STREAM_BROKEN
   };
 
 /**
