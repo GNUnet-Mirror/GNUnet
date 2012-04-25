@@ -1091,6 +1091,7 @@ GNUNET_CONNECTION_receive (struct GNUNET_CONNECTION_Handle *connection, size_t m
   }
   if ((NULL == connection->dns_active) && (NULL == connection->ap_head))
   {
+    connection->receiver = NULL;
     receiver (receiver_cls, NULL, 0, NULL, 0, ETIMEDOUT);
     return;
   }
