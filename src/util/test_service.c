@@ -62,7 +62,6 @@ ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
 
-
   GNUNET_assert (0 != (tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Service confirmed running\n");
   client = GNUNET_CLIENT_connect ("test_service", cfg);

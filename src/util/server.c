@@ -540,6 +540,8 @@ GNUNET_SERVER_create (GNUNET_CONNECTION_AccessCheck access, void *access_cls,
   struct GNUNET_NETWORK_Handle **lsocks;
   unsigned int i;
   unsigned int j;
+  unsigned int k;
+  int seen;
 
   i = 0;
   while (NULL != serverAddr[i])
@@ -551,6 +553,20 @@ GNUNET_SERVER_create (GNUNET_CONNECTION_AccessCheck access, void *access_cls,
     j = 0;
     while (NULL != serverAddr[i])
     {
+      seen = 0;
+      for (k=0;k<i-1;k++)
+	if ( (socklen[k] == socklen[i]) &&
+	     (0 == memcmp (serverAddr[k], serverAddr[i], socklen[i])) )
+	{
+	  seen = 1;
+	  break;
+	}
+      if (0 != seen)
+      {
+	/* duplicate address, skip */
+	i++;
+	continue;
+      }
       lsocks[j] = open_listen_socket (serverAddr[i], socklen[i]);
       if (NULL != lsocks[j])
         j++;
