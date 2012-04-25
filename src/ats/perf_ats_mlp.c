@@ -258,7 +258,7 @@ check (void *cls, char *const *args, const char *cfgfile,
 
       /* Setting address */
       a[ca].peer = p[c].id;
-      a[ca].plugin = strdup("test");
+      a[ca].plugin = GNUNET_strdup("test");
       a[ca].atsp_network_type = GNUNET_ATS_NET_LOOPBACK;
 
       a[ca].ats = GNUNET_malloc (DEF_ATS_VALUES * sizeof (struct GNUNET_ATS_Information));

@@ -1179,7 +1179,7 @@ receive_sockets_from_parent (struct GNUNET_SERVICE_Context *sctx)
    */
   lsocks_pipe = (HANDLE) strtoul (env_buf, NULL, 10);
   if ( (0 == lsocks_pipe) || (INVALID_HANDLE_VALUE == lsocks_pipe))
-    return GNUNET_NO
+    return GNUNET_NO;
   fail = 1;
   do
   {

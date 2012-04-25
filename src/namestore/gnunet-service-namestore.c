@@ -1529,7 +1529,7 @@ void zone_iteraterate_proc (void *cls,
       rd_filtered = NULL;
     }
     proc->rd = rd_filtered;
-    proc->name = strdup(name);
+    proc->name = GNUNET_strdup(name);
     memcpy (&proc->zone_key, zone_key, sizeof (proc->zone_key));
 
     /* Signature */

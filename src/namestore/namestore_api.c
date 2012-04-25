@@ -1428,7 +1428,7 @@ GNUNET_NAMESTORE_zone_to_name (struct GNUNET_NAMESTORE_Handle *h,
   msg->zone = *zone;
   msg->value_zone = *value_zone;
 
-  char * z_tmp = strdup (GNUNET_short_h2s (zone));
+  char * z_tmp = GNUNET_strdup (GNUNET_short_h2s (zone));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message for zone `%s' in zone `%s'\n",
       "NAMESTORE_ZONE_TO_NAME",
       z_tmp,

@@ -983,7 +983,7 @@ init ()
 
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Transport plugin: `%s' port %llu\n"), pos, port);
     cur = GNUNET_malloc(sizeof (struct TransportPlugin));
-    cur->short_name = strdup (pos);
+    cur->short_name = GNUNET_strdup (pos);
     cur->port = port;
     if (0 == strcmp("tcp", pos))
     {

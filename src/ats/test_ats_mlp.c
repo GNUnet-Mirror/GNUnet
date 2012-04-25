@@ -52,7 +52,7 @@ create_address (struct ATS_Address *addr, char * plugin, int ats_count, struct G
   addr->mlp_information = NULL;
   addr->next = NULL;
   addr->prev = NULL;
-  addr->plugin = strdup (plugin);
+  addr->plugin = GNUNET_strdup (plugin);
   addr->ats_count = ats_count;
   addr->ats = ats;
 }

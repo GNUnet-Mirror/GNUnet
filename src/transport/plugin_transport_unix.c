@@ -1003,7 +1003,7 @@ unix_string_to_address (void *cls, const char *addr, uint16_t addrlen,
     return GNUNET_SYSERR;
   }
 
-  (*buf) = strdup (addr);
+  (*buf) = GNUNET_strdup (addr);
   (*added) = strlen (addr) + 1;
   return GNUNET_OK;
 }
