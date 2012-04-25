@@ -1022,6 +1022,7 @@ GNUNET_SERVICE_get_server_addresses (const char *service_name,
     memset (&hints, 0, sizeof (struct addrinfo));
     if (disablev6)
       hints.ai_family = AF_INET;
+    hints.ai_protocol = IPPROTO_TCP;
     if ((0 != (ret = getaddrinfo (hostname, NULL, &hints, &res))) ||
         (res == NULL))
     {
