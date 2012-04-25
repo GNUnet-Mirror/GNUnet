@@ -154,7 +154,11 @@
  * that may then be cast to 'struct's.  See also gcc
  * bug #33594.
  */
+#ifdef __BIGGEST_ALIGNMENT__
 #define GNUNET_ALIGN __attribute__((aligned (__BIGGEST_ALIGNMENT__)))
+#else
+#define GNUNET_ALIGN __attribute__((aligned (8)))
+#endif
 
 /**
  * gcc-ism to document unused arguments
