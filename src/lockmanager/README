@@ -1,0 +1,10 @@
+The lockmanager service serves as a global locker for other gnunet
+programs. This service eliminates the need for programs to maintain their own
+checks upon a resource which should be protected from concurrent access.
+
+Locking is managed through locking-domains. A locking-domain is a string which
+uniquely identifies a group of locks. Locks are represented as unsigned
+integers. When a critical resource has to be protected against simulataneous
+access by 2 programs. Both of them should connect to the lockmanager using the
+same locking-domain and try to lock a lock. Since only one of them can acquire
+the lock the other will be denied locking until the other releases it.
