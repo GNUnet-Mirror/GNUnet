@@ -2229,6 +2229,7 @@ GNUNET_FS_download_stop (struct GNUNET_FS_DownloadContext *dc, int do_delete)
 {
   struct GNUNET_FS_ProgressInfo pi;
   int have_children;
+  int search_was_null;
 
   if (dc->top != NULL)
     GNUNET_FS_end_top (dc->h, dc->top);
@@ -2237,6 +2238,7 @@ GNUNET_FS_download_stop (struct GNUNET_FS_DownloadContext *dc, int do_delete)
     GNUNET_SCHEDULER_cancel (dc->task);
     dc->task = GNUNET_SCHEDULER_NO_TASK;
   }
+  search_was_null = (dc->search == NULL);
   if (dc->search != NULL)
   {
     dc->search->download = NULL;
@@ -2262,14 +2264,12 @@ GNUNET_FS_download_stop (struct GNUNET_FS_DownloadContext *dc, int do_delete)
   if (dc->serialization != NULL)
     GNUNET_FS_remove_sync_file_ (dc->h,
                                  ((dc->parent != NULL) ||
-                                  (dc->search !=
-                                   NULL)) ? GNUNET_FS_SYNC_PATH_CHILD_DOWNLOAD :
+                                  (! search_was_null)) ? GNUNET_FS_SYNC_PATH_CHILD_DOWNLOAD :
                                  GNUNET_FS_SYNC_PATH_MASTER_DOWNLOAD,
                                  dc->serialization);
   if ((GNUNET_YES == have_children) && (dc->parent == NULL))
     GNUNET_FS_remove_sync_dir_ (dc->h,
-                                (dc->search !=
-                                 NULL) ? GNUNET_FS_SYNC_PATH_CHILD_DOWNLOAD :
+                                (! search_was_null) ? GNUNET_FS_SYNC_PATH_CHILD_DOWNLOAD :
                                 GNUNET_FS_SYNC_PATH_MASTER_DOWNLOAD,
                                 dc->serialization);
   pi.status = GNUNET_FS_STATUS_DOWNLOAD_STOPPED;

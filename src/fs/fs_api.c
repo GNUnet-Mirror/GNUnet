@@ -1707,9 +1707,8 @@ get_download_sync_filename (struct GNUNET_FS_DownloadContext *dc,
 
   if (dc->parent == NULL)
     return get_serialization_file_name (dc->h,
-                                        (dc->search !=
-                                         NULL) ?
-                                        GNUNET_FS_SYNC_PATH_CHILD_DOWNLOAD :
+					(dc->search != NULL) ?
+					GNUNET_FS_SYNC_PATH_CHILD_DOWNLOAD :
                                         GNUNET_FS_SYNC_PATH_MASTER_DOWNLOAD,
                                         uni);
   if (dc->parent->serialization == NULL)
