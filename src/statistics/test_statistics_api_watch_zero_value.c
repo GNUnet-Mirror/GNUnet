@@ -103,6 +103,11 @@ watch_2 (void *cls, const char *subsystem, const char *name, uint64_t value,
   if ((42 == value) && (1 == ok2))
   {
     ok2 = 0;
+    if (0 == ok)
+    {
+      GNUNET_SCHEDULER_cancel (shutdown_task);
+      GNUNET_SCHEDULER_add_now (&normal_shutdown, NULL);
+    }
   }
   else
   {
