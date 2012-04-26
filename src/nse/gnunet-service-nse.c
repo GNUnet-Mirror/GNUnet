@@ -59,7 +59,7 @@
  * production).  The associated code should also probably be removed
  * once we're done with experiments.
  */
-#define ENABLE_HISTOGRAM GNUNET_YES
+#define ENABLE_HISTOGRAM GNUNET_NO
 
 /**
  * Over how many values do we calculate the weighted average?
@@ -1022,7 +1022,7 @@ handle_p2p_size_estimate (void *cls, const struct GNUNET_PeerIdentity *peer,
 
 #if ENABLE_HISTOGRAM
   if (NULL != wh)
-    GNUNET_BIO_write_int64 (wh, GNUNET_TIME_absolute_get ().abs_value);
+    GNUNET_break (GNUNET_OK == GNUNET_BIO_write_int64 (wh, GNUNET_TIME_absolute_get ().abs_value));
 #endif
   incoming_flood = (const struct GNUNET_NSE_FloodMessage *) message;
   GNUNET_STATISTICS_update (stats, "# flood messages received", 1, GNUNET_NO);
@@ -1311,7 +1311,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 #if ENABLE_HISTOGRAM
   if (wh != NULL)
   {
-    GNUNET_BIO_write_close (wh);
+    GNUNET_break (GNUNET_OK == GNUNET_BIO_write_close (wh));
     wh = NULL;
   }
 #endif
