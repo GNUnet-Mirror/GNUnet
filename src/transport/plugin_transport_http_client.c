@@ -26,6 +26,8 @@
 
 #include "plugin_transport_http.h"
 
+static struct Plugin * p;
+
 #if VERBOSE_CURL
 /**
  * Function to log curl debug messages with GNUNET_log
@@ -147,6 +149,12 @@ client_send (struct Session *s, struct HTTP_Message *msg)
   GNUNET_assert (s != NULL);
   GNUNET_CONTAINER_DLL_insert (s->msg_head, s->msg_tail, msg);
 
+  if (GNUNET_YES != exist_session(p, s))
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+
   if (s->client_put_paused == GNUNET_YES)
   {
 #if VERBOSE_CLIENT
@@ -210,6 +218,13 @@ client_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_assert (CURLE_OK ==
                      curl_easy_getinfo (easy_h, CURLINFO_PRIVATE, &d));
       s = (struct Session *) d;
+
+      if (GNUNET_YES != exist_session(plugin, s))
+      {
+        GNUNET_break (0);
+        return;
+      }
+
       GNUNET_assert (s != NULL);
 
       if (msg->msg == CURLMSG_DONE)
@@ -241,7 +256,11 @@ client_disconnect (struct Session *s)
   struct HTTP_Message *msg;
   struct HTTP_Message *t;
 
-
+  if (GNUNET_YES != exist_session(plugin, s))
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
 
   if (s->client_put != NULL)
   {
@@ -319,6 +338,12 @@ client_receive_mst_cb (void *cls, void *client,
   struct Session *s = cls;
   struct GNUNET_TIME_Relative delay;
 
+  if (GNUNET_YES != exist_session(p, s))
+  {
+    GNUNET_break (0);
+    return;
+  }
+
   delay = http_plugin_receive (s, &s->target, message, s, s->addr, s->addrlen);
   s->next_receive =
       GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get (), delay);
@@ -340,6 +365,12 @@ static void
 client_wake_up (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct Session *s = cls;
+
+  if (GNUNET_YES != exist_session(p, s))
+  {
+    GNUNET_break (0);
+    return;
+  }
 
   s->recv_wakeup_task = GNUNET_SCHEDULER_NO_TASK;
 
@@ -369,6 +400,8 @@ client_receive (void *stream, size_t size, size_t nmemb, void *cls)
   struct Session *s = cls;
   struct GNUNET_TIME_Absolute now;
   size_t len = size * nmemb;
+
+
 
 
 #if VERBOSE_CLIENT
@@ -428,6 +461,12 @@ client_send_cb (void *stream, size_t size, size_t nmemb, void *cls)
 #endif
   size_t bytes_sent = 0;
   size_t len;
+
+  if (GNUNET_YES != exist_session(plugin, s))
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
 
   struct HTTP_Message *msg = s->msg_head;
 
@@ -610,6 +649,7 @@ int
 client_start (struct Plugin *plugin)
 {
   int res = GNUNET_OK;
+  p = plugin;
 
   curl_global_init (CURL_GLOBAL_ALL);
   plugin->client_mh = curl_multi_init ();
@@ -619,7 +659,7 @@ client_start (struct Plugin *plugin)
     GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
                      _
                      ("Could not initialize curl multi handle, failed to start %s plugin!\n"),
-                     plugin->name);
+                         plugin->name);
     res = GNUNET_SYSERR;
   }
   return res;
@@ -628,6 +668,7 @@ client_start (struct Plugin *plugin)
 void
 client_stop (struct Plugin *plugin)
 {
+  p = NULL;
   if (plugin->client_perform_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (plugin->client_perform_task);

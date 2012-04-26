@@ -30,6 +30,8 @@
 #define _RECEIVE 0
 #define _SEND 1
 
+static struct Plugin * p;
+
 struct ServerConnection
 {
   /* _RECV or _SEND */
@@ -279,6 +281,11 @@ server_receive_mst_cb (void *cls, void *client,
                        const struct GNUNET_MessageHeader *message)
 {
   struct Session *s = cls;
+
+  GNUNET_assert (NULL != p);
+  if (GNUNET_NO == exist_session(p, s))
+    return;
+
   struct Plugin *plugin = s->plugin;
   struct GNUNET_TIME_Relative delay;
 
@@ -309,6 +316,9 @@ static ssize_t
 server_send_callback (void *cls, uint64_t pos, char *buf, size_t max)
 {
   struct Session *s = cls;
+  GNUNET_assert (NULL != p);
+  if (GNUNET_NO == exist_session(p, s))
+    return 0;
 
   struct HTTP_Message *msg;
   int bytes_read = 0;
@@ -736,6 +746,10 @@ server_disconnect_cb (void *cls, struct MHD_Connection *connection,
     return;
 
   s = sc->session;
+  GNUNET_assert (NULL != p);
+  if (GNUNET_NO == exist_session(p, s))
+    return;
+
   plugin = s->plugin;
   if (sc->direction == _SEND)
   {
@@ -1018,6 +1032,8 @@ server_start (struct Plugin *plugin)
 {
   int res = GNUNET_OK;
   unsigned int timeout;
+  p = plugin;
+  GNUNET_assert (NULL != plugin);
 
 #if BUILD_HTTPS
   res = server_load_certificate (plugin);
@@ -1149,6 +1165,8 @@ server_stop (struct Plugin *plugin)
 {
   struct Session *s = NULL;
   struct Session *t = NULL;
+
+  p = NULL;
 
   struct MHD_Daemon *server_v4_tmp = plugin->server_v4;
 

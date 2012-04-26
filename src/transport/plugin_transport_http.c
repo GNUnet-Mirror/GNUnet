@@ -532,6 +532,23 @@ lookup_session (struct Plugin *plugin,
   return NULL;
 }
 
+int
+exist_session (struct Plugin *plugin, struct Session *s)
+{
+  struct Session * head;
+
+  GNUNET_assert (NULL != plugin);
+  GNUNET_assert (NULL != s);
+
+  for (head = plugin->head; head != NULL; head = head->next)
+  {
+    if (head == s)
+      return GNUNET_YES;
+  }
+  return GNUNET_NO;
+}
+
+
 
 void
 delete_session (struct Session *s)
