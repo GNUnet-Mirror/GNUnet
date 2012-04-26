@@ -474,18 +474,18 @@ struct MeshClient
 /**
  * GNUNET_SCHEDULER_Task for printing a message after some operation is done
  * @param cls string to print
- * @param tc task context
+ * @param success  GNUNET_OK if the PUT was transmitted,
+ *                GNUNET_NO on timeout,
+ *                GNUNET_SYSERR on disconnect from service
+ *                after the PUT message was transmitted
+ *                (so we don't know if it was received or not)
  */
 static void
-mesh_debug (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+mesh_debug (void *cls, int success)
 {
   char *s = cls;
 
-  if (NULL != tc && GNUNET_SCHEDULER_REASON_SHUTDOWN == tc->reason)
-  {
-    return;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%s\n", s);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%s (%d)\n", s, success);
 }
 #endif
 
@@ -622,6 +622,7 @@ static int
 announce_application (void *cls, const GNUNET_HashCode * key, void *value)
 {
   /* FIXME are hashes in multihash map equal on all aquitectures? */
+  /* FIXME: keep return value of 'put' to possibly cancel!? */
   GNUNET_DHT_put (dht_handle, key, 10U,
                   GNUNET_DHT_RO_RECORD_ROUTE |
                   GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE, GNUNET_BLOCK_TYPE_TEST,

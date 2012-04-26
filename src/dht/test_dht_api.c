@@ -195,10 +195,10 @@ test_get_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
  * Signature of the main function of a task.
  *
  * @param cls closure
- * @param tc context information (why was this task triggered now)
+ * @param success result of PUT
  */
 static void
-test_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+test_get (void *cls, int success)
 {
   struct PeerContext *peer = cls;
   GNUNET_HashCode hash;

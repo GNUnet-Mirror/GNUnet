@@ -121,6 +121,28 @@ GNUNET_DHT_disconnect (struct GNUNET_DHT_Handle *handle);
 
 /* *************** Standard API: get and put ******************* */
 
+
+/**
+ * Opaque handle to cancel a PUT operation.
+ */
+struct GNUNET_DHT_PutHandle;
+
+
+/**
+ * Type of a PUT continuation.  You must not call
+ * "GNUNET_DHT_disconnect" in this continuation.
+ *
+ * @param cls closure
+ * @param success GNUNET_OK if the PUT was transmitted,
+ *                GNUNET_NO on timeout,
+ *                GNUNET_SYSERR on disconnect from service
+ *                after the PUT message was transmitted
+ *                (so we don't know if it was received or not)
+ */
+typedef void (*GNUNET_DHT_PutContinuation)(void *cls,
+					   int success);
+
+
 /**
  * Perform a PUT operation storing data in the DHT.
  *
@@ -135,17 +157,35 @@ GNUNET_DHT_disconnect (struct GNUNET_DHT_Handle *handle);
  * @param exp desired expiration time for the value
  * @param timeout how long to wait for transmission of this request
  * @param cont continuation to call when done (transmitting request to service)
- *        You must not call GNUNET_DHT_DISCONNECT in this continuation
+ *        You must not call "GNUNET_DHT_disconnect" in this continuation
  * @param cont_cls closure for cont
+ * @return handle to cancel the "PUT" operation, NULL on error
+ *        (size too big)
  */
-void
+struct GNUNET_DHT_PutHandle *
 GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle, const GNUNET_HashCode * key,
                 uint32_t desired_replication_level,
                 enum GNUNET_DHT_RouteOption options,
                 enum GNUNET_BLOCK_Type type, size_t size, const char *data,
                 struct GNUNET_TIME_Absolute exp,
-                struct GNUNET_TIME_Relative timeout, GNUNET_SCHEDULER_Task cont,
+                struct GNUNET_TIME_Relative timeout,
+		GNUNET_DHT_PutContinuation cont,
                 void *cont_cls);
+
+
+/**
+ * Cancels a DHT PUT operation.  Note that the PUT request may still
+ * go out over the network (we can't stop that); However, if the PUT
+ * has not yet been sent to the service, cancelling the PUT will stop
+ * this from happening (but there is no way for the user of this API
+ * to tell if that is the case).  The only use for this API is to 
+ * prevent a later call to 'cont' from "GNUNET_DHT_put" (i.e. because
+ * the system is shutting down).
+ *
+ * @param ph put operation to cancel ('cont' will no longer be called)
+ */
+void
+GNUNET_DHT_put_cancel (struct GNUNET_DHT_PutHandle *ph);
 
 
 /**

@@ -80,7 +80,7 @@ static char *data;
 static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  if (dht_handle != NULL)
+  if (NULL != dht_handle)
   {
     GNUNET_DHT_disconnect (dht_handle);
     dht_handle = NULL;
@@ -91,13 +91,33 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Signature of the main function of a task.
  *
  * @param cls closure
- * @param tc context information (why was this task triggered now)
+ * @param success GNUNET_OK if the PUT was transmitted,
+ *                GNUNET_NO on timeout,
+ *                GNUNET_SYSERR on disconnect from service
+ *                after the PUT message was transmitted
+ *                (so we don't know if it was received or not)
  */
-void
-message_sent_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+static void
+message_sent_cont (void *cls, int success)
 {
   if (verbose)
-    FPRINTF (stderr, "%s",  _("PUT request sent!\n"));
+  {
+    switch (success)
+    {
+    case GNUNET_OK:
+      FPRINTF (stderr, "%s",  _("PUT request sent!\n"));
+      break;
+    case GNUNET_NO:
+      FPRINTF (stderr, "%s",  _("Timeout sending PUT request!\n"));
+      break;
+    case GNUNET_SYSERR:
+      FPRINTF (stderr, "%s",  _("PUT request not confirmed!\n"));
+      break;
+    default:
+      GNUNET_break (0);
+      break;
+    }
+  }
   GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
 }
 

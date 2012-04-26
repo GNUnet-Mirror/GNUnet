@@ -129,9 +129,15 @@ static struct GNUNET_DHT_Handle *peer1dht;
 static struct GNUNET_DHT_Handle *peer2dht;
 
 /**
+ * Handle for our PUT operation.
+ */
+static struct GNUNET_DHT_PutHandle *put_op;
+
+
+/**
  * Check whether peers successfully shut down.
  */
-void
+static void
 shutdown_callback (void *cls, const char *emsg)
 {
   if (emsg != NULL)
@@ -164,6 +170,11 @@ finish_testing (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 end_badly_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  if (NULL != put_op)
+  {
+    GNUNET_DHT_put_cancel (put_op);
+    put_op = NULL;
+  }
   if (peer1dht != NULL)
     GNUNET_DHT_disconnect (peer1dht);
 
@@ -173,6 +184,7 @@ end_badly_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (pg != NULL)
     GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
 }
+
 
 /**
  * Check if the get_handle is being used, if so stop the request.  Either
@@ -242,10 +254,11 @@ get_result_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
  * Schedule the GET request for some time in the future.
  */
 static void
-put_finished (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+put_finished (void *cls, int success)
 {
   GNUNET_HashCode key;          /* Key for data lookup */
 
+  put_op = NULL;
   GNUNET_SCHEDULER_cancel (die_task);
   die_task =
       GNUNET_SCHEDULER_add_delayed (GET_TIMEOUT, &end_badly,
@@ -272,9 +285,9 @@ do_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   memset (data, 43, sizeof (data));
 
   /* Insert the data at the first peer */
-  GNUNET_DHT_put (peer1dht, &key, 1, GNUNET_DHT_RO_NONE, GNUNET_BLOCK_TYPE_TEST,
-                  sizeof (data), data, GNUNET_TIME_UNIT_FOREVER_ABS,
-                  GNUNET_TIME_UNIT_FOREVER_REL, &put_finished, NULL);
+  put_op = GNUNET_DHT_put (peer1dht, &key, 1, GNUNET_DHT_RO_NONE, GNUNET_BLOCK_TYPE_TEST,
+			   sizeof (data), data, GNUNET_TIME_UNIT_FOREVER_ABS,
+			   GNUNET_TIME_UNIT_FOREVER_REL, &put_finished, NULL);
 }
 
 

@@ -249,7 +249,7 @@ get_result_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
  * Schedule the GET request for some time in the future.
  */
 static void
-put_finished (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+put_finished (void *cls, int success)
 {
   GNUNET_HashCode key;          /* Key for data lookup */
 

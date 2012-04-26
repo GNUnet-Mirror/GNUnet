@@ -678,7 +678,7 @@ start_gets (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Called when the PUT request has been transmitted to the DHT service.
  */
 static void
-put_finished (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+put_finished (void *cls, int success)
 {
   struct TestPutContext *test_put = cls;
 

@@ -181,6 +181,11 @@ struct GNUNET_DHT_ClientPutMessage
   uint32_t desired_replication_level GNUNET_PACKED;
 
   /**
+   * Unique ID for the PUT message.
+   */
+  uint64_t unique_id GNUNET_PACKED;
+
+  /**
    * How long should this data persist?
    */
   struct GNUNET_TIME_AbsoluteNBO expiration;
@@ -193,6 +198,30 @@ struct GNUNET_DHT_ClientPutMessage
   /* DATA copied to end of this message */
 
 };
+
+
+/**
+ * Message to confirming receipt of PUT, sent from DHT service to clients.
+ */
+struct GNUNET_DHT_ClientPutConfirmationMessage
+{
+  /**
+   * Type: GNUNET_MESSAGE_TYPE_DHT_CLIENT_PUT_OK
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Always zero.
+   */
+  uint32_t reserved GNUNET_PACKED;
+
+  /**
+   * Unique ID from the PUT message that is being confirmed.
+   */
+  uint64_t unique_id GNUNET_PACKED;
+
+};
+
 
 
 /**

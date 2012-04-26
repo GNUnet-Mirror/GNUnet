@@ -212,10 +212,14 @@ update_zone_dht_next(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Continuation for DHT put
  *
  * @param cls closure
- * @param tc task context
+ * @param success GNUNET_OK if the PUT was transmitted,
+ *                GNUNET_NO on timeout,
+ *                GNUNET_SYSERR on disconnect from service
+ *                after the PUT message was transmitted
+ *                (so we don't know if it was received or not)
  */
 static void
-record_dht_put(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+record_dht_put(void *cls, int success)
 {
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "put request transmitted\n");
 }
@@ -334,7 +338,7 @@ put_gns_record(void *cls,
   
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
              "DHT req to %d\n", DHT_OPERATION_TIMEOUT.rel_value);
-
+  /* FIXME: keep return value to possibly cancel? */
   GNUNET_DHT_put (dht_handle, &xor_hash,
                   DHT_GNS_REPLICATION_LEVEL,
                   GNUNET_DHT_RO_NONE,

@@ -553,6 +553,11 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_DHT_MONITOR_STOP             154
 
+/**
+ * Acknowledge receiving PUT request
+ */
+#define GNUNET_MESSAGE_TYPE_DHT_CLIENT_PUT_OK             155
+
 
 /*******************************************************************************
  * HOSTLIST message types
