@@ -1110,7 +1110,7 @@ GNUNET_CONNECTION_receive (struct GNUNET_CONNECTION_Handle *connection, size_t m
 void *
 GNUNET_CONNECTION_receive_cancel (struct GNUNET_CONNECTION_Handle *connection)
 {
-  if (GNUNET_SCHEDULER_NO_TASK == connection->read_task)
+  if (GNUNET_SCHEDULER_NO_TASK != connection->read_task)
   {
     GNUNET_assert (connection == GNUNET_SCHEDULER_cancel (connection->read_task));
     connection->read_task = GNUNET_SCHEDULER_NO_TASK;
