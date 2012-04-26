@@ -586,13 +586,13 @@ GNUNET_log_setup (const char *comp, const char *loglevel, const char *logfile)
     if (GNUNET_stderr != NULL)
       fclose (GNUNET_stderr);
     dup_return = dup2 (altlog_fd, 2);
-    close (altlog_fd);
+    (void) close (altlog_fd);
     if (dup_return != -1)
     {
       altlog = fdopen (2, "ab");
       if (altlog == NULL)
       {
-        close (2);
+        (void) close (2);
         altlog_fd = -1;
       }
     }
