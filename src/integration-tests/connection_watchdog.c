@@ -119,9 +119,10 @@ struct TransportPlugin
 struct TransportPlugin *phead;
 struct TransportPlugin *ptail;
 
-int map_check_it (void *cls,
-                  const GNUNET_HashCode * key,
-                  void *value)
+static int 
+map_check_it (void *cls,
+	      const GNUNET_HashCode * key,
+	      void *value)
 {
   int *fail = cls;
   struct PeerContainer *pc = value;
@@ -139,9 +140,10 @@ int map_check_it (void *cls,
 }
 
 
-int map_cleanup_it (void *cls,
-                  const GNUNET_HashCode * key,
-                  void *value)
+static int 
+map_cleanup_it (void *cls,
+		const GNUNET_HashCode * key,
+		void *value)
 {
   struct PeerContainer *pc = value;
   GNUNET_assert (GNUNET_OK == GNUNET_CONTAINER_multihashmap_remove(peers, key, value));
@@ -276,9 +278,10 @@ find_plugin (char * name)
   return cur;
 }
 
-int stats_check_cb (void *cls, const char *subsystem,
-                   const char *name, uint64_t value,
-                   int is_persistent)
+static int 
+stats_check_cb (void *cls, const char *subsystem,
+		const char *name, uint64_t value,
+		int is_persistent)
 {
   static int counter;
 
@@ -397,7 +400,8 @@ struct PONG
 GNUNET_NETWORK_STRUCT_END
 
 
-size_t send_transport_ping_cb (void *cls, size_t size, void *buf)
+static size_t 
+send_transport_ping_cb (void *cls, size_t size, void *buf)
 {
  struct PeerContainer * pc = cls;
  struct PING ping;
@@ -528,7 +532,8 @@ size_t send_transport_pong_cb (void *cls, size_t size, void *buf)
  return mlen;
 }
 
-size_t send_core_pong_cb (void *cls, size_t size, void *buf)
+static size_t 
+send_core_pong_cb (void *cls, size_t size, void *buf)
 {
 struct PeerContainer * pc = cls;
 struct PING ping;
@@ -769,7 +774,7 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   check_task = GNUNET_SCHEDULER_add_now (&map_check, &map_cleanup);
 }
 
-void
+static void
 transport_notify_connect_cb (void *cls,
                 const struct GNUNET_PeerIdentity
                 * peer,
@@ -790,7 +795,7 @@ transport_notify_connect_cb (void *cls,
  * @param cls closure
  * @param peer the peer that disconnected
  */
-void
+static void
 transport_notify_disconnect_cb (void *cls,
                                const struct
                                GNUNET_PeerIdentity * peer)
@@ -853,11 +858,12 @@ transport_notify_receive_cb (void *cls,
   }
 }
 
-int core_notify_receive_cb (void *cls,
-                                const struct GNUNET_PeerIdentity * peer,
-                                const struct GNUNET_MessageHeader * message,
-                                const struct GNUNET_ATS_Information* atsi,
-                                unsigned int atsi_count)
+static int 
+core_notify_receive_cb (void *cls,
+			const struct GNUNET_PeerIdentity * peer,
+			const struct GNUNET_MessageHeader * message,
+			const struct GNUNET_ATS_Information* atsi,
+			unsigned int atsi_count)
 {
   struct PeerContainer *pc = NULL;
 
