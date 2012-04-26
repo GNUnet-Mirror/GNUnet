@@ -461,6 +461,9 @@ create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
                 const void *addr, size_t addrlen,
                 GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls);
 
+int
+exist_session (struct Plugin *plugin, struct Session *s);
+
 struct GNUNET_TIME_Relative
 http_plugin_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
                      const struct GNUNET_MessageHeader *message,
