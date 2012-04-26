@@ -1017,6 +1017,8 @@ src/hello/Makefile
 src/include/Makefile
 src/include/gnunet_directories.h
 src/hostlist/Makefile
+src/lockmanager/Makefile
+src/lockmanager/lockmanager.conf
 src/mesh/Makefile
 src/mesh/mesh.conf
 src/mysql/Makefile
