@@ -606,6 +606,7 @@ connect_success_continuation (struct GNUNET_CONNECTION_Handle *connection)
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Connection succeeded, starting with receiving data (%p)\n", 
 	 connection);
+    GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == connection->read_task);
     connection->read_task =
       GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_absolute_get_remaining
                                      (connection->receive_timeout), connection->sock,
