@@ -1,0 +1,13 @@
+[lockmanager]
+AUTOSTART = YES
+@UNIXONLY@ PORT = 2100
+HOSTNAME = localhost
+HOME = $SERVICEHOME
+CONFIG = $DEFAULTCONFIG
+BINARY = gnunet-service-lockmanger
+ACCEPT_FROM = 127.0.0.1;
+ACCEPT_FROM6 = ::1;
+UNIXPATH = /tmp/gnunet-service-lockmanager.sock
+UNIX_MATCH_UID = YES
+UNIX_MATCH_GID = YES
+
