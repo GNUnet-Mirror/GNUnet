@@ -53,6 +53,11 @@ static char *name;
 static int persistent;
 
 /**
+ * Watch value continuously
+ */
+static int watch;
+
+/**
  * Quiet mode
  */
 static int quiet;
@@ -101,7 +106,14 @@ cleanup (void *cls, int success)
   if (h != NULL)
     GNUNET_STATISTICS_destroy (h, GNUNET_NO);
 }
-
+static void
+shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_STATISTICS_Handle *h = cls;
+  GNUNET_STATISTICS_watch_cancel (h, subsystem, name, &printer, h);
+  if (h != NULL)
+    GNUNET_STATISTICS_destroy (h, GNUNET_NO);
+}
 
 /**
  * Main function that will be run by the scheduler.
@@ -143,10 +155,26 @@ run (void *cls, char *const *args, const char *cfgfile,
     ret = 1;
     return;
   }
-  if (NULL ==
+  if (GNUNET_NO == watch)
+  {
+    if (NULL ==
       GNUNET_STATISTICS_get (h, subsystem, name, GET_TIMEOUT, &cleanup,
                              &printer, h))
     cleanup (h, GNUNET_SYSERR);
+  }
+  else
+  {
+    if ((NULL == subsystem) || (NULL == name))
+    {
+      printf (_("No subsystem or name given\n"));
+      if (h != NULL)
+        GNUNET_STATISTICS_destroy (h, GNUNET_NO);
+      ret = 1;
+      return;
+    }
+    GNUNET_STATISTICS_watch(h, subsystem, name, &printer, h);
+    GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task, h);
+  }
 }
 
 /**
@@ -172,6 +200,9 @@ main (int argc, char *const *argv)
     {'q', "quiet", NULL,
      gettext_noop ("just print the statistics value"), 0,
      &GNUNET_GETOPT_set_one, &quiet},
+    {'w', "watch", NULL,
+     gettext_noop ("watch value continously"), 0,
+     &GNUNET_GETOPT_set_one, &watch},
     GNUNET_GETOPT_OPTION_END
   };
   return (GNUNET_OK ==
