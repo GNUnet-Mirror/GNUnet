@@ -270,7 +270,7 @@ find_plugin (char * name)
 {
   struct TransportPlugin *cur = NULL;
 
-  for (cur = phead; cur != NULL; cur = phead)
+  for (cur = phead; cur != NULL; cur = cur->next)
   {
     if (0 == strcmp(name, cur->short_name))
       return cur;
