@@ -33,7 +33,7 @@
 #include "gnunet_namestore_service.h"
 #include "gnunet_dnsparser_lib.h"
 #include "namestore.h"
-#define DEBUG_GNS_API GNUNET_EXTRA_LOGGING
+
 
 #define LOG(kind,...) GNUNET_log_from (kind, "gns-api",__VA_ARGS__)
 
