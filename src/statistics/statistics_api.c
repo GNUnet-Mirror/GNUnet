@@ -1140,6 +1140,8 @@ GNUNET_STATISTICS_watch_cancel (struct GNUNET_STATISTICS_Handle *handle,
   for (i=0;i<handle->watches_size;i++)
   {
     w = handle->watches[i];
+    if (NULL == w)
+      continue;
     if ( (w->proc == proc) &&
 	 (w->proc_cls == proc_cls) &&
 	 (0 == strcmp (w->name, name)) &&
