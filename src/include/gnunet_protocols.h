@@ -1276,8 +1276,27 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_NAMESTORE_START 430
 
+/*******************************************************************************
+ * LOCKMANAGER message types
+ ******************************************************************************/
+
 /**
- *  Next available: 440
+ * Message to acquire Lock
+ */
+#define GNUNET_MESSAGE_TYPE_LOCKMANAGER_ACQUIRE 440
+
+/**
+ * Message to release lock
+ */
+#define GNUNET_MESSAGE_TYPE_LOCKMANAGER_RELEASE 441
+
+/**
+ * SUCESS reply from lockmanager
+ */
+#define GNUNET_MESSAGE_TYPE_LOCKMANAGER_SUCCESS 442
+
+/**
+ *  Next available: 450
  */
 
 /*******************************************************************************
