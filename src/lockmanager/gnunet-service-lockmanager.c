@@ -105,7 +105,7 @@ int main (int argc, char *const *argv)
 {
   int ret;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "main()\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "main()\n");
   ret = 
     (GNUNET_OK ==
      GNUNET_SERVICE_run (argc,
@@ -114,6 +114,6 @@ int main (int argc, char *const *argv)
                          GNUNET_SERVICE_OPTION_NONE,
                          &lockmanager_run,
                          NULL)) ? 0 : 1;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "main() END\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "main() END\n");
   return ret;
 }

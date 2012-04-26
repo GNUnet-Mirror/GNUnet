@@ -130,7 +130,7 @@ handle_server_crash (void *cls,
                      const struct GNUNET_MessageHeader *msg)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Lockmanger service went down\n");
+       "Lockmanager service not available or went down\n");
 
 }
 
@@ -179,11 +179,13 @@ GNUNET_LOCKMANAGER_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_LOCKMANAGER_Handle *h;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "%s()\n", __func__);
   h = GNUNET_malloc (sizeof (struct GNUNET_LOCKMANAGER_Handle));
   h->conn = GNUNET_CLIENT_connect ("lockmanager", cfg);
   if (NULL == h->conn)
     {
       GNUNET_free (h);
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "%s() END\n", __func__);
       return NULL;
     }
   
@@ -192,10 +194,13 @@ GNUNET_LOCKMANAGER_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
                          NULL,
                          GNUNET_TIME_UNIT_FOREVER_REL);
   
-  GNUNET_CLIENT_receive (h->conn,
-                         &handle_success,
-                         h,
-                         GNUNET_TIME_UNIT_FOREVER_REL);
+  /* FIXME: Assertions fail in client.c if trying to receive multiple messages */
+  /* GNUNET_CLIENT_receive (h->conn, */
+  /*                        &handle_success, */
+  /*                        h, */
+  /*                        GNUNET_TIME_UNIT_FOREVER_REL); */
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "%s() END\n", __func__);
   return h;
 }
 
@@ -208,8 +213,10 @@ GNUNET_LOCKMANAGER_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
 void
 GNUNET_LOCKMANAGER_disconnect (struct GNUNET_LOCKMANAGER_Handle *handle)
 {
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "%s()\n", __func__);
   GNUNET_CLIENT_disconnect (handle->conn);
   GNUNET_free (handle);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "%s() END\n", __func__);
 }
 
 
@@ -249,7 +256,7 @@ GNUNET_LOCKMANAGER_acquire_lock (struct GNUNET_LOCKMANAGER_Handle *handle,
   struct GNUNET_LOCKMANAGER_Message *msg;
   uint16_t msg_size;
   
-
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "%s()\n", __func__);
   r = GNUNET_malloc (sizeof (struct GNUNET_LOCKMANAGER_LockingRequest));
   r->domain_name_length = strlen (domain_name) + 1;
   r->handle = handle;
@@ -271,6 +278,7 @@ GNUNET_LOCKMANAGER_acquire_lock (struct GNUNET_LOCKMANAGER_Handle *handle,
                                          GNUNET_NO,
                                          *transmit_notify,
                                          msg);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "%s() END\n", __func__);
   return r;
 }
 
@@ -288,6 +296,7 @@ void
 GNUNET_LOCKMANAGER_cancel_request (struct GNUNET_LOCKMANAGER_LockingRequest
                                    *request)
 {
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "%s()\n", __func__);
   /* FIXME: Stop ACQUIRE retransmissions */
   if (GNUNET_LOCKMANAGER_SUCCESS == request->status)
     {
@@ -309,5 +318,6 @@ GNUNET_LOCKMANAGER_cancel_request (struct GNUNET_LOCKMANAGER_LockingRequest
                                            &transmit_notify,
                                            msg);
     }
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "%s() END\n", __func__);
   GNUNET_free (request);
 }

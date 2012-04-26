@@ -35,6 +35,8 @@ extern "C"
 #endif
 #endif
 
+#include "gnunet_configuration_lib.h"
+
 /**
  * Opaque handle for the lockmanager service
  */

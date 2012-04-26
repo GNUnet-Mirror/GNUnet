@@ -36,3 +36,19 @@ libgnunetlockmanager_la_LIBADD = \
 libgnunetlockmanager_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) $(WINFLAGS) \
   -version-info 0:0:0
+
+check_PROGRAMS = \
+  test-lockmanager-api
+
+EXTRA_DIST = \
+  test_lockmanager_api.conf
+
+if ENABLE_TEST_RUN
+TESTS = $(check_PROGRAMS)
+endif
+
+test_lockmanager_api_SOURCES = \
+  test_lockmanager_api.c
+test_lockmanager_api_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  libgnunetlockmanager.la
