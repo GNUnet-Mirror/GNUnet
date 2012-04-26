@@ -1470,6 +1470,24 @@ search_result_stop (void *cls, const GNUNET_HashCode * key, void *value)
   struct GNUNET_FS_SearchResult *sr = value;
   struct GNUNET_FS_ProgressInfo pi;
 
+  if (NULL != sr->download)
+  {
+    sr->download->search = NULL;
+    sr->download->top =
+        GNUNET_FS_make_top (sr->download->h,
+                            &GNUNET_FS_download_signal_suspend_, sr->download);
+    if (NULL != sr->download->serialization)
+    {
+      GNUNET_FS_remove_sync_file_ (sc->h, GNUNET_FS_SYNC_PATH_CHILD_DOWNLOAD,
+                                   sr->download->serialization);
+      GNUNET_free (sr->download->serialization);
+      sr->download->serialization = NULL;
+    }
+    pi.status = GNUNET_FS_STATUS_DOWNLOAD_LOST_PARENT;
+    GNUNET_FS_download_make_status_ (&pi, sr->download);
+    GNUNET_FS_download_sync_ (sr->download);
+    sr->download = NULL;
+  }
   pi.status = GNUNET_FS_STATUS_SEARCH_RESULT_STOPPED;
   pi.value.search.specifics.result_stopped.cctx = sr->client_info;
   pi.value.search.specifics.result_stopped.meta = sr->meta;
@@ -1490,28 +1508,8 @@ search_result_stop (void *cls, const GNUNET_HashCode * key, void *value)
 static int
 search_result_free (void *cls, const GNUNET_HashCode * key, void *value)
 {
-  struct GNUNET_FS_SearchContext *sc = cls;
   struct GNUNET_FS_SearchResult *sr = value;
-  struct GNUNET_FS_ProgressInfo pi;
 
-  if (NULL != sr->download)
-  {
-    sr->download->search = NULL;
-    sr->download->top =
-        GNUNET_FS_make_top (sr->download->h,
-                            &GNUNET_FS_download_signal_suspend_, sr->download);
-    if (NULL != sr->download->serialization)
-    {
-      GNUNET_FS_remove_sync_file_ (sc->h, GNUNET_FS_SYNC_PATH_CHILD_DOWNLOAD,
-                                   sr->download->serialization);
-      GNUNET_free (sr->download->serialization);
-      sr->download->serialization = NULL;
-    }
-    pi.status = GNUNET_FS_STATUS_DOWNLOAD_LOST_PARENT;
-    GNUNET_FS_download_make_status_ (&pi, sr->download);
-    GNUNET_FS_download_sync_ (sr->download);
-    sr->download = NULL;
-  }
   if (NULL != sr->update_search)
   {
     GNUNET_FS_search_stop (sr->update_search);
