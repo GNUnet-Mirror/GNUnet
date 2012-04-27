@@ -35,8 +35,8 @@
 #include "gnunet_statistics_service.h"
 
 
-#define CHECK_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
-#define STATS_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+#define CHECK_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
+#define STATS_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 #define REPEATED_STATS_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 #define STATS_VALUES 4
 
@@ -869,13 +869,13 @@ core_notify_receive_cb (void *cls,
 
   pc = GNUNET_CONTAINER_multihashmap_get(peers, &peer->hashPubKey);
 
-  if (NULL == pc)
+  if ((NULL == pc) && (0 != memcmp (peer, &my_peer_id, sizeof (my_peer_id))))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Received unexpected message type %u from unknown peer `%s'\n",
         ntohs (message->type),
         GNUNET_i2s (peer));
 
-
+    GNUNET_break (0);
     return GNUNET_OK;
   }
 
