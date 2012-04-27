@@ -1041,7 +1041,7 @@ unix_string_to_address (void *cls, const char *addr, uint16_t addrlen,
   //GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "`%s'\n", tmp);
 
   (*buf) = tmp;
-  (*added) = strlen (tmp);
+  (*added) = strlen (tmp) + 1;
   return GNUNET_OK;
 }
 
