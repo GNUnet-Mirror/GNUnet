@@ -653,6 +653,10 @@ disconnect_and_free_it (void *cls, const GNUNET_HashCode * key, void *value)
                                                        &s->target.hashPubKey,
                                                        s));
 
+  GNUNET_STATISTICS_set(plugin->env->stats,
+                        "# UDP sessions active",
+                        GNUNET_CONTAINER_multihashmap_size(plugin->sessions),
+                        GNUNET_NO);
 
   GNUNET_free (s);
   return GNUNET_OK;
@@ -876,6 +880,11 @@ udp_plugin_get_session (void *cls,
                                                     &s->target.hashPubKey,
                                                     s,
                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
+
+  GNUNET_STATISTICS_set(plugin->env->stats,
+                        "# UDP sessions active",
+                        GNUNET_CONTAINER_multihashmap_size(plugin->sessions),
+                        GNUNET_NO);
 
   return s;
 }
@@ -2104,6 +2113,8 @@ libgnunet_plugin_transport_udp_init (void *cls)
     api->string_to_address = &udp_string_to_address;
     return api;
   }
+
+  GNUNET_assert( NULL != env->stats);
 
   /* Get port number */
   if (GNUNET_OK !=

@@ -261,6 +261,11 @@ get_session_delete_it (void *cls, const GNUNET_HashCode * key, void *value)
   GNUNET_assert (GNUNET_YES ==
 		 GNUNET_CONTAINER_multihashmap_remove(plugin->session_map, &s->target.hashPubKey, s));
 
+  GNUNET_STATISTICS_set(plugin->env->stats,
+                        "# UNIX sessions active",
+                        GNUNET_CONTAINER_multihashmap_size(plugin->session_map),
+                        GNUNET_NO);
+
   GNUNET_free (s);
 
   return GNUNET_YES;
@@ -544,6 +549,12 @@ unix_plugin_get_session (void *cls,
   GNUNET_CONTAINER_multihashmap_put (plugin->session_map,
       &address->peer.hashPubKey, s,
       GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+
+  GNUNET_STATISTICS_set(plugin->env->stats,
+                        "# UNIX sessions active",
+                        GNUNET_CONTAINER_multihashmap_size(plugin->session_map),
+                        GNUNET_NO);
+
 #if DEBUG_UNIX
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Creating new session\n");
 #endif
@@ -1071,6 +1082,7 @@ libgnunet_plugin_transport_unix_init (void *cls)
     api->string_to_address = NULL; // FIXME!
     return api;
   }
+  GNUNET_assert( NULL != env->stats);
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (env->cfg, "transport-unix", "PORT",
