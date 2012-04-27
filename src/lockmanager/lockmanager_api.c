@@ -26,9 +26,11 @@
 
 #include "platform.h"
 #include "gnunet_common.h"
-#include "gnunet_protocols.h"
+#include "gnunet_container_lib.h"
 #include "gnunet_client_lib.h"
+#include "gnunet_crypto_lib.h"
 #include "gnunet_lockmanager_service.h"
+#include "gnunet_protocols.h"
 
 #include "lockmanager.h"
 
@@ -49,6 +51,11 @@ struct GNUNET_LOCKMANAGER_Handle
    * The client connection to the service
    */
   struct GNUNET_CLIENT_Connection *conn;
+
+  /**
+   * Hashmap handle
+   */
+  struct GNUNET_CONTAINER_MultiHashMap *hashmap;
 };
 
 
@@ -100,38 +107,22 @@ struct GNUNET_LOCKMANAGER_LockingRequest
 
 
 /**
- * Message handler for SUCCESS messages
+ * Handler for server replies
  *
  * @param cls the LOCKMANAGER_Handle
- * @param msg message received, NULL on timeout or fatal error
+ * @param msg received message, NULL on timeout or fatal error
  */
 static void 
-handle_success (void *cls,
+handle_replies (void *cls,
                 const struct GNUNET_MessageHeader *msg)
 {
   if (NULL == msg)
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Lockmanager service not available or went down\n");
     return;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Received SUCCESS message\n");
-}
-
-
-/**
- * We wait for DUMMY message which will never be sent by the server. However,
- * in case the server shuts-down/crashes/restarts we are notified by this call
- * back with a NULL for msg.
- *
- * @param cls closure
- * @param msg message received, NULL on timeout or fatal error
- */
-static void
-handle_server_crash (void *cls,
-                     const struct GNUNET_MessageHeader *msg)
-{
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Lockmanager service not available or went down\n");
-
 }
 
 
@@ -158,10 +149,65 @@ transmit_notify (void *cls, size_t size, void *buf)
   GNUNET_assert (size >= msg_size);
   memcpy (buf, msg, msg_size);
   GNUNET_free (msg);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Message of size %u sent\n", msg_size);
   return msg_size;
 }
 
 
+/**
+ * Iterator to free hash map entries.
+ *
+ * @param cls NULL
+ * @param key current key code
+ * @param value value in the hash map
+ * @return GNUNET_YES if we should continue to
+ *         iterate,
+ *         GNUNET_NO if not.
+ */
+static int
+free_iterator(void *cls,
+              const GNUNET_HashCode * key,
+              void *value)
+{
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Clearing locking request\n");
+  GNUNET_free (value);
+  return GNUNET_YES;
+}
+
+
+/**
+ * Generate hash with domain name and the lock
+ *
+ * @param domain NULL terminated domain name
+ *
+ * @param domain_length the length of the domain name including the terminating
+ *          NULL if already known; 0 to calculate
+ *
+ * @param lock the lock number
+ * @param where to write the generated hash
+ */
+static void
+hash_domain_and_lock (const char *domain,
+                      uint16_t domain_length,
+                      uint32_t lock,
+                      GNUNET_HashCode *ret)
+{
+  unsigned int str_len;
+  uint32_t *block;
+  size_t block_size;
+
+  str_len = (0 == domain_length) ? strlen (domain) : domain_length - 1;
+  block_size = sizeof (uint32_t) + str_len;
+  block = GNUNET_malloc (block_size);
+  /* Copy data */
+  *block = lock;
+  memcpy (&block[1], domain, str_len);
+  
+  GNUNET_CRYPTO_hash (block, block_size, ret);
+  GNUNET_free (block);
+}
 
 /*******************/
 /* API Definitions */
@@ -189,17 +235,14 @@ GNUNET_LOCKMANAGER_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
       return NULL;
     }
   
+  h->hashmap = GNUNET_CONTAINER_multihashmap_create (15);
+  GNUNET_assert (NULL != h->hashmap);
+
   GNUNET_CLIENT_receive (h->conn,
-                         &handle_server_crash,
+                         &handle_replies,
                          NULL,
                          GNUNET_TIME_UNIT_FOREVER_REL);
   
-  /* FIXME: Assertions fail in client.c if trying to receive multiple messages */
-  /* GNUNET_CLIENT_receive (h->conn, */
-  /*                        &handle_success, */
-  /*                        h, */
-  /*                        GNUNET_TIME_UNIT_FOREVER_REL); */
-
   LOG (GNUNET_ERROR_TYPE_DEBUG, "%s() END\n", __func__);
   return h;
 }
@@ -215,6 +258,18 @@ GNUNET_LOCKMANAGER_disconnect (struct GNUNET_LOCKMANAGER_Handle *handle)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG, "%s()\n", __func__);
   GNUNET_CLIENT_disconnect (handle->conn);
+  
+  if (0 != GNUNET_CONTAINER_multihashmap_size (handle->hashmap))
+    {
+      LOG (GNUNET_ERROR_TYPE_WARNING,
+           "Some locking requests are still present. Cancel them before "
+           "calling %s\n", __func__);
+      GNUNET_CONTAINER_multihashmap_iterate (handle->hashmap,
+                                             &free_iterator,
+                                             NULL);
+    }
+  GNUNET_CONTAINER_multihashmap_destroy (handle->hashmap);
+
   GNUNET_free (handle);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "%s() END\n", __func__);
 }
@@ -254,6 +309,7 @@ GNUNET_LOCKMANAGER_acquire_lock (struct GNUNET_LOCKMANAGER_Handle *handle,
 {
   struct GNUNET_LOCKMANAGER_LockingRequest *r;
   struct GNUNET_LOCKMANAGER_Message *msg;
+  struct GNUNET_HashCode hash;
   uint16_t msg_size;
   
   LOG (GNUNET_ERROR_TYPE_DEBUG, "%s()\n", __func__);
@@ -271,6 +327,7 @@ GNUNET_LOCKMANAGER_acquire_lock (struct GNUNET_LOCKMANAGER_Handle *handle,
   msg->lock = htonl (lock);
   memcpy (&msg[1], r->domain, r->domain_name_length);
   
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Queueing ACQUIRE message\n");
   r->transmit_handle =
     GNUNET_CLIENT_notify_transmit_ready (r->handle->conn,
                                          msg_size,
@@ -278,6 +335,15 @@ GNUNET_LOCKMANAGER_acquire_lock (struct GNUNET_LOCKMANAGER_Handle *handle,
                                          GNUNET_NO,
                                          *transmit_notify,
                                          msg);
+  hash_domain_and_lock (r->domain,
+                        r->domain_name_length,
+                        r->lock,
+                        &hash);
+  GNUNET_CONTAINER_multihashmap_put (r->handle->hashmap,
+                                     &hash,
+                                     r,
+                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+
   LOG (GNUNET_ERROR_TYPE_DEBUG, "%s() END\n", __func__);
   return r;
 }
@@ -296,6 +362,8 @@ void
 GNUNET_LOCKMANAGER_cancel_request (struct GNUNET_LOCKMANAGER_LockingRequest
                                    *request)
 {
+  struct GNUNET_HashCode hash;
+
   LOG (GNUNET_ERROR_TYPE_DEBUG, "%s()\n", __func__);
   /* FIXME: Stop ACQUIRE retransmissions */
   if (GNUNET_LOCKMANAGER_SUCCESS == request->status)
@@ -318,6 +386,16 @@ GNUNET_LOCKMANAGER_cancel_request (struct GNUNET_LOCKMANAGER_LockingRequest
                                            &transmit_notify,
                                            msg);
     }
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "%s() END\n", __func__);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "%s() END\n", __func__);
+  
+  hash_domain_and_lock (request->domain,
+                        request->domain_name_length,
+                        request->lock,
+                        &hash);
+
+  GNUNET_assert (GNUNET_YES ==
+                 GNUNET_CONTAINER_multihashmap_remove
+                 (request->handle->hashmap, &hash, request));
+  
   GNUNET_free (request);
 }
