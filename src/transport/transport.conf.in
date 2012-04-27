@@ -9,7 +9,7 @@ BINARY = gnunet-service-transport
 NEIGHBOUR_LIMIT = 50
 ACCEPT_FROM = 127.0.0.1;
 ACCEPT_FROM6 = ::1;
-PLUGINS = tcp
+PLUGINS = tcp udp unix
 UNIXPATH = /tmp/gnunet-service-transport.sock
 BLACKLIST_FILE = $SERVICEHOME/blacklist
 # This could possibly be relaxed
@@ -25,6 +25,8 @@ UNIX_MATCH_GID = YES
 # REJECT_FROM6 =
 # PREFIX = valgrind --leak-check=full
 
+[transport-unix]
+PORT = 22086
 
 [transport-tcp]
 # Use 0 to ONLY advertise as a peer behind NAT (no port binding)
