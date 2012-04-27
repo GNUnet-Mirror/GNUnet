@@ -214,7 +214,7 @@ on_lookup_result(void *cls, uint32_t rd_count,
  * tries to look up the dns record for TEST_DOMAIN
  */
 static void
-commence_testing (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+commence_testing (void *cls, int success)
 {
   GNUNET_SCHEDULER_add_now(disco_dht, NULL);
   //GNUNET_DHT_disconnect(dht_handle);
