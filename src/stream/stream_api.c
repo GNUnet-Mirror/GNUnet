@@ -1498,7 +1498,7 @@ client_handle_reset (void *cls,
                      const struct GNUNET_MessageHeader *message,
                      const struct GNUNET_ATS_Information*atsi)
 {
-  struct GNUNET_STREAM_Socket *socket = cls;
+  // struct GNUNET_STREAM_Socket *socket = cls;
 
   return GNUNET_OK;
 }
@@ -2141,7 +2141,7 @@ server_handle_reset (void *cls,
                      const struct GNUNET_MessageHeader *message,
                      const struct GNUNET_ATS_Information*atsi)
 {
-  struct GNUNET_STREAM_Socket *socket = *tunnel_ctx;
+  // struct GNUNET_STREAM_Socket *socket = *tunnel_ctx;
 
   return GNUNET_OK;
 }
