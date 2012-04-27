@@ -289,7 +289,7 @@ do_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Schedule the GET request for some time in the future.
  */
 static void
-put_finished (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+put_finished (void *cls, int success)
 {
   GNUNET_SCHEDULER_cancel (die_task);
   die_task =
