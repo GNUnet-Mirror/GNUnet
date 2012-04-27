@@ -45,7 +45,7 @@
 #define DEBUG_HTTP GNUNET_EXTRA_LOGGING
 #define VERBOSE_SERVER GNUNET_EXTRA_LOGGING
 #define VERBOSE_CLIENT GNUNET_EXTRA_LOGGING
-#define VERBOSE_CURL GNUNET_EXTRA_LOGGING
+#define VERBOSE_CURL GNUNET_NO
 
 #if BUILD_HTTPS
 #define LIBGNUNET_PLUGIN_TRANSPORT_INIT libgnunet_plugin_transport_https_init
@@ -158,6 +158,16 @@ struct Plugin
    * Each http inbound /outbound connections are two connections
    */
   int max_connections;
+
+  /**
+   * Number of outbound sessions
+   */
+  unsigned int outbound_sessions;
+
+  /**
+   * Number of inbound sessions
+   */
+  unsigned int inbound_sessions;
 
   /**
    * Plugin HTTPS SSL/TLS options
@@ -452,6 +462,9 @@ struct HTTP_Message
    */
   void *transmit_cont_cls;
 };
+
+int
+exist_session (struct Plugin *plugin, struct Session *s);
 
 void
 delete_session (struct Session *s);

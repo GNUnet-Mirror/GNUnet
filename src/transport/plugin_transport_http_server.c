@@ -419,12 +419,12 @@ server_lookup_session (struct Plugin *plugin,
 
   plugin->cur_connections++;
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                   "Server: New inbound connection from %s with tag %u\n",
+                   "Server: New %s connection from %s with tag %u\n",
+                   method,
                    GNUNET_i2s (&target), tag);
+
   /* find duplicate session */
-
   t = plugin->head;
-
   while (t != NULL)
   {
     if ((t->inbound) &&
@@ -480,6 +480,13 @@ server_lookup_session (struct Plugin *plugin,
                      "Server: Found matching semi-session, merging session for peer `%s'\n",
                      GNUNET_i2s (&target));
 
+    GNUNET_break (0);
+    plugin->inbound_sessions ++;
+    GNUNET_STATISTICS_set (plugin->env->stats,
+        "# HTTP inbound sessions",
+        plugin->inbound_sessions,
+        GNUNET_NO);
+
     goto found;
   }
   if ((direction == _RECEIVE) && (t->server_recv != NULL))
@@ -498,6 +505,14 @@ server_lookup_session (struct Plugin *plugin,
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                      "Server: Found matching semi-session, merging session for peer `%s'\n",
                      GNUNET_i2s (&target));
+
+    GNUNET_break (0);
+    plugin->inbound_sessions ++;
+    GNUNET_STATISTICS_set (plugin->env->stats,
+        "# HTTP inbound sessions",
+        plugin->inbound_sessions,
+        GNUNET_NO);
+
     goto found;
   }
 
@@ -741,7 +756,7 @@ server_disconnect_cb (void *cls, struct MHD_Connection *connection,
   struct Session *s = NULL;
   struct Session *t = NULL;
   struct Plugin *plugin = NULL;
-
+GNUNET_break (0);
   if (sc == NULL)
     return;
 
@@ -828,6 +843,12 @@ server_disconnect_cb (void *cls, struct MHD_Connection *connection,
       GNUNET_SERVER_mst_destroy (s->msg_tk);
       s->msg_tk = NULL;
     }
+
+    GNUNET_assert (plugin->inbound_sessions > 0);
+    plugin->inbound_sessions --;
+    GNUNET_STATISTICS_set (plugin->env->stats,
+        "# HTTP inbound sessions",
+        plugin->inbound_sessions, GNUNET_NO);
 
     notify_session_end (s->plugin, &s->target, s);
   }

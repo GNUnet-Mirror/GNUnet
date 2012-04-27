@@ -772,7 +772,7 @@ http_plugin_send (void *cls,
   {
 #if DEBUG_HTTP
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                     "Using outbound client session %p to send to `%session'\n", session,
+                     "Using outbound client session %p to send to `%s'\n", session,
                      GNUNET_i2s (&session->target));
 #endif
 
@@ -783,7 +783,7 @@ http_plugin_send (void *cls,
   {
 #if DEBUG_HTTP
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                     "Using inbound server %p session to send to `%session'\n", session,
+                     "Using inbound server %p session to send to `%s'\n", session,
                      GNUNET_i2s (&session->target));
 #endif
 
@@ -1477,6 +1477,8 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
 
   plugin = GNUNET_malloc (sizeof (struct Plugin));
   plugin->env = env;
+  plugin->outbound_sessions = 0;
+  plugin->inbound_sessions = 0;
   api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
   api->cls = plugin;
   api->disconnect = &http_plugin_disconnect;

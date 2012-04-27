@@ -264,11 +264,9 @@ client_disconnect (struct Session *s)
 
   if (s->client_put != NULL)
   {
-#if DEBUG_HTTP
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                      "Client: %X Deleting outbound PUT session to peer `%s'\n",
                      s->client_put, GNUNET_i2s (&s->target));
-#endif
 
     mret = curl_multi_remove_handle (plugin->client_mh, s->client_put);
     if (mret != CURLM_OK)
@@ -290,11 +288,9 @@ client_disconnect (struct Session *s)
 
   if (s->client_get != NULL)
   {
-#if DEBUG_HTTP
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                      "Client: %X Deleting outbound GET session to peer `%s'\n",
                      s->client_get, GNUNET_i2s (&s->target));
-#endif
 
     mret = curl_multi_remove_handle (plugin->client_mh, s->client_get);
     if (mret != CURLM_OK)
@@ -319,6 +315,14 @@ client_disconnect (struct Session *s)
   }
 
   plugin->cur_connections -= 2;
+
+  GNUNET_assert (plugin->outbound_sessions > 0);
+  plugin->outbound_sessions --;
+  GNUNET_STATISTICS_set (plugin->env->stats,
+      "# HTTP outbound sessions",
+      plugin->outbound_sessions,
+      GNUNET_NO);
+
   /* Re-schedule since handles have changed */
   if (plugin->client_perform_task != GNUNET_SCHEDULER_NO_TASK)
   {
@@ -633,6 +637,12 @@ client_connect (struct Session *s)
 
   /* Perform connect */
   plugin->cur_connections += 2;
+
+  plugin->outbound_sessions ++;
+  GNUNET_STATISTICS_set (plugin->env->stats,
+      "# HTTP outbound sessions",
+      plugin->outbound_sessions,
+      GNUNET_NO);
 
   /* Re-schedule since handles have changed */
   if (plugin->client_perform_task != GNUNET_SCHEDULER_NO_TASK)
