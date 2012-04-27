@@ -321,10 +321,13 @@ unix_transport_server_stop (void *cls)
     plugin->select_task = GNUNET_SCHEDULER_NO_TASK;
   }
 
-  GNUNET_break (GNUNET_OK ==
-                GNUNET_NETWORK_socket_close (plugin->unix_sock.desc));
-  plugin->unix_sock.desc = NULL;
-  plugin->with_ws = GNUNET_NO;
+  if (NULL != plugin->unix_sock.desc)
+  {
+    GNUNET_break (GNUNET_OK ==
+                  GNUNET_NETWORK_socket_close (plugin->unix_sock.desc));
+    plugin->unix_sock.desc = NULL;
+    plugin->with_ws = GNUNET_NO;
+  }
   return GNUNET_OK;
 }
 
