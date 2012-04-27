@@ -1034,14 +1034,14 @@ unix_string_to_address (void *cls, const char *addr, uint16_t addrlen,
     return GNUNET_SYSERR;
   }
 
-  if ((strlen (addr) + 1) != addrlen)
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
+  char * tmp = GNUNET_malloc (addrlen + 1);
+  memcpy (tmp, addr, addrlen);
+  tmp[addrlen] = '\0';
 
-  (*buf) = GNUNET_strdup (addr);
-  (*added) = strlen (addr) + 1;
+  //GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "`%s'\n", tmp);
+
+  (*buf) = tmp;
+  (*added) = strlen (tmp);
   return GNUNET_OK;
 }
 
