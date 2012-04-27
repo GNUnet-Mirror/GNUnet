@@ -448,9 +448,13 @@ unix_real_send (void *cls,
       if (GNUNET_NETWORK_socket_setsockopt
           ((struct GNUNET_NETWORK_Handle *) send_handle, SOL_SOCKET, SO_SNDBUF,
            &size, sizeof (size)) == GNUNET_OK)
-        retry = GNUNET_YES;
+      {
+        sent = GNUNET_NETWORK_socket_sendto (send_handle, msgbuf, msgbuf_size, sb, sbs);
+      }
       else
+      {
         GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "setsockopt");
+      }
     }
   }
 
