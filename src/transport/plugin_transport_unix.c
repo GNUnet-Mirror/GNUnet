@@ -242,6 +242,8 @@ struct Plugin
    * ATS network
    */
   struct GNUNET_ATS_Information ats_network;
+
+  unsigned int bytes_in_queue;
 };
 
 
@@ -632,6 +634,7 @@ unix_plugin_send (void *cls,
           sizeof (struct GNUNET_PeerIdentity));
   memcpy (&message[1], msgbuf, msgbuf_size);
 
+
   wrapper = GNUNET_malloc (sizeof (struct UNIXMessageWrapper));
   wrapper->msg = message;
   wrapper->msgsize = ssize;
@@ -642,6 +645,10 @@ unix_plugin_send (void *cls,
   wrapper->session = session;
 
   GNUNET_CONTAINER_DLL_insert(plugin->msg_head, plugin->msg_tail, wrapper);
+
+  plugin->bytes_in_queue += ssize;
+  GNUNET_STATISTICS_set (plugin->env->stats,"# UNIX bytes in send queue",
+      plugin->bytes_in_queue, GNUNET_NO);
 
 #if DEBUG_UNIX
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sent %d bytes to `%s'\n", ssize,
@@ -788,6 +795,12 @@ unix_plugin_select_write (struct Plugin * plugin)
   if (sent > 0)
   {
     GNUNET_CONTAINER_DLL_remove(plugin->msg_head, plugin->msg_tail, msgw);
+
+    GNUNET_assert (plugin->bytes_in_queue > msgw->msgsize);
+    plugin->bytes_in_queue -= msgw->msgsize;
+    GNUNET_STATISTICS_set (plugin->env->stats,"# UNIX bytes in send queue",
+        plugin->bytes_in_queue, GNUNET_NO);
+
     GNUNET_free (msgw->msg);
     GNUNET_free (msgw);
     return;
@@ -797,6 +810,12 @@ unix_plugin_select_write (struct Plugin * plugin)
   if (sent == -1)
   {
     GNUNET_CONTAINER_DLL_remove(plugin->msg_head, plugin->msg_tail, msgw);
+
+    GNUNET_assert (plugin->bytes_in_queue > msgw->msgsize);
+    plugin->bytes_in_queue -= msgw->msgsize;
+    GNUNET_STATISTICS_set (plugin->env->stats,"# UNIX bytes in send queue",
+        plugin->bytes_in_queue, GNUNET_NO);
+
     GNUNET_free (msgw->msg);
     GNUNET_free (msgw);
     return;
@@ -1079,7 +1098,7 @@ libgnunet_plugin_transport_unix_init (void *cls)
     api->cls = NULL;
     api->address_pretty_printer = &unix_plugin_address_pretty_printer;
     api->address_to_string = &unix_address_to_string;
-    api->string_to_address = NULL; // FIXME!
+    api->string_to_address = &unix_string_to_address;
     return api;
   }
   GNUNET_assert( NULL != env->stats);
