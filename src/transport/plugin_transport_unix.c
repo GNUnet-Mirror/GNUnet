@@ -803,7 +803,7 @@ unix_plugin_select_write (struct Plugin * plugin)
   {
     GNUNET_CONTAINER_DLL_remove(plugin->msg_head, plugin->msg_tail, msgw);
 
-    GNUNET_assert (plugin->bytes_in_queue > msgw->msgsize);
+    GNUNET_assert (plugin->bytes_in_queue >= msgw->msgsize);
     plugin->bytes_in_queue -= msgw->msgsize;
     GNUNET_STATISTICS_set (plugin->env->stats,"# UNIX bytes in send queue",
         plugin->bytes_in_queue, GNUNET_NO);
@@ -818,7 +818,7 @@ unix_plugin_select_write (struct Plugin * plugin)
   {
     GNUNET_CONTAINER_DLL_remove(plugin->msg_head, plugin->msg_tail, msgw);
 
-    GNUNET_assert (plugin->bytes_in_queue > msgw->msgsize);
+    GNUNET_assert (plugin->bytes_in_queue >= msgw->msgsize);
     plugin->bytes_in_queue -= msgw->msgsize;
     GNUNET_STATISTICS_set (plugin->env->stats,"# UNIX bytes in send queue",
         plugin->bytes_in_queue, GNUNET_NO);
