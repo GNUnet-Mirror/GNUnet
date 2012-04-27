@@ -230,8 +230,8 @@ check_lowlevel_connections (int port, int protocol)
       break;
   }
 
-
-  GNUNET_asprintf(&cmdline, "netstat -n %s | grep %u", proto, port);
+  /* Use netstat to get a numeric list of all connections on port 'port' in state 'ESTABLISHED' */
+  GNUNET_asprintf(&cmdline, "netstat -n %s | grep %u | grep ESTABLISHED", proto, port);
 
   if (system ("netstat -n > /dev/null 2> /dev/null"))
     if (system ("netstat -n > /dev/null 2> /dev/null") == 0)
@@ -871,7 +871,11 @@ core_notify_receive_cb (void *cls,
 
   if (NULL == pc)
   {
-    GNUNET_break (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Received unexpected message type %u from unknown peer `%s'\n",
+        ntohs (message->type),
+        GNUNET_i2s (peer));
+
+
     return GNUNET_OK;
   }
 
