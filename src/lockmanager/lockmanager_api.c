@@ -207,7 +207,7 @@ handle_replies (void *cls,
       {
         struct GNUNET_LOCKMANAGER_LockingRequest *r = value;
         
-        if ( !((0 != strcmp (domain, r->domain))
+        if ( !((0 == strcmp (domain, r->domain))
                && (lock == r->lock)))
           return GNUNET_YES;
         
@@ -403,6 +403,8 @@ GNUNET_LOCKMANAGER_acquire_lock (struct GNUNET_LOCKMANAGER_Handle *handle,
   r->lock = lock;
   r->domain = GNUNET_malloc (r->domain_name_length);
   r->status = GNUNET_LOCKMANAGER_RELEASE;
+  r->status_cb = status_cb;
+  r->status_cb_cls = status_cb_cls;
   memcpy (r->domain, domain_name, r->domain_name_length);
   
   msg_size = sizeof (struct GNUNET_LOCKMANAGER_Message) + r->domain_name_length;

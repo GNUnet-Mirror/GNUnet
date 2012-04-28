@@ -64,6 +64,11 @@ static struct GNUNET_LOCKMANAGER_Handle *handle;
 static struct GNUNET_LOCKMANAGER_LockingRequest *request;
 
 /**
+ * Abort task identifier
+ */
+static GNUNET_SCHEDULER_TaskIdentifier abort_task_id;
+
+/**
  * Shutdown nicely
  *
  * @param cls
@@ -72,6 +77,12 @@ static struct GNUNET_LOCKMANAGER_LockingRequest *request;
 static void
 do_shutdown (void *cls, const const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  if (GNUNET_SCHEDULER_NO_TASK != abort_task_id)
+    {
+      GNUNET_SCHEDULER_cancel (abort_task_id);
+      abort_task_id = GNUNET_SCHEDULER_NO_TASK;
+    }
+  
   if (NULL != request)
     {
       GNUNET_LOCKMANAGER_cancel_request (request);
@@ -99,6 +110,7 @@ do_shutdown (void *cls, const const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 do_abort (void *cls, const const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  abort_task_id = GNUNET_SCHEDULER_NO_TASK;
   result = GNUNET_SYSERR;
   do_shutdown (cls, tc);
 }
@@ -144,9 +156,9 @@ test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                              99,
                                              &status_cb,
                                              NULL);
-  GNUNET_SCHEDULER_add_delayed (TIME_REL_SECONDS (10),
-                                &do_abort,
-                                NULL);
+  abort_task_id = GNUNET_SCHEDULER_add_delayed (TIME_REL_SECONDS (10),
+                                                &do_abort,
+                                                NULL);
 }
 
 
