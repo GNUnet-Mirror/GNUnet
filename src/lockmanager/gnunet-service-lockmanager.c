@@ -35,21 +35,72 @@
 #define LOG(kind,...) \
   GNUNET_log_from (kind, "gnunet-service-lockmanager",__VA_ARGS__)
 
+#define TIME_REL_MINS(min) \
+  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, min)
+
+#define TIMEOUT TIME_REL_MINS(3)
+
+/**
+ * Transmit notify for sending message to client
+ *
+ * @param cls the message to send
+ * @param size number of bytes available in buf
+ * @param buf where the callee should write the message
+ * @return number of bytes written to buf
+ */
+static size_t 
+transmit_notify (void *cls, size_t size, void *buf)
+{
+  struct GNUNET_LOCKMANAGER_Message *msg = cls;
+  uint16_t msg_size;
+
+  if ((0 == size) || (NULL == buf))
+    {
+      /* FIXME: Timed out -- requeue? */
+      return 0;
+    }
+  msg_size = ntohs (msg->header.size);
+  GNUNET_assert (size >= msg_size);
+  memcpy (buf, msg, msg_size);
+  GNUNET_free (msg);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Message of size %u sent\n", msg_size);
+  return msg_size;
+}
+
 
 /**
  * Handler for GNUNET_MESSAGE_TYPE_LOCKMANAGER_ACQUIRE
  *
- * @param 
- * @return 
+ * @param cls NULL
+ * @param client the client sending this message
+ * @param message GNUNET_MESSAGE_TYPE_LOCKMANAGER_ACQUIRE message
  */
 static void
 handle_acquire (void *cls,
                 struct GNUNET_SERVER_Client *client,
                 const struct GNUNET_MessageHeader *message)
 {
-  // const struct GNUNET_LOCKMANAGER_Message *msg = message;
+  const struct GNUNET_LOCKMANAGER_Message *request;
+  struct GNUNET_LOCKMANAGER_Message *reply;
+  int16_t request_size;
+  
+
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Received a ACQUIRE message\n");
+       "Received an ACQUIRE message\n");
+  
+  request = (struct GNUNET_LOCKMANAGER_Message *) message;
+
+  /* FIXME: Dummy implementation; just echos success for every lock */
+  request_size = ntohs (message->size);
+  reply = GNUNET_malloc (request_size);
+  memcpy (reply, request, request_size);
+  reply->header.type = htons (GNUNET_MESSAGE_TYPE_LOCKMANAGER_SUCCESS);
+  GNUNET_SERVER_notify_transmit_ready (client,
+                                       request_size,
+                                       TIMEOUT,
+                                       &transmit_notify,
+                                       reply);
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
@@ -85,7 +136,7 @@ lockmanager_run (void *cls,
                  struct GNUNET_SERVER_Handle * server,
                  const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  struct GNUNET_SERVER_MessageHandler message_handlers[] =
+  static const struct GNUNET_SERVER_MessageHandler message_handlers[] =
     {
       {&handle_acquire, NULL, GNUNET_MESSAGE_TYPE_LOCKMANAGER_ACQUIRE, 0},
       {&handle_release, NULL, GNUNET_MESSAGE_TYPE_LOCKMANAGER_RELEASE, 0},

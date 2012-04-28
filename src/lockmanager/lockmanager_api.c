@@ -107,6 +107,63 @@ struct GNUNET_LOCKMANAGER_LockingRequest
 
 
 /**
+ * Generate hash with domain name and the lock
+ *
+ * @param domain NULL terminated domain name
+ *
+ * @param domain_length the length of the domain name including the terminating
+ *          NULL if already known; 0 to calculate
+ *
+ * @param lock the lock number
+ * @param where to write the generated hash
+ */
+static void
+hash_domain_and_lock (const char *domain,
+                      uint16_t domain_length,
+                      uint32_t lock,
+                      GNUNET_HashCode *ret)
+{
+  unsigned int str_len;
+  uint32_t *block;
+  size_t block_size;
+
+  str_len = (0 == domain_length) ? strlen (domain) : domain_length - 1;
+  block_size = sizeof (uint32_t) + str_len;
+  block = GNUNET_malloc (block_size);
+  /* Copy data */
+  *block = lock;
+  memcpy (&block[1], domain, str_len);
+  
+  GNUNET_CRYPTO_hash (block, block_size, ret);
+  GNUNET_free (block);
+}
+
+
+/**
+ * Task for calling status change callback for a lock
+ *
+ * @param cls the LockingRequest associated with this lock
+ * @param tc the TaskScheduler context
+ */
+static void
+call_status_cb_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  const struct GNUNET_LOCKMANAGER_LockingRequest *r = cls;
+
+  if (NULL != r->status_cb)
+    {
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Calling status change callback for lock: %d in domain: %s\n",
+           r->lock, r->domain);
+      r->status_cb (r->status_cb_cls,
+                    r->domain,
+                    r->lock,
+                    r->status);
+    }
+}
+
+
+/**
  * Handler for server replies
  *
  * @param cls the LOCKMANAGER_Handle
@@ -116,13 +173,68 @@ static void
 handle_replies (void *cls,
                 const struct GNUNET_MessageHeader *msg)
 {
-  if (NULL == msg)
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Lockmanager service not available or went down\n");
-    return;
+  struct GNUNET_LOCKMANAGER_Handle *handle = cls;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Received SUCCESS message\n");
+  if (NULL == msg)
+    {
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Lockmanager service not available or went down\n");
+      return;
+    }
+
+  switch (ntohs (msg->type))
+    {
+    case GNUNET_MESSAGE_TYPE_LOCKMANAGER_SUCCESS:
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Received SUCCESS message\n");
+
+      const struct GNUNET_LOCKMANAGER_Message *m;
+      const char *domain;
+      struct GNUNET_HashCode hash;
+      uint32_t lock;
+      int match_found;
+
+      m = (struct GNUNET_LOCKMANAGER_Message *) msg;
+      domain = (char *) &m[1];
+      lock = ntohl (m->lock);
+      hash_domain_and_lock (domain, 0, lock, &hash);
+      
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "\t on lock: %d in domain %s\n",
+           lock, domain);
+
+      int match_iterator(void *cls, const GNUNET_HashCode *key, void *value)
+      {
+        struct GNUNET_LOCKMANAGER_LockingRequest *r = value;
+        
+        if ( !((0 != strcmp (domain, r->domain))
+               && (lock == r->lock)))
+          return GNUNET_YES;
+        
+        match_found = GNUNET_YES;
+        if (GNUNET_LOCKMANAGER_SUCCESS != r->status)
+          {
+            LOG (GNUNET_ERROR_TYPE_DEBUG,
+                 "Changing status for lock: %d in domain: %s to SUCCESS\n",
+                 r->lock, r->domain);
+            r->status = GNUNET_LOCKMANAGER_SUCCESS;
+            GNUNET_SCHEDULER_add_continuation (&call_status_cb_task,
+                                               r,
+                                               GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+          }
+        return GNUNET_NO;
+      }
+      
+      match_found = GNUNET_NO;
+      GNUNET_CONTAINER_multihashmap_get_multiple (handle->hashmap,
+                                                  &hash,
+                                                  &match_iterator,
+                                                  NULL);
+      GNUNET_assert (GNUNET_YES == match_found);
+      break;
+    default:
+      GNUNET_break(0);
+    }
 }
 
 
@@ -160,7 +272,7 @@ transmit_notify (void *cls, size_t size, void *buf)
  *
  * @param cls NULL
  * @param key current key code
- * @param value value in the hash map
+ * @param value the Locking request
  * @return GNUNET_YES if we should continue to
  *         iterate,
  *         GNUNET_NO if not.
@@ -170,48 +282,20 @@ free_iterator(void *cls,
               const GNUNET_HashCode * key,
               void *value)
 {
+  struct GNUNET_LOCKMANAGER_LockingRequest *r = value;
+
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Clearing locking request\n");
-  GNUNET_free (value);
+  GNUNET_free (r->domain);
+  GNUNET_free (r);
   return GNUNET_YES;
 }
 
 
-/**
- * Generate hash with domain name and the lock
- *
- * @param domain NULL terminated domain name
- *
- * @param domain_length the length of the domain name including the terminating
- *          NULL if already known; 0 to calculate
- *
- * @param lock the lock number
- * @param where to write the generated hash
- */
-static void
-hash_domain_and_lock (const char *domain,
-                      uint16_t domain_length,
-                      uint32_t lock,
-                      GNUNET_HashCode *ret)
-{
-  unsigned int str_len;
-  uint32_t *block;
-  size_t block_size;
-
-  str_len = (0 == domain_length) ? strlen (domain) : domain_length - 1;
-  block_size = sizeof (uint32_t) + str_len;
-  block = GNUNET_malloc (block_size);
-  /* Copy data */
-  *block = lock;
-  memcpy (&block[1], domain, str_len);
-  
-  GNUNET_CRYPTO_hash (block, block_size, ret);
-  GNUNET_free (block);
-}
-
 /*******************/
 /* API Definitions */
 /*******************/
+
 
 /**
  * Connect to the lockmanager service
@@ -240,7 +324,7 @@ GNUNET_LOCKMANAGER_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
 
   GNUNET_CLIENT_receive (h->conn,
                          &handle_replies,
-                         NULL,
+                         h,
                          GNUNET_TIME_UNIT_FOREVER_REL);
   
   LOG (GNUNET_ERROR_TYPE_DEBUG, "%s() END\n", __func__);
@@ -318,6 +402,7 @@ GNUNET_LOCKMANAGER_acquire_lock (struct GNUNET_LOCKMANAGER_Handle *handle,
   r->handle = handle;
   r->lock = lock;
   r->domain = GNUNET_malloc (r->domain_name_length);
+  r->status = GNUNET_LOCKMANAGER_RELEASE;
   memcpy (r->domain, domain_name, r->domain_name_length);
   
   msg_size = sizeof (struct GNUNET_LOCKMANAGER_Message) + r->domain_name_length;
@@ -332,8 +417,8 @@ GNUNET_LOCKMANAGER_acquire_lock (struct GNUNET_LOCKMANAGER_Handle *handle,
     GNUNET_CLIENT_notify_transmit_ready (r->handle->conn,
                                          msg_size,
                                          TIMEOUT,
-                                         GNUNET_NO,
-                                         *transmit_notify,
+                                         GNUNET_YES,
+                                         &transmit_notify,
                                          msg);
   hash_domain_and_lock (r->domain,
                         r->domain_name_length,
@@ -386,8 +471,7 @@ GNUNET_LOCKMANAGER_cancel_request (struct GNUNET_LOCKMANAGER_LockingRequest
                                            &transmit_notify,
                                            msg);
     }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "%s() END\n", __func__);
-  
+    
   hash_domain_and_lock (request->domain,
                         request->domain_name_length,
                         request->lock,
@@ -396,6 +480,8 @@ GNUNET_LOCKMANAGER_cancel_request (struct GNUNET_LOCKMANAGER_LockingRequest
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multihashmap_remove
                  (request->handle->hashmap, &hash, request));
-  
+
+  GNUNET_free (request->domain);
   GNUNET_free (request);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "%s() END\n", __func__);
 }
