@@ -83,11 +83,6 @@ do_shutdown (void *cls, const const struct GNUNET_SCHEDULER_TaskContext *tc)
       abort_task_id = GNUNET_SCHEDULER_NO_TASK;
     }
   
-  if (NULL != request)
-    {
-      GNUNET_LOCKMANAGER_cancel_request (request);
-      request = NULL;
-    }
   GNUNET_LOCKMANAGER_disconnect (handle);
   if (0 != GNUNET_OS_process_kill (arm_pid, SIGTERM))
     {
@@ -96,6 +91,10 @@ do_shutdown (void *cls, const const struct GNUNET_SCHEDULER_TaskContext *tc)
     }
   GNUNET_OS_process_wait (arm_pid);
   GNUNET_OS_process_close (arm_pid);
+
+  if (NULL != config)
+    GNUNET_CONFIGURATION_destroy (config);
+
   if (GNUNET_SYSERR != result)
     result = GNUNET_OK;
 }
@@ -133,6 +132,11 @@ status_cb (void *cls,
            uint32_t lock,
            enum GNUNET_LOCKMANAGER_Status status)
 {
+  if (NULL != request)
+    {
+      GNUNET_LOCKMANAGER_cancel_request (request);
+      request = NULL;
+    }
   GNUNET_SCHEDULER_add_delayed (TIME_REL_SECONDS (1),
                                 &do_shutdown,
                                 NULL);
