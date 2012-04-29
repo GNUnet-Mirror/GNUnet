@@ -28,12 +28,12 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_lockmanager_service.h"
 
-#define VERBOSE 1
+#define VERBOSE GNUNET_YES
 
 #define VERBOSE_ARM 1
 
 #define LOG(kind,...) \
-  GNUNET_log_from (kind, "test-lockmanager-api",__VA_ARGS__)
+  GNUNET_log (kind, __VA_ARGS__)
 
 #define TIME_REL_SECONDS(min) \
   GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, min)
@@ -109,6 +109,7 @@ do_shutdown (void *cls, const const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 do_abort (void *cls, const const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Aborting test...\n");
   abort_task_id = GNUNET_SCHEDULER_NO_TASK;
   result = GNUNET_SYSERR;
   do_shutdown (cls, tc);
@@ -132,11 +133,14 @@ status_cb (void *cls,
            uint32_t lock,
            enum GNUNET_LOCKMANAGER_Status status)
 {
-  if (NULL != request)
-    {
-      GNUNET_LOCKMANAGER_cancel_request (request);
-      request = NULL;
-    }
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Status change callback called on lock: %d of domain: %s\n",
+       lock, domain_name);
+  GNUNET_assert (GNUNET_LOCKMANAGER_SUCCESS == status);
+  GNUNET_assert (NULL != request);
+  GNUNET_LOCKMANAGER_cancel_request (request);
+  request = NULL;
+  
   GNUNET_SCHEDULER_add_delayed (TIME_REL_SECONDS (1),
                                 &do_shutdown,
                                 NULL);
@@ -173,6 +177,7 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Starting test...\n");
   config = GNUNET_CONFIGURATION_dup (cfg);
   arm_pid = 
     GNUNET_OS_start_process (GNUNET_YES, NULL, NULL, "gnunet-service-arm",
@@ -207,6 +212,14 @@ int main (int argc, char **argv)
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
+  
+  GNUNET_log_setup ("test-lockmanager-api",
+#if VERBOSE
+                    "DEBUG",
+#else
+                    "WARNING",
+#endif
+                    NULL);
 
   ret =
     GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
@@ -223,6 +236,6 @@ int main (int argc, char **argv)
     LOG (GNUNET_ERROR_TYPE_WARNING, "test failed\n");
     return 1;
   }
-  LOG (GNUNET_ERROR_TYPE_INFO, "test ok\n");
+  LOG (GNUNET_ERROR_TYPE_INFO, "test OK\n");
   return 0;
 }

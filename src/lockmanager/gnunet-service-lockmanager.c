@@ -32,8 +32,10 @@
 
 #include "lockmanager.h"
 
+#define VERBOSE GNUNET_YES
+
 #define LOG(kind,...) \
-  GNUNET_log_from (kind, "gnunet-service-lockmanager",__VA_ARGS__)
+  GNUNET_log (kind, __VA_ARGS__)
 
 #define TIME_REL_MINS(min) \
   GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, min)
@@ -155,6 +157,14 @@ lockmanager_run (void *cls,
 int main (int argc, char *const *argv)
 {
   int ret;
+  
+  GNUNET_log_setup ("lockmanager",
+#if VERBOSE
+                    "DEBUG",
+#else
+                    "WARNING",
+#endif
+                    NULL);
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "main()\n");
   ret = 
