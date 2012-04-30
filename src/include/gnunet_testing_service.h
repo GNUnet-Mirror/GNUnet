@@ -25,11 +25,10 @@
  * @author Christian Grothoff
  */
 
-#ifndef GNUNET_TESTING_LIB_H
-#define GNUNET_TESTING_LIB_H
+#ifndef GNUNET_TESTING_SERVICE_H
+#define GNUNET_TESTING_SERVICE_H
 
 #include "gnunet_util_lib.h"
-#include "gnunet_statistics_service.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -273,11 +272,40 @@ struct GNUNET_TESTING_EventInformation
       const char *emsg;
 
       /**
+       * Peer information type; captures which of the types
+       * in the 'op_result' is actually in use.
+       */
+      enum GNUNET_TESTING_PeerInformationType pit;
+
+      /**
        * Pointer to an operation-specific return value; NULL on error;
        * can be NULL for certain operations.  Valid until
-       * 'GNUNET_TESTNG_operation_done' is called.
+       * 'GNUNET_TESTING_operation_done' is called.
        */
-      void *op_result;
+      union
+      {
+	/**
+	 * No result (NULL pointer) or generic result
+	 * (whatever the GNUNET_TESTING_ConnectAdapter returned).
+	 */
+	void *generic;
+
+	/**
+	 * Identity of host running the peer.
+	 */
+	struct GNUNET_TESTING_Host *host;
+
+	/**
+	 * Identity of the peer.
+	 */
+	const struct GNUNET_PeerIdentity *pid;
+
+	/**
+	 * Configuration of the peer.
+	 */
+	const struct GNUNET_CONFIGURATION_Handle *cfg;
+
+      } op_result;
 
     } operation_finished;   
 
@@ -449,9 +477,17 @@ enum GNUNET_TESTING_PeerInformationType
 {
 
   /**
+   * Special value (not valid for requesting information)
+   * that is used in the event struct if a 'generic' pointer
+   * is returned (for other operations not related to this
+   * enumeration).
+   */
+  GNUNET_TESTING_PIT_GENERIC = 0,
+
+  /**
    * What host is the peer running on?  Returns a 'const struct
    * GNUNET_TESTING_Host *'.  Valid until
-   * 'GNUNET_TESTNIG_operation_done' is called.
+   * 'GNUNET_TESTING_operation_done' is called.
    */
   GNUNET_TESTING_PIT_HOST,
 
