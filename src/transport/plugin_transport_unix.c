@@ -42,9 +42,6 @@
 #include "gnunet_transport_plugin.h"
 #include "transport.h"
 
-#define DEBUG_UNIX GNUNET_EXTRALOGGING
-#define DETAILS GNUNET_NO
-
 #define MAX_PROBES 20
 
 /*
@@ -254,10 +251,7 @@ get_session_delete_it (void *cls, const GNUNET_HashCode * key, void *value)
   struct Plugin *plugin = cls;
   GNUNET_assert (plugin != NULL);
 
-#if DEBUG_UNIX
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Deleting session for peer `%s' `%s' \n", GNUNET_i2s (&s->target), s->addr);
-#endif
-
   plugin->env->session_end (plugin->env->cls, &s->target, s);
 
   GNUNET_assert (GNUNET_YES ==
@@ -389,10 +383,8 @@ unix_real_send (void *cls,
 
   if (send_handle == NULL)
   {
-#if DEBUG_UNIX
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "unix_real_send with send_handle NULL!\n");
-#endif
     /* failed to open send socket for AF */
     if (cont != NULL)
       cont (cont_cls, target, GNUNET_SYSERR);
@@ -400,10 +392,8 @@ unix_real_send (void *cls,
   }
   if ((addr == NULL) || (addrlen == 0))
   {
-#if DEBUG_UNIX
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "unix_real_send called without address, returning!\n");
-#endif
     if (cont != NULL)
       cont (cont_cls, target, GNUNET_SYSERR);
     return 0;                   /* Can never send if we don't have an address!! */
@@ -460,13 +450,10 @@ unix_real_send (void *cls,
       }
     }
   }
-
-#if DEBUG_UNIX
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "UNIX transmit %u-byte message to %s (%d: %s)\n",
               (unsigned int) msgbuf_size, GNUNET_a2s (sb, sbs), (int) sent,
               (sent < 0) ? STRERROR (errno) : "ok");
-#endif
   /* Calling continuation */
   if (cont != NULL)
   {
@@ -502,9 +489,7 @@ get_session_it (void *cls, const GNUNET_HashCode * key, void *value)
   struct gsi_ctx *gsi = cls;
   struct Session *s = value;
 
-#if DEBUG_UNIX
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Comparing session %s %s\n", gsi->address, s->addr);
-#endif
   if ((gsi->addrlen == s->addrlen) &&
       (0 == memcmp (gsi->address, s->addr, s->addrlen)))
   {
@@ -541,9 +526,7 @@ unix_plugin_get_session (void *cls,
   GNUNET_CONTAINER_multihashmap_get_multiple (plugin->session_map, &address->peer.hashPubKey, &get_session_it, &gsi);
   if (gsi.res != NULL)
   {
-#if DEBUG_UNIX
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found existing session\n");
-#endif
     return gsi.res;
   }
 
@@ -563,11 +546,7 @@ unix_plugin_get_session (void *cls,
                         "# UNIX sessions active",
                         GNUNET_CONTAINER_multihashmap_size(plugin->session_map),
                         GNUNET_NO);
-
-#if DEBUG_UNIX
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Creating new session\n");
-#endif
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Creating new session\n");
   return s;
 }
 
@@ -657,11 +636,8 @@ unix_plugin_send (void *cls,
   GNUNET_STATISTICS_set (plugin->env->stats,"# UNIX bytes in send queue",
       plugin->bytes_in_queue, GNUNET_NO);
 
-#if DEBUG_UNIX
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sent %d bytes to `%s'\n", ssize,
               (char *) session->addr);
-#endif
-
   if (plugin->with_ws == GNUNET_NO)
   {
     if (plugin->select_task != GNUNET_SCHEDULER_NO_TASK)
@@ -702,10 +678,8 @@ unix_demultiplexer (struct Plugin *plugin, struct GNUNET_PeerIdentity *sender,
 
   GNUNET_assert (fromlen >= sizeof (struct sockaddr_un));
 
-#if DEBUG_UNIX
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received message from %s\n",
               un->sun_path);
-#endif
   plugin->env->receive (plugin->env->cls, sender, currhdr,
                         (const struct GNUNET_ATS_Information *) &ats, 2,
                         NULL, un->sun_path, strlen (un->sun_path) + 1);
@@ -747,10 +721,8 @@ unix_plugin_select_read (struct Plugin * plugin)
 #if LINUX
     un.sun_path[0] = '/';
 #endif
-#if DEBUG_UNIX
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Read %d bytes from socket %s\n", ret,
                 &un.sun_path[0]);
-#endif
   }
 
   GNUNET_assert (AF_UNIX == (un.sun_family));
@@ -928,10 +900,8 @@ unix_transport_server_start (void *cls)
     plugin->unix_sock.desc = NULL;
     return GNUNET_SYSERR;
   }
-#if DEBUG_UNIX
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "unix", "Bound to `%s'\n",
                    &un.sun_path[0]);
-#endif
   plugin->rs = GNUNET_NETWORK_fdset_create ();
   plugin->ws = GNUNET_NETWORK_fdset_create ();
   GNUNET_NETWORK_fdset_zero (plugin->rs);
@@ -970,12 +940,9 @@ unix_transport_server_start (void *cls)
 static int
 unix_check_address (void *cls, const void *addr, size_t addrlen)
 {
-
-#if DEBUG_UNIX
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Informing transport service about my address `%s'\n",
               (char *) addr);
-#endif
   return GNUNET_OK;
 }
 

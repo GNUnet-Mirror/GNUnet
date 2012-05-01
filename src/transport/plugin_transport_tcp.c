@@ -39,10 +39,6 @@
 #include "gnunet_transport_plugin.h"
 #include "transport.h"
 
-#define DEBUG_TCP GNUNET_EXTRA_LOGGING
-
-#define DEBUG_TCP_NAT GNUNET_EXTRA_LOGGING
-
 
 /**
  * How long until we give up on establishing an NAT connection?
@@ -764,11 +760,9 @@ do_transmit (void *cls, size_t size, void *buf)
   plugin = session->plugin;
   if (buf == NULL)
   {
-#if DEBUG_TCP
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
                      "Timeout trying to transmit to peer `%4s', discarding message queue.\n",
                      GNUNET_i2s (&session->target));
-#endif
     /* timeout; cancel all messages that have already expired */
     hd = NULL;
     tl = NULL;
@@ -779,11 +773,9 @@ do_transmit (void *cls, size_t size, void *buf)
     {
       GNUNET_CONTAINER_DLL_remove (session->pending_messages_head,
                                    session->pending_messages_tail, pos);
-#if DEBUG_TCP
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
                        "Failed to transmit %u byte message to `%4s'.\n",
                        pos->message_size, GNUNET_i2s (&session->target));
-#endif
       ret += pos->message_size;
       GNUNET_CONTAINER_DLL_insert_after (hd, tl, tl, pos);
     }
@@ -849,10 +841,8 @@ do_transmit (void *cls, size_t size, void *buf)
   }
   GNUNET_assert (hd == NULL);
   GNUNET_assert (tl == NULL);
-#if DEBUG_TCP > 1
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp", "Transmitting %u bytes\n",
                    ret);
-#endif
   GNUNET_STATISTICS_update (plugin->env->stats,
                             gettext_noop ("# bytes currently in TCP buffers"),
                             -(int64_t) ret, GNUNET_NO);
@@ -933,13 +923,11 @@ disconnect_session (struct Session *session)
 
   while (NULL != (pm = session->pending_messages_head))
   {
-#if DEBUG_TCP
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
                      pm->transmit_cont !=
                      NULL ? "Could not deliver message to `%4s'.\n" :
                      "Could not deliver message to `%4s', notifying.\n",
                      GNUNET_i2s (&session->target));
-#endif
     GNUNET_STATISTICS_update (session->plugin->env->stats,
                               gettext_noop ("# bytes currently in TCP buffers"),
                               -(int64_t) pm->message_size, GNUNET_NO);
@@ -1268,10 +1256,8 @@ tcp_plugin_get_session (void *cls,
        GNUNET_CONTAINER_multihashmap_contains (plugin->nat_wait_conns,
                                                &address->peer.hashPubKey)))
   {
-#if DEBUG_TCP_NAT
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
                      _("Found valid IPv4 NAT address (creating session)!\n"));
-#endif
     session = create_session (plugin, &address->peer, NULL, GNUNET_YES);
     session->addrlen = 0;
     session->addr = NULL;
@@ -1307,11 +1293,9 @@ tcp_plugin_get_session (void *cls,
   sa = GNUNET_CONNECTION_create_from_sockaddr (af, sb, sbs);
   if (sa == NULL)
   {
-#if DEBUG_TCP
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
                      "Failed to create connection to `%4s' at `%s'\n",
                      GNUNET_i2s (&session->target), GNUNET_a2s (sb, sbs));
-#endif
     return NULL;
   }
   plugin->max_connections--;
@@ -1680,12 +1664,9 @@ handle_tcp_nat_probe (void *cls, struct GNUNET_SERVER_Client *client,
   session->client = client;
   session->last_activity = GNUNET_TIME_absolute_get ();
   session->inbound = GNUNET_NO;
-
-#if DEBUG_TCP_NAT
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
                    "Found address `%s' for incoming connection\n",
                    GNUNET_a2s (vaddr, alen));
-#endif
   switch (((const struct sockaddr *) vaddr)->sa_family)
   {
   case AF_INET:
@@ -1813,10 +1794,8 @@ handle_tcp_welcome (void *cls, struct GNUNET_SERVER_Client *client,
     }
     else
     {
-#if DEBUG_TCP
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
                        "Did not obtain TCP socket address for incoming connection\n");
-#endif
     }
     GNUNET_CONTAINER_multihashmap_put(plugin->sessionmap, &wm->clientIdentity.hashPubKey, session, GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
     inc_sessions (plugin, session, __LINE__);
@@ -1958,12 +1937,10 @@ handle_tcp_data (void *cls, struct GNUNET_SERVER_Client *client,
   }
   else
   {
-#if DEBUG_TCP
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
                      "Throttling receiving from `%s' for %llu ms\n",
                      GNUNET_i2s (&session->target),
                      (unsigned long long) delay.rel_value);
-#endif
     GNUNET_SERVER_disable_receive_done_warning (client);
     session->receive_delay_task =
         GNUNET_SCHEDULER_add_delayed (delay, &delayed_done, session);
@@ -1990,7 +1967,6 @@ disconnect_notify (void *cls, struct GNUNET_SERVER_Client *client)
   session = lookup_session_by_client (plugin, client);
   if (session == NULL)
     return;                     /* unknown, nothing to do */
-#if DEBUG_TCP
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
                    "Destroying session of `%4s' with %s due to network-level disconnect.\n",
                    GNUNET_i2s (&session->target),
@@ -1999,7 +1975,6 @@ disconnect_notify (void *cls, struct GNUNET_SERVER_Client *client)
                                                    session->addr,
                                                    session->addrlen) :
                    "*");
-#endif
   GNUNET_STATISTICS_update (session->plugin->env->stats,
                             gettext_noop
                             ("# network-level TCP disconnect events"), 1,
