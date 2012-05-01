@@ -248,6 +248,79 @@ struct GNUNET_CLIENT_Connection
 
 
 /**
+ * Try connecting to the server using UNIX domain sockets.
+ *
+ * @param service_name name of service to connect to
+ * @param cfg configuration to use
+ * @return NULL on error, connection to UNIX otherwise
+ */
+static struct GNUNET_CONNECTION_Handle *
+try_unixpath (const char *service_name,
+	      const struct GNUNET_CONFIGURATION_Handle *cfg)
+{
+#if AF_UNIX
+  struct GNUNET_CONNECTION_Handle *connection;
+  char *unixpath;
+
+  unixpath = NULL;
+  if ((GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (cfg, service_name, "UNIXPATH", &unixpath)) && 
+      (0 < strlen (unixpath)))     
+  {
+    /* We have a non-NULL unixpath, need to validate it */
+    connection = GNUNET_CONNECTION_create_from_connect_to_unixpath (cfg, unixpath);
+    if (NULL != connection)
+    {
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "Connected to unixpath `%s'!\n",
+	   unixpath);
+      GNUNET_free (unixpath);
+      return connection;
+    }
+  }
+  GNUNET_free_non_null (unixpath);
+#endif
+  return NULL;
+}
+
+
+/**
+ * Try connecting to the server using UNIX domain sockets.
+ *
+ * @param service_name name of service to connect to
+ * @param cfg configuration to use
+ * @return GNUNET_OK if the configuration is valid, GNUNET_SYSERR if not
+ */
+static int
+test_service_configuration (const char *service_name,
+			    const struct GNUNET_CONFIGURATION_Handle *cfg)
+{
+  int ret = GNUNET_SYSERR;
+  char *hostname = NULL;
+  unsigned long long port;
+#if AF_UNIX
+  char *unixpath = NULL;
+
+  if ((GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (cfg, service_name, "UNIXPATH", &unixpath)) && 
+      (0 < strlen (unixpath)))     
+    ret = GNUNET_OK;
+  GNUNET_free_non_null (unixpath);
+#endif
+
+  if ( (GNUNET_YES ==
+	GNUNET_CONFIGURATION_have_value (cfg, service_name, "PORT")) &&
+       (GNUNET_OK ==
+	GNUNET_CONFIGURATION_get_value_number (cfg, service_name, "PORT", &port)) && 
+       (port <= 65535) && (0 != port) &&
+       (GNUNET_OK ==
+	GNUNET_CONFIGURATION_get_value_string (cfg, service_name, "HOSTNAME",
+					       &hostname)) &&
+       (0 != strlen (hostname)) )
+    ret = GNUNET_OK;
+  GNUNET_free_non_null (hostname);
+  return ret;
+}
+
+
+/**
  * Try to connect to the service.
  *
  * @param service_name name of service to connect to
@@ -261,32 +334,16 @@ do_connect (const char *service_name,
 {
   struct GNUNET_CONNECTION_Handle *connection;
   char *hostname;
-  char *unixpath;
   unsigned long long port;
 
   connection = NULL;
-#if AF_UNIX
   if (0 == (attempt % 2))
   {
-    /* on even rounds, try UNIX */
-    unixpath = NULL;
-    if ((GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (cfg, service_name, "UNIXPATH", &unixpath)) && 
-	(0 < strlen (unixpath)))     
-    {
-      /* We have a non-NULL unixpath, need to validate it */
-      connection = GNUNET_CONNECTION_create_from_connect_to_unixpath (cfg, unixpath);
-      if (NULL != connection)
-      {
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "Connected to unixpath `%s'!\n",
-             unixpath);
-        GNUNET_free (unixpath);
-        return connection;
-      }
-    }
-    GNUNET_free_non_null (unixpath);
+    /* on even rounds, try UNIX first */
+    connection = try_unixpath (service_name, cfg);
+    if (NULL != connection)
+      return connection;
   }
-#endif
-
   if (GNUNET_YES ==
       GNUNET_CONFIGURATION_have_value (cfg, service_name, "PORT"))
   {
@@ -319,28 +376,10 @@ do_connect (const char *service_name,
   }
   if (0 == port)
   {
-#if AF_UNIX
-    if (0 != (attempt % 2))
-    {
-      /* try UNIX */
-      unixpath = NULL;
-      if ((GNUNET_OK ==
-           GNUNET_CONFIGURATION_get_value_string (cfg, service_name, "UNIXPATH",
-                                                  &unixpath)) &&
-          (0 < strlen (unixpath)))
-      {
-        connection =
-            GNUNET_CONNECTION_create_from_connect_to_unixpath (cfg, unixpath);
-        if (NULL != connection)
-        {
-          GNUNET_free (unixpath);
-          GNUNET_free_non_null (hostname);
-          return connection;
-        }
-      }
-      GNUNET_free_non_null (unixpath);
-    }
-#endif
+    /* if port is 0, try UNIX */
+    connection = try_unixpath (service_name, cfg);
+    if (NULL != connection)
+      return connection;
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Port is 0 for service `%s', UNIXPATH did not work, returning NULL!\n",
          service_name);
@@ -367,6 +406,10 @@ GNUNET_CLIENT_connect (const char *service_name,
   struct GNUNET_CLIENT_Connection *client;
   struct GNUNET_CONNECTION_Handle *connection;
 
+  if (GNUNET_OK != 
+      test_service_configuration (service_name,
+				  cfg))
+    return NULL;
   connection = do_connect (service_name, cfg, 0);
   client = GNUNET_malloc (sizeof (struct GNUNET_CLIENT_Connection));
   client->attempts = 1;

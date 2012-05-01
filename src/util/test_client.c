@@ -137,6 +137,10 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct sockaddr *sap[2];
   socklen_t slens[2];
 
+  /* test that ill-configured client fails instantly */
+  GNUNET_assert (NULL == GNUNET_CLIENT_connect ("invalid-service", cfg));
+
+  /* test IPC between client and server */
   sap[0] = (struct sockaddr *) &sa;
   slens[0] = sizeof (sa);
   sap[1] = NULL;
