@@ -259,7 +259,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 static void
-put_pseu_dht(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+put_pseu_dht(void *cls, int success)
 {
   struct GNSNameRecordBlock *nrb;
   struct GNUNET_CRYPTO_ShortHashCode name_hash;
@@ -337,7 +337,7 @@ put_pseu_dht(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 static void
-put_www_dht(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+put_www_dht(void *cls, int success)
 {
   struct GNSNameRecordBlock *nrb;
   struct GNUNET_CRYPTO_ShortHashCode name_hash;
