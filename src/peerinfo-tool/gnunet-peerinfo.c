@@ -645,8 +645,9 @@ add_address_to_hello (void *cls, size_t max, void *buffer)
 			       &addr_len))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Failed to parse `%s'\n"),
-		plugin_address);
+                _("Failed to parse `%s' as an address for plugin `%s'\n"),
+		plugin_address,
+		plugin_name);
     GNUNET_free (plugin_name);
     GNUNET_free (plugin_address);
     return 0;
