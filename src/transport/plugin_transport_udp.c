@@ -380,11 +380,30 @@ udp_string_to_address (void *cls, const char *addr, uint16_t addrlen,
     void **buf, size_t *added)
 {
   struct sockaddr_storage socket_address;
-  int ret = GNUNET_STRINGS_to_address_ip (addr, addrlen,
+
+  if ((NULL == addr) || (addrlen == 0))
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+
+  if ('\0' != addr[addrlen - 1])
+  {
+    return GNUNET_SYSERR;
+  }
+
+  if (strlen (addr) != addrlen - 1)
+  {
+    return GNUNET_SYSERR;
+  }
+
+  int ret = GNUNET_STRINGS_to_address_ip (addr, strlen (addr),
     &socket_address);
 
   if (ret != GNUNET_OK)
+  {
     return GNUNET_SYSERR;
+  }
 
   if (socket_address.ss_family == AF_INET)
   {
@@ -395,6 +414,7 @@ udp_string_to_address (void *cls, const char *addr, uint16_t addrlen,
     u4->u4_port = in4->sin_port;
     *buf = u4;
     *added = sizeof (struct IPv4UdpAddress);
+    return GNUNET_OK;
   }
   else if (socket_address.ss_family == AF_INET6)
   {
@@ -405,6 +425,7 @@ udp_string_to_address (void *cls, const char *addr, uint16_t addrlen,
     u6->u6_port = in6->sin6_port;
     *buf = u6;
     *added = sizeof (struct IPv6UdpAddress);
+    return GNUNET_OK;
   }
   return GNUNET_SYSERR;
 }

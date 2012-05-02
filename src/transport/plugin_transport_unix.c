@@ -1041,7 +1041,7 @@ unix_plugin_address_pretty_printer (void *cls, const char *type,
  *
  * @param cls closure ('struct Plugin*')
  * @param addr string address
- * @param addrlen length of the address
+ * @param addrlen length of the address (strlen(addr) + '\0')
  * @param buf location to store the buffer
  *        If the function returns GNUNET_SYSERR, its contents are undefined.
  * @param added length of created address
@@ -1057,14 +1057,20 @@ unix_string_to_address (void *cls, const char *addr, uint16_t addrlen,
     return GNUNET_SYSERR;
   }
 
-  char * tmp = GNUNET_malloc (addrlen + 1);
-  memcpy (tmp, addr, addrlen);
-  tmp[addrlen] = '\0';
+  if ('\0' != addr[addrlen - 1])
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
 
-  //GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "`%s'\n", tmp);
+  if (strlen (addr) != addrlen - 1)
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
 
-  (*buf) = tmp;
-  (*added) = strlen (tmp) + 1;
+  (*buf) = strdup (addr);
+  (*added) = strlen (addr) + 1;
   return GNUNET_OK;
 }
 
