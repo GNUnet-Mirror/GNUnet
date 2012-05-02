@@ -373,7 +373,7 @@ unix_real_send (void *cls,
                 size_t addrlen, GNUNET_TRANSPORT_TransmitContinuation cont,
                 void *cont_cls)
 {
-
+  struct Plugin *plugin = cls;
   ssize_t sent;
   const void *sb;
   size_t sbs;
@@ -381,30 +381,31 @@ unix_real_send (void *cls,
   size_t slen;
   int retry;
 
+  GNUNET_assert (NULL != plugin);
+
   if (send_handle == NULL)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "unix_real_send with send_handle NULL!\n");
-    /* failed to open send socket for AF */
+    /* We do not have a send handle */
+    GNUNET_break (0);
     if (cont != NULL)
       cont (cont_cls, target, GNUNET_SYSERR);
-    return 0;
+    return -1;
   }
   if ((addr == NULL) || (addrlen == 0))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "unix_real_send called without address, returning!\n");
+    /* Can never send if we don't have an address */
+    GNUNET_break (0);
     if (cont != NULL)
       cont (cont_cls, target, GNUNET_SYSERR);
-    return 0;                   /* Can never send if we don't have an address!! */
+    return -1;
   }
 
+  /* Prepare address */
   memset (&un, 0, sizeof (un));
   un.sun_family = AF_UNIX;
   slen = strlen (addr) + 1;
   if (slen >= sizeof (un.sun_path))
     slen = sizeof (un.sun_path) - 1;
-  sent = 0;
   GNUNET_assert (slen < sizeof (un.sun_path));
   memcpy (un.sun_path, addr, slen);
   un.sun_path[slen] = '\0';
@@ -417,11 +418,17 @@ unix_real_send (void *cls,
 #endif
   sb = (struct sockaddr *) &un;
   sbs = slen;
+
+  /* Send the data */
+  sent = 0;
   retry = GNUNET_NO;
   sent = GNUNET_NETWORK_socket_sendto (send_handle, msgbuf, msgbuf_size, sb, sbs);
 
   if ((GNUNET_SYSERR == sent) && ((errno == EAGAIN) || (errno == ENOBUFS)))
-    retry = GNUNET_YES;
+  {
+    /* We have to retry later: retry */
+    return 0;
+  }
 
   if ((GNUNET_SYSERR == sent) && (errno == EMSGSIZE))
   {
@@ -436,24 +443,38 @@ unix_real_send (void *cls,
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Trying to increase socket buffer size from %i to %i for message size %i\n",
-                  size, ((msgbuf_size / 1000) + 2) * 1000, msgbuf_size);
+                  size,
+                  ((msgbuf_size / 1000) + 2) * 1000,
+                  msgbuf_size);
       size = ((msgbuf_size / 1000) + 2) * 1000;
       if (GNUNET_NETWORK_socket_setsockopt
           ((struct GNUNET_NETWORK_Handle *) send_handle, SOL_SOCKET, SO_SNDBUF,
            &size, sizeof (size)) == GNUNET_OK)
       {
-        sent = GNUNET_NETWORK_socket_sendto (send_handle, msgbuf, msgbuf_size, sb, sbs);
+        /* Increased buffer size, retry sending */
+        return 0;
       }
       else
       {
+        /* Could not increase buffer size: error, no retry */
         GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "setsockopt");
+        return -1;
       }
     }
+    else
+    {
+      /* Buffer is bigger than message:  error, no retry
+       * This should never happen!*/
+      GNUNET_break (0);
+      return -1;
+    }
   }
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "UNIX transmit %u-byte message to %s (%d: %s)\n",
               (unsigned int) msgbuf_size, GNUNET_a2s (sb, sbs), (int) sent,
               (sent < 0) ? STRERROR (errno) : "ok");
+
   /* Calling continuation */
   if (cont != NULL)
   {
@@ -466,14 +487,20 @@ unix_real_send (void *cls,
   /* return number of bytes successfully sent */
   if (sent > 0)
     return sent;
+  if (sent == 0)
+  {
+    /* That should never happen */
+    GNUNET_break (0);
+    return -1;
+  }
   /* failed and retry: return 0 */
   if ((GNUNET_SYSERR == sent) && (retry == GNUNET_YES))
     return 0;
   /* failed and no retry: return -1 */
   if ((GNUNET_SYSERR == sent) && (retry == GNUNET_NO))
     return -1;
-
-  return sent;
+  /* default */
+  return -1;
 }
 
 struct gsi_ctx
@@ -756,6 +783,7 @@ unix_plugin_select_read (struct Plugin * plugin)
 static void
 unix_plugin_select_write (struct Plugin * plugin)
 {
+  static int retry_counter;
   int sent = 0;
   struct UNIXMessageWrapper * msgw = plugin->msg_head;
 
@@ -770,24 +798,26 @@ unix_plugin_select_write (struct Plugin * plugin)
                          msgw->session->addrlen,
                          msgw->cont, msgw->cont_cls);
 
-  /* successfully sent bytes */
-  if (sent > 0)
+  if (sent == 0)
   {
-    GNUNET_CONTAINER_DLL_remove(plugin->msg_head, plugin->msg_tail, msgw);
-
-    GNUNET_assert (plugin->bytes_in_queue >= msgw->msgsize);
-    plugin->bytes_in_queue -= msgw->msgsize;
-    GNUNET_STATISTICS_set (plugin->env->stats,"# UNIX bytes in send queue",
-        plugin->bytes_in_queue, GNUNET_NO);
-
-    GNUNET_free (msgw->msg);
-    GNUNET_free (msgw);
+    /* failed and retry */
+    retry_counter++;
+    GNUNET_STATISTICS_set (plugin->env->stats,"# UNIX retry attempt",
+        retry_counter, GNUNET_NO);
     return;
   }
 
-  /* failed and no retry */
+  if (retry_counter > 0 )
+  {
+    /* no retry: reset counter */
+    retry_counter = 0;
+    GNUNET_STATISTICS_set (plugin->env->stats,"# UNIX retry attempt",
+        retry_counter, GNUNET_NO);
+  }
+
   if (sent == -1)
   {
+    /* failed and no retry */
     GNUNET_CONTAINER_DLL_remove(plugin->msg_head, plugin->msg_tail, msgw);
 
     GNUNET_assert (plugin->bytes_in_queue >= msgw->msgsize);
@@ -800,9 +830,21 @@ unix_plugin_select_write (struct Plugin * plugin)
     return;
   }
 
-  /* failed and retry */
-  if (sent == 0)
+  if (sent > 0)
+  {
+    /* successfully sent bytes */
+    GNUNET_CONTAINER_DLL_remove(plugin->msg_head, plugin->msg_tail, msgw);
+
+    GNUNET_assert (plugin->bytes_in_queue >= msgw->msgsize);
+    plugin->bytes_in_queue -= msgw->msgsize;
+    GNUNET_STATISTICS_set (plugin->env->stats,"# UNIX bytes in send queue",
+        plugin->bytes_in_queue, GNUNET_NO);
+
+    GNUNET_free (msgw->msg);
+    GNUNET_free (msgw);
     return;
+  }
+
 }
 
 /*
@@ -823,9 +865,9 @@ unix_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     return;
 
-  plugin->with_ws = GNUNET_NO;
   if ((tc->reason & GNUNET_SCHEDULER_REASON_WRITE_READY) != 0)
   {
+    /* Ready to send data */
     GNUNET_assert (GNUNET_NETWORK_fdset_isset
                    (tc->write_ready, plugin->unix_sock.desc));
     if (plugin->msg_head != NULL)
@@ -834,6 +876,7 @@ unix_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if ((tc->reason & GNUNET_SCHEDULER_REASON_READ_READY) != 0)
   {
+    /* Ready to receive data */
     GNUNET_assert (GNUNET_NETWORK_fdset_isset
                    (tc->read_ready, plugin->unix_sock.desc));
     unix_plugin_select_read (plugin);
@@ -841,14 +884,27 @@ unix_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if (plugin->select_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (plugin->select_task);
-  plugin->select_task =
+
+  if (NULL != plugin->msg_head)
+  {
+    plugin->select_task =
       GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
                                    GNUNET_TIME_UNIT_FOREVER_REL,
                                    plugin->rs,
-                                   (plugin->msg_head != NULL) ? plugin->ws : NULL,
+                                   plugin->ws,
                                    &unix_plugin_select, plugin);
-  if (plugin->msg_head != NULL)
     plugin->with_ws = GNUNET_YES;
+  }
+  else
+  {
+    plugin->select_task =
+      GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+                                   GNUNET_TIME_UNIT_FOREVER_REL,
+                                   plugin->rs,
+                                   NULL,
+                                   &unix_plugin_select, plugin);
+    plugin->with_ws = GNUNET_NO;
+  }
 }
 
 /**
