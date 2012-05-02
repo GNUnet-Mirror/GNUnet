@@ -1123,8 +1123,10 @@ libgnunet_plugin_transport_unix_done (void *cls)
   GNUNET_CONTAINER_multihashmap_iterate (plugin->session_map, &get_session_delete_it, plugin);
   GNUNET_CONTAINER_multihashmap_destroy (plugin->session_map);
 
-  GNUNET_NETWORK_fdset_destroy (plugin->rs);
-  GNUNET_NETWORK_fdset_destroy (plugin->ws);
+  if (NULL != plugin->rs)
+    GNUNET_NETWORK_fdset_destroy (plugin->rs);
+  if (NULL != plugin->ws)
+    GNUNET_NETWORK_fdset_destroy (plugin->ws);
   GNUNET_free (plugin->unix_socket_path);
   GNUNET_free (plugin);
   GNUNET_free (api);
