@@ -501,6 +501,7 @@ add_address_to_hello (void *cls, size_t max, void *buffer)
   struct GNUNET_PEERINFO_HelloAddressParsingContext *ctx = cls;
   const char *tname;
   const char *address;
+  char * address_terminated;
   const char *end;
   char *plugin_name;
   struct tm expiration_time;
@@ -528,12 +529,16 @@ add_address_to_hello (void *cls, size_t max, void *buffer)
   if (NULL == tname)
   {
     ctx->ret = GNUNET_SYSERR;
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Failed to parse HELLO message: missing expiration time\n"));
     GNUNET_break (0);
     return 0;
   }
   expiration_seconds = mktime (&expiration_time);
   if (expiration_seconds == (time_t) -1)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Failed to parse HELLO message: invalid expiration time\n"));
     ctx->ret = GNUNET_SYSERR;
     GNUNET_break (0);
     return 0;
@@ -541,6 +546,8 @@ add_address_to_hello (void *cls, size_t max, void *buffer)
   expire.abs_value = expiration_seconds * 1000;
   if ('!' != tname[0])
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Failed to parse HELLO message: malformed\n"));
     ctx->ret = GNUNET_SYSERR;
     GNUNET_break (0);
     return 0;
@@ -549,6 +556,8 @@ add_address_to_hello (void *cls, size_t max, void *buffer)
   address = strchr (tname, (int) '!');
   if (NULL == address)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Failed to parse HELLO message: missing transport plugin\n"));
     ctx->ret = GNUNET_SYSERR;
     GNUNET_break (0);
     return 0;
@@ -557,12 +566,20 @@ add_address_to_hello (void *cls, size_t max, void *buffer)
   end = strchr (address, (int) '!');
   if (NULL == end)
   {
-    ctx->pos = NULL;
+    /* Last address */
     end = address + strlen (address);
+    address_terminated = strdup (address);
+    ctx->pos = NULL;
   }
   else
   {
+    /* More addresses follow  */
+    size_t len = (end - address);
+    address_terminated = GNUNET_malloc (len + 1);
+    memcpy (address_terminated, address, len);
+    address_terminated[len] = '\0';
     ctx->pos = end;
+
   }
   plugin_name = GNUNET_strndup (tname, address - (tname+1));
   papi = GPI_plugins_find (plugin_name);
@@ -578,6 +595,7 @@ add_address_to_hello (void *cls, size_t max, void *buffer)
     GNUNET_free (plugin_name);
 
     GNUNET_break (0);
+    GNUNET_free (address_terminated);
     return 0;
   }
   if (NULL == papi->string_to_address)
@@ -586,17 +604,23 @@ add_address_to_hello (void *cls, size_t max, void *buffer)
 		_("Plugin `%s' does not support URIs yet\n"),
 		plugin_name);
     GNUNET_free (plugin_name);
+    GNUNET_free (address_terminated);
     GNUNET_break (0);
     return 0;
   }
+
   if (GNUNET_OK !=
       papi->string_to_address (papi->cls, 
-			       address,
-			       end - address,
+                               address_terminated,
+			       strlen (address_terminated) + 1,
 			       &addr,
 			       &addr_len))
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Failed to parse `%s'\n"),
+                    address_terminated);
     GNUNET_free (plugin_name);
+    GNUNET_free (address_terminated);
     return 0;
   }
   /* address.peer is unset - not used by add_address() */
@@ -606,6 +630,7 @@ add_address_to_hello (void *cls, size_t max, void *buffer)
   ret = GNUNET_HELLO_add_address (&haddr, expire, buffer, max);
   GNUNET_free (addr);
   GNUNET_free (plugin_name);
+  GNUNET_free (address_terminated);
   return ret;
 }
 
