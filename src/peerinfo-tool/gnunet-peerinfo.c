@@ -640,7 +640,7 @@ add_address_to_hello (void *cls, size_t max, void *buffer)
   if (GNUNET_OK !=
       papi->string_to_address (papi->cls, 
 			       plugin_address,
-			       strlen (plugin_address),
+			       strlen (plugin_address) + 1,
 			       &addr,
 			       &addr_len))
   {
