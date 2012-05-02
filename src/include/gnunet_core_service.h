@@ -292,6 +292,12 @@ GNUNET_CORE_iterate_peers (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 
 /**
+ * Handle to cancel 'is_peer_connected' test.
+ */
+struct GNUNET_CORE_ConnectTestHandle;
+
+
+/**
  * Check if the given peer is currently connected and return information
  * about the session if so.  This function is for special cirumstances
  * (GNUNET_TESTING uses it), normal users of the CORE API are
@@ -299,20 +305,26 @@ GNUNET_CORE_iterate_peers (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * connect/disconnect callbacks from GNUNET_CORE_connect.  This
  * function is NOT part of the 'versioned', 'official' API.
  *
- * FIXME: we should probably make it possible to 'cancel' the
- * operation...
- *
  * @param cfg configuration to use
  * @param peer the specific peer to check for
  * @param peer_cb function to call with the peer information
  * @param cb_cls closure for peer_cb
- * @return GNUNET_OK if iterating, GNUNET_SYSERR on error
+ * @return handle to cancel the operation
  */
-int
+struct GNUNET_CORE_ConnectTestHandle *
 GNUNET_CORE_is_peer_connected (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                               struct GNUNET_PeerIdentity *peer,
+                               const struct GNUNET_PeerIdentity *peer,
                                GNUNET_CORE_ConnectEventHandler peer_cb,
                                void *cb_cls);
+
+
+/**
+ * Abort 'is_connected' test operation.
+ *
+ * @param cth handle for operation to cancel
+ */
+void
+GNUNET_CORE_is_peer_connected_cancel (struct GNUNET_CORE_ConnectTestHandle *cth);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */
