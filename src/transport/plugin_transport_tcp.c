@@ -589,11 +589,33 @@ tcp_string_to_address (void *cls, const char *addr, uint16_t addrlen,
     void **buf, size_t *added)
 {
   struct sockaddr_storage socket_address;
-  int ret = GNUNET_STRINGS_to_address_ip (addr, addrlen,
+
+  if ((NULL == addr) || (addrlen == 0))
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+
+  if ('\0' != addr[addrlen - 1])
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+
+  if (strlen (addr) != addrlen - 1)
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+
+  int ret = GNUNET_STRINGS_to_address_ip (addr, strlen (addr),
     &socket_address);
 
   if (ret != GNUNET_OK)
+  {
+    GNUNET_break (0);
     return GNUNET_SYSERR;
+  }
 
   if (socket_address.ss_family == AF_INET)
   {
@@ -604,6 +626,7 @@ tcp_string_to_address (void *cls, const char *addr, uint16_t addrlen,
     t4->t4_port = in4->sin_port;
     *buf = t4;
     *added = sizeof (struct IPv4TcpAddress);
+    return GNUNET_OK;
   }
   else if (socket_address.ss_family == AF_INET6)
   {
@@ -614,6 +637,7 @@ tcp_string_to_address (void *cls, const char *addr, uint16_t addrlen,
     t6->t6_port = in6->sin6_port;
     *buf = t6;
     *added = sizeof (struct IPv6TcpAddress);
+    return GNUNET_OK;
   }
   return GNUNET_SYSERR;
 }
