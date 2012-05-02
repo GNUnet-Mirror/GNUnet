@@ -1027,7 +1027,7 @@ GNUNET_STRINGS_to_address_ipv6 (const char *zt_addr,
     return GNUNET_SYSERR;
   }
   ret = SSCANF (port_colon, ":%u", &port);
-  if ( (-1 != ret) || (port > 65535) )
+  if ( (1 != ret) || (port > 65535) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		_("IPv6 address did contain a valid port number after the last ':'\n"));
