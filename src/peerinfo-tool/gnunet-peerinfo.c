@@ -228,6 +228,42 @@ state_machine (void *cls,
 	       const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
+
+/**
+ * Replace all characters in the input 'in' according
+ * to the mapping.  The mapping says to map each character
+ * in 'oldchars' to the corresponding character (by offset)
+ * in 'newchars'.  
+ *
+ * @param in input string to remap
+ * @param oldchars characters to replace
+ * @param newchars replacement characters, must have same length as 'oldchars'
+ * @return copy of string with replacement applied.
+ */
+static char *
+map_characters (const char *in,
+		const char *oldchars,
+		const char *newchars)
+{
+  char *ret;
+  const char *off;
+  size_t i;
+
+  GNUNET_assert (strlen (oldchars) == strlen (newchars));
+  ret = GNUNET_strdup (in);
+  i = 0;
+  while (ret[i] != '\0')
+  {
+    off = strchr (oldchars, ret[i]);
+    if (NULL != off)
+      ret[i] = newchars[off - oldchars];
+    i++;    
+  }
+  return ret;
+}
+
+
+
 /* ********************* 'get_info' ******************* */
 
 /**
@@ -412,6 +448,7 @@ compose_uri (void *cls, const struct GNUNET_HELLO_Address *address,
   struct GetUriContext *guc = cls;
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
   const char *addr;
+  char *uri_addr;
   char *ret;
   char tbuf[16];
   struct tm *t;
@@ -433,6 +470,9 @@ compose_uri (void *cls, const struct GNUNET_HELLO_Address *address,
   addr = papi->address_to_string (papi->cls, address->address, address->address_length);
   if ( (addr == NULL) || (strlen(addr) == 0) )
     return GNUNET_OK;
+   /* For URIs we use '(' and ')' instead of '[' and ']' as brackets are reserved
+      characters in URIs */
+  uri_addr = map_characters (addr, "[]", "()");
   seconds = expiration.abs_value / 1000;
   t = gmtime (&seconds);
   GNUNET_assert (0 != strftime (tbuf, sizeof (tbuf),
@@ -443,7 +483,8 @@ compose_uri (void *cls, const struct GNUNET_HELLO_Address *address,
 		   guc->uri,
 		   tbuf,
 		   address->transport_name, 
-		   addr);
+		   uri_addr);
+  GNUNET_free (uri_addr);
   GNUNET_free (guc->uri);
   guc->uri = ret;
   return GNUNET_OK;
@@ -501,7 +542,8 @@ add_address_to_hello (void *cls, size_t max, void *buffer)
   struct GNUNET_PEERINFO_HelloAddressParsingContext *ctx = cls;
   const char *tname;
   const char *address;
-  char * address_terminated;
+  char *uri_address;
+  char *plugin_address;
   const char *end;
   char *plugin_name;
   struct tm expiration_time;
@@ -512,6 +554,7 @@ add_address_to_hello (void *cls, size_t max, void *buffer)
   size_t addr_len;
   struct GNUNET_HELLO_Address haddr;
   size_t ret;
+
   if (NULL == ctx->pos)
     return 0;
   if ('!' != ctx->pos[0])
@@ -564,23 +607,7 @@ add_address_to_hello (void *cls, size_t max, void *buffer)
   }
   address++;
   end = strchr (address, (int) '!');
-  if (NULL == end)
-  {
-    /* Last address */
-    end = address + strlen (address);
-    address_terminated = strdup (address);
-    ctx->pos = NULL;
-  }
-  else
-  {
-    /* More addresses follow  */
-    size_t len = (end - address);
-    address_terminated = GNUNET_malloc (len + 1);
-    memcpy (address_terminated, address, len);
-    address_terminated[len] = '\0';
-    ctx->pos = end;
-
-  }
+  ctx->pos = end;
   plugin_name = GNUNET_strndup (tname, address - (tname+1));
   papi = GPI_plugins_find (plugin_name);
   if (NULL == papi)
@@ -593,9 +620,7 @@ add_address_to_hello (void *cls, size_t max, void *buffer)
                 _("Plugin `%s' not found\n"),
                 plugin_name);
     GNUNET_free (plugin_name);
-
     GNUNET_break (0);
-    GNUNET_free (address_terminated);
     return 0;
   }
   if (NULL == papi->string_to_address)
@@ -604,25 +629,29 @@ add_address_to_hello (void *cls, size_t max, void *buffer)
 		_("Plugin `%s' does not support URIs yet\n"),
 		plugin_name);
     GNUNET_free (plugin_name);
-    GNUNET_free (address_terminated);
     GNUNET_break (0);
     return 0;
   }
-
+  uri_address = GNUNET_strndup (address, end - address);
+  /* For URIs we use '(' and ')' instead of '[' and ']' as brackets are reserved
+     characters in URIs; need to convert back to '[]' for the plugin */
+   plugin_address = map_characters (uri_address, "()", "[]");
+  GNUNET_free (uri_address);
   if (GNUNET_OK !=
       papi->string_to_address (papi->cls, 
-                               address_terminated,
-			       strlen (address_terminated) + 1,
+			       plugin_address,
+			       strlen (plugin_address),
 			       &addr,
 			       &addr_len))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Failed to parse `%s'\n"),
-                    address_terminated);
+		plugin_address);
     GNUNET_free (plugin_name);
-    GNUNET_free (address_terminated);
+    GNUNET_free (plugin_address);
     return 0;
   }
+  GNUNET_free (plugin_address);
   /* address.peer is unset - not used by add_address() */
   haddr.address_length = addr_len;
   haddr.address = addr;
@@ -630,7 +659,6 @@ add_address_to_hello (void *cls, size_t max, void *buffer)
   ret = GNUNET_HELLO_add_address (&haddr, expire, buffer, max);
   GNUNET_free (addr);
   GNUNET_free (plugin_name);
-  GNUNET_free (address_terminated);
   return ret;
 }
 

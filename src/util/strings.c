@@ -940,6 +940,7 @@ GNUNET_STRINGS_path_is_absolute (const char *filename, int can_be_uri,
 #define  S_ISLNK(m)	(((m)&_IFMT) == _IFLNK)
 #endif
 
+
 /**
  * Perform 'checks' on 'filename'
  * 
@@ -953,39 +954,37 @@ GNUNET_STRINGS_check_filename (const char *filename,
 			       enum GNUNET_STRINGS_FilenameCheck checks)
 {
   struct stat st;
-  if (filename == NULL || filename[0] == '\0')
+  if ( (NULL == filename) || (filename[0] == '\0') )
     return GNUNET_SYSERR;
-  if (checks & GNUNET_STRINGS_CHECK_IS_ABSOLUTE)
+  if (0 != (checks & GNUNET_STRINGS_CHECK_IS_ABSOLUTE))
     if (!GNUNET_STRINGS_path_is_absolute (filename, GNUNET_NO, NULL, NULL))
       return GNUNET_NO;
-  if (checks & (GNUNET_STRINGS_CHECK_EXISTS
-      | GNUNET_STRINGS_CHECK_IS_DIRECTORY
-      | GNUNET_STRINGS_CHECK_IS_LINK))
+  if (0 != (checks & (GNUNET_STRINGS_CHECK_EXISTS
+		      | GNUNET_STRINGS_CHECK_IS_DIRECTORY
+		      | GNUNET_STRINGS_CHECK_IS_LINK)))
   {
-    if (STAT (filename, &st))
+    if (0 != STAT (filename, &st))
     {
-      if (checks & GNUNET_STRINGS_CHECK_EXISTS)
+      if (0 != (checks & GNUNET_STRINGS_CHECK_EXISTS))
         return GNUNET_NO;
       else
         return GNUNET_SYSERR;
     }
   }
-  if (checks & GNUNET_STRINGS_CHECK_IS_DIRECTORY)
+  if (0 != (checks & GNUNET_STRINGS_CHECK_IS_DIRECTORY))
     if (!S_ISDIR (st.st_mode))
       return GNUNET_NO;
-  if (checks & GNUNET_STRINGS_CHECK_IS_LINK)
+  if (0 != (checks & GNUNET_STRINGS_CHECK_IS_LINK))
     if (!S_ISLNK (st.st_mode))
       return GNUNET_NO;
   return GNUNET_YES;
 }
 
-#define MAX_IPV6_ADDRLEN 47
-#define MAX_IPV4_ADDRLEN 21
-#define MAX_IP_ADDRLEN MAX_IPV6_ADDRLEN
 
 
 /**
  * Tries to convert 'zt_addr' string to an IPv6 address.
+ * The string is expected to have the format "[ABCD::01]:80".
  * 
  * @param zt_addr 0-terminated string. May be mangled by the function.
  * @param addrlen length of zt_addr (not counting 0-terminator).
@@ -999,32 +998,42 @@ GNUNET_STRINGS_to_address_ipv6 (const char *zt_addr,
 				uint16_t addrlen,
 				struct sockaddr_in6 *r_buf)
 {
+  char zbuf[addrlen + 1];
   int ret;
   char *port_colon;
   unsigned int port;
 
   if (addrlen < 6)
+    return GNUNET_SYSERR;  
+  memcpy (zbuf, zt_addr, addrlen);
+  if ('[' != zbuf[0])
     return GNUNET_SYSERR;
-
-  port_colon = strrchr (zt_addr, ':');
-  if (port_colon == NULL)
+  zbuf[addrlen] = '\0';
+  port_colon = strrchr (zbuf, ':');
+  if (NULL == port_colon)
+    return GNUNET_SYSERR;
+  if (']' != *(port_colon - 1))
     return GNUNET_SYSERR;
   ret = SSCANF (port_colon, ":%u", &port);
-  if (ret != 1 || port > 65535)
+  if ( (-1 != ret) || (port > 65535) )
     return GNUNET_SYSERR;
-  port_colon[0] = '\0';
+  *(port_colon-1) = '\0';
   memset (r_buf, 0, sizeof (struct sockaddr_in6));
-  ret = inet_pton (AF_INET6, zt_addr, &r_buf->sin6_addr);
+  ret = inet_pton (AF_INET6, &zbuf[1], &r_buf->sin6_addr);
   if (ret <= 0)
     return GNUNET_SYSERR;
   r_buf->sin6_port = htons (port);
   r_buf->sin6_family = AF_INET6;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+  r_buf->sin6_len = (u_char) sizeof (struct sockaddr_in6);
+#endif
   return GNUNET_OK;
 }
 
 
 /**
  * Tries to convert 'zt_addr' string to an IPv4 address.
+ * The string is expected to have the format "1.2.3.4:80".
  * 
  * @param zt_addr 0-terminated string. May be mangled by the function.
  * @param addrlen length of zt_addr (not counting 0-terminator).
@@ -1036,36 +1045,33 @@ int
 GNUNET_STRINGS_to_address_ipv4 (const char *zt_addr, uint16_t addrlen,
 				struct sockaddr_in *r_buf)
 {
-  unsigned int temps[5];
+  unsigned int temps[4];
   unsigned int port;
-  int cnt;
+  unsigned int cnt;
 
   if (addrlen < 9)
     return GNUNET_SYSERR;
-
   cnt = SSCANF (zt_addr, "%u.%u.%u.%u:%u", &temps[0], &temps[1], &temps[2], &temps[3], &port);
-  if (cnt != 5)
+  if (5 != cnt)
     return GNUNET_SYSERR;
-
   for (cnt = 0; cnt < 4; cnt++)
     if (temps[cnt] > 0xFF)
       return GNUNET_SYSERR;
   if (port > 65535)
     return GNUNET_SYSERR;
-
-
-
   r_buf->sin_family = AF_INET;
   r_buf->sin_port = htons (port);
   r_buf->sin_addr.s_addr = htonl ((temps[0] << 24) + (temps[1] << 16) +
-      (temps[2] << 8) + temps[3]);
+				  (temps[2] << 8) + temps[3]);
+#if HAVE_SOCKADDR_IN_SIN_LEN
+  r_buf->sin_len = (u_char) sizeof (struct sockaddr_in);
+#endif
   return GNUNET_OK;
 }
 
+
 /**
  * Tries to convert 'addr' string to an IP (v4 or v6) address.
- * IPv6 address must have its address part enclosed in '()' parens
- * instead of '[]'.
  * Will automatically decide whether to treat 'addr' as v4 or v6 address.
  * 
  * @param addr a string, may not be 0-terminated.
@@ -1080,39 +1086,10 @@ GNUNET_STRINGS_to_address_ip (const char *addr,
 			      uint16_t addrlen,
 			      struct sockaddr_storage *r_buf)
 {
-  uint16_t i;
-  char zt_addr[MAX_IP_ADDRLEN + 1];
-  uint16_t zt_len = addrlen <= MAX_IP_ADDRLEN ? addrlen : MAX_IP_ADDRLEN;
-
-  if (addrlen < 1)
-    return GNUNET_SYSERR;
-
-  memset (zt_addr, 0, MAX_IP_ADDRLEN + 1);
-  strncpy (zt_addr, addr, zt_len);
-
-  /* For URIs we use '(' and ')' instead of '[' and ']'. Do the substitution
-   * now, as GNUNET_STRINGS_to_address_ipv6() takes a proper []-enclosed IPv6
-   * address.
-   */
-  if (zt_addr[0] == '(')
-  {
-    for (i = 0; i < zt_len; i++)
-    {
-      switch (zt_addr[i])
-      {
-      case '(':
-        zt_addr[i] = '[';
-        break;
-      case ')':
-        zt_addr[i] = ']';
-        break;
-      default:
-        break;
-      }
-    }
-    return GNUNET_STRINGS_to_address_ipv6 (zt_addr, zt_len, (struct sockaddr_in6 *) r_buf);
-  }
-  return GNUNET_STRINGS_to_address_ipv4 (zt_addr, zt_len, (struct sockaddr_in *) r_buf);
+  if (GNUNET_OK ==
+      GNUNET_STRINGS_to_address_ipv6 (addr, addrlen, (struct sockaddr_in6 *) r_buf))
+    return GNUNET_OK;
+  return GNUNET_STRINGS_to_address_ipv4 (addr, addrlen, (struct sockaddr_in *) r_buf);
 }
 
 /* end of strings.c */

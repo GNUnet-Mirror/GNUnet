@@ -342,6 +342,7 @@ GNUNET_STRINGS_check_filename (const char *filename,
 
 /**
  * Tries to convert 'zt_addr' string to an IPv6 address.
+ * The string is expected to have the format "[ABCD::01]:80".
  * 
  * @param zt_addr 0-terminated string. May be mangled by the function.
  * @param addrlen length of zt_addr (not counting 0-terminator).
@@ -358,6 +359,7 @@ GNUNET_STRINGS_to_address_ipv6 (const char *zt_addr,
 
 /**
  * Tries to convert 'zt_addr' string to an IPv4 address.
+ * The string is expected to have the format "1.2.3.4:80".
  * 
  * @param zt_addr 0-terminated string. May be mangled by the function.
  * @param addrlen length of zt_addr (not counting 0-terminator).
@@ -373,8 +375,6 @@ GNUNET_STRINGS_to_address_ipv4 (const char *zt_addr,
 
 /**
  * Tries to convert 'addr' string to an IP (v4 or v6) address.
- * IPv6 address must have its address part enclosed in '()' parens
- * instead of '[]'.
  * Will automatically decide whether to treat 'addr' as v4 or v6 address.
  * 
  * @param addr a string, may not be 0-terminated.
