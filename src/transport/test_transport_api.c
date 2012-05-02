@@ -135,9 +135,9 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Peer were not ready to send data\n"));
 
   if (s_started == GNUNET_NO)
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Peers were not started n"));
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Peers were not started \n"));
   else
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Peers were started n"));
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Peers were started \n"));
 
   if (s_connected == GNUNET_NO)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Peer were not connected\n"));
