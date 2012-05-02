@@ -116,6 +116,7 @@ void
 GNUNET_TESTING_host_configure (struct GNUNET_TESTING_Host *host,
 			       const char *service_name,
 			       uint32_t num_peers);
+// FIXME: make this controller-configure?
 
 
 /**
@@ -152,7 +153,7 @@ enum GNUNET_TESTING_EventType
   /**
    * A connection between two peers was torn down.
    */
-  GNUNET_TESTING_ET_DISCONNECT = 3
+  GNUNET_TESTING_ET_DISCONNECT = 3,
 
   /**
    * A requested testing operation has been completed.
@@ -191,6 +192,12 @@ struct GNUNET_TESTING_EventInformation
     struct
     {
       /**
+       * Handle for the host where the peer
+       * was started.
+       */
+      struct GNUNET_TESTING_Host *host;
+
+      /**
        * Handle for the peer that was started.
        */
       struct GNUNET_TESTING_Peer *peer;
@@ -202,11 +209,6 @@ struct GNUNET_TESTING_EventInformation
      */ 
     struct
     {
-      /**
-       * Handle for the host where the peer
-       * was started.
-       */
-      struct GNUNET_TESTING_Host *host;
 
       /**
        * Handle for the peer that was started.
@@ -361,7 +363,7 @@ typedef void (*GNUNET_TESTING_ControllerCallback)(void *cls,
  * @param event_mask bit mask with set of events to call 'cc' for;
  *                   or-ed values of "1LL" shifted by the
  *                   respective 'enum GNUNET_TESTING_EventType'
- *                   (i.e.  "(1LL << GNUNET_TESTING_ET_CONNECT) || ...")
+ *                   (i.e.  "(1LL << GNUNET_TESTING_ET_CONNECT) | ...")
  * @param cc controller callback to invoke on events
  * @param cc_cls closure for cc
  * @return handle to the controller
@@ -813,6 +815,7 @@ typedef void (*GNUNET_TESTING_DisconnectAdapter)(void *cls,
  * 'GNUNET_TESTING_operation_cancel' can be used to abort this
  * operation until the event callback has been called.
  *
+ * @param op_cls closure to pass in operation event
  * @param peer peer that runs the service
  * @param service_name name of the service to connect to
  * @param ca helper function to establish the connection
@@ -821,7 +824,8 @@ typedef void (*GNUNET_TESTING_DisconnectAdapter)(void *cls,
  * @return handle for the operation
  */
 struct GNUNET_TESTING_Operation *
-GNUNET_TESTING_service_connect (struct GNUNET_TESTING_Peer *peer,
+GNUNET_TESTING_service_connect (void *op_cls,
+				struct GNUNET_TESTING_Peer *peer,
 				const char *service_name,
 				GNUNET_TESTING_ConnectAdapter ca,
 				GNUNET_TESTING_DisconnectAdapter da,
@@ -931,7 +935,7 @@ GNUNET_TESTING_testbed_destroy (struct GNUNET_TESTING_Testbed *testbed);
  * @param host_filename name of the file with the 'hosts', NULL
  *        to run everything on 'localhost'
  * @param cfg configuration to use (for testbed, controller and peers)
- * @param num_peers number of peers to start
+ * @param num_peers number of peers to start; FIXME: maybe put that ALSO into cfg?
  * @param event_mask bit mask with set of events to call 'cc' for;
  *                   or-ed values of "1LL" shifted by the
  *                   respective 'enum GNUNET_TESTING_EventType'
