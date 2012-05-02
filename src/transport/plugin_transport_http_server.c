@@ -480,7 +480,6 @@ server_lookup_session (struct Plugin *plugin,
                      "Server: Found matching semi-session, merging session for peer `%s'\n",
                      GNUNET_i2s (&target));
 
-    GNUNET_break (0);
     plugin->inbound_sessions ++;
     GNUNET_STATISTICS_set (plugin->env->stats,
         "# HTTP inbound sessions",
@@ -505,8 +504,6 @@ server_lookup_session (struct Plugin *plugin,
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                      "Server: Found matching semi-session, merging session for peer `%s'\n",
                      GNUNET_i2s (&target));
-
-    GNUNET_break (0);
     plugin->inbound_sessions ++;
     GNUNET_STATISTICS_set (plugin->env->stats,
         "# HTTP inbound sessions",
@@ -756,7 +753,7 @@ server_disconnect_cb (void *cls, struct MHD_Connection *connection,
   struct Session *s = NULL;
   struct Session *t = NULL;
   struct Plugin *plugin = NULL;
-GNUNET_break (0);
+
   if (sc == NULL)
     return;
 
