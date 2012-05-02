@@ -350,8 +350,24 @@ int http_string_to_address (void *cls,
   struct sockaddr_in6 addr_6;
   struct IPv4HttpAddress * http_4addr;
   struct IPv6HttpAddress * http_6addr;
-  if ((addr == NULL) || (addrlen == 0) || (buf == NULL))
+
+  if ((NULL == addr) || (addrlen == 0))
+  {
+    GNUNET_break (0);
     return GNUNET_SYSERR;
+  }
+
+  if ('\0' != addr[addrlen - 1])
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+
+  if (strlen (addr) != addrlen - 1)
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
 
   /* protocoll + "://" + ":" */
   if (addrlen <= (strlen (protocol) + 4))
@@ -396,9 +412,9 @@ int http_string_to_address (void *cls,
   }
   else
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                      "Invalid address string `%s' to convert to address\n",
-                     addr);
+                     addr_str);
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
