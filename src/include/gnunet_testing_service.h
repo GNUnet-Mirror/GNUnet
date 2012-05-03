@@ -100,26 +100,6 @@ GNUNET_TESTING_hosts_load_from_file (const char *filename,
 
 
 /**
- * Configure shared services at a peer.  Using this function,
- * you can specify that certain services (such as "resolver")
- * should not be run for each peer but instead be shared
- * across N peers on the specified host.  This function
- * must be called before any peers are created at the host.
- * 
- * @param host host to configure
- * @param service_name name of the service to share
- * @param num_peers number of peers that should share one instance
- *        of the specified service (1 for no sharing is the default),
- *        use 0 to disable the service
- */
-void
-GNUNET_TESTING_host_configure (struct GNUNET_TESTING_Host *host,
-			       const char *service_name,
-			       uint32_t num_peers);
-// FIXME: make this controller-configure?
-
-
-/**
  * Destroy a host handle.  Must only be called once everything
  * running on that host has been stopped.
  *
@@ -164,6 +144,46 @@ enum GNUNET_TESTING_EventType
    * The 'GNUNET_TESTING_run' operation has been completed
    */
   GNUNET_TESTING_ET_TESTBED_ONLINE = 5
+
+};
+
+
+/**
+ * Types of information that can be requested about a peer.
+ */
+enum GNUNET_TESTING_PeerInformationType
+{
+
+  /**
+   * Special value (not valid for requesting information)
+   * that is used in the event struct if a 'generic' pointer
+   * is returned (for other operations not related to this
+   * enumeration).
+   */
+  GNUNET_TESTING_PIT_GENERIC = 0,
+
+  /**
+   * What host is the peer running on?  Returns a 'const struct
+   * GNUNET_TESTING_Host *'.  Valid until
+   * 'GNUNET_TESTING_operation_done' is called.
+   */
+  GNUNET_TESTING_PIT_HOST,
+
+  /**
+   * What configuration is the peer using?  Returns a 'const struct
+   * GNUNET_CONFIGURATION_Handle *'.  Valid until
+   * 'GNUNET_TESTNIG_operation_done' is called.  However, the
+   * values may be inaccurate if the peer is reconfigured in
+   * the meantime.
+   */
+  GNUNET_TESTING_PIT_CONFIGURATION,
+
+  /**
+   * What is the identity of the peer?  Returns a
+   * 'const struct GNUNET_PeerIdentity *'.  Valid until
+   * 'GNUNET_TESTNIG_operation_done' is called.
+   */
+  GNUNET_TESTING_PIT_IDENTITY
 
 };
 
@@ -376,6 +396,24 @@ GNUNET_TESTING_controller_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 				 void *cc_cls);
 
 
+/**
+ * Configure shared services at a controller.  Using this function,
+ * you can specify that certain services (such as "resolver")
+ * should not be run for each peer but instead be shared
+ * across N peers on the specified host.  This function
+ * must be called before any peers are created at the host.
+ * 
+ * @param controller controller to configure
+ * @param service_name name of the service to share
+ * @param num_peers number of peers that should share one instance
+ *        of the specified service (1 for no sharing is the default),
+ *        use 0 to disable the service
+ */
+void
+GNUNET_TESTING_controller_configure_sharing (struct GNUNET_TESTING_Controller *controller,
+					     const char *service_name,
+					     uint32_t num_peers);
+
 
 /**
  * Stop the given controller (also will terminate all peers and
@@ -473,46 +511,6 @@ GNUNET_TESTING_peer_stop (struct GNUNET_TESTING_Peer *peer);
 
 
 /**
- * Types of information that can be requested about a peer.
- */
-enum GNUNET_TESTING_PeerInformationType
-{
-
-  /**
-   * Special value (not valid for requesting information)
-   * that is used in the event struct if a 'generic' pointer
-   * is returned (for other operations not related to this
-   * enumeration).
-   */
-  GNUNET_TESTING_PIT_GENERIC = 0,
-
-  /**
-   * What host is the peer running on?  Returns a 'const struct
-   * GNUNET_TESTING_Host *'.  Valid until
-   * 'GNUNET_TESTING_operation_done' is called.
-   */
-  GNUNET_TESTING_PIT_HOST,
-
-  /**
-   * What configuration is the peer using?  Returns a 'const struct
-   * GNUNET_CONFIGURATION_Handle *'.  Valid until
-   * 'GNUNET_TESTNIG_operation_done' is called.  However, the
-   * values may be inaccurate if the peer is reconfigured in
-   * the meantime.
-   */
-  GNUNET_TESTING_PIT_CONFIGURATION,
-
-  /**
-   * What is the identity of the peer?  Returns a
-   * 'const struct GNUNET_PeerIdentity *'.  Valid until
-   * 'GNUNET_TESTNIG_operation_done' is called.
-   */
-  GNUNET_TESTING_PIT_IDENTITY
-
-};
-
-
-/**
  * Request information about a peer.
  *
  * @param peer peer to request information about
@@ -601,7 +599,7 @@ GNUNET_TESTING_underlay_configure_link (void *op_cls,
 /**
  * Topologies supported for testbeds.
  */
-enum GNUNET_TESTING_Topology
+enum GNUNET_TESTING_TopologyOption
 {
   /**
    * A clique (everyone connected to everyone else).  No options.
@@ -881,7 +879,7 @@ GNUNET_TESTING_testbed_create_va (struct GNUNET_TESTING_Controller *controller,
 				  struct GNUNET_TESTING_Host **hosts,
 				  unsigned int num_peers,
 				  const struct GNUNET_CONFIGURATION_Handle *peer_cfg,
-				  enum GNUNET_TESTING_Topology underlay_topology,
+				  enum GNUNET_TESTING_TopologyOption underlay_topology,
 				  va_list va);
 
 
@@ -907,7 +905,7 @@ GNUNET_TESTING_testbed_create (struct GNUNET_TESTING_Controller *controller,
 			       struct GNUNET_TESTING_Host **hosts,
 			       unsigned int num_peers,
 			       const struct GNUNET_CONFIGURATION_Handle *peer_cfg,
-			       enum GNUNET_TESTING_Topology underlay_topology,
+			       enum GNUNET_TESTING_TopologyOption underlay_topology,
 			       ...);
 
 
