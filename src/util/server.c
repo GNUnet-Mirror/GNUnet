@@ -1285,6 +1285,7 @@ GNUNET_SERVER_client_disconnect (struct GNUNET_SERVER_Client *client)
     client->receive_pending = GNUNET_NO;
   }
   rc = client->reference_count;
+  client->reference_count++; /* make sure nobody else clean up client... */
   if ( (GNUNET_YES != client->shutdown_now) &&
        (NULL != server) )
   {
@@ -1319,6 +1320,7 @@ GNUNET_SERVER_client_disconnect (struct GNUNET_SERVER_Client *client)
       GNUNET_SERVER_mst_destroy (client->mst);
     client->mst = NULL;
   }
+  client->reference_count--;
   if (rc > 0)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,

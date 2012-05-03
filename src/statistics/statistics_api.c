@@ -559,6 +559,16 @@ process_watch_value (struct GNUNET_STATISTICS_Handle *h,
 }
 
 
+static void
+destroy_task (void *cls,
+	      const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_STATISTICS_Handle *h = cls;
+
+  GNUNET_STATISTICS_destroy (h, GNUNET_YES);
+}
+
+
 /**
  * Function called with messages from stats service.
  *
@@ -582,6 +592,19 @@ receive_stats (void *cls, const struct GNUNET_MessageHeader *msg)
   }
   switch (ntohs (msg->type))
   {
+  case GNUNET_MESSAGE_TYPE_TEST:
+    if (GNUNET_SYSERR != h->do_destroy)
+    {
+      /* not in shutdown, why do we get 'TEST'? */
+      GNUNET_break (0);
+      do_disconnect (h);
+      reconnect_later (h);
+      return;
+    }
+    h->do_destroy = GNUNET_NO;
+    GNUNET_SCHEDULER_add_continuation (&destroy_task, h,
+				       GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+    break;
   case GNUNET_MESSAGE_TYPE_STATISTICS_END:
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Received end of statistics marker\n");
     if (NULL == (c = h->current))
@@ -951,13 +974,37 @@ GNUNET_STATISTICS_destroy (struct GNUNET_STATISTICS_Handle *h, int sync_first)
 }
 
 
-static void
-destroy_task (void *cls,
-	      const struct GNUNET_SCHEDULER_TaskContext *tc)
+/**
+ * Function called to transmit TEST message to service to
+ * confirm that the service has received all of our 'SET'
+ * messages (during statistics disconnect/shutdown).
+ *
+ * @param cls the 'struct GNUNET_STATISTICS_Handle'
+ * @param size how many bytes can we write to buf
+ * @param buf where to write requests to the service
+ * @return number of bytes written to buf
+ */
+static size_t
+transmit_test_on_shutdown (void *cls,
+			   size_t size,
+			   void *buf)
 {
   struct GNUNET_STATISTICS_Handle *h = cls;
+  struct GNUNET_MessageHeader hdr;
 
-  GNUNET_STATISTICS_destroy (h, GNUNET_YES);
+  if (NULL == buf)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		_("Failed to receive acknowledgement from statistics service, some statistics might have been lost!\n"));
+    h->do_destroy = GNUNET_NO;
+    GNUNET_SCHEDULER_add_continuation (&destroy_task, h,
+				       GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+    return 0;
+  }
+  hdr.type = htons (GNUNET_MESSAGE_TYPE_TEST);
+  hdr.size = htons (sizeof (struct GNUNET_MessageHeader));
+  memcpy (buf, &hdr, sizeof (hdr));
+  return sizeof (struct GNUNET_MessageHeader);
 }
 
 
@@ -987,9 +1034,12 @@ schedule_action (struct GNUNET_STATISTICS_Handle *h)
   {
     if (h->do_destroy)
     {
-      h->do_destroy = GNUNET_NO;
-      GNUNET_SCHEDULER_add_continuation (&destroy_task, h,
-					 GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+      h->do_destroy = GNUNET_SYSERR; /* in 'TEST' mode */
+      h->th = GNUNET_CLIENT_notify_transmit_ready (h->client,
+						   sizeof (struct GNUNET_MessageHeader),
+						   SET_TRANSMIT_TIMEOUT,
+						   GNUNET_NO,
+						   &transmit_test_on_shutdown, h);
     }
     return;
   }
