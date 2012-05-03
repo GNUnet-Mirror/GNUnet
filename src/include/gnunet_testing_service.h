@@ -536,7 +536,7 @@ GNUNET_TESTING_peer_get_information (struct GNUNET_TESTING_Peer *peer,
  */
 struct GNUNET_TESTING_Operation *
 GNUNET_TESTING_peer_update_configuration (struct GNUNET_TESTING_Peer *peer,
-					  const struct GNUNET_CONFIGURATION_Handle *handle);
+					  const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /**
@@ -881,7 +881,7 @@ GNUNET_TESTING_testbed_create_va (struct GNUNET_TESTING_Controller *controller,
 				  struct GNUNET_TESTING_Host **hosts,
 				  unsigned int num_peers,
 				  const struct GNUNET_CONFIGURATION_Handle *peer_cfg,
-				  enum GNUNET_TESTING_Topology topo,
+				  enum GNUNET_TESTING_Topology underlay_topology,
 				  va_list va);
 
 
@@ -907,7 +907,7 @@ GNUNET_TESTING_testbed_create (struct GNUNET_TESTING_Controller *controller,
 			       struct GNUNET_TESTING_Host **hosts,
 			       unsigned int num_peers,
 			       const struct GNUNET_CONFIGURATION_Handle *peer_cfg,
-			       enum GNUNET_TESTING_Topology topo,
+			       enum GNUNET_TESTING_Topology underlay_topology,
 			       ...);
 
 
@@ -995,8 +995,8 @@ void
 GNUNET_TESTING_test_run (const char *testname,
 			 const char *cfg_filename,
 			 unsigned int num_peers,
-			 GNUNET_TESTING_TestMaster master,
-			 void *master_cls);
+			 GNUNET_TESTING_TestMaster test_master,
+			 void *test_master_cls);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */
