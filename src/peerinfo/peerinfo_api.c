@@ -52,6 +52,11 @@ struct GNUNET_PEERINFO_AddContext
   struct GNUNET_PEERINFO_AddContext *prev;
 
   /**
+   * Handle to the PEERINFO service.
+   */
+  struct GNUNET_PEERINFO_Handle *h;
+
+  /**
    * Function to call after request has been transmitted, or NULL.
    */
   GNUNET_PEERINFO_Continuation cont;
@@ -420,13 +425,30 @@ GNUNET_PEERINFO_add_peer (struct GNUNET_PEERINFO_Handle *h,
        "Adding peer `%s' to PEERINFO database (%u bytes of `%s')\n",
        GNUNET_i2s (&peer), hs, "HELLO");
   ac = GNUNET_malloc (sizeof (struct GNUNET_PEERINFO_AddContext) + hs);
+  ac->h = h;
   ac->size = hs;
   ac->cont = cont;
   ac->cont_cls = cont_cls;
   memcpy (&ac[1], hello, hs);
-  GNUNET_CONTAINER_DLL_insert_after (h->ac_head, h->ac_tail, h->ac_tail, ac);
+  GNUNET_CONTAINER_DLL_insert_tail (h->ac_head, h->ac_tail, ac);
   trigger_transmit (h);
   return ac;
+}
+
+
+/**
+ * Cancel pending 'add' operation.  Must only be called before
+ * either 'cont' or 'GNUNET_PEERINFO_disconnect' are invoked.
+ *
+ * @param ac handle for the add operation to cancel
+ */
+void 
+GNUNET_PEERINFO_add_peer_cancel (struct GNUNET_PEERINFO_AddContext *ac)
+{
+  struct GNUNET_PEERINFO_Handle *h = ac->h;
+
+  GNUNET_CONTAINER_DLL_remove (h->ac_head, h->ac_tail, ac);
+  GNUNET_free (ac);
 }
 
 

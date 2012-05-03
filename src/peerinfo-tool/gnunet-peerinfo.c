@@ -679,7 +679,7 @@ static void
 add_continuation (void *cls,
 		  const char *emsg)
 {
-  ai = NULL;
+  ac = NULL;
   if (NULL != emsg)
     fprintf (stderr,
 	     _("Failure adding HELLO: %s\n"),
@@ -723,7 +723,7 @@ parse_hello_uri (const char *put_uri)
   {
     /* WARNING: this adds the address from URI WITHOUT verification! */
     if (GNUNET_OK == ctx.ret)    
-      ac = GNUNET_PEERINFO_add_peer (peerinfo, hello, NULL, NULL);
+      ac = GNUNET_PEERINFO_add_peer (peerinfo, hello, &add_continuation, NULL);
     else
       tt = GNUNET_SCHEDULER_add_now (&state_machine, NULL);
     GNUNET_free (hello);
