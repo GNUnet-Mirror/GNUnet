@@ -28,7 +28,6 @@ SUBDIRS = \
   block \
   statistics \
   arm \
-  lockmanager \
   peerinfo \
   $(MYSQL_DIR) \
   $(POSTGRES_DIR) \

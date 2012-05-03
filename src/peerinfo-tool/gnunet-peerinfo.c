@@ -215,6 +215,11 @@ static struct PrintContext *pc_head;
  */
 static struct PrintContext *pc_tail;
 
+/**
+ * Handle to current 'GNUNET_PEERINFO_add_peer' operation.
+ */
+static struct GNUNET_PEERINFO_AddContext *ac;
+
 
 /**
  * Main state machine that goes over all options and
@@ -665,6 +670,25 @@ add_address_to_hello (void *cls, size_t max, void *buffer)
 
 
 /**
+ * Continuation called from 'GNUNET_PEERINFO_add_peer'
+ *
+ * @param cls closure, NULL
+ * @param emsg error message, NULL on success
+ */
+static void
+add_continuation (void *cls,
+		  const char *emsg)
+{
+  ai = NULL;
+  if (NULL != emsg)
+    fprintf (stderr,
+	     _("Failure adding HELLO: %s\n"),
+	     emsg);
+  tt = GNUNET_SCHEDULER_add_now (&state_machine, NULL);
+}
+
+
+/**
  * Parse the PUT URI given at the command line and add it to our peerinfo 
  * database.
  *
@@ -698,16 +722,16 @@ parse_hello_uri (const char *put_uri)
   if (NULL != hello)
   {
     /* WARNING: this adds the address from URI WITHOUT verification! */
-    if (GNUNET_OK == ctx.ret)
-      GNUNET_PEERINFO_add_peer (peerinfo, hello, NULL, NULL);
+    if (GNUNET_OK == ctx.ret)    
+      ac = GNUNET_PEERINFO_add_peer (peerinfo, hello, NULL, NULL);
+    else
+      tt = GNUNET_SCHEDULER_add_now (&state_machine, NULL);
     GNUNET_free (hello);
   }
 
   /* wait 1s to give peerinfo operation a chance to succeed */
   /* FIXME: current peerinfo API sucks to require this; not to mention
      that we get no feedback to determine if the operation actually succeeded */
-  tt = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-				     &state_machine, NULL);
   return ctx.ret;
 }
 
@@ -730,6 +754,11 @@ shutdown_task (void *cls,
   struct AddressRecord *ar;
   unsigned int i;
 
+  if (NULL != ac)
+  {
+    GNUNET_PEERINFO_add_peer_cancel (ac);
+    ac = NULL;
+  }
   if (GNUNET_SCHEDULER_NO_TASK != tt)
   {
     GNUNET_SCHEDULER_cancel (tt);
