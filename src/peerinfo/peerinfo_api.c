@@ -409,7 +409,14 @@ trigger_transmit (struct GNUNET_PEERINFO_Handle *h)
  *
  * @param h handle to the peerinfo service
  * @param hello the verified (!) HELLO message
- */
+ * @param cont continuation to call when done, NULL is allowed
+ * @param cont_cls closure for 'cont'
+ * @return handle to cancel add operation; all pending
+ *         'add' operations will be cancelled automatically
+ *        on disconnect, so it is not necessary to keep this
+ *        handle (unless 'cont' is NULL and at some point
+ *        calling 'cont' must be prevented)
+ */ */
 struct GNUNET_PEERINFO_AddContext *
 GNUNET_PEERINFO_add_peer (struct GNUNET_PEERINFO_Handle *h,
                           const struct GNUNET_HELLO_Message *hello,
