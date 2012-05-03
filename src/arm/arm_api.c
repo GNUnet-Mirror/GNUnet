@@ -87,11 +87,6 @@ struct ShutdownContext
    */
   struct GNUNET_CLIENT_TransmitHandle *th;
 
-  /**
-   * Result of the operation
-   */
-  enum GNUNET_ARM_ProcessStatus confirmed;
-
 };
 
 
@@ -110,37 +105,23 @@ static void
 service_shutdown_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 {
   struct ShutdownContext *shutdown_ctx = cls;
-  const struct GNUNET_ARM_ResultMessage *rmsg;
 
-  if (msg == NULL)
+  if (NULL != msg)
   {
-    if (shutdown_ctx->cont != NULL)
-    {
-      /* shutdown is now complete, as we waited for the network disconnect... */
-      shutdown_ctx->cont (shutdown_ctx->cont_cls, GNUNET_ARM_PROCESS_DOWN);
-    }
+    /* We just expected a disconnect! Report the error and be done with it... */
+    GNUNET_break (0);
+    shutdown_ctx->cont (shutdown_ctx->cont_cls, GNUNET_ARM_PROCESS_COMMUNICATION_ERROR);
     GNUNET_SCHEDULER_cancel (shutdown_ctx->cancel_task);
     GNUNET_CLIENT_disconnect (shutdown_ctx->sock);
     GNUNET_free (shutdown_ctx);
     return;
   }
-  if (ntohs (msg->size) ==
-      sizeof (struct GNUNET_ARM_ResultMessage))
-  {
-    rmsg = (const struct GNUNET_ARM_ResultMessage*) msg;
-    shutdown_ctx->confirmed = (enum GNUNET_ARM_ProcessStatus) ntohl (rmsg->status);
-    if (shutdown_ctx->confirmed != GNUNET_ARM_PROCESS_SHUTDOWN)
-    {
-      /* ARM is not shutting down, well, report the error and be done with it... */
-      shutdown_ctx->cont (shutdown_ctx->cont_cls, shutdown_ctx->confirmed);
-      GNUNET_SCHEDULER_cancel (shutdown_ctx->cancel_task);
-      GNUNET_CLIENT_disconnect (shutdown_ctx->sock);
-      GNUNET_free (shutdown_ctx);
-      return;
-    }
-  }
-  GNUNET_CLIENT_receive (shutdown_ctx->sock, &service_shutdown_handler,
-			 shutdown_ctx, GNUNET_TIME_UNIT_FOREVER_REL);
+  if (NULL != shutdown_ctx->cont)
+    /* shutdown is now complete, as we waited for the network disconnect... */
+    shutdown_ctx->cont (shutdown_ctx->cont_cls, GNUNET_ARM_PROCESS_DOWN);    
+  GNUNET_SCHEDULER_cancel (shutdown_ctx->cancel_task);
+  GNUNET_CLIENT_disconnect (shutdown_ctx->sock);
+  GNUNET_free (shutdown_ctx);
 }
 
 
@@ -225,7 +206,6 @@ arm_service_shutdown (struct GNUNET_CLIENT_Connection *sock,
   shutdown_ctx->cont_cls = cont_cls;
   shutdown_ctx->sock = sock;
   shutdown_ctx->timeout = GNUNET_TIME_relative_to_absolute (timeout);
-  shutdown_ctx->confirmed = GNUNET_ARM_PROCESS_COMMUNICATION_ERROR;    
   shutdown_ctx->th = GNUNET_CLIENT_notify_transmit_ready (sock,
 							  sizeof (struct GNUNET_MessageHeader),
 							  timeout, GNUNET_NO, &write_shutdown,

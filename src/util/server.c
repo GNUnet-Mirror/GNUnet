@@ -1261,9 +1261,9 @@ GNUNET_SERVER_disconnect_notify_cancel (struct GNUNET_SERVER_Handle *server,
 void
 GNUNET_SERVER_client_disconnect (struct GNUNET_SERVER_Client *client)
 {
+  struct GNUNET_SERVER_Handle *server = client->server;
   struct GNUNET_SERVER_Client *prev;
   struct GNUNET_SERVER_Client *pos;
-  struct GNUNET_SERVER_Handle *server;
   struct NotifyList *n;
   unsigned int rc;
 
@@ -1284,9 +1284,9 @@ GNUNET_SERVER_client_disconnect (struct GNUNET_SERVER_Client *client)
     GNUNET_CONNECTION_receive_cancel (client->connection);
     client->receive_pending = GNUNET_NO;
   }
-  server = client->server;
   rc = client->reference_count;
-  if (GNUNET_YES != client->shutdown_now)
+  if ( (GNUNET_YES != client->shutdown_now) &&
+       (NULL != server) )
   {
     client->shutdown_now = GNUNET_YES;
     prev = NULL;
@@ -1313,11 +1313,17 @@ GNUNET_SERVER_client_disconnect (struct GNUNET_SERVER_Client *client)
     }
     for (n = server->disconnect_notify_list_head; NULL != n; n = n->next)
       n->callback (n->callback_cls, client);
+    if (NULL != server->mst_destroy)
+      server->mst_destroy (server->mst_cls, client->mst);
+    else
+      GNUNET_SERVER_mst_destroy (client->mst);
+    client->mst = NULL;
   }
   if (rc > 0)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "RC still positive, not destroying everything.\n");
+    client->server = NULL;
     return;
   }
   if (GNUNET_YES == client->in_process_client_buffer)
@@ -1326,20 +1332,15 @@ GNUNET_SERVER_client_disconnect (struct GNUNET_SERVER_Client *client)
          "Still processing inputs, not destroying everything.\n");
     return;
   }
-
   if (GNUNET_YES == client->persist)
     GNUNET_CONNECTION_persist_ (client->connection);
   if (NULL != client->th.cth)
     GNUNET_SERVER_notify_transmit_ready_cancel (&client->th);
   GNUNET_CONNECTION_destroy (client->connection);
-
-  if (NULL != server->mst_destroy)
-    server->mst_destroy (server->mst_cls, client->mst);
-  else
-    GNUNET_SERVER_mst_destroy (client->mst);
   GNUNET_free (client);
   /* we might be in soft-shutdown, test if we're done */
-  test_monitor_clients (server);
+  if (NULL != server)
+    test_monitor_clients (server);
 }
 
 
@@ -1377,9 +1378,8 @@ transmit_ready_callback_wrapper (void *cls, size_t size, void *buf)
   client->th.cth = NULL;
   callback = client->th.callback;
   client->th.callback = NULL;
+  client->last_activity = GNUNET_TIME_absolute_get ();
   ret = callback (client->th.callback_cls, size, buf);
-  if (ret > 0)
-    client->last_activity = GNUNET_TIME_absolute_get ();
   return ret;
 }
 

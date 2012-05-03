@@ -1048,41 +1048,6 @@ maint_child_death (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
- * Transmit our shutdown acknowledgement to the client.
- *
- * @param cls the 'struct GNUNET_SERVER_Client'
- * @param size number of bytes available in buf
- * @param buf where to write the message
- * @return number of bytes written
- */
-static size_t
-transmit_shutdown_ack (void *cls, size_t size, void *buf)
-{
-  struct GNUNET_SERVER_Client *client = cls;
-  struct GNUNET_ARM_ResultMessage *msg;
-
-  if (size < sizeof (struct GNUNET_ARM_ResultMessage))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		  _("Failed to transmit shutdown ACK.\n"));
-      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-      return 0;			/* client disconnected */
-    }
-  /* Make the connection flushing for the purpose of ACK transmitting,
-   * needed on W32 to ensure that the message is even received, harmless
-   * on other platforms... */
-  GNUNET_break (GNUNET_OK == GNUNET_SERVER_client_disable_corking (client));
-  msg = (struct GNUNET_ARM_ResultMessage *) buf;
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_ARM_RESULT);
-  msg->header.size = htons (sizeof (struct GNUNET_ARM_ResultMessage));
-  msg->status = htonl ((uint32_t) GNUNET_ARM_PROCESS_SHUTDOWN);
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
-  GNUNET_SERVER_client_drop (client);
-  return sizeof (struct GNUNET_ARM_ResultMessage);
-}
-
-
-/**
  * Handler for SHUTDOWN message.
  *
  * @param cls closure (refers to service)
@@ -1094,13 +1059,9 @@ handle_shutdown (void *cls, struct GNUNET_SERVER_Client *client,
 		 const struct GNUNET_MessageHeader *message)
 {
   GNUNET_SCHEDULER_shutdown ();
-  GNUNET_SERVER_client_keep (client);
-  GNUNET_SERVER_notify_transmit_ready (client,
-				       sizeof (struct GNUNET_ARM_ResultMessage),
-				       GNUNET_TIME_UNIT_FOREVER_REL,
-				       &transmit_shutdown_ack, client);
   GNUNET_SERVER_client_persist_ (client);
 }
+
 
 /**
  * Signal handler called for SIGCHLD.  Triggers the
