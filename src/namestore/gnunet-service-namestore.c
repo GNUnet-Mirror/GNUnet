@@ -1707,24 +1707,22 @@ static void handle_iteration_start (void *cls,
   zi->request_id = ntohl (zis_msg->gns_header.r_id);
   zi->offset = 0;
   zi->client = nc;
-  zi->zone = zis_msg->zone;
   zi->must_have_flags = ntohs (zis_msg->must_have_flags);
   zi->must_not_have_flags = ntohs (zis_msg->must_not_have_flags);
 
   struct GNUNET_CRYPTO_ShortHashCode dummy;
-  struct GNUNET_CRYPTO_ShortHashCode *zone_tmp;
   memset (&dummy, '\0', sizeof (dummy));
   if (0 == memcmp (&dummy, &zis_msg->zone, sizeof (dummy)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting to iterate over all zones\n");
+    zi->zone = zis_msg->zone;
     zi->has_zone = GNUNET_NO;
-    zone_tmp = NULL;
   }
   else
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting to iterate over zone  `%s'\n", GNUNET_short_h2s (&zis_msg->zone));
+    zi->zone = zis_msg->zone;
     zi->has_zone = GNUNET_YES;
-    zone_tmp = &zis_msg->zone;
   }
 
   GNUNET_CONTAINER_DLL_insert (nc->op_head, nc->op_tail, zi);
@@ -1797,7 +1795,6 @@ static void handle_iteration_next (void *cls,
 
   struct GNUNET_NAMESTORE_Client *nc;
   struct GNUNET_NAMESTORE_ZoneIteration *zi;
-  struct GNUNET_CRYPTO_ShortHashCode *zone_tmp;
   struct ZoneIterationStopMessage * zis_msg = (struct ZoneIterationStopMessage *) message;
   uint32_t rid;
 
@@ -1821,12 +1818,6 @@ static void handle_iteration_next (void *cls,
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
-
-  if (GNUNET_YES == zi->has_zone)
-    zone_tmp = &zi->zone;
-  else
-    zone_tmp = NULL;
-
 
   struct ZoneIterationProcResult proc;
   proc.zi = zi;
