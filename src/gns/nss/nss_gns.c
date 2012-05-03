@@ -33,18 +33,24 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#elif defined(NSS_IPV4_ONLY)
+#ifdef NSS_IPV4_ONLY
 #define _nss_mdns_gethostbyname2_r _nss_gns4_minimal_gethostbyname2_r
 #define _nss_mdns_gethostbyname_r  _nss_gns4_minimal_gethostbyname_r
 #define _nss_mdns_gethostbyaddr_r  _nss_gns4_minimal_gethostbyaddr_r
-#elif defined(NSS_IPV6_ONLY)
+#endif
+
+#ifdef NSS_IPV6_ONLY
 #define _nss_mdns_gethostbyname2_r _nss_gns6_gethostbyname2_r
 #define _nss_mdns_gethostbyname_r  _nss_gns6_gethostbyname_r
 #define _nss_mdns_gethostbyaddr_r  _nss_gns6_gethostbyaddr_r
-#else
+#endif
+
+#ifndef NSS_IPV4_ONLY
+#ifndef NSS_IPV6_ONLY
 #define _nss_mdns_gethostbyname2_r _nss_gns_gethostbyname2_r
 #define _nss_mdns_gethostbyname_r  _nss_gns_gethostbyname_r
 #define _nss_mdns_gethostbyaddr_r  _nss_gns_gethostbyaddr_r
+#endif
 #endif
 
 /* Maximum number of entries to return */
