@@ -180,6 +180,7 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
   {
     GNUNET_CONTAINER_DLL_remove (pos->pending_head, pos->pending_tail, pml);
     GNUNET_free (pml);
+    pos->num_pending--;
   }
   if (pos->th != NULL)
   {
@@ -187,6 +188,7 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
     pos->th = NULL;
   }
   GNUNET_SERVER_client_drop (client);
+  GNUNET_assert (0 == pos->num_pending);
   GNUNET_free (pos);
 }
 
@@ -235,7 +237,9 @@ GNUNET_SERVER_notification_context_destroy (struct
     {
       GNUNET_CONTAINER_DLL_remove (pos->pending_head, pos->pending_tail, pml);
       GNUNET_free (pml);
+      pos->num_pending--;
     }
+    GNUNET_assert (0 == pos->num_pending);
     GNUNET_free (pos);
   }
   if (nc->server != NULL)
@@ -313,7 +317,7 @@ transmit_message (void *cls, size_t size, void *buf)
     GNUNET_free (pml);
     cl->num_pending--;
   }
-  if (pml != NULL)
+  if (NULL != pml)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Have %u messages left in NC queue, will try transmission again\n",
@@ -324,7 +328,9 @@ transmit_message (void *cls, size_t size, void *buf)
                                              &transmit_message, cl);
   }
   else
-    GNUNET_assert (cl->num_pending == 0);
+  {
+    GNUNET_assert (0 == cl->num_pending);
+  }
   return ret;
 }
 
