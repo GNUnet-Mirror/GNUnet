@@ -416,7 +416,7 @@ trigger_transmit (struct GNUNET_PEERINFO_Handle *h)
  *        on disconnect, so it is not necessary to keep this
  *        handle (unless 'cont' is NULL and at some point
  *        calling 'cont' must be prevented)
- */ */
+ */
 struct GNUNET_PEERINFO_AddContext *
 GNUNET_PEERINFO_add_peer (struct GNUNET_PEERINFO_Handle *h,
                           const struct GNUNET_HELLO_Message *hello,
