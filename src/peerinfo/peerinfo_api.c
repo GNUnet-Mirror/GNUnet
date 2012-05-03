@@ -577,10 +577,13 @@ iterator_start_receive (void *cls, const char *emsg)
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Waiting for response from `%s' service.\n",
        "PEERINFO");
-  h->in_receive = GNUNET_YES;
   ic->in_receive = GNUNET_YES;
-  GNUNET_CLIENT_receive (h->client, &peerinfo_handler, ic,
-                         GNUNET_TIME_absolute_get_remaining (ic->timeout));
+  if (GNUNET_NO == h->in_receive)
+  {
+    h->in_receive = GNUNET_YES;
+    GNUNET_CLIENT_receive (h->client, &peerinfo_handler, ic,
+			   GNUNET_TIME_absolute_get_remaining (ic->timeout));
+  }
 }
 
 
