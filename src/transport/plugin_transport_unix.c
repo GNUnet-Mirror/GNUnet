@@ -243,16 +243,70 @@ struct Plugin
   unsigned int bytes_in_queue;
 };
 
+static void
+unix_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+static void
+reschedule_select (struct Plugin * plugin)
+{
+
+  if (plugin->select_task != GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel (plugin->select_task);
+    plugin->select_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+
+  if (NULL != plugin->msg_head)
+  {
+    plugin->select_task =
+      GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+                                   GNUNET_TIME_UNIT_FOREVER_REL,
+                                   plugin->rs,
+                                   plugin->ws,
+                                   &unix_plugin_select, plugin);
+    plugin->with_ws = GNUNET_YES;
+  }
+  else
+  {
+    plugin->select_task =
+      GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+                                   GNUNET_TIME_UNIT_FOREVER_REL,
+                                   plugin->rs,
+                                   NULL,
+                                   &unix_plugin_select, plugin);
+    plugin->with_ws = GNUNET_NO;
+  }
+}
+
 
 static int
 get_session_delete_it (void *cls, const GNUNET_HashCode * key, void *value)
 {
   struct Session *s = value;
+  struct UNIXMessageWrapper * msgw;
   struct Plugin *plugin = cls;
+  int removed;
   GNUNET_assert (plugin != NULL);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Deleting session for peer `%s' `%s' \n", GNUNET_i2s (&s->target), s->addr);
   plugin->env->session_end (plugin->env->cls, &s->target, s);
+
+  msgw = plugin->msg_head;
+  removed = GNUNET_NO;
+  while (NULL != (msgw = plugin->msg_head))
+  {
+    if (msgw->session == s)
+    {
+      GNUNET_CONTAINER_DLL_remove (plugin->msg_head, plugin->msg_tail, msgw);
+      if (msgw->cont != NULL)
+        msgw->cont (msgw->cont_cls,  &msgw->session->target, GNUNET_SYSERR);
+      GNUNET_free (msgw->msg);
+      GNUNET_free (msgw);
+      removed = GNUNET_YES;
+    }
+  }
+  if ((GNUNET_YES == removed) && (NULL == plugin->msg_head))
+    reschedule_select (plugin);
 
   GNUNET_assert (GNUNET_YES ==
 		 GNUNET_CONTAINER_multihashmap_remove(plugin->session_map, &s->target.hashPubKey, s));
@@ -263,7 +317,6 @@ get_session_delete_it (void *cls, const GNUNET_HashCode * key, void *value)
                         GNUNET_NO);
 
   GNUNET_free (s);
-
   return GNUNET_YES;
 }
 
@@ -667,16 +720,7 @@ unix_plugin_send (void *cls,
               (char *) session->addr);
   if (plugin->with_ws == GNUNET_NO)
   {
-    if (plugin->select_task != GNUNET_SCHEDULER_NO_TASK)
-      GNUNET_SCHEDULER_cancel(plugin->select_task);
-
-    plugin->select_task =
-        GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                                     GNUNET_TIME_UNIT_FOREVER_REL,
-                                     plugin->rs,
-                                     plugin->ws,
-                                     &unix_plugin_select, plugin);
-    plugin->with_ws = GNUNET_YES;
+    reschedule_select (plugin);
   }
   return ssize;
 }
@@ -882,29 +926,7 @@ unix_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     unix_plugin_select_read (plugin);
   }
 
-  if (plugin->select_task != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel (plugin->select_task);
-
-  if (NULL != plugin->msg_head)
-  {
-    plugin->select_task =
-      GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                                   GNUNET_TIME_UNIT_FOREVER_REL,
-                                   plugin->rs,
-                                   plugin->ws,
-                                   &unix_plugin_select, plugin);
-    plugin->with_ws = GNUNET_YES;
-  }
-  else
-  {
-    plugin->select_task =
-      GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                                   GNUNET_TIME_UNIT_FOREVER_REL,
-                                   plugin->rs,
-                                   NULL,
-                                   &unix_plugin_select, plugin);
-    plugin->with_ws = GNUNET_NO;
-  }
+  reschedule_select (plugin);
 }
 
 /**
@@ -965,13 +987,7 @@ unix_transport_server_start (void *cls)
   GNUNET_NETWORK_fdset_set (plugin->rs, plugin->unix_sock.desc);
   GNUNET_NETWORK_fdset_set (plugin->ws, plugin->unix_sock.desc);
 
-  plugin->select_task =
-      GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                                   GNUNET_TIME_UNIT_FOREVER_REL,
-                                   plugin->rs,
-                                   NULL,
-                                   &unix_plugin_select, plugin);
-  plugin->with_ws = GNUNET_NO;
+  reschedule_select (plugin);
 
   return 1;
 }
