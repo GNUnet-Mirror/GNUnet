@@ -177,7 +177,7 @@ refresh_hello_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                             GNUNET_NO);
   if (NULL != hello_cb)
     hello_cb (hello_cb_cls, GST_hello_get ());
-  GNUNET_PEERINFO_add_peer (GST_peerinfo, our_hello);
+  GNUNET_PEERINFO_add_peer (GST_peerinfo, our_hello, NULL, NULL);
   hello_task =
       GNUNET_SCHEDULER_add_delayed (HELLO_REFRESH_PERIOD, &refresh_hello_task,
                                     NULL);

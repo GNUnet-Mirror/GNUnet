@@ -58,7 +58,6 @@ struct GNUNET_PEERINFO_Handle *
 GNUNET_PEERINFO_connect (const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
-
 /**
  * Disconnect from the peerinfo service.  Note that all iterators must
  * have completed or have been cancelled by the time this function is
@@ -73,6 +72,22 @@ GNUNET_PEERINFO_disconnect (struct GNUNET_PEERINFO_Handle *h);
 
 
 /**
+ * Continuation called with a status result.
+ * 
+ * @param cls closure
+ * @param emsg error message, NULL on success
+ */
+typedef void (*GNUNET_PEERINFO_Continuation)(void *cls,
+					     const char *emsg);
+
+
+/**
+ * Opaque handle to cancel 'add' operation.
+ */
+struct GNUNET_PEERINFO_AddContext;
+
+
+/**
  * Add a host to the persistent list.  This method operates in
  * semi-reliable mode: if the transmission is not completed by
  * the time 'GNUNET_PEERINFO_disconnect' is called, it will be
@@ -82,10 +97,29 @@ GNUNET_PEERINFO_disconnect (struct GNUNET_PEERINFO_Handle *h);
  *
  * @param h handle to the peerinfo service
  * @param hello the verified (!) HELLO message
+ * @param cont continuation to call when done, NULL is allowed
+ * @param cont_cls closure for 'cont'
+ * @return handle to cancel add operation; all pending
+ *         'add' operations will be cancelled automatically
+ *        on disconnect, so it is not necessary to keep this
+ *        handle (unless 'cont' is NULL and at some point
+ *        calling 'cont' must be prevented)
+ */
+struct GNUNET_PEERINFO_AddContext *
+GNUNET_PEERINFO_add_peer (struct GNUNET_PEERINFO_Handle *h,
+                          const struct GNUNET_HELLO_Message *hello,
+			  GNUNET_PEERINFO_Continuation cont,
+			  void *cont_cls);
+
+
+/**
+ * Cancel pending 'add' operation.  Must only be called before
+ * either 'cont' or 'GNUNET_PEERINFO_disconnect' are invoked.
+ *
+ * @param ac handle for the add operation to cancel
  */
 void
-GNUNET_PEERINFO_add_peer (struct GNUNET_PEERINFO_Handle *h,
-                          const struct GNUNET_HELLO_Message *hello);
+GNUNET_PEERINFO_add_peer_cancel (struct GNUNET_PEERINFO_AddContext *ac);
 
 
 /**

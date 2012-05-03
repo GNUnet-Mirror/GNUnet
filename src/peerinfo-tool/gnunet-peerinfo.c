@@ -699,7 +699,7 @@ parse_hello_uri (const char *put_uri)
   {
     /* WARNING: this adds the address from URI WITHOUT verification! */
     if (GNUNET_OK == ctx.ret)
-      GNUNET_PEERINFO_add_peer (peerinfo, hello);
+      GNUNET_PEERINFO_add_peer (peerinfo, hello, NULL, NULL);
     GNUNET_free (hello);
   }
 
