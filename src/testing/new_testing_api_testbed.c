@@ -59,7 +59,7 @@ GNUNET_TESTING_testbed_create_va (struct GNUNET_TESTING_Controller *controller,
 				  struct GNUNET_TESTING_Host **hosts,
 				  unsigned int num_peers,
 				  const struct GNUNET_CONFIGURATION_Handle *peer_cfg,
-				  enum GNUNET_TESTING_Topology underlay_topology,
+				  enum GNUNET_TESTING_TopologyOption underlay_topology,
 				  va_list va)
 {
   GNUNET_break (0);
@@ -89,7 +89,7 @@ GNUNET_TESTING_testbed_create (struct GNUNET_TESTING_Controller *controller,
 			       struct GNUNET_TESTING_Host **hosts,
 			       unsigned int num_peers,
 			       const struct GNUNET_CONFIGURATION_Handle *peer_cfg,
-			       enum GNUNET_TESTING_Topology underlay_topology,
+			       enum GNUNET_TESTING_TopologyOption underlay_topology,
 			       ...)
 {
   GNUNET_break (0);

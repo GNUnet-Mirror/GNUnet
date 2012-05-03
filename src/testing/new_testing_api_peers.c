@@ -127,8 +127,8 @@ GNUNET_TESTING_peer_lookup_by_id_ (uint32_t id)
  * @return handle to the peer (actual startup will happen asynchronously)
  */
 struct GNUNET_TESTING_Peer *
-GNUNET_TESTING_peer_create_with_id_ (struct GNUNET_TESTING_Controller *controller,
-				     uint32_t unique_id,				     
+GNUNET_TESTING_peer_create_with_id_ (uint32_t unique_id,				     
+				     struct GNUNET_TESTING_Controller *controller,				     
 				     struct GNUNET_TESTING_Host *host,
 				     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
