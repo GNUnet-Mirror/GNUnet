@@ -73,9 +73,14 @@ struct ClientList
 {
 
   /**
-   * This is a linked list.
+   * This is a doubly linked list.
    */
   struct ClientList *next;
+
+  /**
+   * This is a doubly linked list.
+   */
+  struct ClientList *prev;
 
   /**
    * Overall context this client belongs to.
@@ -127,9 +132,14 @@ struct GNUNET_SERVER_NotificationContext
   struct GNUNET_SERVER_Handle *server;
 
   /**
-   * List of clients receiving notifications.
+   * Head of list of clients receiving notifications.
    */
-  struct ClientList *clients;
+  struct ClientList *clients_head;
+
+  /**
+   * Tail of list of clients receiving notifications.
+   */
+  struct ClientList *clients_tail;
 
   /**
    * Maximum number of optional messages to queue per client.
@@ -150,39 +160,31 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
 {
   struct GNUNET_SERVER_NotificationContext *nc = cls;
   struct ClientList *pos;
-  struct ClientList *prev;
   struct PendingMessageList *pml;
 
-  if (client == NULL)
+  if (NULL == client)
   {
     nc->server = NULL;
     return;
   }
-  prev = NULL;
-  pos = nc->clients;
-  while (NULL != pos)
-  {
+  for (pos = nc->clients_head; NULL != pos; pos = pos->next)
     if (pos->client == client)
       break;
-    prev = pos;
-    pos = pos->next;
-  }
-  if (pos == NULL)
+  if (NULL == pos)
     return;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Client disconnected, cleaning up %u messages in NC queue\n",
        pos->num_pending);
-  if (prev == NULL)
-    nc->clients = pos->next;
-  else
-    prev->next = pos->next;
+  GNUNET_CONTAINER_DLL_remove (nc->clients_head,
+			       nc->clients_tail,
+			       pos);
   while (NULL != (pml = pos->pending_head))
   {
     GNUNET_CONTAINER_DLL_remove (pos->pending_head, pos->pending_tail, pml);
     GNUNET_free (pml);
     pos->num_pending--;
   }
-  if (pos->th != NULL)
+  if (NULL != pos->th)
   {
     GNUNET_SERVER_notify_transmit_ready_cancel (pos->th);
     pos->th = NULL;
@@ -229,9 +231,11 @@ GNUNET_SERVER_notification_context_destroy (struct
   struct ClientList *pos;
   struct PendingMessageList *pml;
 
-  while (NULL != (pos = nc->clients))
+  while (NULL != (pos = nc->clients_head))
   {
-    nc->clients = pos->next;
+    GNUNET_CONTAINER_DLL_remove (nc->clients_head,
+				 nc->clients_tail,
+				 pos);
     GNUNET_SERVER_client_drop (pos->client);
     while (NULL != (pml = pos->pending_head))
     {
@@ -242,7 +246,7 @@ GNUNET_SERVER_notification_context_destroy (struct
     GNUNET_assert (0 == pos->num_pending);
     GNUNET_free (pos);
   }
-  if (nc->server != NULL)
+  if (NULL != nc->server)
     GNUNET_SERVER_disconnect_notify_cancel (nc->server,
                                             &handle_client_disconnect, nc);
   GNUNET_free (nc);
@@ -262,15 +266,16 @@ GNUNET_SERVER_notification_context_add (struct GNUNET_SERVER_NotificationContext
 {
   struct ClientList *cl;
 
-  for (cl = nc->clients; NULL != cl; cl = cl->next)
+  for (cl = nc->clients_head; NULL != cl; cl = cl->next)
     if (cl->client == client)
       return; /* already present */    
   cl = GNUNET_malloc (sizeof (struct ClientList));
-  cl->next = nc->clients;
+  GNUNET_CONTAINER_DLL_insert (nc->clients_head,
+			       nc->clients_tail,
+			       cl);
   cl->nc = nc;
   cl->client = client;
   GNUNET_SERVER_client_keep (client);
-  nc->clients = cl;
 }
 
 
@@ -294,7 +299,7 @@ transmit_message (void *cls, size_t size, void *buf)
   size_t ret;
 
   cl->th = NULL;
-  if (buf == NULL)
+  if (NULL == buf)
   {
     /* 'cl' should be freed via disconnect notification shortly */
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -404,14 +409,10 @@ GNUNET_SERVER_notification_context_unicast (struct
 {
   struct ClientList *pos;
 
-  pos = nc->clients;
-  while (NULL != pos)
-  {
+  for (pos = nc->clients_head; NULL != pos; pos = pos->next)
     if (pos->client == client)
       break;
-    pos = pos->next;
-  }
-  GNUNET_assert (pos != NULL);
+  GNUNET_assert (NULL != pos);
   do_unicast (nc, pos, msg, can_drop);
 }
 
@@ -432,12 +433,8 @@ GNUNET_SERVER_notification_context_broadcast (struct
 {
   struct ClientList *pos;
 
-  pos = nc->clients;
-  while (NULL != pos)
-  {
+  for (pos = nc->clients_head; NULL != pos; pos = pos->next)
     do_unicast (nc, pos, msg, can_drop);
-    pos = pos->next;
-  }
 }
 
 
