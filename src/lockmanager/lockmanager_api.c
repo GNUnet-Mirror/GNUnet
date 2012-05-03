@@ -115,7 +115,7 @@ struct GNUNET_LOCKMANAGER_LockingRequest
  *          NULL if already known; 0 to calculate
  *
  * @param lock the lock number
- * @param where to write the generated hash
+ * @param ret where to write the generated hash
  */
 static void
 hash_domain_and_lock (const char *domain,

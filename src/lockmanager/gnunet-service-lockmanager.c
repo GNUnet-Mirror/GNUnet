@@ -111,8 +111,9 @@ handle_acquire (void *cls,
 /**
  * Handle for GNUNET_MESSAGE_TYPE_LOCKMANAGER_RELEASE
  *
- * @param 
- * @return 
+ * @param cls NULL
+ * @param client the client sending this message
+ * @param message the LOCKMANAGER_RELEASE message
  */
 static void
 handle_release (void *cls,
