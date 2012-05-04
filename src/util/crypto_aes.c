@@ -59,10 +59,12 @@ GNUNET_CRYPTO_aes_check_session_key (const struct GNUNET_CRYPTO_AesSessionKey
   uint32_t crc;
 
   crc = GNUNET_CRYPTO_crc32_n (key, GNUNET_CRYPTO_AES_KEY_LENGTH);
-  if (ntohl (key->crc32) == crc)
-    return GNUNET_OK;
-  GNUNET_break_op (0);
-  return GNUNET_SYSERR;
+  if (ntohl (key->crc32) != crc)
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
 }
 
 
