@@ -43,7 +43,6 @@
  */
 #define EXTRA_CHECKS GNUNET_NO
 
-
 /**
  * How long do we wait for SET_KEY confirmation initially?
  */
