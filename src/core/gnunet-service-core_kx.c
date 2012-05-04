@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009, 2010, 2011 Christian Grothoff (and other contributing authors)
+     (C) 2009, 2010, 2011, 2012 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -36,6 +36,12 @@
 #include "gnunet_signatures.h"
 #include "gnunet_protocols.h"
 #include "core.h"
+
+
+/**
+ * Set to GNUNET_YES to perform some slightly expensive internal invariant checks.
+ */
+#define EXTRA_CHECKS GNUNET_NO
 
 
 /**
@@ -433,6 +439,38 @@ static struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded my_public_key;
 static struct GNUNET_SERVER_MessageStreamTokenizer *mst;
 
 
+#if EXTRA_CHECKS
+/**
+ * Check internal invariants of the given KX record.
+ *
+ * @param kx record to check
+ * @param file filename for error reporting
+ * @param line line number for error reporting
+ */ 
+static void
+check_kx_record (struct GSC_KeyExchangeInfo *kx,
+		 const char *file,
+		 int line)
+{
+  struct GNUNET_HashCode hc;
+
+  if (NULL == kx->public_key)
+    return;
+  GNUNET_CRYPTO_hash (kx->public_key, sizeof (*kx->public_key), &hc);
+  GNUNET_assert_at (0 == memcmp (&hc, &kx->peer, sizeof (struct GNUNET_HashCode)), file, line);
+}
+
+
+/**
+ * Check internal invariants of the given KX record.
+ *
+ * @param kx record to check
+ */
+#define CHECK_KX(kx) check_kx_record(kx, __FILE__, __LINE__)
+#else
+#define CHECK_KX(kx) 
+#endif
+
 /**
  * Derive an authentication key from "set key" information
  *
@@ -637,6 +675,7 @@ process_hello (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct GSC_KeyExchangeInfo *kx = cls;
   struct SetKeyMessage *skm;
 
+  CHECK_KX (kx);
   if (err_msg != NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -668,6 +707,7 @@ process_hello (void *cls, const struct GNUNET_PeerIdentity *peer,
                                       &set_key_retry_task, kx);
     return;
   }
+  GNUNET_break (0 == memcmp (peer, &kx->peer, sizeof (struct GNUNET_PeerIdentity)));
   if (kx->public_key != NULL)
   {
     /* already have public key, why are we here? */
@@ -682,8 +722,10 @@ process_hello (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_break (0);
     GNUNET_free (kx->public_key);
     kx->public_key = NULL;
+    CHECK_KX (kx);
     return;
   }
+  CHECK_KX (kx);
   send_key (kx);
   if (NULL != kx->skm_received)
   {
@@ -718,6 +760,7 @@ GSC_KX_start (const struct GNUNET_PeerIdentity *pid)
       GNUNET_PEERINFO_iterate (peerinfo, pid,
                                GNUNET_TIME_UNIT_FOREVER_REL /* timeout? */ ,
                                &process_hello, kx);
+  CHECK_KX (kx);
   return kx;
 }
 
@@ -774,7 +817,8 @@ GSC_KX_handle_set_key (struct GSC_KeyExchangeInfo *kx,
   struct PongMessage *pong;
   enum KxStateMachine sender_status;
   uint16_t size;
-
+  
+  CHECK_KX (kx);
   size = ntohs (msg->size);
   if (size != sizeof (struct SetKeyMessage))
   {
@@ -813,6 +857,7 @@ GSC_KX_handle_set_key (struct GSC_KeyExchangeInfo *kx,
                                  &m->signature, kx->public_key)))
   {
     /* invalid signature */
+    CHECK_KX (kx);
     GNUNET_break_op (0);
     return;
   }
@@ -1007,6 +1052,7 @@ setup_fresh_setkey (struct GSC_KeyExchangeInfo *kx)
   skm->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_SET_KEY);
   skm->creation_time = GNUNET_TIME_absolute_hton (kx->encrypt_key_created);
   skm->target = kx->peer;
+  CHECK_KX (kx);
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CRYPTO_rsa_encrypt (&kx->encrypt_key,
                                             sizeof (struct
@@ -1244,6 +1290,7 @@ GSC_KX_handle_pong (struct GSC_KeyExchangeInfo *kx,
                               GNUNET_NO);
     kx->status = KX_STATE_UP;
     GSC_SESSIONS_create (&kx->peer, kx);
+    CHECK_KX (kx);
     schedule_rekey (kx);
     GNUNET_assert (kx->keep_alive_task == GNUNET_SCHEDULER_NO_TASK);
     if (kx->emsg_received != NULL)
@@ -1286,6 +1333,7 @@ GSC_KX_handle_pong (struct GSC_KeyExchangeInfo *kx,
 static void
 send_key (struct GSC_KeyExchangeInfo *kx)
 {
+  CHECK_KX (kx);
   if (kx->retry_set_key_task != GNUNET_SCHEDULER_NO_TASK)
   {
      GNUNET_SCHEDULER_cancel (kx->retry_set_key_task);

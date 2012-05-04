@@ -56,9 +56,7 @@ struct GNUNET_STATISTICS_Handle *GSC_stats;
 static void
 cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-#if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Core service shutting down.\n");
-#endif
   GSC_CLIENTS_done ();
   GSC_NEIGHBOURS_done ();
   GSC_SESSIONS_done ();
