@@ -184,6 +184,7 @@ disconnect_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_DHT_get_stop (get_h_far);
   for (i = 0; i < num_peers; i++)
   {
+    GNUNET_DHT_monitor_stop(mhs[i]);
     GNUNET_DHT_disconnect (hs[i]);
   }
   GNUNET_SCHEDULER_cancel (shutdown_handle);
