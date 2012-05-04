@@ -675,7 +675,7 @@ process_hello (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct SetKeyMessage *skm;
 
   CHECK_KX (kx);
-  if (err_msg != NULL)
+  if (NULL != err_msg)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 _("Error in communication with PEERINFO service\n"));
@@ -687,10 +687,10 @@ process_hello (void *cls, const struct GNUNET_PeerIdentity *peer,
                                       &set_key_retry_task, kx);
     return;
   }
-  if (peer == NULL)
+  if (NULL == peer)
   {
     kx->pitr = NULL;
-    if (kx->public_key != NULL)
+    if (NULL != kx->public_key)
       return;                   /* done here */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Failed to obtain public key for peer `%4s', delaying processing of SET_KEY\n",
@@ -707,7 +707,7 @@ process_hello (void *cls, const struct GNUNET_PeerIdentity *peer,
     return;
   }
   GNUNET_break (0 == memcmp (peer, &kx->peer, sizeof (struct GNUNET_PeerIdentity)));
-  if (kx->public_key != NULL)
+  if (NULL != kx->public_key)
   {
     /* already have public key, why are we here? */
     GNUNET_break (0);
@@ -774,7 +774,7 @@ GSC_KX_stop (struct GSC_KeyExchangeInfo *kx)
 {
   GNUNET_STATISTICS_update (GSC_stats, gettext_noop ("# key exchanges stopped"),
                             1, GNUNET_NO);
-  if (kx->pitr != NULL)
+  if (NULL != kx->pitr)
   {
     GNUNET_PEERINFO_iterate_cancel (kx->pitr);
     kx->pitr = NULL;
@@ -831,7 +831,7 @@ GSC_KX_handle_set_key (struct GSC_KeyExchangeInfo *kx,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Core service receives `%s' request from `%4s'.\n", "SET_KEY",
               GNUNET_i2s (&kx->peer));
-  if (kx->public_key == NULL)
+  if (NULL == kx->public_key)
   {
     GNUNET_free_non_null (kx->skm_received);
     kx->skm_received = (struct SetKeyMessage *) GNUNET_copy_message (msg);
@@ -926,14 +926,14 @@ GSC_KX_handle_set_key (struct GSC_KeyExchangeInfo *kx,
     GNUNET_break (0);
     break;
   }
-  if (kx->ping_received != NULL)
+  if (NULL != kx->ping_received)
   {
     ping = kx->ping_received;
     kx->ping_received = NULL;
     GSC_KX_handle_ping (kx, &ping->header);
     GNUNET_free (ping);
   }
-  if (kx->pong_received != NULL)
+  if (NULL != kx->pong_received)
   {
     pong = kx->pong_received;
     kx->pong_received = NULL;
@@ -1106,7 +1106,7 @@ send_keep_alive (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   kx->keep_alive_task = GNUNET_SCHEDULER_NO_TASK;
   left = GNUNET_TIME_absolute_get_remaining (kx->timeout);
-  if (left.rel_value == 0)
+  if (0 == left.rel_value)
   {
     GNUNET_STATISTICS_update (GSC_stats,
                               gettext_noop ("# sessions terminated by timeout"),
@@ -1212,7 +1212,7 @@ GSC_KX_handle_pong (struct GSC_KeyExchangeInfo *kx,
   uint16_t msize;
 
   msize = ntohs (msg->size);
-  if (msize != sizeof (struct PongMessage))
+  if (sizeof (struct PongMessage) != msize)
   {
     GNUNET_break_op (0);
     return;
@@ -1291,8 +1291,8 @@ GSC_KX_handle_pong (struct GSC_KeyExchangeInfo *kx,
     GSC_SESSIONS_create (&kx->peer, kx);
     CHECK_KX (kx);
     schedule_rekey (kx);
-    GNUNET_assert (kx->keep_alive_task == GNUNET_SCHEDULER_NO_TASK);
-    if (kx->emsg_received != NULL)
+    GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == kx->keep_alive_task);
+    if (NULL != kx->emsg_received)
     {
       emsg = kx->emsg_received;
       kx->emsg_received = NULL;
@@ -1333,14 +1333,14 @@ static void
 send_key (struct GSC_KeyExchangeInfo *kx)
 {
   CHECK_KX (kx);
-  if (kx->retry_set_key_task != GNUNET_SCHEDULER_NO_TASK)
+  if (GNUNET_SCHEDULER_NO_TASK != kx->retry_set_key_task)
   {
      GNUNET_SCHEDULER_cancel (kx->retry_set_key_task);
      kx->retry_set_key_task = GNUNET_SCHEDULER_NO_TASK;
   }
   if (KX_STATE_UP == kx->status)
     return;                     /* nothing to do */
-  if (kx->public_key == NULL)
+  if (NULL == kx->public_key)
   {
     /* lookup public key, then try again */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1523,7 +1523,7 @@ GSC_KX_handle_encrypted_message (struct GSC_KeyExchangeInfo *kx,
                               1, GNUNET_NO);
     return;
   }
-  if (kx->status == KX_STATE_KEY_RECEIVED)
+  if (KX_STATE_KEY_RECEIVED == kx->status)
   {
     /* defer */
     GNUNET_free_non_null (kx->ping_received);
@@ -1686,7 +1686,7 @@ GSC_KX_init ()
   }
   my_private_key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
   GNUNET_free (keyfile);
-  if (my_private_key == NULL)
+  if (NULL == my_private_key)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Core service could not access hostkey.  Exiting.\n"));
@@ -1715,17 +1715,17 @@ GSC_KX_init ()
 void
 GSC_KX_done ()
 {
-  if (my_private_key != NULL)
+  if (NULL != my_private_key)
   {
     GNUNET_CRYPTO_rsa_key_free (my_private_key);
     my_private_key = NULL;
   }
-  if (peerinfo != NULL)
+  if (NULL != peerinfo)
   {
     GNUNET_PEERINFO_disconnect (peerinfo);
     peerinfo = NULL;
   }
-  if (mst != NULL)
+  if (NULL != mst)
   {
     GNUNET_SERVER_mst_destroy (mst);
     mst = NULL;
