@@ -845,6 +845,7 @@ GST_neighbours_start (void *cls,
   disconnect_notify_cb = disconnect_cb;
   address_change_cb = peer_address_cb;
   neighbours = GNUNET_CONTAINER_multihashmap_create (NEIGHBOUR_TABLE_SIZE);
+  neighbours_connected = 0;
 }
 
 
@@ -972,12 +973,12 @@ disconnect_neighbour (struct NeighbourMapEntry *n)
   {
   case S_CONNECTED:
     GNUNET_assert (neighbours_connected > 0);
-    neighbours_connected--;
     GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != n->keepalive_task);
     GNUNET_SCHEDULER_cancel (n->keepalive_task);
     n->keepalive_task = GNUNET_SCHEDULER_NO_TASK;
     n->expect_latency_response = GNUNET_NO;
-    GNUNET_STATISTICS_update (GST_stats, gettext_noop ("# peers connected"), -1,
+    neighbours_connected--;
+    GNUNET_STATISTICS_set (GST_stats, gettext_noop ("# peers connected"), neighbours_connected,
                               GNUNET_NO);
     disconnect_notify_cb (callback_cls, &n->id);
     break;
@@ -1356,7 +1357,7 @@ send_switch_address_continuation (void *cls,
 #endif
     change_state (n, S_CONNECTED);
     neighbours_connected++;
-    GNUNET_STATISTICS_update (GST_stats, gettext_noop ("# peers connected"), 1,
+    GNUNET_STATISTICS_set (GST_stats, gettext_noop ("# peers connected"), neighbours_connected,
                               GNUNET_NO);
 
     if (n->address_state == FRESH)
@@ -1924,7 +1925,7 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
   GNUNET_assert (neighbours_connected > 0);
   change_state (n, S_FAST_RECONNECT);
   neighbours_connected--;
-  GNUNET_STATISTICS_update (GST_stats, gettext_noop ("# peers connected"), -1,
+  GNUNET_STATISTICS_set (GST_stats, gettext_noop ("# peers connected"), neighbours_connected,
                             GNUNET_NO);
 
 
@@ -2582,7 +2583,7 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
     n->keepalive_task = GNUNET_SCHEDULER_add_now (&neighbour_keepalive_task, n);
 
   neighbours_connected++;
-  GNUNET_STATISTICS_update (GST_stats, gettext_noop ("# peers connected"), 1,
+  GNUNET_STATISTICS_set (GST_stats, gettext_noop ("# peers connected"), neighbours_connected,
                             GNUNET_NO);
 #if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -2649,7 +2650,7 @@ GST_neighbours_handle_ack (const struct GNUNET_MessageHeader *message,
 
 
   neighbours_connected++;
-  GNUNET_STATISTICS_update (GST_stats, gettext_noop ("# peers connected"), 1,
+  GNUNET_STATISTICS_set (GST_stats, gettext_noop ("# peers connected"), neighbours_connected,
                             GNUNET_NO);
 
   GST_neighbours_set_incoming_quota (&n->id, n->bandwidth_in);
