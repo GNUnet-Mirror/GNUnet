@@ -869,8 +869,11 @@ core_notify_receive_cb (void *cls,
 
   pc = GNUNET_CONTAINER_multihashmap_get(peers, &peer->hashPubKey);
 
-  if ((NULL == pc) && (0 != memcmp (peer, &my_peer_id, sizeof (my_peer_id))))
+  if (NULL == pc)
   {
+    if (0 == memcmp (peer, &my_peer_id, sizeof (my_peer_id)))
+        return GNUNET_OK;
+
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Received unexpected message type %u from unknown peer `%s'\n",
         ntohs (message->type),
         GNUNET_i2s (peer));
