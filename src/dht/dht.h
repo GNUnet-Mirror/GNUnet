@@ -280,10 +280,10 @@ struct GNUNET_DHT_MonitorPutMessage
 /**
  * Message to request monitoring messages, clients -> DHT service.
  */
-struct GNUNET_DHT_MonitorStartMessage
+struct GNUNET_DHT_MonitorStartStopMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_DHT_MONITOR_START
+   * Type: GNUNET_MESSAGE_TYPE_DHT_MONITOR_(START|STOP)
    */
   struct GNUNET_MessageHeader header;
 

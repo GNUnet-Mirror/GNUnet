@@ -692,7 +692,7 @@ handle_dht_local_get_stop (void *cls, struct GNUNET_SERVER_Client *client,
 
 
 /**
- * Handler for monitor messages
+ * Handler for monitor start messages
  *
  * @param cls closure for the service
  * @param client the client we received this message from
@@ -704,29 +704,72 @@ handle_dht_local_monitor (void *cls, struct GNUNET_SERVER_Client *client,
                           const struct GNUNET_MessageHeader *message)
 {
   struct ClientMonitorRecord *r;
-  const struct GNUNET_DHT_MonitorStartMessage *msg;
-  unsigned int i;
-  char *c;
+  const struct GNUNET_DHT_MonitorStartStopMessage *msg;
 
-  msg = (struct GNUNET_DHT_MonitorStartMessage *) message;
+  msg = (struct GNUNET_DHT_MonitorStartStopMessage *) message;
   r = GNUNET_malloc (sizeof(struct ClientMonitorRecord));
 
   r->client = find_active_client(client);
   r->type = ntohl(msg->type);
-  r->get = msg->get;
-  r->get_resp = msg->get_resp;
-  r->put = msg->put;
-  c = (char *) &msg->key;
-  for (i = 0; i < sizeof (GNUNET_HashCode) && c[i] == 0; i++);
-  if (sizeof (GNUNET_HashCode) == i)
-    r->key = NULL;
+  r->get = ntohs(msg->get);
+  r->get_resp = ntohs(msg->get_resp);
+  r->put = ntohs(msg->put);
+  if (0 == ntohs(msg->filter_key))
+      r->key = NULL;
   else
   {
     r->key = GNUNET_malloc (sizeof (GNUNET_HashCode));
     memcpy (r->key, &msg->key, sizeof (GNUNET_HashCode));
   }
   GNUNET_CONTAINER_DLL_insert (monitor_head, monitor_tail, r);
-  // FIXME add remove somewhere
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
+
+/**
+ * Handler for monitor stop messages
+ *
+ * @param cls closure for the service
+ * @param client the client we received this message from
+ * @param message the actual message received
+ *
+ */
+static void
+handle_dht_local_monitor_stop (void *cls, struct GNUNET_SERVER_Client *client,
+                               const struct GNUNET_MessageHeader *message)
+{
+  struct ClientMonitorRecord *r;
+  const struct GNUNET_DHT_MonitorStartStopMessage *msg;
+  int keys_match;
+
+  msg = (struct GNUNET_DHT_MonitorStartStopMessage *) message;
+  r = monitor_head;
+
+  while (NULL != r)
+  {
+    if (NULL == r->key)
+        keys_match = (0 == ntohs(msg->filter_key));
+    else
+    {
+        keys_match = (0 != ntohs(msg->filter_key)
+                      && !memcmp(r->key, &msg->key, sizeof(GNUNET_HashCode)));
+    }
+    if (find_active_client(client) == r->client
+        && ntohl(msg->type) == r->type
+        && r->get == msg->get
+        && r->get_resp == msg->get_resp
+        && r->put == msg->put
+        && keys_match
+        )
+    {
+        GNUNET_CONTAINER_DLL_remove (monitor_head, monitor_tail, r);
+        GNUNET_free_non_null (r->key);
+        GNUNET_free (r);
+        GNUNET_SERVER_receive_done (client, GNUNET_OK);
+        return; /* Delete only ONE entry */
+    }
+    r = r->next;
+  }
+ 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
@@ -1301,7 +1344,10 @@ GDS_CLIENTS_init (struct GNUNET_SERVER_Handle *server)
      sizeof (struct GNUNET_DHT_ClientGetStopMessage)},
     {&handle_dht_local_monitor, NULL,
      GNUNET_MESSAGE_TYPE_DHT_MONITOR_START,
-     sizeof (struct GNUNET_DHT_MonitorStartMessage)},
+     sizeof (struct GNUNET_DHT_MonitorStartStopMessage)},
+    {&handle_dht_local_monitor_stop, NULL,
+     GNUNET_MESSAGE_TYPE_DHT_MONITOR_STOP,
+     sizeof (struct GNUNET_DHT_MonitorStartStopMessage)},
     {NULL, NULL, 0, 0}
   };
   forward_map = GNUNET_CONTAINER_multihashmap_create (1024);

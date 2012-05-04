@@ -1275,7 +1275,7 @@ GNUNET_DHT_monitor_start (struct GNUNET_DHT_Handle *handle,
                           void *cb_cls)
 {
   struct GNUNET_DHT_MonitorHandle *h;
-  struct GNUNET_DHT_MonitorStartMessage *m;
+  struct GNUNET_DHT_MonitorStartStopMessage *m;
   struct PendingMessage *pending;
 
   h = GNUNET_malloc (sizeof (struct GNUNET_DHT_MonitorHandle));
@@ -1293,20 +1293,20 @@ GNUNET_DHT_monitor_start (struct GNUNET_DHT_Handle *handle,
     memcpy (h->key, key, sizeof(GNUNET_HashCode));
   }
 
-  pending = GNUNET_malloc (sizeof (struct GNUNET_DHT_MonitorStartMessage) +
+  pending = GNUNET_malloc (sizeof (struct GNUNET_DHT_MonitorStartStopMessage) +
                            sizeof (struct PendingMessage));
-  m = (struct GNUNET_DHT_MonitorStartMessage *) &pending[1];
+  m = (struct GNUNET_DHT_MonitorStartStopMessage *) &pending[1];
   pending->msg = &m->header;
   pending->handle = handle;
   pending->free_on_send = GNUNET_YES;
   m->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_MONITOR_START);
-  m->header.size = htons (sizeof (struct GNUNET_DHT_MonitorStartMessage));
+  m->header.size = htons (sizeof (struct GNUNET_DHT_MonitorStartStopMessage));
   m->type = htonl(type);
-  m->get = (NULL != get_cb);
-  m->get_resp = (NULL != get_resp_cb);
-  m->put = (NULL != put_cb);
+  m->get = htons(NULL != get_cb);
+  m->get_resp = htons(NULL != get_resp_cb);
+  m->put = htons(NULL != put_cb);
   if (NULL != key) {
-    m->filter_key = 1;
+    m->filter_key = htons(1);
     memcpy (&m->key, key, sizeof(GNUNET_HashCode));
   }
   GNUNET_CONTAINER_DLL_insert (handle->pending_head, handle->pending_tail,
@@ -1328,11 +1328,36 @@ GNUNET_DHT_monitor_start (struct GNUNET_DHT_Handle *handle,
 void
 GNUNET_DHT_monitor_stop (struct GNUNET_DHT_MonitorHandle *handle)
 {
-  GNUNET_free_non_null (handle->key);
+  struct GNUNET_DHT_MonitorStartStopMessage *m;
+  struct PendingMessage *pending;
+
   GNUNET_CONTAINER_DLL_remove (handle->dht_handle->monitor_head,
                                handle->dht_handle->monitor_tail,
                                handle);
-  /* FIXME notify service of stop */
+
+  pending = GNUNET_malloc (sizeof (struct GNUNET_DHT_MonitorStartStopMessage) +
+                           sizeof (struct PendingMessage));
+  m = (struct GNUNET_DHT_MonitorStartStopMessage *) &pending[1];
+  pending->msg = &m->header;
+  pending->handle = handle->dht_handle;
+  pending->free_on_send = GNUNET_YES;
+  m->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_MONITOR_STOP);
+  m->header.size = htons (sizeof (struct GNUNET_DHT_MonitorStartStopMessage));
+  m->type = htonl(handle->type);
+  m->get = htons(NULL != handle->get_cb);
+  m->get_resp = htons(NULL != handle->get_resp_cb);
+  m->put = htons(NULL != handle->put_cb);
+  if (NULL != handle->key) {
+    m->filter_key = htons(1);
+    memcpy (&m->key, handle->key, sizeof(GNUNET_HashCode));
+  }
+  GNUNET_CONTAINER_DLL_insert (handle->dht_handle->pending_head,
+                               handle->dht_handle->pending_tail,
+                               pending);
+  pending->in_pending_queue = GNUNET_YES;
+  process_pending_messages (handle->dht_handle);
+  
+  GNUNET_free_non_null (handle->key);
   GNUNET_free (handle);
 }
 
