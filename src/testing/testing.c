@@ -644,6 +644,8 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     d->phase = SP_START_DONE;
     if (NULL != cb)
       cb (d->cb_cls, &d->id, d->cfg, d, NULL);
+    GNUNET_free (d->proc_arm_srv_start);
+    d->proc_arm_srv_start = NULL;
     break;
   case SP_SERVICE_SHUTDOWN_START:
     /* confirm copying complete */
