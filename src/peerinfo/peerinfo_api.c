@@ -481,8 +481,8 @@ GNUNET_PEERINFO_add_peer_cancel (struct GNUNET_PEERINFO_AddContext *ac)
 static void
 peerinfo_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 {
-  struct GNUNET_PEERINFO_IteratorContext *ic = cls;
-  struct GNUNET_PEERINFO_Handle *h = ic->h;
+  struct GNUNET_PEERINFO_Handle *h = cls;
+  struct GNUNET_PEERINFO_IteratorContext *ic = h->ic_head;
   const struct InfoMessage *im;
   const struct GNUNET_HELLO_Message *hello;
   GNUNET_PEERINFO_Processor cb;
@@ -534,6 +534,11 @@ peerinfo_handler (void *cls, const struct GNUNET_MessageHeader *msg)
        (0 != memcmp (&ic->peer, &im->peer, sizeof (struct GNUNET_PeerIdentity))) )
   {
     /* bogus message (from a different iteration call?); out of sequence! */
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         "Received HELLO for peer `%s', expected peer `%s'\n",
+	 GNUNET_h2s (&im->peer.hashPubKey),
+	 GNUNET_i2s (&ic->peer));
+    
     GNUNET_break (0);
     GNUNET_PEERINFO_iterate_cancel (ic);
     reconnect (h);
@@ -627,7 +632,7 @@ iterator_start_receive (void *cls, const char *emsg)
   if (GNUNET_NO == h->in_receive)
   {
     h->in_receive = GNUNET_YES;
-    GNUNET_CLIENT_receive (h->client, &peerinfo_handler, ic,
+    GNUNET_CLIENT_receive (h->client, &peerinfo_handler, h,
 			   GNUNET_TIME_absolute_get_remaining (ic->timeout));
   }
 }
@@ -721,10 +726,10 @@ GNUNET_PEERINFO_iterate (struct GNUNET_PEERINFO_Handle *h,
       GNUNET_SCHEDULER_add_delayed (timeout, &signal_timeout, ic);
   ac->cont = &iterator_start_receive;
   ac->cont_cls = ic;
-  GNUNET_CONTAINER_DLL_insert_after (h->ac_head, h->ac_tail, h->ac_tail, ac);
-  GNUNET_CONTAINER_DLL_insert (h->ic_head,
-			       h->ic_tail,
-			       ic);
+  GNUNET_CONTAINER_DLL_insert_tail (h->ac_head, h->ac_tail, ac);
+  GNUNET_CONTAINER_DLL_insert_tail (h->ic_head,
+				    h->ic_tail,
+				    ic);
   trigger_transmit (h);
   return ic;
 }
