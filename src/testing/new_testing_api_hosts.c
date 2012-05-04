@@ -180,13 +180,13 @@ GNUNET_TESTING_host_destroy (struct GNUNET_TESTING_Host *host)
  * Essentially an SSH-wrapper around the 'gnunet_helper_lib.h' API.
  * 
  * @param host host to use, use "NULL" for localhost
- * @param shell_command command line to execute (binary name with arguments)
- * @param 
+ * @param binary_arg binary name and command-line arguments to give to the binary
+ * @param cb function to call for messages received from the binary
+ * @param cb_cls closure for cb
  * @return handle to terminate the command, NULL on error
  */
 struct GNUNET_HELPER_Handle *
 GNUNET_TESTING_host_run_ (struct GNUNET_TESTING_Host *host,
-			  const char *binary_name,
 			  char *const binary_argv[],
 			  GNUNET_SERVER_MessageTokenizerCallback cb, void *cb_cls)
 {

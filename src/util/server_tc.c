@@ -82,7 +82,7 @@ transmit_response (void *cls, size_t size, void *buf)
   struct GNUNET_SERVER_TransmitContext *tc = cls;
   size_t msize;
 
-  if (buf == NULL)
+  if (NULL == buf)
   {
     GNUNET_SERVER_transmit_context_destroy (tc, GNUNET_SYSERR);
     return 0;
@@ -95,7 +95,6 @@ transmit_response (void *cls, size_t size, void *buf)
   tc->off += msize;
   if (tc->total == tc->off)
   {
-
     GNUNET_SERVER_receive_done (tc->client, GNUNET_OK);
     GNUNET_SERVER_client_drop (tc->client);
     GNUNET_free_non_null (tc->buf);
@@ -131,7 +130,7 @@ GNUNET_SERVER_transmit_context_create (struct GNUNET_SERVER_Client *client)
 {
   struct GNUNET_SERVER_TransmitContext *tc;
 
-  GNUNET_assert (client != NULL);
+  GNUNET_assert (NULL != client);
   tc = GNUNET_malloc (sizeof (struct GNUNET_SERVER_TransmitContext));
   GNUNET_SERVER_client_keep (client);
   tc->client = client;
