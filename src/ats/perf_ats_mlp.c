@@ -49,7 +49,7 @@ static unsigned int update_percentage;
 static int start;
 static int end;
 
-struct PeerContext *p;
+struct ATS_Peer *p;
 struct ATS_Address *a;
 
 static int ret;
