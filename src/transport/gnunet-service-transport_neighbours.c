@@ -1343,8 +1343,7 @@ send_switch_address_continuation (void *cls,
     {
       GST_validation_set_address_use (cc->address, cc->session, GNUNET_YES,  __LINE__);
       GNUNET_ATS_address_update (GST_ats, cc->address, cc->session, NULL, 0);
-      if (cc->session != n->session)
-        GNUNET_break (0);
+      GNUNET_break (cc->session == n->session);
       GNUNET_ATS_address_in_use (GST_ats, cc->address, cc->session, GNUNET_YES);
       n->address_state = USED;
     }
