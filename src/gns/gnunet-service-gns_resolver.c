@@ -1983,8 +1983,10 @@ process_delegation_result_ns(void* cls,
                                  rh->authority_chain_tail,
                                  auth);
     
-    /** try to import pkey if private key available */
-    if (rh->priv_key)
+    /** try to import pkey if private key available
+     * TODO: Only import last one?
+     */
+    if (rh->priv_key && (name != NULL))
       process_discovered_authority((char*)name, auth->zone,
                                    rh->authority_chain_tail->zone,
                                    rh->priv_key);
@@ -2222,7 +2224,7 @@ process_zone_to_name_shorten(void *cls,
   struct AuthorityChain *next_authority;
 
   char result[MAX_DNS_NAME_LENGTH];
-  char next_authority_name[MAX_DNS_LABEL_LENGTH];
+  char tmp_name[MAX_DNS_NAME_LENGTH];
   size_t answer_len;
   
   /* we found a match in our own zone */
@@ -2274,10 +2276,10 @@ process_zone_to_name_shorten(void *cls,
      */
     next_authority = rh->authority_chain_head;
     
-    GNUNET_snprintf(next_authority_name, MAX_DNS_NAME_LENGTH,
+    GNUNET_snprintf(tmp_name, MAX_DNS_NAME_LENGTH,
                     "%s.%s", rh->name, next_authority->name);
     
-    strcpy(rh->name, next_authority_name);
+    strcpy(rh->name, tmp_name);
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                "No PSEU found for authority %s. Promoting back: %s\n",
                next_authority->name, rh->name);
