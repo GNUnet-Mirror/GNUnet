@@ -186,9 +186,11 @@ write_message (uint16_t message_type,
 {
   struct GNUNET_MessageHeader hdr;
 
+#if 0
   fprintf (stderr, "Helper sends %u-byte message of type %u\n",
 	   (unsigned int) (sizeof (struct GNUNET_MessageHeader) + data_length),
 	   (unsigned int) message_type);
+#endif
   hdr.type = htons (message_type);
   hdr.size = htons (sizeof (struct GNUNET_MessageHeader) + data_length);
   if ( (GNUNET_OK !=

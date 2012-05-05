@@ -257,9 +257,11 @@ process_helper_msgs (void *cls,
   const char *filename;
   size_t left;
 
+#if 0
   fprintf (stderr, "DMS parses %u-byte message of type %u\n",
 	   (unsigned int) ntohs (msg->size),
 	   (unsigned int) ntohs (msg->type));
+#endif
   left = ntohs (msg->size) - sizeof (struct GNUNET_MessageHeader);
   filename = (const char*) &msg[1];
   switch (ntohs (msg->type))
