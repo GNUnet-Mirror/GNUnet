@@ -186,6 +186,9 @@ write_message (uint16_t message_type,
 {
   struct GNUNET_MessageHeader hdr;
 
+  fprintf (stderr, "Helper sends %u-byte message of type %u\n",
+	   (unsigned int) (sizeof (struct GNUNET_MessageHeader) + data_length),
+	   (unsigned int) message_type);
   hdr.type = htons (message_type);
   hdr.size = htons (sizeof (struct GNUNET_MessageHeader) + data_length);
   if ( (GNUNET_OK !=
@@ -338,7 +341,7 @@ extract_files (struct ScanTreeNode *item)
   ssize_t size;
   size_t slen;
 
-  if (item->is_directory == GNUNET_YES)
+  if (GNUNET_YES == item->is_directory)
   {
     /* for directories, we simply only descent, no extraction, no
        progress reporting */

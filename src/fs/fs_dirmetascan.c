@@ -257,6 +257,9 @@ process_helper_msgs (void *cls,
   const char *filename;
   size_t left;
 
+  fprintf (stderr, "DMS parses %u-byte message of type %u\n",
+	   (unsigned int) ntohs (msg->size),
+	   (unsigned int) ntohs (msg->type));
   left = ntohs (msg->size) - sizeof (struct GNUNET_MessageHeader);
   filename = (const char*) &msg[1];
   switch (ntohs (msg->type))
@@ -325,7 +328,7 @@ process_helper_msgs (void *cls,
 			   NULL, GNUNET_SYSERR,
 			   GNUNET_FS_DIRSCANNER_ALL_COUNTED);
     ds->pos = ds->toplevel;
-    if (ds->pos->is_directory == GNUNET_YES)
+    if (GNUNET_YES == ds->pos->is_directory)
       ds->pos = advance (ds->pos);
     return;
   case GNUNET_MESSAGE_TYPE_FS_PUBLISH_HELPER_META_DATA:
