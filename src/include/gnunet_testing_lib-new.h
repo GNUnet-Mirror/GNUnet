@@ -77,9 +77,12 @@ GNUNET_TESTING_system_create (const char *tmppath,
  * Free system resources.
  *
  * @param system system to be freed
+ * @param remove_paths should the 'tmppath' and all subdirectories
+ *        be removed (clean up on shutdown)?
  */
 void
-GNUNET_TESTING_system_destroy (struct GNUNET_TESTING_System *system);
+GNUNET_TESTING_system_destroy (struct GNUNET_TESTING_System *system,
+			       int remove_paths);
 
 
 /**

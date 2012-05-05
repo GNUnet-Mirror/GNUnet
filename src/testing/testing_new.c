@@ -39,6 +39,43 @@
  */
 struct GNUNET_TESTING_System
 {
+  /**
+   * Prefix (i.e. "/tmp/gnunet-testing/") we prepend to each
+   * SERVICEHOME. 
+   */
+  char *tmppath;
+
+  /**
+   * Bitmap where each TCP port that has already been reserved for
+   * some GNUnet peer is recorded.  Note that we additionally need to
+   * test if a port is already in use by non-GNUnet components before
+   * assigning it to a peer/service.  If we detect that a port is
+   * already in use, we also mark it in this bitmap.  So all the bits
+   * that are zero merely indicate ports that MIGHT be available for
+   * peers.
+   */
+  uint32_t reserved_tcp_ports[65536 / 32];
+
+  /**
+   * Bitmap where each UDP port that has already been reserved for
+   * some GNUnet peer is recorded.  Note that we additionally need to
+   * test if a port is already in use by non-GNUnet components before
+   * assigning it to a peer/service.  If we detect that a port is
+   * already in use, we also mark it in this bitmap.  So all the bits
+   * that are zero merely indicate ports that MIGHT be available for
+   * peers.
+   */
+  uint32_t reserved_udp_ports[65536 / 32];
+
+  /**
+   * Counter we use to make service home paths unique on this system;
+   * the full path consists of the tmppath and this number.  Each
+   * UNIXPATH for a peer is also modified to include the respective
+   * path counter to ensure uniqueness.  This field is incremented
+   * by one for each configured peer.  Even if peers are destroyed,
+   * we never re-use path counters.
+   */
+  uint32_t path_counter;
 };
 
 
@@ -47,6 +84,26 @@ struct GNUNET_TESTING_System
  */
 struct GNUNET_TESTING_Peer
 {
+
+  /**
+   * Path to the configuration file for this peer.
+   */
+  char *cfgfile;
+
+  /**
+   * Binary to be executed during 'GNUNET_TESTING_peer_start'.
+   * Typically 'gnunet-service-arm' (but can be set to a 
+   * specific service by 'GNUNET_TESTING_service_run' if
+   * necessary).
+   */ 
+  char *main_binary;
+  
+  /**
+   * Handle to the running binary of the service, NULL if the
+   * peer/service is currently not running.
+   */
+  struct GNUNET_OS_Process *main_process;
+
 };
 
 
@@ -73,12 +130,66 @@ GNUNET_TESTING_system_create (const char *tmppath,
  * Free system resources.
  *
  * @param system system to be freed
+ * @param remove_paths should the 'tmppath' and all subdirectories
+ *        be removed (clean up on shutdown)?
  */
 void
-GNUNET_TESTING_system_destroy (struct GNUNET_TESTING_System *system)
+GNUNET_TESTING_system_destroy (struct GNUNET_TESTING_System *system,
+			       int remove_paths)
 {
   GNUNET_break (0);
 }
+
+
+/**
+ * Reserve a TCP or UDP port for a peer.
+ *
+ * @param system system to use for reservation tracking
+ * @param is_tcp GNUNET_YES for TCP ports, GNUNET_NO for UDP
+ * @return 0 if no free port was available
+ */
+// static 
+uint16_t 
+reserve_port (struct GNUNET_TESTING_System *system,
+	      int is_tcp)
+{
+  GNUNET_break (0);
+  return 0;
+}
+
+
+/**
+ * Release reservation of a TCP or UDP port for a peer
+ * (used during GNUNET_TESTING_peer_destroy).
+ *
+ * @param system system to use for reservation tracking
+ * @param is_tcp GNUNET_YES for TCP ports, GNUNET_NO for UDP
+ * @param port reserved port to release
+ */
+// static 
+void
+release_port (struct GNUNET_TESTING_System *system,
+	      int is_tcp,
+	      uint16_t port)
+{
+  GNUNET_break (0);
+}
+
+
+/**
+ * Reserve a SERVICEHOME path for a peer.
+ *
+ * @param system system to use for reservation tracking
+ * @return NULL on error, otherwise fresh unique path to use
+ *         as the servicehome for the peer
+ */
+// static 
+char *
+reserve_path (struct GNUNET_TESTING_System *system)
+{
+  GNUNET_break (0);
+  return NULL;
+}	      
 
 
 /**
@@ -124,7 +235,11 @@ GNUNET_TESTING_hostkey_get (uint32_t key_number,
  */
 int
 GNUNET_TESTING_configuration_create (struct GNUNET_TESTING_System *system,
-				     struct GNUNET_CONFIGURATION_Handle *cfg);
+				     struct GNUNET_CONFIGURATION_Handle *cfg)
+{
+  GNUNET_break (0);
+  return GNUNET_SYSERR;
+}
 
 
 /**
