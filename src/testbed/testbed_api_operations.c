@@ -30,7 +30,7 @@
 /**
  * Opaque handle to an abstract operation to be executed by the testing framework.
  */
-struct GNUNET_TESTING_Operation
+struct GNUNET_TESTBED_Operation
 {
   // FIXME!
 };
@@ -47,7 +47,7 @@ struct GNUNET_TESTING_Operation
  * @param operation operation to cancel
  */
 void
-GNUNET_TESTING_operation_cancel (struct GNUNET_TESTING_Operation *operation)
+GNUNET_TESTBED_operation_cancel (struct GNUNET_TESTBED_Operation *operation)
 {
   GNUNET_break (0);
 
@@ -64,7 +64,7 @@ GNUNET_TESTING_operation_cancel (struct GNUNET_TESTING_Operation *operation)
  * @param operation operation to signal completion for
  */
 void
-GNUNET_TESTING_operation_done (struct GNUNET_TESTING_Operation *operation)
+GNUNET_TESTBED_operation_done (struct GNUNET_TESTBED_Operation *operation)
 {
   GNUNET_break (0);
 }

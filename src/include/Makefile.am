@@ -75,6 +75,7 @@ gnunetinclude_HEADERS = \
   gnunet_statistics_service.h \
   gnunet_stream_lib.h \
   gnunet_strings_lib.h \
+  gnunet_testbed_service.h \
   gnunet_testing_lib.h \
   gnunet_time_lib.h \
   gnunet_transport_service.h \

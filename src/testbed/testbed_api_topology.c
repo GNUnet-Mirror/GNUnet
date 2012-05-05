@@ -38,11 +38,11 @@
  * @return handle to the operation, NULL if configuring the topology
  *         is not allowed at this time
  */
-struct GNUNET_TESTING_Operation *
-GNUNET_TESTING_underlay_configure_topology_va (void *op_cls,
+struct GNUNET_TESTBED_Operation *
+GNUNET_TESTBED_underlay_configure_topology_va (void *op_cls,
 					       unsigned int num_peers,
-					       struct GNUNET_TESTING_Peer **peers,
-					       enum GNUNET_TESTING_TopologyOption topo,
+					       struct GNUNET_TESTBED_Peer **peers,
+					       enum GNUNET_TESTBED_TopologyOption topo,
 					       va_list ap)
 {
   GNUNET_break (0);
@@ -61,11 +61,11 @@ GNUNET_TESTING_underlay_configure_topology_va (void *op_cls,
  * @return handle to the operation, NULL if configuring the topology
  *         is not allowed at this time
  */
-struct GNUNET_TESTING_Operation *
-GNUNET_TESTING_underlay_configure_topology (void *op_cls,
+struct GNUNET_TESTBED_Operation *
+GNUNET_TESTBED_underlay_configure_topology (void *op_cls,
 					    unsigned int num_peers,
-					    struct GNUNET_TESTING_Peer **peers,
-					    enum GNUNET_TESTING_TopologyOption topo,
+					    struct GNUNET_TESTBED_Peer **peers,
+					    enum GNUNET_TESTBED_TopologyOption topo,
 					    ...)
 {
   GNUNET_break (0);
@@ -87,11 +87,11 @@ GNUNET_TESTING_underlay_configure_topology (void *op_cls,
  *         peers is fundamentally not possible at this time (peers
  *         not running or underlay disallows)
  */
-struct GNUNET_TESTING_Operation *
-GNUNET_TESTING_overlay_configure_topology_va (void *op_cls,
+struct GNUNET_TESTBED_Operation *
+GNUNET_TESTBED_overlay_configure_topology_va (void *op_cls,
 					      unsigned int num_peers,
-					      struct GNUNET_TESTING_Peer *peers,
-					      enum GNUNET_TESTING_TopologyOption topo,
+					      struct GNUNET_TESTBED_Peer *peers,
+					      enum GNUNET_TESTBED_TopologyOption topo,
 					      va_list va)
 {
   GNUNET_break (0);
@@ -113,11 +113,11 @@ GNUNET_TESTING_overlay_configure_topology_va (void *op_cls,
  *         peers is fundamentally not possible at this time (peers
  *         not running or underlay disallows)
  */
-struct GNUNET_TESTING_Operation *
-GNUNET_TESTING_overlay_configure_topology (void *op_cls,
+struct GNUNET_TESTBED_Operation *
+GNUNET_TESTBED_overlay_configure_topology (void *op_cls,
 					   unsigned int num_peers,
-					   struct GNUNET_TESTING_Peer *peers,
-					   enum GNUNET_TESTING_TopologyOption topo,
+					   struct GNUNET_TESTBED_Peer *peers,
+					   enum GNUNET_TESTBED_TopologyOption topo,
 					   ...)
 {
   GNUNET_break (0);

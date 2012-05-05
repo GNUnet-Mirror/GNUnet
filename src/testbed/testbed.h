@@ -33,7 +33,7 @@
 /**
  * Initial message from a client to a testing control service.
  */
-struct GNUNET_TESTING_Message
+struct GNUNET_TESTBED_Message
 {
 
   /**
@@ -61,7 +61,7 @@ struct GNUNET_TESTING_Message
 /**
  * Notify the service about a host that we intend to use.
  */
-struct GNUNET_TESTING_AddHostMessage
+struct GNUNET_TESTBED_AddHostMessage
 {
 
   /**
@@ -97,7 +97,7 @@ struct GNUNET_TESTING_AddHostMessage
  * Confirmation from the service that adding a host
  * worked (or failed).
  */
-struct GNUNET_TESTING_HostConfirmedMessage
+struct GNUNET_TESTBED_HostConfirmedMessage
 {
 
   /**
@@ -121,7 +121,7 @@ struct GNUNET_TESTING_HostConfirmedMessage
  * Message to testing service: configure service sharing
  * at a host.
  */
-struct GNUNET_TESTING_ConfigureSharedServiceMessage
+struct GNUNET_TESTBED_ConfigureSharedServiceMessage
 {
 
   /**
@@ -150,7 +150,7 @@ struct GNUNET_TESTING_ConfigureSharedServiceMessage
  * requests for a particular client to a particular
  * sub-controller.
  */
-struct GNUNET_TESTING_ControllerLinkMessage
+struct GNUNET_TESTBED_ControllerLinkMessage
 {
 
   /**
@@ -184,7 +184,7 @@ struct GNUNET_TESTING_ControllerLinkMessage
  * Message sent from client to testing service to 
  * create (configure, but not start) a peer.
  */
-struct GNUNET_TESTING_PeerCreateMessage
+struct GNUNET_TESTBED_PeerCreateMessage
 {
 
   /**
@@ -212,7 +212,7 @@ struct GNUNET_TESTING_PeerCreateMessage
  * Message sent from client to testing service to 
  * reconfigure a (stopped) a peer.
  */
-struct GNUNET_TESTING_PeerReconfigureMessage
+struct GNUNET_TESTBED_PeerReconfigureMessage
 {
 
   /**
@@ -240,7 +240,7 @@ struct GNUNET_TESTING_PeerReconfigureMessage
  * Message sent from client to testing service to
  * start a peer.
  */
-struct GNUNET_TESTING_PeerStartMessage
+struct GNUNET_TESTBED_PeerStartMessage
 {
 
   /**
@@ -265,7 +265,7 @@ struct GNUNET_TESTING_PeerStartMessage
  * Message sent from client to testing service to
  * stop a peer.
  */
-struct GNUNET_TESTING_PeerStopMessage
+struct GNUNET_TESTBED_PeerStopMessage
 {
 
   /**
@@ -290,7 +290,7 @@ struct GNUNET_TESTING_PeerStopMessage
  * Message sent from client to testing service to
  * destroy a (stopped) peer.
  */
-struct GNUNET_TESTING_PeerDestroyMessage
+struct GNUNET_TESTBED_PeerDestroyMessage
 {
 
   /**
@@ -315,7 +315,7 @@ struct GNUNET_TESTING_PeerDestroyMessage
  * Message sent from client to testing service to
  * (re)configure a "physical" link between two peers.
  */
-struct GNUNET_TESTING_ConfigureUnderlayLinkMessage
+struct GNUNET_TESTBED_ConfigureUnderlayLinkMessage
 {
 
   /**
@@ -324,7 +324,7 @@ struct GNUNET_TESTING_ConfigureUnderlayLinkMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * 'enum GNUNET_TESTING_ConnectOption' of the option to change
+   * 'enum GNUNET_TESTBED_ConnectOption' of the option to change
    */
   int32_t connect_option GNUNET_PACKED;
 
@@ -352,7 +352,7 @@ struct GNUNET_TESTING_ConfigureUnderlayLinkMessage
  * Message sent from client to testing service to
  * connect two peers.
  */
-struct GNUNET_TESTING_OverlayConnectMessage
+struct GNUNET_TESTBED_OverlayConnectMessage
 {
 
   /**
@@ -381,7 +381,7 @@ struct GNUNET_TESTING_OverlayConnectMessage
 /**
  * Event notification from a controller to a client.
  */
-struct GNUNET_TESTING_PeerEventMessage
+struct GNUNET_TESTBED_PeerEventMessage
 {
 
   /**
@@ -390,8 +390,8 @@ struct GNUNET_TESTING_PeerEventMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * 'enum GNUNET_TESTING_EventType' (in NBO);
-   * either GNUNET_TESTING_ET_PEER_START or GNUNET_TESTING_ET_PEER_STOP.
+   * 'enum GNUNET_TESTBED_EventType' (in NBO);
+   * either GNUNET_TESTBED_ET_PEER_START or GNUNET_TESTBED_ET_PEER_STOP.
    */
   int32_t event_type GNUNET_PACKED;
   
@@ -416,7 +416,7 @@ struct GNUNET_TESTING_PeerEventMessage
 /**
  * Event notification from a controller to a client.
  */
-struct GNUNET_TESTING_ConnectionEventMessage
+struct GNUNET_TESTBED_ConnectionEventMessage
 {
 
   /**
@@ -425,8 +425,8 @@ struct GNUNET_TESTING_ConnectionEventMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * 'enum GNUNET_TESTING_EventType' (in NBO);
-   * either GNUNET_TESTING_ET_PEER_CONNECT or GNUNET_TESTING_ET_PEER_DISCONNECT.
+   * 'enum GNUNET_TESTBED_EventType' (in NBO);
+   * either GNUNET_TESTBED_ET_PEER_CONNECT or GNUNET_TESTBED_ET_PEER_DISCONNECT.
    */
   int32_t event_type GNUNET_PACKED;
   
@@ -451,7 +451,7 @@ struct GNUNET_TESTING_ConnectionEventMessage
 /**
  * Event notification from a controller to a client.
  */
-struct GNUNET_TESTING_OperationFailureEventMessage
+struct GNUNET_TESTBED_OperationFailureEventMessage
 {
 
   /**
@@ -460,8 +460,8 @@ struct GNUNET_TESTING_OperationFailureEventMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * 'enum GNUNET_TESTING_EventType' (in NBO);
-   * GNUNET_TESTING_ET_OPERATION_FINISHED.
+   * 'enum GNUNET_TESTBED_EventType' (in NBO);
+   * GNUNET_TESTBED_ET_OPERATION_FINISHED.
    */
   int32_t event_type GNUNET_PACKED;
   
@@ -478,7 +478,7 @@ struct GNUNET_TESTING_OperationFailureEventMessage
 /**
  * Event notification from a controller to a client.
  */
-struct GNUNET_TESTING_PeerCreateSuccessEventMessage
+struct GNUNET_TESTBED_PeerCreateSuccessEventMessage
 {
 
   /**
@@ -511,7 +511,7 @@ struct GNUNET_TESTING_PeerCreateSuccessEventMessage
  * a generic operational success where the operation does
  * not return any data.
  */
-struct GNUNET_TESTING_GenericOperationSuccessEventMessage
+struct GNUNET_TESTBED_GenericOperationSuccessEventMessage
 {
 
   /**
@@ -520,8 +520,8 @@ struct GNUNET_TESTING_GenericOperationSuccessEventMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * 'enum GNUNET_TESTING_EventType' (in NBO);
-   * GNUNET_TESTING_ET_OPERATION_FINISHED.
+   * 'enum GNUNET_TESTBED_EventType' (in NBO);
+   * GNUNET_TESTBED_ET_OPERATION_FINISHED.
    */
   int32_t event_type GNUNET_PACKED;
   

@@ -35,7 +35,7 @@
  * controller.  If the given controller is not running on the target
  * host, it should find or create a controller at the target host and
  * delegate creating the peer.  Explicit delegation paths can be setup
- * using 'GNUNET_TESTING_controller_link'.  If no explicit delegation
+ * using 'GNUNET_TESTBED_controller_link'.  If no explicit delegation
  * path exists, a direct link with a subordinate controller is setup
  * for the first delegated peer to a particular host; the subordinate
  * controller is then destroyed once the last peer that was delegated
@@ -44,14 +44,14 @@
  * peer.
  *
  * Creating the peer only creates the handle to manipulate and further
- * configure the peer; use "GNUNET_TESTING_peer_start" and
- * "GNUNET_TESTING_peer_stop" to actually start/stop the peer's
+ * configure the peer; use "GNUNET_TESTBED_peer_start" and
+ * "GNUNET_TESTBED_peer_stop" to actually start/stop the peer's
  * processes.
  *
  * Note that the given configuration will be adjusted by the
  * controller to avoid port/path conflicts with other peers.
  * The "final" configuration can be obtained using
- * 'GNUNET_TESTING_peer_get_information'.
+ * 'GNUNET_TESTBED_peer_get_information'.
  *
  * @param unique_id unique ID for this peer
  * @param controller controller process to use
@@ -59,10 +59,10 @@
  * @param cfg configuration to use for the peer
  * @return handle to the peer (actual startup will happen asynchronously)
  */
-struct GNUNET_TESTING_Peer *
-GNUNET_TESTING_peer_create_with_id_ (uint32_t unique_id,
-				     struct GNUNET_TESTING_Controller *controller,				     
-				     struct GNUNET_TESTING_Host *host,
+struct GNUNET_TESTBED_Peer *
+GNUNET_TESTBED_peer_create_with_id_ (uint32_t unique_id,
+				     struct GNUNET_TESTBED_Controller *controller,				     
+				     struct GNUNET_TESTBED_Host *host,
 				     const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 

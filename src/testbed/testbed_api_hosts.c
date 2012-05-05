@@ -39,7 +39,7 @@
  * The master process must be able to SSH to this host without password (via
  * ssh-agent).
  */
-struct GNUNET_TESTING_Host
+struct GNUNET_TESTBED_Host
 {
 
 
@@ -63,8 +63,8 @@ struct GNUNET_TESTING_Host
  *        reserved to always mean 'localhost'
  * @return handle to the host, NULL on error
  */
-struct GNUNET_TESTING_Host *
-GNUNET_TESTING_host_lookup_by_id_ (uint32_t id)
+struct GNUNET_TESTBED_Host *
+GNUNET_TESTBED_host_lookup_by_id_ (uint32_t id)
 {
   GNUNET_break (0);
   return NULL;
@@ -80,8 +80,8 @@ GNUNET_TESTING_host_lookup_by_id_ (uint32_t id)
  *        reserved to always mean 'localhost'
  * @return handle to the host, NULL on error
  */
-struct GNUNET_TESTING_Host *
-GNUNET_TESTING_host_create_by_id_ (uint32_t id)
+struct GNUNET_TESTBED_Host *
+GNUNET_TESTBED_host_create_by_id_ (uint32_t id)
 {
   return NULL;
 }
@@ -95,7 +95,7 @@ GNUNET_TESTING_host_create_by_id_ (uint32_t id)
  *         'localhost', but then obviously not globally unique)
  */
 uint32_t
-GNUNET_TESTING_host_get_id_ (struct GNUNET_TESTING_Host *host)
+GNUNET_TESTBED_host_get_id_ (struct GNUNET_TESTBED_Host *host)
 {
   GNUNET_break (0);
   return 0;
@@ -112,8 +112,8 @@ GNUNET_TESTING_host_get_id_ (struct GNUNET_TESTING_Host *host)
  * @param port port number to use for ssh; use 0 to let ssh decide
  * @return handle to the host, NULL on error
  */
-struct GNUNET_TESTING_Host *
-GNUNET_TESTING_host_create_with_id_ (uint32_t id,
+struct GNUNET_TESTBED_Host *
+GNUNET_TESTBED_host_create_with_id_ (uint32_t id,
 				     const char *hostname,
 				     const char *username,
 				     uint16_t port)
@@ -131,14 +131,14 @@ GNUNET_TESTING_host_create_with_id_ (uint32_t id,
  * @param port port number to use for ssh; use 0 to let ssh decide
  * @return handle to the host, NULL on error
  */
-struct GNUNET_TESTING_Host *
-GNUNET_TESTING_host_create (const char *hostname,
+struct GNUNET_TESTBED_Host *
+GNUNET_TESTBED_host_create (const char *hostname,
 			    const char *username,
 			    uint16_t port)
 {
   static uint32_t uid_generator;
 
-  return GNUNET_TESTING_host_create_with_id_ (++uid_generator, 
+  return GNUNET_TESTBED_host_create_with_id_ (++uid_generator, 
 					      hostname, username,
 					      port);
 }
@@ -152,8 +152,8 @@ GNUNET_TESTING_host_create (const char *hostname,
  * @return number of hosts returned in 'hosts', 0 on error
  */
 unsigned int
-GNUNET_TESTING_hosts_load_from_file (const char *filename,
-				     struct GNUNET_TESTING_Host **hosts)
+GNUNET_TESTBED_hosts_load_from_file (const char *filename,
+				     struct GNUNET_TESTBED_Host **hosts)
 {
   GNUNET_break (0);
   return 0;
@@ -167,7 +167,7 @@ GNUNET_TESTING_hosts_load_from_file (const char *filename,
  * @param host handle to destroy
  */
 void
-GNUNET_TESTING_host_destroy (struct GNUNET_TESTING_Host *host)
+GNUNET_TESTBED_host_destroy (struct GNUNET_TESTBED_Host *host)
 {
   GNUNET_break (0);
 }
@@ -180,13 +180,13 @@ GNUNET_TESTING_host_destroy (struct GNUNET_TESTING_Host *host)
  * Essentially an SSH-wrapper around the 'gnunet_helper_lib.h' API.
  * 
  * @param host host to use, use "NULL" for localhost
- * @param binary_arg binary name and command-line arguments to give to the binary
+ * @param binary_argv binary name and command-line arguments to give to the binary
  * @param cb function to call for messages received from the binary
  * @param cb_cls closure for cb
  * @return handle to terminate the command, NULL on error
  */
 struct GNUNET_HELPER_Handle *
-GNUNET_TESTING_host_run_ (struct GNUNET_TESTING_Host *host,
+GNUNET_TESTBED_host_run_ (struct GNUNET_TESTBED_Host *host,
 			  char *const binary_argv[],
 			  GNUNET_SERVER_MessageTokenizerCallback cb, void *cb_cls)
 {

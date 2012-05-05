@@ -53,10 +53,10 @@
  * @param test_master_cls closure for 'task'.
  */
 void
-GNUNET_TESTING_test_run (const char *testname,
+GNUNET_TESTBED_test_run (const char *testname,
 			 const char *cfg_filename,
 			 unsigned int num_peers,
-			 GNUNET_TESTING_TestMaster test_master,
+			 GNUNET_TESTBED_TestMaster test_master,
 			 void *test_master_cls)
 {
   GNUNET_break (0);

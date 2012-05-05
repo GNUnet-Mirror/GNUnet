@@ -30,7 +30,7 @@
 /**
  * Opaque handle to an abstract operation to be executed by the testing framework.
  */
-struct GNUNET_TESTING_Testbed
+struct GNUNET_TESTBED_Testbed
 {
   // FIXME!
 };
@@ -53,13 +53,13 @@ struct GNUNET_TESTING_Testbed
  * @param va topology-specific options
  * @return handle to the testbed
  */
-struct GNUNET_TESTING_Testbed *
-GNUNET_TESTING_testbed_create_va (struct GNUNET_TESTING_Controller *controller,
+struct GNUNET_TESTBED_Testbed *
+GNUNET_TESTBED_create_va (struct GNUNET_TESTBED_Controller *controller,
 				  unsigned int num_hosts,
-				  struct GNUNET_TESTING_Host **hosts,
+				  struct GNUNET_TESTBED_Host **hosts,
 				  unsigned int num_peers,
 				  const struct GNUNET_CONFIGURATION_Handle *peer_cfg,
-				  enum GNUNET_TESTING_TopologyOption underlay_topology,
+				  enum GNUNET_TESTBED_TopologyOption underlay_topology,
 				  va_list va)
 {
   GNUNET_break (0);
@@ -83,13 +83,13 @@ GNUNET_TESTING_testbed_create_va (struct GNUNET_TESTING_Controller *controller,
  * @param underlay_topology underlay topology to create
  * @param ... topology-specific options
  */
-struct GNUNET_TESTING_Testbed *
-GNUNET_TESTING_testbed_create (struct GNUNET_TESTING_Controller *controller,
+struct GNUNET_TESTBED_Testbed *
+GNUNET_TESTBED_create (struct GNUNET_TESTBED_Controller *controller,
 			       unsigned int num_hosts,
-			       struct GNUNET_TESTING_Host **hosts,
+			       struct GNUNET_TESTBED_Host **hosts,
 			       unsigned int num_peers,
 			       const struct GNUNET_CONFIGURATION_Handle *peer_cfg,
-			       enum GNUNET_TESTING_TopologyOption underlay_topology,
+			       enum GNUNET_TESTBED_TopologyOption underlay_topology,
 			       ...)
 {
   GNUNET_break (0);
@@ -104,7 +104,7 @@ GNUNET_TESTING_testbed_create (struct GNUNET_TESTING_Controller *controller,
  * @param testbed testbed to destroy
  */
 void
-GNUNET_TESTING_testbed_destroy (struct GNUNET_TESTING_Testbed *testbed)
+GNUNET_TESTBED_destroy (struct GNUNET_TESTBED_Testbed *testbed)
 {
   GNUNET_break (0);
 }
@@ -128,19 +128,19 @@ GNUNET_TESTING_testbed_destroy (struct GNUNET_TESTING_Testbed *testbed)
  * @param num_peers number of peers to start; FIXME: maybe put that ALSO into cfg?
  * @param event_mask bit mask with set of events to call 'cc' for;
  *                   or-ed values of "1LL" shifted by the
- *                   respective 'enum GNUNET_TESTING_EventType'
- *                   (i.e.  "(1LL << GNUNET_TESTING_ET_CONNECT) || ...")
+ *                   respective 'enum GNUNET_TESTBED_EventType'
+ *                   (i.e.  "(1LL << GNUNET_TESTBED_ET_CONNECT) || ...")
  * @param cc controller callback to invoke on events
  * @param cc_cls closure for cc
  * @param master task to run once the testbed is ready
  * @param master_cls closure for 'task'.
  */
 void
-GNUNET_TESTING_testbed_run (const char *host_filename,
+GNUNET_TESTBED_run (const char *host_filename,
 			    const struct GNUNET_CONFIGURATION_Handle *cfg,
 			    unsigned int num_peers,
 			    uint64_t event_mask,
-			    GNUNET_TESTING_ControllerCallback cc,
+			    GNUNET_TESTBED_ControllerCallback cc,
 			    void *cc_cls,
 			    GNUNET_SCHEDULER_Task master,
 			    void *master_cls)

@@ -56,13 +56,13 @@ struct PeerDetails
  * A peer controlled by the testing framework.  A peer runs
  * at a particular host.
  */ 
-struct GNUNET_TESTING_Peer
+struct GNUNET_TESTBED_Peer
 {
   /**
    * Our controller context (not necessarily the controller
    * that is responsible for starting/running the peer!).
    */
-  struct GNUNET_TESTING_Controller *controller;
+  struct GNUNET_TESTBED_Controller *controller;
 			   
   /**
    * Which host does this peer run on?
@@ -89,8 +89,8 @@ struct GNUNET_TESTING_Peer
  * @param id global peer ID assigned to the peer
  * @return handle to the host, NULL on error
  */
-struct GNUNET_TESTING_Peer *
-GNUNET_TESTING_peer_lookup_by_id_ (uint32_t id)
+struct GNUNET_TESTBED_Peer *
+GNUNET_TESTBED_peer_lookup_by_id_ (uint32_t id)
 {
   GNUNET_break (0);
   return NULL;
@@ -102,7 +102,7 @@ GNUNET_TESTING_peer_lookup_by_id_ (uint32_t id)
  * controller.  If the given controller is not running on the target
  * host, it should find or create a controller at the target host and
  * delegate creating the peer.  Explicit delegation paths can be setup
- * using 'GNUNET_TESTING_controller_link'.  If no explicit delegation
+ * using 'GNUNET_TESTBED_controller_link'.  If no explicit delegation
  * path exists, a direct link with a subordinate controller is setup
  * for the first delegated peer to a particular host; the subordinate
  * controller is then destroyed once the last peer that was delegated
@@ -111,14 +111,14 @@ GNUNET_TESTING_peer_lookup_by_id_ (uint32_t id)
  * peer.
  *
  * Creating the peer only creates the handle to manipulate and further
- * configure the peer; use "GNUNET_TESTING_peer_start" and
- * "GNUNET_TESTING_peer_stop" to actually start/stop the peer's
+ * configure the peer; use "GNUNET_TESTBED_peer_start" and
+ * "GNUNET_TESTBED_peer_stop" to actually start/stop the peer's
  * processes.
  *
  * Note that the given configuration will be adjusted by the
  * controller to avoid port/path conflicts with other peers.
  * The "final" configuration can be obtained using
- * 'GNUNET_TESTING_peer_get_information'.
+ * 'GNUNET_TESTBED_peer_get_information'.
  *
  * @param unique_id unique ID for this peer
  * @param controller controller process to use
@@ -126,10 +126,10 @@ GNUNET_TESTING_peer_lookup_by_id_ (uint32_t id)
  * @param cfg configuration to use for the peer
  * @return handle to the peer (actual startup will happen asynchronously)
  */
-struct GNUNET_TESTING_Peer *
-GNUNET_TESTING_peer_create_with_id_ (uint32_t unique_id,				     
-				     struct GNUNET_TESTING_Controller *controller,				     
-				     struct GNUNET_TESTING_Host *host,
+struct GNUNET_TESTBED_Peer *
+GNUNET_TESTBED_peer_create_with_id_ (uint32_t unique_id,				     
+				     struct GNUNET_TESTBED_Controller *controller,				     
+				     struct GNUNET_TESTBED_Host *host,
 				     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   // FIXME: create locally or delegate...
@@ -143,35 +143,35 @@ GNUNET_TESTING_peer_create_with_id_ (uint32_t unique_id,
  * controller.  If the given controller is not running on the target
  * host, it should find or create a controller at the target host and
  * delegate creating the peer.  Explicit delegation paths can be setup
- * using 'GNUNET_TESTING_controller_link'.  If no explicit delegation
+ * using 'GNUNET_TESTBED_controller_link'.  If no explicit delegation
  * path exists, a direct link with a subordinate controller is setup
  * for the first delegated peer to a particular host; the subordinate
  * controller is then destroyed once the last peer that was delegated
  * to the remote host is stopped.
  *
  * Creating the peer only creates the handle to manipulate and further
- * configure the peer; use "GNUNET_TESTING_peer_start" and
- * "GNUNET_TESTING_peer_stop" to actually start/stop the peer's
+ * configure the peer; use "GNUNET_TESTBED_peer_start" and
+ * "GNUNET_TESTBED_peer_stop" to actually start/stop the peer's
  * processes.
  *
  * Note that the given configuration will be adjusted by the
  * controller to avoid port/path conflicts with other peers.
  * The "final" configuration can be obtained using
- * 'GNUNET_TESTING_peer_get_information'.
+ * 'GNUNET_TESTBED_peer_get_information'.
  *
  * @param controller controller process to use
  * @param host host to run the peer on
  * @param cfg configuration to use for the peer
  * @return handle to the peer (actual startup will happen asynchronously)
  */
-struct GNUNET_TESTING_Peer *
-GNUNET_TESTING_peer_create (struct GNUNET_TESTING_Controller *controller,
-			    struct GNUNET_TESTING_Host *host,
+struct GNUNET_TESTBED_Peer *
+GNUNET_TESTBED_peer_create (struct GNUNET_TESTBED_Controller *controller,
+			    struct GNUNET_TESTBED_Host *host,
 			    const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   static uint32_t id_gen;
 
-  return GNUNET_TESTING_peer_create_with_id_ (++id_gen,
+  return GNUNET_TESTBED_peer_create_with_id_ (++id_gen,
 					      controller,
 					      host,
 					      cfg);
@@ -184,8 +184,8 @@ GNUNET_TESTING_peer_create (struct GNUNET_TESTING_Controller *controller,
  * @param peer peer to start
  * @return handle to the operation
  */
-struct GNUNET_TESTING_Operation *
-GNUNET_TESTING_peer_start (struct GNUNET_TESTING_Peer *peer)
+struct GNUNET_TESTBED_Operation *
+GNUNET_TESTBED_peer_start (struct GNUNET_TESTBED_Peer *peer)
 {
   // FIXME: start locally or delegate...
   GNUNET_break (0);
@@ -195,14 +195,14 @@ GNUNET_TESTING_peer_start (struct GNUNET_TESTING_Peer *peer)
 
 /**
  * Stop the given peer.  The handle remains valid (use
- * "GNUNET_TESTING_peer_destroy" to fully clean up the 
+ * "GNUNET_TESTBED_peer_destroy" to fully clean up the 
  * state of the peer).
  *
  * @param peer peer to stop
  * @return handle to the operation
  */
-struct GNUNET_TESTING_Operation *
-GNUNET_TESTING_peer_stop (struct GNUNET_TESTING_Peer *peer)
+struct GNUNET_TESTBED_Operation *
+GNUNET_TESTBED_peer_stop (struct GNUNET_TESTBED_Peer *peer)
 {
   // FIXME: stop locally or delegate...
   GNUNET_break (0);
@@ -217,9 +217,9 @@ GNUNET_TESTING_peer_stop (struct GNUNET_TESTING_Peer *peer)
  * @param pit desired information
  * @return handle to the operation
  */
-struct GNUNET_TESTING_Operation *
-GNUNET_TESTING_peer_get_information (struct GNUNET_TESTING_Peer *peer,
-				     enum GNUNET_TESTING_PeerInformationType pit)
+struct GNUNET_TESTBED_Operation *
+GNUNET_TESTBED_peer_get_information (struct GNUNET_TESTBED_Peer *peer,
+				     enum GNUNET_TESTBED_PeerInformationType pit)
 {
   // FIXME: handle locally or delegate...
   GNUNET_break (0);
@@ -237,8 +237,8 @@ GNUNET_TESTING_peer_get_information (struct GNUNET_TESTING_Peer *peer,
  *            configuration only)
  * @return handle to the operation
  */
-struct GNUNET_TESTING_Operation *
-GNUNET_TESTING_peer_update_configuration (struct GNUNET_TESTING_Peer *peer,
+struct GNUNET_TESTBED_Operation *
+GNUNET_TESTBED_peer_update_configuration (struct GNUNET_TESTBED_Peer *peer,
 					  const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   // FIXME: handle locally or delegate...
@@ -259,11 +259,11 @@ GNUNET_TESTING_peer_update_configuration (struct GNUNET_TESTING_Peer *peer,
  * @return handle to the operation, NULL if configuring the link at this
  *         time is not allowed
  */
-struct GNUNET_TESTING_Operation *
-GNUNET_TESTING_underlay_configure_link (void *op_cls,
-					struct GNUNET_TESTING_Peer *p1,
-					struct GNUNET_TESTING_Peer *p2,
-					enum GNUNET_TESTING_ConnectOption co, ...)
+struct GNUNET_TESTBED_Operation *
+GNUNET_TESTBED_underlay_configure_link (void *op_cls,
+					struct GNUNET_TESTBED_Peer *p1,
+					struct GNUNET_TESTBED_Peer *p2,
+					enum GNUNET_TESTBED_ConnectOption co, ...)
 {
   GNUNET_break (0);
   return NULL;
@@ -283,10 +283,10 @@ GNUNET_TESTING_underlay_configure_link (void *op_cls,
  *         peers is fundamentally not possible at this time (peers
  *         not running or underlay disallows)
  */
-struct GNUNET_TESTING_Operation *
-GNUNET_TESTING_overlay_connect (void *op_cls,
-				struct GNUNET_TESTING_Peer *p1,
-				struct GNUNET_TESTING_Peer *p2)
+struct GNUNET_TESTBED_Operation *
+GNUNET_TESTBED_overlay_connect (void *op_cls,
+				struct GNUNET_TESTBED_Peer *p1,
+				struct GNUNET_TESTBED_Peer *p2)
 {
   GNUNET_break (0);
   return NULL;

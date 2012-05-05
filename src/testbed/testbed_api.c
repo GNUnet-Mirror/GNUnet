@@ -43,17 +43,17 @@
  * @param host host to run the controller on, NULL for 'localhost'
  * @param event_mask bit mask with set of events to call 'cc' for;
  *                   or-ed values of "1LL" shifted by the
- *                   respective 'enum GNUNET_TESTING_EventType'
- *                   (i.e.  "(1LL << GNUNET_TESTING_ET_CONNECT) | ...")
+ *                   respective 'enum GNUNET_TESTBED_EventType'
+ *                   (i.e.  "(1LL << GNUNET_TESTBED_ET_CONNECT) | ...")
  * @param cc controller callback to invoke on events
  * @param cc_cls closure for cc
  * @return handle to the controller
  */
-struct GNUNET_TESTING_Controller *
-GNUNET_TESTING_controller_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
-				 struct GNUNET_TESTING_Host *host,
+struct GNUNET_TESTBED_Controller *
+GNUNET_TESTBED_controller_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
+				 struct GNUNET_TESTBED_Host *host,
 				 uint64_t event_mask,
-				 GNUNET_TESTING_ControllerCallback cc,
+				 GNUNET_TESTBED_ControllerCallback cc,
 				 void *cc_cls)
 {
   GNUNET_break (0);
@@ -75,7 +75,7 @@ GNUNET_TESTING_controller_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
  *        use 0 to disable the service
  */
 void
-GNUNET_TESTING_controller_configure_sharing (struct GNUNET_TESTING_Controller *controller,
+GNUNET_TESTBED_controller_configure_sharing (struct GNUNET_TESTBED_Controller *controller,
 					     const char *service_name,
 					     uint32_t num_peers)
 {
@@ -91,7 +91,7 @@ GNUNET_TESTING_controller_configure_sharing (struct GNUNET_TESTING_Controller *c
  * @param controller handle to controller to stop
  */
 void
-GNUNET_TESTING_controller_stop (struct GNUNET_TESTING_Controller *controller)
+GNUNET_TESTBED_controller_stop (struct GNUNET_TESTBED_Controller *controller)
 {
   GNUNET_break (0);
 }
@@ -120,9 +120,9 @@ GNUNET_TESTING_controller_stop (struct GNUNET_TESTING_Controller *controller)
  *                       allowed to use the slave via TCP/IP
  */
 void
-GNUNET_TESTING_controller_link (struct GNUNET_TESTING_Controller *master,
-				struct GNUNET_TESTING_Host *delegated_host,
-				struct GNUNET_TESTING_Host *slave_host,
+GNUNET_TESTBED_controller_link (struct GNUNET_TESTBED_Controller *master,
+				struct GNUNET_TESTBED_Host *delegated_host,
+				struct GNUNET_TESTBED_Host *slave_host,
 				const struct GNUNET_CONFIGURATION_Handle *slave_cfg,
 				int is_subordinate)
 {
@@ -140,7 +140,7 @@ GNUNET_TESTING_controller_link (struct GNUNET_TESTING_Controller *master,
  *        be written to.
  */
 void
-GNUNET_TESTING_overlay_write_topology_to_file (struct GNUNET_TESTING_Controller *controller,
+GNUNET_TESTBED_overlay_write_topology_to_file (struct GNUNET_TESTBED_Controller *controller,
 					       const char *filename)
 {
 }

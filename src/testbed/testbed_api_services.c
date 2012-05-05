@@ -34,8 +34,8 @@
  * handle is then returned via the 'op_result' member in the event
  * callback.  The 'ca' callback is used to create the connection
  * when the time is right; the 'da' callback will be used to 
- * destroy the connection (upon 'GNUNET_TESTING_operation_done').
- * 'GNUNET_TESTING_operation_cancel' can be used to abort this
+ * destroy the connection (upon 'GNUNET_TESTBED_operation_done').
+ * 'GNUNET_TESTBED_operation_cancel' can be used to abort this
  * operation until the event callback has been called.
  *
  * @param op_cls closure to pass in operation event
@@ -46,12 +46,12 @@
  * @param cada_cls closure for ca and da
  * @return handle for the operation
  */
-struct GNUNET_TESTING_Operation *
-GNUNET_TESTING_service_connect (void *op_cls,
-				struct GNUNET_TESTING_Peer *peer,
+struct GNUNET_TESTBED_Operation *
+GNUNET_TESTBED_service_connect (void *op_cls,
+				struct GNUNET_TESTBED_Peer *peer,
 				const char *service_name,
-				GNUNET_TESTING_ConnectAdapter ca,
-				GNUNET_TESTING_DisconnectAdapter da,
+				GNUNET_TESTBED_ConnectAdapter ca,
+				GNUNET_TESTBED_DisconnectAdapter da,
 				void *cada_cls)
 {
   GNUNET_break (0);
