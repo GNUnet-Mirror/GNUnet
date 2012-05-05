@@ -34,7 +34,8 @@ if HAVE_EXPENSIVE_TESTS
 endif
 
 lib_LTLIBRARIES = \
-  libgnunettesting.la 
+  libgnunettesting.la \
+  libgnunettesting_new.la
 
 libgnunettesting_la_SOURCES = \
   helper.c \
@@ -51,6 +52,16 @@ libgnunettesting_la_LIBADD = $(XLIB) \
 libgnunettesting_la_LDFLAGS = \
  $(GN_LIB_LDFLAGS) \
  -version-info 0:1:0
+
+
+libgnunettesting_new_la_SOURCES = \
+  testing_new.c  
+libgnunettesting_new_la_LIBADD = \
+ $(top_builddir)/src/util/libgnunetutil.la 
+libgnunettesting_new_la_LDFLAGS = \
+ $(GN_LIB_LDFLAGS) \
+ -version-info 0:1:0
+
 
 bin_PROGRAMS = \
  gnunet-testing
