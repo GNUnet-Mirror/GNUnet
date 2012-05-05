@@ -19,12 +19,12 @@
  */
 
 /**
- * @file testing/new_testing_api_operations.c
+ * @file testing/testbed_api_operations.c
  * @brief functions to manage operation queues
  * @author Christian Grothoff
  */
 #include "platform.h"
-#include "new_testing_api_operations.h"
+#include "testbed_api_operations.h"
 
 
 /**
@@ -71,4 +71,4 @@ GNUNET_TESTBED_operation_done (struct GNUNET_TESTBED_Operation *operation)
 
 
 
-/* end of new_testing_api_operations.c */
+/* end of testbed_api_operations.c */

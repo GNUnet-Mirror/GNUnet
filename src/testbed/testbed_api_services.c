@@ -19,12 +19,12 @@
  */
 
 /**
- * @file testing/new_testing_api_services.c
+ * @file testing/testbed_api_services.c
  * @brief convenience functions for accessing services
  * @author Christian Grothoff
  */
 #include "platform.h"
-#include "new_testing_api_peers.h"
+#include "testbed_api_peers.h"
 
 
 /**
@@ -58,4 +58,4 @@ GNUNET_TESTBED_service_connect (void *op_cls,
   return NULL;
 }
 
-/* end of new_testing_api_services.c */
+/* end of testbed_api_services.c */

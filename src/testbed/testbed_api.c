@@ -19,14 +19,14 @@
  */
 
 /**
- * @file testing/new_testing_api.c
+ * @file testing/testbed_api.c
  * @brief API for accessing the GNUnet testing service.
  *        This library is supposed to make it easier to write
  *        testcases and script large-scale benchmarks.
  * @author Christian Grothoff
  */
 #include "platform.h"
-#include "gnunet_testing_service.h"
+#include "gnunet_testbed_service.h"
 #include "gnunet_core_service.h"
 #include "gnunet_constants.h"
 #include "gnunet_transport_service.h"
@@ -147,4 +147,4 @@ GNUNET_TESTBED_overlay_write_topology_to_file (struct GNUNET_TESTBED_Controller 
 
 
 
-/* end of new_testing_api.c */
+/* end of testbed_api.c */

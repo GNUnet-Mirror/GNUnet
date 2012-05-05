@@ -19,14 +19,14 @@
  */
 
 /**
- * @file testing/new_testing_api_hosts.h
+ * @file testing/testbed_api_hosts.h
  * @brief internal API to access the 'hosts' subsystem
  * @author Christian Grothoff
  */
 #ifndef NEW_TESTING_API_HOSTS_H
 #define NEW_TESTING_API_HOSTS_H
 
-#include "gnunet_testing_service.h"
+#include "gnunet_testbed_service.h"
 #include "gnunet_helper_lib.h"
 
 
@@ -102,4 +102,4 @@ GNUNET_TESTBED_host_run_ (struct GNUNET_TESTBED_Host *host,
 			  GNUNET_SERVER_MessageTokenizerCallback cb, void *cb_cls);
 
 #endif
-/* end of new_testing_api_hosts.h */
+/* end of testbed_api_hosts.h */

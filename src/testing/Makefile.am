@@ -34,28 +34,7 @@ if HAVE_EXPENSIVE_TESTS
 endif
 
 lib_LTLIBRARIES = \
-  libgnunettesting.la \
-  libgnunettesting_new.la
-
-libgnunettesting_new_la_SOURCES = \
-  new_testing_api.c new_testing.h \
-  new_testing_api_hosts.c new_testing_api_hosts.h \
-  new_testing_api_operations.c new_testing_api_operations.h \
-  new_testing_api_peers.c new_testing_api_peers.h \
-  new_testing_api_services.c \
-  new_testing_api_testbed.c \
-  new_testing_api_test.c \
-  new_testing_api_topology.c
-libgnunettesting_new_la_LIBADD = $(XLIB) \
- $(top_builddir)/src/core/libgnunetcore.la \
- $(top_builddir)/src/statistics/libgnunetstatistics.la \
- $(top_builddir)/src/transport/libgnunettransport.la \
- $(top_builddir)/src/hello/libgnunethello.la \
- -lm \
- $(top_builddir)/src/util/libgnunetutil.la 
-libgnunettesting_new_la_LDFLAGS = \
- $(GN_LIB_LDFLAGS) \
- -version-info 0:0:0
+  libgnunettesting.la 
 
 libgnunettesting_la_SOURCES = \
   helper.c \

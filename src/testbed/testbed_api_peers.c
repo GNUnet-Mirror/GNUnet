@@ -19,13 +19,13 @@
  */
 
 /**
- * @file testing/new_testing_api_peers.c
+ * @file testing/testbed_api_peers.c
  * @brief management of the knowledge about peers in this library
  *        (we know the peer ID, its host, pending operations, etc.)
  * @author Christian Grothoff
  */
 #include "platform.h"
-#include "new_testing_api_peers.h"
+#include "testbed_api_peers.h"
 
 
 /**
@@ -294,4 +294,4 @@ GNUNET_TESTBED_overlay_connect (void *op_cls,
 
 
 
-/* end of new_testing_api_peers.c */
+/* end of testbed_api_peers.c */

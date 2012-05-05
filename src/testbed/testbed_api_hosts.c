@@ -19,14 +19,14 @@
  */
 
 /**
- * @file testing/new_testing_api_hosts.c
+ * @file testing/testbed_api_hosts.c
  * @brief API for manipulating 'hosts' controlled by the GNUnet testing service;
  *        allows parsing hosts files, starting, stopping and communicating (via
  *        SSH/stdin/stdout) with the remote (or local) processes
  * @author Christian Grothoff
  */
 #include "platform.h"
-#include "gnunet_testing_service.h"
+#include "gnunet_testbed_service.h"
 #include "gnunet_core_service.h"
 #include "gnunet_constants.h"
 #include "gnunet_transport_service.h"
@@ -197,4 +197,4 @@ GNUNET_TESTBED_host_run_ (struct GNUNET_TESTBED_Host *host,
 }
 
 
-/* end of new_testing_api_hosts.c */
+/* end of testbed_api_hosts.c */

@@ -19,16 +19,16 @@
  */
 
 /**
- * @file testing/new_testing_api_operations.h
+ * @file testing/testbed_api_operations.h
  * @brief internal API to access the 'operations' subsystem
  * @author Christian Grothoff
  */
 #ifndef NEW_TESTING_API_OPERATIONS_H
 #define NEW_TESTING_API_OPERATIONS_H
 
-#include "gnunet_testing_service.h"
+#include "gnunet_testbed_service.h"
 #include "gnunet_helper_lib.h"
 
 
 #endif
-/* end of new_testing_api_operations.h */
+/* end of testbed_api_operations.h */

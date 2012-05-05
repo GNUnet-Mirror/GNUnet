@@ -19,14 +19,14 @@
  */
 
 /**
- * @file testing/new_testing_api_peers.h
+ * @file testing/testbed_api_peers.h
  * @brief internal API to access the 'peers' subsystem
  * @author Christian Grothoff
  */
 #ifndef NEW_TESTING_API_PEERS_H
 #define NEW_TESTING_API_PEERS_H
 
-#include "gnunet_testing_service.h"
+#include "gnunet_testbed_service.h"
 #include "gnunet_helper_lib.h"
 
 
@@ -68,4 +68,4 @@ GNUNET_TESTBED_peer_create_with_id_ (uint32_t unique_id,
 
 
 #endif
-/* end of new_testing_api_peers.h */
+/* end of testbed_api_peers.h */

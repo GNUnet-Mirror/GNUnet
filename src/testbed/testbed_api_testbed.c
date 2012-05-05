@@ -19,12 +19,12 @@
  */
 
 /**
- * @file testing/new_testing_api_testbed.c
+ * @file testing/testbed_api_testbed.c
  * @brief high-level testbed management
  * @author Christian Grothoff
  */
 #include "platform.h"
-#include "gnunet_testing_service.h"
+#include "gnunet_testbed_service.h"
 
 
 /**
@@ -150,4 +150,4 @@ GNUNET_TESTBED_run (const char *host_filename,
 
 
 
-/* end of new_testing_api_testbed.c */
+/* end of testbed_api_testbed.c */

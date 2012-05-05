@@ -19,12 +19,12 @@
  */
 
 /**
- * @file testing/new_testing_api_topology.c
+ * @file testing/testbed_api_topology.c
  * @brief topology-generation functions
  * @author Christian Grothoff
  */
 #include "platform.h"
-#include "gnunet_testing_service.h"
+#include "gnunet_testbed_service.h"
 
 
 /**
@@ -124,4 +124,4 @@ GNUNET_TESTBED_overlay_configure_topology (void *op_cls,
   return NULL;
 }
 
-/* end of new_testing_api_topology.c */
+/* end of testbed_api_topology.c */
