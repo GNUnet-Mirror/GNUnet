@@ -19,7 +19,7 @@
  */
 
 /**
- * @file testing/testbed_api_operations.c
+ * @file testbed/testbed_api_operations.c
  * @brief functions to manage operation queues
  * @author Christian Grothoff
  */

@@ -19,7 +19,7 @@
  */
 
 /**
- * @file testing/testbed_api_services.c
+ * @file testbed/testbed_api_services.c
  * @brief convenience functions for accessing services
  * @author Christian Grothoff
  */

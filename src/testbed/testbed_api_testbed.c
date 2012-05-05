@@ -19,7 +19,7 @@
  */
 
 /**
- * @file testing/testbed_api_testbed.c
+ * @file testbed/testbed_api_testbed.c
  * @brief high-level testbed management
  * @author Christian Grothoff
  */

@@ -19,7 +19,7 @@
  */
 
 /**
- * @file testing/testbed_api_peers.c
+ * @file testbed/testbed_api_peers.c
  * @brief management of the knowledge about peers in this library
  *        (we know the peer ID, its host, pending operations, etc.)
  * @author Christian Grothoff

@@ -19,7 +19,7 @@
  */
 
 /**
- * @file testing/testbed_api.c
+ * @file testbed/testbed_api.c
  * @brief API for accessing the GNUnet testing service.
  *        This library is supposed to make it easier to write
  *        testcases and script large-scale benchmarks.

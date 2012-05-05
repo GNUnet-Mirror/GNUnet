@@ -19,7 +19,7 @@
  */
 
 /**
- * @file testing/testbed_api_peers.h
+ * @file testbed/testbed_api_peers.h
  * @brief internal API to access the 'peers' subsystem
  * @author Christian Grothoff
  */

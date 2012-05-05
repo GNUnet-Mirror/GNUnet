@@ -19,7 +19,7 @@
  */
 
 /**
- * @file testing/testbed_api_topology.c
+ * @file testbed/testbed_api_topology.c
  * @brief topology-generation functions
  * @author Christian Grothoff
  */

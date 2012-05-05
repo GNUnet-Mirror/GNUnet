@@ -19,7 +19,7 @@
  */
 
 /**
- * @file testing/testbed_api_operations.h
+ * @file testbed/testbed_api_operations.h
  * @brief internal API to access the 'operations' subsystem
  * @author Christian Grothoff
  */

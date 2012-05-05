@@ -19,7 +19,7 @@
  */
 
 /**
- * @file testing/testbed_api_hosts.c
+ * @file testbed/testbed_api_hosts.c
  * @brief API for manipulating 'hosts' controlled by the GNUnet testing service;
  *        allows parsing hosts files, starting, stopping and communicating (via
  *        SSH/stdin/stdout) with the remote (or local) processes

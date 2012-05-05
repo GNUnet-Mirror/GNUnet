@@ -19,7 +19,7 @@
  */
 
 /**
- * @file testing/testbed_api_test.c
+ * @file testbed/testbed_api_test.c
  * @brief high-level test function
  * @author Christian Grothoff
  */

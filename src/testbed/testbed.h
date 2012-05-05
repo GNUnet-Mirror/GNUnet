@@ -19,7 +19,7 @@
  */
 
 /**
- * @file testing/testbed.h
+ * @file testbed/testbed.h
  * @brief IPC messages between testing API and service ("controller")
  * @author Christian Grothoff
  */

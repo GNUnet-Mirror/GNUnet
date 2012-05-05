@@ -19,7 +19,7 @@
  */
 
 /**
- * @file testing/testbed_api_hosts.h
+ * @file testbed/testbed_api_hosts.h
  * @brief internal API to access the 'hosts' subsystem
  * @author Christian Grothoff
  */
