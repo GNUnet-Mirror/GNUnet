@@ -30,12 +30,6 @@
 #include "gnunet_testing_lib.h"
 #include "gnunet_core_service.h"
 
-#define VERBOSE_TESTING GNUNET_NO
-
-#define VERBOSE_TOPOLOGY GNUNET_NO
-
-#define DEBUG_CHURN GNUNET_EXTRA_LOGGING
-
 #define USE_START_HELPER GNUNET_YES
 
 #define OLD 1
@@ -1835,17 +1829,13 @@ create_scale_free (struct GNUNET_TESTING_PeerGroup *pg,
           ((double)
            GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
                                      UINT64_MAX)) / ((double) UINT64_MAX);
-#if VERBOSE_TESTING
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Considering connecting peer %d to peer %d\n", outer_count,
                   i);
-#endif
       if (random < probability)
       {
-#if VERBOSE_TESTING
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting peer %d to peer %d\n",
                     outer_count, i);
-#endif
         total_connections += proc (pg, outer_count, i, list, GNUNET_YES);
       }
     }
@@ -1929,7 +1919,7 @@ create_small_world_ring (struct GNUNET_TESTING_PeerGroup *pg,
   if (connsPerPeer % 2 == 1)
     connsPerPeer += 1;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Target is %d connections per peer."),
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Target is %d connections per peer.",
               connsPerPeer);
 
   smallWorldConnections = 0;
@@ -2033,10 +2023,8 @@ create_nated_internet (struct GNUNET_TESTING_PeerGroup *pg,
     {
       if ((outer_count > cutoff) || (inner_count > cutoff))
       {
-#if VERBOSE_TESTING
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting peer %d to peer %d\n",
                     outer_count, inner_count);
-#endif
         connect_attempts +=
             proc (pg, outer_count, inner_count, list, GNUNET_YES);
       }
@@ -2104,10 +2092,8 @@ create_nated_internet_copy (struct GNUNET_TESTING_PeerGroup *pg,
     {
       if ((outer_count > cutoff) || (inner_count > cutoff))
       {
-#if VERBOSE_TESTING
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting peer %d to peer %d\n",
                     outer_count, inner_count);
-#endif
         connect_attempts +=
             proc (pg, outer_count, inner_count, list, GNUNET_YES);
         add_connections (pg, outer_count, inner_count, ALLOWED, GNUNET_NO);
@@ -2204,12 +2190,9 @@ create_small_world (struct GNUNET_TESTING_PeerGroup *pg,
       toggle++;
     }
   }
-#if VERBOSE_TESTING
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              _("Connecting nodes in 2d torus topology: %u rows %u columns\n"),
+              "Connecting nodes in 2d torus topology: %u rows %u columns\n",
               rows, cols);
-#endif
-
   connect_attempts = 0;
   /* Rows and columns are all sorted out, now iterate over all nodes and connect each
    * to the node to its right and above.  Once this is over, we'll have our torus!
@@ -2241,13 +2224,11 @@ create_small_world (struct GNUNET_TESTING_PeerGroup *pg,
       connect_attempts += proc (pg, i, nodeToConnect, list, GNUNET_YES);
   }
   natLog = log (pg->total);
-#if VERBOSE_TESTING > 2
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              _("natural log of %d is %d, will run %d iterations\n"), pg->total,
+              "natural log of %d is %d, will run %d iterations\n", pg->total,
               natLog, (int) (natLog * percentage));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              _("Total connections added thus far: %u!\n"), connect_attempts);
-#endif
+              "Total connections added thus far: %u!\n", connect_attempts);
   smallWorldConnections = 0;
   small_world_it = (unsigned int) (natLog * percentage);
   if (small_world_it < 1)
@@ -2285,11 +2266,9 @@ create_small_world (struct GNUNET_TESTING_PeerGroup *pg,
     }
   }
   connect_attempts += smallWorldConnections;
-#if VERBOSE_TESTING > 2
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              _("Total connections added for small world: %d!\n"),
+              "Total connections added for small world: %d!\n",
               smallWorldConnections);
-#endif
   return connect_attempts;
 }
 
@@ -2338,10 +2317,8 @@ create_erdos_renyi (struct GNUNET_TESTING_PeerGroup *pg,
           ((double)
            GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
                                      UINT64_MAX)) / ((double) UINT64_MAX);
-#if VERBOSE_TESTING
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("rand is %f probability is %f\n"),
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "rand is %f probability is %f\n",
                   temp_rand, probability);
-#endif
       if (temp_rand < probability)
       {
         connect_attempts +=
@@ -2397,11 +2374,9 @@ create_2d_torus (struct GNUNET_TESTING_PeerGroup *pg,
       toggle++;
     }
   }
-#if VERBOSE_TESTING
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              _("Connecting nodes in 2d torus topology: %u rows %u columns\n"),
+              "Connecting nodes in 2d torus topology: %u rows %u columns\n",
               rows, cols);
-#endif
   /* Rows and columns are all sorted out, now iterate over all nodes and connect each
    * to the node to its right and above.  Once this is over, we'll have our torus!
    * Special case for the last node (if the rows and columns are not equal), connect
@@ -2416,10 +2391,8 @@ create_2d_torus (struct GNUNET_TESTING_PeerGroup *pg,
       nodeToConnect = rows * cols - cols;
     else
       nodeToConnect = i - cols + 1;
-#if VERBOSE_TESTING
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting peer %d to peer %d\n", i,
                 nodeToConnect);
-#endif
     connect_attempts += proc (pg, i, nodeToConnect, list, GNUNET_YES);
 
     /* Second connect to the node immediately above */
@@ -2434,10 +2407,8 @@ create_2d_torus (struct GNUNET_TESTING_PeerGroup *pg,
 
     if (nodeToConnect < pg->total)
     {
-#if VERBOSE_TESTING
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting peer %d to peer %d\n", i,
                   nodeToConnect);
-#endif
       connect_attempts += proc (pg, i, nodeToConnect, list, GNUNET_YES);
     }
 
@@ -2479,10 +2450,8 @@ create_clique (struct GNUNET_TESTING_PeerGroup *pg,
   {
     for (inner_count = outer_count + 1; inner_count < pg->total; inner_count++)
     {
-#if VERBOSE_TESTING
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting peer %d to peer %d\n",
                   outer_count, inner_count);
-#endif
       connect_attempts += proc (pg, outer_count, inner_count, list, check);
       update_meter (conn_meter);
     }
@@ -2590,10 +2559,8 @@ create_line (struct GNUNET_TESTING_PeerGroup *pg,
   /* Connect each peer to the next highest numbered peer */
   for (count = 0; count < pg->total - 1; count++)
   {
-#if VERBOSE_TESTING
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting peer %d to peer %d\n",
                 count, count + 1);
-#endif
     connect_attempts += proc (pg, count, count + 1, list, GNUNET_YES);
   }
 
@@ -2675,10 +2642,8 @@ create_from_file (struct GNUNET_TESTING_PeerGroup *pg, char *filename,
         GNUNET_free (data);
         return connect_attempts;
       }
-#if DEBUG_TESTING
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found %u total peers in topology\n",
                   total_peers);
-#endif
       GNUNET_assert (total_peers == pg->total);
       curr_state = PEER_INDEX;
       while ((buf[count] != '\n') && (count < frstat.st_size - 1))
@@ -2769,10 +2734,8 @@ create_ring (struct GNUNET_TESTING_PeerGroup *pg,
   /* Connect each peer to the next highest numbered peer */
   for (count = 0; count < pg->total - 1; count++)
   {
-#if VERBOSE_TESTING
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting peer %d to peer %d\n",
                 count, count + 1);
-#endif
     connect_attempts += proc (pg, count, count + 1, list, GNUNET_YES);
   }
 
@@ -2927,10 +2890,8 @@ create_and_copy_friend_files (struct GNUNET_TESTING_PeerGroup *pg)
     if (pg->peers[pg_iter].daemon->hostname == NULL)    /* Local, just copy the file */
     {
       GNUNET_asprintf (&arg, "%s/friends", temp_service_path);
-#if VERBOSE_TESTING
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Copying file with RENAME(%s,%s)\n", mytemp, arg);
-#endif
       RENAME (mytemp, arg);
       procarr[pg_iter] = NULL;
       GNUNET_free (arg);
@@ -2961,10 +2922,8 @@ create_and_copy_friend_files (struct GNUNET_TESTING_PeerGroup *pg)
         return ret;
       }
       procarr[pg_iter] = NULL;
-#if VERBOSE_TESTING
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Copying file with command scp %s %s\n", mytemp, arg);
-#endif
       GNUNET_free (arg);
     }
     GNUNET_free (temp_service_path);
@@ -2979,10 +2938,8 @@ create_and_copy_friend_files (struct GNUNET_TESTING_PeerGroup *pg)
     ret = GNUNET_OK;
     for (pg_iter = 0; pg_iter < pg->total; pg_iter++)
     {
-#if VERBOSE_TESTING
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Checking copy status of file %d\n",
                   pg_iter);
-#endif
       if (procarr[pg_iter] != NULL)     /* Check for already completed! */
       {
         if (GNUNET_OS_process_status (procarr[pg_iter], &type, &return_code) !=
@@ -2998,9 +2955,7 @@ create_and_copy_friend_files (struct GNUNET_TESTING_PeerGroup *pg)
         {
           GNUNET_OS_process_close (procarr[pg_iter]);
           procarr[pg_iter] = NULL;
-#if VERBOSE_TESTING
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "File %d copied\n", pg_iter);
-#endif
         }
       }
     }
@@ -3012,10 +2967,8 @@ create_and_copy_friend_files (struct GNUNET_TESTING_PeerGroup *pg)
     }
   }
 
-#if VERBOSE_TESTING
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              _("Finished copying all friend files!\n"));
-#endif
+              "Finished copying all friend files!\n");
 #endif
   GNUNET_free (procarr);
   return ret;
@@ -3125,11 +3078,8 @@ create_and_copy_blacklist_files (struct GNUNET_TESTING_PeerGroup *pg,
       GNUNET_asprintf (&arg, "%s/blacklist", temp_service_path);
       RENAME (mytemp, arg);
       procarr[pg_iter] = NULL;
-#if VERBOSE_TESTING
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  _("Copying file with RENAME (%s,%s)\n"), mytemp, arg);
-#endif
-
+                  "Copying file with RENAME (%s,%s)\n", mytemp, arg);
       GNUNET_free (arg);
     }
     else                        /* Remote, scp the file to the correct place */
@@ -3148,10 +3098,8 @@ create_and_copy_blacklist_files (struct GNUNET_TESTING_PeerGroup *pg,
       GNUNET_assert (procarr[pg_iter] != NULL);
       GNUNET_OS_process_wait (procarr[pg_iter]);        /* FIXME: add scheduled blacklist file copy that parallelizes file copying! */
 
-#if VERBOSE_TESTING
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  _("Copying file with command scp %s %s\n"), mytemp, arg);
-#endif
+                  "Copying file with command scp %s %s\n", mytemp, arg);
       GNUNET_free (arg);
     }
     GNUNET_free (temp_service_path);
@@ -3165,10 +3113,8 @@ create_and_copy_blacklist_files (struct GNUNET_TESTING_PeerGroup *pg,
     ret = GNUNET_OK;
     for (pg_iter = 0; pg_iter < pg->total; pg_iter++)
     {
-#if VERBOSE_TESTING
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  _("Checking copy status of file %d\n"), pg_iter);
-#endif
+                  "Checking copy status of file %d\n", pg_iter);
       if (procarr[pg_iter] != NULL)     /* Check for already completed! */
       {
         if (GNUNET_OS_process_status (procarr[pg_iter], &type, &return_code) !=
@@ -3184,9 +3130,7 @@ create_and_copy_blacklist_files (struct GNUNET_TESTING_PeerGroup *pg,
         {
           GNUNET_OS_process_close (procarr[pg_iter]);
           procarr[pg_iter] = NULL;
-#if VERBOSE_TESTING
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("File %d copied\n"), pg_iter);
-#endif
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "File %d copied\n", pg_iter);
         }
       }
     }
@@ -3198,10 +3142,8 @@ create_and_copy_blacklist_files (struct GNUNET_TESTING_PeerGroup *pg,
     }
   }
 
-#if VERBOSE_TESTING
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              _("Finished copying all blacklist files!\n"));
-#endif
+              "Finished copying all blacklist files!\n");
   GNUNET_free (procarr);
   return ret;
 }
@@ -3398,11 +3340,8 @@ core_connect_notify (void *cls, const struct GNUNET_PeerIdentity *peer,
 #if BAD
   struct PeerData *other_peer;
 #endif
-#if DEBUG_TESTING
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connected peer %s to peer %s\n",
               ctx->d1->shortname, GNUNET_i2s (peer));
-#endif
-
   if (0 ==
       memcmp (&send_hello_context->peer->daemon->id, peer,
               sizeof (struct GNUNET_PeerIdentity)))
@@ -3520,16 +3459,12 @@ hello_sent_callback (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
 
   send_hello_context->pg->remaining_hellos--;
-#if DEBUG_TESTING
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sent HELLO, have %d remaining!\n",
               send_hello_context->pg->remaining_hellos);
-#endif
   if (send_hello_context->peer_pos == NULL)     /* All HELLOs (for this peer!) have been transmitted! */
   {
-#if DEBUG_TESTING
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "All hellos for this peer sent, disconnecting transport!\n");
-#endif
     GNUNET_assert (send_hello_context->peer->daemon->th != NULL);
     GNUNET_TRANSPORT_disconnect (send_hello_context->peer->daemon->th);
     send_hello_context->peer->daemon->th = NULL;
@@ -3577,22 +3512,17 @@ schedule_send_hellos (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
        (pg->outstanding_connects > pg->max_outstanding_connections)) ||
       (pg->stop_connects == GNUNET_YES))
   {
-#if VERBOSE_TESTING > 2
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                _
-                ("Delaying connect, we have too many outstanding connections!\n"));
-#endif
+                "Delaying connect, we have too many outstanding connections!\n");
     GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                   (GNUNET_TIME_UNIT_MILLISECONDS, 100),
                                   &schedule_send_hellos, send_hello_context);
   }
   else
   {
-#if VERBOSE_TESTING > 2
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                _("Creating connection, outstanding_connections is %d\n"),
+                "Creating connection, outstanding_connections is %d\n",
                 outstanding_connects);
-#endif
     if (send_hello_context->peer->daemon->th == NULL)
     {
       pg->outstanding_connects++;       /* Actual TRANSPORT, CORE connections! */
@@ -3600,13 +3530,11 @@ schedule_send_hellos (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
           GNUNET_TRANSPORT_connect (send_hello_context->peer->cfg, NULL,
                                     send_hello_context, NULL, NULL, NULL);
     }
-#if DEBUG_TESTING
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                _("Offering HELLO of peer %s to peer %s\n"),
+                "Offering HELLO of peer %s to peer %s\n",
                 send_hello_context->peer->daemon->shortname,
                 pg->peers[send_hello_context->peer_pos->index].
                 daemon->shortname);
-#endif
     GNUNET_TRANSPORT_offer_hello (send_hello_context->peer->daemon->th,
                                   (const struct GNUNET_MessageHeader *)
                                   pg->peers[send_hello_context->peer_pos->
@@ -3714,23 +3642,17 @@ schedule_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if ((pg->outstanding_connects > pg->max_outstanding_connections) ||
       (pg->stop_connects == GNUNET_YES))
   {
-#if VERBOSE_TESTING
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                _
-                ("Delaying connect, we have too many outstanding connections!\n"));
-#endif
+                "Delaying connect, we have too many outstanding connections!\n");
     connect_context->task =
         GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                       (GNUNET_TIME_UNIT_MILLISECONDS, 100),
                                       &schedule_connect, connect_context);
     return;
   }
-#if VERBOSE_TESTING
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              _
-              ("Creating connection, outstanding_connections is %d (max %d)\n"),
+              "Creating connection, outstanding_connections is %d (max %d)\n",
               pg->outstanding_connects, pg->max_outstanding_connections);
-#endif
   pg->outstanding_connects++;
   pg->total_connects_scheduled++;
   GNUNET_assert (NULL == connect_context->cc);
@@ -3982,46 +3904,46 @@ GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg,
   switch (topology)
   {
   case GNUNET_TESTING_TOPOLOGY_CLIQUE:
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Creating clique topology\n"));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Creating clique topology\n");
     num_connections = create_clique (pg, &add_connections, ALLOWED, GNUNET_NO);
     break;
   case GNUNET_TESTING_TOPOLOGY_SMALL_WORLD_RING:
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                _("Creating small world (ring) topology\n"));
+                "Creating small world (ring) topology\n");
     num_connections = create_small_world_ring (pg, &add_connections, ALLOWED);
     break;
   case GNUNET_TESTING_TOPOLOGY_SMALL_WORLD:
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                _("Creating small world (2d-torus) topology\n"));
+                "Creating small world (2d-torus) topology\n");
     num_connections = create_small_world (pg, &add_connections, ALLOWED);
     break;
   case GNUNET_TESTING_TOPOLOGY_RING:
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Creating ring topology\n"));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Creating ring topology\n");
     num_connections = create_ring (pg, &add_connections, ALLOWED);
     break;
   case GNUNET_TESTING_TOPOLOGY_2D_TORUS:
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Creating 2d torus topology\n"));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Creating 2d torus topology\n");
     num_connections = create_2d_torus (pg, &add_connections, ALLOWED);
     break;
   case GNUNET_TESTING_TOPOLOGY_ERDOS_RENYI:
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Creating Erdos-Renyi topology\n"));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Creating Erdos-Renyi topology\n");
     num_connections = create_erdos_renyi (pg, &add_connections, ALLOWED);
     break;
   case GNUNET_TESTING_TOPOLOGY_INTERNAT:
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Creating InterNAT topology\n"));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Creating InterNAT topology\n");
     num_connections = create_nated_internet (pg, &add_connections, ALLOWED);
     break;
   case GNUNET_TESTING_TOPOLOGY_SCALE_FREE:
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Creating Scale Free topology\n"));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Creating Scale Free topology\n");
     num_connections = create_scale_free (pg, &add_connections, ALLOWED);
     break;
   case GNUNET_TESTING_TOPOLOGY_LINE:
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                _("Creating straight line topology\n"));
+                "Creating straight line topology\n");
     num_connections = create_line (pg, &add_connections, ALLOWED);
     break;
   case GNUNET_TESTING_TOPOLOGY_FROM_FILE:
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Creating topology from file!\n"));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Creating topology from file!\n");
     if (GNUNET_OK ==
         GNUNET_CONFIGURATION_get_value_string (pg->cfg, "testing",
                                                "topology_file", &filename))
@@ -4052,13 +3974,13 @@ GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg,
     if (ret != GNUNET_OK)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  _("Failed during friend file copying!\n"));
+                  "Failed during friend file copying!\n");
       return GNUNET_SYSERR;
     }
     else
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  _("Friend files created/copied successfully!\n"));
+                  "Friend files created/copied successfully!\n");
     }
   }
 
@@ -4075,43 +3997,43 @@ GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg,
   {
   case GNUNET_TESTING_TOPOLOGY_CLIQUE:
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                _("Blacklisting all but clique topology\n"));
+                "Blacklisting all but clique topology\n");
     unblacklisted_connections =
         create_clique (pg, &remove_connections, BLACKLIST, GNUNET_NO);
     break;
   case GNUNET_TESTING_TOPOLOGY_SMALL_WORLD_RING:
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                _("Blacklisting all but small world (ring) topology\n"));
+                "Blacklisting all but small world (ring) topology\n");
     unblacklisted_connections =
         create_small_world_ring (pg, &remove_connections, BLACKLIST);
     break;
   case GNUNET_TESTING_TOPOLOGY_SMALL_WORLD:
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                _("Blacklisting all but small world (2d-torus) topology\n"));
+                "Blacklisting all but small world (2d-torus) topology\n");
     unblacklisted_connections =
         create_small_world (pg, &remove_connections, BLACKLIST);
     break;
   case GNUNET_TESTING_TOPOLOGY_RING:
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                _("Blacklisting all but ring topology\n"));
+                "Blacklisting all but ring topology\n");
     unblacklisted_connections =
         create_ring (pg, &remove_connections, BLACKLIST);
     break;
   case GNUNET_TESTING_TOPOLOGY_2D_TORUS:
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                _("Blacklisting all but 2d torus topology\n"));
+                "Blacklisting all but 2d torus topology\n");
     unblacklisted_connections =
         create_2d_torus (pg, &remove_connections, BLACKLIST);
     break;
   case GNUNET_TESTING_TOPOLOGY_ERDOS_RENYI:
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                _("Blacklisting all but Erdos-Renyi topology\n"));
+                "Blacklisting all but Erdos-Renyi topology\n");
     unblacklisted_connections =
         create_erdos_renyi (pg, &remove_connections, BLACKLIST);
     break;
   case GNUNET_TESTING_TOPOLOGY_INTERNAT:
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                _("Blacklisting all but InterNAT topology\n"));
+                "Blacklisting all but InterNAT topology\n");
 
 #if TOPOLOGY_HACK
     for (off = 0; off < pg->total; off++)
@@ -4146,13 +4068,13 @@ GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg,
     break;
   case GNUNET_TESTING_TOPOLOGY_SCALE_FREE:
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                _("Blacklisting all but Scale Free topology\n"));
+                "Blacklisting all but Scale Free topology\n");
     unblacklisted_connections =
         create_scale_free (pg, &remove_connections, BLACKLIST);
     break;
   case GNUNET_TESTING_TOPOLOGY_LINE:
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                _("Blacklisting all but straight line topology\n"));
+                "Blacklisting all but straight line topology\n");
     unblacklisted_connections =
         create_line (pg, &remove_connections, BLACKLIST);
   default:
@@ -4167,13 +4089,13 @@ GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg,
     if (ret != GNUNET_OK)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  _("Failed during blacklist file copying!\n"));
+                  "Failed during blacklist file copying!\n");
       return 0;
     }
     else
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  _("Blacklist files created/copied successfully!\n"));
+                  "Blacklist files created/copied successfully!\n");
     }
   }
   return num_connections;
@@ -4875,22 +4797,14 @@ schedule_get_topology (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (topology_context->connected >
       topology_context->pg->max_outstanding_connections)
   {
-#if VERBOSE_TESTING > 2
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                _
-                ("Delaying connect, we have too many outstanding connections!\n"));
-#endif
+                "Delaying connect, we have too many outstanding connections!\n");
     GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                   (GNUNET_TIME_UNIT_MILLISECONDS, 100),
                                   &schedule_get_topology, core_context);
   }
   else
   {
-#if VERBOSE_TESTING > 2
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                _("Creating connection, outstanding_connections is %d\n"),
-                outstanding_connects);
-#endif
     topology_context->connected++;
 
     if (GNUNET_OK !=
@@ -5016,23 +4930,14 @@ schedule_get_statistics (void *cls,
 
   if (stats_context->connected > stats_context->pg->max_outstanding_connections)
   {
-#if VERBOSE_TESTING > 2
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                _
-                ("Delaying connect, we have too many outstanding connections!\n"));
-#endif
+                "Delaying connect, we have too many outstanding connections!\n");
     GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                   (GNUNET_TIME_UNIT_MILLISECONDS, 100),
                                   &schedule_get_statistics, core_context);
   }
   else
   {
-#if VERBOSE_TESTING > 2
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                _("Creating connection, outstanding_connections is %d\n"),
-                outstanding_connects);
-#endif
-
     stats_context->connected++;
     core_context->stats_handle =
         GNUNET_STATISTICS_create ("testing", core_context->daemon->cfg);
@@ -5255,71 +5160,51 @@ GNUNET_TESTING_connect_topology (struct GNUNET_TESTING_PeerGroup *pg,
   switch (topology)
   {
   case GNUNET_TESTING_TOPOLOGY_CLIQUE:
-#if VERBOSE_TOPOLOGY
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                _("Creating clique CONNECT topology\n"));
-#endif
+                "Creating clique CONNECT topology\n");
     create_clique (pg, &add_connections, CONNECT, GNUNET_NO);
     break;
   case GNUNET_TESTING_TOPOLOGY_SMALL_WORLD_RING:
-#if VERBOSE_TOPOLOGY
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                _("Creating small world (ring) CONNECT topology\n"));
-#endif
+                "Creating small world (ring) CONNECT topology\n");
     create_small_world_ring (pg, &add_connections, CONNECT);
     break;
   case GNUNET_TESTING_TOPOLOGY_SMALL_WORLD:
-#if VERBOSE_TOPOLOGY
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                _("Creating small world (2d-torus) CONNECT topology\n"));
-#endif
+                "Creating small world (2d-torus) CONNECT topology\n");
     create_small_world (pg, &add_connections, CONNECT);
     break;
   case GNUNET_TESTING_TOPOLOGY_RING:
-#if VERBOSE_TOPOLOGY
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Creating ring CONNECT topology\n"));
-#endif
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Creating ring CONNECT topology\n");
     create_ring (pg, &add_connections, CONNECT);
     break;
   case GNUNET_TESTING_TOPOLOGY_2D_TORUS:
-#if VERBOSE_TOPOLOGY
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                _("Creating 2d torus CONNECT topology\n"));
-#endif
+                "Creating 2d torus CONNECT topology\n");
     create_2d_torus (pg, &add_connections, CONNECT);
     break;
   case GNUNET_TESTING_TOPOLOGY_ERDOS_RENYI:
-#if VERBOSE_TOPOLOGY
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                _("Creating Erdos-Renyi CONNECT topology\n"));
-#endif
+                "Creating Erdos-Renyi CONNECT topology\n");
     create_erdos_renyi (pg, &add_connections, CONNECT);
     break;
   case GNUNET_TESTING_TOPOLOGY_INTERNAT:
-#if VERBOSE_TOPOLOGY
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                _("Creating InterNAT CONNECT topology\n"));
-#endif
+                "Creating InterNAT CONNECT topology\n");
     create_nated_internet (pg, &add_connections, CONNECT);
     break;
   case GNUNET_TESTING_TOPOLOGY_SCALE_FREE:
-#if VERBOSE_TOPOLOGY
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                _("Creating Scale Free CONNECT topology\n"));
-#endif
+                "Creating Scale Free CONNECT topology\n");
     create_scale_free (pg, &add_connections, CONNECT);
     break;
   case GNUNET_TESTING_TOPOLOGY_LINE:
-#if VERBOSE_TOPOLOGY
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                _("Creating straight line CONNECT topology\n"));
-#endif
+                "Creating straight line CONNECT topology\n");
     create_line (pg, &add_connections, CONNECT);
     break;
   case GNUNET_TESTING_TOPOLOGY_NONE:
-#if VERBOSE_TOPOLOGY
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Creating no CONNECT topology\n"));
-#endif
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Creating no CONNECT topology\n");
     copy_allowed_topology (pg);
     break;
   default:
@@ -5331,39 +5216,29 @@ GNUNET_TESTING_connect_topology (struct GNUNET_TESTING_PeerGroup *pg,
   switch (options)
   {
   case GNUNET_TESTING_TOPOLOGY_OPTION_RANDOM:
-#if VERBOSE_TOPOLOGY
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                _
-                ("Connecting random subset (%'.2f percent) of possible peers\n"),
+                "Connecting random subset (%'.2f percent) of possible peers\n",
                 100 * option_modifier);
-#endif
     choose_random_connections (pg, option_modifier);
     break;
   case GNUNET_TESTING_TOPOLOGY_OPTION_MINIMUM:
-#if VERBOSE_TOPOLOGY
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                _("Connecting a minimum of %u peers each (if possible)\n"),
+                "Connecting a minimum of %u peers each (if possible)\n",
                 (unsigned int) option_modifier);
-#endif
     choose_minimum (pg, (unsigned int) option_modifier);
     break;
   case GNUNET_TESTING_TOPOLOGY_OPTION_DFS:
-#if VERBOSE_TOPOLOGY
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                _
-                ("Using DFS to connect a minimum of %u peers each (if possible)\n"),
+                "Using DFS to connect a minimum of %u peers each (if possible)\n",
                 (unsigned int) option_modifier);
-#endif
 #if FIXME
     perform_dfs (pg, (int) option_modifier);
 #endif
     break;
   case GNUNET_TESTING_TOPOLOGY_OPTION_ADD_CLOSEST:
-#if VERBOSE_TOPOLOGY
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _("Finding additional %u closest peers each (if possible)\n"),
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Finding additional %u closest peers each (if possible)\n",
                 (unsigned int) option_modifier);
-#endif
 #if FIXME
     add_closest (pg, (unsigned int) option_modifier, &add_connections, CONNECT);
 #endif
@@ -5806,10 +5681,8 @@ start_peer_helper (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_OS_start_process (GNUNET_NO, NULL, NULL, "ssh", "ssh", arg,
                                "peerStartHelper.pl", tempdir, NULL);
   GNUNET_assert (helper->proc != NULL);
-#if DEBUG_TESTING
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "starting peers with cmd ssh %s %s %s\n",
               arg, "peerStartHelper.pl", tempdir);
-#endif
   GNUNET_SCHEDULER_add_now (&check_peers_started, helper);
   GNUNET_free (tempdir);
   GNUNET_free (baseservicehome);
@@ -6029,9 +5902,7 @@ GNUNET_TESTING_daemons_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
       GNUNET_asprintf (&ssh_port_str, "%d", pg->hosts[i].sshport);
       proc =
 	GNUNET_OS_start_process (GNUNET_NO, NULL, NULL, "ssh", "ssh", "-P", ssh_port_str,
-#if !DEBUG_TESTING
                                    "-q",
-#endif
                                    arg, "mkdir -p", tmpdir, NULL);
     }
     else
@@ -6080,10 +5951,8 @@ GNUNET_TESTING_daemons_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
       if (GNUNET_OK != GNUNET_DISK_file_size (hostkeys_file, &fs, GNUNET_YES, GNUNET_YES))
         fs = 0;
-#if DEBUG_TESTING
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Found file size %llu for hostkeys\n", fs);
-#endif
       if (0 != (fs % HOSTKEYFILESIZE))
       {
         GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -6226,10 +6095,8 @@ GNUNET_TESTING_daemons_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
           GNUNET_CONFIGURATION_get_value_string (cfg, "PATHS", "SERVICEHOME",
                                                  &baseservicehome))
       {
-#if DEBUG_TESTING
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "baseservice home is %s\n",
                     baseservicehome);
-#endif
         if (hostname != NULL)
           GNUNET_asprintf (&newservicehome, "%s/%s/", baseservicehome,
                            hostname);
@@ -6261,11 +6128,9 @@ GNUNET_TESTING_daemons_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
       proc =
 	GNUNET_OS_start_process (GNUNET_NO, NULL, NULL, "rsync", "rsync", "-r",
                                    newservicehome, arg, NULL);
-#if DEBUG_TESTING
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "copying directory with command rsync -r %s %s\n",
                   newservicehome, arg);
-#endif
       GNUNET_free (newservicehome);
       GNUNET_free (arg);
       if (NULL == proc)
@@ -6681,10 +6546,8 @@ GNUNET_TESTING_daemons_churn (struct GNUNET_TESTING_PeerGroup *pg,
 
   for (i = 0; i < voff; i++)
   {
-#if DEBUG_CHURN
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping peer %d!\n",
                 running_arr[running_permute[i]]);
-#endif
     GNUNET_assert (running_arr != NULL);
     peer_shutdown_ctx = GNUNET_malloc (sizeof (struct PeerShutdownContext));
     peer_shutdown_ctx->daemon =
@@ -6703,10 +6566,8 @@ GNUNET_TESTING_daemons_churn (struct GNUNET_TESTING_PeerGroup *pg,
   }
   for (i = 0; i < von; i++)
   {
-#if DEBUG_CHURN
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting up peer %d!\n",
                 stopped_arr[stopped_permute[i]]);
-#endif
     GNUNET_assert (stopped_arr != NULL);
     peer_restart_ctx = GNUNET_malloc (sizeof (struct PeerRestartContext));
     peer_restart_ctx->churn_restart_ctx = churn_startup_ctx;
@@ -6755,10 +6616,6 @@ GNUNET_TESTING_daemons_start_service (struct GNUNET_TESTING_PeerGroup *pg,
 
   for (i = 0; i < pg->total; i++)
   {
-#if DEBUG_START
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting up service %s on peer %d!\n",
-                service, stopped_arr[stopped_permute[i]]);
-#endif
     peer_start_ctx = GNUNET_malloc (sizeof (struct PeerServiceStartContext));
     peer_start_ctx->start_ctx = start_ctx;
     peer_start_ctx->daemon = pg->peers[i].daemon;
@@ -6880,10 +6737,8 @@ internal_shutdown_callback (void *cls, const char *emsg)
   }
   else
   {
-#if VERBOSE_TESTING
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "internal_shutdown_callback",
                      "Failed to stop a peer: %s\n", emsg);
-#endif
     shutdown_ctx->peers_failed++;
   }
 
