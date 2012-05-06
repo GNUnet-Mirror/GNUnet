@@ -18,7 +18,7 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file transport/test_transport_api.c
+ * @file transport/test_transport_api_limited_sockets.c
  * @brief base test case for transport implementations
  *
  * This test case serves as a base for tcp, udp, and udp-nat
@@ -69,19 +69,19 @@ static GNUNET_SCHEDULER_TaskIdentifier die_task;
 
 static GNUNET_SCHEDULER_TaskIdentifier send_task;
 
-struct PeerContext *p1;
+static struct PeerContext *p1;
 
-struct PeerContext *p2;
+static struct PeerContext *p2;
 
 static GNUNET_TRANSPORT_TESTING_ConnectRequest cc;
 
-struct GNUNET_TRANSPORT_TransmitHandle *th;
+static struct GNUNET_TRANSPORT_TransmitHandle *th;
 
-struct GNUNET_TRANSPORT_TESTING_handle *tth;
+static struct GNUNET_TRANSPORT_TESTING_handle *tth;
 
-char *cfg_file_p1;
+static char *cfg_file_p1;
 
-char *cfg_file_p2;
+static char *cfg_file_p2;
 
 #if VERBOSE
 #define OKPP do { ok++; FPRINTF (stderr, "Now at stage %u at %s:%u\n", ok, __FILE__, __LINE__); } while (0)
@@ -228,7 +228,7 @@ testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &sendtask, NULL);
 }
 
-void
+static void
 start_cb (struct PeerContext *p, void *cls)
 {
   static int started;
@@ -334,11 +334,10 @@ main (int argc, char *argv[])
   int res;
 
   res = getrlimit (RLIMIT_NOFILE, &r_file_old);
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Maximum number of open files was: %u/%u\n", r_file_old.rlim_cur,
               r_file_old.rlim_max);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Setting maximum number of open files to: %u\n", MAX_FILES);
   r_file_new.rlim_cur = MAX_FILES;
   r_file_new.rlim_max = r_file_old.rlim_max;
@@ -367,7 +366,7 @@ main (int argc, char *argv[])
   GNUNET_free (test_name);
 
 #if HAVE_SETRLIMIT
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Restoring previous value maximum number of open files\n");
   res = setrlimit (RLIMIT_NOFILE, &r_file_old);
   if (res != 0)
@@ -376,8 +375,7 @@ main (int argc, char *argv[])
     return 0;
   }
 #endif
-
   return ret;
 }
 
-/* end of test_transport_api.c */
+/* end of test_transport_api_limited_sockets.c */
