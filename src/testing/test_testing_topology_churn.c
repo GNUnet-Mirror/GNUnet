@@ -25,7 +25,6 @@
 #include "gnunet_testing_lib.h"
 #include "gnunet_core_service.h"
 
-#define VERBOSE GNUNET_YES
 
 /**
  * How long until we fail the whole testcase?
@@ -83,17 +82,13 @@ shutdown_callback (void *cls, const char *emsg)
 {
   if (emsg != NULL)
   {
-#if VERBOSE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown of peers failed!\n");
-#endif
     if (ok == 0)
       ok = 666;
   }
   else
   {
-#if VERBOSE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "All peers successfully shut down!\n");
-#endif
   }
 }
 
@@ -104,20 +99,11 @@ finish_testing ()
 
   if (die_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (die_task);
-
-#if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Called finish testing, stopping daemons.\n");
-#endif
-
-#if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Calling daemons_stop\n");
-#endif
   GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
-#if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "daemons_stop finished\n");
-#endif
-
   ok = 0;
 }
 
@@ -212,17 +198,13 @@ peers_started_callback (void *cls, const struct GNUNET_PeerIdentity *id,
     return;
   }
   GNUNET_assert (id != NULL);
-#if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Started daemon %llu out of %llu\n",
               (num_peers - peers_left) + 1, num_peers);
-#endif
   peers_left--;
   if (peers_left == 0)
   {
-#if VERBOSE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "All %d daemons started, now testing churn!\n", num_peers);
-#endif
     GNUNET_SCHEDULER_cancel (die_task);
     /* Set up task in case topology creation doesn't finish
      * within a reasonable amount of time */
@@ -242,11 +224,8 @@ run (void *cls, char *const *args, const char *cfgfile,
 {
   ok = 1;
 
-#if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Starting daemons based on config file %s\n", cfgfile);
-#endif
-
   if (GNUNET_YES !=
       GNUNET_CONFIGURATION_get_value_string (cfg, "paths", "servicehome",
                                              &test_directory))
@@ -295,9 +274,6 @@ check ()
   char *const argv[] = { "test-testing-topology-churn",
     "-c",
     "test_testing_data_topology_churn.conf",
-#if VERBOSE
-    "-L", "DEBUG",
-#endif
     NULL
   };
   struct GNUNET_GETOPT_CommandLineOption options[] = {
@@ -323,11 +299,7 @@ main (int argc, char *argv[])
   int ret;
 
   GNUNET_log_setup ("test_testing_topology_churn",
-#if VERBOSE
-                    "DEBUG",
-#else
                     "WARNING",
-#endif
                     NULL);
   ret = check ();
 

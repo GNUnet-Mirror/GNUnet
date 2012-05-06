@@ -410,13 +410,12 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     if (NULL == d->hostname)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Starting `%s', with command `%s %s %s %s %s %s'.\n",
-                  "gnunet-arm", "gnunet-arm", "-c", d->cfgfile, "-L", "DEBUG",
+                  "Starting `%s', with command `%s %s %s %s'.\n",
+                  "gnunet-arm", "gnunet-arm", "-c", d->cfgfile, 
                   "-s");
       d->proc_arm_start =
 	  GNUNET_OS_start_process (GNUNET_YES, NULL, NULL, "gnunet-arm", "gnunet-arm", "-c",
                                    d->cfgfile,
-                                   "-L", "DEBUG",
                                    "-s", "-q", "-T",
                                    GNUNET_TIME_relative_to_string
                                    (GNUNET_TIME_absolute_get_remaining
@@ -430,9 +429,9 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         dst = GNUNET_strdup (d->hostname);
 
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "Starting `%s', with command `%s %s %s %s %s %s %s %s'.\n",
+                  "Starting `%s', with command `%s %s %s %s %s %s %s'.\n",
                   "gnunet-arm", "ssh", dst, "gnunet-arm", "-c", d->cfgfile,
-                  "-L", "DEBUG", "-s", "-q");
+                  "-s", "-q");
       if (d->ssh_port_str == NULL)
       {
         d->proc_arm_start = GNUNET_OS_start_process (GNUNET_NO, NULL, NULL, "ssh", "ssh",

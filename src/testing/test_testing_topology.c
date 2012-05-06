@@ -26,7 +26,6 @@
 #include "gnunet_core_service.h"
 #include "gnunet_os_lib.h"
 
-#define VERBOSE GNUNET_NO
 
 #define PROGRESS_BARS GNUNET_YES
 
@@ -172,17 +171,13 @@ shutdown_callback (void *cls, const char *emsg)
 {
   if (emsg != NULL)
   {
-#if VERBOSE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown of peers failed!\n");
-#endif
     if (ok == 0)
       ok = 666;
   }
   else
   {
-#if VERBOSE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "All peers successfully shut down!\n");
-#endif
   }
 }
 
@@ -213,11 +208,8 @@ finish_testing ()
   struct TestMessageContext *pos;
   struct TestMessageContext *free_pos;
 
-#if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Called finish testing, stopping daemons.\n");
-#endif
-
   pos = test_messages;
   while (pos != NULL)
   {
@@ -239,16 +231,11 @@ finish_testing ()
     }
     GNUNET_free (free_pos);
   }
-#if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Transmit_ready's scheduled %d, failed %d, transmit_ready's called %d\n",
               transmit_ready_scheduled, transmit_ready_failed,
               transmit_ready_called);
-#endif
-
-#if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Calling daemons_stop\n");
-#endif
   GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
 
   if (dotOutFile != NULL)
@@ -267,16 +254,12 @@ disconnect_cores (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct TestMessageContext *pos = cls;
 
   /* Disconnect from the respective cores */
-#if VERBOSE > 1
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from peer 1 `%4s'\n",
               GNUNET_i2s (&pos->peer1->id));
-#endif
   if (pos->peer1handle != NULL)
     GNUNET_CORE_disconnect (pos->peer1handle);
-#if VERBOSE > 1
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from peer 2 `%4s'\n",
               GNUNET_i2s (&pos->peer2->id));
-#endif
   if (pos->peer2handle != NULL)
     GNUNET_CORE_disconnect (pos->peer2handle);
   /* Set handles to NULL so test case can be ended properly */
@@ -382,14 +365,12 @@ process_mtype (void *cls, const struct GNUNET_PeerIdentity *peer,
 
   total_messages_received++;
 
-#if VERBOSE > 1
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received message from `%4s', type %d.\n", GNUNET_i2s (peer),
               ntohs (message->type));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Total messages received %d, expected %d.\n",
               total_messages_received, expected_messages);
-#endif
 
   if (total_messages_received == expected_messages)
   {
@@ -444,7 +425,6 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_free (free_pos);
   }
 
-#if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Transmit_ready's scheduled %d, failed %d, transmit_ready's called %d\n",
               transmit_ready_scheduled, transmit_ready_failed,
@@ -452,7 +432,6 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Total messages received %d, expected %d.\n",
               total_messages_received, expected_messages);
-#endif
 
   if (pg != NULL)
   {
@@ -481,12 +460,10 @@ transmit_ready (void *cls, size_t size, void *buf)
   m->header.size = htons (sizeof (struct GNUNET_TestMessage));
   m->uid = htonl (pos->uid);
   transmit_ready_called++;
-#if VERBOSE > 1
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "transmit ready for peer %s\ntransmit_ready's scheduled %d, transmit_ready's called %d\n",
               GNUNET_i2s (&pos->peer1->id), transmit_ready_scheduled,
               transmit_ready_called);
-#endif
   return sizeof (struct GNUNET_TestMessage);
 }
 
@@ -511,12 +488,10 @@ init_notify_peer2 (void *cls, struct GNUNET_CORE_Handle *server,
   pos->peer2connected = GNUNET_YES;
   if (pos->peer1notified == GNUNET_YES) /* Peer 1 has been notified of connection to peer 2 */
   {
-#if VERBOSE > 1
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Scheduling message send to peer `%s' from peer `%s' (init_notify_peer2)\n",
                 GNUNET_i2s (my_identity),
                 GNUNET_h2s (&pos->peer1->id.hashPubKey));
-#endif
     if (NULL ==
         GNUNET_CORE_notify_transmit_ready (pos->peer1handle, GNUNET_YES, 0,
                                            TIMEOUT, &pos->peer2->id,
@@ -553,23 +528,19 @@ connect_notify_peers (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (0 == memcmp (peer, &pos->peer2->id, sizeof (struct GNUNET_PeerIdentity)))
   {
     pos->peer1notified = GNUNET_YES;
-#if VERBOSE > 1
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Peer `%s' notified of connection to peer `%s'\n",
                 GNUNET_i2s (&pos->peer1->id), GNUNET_h2s (&peer->hashPubKey));
-#endif
   }
   else
     return;
 
   if (pos->peer2connected == GNUNET_YES)        /* Already connected and notified of connection, send message! */
   {
-#if VERBOSE > 1
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Scheduling message send to peer `%s' from peer `%s' (init_notify_peer2)\n",
                 GNUNET_i2s (&pos->peer2->id),
                 GNUNET_h2s (&pos->peer1->id.hashPubKey));
-#endif
     if (NULL ==
         GNUNET_CORE_notify_transmit_ready (pos->peer1handle, GNUNET_YES, 0,
                                            TIMEOUT, &pos->peer2->id,
@@ -596,12 +567,9 @@ init_notify_peer1 (void *cls, struct GNUNET_CORE_Handle *server,
 
   total_server_connections++;
 
-#if VERBOSE > 1
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Core connection to `%4s' established, setting up handles\n",
               GNUNET_i2s (my_identity));
-#endif
-
   /*
    * Connect to the receiving peer
    */
@@ -694,10 +662,8 @@ topology_callback (void *cls, const struct GNUNET_PeerIdentity *first,
     fflush (stdout);
 #endif
     total_connections++;
-#if VERBOSE > 1
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "connected peer %s to peer %s\n",
                 first_daemon->shortname, second_daemon->shortname);
-#endif
     temp_context = GNUNET_malloc (sizeof (struct TestMessageContext));
     temp_context->peer1 = first_daemon;
     temp_context->peer2 = second_daemon;
@@ -711,7 +677,6 @@ topology_callback (void *cls, const struct GNUNET_PeerIdentity *first,
       FPRINTF (dotOutFile, "\tn%s -- n%s;\n", first_daemon->shortname,
                second_daemon->shortname);
   }
-#if VERBOSE
   else
   {
     failed_connections++;
@@ -719,18 +684,15 @@ topology_callback (void *cls, const struct GNUNET_PeerIdentity *first,
                 "Failed to connect peer %s to peer %s with error :\n%s\n",
                 first_daemon->shortname, second_daemon->shortname, emsg);
   }
-#endif
 
   if (total_connections == expected_connections)
   {
 #if PROGRESS_BARS
     FPRINTF (stdout, "%s",  "100%%]\n");
 #endif
-#if VERBOSE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Created %d total connections, which is our target number!  Calling send messages.\n",
                 total_connections);
-#endif
     modnum = expected_messages / 4;
     dotnum = (expected_messages / 50) + 1;
     if (modnum == 0)
@@ -777,24 +739,20 @@ topology_callback (void *cls, const struct GNUNET_PeerIdentity *first,
   }
   else
   {
-#if VERBOSE > 1
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Have %d total connections, %d failed connections, Want %d (at least %d)\n",
                 total_connections, failed_connections, expected_connections,
                 expected_connections -
                 (unsigned int) (fail_percentage * expected_connections));
-#endif
   }
 }
 
 static void
 topology_creation_finished (void *cls, const char *emsg)
 {
-#if VERBOSE
   if (emsg == NULL)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "All topology connections created successfully!\n");
-#endif
 }
 
 static void
@@ -884,10 +842,8 @@ peers_started_callback (void *cls, const struct GNUNET_PeerIdentity *id,
     return;
   }
   GNUNET_assert (id != NULL);
-#if VERBOSE > 1
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Started daemon %llu out of %llu\n",
               (num_peers - peers_left) + 1, num_peers);
-#endif
 #if PROGRESS_BARS
   if ((num_peers - peers_left) % modnum == 0)
   {
@@ -910,10 +866,8 @@ peers_started_callback (void *cls, const struct GNUNET_PeerIdentity *id,
 #if PROGRESS_BARS
     FPRINTF (stdout, "%s",  "100%%]\n");
 #endif
-#if VERBOSE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "All %d daemons started, now connecting peers!\n", num_peers);
-#endif
     GNUNET_SCHEDULER_cancel (die_task);
     /* Set up task in case topology creation doesn't finish
      * within a reasonable amount of time */
@@ -952,12 +906,9 @@ hostkey_callback (void *cls, const struct GNUNET_PeerIdentity *id,
                 "Hostkey callback received error: %s\n", emsg);
   }
 
-#if VERBOSE > 1
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Hostkey (%d/%d) created for peer `%s'\n", num_peers - peers_left,
               num_peers, GNUNET_i2s (id));
-#endif
-
 #if PROGRESS_BARS
   if ((num_peers - peers_left) % modnum == 0)
   {
@@ -1012,11 +963,8 @@ run (void *cls, char *const *args, const char *cfgfile,
     FPRINTF (dotOutFile, "%s",  "strict graph G {\n");
   }
 
-#if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Starting daemons based on config file %s\n", cfgfile);
-#endif
-
   if (GNUNET_YES !=
       GNUNET_CONFIGURATION_get_value_string (cfg, "paths", "servicehome",
                                              &test_directory))
@@ -1192,9 +1140,6 @@ check ()
   char *const argv[] = { binary_name,
     "-c",
     config_file_name,
-#if VERBOSE
-    "-L", "DEBUG",
-#endif
     NULL
   };
   struct GNUNET_GETOPT_CommandLineOption options[] = {
@@ -1238,11 +1183,7 @@ main (int argc, char *argv[])
   GNUNET_asprintf (&dotOutFileName, "topology_%s.dot", topology_string);
 
   GNUNET_log_setup (our_binary_name,
-#if VERBOSE
-                    "DEBUG",
-#else
                     "WARNING",
-#endif
                     NULL);
   ret = check ();
   GNUNET_free (topology_string);
