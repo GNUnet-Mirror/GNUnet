@@ -98,8 +98,7 @@ TESTS = \
  test_testing_reconnect \
  test_testing_group \
  test_testing_peergroup \
- test_testing_topology_clique \
- test_testing_2dtorus
+ test_testing_topology_clique 
 endif
 
 gnunet_testing_SOURCES = \
