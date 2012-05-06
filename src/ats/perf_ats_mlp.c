@@ -29,9 +29,6 @@
 #include "gnunet_statistics_service.h"
 #include "gnunet-service-ats_addresses_mlp.h"
 
-#define VERBOSE GNUNET_YES
-#define VERBOSE_ARM GNUNET_NO
-
 #define MLP_MAX_EXEC_DURATION   GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 3)
 #define MLP_MAX_ITERATIONS      INT_MAX
 
@@ -54,9 +51,9 @@ struct ATS_Address *a;
 
 static int ret;
 
-struct GNUNET_CONTAINER_MultiHashMap * amap;
+static struct GNUNET_CONTAINER_MultiHashMap * amap;
 
-struct GAS_MLP_Handle *mlp;
+static struct GAS_MLP_Handle *mlp;
 
 
 

@@ -34,10 +34,6 @@
 #include "gnunet_ats_service.h"
 #include "gnunet_transport_service.h"
 
-#define VERBOSE GNUNET_NO
-
-#define VERBOSE_ARM GNUNET_NO
-
 #define START_ARM GNUNET_YES
 
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
@@ -277,11 +273,7 @@ main (int argc, char *argv1[])
   static char *const argv[] = { "test_ats_api_update_address",
     "-c",
     "test_ats_api.conf",
-#if VERBOSE
-    "-L", "DEBUG",
-#else
     "-L", "WARNING",
-#endif
     NULL
   };
 

@@ -28,10 +28,6 @@
 #include "gnunet_ats_service.h"
 #include "ats.h"
 
-#define VERBOSE GNUNET_NO
-
-#define VERBOSE_ARM GNUNET_NO
-
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 
 static GNUNET_SCHEDULER_TaskIdentifier die_task;
@@ -201,9 +197,6 @@ start_arm (const char *cfgname)
   arm_proc =
       GNUNET_OS_start_process (GNUNET_YES, NULL, NULL, "gnunet-service-arm",
                                "gnunet-service-arm",
-#if VERBOSE_ARM
-                               "-L", "DEBUG",
-#endif
                                "-c", cfgname, NULL);
 }
 
@@ -263,11 +256,7 @@ main (int argc, char *argv[])
   static char *const argv2[] = { "test_ats_api_bandwidth_consumption",
     "-c",
     "test_ats_api.conf",
-#if VERBOSE
-    "-L", "DEBUG",
-#else
     "-L", "WARNING",
-#endif
     NULL
   };
 

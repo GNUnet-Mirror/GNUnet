@@ -847,25 +847,6 @@ GNUNET_ATS_address_get_type (struct GNUNET_ATS_SchedulingHandle * sh, const stru
   /* no local network found for this address, default: WAN */
   if (type == GNUNET_ATS_NET_UNSPECIFIED)
     type = GNUNET_ATS_NET_WAN;
-
-#if VERBOSE
-  const char * range;
-  switch (type) {
-    case GNUNET_ATS_NET_WAN:
-        range = "WAN";
-      break;
-    case GNUNET_ATS_NET_LAN:
-        range = "LAN";
-      break;
-    case GNUNET_ATS_NET_LOOPBACK:
-        range = "LOOPBACK";
-      break;
-    default:
-
-      break;
-  }
-#endif
-
   ats.type = htonl (GNUNET_ATS_NETWORK_TYPE);
   ats.value = htonl (type);
   return (const struct GNUNET_ATS_Information) ats;
