@@ -412,7 +412,6 @@ reconnect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
-
 /**
  * Task used by 'reconnect_later' to shutdown the handle
  *
@@ -427,6 +426,7 @@ do_destroy (void *cls,
 
   GNUNET_STATISTICS_destroy (h, GNUNET_NO);
 }
+
 
 /**
  * Reconnect at a later time, respecting back-off.
@@ -911,7 +911,7 @@ GNUNET_STATISTICS_destroy (struct GNUNET_STATISTICS_Handle *h, int sync_first)
   }
   if (sync_first)
   {
-    if (h->current != NULL)
+    if (NULL != h->current)
     {
       if (h->current->type == ACTION_GET)
       {
@@ -947,9 +947,9 @@ GNUNET_STATISTICS_destroy (struct GNUNET_STATISTICS_Handle *h, int sync_first)
 	GNUNET_CLIENT_notify_transmit_ready (h->client, h->current->msize,
 					     timeout, GNUNET_YES,
 					     &transmit_action, h);
-      GNUNET_assert (NULL != h->th);      
+      GNUNET_assert (NULL != h->th);
     }
-    if (h->th != NULL)
+    if (NULL != h->th)
       return; /* do not finish destruction just yet */
   }
   while (NULL != (pos = h->action_head))

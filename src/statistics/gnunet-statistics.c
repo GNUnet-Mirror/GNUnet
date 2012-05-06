@@ -62,6 +62,7 @@ static int watch;
  */
 static int quiet;
 
+
 /**
  * Callback function to process statistic values.
  *
@@ -103,17 +104,27 @@ cleanup (void *cls, int success)
     FPRINTF (stderr, "%s", _("Failed to obtain statistics.\n"));
     ret = 1;
   }
-  if (h != NULL)
+  if (NULL != h)
+  {
     GNUNET_STATISTICS_destroy (h, GNUNET_NO);
+    h = NULL;
+  }
 }
+
+
 static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_STATISTICS_Handle *h = cls;
+
   GNUNET_STATISTICS_watch_cancel (h, subsystem, name, &printer, h);
-  if (h != NULL)
+  if (NULL != h)
+  {
     GNUNET_STATISTICS_destroy (h, GNUNET_NO);
+    h = NULL;
+  }
 }
+
 
 /**
  * Main function that will be run by the scheduler.
@@ -140,17 +151,18 @@ run (void *cls, char *const *args, const char *cfgfile,
       return;
     }
     h = GNUNET_STATISTICS_create (subsystem, cfg);
-    if (h == NULL)
+    if (NULL == h)
     {
       ret = 1;
       return;
     }
     GNUNET_STATISTICS_set (h, name, (uint64_t) val, persistent);
     GNUNET_STATISTICS_destroy (h, GNUNET_YES);
+    h = NULL;
     return;
   }
   h = GNUNET_STATISTICS_create ("gnunet-statistics", cfg);
-  if (h == NULL)
+  if (NULL == h)
   {
     ret = 1;
     return;
