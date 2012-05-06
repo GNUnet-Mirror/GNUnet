@@ -53,11 +53,6 @@ static int
 check_it (void *cls, const struct GNUNET_HELLO_Address *address,
           struct GNUNET_TIME_Absolute expiration)
 {
-  if (addrlen > 0)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-		"name: %s, addr: %s\n", tname, (const char *) addr);
-  }
   return GNUNET_OK;
 }
 
