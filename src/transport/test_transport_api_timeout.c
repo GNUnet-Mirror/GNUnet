@@ -40,8 +40,6 @@
 
 #define VERBOSE GNUNET_NO
 
-#define VERBOSE_ARM GNUNET_NO
-
 #define START_ARM GNUNET_YES
 
 /**
@@ -65,19 +63,19 @@ static GNUNET_SCHEDULER_TaskIdentifier die_task;
 
 static GNUNET_SCHEDULER_TaskIdentifier timer_task;
 
-struct GNUNET_TRANSPORT_TESTING_handle *tth;
+static struct GNUNET_TRANSPORT_TESTING_handle *tth;
 
-struct PeerContext *p1;
+static struct PeerContext *p1;
 
-struct PeerContext *p2;
+static struct PeerContext *p2;
 
 static GNUNET_TRANSPORT_TESTING_ConnectRequest cc;
 
-struct GNUNET_TRANSPORT_TransmitHandle *th;
+static struct GNUNET_TRANSPORT_TransmitHandle *th;
 
-char *cfg_file_p1;
+static char *cfg_file_p1;
 
-char *cfg_file_p2;
+static char *cfg_file_p2;
 
 static struct GNUNET_TIME_Relative time_running;
 
@@ -192,6 +190,7 @@ notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
   th = NULL;
 }
 
+
 static void
 timer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -235,7 +234,7 @@ testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)
 
   shutdown_flag = GNUNET_NO;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Waiting for %llu seconds\n", (WAIT.rel_value) / 1000);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Waiting for %llu seconds\n", (WAIT.rel_value) / 1000);
 
   if (die_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (die_task);
@@ -244,7 +243,8 @@ testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)
   timer_task = GNUNET_SCHEDULER_add_now (&timer, NULL);
 }
 
-void
+
+static void
 start_cb (struct PeerContext *p, void *cls)
 {
   static int started;
@@ -299,9 +299,6 @@ check ()
   static char *const argv[] = { "test-transport-api-timeout",
     "-c",
     "test_transport_api_data.conf",
-#if VERBOSE
-    "-L", "DEBUG",
-#endif
     NULL
   };
   static struct GNUNET_GETOPT_CommandLineOption options[] = {
@@ -329,11 +326,7 @@ main (int argc, char *argv[])
   GNUNET_TRANSPORT_TESTING_get_test_name (argv[0], &test_name);
 
   GNUNET_log_setup (test_name,
-#if VERBOSE
-                    "DEBUG",
-#else
                     "WARNING",
-#endif
                     NULL);
 
   GNUNET_TRANSPORT_TESTING_get_test_source_name (__FILE__, &test_source);
