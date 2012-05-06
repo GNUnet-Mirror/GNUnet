@@ -490,6 +490,7 @@ peerinfo_handler (void *cls, const struct GNUNET_MessageHeader *msg)
   void *cb_cls;
   uint16_t ms;
 
+  GNUNET_assert (NULL != ic);
   h->in_receive = GNUNET_NO;
   ic->in_receive = GNUNET_NO;
   cb = ic->callback;
@@ -504,17 +505,19 @@ peerinfo_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 	  _("Failed to receive response from `PEERINFO' service."));
     return;
   }
+
   if (GNUNET_MESSAGE_TYPE_PEERINFO_INFO_END == ntohs (msg->type))
   {
     /* normal end of list of peers, signal end, process next pending request */
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Received end of list of peers from `%s' service\n", "PEERINFO");
-    GNUNET_PEERINFO_iterate_cancel (ic);
+    GNUNET_PEERINFO_iterate_cancel (ic);   
     trigger_transmit (h);
     if (NULL != cb)
       cb (cb_cls, NULL, NULL, NULL);
     return;
   }
+
   ms = ntohs (msg->size);
   if ((ms < sizeof (struct InfoMessage)) ||
       (ntohs (msg->type) != GNUNET_MESSAGE_TYPE_PEERINFO_INFO))
@@ -593,7 +596,7 @@ peerinfo_handler (void *cls, const struct GNUNET_MessageHeader *msg)
        GNUNET_i2s (&im->peer), "PEERINFO");
   h->in_receive = GNUNET_YES;
   ic->in_receive = GNUNET_YES;
-  GNUNET_CLIENT_receive (h->client, &peerinfo_handler, ic,
+  GNUNET_CLIENT_receive (h->client, &peerinfo_handler, h,
                          GNUNET_TIME_absolute_get_remaining (ic->timeout));
   if (NULL != cb)
     cb (cb_cls, &im->peer, hello, NULL);
