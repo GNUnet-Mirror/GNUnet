@@ -455,14 +455,13 @@ GNUNET_TRANSPORT_TESTING_stop_peer (struct GNUNET_TRANSPORT_TESTING_handle *tth,
                                     struct PeerContext *p)
 {
   GNUNET_assert (p != NULL);
-
   if (p->ghh != NULL)
+  {
     GNUNET_TRANSPORT_get_hello_cancel (p->ghh);
-  p->ghh = NULL;
-
+    p->ghh = NULL;
+  }
   if (p->th != NULL)
     GNUNET_TRANSPORT_disconnect (p->th);
-
   if (NULL != p->arm_proc)
   {
     if (0 != GNUNET_OS_process_kill (p->arm_proc, SIGTERM))
@@ -471,35 +470,31 @@ GNUNET_TRANSPORT_TESTING_stop_peer (struct GNUNET_TRANSPORT_TESTING_handle *tth,
     GNUNET_OS_process_close (p->arm_proc);
     p->arm_proc = NULL;
   }
-
   if (p->hostkeyfile != NULL)
   {
     GNUNET_DISK_directory_remove (p->hostkeyfile);
     GNUNET_free (p->hostkeyfile);
   }
-
   if (p->servicehome != NULL)
   {
     GNUNET_DISK_directory_remove (p->servicehome);
     GNUNET_free (p->servicehome);
   }
-
   if (p->hello != NULL)
+  {
     GNUNET_free (p->hello);
-  p->hello = NULL;
-
+    p->hello = NULL;
+  }
   if (p->cfg != NULL)
+  {
     GNUNET_CONFIGURATION_destroy (p->cfg);
-  p->cfg = NULL;
-
+    p->cfg = NULL;
+  }
   GNUNET_CONTAINER_DLL_remove (tth->p_head, tth->p_tail, p);
-
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-testing",
                    "Peer %u (`%s') stopped \n", p->no,
                    GNUNET_i2s (&p->id));
-
   GNUNET_free (p);
-  p = NULL;
 }
 
 
@@ -529,24 +524,18 @@ GNUNET_TRANSPORT_TESTING_connect_peers (struct GNUNET_TRANSPORT_TESTING_handle *
 
   GNUNET_assert (p1 != NULL);
   GNUNET_assert (p2 != NULL);
-
   cc->p1 = p1;
   cc->p2 = p2;
-
   cc->cb = cb;
   if (cls != NULL)
     cc->cb_cls = cls;
   else
     cc->cb_cls = cc;
-
   cc->th_p1 = p1->th;
   cc->th_p2 = p2->th;
-
   GNUNET_assert (cc->th_p1 != NULL);
   GNUNET_assert (cc->th_p2 != NULL);
-
   GNUNET_CONTAINER_DLL_insert (tth->cc_head, tth->cc_tail, cc);
-
   cc->tct = GNUNET_SCHEDULER_add_now (&try_connect, cc);
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-testing",
                    "New connect request %X\n", cc);

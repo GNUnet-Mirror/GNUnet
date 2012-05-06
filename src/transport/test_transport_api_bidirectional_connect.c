@@ -35,10 +35,6 @@
 #include "transport.h"
 #include "transport-testing.h"
 
-#define VERBOSE GNUNET_NO
-#define VERBOSE_ARM GNUNET_NO
-
-#define START_ARM GNUNET_YES
 
 /**
  * How long until we give up on transmitting the message?
@@ -64,26 +60,20 @@ static GNUNET_SCHEDULER_TaskIdentifier die_task;
 
 static GNUNET_SCHEDULER_TaskIdentifier send_task;
 
-struct PeerContext *p1;
+static struct PeerContext *p1;
 
-struct PeerContext *p2;
+static struct PeerContext *p2;
 
 static GNUNET_TRANSPORT_TESTING_ConnectRequest cc1;
 static GNUNET_TRANSPORT_TESTING_ConnectRequest cc2;
 
-struct GNUNET_TRANSPORT_TransmitHandle *th;
+static struct GNUNET_TRANSPORT_TransmitHandle *th;
 
-struct GNUNET_TRANSPORT_TESTING_handle *tth;
+static struct GNUNET_TRANSPORT_TESTING_handle *tth;
 
-char *cfg_file_p1;
+static char *cfg_file_p1;
 
-char *cfg_file_p2;
-
-#if VERBOSE
-#define OKPP do { ok++; FPRINTF (stderr, "Now at stage %u at %s:%u\n", ok, __FILE__, __LINE__); } while (0)
-#else
-#define OKPP do { ok++; } while (0)
-#endif
+static char *cfg_file_p2;
 
 
 static void
@@ -97,9 +87,11 @@ end ()
   if (die_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (die_task);
 
-  if (th != NULL)
+  if (NULL != th)
+  {
     GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
-  th = NULL;
+    th = NULL;
+  }
 
   GNUNET_TRANSPORT_TESTING_stop_peer (tth, p1);
   GNUNET_TRANSPORT_TESTING_stop_peer (tth, p2);
@@ -109,24 +101,27 @@ static void
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   die_task = GNUNET_SCHEDULER_NO_TASK;
-
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Fail! Stopping peers\n");
-
-
   if (send_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (send_task);
 
-  if (cc2 != NULL)
+  if (NULL != cc2)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Fail! Could not connect peers\n"));
     GNUNET_TRANSPORT_TESTING_connect_peers_cancel (tth, cc2);
     cc2 = NULL;
   }
-
-  if (th != NULL)
+  if (NULL != cc1)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Fail! Could not connect peers\n"));
+    GNUNET_TRANSPORT_TESTING_connect_peers_cancel (tth, cc1);
+    cc1 = NULL;
+  }
+  if (NULL != th)
+  {
     GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
-  th = NULL;
-
+    th = NULL;
+  }
   if (p1 != NULL)
     GNUNET_TRANSPORT_TESTING_stop_peer (tth, p1);
   if (p2 != NULL)
@@ -270,6 +265,7 @@ notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
   th = NULL;
 }
 
+
 static void
 testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)
 {
@@ -293,7 +289,8 @@ testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)
   send_task = GNUNET_SCHEDULER_add_now (&sendtask, NULL);
 }
 
-void
+
+static void
 start_cb (struct PeerContext *p, void *cls)
 {
   static int started;
@@ -353,9 +350,6 @@ check ()
   static char *const argv[] = { "test-transport-api",
     "-c",
     "test_transport_api_data.conf",
-#if VERBOSE
-    "-L", "DEBUG",
-#endif
     NULL
   };
   static struct GNUNET_GETOPT_CommandLineOption options[] = {
@@ -382,11 +376,7 @@ main (int argc, char *argv[])
   GNUNET_TRANSPORT_TESTING_get_test_name (argv[0], &test_name);
 
   GNUNET_log_setup (test_name,
-#if VERBOSE
-                    "DEBUG",
-#else
                     "WARNING",
-#endif
                     NULL);
 
   GNUNET_TRANSPORT_TESTING_get_test_source_name (__FILE__, &test_source);
