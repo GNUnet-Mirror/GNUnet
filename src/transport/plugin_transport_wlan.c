@@ -40,11 +40,6 @@
 #include "gnunet_fragmentation_lib.h"
 #include "gnunet_constants.h"
 
-/**
- * DEBUG switch
- */
-#define DEBUG_WLAN GNUNET_EXTRA_LOGGING
-
 
 #define PROTOCOL_PREFIX "wlan"
 
@@ -662,60 +657,6 @@ static void
 finish_sending (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
-/**
- * Generates a nice hexdump of a memory area.
- *
- * \param  mem     pointer to memory to dump
- * \param  length  how many bytes to dump
- */
-static void
-hexdump (const void *mem, unsigned length)
-{
-  char line[80];
-  char *src = (char *) mem;
-
-  printf ("dumping %u bytes from %p\r\n"
-          "       0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F    0123456789ABCDEF\r\n",
-          length, src);
-  unsigned i;
-  int j;
-
-  for (i = 0; i < length; i += 16, src += 16)
-  {
-    char *t = line;
-
-    t += sprintf (t, "%04x:  ", i);
-    for (j = 0; j < 16; j++)
-    {
-      if (i + j < length)
-        t += sprintf (t, "%02X", src[j] & 0xff);
-      else
-        t += sprintf (t, "  ");
-
-      t += sprintf (t, (j % 2) ? " " : "-");
-    }
-
-    t += sprintf (t, "  ");
-    for (j = 0; j < 16; j++)
-    {
-      if (i + j < length)
-      {
-        if (isprint ((unsigned char) src[j]))
-          t += sprintf (t, "%c", src[j]);
-        else
-          t += sprintf (t, ".");
-      }
-      else
-      {
-        t += sprintf (t, " ");
-      }
-    }
-
-    t += sprintf (t, "\r\n");
-    printf ("%s", line);
-  }
-}
-
 
 /**
  * Function to find a MacEndpoint with a specific mac addr
@@ -1065,6 +1006,7 @@ set_next_send (struct Plugin *plugin)
   }
 }
 
+
 /**
  * Function to get the next queued Session, removes the session from the queue
  * @param plugin pointer to the plugin struct
@@ -1075,7 +1017,7 @@ get_next_queue_session (struct Plugin *plugin)
 {
   struct Session *session;
   struct Sessionqueue *sessionqueue;
-  struct Sessionqueue *sessionqueue_alt;
+  struct Sessionqueue *sessionqueue_old;
   struct PendingMessage *pm;
 
   sessionqueue = plugin->pending_Sessions_head;
@@ -1089,21 +1031,17 @@ get_next_queue_session (struct Plugin *plugin)
 
     if (pm == NULL)
     {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, PLUGIN_LOG_NAME,
-                       "pending message is empty, should not happen. session %p\n",
-                       session);
-      sessionqueue_alt = sessionqueue;
+      sessionqueue_old = sessionqueue;
       sessionqueue = sessionqueue->next;
       plugin->pendingsessions--;
       GNUNET_STATISTICS_set (plugin->env->stats, _("# wlan pending sessions"),
                              plugin->pendingsessions, GNUNET_NO);
       GNUNET_CONTAINER_DLL_remove (plugin->pending_Sessions_head,
                                    plugin->pending_Sessions_tail,
-                                   sessionqueue_alt);
+                                   sessionqueue_old);
 
-      GNUNET_free (sessionqueue_alt);
+      GNUNET_free (sessionqueue_old);
       continue;
-
     }
 
     //check for message timeout
@@ -1144,22 +1082,23 @@ get_next_queue_session (struct Plugin *plugin)
 
       if (session->pending_message_head == NULL)
       {
-        sessionqueue_alt = sessionqueue;
+        sessionqueue_old = sessionqueue;
         sessionqueue = sessionqueue->next;
         plugin->pendingsessions--;
         GNUNET_STATISTICS_set (plugin->env->stats, _("# wlan pending sessions"),
                                plugin->pendingsessions, GNUNET_NO);
         GNUNET_CONTAINER_DLL_remove (plugin->pending_Sessions_head,
                                      plugin->pending_Sessions_tail,
-                                     sessionqueue_alt);
+                                     sessionqueue_old);
 
-        GNUNET_free (sessionqueue_alt);
+        GNUNET_free (sessionqueue_old);
       }
     }
 
   }
   return NULL;
 }
+
 
 /**
  * frees the space of a message in the fragment queue (send queue)
@@ -1771,12 +1710,12 @@ fragmentmessage_timeout (void *cls,
   free_fragment_message (fm->session->mac->plugin, fm);
 }
 
+
 /**
  * Function to check if there is some space in the fragment queue
  * inserts a message if space is available
  * @param plugin the plugin struct
  */
-
 static void
 check_fragment_queue (struct Plugin *plugin)
 {
@@ -2141,9 +2080,6 @@ wlan_plugin_send (void *cls,
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, PLUGIN_LOG_NAME,
                    "New message for %p with size (incl wlan header) %u added\n",
                    session, newmsg->message_size);
-#if DEBUG_WLAN > 1
-  hexdump (msgbuf, GNUNET_MIN (msgbuf_size, 256));
-#endif
   //queue session
   queue_session (plugin, session);
 
@@ -2419,7 +2355,6 @@ wlan_data_message_handler (void *cls, const struct GNUNET_MessageHeader *hdr)
                        GNUNET_CRYPTO_crc32_n ((char *) wlanheader,
                                               ntohs (wlanheader->header.size)),
                        crc);
-      hexdump ((void *) hdr, ntohs (hdr->size));
       return;
     }
 
