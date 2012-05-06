@@ -46,6 +46,11 @@ check_PROGRAMS = \
 test_gnunet_prefix_SOURCES = \
  test_gnunet_prefix.c
 
+test_gnunet_prefix_LIBADD = \
+  $(GCLIBADD) $(WINLIB) \
+  $(LTLIBICONV) \
+  -lltdl -lunistring $(XLIB) 
+
 pkghellodir= $(pkgdatadir)/hellos
 
 install-data-local:
