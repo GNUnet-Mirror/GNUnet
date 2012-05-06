@@ -199,6 +199,7 @@ main (int argc, char *argv[])
 {
   int ret = 0;
 
+  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-peerinfo");
   GNUNET_log_setup ("test_peerinfo_api",
                     "WARNING",
                     NULL);
