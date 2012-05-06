@@ -250,9 +250,7 @@ GNUNET_RESOLVER_disconnect ()
   GNUNET_assert (NULL == req_tail);
   if (NULL != client)
   {
-#if DEBUG_RESOLVER
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from DNS service\n");
-#endif
     GNUNET_CLIENT_disconnect (client);
     client = NULL;
   }
@@ -339,9 +337,7 @@ handle_response (void *cls, const struct GNUNET_MessageHeader *msg)
   struct GNUNET_RESOLVER_RequestHandle *rh = cls;
   uint16_t size;
 
-#if DEBUG_RESOLVER
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Receiving response from DNS service\n");
-#endif
   if (msg == NULL)
   {
     char buf[INET6_ADDRSTRLEN];
@@ -422,10 +418,8 @@ handle_response (void *cls, const struct GNUNET_MessageHeader *msg)
       reconnect ();
       return;
     }
-#if DEBUG_RESOLVER
-    LOG (GNUNET_ERROR_TYPE_DEBUG, _("Resolver returns `%s' for IP `%s'.\n"),
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Resolver returns `%s' for IP `%s'.\n",
          hostname, GNUNET_a2s ((const void *) &rh[1], rh->data_len));
-#endif
     if (rh->was_transmitted != GNUNET_SYSERR)
       rh->name_callback (rh->cls, hostname);
     rh->received_response = GNUNET_YES;
@@ -633,10 +627,8 @@ process_requests ()
   msg->direction = htonl (rh->direction);
   msg->af = htonl (rh->af);
   memcpy (&msg[1], &rh[1], rh->data_len);
-#if DEBUG_RESOLVER
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Transmitting DNS resolution request to DNS service\n");
-#endif
   if (GNUNET_OK !=
       GNUNET_CLIENT_transmit_and_get_response (client, &msg->header,
                                                GNUNET_TIME_absolute_get_remaining
@@ -666,9 +658,7 @@ reconnect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;                     /* no work pending */
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
-#if DEBUG_RESOLVER
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Trying to connect to DNS service\n");
-#endif
   client = GNUNET_CLIENT_connect ("resolver", resolver_cfg);
   if (NULL == client)
   {
@@ -712,11 +702,9 @@ reconnect ()
       break;
     }
   }
-#if DEBUG_RESOLVER
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Will try to connect to DNS service in %llu ms\n",
        (unsigned long long) backoff.rel_value);
-#endif
   GNUNET_assert (NULL != resolver_cfg);
   r_task = GNUNET_SCHEDULER_add_delayed (backoff, &reconnect_task, NULL);
   backoff = GNUNET_TIME_relative_multiply (backoff, 2);
@@ -803,9 +791,7 @@ numeric_reverse (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   char *result;
 
   result = no_resolve (rh->af, &rh[1], rh->data_len);
-#if DEBUG_RESOLVER
-  LOG (GNUNET_ERROR_TYPE_DEBUG, _("Resolver returns `%s'.\n"), result);
-#endif
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Resolver returns `%s'.\n", result);
   if (result != NULL)
   {
     rh->name_callback (rh->cls, result);
@@ -897,9 +883,7 @@ GNUNET_RESOLVER_local_fqdn_get ()
                   "gethostname");
     return NULL;
   }
-#if DEBUG_RESOLVER
-  LOG (GNUNET_ERROR_TYPE_DEBUG, _("Resolving our FQDN `%s'\n"), hostname);
-#endif
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Resolving our FQDN `%s'\n", hostname);
   host = gethostbyname (hostname);
   if (NULL == host)
   {
@@ -934,9 +918,7 @@ GNUNET_RESOLVER_hostname_resolve (int af,
                   "gethostname");
     return NULL;
   }
-#if DEBUG_RESOLVER
-  LOG (GNUNET_ERROR_TYPE_DEBUG, _("Resolving our hostname `%s'\n"), hostname);
-#endif
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Resolving our hostname `%s'\n", hostname);
   return GNUNET_RESOLVER_ip_get (hostname, af, timeout, callback, cls);
 }
 

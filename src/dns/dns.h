@@ -23,8 +23,8 @@
  * @brief IPC messages between DNS API and DNS service
  * @author Christian Grothoff
  */
-#ifndef DNS_NEW_H
-#define DNS_NEW_H
+#ifndef DNS_H
+#define DNS_H
 
 GNUNET_NETWORK_STRUCT_BEGIN
 

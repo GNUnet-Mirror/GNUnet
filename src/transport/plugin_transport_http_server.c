@@ -229,10 +229,7 @@ server_load_certificate (struct Plugin *plugin)
   }
   GNUNET_free (key_file);
   GNUNET_free (cert_file);
-#if DEBUG_HTTP
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "TLS certificate loaded\n");
-#endif
-
   return res;
 }
 #endif
@@ -1168,13 +1165,9 @@ server_start (struct Plugin *plugin)
     return GNUNET_SYSERR;
   }
   server_reschedule (plugin, plugin->server_v6, GNUNET_NO);
-
-
-#if DEBUG_HTTP
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                    "%s server component started on port %u\n", plugin->name,
                    plugin->port);
-#endif
   return res;
 }
 
@@ -1249,10 +1242,8 @@ server_stop (struct Plugin *plugin)
   GNUNET_free_non_null (plugin->key);
 #endif
 
-#if DEBUG_HTTP
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                    "%s server component stopped\n", plugin->name);
-#endif
 }
 
 

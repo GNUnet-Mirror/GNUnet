@@ -27,8 +27,6 @@
 
 #include "gnunet_common.h"
 
-#define DEBUG_RESOLVER GNUNET_EXTRA_LOGGING
-
 GNUNET_NETWORK_STRUCT_BEGIN
 
 /**

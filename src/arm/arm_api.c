@@ -383,9 +383,6 @@ arm_service_report (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     /* we're clearly running a test, don't daemonize */
     proc = do_start_process (GNUNET_NO,
 			     NULL, loprefix, binary, "-c", config,
-#if DEBUG_ARM
-			     "-L", "DEBUG",
-#endif
 			     /* no daemonization! */
 			     lopostfix, NULL);
   }
@@ -393,9 +390,6 @@ arm_service_report (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     proc = do_start_process (GNUNET_NO,
 			     NULL, loprefix, binary, "-c", config,
-#if DEBUG_ARM
-			     "-L", "DEBUG",
-#endif
 			     "-d", lopostfix, NULL);
   }
   GNUNET_free (binary);

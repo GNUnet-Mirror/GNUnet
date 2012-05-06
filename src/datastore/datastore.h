@@ -27,7 +27,6 @@
 #ifndef DATASTORE_H
 #define DATASTORE_H
 
-#define DEBUG_DATASTORE GNUNET_EXTRA_LOGGING
 
 #include "gnunet_util_lib.h"
 

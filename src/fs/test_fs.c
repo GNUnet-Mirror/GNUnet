@@ -19,8 +19,8 @@
 */
 
 /**
- * @file applications/fs/fsui/basic_fsui_test.c
- * @brief testcase for fsui (upload-search-download-unindex)
+ * @file fs/test_fs.c
+ * @brief testcase for FS (upload-search-download-unindex)
  * @author Christian Grothoff
  */
 
@@ -248,4 +248,4 @@ FAILURE:
   return (ok == GNUNET_YES) ? 0 : 1;
 }
 
-/* end of basic_fsui_test.c */
+/* end of test_fs.c */

@@ -105,12 +105,10 @@ broadcast_ipv6_mst_cb (void *cls, void *client,
   if (GNUNET_MESSAGE_TYPE_TRANSPORT_BROADCAST_BEACON !=
       ntohs (msg->header.type))
     return;
-#if DEBUG_UDP_BROADCASTING
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Received beacon with %u bytes from peer `%s' via address `%s'\n",
        ntohs (msg->header.size), GNUNET_i2s (&msg->sender),
        udp_address_to_string (NULL, &mc->addr, sizeof (mc->addr)));
-#endif
   struct GNUNET_ATS_Information atsi[2];
 
   /* setup ATS */
@@ -146,12 +144,10 @@ broadcast_ipv4_mst_cb (void *cls, void *client,
   if (GNUNET_MESSAGE_TYPE_TRANSPORT_BROADCAST_BEACON !=
       ntohs (msg->header.type))
     return;
-#if DEBUG_UDP_BROADCASTING
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Received beacon with %u bytes from peer `%s' via address `%s'\n",
        ntohs (msg->header.size), GNUNET_i2s (&msg->sender),
        udp_address_to_string (NULL, &mc->addr, sizeof (mc->addr)));
-#endif
 
   struct GNUNET_ATS_Information atsi[2];
 
@@ -181,11 +177,9 @@ udp_broadcast_receive (struct Plugin *plugin, const char * buf, ssize_t size, st
 
   if (addrlen == sizeof (struct sockaddr_in))
   {
-#if DEBUG_UDP_BROADCASTING
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Received IPv4 HELLO beacon broadcast with %i bytes from address %s\n",
          size, GNUNET_a2s ((const struct sockaddr *) addr, addrlen));
-#endif
     struct Mstv4Context *mc;
 
     mc = GNUNET_malloc (sizeof (struct Mstv4Context));
@@ -202,11 +196,9 @@ udp_broadcast_receive (struct Plugin *plugin, const char * buf, ssize_t size, st
   }
   else if (addrlen == sizeof (struct sockaddr_in6))
   {
-#if DEBUG_UDP_BROADCASTING
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Received IPv6 HELLO beacon broadcast with %i bytes from address %s\n",
          size, GNUNET_a2s ((const struct sockaddr *) &addr, addrlen));
-#endif
     struct Mstv6Context *mc;
 
     mc = GNUNET_malloc (sizeof (struct Mstv6Context));
@@ -329,7 +321,6 @@ iface_proc (void *cls, const char *name, int isDefault,
 
   if (addr != NULL)
   {
-#if DEBUG_UDP_BROADCASTING
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "address %s for interface %s %p\n ",
                 GNUNET_a2s (addr, addrlen), name, addr);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -337,7 +328,6 @@ iface_proc (void *cls, const char *name, int isDefault,
                 GNUNET_a2s (broadcast_addr, addrlen), name, broadcast_addr);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "netmask %s for interface %s %p\n ",
                 GNUNET_a2s (netmask, addrlen), name, netmask);
-#endif
 
     /* Collecting broadcast addresses */
     if (broadcast_addr != NULL)
@@ -430,9 +420,7 @@ setup_broadcast (struct Plugin *plugin, struct sockaddr_in6 *serverAddrv6, struc
     }
     else
     {
-#if DEBUG_UDP
       LOG (GNUNET_ERROR_TYPE_DEBUG, "IPv6 broadcasting running\n");
-#endif
       plugin->send_ipv6_broadcast_task =
           GNUNET_SCHEDULER_add_now (&udp_ipv6_broadcast_send, plugin);
       plugin->broadcast_ipv6 = GNUNET_YES;
@@ -483,9 +471,7 @@ stop_broadcast (struct Plugin *plugin)
     }
     else
     {
-#if DEBUG_UDP
       LOG (GNUNET_ERROR_TYPE_DEBUG, "IPv6 Broadcasting stopped\n");
-#endif
     }
 
     if (plugin->send_ipv6_broadcast_task != GNUNET_SCHEDULER_NO_TASK)

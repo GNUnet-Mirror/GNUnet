@@ -251,11 +251,9 @@ GNUNET_ATS_peer_change_preference (struct GNUNET_ATS_SchedulingHandle *h,
   rim->reserve_inbound = htonl (amount);
   rim->preference_change = GNUNET_htonll (preference);
   rim->peer = *peer;
-#if DEBUG_ATS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Queueing CHANGE PREFERENCE request for peer `%s' with RIM %u\n",
               GNUNET_i2s (peer), (unsigned int) pr->rim_id);
-#endif
   GNUNET_CONTAINER_DLL_insert_tail (h->control_pending_head,
                                     h->control_pending_tail, cm);
   pr->pcic = info;

@@ -28,7 +28,6 @@
 #define NAT_H
 #include "gnunet_util_lib.h"
 
-#define DEBUG_NAT GNUNET_EXTRA_LOGGING
 
 GNUNET_NETWORK_STRUCT_BEGIN
 

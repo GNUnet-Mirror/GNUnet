@@ -170,9 +170,6 @@ check ()
   char *const argv[] = { "test-peerinfo-api",
     "-c",
     "test_peerinfo_api_data.conf",
-#if DEBUG_PEERINFO
-    "-L", "DEBUG",
-#endif
     NULL
   };
   struct GNUNET_GETOPT_CommandLineOption options[] = {
@@ -181,9 +178,6 @@ check ()
   proc =
     GNUNET_OS_start_process (GNUNET_YES, NULL, NULL, "gnunet-service-peerinfo",
                                "gnunet-service-peerinfo",
-#if DEBUG_PEERINFO
-                               "-L", "DEBUG",
-#endif
                                "-c", "test_peerinfo_api_data.conf", NULL);
   GNUNET_assert (NULL != proc);
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv,
@@ -206,11 +200,7 @@ main (int argc, char *argv[])
   int ret = 0;
 
   GNUNET_log_setup ("test_peerinfo_api",
-#if DEBUG_PEERINFO
-                    "DEBUG",
-#else
                     "WARNING",
-#endif
                     NULL);
   ret = check ();
   GNUNET_DISK_directory_remove ("/tmp/test-gnunet-peerinfo");

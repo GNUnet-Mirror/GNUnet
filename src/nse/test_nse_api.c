@@ -29,8 +29,6 @@
 #include "gnunet_scheduler_lib.h"
 #include "gnunet_nse_service.h"
 
-#define DEBUG_NSE GNUNET_YES
-
 #define START_ARM GNUNET_YES
 
 static struct GNUNET_NSE_Handle *h;
@@ -147,11 +145,7 @@ check ()
   char *const argv[] = { "test-nse-api",
     "-c",
     "test_nse.conf",
-#if DEBUG_NSE
-    "-L", "DEBUG",
-#else
     "-L", "WARNING",
-#endif
     NULL
   };
   struct GNUNET_GETOPT_CommandLineOption options[] = {
@@ -173,14 +167,9 @@ main (int argc, char *argv[])
   int ret;
 
   GNUNET_log_setup ("test_nse_api",
-#if DEBUG_NSE
-                    "DEBUG",
-#else
                     "WARNING",
-#endif
                     NULL);
   ret = check ();
-
   return ret;
 }
 

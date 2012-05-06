@@ -180,10 +180,8 @@ reversal_cb (void *cls, const struct sockaddr *addr, socklen_t addrlen)
   sa = (const struct sockaddr_in *) addr;
   if (h->data != sa->sin_port)
   {
-#if DEBUG_NAT
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Received connection reversal request for wrong port\n");
-#endif
     return;                     /* wrong port */
   }
   /* report success */
@@ -214,17 +212,13 @@ do_udp_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     if (data == tst->data)
       tst->report (tst->report_cls, GNUNET_OK);
-#if DEBUG_NAT
     else
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "Received data mismatches expected value\n");
-#endif
   }
-#if DEBUG_NAT
   else
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Failed to receive data from inbound connection\n");
-#endif
 }
 
 
@@ -252,17 +246,13 @@ do_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     if (data == tst->data)
       tst->report (tst->report_cls, GNUNET_OK);
-#if DEBUG_NAT
     else
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "Received data mismatches expected value\n");
-#endif
   }
-#if DEBUG_NAT
   else
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Failed to receive data from inbound connection\n");
-#endif
   GNUNET_NETWORK_socket_close (na->sock);
   GNUNET_free (na);
 }
@@ -294,10 +284,8 @@ do_accept (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_INFO, "accept");
     return;                     /* odd error */
   }
-#if DEBUG_NAT
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Got an inbound connection, waiting for data\n");
-#endif
   wl = GNUNET_malloc (sizeof (struct NatActivity));
   wl->sock = s;
   wl->h = tst;
@@ -331,10 +319,8 @@ addr_cb (void *cls, int add_remove, const struct sockaddr *addr,
     return;
   if (addrlen != sizeof (struct sockaddr_in))
     return;                     /* ignore IPv6 here */
-#if DEBUG_NAT
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Asking gnunet-nat-server to connect to `%s'\n",
        GNUNET_a2s (addr, addrlen));
-#endif
   sa = (const struct sockaddr_in *) addr;
   msg.header.size = htons (sizeof (struct GNUNET_NAT_TestMessage));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_NAT_TEST);

@@ -870,10 +870,8 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
       PONG_SIGNATURE_LIFETIME.rel_value / 4)
   {
     /* create / update cached sig */
-#if DEBUG_TRANSPORT
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Creating PONG signature to indicate ownership.\n");
-#endif
     *sig_cache_exp = GNUNET_TIME_relative_to_absolute (PONG_SIGNATURE_LIFETIME);
     pong->expiration = GNUNET_TIME_absolute_hton (*sig_cache_exp);
     GNUNET_assert (GNUNET_OK ==
@@ -1083,13 +1081,9 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
                               GNUNET_NO);
     return;
   }
-#if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Address validated for peer `%s' with plugin `%s': `%s'\n",
-              GNUNET_i2s (sender), tname, GST_plugins_a2s (tname, addr,
-                                                           addrlen));
-#endif
-
+              GNUNET_i2s (sender), tname, GST_plugins_a2s (&address));
   /* validity achieved, remember it! */
   ve->expecting_pong = GNUNET_NO;
   ve->valid_until = GNUNET_TIME_relative_to_absolute (HELLO_ADDRESS_EXPIRATION);

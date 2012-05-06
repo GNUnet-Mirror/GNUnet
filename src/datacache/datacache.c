@@ -29,7 +29,6 @@
 #include "gnunet_statistics_service.h"
 #include "gnunet_datacache_plugin.h"
 
-#define DEBUG_DATACACHE GNUNET_EXTRA_LOGGING
 
 #define LOG(kind,...) GNUNET_log_from (kind, "datacache", __VA_ARGS__)
 
@@ -108,10 +107,8 @@ env_delete_notify (void *cls, const GNUNET_HashCode * key, size_t size)
 {
   struct GNUNET_DATACACHE_Handle *h = cls;
 
-#if DEBUG_DATACACHE
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Content under key `%s' discarded\n",
        GNUNET_h2s (key));
-#endif
   GNUNET_assert (h->utilization >= size);
   h->utilization -= size;
   GNUNET_CONTAINER_bloomfilter_remove (h->filter, key);
@@ -248,10 +245,8 @@ GNUNET_DATACACHE_put (struct GNUNET_DATACACHE_Handle *h,
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-#if DEBUG_DATACACHE
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Stored data under key `%s' in cache\n",
        GNUNET_h2s (key));
-#endif
   GNUNET_STATISTICS_update (h->stats, gettext_noop ("# bytes stored"), size,
                             GNUNET_NO);
   GNUNET_CONTAINER_bloomfilter_add (h->filter, key);
@@ -280,20 +275,16 @@ GNUNET_DATACACHE_get (struct GNUNET_DATACACHE_Handle *h,
 {
   GNUNET_STATISTICS_update (h->stats, gettext_noop ("# requests received"), 1,
                             GNUNET_NO);
-#if DEBUG_DATACACHE
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Processing request for key `%s'\n",
        GNUNET_h2s (key));
-#endif
   if (GNUNET_OK != GNUNET_CONTAINER_bloomfilter_test (h->filter, key))
   {
     GNUNET_STATISTICS_update (h->stats,
                               gettext_noop
                               ("# requests filtered by bloom filter"), 1,
                               GNUNET_NO);
-#if DEBUG_DATACACHE
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Bloomfilter filters request for key `%s'\n",
          GNUNET_h2s (key));
-#endif
     return 0;                   /* can not be present */
   }
   return h->api->get (h->api->cls, key, type, iter, iter_cls);

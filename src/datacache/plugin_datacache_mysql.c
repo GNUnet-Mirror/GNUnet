@@ -83,7 +83,6 @@
 #include "gnunet_mysql_lib.h"
 #include <mysql/mysql.h>
 
-#define DEBUG_DATACACHE_MYSQL GNUNET_EXTRA_LOGGING
 
 /**
  * Estimate of the per-entry overhead (including indices).

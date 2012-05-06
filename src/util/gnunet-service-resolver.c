@@ -490,10 +490,8 @@ handle_get (void *cls, struct GNUNET_SERVER_Client *client,
       GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
       return;
     }
-#if DEBUG_RESOLVER
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Resolver asked to look up `%s'.\n"),
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Resolver asked to look up `%s'.\n",
                 hostname);
-#endif
     get_ip_from_hostname (client, hostname, af);
     return;
   }
@@ -521,15 +519,13 @@ handle_get (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-#if DEBUG_RESOLVER
   {
     char buf[INET6_ADDRSTRLEN];
     
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		_("Resolver asked to look up IP address `%s'.\n"), 
+		"Resolver asked to look up IP address `%s'.\n", 
 		inet_ntop (af, ip, buf, sizeof (buf)));
   }
-#endif
   get_ip_as_string (client, af, ip);  
 }
 

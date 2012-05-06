@@ -29,7 +29,7 @@
 #include "gnunet_datacache_plugin.h"
 #include <postgresql/libpq-fe.h>
 
-#define DEBUG_POSTGRES GNUNET_EXTRA_LOGGING
+#define LOG(kind,...) GNUNET_log_from (kind, "datacache-postgres", __VA_ARGS__)
 
 /**
  * Per-entry overhead estimate
@@ -236,20 +236,16 @@ postgres_plugin_get (void *cls, const GNUNET_HashCode * key,
       GNUNET_POSTGRES_check_result (plugin->dbh, res, PGRES_TUPLES_OK, "PQexecPrepared",
 				    (type == 0) ? "getk" : "getkt"))
   {
-#if DEBUG_POSTGRES
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "datacache-postgres",
-                     "Ending iteration (postgres error)\n");
-#endif
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+	 "Ending iteration (postgres error)\n");
     return 0;
   }
 
   if (0 == (cnt = PQntuples (res)))
   {
     /* no result */
-#if DEBUG_POSTGRES
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "datacache-postgres",
-                     "Ending iteration (no more results)\n");
-#endif
+    LOG (GNUNET_ERROR_TYPE_DEBUG, 
+	 "Ending iteration (no more results)\n");
     PQclear (res);
     return 0;
   }
@@ -271,19 +267,15 @@ postgres_plugin_get (void *cls, const GNUNET_HashCode * key,
         GNUNET_ntohll (*(uint64_t *) PQgetvalue (res, i, 0));
     type = ntohl (*(uint32_t *) PQgetvalue (res, i, 1));
     size = PQgetlength (res, i, 2);
-#if DEBUG_POSTGRES
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "datacache-postgres",
-                     "Found result of size %u bytes and type %u in database\n",
-                     (unsigned int) size, (unsigned int) type);
-#endif
+    LOG (GNUNET_ERROR_TYPE_DEBUG, 
+	 "Found result of size %u bytes and type %u in database\n",
+	 (unsigned int) size, (unsigned int) type);
     if (GNUNET_SYSERR ==
         iter (iter_cls, expiration_time, key, size, PQgetvalue (res, i, 2),
               (enum GNUNET_BLOCK_Type) type))
     {
-#if DEBUG_POSTGRES
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "datacache-postgres",
-                       "Ending iteration (client error)\n");
-#endif
+      LOG (GNUNET_ERROR_TYPE_DEBUG, 
+	   "Ending iteration (client error)\n");
       PQclear (res);
       return cnt;
     }
@@ -313,19 +305,15 @@ postgres_plugin_del (void *cls)
   if (GNUNET_OK !=
       GNUNET_POSTGRES_check_result (plugin->dbh, res, PGRES_TUPLES_OK, "PQexecPrepared", "getm"))
   {
-#if DEBUG_POSTGRES
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "datacache-postgres",
-                     "Ending iteration (postgres error)\n");
-#endif
+    LOG (GNUNET_ERROR_TYPE_DEBUG, 
+	 "Ending iteration (postgres error)\n");
     return 0;
   }
   if (0 == PQntuples (res))
   {
     /* no result */
-#if DEBUG_POSTGRES
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "datacache-postgres",
-                     "Ending iteration (no more results)\n");
-#endif
+    LOG (GNUNET_ERROR_TYPE_DEBUG, 
+	 "Ending iteration (no more results)\n");
     PQclear (res);
     return GNUNET_SYSERR;
   }
@@ -375,8 +363,8 @@ libgnunet_plugin_datacache_postgres_init (void *cls)
   api->get = &postgres_plugin_get;
   api->put = &postgres_plugin_put;
   api->del = &postgres_plugin_del;
-  GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "datacache-postgres",
-                   _("Postgres datacache running\n"));
+  LOG (GNUNET_ERROR_TYPE_INFO, 
+       _("Postgres datacache running\n"));
   return api;
 }
 

@@ -28,8 +28,6 @@
 #include "gnunet_datacache_plugin.h"
 #include <sqlite3.h>
 
-#define DEBUG_DATACACHE_SQLITE GNUNET_EXTRA_LOGGING
-
 #define LOG(kind,...) GNUNET_log_from (kind, "datacache-sqlite", __VA_ARGS__)
 
 #define LOG_STRERROR_FILE(kind,op,fn) GNUNET_log_from_strerror_file (kind, "datacache-sqlite", op, fn)
@@ -108,13 +106,11 @@ sqlite_plugin_put (void *cls, const GNUNET_HashCode * key, size_t size,
   sqlite3_stmt *stmt;
   int64_t dval;
 
-#if DEBUG_DATACACHE_SQLITE
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Processing `%s' of %u bytes with key `%4s' and expiration %llums\n",
        "PUT", (unsigned int) size, GNUNET_h2s (key),
        (unsigned long long)
        GNUNET_TIME_absolute_get_remaining (discard_time).rel_value);
-#endif
   dval = (int64_t) discard_time.abs_value;
   if (dval < 0)
     dval = INT64_MAX;
@@ -182,10 +178,8 @@ sqlite_plugin_get (void *cls, const GNUNET_HashCode * key,
   int64_t ntime;
 
   now = GNUNET_TIME_absolute_get ();
-#if DEBUG_DATACACHE_SQLITE
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Processing `%s' for key `%4s'\n", "GET",
        GNUNET_h2s (key));
-#endif
   if (sq_prepare
       (plugin->dbh,
        "SELECT count(*) FROM ds090 WHERE key=? AND type=? AND expire >= ?",
@@ -214,23 +208,19 @@ sqlite_plugin_get (void *cls, const GNUNET_HashCode * key,
     LOG_SQLITE (plugin->dbh, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "sqlite_step");
     sqlite3_finalize (stmt);
-#if DEBUG_DATACACHE_SQLITE
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "No content found when processing `%s' for key `%4s'\n", "GET",
          GNUNET_h2s (key));
-#endif
     return 0;
   }
   total = sqlite3_column_int (stmt, 0);
   sqlite3_finalize (stmt);
   if ((total == 0) || (iter == NULL))
   {
-#if DEBUG_DATACACHE_SQLITE
     if (0 == total)
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "No content found when processing `%s' for key `%4s'\n", "GET",
            GNUNET_h2s (key));
-#endif
     return total;
   }
 
@@ -268,11 +258,9 @@ sqlite_plugin_get (void *cls, const GNUNET_HashCode * key,
     if (ntime == INT64_MAX)
       exp = GNUNET_TIME_UNIT_FOREVER_ABS;
     cnt++;
-#if DEBUG_DATACACHE_SQLITE
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Found %u-byte result when processing `%s' for key `%4s'\n",
          (unsigned int) size, "GET", GNUNET_h2s (key));
-#endif
     if (GNUNET_OK != iter (iter_cls, exp, key, size, dat, type))
     {
       sqlite3_finalize (stmt);
@@ -301,9 +289,7 @@ sqlite_plugin_del (void *cls)
   sqlite3_stmt *dstmt;
   GNUNET_HashCode hc;
 
-#if DEBUG_DATACACHE_SQLITE
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Processing `%s'\n", "DEL");
-#endif
   stmt = NULL;
   dstmt = NULL;
   if (sq_prepare
@@ -458,15 +444,11 @@ libgnunet_plugin_datacache_sqlite_done (void *cls)
     stmt = sqlite3_next_stmt (plugin->dbh, NULL);
     while (stmt != NULL)
     {
-#if DEBUG_SQLITE
       LOG (GNUNET_ERROR_TYPE_DEBUG, "Closing statement %p\n", stmt);
-#endif
       result = sqlite3_finalize (stmt);
-#if DEBUG_SQLITE
       if (result != SQLITE_OK)
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "Failed to close statement %p: %d\n",
+        LOG (GNUNET_ERROR_TYPE_WARNING, _("Failed to close statement %p: %d\n"),
              stmt, result);
-#endif
       stmt = sqlite3_next_stmt (plugin->dbh, NULL);
     }
     result = sqlite3_close (plugin->dbh);

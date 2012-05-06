@@ -495,14 +495,10 @@ reset_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   n->state_reset = GNUNET_SCHEDULER_NO_TASK;
   if (n->state == S_CONNECTED)
     return;
-
-#if DEBUG_TRANSPORT
   GNUNET_STATISTICS_update (GST_stats,
                             gettext_noop
                             ("# failed connection attempts due to timeout"), 1,
                             GNUNET_NO);
-#endif
-
   /* resetting state */
 
   if (n->state == S_FAST_RECONNECT)
@@ -714,11 +710,9 @@ transmit_send_continuation (void *cls,
       n->transmission_task = GNUNET_SCHEDULER_add_now (&transmission_task, n);
     }
   }
-#if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending message of type %u was %s\n",
               ntohs (((struct GNUNET_MessageHeader *) mq->message_buf)->type),
               (success == GNUNET_OK) ? "successful" : "FAILED");
-#endif
   if (NULL != mq->cont)
     mq->cont (mq->cont_cls, success);
   GNUNET_free (mq);
@@ -763,10 +757,8 @@ try_transmission_to_peer (struct NeighbourMapEntry *n)
 
   if (n->address == NULL)
   {
-#if DEBUG_TRANSPORT
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "No address for peer `%s'\n",
                 GNUNET_i2s (&n->id));
-#endif
     GNUNET_CONTAINER_DLL_remove (n->messages_head, n->messages_tail, mq);
     transmit_send_continuation (mq, &n->id, GNUNET_SYSERR);
     GNUNET_assert (n->transmission_task == GNUNET_SCHEDULER_NO_TASK);
@@ -853,11 +845,9 @@ static void
 send_disconnect_cont (void *cls, const struct GNUNET_PeerIdentity *target,
                       int result)
 {
-#if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Sending DISCONNECT message to peer `%4s': %i\n",
               GNUNET_i2s (target), result);
-#endif
 }
 
 
@@ -867,12 +857,9 @@ send_disconnect (struct NeighbourMapEntry * n)
   size_t ret;
   struct SessionDisconnectMessage disconnect_msg;
 
-#if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Sending DISCONNECT message to peer `%4s'\n",
               GNUNET_i2s (&n->id));
-#endif
-
   disconnect_msg.header.size = htons (sizeof (struct SessionDisconnectMessage));
   disconnect_msg.header.type =
       htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_DISCONNECT);
@@ -1112,10 +1099,8 @@ disconnect_all_neighbours (void *cls, const GNUNET_HashCode * key, void *value)
 {
   struct NeighbourMapEntry *n = value;
 
-#if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting peer `%4s', %s\n",
               GNUNET_i2s (&n->id), "SHUTDOWN_TASK");
-#endif
   if (S_CONNECTED == n->state)
     GNUNET_STATISTICS_update (GST_stats,
                               gettext_noop
@@ -1180,11 +1165,9 @@ send_outbound_quota (const struct GNUNET_PeerIdentity *target,
 {
   struct QuotaSetMessage q_msg;
 
-#if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Sending outbound quota of %u Bps for peer `%s' to all clients\n",
               ntohl (quota.value__), GNUNET_i2s (target));
-#endif
   q_msg.header.size = htons (sizeof (struct QuotaSetMessage));
   q_msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SET_QUOTA);
   q_msg.quota = quota;
@@ -1232,11 +1215,9 @@ send_connect_continuation (void *cls, const struct GNUNET_PeerIdentity *target,
   if ((GNUNET_NO == success) &&
       ((n->state == S_NOT_CONNECTED) || (n->state == S_CONNECT_SENT)))
   {
-#if DEBUG_TRANSPORT
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Failed to send CONNECT_MSG to peer `%4s' with address '%s' session %p, asking ATS for new address \n",
                 GNUNET_i2s (&n->id), GST_plugins_a2s (n->address), n->session);
-#endif
     change_state (n, S_NOT_CONNECTED);
     if (n->ats_suggest != GNUNET_SCHEDULER_NO_TASK)
       GNUNET_SCHEDULER_cancel (n->ats_suggest);
@@ -1350,11 +1331,9 @@ send_switch_address_continuation (void *cls,
     }
     break;
   case S_FAST_RECONNECT:
-#if DEBUG_TRANSPORT
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Successful fast reconnect to peer `%s'\n",
                 GNUNET_i2s (&n->id));
-#endif
     change_state (n, S_CONNECTED);
     neighbours_connected++;
     GNUNET_STATISTICS_set (GST_stats, gettext_noop ("# peers connected"), neighbours_connected,
@@ -1424,11 +1403,9 @@ send_connect_ack_continuation (void *cls,
   }
 
   /* sending failed, ask for next address  */
-#if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Failed to send CONNECT_MSG to peer `%4s' with address '%s' session %X, asking ATS for new address \n",
               GNUNET_i2s (&n->id), GST_plugins_a2s (n->address), n->session);
-#endif
   if (n->state != S_NOT_CONNECTED)
     change_state (n, S_NOT_CONNECTED);
   GNUNET_assert (strlen (cc->address->transport_name) > 0);
@@ -1763,10 +1740,8 @@ setup_neighbour (const struct GNUNET_PeerIdentity *peer)
 {
   struct NeighbourMapEntry *n;
 
-#if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Unknown peer `%s', creating new neighbour\n", GNUNET_i2s (peer));
-#endif
   n = GNUNET_malloc (sizeof (struct NeighbourMapEntry));
   n->id = *peer;
   n->state = S_NOT_CONNECTED;
@@ -1800,10 +1775,8 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
   {
     return;
   }
-#if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Trying to connect to peer `%s'\n",
               GNUNET_i2s (target));
-#endif
   if (0 ==
       memcmp (target, &GST_my_identity, sizeof (struct GNUNET_PeerIdentity)))
   {
@@ -1823,12 +1796,9 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
 
   if (n == NULL)
     n = setup_neighbour (target);
-#if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Asking ATS for suggested address to connect to peer `%s'\n",
               GNUNET_i2s (&n->id));
-#endif
-
   GNUNET_ATS_suggest_address (GST_ats, &n->id);
 }
 
@@ -1873,12 +1843,8 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
     /* This can happen during shutdown */
     return;
   }
-
-#if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Session %X to peer `%s' ended \n",
               session, GNUNET_i2s (peer));
-#endif
-
   n = lookup_neighbour (peer);
   if (NULL == n)
     return;
@@ -1974,7 +1940,6 @@ GST_neighbours_send (const struct GNUNET_PeerIdentity *target, const void *msg,
                               gettext_noop
                               ("# messages not sent (no such peer or not connected)"),
                               1, GNUNET_NO);
-#if DEBUG_TRANSPORT
     if (n == NULL)
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Could not send message to peer `%s': unknown neighbour",
@@ -1983,7 +1948,6 @@ GST_neighbours_send (const struct GNUNET_PeerIdentity *target, const void *msg,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Could not send message to peer `%s': not connected\n",
                   GNUNET_i2s (target));
-#endif
     if (NULL != cont)
       cont (cont_cls, GNUNET_SYSERR);
     return;
@@ -1995,12 +1959,9 @@ GST_neighbours_send (const struct GNUNET_PeerIdentity *target, const void *msg,
                               gettext_noop
                               ("# messages not sent (no such peer or not connected)"),
                               1, GNUNET_NO);
-#if DEBUG_TRANSPORT
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Could not send message to peer `%s': no address available\n",
                 GNUNET_i2s (target));
-#endif
-
     if (NULL != cont)
       cont (cont_cls, GNUNET_SYSERR);
     return;
@@ -2075,12 +2036,10 @@ GST_neighbours_calculate_receive_delay (const struct GNUNET_PeerIdentity
   if (GNUNET_YES == GNUNET_BANDWIDTH_tracker_consume (&n->in_tracker, size))
   {
     n->quota_violation_count++;
-#if DEBUG_TRANSPORT
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Bandwidth quota (%u b/s) violation detected (total of %u).\n",
                 n->in_tracker.available_bytes_per_s__,
                 n->quota_violation_count);
-#endif
     /* Discount 32k per violation */
     GNUNET_BANDWIDTH_tracker_consume (&n->in_tracker, -32 * 1024);
   }
@@ -2106,14 +2065,12 @@ GST_neighbours_calculate_receive_delay (const struct GNUNET_PeerIdentity
   ret = GNUNET_BANDWIDTH_tracker_get_delay (&n->in_tracker, 32 * 1024);
   if (ret.rel_value > 0)
   {
-#if DEBUG_TRANSPORT
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Throttling read (%llu bytes excess at %u b/s), waiting %llu ms before reading more.\n",
                 (unsigned long long) n->in_tracker.
                 consumption_since_last_update__,
                 (unsigned int) n->in_tracker.available_bytes_per_s__,
                 (unsigned long long) ret.rel_value);
-#endif
     GNUNET_STATISTICS_update (GST_stats,
                               gettext_noop ("# ms throttling suggested"),
                               (int64_t) ret.rel_value, GNUNET_NO);
@@ -2216,11 +2173,8 @@ GST_neighbours_keepalive_response (const struct GNUNET_PeerIdentity *neighbour,
   n->latency =
       GNUNET_TIME_absolute_get_difference (n->keep_alive_sent,
                                            GNUNET_TIME_absolute_get ());
-#if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Latency for peer `%s' is %llu ms\n",
               GNUNET_i2s (&n->id), n->latency.rel_value);
-#endif
-
 
   if (n->latency.rel_value == GNUNET_TIME_relative_get_forever ().rel_value)
   {
@@ -2275,18 +2229,14 @@ GST_neighbours_set_incoming_quota (const struct GNUNET_PeerIdentity *neighbour,
                               1, GNUNET_NO);
     return;
   }
-#if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Setting inbound quota of %u Bps for peer `%s' to all clients\n",
               ntohl (quota.value__), GNUNET_i2s (&n->id));
-#endif
   GNUNET_BANDWIDTH_tracker_update_quota (&n->in_tracker, quota);
   if (0 != ntohl (quota.value__))
     return;
-#if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting peer `%4s' due to `%s'\n",
               GNUNET_i2s (&n->id), "SET_QUOTA");
-#endif
   if (is_connected (n))
     GNUNET_STATISTICS_update (GST_stats,
                               gettext_noop ("# disconnects due to quota of 0"),
@@ -2396,12 +2346,9 @@ GST_neighbours_handle_disconnect_message (const struct GNUNET_PeerIdentity
   const struct SessionDisconnectMessage *sdm;
   GNUNET_HashCode hc;
 
-#if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received DISCONNECT message from peer `%s'\n",
               GNUNET_i2s (peer));
-#endif
-
   if (ntohs (msg->size) != sizeof (struct SessionDisconnectMessage))
   {
     // GNUNET_break_op (0);
@@ -2585,12 +2532,10 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
   neighbours_connected++;
   GNUNET_STATISTICS_set (GST_stats, gettext_noop ("# peers connected"), neighbours_connected,
                             GNUNET_NO);
-#if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Notify about connect of `%4s' using address '%s' session %X LINE %u\n",
               GNUNET_i2s (&n->id), GST_plugins_a2s (n->address), n->session,
               __LINE__);
-#endif
   connect_notify_cb (callback_cls, &n->id, ats, ats_count);
   send_outbound_quota (peer, n->bandwidth_out);
 
@@ -2607,11 +2552,8 @@ GST_neighbours_handle_ack (const struct GNUNET_MessageHeader *message,
 {
   struct NeighbourMapEntry *n;
 
-#if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received ACK message from peer `%s'\n",
               GNUNET_i2s (peer));
-#endif
-
   if (ntohs (message->size) != sizeof (struct GNUNET_MessageHeader))
   {
     GNUNET_break_op (0);
@@ -2656,12 +2598,10 @@ GST_neighbours_handle_ack (const struct GNUNET_MessageHeader *message,
   GST_neighbours_set_incoming_quota (&n->id, n->bandwidth_in);
   if (n->keepalive_task == GNUNET_SCHEDULER_NO_TASK)
     n->keepalive_task = GNUNET_SCHEDULER_add_now (&neighbour_keepalive_task, n);
-#if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Notify about connect of `%4s' using address '%s' session %X LINE %u\n",
               GNUNET_i2s (&n->id), GST_plugins_a2s (n->address), n->session,
               __LINE__);
-#endif
   connect_notify_cb (callback_cls, &n->id, ats, ats_count);
   send_outbound_quota (peer, n->bandwidth_out);
 }
@@ -2688,13 +2628,10 @@ handle_connect_blacklist_cont (void *cls,
   struct NeighbourMapEntry *n;
   struct BlackListCheckContext *bcc = cls;
 
-#if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Blacklist check due to CONNECT message: `%s'\n",
               GNUNET_i2s (peer),
               (result == GNUNET_OK) ? "ALLOWED" : "FORBIDDEN");
-#endif
-
   /* not allowed */
   if (GNUNET_OK != result)
   {
@@ -2762,11 +2699,8 @@ GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
   struct BlackListCheckContext *bcc = NULL;
   struct NeighbourMapEntry *n;
 
-#if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received CONNECT message from peer `%s'\n", GNUNET_i2s (peer));
-#endif
-
   if (ntohs (message->size) != sizeof (struct SessionConnectMessage))
   {
     GNUNET_break_op (0);

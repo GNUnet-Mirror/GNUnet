@@ -30,7 +30,7 @@
 
 #define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
 
-#define DEBUG 0
+#define EXTRA_CHECKS 0
 
 /**
  * Node in the heap.
@@ -104,7 +104,7 @@ struct GNUNET_CONTAINER_Heap
 };
 
 
-#if DEBUG
+#if EXTRA_CHECKS
 /**
  * Check if internal invariants hold for the given node.
  *
@@ -401,7 +401,7 @@ GNUNET_CONTAINER_heap_remove_root (struct GNUNET_CONTAINER_Heap *heap)
     insert_node (heap, heap->root, root->right_child);
   }
   GNUNET_free (root);
-#if DEBUG
+#if EXTRA_CHECKS
   GNUNET_assert (((heap->size == 0) && (heap->root == NULL)) ||
                  (heap->size == heap->root->tree_size + 1));
   CHECK (heap->root);
@@ -502,7 +502,7 @@ GNUNET_CONTAINER_heap_remove_node (struct GNUNET_CONTAINER_HeapNode *node)
   if (heap->walk_pos == node)
     heap->walk_pos = NULL;
   GNUNET_free (node);
-#if DEBUG
+#if EXTRA_CHECKS
   CHECK (heap->root);
   GNUNET_assert (((heap->size == 0) && (heap->root == NULL)) ||
                  (heap->size == heap->root->tree_size + 1));
@@ -523,13 +523,13 @@ GNUNET_CONTAINER_heap_update_cost (struct GNUNET_CONTAINER_Heap *heap,
                                    struct GNUNET_CONTAINER_HeapNode *node,
                                    GNUNET_CONTAINER_HeapCostType new_cost)
 {
-#if DEBUG
+#if EXTRA_CHECKS
   GNUNET_assert (((heap->size == 0) && (heap->root == NULL)) ||
                  (heap->size == heap->root->tree_size + 1));
   CHECK (heap->root);
 #endif
   remove_node (node);
-#if DEBUG
+#if EXTRA_CHECKS
   CHECK (heap->root);
   GNUNET_assert (((heap->size == 1) && (heap->root == NULL)) ||
                  (heap->size == heap->root->tree_size + 2));
@@ -539,7 +539,7 @@ GNUNET_CONTAINER_heap_update_cost (struct GNUNET_CONTAINER_Heap *heap,
     heap->root = node;
   else
     insert_node (heap, heap->root, node);
-#if DEBUG
+#if EXTRA_CHECKS
   CHECK (heap->root);
   GNUNET_assert (((heap->size == 0) && (heap->root == NULL)) ||
                  (heap->size == heap->root->tree_size + 1));

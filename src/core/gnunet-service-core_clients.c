@@ -535,11 +535,9 @@ client_tokenizer_callback (void *cls, void *client,
   }
   else
   {
-#if DEBUG_CORE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Delivering message of type %u to %s\n", ntohs (message->type),
                 GNUNET_i2s (&car->target));
-#endif
     GSC_CLIENTS_deliver_message (&car->target, NULL, 0, message,
 				 ntohs (message->size),
 				 GNUNET_CORE_OPTION_SEND_FULL_OUTBOUND);
@@ -589,10 +587,8 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
 
   if (client == NULL)
     return;
-#if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Client %p has disconnected from core service.\n", client);
-#endif
   c = find_client (client);
   if (c == NULL)
     return;                     /* client never sent INIT */
@@ -736,10 +732,8 @@ GSC_CLIENTS_notify_client_about_neighbour (struct GSC_Client *client,
     cnm->ats_count = htonl (atsi_count);
     a = (struct GNUNET_ATS_Information *) &cnm[1];
     memcpy (a, atsi, sizeof (struct GNUNET_ATS_Information) * atsi_count);
-#if DEBUG_CORE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message to client.\n",
                 "NOTIFY_CONNECT");
-#endif
     cnm->peer = *neighbour;
     send_to_client (client, &cnm->header, GNUNET_NO);
   }

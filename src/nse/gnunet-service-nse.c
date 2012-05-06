@@ -410,9 +410,7 @@ handle_start_message (void *cls, struct GNUNET_SERVER_Client *client,
 {
   struct GNUNET_NSE_ClientMessage em;
 
-#if DEBUG_NSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received START message from client\n");
-#endif
   GNUNET_SERVER_notification_context_add (nc, client);
   setup_estimate_message (&em);
   GNUNET_SERVER_notification_context_unicast (nc, client, &em.header,
@@ -457,11 +455,9 @@ get_delay_randomization (uint32_t matching_bits)
 
   d = get_matching_bits_delay (matching_bits);
   i = (uint32_t) (d / (double) (hop_count_max + 1));
-#if DEBUG_NSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Randomizing flood using latencies up to %u ms\n",
 	      (unsigned int) i);
-#endif
   ret.rel_value = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, i + 1);
   return ret;
 #else
@@ -514,11 +510,9 @@ get_transmit_delay (int round_offset)
 #else
     ret = GNUNET_TIME_UNIT_ZERO;
 #endif
-#if DEBUG_NSE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Transmitting previous round behind schedule in %llu ms\n",
                 (unsigned long long) ret.rel_value);
-#endif
     return ret;
   case 0:
     /* current round is based on best-known matching_bits */
@@ -527,13 +521,11 @@ get_transmit_delay (int round_offset)
     dist_delay = get_matching_bits_delay (matching_bits);
     dist_delay += get_delay_randomization (matching_bits).rel_value;
     ret.rel_value = (uint64_t) dist_delay;
-#if DEBUG_NSE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "For round %llu, delay for %u matching bits is %llu ms\n",
                 (unsigned long long) current_timestamp.abs_value,
                 (unsigned int) matching_bits,
                 (unsigned long long) ret.rel_value);
-#endif
     /* now consider round start time and add delay to it */
     tgt = GNUNET_TIME_absolute_add (current_timestamp, ret);
     return GNUNET_TIME_absolute_get_remaining (tgt);
@@ -599,7 +591,6 @@ transmit_ready (void *cls, size_t size, void *buf)
                               1, GNUNET_NO);
     return 0;
   }
-#if DEBUG_NSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "In round %llu, sending to `%s' estimate with %u bits\n",
               (unsigned long long)
@@ -607,7 +598,6 @@ transmit_ready (void *cls, size_t size, void *buf)
                                          timestamp).abs_value,
               GNUNET_i2s (&peer_entry->id),
               (unsigned int) ntohl (size_estimate_messages[idx].matching_bits));
-#endif
   if (ntohl (size_estimate_messages[idx].hop_count) == 0)
     GNUNET_STATISTICS_update (stats, "# flood messages started", 1, GNUNET_NO);
   GNUNET_STATISTICS_update (stats, "# flood messages transmitted", 1,
@@ -887,10 +877,8 @@ find_proof (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     if (nse_work_required <= count_leading_zeroes (&result))
     {
       my_proof = counter;
-#if DEBUG_NSE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Proof of work found: %llu!\n",
                   (unsigned long long) GNUNET_ntohll (counter));
-#endif
       write_proof ();
       setup_flood_message (estimate_index, current_timestamp);
       return;
@@ -900,10 +888,8 @@ find_proof (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   if (my_proof / (100 * ROUND_SIZE) < counter / (100 * ROUND_SIZE))
   {
-#if DEBUG_NSE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Testing proofs currently at %llu\n",
                 (unsigned long long) counter);
-#endif
     /* remember progress every 100 rounds */
     my_proof = counter;
     write_proof ();
@@ -1207,10 +1193,8 @@ handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
 {
   struct NSEPeerEntry *peer_entry;
 
-#if DEBUG_NSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer `%s' connected to us\n",
               GNUNET_i2s (peer));
-#endif
   peer_entry = GNUNET_malloc (sizeof (struct NSEPeerEntry));
   peer_entry->id = *peer;
   GNUNET_assert (GNUNET_OK ==
@@ -1236,10 +1220,8 @@ handle_core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
   struct NSEPeerEntry *pos;
 
-#if DEBUG_NSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer `%s' disconnected from us\n",
               GNUNET_i2s (peer));
-#endif
   pos = GNUNET_CONTAINER_multihashmap_get (peers, &peer->hashPubKey);
   if (NULL == pos)
   {

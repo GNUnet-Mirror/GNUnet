@@ -145,11 +145,9 @@ free_neighbour (struct Neighbour *n)
 {
   struct NeighbourMessageEntry *m;
 
-#if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Destroying neighbour entry for peer `%4s'\n",
               GNUNET_i2s (&n->peer));
-#endif
   while (NULL != (m = n->message_head))
   {
     GNUNET_CONTAINER_DLL_remove (n->message_head, n->message_tail, m);
@@ -224,13 +222,11 @@ transmit_ready (void *cls, size_t size, void *buf)
   GNUNET_CONTAINER_DLL_remove (n->message_head, n->message_tail, m);
   if (buf == NULL)
   {
-#if DEBUG_CORE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Transmission of message of type %u and size %u failed\n",
                 (unsigned int)
                 ntohs (((struct GNUNET_MessageHeader *) &m[1])->type),
                 (unsigned int) m->size);
-#endif
     GNUNET_free (m);
     process_queue (n);
     return 0;
@@ -239,13 +235,11 @@ transmit_ready (void *cls, size_t size, void *buf)
   GNUNET_assert (size >= m->size);
   memcpy (cbuf, &m[1], m->size);
   ret = m->size;
-#if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Copied message of type %u and size %u into transport buffer for `%4s'\n",
               (unsigned int)
               ntohs (((struct GNUNET_MessageHeader *) &m[1])->type),
               (unsigned int) ret, GNUNET_i2s (&n->peer));
-#endif
   GNUNET_free (m);
   process_queue (n);
   GNUNET_STATISTICS_update (GSC_stats,
@@ -277,13 +271,11 @@ process_queue (struct Neighbour *n)
     GSC_SESSIONS_solicit (&n->peer);
     return;
   }
-#if DEBUG_CORE > 1
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Asking transport for transmission of %u bytes to `%4s' in next %llu ms\n",
               (unsigned int) m->size, GNUNET_i2s (&n->peer),
               (unsigned long long)
               GNUNET_TIME_absolute_get_remaining (m->deadline).rel_value);
-#endif
   n->th =
       GNUNET_TRANSPORT_notify_transmit_ready (transport, &n->peer, m->size, 0,
                                               GNUNET_TIME_absolute_get_remaining
@@ -330,10 +322,8 @@ handle_transport_notify_connect (void *cls,
     GNUNET_break (0);
     return;
   }
-#if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received connection from `%4s'.\n",
               GNUNET_i2s (peer));
-#endif
   n = GNUNET_malloc (sizeof (struct Neighbour));
   n->peer = *peer;
   GNUNET_assert (GNUNET_OK ==
@@ -361,11 +351,9 @@ handle_transport_notify_disconnect (void *cls,
 {
   struct Neighbour *n;
 
-#if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Peer `%4s' disconnected from us; received notification from transport.\n",
               GNUNET_i2s (peer));
-#endif
   n = find_neighbour (peer);
   if (n == NULL)
   {
@@ -394,11 +382,9 @@ handle_transport_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct Neighbour *n;
   uint16_t type;
 
-#if DEBUG_CORE > 1
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received message of type %u from `%4s', demultiplexing.\n",
               (unsigned int) ntohs (message->type), GNUNET_i2s (peer));
-#endif
   if (0 == memcmp (peer, &GSC_my_identity, sizeof (struct GNUNET_PeerIdentity)))
   {
     GNUNET_break (0);

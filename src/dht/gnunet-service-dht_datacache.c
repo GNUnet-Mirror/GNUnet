@@ -193,11 +193,9 @@ datacache_get_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
       GNUNET_BLOCK_evaluate (GDS_block_context, type, key, ctx->reply_bf,
                              ctx->reply_bf_mutator, ctx->xquery,
                              ctx->xquery_size, rdata, rdata_size);
-#if DEBUG_DHT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Found reply for query %s in datacache, evaluation result is %d\n",
               GNUNET_h2s (key), (int) eval);
-#endif
   ctx->eval = eval;
   switch (eval)
   {

@@ -786,23 +786,17 @@ http_plugin_send (void *cls,
 
   if (session->inbound == GNUNET_NO)
   {
-#if DEBUG_HTTP
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                      "Using outbound client session %p to send to `%s'\n", session,
                      GNUNET_i2s (&session->target));
-#endif
-
     client_send (session, msg);
     res = msgbuf_size;
   }
   if (session->inbound == GNUNET_YES)
   {
-#if DEBUG_HTTP
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                      "Using inbound server %p session to send to `%s'\n", session,
                      GNUNET_i2s (&session->target));
-#endif
-
     server_send (session, msg);
     res = msgbuf_size;
   }
@@ -1556,11 +1550,8 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   /* Report addresses to transport service */
   start_report_addresses (plugin);
 
-#if DEBUG_HTTP
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                    "Plugin `%s' loaded\n", plugin->name);
-#endif
-
   return api;
 }
 
@@ -1588,10 +1579,8 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
   s = plugin->head;
   while (s != NULL)
   {
-#if DEBUG_HTTP
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                      "Disconnecting `%s' \n", GNUNET_i2s (&s->target));
-#endif
     if (s->inbound == GNUNET_NO)
       GNUNET_assert (GNUNET_OK == client_disconnect (s));
     else
@@ -1599,15 +1588,11 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
     s = s->next;
   }
 
-#if DEBUG_HTTP
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name, "Stopping server\n");
-#endif
   /* Stop server */
   server_stop (plugin);
 
-#if DEBUG_HTTP
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name, "Stopping client\n");
-#endif
   /* Stop client */
   client_stop (plugin);
 
@@ -1639,17 +1624,12 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
     s = t;
   }
 
-
-#if DEBUG_HTTP
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                    "Plugin `%s' unloaded\n", plugin->name);
-#endif
-
   GNUNET_free_non_null (plugin->server_addr_v4);
   GNUNET_free_non_null (plugin->server_addr_v6);
   GNUNET_free (plugin);
   GNUNET_free (api);
-
   return NULL;
 }
 

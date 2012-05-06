@@ -176,10 +176,8 @@ GSC_SESSIONS_end (const struct GNUNET_PeerIdentity *pid)
   session = find_session (pid);
   if (NULL == session)
     return;
-#if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Destroying session for peer `%4s'\n",
               GNUNET_i2s (&session->peer));
-#endif
   if (GNUNET_SCHEDULER_NO_TASK != session->cork_task)
   {
     GNUNET_SCHEDULER_cancel (session->cork_task);
@@ -255,10 +253,8 @@ GSC_SESSIONS_create (const struct GNUNET_PeerIdentity *peer,
 {
   struct Session *session;
 
-#if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Creating session for peer `%4s'\n",
               GNUNET_i2s (peer));
-#endif
   session = GNUNET_malloc (sizeof (struct Session));
   session->tmap = GSC_TYPEMAP_create ();
   session->peer = *peer;
@@ -341,10 +337,8 @@ GSC_SESSIONS_queue_request (struct GSC_ClientActiveRequest *car)
   session = find_session (&car->target);
   if (session == NULL)
   {
-#if DEBUG_CORE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Dropped client request for transmission (am disconnected)\n");
-#endif
     GNUNET_break (0);           /* should have been rejected earlier */
     GSC_CLIENTS_reject_request (car);
     return;
@@ -355,10 +349,8 @@ GSC_SESSIONS_queue_request (struct GSC_ClientActiveRequest *car)
     GSC_CLIENTS_reject_request (car);
     return;
   }
-#if DEBUG_CORE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received client transmission request. queueing\n");
-#endif
   GNUNET_CONTAINER_DLL_insert (session->active_client_request_head,
                                session->active_client_request_tail, car);
   try_transmission (session);

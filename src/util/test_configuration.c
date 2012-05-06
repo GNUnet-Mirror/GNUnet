@@ -28,7 +28,6 @@
 #include "gnunet_configuration_lib.h"
 #include "gnunet_disk_lib.h"
 
-#define DEBUG GNUNET_EXTRA_LOGGING
 
 /* Test Configuration Diffs Options */
 enum
@@ -40,10 +39,8 @@ enum
   ADD_NEW_ENTRY,
   REMOVE_SECTION,
   REMOVE_ENTRY,
-  COMPARE
-#if DEBUG
-      , PRINT
-#endif
+  COMPARE, 
+  PRINT
 };
 
 static struct GNUNET_CONFIGURATION_Handle *cfg;

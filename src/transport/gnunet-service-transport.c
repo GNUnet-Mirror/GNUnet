@@ -230,32 +230,24 @@ plugin_env_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (NULL == message)
     goto end;
   type = ntohs (message->type);
-#if DEBUG_TRANSPORT
-
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received Message with type %u\n", type);
-#endif
-
   switch (type)
   {
   case GNUNET_MESSAGE_TYPE_HELLO:
     GST_validation_handle_hello (message);
     return ret;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_PING:
-#if DEBUG_TRANSPORT
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
                 "Processing `%s' from `%s'\n", "PING",
                 (sender_address !=
                  NULL) ? GST_plugins_a2s (&address) : "<inbound>");
-#endif
     GST_validation_handle_ping (peer, message, &address, session);
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_PONG:
-#if DEBUG_TRANSPORT
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
                 "Processing `%s' from `%s'\n", "PONG",
                 (sender_address !=
                  NULL) ? GST_plugins_a2s (&address) : "<inbound>");
-#endif
     GST_validation_handle_pong (peer, message);
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_CONNECT:
@@ -290,11 +282,9 @@ end:
    * this connections seem to go extra-slow */
   GNUNET_ATS_address_update (GST_ats, &address, session, ats, ats_count);
 #endif
-#if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Allowing receive from peer %s to continue in %llu ms\n",
               GNUNET_i2s (peer), (unsigned long long) ret.rel_value);
-#endif
   return ret;
 }
 
@@ -346,10 +336,8 @@ plugin_env_session_end (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct GNUNET_HELLO_Address address;
 
   GNUNET_assert (strlen (transport_name) > 0);
-#if DEBUG_TRANSPORT
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Session %X to peer `%s' ended \n",
               session, GNUNET_i2s (peer));
-#endif
   if (NULL != session)
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
                      "transport-ats",
@@ -430,11 +418,9 @@ ats_request_address_change (void *cls,
   /* ATS tells me to disconnect from peer */
   if ((bw_in == 0) && (bw_out == 0))
   {
-#if DEBUG_TRANSPORT
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "ATS tells me to disconnect from peer `%s'\n",
                 GNUNET_i2s (&address->peer));
-#endif
     GST_neighbours_force_disconnect (&address->peer);
     return;
   }
