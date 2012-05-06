@@ -33,7 +33,6 @@
 #include "gnunet_transport_service.h"
 #include "gnunet_statistics_service.h"
 
-#define VERBOSE GNUNET_NO
 
 #define SYMMETRIC 0
 #define ASYMMETRIC_SEND_LIMITED 1
@@ -239,15 +238,15 @@ measurement_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   max_quota_in = GNUNET_MIN (current_quota_p1_in, current_quota_p2_in);
   max_quota_out = GNUNET_MIN (current_quota_p1_out, current_quota_p2_out);
   if (max_quota_out < max_quota_in)
-    quota_delta = max_quota_in / 5;
+    quota_delta = max_quota_in / 3;
   else
-    quota_delta = max_quota_out / 5;
+    quota_delta = max_quota_out / 3;
 
   if ((throughput_out > (max_quota_out + quota_delta)) ||
       (throughput_in > (max_quota_in + quota_delta)))
-    ok = 1;
+    ok = 1; /* fail */
   else
-    ok = 0;
+    ok = 0; /* pass */
   GNUNET_STATISTICS_get (p1.stats, "core", "# discarded CORE_SEND requests",
                          GNUNET_TIME_UNIT_FOREVER_REL, NULL, &print_stat, &p1);
 
@@ -279,17 +278,17 @@ measurement_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
   case SYMMETRIC:
     GNUNET_log (kind, "Core quota compliance test with symmetric quotas: %s\n",
-                (ok != 0) ? "PASSED" : "FAILED");
+                (0 == ok) ? "PASSED" : "FAILED");
     break;
   case ASYMMETRIC_SEND_LIMITED:
     GNUNET_log (kind,
                 "Core quota compliance test with limited sender quota: %s\n",
-                (ok != 0) ? "PASSED" : "FAILED");
+                (0 == ok) ? "PASSED" : "FAILED");
     break;
   case ASYMMETRIC_RECV_LIMITED:
     GNUNET_log (kind,
                 "Core quota compliance test with limited receiver quota: %s\n",
-                (ok != 0) ? "PASSED" : "FAILED");
+                (0 == ok) ? "PASSED" : "FAILED");
     break;
   };
   GNUNET_log (kind, "Peer 1 send  rate: %llu b/s (%llu bytes in %llu ms)\n",
@@ -573,9 +572,6 @@ setup_peer (struct PeerContext *p, const char *cfgname)
   p->arm_proc =
     GNUNET_OS_start_process (GNUNET_YES, NULL, NULL, "gnunet-service-arm",
                                "gnunet-service-arm",
-#if VERBOSE
-                               "-L", "DEBUG",
-#endif
                                "-c", cfgname, NULL);
 #endif
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
@@ -652,17 +648,13 @@ stop_arm (struct PeerContext *p)
   GNUNET_CONFIGURATION_destroy (p->cfg);
 }
 
+
 static int
 check ()
 {
-
-
   char *const argv[] = { "test-core-quota-compliance",
     "-c",
     "test_core_api_data.conf",
-#if VERBOSE
-    "-L", "DEBUG",
-#endif
     NULL
   };
   struct GNUNET_GETOPT_CommandLineOption options[] = {
@@ -676,6 +668,7 @@ check ()
   stop_arm (&p2);
   return ok;
 }
+
 
 int
 main (int argc, char *argv[])
@@ -717,11 +710,7 @@ main (int argc, char *argv[])
   }
 
   GNUNET_log_setup ("test-core-quota-compliance",
-#if VERBOSE
-                    "DEBUG",
-#else
                     "WARNING",
-#endif
                     NULL);
   ret = check ();
   if (test == SYMMETRIC)
@@ -743,10 +732,7 @@ main (int argc, char *argv[])
     GNUNET_DISK_directory_remove
         ("/tmp/test-gnunet-core-quota-asym-recv-lim-peer-2/");
   }
-
-
-
   return ret;
 }
 
-/* end of test_core_api_reliability.c */
+/* end of test_core_quota_compliance.c */
