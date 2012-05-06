@@ -290,17 +290,16 @@ get_session_delete_it (void *cls, const GNUNET_HashCode * key, void *value)
 
   msgw = plugin->msg_head;
   removed = GNUNET_NO;
-  while (NULL != (msgw = plugin->msg_head))
+  for (msgw = plugin->msg_head; NULL != msgw; msgw = msgw->next)
   {
-    if (msgw->session == s)
-    {
-      GNUNET_CONTAINER_DLL_remove (plugin->msg_head, plugin->msg_tail, msgw);
-      if (msgw->cont != NULL)
-        msgw->cont (msgw->cont_cls,  &msgw->session->target, GNUNET_SYSERR);
-      GNUNET_free (msgw->msg);
-      GNUNET_free (msgw);
-      removed = GNUNET_YES;
-    }
+    if (msgw->session != s)
+      continue;
+    GNUNET_CONTAINER_DLL_remove (plugin->msg_head, plugin->msg_tail, msgw);
+    if (NULL != msgw->cont)
+      msgw->cont (msgw->cont_cls,  &msgw->session->target, GNUNET_SYSERR);
+    GNUNET_free (msgw->msg);
+    GNUNET_free (msgw);
+    removed = GNUNET_YES;    
   }
   if ((GNUNET_YES == removed) && (NULL == plugin->msg_head))
     reschedule_select (plugin);
