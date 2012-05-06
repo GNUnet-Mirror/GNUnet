@@ -40,9 +40,10 @@ noinst_PROGRAMS = \
 plugin_LTLIBRARIES = \
   libgnunet_plugin_block_dns.la 
 
+if LINUX
 check_SCRIPTS = \
  test_gnunet_dns.sh
-
+endif
 
 gnunet_helper_dns_SOURCES = \
  gnunet-helper-dns.c
