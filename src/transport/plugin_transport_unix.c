@@ -185,12 +185,7 @@ struct Plugin
    */
   struct GNUNET_TRANSPORT_PluginEnvironment *env;
 
-  /*
-   * Session of peers with whom we are currently connected
-   */
-  struct PeerSession *sessions;
-
-  /*
+  /**
    * Sessions
    */
   struct GNUNET_CONTAINER_MultiHashMap *session_map;
@@ -243,8 +238,10 @@ struct Plugin
   unsigned int bytes_in_queue;
 };
 
+
 static void
 unix_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+
 
 static void
 reschedule_select (struct Plugin * plugin)
@@ -320,6 +317,7 @@ get_session_delete_it (void *cls, const GNUNET_HashCode * key, void *value)
   return GNUNET_YES;
 }
 
+
 /**
  * Disconnect from a remote node.  Clean up session if we have one for this peer
  *
@@ -327,7 +325,7 @@ get_session_delete_it (void *cls, const GNUNET_HashCode * key, void *value)
  * @param target the peeridentity of the peer to disconnect
  * @return GNUNET_OK on success, GNUNET_SYSERR if the operation failed
  */
-void
+static void
 unix_disconnect (void *cls, const struct GNUNET_PeerIdentity *target)
 {
   struct Plugin *plugin = cls;
@@ -376,23 +374,6 @@ unix_transport_server_stop (void *cls)
     plugin->with_ws = GNUNET_NO;
   }
   return GNUNET_OK;
-}
-
-
-struct PeerSession *
-find_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *peer)
-{
-  struct PeerSession *pos;
-
-  pos = plugin->sessions;
-  while (pos != NULL)
-  {
-    if (memcmp (&pos->target, peer, sizeof (struct GNUNET_PeerIdentity)) == 0)
-      return pos;
-    pos = pos->next;
-  }
-
-  return pos;
 }
 
 
@@ -562,6 +543,7 @@ struct gsi_ctx
   size_t addrlen;
   struct Session *res;
 };
+
 
 static int
 get_session_it (void *cls, const GNUNET_HashCode * key, void *value)
@@ -824,6 +806,7 @@ unix_plugin_select_read (struct Plugin * plugin)
   }
 }
 
+
 static void
 unix_plugin_select_write (struct Plugin * plugin)
 {
@@ -891,14 +874,14 @@ unix_plugin_select_write (struct Plugin * plugin)
 
 }
 
-/*
- * @param cls the plugin handle
- * @param tc the scheduling context (for rescheduling this function again)
- *
+
+/**
  * We have been notified that our writeset has something to read.  We don't
  * know which socket needs to be read, so we have to check each one
  * Then reschedule this function to be called again once more is available.
  *
+ * @param cls the plugin handle
+ * @param tc the scheduling context (for rescheduling this function again)
  */
 static void
 unix_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -929,12 +912,13 @@ unix_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   reschedule_select (plugin);
 }
 
+
 /**
  * Create a slew of UNIX sockets.  If possible, use IPv6 and IPv4.
  *
  * @param cls closure for server start, should be a struct Plugin *
  * @return number of sockets created or GNUNET_SYSERR on error
-*/
+ */
 static int
 unix_transport_server_start (void *cls)
 {
@@ -1041,15 +1025,18 @@ unix_plugin_address_pretty_printer (void *cls, const char *type,
                                     GNUNET_TRANSPORT_AddressStringCallback asc,
                                     void *asc_cls)
 {
-  if ((addr != NULL) && (addrlen > 0))
+  if ((NULL != addr) && (addrlen > 0))
+  {
     asc (asc_cls, (const char *) addr);
+  }
   else
   {
     GNUNET_break (0);
-    asc (asc_cls, "Invalid UNIX address");
+    asc (asc_cls, "<invalid UNIX address>");
   }
-
+  asc (asc_cls, NULL);
 }
+
 
 /**
  * Function called to convert a string address to
@@ -1063,11 +1050,11 @@ unix_plugin_address_pretty_printer (void *cls, const char *type,
  * @param added length of created address
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
-int
+static int
 unix_string_to_address (void *cls, const char *addr, uint16_t addrlen,
     void **buf, size_t *added)
 {
-  if ((NULL == addr) || (addrlen == 0))
+  if ((NULL == addr) || (0 == addrlen))
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
@@ -1091,8 +1078,6 @@ unix_string_to_address (void *cls, const char *addr, uint16_t addrlen,
 }
 
 
-
-
 /**
  * Function called for a quick conversion of the binary address to
  * a numeric address.  Note that the caller must not free the
@@ -1109,9 +1094,9 @@ unix_address_to_string (void *cls, const void *addr, size_t addrlen)
 {
   if ((addr != NULL) && (addrlen > 0))
     return (const char *) addr;
-  else
-    return NULL;
+  return NULL;
 }
+
 
 /**
  * Notify transport service about address

@@ -141,9 +141,8 @@ GNUNET_TRANSPORT_address_to_string (const struct GNUNET_CONFIGURATION_Handle
     GNUNET_break (0);
     return NULL;
   }
-
   client = GNUNET_CLIENT_connect ("transport", cfg);
-  if (client == NULL)
+  if (NULL == client)
     return NULL;
   msg = GNUNET_malloc (len);
   msg->header.size = htons (len);

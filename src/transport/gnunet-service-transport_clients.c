@@ -775,10 +775,6 @@ clients_handle_address_to_string (void *cls,
     return;
   }
   GNUNET_SERVER_disable_receive_done_warning (client);
-  if ((NULL == address) || (0 == address_len))
-  {
-    GNUNET_break_op (0);
-  }
   papi->address_pretty_printer (papi->cls, plugin_name, address, address_len,
                                 numeric, rtimeout, &transmit_address_to_client,
                                 tc);

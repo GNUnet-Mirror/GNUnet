@@ -514,6 +514,12 @@ udp_plugin_address_pretty_printer (void *cls, const char *type,
     sb = &a4;
     sbs = sizeof (a4);
   }
+  else if (0 == addrlen)
+  {
+    asc (asc_cls, "<inbound connection>");
+    asc (asc_cls, NULL);
+    return;
+  }
   else
   {
     /* invalid address */

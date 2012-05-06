@@ -1507,11 +1507,15 @@ tcp_plugin_address_pretty_printer (void *cls, const char *type,
     sb = &a4;
     sbs = sizeof (a4);
   }
+  else if (0 == addrlen)
+  {
+    asc (asc_cls, "<inbound connection>");
+    asc (asc_cls, NULL);
+    return;
+  }
   else
   {
     /* invalid address */
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "tcp",
-        "Invalid address to string request: plugin `%s', address length: %u bytes\n");
     GNUNET_break_op (0);
     asc (asc_cls, NULL);
     return;

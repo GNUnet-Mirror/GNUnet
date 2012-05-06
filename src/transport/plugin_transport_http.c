@@ -212,6 +212,12 @@ http_plugin_address_pretty_printer (void *cls, const char *type,
     sbs = sizeof (struct sockaddr_in);
     port = ntohs (a4->u4_port);
   }
+  else if (0 == addrlen)
+  {
+    asc (asc_cls, "<inbound connection>");
+    asc (asc_cls, NULL);
+    return;
+  }
   else
   {
     /* invalid address */

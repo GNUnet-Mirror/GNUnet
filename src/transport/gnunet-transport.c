@@ -454,7 +454,8 @@ struct ResolutionContext
   int printed;
 };
 
-void
+
+static void
 process_string (void *cls, const char *address)
 {
   struct ResolutionContext *rc = cls;
