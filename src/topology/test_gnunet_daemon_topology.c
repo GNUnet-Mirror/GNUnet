@@ -24,7 +24,6 @@
 #include "platform.h"
 #include "gnunet_testing_lib.h"
 
-#define VERBOSE GNUNET_NO
 
 #define NUM_PEERS 2
 
@@ -61,17 +60,13 @@ shutdown_callback (void *cls, const char *emsg)
 {
   if (emsg != NULL)
   {
-#if VERBOSE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown of peers failed!\n");
-#endif
     if (ok == 0)
       ok = 666;
   }
   else
   {
-#if VERBOSE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "All peers successfully shut down!\n");
-#endif
   }
 }
 
@@ -165,9 +160,7 @@ run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   ok = 1;
-#if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting daemons.\n");
-#endif
   peers_left = NUM_PEERS;
   pg = GNUNET_TESTING_daemons_start (cfg, peers_left, peers_left, peers_left,
                                      TIMEOUT, NULL, NULL, &my_cb, NULL, NULL,
@@ -183,9 +176,6 @@ check ()
     "test-gnunet-daemon-topology",
     "-c",
     "test_gnunet_daemon_topology_data.conf",
-#if VERBOSE
-    "-L", "DEBUG",
-#endif
     NULL
   };
   struct GNUNET_GETOPT_CommandLineOption options[] = {
@@ -204,11 +194,7 @@ main (int argc, char *argv[])
   int ret;
 
   GNUNET_log_setup ("test-gnunet-daemon-topology",
-#if VERBOSE
-                    "DEBUG",
-#else
                     "WARNING",
-#endif
                     NULL);
   ret = check ();
   GNUNET_DISK_directory_remove ("/tmp/test-gnunet-topology");
