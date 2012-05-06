@@ -986,7 +986,7 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
   }
   if (NULL == t)
   {
-    GNUNET_break (0);
+    /* Tunnel was ignored, probably service didn't get it yet */
     return GNUNET_YES;
   }
   type = ntohs (payload->type);
