@@ -46,7 +46,7 @@ check_PROGRAMS = \
 test_gnunet_prefix_SOURCES = \
  test_gnunet_prefix.c
 
-test_gnunet_prefix_LIBADD = \
+test_gnunet_prefix_LDADD = \
   $(GCLIBADD) $(WINLIB) \
   $(LTLIBICONV) \
   -lltdl -lunistring $(XLIB) 
