@@ -749,9 +749,6 @@ GNUNET_PEERINFO_iterate_cancel (struct GNUNET_PEERINFO_IteratorContext *ic)
   struct GNUNET_PEERINFO_Handle *h;
 
   h = ic->h;
-  GNUNET_CONTAINER_DLL_remove (h->ic_head,
-			       h->ic_tail,
-			       ic);
   if (GNUNET_SCHEDULER_NO_TASK != ic->timeout_task)
   {
     GNUNET_SCHEDULER_cancel (ic->timeout_task);
@@ -760,6 +757,9 @@ GNUNET_PEERINFO_iterate_cancel (struct GNUNET_PEERINFO_IteratorContext *ic)
   ic->callback = NULL;
   if (GNUNET_YES == ic->in_receive)
     return;                     /* need to finish processing */
+  GNUNET_CONTAINER_DLL_remove (h->ic_head,
+			       h->ic_tail,
+			       ic);
   if (NULL != ic->ac)
   {
     GNUNET_CONTAINER_DLL_remove (h->ac_head, h->ac_tail, ic->ac);
