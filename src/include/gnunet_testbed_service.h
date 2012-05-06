@@ -584,7 +584,7 @@ enum GNUNET_TESTBED_ConnectOption
  * @param p1 first peer
  * @param p2 second peer
  * @param co option to change
- * @param ... option-specific values
+ * @param ap option-specific values
  * @return handle to the operation, NULL if configuring the link at this
  *         time is not allowed
  */
