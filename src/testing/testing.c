@@ -478,6 +478,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     d->task =
         GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_EXEC_WAIT, &start_fsm,
                                       d);
+        // FIXME: busy wait?
     break;
   case SP_START_ARMING:
     if (GNUNET_OK != GNUNET_OS_process_status (d->proc_arm_start, &type, &code))
@@ -515,6 +516,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       d->task =
           GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_EXEC_WAIT, &start_fsm,
                                         d);
+          // FIXME: busy wait?
       return;
     }
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Successfully started `%s'.\n",
@@ -1410,7 +1412,7 @@ GNUNET_TESTING_daemon_stop_service (struct GNUNET_TESTING_Daemon *d,
 static void
 kill_and_close_process (struct GNUNET_OS_Process *proc)
 {
-  (void) GNUNET_OS_process_kill (proc, SIGKILL);      
+  (void) GNUNET_OS_process_kill (proc, SIGKILL); 
   GNUNET_break (GNUNET_OK == GNUNET_OS_process_wait (proc));
   GNUNET_OS_process_close (proc);
 }
