@@ -268,7 +268,9 @@ libgnunet_plugin_block_gns_la_DEPENDENCIES = \
 # $(top_builddir)/src/util/libgnunetutil.la
 
 if ENABLE_TEST_RUN
+if LINUX
 TESTS = $(check_PROGRAMS)
+endif
 endif
 
 EXTRA_DIST = \
