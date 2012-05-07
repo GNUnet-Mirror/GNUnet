@@ -166,12 +166,13 @@ static struct TestMessageContext *test_messages;
 /**
  * Check whether peers successfully shut down.
  */
-void
+static void
 shutdown_callback (void *cls, const char *emsg)
 {
   if (emsg != NULL)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown of peers failed!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Shutdown of peers failed: %s!\n",
+		emsg);
     if (ok == 0)
       ok = 666;
   }
@@ -180,6 +181,7 @@ shutdown_callback (void *cls, const char *emsg)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "All peers successfully shut down!\n");
   }
 }
+
 
 #if DELAY_FOR_LOGGING
 static void
@@ -198,8 +200,8 @@ gather_log_data ()
   GNUNET_OS_process_close (mem_process);
   mem_process = NULL;
 }
-
 #endif
+
 
 static void
 finish_testing ()
@@ -243,7 +245,6 @@ finish_testing ()
     FPRINTF (dotOutFile, "%s",  "}");
     FCLOSE (dotOutFile);
   }
-
   ok = 0;
 }
 
@@ -257,14 +258,17 @@ disconnect_cores (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from peer 1 `%4s'\n",
               GNUNET_i2s (&pos->peer1->id));
   if (pos->peer1handle != NULL)
+  {
     GNUNET_CORE_disconnect (pos->peer1handle);
+    pos->peer1handle = NULL;
+  }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from peer 2 `%4s'\n",
               GNUNET_i2s (&pos->peer2->id));
   if (pos->peer2handle != NULL)
+  {
     GNUNET_CORE_disconnect (pos->peer2handle);
-  /* Set handles to NULL so test case can be ended properly */
-  pos->peer1handle = NULL;
-  pos->peer2handle = NULL;
+    pos->peer2handle = NULL;
+  }
   pos->disconnect_task = GNUNET_SCHEDULER_NO_TASK;
   /* Decrement total connections so new can be established */
   total_server_connections -= 2;
@@ -299,6 +303,7 @@ stats_print (void *cls, const struct GNUNET_PeerIdentity *peer,
 }
 #endif
 
+
 static void
 topology_cb (void *cls, const struct GNUNET_PeerIdentity *first,
              const struct GNUNET_PeerIdentity *second, const char *emsg)
@@ -330,6 +335,7 @@ topology_cb (void *cls, const struct GNUNET_PeerIdentity *first,
     }
   }
 }
+
 
 static int
 process_mtype (void *cls, const struct GNUNET_PeerIdentity *peer,
@@ -397,13 +403,14 @@ process_mtype (void *cls, const struct GNUNET_PeerIdentity *peer,
   return GNUNET_OK;
 }
 
+
 static void
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   char *msg = cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "End badly was called (%s)... stopping daemons.\n", msg);
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "Ending with error: %s\n", msg);
   struct TestMessageContext *pos;
   struct TestMessageContext *free_pos;
 
@@ -448,6 +455,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
 }
 
+
 static size_t
 transmit_ready (void *cls, size_t size, void *buf)
 {
@@ -472,10 +480,12 @@ static struct GNUNET_CORE_MessageHandler no_handlers[] = {
   {NULL, 0, 0}
 };
 
+
 static struct GNUNET_CORE_MessageHandler handlers[] = {
   {&process_mtype, MTYPE, sizeof (struct GNUNET_TestMessage)},
   {NULL, 0, 0}
 };
+
 
 static void
 init_notify_peer2 (void *cls, struct GNUNET_CORE_Handle *server,
@@ -509,6 +519,7 @@ init_notify_peer2 (void *cls, struct GNUNET_CORE_Handle *server,
     }
   }
 }
+
 
 /**
  * Method called whenever a given peer connects.
@@ -559,6 +570,7 @@ connect_notify_peers (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
 }
 
+
 static void
 init_notify_peer1 (void *cls, struct GNUNET_CORE_Handle *server,
                    const struct GNUNET_PeerIdentity *my_identity)
@@ -566,7 +578,6 @@ init_notify_peer1 (void *cls, struct GNUNET_CORE_Handle *server,
   struct TestMessageContext *pos = cls;
 
   total_server_connections++;
-
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Core connection to `%4s' established, setting up handles\n",
               GNUNET_i2s (my_identity));
@@ -631,7 +642,7 @@ send_test_messages (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
-void
+static void
 topology_callback (void *cls, const struct GNUNET_PeerIdentity *first,
                    const struct GNUNET_PeerIdentity *second, uint32_t distance,
                    const struct GNUNET_CONFIGURATION_Handle *first_cfg,
@@ -680,7 +691,7 @@ topology_callback (void *cls, const struct GNUNET_PeerIdentity *first,
   else
   {
     failed_connections++;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Failed to connect peer %s to peer %s with error :\n%s\n",
                 first_daemon->shortname, second_daemon->shortname, emsg);
   }
@@ -747,6 +758,7 @@ topology_callback (void *cls, const struct GNUNET_PeerIdentity *first,
   }
 }
 
+
 static void
 topology_creation_finished (void *cls, const char *emsg)
 {
@@ -754,6 +766,7 @@ topology_creation_finished (void *cls, const char *emsg)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "All topology connections created successfully!\n");
 }
+
 
 static void
 connect_topology ()
@@ -768,7 +781,7 @@ connect_topology ()
                                          connect_timeout, connect_attempts,
                                          &topology_creation_finished, NULL);
 #if PROGRESS_BARS
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Have %d expected connections\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Have %d expected connections\n",
                 expected_connections);
 #endif
   }
@@ -943,6 +956,7 @@ hostkey_callback (void *cls, const struct GNUNET_PeerIdentity *id,
     ok = 0;
   }
 }
+
 
 static void
 run (void *cls, char *const *args, const char *cfgfile,
@@ -1126,6 +1140,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 
 }
 
+
 static int
 check ()
 {
@@ -1158,6 +1173,7 @@ check ()
   GNUNET_free (config_file_name);
   return ok;
 }
+
 
 int
 main (int argc, char *argv[])
