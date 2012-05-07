@@ -38,4 +38,5 @@ test_regex_iterate_api_LDADD = \
  $(top_builddir)/src/regex/libgnunetregex.la \
  $(top_builddir)/src/util/libgnunetutil.la
 
-EXTRA_DIST = test_regex_data.conf
+EXTRA_DIST = 
+# test_regex_data.conf
