@@ -364,7 +364,8 @@ GNUNET_OS_command_run (GNUNET_OS_LineProcessor proc, void *proc_cls,
 
 
 /**
- * Retrieve the status of a process.  Nonblocking version.
+ * Retrieve the status of a process, waiting on him if dead.
+ * Nonblocking version.
  *
  * @param proc pointer to process structure
  * @param type status type

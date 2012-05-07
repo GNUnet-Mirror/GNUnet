@@ -1499,7 +1499,9 @@ GNUNET_OS_start_process_v (int pipe_control,
 
 
 /**
- * Retrieve the status of a process
+ * Retrieve the status of a process, waiting on him if dead.
+ * Nonblocking version.
+ * 
  * @param proc process ID
  * @param type status type
  * @param code return code/signal number
