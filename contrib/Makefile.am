@@ -1,12 +1,15 @@
 INCLUDES = -I$(top_srcdir)/src/include -I$(top_builddir)/src/include
 
 
-if !MINGW
 noinst_PROGRAMS = \
  timeout_watchdog
 
+if !MINGW
 timeout_watchdog_SOURCES = \
  timeout_watchdog.c 
+else
+timeout_watchdog_SOURCES = \
+ timeout_watchdog_w32.c
 endif
 
 noinst_SCRIPTS = \
