@@ -280,7 +280,8 @@ static int
 get_session_delete_it (void *cls, const GNUNET_HashCode * key, void *value)
 {
   struct Session *s = value;
-  struct UNIXMessageWrapper * msgw;
+  struct UNIXMessageWrapper *msgw;
+  struct UNIXMessageWrapper *next;
   struct Plugin *plugin = cls;
   int removed;
   GNUNET_assert (plugin != NULL);
@@ -290,8 +291,11 @@ get_session_delete_it (void *cls, const GNUNET_HashCode * key, void *value)
 
   msgw = plugin->msg_head;
   removed = GNUNET_NO;
-  for (msgw = plugin->msg_head; NULL != msgw; msgw = msgw->next)
+  next = plugin->msg_head;
+  while (NULL != next)
   {
+    msgw = next;
+    next = msgw->next;
     if (msgw->session != s)
       continue;
     GNUNET_CONTAINER_DLL_remove (plugin->msg_head, plugin->msg_tail, msgw);
