@@ -513,6 +513,17 @@ struct Session
  */
 struct MacEndpoint
 {
+
+  /**
+   * dll next
+   */
+  struct MacEndpoint *next;
+
+  /**
+   * dll prev
+   */
+  struct MacEndpoint *prev;
+
   /**
    * Pointer to the global plugin struct.
    */
@@ -539,16 +550,6 @@ struct MacEndpoint
    * to a peer (tail), if any.
    */
   struct FragmentMessage *sending_messages_tail;
-
-  /**
-   * dll next
-   */
-  struct MacEndpoint *next;
-
-  /**
-   * dll prev
-   */
-  struct MacEndpoint *prev;
 
   /**
    * peer mac address
@@ -1460,33 +1461,27 @@ wlan_transport_stop_wlan_helper (struct Plugin *plugin)
                      "wlan_transport_stop_wlan_helper not needed, helper already stopped!");
     return GNUNET_YES;
   }
-
   if (plugin->server_write_delay_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (plugin->server_write_delay_task);
     plugin->server_write_delay_task = GNUNET_SCHEDULER_NO_TASK;
   }
-
   if (plugin->server_write_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (plugin->server_write_task);
     plugin->server_write_task = GNUNET_SCHEDULER_NO_TASK;
   }
-
   if (plugin->server_read_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (plugin->server_read_task);
     plugin->server_read_task = GNUNET_SCHEDULER_NO_TASK;
   }
-
   GNUNET_DISK_pipe_close (plugin->server_stdout);
   GNUNET_DISK_pipe_close (plugin->server_stdin);
   GNUNET_OS_process_kill (plugin->server_proc, SIGKILL);
   GNUNET_OS_process_wait (plugin->server_proc);
   GNUNET_OS_process_close (plugin->server_proc);
-
   plugin->helper_is_running = GNUNET_NO;
-
   return GNUNET_YES;
 }
 
@@ -1598,7 +1593,8 @@ finish_sending (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
- * function to send a hello beacon
+ * Function to send a HELLO beacon
+ *
  * @param plugin pointer to the plugin struct
  */
 static void
@@ -1630,9 +1626,8 @@ send_hello_beacon (struct Plugin *plugin)
   if (bytes == GNUNET_SYSERR)
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, PLUGIN_LOG_NAME,
-                     _
-                     ("Error writing to wlan helper. errno == %d, ERROR: %s\n"),
-                     errno, strerror (errno));
+                     _("Error writing to WLAN helper: %s\n"),
+                     STRERROR (errno));
     finish = GNUNET_malloc (sizeof (struct Finish_send));
     finish->plugin = plugin;
     finish->head_of_next_write = NULL;
@@ -1866,7 +1861,7 @@ do_transmit (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     set_next_send (plugin);
     return;
   }
-  GNUNET_STATISTICS_update (plugin->env->stats, _("# wlan fragments send"), 1,
+  GNUNET_STATISTICS_update (plugin->env->stats, _("# WLAN fragments sent"), 1,
 			    GNUNET_NO);
   
   fmq = plugin->sending_messages_head;
@@ -1893,9 +1888,8 @@ do_transmit (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     if (bytes == GNUNET_SYSERR)
     {
       GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, PLUGIN_LOG_NAME,
-		       _
-		       ("Error writing to wlan helper. errno == %d, ERROR: %s\n"),
-		       errno, strerror (errno));     
+		       _("Error writing to WLAN helper: %s\n"),
+		       STRERROR (errno));     
       finish->head_of_next_write = (char*) fm->radioHeader;
       finish->size = ntohs (fm->radioHeader->header.size);
       restart_helper (plugin, finish);
