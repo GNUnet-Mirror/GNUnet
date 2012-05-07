@@ -131,9 +131,7 @@ mhd_ahc (void *cls,
     return MHD_YES;
   }
   *unused = NULL;
-#if VERBOSE
-  fprintf (stderr, "MHD sends respose for request to URL `%s'\n", url);
-#endif
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "MHD sends respose for request to URL `%s'\n", url);
   response = MHD_create_response_from_buffer (strlen (url),
 					      (void *) url,
 					      MHD_RESPMEM_MUST_COPY);
@@ -248,9 +246,7 @@ curl_main ()
       GNUNET_break (0);
       global_ret = 3;
     }
-#if VERBOSE
-    fprintf (stderr, "Download complete, shutting down!\n");
-#endif
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Download complete, shutting down!\n");
     do_shutdown ();
     return;    
   }
@@ -319,9 +315,7 @@ allocation_cb (void *cls,
   multi = curl_multi_init ();
   GNUNET_assert (multi != NULL);
   GNUNET_assert (CURLM_OK == curl_multi_add_handle (multi, curl));
-#if VERBOSE
-  fprintf (stderr, "Beginning HTTP download from `%s'\n", url);
-#endif
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Beginning HTTP download from `%s'\n", url);
   curl_main ();
 }
 
@@ -449,9 +443,6 @@ setup_peer (struct PeerContext *p, const char *cfgname)
   p->arm_proc =
       GNUNET_OS_start_process (GNUNET_YES, NULL, NULL, "gnunet-service-arm",
                                "gnunet-service-arm",
-#if VERBOSE
-                               "-L", "DEBUG",
-#endif
                                "-c", cfgname, NULL);
 #endif
   GNUNET_assert (NULL != p->arm_proc);
@@ -513,9 +504,6 @@ main (int argc, char *const *argv)
     "test_gnunet_vpn",
     "-c",
     "test_gnunet_vpn.conf",
-#if VERBOSE
-    "-L", "DEBUG",
-#endif
     NULL
   };
   struct GNUNET_GETOPT_CommandLineOption options[] = {
@@ -598,11 +586,7 @@ main (int argc, char *const *argv)
   }
   setup_peer (&p1, "test_gnunet_vpn.conf");
   GNUNET_log_setup ("test_gnunet_vpn",
-#if VERBOSE
-                    "DEBUG",
-#else
                     "WARNING",
-#endif
                     NULL);
   GNUNET_PROGRAM_run ((sizeof (argvx) / sizeof (char *)) - 1, argvx,
                       "test_gnunet_vpn", "nohelp", options, &run, NULL);
