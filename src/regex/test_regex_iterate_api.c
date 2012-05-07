@@ -58,30 +58,13 @@ main (int argc, char *argv[])
   int error;
   const char *regex;
   struct GNUNET_REGEX_Automaton *dfa;
-  struct GNUNET_REGEX_Automaton *nfa;
 
   error = 0;
-  /*regex = "ab?|xy|(abcd)?"; */
-  /*regex = "(ab|cd|ef)xy"; */
-  /*regex = "(ac|bc)de"; */
-  /*regex = "((a|b)c)de"; */
-  /*regex = "a+X*y+c|p|R|Z*K*y*R+w|Y*6+n+h*k*w+V*F|W*B*e*"; */
   regex = "ab(c|d)+c*(a(b|c)d)+";
-  /*regex = "ab?(abcd)?"; */
-  const char *regex1 = "(ac|bc)de";
-  const char *regex2 = "((a|b)c)de";
 
-  /*nfa = GNUNET_REGEX_construct_nfa (regex, strlen (regex)); */
-  /*GNUNET_REGEX_automaton_save_graph (nfa, "nfa.dot"); */
   dfa = GNUNET_REGEX_construct_dfa (regex, strlen (regex));
   GNUNET_REGEX_automaton_save_graph (dfa, "dfa.dot");
   GNUNET_REGEX_iterate_all_edges (dfa, key_iterator, NULL);
-  GNUNET_REGEX_automaton_destroy (dfa);
-  dfa = GNUNET_REGEX_construct_dfa (regex1, strlen (regex1));
-  GNUNET_REGEX_automaton_save_graph (dfa, "dfa1.dot");
-  GNUNET_REGEX_automaton_destroy (dfa);
-  dfa = GNUNET_REGEX_construct_dfa (regex2, strlen (regex2));
-  GNUNET_REGEX_automaton_save_graph (dfa, "dfa2.dot");
   GNUNET_REGEX_automaton_destroy (dfa);
 
   return error;

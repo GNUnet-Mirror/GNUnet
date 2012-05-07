@@ -274,10 +274,17 @@ struct GNUNET_REGEX_StateSet
   unsigned int len;
 };
 
+/*
+ * Debug helper function
+ */
+/*
+static void debug_print_transition (struct Transition *);
+
 static void
 debug_print_state (struct GNUNET_REGEX_State *s)
 {
   char *proof;
+  int i;
 
   if (NULL == s->proof)
     proof = "NULL";
@@ -288,6 +295,11 @@ debug_print_state (struct GNUNET_REGEX_State *s)
               "State %i: %s marked: %i accepting: %i scc_id: %i transitions: %i proof: %s\n",
               s->id, s->name, s->marked, s->accepting, s->scc_id,
               s->transition_count, proof);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Incoming transitions:\n");
+
+  for (i=0; i < s->incoming_transition_count; i++)
+    debug_print_transition (s->incoming_transitions[i]);
 }
 
 static void
@@ -340,6 +352,7 @@ debug_print_transitions (struct GNUNET_REGEX_State *s)
   for (t = s->transitions_head; NULL != t; t = t->next)
     debug_print_transition (t);
 }
+*/
 
 /**
  * Recursive function doing DFS with 'v' as a start, detecting all SCCs inside
@@ -1163,12 +1176,8 @@ dfa_merge_nondistinguishable_states (struct GNUNET_REGEX_Context *ctx,
             }
           }
         }
-        if (num_equal_edges == 0)
-        {
-          table[s1->marked][s2->marked] = -1;
-        }
-        else if (num_equal_edges != s1->transition_count ||
-                 num_equal_edges != s2->transition_count)
+        if (num_equal_edges != s1->transition_count ||
+            num_equal_edges != s2->transition_count)
         {
           // Make sure ALL edges of possible equal states are the same
           table[s1->marked][s2->marked] = -2;
@@ -1912,7 +1921,6 @@ GNUNET_REGEX_construct_dfa (const char *regex, const size_t len)
 
   // Create proofs for all states
   automaton_traverse (NULL, dfa, &state_create_proof);
-
 
   return dfa;
 }
