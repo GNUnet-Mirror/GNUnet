@@ -116,6 +116,14 @@ struct GetFileSizeData
 };
 
 
+#ifndef MINGW
+/**
+ * Translate GNUnet-internal permission bitmap to UNIX file
+ * access permission bitmap.
+ *
+ * @param perm file permissions, GNUnet style
+ * @return file permissions, UNIX style
+ */
 static int
 translate_unix_perms (enum GNUNET_DISK_AccessPermissions perm)
 {
@@ -143,6 +151,7 @@ translate_unix_perms (enum GNUNET_DISK_AccessPermissions perm)
 
   return mode;
 }
+#endif
 
 
 /**
