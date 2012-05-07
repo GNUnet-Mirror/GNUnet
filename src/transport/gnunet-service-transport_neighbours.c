@@ -2479,8 +2479,9 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
     return;
   }
 
-  if ((n->state != S_CONNECT_SENT) &&
-      ((n->state != S_CONNECT_RECV) && (n->address != NULL)))
+  if ((NULL == n->address) ||
+       ((n->state != S_CONNECT_SENT) &&
+      ((n->state != S_CONNECT_RECV) && (n->address != NULL))))
   {
     GNUNET_STATISTICS_update (GST_stats,
                               gettext_noop
