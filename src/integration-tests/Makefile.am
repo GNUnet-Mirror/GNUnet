@@ -116,8 +116,8 @@ test_integration_connection_values_tcp_udp_http.py: test_integration_connection_
 EXTRA_DIST = \
    gnunet_testing.py.in \
    gnunet_pyexpect.py.in \
-   test_integration_connection_value_tcp.py.in \
-   test_integration_connection_value_tcp_udp.py.in \
+   test_integration_connection_values_tcp.py.in \
+   test_integration_connection_values_tcp_udp.py.in \
    test_integration_bootstrap_and_connect.py.in \
    test_integration_bootstrap_and_connect_and_disconnect.py.in \
    test_integration_bootstrap_and_connect_and_disconnect_nat.py.in \
@@ -133,8 +133,10 @@ EXTRA_DIST = \
    confs/c_normal_client_tcp.conf \
    confs/c_normal_client_tcp_udp.conf \
    confs/c_normal_client_tcp_udp_http.conf \
-   c_no_nat_client_http.conf \
-   c_no_nat_client_http_2.conf \
+   confs/c_no_nat_client_http.conf \
+   confs/c_no_nat_client_http_2.conf\
+   confs/c_no_nat_client_http.conf \
+   confs/c_no_nat_client_http_2.conf \
    hostkeys/0000-hostkey \
    hostkeys/0001-hostkey \
    hostkeys/0002-hostkey \
