@@ -184,7 +184,12 @@ run (void *cls, char *const *args, const char *cfgfile,
       ret = 1;
       return;
     }
-    GNUNET_STATISTICS_watch(h, subsystem, name, &printer, h);
+    if (GNUNET_OK != GNUNET_STATISTICS_watch (h, subsystem, name, &printer, h))
+    {
+      fprintf (stderr, _("Failed to initialize watch routine\n"));
+      GNUNET_SCHEDULER_add_now (&shutdown_task, h);
+      return;
+    }
     GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task, h);
   }
 }
