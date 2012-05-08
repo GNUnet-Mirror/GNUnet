@@ -362,7 +362,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       d->pipe_stdout = NULL;
       (void) GNUNET_OS_process_kill (d->proc_arm_peerinfo, SIGKILL);      
       GNUNET_break (GNUNET_OK == GNUNET_OS_process_wait (d->proc_arm_peerinfo));
-      GNUNET_OS_process_destroy (d->proc_arm_peerinfo);      
+      GNUNET_OS_process_destroy (d->proc_arm_peerinfo);
       d->proc_arm_peerinfo = NULL;
       if (NULL != cb)
         cb (d->cb_cls, NULL, d->cfg, d, _("Failed to get hostkey!\n"));
@@ -504,7 +504,8 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         }
         GNUNET_free_non_null (d->hostname);
         GNUNET_free_non_null (d->username);
-        GNUNET_free (d->proc_arm_start);
+        GNUNET_free_non_null (d->username);
+        GNUNET_OS_process_destroy (d->proc_arm_start);
 	d->proc_arm_start = NULL;
         d->hostname = NULL;     // Quick hack to avoid crashing (testing need to be
         d->cfg = NULL;          // overhauled anyway, and the error managing is
@@ -521,7 +522,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     }
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Successfully started `%s'.\n",
                 "gnunet-arm");
-    GNUNET_free (d->proc_arm_start);
+    GNUNET_OS_process_destroy (d->proc_arm_start);
     d->proc_arm_start = NULL;
     d->phase = SP_START_CORE;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Calling CORE_connect\n");
@@ -627,7 +628,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     d->phase = SP_START_DONE;
     if (NULL != cb)
       cb (d->cb_cls, &d->id, d->cfg, d, NULL);
-    GNUNET_free (d->proc_arm_srv_start);
+    GNUNET_OS_process_destroy (d->proc_arm_srv_start);
     d->proc_arm_srv_start = NULL;
     break;
   case SP_SERVICE_SHUTDOWN_START:
@@ -729,8 +730,8 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_free_non_null (d->hostname);
       GNUNET_free_non_null (d->username);
       GNUNET_free_non_null (d->shortname);
-      // GNUNET_free_non_null (d->proc); // !? FIXME!
-      // d->proc = NULL; // !? FIXME!
+      GNUNET_OS_process_destroy (d->proc_arm_stop);
+      d->proc_arm_stop = NULL;
       GNUNET_free (d);
       return;
     }
@@ -765,8 +766,8 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_free_non_null (d->hello);
     d->hello = NULL;
     GNUNET_free_non_null (d->shortname);
-    // GNUNET_free_non_null (d->proc); // !? FIXME
-    // d->proc = NULL; // !? FIXME!
+    GNUNET_OS_process_destroy (d->proc_arm_stop);
+    d->proc_arm_stop = NULL;
     d->shortname = NULL;
     if (d->churn == GNUNET_NO)
       GNUNET_free (d);
