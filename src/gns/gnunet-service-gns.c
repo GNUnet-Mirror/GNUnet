@@ -251,10 +251,10 @@ put_gns_record(void *cls,
   
   struct GNSNameRecordBlock *nrb;
   struct GNUNET_CRYPTO_ShortHashCode name_hash;
+  struct GNUNET_CRYPTO_ShortHashCode zhash;
   GNUNET_HashCode xor_hash;
   GNUNET_HashCode name_hash_double;
   GNUNET_HashCode zone_hash_double;
-  struct GNUNET_CRYPTO_HashAsciiEncoded xor_hash_string;
   uint32_t rd_payload_length;
   char* nrb_data = NULL;
   size_t namelen;
@@ -326,15 +326,20 @@ put_gns_record(void *cls,
   /*
    * calculate DHT key: H(name) xor H(pubkey)
    */
+  GNUNET_CRYPTO_short_hash(key,
+                     sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+                     &zhash);
   GNUNET_CRYPTO_short_hash(name, strlen(name), &name_hash);
   GNUNET_CRYPTO_short_hash_double (&name_hash, &name_hash_double);
-  GNUNET_CRYPTO_short_hash_double (&zone_hash, &zone_hash_double);
+  GNUNET_CRYPTO_short_hash_double (&zhash, &zone_hash_double);
   GNUNET_CRYPTO_hash_xor(&zone_hash_double, &name_hash_double, &xor_hash);
-  GNUNET_CRYPTO_hash_to_enc (&xor_hash, &xor_hash_string);
+
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "zone identity: %s\n", GNUNET_h2s (&zone_hash_double));
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
              "putting records for %s under key: %s with size %d\n",
-             name, (char*)&xor_hash_string, rd_payload_length);
+             name, GNUNET_h2s (&xor_hash), rd_payload_length);
   
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
              "DHT req to %d\n", DHT_OPERATION_TIMEOUT.rel_value);
@@ -404,7 +409,7 @@ update_zone_dht_start(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   /* start counting again */
   num_public_records = 0;
   namestore_iter = GNUNET_NAMESTORE_zone_iteration_start (namestore_handle,
-                                                 &zone_hash,
+                                                 NULL, //All zones
                                                  GNUNET_NAMESTORE_RF_AUTHORITY,
                                                  GNUNET_NAMESTORE_RF_PRIVATE,
                                                  &put_gns_record,
