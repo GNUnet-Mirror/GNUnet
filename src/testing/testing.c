@@ -694,8 +694,8 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         GNUNET_free_non_null (d->hostname);
         GNUNET_free_non_null (d->username);
         GNUNET_free_non_null (d->shortname);
-        // GNUNET_free_non_null (d->proc); // !? FIXME
-        // d->proc_arm_stop = NULL; 
+        GNUNET_OS_process_destroy (d->proc_arm_stop);
+        d->proc_arm_stop = NULL;
         GNUNET_free (d);
         return;
       }
@@ -1475,9 +1475,10 @@ GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
     kill_and_close_process (d->proc_arm_peerinfo);
     d->proc_arm_peerinfo = NULL;
   }
-  if ((d->running == GNUNET_NO) && (d->churn == GNUNET_YES))    /* Peer has already been stopped in churn context! */
+  if ((d->running == GNUNET_NO) && (d->churn == GNUNET_YES))
   {
-    /* Free what was left from churning! */
+    /* Peer has already been stopped in churn context!
+     * Free what was left from churning! */
     GNUNET_assert (d->cfg != NULL);
     GNUNET_CONFIGURATION_destroy (d->cfg);
     if (delete_files == GNUNET_YES)
