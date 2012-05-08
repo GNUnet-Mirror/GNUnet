@@ -2229,10 +2229,11 @@ libgnunet_plugin_transport_udp_init (void *cls)
     return NULL;
   }
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Starting broadcasting\n");
   if (broadcast == GNUNET_YES)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Starting broadcasting\n");
     setup_broadcast (plugin, &serverAddrv6, &serverAddrv4);
-
+  }
 
   GNUNET_free_non_null (bind4_address);
   GNUNET_free_non_null (bind6_address);
