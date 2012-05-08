@@ -202,7 +202,7 @@ void
 GNUNET_NAT_mini_get_external_ipv4_cancel (struct GNUNET_NAT_ExternalHandle *eh)
 {
   (void) GNUNET_OS_process_kill (eh->eip, SIGKILL);
-  GNUNET_OS_process_close (eh->eip);
+  GNUNET_OS_process_destroy (eh->eip);
   GNUNET_DISK_pipe_close (eh->opipe);
   if (GNUNET_SCHEDULER_NO_TASK != eh->task)
     GNUNET_SCHEDULER_cancel (eh->task);

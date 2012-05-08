@@ -1480,7 +1480,7 @@ wlan_transport_stop_wlan_helper (struct Plugin *plugin)
   GNUNET_DISK_pipe_close (plugin->server_stdin);
   GNUNET_OS_process_kill (plugin->server_proc, SIGKILL);
   GNUNET_OS_process_wait (plugin->server_proc);
-  GNUNET_OS_process_close (plugin->server_proc);
+  GNUNET_OS_process_destroy (plugin->server_proc);
   plugin->helper_is_running = GNUNET_NO;
   return GNUNET_YES;
 }

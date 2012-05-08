@@ -101,7 +101,7 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   /* Free the duplicated configuration */
   GNUNET_CONFIGURATION_destroy (config);
   GNUNET_assert (GNUNET_OK == GNUNET_OS_process_wait (arm_pid));
-  GNUNET_OS_process_close (arm_pid);
+  GNUNET_OS_process_destroy (arm_pid);
 }
 
 

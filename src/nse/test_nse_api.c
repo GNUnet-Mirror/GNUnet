@@ -53,7 +53,7 @@ stop_arm (struct PeerContext *p)
   if (0 != GNUNET_OS_process_kill (p->arm_proc, SIGTERM))
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
   GNUNET_OS_process_wait (p->arm_proc);
-  GNUNET_OS_process_close (p->arm_proc);
+  GNUNET_OS_process_destroy (p->arm_proc);
   p->arm_proc = NULL;
 #endif
   GNUNET_CONFIGURATION_destroy (p->cfg);

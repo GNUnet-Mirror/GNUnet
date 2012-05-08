@@ -78,7 +78,7 @@ stop_arm ()
   if (0 != GNUNET_OS_process_kill (arm_proc, SIGTERM))
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
   GNUNET_OS_process_wait (arm_proc);
-  GNUNET_OS_process_close (arm_proc);
+  GNUNET_OS_process_destroy (arm_proc);
   arm_proc = NULL;
 }
 

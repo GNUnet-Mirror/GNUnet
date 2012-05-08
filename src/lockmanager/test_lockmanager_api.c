@@ -90,7 +90,7 @@ do_shutdown (void *cls, const const struct GNUNET_SCHEDULER_TaskContext *tc)
            "Kill gnunet-service-arm manually\n");
     }
   GNUNET_OS_process_wait (arm_pid);
-  GNUNET_OS_process_close (arm_pid);
+  GNUNET_OS_process_destroy (arm_pid);
 
   if (NULL != config)
     GNUNET_CONFIGURATION_destroy (config);

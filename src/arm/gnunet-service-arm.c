@@ -987,7 +987,7 @@ maint_child_death (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 		    pos->name,
 		    GNUNET_TIME_absolute_get_duration (pos->killed_at).rel_value);
       }
-      GNUNET_OS_process_close (pos->proc);
+      GNUNET_OS_process_destroy (pos->proc);
       pos->proc = NULL;
       if (NULL != pos->killing_client)
 	{

@@ -365,7 +365,7 @@ FAILURE:
 
 #if START_DAEMON
   GNUNET_GE_BREAK (NULL, GNUNET_OK == GNUNET_daemon_stop (NULL, daemon));
-  GNUNET_OS_process_close (daemon);
+  GNUNET_OS_process_destroy (daemon);
   daemon = NULL;
 #endif
   GNUNET_GC_free (cfg);

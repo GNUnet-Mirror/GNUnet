@@ -492,7 +492,7 @@ GNUNET_OS_process_get_pid (struct GNUNET_OS_Process * proc)
  * @param proc pointer to process structure
  */
 void
-GNUNET_OS_process_close (struct GNUNET_OS_Process *proc)
+GNUNET_OS_process_destroy (struct GNUNET_OS_Process *proc)
 {
   if (NULL != proc->control_pipe)
     GNUNET_DISK_file_close (proc->control_pipe);
@@ -1723,7 +1723,7 @@ GNUNET_OS_command_stop (struct GNUNET_OS_CommandHandle *cmd)
   }
   (void) GNUNET_OS_process_kill (cmd->eip, SIGKILL);
   GNUNET_break (GNUNET_OK == GNUNET_OS_process_wait (cmd->eip));
-  GNUNET_OS_process_close (cmd->eip);
+  GNUNET_OS_process_destroy (cmd->eip);
   GNUNET_DISK_pipe_close (cmd->opipe);
   GNUNET_free (cmd);
 }

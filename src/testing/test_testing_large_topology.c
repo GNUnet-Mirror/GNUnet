@@ -192,7 +192,7 @@ gather_log_data ()
       GNUNET_OS_start_process (NULL, NULL, "./memsize.pl", "memsize.pl",
                                "totals.txt", peer_number, connect_number, NULL);
   GNUNET_OS_process_wait (mem_process);
-  GNUNET_OS_process_close (mem_process);
+  GNUNET_OS_process_destroy (mem_process);
   mem_process = NULL;
 }
 

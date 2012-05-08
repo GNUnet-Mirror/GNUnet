@@ -753,7 +753,7 @@ nat_server_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     if (0 != GNUNET_OS_process_kill (h->server_proc, SIGTERM))
       GNUNET_log_from_strerror (GNUNET_ERROR_TYPE_WARNING, "nat", "kill");
     GNUNET_OS_process_wait (h->server_proc);
-    GNUNET_OS_process_close (h->server_proc);
+    GNUNET_OS_process_destroy (h->server_proc);
     h->server_proc = NULL;
     GNUNET_DISK_pipe_close (h->server_stdout);
     h->server_stdout = NULL;
@@ -1263,7 +1263,7 @@ GNUNET_NAT_unregister (struct GNUNET_NAT_Handle *h)
     if (0 != GNUNET_OS_process_kill (h->server_proc, SIGTERM))
       GNUNET_log_from_strerror (GNUNET_ERROR_TYPE_WARNING, "nat", "kill");
     GNUNET_OS_process_wait (h->server_proc);
-    GNUNET_OS_process_close (h->server_proc);
+    GNUNET_OS_process_destroy (h->server_proc);
     h->server_proc = NULL;
     GNUNET_DISK_pipe_close (h->server_stdout);
     h->server_stdout = NULL;
@@ -1341,7 +1341,7 @@ GNUNET_NAT_run_client (struct GNUNET_NAT_Handle *h,
   /* we know that the gnunet-helper-nat-client will terminate virtually
    * instantly */
   GNUNET_OS_process_wait (proc);
-  GNUNET_OS_process_close (proc);
+  GNUNET_OS_process_destroy (proc);
   return GNUNET_OK;
 }
 

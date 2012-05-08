@@ -377,7 +377,7 @@ GNUNET_TRANSPORT_TESTING_restart_peer (struct GNUNET_TRANSPORT_TESTING_handle
     if (0 != GNUNET_OS_process_kill (p->arm_proc, SIGTERM))
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
     GNUNET_OS_process_wait (p->arm_proc);
-    GNUNET_OS_process_close (p->arm_proc);
+    GNUNET_OS_process_destroy (p->arm_proc);
     p->arm_proc = NULL;
   }
   if (p->hello != NULL)
@@ -467,7 +467,7 @@ GNUNET_TRANSPORT_TESTING_stop_peer (struct GNUNET_TRANSPORT_TESTING_handle *tth,
     if (0 != GNUNET_OS_process_kill (p->arm_proc, SIGTERM))
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
     GNUNET_OS_process_wait (p->arm_proc);
-    GNUNET_OS_process_close (p->arm_proc);
+    GNUNET_OS_process_destroy (p->arm_proc);
     p->arm_proc = NULL;
   }
   if (p->hostkeyfile != NULL)

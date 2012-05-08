@@ -203,7 +203,7 @@ server_load_certificate (struct Plugin *plugin)
       return GNUNET_SYSERR;
     }
     GNUNET_assert (GNUNET_OK == GNUNET_OS_process_wait (cert_creation));
-    GNUNET_OS_process_close (cert_creation);
+    GNUNET_OS_process_destroy (cert_creation);
 
     plugin->key = server_load_file (key_file);
     plugin->cert = server_load_file (cert_file);

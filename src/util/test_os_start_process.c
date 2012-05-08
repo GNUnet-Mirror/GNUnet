@@ -56,7 +56,7 @@ end_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
   }
   GNUNET_assert (GNUNET_OK == GNUNET_OS_process_wait (proc));
-  GNUNET_OS_process_close (proc);
+  GNUNET_OS_process_destroy (proc);
   proc = NULL;
   GNUNET_DISK_pipe_close (hello_pipe_stdout);
   GNUNET_DISK_pipe_close (hello_pipe_stdin);
@@ -196,7 +196,7 @@ check_kill ()
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
   }
   GNUNET_assert (GNUNET_OK == GNUNET_OS_process_wait (proc));
-  GNUNET_OS_process_close (proc);
+  GNUNET_OS_process_destroy (proc);
   proc = NULL;
   GNUNET_DISK_pipe_close (hello_pipe_stdout);
   GNUNET_DISK_pipe_close (hello_pipe_stdin);
@@ -224,7 +224,7 @@ check_instant_kill ()
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
   }
   GNUNET_assert (GNUNET_OK == GNUNET_OS_process_wait (proc));
-  GNUNET_OS_process_close (proc);
+  GNUNET_OS_process_destroy (proc);
   proc = NULL;
   GNUNET_DISK_pipe_close (hello_pipe_stdout);
   GNUNET_DISK_pipe_close (hello_pipe_stdin);

@@ -154,7 +154,7 @@ stop_helper (struct GNUNET_HELPER_Handle *h)
   {
     GNUNET_break (0 == GNUNET_OS_process_kill (h->helper_proc, SIGTERM));
     GNUNET_break (GNUNET_OK == GNUNET_OS_process_wait (h->helper_proc));
-    GNUNET_OS_process_close (h->helper_proc);
+    GNUNET_OS_process_destroy (h->helper_proc);
     h->helper_proc = NULL;
   }
   if (GNUNET_SCHEDULER_NO_TASK != h->restart_task)

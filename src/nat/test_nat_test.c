@@ -129,7 +129,7 @@ main (int argc, char *const argv[])
                       NULL);
   GNUNET_break (0 == GNUNET_OS_process_kill (gns, SIGTERM));
   GNUNET_break (GNUNET_OK == GNUNET_OS_process_wait (gns));
-  GNUNET_OS_process_close (gns);
+  GNUNET_OS_process_destroy (gns);
   return ret;
 }
 

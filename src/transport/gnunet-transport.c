@@ -197,7 +197,7 @@ display_test_result (struct TestContext *tc, int result)
   if ((0 == resolver_users) && (NULL != resolver))
   {
     GNUNET_break (0 == GNUNET_OS_process_kill (resolver, SIGTERM));
-    GNUNET_OS_process_close (resolver);
+    GNUNET_OS_process_destroy (resolver);
     resolver = NULL;
   }
 }

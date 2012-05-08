@@ -166,7 +166,7 @@ check ()
     ok = 1;
   }
   GNUNET_OS_process_wait (proc);
-  GNUNET_OS_process_close (proc);
+  GNUNET_OS_process_destroy (proc);
   proc = NULL;
 #endif
   return ok;

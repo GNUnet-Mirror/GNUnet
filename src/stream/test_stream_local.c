@@ -181,7 +181,7 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_CONFIGURATION_destroy (config_peer1);
   GNUNET_CONFIGURATION_destroy (config_peer2);
   GNUNET_assert (GNUNET_OK == GNUNET_OS_process_wait (arm_pid));
-  GNUNET_OS_process_close (arm_pid);
+  GNUNET_OS_process_destroy (arm_pid);
 }
 
 

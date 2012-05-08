@@ -81,7 +81,7 @@ cleanup (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tskctx)
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ARM process %u stopped\n",
               GNUNET_OS_process_get_pid (arm_proc));
-  GNUNET_OS_process_close (arm_proc);
+  GNUNET_OS_process_destroy (arm_proc);
   arm_proc = NULL;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Ending test.\n");

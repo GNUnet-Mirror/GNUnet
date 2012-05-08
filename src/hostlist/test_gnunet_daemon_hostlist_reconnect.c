@@ -172,7 +172,7 @@ waitpid_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ARM process %u stopped\n",
               GNUNET_OS_process_get_pid (p->arm_proc));
-  GNUNET_OS_process_close (p->arm_proc);
+  GNUNET_OS_process_destroy (p->arm_proc);
   p->arm_proc = NULL;
 #endif
   GNUNET_CONFIGURATION_destroy (p->cfg);

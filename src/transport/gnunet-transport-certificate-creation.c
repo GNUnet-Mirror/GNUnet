@@ -62,7 +62,7 @@ main (int argc, char **argv)
   if (openssl == NULL)
     return 2;
   GNUNET_assert (GNUNET_OS_process_wait (openssl) == GNUNET_OK);
-  GNUNET_OS_process_close (openssl);
+  GNUNET_OS_process_destroy (openssl);
 
   /* Create a self-signed certificate in batch mode using rsa key */
   /* openssl req -batch -days 365 -out $2 -new -x509 -key $1 2> /dev/null */
@@ -73,7 +73,7 @@ main (int argc, char **argv)
   if (openssl == NULL)
     return 3;
   GNUNET_assert (GNUNET_OS_process_wait (openssl) == GNUNET_OK);
-  GNUNET_OS_process_close (openssl);
+  GNUNET_OS_process_destroy (openssl);
   CHMOD (argv[1], S_IRUSR);
   CHMOD (argv[2], S_IRUSR);
   return 0;

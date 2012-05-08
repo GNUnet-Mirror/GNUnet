@@ -256,7 +256,7 @@ entropy_generator (void *cls, const char *what, int printchar, int current,
       if (0 != GNUNET_OS_process_kill (genproc, SIGTERM))
         LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "kill");
       GNUNET_break (GNUNET_OK == GNUNET_OS_process_wait (genproc));
-      GNUNET_OS_process_close (genproc);
+      GNUNET_OS_process_destroy (genproc);
       genproc = NULL;
     }
     return;
@@ -274,7 +274,7 @@ entropy_generator (void *cls, const char *what, int printchar, int current,
     if (0 != GNUNET_OS_process_kill (genproc, SIGTERM))
       LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "kill");
     GNUNET_break (GNUNET_OK == GNUNET_OS_process_wait (genproc));
-    GNUNET_OS_process_close (genproc);
+    GNUNET_OS_process_destroy (genproc);
     genproc = NULL;
   }
   LOG (GNUNET_ERROR_TYPE_INFO, _("Starting `%s' process to generate entropy\n"),
@@ -293,7 +293,7 @@ killfind ()
   if (genproc != NULL)
   {
     GNUNET_OS_process_kill (genproc, SIGKILL);
-    GNUNET_OS_process_close (genproc);
+    GNUNET_OS_process_destroy (genproc);
     genproc = NULL;
   }
 }

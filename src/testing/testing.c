@@ -214,7 +214,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         cb (d->cb_cls, NULL, d->cfg, d, _("`scp' did not complete cleanly.\n"));
       return;
     }
-    GNUNET_OS_process_close (d->proc_arm_copying);
+    GNUNET_OS_process_destroy (d->proc_arm_copying);
     d->proc_arm_copying = NULL;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Successfully copied configuration file.\n");
@@ -362,7 +362,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       d->pipe_stdout = NULL;
       (void) GNUNET_OS_process_kill (d->proc_arm_peerinfo, SIGKILL);      
       GNUNET_break (GNUNET_OK == GNUNET_OS_process_wait (d->proc_arm_peerinfo));
-      GNUNET_OS_process_close (d->proc_arm_peerinfo);      
+      GNUNET_OS_process_destroy (d->proc_arm_peerinfo);      
       d->proc_arm_peerinfo = NULL;
       if (NULL != cb)
         cb (d->cb_cls, NULL, d->cfg, d, _("Failed to get hostkey!\n"));
@@ -373,7 +373,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     d->pipe_stdout = NULL;
     (void) GNUNET_OS_process_kill (d->proc_arm_peerinfo, SIGKILL);
     GNUNET_break (GNUNET_OK == GNUNET_OS_process_wait (d->proc_arm_peerinfo));
-    GNUNET_OS_process_close (d->proc_arm_peerinfo);
+    GNUNET_OS_process_destroy (d->proc_arm_peerinfo);
     d->proc_arm_peerinfo = NULL;
     d->have_hostkey = GNUNET_YES;
     if (d->hostkey_callback != NULL)
@@ -1414,7 +1414,7 @@ kill_and_close_process (struct GNUNET_OS_Process *proc)
 {
   (void) GNUNET_OS_process_kill (proc, SIGKILL); 
   GNUNET_break (GNUNET_OK == GNUNET_OS_process_wait (proc));
-  GNUNET_OS_process_close (proc);
+  GNUNET_OS_process_destroy (proc);
 }
 
 

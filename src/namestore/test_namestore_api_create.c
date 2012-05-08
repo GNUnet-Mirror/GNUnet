@@ -79,7 +79,7 @@ stop_arm ()
     if (0 != GNUNET_OS_process_kill (arm, SIGTERM))
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
     GNUNET_OS_process_wait (arm);
-    GNUNET_OS_process_close (arm);
+    GNUNET_OS_process_destroy (arm);
     arm = NULL;
   }
 }
