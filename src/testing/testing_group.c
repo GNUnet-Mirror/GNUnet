@@ -4892,7 +4892,8 @@ internal_stats_callback (void *cls, const char *subsystem, const char *name,
  * @param tc Task Context
  */
 static void
-internal_destroy_statistics (void *cls, GNUNET_SCHEDULER_TaskContext *tc)
+internal_destroy_statistics (void *cls,
+                             const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_STATISTICS_Handle *h = cls;
 
