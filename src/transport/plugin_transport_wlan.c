@@ -1651,10 +1651,8 @@ libgnunet_plugin_transport_wlan_init (void *cls)
   plugin->fragment_data_tokenizer = GNUNET_SERVER_mst_create (&process_data, plugin);
   plugin->wlan_header_payload_tokenizer = GNUNET_SERVER_mst_create (&process_data, plugin);
   plugin->helper_payload_tokenizer = GNUNET_SERVER_mst_create (&process_data, plugin);
-#if BEACON
   plugin->beacon_task = GNUNET_SCHEDULER_add_now (&send_hello_beacon, 
 						  plugin);
-#endif
   switch (testmode)
   {
   case 0: /* normal */ 
