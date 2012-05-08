@@ -175,7 +175,7 @@ udp_broadcast_receive (struct Plugin *plugin, const char * buf, ssize_t size, st
 {
   struct GNUNET_ATS_Information ats;
 
-  if (addrlen == sizeof (struct sockaddr_in))
+  if ((GNUNET_YES == plugin->broadcast_ipv4) && (addrlen == sizeof (struct sockaddr_in)))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Received IPv4 HELLO beacon broadcast with %i bytes from address %s\n",
@@ -189,12 +189,14 @@ udp_broadcast_receive (struct Plugin *plugin, const char * buf, ssize_t size, st
     mc->addr.u4_port = av4->sin_port;
     ats = plugin->env->get_address_type (plugin->env->cls, (const struct sockaddr *) addr, addrlen);
     mc->ats_address_network_type = ats.value;
+
+    GNUNET_assert (NULL != plugin->broadcast_ipv4_mst);
     if (GNUNET_OK !=
         GNUNET_SERVER_mst_receive (plugin->broadcast_ipv4_mst, mc, buf, size,
                                    GNUNET_NO, GNUNET_NO))
       GNUNET_free (mc);
   }
-  else if (addrlen == sizeof (struct sockaddr_in6))
+  else if ((GNUNET_YES == plugin->broadcast_ipv4) && (addrlen == sizeof (struct sockaddr_in6)))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Received IPv6 HELLO beacon broadcast with %i bytes from address %s\n",
@@ -208,7 +210,7 @@ udp_broadcast_receive (struct Plugin *plugin, const char * buf, ssize_t size, st
     mc->addr.u6_port = av6->sin6_port;
     ats = plugin->env->get_address_type (plugin->env->cls, (const struct sockaddr *) addr, addrlen);
     mc->ats_address_network_type = ats.value;
-
+    GNUNET_assert (NULL != plugin->broadcast_ipv4_mst);
     if (GNUNET_OK !=
         GNUNET_SERVER_mst_receive (plugin->broadcast_ipv6_mst, mc, buf, size,
                                    GNUNET_NO, GNUNET_NO))

@@ -1521,17 +1521,19 @@ static void read_process_ack (struct Plugin *plugin,
   s->last_expected_delay = GNUNET_FRAGMENT_context_destroy (s->frag_ctx->frag);
 
   struct UDPMessageWrapper * udpw = NULL;
+  struct UDPMessageWrapper * tmp = NULL;
   if (s->addrlen == sizeof (struct sockaddr_in6))
   {
     udpw = plugin->ipv6_queue_head;
     while (udpw!= NULL)
     {
+      tmp = udpw->next;
       if ((udpw->frag_ctx != NULL) && (udpw->frag_ctx == s->frag_ctx))
       {
         GNUNET_CONTAINER_DLL_remove(plugin->ipv6_queue_head, plugin->ipv6_queue_tail, udpw);
         GNUNET_free (udpw);
       }
-      udpw = udpw->next;
+      udpw = tmp;
     }
   }
   if (s->addrlen == sizeof (struct sockaddr_in))
@@ -1539,12 +1541,13 @@ static void read_process_ack (struct Plugin *plugin,
     udpw = plugin->ipv4_queue_head;
     while (udpw!= NULL)
     {
+      tmp = udpw->next;
       if ((udpw->frag_ctx != NULL) && (udpw->frag_ctx == s->frag_ctx))
       {
         GNUNET_CONTAINER_DLL_remove(plugin->ipv4_queue_head, plugin->ipv4_queue_tail, udpw);
         GNUNET_free (udpw);
       }
-      udpw = udpw->next;
+      udpw = tmp;
     }
   }
 
