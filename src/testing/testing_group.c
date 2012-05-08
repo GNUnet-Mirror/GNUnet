@@ -2911,7 +2911,7 @@ create_and_copy_friend_files (struct GNUNET_TESTING_PeerGroup *pg)
 	GNUNET_OS_start_process (GNUNET_NO, NULL, NULL, "scp", "scp", mytemp, arg, NULL);
       GNUNET_assert (procarr[pg_iter] != NULL);
       ret = GNUNET_OS_process_wait (procarr[pg_iter]);  /* FIXME: schedule this, throttle! */
-      GNUNET_OS_process_close (procarr[pg_iter]);
+      GNUNET_OS_process_destroy (procarr[pg_iter]);
       if (ret != GNUNET_OK)
       {
         /* FIXME: free contents of 'procarr' array */
@@ -2953,7 +2953,7 @@ create_and_copy_friend_files (struct GNUNET_TESTING_PeerGroup *pg)
         }
         else
         {
-          GNUNET_OS_process_close (procarr[pg_iter]);
+          GNUNET_OS_process_destroy (procarr[pg_iter]);
           procarr[pg_iter] = NULL;
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "File %d copied\n", pg_iter);
         }
@@ -3128,7 +3128,7 @@ create_and_copy_blacklist_files (struct GNUNET_TESTING_PeerGroup *pg,
         }
         else
         {
-          GNUNET_OS_process_close (procarr[pg_iter]);
+          GNUNET_OS_process_destroy (procarr[pg_iter]);
           procarr[pg_iter] = NULL;
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "File %d copied\n", pg_iter);
         }
@@ -5672,7 +5672,7 @@ check_peers_started (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
     }
   }
-  GNUNET_OS_process_close (helper->proc);
+  GNUNET_OS_process_destroy (helper->proc);
 }
 
 static void
@@ -5935,7 +5935,7 @@ GNUNET_TESTING_daemons_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
     GNUNET_free (tmpdir);
     GNUNET_free (arg);
     GNUNET_OS_process_wait (proc);
-    GNUNET_OS_process_close (proc);
+    GNUNET_OS_process_destroy (proc);
   }
   GNUNET_free (baseservicehome);
   baseservicehome = NULL;
@@ -6161,7 +6161,7 @@ GNUNET_TESTING_daemons_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
         GNUNET_assert (0);
       }
       GNUNET_OS_process_wait (proc);
-      GNUNET_OS_process_close (proc);
+      GNUNET_OS_process_destroy (proc);
     }
     /* Now all the configuration files and hostkeys are copied to the remote host.  Call the hostkey callback for each peer! */
     GNUNET_SCHEDULER_add_now (&call_hostkey_callbacks, pg);
