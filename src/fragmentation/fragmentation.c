@@ -28,7 +28,10 @@
 #include "fragmentation.h"
 
 
-#define MIN_ACK_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 50)
+/**
+ * Absolute minimum delay we impose between sending and expecting ACK to arrive.
+ */
+#define MIN_ACK_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 1)
 
 
 /**
