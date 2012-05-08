@@ -1360,7 +1360,10 @@ finish_lookup(struct ResolverHandle *rh,
   unsigned int offset;
 
   if (rh->timeout_task != GNUNET_SCHEDULER_NO_TASK)
+  {
     GNUNET_SCHEDULER_cancel(rh->timeout_task);
+    rh->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  }
 
   if (rd_count > 0)
     memcpy(p_rd, rd, rd_count*sizeof(struct GNUNET_NAMESTORE_RecordData));
