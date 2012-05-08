@@ -41,7 +41,7 @@
 /**
  * Set to GNUNET_YES to perform some slightly expensive internal invariant checks.
  */
-#define EXTRA_CHECKS GNUNET_NO
+#define EXTRA_CHECKS GNUNET_YES
 
 /**
  * How long do we wait for SET_KEY confirmation initially?
@@ -877,6 +877,12 @@ GSC_KX_handle_set_key (struct GSC_KeyExchangeInfo *kx,
       (GNUNET_OK != GNUNET_CRYPTO_aes_check_session_key (&k)))
   {
     /* failed to decrypt !? */
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		"Invalid key %x decrypted by %s from message %u (origin: %s)\n",
+		(unsigned int) GNUNET_CRYPTO_crc32_n (&k, sizeof (struct GNUNET_CRYPTO_AesSessionKey)),
+		GNUNET_i2s (&GSC_my_identity),
+		(unsigned int) GNUNET_CRYPTO_crc32_n (&m->encrypted_key, sizeof (struct GNUNET_CRYPTO_RsaEncryptedData)),
+		GNUNET_h2s (&kx->peer.hashPubKey));
     GNUNET_break_op (0);
     return;
   }
@@ -1058,6 +1064,13 @@ setup_fresh_setkey (struct GSC_KeyExchangeInfo *kx)
                                                     GNUNET_CRYPTO_AesSessionKey),
                                             kx->public_key,
                                             &skm->encrypted_key));
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+	      "Encrypting key %x for %s resulting in message %u (origin: %s)\n",
+	      (unsigned int) GNUNET_CRYPTO_crc32_n (&kx->encrypt_key, sizeof (struct GNUNET_CRYPTO_AesSessionKey)),
+	      GNUNET_i2s (&kx->peer),
+	      (unsigned int) GNUNET_CRYPTO_crc32_n (&skm->encrypted_key, sizeof (struct GNUNET_CRYPTO_RsaEncryptedData)),
+	      GNUNET_h2s (&GSC_my_identity.hashPubKey));
+
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CRYPTO_rsa_sign (my_private_key, &skm->purpose,
                                          &skm->signature));

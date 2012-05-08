@@ -75,6 +75,12 @@ typedef void (*GNUNET_HELPER_Continuation)(void *cls,
 
 
 /**
+ * Handle to cancel 'send'
+ */
+struct GNUNET_HELPER_SendHandle;
+
+
+/**
  * Send an message to the helper.
  *
  * @param h helper to send message to
@@ -82,15 +88,26 @@ typedef void (*GNUNET_HELPER_Continuation)(void *cls,
  * @param can_drop can the message be dropped if there is already one in the queue?
  * @param cont continuation to run once the message is out
  * @param cont_cls closure for 'cont'
- * @return GNUNET_YES if the message will be sent
- *         GNUNET_NO if the message was dropped
+ * @return NULL if the message was dropped, 
+ *         otherwise handle to cancel *cont* (actual transmission may
+ *         not be abortable)
  */
-int
+struct GNUNET_HELPER_SendHandle *
 GNUNET_HELPER_send (struct GNUNET_HELPER_Handle *h, 
 		    const struct GNUNET_MessageHeader *msg,
 		    int can_drop,
 		    GNUNET_HELPER_Continuation cont,
 		    void *cont_cls);
 
+
+/**
+ * Cancel a 'send' operation.  If possible, transmitting the
+ * message is also aborted, but at least 'cont' won't be
+ * called.
+ *
+ * @param sh operation to cancel
+ */
+void
+GNUNET_HELPER_send_cancel (struct GNUNET_HELPER_SendHandle *sh);
 
 #endif /* end of include guard: GNUNET_HELPER_LIB_H */

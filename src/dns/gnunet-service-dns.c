@@ -631,10 +631,10 @@ request_done (struct RequestRecord *rr)
     }
     /* final checks & sending */
     GNUNET_assert (off == reply_len);
-    GNUNET_HELPER_send (hijacker,
-			hdr,
-			GNUNET_YES,
-			NULL, NULL);
+    (void) GNUNET_HELPER_send (hijacker,
+			       hdr,
+			       GNUNET_YES,
+			       NULL, NULL);
     GNUNET_STATISTICS_update (stats,
 			      gettext_noop ("# DNS requests answered via TUN interface"),
 			      1, GNUNET_NO);
