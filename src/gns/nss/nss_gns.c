@@ -39,50 +39,6 @@
     idx += (sizeof(void*) - idx % sizeof(void*)); /* Align on 32 bit boundary */ \
 } while(0)
 
-#ifndef NSS_IPV6_ONLY
-static void ipv4_callback(const ipv4_address_t *ipv4, void *userdata) {
-    struct userdata *u = userdata;
-    
-    /*test!*/
-    ipv4_address_t *ipv4_test;
-    struct in_addr testaddr;
-    inet_pton(AF_INET, "5.5.5.5", &testaddr);
-    ipv4_test = (ipv4_address_t *)&testaddr;
-    /*test!*/
-    /*assert(ipv4 && userdata);*/
-
-    if (u->count >= MAX_ENTRIES)
-        return;
-
-    u->data.ipv4[u->count++] = *ipv4_test;
-    u->data_len += sizeof(ipv4_address_t);
-}
-#endif
-
-#ifndef NSS_IPV4_ONLY
-static void ipv6_callback(const ipv6_address_t *ipv6, void *userdata) {
-    struct userdata *u = userdata;
-    assert(ipv6 && userdata);
-
-    if (u->count >= MAX_ENTRIES)
-        return;
-
-    u->data.ipv6[u->count++] = *ipv6;
-    u->data_len += sizeof(ipv6_address_t);
-}
-#endif
-
-static void name_callback(const char*name, void *userdata) {
-    struct userdata *u = userdata;
-    assert(name && userdata);
-
-    if (u->count >= MAX_ENTRIES)
-        return;
-
-    u->data.name[u->count++] = strdup(name);
-    u->data_len += strlen(name)+1;
-}
-
 static int ends_with(const char *name, const char* suffix) {
     size_t ln, ls;
     assert(name);
@@ -113,8 +69,6 @@ enum nss_status _nss_gns_gethostbyname2_r(
     size_t address_length, l, idx, astart;
     int name_allowed;
     
-    printf("v6: %d\n", af == AF_INET6);
-
     if (af == AF_UNSPEC)
 #ifdef NSS_IPV6_ONLY
         af = AF_INET6;
@@ -155,11 +109,10 @@ enum nss_status _nss_gns_gethostbyname2_r(
     
     if (name_allowed) {
 
-        if (gns_resolve_name(af, name, &u) == 0)
+        if (!gns_resolve_name(af, name, &u) == 0)
         {
-            printf("GNS success\n");
-        } else
-            status = NSS_STATUS_NOTFOUND;
+          status = NSS_STATUS_NOTFOUND;
+        }
     }
 
     if (u.count == 0) {
