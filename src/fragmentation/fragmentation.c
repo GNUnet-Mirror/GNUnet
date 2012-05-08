@@ -28,6 +28,9 @@
 #include "fragmentation.h"
 
 
+#define MIN_ACK_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 50)
+
+
 /**
  * Fragmentation context.
  */
@@ -172,6 +175,11 @@ transmit_next (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   fc->next_transmission = (fc->next_transmission + 1) % 64;
   wrap |= (fc->next_transmission == 0);
+  while (0 == (fc->acks & (1LL << fc->next_transmission)))
+  {
+    fc->next_transmission = (fc->next_transmission + 1) % 64;
+    wrap |= (fc->next_transmission == 0);
+  }
 
   /* assemble fragmentation message */
   mbuf = (const char *) &fc[1];
@@ -211,7 +219,7 @@ transmit_next (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                   GNUNET_TIME_relative_multiply (fc->delay,
                                                                  fc->num_rounds));
     /* never use zero, need some time for ACK always */
-    delay = GNUNET_TIME_relative_max (GNUNET_TIME_UNIT_MILLISECONDS, delay);
+    delay = GNUNET_TIME_relative_max (MIN_ACK_DELAY, delay);
     fc->last_round = GNUNET_TIME_absolute_get ();
     fc->wack = GNUNET_YES;
   }
