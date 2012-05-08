@@ -18,7 +18,7 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file transport/test_transport_api.c
+ * @file transport/test_plugin_transport.c
  * @brief testcase for transport_api.c
  * @author Sailor Siraj
  * @author Christian Grothoff
@@ -26,13 +26,10 @@
 
 #include "platform.h"
 #include "gnunet_constants.h"
-#include "gnunet_getopt_lib.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_hello_lib.h"
-#include "gnunet_os_lib.h"
 #include "gnunet_peerinfo_service.h"
-#include "gnunet_plugin_lib.h"
 #include "gnunet_protocols.h"
-#include "gnunet_program_lib.h"
 #include "gnunet_signatures.h"
 #include "gnunet_transport_plugin.h"
 #include "transport.h"

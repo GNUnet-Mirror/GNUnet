@@ -65,26 +65,28 @@ static char *test_name;
 static int ok;
 
 static int s_started;
+
 static int s_connected;
+
 static int s_sending;
 
 static GNUNET_SCHEDULER_TaskIdentifier die_task;
 
 static GNUNET_SCHEDULER_TaskIdentifier send_task;
 
-struct PeerContext *p1;
+static struct PeerContext *p1;
 
-struct PeerContext *p2;
+static struct PeerContext *p2;
 
 static GNUNET_TRANSPORT_TESTING_ConnectRequest cc;
 
-struct GNUNET_TRANSPORT_TransmitHandle *th;
+static struct GNUNET_TRANSPORT_TransmitHandle *th;
 
-struct GNUNET_TRANSPORT_TESTING_handle *tth;
+static struct GNUNET_TRANSPORT_TESTING_handle *tth;
 
-char *cfg_file_p1;
+static char *cfg_file_p1;
 
-char *cfg_file_p2;
+static char *cfg_file_p2;
 
 #if VERBOSE
 #define OKPP do { ok++; FPRINTF (stderr, "Now at stage %u at %s:%u\n", ok, __FILE__, __LINE__); } while (0)
@@ -302,6 +304,7 @@ notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
   th = NULL;
 }
 
+
 static void
 testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)
 {
@@ -317,8 +320,7 @@ testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)
 }
 
 
-
-void
+static void
 start_cb (struct PeerContext *p, void *cls)
 {
   static int started;
@@ -343,6 +345,7 @@ start_cb (struct PeerContext *p, void *cls)
                                                NULL);
 
 }
+
 
 static void
 run (void *cls, char *const *args, const char *cfgfile,
