@@ -576,7 +576,7 @@ find_address_it (void *cls, const GNUNET_HashCode * key, void *value)
 }
 
 
-void
+int
 GAS_addresses_in_use (const struct GNUNET_PeerIdentity *peer,
                       const char *plugin_name, const void *plugin_addr,
                       size_t plugin_addr_len, uint32_t session_id, int in_use)
@@ -591,7 +591,7 @@ GAS_addresses_in_use (const struct GNUNET_PeerIdentity *peer,
   struct ATS_Address *old;
 
   if (GNUNET_NO == running)
-    return;
+    return GNUNET_SYSERR;
 
   aa = create_address (peer, plugin_name, plugin_addr, plugin_addr_len, session_id);
   old = find_exact_address (peer, aa);
@@ -599,26 +599,25 @@ GAS_addresses_in_use (const struct GNUNET_PeerIdentity *peer,
 
   if (NULL == old)
   {
-    GNUNET_break_op (0);
-    return;
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
   }
   if (old->used == in_use)
   {
-    GNUNET_break_op (0);
+    GNUNET_break (0);
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Address in use called multiple times for peer `%s': %s -> %s \n",
                 GNUNET_i2s (peer),
                 (GNUNET_NO == old->used) ? "NO" : "YES",
                 (GNUNET_NO == in_use) ? "NO" : "YES");
-    return;
+    return GNUNET_SYSERR;
   }
-
   old->used = in_use;
-
 #if HAVE_LIBGLPK
   if (ats_mode == MLP)
      GAS_mlp_address_update (mlp, addresses, old);
 #endif
+  return GNUNET_OK;
 }
 
 

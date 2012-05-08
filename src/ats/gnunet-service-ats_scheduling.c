@@ -274,6 +274,7 @@ GAS_handle_address_in_use (void *cls, struct GNUNET_SERVER_Client *client,
   const struct AddressUseMessage *m;
   const char *address;
   const char *plugin_name;
+  int res;
   uint16_t address_length;
   uint16_t plugin_name_length;
 
@@ -309,10 +310,14 @@ GAS_handle_address_in_use (void *cls, struct GNUNET_SERVER_Client *client,
   }
 
   in_use = ntohs (m->in_use);
-  GAS_addresses_in_use (&m->peer, plugin_name, address, address_length,
-                        ntohl (m->session_id), in_use);
+  res = GAS_addresses_in_use (&m->peer,
+                             plugin_name,
+                             address,
+                             address_length,
+                             ntohl (m->session_id),
+                             in_use);
 
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  GNUNET_SERVER_receive_done (client, res);
 }
 
 /**
