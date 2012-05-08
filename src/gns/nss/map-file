@@ -1,0 +1,14 @@
+NSSGNS_0 {
+global:
+_nss_gns_gethostbyaddr_r;
+_nss_gns4_gethostbyaddr_r;
+_nss_gns6_gethostbyaddr_r;
+_nss_gns_gethostbyname_r;         
+_nss_gns4_gethostbyname_r;
+_nss_gns6_gethostbyname_r;
+_nss_gns_gethostbyname2_r;         
+_nss_gns4_gethostbyname2_r;
+_nss_gns6_gethostbyname2_r;
+local: 
+*;
+};

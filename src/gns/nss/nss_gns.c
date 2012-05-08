@@ -19,10 +19,7 @@
     USA.
 ***/
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
-
+#include <gnunet_config.h>
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
@@ -32,6 +29,8 @@
 #include <nss.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+#include "query.h"
 
 #ifdef NSS_IPV4_ONLY
 #define _nss_mdns_gethostbyname2_r _nss_gns4_minimal_gethostbyname2_r

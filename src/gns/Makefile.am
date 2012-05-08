@@ -1,5 +1,7 @@
 INCLUDES = -I$(top_srcdir)/src/include
 
+#SUBDIRS=nss
+
 if MINGW
   WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols
 endif
