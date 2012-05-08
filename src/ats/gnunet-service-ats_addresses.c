@@ -593,12 +593,26 @@ GAS_addresses_in_use (const struct GNUNET_PeerIdentity *peer,
   if (GNUNET_NO == running)
     return;
 
-  aa = create_address(peer, plugin_name, plugin_addr, plugin_addr_len, session_id);
+  aa = create_address (peer, plugin_name, plugin_addr, plugin_addr_len, session_id);
   old = find_exact_address (peer, aa);
   free_address (aa);
 
-  GNUNET_assert (old != NULL);
-  GNUNET_assert (old->used != in_use);
+  if (NULL == old)
+  {
+    GNUNET_break_op (0);
+    return;
+  }
+  if (old->used == in_use)
+  {
+    GNUNET_break_op (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Address in use called multiple times for peer `%s': %s -> %s \n",
+                GNUNET_i2s (peer),
+                (GNUNET_NO == old->used) ? "NO" : "YES",
+                (GNUNET_NO == in_use) ? "NO" : "YES");
+    return;
+  }
+
   old->used = in_use;
 
 #if HAVE_LIBGLPK
