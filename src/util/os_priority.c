@@ -486,6 +486,11 @@ GNUNET_OS_process_get_pid (struct GNUNET_OS_Process * proc)
 }
 
 
+/**
+ * Cleans up process structure contents (OS-dependent) and deallocates it
+ *
+ * @param proc pointer to process structure
+ */
 void
 GNUNET_OS_process_close (struct GNUNET_OS_Process *proc)
 {
