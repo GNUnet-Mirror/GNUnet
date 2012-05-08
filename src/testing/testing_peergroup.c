@@ -445,46 +445,56 @@ internal_topology_callback (void *cls, const struct GNUNET_PeerIdentity *first,
     pg_start_ctx->connect_cb (pg_start_ctx->cls, first, second, distance,
                               first_cfg, second_cfg, first_daemon,
                               second_daemon, emsg);
-  if (GNUNET_YES == update_meter (pg_start_ctx->connect_meter))
+  if (GNUNET_YES != update_meter (pg_start_ctx->connect_meter))
   {
+    /* No finished yet */
+    return;
+  }
 #if VERBOSE
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Created %d total connections, which is our target number!  Starting next phase of testing.\n",
-                pg_start_ctx->total_connections);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Created %d total connections, which is our target number!  Starting next phase of testing.\n",
+              pg_start_ctx->total_connections);
 #endif
 
 #if TIMING
-    total_duration =
-        GNUNET_TIME_absolute_get_difference (connect_start_time,
-                                             GNUNET_TIME_absolute_get
-                                             ()).rel_value / 1000;
-    failed_conns_per_sec_total = (double) failed_connections / total_duration;
-    conns_per_sec_total = (double) total_connections / total_duration;
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "Overall connection info --- Total: %u, Total Failed %u/s\n",
-                total_connections, failed_connections);
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "Overall connection info --- Total: %.2f/s, Total Failed %.2f/s\n",
-                conns_per_sec_total, failed_conns_per_sec_total);
+  total_duration =
+      GNUNET_TIME_absolute_get_difference (connect_start_time,
+                                            GNUNET_TIME_absolute_get
+                                            ()).rel_value / 1000;
+  failed_conns_per_sec_total = (double) failed_connections / total_duration;
+  conns_per_sec_total = (double) total_connections / total_duration;
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "Overall connection info --- Total: %u, Total Failed %u/s\n",
+              total_connections, failed_connections);
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "Overall connection info --- Total: %.2f/s, Total Failed %.2f/s\n",
+              conns_per_sec_total, failed_conns_per_sec_total);
 #endif
 
-    GNUNET_assert (pg_start_ctx->die_task != GNUNET_SCHEDULER_NO_TASK);
-    GNUNET_SCHEDULER_cancel (pg_start_ctx->die_task);
+  GNUNET_assert (pg_start_ctx->die_task != GNUNET_SCHEDULER_NO_TASK);
+  GNUNET_SCHEDULER_cancel (pg_start_ctx->die_task);
 
-    /* Call final callback, signifying that the peer group has been started and connected */
-    if (pg_start_ctx->peergroup_cb != NULL)
-      pg_start_ctx->peergroup_cb (pg_start_ctx->cls, NULL);
+  /* Call final callback, signifying that the peer group has been started and connected */
+  if (pg_start_ctx->peergroup_cb != NULL)
+    pg_start_ctx->peergroup_cb (pg_start_ctx->cls, NULL);
 
-    if (pg_start_ctx->topology_output_file != NULL)
-    {
-      temp = GNUNET_asprintf (&temp_str, "}\n");
-      if (temp > 0)
-        GNUNET_DISK_file_write (pg_start_ctx->topology_output_file, temp_str,
-                                temp);
-      GNUNET_free (temp_str);
-      GNUNET_DISK_file_close (pg_start_ctx->topology_output_file);
-    }
+  if (pg_start_ctx->topology_output_file != NULL)
+  {
+    temp = GNUNET_asprintf (&temp_str, "}\n");
+    if (temp > 0)
+      GNUNET_DISK_file_write (pg_start_ctx->topology_output_file, temp_str,
+                              temp);
+    GNUNET_free (temp_str);
+    GNUNET_DISK_file_close (pg_start_ctx->topology_output_file);
   }
+  GNUNET_free_non_null (pg_start_ctx->fail_reason);
+  if (NULL != pg_start_ctx->hostkey_meter)
+    free_meter(pg_start_ctx->hostkey_meter);
+  if (NULL != pg_start_ctx->peer_start_meter)
+    free_meter(pg_start_ctx->peer_start_meter);
+  if (NULL != pg_start_ctx->connect_meter)
+    free_meter(pg_start_ctx->connect_meter);
+  GNUNET_free (pg_start_ctx);
 }
 
 
