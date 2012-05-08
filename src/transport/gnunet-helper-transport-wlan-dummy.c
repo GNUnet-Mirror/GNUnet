@@ -222,37 +222,35 @@ main (int argc, char *argv[])
   }
 
   /* make the fifos if needed */
-  if (0 != stat (FIFO_FILE1, &st))
+  umask (0);
+  if ( (GNUNET_OK != GNUNET_DISK_directory_create_for_file (FIFO_FILE1)) ||
+       (GNUNET_OK != GNUNET_DISK_directory_create_for_file (FIFO_FILE2)) )
   {
-    if (0 == stat (FIFO_FILE2, &st))
+    FPRINTF (stderr, "Failed to create directory for file `%s'\n", FIFO_FILE1);
+    return 1;
+  }
+  if (0 == strcmp (argv[1], "1") )
+  {
+    if (0 != stat (FIFO_FILE1, &st))
     {
-      FPRINTF (stderr, "%s", "FIFO_FILE2 exists, but FIFO_FILE1 not\n");
-      exit (1);
-    }
-    umask (0);
-    erg = mkfifo (FIFO_FILE1, 0666);
-    if (0 != erg)
-    {
-      FPRINTF (stderr, "Error in mkfifo(%s): %s\n", FIFO_FILE1,
-               strerror (errno));
-    }
-    erg = mkfifo (FIFO_FILE2, 0666);
-    if (0 != erg)
-    {
-      FPRINTF (stderr, "Error in mkfifo(%s): %s\n", FIFO_FILE2,
-               strerror (errno));
+      erg = mkfifo (FIFO_FILE1, 0666);
+      if ( (0 != erg) && (EEXIST != errno) )
+	FPRINTF (stderr, "Error in mkfifo(%s): %s\n", FIFO_FILE1,
+		 strerror (errno));    
     }
   }
   else
   {
     if (0 != stat (FIFO_FILE2, &st))
     {
-      FPRINTF (stderr, "%s", "FIFO_FILE1 exists, but FIFO_FILE2 not\n");
-      exit (1);
+      erg = mkfifo (FIFO_FILE2, 0666);
+      if ( (0 != erg) && (EEXIST != errno) )
+	FPRINTF (stderr, "Error in mkfifo(%s): %s\n", FIFO_FILE2,
+		 strerror (errno));
     }
   }
 
-  if (0 != strcmp (argv[1], "1"))
+  if (0 == strcmp (argv[1], "1"))
   {
     first = 1;
     fpin = fopen (FIFO_FILE1, "r");
@@ -261,7 +259,11 @@ main (int argc, char *argv[])
       FPRINTF (stderr, "fopen of read FIFO_FILE1 failed: %s\n", STRERROR (errno));
       goto end;
     }
-    fpout = fopen (FIFO_FILE2, "w");
+    if (NULL == (fpout = fopen (FIFO_FILE2, "w")))
+    {
+      erg = mkfifo (FIFO_FILE2, 0666);
+      fpout = fopen (FIFO_FILE2, "w");
+    }
     if (NULL == fpout)
     {
       FPRINTF (stderr, "fopen of write FIFO_FILE2 failed: %s\n", STRERROR (errno));
@@ -271,7 +273,11 @@ main (int argc, char *argv[])
   else
   {
     first = 0;
-    fpout = fopen (FIFO_FILE1, "w");
+    if (NULL == (fpout = fopen (FIFO_FILE1, "w")))
+    {
+      erg = mkfifo (FIFO_FILE1, 0666);
+      fpout = fopen (FIFO_FILE1, "w");
+    }
     if (NULL == fpout)
     {
       FPRINTF (stderr, "fopen of write FIFO_FILE1 failed: %s\n", STRERROR (errno));
