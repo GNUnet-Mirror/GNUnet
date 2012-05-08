@@ -57,6 +57,11 @@ static char *lookup_type;
  */
 static char *auth_name;
 
+/**
+ * raw output
+ */
+static int raw;
+
 static enum GNUNET_GNS_RecordType rtype;
 
 /**
@@ -92,11 +97,13 @@ process_lookup_result(void* cls, uint32_t rd_count,
   char* name = (char*) cls;
   const char* typename;
   char* string_val;
-
-  if (rd_count == 0)
-    printf("No results.\n");
-  else
-    printf("%s:\n", name);
+  
+  if (!raw) {
+    if (rd_count == 0)
+      printf("No results.\n");
+    else
+      printf("%s:\n", name);
+  }
 
 
 
@@ -106,7 +113,10 @@ process_lookup_result(void* cls, uint32_t rd_count,
     string_val = GNUNET_NAMESTORE_value_to_string(rd[i].record_type,
                                                   rd[i].data,
                                                   rd[i].data_size);
-    printf("Got %s record: %s\n", typename, string_val);
+    if (raw)
+      printf("%s\n", string_val);
+    else
+      printf("Got %s record: %s\n", typename, string_val);
 
   }
 
@@ -193,6 +203,9 @@ main (int argc, char *const *argv)
     {'t', "type", NULL,
       gettext_noop ("Specify the type of the record lookup"), 1,
       &GNUNET_GETOPT_set_string, &lookup_type},
+    {'r', "raw", NULL,
+      gettext_noop ("No unneeded output"), 0,
+      &GNUNET_GETOPT_set_one, &raw},
     GNUNET_GETOPT_OPTION_END
   };
 
