@@ -4884,6 +4884,22 @@ internal_stats_callback (void *cls, const char *subsystem, const char *name,
                               subsystem, name, value, is_persistent);
 }
 
+
+/**
+ * We don't need the statistics handle anymore, destroy it.
+ * 
+ * @param cls Closure (the statistics handle to destroy)
+ * @param tc Task Context
+ */
+static void
+internal_destroy_statistics (void *cls, GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_STATISTICS_Handle *h = cls;
+
+  GNUNET_STATISTICS_destroy (h, GNUNET_NO);
+}
+
+
 /**
  * Internal continuation call for statistics iteration.
  *
@@ -4908,7 +4924,9 @@ internal_stats_cont (void *cls, int success)
   }
 
   if (core_context->stats_handle != NULL)
-    GNUNET_STATISTICS_destroy (core_context->stats_handle, GNUNET_NO);
+    /* Cannot destroy handle inside the continuation */
+    GNUNET_SCHEDULER_add_now (&internal_destroy_statistics,
+                              core_context->stats_handle);
 
   GNUNET_free (core_context);
 }
@@ -5290,9 +5308,9 @@ increment_outstanding_at_host (const char *hostname,
   struct OutstandingSSH *pos;
 
   pos = pg->ssh_head;
-  while ((pos != NULL) && (strcmp (pos->hostname, hostname) != 0))
+  while ((NULL != pos) && (strcmp (pos->hostname, hostname) != 0))
     pos = pos->next;
-  GNUNET_assert (pos != NULL);
+  GNUNET_assert (NULL != pos);
   pos->outstanding++;
 }
 

@@ -1075,6 +1075,7 @@ schedule_action (struct GNUNET_STATISTICS_Handle *h)
  * @param timeout after how long should we give up (and call
  *        cont with an error code)?
  * @param cont continuation to call when done (can be NULL)
+ *        This callback CANNOT destroy the statistics handle in the same call.
  * @param proc function to call on each value
  * @param cls closure for cont and proc
  * @return NULL on error
