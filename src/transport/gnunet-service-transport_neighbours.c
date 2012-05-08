@@ -1631,7 +1631,11 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
     cc = GNUNET_malloc (sizeof (struct ContinutionContext));
     cc->session = n->session;
     cc->address = GNUNET_HELLO_address_copy (address);
-
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Sending CONNECT message to %s\n",
+		GNUNET_i2s (&n->id));
+    if (n->state != S_CONNECT_RECV)
+      change_state (n, S_CONNECT_RECV);
     ret = send_with_session (n,
       (const char *) &connect_msg, msg_len,
       UINT32_MAX, GNUNET_TIME_UNIT_FOREVER_REL,
