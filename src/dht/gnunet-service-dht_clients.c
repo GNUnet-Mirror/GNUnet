@@ -1137,7 +1137,7 @@ GDS_CLIENTS_process_get (uint32_t options,
       msize += sizeof (struct PendingMessage);
       pm = (struct PendingMessage *) GNUNET_malloc (msize);
       mmsg = (struct GNUNET_DHT_MonitorGetMessage *) &pm[1];
-      pm->msg = (struct GNUNET_MessageHeader *) mmsg;
+      pm->msg = &mmsg->header;
       mmsg->header.size = htons (msize - sizeof (struct PendingMessage));
       mmsg->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_MONITOR_GET);
       mmsg->options = htonl(options);
