@@ -24,6 +24,9 @@
 
 #include <inttypes.h>
 
+/* Maximum number of entries to return */
+#define MAX_ENTRIES 16
+
 typedef struct {
     uint32_t address;
 } ipv4_address_t;
@@ -32,25 +35,19 @@ typedef struct {
     uint8_t address[16];
 } ipv6_address_t;
 
-int gns_open_socket(void);
 
-int gns_query_name(int fd,
+struct userdata {
+  int count;
+  int data_len; /* only valid when doing reverse lookup */
+  union  {
+      ipv4_address_t ipv4[MAX_ENTRIES];
+      ipv6_address_t ipv6[MAX_ENTRIES];
+      char *name[MAX_ENTRIES];
+  } data;
+};
+
+int gns_resolve_name(int af,
                const char *name,
-               void (*ipv4_func)(const ipv4_address_t *ipv4, void *userdata),
-               void (*ipv6_func)(const ipv6_address_t *ipv6, void *userdata),
-               void *userdata);
-
-#ifndef NSS_IPV6_ONLY
-int gns_query_ipv4(int fd,
-               const ipv4_address_t *ipv4,
-               void (*name_func)(const char *name, void *userdata),
-               void *userdata);
-#endif
-#ifndef NSS_IPV4_ONLY
-int gns_query_ipv6(int fd,
-               const ipv6_address_t *ipv6,
-               void (*name_func)(const char *name, void *userdata),
-               void *userdata);
-#endif
+               struct userdata *userdata);
 
 #endif

@@ -31,11 +31,11 @@ lib_LTLIBRARIES += \
 	libnss_gns4.la \
 	libnss_gns6.la
 
-sources = util.c util.h query.h
+sources = util.c util.h query.h query.c
 
 # GNU Libc
 libnss_gns_la_SOURCES= $(sources) nss_gns.c
-libnss_gns_la_CFLAGS=$(AM_CFLAGS) 
+libnss_gns_la_CFLAGS=$(AM_CFLAGS) -D_GNU_SOURCE
 libnss_gns_la_LDFLAGS=$(AM_LDFLAGS) -shrext .so.2 -Wl,-version-script=$(srcdir)/map-file
 
 libnss_gns4_la_SOURCES=$(libnss_gns_la_SOURCES)

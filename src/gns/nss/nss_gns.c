@@ -32,53 +32,29 @@
 
 #include "query.h"
 
-#ifdef NSS_IPV4_ONLY
-#define _nss_mdns_gethostbyname2_r _nss_gns4_minimal_gethostbyname2_r
-#define _nss_mdns_gethostbyname_r  _nss_gns4_minimal_gethostbyname_r
-#define _nss_mdns_gethostbyaddr_r  _nss_gns4_minimal_gethostbyaddr_r
-#endif
-
-#ifdef NSS_IPV6_ONLY
-#define _nss_mdns_gethostbyname2_r _nss_gns6_gethostbyname2_r
-#define _nss_mdns_gethostbyname_r  _nss_gns6_gethostbyname_r
-#define _nss_mdns_gethostbyaddr_r  _nss_gns6_gethostbyaddr_r
-#endif
-
-#ifndef NSS_IPV4_ONLY
-#ifndef NSS_IPV6_ONLY
-#define _nss_mdns_gethostbyname2_r _nss_gns_gethostbyname2_r
-#define _nss_mdns_gethostbyname_r  _nss_gns_gethostbyname_r
-#define _nss_mdns_gethostbyaddr_r  _nss_gns_gethostbyaddr_r
-#endif
-#endif
-
-/* Maximum number of entries to return */
-#define MAX_ENTRIES 16
+#include <arpa/inet.h>
 
 #define ALIGN(idx) do { \
   if (idx % sizeof(void*)) \
     idx += (sizeof(void*) - idx % sizeof(void*)); /* Align on 32 bit boundary */ \
 } while(0)
 
-struct userdata {
-    int count;
-    int data_len; /* only valid when doing reverse lookup */
-    union  {
-        ipv4_address_t ipv4[MAX_ENTRIES];
-        ipv6_address_t ipv6[MAX_ENTRIES];
-        char *name[MAX_ENTRIES];
-    } data;
-};
-
 #ifndef NSS_IPV6_ONLY
 static void ipv4_callback(const ipv4_address_t *ipv4, void *userdata) {
     struct userdata *u = userdata;
-    assert(ipv4 && userdata);
+    
+    /*test!*/
+    ipv4_address_t *ipv4_test;
+    struct in_addr testaddr;
+    inet_pton(AF_INET, "5.5.5.5", &testaddr);
+    ipv4_test = (ipv4_address_t *)&testaddr;
+    /*test!*/
+    /*assert(ipv4 && userdata);*/
 
     if (u->count >= MAX_ENTRIES)
         return;
 
-    u->data.ipv4[u->count++] = *ipv4;
+    u->data.ipv4[u->count++] = *ipv4_test;
     u->data_len += sizeof(ipv4_address_t);
 }
 #endif
@@ -135,9 +111,9 @@ enum nss_status _nss_gns_gethostbyname2_r(
     enum nss_status status = NSS_STATUS_UNAVAIL;
     int i;
     size_t address_length, l, idx, astart;
-    void (*ipv4_func)(const ipv4_address_t *ipv4, void *userdata);
-    void (*ipv6_func)(const ipv6_address_t *ipv6, void *userdata);
     int name_allowed;
+    
+    printf("v6: %d\n", af == AF_INET6);
 
     if (af == AF_UNSPEC)
 #ifdef NSS_IPV6_ONLY
@@ -175,43 +151,25 @@ enum nss_status _nss_gns_gethostbyname2_r(
     u.count = 0;
     u.data_len = 0;
 
-#ifdef NSS_IPV6_ONLY
-    ipv4_func = NULL;
-#else
-    ipv4_func = af == AF_INET ? ipv4_callback : NULL;
-#endif
-
-#ifdef NSS_IPV4_ONLY
-    ipv6_func = NULL;
-#else
-    ipv6_func = af == AF_INET6 ? ipv6_callback : NULL;
-#endif
-
-#ifdef ENABLE_GNS
     name_allowed = verify_name_allowed(name);
     
-    if (gns_works && name_allowed) {
-        int r;
+    if (name_allowed) {
 
-        if ((r = gns_resolve_name(af, name, data)) < 0)
-            gns_works = 0;
-        else if (r == 0) {
-            if (af == AF_INET && ipv4_func)
-                ipv4_func((ipv4_address_t*) data, &u);
-            if (af == AF_INET6 && ipv6_func)
-                ipv6_func((ipv6_address_t*)data, &u);
+        if (gns_resolve_name(af, name, &u) == 0)
+        {
+            printf("GNS success\n");
         } else
             status = NSS_STATUS_NOTFOUND;
     }
 
-#endif /* ENABLE_GNS */
-
     if (u.count == 0) {
         *errnop = ETIMEDOUT;
         *h_errnop = HOST_NOT_FOUND;
+        printf("not found\n");
         goto finish;
     }
-    
+
+        
     /* Alias names */
     *((char**) buffer) = NULL;
     result->h_aliases = (char**) buffer;
@@ -285,16 +243,10 @@ enum nss_status _nss_gns_gethostbyaddr_r(
 
     /* we dont do this */
     
-    struct userdata u;
     enum nss_status status = NSS_STATUS_UNAVAIL;
-    int r;
-    size_t address_length, idx, astart;
     
     *errnop = EINVAL;
     *h_errnop = NO_RECOVERY;
-
-    u.count = 0;
-    u.data_len = 0;
 
     /* Check for address types */
 
