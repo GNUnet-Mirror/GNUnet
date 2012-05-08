@@ -306,6 +306,9 @@ start_helper (struct GNUNET_HELPER_Handle *h)
 				    &restart_task, h);    
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+	      _("Starting HELPER process `%s'\n"),
+	      h->binary_name);
   h->fh_from_helper =
       GNUNET_DISK_pipe_handle (h->helper_out, GNUNET_DISK_PIPE_END_READ);
   h->fh_to_helper =
