@@ -435,6 +435,9 @@ lookup_private_key(struct GNUNET_CRYPTO_ShortHashCode *zone)
   struct GNUNET_CRYPTO_ShortHashAsciiEncoded zonename;
   char* location;
   struct GNUNET_CRYPTO_RsaPrivateKey *key = NULL;
+  
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Looking for private key\n");
 
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (GNS_cfg,
                                                             "namestore",
@@ -445,10 +448,19 @@ lookup_private_key(struct GNUNET_CRYPTO_ShortHashCode *zone)
     return NULL;
   }
 
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Zonefile directory is %s\n", keydir);
+
   GNUNET_CRYPTO_short_hash_to_enc (zone, &zonename);
 
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Zonefile is %s.zkey\n", &zonename);
+
   GNUNET_asprintf(&location, "%s%s%s.zkey", keydir,
-                  DIR_SEPARATOR_STR, zonename);
+                  DIR_SEPARATOR_STR, &zonename);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Checking for %s\n", location);
 
   if (GNUNET_YES == GNUNET_DISK_file_test (location))
     key = GNUNET_CRYPTO_rsa_key_create_from_file (location);
@@ -862,7 +874,7 @@ handle_lookup(void *cls,
       key = zone_key;
     else
     {
-      key = lookup_private_key(&sh_msg->zone);
+      key = lookup_private_key(&zone);
       clh->zone_key = key;
     }
     

@@ -60,7 +60,7 @@ static char *auth_name;
 /**
  * raw output
  */
-static int raw;
+static int raw = 0;
 
 static enum GNUNET_GNS_RecordType rtype;
 
@@ -142,6 +142,41 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
+  char* keyfile;
+  struct GNUNET_CRYPTO_RsaPrivateKey *key = NULL;
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pkey;
+  struct GNUNET_CRYPTO_ShortHashCode *zone = NULL;
+  struct GNUNET_CRYPTO_ShortHashCode user_zone;
+  struct GNUNET_CRYPTO_ShortHashAsciiEncoded zonename;
+
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
+                                                           "ZONEKEY", &keyfile))
+  {
+    if (!raw)
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  "No private key for root zone found, using default!\n");
+    zone = NULL;
+  }
+  else
+  {
+    if (GNUNET_YES == GNUNET_DISK_file_test (keyfile))
+    {
+      key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
+      GNUNET_CRYPTO_rsa_key_get_public (key, &pkey);
+      GNUNET_CRYPTO_short_hash(&pkey,
+                         sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+                         &user_zone);
+      GNUNET_free(keyfile);
+      zone = &user_zone;
+      GNUNET_CRYPTO_short_hash_to_enc (zone, &zonename);
+      printf("asdsad\n");
+      if (!raw)
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    "Using zone: %s!\n", &zonename);
+      GNUNET_CRYPTO_rsa_key_free(key);
+    }
+  }
+
   gns = GNUNET_GNS_connect (cfg);
   if (lookup_type != NULL)
     rtype = GNUNET_NAMESTORE_typename_to_number(lookup_type);
@@ -158,7 +193,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   if (shorten_name != NULL)
   {
     /** shorten name */
-    GNUNET_GNS_shorten(gns, shorten_name, &process_shorten_result,
+    GNUNET_GNS_shorten_zone (gns, shorten_name, zone, &process_shorten_result,
                        shorten_name);
   }
 
@@ -166,7 +201,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Lookup\n");
-    GNUNET_GNS_lookup(gns, lookup_name, rtype,
+    GNUNET_GNS_lookup_zone (gns, lookup_name, zone, rtype,
                       &process_lookup_result, lookup_name);
   }
 
