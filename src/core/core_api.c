@@ -593,6 +593,11 @@ transmission_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 /**
  * Transmit the next message to the core service.
+ *
+ * @param cls closure with the 'struct GNUNET_CORE_Handle'
+ * @param size number of bytes available in buf
+ * @param buf where the callee should write the message
+ * @return number of bytes written to buf 
  */
 static size_t
 transmit_message (void *cls, size_t size, void *buf)
@@ -1432,7 +1437,8 @@ GNUNET_CORE_notify_transmit_ready_cancel (struct GNUNET_CORE_TransmitHandle *th)
        * us from the 'ready' list */
       GNUNET_CONTAINER_DLL_remove (h->ready_peer_head, h->ready_peer_tail, pr);
     }
-    request_next_transmission (pr);
+    if (NULL != h->client)
+      request_next_transmission (pr);
   }
 }
 
