@@ -60,6 +60,9 @@ struct ClientShortenHandle
   /* request type */
   enum GNUNET_GNS_RecordType type;
 
+  /* optional zone private key used for lookup */
+  struct GNUNET_CRYPTO_RsaPrivateKey *zone_key;
+  
   /* name to shorten */
   char* name;
 
@@ -96,6 +99,9 @@ struct ClientLookupHandle
 
   /* request type */
   enum GNUNET_GNS_RecordType type;
+
+  /* optional zone private key used for lookup */
+  struct GNUNET_CRYPTO_RsaPrivateKey *zone_key;
 
   /* the name to look up */
   char* name; //Needed?
@@ -416,6 +422,43 @@ update_zone_dht_start(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                                  NULL);
 }
 
+/**
+ * Lookup the private key for the zone
+ *
+ * @param zone the zone we want a private key for
+ * @return NULL of not found else the key
+ */
+struct GNUNET_CRYPTO_RsaPrivateKey*
+lookup_private_key(struct GNUNET_CRYPTO_ShortHashCode *zone)
+{
+  char* keydir;
+  struct GNUNET_CRYPTO_ShortHashAsciiEncoded zonename;
+  char* location;
+  struct GNUNET_CRYPTO_RsaPrivateKey *key = NULL;
+
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (GNS_cfg,
+                                                            "namestore",
+                                             "ZONEFILE_DIRECTORY", &keydir))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "No zonefile directory!\n");
+    return NULL;
+  }
+
+  GNUNET_CRYPTO_short_hash_to_enc (zone, &zonename);
+
+  GNUNET_asprintf(&location, "%s%s%s.zkey", keydir,
+                  DIR_SEPARATOR_STR, zonename);
+
+  if (GNUNET_YES == GNUNET_DISK_file_test (location))
+    key = GNUNET_CRYPTO_rsa_key_create_from_file (location);
+
+  GNUNET_free(location);
+  GNUNET_free(keydir);
+
+  return key;
+
+}
 
 /* END DHT ZONE PROPAGATION */
 
@@ -456,6 +499,7 @@ send_shorten_response(void* cls, const char* name)
   
   GNUNET_free(rmsg);
   GNUNET_free_non_null(csh->name);
+  GNUNET_free_non_null(csh->zone_key);
   GNUNET_free(csh);
 
 }
@@ -477,6 +521,8 @@ static void handle_shorten(void *cls,
   struct ClientShortenHandle *csh;
   char name[MAX_DNS_NAME_LENGTH];
   char* nameptr = name;
+  struct GNUNET_CRYPTO_ShortHashCode zone;
+  struct GNUNET_CRYPTO_RsaPrivateKey *key;
 
   if (ntohs (message->size) < sizeof (struct GNUNET_GNS_ClientShortenMessage))
   {
@@ -501,6 +547,7 @@ static void handle_shorten(void *cls,
   csh = GNUNET_malloc(sizeof(struct ClientShortenHandle));
   csh->client = client;
   csh->unique_id = sh_msg->id;
+  csh->zone_key = NULL;
   
   GNUNET_STRINGS_utf8_tolower((char*)&sh_msg[1], &nameptr);
 
@@ -531,12 +578,26 @@ static void handle_shorten(void *cls,
   
   GNUNET_SERVER_notification_context_add (nc, client);
   
+  if (1 == ntohl(sh_msg->use_default_zone))
+    zone = zone_hash; //Default zone
+  else
+    zone = sh_msg->zone;
+  
   /* Start shortening */
   if (GNUNET_YES == auto_import_pkey)
-    gns_resolver_shorten_name(zone_hash, name, zone_key,
+  {
+    if (1 == ntohl(sh_msg->use_default_zone))
+      key = zone_key;
+    else
+    {
+      key = lookup_private_key(&sh_msg->zone);
+      csh->zone_key = key;
+    }
+    gns_resolver_shorten_name(zone, name, key,
                               &send_shorten_response, csh);
+  }
   else
-    gns_resolver_shorten_name(zone_hash, name, NULL,
+    gns_resolver_shorten_name(zone, name, NULL,
                               &send_shorten_response, csh);
 }
 
@@ -682,6 +743,7 @@ static void handle_get_authority(void *cls,
 }
 
 
+
 /**
  * Reply to client with the result from our lookup.
  *
@@ -719,6 +781,10 @@ send_lookup_response(void* cls,
   
   GNUNET_free(rmsg);
   GNUNET_free(clh->name);
+  
+  if (NULL != clh->zone_key)
+    GNUNET_free(clh->zone_key);
+
   GNUNET_free(clh);
 
 }
@@ -743,6 +809,8 @@ handle_lookup(void *cls,
   char name[MAX_DNS_NAME_LENGTH];
   struct ClientLookupHandle *clh;
   char* nameptr = name;
+  struct GNUNET_CRYPTO_RsaPrivateKey *key = NULL;
+  struct GNUNET_CRYPTO_ShortHashCode zone;
 
   if (ntohs (message->size) < sizeof (struct GNUNET_GNS_ClientLookupMessage))
   {
@@ -773,6 +841,7 @@ handle_lookup(void *cls,
   strcpy(clh->name, name);
   clh->unique_id = sh_msg->id;
   clh->type = ntohl(sh_msg->type);
+  clh->zone_key = NULL;
   
   if (strlen (name) > MAX_DNS_NAME_LENGTH) {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
@@ -781,17 +850,30 @@ handle_lookup(void *cls,
     send_lookup_response(clh, 0, NULL);
     return;
   }
+
+  if (1 == ntohl(sh_msg->use_default_zone))
+    zone = zone_hash; //Default zone
+  else
+    zone = sh_msg->zone;
   
   if (GNUNET_YES == auto_import_pkey)
   {
-    gns_resolver_lookup_record(zone_hash, clh->type, name,
-                               zone_key,
+    if (1 == ntohl(sh_msg->use_default_zone))
+      key = zone_key;
+    else
+    {
+      key = lookup_private_key(&sh_msg->zone);
+      clh->zone_key = key;
+    }
+    
+    gns_resolver_lookup_record(zone, clh->type, name,
+                               key,
                                default_lookup_timeout,
                                &send_lookup_response, clh);
   }
   else
   {
-    gns_resolver_lookup_record(zone_hash, clh->type, name,
+    gns_resolver_lookup_record(zone, clh->type, name,
                                NULL,
                                default_lookup_timeout,
                                &send_lookup_response, clh);
@@ -825,6 +907,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     {&handle_lookup, NULL, GNUNET_MESSAGE_TYPE_GNS_LOOKUP, 0},
     {&handle_get_authority, NULL, GNUNET_MESSAGE_TYPE_GNS_GET_AUTH, 0}
   };
+
+  GNS_cfg = c;
 
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (c, "gns",
                                              "ZONEKEY", &keyfile))

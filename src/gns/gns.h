@@ -53,9 +53,18 @@ struct GNUNET_GNS_ClientLookupMessage
   uint32_t id GNUNET_PACKED;
 
   /**
+   * Should we look up in the default zone?
+   */
+  uint32_t use_default_zone GNUNET_PACKED;
+
+  /**
+   * If use_default_zone is empty this zone is used for lookup
+   */
+  struct GNUNET_CRYPTO_ShortHashCode zone;
+
+  /**
    * the type of record to look up
    */
-  // FIXME: bad type - should be of GNUNET_GNS_RecordType
   enum GNUNET_GNS_RecordType type;
 
   /* Followed by the name to look up */
@@ -101,6 +110,16 @@ struct GNUNET_GNS_ClientShortenMessage
    * Unique identifier for this request
    */
   uint32_t id GNUNET_PACKED;
+
+  /**
+   * Should we look up in the default zone?
+   */
+  uint32_t use_default_zone GNUNET_PACKED;
+
+  /**
+   * If use_default_zone is empty this zone is used for lookup
+   */
+  struct GNUNET_CRYPTO_ShortHashCode zone;
 
   /* Followed by the name to shorten up */
 };

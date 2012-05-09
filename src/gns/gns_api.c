@@ -639,14 +639,16 @@ get_request_id (struct GNUNET_GNS_Handle *h)
  *
  * @param handle handle to the GNS service
  * @param name the name to look up
+ * @param zone the zone to start the resolution in
  * @param type the record type to look up
  * @param proc processor to call on result
  * @param proc_cls closure for processor
  * @return handle to the get
  */
 struct GNUNET_GNS_QueueEntry *
-GNUNET_GNS_lookup (struct GNUNET_GNS_Handle *handle,
+GNUNET_GNS_lookup_zone (struct GNUNET_GNS_Handle *handle,
                    const char * name,
+                   struct GNUNET_CRYPTO_ShortHashCode *zone,
                    enum GNUNET_GNS_RecordType type,
                    GNUNET_GNS_LookupResultProcessor proc,
                    void *proc_cls)
@@ -682,6 +684,18 @@ GNUNET_GNS_lookup (struct GNUNET_GNS_Handle *handle,
   lookup_msg->header.type = htons (GNUNET_MESSAGE_TYPE_GNS_LOOKUP);
   lookup_msg->header.size = htons (msize);
   lookup_msg->id = htonl(qe->r_id);
+
+  if (NULL != zone)
+  {
+    lookup_msg->use_default_zone = htonl(0);
+    memcpy(&lookup_msg->zone, zone, sizeof(struct GNUNET_CRYPTO_ShortHashCode));
+  }
+  else
+  {
+    lookup_msg->use_default_zone = htonl(1);
+    memset(&lookup_msg->zone, 0, sizeof(struct GNUNET_CRYPTO_ShortHashCode));
+  }
+
   lookup_msg->type = htonl(type);
 
   memcpy(&lookup_msg[1], name, strlen(name));
@@ -693,19 +707,40 @@ GNUNET_GNS_lookup (struct GNUNET_GNS_Handle *handle,
   return qe;
 }
 
+/**
+ * Perform an asynchronous Lookup operation on the GNS.
+ *
+ * @param handle handle to the GNS service
+ * @param name the name to look up
+ * @param type the record type to look up
+ * @param proc processor to call on result
+ * @param proc_cls closure for processor
+ * @return handle to the get
+ */
+struct GNUNET_GNS_QueueEntry *
+GNUNET_GNS_lookup (struct GNUNET_GNS_Handle *handle,
+                   const char * name,
+                   enum GNUNET_GNS_RecordType type,
+                   GNUNET_GNS_LookupResultProcessor proc,
+                   void *proc_cls)
+{
+  return GNUNET_GNS_lookup_zone (handle, name, NULL, type, proc, proc_cls);
+}
 
 /**
  * Perform a name shortening operation on the GNS.
  *
  * @param handle handle to the GNS service
  * @param name the name to look up
+ * @param zone the zone to start the resolution in
  * @param proc function to call on result
  * @param proc_cls closure for processor
  * @return handle to the operation
  */
 struct GNUNET_GNS_QueueEntry *
-GNUNET_GNS_shorten (struct GNUNET_GNS_Handle *handle,
+GNUNET_GNS_shorten_zone (struct GNUNET_GNS_Handle *handle,
                     const char * name,
+                    struct GNUNET_CRYPTO_ShortHashCode *zone,
                     GNUNET_GNS_ShortenResultProcessor proc,
                     void *proc_cls)
 {
@@ -740,6 +775,18 @@ GNUNET_GNS_shorten (struct GNUNET_GNS_Handle *handle,
   shorten_msg->header.type = htons (GNUNET_MESSAGE_TYPE_GNS_SHORTEN);
   shorten_msg->header.size = htons (msize);
   shorten_msg->id = htonl(qe->r_id);
+  
+  if (NULL != zone)
+  {
+    shorten_msg->use_default_zone = htonl(0);
+    memcpy(&shorten_msg->zone, zone,
+           sizeof(struct GNUNET_CRYPTO_ShortHashCode));
+  }
+  else
+  {
+    shorten_msg->use_default_zone = htonl(1);
+    memset(&shorten_msg->zone, 0, sizeof(struct GNUNET_CRYPTO_ShortHashCode));
+  }
 
   memcpy(&shorten_msg[1], name, strlen(name));
 
@@ -750,7 +797,23 @@ GNUNET_GNS_shorten (struct GNUNET_GNS_Handle *handle,
   return qe;
 }
 
-
+/**
+ * Perform a name shortening operation on the GNS.
+ *
+ * @param handle handle to the GNS service
+ * @param name the name to look up
+ * @param proc function to call on result
+ * @param proc_cls closure for processor
+ * @return handle to the operation
+ */
+struct GNUNET_GNS_QueueEntry *
+GNUNET_GNS_shorten (struct GNUNET_GNS_Handle *handle,
+                    const char * name,
+                    GNUNET_GNS_ShortenResultProcessor proc,
+                    void *proc_cls)
+{
+  return GNUNET_GNS_shorten_zone (handle, name, NULL, proc, proc_cls);
+}
 /**
  * Perform an authority lookup for a given name.
  *

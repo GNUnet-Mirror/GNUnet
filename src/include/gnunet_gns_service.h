@@ -120,7 +120,8 @@ typedef void (*GNUNET_GNS_LookupResultProcessor) (void *cls,
 
 
 /**
- * Perform an asynchronous lookup operation on the GNS.
+ * Perform an asynchronous lookup operation on the GNS
+ * in the default zone.
  *
  * @param handle handle to the GNS service
  * @param name the name to look up
@@ -137,6 +138,26 @@ GNUNET_GNS_lookup (struct GNUNET_GNS_Handle *handle,
                          GNUNET_GNS_LookupResultProcessor proc,
                          void *proc_cls);
 
+/**
+ * Perform an asynchronous lookup operation on the GNS
+ * in the zone specified by 'zone'.
+ *
+ * @param handle handle to the GNS service
+ * @param name the name to look up
+ * @param zone the zone to start the resolution in
+ * @param type the GNUNET_GNS_RecordType to look for
+ * @param proc function to call on result
+ * @param proc_cls closure for processor
+ *
+ * @return handle to the queued request
+ */
+struct GNUNET_GNS_QueueEntry *
+GNUNET_GNS_lookup_zone (struct GNUNET_GNS_Handle *handle,
+                         const char * name,
+                         struct GNUNET_CRYPTO_ShortHashCode *zone,
+                         enum GNUNET_GNS_RecordType type,
+                         GNUNET_GNS_LookupResultProcessor proc,
+                         void *proc_cls);
 
 /* *************** Standard API: shorten ******************* */
 
@@ -167,6 +188,23 @@ GNUNET_GNS_shorten (struct GNUNET_GNS_Handle *handle,
                     GNUNET_GNS_ShortenResultProcessor proc,
                     void *proc_cls);
 
+
+/**
+ * Perform a name shortening operation on the GNS.
+ *
+ * @param handle handle to the GNS service
+ * @param name the name to look up
+ * @param zone the zone to start the resolution in
+ * @param proc function to call on result
+ * @param proc_cls closure for processor
+ * @return handle to the operation
+ */
+struct GNUNET_GNS_QueueEntry *
+GNUNET_GNS_shorten_zone (struct GNUNET_GNS_Handle *handle,
+                    const char * name,
+                    struct GNUNET_CRYPTO_ShortHashCode *zone,
+                    GNUNET_GNS_ShortenResultProcessor proc,
+                    void *proc_cls);
 
 /* *************** Standard API: get authority ******************* */
 
