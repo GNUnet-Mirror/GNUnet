@@ -126,6 +126,7 @@ GNUNET_TESTING_hostkey_get (uint32_t key_number,
 int
 GNUNET_TESTING_configuration_create (struct GNUNET_TESTING_System *system,
 				     struct GNUNET_CONFIGURATION_Handle *cfg);
+// FIXME: add dual to 'release' ports again...
 
 
 /**
