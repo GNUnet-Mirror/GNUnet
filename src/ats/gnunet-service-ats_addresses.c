@@ -862,8 +862,8 @@ GAS_addresses_destroy_all ()
 void
 GAS_addresses_done ()
 {
-  running = GNUNET_NO;
   GAS_addresses_destroy_all ();
+  running = GNUNET_NO;
   GNUNET_CONTAINER_multihashmap_destroy (addresses);
   addresses = NULL;
 #if HAVE_LIBGLPK

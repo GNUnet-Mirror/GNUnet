@@ -317,7 +317,14 @@ GAS_handle_address_in_use (void *cls, struct GNUNET_SERVER_Client *client,
                              ntohl (m->session_id),
                              in_use);
 
-  GNUNET_SERVER_receive_done (client, res);
+  if (res == GNUNET_OK)
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  else
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+  }
+
 }
 
 /**
