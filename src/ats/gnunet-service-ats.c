@@ -57,7 +57,6 @@ handle_ats_start (void *cls, struct GNUNET_SERVER_Client *client,
   const struct ClientStartMessage *msg =
       (const struct ClientStartMessage *) message;
   enum StartFlag flag;
-
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "ATS_START");
   flag = ntohl (msg->start_flag);
   switch (flag)
@@ -114,6 +113,7 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GAS_scheduling_done ();
   GAS_performance_done ();
   GAS_reservations_done ();
+  GNUNET_SERVER_disconnect_notify_cancel (GSA_server, &client_disconnect_handler, NULL);
   if (NULL != GSA_stats)
   {
     GNUNET_STATISTICS_destroy (GSA_stats, GNUNET_NO);

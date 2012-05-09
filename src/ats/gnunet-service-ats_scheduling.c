@@ -59,7 +59,6 @@ GAS_scheduling_add_client (struct GNUNET_SERVER_Client *client)
   }
   my_client = client;
   GNUNET_SERVER_notification_context_add (nc, client);
-  GNUNET_SERVER_client_keep (client);
   return GNUNET_OK;
 }
 
@@ -76,7 +75,6 @@ GAS_scheduling_remove_client (struct GNUNET_SERVER_Client *client)
   if (my_client != client)
     return;
   GAS_addresses_destroy_all ();
-  GNUNET_SERVER_client_drop (client);
   my_client = NULL;
 }
 
@@ -413,8 +411,13 @@ GAS_scheduling_init (struct GNUNET_SERVER_Handle *server)
 void
 GAS_scheduling_done ()
 {
+  if (NULL != my_client)
+  {
+    my_client = NULL;
+  }
   GNUNET_SERVER_notification_context_destroy (nc);
   nc = NULL;
+
 }
 
 
