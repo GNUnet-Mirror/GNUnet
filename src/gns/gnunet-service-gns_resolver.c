@@ -634,6 +634,7 @@ dht_lookup_timeout(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
              rh->id, new_name, rlh->record_type);
 
   gns_resolver_lookup_record(rh->authority,
+                             rh->private_local_zone,
                              rlh->record_type,
                              new_name,
                              rh->priv_key,
@@ -1081,6 +1082,7 @@ dht_authority_lookup_timeout(void *cls,
         rh->id, rh->name, rlh->record_type);
 
   gns_resolver_lookup_record(rh->authority,
+                             rh->private_local_zone,
                              rlh->record_type,
                              new_name,
                              rh->priv_key,
@@ -1507,7 +1509,7 @@ handle_record_ns(void* cls, struct ResolverHandle *rh,
      */
     if (rh->status & (RSL_RECORD_EXPIRED | !RSL_RECORD_EXISTS) &&
         GNUNET_CRYPTO_short_hash_cmp(&rh->authority_chain_head->zone,
-                                     &local_zone) &&
+                                     &rh->private_local_zone) &&
         (strcmp(rh->name, "+") == 0))
     {
       rh->proc = &handle_record_dht;
@@ -1800,7 +1802,7 @@ handle_delegation_ns(void* cls, struct ResolverHandle *rh,
    **/
   if (((rh->status & RSL_RECORD_EXISTS) && (!(rh->status & RSL_RECORD_EXPIRED)))
       || !GNUNET_CRYPTO_short_hash_cmp(&rh->authority_chain_head->zone,
-                                       &local_zone))
+                                       &rh->private_local_zone))
   {
     if (is_canonical(rh->name))
     {
@@ -2056,6 +2058,7 @@ resolve_delegation_ns(struct ResolverHandle *rh)
  * calls lookup result processor on result
  *
  * @param zone the root zone
+ * @param pzone the private local zone
  * @param record_type the record type to look up
  * @param name the name to look up
  * @param key a private key for use with PSEU import (can be NULL)
@@ -2065,6 +2068,7 @@ resolve_delegation_ns(struct ResolverHandle *rh)
  */
 void
 gns_resolver_lookup_record(struct GNUNET_CRYPTO_ShortHashCode zone,
+                           struct GNUNET_CRYPTO_ShortHashCode pzone,
                            uint32_t record_type,
                            const char* name,
                            struct GNUNET_CRYPTO_RsaPrivateKey *key,
@@ -2100,6 +2104,8 @@ gns_resolver_lookup_record(struct GNUNET_CRYPTO_ShortHashCode zone,
   rh->priv_key = key;
   rh->timeout = timeout;
   rh->get_handle = NULL;
+  rh->private_local_zone = pzone;
+
   if (timeout.rel_value != GNUNET_TIME_UNIT_FOREVER_REL.rel_value)
   {
     /*
@@ -2255,7 +2261,7 @@ process_zone_to_name_shorten(void *cls,
     free_resolver_handle(rh);
   }
   else if (GNUNET_CRYPTO_short_hash_cmp(&rh->authority_chain_head->zone,
-                                        &local_zone) == 0)
+                                        &rh->private_local_zone) == 0)
   {
     /* our zone, just append .gnunet */
     answer_len = strlen(rh->name) + strlen(GNUNET_GNS_TLD) + 2;
@@ -2353,7 +2359,7 @@ handle_delegation_ns_shorten(void* cls,
              "PKEY resolved as far as possible in ns up to %s!\n", rh->name);
 
   if (GNUNET_CRYPTO_short_hash_cmp(&rh->authority_chain_head->zone,
-                                   &local_zone) == 0)
+                                   &rh->private_local_zone) == 0)
   {
     /**
      * This is our zone append .gnunet unless name is empty
@@ -2498,6 +2504,7 @@ process_zone_to_name_zkey(void *cls,
  * Shorten api from resolver
  *
  * @param zone the zone to use
+ * @param pzone the private local zone
  * @param name the name to shorten
  * @param key optional private key for background lookups and PSEU import
  * @param proc the processor to call with result
@@ -2505,6 +2512,7 @@ process_zone_to_name_zkey(void *cls,
  */
 void
 gns_resolver_shorten_name(struct GNUNET_CRYPTO_ShortHashCode zone,
+                          struct GNUNET_CRYPTO_ShortHashCode pzone,
                           const char* name,
                           struct GNUNET_CRYPTO_RsaPrivateKey *key,
                           ShortenResultProcessor proc,
@@ -2541,6 +2549,7 @@ gns_resolver_shorten_name(struct GNUNET_CRYPTO_ShortHashCode zone,
   rh->proc = &handle_delegation_ns_shorten;
   rh->proc_cls = nsh;
   rh->id = rid++;
+  rh->private_local_zone = pzone;
   
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Checking for TLD...\n");
@@ -2686,12 +2695,14 @@ handle_delegation_result_ns_get_auth(void* cls,
  * in our namestore
  *
  * @param zone the root zone to look up for
+ * @param pzone the private local zone
  * @param name the name to lookup up
  * @param proc the processor to call when finished
  * @param proc_cls the closure to pass to the processor
  */
 void
 gns_resolver_get_authority(struct GNUNET_CRYPTO_ShortHashCode zone,
+                           struct GNUNET_CRYPTO_ShortHashCode pzone,
                            const char* name,
                            GetAuthorityResultProcessor proc,
                            void* proc_cls)
@@ -2706,6 +2717,7 @@ gns_resolver_get_authority(struct GNUNET_CRYPTO_ShortHashCode zone,
   rh = GNUNET_malloc(sizeof (struct ResolverHandle));
   rh->authority = zone;
   rh->id = rid++;
+  rh->private_local_zone = pzone;
   
   if (strcmp(GNUNET_GNS_TLD, name) == 0)
   {

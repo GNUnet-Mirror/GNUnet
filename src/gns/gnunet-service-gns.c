@@ -605,11 +605,11 @@ static void handle_shorten(void *cls,
       key = lookup_private_key(&sh_msg->zone);
       csh->zone_key = key;
     }
-    gns_resolver_shorten_name(zone, name, key,
+    gns_resolver_shorten_name(zone, zone, name, key,
                               &send_shorten_response, csh);
   }
   else
-    gns_resolver_shorten_name(zone, name, NULL,
+    gns_resolver_shorten_name(zone, zone, name, NULL,
                               &send_shorten_response, csh);
 }
 
@@ -751,7 +751,7 @@ static void handle_get_authority(void *cls,
          strlen(name)-strlen(GNUNET_GNS_TLD));
 
   /* Start delegation resolution in our namestore */
-  gns_resolver_get_authority(zone_hash, name, &send_get_auth_response, cah);
+  gns_resolver_get_authority(zone_hash, zone_hash, name, &send_get_auth_response, cah);
 }
 
 
@@ -878,14 +878,14 @@ handle_lookup(void *cls,
       clh->zone_key = key;
     }
     
-    gns_resolver_lookup_record(zone, clh->type, name,
+    gns_resolver_lookup_record(zone, zone, clh->type, name,
                                key,
                                default_lookup_timeout,
                                &send_lookup_response, clh);
   }
   else
   {
-    gns_resolver_lookup_record(zone, clh->type, name,
+    gns_resolver_lookup_record(zone, zone, clh->type, name,
                                NULL,
                                default_lookup_timeout,
                                &send_lookup_response, clh);

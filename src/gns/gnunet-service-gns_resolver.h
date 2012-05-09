@@ -150,6 +150,9 @@ struct ResolverHandle
   /* status of the resolution result */
   enum ResolutionStatus status;
 
+  /* The provate local zone of this request */
+  struct GNUNET_CRYPTO_ShortHashCode private_local_zone;
+
   /**
    * private key of an/our authoritative zone
    * can be NULL but automatical PKEY import will not work
@@ -276,6 +279,7 @@ gns_resolver_cleanup(ResolverCleanupContinuation cont);
  * calls RecordLookupProcessor on result or timeout
  *
  * @param zone the root zone
+ * @param pzone the private local zone
  * @param record_type the record type to look up
  * @param name the name to look up
  * @param key optional private key for authority caching
@@ -285,6 +289,7 @@ gns_resolver_cleanup(ResolverCleanupContinuation cont);
  */
 void
 gns_resolver_lookup_record(struct GNUNET_CRYPTO_ShortHashCode zone,
+                           struct GNUNET_CRYPTO_ShortHashCode pzone,
                            uint32_t record_type,
                            const char* name,
                            struct GNUNET_CRYPTO_RsaPrivateKey *key,
@@ -300,6 +305,7 @@ gns_resolver_lookup_record(struct GNUNET_CRYPTO_ShortHashCode zone,
  * actually be canonical/short etc.
  *
  * @param zone the zone to perform the operation in
+ * @param pzone the private local zone
  * @param name name to shorten
  * @param key optional private key for background lookups and PSEU import
  * @param proc the processor to call on shorten result
@@ -307,6 +313,7 @@ gns_resolver_lookup_record(struct GNUNET_CRYPTO_ShortHashCode zone,
  */
 void
 gns_resolver_shorten_name(struct GNUNET_CRYPTO_ShortHashCode zone,
+                          struct GNUNET_CRYPTO_ShortHashCode pzone,
                           const char* name,
                           struct GNUNET_CRYPTO_RsaPrivateKey *key,
                           ShortenResultProcessor proc,
@@ -317,12 +324,14 @@ gns_resolver_shorten_name(struct GNUNET_CRYPTO_ShortHashCode zone,
  * in our namestore
  *
  * @param zone the root zone to look up for
+ * @param pzone the private local zone
  * @param name the name to lookup up
  * @param proc the processor to call when finished
  * @param proc_cls the closure to pass to the processor
  */
 void
 gns_resolver_get_authority(struct GNUNET_CRYPTO_ShortHashCode zone,
+                           struct GNUNET_CRYPTO_ShortHashCode pzone,
                            const char* name,
                            GetAuthorityResultProcessor proc,
                            void* proc_cls);
