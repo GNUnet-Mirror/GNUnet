@@ -205,16 +205,6 @@ struct GNUNET_REGEX_State
   struct Transition *transitions_tail;
 
   /**
-   * Number of incoming transitions.
-   */
-  unsigned int incoming_transition_count;
-
-  /**
-   * Set of incoming transitions.
-   */
-  struct Transition **incoming_transitions;
-
-  /**
    * Set of states on which this state is based on. Used when creating a DFA out
    * of several NFA states.
    */
@@ -256,6 +246,11 @@ struct Transition
    * State from which this transition origins.
    */
   struct GNUNET_REGEX_State *from_state;
+
+  /**
+   * Mark this transition. For example when reversing the automaton.
+   */
+  int mark;
 };
 
 /**
@@ -508,73 +503,6 @@ state_compare (const void *a, const void *b)
 }
 
 /**
- * Create a proof for the given state. Intended to be used as a parameter for
- * automaton_traverse() function.
- *
- * @param cls closure
- * @param s state
- */
-void
-state_create_proof (void *cls, struct GNUNET_REGEX_State *s)
-{
-  struct Transition *inc_t;
-  int i;
-  char *proof = NULL;
-  char *stars = NULL;
-  char *tmp = NULL;
-
-  for (i = 0; i < s->incoming_transition_count; i++)
-  {
-    inc_t = s->incoming_transitions[i];
-
-    if (NULL == inc_t)
-      continue;
-
-    GNUNET_assert (inc_t->label != 0 && inc_t->from_state != NULL);
-
-    if (inc_t->from_state == inc_t->to_state)
-      GNUNET_asprintf (&stars, "%c*", inc_t->label);
-    else
-    {
-      if (NULL != inc_t->from_state->proof)
-        GNUNET_asprintf (&tmp, "%s%c", inc_t->from_state->proof, inc_t->label);
-      else
-        GNUNET_asprintf (&tmp, "%c", inc_t->label);
-    }
-
-    if (i > 0 && NULL != tmp && NULL != proof)
-      GNUNET_asprintf (&proof, "%s|%s", proof, tmp);
-    else if (NULL != tmp)
-      proof = GNUNET_strdup (tmp);
-
-    if (NULL != tmp)
-    {
-      GNUNET_free (tmp);
-      tmp = NULL;
-    }
-  }
-
-  if (NULL != s->proof)
-    GNUNET_free (s->proof);
-
-  if (s->incoming_transition_count > 1)
-  {
-    if (NULL != stars)
-    {
-      GNUNET_asprintf (&s->proof, "(%s)%s", proof, stars);
-      GNUNET_free (stars);
-    }
-    else if (NULL != proof)
-      GNUNET_asprintf (&s->proof, "(%s)", proof);
-
-    if (NULL != proof)
-      GNUNET_free (proof);
-  }
-  else
-    s->proof = proof;
-}
-
-/**
  * Get all edges leaving state 's'.
  *
  * @param s state.
@@ -691,16 +619,14 @@ automaton_destroy_state (struct GNUNET_REGEX_State *s)
   if (NULL != s->name)
     GNUNET_free (s->name);
 
+  if (NULL != s->proof)
+    GNUNET_free (s->proof);
+
   for (t = s->transitions_head; NULL != t; t = next_t)
   {
     next_t = t->next;
     GNUNET_CONTAINER_DLL_remove (s->transitions_head, s->transitions_tail, t);
     GNUNET_free (t);
-  }
-
-  if (s->incoming_transition_count > 0 && NULL != s->incoming_transitions)
-  {
-    GNUNET_free (s->incoming_transitions);
   }
 
   state_set_clear (s->nfa_set);
@@ -768,8 +694,6 @@ automaton_merge_states (struct GNUNET_REGEX_Context *ctx,
   struct GNUNET_REGEX_State *s_check;
   struct Transition *t_check;
   char *new_name;
-  int i;
-  struct Transition *inc_t;
 
   GNUNET_assert (NULL != ctx && NULL != a && NULL != s1 && NULL != s2);
 
@@ -787,28 +711,14 @@ automaton_merge_states (struct GNUNET_REGEX_Context *ctx,
     }
   }
 
-  // 2. Remove all transitions coming from s2
-  for (s_check = a->states_head; NULL != s_check; s_check = s_check->next)
-  {
-    for (i = 0; i < s_check->incoming_transition_count; i++)
-    {
-      inc_t = s_check->incoming_transitions[i];
-
-      if (inc_t != 0 && inc_t->from_state == s2)
-      {
-        s_check->incoming_transitions[i] = NULL;
-      }
-    }
-  }
-
-  // 3. Add all transitions from s2 to sX to s1
+  // 2. Add all transitions from s2 to sX to s1
   for (t_check = s2->transitions_head; NULL != t_check; t_check = t_check->next)
   {
     if (t_check->to_state != s1)
       state_add_transition (ctx, s1, t_check->label, t_check->to_state);
   }
 
-  // 4. Rename s1 to {s1,s2}
+  // 3. Rename s1 to {s1,s2}
   new_name = GNUNET_strdup (s1->name);
   if (NULL != s1->name)
   {
@@ -862,19 +772,10 @@ automaton_state_traverse (void *cls, struct GNUNET_REGEX_State *s,
                           GNUNET_REGEX_traverse_action action)
 {
   struct Transition *t;
-  int i;
 
   if (GNUNET_NO == s->marked)
   {
     s->marked = GNUNET_YES;
-
-    // First make sure all incoming states have been traversed
-    for (i = 0; i < s->incoming_transition_count; i++)
-    {
-      if (NULL != s->incoming_transitions[i])
-        automaton_state_traverse (cls, s->incoming_transitions[i]->from_state,
-                                  action);
-    }
 
     if (action > 0)
       action (cls, s);
@@ -902,6 +803,98 @@ automaton_traverse (void *cls, struct GNUNET_REGEX_Automaton *a,
     s->marked = GNUNET_NO;
 
   automaton_state_traverse (cls, a->start, action);
+}
+
+/**
+ * Reverses all transitions of the given automaton.
+ *
+ * @param a automaton.
+ */
+static void
+automaton_reverse (struct GNUNET_REGEX_Automaton *a)
+{
+  struct GNUNET_REGEX_State *s;
+  struct Transition *t;
+  struct Transition *t_next;
+  struct GNUNET_REGEX_State *s_swp;
+
+  for (s = a->states_head; NULL != s; s = s->next)
+    for (t = s->transitions_head; NULL != t; t = t->next)
+      t->mark = GNUNET_NO;
+
+  for (s = a->states_head; NULL != s; s = s->next)
+  {
+    for (t = s->transitions_head; NULL != t; t = t_next)
+    {
+      t_next = t->next;
+
+      if (GNUNET_YES == t->mark || t->from_state == t->to_state)
+        continue;
+
+      t->mark = GNUNET_YES;
+
+      GNUNET_CONTAINER_DLL_remove (t->from_state->transitions_head,
+                                   t->from_state->transitions_tail, t);
+      t->from_state->transition_count--;
+      GNUNET_CONTAINER_DLL_insert (t->to_state->transitions_head,
+                                   t->to_state->transitions_tail, t);
+      t->to_state->transition_count++;
+
+      s_swp = t->from_state;
+      t->from_state = t->to_state;
+      t->to_state = s_swp;
+    }
+  }
+}
+
+/**
+ * Create proof for the given state.
+ *
+ * @param cls closure.
+ * @param s state.
+ */
+static void
+automaton_create_proofs_step (void *cls, struct GNUNET_REGEX_State *s)
+{
+  struct Transition *t;
+  int i;
+  char *tmp;
+
+  for (i = 0, t = s->transitions_head; NULL != t; t = t->next, i++)
+  {
+    if (t->to_state == s)
+      GNUNET_asprintf (&tmp, "%c*", t->label);
+    else if (i != s->transition_count - 1)
+      GNUNET_asprintf (&tmp, "%c|", t->label);
+    else
+      GNUNET_asprintf (&tmp, "%c", t->label);
+
+    if (NULL != s->proof)
+      s->proof =
+          GNUNET_realloc (s->proof, strlen (s->proof) + strlen (tmp) + 1);
+    else
+      s->proof = GNUNET_malloc (strlen (tmp) + 1);
+    strcat (s->proof, tmp);
+    GNUNET_free (tmp);
+  }
+}
+
+/**
+ * Create proofs for all states in the given automaton.
+ *
+ * @param a automaton.
+ */
+static void
+automaton_create_proofs (struct GNUNET_REGEX_Automaton *a)
+{
+  struct GNUNET_REGEX_State *s;
+
+  automaton_reverse (a);
+
+  for (s = a->states_head; NULL != s; s = s->next)
+    automaton_create_proofs_step (NULL, s);
+
+  automaton_reverse (a);
 }
 
 /**
@@ -1850,17 +1843,14 @@ construct_dfa_states (struct GNUNET_REGEX_Context *ctx,
     if (NULL == state_contains)
     {
       automaton_add_state (dfa, new_dfa_state);
-      construct_dfa_states (ctx, nfa, dfa, new_dfa_state);
       ctran->to_state = new_dfa_state;
+      construct_dfa_states (ctx, nfa, dfa, new_dfa_state);
     }
     else
     {
       ctran->to_state = state_contains;
       automaton_destroy_state (new_dfa_state);
     }
-
-    GNUNET_array_append (ctran->to_state->incoming_transitions,
-                         ctran->to_state->incoming_transition_count, ctran);
   }
 }
 
@@ -1911,7 +1901,7 @@ GNUNET_REGEX_construct_dfa (const char *regex, const size_t len)
   scc_tarjan (&ctx, dfa);
 
   // Create proofs for all states
-  automaton_traverse (NULL, dfa, &state_create_proof);
+  automaton_create_proofs (dfa);
 
   return dfa;
 }
