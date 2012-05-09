@@ -275,16 +275,15 @@ struct GNUNET_REGEX_StateSet
 };
 
 /*
- * Debug helper function
+ * Debug helper functions
  */
-/*
-static void debug_print_transition (struct Transition *);
+void
+debug_print_transitions (struct GNUNET_REGEX_State *);
 
-static void
+void
 debug_print_state (struct GNUNET_REGEX_State *s)
 {
   char *proof;
-  int i;
 
   if (NULL == s->proof)
     proof = "NULL";
@@ -296,26 +295,20 @@ debug_print_state (struct GNUNET_REGEX_State *s)
               s->id, s->name, s->marked, s->accepting, s->scc_id,
               s->transition_count, proof);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Incoming transitions:\n");
-
-  for (i=0; i < s->incoming_transition_count; i++)
-    debug_print_transition (s->incoming_transitions[i]);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Transitions:\n");
+  debug_print_transitions (s);
 }
 
-static void
-debug_print_states (struct GNUNET_REGEX_StateSet *sset)
+void
+debug_print_states (struct GNUNET_REGEX_Automaton *a)
 {
   struct GNUNET_REGEX_State *s;
-  int i;
 
-  for (i = 0; i < sset->len; i++)
-  {
-    s = sset->states[i];
+  for (s = a->states_head; NULL != s; s = s->next)
     debug_print_state (s);
-  }
 }
 
-static void
+void
 debug_print_transition (struct Transition *t)
 {
   char *to_state;
@@ -344,7 +337,7 @@ debug_print_transition (struct Transition *t)
               t->id, from_state, label, to_state);
 }
 
-static void
+void
 debug_print_transitions (struct GNUNET_REGEX_State *s)
 {
   struct Transition *t;
@@ -352,7 +345,6 @@ debug_print_transitions (struct GNUNET_REGEX_State *s)
   for (t = s->transitions_head; NULL != t; t = t->next)
     debug_print_transition (t);
 }
-*/
 
 /**
  * Recursive function doing DFS with 'v' as a start, detecting all SCCs inside
@@ -421,7 +413,6 @@ scc_tarjan_strongconnect (struct GNUNET_REGEX_Context *ctx,
 static void
 scc_tarjan (struct GNUNET_REGEX_Context *ctx, struct GNUNET_REGEX_Automaton *a)
 {
-  unsigned int i;
   int index;
   struct GNUNET_REGEX_State *v;
   struct GNUNET_REGEX_State *stack[a->state_count];
@@ -437,7 +428,7 @@ scc_tarjan (struct GNUNET_REGEX_Context *ctx, struct GNUNET_REGEX_Automaton *a)
   stack_size = 0;
   index = 0;
 
-  for (i = 0, v = a->states_head; NULL != v; v = v->next)
+  for (v = a->states_head; NULL != v; v = v->next)
   {
     if (v->index < 0)
       scc_tarjan_strongconnect (ctx, v, &index, stack, &stack_size);
