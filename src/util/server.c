@@ -1252,6 +1252,25 @@ GNUNET_SERVER_disconnect_notify_cancel (struct GNUNET_SERVER_Handle *server,
 
 
 /**
+ * Destroy the connection that is passed in via 'cls'.  Used
+ * as calling 'GNUNET_CONNECTION_destroy' from within a function
+ * that was itself called from within 'process_notify' of
+ * 'connection.c' is not allowed (see #2329).
+ *
+ * @param cls connection to destroy
+ * @param tc scheduler context (unused)
+ */
+static void
+destroy_connection (void *cls,
+		    const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_CONNECTION_Handle *connection = cls;
+  
+  GNUNET_CONNECTION_destroy (connection);
+}
+
+
+/**
  * Ask the server to disconnect from the given client.
  * This is the same as returning GNUNET_SYSERR from a message
  * handler, except that it allows dropping of a client even
@@ -1338,7 +1357,8 @@ GNUNET_SERVER_client_disconnect (struct GNUNET_SERVER_Client *client)
     GNUNET_CONNECTION_persist_ (client->connection);
   if (NULL != client->th.cth)
     GNUNET_SERVER_notify_transmit_ready_cancel (&client->th);
-  GNUNET_CONNECTION_destroy (client->connection);
+  (void) GNUNET_SCHEDULER_add_now (&destroy_connection,
+				   client->connection);
   GNUNET_free (client);
   /* we might be in soft-shutdown, test if we're done */
   if (NULL != server)
@@ -1375,14 +1395,12 @@ transmit_ready_callback_wrapper (void *cls, size_t size, void *buf)
 {
   struct GNUNET_SERVER_Client *client = cls;
   GNUNET_CONNECTION_TransmitReadyNotify callback;
-  size_t ret;
 
   client->th.cth = NULL;
   callback = client->th.callback;
   client->th.callback = NULL;
   client->last_activity = GNUNET_TIME_absolute_get ();
-  ret = callback (client->th.callback_cls, size, buf);
-  return ret;
+  return callback (client->th.callback_cls, size, buf);
 }
 
 
