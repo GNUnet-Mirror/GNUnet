@@ -91,9 +91,14 @@ struct GNUNET_SERVER_Handle
   struct HandlerList *handlers;
 
   /**
-   * List of our current clients.
+   * Head of list of our current clients.
    */
-  struct GNUNET_SERVER_Client *clients;
+  struct GNUNET_SERVER_Client *clients_head;
+
+  /**
+   * Head of list of our current clients.
+   */
+  struct GNUNET_SERVER_Client *clients_tail;
 
   /**
    * Head of linked list of functions to call on disconnects by clients.
@@ -199,9 +204,14 @@ struct GNUNET_SERVER_Client
 {
 
   /**
-   * This is a linked list.
+   * This is a doubly linked list.
    */
   struct GNUNET_SERVER_Client *next;
+
+  /**
+   * This is a doubly linked list.
+   */
+  struct GNUNET_SERVER_Client *prev;
 
   /**
    * Processing of incoming data.
@@ -637,7 +647,7 @@ test_monitor_clients (struct GNUNET_SERVER_Handle *server)
 
   if (GNUNET_YES != server->in_soft_shutdown)
     return;
-  for (client = server->clients; NULL != client; client = client->next)
+  for (client = server->clients_head; NULL != client; client = client->next)
     if (GNUNET_NO == client->is_monitor)
       return; /* not done yet */
   server->in_soft_shutdown = GNUNET_SYSERR;
@@ -705,8 +715,8 @@ GNUNET_SERVER_destroy (struct GNUNET_SERVER_Handle *server)
     GNUNET_free (server->listen_sockets);
     server->listen_sockets = NULL;
   }
-  while (NULL != server->clients)
-    GNUNET_SERVER_client_disconnect (server->clients);
+  while (NULL != server->clients_head)
+    GNUNET_SERVER_client_disconnect (server->clients_head);
   while (NULL != (hpos = server->handlers))
   {
     server->handlers = hpos->next;
@@ -1116,9 +1126,10 @@ GNUNET_SERVER_connect_socket (struct GNUNET_SERVER_Handle *server,
   client->reference_count = 1;
   client->server = server;
   client->last_activity = GNUNET_TIME_absolute_get ();
-  client->next = server->clients;
   client->idle_timeout = server->idle_timeout;
-  server->clients = client;
+  GNUNET_CONTAINER_DLL_insert (server->clients_head,
+			       server->clients_tail,
+			       client);
   if (NULL != server->mst_create)
     client->mst =
         server->mst_create (server->mst_cls, client);
@@ -1283,7 +1294,6 @@ void
 GNUNET_SERVER_client_disconnect (struct GNUNET_SERVER_Client *client)
 {
   struct GNUNET_SERVER_Handle *server = client->server;
-  struct GNUNET_SERVER_Client *prev;
   struct GNUNET_SERVER_Client *pos;
   struct NotifyList *n;
 
@@ -1310,18 +1320,13 @@ GNUNET_SERVER_client_disconnect (struct GNUNET_SERVER_Client *client)
        (NULL != server) )
   {
     client->shutdown_now = GNUNET_YES;
-    prev = NULL;
-    pos = server->clients;
+    pos = server->clients_head;
     while ((NULL != pos) && (pos != client))
-    {
-      prev = pos;
       pos = pos->next;
-    }
     GNUNET_assert (NULL != pos);
-    if (NULL == prev)
-      server->clients = pos->next;
-    else
-      prev->next = pos->next;
+    GNUNET_CONTAINER_DLL_remove (server->clients_head,
+				 server->clients_tail,
+				 pos);
     if (GNUNET_SCHEDULER_NO_TASK != client->restart_task)
     {
       GNUNET_SCHEDULER_cancel (client->restart_task);
