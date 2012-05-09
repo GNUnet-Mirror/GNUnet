@@ -1266,7 +1266,6 @@ GNUNET_SERVER_client_disconnect (struct GNUNET_SERVER_Client *client)
   struct GNUNET_SERVER_Client *prev;
   struct GNUNET_SERVER_Client *pos;
   struct NotifyList *n;
-  unsigned int rc;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Client is being disconnected from the server.\n");
@@ -1285,7 +1284,7 @@ GNUNET_SERVER_client_disconnect (struct GNUNET_SERVER_Client *client)
     GNUNET_CONNECTION_receive_cancel (client->connection);
     client->receive_pending = GNUNET_NO;
   }
-  rc = client->reference_count;
+
   client->reference_count++; /* make sure nobody else clean up client... */
   if ( (GNUNET_YES != client->shutdown_now) &&
        (NULL != server) )
