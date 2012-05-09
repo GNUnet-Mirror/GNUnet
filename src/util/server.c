@@ -1046,6 +1046,7 @@ restart_processing (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_SERVER_Client *client = cls;
 
+  GNUNET_assert (GNUNET_YES != client->shutdown_now);
   client->restart_task = GNUNET_SCHEDULER_NO_TASK;
   if (GNUNET_NO == client->receive_pending)
   {
@@ -1488,7 +1489,7 @@ GNUNET_SERVER_receive_done (struct GNUNET_SERVER_Client *client, int success)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "GNUNET_SERVER_receive_done called with failure indication\n");
-    if (client->reference_count > 0)
+    if ( (client->reference_count > 0) || (client->suspended > 0) )
       client->shutdown_now = GNUNET_YES;
     else
       GNUNET_SERVER_client_disconnect (client);
