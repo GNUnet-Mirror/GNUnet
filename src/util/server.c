@@ -1322,7 +1322,7 @@ GNUNET_SERVER_client_disconnect (struct GNUNET_SERVER_Client *client)
     client->mst = NULL;
   }
   client->reference_count--;
-  if (rc > 0)
+  if (client->reference_count > 0)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "RC still positive, not destroying everything.\n");
