@@ -1294,7 +1294,6 @@ void
 GNUNET_SERVER_client_disconnect (struct GNUNET_SERVER_Client *client)
 {
   struct GNUNET_SERVER_Handle *server = client->server;
-  struct GNUNET_SERVER_Client *pos;
   struct NotifyList *n;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -1320,13 +1319,9 @@ GNUNET_SERVER_client_disconnect (struct GNUNET_SERVER_Client *client)
        (NULL != server) )
   {
     client->shutdown_now = GNUNET_YES;
-    pos = server->clients_head;
-    while ((NULL != pos) && (pos != client))
-      pos = pos->next;
-    GNUNET_assert (NULL != pos);
     GNUNET_CONTAINER_DLL_remove (server->clients_head,
 				 server->clients_tail,
-				 pos);
+				 client);
     if (GNUNET_SCHEDULER_NO_TASK != client->restart_task)
     {
       GNUNET_SCHEDULER_cancel (client->restart_task);
