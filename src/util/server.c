@@ -964,7 +964,6 @@ process_mst (struct GNUNET_SERVER_Client *client, int ret)
   }
   if ((GNUNET_SYSERR == ret) || (GNUNET_YES == client->shutdown_now))
     GNUNET_SERVER_client_disconnect (client);
-  GNUNET_SERVER_client_drop (client);
 }
 
 
@@ -1031,6 +1030,7 @@ process_incoming (void *cls, const void *buf, size_t available,
         GNUNET_SERVER_mst_receive (client->mst, client, buf, available, GNUNET_NO,
                                    GNUNET_YES);
   process_mst (client, ret);
+  GNUNET_SERVER_client_drop (client);
 }
 
 
@@ -1061,6 +1061,7 @@ restart_processing (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_SERVER_client_keep (client);
   client->receive_pending = GNUNET_NO;
   process_mst (client, GNUNET_NO);
+  GNUNET_SERVER_client_drop (client);
 }
 
 
@@ -1470,7 +1471,10 @@ GNUNET_SERVER_receive_done (struct GNUNET_SERVER_Client *client, int success)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "GNUNET_SERVER_receive_done called with failure indication\n");
-    GNUNET_SERVER_client_disconnect (client);
+    if (client->reference_count > 0)
+      client->shutdown_now = GNUNET_YES;
+    else
+      GNUNET_SERVER_client_disconnect (client);
     return;
   }
   if (client->suspended > 0)
