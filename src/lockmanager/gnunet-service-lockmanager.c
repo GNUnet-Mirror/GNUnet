@@ -33,7 +33,6 @@
 
 #include "lockmanager.h"
 
-#define VERBOSE GNUNET_YES
 
 #define LOG(kind,...) \
   GNUNET_log (kind, __VA_ARGS__)
@@ -42,6 +41,12 @@
   GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, min)
 
 #define TIMEOUT TIME_REL_MINS(3)
+
+
+/**
+ * Doubly linked list of clients having connections to us
+ */
+struct ClientList;
 
 
 /**
@@ -161,30 +166,18 @@ static struct ClientList *cl_tail;
  *         it will be the last element in the locks list
  * @return GNUNET_YES if a matching lock is present in lock_list; GNUNET_NO if not
  */
-static int
+static struct LockList *
 ll_find_lock (const char *domain_name,
-              const uint32_t lock_num,
-              struct LockList **ret)
+              const uint32_t lock_num)
+              
 {
   struct LockList *current_lock;
-
-  current_lock = ll_head;
   
-  while (NULL != current_lock)
-    {
-      if ( (0 == strcmp (domain_name, current_lock->domain_name))
-           && (lock_num == current_lock->lock_num))
-        {
-          if (NULL != ret)
-            *ret = current_lock;
-          return GNUNET_YES;
-        }
-
-      current_lock = current_lock->next;
-    }
-  if (NULL != ret)
-    *ret = current_lock;
-  return GNUNET_NO;
+  for (current_lock = ll_head; NULL != current_lock; current_lock = current_lock->next)    
+    if ( (lock_num == current_lock->lock_num) &&
+	 (0 == strcmp (domain_name, current_lock->domain_name)) )
+      return current_lock;
+  return NULL;
 }
 
 
@@ -197,28 +190,15 @@ ll_find_lock (const char *domain_name,
  *         it will be the last element in the locks list
  * @return GNUNET_YES if a matching lock is present in lock_list; GNUNET_NO if not
  */
-static int
-ll_find_lock_by_owner (const struct GNUNET_SERVER_Client *client,
-                       struct LockList **ret)
+static struct LockList *
+ll_find_lock_by_owner (const struct GNUNET_SERVER_Client *client)
 {
   struct LockList *current_lock;
 
-  current_lock = ll_head;
-  
-  while (NULL != current_lock)
-    {
-      if (client == current_lock->client)
-        {
-          if (NULL != ret)
-            *ret = current_lock;
-          return GNUNET_YES;
-        }
-
-      current_lock = current_lock->next;
-    }
-  if (NULL != ret)
-    *ret = current_lock;
-  return GNUNET_NO;
+  for (current_lock = ll_head; NULL != current_lock; current_lock = current_lock->next)
+    if (client == current_lock->client)
+      return current_lock;
+  return NULL;
 }
 
 
@@ -346,7 +326,6 @@ ll_wl_remove_client (struct LockList *lock,
   GNUNET_CONTAINER_DLL_remove (lock->wait_list_head,
                                lock->wait_list_tail,
                                wl_client);
-
   GNUNET_free (wl_client);
 }
 
@@ -359,29 +338,15 @@ ll_wl_remove_client (struct LockList *lock,
  *          else to the tail of the client list
  * @return GNUNET_YES if the client is present; GNUNET_NO if not
  */
-static int
-cl_find_client (const struct GNUNET_SERVER_Client *client,
-                struct ClientList **ret)
+static struct ClientList *
+cl_find_client (const struct GNUNET_SERVER_Client *client)                
 {
   struct ClientList *current;
 
-  current = cl_head;
-
-  while (NULL != current)
-    {
+  for (current = cl_head; NULL != current; current = current->next)
       if (client == current->client)
-        {
-          if (NULL != ret) 
-            *ret = current;
-          return GNUNET_YES;
-        }
-
-      current = current->next;
-    }
-  
-  if (NULL != ret)
-    *ret = current;
-  return GNUNET_NO;
+        return current;
+  return NULL;
 }
 
 
@@ -501,24 +466,18 @@ handle_acquire (void *cls,
   const char *domain_name;
   struct LockList *ll_entry;
   uint32_t lock_num;
-  
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Received an ACQUIRE message\n");
-
-
   /* Check if the client is in client list */
-  if (GNUNET_NO == cl_find_client (client, NULL))
-    {
-      cl_add_client (client);
-    }
+  if (NULL == cl_find_client (client))
+    cl_add_client (client);    
   
   request = (struct GNUNET_LOCKMANAGER_Message *) message;
   lock_num = ntohl (request->lock);
   domain_name = (char *) &request[1];
-  if (GNUNET_YES == ll_find_lock (domain_name,
-                                  lock_num,
-                                  &ll_entry))
+  if (NULL != (ll_entry = ll_find_lock (domain_name,
+					lock_num)))
     {/* Add client to the lock's wait list */
       ll_wl_add_client (ll_entry, client);
     }
@@ -555,7 +514,7 @@ process_lock_release (struct LockList *ll_entry)
     {
       ll_wl_remove_client(ll_entry, wl_entry);
 
-      if (GNUNET_NO == cl_find_client (wl_entry->client, NULL))
+      if (NULL == cl_find_client (wl_entry->client))
         {
           LOG (GNUNET_ERROR_TYPE_DEBUG,
                "Removing disconnected client from wait list\n");
@@ -601,7 +560,7 @@ handle_release (void *cls,
        "Received a RELEASE message on lock with num: %d, domain: %s\n",
        lock_num, domain_name);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
-  if (GNUNET_YES == ll_find_lock (domain_name, lock_num, &ll_entry))
+  if (NULL != (ll_entry = ll_find_lock (domain_name, lock_num)))
     {
       if (client != ll_entry->client)
         {
@@ -612,8 +571,8 @@ handle_release (void *cls,
     }
   else
     {
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-           "\t give lock doesn't exist\n");
+      LOG (GNUNET_ERROR_TYPE_WARNING,
+           _("Client tried to release lock that it doesn't exist\n"));
     }
 }
 
@@ -628,21 +587,16 @@ static void
 client_disconnect_cb (void *cls, struct GNUNET_SERVER_Client *client)
 {
   struct ClientList *cl_entry;
+  struct LockList *ll_entry;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "A client has been disconnected -- freeing its locks and resources\n");
-  
-  if (GNUNET_YES == cl_find_client (client, &cl_entry))
-    {
-      struct LockList *ll_entry;
-      
-      cl_remove_client (cl_entry);
-      while (GNUNET_YES == ll_find_lock_by_owner (client, &ll_entry))
-        {
-          process_lock_release (ll_entry);
-        }
-    }
-  else GNUNET_break (0);
+       "A client has been disconnected -- freeing its locks and resources\n"); 
+  cl_entry = cl_find_client (client);
+  if (NULL == cl_entry)
+    return;
+  cl_remove_client (cl_entry);
+  while (NULL != (ll_entry = ll_find_lock_by_owner (client)))
+    process_lock_release (ll_entry); 
 }
 
 
@@ -664,34 +618,20 @@ lockmanager_run (void *cls,
       {&handle_release, NULL, GNUNET_MESSAGE_TYPE_LOCKMANAGER_RELEASE, 0},
       {NULL}
     };
-  
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Starting lockmanager\n");
   GNUNET_SERVER_add_handlers (server,
                               message_handlers);
   GNUNET_SERVER_disconnect_notify (server,
                                    &client_disconnect_cb,
-                                   NULL);
-                                   
-  
+                                   NULL);                                    
 }
+
 
 /**
  * The starting point of execution
  */
 int main (int argc, char *const *argv)
 {
-  int ret;
-  
-  GNUNET_log_setup ("lockmanager",
-#if VERBOSE
-                    "DEBUG",
-#else
-                    "WARNING",
-#endif
-                    NULL);
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "main()\n");
-  ret = 
+  return
     (GNUNET_OK ==
      GNUNET_SERVICE_run (argc,
                          argv,
@@ -699,6 +639,4 @@ int main (int argc, char *const *argv)
                          GNUNET_SERVICE_OPTION_NONE,
                          &lockmanager_run,
                          NULL)) ? 0 : 1;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "main() END\n");
-  return ret;
 }
