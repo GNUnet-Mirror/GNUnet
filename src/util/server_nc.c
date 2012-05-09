@@ -236,6 +236,11 @@ GNUNET_SERVER_notification_context_destroy (struct
     GNUNET_CONTAINER_DLL_remove (nc->clients_head,
 				 nc->clients_tail,
 				 pos);
+    if (NULL != pos->th)
+    {
+      GNUNET_SERVER_notify_transmit_ready_cancel(pos->th);
+      pos->th = NULL;
+    }
     GNUNET_SERVER_client_drop (pos->client);
     while (NULL != (pml = pos->pending_head))
     {
