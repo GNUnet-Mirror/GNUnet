@@ -576,6 +576,13 @@ transmission_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
      * us from the 'ready' list */
     GNUNET_CONTAINER_DLL_remove (h->ready_peer_head, h->ready_peer_tail, pr);
   }
+  if (NULL != th->cm)
+  {
+     /* we're currently in the control queue, remove */
+    GNUNET_CONTAINER_DLL_remove (h->control_pending_head,
+                                 h->control_pending_tail, th->cm);
+    GNUNET_free (th->cm);
+  }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Signalling timeout of request for transmission to CORE service\n");
   request_next_transmission (pr);
@@ -1225,7 +1232,7 @@ GNUNET_CORE_disconnect (struct GNUNET_CORE_Handle *handle)
   struct ControlMessage *cm;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from CORE service\n");
-  if (handle->cth != NULL)
+  if (NULL != handle->cth)
   {
     GNUNET_CLIENT_notify_transmit_ready_cancel (handle->cth);
     handle->cth = NULL;
@@ -1234,13 +1241,13 @@ GNUNET_CORE_disconnect (struct GNUNET_CORE_Handle *handle)
   {
     GNUNET_CONTAINER_DLL_remove (handle->control_pending_head,
                                  handle->control_pending_tail, cm);
-    if (cm->th != NULL)
+    if (NULL != cm->th)
       cm->th->cm = NULL;
-    if (cm->cont != NULL)
+    if (NULL != cm->cont)
       cm->cont (cm->cont_cls, GNUNET_SYSERR);
     GNUNET_free (cm);
   }
-  if (handle->client != NULL)
+  if (NULL != handle->client)
   {
     GNUNET_CLIENT_disconnect (handle->client);
     handle->client = NULL;
@@ -1374,7 +1381,7 @@ GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle, int cork,
 
   /* insertion sort */
   prev = pos;
-  while ((pos != NULL) && (pos->timeout.abs_value < th->timeout.abs_value))
+  while ((NULL != pos) && (pos->timeout.abs_value < th->timeout.abs_value))
   {
     prev = pos;
     pos = pos->next;
@@ -1408,7 +1415,7 @@ GNUNET_CORE_notify_transmit_ready_cancel (struct GNUNET_CORE_TransmitHandle *th)
   was_head = (pr->pending_head == th);
   GNUNET_CONTAINER_DLL_remove (pr->pending_head, pr->pending_tail, th);
   pr->queue_size--;
-  if (th->cm != NULL)
+  if (NULL != th->cm)
   {
     /* we're currently in the control queue, remove */
     GNUNET_CONTAINER_DLL_remove (h->control_pending_head,
@@ -1418,7 +1425,7 @@ GNUNET_CORE_notify_transmit_ready_cancel (struct GNUNET_CORE_TransmitHandle *th)
   GNUNET_free (th);
   if (was_head)
   {
-    if ((pr->prev != NULL) || (pr->next != NULL) || (pr == h->ready_peer_head))
+    if ((NULL != pr->prev) || (NULL != pr->next) || (pr == h->ready_peer_head))
     {
       /* the request that was 'approved' by core was
        * canceled before it could be transmitted; remove
