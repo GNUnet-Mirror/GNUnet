@@ -286,8 +286,7 @@ struct GNUNET_SERVER_Client
   int in_process_client_buffer;
 
   /**
-   * We're about to close down this client due to some serious
-   * error.
+   * We're about to close down this client.
    */
   int shutdown_now;
 
@@ -1136,6 +1135,7 @@ GNUNET_SERVER_connect_socket (struct GNUNET_SERVER_Handle *server,
   else
     client->mst =
         GNUNET_SERVER_mst_create (&client_message_tokenizer_callback, server);
+  GNUNET_assert (NULL != client->mst);
   client->receive_pending = GNUNET_YES;
   GNUNET_CONNECTION_receive (client->connection,
                              GNUNET_SERVER_MAX_MESSAGE_SIZE - 1,
@@ -1313,12 +1313,11 @@ GNUNET_SERVER_client_disconnect (struct GNUNET_SERVER_Client *client)
     GNUNET_CONNECTION_receive_cancel (client->connection);
     client->receive_pending = GNUNET_NO;
   }
-
+  client->shutdown_now = GNUNET_YES;    
   client->reference_count++; /* make sure nobody else clean up client... */
-  if ( (GNUNET_YES != client->shutdown_now) &&
+  if ( (NULL != client->mst) &&
        (NULL != server) )
   {
-    client->shutdown_now = GNUNET_YES;
     GNUNET_CONTAINER_DLL_remove (server->clients_head,
 				 server->clients_tail,
 				 client);
@@ -1332,13 +1331,13 @@ GNUNET_SERVER_client_disconnect (struct GNUNET_SERVER_Client *client)
       GNUNET_SCHEDULER_cancel (client->warn_task);
       client->warn_task = GNUNET_SCHEDULER_NO_TASK;
     }
-    for (n = server->disconnect_notify_list_head; NULL != n; n = n->next)
-      n->callback (n->callback_cls, client);
     if (NULL != server->mst_destroy)
       server->mst_destroy (server->mst_cls, client->mst);
     else
       GNUNET_SERVER_mst_destroy (client->mst);
     client->mst = NULL;
+    for (n = server->disconnect_notify_list_head; NULL != n; n = n->next)
+      n->callback (n->callback_cls, client);
   }
   client->reference_count--;
   if (client->reference_count > 0)
