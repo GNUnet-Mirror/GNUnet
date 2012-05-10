@@ -23,9 +23,6 @@
  * @brief transport plugin for wlan
  * @author David Brodski
  * @author Christian Grothoff
- *
- * TODO:
- * - HELPER-continuation may be called after fragment times out (-> use after free, see FIXME)
  */
 #include "platform.h"
 #include "gnunet_hello_lib.h"
@@ -39,8 +36,6 @@
 #include "gnunet_crypto_lib.h"
 #include "gnunet_fragmentation_lib.h"
 #include "gnunet_constants.h"
-
-#define PROTOCOL_PREFIX "wlan"
 
 #define LOG(kind,...) GNUNET_log_from (kind, "transport-wlan",__VA_ARGS__)
 
@@ -1463,7 +1458,6 @@ wlan_plugin_address_suggested (void *cls, const void *addr, size_t addrlen)
 static const char *
 wlan_plugin_address_to_string (void *cls, const void *addr, size_t addrlen)
 {
-  static char ret[40];
   const struct GNUNET_TRANSPORT_WLAN_MacAddress *mac;
 
   if (sizeof (struct GNUNET_TRANSPORT_WLAN_MacAddress) != addrlen)
@@ -1472,10 +1466,7 @@ wlan_plugin_address_to_string (void *cls, const void *addr, size_t addrlen)
     return NULL;
   }
   mac = addr;
-  GNUNET_snprintf (ret, sizeof (ret), "%s MAC address %s",
-                   PROTOCOL_PREFIX, 
-		   mac_to_string (mac));
-  return ret;
+  return GNUNET_strdup (mac_to_string (mac));
 }
 
 
@@ -1512,10 +1503,7 @@ wlan_plugin_address_pretty_printer (void *cls, const char *type,
     return;
   }
   mac = addr;
-  GNUNET_asprintf (&ret,
-                   "%s MAC address %s",
-                   PROTOCOL_PREFIX, 
-		   mac_to_string (mac));
+  ret = GNUNET_strdup (mac_to_string (mac));
   asc (asc_cls, ret);
   GNUNET_free (ret);
   asc (asc_cls, NULL);
@@ -1579,6 +1567,57 @@ libgnunet_plugin_transport_wlan_done (void *cls)
 
 
 /**
+ * Function called to convert a string address to
+ * a binary address.
+ *
+ * @param cls closure ('struct Plugin*')
+ * @param addr string address
+ * @param addrlen length of the address
+ * @param buf location to store the buffer
+ * @param added location to store the number of bytes in the buffer.
+ *        If the function returns GNUNET_SYSERR, its contents are undefined.
+ * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+ */
+static int
+wlan_string_to_address (void *cls, const char *addr, uint16_t addrlen,
+			void **buf, size_t *added)
+{
+  struct GNUNET_TRANSPORT_WLAN_MacAddress *mac;
+  unsigned int a[6];
+  unsigned int i;
+
+  if ((NULL == addr) || (addrlen == 0))
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  if ('\0' != addr[addrlen - 1])
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  if (strlen (addr) != addrlen - 1)
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  if (6 != SSCANF (addr,
+		   "%X:%X:%X:%X:%X:%X", 
+		   &a[0], &a[1], &a[2], &a[3], &a[4], &a[5]))
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  mac = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_WLAN_MacAddress));
+  for (i=0;i<6;i++)
+    mac->mac[i] = a[i];
+  *buf = mac;
+  *added = sizeof (struct GNUNET_TRANSPORT_WLAN_MacAddress);
+  return GNUNET_OK;
+}
+
+
+/**
  * Entry point for the plugin.
  *
  * @param cls closure, the 'struct GNUNET_TRANSPORT_PluginEnvironment*'
@@ -1602,7 +1641,7 @@ libgnunet_plugin_transport_wlan_init (void *cls)
     api->cls = NULL;
     api->address_pretty_printer = &wlan_plugin_address_pretty_printer;
     api->address_to_string = &wlan_plugin_address_to_string;
-    api->string_to_address = NULL; // FIXME!
+    api->string_to_address = &wlan_string_to_address;
     return api;
   }
 
@@ -1697,6 +1736,7 @@ libgnunet_plugin_transport_wlan_init (void *cls)
   api->address_pretty_printer = &wlan_plugin_address_pretty_printer;
   api->check_address = &wlan_plugin_address_suggested;
   api->address_to_string = &wlan_plugin_address_to_string;
+  api->string_to_address = &wlan_string_to_address;
   return api;
 }
 

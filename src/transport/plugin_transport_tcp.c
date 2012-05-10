@@ -584,7 +584,7 @@ tcp_address_to_string (void *cls, const void *addr, size_t addrlen)
  *        If the function returns GNUNET_SYSERR, its contents are undefined.
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
-int
+static int
 tcp_string_to_address (void *cls, const char *addr, uint16_t addrlen,
     void **buf, size_t *added)
 {
