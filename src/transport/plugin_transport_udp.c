@@ -119,6 +119,8 @@ struct Session
 
   struct FragmentationContext * frag_ctx;
 
+  unsigned int rc;
+
   int in_destroy;
 };
 
@@ -617,15 +619,11 @@ udp_plugin_check_address (void *cls, const void *addr, size_t addrlen)
 /**
  * Task to free resources associated with a session.
  *
- * @param cls the 'struct Session' to free
- * @param tc scheduler context (unused)
+ * @param s session to free
  */
 static void
-free_session (void *cls,
-	      const struct GNUNET_SCHEDULER_TaskContext *tc)
+free_session (struct Session *s)
 {
-  struct Session *s = cls;
-
   if (s->frag_ctx != NULL)
   {
     GNUNET_FRAGMENT_context_destroy(s->frag_ctx->frag);
@@ -693,8 +691,10 @@ disconnect_and_free_it (void *cls, const GNUNET_HashCode * key, void *value)
                         "# UDP sessions active",
                         GNUNET_CONTAINER_multihashmap_size(plugin->sessions),
                         GNUNET_NO);
-  GNUNET_SCHEDULER_add_now (&free_session, s);
-  s->in_destroy = GNUNET_YES;
+  if (s->rc > 0)
+    s->in_destroy = GNUNET_YES;
+  else
+    free_session (s);
   return GNUNET_OK;
 }
 
@@ -1265,7 +1265,7 @@ process_udp_message (struct Plugin *plugin, const struct UDPMessage *msg,
                      socklen_t sender_addr_len)
 {
   struct SourceInformation si;
-  struct Session * s = NULL;
+  struct Session * s;
   struct IPv4UdpAddress u4;
   struct IPv6UdpAddress u6;
   const void *arg;
@@ -1318,10 +1318,13 @@ process_udp_message (struct Plugin *plugin, const struct UDPMessage *msg,
   si.sender = msg->sender;
   si.arg = arg;
   si.args = args;
-
+  s->rc++;
   GNUNET_SERVER_mst_receive (plugin->mst, &si, (const char *) &msg[1],
                              ntohs (msg->header.size) -
                              sizeof (struct UDPMessage), GNUNET_YES, GNUNET_NO);
+  s->rc--;
+  if ( (0 == s->rc) && (GNUNET_YES == s->in_destroy))
+    free_session (s);
 }
 
 
