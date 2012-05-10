@@ -983,12 +983,6 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
       return;
     }
     ntm = (const struct NotifyTrafficMessage *) msg;
-    if (0 == memcmp (&h->me, &ntm->peer, sizeof (struct GNUNET_PeerIdentity)))
-    {
-      /* self-change!? */
-      GNUNET_break (0);
-      return;
-    }
     ats_count = ntohl (ntm->ats_count);
     if ((msize <
          sizeof (struct NotifyTrafficMessage) +
