@@ -504,9 +504,9 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         }
         GNUNET_free_non_null (d->hostname);
         GNUNET_free_non_null (d->username);
-        GNUNET_free_non_null (d->username);
         GNUNET_OS_process_destroy (d->proc_arm_start);
 	d->proc_arm_start = NULL;
+	d->username = NULL;
         d->hostname = NULL;     // Quick hack to avoid crashing (testing need to be
         d->cfg = NULL;          // overhauled anyway, and the error managing is
 	// GNUNET_free (d); // FIXME (could this leak)
