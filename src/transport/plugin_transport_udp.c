@@ -1012,6 +1012,7 @@ enqueue_fragment (void *cls, const struct GNUNET_MessageHeader *msg)
   udpw->udp = (char *) &udpw[1];
 
   udpw->msg_size = msg_len;
+  cont_calls++;
   udpw->cont = &send_next_fragment;
   udpw->cont_cls = udpw;
   udpw->timeout = frag_ctx->timeout;
