@@ -838,6 +838,8 @@ send_with_fragmentation (struct MacEndpoint *endpoint,
   fm->macendpoint = endpoint;
   fm->target = *target;
   fm->timeout = GNUNET_TIME_relative_to_absolute (timeout);
+  fm->cont = cont;
+  fm->cont_cls = cont_cls;
   fm->fragcontext =
     GNUNET_FRAGMENT_context_create (plugin->env->stats, WLAN_MTU,
 				    &plugin->tracker,
