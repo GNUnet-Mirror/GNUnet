@@ -293,7 +293,6 @@ struct UDP_ACK_Message
 
 };
 
-static int cont_calls;
 
 /**
  * We have been notified that our readset has something to read.  We don't
@@ -550,8 +549,6 @@ call_continuation (struct UDPMessageWrapper *udpw, int result)
   if (NULL != udpw->cont)
   {
     udpw->cont (udpw->cont_cls, &udpw->session->target,result);
-    GNUNET_assert (cont_calls > 0);
-    cont_calls --;
   }
 
 }
@@ -703,7 +700,6 @@ disconnect_and_free_it (void *cls, const GNUNET_HashCode * key, void *value)
     if (NULL != s->frag_ctx->cont)
     {
       s->frag_ctx->cont (s->frag_ctx->cont_cls, &s->target, GNUNET_SYSERR);
-      cont_calls --;
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
           "Calling continuation for fragemented message to `%s' with result SYSERR\n",
           GNUNET_i2s (&s->target));
@@ -1012,7 +1008,6 @@ enqueue_fragment (void *cls, const struct GNUNET_MessageHeader *msg)
   udpw->udp = (char *) &udpw[1];
 
   udpw->msg_size = msg_len;
-  cont_calls++;
   udpw->cont = &send_next_fragment;
   udpw->cont_cls = udpw;
   udpw->timeout = frag_ctx->timeout;
@@ -1144,10 +1139,6 @@ udp_plugin_send (void *cls,
     udpw->cont = cont;
     udpw->cont_cls = cont_cls;
     udpw->frag_ctx = NULL;
-    if (NULL != udpw->cont)
-    {
-      cont_calls ++;
-    }
     memcpy (udpw->udp, udp, sizeof (struct UDPMessage));
     memcpy (&udpw->udp[sizeof (struct UDPMessage)], msgbuf, msgbuf_size);
 
@@ -1176,8 +1167,6 @@ udp_plugin_send (void *cls,
               &enqueue_fragment,
               frag_ctx);
 
-    if (NULL != frag_ctx->cont)
-      cont_calls ++;
     s->frag_ctx = frag_ctx;
   }
 
@@ -1627,7 +1616,6 @@ static void read_process_ack (struct Plugin *plugin,
         "Calling continuation for fragmented message to `%s' with result %s\n",
         GNUNET_i2s (&s->target), "OK");
     s->frag_ctx->cont (s->frag_ctx->cont_cls, &udp_ack->sender, GNUNET_OK);
-    cont_calls --;
   }
 
   GNUNET_free (s->frag_ctx);
@@ -2420,7 +2408,6 @@ libgnunet_plugin_transport_udp_done (void *cls)
   plugin->nat = NULL;
   GNUNET_free (plugin);
   GNUNET_free (api);
-  GNUNET_assert (0 == cont_calls);
   return NULL;
 }
 

@@ -598,13 +598,11 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
                   const char *upload_data, size_t * upload_data_size,
                   void **httpSessionCache)
 {
-
   struct Plugin *plugin = cls;
   struct ServerConnection *sc = *httpSessionCache;
-  struct Session *s = NULL;
-
-  int res = MHD_YES;
+  struct Session *s;
   struct MHD_Response *response;
+  int res = MHD_YES;
 
   GNUNET_assert (cls != NULL);
   /* new connection */
