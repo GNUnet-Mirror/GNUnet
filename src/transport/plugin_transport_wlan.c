@@ -1604,6 +1604,7 @@ libgnunet_plugin_transport_wlan_init (void *cls)
     return api;
   }
 
+  testmode = 0;
   /* check configuration */
   if ( (GNUNET_YES == 
 	GNUNET_CONFIGURATION_have_value (env->cfg, "transport-wlan", "TESTMODE")) &&
