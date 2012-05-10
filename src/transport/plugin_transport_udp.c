@@ -544,7 +544,7 @@ static void
 call_continuation (struct UDPMessageWrapper *udpw, int result)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-      "Calling for %u byte message to `%s' continuation with result %s\n",
+      "Calling continuation for %u byte message to `%s' with result %s\n",
       udpw->msg_size, GNUNET_i2s (&udpw->session->target),
       (GNUNET_OK == result) ? "OK" : "SYSERR");
   if (NULL != udpw->cont)
@@ -1602,11 +1602,11 @@ static void read_process_ack (struct Plugin *plugin,
 
   if (s->frag_ctx->cont != NULL)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+        "Calling continuation for fragmented message to `%s' with result %s\n",
+        GNUNET_i2s (&s->target), "OK");
     s->frag_ctx->cont (s->frag_ctx->cont_cls, &udp_ack->sender, GNUNET_OK);
     cont_calls --;
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-        "Calling continuation for %u byte fragemented message to `%s' with result %s\n",
-        udpw->msg_size, GNUNET_i2s (&udpw->session->target), GNUNET_OK);
   }
 
   GNUNET_free (s->frag_ctx);
