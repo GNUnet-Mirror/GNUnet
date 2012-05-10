@@ -371,7 +371,9 @@ connect_nse_service (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 #endif
   for (i = 0; i < num_peers; i++)
   {
-    if ((connection_limit > 0) && (i % (num_peers / connection_limit) != 0))
+    if ((connection_limit > 0) &&
+	(num_peers > connection_limit) && 
+	(i % (num_peers / connection_limit) != 0))
       continue;
 #if VERBOSE
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
