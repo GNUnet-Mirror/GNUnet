@@ -734,6 +734,8 @@ client_disconnect_cb (void *cls, struct GNUNET_SERVER_Client *client)
   struct ClientList *cl_entry;
   struct LockList *ll_entry;
 
+  if (NULL == client)
+    return;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "A client has been disconnected -- freeing its locks and resources\n"); 
   cl_entry = cl_find_client (client);
