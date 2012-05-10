@@ -376,12 +376,11 @@ server_lookup_session (struct Plugin *plugin,
   uint32_t tag = 0;
   int direction = GNUNET_SYSERR;
 
-  conn_info =
-      MHD_get_connection_info (mhd_connection,
+  conn_info = MHD_get_connection_info (mhd_connection,
                                MHD_CONNECTION_INFO_CLIENT_ADDRESS);
   if ((conn_info->client_addr->sa_family != AF_INET) &&
       (conn_info->client_addr->sa_family != AF_INET6))
-    return MHD_NO;
+    return NULL;
 
   if ((strlen (&url[1]) >= 105) && (url[104] == ';'))
   {
@@ -482,7 +481,7 @@ server_lookup_session (struct Plugin *plugin,
         "# HTTP inbound sessions",
         plugin->inbound_sessions,
         GNUNET_NO);
-
+    GNUNET_assert (NULL != s);
     goto found;
   }
   if ((direction == _RECEIVE) && (t->server_recv != NULL))
@@ -506,7 +505,7 @@ server_lookup_session (struct Plugin *plugin,
         "# HTTP inbound sessions",
         plugin->inbound_sessions,
         GNUNET_NO);
-
+    GNUNET_assert (NULL != s);
     goto found;
   }
 
@@ -538,6 +537,7 @@ create:
     goto error;
   }
   s = create_session (plugin, &target, a, a_len, NULL, NULL);
+  GNUNET_assert (NULL != s);
   s->ats_address_network_type = ats.value;
 
   s->inbound = GNUNET_YES;
@@ -627,6 +627,8 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
   /* existing connection */
   sc = (*httpSessionCache);
   s = sc->session;
+
+  GNUNET_assert (NULL != s);
 
   /* connection is to be disconnected */
   if (sc->disconnect == GNUNET_YES)
@@ -755,6 +757,7 @@ server_disconnect_cb (void *cls, struct MHD_Connection *connection,
     return;
 
   s = sc->session;
+  GNUNET_assert (NULL != s);
   GNUNET_assert (NULL != p);
   if (GNUNET_NO == exist_session(p, s))
     return;
