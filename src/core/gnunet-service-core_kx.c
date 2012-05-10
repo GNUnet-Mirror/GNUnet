@@ -1539,7 +1539,7 @@ GSC_KX_handle_encrypted_message (struct GSC_KeyExchangeInfo *kx,
   if (KX_STATE_KEY_RECEIVED == kx->status)
   {
     /* defer */
-    GNUNET_free_non_null (kx->ping_received);
+    GNUNET_free_non_null (kx->emsg_received);
     kx->emsg_received = (struct EncryptedMessage *) GNUNET_copy_message (msg);
     return;
   }
