@@ -1,21 +1,21 @@
 /*
-     This file is part of GNUnet.
-     (C) 2012 Christian Grothoff (and other contributing authors)
+  This file is part of GNUnet.
+  (C) 2012 Christian Grothoff (and other contributing authors)
 
-     GNUnet is free software; you can redistribute it and/or modify
-     it under the terms of the GNU General Public License as published
-     by the Free Software Foundation; either version 2, or (at your
-     option) any later version.
+  GNUnet is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published
+  by the Free Software Foundation; either version 2, or (at your
+  option) any later version.
 
-     GNUnet is distributed in the hope that it will be useful, but
-     WITHOUT ANY WARRANTY; without even the implied warranty of
-     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-     General Public License for more details.
+  GNUnet is distributed in the hope that it will be useful, but
+  WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+  General Public License for more details.
 
-     You should have received a copy of the GNU General Public License
-     along with GNUnet; see the file COPYING.  If not, write to the
-     Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-     Boston, MA 02111-1307, USA.
+  You should have received a copy of the GNU General Public License
+  along with GNUnet; see the file COPYING.  If not, write to the
+  Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+  Boston, MA 02111-1307, USA.
 */
 
 /**
@@ -34,10 +34,10 @@
 #include "lockmanager.h"
 
 
-#define LOG(kind,...) \
+#define LOG(kind,...)                           \
   GNUNET_log (kind, __VA_ARGS__)
 
-#define TIME_REL_MINS(min) \
+#define TIME_REL_MINS(min)                                      \
   GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, min)
 
 #define TIMEOUT TIME_REL_MINS(3)
@@ -67,7 +67,39 @@ struct WaitList
   /**
    * Pointer to the client
    */
-  struct GNUNET_SERVER_Client *client;
+  struct ClientList *cl_entry;
+};
+
+
+/**
+ * Structure representing a Lock
+ */
+struct Lock
+{
+  /**
+   * List head of clients waiting for this lock
+   */
+  struct WaitList *wl_head;
+
+  /**
+   * List tail of clients waiting for this lock
+   */
+  struct WaitList *wl_tail;
+
+  /**
+   * The client which is currently holding this lock
+   */
+  struct ClientList *cl_entry;
+
+  /**
+   * The name of the locking domain this lock belongs to
+   */
+  char *domain_name;
+
+  /**
+   * The number of this lock
+   */
+  uint32_t lock_num;
 };
 
 
@@ -87,29 +119,9 @@ struct LockList
   struct LockList *prev;
 
   /**
-   * List head of clients waiting for this lock
+   * Pointer to the Lock
    */
-  struct WaitList *wait_list_head;
-
-  /**
-   * List tail of clients waiting for this lock
-   */
-  struct WaitList *wait_list_tail;
-
-  /**
-   * The client which is currently holding this lock
-   */
-  struct GNUNET_SERVER_Client *client;
-
-  /**
-   * The name of the locking domain this lock belongs to
-   */
-  char *domain_name;
-
-  /**
-   * The number of this lock
-   */
-  uint32_t lock_num;
+  struct Lock *lock;
 };
 
 
@@ -118,6 +130,7 @@ struct LockList
  */
 struct ClientList
 {
+
   /**
    * The next client structure
    */
@@ -129,6 +142,16 @@ struct ClientList
   struct ClientList *prev;
 
   /**
+   * Head of the doubly linked list of the currently held locks by this client
+   */
+  struct LockList *ll_head;
+
+  /**
+   * Tail of the doubly linked list of the currently held locks by this client
+   */
+  struct LockList *ll_tail;
+
+  /**
    * Pointer to the client
    */
   struct GNUNET_SERVER_Client *client;
@@ -136,14 +159,9 @@ struct ClientList
 
 
 /**
- * Head of the doubly linked list of the currently held locks
+ * Map of lock-keys to the 'struct LockList' entry for the key.
  */
-static struct LockList *ll_head;
-
-/**
- * Tail of the doubly linked list of the currently held locks
- */
-static struct LockList *ll_tail;
+static struct GNUNET_CONTAINER_MultiHashMap *lock_map;
 
 /**
  * Head of the doubly linked list of clients currently connected
@@ -157,133 +175,210 @@ static struct ClientList *cl_tail;
 
 
 /**
- * Function to search for a lock in lock_list matching the given domain_name and
- * lock number
+ * Get the key for the given lock in the 'lock_map'.
  *
- * @param domain_name the name of the locking domain
- * @param lock_num the number of the lock
- * @param ret this will be the pointer to the corresponding Lock if found; else
- *         it will be the last element in the locks list
- * @return GNUNET_YES if a matching lock is present in lock_list; GNUNET_NO if not
- */
-static struct LockList *
-ll_find_lock (const char *domain_name,
-              const uint32_t lock_num)
-              
-{
-  struct LockList *current_lock;
-  
-  for (current_lock = ll_head; NULL != current_lock; current_lock = current_lock->next)    
-    if ( (lock_num == current_lock->lock_num) &&
-	 (0 == strcmp (domain_name, current_lock->domain_name)) )
-      return current_lock;
-  return NULL;
-}
-
-
-/**
- * Function to search for a lock in lock_list matching the given domain_name and
- * lock number
- *
- * @param client the client owning this lock currently
- * @param ret this will be the pointer to the corresponding Lock if found; else
- *         it will be the last element in the locks list
- * @return GNUNET_YES if a matching lock is present in lock_list; GNUNET_NO if not
- */
-static struct LockList *
-ll_find_lock_by_owner (const struct GNUNET_SERVER_Client *client)
-{
-  struct LockList *current_lock;
-
-  for (current_lock = ll_head; NULL != current_lock; current_lock = current_lock->next)
-    if (client == current_lock->client)
-      return current_lock;
-  return NULL;
-}
-
-
-/**
- * Function to append a lock to the global lock list
- *
- * @param client the client which currently owns this lock
- * @param domain_name the name of the locking domain
- * @param lock_num the number of the lock
+ * @param domain_name
+ * @param lock_number
+ * @param key set to the key
  */
 static void
-ll_add_lock (struct GNUNET_SERVER_Client *client,
-             const char *domain_name,
-             const uint32_t lock_num)
+get_key (const char *domain_name,
+	 uint32_t lock_number,
+	 struct GNUNET_HashCode *key)
 {
-  struct LockList *lock;
+  uint32_t *last_32;
+
+  GNUNET_CRYPTO_hash (domain_name,
+		      strlen (domain_name),
+		      key);
+  last_32 = (uint32_t *) key;
+  *last_32 ^= lock_number;
+}
+
+
+/**
+ * Function to search for a lock in the global lock hashmap
+ *
+ * @param domain_name the name of the locking domain
+ * @param lock_num the number of the lock
+ * @return the lock if found; NULL if not
+ */
+static struct Lock *
+find_lock (const char *domain_name,
+           const uint32_t lock_num)
+              
+{
+  struct Lock *matched_lock;
+  struct GNUNET_HashCode key;
+
+  matched_lock = NULL;
+  int match_lock (void *cls,
+                  const GNUNET_HashCode *key,
+                  void *value)
+  {
+    matched_lock = value;
+
+    if ((lock_num == matched_lock->lock_num)
+        && (0 == strcmp (domain_name, matched_lock->domain_name)))
+      return GNUNET_NO;
+    matched_lock = NULL;
+    return GNUNET_YES;
+  }
+  get_key (domain_name, lock_num, &key);
+  GNUNET_CONTAINER_multihashmap_get_multiple (lock_map,
+                                              &key,
+                                              &match_lock,
+                                              NULL);
+  return matched_lock;
+}
+
+
+/**
+ * Adds a lock to the global lock hashmap
+ *
+ * @param domain_name the name of the lock's locking domain
+ * @param lock_num the lock number
+ * @return pointer to the lock structure which is added to lock map
+ */
+static struct Lock *
+add_lock (const char *domain_name, 
+          uint32_t lock_num)
+{
+  struct Lock *lock;
+  struct GNUNET_HashCode key;
   size_t domain_name_len;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Adding a lock with num: %u and domain: %s to lock list\n",
-       lock_num, domain_name);
-
-  lock = GNUNET_malloc (sizeof (struct LockList));
+  lock = GNUNET_malloc (sizeof (struct Lock));
   domain_name_len = strlen (domain_name) + 1;
   lock->domain_name = GNUNET_malloc (domain_name_len);
   strncpy (lock->domain_name, domain_name, domain_name_len);
   lock->lock_num = lock_num;
-  lock->client = client;
-  
-  GNUNET_CONTAINER_DLL_insert_tail (ll_head,
-                                    ll_tail,
-                                    lock);
+  get_key (domain_name, lock_num, &key);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Adding a lock with num: %d and domain: %s to the lock map\n",
+       lock->lock_num, lock->domain_name);
+  GNUNET_CONTAINER_multihashmap_put (lock_map,
+                                     &key,
+                                     lock,
+                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+  return lock;
 }
 
 
 /**
- * Function to delete a lock from the lock list
+ * Removes a lock from the lock map
  *
- * @param lock the lock to be deleted
+ * @param the lock to remove
  */
 static void
-ll_remove_lock (struct LockList *lock)
+remove_lock (struct Lock *lock)
 {
+  struct GNUNET_HashCode key;
+
+  get_key (lock->domain_name,
+           lock->lock_num,
+           &key);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Removing lock with num: %u, domain: %s\n",
+       "Removing lock with num: %u, domain: %s from lock map\n",
        lock->lock_num, lock->domain_name);
-  GNUNET_assert (NULL != ll_head);
-  GNUNET_CONTAINER_DLL_remove (ll_head,
-                               ll_tail,
-                               lock);
+  GNUNET_assert (GNUNET_YES == GNUNET_CONTAINER_multihashmap_remove
+                 (lock_map, &key, lock));
   GNUNET_free (lock->domain_name);
   GNUNET_free (lock);
 }
 
 
 /**
- * Find a client in the waiting list of a lock
+ * Find the LockList entry corresponding to the given Lock in a ClientList
+ * entry
  *
- * @param lock the LockList entry of a lock
- * @param client the client to look for
- * @param ret where to store the matched wait list entry
- * @return GNUNET_YES if a match is found; GNUNET_NO if not
+ * @param cl_entry the ClientList entry whose lock list has to be searched
+ * @param lock the lock which has to be matched
+ * @return the matching LockList entry; NULL if no match is found
  */
-static int
-ll_wl_find_client (struct LockList *lock,
-                   const struct GNUNET_SERVER_Client *client,
-                   struct WaitList **ret)
+static struct LockList *
+cl_ll_find_lock (struct ClientList *cl_entry,
+                 const struct Lock *lock)
 {
-  struct WaitList *current_wl_entry;
+  struct LockList *ll_entry;
 
-  current_wl_entry = lock->wait_list_head;
+  for (ll_entry = cl_entry->ll_head;
+       NULL != ll_entry; ll_entry = ll_entry->next)
+  {
+    if (lock == ll_entry->lock)
+      return ll_entry;
+  }
+  return NULL;
+}
 
-  while (NULL != current_wl_entry)
-    {
-      if (client == current_wl_entry->client)
-        {
-          if (NULL != ret)
-            *ret = current_wl_entry;
-          return GNUNET_YES;
-        }
-      current_wl_entry = current_wl_entry->next;
-    }
-  if (NULL != ret)
-    *ret = current_wl_entry;
-  return GNUNET_NO;
+
+/**
+ * Function to append a lock to the lock list of a ClientList entry
+ *
+ * @param cl_entry the client which currently owns this lock
+ * @param lock the lock to be added to the cl_entry's lock list
+ */
+static void
+cl_ll_add_lock (struct ClientList *cl_entry,
+                struct Lock *lock)
+{
+  struct LockList *ll_entry;
+
+  ll_entry = GNUNET_malloc (sizeof (struct LockList));
+  ll_entry->lock = lock;
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Adding a lock with num: %u and domain: %s to lock list\n",
+       lock->lock_num, lock->domain_name);
+  GNUNET_CONTAINER_DLL_insert_tail (cl_entry->ll_head,
+                                    cl_entry->ll_tail,
+                                    ll_entry);
+}
+
+
+/**
+ * Function to delete a lock from the lock list of the given ClientList entry
+ *
+ * @param cl_entry the ClientList entry
+ * @param ll_entry the LockList entry to be deleted
+ */
+static void
+cl_ll_remove_lock (struct ClientList *cl_entry,
+                   struct LockList *ll_entry)
+{
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Removing lock with num: %u, domain: %s from lock list of a client\n",
+       ll_entry->lock->lock_num,
+       ll_entry->lock->domain_name);
+  GNUNET_assert (NULL != cl_entry->ll_head);
+  GNUNET_CONTAINER_DLL_remove (cl_entry->ll_head,
+                               cl_entry->ll_tail,
+                               ll_entry);
+  GNUNET_free (ll_entry);
+}
+
+
+/**
+ * Find a WaitList entry in the waiting list of a lock
+ *
+ * @param lock the lock whose wait list has to be searched
+ * @param cl_entry the ClientList entry to be searched
+ * @return the WaitList entry matching the given cl_entry; NULL if not match
+ *           was found
+ */
+static struct WaitList *
+lock_wl_find (const struct Lock *lock,
+              const struct ClientList *cl_entry)
+{
+  struct WaitList *wl_entry;
+
+  for (wl_entry = lock->wl_head;
+       NULL != wl_entry; 
+       wl_entry = wl_entry->next)
+  {
+    if (cl_entry == wl_entry->cl_entry)
+      return wl_entry;
+  }
+  return NULL;
 }
 
 
@@ -291,42 +386,43 @@ ll_wl_find_client (struct LockList *lock,
  * Add a client to the wait list of given lock
  *
  * @param lock the lock list entry of a lock
- * @param client the client to queue for the lock's wait list
+ * @param cl_entry the client to queue for the lock's wait list
  */
 static void
-ll_wl_add_client (struct LockList *lock,
-                  struct GNUNET_SERVER_Client *client)
+lock_wl_add_client (struct Lock *lock,
+                    struct ClientList *cl_entry)
 {
   struct WaitList *wl_entry;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Adding a client to lock's wait list\n"
-       "\t lock num: %u, domain: %s\n",
+       "Adding a client to lock's wait list (lock num: %u, domain: %s)\n",
        lock->lock_num,
        lock->domain_name);
-
   wl_entry = GNUNET_malloc (sizeof (struct WaitList));
-  wl_entry->client = client;
-  GNUNET_CONTAINER_DLL_insert_tail (lock->wait_list_head,
-                                    lock->wait_list_tail,
+  wl_entry->cl_entry = cl_entry;
+  GNUNET_CONTAINER_DLL_insert_tail (lock->wl_head,
+                                    lock->wl_tail,
                                     wl_entry);
 }
 
 
 /**
- * Remove a client from the wait list of the given lock
+ * Remove an entry from the wait list of the given lock
  *
- * @param lock the lock list entry of the lock
- * @param wl_client the wait list entry to be removed
+ * @param lock the lock
+ * @param wl_entry the wait list entry to be removed
  */
 static void
-ll_wl_remove_client (struct LockList *lock,
-                     struct WaitList *wl_client)
+lock_wl_remove (struct Lock *lock,
+                struct WaitList *wl_entry)
 {
-  GNUNET_CONTAINER_DLL_remove (lock->wait_list_head,
-                               lock->wait_list_tail,
-                               wl_client);
-  GNUNET_free (wl_client);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Removing client from wait list of lock with num: %u, domain: %s\n",
+       lock->lock_num, lock->domain_name);
+  GNUNET_CONTAINER_DLL_remove (lock->wl_head,
+                               lock->wl_tail,
+                               wl_entry);
+  GNUNET_free (wl_entry);
 }
 
 
@@ -334,9 +430,7 @@ ll_wl_remove_client (struct LockList *lock,
  * Search for a client in the client list
  *
  * @param client the client to be searched for
- * @param ret will be pointing to the matched list entry (if there is a match);
- *          else to the tail of the client list
- * @return GNUNET_YES if the client is present; GNUNET_NO if not
+ * @return the ClientList entry; NULL if the client is not found
  */
 static struct ClientList *
 cl_find_client (const struct GNUNET_SERVER_Client *client)                
@@ -344,8 +438,8 @@ cl_find_client (const struct GNUNET_SERVER_Client *client)
   struct ClientList *current;
 
   for (current = cl_head; NULL != current; current = current->next)
-      if (client == current->client)
-        return current;
+    if (client == current->client)
+      return current;
   return NULL;
 }
 
@@ -354,39 +448,40 @@ cl_find_client (const struct GNUNET_SERVER_Client *client)
  * Append a client to the client list
  *
  * @param client the client to be appended to the list
+ * @return the client list entry which is added to the client list
  */
-static void
+static struct ClientList *
 cl_add_client (struct GNUNET_SERVER_Client *client)
 {
   struct ClientList *new_client;
   
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Adding a client to the client list\n");
-
   new_client = GNUNET_malloc (sizeof (struct ClientList));
   GNUNET_SERVER_client_keep (client);
   new_client->client = client;
   GNUNET_CONTAINER_DLL_insert_tail (cl_head,
                                     cl_tail,
                                     new_client);
+  return new_client;
 }
 
 
 /**
  * Delete the given client from the client list
  *
- * @param client the client list entry to delete
+ * @param cl_entry the client list entry to delete
  */
 static void
-cl_remove_client (struct ClientList *client)
+cl_remove_client (struct ClientList *cl_entry)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Removing a client from the client list\n");
-  GNUNET_SERVER_client_drop (client->client);
+  GNUNET_SERVER_client_drop (cl_entry->client);
   GNUNET_CONTAINER_DLL_remove (cl_head,
                                cl_tail,
-                               client);
-  GNUNET_free (client);
+                               cl_entry);
+  GNUNET_free (cl_entry);
 }
 
 
@@ -405,10 +500,10 @@ transmit_notify (void *cls, size_t size, void *buf)
   uint16_t msg_size;
 
   if ((0 == size) || (NULL == buf))
-    {
-      /* FIXME: Timed out -- requeue? */
-      return 0;
-    }
+  {
+    /* FIXME: Timed out -- requeue? */
+    return 0;
+  }
   msg_size = ntohs (msg->header.size);
   GNUNET_assert (size >= msg_size);
   memcpy (buf, msg, msg_size);
@@ -442,6 +537,9 @@ send_success_msg (struct GNUNET_SERVER_Client *client,
   reply->header.type = htons (GNUNET_MESSAGE_TYPE_LOCKMANAGER_SUCCESS);
   reply->lock = htonl (lock_num);
   strncpy ((char *) &reply[1], domain_name, domain_name_len);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Sending SUCCESS message for lock with num: %u, domain: %s\n",
+       lock_num, domain_name);
   GNUNET_SERVER_notify_transmit_ready (client,
                                        reply_size,
                                        TIMEOUT,
@@ -464,74 +562,84 @@ handle_acquire (void *cls,
 {
   const struct GNUNET_LOCKMANAGER_Message *request;
   const char *domain_name;
-  struct LockList *ll_entry;
+  struct Lock *lock;
+  struct ClientList *cl_entry;
   uint32_t lock_num;
+  uint16_t msize;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Received an ACQUIRE message\n");
-  /* Check if the client is in client list */
-  if (NULL == cl_find_client (client))
-    cl_add_client (client);    
-  
+  msize = htons (message->size);
+  if (msize <= sizeof (struct GNUNET_LOCKMANAGER_Message))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
   request = (struct GNUNET_LOCKMANAGER_Message *) message;
+  domain_name = (const char *) &request[1];
+  msize -= sizeof (struct GNUNET_LOCKMANAGER_Message);
+  if ('\0' != domain_name[msize])
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
   lock_num = ntohl (request->lock);
-  domain_name = (char *) &request[1];
-  if (NULL != (ll_entry = ll_find_lock (domain_name,
-					lock_num)))
-    {/* Add client to the lock's wait list */
-      ll_wl_add_client (ll_entry, client);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Received an ACQUIRE message for lock num: %u domain: %s\n",
+       lock_num, domain_name);
+  if (NULL == (cl_entry = cl_find_client (client))) 
+    cl_entry = cl_add_client (client); /* Add client if not in client list */
+  if (NULL != (lock = find_lock (domain_name,lock_num)))
+  {
+    if (lock->cl_entry == cl_entry)
+    {                         /* Client is requesting a lock it already owns */
+      GNUNET_break (0);
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      return;
     }
-  else
-    {
-      ll_add_lock (client, domain_name, lock_num);
-      send_success_msg (client, domain_name, lock_num);
-    }
-  
+    lock_wl_add_client (lock, cl_entry);
+    cl_ll_add_lock (cl_entry, lock);
+  }
+  else                          /* Lock not present */
+  {
+    lock = add_lock (domain_name, lock_num);
+    lock->cl_entry = cl_entry;
+    cl_ll_add_lock (cl_entry, lock);
+    send_success_msg (cl_entry->client, domain_name, lock_num);
+  }
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 
 /**
  * This function gives the lock to the first client in the wait list of the
- * lock. If no clients are currently waiting for this lock, the lock is
+ * lock. If no clients are currently waiting for this lock, the lock is then
  * destroyed.
  *
- * @param ll_entry the lock list entry corresponding to a lock
+ * @param lock the lock which has to be processed for release
  */
 static void
-process_lock_release (struct LockList *ll_entry)
+process_lock_release (struct Lock *lock)
 {
   struct WaitList *wl_entry;
 
-  wl_entry = ll_entry->wait_list_head;
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Processing lock release for lock with num: %u, domain: %s\n",
+       lock->lock_num, lock->domain_name);
+  wl_entry = lock->wl_head;
   if (NULL == wl_entry)
-    {
-      ll_remove_lock (ll_entry);
-      return;
-    }
-
-  while (NULL != wl_entry)
-    {
-      ll_wl_remove_client(ll_entry, wl_entry);
-
-      if (NULL == cl_find_client (wl_entry->client))
-        {
-          LOG (GNUNET_ERROR_TYPE_DEBUG,
-               "Removing disconnected client from wait list\n");
-          wl_entry = ll_entry->wait_list_head;
-          continue;
-        }
-      
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-           "Giving lock to a client from wait list\n");
-      ll_entry->client = wl_entry->client;
-      send_success_msg (wl_entry->client,
-                        ll_entry->domain_name,
-                        ll_entry->lock_num);
-      return;
-    }
-  /* We ran out of clients in the wait list -- destroy lock */
-  ll_remove_lock (ll_entry);
+  {
+    remove_lock (lock);   /* No clients waiting for this lock - delete */
+    return;
+  }
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Giving lock to a client from wait list\n");
+  lock->cl_entry = wl_entry->cl_entry;
+  cl_ll_add_lock (wl_entry->cl_entry, lock);
+  lock_wl_remove(lock, wl_entry);
+  send_success_msg (lock->cl_entry->client,
+                    lock->domain_name,
+                    lock->lock_num);
   return;
 }
 
@@ -549,31 +657,68 @@ handle_release (void *cls,
                 const struct GNUNET_MessageHeader *message)
 {
   const struct GNUNET_LOCKMANAGER_Message *request;
-  const char *domain_name;
+  struct ClientList *cl_entry;
+  struct WaitList *wl_entry;
   struct LockList *ll_entry;
+  const char *domain_name;
+  struct Lock *lock;
   uint32_t lock_num;
+  uint16_t msize;
 
-  request = (struct GNUNET_LOCKMANAGER_Message *) message;
+  msize = ntohs (message->size);
+  if (msize <= sizeof (struct GNUNET_LOCKMANAGER_Message))
+  { 
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  request = (const struct GNUNET_LOCKMANAGER_Message *) message;
+  domain_name = (const char *) &request[1];
+  msize -= sizeof (struct GNUNET_LOCKMANAGER_Message);
+  if ('\0' != domain_name[msize-1])
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  
+
+  }
   lock_num = ntohl (request->lock);
-  domain_name = (char *) &request[1];
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Received a RELEASE message on lock with num: %d, domain: %s\n",
+       "Received RELEASE message for lock with num: %d, domain: %s\n",
        lock_num, domain_name);
+  if (NULL == (cl_entry = cl_find_client (client)))
+  {
+    GNUNET_break(0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  lock = find_lock (domain_name, lock_num);
+  if(NULL == lock)
+  {    
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  if (NULL == (ll_entry = cl_ll_find_lock (cl_entry, lock)))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  cl_ll_remove_lock (cl_entry, ll_entry);
+  if (cl_entry == lock->cl_entry)
+  {
+    process_lock_release (lock);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
+  /* remove 'client' from wait list (check that it is not there...) */
+  if (NULL != (wl_entry = lock_wl_find (lock, cl_entry)))
+  {
+    lock_wl_remove (lock, wl_entry);
+  }
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
-  if (NULL != (ll_entry = ll_find_lock (domain_name, lock_num)))
-    {
-      if (client != ll_entry->client)
-        {
-          GNUNET_break (0);
-          return;
-        }
-      process_lock_release (ll_entry);
-    }
-  else
-    {
-      LOG (GNUNET_ERROR_TYPE_WARNING,
-           _("Client tried to release lock that it doesn't exist\n"));
-    }
 }
 
 
@@ -594,9 +739,12 @@ client_disconnect_cb (void *cls, struct GNUNET_SERVER_Client *client)
   cl_entry = cl_find_client (client);
   if (NULL == cl_entry)
     return;
+  while (NULL != (ll_entry = cl_entry->ll_head))
+  {
+    process_lock_release (ll_entry->lock);
+    cl_ll_remove_lock (cl_entry, ll_entry);
+  }
   cl_remove_client (cl_entry);
-  while (NULL != (ll_entry = ll_find_lock_by_owner (client)))
-    process_lock_release (ll_entry); 
 }
 
 
@@ -622,7 +770,8 @@ lockmanager_run (void *cls,
                               message_handlers);
   GNUNET_SERVER_disconnect_notify (server,
                                    &client_disconnect_cb,
-                                   NULL);                                    
+                                   NULL);
+  lock_map = GNUNET_CONTAINER_multihashmap_create (30);
 }
 
 
