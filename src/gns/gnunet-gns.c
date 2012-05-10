@@ -168,7 +168,6 @@ run (void *cls, char *const *args, const char *cfgfile,
                          &user_zone);
       zone = &user_zone;
       GNUNET_CRYPTO_short_hash_to_enc (zone, &zonename);
-      printf("asdsad\n");
       if (!raw)
         GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                     "Using zone: %s!\n", &zonename);
