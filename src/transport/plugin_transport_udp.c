@@ -963,6 +963,26 @@ enqueue (struct Plugin *plugin, struct UDPMessageWrapper * udpw)
     GNUNET_CONTAINER_DLL_insert(plugin->ipv6_queue_head, plugin->ipv6_queue_tail, udpw);
 }
 
+
+/**
+ * Fragment message was transmitted via UDP, let fragmentation know
+ * to send the next fragment now.
+ *
+ * @param cls the 'struct UDPMessageWrapper' of the fragment
+ * @param target destination peer (ignored)
+ * @param result GNUNET_OK on success (ignored)
+ */
+static void
+send_next_fragment (void *cls,
+		    const struct GNUNET_PeerIdentity *target,
+		    int result)
+{
+  struct UDPMessageWrapper *udpw = cls;
+
+  GNUNET_FRAGMENT_context_transmission_done (udpw->frag_ctx->frag);  
+}
+
+
 /**
  * Function that is called with messages created by the fragmentation
  * module.  In the case of the 'proc' callback of the
@@ -992,8 +1012,8 @@ enqueue_fragment (void *cls, const struct GNUNET_MessageHeader *msg)
   udpw->udp = (char *) &udpw[1];
 
   udpw->msg_size = msg_len;
-  udpw->cont = frag_ctx->cont;
-  udpw->cont_cls = frag_ctx->cont_cls;
+  udpw->cont = &send_next_fragment;
+  udpw->cont_cls = udpw;
   udpw->timeout = frag_ctx->timeout;
   udpw->frag_ctx = frag_ctx;
   memcpy (udpw->udp, msg, msg_len);
@@ -1850,15 +1870,8 @@ udp_select_send (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *sock)
          "UDP transmitted %u-byte message to `%s' (%d: %s)\n",
          (unsigned int) (udpw->msg_size), GNUNET_a2s (sa, slen), (int) sent,
          (sent < 0) ? STRERROR (errno) : "ok");
-  }
-  /* This was just a message fragment */
-  if (udpw->frag_ctx != NULL)
-  {
-    GNUNET_FRAGMENT_context_transmission_done (udpw->frag_ctx->frag);
-  }
-  /* This was a complete message*/
-  else
     call_continuation(udpw, GNUNET_OK);
+  }
 
   if (sock == plugin->sockv4)
     GNUNET_CONTAINER_DLL_remove(plugin->ipv4_queue_head, plugin->ipv4_queue_tail, udpw);
