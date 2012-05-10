@@ -61,7 +61,6 @@ UNIX_QUOTA_TEST = test_quota_compliance_unix \
 endif
 
 noinst_PROGRAMS = \
- $(WLAN_BIN_DUMMY) \
  $(WLAN_BIN_SENDER)
 # gnunet-transport-connect-running-peers
 
@@ -97,6 +96,7 @@ libgnunettransport_la_LDFLAGS = \
 bin_PROGRAMS = \
  gnunet-transport \
  $(WLAN_BIN) \
+ $(WLAN_BIN_DUMMY) \
  gnunet-service-transport \
  gnunet-transport-certificate-creation
 
