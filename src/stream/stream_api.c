@@ -298,11 +298,6 @@ struct GNUNET_STREAM_Socket
   GNUNET_PEER_Id other_peer;
 
   /**
-   * Our Peer Identity (for debugging)
-   */
-  GNUNET_PEER_Id our_id;
-
-  /**
    * The application port number (type: uint32_t)
    */
   GNUNET_MESH_ApplicationType app_port;
@@ -375,11 +370,6 @@ struct GNUNET_STREAM_ListenSocket
    * The call back closure
    */
   void *listen_cb_cls;
-
-  /**
-   * Our interned Peer's identity
-   */
-  GNUNET_PEER_Id our_id;
 
   /**
    * The service port
@@ -575,8 +565,7 @@ queue_message (struct GNUNET_STREAM_Socket *socket,
      && (ntohs (message->header.type) <= GNUNET_MESSAGE_TYPE_STREAM_CLOSE_ACK));
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%x: Queueing message of type %d and size %d\n",
-              socket->our_id,
+              "Queueing message of type %d and size %d\n",
               ntohs (message->header.type),
               ntohs (message->header.size));
   GNUNET_assert (NULL != message);
@@ -685,7 +674,7 @@ retransmission_timeout_task (void *cls,
     return;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%x: Retransmitting DATA...\n", socket->our_id);
+              "Retransmitting DATA...\n");
   socket->retransmission_timeout_task_id = GNUNET_SCHEDULER_NO_TASK;
   write_data (socket);
 }
@@ -847,8 +836,7 @@ write_data (struct GNUNET_STREAM_Socket *socket)
                                              packet))
         {
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "%x: Placing DATA message with sequence %u in send queue\n",
-                      socket->our_id,
+                      "Placing DATA message with sequence %u in send queue\n",
                       ntohl (io_handle->messages[packet]->sequence_number));
 
           copy_and_queue_message (socket,
@@ -866,8 +854,7 @@ write_data (struct GNUNET_STREAM_Socket *socket)
       socket->receiver_window_available -= 
         ntohs (io_handle->messages[packet]->header.header.size);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "%x: Placing DATA message with sequence %u in send queue\n",
-                  socket->our_id,
+                  "Placing DATA message with sequence %u in send queue\n",
                   ntohl (io_handle->messages[packet]->sequence_number));
       copy_and_queue_message (socket,
                               &io_handle->messages[packet]->header,
@@ -933,20 +920,17 @@ call_read_processor (void *cls,
 
   /* Call the data processor */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%x: Calling read processor\n",
-              socket->our_id);
+              "Calling read processor\n");
   read_size = 
     socket->read_handle->proc (socket->read_handle->proc_cls,
                                socket->status,
                                socket->receive_buffer + socket->copy_offset,
                                valid_read_size);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%x: Read processor read %d bytes\n",
-              socket->our_id,
+              "Read processor read %d bytes\n",
               read_size);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%x: Read processor completed successfully\n",
-              socket->our_id);
+              "Read processor completed successfully\n");
 
   /* Free the read handle */
   GNUNET_free (socket->read_handle);
@@ -969,8 +953,7 @@ call_read_processor (void *cls,
 
   sequence_increase = packet;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%x: Sequence increase after read processor completion: %u\n",
-              socket->our_id,
+              "Sequence increase after read processor completion: %u\n",
               sequence_increase);
 
   /* Shift the data in the receive buffer */
@@ -1027,8 +1010,7 @@ read_io_timeout (void *cls,
   if (socket->read_task_id != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "%x: Read task timedout - Cancelling it\n",
-                socket->our_id);
+                "Read task timedout - Cancelling it\n");
     GNUNET_SCHEDULER_cancel (socket->read_task_id);
     socket->read_task_id = GNUNET_SCHEDULER_NO_TASK;
   }
@@ -1080,8 +1062,7 @@ handle_data (struct GNUNET_STREAM_Socket *socket,
   if (GNUNET_PEER_search (sender) != socket->other_peer)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "%x: Received DATA from non-confirming peer\n",
-                  socket->our_id);
+                  "Received DATA from non-confirming peer\n");
       return GNUNET_YES;
     }
 
@@ -1098,8 +1079,7 @@ handle_data (struct GNUNET_STREAM_Socket *socket,
       if ( relative_sequence_number > GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH)
         {
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "%x: Ignoring received message with sequence number %u\n",
-                      socket->our_id,
+                      "Ignoring received message with sequence number %u\n",
                       ntohl (msg->sequence_number));
           /* Start ACK sending task if one is not already present */
           if (GNUNET_SCHEDULER_NO_TASK == socket->ack_task_id)
@@ -1118,9 +1098,8 @@ handle_data (struct GNUNET_STREAM_Socket *socket,
                                               relative_sequence_number))
         {
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "%x: Ignoring already received message with sequence "
+                      "Ignoring already received message with sequence "
                       "number %u\n",
-                      socket->our_id,
                       ntohl (msg->sequence_number));
           /* Start ACK sending task if one is not already present */
           if (GNUNET_SCHEDULER_NO_TASK == socket->ack_task_id)
@@ -1135,9 +1114,7 @@ handle_data (struct GNUNET_STREAM_Socket *socket,
         }
 
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "%x: Receiving DATA with sequence number: %u and size: %d "
-                  "from %x\n",
-                  socket->our_id,
+                  "Receiving DATA with sequence number: %u and size: %d from %x\n",
                   ntohl (msg->sequence_number),
                   ntohs (msg->header.header.size),
                   socket->other_peer);
@@ -1157,9 +1134,7 @@ handle_data (struct GNUNET_STREAM_Socket *socket,
           else
             {
               GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                          "%x: Cannot accommodate packet %d as buffer is",
-                          "full\n",
-                          socket->our_id,
+                          "Cannot accommodate packet %d as buffer is full\n",
                           ntohl (msg->sequence_number));
               return GNUNET_YES;
             }
@@ -1197,8 +1172,7 @@ handle_data (struct GNUNET_STREAM_Socket *socket,
                                                  0)))
         {
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "%x: Scheduling read processor\n",
-                      socket->our_id);
+                      "Scheduling read processor\n");
 
           socket->read_task_id = 
             GNUNET_SCHEDULER_add_now (&call_read_processor,
@@ -1209,8 +1183,7 @@ handle_data (struct GNUNET_STREAM_Socket *socket,
 
     default:
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "%x: Received data message when it cannot be handled\n",
-                  socket->our_id);
+                  "Received data message when it cannot be handled\n");
       break;
     }
   return GNUNET_YES;
@@ -1260,8 +1233,7 @@ set_state_established (void *cls,
   struct GNUNET_PeerIdentity initiator_pid;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-              "%x: Attaining ESTABLISHED state\n",
-              socket->our_id);
+              "Attaining ESTABLISHED state\n");
   socket->write_offset = 0;
   socket->read_offset = 0;
   socket->state = STATE_ESTABLISHED;
@@ -1270,8 +1242,7 @@ set_state_established (void *cls,
     {
       GNUNET_PEER_resolve (socket->other_peer, &initiator_pid);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "%x: Calling listen callback\n",
-                  socket->our_id);
+                  "Calling listen callback\n");
       if (GNUNET_SYSERR == 
           socket->lsocket->listen_cb (socket->lsocket->listen_cb_cls,
                                       socket,
@@ -1300,8 +1271,7 @@ set_state_hello_wait (void *cls,
 {
   GNUNET_assert (STATE_INIT == socket->state);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-              "%x: Attaining HELLO_WAIT state\n",
-              socket->our_id);
+              "Attaining HELLO_WAIT state\n");
   socket->state = STATE_HELLO_WAIT;
 }
 
@@ -1317,8 +1287,7 @@ set_state_close_wait (void *cls,
                       struct GNUNET_STREAM_Socket *socket)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%x: Attaing CLOSE_WAIT state\n",
-              socket->our_id);
+              "Attaing CLOSE_WAIT state\n");
   socket->state = STATE_CLOSE_WAIT;
   GNUNET_free_non_null (socket->receive_buffer); /* Free the receive buffer */
   socket->receive_buffer = NULL;
@@ -1337,8 +1306,7 @@ set_state_receive_close_wait (void *cls,
                               struct GNUNET_STREAM_Socket *socket)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%x: Attaing RECEIVE_CLOSE_WAIT state\n",
-              socket->our_id);
+              "Attaing RECEIVE_CLOSE_WAIT state\n");
   socket->state = STATE_RECEIVE_CLOSE_WAIT;
   GNUNET_free_non_null (socket->receive_buffer); /* Free the receive buffer */
   socket->receive_buffer = NULL;
@@ -1357,8 +1325,7 @@ set_state_transmit_close_wait (void *cls,
                                struct GNUNET_STREAM_Socket *socket)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%x: Attaing TRANSMIT_CLOSE_WAIT state\n",
-              socket->our_id);
+              "Attaining TRANSMIT_CLOSE_WAIT state\n");
   socket->state = STATE_TRANSMIT_CLOSE_WAIT;
 }
 
@@ -1392,8 +1359,7 @@ generate_hello_ack_msg (struct GNUNET_STREAM_Socket *socket)
   socket->write_sequence_number = 
     GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%x: Generated write sequence number %u\n",
-              socket->our_id,
+              "Generated write sequence number %u\n",
               (unsigned int) socket->write_sequence_number);
   
   msg = GNUNET_malloc (sizeof (struct GNUNET_STREAM_HelloAckMessage));
@@ -1434,14 +1400,12 @@ client_handle_hello_ack (void *cls,
   if (GNUNET_PEER_search (sender) != socket->other_peer)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "%x: Received HELLO_ACK from non-confirming peer\n",
-                  socket->our_id);
+                  "Received HELLO_ACK from non-confirming peer\n");
       return GNUNET_YES;
     }
   ack_msg = (const struct GNUNET_STREAM_HelloAckMessage *) message;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%x: Received HELLO_ACK from %x\n",
-              socket->our_id,
+              "Received HELLO_ACK from %x\n",
               socket->other_peer);
 
   GNUNET_assert (socket->tunnel == tunnel);
@@ -1450,8 +1414,7 @@ client_handle_hello_ack (void *cls,
   case STATE_HELLO_WAIT:
     socket->read_sequence_number = ntohl (ack_msg->sequence_number);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "%x: Read sequence number %u\n",
-                socket->our_id,
+                "Read sequence number %u\n",
                 (unsigned int) socket->read_sequence_number);
     socket->receiver_window_available = ntohl (ack_msg->receiver_window_size);
     reply = generate_hello_ack_msg (socket);
@@ -1467,8 +1430,7 @@ client_handle_hello_ack (void *cls,
   case STATE_INIT:
   default:
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"%x: Server %x sent HELLO_ACK when in state %d\n", 
-                socket->our_id,
+		"Server %x sent HELLO_ACK when in state %d\n", 
                 socket->other_peer,
                 socket->state);
     socket->state = STATE_CLOSED; // introduce STATE_ERROR?
@@ -1601,8 +1563,7 @@ handle_generic_close_ack (struct GNUNET_STREAM_Socket *socket,
   if (NULL == shutdown_handle)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "%x: Received *CLOSE_ACK when shutdown handle is NULL\n",
-                  socket->our_id);
+                  "Received *CLOSE_ACK when shutdown handle is NULL\n");
       return GNUNET_OK;
     }
 
@@ -1615,22 +1576,18 @@ handle_generic_close_ack (struct GNUNET_STREAM_Socket *socket,
           if (SHUT_RDWR != shutdown_handle->operation)
             {
               GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                          "%x: Received CLOSE_ACK when shutdown handle "
-                          "is not for SHUT_RDWR\n",
-                          socket->our_id);
+                          "Received CLOSE_ACK when shutdown handle is not for SHUT_RDWR\n");
               return GNUNET_OK;
             }
 
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "%x: Received CLOSE_ACK from %x\n",
-                      socket->our_id,
+                      "Received CLOSE_ACK from %x\n",
                       socket->other_peer);
           socket->state = STATE_CLOSED;
           break;
         default:
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "%x: Received CLOSE_ACK when in it not expected\n",
-                      socket->our_id);
+                      "Received CLOSE_ACK when in it not expected\n");
           return GNUNET_OK;
         }
       break;
@@ -1642,22 +1599,18 @@ handle_generic_close_ack (struct GNUNET_STREAM_Socket *socket,
           if (SHUT_RD != shutdown_handle->operation)
             {
               GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                          "%x: Received RECEIVE_CLOSE_ACK when shutdown handle "
-                          "is not for SHUT_RD\n",
-                          socket->our_id);
+                          "Received RECEIVE_CLOSE_ACK when shutdown handle is not for SHUT_RD\n");
               return GNUNET_OK;
             }
 
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "%x: Received RECEIVE_CLOSE_ACK from %x\n",
-                      socket->our_id,
+                      "Received RECEIVE_CLOSE_ACK from %x\n",
                       socket->other_peer);
           socket->state = STATE_RECEIVE_CLOSED;
           break;
         default:
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "%x: Received RECEIVE_CLOSE_ACK when in it not expected\n",
-                      socket->our_id);
+                      "Received RECEIVE_CLOSE_ACK when in it not expected\n");
           return GNUNET_OK;
         }
 
@@ -1669,22 +1622,18 @@ handle_generic_close_ack (struct GNUNET_STREAM_Socket *socket,
           if (SHUT_WR != shutdown_handle->operation)
             {
               GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                          "%x: Received TRANSMIT_CLOSE_ACK when shutdown handle "
-                          "is not for SHUT_WR\n",
-                          socket->our_id);
+                          "Received TRANSMIT_CLOSE_ACK when shutdown handle is not for SHUT_WR\n");
               return GNUNET_OK;
             }
 
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "%x: Received TRANSMIT_CLOSE_ACK from %x\n",
-                      socket->our_id,
+                      "Received TRANSMIT_CLOSE_ACK from %x\n",
                       socket->other_peer);
           socket->state = STATE_TRANSMIT_CLOSED;
           break;
         default:
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "%x: Received TRANSMIT_CLOSE_ACK when in it not expected\n",
-                      socket->our_id);
+                      "Received TRANSMIT_CLOSE_ACK when in it not expected\n");
           
           return GNUNET_OK;
         }
@@ -1768,16 +1717,14 @@ handle_receive_close (struct GNUNET_STREAM_Socket *socket,
     case STATE_LISTEN:
     case STATE_HELLO_WAIT:
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "%x: Ignoring RECEIVE_CLOSE as it cannot be handled now\n",
-                  socket->our_id);
+                  "Ignoring RECEIVE_CLOSE as it cannot be handled now\n");
       return GNUNET_OK;
     default:
       break;
     }
   
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%x: Received RECEIVE_CLOSE from %x\n",
-              socket->our_id,
+              "Received RECEIVE_CLOSE from %x\n",
               socket->other_peer);
   receive_close_ack =
     GNUNET_malloc (sizeof (struct GNUNET_STREAM_MessageHeader));
@@ -1886,16 +1833,14 @@ handle_close (struct GNUNET_STREAM_Socket *socket,
     case STATE_LISTEN:
     case STATE_HELLO_WAIT:
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "%x: Ignoring RECEIVE_CLOSE as it cannot be handled now\n",
-                  socket->our_id);
+                  "Ignoring RECEIVE_CLOSE as it cannot be handled now\n");
       return GNUNET_OK;
     default:
       break;
     }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%x: Received CLOSE from %x\n",
-              socket->our_id,
+              "Received CLOSE from %x\n",
               socket->other_peer);
   close_ack = GNUNET_malloc (sizeof (struct GNUNET_STREAM_MessageHeader));
   close_ack->header.size = htons (sizeof (struct GNUNET_STREAM_MessageHeader));
@@ -2035,8 +1980,7 @@ server_handle_hello (void *cls,
   if (GNUNET_PEER_search (sender) != socket->other_peer)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "%x: Received HELLO from non-confirming peer\n",
-                  socket->our_id);
+                  "Received HELLO from non-confirming peer\n");
       return GNUNET_YES;
     }
 
@@ -2044,8 +1988,7 @@ server_handle_hello (void *cls,
                  ntohs (message->type));
   GNUNET_assert (socket->tunnel == tunnel);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%x: Received HELLO from %x\n", 
-              socket->our_id,
+              "Received HELLO from %x\n", 
               socket->other_peer);
 
   if (STATE_INIT == socket->state)
@@ -2097,13 +2040,11 @@ server_handle_hello_ack (void *cls,
   if (STATE_HELLO_WAIT == socket->state)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "%x: Received HELLO_ACK from %x\n",
-                  socket->our_id,
+                  "Received HELLO_ACK from %x\n",
                   socket->other_peer);
       socket->read_sequence_number = ntohl (ack_message->sequence_number);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "%x: Read sequence number %u\n",
-                  socket->our_id,
+                  "Read sequence number %u\n",
                   (unsigned int) socket->read_sequence_number);
       socket->receiver_window_available = 
         ntohl (ack_message->receiver_window_size);
@@ -2360,8 +2301,7 @@ handle_ack (struct GNUNET_STREAM_Socket *socket,
   if (GNUNET_PEER_search (sender) != socket->other_peer)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "%x: Received ACK from non-confirming peer\n",
-                  socket->our_id);
+                  "Received ACK from non-confirming peer\n");
       return GNUNET_YES;
     }
 
@@ -2373,8 +2313,7 @@ handle_ack (struct GNUNET_STREAM_Socket *socket,
       if (NULL == socket->write_handle)
         {
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "%x: Received DATA_ACK when write_handle is NULL\n",
-                      socket->our_id);
+                      "Received DATA_ACK when write_handle is NULL\n");
           return GNUNET_OK;
         }
       /* FIXME: increment in the base sequence number is breaking current flow
@@ -2383,12 +2322,9 @@ handle_ack (struct GNUNET_STREAM_Socket *socket,
              - ntohl (ack->base_sequence_number)) < GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH))
         {
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "%x: Received DATA_ACK with unexpected base sequence "
-                      "number\n",
-                      socket->our_id);
+                      "Received DATA_ACK with unexpected base sequence number\n");
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "%x: Current write sequence: %u; Ack's base sequence: %u\n",
-                      socket->our_id,
+                      "Current write sequence: %u; Ack's base sequence: %u\n",
                       socket->write_sequence_number,
                       ntohl (ack->base_sequence_number));
           return GNUNET_OK;
@@ -2397,8 +2333,7 @@ handle_ack (struct GNUNET_STREAM_Socket *socket,
          acks */
 
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "%x: Received DATA_ACK from %x\n",
-                  socket->our_id,
+                  "Received DATA_ACK from %x\n",
                   socket->other_peer);
       
       /* Cancel the retransmission task */
@@ -2462,8 +2397,7 @@ handle_ack (struct GNUNET_STREAM_Socket *socket,
                socket->status,
                socket->write_handle->size);
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "%x: Write completion callback completed\n",
-                      socket->our_id);
+                      "Write completion callback completed\n");
           /* We are done with the write handle - Freeing it */
           GNUNET_free (socket->write_handle);
           socket->write_handle = NULL;
@@ -2609,15 +2543,12 @@ mesh_peer_connect_callback (void *cls,
   if (connected_peer != socket->other_peer)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "%x: A peer which is not our target has connected",
-                  "to our tunnel\n",
-                  socket->our_id);
+                  "A peer which is not our target has connected to our tunnel\n");
       return;
     }
   
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%x: Target peer %x connected\n", 
-              socket->our_id,
+              "Target peer %x connected\n", 
               connected_peer);
   
   /* Set state to INIT */
@@ -2655,8 +2586,7 @@ mesh_peer_disconnect_callback (void *cls,
   
   /* If the state is SHUTDOWN its ok; else set the state of the socket to SYSERR */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%x: Other peer %x disconnected \n",
-              socket->our_id,
+              "Other peer %x disconnected\n",
               socket->other_peer);
 }
 
@@ -2688,12 +2618,9 @@ new_tunnel_notify (void *cls,
   socket->tunnel = tunnel;
   socket->session_id = 0;       /* FIXME */
   socket->state = STATE_INIT;
-  socket->lsocket = lsocket;
-  socket->our_id = lsocket->our_id;
-  
+  socket->lsocket = lsocket; 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%x: Peer %x initiated tunnel to us\n", 
-              socket->our_id,
+              "Peer %x initiated tunnel to us\n", 
               socket->other_peer);
   
   /* FIXME: Copy MESH handle from lsocket to socket */
@@ -2726,8 +2653,7 @@ tunnel_cleaner (void *cls,
 
   GNUNET_break_op(0);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%x: Peer %x has terminated connection abruptly\n",
-              socket->our_id,
+              "Peer %x has terminated connection abruptly\n",
               socket->other_peer);
 
   socket->status = GNUNET_STREAM_SHUTDOWN;
@@ -2788,7 +2714,6 @@ GNUNET_STREAM_open (const struct GNUNET_CONFIGURATION_Handle *cfg,
                     ...)
 {
   struct GNUNET_STREAM_Socket *socket;
-  struct GNUNET_PeerIdentity own_peer_id;
   enum GNUNET_STREAM_Option option;
   GNUNET_MESH_ApplicationType ports[] = {app_port, 0};
   va_list vargs;                /* Variable arguments */
@@ -2800,9 +2725,6 @@ GNUNET_STREAM_open (const struct GNUNET_CONFIGURATION_Handle *cfg,
   socket->other_peer = GNUNET_PEER_intern (target);
   socket->open_cb = open_cb;
   socket->open_cls = open_cb_cls;
-  GNUNET_TESTING_get_peer_identity (cfg, &own_peer_id);
-  socket->our_id = GNUNET_PEER_intern (&own_peer_id);
-  
   /* Set defaults */
   socket->retransmit_timeout = 
     GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, default_timeout);
@@ -3049,14 +2971,11 @@ GNUNET_STREAM_listen (const struct GNUNET_CONFIGURATION_Handle *cfg,
   /* FIXME: Add variable args for passing configration options? */
   struct GNUNET_STREAM_ListenSocket *lsocket;
   GNUNET_MESH_ApplicationType ports[] = {app_port, 0};
-  struct GNUNET_PeerIdentity our_peer_id;
 
   lsocket = GNUNET_malloc (sizeof (struct GNUNET_STREAM_ListenSocket));
   lsocket->port = app_port;
   lsocket->listen_cb = listen_cb;
   lsocket->listen_cb_cls = listen_cb_cls;
-  GNUNET_TESTING_get_peer_identity (cfg, &our_peer_id);
-  lsocket->our_id = GNUNET_PEER_intern (&our_peer_id);
   lsocket->mesh = GNUNET_MESH_connect (cfg,
                                        10, /* FIXME: QUEUE size as parameter? */
                                        lsocket, /* Closure */
@@ -3234,8 +3153,7 @@ GNUNET_STREAM_read (struct GNUNET_STREAM_Socket *socket,
   struct GNUNET_STREAM_IOReadHandle *read_handle;
   
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%x: %s()\n", 
-              socket->our_id,
+              "%s()\n", 
               __func__);
 
   /* Return NULL if there is already a read handle; the user has to cancel that
@@ -3252,8 +3170,7 @@ GNUNET_STREAM_read (struct GNUNET_STREAM_Socket *socket,
     case STATE_CLOSE_WAIT:
       proc (proc_cls, GNUNET_STREAM_SHUTDOWN, NULL, 0);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "%x: %s() END\n",
-                  socket->our_id,
+                  "%s() END\n",
                   __func__);
       return NULL;
     default:
@@ -3280,8 +3197,7 @@ GNUNET_STREAM_read (struct GNUNET_STREAM_Socket *socket,
                                   &read_io_timeout,
                                   socket);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%x: %s() END\n",
-              socket->our_id,
+              "%s() END\n",
               __func__);
   return read_handle;
 }
