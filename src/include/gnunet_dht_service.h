@@ -221,6 +221,7 @@ typedef void (*GNUNET_DHT_GetIterator) (void *cls,
  *
  * @param handle handle to the DHT service
  * @param timeout how long to wait for transmission of this request to the service
+ *                FIXME: this argument should probably be removed in the medium term...
  * @param type expected type of the response object
  * @param key the key to look up
  * @param desired_replication_level estimate of how many
