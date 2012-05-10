@@ -236,6 +236,9 @@ struct Plugin
   struct GNUNET_ATS_Information ats_network;
 
   unsigned int bytes_in_queue;
+  unsigned int bytes_in_sent;
+  unsigned int bytes_in_recv;
+  unsigned int bytes_discarded;
 };
 
 
@@ -736,6 +739,11 @@ unix_demultiplexer (struct Plugin *plugin, struct GNUNET_PeerIdentity *sender,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received message from %s\n",
               un->sun_path);
+
+  plugin->bytes_in_recv += ntohs(currhdr->size);
+  GNUNET_STATISTICS_set (plugin->env->stats,"# UNIX bytes received",
+      plugin->bytes_in_recv, GNUNET_NO);
+
   plugin->env->receive (plugin->env->cls, sender, currhdr,
                         (const struct GNUNET_ATS_Information *) &ats, 2,
                         NULL, un->sun_path, strlen (un->sun_path) + 1);
@@ -804,6 +812,7 @@ unix_plugin_select_read (struct Plugin * plugin)
       GNUNET_break_op (0);
       break;
     }
+
     unix_demultiplexer (plugin, &sender, currhdr, &un, sizeof (un));
     offset += csize;
   }
@@ -854,6 +863,9 @@ unix_plugin_select_write (struct Plugin * plugin)
     plugin->bytes_in_queue -= msgw->msgsize;
     GNUNET_STATISTICS_set (plugin->env->stats,"# UNIX bytes in send queue",
         plugin->bytes_in_queue, GNUNET_NO);
+    plugin->bytes_discarded += msgw->msgsize;
+    GNUNET_STATISTICS_set (plugin->env->stats,"# UNIX bytes discarded",
+        plugin->bytes_discarded, GNUNET_NO);
 
     GNUNET_free (msgw->msg);
     GNUNET_free (msgw);
@@ -869,6 +881,9 @@ unix_plugin_select_write (struct Plugin * plugin)
     plugin->bytes_in_queue -= msgw->msgsize;
     GNUNET_STATISTICS_set (plugin->env->stats,"# UNIX bytes in send queue",
         plugin->bytes_in_queue, GNUNET_NO);
+    plugin->bytes_in_sent += msgw->msgsize;
+    GNUNET_STATISTICS_set (plugin->env->stats,"# UNIX bytes sent",
+        plugin->bytes_in_sent, GNUNET_NO);
 
     GNUNET_free (msgw->msg);
     GNUNET_free (msgw);
