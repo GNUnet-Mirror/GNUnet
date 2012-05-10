@@ -1126,6 +1126,7 @@ send_keep_alive (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                               1, GNUNET_NO);
     GSC_SESSIONS_end (&kx->peer);
     kx->status = KX_STATE_DOWN;
+    send_key (kx);
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending KEEPALIVE to `%s'\n",
