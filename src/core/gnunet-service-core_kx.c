@@ -1064,7 +1064,7 @@ setup_fresh_setkey (struct GSC_KeyExchangeInfo *kx)
                                                     GNUNET_CRYPTO_AesSessionKey),
                                             kx->public_key,
                                             &skm->encrypted_key));
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Encrypting key %x for %s resulting in message %u (origin: %s)\n",
 	      (unsigned int) GNUNET_CRYPTO_crc32_n (&kx->encrypt_key, sizeof (struct GNUNET_CRYPTO_AesSessionKey)),
 	      GNUNET_i2s (&kx->peer),
@@ -1178,6 +1178,7 @@ trigger_rekey (void *cls,
 {
   struct GSC_KeyExchangeInfo *kx = cls;
   
+  GNUNET_break (KX_STATE_UP == kx->status);
   kx->status = KX_STATE_REKEY;
   kx->set_key_retry_frequency = INITIAL_SET_KEY_RETRY_FREQUENCY;
   kx->retry_set_key_task =
