@@ -1097,7 +1097,7 @@ client_message_tokenizer_callback (void *cls, void *client,
   sender->in_process_client_buffer = GNUNET_YES;
   ret = GNUNET_SERVER_inject (server, sender, message);
   sender->in_process_client_buffer = GNUNET_NO;
-  if (GNUNET_OK != ret)
+  if ( (GNUNET_OK != ret) || (GNUNET_YES == sender->shutdown_now) )
     GNUNET_SERVER_client_disconnect (sender);
 }
 
