@@ -166,7 +166,6 @@ run (void *cls, char *const *args, const char *cfgfile,
       GNUNET_CRYPTO_short_hash(&pkey,
                          sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
                          &user_zone);
-      GNUNET_free(keyfile);
       zone = &user_zone;
       GNUNET_CRYPTO_short_hash_to_enc (zone, &zonename);
       printf("asdsad\n");
@@ -175,6 +174,7 @@ run (void *cls, char *const *args, const char *cfgfile,
                     "Using zone: %s!\n", &zonename);
       GNUNET_CRYPTO_rsa_key_free(key);
     }
+    GNUNET_free(keyfile);
   }
 
   gns = GNUNET_GNS_connect (cfg);
