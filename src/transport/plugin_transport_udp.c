@@ -85,6 +85,7 @@ struct PrettyPrinterContext
   uint16_t port;
 };
 
+
 struct Session
 {
   /**
@@ -114,10 +115,11 @@ struct Session
    */
   struct GNUNET_TIME_Relative last_expected_delay;
 
-
   struct GNUNET_ATS_Information ats;
 
   struct FragmentationContext * frag_ctx;
+
+  int in_destroy;
 };
 
 
@@ -613,6 +615,28 @@ udp_plugin_check_address (void *cls, const void *addr, size_t addrlen)
 
 
 /**
+ * Task to free resources associated with a session.
+ *
+ * @param cls the 'struct Session' to free
+ * @param tc scheduler context (unused)
+ */
+static void
+free_session (void *cls,
+	      const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct Session *s = cls;
+
+  if (s->frag_ctx != NULL)
+  {
+    GNUNET_FRAGMENT_context_destroy(s->frag_ctx->frag);
+    GNUNET_free (s->frag_ctx);
+    s->frag_ctx = NULL;
+  }
+  GNUNET_free (s);
+}
+
+
+/**
  * Destroy a session, plugin is being unloaded.
  *
  * @param cls unused
@@ -628,35 +652,26 @@ disconnect_and_free_it (void *cls, const GNUNET_HashCode * key, void *value)
   struct UDPMessageWrapper *udpw;
   struct UDPMessageWrapper *next;
 
+  GNUNET_assert (GNUNET_YES != s->in_destroy);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Session %p to peer `%s' address ended \n",
          s,
          GNUNET_i2s (&s->target),
          GNUNET_a2s (s->sock_addr, s->addrlen));
-  if (s->frag_ctx != NULL)
-  {
-    GNUNET_FRAGMENT_context_destroy(s->frag_ctx->frag);
-    GNUNET_free (s->frag_ctx);
-    s->frag_ctx = NULL;
-  }
-
-  udpw = plugin->ipv4_queue_head;
-  while (udpw != NULL)
+  next = plugin->ipv4_queue_head;
+  while (NULL != (udpw = next))
   {
     next = udpw->next;
     if (udpw->session == s)
     {
       GNUNET_CONTAINER_DLL_remove(plugin->ipv4_queue_head, plugin->ipv4_queue_tail, udpw);
-
       if (udpw->cont != NULL)
         udpw->cont (udpw->cont_cls, &s->target, GNUNET_SYSERR);
       GNUNET_free (udpw);
     }
-    udpw = next;
   }
-
-  udpw = plugin->ipv6_queue_head;
-  while (udpw != NULL)
+  next = plugin->ipv6_queue_head;
+  while (NULL != (udpw = next))
   {
     next = udpw->next;
     if (udpw->session == s)
@@ -669,20 +684,17 @@ disconnect_and_free_it (void *cls, const GNUNET_HashCode * key, void *value)
     }
     udpw = next;
   }
-
   plugin->env->session_end (plugin->env->cls, &s->target, s);
-
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multihashmap_remove (plugin->sessions,
                                                        &s->target.hashPubKey,
                                                        s));
-
   GNUNET_STATISTICS_set(plugin->env->stats,
                         "# UDP sessions active",
                         GNUNET_CONTAINER_multihashmap_size(plugin->sessions),
                         GNUNET_NO);
-
-  GNUNET_free (s);
+  GNUNET_SCHEDULER_add_now (&free_session, s);
+  s->in_destroy = GNUNET_YES;
   return GNUNET_OK;
 }
 
@@ -772,9 +784,11 @@ create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
   return s;
 }
 
-static int session_cmp_it (void *cls,
-                           const GNUNET_HashCode * key,
-                           void *value)
+
+static int
+session_cmp_it (void *cls,
+		const GNUNET_HashCode * key,
+		void *value)
 {
   struct SessionCompareContext * cctx = cls;
   const struct GNUNET_HELLO_Address *address = cctx->addr;
@@ -911,7 +925,9 @@ udp_plugin_get_session (void *cls,
   return s;
 }
 
-static void enqueue (struct Plugin *plugin, struct UDPMessageWrapper * udpw)
+
+static void 
+enqueue (struct Plugin *plugin, struct UDPMessageWrapper * udpw)
 {
 
   if (udpw->session->addrlen == sizeof (struct sockaddr_in))
@@ -991,10 +1007,7 @@ enqueue_fragment (void *cls, const struct GNUNET_MessageHeader *msg)
       plugin->with_v6_ws = GNUNET_YES;
     }
   }
-
 }
-
-
 
 
 /**
@@ -1219,12 +1232,8 @@ process_inbound_tokenized_messages (void *cls, void *client,
   struct GNUNET_TIME_Relative delay;
 
   GNUNET_assert (si->session != NULL);
-
-  if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains_value(plugin->sessions,
-                          &si->sender.hashPubKey,
-                          si->session))
-    return;
-
+  if (GNUNET_YES == si->session->in_destroy)
+    return; 
   /* setup ATS */
   ats[0].type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
   ats[0].value = htonl (1);
@@ -1695,7 +1704,8 @@ udp_select_read (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *rsock)
   }
 }
 
-size_t
+
+static size_t
 udp_select_send (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *sock)
 {
   ssize_t sent;
