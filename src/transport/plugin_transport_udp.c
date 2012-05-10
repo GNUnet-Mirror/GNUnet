@@ -1219,6 +1219,12 @@ process_inbound_tokenized_messages (void *cls, void *client,
   struct GNUNET_TIME_Relative delay;
 
   GNUNET_assert (si->session != NULL);
+
+  if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains_value(plugin->sessions,
+                          &si->sender.hashPubKey,
+                          si->session))
+    return;
+
   /* setup ATS */
   ats[0].type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
   ats[0].value = htonl (1);
@@ -1676,7 +1682,7 @@ udp_select_read (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *rsock)
     return;
 
   case GNUNET_MESSAGE_TYPE_TRANSPORT_UDP_ACK:
-    read_process_ack (plugin, msg, addr, fromlen);;
+    read_process_ack (plugin, msg, addr, fromlen);
     return;
 
   case GNUNET_MESSAGE_TYPE_FRAGMENT:
