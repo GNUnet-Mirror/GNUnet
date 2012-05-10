@@ -956,7 +956,7 @@ disconnect_neighbour (struct NeighbourMapEntry *n)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Failing transmission of active message due to disconnect\n");
     if (NULL != n->is_active->cont)
-      n->is_active->cont (n->is_active->cont_cls, GNUNET_SYSER);
+      n->is_active->cont (n->is_active->cont_cls, GNUNET_SYSERR);
     GNUNET_free (n->is_active);
     n->is_active = NULL;
   }
