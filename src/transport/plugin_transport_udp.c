@@ -293,6 +293,8 @@ struct UDP_ACK_Message
 
 };
 
+static int cont_calls;
+
 /**
  * We have been notified that our readset has something to read.  We don't
  * know which socket needs to be read, so we have to check each one
@@ -538,6 +540,21 @@ udp_plugin_address_pretty_printer (void *cls, const char *type,
   GNUNET_RESOLVER_hostname_get (sb, sbs, !numeric, timeout, &append_port, ppc);
 }
 
+static void
+call_continuation (struct UDPMessageWrapper *udpw, int result)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      "Calling for %u byte message to `%s' continuation with result %s\n",
+      udpw->msg_size, GNUNET_i2s (&udpw->session->target),
+      (GNUNET_OK == result) ? "OK" : "SYSERR");
+  if (NULL != udpw->cont)
+  {
+    udpw->cont (udpw->cont_cls, &udpw->session->target,result);
+    GNUNET_assert (cont_calls > 0);
+    cont_calls --;
+  }
+
+}
 
 /**
  * Check if the given port is plausible (must be either our listen
@@ -663,8 +680,7 @@ disconnect_and_free_it (void *cls, const GNUNET_HashCode * key, void *value)
     if (udpw->session == s)
     {
       GNUNET_CONTAINER_DLL_remove(plugin->ipv4_queue_head, plugin->ipv4_queue_tail, udpw);
-      if (udpw->cont != NULL)
-        udpw->cont (udpw->cont_cls, &s->target, GNUNET_SYSERR);
+      call_continuation(udpw, GNUNET_SYSERR);
       GNUNET_free (udpw);
     }
   }
@@ -675,14 +691,25 @@ disconnect_and_free_it (void *cls, const GNUNET_HashCode * key, void *value)
     if (udpw->session == s)
     {
       GNUNET_CONTAINER_DLL_remove(plugin->ipv6_queue_head, plugin->ipv6_queue_tail, udpw);
-
-      if (udpw->cont != NULL)
-        udpw->cont (udpw->cont_cls, &s->target, GNUNET_SYSERR);
+      call_continuation(udpw, GNUNET_SYSERR);
       GNUNET_free (udpw);
     }
     udpw = next;
   }
   plugin->env->session_end (plugin->env->cls, &s->target, s);
+
+  if (NULL != s->frag_ctx)
+  {
+    if (NULL != s->frag_ctx->cont)
+    {
+      s->frag_ctx->cont (s->frag_ctx->cont_cls, &s->target, GNUNET_SYSERR);
+      cont_calls --;
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+          "Calling continuation for fragemented message to `%s' with result SYSERR\n",
+          GNUNET_i2s (&s->target));
+    }
+  }
+
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multihashmap_remove (plugin->sessions,
                                                        &s->target.hashPubKey,
@@ -1075,7 +1102,7 @@ udp_plugin_send (void *cls,
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "UDP transmits %u-byte message to `%s' using address `%s'\n",
-         msgbuf_size,
+         mlen,
          GNUNET_i2s (&s->target),
          GNUNET_a2s(s->sock_addr, s->addrlen));
 
@@ -1096,7 +1123,10 @@ udp_plugin_send (void *cls,
     udpw->cont = cont;
     udpw->cont_cls = cont_cls;
     udpw->frag_ctx = NULL;
-
+    if (NULL != udpw->cont)
+    {
+      cont_calls ++;
+    }
     memcpy (udpw->udp, udp, sizeof (struct UDPMessage));
     memcpy (&udpw->udp[sizeof (struct UDPMessage)], msgbuf, msgbuf_size);
 
@@ -1125,8 +1155,9 @@ udp_plugin_send (void *cls,
               &enqueue_fragment,
               frag_ctx);
 
+    if (NULL != frag_ctx->cont)
+      cont_calls ++;
     s->frag_ctx = frag_ctx;
-
   }
 
   if (s->addrlen == sizeof (struct sockaddr_in))
@@ -1570,8 +1601,14 @@ static void read_process_ack (struct Plugin *plugin,
   }
 
   if (s->frag_ctx->cont != NULL)
-    s->frag_ctx->cont
-    (s->frag_ctx->cont_cls, &udp_ack->sender, GNUNET_OK);
+  {
+    s->frag_ctx->cont (s->frag_ctx->cont_cls, &udp_ack->sender, GNUNET_OK);
+    cont_calls --;
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+        "Calling continuation for %u byte fragemented message to `%s' with result %s\n",
+        udpw->msg_size, GNUNET_i2s (&udpw->session->target), GNUNET_OK);
+  }
+
   GNUNET_free (s->frag_ctx);
   s->frag_ctx = NULL;
   return;
@@ -1742,9 +1779,7 @@ udp_select_send (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *sock)
     if (max.abs_value != udpw->timeout.abs_value)
     {
       /* Message timed out */
-
-      if (udpw->cont != NULL)
-        udpw->cont (udpw->cont_cls, &udpw->session->target, GNUNET_SYSERR);
+      call_continuation(udpw, GNUNET_SYSERR);
       if (udpw->frag_ctx != NULL)
       {
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Fragmented message for peer `%s' with size %u timed out\n",
@@ -1807,8 +1842,7 @@ udp_select_send (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *sock)
          "UDP could not transmit %u-byte message to `%s': `%s'\n",
          (unsigned int) (udpw->msg_size), GNUNET_a2s (sa, slen),
          STRERROR (errno));
-    if (udpw->cont != NULL)
-      udpw->cont (udpw->cont_cls, &udpw->session->target, GNUNET_SYSERR);
+    call_continuation(udpw, GNUNET_SYSERR);
   }
   else
   {
@@ -1824,10 +1858,7 @@ udp_select_send (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *sock)
   }
   /* This was a complete message*/
   else
-  {
-    if (udpw->cont != NULL)
-      udpw->cont (udpw->cont_cls, &udpw->session->target, GNUNET_OK);
-  }
+    call_continuation(udpw, GNUNET_OK);
 
   if (sock == plugin->sockv4)
     GNUNET_CONTAINER_DLL_remove(plugin->ipv4_queue_head, plugin->ipv4_queue_tail, udpw);
@@ -2352,8 +2383,7 @@ libgnunet_plugin_transport_udp_done (void *cls)
   {
     struct UDPMessageWrapper *tmp = udpw->next;
     GNUNET_CONTAINER_DLL_remove(plugin->ipv4_queue_head, plugin->ipv4_queue_tail, udpw);
-    if (udpw->cont != NULL)
-      udpw->cont (udpw->cont_cls, &udpw->session->target, GNUNET_SYSERR);
+    call_continuation(udpw, GNUNET_SYSERR);
     GNUNET_free (udpw);
     udpw = tmp;
   }
@@ -2362,8 +2392,7 @@ libgnunet_plugin_transport_udp_done (void *cls)
   {
     struct UDPMessageWrapper *tmp = udpw->next;
     GNUNET_CONTAINER_DLL_remove(plugin->ipv6_queue_head, plugin->ipv6_queue_tail, udpw);
-    if (udpw->cont != NULL)
-      udpw->cont (udpw->cont_cls, &udpw->session->target, GNUNET_SYSERR);
+    call_continuation(udpw, GNUNET_SYSERR);
     GNUNET_free (udpw);
     udpw = tmp;
   }
@@ -2377,6 +2406,7 @@ libgnunet_plugin_transport_udp_done (void *cls)
   plugin->nat = NULL;
   GNUNET_free (plugin);
   GNUNET_free (api);
+  GNUNET_assert (0 == cont_calls);
   return NULL;
 }
 
