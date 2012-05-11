@@ -44,7 +44,7 @@ from gnunet_testing import *
 
 testname = "test_integration_disconnect"
 verbose = True
-check_timeout = 30
+check_timeout = 180
 
 
 def cleanup ():

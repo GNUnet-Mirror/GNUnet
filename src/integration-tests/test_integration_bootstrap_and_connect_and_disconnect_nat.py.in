@@ -50,7 +50,7 @@ from gnunet_testing import *
 
 testname = "test_integration_bootstrap_and_connect"
 verbose = True
-check_timeout = 30
+check_timeout = 180
 
 
 def cleanup ():
