@@ -268,7 +268,7 @@ add_lock (const char *domain_name,
 /**
  * Removes a lock from the lock map
  *
- * @param the lock to remove
+ * @param lock the lock to remove
  */
 static void
 remove_lock (struct Lock *lock)

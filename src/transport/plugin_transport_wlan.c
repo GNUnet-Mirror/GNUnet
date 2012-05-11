@@ -496,6 +496,7 @@ get_radiotap_header (struct MacEndpoint *endpoint,
 /**
  * Generate the WLAN hardware header for one packet
  *
+ * @param plugin the plugin handle
  * @param header address to write the header to
  * @param to_mac_addr address of the recipient
  * @param size size of the whole packet, needed to calculate the time to send the packet
