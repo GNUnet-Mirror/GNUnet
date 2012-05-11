@@ -56,7 +56,6 @@
  */
 #define KEEPALIVE_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
-
 #define ATS_RESPONSE_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
 #define FAST_RECONNECT_RATE GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 100)
@@ -1652,8 +1651,8 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Sending CONNECT message to %s\n",
 		GNUNET_i2s (&n->id));
-    if (n->state != S_CONNECT_RECV)
-      change_state (n, S_CONNECT_RECV);
+    if (n->state != S_CONNECT_SENT)
+      change_state (n, S_CONNECT_SENT);
     ret = send_with_session (n,
       (const char *) &connect_msg, msg_len,
       UINT32_MAX, GNUNET_TIME_UNIT_FOREVER_REL,
@@ -1865,7 +1864,7 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
     /* This can happen during shutdown */
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Session %X to peer `%s' ended \n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Session %p to peer `%s' ended \n",
               session, GNUNET_i2s (peer));
   n = lookup_neighbour (peer);
   if (NULL == n)
@@ -2503,8 +2502,8 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
   }
 
   if ((NULL == n->address) ||
-       ((n->state != S_CONNECT_SENT) &&
-      ((n->state != S_CONNECT_RECV) && (n->address != NULL))))
+      ((n->state != S_CONNECT_SENT) &&
+       (n->state != S_CONNECT_RECV)))
   {
     GNUNET_STATISTICS_update (GST_stats,
                               gettext_noop
