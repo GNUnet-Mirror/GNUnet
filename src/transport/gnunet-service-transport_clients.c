@@ -616,10 +616,7 @@ clients_handle_send (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  GNUNET_STATISTICS_update (GST_stats,
-                            gettext_noop
-                            ("# bytes payload received for other peers"), msize,
-                            GNUNET_NO);
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received `%s' request from client with target `%4s' and first message of type %u and total size %u\n",
               "SEND", GNUNET_i2s (&obm->peer), ntohs (obmm->type), msize);

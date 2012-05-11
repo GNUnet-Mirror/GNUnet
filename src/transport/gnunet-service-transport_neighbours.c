@@ -401,6 +401,9 @@ static GNUNET_TRANSPORT_PeerIterateCallback address_change_cb;
  */
 static int neighbours_connected;
 
+static unsigned int bytes_in_send_queue;
+static unsigned int bytes_received;
+
 /**
  * Lookup a neighbour entry in the neighbours hash map.
  *
@@ -710,6 +713,14 @@ transmit_send_continuation (void *cls,
       n->transmission_task = GNUNET_SCHEDULER_add_now (&transmission_task, n);
     }
   }
+
+  GNUNET_assert (bytes_in_send_queue >= mq->message_buf_size);
+  bytes_in_send_queue -= mq->message_buf_size;
+  GNUNET_STATISTICS_set (GST_stats,
+                        gettext_noop
+                        ("# bytes in message queue for other peers"),
+                        bytes_in_send_queue, GNUNET_NO);
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending message of type %u was %s\n",
               ntohs (((struct GNUNET_MessageHeader *) mq->message_buf)->type),
               (success == GNUNET_OK) ? "successful" : "FAILED");
@@ -838,6 +849,8 @@ GST_neighbours_start (void *cls,
   address_change_cb = peer_address_cb;
   neighbours = GNUNET_CONTAINER_multihashmap_create (NEIGHBOUR_TABLE_SIZE);
   neighbours_connected = 0;
+  bytes_in_send_queue = 0;
+  bytes_received = 0;
 }
 
 
@@ -1977,10 +1990,11 @@ GST_neighbours_send (const struct GNUNET_PeerIdentity *target, const void *msg,
   }
 
   GNUNET_assert (msg_size >= sizeof (struct GNUNET_MessageHeader));
-  GNUNET_STATISTICS_update (GST_stats,
-                            gettext_noop
-                            ("# bytes in message queue for other peers"),
-                            msg_size, GNUNET_NO);
+  bytes_in_send_queue += msg_size;
+  GNUNET_STATISTICS_set (GST_stats,
+                        gettext_noop
+                        ("# bytes in message queue for other peers"),
+                        bytes_in_send_queue, GNUNET_NO);
   mq = GNUNET_malloc (sizeof (struct MessageQueue) + msg_size);
   mq->cont = cont;
   mq->cont_cls = cont_cls;

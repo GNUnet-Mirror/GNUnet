@@ -221,6 +221,8 @@ plugin_env_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct GNUNET_TIME_Relative ret;
   struct GNUNET_HELLO_Address address;
   uint16_t type;
+  static unsigned int bytes_total_received;
+  static unsigned int bytes_payload_received;
 
   address.peer = *peer;
   address.address = sender_address;
@@ -231,6 +233,13 @@ plugin_env_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
     goto end;
   type = ntohs (message->type);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received Message with type %u\n", type);
+
+  bytes_total_received += ntohs (message->size);
+  GNUNET_STATISTICS_set (GST_stats,
+                        gettext_noop
+                        ("# bytes total received"),
+                        bytes_total_received, GNUNET_NO);
+
   switch (type)
   {
   case GNUNET_MESSAGE_TYPE_HELLO:
@@ -273,6 +282,11 @@ plugin_env_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
     break;
   default:
     /* should be payload */
+    bytes_payload_received += ntohs (message->size);
+    GNUNET_STATISTICS_set (GST_stats,
+                          gettext_noop
+                          ("# bytes payload received"),
+                          bytes_payload_received, GNUNET_NO);
     ret = process_payload (peer, &address, session, message, ats, ats_count);
     break;
   }
