@@ -50,8 +50,8 @@ class Check:
             res = self.run()
             time.sleep(1)
             execs += 1
-        if (res == False):
-            neg_cont (self)
+        if ((False == res) and (execs >= timeout)):
+           print ('Check had timeout after ' +str(timeout)+ 'seconds')
         else:
             pos_cont (self)
         return res            
