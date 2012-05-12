@@ -282,7 +282,7 @@ plugin_env_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_STATISTICS_update (GST_stats,
                               gettext_noop
                               ("# bytes payload received"),
-                              -ntohs (message->size), GNUNET_NO);
+                              ntohs (message->size), GNUNET_NO);
     ret = process_payload (peer, &address, session, message, ats, ats_count);
     break;
   }
