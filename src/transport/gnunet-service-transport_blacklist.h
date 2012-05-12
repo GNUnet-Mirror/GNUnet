@@ -58,6 +58,7 @@ void
 GST_blacklist_handle_init (void *cls, struct GNUNET_SERVER_Client *client,
                            const struct GNUNET_MessageHeader *message);
 
+
 /**
  * A blacklisting client has sent us reply. Process it.
  *
@@ -68,6 +69,7 @@ GST_blacklist_handle_init (void *cls, struct GNUNET_SERVER_Client *client,
 void
 GST_blacklist_handle_reply (void *cls, struct GNUNET_SERVER_Client *client,
                             const struct GNUNET_MessageHeader *message);
+
 
 /**
  * Add the given peer to the blacklist (for the given transport).
