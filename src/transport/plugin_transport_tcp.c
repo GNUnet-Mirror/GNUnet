@@ -1132,10 +1132,10 @@ int session_lookup_it (void *cls,
   return GNUNET_NO;
 }
 
+
 /**
  * Task cleaning up a NAT connection attempt after timeout
  */
-
 static void
 nat_connect_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -1352,9 +1352,10 @@ tcp_plugin_get_session (void *cls,
 }
 
 
-int session_disconnect_it (void *cls,
-               const GNUNET_HashCode * key,
-               void *value)
+static int 
+session_disconnect_it (void *cls,
+		       const GNUNET_HashCode * key,
+		       void *value)
 {
   struct Session *session = value;
 
