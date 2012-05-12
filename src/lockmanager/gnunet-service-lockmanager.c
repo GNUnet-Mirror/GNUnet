@@ -181,7 +181,7 @@ static struct ClientList *cl_tail;
  * @param lock_number
  * @param key set to the key
  */
-static inline void
+static void
 get_key (const char *domain_name,
 	 uint32_t lock_number,
 	 struct GNUNET_HashCode *key)
@@ -203,7 +203,7 @@ get_key (const char *domain_name,
  * @param lock_num the number of the lock
  * @return the lock if found; NULL if not
  */
-static inline struct Lock *
+static struct Lock *
 find_lock (const char *domain_name,
            const uint32_t lock_num)
               
@@ -240,7 +240,7 @@ find_lock (const char *domain_name,
  * @param lock_num the lock number
  * @return pointer to the lock structure which is added to lock map
  */
-static inline struct Lock *
+static struct Lock *
 add_lock (const char *domain_name, 
           uint32_t lock_num)
 {
@@ -270,7 +270,7 @@ add_lock (const char *domain_name,
  *
  * @param lock the lock to remove
  */
-static inline void
+static void
 remove_lock (struct Lock *lock)
 {
   struct GNUNET_HashCode key;
@@ -296,7 +296,7 @@ remove_lock (struct Lock *lock)
  * @param lock the lock which has to be matched
  * @return the matching LockList entry; NULL if no match is found
  */
-static inline struct LockList *
+static struct LockList *
 cl_ll_find_lock (struct ClientList *cl_entry,
                  const struct Lock *lock)
 {
@@ -318,7 +318,7 @@ cl_ll_find_lock (struct ClientList *cl_entry,
  * @param cl_entry the client which currently owns this lock
  * @param lock the lock to be added to the cl_entry's lock list
  */
-static inline void
+static void
 cl_ll_add_lock (struct ClientList *cl_entry,
                 struct Lock *lock)
 {
@@ -341,7 +341,7 @@ cl_ll_add_lock (struct ClientList *cl_entry,
  * @param cl_entry the ClientList entry
  * @param ll_entry the LockList entry to be deleted
  */
-static inline void
+static void
 cl_ll_remove_lock (struct ClientList *cl_entry,
                    struct LockList *ll_entry)
 {
@@ -365,7 +365,7 @@ cl_ll_remove_lock (struct ClientList *cl_entry,
  * @return the WaitList entry matching the given cl_entry; NULL if not match
  *           was found
  */
-static inline struct WaitList *
+static struct WaitList *
 lock_wl_find (const struct Lock *lock,
               const struct ClientList *cl_entry)
 {
@@ -388,7 +388,7 @@ lock_wl_find (const struct Lock *lock,
  * @param lock the lock list entry of a lock
  * @param cl_entry the client to queue for the lock's wait list
  */
-static inline void
+static void
 lock_wl_add_client (struct Lock *lock,
                     struct ClientList *cl_entry)
 {
@@ -412,7 +412,7 @@ lock_wl_add_client (struct Lock *lock,
  * @param lock the lock
  * @param wl_entry the wait list entry to be removed
  */
-static inline void
+static void
 lock_wl_remove (struct Lock *lock,
                 struct WaitList *wl_entry)
 {
@@ -432,7 +432,7 @@ lock_wl_remove (struct Lock *lock,
  * @param client the client to be searched for
  * @return the ClientList entry; NULL if the client is not found
  */
-static inline struct ClientList *
+static struct ClientList *
 cl_find_client (const struct GNUNET_SERVER_Client *client)                
 {
   struct ClientList *current;
@@ -450,7 +450,7 @@ cl_find_client (const struct GNUNET_SERVER_Client *client)
  * @param client the client to be appended to the list
  * @return the client list entry which is added to the client list
  */
-static inline struct ClientList *
+static struct ClientList *
 cl_add_client (struct GNUNET_SERVER_Client *client)
 {
   struct ClientList *new_client;
@@ -472,7 +472,7 @@ cl_add_client (struct GNUNET_SERVER_Client *client)
  *
  * @param cl_entry the client list entry to delete
  */
-static inline void
+static void
 cl_remove_client (struct ClientList *cl_entry)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG,
