@@ -890,6 +890,19 @@ send_with_session (struct NeighbourMapEntry *n,
 
 
 /**
+ * Master task run for every neighbour.  Performs all of the time-related
+ * activities (keep alive, send next message, disconnect if idle, finish
+ * clean up after disconnect).
+ *
+ * @param cls the 'struct NeighbourMapEntry' for which we are running
+ * @param tc scheduler context (unused)
+ */
+static void
+master_task (void *cls,
+	     const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+
+/**
  * Function called when the 'DISCONNECT' message has been sent by the
  * plugin.  Frees the neighbour --- if the entry still exists.
  *
@@ -908,8 +921,9 @@ send_disconnect_cont (void *cls, const struct GNUNET_PeerIdentity *target,
     return; /* already gone */
   if (S_DISCONNECT != n->state)
     return; /* have created a fresh entry since */
-  n->state = S_DISCONNECT_FINISHED;
-  free_neighbour (n);
+  n->state = S_DISCONNECT;
+  GNUNET_SCHEDULER_cancel (n->task);
+  n->task = GNUNET_SCHEDULER_add_now (&master_task, n);
 }
 
 
@@ -953,19 +967,6 @@ send_disconnect (struct NeighbourMapEntry *n)
                             ("# DISCONNECT messages sent"), 1,
                             GNUNET_NO);
 }
-
-
-/**
- * Master task run for every neighbour.  Performs all of the time-related
- * activities (keep alive, send next message, disconnect if idle, finish
- * clean up after disconnect).
- *
- * @param cls the 'struct NeighbourMapEntry' for which we are running
- * @param tc scheduler context (unused)
- */
-static void
-master_task (void *cls,
-	     const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
@@ -2425,6 +2426,8 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
                               1, GNUNET_NO);
     break;    
   case S_CONNECT_SENT:
+    if (ts.abs_value != n->primary_address.connect_timestamp.abs_value)
+      break; /* ACK does not match our original CONNECT message */
     n->state = S_CONNECTED;
     n->timeout = GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
     GNUNET_STATISTICS_set (GST_stats, 
