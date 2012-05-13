@@ -127,6 +127,7 @@ GST_neighbours_calculate_receive_delay (const struct GNUNET_PeerIdentity
 void
 GST_neighbours_keepalive (const struct GNUNET_PeerIdentity *neighbour);
 
+
 /**
  * We received a KEEP_ALIVE_RESPONSE message and use this to calculate latency
  * to this peer
@@ -212,10 +213,8 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
  * @param ats_count number of entries in ats
  * @param bandwidth_in inbound quota to be used when connection is up
  * @param bandwidth_out outbound quota to be used when connection is up
- * @return GNUNET_YES if we are currently connected, GNUNET_NO if the
- *         connection is not up (yet)
  */
-int
+void
 GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
                                        const struct GNUNET_HELLO_Address
                                        *address, struct Session *session,
@@ -266,13 +265,26 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
                                    const struct GNUNET_ATS_Information *ats,
                                    uint32_t ats_count);
 
+
+/**
+ * We received a 'SESSION_ACK' message from the other peer.
+ * FIXME: describe what this means!
+ *
+ * @param message possibly a 'struct SessionConnectMessage' (check format)
+ * @param peer identity of the peer to switch the address for
+ * @param address address of the other peer, NULL if other peer
+ *                       connected to us
+ * @param session session to use (or NULL)
+ * @param ats performance data
+ * @param ats_count number of entries in ats
+ */
 void
-GST_neighbours_handle_ack (const struct GNUNET_MessageHeader *message,
-                           const struct GNUNET_PeerIdentity *peer,
-                           const struct GNUNET_HELLO_Address *address,
-                           struct Session *session,
-                           const struct GNUNET_ATS_Information *ats,
-                           uint32_t ats_count);
+GST_neighbours_handle_session_ack (const struct GNUNET_MessageHeader *message,
+				   const struct GNUNET_PeerIdentity *peer,
+				   const struct GNUNET_HELLO_Address *address,
+				   struct Session *session,
+				   const struct GNUNET_ATS_Information *ats,
+				   uint32_t ats_count);
 
 
 /**

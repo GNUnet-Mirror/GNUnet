@@ -265,8 +265,8 @@ plugin_env_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
                                        ats_count);
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_ACK:
-    GST_neighbours_handle_ack (message, peer, &address, session, ats,
-                               ats_count);
+    GST_neighbours_handle_session_ack (message, peer, &address, session, ats,
+				       ats_count);
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_DISCONNECT:
     GST_neighbours_handle_disconnect_message (peer, message);
@@ -434,7 +434,6 @@ ats_request_address_change (void *cls,
     GST_neighbours_force_disconnect (&address->peer);
     return;
   }
-  /* will never return GNUNET_YES since connection is to be established */
   GST_neighbours_switch_to_address (&address->peer, address, session, ats,
                                          ats_count, bandwidth_in,
                                          bandwidth_out);
