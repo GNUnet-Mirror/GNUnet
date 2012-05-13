@@ -169,14 +169,17 @@ terminate_task_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GNUNET_TRANSPORT_get_hello_cancel (p1.ghh);
   GNUNET_TRANSPORT_get_hello_cancel (p2.ghh);
-
-  GNUNET_CORE_disconnect (p1.ch);
+  if (NULL != p1.ch)
+    GNUNET_CORE_disconnect (p1.ch);
   p1.ch = NULL;
-  GNUNET_CORE_disconnect (p2.ch);
+  if (NULL != p2.ch)
+    GNUNET_CORE_disconnect (p2.ch);
   p2.ch = NULL;
-  GNUNET_TRANSPORT_disconnect (p1.th);
+  if (NULL != p1.th)
+    GNUNET_TRANSPORT_disconnect (p1.th);
   p1.th = NULL;
-  GNUNET_TRANSPORT_disconnect (p2.th);
+  if (NULL != p2.th)
+    GNUNET_TRANSPORT_disconnect (p2.th);
   p2.th = NULL;
   ok = 42;
 }
