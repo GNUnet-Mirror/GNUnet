@@ -129,8 +129,7 @@ struct GNUNET_LOCKMANAGER_LockingRequest;
  *
  * @param status_cb_cls the closure to the above callback
  *
- * @return the locking request handle for this request. It will be invalidated
- *           when status_cb is called.
+ * @return the locking request handle for this request
  */
 struct GNUNET_LOCKMANAGER_LockingRequest *
 GNUNET_LOCKMANAGER_acquire_lock (struct GNUNET_LOCKMANAGER_Handle *handle,

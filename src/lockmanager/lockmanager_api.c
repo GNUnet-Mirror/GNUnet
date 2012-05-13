@@ -124,6 +124,45 @@ get_key (const char *domain_name,
 
 
 /**
+ * Function to find a LockingRequest associated with the given domain and lock
+ * attributes in the map
+ *
+ * @param map the map where the LockingRequests are stored
+ * @param domain the locking domain name
+ * @param lock the lock number
+ * @return the found LockingRequest; NULL if a matching LockingRequest wasn't
+ *           found 
+ */
+static struct GNUNET_LOCKMANAGER_LockingRequest *
+hashmap_find_lockingrequest (const struct GNUNET_CONTAINER_MultiHashMap *map,
+                             const char *domain,
+                             uint32_t lock)
+{
+  struct GNUNET_LOCKMANAGER_LockingRequest *lr;
+  struct GNUNET_HashCode hash;
+  int match_found;
+
+  int match_iterator (void *cls, const GNUNET_HashCode *key, void *value)
+  {
+    lr = value;
+    if ( (lock == lr->lock) && (0 == strcmp (domain, lr->domain)) )
+    {
+      match_found = GNUNET_YES;
+      return GNUNET_NO;
+    }
+    return GNUNET_YES;
+  }
+  get_key (domain, lock, &hash);
+  match_found = GNUNET_NO;
+  GNUNET_CONTAINER_multihashmap_get_multiple (map,
+                                              &hash,
+                                              &match_iterator,
+                                              NULL);
+  return (GNUNET_YES == match_found) ? lr : NULL;
+}
+
+
+/**
  * Task for calling status change callback for a lock
  *
  * @param cls the LockingRequest associated with this lock
@@ -159,9 +198,9 @@ handle_replies (void *cls,
 {
   struct GNUNET_LOCKMANAGER_Handle *handle = cls;
   const struct GNUNET_LOCKMANAGER_Message *m;
+  struct GNUNET_LOCKMANAGER_LockingRequest *lr;
   const char *domain;
   struct GNUNET_HashCode hash;
-  int match_found;
   uint32_t lock;
   uint16_t msize;
   
@@ -196,32 +235,25 @@ handle_replies (void *cls,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Received SUCCESS message for lock: %d, domain %s\n",
        lock, domain);
-  int match_iterator(void *cls, const GNUNET_HashCode *key, void *value)
+  if (NULL == (lr = hashmap_find_lockingrequest (handle->hashmap,
+                                                 domain,
+                                                 lock)))
   {
-    struct GNUNET_LOCKMANAGER_LockingRequest *r = value;
-        
-    if ( !((0 == strcmp (domain, r->domain))
-           && (lock == r->lock)))
-      return GNUNET_YES;
-    match_found = GNUNET_YES;
-    if (GNUNET_LOCKMANAGER_SUCCESS != r->status)
-    {
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-           "Changing status for lock: %d in domain: %s to SUCCESS\n",
-           r->lock, r->domain);
-      r->status = GNUNET_LOCKMANAGER_SUCCESS;
-      GNUNET_SCHEDULER_add_continuation (&call_status_cb_task,
-                                         r,
-                                         GNUNET_SCHEDULER_REASON_PREREQ_DONE);
-    }
-    return GNUNET_NO;
+    GNUNET_break (0);
+    return;
   }
-  match_found = GNUNET_NO;
-  GNUNET_CONTAINER_multihashmap_get_multiple (handle->hashmap,
-                                              &hash,
-                                              &match_iterator,
-                                              NULL);
-  GNUNET_break (GNUNET_YES == match_found);
+  if (GNUNET_LOCKMANAGER_SUCCESS == lr->status)
+  {
+    GNUNET_break (0);
+    return;
+  }
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Changing status for lock: %d in domain: %s to SUCCESS\n",
+       lr->lock, lr->domain);
+  lr->status = GNUNET_LOCKMANAGER_SUCCESS;
+  GNUNET_SCHEDULER_add_continuation (&call_status_cb_task,
+                                     lr,
+                                     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
 }
 
 
@@ -363,8 +395,7 @@ GNUNET_LOCKMANAGER_disconnect (struct GNUNET_LOCKMANAGER_Handle *handle)
  *
  * @param status_cb_cls the closure to the above callback
  *
- * @return the locking request handle for this request. It will be invalidated
- *           when status_cb is called.
+ * @return the locking request handle for this request
  */
 struct GNUNET_LOCKMANAGER_LockingRequest *
 GNUNET_LOCKMANAGER_acquire_lock (struct GNUNET_LOCKMANAGER_Handle *handle,
