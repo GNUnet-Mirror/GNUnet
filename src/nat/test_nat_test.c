@@ -30,10 +30,6 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_nat_lib.h"
 
-
-#define VERBOSE GNUNET_NO
-
-
 /**
  * Time to wait before stopping NAT test, in seconds
  */
@@ -84,28 +80,16 @@ main (int argc, char *const argv[])
     GNUNET_GETOPT_OPTION_END
   };
   struct GNUNET_OS_Process *gns;
-
   int nat_res;
-
   char *const argv_prog[] = {
     "test-nat-test",
     "-c",
     "test_nat_test_data.conf",
-    "-L",
-#if VERBOSE
-    "DEBUG",
-#else
-    "WARNING",
-#endif
     NULL
   };
 
   GNUNET_log_setup ("test-nat-test",
-#if VERBOSE
-                    "DEBUG",
-#else
                     "WARNING",
-#endif
                     NULL);
 
   nat_res = GNUNET_OS_check_helper_binary ("gnunet-nat-server");
@@ -120,12 +104,9 @@ main (int argc, char *const argv[])
   gns =
       GNUNET_OS_start_process (GNUNET_YES, NULL, NULL, "gnunet-nat-server",
                                "gnunet-nat-server",
-#if VERBOSE
-                               "-L", "DEBUG",
-#endif
                                "-c", "test_nat_test_data.conf", "12345", NULL);
   GNUNET_assert (NULL != gns);
-  GNUNET_PROGRAM_run (5, argv_prog, "test-nat-test", "nohelp", options, &run,
+  GNUNET_PROGRAM_run (3, argv_prog, "test-nat-test", "nohelp", options, &run,
                       NULL);
   GNUNET_break (0 == GNUNET_OS_process_kill (gns, SIGTERM));
   GNUNET_break (GNUNET_OK == GNUNET_OS_process_wait (gns));
