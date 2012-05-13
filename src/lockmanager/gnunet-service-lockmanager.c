@@ -217,7 +217,6 @@ find_lock (const char *domain_name,
                   void *value)
   {
     matched_lock = value;
-
     if ((lock_num == matched_lock->lock_num)
         && (0 == strcmp (domain_name, matched_lock->domain_name)))
       return GNUNET_NO;
@@ -266,7 +265,7 @@ add_lock (const char *domain_name,
 
 
 /**
- * Removes a lock from the lock map
+ * Removes a lock from the lock map. The WaitList of the lock should be empty
  *
  * @param lock the lock to remove
  */
@@ -274,7 +273,8 @@ static void
 remove_lock (struct Lock *lock)
 {
   struct GNUNET_HashCode key;
-
+  
+  GNUNET_assert (NULL == lock->wl_head);
   get_key (lock->domain_name,
            lock->lock_num,
            &key);
@@ -468,13 +468,14 @@ cl_add_client (struct GNUNET_SERVER_Client *client)
 
 
 /**
- * Delete the given client from the client list
+ * Delete the given client from the client list. The LockList should be empty
  *
  * @param cl_entry the client list entry to delete
  */
 static void
 cl_remove_client (struct ClientList *cl_entry)
 {
+  GNUNET_assert (NULL == cl_entry->ll_head);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Removing a client from the client list\n");
   GNUNET_SERVER_client_drop (cl_entry->client);
@@ -635,7 +636,6 @@ process_lock_release (struct Lock *lock)
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Giving lock to a client from wait list\n");
   lock->cl_entry = wl_entry->cl_entry;
-  cl_ll_add_lock (wl_entry->cl_entry, lock);
   lock_wl_remove(lock, wl_entry);
   send_success_msg (lock->cl_entry->client,
                     lock->domain_name,
@@ -751,6 +751,68 @@ client_disconnect_cb (void *cls, struct GNUNET_SERVER_Client *client)
 
 
 /**
+ * Hashmap Iterator to delete lock entries in hash map
+ *
+ * @param cls NULL
+ * @param key current key code
+ * @param value value in the hash map
+ * @return GNUNET_YES if we should continue to
+ *         iterate,
+ *         GNUNET_NO if not.
+ */
+static int 
+lock_delete_iterator (void *cls,
+                      const GNUNET_HashCode * key,
+                      void *value)
+{
+  struct Lock *lock = value;
+
+  GNUNET_assert (NULL != lock);
+  while (NULL != lock->wl_head)
+  {
+    lock_wl_remove (lock, lock->wl_head);
+  }
+  GNUNET_assert (GNUNET_YES == 
+                 GNUNET_CONTAINER_multihashmap_remove(lock_map,
+                                                      key,
+                                                      lock));
+  GNUNET_free (lock->domain_name);
+  GNUNET_free (lock);
+  return GNUNET_YES;
+}
+
+
+/**
+ * Task to clean up and shutdown nicely
+ *
+ * @param 
+ * @return 
+ */
+static void
+shutdown_task (void *cls,
+               const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Shutting down lock manager\n");
+  /* Clean the global ClientList */
+  while (NULL != cl_head)
+  {
+    while (NULL != cl_head->ll_head) /* Clear the LockList */
+    {
+      cl_ll_remove_lock (cl_head, cl_head->ll_head);
+    }
+    cl_remove_client (cl_head);
+  }
+  /* Clean the global hash table */
+  GNUNET_CONTAINER_multihashmap_iterate (lock_map,
+                                         &lock_delete_iterator,
+                                         NULL);
+  GNUNET_assert (0 == GNUNET_CONTAINER_multihashmap_size (lock_map));
+  GNUNET_CONTAINER_multihashmap_destroy (lock_map);
+}
+
+
+/**
  * Lock manager setup
  *
  * @param cls closure
@@ -774,6 +836,9 @@ lockmanager_run (void *cls,
                                    &client_disconnect_cb,
                                    NULL);
   lock_map = GNUNET_CONTAINER_multihashmap_create (30);
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
+                                &shutdown_task,
+                                NULL);
 }
 
 

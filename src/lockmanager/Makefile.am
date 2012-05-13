@@ -38,7 +38,8 @@ libgnunetlockmanager_la_LDFLAGS = \
   -version-info 0:0:0
 
 check_PROGRAMS = \
-  test-lockmanager-api
+  test-lockmanager-api \
+  test-lockmanager-api-lockrelease
 
 EXTRA_DIST = \
   test_lockmanager_api.conf
@@ -50,5 +51,11 @@ endif
 test_lockmanager_api_SOURCES = \
   test_lockmanager_api.c
 test_lockmanager_api_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  libgnunetlockmanager.la
+
+test_lockmanager_api_lockrelease_SOURCES = \
+  test_lockmanager_api_lockrelease.c
+test_lockmanager_api_lockrelease_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   libgnunetlockmanager.la
