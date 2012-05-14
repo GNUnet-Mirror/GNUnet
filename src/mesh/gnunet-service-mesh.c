@@ -628,14 +628,9 @@ announce_application (void *cls, const GNUNET_HashCode * key, void *value)
                   GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE, GNUNET_BLOCK_TYPE_TEST,
                   sizeof (struct GNUNET_PeerIdentity),
                   (const char *) &my_full_id,
-#if MESH_DEBUG
-                  GNUNET_TIME_UNIT_FOREVER_ABS, GNUNET_TIME_UNIT_FOREVER_REL,
-                  &mesh_debug, "DHT_put for app completed");
-#else
                   GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get (),
                                             APP_ANNOUNCE_TIME),
                   APP_ANNOUNCE_TIME, NULL, NULL);
-#endif
   return GNUNET_OK;
 }
 
