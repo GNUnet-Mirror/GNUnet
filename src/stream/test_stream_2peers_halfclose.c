@@ -338,6 +338,8 @@ shutdown_completion (void *cls,
     case PEER1_WRITE:
       GNUNET_assert (0);
     case PEER1_WRITE_SHUTDOWN:
+      GNUNET_assert (cls == &peer1);
+      GNUNET_assert (SHUT_WR == operation);
       peer1.test_ok = GNUNET_YES;
       /* Peer2 should read with error */
       peer2.bytes_read = 0;

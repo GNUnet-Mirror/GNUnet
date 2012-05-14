@@ -2920,8 +2920,16 @@ GNUNET_STREAM_close (struct GNUNET_STREAM_Socket *socket)
 {
   struct MessageQueue *head;
 
-  GNUNET_break (NULL == socket->read_handle);
-  GNUNET_break (NULL == socket->write_handle);
+  if (NULL != socket->read_handle)
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+	 "Closing STREAM socket when a read handle is pending\n");
+  }
+  if (NULL != socket->write_handle)
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+	 "Closing STREAM socket when a write handle is pending\n");
+  }
 
   if (socket->read_task_id != GNUNET_SCHEDULER_NO_TASK)
   {
