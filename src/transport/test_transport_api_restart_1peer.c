@@ -112,7 +112,9 @@ end ()
   th = NULL;
 
   GNUNET_TRANSPORT_TESTING_stop_peer (tth, p1);
+  p1 = NULL;
   GNUNET_TRANSPORT_TESTING_stop_peer (tth, p2);
+  p2 = NULL;
 }
 
 static void
@@ -338,11 +340,13 @@ notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
   struct PeerContext *p = cls;
 
-  if (0 == memcmp (peer, &p1->id, sizeof (struct GNUNET_PeerIdentity)))
+  if ( (NULL != p1) &&
+       (0 == memcmp (peer, &p1->id, sizeof (struct GNUNET_PeerIdentity))))
   {
     p1_connected = GNUNET_NO;
   }
-  if (0 == memcmp (peer, &p2->id, sizeof (struct GNUNET_PeerIdentity)))
+  if ( (NULL != p2) &&
+       (0 == memcmp (peer, &p2->id, sizeof (struct GNUNET_PeerIdentity))))
   {
     p2_connected = GNUNET_NO;
   }
