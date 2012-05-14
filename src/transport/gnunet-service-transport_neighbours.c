@@ -712,7 +712,7 @@ free_address (struct NeighbourAddress *na)
 /**
  * Initialize the 'struct NeighbourAddress'.
  *
- * @param peer identity of the peer to switch the address for
+ * @param na neighbour address to initialize
  * @param address address of the other peer, NULL if other peer
  *                       connected to us
  * @param session session to use (or NULL, in which case an
