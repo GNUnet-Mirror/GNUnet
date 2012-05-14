@@ -146,14 +146,14 @@ struct GNUNET_CRYPTO_ShortHashCode zone_hash;
 /**
  * Useful for zone update for DHT put
  */
-static int num_public_records = 0;
+static int num_public_records;
 
 /**
  * update interval in seconds
  */
-static unsigned long long int max_record_put_interval;
+static unsigned long long max_record_put_interval;
 
-static unsigned long long int dht_max_update_interval;
+static unsigned long long dht_max_update_interval;
 
 /* dht update interval FIXME define? */
 static struct GNUNET_TIME_Relative record_put_interval;
@@ -383,10 +383,9 @@ put_gns_record(void *cls,
 static void
 update_zone_dht_start(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Scheduling DHT zone update!\n");
-  
-  unsigned long long int interval = 0;
+  unsigned long long interval = 0;
 
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Scheduling DHT zone update!\n");
   if (0 == num_public_records)
   {
     /**

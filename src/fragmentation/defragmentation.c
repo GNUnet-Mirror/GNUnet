@@ -362,7 +362,7 @@ estimate_latency (struct MessageContext *mc)
   if (ret.rel_value == 0)
     ret = GNUNET_TIME_UNIT_MILLISECONDS;        /* always at least 1 */
   return ret;
-};
+}
 
 
 /**

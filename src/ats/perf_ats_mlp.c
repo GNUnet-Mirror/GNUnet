@@ -231,7 +231,7 @@ check (void *cls, char *const *args, const char *cfgfile,
   if ((update_percentage >= 0) && (update_percentage <= 100))
   {
     update = GNUNET_YES;
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Benchmarking with existing presolution and %u \% updated addresses\n", update_percentage);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Benchmarking with existing presolution and %u%% updated addresses\n", update_percentage);
   }
   else if ((update_percentage > 100) && (update_percentage != UINT_MAX))
   {

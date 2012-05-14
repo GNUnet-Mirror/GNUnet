@@ -935,7 +935,8 @@ clean_up_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   GNUNET_free(h);
   h = NULL;
-};
+}
+
 
 /**
  * Disconnect from the namestore service (and free associated

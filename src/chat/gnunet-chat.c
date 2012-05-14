@@ -44,13 +44,14 @@ static struct GNUNET_CONTAINER_MetaData *meta;
 
 static struct GNUNET_CHAT_Room *room;
 
-static GNUNET_SCHEDULER_TaskIdentifier handle_cmd_task =
-    GNUNET_SCHEDULER_NO_TASK;
+static GNUNET_SCHEDULER_TaskIdentifier handle_cmd_task;
+
+typedef int (*ActionFunction)(const char *argumetns, const void *xtra);
 
 struct ChatCommand
 {
   const char *command;
-  int (*Action) (const char *arguments, const void *xtra);
+  ActionFunction Action;
   const char *helptext;
 };
 
@@ -234,7 +235,8 @@ member_list_cb (void *cls, const struct GNUNET_CONTAINER_MetaData *member_info,
                 const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *member_id,
                 enum GNUNET_CHAT_MsgOptions options)
 {
-  char *nick, *non_unique_nick;
+  char *nick;
+  char *non_unique_nick;
   int nick_is_a_dup;
   GNUNET_HashCode id;
   struct UserList *pos;
