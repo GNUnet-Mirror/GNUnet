@@ -967,7 +967,7 @@ update_flood_times (void *cls, const GNUNET_HashCode * key, void *value)
     /* still stuck in previous round, no point to update, check that
      * we are active here though... */
     if (GNUNET_SCHEDULER_NO_TASK == peer_entry->transmit_task &&
-                  NULL == peer_entry->th)
+        NULL == peer_entry->th)
     {
         GNUNET_break (0);
     }
@@ -1132,14 +1132,12 @@ handle_p2p_size_estimate (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
   GNUNET_assert (matching_bits >
                  ntohl (size_estimate_messages[idx].matching_bits));
-  /* cancel transmission from us to this peer for this round */
+  /* Cancel transmission in the other direction, as this peer clearly has
+   * up-to-date information already.
+   */
+  peer_entry->previous_round = GNUNET_YES;
   if (idx == estimate_index)
   {
-      /* Cancel transmission in the other direction, as this peer clearly has
-       up-to-date information already. Even if we didn't talk to this peer in
-       the previous round, we should no longer send it stale information as it
-       told us about the current round! */
-      peer_entry->previous_round = GNUNET_YES;
       /* cancel any activity for current round */
       if (peer_entry->transmit_task != GNUNET_SCHEDULER_NO_TASK)
       {
@@ -1151,11 +1149,6 @@ handle_p2p_size_estimate (void *cls, const struct GNUNET_PeerIdentity *peer,
         GNUNET_CORE_notify_transmit_ready_cancel (peer_entry->th);
         peer_entry->th = NULL;
       }
-  }
-  else
-  {
-    /* cancel previous round only */
-    peer_entry->previous_round = GNUNET_YES;
   }
   size_estimate_messages[idx] = *incoming_flood;
   size_estimate_messages[idx].hop_count =
