@@ -102,6 +102,28 @@ struct GNUNET_LOCKMANAGER_LockingRequest
 
 
 /**
+ * Structure for matching a lock
+ */
+struct LockMatch
+{
+  /**
+   * The matched LockingRequest entry; Should be NULL if no entry is found
+   */
+  struct GNUNET_LOCKMANAGER_LockingRequest *matched_entry;
+
+  /**
+   * The locking domain name of the lock
+   */
+  const char *domain;
+
+  /**
+   * The lock number
+   */
+  uint32_t lock;
+};
+
+
+/**
  * Get the key for the given lock in the 'lock_map'.
  *
  * @param domain_name
@@ -124,6 +146,31 @@ get_key (const char *domain_name,
 
 
 /**
+ * Hashmap iterator for matching a lock
+ *
+ * @param cls the LockMatch structure
+ * @param key current key code
+ * @param value value in the hash map (struct GNUNET_LOCKMANAGER_LockingRequest)
+ * @return GNUNET_YES if we should continue to
+ *         iterate,
+ *         GNUNET_NO if not. 
+ */
+static int
+match_iterator (void *cls, const GNUNET_HashCode *key, void *value)
+{
+  struct LockMatch *match = cls;
+  struct GNUNET_LOCKMANAGER_LockingRequest *lr = value;
+
+  if ( (match->lock == lr->lock) && (0 == strcmp (match->domain, lr->domain)) )
+  {
+    match->matched_entry = lr;    
+    return GNUNET_NO;
+  }
+  return GNUNET_YES;
+}
+
+
+/**
  * Function to find a LockingRequest associated with the given domain and lock
  * attributes in the map
  *
@@ -138,27 +185,18 @@ hashmap_find_lockingrequest (const struct GNUNET_CONTAINER_MultiHashMap *map,
                              const char *domain,
                              uint32_t lock)
 {
-  struct GNUNET_LOCKMANAGER_LockingRequest *lr;
   struct GNUNET_HashCode hash;
-  int match_found;
+  struct LockMatch lock_match;
 
-  int match_iterator (void *cls, const GNUNET_HashCode *key, void *value)
-  {
-    lr = value;
-    if ( (lock == lr->lock) && (0 == strcmp (domain, lr->domain)) )
-    {
-      match_found = GNUNET_YES;
-      return GNUNET_NO;
-    }
-    return GNUNET_YES;
-  }
+  lock_match.matched_entry = NULL;
+  lock_match.domain = domain;
+  lock_match.lock = lock;
   get_key (domain, lock, &hash);
-  match_found = GNUNET_NO;
   GNUNET_CONTAINER_multihashmap_get_multiple (map,
                                               &hash,
                                               &match_iterator,
-                                              NULL);
-  return (GNUNET_YES == match_found) ? lr : NULL;
+                                              &lock_match);
+  return lock_match.matched_entry;
 }
 
 
