@@ -824,8 +824,8 @@ lock_delete_iterator (void *cls,
 /**
  * Task to clean up and shutdown nicely
  *
- * @param 
- * @return 
+ * @param cls NULL
+ * @param tc the TaskContext from scheduler
  */
 static void
 shutdown_task (void *cls,
