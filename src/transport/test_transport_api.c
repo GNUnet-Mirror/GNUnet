@@ -223,9 +223,9 @@ notify_ready (void *cls, size_t size, void *buf)
   }
 
   GNUNET_assert (size >= MSIZE);
-
   if (buf != NULL)
   {
+    memset (buf, '\0', MSIZE);
     hdr = buf;
     hdr->size = htons (MSIZE);
     hdr->type = htons (MTYPE);
