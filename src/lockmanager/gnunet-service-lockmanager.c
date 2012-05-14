@@ -159,6 +159,28 @@ struct ClientList
 
 
 /**
+ * Structure for matching a lock
+ */
+struct LockMatch
+{
+  /**
+   * The matched LockingRequest entry; Should be NULL if no entry is found
+   */
+  struct Lock *matched_entry;
+
+  /**
+   * The locking domain name of the lock
+   */
+  const char *domain_name;
+
+  /**
+   * The lock number
+   */
+  uint32_t lock_num;
+};
+
+
+/**
  * Map of lock-keys to the 'struct LockList' entry for the key.
  */
 static struct GNUNET_CONTAINER_MultiHashMap *lock_map;
@@ -197,6 +219,32 @@ get_key (const char *domain_name,
 
 
 /**
+ * Hashmap iterator for matching a lock
+ *
+ * @param cls the LockMatch structure
+ * @param key current key code
+ * @param value value in the hash map (struct Lock)
+ * @return GNUNET_YES if we should continue to
+ *         iterate,
+ *         GNUNET_NO if not. 
+ */
+static int
+match_iterator (void *cls, const GNUNET_HashCode *key, void *value)
+{
+  struct LockMatch *match = cls;
+  struct Lock *lock = value;
+
+  if ( (match->lock_num == lock->lock_num) 
+       && (0 == strcmp (match->domain_name, lock->domain_name)) )
+  {
+    match->matched_entry = lock;    
+    return GNUNET_NO;
+  }
+  return GNUNET_YES;
+}
+
+
+/**
  * Function to search for a lock in the global lock hashmap
  *
  * @param domain_name the name of the locking domain
@@ -208,27 +256,18 @@ find_lock (const char *domain_name,
            const uint32_t lock_num)
               
 {
-  struct Lock *matched_lock;
+  struct LockMatch match;
   struct GNUNET_HashCode key;
 
-  matched_lock = NULL;
-  int match_lock (void *cls,
-                  const GNUNET_HashCode *key,
-                  void *value)
-  {
-    matched_lock = value;
-    if ((lock_num == matched_lock->lock_num)
-        && (0 == strcmp (domain_name, matched_lock->domain_name)))
-      return GNUNET_NO;
-    matched_lock = NULL;
-    return GNUNET_YES;
-  }
+  match.lock_num = lock_num;
+  match.domain_name = domain_name;
+  match.matched_entry = NULL;
   get_key (domain_name, lock_num, &key);
   GNUNET_CONTAINER_multihashmap_get_multiple (lock_map,
                                               &key,
-                                              &match_lock,
-                                              NULL);
-  return matched_lock;
+                                              &match_iterator,
+                                              &match);
+  return match.matched_entry;
 }
 
 

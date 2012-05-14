@@ -104,7 +104,7 @@ struct GNUNET_LOCKMANAGER_LockingRequest
 /**
  * Structure for matching a lock
  */
-struct LockMatch
+struct LockingRequestMatch
 {
   /**
    * The matched LockingRequest entry; Should be NULL if no entry is found
@@ -146,9 +146,9 @@ get_key (const char *domain_name,
 
 
 /**
- * Hashmap iterator for matching a lock
+ * Hashmap iterator for matching a LockingRequest
  *
- * @param cls the LockMatch structure
+ * @param cls the LockingRequestMatch structure
  * @param key current key code
  * @param value value in the hash map (struct GNUNET_LOCKMANAGER_LockingRequest)
  * @return GNUNET_YES if we should continue to
@@ -158,7 +158,7 @@ get_key (const char *domain_name,
 static int
 match_iterator (void *cls, const GNUNET_HashCode *key, void *value)
 {
-  struct LockMatch *match = cls;
+  struct LockingRequestMatch *match = cls;
   struct GNUNET_LOCKMANAGER_LockingRequest *lr = value;
 
   if ( (match->lock == lr->lock) && (0 == strcmp (match->domain, lr->domain)) )
@@ -186,7 +186,7 @@ hashmap_find_lockingrequest (const struct GNUNET_CONTAINER_MultiHashMap *map,
                              uint32_t lock)
 {
   struct GNUNET_HashCode hash;
-  struct LockMatch lock_match;
+  struct LockingRequestMatch lock_match;
 
   lock_match.matched_entry = NULL;
   lock_match.domain = domain;
