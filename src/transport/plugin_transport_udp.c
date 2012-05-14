@@ -1847,10 +1847,31 @@ udp_select_send (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *sock)
 
   if (GNUNET_SYSERR == sent)
   {
-    LOG (GNUNET_ERROR_TYPE_ERROR,
+    const struct GNUNET_ATS_Information type = plugin->env->get_address_type
+        (plugin->env->cls,sa, slen);
+
+    if ((GNUNET_ATS_NET_WAN == type.value) &&
+        ((ENETUNREACH == errno) || (ENETDOWN == errno)))
+    {
+      /* "Network unreachable" or "Network down" */
+      /*
+       * This indicates that this system is IPv6 enabled, but does not
+       * have a valid global IPv6 address assigned
+       */
+       LOG (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+           _("UDP could not message to `%s': `%s'\n, " \
+           "Please check your network configuration and disable IPv6 if your\n" \
+           "connection does not have a global IPv6 address"),
+           GNUNET_a2s (sa, slen),
+           STRERROR (errno));
+    }
+    else
+    {
+      LOG (GNUNET_ERROR_TYPE_ERROR,
          "UDP could not transmit %u-byte message to `%s': `%s'\n",
          (unsigned int) (udpw->msg_size), GNUNET_a2s (sa, slen),
          STRERROR (errno));
+    }
     call_continuation(udpw, GNUNET_SYSERR);
   }
   else
