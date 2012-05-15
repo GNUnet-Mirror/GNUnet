@@ -2337,6 +2337,7 @@ master_task (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Cleaning up connection to `%s' after sending DISCONNECT\n",
 		GNUNET_i2s (&n->id));
+    n->state = S_DISCONNECT_FINISHED;
     free_neighbour (n);
     return;
   case S_DISCONNECT_FINISHED:
@@ -2623,7 +2624,7 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
     free_address (&n->primary_address);
     break;
   case S_DISCONNECT_FINISHED:
-    GNUNET_assert (0);
+    /* neighbour was freed and plugins told to terminate session */
     break;
   default:
     GNUNET_break (0);
