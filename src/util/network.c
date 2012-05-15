@@ -1114,7 +1114,7 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
 
   fd_set aread;
   fd_set awrite;
-  fd_set except;
+  fd_set aexcept;
 
 #if DEBUG_NETWORK
   fd_set bread;
