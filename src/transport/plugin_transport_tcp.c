@@ -230,11 +230,6 @@ struct Session
   struct SessionHeader header;
 
   /**
-   * Stored in a linked list.
-   */
-  struct Session *next;
-
-  /**
    * Pointer to the global plugin struct.
    */
   struct Plugin *plugin;
