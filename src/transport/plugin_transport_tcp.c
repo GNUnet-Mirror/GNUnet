@@ -39,6 +39,7 @@
 #include "gnunet_transport_plugin.h"
 #include "transport.h"
 
+#define LOG(kind,...) GNUNET_log_from (kind, "transport-tcp",__VA_ARGS__)
 
 /**
  * How long until we give up on establishing an NAT connection?
@@ -410,9 +411,9 @@ static void inc_sessions (struct Plugin *plugin, struct Session *session, int li
   sessions ++;
   unsigned int size = GNUNET_CONTAINER_multihashmap_size(plugin->sessionmap);
   if (sessions != size)
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp", "Inconsistent sessions %u <-> session map size: %u\n",
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Inconsistent sessions %u <-> session map size: %u\n",
         sessions, size);
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp", "%4i Session increased to %u (session map size: %u): `%s' `%s'\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "%4i Session increased to %u (session map size: %u): `%s' `%s'\n",
       line,
       sessions,
       size,
@@ -426,9 +427,9 @@ static void dec_sessions (struct Plugin *plugin, struct Session *session, int li
   unsigned int size = GNUNET_CONTAINER_multihashmap_size(plugin->sessionmap);
   sessions --;
   if (sessions != size)
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp", "Inconsistent sessions %u <-> session map size: %u\n",
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Inconsistent sessions %u <-> session map size: %u\n",
       sessions, size);
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp", "%4i Session decreased to %u (session map size: %u): `%s' `%s'\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "%4i Session decreased to %u (session map size: %u): `%s' `%s'\n",
       line,
       sessions,
       size,
@@ -457,8 +458,8 @@ plugin_tcp_access_check (void *cls,
 {
   struct Plugin *plugin = cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-	      "Accepting new incoming TCP connection\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Accepting new incoming TCP connection\n");
   if (0 == plugin->max_connections)
     return GNUNET_NO;
   plugin->max_connections--;
@@ -485,9 +486,9 @@ tcp_nat_port_map_callback (void *cls, int add_remove,
   void *arg;
   size_t args;
 
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
-                   "NPMC called with %d for address `%s'\n", add_remove,
-                   GNUNET_a2s (addr, addrlen));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, 
+       "NPMC called with %d for address `%s'\n", add_remove,
+       GNUNET_a2s (addr, addrlen));
   /* convert 'addr' to our internal format */
   switch (addr->sa_family)
   {
@@ -557,9 +558,9 @@ tcp_address_to_string (void *cls, const void *addr, size_t addrlen)
   }
   else
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "tcp",
-                     _("Unexpected address length: %u bytes\n"),
-                     (unsigned int) addrlen);
+    LOG (GNUNET_ERROR_TYPE_ERROR, 
+	 _("Unexpected address length: %u bytes\n"),
+	 (unsigned int) addrlen);
     GNUNET_break (0);
     return NULL;
   }
@@ -713,9 +714,9 @@ create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
   else
     GNUNET_assert (client == NULL);
 
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
-                   "Creating new session for peer `%4s'\n",
-                   GNUNET_i2s (target));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, 
+       "Creating new session for peer `%4s'\n",
+       GNUNET_i2s (target));
   ret = GNUNET_malloc (sizeof (struct Session));
   ret->last_activity = GNUNET_TIME_absolute_get ();
   ret->plugin = plugin;
@@ -787,9 +788,9 @@ do_transmit (void *cls, size_t size, void *buf)
   plugin = session->plugin;
   if (buf == NULL)
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
-                     "Timeout trying to transmit to peer `%4s', discarding message queue.\n",
-                     GNUNET_i2s (&session->target));
+    LOG (GNUNET_ERROR_TYPE_DEBUG, 
+	 "Timeout trying to transmit to peer `%4s', discarding message queue.\n",
+	 GNUNET_i2s (&session->target));
     /* timeout; cancel all messages that have already expired */
     hd = NULL;
     tl = NULL;
@@ -800,9 +801,9 @@ do_transmit (void *cls, size_t size, void *buf)
     {
       GNUNET_CONTAINER_DLL_remove (session->pending_messages_head,
                                    session->pending_messages_tail, pos);
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
-                       "Failed to transmit %u byte message to `%4s'.\n",
-                       pos->message_size, GNUNET_i2s (&session->target));
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+	   "Failed to transmit %u byte message to `%4s'.\n",
+	   pos->message_size, GNUNET_i2s (&session->target));
       ret += pos->message_size;
       GNUNET_CONTAINER_DLL_insert_after (hd, tl, tl, pos);
     }
@@ -841,9 +842,9 @@ do_transmit (void *cls, size_t size, void *buf)
     GNUNET_CONTAINER_DLL_remove (session->pending_messages_head,
                                  session->pending_messages_tail, pos);
     GNUNET_assert (size >= pos->message_size);
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
-                     "Transmitting message of type %u\n",
-                     ntohs (((struct GNUNET_MessageHeader *) pos->msg)->type));
+    LOG (GNUNET_ERROR_TYPE_DEBUG, 
+	 "Transmitting message of type %u\n",
+	 ntohs (((struct GNUNET_MessageHeader *) pos->msg)->type));
     /* FIXME: this memcpy can be up to 7% of our total runtime */
     memcpy (cbuf, pos->msg, pos->message_size);
     cbuf += pos->message_size;
@@ -868,7 +869,7 @@ do_transmit (void *cls, size_t size, void *buf)
   }
   GNUNET_assert (hd == NULL);
   GNUNET_assert (tl == NULL);
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp", "Transmitting %u bytes\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Transmitting %u bytes\n",
                    ret);
   GNUNET_STATISTICS_update (plugin->env->stats,
                             gettext_noop ("# bytes currently in TCP buffers"),
@@ -918,11 +919,10 @@ disconnect_session (struct Session *session)
   struct PendingMessage *pm;
   struct Plugin * plugin = session->plugin;
 
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
-                   "Disconnecting session %p for peer `%s' address `%s'\n",
-                   session,
-                   GNUNET_i2s (&session->target),
-                   tcp_address_to_string(NULL, session->addr, session->addrlen));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, 
+       "Disconnecting session of peer `%s' address `%s'\n",
+       GNUNET_i2s (&session->target),
+       tcp_address_to_string(NULL, session->addr, session->addrlen));
 
    if (GNUNET_YES  == GNUNET_CONTAINER_multihashmap_remove(plugin->sessionmap, &session->target.hashPubKey, session))
    {
@@ -950,11 +950,11 @@ disconnect_session (struct Session *session)
 
   while (NULL != (pm = session->pending_messages_head))
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
-                     pm->transmit_cont !=
-                     NULL ? "Could not deliver message to `%4s'.\n" :
-                     "Could not deliver message to `%4s', notifying.\n",
-                     GNUNET_i2s (&session->target));
+    LOG (GNUNET_ERROR_TYPE_DEBUG, 
+	 pm->transmit_cont !=
+	 NULL ? "Could not deliver message to `%4s'.\n" :
+	 "Could not deliver message to `%4s', notifying.\n",
+	 GNUNET_i2s (&session->target));
     GNUNET_STATISTICS_update (session->plugin->env->stats,
                               gettext_noop ("# bytes currently in TCP buffers"),
                               -(int64_t) pm->message_size, GNUNET_NO);
@@ -1038,10 +1038,9 @@ tcp_plugin_send (void *cls,
   pm->transmit_cont = cont;
   pm->transmit_cont_cls = cont_cls;
 
-
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
-                   "Asked to transmit %u bytes to `%s', added message to list.\n",
-                   msgbuf_size, GNUNET_i2s (&session->target));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, 
+       "Asked to transmit %u bytes to `%s', added message to list.\n",
+       msgbuf_size, GNUNET_i2s (&session->target));
 
   if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains_value(plugin->sessionmap, &session->target.hashPubKey, session))
   {
@@ -1062,9 +1061,9 @@ tcp_plugin_send (void *cls,
   }
   else if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains_value(plugin->nat_wait_conns, &session->target.hashPubKey, session))
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
-                     "This NAT WAIT session for peer `%s' is not yet ready!\n",
-                     GNUNET_i2s (&session->target));
+    LOG (GNUNET_ERROR_TYPE_DEBUG, 
+	 "This NAT WAIT session for peer `%s' is not yet ready!\n",
+	 GNUNET_i2s (&session->target));
 
     GNUNET_STATISTICS_update (plugin->env->stats,
                               gettext_noop ("# bytes currently in TCP buffers"),
@@ -1102,12 +1101,12 @@ session_lookup_it (void *cls,
 #if 0
   char * a1 = strdup (tcp_address_to_string(NULL, session->addr, session->addrlen));
   char * a2 = strdup (tcp_address_to_string(NULL, si_ctx->addr, si_ctx->addrlen));
-  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "tcp",
-                   "Comparing: %s %u <-> %s %u\n",
-                   a1,
-                   session->addrlen,
-                   a2,
-                   si_ctx->addrlen);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Comparing: %s %u <-> %s %u\n",
+       a1,
+       session->addrlen,
+       a2,
+       si_ctx->addrlen);
   GNUNET_free (a1);
   GNUNET_free (a2);
 #endif
@@ -1122,12 +1121,12 @@ session_lookup_it (void *cls,
 #if 0
   a1 = strdup (tcp_address_to_string(NULL, session->addr, session->addrlen));
   a2 = strdup (tcp_address_to_string(NULL, si_ctx->addr, si_ctx->addrlen));
-  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "tcp",
-                   "Comparing: %s %u <-> %s %u , OK!\n",
-                   a1,
-                   session->addrlen,
-                   a2,
-                   si_ctx->addrlen);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Comparing: %s %u <-> %s %u , OK!\n",
+       a1,
+       session->addrlen,
+       a2,
+       si_ctx->addrlen);
   GNUNET_free (a1);
   GNUNET_free (a2);
 #endif
@@ -1145,9 +1144,9 @@ nat_connect_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct Session *session = cls;
 
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
-                   "NAT WAIT connection to `%4s' at `%s' could not be established, removing session\n",
-                   GNUNET_i2s (&session->target), tcp_address_to_string(NULL, session->addr, session->addrlen));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "NAT WAIT connection to `%4s' at `%s' could not be established, removing session\n",
+       GNUNET_i2s (&session->target), tcp_address_to_string(NULL, session->addr, session->addrlen));
   disconnect_session (session);
 }
 
@@ -1182,10 +1181,10 @@ tcp_plugin_get_session (void *cls,
   GNUNET_assert (plugin != NULL);
   GNUNET_assert (address != NULL);
   addrlen = address->address_length;
-  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "tcp",
-                   "Trying to get session for `%s' address of peer `%s'\n",
-                   tcp_address_to_string(NULL, address->address, address->address_length),
-		   GNUNET_i2s (&address->peer));
+  LOG (GNUNET_ERROR_TYPE_ERROR, 
+       "Trying to get session for `%s' address of peer `%s'\n",
+       tcp_address_to_string(NULL, address->address, address->address_length),
+       GNUNET_i2s (&address->peer));
 
   /* look for existing session */
   if (GNUNET_YES == 
@@ -1202,18 +1201,17 @@ tcp_plugin_get_session (void *cls,
     if (si_ctx.result != NULL)
     {
       session = si_ctx.result;
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
-                       "Found exisiting session for `%s' address `%s' session %p\n",
-                       GNUNET_i2s (&address->peer),
-                       tcp_address_to_string(NULL, address->address, address->address_length),
-                       session);
+      LOG (GNUNET_ERROR_TYPE_DEBUG, 
+	   "Found exisiting session for `%s' address `%s' session %p\n",
+	   GNUNET_i2s (&address->peer),
+	   tcp_address_to_string(NULL, address->address, address->address_length),
+	   session);
       return session;
     }
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "tcp",
-		     "Existing sessions did not match address `%s' or peer `%s'\n",
-		     tcp_address_to_string(NULL, address->address, address->address_length),
-		     GNUNET_i2s (&address->peer));
-
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+	 "Existing sessions did not match address `%s' or peer `%s'\n",
+	 tcp_address_to_string(NULL, address->address, address->address_length),
+	 GNUNET_i2s (&address->peer));
   }
 
   if (addrlen == sizeof (struct IPv6TcpAddress))
@@ -1252,8 +1250,8 @@ tcp_plugin_get_session (void *cls,
   }
   else
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "tcp",
-                     _("Address of unexpected length: %u\n"), addrlen);
+    LOG (GNUNET_ERROR_TYPE_ERROR, 
+	 _("Address of unexpected length: %u\n"), addrlen);
     GNUNET_break (0);
     return NULL;
   }
@@ -1286,8 +1284,8 @@ tcp_plugin_get_session (void *cls,
        GNUNET_CONTAINER_multihashmap_contains (plugin->nat_wait_conns,
                                                &address->peer.hashPubKey)))
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
-		     "Found valid IPv4 NAT address (creating session)!\n") ;
+    LOG (GNUNET_ERROR_TYPE_DEBUG, 
+	 "Found valid IPv4 NAT address (creating session)!\n") ;
     session = create_session (plugin, &address->peer, NULL, GNUNET_YES);
     session->addrlen = 0;
     session->addr = NULL;
@@ -1300,18 +1298,17 @@ tcp_plugin_get_session (void *cls,
                    (plugin->nat_wait_conns, &address->peer.hashPubKey, session,
                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY) == GNUNET_OK);
 
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
-                     "Created NAT WAIT connection to `%4s' at `%s'\n",
-                     GNUNET_i2s (&session->target), GNUNET_a2s (sb, sbs));
+    LOG (GNUNET_ERROR_TYPE_DEBUG, 
+	 "Created NAT WAIT connection to `%4s' at `%s'\n",
+	 GNUNET_i2s (&session->target), GNUNET_a2s (sb, sbs));
 
     if (GNUNET_OK == GNUNET_NAT_run_client (plugin->nat, &a4))
       return session;
     else
     {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
-                       "Running NAT client for `%4s' at `%s' failed\n",
-                       GNUNET_i2s (&session->target), GNUNET_a2s (sb, sbs));
-
+      LOG (GNUNET_ERROR_TYPE_DEBUG, 
+	   "Running NAT client for `%4s' at `%s' failed\n",
+	   GNUNET_i2s (&session->target), GNUNET_a2s (sb, sbs));
       disconnect_session (session);
       return NULL;
     }
@@ -1322,16 +1319,16 @@ tcp_plugin_get_session (void *cls,
   sa = GNUNET_CONNECTION_create_from_sockaddr (af, sb, sbs);
   if (sa == NULL)
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
-                     "Failed to create connection to `%4s' at `%s'\n",
-                     GNUNET_i2s (&session->target), GNUNET_a2s (sb, sbs));
+    LOG (GNUNET_ERROR_TYPE_DEBUG, 
+	 "Failed to create connection to `%4s' at `%s'\n",
+	 GNUNET_i2s (&session->target), GNUNET_a2s (sb, sbs));
     return NULL;
   }
   plugin->max_connections--;
 
-  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "tcp",
-                   "Asked to transmit to `%4s', creating fresh session using address `%s'.\n",
-                   GNUNET_i2s (&address->peer), GNUNET_a2s (sb, sbs));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Asked to transmit to `%4s', creating fresh session using address `%s'.\n",
+       GNUNET_i2s (&address->peer), GNUNET_a2s (sb, sbs));
 
   session = create_session (plugin,
                             &address->peer,
@@ -1344,12 +1341,11 @@ tcp_plugin_get_session (void *cls,
 
   GNUNET_CONTAINER_multihashmap_put(plugin->sessionmap, &address->peer.hashPubKey, session, GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   inc_sessions (plugin, session, __LINE__);
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
-                   "Creating new session for `%s' address `%s' session %p\n",
-                   GNUNET_i2s (&address->peer),
-                   tcp_address_to_string(NULL, address->address, address->address_length),
-                   session);
-
+  LOG (GNUNET_ERROR_TYPE_DEBUG, 
+       "Creating new session for `%s' address `%s' session %p\n",
+       GNUNET_i2s (&address->peer),
+       tcp_address_to_string(NULL, address->address, address->address_length),
+       session);
   /* Send TCP Welcome */
   process_pending_messages (session);
 
@@ -1393,8 +1389,8 @@ tcp_plugin_disconnect (void *cls, const struct GNUNET_PeerIdentity *target)
 {
   struct Plugin *plugin = cls;
 
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
-                   "Disconnecting peer `%4s'\n", GNUNET_i2s (target));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, 
+       "Disconnecting peer `%4s'\n", GNUNET_i2s (target));
   GNUNET_CONTAINER_multihashmap_get_multiple (plugin->sessionmap, &target->hashPubKey, &session_disconnect_it, plugin);
   GNUNET_CONTAINER_multihashmap_get_multiple (plugin->nat_wait_conns, &target->hashPubKey, &session_disconnect_it, plugin);
 }
@@ -1628,7 +1624,7 @@ handle_tcp_nat_probe (void *cls, struct GNUNET_SERVER_Client *client,
   const struct sockaddr_in *s4;
   const struct sockaddr_in6 *s6;
 
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp", "received NAT probe\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "received NAT probe\n");
 
   /* We have received a TCP NAT probe, meaning we (hopefully) initiated
    * a connection to this peer by running gnunet-nat-client.  This peer
@@ -1659,13 +1655,13 @@ handle_tcp_nat_probe (void *cls, struct GNUNET_SERVER_Client *client,
                                          clientIdentity.hashPubKey);
   if (session == NULL)
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
-                     "Did NOT find session for NAT probe!\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, 
+	 "Did NOT find session for NAT probe!\n");
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
-                   "Found session for NAT probe!\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, 
+       "Found session for NAT probe!\n");
 
   if (session->nat_connection_timeout != GNUNET_SCHEDULER_NO_TASK)
   {
@@ -1689,9 +1685,9 @@ handle_tcp_nat_probe (void *cls, struct GNUNET_SERVER_Client *client,
   session->client = client;
   session->last_activity = GNUNET_TIME_absolute_get ();
   session->inbound = GNUNET_NO;
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
-                   "Found address `%s' for incoming connection\n",
-                   GNUNET_a2s (vaddr, alen));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, 
+       "Found address `%s' for incoming connection\n",
+       GNUNET_a2s (vaddr, alen));
   switch (((const struct sockaddr *) vaddr)->sa_family)
   {
   case AF_INET:
@@ -1712,9 +1708,8 @@ handle_tcp_nat_probe (void *cls, struct GNUNET_SERVER_Client *client,
     break;
   default:
     GNUNET_break_op (0);
-
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
-                     "Bad address for incoming connection!\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, 
+	 "Bad address for incoming connection!\n");
     GNUNET_free (vaddr);
 
     GNUNET_SERVER_client_drop (client);
@@ -1764,9 +1759,9 @@ handle_tcp_welcome (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "tcp",
-                   "Received %s message from `%4s'\n", "WELCOME",
-                   GNUNET_i2s (&wm->clientIdentity));
+  LOG (GNUNET_ERROR_TYPE_ERROR, 
+       "Received %s message from `%4s'\n", "WELCOME",
+       GNUNET_i2s (&wm->clientIdentity));
   GNUNET_STATISTICS_update (plugin->env->stats,
                             gettext_noop ("# TCP WELCOME messages received"), 1,
                             GNUNET_NO);
@@ -1775,10 +1770,10 @@ handle_tcp_welcome (void *cls, struct GNUNET_SERVER_Client *client,
   {
     if (GNUNET_OK == GNUNET_SERVER_client_get_address (client, &vaddr, &alen))
     {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
-                       "Found existing session %p for peer `%s'\n",
-                       session,
-                       GNUNET_a2s (vaddr, alen));
+      LOG (GNUNET_ERROR_TYPE_DEBUG, 
+	   "Found existing session %p for peer `%s'\n",
+	   session,
+	   GNUNET_a2s (vaddr, alen));
       GNUNET_free (vaddr);
     }
   }
@@ -1816,8 +1811,8 @@ handle_tcp_welcome (void *cls, struct GNUNET_SERVER_Client *client,
     }
     else
     {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
-                       "Did not obtain TCP socket address for incoming connection\n");
+      LOG (GNUNET_ERROR_TYPE_DEBUG, 
+	   "Did not obtain TCP socket address for incoming connection\n");
     }
     GNUNET_CONTAINER_multihashmap_put(plugin->sessionmap, &wm->clientIdentity.hashPubKey, session, GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
     inc_sessions (plugin, session, __LINE__);
@@ -1899,8 +1894,9 @@ handle_tcp_data (void *cls, struct GNUNET_SERVER_Client *client,
     /* No inbound session found */
     void *vaddr;
     size_t alen;
+    
     GNUNET_SERVER_client_get_address (client, &vaddr, &alen);
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "tcp",
+    LOG (GNUNET_ERROR_TYPE_ERROR, 
                      "Received unexpected %u bytes of type %u from `%s'\n",
                      (unsigned int) ntohs (message->size),
                      (unsigned int) ntohs (message->type),
@@ -1915,12 +1911,13 @@ handle_tcp_data (void *cls, struct GNUNET_SERVER_Client *client,
     /* Session is expecting WELCOME message */
     void *vaddr;
     size_t alen;
+
     GNUNET_SERVER_client_get_address (client, &vaddr, &alen);
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "tcp",
-                     "Received unexpected %u bytes of type %u from `%s'\n",
-                     (unsigned int) ntohs (message->size),
-                     (unsigned int) ntohs (message->type),
-                     GNUNET_a2s(vaddr, alen));
+    LOG (GNUNET_ERROR_TYPE_ERROR, 
+	 "Received unexpected %u bytes of type %u from `%s'\n",
+	 (unsigned int) ntohs (message->size),
+	 (unsigned int) ntohs (message->type),
+	 GNUNET_a2s(vaddr, alen));
     GNUNET_break_op (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     GNUNET_free_non_null(vaddr);
@@ -1928,8 +1925,7 @@ handle_tcp_data (void *cls, struct GNUNET_SERVER_Client *client,
   }
 
   session->last_activity = GNUNET_TIME_absolute_get ();
-
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, 
                    "Passing %u bytes of type %u from `%4s' to transport service.\n",
                    (unsigned int) ntohs (message->size),
                    (unsigned int) ntohs (message->type),
@@ -1959,10 +1955,10 @@ handle_tcp_data (void *cls, struct GNUNET_SERVER_Client *client,
   }
   else
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
-                     "Throttling receiving from `%s' for %llu ms\n",
-                     GNUNET_i2s (&session->target),
-                     (unsigned long long) delay.rel_value);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, 
+	 "Throttling receiving from `%s' for %llu ms\n",
+	 GNUNET_i2s (&session->target),
+	 (unsigned long long) delay.rel_value);
     GNUNET_SERVER_disable_receive_done_warning (client);
     session->receive_delay_task =
         GNUNET_SCHEDULER_add_delayed (delay, &delayed_done, session);
@@ -1989,14 +1985,14 @@ disconnect_notify (void *cls, struct GNUNET_SERVER_Client *client)
   session = lookup_session_by_client (plugin, client);
   if (session == NULL)
     return;                     /* unknown, nothing to do */
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
-                   "Destroying session of `%4s' with %s due to network-level disconnect.\n",
-                   GNUNET_i2s (&session->target),
-                   (session->addr !=
-                    NULL) ? tcp_address_to_string (session->plugin,
-                                                   session->addr,
-                                                   session->addrlen) :
-                   "*");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, 
+       "Destroying session of `%4s' with %s due to network-level disconnect.\n",
+       GNUNET_i2s (&session->target),
+       (session->addr !=
+	NULL) ? tcp_address_to_string (session->plugin,
+				       session->addr,
+				       session->addrlen) :
+       "*");
   GNUNET_STATISTICS_update (session->plugin->env->stats,
                             gettext_noop
                             ("# network-level TCP disconnect events"), 1,
@@ -2148,10 +2144,10 @@ libgnunet_plugin_transport_tcp_init (void *cls)
                                                "ADVERTISED-PORT", &aport)) &&
        (aport > 65535)))
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "tcp",
-                     _
-                     ("Require valid port number for service `%s' in configuration!\n"),
-                     "transport-tcp");
+    LOG (GNUNET_ERROR_TYPE_ERROR, 
+	 _
+	 ("Require valid port number for service `%s' in configuration!\n"),
+	 "transport-tcp");
     return NULL;
   }
   if (aport == 0)
@@ -2163,8 +2159,8 @@ libgnunet_plugin_transport_tcp_init (void *cls)
     service = GNUNET_SERVICE_start ("transport-tcp", env->cfg, GNUNET_SERVICE_OPTION_NONE);
     if (service == NULL)
     {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, "tcp",
-                       _("Failed to start service.\n"));
+      LOG (GNUNET_ERROR_TYPE_WARNING,
+	   _("Failed to start service.\n"));
       return NULL;
     }
   }
@@ -2225,9 +2221,9 @@ libgnunet_plugin_transport_tcp_init (void *cls)
         GNUNET_CONFIGURATION_get_value_time (env->cfg, "transport-tcp",
                                              "TIMEOUT", &idle_timeout))
     {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "tcp",
-                       _("Failed to find option %s in section %s!\n"),
-                       "TIMEOUT", "transport-tcp");
+      LOG (GNUNET_ERROR_TYPE_ERROR,
+	   _("Failed to find option %s in section %s!\n"),
+	   "TIMEOUT", "transport-tcp");
       if (plugin->nat != NULL)
         GNUNET_NAT_unregister (plugin->nat);
       GNUNET_free (plugin);
@@ -2248,14 +2244,14 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   GNUNET_SERVER_disconnect_notify (plugin->server, &disconnect_notify, plugin);
   plugin->nat_wait_conns = GNUNET_CONTAINER_multihashmap_create (16);
   if (bport != 0)
-    GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "tcp",
-                     _("TCP transport listening on port %llu\n"), bport);
+    LOG (GNUNET_ERROR_TYPE_INFO, 
+	 _("TCP transport listening on port %llu\n"), bport);
   else
-    GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "tcp",
-                     _
-                     ("TCP transport not listening on any port (client only)\n"));
+    LOG (GNUNET_ERROR_TYPE_INFO, 
+	 _
+	 ("TCP transport not listening on any port (client only)\n"));
   if (aport != bport)
-    GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "tcp",
+    LOG (GNUNET_ERROR_TYPE_INFO, 
                      _
                      ("TCP transport advertises itself as being on port %llu\n"),
                      aport);
@@ -2282,7 +2278,7 @@ libgnunet_plugin_transport_tcp_done (void *cls)
     GNUNET_free (api);
     return NULL;
   }
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp", "Shutting down TCP plugin\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Shutting down TCP plugin\n");
 
   /* Removing leftover sessions */
   GNUNET_CONTAINER_multihashmap_iterate(plugin->sessionmap, &session_disconnect_it, NULL);
