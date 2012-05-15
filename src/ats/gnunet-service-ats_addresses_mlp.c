@@ -1317,8 +1317,8 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
     /* Check if defined quota could make problem unsolvable */
     if (((n_min * b_min) > quota_out) && (GNUNET_ATS_NET_UNSPECIFIED != quotas[c]))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Inconsistent quota configuration value `%s': " \
-          "outbound quota (%u Bps) too small for combination of minimum connections and minimum bandwidth per peer (%u * %u Bps = %u)\n", entry_out, quota_out, n_min, b_min, n_min * b_min);
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Inconsistent quota configuration value `%s': " 
+		  "outbound quota (%u Bps) too small for combination of minimum connections and minimum bandwidth per peer (%u * %u Bps = %u)\n", entry_out, quota_out, n_min, b_min, n_min * b_min);
 
       GAS_mlp_done(mlp);
       mlp = NULL;

@@ -685,7 +685,7 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GNUNET_DHT_put (dht_handle,   /* DHT handle */
                   &my_full_id.hashPubKey,       /* Key to use */
-                  10U,          /* Replication level */
+                  10,          /* Replication level */
                   GNUNET_DHT_RO_RECORD_ROUTE | GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,    /* DHT options */
                   GNUNET_BLOCK_TYPE_TEST,       /* Block type */
                   sizeof (my_full_id),  /* Size of the data */
