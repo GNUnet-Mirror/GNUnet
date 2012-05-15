@@ -1006,7 +1006,6 @@ disconnect_neighbour (struct NeighbourMapEntry *n)
     n->state = S_DISCONNECT;
     break;   
   case S_CONNECTED:
-  case S_RECONNECT_ATS:
   case S_RECONNECT_BLACKLIST:
   case S_RECONNECT_SENT:
   case S_CONNECTED_SWITCHING_BLACKLIST:
@@ -1018,6 +1017,15 @@ disconnect_neighbour (struct NeighbourMapEntry *n)
 			   gettext_noop ("# peers connected"), 
 			   --neighbours_connected,
 			   GNUNET_NO);
+    disconnect_notify_cb (callback_cls, &n->id);
+    n->state = S_DISCONNECT;
+    break;
+  case S_RECONNECT_ATS:
+    /* ATS address request timeout, disconnect without sending disconnect message */
+    GNUNET_STATISTICS_set (GST_stats,
+                           gettext_noop ("# peers connected"),
+                           --neighbours_connected,
+                           GNUNET_NO);
     disconnect_notify_cb (callback_cls, &n->id);
     n->state = S_DISCONNECT;
     break;
