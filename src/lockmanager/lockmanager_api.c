@@ -214,13 +214,51 @@ call_status_cb_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (NULL != r->status_cb)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Calling status change callback for lock: %d in domain: %s\n",
+         "Calling status change for SUCCESS on lock num: %d, domain: %s\n",
          r->lock, r->domain);
     r->status_cb (r->status_cb_cls,
                   r->domain,
                   r->lock,
                   r->status);
   }
+}
+
+
+/**
+ * Iterator to call relase and free all LockingRequest entries
+ *
+ * @param cls the lockmanager handle
+ * @param key current key code
+ * @param value the Locking request
+ * @return GNUNET_YES if we should continue to
+ *         iterate,
+ *         GNUNET_NO if not.
+ */
+static int
+release_iterator(void *cls,
+                 const GNUNET_HashCode * key,
+                 void *value)
+{
+  struct GNUNET_LOCKMANAGER_Handle *h = cls;
+  struct GNUNET_LOCKMANAGER_LockingRequest *r = value;
+
+  if (NULL != r->status_cb)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Calling status change for RELEASE on lock num: %d, domain: %s\n",
+         r->lock, r->domain);
+    r->status_cb (r->status_cb_cls,
+                  r->domain,
+                  r->lock,
+                  GNUNET_LOCKMANAGER_RELEASE);
+  }
+  GNUNET_assert (GNUNET_YES == 
+                 GNUNET_CONTAINER_multihashmap_remove (h->hashmap,
+                                                       key,
+                                                       value));
+  GNUNET_free (r->domain);
+  GNUNET_free (r);
+  return GNUNET_YES;
 }
 
 
@@ -246,6 +284,10 @@ handle_replies (void *cls,
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Lockmanager service not available or went down\n");
+    /* Should release all locks and free its locking requests */
+    GNUNET_CONTAINER_multihashmap_iterate (handle->hashmap,
+                                           &release_iterator,
+                                           handle);
     return;
   }
   if (GNUNET_MESSAGE_TYPE_LOCKMANAGER_SUCCESS != ntohs(msg->type))
@@ -327,7 +369,7 @@ transmit_notify (void *cls, size_t size, void *buf)
 /**
  * Iterator to free hash map entries.
  *
- * @param cls NULL
+ * @param cls the lockmanger handle
  * @param key current key code
  * @param value the Locking request
  * @return GNUNET_YES if we should continue to
@@ -339,10 +381,15 @@ free_iterator(void *cls,
               const GNUNET_HashCode * key,
               void *value)
 {
+  struct GNUNET_LOCKMANAGER_Handle *h = cls;
   struct GNUNET_LOCKMANAGER_LockingRequest *r = value;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Clearing locking request\n");
+  GNUNET_assert (GNUNET_YES == 
+                 GNUNET_CONTAINER_multihashmap_remove (h->hashmap,
+                                                       key,
+                                                       value));
   GNUNET_free (r->domain);
   GNUNET_free (r);
   return GNUNET_YES;
@@ -404,7 +451,7 @@ GNUNET_LOCKMANAGER_disconnect (struct GNUNET_LOCKMANAGER_Handle *handle)
          "calling %s\n", __func__);
     GNUNET_CONTAINER_multihashmap_iterate (handle->hashmap,
                                            &free_iterator,
-                                           NULL);
+                                           handle);
   }
   GNUNET_CONTAINER_multihashmap_destroy (handle->hashmap);
   GNUNET_free (handle);
