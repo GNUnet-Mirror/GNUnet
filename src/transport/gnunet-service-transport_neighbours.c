@@ -795,9 +795,6 @@ free_neighbour (struct NeighbourMapEntry *n)
   struct MessageQueue *mq;
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
 
-  GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multihashmap_remove (neighbours,
-                                                       &n->id.hashPubKey, n));
   n->is_active = NULL; /* always free'd by its own continuation! */
 
   /* fail messages currently in the queue */
@@ -818,7 +815,6 @@ free_neighbour (struct NeighbourMapEntry *n)
 			   GNUNET_NO);
     disconnect_notify_cb (callback_cls, &n->id);
   }
-  n->state = S_DISCONNECT_FINISHED;
 
   /* FIXME-PLUGIN-API: This does not seem to guarantee that all
      transport sessions eventually get killed due to inactivity; they
@@ -832,6 +828,12 @@ free_neighbour (struct NeighbourMapEntry *n)
   if ( (NULL != n->primary_address.address) &&
        (NULL != (papi = GST_plugins_find (n->primary_address.address->transport_name))) )
     papi->disconnect (papi->cls, &n->id);
+
+  n->state = S_DISCONNECT_FINISHED;
+
+  GNUNET_assert (GNUNET_YES ==
+                 GNUNET_CONTAINER_multihashmap_remove (neighbours,
+                                                       &n->id.hashPubKey, n));
 
   /* cut transport-level connection */
   free_address (&n->primary_address);
@@ -1054,6 +1056,12 @@ transmit_send_continuation (void *cls,
   struct NeighbourMapEntry *n;
 
   n = lookup_neighbour (receiver);
+  if (NULL == n)
+  {
+    GNUNET_break (0);
+    return;
+  }
+
   if (n->is_active == mq)
   {
     /* this is still "our" neighbour, remove us from its queue
