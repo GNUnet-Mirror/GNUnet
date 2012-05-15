@@ -649,10 +649,15 @@ GNUNET_OS_set_process_priority (struct GNUNET_OS_Process *proc,
 static char *
 CreateCustomEnvTable (char **vars)
 {
-  char *win32_env_table, *ptr, **var_ptr, *result, *result_ptr;
+  char *win32_env_table;
+  char *ptr;
+  char **var_ptr;
+  char *result;
+  char *result_ptr;
   size_t tablesize = 0;
   size_t items_count = 0;
-  size_t n_found = 0, n_var;
+  size_t n_found = 0;
+  size_t n_var;
   char *index = NULL;
   size_t c;
   size_t var_len;

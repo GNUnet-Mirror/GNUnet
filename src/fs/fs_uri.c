@@ -1377,7 +1377,8 @@ GNUNET_FS_uri_sks_to_string_fancy (struct GNUNET_CONFIGURATION_Handle *cfg,
                                    const struct GNUNET_FS_Uri *uri)
 {
   char *ret;
-  char *name, *unique_name;
+  char *name;
+  char *unique_name;
 
   if (uri->type != sks)
     return NULL;

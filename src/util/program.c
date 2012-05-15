@@ -95,10 +95,10 @@ program_main (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param a2 second command line option
  */
 static int
-cmd_sorter (__const void *a1, __const void *a2)
+cmd_sorter (const void *a1, const void *a2)
 {
-  __const struct GNUNET_GETOPT_CommandLineOption *c1 = a1;
-  __const struct GNUNET_GETOPT_CommandLineOption *c2 = a2;
+  const struct GNUNET_GETOPT_CommandLineOption *c1 = a1;
+  const struct GNUNET_GETOPT_CommandLineOption *c2 = a2;
 
   if (toupper ((unsigned char) c1->shortName) >
       toupper ((unsigned char) c2->shortName))

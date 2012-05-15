@@ -1126,7 +1126,7 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   double D;
   double R;
   double U;
-  long long unsigned int tmp;
+  unsigned long long tmp;
   unsigned int b_min;
   unsigned int n_min;
   struct GNUNET_TIME_Relative i_exec;

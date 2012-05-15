@@ -1760,8 +1760,6 @@ udp_select_send (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *sock)
   ssize_t sent;
   size_t slen;
   struct GNUNET_TIME_Absolute max;
-  struct GNUNET_TIME_Absolute ;
-
   struct UDPMessageWrapper *udpw = NULL;
 
   if (sock == plugin->sockv4)
@@ -1859,9 +1857,9 @@ udp_select_send (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *sock)
        * have a valid global IPv6 address assigned
        */
        LOG (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-           _("UDP could not message to `%s': `%s'\n, " \
-           "Please check your network configuration and disable IPv6 if your\n" \
-           "connection does not have a global IPv6 address"),
+           _("UDP could not message to `%s': `%s'. "
+	     "Please check your network configuration and disable IPv6 if your "
+	     "connection does not have a global IPv6 address\n"),
            GNUNET_a2s (sa, slen),
            STRERROR (errno));
     }

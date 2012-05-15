@@ -508,15 +508,16 @@ GNUNET_NETWORK_socket_recvfrom_amount (const struct GNUNET_NETWORK_Handle *
 
   error = ioctl (desc->fd, FIONREAD, &pending);
   if (error == 0)
+    return (ssize_t) pending;
+  return GNUNET_NO;
 #else
   u_long pending;
 
   error = ioctlsocket (desc->fd, FIONREAD, &pending);
   if (error != SOCKET_ERROR)
+    return (ssize_t) pending;
+  return GNUNET_NO;
 #endif
-    return pending;
-  else
-    return GNUNET_NO;
 }
 
 
@@ -1079,7 +1080,6 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
                               const struct GNUNET_TIME_Relative timeout)
 {
   int nfds = 0;
-
 #ifdef MINGW
   int handles = 0;
   int ex_handles = 0;
@@ -1090,7 +1090,9 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
   int retcode = 0;
   DWORD ms_total = 0;
 
-  int nsock = 0, nhandles = 0, nSockEvents = 0;
+  int nsock = 0;
+  int nhandles = 0;
+  int nSockEvents = 0;
 
   static HANDLE hEventRead = 0;
   static HANDLE hEventWrite = 0;
@@ -1106,12 +1108,18 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
   DWORD newretcode = 0;
   int returnedpos = 0;
 
-  struct GNUNET_CONTAINER_SList *handles_read, *handles_write, *handles_except;
+  struct GNUNET_CONTAINER_SList *handles_read;
+  struct GNUNET_CONTAINER_SList *handles_write;
+  struct GNUNET_CONTAINER_SList *handles_except;
 
-  fd_set aread, awrite, aexcept;
+  fd_set aread;
+  fd_set awrite;
+  fd_set except;
 
 #if DEBUG_NETWORK
-  fd_set bread, bwrite, bexcept;
+  fd_set bread;
+  fd_set bwrite;
+  fd_set bexcept;
 #endif
 
   /* TODO: Make this growable */

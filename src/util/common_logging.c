@@ -530,6 +530,8 @@ parse_all_definitions ()
   gnunet_force_log_parsed = GNUNET_YES;
 }
 #endif
+
+
 /**
  * Setup logging.
  *
@@ -569,17 +571,16 @@ GNUNET_log_setup (const char *comp, const char *loglevel, const char *logfile)
   if (NULL == fn)
     return GNUNET_SYSERR;
   dirwarn = (GNUNET_OK != GNUNET_DISK_directory_create_for_file (fn));
+#if WINDOWS
   altlog_fd = OPEN (fn, O_APPEND |
-#if WINDOWS
                         O_BINARY |
-#endif
                         O_WRONLY | O_CREAT,
-#if WINDOWS
-                        _S_IREAD | _S_IWRITE
+                        _S_IREAD | _S_IWRITE);
 #else
-                        S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH
+  altlog_fd = OPEN (fn, O_APPEND |
+                        O_WRONLY | O_CREAT,
+                        S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 #endif
-                   );
   if (altlog_fd != -1)
   {
     int dup_return;

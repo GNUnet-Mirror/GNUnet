@@ -28,14 +28,6 @@
  * - SEND FUNCTIONS
  * - API CALL DEFINITIONS
  */
-#ifdef __cplusplus
-extern "C"
-{
-#if 0                           /* keep Emacsens' auto-indent happy */
-}
-#endif
-#endif
-
 #include "platform.h"
 #include "gnunet_common.h"
 #include "gnunet_client_lib.h"
@@ -45,13 +37,8 @@ extern "C"
 #include "mesh.h"
 #include "mesh_protocol.h"
 
-#define MESH_API_DEBUG GNUNET_YES
-
-#if MESH_API_DEBUG
 #define LOG(kind,...) GNUNET_log_from (kind, "mesh-api",__VA_ARGS__)
-#else
-#define LOG(kind,...)
-#endif
+
 
 /******************************************************************************/
 /************************      DATA STRUCTURES     ****************************/
@@ -1717,9 +1704,3 @@ GNUNET_MESH_tunnel_get_data (struct GNUNET_MESH_Tunnel *tunnel)
 }
 
 
-#if 0                           /* keep Emacsens' auto-indent happy */
-{
-#endif
-#ifdef __cplusplus
-}
-#endif

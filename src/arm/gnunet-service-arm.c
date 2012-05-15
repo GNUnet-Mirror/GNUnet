@@ -494,7 +494,7 @@ static void
 create_listen_socket (struct sockaddr *sa, socklen_t addr_len,
 		      struct ServiceList *sl)
 {
-  const static int on = 1;
+  static int on = 1;
   struct GNUNET_NETWORK_Handle *sock;
   struct ServiceListeningInfo *sli;
 

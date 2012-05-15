@@ -539,7 +539,8 @@ list_pseudonym_helper (void *cls, const char *fullname)
   int32_t rating;
   struct GNUNET_CONTAINER_MetaData *meta;
   const char *fn;
-  char *str, *name_unique;
+  char *str;
+  char *name_unique;
 
   if (strlen (fullname) < sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded))
     return GNUNET_OK;

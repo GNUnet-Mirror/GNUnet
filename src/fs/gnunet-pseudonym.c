@@ -109,7 +109,8 @@ pseudo_printer (void *cls, const GNUNET_HashCode * pseudonym,
                 const char *name, const char *unique_name,
                 const struct GNUNET_CONTAINER_MetaData *md, int rating)
 {
-  char *id, *unique_id;
+  char *id;
+  char *unique_id;
   int getinfo_result;
 
   /* While we get a name from the caller, it might be NULL.

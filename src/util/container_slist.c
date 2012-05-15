@@ -268,6 +268,7 @@ GNUNET_CONTAINER_slist_contains (const struct GNUNET_CONTAINER_SList *l,
   return GNUNET_NO;
 }
 
+typedef int (*Comparator)(const void *,  size_t, const void *,  size_t);
 
 /**
  * Check if a list contains a certain element
@@ -283,7 +284,7 @@ GNUNET_CONTAINER_slist_contains (const struct GNUNET_CONTAINER_SList *l,
 void *
 GNUNET_CONTAINER_slist_contains2 (const struct GNUNET_CONTAINER_SList *l,
                                   const void *buf, size_t len,
-                                  int (*compare)(const void *, const size_t, const void *, const size_t))
+                                  Comparator compare)
 {
   struct GNUNET_CONTAINER_SList_Elem *e;
 

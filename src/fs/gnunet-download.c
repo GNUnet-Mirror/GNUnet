@@ -90,7 +90,8 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void *
 progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
 {
-  char *s, *s2;
+  char *s;
+  char *s2;
   char *t;
 
   switch (info->status)

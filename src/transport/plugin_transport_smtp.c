@@ -774,7 +774,7 @@ api_associate (GNUNET_TSession * tsession)
  * frequency limits to SMTP in the future!).
  */
 static int
-api_test_would_try (GNUNET_TSession * tsession, const unsigned int size,
+api_test_would_try (GNUNET_TSession * tsession, unsigned int size,
                     int important)
 {
   return GNUNET_OK;             /* we always try... */
@@ -785,10 +785,8 @@ api_test_would_try (GNUNET_TSession * tsession, const unsigned int size,
  * returns the smtp transport API.
  */
 GNUNET_TransportAPI *
-inittransport_smtp (GNUNET_CoreAPIForTransport * core)
+inittransport_smtp (struct GNUNET_CoreAPIForTransport * core)
 {
-
-
   unsigned long long mtu;
   struct sigaction sa;
 

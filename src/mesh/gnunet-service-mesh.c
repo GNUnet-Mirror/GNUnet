@@ -623,7 +623,7 @@ announce_application (void *cls, const GNUNET_HashCode * key, void *value)
 {
   /* FIXME are hashes in multihash map equal on all aquitectures? */
   /* FIXME: keep return value of 'put' to possibly cancel!? */
-  GNUNET_DHT_put (dht_handle, key, 10U,
+  GNUNET_DHT_put (dht_handle, key, 10,
                   GNUNET_DHT_RO_RECORD_ROUTE |
                   GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE, GNUNET_BLOCK_TYPE_TEST,
                   sizeof (struct GNUNET_PeerIdentity),
@@ -692,12 +692,8 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                   (char *) &my_full_id, /* Data itself */
                   GNUNET_TIME_absolute_get_forever (),  /* Data expiration */
                   GNUNET_TIME_UNIT_FOREVER_REL, /* Retry time */
-#if MESH_DEBUG_DHT
-                  &mesh_debug, "DHT_put for id completed");
-#else
                   NULL,         /* Continuation */
                   NULL);        /* Continuation closure */
-#endif
   announce_id_task =
       GNUNET_SCHEDULER_add_delayed (ID_ANNOUNCE_TIME, &announce_id, cls);
 }

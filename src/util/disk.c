@@ -270,7 +270,8 @@ GNUNET_DISK_file_seek (const struct GNUNET_DISK_FileHandle * h, OFF_T offset,
   }
 
 #ifdef MINGW
-  LARGE_INTEGER li, new_pos;
+  LARGE_INTEGER li;
+  LARGE_INTEGER new_pos;
   BOOL b;
 
   static DWORD t[] = {[GNUNET_DISK_SEEK_SET] = FILE_BEGIN,

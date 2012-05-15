@@ -971,7 +971,7 @@ init ()
   char *pos;
   char *secname;
   int counter;
-  long long unsigned int port;
+  unsigned long long port;
 
   have_tcp = GNUNET_NO;
   have_udp = GNUNET_NO;
