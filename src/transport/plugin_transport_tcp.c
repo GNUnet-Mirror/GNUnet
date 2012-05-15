@@ -1396,7 +1396,7 @@ tcp_plugin_disconnect (void *cls, const struct GNUNET_PeerIdentity *target)
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "tcp",
                    "Disconnecting peer `%4s'\n", GNUNET_i2s (target));
   GNUNET_CONTAINER_multihashmap_get_multiple (plugin->sessionmap, &target->hashPubKey, &session_disconnect_it, plugin);
-  GNUNET_CONTAINER_multihashmap_get_multiple (plugin->nat_wait_conns, &session_disconnect_it, plugin);
+  GNUNET_CONTAINER_multihashmap_get_multiple (plugin->nat_wait_conns, &target->hashPubKey, &session_disconnect_it, plugin);
 }
 
 
