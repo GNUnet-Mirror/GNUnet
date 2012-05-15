@@ -1063,7 +1063,6 @@ process_result_with_request (void *cls, const GNUNET_HashCode * key,
     if (is_recursive_download (dc))
       GNUNET_FS_directory_list_contents (prc->size, pt, off,
                                          &trigger_recursive_download, dc);
-
   }
   GNUNET_assert (dc->completed <= dc->length);
   dr->state = BRS_DOWNLOAD_DOWN;
@@ -1120,6 +1119,13 @@ process_result_with_request (void *cls, const GNUNET_HashCode * key,
     switch (drc->state)
     {
     case BRS_INIT:
+      if ((drc->chk_idx + 1) * sizeof (struct ContentHashKey) > prc->size)
+      {
+	/* 'chkarr' does not have enough space for this chk_idx;
+	   internal error! */
+	GNUNET_break (0);
+	return GNUNET_SYSERR;
+      }
       drc->chk = chkarr[drc->chk_idx];
       drc->state = BRS_CHK_SET;
       if (GNUNET_YES == dc->issue_requests)
@@ -1518,45 +1524,44 @@ create_download_request (struct DownloadRequest *parent,
   dr->depth = depth;
   dr->offset = dr_offset;
   dr->chk_idx = chk_idx;
-  if (depth > 0)
-  {
-    child_block_size = GNUNET_FS_tree_compute_tree_size (depth - 1);
+  if (0 == depth)
+    return dr;
+  child_block_size = GNUNET_FS_tree_compute_tree_size (depth - 1);
+  
+  /* calculate how many blocks at this level are not interesting
+   * from the start (rounded down), either because of the requested
+   * file offset or because this IBlock is further along */
+  if (dr_offset < file_start_offset)
+    head_skip = file_start_offset / child_block_size;
+  else
+    head_skip = 0;
+  
+  /* calculate index of last block at this level that is interesting (rounded up) */
+  dr->num_children = (file_start_offset + desired_length - dr_offset) / child_block_size;
+  if (dr->num_children * child_block_size <
+      file_start_offset + desired_length - dr_offset)
+    dr->num_children++;       /* round up */
+  dr->num_children -= head_skip;
+  if (dr->num_children > CHK_PER_INODE)
+    dr->num_children = CHK_PER_INODE; /* cap at max */
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Block at offset %llu and depth %u has %u children\n",
+	      (unsigned long long) dr_offset,
+	      depth,
+	      dr->num_children);
+  
+  /* now we can get the total number of *interesting* children for this block */
 
-    /* calculate how many blocks at this level are not interesting
-     * from the start (rounded down), either because of the requested
-     * file offset or because this IBlock is further along */
-    if (dr_offset < file_start_offset)
-      head_skip = file_start_offset / child_block_size;
-    else
-      head_skip = 0;
-
-    /* calculate index of last block at this level that is interesting (rounded up) */
-    dr->num_children = (file_start_offset + desired_length - dr_offset) / child_block_size;
-    if (dr->num_children * child_block_size <
-        file_start_offset + desired_length - dr_offset)
-      dr->num_children++;       /* round up */
-    dr->num_children -= head_skip;
-    if (dr->num_children > CHK_PER_INODE)
-      dr->num_children = CHK_PER_INODE; /* cap at max */
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Block at offset %llu and depth %u has %u children\n",
-		(unsigned long long) dr_offset,
-		depth,
-		dr->num_children);
-
-    /* now we can get the total number of *interesting* children for this block */
-
-    /* why else would we have gotten here to begin with? (that'd be a bad logic error) */
-    GNUNET_assert (dr->num_children > 0);
-
-    dr->children =
-        GNUNET_malloc (dr->num_children * sizeof (struct DownloadRequest *));
-    for (i = 0; i < dr->num_children; i++)
-      dr->children[i] =
-          create_download_request (dr, i + head_skip, depth - 1,				   
-                                   dr_offset + (i + head_skip) * child_block_size,
-                                   file_start_offset, desired_length);
-  }
+  /* why else would we have gotten here to begin with? (that'd be a bad logic error) */
+  GNUNET_assert (dr->num_children > 0);
+  
+  dr->children =
+    GNUNET_malloc (dr->num_children * sizeof (struct DownloadRequest *));
+  for (i = 0; i < dr->num_children; i++)
+    dr->children[i] =
+      create_download_request (dr, i + head_skip, depth - 1,
+			       dr_offset + (i + head_skip) * child_block_size,
+			       file_start_offset, desired_length);
   return dr;
 }
 
@@ -1649,7 +1654,7 @@ reconstruct_cb (void *cls, const struct ContentHashKey *chk, uint64_t offset,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Block %u < %u irrelevant for our range\n",
 		  chld,
-		  dr->children[dr->num_children-1]->chk_idx);
+		  dr->children[0]->chk_idx);
       dc->task = GNUNET_SCHEDULER_add_now (&get_next_block, dc);
       return; /* irrelevant block */
     }
