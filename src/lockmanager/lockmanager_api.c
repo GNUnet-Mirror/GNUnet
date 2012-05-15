@@ -290,6 +290,10 @@ handle_replies (void *cls,
                                            handle);
     return;
   }
+  GNUNET_CLIENT_receive (handle->conn,
+                         &handle_replies,
+                         handle,
+                         GNUNET_TIME_UNIT_FOREVER_REL);
   if (GNUNET_MESSAGE_TYPE_LOCKMANAGER_SUCCESS != ntohs(msg->type))
   {
     GNUNET_break (0);

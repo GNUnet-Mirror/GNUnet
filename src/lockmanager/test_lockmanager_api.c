@@ -38,10 +38,26 @@
 #define TIME_REL_SECONDS(min) \
   GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, min)
 
+
+/**
+ * Enumeration of testing steps
+ */
+enum Test
+  {
+    TEST_FAIL,
+
+    TEST_INIT,
+
+    LOCK1_ACQUIRE,
+
+    LOCK2_ACQUIRE
+  };
+
+
 /**
  * The testing result
  */
-static int result;
+static enum Test result;
 
 /**
  * The process id of the GNUNET ARM process
@@ -64,6 +80,11 @@ static struct GNUNET_LOCKMANAGER_Handle *handle;
 static struct GNUNET_LOCKMANAGER_LockingRequest *request;
 
 /**
+ * The second locking request
+ */
+static struct GNUNET_LOCKMANAGER_LockingRequest *request2;
+
+/**
  * Abort task identifier
  */
 static GNUNET_SCHEDULER_TaskIdentifier abort_task_id;
@@ -82,7 +103,10 @@ do_shutdown (void *cls, const const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_SCHEDULER_cancel (abort_task_id);
       abort_task_id = GNUNET_SCHEDULER_NO_TASK;
     }
-  
+  if (NULL != request)
+    GNUNET_LOCKMANAGER_cancel_request (request);
+  if (NULL != request2)
+    GNUNET_LOCKMANAGER_cancel_request (request2);
   GNUNET_LOCKMANAGER_disconnect (handle);
   if (0 != GNUNET_OS_process_kill (arm_pid, SIGTERM))
     {
@@ -94,9 +118,6 @@ do_shutdown (void *cls, const const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if (NULL != config)
     GNUNET_CONFIGURATION_destroy (config);
-
-  if (GNUNET_SYSERR != result)
-    result = GNUNET_OK;
 }
 
 
@@ -111,7 +132,7 @@ do_abort (void *cls, const const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Aborting test...\n");
   abort_task_id = GNUNET_SCHEDULER_NO_TASK;
-  result = GNUNET_SYSERR;
+  result = TEST_FAIL;
   do_shutdown (cls, tc);
 }
 
@@ -136,14 +157,31 @@ status_cb (void *cls,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Status change callback called on lock: %d of domain: %s\n",
        lock, domain_name);
-  GNUNET_assert (GNUNET_LOCKMANAGER_SUCCESS == status);
-  GNUNET_assert (NULL != request);
-  GNUNET_LOCKMANAGER_cancel_request (request);
-  request = NULL;
-  
-  GNUNET_SCHEDULER_add_delayed (TIME_REL_SECONDS (1),
-                                &do_shutdown,
-                                NULL);
+  switch (result)
+  {
+  case LOCK1_ACQUIRE:
+    GNUNET_assert (GNUNET_LOCKMANAGER_SUCCESS == status);
+    GNUNET_assert (NULL != request);
+    //GNUNET_LOCKMANAGER_cancel_request (request);
+    //request = NULL;
+    result = LOCK2_ACQUIRE;
+    request2 = GNUNET_LOCKMANAGER_acquire_lock (handle,
+                                                "GNUNET_LOCKMANAGER_TESTING",
+                                                100,
+                                                &status_cb,
+                                                NULL);
+    GNUNET_assert (NULL != request2);
+    break;
+  case LOCK2_ACQUIRE:
+    GNUNET_assert (GNUNET_LOCKMANAGER_SUCCESS == status);
+    GNUNET_assert (NULL != request);
+    GNUNET_SCHEDULER_add_delayed (TIME_REL_SECONDS (1),
+                                  &do_shutdown,
+                                  NULL);
+    break;
+  default:
+    GNUNET_break (0);
+  } 
 }
 
 
@@ -158,7 +196,7 @@ test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {  
   handle = GNUNET_LOCKMANAGER_connect (config);
   GNUNET_assert (NULL != handle);
-  
+  result = LOCK1_ACQUIRE;
   request = GNUNET_LOCKMANAGER_acquire_lock (handle,
                                              "GNUNET_LOCKMANAGER_TESTING",
                                              99,
@@ -231,7 +269,7 @@ int main (int argc, char **argv)
          ret);
     return 1;
   }
-  if (GNUNET_SYSERR == result)
+  if (TEST_FAIL == result)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING, "test failed\n");
     return 1;

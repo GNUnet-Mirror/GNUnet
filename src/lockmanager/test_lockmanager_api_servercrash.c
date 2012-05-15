@@ -182,7 +182,6 @@ status_cb (void *cls,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Status change callback called on lock: %d of domain: %s\n",
        lock, domain_name);
-  GNUNET_assert (GNUNET_LOCKMANAGER_SUCCESS == status);
   switch (result)
   {
   case TEST_INIT:
@@ -317,7 +316,7 @@ int main (int argc, char **argv)
          ret);
     return 1;
   }
-  if (TEST_CLIENT2_LOCK_SUCCESS != result)
+  if (TEST_CLIENT2_SERVER_CRASH_SUCCESS != result)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING, "test failed\n");
     return 1;
