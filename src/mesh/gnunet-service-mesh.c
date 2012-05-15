@@ -1603,7 +1603,7 @@ peer_info_connect (struct MeshPeerInfo *peer, struct MeshTunnel *t)
                                          GNUNET_TIME_UNIT_FOREVER_REL,  /* timeout */
                                          GNUNET_BLOCK_TYPE_TEST,        /* type */
                                          &id.hashPubKey,        /* key to search */
-                                         10U,     /* replication level */
+                                         10,     /* replication level */
                                          GNUNET_DHT_RO_RECORD_ROUTE | GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE, NULL,       /* xquery */
                                          0,     /* xquery bits */
                                          &dht_get_id_handler, path_info);
@@ -2979,7 +2979,7 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
     info->peer->types[j] = GNUNET_MESSAGE_TYPE_MESH_PATH_ACK;
     info->peer->infos[j] = info;
     info->peer->core_transmit[j] =
-        GNUNET_CORE_notify_transmit_ready (core_handle, 0, 100,
+        GNUNET_CORE_notify_transmit_ready (core_handle, 0, 10,
                                            GNUNET_TIME_UNIT_FOREVER_REL, peer,
                                            sizeof (struct GNUNET_MESH_PathACK),
                                            &send_core_path_ack, info);
@@ -4281,7 +4281,7 @@ handle_local_connect_by_type (void *cls, struct GNUNET_SERVER_Client *client,
               GNUNET_h2s (&hash));
   t->dht_get_type =
       GNUNET_DHT_get_start (dht_handle, GNUNET_TIME_UNIT_FOREVER_REL,
-                            GNUNET_BLOCK_TYPE_TEST, &hash, 10U,
+                            GNUNET_BLOCK_TYPE_TEST, &hash, 10,
                             GNUNET_DHT_RO_RECORD_ROUTE |
                             GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE, NULL, 0,
                             &dht_get_type_handler, t);
