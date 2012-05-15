@@ -19,8 +19,8 @@
 */
 
 /**
- * @file lockmanager/test_lockmanager_api_lockrelease.c
- * @brief Test cases for lockmanager_api where client disconnects abruptly
+ * @file lockmanager/test_lockmanager_api_servercrash.c
+ * @brief Test cases for lockmanager_api where the server crashes
  * @author Sree Harsha Totakura
  */
 
