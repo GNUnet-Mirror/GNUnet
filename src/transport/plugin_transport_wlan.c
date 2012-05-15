@@ -872,6 +872,13 @@ free_macendpoint (struct MacEndpoint *endpoint)
   GNUNET_CONTAINER_DLL_remove (plugin->mac_head, 
 			       plugin->mac_tail, 
 			       endpoint);
+
+  if (NULL != endpoint->defrag)
+  {
+    GNUNET_DEFRAGMENT_context_destroy(endpoint->defrag);
+    endpoint->defrag = NULL;
+  }
+
   plugin->mac_count--;
   if (GNUNET_SCHEDULER_NO_TASK != endpoint->timeout_task)
   {
