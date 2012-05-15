@@ -2337,7 +2337,6 @@ master_task (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Cleaning up connection to `%s' after sending DISCONNECT\n",
 		GNUNET_i2s (&n->id));
-    //n->state = S_DISCONNECT_FINISHED;
     free_neighbour (n);
     return;
   case S_DISCONNECT_FINISHED:
