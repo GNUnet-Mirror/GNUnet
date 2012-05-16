@@ -3,7 +3,7 @@
 #endif
 
 if HAVE_EXPERIMENTAL
- EXP_DIR = chat dv stream regex
+ EXP_DIR = chat dv stream regex lockmanager
 endif
 
 if LINUX
