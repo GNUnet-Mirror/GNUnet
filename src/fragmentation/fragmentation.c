@@ -111,6 +111,11 @@ struct GNUNET_FRAGMENT_Context
   unsigned int num_rounds;
 
   /**
+   * How many transmission have we completed in this round?
+   */
+  unsigned int num_transmissions;
+
+  /**
    * GNUNET_YES if we called 'proc' and are now waiting for 'GNUNET_FRAGMENT_transmission_done'
    */
   int8_t proc_busy;
@@ -151,13 +156,12 @@ transmit_next (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_assert (GNUNET_NO == fc->proc_busy);
   if (0 == fc->acks)
     return;                     /* all done */
-
   /* calculate delay */
   wrap = 0;
   while (0 == (fc->acks & (1LL << fc->next_transmission)))
   {
     fc->next_transmission = (fc->next_transmission + 1) % 64;
-    wrap |= (fc->next_transmission == 0);
+    wrap |= (0 == fc->next_transmission);
   }
   bit = fc->next_transmission;
   size = ntohs (fc->msg->size);
@@ -167,7 +171,7 @@ transmit_next (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         sizeof (struct FragmentHeader);
   else
     fsize = fc->mtu;
-  if (fc->tracker != NULL)
+  if (NULL != fc->tracker)
     delay = GNUNET_BANDWIDTH_tracker_get_delay (fc->tracker, fsize);
   else
     delay = GNUNET_TIME_UNIT_ZERO;
@@ -223,11 +227,18 @@ transmit_next (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                                                  fc->num_rounds));
     /* never use zero, need some time for ACK always */
     delay = GNUNET_TIME_relative_max (MIN_ACK_DELAY, delay);
-    fc->last_round = GNUNET_TIME_absolute_get ();
     fc->wack = GNUNET_YES;
+    fc->last_round = GNUNET_TIME_absolute_get ();
+    GNUNET_STATISTICS_update (fc->stats, _("# fragments wrap arounds"), 1,
+                              GNUNET_NO);
   }
+  GNUNET_STATISTICS_set (fc->stats, 
+			 _("# next delay for fragment transmission"), 
+			 delay.rel_value,
+			 GNUNET_NO);
   fc->proc_busy = GNUNET_YES;
   fc->delay_until = GNUNET_TIME_relative_to_absolute (delay);
+  fc->num_transmissions++;
   fc->proc (fc->proc_cls, &fh->header);
 }
 
@@ -262,7 +273,9 @@ GNUNET_FRAGMENT_context_create (struct GNUNET_STATISTICS_Handle *stats,
   struct GNUNET_FRAGMENT_Context *fc;
   size_t size;
   uint64_t bits;
-
+  
+  GNUNET_STATISTICS_set (stats, _("# expected ACK delay for fragments"), 
+			 delay.rel_value, GNUNET_NO);
   GNUNET_STATISTICS_update (stats, _("# messages fragmented"), 1, GNUNET_NO);
   GNUNET_assert (mtu >= 1024 + sizeof (struct FragmentHeader));
   size = ntohs (msg->size);
@@ -342,13 +355,15 @@ GNUNET_FRAGMENT_process_ack (struct GNUNET_FRAGMENT_Context *fc,
   if (ntohl (fa->fragment_id) != fc->fragment_id)
     return GNUNET_SYSERR;       /* not our ACK */
   abits = GNUNET_ntohll (fa->bits);
-  if ((GNUNET_YES == fc->wack) && (abits == (fc->acks & abits)))
+  if ( (GNUNET_YES == fc->wack) &&
+       (0 != fc->num_transmissions) )
   {
     /* normal ACK, can update running average of delay... */
     fc->wack = GNUNET_NO;
     ndelay = GNUNET_TIME_absolute_get_duration (fc->last_round);
     fc->delay.rel_value =
-        (ndelay.rel_value * fc->num_rounds + 3 * fc->delay.rel_value) / 4;
+        (ndelay.rel_value / fc->num_transmissions + 3 * fc->delay.rel_value) / 4;
+    fc->num_transmissions = 0;
   }
   GNUNET_STATISTICS_update (fc->stats,
                             _("# fragment acknowledgements received"), 1,
