@@ -283,7 +283,7 @@ enum State
   /**
    * fresh peer or completely disconnected
    */
-  S_NOT_CONNECTED,
+  S_NOT_CONNECTED = 0,
 
   /**
    * Asked to initiate connection, trying to get address from ATS
@@ -1415,6 +1415,9 @@ GST_neighbours_send (const struct GNUNET_PeerIdentity *target, const void *msg,
   }
   if ((NULL == n->primary_address.session) && (NULL == n->primary_address.address))
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		"GST_neighbours_sent called in state %d\n",
+		n->state);
     GNUNET_break (0);
     if (NULL != cont)
       cont (cont_cls, GNUNET_SYSERR);

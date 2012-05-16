@@ -1892,10 +1892,10 @@ handle_tcp_data (void *cls, struct GNUNET_SERVER_Client *client,
     
     GNUNET_SERVER_client_get_address (client, &vaddr, &alen);
     LOG (GNUNET_ERROR_TYPE_ERROR, 
-                     "Received unexpected %u bytes of type %u from `%s'\n",
-                     (unsigned int) ntohs (message->size),
-                     (unsigned int) ntohs (message->type),
-                     GNUNET_a2s(vaddr, alen));
+	 "Received unexpected %u bytes of type %u from `%s'\n",
+	 (unsigned int) ntohs (message->size),
+	 (unsigned int) ntohs (message->type),
+	 GNUNET_a2s(vaddr, alen));
     GNUNET_break_op (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     GNUNET_free_non_null(vaddr);
