@@ -1691,6 +1691,14 @@ handle_test_blacklist_cont (void *cls,
   case S_INIT_BLACKLIST:
     /* check if the address the blacklist was fine with matches
        ATS suggestion, if so, we can move on! */
+    if ( (GNUNET_OK == result) &&
+	 (1 == n->send_connect_ack) )
+    {
+      n->send_connect_ack = 2;
+      send_session_connect_ack_message (bcc->na.address,
+					bcc->na.session,
+					n->connect_ack_timestamp);
+    }
     if (GNUNET_YES != address_matches (&bcc->na, &n->primary_address))
       break; /* result for an address we currently don't care about */
     if (GNUNET_OK == result)
@@ -1698,13 +1706,6 @@ handle_test_blacklist_cont (void *cls,
       n->timeout = GNUNET_TIME_relative_to_absolute (SETUP_CONNECTION_TIMEOUT);
       n->state = S_CONNECT_SENT;
       send_session_connect (&n->primary_address);
-      if (1 == n->send_connect_ack) 
-      {
-	n->send_connect_ack = 2;
-	send_session_connect_ack_message (bcc->na.address,
-					  bcc->na.session,
-					  n->connect_ack_timestamp);
-      }
     }
     else
     {
@@ -1718,7 +1719,15 @@ handle_test_blacklist_cont (void *cls,
     }
     break;
   case S_CONNECT_SENT:
-    /* waiting on CONNECT_ACK, don't care about blacklist */
+    /* waiting on CONNECT_ACK, send ACK if one is pending */
+    if ( (GNUNET_OK == result) &&
+	 (1 == n->send_connect_ack) )
+    {
+      n->send_connect_ack = 2;
+      send_session_connect_ack_message (n->primary_address.address,
+					n->primary_address.session,
+					n->connect_ack_timestamp);
+    }
     break; 
   case S_CONNECT_RECV_ATS:
     /* still waiting on ATS suggestion, don't care about blacklist */
@@ -1748,7 +1757,15 @@ handle_test_blacklist_cont (void *cls,
     }
     break;
   case S_CONNECT_RECV_ACK:
-    /* waiting on SESSION_ACK, don't care about blacklist */
+    /* waiting on SESSION_ACK, send ACK if one is pending */
+    if ( (GNUNET_OK == result) &&
+	 (1 == n->send_connect_ack) )
+    {
+      n->send_connect_ack = 2;
+      send_session_connect_ack_message (n->primary_address.address,
+					n->primary_address.session,
+					n->connect_ack_timestamp);
+    }
     break; 
   case S_CONNECTED:
     /* already connected, don't care about blacklist */
@@ -1757,6 +1774,14 @@ handle_test_blacklist_cont (void *cls,
     /* still waiting on ATS suggestion, don't care about blacklist */
     break;     
   case S_RECONNECT_BLACKLIST:
+    if ( (GNUNET_OK == result) &&
+	 (1 == n->send_connect_ack) )
+    {
+      n->send_connect_ack = 2;
+      send_session_connect_ack_message (bcc->na.address,
+					bcc->na.session,
+					n->connect_ack_timestamp);
+    }
     if (GNUNET_YES != address_matches (&bcc->na, &n->primary_address))
       break; /* result for an address we currently don't care about */
     if (GNUNET_OK == result)
@@ -1764,13 +1789,6 @@ handle_test_blacklist_cont (void *cls,
       send_session_connect (&n->primary_address);
       n->timeout = GNUNET_TIME_relative_to_absolute (FAST_RECONNECT_TIMEOUT);
       n->state = S_RECONNECT_SENT;
-      if (1 == n->send_connect_ack) 
-      {
-	n->send_connect_ack = 2;
-	send_session_connect_ack_message (bcc->na.address,
-					  bcc->na.session,
-					  n->connect_ack_timestamp);
-      }
     }
     else
     {
@@ -1785,6 +1803,14 @@ handle_test_blacklist_cont (void *cls,
     break;
   case S_RECONNECT_SENT:
     /* waiting on CONNECT_ACK, don't care about blacklist */
+    if ( (GNUNET_OK == result) &&
+	 (1 == n->send_connect_ack) )
+    {
+      n->send_connect_ack = 2;
+      send_session_connect_ack_message (n->primary_address.address,
+					n->primary_address.session,
+					n->connect_ack_timestamp);
+    }
     break;     
   case S_CONNECTED_SWITCHING_BLACKLIST:
     if (GNUNET_YES != address_matches (&bcc->na, &n->alternative_address))
@@ -1805,6 +1831,14 @@ handle_test_blacklist_cont (void *cls,
     break;
   case S_CONNECTED_SWITCHING_CONNECT_SENT:
     /* waiting on CONNECT_ACK, don't care about blacklist */
+    if ( (GNUNET_OK == result) &&
+	 (1 == n->send_connect_ack) )
+    {
+      n->send_connect_ack = 2;
+      send_session_connect_ack_message (n->primary_address.address,
+					n->primary_address.session,
+					n->connect_ack_timestamp);
+    }
     break;     
   case S_DISCONNECT:
     /* Nothing to do here, ATS will already do what can be done */
