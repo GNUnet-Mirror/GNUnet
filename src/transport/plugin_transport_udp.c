@@ -2154,7 +2154,6 @@ libgnunet_plugin_transport_udp_init (void *cls)
   struct GNUNET_TRANSPORT_PluginEnvironment *env = cls;
   struct GNUNET_TRANSPORT_PluginFunctions *api;
   struct Plugin *plugin;
-
   unsigned long long port;
   unsigned long long aport;
   unsigned long long broadcast;
@@ -2163,10 +2162,8 @@ libgnunet_plugin_transport_udp_init (void *cls)
   char * bind4_address;
   char * bind6_address;
   struct GNUNET_TIME_Relative interval;
-
   struct sockaddr_in serverAddrv4;
   struct sockaddr_in6 serverAddrv6;
-
   int res;
 
   if (NULL == env->receive)
@@ -2210,7 +2207,6 @@ libgnunet_plugin_transport_udp_init (void *cls)
   else
     enable_v6 = GNUNET_YES;
 
-
   /* Addresses */
   memset (&serverAddrv6, 0, sizeof (serverAddrv6));
   memset (&serverAddrv4, 0, sizeof (serverAddrv4));
@@ -2247,7 +2243,6 @@ libgnunet_plugin_transport_udp_init (void *cls)
     }
   }
 
-
   /* Enable neighbour discovery */
   broadcast = GNUNET_CONFIGURATION_get_value_yesno (env->cfg, "transport-udp",
                                             "BROADCAST");
@@ -2272,8 +2267,6 @@ libgnunet_plugin_transport_udp_init (void *cls)
 
   GNUNET_BANDWIDTH_tracker_init (&plugin->tracker,
                                  GNUNET_BANDWIDTH_value_init ((uint32_t)udp_max_bps), 30);
-
-
   plugin->sessions = GNUNET_CONTAINER_multihashmap_create (10);
   plugin->defrag_ctxs = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
   plugin->mst = GNUNET_SERVER_mst_create (&process_inbound_tokenized_messages, plugin);

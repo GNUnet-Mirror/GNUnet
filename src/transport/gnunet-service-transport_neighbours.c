@@ -2173,8 +2173,8 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
 		     n->connect_ack_timestamp,
 		     address, session, ats, ats_count);    
     break;
-  case S_CONNECT_RECV_ACK:
   case S_CONNECT_RECV_BLACKLIST:
+  case S_CONNECT_RECV_ACK:
     /* ATS asks us to switch while we were trying to connect; switch to new
        address and check blacklist again */
     set_address (&n->primary_address,

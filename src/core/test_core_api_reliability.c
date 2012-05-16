@@ -33,8 +33,6 @@
 #include "gnunet_transport_service.h"
 #include <gauger.h>
 
-#define VERBOSE GNUNET_NO
-
 #define START_ARM GNUNET_YES
 
 /**
@@ -89,11 +87,7 @@ static int ok;
 static int32_t tr_n;
 
 
-#if VERBOSE
 #define OKPP do { ok++; GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Now at stage %u at %s:%u\n", ok, __FILE__, __LINE__); } while (0)
-#else
-#define OKPP do { ok++; } while (0)
-#endif
 
 struct TestMessage
 {
@@ -113,8 +107,10 @@ get_size (unsigned int iter)
   return sizeof (struct TestMessage) + (ret % 60000);
 }
 
+
 static void
 process_hello (void *cls, const struct GNUNET_MessageHeader *message);
+
 
 static void
 terminate_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -183,6 +179,7 @@ try_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_TRANSPORT_try_connect (p1.th, &p2.id);
 }
 
+
 static size_t
 transmit_ready (void *cls, size_t size, void *buf)
 {
@@ -210,10 +207,8 @@ transmit_ready (void *cls, size_t size, void *buf)
   cbuf = buf;
   do
   {
-#if VERBOSE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Sending message %u of size %u at offset %u\n", tr_n, s, ret);
-#endif
     hdr.header.size = htons (s);
     hdr.header.type = htons (MTYPE);
     hdr.num = htonl (tr_n);
@@ -235,7 +230,6 @@ transmit_ready (void *cls, size_t size, void *buf)
   total_bytes += ret;
   return ret;
 }
-
 
 
 static void
@@ -289,10 +283,8 @@ inbound_notify (void *cls, const struct GNUNET_PeerIdentity *other,
                 const struct GNUNET_ATS_Information *atsi,
                 unsigned int atsi_count)
 {
-#if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Core provides inbound data from `%4s'.\n", GNUNET_i2s (other));
-#endif
   return GNUNET_OK;
 }
 
@@ -303,17 +295,16 @@ outbound_notify (void *cls, const struct GNUNET_PeerIdentity *other,
                  const struct GNUNET_ATS_Information *atsi,
                  unsigned int atsi_count)
 {
-#if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Core notifies about outbound data for `%4s'.\n",
               GNUNET_i2s (other));
-#endif
   return GNUNET_OK;
 }
 
 
 static size_t
 transmit_ready (void *cls, size_t size, void *buf);
+
 
 static int
 process_mtype (void *cls, const struct GNUNET_PeerIdentity *peer,
@@ -347,10 +338,8 @@ process_mtype (void *cls, const struct GNUNET_PeerIdentity *peer,
     err_task = GNUNET_SCHEDULER_add_now (&terminate_task_error, NULL);
     return GNUNET_SYSERR;
   }
-#if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got message %u of size %u\n",
               ntohl (hdr->num), ntohs (message->size));
-#endif
   n++;
   if (0 == (n % (TOTAL_MSGS / 100)))
     FPRINTF (stderr, "%s",  ".");
@@ -376,7 +365,6 @@ static struct GNUNET_CORE_MessageHandler handlers[] = {
   {&process_mtype, MTYPE, 0},
   {NULL, 0, 0}
 };
-
 
 
 static void
@@ -435,7 +423,6 @@ process_hello (void *cls, const struct GNUNET_MessageHeader *message)
 }
 
 
-
 static void
 setup_peer (struct PeerContext *p, const char *cfgname)
 {
@@ -444,9 +431,6 @@ setup_peer (struct PeerContext *p, const char *cfgname)
   p->arm_proc =
     GNUNET_OS_start_process (GNUNET_YES, NULL, NULL, "gnunet-service-arm",
                                "gnunet-service-arm",
-#if VERBOSE
-                               "-L", "DEBUG",
-#endif
                                "-c", cfgname, NULL);
 #endif
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
@@ -494,9 +478,6 @@ check ()
   char *const argv[] = { "test-core-api-reliability",
     "-c",
     "test_core_api_data.conf",
-#if VERBOSE
-    "-L", "DEBUG",
-#endif
     NULL
   };
   struct GNUNET_GETOPT_CommandLineOption options[] = {
@@ -511,17 +492,14 @@ check ()
   return ok;
 }
 
+
 int
 main (int argc, char *argv[])
 {
   int ret;
 
   GNUNET_log_setup ("test-core-api",
-#if VERBOSE
-                    "DEBUG",
-#else
                     "WARNING",
-#endif
                     NULL);
   ret = check ();
   GNUNET_DISK_directory_remove ("/tmp/test-gnunet-core-peer-1");
