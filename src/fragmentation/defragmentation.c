@@ -540,9 +540,6 @@ GNUNET_DEFRAGMENT_process_fragment (struct GNUNET_DEFRAGMENT_Context *dc,
   if (mc->frag_times_write_offset - mc->frag_times_start_offset > 1)
   { 
     dc->latency = estimate_latency (mc);
-    GNUNET_STATISTICS_set (dc->stats, _("# Defragmentation latency estimate (ms)"), 
-			   dc->latency.rel_value,
-			   GNUNET_NO);
   }
   delay = GNUNET_TIME_relative_multiply (dc->latency, bc + 1);
   if ( (last + fid == num_fragments) ||

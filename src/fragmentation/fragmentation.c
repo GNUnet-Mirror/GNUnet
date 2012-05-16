@@ -232,10 +232,6 @@ transmit_next (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_STATISTICS_update (fc->stats, _("# fragments wrap arounds"), 1,
                               GNUNET_NO);
   }
-  GNUNET_STATISTICS_set (fc->stats, 
-			 _("# next delay for fragment transmission"), 
-			 delay.rel_value,
-			 GNUNET_NO);
   fc->proc_busy = GNUNET_YES;
   fc->delay_until = GNUNET_TIME_relative_to_absolute (delay);
   fc->num_transmissions++;
@@ -274,8 +270,6 @@ GNUNET_FRAGMENT_context_create (struct GNUNET_STATISTICS_Handle *stats,
   size_t size;
   uint64_t bits;
   
-  GNUNET_STATISTICS_set (stats, _("# expected ACK delay for fragments"), 
-			 delay.rel_value, GNUNET_NO);
   GNUNET_STATISTICS_update (stats, _("# messages fragmented"), 1, GNUNET_NO);
   GNUNET_assert (mtu >= 1024 + sizeof (struct FragmentHeader));
   size = ntohs (msg->size);
