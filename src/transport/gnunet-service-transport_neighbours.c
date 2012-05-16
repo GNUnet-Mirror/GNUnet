@@ -1413,17 +1413,6 @@ GST_neighbours_send (const struct GNUNET_PeerIdentity *target, const void *msg,
       cont (cont_cls, GNUNET_SYSERR);
     return;
   }
-  if ((NULL == n->primary_address.session) && (NULL == n->primary_address.address))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		"GST_neighbours_sent called in state %d\n",
-		n->state);
-    GNUNET_break (0);
-    if (NULL != cont)
-      cont (cont_cls, GNUNET_SYSERR);
-    return;
-  }
-
   bytes_in_send_queue += msg_size;
   GNUNET_STATISTICS_set (GST_stats,
 			 gettext_noop
@@ -1437,7 +1426,8 @@ GST_neighbours_send (const struct GNUNET_PeerIdentity *target, const void *msg,
   mq->message_buf_size = msg_size;
   mq->timeout = GNUNET_TIME_relative_to_absolute (timeout);
   GNUNET_CONTAINER_DLL_insert_tail (n->messages_head, n->messages_tail, mq);
-  if (NULL != n->is_active)
+  if ( (NULL != n->is_active) ||
+       ( (NULL == n->primary_address.session) && (NULL == n->primary_address.address)) )
     return;
   GNUNET_SCHEDULER_cancel (n->task);
   n->task = GNUNET_SCHEDULER_add_now (&master_task, n);
