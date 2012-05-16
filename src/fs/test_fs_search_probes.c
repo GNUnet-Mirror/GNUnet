@@ -23,13 +23,10 @@
  * @brief simple testcase for publish + search operation with probes
  * @author Christian Grothoff
  */
-
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_arm_service.h"
 #include "gnunet_fs_service.h"
-
-#define VERBOSE GNUNET_YES
 
 #define START_ARM GNUNET_YES
 
@@ -96,14 +93,13 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
   switch (event->status)
   {
   case GNUNET_FS_STATUS_PUBLISH_PROGRESS:
-#if VERBOSE
-    printf ("Publish is progressing (%llu/%llu at level %u off %llu)...\n",
-            (unsigned long long) event->value.publish.completed,
-            (unsigned long long) event->value.publish.size,
-            event->value.publish.specifics.progress.depth,
-            (unsigned long long) event->value.publish.specifics.
-            progress.offset);
-#endif
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Publish is progressing (%llu/%llu at level %u off %llu)...\n",
+		(unsigned long long) event->value.publish.completed,
+		(unsigned long long) event->value.publish.size,
+		event->value.publish.specifics.progress.depth,
+		(unsigned long long) event->value.publish.specifics.
+		progress.offset);
     break;
   case GNUNET_FS_STATUS_PUBLISH_COMPLETED:
     kuri = GNUNET_FS_uri_ksk_create_from_args (1, keywords);
@@ -115,9 +111,7 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
     GNUNET_assert (search != NULL);
     break;
   case GNUNET_FS_STATUS_SEARCH_RESULT:
-#if VERBOSE
-    printf ("Search complete.\n");
-#endif
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Search complete.\n");
     break;
   case GNUNET_FS_STATUS_PUBLISH_ERROR:
     FPRINTF (stderr, "Error publishing file: %s\n",
@@ -179,9 +173,6 @@ setup_peer (struct PeerContext *p, const char *cfgname)
   p->arm_proc =
       GNUNET_OS_start_process (GNUNET_YES, NULL, NULL, "gnunet-service-arm",
                                "gnunet-service-arm",
-#if VERBOSE
-                               "-L", "DEBUG",
-#endif
                                "-c", cfgname, NULL);
 #endif
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
@@ -258,9 +249,6 @@ main (int argc, char *argv[])
     "test-fs-search-probes",
     "-c",
     "test_fs_search_data.conf",
-#if VERBOSE
-    "-L", "DEBUG",
-#endif
     NULL
   };
   struct GNUNET_GETOPT_CommandLineOption options[] = {
@@ -268,11 +256,7 @@ main (int argc, char *argv[])
   };
 
   GNUNET_log_setup ("test_fs_search_probes",
-#if VERBOSE
-                    "DEBUG",
-#else
                     "WARNING",
-#endif
                     NULL);
   GNUNET_PROGRAM_run ((sizeof (argvx) / sizeof (char *)) - 1, argvx,
                       "test-fs-search", "nohelp", options, &run, NULL);
