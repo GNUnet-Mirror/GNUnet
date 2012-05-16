@@ -3093,6 +3093,7 @@ disconnect_all_neighbours (void *cls, const GNUNET_HashCode * key, void *value)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      "Disconnecting peer `%4s', %s\n",
               GNUNET_i2s (&n->id), "SHUTDOWN_TASK");
+  n->state = S_DISCONNECT_FINISHED;
   free_neighbour (n);
   return GNUNET_OK;
 }
