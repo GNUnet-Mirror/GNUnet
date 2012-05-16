@@ -782,8 +782,8 @@ client_disconnect_cb (void *cls, struct GNUNET_SERVER_Client *client)
     return;
   while (NULL != (ll_entry = cl_entry->ll_head))
   {
-    process_lock_release (ll_entry->lock);
     cl_ll_remove_lock (cl_entry, ll_entry);
+    process_lock_release (ll_entry->lock); 
   }
   cl_remove_client (cl_entry);
 }
