@@ -75,6 +75,16 @@ struct ATS_Address
   struct GNUNET_BANDWIDTH_Value32NBO assigned_bw_out;
 
   /**
+   * Blocking interval
+   */
+  struct GNUNET_TIME_Relative block_interval;
+
+  /**
+   * Time when address can be suggested again
+   */
+  struct GNUNET_TIME_Absolute blocked_until;
+
+  /**
    * Is this the active address for this peer?
    */
   int active;

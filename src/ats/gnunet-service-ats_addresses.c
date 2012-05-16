@@ -37,6 +37,8 @@
 
 #define VERBOSE GNUNET_NO
 
+#define ATS_BLOCKING_DELTA GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 100)
+
 enum ATS_Mode
 {
   /*
@@ -169,6 +171,8 @@ create_address (const struct GNUNET_PeerIdentity *peer,
   aa->plugin = GNUNET_strdup (plugin_name);
   aa->session_id = session_id;
   aa->mlp_information = NULL;
+  aa->blocked_until = GNUNET_TIME_absolute_get_zero();
+  aa->block_interval = GNUNET_TIME_relative_get_zero();
   aa->next = NULL;
   aa->prev = NULL;
   return aa;
@@ -546,6 +550,26 @@ find_address_it (void *cls, const GNUNET_HashCode * key, void *value)
   struct ATS_Address **ap = cls;
   struct ATS_Address *aa = (struct ATS_Address *) value;
   struct ATS_Address *ab = *ap;
+  struct GNUNET_TIME_Absolute now;
+
+  now = GNUNET_TIME_absolute_get();
+
+  if (aa->blocked_until.abs_value == GNUNET_TIME_absolute_max (now, aa->blocked_until).abs_value)
+  {
+    /* This address is blocked for suggestion */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Address %p blocked for suggestion for %llu ms \n",
+                aa,
+                GNUNET_TIME_absolute_get_difference(now, aa->blocked_until).rel_value);
+    return GNUNET_OK;
+  }
+
+
+  aa->block_interval = GNUNET_TIME_relative_add (aa->block_interval, ATS_BLOCKING_DELTA);
+  aa->blocked_until = GNUNET_TIME_absolute_add (now, aa->block_interval);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Address %p ready for suggestion, block interval now %llu \n", aa, aa->block_interval);
 
   if (NULL == ab)
   {
@@ -677,6 +701,9 @@ void request_address_simple (const struct GNUNET_PeerIdentity *peer)
                 "Cannot suggest address for peer `%s'\n", GNUNET_i2s (peer));
     return;
   }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
+              "Suggesting address %p for peer `%s'\n", aa, GNUNET_i2s (peer));
 
   if (aa->active == GNUNET_NO)
   {
