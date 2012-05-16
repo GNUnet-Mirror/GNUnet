@@ -347,6 +347,8 @@ GNUNET_FS_search_start_probe_ (struct GNUNET_FS_SearchResult *sr)
     return;
   if (sr->availability_trials > AVAILABILITY_TRIALS_MAX)
     return;
+  if ( (sr->uri->type != chk) && (sr->uri->type != loc))
+    return;
   len = GNUNET_FS_uri_chk_get_file_size (sr->uri);
   if (len == 0)
     return;
