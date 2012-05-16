@@ -176,9 +176,6 @@ setup_peer (struct PeerContext *p, const char *cfgname)
   p->arm_proc =
       GNUNET_OS_start_process (GNUNET_YES, NULL, NULL, "gnunet-service-arm",
                                "gnunet-service-arm",
-#if VERBOSE
-                               "-L", "DEBUG",
-#endif
                                "-c", cfgname, NULL);
 #endif
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
@@ -254,9 +251,6 @@ main (int argc, char *argv[])
     "test-fs-search",
     "-c",
     "test_fs_search_data.conf",
-#if VERBOSE
-    "-L", "DEBUG",
-#endif
     NULL
   };
   struct GNUNET_GETOPT_CommandLineOption options[] = {
@@ -264,11 +258,7 @@ main (int argc, char *argv[])
   };
 
   GNUNET_log_setup ("test_fs_search",
-#if VERBOSE
-                    "DEBUG",
-#else
                     "WARNING",
-#endif
                     NULL);
   GNUNET_PROGRAM_run ((sizeof (argvx) / sizeof (char *)) - 1, argvx,
                       "test-fs-search", "nohelp", options, &run, NULL);
