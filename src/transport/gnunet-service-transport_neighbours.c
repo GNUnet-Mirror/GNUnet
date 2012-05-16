@@ -621,6 +621,65 @@ lookup_neighbour (const struct GNUNET_PeerIdentity *pid)
   return GNUNET_CONTAINER_multihashmap_get (neighbours, &pid->hashPubKey);
 }
 
+static const char *
+print_state (int state)
+{
+
+  switch (state)
+  {
+  case S_NOT_CONNECTED:
+    return "S_NOT_CONNECTED";
+    break;
+  case S_INIT_ATS:
+    return "S_INIT_ATS";
+    break;
+  case S_INIT_BLACKLIST:
+    return "S_INIT_BLACKLIST";
+    break;
+  case S_CONNECT_SENT:
+    return "S_CONNECT_SENT";
+    break;
+  case S_CONNECT_RECV_ATS:
+    return "S_CONNECT_RECV_ATS";
+    break;
+  case S_CONNECT_RECV_BLACKLIST:
+    return "S_CONNECT_RECV_BLACKLIST";
+    break;
+  case S_CONNECT_RECV_ACK:
+    return "S_CONNECT_RECV_ACK";
+    break;
+  case S_CONNECTED:
+    return "S_CONNECTED";
+    break;
+  case S_RECONNECT_ATS:
+    return "S_RECONNECT_ATS";
+    break;
+  case S_RECONNECT_BLACKLIST:
+    return "S_RECONNECT_BLACKLIST";
+    break;
+  case S_RECONNECT_SENT:
+    return "S_RECONNECT_SENT";
+    break;
+  case S_CONNECTED_SWITCHING_BLACKLIST:
+    return "S_CONNECTED_SWITCHING_BLACKLIST";
+    break;
+  case S_CONNECTED_SWITCHING_CONNECT_SENT:
+    return "S_CONNECTED_SWITCHING_CONNECT_SENT";
+    break;
+  case S_DISCONNECT:
+    return "S_DISCONNECT";
+    break;
+  case S_DISCONNECT_FINISHED:
+    return "S_DISCONNECT_FINISHED";
+    break;
+  default:
+    return "UNDEFINED";
+    GNUNET_break (0);
+    break;
+  }
+  GNUNET_break (0);
+  return "UNDEFINED";
+}
 
 /**
  * Test if we're connected to the given peer.
@@ -654,12 +713,12 @@ test_connected (struct NeighbourMapEntry *n)
   case S_DISCONNECT_FINISHED:
     return GNUNET_NO;
   default:
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Unhandled state `%' \n",print_state (n->state));
     GNUNET_break (0);
     break;
   }
   return GNUNET_SYSERR;
 }
-
 
 /**
  * Send information about a new outbound quota to our clients.
@@ -1037,6 +1096,7 @@ disconnect_neighbour (struct NeighbourMapEntry *n)
     GNUNET_assert (0);
     break;
   default:
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Unhandled state `%' \n",print_state (n->state));
     GNUNET_break (0);
     break;
   }
@@ -1629,6 +1689,7 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
       /* should not be possible */      
       GNUNET_assert (0); 
     default:
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Unhandled state `%' \n",print_state (n->state));
       GNUNET_break (0);
       free_neighbour (n);
       break;
@@ -1841,6 +1902,7 @@ handle_test_blacklist_cont (void *cls,
     GNUNET_assert (0);
     break;
   default:
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Unhandled state `%' \n",print_state (n->state));
     GNUNET_break (0);
     free_neighbour (n);
     break;
@@ -2001,6 +2063,7 @@ GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
     GNUNET_assert (0);
     break;
   default:
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Unhandled state `%' \n",print_state (n->state));
     GNUNET_break (0);
     free_neighbour (n);
     break;
@@ -2207,6 +2270,7 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
     GNUNET_assert (0);
     break;
   default:
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Unhandled state `%' \n",print_state (n->state));
     GNUNET_break (0);
     break;
   }
@@ -2380,6 +2444,7 @@ master_task (void *cls,
     GNUNET_assert (0);
     break;
   default:
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Unhandled state `%' \n",print_state (n->state));
     GNUNET_break (0);
     break;  
   }
@@ -2540,6 +2605,7 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
     GNUNET_assert (0);
     break;
   default:
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Unhandled state `%' \n",print_state (n->state));
     GNUNET_break (0);
     break;   
   }
@@ -2662,6 +2728,7 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
     /* neighbour was freed and plugins told to terminate session */
     break;
   default:
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Unhandled state `%' \n",print_state (n->state));
     GNUNET_break (0);
     break;
   }
@@ -2960,6 +3027,7 @@ GST_neighbour_get_latency (const struct GNUNET_PeerIdentity *peer)
   case S_DISCONNECT_FINISHED:
     return GNUNET_TIME_UNIT_FOREVER_REL;
   default:
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Unhandled state `%' \n",print_state (n->state));
     GNUNET_break (0);
     break;
   }
