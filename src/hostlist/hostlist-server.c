@@ -481,7 +481,7 @@ prepare_daemon (struct MHD_Daemon *daemon_handle)
   struct GNUNET_NETWORK_FDSet *wws;
   struct GNUNET_NETWORK_FDSet *wes;
   int max;
-  MHD_LONG_LONG timeout;
+  long long unsigned int timeout;
   int haveto;
   struct GNUNET_TIME_Relative tv;
 
