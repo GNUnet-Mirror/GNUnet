@@ -621,7 +621,7 @@ run_httpd ()
   struct GNUNET_NETWORK_FDSet *wes;
   int max;
   int haveto;
-  MHD_LONG_LONG timeout;
+  unsigned MHD_LONG_LONG timeout;
   struct GNUNET_TIME_Relative tv;
 
   FD_ZERO (&rs);

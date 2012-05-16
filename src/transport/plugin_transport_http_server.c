@@ -967,7 +967,7 @@ server_schedule (struct Plugin *plugin, struct MHD_Daemon *daemon_handle,
   struct GNUNET_NETWORK_FDSet *wws;
   struct GNUNET_NETWORK_FDSet *wes;
   int max;
-  unsigned long long timeout;
+  unsigned MHD_LONG_LONG timeout;
   static unsigned long long last_timeout = 0;
   int haveto;
 
