@@ -480,6 +480,8 @@ struct MeshClient
  *                after the PUT message was transmitted
  *                (so we don't know if it was received or not)
  */
+
+#if 0
 static void
 mesh_debug (void *cls, int success)
 {
@@ -487,6 +489,8 @@ mesh_debug (void *cls, int success)
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%s (%d)\n", s, success);
 }
+#endif
+
 #endif
 
 /******************************************************************************/
