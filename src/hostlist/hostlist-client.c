@@ -833,8 +833,8 @@ task_download (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
           if ((msg->data.result != CURLE_OK) &&
               (msg->data.result != CURLE_GOT_NOTHING))
             GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                        _("%s failed for `%s' at %s:%d: `%s'\n"),
-                        "curl_multi_perform", current_url, __FILE__, __LINE__,
+                        _("Download of hostlist from `%s' failed: `%s'\n"),
+                        current_url,
                         curl_easy_strerror (msg->data.result));
           else
           {
