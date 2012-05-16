@@ -1176,7 +1176,7 @@ tcp_plugin_get_session (void *cls,
   GNUNET_assert (plugin != NULL);
   GNUNET_assert (address != NULL);
   addrlen = address->address_length;
-  LOG (GNUNET_ERROR_TYPE_ERROR, 
+  LOG (GNUNET_ERROR_TYPE_DEBUG, 
        "Trying to get session for `%s' address of peer `%s'\n",
        tcp_address_to_string(NULL, address->address, address->address_length),
        GNUNET_i2s (&address->peer));
@@ -1754,7 +1754,7 @@ handle_tcp_welcome (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  LOG (GNUNET_ERROR_TYPE_ERROR, 
+  LOG (GNUNET_ERROR_TYPE_DEBUG, 
        "Received %s message from `%4s'\n", "WELCOME",
        GNUNET_i2s (&wm->clientIdentity));
   GNUNET_STATISTICS_update (plugin->env->stats,
