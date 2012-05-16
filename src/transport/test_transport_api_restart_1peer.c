@@ -36,8 +36,6 @@
 #include "transport.h"
 #include "transport-testing.h"
 
-#define VERBOSE GNUNET_NO
-#define VERBOSE_ARM GNUNET_NO
 
 #define START_ARM GNUNET_YES
 
@@ -63,31 +61,25 @@ static GNUNET_SCHEDULER_TaskIdentifier send_task;
 
 static GNUNET_SCHEDULER_TaskIdentifier reconnect_task;
 
-struct PeerContext *p1;
+static struct PeerContext *p1;
 
-int p1_connected;
+static int p1_connected;
 
-struct PeerContext *p2;
+static struct PeerContext *p2;
 
-int p2_connected;
+static int p2_connected;
 
 static GNUNET_TRANSPORT_TESTING_ConnectRequest cc;
 
-struct GNUNET_TRANSPORT_TransmitHandle *th;
+static struct GNUNET_TRANSPORT_TransmitHandle *th;
 
-struct GNUNET_TRANSPORT_TESTING_handle *tth;
+static struct GNUNET_TRANSPORT_TESTING_handle *tth;
 
-char *cfg_file_p1;
+static char *cfg_file_p1;
 
-char *cfg_file_p2;
+static char *cfg_file_p2;
 
 static int restarted;
-
-#if VERBOSE
-#define OKPP do { ok++; FPRINTF (stderr, "Now at stage %u at %s:%u\n", ok, __FILE__, __LINE__); } while (0)
-#else
-#define OKPP do { ok++; } while (0)
-#endif
 
 
 static void
@@ -350,8 +342,6 @@ notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
   {
     p2_connected = GNUNET_NO;
   }
-
-
   char *ps = GNUNET_strdup (GNUNET_i2s (&p->id));
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -362,6 +352,9 @@ notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
   if (th != NULL)
     GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
   th = NULL;
+  if (GNUNET_SCHEDULER_NO_TASK != send_task)
+    GNUNET_SCHEDULER_cancel (send_task);
+  send_task = GNUNET_SCHEDULER_NO_TASK;
 }
 
 static void
@@ -379,7 +372,7 @@ testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)
 
 
 
-void
+static void
 start_cb (struct PeerContext *p, void *cls)
 {
   static int started;
@@ -438,9 +431,6 @@ check ()
   static char *const argv[] = { "test-transport-api",
     "-c",
     "test_transport_api_data.conf",
-#if VERBOSE
-    "-L", "DEBUG",
-#endif
     NULL
   };
   static struct GNUNET_GETOPT_CommandLineOption options[] = {
@@ -465,30 +455,17 @@ main (int argc, char *argv[])
   int ret;
 
   GNUNET_TRANSPORT_TESTING_get_test_name (argv[0], &test_name);
-
-
   GNUNET_log_setup (test_name,
-#if VERBOSE
-                    "DEBUG",
-#else
                     "WARNING",
-#endif
                     NULL);
-
   tth = GNUNET_TRANSPORT_TESTING_init ();
-
   GNUNET_asprintf (&cfg_file_p1, "test_transport_api_tcp_peer1.conf");
   GNUNET_asprintf (&cfg_file_p2, "test_transport_api_tcp_peer2.conf");
-
   ret = check ();
-
   GNUNET_free (cfg_file_p1);
   GNUNET_free (cfg_file_p2);
-
   GNUNET_free (test_name);
-
   GNUNET_TRANSPORT_TESTING_done (tth);
-
   return ret;
 }
 
