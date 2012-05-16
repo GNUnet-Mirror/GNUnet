@@ -226,7 +226,7 @@ run (void *cls, char *const *args, const char *cfgfile,
                              "-c", "test_lockmanager_api.conf", NULL);
 
   GNUNET_assert (NULL != arm_pid);
-  GNUNET_SCHEDULER_add_delayed (TIME_REL_SECONDS (1),
+  GNUNET_SCHEDULER_add_delayed (TIME_REL_SECONDS (3),
                                 &test,
                                 NULL);
 }
