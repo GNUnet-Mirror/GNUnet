@@ -111,6 +111,8 @@ main (int argc, char *const argv[])
   GNUNET_break (0 == GNUNET_OS_process_kill (gns, SIGTERM));
   GNUNET_break (GNUNET_OK == GNUNET_OS_process_wait (gns));
   GNUNET_OS_process_destroy (gns);
+  if (0 != ret)
+    fprintf (stderr, "NAT test failed to report success\n");
   return ret;
 }
 

@@ -318,7 +318,12 @@ addr_cb (void *cls, int add_remove, const struct sockaddr *addr,
   if (GNUNET_YES != add_remove)
     return;
   if (addrlen != sizeof (struct sockaddr_in))
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+	 "NAT test ignores IPv6 address `%s' returned from NAT library\n",
+	 GNUNET_a2s (addr, addrlen));
     return;                     /* ignore IPv6 here */
+  }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Asking gnunet-nat-server to connect to `%s'\n",
        GNUNET_a2s (addr, addrlen));
   sa = (const struct sockaddr_in *) addr;
@@ -424,6 +429,10 @@ GNUNET_NAT_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
           GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
                                          ret->lsock, &do_udp_read, ret);
     }
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+	 "NAT test listens on port %u (%s)\n",
+	 bnd_port,
+	 (GNUNET_YES == is_tcp) ? "tcp" : "udp");
     ret->nat =
         GNUNET_NAT_register (cfg, is_tcp, adv_port, 1, addrs, addrlens,
                              &addr_cb, NULL, ret);
@@ -443,6 +452,8 @@ GNUNET_NAT_test_stop (struct GNUNET_NAT_Test *tst)
   struct NatActivity *pos;
   struct ClientActivity *cpos;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Stopping NAT test\n");
   while (NULL != (cpos = tst->ca_head))
   {
     GNUNET_CONTAINER_DLL_remove (tst->ca_head, tst->ca_tail, cpos);
