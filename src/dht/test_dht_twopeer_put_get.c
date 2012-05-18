@@ -312,29 +312,23 @@ topology_callback (void *cls, const struct GNUNET_PeerIdentity *first,
   if (emsg == NULL)
   {
     total_connections++;
-#if VERBOSE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "connected peer %s to peer %s, distance %u\n",
                 first_daemon->shortname, second_daemon->shortname, distance);
-#endif
   }
-#if VERBOSE
   else
   {
     failed_connections++;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Failed to connect peer %s to peer %s with error :\n%s\n",
                 first_daemon->shortname, second_daemon->shortname, emsg);
   }
-#endif
 
   if (total_connections == expected_connections)
   {
-#if VERBOSE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Created %d total connections, which is our target number!  Starting next phase of testing.\n",
                 total_connections);
-#endif
     GNUNET_SCHEDULER_cancel (die_task);
     die_task =
         GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, "from test gets");
@@ -402,10 +396,8 @@ peers_started_callback (void *cls, const struct GNUNET_PeerIdentity *id,
 
   if (peers_left == 0)          /* Indicates all peers started */
   {
-#if VERBOSE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "All %d daemons started, now connecting peers!\n", num_peers);
-#endif
     expected_connections = -1;
     if ((pg != NULL))           /* Sanity check */
     {
@@ -476,9 +468,6 @@ check ()
   char *const argv[] = { "test-dht-twopeer-put-get",    /* Name to give running binary */
     "-c",
     "test_dht_twopeer_data.conf",       /* Config file to use */
-#if VERBOSE
-    "-L", "DEBUG",
-#endif
     NULL
   };
   struct GNUNET_GETOPT_CommandLineOption options[] = {
@@ -503,11 +492,7 @@ main (int argc, char *argv[])
   int ret;
 
   GNUNET_log_setup ("test-dht-twopeer",
-#if VERBOSE
-                    "DEBUG",
-#else
                     "WARNING",
-#endif
                     NULL);
   ret = check ();
   /**

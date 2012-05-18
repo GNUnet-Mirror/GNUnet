@@ -30,8 +30,6 @@
 #include "gnunet_testing_lib.h"
 #include "gnunet_dht_service.h"
 
-#define VERBOSE GNUNET_NO
-
 #define REMOVE_DIR GNUNET_YES
 
 /**
@@ -401,15 +399,9 @@ peergroup_ready (void *cls, const char *emsg)
     GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
     return;
   }
-#if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "************************************************************\n");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Peer Group started successfully!\n");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Have %u connections\n",
+              "Peer Group started successfully with %u connections\n",
               total_connections);
-#endif
-
   if (data_file != NULL)
   {
     buf = NULL;
@@ -493,19 +485,11 @@ run (void *cls, char *const *args, const char *cfgfile,
   testing_cfg = GNUNET_CONFIGURATION_dup (cfg);
 
   GNUNET_log_setup ("test_dht_topo",
-#if VERBOSE
-                    "DEBUG",
-#else
                     "WARNING",
-#endif
                     NULL);
-
-#if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting daemons.\n");
   GNUNET_CONFIGURATION_set_value_string (testing_cfg, "testing",
                                          "use_progressbars", "YES");
-#endif
-
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (testing_cfg, "testing",
                                              "num_peers", &num_peers))
@@ -593,17 +577,11 @@ main (int xargc, char *xargv[])
   char *const argv_torus[] = { "test-dht-2dtorus",
     "-c",
     "test_dht_2dtorus.conf",
-#if VERBOSE
-    "-L", "DEBUG",
-#endif
     NULL
   };
   char *const argv_line[] = { "test-dht-line",
     "-c",
     "test_dht_line.conf",
-#if VERBOSE
-    "-L", "DEBUG",
-#endif
     NULL
   };
   char *const *argv;

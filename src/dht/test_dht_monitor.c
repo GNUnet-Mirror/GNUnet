@@ -31,8 +31,6 @@
 #include "gnunet_testing_lib.h"
 #include "gnunet_dht_service.h"
 
-#define VERBOSE GNUNET_YES
-
 #define REMOVE_DIR GNUNET_YES
 
 
@@ -137,17 +135,14 @@ shutdown_callback (void *cls, const char *emsg)
 {
   if (emsg != NULL)
   {
-#if VERBOSE
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: Shutdown of peers failed!\n");
-#endif
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "test: Shutdown of peers failed: %s\n",
+		emsg);
     ok++;
   }
   else
   {
-#if VERBOSE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "test: All peers successfully shut down!\n");
-#endif
   }
   GNUNET_CONFIGURATION_destroy (testing_cfg);
 }
@@ -156,16 +151,12 @@ shutdown_callback (void *cls, const char *emsg)
 static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-#if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: Ending test.\n");
-#endif
-
   if (disconnect_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (disconnect_task);
     disconnect_task = GNUNET_SCHEDULER_NO_TASK;
   }
-
   if (data_file != NULL)
     GNUNET_DISK_file_close (data_file);
   GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
@@ -448,15 +439,9 @@ peergroup_ready (void *cls, const char *emsg)
     GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
     return;
   }
-#if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "************************************************************\n");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "test: Peer Group started successfully!\n");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: Have %u connections\n",
+              "test: Peer Group started successfully with %u connections\n",
               total_connections);
-#endif
-
   if (data_file != NULL)
   {
     buf = NULL;
@@ -564,19 +549,12 @@ run (void *cls, char *const *args, const char *cfgfile,
   testing_cfg = GNUNET_CONFIGURATION_dup (cfg);
 
   GNUNET_log_setup ("test_dht_monitor",
-#if VERBOSE
-                    "DEBUG",
-#else
                     "WARNING",
-#endif
                     NULL);
 
-#if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: Starting daemons.\n");
   GNUNET_CONFIGURATION_set_value_string (testing_cfg, "testing",
                                          "use_progressbars", "YES");
-#endif
-
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (testing_cfg, "testing",
                                              "num_peers", &num_peers))
@@ -664,9 +642,6 @@ main (int xargc, char *xargv[])
   char *const argv[] = { "test-dht-monitor",
     "-c",
     "test_dht_line.conf",
-#if VERBOSE
-    "-L", "DEBUG",
-#endif
     NULL
   };
 
