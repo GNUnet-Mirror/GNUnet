@@ -204,8 +204,6 @@ gnunet_service_gns_SOURCES = \
  gnunet-service-gns_resolver.c \
  gnunet-service-gns_interceptor.c
 gnunet_service_gns_LDADD = \
-  $(top_builddir)/src/tun/libgnunettun.la \
-  $(top_builddir)/src/mesh/libgnunetmesh.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
 	$(top_builddir)/src/dns/libgnunetdns.la \
@@ -214,8 +212,6 @@ gnunet_service_gns_LDADD = \
 	$(top_builddir)/src/namestore/libgnunetnamestore.la \
   $(GN_LIBINTL)
 gnunet_service_gns_DEPENDENCIES = \
-  $(top_builddir)/src/tun/libgnunettun.la \
-  $(top_builddir)/src/mesh/libgnunetmesh.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
 	$(top_builddir)/src/dns/libgnunetdns.la \
