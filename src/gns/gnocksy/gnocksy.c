@@ -15,64 +15,11 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 
+#include "protocol.h"
+
 #define MAXEVENTS 64
 
-/* The socks phases */
-enum
-{
-  SOCKS5_INIT,
-  SOCKS5_REQUEST,
-  SOCKS5_DATA_TRANSFER
-};
-
-/* Client hello */
-struct socks5_client_hello
-{
-  uint8_t version;
-  uint8_t num_auth_methods;
-  char* auth_methods;
-};
-
-/* Client socks request */
-struct socks5_client_request
-{
-  uint8_t version;
-  uint8_t command;
-  uint8_t resvd;
-  uint8_t addr_type;
-  /* 
-   * followed by either an ip4/ipv6 address
-   * or a domain name with a length field in front
-   */
-};
-
-/* Server hello */
-struct socks5_server_hello
-{
-  uint8_t version;
-  uint8_t auth_method;
-};
-
-/* Struct used to store connection
- * information
- */
-struct socks5_bridge
-{
-  int fd;
-  struct socks5_bridge* remote_end;
-  int status;
-};
-
-/* Server response to client requests */
-struct socks5_server_response
-{
-  uint8_t version;
-  uint8_t reply;
-  uint8_t reserved;
-  uint8_t addr_type;
-  uint8_t addr_port;
-};
-
+#define DEBUG 1
 
 /* 
  * Create an ipv4/6 tcp socket for a given port
@@ -154,6 +101,68 @@ setnonblocking (int fd)
   return 0;
 }
 
+/**
+ * Checks if name is in tld
+ *
+ * @param name the name to check
+ * @param tld the TLD to check for
+ * @return -1 if name not in tld
+ */
+static int
+is_tld (const char* name, const char* tld)
+{
+  int offset = 0;
+
+  if (strlen (name) <= strlen (tld))
+    return -1;
+
+  offset = strlen (name) - strlen (tld);
+  if (strcmp (name+offset, tld) != 0)
+    return -1;
+
+  return 0;
+}
+
+
+/*
+ * Connect to host specified in phost
+ *
+ * @param phost the hostentry containing the IP
+ * @return fd to the connection or -1 on error
+ */
+static int
+connect_to_domain (struct hostent* phost, uint16_t srv_port)
+{
+  uint32_t srv_ip;
+  struct sockaddr_in srv_addr;
+  struct in_addr *sin_addr;
+  int conn_fd;
+
+
+  sin_addr = (struct in_addr*)(phost->h_addr);
+  srv_ip = sin_addr->s_addr;
+  conn_fd = socket(AF_INET, SOCK_STREAM, 0);
+  memset(&srv_addr, 0, sizeof(srv_addr));
+  srv_addr.sin_family = AF_INET;
+  srv_addr.sin_addr.s_addr = srv_ip;
+  srv_addr.sin_port = srv_port;
+  printf("target server: %s:%u\n", inet_ntoa(srv_addr.sin_addr), 
+         ntohs(srv_port));
+
+  if (connect (conn_fd, (struct sockaddr*)&srv_addr,
+               sizeof (struct sockaddr)) < 0)
+  {
+   printf("socket request error...\n");
+   close(conn_fd);
+   return -1;
+  }
+  
+  setnonblocking(conn_fd);
+
+  return conn_fd;
+}
+
+
 int main ( int argc, char *argv[] )
 {
   int sfd, s;
@@ -161,9 +170,28 @@ int main ( int argc, char *argv[] )
   struct epoll_event event;
   struct epoll_event *events;
   int ev_states[MAXEVENTS];
-  int j;
+  int n, i, j;
   struct socks5_bridge* br;
-
+  
+  struct sockaddr in_addr;
+  socklen_t in_len;
+  int infd;
+  char hbuf[NI_MAXHOST], sbuf[NI_MAXSERV];
+  
+  int done;
+  ssize_t count;
+  char buf[512];
+  struct socks5_server_hello hello;
+  struct socks5_server_response resp;
+  struct socks5_client_request *req;
+  struct socks5_bridge* new_br;
+  char domain[256];
+  uint8_t msg[16];
+  uint8_t dom_len;
+  uint16_t req_port;
+  int conn_fd;
+  struct hostent *phost;
+  
   for (j = 0; j < MAXEVENTS; j++)
     ev_states[j] = SOCKS5_INIT;
 
@@ -212,8 +240,6 @@ int main ( int argc, char *argv[] )
 
   while (1)
   {
-    int n, i;
-
     n = epoll_wait (efd, events, MAXEVENTS, -1);
     for (i = 0; i < n; i++)
     {
@@ -233,11 +259,7 @@ int main ( int argc, char *argv[] )
         /* New connection(s) */
         while (1)
         {
-          struct sockaddr in_addr;
-          socklen_t in_len;
-          int infd;
-          char hbuf[NI_MAXHOST], sbuf[NI_MAXSERV];
-
+          
           in_len = sizeof (in_addr);
           infd = accept (sfd, &in_addr, &in_len);
           if (infd == -1)
@@ -284,25 +306,10 @@ int main ( int argc, char *argv[] )
       else
       {
         /* Incoming data */
-        int done = 0;
+        done = 0;
 
         while (1)
         {
-          ssize_t count;
-          char buf[512];
-          struct socks5_server_hello hello;
-          struct socks5_server_response* resp;
-          struct socks5_client_request* req;
-          struct socks5_bridge* new_br;
-          char domain[256];
-          uint8_t msg[16];
-          uint8_t dom_len;
-          uint32_t srv_ip;
-          uint16_t srv_port;
-          struct sockaddr_in srv_addr;
-          int conn_fd;
-          struct hostent *phost;
-          struct in_addr *sin_addr;
 
           count = read (br->fd, buf, sizeof (buf));
 
@@ -323,8 +330,15 @@ int main ( int argc, char *argv[] )
           
           if (br->status == SOCKS5_DATA_TRANSFER)
           {
+            if (DEBUG)
+            {
+              printf ("Trying to fwd %d bytes from %d to %d!\n" ,
+                    count, br->fd, br->remote_end->fd );
+            }
             if (br->remote_end)
               s = write (br->remote_end->fd, buf, count);
+            if (DEBUG)
+               printf ("%d bytes written\n", s);
           }
           
           if (br->status == SOCKS5_INIT)
@@ -338,52 +352,46 @@ int main ( int argc, char *argv[] )
           {
             req = (struct socks5_client_request*)buf;
             
-            memset(msg, 0, sizeof(msg));
-            resp = (struct socks5_server_response*)msg;
+            memset(&resp, 0, sizeof(resp));
             
             if (req->addr_type == 3)
             {
               dom_len = *((uint8_t*)(&(req->addr_type) + 1));
               memset(domain, 0, sizeof(domain));
               strncpy(domain, (char*)(&(req->addr_type) + 2), dom_len);
+              req_port = *((uint16_t*)(&(req->addr_type) + 2 + dom_len));
 
               phost = (struct hostent*)gethostbyname (domain);
               if (phost == NULL)
               {
                 printf ("Resolve %s error!\n" , domain );
-                resp->version = 0x05;
-                resp->reply = 0x01;
-                write (br->fd, resp, sizeof (struct socks5_server_response));
+                resp.version = 0x05;
+                resp.reply = 0x01;
+                write (br->fd, &resp, sizeof (struct socks5_server_response));
                 break;
               }
 
-              sin_addr = (struct in_addr*)(phost->h_addr);
-              srv_ip = sin_addr->s_addr;
-              srv_port = *((uint16_t*)(&(req->addr_type) + 2 + dom_len));
-              conn_fd = socket(AF_INET, SOCK_STREAM, 0);
-              memset(&srv_addr, 0, sizeof(srv_addr));
-              srv_addr.sin_family = AF_INET;
-              srv_addr.sin_addr.s_addr = srv_ip;
-              srv_addr.sin_port = srv_port;
-              //printf("target server: %s:%u\n", inet_ntoa(srv_addr.sin_addr),
-              //ntohs(srv_port));
-
-              if (connect (conn_fd, (struct sockaddr*)&srv_addr,
-                           sizeof (struct sockaddr)) < 0)
+              if ( -1 != is_tld (domain, ".gnunet") )
               {
-                printf("socket request error...\n");
-                resp->version = 0x05;
-                resp->reply = 0x01;
-                close(conn_fd);
-                write (br->fd, resp, 10);
+                printf("noting implemented for GNUnet %s\n", domain);
+              }
+
+              conn_fd = connect_to_domain (phost, req_port);
+              
+              if (-1 == conn_fd)
+              {
+                  resp.version = 0x05;
+                  resp.reply = 0x01;
+                  write (br->fd, &resp, 10);
               }
               else
               {
-                setnonblocking(conn_fd);
-                resp->version = 0x05;
-                resp->reply = 0x00;
-                resp->reserved = 0x00;
-                resp->addr_type = 0x01;
+                if (DEBUG)
+                  printf("new remote connection %d to %d\n", br->fd, conn_fd);
+                resp.version = 0x05;
+                resp.reply = 0x00;
+                resp.reserved = 0x00;
+                resp.addr_type = 0x01;
                 
                 new_br = malloc (sizeof (struct socks5_bridge));
                 br->remote_end = new_br;
@@ -395,7 +403,7 @@ int main ( int argc, char *argv[] )
                 event.data.ptr = new_br;
                 event.events = EPOLLIN | EPOLLET;
                 epoll_ctl (efd, EPOLL_CTL_ADD, conn_fd, &event);
-                write (br->fd, resp, 10);
+                write (br->fd, &resp, 10);
               }
 
             }
