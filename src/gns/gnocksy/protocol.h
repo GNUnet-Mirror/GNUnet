@@ -43,6 +43,8 @@ struct socks5_bridge
 {
   int fd;
   struct socks5_bridge* remote_end;
+  struct sockaddr addr;
+  socklen_t addr_len;
   int status;
 };
 

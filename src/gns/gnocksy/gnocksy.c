@@ -14,6 +14,7 @@
 #include <fcntl.h>
 #include <netdb.h>
 #include <arpa/inet.h>
+#include <microhttpd.h>
 
 #include "protocol.h"
 
@@ -162,6 +163,54 @@ connect_to_domain (struct hostent* phost, uint16_t srv_port)
   return conn_fd;
 }
 
+static struct MHD_Daemon *mhd_daemon;
+
+static int
+access_cb (void* cls,
+           const struct sockaddr *addr,
+           socklen_t addrlen)
+{
+  printf ("access cb called\n");
+  return MHD_YES;
+}
+
+static int
+accept_cb (void *cls,
+           struct MHD_Connection *con,
+           const char *url,
+           const char *meth,
+           const char *ver,
+           const char *upload_data,
+           size_t *upload_data_size,
+           void **con_cls)
+{
+  static int dummy;
+  const char* page = "<html><head><title>gnoxy</title>"\
+                      "</head><body>gnoxy demo</body></html>";
+  struct MHD_Response *response;
+  int ret;
+
+  if (0 != strcmp (meth, "GET"))
+    return MHD_NO;
+  if (&dummy != *con_cls)
+  {
+    *con_cls = &dummy;
+    return MHD_YES;
+  }
+
+  if (0 != *upload_data_size)
+    return MHD_NO;
+
+  *con_cls = NULL;
+  response = MHD_create_response_from_data (strlen(page),
+                                            (void*) page,
+                                            MHD_NO,
+                                            MHD_NO);
+
+  ret = MHD_queue_response (con, MHD_HTTP_OK, response);
+  MHD_destroy_response (response);
+  return ret;
+}
 
 int main ( int argc, char *argv[] )
 {
@@ -191,6 +240,8 @@ int main ( int argc, char *argv[] )
   uint16_t req_port;
   int conn_fd;
   struct hostent *phost;
+
+  mhd_daemon = NULL;
   
   for (j = 0; j < MAXEVENTS; j++)
     ev_states[j] = SOCKS5_INIT;
@@ -290,6 +341,8 @@ int main ( int argc, char *argv[] )
           event.events = EPOLLIN | EPOLLET;
           br = malloc (sizeof (struct socks5_bridge));
           br->fd = infd;
+          br->addr = in_addr;
+          br->addr_len = in_len;
           br->remote_end = NULL;
           br->status = SOCKS5_INIT;
           event.data.ptr = br;
@@ -373,7 +426,33 @@ int main ( int argc, char *argv[] )
 
               if ( -1 != is_tld (domain, ".gnunet") )
               {
-                printf("noting implemented for GNUnet %s\n", domain);
+                if (NULL == mhd_daemon)
+                {
+                  mhd_daemon = MHD_start_daemon( MHD_USE_THREAD_PER_CONNECTION,
+                                                 8080,
+                                                 &access_cb, br,
+                                                 &accept_cb, br,
+                                                 MHD_OPTION_END);
+                  
+                }
+                
+                printf ("trying to add to MHD\n");
+                if (MHD_YES != MHD_add_connection (mhd_daemon,
+                                                   br->fd,
+                                                   &br->addr,
+                                                   br->addr_len))
+                {
+                  printf ("Error adding %d to mhd\n", br->fd);
+                }
+                
+                event.events = EPOLLIN | EPOLLET;
+                epoll_ctl (efd, EPOLL_CTL_DEL, br->fd, &event);
+                resp.version = 0x05;
+                resp.reply = 0x00;
+                resp.reserved = 0x00;
+                resp.addr_type = 0x01;
+                write (br->fd, &resp, 10);
+                break;
               }
 
               conn_fd = connect_to_domain (phost, req_port);
