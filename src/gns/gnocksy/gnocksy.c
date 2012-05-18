@@ -3,6 +3,13 @@
  */
 
 #include <stdio.h>
+/**
+ *
+ * Note: Only supports addr type 3 (domain) for now.
+ * Chrome uses it automatically
+ * For FF: about:config -> network.proxy.socks_remote_dns true
+ */
+
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -15,12 +22,36 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <microhttpd.h>
+#include <curl/curl.h>
 
 #include "protocol.h"
 
 #define MAXEVENTS 64
 
 #define DEBUG 1
+
+CURL *curl = NULL;
+struct MHD_Daemon *mhd_daemon;
+
+static size_t
+curl_write_data (void *buffer, size_t size, size_t nmemb, void* cls)
+{
+  const char* page = buffer;
+  size_t bytes = size * nmemb;
+  struct MHD_Response *response;
+  struct MHD_Connection *con = cls;
+  int ret;
+
+  response = MHD_create_response_from_data (strlen(page),
+                                            (void*) page,
+                                            MHD_NO,
+                                            MHD_NO);
+
+  ret = MHD_queue_response (con, MHD_HTTP_OK, response);
+  MHD_destroy_response (response);
+  printf( "buffer %s\n", (char*)buffer );
+  return bytes;
+}
 
 /* 
  * Create an ipv4/6 tcp socket for a given port
@@ -163,8 +194,6 @@ connect_to_domain (struct hostent* phost, uint16_t srv_port)
   return conn_fd;
 }
 
-static struct MHD_Daemon *mhd_daemon;
-
 static int
 access_cb (void* cls,
            const struct sockaddr *addr,
@@ -188,7 +217,8 @@ accept_cb (void *cls,
   const char* page = "<html><head><title>gnoxy</title>"\
                       "</head><body>gnoxy demo</body></html>";
   struct MHD_Response *response;
-  int ret;
+  struct socks5_bridge *br = cls;
+  CURLcode ret;
 
   if (0 != strcmp (meth, "GET"))
     return MHD_NO;
@@ -202,14 +232,23 @@ accept_cb (void *cls,
     return MHD_NO;
 
   *con_cls = NULL;
-  response = MHD_create_response_from_data (strlen(page),
-                                            (void*) page,
-                                            MHD_NO,
-                                            MHD_NO);
 
-  ret = MHD_queue_response (con, MHD_HTTP_OK, response);
-  MHD_destroy_response (response);
-  return ret;
+  if (curl)
+  {
+    printf ("url %s\n", br->host);
+    curl_easy_setopt (curl, CURLOPT_URL, br->host);
+    curl_easy_setopt (curl, CURLOPT_WRITEFUNCTION, &curl_write_data);
+    curl_easy_setopt (curl, CURLOPT_WRITEDATA, con);
+    ret = curl_easy_perform (curl);
+    if (ret == CURLE_OK)
+    {
+      printf("all good on the curl end\n");
+      return MHD_YES;
+    }
+    printf("error on the curl end %s\n", curl_easy_strerror(ret));
+  }
+  return MHD_NO;
+  
 }
 
 int main ( int argc, char *argv[] )
@@ -242,6 +281,7 @@ int main ( int argc, char *argv[] )
   struct hostent *phost;
 
   mhd_daemon = NULL;
+  curl = curl_easy_init();
   
   for (j = 0; j < MAXEVENTS; j++)
     ev_states[j] = SOCKS5_INIT;
@@ -426,6 +466,7 @@ int main ( int argc, char *argv[] )
 
               if ( -1 != is_tld (domain, ".gnunet") )
               {
+                strcpy (br->host, domain);
                 if (NULL == mhd_daemon)
                 {
                   mhd_daemon = MHD_start_daemon( MHD_USE_THREAD_PER_CONNECTION,
@@ -516,7 +557,7 @@ int main ( int argc, char *argv[] )
   }
 
   free (events);
-
+  MHD_stop_daemon (mhd_daemon);
   close (sfd);
 
   return EXIT_SUCCESS;

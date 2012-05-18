@@ -45,6 +45,7 @@ struct socks5_bridge
   struct socks5_bridge* remote_end;
   struct sockaddr addr;
   socklen_t addr_len;
+  char host[256];
   int status;
 };
 
