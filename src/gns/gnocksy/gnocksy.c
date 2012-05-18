@@ -219,6 +219,7 @@ accept_cb (void *cls,
   struct MHD_Response *response;
   struct socks5_bridge *br = cls;
   CURLcode ret;
+  char* full_url;
 
   if (0 != strcmp (meth, "GET"))
     return MHD_NO;
@@ -235,11 +236,17 @@ accept_cb (void *cls,
 
   if (curl)
   {
-    printf ("url %s\n", br->host);
-    curl_easy_setopt (curl, CURLOPT_URL, br->host);
+    if (-1 == asprintf (&full_url, "%s%s", br->host, url))
+    {
+      printf ("error building url!\n");
+      return MHD_NO;
+    }
+    printf ("url %s\n", full_url);
+    curl_easy_setopt (curl, CURLOPT_URL, full_url);
     curl_easy_setopt (curl, CURLOPT_WRITEFUNCTION, &curl_write_data);
     curl_easy_setopt (curl, CURLOPT_WRITEDATA, con);
     ret = curl_easy_perform (curl);
+    free (full_url);
     if (ret == CURLE_OK)
     {
       printf("all good on the curl end\n");
@@ -558,6 +565,7 @@ int main ( int argc, char *argv[] )
 
   free (events);
   MHD_stop_daemon (mhd_daemon);
+  curl_easy_cleanup (curl);
   close (sfd);
 
   return EXIT_SUCCESS;
