@@ -1,0 +1,104 @@
+// house = application
+// circle (default) = service
+// box = daemon
+// diamond = library
+// black line = dependency
+// blue line = extension via plugin
+// dashed = in planning
+
+digraph dependencies {
+splines = true;
+
+  fs [shape=house];
+  fs -> dht;
+  fs -> core;
+  fs -> datastore;
+  fs -> stream [style=dashed];
+  fs -> ats [style=dashed];
+  fs -> block [stlye=dotted,color=blue];
+  exit -> mesh;
+  exit -> tun;
+  vpn -> mesh;
+  vpn -> tun;
+  pt [shape=house];
+  pt -> mesh;
+  pt -> vpn;
+  pt -> dns;
+  dns -> mesh;
+  dns -> tun;
+  gns [shape=house];
+  gns -> namestore;
+  gns -> dns;
+  gns -> dht;
+  gns -> stream [style=dashed];
+  gns -> block [style=dotted,color=blue];
+//  psycd [style=dashed,shape=house];
+//  psycd -> mesh [style=dashed];
+  stream [shape=diamond];
+  stream -> mesh;
+  stream -> lockmanager;
+  dht -> core;
+  dht -> nse;
+  dht -> block;
+  dht -> datacache;
+  dht -> ats [style=dashed];
+  nse -> core;
+  block [shape=diamond];
+  datacache [shape=diamond];
+  mesh -> core [weight=2];
+  mesh -> dht;
+  mesh -> regex;
+  mesh -> block [stlye=dashed,color=blue];
+  mesh -> ats [style=dashed];
+  regex [shape=diamond];
+  core -> transport;
+  core -> peerinfo;
+  topology [shape=box];
+  topology -> transport;
+  topology -> core;
+  topology -> hello;
+  hostlist [shape=box];
+  hostlist -> core;
+  hostlist -> peerinfo;
+  hostlist -> hello;
+  transport -> ats;
+  transport -> hello;	  
+  transport -> peerinfo;
+  transport -> nat;
+  transport -> fragmentation;
+  dv [style=dashed,shape=egg,layer=core];
+  dv -> transport [style=dashed,color=blue];
+  dv -> core [style=dashed];
+  core -> dv [style=invis]; // force dv below core
+  peerinfo -> hello;
+  fragmentation [shape=diamond];
+  hello [shape=diamond];
+  nat [shape=diamond];
+  tun [shape=diamond];
+
+  subgraph STREAM {
+    stream; lockmanager;
+  }
+  subgraph DHT {
+    dht; nse; datacache; block;
+  }
+  subgraph MESH {
+    mesh; regex;
+  }
+  subgraph TRANSPORT {
+    transport; dv; peerinfo; hello; nat; ats;
+  }
+  subgraph CORE {
+    core; hostlist; topology;
+  }
+  subgraph FS {
+    fs; datastore;
+  }
+  subgraph GNS {
+    gns; namestore;
+  }
+  subgraph VPN {
+    vpn; pt; exit;
+  }
+
+}
