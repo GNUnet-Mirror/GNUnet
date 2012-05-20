@@ -26,6 +26,7 @@
 #include <regex.h>
 
 #include "protocol.h"
+#include "gns_glue.h"
 
 #define MAXEVENTS 64
 
@@ -39,12 +40,6 @@
 
 static struct MHD_Daemon *mhd_daemon;
 static regex_t re_dotplus;
-
-void
-gns_glue_expand_and_shorten ( char* sorig, char* new )
-{
-  memcpy (new, "foo.bar.gnunet", strlen("foo.bar.gnunet"));
-}
 
 static size_t
 curl_write_data (void *buffer, size_t size, size_t nmemb, void* cls)
@@ -60,6 +55,7 @@ curl_write_data (void *buffer, size_t size, size_t nmemb, void* cls)
   char* plusptr;
   char* p;
   char new_host[256];
+  char to_exp[256];
   uint64_t bytes_copied = 0;
 
   char new_buf[CURL_MAX_WRITE_SIZE+1];
@@ -103,13 +99,17 @@ curl_write_data (void *buffer, size_t size, size_t nmemb, void* cls)
 
       if (m[1].rm_so != -1)
       {
-        hostptr = p+m[1].rm_eo;
+        hostptr = p+m[1].rm_so;
         if (DEBUG)
           printf ("Copying %d bytes.\n", (hostptr-p));
         memcpy (br->MHD_CURL_BUF+bytes_copied, p, (hostptr-p));
         bytes_copied += (hostptr-p);
         memset (new_host, 0, sizeof(new_host));
-        gns_glue_expand_and_shorten ( br->full_url,
+        memset (to_exp, 0, sizeof (to_exp));
+        memcpy (to_exp, hostptr, (m[1].rm_eo-m[1].rm_so));
+
+        gns_glue_expand_and_shorten ( to_exp,
+                                      br->host,
                                       new_host );
         if (DEBUG)
         {
@@ -366,7 +366,7 @@ mhd_content_cb (void* cls,
     return MHD_CONTENT_READER_END_OF_STREAM;
   }
   pthread_mutex_unlock ( &br->m_done );
-
+  
   pthread_mutex_lock ( &br->m_buf );
   if ( br->MHD_CURL_BUF_STATUS == BUF_WAIT_FOR_CURL )
   {
@@ -374,6 +374,8 @@ mhd_content_cb (void* cls,
     pthread_mutex_unlock ( &br->m_buf );
     return 0;
   }
+
+
 
   if ( br->MHD_CURL_BUF_SIZE > max )
   {
@@ -389,6 +391,7 @@ mhd_content_cb (void* cls,
     memcpy ( buf, br->MHD_CURL_BUF, br->MHD_CURL_BUF_SIZE );
   }
   br->MHD_CURL_BUF_STATUS = BUF_WAIT_FOR_CURL;
+  curl_easy_pause (br->curl, CURLPAUSE_CONT);
   pthread_mutex_unlock ( &br->m_buf );
 
   return br->MHD_CURL_BUF_SIZE;
