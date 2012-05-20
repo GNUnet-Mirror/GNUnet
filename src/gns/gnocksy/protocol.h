@@ -36,6 +36,9 @@ struct socks5_server_hello
   uint8_t auth_method;
 };
 
+#define BUF_WAIT_FOR_CURL 0
+#define BUF_WAIT_FOR_MHD  1
+
 /* Struct used to store connection
  * information
  */
@@ -47,6 +50,24 @@ struct socks5_bridge
   socklen_t addr_len;
   char host[256];
   int status;
+  
+  /* http url + host */
+  char* full_url;
+
+  /* handle to curl */
+  CURL* curl;
+
+  /* is response html? */
+  int res_is_html;
+
+  /* buffer structures */
+  pthread_t thread;
+  pthread_mutex_t m_done;
+  int is_done;
+  pthread_mutex_t m_buf;
+  char MHD_CURL_BUF[CURL_MAX_WRITE_SIZE];
+  size_t MHD_CURL_BUF_SIZE;
+  int MHD_CURL_BUF_STATUS;
 };
 
 /* Server response to client requests */

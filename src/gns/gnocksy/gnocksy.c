@@ -30,7 +30,8 @@
 
 #define DEBUG 1
 
-CURL *curl = NULL;
+#define HTML_HDR_CONTENT "Content-Type: text/html\r\n"
+
 struct MHD_Daemon *mhd_daemon;
 
 static size_t
@@ -38,20 +39,55 @@ curl_write_data (void *buffer, size_t size, size_t nmemb, void* cls)
 {
   const char* page = buffer;
   size_t bytes = size * nmemb;
-  struct MHD_Response *response;
-  struct MHD_Connection *con = cls;
+  struct socks5_bridge* br = cls;
   int ret;
 
-  response = MHD_create_response_from_data (strlen(page),
-                                            (void*) page,
-                                            MHD_NO,
-                                            MHD_NO);
+  pthread_mutex_lock ( &br->m_buf );
+  if (br->MHD_CURL_BUF_STATUS == BUF_WAIT_FOR_MHD)
+  {
+    pthread_mutex_unlock ( &br->m_buf );
+    printf( "waiting for mhd to process data... pausing curl\n");
+    return CURL_WRITEFUNC_PAUSE;
+  }
 
-  ret = MHD_queue_response (con, MHD_HTTP_OK, response);
-  MHD_destroy_response (response);
-  printf( "buffer %s\n", (char*)buffer );
+  /* do regex magic */
+  if ( br->res_is_html )
+  {
+    printf ("result is html text\n");
+    //void
+  }
+
+  memcpy (br->MHD_CURL_BUF, buffer, bytes);
+  br->MHD_CURL_BUF_SIZE = bytes;
+
+  br->MHD_CURL_BUF_STATUS = BUF_WAIT_FOR_MHD;
+
+  pthread_mutex_unlock ( &br->m_buf );
+
+
+  //MHD_destroy_response (response);
+  printf( "buffer: %s\n", (char*)buffer );
   return bytes;
 }
+
+static size_t
+curl_check_hdr (void *buffer, size_t size, size_t nmemb, void* cls)
+{
+  size_t bytes = size * nmemb;
+  struct socks5_bridge* br = cls;
+  char hdr[bytes+1];
+
+  memcpy(hdr, buffer, bytes);
+  hdr[bytes] = '\0';
+
+  printf ("got hdr: %s\n", hdr);
+
+  if (0 == strcmp(hdr, HTML_HDR_CONTENT))
+    br->res_is_html = 1;
+
+  return bytes;
+}
+
 
 /* 
  * Create an ipv4/6 tcp socket for a given port
@@ -203,6 +239,87 @@ access_cb (void* cls,
   return MHD_YES;
 }
 
+static void
+fetch_url (struct socks5_bridge* br)
+{
+
+  CURLcode ret;
+
+  br->curl = curl_easy_init();
+
+  /* TODO optionally do LEHO stuff here */
+
+  if (br->curl)
+    {
+      curl_easy_setopt (br->curl, CURLOPT_URL, br->full_url);
+      curl_easy_setopt (br->curl, CURLOPT_HEADERFUNCTION, &curl_check_hdr);
+      curl_easy_setopt (br->curl, CURLOPT_HEADERDATA, br);
+      curl_easy_setopt (br->curl, CURLOPT_WRITEFUNCTION, &curl_write_data);
+      curl_easy_setopt (br->curl, CURLOPT_WRITEDATA, br);
+      ret = curl_easy_perform (br->curl);
+      free (br->full_url);
+      pthread_mutex_lock ( &br->m_done );
+      br->is_done = 1;
+      pthread_mutex_unlock ( &br->m_done );
+
+      curl_easy_cleanup (br->curl);
+      
+      if (ret == CURLE_OK)
+      {
+        printf("all good on the curl end\n");
+        return;
+      }
+      printf("error on the curl end %s\n", curl_easy_strerror(ret));
+    }
+}
+
+static ssize_t
+mhd_content_cb (void* cls,
+                uint64_t pos,
+                char* buf,
+                size_t max)
+{
+  struct socks5_bridge* br = cls;
+
+  pthread_mutex_lock ( &br->m_done );
+  /* if done and buf empty */
+  if ( (br->is_done == 1)  &&
+       (br->MHD_CURL_BUF_STATUS == BUF_WAIT_FOR_CURL) )
+  {
+    printf("done. sending response...\n");
+    br->is_done = 0;
+    pthread_mutex_unlock ( &br->m_done );
+    return MHD_CONTENT_READER_END_OF_STREAM;
+  }
+  pthread_mutex_unlock ( &br->m_done );
+
+  pthread_mutex_lock ( &br->m_buf );
+  if ( br->MHD_CURL_BUF_STATUS == BUF_WAIT_FOR_CURL )
+  {
+    printf("waiting for curl...\n");
+    pthread_mutex_unlock ( &br->m_buf );
+    return 0;
+  }
+
+  if ( br->MHD_CURL_BUF_SIZE > max )
+  {
+    printf("buffer in mhd response too small!\n");
+    pthread_mutex_unlock ( &br->m_buf );
+    return MHD_CONTENT_READER_END_WITH_ERROR;
+  }
+  
+  if (0 != br->MHD_CURL_BUF_SIZE)
+  {
+    printf("copying %d bytes to mhd response at offset %d\n",
+           br->MHD_CURL_BUF_SIZE, pos);
+    memcpy ( buf, br->MHD_CURL_BUF, br->MHD_CURL_BUF_SIZE );
+  }
+  br->MHD_CURL_BUF_STATUS = BUF_WAIT_FOR_CURL;
+  pthread_mutex_unlock ( &br->m_buf );
+
+  return br->MHD_CURL_BUF_SIZE;
+}
+
 static int
 accept_cb (void *cls,
            struct MHD_Connection *con,
@@ -218,7 +335,7 @@ accept_cb (void *cls,
                       "</head><body>gnoxy demo</body></html>";
   struct MHD_Response *response;
   struct socks5_bridge *br = cls;
-  CURLcode ret;
+  int ret;
   char* full_url;
 
   if (0 != strcmp (meth, "GET"))
@@ -233,28 +350,31 @@ accept_cb (void *cls,
     return MHD_NO;
 
   *con_cls = NULL;
-
-  if (curl)
+  
+  if (-1 == asprintf (&br->full_url, "%s%s", br->host, url))
   {
-    if (-1 == asprintf (&full_url, "%s%s", br->host, url))
-    {
-      printf ("error building url!\n");
-      return MHD_NO;
-    }
-    printf ("url %s\n", full_url);
-    curl_easy_setopt (curl, CURLOPT_URL, full_url);
-    curl_easy_setopt (curl, CURLOPT_WRITEFUNCTION, &curl_write_data);
-    curl_easy_setopt (curl, CURLOPT_WRITEDATA, con);
-    ret = curl_easy_perform (curl);
-    free (full_url);
-    if (ret == CURLE_OK)
-    {
-      printf("all good on the curl end\n");
-      return MHD_YES;
-    }
-    printf("error on the curl end %s\n", curl_easy_strerror(ret));
+    printf ("error building url!\n");
+    return MHD_NO;
   }
-  return MHD_NO;
+  printf ("url %s\n", br->full_url);
+
+  pthread_mutex_lock ( &br->m_done );
+  br->is_done = 0;
+  pthread_mutex_unlock ( &br->m_done );
+  
+  br->MHD_CURL_BUF_STATUS = BUF_WAIT_FOR_CURL;
+  br->res_is_html = 0;
+
+  response = MHD_create_response_from_callback (-1, -1, 
+                                                &mhd_content_cb,
+                                                br,
+                                                NULL); //TODO destroy resp here
+  
+  ret = MHD_queue_response (con, MHD_HTTP_OK, response);
+  pthread_create ( &br->thread, NULL, &fetch_url, br );
+
+  return MHD_YES;
+  
   
 }
 
@@ -281,14 +401,13 @@ int main ( int argc, char *argv[] )
   struct socks5_client_request *req;
   struct socks5_bridge* new_br;
   char domain[256];
-  uint8_t msg[16];
   uint8_t dom_len;
   uint16_t req_port;
   int conn_fd;
   struct hostent *phost;
 
   mhd_daemon = NULL;
-  curl = curl_easy_init();
+  curl_global_init(CURL_GLOBAL_ALL);
   
   for (j = 0; j < MAXEVENTS; j++)
     ev_states[j] = SOCKS5_INIT;
@@ -565,7 +684,6 @@ int main ( int argc, char *argv[] )
 
   free (events);
   MHD_stop_daemon (mhd_daemon);
-  curl_easy_cleanup (curl);
   close (sfd);
 
   return EXIT_SUCCESS;
