@@ -30,6 +30,7 @@
  *
  */
 #include "platform.h"
+#include "gnunet_disk_lib.h"
 #include "gnunet_testing_lib-new.h"
 
 
@@ -44,6 +45,11 @@ struct GNUNET_TESTING_System
    * SERVICEHOME. 
    */
   char *tmppath;
+
+  /**
+   * The hostname of the controller
+   */
+  char *controller;
 
   /**
    * Bitmap where each TCP port that has already been reserved for
@@ -76,6 +82,11 @@ struct GNUNET_TESTING_System
    * we never re-use path counters.
    */
   uint32_t path_counter;
+
+  /**
+   * Last used port number
+   */
+  
 };
 
 
@@ -108,6 +119,23 @@ struct GNUNET_TESTING_Peer
 
 
 /**
+ * Lowest port used for GNUnet testing.  Should be high enough to not
+ * conflict with other applications running on the hosts but be low
+ * enough to not conflict with client-ports (typically starting around
+ * 32k).
+ */
+#define LOW_PORT 12000
+
+
+/**
+ * Highest port used for GNUnet testing.  Should be low enough to not
+ * conflict with the port range for "local" ports (client apps; see
+ * /proc/sys/net/ipv4/ip_local_port_range on Linux for example).
+ */
+#define HIGH_PORT 56000
+
+
+/**
  * Create a system handle.  There must only be one system
  * handle per operating system.
  *
@@ -121,8 +149,15 @@ struct GNUNET_TESTING_System *
 GNUNET_TESTING_system_create (const char *tmppath,
 			      const char *controller)
 {
-  GNUNET_break (0);
-  return NULL;
+  struct GNUNET_TESTING_System *system;
+
+  if (NULL == tmppath)
+    return NULL;
+  system = GNUNET_malloc (sizeof (struct GNUNET_TESTING_System));
+  system->tmppath = GNUNET_strdup (tmppath);
+  if (NULL != controller)
+    system->controller = GNUNET_strdup (controller);
+  return system;
 }
 
 
@@ -137,7 +172,12 @@ void
 GNUNET_TESTING_system_destroy (struct GNUNET_TESTING_System *system,
 			       int remove_paths)
 {
-  GNUNET_break (0);
+  GNUNET_assert (NULL != system);
+  if (GNUNET_YES == remove_paths)
+    GNUNET_DISK_directory_remove (system->tmppath);
+  GNUNET_free (system->tmppath);
+  GNUNET_free_non_null (system->controller);
+  GNUNET_free (system);
 }
 
 
