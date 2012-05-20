@@ -85,7 +85,10 @@ do_shutdown (void *cls,
 static void
 process_shorten_result(void* cls, const char* nshort)
 {
-  printf("%s shortened to %s\n", (char*) cls, nshort);
+  if (raw)
+    printf("%s", nshort);
+  else
+    printf("%s shortened to %s\n", (char*) cls, nshort);
   GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
 }
 
