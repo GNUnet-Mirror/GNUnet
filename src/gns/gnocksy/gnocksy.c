@@ -23,6 +23,7 @@
 #include <arpa/inet.h>
 #include <microhttpd.h>
 #include <curl/curl.h>
+#include <regex.h>
 
 #include "protocol.h"
 
@@ -32,15 +33,37 @@
 
 #define HTML_HDR_CONTENT "Content-Type: text/html\r\n"
 
-struct MHD_Daemon *mhd_daemon;
+#define RE_DOTPLUS "<a href=\"http://(([A-Za-z]+[.])+)([+])"
+
+#define RE_N_MATCHES 4
+
+static struct MHD_Daemon *mhd_daemon;
+static regex_t re_dotplus;
+
+void
+gns_glue_expand_and_shorten ( char* sorig, char* new )
+{
+  memcpy (new, "foo.bar.gnunet", strlen("foo.bar.gnunet"));
+}
 
 static size_t
 curl_write_data (void *buffer, size_t size, size_t nmemb, void* cls)
 {
   const char* page = buffer;
-  size_t bytes = size * nmemb;
+  uint64_t bytes = size * nmemb;
   struct socks5_bridge* br = cls;
   int ret;
+
+  int nomatch;
+  regmatch_t m[RE_N_MATCHES];
+  char* hostptr;
+  char* plusptr;
+  char* p;
+  char new_host[256];
+  uint64_t bytes_copied = 0;
+
+  char new_buf[CURL_MAX_WRITE_SIZE+1];
+  p = new_buf;
 
   pthread_mutex_lock ( &br->m_buf );
   if (br->MHD_CURL_BUF_STATUS == BUF_WAIT_FOR_MHD)
@@ -54,11 +77,62 @@ curl_write_data (void *buffer, size_t size, size_t nmemb, void* cls)
   if ( br->res_is_html )
   {
     printf ("result is html text\n");
-    //void
-  }
+    memset (new_buf, 0, sizeof(new_buf));
+    memcpy (new_buf, page, bytes);
 
-  memcpy (br->MHD_CURL_BUF, buffer, bytes);
-  br->MHD_CURL_BUF_SIZE = bytes;
+ 
+    while (1)
+    {
+      nomatch = regexec ( &re_dotplus, p, RE_N_MATCHES, m, 0);
+
+      if (nomatch)
+      {
+        printf ("No more matches\n");
+        if ((p-new_buf) < 0)
+        {
+          printf ("Error p<buf!\n");
+          break;
+        }
+        memcpy ( br->MHD_CURL_BUF+bytes_copied, p, bytes-(p-new_buf));
+        bytes_copied += bytes-(p-new_buf);
+        break;
+      }
+
+      if (DEBUG)
+        printf ("Got match\n");
+
+      if (m[1].rm_so != -1)
+      {
+        hostptr = p+m[1].rm_eo;
+        if (DEBUG)
+          printf ("Copying %d bytes.\n", (hostptr-p));
+        memcpy (br->MHD_CURL_BUF+bytes_copied, p, (hostptr-p));
+        bytes_copied += (hostptr-p);
+        memset (new_host, 0, sizeof(new_host));
+        gns_glue_expand_and_shorten ( br->full_url,
+                                      new_host );
+        if (DEBUG)
+        {
+          printf ("Glue fin\n");
+          printf ("Copying new name %s \n", new_host);
+        }
+        memcpy ( br->MHD_CURL_BUF+bytes_copied, new_host,
+                 strlen (new_host) );
+        bytes_copied += strlen (new_host);
+        p += m[3].rm_so+1;
+
+        printf ("Done. Next in %d bytes\n", m[3].rm_so);
+
+        //TODO check buf lenghts!
+      }
+    }
+    br->MHD_CURL_BUF_SIZE = bytes_copied;
+  }
+  else
+  {
+    memcpy (br->MHD_CURL_BUF, buffer, bytes);
+    br->MHD_CURL_BUF_SIZE = bytes;
+  }
 
   br->MHD_CURL_BUF_STATUS = BUF_WAIT_FOR_MHD;
 
@@ -66,7 +140,7 @@ curl_write_data (void *buffer, size_t size, size_t nmemb, void* cls)
 
 
   //MHD_destroy_response (response);
-  printf( "buffer: %s\n", (char*)buffer );
+  printf( "buffer: %s\n", (char*)br->MHD_CURL_BUF );
   return bytes;
 }
 
@@ -378,6 +452,23 @@ accept_cb (void *cls,
   
 }
 
+static int
+compile_regex (regex_t *re, const char* rt)
+{
+  int status;
+  char err[1024];
+  
+  status = regcomp (re, rt, REG_EXTENDED|REG_NEWLINE);
+  if (status)
+  {
+    regerror (status, re, err, 1024);
+    printf ("Regex error compiling '%s': %s\n", rt, err);
+    return 1;
+  }
+  return 0;
+}
+
+
 int main ( int argc, char *argv[] )
 {
   int sfd, s;
@@ -408,6 +499,9 @@ int main ( int argc, char *argv[] )
 
   mhd_daemon = NULL;
   curl_global_init(CURL_GLOBAL_ALL);
+
+  //compile_regex ( &re_htmlhdr, RE_HTML );
+  compile_regex( &re_dotplus, (char*)RE_DOTPLUS );
   
   for (j = 0; j < MAXEVENTS; j++)
     ev_states[j] = SOCKS5_INIT;
@@ -684,6 +778,7 @@ int main ( int argc, char *argv[] )
 
   free (events);
   MHD_stop_daemon (mhd_daemon);
+  regfree ( &re_dotplus );
   close (sfd);
 
   return EXIT_SUCCESS;
