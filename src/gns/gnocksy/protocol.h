@@ -50,6 +50,12 @@ struct socks5_bridge
   socklen_t addr_len;
   char host[256];
   int status;
+
+  /* This is an ssl bridge? */
+  int use_ssl;
+
+  /* if use_ssl=1 we have a daemon associated */
+  struct MHD_Daemon *ssl_daemon;
   
   /* http url + host */
   char* full_url;

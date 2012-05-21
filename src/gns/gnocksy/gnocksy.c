@@ -8,6 +8,11 @@
  * Note: Only supports addr type 3 (domain) for now.
  * Chrome uses it automatically
  * For FF: about:config -> network.proxy.socks_remote_dns true
+ *
+ * TODO
+ * - zkey shorten
+ * - LEHO replacement and glue
+ * - SSL
  */
 
 #include <stdlib.h>
@@ -30,13 +35,17 @@
 
 #define MAXEVENTS 64
 
-#define DEBUG 1
+#define DEBUG 0
+#define VERBOSE 1
 
 #define HTML_HDR_CONTENT "Content-Type: text/html\r\n"
 
 #define RE_DOTPLUS "<a href=\"http://(([A-Za-z]+[.])+)([+])"
 
 #define RE_N_MATCHES 4
+
+#define HTTP_PORT 80
+#define HTTPS_PORT 443
 
 static struct MHD_Daemon *mhd_daemon;
 static regex_t re_dotplus;
@@ -65,7 +74,6 @@ curl_write_data (void *buffer, size_t size, size_t nmemb, void* cls)
   if (br->MHD_CURL_BUF_STATUS == BUF_WAIT_FOR_MHD)
   {
     pthread_mutex_unlock ( &br->m_buf );
-    printf( "waiting for mhd to process data... pausing curl\n");
     return CURL_WRITEFUNC_PAUSE;
   }
 
@@ -83,10 +91,12 @@ curl_write_data (void *buffer, size_t size, size_t nmemb, void* cls)
 
       if (nomatch)
       {
-        printf ("No more matches\n");
+        if (DEBUG)
+          printf ("No more matches\n");
         if ((p-new_buf) < 0)
         {
-          printf ("Error p<buf!\n");
+          if (DEBUG)
+            printf ("Error p<buf!\n");
           break;
         }
         memcpy ( br->MHD_CURL_BUF+bytes_copied, p, bytes-(p-new_buf));
@@ -121,7 +131,8 @@ curl_write_data (void *buffer, size_t size, size_t nmemb, void* cls)
         bytes_copied += strlen (new_host);
         p += m[3].rm_so+1;
 
-        printf ("Done. Next in %d bytes\n", m[3].rm_so);
+        if (DEBUG)
+          printf ("Done. Next in %d bytes\n", m[3].rm_so);
 
         //TODO check buf lenghts!
       }
@@ -140,7 +151,8 @@ curl_write_data (void *buffer, size_t size, size_t nmemb, void* cls)
 
 
   //MHD_destroy_response (response);
-  printf( "buffer: %s\n", (char*)br->MHD_CURL_BUF );
+  if (DEBUG)
+    printf( "buffer:\n%s\n", (char*)br->MHD_CURL_BUF );
   return bytes;
 }
 
@@ -153,8 +165,9 @@ curl_check_hdr (void *buffer, size_t size, size_t nmemb, void* cls)
 
   memcpy(hdr, buffer, bytes);
   hdr[bytes] = '\0';
-
-  printf ("got hdr: %s\n", hdr);
+  
+  if (DEBUG)
+    printf ("got hdr: %s", hdr);
 
   if (0 == strcmp(hdr, HTML_HDR_CONTENT))
     br->res_is_html = 1;
@@ -288,8 +301,9 @@ connect_to_domain (struct hostent* phost, uint16_t srv_port)
   srv_addr.sin_family = AF_INET;
   srv_addr.sin_addr.s_addr = srv_ip;
   srv_addr.sin_port = srv_port;
-  printf("target server: %s:%u\n", inet_ntoa(srv_addr.sin_addr), 
-         ntohs(srv_port));
+  if (DEBUG)
+    printf("target server: %s:%u\n", inet_ntoa(srv_addr.sin_addr), 
+           ntohs(srv_port));
 
   if (connect (conn_fd, (struct sockaddr*)&srv_addr,
                sizeof (struct sockaddr)) < 0)
@@ -370,7 +384,6 @@ mhd_content_cb (void* cls,
   pthread_mutex_lock ( &br->m_buf );
   if ( br->MHD_CURL_BUF_STATUS == BUF_WAIT_FOR_CURL )
   {
-    printf("waiting for curl...\n");
     pthread_mutex_unlock ( &br->m_buf );
     return 0;
   }
@@ -486,6 +499,9 @@ int main ( int argc, char *argv[] )
   socklen_t in_len;
   int infd;
   char hbuf[NI_MAXHOST], sbuf[NI_MAXSERV];
+
+  /* port offset for ssl daemons */
+  int i_ssl = 1;
   
   int done;
   ssize_t count;
@@ -627,6 +643,8 @@ int main ( int argc, char *argv[] )
         while (1)
         {
 
+          memset (buf, 0, sizeof (buf));
+
           count = read (br->fd, buf, sizeof (buf));
 
           if (count == -1)
@@ -659,6 +677,8 @@ int main ( int argc, char *argv[] )
           
           if (br->status == SOCKS5_INIT)
           {
+            if (DEBUG)
+              printf ("SOCKS5 init for %d\n", br->fd);
             hello.version = 0x05;
             hello.auth_method = 0;
             write (br->fd, &hello, sizeof (hello));
@@ -677,37 +697,81 @@ int main ( int argc, char *argv[] )
               strncpy(domain, (char*)(&(req->addr_type) + 2), dom_len);
               req_port = *((uint16_t*)(&(req->addr_type) + 2 + dom_len));
 
+              if (DEBUG)
+                printf ("Requested connection is %s:%d\n",
+                        domain,
+                        ntohs(req_port));
+
               phost = (struct hostent*)gethostbyname (domain);
               if (phost == NULL)
               {
-                printf ("Resolve %s error!\n" , domain );
+                if (VERBOSE)
+                  printf ("Resolve %s error!\n" , domain );
                 resp.version = 0x05;
                 resp.reply = 0x01;
                 write (br->fd, &resp, sizeof (struct socks5_server_response));
                 break;
               }
 
+              if (DEBUG)
+                printf ("trying to add %d to MHD\n", br->fd);
+              
               if ( -1 != is_tld (domain, ".gnunet") )
               {
                 strcpy (br->host, domain);
-                if (NULL == mhd_daemon)
+                if (HTTP_PORT == ntohs(req_port))
                 {
-                  mhd_daemon = MHD_start_daemon( MHD_USE_THREAD_PER_CONNECTION,
-                                                 8080,
-                                                 &access_cb, br,
-                                                 &accept_cb, br,
-                                                 MHD_OPTION_END);
+                  br->use_ssl = 0;
+                  if (NULL == mhd_daemon)
+                  {
+                    mhd_daemon =
+                      MHD_start_daemon( MHD_USE_THREAD_PER_CONNECTION,
+                                        8080,
+                                        &access_cb, br,
+                                        &accept_cb, br,
+                                        MHD_OPTION_END);
+                  }
                   
+                  if (MHD_YES != MHD_add_connection (mhd_daemon,
+                                                     br->fd,
+                                                     &br->addr,
+                                                     br->addr_len))
+                  {
+                    if (VERBOSE)
+                      printf ("Error adding %d to mhd\n", br->fd);
+                  }
                 }
-                
-                printf ("trying to add to MHD\n");
-                if (MHD_YES != MHD_add_connection (mhd_daemon,
-                                                   br->fd,
-                                                   &br->addr,
-                                                   br->addr_len))
+
+                if (HTTPS_PORT == ntohs(req_port))
                 {
-                  printf ("Error adding %d to mhd\n", br->fd);
+                  /*
+                   * custom daemon for SSL requests
+                   * TODO make more efficient with
+                   * per name SSL daemons?
+                   */
+                  br->use_ssl = 1;
+                  br->ssl_daemon = 
+                    MHD_start_daemon( MHD_USE_THREAD_PER_CONNECTION |
+                                      MHD_USE_SSL,
+                                      8080+i_ssl,
+                                      NULL, NULL,
+                                      &accept_cb, br,
+                                      MHD_OPTION_HTTPS_MEM_KEY, NULL,
+                                      MHD_OPTION_HTTPS_MEM_CERT, NULL,
+                                      MHD_OPTION_END);
+                  
+                  i_ssl++;
+                  
+                  if (MHD_YES != MHD_add_connection (br->ssl_daemon,
+                                                     br->fd,
+                                                     &br->addr,
+                                                     br->addr_len))
+                  {
+                    if (VERBOSE)
+                      printf ("Error adding %d to mhd\n", br->fd);
+                  }
                 }
+
                 
                 event.events = EPOLLIN | EPOLLET;
                 epoll_ctl (efd, EPOLL_CTL_DEL, br->fd, &event);
@@ -716,43 +780,51 @@ int main ( int argc, char *argv[] )
                 resp.reserved = 0x00;
                 resp.addr_type = 0x01;
                 write (br->fd, &resp, 10);
-                break;
-              }
-
-              conn_fd = connect_to_domain (phost, req_port);
-              
-              if (-1 == conn_fd)
-              {
-                  resp.version = 0x05;
-                  resp.reply = 0x01;
-                  write (br->fd, &resp, 10);
               }
               else
               {
-                if (DEBUG)
-                  printf("new remote connection %d to %d\n", br->fd, conn_fd);
-                resp.version = 0x05;
-                resp.reply = 0x00;
-                resp.reserved = 0x00;
-                resp.addr_type = 0x01;
-                
-                new_br = malloc (sizeof (struct socks5_bridge));
-                br->remote_end = new_br;
-                br->status = SOCKS5_DATA_TRANSFER;
-                new_br->fd = conn_fd;
-                new_br->remote_end = br;
-                new_br->status = SOCKS5_DATA_TRANSFER;
 
-                event.data.ptr = new_br;
-                event.events = EPOLLIN | EPOLLET;
-                epoll_ctl (efd, EPOLL_CTL_ADD, conn_fd, &event);
-                write (br->fd, &resp, 10);
+                conn_fd = connect_to_domain (phost, req_port);
+              
+                if (-1 == conn_fd)
+                {
+                  if (VERBOSE)
+                    printf("cannot create remote connection from %d to %s:%d\n",
+                           br->fd, domain, ntohs(req_port));
+                  resp.version = 0x05;
+                  resp.reply = 0x01;
+                  write (br->fd, &resp, 10);
+                }
+                else
+                {
+                  if (VERBOSE)
+                    printf("new remote connection %d to %d\n", br->fd, conn_fd);
+                  resp.version = 0x05;
+                  resp.reply = 0x00;
+                  resp.reserved = 0x00;
+                  resp.addr_type = 0x01;
+                
+                  new_br = malloc (sizeof (struct socks5_bridge));
+                  if (br->remote_end != NULL)
+                    printf ("WARNING remote end was not NULL!\n");
+                  br->remote_end = new_br;
+                  br->status = SOCKS5_DATA_TRANSFER;
+                  new_br->fd = conn_fd;
+                  new_br->remote_end = br;
+                  new_br->status = SOCKS5_DATA_TRANSFER;
+
+                  event.data.ptr = new_br;
+                  event.events = EPOLLIN | EPOLLET;
+                  epoll_ctl (efd, EPOLL_CTL_ADD, conn_fd, &event);
+                  write (br->fd, &resp, 10);
+                }
               }
 
             }
             else
             {
-              printf("not implemented address type %02X\n", (int)req->addr_type);
+              if (DEBUG)
+                printf("not implemented address type %02X\n", (int)req->addr_type);
             }
           }
           
@@ -766,14 +838,14 @@ int main ( int argc, char *argv[] )
 
         if (done)
         {
-          close (br->fd);
+          //close (br->fd);
 
           if (br->remote_end)
           {
-            close (br->remote_end->fd);
-            free(br->remote_end);
+            //close (br->remote_end->fd);
+            //free(br->remote_end);
           }
-          free(br);
+          //free(br);
         }
       }
     }
