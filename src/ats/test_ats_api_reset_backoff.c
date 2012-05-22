@@ -28,7 +28,7 @@
 #include "ats.h"
 
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
-#define ATS_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
+#define ATS_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 90)
 
 static GNUNET_SCHEDULER_TaskIdentifier die_task;
 
@@ -130,24 +130,15 @@ suggest_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   suggest_timeout_task = GNUNET_SCHEDULER_NO_TASK;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Requesting address for peer timed out\n");
-}
 
-static void request_address ()
-{
-
-  if (suggest_timeout_task != GNUNET_SCHEDULER_NO_TASK)
+  if (die_task != GNUNET_SCHEDULER_NO_TASK)
   {
-    GNUNET_SCHEDULER_cancel (suggest_timeout_task);
-    suggest_timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    GNUNET_SCHEDULER_cancel (die_task);
+    die_task = GNUNET_SCHEDULER_NO_TASK;
   }
 
-  suggest_timeout_task = GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_MINUTES, &suggest_timeout, NULL);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Requesting address for peer `%s'\n",
-              GNUNET_i2s (&peer.id));
-  GNUNET_ATS_suggest_address (ats, &peer.id);
+  die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
 }
-
 
 static void
 address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *a,
@@ -236,13 +227,8 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *a,
     GNUNET_SCHEDULER_cancel (suggest_timeout_task);
     suggest_timeout_task = GNUNET_SCHEDULER_NO_TASK;
   }
-
-  GNUNET_ATS_reset_backoff(ats, &a->peer);
-  request_address ();
+  suggest_timeout_task = GNUNET_SCHEDULER_add_delayed(ATS_TIMEOUT, &suggest_timeout, NULL);
 }
-
-
-
 
 void
 start_arm (const char *cfgname)
@@ -289,7 +275,13 @@ check (void *cls, char *const *args, const char *cfgfile,
   hello_addr.address_length = address.addr_len;
   GNUNET_ATS_address_update (ats, &hello_addr, address.session, NULL, 0);
 
-  request_address ();
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Requesting address for peer `%s'\n",
+              GNUNET_i2s (&peer.id));
+  /* Increase block timout far beyond ATS_TIMEOUT */
+  GNUNET_ATS_suggest_address (ats, &peer.id);
+
+  GNUNET_ATS_reset_backoff(ats, &peer.id);
+  GNUNET_ATS_suggest_address (ats, &peer.id);
 }
 
 int
