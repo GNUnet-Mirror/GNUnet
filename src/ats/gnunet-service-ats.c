@@ -153,6 +153,9 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
      sizeof (struct ReservationRequestMessage)},
     {&GAS_handle_preference_change, NULL,
      GNUNET_MESSAGE_TYPE_ATS_PREFERENCE_CHANGE, 0},
+    {&GAS_handle_reset_backoff, NULL,
+     GNUNET_MESSAGE_TYPE_ATS_RESET_BACKOFF,
+     sizeof (struct ResetBackoffMessage)},
     {NULL, NULL, 0, 0}
   };
   GSA_server = server;

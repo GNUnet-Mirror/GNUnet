@@ -54,6 +54,7 @@ gnunet_service_ats_LDADD = \
 
 check_PROGRAMS = \
  test_ats_api_scheduling \
+ test_ats_api_reset_backoff \
  $(GN_MLP_TEST) \
  $(GN_MLP_TEST_AVG) \
  $(GN_MLP_PERF)
@@ -93,6 +94,12 @@ endif
 test_ats_api_scheduling_SOURCES = \
  test_ats_api_scheduling.c
 test_ats_api_scheduling_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/ats/libgnunetats.la  
+
+test_ats_api_reset_backoff_SOURCES = \
+ test_ats_api_reset_backoff.c
+test_ats_api_reset_backoff_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/ats/libgnunetats.la  
 

@@ -1028,7 +1028,11 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_ATS_ADDRESS_IN_USE 351
 
-
+/**
+ * Type of the 'struct AddressUseMessage' sent by ATS to client
+ * to confirm that an address is used or not used anymore
+ */
+#define GNUNET_MESSAGE_TYPE_ATS_RESET_BACKOFF 352
 
 
 /*******************************************************************************

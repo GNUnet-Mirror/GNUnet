@@ -523,6 +523,17 @@ GNUNET_ATS_scheduling_done (struct GNUNET_ATS_SchedulingHandle *sh);
 
 
 /**
+ * We would like to reset the address suggestion block time for this
+ * peer
+ *
+ * @param sh handle
+ * @param peer identity of the peer we want to reset
+ */
+void
+GNUNET_ATS_reset_backoff (struct GNUNET_ATS_SchedulingHandle *sh,
+                          const struct GNUNET_PeerIdentity *peer);
+
+/**
  * We would like to establish a new connection with a peer.  ATS
  * should suggest a good address to begin with.
  *

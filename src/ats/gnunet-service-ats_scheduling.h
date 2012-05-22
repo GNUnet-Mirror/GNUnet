@@ -51,6 +51,19 @@ GAS_scheduling_remove_client (struct GNUNET_SERVER_Client *client);
 
 
 /**
+ * Handle 'reset backoff' messages from clients.
+ *
+ * @param cls unused, NULL
+ * @param client client that sent the request
+ * @param message the request message
+ */
+void
+GAS_handle_reset_backoff (void *cls,
+                          struct GNUNET_SERVER_Client *client,
+                          const struct GNUNET_MessageHeader *message);
+
+
+/**
  * Transmit the given address suggestion and bandwidth update to all scheduling
  * clients.
  *

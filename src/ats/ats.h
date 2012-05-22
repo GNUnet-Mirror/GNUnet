@@ -61,6 +61,15 @@ struct RequestAddressMessage
   struct GNUNET_PeerIdentity peer;
 };
 
+struct ResetBackoffMessage
+{
+  struct GNUNET_MessageHeader header;
+
+  uint32_t reserved GNUNET_PACKED;
+
+  struct GNUNET_PeerIdentity peer;
+};
+
 
 struct AddressUpdateMessage
 {

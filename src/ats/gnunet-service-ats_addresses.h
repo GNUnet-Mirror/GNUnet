@@ -112,6 +112,9 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
 void
 GAS_addresses_done (void);
 
+void
+GAS_addresses_handle_backoff_reset (const struct GNUNET_PeerIdentity *peer);
+
 /**
  * This address is now used or not used anymore
  */
