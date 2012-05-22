@@ -708,7 +708,8 @@ peergroup_ready (void *cls, const char *emsg)
                                      &d2->id,         /* Null for local peer? */
                                      10,           /* App port */
                                      &stream_open_cb,
-                                     &peer1);
+                                     &peer1,
+				     GNUNET_STREAM_OPTION_END);
   GNUNET_assert (NULL != peer1.socket);
 }
 

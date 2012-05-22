@@ -381,7 +381,8 @@ test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                      &self,         /* Null for local peer? */
                                      10,           /* App port */
                                      &stream_open_cb,
-                                     &peer1);
+                                     &peer1,
+				     GNUNET_STREAM_OPTION_END);
   GNUNET_assert (NULL != peer1.socket);
 }
 
