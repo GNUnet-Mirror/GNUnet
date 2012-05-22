@@ -31,6 +31,7 @@
  */
 #include "platform.h"
 #include "gnunet_disk_lib.h"
+#include "gnunet_network_lib.h"
 #include "gnunet_testing_lib-new.h"
 
 
@@ -193,6 +194,38 @@ uint16_t
 reserve_port (struct GNUNET_TESTING_System *system,
 	      int is_tcp)
 {
+  /* struct GNUNET_NETWORK_Handle *socket; */
+  /* struct sockaddr_in addr; */
+  /* uint32_t *port_buckets; */
+  /* uint32_t xor_image; */
+  /* uint16_t index; */
+  /* uint16_t buckets;   */
+
+  /* if (GNUNET_YES == is_tcp) */
+  /* { */
+  /*   socket = GNUNET_NETWORK_socket_create (AF_INET, */
+  /* 					   SOCKET_STREAM, */
+  /* 					   0); */
+  /*   port_buckets = system->reserved_tcp_ports; */
+  /* } */
+  /* else */
+  /* { */
+  /*   socket = GNUNET_NETWORK_socket_create (AF_INET, */
+  /* 					   SOCKET_DGRAM, */
+  /* 					   0); */
+  /*   port_buckets = system->reserved_udp_ports; */
+  /* } */
+  /* buckets = 65536 / 32; */
+  /* for (index = (LOW_PORT / 32) + 1; index < (HIGH_PORT / 32); index++) */
+  /* { */
+  /*   xor_image = ((uint32_t) 0xffffffff) ^ port_buckets[index]; */
+  /*   if (0 == xor_image)        /\* Ports in the bucket are full *\/ */
+  /*     continue; */
+    
+  /* } */
+  /* addr.sin_family = AF_INET; */
+  /* addr.sin_port = ??; */
+  
   GNUNET_break (0);
   return 0;
 }
