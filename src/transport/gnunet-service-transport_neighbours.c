@@ -1698,6 +1698,8 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
   n = setup_neighbour (target);  
   n->state = S_INIT_ATS; 
   n->timeout = GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT);
+
+  GNUNET_ATS_reset_backoff (GST_ats, target);
   GNUNET_ATS_suggest_address (GST_ats, target);
 }
 
@@ -1807,6 +1809,7 @@ handle_test_blacklist_cont (void *cls,
       n->state = S_INIT_ATS;
       n->timeout = GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT);
       // FIXME: do we need to ask ATS again for suggestions?
+      GNUNET_ATS_reset_backoff (GST_ats, peer);
       GNUNET_ATS_suggest_address (GST_ats, &n->id);
     }
     break;
@@ -2007,6 +2010,7 @@ GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
   case S_NOT_CONNECTED:
     n->state = S_CONNECT_RECV_ATS;
     n->timeout = GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT);
+    GNUNET_ATS_reset_backoff (GST_ats, peer);
     GNUNET_ATS_suggest_address (GST_ats, peer);
     check_blacklist (peer, ts, address, session, ats, ats_count);
     break;
@@ -2055,6 +2059,7 @@ GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
     free_neighbour (n);
     n = setup_neighbour (peer);
     n->state = S_CONNECT_RECV_ATS;
+    GNUNET_ATS_reset_backoff (GST_ats, peer);
     GNUNET_ATS_suggest_address (GST_ats, peer);
     check_blacklist (peer, ts, address, session, ats, ats_count);
     break;
