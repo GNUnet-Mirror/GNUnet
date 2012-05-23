@@ -230,7 +230,7 @@ plugin_env_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (NULL == message)
     goto end;
   type = ntohs (message->type);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received Message with type %u\n", type);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received Message with type %u from peer `%s'\n", type, GNUNET_i2s (peer));
 
   GNUNET_STATISTICS_update (GST_stats,
                         gettext_noop
