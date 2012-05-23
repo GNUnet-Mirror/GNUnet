@@ -991,10 +991,24 @@ process_incoming (void *cls, const void *buf, size_t available,
                   const struct sockaddr *addr, socklen_t addrlen, int errCode)
 {
   struct GNUNET_SERVER_Client *client = cls;
+  struct GNUNET_SERVER_Client *tmp;
   struct GNUNET_SERVER_Handle *server = client->server;
   struct GNUNET_TIME_Absolute end;
   struct GNUNET_TIME_Absolute now;
   int ret;
+
+  /* Check if this client is still valid */
+  for (tmp = server->clients_head; NULL != tmp; tmp = tmp->next)
+  {
+    if (tmp == client)
+      break;
+  }
+
+  if (NULL == tmp)
+  {
+    GNUNET_break (0);
+    return;
+  }
 
   GNUNET_assert (GNUNET_YES == client->receive_pending);
   client->receive_pending = GNUNET_NO;
@@ -1034,10 +1048,18 @@ process_incoming (void *cls, const void *buf, size_t available,
     ret =
         client->server->mst_receive (client->server->mst_cls, client->mst,
                                      client, buf, available, GNUNET_NO, GNUNET_YES);
-  else
+  else if (NULL != client->mst)
+  {
     ret =
         GNUNET_SERVER_mst_receive (client->mst, client, buf, available, GNUNET_NO,
                                    GNUNET_YES);
+  }
+  else
+  {
+    GNUNET_break (0);
+    return;
+  }
+
   process_mst (client, ret);
   GNUNET_SERVER_client_drop (client);
 }

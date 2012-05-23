@@ -1937,6 +1937,10 @@ handle_tcp_data (void *cls, struct GNUNET_SERVER_Client *client,
   distance[1].value = session->ats_address_network_type;
   GNUNET_break (ntohl(session->ats_address_network_type) != GNUNET_ATS_NET_UNSPECIFIED);
 
+  GNUNET_assert (GNUNET_CONTAINER_multihashmap_contains_value (plugin->sessionmap,
+      &session->target.hashPubKey,
+      session));
+
   delay = plugin->env->receive (plugin->env->cls,
                                 &session->target,
                                 message,
