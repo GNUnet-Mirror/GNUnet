@@ -44,7 +44,10 @@ def get_process_list ():
   else:
     pids = [pid for pid in os.listdir('/proc') if pid.isdigit ()]
     for pid in pids:
-      result.append ((pid, open (os.path.join ('/proc', pid, 'comm'), 'rb').read ()))
+      with open (os.path.join ('/proc', pid, 'cmdline'), 'rb') as p:
+        cmdline = p.read ().split ('\x00')
+        if len (cmdline) > 0:
+          result.append ((pid, cmdline[0]))
   return result
 
 def main ():
@@ -57,7 +60,7 @@ def main ():
     if re.match (r'gnunet-service-arm', p[1]):
       print ("killing arm process {0:5} {1}".format (p[0], p[1]))
       try:
-        os.kill (p[0], signal.SIGTERM)
+        os.kill (int (p[0]), signal.SIGKILL)
       except OSError as e:
         print ("failed: {0}".format (e))
         pass
@@ -65,7 +68,7 @@ def main ():
     if not re.match (r'gnunet-service-arm', p[1]):
       print ("killing non-arm process {0:5} {1}".format (p[0], p[1]))
       try:
-        os.kill (p[0], signal.SIGTERM)
+        os.kill (int (p[0]), signal.SIGKILL)
       except OSError as e:
         print ("failed: {0}".format (e))
         pass
