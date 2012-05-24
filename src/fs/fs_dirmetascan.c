@@ -248,7 +248,7 @@ finish_scan (void *cls,
  * @param client always NULL
  * @param msg message from the helper process
  */
-static void
+static int
 process_helper_msgs (void *cls, 
 		     void *client,
 		     const struct GNUNET_MessageHeader *msg)
@@ -281,7 +281,7 @@ process_helper_msgs (void *cls,
     else
       (void) expand_tree (ds->pos,
 			  filename, GNUNET_NO);
-    return;
+    return GNUNET_OK;
   case GNUNET_MESSAGE_TYPE_FS_PUBLISH_HELPER_PROGRESS_DIRECTORY:
     if (filename[left-1] != '\0')
     {
@@ -296,7 +296,7 @@ process_helper_msgs (void *cls,
 	break;
       }
       ds->pos = ds->pos->parent;
-      return;
+      return GNUNET_OK;
     }
     ds->progress_callback (ds->progress_callback_cls, 
 			   filename, GNUNET_YES,
@@ -305,7 +305,7 @@ process_helper_msgs (void *cls,
 			   filename, GNUNET_YES);
     if (NULL == ds->toplevel)
       ds->toplevel = ds->pos;
-    return;
+    return GNUNET_OK;
   case GNUNET_MESSAGE_TYPE_FS_PUBLISH_HELPER_ERROR:
     break;
   case GNUNET_MESSAGE_TYPE_FS_PUBLISH_HELPER_SKIP_FILE:
@@ -314,7 +314,7 @@ process_helper_msgs (void *cls,
     ds->progress_callback (ds->progress_callback_cls, 
 			   filename, GNUNET_SYSERR,
 			   GNUNET_FS_DIRSCANNER_FILE_IGNORED);
-    return;
+    return GNUNET_OK;
   case GNUNET_MESSAGE_TYPE_FS_PUBLISH_HELPER_COUNTING_DONE:
     if (0 != left)
     {
@@ -332,7 +332,7 @@ process_helper_msgs (void *cls,
     ds->pos = ds->toplevel;
     if (GNUNET_YES == ds->pos->is_directory)
       ds->pos = advance (ds->pos);
-    return;
+    return GNUNET_OK;
   case GNUNET_MESSAGE_TYPE_FS_PUBLISH_HELPER_META_DATA:
     {
       size_t nlen;
@@ -382,7 +382,7 @@ process_helper_msgs (void *cls,
       }
       ds->pos->ksk_uri = GNUNET_FS_uri_ksk_create_from_meta_data (ds->pos->meta);
       ds->pos = advance (ds->pos);      
-      return;
+      return GNUNET_OK;
     }
   case GNUNET_MESSAGE_TYPE_FS_PUBLISH_HELPER_FINISHED:
     if (NULL != ds->pos)
@@ -402,7 +402,7 @@ process_helper_msgs (void *cls,
     }
     ds->stop_task = GNUNET_SCHEDULER_add_now (&finish_scan,
 					      ds);
-    return;
+    return GNUNET_OK;
   default:
     GNUNET_break (0);
     break;
@@ -410,6 +410,7 @@ process_helper_msgs (void *cls,
   ds->progress_callback (ds->progress_callback_cls, 
 			 NULL, GNUNET_SYSERR,
 			 GNUNET_FS_DIRSCANNER_INTERNAL_ERROR);
+  return GNUNET_OK;
 }
 
 

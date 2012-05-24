@@ -1263,7 +1263,7 @@ udp_nat_port_map_callback (void *cls, int add_remove,
  * @param client the 'struct SourceInformation'
  * @param hdr the actual message
  */
-static void
+static int
 process_inbound_tokenized_messages (void *cls, void *client,
                                     const struct GNUNET_MessageHeader *hdr)
 {
@@ -1274,7 +1274,7 @@ process_inbound_tokenized_messages (void *cls, void *client,
 
   GNUNET_assert (si->session != NULL);
   if (GNUNET_YES == si->session->in_destroy)
-    return; 
+    return GNUNET_OK;
   /* setup ATS */
   ats[0].type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
   ats[0].value = htonl (1);
@@ -1289,6 +1289,7 @@ process_inbound_tokenized_messages (void *cls, void *client,
                 si->arg,
                 si->args);
   si->session->flow_delay_for_other_peer = delay;
+  return GNUNET_OK;
 }
 
 

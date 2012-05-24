@@ -1288,7 +1288,7 @@ checkPeerID (void *cls, const GNUNET_HashCode * key, void *value)
  * @param client the TokenizedMessageContext which contains message information
  * @param message the actual message
  */
-void
+int
 tokenized_message_handler (void *cls, void *client,
                            const struct GNUNET_MessageHeader *message)
 {
@@ -1312,6 +1312,7 @@ tokenized_message_handler (void *cls, void *client,
     send_to_plugin (ctx->peer, message, ntohs (message->size),
                     &ctx->distant->identity, ctx->distant->cost);
   }
+  return GNUNET_OK;
 }
 
 #if DELAY_FORWARDS

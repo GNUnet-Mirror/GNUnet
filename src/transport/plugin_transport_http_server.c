@@ -273,7 +273,7 @@ server_reschedule (struct Plugin *plugin, struct MHD_Daemon *server, int now)
  * @param client clien
  * @param message the message to be forwarded to transport service
  */
-static void
+static int
 server_receive_mst_cb (void *cls, void *client,
                        const struct GNUNET_MessageHeader *message)
 {
@@ -281,7 +281,7 @@ server_receive_mst_cb (void *cls, void *client,
 
   GNUNET_assert (NULL != p);
   if (GNUNET_NO == exist_session(p, s))
-    return;
+    return GNUNET_OK;
 
   struct Plugin *plugin = s->plugin;
   struct GNUNET_TIME_Relative delay;
@@ -299,6 +299,7 @@ server_receive_mst_cb (void *cls, void *client,
                      http_plugin_address_to_string (NULL, s->addr, s->addrlen),
                      delay);
   }
+  return GNUNET_OK;
 }
 
 /**

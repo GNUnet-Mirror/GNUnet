@@ -506,7 +506,7 @@ handle_client_send (void *cls, struct GNUNET_SERVER_Client *client,
  * @param client reservation request ('struct GSC_ClientActiveRequest')
  * @param message the actual message
  */
-static void
+static int
 client_tokenizer_callback (void *cls, void *client,
                            const struct GNUNET_MessageHeader *message)
 {
@@ -546,6 +546,7 @@ client_tokenizer_callback (void *cls, void *client,
 				 GNUNET_CORE_OPTION_SEND_HDR_OUTBOUND);  
     GSC_SESSIONS_transmit (car, message, tc->cork);
   }
+  return GNUNET_OK;
 }
 
 

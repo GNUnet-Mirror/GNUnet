@@ -333,7 +333,7 @@ client_disconnect (struct Session *s)
   return res;
 }
 
-static void
+static int
 client_receive_mst_cb (void *cls, void *client,
                        const struct GNUNET_MessageHeader *message)
 {
@@ -343,7 +343,7 @@ client_receive_mst_cb (void *cls, void *client,
   if (GNUNET_YES != exist_session(p, s))
   {
     GNUNET_break (0);
-    return;
+    return GNUNET_OK;
   }
 
   delay = http_plugin_receive (s, &s->target, message, s, s->addr, s->addrlen);
@@ -359,6 +359,7 @@ client_receive_mst_cb (void *cls, void *client,
                      GNUNET_i2s (&s->target), GNUNET_a2s (s->addr, s->addrlen),
                      delay);
   }
+  return GNUNET_OK;
 }
 
 static void

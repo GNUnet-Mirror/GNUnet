@@ -1658,7 +1658,7 @@ GSC_KX_handle_encrypted_message (struct GSC_KeyExchangeInfo *kx,
  * @param client who sent us the message (struct GSC_KeyExchangeInfo)
  * @param m the message
  */
-static void
+static int
 deliver_message (void *cls, void *client, const struct GNUNET_MessageHeader *m)
 {
   struct DeliverMessageContext *dmc = client;
@@ -1668,7 +1668,7 @@ deliver_message (void *cls, void *client, const struct GNUNET_MessageHeader *m)
   case GNUNET_MESSAGE_TYPE_CORE_BINARY_TYPE_MAP:
   case GNUNET_MESSAGE_TYPE_CORE_COMPRESSED_TYPE_MAP:
     GSC_SESSIONS_set_typemap (dmc->peer, m);
-    return;
+    return GNUNET_OK;
   default:
     GSC_CLIENTS_deliver_message (dmc->peer, dmc->atsi, dmc->atsi_count, m,
                                  ntohs (m->size),
@@ -1677,6 +1677,7 @@ deliver_message (void *cls, void *client, const struct GNUNET_MessageHeader *m)
                                  sizeof (struct GNUNET_MessageHeader),
                                  GNUNET_CORE_OPTION_SEND_HDR_INBOUND);
   }
+  return GNUNET_OK;
 }
 
 

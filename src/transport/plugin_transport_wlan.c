@@ -1081,7 +1081,7 @@ wlan_plugin_send (void *cls,
  * @param client pointer to the session this message belongs to
  * @param hdr start of the message
  */
-static void
+static int
 process_data (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
 {
   struct Plugin *plugin = cls;
@@ -1245,6 +1245,7 @@ process_data (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
 			  (mas->endpoint == NULL) ? 0 : sizeof (struct GNUNET_TRANSPORT_WLAN_MacAddress));
     break;
   }
+  return GNUNET_OK;
 }
 #undef NUM_ATS
 
@@ -1256,7 +1257,7 @@ process_data (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
  * @param client client that send the data (not used)
  * @param hdr header of the GNUNET_MessageHeader
  */
-static void
+static int
 handle_helper_message (void *cls, void *client,
 		       const struct GNUNET_MessageHeader *hdr)
 {
@@ -1358,6 +1359,7 @@ handle_helper_message (void *cls, void *client,
 	 ntohs (hdr->type), ntohs (hdr->size));
     break;
   }
+  return GNUNET_OK;
 }
 
 

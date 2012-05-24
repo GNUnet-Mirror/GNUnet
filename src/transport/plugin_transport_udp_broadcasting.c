@@ -90,7 +90,7 @@ struct Mstv6Context
 
 
 
-void
+int
 broadcast_ipv6_mst_cb (void *cls, void *client,
                        const struct GNUNET_MessageHeader *message)
 {
@@ -104,7 +104,7 @@ broadcast_ipv6_mst_cb (void *cls, void *client,
 
   if (GNUNET_MESSAGE_TYPE_TRANSPORT_BROADCAST_BEACON !=
       ntohs (msg->header.type))
-    return;
+    return GNUNET_OK;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Received beacon with %u bytes from peer `%s' via address `%s'\n",
        ntohs (msg->header.size), GNUNET_i2s (&msg->sender),
@@ -128,9 +128,10 @@ broadcast_ipv6_mst_cb (void *cls, void *client,
                             ("# IPv6 multicast HELLO beacons received via udp"),
                             1, GNUNET_NO);
   GNUNET_free (mc);
+  return GNUNET_OK;
 }
 
-void
+int
 broadcast_ipv4_mst_cb (void *cls, void *client,
                        const struct GNUNET_MessageHeader *message)
 {
@@ -143,7 +144,7 @@ broadcast_ipv4_mst_cb (void *cls, void *client,
 
   if (GNUNET_MESSAGE_TYPE_TRANSPORT_BROADCAST_BEACON !=
       ntohs (msg->header.type))
-    return;
+    return GNUNET_OK;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Received beacon with %u bytes from peer `%s' via address `%s'\n",
        ntohs (msg->header.size), GNUNET_i2s (&msg->sender),
@@ -168,6 +169,7 @@ broadcast_ipv4_mst_cb (void *cls, void *client,
                             ("# IPv4 broadcast HELLO beacons received via udp"),
                             1, GNUNET_NO);
   GNUNET_free (mc);
+  return GNUNET_OK;
 }
 
 void

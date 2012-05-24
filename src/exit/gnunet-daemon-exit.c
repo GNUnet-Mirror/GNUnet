@@ -953,7 +953,7 @@ tcp_from_helper (const struct GNUNET_TUN_TcpHeader *tcp,
  * @param client unsued
  * @param message message received from helper
  */
-static void
+static int
 message_token (void *cls GNUNET_UNUSED, void *client GNUNET_UNUSED,
                const struct GNUNET_MessageHeader *message)
 {
@@ -970,13 +970,13 @@ message_token (void *cls GNUNET_UNUSED, void *client GNUNET_UNUSED,
   if (ntohs (message->type) != GNUNET_MESSAGE_TYPE_VPN_HELPER)
   {
     GNUNET_break (0);
-    return;
+    return GNUNET_OK;
   }
   size = ntohs (message->size);
   if (size < sizeof (struct GNUNET_TUN_Layer2PacketHeader) + sizeof (struct GNUNET_MessageHeader))
   {
     GNUNET_break (0);
-    return;
+    return GNUNET_OK;
   }
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# Bytes received from TUN"),
@@ -993,20 +993,20 @@ message_token (void *cls GNUNET_UNUSED, void *client GNUNET_UNUSED,
       {
 	/* Kernel to blame? */
 	GNUNET_break (0);
-	return;
+        return GNUNET_OK;
       }
       pkt4 = (const struct GNUNET_TUN_IPv4Header *) &pkt_tun[1];
       if (size != ntohs (pkt4->total_length))
       {
 	/* Kernel to blame? */
 	GNUNET_break (0);
-	return;
+        return GNUNET_OK;
       }
       if (pkt4->header_length * 4 != sizeof (struct GNUNET_TUN_IPv4Header))
       {
 	GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		    _("IPv4 packet options received.  Ignored.\n"));
-	return;
+        return GNUNET_OK;
       }
       
       size -= sizeof (struct GNUNET_TUN_IPv4Header);
@@ -1034,7 +1034,7 @@ message_token (void *cls GNUNET_UNUSED, void *client GNUNET_UNUSED,
 	GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		    _("IPv4 packet with unsupported next header %u received.  Ignored.\n"),
 	            (int) pkt4->protocol);
-	return;
+        return GNUNET_OK;
       }
     }
     break;
@@ -1046,14 +1046,14 @@ message_token (void *cls GNUNET_UNUSED, void *client GNUNET_UNUSED,
       {
 	/* Kernel to blame? */
 	GNUNET_break (0);
-	return;
+        return GNUNET_OK;
       }
       pkt6 = (struct GNUNET_TUN_IPv6Header *) &pkt_tun[1];
       if (size != ntohs (pkt6->payload_length) + sizeof (struct GNUNET_TUN_IPv6Header))
       {
 	/* Kernel to blame? */
 	GNUNET_break (0);
-	return;
+        return GNUNET_OK;
       }
       size -= sizeof (struct GNUNET_TUN_IPv6Header);
       switch (pkt6->next_header)
@@ -1080,7 +1080,7 @@ message_token (void *cls GNUNET_UNUSED, void *client GNUNET_UNUSED,
 	GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		    _("IPv6 packet with unsupported next header %d received.  Ignored.\n"),
                     pkt6->next_header);
-	return;
+        return GNUNET_OK;
       }
     }
     break;
@@ -1090,6 +1090,7 @@ message_token (void *cls GNUNET_UNUSED, void *client GNUNET_UNUSED,
 		ntohs (pkt_tun->proto));
     break;
   }
+  return GNUNET_OK;
 }
 
 

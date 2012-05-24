@@ -214,12 +214,13 @@ static int in_shutdown;
  * @param client unused
  * @param msg message to inject
  */
-static void
+static int
 inject_message (void *cls, void *client, const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_SERVER_Handle *server = cls;
 
   GNUNET_break (GNUNET_OK == GNUNET_SERVER_inject (server, NULL, msg));
+  return GNUNET_OK;
 }
 
 

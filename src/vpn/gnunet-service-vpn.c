@@ -1504,7 +1504,7 @@ route_packet (struct DestinationEntry *destination,
  * @param client NULL
  * @param message message we got from the client (VPN tunnel interface)
  */
-static void
+static int
 message_token (void *cls GNUNET_UNUSED, void *client GNUNET_UNUSED,
                const struct GNUNET_MessageHeader *message)
 {
@@ -1521,7 +1521,7 @@ message_token (void *cls GNUNET_UNUSED, void *client GNUNET_UNUSED,
        (mlen < sizeof (struct GNUNET_MessageHeader) + sizeof (struct GNUNET_TUN_Layer2PacketHeader)) )
   {
     GNUNET_break (0);
-    return;
+    return GNUNET_OK;
   }
   tun = (const struct GNUNET_TUN_Layer2PacketHeader *) &message[1];
   mlen -= (sizeof (struct GNUNET_MessageHeader) + sizeof (struct GNUNET_TUN_Layer2PacketHeader));
@@ -1535,7 +1535,7 @@ message_token (void *cls GNUNET_UNUSED, void *client GNUNET_UNUSED,
       {
 	/* blame kernel */
 	GNUNET_break (0);
-	return;
+        return GNUNET_OK;
       }
       pkt6 = (const struct GNUNET_TUN_IPv6Header *) &tun[1];
       get_destination_key_from_ip (AF_INET6,
@@ -1557,7 +1557,7 @@ message_token (void *cls GNUNET_UNUSED, void *client GNUNET_UNUSED,
 			       &pkt6->destination_address,
 			       buf,
 			       sizeof (buf)));
-	return;
+	return GNUNET_OK;
       }
       route_packet (de,
 		    AF_INET6,
@@ -1576,7 +1576,7 @@ message_token (void *cls GNUNET_UNUSED, void *client GNUNET_UNUSED,
       {
 	/* blame kernel */
 	GNUNET_break (0);
-	return;
+	return GNUNET_OK;
       }
       pkt4 = (struct GNUNET_TUN_IPv4Header *) &tun[1];
       get_destination_key_from_ip (AF_INET,
@@ -1598,13 +1598,13 @@ message_token (void *cls GNUNET_UNUSED, void *client GNUNET_UNUSED,
 			       &pkt4->destination_address,
 			       buf,
 			       sizeof (buf)));
-	return;
+        return GNUNET_OK;
       }
       if (pkt4->header_length * 4 != sizeof (struct GNUNET_TUN_IPv4Header))
       {
 	GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		    _("Received IPv4 packet with options (dropping it)\n"));		    
-	return;
+        return GNUNET_OK;
       }
       route_packet (de,
 		    AF_INET,
@@ -1621,6 +1621,7 @@ message_token (void *cls GNUNET_UNUSED, void *client GNUNET_UNUSED,
 		(unsigned int) ntohs (tun->proto));
     break;
   }
+  return GNUNET_OK;
 }
 
 

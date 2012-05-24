@@ -1239,7 +1239,7 @@ handle_client_response (void *cls GNUNET_UNUSED,
  * @param client identification of the client
  * @param message the actual message, a DNS request we should handle
  */
-static void
+static int
 process_helper_messages (void *cls GNUNET_UNUSED, void *client,
 			 const struct GNUNET_MessageHeader *message)
 {
@@ -1260,7 +1260,7 @@ process_helper_messages (void *cls GNUNET_UNUSED, void *client,
   {
     /* non-IP packet received on TUN!? */
     GNUNET_break (0);
-    return;
+    return GNUNET_OK;
   }
   msize -= sizeof (struct GNUNET_MessageHeader);
   tun = (const struct GNUNET_TUN_Layer2PacketHeader *) &message[1];
@@ -1279,7 +1279,7 @@ process_helper_messages (void *cls GNUNET_UNUSED, void *client,
       /* non-IP/UDP packet received on TUN (or with options) */
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		  _("Received malformed IPv4-UDP packet on TUN interface.\n"));
-      return;
+      return GNUNET_OK;
     }
     udp = (const struct GNUNET_TUN_UdpHeader*) &ip4[1];
     msize -= sizeof (struct GNUNET_TUN_IPv4Header);
@@ -1295,7 +1295,7 @@ process_helper_messages (void *cls GNUNET_UNUSED, void *client,
       /* non-IP/UDP packet received on TUN (or with extensions) */
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		  _("Received malformed IPv6-UDP packet on TUN interface.\n"));
-      return;
+      return GNUNET_OK;
     }
     udp = (const struct GNUNET_TUN_UdpHeader*) &ip6[1];
     msize -= sizeof (struct GNUNET_TUN_IPv6Header);
@@ -1306,7 +1306,7 @@ process_helper_messages (void *cls GNUNET_UNUSED, void *client,
 		_("Got non-IP packet with %u bytes and protocol %u from TUN\n"),
 		(unsigned int) msize,
 		ntohs (tun->proto));
-    return;
+    return GNUNET_OK;
   }
   if (msize <= sizeof (struct GNUNET_TUN_UdpHeader) + sizeof (struct GNUNET_TUN_DnsHeader))
   {    
@@ -1314,7 +1314,7 @@ process_helper_messages (void *cls GNUNET_UNUSED, void *client,
     GNUNET_STATISTICS_update (stats,
 			      gettext_noop ("# Non-DNS UDP packet received via TUN interface"),
 			      1, GNUNET_NO);
-    return;
+    return GNUNET_OK;
   }
   msize -= sizeof (struct GNUNET_TUN_UdpHeader);
   dns = (const struct GNUNET_TUN_DnsHeader*) &udp[1];
@@ -1381,6 +1381,7 @@ process_helper_messages (void *cls GNUNET_UNUSED, void *client,
 			    1, GNUNET_NO);
   /* start request processing state machine */
   next_phase (rr);
+  return GNUNET_OK;
 }
 
 

@@ -119,7 +119,7 @@ send_mac_to_plugin (char *buffer, struct GNUNET_TRANSPORT_WLAN_MacAddress *mac)
  * @param client unused
  * @param hdr inbound message from the FIFO
  */
-static void
+static int
 stdin_send (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
 {
   struct SendBuffer *write_pout = cls;
@@ -154,6 +154,7 @@ stdin_send (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
 	  &in[1],
 	  payload_size);
   write_pout->size += payload_size;
+  return GNUNET_OK;
 }
 
 
@@ -164,7 +165,7 @@ stdin_send (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
  * @param client unused
  * @param hdr the message we received to copy to the buffer
  */
-static void
+static int
 file_in_send (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
 {
   struct SendBuffer *write_std = cls;
@@ -178,6 +179,7 @@ file_in_send (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
   }
   memcpy (write_std->buf + write_std->size, hdr, sendsize);
   write_std->size += sendsize;
+  return GNUNET_OK;
 }
 
 
