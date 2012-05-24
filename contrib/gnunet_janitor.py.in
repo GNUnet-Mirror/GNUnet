@@ -34,6 +34,9 @@ import signal
 if os.name == 'nt':
   from win32com.client import GetObject
   WMI = GetObject('winmgmts:')
+  killsignal = signal.SIGTERM # any valid value will result in TerminateProcess()
+else:
+  killsignal = signal.SIGKILL  
 
 def get_process_list ():
   result = []
@@ -60,7 +63,7 @@ def main ():
     if re.match (r'gnunet-service-arm', p[1]):
       print ("killing arm process {0:5} {1}".format (p[0], p[1]))
       try:
-        os.kill (int (p[0]), signal.SIGKILL)
+        os.kill (int (p[0]), killsignal)
       except OSError as e:
         print ("failed: {0}".format (e))
         pass
@@ -68,7 +71,7 @@ def main ():
     if not re.match (r'gnunet-service-arm', p[1]):
       print ("killing non-arm process {0:5} {1}".format (p[0], p[1]))
       try:
-        os.kill (int (p[0]), signal.SIGKILL)
+        os.kill (int (p[0]), killsignal)
       except OSError as e:
         print ("failed: {0}".format (e))
         pass
