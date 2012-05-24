@@ -1104,8 +1104,10 @@ restart_processing (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param cls closure (struct GNUNET_SERVER_Handle)
  * @param client identification of the client (struct GNUNET_SERVER_Client*)
  * @param message the actual message
+ *
+ * @return GNUNET_OK on success, GNUNET_SYSERR to stop further processing
  */
-static void
+static int
 client_message_tokenizer_callback (void *cls, void *client,
                                    const struct GNUNET_MessageHeader *message)
 {
@@ -1120,7 +1122,11 @@ client_message_tokenizer_callback (void *cls, void *client,
   ret = GNUNET_SERVER_inject (server, sender, message);
   sender->in_process_client_buffer = GNUNET_NO;
   if ( (GNUNET_OK != ret) || (GNUNET_YES == sender->shutdown_now) )
+  {
     GNUNET_SERVER_client_disconnect (sender);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
 }
 
 

@@ -195,6 +195,7 @@ check_PROGRAMS = \
  test_resolver_api \
  test_scheduler \
  test_scheduler_delay \
+ test_server_mst_interrupt \
  test_server \
  test_server_disconnect \
  test_server_with_client \
@@ -400,6 +401,11 @@ test_scheduler_LDADD = \
 test_scheduler_delay_SOURCES = \
  test_scheduler_delay.c
 test_scheduler_delay_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la  
+
+test_server_mst_interrupt_SOURCES = \
+ test_server_mst_interrupt.c
+test_server_mst_interrupt_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la  
 
 test_server_SOURCES = \

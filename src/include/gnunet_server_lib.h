@@ -607,11 +607,15 @@ struct GNUNET_SERVER_MessageStreamTokenizer;
  * Functions with this signature are called whenever a
  * complete message is received by the tokenizer.
  *
+ * Do not call GNUNET_SERVER_mst_destroy in callback
+ *
  * @param cls closure
  * @param client identification of the client
  * @param message the actual message
+ *
+ * @return GNUNET_OK on success, GNUNET_SYSERR to stop further processing
  */
-typedef void (*GNUNET_SERVER_MessageTokenizerCallback) (void *cls, void *client,
+typedef int (*GNUNET_SERVER_MessageTokenizerCallback) (void *cls, void *client,
                                                         const struct
                                                         GNUNET_MessageHeader *
                                                         message);
