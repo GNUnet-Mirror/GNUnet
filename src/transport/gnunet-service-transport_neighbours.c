@@ -842,6 +842,61 @@ set_address (struct NeighbourAddress *na,
   }
 }
 
+/**
+ * Free a neighbour map entry.
+ *
+ * @param n entry to free
+ */
+static void
+free_neighbour_without_terminating_sessions (struct NeighbourMapEntry *n)
+{
+  struct MessageQueue *mq;
+  n->is_active = NULL; /* always free'd by its own continuation! */
+
+  /* fail messages currently in the queue */
+  while (NULL != (mq = n->messages_head))
+  {
+    GNUNET_CONTAINER_DLL_remove (n->messages_head, n->messages_tail, mq);
+    if (NULL != mq->cont)
+      mq->cont (mq->cont_cls, GNUNET_SYSERR);
+    GNUNET_free (mq);
+  }
+  /* It is too late to send other peer disconnect notifications, but at
+     least internally we need to get clean... */
+  if (GNUNET_YES == test_connected (n))
+  {
+    GNUNET_STATISTICS_set (GST_stats,
+                           gettext_noop ("# peers connected"),
+                           --neighbours_connected,
+                           GNUNET_NO);
+    disconnect_notify_cb (callback_cls, &n->id);
+  }
+
+  n->state = S_DISCONNECT_FINISHED;
+
+  GNUNET_assert (GNUNET_YES ==
+                 GNUNET_CONTAINER_multihashmap_remove (neighbours,
+                                                       &n->id.hashPubKey, n));
+
+  /* cut transport-level connection */
+  free_address (&n->primary_address);
+  free_address (&n->alternative_address);
+
+  // FIXME-ATS-API: we might want to be more specific about
+  // which states we do this from in the future (ATS should
+  // have given us a 'suggest_address' handle, and if we have
+  // such a handle, we should cancel the operation here!
+  GNUNET_ATS_suggest_address_cancel (GST_ats, &n->id);
+
+  if (GNUNET_SCHEDULER_NO_TASK != n->task)
+  {
+    GNUNET_SCHEDULER_cancel (n->task);
+    n->task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  /* free rest of memory */
+  GNUNET_free (n);
+}
+
 
 /**
  * Free a neighbour map entry.
@@ -2055,13 +2110,12 @@ GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
     check_blacklist (peer, ts, address, session, ats, ats_count);
     break;
   case S_DISCONNECT:
-    /* get rid of remains, ready to re-try */
-    free_neighbour (n);
+    /* get rid of remains without terminating sessions, ready to re-try */
+    free_neighbour_without_terminating_sessions (n);
     n = setup_neighbour (peer);
     n->state = S_CONNECT_RECV_ATS;
     GNUNET_ATS_reset_backoff (GST_ats, peer);
     GNUNET_ATS_suggest_address (GST_ats, peer);
-    check_blacklist (peer, ts, address, session, ats, ats_count);
     break;
   case S_DISCONNECT_FINISHED:
     /* should not be possible */
