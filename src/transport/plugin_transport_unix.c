@@ -85,6 +85,13 @@ struct Session
   void *addr;
   size_t addrlen;
   struct GNUNET_PeerIdentity target;
+
+  /**
+   * Session timeout task
+   */
+  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+
+  struct Plugin * plugin;
 };
 
 struct UNIXMessageWrapper
@@ -241,6 +248,24 @@ struct Plugin
   unsigned int bytes_discarded;
 };
 
+/**
+ * Start session timeout
+ */
+static void
+start_session_timeout (struct Session *s);
+
+/**
+ * Increment session timeout due to activity
+ */
+static void
+reschedule_session_timeout (struct Session *s);
+
+/**
+ * Cancel timeout
+ */
+static void
+stop_session_timeout (struct Session *s);
+
 
 static void
 unix_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
@@ -278,18 +303,64 @@ reschedule_select (struct Plugin * plugin)
   }
 }
 
-
-static int
-get_session_delete_it (void *cls, const GNUNET_HashCode * key, void *value)
+struct LookupCtx
 {
-  struct Session *s = value;
+  struct Session *s;
+  const struct sockaddr_un *addr;
+};
+
+int lookup_session_it (void *cls,
+                       const GNUNET_HashCode * key,
+                       void *value)
+{
+  struct LookupCtx *lctx = cls;
+  struct Session *t = value;
+
+  if (0 == strcmp (t->addr, lctx->addr->sun_path))
+  {
+    lctx->s = t;
+    return GNUNET_NO;
+  }
+  return GNUNET_YES;
+}
+
+
+static struct Session *
+lookup_session (struct Plugin *plugin, struct GNUNET_PeerIdentity *sender, const struct sockaddr_un *addr)
+{
+  struct LookupCtx lctx;
+
+  GNUNET_assert (NULL != plugin);
+  GNUNET_assert (NULL != sender);
+  GNUNET_assert (NULL != addr);
+
+  lctx.s = NULL;
+  lctx.addr = addr;
+
+  GNUNET_CONTAINER_multihashmap_get_multiple (plugin->session_map, &sender->hashPubKey, &lookup_session_it, &lctx);
+
+  return lctx.s;
+}
+
+/**
+ * Functions with this signature are called whenever we need
+ * to close a session due to a disconnect or failure to
+ * establish a connection.
+ *
+ * @param session session to close down
+ */
+static void
+disconnect_session (struct Session *s)
+{
   struct UNIXMessageWrapper *msgw;
   struct UNIXMessageWrapper *next;
-  struct Plugin *plugin = cls;
+  struct Plugin * plugin = s->plugin;
   int removed;
   GNUNET_assert (plugin != NULL);
+  GNUNET_assert (s != NULL);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Deleting session for peer `%s' `%s' \n", GNUNET_i2s (&s->target), s->addr);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting session for peer `%s' `%s' \n", GNUNET_i2s (&s->target), s->addr);
+  stop_session_timeout (s);
   plugin->env->session_end (plugin->env->cls, &s->target, s);
 
   msgw = plugin->msg_head;
@@ -312,7 +383,7 @@ get_session_delete_it (void *cls, const GNUNET_HashCode * key, void *value)
     reschedule_select (plugin);
 
   GNUNET_assert (GNUNET_YES ==
-		 GNUNET_CONTAINER_multihashmap_remove(plugin->session_map, &s->target.hashPubKey, s));
+                 GNUNET_CONTAINER_multihashmap_remove(plugin->session_map, &s->target.hashPubKey, s));
 
   GNUNET_STATISTICS_set(plugin->env->stats,
                         "# UNIX sessions active",
@@ -320,6 +391,13 @@ get_session_delete_it (void *cls, const GNUNET_HashCode * key, void *value)
                         GNUNET_NO);
 
   GNUNET_free (s);
+}
+
+static int
+get_session_delete_it (void *cls, const GNUNET_HashCode * key, void *value)
+{
+  struct Session *s = value;
+  disconnect_session (s);
   return GNUNET_YES;
 }
 
@@ -603,8 +681,11 @@ unix_plugin_get_session (void *cls,
   s = GNUNET_malloc (sizeof (struct Session) + address->address_length);
   s->addr = &s[1];
   s->addrlen = address->address_length;
+  s->plugin = plugin;
   memcpy(s->addr, address->address, s->addrlen);
   memcpy(&s->target, &address->peer, sizeof (struct GNUNET_PeerIdentity));
+
+  start_session_timeout (s);
 
   GNUNET_CONTAINER_multihashmap_put (plugin->session_map,
       &address->peer.hashPubKey, s,
@@ -688,6 +769,7 @@ unix_plugin_send (void *cls,
           sizeof (struct GNUNET_PeerIdentity));
   memcpy (&message[1], msgbuf, msgbuf_size);
 
+  reschedule_session_timeout (session);
 
   wrapper = GNUNET_malloc (sizeof (struct UNIXMessageWrapper));
   wrapper->msg = message;
@@ -729,6 +811,8 @@ unix_demultiplexer (struct Plugin *plugin, struct GNUNET_PeerIdentity *sender,
                     const struct sockaddr_un *un, size_t fromlen)
 {
   struct GNUNET_ATS_Information ats[2];
+  struct Session *s = NULL;
+  struct GNUNET_HELLO_Address * addr;
 
   ats[0].type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
   ats[0].value = htonl (UNIX_DIRECT_DISTANCE);
@@ -744,9 +828,16 @@ unix_demultiplexer (struct Plugin *plugin, struct GNUNET_PeerIdentity *sender,
   GNUNET_STATISTICS_set (plugin->env->stats,"# UNIX bytes received",
       plugin->bytes_in_recv, GNUNET_NO);
 
+  addr = GNUNET_HELLO_address_allocate(sender, "unix", un->sun_path, strlen (un->sun_path));
+  s = lookup_session (plugin, sender, un);
+  if (NULL == s)
+    s = unix_plugin_get_session (plugin, addr);
+  reschedule_session_timeout (s);
+
   plugin->env->receive (plugin->env->cls, sender, currhdr,
                         (const struct GNUNET_ATS_Information *) &ats, 2,
-                        NULL, un->sun_path, strlen (un->sun_path) + 1);
+                        s, un->sun_path, strlen (un->sun_path) + 1);
+  GNUNET_free (addr);
 }
 
 
@@ -1131,6 +1222,85 @@ address_notification (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                plugin->unix_socket_path,
                                strlen (plugin->unix_socket_path) + 1);
 }
+
+
+/**
+ * Session was idle, so disconnect it
+ */
+static void
+session_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_assert (NULL != cls);
+  struct Session *s = cls;
+
+  s->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Session %p was idle for %llu, disconnecting\n",
+      s, GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value);
+
+  /* call session destroy function */
+  disconnect_session(s);
+
+}
+
+/**
+ * Start session timeout
+ */
+static void
+start_session_timeout (struct Session *s)
+{
+  GNUNET_assert (NULL != s);
+  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == s->timeout_task);
+
+  s->timeout_task =  GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
+                                                   &session_timeout,
+                                                   s);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Timeout for session %p set to %llu\n",
+      s, GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value);
+}
+
+/**
+ * Increment session timeout due to activity
+ */
+static void
+reschedule_session_timeout (struct Session *s)
+{
+  GNUNET_assert (NULL != s);
+  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != s->timeout_task);
+
+  GNUNET_SCHEDULER_cancel (s->timeout_task);
+  s->timeout_task =  GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
+                                                   &session_timeout,
+                                                   s);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Timeout rescheduled for session %p set to %llu\n",
+      s, GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value);
+}
+
+/**
+ * Cancel timeout
+ */
+static void
+stop_session_timeout (struct Session *s)
+{
+  GNUNET_assert (NULL != s);
+
+  if (GNUNET_SCHEDULER_NO_TASK != s->timeout_task)
+  {
+    GNUNET_SCHEDULER_cancel (s->timeout_task);
+    s->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Timeout rescheduled for session %p canceled\n",
+      s, GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value);
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Timeout for session %p was not active\n",
+      s);
+  }
+}
+
 
 /**
  * The exported method. Makes the core api available via a global and
