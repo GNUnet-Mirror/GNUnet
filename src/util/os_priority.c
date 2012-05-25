@@ -869,7 +869,10 @@ GNUNET_OS_start_process_vap (int pipe_control,
   char *libdir;
   char *ptr;
   char *non_const_filename;
-  wchar_t wpath[MAX_PATH + 1], wcmd[32768];
+  char win_path[MAX_PATH + 1];
+  wchar_t *wpath, *wcmd;
+  size_t wpath_len, wcmd_len;
+  long lRet;
 
   /* Search in prefix dir (hopefully - the directory from which
    * the current module was loaded), bindir and libdir, then in PATH
@@ -901,7 +904,22 @@ GNUNET_OS_start_process_vap (int pipe_control,
   else
     GNUNET_asprintf (&non_const_filename, "%s", filename);
 
+  /* It could be in POSIX form, convert it to a DOS path early on */
+  if (ERROR_SUCCESS != (lRet = plibc_conv_to_win_path (non_const_filename, win_path)))
+  {
+     SetErrnoFromWinError (lRet);
+     LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_ERROR, "plibc_conv_to_win_path",
+                        non_const_filename);
+     GNUNET_free (non_const_filename);
+     GNUNET_free (pathbuf);
+     return NULL;
+  }
+  GNUNET_free (non_const_filename);
+  non_const_filename = GNUNET_strdup (win_path);
   /* Check that this is the full path. If it isn't, search. */
+  /* FIXME: convert it to wchar_t and use SearchPathW?
+   * Remember: arguments to _start_process() are technically in UTF-8...
+   */
   if (non_const_filename[1] == ':')
     snprintf (path, sizeof (path) / sizeof (char), "%s", non_const_filename);
   else if (!SearchPathA
@@ -996,16 +1014,36 @@ GNUNET_OS_start_process_vap (int pipe_control,
   GNUNET_free_non_null (our_env[0]);
   GNUNET_free_non_null (our_env[1]);
 
-  if (ERROR_SUCCESS != plibc_conv_to_win_pathwconv(path, wpath)
-      || ERROR_SUCCESS != plibc_conv_to_win_pathwconv(cmd, wcmd)
-      || !CreateProcessW
-      (wpath, wcmd, NULL, NULL, TRUE, DETACHED_PROCESS | CREATE_SUSPENDED,
-       env_block, NULL, &start, &proc))
+  wpath_len = 0;
+  if (NULL == (wpath = u8_to_u16 ((uint8_t *) path, 1 + strlen (path), NULL, &wpath_len)))
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+        "Failed to convert `%s' from UTF-8 to UTF-16: %d\n", path, errno);
+    GNUNET_free (env_block);
+    GNUNET_free (cmd);
+    return NULL;
+  }
+
+  wcmd_len = 0;
+  if (NULL == (wcmd = u8_to_u16 ((uint8_t *) cmd, 1 + strlen (cmd), NULL, &wcmd_len)))
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+        "Failed to convert `%s' from UTF-8 to UTF-16: %d\n", cmd, errno);
+    GNUNET_free (env_block);
+    GNUNET_free (cmd);
+    free (wpath);
+    return NULL;
+  }
+
+  if (!CreateProcessW (wpath, wcmd, NULL, NULL, TRUE,
+      DETACHED_PROCESS | CREATE_SUSPENDED, env_block, NULL, &start, &proc))
   {
     SetErrnoFromWinError (GetLastError ());
     LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_ERROR, "CreateProcess", path);
     GNUNET_free (env_block);
     GNUNET_free (cmd);
+    free (wpath);
+    free (wcmd);
     return NULL;
   }
 
@@ -1022,7 +1060,8 @@ GNUNET_OS_start_process_vap (int pipe_control,
   CloseHandle (proc.hThread);
 
   GNUNET_free (cmd);
-
+  free (wpath);
+  free (wcmd);
   return gnunet_proc;
 #endif
 }
@@ -1232,9 +1271,11 @@ GNUNET_OS_start_process_v (int pipe_control,
   const struct GNUNET_DISK_FileHandle *lsocks_write_fd;
   HANDLE lsocks_read;
   HANDLE lsocks_write;
-  wchar_t wpath[MAX_PATH + 1], wcmd[32768];
+  wchar_t *wpath, *wcmd;
+  size_t wpath_len, wcmd_len;
   int env_off;
   int fail;
+  long lRet;
 
   /* Search in prefix dir (hopefully - the directory from which
    * the current module was loaded), bindir and libdir, then in PATH
@@ -1271,7 +1312,22 @@ GNUNET_OS_start_process_v (int pipe_control,
   else
     GNUNET_asprintf (&non_const_filename, "%s", filename);
 
-  /* Check that this is the full path. If it isn't, search. */
+  /* It could be in POSIX form, convert it to a DOS path early on */
+  if (ERROR_SUCCESS != (lRet = plibc_conv_to_win_path (non_const_filename, win_path)))
+  {
+    SetErrnoFromWinError (lRet);
+    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_ERROR, "plibc_conv_to_win_path",
+                       non_const_filename);
+    GNUNET_free (non_const_filename);
+    GNUNET_free (pathbuf);
+    return NULL;
+  }
+  GNUNET_free (non_const_filename);
+  non_const_filename = GNUNET_strdup (win_path);
+   /* Check that this is the full path. If it isn't, search. */
+  /* FIXME: convert it to wchar_t and use SearchPathW?
+   * Remember: arguments to _start_process() are technically in UTF-8...
+   */
   if (non_const_filename[1] == ':')
     snprintf (path, sizeof (path) / sizeof (char), "%s", non_const_filename);
   else if (!SearchPathA
@@ -1394,11 +1450,30 @@ GNUNET_OS_start_process_v (int pipe_control,
   env_block = CreateCustomEnvTable (our_env);
   while (0 > env_off)
     GNUNET_free_non_null (our_env[--env_off]);
-  if (ERROR_SUCCESS != plibc_conv_to_win_pathwconv(path, wpath)
-      || ERROR_SUCCESS != plibc_conv_to_win_pathwconv(cmd, wcmd)
-      || !CreateProcessW
-      (wpath, wcmd, NULL, NULL, TRUE, DETACHED_PROCESS | CREATE_SUSPENDED,
-       env_block, NULL, &start, &proc))
+
+  wpath_len = 0;
+  if (NULL == (wpath = u8_to_u16 ((uint8_t *) path, 1 + strlen (path), NULL, &wpath_len)))
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+        "Failed to convert `%s' from UTF-8 to UTF-16: %d\n", path, errno);
+    GNUNET_free (env_block);
+    GNUNET_free (cmd);
+    return NULL;
+  }
+
+  wcmd_len = 0;
+  if (NULL == (wcmd = u8_to_u16 ((uint8_t *) cmd, 1 + strlen (cmd), NULL, &wcmd_len)))
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+        "Failed to convert `%s' from UTF-8 to UTF-16: %d\n", cmd, errno);
+    GNUNET_free (env_block);
+    GNUNET_free (cmd);
+    free (wpath);
+    return NULL;
+  }
+
+  if (!CreateProcessW (wpath, wcmd, NULL, NULL, TRUE,
+       DETACHED_PROCESS | CREATE_SUSPENDED, env_block, NULL, &start, &proc))
   {
     SetErrnoFromWinError (GetLastError ());
     LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "CreateProcess");
@@ -1408,6 +1483,8 @@ GNUNET_OS_start_process_v (int pipe_control,
       GNUNET_DISK_pipe_close (lsocks_pipe);
     GNUNET_free (env_block);
     GNUNET_free (cmd);
+    free (wpath);
+    free (wcmd);
     return NULL;
   }
 
@@ -1423,6 +1500,8 @@ GNUNET_OS_start_process_v (int pipe_control,
   ResumeThread (proc.hThread);
   CloseHandle (proc.hThread);
   GNUNET_free (cmd);
+  free (wpath);
+  free (wcmd);
 
   if (lsocks == NULL || lsocks[0] == INVALID_SOCKET)
     return gnunet_proc;
