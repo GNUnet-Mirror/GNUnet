@@ -468,6 +468,10 @@ struct HTTP_Message
   void *transmit_cont_cls;
 };
 
+struct Session *
+create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
+                const void *addr, size_t addrlen);
+
 int
 exist_session (struct Plugin *plugin, struct Session *s);
 
