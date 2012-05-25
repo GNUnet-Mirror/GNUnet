@@ -194,39 +194,63 @@ uint16_t
 reserve_port (struct GNUNET_TESTING_System *system,
 	      int is_tcp)
 {
-  /* struct GNUNET_NETWORK_Handle *socket; */
-  /* struct sockaddr_in addr; */
-  /* uint32_t *port_buckets; */
-  /* uint32_t xor_image; */
-  /* uint16_t index; */
-  /* uint16_t buckets;   */
+  struct GNUNET_NETWORK_Handle *socket;
+  struct addrinfo hint;
+  struct addrinfo *ret;
+  uint32_t *port_buckets;
+  char *open_port_str;
+  uint32_t xor_image;
+  uint16_t index;
+  uint16_t open_port;
+  uint8_t pos;
 
-  /* if (GNUNET_YES == is_tcp) */
-  /* { */
-  /*   socket = GNUNET_NETWORK_socket_create (AF_INET, */
-  /* 					   SOCKET_STREAM, */
-  /* 					   0); */
-  /*   port_buckets = system->reserved_tcp_ports; */
-  /* } */
-  /* else */
-  /* { */
-  /*   socket = GNUNET_NETWORK_socket_create (AF_INET, */
-  /* 					   SOCKET_DGRAM, */
-  /* 					   0); */
-  /*   port_buckets = system->reserved_udp_ports; */
-  /* } */
-  /* buckets = 65536 / 32; */
-  /* for (index = (LOW_PORT / 32) + 1; index < (HIGH_PORT / 32); index++) */
-  /* { */
-  /*   xor_image = ((uint32_t) 0xffffffff) ^ port_buckets[index]; */
-  /*   if (0 == xor_image)        /\* Ports in the bucket are full *\/ */
-  /*     continue; */
-    
-  /* } */
-  /* addr.sin_family = AF_INET; */
-  /* addr.sin_port = ??; */
-  
-  GNUNET_break (0);
+  if (GNUNET_YES == is_tcp)
+  {
+    socket = GNUNET_NETWORK_socket_create (AF_UNSPEC,
+  					   SOCK_STREAM,
+  					   0);
+    port_buckets = system->reserved_tcp_ports;
+  }
+  else
+  {
+    socket = GNUNET_NETWORK_socket_create (AF_UNSPEC,
+  					   SOCK_DGRAM,
+  					   0);
+    port_buckets = system->reserved_udp_ports;
+  }
+  for (index = (LOW_PORT / 32) + 1; index < (HIGH_PORT / 32); index++)
+  {
+    xor_image = (UINT32_MAX ^ port_buckets[index]);
+    if (0 == xor_image)        /* Ports in the bucket are full */
+      continue;
+
+    pos = 0;
+    while (pos < 32)
+    {
+      if (0 == ((xor_image >> pos) & 1U))
+	break;
+      open_port = (index * 32) + pos;
+      GNUNET_asprintf (&open_port_str, "%u", open_port);
+      hint.ai_family = AF_UNSPEC;	/* IPv4 and IPv6 */
+      hint.ai_socktype = (GNUNET_YES == is_tcp)? SOCK_STREAM : SOCK_DGRAM;
+      hint.ai_protocol = 0;
+      hint.ai_addrlen = 0;
+      hint.ai_addr = NULL;
+      hint.ai_canonname = NULL;
+      hint.ai_next = NULL;
+      hint.ai_flags = AI_PASSIVE | AI_NUMERICSERV;	/* Wild card address */
+      ret = NULL;
+      GNUNET_assert (0 != getaddrinfo (NULL, open_port_str, &hint, &ret));
+      GNUNET_free (open_port_str);
+      if (GNUNET_OK == GNUNET_NETWORK_socket_bind (socket, ret->ai_addr, ret->ai_addrlen))
+      {
+	return open_port;
+      }
+      /* This port is in use by some other application */
+      port_buckets[index] |= (1U << pos);    
+      pos++;
+    }
+  }
   return 0;
 }
 
