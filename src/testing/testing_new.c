@@ -228,7 +228,7 @@ reserve_port (struct GNUNET_TESTING_System *system,
     while (pos < 32)
     {
       if (0 == ((xor_image >> pos) & 1U))
-	break;
+	continue;
       open_port = (index * 32) + pos;
       GNUNET_asprintf (&open_port_str, "%u", open_port);
       hint.ai_family = AF_UNSPEC;	/* IPv4 and IPv6 */
@@ -244,8 +244,10 @@ reserve_port (struct GNUNET_TESTING_System *system,
       GNUNET_free (open_port_str);
       if (GNUNET_OK == GNUNET_NETWORK_socket_bind (socket, ret->ai_addr, ret->ai_addrlen))
       {
+	freeaddrinfo (ret);
 	return open_port;
       }
+      freeaddrinfo (ret);
       /* This port is in use by some other application */
       port_buckets[index] |= (1U << pos);    
       pos++;
