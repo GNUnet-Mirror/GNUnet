@@ -842,69 +842,15 @@ set_address (struct NeighbourAddress *na,
   }
 }
 
-/**
- * Free a neighbour map entry.
- *
- * @param n entry to free
- */
-static void
-free_neighbour_without_terminating_sessions (struct NeighbourMapEntry *n)
-{
-  struct MessageQueue *mq;
-  n->is_active = NULL; /* always free'd by its own continuation! */
-
-  /* fail messages currently in the queue */
-  while (NULL != (mq = n->messages_head))
-  {
-    GNUNET_CONTAINER_DLL_remove (n->messages_head, n->messages_tail, mq);
-    if (NULL != mq->cont)
-      mq->cont (mq->cont_cls, GNUNET_SYSERR);
-    GNUNET_free (mq);
-  }
-  /* It is too late to send other peer disconnect notifications, but at
-     least internally we need to get clean... */
-  if (GNUNET_YES == test_connected (n))
-  {
-    GNUNET_STATISTICS_set (GST_stats,
-                           gettext_noop ("# peers connected"),
-                           --neighbours_connected,
-                           GNUNET_NO);
-    disconnect_notify_cb (callback_cls, &n->id);
-  }
-
-  n->state = S_DISCONNECT_FINISHED;
-
-  GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multihashmap_remove (neighbours,
-                                                       &n->id.hashPubKey, n));
-
-  /* cut transport-level connection */
-  free_address (&n->primary_address);
-  free_address (&n->alternative_address);
-
-  // FIXME-ATS-API: we might want to be more specific about
-  // which states we do this from in the future (ATS should
-  // have given us a 'suggest_address' handle, and if we have
-  // such a handle, we should cancel the operation here!
-  GNUNET_ATS_suggest_address_cancel (GST_ats, &n->id);
-
-  if (GNUNET_SCHEDULER_NO_TASK != n->task)
-  {
-    GNUNET_SCHEDULER_cancel (n->task);
-    n->task = GNUNET_SCHEDULER_NO_TASK;
-  }
-  /* free rest of memory */
-  GNUNET_free (n);
-}
-
 
 /**
  * Free a neighbour map entry.
  *
  * @param n entry to free
+ * @param terminate tell plugin to terminate sessions
  */
 static void
-free_neighbour (struct NeighbourMapEntry *n)
+free_neighbour (struct NeighbourMapEntry *n, int terminate)
 {
   struct MessageQueue *mq;
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
@@ -939,8 +885,9 @@ free_neighbour (struct NeighbourMapEntry *n)
      API gives us not even the means to selectively kill only one of
      them! Killing all sessions like this seems to be very, very
      wrong. */
-  if ( (NULL != n->primary_address.address) &&
-       (NULL != (papi = GST_plugins_find (n->primary_address.address->transport_name))) )
+  if ((GNUNET_YES == terminate) &&
+      (NULL != n->primary_address.address) &&
+      (NULL != (papi = GST_plugins_find (n->primary_address.address->transport_name))))
     papi->disconnect (papi->cls, &n->id);
 
   n->state = S_DISCONNECT_FINISHED;
@@ -1102,7 +1049,7 @@ disconnect_neighbour (struct NeighbourMapEntry *n)
   case S_INIT_BLACKLIST:
     /* other peer is completely unaware of us, no need to send DISCONNECT */
     n->state = S_DISCONNECT_FINISHED;
-    free_neighbour (n);
+    free_neighbour (n, GNUNET_NO);
     return;
   case S_CONNECT_SENT:
     send_disconnect (n); 
@@ -1112,7 +1059,7 @@ disconnect_neighbour (struct NeighbourMapEntry *n)
   case S_CONNECT_RECV_BLACKLIST:
     /* we never ACK'ed the other peer's request, no need to send DISCONNECT */
     n->state = S_DISCONNECT_FINISHED;
-    free_neighbour (n);
+    free_neighbour (n, GNUNET_NO);
     return;
   case S_CONNECT_RECV_ACK:
     /* we DID ACK the other peer's request, must send DISCONNECT */
@@ -1714,7 +1661,7 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
     case S_NOT_CONNECTED:
       /* this should not be possible */
       GNUNET_break (0);
-      free_neighbour (n);
+      free_neighbour (n, GNUNET_NO);
       break;
     case S_INIT_ATS:
     case S_INIT_BLACKLIST:
@@ -1738,7 +1685,7 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
       return; /* already connected */
     case S_DISCONNECT:
       /* get rid of remains, ready to re-try immediately */
-      free_neighbour (n);
+      free_neighbour (n, GNUNET_NO);
       break;
     case S_DISCONNECT_FINISHED:
       /* should not be possible */      
@@ -1746,7 +1693,7 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
     default:
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Unhandled state `%s' \n",print_state (n->state));
       GNUNET_break (0);
-      free_neighbour (n);
+      free_neighbour (n, GNUNET_NO);
       break;
     }
   }
@@ -1794,7 +1741,7 @@ handle_test_blacklist_cont (void *cls,
   case S_NOT_CONNECTED:
     /* this should not be possible */
     GNUNET_break (0);
-    free_neighbour (n);
+    free_neighbour (n, GNUNET_NO);
     break;
   case S_INIT_ATS:
     /* still waiting on ATS suggestion */
@@ -1962,7 +1909,7 @@ handle_test_blacklist_cont (void *cls,
   default:
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Unhandled state `%s' \n",print_state (n->state));
     GNUNET_break (0);
-    free_neighbour (n);
+    free_neighbour (n, GNUNET_NO);
     break;
   }
  cleanup:
@@ -2111,7 +2058,7 @@ GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
     break;
   case S_DISCONNECT:
     /* get rid of remains without terminating sessions, ready to re-try */
-    free_neighbour_without_terminating_sessions (n);
+    free_neighbour (n, GNUNET_YES);
     n = setup_neighbour (peer);
     n->state = S_CONNECT_RECV_ATS;
     GNUNET_ATS_reset_backoff (GST_ats, peer);
@@ -2124,7 +2071,7 @@ GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
   default:
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Unhandled state `%s' \n",print_state (n->state));
     GNUNET_break (0);
-    free_neighbour (n);
+    free_neighbour (n, GNUNET_NO);
     break;
   }
 }
@@ -2193,7 +2140,7 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
   {
   case S_NOT_CONNECTED:
     GNUNET_break (0);
-    free_neighbour (n);
+    free_neighbour (n, GNUNET_NO);
     return;
   case S_INIT_ATS:
     set_address (&n->primary_address,
@@ -2360,7 +2307,7 @@ master_task (void *cls,
     /* invalid state for master task, clean up */
     GNUNET_break (0);
     n->state = S_DISCONNECT_FINISHED;
-    free_neighbour (n);
+    free_neighbour (n, GNUNET_NO);
     return;
   case S_INIT_ATS:
     if (0 == delay.rel_value)
@@ -2369,7 +2316,7 @@ master_task (void *cls,
 		  "Connection to `%s' timed out waiting for ATS to provide address\n",
 		  GNUNET_i2s (&n->id));
       n->state = S_DISCONNECT_FINISHED;
-      free_neighbour (n);
+      free_neighbour (n, GNUNET_NO);
       return;
     }
     break;
@@ -2380,7 +2327,7 @@ master_task (void *cls,
 		  "Connection to `%s' timed out waiting for BLACKLIST to approve address\n",
 		  GNUNET_i2s (&n->id));
       n->state = S_DISCONNECT_FINISHED;
-      free_neighbour (n);
+      free_neighbour (n, GNUNET_NO);
       return;
     }
     break;
@@ -2401,7 +2348,7 @@ master_task (void *cls,
 		  "Connection to `%s' timed out waiting ATS to provide address to use for CONNECT_ACK\n",
 		  GNUNET_i2s (&n->id));
       n->state = S_DISCONNECT_FINISHED;
-      free_neighbour (n);
+      free_neighbour (n, GNUNET_NO);
       return;
     }
     break;
@@ -2412,7 +2359,7 @@ master_task (void *cls,
 		  "Connection to `%s' timed out waiting BLACKLIST to approve address to use for CONNECT_ACK\n",
 		  GNUNET_i2s (&n->id));
       n->state = S_DISCONNECT_FINISHED;
-      free_neighbour (n);
+      free_neighbour (n, GNUNET_NO);
       return;
     }
     break;
@@ -2497,7 +2444,7 @@ master_task (void *cls,
 		"Cleaning up connection to `%s' after sending DISCONNECT\n",
 		GNUNET_i2s (&n->id));
     n->state = S_DISCONNECT_FINISHED;
-    free_neighbour (n);
+    free_neighbour (n, GNUNET_NO);
     return;
   case S_DISCONNECT_FINISHED:
     /* how did we get here!? */
@@ -2584,7 +2531,7 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
   {
   case S_NOT_CONNECTED:
     GNUNET_break (0);
-    free_neighbour (n);
+    free_neighbour (n, GNUNET_NO);
     return;
   case S_INIT_ATS:
   case S_INIT_BLACKLIST:
@@ -2724,11 +2671,11 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
   {
   case S_NOT_CONNECTED:
     GNUNET_break (0);
-    free_neighbour (n);
+    free_neighbour (n, GNUNET_NO);
     return;
   case S_INIT_ATS:
     GNUNET_break (0);
-    free_neighbour (n);
+    free_neighbour (n, GNUNET_NO);
     return;
   case S_INIT_BLACKLIST:
   case S_CONNECT_SENT:
@@ -2743,7 +2690,7 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
   case S_CONNECT_RECV_ACK:
     /* error on inbound session; free neighbour entirely */
     free_address (&n->primary_address);
-    free_neighbour (n);
+    free_neighbour (n, GNUNET_NO);
     return;
   case S_CONNECTED:
     free_address (&n->primary_address);
@@ -3153,7 +3100,7 @@ disconnect_all_neighbours (void *cls, const GNUNET_HashCode * key, void *value)
 	      "Disconnecting peer `%4s', %s\n",
               GNUNET_i2s (&n->id), "SHUTDOWN_TASK");
   n->state = S_DISCONNECT_FINISHED;
-  free_neighbour (n);
+  free_neighbour (n, GNUNET_NO);
   return GNUNET_OK;
 }
 
