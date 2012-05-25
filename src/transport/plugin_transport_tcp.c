@@ -2165,6 +2165,13 @@ static void
 reschedule_session_timeout (struct Session *s)
 {
   GNUNET_assert (NULL != s);
+  if (GNUNET_SCHEDULER_NO_TASK == s->timeout_task)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Timeout for peer `%s' %s not scheduled\n",
+        GNUNET_i2s (&s->target), tcp_address_to_string(NULL, s->addr, s->addrlen));
+    return;
+  }
+
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != s->timeout_task);
 
   GNUNET_SCHEDULER_cancel (s->timeout_task);
