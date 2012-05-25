@@ -106,7 +106,23 @@ struct PrettyPrinterContext
  */
 struct Plugin;
 
+/**
+ * Start session timeout
+ */
+static void
+start_session_timeout (struct Session *s);
 
+/**
+ * Increment session timeout due to activity
+ */
+static void
+reschedule_session_timeout (struct Session *s);
+
+/**
+ * Cancel timeout
+ */
+static void
+stop_session_timeout (struct Session *s);
 
 /**
  * Append our port and forward the result.
@@ -319,6 +335,8 @@ http_plugin_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
   atsi[1].type = htonl (GNUNET_ATS_NETWORK_TYPE);
   atsi[1].value = session->ats_address_network_type;
   GNUNET_break (session->ats_address_network_type != ntohl (GNUNET_ATS_NET_UNSPECIFIED));
+
+  reschedule_session_timeout (session);
 
   delay =
       plugin->env->receive (plugin->env->cls, &s->target, message,
@@ -575,6 +593,8 @@ exist_session (struct Plugin *plugin, struct Session *s)
 void
 delete_session (struct Session *s)
 {
+  stop_session_timeout(s);
+
   if (s->msg_tk != NULL)
   {
     GNUNET_SERVER_mst_destroy (s->msg_tk);
@@ -588,8 +608,7 @@ delete_session (struct Session *s)
 
 struct Session *
 create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
-                const void *addr, size_t addrlen,
-                GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls)
+                const void *addr, size_t addrlen)
 {
   struct Session *s = NULL;
 
@@ -604,8 +623,11 @@ create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
   s->next = NULL;
   s->next_receive = GNUNET_TIME_absolute_get_zero ();
   s->ats_address_network_type = htonl (GNUNET_ATS_NET_UNSPECIFIED);
+  start_session_timeout(s);
   return s;
 }
+
+
 
 void
 notify_session_end (void *cls, const struct GNUNET_PeerIdentity *peer,
@@ -662,16 +684,7 @@ http_get_session (void *cls,
   GNUNET_assert ((addrlen == sizeof (struct IPv6HttpAddress)) ||
                  (addrlen == sizeof (struct IPv4HttpAddress)));
 
-  s = GNUNET_malloc (sizeof (struct Session));
-  memcpy (&s->target, &address->peer, sizeof (struct GNUNET_PeerIdentity));
-  s->plugin = plugin;
-  s->addr = GNUNET_malloc (address->address_length);
-  memcpy (s->addr, address->address, address->address_length);
-  s->addrlen = addrlen;
-  s->next = NULL;
-  s->next_receive = GNUNET_TIME_absolute_get_zero ();
-  s->inbound = GNUNET_NO;
-  s->ats_address_network_type = htonl (GNUNET_ATS_NET_UNSPECIFIED);
+  s = create_session (plugin, &address->peer, address->address, address->address_length);
 
   /* Get ATS type */
   if (addrlen == sizeof (struct IPv4HttpAddress))
@@ -789,6 +802,8 @@ http_plugin_send (void *cls,
   msg->transmit_cont = cont;
   msg->transmit_cont_cls = cont_cls;
   memcpy (msg->buf, msgbuf, msgbuf_size);
+
+  reschedule_session_timeout (session);
 
   if (session->inbound == GNUNET_NO)
   {
@@ -1467,6 +1482,88 @@ configure_plugin (struct Plugin *plugin)
 fail:
   return res;
 }
+
+
+/**
+ * Session was idle, so disconnect it
+ */
+static void
+session_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_assert (NULL != cls);
+  struct Session *s = cls;
+
+  s->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Session %p was idle for %llu, disconnecting\n",
+      s, GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value);
+
+  /* call session destroy function */
+  if (s->inbound == GNUNET_NO)
+    GNUNET_assert (GNUNET_OK == client_disconnect (s));
+  else
+    GNUNET_assert (GNUNET_OK == server_disconnect (s));
+
+}
+
+/**
+ * Start session timeout
+ */
+static void
+start_session_timeout (struct Session *s)
+{
+  GNUNET_assert (NULL != s);
+  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == s->timeout_task);
+
+  s->timeout_task =  GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
+                                                   &session_timeout,
+                                                   s);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Timeout for session %p set to %llu\n",
+      s, GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value);
+}
+
+/**
+ * Increment session timeout due to activity
+ */
+static void
+reschedule_session_timeout (struct Session *s)
+{
+  GNUNET_assert (NULL != s);
+  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != s->timeout_task);
+
+  GNUNET_SCHEDULER_cancel (s->timeout_task);
+  s->timeout_task =  GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
+                                                   &session_timeout,
+                                                   s);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Timeout rescheduled for session %p set to %llu\n",
+      s, GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value);
+}
+
+/**
+ * Cancel timeout
+ */
+static void
+stop_session_timeout (struct Session *s)
+{
+  GNUNET_assert (NULL != s);
+
+  if (GNUNET_SCHEDULER_NO_TASK != s->timeout_task)
+  {
+    GNUNET_SCHEDULER_cancel (s->timeout_task);
+    s->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Timeout rescheduled for session %p canceled\n",
+      s, GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value);
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Timeout for session %p was not active\n",
+      s);
+  }
+}
+
 
 /**
  * Entry point for the plugin.

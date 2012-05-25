@@ -400,6 +400,11 @@ struct Session
   GNUNET_SCHEDULER_TaskIdentifier recv_wakeup_task;
 
   /**
+   * Session timeout task
+   */
+  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+
+  /**
    * Is client send handle paused since there are no data to send?
    * GNUNET_YES/NO
    */
@@ -468,11 +473,6 @@ exist_session (struct Plugin *plugin, struct Session *s);
 
 void
 delete_session (struct Session *s);
-
-struct Session *
-create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
-                const void *addr, size_t addrlen,
-                GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls);
 
 int
 exist_session (struct Plugin *plugin, struct Session *s);
