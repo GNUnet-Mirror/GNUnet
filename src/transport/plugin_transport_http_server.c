@@ -537,7 +537,7 @@ create:
     GNUNET_break (0);
     goto error;
   }
-  s = create_session (plugin, &target, a, a_len, NULL, NULL);
+  s = create_session (plugin, &target, a, a_len);
   GNUNET_assert (NULL != s);
   s->ats_address_network_type = ats.value;
 
