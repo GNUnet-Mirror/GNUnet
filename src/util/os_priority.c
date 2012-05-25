@@ -1267,6 +1267,7 @@ GNUNET_OS_start_process_v (int pipe_control,
   char *libdir;
   char *ptr;
   char *non_const_filename;
+  char win_path[MAX_PATH + 1];
   struct GNUNET_DISK_PipeHandle *lsocks_pipe;
   const struct GNUNET_DISK_FileHandle *lsocks_write_fd;
   HANDLE lsocks_read;
