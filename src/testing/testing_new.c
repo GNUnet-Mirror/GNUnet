@@ -137,6 +137,17 @@ struct GNUNET_TESTING_Peer
 
 
 /**
+ * The lowest port bucket for ports available for GNUnet testing
+ */
+#define LOW_PORT_BUCKET (LOW_PORT / 32)
+
+/**
+ * The highest port bucket for ports available for GNUNET_testing
+ */
+#define HIGH_PORT_BUCKET (HIGH_PORT / 32)
+
+
+/**
  * Create a system handle.  There must only be one system
  * handle per operating system.
  *
@@ -199,57 +210,54 @@ reserve_port (struct GNUNET_TESTING_System *system,
   struct addrinfo *ret;
   uint32_t *port_buckets;
   char *open_port_str;
+  int pos;
+  int bind_status;
   uint32_t xor_image;
   uint16_t index;
   uint16_t open_port;
-  uint8_t pos;
 
-  if (GNUNET_YES == is_tcp)
-  {
-    socket = GNUNET_NETWORK_socket_create (AF_UNSPEC,
-  					   SOCK_STREAM,
-  					   0);
-    port_buckets = system->reserved_tcp_ports;
-  }
-  else
-  {
-    socket = GNUNET_NETWORK_socket_create (AF_UNSPEC,
-  					   SOCK_DGRAM,
-  					   0);
-    port_buckets = system->reserved_udp_ports;
-  }
-  for (index = (LOW_PORT / 32) + 1; index < (HIGH_PORT / 32); index++)
+  hint.ai_family = AF_UNSPEC;	/* IPv4 and IPv6 */
+  hint.ai_socktype = (GNUNET_YES == is_tcp)? SOCK_STREAM : SOCK_DGRAM;
+  hint.ai_protocol = 0;
+  hint.ai_addrlen = 0;
+  hint.ai_addr = NULL;
+  hint.ai_canonname = NULL;
+  hint.ai_next = NULL;
+  hint.ai_flags = AI_PASSIVE | AI_NUMERICSERV;	/* Wild card address */
+  port_buckets = (GNUNET_YES == is_tcp) ?
+    system->reserved_tcp_ports : system->reserved_udp_ports;
+  for (index = LOW_PORT_BUCKET + 1; index < HIGH_PORT_BUCKET; index++)
   {
     xor_image = (UINT32_MAX ^ port_buckets[index]);
     if (0 == xor_image)        /* Ports in the bucket are full */
       continue;
-
     pos = 0;
     while (pos < 32)
     {
       if (0 == ((xor_image >> pos) & 1U))
-	continue;
+      {
+        pos++;
+        continue;
+      }
       open_port = (index * 32) + pos;
       GNUNET_asprintf (&open_port_str, "%u", open_port);
-      hint.ai_family = AF_UNSPEC;	/* IPv4 and IPv6 */
-      hint.ai_socktype = (GNUNET_YES == is_tcp)? SOCK_STREAM : SOCK_DGRAM;
-      hint.ai_protocol = 0;
-      hint.ai_addrlen = 0;
-      hint.ai_addr = NULL;
-      hint.ai_canonname = NULL;
-      hint.ai_next = NULL;
-      hint.ai_flags = AI_PASSIVE | AI_NUMERICSERV;	/* Wild card address */
       ret = NULL;
-      GNUNET_assert (0 != getaddrinfo (NULL, open_port_str, &hint, &ret));
-      GNUNET_free (open_port_str);
-      if (GNUNET_OK == GNUNET_NETWORK_socket_bind (socket, ret->ai_addr, ret->ai_addrlen))
-      {
-	freeaddrinfo (ret);
-	return open_port;
-      }
+      GNUNET_assert (0 == getaddrinfo (NULL, open_port_str, &hint, &ret));
+      GNUNET_free (open_port_str);  
+      socket = GNUNET_NETWORK_socket_create (AF_UNSPEC,
+                                             (GNUNET_YES == is_tcp) ?
+                                             SOCK_STREAM : SOCK_DGRAM,
+                                             0);
+      GNUNET_assert (NULL != socket);
+      bind_status = GNUNET_NETWORK_socket_bind (socket,
+                                                ret->ai_addr,
+                                                ret->ai_addrlen);
       freeaddrinfo (ret);
-      /* This port is in use by some other application */
-      port_buckets[index] |= (1U << pos);    
+      GNUNET_NETWORK_socket_close (socket);
+      socket = NULL;
+      port_buckets[index] |= (1U << pos); /* Set the port bit */
+      if (GNUNET_OK == bind_status)
+	return open_port;
       pos++;
     }
   }
