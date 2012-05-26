@@ -89,7 +89,8 @@ check_PROGRAMS = \
  test_testing_topology_erdos_renyi \
  test_testing_topology_internat \
  test_testing_topology_none \
- test_testing_topology_scale_free
+ test_testing_topology_scale_free \
+ test_testing_new_portreservation
 
 if ENABLE_TEST_RUN 
 TESTS = \
@@ -97,7 +98,8 @@ TESTS = \
  test_testing_connect \
  test_testing_reconnect \
  test_testing_group \
- test_testing_peergroup 
+ test_testing_peergroup \
+ test_testing_new_portreservation
 endif
 
 gnunet_testing_SOURCES = \
@@ -261,6 +263,12 @@ test_testing_topology_none_SOURCES = \
 test_testing_topology_none_LDADD = \
  $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/core/libgnunetcore.la \
+ $(top_builddir)/src/util/libgnunetutil.la
+
+test_testing_new_portreservation_SOURCES = \
+ test_testing_new_portreservation.c
+test_testing_new_portreservation_LDADD = \
+ $(top_builddir)/src/testing/libgnunettesting_new.la \
  $(top_builddir)/src/util/libgnunetutil.la
 
 

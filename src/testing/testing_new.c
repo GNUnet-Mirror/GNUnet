@@ -210,11 +210,11 @@ reserve_port (struct GNUNET_TESTING_System *system,
   struct addrinfo *ret;
   uint32_t *port_buckets;
   char *open_port_str;
-  int pos;
   int bind_status;
   uint32_t xor_image;
   uint16_t index;
   uint16_t open_port;
+  uint16_t pos;
 
   hint.ai_family = AF_UNSPEC;	/* IPv4 and IPv6 */
   hint.ai_socktype = (GNUNET_YES == is_tcp)? SOCK_STREAM : SOCK_DGRAM;
@@ -244,7 +244,7 @@ reserve_port (struct GNUNET_TESTING_System *system,
       ret = NULL;
       GNUNET_assert (0 == getaddrinfo (NULL, open_port_str, &hint, &ret));
       GNUNET_free (open_port_str);  
-      socket = GNUNET_NETWORK_socket_create (AF_UNSPEC,
+      socket = GNUNET_NETWORK_socket_create (ret->ai_family,
                                              (GNUNET_YES == is_tcp) ?
                                              SOCK_STREAM : SOCK_DGRAM,
                                              0);
