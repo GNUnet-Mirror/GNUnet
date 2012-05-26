@@ -35,7 +35,7 @@
 #include "gnunet_testing_lib-new.h"
 
 #define LOG(kind,...)                                           \
-  GNUNET_log_from (kind, "testing-new-api", __VA_ARGS__)
+  GNUNET_log_from (kind, "gnunettestingnew", __VA_ARGS__)
 
 /**
  * Handle for a system on which GNUnet peers are executed;
