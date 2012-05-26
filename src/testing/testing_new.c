@@ -34,6 +34,8 @@
 #include "gnunet_network_lib.h"
 #include "gnunet_testing_lib-new.h"
 
+#define LOG(kind,...)                                           \
+  GNUNET_log_from (kind, "testing-new-api", __VA_ARGS__)
 
 /**
  * Handle for a system on which GNUnet peers are executed;
@@ -137,17 +139,6 @@ struct GNUNET_TESTING_Peer
 
 
 /**
- * The lowest port bucket for ports available for GNUnet testing
- */
-#define LOW_PORT_BUCKET (LOW_PORT / 32)
-
-/**
- * The highest port bucket for ports available for GNUNET_testing
- */
-#define HIGH_PORT_BUCKET (HIGH_PORT / 32)
-
-
-/**
  * Create a system handle.  There must only be one system
  * handle per operating system.
  *
@@ -226,7 +217,7 @@ reserve_port (struct GNUNET_TESTING_System *system,
   hint.ai_flags = AI_PASSIVE | AI_NUMERICSERV;	/* Wild card address */
   port_buckets = (GNUNET_YES == is_tcp) ?
     system->reserved_tcp_ports : system->reserved_udp_ports;
-  for (index = LOW_PORT_BUCKET + 1; index < HIGH_PORT_BUCKET; index++)
+  for (index = (LOW_PORT / 32) + 1; index < (HIGH_PORT / 32); index++)
   {
     xor_image = (UINT32_MAX ^ port_buckets[index]);
     if (0 == xor_image)        /* Ports in the bucket are full */
@@ -279,7 +270,22 @@ release_port (struct GNUNET_TESTING_System *system,
 	      int is_tcp,
 	      uint16_t port)
 {
-  GNUNET_break (0);
+  uint32_t *port_buckets;
+  uint16_t bucket;
+  uint16_t pos;
+
+  GNUNET_assert (NULL != system);
+  port_buckets = (GNUNET_YES == is_tcp) ?
+    system->reserved_tcp_ports : system->reserved_udp_ports;
+  bucket = port / 32;
+  pos = port % 32;
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Releasing port %u\n", port);
+  if (0 == (port_buckets[bucket] & (1U << pos)))
+  {
+    GNUNET_break(0); /* Port was not reserved by us using reserve_port() */
+    return;
+  }
+  port_buckets[bucket] &= ~(1U << pos);
 }
 
 
