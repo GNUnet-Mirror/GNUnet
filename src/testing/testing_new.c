@@ -38,6 +38,13 @@
   GNUNET_log_from (kind, "gnunettestingnew", __VA_ARGS__)
 
 /**
+ * AI_NUMERICSERV not defined in windows. A hack to keep on going.
+ */
+#if !defined (AI_NUMERICSERV)
+#define AI_NUMERICSERV 0
+#endif
+
+/**
  * Handle for a system on which GNUnet peers are executed;
  * a system is used for reserving unique paths and ports.
  */
