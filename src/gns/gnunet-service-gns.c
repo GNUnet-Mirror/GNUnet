@@ -926,7 +926,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "No private key for root zone specified!\n");
-    GNUNET_SCHEDULER_shutdown(0);
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
 
@@ -951,7 +951,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     //FIXME do error handling;
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
                "Failed to connect to the namestore!\n");
-    GNUNET_SCHEDULER_shutdown(0);
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
   

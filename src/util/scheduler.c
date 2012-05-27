@@ -1334,6 +1334,34 @@ GNUNET_SCHEDULER_add_read_net (struct GNUNET_TIME_Relative delay,
                                struct GNUNET_NETWORK_Handle *rfd,
                                GNUNET_SCHEDULER_Task task, void *task_cls)
 {
+  return GNUNET_SCHEDULER_add_read_net_with_priority (delay,
+						      GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+						      rfd, task, task_cls);
+}
+
+
+/**
+ * Schedule a new task to be run with a specified priority and to be
+ * run after the specified delay or when the specified file descriptor
+ * is ready for reading.  The delay can be used as a timeout on the
+ * socket being ready.  The task will be scheduled for execution once
+ * either the delay has expired or the socket operation is ready.  It
+ * will be run with the DEFAULT priority.
+ *
+ * * @param delay when should this operation time out? Use
+ *        GNUNET_TIME_UNIT_FOREVER_REL for "on shutdown"
+ * @param rfd read file-descriptor
+ * @param task main function of the task
+ * @param task_cls closure of task
+ * @return unique task identifier for the job
+ *         only valid until "task" is started!
+ */
+GNUNET_SCHEDULER_TaskIdentifier
+GNUNET_SCHEDULER_add_read_net_with_priority (struct GNUNET_TIME_Relative delay,
+					     enum GNUNET_SCHEDULER_Priority priority,
+					     struct GNUNET_NETWORK_Handle *rfd,
+					     GNUNET_SCHEDULER_Task task, void *task_cls)
+{
 #if MINGW
   struct GNUNET_NETWORK_FDSet *rs;
   GNUNET_SCHEDULER_TaskIdentifier ret;
@@ -1342,18 +1370,19 @@ GNUNET_SCHEDULER_add_read_net (struct GNUNET_TIME_Relative delay,
   rs = GNUNET_NETWORK_fdset_create ();
   GNUNET_NETWORK_fdset_set (rs, rfd);
   ret =
-    GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+    GNUNET_SCHEDULER_add_select (priority,
 				 delay, rs, NULL,
 				 task, task_cls);
   GNUNET_NETWORK_fdset_destroy (rs);
   return ret;
 #else
   return add_without_sets (delay, 
-			   GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+			   priority,
 			   GNUNET_NETWORK_get_fd (rfd), -1, task,
                            task_cls);
 #endif
 }
+
 
 
 /**
