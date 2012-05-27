@@ -47,26 +47,26 @@ run (void *cls, char *const *args, const char *cfgfile,
   system = GNUNET_TESTING_system_create ("/tmp/gnunet-testing-new",
                                          "localhost");
   GNUNET_assert (NULL != system);
-  new_port1 = reserve_port (system, GNUNET_YES);
+  new_port1 = GNUNET_TESTING_reserve_port (system, GNUNET_YES);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
                 "Reserved TCP port %u\n", new_port1);
   GNUNET_assert (0 != new_port1);
-  new_port2 = reserve_port (system, GNUNET_YES);
+  new_port2 = GNUNET_TESTING_reserve_port (system, GNUNET_YES);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
                 "Reserved TCP port %u\n", new_port2);
   GNUNET_assert (0 != new_port2);
   GNUNET_assert (new_port1 != new_port2);
-  release_port (system, GNUNET_YES, new_port1);
+  GNUNET_TESTING_release_port (system, GNUNET_YES, new_port1);
   old_port1 = new_port1;
   new_port1 = 0;
-  new_port1 = reserve_port (system, GNUNET_YES);
+  new_port1 = GNUNET_TESTING_reserve_port (system, GNUNET_YES);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Reserved TCP port %u\n", new_port1);
   GNUNET_assert (0 != new_port1);
   GNUNET_assert (old_port1 == new_port1);
-  release_port (system, GNUNET_YES, new_port1);
-  release_port (system, GNUNET_YES, new_port2);
-  release_port (system, GNUNET_YES, new_port2 + 1); /* OK to get error :) */
+  GNUNET_TESTING_release_port (system, GNUNET_YES, new_port1);
+  GNUNET_TESTING_release_port (system, GNUNET_YES, new_port2);
+  GNUNET_TESTING_release_port (system, GNUNET_YES, new_port2 + 1); /* OK to get error :) */
   GNUNET_TESTING_system_destroy (system, GNUNET_NO);
 }
 

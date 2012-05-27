@@ -73,6 +73,7 @@ GNUNET_TESTING_system_create (const char *tmppath,
 			      const char *controller);
 
 
+
 /**
  * Free system resources.
  *
@@ -108,6 +109,31 @@ GNUNET_TESTING_hostkey_get (uint32_t key_number,
 			    const char *filename,
 			    struct GNUNET_PeerIdentity *id);
 
+
+/**
+ * Reserve a TCP or UDP port for a peer.
+ *
+ * @param system system to use for reservation tracking
+ * @param is_tcp GNUNET_YES for TCP ports, GNUNET_NO for UDP
+ * @return 0 if no free port was available
+ */
+uint16_t 
+GNUNET_TESTING_reserve_port (struct GNUNET_TESTING_System *system,
+			     int is_tcp);
+
+
+/**
+ * Release reservation of a TCP or UDP port for a peer
+ * (used during GNUNET_TESTING_peer_destroy).
+ *
+ * @param system system to use for reservation tracking
+ * @param is_tcp GNUNET_YES for TCP ports, GNUNET_NO for UDP
+ * @param port reserved port to release
+ */
+void
+GNUNET_TESTING_release_port (struct GNUNET_TESTING_System *system,
+			     int is_tcp,
+			     uint16_t port);
 
 
 /**

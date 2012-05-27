@@ -204,10 +204,9 @@ GNUNET_TESTING_system_destroy (struct GNUNET_TESTING_System *system,
  * @param is_tcp GNUNET_YES for TCP ports, GNUNET_NO for UDP
  * @return 0 if no free port was available
  */
-// static 
 uint16_t 
-reserve_port (struct GNUNET_TESTING_System *system,
-	      int is_tcp)
+GNUNET_TESTING_reserve_port (struct GNUNET_TESTING_System *system,
+			     int is_tcp)
 {
   struct GNUNET_NETWORK_Handle *socket;
   struct addrinfo hint;
@@ -277,11 +276,10 @@ reserve_port (struct GNUNET_TESTING_System *system,
  * @param is_tcp GNUNET_YES for TCP ports, GNUNET_NO for UDP
  * @param port reserved port to release
  */
-// static 
 void
-release_port (struct GNUNET_TESTING_System *system,
-	      int is_tcp,
-	      uint16_t port)
+GNUNET_TESTING_release_port (struct GNUNET_TESTING_System *system,
+			     int is_tcp,
+			     uint16_t port)
 {
   uint32_t *port_buckets;
   uint16_t bucket;
