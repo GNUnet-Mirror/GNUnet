@@ -499,7 +499,7 @@ stats_check (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GNUNET_STATISTICS_get (stats, "transport", "# peers connected", GNUNET_TIME_UNIT_MINUTES, NULL, &stats_check_cb, &statistics_transport_connections);
   GNUNET_STATISTICS_get (stats, "core", "# neighbour entries allocated", GNUNET_TIME_UNIT_MINUTES, NULL, &stats_check_cb, &statistics_core_neighbour_entries);
-  GNUNET_STATISTICS_get (stats, "core", "# entries in session map", GNUNET_TIME_UNIT_MINUTES, NULL, &stats_check_cb, &statistics_core_entries_session_map);
+  GNUNET_STATISTICS_get (stats, "core", "# peers connected", GNUNET_TIME_UNIT_MINUTES, NULL, &stats_check_cb, &statistics_core_entries_session_map);
 
   /* TCP plugin specific checks */
   if (GNUNET_YES == have_tcp)

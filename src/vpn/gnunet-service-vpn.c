@@ -605,7 +605,7 @@ tunnel_peer_disconnect_handler (void *cls,
 	      "Peer %s disconnected from tunnel.\n",
 	      GNUNET_i2s (peer));
   GNUNET_STATISTICS_update (stats,
-			    gettext_noop ("# Peers connected to mesh tunnels"),
+			    gettext_noop ("# peers connected to mesh tunnels"),
 			    -1, GNUNET_NO);
   if (NULL != ts->th)
   {
@@ -642,7 +642,7 @@ tunnel_peer_connect_handler (void *cls,
 	      "Peer %s connected to tunnel.\n",
 	      GNUNET_i2s (peer));
   GNUNET_STATISTICS_update (stats,
-			    gettext_noop ("# Peers connected to mesh tunnels"),
+			    gettext_noop ("# peers connected to mesh tunnels"),
 			    1, GNUNET_NO);
   if (NULL == ts->client)
     return; /* nothing to do */

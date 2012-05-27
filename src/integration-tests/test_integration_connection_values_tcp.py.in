@@ -65,10 +65,10 @@ def fail_cont (check):
 def check_connect ():
   check = Check (test)
   check.add (EqualStatisticsCondition (client, 'transport', '# peers connected', client,  'core', '# neighbour entries allocated'))
-  check.add (EqualStatisticsCondition (client, 'transport', '# peers connected', client,  'core', '# entries in session map'))
-  check.add (EqualStatisticsCondition (client, 'core', '# neighbour entries allocated', client,  'core', '# entries in session map'))
+  check.add (EqualStatisticsCondition (client, 'transport', '# peers connected', client,  'core', '# peers connected'))
+  check.add (EqualStatisticsCondition (client, 'core', '# neighbour entries allocated', client,  'core', '# peers connected'))
   check.add (EqualStatisticsCondition (client, 'transport', '# peers connected', client, 'topology', '# peers connected'))
-  check.add (EqualStatisticsCondition (client, 'topology', '# peers connected', client, 'core', '# entries in session map'))
+  check.add (EqualStatisticsCondition (client, 'topology', '# peers connected', client, 'core', '# peers connected'))
   
   while True:
 	check.reset()

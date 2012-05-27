@@ -85,13 +85,13 @@ def success_connect_cont (check):
 	check = Check (test)
 	check.add (StatisticsCondition (client, 'transport', '# peers connected',1))
 	check.add (StatisticsCondition (client, 'core', '# neighbour entries allocated',1))  
-	check.add (StatisticsCondition (client, 'core', '# entries in session map',1))
+	check.add (StatisticsCondition (client, 'core', '# peers connected',1))
 	check.add (StatisticsCondition (client, 'topology', '# peers connected',1))
 	check.add (StatisticsCondition (client, 'fs', '# peers connected',1))
 	
 	check.add (StatisticsCondition (server, 'transport', '# peers connected',1))
 	check.add (StatisticsCondition (server, 'core', '# neighbour entries allocated',1))  
-	check.add (StatisticsCondition (server, 'core', '# entries in session map',1))
+	check.add (StatisticsCondition (server, 'core', '# peers connected',1))
 	check.add (StatisticsCondition (server, 'topology', '# peers connected',1))
 	check.add (StatisticsCondition (server, 'fs', '# peers connected',1))  
 	
@@ -108,13 +108,13 @@ def check_connect ():
 	check = Check (test)
 	check.add (StatisticsCondition (client, 'transport', '# peers connected',1))
 	check.add (StatisticsCondition (client, 'core', '# neighbour entries allocated',1))  
-	check.add (StatisticsCondition (client, 'core', '# entries in session map',1))
+	check.add (StatisticsCondition (client, 'core', '# peers connected',1))
 	check.add (StatisticsCondition (client, 'topology', '# peers connected',1))
 	check.add (StatisticsCondition (client, 'fs', '# peers connected',1))
 	
 	check.add (StatisticsCondition (server, 'transport', '# peers connected',1))
 	check.add (StatisticsCondition (server, 'core', '# neighbour entries allocated',1))  
-	check.add (StatisticsCondition (server, 'core', '# entries in session map',1))
+	check.add (StatisticsCondition (server, 'core', '# peers connected',1))
 	check.add (StatisticsCondition (server, 'topology', '# peers connected',1))
 	check.add (StatisticsCondition (server, 'fs', '# peers connected',1))  
 	
