@@ -2198,7 +2198,7 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
     /* ATS asks us to switch a life connection; see if we can get
        a CONNECT_ACK on it before we actually do this! */
     set_address (&n->alternative_address,
-		 address, session, bandwidth_in, bandwidth_out, GNUNET_YES);
+		 address, session, bandwidth_in, bandwidth_out, GNUNET_NO);
     n->state = S_CONNECTED_SWITCHING_BLACKLIST;
     check_blacklist (&n->id,
 		     GNUNET_TIME_absolute_get (),
@@ -2244,7 +2244,7 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
     }
     /* ATS asks us to switch a life connection, update blacklist check */
     set_address (&n->alternative_address,
-		 address, session, bandwidth_in, bandwidth_out, GNUNET_YES);
+		 address, session, bandwidth_in, bandwidth_out, GNUNET_NO);
     check_blacklist (&n->id,
 		     GNUNET_TIME_absolute_get (),
 		     address, session, ats, ats_count);
@@ -2259,7 +2259,7 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
     }
     /* ATS asks us to switch a life connection, update blacklist check */
     set_address (&n->alternative_address,
-		 address, session, bandwidth_in, bandwidth_out, GNUNET_YES);
+		 address, session, bandwidth_in, bandwidth_out, GNUNET_NO);
     n->state = S_CONNECTED_SWITCHING_BLACKLIST;
     check_blacklist (&n->id,
 		     GNUNET_TIME_absolute_get (),
@@ -2587,7 +2587,7 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
     /* new address worked; adopt it and go back to connected! */
     n->state = S_CONNECTED;
     n->timeout = GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
-    GNUNET_assert (GNUNET_NO == n->alternative_address.ats_active);
+    GNUNET_break (GNUNET_NO == n->alternative_address.ats_active);
     set_address (&n->primary_address,
 		 n->alternative_address.address,
 		 n->alternative_address.session,
