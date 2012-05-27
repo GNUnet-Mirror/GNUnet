@@ -286,10 +286,8 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_NAMESTORE_record_put (nsh, &pubkey, s_name,
 			       GNUNET_TIME_UNIT_FOREVER_ABS,
 			       RECORDS, s_rd, s_signature, put_cont, s_name);
-
-
-
 }
+
 
 static int
 check ()
