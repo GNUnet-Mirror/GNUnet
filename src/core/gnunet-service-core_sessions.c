@@ -203,7 +203,7 @@ GSC_SESSIONS_end (const struct GNUNET_PeerIdentity *pid)
                                                        &session->
                                                        peer.hashPubKey,
                                                        session));
-  GNUNET_STATISTICS_set (GSC_stats, gettext_noop ("# entries in session map"),
+  GNUNET_STATISTICS_set (GSC_stats, gettext_noop ("# peers connected"),
                          GNUNET_CONTAINER_multihashmap_size (sessions),
                          GNUNET_NO);
   GSC_TYPEMAP_destroy (session->tmap);
@@ -266,7 +266,7 @@ GSC_SESSIONS_create (const struct GNUNET_PeerIdentity *peer,
                  GNUNET_CONTAINER_multihashmap_put (sessions, &peer->hashPubKey,
                                                     session,
                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-  GNUNET_STATISTICS_set (GSC_stats, gettext_noop ("# entries in session map"),
+  GNUNET_STATISTICS_set (GSC_stats, gettext_noop ("# peers connected"),
                          GNUNET_CONTAINER_multihashmap_size (sessions),
                          GNUNET_NO);
   GSC_CLIENTS_notify_clients_about_neighbour (peer, NULL, 0 /* FIXME: ATSI */ ,
