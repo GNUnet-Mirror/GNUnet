@@ -896,7 +896,7 @@ run (void *cls, char *const *args, const char *cfgfile,
                                        &connect_cb, &my_cb, NULL, hosts);
   GNUNET_assert (pg != NULL);
   shutdown_handle =
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_get_forever (),
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                     &shutdown_task, NULL);
 }
 

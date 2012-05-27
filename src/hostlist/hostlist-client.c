@@ -1194,7 +1194,6 @@ handler_advertisement (void *cls, const struct GNUNET_PeerIdentity *peer,
   hostlist->hostlist_uri = (const char *) &hostlist[1];
   memcpy (&hostlist[1], uri, uri_size);
   hostlist->time_creation = GNUNET_TIME_absolute_get ();
-  hostlist->time_last_usage = GNUNET_TIME_absolute_get_zero ();
   hostlist->quality = HOSTLIST_INITIAL;
   hostlist_to_test = hostlist;
 

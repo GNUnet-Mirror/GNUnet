@@ -226,15 +226,13 @@ int zone_to_disk_it (void *cls,
 struct GNUNET_TIME_Absolute
 get_block_expiration_time (unsigned int rd_count, const struct GNUNET_NAMESTORE_RecordData *rd)
 {
-  int c;
-  struct GNUNET_TIME_Absolute expire = GNUNET_TIME_absolute_get_forever();
+  unsigned int c;
+  struct GNUNET_TIME_Absolute expire = GNUNET_TIME_UNIT_FOREVER_ABS;
+
   if (NULL == rd)
-    return GNUNET_TIME_absolute_get_zero();
-  for (c = 0; c < rd_count; c++)
-  {
-    if (rd[c].expiration.abs_value < expire.abs_value)
-      expire = rd[c].expiration;
-  }
+    return GNUNET_TIME_UNIT_ZERO_ABS;
+  for (c = 0; c < rd_count; c++)  
+    expire = GNUNET_TIME_absolute_min (rd[c].expiration, expire);  
   return expire;
 }
 
@@ -1611,7 +1609,7 @@ void send_zone_iteration_result (struct ZoneIterationProcResult *proc)
     zir_msg.gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_RESPONSE);
     zir_msg.gns_header.header.size = htons (sizeof (struct ZoneIterationResponseMessage));
     zir_msg.gns_header.r_id = htonl(zi->request_id);
-    zir_msg.expire = GNUNET_TIME_absolute_hton(GNUNET_TIME_absolute_get_zero());
+    zir_msg.expire = GNUNET_TIME_absolute_hton(GNUNET_TIME_UNIT_ZERO_ABS);
     zir_msg.name_len = htons (0);
     zir_msg.reserved = htons (0);
     zir_msg.rd_count = htons (0);

@@ -192,11 +192,11 @@ GNUNET_CORE_iterate_peers (const struct GNUNET_CONFIGURATION_Handle *cfg,
   request_context->th =
       GNUNET_CLIENT_notify_transmit_ready (client,
                                            sizeof (struct GNUNET_MessageHeader),
-                                           GNUNET_TIME_relative_get_forever (),
+                                           GNUNET_TIME_UNIT_FOREVER_REL,
                                            GNUNET_YES, &transmit_request, NULL);
 
   GNUNET_CLIENT_receive (client, &receive_info, request_context,
-                         GNUNET_TIME_relative_get_forever ());
+                         GNUNET_TIME_UNIT_FOREVER_REL);
   return GNUNET_OK;
 }
 

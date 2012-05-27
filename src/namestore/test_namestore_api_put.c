@@ -203,7 +203,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_break (s_name != NULL);
 
   GNUNET_NAMESTORE_record_put (nsh, &pubkey, s_name,
-                              GNUNET_TIME_absolute_get_forever(),
+                              GNUNET_TIME_UNIT_FOREVER_ABS,
                               RECORDS, s_rd, signature, put_cont, s_name);
 
   GNUNET_free (signature);

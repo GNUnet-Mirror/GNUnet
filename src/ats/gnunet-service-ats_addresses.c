@@ -170,11 +170,6 @@ create_address (const struct GNUNET_PeerIdentity *peer,
   memcpy (&aa[1], plugin_addr, plugin_addr_len);
   aa->plugin = GNUNET_strdup (plugin_name);
   aa->session_id = session_id;
-  aa->mlp_information = NULL;
-  aa->blocked_until = GNUNET_TIME_absolute_get_zero();
-  aa->block_interval = GNUNET_TIME_relative_get_zero();
-  aa->next = NULL;
-  aa->prev = NULL;
   return aa;
 }
 
@@ -751,8 +746,8 @@ reset_address_it (void *cls, const GNUNET_HashCode * key, void *value)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Resetting interval for peer `%s' address %p from %llu to 0\n", GNUNET_i2s (&aa->peer), aa, aa->block_interval);
 
-  aa->blocked_until = GNUNET_TIME_absolute_get_zero();
-  aa->block_interval = GNUNET_TIME_relative_get_zero();
+  aa->blocked_until = GNUNET_TIME_UNIT_ZERO_ABS;
+  aa->block_interval = GNUNET_TIME_UNIT_ZERO;
   return GNUNET_OK;
 }
 

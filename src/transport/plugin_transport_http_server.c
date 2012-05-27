@@ -542,7 +542,7 @@ create:
   s->ats_address_network_type = ats.value;
 
   s->inbound = GNUNET_YES;
-  s->next_receive = GNUNET_TIME_absolute_get_zero ();
+  s->next_receive = GNUNET_TIME_UNIT_ZERO_ABS;
   s->tag = tag;
   if (0 == strcmp (MHD_HTTP_METHOD_PUT, method))
     s->server_recv = s;

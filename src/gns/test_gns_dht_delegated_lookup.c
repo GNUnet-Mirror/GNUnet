@@ -211,13 +211,13 @@ put_dht(void *cls, int32_t success, const char *emsg)
   char* ip = TEST_IP;
   struct in_addr *web = GNUNET_malloc(sizeof(struct in_addr));
   
-  rd.expiration = GNUNET_TIME_absolute_get_forever ();
+  rd.expiration = GNUNET_TIME_UNIT_FOREVER_ABS;
   GNUNET_assert(1 == inet_pton (AF_INET, ip, web));
   rd.data_size = sizeof(struct in_addr);
   rd.data = web;
   rd.record_type = GNUNET_DNSPARSER_TYPE_A;
 
-  sig = GNUNET_NAMESTORE_create_signature(bob_key, GNUNET_TIME_absolute_get_forever(), TEST_RECORD_NAME,
+  sig = GNUNET_NAMESTORE_create_signature(bob_key, GNUNET_TIME_UNIT_FOREVER_ABS, TEST_RECORD_NAME,
                                           &rd, 1);
   rd_payload_length = GNUNET_NAMESTORE_records_get_size (1, &rd);
   nrb = GNUNET_malloc(rd_payload_length + strlen(TEST_RECORD_NAME) + 1
@@ -315,7 +315,7 @@ do_lookup(void *cls, const struct GNUNET_PeerIdentity *id,
   GNUNET_CRYPTO_short_hash(&bob_pkey, sizeof(bob_pkey), &bob_hash);
 
   struct GNUNET_NAMESTORE_RecordData rd;
-  rd.expiration = GNUNET_TIME_absolute_get_forever ();
+  rd.expiration = GNUNET_TIME_UNIT_FOREVER_ABS;
   rd.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
   rd.data = &bob_hash;
   rd.record_type = GNUNET_GNS_RECORD_PKEY;

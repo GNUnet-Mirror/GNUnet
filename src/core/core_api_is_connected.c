@@ -204,7 +204,7 @@ GNUNET_CORE_is_peer_connected (const struct GNUNET_CONFIGURATION_Handle *cfg,
     GNUNET_CLIENT_notify_transmit_ready (client,
 					 sizeof (struct GNUNET_MessageHeader) +
 					 sizeof (struct GNUNET_PeerIdentity),
-					 GNUNET_TIME_relative_get_forever (),
+					 GNUNET_TIME_UNIT_FOREVER_REL,
 					 GNUNET_YES, &transmit_is_connected_request, cth);
   GNUNET_assert (NULL != cth->th);
   return cth;

@@ -1334,7 +1334,7 @@ send_message_delayed (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     send_message (&msg_ctx->dest, &msg_ctx->sender, NULL, msg_ctx->message,
                   msg_ctx->message_size, default_dv_priority, msg_ctx->uid,
-                  GNUNET_TIME_relative_get_forever ());
+                  GNUNET_TIME_UNIT_FOREVER_REL);
     GNUNET_free (msg_ctx->message);
     GNUNET_free (msg_ctx);
   }
@@ -1629,7 +1629,7 @@ handle_dv_data_message (void *cls, const struct GNUNET_PeerIdentity *peer,
         send_message (destination, original_sender, NULL, packed_message,
                       packed_message_size, default_dv_priority,
                       ntohl (incoming->uid),
-                      GNUNET_TIME_relative_get_forever ());
+                      GNUNET_TIME_UNIT_FOREVER_REL);
   }
   if (ret != GNUNET_SYSERR)
     return GNUNET_OK;
@@ -1764,7 +1764,7 @@ neighbor_send_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                        sizeof (p2p_dv_MESSAGE_NeighborInfo));
     pending_message->msg = (struct GNUNET_MessageHeader *) &pending_message[1];
     pending_message->importance = default_dv_priority;
-    pending_message->timeout = GNUNET_TIME_relative_get_forever ();
+    pending_message->timeout = GNUNET_TIME_UNIT_FOREVER_REL;
     memcpy (&pending_message->recipient, &to->identity,
             sizeof (struct GNUNET_PeerIdentity));
     pending_message->msg_size = sizeof (p2p_dv_MESSAGE_NeighborInfo);
@@ -1784,7 +1784,7 @@ neighbor_send_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
     GNUNET_SCHEDULER_add_now (try_core_send, NULL);
     /*if (core_transmit_handle == NULL)
-     * core_transmit_handle = GNUNET_CORE_notify_transmit_ready(coreAPI, GNUNET_YES,  default_dv_priority, GNUNET_TIME_relative_get_forever(), &to->identity, sizeof(p2p_dv_MESSAGE_NeighborInfo), &core_transmit_notify, NULL); */
+     * core_transmit_handle = GNUNET_CORE_notify_transmit_ready(coreAPI, GNUNET_YES,  default_dv_priority, GNUNET_TIME_UNIT_FOREVER_REL, &to->identity, sizeof(p2p_dv_MESSAGE_NeighborInfo), &core_transmit_notify, NULL); */
 
   }
 
@@ -2193,7 +2193,7 @@ schedule_disconnect_messages (void *cls, const GNUNET_HashCode * key,
                      sizeof (p2p_dv_MESSAGE_Disconnect));
   pending_message->msg = (struct GNUNET_MessageHeader *) &pending_message[1];
   pending_message->importance = default_dv_priority;
-  pending_message->timeout = GNUNET_TIME_relative_get_forever ();
+  pending_message->timeout = GNUNET_TIME_UNIT_FOREVER_REL;
   memcpy (&pending_message->recipient, &notify->identity,
           sizeof (struct GNUNET_PeerIdentity));
   pending_message->msg_size = sizeof (p2p_dv_MESSAGE_Disconnect);
@@ -2207,7 +2207,7 @@ schedule_disconnect_messages (void *cls, const GNUNET_HashCode * key,
 
   GNUNET_SCHEDULER_add_now (try_core_send, NULL);
   /*if (core_transmit_handle == NULL)
-   * core_transmit_handle = GNUNET_CORE_notify_transmit_ready(coreAPI, GNUNET_YES, default_dv_priority, GNUNET_TIME_relative_get_forever(), &notify->identity, sizeof(p2p_dv_MESSAGE_Disconnect), &core_transmit_notify, NULL); */
+   * core_transmit_handle = GNUNET_CORE_notify_transmit_ready(coreAPI, GNUNET_YES, default_dv_priority, GNUNET_TIME_UNIT_FOREVER_REL, &notify->identity, sizeof(p2p_dv_MESSAGE_Disconnect), &core_transmit_notify, NULL); */
 
   return GNUNET_YES;
 }

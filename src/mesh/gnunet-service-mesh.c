@@ -694,7 +694,7 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                   GNUNET_BLOCK_TYPE_TEST,       /* Block type */
                   sizeof (my_full_id),  /* Size of the data */
                   (char *) &my_full_id, /* Data itself */
-                  GNUNET_TIME_absolute_get_forever (),  /* Data expiration */
+                  GNUNET_TIME_UNIT_FOREVER_ABS,  /* Data expiration */
                   GNUNET_TIME_UNIT_FOREVER_REL, /* Retry time */
                   NULL,         /* Continuation */
                   NULL);        /* Continuation closure */

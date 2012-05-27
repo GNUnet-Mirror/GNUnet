@@ -1021,8 +1021,8 @@ GAS_mlp_solve_problem (struct GAS_MLP_Handle *mlp, struct GAS_MLP_SolutionContex
 
   ctx->lp_result = GNUNET_SYSERR;
   ctx->mlp_result = GNUNET_SYSERR;
-  ctx->lp_duration = GNUNET_TIME_relative_get_forever();
-  ctx->mlp_duration = GNUNET_TIME_relative_get_forever();
+  ctx->lp_duration = GNUNET_TIME_UNIT_FOREVER_REL;
+  ctx->mlp_duration = GNUNET_TIME_UNIT_FOREVER_REL;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Solve LP problem\n");
 #if WRITE_MLP
@@ -1369,7 +1369,7 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
 #endif
   mlp->control_param_mlp.tm_lim = max_duration.rel_value;
 
-  mlp->last_execution = GNUNET_TIME_absolute_get_forever();
+  mlp->last_execution = GNUNET_TIME_UNIT_FOREVER_ABS;
 
   mlp->co_D = D;
   mlp->co_R = R;

@@ -846,16 +846,11 @@ create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
     GNUNET_break_op (0);
     return NULL;
   }
-
   s->addrlen = len;
   s->target = *target;
   s->sock_addr = (const struct sockaddr *) &s[1];
-  s->flow_delay_for_other_peer = GNUNET_TIME_relative_get_zero();
-  s->flow_delay_from_other_peer = GNUNET_TIME_absolute_get_zero();
   s->last_expected_delay = GNUNET_TIME_UNIT_SECONDS;
-
   start_session_timeout(s);
-
   return s;
 }
 
@@ -1521,14 +1516,10 @@ ack_proc (void *cls, uint32_t id, const struct GNUNET_MessageHeader *msg)
                                                                      sockaddr_in6)),
        delay);
   udpw = GNUNET_malloc (sizeof (struct UDPMessageWrapper) + msize);
-  udpw->cont = NULL;
-  udpw->cont_cls = NULL;
-  udpw->frag_ctx = NULL;
   udpw->msg_size = msize;
   udpw->session = s;
-  udpw->timeout = GNUNET_TIME_absolute_get_forever();
+  udpw->timeout = GNUNET_TIME_UNIT_FOREVER_ABS;
   udpw->udp = (char *)&udpw[1];
-
   udp_ack = (struct UDP_ACK_Message *) udpw->udp;
   udp_ack->header.size = htons ((uint16_t) msize);
   udp_ack->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_UDP_ACK);

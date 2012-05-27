@@ -197,7 +197,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_break (NULL != nsh);
 
   GNUNET_NAMESTORE_record_put (nsh, &pubkey, name,
-                              GNUNET_TIME_absolute_get_forever(),
+                              GNUNET_TIME_UNIT_FOREVER_ABS,
                               1, &rd, &signature, put_cont, name);
 
   GNUNET_free ((void *)rd.data);

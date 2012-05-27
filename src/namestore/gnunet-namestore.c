@@ -356,7 +356,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   {
     if (0 == strcmp (expirationstring, "never"))
     {
-      etime = GNUNET_TIME_relative_get_forever();
+      etime = GNUNET_TIME_UNIT_FOREVER_REL;
     }
     else if (GNUNET_OK !=
 	GNUNET_STRINGS_fancy_time_to_relative (expirationstring,

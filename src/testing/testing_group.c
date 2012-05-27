@@ -4968,7 +4968,7 @@ schedule_get_statistics (void *cls,
 
     core_context->stats_get_handle =
         GNUNET_STATISTICS_get (core_context->stats_handle, NULL, NULL,
-                               GNUNET_TIME_relative_get_forever (),
+                               GNUNET_TIME_UNIT_FOREVER_REL,
                                &internal_stats_cont, &internal_stats_callback,
                                core_context);
     if (core_context->stats_get_handle == NULL)

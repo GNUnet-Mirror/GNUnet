@@ -85,7 +85,7 @@ block_plugin_dns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
       return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
     }
 
-    if (GNUNET_TIME_relative_get_zero ().rel_value ==
+    if (0 ==
         GNUNET_TIME_absolute_get_remaining (GNUNET_TIME_absolute_ntoh
                                             (rec->expiration_time)).rel_value)
     {

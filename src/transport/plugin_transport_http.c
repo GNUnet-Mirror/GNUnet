@@ -620,8 +620,6 @@ create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
   s->addr = GNUNET_malloc (addrlen);
   memcpy (s->addr, addr, addrlen);
   s->addrlen = addrlen;
-  s->next = NULL;
-  s->next_receive = GNUNET_TIME_absolute_get_zero ();
   s->ats_address_network_type = htonl (GNUNET_ATS_NET_UNSPECIFIED);
   start_session_timeout(s);
   return s;

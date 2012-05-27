@@ -463,13 +463,13 @@ handle_zone_to_name_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "An error occured during zone to name operation\n");
     if (qe->proc != NULL)
-      qe->proc (qe->proc_cls, NULL, GNUNET_TIME_absolute_get_zero(), NULL, 0, NULL, NULL);
+      qe->proc (qe->proc_cls, NULL, GNUNET_TIME_UNIT_ZERO_ABS, NULL, 0, NULL, NULL);
   }
   else if (res == GNUNET_NO)
   {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Namestore has no result for zone to name mapping \n");
       if (qe->proc != NULL)
-        qe->proc (qe->proc_cls, NULL, GNUNET_TIME_absolute_get_zero(), NULL, 0, NULL, NULL);
+        qe->proc (qe->proc_cls, NULL, GNUNET_TIME_UNIT_ZERO_ABS, NULL, 0, NULL, NULL);
   }
   else if (res == GNUNET_YES)
   {
@@ -606,7 +606,7 @@ handle_zone_iteration_response (struct GNUNET_NAMESTORE_ZoneIterator *ze,
     GNUNET_CONTAINER_DLL_remove(ze->h->z_head, ze->h->z_tail, ze);
 
     if (ze->proc != NULL)
-      ze->proc(ze->proc_cls, NULL, GNUNET_TIME_absolute_get_zero (), NULL , 0, NULL, NULL);
+      ze->proc(ze->proc_cls, NULL, GNUNET_TIME_UNIT_ZERO_ABS, NULL , 0, NULL, NULL);
 
     GNUNET_free (ze);
     return;
@@ -1197,7 +1197,7 @@ GNUNET_NAMESTORE_record_create (struct GNUNET_NAMESTORE_Handle *h,
   msg->rd_count = htons (1);
   msg->rd_len = htons (rd_ser_len);
   msg->pkey_len = htons (key_len);
-  msg->expire = GNUNET_TIME_absolute_hton(GNUNET_TIME_absolute_get_forever());
+  msg->expire = GNUNET_TIME_absolute_hton(GNUNET_TIME_UNIT_FOREVER_ABS);
   memcpy (pkey_tmp, pkey_enc, key_len);
   memcpy (name_tmp, name, name_len);
   memcpy (rd_tmp, rd_ser, rd_ser_len);

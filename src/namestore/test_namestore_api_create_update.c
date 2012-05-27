@@ -294,7 +294,7 @@ void name_lookup_initial_proc (void *cls,
 
     /* create a second record */
     s_second_record = GNUNET_malloc(sizeof (struct GNUNET_NAMESTORE_RecordData) + TEST_CREATE_RECORD_DATALEN);
-    s_second_record->expiration = GNUNET_TIME_absolute_get_forever();
+    s_second_record->expiration = GNUNET_TIME_UNIT_FOREVER_ABS;
     s_second_record->record_type = TEST_CREATE_RECORD_TYPE;
     s_second_record->flags = GNUNET_NAMESTORE_RF_AUTHORITY;
     s_second_record->data = &s_second_record[1];
@@ -406,11 +406,11 @@ create_record (int count)
 
   for (c = 0; c < count; c++)
   {
-  rd[c].expiration = GNUNET_TIME_absolute_get_zero();
-  rd[c].record_type = TEST_RECORD_TYPE;
-  rd[c].data_size = TEST_RECORD_DATALEN;
-  rd[c].data = GNUNET_malloc(TEST_RECORD_DATALEN);
-  memset ((char *) rd[c].data, TEST_RECORD_DATA, TEST_RECORD_DATALEN);
+    rd[c].expiration = GNUNET_TIME_UNIT_ZERO_ABS;
+    rd[c].record_type = TEST_RECORD_TYPE;
+    rd[c].data_size = TEST_RECORD_DATALEN;
+    rd[c].data = GNUNET_malloc(TEST_RECORD_DATALEN);
+    memset ((char *) rd[c].data, TEST_RECORD_DATA, TEST_RECORD_DATALEN);
   }
 
   return rd;

@@ -279,11 +279,11 @@ create_record (int count)
 
   for (c = 0; c < RECORDS-1; c++)
   {
-  rd[c].expiration = GNUNET_TIME_absolute_get_zero();
-  rd[c].record_type = 1;
-  rd[c].data_size = TEST_RECORD_DATALEN;
-  rd[c].data = GNUNET_malloc(TEST_RECORD_DATALEN);
-  memset ((char *) rd[c].data, TEST_RECORD_DATA, TEST_RECORD_DATALEN);
+    rd[c].expiration = GNUNET_TIME_UNIT_ZERO_ABS;
+    rd[c].record_type = 1;
+    rd[c].data_size = TEST_RECORD_DATALEN;
+    rd[c].data = GNUNET_malloc(TEST_RECORD_DATALEN);
+    memset ((char *) rd[c].data, TEST_RECORD_DATA, TEST_RECORD_DATALEN);
   }
 
   rd[c].expiration = GNUNET_TIME_absolute_get();
@@ -358,7 +358,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_break (s_name != NULL);
 
   GNUNET_NAMESTORE_record_put (nsh, &pubkey, s_name,
-                              GNUNET_TIME_absolute_get_forever(),
+                              GNUNET_TIME_UNIT_FOREVER_ABS,
                               RECORDS, s_rd, s_signature, put_cont, s_name);
 
 

@@ -38,7 +38,7 @@
 
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
-#define VALID GNUNET_TIME_absolute_get_forever ()
+#define VALID GNUNET_TIME_UNIT_FOREVER_ABS
 
 static struct GNUNET_ATS_SchedulingHandle *ats;
 

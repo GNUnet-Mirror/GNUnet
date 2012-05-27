@@ -257,7 +257,7 @@ do_lookup(void *cls, const struct GNUNET_PeerIdentity *id,
   struct in_addr *mail = GNUNET_malloc(sizeof(struct in_addr));
   char *mx_record;
   uint16_t mx_preference = 1;
-  rd.expiration = GNUNET_TIME_absolute_get_forever ();
+  rd.expiration = GNUNET_TIME_UNIT_FOREVER_ABS;
   GNUNET_assert(1 == inet_pton (AF_INET, ip, mail));
   
   GNUNET_CRYPTO_short_hash(&bob_pkey, sizeof(bob_pkey), &bob_hash);
@@ -277,7 +277,7 @@ do_lookup(void *cls, const struct GNUNET_PeerIdentity *id,
   rd.data = mail;
   rd.record_type = GNUNET_DNSPARSER_TYPE_A;
   sig = GNUNET_NAMESTORE_create_signature(bob_key,
-                                          GNUNET_TIME_absolute_get_forever(),
+                                          GNUNET_TIME_UNIT_FOREVER_ABS,
                                           TEST_RECORD_NAME,
                                           &rd, 1);
 
@@ -298,7 +298,7 @@ do_lookup(void *cls, const struct GNUNET_PeerIdentity *id,
   rd.data = mx_record;
   rd.record_type = GNUNET_GNS_RECORD_MX;
   sig = GNUNET_NAMESTORE_create_signature(bob_key,
-                                          GNUNET_TIME_absolute_get_forever(),
+                                          GNUNET_TIME_UNIT_FOREVER_ABS,
                                           "+",
                                           &rd, 1);
   GNUNET_NAMESTORE_record_put (namestore_handle,

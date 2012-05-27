@@ -90,32 +90,32 @@ GNUNET_NETWORK_STRUCT_END
 /**
  * Relative time zero.
  */
-#define GNUNET_TIME_UNIT_ZERO     GNUNET_TIME_relative_get_zero()
+#define GNUNET_TIME_UNIT_ZERO     GNUNET_TIME_relative_get_zero_()
 
 /**
  * Absolute time zero.
  */
-#define GNUNET_TIME_UNIT_ZERO_ABS GNUNET_TIME_absolute_get_zero()
+#define GNUNET_TIME_UNIT_ZERO_ABS GNUNET_TIME_absolute_get_zero_()
 
 /**
  * One millisecond, our basic time unit.
  */
-#define GNUNET_TIME_UNIT_MILLISECONDS GNUNET_TIME_relative_get_unit()
+#define GNUNET_TIME_UNIT_MILLISECONDS GNUNET_TIME_relative_get_unit_()
 
 /**
  * One second.
  */
-#define GNUNET_TIME_UNIT_SECONDS GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 1000)
+#define GNUNET_TIME_UNIT_SECONDS GNUNET_TIME_relative_get_second_()
 
 /**
  * One minute.
  */
-#define GNUNET_TIME_UNIT_MINUTES GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 60)
+#define GNUNET_TIME_UNIT_MINUTES GNUNET_TIME_relative_get_minute_()
 
 /**
  * One hour.
  */
-#define GNUNET_TIME_UNIT_HOURS   GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 60)
+#define GNUNET_TIME_UNIT_HOURS   GNUNET_TIME_relative_get_hour_()
 
 /**
  * One day.
@@ -141,43 +141,70 @@ GNUNET_NETWORK_STRUCT_END
  * Constant used to specify "forever".  This constant
  * will be treated specially in all time operations.
  */
-#define GNUNET_TIME_UNIT_FOREVER_REL GNUNET_TIME_relative_get_forever ()
+#define GNUNET_TIME_UNIT_FOREVER_REL GNUNET_TIME_relative_get_forever_ ()
 
 /**
  * Constant used to specify "forever".  This constant
  * will be treated specially in all time operations.
  */
-#define GNUNET_TIME_UNIT_FOREVER_ABS GNUNET_TIME_absolute_get_forever ()
+#define GNUNET_TIME_UNIT_FOREVER_ABS GNUNET_TIME_absolute_get_forever_ ()
+
 
 /**
  * Return relative time of 0ms.
  */
 struct GNUNET_TIME_Relative
-GNUNET_TIME_relative_get_zero (void);
+GNUNET_TIME_relative_get_zero_ (void);
+
 
 /**
  * Return absolute time of 0ms.
  */
 struct GNUNET_TIME_Absolute
-GNUNET_TIME_absolute_get_zero (void);
+GNUNET_TIME_absolute_get_zero_ (void);
+
 
 /**
  * Return relative time of 1ms.
  */
 struct GNUNET_TIME_Relative
-GNUNET_TIME_relative_get_unit (void);
+GNUNET_TIME_relative_get_unit_ (void);
+
+
+/**
+ * Return relative time of 1s.
+ */
+struct GNUNET_TIME_Relative
+GNUNET_TIME_relative_get_second_ (void);
+
+
+/**
+ * Return relative time of 1 minute.
+ */
+struct GNUNET_TIME_Relative
+GNUNET_TIME_relative_get_minute_ (void);
+
+
+/**
+ * Return relative time of 1 hour.
+ */
+struct GNUNET_TIME_Relative
+GNUNET_TIME_relative_get_hour_ (void);
+
 
 /**
  * Return "forever".
  */
 struct GNUNET_TIME_Relative
-GNUNET_TIME_relative_get_forever (void);
+GNUNET_TIME_relative_get_forever_ (void);
+
 
 /**
  * Return "forever".
  */
 struct GNUNET_TIME_Absolute
-GNUNET_TIME_absolute_get_forever (void);
+GNUNET_TIME_absolute_get_forever_ (void);
+
 
 /**
  * Get the current time.
@@ -186,6 +213,7 @@ GNUNET_TIME_absolute_get_forever (void);
  */
 struct GNUNET_TIME_Absolute
 GNUNET_TIME_absolute_get (void);
+
 
 /**
  * Convert relative time to an absolute time in the
@@ -196,6 +224,7 @@ GNUNET_TIME_absolute_get (void);
  */
 struct GNUNET_TIME_Absolute
 GNUNET_TIME_relative_to_absolute (struct GNUNET_TIME_Relative rel);
+
 
 /**
  * Return the minimum of two relative time values.
@@ -209,6 +238,7 @@ GNUNET_TIME_relative_min (struct GNUNET_TIME_Relative t1,
                           struct GNUNET_TIME_Relative t2);
 
 
+
 /**
  * Return the maximum of two relative time values.
  *
@@ -219,6 +249,7 @@ GNUNET_TIME_relative_min (struct GNUNET_TIME_Relative t1,
 struct GNUNET_TIME_Relative
 GNUNET_TIME_relative_max (struct GNUNET_TIME_Relative t1,
                           struct GNUNET_TIME_Relative t2);
+
 
 /**
  * Return the minimum of two absolute time values.
@@ -231,6 +262,7 @@ struct GNUNET_TIME_Absolute
 GNUNET_TIME_absolute_min (struct GNUNET_TIME_Absolute t1,
                           struct GNUNET_TIME_Absolute t2);
 
+
 /**
  * Return the maximum of two absolute time values.
  *
@@ -241,6 +273,7 @@ GNUNET_TIME_absolute_min (struct GNUNET_TIME_Absolute t1,
 struct GNUNET_TIME_Absolute
 GNUNET_TIME_absolute_max (struct GNUNET_TIME_Absolute t1,
                           struct GNUNET_TIME_Absolute t2);
+
 
 /**
  * Given a timestamp in the future, how much time
@@ -281,6 +314,7 @@ struct GNUNET_TIME_Relative
 GNUNET_TIME_absolute_get_difference (struct GNUNET_TIME_Absolute start,
                                      struct GNUNET_TIME_Absolute end);
 
+
 /**
  * Get the duration of an operation as the
  * difference of the current time and the given start time "hence".
@@ -317,6 +351,7 @@ struct GNUNET_TIME_Absolute
 GNUNET_TIME_absolute_subtract (struct GNUNET_TIME_Absolute start,
                                struct GNUNET_TIME_Relative duration);
 
+
 /**
  * Multiply relative time by a given factor.
  *
@@ -327,6 +362,7 @@ GNUNET_TIME_absolute_subtract (struct GNUNET_TIME_Absolute start,
 struct GNUNET_TIME_Relative
 GNUNET_TIME_relative_multiply (struct GNUNET_TIME_Relative rel,
                                unsigned int factor);
+
 
 /**
  * Divide relative time by a given factor.
@@ -339,6 +375,7 @@ struct GNUNET_TIME_Relative
 GNUNET_TIME_relative_divide (struct GNUNET_TIME_Relative rel,
                              unsigned int factor);
 
+
 /**
  * Add relative times together.
  *
@@ -349,6 +386,7 @@ GNUNET_TIME_relative_divide (struct GNUNET_TIME_Relative rel,
 struct GNUNET_TIME_Relative
 GNUNET_TIME_relative_add (struct GNUNET_TIME_Relative a1,
                           struct GNUNET_TIME_Relative a2);
+
 
 /**
  * Subtract relative timestamp from the other.
@@ -371,6 +409,7 @@ GNUNET_TIME_relative_subtract (struct GNUNET_TIME_Relative a1,
 struct GNUNET_TIME_RelativeNBO
 GNUNET_TIME_relative_hton (struct GNUNET_TIME_Relative a);
 
+
 /**
  * Convert relative time from network byte order.
  *
@@ -379,6 +418,7 @@ GNUNET_TIME_relative_hton (struct GNUNET_TIME_Relative a);
  */
 struct GNUNET_TIME_Relative
 GNUNET_TIME_relative_ntoh (struct GNUNET_TIME_RelativeNBO a);
+
 
 /**
  * Convert relative time to network byte order.
@@ -389,6 +429,7 @@ GNUNET_TIME_relative_ntoh (struct GNUNET_TIME_RelativeNBO a);
 struct GNUNET_TIME_AbsoluteNBO
 GNUNET_TIME_absolute_hton (struct GNUNET_TIME_Absolute a);
 
+
 /**
  * Convert relative time from network byte order.
  *
@@ -397,6 +438,7 @@ GNUNET_TIME_absolute_hton (struct GNUNET_TIME_Absolute a);
  */
 struct GNUNET_TIME_Absolute
 GNUNET_TIME_absolute_ntoh (struct GNUNET_TIME_AbsoluteNBO a);
+
 
 /**
  * Convert a relative time to a string.
@@ -409,6 +451,7 @@ GNUNET_TIME_absolute_ntoh (struct GNUNET_TIME_AbsoluteNBO a);
 const char *
 GNUNET_TIME_relative_to_string (struct GNUNET_TIME_Relative time);
 
+
 /**
  * Set the timestamp offset for this instance.
  *
@@ -416,6 +459,7 @@ GNUNET_TIME_relative_to_string (struct GNUNET_TIME_Relative time);
  */
 void
 GNUNET_TIME_set_offset (long long offset);
+
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

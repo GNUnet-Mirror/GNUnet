@@ -135,7 +135,7 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
   {
     struct GNUNET_NAMESTORE_RecordData rd[rd_count];
     unsigned int i;
-    struct GNUNET_TIME_Absolute exp = GNUNET_TIME_absolute_get_forever();
+    struct GNUNET_TIME_Absolute exp = GNUNET_TIME_UNIT_FOREVER_ABS;
     
     if (GNUNET_SYSERR == GNUNET_NAMESTORE_records_deserialize (rd_len,
                                                                rd_data,

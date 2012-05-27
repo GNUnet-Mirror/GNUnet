@@ -132,7 +132,7 @@ process_pseu_lookup_ns(void* cls,
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
              "GNS_AUTO_PSEU: Name %s not taken in NS! Adding\n", gph->new_name);
 
-  new_pkey.expiration = GNUNET_TIME_absolute_get_forever ();
+  new_pkey.expiration = GNUNET_TIME_UNIT_FOREVER_ABS;
   new_pkey.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
   new_pkey.data = &gph->new_zone;
   new_pkey.record_type = GNUNET_GNS_RECORD_PKEY;
