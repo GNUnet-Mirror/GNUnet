@@ -308,7 +308,7 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
               GNUNET_h2s_full (&o->id.hashPubKey));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  looking for %s\n",
               GNUNET_h2s_full (&d->id.hashPubKey));
-  get_h = GNUNET_DHT_get_start (hs[0], GNUNET_TIME_UNIT_FOREVER_REL,    /* timeout */
+  get_h = GNUNET_DHT_get_start (hs[0], 
                                 GNUNET_BLOCK_TYPE_TEST, /* type */
                                 &d->id.hashPubKey,      /*key to search */
                                 4U,     /* replication level */
@@ -319,7 +319,7 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  looking for %s\n",
                 GNUNET_h2s_full (&d2->id.hashPubKey));
-    get_h_2 = GNUNET_DHT_get_start (hs[0], GNUNET_TIME_UNIT_FOREVER_REL,  /* timeout */
+    get_h_2 = GNUNET_DHT_get_start (hs[0],
                                     GNUNET_BLOCK_TYPE_TEST,       /* type */
                                     &d2->id.hashPubKey,   /*key to search */
                                     4U,   /* replication level */
@@ -328,7 +328,7 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                     &dht_get_id_handler, (void *)2);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  looking for %s\n",
                 GNUNET_h2s_full (&d_far->id.hashPubKey));
-    get_h_far = GNUNET_DHT_get_start (hs[0], GNUNET_TIME_UNIT_FOREVER_REL,        /* timeout */
+    get_h_far = GNUNET_DHT_get_start (hs[0], 
                                       GNUNET_BLOCK_TYPE_TEST,     /* type */
                                       &d_far->id.hashPubKey,      /*key to search */
                                       4U, /* replication level */

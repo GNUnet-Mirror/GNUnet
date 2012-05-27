@@ -212,7 +212,7 @@ test_get (void *cls, int success)
   retry_context.next_timeout = BASE_TIMEOUT;
 
   peer->get_handle =
-      GNUNET_DHT_get_start (peer->dht_handle, TOTAL_TIMEOUT,
+      GNUNET_DHT_get_start (peer->dht_handle, 
                             GNUNET_BLOCK_TYPE_TEST, &hash, 1,
                             GNUNET_DHT_RO_NONE, NULL, 0, &test_get_iterator,
                             NULL);

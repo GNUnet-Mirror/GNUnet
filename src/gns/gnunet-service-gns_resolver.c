@@ -332,7 +332,6 @@ process_auth_discovery_ns_result(void* cls,
     
     GNUNET_assert(gph->get_handle == NULL);
     gph->get_handle = GNUNET_DHT_get_start(dht_handle,
-                                           GNUNET_TIME_UNIT_FOREVER_REL,
                                            GNUNET_BLOCK_TYPE_GNS_NAMERECORD,
                                            &lookup_key,
                                            DHT_GNS_REPLICATION_LEVEL,
@@ -863,7 +862,6 @@ resolve_record_dht(struct ResolverHandle *rh)
   
   GNUNET_assert(rh->get_handle == NULL);
   rh->get_handle = GNUNET_DHT_get_start(dht_handle, 
-                       GNUNET_TIME_UNIT_FOREVER_REL,
                        GNUNET_BLOCK_TYPE_GNS_NAMERECORD,
                        &lookup_key,
                        DHT_GNS_REPLICATION_LEVEL,
@@ -1739,7 +1737,6 @@ resolve_delegation_dht(struct ResolverHandle *rh)
   
   GNUNET_assert(rh->get_handle == NULL);
   rh->get_handle = GNUNET_DHT_get_start(dht_handle,
-                       GNUNET_TIME_UNIT_FOREVER_REL,
                        GNUNET_BLOCK_TYPE_GNS_NAMERECORD,
                        &lookup_key,
                        DHT_GNS_REPLICATION_LEVEL,

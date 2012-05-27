@@ -1135,7 +1135,6 @@ GNUNET_DHT_put_cancel (struct GNUNET_DHT_PutHandle *ph)
  * also "GNUNET_BLOCK_evaluate".
  *
  * @param handle handle to the DHT service
- * @param timeout how long to wait for transmission of this request to the service
  * @param type expected type of the response object
  * @param key the key to look up
  * @param desired_replication_level estimate of how many
@@ -1149,7 +1148,6 @@ GNUNET_DHT_put_cancel (struct GNUNET_DHT_PutHandle *ph)
  */
 struct GNUNET_DHT_GetHandle *
 GNUNET_DHT_get_start (struct GNUNET_DHT_Handle *handle,
-                      struct GNUNET_TIME_Relative timeout,
                       enum GNUNET_BLOCK_Type type, const GNUNET_HashCode * key,
                       uint32_t desired_replication_level,
                       enum GNUNET_DHT_RouteOption options, const void *xquery,

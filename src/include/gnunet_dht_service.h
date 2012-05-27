@@ -220,8 +220,6 @@ typedef void (*GNUNET_DHT_GetIterator) (void *cls,
  * also "GNUNET_BLOCK_evaluate".
  *
  * @param handle handle to the DHT service
- * @param timeout how long to wait for transmission of this request to the service
- *                FIXME: this argument should probably be removed in the medium term...
  * @param type expected type of the response object
  * @param key the key to look up
  * @param desired_replication_level estimate of how many
@@ -236,7 +234,6 @@ typedef void (*GNUNET_DHT_GetIterator) (void *cls,
  */
 struct GNUNET_DHT_GetHandle *
 GNUNET_DHT_get_start (struct GNUNET_DHT_Handle *handle,
-                      struct GNUNET_TIME_Relative timeout,
                       enum GNUNET_BLOCK_Type type, const GNUNET_HashCode * key,
                       uint32_t desired_replication_level,
                       enum GNUNET_DHT_RouteOption options, const void *xquery,

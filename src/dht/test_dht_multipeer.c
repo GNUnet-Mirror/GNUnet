@@ -621,7 +621,7 @@ do_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_assert (test_get->dht_handle != NULL);
   outstanding_gets++;
   test_get->get_handle =
-      GNUNET_DHT_get_start (test_get->dht_handle, GNUNET_TIME_UNIT_FOREVER_REL,
+      GNUNET_DHT_get_start (test_get->dht_handle, 
                             GNUNET_BLOCK_TYPE_TEST, &key, 1, route_option, NULL,
                             0, &get_result_iterator, test_get);
   test_get->task =

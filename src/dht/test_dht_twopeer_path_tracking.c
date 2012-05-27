@@ -259,7 +259,7 @@ put_finished (void *cls, int success)
                                     "waiting for get response (data not found)");
   memset (&key, 42, sizeof (GNUNET_HashCode));  /* Set the key to the same thing as when data was inserted */
   global_get_handle =
-      GNUNET_DHT_get_start (peer2dht, GNUNET_TIME_relative_get_forever (),
+      GNUNET_DHT_get_start (peer2dht, 
                             GNUNET_BLOCK_TYPE_TEST, &key, 1,
                             GNUNET_DHT_RO_RECORD_ROUTE, NULL, 0,
                             &get_result_iterator, NULL);

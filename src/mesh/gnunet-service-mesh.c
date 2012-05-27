@@ -1604,7 +1604,6 @@ peer_info_connect (struct MeshPeerInfo *peer, struct MeshTunnel *t)
                 "  Starting DHT GET for peer %s\n", GNUNET_i2s (&id));
     peer->dhtgetcls = path_info;
     peer->dhtget = GNUNET_DHT_get_start (dht_handle,    /* handle */
-                                         GNUNET_TIME_UNIT_FOREVER_REL,  /* timeout */
                                          GNUNET_BLOCK_TYPE_TEST,        /* type */
                                          &id.hashPubKey,        /* key to search */
                                          10,     /* replication level */
@@ -4284,7 +4283,7 @@ handle_local_connect_by_type (void *cls, struct GNUNET_SERVER_Client *client,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " looking in DHT for %s\n",
               GNUNET_h2s (&hash));
   t->dht_get_type =
-      GNUNET_DHT_get_start (dht_handle, GNUNET_TIME_UNIT_FOREVER_REL,
+      GNUNET_DHT_get_start (dht_handle, 
                             GNUNET_BLOCK_TYPE_TEST, &hash, 10,
                             GNUNET_DHT_RO_RECORD_ROUTE |
                             GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE, NULL, 0,

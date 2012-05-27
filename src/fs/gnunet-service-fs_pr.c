@@ -1082,7 +1082,7 @@ GSF_dht_lookup_ (struct GSF_PendingRequest *pr)
     xquery_size += sizeof (struct GNUNET_PeerIdentity);
   }
   pr->gh =
-      GNUNET_DHT_get_start (GSF_dht, GNUNET_TIME_UNIT_FOREVER_REL,
+      GNUNET_DHT_get_start (GSF_dht, 
                             pr->public_data.type, &pr->public_data.query,
                             5 /* DEFAULT_GET_REPLICATION */ ,
                             GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,

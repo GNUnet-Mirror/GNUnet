@@ -250,7 +250,7 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
               GNUNET_h2s_full (&d_far->id.hashPubKey));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test:        from %s\n",
               GNUNET_h2s_full (&o->id.hashPubKey));
-  get_h_far = GNUNET_DHT_get_start (hs[0], GNUNET_TIME_UNIT_FOREVER_REL,        /* timeout */
+  get_h_far = GNUNET_DHT_get_start (hs[0], 
                                     GNUNET_BLOCK_TYPE_TEST,     /* type */
                                     &d_far->id.hashPubKey,      /*key to search */
                                     4U, /* replication level */

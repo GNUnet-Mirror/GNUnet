@@ -186,7 +186,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining
                                 (absolute_timeout), &cleanup_task, NULL);
   get_handle =
-      GNUNET_DHT_get_start (dht_handle, timeout, query_type, &key, replication,
+      GNUNET_DHT_get_start (dht_handle, query_type, &key, replication,
                             GNUNET_DHT_RO_NONE, NULL, 0, &get_result_iterator,
                             NULL);
 

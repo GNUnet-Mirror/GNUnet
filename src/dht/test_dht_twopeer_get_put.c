@@ -272,7 +272,7 @@ do_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   memset (&key, 42, sizeof (GNUNET_HashCode));  /* Set the key to the same thing as when data was inserted */
 #endif
   global_get_handle =
-      GNUNET_DHT_get_start (peer2dht, GNUNET_TIME_relative_get_forever (),
+      GNUNET_DHT_get_start (peer2dht, 
 #if DNS
                             GNUNET_BLOCK_TYPE_DNS,
 #else
