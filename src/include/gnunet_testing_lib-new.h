@@ -100,7 +100,7 @@ GNUNET_TESTING_system_destroy (struct GNUNET_TESTING_System *system,
  * @param filename where to store the hostkey (file will
  *        be created, or overwritten if it already exists)
  * @param id set to the peer's identity (hash of the public
- *        key; can be NULL
+ *        key; if NULL, GNUNET_SYSERR is returned immediately
  * @return GNUNET_SYSERR on error (not enough keys)
  */
 int

@@ -45,6 +45,13 @@
 #endif
 
 /**
+ * Size of a hostkey when written to a file
+ */
+#ifndef HOSTKEYFILESIZE
+#define HOSTKEYFILESIZE 914
+#endif
+
+/**
  * Handle for a system on which GNUnet peers are executed;
  * a system is used for reserving unique paths and ports.
  */
@@ -55,7 +62,6 @@ struct GNUNET_TESTING_System
    * SERVICEHOME. 
    */
   char *tmppath;
-
   /**
    * The hostname of the controller
    */
@@ -301,14 +307,17 @@ release_port (struct GNUNET_TESTING_System *system,
  *
  * @param system system to use for reservation tracking
  * @return NULL on error, otherwise fresh unique path to use
- *         as the servicehome for the peer
+ *         as the servicehome for the peer; must be freed by the caller
  */
 // static 
 char *
 reserve_path (struct GNUNET_TESTING_System *system)
 {
-  GNUNET_break (0);
-  return NULL;
+  char *reserved_path;
+
+  GNUNET_asprintf (&reserved_path,
+                   "%s/%u", system->tmppath, system->path_counter++);
+  return reserved_path;
 }	      
 
 
@@ -327,7 +336,7 @@ reserve_path (struct GNUNET_TESTING_System *system)
  * @param filename where to store the hostkey (file will
  *        be created, or overwritten if it already exists)
  * @param id set to the peer's identity (hash of the public
- *        key; can be NULL
+ *        key; if NULL, GNUNET_SYSERR is returned immediately
  * @return GNUNET_SYSERR on error (not enough keys)
  */
 int
@@ -335,8 +344,72 @@ GNUNET_TESTING_hostkey_get (uint32_t key_number,
 			    const char *filename,
 			    struct GNUNET_PeerIdentity *id)
 {
-  GNUNET_break (0);
-  return GNUNET_SYSERR;
+  struct GNUNET_DISK_FileHandle *fd;
+  struct GNUNET_CRYPTO_RsaPrivateKey *private_key;
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded public_key;
+  char *file_data;
+  uint64_t fs;
+  uint32_t total_hostkeys;
+
+  if (NULL == id)
+    return GNUNET_SYSERR;
+  if (GNUNET_YES != GNUNET_DISK_file_test (filename))
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         "Hostkeys file not found: %s\n", filename);
+    return GNUNET_SYSERR;
+  }
+  /* Check hostkey file size, read entire thing into memory */
+  fd = GNUNET_DISK_file_open (filename, GNUNET_DISK_OPEN_READ,
+                              GNUNET_DISK_PERM_NONE);
+  if (NULL == fd)
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         "Could not open hostkeys file: %s\n", filename);
+    return GNUNET_SYSERR;
+  }
+  if (GNUNET_OK != 
+      GNUNET_DISK_file_size (filename, &fs, GNUNET_YES, GNUNET_YES))
+    fs = 0;
+  if (0 == fs)
+  {
+    GNUNET_DISK_file_close (fd);
+    return GNUNET_SYSERR;       /* File is empty */
+  }
+  if (0 != (fs % HOSTKEYFILESIZE))
+  {
+    GNUNET_DISK_file_close (fd);
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         "Incorrect hostkey file format: %s\n", filename);
+    return GNUNET_SYSERR;
+  }
+  total_hostkeys = fs / HOSTKEYFILESIZE;
+  if (key_number >= total_hostkeys)
+  {
+    GNUNET_DISK_file_close (fd);
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         "Key number %u doesn't exist\n", key_number);
+    return GNUNET_SYSERR;
+  }
+  file_data = GNUNET_malloc_large (fs);
+  GNUNET_assert (fs == GNUNET_DISK_file_read (fd, file_data, fs));
+  GNUNET_DISK_file_close (fd);
+  private_key = GNUNET_CRYPTO_rsa_decode_key (file_data +
+                                              (key_number * HOSTKEYFILESIZE),
+                                              HOSTKEYFILESIZE);
+  if (NULL == private_key)
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         "Error while decoding key %u from %s\n", key_number, filename);
+    GNUNET_free (file_data);
+    return GNUNET_SYSERR;
+  }
+  GNUNET_CRYPTO_rsa_key_get_public (private_key, &public_key);
+  GNUNET_CRYPTO_hash (&public_key,
+                      sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+                      &(id->hashPubKey));
+  GNUNET_free (file_data);
+  return GNUNET_OK;
 }
 
 
