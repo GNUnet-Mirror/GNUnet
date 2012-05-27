@@ -313,11 +313,12 @@ typedef void (*GNUNET_TRANSPORT_TransmitContinuation) (void *cls,
  *         and does NOT mean that the message was not transmitted (DV)
  */
 typedef ssize_t (*GNUNET_TRANSPORT_TransmitFunction) (void *cls,
-    struct Session *session,
-    const char *msgbuf, size_t msgbuf_size,
-    unsigned int priority,
-    struct GNUNET_TIME_Relative to,
-    GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls);
+						      struct Session *session,
+						      const char *msgbuf, size_t msgbuf_size,
+						      unsigned int priority,
+						      struct GNUNET_TIME_Relative to,
+						      GNUNET_TRANSPORT_TransmitContinuation cont,
+						      void *cont_cls);
 
 
 /**

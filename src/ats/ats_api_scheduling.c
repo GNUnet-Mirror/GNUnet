@@ -145,7 +145,6 @@ struct GNUNET_ATS_SchedulingHandle
    */
   struct ATS_Network * net_tail;
 
-
   /**
    * Array of session objects (we need to translate them to numbers and back
    * for the protocol; the offset in the array is the session number on the
@@ -162,7 +161,6 @@ struct GNUNET_ATS_SchedulingHandle
   /**
    * Task retrieving interfaces from the system
    */
-
   GNUNET_SCHEDULER_TaskIdentifier interface_task;
 
 
@@ -619,10 +617,10 @@ reconnect (struct GNUNET_ATS_SchedulingHandle *sh)
   do_transmit (sh);
 }
 
+
 /**
  * delete the current network list
  */
-
 static void
 delete_networks (struct GNUNET_ATS_SchedulingHandle *sh)
 {
@@ -735,7 +733,6 @@ interface_proc (void *cls, const char *name,
 }
 
 
-
 /**
  * Periodically get list of addresses
  * @param cls closure
@@ -753,14 +750,15 @@ get_addresses (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                                      sh);
 }
 
+
 /**
  * Returns where the address is located: LAN or WAN or ...
+ *
  * @param sh the scheduling handle
  * @param addr address
  * @param addrlen address length
  * @return location as GNUNET_ATS_Information
  */
-
 struct GNUNET_ATS_Information
 GNUNET_ATS_address_get_type (struct GNUNET_ATS_SchedulingHandle * sh, const struct sockaddr * addr, socklen_t addrlen)
 {
@@ -851,6 +849,7 @@ GNUNET_ATS_address_get_type (struct GNUNET_ATS_SchedulingHandle * sh, const stru
   ats.value = htonl (type);
   return (const struct GNUNET_ATS_Information) ats;
 }
+
 
 /**
  * Initialize the ATS subsystem.
@@ -959,6 +958,8 @@ GNUNET_ATS_suggest_address (struct GNUNET_ATS_SchedulingHandle *sh,
   struct PendingMessage *p;
   struct RequestAddressMessage *m;
 
+  // FIXME: ATS needs to remember this in case of
+  // a disconnect!
   p = GNUNET_malloc (sizeof (struct PendingMessage) +
                      sizeof (struct RequestAddressMessage));
   p->size = sizeof (struct RequestAddressMessage);
@@ -998,6 +999,7 @@ GNUNET_ATS_suggest_address_cancel (struct GNUNET_ATS_SchedulingHandle *sh,
   GNUNET_CONTAINER_DLL_insert_tail (sh->pending_head, sh->pending_tail, p);
   do_transmit (sh);
 }
+
 
 /**
  * We have updated performance statistics for a given address.  Note
@@ -1123,9 +1125,9 @@ GNUNET_ATS_address_in_use (struct GNUNET_ATS_SchedulingHandle *sh,
   memcpy (pm, address->address, address->address_length);
   memcpy (&pm[address->address_length], address->transport_name, namelen);
   GNUNET_CONTAINER_DLL_insert_tail (sh->pending_head, sh->pending_tail, p);
-
   do_transmit (sh);
 }
+
 
 /**
  * A session got destroyed, stop including it as a valid address.

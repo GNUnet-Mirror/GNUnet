@@ -1583,7 +1583,7 @@ GNUNET_FS_search_stop (struct GNUNET_FS_SearchContext *sc)
   GNUNET_CONTAINER_multihashmap_iterate (sc->master_result_map,
                                          &search_result_free, sc);
   GNUNET_CONTAINER_multihashmap_destroy (sc->master_result_map);
-  if (NULL == sc->requests)
+  if (NULL != sc->requests)
   {
     GNUNET_assert (GNUNET_FS_uri_test_ksk (sc->uri));
     for (i = 0; i < sc->uri->data.ksk.keywordCount; i++)

@@ -605,6 +605,7 @@ GNUNET_ATS_address_in_use (struct GNUNET_ATS_SchedulingHandle *sh,
                            const struct GNUNET_HELLO_Address *address,
                            struct Session *session, int in_use);
 
+
 /**
  * A session got destroyed, stop including it as a valid address.
  *
