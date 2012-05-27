@@ -258,6 +258,13 @@ sks_cont (void *cls, const struct GNUNET_FS_Uri *uri, const char *emsg)
   char *msg;
   struct GNUNET_FS_BlockOptions bo;
 
+  if (NULL == uri)
+  {
+    fprintf (stderr, "Error publishing: %s\n", emsg);
+    err = 1;
+    GNUNET_FS_stop (fs);
+    return;
+  }
   meta = GNUNET_CONTAINER_meta_data_create ();
   msg = NULL;
   ksk_uri = GNUNET_FS_uri_parse ("gnunet://fs/ksk/ns-search", &msg);
