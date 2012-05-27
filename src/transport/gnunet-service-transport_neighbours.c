@@ -60,11 +60,11 @@
 /**
  * How often do we send KEEPALIVE messages to each of our neighbours and measure
  * the latency with this neighbour?
- * (idle timeout is 5 minutes or 300 seconds, so with 30s interval we
- * send 10 keepalives in each interval, so 10 messages would need to be
+ * (idle timeout is 5 minutes or 300 seconds, so with 100s interval we
+ * send 3 keepalives in each interval, so 3 messages would need to be
  * lost in a row for a disconnect).
  */
-#define KEEPALIVE_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
+#define KEEPALIVE_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 100)
 
 /**
  * How long are we willing to wait for a response from ATS before timing out?
