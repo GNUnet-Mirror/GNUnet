@@ -622,7 +622,7 @@ handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_break (0);
     return;
   }
-  GNUNET_STATISTICS_update (GDS_stats, gettext_noop ("# Peers connected"), 1,
+  GNUNET_STATISTICS_update (GDS_stats, gettext_noop ("# peers connected"), 1,
                             GNUNET_NO);
   peer_bucket = find_bucket (&peer->hashPubKey);
   GNUNET_assert ((peer_bucket >= 0) && (peer_bucket < MAX_BUCKETS));
@@ -680,7 +680,7 @@ handle_core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
     GNUNET_break (0);
     return;
   }
-  GNUNET_STATISTICS_update (GDS_stats, gettext_noop ("# Peers connected"), -1,
+  GNUNET_STATISTICS_update (GDS_stats, gettext_noop ("# peers connected"), -1,
                             GNUNET_NO);
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multihashmap_remove (all_known_peers,
