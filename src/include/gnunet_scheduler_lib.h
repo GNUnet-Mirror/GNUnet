@@ -419,8 +419,9 @@ GNUNET_SCHEDULER_add_read_net (struct GNUNET_TIME_Relative delay,
  * either the delay has expired or the socket operation is ready.  It
  * will be run with the DEFAULT priority.
  *
- * * @param delay when should this operation time out? Use
+ * @param delay when should this operation time out? Use
  *        GNUNET_TIME_UNIT_FOREVER_REL for "on shutdown"
+ * @param priority priority to use for the task
  * @param rfd read file-descriptor
  * @param task main function of the task
  * @param task_cls closure of task

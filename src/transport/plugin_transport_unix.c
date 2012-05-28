@@ -347,7 +347,7 @@ lookup_session (struct Plugin *plugin, struct GNUNET_PeerIdentity *sender, const
  * to close a session due to a disconnect or failure to
  * establish a connection.
  *
- * @param session session to close down
+ * @param s session to close down
  */
 static void
 disconnect_session (struct Session *s)
