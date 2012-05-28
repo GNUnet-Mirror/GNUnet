@@ -944,18 +944,18 @@ disconnect_session (struct Session *session)
   LOG (GNUNET_ERROR_TYPE_DEBUG, 
        "Disconnecting session of peer `%s' address `%s'\n",
        GNUNET_i2s (&session->target),
-       tcp_address_to_string(NULL, session->addr, session->addrlen));
+       tcp_address_to_string (NULL, session->addr, session->addrlen));
 
   stop_session_timeout (session);
 
-  if (GNUNET_YES  == GNUNET_CONTAINER_multihashmap_remove(plugin->sessionmap, &session->target.hashPubKey, session))
+  if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_remove (plugin->sessionmap, &session->target.hashPubKey, session))
   {
-     GNUNET_STATISTICS_update (session->plugin->env->stats,
-                               gettext_noop ("# TCP sessions active"), -1,
-                               GNUNET_NO);
-     dec_sessions (plugin, session, __LINE__);
+    GNUNET_STATISTICS_update (session->plugin->env->stats,
+			      gettext_noop ("# TCP sessions active"), -1,
+			      GNUNET_NO);
+    dec_sessions (plugin, session, __LINE__);
   }
-  else GNUNET_assert (GNUNET_YES  == GNUNET_CONTAINER_multihashmap_remove(plugin->nat_wait_conns, &session->target.hashPubKey, session));
+  else GNUNET_assert (GNUNET_YES == GNUNET_CONTAINER_multihashmap_remove (plugin->nat_wait_conns, &session->target.hashPubKey, session));
 
   /* clean up state */
   if (session->transmit_handle != NULL)
@@ -966,7 +966,7 @@ disconnect_session (struct Session *session)
   session->plugin->env->session_end (session->plugin->env->cls,
                                      &session->target, session);
 
-  if (session->nat_connection_timeout != GNUNET_SCHEDULER_NO_TASK)
+  if (GNUNET_SCHEDULER_NO_TASK != session->nat_connection_timeout)
   {
     GNUNET_SCHEDULER_cancel (session->nat_connection_timeout);
     session->nat_connection_timeout = GNUNET_SCHEDULER_NO_TASK;
@@ -996,16 +996,15 @@ disconnect_session (struct Session *session)
   if (session->receive_delay_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (session->receive_delay_task);
-    if (session->client != NULL)
+    if (NULL != session->client)
       GNUNET_SERVER_receive_done (session->client, GNUNET_SYSERR);
   }
-  if (session->client != NULL)
+  if (NULL != session->client)
   {
+    GNUNET_SERVER_client_disconnect (session->client);
     GNUNET_SERVER_client_drop (session->client);
     session->client = NULL;
   }
-
-
   GNUNET_free_non_null (session->addr);
   GNUNET_assert (NULL == session->transmit_handle);
   GNUNET_free (session);
