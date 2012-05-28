@@ -309,7 +309,7 @@ process_helper_msgs (void *cls,
   case GNUNET_MESSAGE_TYPE_FS_PUBLISH_HELPER_ERROR:
     break;
   case GNUNET_MESSAGE_TYPE_FS_PUBLISH_HELPER_SKIP_FILE:
-    if (filename[left-1] != '\0')
+    if ('\0' != filename[left-1])
       break;
     ds->progress_callback (ds->progress_callback_cls, 
 			   filename, GNUNET_SYSERR,
