@@ -30,8 +30,7 @@
  *
  */
 #include "platform.h"
-#include "gnunet_disk_lib.h"
-#include "gnunet_network_lib.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_testing_lib-new.h"
 
 #define LOG(kind,...)                                           \
@@ -99,11 +98,6 @@ struct GNUNET_TESTING_System
    * we never re-use path counters.
    */
   uint32_t path_counter;
-
-  /**
-   * Last used port number
-   */
-  
 };
 
 
@@ -413,6 +407,155 @@ GNUNET_TESTING_hostkey_get (uint32_t key_number,
 
 
 /**
+ * Structure for holding data to build new configurations from a configuration
+ * template
+ */
+struct UpdateContext
+{
+  /**
+   * The system for which we are building configurations
+   */
+  struct GNUNET_TESTING_System *system;
+
+  /**
+   * The original configuration template
+   */
+  const struct GNUNET_CONFIGURATION_Handle *orig;
+
+  /**
+   * The configuration we are building
+   */
+  struct GNUNET_CONFIGURATION_Handle *cfg;
+
+  /**
+   * build status - to signal error while building a configuration
+   */
+  int status;
+};
+
+
+/**
+ * Function to iterate over options.  Copies
+ * the options to the target configuration,
+ * updating PORT values as needed.
+ *
+ * @param cls the UpdateContext
+ * @param section name of the section
+ * @param option name of the option
+ * @param value value of the option
+ */
+static void
+update_config (void *cls, const char *section, const char *option,
+               const char *value)
+{
+  struct UpdateContext *uc = cls;
+  unsigned int ival;
+  char cval[12];
+  char uval[128];
+  char *single_variable;
+  char *per_host_variable;
+  unsigned long long num_per_host;
+  uint16_t new_port;
+
+  if (GNUNET_OK != uc->status)
+    return;
+  GNUNET_asprintf (&single_variable, "single_%s_per_host", section);
+  GNUNET_asprintf (&per_host_variable, "num_%s_per_host", section);
+  if ((0 == strcmp (option, "PORT")) && (1 == SSCANF (value, "%u", &ival)))
+  {
+    if ((ival != 0) &&
+        (GNUNET_YES !=
+         GNUNET_CONFIGURATION_get_value_yesno (uc->orig, "testing",
+                                               single_variable)))
+    {
+      /* FIXME: What about UDP? */
+      new_port = GNUNET_TESTING_reserve_port (uc->system, GNUNET_YES);
+      if (0 == new_port)
+      {
+        uc->status = GNUNET_SYSERR;
+        return;
+      }
+      GNUNET_snprintf (cval, sizeof (cval), "%u", new_port);
+      value = cval;
+    }
+    else if ((ival != 0) &&
+             (GNUNET_YES ==
+              GNUNET_CONFIGURATION_get_value_yesno (uc->orig, "testing",
+                                                    single_variable)) &&
+             GNUNET_CONFIGURATION_get_value_number (uc->orig, "testing",
+                                                    per_host_variable,
+                                                    &num_per_host))
+    {
+      /* GNUNET_snprintf (cval, sizeof (cval), "%u", */
+      /*                  ival + ctx->fdnum % num_per_host); */
+      /* value = cval; */
+      GNUNET_break (0);         /* FIXME */
+    }
+  }
+  if (0 == strcmp (option, "UNIXPATH"))
+  {
+    if (GNUNET_YES !=
+        GNUNET_CONFIGURATION_get_value_yesno (uc->orig, "testing",
+                                              single_variable))
+    {
+      GNUNET_snprintf (uval, sizeof (uval), "%s-%s-%u",
+                       uc->system->tmppath,
+                       section,
+                       uc->system->path_counter++);
+      value = uval;
+    }
+    else if ((GNUNET_YES ==
+              GNUNET_CONFIGURATION_get_value_number (uc->orig, "testing",
+                                                     per_host_variable,
+                                                     &num_per_host)) &&
+             (num_per_host > 0))
+    {
+      GNUNET_break(0);          /* FIXME */
+    }
+  }
+  if ((0 == strcmp (option, "HOSTNAME")) && (NULL != uc->system->controller))
+  {
+    value = uc->system->controller;
+  }
+  GNUNET_free (single_variable);
+  GNUNET_free (per_host_variable);
+  GNUNET_CONFIGURATION_set_value_string (uc->cfg, section, option, value);
+}
+
+
+/**
+ * Section iterator to set ACCEPT_FROM in all sections
+ *
+ * @param cls the UpdateContext
+ * @param section name of the section
+ */
+static void
+update_config_sections (void *cls,
+                        const char *section)
+{
+  struct UpdateContext *uc = cls;
+  char *orig_allowed_hosts;
+  char *allowed_hosts;
+
+  if (GNUNET_OK != 
+      GNUNET_CONFIGURATION_get_value_string (uc->orig, section, "ACCEPT_FROM",
+                                             &orig_allowed_hosts))
+  {
+    orig_allowed_hosts = "127.0.0.1;";
+  }
+  if (NULL == uc->system->controller)
+    allowed_hosts = GNUNET_strdup (orig_allowed_hosts);
+  else
+    GNUNET_asprintf (&allowed_hosts, "%s %s;", orig_allowed_hosts,
+                     uc->system->controller);
+  GNUNET_CONFIGURATION_set_value_string (uc->cfg, section, "ACCEPT_FROM",
+                                         allowed_hosts);
+  GNUNET_free (allowed_hosts);
+  
+}
+
+
+/**
  * Create a new configuration using the given configuration
  * as a template; ports and paths will be modified to select
  * available ports on the local system.  If we run
@@ -422,15 +565,27 @@ GNUNET_TESTING_hostkey_get (uint32_t key_number,
  * by 'GNUNET_TESTING_peer_configure'.
  *
  * @param system system to use to coordinate resource usage
- * @param cfg template configuration to update
- * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ * @param cfg template configuration
+ * @return the new configuration; NULL upon error;
  */
-int
+struct GNUNET_CONFIGURATION_Handle *
 GNUNET_TESTING_configuration_create (struct GNUNET_TESTING_System *system,
-				     struct GNUNET_CONFIGURATION_Handle *cfg)
+				     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  GNUNET_break (0);
-  return GNUNET_SYSERR;
+  struct UpdateContext uc;
+  
+  uc.system = system;
+  uc.orig = cfg;
+  uc.cfg = GNUNET_CONFIGURATION_create ();
+  GNUNET_CONFIGURATION_iterate (cfg, &update_config, &uc);
+  if (GNUNET_OK != uc.status)
+  {
+    GNUNET_CONFIGURATION_destroy (uc.cfg);
+    return NULL;
+  }
+  GNUNET_CONFIGURATION_iterate_sections (cfg, &update_config_sections, &uc);
+  /* FIXME: add other options which enable communication with controller */
+  return uc.cfg;
 }
 
 
