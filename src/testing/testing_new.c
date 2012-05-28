@@ -62,6 +62,7 @@ struct GNUNET_TESTING_System
    * SERVICEHOME. 
    */
   char *tmppath;
+
   /**
    * The hostname of the controller
    */
