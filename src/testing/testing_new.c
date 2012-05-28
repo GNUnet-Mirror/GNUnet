@@ -416,12 +416,7 @@ struct UpdateContext
    * The system for which we are building configurations
    */
   struct GNUNET_TESTING_System *system;
-
-  /**
-   * The original configuration template
-   */
-  const struct GNUNET_CONFIGURATION_Handle *orig;
-
+  
   /**
    * The configuration we are building
    */
@@ -465,7 +460,7 @@ update_config (void *cls, const char *section, const char *option,
   {
     if ((ival != 0) &&
         (GNUNET_YES !=
-         GNUNET_CONFIGURATION_get_value_yesno (uc->orig, "testing",
+         GNUNET_CONFIGURATION_get_value_yesno (uc->cfg, "testing",
                                                single_variable)))
     {
       /* FIXME: What about UDP? */
@@ -480,9 +475,9 @@ update_config (void *cls, const char *section, const char *option,
     }
     else if ((ival != 0) &&
              (GNUNET_YES ==
-              GNUNET_CONFIGURATION_get_value_yesno (uc->orig, "testing",
+              GNUNET_CONFIGURATION_get_value_yesno (uc->cfg, "testing",
                                                     single_variable)) &&
-             GNUNET_CONFIGURATION_get_value_number (uc->orig, "testing",
+             GNUNET_CONFIGURATION_get_value_number (uc->cfg, "testing",
                                                     per_host_variable,
                                                     &num_per_host))
     {
@@ -495,7 +490,7 @@ update_config (void *cls, const char *section, const char *option,
   if (0 == strcmp (option, "UNIXPATH"))
   {
     if (GNUNET_YES !=
-        GNUNET_CONFIGURATION_get_value_yesno (uc->orig, "testing",
+        GNUNET_CONFIGURATION_get_value_yesno (uc->cfg, "testing",
                                               single_variable))
     {
       GNUNET_snprintf (uval, sizeof (uval), "%s-%s-%u",
@@ -505,7 +500,7 @@ update_config (void *cls, const char *section, const char *option,
       value = uval;
     }
     else if ((GNUNET_YES ==
-              GNUNET_CONFIGURATION_get_value_number (uc->orig, "testing",
+              GNUNET_CONFIGURATION_get_value_number (uc->cfg, "testing",
                                                      per_host_variable,
                                                      &num_per_host)) &&
              (num_per_host > 0))
@@ -538,7 +533,7 @@ update_config_sections (void *cls,
   char *allowed_hosts;
 
   if (GNUNET_OK != 
-      GNUNET_CONFIGURATION_get_value_string (uc->orig, section, "ACCEPT_FROM",
+      GNUNET_CONFIGURATION_get_value_string (uc->cfg, section, "ACCEPT_FROM",
                                              &orig_allowed_hosts))
   {
     orig_allowed_hosts = "127.0.0.1;";
@@ -565,27 +560,23 @@ update_config_sections (void *cls,
  * by 'GNUNET_TESTING_peer_configure'.
  *
  * @param system system to use to coordinate resource usage
- * @param cfg template configuration
- * @return the new configuration; NULL upon error;
+ * @param cfg template configuration to update
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error - the configuration will
+ *           be incomplete and should not be used there upon
  */
-struct GNUNET_CONFIGURATION_Handle *
+int
 GNUNET_TESTING_configuration_create (struct GNUNET_TESTING_System *system,
-				     const struct GNUNET_CONFIGURATION_Handle *cfg)
+				     struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct UpdateContext uc;
   
   uc.system = system;
-  uc.orig = cfg;
-  uc.cfg = GNUNET_CONFIGURATION_create ();
+  uc.cfg = cfg;
+  uc.status = GNUNET_OK;
   GNUNET_CONFIGURATION_iterate (cfg, &update_config, &uc);
-  if (GNUNET_OK != uc.status)
-  {
-    GNUNET_CONFIGURATION_destroy (uc.cfg);
-    return NULL;
-  }
   GNUNET_CONFIGURATION_iterate_sections (cfg, &update_config_sections, &uc);
   /* FIXME: add other options which enable communication with controller */
-  return uc.cfg;
+  return uc.status;
 }
 
 

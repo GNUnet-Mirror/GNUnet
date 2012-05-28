@@ -146,12 +146,13 @@ GNUNET_TESTING_release_port (struct GNUNET_TESTING_System *system,
  * by 'GNUNET_TESTING_peer_configure'.
  *
  * @param system system to use to coordinate resource usage
- * @param cfg template configuration
- * @return the new configuration; NULL upon error;
+ * @param cfg template configuration to update
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error - the configuration will
+ *           be incomplete and should not be used there upon
  */
-struct GNUNET_CONFIGURATION_Handle *
+int
 GNUNET_TESTING_configuration_create (struct GNUNET_TESTING_System *system,
-				     const struct GNUNET_CONFIGURATION_Handle *cfg);
+				     struct GNUNET_CONFIGURATION_Handle *cfg);
 // FIXME: add dual to 'release' ports again...
 
 
