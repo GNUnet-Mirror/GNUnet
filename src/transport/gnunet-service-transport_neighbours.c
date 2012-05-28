@@ -847,10 +847,11 @@ set_address (struct NeighbourAddress *na,
  * Free a neighbour map entry.
  *
  * @param n entry to free
- * @param terminate tell plugin to terminate sessions
+ * @param keep_sessions GNUNET_NO to tell plugin to terminate sessions,
+ *                      GNUNET_YES to keep all sessions
  */
 static void
-free_neighbour (struct NeighbourMapEntry *n, int terminate)
+free_neighbour (struct NeighbourMapEntry *n, int keep_sessions)
 {
   struct MessageQueue *mq;
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
@@ -885,7 +886,7 @@ free_neighbour (struct NeighbourMapEntry *n, int terminate)
      API gives us not even the means to selectively kill only one of
      them! Killing all sessions like this seems to be very, very
      wrong. */
-  if ((GNUNET_YES == terminate) &&
+  if ((GNUNET_NO == keep_sessions) &&
       (NULL != n->primary_address.address) &&
       (NULL != (papi = GST_plugins_find (n->primary_address.address->transport_name))))
     papi->disconnect (papi->cls, &n->id);
