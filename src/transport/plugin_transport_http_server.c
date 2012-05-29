@@ -769,9 +769,8 @@ server_disconnect_cb (void *cls, struct MHD_Connection *connection,
                      "Server: %X peer `%s' GET on address `%s' disconnected\n",
                      s->server_send, GNUNET_i2s (&s->target),
                      http_plugin_address_to_string (NULL, s->addr, s->addrlen));
-
+    GNUNET_free (s->server_send);
     s->server_send = NULL;
-
     if (s->server_recv != NULL)
     {
       tc = s->server_recv;
@@ -788,6 +787,7 @@ server_disconnect_cb (void *cls, struct MHD_Connection *connection,
                      "Server: %X peer `%s' PUT on address `%s' disconnected\n",
                      s->server_recv, GNUNET_i2s (&s->target),
                      http_plugin_address_to_string (NULL, s->addr, s->addrlen));
+    GNUNET_free (s->server_recv);
     s->server_recv = NULL;
     if (s->server_send != NULL)
     {

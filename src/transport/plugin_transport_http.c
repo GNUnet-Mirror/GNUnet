@@ -601,8 +601,6 @@ delete_session (struct Session *s)
     s->msg_tk = NULL;
   }
   GNUNET_free (s->addr);
-  GNUNET_free_non_null (s->server_recv);
-  GNUNET_free_non_null (s->server_send);
   GNUNET_free (s);
 }
 
