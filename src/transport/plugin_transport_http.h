@@ -226,6 +226,11 @@ struct Plugin
   GNUNET_SCHEDULER_TaskIdentifier server_v4_task;
 
   /**
+   * The IPv4 server is scheduled to run asap
+   */
+  int server_v4_immediately;
+
+  /**
    * MHD IPv6 daemon
    */
   struct MHD_Daemon *server_v6;
@@ -234,6 +239,12 @@ struct Plugin
    * MHD IPv4 task
    */
   GNUNET_SCHEDULER_TaskIdentifier server_v6_task;
+
+  /**
+   * The IPv6 server is scheduled to run asap
+   */
+
+  int server_v6_immediately;
 
   /**
    * IPv4 server socket to bind to

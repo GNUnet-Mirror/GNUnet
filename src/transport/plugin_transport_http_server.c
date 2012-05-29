@@ -236,6 +236,12 @@ server_reschedule (struct Plugin *plugin, struct MHD_Daemon *server, int now)
 {
   if ((server == plugin->server_v4) && (plugin->server_v4 != NULL))
   {
+    if (GNUNET_YES == plugin->server_v4_immediately)
+      return; /* No rescheduling, server will run asap */
+
+    if (GNUNET_YES == now)
+      plugin->server_v4_immediately = GNUNET_YES;
+
     if (plugin->server_v4_task != GNUNET_SCHEDULER_NO_TASK)
     {
       GNUNET_SCHEDULER_cancel (plugin->server_v4_task);
@@ -246,6 +252,12 @@ server_reschedule (struct Plugin *plugin, struct MHD_Daemon *server, int now)
 
   if ((server == plugin->server_v6) && (plugin->server_v6 != NULL))
   {
+    if (GNUNET_YES == plugin->server_v6_immediately)
+      return; /* No rescheduling, server will run asap */
+
+    if (GNUNET_YES == now)
+      plugin->server_v6_immediately = GNUNET_YES;
+
     if (plugin->server_v6_task != GNUNET_SCHEDULER_NO_TASK)
     {
       GNUNET_SCHEDULER_cancel (plugin->server_v6_task);
@@ -917,17 +929,15 @@ server_v4_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_assert (cls != NULL);
 
   plugin->server_v4_task = GNUNET_SCHEDULER_NO_TASK;
-
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 #if 0
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                    "Running IPv4 server\n");
 #endif
+  plugin->server_v4_immediately = GNUNET_NO;
   GNUNET_assert (MHD_YES == MHD_run (plugin->server_v4));
-  if (plugin->server_v4 != NULL)
-    plugin->server_v4_task =
-        server_schedule (plugin, plugin->server_v4, GNUNET_NO);
+  server_reschedule (plugin, plugin->server_v4, GNUNET_NO);
 }
 
 
@@ -943,19 +953,16 @@ server_v6_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct Plugin *plugin = cls;
 
   GNUNET_assert (cls != NULL);
-
   plugin->server_v6_task = GNUNET_SCHEDULER_NO_TASK;
-
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 #if 0
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                    "Running IPv6 server\n");
 #endif
+  plugin->server_v6_immediately = GNUNET_NO;
   GNUNET_assert (MHD_YES == MHD_run (plugin->server_v6));
-  if (plugin->server_v6 != NULL)
-    plugin->server_v6_task =
-        server_schedule (plugin, plugin->server_v6, GNUNET_NO);
+  server_reschedule (plugin, plugin->server_v6, GNUNET_NO);
 }
 
 /**
