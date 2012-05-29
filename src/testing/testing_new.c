@@ -135,7 +135,6 @@ struct GNUNET_TESTING_Peer
    * peer/service is currently not running.
    */
   struct GNUNET_OS_Process *main_process;
-
 };
 
 
@@ -468,6 +467,11 @@ struct UpdateContext
   struct GNUNET_CONFIGURATION_Handle *cfg;
 
   /**
+   * The customized service home path for this peer
+   */
+  char *service_home;
+
+  /**
    * build status - to signal error while building a configuration
    */
   int status;
@@ -538,10 +542,8 @@ update_config (void *cls, const char *section, const char *option,
         GNUNET_CONFIGURATION_get_value_yesno (uc->cfg, "testing",
                                               single_variable))
     {
-      GNUNET_snprintf (uval, sizeof (uval), "%s-%s-%u",
-                       uc->system->tmppath,
-                       section,
-                       uc->system->path_counter++);
+      GNUNET_snprintf (uval, sizeof (uval), "%s\\%s.sock",
+                       uc->service_home, section);
       value = uval;
     }
     else if ((GNUNET_YES ==
@@ -590,8 +592,7 @@ update_config_sections (void *cls,
                      uc->system->controller);
   GNUNET_CONFIGURATION_set_value_string (uc->cfg, section, "ACCEPT_FROM",
                                          allowed_hosts);
-  GNUNET_free (allowed_hosts);
-  
+  GNUNET_free (allowed_hosts);  
 }
 
 
@@ -618,9 +619,14 @@ GNUNET_TESTING_configuration_create (struct GNUNET_TESTING_System *system,
   uc.system = system;
   uc.cfg = cfg;
   uc.status = GNUNET_OK;
+  GNUNET_asprintf (&uc.service_home, "%s\\%u", system->tmppath,
+                   system->path_counter++);
+  GNUNET_CONFIGURATION_set_value_string (cfg, "PATHS", "SERVICEHOME",
+                                         uc.service_home);
   GNUNET_CONFIGURATION_iterate (cfg, &update_config, &uc);
   GNUNET_CONFIGURATION_iterate_sections (cfg, &update_config_sections, &uc);
   /* FIXME: add other options which enable communication with controller */
+  GNUNET_free (uc.service_home);
   return uc.status;
 }
 
@@ -644,8 +650,56 @@ GNUNET_TESTING_peer_configure (struct GNUNET_TESTING_System *system,
 			       struct GNUNET_PeerIdentity *id,
 			       char **emsg)
 {
-  GNUNET_break (0);
-  return NULL;
+  struct GNUNET_TESTING_Peer *peer;
+  struct GNUNET_DISK_FileHandle *fd;
+  char *service_home;  
+  char hostkey_filename[128];
+  char *config_filename;
+  size_t bytes_written;
+  size_t n;
+
+
+  if (GNUNET_OK != GNUNET_TESTING_configuration_create (system, cfg))
+    return NULL;
+  if (key_number >= system->total_hostkeys)
+    return NULL;
+  if ((NULL != id) &&
+      (GNUNET_SYSERR == GNUNET_TESTING_hostkey_get (system, key_number, id)))
+    return NULL;
+  GNUNET_assert (GNUNET_OK == 
+                 GNUNET_CONFIGURATION_get_value_string (cfg, "PATHS",
+                                                        "SERVICE_HOME",
+                                                        &service_home));
+  GNUNET_snprintf (hostkey_filename, sizeof (hostkey_filename), "%s\\.hostkey",
+                   service_home);
+  fd = GNUNET_DISK_file_open (hostkey_filename,
+                              GNUNET_DISK_OPEN_CREATE | GNUNET_DISK_OPEN_WRITE,
+                              GNUNET_DISK_PERM_USER_READ 
+                              | GNUNET_DISK_PERM_USER_WRITE);
+  if (NULL == fd)
+  {
+    GNUNET_break (0); return NULL;
+  }
+  bytes_written = 0;
+  do
+  {
+    n = GNUNET_DISK_file_write (fd, system->hostkeys_data 
+                                + (key_number * HOSTKEYFILESIZE),
+                                HOSTKEYFILESIZE - bytes_written);
+    GNUNET_assert (GNUNET_SYSERR != n);
+    bytes_written += n;
+  }
+  while (bytes_written < HOSTKEYFILESIZE);
+  GNUNET_DISK_file_close (fd);
+  fd = NULL;  
+  GNUNET_asprintf (&config_filename, "%s\\config", service_home);
+  GNUNET_free (service_home);
+  if (GNUNET_OK != GNUNET_CONFIGURATION_write (cfg, config_filename))
+      return NULL;
+  peer = GNUNET_malloc (sizeof (struct GNUNET_TESTING_Peer));
+  peer->cfgfile = config_filename; /* Free in peer_destroy */
+  peer->main_binary = GNUNET_strdup ("gnunet-service-arm");
+  return peer;
 }
 
 
