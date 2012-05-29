@@ -305,6 +305,24 @@ struct IPv6HttpAddress
 };
 GNUNET_NETWORK_STRUCT_END
 
+
+struct ServerConnection
+{
+  /* _RECV or _SEND */
+  int direction;
+
+  /* Should this connection get disconnected? GNUNET_YES/NO  */
+  int disconnect;
+
+  /* The session this server connection belongs to */
+  struct Session *session;
+
+  /* The MHD connection */
+  struct MHD_Connection *mhd_conn;
+};
+
+
+
 /**
  * Session handle for connections.
  */
@@ -417,12 +435,12 @@ struct Session
   /**
    * Client send handle
    */
-  void *server_recv;
+  struct ServerConnection *server_recv;
 
   /**
    * Client send handle
    */
-  void *server_send;
+  struct ServerConnection *server_send;
 };
 
 /**

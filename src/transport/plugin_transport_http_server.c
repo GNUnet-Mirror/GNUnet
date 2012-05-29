@@ -32,18 +32,6 @@
 
 static struct Plugin * p;
 
-struct ServerConnection
-{
-  /* _RECV or _SEND */
-  int direction;
-
-  /* should this connection get disconnected? GNUNET_YES/NO  */
-  int disconnect;
-
-  struct Session *session;
-  struct MHD_Connection *mhd_conn;
-};
-
 /**
  * Function that queries MHD's select sets and
  * starts the task waiting for them.
@@ -540,14 +528,9 @@ create:
   s = create_session (plugin, &target, a, a_len);
   GNUNET_assert (NULL != s);
   s->ats_address_network_type = ats.value;
-
   s->inbound = GNUNET_YES;
   s->next_receive = GNUNET_TIME_UNIT_ZERO_ABS;
   s->tag = tag;
-  if (0 == strcmp (MHD_HTTP_METHOD_PUT, method))
-    s->server_recv = s;
-  if (0 == strcmp (MHD_HTTP_METHOD_GET, method))
-    s->server_send = s;
   GNUNET_CONTAINER_DLL_insert (plugin->server_semi_head,
                                plugin->server_semi_tail, s);
   goto found;
@@ -853,24 +836,15 @@ server_disconnect_cb (void *cls, struct MHD_Connection *connection,
 int
 server_disconnect (struct Session *s)
 {
-  struct Plugin *plugin = s->plugin;
-  struct Session *t = plugin->head;
-
-  while (t != NULL)
+  if (s->server_send != NULL)
   {
-    if (t->inbound == GNUNET_YES)
-    {
-      if (t->server_send != NULL)
-      {
-        ((struct ServerConnection *) t->server_send)->disconnect = GNUNET_YES;
-      }
-      if (t->server_send != NULL)
-      {
-        ((struct ServerConnection *) t->server_send)->disconnect = GNUNET_YES;
-      }
-    }
-    t = t->next;
+    ((struct ServerConnection *) s->server_send)->disconnect = GNUNET_YES;
   }
+  if (s->server_recv != NULL)
+  {
+    ((struct ServerConnection *) s->server_recv)->disconnect = GNUNET_YES;
+  }
+
   return GNUNET_OK;
 }
 
