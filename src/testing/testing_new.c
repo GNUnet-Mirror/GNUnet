@@ -446,7 +446,8 @@ GNUNET_TESTING_hostkey_get (const struct GNUNET_TESTING_System *system,
   GNUNET_CRYPTO_rsa_key_free (private_key);
   GNUNET_CRYPTO_hash (&public_key,
                       sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
-                      &(id->hashPubKey));  
+                      &(id->hashPubKey));
+  GNUNET_CRYPTO_rsa_key_free (private_key);
   return GNUNET_OK;
 }
 
