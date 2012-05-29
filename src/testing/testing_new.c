@@ -68,6 +68,11 @@ struct GNUNET_TESTING_System
   char *controller;
 
   /**
+   * Hostkeys data
+   */
+  char *hostkeys_data;
+
+  /**
    * Bitmap where each TCP port that has already been reserved for
    * some GNUnet peer is recorded.  Note that we additionally need to
    * test if a port is already in use by non-GNUnet components before
@@ -97,7 +102,12 @@ struct GNUNET_TESTING_System
    * by one for each configured peer.  Even if peers are destroyed,
    * we never re-use path counters.
    */
-  uint32_t path_counter;
+  uint32_t path_counter;  
+
+  /**
+   * The number of hostkeys
+   */
+  uint32_t total_hostkeys;
 };
 
 
@@ -184,6 +194,13 @@ GNUNET_TESTING_system_destroy (struct GNUNET_TESTING_System *system,
 			       int remove_paths)
 {
   GNUNET_assert (NULL != system);
+  if (NULL != system->hostkeys_data)
+  {
+    GNUNET_break (0);           /* Use GNUNET_TESTING_hostkeys_unload() */
+    GNUNET_free (system->hostkeys_data);
+    system->hostkeys_data = NULL;
+    system->total_hostkeys = 0;
+  }
   if (GNUNET_YES == remove_paths)
     GNUNET_DISK_directory_remove (system->tmppath);
   GNUNET_free (system->tmppath);
@@ -315,38 +332,21 @@ reserve_path (struct GNUNET_TESTING_System *system)
 
 
 /**
- * Testing includes a number of pre-created hostkeys for
- * faster peer startup.  This function can be used to
- * access the n-th key of those pre-created hostkeys; note
- * that these keys are ONLY useful for testing and not
- * secure as the private keys are part of the public 
- * GNUnet source code.
+ * Testing includes a number of pre-created hostkeys for faster peer
+ * startup. This function loads such keys into memory from a file.
  *
- * This is primarily a helper function used internally
- * by 'GNUNET_TESTING_peer_configure'.
- *
- * @param key_number desired pre-created hostkey to obtain
- * @param filename where to store the hostkey (file will
- *        be created, or overwritten if it already exists)
- * @param id set to the peer's identity (hash of the public
- *        key; if NULL, GNUNET_SYSERR is returned immediately
- * @return GNUNET_SYSERR on error (not enough keys)
+ * @param system the testing system handle
+ * @param filename the path of the hostkeys file
+ * @return GNUNET_OK on success; GNUNET_SYSERR on error
  */
 int
-GNUNET_TESTING_hostkey_get (uint32_t key_number,
-			    const char *filename,
-			    struct GNUNET_PeerIdentity *id)
+GNUNET_TESTING_hostkeys_load (struct GNUNET_TESTING_System *system,
+                              const char *filename)
 {
-  struct GNUNET_DISK_FileHandle *fd;
-  struct GNUNET_CRYPTO_RsaPrivateKey *private_key;
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded public_key;
-  char *file_data;
-  uint64_t fs;
-  uint32_t total_hostkeys;
-
-  if (NULL == id)
-    return GNUNET_SYSERR;
-  if (GNUNET_YES != GNUNET_DISK_file_test (filename))
+ struct GNUNET_DISK_FileHandle *fd;
+ uint64_t fs;
+ 
+ if (GNUNET_YES != GNUNET_DISK_file_test (filename))
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
          "Hostkeys file not found: %s\n", filename);
@@ -376,32 +376,77 @@ GNUNET_TESTING_hostkey_get (uint32_t key_number,
          "Incorrect hostkey file format: %s\n", filename);
     return GNUNET_SYSERR;
   }
-  total_hostkeys = fs / HOSTKEYFILESIZE;
-  if (key_number >= total_hostkeys)
+  GNUNET_break (NULL == system->hostkeys_data);
+  system->total_hostkeys = fs / HOSTKEYFILESIZE;
+  system->hostkeys_data = GNUNET_malloc_large (fs); /* free in hostkeys_unload */
+  GNUNET_assert (fs == GNUNET_DISK_file_read (fd, system->hostkeys_data, fs));
+  GNUNET_DISK_file_close (fd);
+  return GNUNET_OK;
+}
+
+
+/**
+ * Function to remove the loaded hostkeys
+ *
+ * @param system the testing system handle
+ */
+void
+GNUNET_TESTING_hostkeys_unload (struct GNUNET_TESTING_System *system)
+{
+  GNUNET_break (NULL != system->hostkeys_data);
+  GNUNET_free_non_null (system->hostkeys_data);
+  system->hostkeys_data = NULL;
+  system->total_hostkeys = 0;
+}
+
+
+/**
+ * Testing includes a number of pre-created hostkeys for
+ * faster peer startup.  This function can be used to
+ * access the n-th key of those pre-created hostkeys; note
+ * that these keys are ONLY useful for testing and not
+ * secure as the private keys are part of the public 
+ * GNUnet source code.
+ *
+ * This is primarily a helper function used internally
+ * by 'GNUNET_TESTING_peer_configure'.
+ *
+ * @param system the testing system handle
+ * @param key_number desired pre-created hostkey to obtain
+ * @param id set to the peer's identity (hash of the public
+ *        key; if NULL, GNUNET_SYSERR is returned immediately
+ * @return GNUNET_SYSERR on error (not enough keys)
+ */
+int
+GNUNET_TESTING_hostkey_get (const struct GNUNET_TESTING_System *system,
+			    uint32_t key_number,
+			    struct GNUNET_PeerIdentity *id)
+{  
+  struct GNUNET_CRYPTO_RsaPrivateKey *private_key;
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded public_key;
+  
+  if ((NULL == id) || (NULL == system->hostkeys_data))
+    return GNUNET_SYSERR;
+  if (key_number >= system->total_hostkeys)
   {
-    GNUNET_DISK_file_close (fd);
-    LOG (GNUNET_ERROR_TYPE_ERROR,
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Key number %u doesn't exist\n", key_number);
     return GNUNET_SYSERR;
-  }
-  file_data = GNUNET_malloc_large (fs);
-  GNUNET_assert (fs == GNUNET_DISK_file_read (fd, file_data, fs));
-  GNUNET_DISK_file_close (fd);
-  private_key = GNUNET_CRYPTO_rsa_decode_key (file_data +
+  }   
+  private_key = GNUNET_CRYPTO_rsa_decode_key (system->hostkeys_data +
                                               (key_number * HOSTKEYFILESIZE),
                                               HOSTKEYFILESIZE);
   if (NULL == private_key)
   {
-    LOG (GNUNET_ERROR_TYPE_ERROR,
-         "Error while decoding key %u from %s\n", key_number, filename);
-    GNUNET_free (file_data);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Error while decoding key %u\n", key_number);
     return GNUNET_SYSERR;
   }
   GNUNET_CRYPTO_rsa_key_get_public (private_key, &public_key);
+  GNUNET_CRYPTO_rsa_key_free (private_key);
   GNUNET_CRYPTO_hash (&public_key,
                       sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
-                      &(id->hashPubKey));
-  GNUNET_free (file_data);
+                      &(id->hashPubKey));  
   return GNUNET_OK;
 }
 

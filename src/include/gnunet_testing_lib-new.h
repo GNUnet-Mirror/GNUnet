@@ -87,6 +87,28 @@ GNUNET_TESTING_system_destroy (struct GNUNET_TESTING_System *system,
 
 
 /**
+ * Testing includes a number of pre-created hostkeys for faster peer
+ * startup. This function loads such keys into memory from a file.
+ *
+ * @param system the testing system handle
+ * @param filename the path of the hostkeys file
+ * @return GNUNET_OK on success; GNUNET_SYSERR on error
+ */
+int
+GNUNET_TESTING_hostkeys_load (struct GNUNET_TESTING_System *system,
+                              const char *filename);
+
+
+/**
+ * Function to remove the loaded hostkeys
+ *
+ * @param system the testing system handle
+ */
+void
+GNUNET_TESTING_hostkeys_unload (struct GNUNET_TESTING_System *system);
+
+
+/**
  * Testing includes a number of pre-created hostkeys for
  * faster peer startup.  This function can be used to
  * access the n-th key of those pre-created hostkeys; note
@@ -97,16 +119,15 @@ GNUNET_TESTING_system_destroy (struct GNUNET_TESTING_System *system,
  * This is primarily a helper function used internally
  * by 'GNUNET_TESTING_peer_configure'.
  *
+ * @param system the testing system handle
  * @param key_number desired pre-created hostkey to obtain
- * @param filename where to store the hostkey (file will
- *        be created, or overwritten if it already exists)
  * @param id set to the peer's identity (hash of the public
  *        key; if NULL, GNUNET_SYSERR is returned immediately
  * @return GNUNET_SYSERR on error (not enough keys)
  */
 int
-GNUNET_TESTING_hostkey_get (uint32_t key_number,
-			    const char *filename,
+GNUNET_TESTING_hostkey_get (const struct GNUNET_TESTING_System *system,
+			    uint32_t key_number,
 			    struct GNUNET_PeerIdentity *id);
 
 
