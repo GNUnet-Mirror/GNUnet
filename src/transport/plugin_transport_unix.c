@@ -677,7 +677,6 @@ unix_plugin_get_session (void *cls,
   }
 
   /* Create a new session */
-
   s = GNUNET_malloc (sizeof (struct Session) + address->address_length);
   s->addr = &s[1];
   s->addrlen = address->address_length;
@@ -828,7 +827,7 @@ unix_demultiplexer (struct Plugin *plugin, struct GNUNET_PeerIdentity *sender,
   GNUNET_STATISTICS_set (plugin->env->stats,"# UNIX bytes received",
       plugin->bytes_in_recv, GNUNET_NO);
 
-  addr = GNUNET_HELLO_address_allocate(sender, "unix", un->sun_path, strlen (un->sun_path));
+  addr = GNUNET_HELLO_address_allocate(sender, "unix", un->sun_path, strlen (un->sun_path) + 1);
   s = lookup_session (plugin, sender, un);
   if (NULL == s)
     s = unix_plugin_get_session (plugin, addr);
