@@ -443,7 +443,6 @@ GNUNET_TESTING_hostkey_get (const struct GNUNET_TESTING_System *system,
     return GNUNET_SYSERR;
   }
   GNUNET_CRYPTO_rsa_key_get_public (private_key, &public_key);
-  GNUNET_CRYPTO_rsa_key_free (private_key);
   GNUNET_CRYPTO_hash (&public_key,
                       sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
                       &(id->hashPubKey));
