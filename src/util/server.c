@@ -1020,19 +1020,6 @@ process_incoming (void *cls, const void *buf, size_t available,
   struct GNUNET_TIME_Absolute now;
   int ret;
 
-  /* Check if this client is still valid */
-  for (tmp = server->clients_head; NULL != tmp; tmp = tmp->next)
-  {
-    if (tmp == client)
-      break;
-  }
-
-  if (NULL == tmp)
-  {
-    GNUNET_break (0);
-    return;
-  }
-
   GNUNET_assert (GNUNET_YES == client->receive_pending);
   client->receive_pending = GNUNET_NO;
   now = GNUNET_TIME_absolute_get ();
