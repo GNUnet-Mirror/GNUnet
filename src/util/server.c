@@ -1014,7 +1014,6 @@ process_incoming (void *cls, const void *buf, size_t available,
                   const struct sockaddr *addr, socklen_t addrlen, int errCode)
 {
   struct GNUNET_SERVER_Client *client = cls;
-  struct GNUNET_SERVER_Client *tmp;
   struct GNUNET_SERVER_Handle *server = client->server;
   struct GNUNET_TIME_Absolute end;
   struct GNUNET_TIME_Absolute now;
