@@ -344,8 +344,28 @@ server_send_callback (void *cls, uint64_t pos, char *buf, size_t max)
   return bytes_read;
 }
 
-static struct ServerConnection *
+static struct Session *
 server_lookup_session (struct Plugin *plugin,
+                       struct ServerConnection * sc)
+{
+  struct Session *s;
+  for (s = plugin->head; NULL != s; s = s->next)
+  {
+    if ((s->server_recv == sc) || (s->server_send == sc))
+      return s;
+  }
+
+  for (s = plugin->server_semi_head; NULL != s; s = s->next)
+  {
+    if ((s->server_recv == sc) || (s->server_send == sc))
+      return s;
+  }
+  return s;
+}
+
+
+static struct ServerConnection *
+server_lookup_serverconnection (struct Plugin *plugin,
                        struct MHD_Connection *mhd_connection, const char *url,
                        const char *method)
 {
@@ -531,6 +551,9 @@ create:
   s->inbound = GNUNET_YES;
   s->next_receive = GNUNET_TIME_UNIT_ZERO_ABS;
   s->tag = tag;
+  s->server_recv = NULL;
+  s->server_send = NULL;
+
   GNUNET_CONTAINER_DLL_insert (plugin->server_semi_head,
                                plugin->server_semi_tail, s);
   goto found;
@@ -542,6 +565,7 @@ error:
 
 found:
   sc = GNUNET_malloc (sizeof (struct ServerConnection));
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Create %p\n", sc);
   sc->mhd_conn = mhd_connection;
   sc->direction = direction;
   sc->session = s;
@@ -592,7 +616,7 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
   /* new connection */
   if (sc == NULL)
   {
-    sc = server_lookup_session (plugin, mhd_connection, url, method);
+    sc = server_lookup_serverconnection (plugin, mhd_connection, url, method);
     if (sc != NULL)
       (*httpSessionCache) = sc;
     else
@@ -603,6 +627,15 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
       res = MHD_queue_response (mhd_connection, MHD_HTTP_NOT_FOUND, response);
       MHD_destroy_response (response);
       return res;
+    }
+  }
+  else
+  {
+    if (NULL == server_lookup_session (plugin, sc))
+    {
+      /* Session was already disconnected */
+      GNUNET_break (0);
+      return MHD_NO;
     }
   }
 
@@ -738,6 +771,9 @@ server_disconnect_cb (void *cls, struct MHD_Connection *connection,
   if (sc == NULL)
     return;
 
+  if (NULL == (s = server_lookup_session (p, sc)))
+    return;
+
   s = sc->session;
   GNUNET_assert (NULL != s);
   GNUNET_assert (NULL != p);
@@ -752,14 +788,13 @@ server_disconnect_cb (void *cls, struct MHD_Connection *connection,
                      "Server: %X peer `%s' GET on address `%s' disconnected\n",
                      s->server_send, GNUNET_i2s (&s->target),
                      http_plugin_address_to_string (NULL, s->addr, s->addrlen));
-    GNUNET_free (s->server_send);
     s->server_send = NULL;
-    if (s->server_recv != NULL)
+    if (NULL != (tc = s->server_recv))
     {
-      tc = s->server_recv;
       tc->disconnect = GNUNET_YES;
+      GNUNET_assert (NULL != tc->mhd_conn);
 #if MHD_VERSION >= 0x00090E00
-      MHD_set_connection_option (sc->mhd_conn, MHD_CONNECTION_OPTION_TIMEOUT,
+      MHD_set_connection_option (tc->mhd_conn, MHD_CONNECTION_OPTION_TIMEOUT,
                                  1);
 #endif
     }
@@ -770,14 +805,13 @@ server_disconnect_cb (void *cls, struct MHD_Connection *connection,
                      "Server: %X peer `%s' PUT on address `%s' disconnected\n",
                      s->server_recv, GNUNET_i2s (&s->target),
                      http_plugin_address_to_string (NULL, s->addr, s->addrlen));
-    GNUNET_free (s->server_recv);
     s->server_recv = NULL;
-    if (s->server_send != NULL)
+    if (NULL != (tc = s->server_send))
     {
-      tc = s->server_send;
       tc->disconnect = GNUNET_YES;
+      GNUNET_assert (NULL != tc->mhd_conn);
 #if MHD_VERSION >= 0x00090E00
-      MHD_set_connection_option (sc->mhd_conn, MHD_CONNECTION_OPTION_TIMEOUT,
+      MHD_set_connection_option (tc->mhd_conn, MHD_CONNECTION_OPTION_TIMEOUT,
                                  1);
 #endif
     }
@@ -787,6 +821,7 @@ server_disconnect_cb (void *cls, struct MHD_Connection *connection,
       s->msg_tk = NULL;
     }
   }
+
   GNUNET_free (sc);
 
   t = plugin->server_semi_head;
@@ -1153,8 +1188,6 @@ server_stop (struct Plugin *plugin)
   struct Session *s = NULL;
   struct Session *t = NULL;
 
-  p = NULL;
-
   struct MHD_Daemon *server_v4_tmp = plugin->server_v4;
 
   plugin->server_v4 = NULL;
@@ -1211,6 +1244,8 @@ server_stop (struct Plugin *plugin)
     delete_session (s);
     s = t;
   }
+
+  p = NULL;
 
 #if BUILD_HTTPS
   GNUNET_free_non_null (plugin->crypto_init);
