@@ -698,7 +698,7 @@ GNUNET_TESTING_peer_configure (struct GNUNET_TESTING_System *system,
       return NULL;
   peer = GNUNET_malloc (sizeof (struct GNUNET_TESTING_Peer));
   peer->cfgfile = config_filename; /* Free in peer_destroy */
-  peer->main_binary = GNUNET_strdup ("gnunet-service-arm");
+  peer->main_binary = GNUNET_strdup ("gnunet-arm");
   return peer;
 }
 
@@ -712,8 +712,15 @@ GNUNET_TESTING_peer_configure (struct GNUNET_TESTING_System *system,
 int
 GNUNET_TESTING_peer_start (struct GNUNET_TESTING_Peer *peer)
 {
-  GNUNET_break (0);
-  return GNUNET_SYSERR;
+  if (NULL != peer->main_process)
+    return GNUNET_SYSERR;
+  GNUNET_assert (NULL != peer->cfgfile);
+  peer->main_process = GNUNET_OS_start_process (GNUNET_NO, NULL, NULL,
+                                                peer->main_binary, "-c",
+                                                peer->cfgfile,
+                                                "-s", "-q", NULL);
+  GNUNET_assert (NULL != peer->main_process);
+  return GNUNET_OK;
 }
 
 
@@ -726,8 +733,13 @@ GNUNET_TESTING_peer_start (struct GNUNET_TESTING_Peer *peer)
 int
 GNUNET_TESTING_peer_stop (struct GNUNET_TESTING_Peer *peer)
 {
-  GNUNET_break (0);
-  return GNUNET_SYSERR;
+  if (NULL == peer->main_process)
+    return GNUNET_SYSERR;
+  GNUNET_assert (0 == GNUNET_OS_process_kill (peer->main_process, SIGTERM));
+  GNUNET_assert (GNUNET_OK == GNUNET_OS_process_wait (peer->main_process));
+  GNUNET_OS_process_destroy (peer->main_process);
+  peer->main_process = NULL;
+  return GNUNET_OK;
 }
 
 
@@ -741,7 +753,16 @@ GNUNET_TESTING_peer_stop (struct GNUNET_TESTING_Peer *peer)
 void
 GNUNET_TESTING_peer_destroy (struct GNUNET_TESTING_Peer *peer)
 {
-  GNUNET_break (0);
+  if (NULL != peer->main_process)
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         _("%s called when peer is still running. Use GNUNET_TESTING_peer_stop()\n"),
+         __func__);
+    GNUNET_TESTING_peer_stop (peer);
+  }
+  GNUNET_free (peer->cfgfile);
+  GNUNET_free (peer->main_binary);
+  GNUNET_free (peer);
 }
 
 
