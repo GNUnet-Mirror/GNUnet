@@ -371,7 +371,7 @@ plugin_env_session_end (void *cls, const struct GNUNET_PeerIdentity *peer,
  * @param addrlen length of the address
  * @return ATS Information containing the network type
  */
-static const struct GNUNET_ATS_Information
+static struct GNUNET_ATS_Information
 plugin_env_address_to_type (void *cls,
                             const struct sockaddr *addr,
                             size_t addrlen)

@@ -136,7 +136,7 @@ typedef struct
  * @param addrlen length of the address
  * @return ATS Information containing the network type
  */
-typedef const struct GNUNET_ATS_Information
+typedef struct GNUNET_ATS_Information
 (*GNUNET_TRANSPORT_AddressToType) (void *cls,
                                    const struct sockaddr *addr,
                                    size_t addrlen);
