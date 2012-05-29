@@ -577,7 +577,6 @@ error:
 
 found:
   sc = GNUNET_malloc (sizeof (struct ServerConnection));
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Create %p\n", sc);
   sc->mhd_conn = mhd_connection;
   sc->direction = direction;
   sc->session = s;
