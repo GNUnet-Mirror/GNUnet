@@ -17,14 +17,14 @@ noinst_SCRIPTS = \
  gnunet_janitor.py
 
 dist_pkgdata_DATA = \
- gnunet-logo-color.png 
+ gnunet-logo-color.png \
+ testing_hostkeys.dat
 
 EXTRA_DIST = \
  coverage.sh \
  hostlist.cgi \
  hostlist.php \
  report.sh \
- testing_hostkeys.dat \
  gnunet_pyexpect.py.in \
  gnunet_janitor.py.in
 
