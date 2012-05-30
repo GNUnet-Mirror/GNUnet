@@ -241,6 +241,14 @@ atoll (const char *nptr);
 #define O_LARGEFILE 0
 #endif
 
+/**
+ * AI_NUMERICSERV not defined in windows.  Then we just do without.
+ */
+#ifndef AI_NUMERICSERV
+#define AI_NUMERICSERV 0
+#endif
+
+
 #if defined(__sparc__)
 #define MAKE_UNALIGNED(val) ({ __typeof__((val)) __tmp; memmove(&__tmp, &(val), sizeof((val))); __tmp; })
 #else

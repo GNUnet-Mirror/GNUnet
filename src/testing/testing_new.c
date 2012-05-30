@@ -39,19 +39,12 @@
 #define TIME_REL_SEC(sec)					\
   GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, sec)
 
-/**
- * AI_NUMERICSERV not defined in windows. A hack to keep on going.
- */
-#if !defined (AI_NUMERICSERV)
-#define AI_NUMERICSERV 0
-#endif
 
 /**
  * Size of a hostkey when written to a file
  */
-#ifndef HOSTKEYFILESIZE
 #define HOSTKEYFILESIZE 914
-#endif
+
 
 /**
  * Handle for a system on which GNUnet peers are executed;
@@ -71,7 +64,7 @@ struct GNUNET_TESTING_System
   char *controller;
 
   /**
-   * Hostkeys data
+   * Hostkeys data, contains "HOSTKEYFILESIZE * total_hostkeys" bytes.
    */
   char *hostkeys_data;
 
@@ -195,7 +188,6 @@ void
 GNUNET_TESTING_system_destroy (struct GNUNET_TESTING_System *system,
 			       int remove_paths)
 {
-  GNUNET_assert (NULL != system);
   if (NULL != system->hostkeys_data)
   {
     GNUNET_break (0);           /* Use GNUNET_TESTING_hostkeys_unload() */
@@ -299,7 +291,6 @@ GNUNET_TESTING_release_port (struct GNUNET_TESTING_System *system,
   uint16_t bucket;
   uint16_t pos;
 
-  GNUNET_assert (NULL != system);
   port_buckets = (GNUNET_YES == is_tcp) ?
     system->reserved_tcp_ports : system->reserved_udp_ports;
   bucket = port / 32;
@@ -431,8 +422,8 @@ GNUNET_TESTING_hostkey_get (const struct GNUNET_TESTING_System *system,
     return GNUNET_SYSERR;
   if (key_number >= system->total_hostkeys)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Key number %u doesn't exist\n", key_number);
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         _("Key number %u does not exist\n"), key_number);
     return GNUNET_SYSERR;
   }   
   private_key = GNUNET_CRYPTO_rsa_decode_key (system->hostkeys_data +
@@ -440,8 +431,8 @@ GNUNET_TESTING_hostkey_get (const struct GNUNET_TESTING_System *system,
                                               HOSTKEYFILESIZE);
   if (NULL == private_key)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Error while decoding key %u\n", key_number);
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         _("Error while decoding key %u\n"), key_number);
     return GNUNET_SYSERR;
   }
   GNUNET_CRYPTO_rsa_key_get_public (private_key, &public_key);
@@ -626,9 +617,14 @@ GNUNET_TESTING_configuration_create (struct GNUNET_TESTING_System *system,
                    system->path_counter++);
   GNUNET_CONFIGURATION_set_value_string (cfg, "PATHS", "SERVICEHOME",
                                          uc.service_home);
+  /* make PORTs and UNIXPATHs unique */
   GNUNET_CONFIGURATION_iterate (cfg, &update_config, &uc);
+  /* allow connections to services from system controller host */
   GNUNET_CONFIGURATION_iterate_sections (cfg, &update_config_sections, &uc);
-  /* FIXME: add other options which enable communication with controller */
+  /* enable loopback-based connections between peers */
+  GNUNET_CONFIGURATION_set_value_string (cfg, 
+					 "nat",
+					 "USE_LOCALADDR", "YES");
   GNUNET_free (uc.service_home);
   return uc.status;
 }
@@ -658,17 +654,34 @@ GNUNET_TESTING_peer_configure (struct GNUNET_TESTING_System *system,
   char *service_home;  
   char hostkey_filename[128];
   char *config_filename;
-  size_t bytes_written;
-  size_t n;
-
 
   if (GNUNET_OK != GNUNET_TESTING_configuration_create (system, cfg))
+  {
+    GNUNET_asprintf (emsg,
+		     _("Failed to create configuration for peer (not enough free ports?)\n"));
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		"%s", *emsg);   
     return NULL;
+  }
   if (key_number >= system->total_hostkeys)
+  {
+    GNUNET_asprintf (emsg,
+		     _("You attempted to create a testbed with more than %u hosts.  Please precompute more hostkeys first.\n"),
+		     (unsigned int) system->total_hostkeys);    
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		"%s", *emsg);
     return NULL;
+  }
   if ((NULL != id) &&
       (GNUNET_SYSERR == GNUNET_TESTING_hostkey_get (system, key_number, id)))
+  {
+    GNUNET_asprintf (emsg,
+		     _("Failed to initialize hostkey for peer %u\n"),
+		     (unsigned int) key_number);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		"%s", *emsg);   
     return NULL;
+  }
   GNUNET_assert (GNUNET_OK == 
                  GNUNET_CONFIGURATION_get_value_string (cfg, "PATHS",
                                                         "SERVICE_HOME",
@@ -681,27 +694,36 @@ GNUNET_TESTING_peer_configure (struct GNUNET_TESTING_System *system,
                               | GNUNET_DISK_PERM_USER_WRITE);
   if (NULL == fd)
   {
-    GNUNET_break (0); return NULL;
+    GNUNET_break (0); 
+    return NULL;
   }
-  bytes_written = 0;
-  do
+  if (HOSTKEYFILESIZE !=
+      GNUNET_DISK_file_write (fd, system->hostkeys_data 
+			      + (key_number * HOSTKEYFILESIZE),
+			      HOSTKEYFILESIZE))
   {
-    n = GNUNET_DISK_file_write (fd, system->hostkeys_data 
-                                + (key_number * HOSTKEYFILESIZE),
-                                HOSTKEYFILESIZE - bytes_written);
-    GNUNET_assert (GNUNET_SYSERR != n);
-    bytes_written += n;
+    GNUNET_asprintf (emsg,
+		     _("Failed to write hostkey file for peer %u: %s\n"),
+		     (unsigned int) key_number,
+		     STRERROR (errno));
+    GNUNET_DISK_file_close (fd);
+    return NULL;
   }
-  while (bytes_written < HOSTKEYFILESIZE);
   GNUNET_DISK_file_close (fd);
-  fd = NULL;  
   GNUNET_asprintf (&config_filename, "%s\\config", service_home);
   GNUNET_free (service_home);
   if (GNUNET_OK != GNUNET_CONFIGURATION_write (cfg, config_filename))
-      return NULL;
+  {
+    GNUNET_asprintf (emsg,
+		     _("Failed to write configuration file `%s' for peer %u: %s\n"),
+		     config_filename,
+		     (unsigned int) key_number,
+		     STRERROR (errno));
+    return NULL;
+  }
   peer = GNUNET_malloc (sizeof (struct GNUNET_TESTING_Peer));
   peer->cfgfile = config_filename; /* Free in peer_destroy */
-  peer->main_binary = GNUNET_strdup ("gnunet-arm");
+  peer->main_binary = GNUNET_strdup ("gnunet-service-arm");
   return peer;
 }
 
@@ -716,13 +738,23 @@ int
 GNUNET_TESTING_peer_start (struct GNUNET_TESTING_Peer *peer)
 {
   if (NULL != peer->main_process)
+  {
+    GNUNET_break (0);
     return GNUNET_SYSERR;
+  }
   GNUNET_assert (NULL != peer->cfgfile);
   peer->main_process = GNUNET_OS_start_process (GNUNET_NO, NULL, NULL,
                                                 peer->main_binary, "-c",
                                                 peer->cfgfile,
-                                                "-s", "-q", NULL);
-  GNUNET_assert (NULL != peer->main_process);
+                                                NULL);
+  if (NULL == peer->main_process)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		_("Failed to start `%s': %s\n"),
+		peer->main_binary,
+		STRERROR (errno));
+    return GNUNET_SYSERR;
+  }
   return GNUNET_OK;
 }
 
@@ -737,8 +769,11 @@ int
 GNUNET_TESTING_peer_stop (struct GNUNET_TESTING_Peer *peer)
 {
   if (NULL == peer->main_process)
+  {
+    GNUNET_break (0);
     return GNUNET_SYSERR;
-  GNUNET_assert (0 == GNUNET_OS_process_kill (peer->main_process, SIGTERM));
+  }
+  (void) GNUNET_OS_process_kill (peer->main_process, SIGTERM);
   GNUNET_assert (GNUNET_OK == GNUNET_OS_process_wait (peer->main_process));
   GNUNET_OS_process_destroy (peer->main_process);
   peer->main_process = NULL;
@@ -758,16 +793,13 @@ GNUNET_TESTING_peer_destroy (struct GNUNET_TESTING_Peer *peer)
 {
   if (NULL != peer->main_process)
   {
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-         _("%s called when peer is still running. Use GNUNET_TESTING_peer_stop()\n"),
-         __func__);
+    GNUNET_break (0);
     GNUNET_TESTING_peer_stop (peer);
   }
   GNUNET_free (peer->cfgfile);
   GNUNET_free (peer->main_binary);
   GNUNET_free (peer);
 }
-
 
 
 /**
@@ -843,6 +875,20 @@ check_service_status (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
+static void
+service_run_main (void *cls,
+		  const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct ServiceContext *sc = cls;
+
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
+				&stop_service, sc);
+  GNUNET_SCHEDULER_add_delayed (TIME_REL_SEC(3), &check_service_status, sc);
+
+  // sc->tm (tm_cls);
+}
+
+
 /**
  * Start a single service (no ARM, except of course if the given
  * service name is 'arm') and run a test using the testing library.
@@ -875,25 +921,26 @@ GNUNET_TESTING_service_run (const char *tmppath,
   GNUNET_assert (NULL != service_name);
   GNUNET_snprintf (uval, sizeof (uval), "gnunet-service-%s", service_name);
   sc = GNUNET_malloc (sizeof (struct ServiceContext));
+
+  // FIXME: GNUNET_TESTING_peer_start...
   if (NULL == cfgfilename)
-    sc->main_process = GNUNET_OS_start_process (GNUNET_NO, NULL, NULL, uval);
+    sc->main_process = GNUNET_OS_start_process (GNUNET_NO, NULL, NULL, uval, NULL);
   else
     sc->main_process = GNUNET_OS_start_process (GNUNET_NO, NULL, NULL, uval,
-						"-c", cfgfilename);
+						"-c", cfgfilename, NULL);
   if (NULL == sc->main_process)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Failed to start process %s\n", service_name);
+    LOG (GNUNET_ERROR_TYPE_ERROR, "Failed to start process %s\n", service_name);
     GNUNET_free (sc);
     return 1;
   }
   sc->tm = tm;
   sc->tm_cls = tm_cls;
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-				&stop_service, sc);
-  GNUNET_SCHEDULER_add_delayed (TIME_REL_SEC(3), &check_service_status, sc);
+  GNUNET_SCHEDULER_run (&service_run_main, sc);
+  // FIXME: GNUNET_TESTING_peer_stop...
+  GNUNET_free (sc);
   return 0;
 }
-
 
 
 /* end of testing_new.c */

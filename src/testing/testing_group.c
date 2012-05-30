@@ -1504,9 +1504,7 @@ GNUNET_TESTING_create_cfg (const struct GNUNET_CONFIGURATION_Handle *cfg, uint32
                                            "");
     GNUNET_CONFIGURATION_set_value_string (uc.ret, "nse", "UNIXPATH", "");
 
-    GNUNET_CONFIGURATION_set_value_string (uc.ret, "transport-tcp",
-                                           "USE_LOCALADDR", "YES");
-    GNUNET_CONFIGURATION_set_value_string (uc.ret, "transport-udp",
+    GNUNET_CONFIGURATION_set_value_string (uc.ret, "nat",
                                            "USE_LOCALADDR", "YES");
     GNUNET_free_non_null (control_host);
     GNUNET_free (allowed_hosts);
@@ -1534,10 +1532,7 @@ GNUNET_TESTING_create_cfg (const struct GNUNET_CONFIGURATION_Handle *cfg, uint32
   }
   else
   {
-
-    GNUNET_CONFIGURATION_set_value_string (uc.ret, "transport-tcp",
-                                           "USE_LOCALADDR", "YES");
-    GNUNET_CONFIGURATION_set_value_string (uc.ret, "transport-udp",
+    GNUNET_CONFIGURATION_set_value_string (uc.ret, "nat",
                                            "USE_LOCALADDR", "YES");
     GNUNET_CONFIGURATION_set_value_string (uc.ret, "nat", "BINDTO",
                                            "127.0.0.1");
