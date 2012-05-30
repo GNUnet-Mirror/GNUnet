@@ -36,9 +36,6 @@
 #define LOG(kind,...)                                           \
   GNUNET_log_from (kind, "gnunettestingnew", __VA_ARGS__)
 
-#define TIME_REL_SEC(sec)					\
-  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, sec)
-
 
 /**
  * Size of a hostkey when written to a file
@@ -194,9 +191,7 @@ GNUNET_TESTING_system_destroy (struct GNUNET_TESTING_System *system,
   if (NULL != system->hostkeys_data)
   {
     GNUNET_break (0);           /* Use GNUNET_TESTING_hostkeys_unload() */
-    GNUNET_free (system->hostkeys_data);
-    system->hostkeys_data = NULL;
-    system->total_hostkeys = 0;
+    GNUNET_TESTING_hostkeys_unload (system);
   }
   if (GNUNET_YES == remove_paths)
     GNUNET_DISK_directory_remove (system->tmppath);
@@ -261,7 +256,7 @@ GNUNET_TESTING_reserve_port (struct GNUNET_TESTING_System *system,
         continue;
       }
       open_port = (index * 32) + pos;
-      GNUNET_asprintf (&open_port_str, "%u", open_port);
+      GNUNET_asprintf (&open_port_str, "%u", (unsigned int) open_port);
       ret = NULL;
       GNUNET_assert (0 == getaddrinfo (NULL, open_port_str, &hint, &ret));
       GNUNET_free (open_port_str);  
@@ -278,7 +273,11 @@ GNUNET_TESTING_reserve_port (struct GNUNET_TESTING_System *system,
       socket = NULL;
       port_buckets[index] |= (1U << pos); /* Set the port bit */
       if (GNUNET_OK == bind_status)
+      {
+        LOG (GNUNET_ERROR_TYPE_DEBUG,
+             "Found a free port %u\n", (unsigned int) open_port);
 	return open_port;
+      }
       pos++;
     }
   }
@@ -509,6 +508,10 @@ update_config (void *cls, const char *section, const char *option,
 
   if (GNUNET_OK != uc->status)
     return;
+  if (! ((0 == strcmp (option, "PORT"))
+         || (0 == strcmp (option, "UNIXPATH"))
+         || (0 == strcmp (option, "HOSTNAME"))))
+    return;
   GNUNET_asprintf (&single_variable, "single_%s_per_host", section);
   GNUNET_asprintf (&per_host_variable, "num_%s_per_host", section);
   if ((0 == strcmp (option, "PORT")) && (1 == SSCANF (value, "%u", &ival)))
@@ -548,7 +551,7 @@ update_config (void *cls, const char *section, const char *option,
         GNUNET_CONFIGURATION_get_value_yesno (uc->cfg, "testing",
                                               single_variable))
     {
-      GNUNET_snprintf (uval, sizeof (uval), "%s\\%s.sock",
+      GNUNET_snprintf (uval, sizeof (uval), "%s/%s.sock",
                        uc->service_home, section);
       value = uval;
     }
@@ -625,7 +628,7 @@ GNUNET_TESTING_configuration_create (struct GNUNET_TESTING_System *system,
   uc.system = system;
   uc.cfg = cfg;
   uc.status = GNUNET_OK;
-  GNUNET_asprintf (&uc.service_home, "%s\\%u", system->tmppath,
+  GNUNET_asprintf (&uc.service_home, "%s/%u", system->tmppath,
                    system->path_counter++);
   GNUNET_CONFIGURATION_set_value_string (cfg, "PATHS", "SERVICEHOME",
                                          uc.service_home);
@@ -708,9 +711,9 @@ GNUNET_TESTING_peer_configure (struct GNUNET_TESTING_System *system,
   }
   GNUNET_assert (GNUNET_OK == 
                  GNUNET_CONFIGURATION_get_value_string (cfg, "PATHS",
-                                                        "SERVICE_HOME",
+                                                        "SERVICEHOME",
                                                         &service_home));
-  GNUNET_snprintf (hostkey_filename, sizeof (hostkey_filename), "%s\\.hostkey",
+  GNUNET_snprintf (hostkey_filename, sizeof (hostkey_filename), "%s/.hostkey",
                    service_home);
   fd = GNUNET_DISK_file_open (hostkey_filename,
                               GNUNET_DISK_OPEN_CREATE | GNUNET_DISK_OPEN_WRITE,
@@ -739,7 +742,7 @@ GNUNET_TESTING_peer_configure (struct GNUNET_TESTING_System *system,
     return NULL;
   }
   GNUNET_DISK_file_close (fd);
-  GNUNET_asprintf (&config_filename, "%s\\config", service_home);
+  GNUNET_asprintf (&config_filename, "%s/config", service_home);
   GNUNET_free (service_home);
   if (GNUNET_OK != GNUNET_CONFIGURATION_write (cfg, config_filename))
   {
@@ -933,7 +936,7 @@ GNUNET_TESTING_service_run (const char *tmppath,
   char *hostkeys_file;
   
   data_dir = GNUNET_OS_installation_get_path (GNUNET_OS_IPK_DATADIR);
-  GNUNET_asprintf (&hostkeys_file, "%s\\testing_hostkeys.dat", data_dir);
+  GNUNET_asprintf (&hostkeys_file, "%s/testing_hostkeys.dat", data_dir);
   GNUNET_free (data_dir);  
   system = GNUNET_TESTING_system_create (tmppath, "localhost");
   if (NULL == system)
