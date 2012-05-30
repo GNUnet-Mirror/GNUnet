@@ -168,7 +168,10 @@ GNUNET_TESTING_system_create (const char *tmppath,
   struct GNUNET_TESTING_System *system;
 
   if (NULL == tmppath)
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR, _("tmppath cannot be NULL\n"));
     return NULL;
+  }
   system = GNUNET_malloc (sizeof (struct GNUNET_TESTING_System));
   system->tmppath = GNUNET_strdup (tmppath);
   if (NULL != controller)
@@ -225,6 +228,15 @@ GNUNET_TESTING_reserve_port (struct GNUNET_TESTING_System *system,
   uint16_t open_port;
   uint16_t pos;
 
+  /*
+  FIXME: Instead of using getaddrinfo we should try to determine the port
+         status by the following heurestics.
+  
+	 On systems which support both IPv4 and IPv6, only ports open on both
+	 address families are considered open.
+	 On system with either IPv4 or IPv6. A port is considered open if it's
+	 open in the respective address family
+  */
   hint.ai_family = AF_UNSPEC;	/* IPv4 and IPv6 */
   hint.ai_socktype = (GNUNET_YES == is_tcp)? SOCK_STREAM : SOCK_DGRAM;
   hint.ai_protocol = 0;
@@ -654,32 +666,44 @@ GNUNET_TESTING_peer_configure (struct GNUNET_TESTING_System *system,
   char *service_home;  
   char hostkey_filename[128];
   char *config_filename;
+  char *emsg_;
 
+  if (NULL != emsg)
+    *emsg = NULL;
   if (GNUNET_OK != GNUNET_TESTING_configuration_create (system, cfg))
   {
-    GNUNET_asprintf (emsg,
-		     _("Failed to create configuration for peer (not enough free ports?)\n"));
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		"%s", *emsg);   
+    GNUNET_asprintf (&emsg_,
+		       _("Failed to create configuration for peer (not enough free ports?)\n"));
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s", *emsg_);
+    if (NULL != emsg)
+      *emsg = emsg_;
+    else
+      GNUNET_free (emsg_);
     return NULL;
   }
   if (key_number >= system->total_hostkeys)
   {
-    GNUNET_asprintf (emsg,
+    GNUNET_asprintf (&emsg_,
 		     _("You attempted to create a testbed with more than %u hosts.  Please precompute more hostkeys first.\n"),
 		     (unsigned int) system->total_hostkeys);    
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		"%s", *emsg);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s", *emsg_);
+    if (NULL != emsg)
+      *emsg = emsg_;
+    else
+      GNUNET_free (emsg_);
     return NULL;
   }
   if ((NULL != id) &&
       (GNUNET_SYSERR == GNUNET_TESTING_hostkey_get (system, key_number, id)))
   {
-    GNUNET_asprintf (emsg,
+    GNUNET_asprintf (&emsg_,
 		     _("Failed to initialize hostkey for peer %u\n"),
 		     (unsigned int) key_number);
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		"%s", *emsg);   
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s", *emsg_);
+    if (NULL != emsg)
+      *emsg = emsg_;
+    else
+      GNUNET_free (emsg_);
     return NULL;
   }
   GNUNET_assert (GNUNET_OK == 
@@ -702,10 +726,15 @@ GNUNET_TESTING_peer_configure (struct GNUNET_TESTING_System *system,
 			      + (key_number * HOSTKEYFILESIZE),
 			      HOSTKEYFILESIZE))
   {
-    GNUNET_asprintf (emsg,
+    GNUNET_asprintf (&emsg_,
 		     _("Failed to write hostkey file for peer %u: %s\n"),
 		     (unsigned int) key_number,
 		     STRERROR (errno));
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s", *emsg_);
+    if (NULL != emsg)
+      *emsg = emsg_;
+    else
+      GNUNET_free (emsg_);
     GNUNET_DISK_file_close (fd);
     return NULL;
   }
@@ -714,11 +743,16 @@ GNUNET_TESTING_peer_configure (struct GNUNET_TESTING_System *system,
   GNUNET_free (service_home);
   if (GNUNET_OK != GNUNET_CONFIGURATION_write (cfg, config_filename))
   {
-    GNUNET_asprintf (emsg,
+    GNUNET_asprintf (&emsg_,
 		     _("Failed to write configuration file `%s' for peer %u: %s\n"),
 		     config_filename,
 		     (unsigned int) key_number,
 		     STRERROR (errno));
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s", *emsg_);
+    if (NULL != emsg)
+      *emsg = emsg_;
+    else
+      GNUNET_free (emsg_);
     return NULL;
   }
   peer = GNUNET_malloc (sizeof (struct GNUNET_TESTING_Peer));
@@ -833,9 +867,9 @@ GNUNET_TESTING_peer_run (const char *tmppath,
 struct ServiceContext
 {
   /**
-   * The service's main process
+   * The configuration of the peer in which the service is run
    */
-  struct GNUNET_OS_Process *main_process;
+  const struct GNUNET_CONFIGURATION_Handle *cfg;
 
   /**
    * Callback to signal service startup
@@ -849,43 +883,15 @@ struct ServiceContext
 };
 
 
-/**
- * Scheduler callback to stop service upon call to GNUNET_SCHEDULER_shutdown
- *
- * @param cls the ServiceContext
- * @param tc the TaskContext
- */
-static void
-stop_service (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  GNUNET_break (0);
-}
-
-
-/**
- * Scheduler callback to stop service upon call to GNUNET_SCHEDULER_shutdown
- *
- * @param cls the ServiceContext
- * @param tc the TaskContext
- */
-static void
-check_service_status (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  GNUNET_break (0);
-}
-
-
 static void
 service_run_main (void *cls,
 		  const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct ServiceContext *sc = cls;
 
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-				&stop_service, sc);
-  GNUNET_SCHEDULER_add_delayed (TIME_REL_SEC(3), &check_service_status, sc);
-
-  // sc->tm (tm_cls);
+  if (NULL == sc->tm)
+    return;
+  sc->tm (sc->tm_cls, sc->cfg);
 }
 
 
@@ -915,30 +921,68 @@ GNUNET_TESTING_service_run (const char *tmppath,
 			    GNUNET_TESTING_TestMain tm,
 			    void *tm_cls)
 {
-  struct ServiceContext *sc;
-  char uval[128];
-
-  GNUNET_assert (NULL != service_name);
-  GNUNET_snprintf (uval, sizeof (uval), "gnunet-service-%s", service_name);
-  sc = GNUNET_malloc (sizeof (struct ServiceContext));
-
-  // FIXME: GNUNET_TESTING_peer_start...
-  if (NULL == cfgfilename)
-    sc->main_process = GNUNET_OS_start_process (GNUNET_NO, NULL, NULL, uval, NULL);
-  else
-    sc->main_process = GNUNET_OS_start_process (GNUNET_NO, NULL, NULL, uval,
-						"-c", cfgfilename, NULL);
-  if (NULL == sc->main_process)
+  struct ServiceContext sc;
+  struct GNUNET_TESTING_System *system;
+  struct GNUNET_TESTING_Peer *peer;
+  struct GNUNET_CONFIGURATION_Handle *cfg;
+  char *data_dir;
+  char *hostkeys_file;
+  
+  data_dir = GNUNET_OS_installation_get_path (GNUNET_OS_IPK_DATADIR);
+  GNUNET_asprintf (&hostkeys_file, "%s\\testing_hostkeys.dat", data_dir);
+  GNUNET_free (data_dir);  
+  system = GNUNET_TESTING_system_create (tmppath, "localhost");
+  if (NULL == system)
   {
-    LOG (GNUNET_ERROR_TYPE_ERROR, "Failed to start process %s\n", service_name);
-    GNUNET_free (sc);
+    GNUNET_free (hostkeys_file);
     return 1;
   }
-  sc->tm = tm;
-  sc->tm_cls = tm_cls;
-  GNUNET_SCHEDULER_run (&service_run_main, sc);
-  // FIXME: GNUNET_TESTING_peer_stop...
-  GNUNET_free (sc);
+  if (GNUNET_OK != GNUNET_TESTING_hostkeys_load (system, hostkeys_file))
+  {
+    GNUNET_free (hostkeys_file);
+    GNUNET_TESTING_system_destroy (system, GNUNET_YES);
+    return 1;
+  }
+  GNUNET_free (hostkeys_file);
+  cfg = GNUNET_CONFIGURATION_create ();
+  if (GNUNET_OK != GNUNET_CONFIGURATION_load (cfg, cfgfilename))
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+	 _("Failed to load configuration from %s\n"), cfgfilename);
+    GNUNET_CONFIGURATION_destroy (cfg);
+    GNUNET_TESTING_system_destroy (system, GNUNET_YES);
+    return 1;
+  }
+  peer = GNUNET_TESTING_peer_configure (system, cfg, 0, NULL, NULL);
+  if (NULL == peer)
+  {
+    GNUNET_CONFIGURATION_destroy (cfg);
+    GNUNET_TESTING_system_destroy (system, GNUNET_YES);
+    return 1;
+  }  
+  GNUNET_free (peer->main_binary);
+  GNUNET_asprintf (&peer->main_binary, "gnunet-service-%s", service_name);
+  if (GNUNET_OK != GNUNET_TESTING_peer_start (peer))
+  {    
+    GNUNET_TESTING_peer_destroy (peer);
+    GNUNET_CONFIGURATION_destroy (cfg);
+    GNUNET_TESTING_system_destroy (system, GNUNET_YES);
+    return 1;
+  }
+  sc.cfg = cfg;
+  sc.tm = tm;
+  sc.tm_cls = tm_cls;
+  GNUNET_SCHEDULER_run (&service_run_main, &sc); /* Scheduler loop */
+  if (GNUNET_OK != GNUNET_TESTING_peer_stop (peer))
+  {
+    GNUNET_TESTING_peer_destroy (peer);
+    GNUNET_CONFIGURATION_destroy (cfg);
+    GNUNET_TESTING_system_destroy (system, GNUNET_YES);
+    return 1;
+  }
+  GNUNET_TESTING_peer_destroy (peer);
+  GNUNET_CONFIGURATION_destroy (cfg);
+  GNUNET_TESTING_system_destroy (system, GNUNET_YES);
   return 0;
 }
 
