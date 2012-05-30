@@ -99,7 +99,8 @@ libgnunetutil_la_SOURCES = \
   service.c \
   signal.c \
   strings.c \
-  time.c
+  time.c \
+  speedup.c
 
 
 libgnunetutil_la_LIBADD = \
@@ -203,6 +204,7 @@ check_PROGRAMS = \
  test_service \
  test_strings \
  test_time \
+ test_speedup \
  $(BENCHMARKS) \
  test_os_start_process \
  test_common_logging_runtime_loglevels
@@ -444,6 +446,11 @@ test_time_SOURCES = \
 test_time_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la  
 
+test_speedup_SOURCES = \
+ test_speedup.c
+test_speedup_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la  
+
 perf_crypto_hash_SOURCES = \
  perf_crypto_hash.c
 perf_crypto_hash_LDADD = \
@@ -455,4 +462,5 @@ EXTRA_DIST = \
   test_program_data.conf \
   test_pseudonym_data.conf \
   test_resolver_api_data.conf \
-  test_service_data.conf
+  test_service_data.conf \
+  test_speedup_data.conf

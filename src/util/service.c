@@ -78,6 +78,13 @@ struct IPv6NetworkSet
 };
 
 
+int
+GNUNET_SPEEDUP_start_ (const struct GNUNET_CONFIGURATION_Handle *cfg);
+
+int
+GNUNET_SPEEDUP_stop_ (void);
+
+
 /**
  * Parse a network specification. The argument specifies
  * a list of networks. The format is
@@ -1771,7 +1778,7 @@ GNUNET_SERVICE_run (int argc, char *const *argv, const char *service_name,
   /* actually run service */
   err = 0;
   GNUNET_SCHEDULER_run (&service_task, &sctx);
-
+  GNUNET_SPEEDUP_start_ (cfg);
   /* shutdown */
   if ((1 == do_daemonize) && (NULL != sctx.server))
     pid_file_delete (&sctx);
@@ -1785,6 +1792,7 @@ shutdown:
     GNUNET_break (0 == CLOSE (sctx.ready_confirm_fd));
   }
 
+  GNUNET_SPEEDUP_stop_ ();
   GNUNET_CONFIGURATION_destroy (cfg);
   i = 0;
   if (NULL != sctx.addrs)

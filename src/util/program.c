@@ -72,6 +72,11 @@ struct CommandContext
 
 };
 
+int
+GNUNET_SPEEDUP_start_ (const struct GNUNET_CONFIGURATION_Handle *cfg);
+
+int
+GNUNET_SPEEDUP_stop_ (void);
 
 /**
  * Initial task called by the scheduler for each
@@ -81,6 +86,7 @@ static void
 program_main (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct CommandContext *cc = cls;
+  GNUNET_SPEEDUP_start_(cc->cfg);
 
   GNUNET_RESOLVER_connect (cc->cfg);
   cc->task (cc->task_cls, cc->args, cc->cfgfile, cc->cfg);
@@ -260,6 +266,7 @@ GNUNET_PROGRAM_run2 (int argc, char *const *argv, const char *binaryName,
           cc.task (cc.task_cls, cc.args, cc.cfgfile, cc.cfg);
   }
   /* clean up */
+  GNUNET_SPEEDUP_stop_ ();
   GNUNET_CONFIGURATION_destroy (cfg);
   GNUNET_free_non_null (cc.cfgfile);
   GNUNET_free_non_null (loglev);
