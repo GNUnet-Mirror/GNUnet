@@ -354,7 +354,7 @@ GNUNET_TESTING_hostkeys_load (struct GNUNET_TESTING_System *system,
  if (GNUNET_YES != GNUNET_DISK_file_test (filename))
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
-         "Hostkeys file not found: %s\n", filename);
+         _("Hostkeys file not found: %s\n"), filename);
     return GNUNET_SYSERR;
   }
   /* Check hostkey file size, read entire thing into memory */
@@ -363,7 +363,7 @@ GNUNET_TESTING_hostkeys_load (struct GNUNET_TESTING_System *system,
   if (NULL == fd)
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
-         "Could not open hostkeys file: %s\n", filename);
+         _("Could not open hostkeys file: %s\n"), filename);
     return GNUNET_SYSERR;
   }
   if (GNUNET_OK != 
@@ -378,7 +378,7 @@ GNUNET_TESTING_hostkeys_load (struct GNUNET_TESTING_System *system,
   {
     GNUNET_DISK_file_close (fd);
     LOG (GNUNET_ERROR_TYPE_ERROR,
-         "Incorrect hostkey file format: %s\n", filename);
+         _("Incorrect hostkey file format: %s\n"), filename);
     return GNUNET_SYSERR;
   }
   GNUNET_break (NULL == system->hostkeys_data);
@@ -883,14 +883,18 @@ struct ServiceContext
 };
 
 
+/**
+ * Callback to be called when SCHEDULER has been started
+ *
+ * @param cls the ServiceContext
+ * @param tc the TaskContext
+ */
 static void
 service_run_main (void *cls,
 		  const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct ServiceContext *sc = cls;
 
-  if (NULL == sc->tm)
-    return;
   sc->tm (sc->tm_cls, sc->cfg);
 }
 
