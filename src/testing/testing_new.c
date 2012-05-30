@@ -36,6 +36,9 @@
 #define LOG(kind,...)                                           \
   GNUNET_log_from (kind, "gnunettestingnew", __VA_ARGS__)
 
+#define TIME_REL_SEC(sec)					\
+  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, sec)
+
 /**
  * AI_NUMERICSERV not defined in windows. A hack to keep on going.
  */
@@ -792,6 +795,53 @@ GNUNET_TESTING_peer_run (const char *tmppath,
 }
 
 
+/**
+ * Structure for holding service data
+ */
+struct ServiceContext
+{
+  /**
+   * The service's main process
+   */
+  struct GNUNET_OS_Process *main_process;
+
+  /**
+   * Callback to signal service startup
+   */
+  GNUNET_TESTING_TestMain tm;
+
+  /**
+   * Closure for the above callback
+   */
+  void *tm_cls;
+};
+
+
+/**
+ * Scheduler callback to stop service upon call to GNUNET_SCHEDULER_shutdown
+ *
+ * @param cls the ServiceContext
+ * @param tc the TaskContext
+ */
+static void
+stop_service (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_break (0);
+}
+
+
+/**
+ * Scheduler callback to stop service upon call to GNUNET_SCHEDULER_shutdown
+ *
+ * @param cls the ServiceContext
+ * @param tc the TaskContext
+ */
+static void
+check_service_status (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_break (0);
+}
+
 
 /**
  * Start a single service (no ARM, except of course if the given
@@ -819,8 +869,29 @@ GNUNET_TESTING_service_run (const char *tmppath,
 			    GNUNET_TESTING_TestMain tm,
 			    void *tm_cls)
 {
-  GNUNET_break (0);
-  return 1;
+  struct ServiceContext *sc;
+  char uval[128];
+
+  GNUNET_assert (NULL != service_name);
+  GNUNET_snprintf (uval, sizeof (uval), "gnunet-service-%s", service_name);
+  sc = GNUNET_malloc (sizeof (struct ServiceContext));
+  if (NULL == cfgfilename)
+    sc->main_process = GNUNET_OS_start_process (GNUNET_NO, NULL, NULL, uval);
+  else
+    sc->main_process = GNUNET_OS_start_process (GNUNET_NO, NULL, NULL, uval,
+						"-c", cfgfilename);
+  if (NULL == sc->main_process)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Failed to start process %s\n", service_name);
+    GNUNET_free (sc);
+    return 1;
+  }
+  sc->tm = tm;
+  sc->tm_cls = tm_cls;
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
+				&stop_service, sc);
+  GNUNET_SCHEDULER_add_delayed (TIME_REL_SEC(3), &check_service_status, sc);
+  return 0;
 }
 
 
