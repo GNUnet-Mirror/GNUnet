@@ -27,6 +27,7 @@
 #include "platform.h"
 #include "gnunet_getopt_lib.h"
 #include "gnunet_program_lib.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_statistics_service.h"
 #include "statistics.h"
 
@@ -77,9 +78,26 @@ static int
 printer (void *cls, const char *subsystem, const char *name, uint64_t value,
          int is_persistent)
 {
+  struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get();
+  char * now_str;
   if (quiet == GNUNET_NO)
-    FPRINTF (stdout, "%s%-12s %-50s: %16llu\n", is_persistent ? "!" : " ",
-           subsystem, _(name), (unsigned long long) value);
+  {
+    if (GNUNET_YES == watch)
+    {
+      now_str = GNUNET_STRINGS_absolute_time_to_string(now);
+      FPRINTF (stdout, "%24s %s%12s %50s: %16llu \n",
+               now_str,
+               is_persistent ? "!" : " ",
+               subsystem, _(name), (unsigned long long) value);
+      GNUNET_free (now_str);
+    }
+    else
+    {
+      FPRINTF (stdout, "%s%12s %50s: %16llu \n",
+               is_persistent ? "!" : " ",
+               subsystem, _(name), (unsigned long long) value);
+    }
+  }
   else
     FPRINTF (stdout, "%llu\n", (unsigned long long) value);
 
