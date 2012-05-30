@@ -811,8 +811,11 @@ GNUNET_OS_start_process_vap (int pipe_control,
   ret = fork ();
   if (-1 == ret)
   {
+    int eno = errno;
+
     LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "fork");
     GNUNET_free_non_null (childpipename);
+    errno = eno;
     return NULL;
   }
   if (0 != ret)
@@ -1184,9 +1187,12 @@ GNUNET_OS_start_process_v (int pipe_control,
   ret = fork ();
   if (-1 == ret)
   {
+    int eno = errno;
+
     LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "fork");
     GNUNET_free_non_null (childpipename);
     GNUNET_array_grow (lscp, ls, 0);
+    errno = eno;
     return NULL;
   }
   if (0 != ret)
