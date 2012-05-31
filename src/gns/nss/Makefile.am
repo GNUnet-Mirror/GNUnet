@@ -30,12 +30,10 @@ endif
 LIBTOOL = $(SUDO_BINARY) $(SHELL) $(top_builddir)/libtool
 
 if !MINGW
-if HAVE_SUDO
 nss_LTLIBRARIES = \
 	libnss_gns.la \
 	libnss_gns4.la \
 	libnss_gns6.la
-endif
 endif
 
 sources = util.c util.h query.h query.c
