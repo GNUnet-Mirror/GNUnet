@@ -339,6 +339,18 @@ else
 fi
 
 
+
+AC_CHECK_HEADERS([nss.h],[nss=true],[nss=false])
+if test x$nss = xnss
+then
+	AM_CONDITIONAL(HAVE_GLIBCNSS, false)
+	AC_MSG_WARN([No GNU libc nss header, will not build NSS plugin])
+else
+	AM_CONDITIONAL(HAVE_GLIBCNSS, true)
+fi
+
+
+
 # test for kvm and kstat (for CPU stats under BSD/Solaris)
 AC_CHECK_LIB([kvm],[kvm_open])
 AC_CHECK_LIB([kstat],[kstat_open])
