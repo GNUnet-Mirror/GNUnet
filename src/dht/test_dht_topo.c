@@ -109,10 +109,6 @@ static GNUNET_SCHEDULER_TaskIdentifier shutdown_handle;
 
 static char *topology_file;
 
-static struct GNUNET_TESTING_Daemon *d1;
-
-static struct GNUNET_TESTING_Daemon *d2;
-
 static struct GNUNET_DHT_Handle **hs;
 
 static struct GNUNET_DHT_GetHandle *get_h;
