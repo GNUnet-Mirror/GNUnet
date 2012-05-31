@@ -100,17 +100,21 @@ certain binaries that require additional priviledges will not be
 installed properly (and autonomous NAT traversal, WLAN, DNS/GNS and 
 the VPN will then not work).
 
-Note that additional, per-user configuration files
-(~/.gnunet/gnunet.conf) need to be created by each user (for example,
-by running gnunet-setup).  Note that gnunet-setup is a separate
-download and requires recent versions of GTK+ and Glade; you can also
-edit the configuration file by hand, but this is not recommended.  For
-more general information about the GNU build process read the INSTALL
-file.
+If you run 'configure' and 'make install' as root or use the SUDO
+option, GNUnet's build system will install "libnss_gns*" libraries to
+"/lib/" regardless (!) of the $GNUNET_PREFIX you might have specified,
+as those libraries must be in "/lib/".  If you are packaging GNUnet
+for binary distribution, this may cause your packaging script to miss
+those plugins, so you might need to do some additional manual work to
+include those libraries in your binary package(s).  Similarly, if you
+want to use the GNUnet naming system and did NOT run GNUnet's 'make
+install' process with SUDO rights, the libraries will be installed to
+"$GNUNET_PREFIX/lib" and you will have to move them to "/lib/"
+manually.
 
-If you are compiling the code from subversion, you have to run
-". bootstrap" before ./configure.  If you receive an error during the
-running of ". bootstrap" that looks like "macro `AM_PATH_GTK' not
+Finally, if you are compiling the code from subversion, you have to
+run ". bootstrap" before ./configure.  If you receive an error during
+the running of ". bootstrap" that looks like "macro `AM_PATH_GTK' not
 found in library", you may need to run aclocal by hand with the -I
 option, pointing to your aclocal m4 macros, i.e.
 
@@ -119,6 +123,14 @@ $ aclocal -I /usr/local/share/aclocal
 
 Configuration
 =============
+
+Note that additional, per-user configuration files
+(~/.gnunet/gnunet.conf) need to be created by each user (for example,
+by running gnunet-setup).  Note that gnunet-setup is a separate
+download and requires recent versions of GTK+ and Glade; you can also
+edit the configuration file by hand, but this is not recommended.  For
+more general information about the GNU build process read the INSTALL
+file.
 
 GNUnet uses two types of configuration files, one that specifies the
 system-wide defaults (typically located in
