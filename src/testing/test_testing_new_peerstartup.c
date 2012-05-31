@@ -92,28 +92,33 @@ run (void *cls, char *const *args, const char *cfgfile,
   char *data_dir;
   char *hostkeys_file;
   char *emsg;
-  char *tmpdir_;
+  char *_tmpdir;
   char *tmpdir;
 #ifdef MINGW
   char *tmpdir_w;
 #endif
 
   struct GNUNET_PeerIdentity id;
-  
-  tmpdir_ = getenv ("TMPDIR");
-  tmpdir_ = tmpdir_ ? tmpdir_ : "/tmp";
-  GNUNET_asprintf (&tmpdir, "%s/%s", tmpdir_, "test-gnunet-testing_new-XXXXXX");  
+    
+  _tmpdir = getenv ("TMP");
+  if (NULL == _tmpdir)
+    _tmpdir = getenv ("TEMP");  
+  if (NULL == _tmpdir)
+    _tmpdir = getenv ("TMPDIR");
+  if (NULL == _tmpdir)
+    _tmpdir = "/tmp";
+  GNUNET_asprintf (&tmpdir, "%s/%s", _tmpdir, "test-gnunet-testing_new-XXXXXX");  
 #ifdef MINGW
   tmpdir_w = GNUNET_malloc (MAX_PATH + 1);
   GNUNET_assert (ERROR_SUCCESS == plibc_conv_to_win_path (tmpdir, tmpdir_w));
   GNUNET_free (tmpdir);
   tmpdir = tmpdir_w;
-  GNUNET_assert (0 == _mktemp_s (tmpdir, strlen (tmpdir) + 1));
+  //GNUNET_assert (0 == _mktemp_s (tmpdir, strlen (tmpdir) + 1));
 #else
   GNUNET_assert (mkdtemp (tmpdir) == tmpdir);
 #endif
-  LOG (GNUNET_ERROR_TYPE_ERROR,
-       "Temporary directory: %s\n", tmpdir);
+  /* LOG (GNUNET_ERROR_TYPE_ERROR, */
+  /*      "Temporary directory: %s\n", tmpdir); */
   system = GNUNET_TESTING_system_create (tmpdir,
                                          "localhost");
   GNUNET_assert (NULL != system);
