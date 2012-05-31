@@ -50,6 +50,11 @@ struct TestingContext
    * The peer which has been started by the testing system
    */
   struct GNUNET_TESTING_Peer *peer;
+
+  /**
+   * The running configuration of the peer
+   */
+  struct GNUNET_CONFIGURATION_Handle *cfg;
 };
 
 
@@ -66,6 +71,7 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   
   GNUNET_assert (GNUNET_OK == GNUNET_TESTING_peer_stop (test_ctx->peer));
   GNUNET_TESTING_peer_destroy (test_ctx->peer);
+  GNUNET_CONFIGURATION_destroy (test_ctx->cfg);
   GNUNET_TESTING_hostkeys_unload (test_ctx->system);
   GNUNET_TESTING_system_destroy (test_ctx->system, GNUNET_YES);
   GNUNET_free (test_ctx);
@@ -86,14 +92,28 @@ run (void *cls, char *const *args, const char *cfgfile,
   char *data_dir;
   char *hostkeys_file;
   char *emsg;
+  char *tmpdir_;
   char *tmpdir;
+#ifdef MINGW
+  char *tmpdir_w;
+#endif
+
   struct GNUNET_PeerIdentity id;
   
-  GNUNET_asprintf (&tmpdir, "%s/%s", P_tmpdir,
-                   "test-gnunet-testing_new-XXXXXX");
+  tmpdir_ = getenv ("TMPDIR");
+  tmpdir_ = tmpdir_ ? tmpdir_ : "/tmp";
+  GNUNET_asprintf (&tmpdir, "%s/%s", tmpdir_, "test-gnunet-testing_new-XXXXXX");  
+#ifdef MINGW
+  tmpdir_w = GNUNET_malloc (MAX_PATH + 1);
+  GNUNET_assert (ERROR_SUCCESS == plibc_conv_to_win_path (tmpdir, tmpdir_w));
+  GNUNET_free (tmpdir);
+  tmpdir = tmpdir_w;
+  GNUNET_assert (0 == _mktemp_s (tmpdir, strlen (tmpdir) + 1));
+#else
   GNUNET_assert (mkdtemp (tmpdir) == tmpdir);
-  /* LOG (GNUNET_ERROR_TYPE_ERROR, */
-  /*      "Temporary directory: %s\n", tmpdir); */
+#endif
+  LOG (GNUNET_ERROR_TYPE_ERROR,
+       "Temporary directory: %s\n", tmpdir);
   system = GNUNET_TESTING_system_create (tmpdir,
                                          "localhost");
   GNUNET_assert (NULL != system);
@@ -113,6 +133,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   test_ctx = GNUNET_malloc (sizeof (struct TestingContext));
   test_ctx->system = system;
   test_ctx->peer = peer;
+  test_ctx->cfg = new_cfg;
   GNUNET_SCHEDULER_add_delayed (TIME_REL_SEC (5),
                                 &do_shutdown, test_ctx);
   

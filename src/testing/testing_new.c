@@ -592,13 +592,14 @@ update_config_sections (void *cls,
       GNUNET_CONFIGURATION_get_value_string (uc->cfg, section, "ACCEPT_FROM",
                                              &orig_allowed_hosts))
   {
-    orig_allowed_hosts = "127.0.0.1;";
+    orig_allowed_hosts = GNUNET_strdup ("127.0.0.1;");
   }
   if (NULL == uc->system->controller)
     allowed_hosts = GNUNET_strdup (orig_allowed_hosts);
   else
     GNUNET_asprintf (&allowed_hosts, "%s %s;", orig_allowed_hosts,
                      uc->system->controller);
+  GNUNET_free (orig_allowed_hosts);
   GNUNET_CONFIGURATION_set_value_string (uc->cfg, section, "ACCEPT_FROM",
                                          allowed_hosts);
   GNUNET_free (allowed_hosts);  
