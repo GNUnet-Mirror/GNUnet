@@ -29,25 +29,26 @@
 
 #define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
 
-static long long current_offset;
+
 static struct GNUNET_TIME_Relative interval;
+
 static struct GNUNET_TIME_Relative delta;
 
 static GNUNET_SCHEDULER_TaskIdentifier speedup_task;
 
+
 static void
 do_speedup (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  static long long current_offset;
+ 
   speedup_task = GNUNET_SCHEDULER_NO_TASK;
-
   if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
     return;
-
   current_offset += delta.rel_value;
   GNUNET_TIME_set_offset (current_offset);
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Speed up execution time by %llu ms\n", delta.rel_value);
-
+  LOG (GNUNET_ERROR_TYPE_DEBUG, 
+       "Speeding up execution time by %llu ms\n", delta.rel_value);
   speedup_task = GNUNET_SCHEDULER_add_delayed (interval, &do_speedup, NULL);
 }
 
@@ -60,20 +61,19 @@ GNUNET_SPEEDUP_start_ (const struct GNUNET_CONFIGURATION_Handle *cfg)
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_time (cfg, "testing", "SPEEDUP_DELTA", &delta))
     return GNUNET_SYSERR;
 
-  if ((interval.rel_value == 0) || (delta.rel_value == 0))
+  if ((0 == interval.rel_value) || (0 == delta.rel_value))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-      "Speed up disabled\n");
+	 "Speed up disabled\n");
     return GNUNET_OK;
   }
-
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-    "Speed up execution time %llu ms every %llu ms\n",
-    delta.rel_value, interval.rel_value);
-
+       "Speed up execution time %llu ms every %llu ms\n",
+       delta.rel_value, interval.rel_value);
   speedup_task = GNUNET_SCHEDULER_add_now_with_lifeness (GNUNET_NO, &do_speedup, NULL);
   return GNUNET_OK;
 }
+
 
 void
 GNUNET_SPEEDUP_stop_ ( )
@@ -82,11 +82,9 @@ GNUNET_SPEEDUP_stop_ ( )
   {
     GNUNET_SCHEDULER_cancel (speedup_task);
     speedup_task = GNUNET_SCHEDULER_NO_TASK;
-
   }
-
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-      "Stopped execution speed up\n");
+       "Stopped execution speed up\n");
 }
 
 
