@@ -1128,7 +1128,10 @@ transmit_send_continuation (void *cls,
   struct NeighbourMapEntry *n;
 
   if (NULL == (n = lookup_neighbour (receiver)))
+  {
+    GNUNET_free (mq);
     return; /* disconnect or other error while transmitting, can happen */
+  }
   if (n->is_active == mq)
   {
     /* this is still "our" neighbour, remove us from its queue
