@@ -986,7 +986,8 @@ send_disconnect_cont (void *cls, const struct GNUNET_PeerIdentity *target,
   if (S_DISCONNECT != n->state)
     return; /* have created a fresh entry since */
   n->state = S_DISCONNECT;
-  GNUNET_SCHEDULER_cancel (n->task);
+  if (GNUNET_SCHEDULER_NO_TASK != n->task)
+    GNUNET_SCHEDULER_cancel (n->task);
   n->task = GNUNET_SCHEDULER_add_now (&master_task, n);
 }
 
@@ -1133,7 +1134,8 @@ transmit_send_continuation (void *cls,
     /* this is still "our" neighbour, remove us from its queue
        and allow it to send the next message now */
     n->is_active = NULL;
-    GNUNET_SCHEDULER_cancel (n->task);
+    if (GNUNET_SCHEDULER_NO_TASK != n->task)
+      GNUNET_SCHEDULER_cancel (n->task);
     n->task = GNUNET_SCHEDULER_add_now (&master_task, n);    
   }
   GNUNET_assert (bytes_in_send_queue >= mq->message_buf_size);
@@ -1487,7 +1489,8 @@ GST_neighbours_send (const struct GNUNET_PeerIdentity *target, const void *msg,
   if ( (NULL != n->is_active) ||
        ( (NULL == n->primary_address.session) && (NULL == n->primary_address.address)) )
     return;
-  GNUNET_SCHEDULER_cancel (n->task);
+  if (GNUNET_SCHEDULER_NO_TASK != n->task)
+    GNUNET_SCHEDULER_cancel (n->task);
   n->task = GNUNET_SCHEDULER_add_now (&master_task, n);
 }
 
@@ -2453,10 +2456,10 @@ master_task (void *cls,
   }
   delay = GNUNET_TIME_relative_min (GNUNET_TIME_absolute_get_remaining (n->keep_alive_time),
 				    delay);
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == n->task);
-  n->task = GNUNET_SCHEDULER_add_delayed (delay,
-					  &master_task,
-					  n);
+  if (GNUNET_SCHEDULER_NO_TASK == n->task)
+    n->task = GNUNET_SCHEDULER_add_delayed (delay,
+					    &master_task,
+					    n);
 }
 
 
