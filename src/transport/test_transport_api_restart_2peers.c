@@ -41,12 +41,12 @@
 /**
  * How long until we give up on transmitting the message?
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 90)
 
 /**
  * How long until we give up on transmitting the message?
  */
-#define TIMEOUT_TRANSMIT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
+#define TIMEOUT_TRANSMIT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 120)
 
 #define MTYPE 12345
 
@@ -102,6 +102,7 @@ end ()
   GNUNET_TRANSPORT_TESTING_stop_peer (tth, p2);
 }
 
+
 static void
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -142,6 +143,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   ok = GNUNET_SYSERR;
 }
 
+
 static void
 reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -153,6 +155,7 @@ reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   reconnect_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &reconnect, p);
 }
+
 
 static void
 restart_cb (struct PeerContext *p, void *cls)
@@ -171,6 +174,7 @@ restart_cb (struct PeerContext *p, void *cls)
   reconnect_task = GNUNET_SCHEDULER_add_now (&reconnect, p);
 }
 
+
 static void
 restart (struct PeerContext *p, char *cfg_file)
 {
@@ -180,6 +184,7 @@ restart (struct PeerContext *p, char *cfg_file)
   GNUNET_TRANSPORT_TESTING_restart_peer (tth, p, cfg_file, &restart_cb, p);
   return;
 }
+
 
 static void
 notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
@@ -356,7 +361,6 @@ testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)
 }
 
 
-
 static void
 start_cb (struct PeerContext *p, void *cls)
 {
@@ -381,6 +385,7 @@ start_cb (struct PeerContext *p, void *cls)
                                                NULL);
 
 }
+
 
 static void
 run (void *cls, char *const *args, const char *cfgfile,
@@ -432,6 +437,7 @@ check ()
 
   return ok;
 }
+
 
 int
 main (int argc, char *argv[])
