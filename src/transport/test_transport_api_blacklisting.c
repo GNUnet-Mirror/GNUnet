@@ -61,9 +61,9 @@ struct GNUNET_TRANSPORT_TESTING_handle *tth;
  */
 #define TIMEOUT_TRANSMIT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
 
-#define MSIZE 2600
+#define TEST_MESSAGE_SIZE 2600
 
-#define MTYPE 12345
+#define TEST_MESSAGE_TYPE 12345
 
 
 static int ok;
@@ -212,8 +212,8 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
               GNUNET_i2s (&t->id));
   GNUNET_free (ps);
 
-  if ((MTYPE == ntohs (message->type)) &&
-      (MSIZE == ntohs (message->size)))
+  if ((TEST_MESSAGE_TYPE == ntohs (message->type)) &&
+      (TEST_MESSAGE_SIZE == ntohs (message->size)))
   {
     ok = 0;
     shutdown_task = GNUNET_SCHEDULER_add_now(&end, NULL);
@@ -249,13 +249,13 @@ notify_ready (void *cls, size_t size, void *buf)
     return 0;
   }
 
-  GNUNET_assert (size >= MSIZE);
+  GNUNET_assert (size >= TEST_MESSAGE_SIZE);
 
   if (buf != NULL)
   {
     hdr = buf;
-    hdr->size = htons (MSIZE);
-    hdr->type = htons (MTYPE);
+    hdr->size = htons (TEST_MESSAGE_SIZE);
+    hdr->type = htons (TEST_MESSAGE_TYPE);
   }
 
   char *ps = GNUNET_strdup (GNUNET_i2s (&p2->id));
@@ -265,7 +265,7 @@ notify_ready (void *cls, size_t size, void *buf)
               GNUNET_i2s (&p->id));
   GNUNET_free (ps);
 
-  return MSIZE;
+  return TEST_MESSAGE_SIZE;
 }
 
 static void
@@ -282,7 +282,7 @@ sendtask (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
               p2->no, GNUNET_i2s (&p2->id), p1->no, receiver_s);
   GNUNET_free (receiver_s);
 
-  th = GNUNET_TRANSPORT_notify_transmit_ready (p2->th, &p1->id, MSIZE, 0,
+  th = GNUNET_TRANSPORT_notify_transmit_ready (p2->th, &p1->id, TEST_MESSAGE_SIZE, 0,
                                                TIMEOUT_TRANSMIT, &notify_ready,
                                                p1);
 }
