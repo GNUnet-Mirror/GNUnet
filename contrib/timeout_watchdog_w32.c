@@ -173,14 +173,16 @@ main (int argc, char *argv[])
     if (wait_result != 0)
     {
       printf ("Test process exited with result %lu\n", status);
+      TerminateJobObject (job, status);
       exit (status);
     }
     printf ("Test process exited (failed to obtain exit status)\n");
+    TerminateJobObject (job, 0);
     exit (0);
   }
   printf ("Child processes were killed after timeout of %u seconds\n",
 	      timeout);
-  TerminateJobObject (job, 0);
+  TerminateJobObject (job, 1);
   CloseHandle (proc.hProcess);
   exit (1);
 }
