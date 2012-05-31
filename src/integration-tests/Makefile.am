@@ -12,8 +12,6 @@ endif
 #bin_PROGRAMS = \
 # connection_watchdog
 
-check_PROGRAMS =
-
 noinst_PROGRAMS = connection_watchdog
 
 noinst_SCRIPTS = \
@@ -98,7 +96,7 @@ test_integration_clique.py: test_integration_clique.py.in Makefile
 test_integration_clique_nat.py: test_integration_clique_nat.py.in Makefile
 	$(do_subst) < $(srcdir)/test_integration_clique_nat.py.in > test_integration_clique_nat.py
 	chmod +x test_integration_clique_nat.py	
-	
+
 test_integration_connect_on_restart.py: test_integration_connect_on_restart.py.in Makefile
 	$(do_subst) < $(srcdir)/test_integration_connect_on_restart.py.in > test_integration_connect_on_restart.py
 	chmod +x test_integration_connect_on_restart.py		

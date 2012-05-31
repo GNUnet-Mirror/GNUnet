@@ -766,7 +766,7 @@ AC_ARG_WITH(sudo,
   ],
   [AC_MSG_RESULT([no])])
 AC_SUBST(SUDO_BINARY)
-
+AM_CONDITIONAL([HAVE_SUDO], [test "x$SUDO_BINARY" != "x" -o -w /])
 
 # test for gnunetdns group name
 GNUNETDNS_GROUP=gnunetdns
@@ -1102,6 +1102,11 @@ AC_MSG_NOTICE([NOTICE: Database support is set to MySQL: $mysql, SQLite: $sqlite
 if test "$enable_framework_build" = "yes"
 then
   AC_MSG_NOTICE([NOTICE: Mac OS X framework build enabled.])
+fi
+
+if test "x$SUDO_BINARY" = "x" -a ! -w /
+then
+  AC_MSG_NOTICE([NOTICE: --with-sudo not specified and not running as 'root', will not install GNS NSS library])
 fi
 
 AC_MSG_NOTICE([********************************************
