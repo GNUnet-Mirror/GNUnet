@@ -28,8 +28,6 @@
 #include "gnunet_dht_service.h"
 
 /* DEFINES */
-#define VERBOSE GNUNET_NO
-
 #define MAX_GET_ATTEMPTS 10
 
 #define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 5)
