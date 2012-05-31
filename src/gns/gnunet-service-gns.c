@@ -190,7 +190,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
              "Shutting down!");
   /* Kill zone task for it may make the scheduler hang */
-  if (zone_update_taskid)
+  if (zone_update_taskid != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel(zone_update_taskid);
   
   GNUNET_SERVER_notification_context_destroy (nc);
@@ -211,6 +211,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 update_zone_dht_next(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  zone_update_taskid = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_NAMESTORE_zone_iterator_next(namestore_iter);
 }
 
@@ -384,6 +385,8 @@ static void
 update_zone_dht_start(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   unsigned long long interval = 0;
+
+  zone_update_taskid = GNUNET_SCHEDULER_NO_TASK;
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Scheduling DHT zone update!\n");
   if (0 == num_public_records)
