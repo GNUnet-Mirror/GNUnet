@@ -1013,6 +1013,7 @@ src/fs/Makefile
 src/fs/fs.conf
 src/gns/Makefile
 src/gns/gns.conf
+src/gns/nss/Makefile
 src/hello/Makefile
 src/include/Makefile
 src/include/gnunet_directories.h

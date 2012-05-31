@@ -19,17 +19,17 @@
 
 EXTRA_DIST = map-file
 
-# This cool debug trap works on i386/gcc only
-AM_CFLAGS='-DDEBUG_TRAP=__asm__("int $$3")'
-
 AM_LDFLAGS=-avoid-version -module -export-dynamic
 
-lib_LTLIBRARIES = 
+nssdir = /lib/
+LIBTOOL = $(SUDO_BINARY) $(SHELL) $(top_builddir)/libtool
 
-lib_LTLIBRARIES += \
+if !MINGW
+nss_LTLIBRARIES = \
 	libnss_gns.la \
 	libnss_gns4.la \
 	libnss_gns6.la
+endif
 
 sources = util.c util.h query.h query.c
 
@@ -46,12 +46,9 @@ libnss_gns6_la_SOURCES=$(libnss_gns_la_SOURCES)
 libnss_gns6_la_CFLAGS=$(libnss_gns_la_CFLAGS) -DNSS_IPV6_ONLY=1
 libnss_gns6_la_LDFLAGS=$(libnss_gns_la_LDFLAGS)
 
-install-exec-hook:
-	rm -f $(DESTDIR)$(libdir)/libnss_gns.la 
-	rm -f $(DESTDIR)$(libdir)/libnss_gns4.la 
-	rm -f $(DESTDIR)$(libdir)/libnss_gns6.la 
+install-data-hook:
+	$(SUDO_BINARY) $(SHELL) $(top_builddir)/libtool --finish $(nssdir)
+	$(SUDO_BINARY) rm -f $(nssdir)/libnss_gns.la $(nssdir)/libnss_gns4.la $(nssdir)/libnss_gns6.la 
 
 uninstall-hook:
-	rm -f $(DESTDIR)$(libdir)/libnss_gns.so.2 
-	rm -f $(DESTDIR)$(libdir)/libnss_gns4.so.2 
-	rm -f $(DESTDIR)$(libdir)/libnss_gns6.so.2 
+	$(SUDO_BINARY) rm -f $(nssdir)/libnss_gns.so.2 $(nssdir)/libnss_gns4.so.2 $(nssdir)/libnss_gns6.so.2 
