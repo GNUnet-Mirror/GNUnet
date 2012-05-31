@@ -349,30 +349,26 @@ server_send_callback (void *cls, uint64_t pos, char *buf, size_t max)
     }
   }
 
-  struct Plugin *plugin = s->plugin;
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, s->plugin->name,
                    "Server: %X: sent %u bytes\n", s, bytes_read);
 
   return bytes_read;
 }
+
 
 static struct Session *
 server_lookup_session (struct Plugin *plugin,
                        struct ServerConnection * sc)
 {
   struct Session *s;
-  for (s = plugin->head; NULL != s; s = s->next)
-  {
-    if ((s->server_recv == sc) || (s->server_send == sc))
-      return s;
-  }
 
-  for (s = plugin->server_semi_head; NULL != s; s = s->next)
-  {
+  for (s = plugin->head; NULL != s; s = s->next)
     if ((s->server_recv == sc) || (s->server_send == sc))
       return s;
-  }
-  return s;
+  for (s = plugin->server_semi_head; NULL != s; s = s->next)
+    if ((s->server_recv == sc) || (s->server_send == sc))
+      return s;
+  return NULL;
 }
 
 
@@ -624,9 +620,9 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
   int res = MHD_YES;
 
   GNUNET_assert (cls != NULL);
-  /* new connection */
   if (sc == NULL)
   {
+    /* new connection */
     sc = server_lookup_serverconnection (plugin, mhd_connection, url, method);
     if (sc != NULL)
       (*httpSessionCache) = sc;
@@ -642,10 +638,10 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
   }
   else
   {
+    /* 'old' connection */
     if (NULL == server_lookup_session (plugin, sc))
     {
       /* Session was already disconnected */
-      GNUNET_break (0);
       return MHD_NO;
     }
   }
