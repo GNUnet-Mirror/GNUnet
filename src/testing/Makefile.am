@@ -91,7 +91,8 @@ check_PROGRAMS = \
  test_testing_topology_none \
  test_testing_topology_scale_free \
  test_testing_new_portreservation \
- test_testing_new_peerstartup
+ test_testing_new_peerstartup \
+ test_testing_new_servicestartup
 
 if ENABLE_TEST_RUN 
 TESTS = \
@@ -101,7 +102,8 @@ TESTS = \
  test_testing_group \
  test_testing_peergroup \
  test_testing_new_portreservation \
- test_testing_new_peerstartup
+ test_testing_new_peerstartup \
+ test_testing_new_servicestartup
 endif
 
 gnunet_testing_SOURCES = \
@@ -276,6 +278,12 @@ test_testing_new_portreservation_LDADD = \
 test_testing_new_peerstartup_SOURCES = \
  test_testing_new_peerstartup.c
 test_testing_new_peerstartup_LDADD = \
+ $(top_builddir)/src/testing/libgnunettesting_new.la \
+ $(top_builddir)/src/util/libgnunetutil.la
+
+test_testing_new_servicestartup_SOURCES = \
+ test_testing_new_servicestartup.c
+test_testing_new_servicestartup_LDADD = \
  $(top_builddir)/src/testing/libgnunettesting_new.la \
  $(top_builddir)/src/util/libgnunetutil.la
 

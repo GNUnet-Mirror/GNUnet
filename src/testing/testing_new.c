@@ -965,9 +965,11 @@ GNUNET_TESTING_service_run (const char *tmppath,
   if (NULL == peer)
   {
     GNUNET_CONFIGURATION_destroy (cfg);
+    GNUNET_TESTING_hostkeys_unload (system);
     GNUNET_TESTING_system_destroy (system, GNUNET_YES);
     return 1;
-  }  
+  }
+  GNUNET_TESTING_hostkeys_unload (system);
   GNUNET_free (peer->main_binary);
   GNUNET_asprintf (&peer->main_binary, "gnunet-service-%s", service_name);
   if (GNUNET_OK != GNUNET_TESTING_peer_start (peer))
