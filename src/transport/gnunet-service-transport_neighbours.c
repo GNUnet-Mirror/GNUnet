@@ -1769,9 +1769,11 @@ handle_test_blacklist_cont (void *cls,
     }
     else
     {
+      // FIXME: should also possibly destroy session with plugin!?
       GNUNET_ATS_address_destroyed (GST_ats,
 				    bcc->na.address,
 				    NULL);
+      free_address (&n->primary_address);
       n->state = S_INIT_ATS;
       n->timeout = GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT);
       // FIXME: do we need to ask ATS again for suggestions?
@@ -1807,9 +1809,11 @@ handle_test_blacklist_cont (void *cls,
     }
     else
     {
+      // FIXME: should also possibly destroy session with plugin!?
       GNUNET_ATS_address_destroyed (GST_ats,
 				    bcc->na.address,
 				    NULL);
+      free_address (&n->primary_address);
       n->state = S_INIT_ATS;
       n->timeout = GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT);
       // FIXME: do we need to ask ATS again for suggestions?
