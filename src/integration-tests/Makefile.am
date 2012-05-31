@@ -35,6 +35,9 @@ check_SCRIPTS = \
 endif
 # test_integration_disconnect.py 
 
+check_PROGRAMS = \
+	test_connection_stability
+
 
 if ENABLE_TEST_RUN
 TESTS = \
@@ -112,6 +115,12 @@ test_integration_connection_values_tcp_udp_http.py: test_integration_connection_
 	$(do_subst) < $(srcdir)/test_integration_connection_values_tcp_udp_http.py.in > test_integration_connection_values_tcp_udp_http.py
 	chmod +x test_integration_connection_values_tcp_udp_http.py		
 
+test_connection_stability_SOURCES = \
+ test_connection_stability.c
+test_connection_stability_LDADD = \
+ $(top_builddir)/src/testing/libgnunettesting.la \
+ $(top_builddir)/src/util/libgnunetutil.la  
+
 
 EXTRA_DIST = \
    gnunet_testing.py.in \
@@ -137,6 +146,7 @@ EXTRA_DIST = \
    confs/c_no_nat_client_http_2.conf\
    confs/c_no_nat_client_http.conf \
    confs/c_no_nat_client_http_2.conf \
+   test_connection_stability.conf \
    hostkeys/0000-hostkey \
    hostkeys/0001-hostkey \
    hostkeys/0002-hostkey \
