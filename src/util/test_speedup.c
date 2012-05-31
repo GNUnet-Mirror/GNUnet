@@ -89,13 +89,18 @@ main (int argc, char *argv[])
   end_real = time (NULL);
   delta = GNUNET_TIME_absolute_get_difference(start, end);
 
-  GNUNET_log  (GNUNET_ERROR_TYPE_DEBUG, "Execution time in GNUnet time: %llu ms\n", delta.rel_value);
-  GNUNET_log  (GNUNET_ERROR_TYPE_DEBUG, "Execution time in system time: %llu ms\n", (end_real - start_real) * 1000);
-
   if (delta.rel_value >  ((end_real - start_real) * 1500))
+  {
+    GNUNET_log  (GNUNET_ERROR_TYPE_DEBUG, "Execution time in GNUnet time: %llu ms\n", delta.rel_value);
+    GNUNET_log  (GNUNET_ERROR_TYPE_DEBUG, "Execution time in system time: %llu ms\n", (end_real - start_real) * 1000);
     return 0;
+  }
   else
+  {
+    GNUNET_log  (GNUNET_ERROR_TYPE_ERROR, "Execution time in GNUnet time: %llu ms\n", delta.rel_value);
+    GNUNET_log  (GNUNET_ERROR_TYPE_ERROR, "Execution time in system time: %llu ms\n", (end_real - start_real) * 1000);
     return 1;
+  }
 }
 
 /* end of test_speedup.c */
