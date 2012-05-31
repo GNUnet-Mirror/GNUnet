@@ -81,7 +81,6 @@ static void
 end ()
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping peers\n");
-
   if (send_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (send_task);
   send_task = GNUNET_SCHEDULER_NO_TASK;
@@ -108,13 +107,11 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   die_task = GNUNET_SCHEDULER_NO_TASK;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Fail! Stopping peers\n");
-
   if (restarted == GNUNET_YES)
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Peer was restarted\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Peer was restarted, but communication did not resume\n");
 
   if (restarted == GNUNET_NO)
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Peer was NOT restarted\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Peer was NOT (even) restarted\n");
 
   if (reconnect_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (reconnect_task);
@@ -150,7 +147,6 @@ reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct PeerContext *p = cls;
 
   reconnect_task = GNUNET_SCHEDULER_NO_TASK;
-
   GNUNET_TRANSPORT_try_connect (p1->th, &p2->id);
   reconnect_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &reconnect, p);
@@ -163,14 +159,11 @@ restart_cb (struct PeerContext *p, void *cls)
   static int c;
 
   c++;
-
   if (c != 2)
     return;
-
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Restarted peer %u (`%4s'), issuing reconnect\n", p->no,
               GNUNET_i2s (&p->id));
-
   reconnect_task = GNUNET_SCHEDULER_add_now (&reconnect, p);
 }
 
@@ -182,7 +175,6 @@ restart (struct PeerContext *p, char *cfg_file)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Restarting peer %u (`%4s')\n", p->no,
               GNUNET_i2s (&p->id));
   GNUNET_TRANSPORT_TESTING_restart_peer (tth, p, cfg_file, &restart_cb, p);
-  return;
 }
 
 
@@ -244,7 +236,6 @@ notify_ready (void *cls, size_t size, void *buf)
   struct GNUNET_MessageHeader *hdr;
 
   th = NULL;
-
   if (buf == NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -433,7 +424,7 @@ check ()
 
   ok = 1;
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv, test_name,
-                      "nohelp", options, &run, &ok);
+                      "nohelp", options, &run, NULL);
 
   return ok;
 }
