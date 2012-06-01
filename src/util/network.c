@@ -1452,7 +1452,7 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
       struct timeval tvslice;
 
       tvslice.tv_sec = 0;
-      tvslice.tv_usec = 10;
+      tvslice.tv_usec = 0;
       retcode = select (nfds, &aread, &awrite, &aexcept, &tvslice);
       if (retcode == -1)
         retcode = 0;
