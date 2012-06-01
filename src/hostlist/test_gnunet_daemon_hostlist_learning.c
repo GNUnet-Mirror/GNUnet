@@ -235,7 +235,9 @@ process_uris_recv (void *cls, const char *subsystem, const char *name,
                 "Peer has successfully saved advertised URI\n");
     learned_hostlist_saved = GNUNET_YES;
     if ((learned_hostlist_downloaded == GNUNET_YES) && (adv_sent == GNUNET_YES))
-      shutdown_testcase ();
+    {
+      GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+    }
   }
   return GNUNET_OK;
 }
@@ -259,7 +261,9 @@ process_adv_sent (void *cls, const char *subsystem, const char *name,
     adv_sent = GNUNET_YES;
     if ((learned_hostlist_downloaded == GNUNET_YES) &&
         (learned_hostlist_saved == GNUNET_YES))
-      shutdown_testcase ();
+    {
+      GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+    }
   }
   return GNUNET_OK;
 }
