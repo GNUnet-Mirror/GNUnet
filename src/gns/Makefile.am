@@ -31,7 +31,8 @@ endif
 bin_PROGRAMS = \
   gnunet-service-gns \
   $(DO_FCFSD) \
-  gnunet-gns
+  gnunet-gns \
+	gnunet-gns-proxy
 
 #noinst_PROGRAMS = \
 #  gnunet-gns-lookup
@@ -201,6 +202,15 @@ gnunet_gns_LDADD = \
   $(top_builddir)/src/namestore/libgnunetnamestore.la \
   $(GN_LIBINTL)
 gnunet_gns_DEPENDENCIES = \
+  libgnunetgns.la
+
+gnunet_gns_proxy_SOURCES = \
+ gnunet-gns-proxy.c
+gnunet_gns_proxy_LDADD = \
+  $(top_builddir)/src/gns/libgnunetgns.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(GN_LIBINTL)
+gnunet_gns_proxy_DEPENDENCIES = \
   libgnunetgns.la
 
 gnunet_service_gns_SOURCES = \
