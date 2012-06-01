@@ -79,6 +79,24 @@ GNUNET_SCHEDULER_TaskIdentifier ltask;
 static struct MHD_Daemon *httpd;
 static GNUNET_SCHEDULER_TaskIdentifier httpd_task;
 
+static int
+con_val_iter (void *cls,
+              enum MHD_ValueKind kind,
+              const char *key,
+              const char *value)
+{
+  char* buf = (char*)cls;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "%s:%s\n", key, value);
+
+  if (0 == strcmp ("Host", key))
+  {
+    strcpy (buf, value);
+    return MHD_NO;
+  }
+  return MHD_YES;
+}
+
 /**
  * Main MHD callback for handling requests.
  *
@@ -115,6 +133,7 @@ create_response (void *cls,
   const char* page = "<html><head><title>gnoxy</title>"\
                       "</head><body>gnoxy demo</body></html>";
   struct MHD_Response *response;
+  char host[265];
   int ret;
   
   if (0 != strcmp (meth, "GET"))
@@ -132,6 +151,10 @@ create_response (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "url %s\n", url);
+
+  MHD_get_connection_values (con,
+                             MHD_HEADER_KIND,
+                             &con_val_iter, host);
 
   response = MHD_create_response_from_buffer (strlen (page),
                                               (void*)page,
