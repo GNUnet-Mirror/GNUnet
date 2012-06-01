@@ -30,7 +30,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "query.h"
+#include "nss_gns_query.h"
 
 #include <arpa/inet.h>
 

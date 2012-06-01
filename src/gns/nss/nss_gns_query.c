@@ -1,7 +1,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "query.h"
+#include "nss_gns_query.h"
 #include <arpa/inet.h>
 
 int gns_resolve_name(int af, const char *name, struct userdata *u)
@@ -11,9 +11,15 @@ int gns_resolve_name(int af, const char *name, struct userdata *u)
   char line[128];
 
   if (af == AF_INET6)
-    asprintf(&cmd, "%s -t AAAA -u %s\n", "gnunet-gns -r", name);
+  {
+    if (-1 == asprintf(&cmd, "%s -t AAAA -u %s\n", "gnunet-gns -r", name))
+      return -1;
+  }
   else
-    asprintf(&cmd, "%s %s\n", "gnunet-gns -r -u", name);
+  {
+    if (-1 == asprintf(&cmd, "%s %s\n", "gnunet-gns -r -u", name))
+      return -1;
+  }
 
   p = popen(cmd,"r");
 

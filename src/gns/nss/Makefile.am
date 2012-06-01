@@ -36,7 +36,7 @@ nss_LTLIBRARIES = \
 	libnss_gns6.la
 endif
 
-sources = util.c util.h query.h query.c
+sources = nss_gns_query.h nss_gns_query.c
 
 # GNU Libc
 libnss_gns_la_SOURCES= $(sources) nss_gns.c
