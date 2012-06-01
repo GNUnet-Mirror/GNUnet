@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Christian Grothoff (and other contributing authors)
+     (C) 2002--2012 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -55,10 +55,10 @@ client_log (CURL * curl, curl_infotype type, char *data, size_t size, void *cls)
     }
 #if BUILD_HTTPS
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-https",
-                     "Client: %X - %s", cls, text);
+                     "Client: %p - %s", cls, text);
 #else
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-http",
-                     "Client: %X - %s", cls, text);
+                     "Client: %p - %s", cls, text);
 #endif
   }
   return 0;
@@ -72,6 +72,7 @@ client_log (CURL * curl, curl_infotype type, char *data, size_t size, void *cls)
  */
 static void
 client_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+
 
 /**
  * Function setting up file descriptors and scheduling task to run
@@ -99,7 +100,6 @@ client_schedule (struct Plugin *plugin, int now)
     GNUNET_SCHEDULER_cancel (plugin->client_perform_task);
     plugin->client_perform_task = GNUNET_SCHEDULER_NO_TASK;
   }
-
   max = -1;
   FD_ZERO (&rs);
   FD_ZERO (&ws);
@@ -154,24 +154,22 @@ client_send (struct Session *s, struct HTTP_Message *msg)
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-
   if (s->client_put_paused == GNUNET_YES)
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, s->plugin->name,
-                     "Client: %X was suspended, unpausing\n", s->client_put);
+                     "Client: %p was suspended, unpausing\n", s->client_put);
     s->client_put_paused = GNUNET_NO;
     curl_easy_pause (s->client_put, CURLPAUSE_CONT);
   }
-
   client_schedule (s->plugin, GNUNET_YES);
 
   return GNUNET_OK;
 }
 
 
-
 /**
  * Task performing curl operations
+ *
  * @param cls plugin as closure
  * @param tc gnunet scheduler task context
  */
@@ -228,7 +226,7 @@ client_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       if (msg->msg == CURLMSG_DONE)
       {
         GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                         "Client: %X connection to '%s'  %s ended with reason %i: `%s'\n",
+                         "Client: %p connection to '%s'  %s ended with reason %i: `%s'\n",
                          msg->easy_handle, GNUNET_i2s (&s->target),
                          http_plugin_address_to_string (NULL, s->addr,
                                                         s->addrlen),
@@ -236,7 +234,11 @@ client_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                          curl_easy_strerror (msg->data.result));
 
         client_disconnect (s);
-        //GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,"Notifying about ended session to peer `%s' `%s'\n", GNUNET_i2s (&s->target), http_plugin_address_to_string (plugin, s->addr, s->addrlen));
+        GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, 
+			 plugin->name,
+			 "Notifying about ended session to peer `%s' `%s'\n", 
+			 GNUNET_i2s (&s->target), 
+			 http_plugin_address_to_string (plugin, s->addr, s->addrlen));
         notify_session_end (plugin, &s->target, s);
       }
     }
@@ -244,6 +246,7 @@ client_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   while (mret == CURLM_CALL_MULTI_PERFORM);
   client_schedule (plugin, GNUNET_NO);
 }
+
 
 int
 client_disconnect (struct Session *s)
@@ -263,7 +266,7 @@ client_disconnect (struct Session *s)
   if (s->client_put != NULL)
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                     "Client: %X Deleting outbound PUT session to peer `%s'\n",
+                     "Client: %p Deleting outbound PUT session to peer `%s'\n",
                      s->client_put, GNUNET_i2s (&s->target));
 
     mret = curl_multi_remove_handle (plugin->client_mh, s->client_put);
@@ -287,7 +290,7 @@ client_disconnect (struct Session *s)
   if (s->client_get != NULL)
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                     "Client: %X Deleting outbound GET session to peer `%s'\n",
+                     "Client: %p Deleting outbound GET session to peer `%s'\n",
                      s->client_get, GNUNET_i2s (&s->target));
 
     mret = curl_multi_remove_handle (plugin->client_mh, s->client_get);
@@ -362,6 +365,7 @@ client_receive_mst_cb (void *cls, void *client,
   return GNUNET_OK;
 }
 
+
 static void
 client_wake_up (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -372,29 +376,26 @@ client_wake_up (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_break (0);
     return;
   }
-
   s->recv_wakeup_task = GNUNET_SCHEDULER_NO_TASK;
-
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
-
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, s->plugin->name,
-                   "Client: %X Waking up receive handle\n", s->client_get);
-
+                   "Client: %p Waking up receive handle\n", s->client_get);
   if (s->client_get != NULL)
     curl_easy_pause (s->client_get, CURLPAUSE_CONT);
-
 }
 
+
 /**
-* Callback method used with libcurl
-* Method is called when libcurl needs to write data during sending
-* @param stream pointer where to write data
-* @param size size of an individual element
-* @param nmemb count of elements that can be written to the buffer
-* @param cls destination pointer, passed to the libcurl handle
-* @return bytes read from stream
-*/
+ * Callback method used with libcurl
+ * Method is called when libcurl needs to write data during sending
+ *
+ * @param stream pointer where to write data
+ * @param size size of an individual element
+ * @param nmemb count of elements that can be written to the buffer
+ * @param cls destination pointer, passed to the libcurl handle
+ * @return bytes read from stream
+ */
 static size_t
 client_receive (void *stream, size_t size, size_t nmemb, void *cls)
 {
@@ -413,7 +414,7 @@ client_receive (void *stream, size_t size, size_t nmemb, void *cls)
     struct GNUNET_TIME_Relative delta =
         GNUNET_TIME_absolute_get_difference (now, s->next_receive);
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                     "Client: %X No inbound bandwidth available! Next read was delayed for %llu ms\n",
+                     "Client: %p No inbound bandwidth available! Next read was delayed for %llu ms\n",
                      s->client_get, delta.rel_value);
     if (s->recv_wakeup_task != GNUNET_SCHEDULER_NO_TASK)
     {
@@ -424,19 +425,17 @@ client_receive (void *stream, size_t size, size_t nmemb, void *cls)
         GNUNET_SCHEDULER_add_delayed (delta, &client_wake_up, s);
     return CURLPAUSE_ALL;
   }
-
-
-  if (s->msg_tk == NULL)
+  if (NULL == s->msg_tk)
     s->msg_tk = GNUNET_SERVER_mst_create (&client_receive_mst_cb, s);
-
   GNUNET_SERVER_mst_receive (s->msg_tk, s, stream, len, GNUNET_NO, GNUNET_NO);
-
   return len;
 }
+
 
 /**
  * Callback method used with libcurl
  * Method is called when libcurl needs to read data during sending
+ *
  * @param stream pointer where to write data
  * @param size size of an individual element
  * @param nmemb count of elements that can be written to the buffer
@@ -448,66 +447,45 @@ client_send_cb (void *stream, size_t size, size_t nmemb, void *cls)
 {
   struct Session *s = cls;
   struct Plugin *plugin = s->plugin;
+  struct HTTP_Message *msg = s->msg_head;
   size_t bytes_sent = 0;
   size_t len;
 
   if (GNUNET_YES != exist_session(plugin, s))
   {
     GNUNET_break (0);
-    return GNUNET_SYSERR;
+    return 0;
   }
-
-  struct HTTP_Message *msg = s->msg_head;
-
-  if (msg == NULL)
+  if (NULL == msg)
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                     "Client: %X Nothing to send! Suspending PUT handle!\n",
+                     "Client: %p Nothing to send! Suspending PUT handle!\n",
                      s->client_put);
     s->client_put_paused = GNUNET_YES;
     return CURL_READFUNC_PAUSE;
   }
-
-  GNUNET_assert (msg != NULL);
   /* data to send */
-  if (msg->pos < msg->size)
-  {
-    /* data fit in buffer */
-    if ((msg->size - msg->pos) <= (size * nmemb))
-    {
-      len = (msg->size - msg->pos);
-      memcpy (stream, &msg->buf[msg->pos], len);
-      msg->pos += len;
-      bytes_sent = len;
-    }
-    else
-    {
-      len = size * nmemb;
-      memcpy (stream, &msg->buf[msg->pos], len);
-      msg->pos += len;
-      bytes_sent = len;
-    }
-  }
-  /* no data to send */
-  else
-  {
-    GNUNET_assert (0);
-    bytes_sent = 0;
-  }
-
+  GNUNET_assert (msg->pos < msg->size);
+  /* calculate how much fits in buffer */
+  bytes_sent = GNUNET_MIN (msg->size - msg->pos,
+			   size * nmemb);
+  memcpy (stream, &msg->buf[msg->pos], len);
+  msg->pos += len;
+  bytes_sent = len;
   if (msg->pos == msg->size)
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                     "Client: %X Message with %u bytes sent, removing message from queue\n",
+                     "Client: %p Message with %u bytes sent, removing message from queue\n",
                      s->client_put, msg->size, msg->pos);
     /* Calling transmit continuation  */
+    GNUNET_CONTAINER_DLL_remove (s->msg_head, s->msg_tail, msg);
     if (NULL != msg->transmit_cont)
       msg->transmit_cont (msg->transmit_cont_cls, &s->target, GNUNET_OK);
-    GNUNET_CONTAINER_DLL_remove (s->msg_head, s->msg_tail, msg);
     GNUNET_free (msg);
   }
   return bytes_sent;
 }
+
 
 int
 client_connect (struct Session *s)
@@ -631,6 +609,7 @@ client_connect (struct Session *s)
   return res;
 }
 
+
 int
 client_start (struct Plugin *plugin)
 {
@@ -650,6 +629,7 @@ client_start (struct Plugin *plugin)
   }
   return res;
 }
+
 
 void
 client_stop (struct Plugin *plugin)

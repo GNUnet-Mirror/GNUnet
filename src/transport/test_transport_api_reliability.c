@@ -243,7 +243,7 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (0 != memcmp (cbuf, &hdr[1], s - sizeof (struct TestMessage)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Expected message %u with bits %u, but body did not match\n", n,
+                "Expected message %u with bits %u, but body did not match at position %u\n", n,
                 (unsigned char) n);
     if (die_task != GNUNET_SCHEDULER_NO_TASK)
       GNUNET_SCHEDULER_cancel (die_task);

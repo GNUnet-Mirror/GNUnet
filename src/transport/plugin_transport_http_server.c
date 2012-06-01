@@ -163,10 +163,8 @@ server_load_certificate (struct Plugin *plugin)
     GNUNET_free_non_null (plugin->cert);
     plugin->cert = NULL;
 
-#if VERBOSE_SERVER
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "No usable TLS certificate found, creating certificate\n");
-#endif
     errno = 0;
     cert_creation =
         GNUNET_OS_start_process (GNUNET_NO, NULL, NULL,
@@ -230,7 +228,6 @@ server_load_certificate (struct Plugin *plugin)
  * @param now GNUNET_YES to schedule execution immediately, GNUNET_NO to wait
  * until timeout
  */
-
 static void
 server_reschedule (struct Plugin *plugin, struct MHD_Daemon *server, int now)
 {
@@ -302,6 +299,7 @@ server_receive_mst_cb (void *cls, void *client,
   return GNUNET_OK;
 }
 
+
 /**
  * Callback called by MHD when it needs data to send
  * @param cls current session
@@ -314,44 +312,32 @@ static ssize_t
 server_send_callback (void *cls, uint64_t pos, char *buf, size_t max)
 {
   struct Session *s = cls;
+  ssize_t bytes_read = 0;
+  struct HTTP_Message *msg;
+
   GNUNET_assert (NULL != p);
   if (GNUNET_NO == exist_session(p, s))
     return 0;
-
-  struct HTTP_Message *msg;
-  int bytes_read = 0;
-
-  //static int c = 0;
   msg = s->msg_head;
-  if (msg != NULL)
+  if (NULL != msg)
   {
     /* sending */
-    if ((msg->size - msg->pos) <= max)
-    {
-      memcpy (buf, &msg->buf[msg->pos], (msg->size - msg->pos));
-      bytes_read = msg->size - msg->pos;
-      msg->pos += (msg->size - msg->pos);
-    }
-    else
-    {
-      memcpy (buf, &msg->buf[msg->pos], max);
-      msg->pos += max;
-      bytes_read = max;
-    }
+    bytes_read = GNUNET_MIN (msg->size - msg->pos,
+			     max);
+    memcpy (buf, &msg->buf[msg->pos], bytes_read);
+    msg->pos += bytes_read;
 
     /* removing message */
     if (msg->pos == msg->size)
     {
+      GNUNET_CONTAINER_DLL_remove (s->msg_head, s->msg_tail, msg);
       if (NULL != msg->transmit_cont)
         msg->transmit_cont (msg->transmit_cont_cls, &s->target, GNUNET_OK);
-      GNUNET_CONTAINER_DLL_remove (s->msg_head, s->msg_tail, msg);
       GNUNET_free (msg);
     }
   }
-
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, s->plugin->name,
-                   "Server: %X: sent %u bytes\n", s, bytes_read);
-
+                   "Server: %p: sent %u bytes\n", s, bytes_read);
   return bytes_read;
 }
 
@@ -585,7 +571,7 @@ found:
   int to = (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value / 1000);
 
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                   "Server: Setting timeout for %X to %u sec.\n", sc, to);
+                   "Server: Setting timeout for %p to %u sec.\n", sc, to);
   MHD_set_connection_option (mhd_connection, MHD_CONNECTION_OPTION_TIMEOUT, to);
 
   struct MHD_Daemon *d = NULL;
@@ -707,7 +693,7 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
       if ((s->next_receive.abs_value <= now.abs_value))
       {
         GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                         "Server: %X: PUT with %u bytes forwarded to MST\n", s,
+                         "Server: %p: PUT with %u bytes forwarded to MST\n", s,
                          *upload_data_size);
         if (s->msg_tk == NULL)
         {
@@ -727,7 +713,7 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
         {
           t = s->server_recv;
           GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                           "Server: Setting timeout for %X to %u sec.\n", t,
+                           "Server: Setting timeout for %p to %u sec.\n", t,
                            to);
           MHD_set_connection_option (t->mhd_conn, MHD_CONNECTION_OPTION_TIMEOUT,
                                      to);
@@ -736,7 +722,7 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
         {
           t = s->server_send;
           GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                           "Server: Setting timeout for %X to %u sec.\n", t,
+                           "Server: Setting timeout for %p to %u sec.\n", t,
                            to);
           MHD_set_connection_option (t->mhd_conn, MHD_CONNECTION_OPTION_TIMEOUT,
                                      to);
@@ -754,7 +740,7 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
       else
       {
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "Server: %X no inbound bandwidth available! Next read was delayed by %llu ms\n",
+                    "Server: %p no inbound bandwidth available! Next read was delayed by %llu ms\n",
                     s, now.abs_value - s->next_receive.abs_value);
       }
       return MHD_YES;
@@ -790,7 +776,7 @@ server_disconnect_cb (void *cls, struct MHD_Connection *connection,
   {
 
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                     "Server: %X peer `%s' GET on address `%s' disconnected\n",
+                     "Server: %p peer `%s' GET on address `%s' disconnected\n",
                      s->server_send, GNUNET_i2s (&s->target),
                      http_plugin_address_to_string (NULL, s->addr, s->addrlen));
     s->server_send = NULL;
@@ -807,7 +793,7 @@ server_disconnect_cb (void *cls, struct MHD_Connection *connection,
   if (sc->direction == _RECEIVE)
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                     "Server: %X peer `%s' PUT on address `%s' disconnected\n",
+                     "Server: %p peer `%s' PUT on address `%s' disconnected\n",
                      s->server_recv, GNUNET_i2s (&s->target),
                      http_plugin_address_to_string (NULL, s->addr, s->addrlen));
     s->server_recv = NULL;
