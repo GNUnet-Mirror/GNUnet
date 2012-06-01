@@ -371,6 +371,19 @@ do_read_remote (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
+static int
+add_handle_to_mhd (struct GNUNET_NETWORK_Handle *h)
+{
+  int fd;
+  struct sockaddr *addr;
+  socklen_t len;
+
+  fd = GNUNET_NETWORK_get_fd (h);
+  addr = GNUNET_NETWORK_get_addr (h);
+  len = GNUNET_NETWORK_get_addrlen (h);
+
+  return MHD_add_connection (httpd, fd, addr, len);
+}
 
 /**
  * Read data from incoming connection
@@ -500,6 +513,11 @@ do_read (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
           //GNUNET_free(s5r);
           return;
         }
+
+        add_handle_to_mhd ( s5r->sock );
+        //GNUNET_free ( s5r );
+        //FIXME complete socks resp!
+        return;
       }
     }
     else

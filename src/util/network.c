@@ -865,7 +865,29 @@ GNUNET_NETWORK_get_fd (struct GNUNET_NETWORK_Handle *desc)
   return desc->fd;
 }
 
+/**
+ * Return sockaddr for this network handle
+ *
+ * @param desc wrapper to process
+ * @return sockaddr
+ */
+struct sockaddr*
+GNUNET_NETWORK_get_addr (struct GNUNET_NETWORK_Handle *desc)
+{
+  return desc->addr;
+}
 
+/**
+ * Return sockaddr length for this network handle
+ *
+ * @param desc wrapper to process
+ * @return socklen_t for sockaddr
+ */
+socklen_t
+GNUNET_NETWORK_get_addrlen (struct GNUNET_NETWORK_Handle *desc)
+{
+  return desc->addrlen;
+}
 /**
  * Copy a native fd set
  *
