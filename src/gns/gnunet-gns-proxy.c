@@ -20,6 +20,7 @@
 
 #include "platform.h"
 #include <gnunet_util_lib.h>
+#include <microhttpd.h>
 #include "gns_proxy_proto.h"
 #include "gns.h"
 
@@ -56,9 +57,6 @@ is_tld(const char* name, const char* tld)
 
 struct Socks5Request
 {
-  struct Socks5Request *prev;
-  struct Socks5Request *next;
-
   struct GNUNET_NETWORK_Handle *sock;
   struct GNUNET_NETWORK_Handle *remote_sock;
 
@@ -75,17 +73,143 @@ struct Socks5Request
   unsigned int wbuf_len;
 };
 
-struct Socks5Connections
-{
-  struct Socks5Request *head;
-  struct Socks5Request *tail;
-};
-
-
 unsigned long port = GNUNET_GNS_PROXY_PORT;
 static struct GNUNET_NETWORK_Handle *lsock;
 GNUNET_SCHEDULER_TaskIdentifier ltask;
-static struct Socks5Connections s5conns;
+static struct MHD_Daemon *httpd;
+static GNUNET_SCHEDULER_TaskIdentifier httpd_task;
+
+/**
+ * Main MHD callback for handling requests.
+ *
+ * @param cls unused
+ * @param connection MHD connection handle
+ * @param method the HTTP method used ("GET", "PUT", etc.)
+ * @param version the HTTP version string (i.e. "HTTP/1.1")
+ * @param upload_data the data being uploaded (excluding HEADERS,
+ *        for a POST that fits into memory and that is encoded
+ *        with a supported encoding, the POST data will NOT be
+ *        given in upload_data and is instead available as
+ *        part of MHD_get_connection_values; very large POST
+ *        data *will* be made available incrementally in
+ *        upload_data)
+ * @param upload_data_size set initially to the size of the
+ *        upload_data provided; the method must update this
+ *        value to the number of bytes NOT processed;
+ * @param ptr pointer to location where we store the 'struct Request'
+ * @return MHD_YES if the connection was handled successfully,
+ *         MHD_NO if the socket must be closed due to a serious
+ *         error while handling the request
+ */
+static int
+create_response (void *cls,
+                 struct MHD_Connection *con,
+                 const char *url,
+                 const char *meth,
+                 const char *ver,
+                 const char *upload_data,
+                 size_t *upload_data_size,
+                 void **con_cls)
+{
+  static int dummy;
+  const char* page = "<html><head><title>gnoxy</title>"\
+                      "</head><body>gnoxy demo</body></html>";
+  struct MHD_Response *response;
+  int ret;
+  
+  if (0 != strcmp (meth, "GET"))
+    return MHD_NO;
+  if (&dummy != *con_cls)
+  {
+    *con_cls = &dummy;
+    return MHD_YES;
+  }
+
+  if (0 != *upload_data_size)
+    return MHD_NO;
+
+  *con_cls = NULL;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "url %s\n", url);
+
+  response = MHD_create_response_from_buffer (strlen (page),
+                                              (void*)page,
+                                              MHD_RESPMEM_PERSISTENT);
+  ret = MHD_queue_response (con,
+                            MHD_HTTP_OK,
+                            response);
+  MHD_destroy_response (response);
+  return ret;
+}
+
+/**
+ * Task run whenever HTTP server operations are pending.
+ *
+ * @param cls unused
+ * @param tc sched context
+ */
+static void
+do_httpd (void *cls,
+          const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+/**
+ * Schedule MHD
+ */
+static void
+run_httpd ()
+{
+  fd_set rs;
+  fd_set ws;
+  fd_set es;
+  struct GNUNET_NETWORK_FDSet *wrs;
+  struct GNUNET_NETWORK_FDSet *wws;
+  struct GNUNET_NETWORK_FDSet *wes;
+  int max;
+  int haveto;
+  unsigned MHD_LONG_LONG timeout;
+  struct GNUNET_TIME_Relative tv;
+
+  FD_ZERO (&rs);
+  FD_ZERO (&ws);
+  FD_ZERO (&es);
+  wrs = GNUNET_NETWORK_fdset_create ();
+  wes = GNUNET_NETWORK_fdset_create ();
+  wws = GNUNET_NETWORK_fdset_create ();
+  max = -1;
+  GNUNET_assert (MHD_YES == MHD_get_fdset (httpd, &rs, &ws, &es, &max));
+  haveto = MHD_get_timeout (httpd, &timeout);
+
+  if (haveto == MHD_YES)
+    tv.rel_value = (uint64_t) timeout;
+  else
+    tv = GNUNET_TIME_UNIT_FOREVER_REL;
+  GNUNET_NETWORK_fdset_copy_native (wrs, &rs, max + 1);
+  GNUNET_NETWORK_fdset_copy_native (wws, &ws, max + 1);
+  GNUNET_NETWORK_fdset_copy_native (wes, &es, max + 1);
+  httpd_task =
+    GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_HIGH,
+                                 tv, wrs, wws,
+                                 &do_httpd, NULL);
+  GNUNET_NETWORK_fdset_destroy (wrs);
+  GNUNET_NETWORK_fdset_destroy (wws);
+  GNUNET_NETWORK_fdset_destroy (wes);
+}
+
+/**
+ * Task run whenever HTTP server operations are pending.
+ *
+ * @param cls unused
+ * @param tc sched context
+ */
+static void
+do_httpd (void *cls,
+          const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  httpd_task = GNUNET_SCHEDULER_NO_TASK;
+  MHD_run (httpd);
+  run_httpd ();
+}
 
 /**
  * Read data from socket
@@ -355,6 +479,28 @@ do_read (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Requested connection is gnunet tld\n",
                   domain);
+
+      if (httpd == NULL)
+      {
+        
+
+        if (NULL == httpd)
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                      _("Failed to start HTTP server\n"));
+          s_resp->version = 0x05;
+          s_resp->reply = 0x01;
+          s5r->wtask = 
+            GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
+                                          s5r->sock,
+                                          &do_write, s5r);
+          //ERROR!
+          //TODO! close socket after the write! schedule task
+          //GNUNET_NETWORK_socket_close (s5r->sock);
+          //GNUNET_free(s5r);
+          return;
+        }
+      }
     }
     else
     {
@@ -575,6 +721,16 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Proxy listens on port %u\n",
               port);
+  
+  httpd = MHD_start_daemon (MHD_USE_DEBUG, 4444,
+                               NULL, NULL,
+                               &create_response, NULL,
+                               MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 128,
+                               MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 16,
+                               MHD_OPTION_NOTIFY_COMPLETED,
+                               NULL, NULL,
+                               MHD_OPTION_END);
+  run_httpd ();
 
 }
 

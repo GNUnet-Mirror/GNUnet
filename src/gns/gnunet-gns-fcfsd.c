@@ -470,8 +470,8 @@ lookup_result_processor (void *cls,
  *        upload_data provided; the method must update this
  *        value to the number of bytes NOT processed;
  * @param ptr pointer to location where we store the 'struct Request'
- * @return MHS_YES if the connection was handled successfully,
- *         MHS_NO if the socket must be closed due to a serios
+ * @return MHD_YES if the connection was handled successfully,
+ *         MHD_NO if the socket must be closed due to a serious
  *         error while handling the request
  */
 static int

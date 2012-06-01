@@ -206,7 +206,7 @@ gnunet_gns_DEPENDENCIES = \
 
 gnunet_gns_proxy_SOURCES = \
  gnunet-gns-proxy.c
-gnunet_gns_proxy_LDADD = \
+gnunet_gns_proxy_LDADD = -lmicrohttpd \
   $(top_builddir)/src/gns/libgnunetgns.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
