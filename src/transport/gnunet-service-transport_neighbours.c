@@ -2306,6 +2306,10 @@ master_task (void *cls,
   struct GNUNET_TIME_Relative delay;
 
   n->task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "master task runs for neighbour `%s' in state %d\n",
+	      GNUNET_i2s (&n->id),
+	      n->state);
   delay = GNUNET_TIME_absolute_get_remaining (n->timeout);  
   switch (n->state)
   {
