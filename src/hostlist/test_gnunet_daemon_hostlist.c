@@ -142,9 +142,6 @@ setup_peer (struct PeerContext *p, const char *cfgname)
   p->arm_proc =
       GNUNET_OS_start_process (GNUNET_YES, NULL, NULL, "gnunet-service-arm",
                                "gnunet-service-arm",
-#if VERBOSE
-                               "-L", "DEBUG",
-#endif
                                "-c", cfgname, NULL);
 #endif
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
@@ -213,9 +210,6 @@ check ()
 {
   char *const argv[] = { "test-gnunet-daemon-hostlist",
     "-c", "test_gnunet_daemon_hostlist_data.conf",
-#if VERBOSE
-    "-L", "DEBUG",
-#endif
     NULL
   };
   struct GNUNET_GETOPT_CommandLineOption options[] = {
@@ -239,11 +233,7 @@ main (int argc, char *argv[])
   GNUNET_DISK_directory_remove ("/tmp/test-gnunet-hostlist-peer-2");
   GNUNET_DISK_directory_remove ("/tmp/test-gnunet-hostlist");
   GNUNET_log_setup ("test-gnunet-daemon-hostlist",
-#if VERBOSE
-                    "DEBUG",
-#else
                     "WARNING",
-#endif
                     NULL);
   ret = check ();
   GNUNET_DISK_directory_remove ("/tmp/test-gnunet-hostlist-peer-1");
