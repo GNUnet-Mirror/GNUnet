@@ -187,6 +187,9 @@ run_httpd ()
   GNUNET_NETWORK_fdset_copy_native (wrs, &rs, max + 1);
   GNUNET_NETWORK_fdset_copy_native (wws, &ws, max + 1);
   GNUNET_NETWORK_fdset_copy_native (wes, &es, max + 1);
+  
+  if (httpd_task != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel (httpd_task);
   httpd_task =
     GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_HIGH,
                                  tv, wrs, wws,
@@ -493,32 +496,39 @@ do_read (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                   "Requested connection is gnunet tld\n",
                   domain);
 
-      if (httpd == NULL)
+      if (NULL == httpd)
       {
-        
-
-        if (NULL == httpd)
-        {
-          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                      _("Failed to start HTTP server\n"));
-          s_resp->version = 0x05;
-          s_resp->reply = 0x01;
-          s5r->wtask = 
-            GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
-                                          s5r->sock,
-                                          &do_write, s5r);
-          //ERROR!
-          //TODO! close socket after the write! schedule task
-          //GNUNET_NETWORK_socket_close (s5r->sock);
-          //GNUNET_free(s5r);
-          return;
-        }
-
-        add_handle_to_mhd ( s5r->sock );
-        //GNUNET_free ( s5r );
-        //FIXME complete socks resp!
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    _("Failed to start HTTP server\n"));
+        s_resp->version = 0x05;
+        s_resp->reply = 0x01;
+        s5r->wtask = 
+          GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
+                                        s5r->sock,
+                                        &do_write, s5r);
+        //ERROR!
+        //TODO! close socket after the write! schedule task
+        //GNUNET_NETWORK_socket_close (s5r->sock);
+        //GNUNET_free(s5r);
         return;
       }
+
+      if (MHD_YES == add_handle_to_mhd ( s5r->sock ))
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    "Sucessfully added client to MHD!\n");
+      s_resp->version = 0x05;
+      s_resp->reply = 0x00;
+      s_resp->reserved = 0x00;
+      s_resp->addr_type = 0x01;
+
+      s5r->wtask =
+        GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
+                                        s5r->sock,
+                                        &do_write, s5r);
+      run_httpd ();
+      //GNUNET_free ( s5r );
+      //FIXME complete socks resp!
+      return;
     }
     else
     {
