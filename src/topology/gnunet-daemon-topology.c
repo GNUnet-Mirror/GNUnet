@@ -398,7 +398,8 @@ attempt_connect (struct Peer *pos)
 /**
  * Try to connect to the specified peer.
  *
- * @param pos peer to connect to
+ * @param cls peer to connect to
+ * @param tc scheduler context
  */
 static void
 do_attempt_connect (void *cls,
