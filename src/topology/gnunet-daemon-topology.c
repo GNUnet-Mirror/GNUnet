@@ -34,6 +34,11 @@
 
 
 /**
+ * Minimum required delay between calls to GNUNET_TRANSPORT_try_connect.
+ */
+#define MAX_CONNECT_FREQUENCY_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 250)
+
+/**
  * For how long do we blacklist a peer after a failed connection
  * attempt?  This is the baseline factor which is then multiplied by
  * two to the power of the number of failed attempts.
@@ -122,6 +127,11 @@ struct Peer
   GNUNET_SCHEDULER_TaskIdentifier hello_delay_task;
 
   /**
+   * Task for issuing GNUNET_TRANSPORT_try_connect for this peer.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier attempt_connect_task;
+
+  /**
    * ID of task we use to clear peers from the greylist.
    */
   GNUNET_SCHEDULER_TaskIdentifier greylist_clean_task;
@@ -186,6 +196,11 @@ static struct GNUNET_STATISTICS_Handle *stats;
  * Blacklist (NULL if we have none).
  */
 static struct GNUNET_TRANSPORT_Blacklist *blacklist;
+
+/**
+ * When can we next ask transport to create a connection?
+ */
+static struct GNUNET_TIME_Absolute next_connect_attempt;
 
 /**
  * Task scheduled to try to add peers.
@@ -312,6 +327,8 @@ free_peer (void *cls, const GNUNET_HashCode * pid, void *value)
     GNUNET_CORE_notify_transmit_ready_cancel (pos->hello_req);
   if (pos->hello_delay_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (pos->hello_delay_task);
+  if (pos->attempt_connect_task != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel (pos->hello_delay_task);
   if (pos->greylist_clean_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (pos->greylist_clean_task);
   GNUNET_free_non_null (pos->hello);
@@ -379,6 +396,50 @@ attempt_connect (struct Peer *pos)
 
 
 /**
+ * Try to connect to the specified peer.
+ *
+ * @param pos peer to connect to
+ */
+static void
+do_attempt_connect (void *cls,
+		    const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct Peer *pos = cls;
+  struct GNUNET_TIME_Relative delay;
+
+  pos->attempt_connect_task = GNUNET_SCHEDULER_NO_TASK;
+  if (GNUNET_YES == pos->is_connected)
+    return;
+  delay = GNUNET_TIME_absolute_get_remaining (next_connect_attempt);
+  if (delay.rel_value > 0)
+  {
+    pos->attempt_connect_task = GNUNET_SCHEDULER_add_delayed (delay,
+							      &do_attempt_connect,
+							      pos);
+    return;
+  }
+  next_connect_attempt = GNUNET_TIME_relative_to_absolute (MAX_CONNECT_FREQUENCY_DELAY);
+  attempt_connect (pos);
+}
+
+
+/**
+ * Schedule a task to try to connect to the specified peer.
+ *
+ * @param pos peer to connect to
+ */
+static void
+schedule_attempt_connect (struct Peer *pos)
+{
+  if (GNUNET_SCHEDULER_NO_TASK != pos->attempt_connect_task)
+    return;
+  pos->attempt_connect_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining (next_connect_attempt),
+							    &do_attempt_connect,
+							    pos);
+}
+
+
+/**
  * Discard peer entries for greylisted peers
  * where the greylisting has expired.
  *
@@ -395,7 +456,7 @@ remove_from_greylist (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   rem = GNUNET_TIME_absolute_get_remaining (pos->greylisted_until);
   if (rem.rel_value == 0)
   {
-    attempt_connect (pos);
+    schedule_attempt_connect (pos);
   }
   else
   {
@@ -685,7 +746,7 @@ try_add_peers (void *cls, const GNUNET_HashCode * pid, void *value)
 {
   struct Peer *pos = value;
 
-  attempt_connect (pos);
+  schedule_attempt_connect (pos);
   return GNUNET_YES;
 }
 
@@ -704,6 +765,7 @@ add_peer_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GNUNET_CONTAINER_multihashmap_iterate (peers, &try_add_peers, NULL);
 }
+
 
 /**
  * Method called whenever a peer disconnects.
@@ -910,7 +972,7 @@ process_peer (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Considering connecting to peer `%s'\n",
               GNUNET_i2s (peer));
-  attempt_connect (pos);
+  schedule_attempt_connect (pos);
 }
 
 
