@@ -65,10 +65,12 @@ struct Socks5Request
   int state;
 
   GNUNET_SCHEDULER_TaskIdentifier rtask;
+  GNUNET_SCHEDULER_TaskIdentifier fwdrtask;
   GNUNET_SCHEDULER_TaskIdentifier wtask;
+  GNUNET_SCHEDULER_TaskIdentifier fwdwtask;
 
-  char rbuf[512];
-  char wbuf[512];
+  char rbuf[2048];
+  char wbuf[2048];
   unsigned int rbuf_len;
   unsigned int wbuf_len;
 };
@@ -84,6 +86,70 @@ unsigned long port = GNUNET_GNS_PROXY_PORT;
 static struct GNUNET_NETWORK_Handle *lsock;
 GNUNET_SCHEDULER_TaskIdentifier ltask;
 static struct Socks5Connections s5conns;
+
+/**
+ * Read data from socket
+ *
+ * @param cls the closure
+ * @param tc scheduler context
+ */
+static void
+do_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+/**
+ * Read from remote end
+ *
+ * @param cls closure
+ * @param tc scheduler context
+ */
+static void
+do_read_remote (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+/**
+ * Write data to remote socket
+ *
+ * @param cls the closure
+ * @param tc scheduler context
+ */
+static void
+do_write_remote (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct Socks5Request *s5r = cls;
+  unsigned int len;
+
+  s5r->fwdwtask = GNUNET_SCHEDULER_NO_TASK;
+
+  if ((NULL != tc->read_ready) &&
+      (GNUNET_NETWORK_fdset_isset (tc->write_ready, s5r->remote_sock)) &&
+      (len = GNUNET_NETWORK_socket_send (s5r->remote_sock, &s5r->rbuf,
+                                         s5r->rbuf_len)))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Successfully sent %d bytes to remote socket\n",
+                len);
+  }
+  else
+  {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "write remote");
+    //Really!?!?!?
+    if (s5r->rtask != GNUNET_SCHEDULER_NO_TASK)
+      GNUNET_SCHEDULER_cancel (s5r->rtask);
+    if (s5r->wtask != GNUNET_SCHEDULER_NO_TASK)
+      GNUNET_SCHEDULER_cancel (s5r->wtask);
+    if (s5r->fwdrtask != GNUNET_SCHEDULER_NO_TASK)
+      GNUNET_SCHEDULER_cancel (s5r->fwdrtask);
+    GNUNET_NETWORK_socket_close (s5r->remote_sock);
+    GNUNET_NETWORK_socket_close (s5r->sock);
+    GNUNET_free(s5r);
+    return;
+  }
+
+  s5r->rtask =
+    GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
+                                   s5r->sock,
+                                   &do_read, s5r);
+}
+
 
 /**
  * Write data to socket
@@ -110,11 +176,80 @@ do_write (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   else
   {
+    
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "write");
+    //Really!?!?!?
+    if (s5r->rtask != GNUNET_SCHEDULER_NO_TASK)
+      GNUNET_SCHEDULER_cancel (s5r->rtask);
+    if (s5r->fwdwtask != GNUNET_SCHEDULER_NO_TASK)
+      GNUNET_SCHEDULER_cancel (s5r->fwdwtask);
+    if (s5r->fwdrtask != GNUNET_SCHEDULER_NO_TASK)
+      GNUNET_SCHEDULER_cancel (s5r->fwdrtask);
+    GNUNET_NETWORK_socket_close (s5r->remote_sock);
     GNUNET_NETWORK_socket_close (s5r->sock);
     GNUNET_free(s5r);
     return;
   }
+
+  if (s5r->state == SOCKS5_DATA_TRANSFER)
+    s5r->fwdrtask =
+      GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
+                                     s5r->remote_sock,
+                                     &do_read_remote, s5r);
 }
+
+/**
+ * Read from remote end
+ *
+ * @param cls closure
+ * @param tc scheduler context
+ */
+static void
+do_read_remote (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct Socks5Request *s5r = cls;
+  
+  s5r->fwdrtask = GNUNET_SCHEDULER_NO_TASK;
+
+
+  GNUNET_assert (NULL != tc->write_ready);
+  GNUNET_assert (GNUNET_NETWORK_fdset_isset (tc->read_ready, s5r->remote_sock));
+  
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Read reason %d\n",
+              tc->reason);
+
+  if ((NULL != tc->write_ready) &&
+      (GNUNET_NETWORK_fdset_isset (tc->read_ready, s5r->remote_sock)) &&
+      (s5r->wbuf_len = GNUNET_NETWORK_socket_recv (s5r->remote_sock, &s5r->wbuf,
+                                         sizeof (s5r->wbuf))))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Successfully read %d bytes from remote socket\n",
+                s5r->wbuf_len);
+  }
+  else
+  {
+    if (s5r->wbuf_len == 0)
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "0 bytes received from remote... graceful shutdown!\n");
+    if (s5r->fwdwtask != GNUNET_SCHEDULER_NO_TASK)
+      GNUNET_SCHEDULER_cancel (s5r->fwdwtask);
+    s5r->fwdwtask = GNUNET_SCHEDULER_NO_TASK;
+    
+    GNUNET_NETWORK_socket_close (s5r->remote_sock);
+    s5r->remote_sock = NULL;
+
+    return;
+  }
+  
+  s5r->wtask = GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
+                                               s5r->sock,
+                                               &do_write, s5r);
+  
+}
+
+
 
 /**
  * Read data from incoming connection
@@ -126,7 +261,6 @@ static void
 do_read (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct Socks5Request *s5r = cls;
-  unsigned int len;
   struct socks5_client_hello *c_hello;
   struct socks5_server_hello *s_hello;
   struct socks5_client_request *c_req;
@@ -144,16 +278,24 @@ do_read (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if ((NULL != tc->write_ready) &&
       (GNUNET_NETWORK_fdset_isset (tc->read_ready, s5r->sock)) &&
-      (len = GNUNET_NETWORK_socket_recv (s5r->sock, &s5r->rbuf,
+      (s5r->rbuf_len = GNUNET_NETWORK_socket_recv (s5r->sock, &s5r->rbuf,
                                          sizeof (s5r->rbuf))))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Successfully read %d bytes from socket\n",
-                len);
+                s5r->rbuf_len);
   }
   else
   {
-    //ERROR!
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "read");
+    //Really!?!?!?
+    if (s5r->fwdrtask != GNUNET_SCHEDULER_NO_TASK)
+      GNUNET_SCHEDULER_cancel (s5r->fwdrtask);
+    if (s5r->wtask != GNUNET_SCHEDULER_NO_TASK)
+      GNUNET_SCHEDULER_cancel (s5r->wtask);
+    if (s5r->fwdwtask != GNUNET_SCHEDULER_NO_TASK)
+      GNUNET_SCHEDULER_cancel (s5r->fwdwtask);
+    GNUNET_NETWORK_socket_close (s5r->remote_sock);
     GNUNET_NETWORK_socket_close (s5r->sock);
     GNUNET_free(s5r);
     return;
@@ -240,6 +382,9 @@ do_read (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       remote_ip = r_sin_addr->s_addr;
       memset(&remote_addr, 0, sizeof(remote_addr));
       remote_addr.sin_family = AF_INET;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+      remote_addr.sin_len = sizeof (remote_addr);
+#endif
       remote_addr.sin_addr.s_addr = remote_ip;
       remote_addr.sin_port = req_port;
       
@@ -247,13 +392,13 @@ do_read (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                   "target server: %s:%u\n", inet_ntoa(remote_addr.sin_addr),
                   ntohs(req_port));
 
-      GNUNET_assert ( s5r->remote_sock != NULL );
-
-      if (GNUNET_OK != 
+      if ((GNUNET_OK !=
           GNUNET_NETWORK_socket_connect ( s5r->remote_sock,
-                                          (struct sockaddr*)&remote_addr,
-                                          sizeof (struct sockaddr)))
+                                          (const struct sockaddr*)&remote_addr,
+                                          sizeof (remote_addr)))
+          && (errno != EINPROGRESS))
       {
+        GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "connect");
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                     "socket request error...\n");
         s_resp->version = 0x05;
@@ -280,8 +425,54 @@ do_read (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
                                         s5r->sock,
                                         &do_write, s5r);
+      s5r->rtask =
+        GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
+                                       s5r->sock,
+                                       &do_read, s5r);
 
     }
+    return;
+  }
+
+  if (s5r->state == SOCKS5_DATA_TRANSFER)
+  {
+    if ((s5r->remote_sock == NULL) || (s5r->rbuf_len == 0))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Closing connection to client\n");
+      if (s5r->rtask != GNUNET_SCHEDULER_NO_TASK)
+        GNUNET_SCHEDULER_cancel (s5r->rtask);
+      if (s5r->fwdwtask != GNUNET_SCHEDULER_NO_TASK)
+        GNUNET_SCHEDULER_cancel (s5r->fwdwtask);
+      if (s5r->fwdrtask != GNUNET_SCHEDULER_NO_TASK)
+        GNUNET_SCHEDULER_cancel (s5r->fwdrtask);
+      if (s5r->fwdrtask != GNUNET_SCHEDULER_NO_TASK)
+        GNUNET_SCHEDULER_cancel (s5r->fwdrtask);
+      
+      if (s5r->remote_sock != NULL)
+        GNUNET_NETWORK_socket_close (s5r->remote_sock);
+      GNUNET_NETWORK_socket_close (s5r->sock);
+      GNUNET_free(s5r);
+      return;
+    }
+
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "forwarding %d bytes from client\n", s5r->rbuf_len);
+
+    s5r->fwdwtask =
+      GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
+                                      s5r->remote_sock,
+                                      &do_write_remote, s5r);
+
+    if (s5r->fwdrtask == GNUNET_SCHEDULER_NO_TASK)
+    {
+      s5r->fwdrtask =
+        GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
+                                       s5r->remote_sock,
+                                       &do_read_remote, s5r);
+    }
+
+
   }
 
   //GNUNET_CONTAINER_DLL_remove (s5conns.head, s5conns.tail, s5r);
@@ -322,10 +513,13 @@ do_accept (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   s5r = GNUNET_malloc (sizeof (struct Socks5Request));
   s5r->sock = s;
   s5r->state = SOCKS5_INIT;
+  s5r->wtask = GNUNET_SCHEDULER_NO_TASK;
+  s5r->fwdwtask = GNUNET_SCHEDULER_NO_TASK;
+  s5r->fwdrtask = GNUNET_SCHEDULER_NO_TASK;
   s5r->rtask = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
                                               s5r->sock,
                                               &do_read, s5r);
-  GNUNET_CONTAINER_DLL_insert (s5conns.head, s5conns.tail, s5r);
+  //GNUNET_CONTAINER_DLL_insert (s5conns.head, s5conns.tail, s5r);
 }
 
 /**
