@@ -2306,11 +2306,12 @@ master_task (void *cls,
   struct GNUNET_TIME_Relative delay;
 
   n->task = GNUNET_SCHEDULER_NO_TASK;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "master task runs for neighbour `%s' in state %d\n",
-	      GNUNET_i2s (&n->id),
-	      n->state);
   delay = GNUNET_TIME_absolute_get_remaining (n->timeout);  
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "master task runs for neighbour `%s' in state %d with timeout in %llu ms\n",
+	      GNUNET_i2s (&n->id),
+	      n->state,
+	      (unsigned long long) delay.rel_value);
   switch (n->state)
   {
   case S_NOT_CONNECTED:
@@ -2465,8 +2466,16 @@ master_task (void *cls,
     GNUNET_break (0);
     break;  
   }
-  delay = GNUNET_TIME_relative_min (GNUNET_TIME_absolute_get_remaining (n->keep_alive_time),
-				    delay);
+  if ( (S_CONNECTED_SWITCHING_CONNECT_SENT == n->state) ||
+       (S_CONNECTED_SWITCHING_BLACKLIST == n->state) ||
+       (S_CONNECTED == n->state) )    
+  {
+    /* if we are *now* in one of these three states, we're sending
+       keep alive messages, so we need to consider the keepalive
+       delay, not just the connection timeout */
+    delay = GNUNET_TIME_relative_min (GNUNET_TIME_absolute_get_remaining (n->keep_alive_time),
+				      delay);
+  }
   if (GNUNET_SCHEDULER_NO_TASK == n->task)
     n->task = GNUNET_SCHEDULER_add_delayed (delay,
 					    &master_task,
