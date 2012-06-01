@@ -121,7 +121,7 @@ do_write_remote (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if ((NULL != tc->read_ready) &&
       (GNUNET_NETWORK_fdset_isset (tc->write_ready, s5r->remote_sock)) &&
-      (len = GNUNET_NETWORK_socket_send (s5r->remote_sock, &s5r->rbuf,
+      (len = GNUNET_NETWORK_socket_send (s5r->remote_sock, s5r->rbuf,
                                          s5r->rbuf_len)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -161,14 +161,14 @@ static void
 do_write (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct Socks5Request *s5r = cls;
-  unsigned int len = s5r->wbuf_len;
+  unsigned int len;
 
   s5r->wtask = GNUNET_SCHEDULER_NO_TASK;
 
   if ((NULL != tc->read_ready) &&
       (GNUNET_NETWORK_fdset_isset (tc->write_ready, s5r->sock)) &&
-      (len = GNUNET_NETWORK_socket_send (s5r->sock, &s5r->wbuf,
-                                         len)))
+      (len = GNUNET_NETWORK_socket_send (s5r->sock, s5r->wbuf,
+                                         s5r->wbuf_len)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Successfully sent %d bytes to socket\n",
@@ -191,7 +191,8 @@ do_write (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
   }
 
-  if (s5r->state == SOCKS5_DATA_TRANSFER)
+  if ((s5r->state == SOCKS5_DATA_TRANSFER) &&
+      (s5r->fwdrtask == GNUNET_SCHEDULER_NO_TASK))
     s5r->fwdrtask =
       GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
                                      s5r->remote_sock,
@@ -212,16 +213,9 @@ do_read_remote (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   s5r->fwdrtask = GNUNET_SCHEDULER_NO_TASK;
 
 
-  GNUNET_assert (NULL != tc->write_ready);
-  GNUNET_assert (GNUNET_NETWORK_fdset_isset (tc->read_ready, s5r->remote_sock));
-  
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Read reason %d\n",
-              tc->reason);
-
   if ((NULL != tc->write_ready) &&
       (GNUNET_NETWORK_fdset_isset (tc->read_ready, s5r->remote_sock)) &&
-      (s5r->wbuf_len = GNUNET_NETWORK_socket_recv (s5r->remote_sock, &s5r->wbuf,
+      (s5r->wbuf_len = GNUNET_NETWORK_socket_recv (s5r->remote_sock, s5r->wbuf,
                                          sizeof (s5r->wbuf))))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -235,10 +229,13 @@ do_read_remote (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                   "0 bytes received from remote... graceful shutdown!\n");
     if (s5r->fwdwtask != GNUNET_SCHEDULER_NO_TASK)
       GNUNET_SCHEDULER_cancel (s5r->fwdwtask);
-    s5r->fwdwtask = GNUNET_SCHEDULER_NO_TASK;
+    if (s5r->rtask != GNUNET_SCHEDULER_NO_TASK)
+      GNUNET_SCHEDULER_cancel (s5r->rtask);
     
     GNUNET_NETWORK_socket_close (s5r->remote_sock);
     s5r->remote_sock = NULL;
+    GNUNET_NETWORK_socket_close (s5r->sock);
+    GNUNET_free(s5r);
 
     return;
   }
@@ -278,7 +275,7 @@ do_read (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if ((NULL != tc->write_ready) &&
       (GNUNET_NETWORK_fdset_isset (tc->read_ready, s5r->sock)) &&
-      (s5r->rbuf_len = GNUNET_NETWORK_socket_recv (s5r->sock, &s5r->rbuf,
+      (s5r->rbuf_len = GNUNET_NETWORK_socket_recv (s5r->sock, s5r->rbuf,
                                          sizeof (s5r->rbuf))))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -287,8 +284,11 @@ do_read (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   else
   {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "read");
-    //Really!?!?!?
+    if (s5r->rbuf_len != 0)
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "read");
+    else
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "client disco!\n");
+
     if (s5r->fwdrtask != GNUNET_SCHEDULER_NO_TASK)
       GNUNET_SCHEDULER_cancel (s5r->fwdrtask);
     if (s5r->wtask != GNUNET_SCHEDULER_NO_TASK)
@@ -334,7 +334,8 @@ do_read (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                 "Processing SOCKS5 request\n");
     c_req = (struct socks5_client_request*)&s5r->rbuf;
     s_resp = (struct socks5_server_response*)&s5r->wbuf;
-    s5r->wbuf_len = sizeof (struct socks5_server_response);
+    //Only 10byte for ipv4 response!
+    s5r->wbuf_len = 10;//sizeof (struct socks5_server_response);
 
     GNUNET_assert (c_req->addr_type == 3);
 
