@@ -147,7 +147,7 @@ int
 client_send (struct Session *s, struct HTTP_Message *msg)
 {
   GNUNET_assert (s != NULL);
-  GNUNET_CONTAINER_DLL_insert (s->msg_head, s->msg_tail, msg);
+  GNUNET_CONTAINER_DLL_insert_tail (s->msg_head, s->msg_tail, msg);
 
   if (GNUNET_YES != exist_session(p, s))
   {
