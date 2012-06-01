@@ -1360,16 +1360,6 @@ GNUNET_SERVER_client_disconnect (struct GNUNET_SERVER_Client *client)
     GNUNET_CONTAINER_DLL_remove (server->clients_head,
 				 server->clients_tail,
 				 client);
-    if (GNUNET_SCHEDULER_NO_TASK != client->restart_task)
-    {
-      GNUNET_SCHEDULER_cancel (client->restart_task);
-      client->restart_task = GNUNET_SCHEDULER_NO_TASK;
-    }
-    if (GNUNET_SCHEDULER_NO_TASK != client->warn_task)
-    {
-      GNUNET_SCHEDULER_cancel (client->warn_task);
-      client->warn_task = GNUNET_SCHEDULER_NO_TASK;
-    }
     if (NULL != server->mst_destroy)
       server->mst_destroy (server->mst_cls, client->mst);
     else
