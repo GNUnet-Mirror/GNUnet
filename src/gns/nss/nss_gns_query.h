@@ -1,5 +1,9 @@
-#ifndef fooqueryhfoo
-#define fooqueryhfoo
+#ifndef NSS_GNS_QUERY_H
+#define NSS_GNS_QUERY_H
+
+/**
+ * Parts taken from nss-mdns. Original license statement follows
+ */
 
 /* $Id$ */
 
@@ -46,6 +50,15 @@ struct userdata {
   } data;
 };
 
+/**
+ * Wrapper function that uses gnunet-gns cli tool to resolve
+ * an IPv4/6 address.
+ *
+ * @param af address family
+ * @param name the name to resolve
+ * @param u the userdata (result struct)
+ * @return -1 on error else 0
+ */
 int gns_resolve_name(int af,
                const char *name,
                struct userdata *userdata);

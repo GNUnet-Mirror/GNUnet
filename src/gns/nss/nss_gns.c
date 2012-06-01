@@ -34,11 +34,20 @@
 
 #include <arpa/inet.h>
 
+/** macro to align idx to 32bit boundary */
 #define ALIGN(idx) do { \
   if (idx % sizeof(void*)) \
     idx += (sizeof(void*) - idx % sizeof(void*)); /* Align on 32 bit boundary */ \
 } while(0)
 
+
+/**
+ * function to check if name ends with a specific suffix
+ *
+ * @param name the name to check
+ * @param suffix the suffix to check for
+ * @return 1 if true
+ */
 static int ends_with(const char *name, const char* suffix) {
     size_t ln, ls;
     assert(name);
@@ -50,10 +59,29 @@ static int ends_with(const char *name, const char* suffix) {
     return strcasecmp(name+ln-ls, suffix) == 0;
 }
 
+
+/**
+ * Check if name is inside .gnunet or .zkey TLD
+ *
+ * @param name name to check
+ * @return 1 if true
+ */
 static int verify_name_allowed(const char *name) {
     return ends_with(name, ".gnunet") || ends_with(name, ".zkey"); 
 }
 
+/**
+ * The gethostbyname hook executed by nsswitch
+ *
+ * @param name the name to resolve
+ * @param af the address family to resolve
+ * @param result the result hostent
+ * @param buffer the result buffer
+ * @param buflen length of the buffer
+ * @param errnop idk
+ * @param h_errnop idk
+ * @return a nss_status code
+ */
 enum nss_status _nss_gns_gethostbyname2_r(
     const char *name,
     int af,
@@ -166,6 +194,17 @@ finish:
     return status;
 }
 
+/**
+ * The gethostbyname hook executed by nsswitch
+ *
+ * @param name the name to resolve
+ * @param result the result hostent
+ * @param buffer the result buffer
+ * @param buflen length of the buffer
+ * @param errnop idk
+ * @param h_errnop idk
+ * @return a nss_status code
+ */
 enum nss_status _nss_gns_gethostbyname_r (
     const char *name,
     struct hostent *result,
@@ -184,6 +223,20 @@ enum nss_status _nss_gns_gethostbyname_r (
         h_errnop);
 }
 
+/**
+ * The gethostbyaddr hook executed by nsswitch
+ * We can't do this so we always return NSS_STATUS_UNAVAIL
+ *
+ * @param addr the address to resolve
+ * @param len the length of the address
+ * @param af the address family of the address
+ * @param result the result hostent
+ * @param buffer the result buffer
+ * @param buflen length of the buffer
+ * @param errnop idk
+ * @param h_errnop idk
+ * @return NSS_STATUS_UNAVAIL
+ */
 enum nss_status _nss_gns_gethostbyaddr_r(
     const void* addr,
     int len,

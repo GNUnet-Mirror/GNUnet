@@ -4,6 +4,16 @@
 #include "nss_gns_query.h"
 #include <arpa/inet.h>
 
+
+/**
+ * Wrapper function that uses gnunet-gns cli tool to resolve
+ * an IPv4/6 address.
+ *
+ * @param af address family
+ * @param name the name to resolve
+ * @param u the userdata (result struct)
+ * @return -1 on error else 0
+ */
 int gns_resolve_name(int af, const char *name, struct userdata *u)
 {
   FILE *p;
