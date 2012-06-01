@@ -1083,7 +1083,8 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Address validated for peer `%s' with plugin `%s': `%s'\n",
-              GNUNET_i2s (sender), tname, GST_plugins_a2s (&address));
+
+              GNUNET_i2s (sender), tname, GST_plugins_a2s (ve->address));
   /* validity achieved, remember it! */
   ve->expecting_pong = GNUNET_NO;
   ve->valid_until = GNUNET_TIME_relative_to_absolute (HELLO_ADDRESS_EXPIRATION);
