@@ -817,6 +817,7 @@ warn_no_receive_done (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_SERVER_Client *client = cls;
 
+  GNUNET_break (0 != client->warn_type); /* type should never be 0 here, as we don't use 0 */
   client->warn_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
                                     &warn_no_receive_done, client);
@@ -903,6 +904,7 @@ GNUNET_SERVER_inject (struct GNUNET_SERVER_Handle *server,
         {
           if (0 == sender->suspended)
           {
+	    GNUNET_break (0 != type); /* type should never be 0 here, as we don't use 0 */
             sender->warn_start = GNUNET_TIME_absolute_get ();
             sender->warn_task =
                 GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
@@ -1396,6 +1398,7 @@ GNUNET_SERVER_client_disconnect (struct GNUNET_SERVER_Client *client)
     GNUNET_SERVER_notify_transmit_ready_cancel (&client->th);
   (void) GNUNET_SCHEDULER_add_now (&destroy_connection,
 				   client->connection);
+  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == client->warn_task);
   GNUNET_free (client);
   /* we might be in soft-shutdown, test if we're done */
   if (NULL != server)
