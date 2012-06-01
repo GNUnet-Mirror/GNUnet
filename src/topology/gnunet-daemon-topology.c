@@ -328,7 +328,7 @@ free_peer (void *cls, const GNUNET_HashCode * pid, void *value)
   if (pos->hello_delay_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (pos->hello_delay_task);
   if (pos->attempt_connect_task != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel (pos->hello_delay_task);
+    GNUNET_SCHEDULER_cancel (pos->attempt_connect_task);
   if (pos->greylist_clean_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (pos->greylist_clean_task);
   GNUNET_free_non_null (pos->hello);
