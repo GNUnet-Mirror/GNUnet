@@ -756,7 +756,11 @@ unix_plugin_send (void *cls,
   if (GNUNET_OK != GNUNET_CONTAINER_multihashmap_contains_value(plugin->session_map,
       &session->target.hashPubKey, session))
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Invalid session for peer `%s' `%s'\n",
+                GNUNET_i2s (&session->target),
+                (char *) session->addr);
     GNUNET_break (0);
+
     return GNUNET_SYSERR;
   }
 
