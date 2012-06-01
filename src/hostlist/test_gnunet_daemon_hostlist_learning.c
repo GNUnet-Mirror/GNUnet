@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     (C) 2009, 2010, 2011 Christian Grothoff (and other contributing authors)
+     (C) 2009, 2010, 2011, 2012 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -18,7 +18,7 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file hostlist/test_gnunet_daemon_hostlist.c
+ * @file hostlist/test_gnunet_daemon_hostlist_learning.c
  * @brief test for gnunet_daemon_hostslist.c
  * @author Christian Grothoff
  */
@@ -29,8 +29,6 @@
 #include "gnunet_transport_service.h"
 #include "gnunet_resolver_service.h"
 #include "gnunet_statistics_service.h"
-
-#define VERBOSE GNUNET_NO
 
 #define START_ARM GNUNET_YES
 
@@ -396,9 +394,6 @@ setup_learn_peer (struct PeerContext *p, const char *cfgname)
   p->arm_proc =
     GNUNET_OS_start_process (GNUNET_YES, NULL, NULL, "gnunet-service-arm",
                                "gnunet-service-arm",
-#if VERBOSE
-                               "-L", "DEBUG",
-#endif
                                "-c", cfgname, NULL);
 #endif
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
@@ -432,9 +427,6 @@ setup_adv_peer (struct PeerContext *p, const char *cfgname)
   p->arm_proc =
     GNUNET_OS_start_process (GNUNET_YES, NULL, NULL, "gnunet-service-arm",
                                "gnunet-service-arm",
-#if VERBOSE
-                               "-L", "DEBUG",
-#endif
                                "-c", cfgname, NULL);
 #endif
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
@@ -473,9 +465,6 @@ check ()
   char *const argv[] = {
     "test-gnunet-daemon-hostlist-learning",
     "-c", "learning_data.conf",
-#if VERBOSE
-    "-L", "DEBUG",
-#endif
     NULL
   };
   struct GNUNET_GETOPT_CommandLineOption options[] = {
@@ -529,11 +518,7 @@ main (int argc, char *argv[])
   GNUNET_DISK_directory_remove ("/tmp/test-gnunet-hostlist-peer-1");
   GNUNET_DISK_directory_remove ("/tmp/test-gnunet-hostlist-peer-2");
   GNUNET_log_setup ("test-gnunet-daemon-hostlist",
-#if VERBOSE
-                    "DEBUG",
-#else
                     "WARNING",
-#endif
                     NULL);
 #if !WINDOWS
   system ("gnunet-peerinfo -s -c test_learning_adv_peer.conf > /dev/null");
