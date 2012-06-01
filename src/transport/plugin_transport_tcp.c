@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010 Christian Grothoff (and other contributing authors)
+     (C) 2002--2012 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -339,7 +339,10 @@ struct Plugin
    */
   struct GNUNET_NAT_Handle *nat;
 
-  struct GNUNET_CONTAINER_MultiHashMap * sessionmap;
+  /**
+   * Map from peer identities to sessions for the given peer.
+   */
+  struct GNUNET_CONTAINER_MultiHashMap *sessionmap;
 
   /**
    * Handle to the network service.
@@ -407,11 +410,13 @@ struct Plugin
 static void
 start_session_timeout (struct Session *s);
 
+
 /**
  * Increment session timeout due to activity
  */
 static void
 reschedule_session_timeout (struct Session *s);
+
 
 /**
  * Cancel timeout
@@ -424,11 +429,14 @@ stop_session_timeout (struct Session *s);
 static const char *
 tcp_address_to_string (void *cls, const void *addr, size_t addrlen);
 
+
 static unsigned int sessions;
 
-static void inc_sessions (struct Plugin *plugin, struct Session *session, int line)
+
+static void 
+inc_sessions (struct Plugin *plugin, struct Session *session, int line)
 {
-  sessions ++;
+  sessions++;
   unsigned int size = GNUNET_CONTAINER_multihashmap_size(plugin->sessionmap);
   if (sessions != size)
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Inconsistent sessions %u <-> session map size: %u\n",
@@ -441,11 +449,13 @@ static void inc_sessions (struct Plugin *plugin, struct Session *session, int li
       tcp_address_to_string (NULL, session->addr, session->addrlen));
 }
 
-static void dec_sessions (struct Plugin *plugin, struct Session *session, int line)
+
+static void 
+dec_sessions (struct Plugin *plugin, struct Session *session, int line)
 {
   GNUNET_assert (sessions > 0);
   unsigned int size = GNUNET_CONTAINER_multihashmap_size(plugin->sessionmap);
-  sessions --;
+  sessions--;
   if (sessions != size)
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Inconsistent sessions %u <-> session map size: %u\n",
       sessions, size);
@@ -560,24 +570,23 @@ tcp_address_to_string (void *cls, const void *addr, size_t addrlen)
   int af;
   uint16_t port;
 
-  if (addrlen == sizeof (struct IPv6TcpAddress))
+  switch (addrlen)
   {
+  case sizeof (struct IPv6TcpAddress):
     t6 = addr;
     af = AF_INET6;
     port = ntohs (t6->t6_port);
     memcpy (&a6, &t6->ipv6_addr, sizeof (a6));
     sb = &a6;
-  }
-  else if (addrlen == sizeof (struct IPv4TcpAddress))
-  {
+    break;
+  case sizeof (struct IPv4TcpAddress): 
     t4 = addr;
     af = AF_INET;
     port = ntohs (t4->t4_port);
     memcpy (&a4, &t4->ipv4_addr, sizeof (a4));
     sb = &a4;
-  }
-  else
-  {
+    break;
+  default:
     LOG (GNUNET_ERROR_TYPE_ERROR, 
 	 _("Unexpected address length: %u bytes\n"),
 	 (unsigned int) addrlen);
@@ -618,41 +627,36 @@ tcp_string_to_address (void *cls, const char *addr, uint16_t addrlen,
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-
   if ('\0' != addr[addrlen - 1])
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-
   if (strlen (addr) != addrlen - 1)
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-
-  int ret = GNUNET_STRINGS_to_address_ip (addr, strlen (addr),
-    &socket_address);
-
-  if (ret != GNUNET_OK)
+  if (GNUNET_OK !=
+      GNUNET_STRINGS_to_address_ip (addr, strlen (addr),
+				    &socket_address))
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-
-  if (socket_address.ss_family == AF_INET)
+  switch (socket_address.ss_family)
   {
+  case AF_INET:
     struct IPv4TcpAddress *t4;
     struct sockaddr_in *in4 = (struct sockaddr_in *) &socket_address;
+
     t4 = GNUNET_malloc (sizeof (struct IPv4TcpAddress));
     t4->ipv4_addr = in4->sin_addr.s_addr;
     t4->t4_port = in4->sin_port;
     *buf = t4;
     *added = sizeof (struct IPv4TcpAddress);
     return GNUNET_OK;
-  }
-  else if (socket_address.ss_family == AF_INET6)
-  {
+  case AF_INET6:  
     struct IPv6TcpAddress *t6;
     struct sockaddr_in6 *in6 = (struct sockaddr_in6 *) &socket_address;
     t6 = GNUNET_malloc (sizeof (struct IPv6TcpAddress));
@@ -661,8 +665,9 @@ tcp_string_to_address (void *cls, const char *addr, uint16_t addrlen,
     *buf = t6;
     *added = sizeof (struct IPv6TcpAddress);
     return GNUNET_OK;
+  default:
+    return GNUNET_SYSERR;
   }
-  return GNUNET_SYSERR;
 }
 
 
@@ -675,8 +680,8 @@ struct SessionClientCtx
 
 static int 
 session_lookup_by_client_it (void *cls,
-               const GNUNET_HashCode * key,
-               void *value)
+			     const GNUNET_HashCode * key,
+			     void *value)
 {
   struct SessionClientCtx *sc_ctx = cls;
   struct Session *s = value;
@@ -699,7 +704,7 @@ session_lookup_by_client_it (void *cls,
  */
 static struct Session *
 lookup_session_by_client (struct Plugin *plugin,
-                        const struct GNUNET_SERVER_Client *client)
+			  const struct GNUNET_SERVER_Client *client)
 {
   struct SessionClientCtx sc_ctx;
 
@@ -715,7 +720,7 @@ lookup_session_by_client (struct Plugin *plugin,
  *
  * @param plugin the plugin
  * @param target peer to connect to
- * @param client client to use
+ * @param client client to use, reference counter must have already been increased
  * @param is_nat this a NAT session, we should wait for a client to
  *               connect to us from an address, then assign that to
  *               the session
@@ -729,10 +734,10 @@ create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
   struct PendingMessage *pm;
   struct WelcomeMessage welcome;
 
-  if (is_nat != GNUNET_YES)
-    GNUNET_assert (client != NULL);
+  if (GNUNET_YES != is_nat)
+    GNUNET_assert (NULL != client);
   else
-    GNUNET_assert (client == NULL);
+    GNUNET_assert (NULL == client);
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, 
        "Creating new session for peer `%4s'\n",
@@ -759,7 +764,7 @@ create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
                             pm->message_size, GNUNET_NO);
   GNUNET_CONTAINER_DLL_insert (ret->pending_messages_head,
                                ret->pending_messages_tail, pm);
-  if (is_nat != GNUNET_YES)
+  if (GNUNET_YES != is_nat)
   {
     GNUNET_STATISTICS_update (plugin->env->stats,
                               gettext_noop ("# TCP sessions active"), 1,
@@ -805,10 +810,10 @@ do_transmit (void *cls, size_t size, void *buf)
   char *cbuf;
   size_t ret;
 
-  GNUNET_assert (session != NULL);
+  GNUNET_assert (NULL != session);
   session->transmit_handle = NULL;
   plugin = session->plugin;
-  if (buf == NULL)
+  if (NULL == buf)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, 
 	 "Timeout trying to transmit to peer `%4s', discarding message queue.\n",
@@ -1049,8 +1054,8 @@ tcp_plugin_send (void *cls,
   struct Plugin * plugin = cls;
   struct PendingMessage *pm;
 
-  GNUNET_assert (plugin != NULL);
-  GNUNET_assert (session != NULL);
+  GNUNET_assert (NULL != plugin);
+  GNUNET_assert (NULL != session);
 
   /* create new message entry */
   pm = GNUNET_malloc (sizeof (struct PendingMessage) + msgbuf_size);
@@ -1101,7 +1106,7 @@ tcp_plugin_send (void *cls,
   }
   else
   {
-    if (cont != NULL)
+    if (NULL != cont)
       cont (cont_cls, &session->target, GNUNET_SYSERR);
     GNUNET_break (0);
     GNUNET_free (pm);
@@ -1109,16 +1114,18 @@ tcp_plugin_send (void *cls,
   }
 }
 
+
 struct SessionItCtx
 {
-  void * addr;
+  void *addr;
   size_t addrlen;
-  struct Session * result;
+  struct Session *result;
 };
+
 
 static int 
 session_lookup_it (void *cls,
-		   const GNUNET_HashCode * key,
+		   const GNUNET_HashCode *key,
 		   void *value)
 {
   struct SessionItCtx * si_ctx = cls;
@@ -1187,7 +1194,7 @@ nat_connect_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  */
 static struct Session *
 tcp_plugin_get_session (void *cls,
-                      const struct GNUNET_HELLO_Address *address)
+			const struct GNUNET_HELLO_Address *address)
 {
   struct Plugin * plugin = cls;
   struct Session * session = NULL;
@@ -1392,6 +1399,7 @@ session_disconnect_it (void *cls,
   disconnect_session (session);
   return GNUNET_YES;
 }
+
 
 /**
  * Function that can be called to force a disconnect from the
@@ -1736,12 +1744,12 @@ handle_tcp_nat_probe (void *cls, struct GNUNET_SERVER_Client *client,
     LOG (GNUNET_ERROR_TYPE_DEBUG, 
 	 "Bad address for incoming connection!\n");
     GNUNET_free (vaddr);
-    GNUNET_SERVER_client_drop (client);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     disconnect_session (session);
     return;
   }
   GNUNET_free (vaddr);
+  GNUNET_break (NULL == session->client);
   GNUNET_SERVER_client_keep (client);
   session->client = client;
   inc_sessions (plugin, session, __LINE__);
