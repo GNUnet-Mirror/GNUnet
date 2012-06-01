@@ -41,7 +41,7 @@ libgnunetmesh_la_LIBADD = \
   $(XLIB)
 libgnunetmesh_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) $(WINFLAGS) \
-  -version-info 0:0:0
+  -version-info 1:0:0
 
 check_PROGRAMS = \
  test_mesh_api \

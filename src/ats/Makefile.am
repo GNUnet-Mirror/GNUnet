@@ -32,7 +32,7 @@ libgnunetats_la_LIBADD = \
 
 libgnunetats_la_LDFLAGS = \
  $(GN_LIB_LDFLAGS) \
-  -version-info 1:0:1
+  -version-info 2:0:2
 
 
 bin_PROGRAMS = \

@@ -23,7 +23,7 @@ libgnunetstatistics_la_LIBADD = \
   $(GN_LIBINTL) $(XLIB)
 libgnunetstatistics_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)  $(WINFLAGS) \
-  -version-info 1:0:1
+  -version-info 1:1:1
 
 
 bin_PROGRAMS = \
