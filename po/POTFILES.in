@@ -100,16 +100,18 @@ src/fs/gnunet-service-fs_push.c
 src/fs/gnunet-service-fs_put.c
 src/fs/gnunet-unindex.c
 src/fs/plugin_block_fs.c
+src/gns/gnocksy/gnocksy.c
+src/gns/gnocksy/gns_glue.c
 src/gns/gns_api.c
 src/gns/gnunet-gns.c
 src/gns/gnunet-gns-fcfsd.c
 src/gns/gnunet-gns-lookup.c
+src/gns/gnunet-gns-proxy.c
 src/gns/gnunet-service-gns.c
 src/gns/gnunet-service-gns_interceptor.c
 src/gns/gnunet-service-gns_resolver.c
 src/gns/nss/nss_gns.c
-src/gns/nss/query.c
-src/gns/nss/util.c
+src/gns/nss/nss_gns_query.c
 src/gns/plugin_block_gns.c
 src/hello/address.c
 src/hello/gnunet-hello.c
@@ -121,6 +123,7 @@ src/integration-tests/connection_watchdog.c
 src/lockmanager/gnunet-service-lockmanager.c
 src/lockmanager/lockmanager_api.c
 src/mesh/gnunet-service-mesh.c
+src/mesh/gnunet-service-mesh_new.c
 src/mesh/mesh_api.c
 src/mesh/mesh_tunnel_tree.c
 src/mysql/mysql.c
@@ -244,6 +247,7 @@ src/util/server_nc.c
 src/util/server_tc.c
 src/util/service.c
 src/util/signal.c
+src/util/speedup.c
 src/util/strings.c
 src/util/time.c
 src/util/winproc.c
@@ -254,3 +258,4 @@ src/vpn/vpn_api.c
 src/dht/dht.h
 src/include/gnunet_common.h
 src/include/gnunet_postgres_lib.h
+src/include/gnunet_time_lib.h

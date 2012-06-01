@@ -582,7 +582,7 @@ static char *my_short_id;
 /**
  * Transmit handle to the plugin.
  */
-static struct GNUNET_CONNECTION_TransmitHandle *plugin_transmit_handle;
+static struct GNUNET_SERVER_TransmitHandle *plugin_transmit_handle;
 
 /**
  * Head of DLL for client messages

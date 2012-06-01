@@ -51,6 +51,7 @@ gnunetinclude_HEADERS = \
   gnunet_hello_lib.h \
   gnunet_helper_lib.h \
   gnunet_load_lib.h \
+  gnunet_lockmanager_service.h \
   gnunet_mesh_service.h \
   gnunet_mysql_lib.h \
   gnunet_namestore_plugin.h \
@@ -67,6 +68,7 @@ gnunetinclude_HEADERS = \
   gnunet_protocols.h \
   gnunet_pseudonym_lib.h \
   gnunet_resolver_service.h \
+  gnunet_regex_lib.h \
   gnunet_scheduler_lib.h \
   gnunet_server_lib.h \
   gnunet_service_lib.h \

@@ -205,7 +205,7 @@ gnunet_gns_DEPENDENCIES = \
   libgnunetgns.la
 
 gnunet_gns_proxy_SOURCES = \
- gnunet-gns-proxy.c
+ gnunet-gns-proxy.c gns_proxy_proto.h 
 gnunet_gns_proxy_LDADD = -lmicrohttpd \
   $(top_builddir)/src/gns/libgnunetgns.la \
   $(top_builddir)/src/util/libgnunetutil.la \
@@ -215,8 +215,8 @@ gnunet_gns_proxy_DEPENDENCIES = \
 
 gnunet_service_gns_SOURCES = \
  gnunet-service-gns.c \
- gnunet-service-gns_resolver.c \
- gnunet-service-gns_interceptor.c
+ gnunet-service-gns_resolver.c gnunet-service-gns_resolver.h \
+ gnunet-service-gns_interceptor.c gnunet-service-gns_interceptor.h 
 gnunet_service_gns_LDADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
@@ -286,4 +286,7 @@ endif
 endif
 
 EXTRA_DIST = \
-  test_gns_simple_lookup.conf
+  test_gns_defaults.conf \
+  test_gns_simple_lookup.conf \
+  test_gns_dht_default.conf
+

@@ -125,6 +125,7 @@ EXTRA_DIST = \
    gnunet_pyexpect.py.in \
    test_integration_connection_values_tcp.py.in \
    test_integration_connection_values_tcp_udp.py.in \
+   test_integration_connection_values_tcp_udp_http.py.in \
    test_integration_bootstrap_and_connect.py.in \
    test_integration_bootstrap_and_connect_and_disconnect.py.in \
    test_integration_bootstrap_and_connect_and_disconnect_nat.py.in \
@@ -144,6 +145,8 @@ EXTRA_DIST = \
    confs/c_no_nat_client_http_2.conf\
    confs/c_no_nat_client_http.conf \
    confs/c_no_nat_client_http_2.conf \
+   confs/c_no_nat_client_unix.conf \
+   confs/c_no_nat_client_unix_2.conf \
    test_connection_stability.conf \
    hostkeys/0000-hostkey \
    hostkeys/0001-hostkey \

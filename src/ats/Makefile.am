@@ -124,5 +124,5 @@ test_ats_api_reset_backoff_LDADD = \
 
 EXTRA_DIST = \
   ats.h \
-  test_ats_api.conf 
+  test_ats_api.conf
 
