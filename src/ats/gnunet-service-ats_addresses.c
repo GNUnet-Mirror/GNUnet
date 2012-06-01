@@ -355,11 +355,10 @@ GAS_addresses_update (const struct GNUNET_PeerIdentity *peer,
   aa->ats_count = atsi_count;
   memcpy (aa->ats, atsi, atsi_count * sizeof (struct GNUNET_ATS_Information));
 
-#if DEBUG_ATS
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Updating address for peer `%s' %u\n",
               GNUNET_i2s (peer),
               session_id);
-#endif
+
   /* Get existing address or address with session == 0 */
   old = find_address (peer, aa);
   if (old == NULL)
@@ -458,11 +457,11 @@ destroy_by_session_id (void *cls, const GNUNET_HashCode * key, void *value)
       (aa->addr_len == info->addr_len) &&
       (0 == memcmp (info->addr, aa->addr, aa->addr_len)))
   {
-#if VERBOSE
+
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Deleting address for peer `%s': `%s' %u\n",
                 GNUNET_i2s (&aa->peer), aa->plugin, aa->session_id);
-#endif
+
     if (GNUNET_YES == destroy_address (aa))
       recalculate_assigned_bw ();
     return GNUNET_OK;
@@ -559,12 +558,35 @@ find_address_it (void *cls, const GNUNET_HashCode * key, void *value)
     return GNUNET_OK;
   }
 
-
   aa->block_interval = GNUNET_TIME_relative_add (aa->block_interval, ATS_BLOCKING_DELTA);
   aa->blocked_until = GNUNET_TIME_absolute_add (now, aa->block_interval);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Address %p ready for suggestion, block interval now %llu \n", aa, aa->block_interval);
+
+  /* FIXME this is a hack */
+
+
+  if (NULL != ab)
+  {
+    if ((0 == strcmp (ab->plugin, "tcp")) &&
+        (0 == strcmp (aa->plugin, "tcp")))
+    {
+      if ((0 != ab->addr_len) &&
+          (0 == aa->addr_len))
+      {
+        /* saved address was an outbound address, but we have an inbound address */
+        *ap = aa;
+        return GNUNET_OK;
+      }
+      if (0 == ab->addr_len)
+      {
+        /* saved address was an inbound address, so do not overwrite */
+        return GNUNET_OK;
+      }
+    }
+  }
+  /* FIXME end of hack */
 
   if (NULL == ab)
   {
