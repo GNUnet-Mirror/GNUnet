@@ -1,4 +1,6 @@
 
+#define SOCKS_VERSION_5 0x05
+#define SOCKS_AUTH_NONE 0
 
 /* The socks phases */
 enum
