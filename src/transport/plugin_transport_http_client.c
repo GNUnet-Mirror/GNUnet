@@ -448,7 +448,6 @@ client_send_cb (void *stream, size_t size, size_t nmemb, void *cls)
   struct Session *s = cls;
   struct Plugin *plugin = s->plugin;
   struct HTTP_Message *msg = s->msg_head;
-  size_t bytes_sent = 0;
   size_t len;
 
   if (GNUNET_YES != exist_session(plugin, s))
@@ -467,11 +466,10 @@ client_send_cb (void *stream, size_t size, size_t nmemb, void *cls)
   /* data to send */
   GNUNET_assert (msg->pos < msg->size);
   /* calculate how much fits in buffer */
-  bytes_sent = GNUNET_MIN (msg->size - msg->pos,
-			   size * nmemb);
+  len = GNUNET_MIN (msg->size - msg->pos,
+		    size * nmemb);
   memcpy (stream, &msg->buf[msg->pos], len);
   msg->pos += len;
-  bytes_sent = len;
   if (msg->pos == msg->size)
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
@@ -483,7 +481,7 @@ client_send_cb (void *stream, size_t size, size_t nmemb, void *cls)
       msg->transmit_cont (msg->transmit_cont_cls, &s->target, GNUNET_OK);
     GNUNET_free (msg);
   }
-  return bytes_sent;
+  return len;
 }
 
 
