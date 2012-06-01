@@ -1694,20 +1694,20 @@ handle_tcp_nat_probe (void *cls, struct GNUNET_SERVER_Client *client,
     session->nat_connection_timeout = GNUNET_SCHEDULER_NO_TASK;
   }
 
+  if (GNUNET_OK != GNUNET_SERVER_client_get_address (client, &vaddr, &alen))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    disconnect_session (session);
+    return;
+  }
   GNUNET_assert (GNUNET_CONTAINER_multihashmap_remove
                  (plugin->nat_wait_conns,
                   &tcp_nat_probe->clientIdentity.hashPubKey,
                   session) == GNUNET_YES);
-  if (GNUNET_OK != GNUNET_SERVER_client_get_address (client, &vaddr, &alen))
-  {
-    GNUNET_break (0);
-    GNUNET_free (session);
-    GNUNET_SERVER_receive_done (client, GNUNET_OK);
-    return;
-  }
-
-  GNUNET_SERVER_client_keep (client);
-  session->client = client;
+  GNUNET_CONTAINER_multihashmap_put(plugin->sessionmap,
+				    &session->target.hashPubKey, session, 
+				    GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);  
   session->last_activity = GNUNET_TIME_absolute_get ();
   session->inbound = GNUNET_NO;
   LOG (GNUNET_ERROR_TYPE_DEBUG, 
@@ -1736,15 +1736,14 @@ handle_tcp_nat_probe (void *cls, struct GNUNET_SERVER_Client *client,
     LOG (GNUNET_ERROR_TYPE_DEBUG, 
 	 "Bad address for incoming connection!\n");
     GNUNET_free (vaddr);
-
     GNUNET_SERVER_client_drop (client);
-    GNUNET_free (session);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    disconnect_session (session);
     return;
   }
   GNUNET_free (vaddr);
-
-  GNUNET_CONTAINER_multihashmap_put(plugin->sessionmap, &session->target.hashPubKey, session, GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+  GNUNET_SERVER_client_keep (client);
+  session->client = client;
   inc_sessions (plugin, session, __LINE__);
   GNUNET_STATISTICS_update (plugin->env->stats,
                             gettext_noop ("# TCP sessions active"), 1,
