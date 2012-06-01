@@ -781,8 +781,6 @@ server_disconnect_cb (void *cls, struct MHD_Connection *connection,
   if (NULL == (s = server_lookup_session (p, sc)))
     return;
 
-  s = sc->session;
-  GNUNET_assert (NULL != s);
   GNUNET_assert (NULL != p);
   if (GNUNET_NO == exist_session(p, s))
     return;
