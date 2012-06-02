@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: GNUnet 0.7.0b\n"
 "Report-Msgid-Bugs-To: gnunet-developers@mail.gnu.org\n"
-"POT-Creation-Date: 2012-06-01 20:46+0200\n"
+"POT-Creation-Date: 2012-06-02 19:10+0200\n"
 "PO-Revision-Date: 2006-03-17 21:37+0100\n"
 "Last-Translator: Nils Durner <durner@gnunet.org>\n"
 "Language-Team: German <de@li.org>\n"
@@ -5099,91 +5099,91 @@ msgstr "# Bytes gesendet über TCP"
 msgid "# bytes dropped by SMTP (outgoing)"
 msgstr "# Bytes verworfen von TCP (ausgehend)"
 
-#: src/transport/plugin_transport_tcp.c:582
+#: src/transport/plugin_transport_tcp.c:591
 #, c-format
 msgid "Unexpected address length: %u bytes\n"
 msgstr ""
 
-#: src/transport/plugin_transport_tcp.c:758
-#: src/transport/plugin_transport_tcp.c:847
-#: src/transport/plugin_transport_tcp.c:897
-#: src/transport/plugin_transport_tcp.c:983
-#: src/transport/plugin_transport_tcp.c:1077
-#: src/transport/plugin_transport_tcp.c:1094
+#: src/transport/plugin_transport_tcp.c:767
+#: src/transport/plugin_transport_tcp.c:856
+#: src/transport/plugin_transport_tcp.c:906
+#: src/transport/plugin_transport_tcp.c:992
+#: src/transport/plugin_transport_tcp.c:1086
+#: src/transport/plugin_transport_tcp.c:1103
 #, fuzzy
 msgid "# bytes currently in TCP buffers"
 msgstr "# Bytes gesendet über TCP"
 
-#: src/transport/plugin_transport_tcp.c:765
-#: src/transport/plugin_transport_tcp.c:954
-#: src/transport/plugin_transport_tcp.c:1749
-#: src/transport/plugin_transport_tcp.c:2378
+#: src/transport/plugin_transport_tcp.c:774
+#: src/transport/plugin_transport_tcp.c:963
+#: src/transport/plugin_transport_tcp.c:1761
+#: src/transport/plugin_transport_tcp.c:2390
 #, fuzzy
 msgid "# TCP sessions active"
 msgstr "# Sitzungsschlüssel akzeptiert"
 
-#: src/transport/plugin_transport_tcp.c:851
+#: src/transport/plugin_transport_tcp.c:860
 #, fuzzy
 msgid "# bytes discarded by TCP (timeout)"
 msgstr "# Bytes verworfen von TCP (ausgehend)"
 
-#: src/transport/plugin_transport_tcp.c:900
+#: src/transport/plugin_transport_tcp.c:909
 #, fuzzy
 msgid "# bytes transmitted via TCP"
 msgstr "# Bytes des Typs %d übertragen"
 
-#: src/transport/plugin_transport_tcp.c:987
+#: src/transport/plugin_transport_tcp.c:996
 #, fuzzy
 msgid "# bytes discarded by TCP (disconnect)"
 msgstr "# Bytes verworfen von TCP (ausgehend)"
 
-#: src/transport/plugin_transport_tcp.c:1279
+#: src/transport/plugin_transport_tcp.c:1290
 #, c-format
 msgid "Address of unexpected length: %u\n"
 msgstr ""
 
-#: src/transport/plugin_transport_tcp.c:1390
+#: src/transport/plugin_transport_tcp.c:1401
 msgid "# transport-service disconnect requests for TCP"
 msgstr ""
 
-#: src/transport/plugin_transport_tcp.c:1790
+#: src/transport/plugin_transport_tcp.c:1802
 #, fuzzy
 msgid "# TCP WELCOME messages received"
 msgstr "# verschlüsselter PONG Nachrichten empfangen"
 
-#: src/transport/plugin_transport_tcp.c:1961
+#: src/transport/plugin_transport_tcp.c:1973
 msgid "# bytes received via TCP"
 msgstr "# Bytes empfangen über TCP"
 
-#: src/transport/plugin_transport_tcp.c:2031
+#: src/transport/plugin_transport_tcp.c:2043
 msgid "# network-level TCP disconnect events"
 msgstr ""
 
-#: src/transport/plugin_transport_tcp.c:2267 src/util/service.c:940
+#: src/transport/plugin_transport_tcp.c:2279 src/util/service.c:940
 #, c-format
 msgid "Require valid port number for service `%s' in configuration!\n"
 msgstr ""
 
-#: src/transport/plugin_transport_tcp.c:2281
+#: src/transport/plugin_transport_tcp.c:2293
 #, fuzzy
 msgid "Failed to start service.\n"
 msgstr "Fehler beim Starten der Collection.\n"
 
-#: src/transport/plugin_transport_tcp.c:2343
+#: src/transport/plugin_transport_tcp.c:2355
 #, fuzzy, c-format
 msgid "Failed to find option %s in section %s!\n"
 msgstr "Fehler beim Binden an UDP Port %d.\n"
 
-#: src/transport/plugin_transport_tcp.c:2366
+#: src/transport/plugin_transport_tcp.c:2378
 #, fuzzy, c-format
 msgid "TCP transport listening on port %llu\n"
 msgstr "Der Transportdienst auf Port %d konnte nicht gestartet werden.\n"
 
-#: src/transport/plugin_transport_tcp.c:2370
+#: src/transport/plugin_transport_tcp.c:2382
 msgid "TCP transport not listening on any port (client only)\n"
 msgstr ""
 
-#: src/transport/plugin_transport_tcp.c:2374
+#: src/transport/plugin_transport_tcp.c:2386
 #, c-format
 msgid "TCP transport advertises itself as being on port %llu\n"
 msgstr ""

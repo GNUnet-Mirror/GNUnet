@@ -1396,7 +1396,11 @@ GNUNET_SERVER_client_disconnect (struct GNUNET_SERVER_Client *client)
     GNUNET_SCHEDULER_cancel (client->warn_task);
     client->warn_task = GNUNET_SCHEDULER_NO_TASK;
   }
-  GNUNET_assert (GNUNET_NO == client->receive_pending);
+  if (GNUNET_YES == client->receive_pending)
+  {
+    GNUNET_CONNECTION_receive_cancel (client->connection);
+    client->receive_pending = GNUNET_NO;
+  }
   GNUNET_free (client);
   /* we might be in soft-shutdown, test if we're done */
   if (NULL != server)
