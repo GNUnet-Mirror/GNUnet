@@ -137,7 +137,6 @@ void name_lookup_proc (void *cls,
                             const struct GNUNET_CRYPTO_RsaSignature *signature)
 {
   static int found = GNUNET_NO;
-  int failed = GNUNET_NO;
   int c;
 
   if (n != NULL)
@@ -146,25 +145,21 @@ void name_lookup_proc (void *cls,
     if (0 != memcmp (zone_key, &pubkey, sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded)))
     {
       GNUNET_break (0);
-      failed = GNUNET_YES;
     }
 
     if (0 != memcmp (signature, s_signature, sizeof (struct GNUNET_CRYPTO_RsaSignature)))
     {
       GNUNET_break (0);
-      failed = GNUNET_YES;
     }
 
     if (0 != strcmp(n, s_name))
     {
       GNUNET_break (0);
-      failed = GNUNET_YES;
     }
 
     if (RECORDS != rd_count)
     {
       GNUNET_break (0);
-      failed = GNUNET_YES;
     }
 
     for (c = 0; c < RECORDS; c++)
@@ -172,7 +167,6 @@ void name_lookup_proc (void *cls,
       if (GNUNET_NO == GNUNET_NAMESTORE_records_cmp (&rd[c], &s_rd[c]))
       {
         GNUNET_break (0);
-        failed = GNUNET_YES;
       }
     }
     found = GNUNET_YES;
