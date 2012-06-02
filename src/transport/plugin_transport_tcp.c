@@ -647,24 +647,28 @@ tcp_string_to_address (void *cls, const char *addr, uint16_t addrlen,
   switch (socket_address.ss_family)
   {
   case AF_INET:
-    struct IPv4TcpAddress *t4;
-    struct sockaddr_in *in4 = (struct sockaddr_in *) &socket_address;
+    {
+      struct IPv4TcpAddress *t4;
+      struct sockaddr_in *in4 = (struct sockaddr_in *) &socket_address;
 
-    t4 = GNUNET_malloc (sizeof (struct IPv4TcpAddress));
-    t4->ipv4_addr = in4->sin_addr.s_addr;
-    t4->t4_port = in4->sin_port;
-    *buf = t4;
-    *added = sizeof (struct IPv4TcpAddress);
-    return GNUNET_OK;
+      t4 = GNUNET_malloc (sizeof (struct IPv4TcpAddress));
+      t4->ipv4_addr = in4->sin_addr.s_addr;
+      t4->t4_port = in4->sin_port;
+      *buf = t4;
+      *added = sizeof (struct IPv4TcpAddress);
+      return GNUNET_OK;
+    }
   case AF_INET6:  
-    struct IPv6TcpAddress *t6;
-    struct sockaddr_in6 *in6 = (struct sockaddr_in6 *) &socket_address;
-    t6 = GNUNET_malloc (sizeof (struct IPv6TcpAddress));
-    t6->ipv6_addr = in6->sin6_addr;
-    t6->t6_port = in6->sin6_port;
-    *buf = t6;
-    *added = sizeof (struct IPv6TcpAddress);
-    return GNUNET_OK;
+    {
+      struct IPv6TcpAddress *t6;
+      struct sockaddr_in6 *in6 = (struct sockaddr_in6 *) &socket_address;
+      t6 = GNUNET_malloc (sizeof (struct IPv6TcpAddress));
+      t6->ipv6_addr = in6->sin6_addr;
+      t6->t6_port = in6->sin6_port;
+      *buf = t6;
+      *added = sizeof (struct IPv6TcpAddress);
+      return GNUNET_OK;
+    }
   default:
     return GNUNET_SYSERR;
   }
