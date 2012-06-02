@@ -819,7 +819,7 @@ warn_no_receive_done (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GNUNET_break (0 != client->warn_type); /* type should never be 0 here, as we don't use 0 */
   client->warn_task =
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
                                     &warn_no_receive_done, client);
   if (0 == (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
     LOG (GNUNET_ERROR_TYPE_WARNING,
@@ -902,12 +902,13 @@ GNUNET_SERVER_inject (struct GNUNET_SERVER_Handle *server,
         }
         if (NULL != sender)
         {
-          if (0 == sender->suspended)
+          if ( (0 == sender->suspended) &&
+	       (GNUNET_SCHEDULER_NO_TASK == sender->warn_task) )
           {
 	    GNUNET_break (0 != type); /* type should never be 0 here, as we don't use 0 */
-            sender->warn_start = GNUNET_TIME_absolute_get ();
+            sender->warn_start = GNUNET_TIME_absolute_get ();	    
             sender->warn_task =
-                GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+                GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
                                               &warn_no_receive_done, sender);
             sender->warn_type = type;
           }
