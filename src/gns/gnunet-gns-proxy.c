@@ -427,9 +427,9 @@ curl_task_download (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Main MHD callback for handling requests.
  *
  * @param cls unused
- * @param connection MHD connection handle
- * @param method the HTTP method used ("GET", "PUT", etc.)
- * @param version the HTTP version string (i.e. "HTTP/1.1")
+ * @param con MHD connection handle
+ * @param meth the HTTP method used ("GET", "PUT", etc.)
+ * @param ver the HTTP version string (i.e. "HTTP/1.1")
  * @param upload_data the data being uploaded (excluding HEADERS,
  *        for a POST that fits into memory and that is encoded
  *        with a supported encoding, the POST data will NOT be
@@ -440,7 +440,7 @@ curl_task_download (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param upload_data_size set initially to the size of the
  *        upload_data provided; the method must update this
  *        value to the number of bytes NOT processed;
- * @param ptr pointer to location where we store the 'struct Request'
+ * @param con_cls pointer to location where we store the 'struct Request'
  * @return MHD_YES if the connection was handled successfully,
  *         MHD_NO if the socket must be closed due to a serious
  *         error while handling the request
