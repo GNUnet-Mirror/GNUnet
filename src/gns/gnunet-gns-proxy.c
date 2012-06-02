@@ -21,6 +21,7 @@
 #include "platform.h"
 #include <gnunet_util_lib.h>
 #include <microhttpd.h>
+#include <curl/curl.h>
 #include "gns_proxy_proto.h"
 #include "gns.h"
 
@@ -73,11 +74,38 @@ struct Socks5Request
   unsigned int wbuf_len;
 };
 
+
+#define BUF_WAIT_FOR_CURL 0
+#define BUF_WAIT_FOR_MHD 1
+
+struct ProxyCurlTask
+{
+  //DLL
+  struct ProxyCurlTask *prev;
+  struct ProxyCurlTask *next;
+
+  CURL *curl;
+  char buffer[CURL_MAX_WRITE_SIZE];
+  int buf_status;
+  unsigned int bytes_downloaded;
+  unsigned int bytes_in_buffer;
+  int download_in_progress;
+  int download_successful;
+  int download_error;
+  struct MHD_Connection *connection;
+  
+};
+
 unsigned long port = GNUNET_GNS_PROXY_PORT;
 static struct GNUNET_NETWORK_Handle *lsock;
 GNUNET_SCHEDULER_TaskIdentifier ltask;
+GNUNET_SCHEDULER_TaskIdentifier curl_download_task;
 static struct MHD_Daemon *httpd;
 static GNUNET_SCHEDULER_TaskIdentifier httpd_task;
+CURLM *curl_multi;
+
+struct ProxyCurlTask *ctasks_head;
+struct ProxyCurlTask *ctasks_tail;
 
 static int
 con_val_iter (void *cls,
@@ -86,8 +114,6 @@ con_val_iter (void *cls,
               const char *value)
 {
   char* buf = (char*)cls;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%s:%s\n", key, value);
 
   if (0 == strcmp ("Host", key))
   {
@@ -96,6 +122,306 @@ con_val_iter (void *cls,
   }
   return MHD_YES;
 }
+
+/**
+ * Process cURL download bits
+ *
+ * @param ptr buffer with data
+ * @param size size of a record
+ * @param nmemb number of records downloaded
+ * @param ctx context
+ * @return number of processed bytes
+ */
+static size_t
+callback_download (void *ptr, size_t size, size_t nmemb, void *ctx)
+{
+  const char *cbuf = ptr;
+  size_t total;
+  struct ProxyCurlTask *ctask = ctx;
+
+  total = size*nmemb;
+  ctask->bytes_downloaded += total;
+
+  if (total == 0)
+  {
+    return total;
+  }
+
+  if (total > sizeof (ctask->buffer))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "cURL gave us too much data to handle (%d)!\n",
+                total);
+    return 0;
+  }
+
+  if (ctask->buf_status == BUF_WAIT_FOR_MHD)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Waiting for MHD\n");
+    return CURL_WRITEFUNC_PAUSE;
+  }
+
+  memcpy (ctask->buffer, cbuf, total);
+  ctask->bytes_in_buffer = total;
+
+  ctask->buf_status = BUF_WAIT_FOR_MHD;
+
+  //GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  //            "cURL chunk:\n%s\n", (char*)ctask->buffer);
+  MHD_run (httpd);
+  return total;
+}
+
+/**
+ * Callback for MHD response
+ *
+ * @param cls closure
+ * @param pos in buffer
+ * @param buf buffer
+ * @param max space in buffer
+ */
+static ssize_t
+mhd_content_cb (void *cls,
+                uint64_t pos,
+                char* buf,
+                size_t max)
+{
+  struct ProxyCurlTask *ctask = cls;
+
+  if (ctask->download_successful &&
+      (ctask->buf_status == BUF_WAIT_FOR_CURL))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "MHD: sending response\n");
+    ctask->download_in_progress = GNUNET_NO;
+    return MHD_CONTENT_READER_END_OF_STREAM;
+  }
+  
+  if (ctask->download_error &&
+      (ctask->buf_status == BUF_WAIT_FOR_CURL))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "MHD: error sending response\n");
+    ctask->download_in_progress = GNUNET_NO;
+    return MHD_CONTENT_READER_END_WITH_ERROR;
+  }
+
+  if ( ctask->buf_status == BUF_WAIT_FOR_CURL )
+  {
+    return 0;
+  }
+
+  if ( ctask->bytes_in_buffer > max )
+  {
+    GNUNET_log ( GNUNET_ERROR_TYPE_ERROR,
+                 "MHD: buffer in response too small!\n");
+    return MHD_CONTENT_READER_END_WITH_ERROR;
+  }
+
+  if ( 0 != ctask->bytes_in_buffer )
+  {
+    GNUNET_log ( GNUNET_ERROR_TYPE_DEBUG,
+                 "MHD: copying %d bytes to mhd response at offset %d\n",
+                 ctask->bytes_in_buffer, pos);
+    memcpy ( buf, ctask->buffer, ctask->bytes_in_buffer );
+  }
+  
+  ctask->buf_status = BUF_WAIT_FOR_CURL;
+  curl_easy_pause (ctask->curl, CURLPAUSE_CONT);
+
+  return ctask->bytes_in_buffer;
+}
+
+
+/**
+ * schedule mhd
+ */
+static void
+run_httpd (void);
+
+/**
+ * Task that is run when we are ready to receive more data
+ * from curl
+ *
+ * @param cls closure
+ * @param tc task context
+ */
+static void
+curl_task_download (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+/**
+ * Ask cURL for the select sets and schedule download
+ */
+static void
+curl_download_prepare ()
+{
+  CURLMcode mret;
+  fd_set rs;
+  fd_set ws;
+  fd_set es;
+  int max;
+  struct GNUNET_NETWORK_FDSet *grs;
+  struct GNUNET_NETWORK_FDSet *gws;
+  long to;
+  struct GNUNET_TIME_Relative rtime;
+
+  max = -1;
+  FD_ZERO (&rs);
+  FD_ZERO (&ws);
+  FD_ZERO (&es);
+  mret = curl_multi_fdset (curl_multi, &rs, &ws, &es, &max);
+
+  if (mret != CURLM_OK)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "%s failed at %s:%d: `%s'\n",
+                "curl_multi_fdset", __FILE__, __LINE__,
+                curl_multi_strerror (mret));
+    //TODO cleanup here?
+    return;
+  }
+
+  mret = curl_multi_timeout (curl_multi, &to);
+  rtime = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, to);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "cURL multi fds: max=%d\n", max);
+
+  grs = GNUNET_NETWORK_fdset_create ();
+  gws = GNUNET_NETWORK_fdset_create ();
+  GNUNET_NETWORK_fdset_copy_native (grs, &rs, max + 1);
+  GNUNET_NETWORK_fdset_copy_native (gws, &ws, max + 1);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Scheduling task cURL\n");
+
+  if (curl_download_task != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel (curl_download_task);
+  
+  curl_download_task =
+    GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+                                 rtime,
+                                 grs, gws,
+                                 &curl_task_download, curl_multi);
+  GNUNET_NETWORK_fdset_destroy (gws);
+  GNUNET_NETWORK_fdset_destroy (grs);
+
+}
+
+
+/**
+ * Task that is run when we are ready to receive more data
+ * from curl
+ *
+ * @param cls closure
+ * @param tc task context
+ */
+static void
+curl_task_download (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  int running;
+  int msgnum;
+  struct CURLMsg *msg;
+  CURLMcode mret;
+  struct ProxyCurlTask *ctask;
+
+  curl_download_task = GNUNET_SCHEDULER_NO_TASK;
+
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Shutdown requested while trying to download\n");
+    //TODO cleanup
+    return;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Ready to dl\n");
+
+  do
+  {
+    running = 0;
+    
+    mret = curl_multi_perform (curl_multi, &running);
+
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Running curl tasks: %d\n", running);
+    do
+    {
+      ctask = ctasks_head;
+      msg = curl_multi_info_read (curl_multi, &msgnum);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Messages left: %d\n", msgnum);
+      
+      if (msg == NULL)
+        break;
+      switch (msg->msg)
+      {
+       case CURLMSG_DONE:
+         if ((msg->data.result != CURLE_OK) &&
+             (msg->data.result != CURLE_GOT_NOTHING))
+         {
+           GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                       "Download curl failed %s\n",
+                      curl_easy_strerror (msg->data.result));
+            
+           for (; ctask != NULL; ctask = ctask->next)
+           {
+             if (memcmp (msg->easy_handle, ctask->curl, sizeof (CURL)) == 0)
+             {
+               GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                           "cURL task found.\n");
+               ctask->download_successful = GNUNET_NO;
+               ctask->download_error = GNUNET_YES;
+               curl_multi_remove_handle (curl_multi, ctask->curl);
+               curl_easy_cleanup (ctask->curl);
+               GNUNET_CONTAINER_DLL_remove (ctasks_head, ctasks_tail,
+                                            ctask);
+               break;
+             }
+           }
+         }
+         else
+         {
+           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                       "cURL download completed.\n");
+
+           for (; ctask != NULL; ctask = ctask->next)
+           {
+             if (memcmp (msg->easy_handle, ctask->curl, sizeof (CURL)) == 0)
+             {
+               GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                           "cURL task found.\n");
+               ctask->download_successful = GNUNET_YES;
+               curl_multi_remove_handle (curl_multi, ctask->curl);
+               curl_easy_cleanup (ctask->curl);
+               GNUNET_CONTAINER_DLL_remove (ctasks_head, ctasks_tail,
+                                            ctask);
+               break;
+             }
+             else
+               GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                           "cURL task skipped.\n");
+           }
+           run_httpd ();
+           //TODO iterate list, find ctask
+         }
+         break;
+       default:
+         break;
+      }
+    } while (msgnum > 0);
+  } while (mret == CURLM_CALL_MULTI_PERFORM);
+
+  if (mret != CURLM_OK)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%s failed at %s:%d: `%s'\n",
+                "curl_multi_perform", __FILE__, __LINE__,
+                curl_multi_strerror (mret));
+    //TODO cleanup
+  }
+  curl_download_prepare();
+}
+
 
 /**
  * Main MHD callback for handling requests.
@@ -131,10 +457,14 @@ create_response (void *cls,
 {
   static int dummy;
   const char* page = "<html><head><title>gnoxy</title>"\
-                      "</head><body>gnoxy demo</body></html>";
+                      "</head><body>cURL fail</body></html>";
   struct MHD_Response *response;
   char host[265];
-  int ret;
+  char curlurl[512];
+  int ret = MHD_YES;
+
+  CURLMcode mret;
+  struct ProxyCurlTask *ctask;
   
   if (0 != strcmp (meth, "GET"))
     return MHD_NO;
@@ -156,13 +486,73 @@ create_response (void *cls,
                              MHD_HEADER_KIND,
                              &con_val_iter, host);
 
-  response = MHD_create_response_from_buffer (strlen (page),
+  
+  /* Do cURL */
+  ctask = GNUNET_malloc (sizeof (struct ProxyCurlTask));
+  ctask->curl = curl_easy_init();
+
+  if (curl_multi == NULL)
+    curl_multi = curl_multi_init ();
+  
+  if ((ctask->curl == NULL) || (curl_multi == NULL))
+  {
+    response = MHD_create_response_from_buffer (strlen (page),
                                               (void*)page,
                                               MHD_RESPMEM_PERSISTENT);
-  ret = MHD_queue_response (con,
-                            MHD_HTTP_OK,
-                            response);
-  MHD_destroy_response (response);
+    ret = MHD_queue_response (con,
+                              MHD_HTTP_OK,
+                              response);
+    MHD_destroy_response (response);
+    GNUNET_free (ctask);
+    return ret;
+  }
+
+  ctask->download_in_progress = GNUNET_YES;
+  ctask->download_successful = GNUNET_NO;
+  ctask->bytes_downloaded = 0;
+  ctask->connection = con;
+  ctask->buf_status = BUF_WAIT_FOR_CURL;
+  ctask->bytes_in_buffer = 0;
+
+  curl_easy_setopt (ctask->curl, CURLOPT_WRITEFUNCTION, &callback_download);
+  curl_easy_setopt (ctask->curl, CURLOPT_WRITEDATA, ctask);
+  curl_easy_setopt (ctask->curl, CURLOPT_FOLLOWLOCATION, 1);
+  curl_easy_setopt (ctask->curl, CURLOPT_MAXREDIRS, 4);
+  /* no need to abort if the above failed */
+  sprintf (curlurl, "http://%s%s", host, url);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Adding new curl task for %s\n", curlurl);
+  
+  curl_easy_setopt (ctask->curl, CURLOPT_URL, curlurl);
+  curl_easy_setopt (ctask->curl, CURLOPT_FAILONERROR, 1);
+  curl_easy_setopt (ctask->curl, CURLOPT_CONNECTTIMEOUT, 60L);
+  curl_easy_setopt (ctask->curl, CURLOPT_TIMEOUT, 60L);
+
+  mret = curl_multi_add_handle (curl_multi, ctask->curl);
+
+  if (mret != CURLM_OK)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "%s failed at %s:%d: `%s'\n",
+                "curl_multi_add_handle", __FILE__, __LINE__,
+                curl_multi_strerror (mret));
+    curl_easy_cleanup (ctask->curl);
+    GNUNET_free (ctask);
+    //TODO maybe error display here
+    return ret;
+  }
+  
+  GNUNET_CONTAINER_DLL_insert (ctasks_head, ctasks_tail, ctask);
+
+  curl_download_prepare ();
+
+  response = MHD_create_response_from_callback (-1, -1,
+                                                &mhd_content_cb,
+                                                ctask,
+                                                NULL); //TODO Destroy resp here
+  
+  ret = MHD_queue_response (con, MHD_HTTP_OK, response);
+
   return ret;
 }
 
@@ -176,8 +566,9 @@ static void
 do_httpd (void *cls,
           const struct GNUNET_SCHEDULER_TaskContext *tc);
 
+
 /**
- * Schedule MHD
+ * schedule mhd
  */
 static void
 run_httpd ()
@@ -201,6 +592,11 @@ run_httpd ()
   wws = GNUNET_NETWORK_fdset_create ();
   max = -1;
   GNUNET_assert (MHD_YES == MHD_get_fdset (httpd, &rs, &ws, &es, &max));
+  
+  
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "MHD fds: max=%d\n", max);
+  
   haveto = MHD_get_timeout (httpd, &timeout);
 
   if (haveto == MHD_YES)
@@ -233,6 +629,8 @@ do_httpd (void *cls,
           const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   httpd_task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "MHD run \n");
   MHD_run (httpd);
   run_httpd ();
 }
@@ -721,6 +1119,35 @@ do_accept (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 /**
+ * Task run on shutdown
+ *
+ * @param cls closure
+ * @param tc task context
+ */
+static void
+do_shutdown (void *cls,
+             const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  if (GNUNET_SCHEDULER_NO_TASK != httpd_task)
+  {
+    GNUNET_SCHEDULER_cancel (httpd_task);
+    httpd_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  
+  if (GNUNET_SCHEDULER_NO_TASK != curl_download_task)
+  {
+    GNUNET_SCHEDULER_cancel (curl_download_task);
+    curl_download_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+
+  if (NULL != httpd)
+  {
+    MHD_stop_daemon (httpd);
+    httpd = NULL;
+  }
+}
+
+/**
  * Main function that will be run
  *
  * @param cls closure
@@ -769,6 +1196,16 @@ run (void *cls, char *const *args, const char *cfgfile,
   ltask = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
                                          lsock, &do_accept, NULL);
 
+  ctasks_head = NULL;
+  ctasks_tail = NULL;
+
+  if (0 != curl_global_init (CURL_GLOBAL_WIN32))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "cURL global init failed!\n");
+    return;
+  }
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Proxy listens on port %u\n",
               port);
@@ -782,6 +1219,9 @@ run (void *cls, char *const *args, const char *cfgfile,
                                NULL, NULL,
                                MHD_OPTION_END);
   run_httpd ();
+
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
+                                &do_shutdown, NULL);
 
 }
 
