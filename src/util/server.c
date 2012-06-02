@@ -1389,7 +1389,13 @@ GNUNET_SERVER_client_disconnect (struct GNUNET_SERVER_Client *client)
     GNUNET_SERVER_notify_transmit_ready_cancel (&client->th);
   (void) GNUNET_SCHEDULER_add_now (&destroy_connection,
 				   client->connection);
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == client->warn_task);
+  /* need to cancel again, as it might have been re-added
+     in the meantime (i.e. during callbacks) */
+  if (GNUNET_SCHEDULER_NO_TASK != client->warn_task)
+  {
+    GNUNET_SCHEDULER_cancel (client->warn_task);
+    client->warn_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   GNUNET_assert (GNUNET_NO == client->receive_pending);
   GNUNET_free (client);
   /* we might be in soft-shutdown, test if we're done */
