@@ -22,7 +22,7 @@
  * @brief PlibC header
  * @attention This file is usually not installed under Unix,
  *            so ship it with your application
- * @version $Revision$
+ * @version $Revision: 84 $
  */
 
 #ifndef _PLIBC_H_
@@ -336,9 +336,13 @@ typedef struct
 #define SetErrnoFromWinError(e) _SetErrnoFromWinError(e, __FILE__, __LINE__)
 
 BOOL _plibc_CreateShortcut(const char *pszSrc, const char *pszDest);
+BOOL _plibc_CreateShortcutW(const wchar_t *pwszSrc, const wchar_t *pwszDest);
 BOOL _plibc_DereferenceShortcut(char *pszShortcut);
+BOOL _plibc_DereferenceShortcutW(wchar_t *pwszShortcut);
 char *plibc_ChooseDir(char *pszTitle, unsigned long ulFlags);
+wchar_t *plibc_ChooseDirW(wchar_t *pwszTitle, unsigned long ulFlags);
 char *plibc_ChooseFile(char *pszTitle, unsigned long ulFlags);
+wchar_t *plibc_ChooseFileW(wchar_t *pwszTitle, unsigned long ulFlags);
 
 long QueryRegistry(HKEY hMainKey, const char *pszKey, const char *pszSubKey,
               char *pszBuffer, long *pdLength);
@@ -376,6 +380,7 @@ const char *inet_ntop(int af, const void *src, char *dst, size_t size);
 struct tm *gmtime_r(const time_t *clock, struct tm *result);
 
 int plibc_init(char *pszOrg, char *pszApp);
+int plibc_init_utf8(char *pszOrg, char *pszApp, int utf8_mode);
 void plibc_shutdown();
 int plibc_initialized();
 
