@@ -26,13 +26,14 @@ lib_LTLIBRARIES = \
 
 if HAVE_MHD
  DO_FCFSD=gnunet-gns-fcfsd
+ DO_PROXY=gnunet-gns-proxy
 endif
 
 bin_PROGRAMS = \
   gnunet-service-gns \
   $(DO_FCFSD) \
-  gnunet-gns \
-	gnunet-gns-proxy
+	$(DO_PROXY) \
+  gnunet-gns
 
 #noinst_PROGRAMS = \
 #  gnunet-gns-lookup
