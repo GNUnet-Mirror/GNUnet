@@ -87,6 +87,7 @@ struct ProxyCurlTask
   CURL *curl;
   char url[2048];
   char buffer[CURL_MAX_WRITE_SIZE];
+  char *buffer_ptr;
   int buf_status;
   unsigned int bytes_downloaded;
   unsigned int bytes_in_buffer;
@@ -148,6 +149,8 @@ callback_download (void *ptr, size_t size, size_t nmemb, void *ctx)
   size_t total;
   struct ProxyCurlTask *ctask = ctx;
 
+  MHD_run (httpd);
+
   total = size*nmemb;
   ctask->bytes_downloaded += total;
 
@@ -159,20 +162,24 @@ callback_download (void *ptr, size_t size, size_t nmemb, void *ctx)
   if (total > sizeof (ctask->buffer))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "cURL gave us too much data to handle (%d)!\n",
+                "CURL gave us too much data to handle (%d)!\n",
                 total);
     return 0;
   }
-
+  
   if (ctask->buf_status == BUF_WAIT_FOR_MHD)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Waiting for MHD\n");
+                "CURL: Waiting for MHD (%s)\n", ctask->url);
     return CURL_WRITEFUNC_PAUSE;
   }
 
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "CURL: Copying to MHD (%s, %d)\n", ctask->url, total);
   memcpy (ctask->buffer, cbuf, total);
   ctask->bytes_in_buffer = total;
+  ctask->buffer_ptr = ctask->buffer;
 
   ctask->buf_status = BUF_WAIT_FOR_MHD;
 
@@ -216,12 +223,13 @@ mhd_content_cb (void *cls,
                 size_t max)
 {
   struct ProxyCurlTask *ctask = cls;
+  ssize_t copied = 0;
 
   if (ctask->download_successful &&
       (ctask->buf_status == BUF_WAIT_FOR_CURL))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "MHD: sending response\n");
+                "MHD: sending response for %s\n", ctask->url);
     ctask->download_in_progress = GNUNET_NO;
     curl_multi_remove_handle (curl_multi, ctask->curl);
     curl_easy_cleanup (ctask->curl);
@@ -246,23 +254,28 @@ mhd_content_cb (void *cls,
 
   if ( ctask->bytes_in_buffer > max )
   {
-    GNUNET_log ( GNUNET_ERROR_TYPE_ERROR,
-                 "MHD: buffer in response too small!\n");
-    return MHD_CONTENT_READER_END_WITH_ERROR;
+    GNUNET_log ( GNUNET_ERROR_TYPE_DEBUG,
+                 "MHD: buffer in response too small! (%s)\n",
+                 ctask->url);
+    memcpy ( buf, ctask->buffer_ptr, max);
+    ctask->bytes_in_buffer -= max;
+    ctask->buffer_ptr += max;
+    copied = max;
   }
-
-  if ( 0 != ctask->bytes_in_buffer )
+  else
   {
     GNUNET_log ( GNUNET_ERROR_TYPE_DEBUG,
                  "MHD: copying %d bytes to mhd response at offset %d\n",
                  ctask->bytes_in_buffer, pos);
-    memcpy ( buf, ctask->buffer, ctask->bytes_in_buffer );
-  }
-  
-  ctask->buf_status = BUF_WAIT_FOR_CURL;
-  curl_easy_pause (ctask->curl, CURLPAUSE_CONT);
 
-  return ctask->bytes_in_buffer;
+    memcpy ( buf, ctask->buffer_ptr, ctask->bytes_in_buffer );
+    copied = ctask->bytes_in_buffer;
+    ctask->buf_status = BUF_WAIT_FOR_CURL;
+    ctask->buffer_ptr = ctask->buffer;
+    curl_easy_pause (ctask->curl, CURLPAUSE_CONT);
+  }
+
+  return copied;
 }
 
 
@@ -313,7 +326,7 @@ curl_download_prepare ()
   rtime = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, to);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "cURL multi fds: max=%d\n", max);
+              "cURL multi fds: max=%d timeout=%llu\n", max, to);
 
   grs = GNUNET_NETWORK_fdset_create ();
   gws = GNUNET_NETWORK_fdset_create ();
@@ -449,7 +462,6 @@ curl_task_download (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
          }
          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                      "curl end %s\n", curl_easy_strerror(msg->data.result));
-         run_httpd ();
          break;
        default:
          GNUNET_assert (0);
