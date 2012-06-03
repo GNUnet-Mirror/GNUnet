@@ -120,7 +120,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   /* LOG (GNUNET_ERROR_TYPE_ERROR, */
   /*      "Temporary directory: %s\n", tmpdir); */
   system = GNUNET_TESTING_system_create (tmpdir,
-                                         "localhost");
+                                         "127.0.0.1");
   GNUNET_assert (NULL != system);
   GNUNET_free (tmpdir);
   data_dir = GNUNET_OS_installation_get_path (GNUNET_OS_IPK_DATADIR);

@@ -25,6 +25,7 @@
  */
 
 #include "platform.h"
+#include "gnunet_scheduler_lib.h"
 #include "gnunet_testing_lib-new.h"
 
 
