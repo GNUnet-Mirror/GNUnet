@@ -2250,11 +2250,11 @@ GNUNET_DISK_pipe_from_fd (int blocking_read, int blocking_write, int fd[2])
   }
 #else
   if (fd[0] >= 0)
-    p->fd[0]->h = _get_osfhandle (fd[0]);
+    p->fd[0]->h = (HANDLE) _get_osfhandle (fd[0]);
   else
     p->fd[0]->h = INVALID_HANDLE_VALUE;
   if (fd[1] >= 0)
-    p->fd[1]->h = _get_osfhandle (fd[1]);
+    p->fd[1]->h = (HANDLE) _get_osfhandle (fd[1]);
   else
     p->fd[1]->h = INVALID_HANDLE_VALUE;
 
