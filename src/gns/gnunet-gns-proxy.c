@@ -85,6 +85,7 @@ struct ProxyCurlTask
   struct ProxyCurlTask *next;
 
   CURL *curl;
+  char url[2048];
   char buffer[CURL_MAX_WRITE_SIZE];
   int buf_status;
   unsigned int bytes_downloaded;
@@ -122,6 +123,14 @@ con_val_iter (void *cls,
   }
   return MHD_YES;
 }
+
+
+/**
+ * schedule mhd
+ */
+static void
+run_httpd (void);
+
 
 /**
  * Process cURL download bits
@@ -173,6 +182,25 @@ callback_download (void *ptr, size_t size, size_t nmemb, void *ctx)
   return total;
 }
 
+
+
+/**
+ * Callback to free content
+ *
+ * @param cls content to free
+ */
+static void
+mhd_content_free (void *cls)
+{
+  struct ProxyCurlTask *ctask = cls;
+
+  if (ctask->curl != NULL)
+    curl_easy_cleanup (ctask->curl);
+
+  GNUNET_free (ctask);
+
+}
+
 /**
  * Callback for MHD response
  *
@@ -195,6 +223,8 @@ mhd_content_cb (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "MHD: sending response\n");
     ctask->download_in_progress = GNUNET_NO;
+    curl_multi_remove_handle (curl_multi, ctask->curl);
+    curl_easy_cleanup (ctask->curl);
     return MHD_CONTENT_READER_END_OF_STREAM;
   }
   
@@ -202,8 +232,10 @@ mhd_content_cb (void *cls,
       (ctask->buf_status == BUF_WAIT_FOR_CURL))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "MHD: error sending response\n");
+                "MHD: sending error response\n");
     ctask->download_in_progress = GNUNET_NO;
+    curl_multi_remove_handle (curl_multi, ctask->curl);
+    curl_easy_cleanup (ctask->curl);
     return MHD_CONTENT_READER_END_WITH_ERROR;
   }
 
@@ -234,11 +266,6 @@ mhd_content_cb (void *cls,
 }
 
 
-/**
- * schedule mhd
- */
-static void
-run_httpd (void);
 
 /**
  * Task that is run when we are ready to receive more data
@@ -324,6 +351,7 @@ curl_task_download (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct CURLMsg *msg;
   CURLMcode mret;
   struct ProxyCurlTask *ctask;
+  int num_ctasks;
 
   curl_download_task = GNUNET_SCHEDULER_NO_TASK;
 
@@ -340,11 +368,27 @@ curl_task_download (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   do
   {
     running = 0;
+    num_ctasks = 0;
     
     mret = curl_multi_perform (curl_multi, &running);
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Running curl tasks: %d\n", running);
+
+    ctask = ctasks_head;
+    for (; ctask != NULL; ctask = ctask->next)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "CTask: %s\n", ctask->url);
+      num_ctasks++;
+    }
+
+    if (num_ctasks != running)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "%d ctasks, %d curl running\n", num_ctasks, running);
+    }
+    
     do
     {
       ctask = ctasks_head;
@@ -360,25 +404,27 @@ curl_task_download (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
          if ((msg->data.result != CURLE_OK) &&
              (msg->data.result != CURLE_GOT_NOTHING))
          {
-           GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                       "Download curl failed %s\n",
-                      curl_easy_strerror (msg->data.result));
+           GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                       "Download curl failed");
             
            for (; ctask != NULL; ctask = ctask->next)
            {
-             if (memcmp (msg->easy_handle, ctask->curl, sizeof (CURL)) == 0)
-             {
-               GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                           "cURL task found.\n");
-               ctask->download_successful = GNUNET_NO;
-               ctask->download_error = GNUNET_YES;
-               curl_multi_remove_handle (curl_multi, ctask->curl);
-               curl_easy_cleanup (ctask->curl);
-               GNUNET_CONTAINER_DLL_remove (ctasks_head, ctasks_tail,
-                                            ctask);
-               break;
-             }
+             if (memcmp (msg->easy_handle, ctask->curl, sizeof (CURL)) != 0)
+               continue;
+             
+             GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                         "Download curl failed for task %s: %s.\n",
+                         ctask->url,
+                         curl_easy_strerror (msg->data.result));
+             ctask->download_successful = GNUNET_NO;
+             ctask->download_error = GNUNET_YES;
+             //curl_multi_remove_handle (curl_multi, ctask->curl);
+             //curl_easy_cleanup (ctask->curl);
+             GNUNET_CONTAINER_DLL_remove (ctasks_head, ctasks_tail,
+                                          ctask);
+             break;
            }
+           GNUNET_assert (ctask != NULL);
          }
          else
          {
@@ -387,37 +433,54 @@ curl_task_download (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
            for (; ctask != NULL; ctask = ctask->next)
            {
-             if (memcmp (msg->easy_handle, ctask->curl, sizeof (CURL)) == 0)
-             {
-               GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                           "cURL task found.\n");
-               ctask->download_successful = GNUNET_YES;
-               curl_multi_remove_handle (curl_multi, ctask->curl);
-               curl_easy_cleanup (ctask->curl);
-               GNUNET_CONTAINER_DLL_remove (ctasks_head, ctasks_tail,
-                                            ctask);
-               break;
-             }
-             else
-               GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                           "cURL task skipped.\n");
+             if (memcmp (msg->easy_handle, ctask->curl, sizeof (CURL)) != 0)
+               continue;
+             
+             GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                         "cURL task %s found.\n", ctask->url);
+             ctask->download_successful = GNUNET_YES;
+             //curl_multi_remove_handle (curl_multi, ctask->curl);
+             //curl_easy_cleanup (ctask->curl);
+             GNUNET_CONTAINER_DLL_remove (ctasks_head, ctasks_tail,
+                                          ctask);
+             break;
            }
-           run_httpd ();
-           //TODO iterate list, find ctask
+           GNUNET_assert (ctask != NULL);
          }
+         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                     "curl end %s\n", curl_easy_strerror(msg->data.result));
+         run_httpd ();
          break;
        default:
+         GNUNET_assert (0);
          break;
       }
     } while (msgnum > 0);
-  } while (mret == CURLM_CALL_MULTI_PERFORM);
+    
+    num_ctasks=0;
+    for (ctask=ctasks_head; ctask != NULL; ctask = ctask->next)
+    {
+      num_ctasks++;
+    }
+    
+    if (num_ctasks != running)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "%d ctasks, %d curl running\n", num_ctasks, running);
+    }
 
+    GNUNET_assert ( num_ctasks == running );
+
+    run_httpd ();
+
+  } while (mret == CURLM_CALL_MULTI_PERFORM);
+  
+  
   if (mret != CURLM_OK)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%s failed at %s:%d: `%s'\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s failed at %s:%d: `%s'\n",
                 "curl_multi_perform", __FILE__, __LINE__,
                 curl_multi_strerror (mret));
-    //TODO cleanup
   }
   curl_download_prepare();
 }
@@ -520,13 +583,14 @@ create_response (void *cls,
   curl_easy_setopt (ctask->curl, CURLOPT_MAXREDIRS, 4);
   /* no need to abort if the above failed */
   sprintf (curlurl, "http://%s%s", host, url);
+  strcpy (ctask->url, curlurl);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Adding new curl task for %s\n", curlurl);
   
   curl_easy_setopt (ctask->curl, CURLOPT_URL, curlurl);
   curl_easy_setopt (ctask->curl, CURLOPT_FAILONERROR, 1);
-  curl_easy_setopt (ctask->curl, CURLOPT_CONNECTTIMEOUT, 60L);
-  curl_easy_setopt (ctask->curl, CURLOPT_TIMEOUT, 60L);
+  curl_easy_setopt (ctask->curl, CURLOPT_CONNECTTIMEOUT, 600L);
+  curl_easy_setopt (ctask->curl, CURLOPT_TIMEOUT, 600L);
 
   mret = curl_multi_add_handle (curl_multi, ctask->curl);
 
@@ -536,9 +600,16 @@ create_response (void *cls,
                 "%s failed at %s:%d: `%s'\n",
                 "curl_multi_add_handle", __FILE__, __LINE__,
                 curl_multi_strerror (mret));
+    response = MHD_create_response_from_buffer (strlen (page),
+                                                (void*)page,
+                                                MHD_RESPMEM_PERSISTENT);
+    ret = MHD_queue_response (con,
+                              MHD_HTTP_OK,
+                              response);
+    MHD_destroy_response (response);
+
     curl_easy_cleanup (ctask->curl);
     GNUNET_free (ctask);
-    //TODO maybe error display here
     return ret;
   }
   
@@ -549,9 +620,11 @@ create_response (void *cls,
   response = MHD_create_response_from_callback (-1, -1,
                                                 &mhd_content_cb,
                                                 ctask,
-                                                NULL); //TODO Destroy resp here
+                                                &mhd_content_free);
   
   ret = MHD_queue_response (con, MHD_HTTP_OK, response);
+  
+  //MHD_destroy_response (response);
 
   return ret;
 }
@@ -669,8 +742,8 @@ do_write_remote (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if ((NULL != tc->read_ready) &&
       (GNUNET_NETWORK_fdset_isset (tc->write_ready, s5r->remote_sock)) &&
-      (len = GNUNET_NETWORK_socket_send (s5r->remote_sock, s5r->rbuf,
-                                         s5r->rbuf_len)))
+      ((len = GNUNET_NETWORK_socket_send (s5r->remote_sock, s5r->rbuf,
+                                         s5r->rbuf_len)>0)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Successfully sent %d bytes to remote socket\n",
@@ -715,8 +788,8 @@ do_write (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if ((NULL != tc->read_ready) &&
       (GNUNET_NETWORK_fdset_isset (tc->write_ready, s5r->sock)) &&
-      (len = GNUNET_NETWORK_socket_send (s5r->sock, s5r->wbuf,
-                                         s5r->wbuf_len)))
+      ((len = GNUNET_NETWORK_socket_send (s5r->sock, s5r->wbuf,
+                                         s5r->wbuf_len)>0)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Successfully sent %d bytes to socket\n",
