@@ -47,7 +47,7 @@
 
 
 
-#if defined(LINUX) || defined(CYGWIN)
+#if defined(LINUX) || defined(CYGWIN) || defined(GNU)
 #include <sys/vfs.h>
 #else
 #if defined(SOMEBSD) || defined(DARWIN)
