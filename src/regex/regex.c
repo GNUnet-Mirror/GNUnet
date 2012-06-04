@@ -576,8 +576,7 @@ state_set_clear (struct GNUNET_REGEX_StateSet *set)
 {
   if (NULL != set)
   {
-    if (NULL != set->states)
-      GNUNET_free (set->states);
+    GNUNET_free_non_null (set->states);
     GNUNET_free (set);
   }
 }
@@ -616,11 +615,8 @@ automaton_destroy_state (struct GNUNET_REGEX_State *s)
   if (NULL == s)
     return;
 
-  if (NULL != s->name)
-    GNUNET_free (s->name);
-
-  if (NULL != s->proof)
-    GNUNET_free (s->proof);
+  GNUNET_free_non_null (s->name);
+  GNUNET_free_non_null (s->proof);
 
   for (t = s->transitions_head; NULL != t; t = next_t)
   {
@@ -720,11 +716,7 @@ automaton_merge_states (struct GNUNET_REGEX_Context *ctx,
 
   // 3. Rename s1 to {s1,s2}
   new_name = GNUNET_strdup (s1->name);
-  if (NULL != s1->name)
-  {
-    GNUNET_free (s1->name);
-    s1->name = NULL;
-  }
+  GNUNET_free_non_null (s1->name);
   GNUNET_asprintf (&s1->name, "{%s,%s}", new_name, s2->name);
   GNUNET_free (new_name);
 
@@ -806,81 +798,9 @@ automaton_traverse (void *cls, struct GNUNET_REGEX_Automaton *a,
 }
 
 /**
- * Reverses all transitions of the given automaton.
- *
- * @param a automaton.
- */
-static void
-automaton_reverse (struct GNUNET_REGEX_Automaton *a)
-{
-  struct GNUNET_REGEX_State *s;
-  struct Transition *t;
-  struct Transition *t_next;
-  struct GNUNET_REGEX_State *s_swp;
-
-  for (s = a->states_head; NULL != s; s = s->next)
-    for (t = s->transitions_head; NULL != t; t = t->next)
-      t->mark = GNUNET_NO;
-
-  for (s = a->states_head; NULL != s; s = s->next)
-  {
-    for (t = s->transitions_head; NULL != t; t = t_next)
-    {
-      t_next = t->next;
-
-      if (GNUNET_YES == t->mark || t->from_state == t->to_state)
-        continue;
-
-      t->mark = GNUNET_YES;
-
-      GNUNET_CONTAINER_DLL_remove (t->from_state->transitions_head,
-                                   t->from_state->transitions_tail, t);
-      t->from_state->transition_count--;
-      GNUNET_CONTAINER_DLL_insert (t->to_state->transitions_head,
-                                   t->to_state->transitions_tail, t);
-      t->to_state->transition_count++;
-
-      s_swp = t->from_state;
-      t->from_state = t->to_state;
-      t->to_state = s_swp;
-    }
-  }
-}
-
-/**
- * Create proof for the given state.
- *
- * @param cls closure.
- * @param s state.
- */
-static void
-automaton_create_proofs_step (void *cls, struct GNUNET_REGEX_State *s)
-{
-  struct Transition *t;
-  int i;
-  char *tmp;
-
-  for (i = 0, t = s->transitions_head; NULL != t; t = t->next, i++)
-  {
-    if (t->to_state == s)
-      GNUNET_asprintf (&tmp, "%c*", t->label);
-    else if (i != s->transition_count - 1)
-      GNUNET_asprintf (&tmp, "%c|", t->label);
-    else
-      GNUNET_asprintf (&tmp, "%c", t->label);
-
-    if (NULL != s->proof)
-      s->proof =
-          GNUNET_realloc (s->proof, strlen (s->proof) + strlen (tmp) + 1);
-    else
-      s->proof = GNUNET_malloc (strlen (tmp) + 1);
-    strcat (s->proof, tmp);
-    GNUNET_free (tmp);
-  }
-}
-
-/**
- * Create proofs for all states in the given automaton.
+ * Create proofs for all states in the given automaton. Implementation of the
+ * algorithms descriped in chapter 3.2.1 of "Automata Theory, Languages, and
+ * Computation 3rd Edition" by Hopcroft, Motwani and Ullman.
  *
  * @param a automaton.
  */
@@ -888,13 +808,120 @@ static void
 automaton_create_proofs (struct GNUNET_REGEX_Automaton *a)
 {
   struct GNUNET_REGEX_State *s;
+  struct Transition *t;
+  int i;
+  int j;
+  int k;
+  int n;
+  struct GNUNET_REGEX_State *states[a->state_count];
+  char *R_last[a->state_count][a->state_count];
+  char *R_cur[a->state_count][a->state_count];
+  char *temp;
 
-  automaton_reverse (a);
+  k = 0;
+  n = a->state_count;
 
-  for (s = a->states_head; NULL != s; s = s->next)
-    automaton_create_proofs_step (NULL, s);
+  for (i = 0, s = a->states_head; NULL != s; s = s->next, i++)
+  {
+    s->marked = i;
+    states[i] = s;
+  }
 
-  automaton_reverse (a);
+  // BASIS
+  for (i = 0; i < n; i++)
+  {
+    for (j = 0; j < n; j++)
+    {
+      R_cur[i][j] = NULL;
+      R_last[i][j] = NULL;
+      for (t = states[i]->transitions_head; NULL != t; t = t->next)
+      {
+        if (t->to_state == states[j])
+        {
+          if (NULL == R_last[i][j])
+            GNUNET_asprintf (&R_last[i][j], "%c", t->label);
+          else
+          {
+            temp = R_last[i][j];
+            GNUNET_asprintf (&R_last[i][j], "%s|%c", R_last[i][j], t->label);
+            GNUNET_free (temp);
+          }
+        }
+      }
+
+      if (i == j)
+      {
+        if (NULL == R_last[i][j])
+          GNUNET_asprintf (&R_last[i][j], "");
+        else if (1 < strlen (R_last[i][j]))
+        {
+          temp = R_last[i][j];
+          GNUNET_asprintf (&R_last[i][j], "(%s)", R_last[i][j]);
+          GNUNET_free (temp);
+        }
+      }
+    }
+  }
+
+  // INDUCTION
+  for (k = 0; k < n; k++)
+  {
+    for (i = 0; i < n; i++)
+    {
+      for (j = 0; j < n; j++)
+      {
+        if (NULL == R_last[i][k] || NULL == R_last[k][j])
+        {
+          if (NULL != R_last[i][j])
+            R_cur[i][j] = GNUNET_strdup (R_last[i][j]);
+        }
+        else if (NULL == R_last[i][j] ||
+                 0 == strcmp (R_last[i][j], R_last[i][k]))
+        {
+          if ((R_last[k][k][0] == '(' &&
+               R_last[k][k][strlen (R_last[k][k]) - 1] == ')') ||
+              (1 == strlen (R_last[k][k])))
+            GNUNET_asprintf (&R_cur[i][j], "(%s%s*%s)", R_last[i][k],
+                             R_last[k][k], R_last[k][j]);
+          else
+            GNUNET_asprintf (&R_cur[i][j], "(%s(%s)*%s)", R_last[i][k],
+                             R_last[k][k], R_last[k][j]);
+        }
+        else
+        {
+          if ((R_last[k][k][0] == '(' &&
+               R_last[k][k][strlen (R_last[k][k]) - 1] == ')') ||
+              (1 == strlen (R_last[k][k])))
+            GNUNET_asprintf (&R_cur[i][j], "(%s|%s%s*%s)", R_last[i][j],
+                             R_last[i][k], R_last[k][k], R_last[k][j]);
+          else
+            GNUNET_asprintf (&R_cur[i][j], "(%s|%s(%s)*%s)", R_last[i][j],
+                             R_last[i][k], R_last[k][k], R_last[k][j]);
+        }
+      }
+    }
+
+    for (i = 0; i < n; i++)
+    {
+      for (j = 0; j < n; j++)
+      {
+        GNUNET_free_non_null (R_last[i][j]);
+
+        if (NULL != R_cur[i][j])
+        {
+          R_last[i][j] = GNUNET_strdup (R_cur[i][j]);
+          GNUNET_free (R_cur[i][j]);
+          R_cur[i][j] = NULL;
+        }
+      }
+    }
+  }
+
+  for (i = 0; i < n; i++)
+  {
+    for (j = 0; j < n; j++)
+      GNUNET_free_non_null (R_last[i][j]);
+  }
 }
 
 /**
@@ -1772,8 +1799,7 @@ GNUNET_REGEX_construct_nfa (const char *regex, const size_t len)
   for (; altcount > 0; altcount--)
     nfa_add_alternation (&ctx);
 
-  if (NULL != p)
-    GNUNET_free (p);
+  GNUNET_free_non_null (p);
 
   nfa = ctx.stack_tail;
   GNUNET_CONTAINER_DLL_remove (ctx.stack_head, ctx.stack_tail, nfa);
@@ -1790,8 +1816,9 @@ error:
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not parse regex\n");
   if (NULL != error_msg)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s\n", error_msg);
-  if (NULL != p)
-    GNUNET_free (p);
+
+  GNUNET_free_non_null (p);
+
   while (NULL != ctx.stack_tail)
   {
     GNUNET_REGEX_automaton_destroy (ctx.stack_tail);
