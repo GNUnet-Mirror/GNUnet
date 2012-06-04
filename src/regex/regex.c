@@ -917,6 +917,13 @@ automaton_create_proofs (struct GNUNET_REGEX_Automaton *a)
     }
   }
 
+  // assign proofs
+  for (i = 0; i < n; i++)
+  {
+    states[i]->proof = GNUNET_strdup (R_last[a->start->marked][i]);
+  }
+
+  // cleanup
   for (i = 0; i < n; i++)
   {
     for (j = 0; j < n; j++)
