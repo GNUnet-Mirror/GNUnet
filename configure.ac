@@ -162,6 +162,11 @@ netbsd*)
      UNIXONLY=""
      funcstocheck=""
      ;;
+gnu*)
+     AC_DEFINE_UNQUOTED(GNU,1,[This is a GNU system])
+     build_target="gnu"
+     UNIXONLY="#"
+     ;;
 *)
      AC_MSG_RESULT(Unrecognised OS $host_os)
      AC_DEFINE_UNQUOTED(OTHEROS,1,[Some strange OS])
@@ -184,6 +189,7 @@ AM_CONDITIONAL(SOLARIS, test "$build_target" = "solaris")
 AM_CONDITIONAL(XFREEBSD, test "$build_target" = "freebsd")
 AM_CONDITIONAL(OPENBSD, test "$build_target" = "openbsd")
 AM_CONDITIONAL(LINUX, test "$build_target" = "linux")
+AM_CONDITIONAL(GNU, test "$build_target" = "gnu")
 
 AC_MSG_RESULT([$build_target])
 AC_SUBST(build_target)
