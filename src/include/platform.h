@@ -146,7 +146,7 @@
 #include <semaphore.h>
 #include <net/if.h>
 #endif
-#ifdef LINUX
+#if defined(LINUX) || defined(GNU)
 #include <net/if.h>
 #endif
 #ifdef SOLARIS
