@@ -17,7 +17,7 @@ pkgcfg_DATA = \
 AM_CLFAGS = -g
 
 bin_PROGRAMS = \
- gnunet-service-mesh
+ gnunet-service-mesh  gnunet-service-mesh_new
 
 lib_LTLIBRARIES = \
   libgnunetmesh.la
@@ -30,6 +30,18 @@ gnunet_service_mesh_LDADD = \
   $(top_builddir)/src/dht/libgnunetdht.la \
   $(top_builddir)/src/util/libgnunetutil.la
  gnunet_service_mesh_DEPENDENCIES = \
+  $(top_builddir)/src/core/libgnunetcore.la\
+  $(top_builddir)/src/dht/libgnunetdht.la \
+  $(top_builddir)/src/util/libgnunetutil.la
+
+gnunet_service_mesh_new_SOURCES = \
+ gnunet-service-mesh_new.c \
+ mesh_tunnel_tree.c mesh_tunnel_tree.h
+gnunet_service_mesh_new_LDADD = \
+  $(top_builddir)/src/core/libgnunetcore.la\
+  $(top_builddir)/src/dht/libgnunetdht.la \
+  $(top_builddir)/src/util/libgnunetutil.la
+ gnunet_service_mesh_new_DEPENDENCIES = \
   $(top_builddir)/src/core/libgnunetcore.la\
   $(top_builddir)/src/dht/libgnunetdht.la \
   $(top_builddir)/src/util/libgnunetutil.la
