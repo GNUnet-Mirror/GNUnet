@@ -2414,6 +2414,7 @@ handle_delegation_ns_shorten(void* cls,
   
   rh_bg->proc = &handle_delegation_dht_bg_shorten;
   rh_bg->proc_cls = NULL;
+  rh_bg->timeout = GNUNET_TIME_UNIT_FOREVER_REL;
   
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
              "GNS_SHORTEN: Starting background lookup for %s\n",
