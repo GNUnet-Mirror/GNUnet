@@ -29,7 +29,188 @@
 
 #define GNUNET_GNS_PROXY_PORT 7777
 
-//TODO maybe make this an api call
+/* MHD/cURL defines */
+#define BUF_WAIT_FOR_CURL 0
+#define BUF_WAIT_FOR_MHD 1
+#define HTML_HDR_CONTENT "Content-Type: text/html\r\n"
+
+/* regexp */
+#define RE_DOTPLUS "<a href=\"http://(([A-Za-z]+[.])+)([+])"
+#define RE_N_MATCHES 4
+
+/* The usual suspects */
+#define HTTP_PORT 80
+#define HTTPS_PORT 443
+
+
+
+/**
+ * A structure for socks requests
+ */
+struct Socks5Request
+{
+  /* The client socket */
+  struct GNUNET_NETWORK_Handle *sock;
+
+  /* The server socket */
+  struct GNUNET_NETWORK_Handle *remote_sock;
+  
+  /* The socks state */
+  int state;
+  
+  /* Client socket read task */
+  GNUNET_SCHEDULER_TaskIdentifier rtask;
+
+  /* Server socket read task */
+  GNUNET_SCHEDULER_TaskIdentifier fwdrtask;
+
+  /* Client socket write task */
+  GNUNET_SCHEDULER_TaskIdentifier wtask;
+
+  /* Server socket write task */
+  GNUNET_SCHEDULER_TaskIdentifier fwdwtask;
+
+  /* Read buffer */
+  char rbuf[2048];
+
+  /* Write buffer */
+  char wbuf[2048];
+
+  /* Length of data in read buffer */
+  unsigned int rbuf_len;
+
+  /* Length of data in write buffer */
+  unsigned int wbuf_len;
+};
+
+
+/**
+ * A structure for all running Httpds
+ */
+struct MhdHttpList
+{
+  /* DLL for httpds */
+  struct MhdHttpList *prev;
+
+  /* DLL for httpds */
+  struct MhdHttpList *next;
+
+  /* is this an ssl daemon? */
+  int is_ssl;
+
+  /* the domain name to server (only important for SSL) */
+  char domain[256];
+
+  /* The daemon handle */
+  struct MHD_Daemon *daemon;
+
+  /* The task ID */
+  GNUNET_SCHEDULER_TaskIdentifier httpd_task;
+};
+
+/**
+ * A structure for MHD<->cURL streams
+ */
+struct ProxyCurlTask
+{
+  /* DLL for tasks */
+  struct ProxyCurlTask *prev;
+
+  /* DLL for tasks */
+  struct ProxyCurlTask *next;
+
+  /* Handle to cURL */
+  CURL *curl;
+
+  /* The URL to fetch */
+  char url[2048];
+
+  /* The cURL write buffer / MHD read buffer */
+  char buffer[CURL_MAX_WRITE_SIZE];
+
+  /* The pointer to the data in the buffer */
+  char *buffer_ptr;
+
+  /* The buffer status (BUF_WAIT_FOR_CURL or BUF_WAIT_FOR_MHD) */
+  int buf_status;
+
+  /* Number of bytes in buffer */
+  unsigned int bytes_in_buffer;
+
+  /* Indicates wheather the download is in progress */
+  int download_in_progress;
+
+  /* Indicates wheather the download was successful */
+  int download_successful;
+
+  /* Indicates wheather the download failed */
+  int download_error;
+
+  /* Indicates wheather we need to parse HTML */
+  int parse_content;
+
+  /* Indicates wheather we are postprocessing the HTML right now */
+  int is_postprocessing;
+
+  /* Indicates wheather postprocessing has finished */
+  int pp_finished;
+
+  /* Task ID of the postprocessing task */
+  GNUNET_SCHEDULER_TaskIdentifier pp_task;
+
+  /* The postprocessing buffer TODO length? */
+  char pp_buf[256];
+
+  /* The authority of the corresponding host (site of origin) */
+  char authority[256];
+
+  /* The hostname (Host header field) */
+  char host[256];
+
+  /* The associated daemon list entry */
+  struct MhdHttpList *daemon;
+  
+};
+
+/* The port the proxy is running on (default 7777) */
+unsigned long port = GNUNET_GNS_PROXY_PORT;
+
+/* The listen socket of the proxy */
+static struct GNUNET_NETWORK_Handle *lsock;
+
+/* The listen task ID */
+GNUNET_SCHEDULER_TaskIdentifier ltask;
+
+/* The cURL download task */
+GNUNET_SCHEDULER_TaskIdentifier curl_download_task;
+
+/* The non SSL httpd daemon handle */
+static struct MHD_Daemon *httpd;
+
+/* The http task ID */
+static GNUNET_SCHEDULER_TaskIdentifier httpd_task;
+
+/* The cURL multi handle */
+static CURLM *curl_multi;
+
+/* Handle to the GNS service */
+static struct GNUNET_GNS_Handle *gns_handle;
+
+/* DLL for ProxyCurlTasks */
+static struct ProxyCurlTask *ctasks_head;
+
+/* DLL for ProxyCurlTasks */
+static struct ProxyCurlTask *ctasks_tail;
+
+/* DLL for http daemons */
+static struct MhdHttpList *mhd_httpd_head;
+
+/* DLL for http daemons */
+static struct MhdHttpList *mhd_httpd_tail;
+
+/* Handle to the regex for dotplus (.+) replacement in HTML */
+static regex_t re_dotplus;
+
 /**
  * Checks if name is in tld
  *
@@ -58,77 +239,6 @@ is_tld(const char* name, const char* tld)
   return GNUNET_YES;
 }
 
-struct Socks5Request
-{
-  struct GNUNET_NETWORK_Handle *sock;
-  struct GNUNET_NETWORK_Handle *remote_sock;
-
-  int state;
-
-  GNUNET_SCHEDULER_TaskIdentifier rtask;
-  GNUNET_SCHEDULER_TaskIdentifier fwdrtask;
-  GNUNET_SCHEDULER_TaskIdentifier wtask;
-  GNUNET_SCHEDULER_TaskIdentifier fwdwtask;
-
-  char rbuf[2048];
-  char wbuf[2048];
-  unsigned int rbuf_len;
-  unsigned int wbuf_len;
-};
-
-
-#define BUF_WAIT_FOR_CURL 0
-#define BUF_WAIT_FOR_MHD 1
-#define HTML_HDR_CONTENT "Content-Type: text/html\r\n"
-#define RE_DOTPLUS "<a href=\"http://(([A-Za-z]+[.])+)([+])"
-#define RE_N_MATCHES 4
-
-#define HTTP_PORT 80
-#define HTTPS_PORT 443
-
-struct ProxyCurlTask
-{
-  //DLL
-  struct ProxyCurlTask *prev;
-  struct ProxyCurlTask *next;
-
-  CURL *curl;
-  char url[2048];
-  char buffer[CURL_MAX_WRITE_SIZE];
-  char *buffer_ptr;
-  int buf_status;
-  unsigned int bytes_downloaded;
-  unsigned int bytes_in_buffer;
-  int download_in_progress;
-  int download_successful;
-  int download_error;
-  struct MHD_Connection *connection;
-  int parse_content;
-  int is_postprocessing;
-  int pp_finished;
-
-  GNUNET_SCHEDULER_TaskIdentifier pp_task;
-
-  char pp_buf[256];
-  char authority[256];
-  char host[256];
-  
-};
-
-unsigned long port = GNUNET_GNS_PROXY_PORT;
-static struct GNUNET_NETWORK_Handle *lsock;
-GNUNET_SCHEDULER_TaskIdentifier ltask;
-GNUNET_SCHEDULER_TaskIdentifier curl_download_task;
-static struct MHD_Daemon *httpd;
-static GNUNET_SCHEDULER_TaskIdentifier httpd_task;
-static CURLM *curl_multi;
-
-static struct GNUNET_GNS_Handle *gns_handle;
-
-static struct ProxyCurlTask *ctasks_head;
-static struct ProxyCurlTask *ctasks_tail;
-
-static regex_t re_dotplus;
 
 /**
  * Read HTTP request header field 'Host'
@@ -187,9 +297,36 @@ curl_check_hdr (void *buffer, size_t size, size_t nmemb, void *cls)
 
 /**
  * schedule mhd
+ *
+ * @param hd a http daemon list entry
  */
 static void
-run_httpd (void);
+run_httpd (struct MhdHttpList *hd);
+
+
+/**
+ * schedule all mhds
+ *
+ */
+static void
+run_httpds (void);
+
+
+/**
+ * Task that simply runs MHD main loop
+ *
+ * @param cls NULL
+ * @param tc task context
+ */
+static void
+run_mhd (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+
+  struct MhdHttpList *hd;
+
+  for (hd=mhd_httpd_head; hd != NULL; hd = hd->next)
+    MHD_run (hd->daemon);
+}
 
 
 /**
@@ -208,10 +345,9 @@ callback_download (void *ptr, size_t size, size_t nmemb, void *ctx)
   size_t total;
   struct ProxyCurlTask *ctask = ctx;
 
-  MHD_run (httpd);
+  //MHD_run (httpd);
 
   total = size*nmemb;
-  ctask->bytes_downloaded += total;
 
   if (total == 0)
   {
@@ -244,7 +380,7 @@ callback_download (void *ptr, size_t size, size_t nmemb, void *ctx)
 
   //GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
   //            "cURL chunk:\n%s\n", (char*)ctask->buffer);
-  MHD_run (httpd);
+  run_mhd (NULL, NULL);
   return total;
 }
 
@@ -267,12 +403,16 @@ mhd_content_free (void *cls)
 
 }
 
-static void
-run_mhd (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  MHD_run (httpd);
-}
 
+
+
+
+/**
+ * Shorten result callback
+ *
+ * @param cls the proxycurltask
+ * @param short_name the shortened name (NULL on error)
+ */
 static void
 process_shorten (void* cls, const char* short_name)
 {
@@ -301,13 +441,18 @@ process_shorten (void* cls, const char* short_name)
   GNUNET_SCHEDULER_add_now (&run_mhd, NULL);
 }
 
+
+/**
+ * Postprocessing task that uses GNS to shorten names
+ *
+ * @param cls the proxycurltask
+ * @param tc the task context
+ */
 static void
 postprocess_name (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct ProxyCurlTask *ctask = cls;
   char tmp[strlen(ctask->pp_buf)];
-
-
 
   sprintf ( tmp, "%s%s", ctask->pp_buf, ctask->authority);
 
@@ -689,7 +834,7 @@ curl_task_download (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
     GNUNET_assert ( num_ctasks == running );
 
-    run_httpd ();
+    run_httpds ();
 
   } while (mret == CURLM_CALL_MULTI_PERFORM);
   
@@ -705,6 +850,9 @@ curl_task_download (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 /**
  * Initialize download and trigger curl
+ *
+ * @param cls the proxycurltask
+ * @param auth_name the name of the authority (site of origin) of ctask->host
  *
  */
 static void
@@ -813,8 +961,6 @@ create_response (void *cls,
 
   ctask->download_in_progress = GNUNET_YES;
   ctask->download_successful = GNUNET_NO;
-  ctask->bytes_downloaded = 0;
-  ctask->connection = con;
   ctask->buf_status = BUF_WAIT_FOR_CURL;
   ctask->bytes_in_buffer = 0;
   ctask->parse_content = GNUNET_NO;
@@ -891,10 +1037,23 @@ do_httpd (void *cls,
 
 
 /**
+ * run all httpd
+ */
+static void
+run_httpds ()
+{
+  struct MhdHttpList *hd;
+
+  for (hd=mhd_httpd_head; hd != NULL; hd = hd->next)
+    run_httpd (hd);
+
+}
+
+/**
  * schedule mhd
  */
 static void
-run_httpd ()
+run_httpd (struct MhdHttpList *hd)
 {
   fd_set rs;
   fd_set ws;
@@ -914,13 +1073,13 @@ run_httpd ()
   wes = GNUNET_NETWORK_fdset_create ();
   wws = GNUNET_NETWORK_fdset_create ();
   max = -1;
-  GNUNET_assert (MHD_YES == MHD_get_fdset (httpd, &rs, &ws, &es, &max));
+  GNUNET_assert (MHD_YES == MHD_get_fdset (hd->daemon, &rs, &ws, &es, &max));
   
   
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "MHD fds: max=%d\n", max);
   
-  haveto = MHD_get_timeout (httpd, &timeout);
+  haveto = MHD_get_timeout (hd->daemon, &timeout);
 
   if (haveto == MHD_YES)
     tv.rel_value = (uint64_t) timeout;
@@ -931,15 +1090,16 @@ run_httpd ()
   GNUNET_NETWORK_fdset_copy_native (wes, &es, max + 1);
   
   if (httpd_task != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel (httpd_task);
-  httpd_task =
+    GNUNET_SCHEDULER_cancel (hd->httpd_task);
+  hd->httpd_task =
     GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_HIGH,
                                  tv, wrs, wws,
-                                 &do_httpd, NULL);
+                                 &do_httpd, hd);
   GNUNET_NETWORK_fdset_destroy (wrs);
   GNUNET_NETWORK_fdset_destroy (wws);
   GNUNET_NETWORK_fdset_destroy (wes);
 }
+
 
 /**
  * Task run whenever HTTP server operations are pending.
@@ -951,12 +1111,14 @@ static void
 do_httpd (void *cls,
           const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  httpd_task = GNUNET_SCHEDULER_NO_TASK;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "MHD run \n");
-  MHD_run (httpd);
-  run_httpd ();
+  struct MhdHttpList *hd = cls;
+  
+  hd->httpd_task = GNUNET_SCHEDULER_NO_TASK;
+  
+  MHD_run (hd->daemon);
+  run_httpd (hd);
 }
+
 
 /**
  * Read data from socket
@@ -1118,8 +1280,14 @@ do_read_remote (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
+/**
+ * Adds a socket to MHD
+ *
+ * @param h the handle to the socket to add
+ * @return whatever MHD_add_connection returns
+ */
 static int
-add_handle_to_mhd (struct GNUNET_NETWORK_Handle *h)
+add_handle_to_mhd (struct GNUNET_NETWORK_Handle *h, struct MHD_Daemon *daemon)
 {
   int fd;
   struct sockaddr *addr;
@@ -1129,8 +1297,123 @@ add_handle_to_mhd (struct GNUNET_NETWORK_Handle *h)
   addr = GNUNET_NETWORK_get_addr (h);
   len = GNUNET_NETWORK_get_addrlen (h);
 
-  return MHD_add_connection (httpd, fd, addr, len);
+  return MHD_add_connection (daemon, fd, addr, len);
 }
+
+
+/*TODO this needs MHD API modification */
+static int http_port = 4444;
+
+
+static long
+get_file_size (const char* filename)
+{
+  FILE *fp;
+
+  fp = fopen (filename, "rb");
+  if (fp)
+  {
+    long size;
+
+    if ((0 != fseek (fp, 0, SEEK_END)) || (-1 == (size = ftell (fp))))
+      size = 0;
+
+    fclose (fp);
+
+    return size;
+  }
+  
+  return 0;
+}
+
+/**
+ * Read file in filename
+ *
+ * @param filename file to read
+ * @return data
+ */
+static char*
+load_file (const char* filename)
+{
+  FILE *fp;
+  char *buffer;
+  long size;
+
+  size = get_file_size (filename);
+  if (size == 0)
+    return NULL;
+
+  fp = fopen (filename, "rb");
+  if (!fp)
+    return NULL;
+
+  buffer = GNUNET_malloc (size);
+  if (!buffer)
+  {
+    fclose (fp);
+    return NULL;
+  }
+
+  if (size != fread (buffer, 1, size, fp))
+  {
+    GNUNET_free (buffer);
+    buffer = NULL;
+  }
+
+  fclose (fp);
+  return buffer;
+}
+
+/**
+ * Adds a socket to an SSL MHD instance
+ * It is important the the domain name is
+ * correct. In most cases we need to start a new daemon
+ */
+static int
+add_handle_to_ssl_mhd (struct GNUNET_NETWORK_Handle *h, char* domain)
+{
+  struct MhdHttpList *hd = NULL;
+
+  static char *key_pem;
+  static char *cert_pem;
+
+  key_pem = load_file ("server.key");
+  cert_pem = load_file ("server.pem");
+
+  for (hd = mhd_httpd_head; hd != NULL; hd = hd->next)
+  {
+    if (0 == strcmp (hd->domain, domain))
+      break;
+  }
+
+  if (NULL == hd)
+  {
+    /* Start new MHD */
+    /* TODO: create cert, start SSL MHD */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "No previous SSL instance found... starting new one\n");
+    hd = GNUNET_malloc (sizeof (struct MhdHttpList));
+    hd->is_ssl = GNUNET_YES;
+    strcpy (hd->domain, domain);
+    hd->daemon = MHD_start_daemon (MHD_USE_DEBUG | MHD_USE_SSL, http_port++,
+                              NULL, NULL,
+                              &create_response, NULL,
+                              MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 128,
+                              MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 16,
+                              MHD_OPTION_NOTIFY_COMPLETED,
+                              NULL, NULL,
+                              MHD_OPTION_HTTPS_MEM_KEY, key_pem,
+                              MHD_OPTION_HTTPS_MEM_CERT, cert_pem,
+                              MHD_OPTION_END);
+    hd->httpd_task = GNUNET_SCHEDULER_NO_TASK;
+    
+    GNUNET_CONTAINER_DLL_insert (mhd_httpd_head, mhd_httpd_tail, hd);
+  }
+  
+  return add_handle_to_mhd (h, hd->daemon);
+}
+
+
 
 /**
  * Read data from incoming connection
@@ -1147,6 +1430,7 @@ do_read (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct socks5_client_request *c_req;
   struct socks5_server_response *s_resp;
 
+  int ret;
   char domain[256];
   uint8_t dom_len;
   uint16_t req_port;
@@ -1239,8 +1523,22 @@ do_read (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Requested connection is gnunet tld\n",
                   domain);
+      
+      ret = MHD_NO;
+      if (ntohs(req_port) == HTTPS_PORT)
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    "Requested connection is HTTPS\n");
+        ret = add_handle_to_ssl_mhd ( s5r->sock, domain );
+      }
+      else if (NULL != httpd)
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    "Requested connection is HTTP\n");
+        ret = add_handle_to_mhd ( s5r->sock, httpd );
+      }
 
-      if (NULL == httpd)
+      if (ret != MHD_YES)
       {
         GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                     _("Failed to start HTTP server\n"));
@@ -1256,10 +1554,8 @@ do_read (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         //GNUNET_free(s5r);
         return;
       }
-
-      if (MHD_YES == add_handle_to_mhd ( s5r->sock ))
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "Sucessfully added client to MHD!\n");
+      
+      /* Signal success */
       s_resp->version = 0x05;
       s_resp->reply = 0x00;
       s_resp->reserved = 0x00;
@@ -1269,7 +1565,7 @@ do_read (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
                                         s5r->sock,
                                         &do_write, s5r);
-      run_httpd ();
+      run_httpds ();
       //GNUNET_free ( s5r );
       //FIXME complete socks resp!
       return;
@@ -1398,6 +1694,7 @@ do_read (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 }
 
+
 /**
  * Accept new incoming connections
  *
@@ -1441,6 +1738,7 @@ do_accept (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   //GNUNET_CONTAINER_DLL_insert (s5conns.head, s5conns.tail, s5r);
 }
 
+
 /**
  * Task run on shutdown
  *
@@ -1451,24 +1749,36 @@ static void
 do_shutdown (void *cls,
              const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  if (GNUNET_SCHEDULER_NO_TASK != httpd_task)
-  {
-    GNUNET_SCHEDULER_cancel (httpd_task);
-    httpd_task = GNUNET_SCHEDULER_NO_TASK;
-  }
-  
+
+  struct MhdHttpList *hd;
+  struct MhdHttpList *tmp_hd;
+
   if (GNUNET_SCHEDULER_NO_TASK != curl_download_task)
   {
     GNUNET_SCHEDULER_cancel (curl_download_task);
     curl_download_task = GNUNET_SCHEDULER_NO_TASK;
   }
 
-  if (NULL != httpd)
+  for (hd = mhd_httpd_head; hd != NULL; hd = tmp_hd)
   {
-    MHD_stop_daemon (httpd);
-    httpd = NULL;
+    tmp_hd = hd->next;
+
+    if (GNUNET_SCHEDULER_NO_TASK != hd->httpd_task)
+    {
+      GNUNET_SCHEDULER_cancel (hd->httpd_task);
+      hd->httpd_task = GNUNET_SCHEDULER_NO_TASK;
+    }
+
+    if (NULL != hd->daemon)
+    {
+      MHD_stop_daemon (hd->daemon);
+      hd->daemon = NULL;
+    }
+
+    GNUNET_free (hd);
   }
 }
+
 
 /**
  * Compiles a regex for us
@@ -1494,6 +1804,7 @@ compile_regex (regex_t *re, const char* rt)
   return 0;
 }
 
+
 /**
  * Main function that will be run
  *
@@ -1507,6 +1818,7 @@ run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct sockaddr_in sa;
+  struct MhdHttpList *hd;
 
   compile_regex (&re_dotplus, (char*) RE_DOTPLUS);
 
@@ -1567,8 +1879,14 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Proxy listens on port %u\n",
               port);
+
+  mhd_httpd_head = NULL;
+  mhd_httpd_tail = NULL;
   
-  httpd = MHD_start_daemon (MHD_USE_DEBUG, 4444,
+  hd = GNUNET_malloc (sizeof (struct MhdHttpList));
+  hd->is_ssl = GNUNET_NO;
+  strcpy (hd->domain, "");
+  httpd = MHD_start_daemon (MHD_USE_DEBUG, http_port++,
                                NULL, NULL,
                                &create_response, NULL,
                                MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 128,
@@ -1576,12 +1894,18 @@ run (void *cls, char *const *args, const char *cfgfile,
                                MHD_OPTION_NOTIFY_COMPLETED,
                                NULL, NULL,
                                MHD_OPTION_END);
-  run_httpd ();
+  hd->daemon = httpd;
+  hd->httpd_task = GNUNET_SCHEDULER_NO_TASK;
+
+  GNUNET_CONTAINER_DLL_insert (mhd_httpd_head, mhd_httpd_tail, hd);
+
+  run_httpds ();
 
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                 &do_shutdown, NULL);
 
 }
+
 
 /**
  * The main function for gnunet-gns-proxy.
