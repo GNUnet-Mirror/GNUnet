@@ -29,7 +29,8 @@ EXTRA_DIST = \
  hostlist.php \
  report.sh \
  gnunet_pyexpect.py.in \
- gnunet_janitor.py.in
+ gnunet_janitor.py.in \
+ gnunet-gns-import.sh
 
 do_subst = $(SED) -e 's,[@]PYTHON[@],$(PYTHON),g'
 
