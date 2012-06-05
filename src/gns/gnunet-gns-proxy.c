@@ -168,7 +168,7 @@ struct ProxyCurlTask
   char host[256];
 
   /* The associated daemon list entry */
-  struct MhdHttpList *daemon;
+  struct MhdHttpList *mhd;
   
 };
 
@@ -186,9 +186,6 @@ GNUNET_SCHEDULER_TaskIdentifier curl_download_task;
 
 /* The non SSL httpd daemon handle */
 static struct MHD_Daemon *httpd;
-
-/* The http task ID */
-static GNUNET_SCHEDULER_TaskIdentifier httpd_task;
 
 /* The cURL multi handle */
 static CURLM *curl_multi;
@@ -210,6 +207,7 @@ static struct MhdHttpList *mhd_httpd_tail;
 
 /* Handle to the regex for dotplus (.+) replacement in HTML */
 static regex_t re_dotplus;
+
 
 /**
  * Checks if name is in tld
@@ -322,9 +320,9 @@ static void
 run_mhd (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
 
-  struct MhdHttpList *hd;
+  struct MhdHttpList *hd = cls;
 
-  for (hd=mhd_httpd_head; hd != NULL; hd = hd->next)
+  //for (hd=mhd_httpd_head; hd != NULL; hd = hd->next)
     MHD_run (hd->daemon);
 }
 
@@ -380,7 +378,8 @@ callback_download (void *ptr, size_t size, size_t nmemb, void *ctx)
 
   //GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
   //            "cURL chunk:\n%s\n", (char*)ctask->buffer);
-  run_mhd (NULL, NULL);
+  //run_mhd (NULL, NULL);
+  GNUNET_SCHEDULER_add_now (&run_mhd, ctask->mhd);
   return total;
 }
 
@@ -402,9 +401,6 @@ mhd_content_free (void *cls)
   GNUNET_free (ctask);
 
 }
-
-
-
 
 
 /**
@@ -438,7 +434,7 @@ process_shorten (void* cls, const char* short_name)
 
   ctask->pp_finished = GNUNET_YES;
 
-  GNUNET_SCHEDULER_add_now (&run_mhd, NULL);
+  GNUNET_SCHEDULER_add_now (&run_mhd, ctask->mhd);
 }
 
 
@@ -495,7 +491,7 @@ mhd_content_cb (void *cls,
     ctask->download_in_progress = GNUNET_NO;
     curl_multi_remove_handle (curl_multi, ctask->curl);
     curl_easy_cleanup (ctask->curl);
-    GNUNET_SCHEDULER_add_now (&run_mhd, NULL);
+    GNUNET_SCHEDULER_add_now (&run_mhd, ctask->mhd);
     return MHD_CONTENT_READER_END_OF_STREAM;
   }
   
@@ -507,7 +503,7 @@ mhd_content_cb (void *cls,
     ctask->download_in_progress = GNUNET_NO;
     curl_multi_remove_handle (curl_multi, ctask->curl);
     curl_easy_cleanup (ctask->curl);
-    GNUNET_SCHEDULER_add_now (&run_mhd, NULL);
+    GNUNET_SCHEDULER_add_now (&run_mhd, ctask->mhd);
     return MHD_CONTENT_READER_END_WITH_ERROR;
   }
 
@@ -561,7 +557,7 @@ mhd_content_cb (void *cls,
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       "Skipping next %d bytes in buffer\n", m[0].rm_eo);
 
-          GNUNET_SCHEDULER_add_now (&run_mhd, NULL);
+          GNUNET_SCHEDULER_add_now (&run_mhd, ctask->mhd);
 
           if ( strlen (ctask->pp_buf) <= max )
           {
@@ -620,11 +616,11 @@ mhd_content_cb (void *cls,
       ctask->buf_status = BUF_WAIT_FOR_CURL;
       ctask->buffer_ptr = ctask->buffer;
       curl_easy_pause (ctask->curl, CURLPAUSE_CONT);
-      GNUNET_SCHEDULER_add_now (&run_mhd, NULL);
+      GNUNET_SCHEDULER_add_now (&run_mhd, ctask->mhd);
     }
   }
 
-  GNUNET_SCHEDULER_add_now (&run_mhd, NULL);
+  GNUNET_SCHEDULER_add_now (&run_mhd, ctask->mhd);
 
   return copied;
 }
@@ -908,6 +904,7 @@ create_response (void *cls,
                  void **con_cls)
 {
   static int dummy;
+  struct MhdHttpList* hd = cls;
   const char* page = "<html><head><title>gnoxy</title>"\
                       "</head><body>cURL fail</body></html>";
   struct MHD_Response *response;
@@ -941,6 +938,7 @@ create_response (void *cls,
   
   /* Do cURL */
   ctask = GNUNET_malloc (sizeof (struct ProxyCurlTask));
+  ctask->mhd = hd;
   ctask->curl = curl_easy_init();
 
   if (curl_multi == NULL)
@@ -1089,7 +1087,7 @@ run_httpd (struct MhdHttpList *hd)
   GNUNET_NETWORK_fdset_copy_native (wws, &ws, max + 1);
   GNUNET_NETWORK_fdset_copy_native (wes, &es, max + 1);
   
-  if (httpd_task != GNUNET_SCHEDULER_NO_TASK)
+  if (hd->httpd_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (hd->httpd_task);
   hd->httpd_task =
     GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_HIGH,
@@ -1397,7 +1395,7 @@ add_handle_to_ssl_mhd (struct GNUNET_NETWORK_Handle *h, char* domain)
     strcpy (hd->domain, domain);
     hd->daemon = MHD_start_daemon (MHD_USE_DEBUG | MHD_USE_SSL, http_port++,
                               NULL, NULL,
-                              &create_response, NULL,
+                              &create_response, hd,
                               MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 128,
                               MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 16,
                               MHD_OPTION_NOTIFY_COMPLETED,
@@ -1763,8 +1761,14 @@ do_shutdown (void *cls,
   {
     tmp_hd = hd->next;
 
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Stopping daemon\n");
+
     if (GNUNET_SCHEDULER_NO_TASK != hd->httpd_task)
     {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Stopping select task %d\n",
+                  hd->httpd_task);
       GNUNET_SCHEDULER_cancel (hd->httpd_task);
       hd->httpd_task = GNUNET_SCHEDULER_NO_TASK;
     }
@@ -1777,6 +1781,8 @@ do_shutdown (void *cls,
 
     GNUNET_free (hd);
   }
+
+  GNUNET_GNS_disconnect (gns_handle);
 }
 
 
@@ -1888,7 +1894,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   strcpy (hd->domain, "");
   httpd = MHD_start_daemon (MHD_USE_DEBUG, http_port++,
                                NULL, NULL,
-                               &create_response, NULL,
+                               &create_response, hd,
                                MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 128,
                                MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 16,
                                MHD_OPTION_NOTIFY_COMPLETED,
