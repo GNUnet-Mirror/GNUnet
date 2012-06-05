@@ -212,16 +212,6 @@ struct MeshPeerInfo
      * Closure given to the DHT GET
      */
   struct MeshPathInfo *dhtgetcls;
-  
-    /**
-     * Transmission queue to this peer, head
-     */
-  struct MeshPeerQueue *queue_head;
-
-    /**
-     * Transmission queue to this peer, tail
-     */
-  struct MeshPeerQueue *queue_tail;
 
     /**
      * Array of tunnels this peer participates in
@@ -235,11 +225,6 @@ struct MeshPeerInfo
      * Number of tunnels this peers participates in
      */
   unsigned int ntunnels;
-
-    /**
-     * Handle to stop queued transmission
-     */
-  struct GNUNET_CORE_TransmitHandle *core_transmit;
 };
 
 
@@ -533,6 +518,12 @@ static struct MeshClient *clients;
 static struct MeshClient *clients_tail;
 
 /**
+ * Transmission queue to core
+ */
+struct MeshPeerQueue *queue_head;
+struct MeshPeerQueue *queue_tail;
+
+/**
  * Tunnels known, indexed by MESH_TunnelID (MeshTunnel)
  */
 static struct GNUNET_CONTAINER_MultiHashMap *tunnels;
@@ -548,15 +539,20 @@ static struct GNUNET_CONTAINER_MultiHashMap *incoming_tunnels;
  */
 static struct GNUNET_CONTAINER_MultiHashMap *peers;
 
+/*
+ * Handle to communicate with transport
+ */
+// static struct GNUNET_TRANSPORT_Handle *transport_handle;
+
 /**
  * Handle to communicate with core
  */
 static struct GNUNET_CORE_Handle *core_handle;
 
 /**
- * Handle to communicate with transport
+ * Handle to for queued transmissions
  */
-// static struct GNUNET_TRANSPORT_Handle *transport_handle;
+struct GNUNET_CORE_TransmitHandle *core_transmit;
 
 /**
  * Handle to use DHT
@@ -2675,9 +2671,7 @@ queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
 {
   struct MeshTransmissionDescriptor *dd;
   struct MeshPathInfo *path_info;
-  struct MeshPeerInfo *peer;
 
-  peer = queue->peer;
   if (GNUNET_YES == clear_cls)
   {
     switch (queue->type)
@@ -2700,8 +2694,8 @@ queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
     }
     GNUNET_free_non_null (queue->cls);
   }
-  GNUNET_CONTAINER_DLL_remove (peer->queue_head, peer->queue_tail, queue);
-  GNUNET_free(queue);
+  GNUNET_CONTAINER_DLL_remove (queue_head, queue_tail, queue);
+  GNUNET_free (queue);
 }
 
 
@@ -2721,8 +2715,8 @@ queue_send (void *cls, size_t size, void *buf)
     struct MeshPeerQueue *queue;
     size_t data_size;
 
-    peer->core_transmit = NULL;
-    queue = peer->queue_head;
+    core_transmit = NULL;
+    queue = queue_head;
 
     /* If queue is empty, send should have been cancelled */
     if (NULL == queue)
@@ -2737,7 +2731,7 @@ queue_send (void *cls, size_t size, void *buf)
         struct GNUNET_PeerIdentity id;
 
         GNUNET_PEER_resolve (peer->id, &id);
-        peer->core_transmit =
+        core_transmit =
             GNUNET_CORE_notify_transmit_ready(core_handle,
                                               0,
                                               0,
@@ -2777,18 +2771,18 @@ queue_send (void *cls, size_t size, void *buf)
     queue_destroy(queue, GNUNET_NO);
 
     /* If more data in queue, send next */
-    if (NULL != peer->queue_head)
+    if (NULL != queue_head)
     {
         struct GNUNET_PeerIdentity id;
 
         GNUNET_PEER_resolve (peer->id, &id);
-        peer->core_transmit =
+        core_transmit =
             GNUNET_CORE_notify_transmit_ready(core_handle,
                                               0,
                                               0,
                                               GNUNET_TIME_UNIT_FOREVER_REL,
                                               &id,
-                                              peer->queue_head->size,
+                                              queue_head->size,
                                               &queue_send,
                                               peer);
     }
@@ -2814,13 +2808,13 @@ queue_add (void *cls, uint16_t type, size_t size, struct MeshPeerInfo *dst)
     queue->type = type;
     queue->size = size;
     queue->peer = dst;
-    GNUNET_CONTAINER_DLL_insert_tail (dst->queue_head, dst->queue_tail, queue);
-    if (NULL == dst->core_transmit)
+    GNUNET_CONTAINER_DLL_insert_tail (queue_head, queue_tail, queue);
+    if (NULL == core_transmit)
     {
         struct GNUNET_PeerIdentity id;
 
         GNUNET_PEER_resolve (dst->id, &id);
-        dst->core_transmit =
+        core_transmit =
             GNUNET_CORE_notify_transmit_ready(core_handle,
                                               0,
                                               0,
@@ -4655,6 +4649,8 @@ static void
 core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
   struct MeshPeerInfo *pi;
+  struct MeshPeerQueue *q;
+  struct MeshPeerQueue *n;
 
   DEBUG_CONN ("Peer disconnected\n");
   pi = GNUNET_CONTAINER_multihashmap_get (peers, &peer->hashPubKey);
@@ -4663,9 +4659,16 @@ core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
     GNUNET_break (0);
     return;
   }
-  while (NULL != pi->queue_head)
+  q = queue_head;
+  while (NULL != q)
   {
-      queue_destroy(pi->queue_head, GNUNET_YES);
+      n = q->next;
+      if (q->peer == pi)
+      {
+        /* try to reroute this traffic instead */
+        queue_destroy(queue_head, GNUNET_YES);
+      }
+      q = n;
   }
   peer_info_remove_path (pi, pi->id, myid);
   if (myid == pi->id)
@@ -4711,10 +4714,18 @@ static int
 shutdown_peer (void *cls, const GNUNET_HashCode * key, void *value)
 {
   struct MeshPeerInfo *p = value;
+  struct MeshPeerQueue *q;
+  struct MeshPeerQueue *n;
 
-  while (NULL != p->queue_head)
+  q = queue_head;
+  while (NULL != q)
   {
-      queue_destroy(p->queue_head, GNUNET_YES);
+      n = q->next;
+      if (q->peer == p)
+      {
+        queue_destroy(queue_head, GNUNET_YES);
+      }
+      q = n;
   }
   peer_info_destroy (p);
   return GNUNET_YES;
