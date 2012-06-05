@@ -4666,7 +4666,7 @@ core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
       if (q->peer == pi)
       {
         /* try to reroute this traffic instead */
-        queue_destroy(queue_head, GNUNET_YES);
+        queue_destroy(q, GNUNET_YES);
       }
       q = n;
   }
@@ -4723,7 +4723,7 @@ shutdown_peer (void *cls, const GNUNET_HashCode * key, void *value)
       n = q->next;
       if (q->peer == p)
       {
-        queue_destroy(queue_head, GNUNET_YES);
+        queue_destroy(q, GNUNET_YES);
       }
       q = n;
   }
@@ -4827,12 +4827,12 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
                       &my_full_id.hashPubKey);
   myid = GNUNET_PEER_intern (&my_full_id);
 
-// //   transport_handle = GNUNET_TRANSPORT_connect(c,
-// //                                               &my_full_id,
-// //                                               NULL,
-// //                                               NULL,
-// //                                               NULL,
-// //                                               NULL);
+//   transport_handle = GNUNET_TRANSPORT_connect(c,
+//                                               &my_full_id,
+//                                               NULL,
+//                                               NULL,
+//                                               NULL,
+//                                               NULL);
 
   dht_handle = GNUNET_DHT_connect (c, 64);
   if (dht_handle == NULL)
