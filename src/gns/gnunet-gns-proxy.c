@@ -20,6 +20,7 @@
 
 #include "platform.h"
 #include <gnunet_util_lib.h>
+#include <gnunet_gns_service.h>
 #include <microhttpd.h>
 #include <curl/curl.h>
 #include <regex.h>
@@ -104,10 +105,13 @@ struct ProxyCurlTask
   struct MHD_Connection *connection;
   int parse_content;
   int is_postprocessing;
+  int pp_finished;
 
   GNUNET_SCHEDULER_TaskIdentifier pp_task;
 
   char pp_buf[256];
+  char authority[256];
+  char host[256];
   
 };
 
@@ -117,10 +121,12 @@ GNUNET_SCHEDULER_TaskIdentifier ltask;
 GNUNET_SCHEDULER_TaskIdentifier curl_download_task;
 static struct MHD_Daemon *httpd;
 static GNUNET_SCHEDULER_TaskIdentifier httpd_task;
-CURLM *curl_multi;
+static CURLM *curl_multi;
 
-struct ProxyCurlTask *ctasks_head;
-struct ProxyCurlTask *ctasks_tail;
+static struct GNUNET_GNS_Handle *gns_handle;
+
+static struct ProxyCurlTask *ctasks_head;
+static struct ProxyCurlTask *ctasks_tail;
 
 static regex_t re_dotplus;
 
@@ -262,20 +268,54 @@ mhd_content_free (void *cls)
 }
 
 static void
+run_mhd (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  MHD_run (httpd);
+}
+
+static void
+process_shorten (void* cls, const char* short_name)
+{
+  struct ProxyCurlTask *ctask = cls;
+
+  char tmp[strlen(ctask->pp_buf)]; //TODO length
+
+  if (NULL == short_name)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "MHD PP: Unable to shorten %s\n",
+                ctask->pp_buf);
+    return;
+  }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "MHD PP: Shorten %s -> %s\n",
+              ctask->pp_buf,
+              short_name);
+
+  sprintf (tmp, "<a href=http://%s", short_name);
+  strcpy (ctask->pp_buf, tmp);
+
+  ctask->pp_finished = GNUNET_YES;
+
+  GNUNET_SCHEDULER_add_now (&run_mhd, NULL);
+}
+
+static void
 postprocess_name (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct ProxyCurlTask *ctask = cls;
   char tmp[strlen(ctask->pp_buf)];
 
-  sprintf ( tmp, "<a href=http://%sxxx.gnunet", ctask->pp_buf);
 
-  strcpy (ctask->pp_buf, tmp);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Created %s\n", tmp);
+  sprintf ( tmp, "%s%s", ctask->pp_buf, ctask->authority);
 
-  run_httpd();
-  //MHD_run (httpd);
+  GNUNET_GNS_shorten (gns_handle,
+                      tmp,
+                      &process_shorten,
+                      ctask);
+
 }
 
 /**
@@ -310,6 +350,7 @@ mhd_content_cb (void *cls,
     ctask->download_in_progress = GNUNET_NO;
     curl_multi_remove_handle (curl_multi, ctask->curl);
     curl_easy_cleanup (ctask->curl);
+    GNUNET_SCHEDULER_add_now (&run_mhd, NULL);
     return MHD_CONTENT_READER_END_OF_STREAM;
   }
   
@@ -321,6 +362,7 @@ mhd_content_cb (void *cls,
     ctask->download_in_progress = GNUNET_NO;
     curl_multi_remove_handle (curl_multi, ctask->curl);
     curl_easy_cleanup (ctask->curl);
+    GNUNET_SCHEDULER_add_now (&run_mhd, NULL);
     return MHD_CONTENT_READER_END_WITH_ERROR;
   }
 
@@ -360,8 +402,12 @@ mhd_content_cb (void *cls,
         {
           
           /*Done?*/
-          if ( 0 == strcmp (ctask->pp_buf, "") )
+          if ( ctask->pp_finished == GNUNET_NO )
+          {
+            GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                        "MHD PP: Waiting for PP of %s\n", ctask->pp_buf);
             return 0;
+          }
           
           ctask->is_postprocessing = GNUNET_NO;
 
@@ -369,6 +415,8 @@ mhd_content_cb (void *cls,
           ctask->buffer_ptr += m[0].rm_eo;//(m[1].rm_eo-m[1].rm_so);
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       "Skipping next %d bytes in buffer\n", m[0].rm_eo);
+
+          GNUNET_SCHEDULER_add_now (&run_mhd, NULL);
 
           if ( strlen (ctask->pp_buf) <= max )
           {
@@ -388,9 +436,10 @@ mhd_content_cb (void *cls,
         memcpy (ctask->pp_buf, hostptr, (m[1].rm_eo-m[1].rm_so));
 
         ctask->is_postprocessing = GNUNET_YES;
+        ctask->pp_finished = GNUNET_NO;
 
-        postprocess_name(ctask, NULL);
-        //ctask->pp_task = GNUNET_SCHEDULER_add_now (&postprocess_name, ctask);
+        //postprocess_name(ctask, NULL);
+        ctask->pp_task = GNUNET_SCHEDULER_add_now (&postprocess_name, ctask);
 
         return 0;
       }
@@ -426,8 +475,11 @@ mhd_content_cb (void *cls,
       ctask->buf_status = BUF_WAIT_FOR_CURL;
       ctask->buffer_ptr = ctask->buffer;
       curl_easy_pause (ctask->curl, CURLPAUSE_CONT);
+      GNUNET_SCHEDULER_add_now (&run_mhd, NULL);
     }
   }
+
+  GNUNET_SCHEDULER_add_now (&run_mhd, NULL);
 
   return copied;
 }
@@ -651,6 +703,29 @@ curl_task_download (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   curl_download_prepare();
 }
 
+/**
+ * Initialize download and trigger curl
+ *
+ */
+static void
+process_get_authority (void* cls,
+                       const char* auth_name)
+{
+  struct ProxyCurlTask *ctask = cls;
+
+  if (NULL == auth_name)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Get authority failed!\n");
+    strcpy (ctask->authority, "");
+  }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Get authority yielded %s\n", auth_name);
+  strcpy (ctask->authority, auth_name);
+
+  curl_download_prepare ();
+}
 
 /**
  * Main MHD callback for handling requests.
@@ -752,6 +827,7 @@ create_response (void *cls,
   curl_easy_setopt (ctask->curl, CURLOPT_MAXREDIRS, 4);
   /* no need to abort if the above failed */
   sprintf (curlurl, "http://%s%s", host, url);
+  strcpy (ctask->host, host);
   strcpy (ctask->url, curlurl);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Adding new curl task for %s\n", curlurl);
@@ -783,8 +859,13 @@ create_response (void *cls,
   }
   
   GNUNET_CONTAINER_DLL_insert (ctasks_head, ctasks_tail, ctask);
-
-  curl_download_prepare ();
+  
+  GNUNET_GNS_get_authority (gns_handle,
+                            ctask->host,
+                            &process_get_authority,
+                            ctask);
+  //download_prepare (ctask);
+  //curl_download_prepare ();
 
   response = MHD_create_response_from_callback (-1, -1,
                                                 &mhd_content_cb,
@@ -1428,6 +1509,15 @@ run (void *cls, char *const *args, const char *cfgfile,
   struct sockaddr_in sa;
 
   compile_regex (&re_dotplus, (char*) RE_DOTPLUS);
+
+  gns_handle = GNUNET_GNS_connect (cfg);
+
+  if (NULL == gns_handle)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Unable to connect to GNS!\n");
+    return;
+  }
 
   memset (&sa, 0, sizeof (sa));
   sa.sin_family = AF_INET;
