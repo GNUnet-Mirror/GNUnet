@@ -1560,7 +1560,6 @@ peer_info_destroy (struct MeshPeerInfo *pi)
   struct GNUNET_PeerIdentity id;
   struct MeshPeerPath *p;
   struct MeshPeerPath *nextp;
-  unsigned int i;
 
   GNUNET_PEER_resolve (pi->id, &id);
   GNUNET_PEER_change_rc (pi->id, -1);
@@ -1576,10 +1575,6 @@ peer_info_destroy (struct MeshPeerInfo *pi)
   {
     GNUNET_DHT_get_stop (pi->dhtget);
     GNUNET_free (pi->dhtgetcls);
-  }
-  for (i = 0; i < CORE_QUEUE_SIZE; i++)
-  {
-    // FIXME CORE_QUEUE_SIZE
   }
   p = pi->path_head;
   while (NULL != p)
@@ -2673,32 +2668,38 @@ send_core_path_ack (void *cls, size_t size, void *buf)
  * associated to the request.
  *
  * @param queue Queue handler to cancel.
+ * @param clear_cls Is it necessary to free associated cls?
  */
 static void
-queue_destroy (struct MeshPeerQueue *queue)
+queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
 {
   struct MeshTransmissionDescriptor *dd;
   struct MeshPathInfo *path_info;
   struct MeshPeerInfo *peer;
 
   peer = queue->peer;
-  switch (queue->type)
+  if (GNUNET_YES == clear_cls)
   {
-  case GNUNET_MESSAGE_TYPE_MESH_MULTICAST:
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   type payload\n");
-    dd = queue->cls;
-    data_descriptor_decrement_multicast (dd->mesh_data);
-    break;
-  case GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE:
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   type create path\n");
-    path_info = queue->cls;
-    path_destroy (path_info->path);
-    break;
-  default:
-    GNUNET_break (0);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   type unknown!\n");
+    switch (queue->type)
+    {
+    case GNUNET_MESSAGE_TYPE_MESH_UNICAST:
+    case GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN:
+    case GNUNET_MESSAGE_TYPE_MESH_MULTICAST:
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   type payload\n");
+        dd = queue->cls;
+        data_descriptor_decrement_multicast (dd->mesh_data);
+        break;
+    case GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE:
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   type create path\n");
+        path_info = queue->cls;
+        path_destroy (path_info->path);
+        break;
+    default:
+        GNUNET_break (0);
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   type unknown!\n");
+    }
+    GNUNET_free_non_null (queue->cls);
   }
-  GNUNET_free_non_null (queue->cls);
   GNUNET_CONTAINER_DLL_remove (peer->queue_head, peer->queue_tail, queue);
   GNUNET_free(queue);
 }
@@ -2772,8 +2773,8 @@ queue_send (void *cls, size_t size, void *buf)
             data_size = 0;
     }
 
-    /* Free resources */
-    queue_destroy(queue);
+    /* Free queue, but cls was freed by send_core_* */
+    queue_destroy(queue, GNUNET_NO);
 
     /* If more data in queue, send next */
     if (NULL != peer->queue_head)
@@ -4654,7 +4655,6 @@ static void
 core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
   struct MeshPeerInfo *pi;
-  unsigned int i;
 
   DEBUG_CONN ("Peer disconnected\n");
   pi = GNUNET_CONTAINER_multihashmap_get (peers, &peer->hashPubKey);
@@ -4663,10 +4663,9 @@ core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
     GNUNET_break (0);
     return;
   }
-  for (i = 0; i < CORE_QUEUE_SIZE; i++)
+  while (NULL != pi->queue_head)
   {
-    /* TODO: notify that the transmission failed */
-    // FIXME CORE_QUEUE_SIZE
+      queue_destroy(pi->queue_head, GNUNET_YES);
   }
   peer_info_remove_path (pi, pi->id, myid);
   if (myid == pi->id)
@@ -4713,6 +4712,10 @@ shutdown_peer (void *cls, const GNUNET_HashCode * key, void *value)
 {
   struct MeshPeerInfo *p = value;
 
+  while (NULL != p->queue_head)
+  {
+      queue_destroy(p->queue_head, GNUNET_YES);
+  }
   peer_info_destroy (p);
   return GNUNET_YES;
 }
