@@ -81,6 +81,12 @@ struct Socks5Request
 
   /* Length of data in write buffer */
   unsigned int wbuf_len;
+
+  /* This handle is scheduled for cleanup? */
+  int cleanup;
+
+  /* Shall we close the client socket on cleanup? */
+  int cleanup_sock;
 };
 
 
@@ -121,6 +127,9 @@ struct ProxyCurlTask
 
   /* Handle to cURL */
   CURL *curl;
+
+  /* Optional header replacements for curl (LEHO) */
+  struct curl_slist *headers;
 
   /* The URL to fetch */
   char url[2048];
@@ -167,6 +176,9 @@ struct ProxyCurlTask
   /* The hostname (Host header field) */
   char host[256];
 
+  /* The LEgacy HOstname (can be empty) */
+  char leho[256];
+
   /* The associated daemon list entry */
   struct MhdHttpList *mhd;
   
@@ -208,6 +220,8 @@ static struct MhdHttpList *mhd_httpd_tail;
 /* Handle to the regex for dotplus (.+) replacement in HTML */
 static regex_t re_dotplus;
 
+/* The users local GNS zone hash */
+struct GNUNET_CRYPTO_ShortHashCode local_gns_zone;
 
 /**
  * Checks if name is in tld
@@ -395,8 +409,13 @@ mhd_content_free (void *cls)
 {
   struct ProxyCurlTask *ctask = cls;
 
-  if (ctask->curl != NULL)
+  if (NULL != ctask->headers)
+    curl_slist_free_all (ctask->headers);
+
+  if (NULL != ctask->curl)
     curl_easy_cleanup (ctask->curl);
+
+  ctask->curl = NULL;
 
   GNUNET_free (ctask);
 
@@ -845,6 +864,71 @@ curl_task_download (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 /**
+ * Process LEHO lookup
+ *
+ * @param cls the ctask
+ * @param rd_count number of records returned
+ * @param rd record data
+ */
+static void
+process_leho_lookup (void *cls,
+                     uint32_t rd_count,
+                     const struct GNUNET_NAMESTORE_RecordData *rd)
+{
+  struct ProxyCurlTask *ctask = cls;
+  char hosthdr[262]; //256 + "Host: "
+  int i;
+  CURLcode ret;
+  CURLMcode mret;
+
+  ctask->headers = NULL;
+
+  strcpy (ctask->leho, "");
+
+  for (i=0; i<rd_count; i++)
+  {
+    if (rd[i].record_type != GNUNET_GNS_RECORD_LEHO)
+      continue;
+
+    memcpy (ctask->leho, rd[i].data, rd[i].data_size);
+
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Found LEHO %s for %s\n", ctask->leho, ctask->url);
+  }
+
+  if (0 != strcmp (ctask->leho, ""))
+  {
+    sprintf (hosthdr, "%s%s", "Host: ", ctask->leho);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "New HTTP header value: %s\n", hosthdr);
+    ctask->headers = curl_slist_append (ctask->headers, hosthdr);
+    GNUNET_assert (NULL != ctask->headers);
+    ret = curl_easy_setopt (ctask->curl, CURLOPT_HTTPHEADER, ctask->headers);
+    if (CURLE_OK != ret)
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "%s failed at %s:%d: `%s'\n",
+                           "curl_easy_setopt", __FILE__, __LINE__, curl_easy_strerror(ret));
+    }
+
+  }
+
+  if (CURLM_OK != (mret=curl_multi_add_handle (curl_multi, ctask->curl)))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "%s failed at %s:%d: `%s'\n",
+                "curl_multi_add_handle", __FILE__, __LINE__,
+                curl_multi_strerror (mret));
+    ctask->download_successful = GNUNET_NO;
+    ctask->download_error = GNUNET_YES;
+    return;
+  }
+  GNUNET_CONTAINER_DLL_insert (ctasks_head, ctasks_tail, ctask);
+
+  curl_download_prepare ();
+
+}
+
+/**
  * Initialize download and trigger curl
  *
  * @param cls the proxycurltask
@@ -852,7 +936,7 @@ curl_task_download (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  *
  */
 static void
-process_get_authority (void* cls,
+process_get_authority (void *cls,
                        const char* auth_name)
 {
   struct ProxyCurlTask *ctask = cls;
@@ -868,7 +952,12 @@ process_get_authority (void* cls,
               "Get authority yielded %s\n", auth_name);
   strcpy (ctask->authority, auth_name);
 
-  curl_download_prepare ();
+  GNUNET_GNS_lookup_zone (gns_handle,
+                          ctask->host,
+                          &local_gns_zone,
+                          GNUNET_GNS_RECORD_LEHO,
+                          &process_leho_lookup,
+                          ctask);
 }
 
 /**
@@ -912,7 +1001,6 @@ create_response (void *cls,
   char curlurl[512];
   int ret = MHD_YES;
 
-  CURLMcode mret;
   struct ProxyCurlTask *ctask;
   
   if (0 != strcmp (meth, "GET"))
@@ -981,29 +1069,6 @@ create_response (void *cls,
   curl_easy_setopt (ctask->curl, CURLOPT_CONNECTTIMEOUT, 600L);
   curl_easy_setopt (ctask->curl, CURLOPT_TIMEOUT, 600L);
 
-  mret = curl_multi_add_handle (curl_multi, ctask->curl);
-
-  if (mret != CURLM_OK)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "%s failed at %s:%d: `%s'\n",
-                "curl_multi_add_handle", __FILE__, __LINE__,
-                curl_multi_strerror (mret));
-    response = MHD_create_response_from_buffer (strlen (page),
-                                                (void*)page,
-                                                MHD_RESPMEM_PERSISTENT);
-    ret = MHD_queue_response (con,
-                              MHD_HTTP_OK,
-                              response);
-    MHD_destroy_response (response);
-
-    curl_easy_cleanup (ctask->curl);
-    GNUNET_free (ctask);
-    return ret;
-  }
-  
-  GNUNET_CONTAINER_DLL_insert (ctasks_head, ctasks_tail, ctask);
-  
   GNUNET_GNS_get_authority (gns_handle,
                             ctask->host,
                             &process_get_authority,
@@ -1183,6 +1248,29 @@ do_write_remote (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
+ * Clean up s5r handles
+ *
+ * @param s5r the handle to destroy
+ */
+static void
+cleanup_s5r (struct Socks5Request *s5r)
+{
+  if (s5r->rtask != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel (s5r->rtask);
+  if (s5r->fwdwtask != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel (s5r->fwdwtask);
+  if (s5r->fwdrtask != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel (s5r->fwdrtask);
+  
+  if (NULL != s5r->remote_sock)
+    GNUNET_NETWORK_socket_close (s5r->remote_sock);
+  if ((NULL != s5r->sock) && (s5r->cleanup_sock == GNUNET_YES))
+    GNUNET_NETWORK_socket_close (s5r->sock);
+  
+  GNUNET_free(s5r);
+}
+
+/**
  * Write data to socket
  *
  * @param cls the closure
@@ -1209,16 +1297,16 @@ do_write (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "write");
-    //Really!?!?!?
-    if (s5r->rtask != GNUNET_SCHEDULER_NO_TASK)
-      GNUNET_SCHEDULER_cancel (s5r->rtask);
-    if (s5r->fwdwtask != GNUNET_SCHEDULER_NO_TASK)
-      GNUNET_SCHEDULER_cancel (s5r->fwdwtask);
-    if (s5r->fwdrtask != GNUNET_SCHEDULER_NO_TASK)
-      GNUNET_SCHEDULER_cancel (s5r->fwdrtask);
-    GNUNET_NETWORK_socket_close (s5r->remote_sock);
-    GNUNET_NETWORK_socket_close (s5r->sock);
-    GNUNET_free(s5r);
+    s5r->cleanup = GNUNET_YES;
+    s5r->cleanup_sock = GNUNET_YES;
+    cleanup_s5r (s5r);
+    
+    return;
+  }
+
+  if (GNUNET_YES == s5r->cleanup)
+  {
+    cleanup_s5r (s5r);
     return;
   }
 
@@ -1542,14 +1630,12 @@ do_read (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                     _("Failed to start HTTP server\n"));
         s_resp->version = 0x05;
         s_resp->reply = 0x01;
+        s5r->cleanup = GNUNET_YES;
+        s5r->cleanup_sock = GNUNET_YES;
         s5r->wtask = 
           GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
                                         s5r->sock,
                                         &do_write, s5r);
-        //ERROR!
-        //TODO! close socket after the write! schedule task
-        //GNUNET_NETWORK_socket_close (s5r->sock);
-        //GNUNET_free(s5r);
         return;
       }
       
@@ -1558,14 +1644,14 @@ do_read (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       s_resp->reply = 0x00;
       s_resp->reserved = 0x00;
       s_resp->addr_type = 0x01;
-
+      
+      s5r->cleanup = GNUNET_YES;
+      s5r->cleanup_sock = GNUNET_NO;
       s5r->wtask =
         GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
                                         s5r->sock,
                                         &do_write, s5r);
       run_httpds ();
-      //GNUNET_free ( s5r );
-      //FIXME complete socks resp!
       return;
     }
     else
@@ -1577,14 +1663,12 @@ do_read (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                     "Resolve %s error!\n", domain );
         s_resp->version = 0x05;
         s_resp->reply = 0x01;
+        s5r->cleanup = GNUNET_YES;
+        s5r->cleanup_sock = GNUNET_YES;
         s5r->wtask = 
           GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
                                           s5r->sock,
                                           &do_write, s5r);
-        //ERROR!
-        //TODO! close socket after the write! schedule task
-        //GNUNET_NETWORK_socket_close (s5r->sock);
-        //GNUNET_free(s5r);
         return;
       }
 
@@ -1750,6 +1834,8 @@ do_shutdown (void *cls,
 
   struct MhdHttpList *hd;
   struct MhdHttpList *tmp_hd;
+  struct ProxyCurlTask *ctask;
+  struct ProxyCurlTask *ctask_tmp;
 
   if (GNUNET_SCHEDULER_NO_TASK != curl_download_task)
   {
@@ -1782,6 +1868,22 @@ do_shutdown (void *cls,
     GNUNET_free (hd);
   }
 
+  for (ctask=ctasks_head; ctask != NULL; ctask=ctask_tmp)
+  {
+    ctask_tmp = ctask->next;
+
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Cleaning up cURL task\n");
+    
+    if (ctask->curl != NULL)
+      curl_easy_cleanup (ctask->curl);
+    ctask->curl = NULL;
+    if (NULL != ctask->headers)
+      curl_slist_free_all (ctask->headers);
+
+    GNUNET_free (ctask);
+  }
+
   GNUNET_GNS_disconnect (gns_handle);
 }
 
@@ -1812,6 +1914,51 @@ compile_regex (regex_t *re, const char* rt)
 
 
 /**
+ * Loads the users local zone key
+ *
+ * @return GNUNET_YES on success
+ */
+static int
+load_local_zone_key (const struct GNUNET_CONFIGURATION_Handle *cfg)
+{
+  char *keyfile;
+  struct GNUNET_CRYPTO_RsaPrivateKey *key = NULL;
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pkey;
+  struct GNUNET_CRYPTO_ShortHashCode *zone = NULL;
+  struct GNUNET_CRYPTO_ShortHashAsciiEncoded zonename;
+
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
+                                                          "ZONEKEY", &keyfile))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Unable to load zone key config value!\n");
+    return GNUNET_NO;
+  }
+
+  if (GNUNET_NO == GNUNET_DISK_file_test (keyfile))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Unable to load zone key!\n");
+    GNUNET_free(keyfile);
+    return GNUNET_NO;
+  }
+
+  key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
+  GNUNET_CRYPTO_rsa_key_get_public (key, &pkey);
+  GNUNET_CRYPTO_short_hash(&pkey,
+                        sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+                        &local_gns_zone);
+  zone = &local_gns_zone;
+  GNUNET_CRYPTO_short_hash_to_enc (zone, &zonename);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Using zone: %s!\n", &zonename);
+  GNUNET_CRYPTO_rsa_key_free(key);
+  GNUNET_free(keyfile);
+
+  return GNUNET_YES;
+}
+
+/**
  * Main function that will be run
  *
  * @param cls closure
@@ -1829,6 +1976,13 @@ run (void *cls, char *const *args, const char *cfgfile,
   compile_regex (&re_dotplus, (char*) RE_DOTPLUS);
 
   gns_handle = GNUNET_GNS_connect (cfg);
+
+  if (GNUNET_NO == load_local_zone_key (cfg))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Unable to load zone!\n");
+    return;
+  }
 
   if (NULL == gns_handle)
   {

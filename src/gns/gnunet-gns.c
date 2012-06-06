@@ -172,7 +172,7 @@ run (void *cls, char *const *args, const char *cfgfile,
       zone = &user_zone;
       GNUNET_CRYPTO_short_hash_to_enc (zone, &zonename);
       if (!raw)
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                     "Using zone: %s!\n", &zonename);
       GNUNET_CRYPTO_rsa_key_free(key);
     }
