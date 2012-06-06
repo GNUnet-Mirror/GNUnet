@@ -27,6 +27,14 @@
 #include "gns_proxy_proto.h"
 #include "gns.h"
 
+/** SSL **/
+#include <openssl/pem.h>
+#include <openssl/conf.h>
+#include <openssl/x509v3.h>
+#include <openssl/ssl.h>
+#include <openssl/err.h>
+#include <openssl/rand.h>
+
 #define GNUNET_GNS_PROXY_PORT 7777
 
 /* MHD/cURL defines */
@@ -42,6 +50,31 @@
 #define HTTP_PORT 80
 #define HTTPS_PORT 443
 
+
+/**
+ * A structure for CA cert/key
+ */
+struct ProxyCA
+{
+  /* The certificate */
+  X509* cert;
+
+  /* The private key */
+  EVP_PKEY *key;
+};
+
+
+/**
+ * Structure for GNS certificates
+ */
+struct ProxyGNSCertificate
+{
+  /* The certificate */
+  X509* cert;
+
+  /* The private key */
+  EVP_PKEY *key;
+};
 
 
 /**
@@ -188,7 +221,10 @@ struct ProxyCurlTask
 };
 
 /* The port the proxy is running on (default 7777) */
-unsigned long port = GNUNET_GNS_PROXY_PORT;
+static unsigned long port = GNUNET_GNS_PROXY_PORT;
+
+/* The CA file (pem) to use for the proxy CA */
+static char* cafile;
 
 /* The listen socket of the proxy */
 static struct GNUNET_NETWORK_Handle *lsock;
@@ -225,6 +261,9 @@ static regex_t re_dotplus;
 
 /* The users local GNS zone hash */
 struct GNUNET_CRYPTO_ShortHashCode local_gns_zone;
+
+/* The CA for SSL certificate generation */
+struct ProxyCA *proxy_ca;
 
 /**
  * Checks if name is in tld
@@ -1021,9 +1060,6 @@ create_response (void *cls,
   char curlurl[512];
   int ret = MHD_YES;
 
-  struct hostent *phost;
-  char *ssl_ip;
-
   struct ProxyCurlTask *ctask;
   
   if (0 != strcmp (meth, "GET"))
@@ -1474,6 +1510,148 @@ load_file (const char* filename)
   return buffer;
 }
 
+/** SSL stuff **/
+
+/**
+ * Get authority from file
+ */
+static X509*
+load_cert_from_file (char* file)
+{
+  SSL_CTX *context = NULL;;
+
+  context = SSL_CTX_new (SSLv23_server_method ());
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Reading cert file %s\n", file);
+
+  SSL_CTX_use_certificate_file (context, file, SSL_FILETYPE_PEM);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Extracting\n");
+
+  return SSL_get_certificate (SSL_new (context));
+
+}
+
+
+/**
+ * Get authority from file
+ */
+static struct ProxyCA*
+load_authority_from_file (char* file)
+{
+  struct ProxyCA *ca = NULL;
+  SSL_CTX *context;
+
+  ca = GNUNET_malloc (sizeof (struct ProxyCA));
+  
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Reading cert file %s\n", file);
+  ca->cert = load_cert_from_file (file);
+
+  context = SSL_CTX_new (SSLv23_server_method ());
+  
+  SSL_CTX_use_PrivateKey_file (context, file, SSL_FILETYPE_PEM);
+
+  ca->key = SSL_get_privatekey (SSL_new (context));
+
+  return ca;
+
+}
+
+
+
+static unsigned int
+generate_serial ()
+{
+  unsigned int serial;
+  RAND_bytes ((unsigned char*)&serial, sizeof (serial));
+
+  return serial;
+}
+
+
+/* The template certificate file */
+char* template_cert_file;
+
+/* The template certificate */
+X509 *template_certificate;
+
+
+/**
+ * Generate new certificate for specific name
+ *
+ */
+static struct ProxyGNSCertificate*
+generate_gns_certificate (const char *name, char *keyfilename, char *certfilename)
+{
+  X509_NAME *server_name = X509_get_subject_name (template_certificate);
+  X509_NAME *issuer_name = X509_get_subject_name (proxy_ca->cert);
+  X509 *request = X509_new ();
+  int cn_nid = OBJ_txt2nid("CN");
+  int cn_idx = X509_NAME_get_index_by_NID(server_name, cn_nid, -1);
+  RSA *rsa = RSA_generate_key (1024, RSA_F4, NULL, NULL);
+  EVP_PKEY *rsa_spec = EVP_PKEY_new();
+  FILE* keyfile;
+  FILE* certfile;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Generating key\n");
+
+  EVP_PKEY_assign_RSA (rsa_spec, rsa);
+  
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Generating cert\n");
+
+  struct ProxyGNSCertificate *pgc =
+    GNUNET_malloc (sizeof (struct ProxyGNSCertificate));
+
+  X509_NAME_delete_entry (server_name, cn_idx);
+  
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding name\n");
+  if (!X509_NAME_add_entry_by_txt (server_name, "CN",
+                                  MBSTRING_UTF8, (const unsigned char*)name,
+                                  -1, -1, 0))
+  {
+    return NULL;
+  }
+
+  X509_set_version(request, 3);
+  X509_set_subject_name(request, server_name);
+  X509_set_issuer_name(request, issuer_name);
+  
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Signing\n");
+  ASN1_INTEGER_set(X509_get_serialNumber(request), generate_serial());
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Signing\n");
+  X509_gmtime_adj(X509_get_notBefore(request), -365);
+  X509_gmtime_adj(X509_get_notAfter(request), (long)60*60*24*365);
+  X509_set_pubkey(request, rsa_spec);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Signing %d\n", proxy_ca->key);
+  X509_sign(request, proxy_ca->key, EVP_sha1());
+
+  pgc->cert = request;
+  pgc->key = rsa_spec;
+
+  
+
+  keyfile = fopen (keyfilename, "w+");
+  certfile = fopen (certfilename, "w+");
+  
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Writing to file %d\n", rsa_spec);
+  PEM_write_PrivateKey (keyfile, rsa_spec,
+                        NULL, NULL, 0, NULL, NULL);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Writing to file %d\n", request);
+  PEM_write_X509 (certfile, request);
+
+  fclose (keyfile);
+  fclose (certfile);
+
+  return pgc;
+
+}
+
+
+
+
 /**
  * Adds a socket to an SSL MHD instance
  * It is important the the domain name is
@@ -1484,11 +1662,18 @@ add_handle_to_ssl_mhd (struct GNUNET_NETWORK_Handle *h, char* domain)
 {
   struct MhdHttpList *hd = NULL;
 
-  static char *key_pem;
-  static char *cert_pem;
+  char* key_pem;
+  char* cert_pem;
+  char key_pem_file[1024];
+  char cert_pem_file[1024];
 
-  key_pem = load_file ("server.key");
-  cert_pem = load_file ("server.pem");
+  sprintf (key_pem_file, "%s.key", domain);
+  sprintf (cert_pem_file, "%s.pem", domain);
+  
+  generate_gns_certificate (domain, key_pem_file, cert_pem_file);
+
+  key_pem = load_file (key_pem_file);
+  cert_pem = load_file (cert_pem_file);
 
   for (hd = mhd_httpd_head; hd != NULL; hd = hd->next)
   {
@@ -1501,7 +1686,8 @@ add_handle_to_ssl_mhd (struct GNUNET_NETWORK_Handle *h, char* domain)
     /* Start new MHD */
     /* TODO: create cert, start SSL MHD */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "No previous SSL instance found... starting new one\n");
+                "No previous SSL instance found... starting new one for %s\n",
+                domain);
     hd = GNUNET_malloc (sizeof (struct MhdHttpList));
     hd->is_ssl = GNUNET_YES;
     strcpy (hd->domain, domain);
@@ -1898,7 +2084,7 @@ do_shutdown (void *cls,
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Cleaning up cURL task\n");
-    
+
     if (ctask->curl != NULL)
       curl_easy_cleanup (ctask->curl);
     ctask->curl = NULL;
@@ -1952,7 +2138,7 @@ load_local_zone_key (const struct GNUNET_CONFIGURATION_Handle *cfg)
   struct GNUNET_CRYPTO_ShortHashAsciiEncoded zonename;
 
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
-                                                          "ZONEKEY", &keyfile))
+                                                            "ZONEKEY", &keyfile))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Unable to load zone key config value!\n");
@@ -1970,8 +2156,8 @@ load_local_zone_key (const struct GNUNET_CONFIGURATION_Handle *cfg)
   key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
   GNUNET_CRYPTO_rsa_key_get_public (key, &pkey);
   GNUNET_CRYPTO_short_hash(&pkey,
-                        sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
-                        &local_gns_zone);
+                           sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+                           &local_gns_zone);
   zone = &local_gns_zone;
   GNUNET_CRYPTO_short_hash_to_enc (zone, &zonename);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1981,6 +2167,8 @@ load_local_zone_key (const struct GNUNET_CONFIGURATION_Handle *cfg)
 
   return GNUNET_YES;
 }
+
+
 
 /**
  * Main function that will be run
@@ -1996,6 +2184,17 @@ run (void *cls, char *const *args, const char *cfgfile,
 {
   struct sockaddr_in sa;
   struct MhdHttpList *hd;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Loading CA\n");
+
+  SSL_library_init ();
+  SSL_load_error_strings ();
+  proxy_ca = load_authority_from_file (cafile);
+  
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Loading Template\n");
+  template_certificate = load_cert_from_file (template_cert_file);
 
   compile_regex (&re_dotplus, (char*) RE_DOTPLUS);
 
@@ -2105,6 +2304,12 @@ main (int argc, char *const *argv)
     {'p', "port", NULL,
      gettext_noop ("listen on specified port"), 1,
      &GNUNET_GETOPT_set_string, &port},
+    {'a', "authority", NULL,
+      gettext_noop ("pem file to use as CA"), 1,
+      &GNUNET_GETOPT_set_string, &cafile},
+    {'t', "template", NULL,
+      gettext_noop ("template certificate file to use"), 1,
+      &GNUNET_GETOPT_set_string, &template_cert_file},
     GNUNET_GETOPT_OPTION_END
   };
 
