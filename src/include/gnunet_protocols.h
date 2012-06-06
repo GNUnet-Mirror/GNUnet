@@ -1304,8 +1304,108 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_LOCKMANAGER_SUCCESS 442
 
+/*******************************************************************************
+ * TESTBED message types
+ ******************************************************************************/
+
 /**
- *  Next available: 450
+ * Initial message from a client to a testing control service
+ */
+#define GNUNET_MESSAGE_TYPE_TESTBED_INIT 460
+
+/**
+ * Message to add host
+ */
+#define GNUNET_MESSAGE_TYPE_TESTBED_ADDHOST 461
+
+/**
+ * Message to signal that a add host succeeded
+ */
+#define GNUNET_MESSAGE_TYPE_TESTBED_ADDHOSTSUCCESS 462
+
+/**
+ * Message to configure a service to be shared among peers
+ */
+#define GNUNET_MESSAGE_TYPE_TESTBED_SERVICESHARE 463
+
+/**
+ * Message to link delegated controller to slave controller
+ */
+#define GNUNET_MESSAGE_TYPE_TESTBED_LCONTROLLERS 464
+
+/**
+ * Message to create a peer at a host
+ */
+#define GNUNET_MESSAGE_TYPE_TESTBED_CREATEPEER 465
+
+/**
+ * Message to reconfigure a peer
+ */
+#define GNUNET_MESSAGE_TYPE_TESTBED_PEERRECONF 466
+
+/**
+ * Message to start a peer at a host
+ */
+#define GNUNET_MESSAGE_TYPE_TESTBED_STARTPEER 467
+
+/**
+ * Message to stop a peer at a host
+ */
+#define GNUNET_MESSAGE_TYPE_TESTBED_STOPPEER 468
+
+/**
+ * Message to destroy a peer
+ */
+#define GNUNET_MESSAGE_TYPE_TESTBED_DESTROYPEER 469
+
+/**
+ * Configure underlay link message
+ */
+#define GNUNET_MESSAGE_TYPE_TESTBED_CONFIGULLINK 470
+
+/**
+ * Message to connect peers in a overlay
+ */
+#define GNUNET_MESSAGE_TYPE_TESTBED_OLCONNECT 471
+
+/**
+ * Message for peer events
+ */
+#define GNUNET_MESSAGE_TYPE_TESTBED_PEEREVENT 472
+
+/**
+ * Message for peer connect events
+ */
+#define GNUNET_MESSAGE_TYPE_TESTBED_PEERCONEVENT 473
+
+/**
+ * Message for operation events
+ */
+#define GNUNET_MESSAGE_TYPE_TESTBED_OPERATIONEVENT 474
+
+/**
+ * Message to signal successful peer creation
+ */
+#define GNUNET_MESSAGE_TYPE_TESTBED_PEERCREATESUCCESS 475
+
+/**
+ * Message to signal a generic operation has been successful
+ */
+#define GNUNET_MESSAGE_TYPE_TESTBED_GENERICOPSUCCESS 476
+
+/**
+ * Message to get the configuration of a peer
+ */
+#define GNUNET_MESSAGE_TYPE_TESTBED_GETPEERCONFIG 477
+
+/**
+ * Message containing the peer configuration
+ */
+#define GNUNET_MESSAGE_TYPE_TESTBED_PEERCONFIG 478
+
+
+/**
+ *  Next available: 500
  */
 
 /*******************************************************************************
