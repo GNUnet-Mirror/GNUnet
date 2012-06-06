@@ -116,6 +116,16 @@ struct GNUNET_REGEX_Automaton
    * Type of the automaton.
    */
   enum GNUNET_REGEX_automaton_type type;
+
+  /**
+   * Regex
+   */
+  char *regex;
+
+  /**
+   * Computed regex (result of RX->NFA->DFA->RX)
+   */
+  char *computed_regex;
 };
 
 /**
@@ -799,7 +809,7 @@ automaton_traverse (void *cls, struct GNUNET_REGEX_Automaton *a,
 
 /**
  * Create proofs for all states in the given automaton. Implementation of the
- * algorithms descriped in chapter 3.2.1 of "Automata Theory, Languages, and
+ * algorithm descriped in chapter 3.2.1 of "Automata Theory, Languages, and
  * Computation 3rd Edition" by Hopcroft, Motwani and Ullman.
  *
  * @param a automaton.
@@ -821,6 +831,7 @@ automaton_create_proofs (struct GNUNET_REGEX_Automaton *a)
   char *R_cur_r;
   int length_l;
   int length_r;
+  char *complete_regex;
 
   k = 0;
   n = a->state_count;
@@ -852,7 +863,6 @@ automaton_create_proofs (struct GNUNET_REGEX_Automaton *a)
           }
         }
       }
-
 
       if (i == j)
       {
@@ -972,6 +982,26 @@ automaton_create_proofs (struct GNUNET_REGEX_Automaton *a)
     GNUNET_CRYPTO_hash (states[i]->proof, strlen (states[i]->proof),
                         &states[i]->hash);
   }
+
+  // complete regex for whole DFA
+  complete_regex = NULL;
+  for (i = 0; i < n; i++)
+  {
+    if (states[i]->accepting)
+    {
+      if (NULL == complete_regex)
+        GNUNET_asprintf (&complete_regex, "%s", R_last[a->start->marked][i]);
+      else if (NULL != R_last[a->start->marked][i] &&
+               0 != strcmp (R_last[a->start->marked][i], ""))
+      {
+        temp = complete_regex;
+        GNUNET_asprintf (&complete_regex, "%s|%s", complete_regex,
+                         R_last[a->start->marked][i]);
+        GNUNET_free (temp);
+      }
+    }
+  }
+  a->computed_regex = complete_regex;
 
   // cleanup
   for (i = 0; i < n; i++)
@@ -1867,6 +1897,8 @@ GNUNET_REGEX_construct_nfa (const char *regex, const size_t len)
     goto error;
   }
 
+  nfa->regex = GNUNET_strdup (regex);
+
   return nfa;
 
 error:
@@ -1968,6 +2000,7 @@ GNUNET_REGEX_construct_dfa (const char *regex, const size_t len)
 
   dfa = GNUNET_malloc (sizeof (struct GNUNET_REGEX_Automaton));
   dfa->type = DFA;
+  dfa->regex = GNUNET_strdup (regex);
 
   // Create DFA start state from epsilon closure
   nfa_set = nfa_closure_create (nfa, nfa->start, 0);
@@ -2004,6 +2037,8 @@ GNUNET_REGEX_automaton_destroy (struct GNUNET_REGEX_Automaton *a)
 
   if (NULL == a)
     return;
+
+  GNUNET_free (a->regex);
 
   for (s = a->states_head; NULL != s;)
   {
@@ -2239,6 +2274,22 @@ GNUNET_REGEX_eval (struct GNUNET_REGEX_Automaton *a, const char *string)
   }
 
   return result;
+}
+
+/**
+ * Get the computed regex of the given automaton.
+ * When constructing the automaton a proof is computed for each state,
+ * consisting of the regular expression leading to this state. A complete
+ * regex for the automaton can be computed by combining these proofs.
+ * As of now this computed regex is only useful for testing.
+ */
+const char *
+GNUNET_REGEX_get_computed_regex (struct GNUNET_REGEX_Automaton *a)
+{
+  if (NULL == a)
+    return NULL;
+
+  return a->computed_regex;
 }
 
 /**

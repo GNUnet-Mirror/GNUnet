@@ -60,12 +60,14 @@ test_random (unsigned int rx_length, unsigned int max_str_len,
   char current_char;
   int eval;
   int eval_check;
+  int eval_computed;
   struct GNUNET_REGEX_Automaton *dfa;
   regex_t rx;
   regmatch_t matchptr[1];
   char error[200];
   int result;
   unsigned int str_len;
+  char *computed_regex;
 
   // At least one string is needed for matching
   GNUNET_assert (str_count > 0);
@@ -151,6 +153,7 @@ test_random (unsigned int rx_length, unsigned int max_str_len,
     }
 
     eval = GNUNET_REGEX_eval (dfa, matching_str[i]);
+    computed_regex = GNUNET_strdup (GNUNET_REGEX_get_computed_regex (dfa));
     GNUNET_REGEX_automaton_destroy (dfa);
 
     // Match string using glibc regex
@@ -163,6 +166,19 @@ test_random (unsigned int rx_length, unsigned int max_str_len,
 
     eval_check = regexec (&rx, matching_str[i], 1, matchptr, 0);
     regfree (&rx);
+
+    // Match computed regex
+    if (0 != regcomp (&rx, computed_regex, REG_EXTENDED))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Could not compile regex using regcomp: %s\n",
+                  computed_regex);
+      return -1;
+    }
+
+    eval_computed = regexec (&rx, matching_str[i], 1, matchptr, 0);
+    regfree (&rx);
+    GNUNET_free (computed_regex);
 
     // We only want to match the whole string, because that's what our DFA does, too.
     if (eval_check == 0 &&
