@@ -61,10 +61,14 @@ main (int argc, char *argv[])
 
   error = 0;
   /*regex = "ab(c|d)+c*(a(b|c)+d)+(bla)+"; */
+  /*regex = "ab(c|d)+c*(a(b|c)+d)+(bla)(bla)*"; */
   /*regex = "z(abc|def)?xyz"; */
-  regex = "1*0(0|1)*";
+  /*regex = "1*0(0|1)*"; */
   /*regex = "a+X*y+c|p|R|Z*K*y*R+w|Y*6+n+h*k*w+V*F|W*B*e*"; */
-
+  /*regex = "abcd:(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)"; */
+  /*regex = "abc(1|0)*def"; */
+  /*regex = "ab|ac"; */
+  regex = "(ab)(ab)*";
   dfa = GNUNET_REGEX_construct_dfa (regex, strlen (regex));
   GNUNET_REGEX_automaton_save_graph (dfa, "dfa.dot");
   GNUNET_REGEX_iterate_all_edges (dfa, key_iterator, NULL);

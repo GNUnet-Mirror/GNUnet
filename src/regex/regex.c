@@ -817,6 +817,7 @@ automaton_create_proofs (struct GNUNET_REGEX_Automaton *a)
   char *R_last[a->state_count][a->state_count];
   char *R_cur[a->state_count][a->state_count];
   char *temp;
+  int length;
 
   k = 0;
   n = a->state_count;
@@ -849,16 +850,17 @@ automaton_create_proofs (struct GNUNET_REGEX_Automaton *a)
         }
       }
 
+      if (NULL != R_last[i][j] && 1 < strlen (R_last[i][j]))
+      {
+        temp = R_last[i][j];
+        GNUNET_asprintf (&R_last[i][j], "(%s)", R_last[i][j]);
+        GNUNET_free (temp);
+      }
+
       if (i == j)
       {
         if (NULL == R_last[i][j])
           GNUNET_asprintf (&R_last[i][j], "");
-        else if (1 < strlen (R_last[i][j]))
-        {
-          temp = R_last[i][j];
-          GNUNET_asprintf (&R_last[i][j], "(%s)", R_last[i][j]);
-          GNUNET_free (temp);
-        }
       }
     }
   }
@@ -870,33 +872,51 @@ automaton_create_proofs (struct GNUNET_REGEX_Automaton *a)
     {
       for (j = 0; j < n; j++)
       {
+        // 0*R = R*0 = 0
+        // 0+R = R+0 = R
         if (NULL == R_last[i][k] || NULL == R_last[k][j])
         {
           if (NULL != R_last[i][j])
             R_cur[i][j] = GNUNET_strdup (R_last[i][j]);
         }
-        else if (NULL == R_last[i][j] ||
-                 0 == strcmp (R_last[i][j], R_last[i][k]))
-        {
-          if ((R_last[k][k][0] == '(' &&
-               R_last[k][k][strlen (R_last[k][k]) - 1] == ')') ||
-              (1 == strlen (R_last[k][k])))
-            GNUNET_asprintf (&R_cur[i][j], "(%s%s*%s)", R_last[i][k],
-                             R_last[k][k], R_last[k][j]);
-          else
-            GNUNET_asprintf (&R_cur[i][j], "(%s(%s)*%s)", R_last[i][k],
-                             R_last[k][k], R_last[k][j]);
-        }
         else
         {
-          if ((R_last[k][k][0] == '(' &&
-               R_last[k][k][strlen (R_last[k][k]) - 1] == ')') ||
-              (1 == strlen (R_last[k][k])))
-            GNUNET_asprintf (&R_cur[i][j], "(%s|%s%s*%s)", R_last[i][j],
-                             R_last[i][k], R_last[k][k], R_last[k][j]);
+          // R(k)ij = R(k-1)ij + R(k-1)ik (R(k-1)kk)* R(k-1)kj
+          length =
+              snprintf (NULL, 0, "(%s|%s(%s)*%s)", R_last[i][j], R_last[i][k],
+                        R_last[k][k], R_last[k][j]) + 1;
+          char *left = GNUNET_malloc (length);
+          char *right = GNUNET_malloc (length);
+
+          if (NULL != R_last[i][j])
+            strcat (left, R_last[i][j]);
+
+          if (NULL != R_last[i][k])
+            strcat (right, R_last[i][k]);
+
+          if (NULL != R_last[k][k] && 0 != strcmp (R_last[k][k], ""))
+          {
+            strcat (right, "(");
+            strcat (right, R_last[k][k]);
+            strcat (right, ")*");
+          }
+
+          if (NULL != R_last[k][j])
+            strcat (right, R_last[k][j]);
+
+          if (0 == strcmp (left, right) || 0 == strcmp (left, "") ||
+              0 == strcmp (right, ""))
+          {
+            if (0 == strcmp (left, ""))
+              GNUNET_asprintf (&R_cur[i][j], "%s", right);
+            else
+              GNUNET_asprintf (&R_cur[i][j], "%s", left);
+          }
           else
-            GNUNET_asprintf (&R_cur[i][j], "(%s|%s(%s)*%s)", R_last[i][j],
-                             R_last[i][k], R_last[k][k], R_last[k][j]);
+            GNUNET_asprintf (&R_cur[i][j], "(%s|%s)", left, right);
+
+          GNUNET_free_non_null (left);
+          GNUNET_free_non_null (right);
         }
       }
     }
@@ -917,10 +937,12 @@ automaton_create_proofs (struct GNUNET_REGEX_Automaton *a)
     }
   }
 
-  // assign proofs
+  // assign proofs and hashes
   for (i = 0; i < n; i++)
   {
     states[i]->proof = GNUNET_strdup (R_last[a->start->marked][i]);
+    GNUNET_CRYPTO_hash (states[i]->proof, strlen (states[i]->proof),
+                        &states[i]->hash);
   }
 
   // cleanup
