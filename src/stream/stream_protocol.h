@@ -154,14 +154,14 @@ struct GNUNET_STREAM_HelloAckMessage
    * The selected sequence number. Following data tranmissions from the sender
    * start with this sequence
    */
-  uint32_t sequence_number;
+  uint32_t sequence_number GNUNET_PACKED;
 
   /**
    * The size(in bytes) of the receive window on the peer sending this message
    *
    * FIXME: Remove if not needed
    */
-  uint32_t receiver_window_size;
+  uint32_t receiver_window_size GNUNET_PACKED;
 };
 
 
