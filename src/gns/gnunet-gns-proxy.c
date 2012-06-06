@@ -131,6 +131,9 @@ struct ProxyCurlTask
   /* Optional header replacements for curl (LEHO) */
   struct curl_slist *headers;
 
+  /* Optional resolver replacements for curl (LEHO) */
+  struct curl_slist *resolver;
+
   /* The URL to fetch */
   char url[2048];
 
@@ -880,6 +883,10 @@ process_leho_lookup (void *cls,
   int i;
   CURLcode ret;
   CURLMcode mret;
+  struct hostent *phost;
+  char *ssl_ip;
+  char resolvename[512];
+  char curlurl[512];
 
   ctask->headers = NULL;
 
@@ -910,6 +917,19 @@ process_leho_lookup (void *cls,
                            "curl_easy_setopt", __FILE__, __LINE__, curl_easy_strerror(ret));
     }
 
+  }
+
+  if (ctask->mhd->is_ssl)
+  {
+    phost = (struct hostent*)gethostbyname (ctask->host);
+    ssl_ip = inet_ntoa(*((struct in_addr*)(phost->h_addr)));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "SSL target server: %s\n", ssl_ip);
+    sprintf (resolvename, "%s:%d:%s", ctask->leho, HTTPS_PORT, ssl_ip);
+    ctask->resolver = curl_slist_append ( ctask->resolver, resolvename);
+    curl_easy_setopt (ctask->curl, CURLOPT_RESOLVE, ctask->resolver);
+    sprintf (curlurl, "https://%s%s", ctask->leho, ctask->url);
+    curl_easy_setopt (ctask->curl, CURLOPT_URL, curlurl);
   }
 
   if (CURLM_OK != (mret=curl_multi_add_handle (curl_multi, ctask->curl)))
@@ -1001,6 +1021,9 @@ create_response (void *cls,
   char curlurl[512];
   int ret = MHD_YES;
 
+  struct hostent *phost;
+  char *ssl_ip;
+
   struct ProxyCurlTask *ctask;
   
   if (0 != strcmp (meth, "GET"))
@@ -1058,9 +1081,10 @@ create_response (void *cls,
   curl_easy_setopt (ctask->curl, CURLOPT_FOLLOWLOCATION, 1);
   curl_easy_setopt (ctask->curl, CURLOPT_MAXREDIRS, 4);
   /* no need to abort if the above failed */
-  sprintf (curlurl, "http://%s%s", host, url);
+  if (GNUNET_NO == ctask->mhd->is_ssl)
+    sprintf (curlurl, "http://%s%s", host, url);
   strcpy (ctask->host, host);
-  strcpy (ctask->url, curlurl);
+  strcpy (ctask->url, url);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Adding new curl task for %s\n", curlurl);
   
