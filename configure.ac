@@ -326,7 +326,7 @@ AC_LANG_POP(C)
 fi	# $build = $target
 
 # libcurl
-LIBCURL_CHECK_CONFIG(,7.20.1,,AC_MSG_ERROR([GNUnet requires libcurl >= 7.20.1]))
+LIBCURL_CHECK_CONFIG(,7.21.3,,AC_MSG_ERROR([GNUnet requires libcurl >= 7.21.3]))
 # restore LIBS
 LIBS=$SAVE_LIBS
 
