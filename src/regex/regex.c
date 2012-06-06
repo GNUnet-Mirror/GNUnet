@@ -817,7 +817,10 @@ automaton_create_proofs (struct GNUNET_REGEX_Automaton *a)
   char *R_last[a->state_count][a->state_count];
   char *R_cur[a->state_count][a->state_count];
   char *temp;
-  int length;
+  char *R_cur_l;
+  char *R_cur_r;
+  int length_l;
+  int length_r;
 
   k = 0;
   n = a->state_count;
@@ -850,17 +853,23 @@ automaton_create_proofs (struct GNUNET_REGEX_Automaton *a)
         }
       }
 
-      if (NULL != R_last[i][j] && 1 < strlen (R_last[i][j]))
-      {
-        temp = R_last[i][j];
-        GNUNET_asprintf (&R_last[i][j], "(%s)", R_last[i][j]);
-        GNUNET_free (temp);
-      }
 
       if (i == j)
       {
         if (NULL == R_last[i][j])
           GNUNET_asprintf (&R_last[i][j], "");
+        else if (NULL != R_last[i][j] && 1 < strlen (R_last[i][j]))
+        {
+          temp = R_last[i][j];
+          GNUNET_asprintf (&R_last[i][j], "(%s)", R_last[i][j]);
+          GNUNET_free (temp);
+        }
+      }
+      else if (NULL != R_last[i][j] && 1 < strlen (R_last[i][j]))
+      {
+        temp = R_last[i][j];
+        GNUNET_asprintf (&R_last[i][j], "(%s)", R_last[i][j]);
+        GNUNET_free (temp);
       }
     }
   }
@@ -882,41 +891,60 @@ automaton_create_proofs (struct GNUNET_REGEX_Automaton *a)
         else
         {
           // R(k)ij = R(k-1)ij + R(k-1)ik (R(k-1)kk)* R(k-1)kj
-          length =
-              snprintf (NULL, 0, "(%s|%s(%s)*%s)", R_last[i][j], R_last[i][k],
-                        R_last[k][k], R_last[k][j]) + 1;
-          char *left = GNUNET_malloc (length);
-          char *right = GNUNET_malloc (length);
+          length_l = (NULL == R_last[i][j]) ? 1 : strlen (R_last[i][j]) + 1;
+          length_r =
+              snprintf (NULL, 0, "%s(%s)*%s", R_last[i][k], R_last[k][k],
+                        R_last[k][j]) + 1;
+          R_cur_l = GNUNET_malloc (length_l);
+          R_cur_r = GNUNET_malloc (length_r);
 
           if (NULL != R_last[i][j])
-            strcat (left, R_last[i][j]);
+            strcat (R_cur_l, R_last[i][j]);
 
           if (NULL != R_last[i][k])
-            strcat (right, R_last[i][k]);
+            strcat (R_cur_r, R_last[i][k]);
 
           if (NULL != R_last[k][k] && 0 != strcmp (R_last[k][k], ""))
           {
-            strcat (right, "(");
-            strcat (right, R_last[k][k]);
-            strcat (right, ")*");
+            strcat (R_cur_r, "(");
+            strcat (R_cur_r, R_last[k][k]);
+            strcat (R_cur_r, ")*");
           }
 
           if (NULL != R_last[k][j])
-            strcat (right, R_last[k][j]);
+            strcat (R_cur_r, R_last[k][j]);
 
-          if (0 == strcmp (left, right) || 0 == strcmp (left, "") ||
-              0 == strcmp (right, ""))
+          // | is idempotent: a | a = a for all a in A
+          if (0 == strcmp (R_cur_l, R_cur_r) || 0 == strcmp (R_cur_l, "") ||
+              0 == strcmp (R_cur_r, ""))
           {
-            if (0 == strcmp (left, ""))
-              GNUNET_asprintf (&R_cur[i][j], "%s", right);
+            if (0 == strcmp (R_cur_l, ""))
+              GNUNET_asprintf (&R_cur[i][j], "%s", R_cur_r);
             else
-              GNUNET_asprintf (&R_cur[i][j], "%s", left);
+              GNUNET_asprintf (&R_cur[i][j], "%s", R_cur_l);
+          }
+          // a | a a* a = a+
+          else if (R_last[i][j] == R_last[i][k] && R_last[i][k] == R_last[k][k]
+                   && R_last[k][k] == R_last[k][j])
+          {
+            GNUNET_asprintf (&R_cur[i][j], "%s+", R_last[i][j]);
+          }
+          // a | a b* b => a | a b | a b b | ... => a b*
+          else if (R_last[i][j] == R_last[i][k] && R_last[k][k] == R_last[k][j])
+          {
+            GNUNET_asprintf (&R_cur[i][j], "%s%s*", R_last[i][k], R_last[k][k]);
+          }
+          // a | b b* a => a | b a | b b a | ... => b* a
+          else if (R_last[i][j] == R_last[k][j] && R_last[i][k] == R_last[k][k])
+          {
+            GNUNET_asprintf (&R_cur[i][j], "%s*%s", R_last[k][k], R_last[k][j]);
           }
           else
-            GNUNET_asprintf (&R_cur[i][j], "(%s|%s)", left, right);
+            GNUNET_asprintf (&R_cur[i][j], "(%s|%s)", R_cur_l, R_cur_r);
 
-          GNUNET_free_non_null (left);
-          GNUNET_free_non_null (right);
+          GNUNET_free_non_null (R_cur_l);
+          GNUNET_free_non_null (R_cur_r);
+
         }
       }
     }
