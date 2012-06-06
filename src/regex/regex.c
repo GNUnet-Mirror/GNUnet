@@ -916,9 +916,17 @@ automaton_create_proofs (struct GNUNET_REGEX_Automaton *a)
 
           if (NULL != R_last[k][k] && 0 != strcmp (R_last[k][k], ""))
           {
-            strcat (R_cur_r, "(");
-            strcat (R_cur_r, R_last[k][k]);
-            strcat (R_cur_r, ")*");
+            if (R_last[k][k][0] == '(' && R_last[k][k][strlen (R_last[k][k])-1] == ')')
+            {
+              strcat (R_cur_r, R_last[k][k]);
+              strcat (R_cur_r, "*");
+            }
+            else
+            {
+              strcat (R_cur_r, "(");
+              strcat (R_cur_r, R_last[k][k]);
+              strcat (R_cur_r, ")*");
+            }
           }
 
           if (NULL != R_last[k][j])
