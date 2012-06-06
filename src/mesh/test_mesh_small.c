@@ -380,7 +380,7 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
     }
     if (test == MULTICAST && peers_responded < 2)
       return GNUNET_OK;
-    if (test == SPEED_ACK)
+    if (test == SPEED_ACK || test == SPEED)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               " received ack %u\n", data_ack);
@@ -388,17 +388,17 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
                                         GNUNET_TIME_UNIT_FOREVER_REL, sender,
                                         sizeof (struct GNUNET_MessageHeader),
                                         &tmt_rdy, (void *) 1L);
-      if (data_ack < 1000)
+      if (data_ack < 1000 && test != SPEED)
         return GNUNET_OK;
       end_time = GNUNET_TIME_absolute_get();
       total_time = GNUNET_TIME_absolute_get_difference(start_time, end_time);
       FPRINTF (stderr, "\nTest time %llu ms\n",
                (unsigned long long) total_time.rel_value);
       FPRINTF (stderr, "Test bandwidth: %f kb/s\n",
-               4000.0 / total_time.rel_value);
-      FPRINTF (stderr, "Test throughput: %f packets/s\n",
-               1000000.0 / total_time.rel_value);
-      GAUGER ("MESH", "Tunnel 5 peers", 1000000.0 / total_time.rel_value,
+               4 * 1000.0 / total_time.rel_value); // 4bytes * ms
+      FPRINTF (stderr, "Test throughput: %f packets/s\n\n",
+               1000.0 * 1000.0 / total_time.rel_value); // 1000 packets * ms
+      GAUGER ("MESH", "Tunnel 5 peers", 1000.0 * 1000.0 / total_time.rel_value,
               "packets/s");
     }
     GNUNET_assert (tunnel == t);
@@ -412,7 +412,7 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
                 client);
     ok++;
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, " ok: %d\n", ok);
-    if (SPEED != test)
+    if (SPEED != test || 1002 == ok)
     {
       GNUNET_MESH_notify_transmit_ready (tunnel, GNUNET_NO, 0,
                                         GNUNET_TIME_UNIT_FOREVER_REL, sender,
@@ -985,13 +985,13 @@ main (int argc, char *argv[])
     * 1 incoming tunnel (@dest)
     * 1 connected peer (@orig)
     * 1000 received data packet (@dest)
+    * 1received data packet (@orig)
     * 1 received tunnel destroy (@dest)
     * _________________________________
-    * 5 x ok expected per peer
     */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "SPEED\n");
     test = SPEED;
-    ok_goal = 1003;
+    ok_goal = 1004;
   }
   else
   {
