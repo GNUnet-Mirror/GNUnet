@@ -1307,10 +1307,10 @@ send_core_data_raw (void *cls, size_t size, void *buf)
 
 
 /**
- * Sends an already built message to a peer, properly registrating
+ * Sends an already built unicast message to a peer, properly registrating
  * all used resources.
  *
- * @param message Message to send. Fucntion makes a copy of it.
+ * @param message Message to send. Function makes a copy of it.
  * @param peer Short ID of the neighbor whom to send the message.
  *
  * FIXME tunnel?
@@ -2677,7 +2677,6 @@ queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
     switch (queue->type)
     {
     case GNUNET_MESSAGE_TYPE_MESH_UNICAST:
-    case GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN:
     case GNUNET_MESSAGE_TYPE_MESH_MULTICAST:
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   type payload\n");
         dd = queue->cls;
@@ -2718,15 +2717,19 @@ queue_send (void *cls, size_t size, void *buf)
     core_transmit = NULL;
     queue = queue_head;
 
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "********* Queue send\n");
+
+
     /* If queue is empty, send should have been cancelled */
     if (NULL == queue)
     {
         GNUNET_break(0);
         return 0;
     }
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********   not empty\n");
 
     /* Check if buffer size is enough for the message */
-    if (queue->size < size)
+    if (queue->size > size)
     {
         struct GNUNET_PeerIdentity id;
 
@@ -2742,28 +2745,30 @@ queue_send (void *cls, size_t size, void *buf)
                                               peer);
         return 0;
     }
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********   size ok\n");
 
     /* Fill buf */
     switch (queue->type)
     {
         case GNUNET_MESSAGE_TYPE_MESH_UNICAST:
+            GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********   unicast\n");
             data_size = send_core_data_raw (queue->cls, size, buf);
             break;
         case GNUNET_MESSAGE_TYPE_MESH_MULTICAST:
+            GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********   multicast\n");
             data_size = send_core_data_multicast(queue->cls, size, buf);
             break;
-        case GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN:
-            data_size = 0;
-            break;
         case GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE:
+            GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********   path create\n");
             data_size = send_core_path_create(queue->cls, size, buf);
             break;
         case GNUNET_MESSAGE_TYPE_MESH_PATH_ACK:
+            GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********   path ack\n");
             data_size = send_core_path_ack(queue->cls, size, buf);
             break;
         default:
             GNUNET_break (0);
-            GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   type unknown!\n");
+            GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********   type unknown\n");
             data_size = 0;
     }
 
@@ -2775,6 +2780,7 @@ queue_send (void *cls, size_t size, void *buf)
     {
         struct GNUNET_PeerIdentity id;
 
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********   more data!\n");
         GNUNET_PEER_resolve (peer->id, &id);
         core_transmit =
             GNUNET_CORE_notify_transmit_ready(core_handle,
@@ -2786,6 +2792,7 @@ queue_send (void *cls, size_t size, void *buf)
                                               &queue_send,
                                               peer);
     }
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********   return %d\n", data_size);
     return data_size;
 }
 
