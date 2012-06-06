@@ -789,7 +789,7 @@ GNUNET_TESTING_peer_start (struct GNUNET_TESTING_Peer *peer)
     return GNUNET_SYSERR;
   }
   GNUNET_assert (NULL != peer->cfgfile);
-  peer->main_process = GNUNET_OS_start_process (GNUNET_NO, NULL, NULL,
+  peer->main_process = GNUNET_OS_start_process (GNUNET_YES, NULL, NULL,
                                                 peer->main_binary,
                                                 peer->main_binary,
                                                 "-c",
