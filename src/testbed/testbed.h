@@ -42,10 +42,10 @@ struct GNUNET_TESTBED_Message
   struct GNUNET_MessageHeader header;
 
   /**
-   * Host ID that the controller is either given
-   * (if this is the dominating client communicating
-   * via stdin) or assumed to have (for peer-connections
-   * between controllers).
+   * Host ID that the controller is either given (if this is the
+   * dominating client) or assumed to have (for peer-connections
+   * between controllers).  A controller must check that all 
+   * connections make consistent claims...
    */
   uint32_t host_id GNUNET_PACKED;
 
@@ -496,13 +496,6 @@ struct GNUNET_TESTBED_PeerCreateSuccessEventMessage
    */
   uint64_t operation_id GNUNET_PACKED;
 
-  /**
-   * Identity of the peer.
-   */
-  struct GNUNET_PeerIdentity peer_id;
-
-  /* followed by gzip-compressed configuration of the peer */
-
 };
 
 
@@ -529,6 +522,65 @@ struct GNUNET_TESTBED_GenericOperationSuccessEventMessage
    * Operation ID of the operation that created this event.
    */
   uint64_t operation_id GNUNET_PACKED;
+
+};
+
+
+
+
+/**
+ * Message sent from client to testing service to 
+ * obtain the configuration of a peer.
+ */
+struct GNUNET_TESTBED_PeerGetConfigurationMessage
+{
+
+  /**
+   * Type is 
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Unique ID for the peer.
+   */
+  uint32_t peer_id GNUNET_PACKED;
+
+  /**
+   * Operation ID that is used to identify this operation.
+   */
+  uint64_t operation_id GNUNET_PACKED;
+
+};
+
+
+
+/**
+ * Event notification from a controller to a client.
+ */
+struct GNUNET_TESTBED_PeerConfigurationInformationMessage
+{
+
+  /**
+   * Type is 
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Peer identity of the peer that was created.
+   */
+  uint32_t peer_id GNUNET_PACKED;
+  
+  /**
+   * Operation ID of the operation that created this event.
+   */
+  uint64_t operation_id GNUNET_PACKED;
+
+  /**
+   * Identity of the peer.
+   */
+  struct GNUNET_PeerIdentity peer_id;
+
+  /* followed by gzip-compressed configuration of the peer */
 
 };
 

@@ -58,12 +58,13 @@ struct GNUNET_TESTBED_Peer;
 struct GNUNET_TESTBED_Operation;
 
 /**
- * Handle to interact with a GNUnet testbed controller.  Each controller has at
- * least one master handle which is created when the controller is created; this
- * master handle interacts with the controller via stdin/stdout of the controller
- * process.  Additionally, controllers can interact with each other (in a P2P
- * fashion); those links are established via TCP/IP on the controller's service
- * port.
+ * Handle to interact with a GNUnet testbed controller.  Each
+ * controller has at least one master handle which is created when the
+ * controller is created; this master handle interacts with the
+ * controller process, destroying it destroys the controller (by
+ * closing stdin of the controller process).  Additionally,
+ * controllers can interact with each other (in a P2P fashion); those
+ * links are established via TCP/IP on the controller's service port.
  */
 struct GNUNET_TESTBED_Controller;
 
