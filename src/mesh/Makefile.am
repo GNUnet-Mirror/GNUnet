@@ -50,7 +50,8 @@ libgnunetmesh_la_SOURCES = \
   mesh_api.c mesh.h mesh_protocol.h
 libgnunetmesh_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(XLIB)
+  $(XLIB) \
+  $(LTLIBINTL)
 libgnunetmesh_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) $(WINFLAGS) \
   -version-info 1:0:0

@@ -15,7 +15,8 @@ libgnunetfragmentation_la_SOURCES = \
   defragmentation.c 
 libgnunetfragmentation_la_LIBADD = -lm \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
- $(top_builddir)/src/util/libgnunetutil.la  
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(LTLIBINTL)
 libgnunetfragmentation_la_LDFLAGS = \
  $(GN_LIB_LDFLAGS) \
   -version-info 1:0:1

@@ -32,7 +32,8 @@ libgnunetlockmanager_la_SOURCES = \
   lockmanager_api.c lockmanager.h
 libgnunetlockmanager_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(XLIB)
+  $(XLIB) \
+  $(LTLIBINTL)
 libgnunetlockmanager_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) $(WINFLAGS) \
   -version-info 0:0:0

@@ -99,7 +99,8 @@ libgnunet_plugin_namestore_sqlite_la_SOURCES = \
 libgnunet_plugin_namestore_sqlite_la_LIBADD = \
   $(top_builddir)/src/namestore/libgnunetnamestore.la  \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
-  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) -lsqlite3
+  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) -lsqlite3 \
+  $(LTLIBINTL)
 libgnunet_plugin_namestore_sqlite_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 libgnunet_plugin_namestore_sqlite_la_DEPENDENCIES = \

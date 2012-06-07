@@ -48,7 +48,8 @@ libgnunettesting_la_LIBADD = $(XLIB) \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  -lm \
- $(top_builddir)/src/util/libgnunetutil.la 
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(LTLIBINTL)
 libgnunettesting_la_LDFLAGS = \
  $(GN_LIB_LDFLAGS) \
  -version-info 0:1:0
@@ -57,7 +58,8 @@ libgnunettesting_la_LDFLAGS = \
 libgnunettesting_new_la_SOURCES = \
   testing_new.c  
 libgnunettesting_new_la_LIBADD = \
- $(top_builddir)/src/util/libgnunetutil.la 
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(LTLIBINTL)
 libgnunettesting_new_la_LDFLAGS = \
  $(GN_LIB_LDFLAGS) \
  -version-info 0:1:0

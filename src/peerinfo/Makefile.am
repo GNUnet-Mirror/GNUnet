@@ -22,7 +22,8 @@ libgnunetpeerinfo_la_SOURCES = \
 libgnunetpeerinfo_la_LIBADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(XLIB)
+  $(XLIB) \
+  $(LTLIBINTL)
 libgnunetpeerinfo_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) $(WINFLAGS) \
   -version-info 0:0:0

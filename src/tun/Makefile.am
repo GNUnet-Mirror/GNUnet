@@ -14,7 +14,8 @@ lib_LTLIBRARIES = libgnunettun.la
 libgnunettun_la_SOURCES = \
   tun.c
 libgnunettun_la_LIBADD = \
- $(top_builddir)/src/util/libgnunetutil.la $(XLIB)
+ $(top_builddir)/src/util/libgnunetutil.la $(XLIB) \
+ $(LTLIBINTL)
 libgnunettun_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) \
   -version-info 0:0:0

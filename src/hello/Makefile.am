@@ -14,7 +14,8 @@ lib_LTLIBRARIES = libgnunethello.la
 libgnunethello_la_SOURCES = \
   hello.c address.c
 libgnunethello_la_LIBADD = \
- $(top_builddir)/src/util/libgnunetutil.la $(XLIB)
+ $(top_builddir)/src/util/libgnunetutil.la $(XLIB) \
+ $(LTLIBINTL)
 libgnunethello_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) \
   -version-info 0:0:0

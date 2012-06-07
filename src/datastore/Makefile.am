@@ -92,7 +92,8 @@ libgnunet_plugin_datastore_sqlite_la_SOURCES = \
   plugin_datastore_sqlite.c
 libgnunet_plugin_datastore_sqlite_la_LIBADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
-  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) -lsqlite3
+  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) -lsqlite3 \
+  $(LTLIBINTL)
 libgnunet_plugin_datastore_sqlite_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 
@@ -123,7 +124,8 @@ libgnunet_plugin_datastore_postgres_la_CPPFLAGS = \
 libgnunet_plugin_datastore_template_la_SOURCES = \
   plugin_datastore_template.c
 libgnunet_plugin_datastore_template_la_LIBADD = \
-  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS)
+  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
+  $(LTLIBINTL)
 libgnunet_plugin_datastore_template_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 

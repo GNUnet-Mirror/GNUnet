@@ -107,6 +107,7 @@ libgnunetutil_la_LIBADD = \
   $(GCLIBADD) $(WINLIB) \
   $(LIBGCRYPT_LIBS) \
   $(LTLIBICONV) \
+  $(LTLIBINTL) \
   -lltdl -lz -lunistring $(XLIB) 
 
 libgnunetutil_la_LDFLAGS = \

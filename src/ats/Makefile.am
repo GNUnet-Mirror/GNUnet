@@ -28,7 +28,8 @@ libgnunetats_la_SOURCES = \
   ats_api_performance.c 
 
 libgnunetats_la_LIBADD = \
- $(top_builddir)/src/util/libgnunetutil.la
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(LTLIBINTL)
 
 libgnunetats_la_LDFLAGS = \
  $(GN_LIB_LDFLAGS) \

@@ -177,7 +177,8 @@ libgnunet_plugin_block_fs_la_SOURCES = \
   plugin_block_fs.c
 libgnunet_plugin_block_fs_la_LIBADD = \
   $(top_builddir)/src/block/libgnunetblock.la \
-  $(top_builddir)/src/util/libgnunetutil.la 
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(LTLIBINTL)
 libgnunet_plugin_block_fs_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 libgnunet_plugin_block_fs_la_DEPENDENCIES = \
