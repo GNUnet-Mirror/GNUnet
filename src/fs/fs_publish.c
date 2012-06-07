@@ -569,6 +569,7 @@ publish_content (struct GNUNET_FS_PublishContext *pc)
               GNUNET_free (raw_data);
               raw_data = NULL;
             }
+	    dirpos->data.file.reader (dirpos->data.file.reader_cls, UINT64_MAX, 0, 0, NULL);
           }
         }
         GNUNET_FS_directory_builder_add (db, dirpos->chk_uri, dirpos->meta,

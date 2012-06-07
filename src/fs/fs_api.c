@@ -496,7 +496,7 @@ get_read_handle (struct GNUNET_FS_Handle *h, const char *ext, const char *ent)
   struct GNUNET_BIO_ReadHandle *ret;
 
   fn = get_serialization_file_name (h, ext, ent);
-  if (fn == NULL)
+  if (NULL == fn)
     return NULL;
   ret = GNUNET_BIO_read_open (fn);
   GNUNET_free (fn);
@@ -519,13 +519,10 @@ get_write_handle (struct GNUNET_FS_Handle *h, const char *ext, const char *ent)
   struct GNUNET_BIO_WriteHandle *ret;
 
   fn = get_serialization_file_name (h, ext, ent);
-  if (fn == NULL)
-  {
+  if (NULL == fn)
     return NULL;
-  }
   ret = GNUNET_BIO_write_open (fn);
-  if (ret == NULL)
-    GNUNET_break (0);
+  GNUNET_break (ret != NULL);
   GNUNET_free (fn);
   return ret;
 }
