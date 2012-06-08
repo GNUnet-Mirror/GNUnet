@@ -229,43 +229,6 @@ struct MeshPeerInfo
 
 
 /**
- * Data scheduled to transmit (to local client or remote peer)
- */
-struct MeshQueue
-{
-    /**
-     * Double linked list
-     */
-  struct MeshQueue *next;
-  struct MeshQueue *prev;
-
-    /**
-     * Target of the data (NULL if target is client)
-     */
-  struct MeshPeerInfo *peer;
-
-    /**
-     * Client to send the data to (NULL if target is peer)
-     */
-  struct MeshClient *client;
-
-    /**
-     * Size of the message to transmit
-     */
-  unsigned int size;
-
-    /**
-     * How old is the data?
-     */
-  struct GNUNET_TIME_Absolute timestamp;
-
-    /**
-     * Data itself
-     */
-  struct GNUNET_MessageHeader *data;
-};
-
-/**
  * Globally unique tunnel identification (owner + number)
  * DO NOT USE OVER THE NETWORK
  */
@@ -362,12 +325,6 @@ struct MeshTunnel
      * Number of elements in clients
      */
   unsigned int nignore;
-
-    /**
-     * Messages ready to transmit
-     */
-  struct MeshQueue *queue_head;
-  struct MeshQueue *queue_tail;
 
   /**
    * Tunnel paths
@@ -2339,8 +2296,6 @@ static int
 tunnel_destroy (struct MeshTunnel *t)
 {
   struct MeshClient *c;
-  struct MeshQueue *q;
-  struct MeshQueue *qn;
   GNUNET_HashCode hash;
   unsigned int i;
   int r;
@@ -2409,16 +2364,7 @@ tunnel_destroy (struct MeshTunnel *t)
                                            t);
     GNUNET_CONTAINER_multihashmap_destroy (t->peers);
   }
-  q = t->queue_head;
-  while (NULL != q)
-  {
-    if (NULL != q->data)
-      GNUNET_free (q->data);
-    qn = q->next;
-    GNUNET_free (q);
-    q = qn;
-    /* TODO cancel core transmit ready in case it was active */
-  }
+
   tree_destroy (t->tree);
   if (NULL != t->dht_get_type)
     GNUNET_DHT_get_stop (t->dht_get_type);
