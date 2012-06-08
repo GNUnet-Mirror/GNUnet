@@ -131,9 +131,11 @@ struct GNUNET_PEERINFO_IteratorContext
   int have_peer;
 
   /**
-   * Are we now receiving?
+   * Set to GNUNET_YES if we are currently receiving replies from the
+   * service.
    */
-  int in_receive;
+  int request_transmitted;
+
 };
 
 
@@ -183,10 +185,9 @@ struct GNUNET_PEERINFO_Handle
   GNUNET_SCHEDULER_TaskIdentifier r_task;
 
   /**
-   * Set to GNUNET_YES if we are currently receiving replies from the
-   * service.
+   * Are we now receiving?
    */
-  int request_transmitted;
+  int in_receive;
 
 };
 
@@ -600,7 +601,6 @@ peerinfo_handler (void *cls, const struct GNUNET_MessageHeader *msg)
        "Received %u bytes of `%s' information about peer `%s' from `%s' service\n",
        (hello == NULL) ? 0 : (unsigned int) GNUNET_HELLO_size (hello), "HELLO",
        GNUNET_i2s (&im->peer), "PEERINFO");
-  ic->request_transmitted = GNUNET_YES;
   h->in_receive = GNUNET_YES;
   GNUNET_CLIENT_receive (h->client, &peerinfo_handler, h,
                          GNUNET_TIME_absolute_get_remaining (ic->timeout));
