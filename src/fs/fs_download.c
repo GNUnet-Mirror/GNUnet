@@ -2128,7 +2128,7 @@ GNUNET_FS_download_start (struct GNUNET_FS_Handle *h,
   dc->parent = parent;
   if (NULL != parent)
     GNUNET_CONTAINER_DLL_insert (parent->child_head, parent->child_tail, dc);
-  else
+  else if (0 == (GNUNET_FS_DOWNLOAD_IS_PROBE & options) )
     dc->top =
         GNUNET_FS_make_top (dc->h, &GNUNET_FS_download_signal_suspend_, dc);
   return dc;

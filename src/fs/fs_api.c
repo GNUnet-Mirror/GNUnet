@@ -1853,7 +1853,7 @@ GNUNET_FS_search_result_sync_ (struct GNUNET_FS_SearchResult *sr)
                                  NULL) ? GNUNET_FS_SYNC_PATH_MASTER_SEARCH :
                                 GNUNET_FS_SYNC_PATH_CHILD_SEARCH,
                                 sr->sc->serialization, sr->serialization);
-  if (wh == NULL)
+  if (NULL == wh)
   {
     GNUNET_break (0);
     goto cleanup;
@@ -1878,7 +1878,7 @@ GNUNET_FS_search_result_sync_ (struct GNUNET_FS_SearchResult *sr)
     GNUNET_break (0);
     goto cleanup;
   }
-  if ( (sr->uri != NULL) &&
+  if ( (NULL != sr->uri) &&
        (sr->sc->uri->type == ksk) &&
        (GNUNET_OK != GNUNET_BIO_write (wh, sr->keyword_bitmap,
 				       (sr->sc->uri->data.ksk.keywordCount + 7) / 8)) )
@@ -1896,7 +1896,7 @@ GNUNET_FS_search_result_sync_ (struct GNUNET_FS_SearchResult *sr)
   return;
 cleanup:
   GNUNET_free_non_null (uris);
-  if (wh != NULL)
+  if (NULL != wh)
     (void) GNUNET_BIO_write_close (wh);
   remove_sync_file_in_dir (sr->sc->h,
                            (sr->sc->psearch_result ==

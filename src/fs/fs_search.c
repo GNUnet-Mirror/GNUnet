@@ -1483,6 +1483,17 @@ search_result_stop (void *cls, const GNUNET_HashCode * key, void *value)
   struct GNUNET_FS_SearchResult *sr = value;
   struct GNUNET_FS_ProgressInfo pi;
 
+  if (NULL != sr->probe_ctx)
+  {
+    GNUNET_FS_download_stop (sr->probe_ctx, GNUNET_YES);
+    sr->probe_ctx = NULL;
+  }
+  if (GNUNET_SCHEDULER_NO_TASK != sr->probe_cancel_task)
+  {
+    GNUNET_SCHEDULER_cancel (sr->probe_cancel_task);
+    sr->probe_cancel_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+
   if (NULL != sr->download)
   {
     sr->download->search = NULL;
@@ -1528,14 +1539,12 @@ search_result_free (void *cls, const GNUNET_HashCode * key, void *value)
     GNUNET_FS_search_stop (sr->update_search);
     GNUNET_assert (NULL == sr->update_search);
   }
+  GNUNET_break (NULL == sr->probe_ctx);
+  GNUNET_break (GNUNET_SCHEDULER_NO_TASK == sr->probe_cancel_task);
   GNUNET_break (NULL == sr->client_info);
   GNUNET_free_non_null (sr->serialization);
   GNUNET_FS_uri_destroy (sr->uri);
   GNUNET_CONTAINER_meta_data_destroy (sr->meta);
-  if (NULL != sr->probe_ctx)
-    GNUNET_FS_download_stop (sr->probe_ctx, GNUNET_YES);
-  if (GNUNET_SCHEDULER_NO_TASK != sr->probe_cancel_task)
-    GNUNET_SCHEDULER_cancel (sr->probe_cancel_task);
   GNUNET_free_non_null (sr->keyword_bitmap);
   GNUNET_free (sr);
   return GNUNET_OK;
