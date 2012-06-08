@@ -394,8 +394,6 @@ trigger_transmit (struct GNUNET_PEERINFO_Handle *h)
     return; /* no requests queued */
   if (NULL != h->th)
     return; /* request already pending */
-  if (GNUNET_YES == h->in_receive)
-    return; /* still reading replies from last request */
   if (NULL == h->client)
   {
     /* disconnected, try to reconnect */
