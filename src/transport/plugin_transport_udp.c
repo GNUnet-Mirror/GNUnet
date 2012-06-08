@@ -1741,8 +1741,15 @@ udp_select_read (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *rsock)
   memset (&addr, 0, sizeof (addr));
   size = GNUNET_NETWORK_socket_recvfrom (rsock, buf, sizeof (buf),
                                       (struct sockaddr *) &addr, &fromlen);
-
-  if (size < sizeof (struct GNUNET_MessageHeader))
+#if MINGW
+  /* On SOCK_DGRAM UDP sockets recvfrom might fail with a
+   * WSAECONNRESET error to indicate that previous sendto() (???)
+   * on this socket has failed.
+   */
+  if ( (-1 == size) && (ECONNRESET == errno) )
+    return;
+#endif
+  if ( (-1 == size) || (size < sizeof (struct GNUNET_MessageHeader)))
   {
     GNUNET_break_op (0);
     return;
