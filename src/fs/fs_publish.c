@@ -959,8 +959,52 @@ fip_signal_start (void *cls, struct GNUNET_FS_FileInformation *fi,
 
 
 /**
- * Signal the FS's progress function that we are suspending
+ * Actually signal the FS's progress function that we are suspending
  * an upload.
+ *
+ * @param cls closure (of type "struct GNUNET_FS_PublishContext*")
+ * @param fi the entry in the publish-structure
+ */
+static void
+suspend_operation (struct GNUNET_FS_FileInformation *fi,
+		   struct GNUNET_FS_PublishContext *pc)
+{
+  struct GNUNET_FS_ProgressInfo pi;
+  uint64_t off;
+
+  if (NULL != pc->ksk_pc)
+  {
+    GNUNET_FS_publish_ksk_cancel (pc->ksk_pc);
+    pc->ksk_pc = NULL;
+  }
+  if (NULL != pc->sks_pc)
+  {
+    GNUNET_FS_publish_sks_cancel (pc->sks_pc);
+    pc->sks_pc = NULL;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Suspending publish operation\n");
+  GNUNET_free_non_null (fi->serialization);
+  fi->serialization = NULL;
+  off = (fi->chk_uri == NULL) ? 0 : (fi->is_directory == GNUNET_YES) ? fi->data.dir.dir_size : fi->data.file.file_size;
+  pi.status = GNUNET_FS_STATUS_PUBLISH_SUSPEND;
+  GNUNET_break (NULL == GNUNET_FS_publish_make_status_ (&pi, pc, fi, off));
+  if (NULL != pc->qre)
+  {
+    GNUNET_DATASTORE_cancel (pc->qre);
+    pc->qre = NULL;
+  }
+  if (NULL != pc->dsh)
+  {
+    GNUNET_DATASTORE_disconnect (pc->dsh, GNUNET_NO);
+    pc->dsh = NULL;
+  }
+  pc->rid = 0;
+}
+
+
+/**
+ * Signal the FS's progress function that we are suspending
+ * an upload.  Performs the recursion.
  *
  * @param cls closure (of type "struct GNUNET_FS_PublishContext*")
  * @param fi the entry in the publish-structure
@@ -980,8 +1024,6 @@ fip_signal_suspend (void *cls, struct GNUNET_FS_FileInformation *fi,
                     void **client_info)
 {
   struct GNUNET_FS_PublishContext *pc = cls;
-  struct GNUNET_FS_ProgressInfo pi;
-  uint64_t off;
 
   if (GNUNET_YES == pc->skip_next_fi_callback)
   {
@@ -994,34 +1036,8 @@ fip_signal_suspend (void *cls, struct GNUNET_FS_FileInformation *fi,
     pc->skip_next_fi_callback = GNUNET_YES;
     GNUNET_FS_file_information_inspect (fi, &fip_signal_suspend, pc);
   }
-  if (NULL != pc->ksk_pc)
-  {
-    GNUNET_FS_publish_ksk_cancel (pc->ksk_pc);
-    pc->ksk_pc = NULL;
-  }
-  if (NULL != pc->sks_pc)
-  {
-    GNUNET_FS_publish_sks_cancel (pc->sks_pc);
-    pc->sks_pc = NULL;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Suspending publish operation\n");
-  GNUNET_free_non_null (fi->serialization);
-  fi->serialization = NULL;
-  off = (fi->chk_uri == NULL) ? 0 : length;
-  pi.status = GNUNET_FS_STATUS_PUBLISH_SUSPEND;
-  GNUNET_break (NULL == GNUNET_FS_publish_make_status_ (&pi, pc, fi, off));
+  suspend_operation (fi, pc);
   *client_info = NULL;
-  if (NULL != pc->qre)
-  {
-    GNUNET_DATASTORE_cancel (pc->qre);
-    pc->qre = NULL;
-  }
-  if (NULL != pc->dsh)
-  {
-    GNUNET_DATASTORE_disconnect (pc->dsh, GNUNET_NO);
-    pc->dsh = NULL;
-  }
-  pc->rid = 0;
   return GNUNET_OK;
 }
 
@@ -1042,7 +1058,9 @@ GNUNET_FS_publish_signal_suspend_ (void *cls)
     GNUNET_SCHEDULER_cancel (pc->upload_task);
     pc->upload_task = GNUNET_SCHEDULER_NO_TASK;
   }
+  pc->skip_next_fi_callback = GNUNET_YES;
   GNUNET_FS_file_information_inspect (pc->fi, &fip_signal_suspend, pc);
+  suspend_operation (pc->fi, pc);
   GNUNET_FS_end_top (pc->h, pc->top);
   pc->top = NULL;
   publish_cleanup (pc);

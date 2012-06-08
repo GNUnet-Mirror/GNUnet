@@ -367,7 +367,8 @@ GNUNET_FS_file_information_inspect (struct GNUNET_FS_FileInformation *dir,
   if (GNUNET_OK !=
       proc (proc_cls, dir,
             (dir->is_directory == GNUNET_YES) ? dir->data.dir.dir_size : dir->data.
-            file.file_size, dir->meta, &dir->keywords, &dir->bo,
+            file.file_size,
+	    dir->meta, &dir->keywords, &dir->bo,
             (dir->is_directory == GNUNET_YES) ? &no : &dir->data.file.do_index,
             &dir->client_info))
     return;
