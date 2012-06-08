@@ -225,6 +225,21 @@ struct MeshPeerInfo
      * Number of tunnels this peers participates in
      */
   unsigned int ntunnels;
+
+   /**
+    * Transmission queue to core DLL head
+    */
+  struct MeshPeerQueue *queue_head;
+
+   /**
+    * Transmission queue to core DLL tail
+    */
+   struct MeshPeerQueue *queue_tail;
+  
+   /**
+    * Handle to for queued transmissions
+    */
+  struct GNUNET_CORE_TransmitHandle *core_transmit;
 };
 
 
@@ -475,12 +490,6 @@ static struct MeshClient *clients;
 static struct MeshClient *clients_tail;
 
 /**
- * Transmission queue to core
- */
-struct MeshPeerQueue *queue_head;
-struct MeshPeerQueue *queue_tail;
-
-/**
  * Tunnels known, indexed by MESH_TunnelID (MeshTunnel)
  */
 static struct GNUNET_CONTAINER_MultiHashMap *tunnels;
@@ -505,11 +514,6 @@ static struct GNUNET_CONTAINER_MultiHashMap *peers;
  * Handle to communicate with core
  */
 static struct GNUNET_CORE_Handle *core_handle;
-
-/**
- * Handle to for queued transmissions
- */
-struct GNUNET_CORE_TransmitHandle *core_transmit;
 
 /**
  * Handle to use DHT
@@ -2639,7 +2643,9 @@ queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
     }
     GNUNET_free_non_null (queue->cls);
   }
-  GNUNET_CONTAINER_DLL_remove (queue_head, queue_tail, queue);
+  GNUNET_CONTAINER_DLL_remove (queue->peer->queue_head,
+                               queue->peer->queue_tail,
+                               queue);
   GNUNET_free (queue);
 }
 
@@ -2660,8 +2666,8 @@ queue_send (void *cls, size_t size, void *buf)
     struct MeshPeerQueue *queue;
     size_t data_size;
 
-    core_transmit = NULL;
-    queue = queue_head;
+    peer->core_transmit = NULL;
+    queue = peer->queue_head;
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "********* Queue send\n");
 
@@ -2680,7 +2686,7 @@ queue_send (void *cls, size_t size, void *buf)
         struct GNUNET_PeerIdentity id;
 
         GNUNET_PEER_resolve (peer->id, &id);
-        core_transmit =
+        peer->core_transmit =
             GNUNET_CORE_notify_transmit_ready(core_handle,
                                               0,
                                               0,
@@ -2722,19 +2728,19 @@ queue_send (void *cls, size_t size, void *buf)
     queue_destroy(queue, GNUNET_NO);
 
     /* If more data in queue, send next */
-    if (NULL != queue_head)
+    if (NULL != peer->queue_head)
     {
         struct GNUNET_PeerIdentity id;
 
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********   more data!\n");
         GNUNET_PEER_resolve (peer->id, &id);
-        core_transmit =
+        peer->core_transmit =
             GNUNET_CORE_notify_transmit_ready(core_handle,
                                               0,
                                               0,
                                               GNUNET_TIME_UNIT_FOREVER_REL,
                                               &id,
-                                              queue_head->size,
+                                              peer->queue_head->size,
                                               &queue_send,
                                               peer);
     }
@@ -2761,13 +2767,13 @@ queue_add (void *cls, uint16_t type, size_t size, struct MeshPeerInfo *dst)
     queue->type = type;
     queue->size = size;
     queue->peer = dst;
-    GNUNET_CONTAINER_DLL_insert_tail (queue_head, queue_tail, queue);
-    if (NULL == core_transmit)
+    GNUNET_CONTAINER_DLL_insert_tail (dst->queue_head, dst->queue_tail, queue);
+    if (NULL == dst->core_transmit)
     {
         struct GNUNET_PeerIdentity id;
 
         GNUNET_PEER_resolve (dst->id, &id);
-        core_transmit =
+        dst->core_transmit =
             GNUNET_CORE_notify_transmit_ready(core_handle,
                                               0,
                                               0,
@@ -4612,7 +4618,7 @@ core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
     GNUNET_break (0);
     return;
   }
-  q = queue_head;
+  q = pi->queue_head;
   while (NULL != q)
   {
       n = q->next;
@@ -4670,7 +4676,7 @@ shutdown_peer (void *cls, const GNUNET_HashCode * key, void *value)
   struct MeshPeerQueue *q;
   struct MeshPeerQueue *n;
 
-  q = queue_head;
+  q = p->queue_head;
   while (NULL != q)
   {
       n = q->next;
