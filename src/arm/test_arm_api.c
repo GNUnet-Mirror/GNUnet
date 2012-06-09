@@ -30,8 +30,6 @@
 #include "gnunet_program_lib.h"
 #include "gnunet_resolver_service.h"
 
-#define VERBOSE GNUNET_NO
-
 #define START_ARM GNUNET_YES
 
 #define START_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 1500)
@@ -137,9 +135,6 @@ check ()
   char *const argv[] = {
     "test-arm-api",
     "-c", "test_arm_api_data.conf",
-#if VERBOSE
-    "-L", "DEBUG",
-#endif
     NULL
   };
   struct GNUNET_GETOPT_CommandLineOption options[] = {
@@ -159,11 +154,7 @@ main (int argc, char *argv[])
 
 
   GNUNET_log_setup ("test-arm-api",
-#if VERBOSE
-		    "DEBUG",
-#else
 		    "WARNING",
-#endif
 		    NULL);
   ret = check ();
 
