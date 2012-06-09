@@ -257,9 +257,9 @@ struct SendMessageRequest
   struct GNUNET_PeerIdentity peer;
 
   /**
-   * How large is the client's message queue for this peer?
+   * Always zero.
    */
-  uint32_t queue_size GNUNET_PACKED;
+  uint32_t reserved GNUNET_PACKED;
 
   /**
    * How large is the message?
