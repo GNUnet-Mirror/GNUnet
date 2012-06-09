@@ -1435,6 +1435,7 @@ activate_fs_download (void *cls, struct GNUNET_CLIENT_Connection *client)
   GNUNET_assert (NULL != client);
   GNUNET_assert (NULL == dc->client);
   GNUNET_assert (NULL == dc->th);
+  GNUNET_assert (NULL != dc->active);
   dc->client = client;
   pi.status = GNUNET_FS_STATUS_DOWNLOAD_ACTIVE;
   GNUNET_FS_download_make_status_ (&pi, dc);
@@ -2000,6 +2001,7 @@ GNUNET_FS_download_signal_suspend_ (void *cls)
   GNUNET_FS_uri_destroy (dc->uri);
   GNUNET_free_non_null (dc->temp_filename);
   GNUNET_free_non_null (dc->serialization);
+  GNUNET_assert (NULL == dc->job_queue);
   GNUNET_free (dc);
 }
 
@@ -2211,6 +2213,7 @@ GNUNET_FS_download_start_downloading_ (struct GNUNET_FS_DownloadContext *dc)
   if (dc->completed == dc->length)
     return;
   GNUNET_assert (NULL == dc->job_queue);
+  GNUNET_assert (NULL != dc->active);
   dc->job_queue =
       GNUNET_FS_queue_ (dc->h, &activate_fs_download, &deactivate_fs_download,
                         dc, (dc->length + DBLOCK_SIZE - 1) / DBLOCK_SIZE,
@@ -2303,6 +2306,7 @@ GNUNET_FS_download_stop (struct GNUNET_FS_DownloadContext *dc, int do_delete)
     GNUNET_free (dc->temp_filename);
   }
   GNUNET_free_non_null (dc->serialization);
+  GNUNET_assert (NULL == dc->job_queue);
   GNUNET_free (dc);
 }
 
