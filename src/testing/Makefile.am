@@ -57,3 +57,6 @@ test_testing_new_servicestartup_LDADD = \
  $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/util/libgnunetutil.la
 
+
+EXTRA_DIST = \
+  test_testing_defaults.conf
