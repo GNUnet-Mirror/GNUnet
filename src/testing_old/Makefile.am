@@ -88,10 +88,7 @@ TESTS = \
  test_testing_connect \
  test_testing_reconnect \
  test_testing_group \
- test_testing_peergroup \
- test_testing_new_portreservation \
- test_testing_new_peerstartup \
- test_testing_new_servicestartup
+ test_testing_peergroup 
 endif
 
 gnunet_testing_SOURCES = \
