@@ -72,7 +72,7 @@ check (void *cls, char *const *args, const char *cfgfile,
 #endif
   struct ATS_Address addr[10];
   struct ATS_PreferedAddress *res[10];
-  struct MLP_information *mlpi;
+  // struct MLP_information *mlpi;
   struct GAS_MLP_SolutionContext ctx;
 
   stats = GNUNET_STATISTICS_create("ats", cfg);
@@ -100,7 +100,7 @@ check (void *cls, char *const *args, const char *cfgfile,
 
   /* Add peer 1 address 1 */
   GAS_mlp_address_update (mlp, addresses, &addr[0]);
-  mlpi = addr[0].mlp_information;
+  // mlpi = addr[0].mlp_information;
 
   GNUNET_assert (mlp != NULL);
   GNUNET_assert (mlp->addr_in_problem == 1);
