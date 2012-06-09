@@ -924,6 +924,7 @@ deserialize_file_information (struct GNUNET_FS_Handle *h, const char *filename)
   struct GNUNET_FS_FileInformation *ret;
   struct GNUNET_BIO_ReadHandle *rh;
   char *emsg;
+  char *fn;
 
   rh = get_read_handle (h, GNUNET_FS_SYNC_PATH_FILE_INFO, filename);
   if (rh == NULL)
@@ -938,8 +939,13 @@ deserialize_file_information (struct GNUNET_FS_Handle *h, const char *filename)
   }
   if (ret == NULL)
   {
-    if (0 != UNLINK (filename))
-      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "unlink", filename);
+    fn = get_serialization_file_name (h, GNUNET_FS_SYNC_PATH_FILE_INFO, filename);
+    if (NULL != fn)
+    {
+      if (0 != UNLINK (fn))
+	GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "unlink", fn);
+      GNUNET_free (fn);
+    }
   }
   return ret;
 }
