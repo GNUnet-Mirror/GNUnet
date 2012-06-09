@@ -116,7 +116,7 @@ test_integration_connection_values_tcp_udp_http.py: test_integration_connection_
 test_connection_stability_SOURCES = \
  test_connection_stability.c
 test_connection_stability_LDADD = \
- $(top_builddir)/src/testing/libgnunettesting.la \
+ $(top_builddir)/src/testing_old/libgnunettesting_old.la \
  $(top_builddir)/src/util/libgnunetutil.la  
 
 
