@@ -917,9 +917,9 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
         continue;
       if ((mh->expected_size != ntohs (em->size)) && (mh->expected_size != 0))
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                    "Unexpected message size %u for message of type %u from peer `%4s'\n",
-                    htons (em->size), mh->type, GNUNET_i2s (&ntm->peer));
+        LOG (GNUNET_ERROR_TYPE_ERROR,
+	     "Unexpected message size %u for message of type %u from peer `%4s'\n",
+	     htons (em->size), mh->type, GNUNET_i2s (&ntm->peer));
         GNUNET_break_op (0);
         continue;
       }
@@ -1285,10 +1285,10 @@ GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle, int cork,
   struct GNUNET_CORE_TransmitHandle *th;
 
   GNUNET_assert (NULL != notify);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Asking core for transmission of %u bytes to `%s'\n",
-	      (unsigned int) notify_size,
-	      GNUNET_i2s (target));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Asking core for transmission of %u bytes to `%s'\n",
+       (unsigned int) notify_size,
+       GNUNET_i2s (target));
   pr = GNUNET_CONTAINER_multihashmap_get (handle->peers, &target->hashPubKey);
   if (NULL == pr)
   {
@@ -1299,7 +1299,7 @@ GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle, int cork,
   if (NULL != pr->th.peer)
   {
     /* attempting to queue a second request for the same destination */
-    GNUNET_assert (0);
+    GNUNET_break (0);
     return NULL;
   }
   GNUNET_assert (notify_size + sizeof (struct SendMessage) <
@@ -1332,10 +1332,10 @@ GNUNET_CORE_notify_transmit_ready_cancel (struct GNUNET_CORE_TransmitHandle *th)
   struct GNUNET_CORE_Handle *h;
 
   GNUNET_assert (NULL != pr);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Aborting transmission request to core for %u bytes to `%s'\n",
-	      (unsigned int) th->msize,
-	      GNUNET_i2s (&pr->peer));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Aborting transmission request to core for %u bytes to `%s'\n",
+       (unsigned int) th->msize,
+       GNUNET_i2s (&pr->peer));
   th->peer = NULL;
   h = pr->ch;
   if (NULL != th->cm)
