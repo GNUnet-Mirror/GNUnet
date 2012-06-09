@@ -105,14 +105,14 @@ test_mesh_2dtorus_SOURCES = \
  test_mesh_2dtorus.c
 test_mesh_2dtorus_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/testing/libgnunettesting.la
+  $(top_builddir)/src/testing_old/libgnunettesting_old.la
 
 test_mesh_small_unicast_SOURCES = \
  test_mesh_small.c
 test_mesh_small_unicast_LDADD = \
   $(top_builddir)/src/mesh/libgnunetmesh.la \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/testing/libgnunettesting.la
+  $(top_builddir)/src/testing_old/libgnunettesting_old.la
 test_mesh_small_unicast_DEPENDENCIES = \
   libgnunetmesh.la
 
@@ -121,7 +121,7 @@ test_mesh_small_multicast_SOURCES = \
 test_mesh_small_multicast_LDADD = \
   $(top_builddir)/src/mesh/libgnunetmesh.la \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/testing/libgnunettesting.la
+  $(top_builddir)/src/testing_old/libgnunettesting_old.la
 test_mesh_small_multicast_DEPENDENCIES = \
   libgnunetmesh.la
 
@@ -130,7 +130,7 @@ test_mesh_small_speed_SOURCES = \
 test_mesh_small_speed_LDADD = \
   $(top_builddir)/src/mesh/libgnunetmesh.la \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/testing/libgnunettesting.la
+  $(top_builddir)/src/testing_old/libgnunettesting_old.la
 test_mesh_small_speed_DEPENDENCIES = \
   libgnunetmesh.la
 
@@ -139,7 +139,7 @@ test_mesh_small_speed_ack_SOURCES = \
 test_mesh_small_speed_ack_LDADD = \
   $(top_builddir)/src/mesh/libgnunetmesh.la \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/testing/libgnunettesting.la
+  $(top_builddir)/src/testing_old/libgnunettesting_old.la
 test_mesh_small_speed_ack_DEPENDENCIES = \
   libgnunetmesh.la
 

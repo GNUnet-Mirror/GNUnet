@@ -39,7 +39,7 @@ gnunet_nse_profiler_LDADD = -lm \
   $(top_builddir)/src/nse/libgnunetnse.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
-  $(top_builddir)/src/testing/libgnunettesting.la \
+  $(top_builddir)/src/testing_old/libgnunettesting_old.la \
   $(GN_LIBINTL)
 gnunet_nse_profiler_DEPENDENCIES = \
   libgnunetnse.la				 
@@ -80,7 +80,7 @@ test_nse_multipeer_SOURCES = \
 test_nse_multipeer_LDADD = \
   $(top_builddir)/src/nse/libgnunetnse.la \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/testing/libgnunettesting.la \
+  $(top_builddir)/src/testing_old/libgnunettesting_old.la \
   -lm
 
 EXTRA_DIST = \

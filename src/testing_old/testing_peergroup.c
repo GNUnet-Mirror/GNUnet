@@ -793,61 +793,61 @@ GNUNET_TESTING_peergroup_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   pg_start_ctx = GNUNET_malloc (sizeof (struct PeerGroupStartupContext));
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_number (cfg, "testing", "connect_attempts",
+      GNUNET_CONFIGURATION_get_value_number (cfg, "testing_old", "connect_attempts",
                                              &pg_start_ctx->connect_attempts))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Must provide option %s:%s!\n",
-                "testing", "connect_attempts");
+                "testing_old", "connect_attempts");
     GNUNET_free (pg_start_ctx);
     return NULL;
   }
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_time (cfg, "testing", "CONNECT_TIMEOUT",
+      GNUNET_CONFIGURATION_get_value_time (cfg, "testing_old", "CONNECT_TIMEOUT",
                                            &pg_start_ctx->connect_timeout))
   {
     pg_start_ctx->connect_timeout = DEFAULT_CONNECT_TIMEOUT;
   }
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_number (cfg, "testing",
+      GNUNET_CONFIGURATION_get_value_number (cfg, "testing_old",
                                              "max_outstanding_connections",
                                              &pg_start_ctx->max_concurrent_connections))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Must provide option %s:%s!\n",
-                "testing", "max_outstanding_connections");
+                "testing_old", "max_outstanding_connections");
     GNUNET_free (pg_start_ctx);
     return NULL;
   }
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_number (cfg, "testing",
+      GNUNET_CONFIGURATION_get_value_number (cfg, "testing_old",
                                              "max_concurrent_ssh",
                                              &pg_start_ctx->max_concurrent_ssh))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Must provide option %s:%s!\n",
-                "testing", "max_concurrent_ssh");
+                "testing_old", "max_concurrent_ssh");
     GNUNET_free (pg_start_ctx);
     return NULL;
   }
 
   if (GNUNET_SYSERR ==
       (pg_start_ctx->verbose =
-       GNUNET_CONFIGURATION_get_value_yesno (cfg, "testing",
+       GNUNET_CONFIGURATION_get_value_yesno (cfg, "testing_old",
                                              "use_progressbars")))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Must provide option %s:%s!\n",
-                "testing", "use_progressbars");
+                "testing_old", "use_progressbars");
     GNUNET_free (pg_start_ctx);
     return NULL;
   }
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_time (cfg, "testing", "PEERGROUP_TIMEOUT",
+      GNUNET_CONFIGURATION_get_value_time (cfg, "testing_old", "PEERGROUP_TIMEOUT",
                                            &rtimeout))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Must provide option %s:%s!\n",
-                "testing", "PEERGROUP_TIMEOUT");
+                "testing_old", "PEERGROUP_TIMEOUT");
     GNUNET_free (pg_start_ctx);
     return NULL;
   }
@@ -857,20 +857,20 @@ GNUNET_TESTING_peergroup_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   /* Read topology related options from the configuration file */
   temp_str = NULL;
   if ((GNUNET_YES ==
-       GNUNET_CONFIGURATION_get_value_string (cfg, "testing", "topology",
+       GNUNET_CONFIGURATION_get_value_string (cfg, "testing_old", "topology",
                                               &temp_str)) &&
       (GNUNET_NO ==
        GNUNET_TESTING_topology_get (&pg_start_ctx->topology, temp_str)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Invalid topology `%s' given for section %s option %s\n",
-                temp_str, "TESTING", "TOPOLOGY");
+                temp_str, "TESTING_old", "TOPOLOGY");
     pg_start_ctx->topology = GNUNET_TESTING_TOPOLOGY_CLIQUE;    /* Defaults to NONE, so set better default here */
   }
   GNUNET_free_non_null (temp_str);
 
   if (GNUNET_YES ==
-      GNUNET_CONFIGURATION_get_value_string (cfg, "testing",
+      GNUNET_CONFIGURATION_get_value_string (cfg, "testing_old",
                                              "topology_output_file", &temp_str))
   {
     pg_start_ctx->topology_output_file =
@@ -891,7 +891,7 @@ GNUNET_TESTING_peergroup_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   }
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (cfg, "testing", "percentage",
+      GNUNET_CONFIGURATION_get_value_string (cfg, "testing_old", "percentage",
                                              &temp_str))
     pg_start_ctx->topology_percentage = 0.5;
   else
@@ -901,7 +901,7 @@ GNUNET_TESTING_peergroup_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   }
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (cfg, "testing", "probability",
+      GNUNET_CONFIGURATION_get_value_string (cfg, "testing_old", "probability",
                                              &temp_str))
     pg_start_ctx->topology_probability = 0.5;
   else
@@ -911,19 +911,19 @@ GNUNET_TESTING_peergroup_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   }
 
   if ((GNUNET_YES ==
-       GNUNET_CONFIGURATION_get_value_string (cfg, "testing",
+       GNUNET_CONFIGURATION_get_value_string (cfg, "testing_old",
                                               "connect_topology", &temp_str)) &&
       (GNUNET_NO ==
        GNUNET_TESTING_topology_get (&pg_start_ctx->connect_topology, temp_str)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Invalid connect topology `%s' given for section %s option %s\n",
-                temp_str, "TESTING", "CONNECT_TOPOLOGY");
+                temp_str, "TESTING_old", "CONNECT_TOPOLOGY");
   }
   GNUNET_free_non_null (temp_str);
 
   if ((GNUNET_YES ==
-       GNUNET_CONFIGURATION_get_value_string (cfg, "testing",
+       GNUNET_CONFIGURATION_get_value_string (cfg, "testing_old",
                                               "connect_topology_option",
                                               &temp_str)) &&
       (GNUNET_NO ==
@@ -932,13 +932,13 @@ GNUNET_TESTING_peergroup_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Invalid connect topology option `%s' given for section %s option %s\n",
-                temp_str, "TESTING", "CONNECT_TOPOLOGY_OPTION");
+                temp_str, "TESTING_old", "CONNECT_TOPOLOGY_OPTION");
     pg_start_ctx->connect_topology_option = GNUNET_TESTING_TOPOLOGY_OPTION_ALL; /* Defaults to NONE, set to ALL */
   }
   GNUNET_free_non_null (temp_str);
 
   if (GNUNET_YES ==
-      GNUNET_CONFIGURATION_get_value_string (cfg, "testing",
+      GNUNET_CONFIGURATION_get_value_string (cfg, "testing_old",
                                              "connect_topology_option_modifier",
                                              &temp_str))
   {
@@ -948,7 +948,7 @@ GNUNET_TESTING_peergroup_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   _
                   ("Invalid value `%s' for option `%s' in section `%s': expected float\n"),
-                  temp_str, "connect_topology_option_modifier", "TESTING");
+                  temp_str, "connect_topology_option_modifier", "TESTING_old");
       GNUNET_free (temp_str);
       GNUNET_free (pg_start_ctx);
       return NULL;
@@ -957,14 +957,14 @@ GNUNET_TESTING_peergroup_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   }
 
   if (GNUNET_YES !=
-      GNUNET_CONFIGURATION_get_value_string (cfg, "testing",
+      GNUNET_CONFIGURATION_get_value_string (cfg, "testing_old",
                                              "blacklist_transports",
                                              &pg_start_ctx->restrict_transports))
     pg_start_ctx->restrict_transports = NULL;
 
   pg_start_ctx->restrict_topology = GNUNET_TESTING_TOPOLOGY_NONE;
   if ((GNUNET_YES ==
-       GNUNET_CONFIGURATION_get_value_string (cfg, "testing",
+       GNUNET_CONFIGURATION_get_value_string (cfg, "testing_old",
                                               "blacklist_topology", &temp_str))
       && (GNUNET_NO ==
           GNUNET_TESTING_topology_get (&pg_start_ctx->restrict_topology,
@@ -972,7 +972,7 @@ GNUNET_TESTING_peergroup_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Invalid topology `%s' given for section %s option %s\n",
-                temp_str, "TESTING", "BLACKLIST_TOPOLOGY");
+                temp_str, "TESTING_OLD", "BLACKLIST_TOPOLOGY");
   }
 
   GNUNET_free_non_null (temp_str);

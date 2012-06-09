@@ -1058,6 +1058,7 @@ src/stream/Makefile
 src/template/Makefile
 src/testbed/Makefile
 src/testing/Makefile
+src/testing_old/Makefile
 src/topology/Makefile
 src/transport/Makefile
 src/transport/transport.conf

@@ -1150,7 +1150,7 @@ GNUNET_TESTING_daemon_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
     username = GNUNET_strdup (ssh_username);
   if ((ssh_username == NULL) &&
       (GNUNET_OK !=
-       GNUNET_CONFIGURATION_get_value_string (cfg, "TESTING", "USERNAME",
+       GNUNET_CONFIGURATION_get_value_string (cfg, "TESTING_OLD", "USERNAME",
                                               &username)))
   {
     if (NULL != getenv ("USER"))

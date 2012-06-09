@@ -141,7 +141,7 @@ test_dht_twopeer_SOURCES = \
  test_dht_twopeer.c
 test_dht_twopeer_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/testing/libgnunettesting.la \
+ $(top_builddir)/src/testing_old/libgnunettesting_old.la \
  $(top_builddir)/src/dht/libgnunetdht.la    
 test_dht_twopeer_DEPENDENCIES = \
   libgnunetdht.la			    
@@ -150,21 +150,21 @@ test_dht_twopeer_put_get_SOURCES = \
  test_dht_twopeer_put_get.c
 test_dht_twopeer_put_get_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/testing/libgnunettesting.la \
+ $(top_builddir)/src/testing_old/libgnunettesting_old.la \
  $(top_builddir)/src/dht/libgnunetdht.la   
 
 test_dht_twopeer_get_put_SOURCES = \
  test_dht_twopeer_get_put.c
 test_dht_twopeer_get_put_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/testing/libgnunettesting.la \
+ $(top_builddir)/src/testing_old/libgnunettesting_old.la \
  $(top_builddir)/src/dht/libgnunetdht.la   
 
 test_dht_twopeer_path_tracking_SOURCES = \
  test_dht_twopeer_path_tracking.c
 test_dht_twopeer_path_tracking_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/testing/libgnunettesting.la \
+ $(top_builddir)/src/testing_old/libgnunettesting_old.la \
  $(top_builddir)/src/dht/libgnunetdht.la   
 
 test_dht_multipeer_SOURCES = \
@@ -172,7 +172,7 @@ test_dht_multipeer_SOURCES = \
 test_dht_multipeer_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
- $(top_builddir)/src/testing/libgnunettesting.la \
+ $(top_builddir)/src/testing_old/libgnunettesting_old.la \
  $(top_builddir)/src/dht/libgnunetdht.la  
 test_dht_multipeer_DEPENDENCIES = \
   libgnunetdht.la			    
@@ -181,7 +181,7 @@ test_dht_2dtorus_SOURCES = \
  test_dht_topo.c
 test_dht_2dtorus_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/testing/libgnunettesting.la \
+ $(top_builddir)/src/testing_old/libgnunettesting_old.la \
  $(top_builddir)/src/dht/libgnunetdht.la
 test_dht_2dtorus_DEPENDENCIES = \
   libgnunetdht.la
@@ -190,7 +190,7 @@ test_dht_line_SOURCES = \
  test_dht_topo.c
 test_dht_line_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/testing/libgnunettesting.la \
+ $(top_builddir)/src/testing_old/libgnunettesting_old.la \
  $(top_builddir)/src/dht/libgnunetdht.la
 test_dht_line_DEPENDENCIES = \
   libgnunetdht.la
@@ -198,7 +198,7 @@ test_dht_line_DEPENDENCIES = \
 test_dht_monitor_SOURCES = test_dht_monitor.c
 test_dht_monitor_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/testing/libgnunettesting.la \
+ $(top_builddir)/src/testing_old/libgnunettesting_old.la \
  $(top_builddir)/src/dht/libgnunetdht.la
 test_dht_monitor_DEPENDENCIES = \
   libgnunetdht.la
