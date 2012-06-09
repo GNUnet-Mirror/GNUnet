@@ -962,8 +962,8 @@ fip_signal_start (void *cls, struct GNUNET_FS_FileInformation *fi,
  * Actually signal the FS's progress function that we are suspending
  * an upload.
  *
- * @param cls closure (of type "struct GNUNET_FS_PublishContext*")
  * @param fi the entry in the publish-structure
+ * @param pc the publish context of which a file is being suspended
  */
 static void
 suspend_operation (struct GNUNET_FS_FileInformation *fi,
