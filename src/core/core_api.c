@@ -1301,6 +1301,7 @@ GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle, int cork,
   GNUNET_assert (notify_size + sizeof (struct SendMessage) <
                  GNUNET_SERVER_MAX_MESSAGE_SIZE);
   th = &pr->th;
+  memset (th, 0, sizeof (struct GNUNET_CORE_TransmitHandle));
   th->peer = pr;
   th->get_message = notify;
   th->get_message_cls = notify_cls;
@@ -1335,6 +1336,7 @@ GNUNET_CORE_notify_transmit_ready_cancel (struct GNUNET_CORE_TransmitHandle *th)
     GNUNET_CONTAINER_DLL_remove (h->control_pending_head,
                                  h->control_pending_tail, th->cm);
     GNUNET_free (th->cm);
+    th->cm = NULL;
   }
   if ((NULL != pr->prev) || (NULL != pr->next) || (pr == h->ready_peer_head))
   {
