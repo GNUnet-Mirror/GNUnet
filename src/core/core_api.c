@@ -555,7 +555,7 @@ transmission_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Signalling timeout of request for transmission to CORE service\n");
-  request_next_transmission (pr);
+  trigger_next_request (h, GNUNET_NO);
   GNUNET_assert (0 == th->get_message (th->get_message_cls, 0, NULL));
 }
 
@@ -614,65 +614,63 @@ transmit_message (void *cls, size_t size, void *buf)
     return msize;
   }
   /* now check for 'ready' P2P messages */
-  if (NULL != (pr = h->ready_peer_head))
+  if (NULL == (pr = h->ready_peer_head))
+    return 0;
+  GNUNET_assert (NULL != pr->th.peer);
+  th = &pr->th;
+  if (size < th->msize + sizeof (struct SendMessage))
   {
-    GNUNET_assert (NULL != pr->th.peer);
-    th = &pr->th;
-    if (size < th->msize + sizeof (struct SendMessage))
-    {
-      trigger_next_request (h, GNUNET_NO);
-      return 0;
-    }
-    GNUNET_CONTAINER_DLL_remove (h->ready_peer_head, h->ready_peer_tail, pr);
-    th->peer = NULL;
-    if (pr->timeout_task != GNUNET_SCHEDULER_NO_TASK)
-    {
-      GNUNET_SCHEDULER_cancel (pr->timeout_task);
-      pr->timeout_task = GNUNET_SCHEDULER_NO_TASK;
-    }
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Transmitting SEND request to `%s' with %u bytes.\n",
-         GNUNET_i2s (&pr->peer), (unsigned int) th->msize);
-    sm = (struct SendMessage *) buf;
-    sm->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_SEND);
-    sm->priority = htonl (th->priority);
-    sm->deadline = GNUNET_TIME_absolute_hton (th->timeout);
-    sm->peer = pr->peer;
-    sm->cork = htonl ((uint32_t) th->cork);
-    sm->reserved = htonl (0);
-    ret =
-        th->get_message (th->get_message_cls,
-                         size - sizeof (struct SendMessage), &sm[1]);
-
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Transmitting SEND request to `%s' yielded %u bytes.\n",
-         GNUNET_i2s (&pr->peer), ret);
-    if (0 == ret)
-    {
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-           "Size of clients message to peer %s is 0!\n",
-           GNUNET_i2s (&pr->peer));
-      /* client decided to send nothing! */
-      request_next_transmission (pr);
-      return 0;
-    }
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Produced SEND message to core with %u bytes payload\n",
-         (unsigned int) ret);
-    GNUNET_assert (ret >= sizeof (struct GNUNET_MessageHeader));
-    if (ret + sizeof (struct SendMessage) >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
-    {
-      GNUNET_break (0);
-      request_next_transmission (pr);
-      return 0;
-    }
-    ret += sizeof (struct SendMessage);
-    sm->header.size = htons (ret);
-    GNUNET_assert (ret <= size);
-    request_next_transmission (pr);
-    return ret;
+    trigger_next_request (h, GNUNET_NO);
+    return 0;
   }
-  return 0;
+  GNUNET_CONTAINER_DLL_remove (h->ready_peer_head, h->ready_peer_tail, pr);
+  th->peer = NULL;
+  if (pr->timeout_task != GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel (pr->timeout_task);
+    pr->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Transmitting SEND request to `%s' with %u bytes.\n",
+       GNUNET_i2s (&pr->peer), (unsigned int) th->msize);
+  sm = (struct SendMessage *) buf;
+  sm->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_SEND);
+  sm->priority = htonl (th->priority);
+  sm->deadline = GNUNET_TIME_absolute_hton (th->timeout);
+  sm->peer = pr->peer;
+  sm->cork = htonl ((uint32_t) th->cork);
+  sm->reserved = htonl (0);
+  ret =
+    th->get_message (th->get_message_cls,
+		     size - sizeof (struct SendMessage), &sm[1]);
+  
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Transmitting SEND request to `%s' yielded %u bytes.\n",
+       GNUNET_i2s (&pr->peer), ret);
+  if (0 == ret)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+	 "Size of clients message to peer %s is 0!\n",
+	 GNUNET_i2s (&pr->peer));
+    /* client decided to send nothing! */
+    request_next_transmission (pr);
+    return 0;
+  }
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Produced SEND message to core with %u bytes payload\n",
+       (unsigned int) ret);
+  GNUNET_assert (ret >= sizeof (struct GNUNET_MessageHeader));
+  if (ret + sizeof (struct SendMessage) >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  {
+    GNUNET_break (0);
+    request_next_transmission (pr);
+    return 0;
+  }
+  ret += sizeof (struct SendMessage);
+  sm->header.size = htons (ret);
+  GNUNET_assert (ret <= size);
+  request_next_transmission (pr);
+  return ret;
 }
 
 
@@ -1295,7 +1293,7 @@ GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle, int cork,
   if (NULL != pr->th.peer)
   {
     /* attempting to queue a second request for the same destination */
-    GNUNET_break (0);
+    GNUNET_assert (0);
     return NULL;
   }
   GNUNET_assert (notify_size + sizeof (struct SendMessage) <
