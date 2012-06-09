@@ -519,7 +519,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   /* Get number of peers to start from configuration (should be two) */
   if (GNUNET_SYSERR ==
-      GNUNET_CONFIGURATION_get_value_number (cfg, "testing", "num_peers",
+      GNUNET_CONFIGURATION_get_value_number (cfg, "testing_old", "num_peers",
                                              &num_peers))
     num_peers = DEFAULT_NUM_PEERS;
 

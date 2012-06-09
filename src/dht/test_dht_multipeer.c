@@ -797,7 +797,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     return;
   }
   if (GNUNET_SYSERR ==
-      GNUNET_CONFIGURATION_get_value_number (cfg, "testing", "num_peers",
+      GNUNET_CONFIGURATION_get_value_number (cfg, "testing_old", "num_peers",
                                              &num_peers))
     num_peers = DEFAULT_NUM_PEERS;
   pg = GNUNET_TESTING_peergroup_start (cfg, num_peers, TIMEOUT, NULL,

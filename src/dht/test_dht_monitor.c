@@ -553,10 +553,10 @@ run (void *cls, char *const *args, const char *cfgfile,
                     NULL);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: Starting daemons.\n");
-  GNUNET_CONFIGURATION_set_value_string (testing_cfg, "testing",
+  GNUNET_CONFIGURATION_set_value_string (testing_cfg, "testing_old",
                                          "use_progressbars", "YES");
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_number (testing_cfg, "testing",
+      GNUNET_CONFIGURATION_get_value_number (testing_cfg, "testing_old",
                                              "num_peers", &num_peers))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -564,8 +564,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     return;
   }
 
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (testing_cfg, "testing",
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (testing_cfg, "testing_old",
                                              "topology_output_file",
                                              &topology_file))
   {
