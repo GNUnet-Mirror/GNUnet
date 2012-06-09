@@ -931,9 +931,14 @@ GNUNET_SERVICE_get_server_addresses (const char *service_name,
   port = 0;
   if (GNUNET_CONFIGURATION_have_value (cfg, service_name, "PORT"))
   {
-    GNUNET_break (GNUNET_OK ==
-                  GNUNET_CONFIGURATION_get_value_number (cfg, service_name,
-                                                         "PORT", &port));
+    if (GNUNET_OK !=
+	GNUNET_CONFIGURATION_get_value_number (cfg, service_name,
+					       "PORT", &port))
+    {
+      LOG (GNUNET_ERROR_TYPE_ERROR,
+           _("Require valid port number for service `%s' in configuration!\n"),
+           service_name);
+    }
     if (port > 65535)
     {
       LOG (GNUNET_ERROR_TYPE_ERROR,
