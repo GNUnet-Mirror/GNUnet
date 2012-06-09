@@ -514,9 +514,6 @@ peerinfo_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     /* didn't expect a response, reconnect */
     GNUNET_PEERINFO_iterate_cancel (ic);
     reconnect (h);
-    if (NULL != cb)
-      cb (cb_cls, NULL, NULL,
-	  _("Failed to receive response from `PEERINFO' service."));
     return;
   }
   ic->request_transmitted = GNUNET_NO;
