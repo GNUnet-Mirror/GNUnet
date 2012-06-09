@@ -1178,6 +1178,11 @@ signal_error:
   dc->top_request = NULL;
   GNUNET_CONTAINER_multihashmap_destroy (dc->active);
   dc->active = NULL;
+  if (NULL != dc->job_queue)
+  {
+    GNUNET_FS_dequeue_ (dc->job_queue);
+    dc->job_queue = NULL;
+  }
   dc->pending_head = NULL;
   dc->pending_tail = NULL;
   GNUNET_FS_download_sync_ (dc);

@@ -51,7 +51,7 @@ start_job (struct GNUNET_FS_QueueEntry *qe)
 {
   GNUNET_assert (NULL == qe->client);
   qe->client = GNUNET_CLIENT_connect ("fs", qe->h->cfg);
-  if (qe->client == NULL)
+  if (NULL == qe->client)
   {
     GNUNET_break (0);
     return;
@@ -114,7 +114,7 @@ process_job_queue (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   while (NULL != (qe = next))
   {
     next = qe->next;
-    if (h->running_head == NULL)
+    if (NULL == h->running_head)
     {
       start_job (qe);
       continue;
@@ -126,7 +126,7 @@ process_job_queue (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       continue;
     }
   }
-  if (h->pending_head == NULL)
+  if (NULL == h->pending_head)
     return;                     /* no need to stop anything */
   /* then, check if we should stop some jobs */
   next = h->running_head;
@@ -221,7 +221,7 @@ GNUNET_FS_dequeue_ (struct GNUNET_FS_QueueEntry *qh)
   struct GNUNET_FS_Handle *h;
 
   h = qh->h;
-  if (qh->client != NULL)
+  if (NULL != qh->client)
     stop_job (qh);
   GNUNET_CONTAINER_DLL_remove (h->pending_head, h->pending_tail, qh);
   GNUNET_free (qh);
