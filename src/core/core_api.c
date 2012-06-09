@@ -554,8 +554,10 @@ transmission_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_free (th->cm);
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Signalling timeout of request for transmission to CORE service\n");
+       "Signalling timeout of request for transmission to peer `%s' via CORE\n",
+       GNUNET_i2s (&pr->peer));
   trigger_next_request (h, GNUNET_NO);
+
   GNUNET_assert (0 == th->get_message (th->get_message_cls, 0, NULL));
 }
 
@@ -1283,6 +1285,10 @@ GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle, int cork,
   struct GNUNET_CORE_TransmitHandle *th;
 
   GNUNET_assert (NULL != notify);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Asking core for transmission of %u bytes to `%s'\n",
+	      (unsigned int) notify_size,
+	      GNUNET_i2s (target));
   pr = GNUNET_CONTAINER_multihashmap_get (handle->peers, &target->hashPubKey);
   if (NULL == pr)
   {
@@ -1326,6 +1332,10 @@ GNUNET_CORE_notify_transmit_ready_cancel (struct GNUNET_CORE_TransmitHandle *th)
   struct GNUNET_CORE_Handle *h;
 
   GNUNET_assert (NULL != pr);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Aborting transmission request to core for %u bytes to `%s'\n",
+	      (unsigned int) th->msize,
+	      GNUNET_i2s (&pr->peer));
   th->peer = NULL;
   h = pr->ch;
   if (NULL != th->cm)
