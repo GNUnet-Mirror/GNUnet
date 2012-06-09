@@ -562,7 +562,7 @@ ats_reserve_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
   cp->did_reserve = GNUNET_YES;
   pth = cp->pth_head;
-  if ((NULL != pth) && (NULL == pth->cth))
+  if ((NULL != pth) && (NULL == pth->cth) && (0 == pth->cth_in_progress))
   {
     /* reservation success, try transmission now! */
     pth->cth_in_progress++;
