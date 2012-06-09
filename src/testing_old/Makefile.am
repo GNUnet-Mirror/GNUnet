@@ -34,14 +34,14 @@ if HAVE_EXPENSIVE_TESTS
 endif
 
 lib_LTLIBRARIES = \
-  libgnunettestingold.la 
+  libgnunettesting_old.la 
 
-libgnunettestingold_la_SOURCES = \
+libgnunettesting_old_la_SOURCES = \
   helper.c \
   testing.c  \
   testing_group.c \
   testing_peergroup.c
-libgnunettestingold_la_LIBADD = $(XLIB) \
+libgnunettesting_old_la_LIBADD = $(XLIB) \
  $(top_builddir)/src/core/libgnunetcore.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/transport/libgnunettransport.la \
@@ -49,7 +49,7 @@ libgnunettestingold_la_LIBADD = $(XLIB) \
  -lm \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(LTLIBINTL)
-libgnunettestingold_la_LDFLAGS = \
+libgnunettesting_old_la_LDFLAGS = \
  $(GN_LIB_LDFLAGS) \
  -version-info 0:1:0
 
@@ -97,94 +97,94 @@ endif
 gnunet_testing_SOURCES = \
  gnunet-testing.c         
 gnunet_testing_LDADD = \
- $(top_builddir)/src/testing_old/libgnunettestingold.la \
+ $(top_builddir)/src/testing_old/libgnunettesting_old.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(GN_LIBINTL)
 gnunet_testing_DEPENDENCIES = \
- libgnunettestingold.la
+ libgnunettesting_old.la
 
 
 test_testing_SOURCES = \
  test_testing.c
 test_testing_LDADD = \
- $(top_builddir)/src/testing_old/libgnunettestingold.la \
+ $(top_builddir)/src/testing_old/libgnunettesting_old.la \
  $(top_builddir)/src/util/libgnunetutil.la  
 
 test_testing_connect_SOURCES = \
  test_testing_connect.c
 test_testing_connect_LDADD = \
- $(top_builddir)/src/testing_old/libgnunettestingold.la \
+ $(top_builddir)/src/testing_old/libgnunettesting_old.la \
  $(top_builddir)/src/util/libgnunetutil.la  
 
 test_testing_reconnect_SOURCES = \
  test_testing_reconnect.c
 test_testing_reconnect_LDADD = \
- $(top_builddir)/src/testing_old/libgnunettestingold.la \
+ $(top_builddir)/src/testing_old/libgnunettesting_old.la \
  $(top_builddir)/src/util/libgnunetutil.la  
 
 test_testing_group_SOURCES = \
  test_testing_group.c
 test_testing_group_LDADD = \
- $(top_builddir)/src/testing_old/libgnunettestingold.la \
+ $(top_builddir)/src/testing_old/libgnunettesting_old.la \
  $(top_builddir)/src/util/libgnunetutil.la  
 
 test_testing_peergroup_SOURCES = \
  test_testing_peergroup.c
 test_testing_peergroup_LDADD = \
- $(top_builddir)/src/testing_old/libgnunettestingold.la \
+ $(top_builddir)/src/testing_old/libgnunettesting_old.la \
  $(top_builddir)/src/util/libgnunetutil.la 
 
 test_testing_topology_clique_SOURCES = \
  test_testing_topology.c
 test_testing_topology_clique_LDADD = \
- $(top_builddir)/src/testing_old/libgnunettestingold.la \
+ $(top_builddir)/src/testing_old/libgnunettesting_old.la \
  $(top_builddir)/src/core/libgnunetcore.la \
  $(top_builddir)/src/util/libgnunetutil.la
 
 test_testing_topology_stability_SOURCES = \
  test_testing_topology.c
 test_testing_topology_stability_LDADD = \
- $(top_builddir)/src/testing_old/libgnunettestingold.la \
+ $(top_builddir)/src/testing_old/libgnunettesting_old.la \
  $(top_builddir)/src/core/libgnunetcore.la \
  $(top_builddir)/src/util/libgnunetutil.la
 
 test_testing_topology_blacklist_SOURCES = \
  test_testing_topology_blacklist.c
 test_testing_topology_blacklist_LDADD = \
- $(top_builddir)/src/testing_old/libgnunettestingold.la \
+ $(top_builddir)/src/testing_old/libgnunettesting_old.la \
  $(top_builddir)/src/util/libgnunetutil.la 
 
 test_testing_topology_churn_SOURCES = \
  test_testing_topology_churn.c
 test_testing_topology_churn_LDADD = \
- $(top_builddir)/src/testing_old/libgnunettestingold.la \
+ $(top_builddir)/src/testing_old/libgnunettesting_old.la \
  $(top_builddir)/src/util/libgnunetutil.la 
 
 test_testing_topology_clique_random_SOURCES = \
  test_testing_topology.c
 test_testing_topology_clique_random_LDADD = \
- $(top_builddir)/src/testing_old/libgnunettestingold.la \
+ $(top_builddir)/src/testing_old/libgnunettesting_old.la \
  $(top_builddir)/src/core/libgnunetcore.la \
  $(top_builddir)/src/util/libgnunetutil.la  
 
 test_testing_topology_clique_minimum_SOURCES = \
  test_testing_topology.c
 test_testing_topology_clique_minimum_LDADD = \
- $(top_builddir)/src/testing_old/libgnunettestingold.la \
+ $(top_builddir)/src/testing_old/libgnunettesting_old.la \
  $(top_builddir)/src/core/libgnunetcore.la \
  $(top_builddir)/src/util/libgnunetutil.la
 
 test_testing_topology_clique_dfs_SOURCES = \
  test_testing_topology.c
 test_testing_topology_clique_dfs_LDADD = \
- $(top_builddir)/src/testing_old/libgnunettestingold.la \
+ $(top_builddir)/src/testing_old/libgnunettesting_old.la \
  $(top_builddir)/src/core/libgnunetcore.la \
  $(top_builddir)/src/util/libgnunetutil.la  
 
 test_testing_topology_line_SOURCES = \
  test_testing_topology.c
 test_testing_topology_line_LDADD = \
- $(top_builddir)/src/testing_old/libgnunettestingold.la \
+ $(top_builddir)/src/testing_old/libgnunettesting_old.la \
  $(top_builddir)/src/core/libgnunetcore.la \
  $(top_builddir)/src/util/libgnunetutil.la  
 
@@ -192,68 +192,68 @@ test_testing_topology_line_LDADD = \
 test_testing_group_remote_SOURCES = \
  test_testing_group_remote.c
 test_testing_group_remote_LDADD = \
- $(top_builddir)/src/testing_old/libgnunettestingold.la \
+ $(top_builddir)/src/testing_old/libgnunettesting_old.la \
  $(top_builddir)/src/util/libgnunetutil.la  
 
 test_testing_2dtorus_SOURCES = \
   test_testing_2dtorus.c
 test_testing_2dtorus_LDADD = \
- $(top_builddir)/src/testing_old/libgnunettestingold.la \
+ $(top_builddir)/src/testing_old/libgnunettesting_old.la \
  $(top_builddir)/src/util/libgnunetutil.la 
 
 test_testing_topology_ring_SOURCES = \
  test_testing_topology.c
 test_testing_topology_ring_LDADD = \
- $(top_builddir)/src/testing_old/libgnunettestingold.la \
+ $(top_builddir)/src/testing_old/libgnunettesting_old.la \
  $(top_builddir)/src/core/libgnunetcore.la \
  $(top_builddir)/src/util/libgnunetutil.la  
 
 test_testing_topology_2d_torus_SOURCES = \
   test_testing_topology.c
 test_testing_topology_2d_torus_LDADD = \
- $(top_builddir)/src/testing_old/libgnunettestingold.la \
+ $(top_builddir)/src/testing_old/libgnunettesting_old.la \
  $(top_builddir)/src/core/libgnunetcore.la \
  $(top_builddir)/src/util/libgnunetutil.la 
 
 test_testing_topology_small_world_ring_SOURCES = \
   test_testing_topology.c
 test_testing_topology_small_world_ring_LDADD = \
- $(top_builddir)/src/testing_old/libgnunettestingold.la \
+ $(top_builddir)/src/testing_old/libgnunettesting_old.la \
  $(top_builddir)/src/core/libgnunetcore.la \
  $(top_builddir)/src/util/libgnunetutil.la
 
 test_testing_topology_small_world_torus_SOURCES = \
   test_testing_topology.c
 test_testing_topology_small_world_torus_LDADD = \
- $(top_builddir)/src/testing_old/libgnunettestingold.la \
+ $(top_builddir)/src/testing_old/libgnunettesting_old.la \
  $(top_builddir)/src/core/libgnunetcore.la \
  $(top_builddir)/src/util/libgnunetutil.la
 
 test_testing_topology_internat_SOURCES = \
   test_testing_topology.c
 test_testing_topology_internat_LDADD = \
- $(top_builddir)/src/testing_old/libgnunettestingold.la \
+ $(top_builddir)/src/testing_old/libgnunettesting_old.la \
  $(top_builddir)/src/core/libgnunetcore.la \
  $(top_builddir)/src/util/libgnunetutil.la
 
 test_testing_topology_erdos_renyi_SOURCES = \
   test_testing_topology.c
 test_testing_topology_erdos_renyi_LDADD = \
- $(top_builddir)/src/testing_old/libgnunettestingold.la \
+ $(top_builddir)/src/testing_old/libgnunettesting_old.la \
  $(top_builddir)/src/core/libgnunetcore.la \
  $(top_builddir)/src/util/libgnunetutil.la
 
 test_testing_topology_scale_free_SOURCES = \
   test_testing_topology.c
 test_testing_topology_scale_free_LDADD = \
- $(top_builddir)/src/testing_old/libgnunettestingold.la \
+ $(top_builddir)/src/testing_old/libgnunettesting_old.la \
  $(top_builddir)/src/core/libgnunetcore.la \
  $(top_builddir)/src/util/libgnunetutil.la
 
 test_testing_topology_none_SOURCES = \
  test_testing_topology.c
 test_testing_topology_none_LDADD = \
- $(top_builddir)/src/testing_old/libgnunettestingold.la \
+ $(top_builddir)/src/testing_old/libgnunettesting_old.la \
  $(top_builddir)/src/core/libgnunetcore.la \
  $(top_builddir)/src/util/libgnunetutil.la
 
