@@ -1060,7 +1060,7 @@ run (void *cls, char *const *args, const char *cfgfile,
                                 &transport_notify_disconnect_cb);
   GNUNET_assert (th != NULL);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Connected to transport service\n");
-  ch =  GNUNET_CORE_connect (cfg, 1, NULL,
+  ch =  GNUNET_CORE_connect (cfg, NULL,
                              &core_init_cb,
                              &core_connect_cb,
                              &core_disconnect_cb,

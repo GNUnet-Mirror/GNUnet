@@ -1441,7 +1441,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   nc = GNUNET_SERVER_notification_context_create (server, 1);
   /* Connect to core service and register core handlers */
   coreAPI = GNUNET_CORE_connect (cfg,   /* Main configuration */
-                                 1, NULL,       /* Closure passed to functions */
+                                 NULL,       /* Closure passed to functions */
                                  &core_init,    /* Call core_init once connected */
                                  &handle_core_connect,  /* Handle connects */
                                  &handle_core_disconnect,       /* Handle disconnects */

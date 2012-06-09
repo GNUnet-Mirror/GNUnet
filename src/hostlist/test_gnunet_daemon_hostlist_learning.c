@@ -411,7 +411,7 @@ setup_learn_peer (struct PeerContext *p, const char *cfgname)
     GNUNET_free (filename);
   }
   p->core =
-      GNUNET_CORE_connect (p->cfg, 1, NULL, NULL, NULL, NULL, NULL, GNUNET_NO,
+      GNUNET_CORE_connect (p->cfg, NULL, NULL, NULL, NULL, NULL, GNUNET_NO,
                            NULL, GNUNET_NO, learn_handlers);
   GNUNET_assert (NULL != p->core);
   p->stats = GNUNET_STATISTICS_create ("hostlist", p->cfg);

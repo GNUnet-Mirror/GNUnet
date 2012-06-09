@@ -1980,7 +1980,7 @@ GDS_NEIGHBOURS_init ()
     bucket_size = (unsigned int) temp_config_num;
   atsAPI = GNUNET_ATS_performance_init (GDS_cfg, NULL, NULL);
   coreAPI =
-      GNUNET_CORE_connect (GDS_cfg, 1, NULL, &core_init, &handle_core_connect,
+      GNUNET_CORE_connect (GDS_cfg, NULL, &core_init, &handle_core_connect,
                            &handle_core_disconnect, NULL, GNUNET_NO, NULL,
                            GNUNET_NO, core_handlers);
   if (coreAPI == NULL)

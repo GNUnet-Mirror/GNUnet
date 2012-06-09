@@ -4744,7 +4744,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "starting to run\n");
   server_handle = server;
   core_handle = GNUNET_CORE_connect (c, /* Main configuration */
-                                     1,   /* queue size */
                                      NULL,      /* Closure passed to MESH functions */
                                      &core_init,        /* Call core_init once connected */
                                      &core_connect,     /* Handle connects */

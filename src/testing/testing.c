@@ -1911,7 +1911,7 @@ reattempt_daemons_connect (void *cls,
   GNUNET_assert (ctx->d1core == NULL);
   ctx->d1core_ready = GNUNET_NO;
   ctx->d1core =
-      GNUNET_CORE_connect (ctx->d1->cfg, 1, ctx, &core_init_notify,
+      GNUNET_CORE_connect (ctx->d1->cfg, ctx, &core_init_notify,
                            &connect_notify, NULL, NULL, GNUNET_NO, NULL,
                            GNUNET_NO, no_handlers);
   if (ctx->d1core == NULL)
@@ -2055,7 +2055,7 @@ core_initial_iteration (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Peers are NOT connected, connecting to core!\n");
     ctx->d1core =
-        GNUNET_CORE_connect (ctx->d1->cfg, 1, ctx, &core_init_notify,
+        GNUNET_CORE_connect (ctx->d1->cfg, ctx, &core_init_notify,
                              &connect_notify, NULL, NULL, GNUNET_NO, NULL,
                              GNUNET_NO, no_handlers);
   }

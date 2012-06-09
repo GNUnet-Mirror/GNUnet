@@ -3295,7 +3295,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
       GNUNET_CONTAINER_multihashmap_create (max_table_size * 3);
 
   GNUNET_SERVER_add_handlers (server, plugin_handlers);
-  coreAPI = GNUNET_CORE_connect (cfg, 1, NULL,  /* FIXME: anything we want to pass around? */
+  coreAPI = GNUNET_CORE_connect (cfg, NULL,  /* FIXME: anything we want to pass around? */
                                  &core_init, &handle_core_connect,
                                  &handle_core_disconnect, NULL, GNUNET_NO, NULL,
                                  GNUNET_NO, core_handlers);

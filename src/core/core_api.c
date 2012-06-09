@@ -1158,7 +1158,6 @@ reconnect (struct GNUNET_CORE_Handle *h)
  * complete (or fail) asynchronously.
  *
  * @param cfg configuration to use
- * @param queue_size size of the per-peer message queue
  * @param cls closure for the various callbacks that follow (including handlers in the handlers array)
  * @param init callback to call once we have successfully
  *        connected to the core service
@@ -1178,7 +1177,7 @@ reconnect (struct GNUNET_CORE_Handle *h)
  */
 struct GNUNET_CORE_Handle *
 GNUNET_CORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                     unsigned int queue_size, void *cls,
+                     void *cls,
                      GNUNET_CORE_StartupCallback init,
                      GNUNET_CORE_ConnectEventHandler connects,
                      GNUNET_CORE_DisconnectEventHandler disconnects,
@@ -1192,7 +1191,7 @@ GNUNET_CORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
   h = GNUNET_malloc (sizeof (struct GNUNET_CORE_Handle));
   h->cfg = cfg;
-  h->queue_size = queue_size;
+  h->queue_size = 1; // FIXME: remove entirely...
   h->cls = cls;
   h->init = init;
   h->connects = connects;
@@ -1285,9 +1284,13 @@ run_request_next_transmission (void *cls,
 
 /**
  * Ask the core to call "notify" once it is ready to transmit the
- * given number of bytes to the specified "target".    Must only be
+ * given number of bytes to the specified "target".  Must only be
  * called after a connection to the respective peer has been
- * established (and the client has been informed about this).
+ * established (and the client has been informed about this).  You may
+ * have one request of this type pending for each connected peer at
+ * any time.  If a peer disconnects, the application MUST call
+ * "GNUNET_CORE_notify_transmit_ready_cancel" on the respective
+ * transmission request, if one such request is pending.
  *
  * @param handle connection to core service
  * @param cork is corking allowed for this transmission?
@@ -1295,11 +1298,14 @@ run_request_next_transmission (void *cls,
  * @param maxdelay how long can the message wait?
  * @param target who should receive the message, never NULL (can be this peer's identity for loopback)
  * @param notify_size how many bytes of buffer space does notify want?
- * @param notify function to call when buffer space is available
+ * @param notify function to call when buffer space is available;
+ *        will be called with NULL on timeout; clients MUST cancel
+ *        all pending transmission requests DURING the disconnect
+ *        handler
  * @param notify_cls closure for notify
  * @return non-NULL if the notify callback was queued,
- *         NULL if we can not even queue the request (insufficient
- *         memory); if NULL is returned, "notify" will NOT be called.
+ *         NULL if we can not even queue the request (request already pending);
+ *         if NULL is returned, "notify" will NOT be called.
  */
 struct GNUNET_CORE_TransmitHandle *
 GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle, int cork,

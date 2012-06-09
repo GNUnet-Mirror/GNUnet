@@ -36,7 +36,6 @@
 #define DEBUG_CHAT_SERVICE GNUNET_EXTRA_LOGGING
 #define MAX_TRANSMIT_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
 #define EXPECTED_NEIGHBOUR_COUNT 16
-#define QUEUE_SIZE 16
 #define MAX_ANONYMOUS_MSG_LIST_LENGTH 16
 
 
@@ -1710,7 +1709,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
       GNUNET_CONTAINER_multihashmap_create (EXPECTED_NEIGHBOUR_COUNT);
   GNUNET_SERVER_add_handlers (server, handlers);
   core =
-      GNUNET_CORE_connect (cfg, QUEUE_SIZE, NULL, &core_init,
+      GNUNET_CORE_connect (cfg, NULL, &core_init,
                            &peer_connect_handler, &peer_disconnect_handler,
                            NULL, GNUNET_NO, NULL, GNUNET_NO, p2p_handlers);
   GNUNET_SERVER_disconnect_notify (server, &handle_client_disconnect, NULL);

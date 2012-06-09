@@ -270,7 +270,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   stats = GNUNET_STATISTICS_create ("hostlist", cfg);
 
   core =
-      GNUNET_CORE_connect (cfg, 1, NULL, &core_init, &connect_handler,
+      GNUNET_CORE_connect (cfg, NULL, &core_init, &connect_handler,
                            &disconnect_handler, NULL, GNUNET_NO, NULL,
                            GNUNET_NO,
                            learning ? learn_handlers : no_learn_handlers);
