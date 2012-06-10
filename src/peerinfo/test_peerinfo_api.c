@@ -26,23 +26,21 @@
  * TODO:
  * - test merging of HELLOs (add same peer twice...)
  */
-
 #include "platform.h"
 #include "gnunet_hello_lib.h"
-#include "gnunet_getopt_lib.h"
-#include "gnunet_os_lib.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_peerinfo_service.h"
-#include "gnunet_program_lib.h"
-#include "gnunet_time_lib.h"
+#include "gnunet_testing_lib-new.h"
 #include "peerinfo.h"
-
-static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 static struct GNUNET_PEERINFO_IteratorContext *ic;
 
 static struct GNUNET_PEERINFO_Handle *h;
 
 static unsigned int retries;
+
+static int global_ret;
+
 
 static int
 check_it (void *cls, const struct GNUNET_HELLO_Address *address,
@@ -106,7 +104,6 @@ static void
 process (void *cls, const struct GNUNET_PeerIdentity *peer,
          const struct GNUNET_HELLO_Message *hello, const char *err_msg)
 {
-  int *ok = cls;
   unsigned int agc;
 
   if (err_msg != NULL)
@@ -118,7 +115,7 @@ process (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (peer == NULL)
   {
     ic = NULL;
-    if ((3 == *ok) && (retries < 50))
+    if ((3 == global_ret) && (retries < 50))
     {
       /* try again */
       retries++;
@@ -130,30 +127,29 @@ process (void *cls, const struct GNUNET_PeerIdentity *peer,
       return;
     }
     GNUNET_assert (peer == NULL);
-    GNUNET_assert (2 == *ok);
+    GNUNET_assert (2 == global_ret);
     GNUNET_PEERINFO_disconnect (h);
     h = NULL;
-    *ok = 0;
+    global_ret = 0;
     return;
   }
   if (hello != NULL)
   {
-    GNUNET_assert (3 == *ok);
+    GNUNET_assert (3 == global_ret);
     agc = 3;
     GNUNET_HELLO_iterate_addresses (hello, GNUNET_NO, &check_it, &agc);
     GNUNET_assert (agc == 0);
-    *ok = 2;
+    global_ret = 2;
   }
 }
 
 
 static void
-run (void *cls, char *const *args, const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *c)
+run (void *cls, 
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  cfg = c;
   h = GNUNET_PEERINFO_connect (cfg);
-  GNUNET_assert (h != NULL);
+  GNUNET_assert (NULL != h);
   add_peer ();
   ic = GNUNET_PEERINFO_iterate (h, NULL,
                                 GNUNET_TIME_relative_multiply
@@ -161,51 +157,16 @@ run (void *cls, char *const *args, const char *cfgfile,
 }
 
 
-static int
-check ()
-{
-  int ok = 3;
-  struct GNUNET_OS_Process *proc;
-
-  char *const argv[] = { "test-peerinfo-api",
-    "-c",
-    "test_peerinfo_api_data.conf",
-    NULL
-  };
-  struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_OPTION_END
-  };
-  proc =
-    GNUNET_OS_start_process (GNUNET_YES, NULL, NULL, "gnunet-service-peerinfo",
-                               "gnunet-service-peerinfo",
-                               "-c", "test_peerinfo_api_data.conf", NULL);
-  GNUNET_assert (NULL != proc);
-  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv,
-                      "test-peerinfo-api", "nohelp", options, &run, &ok);
-  if (0 != GNUNET_OS_process_kill (proc, SIGTERM))
-  {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-    ok = 1;
-  }
-  GNUNET_OS_process_wait (proc);
-  GNUNET_OS_process_destroy (proc);
-  proc = NULL;
-  return ok;
-}
-
-
 int
 main (int argc, char *argv[])
 {
-  int ret = 0;
-
-  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-peerinfo");
-  GNUNET_log_setup ("test_peerinfo_api",
-                    "WARNING",
-                    NULL);
-  ret = check ();
-  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-peerinfo");
-  return ret;
+  global_ret = 3;
+  if (0 != GNUNET_TESTING_service_run ("test-gnunet-peerinfo",
+				       "peerinfo",
+				       "test_peerinfo_api_data.conf",
+				       &run, NULL))
+    return 1;
+  return global_ret;
 }
 
 /* end of test_peerinfo_api.c */

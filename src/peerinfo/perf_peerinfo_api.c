@@ -19,26 +19,22 @@
 */
 
 /**
- * @file peerinfo/test_peerinfo_hammer.c
+ * @file peerinfo/perf_peerinfo_api.c
  * @brief testcase for peerinfo_api.c, hopefully hammer the peerinfo service
  * @author Nathan Evans
  */
 
 #include "platform.h"
 #include "gnunet_hello_lib.h"
-#include "gnunet_getopt_lib.h"
-#include "gnunet_os_lib.h"
+#include "gnunet_util_lib.h"
+#include "gnunet_testing_lib-new.h"
 #include "gnunet_peerinfo_service.h"
-#include "gnunet_program_lib.h"
-#include "gnunet_time_lib.h"
 #include "peerinfo.h"
 #include <gauger.h>
 
 #define START_SERVICE 1
 
 #define NUM_REQUESTS 5000
-
-static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 static struct GNUNET_PEERINFO_IteratorContext *ic[NUM_REQUESTS];
 
@@ -112,12 +108,11 @@ process (void *cls, const struct GNUNET_PeerIdentity *peer,
 
 
 static void
-run (void *cls, char *const *args, const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *c)
+run (void *cls, 
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   size_t i;
 
-  cfg = c;
   h = GNUNET_PEERINFO_connect (cfg);
   GNUNET_assert (h != NULL);
   for (i = 0; i < NUM_REQUESTS; i++)
@@ -130,61 +125,19 @@ run (void *cls, char *const *args, const char *cfgfile,
   }
 }
 
-static int
-check ()
-{
-  int ok = 0;
-
-  char *const argv[] = { "perf-peerinfo-api",
-    "-c",
-    "test_peerinfo_api_data.conf",
-    "-L", "ERROR",
-    NULL
-  };
-#if START_SERVICE
-  struct GNUNET_OS_Process *proc;
-
-  struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_OPTION_END
-  };
-  proc =
-    GNUNET_OS_start_process (GNUNET_YES, NULL, NULL, "gnunet-service-peerinfo",
-                               "gnunet-service-peerinfo",
-                               "-L", "ERROR",
-                               "-c", "test_peerinfo_api_data.conf", NULL);
-#endif
-  GNUNET_assert (NULL != proc);
-  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv,
-                      "perf-peerinfo-api", "nohelp", options, &run, &ok);
-  FPRINTF (stderr, "Received %u/%u calls before timeout\n", numpeers,
-           NUM_REQUESTS * NUM_REQUESTS / 2);
-  GAUGER ("PEERINFO", "Peerinfo lookups", numpeers / 30, "peers/s");
-#if START_SERVICE
-  if (0 != GNUNET_OS_process_kill (proc, SIGTERM))
-  {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-    ok = 1;
-  }
-  GNUNET_OS_process_wait (proc);
-  GNUNET_OS_process_destroy (proc);
-  proc = NULL;
-#endif
-  return ok;
-}
-
 
 int
 main (int argc, char *argv[])
 {
-  int ret = 0;
-
-  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-peerinfo");
-  GNUNET_log_setup ("perf_peerinfo_api",
-                    "ERROR",
-                    NULL);
-  ret = check ();
-  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-peerinfo");
-  return ret;
+  if (0 != GNUNET_TESTING_service_run ("perf-gnunet-peerinfo",
+				       "peerinfo",
+				       "test_peerinfo_api_data.conf",
+				       &run, NULL))
+    return 1;
+  FPRINTF (stderr, "Received %u/%u calls before timeout\n", numpeers,
+	   NUM_REQUESTS * NUM_REQUESTS / 2);
+  GAUGER ("PEERINFO", "Peerinfo lookups", numpeers / 30, "peers/s");
+  return 0;
 }
 
 /* end of perf_peerinfo_api.c */

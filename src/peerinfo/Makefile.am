@@ -57,6 +57,7 @@ test_peerinfo_api_SOURCES = \
 test_peerinfo_api_LDADD = \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
+ $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/util/libgnunetutil.la  
 
 perf_peerinfo_api_SOURCES = \
@@ -64,6 +65,7 @@ perf_peerinfo_api_SOURCES = \
 perf_peerinfo_api_LDADD = \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
+ $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/util/libgnunetutil.la  
 
 EXTRA_DIST = \
