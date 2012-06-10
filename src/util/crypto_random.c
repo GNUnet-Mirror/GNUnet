@@ -45,6 +45,10 @@
 #endif
 #define RANDOM() glibc_weak_rand32()
 #define SRANDOM(s) glibc_weak_srand32(s)
+#if defined(RAND_MAX)
+#undef RAND_MAX
+#endif
+#define RAND_MAX 0x7fffffff /* Hopefully this is correct */
 static int32_t glibc_weak_rand32_state = 1;
 
 void
