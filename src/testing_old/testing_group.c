@@ -1949,7 +1949,8 @@ create_small_world_ring (struct GNUNET_TESTING_PeerGroup *pg,
         randomPeer =
             GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, pg->total);
         while ((((randomPeer < max) && (randomPeer > min)) && (useAnd == 0)) ||
-               (((randomPeer > min) || (randomPeer < max)) && (useAnd == 1)))
+               (((randomPeer > max) || (randomPeer < min)) && (useAnd == 1)))
+
         {
           randomPeer =
               GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, pg->total);
