@@ -57,7 +57,7 @@
 /**
  * The maximum payload a data message packet can carry
  */
-static size_t max_payload_size = 
+static const size_t max_payload_size = 
   MAX_PACKET_SIZE - sizeof (struct GNUNET_STREAM_DataMessage);
 
 /**
@@ -2022,7 +2022,9 @@ server_handle_hello (void *cls,
   else
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Client sent HELLO when in state %d\n", socket->state);
+         "%s: Client sent HELLO when in state %d\n", 
+         GNUNET_i2s (&socket->other_peer),
+         socket->state);
     /* FIXME: Send RESET? */
       
   }
@@ -2929,6 +2931,8 @@ GNUNET_STREAM_close (struct GNUNET_STREAM_Socket *socket)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
 	 "Closing STREAM socket when a write handle is pending\n");
+    GNUNET_STREAM_io_write_cancel (socket->write_handle);
+    //socket->write_handle = NULL;
   }
 
   if (socket->read_task_id != GNUNET_SCHEDULER_NO_TASK)
