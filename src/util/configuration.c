@@ -632,12 +632,14 @@ GNUNET_CONFIGURATION_set_value_string (struct GNUNET_CONFIGURATION_Handle *cfg,
 {
   struct ConfigSection *sec;
   struct ConfigEntry *e;
+  char *nv;
 
   e = findEntry (cfg, section, option);
   if (e != NULL)
   {
+    nv = GNUNET_strdup (value);
     GNUNET_free_non_null (e->val);
-    e->val = GNUNET_strdup (value);
+    e->val = nv;
     return;
   }
   sec = findSection (cfg, section);
