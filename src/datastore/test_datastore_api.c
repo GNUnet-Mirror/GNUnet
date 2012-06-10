@@ -491,17 +491,9 @@ run (void *cls,
 int
 main (int argc, char *argv[])
 {
-  char *pos;
   char cfg_name[128];
 
-  /* determine name of plugin to use */
-  plugin_name = argv[0];
-  while (NULL != (pos = strstr (plugin_name, "_")))
-    plugin_name = pos + 1;
-  if (NULL != (pos = strstr (plugin_name, ".")))
-    pos[0] = '\0';
-  else
-    pos = (char *) plugin_name;
+  plugin_name = GNUNET_TESTING_get_testname_from_underscore (argv[0]);
   GNUNET_snprintf (cfg_name, sizeof (cfg_name),
                    "test_datastore_api_data_%s.conf", plugin_name);
   if (0 !=

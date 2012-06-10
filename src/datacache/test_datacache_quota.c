@@ -25,8 +25,7 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_datacache_lib.h"
-
-#define VERBOSE GNUNET_NO
+#include "gnunet_testing_lib-new.h"
 
 #define ASSERT(x) do { if (! (x)) { printf("Error at %s:%d\n", __FILE__, __LINE__); goto FAILURE;} } while (0)
 
@@ -104,16 +103,11 @@ FAILURE:
 int
 main (int argc, char *argv[])
 {
-  char *pos;
   char cfg_name[128];
-
   char *const xargv[] = {
     "test-datacache-quota",
     "-c",
     cfg_name,
-#if VERBOSE
-    "-L", "DEBUG",
-#endif
     NULL
   };
   struct GNUNET_GETOPT_CommandLineOption options[] = {
@@ -121,29 +115,15 @@ main (int argc, char *argv[])
   };
 
   GNUNET_log_setup ("test-datacache-quota",
-#if VERBOSE
-                    "DEBUG",
-#else
                     "WARNING",
-#endif
                     NULL);
 
-  /* determine name of plugin to use */
-  plugin_name = argv[0];
-  while (NULL != (pos = strstr (plugin_name, "_")))
-    plugin_name = pos + 1;
-  if (NULL != (pos = strstr (plugin_name, ".")))
-    pos[0] = 0;
-  else
-    pos = (char *) plugin_name;
-
+  plugin_name = GNUNET_TESTING_get_testname_from_underscore (argv[0]);
   GNUNET_snprintf (cfg_name, sizeof (cfg_name), "test_datacache_data_%s.conf",
                    plugin_name);
-  if (pos != plugin_name)
-    pos[0] = '.';
   GNUNET_PROGRAM_run ((sizeof (xargv) / sizeof (char *)) - 1, xargv,
                       "test-datacache-quota", "nohelp", options, &run, NULL);
-  if (ok != 0)
+  if (0 != ok)
     FPRINTF (stderr, "Missed some testcases: %d\n", ok);
   return ok;
 }

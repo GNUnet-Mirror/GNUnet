@@ -27,6 +27,7 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_protocols.h"
 #include "gnunet_datastore_plugin.h"
+#include "gnunet_testing_lib-new.h"
 #include <gauger.h>
 
 /**
@@ -453,7 +454,6 @@ run (void *cls, char *const *args, const char *cfgfile,
 int
 main (int argc, char *argv[])
 {
-  char *pos;
   char dir_name[128];
   char cfg_name[128];
   char *const argv[] = {
@@ -466,14 +466,7 @@ main (int argc, char *argv[])
     GNUNET_GETOPT_OPTION_END
   };
 
-  /* determine name of plugin to use */
-  plugin_name = argv[0];
-  while (NULL != (pos = strstr (plugin_name, "_")))
-    plugin_name = pos + 1;
-  if (NULL != (pos = strstr (plugin_name, ".")))
-    pos[0] = 0;
-  else
-    pos = (char *) plugin_name;
+  plugin_name = GNUNET_TESTING_get_testname_from_underscore (argv[0]);
   GNUNET_snprintf (dir_name, sizeof (dir_name), "/tmp/perf-gnunet-datastore-%s",
                    plugin_name);
   GNUNET_DISK_directory_remove (dir_name);
@@ -487,8 +480,6 @@ main (int argc, char *argv[])
                       "perf-plugin-datastore", "nohelp", options, &run, NULL);
   if (ok != 0)
     FPRINTF (stderr, "Missed some testcases: %u\n", ok);
-  if (pos != plugin_name)
-    pos[0] = '.';
   GNUNET_DISK_directory_remove (dir_name);
 
   return ok;
