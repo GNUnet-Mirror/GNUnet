@@ -1511,6 +1511,12 @@ load_file (const char* filename)
 
 /** SSL stuff **/
 
+/**
+ * Load PEM key from file
+ *
+ * @param key where to store the data
+ * @param keyfile path to the PEM file
+ */
 static void
 load_key_from_file (gnutls_x509_privkey_t key, char* keyfile)
 {
@@ -1532,7 +1538,10 @@ load_key_from_file (gnutls_x509_privkey_t key, char* keyfile)
 }
 
 /**
- * Get cert from file
+ * Load cert from file
+ *
+ * @param crt struct to store data in
+ * @param certfile path to pem file
  */
 static void
 load_cert_from_file (gnutls_x509_crt_t crt, char* certfile)
@@ -1552,60 +1561,14 @@ load_cert_from_file (gnutls_x509_crt_t crt, char* certfile)
     GNUNET_break (0);
   }
 
-  /*SSL_CTX *context = NULL;;
-
-  context = SSL_CTX_new (SSLv23_server_method ());
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Reading cert file %s\n", file);
-
-  SSL_CTX_use_certificate_file (context, file, SSL_FILETYPE_PEM);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Extracting\n");
-
-  return SSL_get_certificate (SSL_new (context));*/
-
 }
-
-
-/**
- * Get authority from file
- */
-/*static struct ProxyCA*
-load_authority_from_file (char* file)
-{
-  struct ProxyCA *ca = NULL;
-  SSL_CTX *context;
-
-  ca = GNUNET_malloc (sizeof (struct ProxyCA));
-  
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Reading cert file %s\n", file);
-  ca->cert = load_cert_from_file (file);
-
-  context = SSL_CTX_new (SSLv23_server_method ());
-  
-  SSL_CTX_use_PrivateKey_file (context, file, SSL_FILETYPE_PEM);
-
-  ca->key = SSL_get_privatekey (SSL_new (context));
-
-  return ca;
-
-}*/
-
-
-
-/* The template certificate file */
-char* template_cert_file;
-
-/* The template certificate */
-gnutls_certificate_credentials_t *template_certificate;
 
 
 /**
  * Generate new certificate for specific name
  *
+ * @param name the subject name to generate a cert for
+ * @return a struct holding the PEM data
  */
 static struct ProxyGNSCertificate *
 generate_gns_certificate (const char *name)
@@ -1650,8 +1613,6 @@ generate_gns_certificate (const char *name)
   struct ProxyGNSCertificate *pgc =
     GNUNET_malloc (sizeof (struct ProxyGNSCertificate));
 
-  //X509_NAME_delete_entry (server_name, cn_idx);
-  
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding DNs\n");
   
   gnutls_x509_crt_set_dn_by_oid (request, GNUTLS_OID_X520_COUNTRY_NAME,
@@ -1663,20 +1624,8 @@ generate_gns_certificate (const char *name)
   gnutls_x509_crt_set_dn_by_oid (request, GNUTLS_OID_X520_COMMON_NAME,
                                  0, name, strlen (name));
 
-  //if (!X509_NAME_add_entry_by_txt (server_name, "CN",
-  //                                MBSTRING_UTF8, (const unsigned char*)name,
-  //                                -1, -1, 0))
-  //{
-  //  return NULL;
-  //}
-
   ret = gnutls_x509_crt_set_version (request, 3);
 
-  //X509_set_version(request, 3);
-  //X509_set_subject_name(request, server_name);
-  //X509_set_issuer_name(request, issuer_name);
-  //
-  
   ret = gnutls_rnd (GNUTLS_RND_NONCE, &serial, sizeof (serial));
 
   etime = time (NULL);
@@ -1699,16 +1648,10 @@ generate_gns_certificate (const char *name)
 
   ret = gnutls_x509_crt_set_expiration_time (request,
                                              etime);
-  //ASN1_INTEGER_set(X509_get_serialNumber(request), generate_serial());
-  //X509_gmtime_adj(X509_get_notBefore(request), -365);
-  //X509_gmtime_adj(X509_get_notAfter(request), (long)60*60*24*365);
-  //X509_set_pubkey(request, rsa_spec);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Signing...\n");
 
   ret = gnutls_x509_crt_sign (request, proxy_ca.cert, proxy_ca.key);
 
-  //X509_sign(request, proxy_ca->key, EVP_sha1());
-  //
   key_buf_size = sizeof (pgc->key);
   cert_buf_size = sizeof (pgc->cert);
   
@@ -1722,23 +1665,9 @@ generate_gns_certificate (const char *name)
   gnutls_x509_crt_deinit (request);
   gnutls_x509_privkey_deinit (rsa);
 
-  //keyfile = fopen (keyfilename, "w+");
-  //certfile = fopen (certfilename, "w+");
-  
-  //GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Writing to file %d\n", rsa_spec);
-  //PEM_write_PrivateKey (keyfile, rsa_spec,
-  //                      NULL, NULL, 0, NULL, NULL);
-  //GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Writing to file %d\n", request);
-  //PEM_write_X509 (certfile, request);
-
-  //fclose (keyfile);
-  //fclose (certfile);
-
   return pgc;
 
 }
-
-
 
 
 /**
@@ -1750,19 +1679,7 @@ static int
 add_handle_to_ssl_mhd (struct GNUNET_NETWORK_Handle *h, char* domain)
 {
   struct MhdHttpList *hd = NULL;
-
   struct ProxyGNSCertificate *pgc;
-  //char key_pem_file[1024];
-  //char cert_pem_file[1024];
-
-  //sprintf (key_pem_file, "%s.key", domain);
-  //sprintf (cert_pem_file, "%s.pem", domain);
-  
-  //generate_gns_certificate (domain, key_pem_file, cert_pem_file);
-  
-
-  //key_pem = load_file (key_pem_file);
-  //cert_pem = load_file (cert_pem_file);
 
   for (hd = mhd_httpd_head; hd != NULL; hd = hd->next)
   {
@@ -1773,7 +1690,6 @@ add_handle_to_ssl_mhd (struct GNUNET_NETWORK_Handle *h, char* domain)
   if (NULL == hd)
   {
     /* Start new MHD */
-    /* TODO: create cert, start SSL MHD */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "No previous SSL instance found... starting new one for %s\n",
                 domain);
@@ -2280,8 +2196,6 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Loading CA\n");
 
-  //SSL_library_init ();
-  //SSL_load_error_strings ();
   gnutls_global_init ();
   
   load_cert_from_file (proxy_ca.cert, cafile);
@@ -2401,9 +2315,6 @@ main (int argc, char *const *argv)
     {'a', "authority", NULL,
       gettext_noop ("pem file to use as CA"), 1,
       &GNUNET_GETOPT_set_string, &cafile},
-    {'t', "template", NULL,
-      gettext_noop ("template certificate file to use"), 1,
-      &GNUNET_GETOPT_set_string, &template_cert_file},
     GNUNET_GETOPT_OPTION_END
   };
 
