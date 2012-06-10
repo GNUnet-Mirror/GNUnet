@@ -87,28 +87,6 @@ GNUNET_TESTING_system_destroy (struct GNUNET_TESTING_System *system,
 
 
 /**
- * Testing includes a number of pre-created hostkeys for faster peer
- * startup. This function loads such keys into memory from a file.
- *
- * @param system the testing system handle
- * @param filename the path of the hostkeys file
- * @return GNUNET_OK on success; GNUNET_SYSERR on error
- */
-int
-GNUNET_TESTING_hostkeys_load (struct GNUNET_TESTING_System *system,
-                              const char *filename);
-
-
-/**
- * Function to remove the loaded hostkeys
- *
- * @param system the testing system handle
- */
-void
-GNUNET_TESTING_hostkeys_unload (struct GNUNET_TESTING_System *system);
-
-
-/**
  * Testing includes a number of pre-created hostkeys for
  * faster peer startup.  This function can be used to
  * access the n-th key of those pre-created hostkeys; note
