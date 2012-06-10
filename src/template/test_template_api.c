@@ -18,13 +18,12 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file template/test_template.c
+ * @file template/test_template_api.c
  * @brief testcase for template.c
  */
 #include "platform.h"
 #include "gnunet_common.h"
 
-#define VERBOSE GNUNET_NO
 
 static int
 check ()
@@ -42,4 +41,4 @@ main (int argc, char *argv[])
   return ret;
 }
 
-/* end of test_template.c */
+/* end of test_template_api.c */
