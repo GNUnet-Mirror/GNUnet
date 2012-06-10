@@ -324,7 +324,7 @@ main (int argc, char *argv[])
 {
   char cfg_name[128];
 
-  plugin_name = GNUNET_TESTING_get_testname_from_underscoare (argv[0]);
+  plugin_name = GNUNET_TESTING_get_testname_from_underscore (argv[0]);
   GNUNET_snprintf (cfg_name, sizeof (cfg_name),
                    "test_datastore_api_data_%s.conf", plugin_name);
   if (0 !=
