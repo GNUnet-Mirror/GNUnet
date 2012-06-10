@@ -78,7 +78,7 @@
 #define GNUNET_MESH_LOCAL_TUNNEL_ID_CLI 0x80000000
 #define GNUNET_MESH_LOCAL_TUNNEL_ID_SERV 0xB0000000
 
-#define CORE_QUEUE_SIZE         10
+#define CORE_QUEUE_SIZE         1
 #define LOCAL_QUEUE_SIZE        100
 
 /******************************************************************************/
