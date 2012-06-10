@@ -26,8 +26,6 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_datacache_lib.h"
 
-#define VERBOSE GNUNET_NO
-
 #define ASSERT(x) do { if (! (x)) { printf("Error at %s:%d\n", __FILE__, __LINE__); goto FAILURE;} } while (0)
 
 static int ok;
@@ -45,12 +43,12 @@ checkIt (void *cls, struct GNUNET_TIME_Absolute exp,
 {
   if (size != sizeof (GNUNET_HashCode))
   {
-    printf ("ERROR: Invalid size\n");
+    GNUNET_break (0);
     ok = 2;
   }
   if (0 != memcmp (data, cls, size))
   {
-    printf ("ERROR: Invalid data\n");
+    GNUNET_break (0);
     ok = 3;
   }
   return GNUNET_OK;
@@ -123,9 +121,6 @@ main (int argc, char *argv[])
     "test-datacache",
     "-c",
     cfg_name,
-#if VERBOSE
-    "-L", "DEBUG",
-#endif
     NULL
   };
   struct GNUNET_GETOPT_CommandLineOption options[] = {
@@ -133,11 +128,7 @@ main (int argc, char *argv[])
   };
 
   GNUNET_log_setup ("test-datacache",
-#if VERBOSE
-                    "DEBUG",
-#else
                     "WARNING",
-#endif
                     NULL);
   /* determine name of plugin to use */
   plugin_name = argv[0];
