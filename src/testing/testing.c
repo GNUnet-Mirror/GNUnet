@@ -66,6 +66,16 @@ struct GNUNET_TESTING_System
   char *hostkeys_data;
 
   /**
+   * memory map for 'hostkeys_data'.
+   */
+  struct GNUNET_DISK_MapHandle *map;
+
+  /**
+   * File descriptor for the map.
+   */
+  struct GNUNET_DISK_FileHandle *map_fd;
+
+  /**
    * Bitmap where each TCP port that has already been reserved for
    * some GNUnet peer is recorded.  Note that we additionally need to
    * test if a port is already in use by non-GNUnet components before
@@ -158,16 +168,16 @@ struct GNUNET_TESTING_Peer
 static int
 hostkeys_load (struct GNUNET_TESTING_System *system)
 {
-  struct GNUNET_DISK_FileHandle *fd;
   uint64_t fs; 
   char *data_dir;
   char *filename;
   
+  GNUNET_assert (NULL == system->hostkeys_data);
   data_dir = GNUNET_OS_installation_get_path (GNUNET_OS_IPK_DATADIR);
   GNUNET_asprintf (&filename, "%s/testing_hostkeys.dat", data_dir);
   GNUNET_free (data_dir);  
 
- if (GNUNET_YES != GNUNET_DISK_file_test (filename))
+  if (GNUNET_YES != GNUNET_DISK_file_test (filename))
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
          _("Hostkeys file not found: %s\n"), filename);
@@ -175,38 +185,34 @@ hostkeys_load (struct GNUNET_TESTING_System *system)
     return GNUNET_SYSERR;
   }
   /* Check hostkey file size, read entire thing into memory */
-  fd = GNUNET_DISK_file_open (filename, GNUNET_DISK_OPEN_READ,
-                              GNUNET_DISK_PERM_NONE);
-  if (NULL == fd)
-  {
-    LOG (GNUNET_ERROR_TYPE_ERROR,
-         _("Could not open hostkeys file: %s\n"), filename);
-    GNUNET_free (filename);
-    return GNUNET_SYSERR;
-  }
   if (GNUNET_OK != 
       GNUNET_DISK_file_size (filename, &fs, GNUNET_YES, GNUNET_YES))
     fs = 0;
   if (0 == fs)
   {
-    GNUNET_DISK_file_close (fd);
     GNUNET_free (filename);
     return GNUNET_SYSERR;       /* File is empty */
   }
   if (0 != (fs % HOSTKEYFILESIZE))
   {
-    GNUNET_DISK_file_close (fd);
     LOG (GNUNET_ERROR_TYPE_ERROR,
          _("Incorrect hostkey file format: %s\n"), filename);
     GNUNET_free (filename);
     return GNUNET_SYSERR;
   }
-  GNUNET_break (NULL == system->hostkeys_data);
+  system->map_fd = GNUNET_DISK_file_open (filename, GNUNET_DISK_OPEN_READ,
+					 GNUNET_DISK_PERM_NONE);
+  if (NULL == system->map_fd)
+  {
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "open", filename);
+    GNUNET_free (filename);
+    return GNUNET_SYSERR;
+  }
   system->total_hostkeys = fs / HOSTKEYFILESIZE;
-  /* FIXME: mmap instead? */
-  system->hostkeys_data = GNUNET_malloc_large (fs); /* free in hostkeys_unload */
-  GNUNET_assert (fs == GNUNET_DISK_file_read (fd, system->hostkeys_data, fs));
-  GNUNET_DISK_file_close (fd);
+  system->hostkeys_data = GNUNET_DISK_file_map (system->map_fd,
+						&system->map,
+						GNUNET_DISK_MAP_TYPE_READ,
+						fs);
   GNUNET_free (filename);
   return GNUNET_OK;
 }
@@ -221,7 +227,11 @@ static void
 hostkeys_unload (struct GNUNET_TESTING_System *system)
 {
   GNUNET_break (NULL != system->hostkeys_data);
-  GNUNET_free_non_null (system->hostkeys_data);
+  system->hostkeys_data = NULL;
+  GNUNET_DISK_file_unmap (system->map);
+  system->map = NULL;
+  GNUNET_DISK_file_close (system->map_fd);
+  system->map_fd = NULL;
   system->hostkeys_data = NULL;
   system->total_hostkeys = 0;
 }
@@ -1004,4 +1014,4 @@ GNUNET_TESTING_service_run (const char *tmppath,
 }
 
 
-/* end of testing_new.c */
+/* end of testing.c */
