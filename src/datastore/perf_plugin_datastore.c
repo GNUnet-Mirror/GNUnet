@@ -29,8 +29,6 @@
 #include "gnunet_datastore_plugin.h"
 #include <gauger.h>
 
-#define VERBOSE GNUNET_NO
-
 /**
  * Target datastore size (in bytes).  Realistic sizes are
  * more like 16 GB (not the default of 16 MB); however,
@@ -164,10 +162,9 @@ iterate_zeros (void *cls, const GNUNET_HashCode * key, uint32_t size,
   memcpy (&i, &cdata[4], sizeof (i));
   hits[i / 8] |= (1 << (i % 8));
 
-#if VERBOSE
-  FPRINTF (stderr, "Found result type=%u, priority=%u, size=%u, expire=%llu\n",
-           type, priority, size, (unsigned long long) expiration.abs_value);
-#endif
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Found result type=%u, priority=%u, size=%u, expire=%llu\n",
+	      type, priority, size, (unsigned long long) expiration.abs_value);
   crc->cnt++;
   if (crc->cnt == PUT_10 / 4 - 1)
   {
@@ -343,9 +340,8 @@ test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_break (0);
     crc->phase = RP_ERROR;
   }
-#if VERBOSE
-  FPRINTF (stderr, "In phase %d, iteration %u\n", crc->phase, crc->cnt);
-#endif
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "In phase %d, iteration %u\n", crc->phase, crc->cnt);
   switch (crc->phase)
   {
   case RP_ERROR:
@@ -454,43 +450,22 @@ run (void *cls, char *const *args, const char *cfgfile,
 }
 
 
-static int
-check ()
+int
+main (int argc, char *argv[])
 {
+  char *pos;
+  char dir_name[128];
   char cfg_name[128];
-
   char *const argv[] = {
     "perf-plugin-datastore",
     "-c",
     cfg_name,
-#if VERBOSE
-    "-L", "DEBUG",
-#endif
     NULL
   };
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
 
-  GNUNET_snprintf (category, sizeof (category), "DATASTORE-%s", plugin_name);
-  GNUNET_snprintf (cfg_name, sizeof (cfg_name),
-                   "perf_plugin_datastore_data_%s.conf", plugin_name);
-  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv,
-                      "perf-plugin-datastore", "nohelp", options, &run, NULL);
-  if (ok != 0)
-    FPRINTF (stderr, "Missed some testcases: %u\n", ok);
-  return ok;
-}
-
-
-int
-main (int argc, char *argv[])
-{
-  int ret;
-  char *pos;
-  char dir_name[128];
-
-  sleep (1);
   /* determine name of plugin to use */
   plugin_name = argv[0];
   while (NULL != (pos = strstr (plugin_name, "_")))
@@ -499,23 +474,24 @@ main (int argc, char *argv[])
     pos[0] = 0;
   else
     pos = (char *) plugin_name;
-
   GNUNET_snprintf (dir_name, sizeof (dir_name), "/tmp/perf-gnunet-datastore-%s",
                    plugin_name);
   GNUNET_DISK_directory_remove (dir_name);
   GNUNET_log_setup ("perf-plugin-datastore",
-#if VERBOSE
-                    "DEBUG",
-#else
                     "WARNING",
-#endif
                     NULL);
-  ret = check ();
+  GNUNET_snprintf (category, sizeof (category), "DATASTORE-%s", plugin_name);
+  GNUNET_snprintf (cfg_name, sizeof (cfg_name),
+                   "perf_plugin_datastore_data_%s.conf", plugin_name);
+  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv,
+                      "perf-plugin-datastore", "nohelp", options, &run, NULL);
+  if (ok != 0)
+    FPRINTF (stderr, "Missed some testcases: %u\n", ok);
   if (pos != plugin_name)
     pos[0] = '.';
   GNUNET_DISK_directory_remove (dir_name);
 
-  return ret;
+  return ok;
 }
 
 /* end of perf_plugin_datastore.c */

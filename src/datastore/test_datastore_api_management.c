@@ -22,13 +22,12 @@
  * @brief Test for the space management functions of the datastore implementation.
  * @author Christian Grothoff
  */
-
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_protocols.h"
 #include "gnunet_datastore_service.h"
+#include "gnunet_testing_lib-new.h"
 
-#define VERBOSE GNUNET_NO
 
 /**
  * How long until we give up on transmitting the message?
@@ -41,6 +40,27 @@
  */
 #define ITERATIONS 5000
 
+enum RunPhase
+{
+  RP_PUT,
+  RP_GET,
+  RP_DONE,
+  RP_GET_FAIL
+};
+
+
+struct CpsRunContext
+{
+  GNUNET_HashCode key;
+  int i;
+  int found;
+  const struct GNUNET_CONFIGURATION_Handle *cfg;
+  void *data;
+  enum RunPhase phase;
+  uint64_t offset;
+};
+
+
 static struct GNUNET_DATASTORE_Handle *datastore;
 
 static struct GNUNET_TIME_Absolute now;
@@ -48,6 +68,7 @@ static struct GNUNET_TIME_Absolute now;
 static int ok;
 
 static const char *plugin_name;
+
 
 static size_t
 get_size (int i)
@@ -95,26 +116,6 @@ get_expiration (int i)
   av.abs_value = now.abs_value + i * 1000;
   return av;
 }
-
-enum RunPhase
-{
-  RP_PUT,
-  RP_GET,
-  RP_DONE,
-  RP_GET_FAIL
-};
-
-
-struct CpsRunContext
-{
-  GNUNET_HashCode key;
-  int i;
-  int found;
-  const struct GNUNET_CONFIGURATION_Handle *cfg;
-  void *data;
-  enum RunPhase phase;
-  uint64_t offset;
-};
 
 
 static void
@@ -193,10 +194,8 @@ run_continuation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   switch (crc->phase)
   {
   case RP_PUT:
-#if VERBOSE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Executing `%s' number %u\n", "PUT",
                 crc->i);
-#endif
     GNUNET_CRYPTO_hash (&crc->i, sizeof (int), &crc->key);
     GNUNET_DATASTORE_put (datastore, 0, &crc->key, get_size (crc->i),
                           get_data (crc->i), get_type (crc->i),
@@ -214,20 +213,16 @@ run_continuation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     }
     break;
   case RP_GET:
-#if VERBOSE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Executing `%s' number %u\n", "GET",
                 crc->i);
-#endif
     GNUNET_CRYPTO_hash (&crc->i, sizeof (int), &crc->key);
     GNUNET_DATASTORE_get_key (datastore, crc->offset++, &crc->key,
                               get_type (crc->i), 1, 1, TIMEOUT, &check_value,
                               crc);
     break;
   case RP_GET_FAIL:
-#if VERBOSE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Executing `%s' number %u\n", "GET(f)",
                 crc->i);
-#endif
     GNUNET_CRYPTO_hash (&crc->i, sizeof (int), &crc->key);
     GNUNET_DATASTORE_get_key (datastore, crc->offset++, &crc->key,
                               get_type (crc->i), 1, 1, TIMEOUT, &check_nothing,
@@ -235,9 +230,7 @@ run_continuation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     break;
   case RP_DONE:
     GNUNET_assert (0 == crc->i);
-#if VERBOSE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Finished, disconnecting\n");
-#endif
     GNUNET_DATASTORE_disconnect (datastore, GNUNET_YES);
     GNUNET_free (crc);
     ok = 0;
@@ -265,7 +258,7 @@ run_tests (void *cls, int success, struct GNUNET_TIME_Absolute min_expiration, c
 
 
 static void
-run (void *cls, char *const *args, const char *cfgfile,
+run (void *cls, 
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct CpsRunContext *crc;
@@ -290,61 +283,12 @@ run (void *cls, char *const *args, const char *cfgfile,
 }
 
 
-
-static int
-check ()
-{
-  struct GNUNET_OS_Process *proc;
-  char cfg_name[128];
-
-  char *const argv[] = {
-    "test-datastore-api-management",
-    "-c",
-    cfg_name,
-#if VERBOSE
-    "-L", "DEBUG",
-#endif
-    NULL
-  };
-  struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_OPTION_END
-  };
-  GNUNET_snprintf (cfg_name, sizeof (cfg_name),
-                   "test_datastore_api_data_%s.conf", plugin_name);
-  proc =
-    GNUNET_OS_start_process (GNUNET_YES, NULL, NULL, "gnunet-service-arm",
-                               "gnunet-service-arm",
-#if VERBOSE
-                               "-L", "DEBUG",
-#endif
-                               "-c", cfg_name, NULL);
-  GNUNET_assert (NULL != proc);
-  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv,
-                      "test-datastore-api-management", "nohelp", options, &run,
-                      NULL);
-  sleep (1);                    /* give datastore chance to process 'DROP' request */
-  if (0 != GNUNET_OS_process_kill (proc, SIGTERM))
-  {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-    ok = 1;
-  }
-  GNUNET_OS_process_wait (proc);
-  GNUNET_OS_process_destroy (proc);
-  proc = NULL;
-  if (ok != 0)
-    FPRINTF (stderr, "Missed some testcases: %u\n", ok);
-  return ok;
-}
-
 int
 main (int argc, char *argv[])
 {
-  int ret;
-
   char *pos;
-  char dir_name[128];
+  char cfg_name[128];
 
-  sleep (1);
   /* determine name of plugin to use */
   plugin_name = argv[0];
   while (NULL != (pos = strstr (plugin_name, "_")))
@@ -353,22 +297,15 @@ main (int argc, char *argv[])
     pos[0] = 0;
   else
     pos = (char *) plugin_name;
-
-  GNUNET_snprintf (dir_name, sizeof (dir_name), "/tmp/test-gnunet-datastore-%s",
-                   plugin_name);
-  GNUNET_DISK_directory_remove (dir_name);
-  GNUNET_log_setup ("test-datastore-api-management",
-#if VERBOSE
-                    "DEBUG",
-#else
-                    "WARNING",
-#endif
-                    NULL);
-  ret = check ();
-  if (pos != plugin_name)
-    pos[0] = '.';
-  GNUNET_DISK_directory_remove (dir_name);
-  return ret;
+  GNUNET_snprintf (cfg_name, sizeof (cfg_name),
+                   "test_datastore_api_data_%s.conf", plugin_name);
+  if (0 !=
+      GNUNET_TESTING_peer_run ("test-gnunet-datastore-management",
+			       cfg_name,
+			       &run,
+			       NULL))
+    return 1;
+  return ok;
 }
 
 /* end of test_datastore_api_management.c */

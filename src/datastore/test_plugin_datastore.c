@@ -28,8 +28,6 @@
 #include "gnunet_protocols.h"
 #include "gnunet_datastore_plugin.h"
 
-#define VERBOSE GNUNET_NO
-
 /**
  * Number of put operations to perform.
  */
@@ -117,10 +115,9 @@ put_value (struct GNUNET_DATASTORE_PluginFunctions *api, int i, int k)
   value[0] = k;
   msg = NULL;
   prio = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 100);
-#if VERBOSE
-  FPRINTF (stderr, "putting type %u, anon %u under key %s\n", i + 1, i,
-           GNUNET_h2s (&key));
-#endif
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "putting type %u, anon %u under key %s\n", i + 1, i,
+	      GNUNET_h2s (&key));
   if (GNUNET_OK != api->put (api->cls, &key, size, value, i + 1 /* type */ ,
                              prio, i /* anonymity */ ,
                              0 /* replication */ ,
@@ -159,12 +156,10 @@ iterate_one_shot (void *cls, const GNUNET_HashCode * key, uint32_t size,
   GNUNET_assert (key != NULL);
   guid = uid;
   crc->phase++;
-#if VERBOSE
-  FPRINTF (stderr,
-           "Found result type=%u, priority=%u, size=%u, expire=%llu, key %s\n",
-           type, priority, size, (unsigned long long) expiration.abs_value,
-           GNUNET_h2s (key));
-#endif
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Found result type=%u, priority=%u, size=%u, expire=%llu, key %s\n",
+	      type, priority, size, (unsigned long long) expiration.abs_value,
+	      GNUNET_h2s (key));
   GNUNET_SCHEDULER_add_now (&test, crc);
   return GNUNET_OK;
 }
@@ -229,9 +224,8 @@ test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Test aborted.\n");
     crc->phase = RP_ERROR;
   }
-#if VERBOSE
-  FPRINTF (stderr, "In phase %d, iteration %u\n", crc->phase, crc->cnt);
-#endif
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "In phase %d, iteration %u\n", crc->phase, crc->cnt);
   switch (crc->phase)
   {
   case RP_ERROR:
@@ -355,42 +349,23 @@ run (void *cls, char *const *args, const char *cfgfile,
 }
 
 
-static int
-check ()
-{
-  char cfg_name[128];
-
-  char *const argv[] = {
-    "test-plugin-datastore",
-    "-c",
-    cfg_name,
-#if VERBOSE
-    "-L", "DEBUG",
-#endif
-    NULL
-  };
-  struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_OPTION_END
-  };
-
-  GNUNET_snprintf (cfg_name, sizeof (cfg_name),
-                   "test_plugin_datastore_data_%s.conf", plugin_name);
-  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv,
-                      "test-plugin-datastore", "nohelp", options, &run, NULL);
-  if (ok != 0)
-    FPRINTF (stderr, "Missed some testcases: %u\n", ok);
-  return ok;
-}
-
 
 int
 main (int argc, char *argv[])
 {
-  int ret;
   char *pos;
   char dir_name[128];
+  char cfg_name[128];
+  char *const xargv[] = {
+    "test-plugin-datastore",
+    "-c",
+    cfg_name,
+    NULL
+  };
+  static struct GNUNET_GETOPT_CommandLineOption options[] = {
+    GNUNET_GETOPT_OPTION_END
+  };
 
-  sleep (1);
   /* determine name of plugin to use */
   plugin_name = argv[0];
   while (NULL != (pos = strstr (plugin_name, "_")))
@@ -404,18 +379,18 @@ main (int argc, char *argv[])
                    "/tmp/test-gnunet-datastore-plugin-%s", plugin_name);
   GNUNET_DISK_directory_remove (dir_name);
   GNUNET_log_setup ("test-plugin-datastore",
-#if VERBOSE
-                    "DEBUG",
-#else
                     "WARNING",
-#endif
                     NULL);
-  ret = check ();
+  GNUNET_snprintf (cfg_name, sizeof (cfg_name),
+                   "test_plugin_datastore_data_%s.conf", plugin_name);
+  GNUNET_PROGRAM_run ((sizeof (xargv) / sizeof (char *)) - 1, xargv,
+                      "test-plugin-datastore", "nohelp", options, &run, NULL);
+  if (ok != 0)
+    FPRINTF (stderr, "Missed some testcases: %u\n", ok);
   if (pos != plugin_name)
     pos[0] = '.';
   GNUNET_DISK_directory_remove (dir_name);
-
-  return ret;
+  return ok;
 }
 
 /* end of test_plugin_datastore.c */
