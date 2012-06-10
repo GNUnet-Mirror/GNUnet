@@ -65,8 +65,7 @@ struct GNUNET_TESTING_System
 {
   /**
    * Prefix (i.e. "/tmp/gnunet-testing/") we prepend to each
-   * SERVICEHOME. 
-   */
+   * SERVICEHOME.    */
   char *tmppath;
 
   /**

@@ -356,6 +356,21 @@ GNUNET_DISK_mktemp (const char *t);
 
 
 /**
+ * Create an (empty) temporary file on disk.  If the given name is not
+ * an absolute path, the current 'TMPDIR' will be prepended.  In any case,
+ * 6 random characters will be appended to the name to create a unique
+ * filename.
+ *
+ * @param t component to use for the name;
+ *        does NOT contain "XXXXXX" or "/tmp/".
+ * @return NULL on error, otherwise name of fresh
+ *         file on disk in directory for temporary files
+ */
+char *
+GNUNET_DISK_mkdtemp (const char *t);
+
+
+/**
  * Open a file.  Note that the access permissions will only be
  * used if a new file is created and if the underlying operating
  * system supports the given permissions.

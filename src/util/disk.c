@@ -393,21 +393,15 @@ GNUNET_DISK_file_get_identifiers (const char *filename, uint64_t * dev,
 
 
 /**
- * Create an (empty) temporary file on disk.  If the given name is not
- * an absolute path, the current 'TMPDIR' will be prepended.  In any case,
- * 6 random characters will be appended to the name to create a unique
- * filename.
+ * Create the name for a temporary file or directory from a template.
  *
- * @param t component to use for the name;
- *        does NOT contain "XXXXXX" or "/tmp/".
- * @return NULL on error, otherwise name of fresh
- *         file on disk in directory for temporary files
+ * @param t template (without XXXXX or "/tmp/")
+ * @return name ready for passing to 'mktemp' or 'mkdtemp', NULL on error
  */
-char *
-GNUNET_DISK_mktemp (const char *t)
+static char *
+mktemp_name (const char *t)
 {
   const char *tmpdir;
-  int fd;
   char *tmpl;
   char *fn;
 
@@ -419,7 +413,12 @@ GNUNET_DISK_mktemp (const char *t)
   {
     /* FIXME: This uses system codepage on W32, not UTF-8 */
     tmpdir = getenv ("TMPDIR");
-    tmpdir = tmpdir ? tmpdir : "/tmp";
+    if (NULL == tmpdir)
+      tmpdir = getenv ("TMP");
+    if (NULL == tmpdir)
+      tmpdir = getenv ("TEMP");  
+    if (NULL == tmpdir)
+      tmpdir = "/tmp";
     GNUNET_asprintf (&tmpl, "%s/%s%s", tmpdir, t, "XXXXXX");
   }
   else
@@ -438,12 +437,56 @@ GNUNET_DISK_mktemp (const char *t)
 #else
   fn = tmpl;
 #endif
-  /* FIXME: why is this not MKSTEMP()? This function is implemented in plibc.
-   * CG: really? If I put MKSTEMP here, I get a compilation error...
-   * It will assume that fn is UTF-8-encoded, if compiled with UTF-8 support.
-   */
-  fd = mkstemp (fn);
-  if (fd == -1)
+  return fn;
+}
+
+
+/**
+ * Create an (empty) temporary directory on disk.  If the given name is not
+ * an absolute path, the current 'TMPDIR' will be prepended.  In any case,
+ * 6 random characters will be appended to the name to create a unique
+ * filename.
+ *
+ * @param t component to use for the name;
+ *        does NOT contain "XXXXXX" or "/tmp/".
+ * @return NULL on error, otherwise name of fresh
+ *         file on disk in directory for temporary files
+ */
+char *
+GNUNET_DISK_mkdtemp (const char *t)
+{
+  char *fn;
+
+  fn = mktemp_name (t);
+  if (fn != mkdtemp (fn))
+  {
+    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_ERROR, "mkstemp", fn);
+    GNUNET_free (fn);
+    return NULL;
+  }
+  return fn;
+}
+
+
+/**
+ * Create an (empty) temporary file on disk.  If the given name is not
+ * an absolute path, the current 'TMPDIR' will be prepended.  In any case,
+ * 6 random characters will be appended to the name to create a unique
+ * filename.
+ *
+ * @param t component to use for the name;
+ *        does NOT contain "XXXXXX" or "/tmp/".
+ * @return NULL on error, otherwise name of fresh
+ *         file on disk in directory for temporary files
+ */
+char *
+GNUNET_DISK_mktemp (const char *t)
+{
+  int fd;
+  char *fn;
+
+  fn = mktemp_name (t);
+  if (-1 == (fd = mkstemp (fn)))
   {
     LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_ERROR, "mkstemp", fn);
     GNUNET_free (fn);
