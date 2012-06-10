@@ -24,8 +24,7 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
-#include "gnunet_getopt_lib.h"
-#include "gnunet_program_lib.h"
+#include "gnunet_util_lib.h"
 /* #include "gnunet_template_service.h" */
 
 /**
