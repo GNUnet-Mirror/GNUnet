@@ -173,6 +173,10 @@ main (int argc, char *const *argv)
   static struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
+
+  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
+    return 2;
+
   return (GNUNET_OK ==
           GNUNET_PROGRAM_run (argc, argv, "gnunet-directory [OPTIONS] FILENAME",
                               gettext_noop

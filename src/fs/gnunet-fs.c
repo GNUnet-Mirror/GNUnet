@@ -119,6 +119,10 @@ main (int argc, char *const *argv)
     GNUNET_GETOPT_OPTION_VERBOSE (&verbose),
     GNUNET_GETOPT_OPTION_END
   };
+
+  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
+    return 2;
+
   return (GNUNET_OK ==
           GNUNET_PROGRAM_run (argc, argv, "gnunet-fs [OPTIONS]",
                               gettext_noop ("Special file-sharing operations"),

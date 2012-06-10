@@ -360,6 +360,8 @@ main (int argc, char *argv[])
     GNUNET_GETOPT_OPTION_END
   };
 
+  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
+    return 2;
 
   GNUNET_PROGRAM_run (argc, argv,
                       "perf_ats_mlp", "nohelp", options,

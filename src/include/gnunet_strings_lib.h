@@ -390,6 +390,24 @@ GNUNET_STRINGS_to_address_ip (const char *addr,
 			      struct sockaddr_storage *r_buf);
 
 
+/**
+ * Returns utf-8 encoded arguments.
+ * Does nothing (returns a copy of argc and argv) on any platform
+ * other than W32.
+ * Returned argv has u8argv[u8argc] == NULL.
+ * Returned argv is a single memory block, and can be freed with a single
+ *   GNUNET_free () call.
+ *
+ * @param argc argc (as given by main())
+ * @param argv argv (as given by main())
+ * @param u8argc a location to store new argc in (though it's th same as argc)
+ * @param u8argv a location to store new argv in
+ * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+ */
+int
+GNUNET_STRINGS_get_utf8_args (int argc, char *const *argv, int *u8argc,
+                              char *const **u8argv);
+
 /* ifndef GNUNET_UTIL_STRING_H */
 #endif
 /* end of gnunet_util_string.h */

@@ -226,6 +226,10 @@ static struct GNUNET_GETOPT_CommandLineOption options[] = {
 int
 main (int argc, char *const *argv)
 {
+
+  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
+    return 2;
+
   return (GNUNET_OK ==
           GNUNET_PROGRAM_run (argc, argv, "gnunet-dht-get",
                               gettext_noop

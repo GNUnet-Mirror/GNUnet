@@ -914,8 +914,11 @@ static struct GNUNET_GETOPT_CommandLineOption options[] = {
 
 
 int
-main (int argc, char *argv[])
+main (int argc, char *const *argv)
 {
+  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
+    return 2;
+
   GNUNET_log_setup ("nse-profiler",
 #if VERBOSE
                     "DEBUG",

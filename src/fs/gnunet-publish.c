@@ -736,6 +736,10 @@ main (int argc, char *const *argv)
 	      "GNUnet publish starts\n");
   bo.expiration_time =
       GNUNET_FS_year_to_time (GNUNET_FS_get_current_year () + 2);
+
+  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
+    return 2;
+
   return (GNUNET_OK ==
           GNUNET_PROGRAM_run (argc, argv, "gnunet-publish [OPTIONS] FILENAME",
                               gettext_noop

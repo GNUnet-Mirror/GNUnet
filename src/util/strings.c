@@ -32,6 +32,7 @@
 #include "gnunet_common.h"
 #include "gnunet_strings_lib.h"
 #include <unicase.h>
+#include <unistr.h>
 
 #define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
 
@@ -1111,6 +1112,95 @@ GNUNET_STRINGS_to_address_ip (const char *addr,
   if (addr[0] == '[')
     return GNUNET_STRINGS_to_address_ipv6 (addr, addrlen, (struct sockaddr_in6 *) r_buf);
   return GNUNET_STRINGS_to_address_ipv4 (addr, addrlen, (struct sockaddr_in *) r_buf);
+}
+
+/**
+ * Makes a copy of argv that consists of a single memory chunk that can be
+ * freed with a single call to GNUNET_free ();
+ */
+static char *const *
+_make_continuous_arg_copy (int argc, char *const *argv)
+{
+  size_t argvsize = 0;
+  int i;
+  char **new_argv;
+  char *p;
+  for (i = 0; i < argc; i++)
+    argvsize += strlen (argv[i]) + 1 + sizeof (char *);
+  new_argv = GNUNET_malloc (argvsize + sizeof (char *));
+  p = (char *) &new_argv[argc + 1];
+  for (i = 0; i < argc; i++)
+  {
+    new_argv[i] = p;
+    strcpy (p, argv[i]);
+    p += strlen (argv[i]) + 1;
+  }
+  new_argv[argc] = NULL;
+  return (char *const *) new_argv;
+}
+
+/**
+ * Returns utf-8 encoded arguments.
+ * Does nothing (returns a copy of argc and argv) on any platform
+ * other than W32.
+ * Returned argv has u8argv[u8argc] == NULL.
+ * Returned argv is a single memory block, and can be freed with a single
+ *   GNUNET_free () call.
+ *
+ * @param argc argc (as given by main())
+ * @param argv argv (as given by main())
+ * @param u8argc a location to store new argc in (though it's th same as argc)
+ * @param u8argv a location to store new argv in
+ * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+ */
+int
+GNUNET_STRINGS_get_utf8_args (int argc, char *const *argv, int *u8argc, char *const **u8argv)
+{
+#if WINDOWS
+  wchar_t *wcmd;
+  wchar_t **wargv;
+  int wargc;
+  int i;
+  char **split_u8argv;
+
+  wcmd = GetCommandLineW ();
+  if (NULL == wcmd)
+    return GNUNET_SYSERR;
+  wargv = CommandLineToArgvW (wcmd, &wargc);
+  if (NULL == wargv)
+    return GNUNET_SYSERR;
+
+  split_u8argv = GNUNET_malloc (argc * sizeof (char *));
+
+  for (i = 0; i < wargc; i++)
+  {
+    size_t strl;
+    /* Hopefully it will allocate us NUL-terminated strings... */
+    split_u8argv[i] = (char *) u16_to_u8 (wargv[i], wcslen (wargv[i]) + 1, NULL, &strl);
+    if (split_u8argv == NULL)
+    {
+      int j;
+      for (j = 0; j < i; j++)
+        free (split_u8argv[j]);
+      GNUNET_free (split_u8argv);
+      LocalFree (wargv);
+      return GNUNET_SYSERR;
+    }
+  }
+
+  *u8argv = _make_continuous_arg_copy (wargc, split_u8argv);
+  *u8argc = wargc;
+
+  for (i = 0; i < wargc; i++)
+    free (split_u8argv[i]);
+  free (split_u8argv);
+  return GNUNET_OK;
+#else
+  char *const *new_argv = (char *const *) _make_continuous_arg_copy (argc, argv);
+  *u8argv = new_argv;
+  *u8argc = argc;
+  return GNUNET_OK;
+#endif
 }
 
 /* end of strings.c */

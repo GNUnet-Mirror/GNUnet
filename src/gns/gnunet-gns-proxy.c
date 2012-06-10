@@ -2320,6 +2320,9 @@ main (int argc, char *const *argv)
 
   int ret;
 
+  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
+    return 2;
+
   GNUNET_log_setup ("gnunet-gns-proxy", "WARNING", NULL);
   ret =
       (GNUNET_OK ==

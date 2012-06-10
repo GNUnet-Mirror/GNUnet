@@ -431,6 +431,9 @@ main (int argc, char *const *argv)
   if (temp_timeout_ms > 0)
     timeout.rel_value = temp_timeout_ms;
 
+  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
+    return 2;
+
   if (GNUNET_OK ==
       GNUNET_PROGRAM_run (argc, argv, "gnunet-arm",
 			  gettext_noop

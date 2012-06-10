@@ -413,7 +413,7 @@ extract_files (struct ScanTreeNode *item)
  * @return 0 on success
  */
 int main(int argc,
-	 char **argv)
+	 char *const *argv)
 {
   const char *filename_expanded;
   const char *ex;
@@ -424,6 +424,9 @@ int main(int argc,
    * binary mode.
    */
   _setmode (1, _O_BINARY);
+  /* Get utf-8-encoded arguments */
+  if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
+    return 5;
 #endif
 
   /* parse command line */
