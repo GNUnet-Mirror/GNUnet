@@ -440,6 +440,36 @@ mktemp_name (const char *t)
   return fn;
 }
 
+#if WINDOWS
+static char *
+mkdtemp (char *fn)
+{
+  char *random_fn;
+  char *tfn;
+  while (1)
+  {
+    tfn = GNUNET_strdup (fn);
+    random_fn = _mktemp (tfn);
+    if (NULL == random_fn)
+    {
+      GNUNET_free (tfn);
+      return NULL;
+    }
+    /* FIXME: assume fn to be UTF-8-encoded and do the right thing */
+    if (0 == CreateDirectoryA (tfn, NULL))
+    {
+      DWORD error = GetLastError ();
+      GNUNET_free (tfn);
+      if (ERROR_ALREADY_EXISTS == error)
+        continue;
+      return NULL;
+    }
+    break;
+  }
+  strcpy (fn, tfn);
+  return fn;
+}
+#endif
 
 /**
  * Create an (empty) temporary directory on disk.  If the given name is not
