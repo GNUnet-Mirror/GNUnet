@@ -73,7 +73,6 @@ GNUNET_TESTING_system_create (const char *tmppath,
 			      const char *controller);
 
 
-
 /**
  * Free system resources.
  *
@@ -225,6 +224,7 @@ typedef void (*GNUNET_TESTING_TestMain)(void *cls,
  * should self-terminate by invoking 'GNUNET_SCHEDULER_shutdown'.
  *
  * @param tmppath path for storing temporary data for the test
+ *        also used to setup the program name for logging
  * @param cfgfilename name of the configuration file to use;
  *         use NULL to only run with defaults
  * @param tm main function of the testcase
@@ -236,7 +236,6 @@ GNUNET_TESTING_peer_run (const char *tmppath,
 			 const char *cfgfilename,
 			 GNUNET_TESTING_TestMain tm,
 			 void *tm_cls);
-
 
 
 /**
@@ -251,6 +250,7 @@ GNUNET_TESTING_peer_run (const char *tmppath,
  * and if that service doesn't itself depend on other services.
  *
  * @param tmppath path for storing temporary data for the test
+ *        also used to setup the program name for logging
  * @param service_name name of the service to run
  * @param cfgfilename name of the configuration file to use;
  *         use NULL to only run with defaults
@@ -265,6 +265,23 @@ GNUNET_TESTING_service_run (const char *tmppath,
 			    GNUNET_TESTING_TestMain tm,
 			    void *tm_cls);
 
+
+
+/**
+ * Sometimes we use the binary name to determine which specific
+ * test to run.  In those cases, the string after the last "_"
+ * in 'argv[0]' specifies a string that determines the configuration
+ * file or plugin to use.  
+ *
+ * This function returns the respective substring, taking care
+ * of issues such as binaries ending in '.exe' on W32.
+ *
+ * @param argv0 the name of the binary
+ * @return string between the last '_' and the '.exe' (or the end of the string),
+ *         NULL if argv0 has no '_' 
+ */
+char *
+GNUNET_TESTING_get_testname_from_underscore (const char *argv0);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

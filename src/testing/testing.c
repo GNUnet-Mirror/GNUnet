@@ -877,6 +877,7 @@ GNUNET_TESTING_peer_destroy (struct GNUNET_TESTING_Peer *peer)
  * should self-terminate by invoking 'GNUNET_SCHEDULER_shutdown'.
  *
  * @param tmppath path for storing temporary data for the test
+ *        also used to setup the program name for logging
  * @param cfgfilename name of the configuration file to use;
  *         use NULL to only run with defaults
  * @param tm main function of the testcase
@@ -943,7 +944,8 @@ service_run_main (void *cls,
  * This function is useful if the testcase is for a single service
  * and if that service doesn't itself depend on other services.
  *
- * @param tmppath path for storing temporary data for the test
+ * @param tmppath path for storing temporary data for the test,
+ *        also used to setup the program name for logging
  * @param service_name name of the service to run
  * @param cfgfilename name of the configuration file to use;
  *         use NULL to only run with defaults
@@ -963,6 +965,9 @@ GNUNET_TESTING_service_run (const char *tmppath,
   struct GNUNET_TESTING_Peer *peer;
   struct GNUNET_CONFIGURATION_Handle *cfg;
 
+  GNUNET_log_setup (tmppath,
+                    "WARNING",
+                    NULL);
   system = GNUNET_TESTING_system_create (tmppath, "127.0.0.1");
   if (NULL == system)
     return 1;
@@ -1007,6 +1012,39 @@ GNUNET_TESTING_service_run (const char *tmppath,
   GNUNET_CONFIGURATION_destroy (cfg);
   GNUNET_TESTING_system_destroy (system, GNUNET_YES);
   return 0;
+}
+
+
+/**
+ * Sometimes we use the binary name to determine which specific
+ * test to run.  In those cases, the string after the last "_"
+ * in 'argv[0]' specifies a string that determines the configuration
+ * file or plugin to use.  
+ *
+ * This function returns the respective substring, taking care
+ * of issues such as binaries ending in '.exe' on W32.
+ *
+ * @param argv0 the name of the binary
+ * @return string between the last '_' and the '.exe' (or the end of the string),
+ *         NULL if argv0 has no '_' 
+ */
+char *
+GNUNET_TESTING_get_testname_from_underscore (const char *argv0)
+{
+  size_t slen = strlen (argv0) + 1;
+  char sbuf[slen];
+  char *ret;
+  char *dot;
+
+  memcpy (sbuf, argv0, slen);
+  ret = strrchr (sbuf, '_');
+  if (NULL == ret)
+    return NULL;
+  ret++; /* skip underscore */
+  dot = strchr (ret, '.');
+  if (NULL != dot)
+    *dot = '\0';
+  return GNUNET_strdup (ret);
 }
 
 
