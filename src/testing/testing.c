@@ -19,7 +19,7 @@
  */
 
 /**
- * @file testing/testing_new.c
+ * @file testing/testing.c
  * @brief convenience API for writing testcases for GNUnet
  *        Many testcases need to start and stop a peer/service
  *        and this library is supposed to make that easier
