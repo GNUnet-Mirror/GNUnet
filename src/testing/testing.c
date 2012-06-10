@@ -36,11 +36,25 @@
 #define LOG(kind,...)                                           \
   GNUNET_log_from (kind, "gnunettestingnew", __VA_ARGS__)
 
-
 /**
  * Size of a hostkey when written to a file
  */
 #define HOSTKEYFILESIZE 914
+
+/**
+ * Lowest port used for GNUnet testing.  Should be high enough to not
+ * conflict with other applications running on the hosts but be low
+ * enough to not conflict with client-ports (typically starting around
+ * 32k).
+ */
+#define LOW_PORT 12000
+
+/**
+ * Highest port used for GNUnet testing.  Should be low enough to not
+ * conflict with the port range for "local" ports (client apps; see
+ * /proc/sys/net/ipv4/ip_local_port_range on Linux for example).
+ */
+#define HIGH_PORT 56000
 
 
 /**
@@ -139,23 +153,6 @@ struct GNUNET_TESTING_Peer
    */
   struct GNUNET_OS_Process *main_process;
 };
-
-
-/**
- * Lowest port used for GNUnet testing.  Should be high enough to not
- * conflict with other applications running on the hosts but be low
- * enough to not conflict with client-ports (typically starting around
- * 32k).
- */
-#define LOW_PORT 12000
-
-
-/**
- * Highest port used for GNUnet testing.  Should be low enough to not
- * conflict with the port range for "local" ports (client apps; see
- * /proc/sys/net/ipv4/ip_local_port_range on Linux for example).
- */
-#define HIGH_PORT 56000
 
 
 /**
