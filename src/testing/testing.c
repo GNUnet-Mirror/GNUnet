@@ -237,21 +237,24 @@ hostkeys_unload (struct GNUNET_TESTING_System *system)
  * Create a system handle.  There must only be one system
  * handle per operating system.
  *
- * @param tmppath prefix path to use for all service homes
+ * @param testdir only the directory name without any path. This is used for
+ *          all service homes; the directory will be created in a temporary
+ *          location depending on the underlying OS
+ *
  * @param controller hostname of the controlling host, 
  *        service configurations are modified to allow 
  *        control connections from this host; can be NULL
  * @return handle to this system, NULL on error
  */
 struct GNUNET_TESTING_System *
-GNUNET_TESTING_system_create (const char *tmppath,
+GNUNET_TESTING_system_create (const char *testdir,
 			      const char *controller)
 {
   struct GNUNET_TESTING_System *system;
 
-  GNUNET_assert (NULL != tmppath);
+  GNUNET_assert (NULL != testdir);
   system = GNUNET_malloc (sizeof (struct GNUNET_TESTING_System));
-  system->tmppath = GNUNET_DISK_mkdtemp (tmppath);
+  system->tmppath = GNUNET_DISK_mkdtemp (testdir);
   if (NULL == system->tmppath)
   {
     GNUNET_free (system);
@@ -272,7 +275,7 @@ GNUNET_TESTING_system_create (const char *tmppath,
  * Free system resources.
  *
  * @param system system to be freed
- * @param remove_paths should the 'tmppath' and all subdirectories
+ * @param remove_paths should the 'testdir' and all subdirectories
  *        be removed (clean up on shutdown)?
  */
 void
@@ -876,8 +879,9 @@ GNUNET_TESTING_peer_destroy (struct GNUNET_TESTING_Peer *peer)
  * and should thus be called directly from "main".  The testcase
  * should self-terminate by invoking 'GNUNET_SCHEDULER_shutdown'.
  *
- * @param tmppath path for storing temporary data for the test
- *        also used to setup the program name for logging
+ * @param testdir only the directory name without any path. This is used for
+ *          all service homes; the directory will be created in a temporary
+ *          location depending on the underlying OS
  * @param cfgfilename name of the configuration file to use;
  *         use NULL to only run with defaults
  * @param tm main function of the testcase
@@ -885,12 +889,12 @@ GNUNET_TESTING_peer_destroy (struct GNUNET_TESTING_Peer *peer)
  * @return 0 on success, 1 on error
  */
 int
-GNUNET_TESTING_peer_run (const char *tmppath,
+GNUNET_TESTING_peer_run (const char *testdir,
 			 const char *cfgfilename,
 			 GNUNET_TESTING_TestMain tm,
 			 void *tm_cls)
 {
-  return GNUNET_TESTING_service_run (tmppath, "arm",
+  return GNUNET_TESTING_service_run (testdir, "arm",
 				     cfgfilename, tm, tm_cls);
 }
 
@@ -944,8 +948,9 @@ service_run_main (void *cls,
  * This function is useful if the testcase is for a single service
  * and if that service doesn't itself depend on other services.
  *
- * @param tmppath path for storing temporary data for the test,
- *        also used to setup the program name for logging
+ * @param testdir only the directory name without any path. This is used for
+ *          all service homes; the directory will be created in a temporary
+ *          location depending on the underlying OS
  * @param service_name name of the service to run
  * @param cfgfilename name of the configuration file to use;
  *         use NULL to only run with defaults
@@ -954,7 +959,7 @@ service_run_main (void *cls,
  * @return 0 on success, 1 on error
  */
 int
-GNUNET_TESTING_service_run (const char *tmppath,
+GNUNET_TESTING_service_run (const char *testdir,
 			    const char *service_name,
 			    const char *cfgfilename,
 			    GNUNET_TESTING_TestMain tm,
@@ -965,10 +970,10 @@ GNUNET_TESTING_service_run (const char *tmppath,
   struct GNUNET_TESTING_Peer *peer;
   struct GNUNET_CONFIGURATION_Handle *cfg;
 
-  GNUNET_log_setup (tmppath,
+  GNUNET_log_setup (testdir,
                     "WARNING",
                     NULL);
-  system = GNUNET_TESTING_system_create (tmppath, "127.0.0.1");
+  system = GNUNET_TESTING_system_create (testdir, "127.0.0.1");
   if (NULL == system)
     return 1;
   cfg = GNUNET_CONFIGURATION_create ();
