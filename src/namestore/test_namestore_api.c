@@ -24,6 +24,7 @@
 #include "platform.h"
 #include "gnunet_common.h"
 #include "gnunet_namestore_service.h"
+#include "gnunet_testing_lib-new.h"
 
 #define TEST_RECORD_TYPE 1234
 #define TEST_RECORD_DATALEN 123
@@ -31,42 +32,17 @@
 
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 
-static struct GNUNET_NAMESTORE_Handle * nsh;
+static struct GNUNET_NAMESTORE_Handle *nsh;
 
 static GNUNET_SCHEDULER_TaskIdentifier endbadly_task;
 
-static struct GNUNET_OS_Process *arm;
-
-static struct GNUNET_CRYPTO_RsaPrivateKey * privkey;
+static struct GNUNET_CRYPTO_RsaPrivateKey *privkey;
 
 static struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pubkey;
 
 static struct GNUNET_CRYPTO_ShortHashCode zone;
 
 static int res;
-
-
-static void
-start_arm (const char *cfgname)
-{
-  arm = GNUNET_OS_start_process (GNUNET_YES, NULL, NULL, "gnunet-service-arm",
-                               "gnunet-service-arm", "-c", cfgname,
-                               NULL);
-}
-
-
-static void
-stop_arm ()
-{
-  if (NULL != arm)
-  {
-    if (0 != GNUNET_OS_process_kill (arm, SIGTERM))
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-    GNUNET_OS_process_wait (arm);
-    GNUNET_OS_process_destroy (arm);
-    arm = NULL;
-  }
-}
 
 
 /**
@@ -85,10 +61,7 @@ endbadly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (privkey != NULL)
     GNUNET_CRYPTO_rsa_key_free (privkey);
   privkey = NULL;
-
-  if (NULL != arm)
-    stop_arm();
-
+  GNUNET_SCHEDULER_shutdown ();
   res = 1;
 }
 
@@ -107,13 +80,10 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   privkey = NULL;
 
   if (nsh != NULL)
+  {
     GNUNET_NAMESTORE_disconnect (nsh, GNUNET_YES);
-  nsh = NULL;
-
-
-  if (NULL != arm)
-    stop_arm();
-
+    nsh = NULL;
+  }
   res = 0;
 }
 
@@ -138,7 +108,7 @@ name_lookup_proc (void *cls,
 static void 
 put_cont (void *cls, int32_t success, const char *emsg)
 {
-  char * name = cls;
+  const char *name = cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      "Name store added record for `%s': %s\n", name, (success == GNUNET_OK) ? "SUCCESS" : "FAIL");
@@ -166,7 +136,7 @@ delete_existing_db (const struct GNUNET_CONFIGURATION_Handle *cfg)
 
 
 static void
-run (void *cls, char *const *args, const char *cfgfile,
+run (void *cls, 
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_CRYPTO_RsaSignature signature;
@@ -191,13 +161,11 @@ run (void *cls, char *const *args, const char *cfgfile,
   rd.data_size = TEST_RECORD_DATALEN;
   rd.data = GNUNET_malloc(TEST_RECORD_DATALEN);
   memset ((char *) rd.data, 'a', TEST_RECORD_DATALEN);
-  start_arm (cfgfile);
-  GNUNET_assert (arm != NULL);
   nsh = GNUNET_NAMESTORE_connect (cfg);
   GNUNET_break (NULL != nsh);
   GNUNET_NAMESTORE_record_put (nsh, &pubkey, name,
-                              GNUNET_TIME_UNIT_FOREVER_ABS,
-                              1, &rd, &signature, put_cont, name);
+			       GNUNET_TIME_UNIT_FOREVER_ABS,
+			       1, &rd, &signature, &put_cont, (void*) name);
   GNUNET_free ((void *)rd.data);
 }
 
@@ -205,18 +173,14 @@ run (void *cls, char *const *args, const char *cfgfile,
 int
 main (int argc, char *argv[])
 {
-  static char *const argv[] = { "test-namestore-api",
-    "-c",
-    "test_namestore_api.conf",
-    NULL
-  };
-  static struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_OPTION_END
-  };
-
   res = 1;
-  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv, "test-namestore-api",
-                      "nohelp", options, &run, &res);
+  if (0 != 
+      GNUNET_TESTING_service_run ("test-namestore-api",
+				  "namestore",
+				  "test_namestore_api.conf",
+				  &run,
+				  NULL))
+    return 1;
   return res;
 }
 

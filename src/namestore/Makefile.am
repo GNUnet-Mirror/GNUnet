@@ -112,29 +112,34 @@ test_namestore_api_sign_verify_SOURCES = \
  test_namestore_api_sign_verify.c
 test_namestore_api_sign_verify_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la
 
 test_namestore_api_SOURCES = \
  test_namestore_api.c
 test_namestore_api_LDADD = \
+  $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la
 
 test_namestore_api_put_SOURCES = \
  test_namestore_api_put.c
 test_namestore_api_put_LDADD = \
+  $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la
 
 test_namestore_api_lookup_SOURCES = \
  test_namestore_api_lookup.c
 test_namestore_api_lookup_LDADD = \
+  $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la
 
 test_namestore_api_lookup_specific_type_SOURCES = \
  test_namestore_api_lookup_specific_type.c
 test_namestore_api_lookup_specific_type_LDADD = \
+  $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la
 
@@ -142,12 +147,14 @@ test_namestore_api_lookup_specific_type_LDADD = \
 test_namestore_api_create_SOURCES = \
  test_namestore_api_create.c
 test_namestore_api_create_LDADD = \
+  $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la
 
 test_namestore_api_create_update_SOURCES = \
  test_namestore_api_create_update.c
 test_namestore_api_create_update_LDADD = \
+  $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la
 
@@ -155,42 +162,49 @@ test_namestore_api_create_update_LDADD = \
 test_namestore_api_remove_SOURCES = \
  test_namestore_api_remove.c
 test_namestore_api_remove_LDADD = \
+  $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la
 
 test_namestore_api_remove_not_existing_record_SOURCES = \
  test_namestore_api_remove_not_existing_record.c
 test_namestore_api_remove_not_existing_record_LDADD = \
+  $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la
 
 test_namestore_api_zone_to_name_SOURCES = \
  test_namestore_api_zone_to_name.c
 test_namestore_api_zone_to_name_LDADD = \
+  $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la
 
 test_namestore_api_zone_iteration_SOURCES = \
  test_namestore_api_zone_iteration.c
 test_namestore_api_zone_iteration_LDADD = \
+  $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la  
 
 test_namestore_api_zone_iteration_specific_zone_SOURCES = \
  test_namestore_api_zone_iteration_specific_zone.c
 test_namestore_api_zone_iteration_specific_zone_LDADD = \
+  $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la  
 
 test_namestore_api_zone_iteration_stop_SOURCES = \
  test_namestore_api_zone_iteration_stop.c
 test_namestore_api_zone_iteration_stop_LDADD = \
+  $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la    
 
 test_namestore_record_serialization_SOURCES = \
  test_namestore_record_serialization.c
 test_namestore_record_serialization_LDADD = \
+  $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la  
 

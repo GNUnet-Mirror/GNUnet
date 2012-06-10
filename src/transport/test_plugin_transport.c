@@ -34,8 +34,6 @@
 #include "gnunet_transport_plugin.h"
 #include "transport.h"
 
-#define VERBOSE GNUNET_NO
-
 /**
  * How long until we give up on transmitting the message?
  */
@@ -253,20 +251,11 @@ main (int argc, char *const *argv)
     "test_plugin_transport",
     "-c",
     "test_plugin_transport_data.conf",
-    "-L",
-#if VERBOSE
-    "DEBUG",
-#else
-    "WARNING",
-#endif
+    "-L", "WARNING",
     NULL
   };
   GNUNET_log_setup ("test-plugin-transport",
-#if VERBOSE
-                    "DEBUG",
-#else
                     "WARNING",
-#endif
                     NULL);
   ok = 1;                       /* set to fail */
   ret =
