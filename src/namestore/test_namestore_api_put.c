@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009 Christian Grothoff (and other contributing authors)
+     (C) 2009, 2012 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -26,8 +26,6 @@
 #include "gnunet_namestore_service.h"
 #include "namestore.h"
 
-#define VERBOSE GNUNET_NO
-
 #define RECORDS 5
 #define TEST_RECORD_TYPE 1234
 #define TEST_RECORD_DATALEN 123
@@ -43,20 +41,16 @@ static struct GNUNET_OS_Process *arm;
 static struct GNUNET_CRYPTO_RsaPrivateKey * privkey;
 static struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pubkey;
 
-struct GNUNET_NAMESTORE_RecordData *s_rd;
+static struct GNUNET_NAMESTORE_RecordData *s_rd;
 
 static int res;
+
 
 static void
 start_arm (const char *cfgname)
 {
   arm = GNUNET_OS_start_process (GNUNET_YES, NULL, NULL, "gnunet-service-arm",
                                "gnunet-service-arm", "-c", cfgname,
-#if VERBOSE_PEERS
-                               "-L", "DEBUG",
-#else
-                               "-L", "ERROR",
-#endif
                                NULL);
 }
 
@@ -117,7 +111,8 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     stop_arm();
 }
 
-void
+
+static void
 put_cont (void *cls, int32_t success, const char *emsg)
 {
   char * name = cls;
@@ -130,6 +125,7 @@ put_cont (void *cls, int32_t success, const char *emsg)
 
   GNUNET_SCHEDULER_add_now(&end, NULL);
 }
+
 
 static struct GNUNET_NAMESTORE_RecordData *
 create_record (int count)
@@ -149,7 +145,8 @@ create_record (int count)
   return rd;
 }
 
-void
+
+static void
 delete_existing_db (const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   char *afsdir;
@@ -166,10 +163,15 @@ delete_existing_db (const struct GNUNET_CONFIGURATION_Handle *cfg)
   }
 }
 
+
 static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
+  struct GNUNET_CRYPTO_RsaSignature *signature;
+  const char * s_name = "dummy.dummy.gnunet";
+  int c;
+
   delete_existing_db(cfg);
   endbadly_task = GNUNET_SCHEDULER_add_delayed(TIMEOUT,endbadly, NULL);
 
@@ -185,8 +187,6 @@ run (void *cls, char *const *args, const char *cfgfile,
   /* get public key */
   GNUNET_CRYPTO_rsa_key_get_public(privkey, &pubkey);
 
-  struct GNUNET_CRYPTO_RsaSignature *signature;
-
   start_arm (cfgfile);
   GNUNET_assert (arm != NULL);
 
@@ -194,7 +194,6 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_break (NULL != nsh);
 
   /* create record */
-  char * s_name = "dummy.dummy.gnunet";
   s_rd = create_record (RECORDS);
 
   signature = GNUNET_NAMESTORE_create_signature(privkey, s_rd[0].expiration, s_name, s_rd, RECORDS);
@@ -208,22 +207,19 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   GNUNET_free (signature);
 
-  int c;
   for (c = 0; c < RECORDS; c++)
     GNUNET_free_non_null((void *) s_rd[c].data);
   GNUNET_free (s_rd);
 
 }
 
-static int
-check ()
+
+int
+main (int argc, char *argv[])
 {
   static char *const argv[] = { "test-namestore-api",
     "-c",
     "test_namestore_api.conf",
-#if VERBOSE
-    "-L", "DEBUG",
-#endif
     NULL
   };
   static struct GNUNET_GETOPT_CommandLineOption options[] = {
@@ -236,14 +232,4 @@ check ()
   return res;
 }
 
-int
-main (int argc, char *argv[])
-{
-  int ret;
-
-  ret = check ();
-
-  return ret;
-}
-
-/* end of test_namestore_api.c */
+/* end of test_namestore_api_put.c */

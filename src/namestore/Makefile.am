@@ -175,13 +175,13 @@ test_namestore_api_zone_iteration_SOURCES = \
 test_namestore_api_zone_iteration_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la  
-  
+
 test_namestore_api_zone_iteration_specific_zone_SOURCES = \
  test_namestore_api_zone_iteration_specific_zone.c
 test_namestore_api_zone_iteration_specific_zone_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la  
-  
+
 test_namestore_api_zone_iteration_stop_SOURCES = \
  test_namestore_api_zone_iteration_stop.c
 test_namestore_api_zone_iteration_stop_LDADD = \
@@ -205,4 +205,5 @@ EXTRA_DIST = \
 test_plugin_namestore_sqlite_SOURCES = \
  test_plugin_namestore.c
 test_plugin_namestore_sqlite_LDADD = \
+ $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/util/libgnunetutil.la  
