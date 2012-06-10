@@ -456,7 +456,7 @@ main (int argc, char *argv[])
 {
   char dir_name[128];
   char cfg_name[128];
-  char *const argv[] = {
+  char *const xargv[] = {
     "perf-plugin-datastore",
     "-c",
     cfg_name,
@@ -476,7 +476,7 @@ main (int argc, char *argv[])
   GNUNET_snprintf (category, sizeof (category), "DATASTORE-%s", plugin_name);
   GNUNET_snprintf (cfg_name, sizeof (cfg_name),
                    "perf_plugin_datastore_data_%s.conf", plugin_name);
-  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv,
+  GNUNET_PROGRAM_run ((sizeof (xargv) / sizeof (char *)) - 1, xargv,
                       "perf-plugin-datastore", "nohelp", options, &run, NULL);
   if (ok != 0)
     FPRINTF (stderr, "Missed some testcases: %u\n", ok);
