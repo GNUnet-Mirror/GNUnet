@@ -149,6 +149,85 @@ struct GNUNET_TESTING_Peer
 
 
 /**
+ * Testing includes a number of pre-created hostkeys for faster peer
+ * startup. This function loads such keys into memory from a file.
+ *
+ * @param system the testing system handle
+ * @return GNUNET_OK on success; GNUNET_SYSERR on error
+ */
+static int
+hostkeys_load (struct GNUNET_TESTING_System *system)
+{
+  struct GNUNET_DISK_FileHandle *fd;
+  uint64_t fs; 
+  char *data_dir;
+  char *filename;
+  
+  data_dir = GNUNET_OS_installation_get_path (GNUNET_OS_IPK_DATADIR);
+  GNUNET_asprintf (&filename, "%s/testing_hostkeys.dat", data_dir);
+  GNUNET_free (data_dir);  
+
+ if (GNUNET_YES != GNUNET_DISK_file_test (filename))
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         _("Hostkeys file not found: %s\n"), filename);
+    GNUNET_free (filename);
+    return GNUNET_SYSERR;
+  }
+  /* Check hostkey file size, read entire thing into memory */
+  fd = GNUNET_DISK_file_open (filename, GNUNET_DISK_OPEN_READ,
+                              GNUNET_DISK_PERM_NONE);
+  if (NULL == fd)
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         _("Could not open hostkeys file: %s\n"), filename);
+    GNUNET_free (filename);
+    return GNUNET_SYSERR;
+  }
+  if (GNUNET_OK != 
+      GNUNET_DISK_file_size (filename, &fs, GNUNET_YES, GNUNET_YES))
+    fs = 0;
+  if (0 == fs)
+  {
+    GNUNET_DISK_file_close (fd);
+    GNUNET_free (filename);
+    return GNUNET_SYSERR;       /* File is empty */
+  }
+  if (0 != (fs % HOSTKEYFILESIZE))
+  {
+    GNUNET_DISK_file_close (fd);
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         _("Incorrect hostkey file format: %s\n"), filename);
+    GNUNET_free (filename);
+    return GNUNET_SYSERR;
+  }
+  GNUNET_break (NULL == system->hostkeys_data);
+  system->total_hostkeys = fs / HOSTKEYFILESIZE;
+  /* FIXME: mmap instead? */
+  system->hostkeys_data = GNUNET_malloc_large (fs); /* free in hostkeys_unload */
+  GNUNET_assert (fs == GNUNET_DISK_file_read (fd, system->hostkeys_data, fs));
+  GNUNET_DISK_file_close (fd);
+  GNUNET_free (filename);
+  return GNUNET_OK;
+}
+
+
+/**
+ * Function to remove the loaded hostkeys
+ *
+ * @param system the testing system handle
+ */
+static void
+hostkeys_unload (struct GNUNET_TESTING_System *system)
+{
+  GNUNET_break (NULL != system->hostkeys_data);
+  GNUNET_free_non_null (system->hostkeys_data);
+  system->hostkeys_data = NULL;
+  system->total_hostkeys = 0;
+}
+
+
+/**
  * Create a system handle.  There must only be one system
  * handle per operating system.
  *
@@ -164,15 +243,16 @@ GNUNET_TESTING_system_create (const char *tmppath,
 {
   struct GNUNET_TESTING_System *system;
 
-  if (NULL == tmppath)
-  {
-    LOG (GNUNET_ERROR_TYPE_ERROR, _("tmppath cannot be NULL\n"));
-    return NULL;
-  }
+  GNUNET_assert (NULL != tmppath);
   system = GNUNET_malloc (sizeof (struct GNUNET_TESTING_System));
   system->tmppath = GNUNET_strdup (tmppath);
   if (NULL != controller)
     system->controller = GNUNET_strdup (controller);
+  if (GNUNET_OK != hostkeys_load (system))
+  {
+    GNUNET_TESTING_system_destroy (system, GNUNET_YES);
+    return NULL;
+  }
   return system;
 }
 
@@ -189,10 +269,7 @@ GNUNET_TESTING_system_destroy (struct GNUNET_TESTING_System *system,
 			       int remove_paths)
 {
   if (NULL != system->hostkeys_data)
-  {
-    GNUNET_break (0);           /* Use GNUNET_TESTING_hostkeys_unload() */
-    GNUNET_TESTING_hostkeys_unload (system);
-  }
+    hostkeys_unload (system);
   if (GNUNET_YES == remove_paths)
     GNUNET_DISK_directory_remove (system->tmppath);
   GNUNET_free (system->tmppath);
@@ -333,75 +410,6 @@ reserve_path (struct GNUNET_TESTING_System *system)
                    "%s/%u", system->tmppath, system->path_counter++);
   return reserved_path;
 }	      
-
-
-/**
- * Testing includes a number of pre-created hostkeys for faster peer
- * startup. This function loads such keys into memory from a file.
- *
- * @param system the testing system handle
- * @param filename the path of the hostkeys file
- * @return GNUNET_OK on success; GNUNET_SYSERR on error
- */
-int
-GNUNET_TESTING_hostkeys_load (struct GNUNET_TESTING_System *system,
-                              const char *filename)
-{
- struct GNUNET_DISK_FileHandle *fd;
- uint64_t fs;
- 
- if (GNUNET_YES != GNUNET_DISK_file_test (filename))
-  {
-    LOG (GNUNET_ERROR_TYPE_ERROR,
-         _("Hostkeys file not found: %s\n"), filename);
-    return GNUNET_SYSERR;
-  }
-  /* Check hostkey file size, read entire thing into memory */
-  fd = GNUNET_DISK_file_open (filename, GNUNET_DISK_OPEN_READ,
-                              GNUNET_DISK_PERM_NONE);
-  if (NULL == fd)
-  {
-    LOG (GNUNET_ERROR_TYPE_ERROR,
-         _("Could not open hostkeys file: %s\n"), filename);
-    return GNUNET_SYSERR;
-  }
-  if (GNUNET_OK != 
-      GNUNET_DISK_file_size (filename, &fs, GNUNET_YES, GNUNET_YES))
-    fs = 0;
-  if (0 == fs)
-  {
-    GNUNET_DISK_file_close (fd);
-    return GNUNET_SYSERR;       /* File is empty */
-  }
-  if (0 != (fs % HOSTKEYFILESIZE))
-  {
-    GNUNET_DISK_file_close (fd);
-    LOG (GNUNET_ERROR_TYPE_ERROR,
-         _("Incorrect hostkey file format: %s\n"), filename);
-    return GNUNET_SYSERR;
-  }
-  GNUNET_break (NULL == system->hostkeys_data);
-  system->total_hostkeys = fs / HOSTKEYFILESIZE;
-  system->hostkeys_data = GNUNET_malloc_large (fs); /* free in hostkeys_unload */
-  GNUNET_assert (fs == GNUNET_DISK_file_read (fd, system->hostkeys_data, fs));
-  GNUNET_DISK_file_close (fd);
-  return GNUNET_OK;
-}
-
-
-/**
- * Function to remove the loaded hostkeys
- *
- * @param system the testing system handle
- */
-void
-GNUNET_TESTING_hostkeys_unload (struct GNUNET_TESTING_System *system)
-{
-  GNUNET_break (NULL != system->hostkeys_data);
-  GNUNET_free_non_null (system->hostkeys_data);
-  system->hostkeys_data = NULL;
-  system->total_hostkeys = 0;
-}
 
 
 /**
@@ -695,7 +703,7 @@ GNUNET_TESTING_peer_configure (struct GNUNET_TESTING_System *system,
     GNUNET_asprintf (&emsg_,
 		     _("You attempted to create a testbed with more than %u hosts.  Please precompute more hostkeys first.\n"),
 		     (unsigned int) system->total_hostkeys);    
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s", *emsg_);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s", emsg_);
     if (NULL != emsg)
       *emsg = emsg_;
     else
@@ -943,25 +951,10 @@ GNUNET_TESTING_service_run (const char *tmppath,
   struct GNUNET_TESTING_System *system;
   struct GNUNET_TESTING_Peer *peer;
   struct GNUNET_CONFIGURATION_Handle *cfg;
-  char *data_dir;
-  char *hostkeys_file;
-  
-  data_dir = GNUNET_OS_installation_get_path (GNUNET_OS_IPK_DATADIR);
-  GNUNET_asprintf (&hostkeys_file, "%s/testing_hostkeys.dat", data_dir);
-  GNUNET_free (data_dir);  
+
   system = GNUNET_TESTING_system_create (tmppath, "127.0.0.1");
   if (NULL == system)
-  {
-    GNUNET_free (hostkeys_file);
     return 1;
-  }
-  if (GNUNET_OK != GNUNET_TESTING_hostkeys_load (system, hostkeys_file))
-  {
-    GNUNET_free (hostkeys_file);
-    GNUNET_TESTING_system_destroy (system, GNUNET_YES);
-    return 1;
-  }
-  GNUNET_free (hostkeys_file);
   cfg = GNUNET_CONFIGURATION_create ();
   if (GNUNET_OK != GNUNET_CONFIGURATION_load (cfg, cfgfilename))
   {
@@ -975,11 +968,10 @@ GNUNET_TESTING_service_run (const char *tmppath,
   if (NULL == peer)
   {
     GNUNET_CONFIGURATION_destroy (cfg);
-    GNUNET_TESTING_hostkeys_unload (system);
+    hostkeys_unload (system);
     GNUNET_TESTING_system_destroy (system, GNUNET_YES);
     return 1;
   }
-  GNUNET_TESTING_hostkeys_unload (system);
   GNUNET_free (peer->main_binary);
   GNUNET_asprintf (&peer->main_binary, "gnunet-service-%s", service_name);
   if (GNUNET_OK != GNUNET_TESTING_peer_start (peer))

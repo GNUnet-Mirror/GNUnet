@@ -69,6 +69,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_TESTING_system_destroy (system, GNUNET_NO);
 }
 
+
 int main (int argc, char *argv[])
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {

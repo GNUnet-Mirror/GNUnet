@@ -72,7 +72,6 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_assert (GNUNET_OK == GNUNET_TESTING_peer_stop (test_ctx->peer));
   GNUNET_TESTING_peer_destroy (test_ctx->peer);
   GNUNET_CONFIGURATION_destroy (test_ctx->cfg);
-  GNUNET_TESTING_hostkeys_unload (test_ctx->system);
   GNUNET_TESTING_system_destroy (test_ctx->system, GNUNET_YES);
   GNUNET_free (test_ctx);
 }
@@ -89,8 +88,6 @@ run (void *cls, char *const *args, const char *cfgfile,
   struct GNUNET_TESTING_Peer *peer;
   struct GNUNET_CONFIGURATION_Handle *new_cfg;
   struct TestingContext *test_ctx;
-  char *data_dir;
-  char *hostkeys_file;
   char *emsg;
   char *_tmpdir;
   char *tmpdir;
@@ -123,12 +120,6 @@ run (void *cls, char *const *args, const char *cfgfile,
                                          "127.0.0.1");
   GNUNET_assert (NULL != system);
   GNUNET_free (tmpdir);
-  data_dir = GNUNET_OS_installation_get_path (GNUNET_OS_IPK_DATADIR);
-  GNUNET_asprintf (&hostkeys_file, "%s/testing_hostkeys.dat", data_dir);
-  GNUNET_free (data_dir);  
-  GNUNET_assert (GNUNET_OK == 
-                 GNUNET_TESTING_hostkeys_load (system, hostkeys_file));
-  GNUNET_free (hostkeys_file);
   new_cfg = GNUNET_CONFIGURATION_dup (cfg);
   emsg = NULL;
   peer = GNUNET_TESTING_peer_configure (system, new_cfg, 0, &id, &emsg);
