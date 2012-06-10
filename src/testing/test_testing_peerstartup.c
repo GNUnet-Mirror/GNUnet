@@ -33,8 +33,6 @@
 #define LOG(kind,...)                           \
   GNUNET_log (kind, __VA_ARGS__)
 
-#define TIME_REL_SEC(sec)					\
-  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, sec)
 
 /**
  * The testing context
@@ -89,37 +87,11 @@ run (void *cls, char *const *args, const char *cfgfile,
   struct GNUNET_CONFIGURATION_Handle *new_cfg;
   struct TestingContext *test_ctx;
   char *emsg;
-  char *_tmpdir;
-  char *tmpdir;
-#ifdef MINGW
-  char *tmpdir_w;
-#endif
-
   struct GNUNET_PeerIdentity id;
     
-  _tmpdir = getenv ("TMP");
-  if (NULL == _tmpdir)
-    _tmpdir = getenv ("TEMP");  
-  if (NULL == _tmpdir)
-    _tmpdir = getenv ("TMPDIR");
-  if (NULL == _tmpdir)
-    _tmpdir = "/tmp";
-  GNUNET_asprintf (&tmpdir, "%s/%s", _tmpdir, "test-gnunet-testing_new-XXXXXX");  
-#ifdef MINGW
-  tmpdir_w = GNUNET_malloc (MAX_PATH + 1);
-  GNUNET_assert (ERROR_SUCCESS == plibc_conv_to_win_path (tmpdir, tmpdir_w));
-  GNUNET_free (tmpdir);
-  tmpdir = tmpdir_w;
-  //GNUNET_assert (0 == _mktemp_s (tmpdir, strlen (tmpdir) + 1));
-#else
-  GNUNET_assert (mkdtemp (tmpdir) == tmpdir);
-#endif
-  /* LOG (GNUNET_ERROR_TYPE_ERROR, */
-  /*      "Temporary directory: %s\n", tmpdir); */
-  system = GNUNET_TESTING_system_create (tmpdir,
+  system = GNUNET_TESTING_system_create ("test-gnunet-testing",
                                          "127.0.0.1");
   GNUNET_assert (NULL != system);
-  GNUNET_free (tmpdir);
   new_cfg = GNUNET_CONFIGURATION_dup (cfg);
   emsg = NULL;
   peer = GNUNET_TESTING_peer_configure (system, new_cfg, 0, &id, &emsg);
@@ -130,9 +102,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   test_ctx->system = system;
   test_ctx->peer = peer;
   test_ctx->cfg = new_cfg;
-  GNUNET_SCHEDULER_add_delayed (TIME_REL_SEC (5),
-                                &do_shutdown, test_ctx);
-  
+  GNUNET_SCHEDULER_add_now (&do_shutdown, test_ctx);
 }
 
 
@@ -150,3 +120,5 @@ int main (int argc, char *argv[])
     return 1;
   return 0;
 }
+
+/* end of test_testing_peerstartup.c */

@@ -23,7 +23,6 @@
  * @brief test case for testing service startup using new testing API
  * @author Sree Harsha Totakura
  */
-
 #include "platform.h"
 #include "gnunet_scheduler_lib.h"
 #include "gnunet_testing_lib-new.h"
@@ -32,26 +31,11 @@
 #define LOG(kind,...)                           \
   GNUNET_log (kind, __VA_ARGS__)
 
-#define TIME_REL_SEC(sec)					\
-  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, sec)
 
 /**
  * Global test status
  */
 static int test_success;
-
-/**
- * The shutdown task. Used to signal that testing is done and service has to be
- * stopped 
- *
- * @param cls NULL
- */
-static void
-shutdown_task(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  test_success = GNUNET_YES;
-  GNUNET_SCHEDULER_shutdown ();  
-}
 
 
 /**
@@ -66,7 +50,8 @@ test_run (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
   GNUNET_assert (NULL == cls);
   GNUNET_assert (NULL != cfg);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Service arm started successfully\n");
-  GNUNET_SCHEDULER_add_delayed (TIME_REL_SEC (3), &shutdown_task, NULL);
+  test_success = GNUNET_YES;
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 
@@ -75,37 +60,14 @@ test_run (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
  */
 int main (int argc, char *argv[])
 {
-  char *_tmpdir;
-  char *tmpdir;
-#ifdef MINGW
-  char *tmpdir_w;
-#endif
-  
-  GNUNET_log_setup ("test_testing_new_servicestartup", "DEBUG", NULL);  
-  _tmpdir = getenv ("TMP");
-  if (NULL == _tmpdir)
-    _tmpdir = getenv ("TEMP");  
-  if (NULL == _tmpdir)
-    _tmpdir = getenv ("TMPDIR");
-  if (NULL == _tmpdir)
-    _tmpdir = "/tmp";
-  GNUNET_asprintf (&tmpdir, "%s/%s", _tmpdir, "test-gnunet-testing_new-XXXXXX");  
-#ifdef MINGW
-  tmpdir_w = GNUNET_malloc (MAX_PATH + 1);
-  GNUNET_assert (ERROR_SUCCESS == plibc_conv_to_win_path (tmpdir, tmpdir_w));
-  GNUNET_free (tmpdir);
-  tmpdir = tmpdir_w;
-  //GNUNET_assert (0 == _mktemp_s (tmpdir, strlen (tmpdir) + 1));
-#else
-  GNUNET_assert (mkdtemp (tmpdir) == tmpdir);
-#endif
-
   test_success = GNUNET_NO;
-  GNUNET_assert (0 == GNUNET_TESTING_service_run (tmpdir,
+  GNUNET_assert (0 == GNUNET_TESTING_service_run ("test-testing-servicestartup",
                                                   "arm",
                                                   "test_testing_defaults.conf",
                                                   &test_run,
                                                   NULL));
-  GNUNET_free (tmpdir);
   return (GNUNET_YES == test_success) ? 0 : 1;
 }
+
+/* end of test_testing_servicestartup.c */
+

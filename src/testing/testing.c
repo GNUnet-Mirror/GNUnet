@@ -245,7 +245,12 @@ GNUNET_TESTING_system_create (const char *tmppath,
 
   GNUNET_assert (NULL != tmppath);
   system = GNUNET_malloc (sizeof (struct GNUNET_TESTING_System));
-  system->tmppath = GNUNET_strdup (tmppath);
+  system->tmppath = GNUNET_DISK_mkdtemp (tmppath);
+  if (NULL == system->tmppath)
+  {
+    GNUNET_free (system);
+    return NULL;
+  }
   if (NULL != controller)
     system->controller = GNUNET_strdup (controller);
   if (GNUNET_OK != hostkeys_load (system))
