@@ -1010,14 +1010,26 @@ process_leho_lookup (void *cls,
   if (ctask->mhd->is_ssl)
   {
     phost = (struct hostent*)gethostbyname (ctask->host);
-    ssl_ip = inet_ntoa(*((struct in_addr*)(phost->h_addr)));
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "SSL target server: %s\n", ssl_ip);
-    sprintf (resolvename, "%s:%d:%s", ctask->leho, HTTPS_PORT, ssl_ip);
-    ctask->resolver = curl_slist_append ( ctask->resolver, resolvename);
-    curl_easy_setopt (ctask->curl, CURLOPT_RESOLVE, ctask->resolver);
-    sprintf (curlurl, "https://%s%s", ctask->leho, ctask->url);
-    curl_easy_setopt (ctask->curl, CURLOPT_URL, curlurl);
+
+    if (phost!=NULL)
+    {
+      ssl_ip = inet_ntoa(*((struct in_addr*)(phost->h_addr)));
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "SSL target server: %s\n", ssl_ip);
+      sprintf (resolvename, "%s:%d:%s", ctask->leho, HTTPS_PORT, ssl_ip);
+      ctask->resolver = curl_slist_append ( ctask->resolver, resolvename);
+      curl_easy_setopt (ctask->curl, CURLOPT_RESOLVE, ctask->resolver);
+      sprintf (curlurl, "https://%s%s", ctask->leho, ctask->url);
+      curl_easy_setopt (ctask->curl, CURLOPT_URL, curlurl);
+    }
+    else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "gethostbyname failed for %s!\n", ctask->host);
+      ctask->download_successful = GNUNET_NO;
+      ctask->download_error = GNUNET_YES;
+      return;
+    }
   }
 
   if (CURLM_OK != (mret=curl_multi_add_handle (curl_multi, ctask->curl)))
@@ -1067,6 +1079,7 @@ process_get_authority (void *cls,
                           &local_gns_zone,
                           &local_shorten_zone,
                           GNUNET_GNS_RECORD_LEHO,
+                          GNUNET_YES, //Only cached for performance
                           &process_leho_lookup,
                           ctask);
 }

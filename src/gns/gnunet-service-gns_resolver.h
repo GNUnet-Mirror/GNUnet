@@ -114,6 +114,9 @@ struct ResolverHandle
   /* has this query been answered? how many matches */
   int answered;
 
+  /* Use only cache */
+  int only_cached;
+
   /* the authoritative zone to query */
   struct GNUNET_CRYPTO_ShortHashCode authority;
 
@@ -284,6 +287,7 @@ gns_resolver_cleanup(ResolverCleanupContinuation cont);
  * @param name the name to look up
  * @param key optional private key for authority caching
  * @param timeout timeout for the resolution
+ * @param only_cached GNUNET_NO to only check locally not DHT for performance
  * @param proc the processor to call
  * @param cls the closure to pass to proc
  */
@@ -294,6 +298,7 @@ gns_resolver_lookup_record(struct GNUNET_CRYPTO_ShortHashCode zone,
                            const char* name,
                            struct GNUNET_CRYPTO_RsaPrivateKey *key,
                            struct GNUNET_TIME_Relative timeout,
+                           int only_cached,
                            RecordLookupProcessor proc,
                            void* cls);
 

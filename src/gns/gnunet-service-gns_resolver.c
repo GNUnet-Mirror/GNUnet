@@ -638,6 +638,7 @@ dht_lookup_timeout(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                              new_name,
                              rh->priv_key,
                              GNUNET_TIME_UNIT_FOREVER_REL,
+                             GNUNET_NO,
                              &background_lookup_result_processor,
                              NULL);
   rh->timeout_task = GNUNET_SCHEDULER_NO_TASK;
@@ -1085,6 +1086,7 @@ dht_authority_lookup_timeout(void *cls,
                              new_name,
                              rh->priv_key,
                              GNUNET_TIME_UNIT_FOREVER_REL,
+                             GNUNET_NO,
                              &background_lookup_result_processor,
                              NULL);
 
@@ -1496,7 +1498,7 @@ handle_record_ns(void* cls, struct ResolverHandle *rh,
                rh->status);
     
     /**
-     * There are 4 conditions that have to met for us to consult the DHT:
+     * There are 5 conditions that have to met for us to consult the DHT:
      * 1. The entry in the DHT is RSL_RECORD_EXPIRED AND
      * 2. No entry in the NS existed AND
      * 3. The zone queried is not the local resolver's zone AND
@@ -1504,11 +1506,13 @@ handle_record_ns(void* cls, struct ResolverHandle *rh,
      *    because if it was any other canonical name we either already queried
      *    the DHT for the authority in the authority lookup phase (and thus
      *    would already have an entry in the NS for the record)
+     * 5. We are not in cache only mode
      */
     if (rh->status & (RSL_RECORD_EXPIRED | !RSL_RECORD_EXISTS) &&
         GNUNET_CRYPTO_short_hash_cmp(&rh->authority_chain_head->zone,
                                      &rh->private_local_zone) &&
-        (strcmp(rh->name, "+") == 0))
+        (strcmp(rh->name, "+") == 0) &&
+        (rh->only_cached == GNUNET_NO))
     {
       rh->proc = &handle_record_dht;
       resolve_record_dht(rh);
@@ -1822,6 +1826,15 @@ handle_delegation_ns(void* cls, struct ResolverHandle *rh,
     }
     return;
   }
+
+  if (rh->only_cached == GNUNET_YES)
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "GNS_PHASE_DELEGATE_NS-%llu: Only cache resolution, no result\n",
+               rh->id, rh->name);
+    finish_lookup(rh, rlh, rd_count, rd);
+    return;
+  }
   
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
       "GNS_PHASE_DELEGATE_NS-%llu: Trying to resolve delegation for %s via DHT\n",
@@ -2060,6 +2073,7 @@ resolve_delegation_ns(struct ResolverHandle *rh)
  * @param name the name to look up
  * @param key a private key for use with PSEU import (can be NULL)
  * @param timeout timeout for resolution
+ * @param only_cached GNUNET_NO to only check locally not DHT for performance
  * @param proc the processor to call on result
  * @param cls the closure to pass to proc
  */
@@ -2070,6 +2084,7 @@ gns_resolver_lookup_record(struct GNUNET_CRYPTO_ShortHashCode zone,
                            const char* name,
                            struct GNUNET_CRYPTO_RsaPrivateKey *key,
                            struct GNUNET_TIME_Relative timeout,
+                           int only_cached,
                            RecordLookupProcessor proc,
                            void* cls)
 {
@@ -2102,6 +2117,7 @@ gns_resolver_lookup_record(struct GNUNET_CRYPTO_ShortHashCode zone,
   rh->timeout = timeout;
   rh->get_handle = NULL;
   rh->private_local_zone = pzone;
+  rh->only_cached = only_cached;
 
   if (timeout.rel_value != GNUNET_TIME_UNIT_FOREVER_REL.rel_value)
   {

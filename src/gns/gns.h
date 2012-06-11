@@ -53,6 +53,11 @@ struct GNUNET_GNS_ClientLookupMessage
   uint32_t id GNUNET_PACKED;
 
   /**
+   * Only check cached results
+   */
+  uint32_t only_cached GNUNET_PACKED;
+
+  /**
    * Should we look up in the default zone?
    */
   uint32_t use_default_zone GNUNET_PACKED;

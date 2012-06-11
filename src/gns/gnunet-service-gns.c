@@ -825,6 +825,7 @@ handle_lookup(void *cls,
   char* nameptr = name;
   struct GNUNET_CRYPTO_RsaPrivateKey *key = NULL;
   struct GNUNET_CRYPTO_ShortHashCode zone;
+  int only_cached;
 
   if (ntohs (message->size) < sizeof (struct GNUNET_GNS_ClientLookupMessage))
   {
@@ -856,6 +857,8 @@ handle_lookup(void *cls,
   clh->unique_id = sh_msg->id;
   clh->type = ntohl(sh_msg->type);
   clh->shorten_key = NULL;
+
+  only_cached = ntohl(sh_msg->only_cached);
   
   if (strlen (name) > MAX_DNS_NAME_LENGTH) {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
@@ -883,6 +886,7 @@ handle_lookup(void *cls,
     gns_resolver_lookup_record(zone, zone, clh->type, name,
                                key,
                                default_lookup_timeout,
+                               only_cached,
                                &send_lookup_response, clh);
   }
   else
@@ -890,6 +894,7 @@ handle_lookup(void *cls,
     gns_resolver_lookup_record(zone, zone, clh->type, name,
                                NULL,
                                default_lookup_timeout,
+                               only_cached,
                                &send_lookup_response, clh);
   }
 }

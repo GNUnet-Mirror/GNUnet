@@ -127,6 +127,7 @@ typedef void (*GNUNET_GNS_LookupResultProcessor) (void *cls,
  * @param handle handle to the GNS service
  * @param name the name to look up
  * @param type the GNUNET_GNS_RecordType to look for
+ * @param only_cached GNUNET_NO to only check locally not DHT for performance
  * @param proc function to call on result
  * @param proc_cls closure for processor
  *
@@ -136,6 +137,7 @@ struct GNUNET_GNS_QueueEntry *
 GNUNET_GNS_lookup (struct GNUNET_GNS_Handle *handle,
                          const char * name,
                          enum GNUNET_GNS_RecordType type,
+                         int only_cached,
                          GNUNET_GNS_LookupResultProcessor proc,
                          void *proc_cls);
 
@@ -148,6 +150,7 @@ GNUNET_GNS_lookup (struct GNUNET_GNS_Handle *handle,
  * @param zone the zone to start the resolution in
  * @param shorten_zone the zone where to shorten names into
  * @param type the GNUNET_GNS_RecordType to look for
+ * @param only_cached GNUNET_NO to only check locally not DHT for performance
  * @param proc function to call on result
  * @param proc_cls closure for processor
  *
@@ -159,6 +162,7 @@ GNUNET_GNS_lookup_zone (struct GNUNET_GNS_Handle *handle,
                          struct GNUNET_CRYPTO_ShortHashCode *zone,
                          struct GNUNET_CRYPTO_ShortHashCode *shorten_zone,
                          enum GNUNET_GNS_RecordType type,
+                         int only_cached,
                          GNUNET_GNS_LookupResultProcessor proc,
                          void *proc_cls);
 

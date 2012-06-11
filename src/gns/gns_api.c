@@ -642,6 +642,7 @@ get_request_id (struct GNUNET_GNS_Handle *h)
  * @param zone the zone to start the resolution in
  * @param shorten_zone the zone where to shorten names into
  * @param type the record type to look up
+ * @param only_cached GNUNET_NO to only check locally not DHT for performance
  * @param proc processor to call on result
  * @param proc_cls closure for processor
  * @return handle to the get
@@ -652,6 +653,7 @@ GNUNET_GNS_lookup_zone (struct GNUNET_GNS_Handle *handle,
                    struct GNUNET_CRYPTO_ShortHashCode *zone,
                    struct GNUNET_CRYPTO_ShortHashCode *shorten_zone,
                    enum GNUNET_GNS_RecordType type,
+                   int only_cached,
                    GNUNET_GNS_LookupResultProcessor proc,
                    void *proc_cls)
 {
@@ -686,6 +688,7 @@ GNUNET_GNS_lookup_zone (struct GNUNET_GNS_Handle *handle,
   lookup_msg->header.type = htons (GNUNET_MESSAGE_TYPE_GNS_LOOKUP);
   lookup_msg->header.size = htons (msize);
   lookup_msg->id = htonl(qe->r_id);
+  lookup_msg->only_cached = htonl(only_cached);
 
   if (NULL != zone)
   {
@@ -728,6 +731,7 @@ GNUNET_GNS_lookup_zone (struct GNUNET_GNS_Handle *handle,
  * @param handle handle to the GNS service
  * @param name the name to look up
  * @param type the record type to look up
+ * @param only_cached GNUNET_NO to only check locally not DHT for performance
  * @param proc processor to call on result
  * @param proc_cls closure for processor
  * @return handle to the get
@@ -736,12 +740,13 @@ struct GNUNET_GNS_QueueEntry *
 GNUNET_GNS_lookup (struct GNUNET_GNS_Handle *handle,
                    const char * name,
                    enum GNUNET_GNS_RecordType type,
+                   int only_cached,
                    GNUNET_GNS_LookupResultProcessor proc,
                    void *proc_cls)
 {
   return GNUNET_GNS_lookup_zone (handle, name,
                                  NULL, NULL,
-                                 type, proc, proc_cls);
+                                 type, only_cached, proc, proc_cls);
 }
 
 /**
