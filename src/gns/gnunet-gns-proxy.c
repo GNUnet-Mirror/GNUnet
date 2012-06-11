@@ -35,6 +35,7 @@
 #include <time.h>
 
 #define GNUNET_GNS_PROXY_PORT 7777
+#define MAX_MHD_CONNECTIONS 300
 
 #define MHD_UNIX_SOCK_FILE "mhd_unix_sock.sock"
 
@@ -242,6 +243,9 @@ GNUNET_SCHEDULER_TaskIdentifier curl_download_task;
 
 /* The non SSL httpd daemon handle */
 static struct MHD_Daemon *httpd;
+
+/* Number of current mhd connections */
+static unsigned int total_mhd_connections;
 
 /* The cURL multi handle */
 static CURLM *curl_multi;
@@ -562,6 +566,7 @@ mhd_content_cb (void *cls,
     curl_multi_remove_handle (curl_multi, ctask->curl);
     curl_easy_cleanup (ctask->curl);
     GNUNET_SCHEDULER_add_now (&run_mhd, ctask->mhd);
+    total_mhd_connections--;
     return MHD_CONTENT_READER_END_OF_STREAM;
   }
   
@@ -574,6 +579,7 @@ mhd_content_cb (void *cls,
     curl_multi_remove_handle (curl_multi, ctask->curl);
     curl_easy_cleanup (ctask->curl);
     GNUNET_SCHEDULER_add_now (&run_mhd, ctask->mhd);
+    total_mhd_connections--;
     return MHD_CONTENT_READER_END_WITH_ERROR;
   }
 
@@ -1684,6 +1690,8 @@ generate_gns_certificate (const char *name)
 
   key_buf_size = sizeof (pgc->key);
   cert_buf_size = sizeof (pgc->cert);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Exporting certificate...\n");
   
   gnutls_x509_crt_export (request, GNUTLS_X509_FMT_PEM,
                           pgc->cert, &cert_buf_size);
@@ -1692,10 +1700,40 @@ generate_gns_certificate (const char *name)
                           pgc->key, &key_buf_size);
 
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Cleaning up\n");
   gnutls_x509_crt_deinit (request);
 
   return pgc;
 
+}
+
+
+/*
+ * Accept policy for mhdaemons
+ *
+ * @param cls NULL
+ * @param addr the sockaddr
+ * @param addrlen the sockaddr length
+ * @return MHD_NO if sockaddr is wrong or #conns too high
+ */
+static int
+accept_cb (void* cls, const struct sockaddr *addr, socklen_t addrlen)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "In MHD accept policy cb\n");
+
+  if (addr != NULL)
+  {
+    if (addr->sa_family == AF_UNIX)
+      return MHD_NO;
+  }
+
+  if (total_mhd_connections >= MAX_MHD_CONNECTIONS)
+    return MHD_NO;
+
+  total_mhd_connections++;
+
+  return MHD_YES;
 }
 
 
@@ -1718,10 +1756,6 @@ add_handle_to_ssl_mhd (struct GNUNET_NETWORK_Handle *h, char* domain)
 
   if (NULL == hd)
   {
-    /* Start new MHD */
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "No previous SSL instance found... starting new one for %s\n",
-                domain);
     
     pgc = generate_gns_certificate (domain);
     
@@ -1729,8 +1763,14 @@ add_handle_to_ssl_mhd (struct GNUNET_NETWORK_Handle *h, char* domain)
     hd->is_ssl = GNUNET_YES;
     strcpy (hd->domain, domain);
     hd->proxy_cert = pgc;
+
+    /* Start new MHD */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "No previous SSL instance found... starting new one for %s\n",
+                domain);
+
     hd->daemon = MHD_start_daemon (MHD_USE_DEBUG | MHD_USE_SSL, 4444,
-            NULL, NULL,
+            &accept_cb, NULL,
             &create_response, hd,
             MHD_OPTION_LISTEN_SOCKET, GNUNET_NETWORK_get_fd (mhd_unix_socket),
             MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 128,
@@ -2318,6 +2358,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   mhd_httpd_head = NULL;
   mhd_httpd_tail = NULL;
+  total_mhd_connections = 0;
   
   mhd_unix_socket = GNUNET_NETWORK_socket_create (AF_UNIX,
                                                 SOCK_STREAM,
@@ -2356,7 +2397,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   hd->is_ssl = GNUNET_NO;
   strcpy (hd->domain, "");
   httpd = MHD_start_daemon (MHD_USE_DEBUG, 4444, //Dummy port
-            NULL, NULL,
+            &accept_cb, NULL,
             &create_response, hd,
             MHD_OPTION_LISTEN_SOCKET, GNUNET_NETWORK_get_fd (mhd_unix_socket),
             MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 128,
