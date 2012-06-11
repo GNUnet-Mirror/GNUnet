@@ -263,8 +263,9 @@ main (int argc, char *argv[])
   int check_nfa;
   int check_dfa;
   int check_rand;
+  char *check_proof;
 
-  struct Regex_String_Pair rxstr[8] = {
+  struct Regex_String_Pair rxstr[12] = {
     {"ab?(abcd)?", 5,
      {"ababcd", "abab", "aabcd", "a", "abb"},
      {match, nomatch, match, match, nomatch}},
@@ -288,6 +289,19 @@ main (int argc, char *argv[])
     {"V|M*o?x*p*d+h+b|E*m?h?Y*E*O?W*W*P+o?Z+H*M|I*q+C*a+5?5*9|b?z|G*y*k?R|p+u|8*h?B+l*H|e|L*O|1|F?v*0?5|C+", 1,
      {"VMoxpdhbEmhYEOWWPoZHMIqCa559bzGykRpu8hBlHeLO1Fv05C"},
      {nomatch}},
+    {"(bla)*", 8,
+     {"", "bla", "blabla", "bl", "la", "b", "l", "a"},
+     {match, match, match, nomatch, nomatch, nomatch, nomatch, nomatch}},
+    {"ab(c|d)+c*(a(b|c)+d)+(bla)(bla)*", 8,
+     {"ab", "abcabdbla", "abdcccccccccccabcbccdblablabla", "bl", "la", "b", "l",
+      "a"},
+     {nomatch, match, match, nomatch, nomatch, nomatch, nomatch, nomatch}},
+    {"a|aa*a", 6,
+     {"", "a", "aa", "aaa", "aaaa", "aaaaa"},
+     {nomatch, match, match, match, match, match}},
+    {"ab(c|d)+c*(a(b|c)+d)+(bla)+", 1,
+     {"abcabdblaacdbla"},
+     {nomatch}},
     {"ab(c|d)+c*(a(b|c)d)+", 1,
      {"abacd"},
      {nomatch}}
@@ -297,7 +311,7 @@ main (int argc, char *argv[])
   check_dfa = 0;
   check_rand = 0;
 
-  for (i = 0; i < 8; i++)
+  for (i = 0; i < 12; i++)
   {
     if (0 != regcomp (&rx, rxstr[i].regex, REG_EXTENDED))
     {
@@ -314,7 +328,14 @@ main (int argc, char *argv[])
     // DFA test
     a = GNUNET_REGEX_construct_dfa (rxstr[i].regex, strlen (rxstr[i].regex));
     check_dfa += test_automaton (a, &rx, &rxstr[i]);
+    check_proof = GNUNET_strdup (GNUNET_REGEX_get_computed_regex (a));
     GNUNET_REGEX_automaton_destroy (a);
+    a = GNUNET_REGEX_construct_dfa (check_proof, strlen (check_proof));
+    check_dfa += test_automaton (a, &rx, &rxstr[i]);
+    GNUNET_REGEX_automaton_destroy (a);
+    if (0 != check_dfa)
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "check_proof: %s\n", check_proof);
+    GNUNET_free_non_null (check_proof);
 
     regfree (&rx);
   }

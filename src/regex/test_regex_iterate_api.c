@@ -60,7 +60,10 @@ main (int argc, char *argv[])
   struct GNUNET_REGEX_Automaton *dfa;
 
   error = 0;
-  /*regex = "ab(c|d)+c*(a(b|c)+d)+(bla)+"; */
+  regex = "ab(c|d)+c*(a(b|c)+d)+(bla)+";
+  /*regex = "(bla)+"; */
+  /*regex = "b(lab)*la"; */
+  /*regex = "(bla)*"; */
   /*regex = "ab(c|d)+c*(a(b|c)+d)+(bla)(bla)*"; */
   /*regex = "z(abc|def)?xyz"; */
   /*regex = "1*0(0|1)*"; */
@@ -68,7 +71,15 @@ main (int argc, char *argv[])
   /*regex = "abcd:(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)"; */
   /*regex = "abc(1|0)*def"; */
   /*regex = "ab|ac"; */
-  regex = "(ab)(ab)*";
+  /*regex = "(ab)(ab)*"; */
+  /*regex = "ab|cd|ef|gh"; */
+  /*regex = "a|b|c|d|e|f|g"; */
+  /*regex = "(ab)|(ac)"; */
+  /*regex = "a(b|c)"; */
+  /*regex = "a*a"; */
+  /*regex = "ab?(abcd)?"; */
+  /*regex = "(ab)+"; */
+  /*regex = "(abcsdfsdf)+"; */
   dfa = GNUNET_REGEX_construct_dfa (regex, strlen (regex));
   GNUNET_REGEX_automaton_save_graph (dfa, "dfa.dot");
   GNUNET_REGEX_iterate_all_edges (dfa, key_iterator, NULL);
