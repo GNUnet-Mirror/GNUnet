@@ -233,6 +233,7 @@ test_namestore_record_serialization_LDADD = \
 EXTRA_DIST = \
   test_namestore_api.conf \
   test_plugin_namestore_sqlite.conf\
+  test_plugin_namestore_postgres.conf\
   test_hostkey \
   zonefiles/HGU0A0VCU334DN7F2I9UIUMVQMM7JMSD142LIMNUGTTV9R0CF4EG.zkey \
   zonefiles/N0UJMP015AFUNR2BTNM3FKPBLG38913BL8IDMCO2H0A1LIB81960.zkey
@@ -241,5 +242,11 @@ EXTRA_DIST = \
 test_plugin_namestore_sqlite_SOURCES = \
  test_plugin_namestore.c
 test_plugin_namestore_sqlite_LDADD = \
+ $(top_builddir)/src/testing/libgnunettesting.la \
+ $(top_builddir)/src/util/libgnunetutil.la  
+
+test_plugin_namestore_postgres_SOURCES = \
+ test_plugin_namestore.c
+test_plugin_namestore_postgres_LDADD = \
  $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/util/libgnunetutil.la  
