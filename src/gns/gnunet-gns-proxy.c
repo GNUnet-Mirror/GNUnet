@@ -1089,6 +1089,7 @@ process_get_authority (void *cls,
  *
  * @param cls unused
  * @param con MHD connection handle
+ * @param url the url in the request
  * @param meth the HTTP method used ("GET", "PUT", etc.)
  * @param ver the HTTP version string (i.e. "HTTP/1.1")
  * @param upload_data the data being uploaded (excluding HEADERS,
@@ -1495,6 +1496,7 @@ do_read_remote (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Adds a socket to MHD
  *
  * @param h the handle to the socket to add
+ * @param daemon the daemon to add the fd to
  * @return whatever MHD_add_connection returns
  */
 static int
@@ -1759,6 +1761,10 @@ accept_cb (void* cls, const struct sockaddr *addr, socklen_t addrlen)
  * Adds a socket to an SSL MHD instance
  * It is important the the domain name is
  * correct. In most cases we need to start a new daemon
+ *
+ * @param h the handle to add to a daemon
+ * @praram domain the domain the ssl daemon has to serve
+ * @return MHD_YES on success
  */
 static int
 add_handle_to_ssl_mhd (struct GNUNET_NETWORK_Handle *h, char* domain)
