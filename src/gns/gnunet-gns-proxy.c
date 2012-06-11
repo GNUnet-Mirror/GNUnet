@@ -644,9 +644,9 @@ mhd_content_cb (void *cls,
                     ctask->authority);
         }
         /* If .zkey simply copy the name */
-        else if (0 == strcmp (ctask->buffer_ptr+m[1].rm_eo, "zkey", 4))
+        else
         {
-          memcpy (ctask->pp_buf, hostptr, (m[1].rm_eo-m[1].rm_so+4));
+          memcpy (ctask->pp_buf, hostptr, (m[1].rm_eo-m[1].rm_so + strlen (GNUNET_TLD_ZKEY)));
         }
 
         ctask->is_postprocessing = GNUNET_YES;
