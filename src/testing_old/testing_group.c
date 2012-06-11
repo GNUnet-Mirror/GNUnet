@@ -19,7 +19,7 @@
  */
 
 /**
- * @file testing/testing_group.c
+ * @file testing_old/testing_group.c
  * @brief convenience API for writing testcases for GNUnet
  * @author Nathan Evans
  * @author Christian Grothoff

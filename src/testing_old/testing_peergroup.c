@@ -19,7 +19,7 @@
  */
 
 /**
- * @file testing/testing_peergroup.c
+ * @file testing_old/testing_peergroup.c
  * @brief API implementation for easy peer group creation
  * @author Nathan Evans
  * @author Christian Grothoff

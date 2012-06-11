@@ -19,7 +19,7 @@
  */
 
 /**
- * @file testing/helper.c
+ * @file testing_old/helper.c
  * @brief helper functions for testing
  * @author Christian Grothoff
  *
