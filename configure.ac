@@ -808,6 +808,40 @@ AC_ARG_WITH(gnunetdns,
 AC_SUBST(GNUNETDNS_GROUP)
 
 
+
+# gnutls
+gnutls=0
+AC_MSG_CHECKING(for gnutls)
+AC_ARG_WITH(gnutls,
+   [  --with-gnutls=PFX   base of gnutls installation],
+   [AC_MSG_RESULT([$with_gnutls])
+    case $with_gnutls in
+      no)
+        ;;
+      yes)
+        AC_CHECK_HEADERS([gnutls/abstract.h],
+            AC_CHECK_LIB([gnutls], [gnutls_priority_set],
+	     gnutls=true))
+        ;;
+      *)
+        LDFLAGS="-L$with_gnutls/lib $LDFLAGS"
+        CPPFLAGS="-I$with_gnutls/include $CPPFLAGS"
+        AC_CHECK_HEADERS([gnutls/abstract.h],
+            AC_CHECK_LIB([gnutls], [gnutls_priority_set],
+              EXT_LIB_PATH="-L$with_gnutls/lib $EXT_LIB_PATH"
+              gnutls=true))
+        ;;
+    esac
+   ],
+   [AC_MSG_RESULT([--with-gnutls not specified])
+    AC_CHECK_HEADERS([gnutls/abstract.h],
+        AC_CHECK_LIB([gnutls], [gnutls_priority_set],
+          gnutls=true))])
+AM_CONDITIONAL(HAVE_GNUTLS, test x$gnutls = xtrue)
+AC_DEFINE_UNQUOTED([HAVE_GNUTLS], $gnutls, [We have gnutls])
+
+
+
 # should 'make check' run tests?
 AC_MSG_CHECKING(whether to run tests)
 AC_ARG_ENABLE([testruns],
@@ -1105,6 +1139,12 @@ then
   AC_MSG_NOTICE([NOTICE: sqlite not found.  sqLite support will not be compiled.])
 fi
 
+#gnutls
+if test x$gnutls != xtrue
+then
+  AC_MSG_NOTICE([NOTICE: gnutls not found, gnunet-gns-proxy will not be built])
+fi
+
 # java ports
 if test "x$enable_java_ports" = "xyes"
 then
@@ -1127,6 +1167,7 @@ if test "x$SUDO_BINARY" = "x" -a ! -w /
 then
   AC_MSG_NOTICE([NOTICE: --with-sudo not specified and not running as 'root', will not install GNS NSS library])
 fi
+
 
 AC_MSG_NOTICE([********************************************
 You can compile GNUnet with

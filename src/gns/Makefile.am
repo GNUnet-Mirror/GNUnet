@@ -26,7 +26,9 @@ lib_LTLIBRARIES = \
 
 if HAVE_MHD
  DO_FCFSD=gnunet-gns-fcfsd
+if HAVE_GNUTLS
  DO_PROXY=gnunet-gns-proxy
+endif
 endif
 
 bin_PROGRAMS = \
