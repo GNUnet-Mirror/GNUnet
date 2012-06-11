@@ -146,7 +146,6 @@ enum nss_status _nss_gns_gethostbyname2_r(
     if (u.count == 0) {
         *errnop = ETIMEDOUT;
         *h_errnop = HOST_NOT_FOUND;
-        printf("not found\n");
         goto finish;
     }
 
