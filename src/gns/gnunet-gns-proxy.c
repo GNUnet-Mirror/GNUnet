@@ -1040,10 +1040,12 @@ process_get_authority (void *cls,
                 "Get authority failed!\n");
     strcpy (ctask->authority, "");
   }
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Get authority yielded %s\n", auth_name);
-  strcpy (ctask->authority, auth_name);
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Get authority yielded %s\n", auth_name);
+    strcpy (ctask->authority, auth_name);
+  }
 
   GNUNET_GNS_lookup_zone (gns_handle,
                           ctask->host,
@@ -1615,11 +1617,9 @@ generate_gns_certificate (const char *name)
 
   int ret;
   unsigned int serial;
-  unsigned int bits;
   size_t key_buf_size;
   size_t cert_buf_size;
   gnutls_x509_crt_t request;
-  gnutls_x509_privkey_t rsa;
   time_t etime;
   struct tm *tm_data;
 
