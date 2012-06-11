@@ -43,6 +43,7 @@
 
 /* regexp */
 #define RE_DOTPLUS "<a href=\"http://(([A-Za-z]+[.])+)([+])"
+#define RE_A_HREF  "<a href=\"https?://(([A-Za-z]+[.])+)([+]|zkey)"
 #define RE_N_MATCHES 4
 
 /* The usual suspects */
@@ -634,13 +635,30 @@ mhd_content_cb (void *cls,
         }
 
         memset (ctask->pp_buf, 0, sizeof(ctask->pp_buf));
-        memcpy (ctask->pp_buf, hostptr, (m[1].rm_eo-m[1].rm_so));
+        
+        /* If .+ extend with authority */
+        if (0 == strcmp (ctask->buffer_ptr+m[1].rm_eo, "+"))
+        {
+           memcpy (ctask->pp_buf, hostptr, (m[1].rm_eo-m[1].rm_so));
+           strcpy ( ctask->pp_buf+strlen(ctask->pp_buf),
+                    ctask->authority);
+        }
+        /* If .zkey simply copy the name */
+        else if (0 == strcmp (ctask->buffer_ptr+m[1].rm_eo, "zkey", 4))
+        {
+          memcpy (ctask->pp_buf, hostptr, (m[1].rm_eo-m[1].rm_so+4));
+        }
 
         ctask->is_postprocessing = GNUNET_YES;
         ctask->pp_finished = GNUNET_NO;
+        
+        GNUNET_GNS_shorten (gns_handle,
+                           ctask->pp_buf,
+                           &process_shorten,
+                           ctask);
 
         //postprocess_name(ctask, NULL);
-        ctask->pp_task = GNUNET_SCHEDULER_add_now (&postprocess_name, ctask);
+        //ctask->pp_task = GNUNET_SCHEDULER_add_now (&postprocess_name, ctask);
 
         return 0;
       }
