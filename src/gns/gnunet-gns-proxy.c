@@ -143,6 +143,9 @@ struct MhdHttpList
   /* The daemon handle */
   struct MHD_Daemon *daemon;
 
+  /* Optional proxy certificate used */
+  struct ProxyGNSCertificate *proxy_cert;
+
   /* The task ID */
   GNUNET_SCHEDULER_TaskIdentifier httpd_task;
 };
@@ -1567,6 +1570,8 @@ load_key_from_file (gnutls_x509_privkey_t key, char* keyfile)
                 "Unable to import private key %s(ret=%d)\n", key_data.data, ret);
     GNUNET_break (0);
   }
+
+  GNUNET_free (key_data.data);
 }
 
 /**
@@ -1592,6 +1597,8 @@ load_cert_from_file (gnutls_x509_crt_t crt, char* certfile)
                 "Unable to import certificate %s(ret=%d)\n", certfile, ret);
     GNUNET_break (0);
   }
+
+  GNUNET_free (cert_data.data);
 
 }
 
@@ -1623,17 +1630,7 @@ generate_gns_certificate (const char *name)
     GNUNET_break (0);
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Generating key\n");
-  gnutls_x509_privkey_init (&rsa);
-  bits = gnutls_sec_param_to_pk_bits (GNUTLS_PK_RSA, GNUTLS_SEC_PARAM_NORMAL);
-  ret = gnutls_x509_privkey_generate (rsa, GNUTLS_PK_RSA, bits, 0);
-
-  if (GNUTLS_E_SUCCESS != ret)
-  {
-    GNUNET_break (0);
-  }
-
-  ret = gnutls_x509_crt_set_key (request, rsa);
+  ret = gnutls_x509_crt_set_key (request, proxy_ca.key);
 
   if (GNUTLS_E_SUCCESS != ret)
   {
@@ -1690,12 +1687,11 @@ generate_gns_certificate (const char *name)
   gnutls_x509_crt_export (request, GNUTLS_X509_FMT_PEM,
                           pgc->cert, &cert_buf_size);
 
-  gnutls_x509_privkey_export (rsa, GNUTLS_X509_FMT_PEM,
+  gnutls_x509_privkey_export (proxy_ca.key, GNUTLS_X509_FMT_PEM,
                           pgc->key, &key_buf_size);
 
 
   gnutls_x509_crt_deinit (request);
-  gnutls_x509_privkey_deinit (rsa);
 
   return pgc;
 
@@ -1731,6 +1727,7 @@ add_handle_to_ssl_mhd (struct GNUNET_NETWORK_Handle *h, char* domain)
     hd = GNUNET_malloc (sizeof (struct MhdHttpList));
     hd->is_ssl = GNUNET_YES;
     strcpy (hd->domain, domain);
+    hd->proxy_cert = pgc;
     hd->daemon = MHD_start_daemon (MHD_USE_DEBUG | MHD_USE_SSL, http_port++,
                               NULL, NULL,
                               &create_response, hd,
@@ -2113,6 +2110,13 @@ do_shutdown (void *cls,
     {
       MHD_stop_daemon (hd->daemon);
       hd->daemon = NULL;
+    }
+
+    if (NULL != hd->proxy_cert)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Free certificate\n");
+      GNUNET_free (hd->proxy_cert);
     }
 
     GNUNET_free (hd);
