@@ -334,7 +334,7 @@ check (void *cls, char *const *args, const char *cfgfile,
 
 
 int
-main (int argc, char *argv[])
+main (int argc, char *const *argv)
 {
   /* Init invalid */
   update_percentage = UINT_MAX;
