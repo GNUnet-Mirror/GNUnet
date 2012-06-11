@@ -504,7 +504,7 @@ process_shorten (void* cls, const char* short_name)
  *
  * @param cls the proxycurltask
  * @param tc the task context
- */
+ *
 static void
 postprocess_name (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -519,6 +519,7 @@ postprocess_name (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                       ctask);
 
 }
+*/
 
 /**
  * Callback for MHD response
@@ -646,7 +647,7 @@ mhd_content_cb (void *cls,
         /* If .zkey simply copy the name */
         else
         {
-          memcpy (ctask->pp_buf, hostptr, (m[1].rm_eo-m[1].rm_so + strlen (GNUNET_TLD_ZKEY)));
+          memcpy (ctask->pp_buf, hostptr, (m[1].rm_eo-m[1].rm_so + strlen (GNUNET_GNS_TLD_ZKEY)));
         }
 
         ctask->is_postprocessing = GNUNET_YES;
