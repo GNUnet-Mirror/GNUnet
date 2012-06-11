@@ -42,8 +42,8 @@
 #define HTML_HDR_CONTENT "Content-Type: text/html\r\n"
 
 /* regexp */
-#define RE_DOTPLUS "<a href=\"http://(([A-Za-z]+[.])+)([+])"
-#define RE_A_HREF  "<a href=\"https?://(([A-Za-z]+[.])+)([+]|zkey)"
+//#define RE_DOTPLUS "<a href=\"http://(([A-Za-z]+[.])+)([+])"
+#define RE_A_HREF  "<a href=\"https?://(([A-Za-z0-9]+[.])+)([+]|zkey)"
 #define RE_N_MATCHES 4
 
 /* The usual suspects */
@@ -490,7 +490,7 @@ process_shorten (void* cls, const char* short_name)
               ctask->pp_buf,
               short_name);
 
-  sprintf (tmp, "<a href=http://%s", short_name);
+  sprintf (tmp, "<a href=\"http://%s", short_name);
   strcpy (ctask->pp_buf, tmp);
 
   ctask->pp_finished = GNUNET_YES;
@@ -582,7 +582,12 @@ mhd_content_cb (void *cls,
 
     nomatch = regexec ( &re_dotplus, ctask->buffer_ptr, RE_N_MATCHES, m, 0);
 
-    if (!nomatch)
+    if (nomatch)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "MHD RE: No match\n");
+    }
+    else
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "MHD RE: Match\n");
@@ -638,8 +643,10 @@ mhd_content_cb (void *cls,
         memset (ctask->pp_buf, 0, sizeof(ctask->pp_buf));
         
         /* If .+ extend with authority */
-        if (0 == strcmp (ctask->buffer_ptr+m[1].rm_eo, "+"))
+        if (*(ctask->buffer_ptr+m[1].rm_eo) == '+')
         {
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      "Links is .+\n");
            memcpy (ctask->pp_buf, hostptr, (m[1].rm_eo-m[1].rm_so));
            strcpy ( ctask->pp_buf+strlen(ctask->pp_buf),
                     ctask->authority);
@@ -647,6 +654,8 @@ mhd_content_cb (void *cls,
         /* If .zkey simply copy the name */
         else
         {
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      "Link is zkey\n");
           memcpy (ctask->pp_buf, hostptr, (m[1].rm_eo-m[1].rm_so + strlen (GNUNET_GNS_TLD_ZKEY)));
         }
 
@@ -948,6 +957,10 @@ process_leho_lookup (void *cls,
   ctask->headers = NULL;
 
   strcpy (ctask->leho, "");
+
+  if (rd_count == 0)
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "No LEHO present!\n");
 
   for (i=0; i<rd_count; i++)
   {
@@ -1551,7 +1564,7 @@ load_key_from_file (gnutls_x509_privkey_t key, char* keyfile)
   if (GNUTLS_E_SUCCESS != ret)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Unable to import private key %s\n", keyfile);
+                "Unable to import private key %s(ret=%d)\n", key_data.data, ret);
     GNUNET_break (0);
   }
 }
@@ -1576,7 +1589,7 @@ load_cert_from_file (gnutls_x509_crt_t crt, char* certfile)
   if (GNUTLS_E_SUCCESS != ret)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Unable to import certificate %s\n", certfile);
+                "Unable to import certificate %s(ret=%d)\n", certfile, ret);
     GNUNET_break (0);
   }
 
@@ -2216,6 +2229,9 @@ run (void *cls, char *const *args, const char *cfgfile,
               "Loading CA\n");
 
   gnutls_global_init ();
+
+  gnutls_x509_crt_init (&proxy_ca.cert);
+  gnutls_x509_privkey_init (&proxy_ca.key);
   
   load_cert_from_file (proxy_ca.cert, cafile);
   load_key_from_file (proxy_ca.key, cafile);
@@ -2223,7 +2239,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Loading Template\n");
 
-  compile_regex (&re_dotplus, (char*) RE_DOTPLUS);
+  compile_regex (&re_dotplus, (char*) RE_A_HREF);
 
   gns_handle = GNUNET_GNS_connect (cfg);
 
