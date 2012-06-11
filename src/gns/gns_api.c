@@ -640,6 +640,7 @@ get_request_id (struct GNUNET_GNS_Handle *h)
  * @param handle handle to the GNS service
  * @param name the name to look up
  * @param zone the zone to start the resolution in
+ * @param shorten_zone the zone where to shorten names into
  * @param type the record type to look up
  * @param proc processor to call on result
  * @param proc_cls closure for processor
@@ -649,6 +650,7 @@ struct GNUNET_GNS_QueueEntry *
 GNUNET_GNS_lookup_zone (struct GNUNET_GNS_Handle *handle,
                    const char * name,
                    struct GNUNET_CRYPTO_ShortHashCode *zone,
+                   struct GNUNET_CRYPTO_ShortHashCode *shorten_zone,
                    enum GNUNET_GNS_RecordType type,
                    GNUNET_GNS_LookupResultProcessor proc,
                    void *proc_cls)
@@ -695,7 +697,20 @@ GNUNET_GNS_lookup_zone (struct GNUNET_GNS_Handle *handle,
     lookup_msg->use_default_zone = htonl(1);
     memset(&lookup_msg->zone, 0, sizeof(struct GNUNET_CRYPTO_ShortHashCode));
   }
-
+  
+  if (NULL != shorten_zone)
+  {
+    lookup_msg->use_shorten_zone = htonl(1);
+    memcpy(&lookup_msg->shorten_zone, shorten_zone,
+           sizeof(struct GNUNET_CRYPTO_ShortHashCode));
+  }
+  else
+  {
+    lookup_msg->use_shorten_zone = htonl(0);
+    memset(&lookup_msg->shorten_zone, 0,
+           sizeof(struct GNUNET_CRYPTO_ShortHashCode));
+  }
+  
   lookup_msg->type = htonl(type);
 
   memcpy(&lookup_msg[1], name, strlen(name));
@@ -724,7 +739,9 @@ GNUNET_GNS_lookup (struct GNUNET_GNS_Handle *handle,
                    GNUNET_GNS_LookupResultProcessor proc,
                    void *proc_cls)
 {
-  return GNUNET_GNS_lookup_zone (handle, name, NULL, type, proc, proc_cls);
+  return GNUNET_GNS_lookup_zone (handle, name,
+                                 NULL, NULL,
+                                 type, proc, proc_cls);
 }
 
 /**
@@ -733,6 +750,7 @@ GNUNET_GNS_lookup (struct GNUNET_GNS_Handle *handle,
  * @param handle handle to the GNS service
  * @param name the name to look up
  * @param zone the zone to start the resolution in
+ * @param shorten_zone the zone where to shorten names into
  * @param proc function to call on result
  * @param proc_cls closure for processor
  * @return handle to the operation
@@ -741,6 +759,7 @@ struct GNUNET_GNS_QueueEntry *
 GNUNET_GNS_shorten_zone (struct GNUNET_GNS_Handle *handle,
                     const char * name,
                     struct GNUNET_CRYPTO_ShortHashCode *zone,
+                    struct GNUNET_CRYPTO_ShortHashCode *shorten_zone,
                     GNUNET_GNS_ShortenResultProcessor proc,
                     void *proc_cls)
 {
@@ -787,7 +806,20 @@ GNUNET_GNS_shorten_zone (struct GNUNET_GNS_Handle *handle,
     shorten_msg->use_default_zone = htonl(1);
     memset(&shorten_msg->zone, 0, sizeof(struct GNUNET_CRYPTO_ShortHashCode));
   }
-
+  
+  if (NULL != shorten_zone)
+  {
+    shorten_msg->use_shorten_zone = htonl(1);
+    memcpy(&shorten_msg->shorten_zone, shorten_zone,
+           sizeof(struct GNUNET_CRYPTO_ShortHashCode));
+  }
+  else
+  {
+    shorten_msg->use_shorten_zone = htonl(0);
+    memset(&shorten_msg->shorten_zone, 0,
+           sizeof(struct GNUNET_CRYPTO_ShortHashCode));
+  }
+  
   memcpy(&shorten_msg[1], name, strlen(name));
 
   GNUNET_CONTAINER_DLL_insert_tail (handle->pending_head, handle->pending_tail,
@@ -812,7 +844,7 @@ GNUNET_GNS_shorten (struct GNUNET_GNS_Handle *handle,
                     GNUNET_GNS_ShortenResultProcessor proc,
                     void *proc_cls)
 {
-  return GNUNET_GNS_shorten_zone (handle, name, NULL, proc, proc_cls);
+  return GNUNET_GNS_shorten_zone (handle, name, NULL, NULL, proc, proc_cls);
 }
 /**
  * Perform an authority lookup for a given name.

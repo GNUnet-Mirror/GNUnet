@@ -90,6 +90,7 @@ struct GNUNET_CRYPTO_RsaPrivateKey *bob_key;
 struct GNUNET_CRYPTO_RsaPrivateKey *our_key;
 struct GNUNET_CRYPTO_ShortHashCode alice_hash;
 struct GNUNET_CRYPTO_ShortHashCode bob_hash;
+struct GNUNET_CRYPTO_ShortHashCode our_zone;
 
 /**
  * Check whether peers successfully shut down.
@@ -161,7 +162,9 @@ process_shorten_result(void* cls, const char* sname)
 static void
 do_shorten(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_GNS_shorten(gns_handle, TEST_DOMAIN, &process_shorten_result,
+  GNUNET_GNS_shorten_zone (gns_handle, TEST_DOMAIN,
+                     &our_zone, &our_zone,
+                     &process_shorten_result,
 TEST_DOMAIN);
 }
 
@@ -231,7 +234,9 @@ commence_testing (void *cls, int success)
                 "Failed to connect to GNS!\n");
   }
 
-  GNUNET_GNS_lookup(gns_handle, TEST_DOMAIN, GNUNET_GNS_RECORD_TYPE_A,
+  GNUNET_GNS_lookup_zone (gns_handle, TEST_DOMAIN,
+                          &our_zone, &our_zone,
+                          GNUNET_GNS_RECORD_TYPE_A,
                     &on_lookup_result, TEST_DOMAIN);
 }
 
@@ -545,6 +550,7 @@ do_lookup(void *cls, const struct GNUNET_PeerIdentity *id,
   GNUNET_CRYPTO_rsa_key_get_public (alice_key, &alice_pkey);
   GNUNET_CRYPTO_short_hash(&bob_pkey, sizeof(bob_pkey), &bob_hash);
   GNUNET_CRYPTO_short_hash(&alice_pkey, sizeof(alice_pkey), &alice_hash);
+  GNUNET_CRYPTO_short_hash(&our_pkey, sizeof(our_pkey), &our_zone);
 
   struct GNUNET_NAMESTORE_RecordData rd;
   rd.expiration = GNUNET_TIME_UNIT_FOREVER_ABS;

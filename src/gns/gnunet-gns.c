@@ -149,6 +149,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   struct GNUNET_CRYPTO_RsaPrivateKey *key = NULL;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pkey;
   struct GNUNET_CRYPTO_ShortHashCode *zone = NULL;
+  struct GNUNET_CRYPTO_ShortHashCode *shorten_zone = NULL;
   struct GNUNET_CRYPTO_ShortHashCode user_zone;
   struct GNUNET_CRYPTO_ShortHashAsciiEncoded zonename;
 
@@ -178,7 +179,35 @@ run (void *cls, char *const *args, const char *cfgfile,
     }
     GNUNET_free(keyfile);
   }
-
+  
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
+                                                          "AUTO_IMPORT_ZONEKEY",
+                                                          &keyfile))
+  {
+    if (!raw)
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  "No private key for shorten zone found!\n");
+    shorten_zone = NULL;
+  }
+  else
+  {
+    if (GNUNET_YES == GNUNET_DISK_file_test (keyfile))
+    {
+      key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
+      GNUNET_CRYPTO_rsa_key_get_public (key, &pkey);
+      GNUNET_CRYPTO_short_hash(&pkey,
+                         sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+                         &user_zone);
+      shorten_zone = &user_zone;
+      GNUNET_CRYPTO_short_hash_to_enc (shorten_zone, &zonename);
+      if (!raw)
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    "Using zone: %s!\n", &zonename);
+      GNUNET_CRYPTO_rsa_key_free(key);
+    }
+    GNUNET_free(keyfile);
+  }
+  
   gns = GNUNET_GNS_connect (cfg);
   if (lookup_type != NULL)
     rtype = GNUNET_NAMESTORE_typename_to_number(lookup_type);
@@ -195,16 +224,20 @@ run (void *cls, char *const *args, const char *cfgfile,
   if (shorten_name != NULL)
   {
     /** shorten name */
-    GNUNET_GNS_shorten_zone (gns, shorten_name, zone, &process_shorten_result,
-                       shorten_name);
+    GNUNET_GNS_shorten_zone (gns, shorten_name,
+                             zone, shorten_zone,
+                             &process_shorten_result,
+                             shorten_name);
   }
 
   if (lookup_name != NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Lookup\n");
-    GNUNET_GNS_lookup_zone (gns, lookup_name, zone, rtype,
-                      &process_lookup_result, lookup_name);
+    GNUNET_GNS_lookup_zone (gns, lookup_name,
+                            zone, shorten_zone,
+                            rtype,
+                            &process_lookup_result, lookup_name);
   }
 
   if (auth_name != NULL)

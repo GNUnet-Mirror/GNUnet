@@ -63,6 +63,16 @@ struct GNUNET_GNS_ClientLookupMessage
   struct GNUNET_CRYPTO_ShortHashCode zone;
 
   /**
+   * Should we use a shorten zone?
+   */
+  uint32_t use_shorten_zone GNUNET_PACKED;
+
+  /**
+   * If use_shorten_zone is set use this zone for shortening
+   */
+  struct GNUNET_CRYPTO_ShortHashCode shorten_zone;
+
+  /**
    * the type of record to look up
    */
   enum GNUNET_GNS_RecordType type;
@@ -120,7 +130,17 @@ struct GNUNET_GNS_ClientShortenMessage
    * If use_default_zone is empty this zone is used for lookup
    */
   struct GNUNET_CRYPTO_ShortHashCode zone;
+  
+  /**
+   * Should we use a shorten zone?
+   */
+  uint32_t use_shorten_zone GNUNET_PACKED;
 
+  /**
+   * If use_shorten_zone is set use this zone for shortening
+   */
+  struct GNUNET_CRYPTO_ShortHashCode shorten_zone;
+  
   /* Followed by the name to shorten up */
 };
 
