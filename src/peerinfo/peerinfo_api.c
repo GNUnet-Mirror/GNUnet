@@ -512,7 +512,6 @@ peerinfo_handler (void *cls, const struct GNUNET_MessageHeader *msg)
   if (NULL == ic)
   {
     /* didn't expect a response, reconnect */
-    GNUNET_PEERINFO_iterate_cancel (ic);
     reconnect (h);
     return;
   }
