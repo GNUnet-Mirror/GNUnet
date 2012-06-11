@@ -73,7 +73,7 @@ test_transport_api_dv_LDADD = \
  $(top_builddir)/src/core/libgnunetcore.la \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/testing/libgnunettesting.la
+ $(top_builddir)/src/testing_old/libgnunettesting_old.la
 
 EXTRA_DIST = \
   test_transport_dv_data.conf
