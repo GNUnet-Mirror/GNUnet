@@ -591,6 +591,13 @@ get_record_and_call_iterator (struct Plugin *plugin,
       GNUNET_break (0);
       ret = GNUNET_SYSERR;
     }
+    else if (record_count > 64 * 1024)
+    {
+      /* sanity check, don't stack allocate far too much just
+	 because database might contain a large value here */
+      GNUNET_break (0);
+      ret = GNUNET_SYSERR;
+    } 
     else
     {
       struct GNUNET_NAMESTORE_RecordData rd[record_count];
@@ -601,7 +608,6 @@ get_record_and_call_iterator (struct Plugin *plugin,
       {
 	GNUNET_break (0);
 	ret = GNUNET_SYSERR;
-	record_count = 0;
       }
       else
       {

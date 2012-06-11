@@ -18,13 +18,18 @@ if USE_COVERAGE
 endif
 
 if HAVE_SQLITE
-SQLITE_TESTS = \
- test_plugin_namestore_sqlite 
+SQLITE_PLUGIN = libgnunet_plugin_namestore_sqlite.la
+SQLITE_TESTS = test_plugin_namestore_sqlite 
+endif
+if HAVE_POSTGRES
+POSTGRES_TESTS = test_plugin_namestore_postgres
+POSTGRES_PLUGIN = libgnunet_plugin_namestore_postgres.la
 endif
 
 
 check_PROGRAMS = \
  $(SQLITE_TESTS) \
+ $(POSTGRES_TESTS) \
  test_namestore_record_serialization \
  test_namestore_api_sign_verify \
  test_namestore_api \
@@ -87,12 +92,10 @@ gnunet_service_namestore_DEPENDENCIES = \
   $(top_builddir)/src/util/libgnunetutil.la \
   libgnunetnamestore.la
 
-if HAVE_SQLITE
- SQLITE_PLUGIN = libgnunet_plugin_namestore_sqlite.la
-endif
 
 plugin_LTLIBRARIES = \
-  $(SQLITE_PLUGIN) 
+  $(SQLITE_PLUGIN) \
+  $(POSTGRES_PLUGIN)
 
 libgnunet_plugin_namestore_sqlite_la_SOURCES = \
   plugin_namestore_sqlite.c namestore_common.c
@@ -104,6 +107,25 @@ libgnunet_plugin_namestore_sqlite_la_LIBADD = \
 libgnunet_plugin_namestore_sqlite_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 libgnunet_plugin_namestore_sqlite_la_DEPENDENCIES = \
+  $(top_builddir)/src/namestore/libgnunetnamestore.la  \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  libgnunetnamestore.la
+
+
+libgnunet_plugin_namestore_postgres_la_SOURCES = \
+  plugin_namestore_postgres.c namestore_common.c
+libgnunet_plugin_namestore_postgres_la_LIBADD = \
+  $(top_builddir)/src/namestore/libgnunetnamestore.la  \
+  $(top_builddir)/src/postgres/libgnunetpostgres.la  \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) -lpq \
+  $(LTLIBINTL)
+libgnunet_plugin_namestore_postgres_la_LDFLAGS = \
+ $(GN_PLUGIN_LDFLAGS)
+libgnunet_plugin_namestore_postgres_la_DEPENDENCIES = \
+  $(top_builddir)/src/namestore/libgnunetnamestore.la  \
+  $(top_builddir)/src/postgres/libgnunetpostgres.la  \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   libgnunetnamestore.la
