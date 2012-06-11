@@ -204,6 +204,7 @@ commence_testing(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   gh = GNUNET_GNS_connect(alice_cfg);
 
   GNUNET_GNS_lookup(gh, TEST_DOMAIN, GNUNET_GNS_RECORD_TYPE_A,
+                    GNUNET_NO,
                     &on_lookup_result, TEST_DOMAIN);
   die_task =
     GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, "from lookup");

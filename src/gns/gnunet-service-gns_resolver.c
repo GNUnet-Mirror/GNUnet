@@ -80,6 +80,31 @@ static struct GNUNET_CRYPTO_ShortHashCode local_zone;
  */
 static unsigned long long rid = 0;
 
+
+/**
+ * Determine if this name is canonical.
+ * i.e.
+ * a.b.gnunet  = not canonical
+ * a           = canonical
+ *
+ * @param name the name to test
+ * @return 1 if canonical
+ */
+static int
+is_canonical(char* name)
+{
+  uint32_t len = strlen(name);
+  int i;
+
+  for (i=0; i<len; i++)
+  {
+    if (*(name+i) == '.')
+      return 0;
+  }
+  return 1;
+}
+
+
 /**
  * Namestore calls this function if we have record for this name.
  * (or with rd_count=0 to indicate no matches)
@@ -1228,7 +1253,7 @@ process_delegation_result_dht(void* cls,
                                      auth);
 
         /** try to import pkey if private key available */
-        if (rh->priv_key)
+        if (rh->priv_key && is_canonical (rh->name))
           process_discovered_authority(name, auth->zone,
                                        rh->authority_chain_tail->zone,
                                        rh->priv_key);
@@ -1534,29 +1559,6 @@ handle_record_ns(void* cls, struct ResolverHandle *rh,
 
 }
 
-
-/**
- * Determine if this name is canonical.
- * i.e.
- * a.b.gnunet  = not canonical
- * a           = canonical
- *
- * @param name the name to test
- * @return 1 if canonical
- */
-static int
-is_canonical(char* name)
-{
-  uint32_t len = strlen(name);
-  int i;
-
-  for (i=0; i<len; i++)
-  {
-    if (*(name+i) == '.')
-      return 0;
-  }
-  return 1;
-}
 
 /**
  * Move one level up in the domain hierarchy and return the
@@ -2001,7 +2003,7 @@ process_delegation_result_ns(void* cls,
     /** try to import pkey if private key available
      * TODO: Only import last one?
      */
-    if (rh->priv_key && (name != NULL))
+    if (rh->priv_key && (name != NULL) && is_canonical (rh->name))
       process_discovered_authority((char*)name, auth->zone,
                                    rh->authority_chain_tail->zone,
                                    rh->priv_key);
