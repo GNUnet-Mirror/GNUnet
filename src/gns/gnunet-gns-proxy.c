@@ -37,8 +37,6 @@
 #define GNUNET_GNS_PROXY_PORT 7777
 #define MAX_MHD_CONNECTIONS 300
 
-#define MHD_UNIX_SOCK_FILE "mhd_unix_sock.sock"
-
 /* MHD/cURL defines */
 #define BUF_WAIT_FOR_CURL 0
 #define BUF_WAIT_FOR_MHD 1
@@ -2274,6 +2272,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   struct MhdHttpList *hd;
   struct sockaddr_un mhd_unix_sock_addr;
   size_t len;
+  char* proxy_sockfile;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Loading CA\n");
@@ -2359,6 +2358,15 @@ run (void *cls, char *const *args, const char *cfgfile,
   mhd_httpd_head = NULL;
   mhd_httpd_tail = NULL;
   total_mhd_connections = 0;
+
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns-proxy",
+                                                            "PROXY_UNIXPATH",
+                                                            &proxy_sockfile))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Specify PROXY_UNIX_SOCK in gns-proxy config section!\n");
+    return;
+  }
   
   mhd_unix_socket = GNUNET_NETWORK_socket_create (AF_UNIX,
                                                 SOCK_STREAM,
@@ -2372,9 +2380,11 @@ run (void *cls, char *const *args, const char *cfgfile,
   }
 
   mhd_unix_sock_addr.sun_family = AF_UNIX;
-  strcpy (mhd_unix_sock_addr.sun_path, MHD_UNIX_SOCK_FILE);
-  unlink (MHD_UNIX_SOCK_FILE);
-  len = strlen (MHD_UNIX_SOCK_FILE) + sizeof(AF_UNIX);
+  strcpy (mhd_unix_sock_addr.sun_path, proxy_sockfile);
+  unlink (proxy_sockfile);
+  len = strlen (proxy_sockfile) + sizeof(AF_UNIX);
+
+  GNUNET_free (proxy_sockfile);
 
   if (GNUNET_OK != GNUNET_NETWORK_socket_bind (mhd_unix_socket,
                                (struct sockaddr*)&mhd_unix_sock_addr,
