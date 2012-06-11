@@ -37,9 +37,6 @@ bin_PROGRAMS = \
 	$(DO_PROXY) \
   gnunet-gns
 
-#noinst_PROGRAMS = \
-#  gnunet-gns-lookup
-
 check_PROGRAMS = \
   test_gns_simple_shorten \
   test_gns_simple_get_authority \
