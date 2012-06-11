@@ -36,6 +36,8 @@
 
 #define GNUNET_GNS_PROXY_PORT 7777
 
+#define MHD_UNIX_SOCK_FILE "mhd_unix_sock.sock"
+
 /* MHD/cURL defines */
 #define BUF_WAIT_FOR_CURL 0
 #define BUF_WAIT_FOR_MHD 1
@@ -267,6 +269,9 @@ static struct GNUNET_CRYPTO_ShortHashCode local_gns_zone;
 
 /* The CA for SSL certificate generation */
 static struct ProxyCA proxy_ca;
+
+/* UNIX domain socket for mhd */
+struct GNUNET_NETWORK_Handle *mhd_unix_socket;
 
 /**
  * Checks if name is in tld
@@ -1483,10 +1488,6 @@ add_handle_to_mhd (struct GNUNET_NETWORK_Handle *h, struct MHD_Daemon *daemon)
 }
 
 
-/*TODO this needs MHD API modification */
-static int http_port = 4444;
-
-
 static long
 get_file_size (const char* filename)
 {
@@ -1728,16 +1729,19 @@ add_handle_to_ssl_mhd (struct GNUNET_NETWORK_Handle *h, char* domain)
     hd->is_ssl = GNUNET_YES;
     strcpy (hd->domain, domain);
     hd->proxy_cert = pgc;
-    hd->daemon = MHD_start_daemon (MHD_USE_DEBUG | MHD_USE_SSL, http_port++,
-                              NULL, NULL,
-                              &create_response, hd,
-                              MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 128,
-                              MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 16,
-                              MHD_OPTION_NOTIFY_COMPLETED,
-                              NULL, NULL,
-                              MHD_OPTION_HTTPS_MEM_KEY, pgc->key,
-                              MHD_OPTION_HTTPS_MEM_CERT, pgc->cert,
-                              MHD_OPTION_END);
+    hd->daemon = MHD_start_daemon (MHD_USE_DEBUG | MHD_USE_SSL, 4444,
+            NULL, NULL,
+            &create_response, hd,
+            MHD_OPTION_LISTEN_SOCKET, GNUNET_NETWORK_get_fd (mhd_unix_socket),
+            MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 128,
+            MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 16,
+            MHD_OPTION_NOTIFY_COMPLETED,
+            NULL, NULL,
+            MHD_OPTION_HTTPS_MEM_KEY, pgc->key,
+            MHD_OPTION_HTTPS_MEM_CERT, pgc->cert,
+            MHD_OPTION_END);
+
+    GNUNET_assert (hd->daemon != NULL);
     hd->httpd_task = GNUNET_SCHEDULER_NO_TASK;
     
     GNUNET_CONTAINER_DLL_insert (mhd_httpd_head, mhd_httpd_tail, hd);
@@ -2228,6 +2232,8 @@ run (void *cls, char *const *args, const char *cfgfile,
 {
   struct sockaddr_in sa;
   struct MhdHttpList *hd;
+  struct sockaddr_un mhd_unix_sock_addr;
+  size_t len;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Loading CA\n");
@@ -2313,17 +2319,53 @@ run (void *cls, char *const *args, const char *cfgfile,
   mhd_httpd_head = NULL;
   mhd_httpd_tail = NULL;
   
+  mhd_unix_socket = GNUNET_NETWORK_socket_create (AF_UNIX,
+                                                SOCK_STREAM,
+                                                0);
+
+  if (NULL == mhd_unix_socket)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Unable to create unix domain socket!\n");
+    return;
+  }
+
+  mhd_unix_sock_addr.sun_family = AF_UNIX;
+  strcpy (mhd_unix_sock_addr.sun_path, MHD_UNIX_SOCK_FILE);
+  unlink (MHD_UNIX_SOCK_FILE);
+  len = strlen (MHD_UNIX_SOCK_FILE) + sizeof(AF_UNIX);
+
+  if (GNUNET_OK != GNUNET_NETWORK_socket_bind (mhd_unix_socket,
+                               (struct sockaddr*)&mhd_unix_sock_addr,
+                               len))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Unable to bind unix domain socket!\n");
+    return;
+  }
+
+  if (GNUNET_OK != GNUNET_NETWORK_socket_listen (mhd_unix_socket,
+                                                 1))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Unable to listen on unix domain socket!\n");
+    return;
+  }
+
   hd = GNUNET_malloc (sizeof (struct MhdHttpList));
   hd->is_ssl = GNUNET_NO;
   strcpy (hd->domain, "");
-  httpd = MHD_start_daemon (MHD_USE_DEBUG, http_port++,
-                               NULL, NULL,
-                               &create_response, hd,
-                               MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 128,
-                               MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 16,
-                               MHD_OPTION_NOTIFY_COMPLETED,
-                               NULL, NULL,
-                               MHD_OPTION_END);
+  httpd = MHD_start_daemon (MHD_USE_DEBUG, 4444, //Dummy port
+            NULL, NULL,
+            &create_response, hd,
+            MHD_OPTION_LISTEN_SOCKET, GNUNET_NETWORK_get_fd (mhd_unix_socket),
+            MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 128,
+            MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 16,
+            MHD_OPTION_NOTIFY_COMPLETED,
+            NULL, NULL,
+            MHD_OPTION_END);
+
+  GNUNET_assert (httpd != NULL);
   hd->daemon = httpd;
   hd->httpd_task = GNUNET_SCHEDULER_NO_TASK;
 
