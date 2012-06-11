@@ -165,12 +165,12 @@ src/testbed/testbed_api_services.c
 src/testbed/testbed_api_testbed.c
 src/testbed/testbed_api_test.c
 src/testbed/testbed_api_topology.c
-src/testing/gnunet-testing.c
-src/testing/helper.c
+src/testing_old/gnunet-testing.c
+src/testing_old/helper.c
+src/testing_old/testing.c
+src/testing_old/testing_group.c
+src/testing_old/testing_peergroup.c
 src/testing/testing.c
-src/testing/testing_group.c
-src/testing/testing_new.c
-src/testing/testing_peergroup.c
 src/topology/gnunet-daemon-topology.c
 src/transport/gnunet-helper-transport-wlan.c
 src/transport/gnunet-helper-transport-wlan-dummy.c
