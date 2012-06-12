@@ -488,6 +488,7 @@ curl_download_prepare ();
  * Callback to free content
  *
  * @param cls content to free
+ * @param tc task context
  */
 static void
 mhd_content_free (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -550,6 +551,7 @@ process_shorten (void* cls, const char* short_name)
  * @param pos in buffer
  * @param buf buffer
  * @param max space in buffer
+ * @return number of bytes written
  */
 static ssize_t
 mhd_content_cb (void *cls,
@@ -1277,6 +1279,8 @@ run_httpds ()
 
 /**
  * schedule mhd
+ *
+ * @param hd the daemon to run
  */
 static void
 run_httpd (struct MhdHttpList *hd)
@@ -1550,7 +1554,12 @@ add_handle_to_mhd (struct GNUNET_NETWORK_Handle *h, struct MHD_Daemon *daemon)
   return MHD_add_connection (daemon, fd, addr, len);
 }
 
-
+/**
+ * Calculate size of file
+ *
+ * @param filename name of file
+ * @return filesize or 0 on error
+ */
 static long
 get_file_size (const char* filename)
 {
@@ -1576,6 +1585,7 @@ get_file_size (const char* filename)
  * Read file in filename
  *
  * @param filename file to read
+ * @param size pointer where filesize is stored
  * @return data
  */
 static char*
@@ -1608,8 +1618,6 @@ load_file (const char* filename, unsigned int* size)
   fclose (fp);
   return buffer;
 }
-
-/** SSL stuff **/
 
 /**
  * Load PEM key from file
@@ -2210,7 +2218,6 @@ do_shutdown (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Shutting down...\n");
 
-  MHD_fini ();
   gnutls_global_deinit ();
 
   if (GNUNET_SCHEDULER_NO_TASK != curl_download_task)
