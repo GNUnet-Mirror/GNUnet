@@ -35,7 +35,7 @@
 #include <time.h>
 
 #define GNUNET_GNS_PROXY_PORT 7777
-#define MAX_MHD_CONNECTIONS 300
+#define MHD_MAX_CONNECTIONS 300
 
 /* MHD/cURL defines */
 #define BUF_WAIT_FOR_CURL 0
@@ -1796,10 +1796,8 @@ accept_cb (void* cls, const struct sockaddr *addr, socklen_t addrlen)
       return MHD_NO;
   }
 
-  if (total_mhd_connections >= MAX_MHD_CONNECTIONS)
-    return MHD_NO;
-
-  total_mhd_connections++;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Connection accepted\n");
 
   return MHD_YES;
 }
@@ -1846,7 +1844,7 @@ add_handle_to_ssl_mhd (struct GNUNET_NETWORK_Handle *h, char* domain)
             &accept_cb, NULL,
             &create_response, hd,
             MHD_OPTION_LISTEN_SOCKET, GNUNET_NETWORK_get_fd (mhd_unix_socket),
-            MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 128,
+            MHD_OPTION_CONNECTION_LIMIT, MHD_MAX_CONNECTIONS,
             MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 16,
             MHD_OPTION_NOTIFY_COMPLETED,
             NULL, NULL,
@@ -2598,7 +2596,7 @@ run (void *cls, char *const *args, const char *cfgfile,
             &accept_cb, NULL,
             &create_response, hd,
             MHD_OPTION_LISTEN_SOCKET, GNUNET_NETWORK_get_fd (mhd_unix_socket),
-            MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 128,
+            MHD_OPTION_CONNECTION_LIMIT, MHD_MAX_CONNECTIONS,
             MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 16,
             MHD_OPTION_NOTIFY_COMPLETED,
             NULL, NULL,
