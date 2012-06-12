@@ -26,6 +26,17 @@ libgnunettesting_la_LDFLAGS = \
  $(GN_LIB_LDFLAGS) \
  -version-info 0:1:0
 
+bin_PROGRAMS = \
+ gnunet-testing-run-service
+
+
+gnunet_testing_run_service_SOURCES = \
+ gnunet-testing-run-service.c
+
+gnunet_testing_run_service_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/testing/libgnunettesting.la \
+ $(GN_LIBINTL)
 
 check_PROGRAMS = \
  test_testing_portreservation \

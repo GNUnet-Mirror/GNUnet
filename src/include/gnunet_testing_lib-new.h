@@ -219,6 +219,18 @@ typedef void (*GNUNET_TESTING_TestMain)(void *cls,
 
 
 /**
+ * Signature of the 'main' function for a (single-peer) testcase that
+ * is run using 'GNUNET_TESTING_system_run_restartable'.
+ * 
+ * @param cls closure
+ * @param cfg configuration of the peer that was started
+ */
+typedef void (*GNUNET_TESTING_RestartableTestMain)(void *cls,
+					const struct GNUNET_CONFIGURATION_Handle *cfg,
+                    const struct GNUNET_TESTING_Peer *peer);
+
+
+/**
  * Start a single peer and run a test using the testing library.
  * Starts a peer using the given configuration and then invokes the
  * given callback.  This function ALSO initializes the scheduler loop
@@ -267,6 +279,20 @@ GNUNET_TESTING_service_run (const char *testdir,
 			    const char *service_name,
 			    const char *cfgfilename,
 			    GNUNET_TESTING_TestMain tm,
+			    void *tm_cls);
+
+
+/**
+ * See GNUNET_TESTING_service_run.
+ * The only difference is that we handle the GNUNET_TESTING_Peer to
+ * the RestartableTestMain, so that the peer can be destroyed and re-created
+ * to simulate failure in tests.
+ */
+int
+GNUNET_TESTING_service_run_restartable (const char *testdir,
+			    const char *service_name,
+			    const char *cfgfilename,
+			    GNUNET_TESTING_RestartableTestMain tm,
 			    void *tm_cls);
 
 

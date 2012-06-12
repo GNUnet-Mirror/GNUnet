@@ -922,6 +922,33 @@ struct ServiceContext
 
 
 /**
+ * Structure for holding service data
+ */
+struct RestartableServiceContext
+{
+  /**
+   * The configuration of the peer in which the service is run
+   */
+  const struct GNUNET_CONFIGURATION_Handle *cfg;
+
+  /**
+   * Callback to signal service startup
+   */
+  GNUNET_TESTING_RestartableTestMain tm;
+
+  /**
+   * The peer in which the service is run.
+   */
+  const struct GNUNET_TESTING_Peer *peer;
+
+  /**
+   * Closure for the above callback
+   */
+  void *tm_cls;
+};
+
+
+/**
  * Callback to be called when SCHEDULER has been started
  *
  * @param cls the ServiceContext
@@ -934,6 +961,22 @@ service_run_main (void *cls,
   struct ServiceContext *sc = cls;
 
   sc->tm (sc->tm_cls, sc->cfg);
+}
+
+
+/**
+ * Callback to be called when SCHEDULER has been started
+ *
+ * @param cls the ServiceContext
+ * @param tc the TaskContext
+ */
+static void
+service_run_restartable_main (void *cls,
+		  const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct RestartableServiceContext *sc = cls;
+
+  sc->tm (sc->tm_cls, sc->cfg, sc->peer);
 }
 
 
@@ -1006,6 +1049,76 @@ GNUNET_TESTING_service_run (const char *testdir,
   sc.tm = tm;
   sc.tm_cls = tm_cls;
   GNUNET_SCHEDULER_run (&service_run_main, &sc); /* Scheduler loop */
+  if (GNUNET_OK != GNUNET_TESTING_peer_stop (peer))
+  {
+    GNUNET_TESTING_peer_destroy (peer);
+    GNUNET_CONFIGURATION_destroy (cfg);
+    GNUNET_TESTING_system_destroy (system, GNUNET_YES);
+    return 1;
+  }
+  GNUNET_TESTING_peer_destroy (peer);
+  GNUNET_CONFIGURATION_destroy (cfg);
+  GNUNET_TESTING_system_destroy (system, GNUNET_YES);
+  return 0;
+}
+
+
+
+/**
+ * See GNUNET_TESTING_service_run.
+ * The only difference is that we handle the GNUNET_TESTING_Peer to
+ * the RestartableTestMain, so that the peer can be destroyed and re-created
+ * to simulate failure in tests.
+ */
+int
+GNUNET_TESTING_service_run_restartable (const char *testdir,
+			    const char *service_name,
+			    const char *cfgfilename,
+			    GNUNET_TESTING_RestartableTestMain tm,
+			    void *tm_cls)
+{
+  struct RestartableServiceContext sc;
+  struct GNUNET_TESTING_System *system;
+  struct GNUNET_TESTING_Peer *peer;
+  struct GNUNET_CONFIGURATION_Handle *cfg;
+
+  GNUNET_log_setup (testdir,
+                    "WARNING",
+                    NULL);
+  system = GNUNET_TESTING_system_create (testdir, "127.0.0.1");
+  if (NULL == system)
+    return 1;
+  cfg = GNUNET_CONFIGURATION_create ();
+  if (GNUNET_OK != GNUNET_CONFIGURATION_load (cfg, cfgfilename))
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+	 _("Failed to load configuration from %s\n"), cfgfilename);
+    GNUNET_CONFIGURATION_destroy (cfg);
+    GNUNET_TESTING_system_destroy (system, GNUNET_YES);
+    return 1;
+  }
+  peer = GNUNET_TESTING_peer_configure (system, cfg, 0, NULL, NULL);
+  if (NULL == peer)
+  {
+    GNUNET_CONFIGURATION_destroy (cfg);
+    hostkeys_unload (system);
+    GNUNET_TESTING_system_destroy (system, GNUNET_YES);
+    return 1;
+  }
+  GNUNET_free (peer->main_binary);
+  GNUNET_asprintf (&peer->main_binary, "gnunet-service-%s", service_name);
+  if (GNUNET_OK != GNUNET_TESTING_peer_start (peer))
+  {
+    GNUNET_TESTING_peer_destroy (peer);
+    GNUNET_CONFIGURATION_destroy (cfg);
+    GNUNET_TESTING_system_destroy (system, GNUNET_YES);
+    return 1;
+  }
+  sc.cfg = cfg;
+  sc.tm = tm;
+  sc.tm_cls = tm_cls;
+  sc.peer = peer;
+  GNUNET_SCHEDULER_run (&service_run_restartable_main, &sc); /* Scheduler loop */
   if (GNUNET_OK != GNUNET_TESTING_peer_stop (peer))
   {
     GNUNET_TESTING_peer_destroy (peer);
