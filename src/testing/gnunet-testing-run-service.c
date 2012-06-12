@@ -95,6 +95,7 @@ stdin_cb (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         GNUNET_TESTING_peer_stop(my_peer); 
         GNUNET_TESTING_peer_start(my_peer); 
         printf("restarted\n");
+        fflush(stdout);
       }
       tid = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL, &fh, &stdin_cb, NULL);
     }
