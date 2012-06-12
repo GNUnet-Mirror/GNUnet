@@ -31,6 +31,7 @@
 #include "gnunet_constants.h"
 #include "gnunet_transport_service.h"
 #include "gnunet_hello_lib.h"
+#include "gnunet_container_lib.h"
 
 
 
@@ -42,9 +43,24 @@
 struct GNUNET_TESTBED_Host
 {
 
+  /**
+   * The next pointer for DLL
+   */
+  struct GNUNET_TESTBED_Host *next;
 
+  /**
+   * The prev pointer for DLL
+   */
+  struct GNUNET_TESTBED_Host *prev;
+
+  /**
+   * The hostname of the host; NULL for localhost
+   */
   const char *hostname;
 
+  /**
+   * The username to be used for SSH login
+   */
   const char *username;
 
   /**
@@ -52,8 +68,22 @@ struct GNUNET_TESTBED_Host
    */
   uint32_t unique_id;
 
+  /**
+   * The port which is to be used for SSH
+   */
   uint16_t port;
 };
+
+
+/**
+ * Head element in the list of available hosts
+ */
+static struct GNUNET_TESTBED_Host *host_list_head;
+
+/**
+ * Tail element in the list of available hosts
+ */
+static struct GNUNET_TESTBED_Host *host_list_tail;
 
 
 /**
@@ -61,12 +91,16 @@ struct GNUNET_TESTBED_Host
  * 
  * @param id global host ID assigned to the host; 0 is
  *        reserved to always mean 'localhost'
- * @return handle to the host, NULL on error
+ * @return handle to the host, NULL if host not found
  */
 struct GNUNET_TESTBED_Host *
 GNUNET_TESTBED_host_lookup_by_id_ (uint32_t id)
 {
-  GNUNET_break (0);
+  struct GNUNET_TESTBED_Host *host;
+
+  for (host = host_list_head; NULL != host; host=host->next)
+    if (id == host->unique_id)
+      return host;
   return NULL;
 }
 
@@ -83,6 +117,7 @@ GNUNET_TESTBED_host_lookup_by_id_ (uint32_t id)
 struct GNUNET_TESTBED_Host *
 GNUNET_TESTBED_host_create_by_id_ (uint32_t id)
 {
+  GNUNET_break (0);
   return NULL;
 }
 
@@ -97,8 +132,7 @@ GNUNET_TESTBED_host_create_by_id_ (uint32_t id)
 uint32_t
 GNUNET_TESTBED_host_get_id_ (struct GNUNET_TESTBED_Host *host)
 {
-  GNUNET_break (0);
-  return 0;
+    return host->unique_id;
 }
 
 
@@ -112,14 +146,21 @@ GNUNET_TESTBED_host_get_id_ (struct GNUNET_TESTBED_Host *host)
  * @param port port number to use for ssh; use 0 to let ssh decide
  * @return handle to the host, NULL on error
  */
-struct GNUNET_TESTBED_Host *
+static struct GNUNET_TESTBED_Host *
 GNUNET_TESTBED_host_create_with_id_ (uint32_t id,
 				     const char *hostname,
 				     const char *username,
 				     uint16_t port)
 {
-  GNUNET_break (0);
-  return NULL;
+  struct GNUNET_TESTBED_Host *host;
+
+  host = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Host));
+  host->hostname = hostname;
+  host->username = username;
+  host->unique_id = id;
+  host->port = (0 == port) ? 22 : port;
+  GNUNET_CONTAINER_DLL_insert_tail (host_list_head, host_list_tail, host);
+  return host;
 }
 
 
@@ -138,6 +179,8 @@ GNUNET_TESTBED_host_create (const char *hostname,
 {
   static uint32_t uid_generator;
 
+  if (NULL == hostname)
+    return GNUNET_TESTBED_host_create_with_id_ (0, hostname, username, port);
   return GNUNET_TESTBED_host_create_with_id_ (++uid_generator, 
 					      hostname, username,
 					      port);
@@ -168,8 +211,9 @@ GNUNET_TESTBED_hosts_load_from_file (const char *filename,
  */
 void
 GNUNET_TESTBED_host_destroy (struct GNUNET_TESTBED_Host *host)
-{
-  GNUNET_break (0);
+{  
+  GNUNET_CONTAINER_DLL_remove (host_list_head, host_list_tail, host);
+  GNUNET_free (host);  
 }
 
 
