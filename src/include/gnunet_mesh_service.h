@@ -223,6 +223,17 @@ typedef void (*GNUNET_MESH_PeerConnectHandler) (void *cls,
                                                 GNUNET_ATS_Information * atsi);
 
 
+/**
+ * Store the given regex (describing offered local services) in the DHT,
+ * in order to be reachable to other peers via connect_by_string.
+ *
+ * @param h handle to mesh.
+ * @param regex string with the regular expression describing local services.
+ */
+void
+GNUNET_MESH_announce_regex (struct GNUNET_MESH_Handle *h,
+                            const char *regex);
+
 
 /**
  * Create a new tunnel (we're initiator and will be allowed to add/remove peers
@@ -285,6 +296,18 @@ GNUNET_MESH_peer_request_connect_del (struct GNUNET_MESH_Tunnel *tunnel,
 void
 GNUNET_MESH_peer_request_connect_by_type (struct GNUNET_MESH_Tunnel *tunnel,
                                           GNUNET_MESH_ApplicationType app_type);
+
+
+/**
+ * Request that the mesh should try to connect to a peer matching the
+ * description given in the service string.
+ *
+ * @param tunnel handle to existing tunnel
+ * @param description string describing the destination node requirements
+ */
+void
+GNUNET_MESH_peer_request_connect_by_string (struct GNUNET_MESH_Tunnel *tunnel,
+                                            const char *description);
 
 
 /**
