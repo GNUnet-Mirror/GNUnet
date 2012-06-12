@@ -11,6 +11,18 @@ endif
 
 pkgcfgdir= $(pkgdatadir)/config.d/
 
+pkgcfg_DATA = \
+  testbed.conf
+
+bin_PROGRAMS = \
+  gnunet-service-testbed
+
+gnunet_service_testbed_SOURCES = \
+  gnunet-service-testbed.c
+gnunet_service_testbed_LDADD = $(XLIB) \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(LTLIBINTL)
+
 dist_pkgcfg_DATA = \
   testbed.conf
 

@@ -1091,6 +1091,7 @@ src/statistics/statistics.conf
 src/stream/Makefile
 src/template/Makefile
 src/testbed/Makefile
+src/testbed/testbed.conf
 src/testing/Makefile
 src/testing_old/Makefile
 src/topology/Makefile
