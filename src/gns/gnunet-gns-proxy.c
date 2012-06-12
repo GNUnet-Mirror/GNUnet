@@ -40,7 +40,7 @@
 /* MHD/cURL defines */
 #define BUF_WAIT_FOR_CURL 0
 #define BUF_WAIT_FOR_MHD 1
-#define HTML_HDR_CONTENT "Content-Type: text/html\r\n"
+#define HTML_HDR_CONTENT "Content-Type: text/html"
 
 /* regexp */
 //#define RE_DOTPLUS "<a href=\"http://(([A-Za-z]+[.])+)([+])"
@@ -373,10 +373,14 @@ curl_check_hdr (void *buffer, size_t size, size_t nmemb, void *cls)
 {
   size_t bytes = size * nmemb;
   struct ProxyCurlTask *ctask = cls;
-  char hdr[bytes+1];
+  int len = strlen (HTML_HDR_CONTENT);
+  char hdr[len+1];
+  
+  if ( (len+1) > bytes)
+    return bytes;
 
-  memcpy (hdr, buffer, bytes);
-  hdr[bytes] = '\0';
+  memcpy (hdr, buffer, len);
+  hdr[len] = '\0';
 
   if (0 == strcmp (hdr, HTML_HDR_CONTENT))
   {
