@@ -228,17 +228,14 @@ struct GetNameAuthorityHandle
  */
 struct GetPseuAuthorityHandle
 {
-  /* the name given from delegation */
+  /* the name to store the zone under */
   char name[MAX_DNS_LABEL_LENGTH];
 
-  /* name to store the pseu under */
-  char new_name[MAX_DNS_LABEL_LENGTH];
+  /* test name to store the zone under */
+  char test_name[MAX_DNS_LABEL_LENGTH];
   
-  /* the zone of discovered authority */
-  struct GNUNET_CRYPTO_ShortHashCode new_zone;
-
   /* the zone of our authority */
-  struct GNUNET_CRYPTO_ShortHashCode zone;
+  struct GNUNET_CRYPTO_ShortHashCode our_zone;
 
   /* the private key of the zone to store the pseu in */
   struct GNUNET_CRYPTO_RsaPrivateKey *key;
@@ -248,6 +245,9 @@ struct GetPseuAuthorityHandle
 
   /* timeout task for lookup */
   GNUNET_SCHEDULER_TaskIdentifier timeout;
+
+  /* Head of the authority list */
+  struct AuthorityChain *ahead;
 };
 
 /**
