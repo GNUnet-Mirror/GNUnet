@@ -564,7 +564,7 @@ mhd_content_cb (void *cls,
   if (ctask->download_successful &&
       (ctask->buf_status == BUF_WAIT_FOR_CURL))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "MHD: sending response for %s\n", ctask->url);
     ctask->download_in_progress = GNUNET_NO;
     curl_multi_remove_handle (curl_multi, ctask->curl);
@@ -577,7 +577,7 @@ mhd_content_cb (void *cls,
   if (ctask->download_error &&
       (ctask->buf_status == BUF_WAIT_FOR_CURL))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "MHD: sending error response\n");
     ctask->download_in_progress = GNUNET_NO;
     curl_multi_remove_handle (curl_multi, ctask->curl);
@@ -1017,6 +1017,8 @@ process_leho_lookup (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "SSL target server: %s\n", ssl_ip);
       sprintf (resolvename, "%s:%d:%s", ctask->leho, HTTPS_PORT, ssl_ip);
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  "Curl resolve: %s\n", resolvename);
       ctask->resolver = curl_slist_append ( ctask->resolver, resolvename);
       curl_easy_setopt (ctask->curl, CURLOPT_RESOLVE, ctask->resolver);
       sprintf (curlurl, "https://%s%s", ctask->leho, ctask->url);
@@ -1121,7 +1123,7 @@ create_response (void *cls,
   struct MhdHttpList* hd = cls;
   const char* page = "<html><head><title>gnoxy</title>"\
                       "</head><body>cURL fail</body></html>";
-  struct MHD_Response *response;
+  struct MHD_Response *response = NULL;
   char host[265];
   char curlurl[512];
   int ret = MHD_YES;
@@ -1152,10 +1154,11 @@ create_response (void *cls,
   /* Do cURL */
   ctask = GNUNET_malloc (sizeof (struct ProxyCurlTask));
   ctask->mhd = hd;
-  ctask->curl = curl_easy_init();
 
   if (curl_multi == NULL)
     curl_multi = curl_multi_init ();
+
+  ctask->curl = curl_easy_init();
   
   if ((ctask->curl == NULL) || (curl_multi == NULL))
   {
@@ -1169,7 +1172,12 @@ create_response (void *cls,
     GNUNET_free (ctask);
     return ret;
   }
-
+  
+  ctask->prev = NULL;
+  ctask->next = NULL;
+  ctask->headers = NULL;
+  ctask->resolver = NULL;
+  ctask->buffer_ptr = NULL;
   ctask->download_in_progress = GNUNET_YES;
   ctask->download_successful = GNUNET_NO;
   ctask->buf_status = BUF_WAIT_FOR_CURL;
@@ -1184,13 +1192,16 @@ create_response (void *cls,
   curl_easy_setopt (ctask->curl, CURLOPT_MAXREDIRS, 4);
   /* no need to abort if the above failed */
   if (GNUNET_NO == ctask->mhd->is_ssl)
+  {
     sprintf (curlurl, "http://%s%s", host, url);
+    curl_easy_setopt (ctask->curl, CURLOPT_URL, curlurl);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Adding new curl task for %s\n", curlurl);
+  }
   strcpy (ctask->host, host);
   strcpy (ctask->url, url);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Adding new curl task for %s\n", curlurl);
   
-  curl_easy_setopt (ctask->curl, CURLOPT_URL, curlurl);
+  //curl_easy_setopt (ctask->curl, CURLOPT_URL, curlurl);
   curl_easy_setopt (ctask->curl, CURLOPT_FAILONERROR, 1);
   curl_easy_setopt (ctask->curl, CURLOPT_CONNECTTIMEOUT, 600L);
   curl_easy_setopt (ctask->curl, CURLOPT_TIMEOUT, 600L);
@@ -1202,7 +1213,8 @@ create_response (void *cls,
   //download_prepare (ctask);
   //curl_download_prepare ();
 
-  response = MHD_create_response_from_callback (-1, -1,
+  response = MHD_create_response_from_callback (MHD_SIZE_UNKNOWN,
+                                                MHD_SIZE_UNKNOWN,
                                                 &mhd_content_cb,
                                                 ctask,
                                                 &mhd_content_free);
@@ -1542,28 +1554,27 @@ get_file_size (const char* filename)
  * @return data
  */
 static char*
-load_file (const char* filename)
+load_file (const char* filename, unsigned int* size)
 {
   FILE *fp;
   char *buffer;
-  long size;
 
-  size = get_file_size (filename);
-  if (size == 0)
+  *size = get_file_size (filename);
+  if (*size == 0)
     return NULL;
 
   fp = fopen (filename, "rb");
   if (!fp)
     return NULL;
 
-  buffer = GNUNET_malloc (size);
+  buffer = GNUNET_malloc (*size);
   if (!buffer)
   {
     fclose (fp);
     return NULL;
   }
 
-  if (size != fread (buffer, 1, size, fp))
+  if (*size != fread (buffer, 1, *size, fp))
   {
     GNUNET_free (buffer);
     buffer = NULL;
@@ -1585,10 +1596,10 @@ static void
 load_key_from_file (gnutls_x509_privkey_t key, char* keyfile)
 {
   gnutls_datum_t key_data;
+  key_data.data = NULL;
   int ret;
 
-  key_data.data = (unsigned char*)load_file (keyfile);
-  key_data.size = strlen ((char*)key_data.data);
+  key_data.data = (unsigned char*)load_file (keyfile, &key_data.size);
 
   ret = gnutls_x509_privkey_import (key, &key_data,
                                     GNUTLS_X509_FMT_PEM);
@@ -1613,10 +1624,10 @@ static void
 load_cert_from_file (gnutls_x509_crt_t crt, char* certfile)
 {
   gnutls_datum_t cert_data;
+  cert_data.data = NULL;
   int ret;
 
-  cert_data.data = (unsigned char*)load_file (certfile);
-  cert_data.size = strlen ((char*)cert_data.data);
+  cert_data.data = (unsigned char*)load_file (certfile, &cert_data.size);
 
   ret = gnutls_x509_crt_import (crt, &cert_data,
                                  GNUTLS_X509_FMT_PEM);
@@ -2152,6 +2163,8 @@ do_shutdown (void *cls,
   struct ProxyCurlTask *ctask;
   struct ProxyCurlTask *ctask_tmp;
 
+  gnutls_global_deinit ();
+
   if (GNUNET_SCHEDULER_NO_TASK != curl_download_task)
   {
     GNUNET_SCHEDULER_cancel (curl_download_task);
@@ -2351,6 +2364,8 @@ run (void *cls, char *const *args, const char *cfgfile,
   char* proxy_sockfile;
   char* cafile_cfg = NULL;
   char* cafile;
+
+  curl_multi = NULL;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Loading CA\n");
