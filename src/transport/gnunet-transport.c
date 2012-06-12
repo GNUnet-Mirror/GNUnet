@@ -670,6 +670,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 int
 main (int argc, char *const *argv)
 {
+  int res;
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
     {'b', "benchmark", NULL,
      gettext_noop ("measure how fast we are receiving data (until CTRL-C)"),
@@ -700,11 +701,18 @@ main (int argc, char *const *argv)
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
 
-  return (GNUNET_OK ==
-          GNUNET_PROGRAM_run (argc, argv, "gnunet-transport",
+  res = GNUNET_PROGRAM_run (argc, argv, "gnunet-transport",
                               gettext_noop
                               ("Direct access to transport service."), options,
-                              &run, NULL)) ? ret : 1;
+                              &run, NULL);
+  GNUNET_free ((void *) argv);
+
+  if (GNUNET_OK == res)
+    return ret;
+  else
+    return 1;
+
+
 }
 
 
