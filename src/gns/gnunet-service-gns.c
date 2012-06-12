@@ -427,7 +427,7 @@ update_zone_dht_start(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * Lookup the shorten key for the zone
  *
- * @param zone the zone we want a private key for
+ * @param short_zone the zone we want a private key for
  * @return NULL of not found else the key
  */
 struct GNUNET_CRYPTO_RsaPrivateKey*

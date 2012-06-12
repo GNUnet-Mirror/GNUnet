@@ -123,6 +123,20 @@ struct Socks5Request
   int cleanup_sock;
 };
 
+/**
+ * DLL for Network Handles
+ */
+struct NetworkHandleList
+{
+  /*DLL*/
+  struct NetworkHandleList *next;
+
+  /*DLL*/
+  struct NetworkHandleList *prev;
+
+  /* The handle */
+  struct GNUNET_NETWORK_Handle *h;
+};
 
 /**
  * A structure for all running Httpds
@@ -149,6 +163,12 @@ struct MhdHttpList
 
   /* The task ID */
   GNUNET_SCHEDULER_TaskIdentifier httpd_task;
+
+  /* Handles associated with this daemon */
+  struct NetworkHandleList *socket_handles_head;
+  
+  /* Handles associated with this daemon */
+  struct NetworkHandleList *socket_handles_tail;
 };
 
 /**
@@ -221,6 +241,9 @@ struct ProxyCurlTask
 
   /* The associated daemon list entry */
   struct MhdHttpList *mhd;
+
+  /* The associated response */
+  struct MHD_Response *response;
   
 };
 
@@ -455,7 +478,11 @@ callback_download (void *ptr, size_t size, size_t nmemb, void *ctx)
   return total;
 }
 
-
+/**
+ * Ask cURL for the select sets and schedule download
+ */
+static void
+curl_download_prepare ();
 
 /**
  * Callback to free content
@@ -463,17 +490,18 @@ callback_download (void *ptr, size_t size, size_t nmemb, void *ctx)
  * @param cls content to free
  */
 static void
-mhd_content_free (void *cls)
+mhd_content_free (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct ProxyCurlTask *ctask = cls;
 
   if (NULL != ctask->headers)
     curl_slist_free_all (ctask->headers);
 
-  if (NULL != ctask->curl)
-    curl_easy_cleanup (ctask->curl);
+  if (NULL != ctask->headers)
+    curl_slist_free_all (ctask->resolver);
 
-  ctask->curl = NULL;
+  if (NULL != ctask->response)
+    MHD_destroy_response (ctask->response);
 
   GNUNET_free (ctask);
 
@@ -516,28 +544,6 @@ process_shorten (void* cls, const char* short_name)
 
 
 /**
- * Postprocessing task that uses GNS to shorten names
- *
- * @param cls the proxycurltask
- * @param tc the task context
- *
-static void
-postprocess_name (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct ProxyCurlTask *ctask = cls;
-  char tmp[strlen(ctask->pp_buf)];
-
-  sprintf ( tmp, "%s%s", ctask->pp_buf, ctask->authority);
-
-  GNUNET_GNS_shorten (gns_handle,
-                      tmp,
-                      &process_shorten,
-                      ctask);
-
-}
-*/
-
-/**
  * Callback for MHD response
  *
  * @param cls closure
@@ -559,7 +565,7 @@ mhd_content_cb (void *cls,
   regmatch_t m[RE_N_MATCHES];
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "MHD: content cb\n");
+              "MHD: content cb %s\n", ctask->url);
 
   if (ctask->download_successful &&
       (ctask->buf_status == BUF_WAIT_FOR_CURL))
@@ -567,8 +573,7 @@ mhd_content_cb (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "MHD: sending response for %s\n", ctask->url);
     ctask->download_in_progress = GNUNET_NO;
-    curl_multi_remove_handle (curl_multi, ctask->curl);
-    curl_easy_cleanup (ctask->curl);
+    GNUNET_SCHEDULER_add_now (&mhd_content_free, ctask);
     GNUNET_SCHEDULER_add_now (&run_mhd, ctask->mhd);
     total_mhd_connections--;
     return MHD_CONTENT_READER_END_OF_STREAM;
@@ -580,8 +585,7 @@ mhd_content_cb (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "MHD: sending error response\n");
     ctask->download_in_progress = GNUNET_NO;
-    curl_multi_remove_handle (curl_multi, ctask->curl);
-    curl_easy_cleanup (ctask->curl);
+    GNUNET_SCHEDULER_add_now (&mhd_content_free, ctask);
     GNUNET_SCHEDULER_add_now (&run_mhd, ctask->mhd);
     total_mhd_connections--;
     return MHD_CONTENT_READER_END_WITH_ERROR;
@@ -685,9 +689,6 @@ mhd_content_cb (void *cls,
                            &process_shorten,
                            ctask);
 
-        //postprocess_name(ctask, NULL);
-        //ctask->pp_task = GNUNET_SCHEDULER_add_now (&postprocess_name, ctask);
-
         return 0;
       }
     }
@@ -721,7 +722,8 @@ mhd_content_cb (void *cls,
       ctask->bytes_in_buffer = 0;
       ctask->buf_status = BUF_WAIT_FOR_CURL;
       ctask->buffer_ptr = ctask->buffer;
-      curl_easy_pause (ctask->curl, CURLPAUSE_CONT);
+      if (NULL != ctask->curl)
+        curl_easy_pause (ctask->curl, CURLPAUSE_CONT);
       GNUNET_SCHEDULER_add_now (&run_mhd, ctask->mhd);
     }
   }
@@ -819,6 +821,9 @@ curl_task_download (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct ProxyCurlTask *ctask;
   int num_ctasks;
 
+  struct ProxyCurlTask *clean_head = NULL;
+  struct ProxyCurlTask *clean_tail = NULL;
+
   curl_download_task = GNUNET_SCHEDULER_NO_TASK;
 
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
@@ -875,6 +880,9 @@ curl_task_download (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
             
            for (; ctask != NULL; ctask = ctask->next)
            {
+             if (NULL == ctask->curl)
+               continue;
+
              if (memcmp (msg->easy_handle, ctask->curl, sizeof (CURL)) != 0)
                continue;
              
@@ -886,8 +894,10 @@ curl_task_download (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
              ctask->download_error = GNUNET_YES;
              //curl_multi_remove_handle (curl_multi, ctask->curl);
              //curl_easy_cleanup (ctask->curl);
+             //ctask->curl = NULL;
              GNUNET_CONTAINER_DLL_remove (ctasks_head, ctasks_tail,
                                           ctask);
+             GNUNET_CONTAINER_DLL_insert (clean_head, clean_tail, ctask);
              break;
            }
            GNUNET_assert (ctask != NULL);
@@ -899,6 +909,9 @@ curl_task_download (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
            for (; ctask != NULL; ctask = ctask->next)
            {
+             if (NULL == ctask->curl)
+               continue;
+
              if (memcmp (msg->easy_handle, ctask->curl, sizeof (CURL)) != 0)
                continue;
              
@@ -907,8 +920,11 @@ curl_task_download (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
              ctask->download_successful = GNUNET_YES;
              //curl_multi_remove_handle (curl_multi, ctask->curl);
              //curl_easy_cleanup (ctask->curl);
+             //ctask->curl = NULL;
              GNUNET_CONTAINER_DLL_remove (ctasks_head, ctasks_tail,
                                           ctask);
+             GNUNET_CONTAINER_DLL_insert (clean_head, clean_tail, ctask);
+
              break;
            }
            GNUNET_assert (ctask != NULL);
@@ -921,6 +937,15 @@ curl_task_download (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
          break;
       }
     } while (msgnum > 0);
+
+    for (ctask=clean_head; ctask != NULL; ctask = ctask->next)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Removing cURL task %s.\n", ctask->url);
+      curl_multi_remove_handle (curl_multi, ctask->curl);
+      curl_easy_cleanup (ctask->curl);
+      ctask->curl = NULL;
+    }
     
     num_ctasks=0;
     for (ctask=ctasks_head; ctask != NULL; ctask = ctask->next)
@@ -1017,7 +1042,7 @@ process_leho_lookup (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "SSL target server: %s\n", ssl_ip);
       sprintf (resolvename, "%s:%d:%s", ctask->leho, HTTPS_PORT, ssl_ip);
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Curl resolve: %s\n", resolvename);
       ctask->resolver = curl_slist_append ( ctask->resolver, resolvename);
       curl_easy_setopt (ctask->curl, CURLOPT_RESOLVE, ctask->resolver);
@@ -1123,7 +1148,7 @@ create_response (void *cls,
   struct MhdHttpList* hd = cls;
   const char* page = "<html><head><title>gnoxy</title>"\
                       "</head><body>cURL fail</body></html>";
-  struct MHD_Response *response = NULL;
+  
   char host[265];
   char curlurl[512];
   int ret = MHD_YES;
@@ -1162,13 +1187,13 @@ create_response (void *cls,
   
   if ((ctask->curl == NULL) || (curl_multi == NULL))
   {
-    response = MHD_create_response_from_buffer (strlen (page),
+    ctask->response = MHD_create_response_from_buffer (strlen (page),
                                               (void*)page,
                                               MHD_RESPMEM_PERSISTENT);
     ret = MHD_queue_response (con,
                               MHD_HTTP_OK,
-                              response);
-    MHD_destroy_response (response);
+                              ctask->response);
+    MHD_destroy_response (ctask->response);
     GNUNET_free (ctask);
     return ret;
   }
@@ -1213,13 +1238,13 @@ create_response (void *cls,
   //download_prepare (ctask);
   //curl_download_prepare ();
 
-  response = MHD_create_response_from_callback (MHD_SIZE_UNKNOWN,
-                                                MHD_SIZE_UNKNOWN,
+  ctask->response = MHD_create_response_from_callback (MHD_SIZE_UNKNOWN,
+                                                20,
                                                 &mhd_content_cb,
                                                 ctask,
-                                                &mhd_content_free);
+                                                NULL);
   
-  ret = MHD_queue_response (con, MHD_HTTP_OK, response);
+  ret = MHD_queue_response (con, MHD_HTTP_OK, ctask->response);
   
   //MHD_destroy_response (response);
 
@@ -1518,7 +1543,7 @@ add_handle_to_mhd (struct GNUNET_NETWORK_Handle *h, struct MHD_Daemon *daemon)
   struct sockaddr *addr;
   socklen_t len;
 
-  fd = GNUNET_NETWORK_get_fd (h);
+  fd = dup (GNUNET_NETWORK_get_fd (h));
   addr = GNUNET_NETWORK_get_addr (h);
   len = GNUNET_NETWORK_get_addrlen (h);
 
@@ -1782,6 +1807,7 @@ add_handle_to_ssl_mhd (struct GNUNET_NETWORK_Handle *h, char* domain)
 {
   struct MhdHttpList *hd = NULL;
   struct ProxyGNSCertificate *pgc;
+  struct NetworkHandleList *nh;
 
   for (hd = mhd_httpd_head; hd != NULL; hd = hd->next)
   {
@@ -1821,6 +1847,13 @@ add_handle_to_ssl_mhd (struct GNUNET_NETWORK_Handle *h, char* domain)
     
     GNUNET_CONTAINER_DLL_insert (mhd_httpd_head, mhd_httpd_tail, hd);
   }
+
+  nh = GNUNET_malloc (sizeof (struct NetworkHandleList));
+  nh->h = h;
+
+  GNUNET_CONTAINER_DLL_insert (hd->socket_handles_head,
+                               hd->socket_handles_tail,
+                               nh);
   
   return add_handle_to_mhd (h, hd->daemon);
 }
@@ -1850,6 +1883,8 @@ do_read (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   uint32_t remote_ip;
   struct sockaddr_in remote_addr;
   struct in_addr *r_sin_addr;
+
+  struct NetworkHandleList *nh;
 
   s5r->rtask = GNUNET_SCHEDULER_NO_TASK;
 
@@ -1947,6 +1982,13 @@ do_read (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       {
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                     "Requested connection is HTTP\n");
+        nh = GNUNET_malloc (sizeof (struct NetworkHandleList));
+        nh->h = s5r->sock;
+
+        GNUNET_CONTAINER_DLL_insert (mhd_httpd_head->socket_handles_head,
+                               mhd_httpd_head->socket_handles_tail,
+                               nh);
+
         ret = add_handle_to_mhd ( s5r->sock, httpd );
       }
 
@@ -2160,9 +2202,15 @@ do_shutdown (void *cls,
 
   struct MhdHttpList *hd;
   struct MhdHttpList *tmp_hd;
+  struct NetworkHandleList *nh;
+  struct NetworkHandleList *tmp_nh;
   struct ProxyCurlTask *ctask;
   struct ProxyCurlTask *ctask_tmp;
+  
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Shutting down...\n");
 
+  MHD_fini ();
   gnutls_global_deinit ();
 
   if (GNUNET_SCHEDULER_NO_TASK != curl_download_task)
@@ -2193,6 +2241,15 @@ do_shutdown (void *cls,
       hd->daemon = NULL;
     }
 
+    for (nh = hd->socket_handles_head; nh != NULL; nh = tmp_nh)
+    {
+      tmp_nh = nh->next;
+
+      GNUNET_NETWORK_socket_close (nh->h);
+
+      GNUNET_free (nh);
+    }
+
     if (NULL != hd->proxy_cert)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -2215,6 +2272,12 @@ do_shutdown (void *cls,
     ctask->curl = NULL;
     if (NULL != ctask->headers)
       curl_slist_free_all (ctask->headers);
+    if (NULL != ctask->resolver)
+      curl_slist_free_all (ctask->resolver);
+
+    if (NULL != ctask->response)
+      MHD_destroy_response (ctask->response);
+
 
     GNUNET_free (ctask);
   }
@@ -2569,6 +2632,7 @@ main (int argc, char *const *argv)
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
 
+
   GNUNET_log_setup ("gnunet-gns-proxy", "WARNING", NULL);
   ret =
       (GNUNET_OK ==
@@ -2576,5 +2640,7 @@ main (int argc, char *const *argv)
                            _("GNUnet GNS proxy"),
                            options,
                            &run, NULL)) ? 0 : 1;
+  GNUNET_free_non_null ((char*)argv);
+
   return ret;
 }
