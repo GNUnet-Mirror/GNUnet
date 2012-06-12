@@ -70,6 +70,11 @@
 #define MAXIMUM_REPLICATION_LEVEL 16
 
 /**
+ * Maximum allowed number of pending messages per peer.
+ */
+#define MAXIMUM_PENDING_PER_PEER 64
+
+/**
  * How often to update our preference levels for peers in our routing tables.
  */
 #define DHT_DEFAULT_PREFERENCE_INTERVAL GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 2)
@@ -301,8 +306,7 @@ struct PeerInfo
   struct PeerInfo *prev;
 
   /**
-   * Count of outstanding messages for peer.  FIXME: NEEDED?
-   * FIXME: bound queue size!?
+   * Count of outstanding messages for peer. 
    */
   unsigned int pending_count;
 
@@ -1238,6 +1242,12 @@ GDS_NEIGHBOURS_handle_put (enum GNUNET_BLOCK_Type type,
   for (i = 0; i < target_count; i++)
   {
     target = targets[i];
+    if (target->pending_count >= MAXIMUM_PENDING_PER_PEER)
+    {
+      GNUNET_STATISTICS_update (GDS_stats, gettext_noop ("# P2P messages dropped due to full queue"),
+				1, GNUNET_NO);
+      continue; /* skip */
+    }
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Routing PUT for %s after %u hops to %s\n", GNUNET_h2s (key),
                 (unsigned int) hop_count, GNUNET_i2s (&target->id));
@@ -1345,6 +1355,12 @@ GDS_NEIGHBOURS_handle_get (enum GNUNET_BLOCK_Type type,
   for (i = 0; i < target_count; i++)
   {
     target = targets[i];
+    if (target->pending_count >= MAXIMUM_PENDING_PER_PEER)
+    {
+      GNUNET_STATISTICS_update (GDS_stats, gettext_noop ("# P2P messages dropped due to full queue"),
+				1, GNUNET_NO);
+      continue; /* skip */
+    }
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Routing GET for %s after %u hops to %s\n", GNUNET_h2s (key),
                 (unsigned int) hop_count, GNUNET_i2s (&target->id));
@@ -1438,6 +1454,14 @@ GDS_NEIGHBOURS_handle_reply (const struct GNUNET_PeerIdentity *target,
     /* peer disconnected in the meantime, drop reply */
     return;
   }
+  if (pi->pending_count >= MAXIMUM_PENDING_PER_PEER)
+  {
+    /* skip */
+    GNUNET_STATISTICS_update (GDS_stats, gettext_noop ("# P2P messages dropped due to full queue"),
+			      1, GNUNET_NO);
+    return;
+  }
+
   GNUNET_STATISTICS_update (GDS_stats,
                             gettext_noop
                             ("# RESULT messages queued for transmission"), 1,
