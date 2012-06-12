@@ -83,6 +83,11 @@ static int test_configuration;
 static int monitor_connections;
 
 /**
+ *
+ */
+static int monitor_connections_counter;
+
+/**
  * Option -n.
  */
 static int numeric;
@@ -412,15 +417,58 @@ notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
   if (verbosity > 0)
     FPRINTF (stdout, _("Disconnected from %s\n"), GNUNET_i2s (peer));
-  if ((0 == memcmp (&pid, peer, sizeof (struct GNUNET_PeerIdentity))) &&
-      (NULL != th))
-  {
-    GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
-    th = NULL;
-    GNUNET_SCHEDULER_cancel (end);
-    end = GNUNET_SCHEDULER_add_now (&do_disconnect, NULL);
-  }
 }
+
+/**
+ * Function called to notify transport users that another
+ * peer connected to us.
+ *
+ * @param cls closure
+ * @param peer the peer that connected
+ * @param ats performance data
+ * @param ats_count number of entries in ats (excluding 0-termination)
+ */
+static void
+monitor_notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
+                const struct GNUNET_ATS_Information *ats, uint32_t ats_count)
+{
+  monitor_connections_counter ++;
+  struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get();
+  char *now_str = GNUNET_STRINGS_absolute_time_to_string (now);
+  FPRINTF (stdout, _("%24s: %-17s %4s   (%u connections in total)\n"),
+           now_str,
+           _("Connected to"),
+           GNUNET_i2s (peer),
+           monitor_connections_counter);
+
+  GNUNET_free (now_str);
+}
+
+
+/**
+ * Function called to notify transport users that another
+ * peer disconnected from us.
+ *
+ * @param cls closure
+ * @param peer the peer that disconnected
+ */
+static void
+monitor_notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
+{
+  struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get();
+  char *now_str = GNUNET_STRINGS_absolute_time_to_string (now);
+
+  GNUNET_assert (monitor_connections_counter > 0);
+  monitor_connections_counter --;
+
+  FPRINTF (stdout, _("%24s: %-17s %4s   (%u connections in total)\n"),
+           now_str,
+           _("Disconnected from"),
+           GNUNET_i2s (peer),
+           monitor_connections_counter);
+  GNUNET_free (now_str);
+}
+
 
 
 /**
@@ -526,9 +574,11 @@ static void
 shutdown_task (void *cls,
 	       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct GNUNET_TRANSPORT_PeerIterateContext *pic = cls;
-
-  GNUNET_TRANSPORT_peer_get_active_addresses_cancel (pic);
+  if (NULL != handle)
+  {
+    GNUNET_TRANSPORT_disconnect(handle);
+    handle = NULL;
+  }
 
   if (NULL != peers)
   {
@@ -598,14 +648,21 @@ run (void *cls, char *const *args, const char *cfgfile,
   }
   if (monitor_connections)
   {
-    struct GNUNET_TRANSPORT_PeerIterateContext *pic;
-
-    pic = GNUNET_TRANSPORT_peer_get_active_addresses (cfg, NULL, GNUNET_NO,
-						      GNUNET_TIME_UNIT_FOREVER_REL,
-						      &process_address, (void *) cfg);
-    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-				  &shutdown_task,
-				  pic);
+    monitor_connections_counter = 0;
+    handle = GNUNET_TRANSPORT_connect (cfg, NULL, NULL, NULL,
+                                       &monitor_notify_connect,
+                                       &monitor_notify_disconnect);
+    if (NULL == handle)
+    {
+      FPRINTF (stderr, _("Failed to connect to transport service\n"));
+      GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
+    }
+    else
+    {
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
+                                    &shutdown_task,
+                                    NULL);
+    }
   }
 }
 
