@@ -661,8 +661,10 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
   if (sc->direction == _SEND)
   {
     response =
-        MHD_create_response_from_callback (-1, 32 * 1024, &server_send_callback,
-                                           s, NULL);
+        MHD_create_response_from_callback (MHD_SIZE_UNKNOWN,
+                                           32 * 1024,
+                                           &server_send_callback, s,
+                                           NULL);
     MHD_queue_response (mhd_connection, MHD_HTTP_OK, response);
     MHD_destroy_response (response);
     return MHD_YES;
