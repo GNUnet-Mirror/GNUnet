@@ -22,12 +22,16 @@ libgnunetstream_la_LDFLAGS = \
 check_PROGRAMS = \
  test-stream-2peers \
  test-stream-2peers_halfclose \
- test-stream-local
+ test-stream-local \
+ test-stream-big
 
 EXTRA_DIST = test_stream_local.conf
 
 if ENABLE_TEST_RUN
-TESTS = $(check_PROGRAMS)
+TESTS = \
+ test-stream-2peers \
+ test-stream-2peers_halfclose \
+ test-stream-local
 endif
 
 test_stream_2peers_SOURCES = \
@@ -47,6 +51,13 @@ test_stream_2peers_halfclose_LDADD = \
 test_stream_local_SOURCES = \
  test_stream_local.c
 test_stream_local_LDADD = \
+ $(top_builddir)/src/stream/libgnunetstream.la \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/testing_old/libgnunettesting_old.la
+
+test_stream_big_SOURCES = \
+ test_stream_big.c
+test_stream_big_LDADD = \
  $(top_builddir)/src/stream/libgnunetstream.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/testing_old/libgnunettesting_old.la

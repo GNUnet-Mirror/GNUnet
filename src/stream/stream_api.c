@@ -47,7 +47,7 @@
 /**
  * The maximum packet size of a stream packet
  */
-#define MAX_PACKET_SIZE 64000
+#define MAX_PACKET_SIZE 512//64000
 
 /**
  * Receive buffer
@@ -840,7 +840,8 @@ write_data (struct GNUNET_STREAM_Socket *socket)
   /* Now send new packets if there is enough buffer space */
   while ( (NULL != io_handle->messages[packet]) &&
 	  (socket->receiver_window_available 
-           >= ntohs (io_handle->messages[packet]->header.header.size)) )
+           >= ntohs (io_handle->messages[packet]->header.header.size)) &&
+          (packet < GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH))
   {
     socket->receiver_window_available -= 
       ntohs (io_handle->messages[packet]->header.header.size);
@@ -2780,7 +2781,7 @@ GNUNET_STREAM_open (const struct GNUNET_CONFIGURATION_Handle *cfg,
   } while (GNUNET_STREAM_OPTION_END != option);
   va_end (vargs);               /* End of variable args parsing */
   socket->mesh = GNUNET_MESH_connect (cfg, /* the configuration handle */
-                                      10,  /* QUEUE size as parameter? */
+                                      RECEIVE_BUFFER_SIZE,  /* QUEUE size as parameter? */
                                       socket, /* cls */
                                       NULL, /* No inbound tunnel handler */
                                       NULL, /* No in-tunnel cleaner */
@@ -3022,7 +3023,7 @@ GNUNET_STREAM_listen (const struct GNUNET_CONFIGURATION_Handle *cfg,
   lsocket->listen_cb = listen_cb;
   lsocket->listen_cb_cls = listen_cb_cls;
   lsocket->mesh = GNUNET_MESH_connect (cfg,
-                                       10, /* FIXME: QUEUE size as parameter? */
+                                       RECEIVE_BUFFER_SIZE, /* FIXME: QUEUE size as parameter? */
                                        lsocket, /* Closure */
                                        &new_tunnel_notify,
                                        &tunnel_cleaner,
