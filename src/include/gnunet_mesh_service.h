@@ -311,6 +311,19 @@ GNUNET_MESH_peer_request_connect_by_string (struct GNUNET_MESH_Tunnel *tunnel,
 
 
 /**
+ * Request that the given peer isn't added to this tunnel in calls to
+ * connect_by_* calls, (due to misbehaviour, bad performance, ...).
+ *
+ * @param tunnel handle to existing tunnel.
+ * @param peer peer identity of the peer which should be blacklisted
+ *                  for the tunnel.
+ */
+void
+GNUNET_MESH_peer_blacklist (struct GNUNET_MESH_Tunnel *tunnel,
+                            const struct GNUNET_PeerIdentity *peer);
+
+
+/**
  * Handle for a transmission request.
  */
 struct GNUNET_MESH_TransmitHandle;
