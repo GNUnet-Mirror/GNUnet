@@ -37,6 +37,8 @@ bin_PROGRAMS = \
 	$(DO_PROXY) \
   gnunet-gns
 
+bin_SCRIPTS=gnunet-gns-proxy-setup-ca
+
 check_PROGRAMS = \
   test_gns_simple_shorten \
   test_gns_simple_get_authority \
