@@ -83,11 +83,6 @@ static int test_configuration;
 static int monitor_connections;
 
 /**
- *
- */
-static int monitor_connections_counter;
-
-/**
  * Option -n.
  */
 static int numeric;
@@ -96,6 +91,11 @@ static int numeric;
  * Global return value (0 success).
  */
 static int ret;
+
+/**
+ * Current number of connections in monitor mode
+ */
+static int monitor_connections_counter;
 
 /**
  * Number of bytes of traffic we received so far.
