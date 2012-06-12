@@ -71,7 +71,7 @@ struct MigrationReadyBlock
   /**
    * Query for the block.
    */
-  GNUNET_HashCode query;
+  struct GNUNET_HashCode query;
 
   /**
    * When does this block expire?
@@ -467,7 +467,7 @@ consider_gathering ()
  *        maybe 0 if no unique identifier is available
  */
 static void
-process_migration_content (void *cls, const GNUNET_HashCode * key, size_t size,
+process_migration_content (void *cls, const struct GNUNET_HashCode * key, size_t size,
                            const void *data, enum GNUNET_BLOCK_Type type,
                            uint32_t priority, uint32_t anonymity,
                            struct GNUNET_TIME_Absolute expiration, uint64_t uid)

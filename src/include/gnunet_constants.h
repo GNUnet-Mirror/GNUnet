@@ -116,7 +116,7 @@ extern "C"
  * Size of the 'struct EncryptedMessage' of the core (which
  * is the per-message overhead of the core).
  */
-#define GNUNET_CONSTANTS_CORE_SIZE_ENCRYPTED_MESSAGE (24 + sizeof (GNUNET_HashCode))
+#define GNUNET_CONSTANTS_CORE_SIZE_ENCRYPTED_MESSAGE (24 + sizeof (struct GNUNET_HashCode))
 
 /**
  * Size of the 'struct OutboundMessage' of the transport

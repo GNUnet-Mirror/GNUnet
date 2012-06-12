@@ -148,7 +148,7 @@ iterate_sections (void *cls, const char *section)
   if (99 == strlen (section))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Peer '%s`\n", section);
-    GNUNET_HashCode h;
+    struct GNUNET_HashCode h;
     int res = GNUNET_CRYPTO_hash_from_string (section, &h);
 
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "HASH '%s` %i\n", GNUNET_h2s (&h), res);

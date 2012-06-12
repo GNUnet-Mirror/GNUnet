@@ -111,7 +111,7 @@ typedef int (*GNUNET_CHAT_JoinCallback) (void *cls);
  */
 typedef int (*GNUNET_CHAT_MessageCallback) (void *cls,
                                             struct GNUNET_CHAT_Room * room,
-                                            const GNUNET_HashCode * sender,
+                                            const struct GNUNET_HashCode * sender,
                                             const struct
                                             GNUNET_CONTAINER_MetaData *
                                             member_info, const char *message,
@@ -156,7 +156,7 @@ typedef int (*GNUNET_CHAT_MessageConfirmation) (void *cls,
                                                 uint32_t orig_seq_number,
                                                 struct GNUNET_TIME_Absolute
                                                 timestamp,
-                                                const GNUNET_HashCode *
+                                                const struct GNUNET_HashCode *
                                                 receiver);
 
 /**
@@ -195,7 +195,7 @@ GNUNET_CHAT_join_room (const struct GNUNET_CONFIGURATION_Handle *cfg,
                        GNUNET_CHAT_MemberListCallback memberCallback,
                        void *member_cls,
                        GNUNET_CHAT_MessageConfirmation confirmationCallback,
-                       void *confirmation_cls, GNUNET_HashCode * me);
+                       void *confirmation_cls, struct GNUNET_HashCode * me);
 
 /**
  * Send a message.

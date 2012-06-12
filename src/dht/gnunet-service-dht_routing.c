@@ -50,7 +50,7 @@ struct RecentRequest
   /**
    * Key of this request.
    */
-  GNUNET_HashCode key;
+  struct GNUNET_HashCode key;
 
   /**
    * Position of this node in the min heap.
@@ -160,15 +160,15 @@ struct ProcessContext
  *         GNUNET_SYSERR if the result is malformed or type unsupported
  */
 static int
-process (void *cls, const GNUNET_HashCode * key, void *value)
+process (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct ProcessContext *pc = cls;
   struct RecentRequest *rr = value;
   enum GNUNET_BLOCK_EvaluationResult eval;
   unsigned int gpl;
   unsigned int ppl;
-  GNUNET_HashCode hc;
-  const GNUNET_HashCode *eval_key;
+  struct GNUNET_HashCode hc;
+  const struct GNUNET_HashCode *eval_key;
 
   if ((rr->type != GNUNET_BLOCK_TYPE_ANY) && (rr->type != pc->type))
     return GNUNET_OK;           /* type missmatch */
@@ -266,7 +266,7 @@ process (void *cls, const GNUNET_HashCode * key, void *value)
 void
 GDS_ROUTING_process (enum GNUNET_BLOCK_Type type,
                      struct GNUNET_TIME_Absolute expiration_time,
-                     const GNUNET_HashCode * key, unsigned int put_path_length,
+                     const struct GNUNET_HashCode * key, unsigned int put_path_length,
                      const struct GNUNET_PeerIdentity *put_path,
                      unsigned int get_path_length,
                      const struct GNUNET_PeerIdentity *get_path,
@@ -339,7 +339,7 @@ void
 GDS_ROUTING_add (const struct GNUNET_PeerIdentity *sender,
                  enum GNUNET_BLOCK_Type type,
                  enum GNUNET_DHT_RouteOption options,
-                 const GNUNET_HashCode * key, const void *xquery,
+                 const struct GNUNET_HashCode * key, const void *xquery,
                  size_t xquery_size,
                  const struct GNUNET_CONTAINER_BloomFilter *reply_bf,
                  uint32_t reply_bf_mutator)

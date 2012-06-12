@@ -169,7 +169,7 @@ do_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
  */
 static void
 get_result_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
-                     const GNUNET_HashCode * key,
+                     const struct GNUNET_HashCode * key,
                      const struct GNUNET_PeerIdentity *get_path,
                      unsigned int get_path_length,
                      const struct GNUNET_PeerIdentity *put_path,
@@ -179,7 +179,7 @@ get_result_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
   struct PeerGetContext *get_context = cls;
 
   if (0 !=
-      memcmp (&get_context->peer->hashPubKey, key, sizeof (GNUNET_HashCode)))
+      memcmp (&get_context->peer->hashPubKey, key, sizeof (struct GNUNET_HashCode)))
   {
     FPRINTF (stderr, "%s",  "??\n");
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,

@@ -51,7 +51,7 @@ extern "C"
  * @return GNUNET_OK to continue iteration, GNUNET_SYSERR to abort
  */
 typedef int (*GNUNET_PSEUDONYM_Iterator) (void *cls,
-                                          const GNUNET_HashCode * pseudonym,
+                                          const struct GNUNET_HashCode * pseudonym,
                                           const char *name,
                                           const char *unique_name,
                                           const struct GNUNET_CONTAINER_MetaData
@@ -67,7 +67,7 @@ typedef int (*GNUNET_PSEUDONYM_Iterator) (void *cls,
  */
 int
 GNUNET_PSEUDONYM_rank (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                       const GNUNET_HashCode * nsid, int delta);
+                       const struct GNUNET_HashCode * nsid, int delta);
 
 /**
  * Add a pseudonym to the set of known pseudonyms.
@@ -80,7 +80,7 @@ GNUNET_PSEUDONYM_rank (const struct GNUNET_CONFIGURATION_Handle *cfg,
  */
 void
 GNUNET_PSEUDONYM_add (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                      const GNUNET_HashCode * id,
+                      const struct GNUNET_HashCode * id,
                       const struct GNUNET_CONTAINER_MetaData *meta);
 
 
@@ -127,7 +127,7 @@ GNUNET_PSEUDONYM_discovery_callback_unregister (GNUNET_PSEUDONYM_Iterator
  */
 char *
 GNUNET_PSEUDONYM_name_uniquify (const struct GNUNET_CONFIGURATION_Handle *cfg,
-    const GNUNET_HashCode * nsid, const char *name, unsigned int *suffix);
+    const struct GNUNET_HashCode * nsid, const char *name, unsigned int *suffix);
 
 /**
  * Get namespace name, metadata and rank
@@ -152,7 +152,7 @@ GNUNET_PSEUDONYM_name_uniquify (const struct GNUNET_CONFIGURATION_Handle *cfg,
  */
 int
 GNUNET_PSEUDONYM_get_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
-    const GNUNET_HashCode * nsid, struct GNUNET_CONTAINER_MetaData **ret_meta,
+    const struct GNUNET_HashCode * nsid, struct GNUNET_CONTAINER_MetaData **ret_meta,
     int32_t *ret_rank, char **ret_name, int *name_is_a_dup);
 
 
@@ -166,7 +166,7 @@ GNUNET_PSEUDONYM_get_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
  */
 int
 GNUNET_PSEUDONYM_name_to_id (const struct GNUNET_CONFIGURATION_Handle *cfg,
-    const char *ns_uname, GNUNET_HashCode * nsid);
+    const char *ns_uname, struct GNUNET_HashCode * nsid);
 
 /**
  * Set the pseudonym metadata, rank and name.
@@ -182,7 +182,7 @@ GNUNET_PSEUDONYM_name_to_id (const struct GNUNET_CONFIGURATION_Handle *cfg,
  */
 int
 GNUNET_PSEUDONYM_set_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
-    const GNUNET_HashCode * nsid, const char *name,
+    const struct GNUNET_HashCode * nsid, const char *name,
     const struct GNUNET_CONTAINER_MetaData *md, int rank);
 
 

@@ -60,7 +60,7 @@ struct GNUNET_DHT_ClientGetStopMessage
   /**
    * Key of this request
    */
-  GNUNET_HashCode key;
+  struct GNUNET_HashCode key;
 
 };
 
@@ -95,7 +95,7 @@ struct GNUNET_DHT_ClientGetMessage
   /**
    * The key to search for
    */
-  GNUNET_HashCode key;
+  struct GNUNET_HashCode key;
 
   /**
    * Unique ID identifying this request, if 0 then
@@ -148,7 +148,7 @@ struct GNUNET_DHT_ClientResultMessage
   /**
    * The key that was searched for
    */
-  GNUNET_HashCode key;
+  struct GNUNET_HashCode key;
 
   /* put path, get path and actual data are copied to end of this dealy do */
 
@@ -193,7 +193,7 @@ struct GNUNET_DHT_ClientPutMessage
   /**
    * The key to store the value under.
    */
-  GNUNET_HashCode key;
+  struct GNUNET_HashCode key;
 
   /* DATA copied to end of this message */
 
@@ -268,7 +268,7 @@ struct GNUNET_DHT_MonitorPutMessage
   /**
    * The key to store the value under.
    */
-  GNUNET_HashCode key;
+  struct GNUNET_HashCode key;
 
   /* put path (if tracked) */
 
@@ -315,7 +315,7 @@ struct GNUNET_DHT_MonitorStartStopMessage
   /**
    * The key to filter messages by.
    */
-  GNUNET_HashCode key;
+  struct GNUNET_HashCode key;
 };
 
 
@@ -358,7 +358,7 @@ struct GNUNET_DHT_MonitorGetMessage
   /**
    * The key to store the value under.
    */
-  GNUNET_HashCode key;
+  struct GNUNET_HashCode key;
 
   /* get path (if tracked) */
 
@@ -397,7 +397,7 @@ struct GNUNET_DHT_MonitorGetRespMessage
   /**
    * The key of the corresponding GET request.
    */
-  GNUNET_HashCode key;
+  struct GNUNET_HashCode key;
 
   /* put path (if tracked) */
 

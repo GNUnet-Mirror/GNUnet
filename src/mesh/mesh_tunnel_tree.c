@@ -1050,7 +1050,7 @@ tree_debug (struct MeshTunnelTree *t)
  * @return GNUNET_YES if we should continue to iterate, GNUNET_NO if not.
  */
 static int
-iterate_free (void *cls, const GNUNET_HashCode * key, void *value)
+iterate_free (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   GNUNET_free (value);
   return GNUNET_YES;

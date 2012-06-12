@@ -71,7 +71,7 @@ template_plugin_estimate_size (void *cls)
  * @return GNUNET_OK on success
  */
 static int
-template_plugin_put (void *cls, const GNUNET_HashCode * key, uint32_t size,
+template_plugin_put (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
                      const void *data, enum GNUNET_BLOCK_Type type,
                      uint32_t priority, uint32_t anonymity,
                      uint32_t replication,
@@ -103,8 +103,8 @@ template_plugin_put (void *cls, const GNUNET_HashCode * key, uint32_t size,
  */
 static void
 template_plugin_get_key (void *cls, uint64_t offset,
-                         const GNUNET_HashCode * key,
-                         const GNUNET_HashCode * vhash,
+                         const struct GNUNET_HashCode * key,
+                         const struct GNUNET_HashCode * vhash,
                          enum GNUNET_BLOCK_Type type, PluginDatumProcessor proc,
                          void *proc_cls)
 {

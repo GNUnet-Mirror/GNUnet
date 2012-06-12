@@ -359,7 +359,7 @@ process_namespace (void *cls, const char *filename)
   struct ProcessNamespaceContext *pnc = cls;
   struct GNUNET_CRYPTO_RsaPrivateKey *key;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pk;
-  GNUNET_HashCode id;
+  struct GNUNET_HashCode id;
   const char *name;
   const char *t;
 
@@ -470,7 +470,7 @@ sb_put_cont (void *cls, int success,
 	     const char *msg)
 {
   struct GNUNET_FS_PublishSksContext *psc = cls;
-  GNUNET_HashCode hc;
+  struct GNUNET_HashCode hc;
 
   psc->dqe = NULL;
   if (GNUNET_OK != success)
@@ -544,9 +544,9 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
   struct SBlock *sb_enc;
   char *dest;
   struct GNUNET_CONTAINER_MetaData *mmeta;
-  GNUNET_HashCode key;          /* hash of thisId = key */
-  GNUNET_HashCode id;           /* hash of hc = identifier */
-  GNUNET_HashCode query;        /* id ^ nsid = DB query */
+  struct GNUNET_HashCode key;          /* hash of thisId = key */
+  struct GNUNET_HashCode id;           /* hash of hc = identifier */
+  struct GNUNET_HashCode query;        /* id ^ nsid = DB query */
 
   if (NULL == meta)
     mmeta = GNUNET_CONTAINER_meta_data_create ();
@@ -591,7 +591,7 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
   size = sizeof (struct SBlock) + mdsize + slen + nidlen;
   sb_enc = GNUNET_malloc (size);
   GNUNET_CRYPTO_hash (identifier, idlen, &key);
-  GNUNET_CRYPTO_hash (&key, sizeof (GNUNET_HashCode), &id);
+  GNUNET_CRYPTO_hash (&key, sizeof (struct GNUNET_HashCode), &id);
   sks_uri = GNUNET_malloc (sizeof (struct GNUNET_FS_Uri));
   sks_uri->type = sks;
   GNUNET_CRYPTO_rsa_key_get_public (namespace->key, &sb_enc->subspace);
@@ -711,7 +711,7 @@ struct ProcessUpdateClosure
  *         GNUNET_NO if not.
  */
 static int
-process_update_node (void *cls, const GNUNET_HashCode * key, void *value)
+process_update_node (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct ProcessUpdateClosure *pc = cls;
   struct NamespaceUpdateNode *nsn = value;
@@ -774,11 +774,11 @@ struct FindTreeClosure
  *         GNUNET_NO if not.
  */
 static int
-find_trees (void *cls, const GNUNET_HashCode * key, void *value)
+find_trees (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct FindTreeClosure *fc = cls;
   struct NamespaceUpdateNode *nsn = value;
-  GNUNET_HashCode hc;
+  struct GNUNET_HashCode hc;
 
   if (nsn->nug == fc->nug)
   {
@@ -838,7 +838,7 @@ GNUNET_FS_namespace_list_updateable (struct GNUNET_FS_Namespace *namespace,
 {
   unsigned int i;
   unsigned int nug;
-  GNUNET_HashCode hc;
+  struct GNUNET_HashCode hc;
   struct NamespaceUpdateNode *nsn;
   struct ProcessUpdateClosure pc;
   struct FindTreeClosure fc;

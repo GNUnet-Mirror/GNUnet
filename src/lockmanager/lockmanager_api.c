@@ -275,7 +275,7 @@ get_key (const char *domain_name,
  *         GNUNET_NO if not. 
  */
 static int
-match_iterator (void *cls, const GNUNET_HashCode *key, void *value)
+match_iterator (void *cls, const struct GNUNET_HashCode *key, void *value)
 {
   struct LockingRequestMatch *match = cls;
   struct GNUNET_LOCKMANAGER_LockingRequest *lr = value;
@@ -355,7 +355,7 @@ call_status_cb_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  */
 static int
 release_iterator(void *cls,
-                 const GNUNET_HashCode * key,
+                 const struct GNUNET_HashCode * key,
                  void *value)
 {
   struct GNUNET_LOCKMANAGER_Handle *h = cls;
@@ -472,7 +472,7 @@ handle_replies (void *cls,
  */
 static int
 free_iterator(void *cls,
-              const GNUNET_HashCode * key,
+              const struct GNUNET_HashCode * key,
               void *value)
 {
   struct GNUNET_LOCKMANAGER_Handle *h = cls;

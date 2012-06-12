@@ -242,7 +242,7 @@ handle_auth_discovery_timeout(void *cls,
 static void
 process_auth_discovery_dht_result(void* cls,
                                   struct GNUNET_TIME_Absolute exp,
-                                  const GNUNET_HashCode * key,
+                                  const struct GNUNET_HashCode * key,
                                   const struct GNUNET_PeerIdentity *get_path,
                                   unsigned int get_path_length,
                                   const struct GNUNET_PeerIdentity *put_path,
@@ -327,10 +327,10 @@ process_auth_discovery_ns_result(void* cls,
 {
   uint32_t xquery;
   struct GNUNET_CRYPTO_ShortHashCode name_hash;
-  GNUNET_HashCode lookup_key;
+  struct GNUNET_HashCode lookup_key;
   struct GNUNET_CRYPTO_HashAsciiEncoded lookup_key_string;
-  GNUNET_HashCode name_hash_double;
-  GNUNET_HashCode zone_hash_double;
+  struct GNUNET_HashCode name_hash_double;
+  struct GNUNET_HashCode zone_hash_double;
   int i;
   struct GetPseuAuthorityHandle* gph = (struct GetPseuAuthorityHandle*)cls;
   
@@ -692,7 +692,7 @@ dht_lookup_timeout(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 process_record_result_dht(void* cls,
                  struct GNUNET_TIME_Absolute exp,
-                 const GNUNET_HashCode * key,
+                 const struct GNUNET_HashCode * key,
                  const struct GNUNET_PeerIdentity *get_path,
                  unsigned int get_path_length,
                  const struct GNUNET_PeerIdentity *put_path,
@@ -817,9 +817,9 @@ resolve_record_dht(struct ResolverHandle *rh)
 {
   uint32_t xquery;
   struct GNUNET_CRYPTO_ShortHashCode name_hash;
-  GNUNET_HashCode lookup_key;
-  GNUNET_HashCode name_hash_double;
-  GNUNET_HashCode zone_hash_double;
+  struct GNUNET_HashCode lookup_key;
+  struct GNUNET_HashCode name_hash_double;
+  struct GNUNET_HashCode zone_hash_double;
   struct GNUNET_CRYPTO_HashAsciiEncoded lookup_key_string;
   struct RecordLookupHandle *rlh = (struct RecordLookupHandle *)rh->proc_cls;
   struct ResolverHandle *rh_heap_root;
@@ -1158,7 +1158,7 @@ handle_delegation_ns(void* cls, struct ResolverHandle *rh,
 static void
 process_delegation_result_dht(void* cls,
                  struct GNUNET_TIME_Absolute exp,
-                 const GNUNET_HashCode * key,
+                 const struct GNUNET_HashCode * key,
                  const struct GNUNET_PeerIdentity *get_path,
                  unsigned int get_path_length,
                  const struct GNUNET_PeerIdentity *put_path,
@@ -1174,7 +1174,7 @@ process_delegation_result_dht(void* cls,
   int i;
   int rd_size;
   struct GNUNET_CRYPTO_ShortHashCode zone, name_hash;
-  GNUNET_HashCode zone_hash_double, name_hash_double;
+  struct GNUNET_HashCode zone_hash_double, name_hash_double;
 
   rh = (struct ResolverHandle *)cls;
   
@@ -1692,9 +1692,9 @@ resolve_delegation_dht(struct ResolverHandle *rh)
 {
   uint32_t xquery;
   struct GNUNET_CRYPTO_ShortHashCode name_hash;
-  GNUNET_HashCode name_hash_double;
-  GNUNET_HashCode zone_hash_double;
-  GNUNET_HashCode lookup_key;
+  struct GNUNET_HashCode name_hash_double;
+  struct GNUNET_HashCode zone_hash_double;
+  struct GNUNET_HashCode lookup_key;
   struct ResolverHandle *rh_heap_root;
   
   pop_tld(rh->name, rh->authority_name); 

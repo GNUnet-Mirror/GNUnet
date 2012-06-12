@@ -57,17 +57,17 @@
  */
 static enum GNUNET_BLOCK_EvaluationResult
 block_plugin_fs_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
-                          const GNUNET_HashCode * query,
+                          const struct GNUNET_HashCode * query,
                           struct GNUNET_CONTAINER_BloomFilter **bf,
                           int32_t bf_mutator, const void *xquery,
                           size_t xquery_size, const void *reply_block,
                           size_t reply_block_size)
 {
   const struct SBlock *sb;
-  GNUNET_HashCode chash;
-  GNUNET_HashCode mhash;
-  const GNUNET_HashCode *nsid;
-  GNUNET_HashCode sh;
+  struct GNUNET_HashCode chash;
+  struct GNUNET_HashCode mhash;
+  const struct GNUNET_HashCode *nsid;
+  struct GNUNET_HashCode sh;
 
   switch (type)
   {
@@ -107,7 +107,7 @@ block_plugin_fs_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
     }
     return GNUNET_BLOCK_EVALUATION_OK_MORE;
   case GNUNET_BLOCK_TYPE_FS_SBLOCK:
-    if (xquery_size != sizeof (GNUNET_HashCode))
+    if (xquery_size != sizeof (struct GNUNET_HashCode))
     {
       GNUNET_break_op (0);
       return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
@@ -124,7 +124,7 @@ block_plugin_fs_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
     GNUNET_CRYPTO_hash (&sb->subspace,
                         sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
                         &sh);
-    if (0 != memcmp (nsid, &sh, sizeof (GNUNET_HashCode)))
+    if (0 != memcmp (nsid, &sh, sizeof (struct GNUNET_HashCode)))
     {
       GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, "block-fs",
                        _
@@ -167,7 +167,7 @@ block_plugin_fs_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
 static int
 block_plugin_fs_get_key (void *cls, enum GNUNET_BLOCK_Type type,
                          const void *block, size_t block_size,
-                         GNUNET_HashCode * key)
+                         struct GNUNET_HashCode * key)
 {
   const struct KBlock *kb;
   const struct SBlock *sb;

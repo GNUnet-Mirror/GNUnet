@@ -202,9 +202,9 @@ put_dht(void *cls, int32_t success, const char *emsg)
   struct GNSNameRecordBlock *nrb;
   struct GNUNET_CRYPTO_ShortHashCode name_hash;
   struct GNUNET_CRYPTO_ShortHashCode zone_hash;
-  GNUNET_HashCode xor_hash;
-  GNUNET_HashCode name_hash_double;
-  GNUNET_HashCode zone_hash_double;
+  struct GNUNET_HashCode xor_hash;
+  struct GNUNET_HashCode name_hash_double;
+  struct GNUNET_HashCode zone_hash_double;
   uint32_t rd_payload_length;
   char* nrb_data = NULL;
   struct GNUNET_CRYPTO_RsaSignature *sig;

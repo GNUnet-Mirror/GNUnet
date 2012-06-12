@@ -173,7 +173,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   int dst_af;
   int req_af;
   struct GNUNET_PeerIdentity peer; 
-  GNUNET_HashCode sd;
+  struct GNUNET_HashCode sd;
   const void *addr;
   struct in_addr v4;
   struct in6_addr v6;

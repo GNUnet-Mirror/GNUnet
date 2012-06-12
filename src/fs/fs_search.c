@@ -74,7 +74,7 @@ GNUNET_FS_search_make_status_ (struct GNUNET_FS_ProgressInfo *pi,
  *         GNUNET_OK otherwise
  */
 static int
-test_result_present (void *cls, const GNUNET_HashCode * key, void *value)
+test_result_present (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   const struct GNUNET_FS_Uri *uri = cls;
   struct GNUNET_FS_SearchResult *sr = value;
@@ -162,7 +162,7 @@ struct GetResultContext
  * @return GNUNET_OK
  */
 static int
-get_result_present (void *cls, const GNUNET_HashCode * key, void *value)
+get_result_present (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct GetResultContext *grc = cls;
   struct GNUNET_FS_SearchResult *sr = value;
@@ -388,7 +388,7 @@ process_ksk_result (struct GNUNET_FS_SearchContext *sc,
                     const struct GNUNET_FS_Uri *uri,
                     const struct GNUNET_CONTAINER_MetaData *meta)
 {
-  GNUNET_HashCode key;
+  struct GNUNET_HashCode key;
   struct GNUNET_FS_SearchResult *sr;
   struct GetResultContext grc;
   int is_new;
@@ -477,7 +477,7 @@ process_sks_result (struct GNUNET_FS_SearchContext *sc, const char *id_update,
                     const struct GNUNET_CONTAINER_MetaData *meta)
 {
   struct GNUNET_FS_Uri uu;
-  GNUNET_HashCode key;
+  struct GNUNET_HashCode key;
   struct GNUNET_FS_SearchResult *sr;
 
   /* check if new */
@@ -533,7 +533,7 @@ decrypt_block_with_keyword (const struct GNUNET_FS_SearchContext *sc,
 			    size_t edata_size,
 			    char *data)
 { 
-  GNUNET_HashCode q;
+  struct GNUNET_HashCode q;
   struct GNUNET_CRYPTO_AesSessionKey skey;
   struct GNUNET_CRYPTO_AesInitializationVector iv;
   int i;
@@ -543,7 +543,7 @@ decrypt_block_with_keyword (const struct GNUNET_FS_SearchContext *sc,
                       &q);
   /* find key */
   for (i = 0; i < sc->uri->data.ksk.keywordCount; i++)
-    if (0 == memcmp (&q, &sc->requests[i].query, sizeof (GNUNET_HashCode)))
+    if (0 == memcmp (&q, &sc->requests[i].query, sizeof (struct GNUNET_HashCode)))
       break;
   if (i == sc->uri->data.ksk.keywordCount)
   {
@@ -708,7 +708,7 @@ process_sblock (struct GNUNET_FS_SearchContext *sc, const struct SBlock *sb,
   const char *uris;
   size_t off;
   char *emsg;
-  GNUNET_HashCode key;
+  struct GNUNET_HashCode key;
   char *identifier;
 
   /* decrypt */
@@ -904,7 +904,7 @@ struct MessageBuilderContext
   /**
    * Where to store the keys.
    */
-  GNUNET_HashCode *xoff;
+  struct GNUNET_HashCode *xoff;
 
   /**
    * Search context we are iterating for.
@@ -928,7 +928,7 @@ struct MessageBuilderContext
  * @return GNUNET_OK to continue iterating
  */
 static int
-build_result_set (void *cls, const GNUNET_HashCode * key, void *value)
+build_result_set (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct MessageBuilderContext *mbc = cls;
   struct GNUNET_FS_SearchResult *sr = value;
@@ -960,7 +960,7 @@ build_result_set (void *cls, const GNUNET_HashCode * key, void *value)
  * @return GNUNET_OK to continue iterating
  */
 static int
-find_result_set (void *cls, const GNUNET_HashCode * key, void *value)
+find_result_set (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct MessageBuilderContext *mbc = cls;
   struct GNUNET_FS_SearchResult *sr = value;
@@ -990,8 +990,8 @@ transmit_search_request (void *cls, size_t size, void *buf)
   size_t msize;
   struct SearchMessage *sm;
   const char *identifier;
-  GNUNET_HashCode key;
-  GNUNET_HashCode idh;
+  struct GNUNET_HashCode key;
+  struct GNUNET_HashCode idh;
   unsigned int sqms;
   uint32_t options;
 
@@ -1004,7 +1004,7 @@ transmit_search_request (void *cls, size_t size, void *buf)
   mbc.skip_cnt = sc->search_request_map_offset;
   sm = buf;
   sm->header.type = htons (GNUNET_MESSAGE_TYPE_FS_START_SEARCH);
-  mbc.xoff = (GNUNET_HashCode *) & sm[1];
+  mbc.xoff = (struct GNUNET_HashCode *) & sm[1];
   options = SEARCH_MESSAGE_OPTION_NONE;
   if (0 != (sc->options & GNUNET_FS_SEARCH_OPTION_LOOPBACK_ONLY))
     options |= SEARCH_MESSAGE_OPTION_LOOPBACK_ONLY;
@@ -1017,7 +1017,7 @@ transmit_search_request (void *cls, size_t size, void *buf)
     GNUNET_CONTAINER_multihashmap_iterate (sc->master_result_map,
                                            &find_result_set, &mbc);
     sqms = mbc.put_cnt;
-    mbc.put_cnt = (size - msize) / sizeof (GNUNET_HashCode);
+    mbc.put_cnt = (size - msize) / sizeof (struct GNUNET_HashCode);
     mbc.put_cnt = GNUNET_MIN (mbc.put_cnt, sqms - mbc.skip_cnt);
     if (sc->search_request_map_offset < sqms)
       GNUNET_assert (mbc.put_cnt > 0);
@@ -1025,9 +1025,9 @@ transmit_search_request (void *cls, size_t size, void *buf)
     sm->header.size = htons (msize);
     sm->type = htonl (GNUNET_BLOCK_TYPE_ANY);
     sm->anonymity_level = htonl (sc->anonymity);
-    memset (&sm->target, 0, sizeof (GNUNET_HashCode));
+    memset (&sm->target, 0, sizeof (struct GNUNET_HashCode));
     sm->query = sc->requests[sc->keyword_offset].query;
-    msize += sizeof (GNUNET_HashCode) * mbc.put_cnt;
+    msize += sizeof (struct GNUNET_HashCode) * mbc.put_cnt;
     GNUNET_CONTAINER_multihashmap_iterate (sc->master_result_map,
                                            &build_result_set, &mbc);
     sm->header.size = htons (msize);
@@ -1058,15 +1058,15 @@ transmit_search_request (void *cls, size_t size, void *buf)
     sm->target = sc->uri->data.sks.namespace;
     identifier = sc->uri->data.sks.identifier;
     GNUNET_CRYPTO_hash (identifier, strlen (identifier), &key);
-    GNUNET_CRYPTO_hash (&key, sizeof (GNUNET_HashCode), &idh);
+    GNUNET_CRYPTO_hash (&key, sizeof (struct GNUNET_HashCode), &idh);
     GNUNET_CRYPTO_hash_xor (&idh, &sm->target, &sm->query);
-    mbc.put_cnt = (size - msize) / sizeof (GNUNET_HashCode);
+    mbc.put_cnt = (size - msize) / sizeof (struct GNUNET_HashCode);
     sqms = GNUNET_CONTAINER_multihashmap_size (sc->master_result_map);
     mbc.put_cnt = GNUNET_MIN (mbc.put_cnt, sqms - mbc.skip_cnt);
     mbc.keyword_offset = 0;
     if (sc->search_request_map_offset < sqms)
       GNUNET_assert (mbc.put_cnt > 0);
-    msize += sizeof (GNUNET_HashCode) * mbc.put_cnt;
+    msize += sizeof (struct GNUNET_HashCode) * mbc.put_cnt;
     GNUNET_CONTAINER_multihashmap_iterate (sc->master_result_map,
                                            &build_result_set, &mbc);
     sm->header.size = htons (msize);
@@ -1103,9 +1103,9 @@ schedule_transmit_search_request (struct GNUNET_FS_SearchContext *sc)
   sqms =
       GNUNET_CONTAINER_multihashmap_size (sc->master_result_map) -
       sc->search_request_map_offset;
-  fit = (GNUNET_SERVER_MAX_MESSAGE_SIZE - 1 - size) / sizeof (GNUNET_HashCode);
+  fit = (GNUNET_SERVER_MAX_MESSAGE_SIZE - 1 - size) / sizeof (struct GNUNET_HashCode);
   fit = GNUNET_MIN (fit, sqms);
-  size += sizeof (GNUNET_HashCode) * fit;
+  size += sizeof (struct GNUNET_HashCode) * fit;
   GNUNET_CLIENT_notify_transmit_ready (sc->client, size,
                                        GNUNET_CONSTANTS_SERVICE_TIMEOUT,
                                        GNUNET_NO, &transmit_search_request, sc);
@@ -1220,7 +1220,7 @@ GNUNET_FS_search_start_searching_ (struct GNUNET_FS_SearchContext *sc)
 {
   unsigned int i;
   const char *keyword;
-  GNUNET_HashCode hc;
+  struct GNUNET_HashCode hc;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pub;
   struct GNUNET_CRYPTO_RsaPrivateKey *pk;
 
@@ -1267,7 +1267,7 @@ GNUNET_FS_search_start_searching_ (struct GNUNET_FS_SearchContext *sc)
  * @return GNUNET_OK
  */
 static int
-search_result_freeze_probes (void *cls, const GNUNET_HashCode * key,
+search_result_freeze_probes (void *cls, const struct GNUNET_HashCode * key,
                              void *value)
 {
   struct GNUNET_FS_SearchResult *sr = value;
@@ -1297,7 +1297,7 @@ search_result_freeze_probes (void *cls, const GNUNET_HashCode * key,
  * @return GNUNET_OK
  */
 static int
-search_result_resume_probes (void *cls, const GNUNET_HashCode * key,
+search_result_resume_probes (void *cls, const struct GNUNET_HashCode * key,
                              void *value)
 {
   struct GNUNET_FS_SearchResult *sr = value;
@@ -1318,7 +1318,7 @@ search_result_resume_probes (void *cls, const GNUNET_HashCode * key,
  * @return GNUNET_OK
  */
 static int
-search_result_suspend (void *cls, const GNUNET_HashCode * key, void *value)
+search_result_suspend (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct GNUNET_FS_SearchContext *sc = cls;
   struct GNUNET_FS_SearchResult *sr = value;
@@ -1477,7 +1477,7 @@ GNUNET_FS_search_continue (struct GNUNET_FS_SearchContext *sc)
  * @return GNUNET_OK
  */
 static int
-search_result_stop (void *cls, const GNUNET_HashCode * key, void *value)
+search_result_stop (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct GNUNET_FS_SearchContext *sc = cls;
   struct GNUNET_FS_SearchResult *sr = value;
@@ -1530,7 +1530,7 @@ search_result_stop (void *cls, const GNUNET_HashCode * key, void *value)
  * @return GNUNET_OK
  */
 static int
-search_result_free (void *cls, const GNUNET_HashCode * key, void *value)
+search_result_free (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct GNUNET_FS_SearchResult *sr = value;
 

@@ -189,7 +189,7 @@ struct TunnelState
   /**
    * Key this state has in the connections_map.
    */
-  GNUNET_HashCode state_key;
+  struct GNUNET_HashCode state_key;
 
   /**
    * Associated service record, or NULL for no service.
@@ -325,12 +325,12 @@ static int ipv6_enabled;
  * @param ri information about the connection
  */
 static void
-hash_redirect_info (GNUNET_HashCode *hash, 
+hash_redirect_info (struct GNUNET_HashCode *hash, 
 		    const struct RedirectInformation *ri)
 {
   char *off;
 
-  memset (hash, 0, sizeof (GNUNET_HashCode));
+  memset (hash, 0, sizeof (struct GNUNET_HashCode));
   /* the GNUnet hashmap only uses the first sizeof(unsigned int) of the hash,
      so we put the IP address in there (and hope for few collisions) */
   off = (char*) hash;
@@ -389,10 +389,10 @@ get_redirect_state (int af,
 		    uint16_t destination_port,
 		    const void *local_ip,
 		    uint16_t local_port,
-		    GNUNET_HashCode *state_key)
+		    struct GNUNET_HashCode *state_key)
 {
   struct RedirectInformation ri;
-  GNUNET_HashCode key;
+  struct GNUNET_HashCode key;
   struct TunnelState *state;
 
   if ( ( (af == AF_INET) && (protocol == IPPROTO_ICMP) ) ||
@@ -442,15 +442,15 @@ get_redirect_state (int af,
  */
 static struct LocalService *
 find_service (struct GNUNET_CONTAINER_MultiHashMap *service_map,
-	      const GNUNET_HashCode *desc,
+	      const struct GNUNET_HashCode *desc,
 	      uint16_t destination_port)
 {
-  char key[sizeof (GNUNET_HashCode) + sizeof (uint16_t)];
+  char key[sizeof (struct GNUNET_HashCode) + sizeof (uint16_t)];
 
   memcpy (&key[0], &destination_port, sizeof (uint16_t));
-  memcpy (&key[sizeof(uint16_t)], desc, sizeof (GNUNET_HashCode));
+  memcpy (&key[sizeof(uint16_t)], desc, sizeof (struct GNUNET_HashCode));
   return GNUNET_CONTAINER_multihashmap_get (service_map,
-					    (GNUNET_HashCode *) key);
+					    (struct GNUNET_HashCode *) key);
 }
 
 
@@ -464,7 +464,7 @@ find_service (struct GNUNET_CONTAINER_MultiHashMap *service_map,
  */
 static int
 free_service_record (void *cls,
-		     const GNUNET_HashCode *key,
+		     const struct GNUNET_HashCode *key,
 		     void *value)
 {
   struct LocalService *service = value;
@@ -490,20 +490,20 @@ store_service (struct GNUNET_CONTAINER_MultiHashMap *service_map,
 	       uint16_t destination_port,
 	       struct LocalService *service)
 {
-  char key[sizeof (GNUNET_HashCode) + sizeof (uint16_t)];
-  GNUNET_HashCode desc;
+  char key[sizeof (struct GNUNET_HashCode) + sizeof (uint16_t)];
+  struct GNUNET_HashCode desc;
 
   GNUNET_CRYPTO_hash (name, strlen (name) + 1, &desc);
   service->name = GNUNET_strdup (name);
   memcpy (&key[0], &destination_port, sizeof (uint16_t));
-  memcpy (&key[sizeof(uint16_t)], &desc, sizeof (GNUNET_HashCode));
+  memcpy (&key[sizeof(uint16_t)], &desc, sizeof (struct GNUNET_HashCode));
   if (GNUNET_OK !=
       GNUNET_CONTAINER_multihashmap_put (service_map,
-					 (GNUNET_HashCode *) key,
+					 (struct GNUNET_HashCode *) key,
 					 service,
 					 GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
   {
-    free_service_record (NULL, (GNUNET_HashCode *) key, service);
+    free_service_record (NULL, (struct GNUNET_HashCode *) key, service);
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		_("Got duplicate service records for `%s:%u'\n"),
 		name,
@@ -1218,7 +1218,7 @@ setup_fresh_address (int af,
 static void
 setup_state_record (struct TunnelState *state)
 {
-  GNUNET_HashCode key;
+  struct GNUNET_HashCode key;
   struct TunnelState *s;
 
   /* generate fresh, unique address */
@@ -2733,7 +2733,7 @@ clean_tunnel (void *cls GNUNET_UNUSED, const struct GNUNET_MESH_Tunnel *tunnel,
  */
 static int
 free_iterate (void *cls GNUNET_UNUSED,
-              const GNUNET_HashCode * hash GNUNET_UNUSED, void *value)
+              const struct GNUNET_HashCode * hash GNUNET_UNUSED, void *value)
 {
   GNUNET_free (value);
   return GNUNET_YES;

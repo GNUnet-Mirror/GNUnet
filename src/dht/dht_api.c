@@ -175,7 +175,7 @@ struct GNUNET_DHT_GetHandle
   /**
    * Key that this get request is for
    */
-  GNUNET_HashCode key;
+  struct GNUNET_HashCode key;
 
   /**
    * Unique identifier for this request (for key collisions).
@@ -213,7 +213,7 @@ struct GNUNET_DHT_MonitorHandle
   /**
    * Key being looked for, NULL == all.
    */
-  GNUNET_HashCode *key;
+  struct GNUNET_HashCode *key;
 
   /**
    * Callback for each received message of type get.
@@ -362,7 +362,7 @@ try_connect (struct GNUNET_DHT_Handle *handle)
  * @return GNUNET_YES (always)
  */
 static int
-add_request_to_pending (void *cls, const GNUNET_HashCode * key, void *value)
+add_request_to_pending (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct GNUNET_DHT_Handle *handle = cls;
   struct GNUNET_DHT_GetHandle *rh = value;
@@ -577,7 +577,7 @@ transmit_pending (void *cls, size_t size, void *buf)
  *         GNUNET_NO if the reply is malformed
  */
 static int
-process_reply (void *cls, const GNUNET_HashCode * key, void *value)
+process_reply (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   const struct GNUNET_DHT_ClientResultMessage *dht_msg = cls;
   struct GNUNET_DHT_GetHandle *get_handle = value;
@@ -648,7 +648,7 @@ process_monitor_get_message (struct GNUNET_DHT_Handle *handle,
 
     type_ok = (GNUNET_BLOCK_TYPE_ANY == h->type) || (h->type == ntohl(msg->type));
     key_ok = (NULL == h->key) || (0 == memcmp (h->key, &msg->key,
-					       sizeof (GNUNET_HashCode)));
+					       sizeof (struct GNUNET_HashCode)));
     if (type_ok && key_ok && (NULL != h->get_cb))
       h->get_cb (h->cb_cls,
 		 ntohl (msg->options),
@@ -699,7 +699,7 @@ process_monitor_get_resp_message (struct GNUNET_DHT_Handle *handle,
 
     type_ok = (GNUNET_BLOCK_TYPE_ANY == h->type) || (h->type == ntohl(msg->type));
     key_ok = (NULL == h->key) || (0 == memcmp (h->key, &msg->key,
-					       sizeof (GNUNET_HashCode)));
+					       sizeof (struct GNUNET_HashCode)));
     if (type_ok && key_ok && (NULL != h->get_resp_cb))
       h->get_resp_cb (h->cb_cls,
                       (enum GNUNET_BLOCK_Type) ntohl(msg->type),
@@ -749,7 +749,7 @@ process_monitor_put_message (struct GNUNET_DHT_Handle *handle,
 
     type_ok = (GNUNET_BLOCK_TYPE_ANY == h->type) || (h->type == ntohl(msg->type));
     key_ok = (NULL == h->key) || (0 == memcmp (h->key, &msg->key,
-					       sizeof (GNUNET_HashCode)));
+					       sizeof (struct GNUNET_HashCode)));
     if (type_ok && key_ok && (NULL != h->put_cb))
       h->put_cb (h->cb_cls,
                  ntohl (msg->options),
@@ -1040,7 +1040,7 @@ mark_put_message_gone (void *cls,
  * @param cont_cls closure for cont
  */
 struct GNUNET_DHT_PutHandle *
-GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle, const GNUNET_HashCode * key,
+GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle, const struct GNUNET_HashCode * key,
                 uint32_t desired_replication_level,
                 enum GNUNET_DHT_RouteOption options,
                 enum GNUNET_BLOCK_Type type, size_t size, const char *data,
@@ -1148,7 +1148,7 @@ GNUNET_DHT_put_cancel (struct GNUNET_DHT_PutHandle *ph)
  */
 struct GNUNET_DHT_GetHandle *
 GNUNET_DHT_get_start (struct GNUNET_DHT_Handle *handle,
-                      enum GNUNET_BLOCK_Type type, const GNUNET_HashCode * key,
+                      enum GNUNET_BLOCK_Type type, const struct GNUNET_HashCode * key,
                       uint32_t desired_replication_level,
                       enum GNUNET_DHT_RouteOption options, const void *xquery,
                       size_t xquery_size, GNUNET_DHT_GetIterator iter,
@@ -1266,7 +1266,7 @@ GNUNET_DHT_get_stop (struct GNUNET_DHT_GetHandle *get_handle)
 struct GNUNET_DHT_MonitorHandle *
 GNUNET_DHT_monitor_start (struct GNUNET_DHT_Handle *handle,
                           enum GNUNET_BLOCK_Type type,
-                          const GNUNET_HashCode *key,
+                          const struct GNUNET_HashCode *key,
                           GNUNET_DHT_MonitorGetCB get_cb,
                           GNUNET_DHT_MonitorGetRespCB get_resp_cb,
                           GNUNET_DHT_MonitorPutCB put_cb,
@@ -1287,8 +1287,8 @@ GNUNET_DHT_monitor_start (struct GNUNET_DHT_Handle *handle,
   h->dht_handle = handle;
   if (NULL != key)
   {
-    h->key = GNUNET_malloc (sizeof(GNUNET_HashCode));
-    memcpy (h->key, key, sizeof(GNUNET_HashCode));
+    h->key = GNUNET_malloc (sizeof(struct GNUNET_HashCode));
+    memcpy (h->key, key, sizeof(struct GNUNET_HashCode));
   }
 
   pending = GNUNET_malloc (sizeof (struct GNUNET_DHT_MonitorStartStopMessage) +
@@ -1305,7 +1305,7 @@ GNUNET_DHT_monitor_start (struct GNUNET_DHT_Handle *handle,
   m->put = htons(NULL != put_cb);
   if (NULL != key) {
     m->filter_key = htons(1);
-    memcpy (&m->key, key, sizeof(GNUNET_HashCode));
+    memcpy (&m->key, key, sizeof(struct GNUNET_HashCode));
   }
   GNUNET_CONTAINER_DLL_insert (handle->pending_head, handle->pending_tail,
                                pending);
@@ -1347,7 +1347,7 @@ GNUNET_DHT_monitor_stop (struct GNUNET_DHT_MonitorHandle *handle)
   m->put = htons(NULL != handle->put_cb);
   if (NULL != handle->key) {
     m->filter_key = htons(1);
-    memcpy (&m->key, handle->key, sizeof(GNUNET_HashCode));
+    memcpy (&m->key, handle->key, sizeof(struct GNUNET_HashCode));
   }
   GNUNET_CONTAINER_DLL_insert (handle->dht_handle->pending_head,
                                handle->dht_handle->pending_tail,

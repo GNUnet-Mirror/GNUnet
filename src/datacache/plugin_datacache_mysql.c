@@ -87,7 +87,7 @@
 /**
  * Estimate of the per-entry overhead (including indices).
  */
-#define OVERHEAD ((4*2+4*2+8*2+8*2+sizeof(GNUNET_HashCode)*5+8))
+#define OVERHEAD ((4*2+4*2+8*2+8*2+sizeof(struct GNUNET_HashCode)*5+8))
 
 /**
  * Die with an error message that indicates
@@ -190,7 +190,7 @@ itable (struct Plugin *plugin)
  * @return 0 on error, number of bytes used otherwise
  */
 static size_t
-mysql_plugin_put (void *cls, const GNUNET_HashCode * key, size_t size,
+mysql_plugin_put (void *cls, const struct GNUNET_HashCode * key, size_t size,
                   const char *data, enum GNUNET_BLOCK_Type type,
                   struct GNUNET_TIME_Absolute discard_time)
 {
@@ -202,7 +202,7 @@ mysql_plugin_put (void *cls, const GNUNET_HashCode * key, size_t size,
   unsigned long long v_now;
   unsigned long long v_discard_time;
   unsigned int v_type;
-  GNUNET_HashCode vhash;
+  struct GNUNET_HashCode vhash;
   int ret;
 
   if (size > GNUNET_SERVER_MAX_MESSAGE_SIZE)
@@ -211,8 +211,8 @@ mysql_plugin_put (void *cls, const GNUNET_HashCode * key, size_t size,
   now = GNUNET_TIME_absolute_get ();
 
   /* first try UPDATE */
-  h_length = sizeof (GNUNET_HashCode);
-  k_length = sizeof (GNUNET_HashCode);
+  h_length = sizeof (struct GNUNET_HashCode);
+  k_length = sizeof (struct GNUNET_HashCode);
   v_length = size;
   v_type = type;
   v_now = (unsigned long long) now.abs_value;
@@ -221,15 +221,15 @@ mysql_plugin_put (void *cls, const GNUNET_HashCode * key, size_t size,
       GNUNET_MYSQL_statement_run_prepared (plugin->mc, plugin->update_value, NULL,
                               MYSQL_TYPE_LONGLONG, &v_now, GNUNET_YES,
                               MYSQL_TYPE_LONGLONG, &v_discard_time, GNUNET_YES,
-                              MYSQL_TYPE_BLOB, key, sizeof (GNUNET_HashCode),
+                              MYSQL_TYPE_BLOB, key, sizeof (struct GNUNET_HashCode),
                               &k_length, MYSQL_TYPE_BLOB, &vhash,
-                              sizeof (GNUNET_HashCode), &h_length,
+                              sizeof (struct GNUNET_HashCode), &h_length,
                               MYSQL_TYPE_LONG, &v_type, GNUNET_YES, -1))
     return GNUNET_OK;
 
   /* now try INSERT */
-  h_length = sizeof (GNUNET_HashCode);
-  k_length = sizeof (GNUNET_HashCode);
+  h_length = sizeof (struct GNUNET_HashCode);
+  k_length = sizeof (struct GNUNET_HashCode);
   v_length = size;
   if (GNUNET_OK !=
       (ret =
@@ -237,9 +237,9 @@ mysql_plugin_put (void *cls, const GNUNET_HashCode * key, size_t size,
                                MYSQL_TYPE_LONG, &type, GNUNET_YES,
                                MYSQL_TYPE_LONGLONG, &v_now, GNUNET_YES,
                                MYSQL_TYPE_LONGLONG, &v_discard_time, GNUNET_YES,
-                               MYSQL_TYPE_BLOB, key, sizeof (GNUNET_HashCode),
+                               MYSQL_TYPE_BLOB, key, sizeof (struct GNUNET_HashCode),
                                &k_length, MYSQL_TYPE_BLOB, &vhash,
-                               sizeof (GNUNET_HashCode), &h_length,
+                               sizeof (struct GNUNET_HashCode), &h_length,
                                MYSQL_TYPE_BLOB, data, (unsigned long) size,
                                &v_length, -1)))
   {
@@ -270,7 +270,7 @@ return_ok (void *cls, unsigned int num_values, MYSQL_BIND * values)
  * @return the number of results found
  */
 static unsigned int
-mysql_plugin_get (void *cls, const GNUNET_HashCode * key,
+mysql_plugin_get (void *cls, const struct GNUNET_HashCode * key,
                   enum GNUNET_BLOCK_Type type, GNUNET_DATACACHE_Iterator iter,
                   void *iter_cls)
 {
@@ -290,7 +290,7 @@ mysql_plugin_get (void *cls, const GNUNET_HashCode * key,
   char buffer[GNUNET_SERVER_MAX_MESSAGE_SIZE];
 
   now = GNUNET_TIME_absolute_get ();
-  h_length = sizeof (GNUNET_HashCode);
+  h_length = sizeof (struct GNUNET_HashCode);
   v_length = sizeof (buffer);
   total = -1;
   memset (rbind, 0, sizeof (rbind));
@@ -303,7 +303,7 @@ mysql_plugin_get (void *cls, const GNUNET_HashCode * key,
        (ret =
         GNUNET_MYSQL_statement_run_prepared_select (plugin->mc, plugin->count_value, 1, rbind,
                                        return_ok, NULL, MYSQL_TYPE_BLOB, key,
-                                       sizeof (GNUNET_HashCode), &h_length,
+                                       sizeof (struct GNUNET_HashCode), &h_length,
                                        MYSQL_TYPE_LONG, &v_type, GNUNET_YES,
                                        MYSQL_TYPE_LONGLONG, &v_now, GNUNET_YES,
                                        -1))) || (-1 == total))
@@ -332,7 +332,7 @@ mysql_plugin_get (void *cls, const GNUNET_HashCode * key,
         (ret =
          GNUNET_MYSQL_statement_run_prepared_select (plugin->mc, plugin->select_value, 2, rbind,
                                         return_ok, NULL, MYSQL_TYPE_BLOB, key,
-                                        sizeof (GNUNET_HashCode), &h_length,
+                                        sizeof (struct GNUNET_HashCode), &h_length,
                                         MYSQL_TYPE_LONG, &v_type, GNUNET_YES,
                                         MYSQL_TYPE_LONGLONG, &v_now, GNUNET_YES,
                                         MYSQL_TYPE_LONG, &off, GNUNET_YES, -1)))
@@ -364,24 +364,24 @@ mysql_plugin_del (void *cls)
 
   MYSQL_BIND rbind[5];
   unsigned int v_type;
-  GNUNET_HashCode v_key;
-  GNUNET_HashCode vhash;
+  struct GNUNET_HashCode v_key;
+  struct GNUNET_HashCode vhash;
   unsigned long k_length;
   unsigned long h_length;
   unsigned long v_length;
   int ret;
   char buffer[GNUNET_SERVER_MAX_MESSAGE_SIZE];
 
-  k_length = sizeof (GNUNET_HashCode);
-  h_length = sizeof (GNUNET_HashCode);
+  k_length = sizeof (struct GNUNET_HashCode);
+  h_length = sizeof (struct GNUNET_HashCode);
   v_length = sizeof (buffer);
   memset (rbind, 0, sizeof (rbind));
   rbind[0].buffer_type = MYSQL_TYPE_BLOB;
-  rbind[0].buffer_length = sizeof (GNUNET_HashCode);
+  rbind[0].buffer_length = sizeof (struct GNUNET_HashCode);
   rbind[0].length = &k_length;
   rbind[0].buffer = &v_key;
   rbind[1].buffer_type = MYSQL_TYPE_BLOB;
-  rbind[1].buffer_length = sizeof (GNUNET_HashCode);
+  rbind[1].buffer_length = sizeof (struct GNUNET_HashCode);
   rbind[1].length = &h_length;
   rbind[1].buffer = &vhash;
   rbind[2].buffer_type = MYSQL_TYPE_LONG;
@@ -399,9 +399,9 @@ mysql_plugin_del (void *cls)
        (ret =
         GNUNET_MYSQL_statement_run_prepared (plugin->mc, plugin->delete_value, NULL,
                                 MYSQL_TYPE_BLOB, &v_key,
-                                sizeof (GNUNET_HashCode), &k_length,
+                                sizeof (struct GNUNET_HashCode), &k_length,
                                 MYSQL_TYPE_BLOB, &vhash,
-                                sizeof (GNUNET_HashCode), &h_length,
+                                sizeof (struct GNUNET_HashCode), &h_length,
                                 MYSQL_TYPE_LONG, &v_type, GNUNET_YES,
                                 MYSQL_TYPE_BLOB, buffer,
                                 (unsigned long) sizeof (buffer), &v_length,

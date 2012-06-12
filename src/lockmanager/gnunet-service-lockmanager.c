@@ -229,7 +229,7 @@ get_key (const char *domain_name,
  *         GNUNET_NO if not. 
  */
 static int
-match_iterator (void *cls, const GNUNET_HashCode *key, void *value)
+match_iterator (void *cls, const struct GNUNET_HashCode *key, void *value)
 {
   struct LockMatch *match = cls;
   struct Lock *lock = value;
@@ -803,7 +803,7 @@ client_disconnect_cb (void *cls, struct GNUNET_SERVER_Client *client)
  */
 static int 
 lock_delete_iterator (void *cls,
-                      const GNUNET_HashCode * key,
+                      const struct GNUNET_HashCode * key,
                       void *value)
 {
   struct Lock *lock = value;

@@ -2888,7 +2888,7 @@ GST_neighbours_handle_disconnect_message (const struct GNUNET_PeerIdentity
 {
   struct NeighbourMapEntry *n;
   const struct SessionDisconnectMessage *sdm;
-  GNUNET_HashCode hc;
+  struct GNUNET_HashCode hc;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received DISCONNECT message from peer `%s'\n",
@@ -2972,7 +2972,7 @@ struct IteratorContext
  * @return GNUNET_OK (continue to iterate)
  */
 static int
-neighbours_iterate (void *cls, const GNUNET_HashCode * key, void *value)
+neighbours_iterate (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct IteratorContext *ic = cls;
   struct NeighbourMapEntry *n = value;
@@ -3111,7 +3111,7 @@ GST_neighbours_start (void *cls,
  * @return GNUNET_OK (continue to iterate)
  */
 static int
-disconnect_all_neighbours (void *cls, const GNUNET_HashCode * key, void *value)
+disconnect_all_neighbours (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct NeighbourMapEntry *n = value;
 

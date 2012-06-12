@@ -154,9 +154,9 @@ struct SendCallbackContext
  * @param hash set to uid (extended with zeros)
  */
 static void
-hash_from_uid (uint32_t uid, GNUNET_HashCode * hash)
+hash_from_uid (uint32_t uid, struct GNUNET_HashCode * hash)
 {
-  memset (hash, 0, sizeof (GNUNET_HashCode));
+  memset (hash, 0, sizeof (struct GNUNET_HashCode));
   *((uint32_t *) hash) = uid;
 }
 
@@ -351,7 +351,7 @@ handle_message_receipt (void *cls, const struct GNUNET_MessageHeader *msg)
   char *sender_address;
   char *packed_msg;
   char *packed_msg_start;
-  GNUNET_HashCode uidhash;
+  struct GNUNET_HashCode uidhash;
   struct SendCallbackContext *send_ctx;
 
   if (msg == NULL)
@@ -459,7 +459,7 @@ GNUNET_DV_send (struct GNUNET_DV_Handle *dv_handle,
   struct GNUNET_DV_SendMessage *msg;
   struct SendCallbackContext *send_ctx;
   char *end_of_message;
-  GNUNET_HashCode uidhash;
+  struct GNUNET_HashCode uidhash;
   int msize;
 
 #if DEBUG_DV_MESSAGES

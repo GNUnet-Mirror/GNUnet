@@ -107,7 +107,7 @@ GDS_HELLO_init ()
  * Free memory occopied by the HELLO.
  */
 static int
-free_hello (void *cls, const GNUNET_HashCode * key, void *hello)
+free_hello (void *cls, const struct GNUNET_HashCode * key, void *hello)
 {
   GNUNET_free (hello);
   return GNUNET_OK;

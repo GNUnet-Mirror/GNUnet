@@ -281,7 +281,7 @@ mysql_plugin_estimate_size (void *cls)
  * @return GNUNET_OK on success
  */
 static int
-mysql_plugin_put (void *cls, const GNUNET_HashCode * key, uint32_t size,
+mysql_plugin_put (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
                   const void *data, enum GNUNET_BLOCK_Type type,
                   uint32_t priority, uint32_t anonymity, uint32_t replication,
                   struct GNUNET_TIME_Absolute expiration, char **msg)
@@ -297,15 +297,15 @@ mysql_plugin_put (void *cls, const GNUNET_HashCode * key, uint32_t size,
   unsigned long hashSize;
   unsigned long hashSize2;
   unsigned long lsize;
-  GNUNET_HashCode vhash;
+  struct GNUNET_HashCode vhash;
 
   if (size > MAX_DATUM_SIZE)
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-  hashSize = sizeof (GNUNET_HashCode);
-  hashSize2 = sizeof (GNUNET_HashCode);
+  hashSize = sizeof (struct GNUNET_HashCode);
+  hashSize2 = sizeof (struct GNUNET_HashCode);
   lsize = size;
   GNUNET_CRYPTO_hash (data, size, &vhash);
   if (GNUNET_OK !=
@@ -403,11 +403,11 @@ execute_select (struct Plugin *plugin, struct GNUNET_MYSQL_StatementHandle *stmt
   unsigned long size;
   unsigned long long uid;
   char value[GNUNET_DATASTORE_MAX_VALUE_SIZE];
-  GNUNET_HashCode key;
+  struct GNUNET_HashCode key;
   struct GNUNET_TIME_Absolute expiration;
   MYSQL_BIND rbind[7];
 
-  hashSize = sizeof (GNUNET_HashCode);
+  hashSize = sizeof (struct GNUNET_HashCode);
   memset (rbind, 0, sizeof (rbind));
   rbind[0].buffer_type = MYSQL_TYPE_LONG;
   rbind[0].buffer = &type;
@@ -442,8 +442,8 @@ execute_select (struct Plugin *plugin, struct GNUNET_MYSQL_StatementHandle *stmt
     return;
   }
   GNUNET_assert (size <= sizeof (value));
-  if ((rbind[4].buffer_length != sizeof (GNUNET_HashCode)) ||
-      (hashSize != sizeof (GNUNET_HashCode)))
+  if ((rbind[4].buffer_length != sizeof (struct GNUNET_HashCode)) ||
+      (hashSize != sizeof (struct GNUNET_HashCode)))
   {
     GNUNET_break (0);
     proc (proc_cls, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
@@ -486,8 +486,8 @@ execute_select (struct Plugin *plugin, struct GNUNET_MYSQL_StatementHandle *stmt
  * @param proc_cls closure for proc
  */
 static void
-mysql_plugin_get_key (void *cls, uint64_t offset, const GNUNET_HashCode * key,
-                      const GNUNET_HashCode * vhash,
+mysql_plugin_get_key (void *cls, uint64_t offset, const struct GNUNET_HashCode * key,
+                      const struct GNUNET_HashCode * vhash,
                       enum GNUNET_BLOCK_Type type, PluginDatumProcessor proc,
                       void *proc_cls)
 {
@@ -501,8 +501,8 @@ mysql_plugin_get_key (void *cls, uint64_t offset, const GNUNET_HashCode * key,
 
   GNUNET_assert (key != NULL);
   GNUNET_assert (NULL != proc);
-  hashSize = sizeof (GNUNET_HashCode);
-  hashSize2 = sizeof (GNUNET_HashCode);
+  hashSize = sizeof (struct GNUNET_HashCode);
+  hashSize2 = sizeof (struct GNUNET_HashCode);
   memset (cbind, 0, sizeof (cbind));
   total = -1;
   cbind[0].buffer_type = MYSQL_TYPE_LONGLONG;
@@ -669,7 +669,7 @@ struct ReplCtx
  *         GNUNET_NO to delete the item and continue (if supported)
  */
 static int
-repl_proc (void *cls, const GNUNET_HashCode * key, uint32_t size,
+repl_proc (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
            const void *data, enum GNUNET_BLOCK_Type type, uint32_t priority,
            uint32_t anonymity, struct GNUNET_TIME_Absolute expiration,
            uint64_t uid)
@@ -763,7 +763,7 @@ mysql_plugin_get_keys (void *cls,
   const char *query = "SELECT hash FROM gn090";
   int ret;
   MYSQL_STMT *statement;
-  GNUNET_HashCode key;
+  struct GNUNET_HashCode key;
   MYSQL_BIND cbind[1];
   unsigned long length;
  
@@ -808,7 +808,7 @@ mysql_plugin_get_keys (void *cls,
   }
   while (0 == (ret = mysql_stmt_fetch (statement)))
   {
-    if (sizeof (GNUNET_HashCode) == length)
+    if (sizeof (struct GNUNET_HashCode) == length)
       proc (proc_cls, &key, 1);    
   }
   if (ret != MYSQL_NO_DATA)
@@ -869,7 +869,7 @@ struct ExpiCtx
  *         GNUNET_NO to delete the item and continue (if supported)
  */
 static int
-expi_proc (void *cls, const GNUNET_HashCode * key, uint32_t size,
+expi_proc (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
            const void *data, enum GNUNET_BLOCK_Type type, uint32_t priority,
            uint32_t anonymity, struct GNUNET_TIME_Absolute expiration,
            uint64_t uid)

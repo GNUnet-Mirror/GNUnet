@@ -476,7 +476,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @return GNUNET_YES to continue to iterate
  */
 static int
-consider_peer_for_forwarding (void *cls, const GNUNET_HashCode * key,
+consider_peer_for_forwarding (void *cls, const struct GNUNET_HashCode * key,
                               struct GSF_PendingRequest *pr)
 {
   struct GSF_ConnectedPeer *cp = cls;

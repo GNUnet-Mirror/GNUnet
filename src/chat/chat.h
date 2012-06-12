@@ -80,7 +80,7 @@ struct ReceiveNotificationMessage
    * Hash of the public key of the pseudonym of the sender of the message.
    * Should be all zeros for anonymous.
    */
-  GNUNET_HashCode sender;
+  struct GNUNET_HashCode sender;
 
   /**
    * The encrypted session key.
@@ -136,7 +136,7 @@ struct TransmitRequestMessage
   /**
    * Who should receive this message?  Set to all zeros for "everyone".
    */
-  GNUNET_HashCode target;
+  struct GNUNET_HashCode target;
 
 };
 
@@ -189,17 +189,17 @@ struct ConfirmationReceiptMessage
   /**
    * Who is confirming the receipt?
    */
-  GNUNET_HashCode target;
+  struct GNUNET_HashCode target;
 
   /**
    * Who is the author of the chat message?
    */
-  GNUNET_HashCode author;
+  struct GNUNET_HashCode author;
 
   /**
    * Hash of the (possibly encrypted) content.
    */
-  GNUNET_HashCode content;
+  struct GNUNET_HashCode content;
 
 };
 
@@ -406,12 +406,12 @@ struct P2PReceiveNotificationMessage
    * Hash of the public key of the pseudonym of the sender of the message
    * Should be all zeros for anonymous.
    */
-  GNUNET_HashCode sender;
+  struct GNUNET_HashCode sender;
 
   /**
    * Who should receive this message?  Set to all zeros for "everyone".
    */
-  GNUNET_HashCode target;
+  struct GNUNET_HashCode target;
 
   /**
    * The encrypted session key.
@@ -465,17 +465,17 @@ struct P2PConfirmationReceiptMessage
   /**
    * Who is confirming the receipt?
    */
-  GNUNET_HashCode target;
+  struct GNUNET_HashCode target;
 
   /**
    * Who is the author of the chat message?
    */
-  GNUNET_HashCode author;
+  struct GNUNET_HashCode author;
 
   /**
    * Hash of the (possibly encrypted) content.
    */
-  GNUNET_HashCode content;
+  struct GNUNET_HashCode content;
 
 };
 GNUNET_NETWORK_STRUCT_END

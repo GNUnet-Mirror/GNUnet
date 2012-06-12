@@ -35,8 +35,8 @@ static int
 testMap (int i)
 {
   struct GNUNET_CONTAINER_MultiHashMap *m;
-  GNUNET_HashCode k1;
-  GNUNET_HashCode k2;
+  struct GNUNET_HashCode k1;
+  struct GNUNET_HashCode k2;
   const char *ret;
   int j;
 

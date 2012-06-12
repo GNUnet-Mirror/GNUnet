@@ -52,7 +52,7 @@
 /**
  * How many buckets will we allow total.
  */
-#define MAX_BUCKETS sizeof (GNUNET_HashCode) * 8
+#define MAX_BUCKETS sizeof (struct GNUNET_HashCode) * 8
 
 /**
  * What is the maximum number of peers in a given bucket.
@@ -140,7 +140,7 @@ struct PeerPutMessage
   /**
    * The key we are storing under.
    */
-  GNUNET_HashCode key;
+  struct GNUNET_HashCode key;
 
   /* put path (if tracked) */
 
@@ -182,7 +182,7 @@ struct PeerResultMessage
   /**
    * The key of the corresponding GET request.
    */
-  GNUNET_HashCode key;
+  struct GNUNET_HashCode key;
 
   /* put path (if tracked) */
 
@@ -241,7 +241,7 @@ struct PeerGetMessage
   /**
    * The key we are looking for.
    */
-  GNUNET_HashCode key;
+  struct GNUNET_HashCode key;
 
   /* xquery */
 
@@ -424,7 +424,7 @@ static struct GNUNET_ATS_PerformanceHandle *atsAPI;
  *         on error (same hashcode)
  */
 static int
-find_bucket (const GNUNET_HashCode * hc)
+find_bucket (const struct GNUNET_HashCode * hc)
 {
   unsigned int bits;
 
@@ -518,10 +518,10 @@ struct BloomConstructorContext
  * @return GNUNET_YES (we should continue to iterate)
  */
 static int
-add_known_to_bloom (void *cls, const GNUNET_HashCode * key, void *value)
+add_known_to_bloom (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct BloomConstructorContext *ctx = cls;
-  GNUNET_HashCode mh;
+  struct GNUNET_HashCode mh;
 
   GNUNET_BLOCK_mingle_hash (key, ctx->bf_mutator, &mh);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -874,7 +874,7 @@ get_forward_count (uint32_t hop_count, uint32_t target_replication)
  *           the two hash codes increases
  */
 static unsigned int
-get_distance (const GNUNET_HashCode * target, const GNUNET_HashCode * have)
+get_distance (const struct GNUNET_HashCode * target, const struct GNUNET_HashCode * have)
 {
   unsigned int bucket;
   unsigned int msb;
@@ -911,7 +911,7 @@ get_distance (const GNUNET_HashCode * target, const GNUNET_HashCode * have)
    * mismatching bit at 'bucket' */
   lsb = 0;
   for (i = bucket + 1;
-       (i < sizeof (GNUNET_HashCode) * 8) && (i < bucket + 1 + 32 - 9); i++)
+       (i < sizeof (struct GNUNET_HashCode) * 8) && (i < bucket + 1 + 32 - 9); i++)
   {
     if (GNUNET_CRYPTO_hash_get_bit (target, i) !=
         GNUNET_CRYPTO_hash_get_bit (have, i))
@@ -934,7 +934,7 @@ get_distance (const GNUNET_HashCode * target, const GNUNET_HashCode * have)
  *         GNUNET_NO otherwise.
  */
 static int
-am_closest_peer (const GNUNET_HashCode * key,
+am_closest_peer (const struct GNUNET_HashCode * key,
                  const struct GNUNET_CONTAINER_BloomFilter *bloom)
 {
   int bits;
@@ -943,7 +943,7 @@ am_closest_peer (const GNUNET_HashCode * key,
   int count;
   struct PeerInfo *pos;
 
-  if (0 == memcmp (&my_identity.hashPubKey, key, sizeof (GNUNET_HashCode)))
+  if (0 == memcmp (&my_identity.hashPubKey, key, sizeof (struct GNUNET_HashCode)))
     return GNUNET_YES;
   bucket_num = find_bucket (key);
   GNUNET_assert (bucket_num >= 0);
@@ -989,7 +989,7 @@ am_closest_peer (const GNUNET_HashCode * key,
  * @return Peer to route to, or NULL on error
  */
 static struct PeerInfo *
-select_peer (const GNUNET_HashCode * key,
+select_peer (const struct GNUNET_HashCode * key,
              const struct GNUNET_CONTAINER_BloomFilter *bloom, uint32_t hops)
 {
   unsigned int bc;
@@ -1115,7 +1115,7 @@ select_peer (const GNUNET_HashCode * key,
  * @return number of peers returned in 'targets'.
  */
 static unsigned int
-get_target_peers (const GNUNET_HashCode * key,
+get_target_peers (const struct GNUNET_HashCode * key,
                   struct GNUNET_CONTAINER_BloomFilter *bloom,
                   uint32_t hop_count, uint32_t target_replication,
                   struct PeerInfo ***targets)
@@ -1185,7 +1185,7 @@ GDS_NEIGHBOURS_handle_put (enum GNUNET_BLOCK_Type type,
                            struct GNUNET_TIME_Absolute expiration_time,
                            uint32_t hop_count,
                            struct GNUNET_CONTAINER_BloomFilter *bf,
-                           const GNUNET_HashCode * key,
+                           const struct GNUNET_HashCode * key,
                            unsigned int put_path_length,
                            struct GNUNET_PeerIdentity *put_path,
                            const void *data, size_t data_size)
@@ -1295,7 +1295,7 @@ void
 GDS_NEIGHBOURS_handle_get (enum GNUNET_BLOCK_Type type,
                            enum GNUNET_DHT_RouteOption options,
                            uint32_t desired_replication_level,
-                           uint32_t hop_count, const GNUNET_HashCode * key,
+                           uint32_t hop_count, const struct GNUNET_HashCode * key,
                            const void *xquery, size_t xquery_size,
                            const struct GNUNET_CONTAINER_BloomFilter *reply_bf,
                            uint32_t reply_bf_mutator,
@@ -1405,7 +1405,7 @@ void
 GDS_NEIGHBOURS_handle_reply (const struct GNUNET_PeerIdentity *target,
                              enum GNUNET_BLOCK_Type type,
                              struct GNUNET_TIME_Absolute expiration_time,
-                             const GNUNET_HashCode * key,
+                             const struct GNUNET_HashCode * key,
                              unsigned int put_path_length,
                              const struct GNUNET_PeerIdentity *put_path,
                              unsigned int get_path_length,
@@ -1508,7 +1508,7 @@ handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
   size_t payload_size;
   enum GNUNET_DHT_RouteOption options;
   struct GNUNET_CONTAINER_BloomFilter *bf;
-  GNUNET_HashCode test_key;
+  struct GNUNET_HashCode test_key;
 
   msize = ntohs (message->size);
   if (msize < sizeof (struct PeerPutMessage))
@@ -1541,7 +1541,7 @@ handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
            &test_key))
   {
   case GNUNET_YES:
-    if (0 != memcmp (&test_key, &put->key, sizeof (GNUNET_HashCode)))
+    if (0 != memcmp (&test_key, &put->key, sizeof (struct GNUNET_HashCode)))
     {
       GNUNET_break_op (0);
       return GNUNET_YES;
@@ -1615,14 +1615,14 @@ handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
  */
 static void
 handle_find_peer (const struct GNUNET_PeerIdentity *sender,
-                  const GNUNET_HashCode * key,
+                  const struct GNUNET_HashCode * key,
                   struct GNUNET_CONTAINER_BloomFilter *bf, uint32_t bf_mutator)
 {
   int bucket_idx;
   struct PeerBucket *bucket;
   struct PeerInfo *peer;
   unsigned int choice;
-  GNUNET_HashCode mhash;
+  struct GNUNET_HashCode mhash;
   const struct GNUNET_HELLO_Message *hello;
 
   /* first, check about our own HELLO */
@@ -1657,7 +1657,7 @@ handle_find_peer (const struct GNUNET_PeerIdentity *sender,
   }
 
   /* then, also consider sending a random HELLO from the closest bucket */
-  if (0 == memcmp (&my_identity.hashPubKey, key, sizeof (GNUNET_HashCode)))
+  if (0 == memcmp (&my_identity.hashPubKey, key, sizeof (struct GNUNET_HashCode)))
     bucket_idx = closest_bucket;
   else
     bucket_idx = GNUNET_MIN (closest_bucket, find_bucket (key));

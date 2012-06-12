@@ -35,16 +35,16 @@
 
 static struct GNUNET_CONTAINER_MetaData *meta;
 
-static GNUNET_HashCode id1;
+static struct GNUNET_HashCode id1;
 
 static int
-iter (void *cls, const GNUNET_HashCode * pseudonym,
+iter (void *cls, const struct GNUNET_HashCode * pseudonym,
       const char *name, const char *unique_name,
       const struct GNUNET_CONTAINER_MetaData *md, int rating)
 {
   int *ok = cls;
 
-  if ((0 == memcmp (pseudonym, &id1, sizeof (GNUNET_HashCode))) &&
+  if ((0 == memcmp (pseudonym, &id1, sizeof (struct GNUNET_HashCode))) &&
       (!GNUNET_CONTAINER_meta_data_test_equal (md, meta)))
   {
     *ok = GNUNET_NO;
@@ -54,7 +54,7 @@ iter (void *cls, const GNUNET_HashCode * pseudonym,
 }
 
 static int
-noti_callback (void *cls, const GNUNET_HashCode * pseudonym,
+noti_callback (void *cls, const struct GNUNET_HashCode * pseudonym,
                const char *name, const char *unique_name,
                const struct GNUNET_CONTAINER_MetaData *md, int rating)
 {
@@ -65,7 +65,7 @@ noti_callback (void *cls, const GNUNET_HashCode * pseudonym,
 }
 
 static int
-fake_noti_callback (void *cls, const GNUNET_HashCode * pseudonym,
+fake_noti_callback (void *cls, const struct GNUNET_HashCode * pseudonym,
                     const char *name, const char *unique_name,
                     const struct GNUNET_CONTAINER_MetaData *md, int rating)
 {
@@ -76,7 +76,7 @@ fake_noti_callback (void *cls, const GNUNET_HashCode * pseudonym,
 }
 
 static int
-false_callback (void *cls, const GNUNET_HashCode * pseudonym,
+false_callback (void *cls, const struct GNUNET_HashCode * pseudonym,
                 const char *name, const char *unique_name,
                 const struct GNUNET_CONTAINER_MetaData *md, int rating)
 {
@@ -87,11 +87,11 @@ int
 main (int argc, char *argv[])
 {
   int ok;
-  GNUNET_HashCode rid1;
-  GNUNET_HashCode id2;
-  GNUNET_HashCode rid2;
-  GNUNET_HashCode fid;
-  GNUNET_HashCode id3;
+  struct GNUNET_HashCode rid1;
+  struct GNUNET_HashCode id2;
+  struct GNUNET_HashCode rid2;
+  struct GNUNET_HashCode fid;
+  struct GNUNET_HashCode id3;
 
   int old;
   int newVal;
@@ -174,8 +174,8 @@ main (int argc, char *argv[])
   CHECK (GNUNET_SYSERR == GNUNET_PSEUDONYM_name_to_id (cfg, name1, &rid1));
   CHECK (GNUNET_OK == GNUNET_PSEUDONYM_name_to_id (cfg, name2_unique, &rid2));
   CHECK (GNUNET_OK == GNUNET_PSEUDONYM_name_to_id (cfg, name1_unique, &rid1));
-  CHECK (0 == memcmp (&id1, &rid1, sizeof (GNUNET_HashCode)));
-  CHECK (0 == memcmp (&id2, &rid2, sizeof (GNUNET_HashCode)));
+  CHECK (0 == memcmp (&id1, &rid1, sizeof (struct GNUNET_HashCode)));
+  CHECK (0 == memcmp (&id2, &rid2, sizeof (struct GNUNET_HashCode)));
 
   GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK, &fid);
   GNUNET_log_skip (1, GNUNET_NO);

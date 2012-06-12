@@ -153,7 +153,7 @@ struct ProcessResultClosure
   /**
    * Hash of data.
    */
-  GNUNET_HashCode query;
+  struct GNUNET_HashCode query;
 
   /**
    * Data found in P2P network.
@@ -198,7 +198,7 @@ struct ProcessResultClosure
  * @return GNUNET_YES (we should continue to iterate); unless serious error
  */
 static int
-process_result_with_request (void *cls, const GNUNET_HashCode * key,
+process_result_with_request (void *cls, const struct GNUNET_HashCode * key,
                              void *value);
 
 
@@ -225,7 +225,7 @@ encrypt_existing_match (struct GNUNET_FS_DownloadContext *dc,
   char enc[len];
   struct GNUNET_CRYPTO_AesSessionKey sk;
   struct GNUNET_CRYPTO_AesInitializationVector iv;
-  GNUNET_HashCode query;
+  struct GNUNET_HashCode query;
 
   GNUNET_CRYPTO_hash_to_aes_key (&chk->key, &sk, &iv);
   if (-1 == GNUNET_CRYPTO_aes_encrypt (block, len, &sk, &iv, enc))
@@ -234,7 +234,7 @@ encrypt_existing_match (struct GNUNET_FS_DownloadContext *dc,
     return GNUNET_SYSERR;
   }
   GNUNET_CRYPTO_hash (enc, len, &query);
-  if (0 != memcmp (&query, &chk->query, sizeof (GNUNET_HashCode)))
+  if (0 != memcmp (&query, &chk->query, sizeof (struct GNUNET_HashCode)))
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
@@ -624,7 +624,7 @@ try_top_down_reconstruction (struct GNUNET_FS_DownloadContext *dc,
 {
   uint64_t off;
   char block[DBLOCK_SIZE];
-  GNUNET_HashCode key;
+  struct GNUNET_HashCode key;
   uint64_t total;
   size_t len;
   unsigned int i;
@@ -653,7 +653,7 @@ try_top_down_reconstruction (struct GNUNET_FS_DownloadContext *dc,
     return;                     /* failure */
   }
   GNUNET_CRYPTO_hash (block, len, &key);
-  if (0 != memcmp (&key, &dr->chk.key, sizeof (GNUNET_HashCode)))
+  if (0 != memcmp (&key, &dr->chk.key, sizeof (struct GNUNET_HashCode)))
     return;                     /* mismatch */
   if (GNUNET_OK !=
       encrypt_existing_match (dc, &dr->chk, dr, block, len, GNUNET_NO))
@@ -926,7 +926,7 @@ GNUNET_FS_free_download_request_ (struct DownloadRequest *dr)
  * @return GNUNET_YES (we should continue to iterate); unless serious error
  */
 static int
-process_result_with_request (void *cls, const GNUNET_HashCode * key,
+process_result_with_request (void *cls, const struct GNUNET_HashCode * key,
                              void *value)
 {
   struct ProcessResultClosure *prc = cls;
@@ -1376,7 +1376,7 @@ do_reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @return GNUNET_OK
  */
 static int
-retry_entry (void *cls, const GNUNET_HashCode * key, void *entry)
+retry_entry (void *cls, const struct GNUNET_HashCode * key, void *entry)
 {
   struct GNUNET_FS_DownloadContext *dc = cls;
   struct DownloadRequest *dr = entry;

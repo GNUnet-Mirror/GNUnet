@@ -121,7 +121,7 @@ struct TransportPlugin *ptail;
 
 static int 
 map_check_it (void *cls,
-	      const GNUNET_HashCode * key,
+	      const struct GNUNET_HashCode * key,
 	      void *value)
 {
   int *fail = cls;
@@ -142,7 +142,7 @@ map_check_it (void *cls,
 
 static int 
 map_cleanup_it (void *cls,
-		const GNUNET_HashCode * key,
+		const struct GNUNET_HashCode * key,
 		void *value)
 {
   struct PeerContainer *pc = value;
@@ -451,7 +451,7 @@ return mlen;
 
 
 int map_ping_it (void *cls,
-                  const GNUNET_HashCode * key,
+                  const struct GNUNET_HashCode * key,
                   void *value)
 {
   struct PeerContainer *pc = value;

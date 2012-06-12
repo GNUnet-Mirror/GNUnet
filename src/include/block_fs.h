@@ -78,7 +78,7 @@ struct SBlock
    * used as the key for decryption; the xor of this identifier
    * and the hash of the "keyspace" is the datastore-query hash).
    */
-  GNUNET_HashCode identifier;
+  struct GNUNET_HashCode identifier;
 
   /**
    * Public key of the namespace.
@@ -153,7 +153,7 @@ struct OnDemandBlock
    * file that was indexed (used to uniquely
    * identify the plaintext file).
    */
-  GNUNET_HashCode file_id;
+  struct GNUNET_HashCode file_id;
 
   /**
    * At which offset should we be able to find

@@ -38,11 +38,11 @@ static struct GNUNET_OS_Process *arm;
 
 static struct GNUNET_CRYPTO_RsaPrivateKey * privkey;
 static struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pubkey;
-static GNUNET_HashCode zone;
+static struct GNUNET_HashCode zone;
 
 static struct GNUNET_CRYPTO_RsaPrivateKey * privkey2;
 static struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pubkey2;
-static GNUNET_HashCode zone2;
+static struct GNUNET_HashCode zone2;
 
 static struct GNUNET_NAMESTORE_ZoneIterator *zi;
 static int res;

@@ -98,7 +98,7 @@ send_bw_notification (struct ATS_Address *aa)
  * @return GNUNET_OK (continue to iterate)
  */
 static int
-update_bw_simple_it (void *cls, const GNUNET_HashCode * key, void *value)
+update_bw_simple_it (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct ATS_Address *aa = value;
 
@@ -219,7 +219,7 @@ struct CompareAddressContext
 
 
 static int
-compare_address_it (void *cls, const GNUNET_HashCode * key, void *value)
+compare_address_it (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct CompareAddressContext *cac = cls;
   struct ATS_Address *aa = value;
@@ -289,7 +289,7 @@ find_address (const struct GNUNET_PeerIdentity *peer,
 
 
 static int
-compare_address_session_it (void *cls, const GNUNET_HashCode * key, void *value)
+compare_address_session_it (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct CompareAddressContext *cac = cls;
   struct ATS_Address *aa = value;
@@ -444,7 +444,7 @@ GAS_addresses_update (const struct GNUNET_PeerIdentity *peer,
  * @return GNUNET_OK (continue to iterate)
  */
 static int
-destroy_by_session_id (void *cls, const GNUNET_HashCode * key, void *value)
+destroy_by_session_id (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   const struct ATS_Address *info = cls;
   struct ATS_Address *aa = value;
@@ -539,7 +539,7 @@ GAS_addresses_destroy (const struct GNUNET_PeerIdentity *peer,
  * @return GNUNET_OK (continue to iterate)
  */
 static int
-find_address_it (void *cls, const GNUNET_HashCode * key, void *value)
+find_address_it (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct ATS_Address **ap = cls;
   struct ATS_Address *aa = (struct ATS_Address *) value;
@@ -761,7 +761,7 @@ GAS_addresses_request_address (const struct GNUNET_PeerIdentity *peer)
 
 
 static int
-reset_address_it (void *cls, const GNUNET_HashCode * key, void *value)
+reset_address_it (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct ATS_Address *aa = value;
 
@@ -903,7 +903,7 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @return GNUNET_OK (continue to iterate)
  */
 static int
-free_address_it (void *cls, const GNUNET_HashCode * key, void *value)
+free_address_it (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct ATS_Address *aa = value;
 

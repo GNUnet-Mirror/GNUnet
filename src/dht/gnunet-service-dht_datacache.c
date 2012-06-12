@@ -74,7 +74,7 @@ struct DHTPutEntry
  */
 void
 GDS_DATACACHE_handle_put (struct GNUNET_TIME_Absolute expiration,
-                          const GNUNET_HashCode * key,
+                          const struct GNUNET_HashCode * key,
                           unsigned int put_path_length,
                           const struct GNUNET_PeerIdentity *put_path,
                           enum GNUNET_BLOCK_Type type, size_t data_size,
@@ -131,7 +131,7 @@ struct GetRequestContext
   /**
    * The key this request was about
    */
-  GNUNET_HashCode key;
+  struct GNUNET_HashCode key;
 
   /**
    * Number of bytes in xquery.
@@ -165,7 +165,7 @@ struct GetRequestContext
  */
 static int
 datacache_get_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
-                        const GNUNET_HashCode * key, size_t size,
+                        const struct GNUNET_HashCode * key, size_t size,
                         const char *data, enum GNUNET_BLOCK_Type type)
 {
   struct GetRequestContext *ctx = cls;
@@ -255,7 +255,7 @@ datacache_get_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
  * @return evaluation result for the local replies
  */
 enum GNUNET_BLOCK_EvaluationResult
-GDS_DATACACHE_handle_get (const GNUNET_HashCode * key,
+GDS_DATACACHE_handle_get (const struct GNUNET_HashCode * key,
                           enum GNUNET_BLOCK_Type type, const void *xquery,
                           size_t xquery_size,
                           struct GNUNET_CONTAINER_BloomFilter **reply_bf,

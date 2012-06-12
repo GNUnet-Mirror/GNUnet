@@ -1037,9 +1037,9 @@ struct ProgressMeter
  * @param hash set to uid (extended with zeros)
  */
 static void
-hash_from_uid (uint32_t uid, GNUNET_HashCode * hash)
+hash_from_uid (uint32_t uid, struct GNUNET_HashCode * hash)
 {
-  memset (hash, 0, sizeof (GNUNET_HashCode));
+  memset (hash, 0, sizeof (struct GNUNET_HashCode));
   *((uint32_t *) hash) = uid;
 }
 
@@ -1050,7 +1050,7 @@ hash_from_uid (uint32_t uid, GNUNET_HashCode * hash)
  * @param hash set to uid (extended with zeros)
  */
 static void
-uid_from_hash (const GNUNET_HashCode * hash, uint32_t * uid)
+uid_from_hash (const struct GNUNET_HashCode * hash, uint32_t * uid)
 {
   memcpy (uid, hash, sizeof (uint32_t));
 }
@@ -1579,8 +1579,8 @@ remove_connections (struct GNUNET_TESTING_PeerGroup *pg, unsigned int first,
   struct PeerConnection **second_tail;
 
 #else
-  GNUNET_HashCode hash_first;
-  GNUNET_HashCode hash_second;
+  struct GNUNET_HashCode hash_first;
+  struct GNUNET_HashCode hash_second;
 
   hash_from_uid (first, &hash_first);
   hash_from_uid (second, &hash_second);
@@ -2470,7 +2470,7 @@ create_clique (struct GNUNET_TESTING_PeerGroup *pg,
  *         GNUNET_NO if not.
  */
 static int
-unblacklist_iterator (void *cls, const GNUNET_HashCode * key, void *value)
+unblacklist_iterator (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct UnblacklistContext *un_ctx = cls;
   uint32_t second_pos;
@@ -2760,7 +2760,7 @@ create_ring (struct GNUNET_TESTING_PeerGroup *pg,
  *       "fixing" now.
  */
 static int
-friend_file_iterator (void *cls, const GNUNET_HashCode * key, void *value)
+friend_file_iterator (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   FILE *temp_friend_handle = cls;
   struct GNUNET_TESTING_Daemon *peer = value;
@@ -2797,7 +2797,7 @@ struct BlacklistContext
  * @return GNUNET_YES to continue iteration
  */
 static int
-blacklist_file_iterator (void *cls, const GNUNET_HashCode * key, void *value)
+blacklist_file_iterator (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct BlacklistContext *blacklist_ctx = cls;
   struct GNUNET_TESTING_Daemon *peer = value;
@@ -3682,7 +3682,7 @@ schedule_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @return GNUNET_YES to continue iteration
  */
 static int
-connect_iterator (void *cls, const GNUNET_HashCode * key, void *value)
+connect_iterator (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct ConnectTopologyContext *ct_ctx = cls;
   struct PeerData *first = ct_ctx->first;
@@ -3713,7 +3713,7 @@ connect_iterator (void *cls, const GNUNET_HashCode * key, void *value)
  * @return GNUNET_YES to continue iteration
  */
 static int
-copy_topology_iterator (void *cls, const GNUNET_HashCode * key, void *value)
+copy_topology_iterator (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct PeerData *first = cls;
 
@@ -4108,12 +4108,12 @@ GNUNET_TESTING_create_topology (struct GNUNET_TESTING_PeerGroup *pg,
  * @return GNUNET_YES to continue iteration
  */
 static int
-random_connect_iterator (void *cls, const GNUNET_HashCode * key, void *value)
+random_connect_iterator (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct RandomContext *random_ctx = cls;
   double random_number;
   uint32_t second_pos;
-  GNUNET_HashCode first_hash;
+  struct GNUNET_HashCode first_hash;
 
   random_number =
       ((double)
@@ -4153,11 +4153,11 @@ random_connect_iterator (void *cls, const GNUNET_HashCode * key, void *value)
  * @return GNUNET_YES to continue iteration
  */
 static int
-minimum_connect_iterator (void *cls, const GNUNET_HashCode * key, void *value)
+minimum_connect_iterator (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct MinimumContext *min_ctx = cls;
   uint32_t second_pos;
-  GNUNET_HashCode first_hash;
+  struct GNUNET_HashCode first_hash;
   unsigned int i;
 
   if (GNUNET_CONTAINER_multihashmap_size
@@ -4211,10 +4211,10 @@ minimum_connect_iterator (void *cls, const GNUNET_HashCode * key, void *value)
  * @return GNUNET_YES to continue iteration
  */
 static int
-dfs_connect_iterator (void *cls, const GNUNET_HashCode * key, void *value)
+dfs_connect_iterator (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct DFSContext *dfs_ctx = cls;
-  GNUNET_HashCode first_hash;
+  struct GNUNET_HashCode first_hash;
 
   if (dfs_ctx->current == dfs_ctx->chosen)
   {
@@ -4538,7 +4538,7 @@ struct FindClosestContext
  *         GNUNET_NO if not.
  */
 static int
-find_closest_peers (void *cls, const GNUNET_HashCode * key, void *value)
+find_closest_peers (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct FindClosestContext *closest_ctx = cls;
   struct GNUNET_TESTING_Daemon *daemon = value;
@@ -4627,7 +4627,7 @@ perform_dfs (struct GNUNET_TESTING_PeerGroup *pg, unsigned int num)
   struct PeerConnection *peer_iter;
 #else
   struct DFSContext dfs_ctx;
-  GNUNET_HashCode second_hash;
+  struct GNUNET_HashCode second_hash;
 #endif
 
 #if OLD

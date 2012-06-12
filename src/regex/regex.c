@@ -192,7 +192,7 @@ struct GNUNET_REGEX_State
   /**
    * Hash of the state.
    */
-  GNUNET_HashCode hash;
+  struct GNUNET_HashCode hash;
 
   /**
    * Proof for this state.
@@ -2435,7 +2435,7 @@ GNUNET_REGEX_get_computed_regex (struct GNUNET_REGEX_Automaton *a)
  */
 unsigned int
 GNUNET_REGEX_get_first_key (const char *input_string, unsigned int string_len,
-                            GNUNET_HashCode * key)
+                            struct GNUNET_HashCode * key)
 {
   unsigned int size;
 
@@ -2461,7 +2461,7 @@ GNUNET_REGEX_get_first_key (const char *input_string, unsigned int string_len,
  * @return GNUNET_OK if the proof is valid for the given key
  */
 int
-GNUNET_REGEX_check_proof (const char *proof, const GNUNET_HashCode * key)
+GNUNET_REGEX_check_proof (const char *proof, const struct GNUNET_HashCode * key)
 {
   return GNUNET_OK;
 }

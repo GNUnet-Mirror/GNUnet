@@ -34,7 +34,7 @@
 /**
  * Per-entry overhead estimate
  */
-#define OVERHEAD (sizeof(GNUNET_HashCode) + 24)
+#define OVERHEAD (sizeof(struct GNUNET_HashCode) + 24)
 
 /**
  * Context for all functions in this plugin.
@@ -160,7 +160,7 @@ init_connection (struct Plugin *plugin)
  * @return 0 on error, number of bytes used otherwise
  */
 static size_t
-postgres_plugin_put (void *cls, const GNUNET_HashCode * key, size_t size,
+postgres_plugin_put (void *cls, const struct GNUNET_HashCode * key, size_t size,
                      const char *data, enum GNUNET_BLOCK_Type type,
                      struct GNUNET_TIME_Absolute discard_time)
 {
@@ -178,7 +178,7 @@ postgres_plugin_put (void *cls, const GNUNET_HashCode * key, size_t size,
   int paramLengths[] = {
     sizeof (btype),
     sizeof (bexpi),
-    sizeof (GNUNET_HashCode),
+    sizeof (struct GNUNET_HashCode),
     size
   };
   const int paramFormats[] = { 1, 1, 1, 1 };
@@ -206,7 +206,7 @@ postgres_plugin_put (void *cls, const GNUNET_HashCode * key, size_t size,
  * @return the number of results found
  */
 static unsigned int
-postgres_plugin_get (void *cls, const GNUNET_HashCode * key,
+postgres_plugin_get (void *cls, const struct GNUNET_HashCode * key,
                      enum GNUNET_BLOCK_Type type,
                      GNUNET_DATACACHE_Iterator iter, void *iter_cls)
 {
@@ -218,7 +218,7 @@ postgres_plugin_get (void *cls, const GNUNET_HashCode * key,
     (const char *) &btype,
   };
   int paramLengths[] = {
-    sizeof (GNUNET_HashCode),
+    sizeof (struct GNUNET_HashCode),
     sizeof (btype),
   };
   const int paramFormats[] = { 1, 1 };
@@ -298,7 +298,7 @@ postgres_plugin_del (void *cls)
   struct Plugin *plugin = cls;
   uint32_t size;
   uint32_t oid;
-  GNUNET_HashCode key;
+  struct GNUNET_HashCode key;
   PGresult *res;
 
   res = PQexecPrepared (plugin->dbh, "getm", 0, NULL, NULL, NULL, 1);
@@ -319,7 +319,7 @@ postgres_plugin_del (void *cls)
   }
   if ((3 != PQnfields (res)) || (sizeof (size) != PQfsize (res, 0)) ||
       (sizeof (oid) != PQfsize (res, 1)) ||
-      (sizeof (GNUNET_HashCode) != PQgetlength (res, 0, 2)))
+      (sizeof (struct GNUNET_HashCode) != PQgetlength (res, 0, 2)))
   {
     GNUNET_break (0);
     PQclear (res);
@@ -327,7 +327,7 @@ postgres_plugin_del (void *cls)
   }
   size = ntohl (*(uint32_t *) PQgetvalue (res, 0, 0));
   oid = ntohl (*(uint32_t *) PQgetvalue (res, 0, 1));
-  memcpy (&key, PQgetvalue (res, 0, 2), sizeof (GNUNET_HashCode));
+  memcpy (&key, PQgetvalue (res, 0, 2), sizeof (struct GNUNET_HashCode));
   PQclear (res);
   if (GNUNET_OK != GNUNET_POSTGRES_delete_by_rowid (plugin->dbh, "delrow", oid))
     return GNUNET_SYSERR;

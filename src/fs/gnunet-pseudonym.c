@@ -95,7 +95,7 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
 
 
 static void
-ns_printer (void *cls, const char *name, const GNUNET_HashCode * id)
+ns_printer (void *cls, const char *name, const struct GNUNET_HashCode * id)
 {
   struct GNUNET_CRYPTO_HashAsciiEncoded enc;
 
@@ -105,7 +105,7 @@ ns_printer (void *cls, const char *name, const GNUNET_HashCode * id)
 
 
 static int
-pseudo_printer (void *cls, const GNUNET_HashCode * pseudonym,
+pseudo_printer (void *cls, const struct GNUNET_HashCode * pseudonym,
                 const char *name, const char *unique_name,
                 const struct GNUNET_CONTAINER_MetaData *md, int rating)
 {
@@ -136,7 +136,7 @@ pseudo_printer (void *cls, const GNUNET_HashCode * pseudonym,
 static void
 post_advertising (void *cls, const struct GNUNET_FS_Uri *uri, const char *emsg)
 {
-  GNUNET_HashCode nsid;
+  struct GNUNET_HashCode nsid;
   char *set;
   int delta;
 

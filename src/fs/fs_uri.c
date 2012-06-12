@@ -98,7 +98,7 @@
  * @param key wherer to store the unique key
  */
 void
-GNUNET_FS_uri_to_key (const struct GNUNET_FS_Uri *uri, GNUNET_HashCode * key)
+GNUNET_FS_uri_to_key (const struct GNUNET_FS_Uri *uri, struct GNUNET_HashCode * key)
 {
   switch (uri->type)
   {
@@ -121,7 +121,7 @@ GNUNET_FS_uri_to_key (const struct GNUNET_FS_Uri *uri, GNUNET_HashCode * key)
                         key);
     break;
   default:
-    memset (key, 0, sizeof (GNUNET_HashCode));
+    memset (key, 0, sizeof (struct GNUNET_HashCode));
     break;
   }
 }
@@ -355,7 +355,7 @@ static struct GNUNET_FS_Uri *
 uri_sks_parse (const char *s, char **emsg)
 {
   struct GNUNET_FS_Uri *ret;
-  GNUNET_HashCode namespace;
+  struct GNUNET_HashCode namespace;
   char *identifier;
   unsigned int pos;
   size_t slen;
@@ -963,7 +963,7 @@ GNUNET_FS_uri_sks_create (struct GNUNET_FS_Namespace *ns, const char *id,
  * @return an FS URI for the given namespace and identifier
  */
 struct GNUNET_FS_Uri *
-GNUNET_FS_uri_sks_create_from_nsid (GNUNET_HashCode * nsid, const char *id)
+GNUNET_FS_uri_sks_create_from_nsid (struct GNUNET_HashCode * nsid, const char *id)
 {
   struct GNUNET_FS_Uri *ns_uri;
 
@@ -1273,7 +1273,7 @@ GNUNET_FS_uri_test_equal (const struct GNUNET_FS_Uri *u1,
   case sks:
     if ((0 ==
          memcmp (&u1->data.sks.namespace, &u2->data.sks.namespace,
-                 sizeof (GNUNET_HashCode))) &&
+                 sizeof (struct GNUNET_HashCode))) &&
         (0 == strcmp (u1->data.sks.identifier, u2->data.sks.identifier)))
 
       return GNUNET_YES;
@@ -1334,7 +1334,7 @@ GNUNET_FS_uri_test_sks (const struct GNUNET_FS_Uri *uri)
  */
 int
 GNUNET_FS_uri_sks_get_namespace (const struct GNUNET_FS_Uri *uri,
-                                 GNUNET_HashCode * nsid)
+                                 struct GNUNET_HashCode * nsid)
 {
   if (!GNUNET_FS_uri_test_sks (uri))
   {
@@ -1931,7 +1931,7 @@ uri_ksk_to_string (const struct GNUNET_FS_Uri *uri)
 static char *
 uri_sks_to_string (const struct GNUNET_FS_Uri *uri)
 {
-  const GNUNET_HashCode *namespace;
+  const struct GNUNET_HashCode *namespace;
   const char *identifier;
   char *ret;
   struct GNUNET_CRYPTO_HashAsciiEncoded ns;

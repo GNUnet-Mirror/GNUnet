@@ -67,7 +67,7 @@ struct IndexInfo
   /**
    * Hash of the contents of the file.
    */
-  GNUNET_HashCode file_id;
+  struct GNUNET_HashCode file_id;
 
 };
 
@@ -126,7 +126,7 @@ write_index_list ()
   while (pos != NULL)
   {
     if ((GNUNET_OK !=
-         GNUNET_BIO_write (wh, &pos->file_id, sizeof (GNUNET_HashCode))) ||
+         GNUNET_BIO_write (wh, &pos->file_id, sizeof (struct GNUNET_HashCode))) ||
         (GNUNET_OK != GNUNET_BIO_write_string (wh, pos->filename)))
       break;
     pos = pos->next;
@@ -152,7 +152,7 @@ read_index_list ()
   char *fn;
   struct IndexInfo *pos;
   char *fname;
-  GNUNET_HashCode hc;
+  struct GNUNET_HashCode hc;
   size_t slen;
   char *emsg;
 
@@ -180,7 +180,7 @@ read_index_list ()
   }
   while ((GNUNET_OK ==
           GNUNET_BIO_read (rh, "Hash of indexed file", &hc,
-                           sizeof (GNUNET_HashCode))) &&
+                           sizeof (struct GNUNET_HashCode))) &&
          (GNUNET_OK ==
           GNUNET_BIO_read_string (rh, "Name of indexed file", &fname,
                                   1024 * 16)) && (fname != NULL))
@@ -253,13 +253,13 @@ signal_index_ok (struct IndexInfo *ii)
  * @param res resulting hash, NULL on error
  */
 static void
-hash_for_index_val (void *cls, const GNUNET_HashCode * res)
+hash_for_index_val (void *cls, const struct GNUNET_HashCode * res)
 {
   struct IndexInfo *ii = cls;
 
   ii->fhc = NULL;
   if ((res == NULL) ||
-      (0 != memcmp (res, &ii->file_id, sizeof (GNUNET_HashCode))))
+      (0 != memcmp (res, &ii->file_id, sizeof (struct GNUNET_HashCode))))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 _
@@ -431,7 +431,7 @@ GNUNET_FS_handle_unindex (void *cls, struct GNUNET_SERVER_Client *client,
   while (NULL != pos)
   {
     next = pos->next;
-    if (0 == memcmp (&pos->file_id, &um->file_id, sizeof (GNUNET_HashCode)))
+    if (0 == memcmp (&pos->file_id, &um->file_id, sizeof (struct GNUNET_HashCode)))
     {
       if (prev == NULL)
         indexed_files = next;
@@ -502,7 +502,7 @@ remove_cont (void *cls, int success,
  * @return GNUNET_OK on success
  */
 int
-GNUNET_FS_handle_on_demand_block (const GNUNET_HashCode * key, uint32_t size,
+GNUNET_FS_handle_on_demand_block (const struct GNUNET_HashCode * key, uint32_t size,
                                   const void *data, enum GNUNET_BLOCK_Type type,
                                   uint32_t priority, uint32_t anonymity,
                                   struct GNUNET_TIME_Absolute expiration,
@@ -511,10 +511,10 @@ GNUNET_FS_handle_on_demand_block (const GNUNET_HashCode * key, uint32_t size,
                                   void *cont_cls)
 {
   const struct OnDemandBlock *odb;
-  GNUNET_HashCode nkey;
+  struct GNUNET_HashCode nkey;
   struct GNUNET_CRYPTO_AesSessionKey skey;
   struct GNUNET_CRYPTO_AesInitializationVector iv;
-  GNUNET_HashCode query;
+  struct GNUNET_HashCode query;
   ssize_t nsize;
   char ndata[DBLOCK_SIZE];
   char edata[DBLOCK_SIZE];
@@ -565,7 +565,7 @@ GNUNET_FS_handle_on_demand_block (const GNUNET_HashCode * key, uint32_t size,
   GNUNET_CRYPTO_hash_to_aes_key (&nkey, &skey, &iv);
   GNUNET_CRYPTO_aes_encrypt (ndata, nsize, &skey, &iv, edata);
   GNUNET_CRYPTO_hash (edata, nsize, &query);
-  if (0 != memcmp (&query, key, sizeof (GNUNET_HashCode)))
+  if (0 != memcmp (&query, key, sizeof (struct GNUNET_HashCode)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 _("Indexed file `%s' changed at offset %llu\n"), fn,

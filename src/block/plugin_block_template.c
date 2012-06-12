@@ -47,7 +47,7 @@
  */
 static enum GNUNET_BLOCK_EvaluationResult
 block_plugin_template_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
-                                const GNUNET_HashCode * query,
+                                const struct GNUNET_HashCode * query,
                                 struct GNUNET_CONTAINER_BloomFilter **bf,
                                 int32_t bf_mutator, const void *xquery,
                                 size_t xquery_size, const void *reply_block,
@@ -92,7 +92,7 @@ block_plugin_template_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
 static int
 block_plugin_template_get_key (void *cls, enum GNUNET_BLOCK_Type type,
                                const void *block, size_t block_size,
-                               GNUNET_HashCode * key)
+			       struct GNUNET_HashCode * key)
 {
   return GNUNET_SYSERR;
 }

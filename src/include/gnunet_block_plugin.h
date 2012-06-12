@@ -56,7 +56,7 @@ typedef enum
                                                                       GNUNET_BLOCK_Type
                                                                       type,
                                                                       const
-                                                                      GNUNET_HashCode
+                                                                      struct GNUNET_HashCode
                                                                       * query,
                                                                       struct
                                                                       GNUNET_CONTAINER_BloomFilter
@@ -90,7 +90,7 @@ typedef int (*GNUNET_BLOCK_GetKeyFunction) (void *cls,
                                             enum GNUNET_BLOCK_Type type,
                                             const void *block,
                                             size_t block_size,
-                                            GNUNET_HashCode * key);
+                                            struct GNUNET_HashCode * key);
 
 
 

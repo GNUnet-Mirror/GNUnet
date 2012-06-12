@@ -200,7 +200,7 @@ write_key_to_file (const char *filename, struct GNUNET_NAMESTORE_CryptoContainer
 }
 
 int zone_to_disk_it (void *cls,
-                     const GNUNET_HashCode *key,
+                     const struct GNUNET_HashCode *key,
                      void *value)
 {
   struct GNUNET_NAMESTORE_CryptoContainer * c = value;
@@ -391,7 +391,7 @@ handle_lookup_name_it (void *cls,
   struct GNUNET_CRYPTO_RsaSignature *signature_new = NULL;
   struct GNUNET_TIME_Absolute e;
   struct GNUNET_CRYPTO_ShortHashCode zone_key_hash;
-  GNUNET_HashCode long_hash;
+  struct GNUNET_HashCode long_hash;
   char *rd_tmp;
   char *name_tmp;
   size_t rd_ser_len;
@@ -862,7 +862,7 @@ static void handle_record_create (void *cls,
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pub;
   struct RecordCreateResponseMessage rcr_msg;
   struct GNUNET_CRYPTO_ShortHashCode pubkey_hash;
-  GNUNET_HashCode long_hash;
+  struct GNUNET_HashCode long_hash;
   size_t name_len;
   size_t msg_size;
   size_t msg_size_exp;
@@ -1116,7 +1116,7 @@ static void handle_record_remove (void *cls,
   struct GNUNET_NAMESTORE_CryptoContainer *cc = NULL;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pub;
   struct GNUNET_CRYPTO_ShortHashCode pubkey_hash;
-  GNUNET_HashCode long_hash;
+  struct GNUNET_HashCode long_hash;
   char * pkey_tmp = NULL;
   char * name_tmp = NULL;
   char * rd_ser = NULL;
@@ -1462,7 +1462,7 @@ void zone_iteraterate_proc (void *cls,
   struct GNUNET_CRYPTO_RsaSignature * new_signature;
   struct GNUNET_NAMESTORE_CryptoContainer *cc;
   struct GNUNET_CRYPTO_ShortHashCode hash;
-  GNUNET_HashCode long_hash;
+  struct GNUNET_HashCode long_hash;
   struct GNUNET_TIME_Absolute e;
   unsigned int rd_count_filtered  = 0;
   int include;
@@ -1837,7 +1837,7 @@ static void handle_iteration_next (void *cls,
 
 int zonekey_file_it (void *cls, const char *filename)
 {
-  GNUNET_HashCode long_hash;
+  struct GNUNET_HashCode long_hash;
   int *counter = cls;
    if ((filename != NULL) && (NULL != strstr(filename, ".zkey")))
    {

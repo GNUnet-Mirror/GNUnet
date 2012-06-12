@@ -47,8 +47,8 @@ run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_DATACACHE_Handle *h;
-  GNUNET_HashCode k;
-  GNUNET_HashCode n;
+  struct GNUNET_HashCode k;
+  struct GNUNET_HashCode n;
   unsigned int i;
   unsigned int j;
   char buf[3200];
@@ -64,11 +64,11 @@ run (void *cls, char *const *args, const char *cfgfile,
   }
   exp = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_HOURS);
   memset (buf, 1, sizeof (buf));
-  memset (&k, 0, sizeof (GNUNET_HashCode));
+  memset (&k, 0, sizeof (struct GNUNET_HashCode));
   for (i = 0; i < 10; i++)
   {
     FPRINTF (stderr, "%s",  ".");
-    GNUNET_CRYPTO_hash (&k, sizeof (GNUNET_HashCode), &n);
+    GNUNET_CRYPTO_hash (&k, sizeof (struct GNUNET_HashCode), &n);
     for (j = i; j < sizeof (buf); j += 10)
     {
       exp.abs_value++;
@@ -79,11 +79,11 @@ run (void *cls, char *const *args, const char *cfgfile,
     k = n;
   }
   FPRINTF (stderr, "%s",  "\n");
-  memset (&k, 0, sizeof (GNUNET_HashCode));
+  memset (&k, 0, sizeof (struct GNUNET_HashCode));
   for (i = 0; i < 10; i++)
   {
     FPRINTF (stderr, "%s",  ".");
-    GNUNET_CRYPTO_hash (&k, sizeof (GNUNET_HashCode), &n);
+    GNUNET_CRYPTO_hash (&k, sizeof (struct GNUNET_HashCode), &n);
     if (i < 2)
       ASSERT (0 == GNUNET_DATACACHE_get (h, &k, 1 + i, NULL, NULL));
     if (i == 9)

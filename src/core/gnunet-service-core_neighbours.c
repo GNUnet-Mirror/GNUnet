@@ -486,7 +486,7 @@ GSC_NEIGHBOURS_init ()
  * @return GNUNET_OK (continue to iterate)
  */
 static int
-free_neighbour_helper (void *cls, const GNUNET_HashCode * key, void *value)
+free_neighbour_helper (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct Neighbour *n = value;
 

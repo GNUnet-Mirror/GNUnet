@@ -190,7 +190,7 @@ disconnect_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 static void
 dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
-                    const GNUNET_HashCode * key,
+                    const struct GNUNET_HashCode * key,
                     const struct GNUNET_PeerIdentity *get_path,
                     unsigned int get_path_length,
                     const struct GNUNET_PeerIdentity *put_path,
@@ -199,9 +199,9 @@ dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
 {
   int i;
 
-  if (sizeof (GNUNET_HashCode) == size)
+  if (sizeof (struct GNUNET_HashCode) == size)
   {
-    const GNUNET_HashCode *h = data;
+    const struct GNUNET_HashCode *h = data;
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Contents: %s\n",
                 GNUNET_h2s_full (h));

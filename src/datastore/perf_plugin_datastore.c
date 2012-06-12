@@ -103,7 +103,7 @@ putValue (struct GNUNET_DATASTORE_PluginFunctions *api, int i, int k)
 {
   char value[65536];
   size_t size;
-  static GNUNET_HashCode key;
+  static struct GNUNET_HashCode key;
   static int ic;
   char *msg;
   unsigned int prio;
@@ -116,7 +116,7 @@ putValue (struct GNUNET_DATASTORE_PluginFunctions *api, int i, int k)
 
   /* generate random key */
   key.bits[0] = (unsigned int) GNUNET_TIME_absolute_get ().abs_value;
-  GNUNET_CRYPTO_hash (&key, sizeof (GNUNET_HashCode), &key);
+  GNUNET_CRYPTO_hash (&key, sizeof (struct GNUNET_HashCode), &key);
   memset (value, i, size);
   if (i > 255)
     memset (value, i - 255, size / 2);
@@ -149,7 +149,7 @@ test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 static int
-iterate_zeros (void *cls, const GNUNET_HashCode * key, uint32_t size,
+iterate_zeros (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
                const void *data, enum GNUNET_BLOCK_Type type, uint32_t priority,
                uint32_t anonymity, struct GNUNET_TIME_Absolute expiration,
                uint64_t uid)
@@ -196,7 +196,7 @@ iterate_zeros (void *cls, const GNUNET_HashCode * key, uint32_t size,
 
 
 static int
-expiration_get (void *cls, const GNUNET_HashCode * key, uint32_t size,
+expiration_get (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
                 const void *data, enum GNUNET_BLOCK_Type type,
                 uint32_t priority, uint32_t anonymity,
                 struct GNUNET_TIME_Absolute expiration, uint64_t uid)
@@ -241,7 +241,7 @@ expiration_get (void *cls, const GNUNET_HashCode * key, uint32_t size,
 
 
 static int
-replication_get (void *cls, const GNUNET_HashCode * key, uint32_t size,
+replication_get (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
                  const void *data, enum GNUNET_BLOCK_Type type,
                  uint32_t priority, uint32_t anonymity,
                  struct GNUNET_TIME_Absolute expiration, uint64_t uid)

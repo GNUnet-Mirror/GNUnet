@@ -39,10 +39,10 @@ static const char *plugin_name;
 
 static int
 checkIt (void *cls, struct GNUNET_TIME_Absolute exp,
-         const GNUNET_HashCode * key, size_t size, const char *data,
+         const struct GNUNET_HashCode * key, size_t size, const char *data,
          enum GNUNET_BLOCK_Type type)
 {
-  if (size != sizeof (GNUNET_HashCode))
+  if (size != sizeof (struct GNUNET_HashCode))
   {
     GNUNET_break (0);
     ok = 2;
@@ -61,8 +61,8 @@ run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_DATACACHE_Handle *h;
-  GNUNET_HashCode k;
-  GNUNET_HashCode n;
+  struct GNUNET_HashCode k;
+  struct GNUNET_HashCode n;
   struct GNUNET_TIME_Absolute exp;
   unsigned int i;
 
@@ -77,27 +77,27 @@ run (void *cls, char *const *args, const char *cfgfile,
   }
   exp = GNUNET_TIME_absolute_get ();
   exp.abs_value += 5 * 60 * 1000;
-  memset (&k, 0, sizeof (GNUNET_HashCode));
+  memset (&k, 0, sizeof (struct GNUNET_HashCode));
   for (i = 0; i < 100; i++)
   {
-    GNUNET_CRYPTO_hash (&k, sizeof (GNUNET_HashCode), &n);
+    GNUNET_CRYPTO_hash (&k, sizeof (struct GNUNET_HashCode), &n);
     ASSERT (GNUNET_OK ==
-            GNUNET_DATACACHE_put (h, &k, sizeof (GNUNET_HashCode),
+            GNUNET_DATACACHE_put (h, &k, sizeof (struct GNUNET_HashCode),
                                   (const char *) &n, 1 + i % 16, exp));
     k = n;
   }
-  memset (&k, 0, sizeof (GNUNET_HashCode));
+  memset (&k, 0, sizeof (struct GNUNET_HashCode));
   for (i = 0; i < 100; i++)
   {
-    GNUNET_CRYPTO_hash (&k, sizeof (GNUNET_HashCode), &n);
+    GNUNET_CRYPTO_hash (&k, sizeof (struct GNUNET_HashCode), &n);
     ASSERT (1 == GNUNET_DATACACHE_get (h, &k, 1 + i % 16, &checkIt, &n));
     k = n;
   }
 
-  memset (&k, 42, sizeof (GNUNET_HashCode));
-  GNUNET_CRYPTO_hash (&k, sizeof (GNUNET_HashCode), &n);
+  memset (&k, 42, sizeof (struct GNUNET_HashCode));
+  GNUNET_CRYPTO_hash (&k, sizeof (struct GNUNET_HashCode), &n);
   ASSERT (GNUNET_OK ==
-          GNUNET_DATACACHE_put (h, &k, sizeof (GNUNET_HashCode),
+          GNUNET_DATACACHE_put (h, &k, sizeof (struct GNUNET_HashCode),
                                 (const char *) &n, 792,
                                 GNUNET_TIME_UNIT_FOREVER_ABS));
   ASSERT (0 != GNUNET_DATACACHE_get (h, &k, 792, &checkIt, &n));

@@ -207,7 +207,7 @@ struct EncryptedMessage
    * (excluding this value itself) will be encrypted and authenticated.
    * ENCRYPTED_HEADER_SIZE must be set to the offset of the *next* field.
    */
-  GNUNET_HashCode hmac;
+  struct GNUNET_HashCode hmac;
 
   /**
    * Sequence number, in network byte order.  This field
@@ -1513,7 +1513,7 @@ GSC_KX_handle_encrypted_message (struct GSC_KeyExchangeInfo *kx,
 {
   const struct EncryptedMessage *m;
   struct EncryptedMessage *pt;  /* plaintext */
-  GNUNET_HashCode ph;
+  struct GNUNET_HashCode ph;
   uint32_t snum;
   struct GNUNET_TIME_Absolute t;
   struct GNUNET_CRYPTO_AesInitializationVector iv;
@@ -1550,7 +1550,7 @@ GSC_KX_handle_encrypted_message (struct GSC_KeyExchangeInfo *kx,
                    kx->decrypt_key_created);
   GNUNET_CRYPTO_hmac (&auth_key, &m->sequence_number,
                       size - ENCRYPTED_HEADER_SIZE, &ph);
-  if (0 != memcmp (&ph, &m->hmac, sizeof (GNUNET_HashCode)))
+  if (0 != memcmp (&ph, &m->hmac, sizeof (struct GNUNET_HashCode)))
   {
     /* checksum failed */
     GNUNET_break_op (0);

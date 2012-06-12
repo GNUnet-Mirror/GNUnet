@@ -84,12 +84,12 @@ struct GSF_PendingRequestData
   /**
    * Primary query hash for this request.
    */
-  GNUNET_HashCode query;
+  struct GNUNET_HashCode query;
 
   /**
    * Namespace to query, only set if the type is SBLOCK.
    */
-  GNUNET_HashCode namespace;
+  struct GNUNET_HashCode namespace;
 
   /**
    * Identity of a peer hosting the content, only set if
@@ -220,15 +220,15 @@ typedef void (*GSF_PendingRequestReplyHandler) (void *cls,
 struct GSF_PendingRequest *
 GSF_pending_request_create_ (enum GSF_PendingRequestOptions options,
                              enum GNUNET_BLOCK_Type type,
-                             const GNUNET_HashCode * query,
-                             const GNUNET_HashCode * namespace,
+                             const struct GNUNET_HashCode * query,
+                             const struct GNUNET_HashCode * namespace,
                              const struct GNUNET_PeerIdentity *target,
                              const char *bf_data, size_t bf_size,
                              uint32_t mingle, uint32_t anonymity_level,
                              uint32_t priority, int32_t ttl,
                              GNUNET_PEER_Id sender_pid,
                              GNUNET_PEER_Id origin_pid,
-                             const GNUNET_HashCode * replies_seen,
+                             const struct GNUNET_HashCode * replies_seen,
                              unsigned int replies_seen_count,
                              GSF_PendingRequestReplyHandler rh, void *rh_cls);
 
@@ -243,7 +243,7 @@ GSF_pending_request_create_ (enum GSF_PendingRequestOptions options,
  */
 void
 GSF_pending_request_update_ (struct GSF_PendingRequest *pr,
-                             const GNUNET_HashCode * replies_seen,
+                             const struct GNUNET_HashCode * replies_seen,
                              unsigned int replies_seen_count);
 
 
@@ -305,7 +305,7 @@ GSF_pending_request_cancel_ (struct GSF_PendingRequest *pr, int full_cleanup);
  * @return GNUNET_YES to continue to iterate
  */
 typedef int (*GSF_PendingRequestIterator) (void *cls,
-                                           const GNUNET_HashCode * key,
+                                           const struct GNUNET_HashCode * key,
                                            struct GSF_PendingRequest * pr);
 
 

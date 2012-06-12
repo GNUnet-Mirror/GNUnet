@@ -119,7 +119,7 @@ enum RunPhase
 
 struct CpsRunContext
 {
-  GNUNET_HashCode key;
+  struct GNUNET_HashCode key;
   int i;
   int rid;
   const struct GNUNET_CONFIGURATION_Handle *cfg;
@@ -171,7 +171,7 @@ get_reserved (void *cls, int success, struct GNUNET_TIME_Absolute min_expiration
 
 
 static void
-check_value (void *cls, const GNUNET_HashCode * key, size_t size,
+check_value (void *cls, const struct GNUNET_HashCode * key, size_t size,
              const void *data, enum GNUNET_BLOCK_Type type, uint32_t priority,
              uint32_t anonymity, struct GNUNET_TIME_Absolute expiration,
              uint64_t uid)
@@ -217,7 +217,7 @@ check_value (void *cls, const GNUNET_HashCode * key, size_t size,
 
 
 static void
-delete_value (void *cls, const GNUNET_HashCode * key, size_t size,
+delete_value (void *cls, const struct GNUNET_HashCode * key, size_t size,
               const void *data, enum GNUNET_BLOCK_Type type, uint32_t priority,
               uint32_t anonymity, struct GNUNET_TIME_Absolute expiration,
               uint64_t uid)
@@ -237,7 +237,7 @@ delete_value (void *cls, const GNUNET_HashCode * key, size_t size,
 
 
 static void
-check_nothing (void *cls, const GNUNET_HashCode * key, size_t size,
+check_nothing (void *cls, const struct GNUNET_HashCode * key, size_t size,
                const void *data, enum GNUNET_BLOCK_Type type, uint32_t priority,
                uint32_t anonymity, struct GNUNET_TIME_Absolute expiration,
                uint64_t uid)
@@ -253,7 +253,7 @@ check_nothing (void *cls, const GNUNET_HashCode * key, size_t size,
 
 
 static void
-check_multiple (void *cls, const GNUNET_HashCode * key, size_t size,
+check_multiple (void *cls, const struct GNUNET_HashCode * key, size_t size,
                 const void *data, enum GNUNET_BLOCK_Type type,
                 uint32_t priority, uint32_t anonymity,
                 struct GNUNET_TIME_Absolute expiration, uint64_t uid)
@@ -285,7 +285,7 @@ check_multiple (void *cls, const GNUNET_HashCode * key, size_t size,
 
 
 static void
-check_update (void *cls, const GNUNET_HashCode * key, size_t size,
+check_update (void *cls, const struct GNUNET_HashCode * key, size_t size,
               const void *data, enum GNUNET_BLOCK_Type type, uint32_t priority,
               uint32_t anonymity, struct GNUNET_TIME_Absolute expiration,
               uint64_t uid)
@@ -467,7 +467,7 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct CpsRunContext *crc;
-  static GNUNET_HashCode zkey;
+  static struct GNUNET_HashCode zkey;
 
   crc = GNUNET_malloc (sizeof (struct CpsRunContext));
   crc->cfg = cfg;

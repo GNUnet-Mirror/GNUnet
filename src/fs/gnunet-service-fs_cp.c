@@ -759,7 +759,7 @@ copy_reply (void *cls, size_t buf_size, void *buf)
  */
 static void
 free_pending_request (struct PeerRequest *peerreq,
-		      const GNUNET_HashCode *query)
+		      const struct GNUNET_HashCode *query)
 {
   struct GSF_ConnectedPeer *cp = peerreq->cp;
 
@@ -786,7 +786,7 @@ free_pending_request (struct PeerRequest *peerreq,
  * @return GNUNET_YES (continue to iterate)
  */
 static int
-cancel_pending_request (void *cls, const GNUNET_HashCode * query, void *value)
+cancel_pending_request (void *cls, const struct GNUNET_HashCode * query, void *value)
 {
   struct PeerRequest *peerreq = value;
   struct GSF_PendingRequest *pr = peerreq->pr;
@@ -1129,13 +1129,13 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
   struct GSF_PendingRequestData *prd;
   struct GSF_ConnectedPeer *cp;
   struct GSF_ConnectedPeer *cps;
-  const GNUNET_HashCode *namespace;
+  const struct GNUNET_HashCode *namespace;
   const struct GNUNET_PeerIdentity *target;
   enum GSF_PendingRequestOptions options;
   uint16_t msize;
   const struct GetMessage *gm;
   unsigned int bits;
-  const GNUNET_HashCode *opt;
+  const struct GNUNET_HashCode *opt;
   uint32_t bm;
   size_t bfsize;
   uint32_t ttl_decrement;
@@ -1165,13 +1165,13 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
       bits++;
     bm >>= 1;
   }
-  if (msize < sizeof (struct GetMessage) + bits * sizeof (GNUNET_HashCode))
+  if (msize < sizeof (struct GetMessage) + bits * sizeof (struct GNUNET_HashCode))
   {
     GNUNET_break_op (0);
     return NULL;
   }
-  opt = (const GNUNET_HashCode *) &gm[1];
-  bfsize = msize - sizeof (struct GetMessage) - bits * sizeof (GNUNET_HashCode);
+  opt = (const struct GNUNET_HashCode *) &gm[1];
+  bfsize = msize - sizeof (struct GetMessage) - bits * sizeof (struct GNUNET_HashCode);
   /* bfsize must be power of 2, check! */
   if (0 != ((bfsize - 1) & bfsize))
   {
@@ -1284,7 +1284,7 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
     prd = GSF_pending_request_get_data_ (pr);
     if ((prd->type == type) &&
         ((type != GNUNET_BLOCK_TYPE_FS_SBLOCK) ||
-         (0 == memcmp (&prd->namespace, namespace, sizeof (GNUNET_HashCode)))))
+         (0 == memcmp (&prd->namespace, namespace, sizeof (struct GNUNET_HashCode)))))
     {
       if (prd->ttl.abs_value >= GNUNET_TIME_absolute_get ().abs_value + ttl)
       {
@@ -1612,7 +1612,7 @@ struct IterationContext
  * @return GNUNET_YES to continue iteration
  */
 static int
-call_iterator (void *cls, const GNUNET_HashCode * key, void *value)
+call_iterator (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct IterationContext *ic = cls;
   struct GSF_ConnectedPeer *cp = value;
@@ -1728,7 +1728,7 @@ GSF_block_peer_migration_ (struct GSF_ConnectedPeer *cp,
  * @return GNUNET_OK to continue iteration
  */
 static int
-flush_trust (void *cls, const GNUNET_HashCode * key, void *value)
+flush_trust (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct GSF_ConnectedPeer *cp = value;
   char *fn;
@@ -1829,7 +1829,7 @@ GSF_connected_peer_init_ ()
  * @return GNUNET_YES (we should continue to iterate)
  */
 static int
-clean_peer (void *cls, const GNUNET_HashCode * key, void *value)
+clean_peer (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   GSF_peer_disconnect_handler_ (NULL, (const struct GNUNET_PeerIdentity *) key);
   return GNUNET_YES;
@@ -1862,7 +1862,7 @@ GSF_connected_peer_done_ ()
  * @return GNUNET_YES (we should continue to iterate)
  */
 static int
-clean_local_client (void *cls, const GNUNET_HashCode * key, void *value)
+clean_local_client (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   const struct GSF_LocalClient *lc = cls;
   struct GSF_ConnectedPeer *cp = value;

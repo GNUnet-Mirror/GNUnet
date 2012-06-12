@@ -259,9 +259,9 @@ put_gns_record(void *cls,
   struct GNSNameRecordBlock *nrb;
   struct GNUNET_CRYPTO_ShortHashCode name_hash;
   struct GNUNET_CRYPTO_ShortHashCode zhash;
-  GNUNET_HashCode xor_hash;
-  GNUNET_HashCode name_hash_double;
-  GNUNET_HashCode zone_hash_double;
+  struct GNUNET_HashCode xor_hash;
+  struct GNUNET_HashCode name_hash_double;
+  struct GNUNET_HashCode zone_hash_double;
   uint32_t rd_payload_length;
   char* nrb_data = NULL;
   size_t namelen;

@@ -52,7 +52,7 @@ struct Plugin
  * @return 0 on error, number of bytes used otherwise
  */
 static size_t
-template_plugin_put (void *cls, const GNUNET_HashCode * key, size_t size,
+template_plugin_put (void *cls, const struct GNUNET_HashCode * key, size_t size,
                      const char *data, enum GNUNET_BLOCK_Type type,
                      struct GNUNET_TIME_Absolute discard_time)
 {
@@ -73,7 +73,7 @@ template_plugin_put (void *cls, const GNUNET_HashCode * key, size_t size,
  * @return the number of results found
  */
 static unsigned int
-template_plugin_get (void *cls, const GNUNET_HashCode * key,
+template_plugin_get (void *cls, const struct GNUNET_HashCode * key,
                      enum GNUNET_BLOCK_Type type,
                      GNUNET_DATACACHE_Iterator iter, void *iter_cls)
 {

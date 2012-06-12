@@ -111,7 +111,7 @@ struct GetMessage
   /**
    * Type is GNUNET_MESSAGE_TYPE_DATASTORE_GET.  Size
    * can either be "sizeof(struct GetMessage)" or
-   * "sizeof(struct GetMessage) - sizeof(GNUNET_HashCode)"!
+   * "sizeof(struct GetMessage) - sizeof(struct GNUNET_HashCode)"!
    */
   struct GNUNET_MessageHeader header;
 
@@ -129,7 +129,7 @@ struct GetMessage
    * Desired key (optional).  Check the "size" of the
    * header to see if the key is actually present.
    */
-  GNUNET_HashCode key;
+  struct GNUNET_HashCode key;
 
 };
 
@@ -252,7 +252,7 @@ struct DataMessage
   /**
    * Key under which the item can be found.
    */
-  GNUNET_HashCode key;
+  struct GNUNET_HashCode key;
 
 };
 GNUNET_NETWORK_STRUCT_END

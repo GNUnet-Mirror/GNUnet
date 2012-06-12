@@ -120,7 +120,7 @@ struct GNUNET_VPN_RedirectionRequest
   /**
    * For service redirection, service descriptor.
    */
-  GNUNET_HashCode serv;		     
+  struct GNUNET_HashCode serv;		     
 
   /**
    * At what time should the created service mapping expire?
@@ -464,7 +464,7 @@ GNUNET_VPN_redirect_to_peer (struct GNUNET_VPN_Handle *vh,
 			     int result_af,
 			     uint8_t protocol,
 			     const struct GNUNET_PeerIdentity *peer,
-			     const GNUNET_HashCode *serv,
+			     const struct GNUNET_HashCode *serv,
 			     int nac,
 			     struct GNUNET_TIME_Absolute expiration_time,
 			     GNUNET_VPN_AllocationCallback cb,

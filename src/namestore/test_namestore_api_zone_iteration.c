@@ -38,11 +38,11 @@ static struct GNUNET_OS_Process *arm;
 
 static struct GNUNET_CRYPTO_RsaPrivateKey * privkey;
 static struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pubkey;
-static GNUNET_HashCode zone;
+static struct GNUNET_HashCode zone;
 
 static struct GNUNET_CRYPTO_RsaPrivateKey * privkey2;
 static struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pubkey2;
-static GNUNET_HashCode zone2;
+static struct GNUNET_HashCode zone2;
 
 static struct GNUNET_NAMESTORE_ZoneIterator *zi;
 static int res;
@@ -222,7 +222,7 @@ void zone_proc (void *cls,
     /* verify signature returned from name store */
     if (GNUNET_OK != GNUNET_NAMESTORE_verify_signature (zone_key, expire, name, rd_count, rd, signature))
     {
-      GNUNET_HashCode zone_key_hash;
+      struct GNUNET_HashCode zone_key_hash;
       GNUNET_CRYPTO_hash (zone_key, sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), &zone_key_hash);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Verifying signature for `%s' in zone `%s' with %u records  and expiration %llu failed\n", name, GNUNET_h2s(&zone_key_hash), rd_count, expire.abs_value);
 

@@ -395,7 +395,7 @@ GST_blacklist_start (struct GNUNET_SERVER_Handle *server)
  * @return GNUNET_OK (continue to iterate)
  */
 static int
-free_blacklist_entry (void *cls, const GNUNET_HashCode * key, void *value)
+free_blacklist_entry (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   char *be = value;
 
@@ -701,7 +701,7 @@ GST_blacklist_add_peer (const struct GNUNET_PeerIdentity *peer,
  * @return GNUNET_OK if the entry does not match, GNUNET_NO if it matches
  */
 static int
-test_blacklisted (void *cls, const GNUNET_HashCode * key, void *value)
+test_blacklisted (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   const char *transport_name = cls;
   char *be = value;

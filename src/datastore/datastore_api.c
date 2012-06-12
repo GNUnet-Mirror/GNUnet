@@ -836,7 +836,7 @@ process_status_message (void *cls, const struct GNUNET_MessageHeader *msg)
  */
 struct GNUNET_DATASTORE_QueueEntry *
 GNUNET_DATASTORE_put (struct GNUNET_DATASTORE_Handle *h, uint32_t rid,
-                      const GNUNET_HashCode * key, size_t size,
+                      const struct GNUNET_HashCode * key, size_t size,
                       const void *data, enum GNUNET_BLOCK_Type type,
                       uint32_t priority, uint32_t anonymity,
                       uint32_t replication,
@@ -1087,7 +1087,7 @@ GNUNET_DATASTORE_update (struct GNUNET_DATASTORE_Handle *h, uint64_t uid,
  */
 struct GNUNET_DATASTORE_QueueEntry *
 GNUNET_DATASTORE_remove (struct GNUNET_DATASTORE_Handle *h,
-                         const GNUNET_HashCode * key, size_t size,
+                         const struct GNUNET_HashCode * key, size_t size,
                          const void *data, unsigned int queue_priority,
                          unsigned int max_queue_size,
                          struct GNUNET_TIME_Relative timeout,
@@ -1381,7 +1381,7 @@ GNUNET_DATASTORE_get_zero_anonymity (struct GNUNET_DATASTORE_Handle *h,
  */
 struct GNUNET_DATASTORE_QueueEntry *
 GNUNET_DATASTORE_get_key (struct GNUNET_DATASTORE_Handle *h, uint64_t offset,
-                          const GNUNET_HashCode * key,
+                          const struct GNUNET_HashCode * key,
                           enum GNUNET_BLOCK_Type type,
                           unsigned int queue_priority,
                           unsigned int max_queue_size,
@@ -1420,7 +1420,7 @@ GNUNET_DATASTORE_get_key (struct GNUNET_DATASTORE_Handle *h, uint64_t offset,
   else
   {
     gm->header.size =
-        htons (sizeof (struct GetMessage) - sizeof (GNUNET_HashCode));
+        htons (sizeof (struct GetMessage) - sizeof (struct GNUNET_HashCode));
   }
   process_queue (h);
   return qe;

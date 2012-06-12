@@ -119,7 +119,7 @@ struct GetMessage
   /**
    * Which of the optional hash codes are present at the end of the
    * message?  See GET_MESSAGE_BIT_xx constants.  For each bit that is
-   * set, an additional GNUNET_HashCode with the respective content
+   * set, an additional struct GNUNET_HashCode with the respective content
    * (in order of the bits) will be appended to the end of the GET
    * message.
    */
@@ -129,7 +129,7 @@ struct GetMessage
    * Hashcodes of the file(s) we're looking for.
    * Details depend on the query type.
    */
-  GNUNET_HashCode query;
+  struct GNUNET_HashCode query;
 
   /* this is followed by hash codes as specified in the "hash_bitmap";
    * after that, an optional bloomfilter (with bits set for replies

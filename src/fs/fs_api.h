@@ -205,7 +205,7 @@ struct GNUNET_FS_Uri
       /**
        * Hash of the public key for the namespace.
        */
-      GNUNET_HashCode namespace;
+      struct GNUNET_HashCode namespace;
 
       /**
        * Human-readable identifier chosen for this
@@ -333,7 +333,7 @@ struct GNUNET_FS_FileInformation
        * over the entire file (when the indexing process is started).
        * Otherwise this field is not used.
        */
-      GNUNET_HashCode file_id;
+      struct GNUNET_HashCode file_id;
 
       /**
        * Size of the file (in bytes).
@@ -568,7 +568,7 @@ struct GNUNET_FS_SearchResult
   /**
    * Key for the search result
    */
-  GNUNET_HashCode key;
+  struct GNUNET_HashCode key;
 
   /**
    * ID of the task that will clean up the probe_ctx should it not
@@ -730,7 +730,7 @@ GNUNET_FS_publish_main_ (void *cls,
  * @param file_id computed hash, NULL on error
  */
 void
-GNUNET_FS_unindex_process_hash_ (void *cls, const GNUNET_HashCode * file_id);
+GNUNET_FS_unindex_process_hash_ (void *cls, const struct GNUNET_HashCode * file_id);
 
 
 /**
@@ -1384,12 +1384,12 @@ struct GNUNET_FS_UnindexContext
   /**
    * Current key for decrypting KBLocks from 'get_key' operation.
    */
-  GNUNET_HashCode key;
+  struct GNUNET_HashCode key;
 
   /**
    * Current query of 'get_key' operation.
    */
-  GNUNET_HashCode query;
+  struct GNUNET_HashCode query;
 
   /**
    * First content UID, 0 for none.
@@ -1424,7 +1424,7 @@ struct GNUNET_FS_UnindexContext
   /**
    * Hash of the file's contents (once computed).
    */
-  GNUNET_HashCode file_id;
+  struct GNUNET_HashCode file_id;
 
   /**
    * Current operatinonal phase.
@@ -1444,12 +1444,12 @@ struct SearchRequestEntry
    * Hash of the original keyword, also known as the
    * key (for decrypting the KBlock).
    */
-  GNUNET_HashCode key;
+  struct GNUNET_HashCode key;
 
   /**
    * Hash of the public key, also known as the query.
    */
-  GNUNET_HashCode query;
+  struct GNUNET_HashCode query;
 
   /**
    * Map that contains a "struct GNUNET_FS_SearchResult" for each result that

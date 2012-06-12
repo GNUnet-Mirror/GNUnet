@@ -91,7 +91,7 @@ typedef int (*GNUNET_FS_KeywordIterator) (void *cls, const char *keyword,
  * @param key wherer to store the unique key
  */
 void
-GNUNET_FS_uri_to_key (const struct GNUNET_FS_Uri *uri, GNUNET_HashCode * key);
+GNUNET_FS_uri_to_key (const struct GNUNET_FS_Uri *uri, struct GNUNET_HashCode * key);
 
 /**
  * Convert a URI to a UTF-8 String.
@@ -341,7 +341,7 @@ GNUNET_FS_uri_sks_create (struct GNUNET_FS_Namespace *ns, const char *id,
  * @return an FS URI for the given namespace and identifier
  */
 struct GNUNET_FS_Uri *
-GNUNET_FS_uri_sks_create_from_nsid (GNUNET_HashCode * nsid, const char *id);
+GNUNET_FS_uri_sks_create_from_nsid (struct GNUNET_HashCode * nsid, const char *id);
 
 
 /**
@@ -354,7 +354,7 @@ GNUNET_FS_uri_sks_create_from_nsid (GNUNET_HashCode * nsid, const char *id);
  */
 int
 GNUNET_FS_uri_sks_get_namespace (const struct GNUNET_FS_Uri *uri,
-                                 GNUNET_HashCode * nsid);
+                                 struct GNUNET_HashCode * nsid);
 
 
 /**
@@ -1383,7 +1383,7 @@ struct GNUNET_FS_ProgressInfo
           /**
 	   * Hash-identifier for the namespace.
 	   */
-          GNUNET_HashCode id;
+          struct GNUNET_HashCode id;
 
         } namespace;
 
@@ -2112,7 +2112,7 @@ GNUNET_FS_publish_sks_cancel (struct GNUNET_FS_PublishSksContext *psc);
  * @return GNUNET_OK to continue iteration, GNUNET_SYSERR to abort
  */
 typedef int (*GNUNET_FS_IndexedFileProcessor) (void *cls, const char *filename,
-                                               const GNUNET_HashCode * file_id);
+                                               const struct GNUNET_HashCode * file_id);
 
 
 /**
@@ -2252,7 +2252,7 @@ GNUNET_FS_namespace_delete (struct GNUNET_FS_Namespace *namespace, int freeze);
  * @param id hash identifier for the namespace
  */
 typedef void (*GNUNET_FS_NamespaceInfoProcessor) (void *cls, const char *name,
-                                                  const GNUNET_HashCode * id);
+                                                  const struct GNUNET_HashCode * id);
 
 
 /**

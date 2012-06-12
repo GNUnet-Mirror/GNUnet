@@ -658,7 +658,7 @@ process_index_start_response (void *cls, const struct GNUNET_MessageHeader *msg)
  * @param res resulting hash, NULL on error
  */
 static void
-hash_for_index_cb (void *cls, const GNUNET_HashCode * res)
+hash_for_index_cb (void *cls, const struct GNUNET_HashCode * res)
 {
   struct GNUNET_FS_PublishContext *pc = cls;
   struct GNUNET_FS_FileInformation *p;

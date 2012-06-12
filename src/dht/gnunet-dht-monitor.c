@@ -131,7 +131,7 @@ get_callback (void *cls,
               uint32_t desired_replication_level,
               unsigned int path_length,
               const struct GNUNET_PeerIdentity *path,
-              const GNUNET_HashCode * key)
+              const struct GNUNET_HashCode * key)
 {
   FPRINTF (stdout, "Result %d, operation: %s, type %d\n Key: %s",
            result_count,
@@ -163,7 +163,7 @@ get_resp_callback (void *cls,
                    const struct GNUNET_PeerIdentity *put_path,
                    unsigned int put_path_length,
                    struct GNUNET_TIME_Absolute exp,
-                   const GNUNET_HashCode * key,
+                   const struct GNUNET_HashCode * key,
                    const void *data,
                    size_t size)
 {
@@ -201,7 +201,7 @@ put_callback (void *cls,
               unsigned int path_length,
               const struct GNUNET_PeerIdentity *path,
               struct GNUNET_TIME_Absolute exp,
-              const GNUNET_HashCode * key,
+              const struct GNUNET_HashCode * key,
               const void *data,
               size_t size)
 {
@@ -228,7 +228,7 @@ run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   struct GNUNET_TIME_Relative timeout;
-  GNUNET_HashCode *key;
+  struct GNUNET_HashCode *key;
 
   cfg = c;
 
@@ -248,7 +248,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     block_type = GNUNET_BLOCK_TYPE_TEST;
 
   if (query_key != NULL) {
-    key = GNUNET_malloc (sizeof(GNUNET_HashCode));
+    key = GNUNET_malloc (sizeof(struct GNUNET_HashCode));
     GNUNET_CRYPTO_hash (query_key, strlen (query_key), key);
   }
   else

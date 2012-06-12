@@ -122,7 +122,7 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  */
 static void
 get_result_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
-                     const GNUNET_HashCode * key,
+                     const struct GNUNET_HashCode * key,
                      const struct GNUNET_PeerIdentity *get_path,
                      unsigned int get_path_length,
                      const struct GNUNET_PeerIdentity *put_path,
@@ -148,7 +148,7 @@ run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   struct GNUNET_TIME_Relative timeout;
-  GNUNET_HashCode key;
+  struct GNUNET_HashCode key;
 
   cfg = c;
 

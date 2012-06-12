@@ -48,7 +48,7 @@ static struct GNUNET_OS_Process *arm;
 static struct GNUNET_CRYPTO_RsaPrivateKey * privkey;
 static struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pubkey;
 struct GNUNET_CRYPTO_RsaSignature *s_signature;
-static GNUNET_HashCode s_zone;
+static struct GNUNET_HashCode s_zone;
 struct GNUNET_NAMESTORE_RecordData *s_rd;
 static char *s_name;
 

@@ -132,8 +132,8 @@ advertisement_cont (void *cls, int success,
 {
   struct GNUNET_FS_AdvertisementContext *ac = cls;
   const char *keyword;
-  GNUNET_HashCode key;
-  GNUNET_HashCode query;
+  struct GNUNET_HashCode key;
+  struct GNUNET_HashCode query;
   struct GNUNET_CRYPTO_AesSessionKey skey;
   struct GNUNET_CRYPTO_AesInitializationVector iv;
   struct GNUNET_CRYPTO_RsaPrivateKey *pk;

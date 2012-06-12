@@ -193,23 +193,23 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  */
 static void
 get_result_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
-                     const GNUNET_HashCode * key,
+                     const struct GNUNET_HashCode * key,
                      const struct GNUNET_PeerIdentity *get_path,
                      unsigned int get_path_length,
                      const struct GNUNET_PeerIdentity *put_path,
                      unsigned int put_path_length, enum GNUNET_BLOCK_Type type,
                      size_t size, const void *data)
 {
-  GNUNET_HashCode original_key; /* Key data was stored data under */
+  struct GNUNET_HashCode original_key; /* Key data was stored data under */
   char original_data[4];        /* Made up data that was stored */
 
-  memset (&original_key, 42, sizeof (GNUNET_HashCode)); /* Set the key to what it was set to previously */
+  memset (&original_key, 42, sizeof (struct GNUNET_HashCode)); /* Set the key to what it was set to previously */
   memset (original_data, 43, sizeof (original_data));
 #if VERBOSE
   unsigned int i;
 #endif
 
-  if ((0 != memcmp (&original_key, key, sizeof (GNUNET_HashCode))) ||
+  if ((0 != memcmp (&original_key, key, sizeof (struct GNUNET_HashCode))) ||
       (0 != memcmp (original_data, data, sizeof (original_data))))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -251,13 +251,13 @@ get_result_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
 static void
 put_finished (void *cls, int success)
 {
-  GNUNET_HashCode key;          /* Key for data lookup */
+  struct GNUNET_HashCode key;          /* Key for data lookup */
 
   GNUNET_SCHEDULER_cancel (die_task);
   die_task =
       GNUNET_SCHEDULER_add_delayed (GET_TIMEOUT, &end_badly,
                                     "waiting for get response (data not found)");
-  memset (&key, 42, sizeof (GNUNET_HashCode));  /* Set the key to the same thing as when data was inserted */
+  memset (&key, 42, sizeof (struct GNUNET_HashCode));  /* Set the key to the same thing as when data was inserted */
   global_get_handle =
       GNUNET_DHT_get_start (peer2dht, 
                             GNUNET_BLOCK_TYPE_TEST, &key, 1,
@@ -271,10 +271,10 @@ put_finished (void *cls, int success)
 static void
 do_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_HashCode key;          /* Made up key to store data under */
+  struct GNUNET_HashCode key;          /* Made up key to store data under */
   char data[4];                 /* Made up data to store */
 
-  memset (&key, 42, sizeof (GNUNET_HashCode));  /* Set the key to something simple so we can issue GET request */
+  memset (&key, 42, sizeof (struct GNUNET_HashCode));  /* Set the key to something simple so we can issue GET request */
   memset (data, 43, sizeof (data));
 
   /* Insert the data at the first peer */

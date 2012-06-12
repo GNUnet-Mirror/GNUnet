@@ -480,7 +480,7 @@ delete_by_rowid (struct Plugin *plugin, unsigned long long rid)
  * @return GNUNET_OK on success
  */
 static int
-sqlite_plugin_put (void *cls, const GNUNET_HashCode * key, uint32_t size,
+sqlite_plugin_put (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
                    const void *data, enum GNUNET_BLOCK_Type type,
                    uint32_t priority, uint32_t anonymity, uint32_t replication,
                    struct GNUNET_TIME_Absolute expiration, char **msg)
@@ -489,7 +489,7 @@ sqlite_plugin_put (void *cls, const GNUNET_HashCode * key, uint32_t size,
   int n;
   int ret;
   sqlite3_stmt *stmt;
-  GNUNET_HashCode vhash;
+  struct GNUNET_HashCode vhash;
   uint64_t rvalue;
 
   if (size > MAX_ITEM_SIZE)
@@ -510,10 +510,10 @@ sqlite_plugin_put (void *cls, const GNUNET_HashCode * key, uint32_t size,
       (SQLITE_OK != sqlite3_bind_int64 (stmt, 5, expiration.abs_value)) ||
       (SQLITE_OK != sqlite3_bind_int64 (stmt, 6, rvalue)) ||
       (SQLITE_OK !=
-       sqlite3_bind_blob (stmt, 7, key, sizeof (GNUNET_HashCode),
+       sqlite3_bind_blob (stmt, 7, key, sizeof (struct GNUNET_HashCode),
                           SQLITE_TRANSIENT)) ||
       (SQLITE_OK !=
-       sqlite3_bind_blob (stmt, 8, &vhash, sizeof (GNUNET_HashCode),
+       sqlite3_bind_blob (stmt, 8, &vhash, sizeof (struct GNUNET_HashCode),
                           SQLITE_TRANSIENT)) ||
       (SQLITE_OK != sqlite3_bind_blob (stmt, 9, data, size, SQLITE_TRANSIENT)))
   {
@@ -648,7 +648,7 @@ execute_get (struct Plugin *plugin, sqlite3_stmt * stmt,
   case SQLITE_ROW:
     size = sqlite3_column_bytes (stmt, 5);
     rowid = sqlite3_column_int64 (stmt, 6);
-    if (sqlite3_column_bytes (stmt, 4) != sizeof (GNUNET_HashCode))
+    if (sqlite3_column_bytes (stmt, 4) != sizeof (struct GNUNET_HashCode))
     {
       GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, "sqlite",
                        _
@@ -768,8 +768,8 @@ sqlite_plugin_get_zero_anonymity (void *cls, uint64_t offset,
  * @param proc_cls closure for proc
  */
 static void
-sqlite_plugin_get_key (void *cls, uint64_t offset, const GNUNET_HashCode * key,
-                       const GNUNET_HashCode * vhash,
+sqlite_plugin_get_key (void *cls, uint64_t offset, const struct GNUNET_HashCode * key,
+                       const struct GNUNET_HashCode * vhash,
                        enum GNUNET_BLOCK_Type type, PluginDatumProcessor proc,
                        void *proc_cls)
 {
@@ -796,11 +796,11 @@ sqlite_plugin_get_key (void *cls, uint64_t offset, const GNUNET_HashCode * key,
   }
   sqoff = 1;
   ret =
-      sqlite3_bind_blob (stmt, sqoff++, key, sizeof (GNUNET_HashCode),
+      sqlite3_bind_blob (stmt, sqoff++, key, sizeof (struct GNUNET_HashCode),
                          SQLITE_TRANSIENT);
   if ((vhash != NULL) && (ret == SQLITE_OK))
     ret =
-        sqlite3_bind_blob (stmt, sqoff++, vhash, sizeof (GNUNET_HashCode),
+        sqlite3_bind_blob (stmt, sqoff++, vhash, sizeof (struct GNUNET_HashCode),
                            SQLITE_TRANSIENT);
   if ((type != 0) && (ret == SQLITE_OK))
     ret = sqlite3_bind_int (stmt, sqoff++, type);
@@ -845,11 +845,11 @@ sqlite_plugin_get_key (void *cls, uint64_t offset, const GNUNET_HashCode * key,
   }
   sqoff = 1;
   ret =
-      sqlite3_bind_blob (stmt, sqoff++, key, sizeof (GNUNET_HashCode),
+      sqlite3_bind_blob (stmt, sqoff++, key, sizeof (struct GNUNET_HashCode),
                          SQLITE_TRANSIENT);
   if ((vhash != NULL) && (ret == SQLITE_OK))
     ret =
-        sqlite3_bind_blob (stmt, sqoff++, vhash, sizeof (GNUNET_HashCode),
+        sqlite3_bind_blob (stmt, sqoff++, vhash, sizeof (struct GNUNET_HashCode),
                            SQLITE_TRANSIENT);
   if ((type != 0) && (ret == SQLITE_OK))
     ret = sqlite3_bind_int (stmt, sqoff++, type);
@@ -916,7 +916,7 @@ struct ReplCtx
  *         GNUNET_NO to delete the item
  */
 static int
-repl_proc (void *cls, const GNUNET_HashCode * key, uint32_t size,
+repl_proc (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
            const void *data, enum GNUNET_BLOCK_Type type, uint32_t priority,
            uint32_t anonymity, struct GNUNET_TIME_Absolute expiration,
            uint64_t uid)
@@ -1076,7 +1076,7 @@ sqlite_plugin_get_keys (void *cls,
 			void *proc_cls)
 {
   struct Plugin *plugin = cls;
-  const GNUNET_HashCode *key;
+  const struct GNUNET_HashCode *key;
   sqlite3_stmt *stmt;
   int ret;
 
@@ -1090,7 +1090,7 @@ sqlite_plugin_get_keys (void *cls,
   while (SQLITE_ROW == (ret = sqlite3_step (stmt)))
   {
     key = sqlite3_column_blob (stmt, 1);
-    if (sizeof (GNUNET_HashCode) == sqlite3_column_bytes (stmt, 1))
+    if (sizeof (struct GNUNET_HashCode) == sqlite3_column_bytes (stmt, 1))
       proc (proc_cls, key, 1);
   }
   if (SQLITE_DONE != ret)

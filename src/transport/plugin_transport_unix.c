@@ -310,7 +310,7 @@ struct LookupCtx
 };
 
 int lookup_session_it (void *cls,
-                       const GNUNET_HashCode * key,
+                       const struct GNUNET_HashCode * key,
                        void *value)
 {
   struct LookupCtx *lctx = cls;
@@ -394,7 +394,7 @@ disconnect_session (struct Session *s)
 }
 
 static int
-get_session_delete_it (void *cls, const GNUNET_HashCode * key, void *value)
+get_session_delete_it (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct Session *s = value;
   disconnect_session (s);
@@ -630,7 +630,7 @@ struct gsi_ctx
 
 
 static int
-get_session_it (void *cls, const GNUNET_HashCode * key, void *value)
+get_session_it (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct gsi_ctx *gsi = cls;
   struct Session *s = value;

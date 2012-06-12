@@ -419,7 +419,7 @@ bind_address (const struct GNUNET_PeerIdentity *peer,
  * @return GNUNET_YES (continue to iterate)
  */
 static int
-add_to_tc (void *cls, const GNUNET_HashCode * key, void *value)
+add_to_tc (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct GNUNET_SERVER_TransmitContext *tc = cls;
   struct HostEntry *pos = value;
@@ -594,7 +594,7 @@ handle_get_all (void *cls, struct GNUNET_SERVER_Client *client,
  * FIXME.
  */
 static int
-do_notify_entry (void *cls, const GNUNET_HashCode * key, void *value)
+do_notify_entry (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct GNUNET_SERVER_Client *client = cls;
   struct HostEntry *he = value;
@@ -631,7 +631,7 @@ handle_notify (void *cls, struct GNUNET_SERVER_Client *client,
  * FIXME.
  */
 static int
-free_host_entry (void *cls, const GNUNET_HashCode * key, void *value)
+free_host_entry (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct HostEntry *he = value;
 

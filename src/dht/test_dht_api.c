@@ -177,7 +177,7 @@ test_get_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 static void
 test_get_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
-                   const GNUNET_HashCode * key,
+                   const struct GNUNET_HashCode * key,
                    const struct GNUNET_PeerIdentity *get_path,
                    unsigned int get_path_length,
                    const struct GNUNET_PeerIdentity *put_path,
@@ -201,9 +201,9 @@ static void
 test_get (void *cls, int success)
 {
   struct PeerContext *peer = cls;
-  GNUNET_HashCode hash;
+  struct GNUNET_HashCode hash;
 
-  memset (&hash, 42, sizeof (GNUNET_HashCode));
+  memset (&hash, 42, sizeof (struct GNUNET_HashCode));
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Called test_get!\n");
 
@@ -238,11 +238,11 @@ static void
 test_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct PeerContext *peer = cls;
-  GNUNET_HashCode hash;
+  struct GNUNET_HashCode hash;
   char *data;
   size_t data_size = 42;
 
-  memset (&hash, 42, sizeof (GNUNET_HashCode));
+  memset (&hash, 42, sizeof (struct GNUNET_HashCode));
   data = GNUNET_malloc (data_size);
   memset (data, 43, data_size);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Called test_put!\n");

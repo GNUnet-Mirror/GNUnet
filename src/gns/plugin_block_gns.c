@@ -56,18 +56,18 @@
  */
 static enum GNUNET_BLOCK_EvaluationResult
 block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
-                          const GNUNET_HashCode * query,
+                          const struct GNUNET_HashCode * query,
                           struct GNUNET_CONTAINER_BloomFilter **bf,
                           int32_t bf_mutator, const void *xquery,
                           size_t xquery_size, const void *reply_block,
                           size_t reply_block_size)
 {
   char* name;
-  GNUNET_HashCode pkey_hash_double;
-  GNUNET_HashCode query_key;
-  GNUNET_HashCode name_hash_double;
-  GNUNET_HashCode mhash;
-  GNUNET_HashCode chash;
+  struct GNUNET_HashCode pkey_hash_double;
+  struct GNUNET_HashCode query_key;
+  struct GNUNET_HashCode name_hash_double;
+  struct GNUNET_HashCode mhash;
+  struct GNUNET_HashCode chash;
   struct GNUNET_CRYPTO_ShortHashCode pkey_hash;
   struct GNUNET_CRYPTO_ShortHashCode name_hash;
   struct GNSNameRecordBlock *nrb;
@@ -218,14 +218,14 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
 static int
 block_plugin_gns_get_key (void *cls, enum GNUNET_BLOCK_Type type,
                          const void *block, size_t block_size,
-                         GNUNET_HashCode * key)
+                         struct GNUNET_HashCode * key)
 {
   if (type != GNUNET_BLOCK_TYPE_GNS_NAMERECORD)
     return GNUNET_SYSERR;
   struct GNUNET_CRYPTO_ShortHashCode name_hash;
   struct GNUNET_CRYPTO_ShortHashCode pkey_hash;
-  GNUNET_HashCode name_hash_double;
-  GNUNET_HashCode pkey_hash_double;
+  struct GNUNET_HashCode name_hash_double;
+  struct GNUNET_HashCode pkey_hash_double;
 
   struct GNSNameRecordBlock *nrb = (struct GNSNameRecordBlock *)block;
 

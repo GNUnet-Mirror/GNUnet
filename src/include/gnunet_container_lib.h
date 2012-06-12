@@ -62,7 +62,7 @@ struct GNUNET_CONTAINER_BloomFilter;
  * @return GNUNET_YES if next was updated
  *         GNUNET_NO if there are no more entries
  */
-typedef int (*GNUNET_HashCodeIterator) (void *cls, GNUNET_HashCode * next);
+typedef int (*GNUNET_HashCodeIterator) (void *cls, struct GNUNET_HashCode * next);
 
 
 /**
@@ -121,7 +121,7 @@ GNUNET_CONTAINER_bloomfilter_get_raw_data (const struct
  */
 int
 GNUNET_CONTAINER_bloomfilter_test (const struct GNUNET_CONTAINER_BloomFilter
-                                   *bf, const GNUNET_HashCode * e);
+                                   *bf, const struct GNUNET_HashCode * e);
 
 
 /**
@@ -131,7 +131,7 @@ GNUNET_CONTAINER_bloomfilter_test (const struct GNUNET_CONTAINER_BloomFilter
  */
 void
 GNUNET_CONTAINER_bloomfilter_add (struct GNUNET_CONTAINER_BloomFilter *bf,
-                                  const GNUNET_HashCode * e);
+                                  const struct GNUNET_HashCode * e);
 
 
 /**
@@ -141,7 +141,7 @@ GNUNET_CONTAINER_bloomfilter_add (struct GNUNET_CONTAINER_BloomFilter *bf,
  */
 void
 GNUNET_CONTAINER_bloomfilter_remove (struct GNUNET_CONTAINER_BloomFilter *bf,
-                                     const GNUNET_HashCode * e);
+                                     const struct GNUNET_HashCode * e);
 
 
 /**
@@ -534,7 +534,7 @@ enum GNUNET_CONTAINER_MultiHashMapOption
  *         GNUNET_NO if not.
  */
 typedef int (*GNUNET_CONTAINER_HashMapIterator) (void *cls,
-                                                 const GNUNET_HashCode * key,
+                                                 const struct GNUNET_HashCode * key,
                                                  void *value);
 
 
@@ -571,7 +571,7 @@ GNUNET_CONTAINER_multihashmap_destroy (struct GNUNET_CONTAINER_MultiHashMap
  */
 void *
 GNUNET_CONTAINER_multihashmap_get (const struct GNUNET_CONTAINER_MultiHashMap
-                                   *map, const GNUNET_HashCode * key);
+                                   *map, const struct GNUNET_HashCode * key);
 
 
 /**
@@ -587,7 +587,7 @@ GNUNET_CONTAINER_multihashmap_get (const struct GNUNET_CONTAINER_MultiHashMap
  */
 int
 GNUNET_CONTAINER_multihashmap_remove (struct GNUNET_CONTAINER_MultiHashMap *map,
-                                      const GNUNET_HashCode * key, void *value);
+                                      const struct GNUNET_HashCode * key, void *value);
 
 /**
  * Remove all entries for the given key from the map.
@@ -599,7 +599,7 @@ GNUNET_CONTAINER_multihashmap_remove (struct GNUNET_CONTAINER_MultiHashMap *map,
  */
 int
 GNUNET_CONTAINER_multihashmap_remove_all (struct GNUNET_CONTAINER_MultiHashMap
-                                          *map, const GNUNET_HashCode * key);
+                                          *map, const struct GNUNET_HashCode * key);
 
 
 /**
@@ -614,7 +614,7 @@ GNUNET_CONTAINER_multihashmap_remove_all (struct GNUNET_CONTAINER_MultiHashMap
 int
 GNUNET_CONTAINER_multihashmap_contains (const struct
                                         GNUNET_CONTAINER_MultiHashMap *map,
-                                        const GNUNET_HashCode * key);
+                                        const struct GNUNET_HashCode * key);
 
 
 /**
@@ -630,7 +630,7 @@ GNUNET_CONTAINER_multihashmap_contains (const struct
 int
 GNUNET_CONTAINER_multihashmap_contains_value (const struct
                                               GNUNET_CONTAINER_MultiHashMap
-                                              *map, const GNUNET_HashCode * key,
+                                              *map, const struct GNUNET_HashCode * key,
                                               const void *value);
 
 
@@ -648,7 +648,7 @@ GNUNET_CONTAINER_multihashmap_contains_value (const struct
  */
 int
 GNUNET_CONTAINER_multihashmap_put (struct GNUNET_CONTAINER_MultiHashMap *map,
-                                   const GNUNET_HashCode * key, void *value,
+                                   const struct GNUNET_HashCode * key, void *value,
                                    enum GNUNET_CONTAINER_MultiHashMapOption
                                    opt);
 
@@ -692,7 +692,7 @@ GNUNET_CONTAINER_multihashmap_iterate (const struct
 int
 GNUNET_CONTAINER_multihashmap_get_multiple (const struct
                                             GNUNET_CONTAINER_MultiHashMap *map,
-                                            const GNUNET_HashCode * key,
+                                            const struct GNUNET_HashCode * key,
                                             GNUNET_CONTAINER_HashMapIterator it,
                                             void *it_cls);
 

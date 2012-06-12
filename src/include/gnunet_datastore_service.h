@@ -153,7 +153,7 @@ GNUNET_DATASTORE_reserve (struct GNUNET_DATASTORE_Handle *h, uint64_t amount,
  */
 struct GNUNET_DATASTORE_QueueEntry *
 GNUNET_DATASTORE_put (struct GNUNET_DATASTORE_Handle *h, uint32_t rid,
-                      const GNUNET_HashCode * key, size_t size,
+                      const struct GNUNET_HashCode * key, size_t size,
                       const void *data, enum GNUNET_BLOCK_Type type,
                       uint32_t priority, uint32_t anonymity,
                       uint32_t replication,
@@ -245,7 +245,7 @@ GNUNET_DATASTORE_update (struct GNUNET_DATASTORE_Handle *h, uint64_t uid,
  */
 struct GNUNET_DATASTORE_QueueEntry *
 GNUNET_DATASTORE_remove (struct GNUNET_DATASTORE_Handle *h,
-                         const GNUNET_HashCode * key, size_t size,
+                         const struct GNUNET_HashCode * key, size_t size,
                          const void *data, unsigned int queue_priority,
                          unsigned int max_queue_size,
                          struct GNUNET_TIME_Relative timeout,
@@ -268,7 +268,7 @@ GNUNET_DATASTORE_remove (struct GNUNET_DATASTORE_Handle *h,
  *        maybe 0 if no unique identifier is available
  */
 typedef void (*GNUNET_DATASTORE_DatumProcessor) (void *cls,
-                                                 const GNUNET_HashCode * key,
+                                                 const struct GNUNET_HashCode * key,
                                                  size_t size, const void *data,
                                                  enum GNUNET_BLOCK_Type type,
                                                  uint32_t priority,
@@ -300,7 +300,7 @@ typedef void (*GNUNET_DATASTORE_DatumProcessor) (void *cls,
  */
 struct GNUNET_DATASTORE_QueueEntry *
 GNUNET_DATASTORE_get_key (struct GNUNET_DATASTORE_Handle *h, uint64_t offset,
-                          const GNUNET_HashCode * key,
+                          const struct GNUNET_HashCode * key,
                           enum GNUNET_BLOCK_Type type,
                           unsigned int queue_priority,
                           unsigned int max_queue_size,

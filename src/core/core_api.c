@@ -357,7 +357,7 @@ reconnect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @return GNUNET_YES (continue)
  */
 static int
-disconnect_and_free_peer_entry (void *cls, const GNUNET_HashCode * key,
+disconnect_and_free_peer_entry (void *cls, const struct GNUNET_HashCode * key,
                                 void *value)
 {
   struct GNUNET_CORE_Handle *h = cls;

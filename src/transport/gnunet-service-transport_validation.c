@@ -334,7 +334,7 @@ struct ValidationEntryMatchContext
  *         GNUNET_NO if the entry does match
  */
 static int
-validation_entry_match (void *cls, const GNUNET_HashCode * key, void *value)
+validation_entry_match (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct ValidationEntryMatchContext *vemc = cls;
   struct ValidationEntry *ve = value;
@@ -357,7 +357,7 @@ validation_entry_match (void *cls, const GNUNET_HashCode * key, void *value)
  * @return GNUNET_YES (continue to iterate)
  */
 static int
-cleanup_validation_entry (void *cls, const GNUNET_HashCode * key, void *value)
+cleanup_validation_entry (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct ValidationEntry *ve = value;
 
@@ -1171,7 +1171,7 @@ struct IteratorContext
  * @return GNUNET_OK (continue to iterate)
  */
 static int
-iterate_addresses (void *cls, const GNUNET_HashCode * key, void *value)
+iterate_addresses (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct IteratorContext *ic = cls;
   struct ValidationEntry *ve = value;

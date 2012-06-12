@@ -172,8 +172,8 @@ publish_ksk_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_FS_PublishKskContext *pkc = cls;
   const char *keyword;
-  GNUNET_HashCode key;
-  GNUNET_HashCode query;
+  struct GNUNET_HashCode key;
+  struct GNUNET_HashCode query;
   struct GNUNET_CRYPTO_AesSessionKey skey;
   struct GNUNET_CRYPTO_AesInitializationVector iv;
   struct GNUNET_CRYPTO_RsaPrivateKey *pk;

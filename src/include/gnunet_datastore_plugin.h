@@ -92,7 +92,7 @@ struct GNUNET_DATASTORE_PluginEnvironment
  * @return GNUNET_OK to keep the item
  *         GNUNET_NO to delete the item
  */
-typedef int (*PluginDatumProcessor) (void *cls, const GNUNET_HashCode * key,
+typedef int (*PluginDatumProcessor) (void *cls, const struct GNUNET_HashCode * key,
                                      uint32_t size, const void *data,
                                      enum GNUNET_BLOCK_Type type,
                                      uint32_t priority, uint32_t anonymity,
@@ -127,7 +127,7 @@ typedef unsigned long long (*PluginEstimateSize) (void *cls);
  * @return GNUNET_OK on success,
  *         GNUNET_SYSERR on failure
  */
-typedef int (*PluginPut) (void *cls, const GNUNET_HashCode * key, uint32_t size,
+typedef int (*PluginPut) (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
                           const void *data, enum GNUNET_BLOCK_Type type,
                           uint32_t priority, uint32_t anonymity,
                           uint32_t replication,
@@ -142,7 +142,7 @@ typedef int (*PluginPut) (void *cls, const GNUNET_HashCode * key, uint32_t size,
  * @param count how many values are stored under this key in the datastore
  */
 typedef void (*PluginKeyProcessor) (void *cls, 
-				   const GNUNET_HashCode *key,
+				   const struct GNUNET_HashCode *key,
 				   unsigned int count);
 
 
@@ -178,8 +178,8 @@ typedef void (*PluginGetKeys) (void *cls,
  * @param proc_cls closure for proc
  */
 typedef void (*PluginGetKey) (void *cls, uint64_t offset,
-                              const GNUNET_HashCode * key,
-                              const GNUNET_HashCode * vhash,
+                              const struct GNUNET_HashCode * key,
+                              const struct GNUNET_HashCode * vhash,
                               enum GNUNET_BLOCK_Type type,
                               PluginDatumProcessor proc, void *proc_cls);
 

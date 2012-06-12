@@ -58,7 +58,7 @@ struct Wanted
 {
   struct GNUNET_CONTAINER_MetaData *meta;
 
-  GNUNET_HashCode *sender;
+  struct GNUNET_HashCode *sender;
 
   char *msg;
 
@@ -80,9 +80,9 @@ static struct PeerContext p1;
 
 static struct PeerContext p2;
 
-static GNUNET_HashCode alice;
+static struct GNUNET_HashCode alice;
 
-static GNUNET_HashCode bob;
+static struct GNUNET_HashCode bob;
 
 static struct GNUNET_CHAT_Room *alice_room;
 
@@ -201,7 +201,7 @@ member_list_cb (void *cls, const struct GNUNET_CONTAINER_MetaData *member_info,
                 enum GNUNET_CHAT_MsgOptions options)
 {
   struct Wanted *want = cls;
-  GNUNET_HashCode sender;
+  struct GNUNET_HashCode sender;
 
 #if VERBOSE
   printf ("%s - told that %s has %s\n", want->me,
@@ -213,7 +213,7 @@ member_list_cb (void *cls, const struct GNUNET_CONTAINER_MetaData *member_info,
   GNUNET_CRYPTO_hash (member_id,
                       sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
                       &sender);
-  if ((0 == memcmp (&sender, want->sender, sizeof (GNUNET_HashCode))) &&
+  if ((0 == memcmp (&sender, want->sender, sizeof (struct GNUNET_HashCode))) &&
       (((member_info == NULL) && (want->meta == NULL)) ||
        ((member_info != NULL) && (want->meta != NULL) &&
         (GNUNET_CONTAINER_meta_data_test_equal (member_info, want->meta)))) &&
@@ -234,7 +234,7 @@ member_list_cb (void *cls, const struct GNUNET_CONTAINER_MetaData *member_info,
 
 static int
 receive_cb (void *cls, struct GNUNET_CHAT_Room *room,
-            const GNUNET_HashCode * sender,
+            const struct GNUNET_HashCode * sender,
             const struct GNUNET_CONTAINER_MetaData *meta, const char *message,
             struct GNUNET_TIME_Absolute timestamp,
             enum GNUNET_CHAT_MsgOptions options)
@@ -250,7 +250,7 @@ receive_cb (void *cls, struct GNUNET_CHAT_Room *room,
   if ((0 == strcmp (message, want->msg)) &&
       (((sender == NULL) && (want->sender == NULL)) ||
        ((sender != NULL) && (want->sender != NULL) &&
-        (0 == memcmp (sender, want->sender, sizeof (GNUNET_HashCode))))) &&
+        (0 == memcmp (sender, want->sender, sizeof (struct GNUNET_HashCode))))) &&
       (GNUNET_CONTAINER_meta_data_test_equal (meta, want->meta)) &&
       (options == want->opt) &&
       /* Not == since the library sets the actual timestamp, so it may be
@@ -275,7 +275,7 @@ static int
 confirmation_cb (void *cls, struct GNUNET_CHAT_Room *room,
                  uint32_t orig_seq_number,
                  struct GNUNET_TIME_Absolute timestamp,
-                 const GNUNET_HashCode * receiver)
+                 const struct GNUNET_HashCode * receiver)
 {
   struct Wanted *want = cls;
 
@@ -285,7 +285,7 @@ confirmation_cb (void *cls, struct GNUNET_CHAT_Room *room,
                                                   EXTRACTOR_METATYPE_TITLE),
           orig_seq_number);
 #endif
-  if ((0 == memcmp (receiver, want->sender, sizeof (GNUNET_HashCode))) &&
+  if ((0 == memcmp (receiver, want->sender, sizeof (struct GNUNET_HashCode))) &&
       (orig_seq_number == want->sequence_number) &&
       (timestamp.abs_value >= want->timestamp.abs_value))
   {

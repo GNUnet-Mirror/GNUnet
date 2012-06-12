@@ -316,7 +316,7 @@ delete_expired (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
  *         GNUNET_NO to delete the item and continue (if supported)
  */
 static int
-expired_processor (void *cls, const GNUNET_HashCode * key, uint32_t size,
+expired_processor (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
                    const void *data, enum GNUNET_BLOCK_Type type,
                    uint32_t priority, uint32_t anonymity,
                    struct GNUNET_TIME_Absolute expiration, uint64_t uid)
@@ -394,7 +394,7 @@ delete_expired (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  *         GNUNET_NO to delete the item and continue (if supported)
  */
 static int
-quota_processor (void *cls, const GNUNET_HashCode * key, uint32_t size,
+quota_processor (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
                  const void *data, enum GNUNET_BLOCK_Type type,
                  uint32_t priority, uint32_t anonymity,
                  struct GNUNET_TIME_Absolute expiration, uint64_t uid)
@@ -581,7 +581,7 @@ transmit_status (struct GNUNET_SERVER_Client *client, int code, const char *msg)
  *         GNUNET_NO to delete the item and continue (if supported)
  */
 static int
-transmit_item (void *cls, const GNUNET_HashCode * key, uint32_t size,
+transmit_item (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
                const void *data, enum GNUNET_BLOCK_Type type, uint32_t priority,
                uint32_t anonymity, struct GNUNET_TIME_Absolute expiration,
                uint64_t uid)
@@ -871,7 +871,7 @@ execute_put (struct GNUNET_SERVER_Client *client, const struct DataMessage *dm)
  *         GNUNET_NO to delete the item
  */
 static int
-check_present (void *cls, const GNUNET_HashCode * key, uint32_t size,
+check_present (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
                const void *data, enum GNUNET_BLOCK_Type type, uint32_t priority,
                uint32_t anonymity, struct GNUNET_TIME_Absolute expiration,
                uint64_t uid)
@@ -930,7 +930,7 @@ handle_put (void *cls, struct GNUNET_SERVER_Client *client,
   int rid;
   struct ReservationList *pos;
   struct PutContext *pc;
-  GNUNET_HashCode vhash;
+  struct GNUNET_HashCode vhash;
   uint32_t size;
 
   if ((dm == NULL) || (ntohl (dm->type) == 0))
@@ -993,7 +993,7 @@ handle_get (void *cls, struct GNUNET_SERVER_Client *client,
 
   size = ntohs (message->size);
   if ((size != sizeof (struct GetMessage)) &&
-      (size != sizeof (struct GetMessage) - sizeof (GNUNET_HashCode)))
+      (size != sizeof (struct GetMessage) - sizeof (struct GNUNET_HashCode)))
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
@@ -1120,7 +1120,7 @@ handle_get_zero_anonymity (void *cls, struct GNUNET_SERVER_Client *client,
  * in to be deleted (by returning GNUNET_NO).
  */
 static int
-remove_callback (void *cls, const GNUNET_HashCode * key, uint32_t size,
+remove_callback (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
                  const void *data, enum GNUNET_BLOCK_Type type,
                  uint32_t priority, uint32_t anonymity,
                  struct GNUNET_TIME_Absolute expiration, uint64_t uid)
@@ -1160,7 +1160,7 @@ handle_remove (void *cls, struct GNUNET_SERVER_Client *client,
                const struct GNUNET_MessageHeader *message)
 {
   const struct DataMessage *dm = check_data (message);
-  GNUNET_HashCode vhash;
+  struct GNUNET_HashCode vhash;
 
   if (dm == NULL)
   {
@@ -1428,7 +1428,7 @@ cleanup_reservations (void *cls, struct GNUNET_SERVER_Client *client)
  */
 static void
 add_key_to_bloomfilter (void *cls,
-			const GNUNET_HashCode *key,
+			const struct GNUNET_HashCode *key,
 			unsigned int count)
 {
   struct GNUNET_CONTAINER_BloomFilter *bf = cls;

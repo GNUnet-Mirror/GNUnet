@@ -40,7 +40,7 @@ testCorrectKey ()
 {
   const char *want =
       "010601000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000b73c215f7a5e6b09bec55713c901786c09324a150980e014bdb0d04426934929c3b4971a9711af5455536cd6eeb8bfa004ee904972a737455f53c752987d8c82b755bc02882b44950c4acdc1672ba74c3b94d81a4c1ea3d74e7700ae5594c3a4f3c559e4bff2df6844fac302e4b66175e14dc8bad3ce44281d2fec1a1abef06301010000";
-  GNUNET_HashCode in;
+  struct GNUNET_HashCode in;
   struct GNUNET_CRYPTO_RsaPrivateKey *hostkey;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pkey;
   int i;
@@ -79,7 +79,7 @@ testCorrectKey ()
 static int
 testMultiKey (const char *word)
 {
-  GNUNET_HashCode in;
+  struct GNUNET_HashCode in;
   struct GNUNET_CRYPTO_RsaPrivateKey *hostkey;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pkey;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pkey1;
@@ -228,7 +228,7 @@ int
 main (int argc, char *argv[])
 {
   int failureCount = 0;
-  GNUNET_HashCode in;
+  struct GNUNET_HashCode in;
   struct GNUNET_CRYPTO_RsaPrivateKey *hostkey;
 
   GNUNET_log_setup ("test-crypto-ksk", "WARNING", NULL);

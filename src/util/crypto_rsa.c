@@ -838,7 +838,7 @@ GNUNET_CRYPTO_rsa_encrypt (const void *block, size_t size,
   size_t isize;
   size_t erroff;
 
-  GNUNET_assert (size <= sizeof (GNUNET_HashCode));
+  GNUNET_assert (size <= sizeof (struct GNUNET_HashCode));
   pubkey = public2PrivateKey (publicKey);
   if (pubkey == NULL)
     return GNUNET_SYSERR;
@@ -936,7 +936,7 @@ GNUNET_CRYPTO_rsa_sign (const struct GNUNET_CRYPTO_RsaPrivateKey *key,
   gcry_sexp_t data;
   size_t ssize;
   gcry_mpi_t rval;
-  GNUNET_HashCode hc;
+  struct GNUNET_HashCode hc;
   char *buff;
   int bufSize;
 
@@ -949,7 +949,7 @@ GNUNET_CRYPTO_rsa_sign (const struct GNUNET_CRYPTO_RsaPrivateKey *key,
           [bufSize -
            strlen
            ("0123456789012345678901234567890123456789012345678901234567890123))")
-           - 1], &hc, sizeof (GNUNET_HashCode));
+           - 1], &hc, sizeof (struct GNUNET_HashCode));
   GNUNET_assert (0 == gcry_sexp_new (&data, buff, bufSize, 0));
   GNUNET_free (buff);
   GNUNET_assert (0 == gcry_pk_sign (&result, data, key->sexp));
@@ -988,7 +988,7 @@ GNUNET_CRYPTO_rsa_verify (uint32_t purpose,
   size_t size;
   gcry_mpi_t val;
   struct GNUNET_CRYPTO_RsaPrivateKey *hostkey;
-  GNUNET_HashCode hc;
+  struct GNUNET_HashCode hc;
   char *buff;
   int bufSize;
   size_t erroff;
@@ -1012,7 +1012,7 @@ GNUNET_CRYPTO_rsa_verify (uint32_t purpose,
           [strlen (FORMATSTRING) -
            strlen
            ("0123456789012345678901234567890123456789012345678901234567890123))")],
-          &hc, sizeof (GNUNET_HashCode));
+          &hc, sizeof (struct GNUNET_HashCode));
   GNUNET_assert (0 == gcry_sexp_new (&data, buff, bufSize, 0));
   GNUNET_free (buff);
   hostkey = public2PrivateKey (publicKey);

@@ -903,7 +903,7 @@ GNUNET_error_type_to_string (enum GNUNET_ErrorType kind)
  * @return string form; will be overwritten by next call to GNUNET_h2s.
  */
 const char *
-GNUNET_h2s (const GNUNET_HashCode * hc)
+GNUNET_h2s (const struct GNUNET_HashCode * hc)
 {
   static struct GNUNET_CRYPTO_HashAsciiEncoded ret;
 
@@ -921,7 +921,7 @@ GNUNET_h2s (const GNUNET_HashCode * hc)
  * @return string form; will be overwritten by next call to GNUNET_h2s_full.
  */
 const char *
-GNUNET_h2s_full (const GNUNET_HashCode * hc)
+GNUNET_h2s_full (const struct GNUNET_HashCode * hc)
 {
   static struct GNUNET_CRYPTO_HashAsciiEncoded ret;
 

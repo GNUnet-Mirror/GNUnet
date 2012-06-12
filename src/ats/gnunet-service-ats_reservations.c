@@ -135,7 +135,7 @@ GAS_reservations_init ()
  * @return GNUNET_OK (continue to iterate)
  */
 static int
-free_tracker (void *cls, const GNUNET_HashCode * key, void *value)
+free_tracker (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct GNUNET_BANDWIDTH_Tracker *tracker = value;
 

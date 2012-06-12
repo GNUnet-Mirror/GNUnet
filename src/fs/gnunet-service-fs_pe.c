@@ -224,7 +224,7 @@ static unsigned long long plan_count;
  * @param rp a request plan
  * @return the associated query
  */
-static const GNUNET_HashCode *
+static const struct GNUNET_HashCode *
 get_rp_key (struct GSF_RequestPlan *rp)
 {
   return &GSF_pending_request_get_data_ (rp->prl_head->pr)->query;
@@ -512,7 +512,7 @@ struct MergeContext
  *         GNUNET_NO if not (merge success)
  */
 static int
-merge_pr (void *cls, const GNUNET_HashCode * query, void *element)
+merge_pr (void *cls, const struct GNUNET_HashCode * query, void *element)
 {
   struct MergeContext *mpr = cls;
   struct GSF_RequestPlan *rp = element;

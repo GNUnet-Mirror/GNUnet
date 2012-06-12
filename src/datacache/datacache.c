@@ -103,7 +103,7 @@ struct GNUNET_DATACACHE_Handle
  * @param size number of bytes that were made available
  */
 static void
-env_delete_notify (void *cls, const GNUNET_HashCode * key, size_t size)
+env_delete_notify (void *cls, const struct GNUNET_HashCode * key, size_t size)
 {
   struct GNUNET_DATACACHE_Handle *h = cls;
 
@@ -233,7 +233,7 @@ GNUNET_DATACACHE_destroy (struct GNUNET_DATACACHE_Handle *h)
  */
 int
 GNUNET_DATACACHE_put (struct GNUNET_DATACACHE_Handle *h,
-                      const GNUNET_HashCode * key, size_t size,
+                      const struct GNUNET_HashCode * key, size_t size,
                       const char *data, enum GNUNET_BLOCK_Type type,
                       struct GNUNET_TIME_Absolute discard_time)
 {
@@ -270,7 +270,7 @@ GNUNET_DATACACHE_put (struct GNUNET_DATACACHE_Handle *h,
  */
 unsigned int
 GNUNET_DATACACHE_get (struct GNUNET_DATACACHE_Handle *h,
-                      const GNUNET_HashCode * key, enum GNUNET_BLOCK_Type type,
+                      const struct GNUNET_HashCode * key, enum GNUNET_BLOCK_Type type,
                       GNUNET_DATACACHE_Iterator iter, void *iter_cls)
 {
   GNUNET_STATISTICS_update (h->stats, gettext_noop ("# requests received"), 1,

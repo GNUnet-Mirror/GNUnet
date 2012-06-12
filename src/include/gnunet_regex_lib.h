@@ -55,7 +55,7 @@ struct GNUNET_REGEX_Edge
   /**
    * Destionation of the edge.
    */
-  GNUNET_HashCode destination;
+  struct GNUNET_HashCode destination;
 };
 
 /**
@@ -134,7 +134,7 @@ GNUNET_REGEX_get_computed_regex (struct GNUNET_REGEX_Automaton *a);
  */
 unsigned int
 GNUNET_REGEX_get_first_key (const char *input_string, unsigned int string_len,
-                            GNUNET_HashCode * key);
+                            struct GNUNET_HashCode * key);
 
 /**
  * Check if the given 'proof' matches the given 'key'.
@@ -146,7 +146,7 @@ GNUNET_REGEX_get_first_key (const char *input_string, unsigned int string_len,
  */
 int
 GNUNET_REGEX_check_proof (const char *proof,
-                          const GNUNET_HashCode *key);
+                          const struct GNUNET_HashCode *key);
 
 /**
  * Iterator callback function.
@@ -159,7 +159,7 @@ GNUNET_REGEX_check_proof (const char *proof,
  * @param edges edges leaving current state.
  */
 typedef void (*GNUNET_REGEX_KeyIterator)(void *cls,
-                                         const GNUNET_HashCode *key,
+                                         const struct GNUNET_HashCode *key,
                                          const char *proof,
                                          int accepting,
                                          unsigned int num_edges,

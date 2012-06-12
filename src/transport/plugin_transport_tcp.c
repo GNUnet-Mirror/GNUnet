@@ -684,7 +684,7 @@ struct SessionClientCtx
 
 static int 
 session_lookup_by_client_it (void *cls,
-			     const GNUNET_HashCode * key,
+			     const struct GNUNET_HashCode * key,
 			     void *value)
 {
   struct SessionClientCtx *sc_ctx = cls;
@@ -1129,7 +1129,7 @@ struct SessionItCtx
 
 static int 
 session_lookup_it (void *cls,
-		   const GNUNET_HashCode *key,
+		   const struct GNUNET_HashCode *key,
 		   void *value)
 {
   struct SessionItCtx * si_ctx = cls;
@@ -1391,7 +1391,7 @@ tcp_plugin_get_session (void *cls,
 
 static int 
 session_disconnect_it (void *cls,
-		       const GNUNET_HashCode * key,
+		       const struct GNUNET_HashCode * key,
 		       void *value)
 {
   struct Session *session = value;

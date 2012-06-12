@@ -224,11 +224,10 @@ struct GNUNET_MessageHeader
 /**
  * @brief 512-bit hashcode
  */
-typedef struct GNUNET_HashCode
+struct GNUNET_HashCode
 {
   uint32_t bits[512 / 8 / sizeof (uint32_t)];   /* = 16 */
-}
-GNUNET_HashCode;
+};
 
 
 /**
@@ -237,7 +236,7 @@ GNUNET_HashCode;
  */
 struct GNUNET_PeerIdentity
 {
-  GNUNET_HashCode hashPubKey;
+  struct GNUNET_HashCode hashPubKey;
 };
 GNUNET_NETWORK_STRUCT_END
 
@@ -428,7 +427,7 @@ GNUNET_logger_remove (GNUNET_Logger logger, void *logger_cls);
  * @return string
  */
 const char *
-GNUNET_h2s (const GNUNET_HashCode * hc);
+GNUNET_h2s (const struct GNUNET_HashCode * hc);
 
 
 /**
@@ -441,7 +440,7 @@ GNUNET_h2s (const GNUNET_HashCode * hc);
  * @return string
  */
 const char *
-GNUNET_h2s_full (const GNUNET_HashCode * hc);
+GNUNET_h2s_full (const struct GNUNET_HashCode * hc);
 
 
 /**

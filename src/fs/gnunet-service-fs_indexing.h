@@ -55,7 +55,7 @@
  * @return GNUNET_OK on success
  */
 int
-GNUNET_FS_handle_on_demand_block (const GNUNET_HashCode * key, uint32_t size,
+GNUNET_FS_handle_on_demand_block (const struct GNUNET_HashCode * key, uint32_t size,
                                   const void *data, enum GNUNET_BLOCK_Type type,
                                   uint32_t priority, uint32_t anonymity,
                                   struct GNUNET_TIME_Absolute expiration,

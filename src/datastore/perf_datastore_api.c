@@ -171,7 +171,7 @@ remove_next (void *cls, int success, struct GNUNET_TIME_Absolute min_expiration,
 
 
 static void
-delete_value (void *cls, const GNUNET_HashCode * key, size_t size,
+delete_value (void *cls, const struct GNUNET_HashCode * key, size_t size,
               const void *data, enum GNUNET_BLOCK_Type type, uint32_t priority,
               uint32_t anonymity, struct GNUNET_TIME_Absolute expiration,
               uint64_t uid)
@@ -196,7 +196,7 @@ run_continuation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct CpsRunContext *crc = cls;
   size_t size;
-  static GNUNET_HashCode key;
+  static struct GNUNET_HashCode key;
   static char data[65536];
   int i;
   int k;
@@ -206,7 +206,7 @@ run_continuation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   switch (crc->phase)
   {
   case RP_PUT:
-    memset (&key, 256 - crc->i, sizeof (GNUNET_HashCode));
+    memset (&key, 256 - crc->i, sizeof (struct GNUNET_HashCode));
     i = crc->j;
     k = crc->i;
     /* most content is 32k */
@@ -214,7 +214,7 @@ run_continuation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     if (GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 16) == 0) /* but some of it is less! */
       size = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 32 * 1024);
     crc->size = size = size - (size & 7);       /* always multiple of 8 */
-    GNUNET_CRYPTO_hash (&key, sizeof (GNUNET_HashCode), &key);
+    GNUNET_CRYPTO_hash (&key, sizeof (struct GNUNET_HashCode), &key);
     memset (data, i, size);
     if (i > 255)
       memset (data, i - 255, size / 2);
@@ -298,7 +298,7 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct CpsRunContext *crc;
-  static GNUNET_HashCode zkey;
+  static struct GNUNET_HashCode zkey;
 
   datastore = GNUNET_DATASTORE_connect (cfg);
   start_time = GNUNET_TIME_absolute_get ();

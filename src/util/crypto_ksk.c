@@ -70,11 +70,11 @@ struct GNUNET_CRYPTO_RsaPrivateKey
 
 
 static void
-mpz_randomize (gcry_mpi_t n, unsigned int nbits, GNUNET_HashCode * rnd)
+mpz_randomize (gcry_mpi_t n, unsigned int nbits, struct GNUNET_HashCode * rnd)
 {
-  GNUNET_HashCode hc;
-  GNUNET_HashCode tmp;
-  int bits_per_hc = sizeof (GNUNET_HashCode) * 8;
+  struct GNUNET_HashCode hc;
+  struct GNUNET_HashCode tmp;
+  int bits_per_hc = sizeof (struct GNUNET_HashCode) * 8;
   int cnt;
   int i;
 
@@ -88,8 +88,8 @@ mpz_randomize (gcry_mpi_t n, unsigned int nbits, GNUNET_HashCode * rnd)
     int j;
 
     if (i > 0)
-      GNUNET_CRYPTO_hash (&hc, sizeof (GNUNET_HashCode), &tmp);
-    for (j = 0; j < sizeof (GNUNET_HashCode) / sizeof (uint32_t); j++)
+      GNUNET_CRYPTO_hash (&hc, sizeof (struct GNUNET_HashCode), &tmp);
+    for (j = 0; j < sizeof (struct GNUNET_HashCode) / sizeof (uint32_t); j++)
     {
 #if HAVE_GCRY_MPI_LSHIFT
       gcry_mpi_lshift (n, n, sizeof (uint32_t) * 8);
@@ -101,7 +101,7 @@ mpz_randomize (gcry_mpi_t n, unsigned int nbits, GNUNET_HashCode * rnd)
     }
     hc = tmp;
   }
-  GNUNET_CRYPTO_hash (&hc, sizeof (GNUNET_HashCode), rnd);
+  GNUNET_CRYPTO_hash (&hc, sizeof (struct GNUNET_HashCode), rnd);
   i = gcry_mpi_get_nbits (n);
   while (i > nbits)
     gcry_mpi_clear_bit (n, --i);
@@ -137,7 +137,7 @@ mpz_tdiv_q_2exp (gcry_mpi_t q, gcry_mpi_t n, unsigned int b)
  * Return true if n is probably a prime
  */
 static int
-is_prime (gcry_mpi_t n, int steps, GNUNET_HashCode * hc)
+is_prime (gcry_mpi_t n, int steps, struct GNUNET_HashCode * hc)
 {
   gcry_mpi_t x;
   gcry_mpi_t y;
@@ -218,7 +218,7 @@ adjust (unsigned char *buf, size_t size, size_t target)
 
 
 static void
-gen_prime (gcry_mpi_t * ptest, unsigned int nbits, GNUNET_HashCode * hc)
+gen_prime (gcry_mpi_t * ptest, unsigned int nbits, struct GNUNET_HashCode * hc)
 {
   /* Note: 2 is not included because it can be tested more easily by
    * looking at bit 0. The last entry in this list is marked by a zero */
@@ -400,7 +400,7 @@ gen_prime (gcry_mpi_t * ptest, unsigned int nbits, GNUNET_HashCode * hc)
  */
 static void
 generate_kblock_key (KBlock_secret_key *sk, unsigned int nbits,
-                     GNUNET_HashCode * hc)
+                     struct GNUNET_HashCode * hc)
 {
   gcry_mpi_t t1, t2;
   gcry_mpi_t phi;               /* helper: (p-1)(q-1) */
@@ -490,10 +490,10 @@ GNUNET_NETWORK_STRUCT_END
  * given HashCode as input to the PRNG.
  */
 static struct KskRsaPrivateKeyBinaryEncoded *
-makeKblockKeyInternal (const GNUNET_HashCode * hc)
+makeKblockKeyInternal (const struct GNUNET_HashCode * hc)
 {
   KBlock_secret_key sk;
-  GNUNET_HashCode hx;
+  struct GNUNET_HashCode hx;
   unsigned char *pbu[6];
   gcry_mpi_t *pkv[6];
   size_t sizes[6];
@@ -564,7 +564,7 @@ struct KBlockKeyCacheLine
   /**
    * Hash from which the key was generated.
    */
-  GNUNET_HashCode hc;
+  struct GNUNET_HashCode hc;
 
   /**
    * The encoded key.
@@ -594,13 +594,13 @@ static unsigned int cacheSize;
  * @return corresponding private key; must not be freed!
  */
 struct GNUNET_CRYPTO_RsaPrivateKey *
-GNUNET_CRYPTO_rsa_key_create_from_hash (const GNUNET_HashCode * hc)
+GNUNET_CRYPTO_rsa_key_create_from_hash (const struct GNUNET_HashCode * hc)
 {
   struct KBlockKeyCacheLine *line;
   unsigned int i;
 
   for (i = 0; i < cacheSize; i++)  
-    if (0 == memcmp (hc, &cache[i]->hc, sizeof (GNUNET_HashCode)))
+    if (0 == memcmp (hc, &cache[i]->hc, sizeof (struct GNUNET_HashCode)))
       return GNUNET_CRYPTO_rsa_decode_key ((const char*) cache[i]->pke,
 					   ntohs (cache[i]->pke->len));  
   line = GNUNET_malloc (sizeof (struct KBlockKeyCacheLine));

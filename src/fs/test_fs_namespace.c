@@ -34,7 +34,7 @@
 
 static struct PeerContext p1;
 
-static GNUNET_HashCode nsid;
+static struct GNUNET_HashCode nsid;
 
 static struct GNUNET_FS_Uri *sks_expect_uri;
 
@@ -314,7 +314,7 @@ adv_cont (void *cls, const struct GNUNET_FS_Uri *uri, const char *emsg)
 
 
 static void
-ns_iterator (void *cls, const char *name, const GNUNET_HashCode * id)
+ns_iterator (void *cls, const char *name, const struct GNUNET_HashCode * id)
 {
   int *ok = cls;
 

@@ -278,7 +278,7 @@ mlp_delete_problem (struct GAS_MLP_Handle *mlp)
  * @return GNUNET_OK to continue
  */
 static int
-create_constraint_it (void *cls, const GNUNET_HashCode * key, void *value)
+create_constraint_it (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct GAS_MLP_Handle *mlp = cls;
   struct ATS_Address *address = value;
@@ -674,7 +674,7 @@ mlp_add_constraints_all_addresses (struct GAS_MLP_Handle *mlp, struct GNUNET_CON
  * @return GNUNET_OK to continue
  */
 static int
-create_columns_it (void *cls, const GNUNET_HashCode * key, void *value)
+create_columns_it (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct GAS_MLP_Handle *mlp = cls;
   struct ATS_Address *address = value;
@@ -1706,7 +1706,7 @@ GAS_mlp_address_delete (struct GAS_MLP_Handle *mlp, struct GNUNET_CONTAINER_Mult
 }
 
 static int
-mlp_get_preferred_address_it (void *cls, const GNUNET_HashCode * key, void *value)
+mlp_get_preferred_address_it (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
 
   struct ATS_PreferedAddress *aa = (struct ATS_PreferedAddress *) cls;

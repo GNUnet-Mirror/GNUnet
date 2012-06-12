@@ -764,7 +764,7 @@ disconnect_session (struct Session *s)
  * @return GNUNET_OK (continue to iterate)
  */
 static int
-disconnect_and_free_it (void *cls, const GNUNET_HashCode * key, void *value)
+disconnect_and_free_it (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   disconnect_session(value);
   return GNUNET_OK;
@@ -857,7 +857,7 @@ create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
 
 static int
 session_cmp_it (void *cls,
-		const GNUNET_HashCode * key,
+		const struct GNUNET_HashCode * key,
 		void *value)
 {
   struct SessionCompareContext * cctx = cls;
@@ -1461,7 +1461,7 @@ struct LookupContext
 
 
 static int
-lookup_session_by_addr_it (void *cls, const GNUNET_HashCode * key, void *value)
+lookup_session_by_addr_it (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct LookupContext *l_ctx = cls;
   struct Session * s = value;

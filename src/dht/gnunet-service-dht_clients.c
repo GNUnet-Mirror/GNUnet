@@ -111,7 +111,7 @@ struct ClientQueryRecord
   /**
    * The key this request was about
    */
-  GNUNET_HashCode key;
+  struct GNUNET_HashCode key;
 
   /**
    * Client responsible for the request.
@@ -126,7 +126,7 @@ struct ClientQueryRecord
   /**
    * Replies we have already seen for this request.
    */
-  GNUNET_HashCode *seen_replies;
+  struct GNUNET_HashCode *seen_replies;
 
   /**
    * Pointer to this nodes heap location in the retry-heap (for fast removal)
@@ -201,7 +201,7 @@ struct ClientMonitorRecord
   /**
    * Key of data of interest, NULL for all.
    */
-  GNUNET_HashCode         *key;
+  struct GNUNET_HashCode         *key;
 
   /**
    * Flag whether to notify about GET messages.
@@ -322,7 +322,7 @@ find_active_client (struct GNUNET_SERVER_Client *client)
  * @return GNUNET_YES (we should continue to iterate)
  */
 static int
-remove_client_records (void *cls, const GNUNET_HashCode * key, void *value)
+remove_client_records (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct ClientList *client = cls;
   struct ClientQueryRecord *record = value;
@@ -646,7 +646,7 @@ struct RemoveByUniqueIdContext
  * @return GNUNET_YES (we should continue to iterate)
  */
 static int
-remove_by_unique_id (void *cls, const GNUNET_HashCode * key, void *value)
+remove_by_unique_id (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   const struct RemoveByUniqueIdContext *ctx = cls;
   struct ClientQueryRecord *record = value;
@@ -718,8 +718,8 @@ handle_dht_local_monitor (void *cls, struct GNUNET_SERVER_Client *client,
       r->key = NULL;
   else
   {
-    r->key = GNUNET_malloc (sizeof (GNUNET_HashCode));
-    memcpy (r->key, &msg->key, sizeof (GNUNET_HashCode));
+    r->key = GNUNET_malloc (sizeof (struct GNUNET_HashCode));
+    memcpy (r->key, &msg->key, sizeof (struct GNUNET_HashCode));
   }
   GNUNET_CONTAINER_DLL_insert (monitor_head, monitor_tail, r);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -751,7 +751,7 @@ handle_dht_local_monitor_stop (void *cls, struct GNUNET_SERVER_Client *client,
     else
     {
         keys_match = (0 != ntohs(msg->filter_key)
-                      && !memcmp(r->key, &msg->key, sizeof(GNUNET_HashCode)));
+                      && !memcmp(r->key, &msg->key, sizeof(struct GNUNET_HashCode)));
     }
     if (find_active_client(client) == r->client
         && ntohl(msg->type) == r->type
@@ -898,7 +898,7 @@ struct ForwardReplyContext
  *         if the result is mal-formed, GNUNET_NO
  */
 static int
-forward_reply (void *cls, const GNUNET_HashCode * key, void *value)
+forward_reply (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct ForwardReplyContext *frc = cls;
   struct ClientQueryRecord *record = value;
@@ -906,7 +906,7 @@ forward_reply (void *cls, const GNUNET_HashCode * key, void *value)
   struct GNUNET_DHT_ClientResultMessage *reply;
   enum GNUNET_BLOCK_EvaluationResult eval;
   int do_free;
-  GNUNET_HashCode ch;
+  struct GNUNET_HashCode ch;
   unsigned int i;
 
   if ((record->type != GNUNET_BLOCK_TYPE_ANY) && (record->type != frc->type))
@@ -922,7 +922,7 @@ forward_reply (void *cls, const GNUNET_HashCode * key, void *value)
   }
   GNUNET_CRYPTO_hash (frc->data, frc->data_size, &ch);
   for (i = 0; i < record->seen_replies_count; i++)
-    if (0 == memcmp (&record->seen_replies[i], &ch, sizeof (GNUNET_HashCode)))
+    if (0 == memcmp (&record->seen_replies[i], &ch, sizeof (struct GNUNET_HashCode)))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Duplicate reply, not passing request for key %s to local client\n",
@@ -1017,7 +1017,7 @@ forward_reply (void *cls, const GNUNET_HashCode * key, void *value)
  */
 void
 GDS_CLIENTS_handle_reply (struct GNUNET_TIME_Absolute expiration,
-                          const GNUNET_HashCode * key,
+                          const struct GNUNET_HashCode * key,
                           unsigned int get_path_length,
                           const struct GNUNET_PeerIdentity *get_path,
                           unsigned int put_path_length,
@@ -1104,7 +1104,7 @@ GDS_CLIENTS_process_get (uint32_t options,
                          uint32_t desired_replication_level, 
                          unsigned int path_length,
                          const struct GNUNET_PeerIdentity *path,
-                         const GNUNET_HashCode * key)
+                         const struct GNUNET_HashCode * key)
 {
   struct ClientMonitorRecord *m;
   struct ClientList **cl;
@@ -1116,7 +1116,7 @@ GDS_CLIENTS_process_get (uint32_t options,
   {
     if ((GNUNET_BLOCK_TYPE_ANY == m->type || m->type == type) &&
         (NULL == m->key ||
-         memcmp (key, m->key, sizeof(GNUNET_HashCode)) == 0))
+         memcmp (key, m->key, sizeof(struct GNUNET_HashCode)) == 0))
     {
       struct PendingMessage *pm;
       struct GNUNET_DHT_MonitorGetMessage *mmsg;
@@ -1145,7 +1145,7 @@ GDS_CLIENTS_process_get (uint32_t options,
       mmsg->hop_count = htonl(hop_count);
       mmsg->desired_replication_level = htonl(desired_replication_level);
       mmsg->get_path_length = htonl(path_length);
-      memcpy (&mmsg->key, key, sizeof (GNUNET_HashCode));
+      memcpy (&mmsg->key, key, sizeof (struct GNUNET_HashCode));
       msg_path = (struct GNUNET_PeerIdentity *) &mmsg[1];
       if (path_length > 0)
         memcpy (msg_path, path,
@@ -1178,7 +1178,7 @@ GDS_CLIENTS_process_get_resp (enum GNUNET_BLOCK_Type type,
                               const struct GNUNET_PeerIdentity *put_path,
                               unsigned int put_path_length,
                               struct GNUNET_TIME_Absolute exp,
-                              const GNUNET_HashCode * key,
+                              const struct GNUNET_HashCode * key,
                               const void *data,
                               size_t size)
 {
@@ -1192,7 +1192,7 @@ GDS_CLIENTS_process_get_resp (enum GNUNET_BLOCK_Type type,
   {
     if ((GNUNET_BLOCK_TYPE_ANY == m->type || m->type == type) &&
         (NULL == m->key ||
-         memcmp (key, m->key, sizeof(GNUNET_HashCode)) == 0))
+         memcmp (key, m->key, sizeof(struct GNUNET_HashCode)) == 0))
     {
       struct PendingMessage *pm;
       struct GNUNET_DHT_MonitorGetRespMessage *mmsg;
@@ -1232,7 +1232,7 @@ GDS_CLIENTS_process_get_resp (enum GNUNET_BLOCK_Type type,
         memcpy (path, get_path,
                 get_path_length * sizeof (struct GNUNET_PeerIdentity));
       mmsg->expiration_time = GNUNET_TIME_absolute_hton(exp);
-      memcpy (&mmsg->key, key, sizeof (GNUNET_HashCode));
+      memcpy (&mmsg->key, key, sizeof (struct GNUNET_HashCode));
       if (size > 0)
         memcpy (&path[get_path_length], data, size);
       add_pending_message (m->client, pm);
@@ -1265,7 +1265,7 @@ GDS_CLIENTS_process_put (uint32_t options,
                          unsigned int path_length,
                          const struct GNUNET_PeerIdentity *path,
                          struct GNUNET_TIME_Absolute exp,
-                         const GNUNET_HashCode * key,
+                         const struct GNUNET_HashCode * key,
                          const void *data,
                          size_t size)
 {
@@ -1279,7 +1279,7 @@ GDS_CLIENTS_process_put (uint32_t options,
   {
     if ((GNUNET_BLOCK_TYPE_ANY == m->type || m->type == type) &&
         (NULL == m->key ||
-         memcmp (key, m->key, sizeof(GNUNET_HashCode)) == 0))
+         memcmp (key, m->key, sizeof(struct GNUNET_HashCode)) == 0))
     {
       struct PendingMessage *pm;
       struct GNUNET_DHT_MonitorPutMessage *mmsg;
@@ -1316,7 +1316,7 @@ GDS_CLIENTS_process_put (uint32_t options,
                 path_length * sizeof (struct GNUNET_PeerIdentity));
       }
       mmsg->expiration_time = GNUNET_TIME_absolute_hton(exp);
-      memcpy (&mmsg->key, key, sizeof (GNUNET_HashCode));
+      memcpy (&mmsg->key, key, sizeof (struct GNUNET_HashCode));
       if (size > 0)
         memcpy (&msg_path[path_length], data, size);
       add_pending_message (m->client, pm);

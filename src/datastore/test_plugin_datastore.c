@@ -84,11 +84,11 @@ disk_utilization_change_cb (void *cls, int delta)
 
 
 static void
-gen_key (int i, GNUNET_HashCode * key)
+gen_key (int i, struct GNUNET_HashCode * key)
 {
-  memset (key, 0, sizeof (GNUNET_HashCode));
+  memset (key, 0, sizeof (struct GNUNET_HashCode));
   key->bits[0] = (unsigned int) i;
-  GNUNET_CRYPTO_hash (key, sizeof (GNUNET_HashCode), key);
+  GNUNET_CRYPTO_hash (key, sizeof (struct GNUNET_HashCode), key);
 }
 
 
@@ -97,7 +97,7 @@ put_value (struct GNUNET_DATASTORE_PluginFunctions *api, int i, int k)
 {
   char value[65536];
   size_t size;
-  GNUNET_HashCode key;
+  struct GNUNET_HashCode key;
   char *msg;
   unsigned int prio;
 
@@ -147,7 +147,7 @@ static uint64_t guid;
 
 
 static int
-iterate_one_shot (void *cls, const GNUNET_HashCode * key, uint32_t size,
+iterate_one_shot (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
                   const void *data, enum GNUNET_BLOCK_Type type,
                   uint32_t priority, uint32_t anonymity,
                   struct GNUNET_TIME_Absolute expiration, uint64_t uid)
@@ -218,7 +218,7 @@ test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   int j;
   unsigned long long os;
   unsigned long long cs;
-  GNUNET_HashCode key;
+  struct GNUNET_HashCode key;
 
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {

@@ -477,7 +477,7 @@ static uint32_t
 get_matching_bits (struct GNUNET_TIME_Absolute timestamp,
                    const struct GNUNET_PeerIdentity *id)
 {
-  GNUNET_HashCode timestamp_hash;
+  struct GNUNET_HashCode timestamp_hash;
 
   GNUNET_CRYPTO_hash (&timestamp.abs_value, sizeof (timestamp.abs_value),
                       &timestamp_hash);
@@ -699,7 +699,7 @@ setup_flood_message (unsigned int slot, struct GNUNET_TIME_Absolute ts)
  * @return GNUNET_OK (continue to iterate)
  */
 static int
-schedule_current_round (void *cls, const GNUNET_HashCode * key, void *value)
+schedule_current_round (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct NSEPeerEntry *peer_entry = value;
   struct GNUNET_TIME_Relative delay;
@@ -791,7 +791,7 @@ update_flood_message (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @return the number of leading zero bits.
  */
 static unsigned int
-count_leading_zeroes (const GNUNET_HashCode * hash)
+count_leading_zeroes (const struct GNUNET_HashCode * hash)
 {
   unsigned int hash_count;
 
@@ -817,7 +817,7 @@ check_proof_of_work (const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *pkey,
 {
   char buf[sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded) +
            sizeof (val)] GNUNET_ALIGN;
-  GNUNET_HashCode result;
+  struct GNUNET_HashCode result;
 
   memcpy (buf, &val, sizeof (val));
   memcpy (&buf[sizeof (val)], pkey,
@@ -862,7 +862,7 @@ find_proof (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   uint64_t counter;
   char buf[sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded) +
            sizeof (uint64_t)] GNUNET_ALIGN;
-  GNUNET_HashCode result;
+  struct GNUNET_HashCode result;
   unsigned int i;
 
   proof_task = GNUNET_SCHEDULER_NO_TASK;
@@ -952,7 +952,7 @@ verify_message_crypto (const struct GNUNET_NSE_FloodMessage *incoming_flood)
  * @return GNUNET_OK (continue to iterate)
  */
 static int
-update_flood_times (void *cls, const GNUNET_HashCode * key, void *value)
+update_flood_times (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct NSEPeerEntry *exclude = cls;
   struct NSEPeerEntry *peer_entry = value;
@@ -1382,7 +1382,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  if (nse_work_required >= sizeof (GNUNET_HashCode) * 8)
+  if (nse_work_required >= sizeof (struct GNUNET_HashCode) * 8)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Invalid work requirement for NSE service. Exiting.\n"));

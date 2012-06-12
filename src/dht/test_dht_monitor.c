@@ -184,7 +184,7 @@ disconnect_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 static void
 dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
-                    const GNUNET_HashCode * key,
+                    const struct GNUNET_HashCode * key,
                     const struct GNUNET_PeerIdentity *get_path,
                     unsigned int get_path_length,
                     const struct GNUNET_PeerIdentity *put_path,
@@ -195,9 +195,9 @@ dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "test: ************* FOUND!!! ***********\n");
-  if (sizeof (GNUNET_HashCode) == size)
+  if (sizeof (struct GNUNET_HashCode) == size)
   {
-    const GNUNET_HashCode *h = data;
+    const struct GNUNET_HashCode *h = data;
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test:   Contents: %s\n",
                 GNUNET_h2s_full (h));
@@ -314,7 +314,7 @@ monitor_get_cb (void *cls,
                 uint32_t desired_replication_level,
                 unsigned int path_length,
                 const struct GNUNET_PeerIdentity *path,
-                const GNUNET_HashCode * key)
+                const struct GNUNET_HashCode * key)
 {
   const char *s_key;
   unsigned int i;
@@ -355,7 +355,7 @@ monitor_put_cb (void *cls,
                 unsigned int path_length,
                 const struct GNUNET_PeerIdentity *path,
                 struct GNUNET_TIME_Absolute exp,
-                const GNUNET_HashCode * key,
+                const struct GNUNET_HashCode * key,
                 const void *data,
                 size_t size)
 {
@@ -397,7 +397,7 @@ monitor_res_cb (void *cls,
                 const struct GNUNET_PeerIdentity *put_path,
                 unsigned int put_path_length,
                 struct GNUNET_TIME_Absolute exp,
-                const GNUNET_HashCode * key,
+                const struct GNUNET_HashCode * key,
                 const void *data,
                 size_t size)
 {

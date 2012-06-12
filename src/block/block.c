@@ -78,10 +78,10 @@ struct GNUNET_BLOCK_Context
  * @param hc where to store the result.
  */
 void
-GNUNET_BLOCK_mingle_hash (const GNUNET_HashCode * in, uint32_t mingle_number,
-                          GNUNET_HashCode * hc)
+GNUNET_BLOCK_mingle_hash (const struct GNUNET_HashCode * in, uint32_t mingle_number,
+                          struct GNUNET_HashCode * hc)
 {
-  GNUNET_HashCode m;
+  struct GNUNET_HashCode m;
 
   GNUNET_CRYPTO_hash (&mingle_number, sizeof (uint32_t), &m);
   GNUNET_CRYPTO_hash_xor (&m, in, hc);
@@ -204,7 +204,7 @@ find_plugin (struct GNUNET_BLOCK_Context *ctx, enum GNUNET_BLOCK_Type type)
 enum GNUNET_BLOCK_EvaluationResult
 GNUNET_BLOCK_evaluate (struct GNUNET_BLOCK_Context *ctx,
                        enum GNUNET_BLOCK_Type type,
-                       const GNUNET_HashCode * query,
+                       const struct GNUNET_HashCode * query,
                        struct GNUNET_CONTAINER_BloomFilter **bf,
                        int32_t bf_mutator, const void *xquery,
                        size_t xquery_size, const void *reply_block,
@@ -233,7 +233,7 @@ GNUNET_BLOCK_evaluate (struct GNUNET_BLOCK_Context *ctx,
 int
 GNUNET_BLOCK_get_key (struct GNUNET_BLOCK_Context *ctx,
                       enum GNUNET_BLOCK_Type type, const void *block,
-                      size_t block_size, GNUNET_HashCode * key)
+                      size_t block_size, struct GNUNET_HashCode * key)
 {
   struct GNUNET_BLOCK_PluginFunctions *plugin = find_plugin (ctx, type);
 
@@ -285,11 +285,11 @@ compute_bloomfilter_size (unsigned int entry_count)
  */
 struct GNUNET_CONTAINER_BloomFilter *
 GNUNET_BLOCK_construct_bloomfilter (int32_t bf_mutator,
-                                    const GNUNET_HashCode * seen_results,
+                                    const struct GNUNET_HashCode * seen_results,
                                     unsigned int seen_results_count)
 {
   struct GNUNET_CONTAINER_BloomFilter *bf;
-  GNUNET_HashCode mhash;
+  struct GNUNET_HashCode mhash;
   unsigned int i;
   size_t nsize;
 

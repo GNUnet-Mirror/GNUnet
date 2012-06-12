@@ -35,18 +35,18 @@ static char block[65536];
 static int
 test (int number)
 {
-  GNUNET_HashCode h1;
-  GNUNET_HashCode h2;
+  struct GNUNET_HashCode h1;
+  struct GNUNET_HashCode h2;
   struct GNUNET_CRYPTO_HashAsciiEncoded enc;
 
-  memset (&h1, number, sizeof (GNUNET_HashCode));
+  memset (&h1, number, sizeof (struct GNUNET_HashCode));
   GNUNET_CRYPTO_hash_to_enc (&h1, &enc);
   if (GNUNET_OK != GNUNET_CRYPTO_hash_from_string ((char *) &enc, &h2))
   {
     printf ("enc2hash failed!\n");
     return 1;
   }
-  if (0 != memcmp (&h1, &h2, sizeof (GNUNET_HashCode)))
+  if (0 != memcmp (&h1, &h2, sizeof (struct GNUNET_HashCode)))
     return 1;
   return 0;
 }
@@ -67,10 +67,10 @@ testArithmetic ()
 {
   static struct GNUNET_CRYPTO_AesSessionKey zskey;
   static struct GNUNET_CRYPTO_AesInitializationVector ziv;
-  GNUNET_HashCode h1;
-  GNUNET_HashCode h2;
-  GNUNET_HashCode d;
-  GNUNET_HashCode s;
+  struct GNUNET_HashCode h1;
+  struct GNUNET_HashCode h2;
+  struct GNUNET_HashCode d;
+  struct GNUNET_HashCode s;
   struct GNUNET_CRYPTO_AesSessionKey skey;
   struct GNUNET_CRYPTO_AesInitializationVector iv;
 
@@ -107,10 +107,10 @@ testArithmetic ()
 }
 
 static void
-finished_task (void *cls, const GNUNET_HashCode * res)
+finished_task (void *cls, const struct GNUNET_HashCode * res)
 {
   int *ret = cls;
-  GNUNET_HashCode want;
+  struct GNUNET_HashCode want;
 
   GNUNET_CRYPTO_hash (block, sizeof (block), &want);
   if (0 != memcmp (res, &want, sizeof (want)))

@@ -162,7 +162,7 @@ add_to_keyword_counter (void *cls, const char *keyword, int is_mandatory)
 {
   struct GNUNET_CONTAINER_MultiHashMap *mcm = cls;
   struct KeywordCounter *cnt;
-  GNUNET_HashCode hc;
+  struct GNUNET_HashCode hc;
   size_t klen;
 
   klen = strlen (keyword) + 1;
@@ -206,7 +206,7 @@ add_to_meta_counter (void *cls, const char *plugin_name,
 		     const char *data_mime_type, const char *data, size_t data_len)
 {
   struct GNUNET_CONTAINER_MultiHashMap *map = cls;
-  GNUNET_HashCode key;
+  struct GNUNET_HashCode key;
   struct MetaCounter *cnt;
 
   GNUNET_CRYPTO_hash (data, data_len, &key);
@@ -243,7 +243,7 @@ remove_high_frequency_keywords (void *cls, const char *keyword, int is_mandatory
 {
   struct TrimContext *tc = cls;
   struct KeywordCounter *counter;
-  GNUNET_HashCode hc;
+  struct GNUNET_HashCode hc;
   size_t klen;
 
   klen = strlen (keyword) + 1;
@@ -268,7 +268,7 @@ remove_high_frequency_keywords (void *cls, const char *keyword, int is_mandatory
  * @return GNUNET_YES (always)
  */
 static int
-migrate_and_drop_keywords (void *cls, const GNUNET_HashCode * key, void *value)
+migrate_and_drop_keywords (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct TrimContext *tc = cls;
   struct KeywordCounter *counter = value;
@@ -299,7 +299,7 @@ migrate_and_drop_keywords (void *cls, const GNUNET_HashCode * key, void *value)
  * @return GNUNET_YES (always)
  */
 static int
-migrate_and_drop_metadata (void *cls, const GNUNET_HashCode * key, void *value)
+migrate_and_drop_metadata (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct TrimContext *tc = cls;
   struct MetaCounter *counter = value;

@@ -163,7 +163,7 @@ typedef void (*GNUNET_DHT_PutContinuation)(void *cls,
  *        (size too big)
  */
 struct GNUNET_DHT_PutHandle *
-GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle, const GNUNET_HashCode * key,
+GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle, const struct GNUNET_HashCode * key,
                 uint32_t desired_replication_level,
                 enum GNUNET_DHT_RouteOption options,
                 enum GNUNET_BLOCK_Type type, size_t size, const char *data,
@@ -205,7 +205,7 @@ GNUNET_DHT_put_cancel (struct GNUNET_DHT_PutHandle *ph);
  */
 typedef void (*GNUNET_DHT_GetIterator) (void *cls,
                                         struct GNUNET_TIME_Absolute exp,
-                                        const GNUNET_HashCode * key,
+                                        const struct GNUNET_HashCode * key,
                                         const struct GNUNET_PeerIdentity *
                                         get_path, unsigned int get_path_length,
                                         const struct GNUNET_PeerIdentity *
@@ -234,7 +234,7 @@ typedef void (*GNUNET_DHT_GetIterator) (void *cls,
  */
 struct GNUNET_DHT_GetHandle *
 GNUNET_DHT_get_start (struct GNUNET_DHT_Handle *handle,
-                      enum GNUNET_BLOCK_Type type, const GNUNET_HashCode * key,
+                      enum GNUNET_BLOCK_Type type, const struct GNUNET_HashCode * key,
                       uint32_t desired_replication_level,
                       enum GNUNET_DHT_RouteOption options, const void *xquery,
                       size_t xquery_size, GNUNET_DHT_GetIterator iter,
@@ -279,7 +279,7 @@ typedef void (*GNUNET_DHT_MonitorGetCB) (void *cls,
                                          uint32_t desired_replication_level, 
                                          unsigned int path_length,
                                          const struct GNUNET_PeerIdentity *path,
-                                         const GNUNET_HashCode * key);
+                                         const struct GNUNET_HashCode * key);
 
 /**
  * Callback called on each GET reply going through the DHT.
@@ -304,7 +304,7 @@ typedef void (*GNUNET_DHT_MonitorGetRespCB) (void *cls,
                                              * put_path,
                                              unsigned int put_path_length,
                                              struct GNUNET_TIME_Absolute exp,
-                                             const GNUNET_HashCode * key,
+                                             const struct GNUNET_HashCode * key,
                                              const void *data,
                                              size_t size);
 
@@ -331,7 +331,7 @@ typedef void (*GNUNET_DHT_MonitorPutCB) (void *cls,
                                          unsigned int path_length,
                                          const struct GNUNET_PeerIdentity *path,
                                          struct GNUNET_TIME_Absolute exp,
-                                         const GNUNET_HashCode * key,
+                                         const struct GNUNET_HashCode * key,
                                          const void *data,
                                          size_t size);
 
@@ -351,7 +351,7 @@ typedef void (*GNUNET_DHT_MonitorPutCB) (void *cls,
 struct GNUNET_DHT_MonitorHandle *
 GNUNET_DHT_monitor_start (struct GNUNET_DHT_Handle *handle,
                           enum GNUNET_BLOCK_Type type,
-                          const GNUNET_HashCode *key,
+                          const struct GNUNET_HashCode *key,
                           GNUNET_DHT_MonitorGetCB get_cb,
                           GNUNET_DHT_MonitorGetRespCB get_resp_cb,
                           GNUNET_DHT_MonitorPutCB put_cb,

@@ -88,7 +88,7 @@ static struct DiscoveryCallback *head;
  * @param rating rating of pseudonym
  */
 static void
-internal_notify (const GNUNET_HashCode * id,
+internal_notify (const struct GNUNET_HashCode * id,
                  const struct GNUNET_CONTAINER_MetaData *md, int rating)
 {
   struct DiscoveryCallback *pos;
@@ -169,7 +169,7 @@ GNUNET_PSEUDONYM_discovery_callback_unregister (GNUNET_PSEUDONYM_Iterator
  */
 static char *
 get_data_filename (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                   const char *prefix, const GNUNET_HashCode * psid)
+                   const char *prefix, const struct GNUNET_HashCode * psid)
 {
   struct GNUNET_CRYPTO_HashAsciiEncoded enc;
 
@@ -192,7 +192,7 @@ get_data_filename (const struct GNUNET_CONFIGURATION_Handle *cfg,
  */
 static void
 write_pseudonym_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                      const GNUNET_HashCode * nsid,
+                      const struct GNUNET_HashCode * nsid,
                       const struct GNUNET_CONTAINER_MetaData *meta,
                       int32_t ranking, const char *ns_name)
 {
@@ -238,7 +238,7 @@ write_pseudonym_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
  */
 static int
 read_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
-           const GNUNET_HashCode * nsid,
+           const struct GNUNET_HashCode * nsid,
            struct GNUNET_CONTAINER_MetaData **meta, int32_t * ranking,
            char **ns_name)
 {
@@ -303,9 +303,9 @@ read_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
  */
 char *
 GNUNET_PSEUDONYM_name_uniquify (const struct GNUNET_CONFIGURATION_Handle *cfg,
-    const GNUNET_HashCode * nsid, const char *name, unsigned int *suffix)
+    const struct GNUNET_HashCode * nsid, const char *name, unsigned int *suffix)
 {
-  GNUNET_HashCode nh;
+  struct GNUNET_HashCode nh;
   uint64_t len;
   char *fn;
   struct GNUNET_DISK_FileHandle *fh;
@@ -328,23 +328,23 @@ GNUNET_PSEUDONYM_name_uniquify (const struct GNUNET_CONFIGURATION_Handle *cfg,
                               GNUNET_DISK_PERM_USER_WRITE);
   i = 0;
   idx = -1;
-  while ((len >= sizeof (GNUNET_HashCode)) &&
-         (sizeof (GNUNET_HashCode) ==
-          GNUNET_DISK_file_read (fh, &nh, sizeof (GNUNET_HashCode))))
+  while ((len >= sizeof (struct GNUNET_HashCode)) &&
+         (sizeof (struct GNUNET_HashCode) ==
+          GNUNET_DISK_file_read (fh, &nh, sizeof (struct GNUNET_HashCode))))
   {
-    if (0 == memcmp (&nh, nsid, sizeof (GNUNET_HashCode)))
+    if (0 == memcmp (&nh, nsid, sizeof (struct GNUNET_HashCode)))
     {
       idx = i;
       break;
     }
     i++;
-    len -= sizeof (GNUNET_HashCode);
+    len -= sizeof (struct GNUNET_HashCode);
   }
   if (idx == -1)
   {
     idx = i;
-    if (sizeof (GNUNET_HashCode) !=
-        GNUNET_DISK_file_write (fh, nsid, sizeof (GNUNET_HashCode)))
+    if (sizeof (struct GNUNET_HashCode) !=
+        GNUNET_DISK_file_write (fh, nsid, sizeof (struct GNUNET_HashCode)))
       LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "write", fn);
   }
   GNUNET_DISK_file_close (fh);
@@ -376,7 +376,7 @@ GNUNET_PSEUDONYM_name_uniquify (const struct GNUNET_CONFIGURATION_Handle *cfg,
  */
 int
 GNUNET_PSEUDONYM_get_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
-    const GNUNET_HashCode * nsid, struct GNUNET_CONTAINER_MetaData **ret_meta,
+    const struct GNUNET_HashCode * nsid, struct GNUNET_CONTAINER_MetaData **ret_meta,
     int32_t *ret_rank, char **ret_name, int *name_is_a_dup)
 {
   struct GNUNET_CONTAINER_MetaData *meta;
@@ -450,13 +450,13 @@ GNUNET_PSEUDONYM_get_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
  */
 int
 GNUNET_PSEUDONYM_name_to_id (const struct GNUNET_CONFIGURATION_Handle *cfg,
-    const char *ns_uname, GNUNET_HashCode * nsid)
+    const char *ns_uname, struct GNUNET_HashCode * nsid)
 {
   size_t slen;
   uint64_t len;
   unsigned int idx;
   char *name;
-  GNUNET_HashCode nh;
+  struct GNUNET_HashCode nh;
   char *fn;
   struct GNUNET_DISK_FileHandle *fh;
 
@@ -476,7 +476,7 @@ GNUNET_PSEUDONYM_name_to_id (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
   if ((GNUNET_OK != GNUNET_DISK_file_test (fn) ||
        (GNUNET_OK != GNUNET_DISK_file_size (fn, &len, GNUNET_YES, GNUNET_YES))) ||
-      ((idx + 1) * sizeof (GNUNET_HashCode) > len))
+      ((idx + 1) * sizeof (struct GNUNET_HashCode) > len))
   {
     GNUNET_free (fn);
     return GNUNET_SYSERR;
@@ -487,10 +487,10 @@ GNUNET_PSEUDONYM_name_to_id (const struct GNUNET_CONFIGURATION_Handle *cfg,
                               GNUNET_DISK_PERM_USER_READ |
                               GNUNET_DISK_PERM_USER_WRITE);
   GNUNET_free (fn);
-  GNUNET_DISK_file_seek (fh, idx * sizeof (GNUNET_HashCode),
+  GNUNET_DISK_file_seek (fh, idx * sizeof (struct GNUNET_HashCode),
                          GNUNET_DISK_SEEK_SET);
-  if (sizeof (GNUNET_HashCode) !=
-      GNUNET_DISK_file_read (fh, nsid, sizeof (GNUNET_HashCode)))
+  if (sizeof (struct GNUNET_HashCode) !=
+      GNUNET_DISK_file_read (fh, nsid, sizeof (struct GNUNET_HashCode)))
   {
     GNUNET_DISK_file_close (fh);
     return GNUNET_SYSERR;
@@ -535,7 +535,7 @@ list_pseudonym_helper (void *cls, const char *fullname)
 {
   struct ListPseudonymClosure *c = cls;
   int ret;
-  GNUNET_HashCode id;
+  struct GNUNET_HashCode id;
   int32_t rating;
   struct GNUNET_CONTAINER_MetaData *meta;
   const char *fn;
@@ -612,7 +612,7 @@ GNUNET_PSEUDONYM_list_all (const struct GNUNET_CONFIGURATION_Handle *cfg,
  */
 int
 GNUNET_PSEUDONYM_rank (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                       const GNUNET_HashCode * nsid, int delta)
+                       const struct GNUNET_HashCode * nsid, int delta)
 {
   struct GNUNET_CONTAINER_MetaData *meta;
   int ret;
@@ -648,7 +648,7 @@ GNUNET_PSEUDONYM_rank (const struct GNUNET_CONFIGURATION_Handle *cfg,
  */
 int
 GNUNET_PSEUDONYM_set_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
-    const GNUNET_HashCode * nsid, const char *name,
+    const struct GNUNET_HashCode * nsid, const char *name,
     const struct GNUNET_CONTAINER_MetaData *md, int rank)
 {
   GNUNET_assert (cfg != NULL);
@@ -670,7 +670,7 @@ GNUNET_PSEUDONYM_set_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
  */
 void
 GNUNET_PSEUDONYM_add (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                      const GNUNET_HashCode * id,
+                      const struct GNUNET_HashCode * id,
                       const struct GNUNET_CONTAINER_MetaData *meta)
 {
   char *name;

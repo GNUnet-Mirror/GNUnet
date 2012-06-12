@@ -135,7 +135,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 {
   struct GNUNET_TIME_Relative timeout;
   struct GNUNET_TIME_Absolute expiration;
-  GNUNET_HashCode key;
+  struct GNUNET_HashCode key;
 
   cfg = c;
 

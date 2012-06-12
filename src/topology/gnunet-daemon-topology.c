@@ -316,7 +316,7 @@ is_connection_allowed (struct Peer *peer)
  * @return GNUNET_YES (always: continue to iterate)
  */
 static int
-free_peer (void *cls, const GNUNET_HashCode * pid, void *value)
+free_peer (void *cls, const struct GNUNET_HashCode * pid, void *value)
 {
   struct Peer *pos = value;
 
@@ -573,7 +573,7 @@ struct FindAdvHelloContext
  * @return GNUNET_YES (continue iteration)
  */
 static int
-find_advertisable_hello (void *cls, const GNUNET_HashCode * pid, void *value)
+find_advertisable_hello (void *cls, const struct GNUNET_HashCode * pid, void *value)
 {
   struct FindAdvHelloContext *fah = cls;
   struct Peer *pos = value;
@@ -659,7 +659,7 @@ schedule_next_hello (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @return GNUNET_YES (always)
  */
 static int
-reschedule_hellos (void *cls, const GNUNET_HashCode * pid, void *value)
+reschedule_hellos (void *cls, const struct GNUNET_HashCode * pid, void *value)
 {
   struct Peer *peer = value;
   struct Peer *skip = cls;
@@ -743,7 +743,7 @@ connect_notify (void *cls, const struct GNUNET_PeerIdentity *peer,
  * @return GNUNET_YES (continue to iterate)
  */
 static int
-try_add_peers (void *cls, const GNUNET_HashCode * pid, void *value)
+try_add_peers (void *cls, const struct GNUNET_HashCode * pid, void *value)
 {
   struct Peer *pos = value;
 

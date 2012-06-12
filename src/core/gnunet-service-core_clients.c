@@ -559,7 +559,7 @@ client_tokenizer_callback (void *cls, void *client,
  * @return GNUNET_YES (continue iteration)
  */
 static int
-destroy_active_client_request (void *cls, const GNUNET_HashCode * key,
+destroy_active_client_request (void *cls, const struct GNUNET_HashCode * key,
                                void *value)
 {
   struct GSC_ClientActiveRequest *car = value;

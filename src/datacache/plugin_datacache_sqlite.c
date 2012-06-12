@@ -37,7 +37,7 @@
  * How much overhead do we assume per entry in the
  * datacache?
  */
-#define OVERHEAD (sizeof(GNUNET_HashCode) + 32)
+#define OVERHEAD (sizeof(struct GNUNET_HashCode) + 32)
 
 /**
  * Context for all functions in this plugin.
@@ -98,7 +98,7 @@ sq_prepare (sqlite3 * dbh, const char *zSql,    /* SQL statement, UTF-8 encoded 
  * @return 0 on error, number of bytes used otherwise
  */
 static size_t
-sqlite_plugin_put (void *cls, const GNUNET_HashCode * key, size_t size,
+sqlite_plugin_put (void *cls, const struct GNUNET_HashCode * key, size_t size,
                    const char *data, enum GNUNET_BLOCK_Type type,
                    struct GNUNET_TIME_Absolute discard_time)
 {
@@ -126,7 +126,7 @@ sqlite_plugin_put (void *cls, const GNUNET_HashCode * key, size_t size,
   if ((SQLITE_OK != sqlite3_bind_int (stmt, 1, type)) ||
       (SQLITE_OK != sqlite3_bind_int64 (stmt, 2, dval)) ||
       (SQLITE_OK !=
-       sqlite3_bind_blob (stmt, 3, key, sizeof (GNUNET_HashCode),
+       sqlite3_bind_blob (stmt, 3, key, sizeof (struct GNUNET_HashCode),
                           SQLITE_TRANSIENT)) ||
       (SQLITE_OK != sqlite3_bind_blob (stmt, 4, data, size, SQLITE_TRANSIENT)))
   {
@@ -161,7 +161,7 @@ sqlite_plugin_put (void *cls, const GNUNET_HashCode * key, size_t size,
  * @return the number of results found
  */
 static unsigned int
-sqlite_plugin_get (void *cls, const GNUNET_HashCode * key,
+sqlite_plugin_get (void *cls, const struct GNUNET_HashCode * key,
                    enum GNUNET_BLOCK_Type type, GNUNET_DATACACHE_Iterator iter,
                    void *iter_cls)
 {
@@ -192,7 +192,7 @@ sqlite_plugin_get (void *cls, const GNUNET_HashCode * key,
   ntime = (int64_t) now.abs_value;
   GNUNET_assert (ntime >= 0);
   if ((SQLITE_OK !=
-       sqlite3_bind_blob (stmt, 1, key, sizeof (GNUNET_HashCode),
+       sqlite3_bind_blob (stmt, 1, key, sizeof (struct GNUNET_HashCode),
                           SQLITE_TRANSIENT)) ||
       (SQLITE_OK != sqlite3_bind_int (stmt, 2, type)) ||
       (SQLITE_OK != sqlite3_bind_int64 (stmt, 3, now.abs_value)))
@@ -239,7 +239,7 @@ sqlite_plugin_get (void *cls, const GNUNET_HashCode * key,
       return cnt;
     }
     if ((SQLITE_OK !=
-         sqlite3_bind_blob (stmt, 1, key, sizeof (GNUNET_HashCode),
+         sqlite3_bind_blob (stmt, 1, key, sizeof (struct GNUNET_HashCode),
                             SQLITE_TRANSIENT)) ||
         (SQLITE_OK != sqlite3_bind_int (stmt, 2, type)) ||
         (SQLITE_OK != sqlite3_bind_int64 (stmt, 3, now.abs_value)))
@@ -287,7 +287,7 @@ sqlite_plugin_del (void *cls)
   unsigned int dsize;
   sqlite3_stmt *stmt;
   sqlite3_stmt *dstmt;
-  GNUNET_HashCode hc;
+  struct GNUNET_HashCode hc;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Processing `%s'\n", "DEL");
   stmt = NULL;
@@ -311,8 +311,8 @@ sqlite_plugin_del (void *cls)
     return GNUNET_SYSERR;
   }
   rowid = sqlite3_column_int64 (stmt, 0);
-  GNUNET_assert (sqlite3_column_bytes (stmt, 1) == sizeof (GNUNET_HashCode));
-  memcpy (&hc, sqlite3_column_blob (stmt, 1), sizeof (GNUNET_HashCode));
+  GNUNET_assert (sqlite3_column_bytes (stmt, 1) == sizeof (struct GNUNET_HashCode));
+  memcpy (&hc, sqlite3_column_blob (stmt, 1), sizeof (struct GNUNET_HashCode));
   dsize = sqlite3_column_bytes (stmt, 2);
   if (SQLITE_OK != sqlite3_finalize (stmt))
     LOG_SQLITE (plugin->dbh, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,

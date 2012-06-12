@@ -492,7 +492,7 @@ static void
 get_stop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct TestGetContext *test_get = cls;
-  GNUNET_HashCode search_key;   /* Key stored under */
+  struct GNUNET_HashCode search_key;   /* Key stored under */
   char original_data[TEST_DATA_SIZE];   /* Made up data to store */
 
   test_get->task = GNUNET_SCHEDULER_NO_TASK;
@@ -548,7 +548,7 @@ get_stop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  */
 static void
 get_result_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
-                     const GNUNET_HashCode * key,
+                     const struct GNUNET_HashCode * key,
                      const struct GNUNET_PeerIdentity *get_path,
                      unsigned int get_path_length,
                      const struct GNUNET_PeerIdentity *put_path,
@@ -556,7 +556,7 @@ get_result_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
                      size_t size, const void *data)
 {
   struct TestGetContext *test_get = cls;
-  GNUNET_HashCode search_key;   /* Key stored under */
+  struct GNUNET_HashCode search_key;   /* Key stored under */
   char original_data[TEST_DATA_SIZE];   /* Made up data to store */
 
   memset (original_data, test_get->uid, sizeof (original_data));
@@ -586,7 +586,7 @@ get_result_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
   }
 #endif
 
-  if ((0 != memcmp (&search_key, key, sizeof (GNUNET_HashCode))) ||
+  if ((0 != memcmp (&search_key, key, sizeof (struct GNUNET_HashCode))) ||
       (0 != memcmp (original_data, data, sizeof (original_data))))
   {
     FPRINTF (stderr, "%s",  "Key or data is not the same as was inserted!\n");
@@ -606,7 +606,7 @@ static void
 do_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct TestGetContext *test_get = cls;
-  GNUNET_HashCode key;          /* Made up key to store data under */
+  struct GNUNET_HashCode key;          /* Made up key to store data under */
   char data[TEST_DATA_SIZE];    /* Made up data to store */
 
   if (outstanding_gets > MAX_OUTSTANDING_GETS)
@@ -700,7 +700,7 @@ static void
 do_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct TestPutContext *test_put = cls;
-  GNUNET_HashCode key;          /* Made up key to store data under */
+  struct GNUNET_HashCode key;          /* Made up key to store data under */
   char data[TEST_DATA_SIZE];    /* Made up data to store */
 
   test_put->task = GNUNET_SCHEDULER_NO_TASK;

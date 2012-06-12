@@ -44,7 +44,7 @@
  */
 void
 GDS_DATACACHE_handle_put (struct GNUNET_TIME_Absolute expiration,
-                          const GNUNET_HashCode * key,
+                          const struct GNUNET_HashCode * key,
                           unsigned int put_path_length,
                           const struct GNUNET_PeerIdentity *put_path,
                           enum GNUNET_BLOCK_Type type, size_t data_size,
@@ -63,7 +63,7 @@ GDS_DATACACHE_handle_put (struct GNUNET_TIME_Absolute expiration,
  * @return evaluation result for the local replies
  */
 enum GNUNET_BLOCK_EvaluationResult
-GDS_DATACACHE_handle_get (const GNUNET_HashCode * key,
+GDS_DATACACHE_handle_get (const struct GNUNET_HashCode * key,
                           enum GNUNET_BLOCK_Type type, const void *xquery,
                           size_t xquery_size,
                           struct GNUNET_CONTAINER_BloomFilter **reply_bf,

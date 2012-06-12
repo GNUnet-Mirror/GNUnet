@@ -36,16 +36,16 @@
  * Generate a random hashcode.
  */
 static void
-nextHC (GNUNET_HashCode * hc)
+nextHC (struct GNUNET_HashCode * hc)
 {
   GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK, hc);
 }
 
 static int
-add_iterator (void *cls, GNUNET_HashCode * next)
+add_iterator (void *cls, struct GNUNET_HashCode * next)
 {
   int *ret = cls;
-  GNUNET_HashCode pos;
+  struct GNUNET_HashCode pos;
 
   if (0 == (*ret)--)
     return GNUNET_NO;
@@ -59,7 +59,7 @@ main (int argc, char *argv[])
 {
   struct GNUNET_CONTAINER_BloomFilter *bf;
   struct GNUNET_CONTAINER_BloomFilter *bfi;
-  GNUNET_HashCode tmp;
+  struct GNUNET_HashCode tmp;
   int i;
   int ok1;
   int ok2;

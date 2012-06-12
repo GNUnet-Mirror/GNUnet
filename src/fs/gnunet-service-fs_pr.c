@@ -74,7 +74,7 @@ struct GSF_PendingRequest
   /**
    * Array of hash codes of replies we've already seen.
    */
-  GNUNET_HashCode *replies_seen;
+  struct GNUNET_HashCode *replies_seen;
 
   /**
    * Bloomfilter masking replies we've already seen.
@@ -263,15 +263,15 @@ refresh_bloomfilter (struct GSF_PendingRequest *pr)
 struct GSF_PendingRequest *
 GSF_pending_request_create_ (enum GSF_PendingRequestOptions options,
                              enum GNUNET_BLOCK_Type type,
-                             const GNUNET_HashCode * query,
-                             const GNUNET_HashCode * namespace,
+                             const struct GNUNET_HashCode * query,
+                             const struct GNUNET_HashCode * namespace,
                              const struct GNUNET_PeerIdentity *target,
                              const char *bf_data, size_t bf_size,
                              uint32_t mingle, uint32_t anonymity_level,
                              uint32_t priority, int32_t ttl,
                              GNUNET_PEER_Id sender_pid,
                              GNUNET_PEER_Id origin_pid,
-                             const GNUNET_HashCode * replies_seen,
+                             const struct GNUNET_HashCode * replies_seen,
                              unsigned int replies_seen_count,
                              GSF_PendingRequestReplyHandler rh, void *rh_cls)
 {
@@ -324,9 +324,9 @@ GSF_pending_request_create_ (enum GSF_PendingRequestOptions options,
   {
     pr->replies_seen_size = replies_seen_count;
     pr->replies_seen =
-        GNUNET_malloc (sizeof (GNUNET_HashCode) * pr->replies_seen_size);
+        GNUNET_malloc (sizeof (struct GNUNET_HashCode) * pr->replies_seen_size);
     memcpy (pr->replies_seen, replies_seen,
-            replies_seen_count * sizeof (GNUNET_HashCode));
+            replies_seen_count * sizeof (struct GNUNET_HashCode));
     pr->replies_seen_count = replies_seen_count;
   }
   if (NULL != bf_data)
@@ -398,11 +398,11 @@ GSF_pending_request_is_compatible_ (struct GSF_PendingRequest *pra,
   if ((pra->public_data.type != prb->public_data.type) ||
       (0 !=
        memcmp (&pra->public_data.query, &prb->public_data.query,
-               sizeof (GNUNET_HashCode))) ||
+               sizeof (struct GNUNET_HashCode))) ||
       ((pra->public_data.type == GNUNET_BLOCK_TYPE_FS_SBLOCK) &&
        (0 !=
         memcmp (&pra->public_data.namespace, &prb->public_data.namespace,
-                sizeof (GNUNET_HashCode)))))
+                sizeof (struct GNUNET_HashCode)))))
     return GNUNET_NO;
   return GNUNET_OK;
 }
@@ -419,11 +419,11 @@ GSF_pending_request_is_compatible_ (struct GSF_PendingRequest *pra,
  */
 void
 GSF_pending_request_update_ (struct GSF_PendingRequest *pr,
-                             const GNUNET_HashCode * replies_seen,
+                             const struct GNUNET_HashCode * replies_seen,
                              unsigned int replies_seen_count)
 {
   unsigned int i;
-  GNUNET_HashCode mhash;
+  struct GNUNET_HashCode mhash;
 
   if (replies_seen_count + pr->replies_seen_count < pr->replies_seen_count)
     return;                     /* integer overflow */
@@ -434,7 +434,7 @@ GSF_pending_request_update_ (struct GSF_PendingRequest *pr,
       GNUNET_array_grow (pr->replies_seen, pr->replies_seen_size,
                          replies_seen_count + pr->replies_seen_count);
     memcpy (&pr->replies_seen[pr->replies_seen_count], replies_seen,
-            sizeof (GNUNET_HashCode) * replies_seen_count);
+            sizeof (struct GNUNET_HashCode) * replies_seen_count);
     pr->replies_seen_count += replies_seen_count;
     refresh_bloomfilter (pr);
   }
@@ -477,7 +477,7 @@ GSF_pending_request_get_message_ (struct GSF_PendingRequest *pr,
 {
   char lbuf[GNUNET_SERVER_MAX_MESSAGE_SIZE];
   struct GetMessage *gm;
-  GNUNET_HashCode *ext;
+  struct GNUNET_HashCode *ext;
   size_t msize;
   unsigned int k;
   uint32_t bm;
@@ -515,7 +515,7 @@ GSF_pending_request_get_message_ (struct GSF_PendingRequest *pr,
     k++;
   }
   bf_size = GNUNET_CONTAINER_bloomfilter_get_size (pr->bf);
-  msize = sizeof (struct GetMessage) + bf_size + k * sizeof (GNUNET_HashCode);
+  msize = sizeof (struct GetMessage) + bf_size + k * sizeof (struct GNUNET_HashCode);
   GNUNET_assert (msize < GNUNET_SERVER_MAX_MESSAGE_SIZE);
   if (buf_size < msize)
     return msize;
@@ -537,13 +537,13 @@ GSF_pending_request_get_message_ (struct GSF_PendingRequest *pr,
   gm->filter_mutator = htonl (pr->mingle);
   gm->hash_bitmap = htonl (bm);
   gm->query = pr->public_data.query;
-  ext = (GNUNET_HashCode *) & gm[1];
+  ext = (struct GNUNET_HashCode *) & gm[1];
   k = 0;
   if (!do_route)
     GNUNET_PEER_resolve (pr->sender_pid,
                          (struct GNUNET_PeerIdentity *) &ext[k++]);
   if (GNUNET_BLOCK_TYPE_FS_SBLOCK == pr->public_data.type)
-    memcpy (&ext[k++], &pr->public_data.namespace, sizeof (GNUNET_HashCode));
+    memcpy (&ext[k++], &pr->public_data.namespace, sizeof (struct GNUNET_HashCode));
   if (GNUNET_YES == pr->public_data.has_target)
     ext[k++] = pr->public_data.target.hashPubKey;
   if (pr->bf != NULL)
@@ -565,7 +565,7 @@ GSF_pending_request_get_message_ (struct GSF_PendingRequest *pr,
  * @return GNUNET_YES (we should continue to iterate)
  */
 static int
-clean_request (void *cls, const GNUNET_HashCode * key, void *value)
+clean_request (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct GSF_PendingRequest *pr = value;
   GSF_LocalLookupContinuation cont;
@@ -763,11 +763,11 @@ update_request_performance_data (struct ProcessReplyClosure *prq,
  * @return GNUNET_YES (we should continue to iterate)
  */
 static int
-process_reply (void *cls, const GNUNET_HashCode * key, void *value)
+process_reply (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct ProcessReplyClosure *prq = cls;
   struct GSF_PendingRequest *pr = value;
-  GNUNET_HashCode chash;
+  struct GNUNET_HashCode chash;
   struct GNUNET_TIME_Absolute last_transmission;
 
   if (NULL == pr->rh)
@@ -783,7 +783,7 @@ process_reply (void *cls, const GNUNET_HashCode * key, void *value)
                              &pr->public_data.namespace,
                              (prq->type ==
                               GNUNET_BLOCK_TYPE_FS_SBLOCK) ?
-                             sizeof (GNUNET_HashCode) : 0, prq->data,
+                             sizeof (struct GNUNET_HashCode) : 0, prq->data,
                              prq->size);
   switch (prq->eval)
   {
@@ -1000,7 +1000,7 @@ test_put_load_too_high (uint32_t priority)
  */
 static void
 handle_dht_reply (void *cls, struct GNUNET_TIME_Absolute exp,
-                  const GNUNET_HashCode * key,
+                  const struct GNUNET_HashCode * key,
                   const struct GNUNET_PeerIdentity *get_path,
                   unsigned int get_path_length,
                   const struct GNUNET_PeerIdentity *put_path,
@@ -1057,7 +1057,7 @@ GSF_dht_lookup_ (struct GSF_PendingRequest *pr)
   const void *xquery;
   size_t xquery_size;
   struct GNUNET_PeerIdentity pi;
-  char buf[sizeof (GNUNET_HashCode) * 2] GNUNET_ALIGN;
+  char buf[sizeof (struct GNUNET_HashCode) * 2] GNUNET_ALIGN;
 
   if (0 != pr->public_data.anonymity_level)
     return;
@@ -1071,8 +1071,8 @@ GSF_dht_lookup_ (struct GSF_PendingRequest *pr)
   if (GNUNET_BLOCK_TYPE_FS_SBLOCK == pr->public_data.type)
   {
     xquery = buf;
-    memcpy (buf, &pr->public_data.namespace, sizeof (GNUNET_HashCode));
-    xquery_size = sizeof (GNUNET_HashCode);
+    memcpy (buf, &pr->public_data.namespace, sizeof (struct GNUNET_HashCode));
+    xquery_size = sizeof (struct GNUNET_HashCode);
   }
   if (0 != (pr->public_data.options & GSF_PRO_FORWARD_ONLY))
   {
@@ -1151,7 +1151,7 @@ odc_warn_delay_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  *        maybe 0 if no unique identifier is available
  */
 static void
-process_local_reply (void *cls, const GNUNET_HashCode * key, size_t size,
+process_local_reply (void *cls, const struct GNUNET_HashCode * key, size_t size,
                      const void *data, enum GNUNET_BLOCK_Type type,
                      uint32_t priority, uint32_t anonymity,
                      struct GNUNET_TIME_Absolute expiration, uint64_t uid)
@@ -1159,7 +1159,7 @@ process_local_reply (void *cls, const GNUNET_HashCode * key, size_t size,
   struct GSF_PendingRequest *pr = cls;
   GSF_LocalLookupContinuation cont;
   struct ProcessReplyClosure prq;
-  GNUNET_HashCode query;
+  struct GNUNET_HashCode query;
   unsigned int old_rf;
 
   GNUNET_SCHEDULER_cancel (pr->warn_task);
@@ -1477,7 +1477,7 @@ GSF_handle_p2p_content_ (struct GSF_ConnectedPeer *cp,
   size_t dsize;
   enum GNUNET_BLOCK_Type type;
   struct GNUNET_TIME_Absolute expiration;
-  GNUNET_HashCode query;
+  struct GNUNET_HashCode query;
   struct ProcessReplyClosure prq;
   struct GNUNET_TIME_Relative block_time;
   double putl;

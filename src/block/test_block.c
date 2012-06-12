@@ -32,7 +32,7 @@
 static int
 test_fs (struct GNUNET_BLOCK_Context *ctx)
 {
-  GNUNET_HashCode key;
+  struct GNUNET_HashCode key;
   char block[4];
 
   memset (block, 1, sizeof (block));

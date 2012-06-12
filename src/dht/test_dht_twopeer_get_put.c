@@ -214,22 +214,22 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  */
 void
 get_result_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
-                     const GNUNET_HashCode * key,
+                     const struct GNUNET_HashCode * key,
                      const struct GNUNET_PeerIdentity *get_path,
                      unsigned int get_path_size,
                      const struct GNUNET_PeerIdentity *put_path,
                      unsigned int put_path_size, enum GNUNET_BLOCK_Type type,
                      size_t size, const void *result_data)
 {
-  GNUNET_HashCode original_key; /* Key data was stored data under */
+  struct GNUNET_HashCode original_key; /* Key data was stored data under */
   char original_data[4];        /* Made up data that was stored */
 
-  memset (&original_key, 42, sizeof (GNUNET_HashCode)); /* Set the key to what it was set to previously */
+  memset (&original_key, 42, sizeof (struct GNUNET_HashCode)); /* Set the key to what it was set to previously */
   memset (original_data, 43, sizeof (original_data));
 
 #if DNS
   if ((sizeof (original_data) != size) ||
-      (0 != memcmp (&data.service_descriptor, key, sizeof (GNUNET_HashCode))) ||
+      (0 != memcmp (&data.service_descriptor, key, sizeof (struct GNUNET_HashCode))) ||
       (0 != memcmp ((char *) &data, result_data, sizeof (original_data))))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -241,7 +241,7 @@ get_result_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
   }
 #else
   if ((sizeof (original_data) != size) ||
-      (0 != memcmp (&original_key, key, sizeof (GNUNET_HashCode))) ||
+      (0 != memcmp (&original_key, key, sizeof (struct GNUNET_HashCode))) ||
       (0 != memcmp (original_data, result_data, sizeof (original_data))))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -264,12 +264,12 @@ get_result_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
 static void
 do_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_HashCode key;          /* Key for data lookup */
+  struct GNUNET_HashCode key;          /* Key for data lookup */
 
 #if DNS
-  memcpy (&key, &data.service_descriptor, sizeof (GNUNET_HashCode));
+  memcpy (&key, &data.service_descriptor, sizeof (struct GNUNET_HashCode));
 #else
-  memset (&key, 42, sizeof (GNUNET_HashCode));  /* Set the key to the same thing as when data was inserted */
+  memset (&key, 42, sizeof (struct GNUNET_HashCode));  /* Set the key to the same thing as when data was inserted */
 #endif
   global_get_handle =
       GNUNET_DHT_get_start (peer2dht, 
@@ -305,10 +305,10 @@ put_finished (void *cls, int success)
 static void
 do_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_HashCode key;          /* Made up key to store data under */
+  struct GNUNET_HashCode key;          /* Made up key to store data under */
   char data[4];                 /* Made up data to store */
 
-  memset (&key, 42, sizeof (GNUNET_HashCode));  /* Set the key to something simple so we can issue GET request */
+  memset (&key, 42, sizeof (struct GNUNET_HashCode));  /* Set the key to something simple so we can issue GET request */
   memset (data, 43, sizeof (data));
 
   /* Insert the data at the first peer */

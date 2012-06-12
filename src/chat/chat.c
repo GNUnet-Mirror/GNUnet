@@ -92,7 +92,7 @@ struct MemberList
   /**
    * Member ID (pseudonym).
    */
-  GNUNET_HashCode id;
+  struct GNUNET_HashCode id;
 
 };
 
@@ -224,8 +224,8 @@ process_result (struct GNUNET_CHAT_Room *room,
   struct ReceiveNotificationMessage *received_msg;
   struct ConfirmationReceiptMessage *receipt;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pkey;
-  GNUNET_HashCode id;
-  const GNUNET_HashCode *sender;
+  struct GNUNET_HashCode id;
+  const struct GNUNET_HashCode *sender;
   struct GNUNET_CONTAINER_MetaData *meta;
   struct GNUNET_CHAT_SendReceiptContext *src;
   struct MemberList *pos;
@@ -308,7 +308,7 @@ process_result (struct GNUNET_CHAT_Room *room,
     prev = NULL;
     pos = room->members;
     while ((NULL != pos) &&
-           (0 != memcmp (&pos->id, &id, sizeof (GNUNET_HashCode))))
+           (0 != memcmp (&pos->id, &id, sizeof (struct GNUNET_HashCode))))
     {
       prev = pos;
       pos = pos->next;
@@ -379,7 +379,7 @@ process_result (struct GNUNET_CHAT_Room *room,
       while ((NULL != pos) &&
              (0 !=
               memcmp (&pos->id, &received_msg->sender,
-                      sizeof (GNUNET_HashCode))))
+                      sizeof (struct GNUNET_HashCode))))
         pos = pos->next;
       GNUNET_assert (NULL != pos);
       sender = &received_msg->sender;
@@ -649,7 +649,7 @@ GNUNET_CHAT_join_room (const struct GNUNET_CONFIGURATION_Handle *cfg,
                        GNUNET_CHAT_MemberListCallback memberCallback,
                        void *member_cls,
                        GNUNET_CHAT_MessageConfirmation confirmationCallback,
-                       void *confirmation_cls, GNUNET_HashCode * me)
+                       void *confirmation_cls, struct GNUNET_HashCode * me)
 {
   struct GNUNET_CHAT_Room *chat_room;
   struct GNUNET_CRYPTO_RsaPrivateKey *priv_key;
@@ -755,7 +755,7 @@ transmit_send_request (void *cls, size_t size, void *buf)
       GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get ());
   msg_to_send->reserved = htonl (0);
   if (NULL == smc->receiver)
-    memset (&msg_to_send->target, 0, sizeof (GNUNET_HashCode));
+    memset (&msg_to_send->target, 0, sizeof (struct GNUNET_HashCode));
   else
     GNUNET_CRYPTO_hash (smc->receiver,
                         sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),

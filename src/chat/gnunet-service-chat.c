@@ -69,7 +69,7 @@ struct ChatClient
   /**
    * Hash of the public key (for convenience).
    */
-  GNUNET_HashCode id;
+  struct GNUNET_HashCode id;
 
   /**
    * Options which the client is willing to receive.
@@ -117,7 +117,7 @@ struct AnonymousMessage
   /**
    * Hash of the message.
    */
-  GNUNET_HashCode hash;
+  struct GNUNET_HashCode hash;
 
 };
 
@@ -162,7 +162,7 @@ static void
 remember_anonymous_message (const struct P2PReceiveNotificationMessage
                             *p2p_rnmsg)
 {
-  static GNUNET_HashCode hash;
+  static struct GNUNET_HashCode hash;
   struct AnonymousMessage *anon_msg;
   struct AnonymousMessage *prev;
   int anon_list_len;
@@ -192,13 +192,13 @@ remember_anonymous_message (const struct P2PReceiveNotificationMessage
 static int
 lookup_anonymous_message (const struct P2PReceiveNotificationMessage *p2p_rnmsg)
 {
-  static GNUNET_HashCode hash;
+  static struct GNUNET_HashCode hash;
   struct AnonymousMessage *anon_msg;
 
   GNUNET_CRYPTO_hash (p2p_rnmsg, ntohs (p2p_rnmsg->header.size), &hash);
   anon_msg = anonymous_list_head;
   while ((NULL != anon_msg) &&
-         (0 != memcmp (&anon_msg->hash, &hash, sizeof (GNUNET_HashCode))))
+         (0 != memcmp (&anon_msg->hash, &hash, sizeof (struct GNUNET_HashCode))))
     anon_msg = anon_msg->next;
   return (NULL != anon_msg);
 }
@@ -244,7 +244,7 @@ transmit_message_notification_to_peer (void *cls, size_t size, void *buf)
  * Ask to send a message notification to the peer.
  */
 static int
-send_message_noficiation (void *cls, const GNUNET_HashCode * key, void *value)
+send_message_noficiation (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct P2PReceiveNotificationMessage *msg = cls;
   struct ConnectedPeer *cp = value;
@@ -280,7 +280,7 @@ static void
 handle_transmit_request (void *cls, struct GNUNET_SERVER_Client *client,
                          const struct GNUNET_MessageHeader *message)
 {
-  static GNUNET_HashCode all_zeros;
+  static struct GNUNET_HashCode all_zeros;
   const struct TransmitRequestMessage *trmsg;
   struct ReceiveNotificationMessage *rnmsg;
   struct P2PReceiveNotificationMessage *p2p_rnmsg;
@@ -349,7 +349,7 @@ handle_transmit_request (void *cls, struct GNUNET_SERVER_Client *client,
   is_anon = (0 != (ntohl (trmsg->msg_options) & GNUNET_CHAT_MSG_ANONYMOUS));
   if (is_anon)
   {
-    memset (&rnmsg->sender, 0, sizeof (GNUNET_HashCode));
+    memset (&rnmsg->sender, 0, sizeof (struct GNUNET_HashCode));
     rnmsg->sequence_number = 0;
   }
   else
@@ -364,7 +364,7 @@ handle_transmit_request (void *cls, struct GNUNET_SERVER_Client *client,
                 "Encrypting the session key using the public key of '%s'\n",
                 GNUNET_h2s (&trmsg->target));
 #endif
-    if (0 == memcmp (&all_zeros, &trmsg->target, sizeof (GNUNET_HashCode)))
+    if (0 == memcmp (&all_zeros, &trmsg->target, sizeof (struct GNUNET_HashCode)))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   "Malformed message: private, but no target\n");
@@ -377,7 +377,7 @@ handle_transmit_request (void *cls, struct GNUNET_SERVER_Client *client,
     target = client_list_head;
     while ((NULL != target) &&
            (0 !=
-            memcmp (&target->id, &trmsg->target, sizeof (GNUNET_HashCode))))
+            memcmp (&target->id, &trmsg->target, sizeof (struct GNUNET_HashCode))))
       target = target->next;
     if (NULL == target)
     {
@@ -416,7 +416,7 @@ handle_transmit_request (void *cls, struct GNUNET_SERVER_Client *client,
         (pos->client != client))
     {
       if (((!is_priv) ||
-           (0 == memcmp (&trmsg->target, &pos->id, sizeof (GNUNET_HashCode))))
+           (0 == memcmp (&trmsg->target, &pos->id, sizeof (struct GNUNET_HashCode))))
           && (0 == (ntohl (trmsg->msg_options) & (~pos->msg_options))))
       {
         GNUNET_SERVER_notification_context_unicast (nc, pos->client,
@@ -521,7 +521,7 @@ transmit_join_notification_to_peer (void *cls, size_t size, void *buf)
  * Ask to send a join notification to the peer.
  */
 static int
-send_join_noficiation (void *cls, const GNUNET_HashCode * key, void *value)
+send_join_noficiation (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct ChatClient *entry = cls;
   struct ConnectedPeer *cp = value;
@@ -703,7 +703,7 @@ transmit_confirmation_receipt_to_peer (void *cls, size_t size, void *buf)
  * Ask to send a confirmation receipt to the peer.
  */
 static int
-send_confirmation_receipt (void *cls, const GNUNET_HashCode * key, void *value)
+send_confirmation_receipt (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct P2PConfirmationReceiptMessage *receipt = cls;
   struct ConnectedPeer *cp = value;
@@ -754,7 +754,7 @@ handle_acknowledge_request (void *cls, struct GNUNET_SERVER_Client *client,
   author = client_list_head;
   while ((NULL != author) &&
          (0 !=
-          memcmp (&receipt->author, &author->id, sizeof (GNUNET_HashCode))))
+          memcmp (&receipt->author, &author->id, sizeof (struct GNUNET_HashCode))))
     author = author->next;
   if (NULL == author)
   {
@@ -767,7 +767,7 @@ handle_acknowledge_request (void *cls, struct GNUNET_SERVER_Client *client,
   target = client_list_head;
   while ((NULL != target) &&
          (0 !=
-          memcmp (&receipt->target, &target->id, sizeof (GNUNET_HashCode))))
+          memcmp (&receipt->target, &target->id, sizeof (struct GNUNET_HashCode))))
     target = target->next;
   if (NULL == target)
   {
@@ -880,7 +880,7 @@ transmit_leave_notification_to_peer (void *cls, size_t size, void *buf)
  * Ask to send a leave notification to the peer.
  */
 static int
-send_leave_noficiation (void *cls, const GNUNET_HashCode * key, void *value)
+send_leave_noficiation (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct ChatClient *entry = cls;
   struct ConnectedPeer *cp = value;
@@ -1000,7 +1000,7 @@ handle_p2p_join_notification (void *cls,
   struct ChatClient *new_entry;
   struct ChatClient *entry;
   struct JoinNotificationMessage *jnmsg;
-  GNUNET_HashCode id;
+  struct GNUNET_HashCode id;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Got P2P join notification\n");
   if (ntohs (message->size) <= sizeof (struct P2PJoinNotificationMessage))
@@ -1025,7 +1025,7 @@ handle_p2p_join_notification (void *cls,
   entry = client_list_head;
   while (NULL != entry)
   {
-    if (0 == memcmp (&entry->id, &id, sizeof (GNUNET_HashCode)))
+    if (0 == memcmp (&entry->id, &id, sizeof (struct GNUNET_HashCode)))
     {
 #if DEBUG_CHAT_SERVICE
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1109,7 +1109,7 @@ handle_p2p_leave_notification (void *cls,
                                unsigned int atsi_count)
 {
   const struct P2PLeaveNotificationMessage *p2p_lnmsg;
-  GNUNET_HashCode id;
+  struct GNUNET_HashCode id;
   struct ChatClient *pos;
   struct ChatClient *prev;
   struct ChatClient *entry;
@@ -1124,7 +1124,7 @@ handle_p2p_leave_notification (void *cls,
   prev = NULL;
   while (NULL != pos)
   {
-    if (0 == memcmp (&pos->id, &id, sizeof (GNUNET_HashCode)))
+    if (0 == memcmp (&pos->id, &id, sizeof (struct GNUNET_HashCode)))
       break;
     prev = pos;
     pos = pos->next;
@@ -1195,7 +1195,7 @@ handle_p2p_message_notification (void *cls,
   struct ReceiveNotificationMessage *rnmsg;
   struct ChatClient *sender;
   struct ChatClient *pos;
-  static GNUNET_HashCode all_zeros;
+  static struct GNUNET_HashCode all_zeros;
   int is_priv;
   int is_anon;
   uint16_t msg_len;
@@ -1246,7 +1246,7 @@ handle_p2p_message_notification (void *cls,
     sender = client_list_head;
     while ((NULL != sender) &&
            (0 !=
-            memcmp (&sender->id, &p2p_rnmsg->sender, sizeof (GNUNET_HashCode))))
+            memcmp (&sender->id, &p2p_rnmsg->sender, sizeof (struct GNUNET_HashCode))))
       sender = sender->next;
     if (NULL == sender)
     {
@@ -1287,7 +1287,7 @@ handle_p2p_message_notification (void *cls,
   rnmsg->reserved = htonl (0);
   rnmsg->timestamp = p2p_rnmsg->timestamp;
   is_priv =
-      (0 != memcmp (&all_zeros, &p2p_rnmsg->target, sizeof (GNUNET_HashCode)));
+      (0 != memcmp (&all_zeros, &p2p_rnmsg->target, sizeof (struct GNUNET_HashCode)));
   if (is_priv)
     memcpy (&rnmsg->encrypted_key, &p2p_rnmsg->encrypted_key,
             sizeof (struct GNUNET_CRYPTO_RsaEncryptedData));
@@ -1300,7 +1300,7 @@ handle_p2p_message_notification (void *cls,
     {
       if (((!is_priv) ||
            (0 ==
-            memcmp (&p2p_rnmsg->target, &pos->id, sizeof (GNUNET_HashCode)))) &&
+            memcmp (&p2p_rnmsg->target, &pos->id, sizeof (struct GNUNET_HashCode)))) &&
           (0 == (ntohl (p2p_rnmsg->msg_options) & (~pos->msg_options))))
       {
         GNUNET_SERVER_notification_context_unicast (nc, pos->client,
@@ -1396,7 +1396,7 @@ handle_p2p_confirmation_receipt (void *cls,
   target = client_list_head;
   while ((NULL != target) &&
          (0 !=
-          memcmp (&target->id, &p2p_crmsg->target, sizeof (GNUNET_HashCode))))
+          memcmp (&target->id, &p2p_crmsg->target, sizeof (struct GNUNET_HashCode))))
     target = target->next;
   if (NULL == target)
   {
@@ -1420,7 +1420,7 @@ handle_p2p_confirmation_receipt (void *cls,
   author = client_list_head;
   while ((NULL != author) &&
          (0 !=
-          memcmp (&author->id, &p2p_crmsg->author, sizeof (GNUNET_HashCode))))
+          memcmp (&author->id, &p2p_crmsg->author, sizeof (struct GNUNET_HashCode))))
     author = author->next;
   if (NULL == author)
   {
@@ -1563,7 +1563,7 @@ peer_connect_handler (void *cls, const struct GNUNET_PeerIdentity *peer,
  * @return GNUNET_YES (we should continue to iterate)
  */
 static int
-clean_peer (void *cls, const GNUNET_HashCode * key, void *value)
+clean_peer (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct ConnectedPeer *cp;
   const struct GNUNET_PeerIdentity *peer =
@@ -1595,7 +1595,7 @@ peer_disconnect_handler (void *cls, const struct GNUNET_PeerIdentity *peer)
     return;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Peer disconnected: %s\n",
               GNUNET_i2s (peer));
-  clean_peer (NULL, (const GNUNET_HashCode *) peer, NULL);
+  clean_peer (NULL, (const struct GNUNET_HashCode *) peer, NULL);
 }
 
 

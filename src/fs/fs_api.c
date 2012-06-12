@@ -819,7 +819,7 @@ deserialize_fi_node (struct GNUNET_FS_Handle *h, const char *fn,
     if ((GNUNET_OK != GNUNET_BIO_read_int64 (rh, &ret->data.file.file_size)) ||
         (GNUNET_OK !=
          GNUNET_BIO_read (rh, "fileid", &ret->data.file.file_id,
-                          sizeof (GNUNET_HashCode))))
+                          sizeof (struct GNUNET_HashCode))))
     {
       GNUNET_break (0);
       goto cleanup;
@@ -841,7 +841,7 @@ deserialize_fi_node (struct GNUNET_FS_Handle *h, const char *fn,
     if ((GNUNET_OK != GNUNET_BIO_read_int64 (rh, &ret->data.file.file_size)) ||
         (GNUNET_OK !=
          GNUNET_BIO_read (rh, "fileid", &ret->data.file.file_id,
-                          sizeof (GNUNET_HashCode))))
+                          sizeof (struct GNUNET_HashCode))))
     {
       GNUNET_break (0);
       goto cleanup;
@@ -1198,7 +1198,7 @@ GNUNET_FS_file_information_sync_ (struct GNUNET_FS_FileInformation *fi)
     if ((GNUNET_OK != GNUNET_BIO_write_int64 (wh, fi->data.file.file_size)) ||
         (GNUNET_OK !=
          GNUNET_BIO_write (wh, &fi->data.file.file_id,
-                           sizeof (GNUNET_HashCode))))
+                           sizeof (struct GNUNET_HashCode))))
     {
       GNUNET_break (0);
       goto cleanup;
@@ -1575,7 +1575,7 @@ GNUNET_FS_unindex_sync_ (struct GNUNET_FS_UnindexContext *uc)
       (GNUNET_OK != GNUNET_BIO_write_int32 (wh, (uint32_t) uc->ksk_offset)) ||
       ((uc->state == UNINDEX_STATE_FS_NOTIFY) &&
        (GNUNET_OK !=
-        GNUNET_BIO_write (wh, &uc->file_id, sizeof (GNUNET_HashCode)))) ||
+        GNUNET_BIO_write (wh, &uc->file_id, sizeof (struct GNUNET_HashCode)))) ||
       ((uc->state == UNINDEX_STATE_ERROR) &&
        (GNUNET_OK != GNUNET_BIO_write_string (wh, uc->emsg))))
   {
@@ -1875,7 +1875,7 @@ GNUNET_FS_search_result_sync_ (struct GNUNET_FS_SearchResult *sr)
                                 sr->update_search !=
                                 NULL ? sr->update_search->serialization : NULL))
       || (GNUNET_OK != GNUNET_BIO_write_meta_data (wh, sr->meta)) ||
-      (GNUNET_OK != GNUNET_BIO_write (wh, &sr->key, sizeof (GNUNET_HashCode)))
+      (GNUNET_OK != GNUNET_BIO_write (wh, &sr->key, sizeof (struct GNUNET_HashCode)))
       || (GNUNET_OK != GNUNET_BIO_write_int32 (wh, sr->mandatory_missing)) ||
       (GNUNET_OK != GNUNET_BIO_write_int32 (wh, sr->optional_support)) ||
       (GNUNET_OK != GNUNET_BIO_write_int32 (wh, sr->availability_success)) ||
@@ -2045,7 +2045,7 @@ deserialize_unindex_file (void *cls, const char *filename)
   case UNINDEX_STATE_FS_NOTIFY:
     if (GNUNET_OK !=
         GNUNET_BIO_read (rh, "unindex-hash", &uc->file_id,
-                         sizeof (GNUNET_HashCode)))
+                         sizeof (struct GNUNET_HashCode)))
     {
       GNUNET_break (0);
       goto cleanup;
@@ -2211,7 +2211,7 @@ deserialize_search_result (void *cls, const char *filename)
           GNUNET_BIO_read_string (rh, "search-lnk", &update_srch, 16)) ||
       (GNUNET_OK != GNUNET_BIO_read_meta_data (rh, "result-meta", &sr->meta)) ||
       (GNUNET_OK !=
-       GNUNET_BIO_read (rh, "result-key", &sr->key, sizeof (GNUNET_HashCode)))
+       GNUNET_BIO_read (rh, "result-key", &sr->key, sizeof (struct GNUNET_HashCode)))
       || (GNUNET_OK != GNUNET_BIO_read_int32 (rh, &sr->mandatory_missing)) ||
       (GNUNET_OK != GNUNET_BIO_read_int32 (rh, &sr->optional_support)) ||
       (GNUNET_OK != GNUNET_BIO_read_int32 (rh, &sr->availability_success)) ||
@@ -2346,7 +2346,7 @@ signal_search_resume (struct GNUNET_FS_SearchContext *sc);
  * @return GNUNET_YES (we should continue to iterate)
  */
 static int
-signal_result_resume (void *cls, const GNUNET_HashCode * key, void *value)
+signal_result_resume (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct GNUNET_FS_SearchContext *sc = cls;
   struct GNUNET_FS_ProgressInfo pi;
@@ -2398,7 +2398,7 @@ free_search_context (struct GNUNET_FS_SearchContext *sc);
  * @return GNUNET_YES (we should continue to iterate)
  */
 static int
-free_result (void *cls, const GNUNET_HashCode * key, void *value)
+free_result (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct GNUNET_FS_SearchResult *sr = value;
 

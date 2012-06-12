@@ -55,7 +55,7 @@ static int verbose;
  * @return GNUNET_OK to continue iteration
  */
 static int
-print_indexed (void *cls, const char *filename, const GNUNET_HashCode * file_id)
+print_indexed (void *cls, const char *filename, const struct GNUNET_HashCode * file_id)
 {
   if (NULL == filename)
   {

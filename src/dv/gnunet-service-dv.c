@@ -681,7 +681,7 @@ find_destination (void *cls, struct GNUNET_CONTAINER_HeapNode *node,
  * respective neighbor.
  */
 static int
-find_specific_id (void *cls, const GNUNET_HashCode * key, void *value)
+find_specific_id (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct FindIDContext *fdc = cls;
   struct DistantNeighbor *dn = value;
@@ -704,7 +704,7 @@ find_specific_id (void *cls, const GNUNET_HashCode * key, void *value)
  * route.
  */
 static int
-find_distant_peer (void *cls, const GNUNET_HashCode * key, void *value)
+find_distant_peer (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct FindDestinationContext *fdc = cls;
   struct DistantNeighbor *distant = value;
@@ -1085,7 +1085,7 @@ send_message_via (const struct GNUNET_PeerIdentity *sender,
  * @return GNUNET_YES to continue iteration, GNUNET_NO to stop
  */
 static int
-find_least_cost_peer (void *cls, const GNUNET_HashCode * key, void *value)
+find_least_cost_peer (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct FindLeastCostContext *find_context = cls;
   struct DistantNeighbor *dn = value;
@@ -1264,7 +1264,7 @@ struct CheckPeerContext
  *         GNUNET_NO if not.
  */
 int
-checkPeerID (void *cls, const GNUNET_HashCode * key, void *value)
+checkPeerID (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct CheckPeerContext *ctx = cls;
   struct DistantNeighbor *distant = value;
@@ -1661,7 +1661,7 @@ handle_dv_data_message (void *cls, const struct GNUNET_PeerIdentity *peer,
  *         GNUNET_NO if not.
  */
 int
-print_neighbors (void *cls, const GNUNET_HashCode * key, void *abs_value)
+print_neighbors (void *cls, const struct GNUNET_HashCode * key, void *abs_value)
 {
   struct DistantNeighbor *distant_neighbor = abs_value;
   char my_shortname[5];
@@ -1849,7 +1849,7 @@ handle_start (void *cls, struct GNUNET_SERVER_Client *client,
  *         GNUNET_NO if not.
  */
 int
-send_iterator (void *cls, const GNUNET_HashCode * key, void *abs_value)
+send_iterator (void *cls, const struct GNUNET_HashCode * key, void *abs_value)
 {
   struct DV_SendContext *send_context = cls;
   struct DistantNeighbor *distant_neighbor = abs_value;
@@ -2174,7 +2174,7 @@ direct_neighbor_free (struct DirectNeighbor *direct)
  * @return GNUNET_YES to continue iteration, GNUNET_NO to stop
  */
 static int
-schedule_disconnect_messages (void *cls, const GNUNET_HashCode * key,
+schedule_disconnect_messages (void *cls, const struct GNUNET_HashCode * key,
                               void *value)
 {
   struct DisconnectContext *disconnect_context = cls;
@@ -2222,7 +2222,7 @@ schedule_disconnect_messages (void *cls, const GNUNET_HashCode * key,
  * @return GNUNET_YES to continue iteration, GNUNET_NO to stop
  */
 static int
-free_extended_neighbors (void *cls, const GNUNET_HashCode * key, void *value)
+free_extended_neighbors (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct DistantNeighbor *distant = value;
 
@@ -2240,7 +2240,7 @@ free_extended_neighbors (void *cls, const GNUNET_HashCode * key, void *value)
  * @return GNUNET_YES to continue iteration, GNUNET_NO to stop
  */
 static int
-free_direct_neighbors (void *cls, const GNUNET_HashCode * key, void *value)
+free_direct_neighbors (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct DirectNeighbor *direct = value;
 
@@ -2320,7 +2320,7 @@ core_init (void *cls, struct GNUNET_CORE_Handle *server,
  *         GNUNET_NO if not.
  */
 static int
-add_pkey_to_extended (void *cls, const GNUNET_HashCode * key, void *abs_value)
+add_pkey_to_extended (void *cls, const struct GNUNET_HashCode * key, void *abs_value)
 {
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *pkey = cls;
   struct DistantNeighbor *distant_neighbor = abs_value;
@@ -2348,7 +2348,7 @@ add_pkey_to_extended (void *cls, const GNUNET_HashCode * key, void *abs_value)
  *         GNUNET_NO if not.
  */
 static int
-update_matching_neighbors (void *cls, const GNUNET_HashCode * key, void *value)
+update_matching_neighbors (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct NeighborUpdateInfo *update_info = cls;
   struct DistantNeighbor *distant_neighbor = value;
@@ -2384,7 +2384,7 @@ update_matching_neighbors (void *cls, const GNUNET_HashCode * key, void *value)
  * @return GNUNET_YES to continue iteration, GNUNET_NO otherwise
  */
 static int
-add_distant_all_direct_neighbors (void *cls, const GNUNET_HashCode * key,
+add_distant_all_direct_neighbors (void *cls, const struct GNUNET_HashCode * key,
                                   void *value)
 {
   struct DirectNeighbor *direct = (struct DirectNeighbor *) value;
@@ -2837,7 +2837,7 @@ handle_dv_gossip_message (void *cls, const struct GNUNET_PeerIdentity *peer,
  * @return GNUNET_YES to continue iteration, GNUNET_NO otherwise
  */
 static int
-add_all_extended_peers (void *cls, const GNUNET_HashCode * key, void *value)
+add_all_extended_peers (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct NeighborSendContext *send_context = (struct NeighborSendContext *) cls;
   struct DistantNeighbor *distant = (struct DistantNeighbor *) value;
@@ -2875,7 +2875,7 @@ add_all_extended_peers (void *cls, const GNUNET_HashCode * key, void *value)
  *         GNUNET_NO if not.
  */
 static int
-gossip_all_to_all_iterator (void *cls, const GNUNET_HashCode * key,
+gossip_all_to_all_iterator (void *cls, const struct GNUNET_HashCode * key,
                             void *abs_value)
 {
   struct DirectNeighbor *direct = abs_value;
@@ -2922,7 +2922,7 @@ gossip_all_to_all (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @return GNUNET_YES to continue iteration, GNUNET_NO otherwise
  */
 static int
-add_all_direct_neighbors (void *cls, const GNUNET_HashCode * key, void *value)
+add_all_direct_neighbors (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct DirectNeighbor *direct = (struct DirectNeighbor *) value;
   struct DirectNeighbor *to = (struct DirectNeighbor *) cls;

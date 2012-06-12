@@ -370,7 +370,7 @@ neighbour_add (struct GNUNET_TRANSPORT_Handle *h,
  *         GNUNET_NO if not.
  */
 static int
-neighbour_delete (void *cls, const GNUNET_HashCode * key, void *value)
+neighbour_delete (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct GNUNET_TRANSPORT_Handle *handle = cls;
   struct Neighbour *n = value;

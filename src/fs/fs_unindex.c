@@ -437,7 +437,7 @@ continue_after_remove (void *cls,
  */
 static void
 process_kblock_for_unindex (void *cls,
-			    const GNUNET_HashCode * key,
+			    const struct GNUNET_HashCode * key,
 			    size_t size, const void *data,
 			    enum GNUNET_BLOCK_Type type,
 			    uint32_t priority,
@@ -649,7 +649,7 @@ GNUNET_FS_unindex_do_remove_ (struct GNUNET_FS_UnindexContext *uc)
  * @param file_id computed hash, NULL on error
  */
 void
-GNUNET_FS_unindex_process_hash_ (void *cls, const GNUNET_HashCode * file_id)
+GNUNET_FS_unindex_process_hash_ (void *cls, const struct GNUNET_HashCode * file_id)
 {
   struct GNUNET_FS_UnindexContext *uc = cls;
 

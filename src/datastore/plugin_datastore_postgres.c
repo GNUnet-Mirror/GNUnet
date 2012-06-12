@@ -270,14 +270,14 @@ postgres_plugin_estimate_size (void *cls)
  * @return GNUNET_OK on success
  */
 static int
-postgres_plugin_put (void *cls, const GNUNET_HashCode * key, uint32_t size,
+postgres_plugin_put (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
                      const void *data, enum GNUNET_BLOCK_Type type,
                      uint32_t priority, uint32_t anonymity,
                      uint32_t replication,
                      struct GNUNET_TIME_Absolute expiration, char **msg)
 {
   struct Plugin *plugin = cls;
-  GNUNET_HashCode vhash;
+  struct GNUNET_HashCode vhash;
   PGresult *ret;
   uint32_t btype = htonl (type);
   uint32_t bprio = htonl (priority);
@@ -301,8 +301,8 @@ postgres_plugin_put (void *cls, const GNUNET_HashCode * key, uint32_t size,
     sizeof (bprio),
     sizeof (banon),
     sizeof (bexpi),
-    sizeof (GNUNET_HashCode),
-    sizeof (GNUNET_HashCode),
+    sizeof (struct GNUNET_HashCode),
+    sizeof (struct GNUNET_HashCode),
     size
   };
   const int paramFormats[] = { 1, 1, 1, 1, 1, 1, 1, 1 };
@@ -345,7 +345,7 @@ process_result (struct Plugin *plugin, PluginDatumProcessor proc,
   uint32_t size;
   unsigned int rowid;
   struct GNUNET_TIME_Absolute expiration_time;
-  GNUNET_HashCode key;
+  struct GNUNET_HashCode key;
 
   if (GNUNET_OK !=
       GNUNET_POSTGRES_check_result_ (plugin->dbh, res, PGRES_TUPLES_OK, "PQexecPrepared", "select",
@@ -380,7 +380,7 @@ process_result (struct Plugin *plugin, PluginDatumProcessor proc,
       (sizeof (uint32_t) != PQfsize (res, 1)) ||
       (sizeof (uint32_t) != PQfsize (res, 2)) ||
       (sizeof (uint64_t) != PQfsize (res, 3)) ||
-      (sizeof (GNUNET_HashCode) != PQgetlength (res, 0, 4)))
+      (sizeof (struct GNUNET_HashCode) != PQgetlength (res, 0, 4)))
   {
     GNUNET_break (0);
     PQclear (res);
@@ -394,7 +394,7 @@ process_result (struct Plugin *plugin, PluginDatumProcessor proc,
   anonymity = ntohl (*(uint32_t *) PQgetvalue (res, 0, 2));
   expiration_time.abs_value =
       GNUNET_ntohll (*(uint64_t *) PQgetvalue (res, 0, 3));
-  memcpy (&key, PQgetvalue (res, 0, 4), sizeof (GNUNET_HashCode));
+  memcpy (&key, PQgetvalue (res, 0, 4), sizeof (struct GNUNET_HashCode));
   size = PQgetlength (res, 0, 5);
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "datastore-postgres",
                    "Found result of size %u bytes and type %u in database\n",
@@ -443,8 +443,8 @@ process_result (struct Plugin *plugin, PluginDatumProcessor proc,
  */
 static void
 postgres_plugin_get_key (void *cls, uint64_t offset,
-                         const GNUNET_HashCode * key,
-                         const GNUNET_HashCode * vhash,
+                         const struct GNUNET_HashCode * key,
+                         const struct GNUNET_HashCode * vhash,
                          enum GNUNET_BLOCK_Type type, PluginDatumProcessor proc,
                          void *proc_cls)
 {
@@ -461,14 +461,14 @@ postgres_plugin_get_key (void *cls, uint64_t offset,
 
   GNUNET_assert (key != NULL);
   paramValues[0] = (const char *) key;
-  paramLengths[0] = sizeof (GNUNET_HashCode);
+  paramLengths[0] = sizeof (struct GNUNET_HashCode);
   btype = htonl (type);
   if (type != 0)
   {
     if (vhash != NULL)
     {
       paramValues[1] = (const char *) vhash;
-      paramLengths[1] = sizeof (GNUNET_HashCode);
+      paramLengths[1] = sizeof (struct GNUNET_HashCode);
       paramValues[2] = (const char *) &btype;
       paramLengths[2] = sizeof (btype);
       paramValues[3] = (const char *) &blimit_off;
@@ -499,7 +499,7 @@ postgres_plugin_get_key (void *cls, uint64_t offset,
     if (vhash != NULL)
     {
       paramValues[1] = (const char *) vhash;
-      paramLengths[1] = sizeof (GNUNET_HashCode);
+      paramLengths[1] = sizeof (struct GNUNET_HashCode);
       paramValues[2] = (const char *) &blimit_off;
       paramLengths[2] = sizeof (blimit_off);
       nparams = 3;
@@ -628,7 +628,7 @@ struct ReplCtx
  *         GNUNET_NO to delete the item and continue (if supported)
  */
 static int
-repl_proc (void *cls, const GNUNET_HashCode * key, uint32_t size,
+repl_proc (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
            const void *data, enum GNUNET_BLOCK_Type type, uint32_t priority,
            uint32_t anonymity, struct GNUNET_TIME_Absolute expiration,
            uint64_t uid)
@@ -792,16 +792,16 @@ postgres_plugin_get_keys (void *cls,
   struct Plugin *plugin = cls;
   int ret;
   int i;
-  GNUNET_HashCode key;
+  struct GNUNET_HashCode key;
   PGresult * res;
 
   res = PQexecPrepared (plugin->dbh, "get_keys", 0, NULL, NULL, NULL, 1);
   ret = PQntuples (res);
   for (i=0;i<ret;i++)
   {
-    if (sizeof (GNUNET_HashCode) != PQgetlength (res, i, 0))
+    if (sizeof (struct GNUNET_HashCode) != PQgetlength (res, i, 0))
     {
-      memcpy (&key, PQgetvalue (res, i, 0), sizeof (GNUNET_HashCode));
+      memcpy (&key, PQgetvalue (res, i, 0), sizeof (struct GNUNET_HashCode));
       proc (proc_cls, &key, 1);    
     }
   }
