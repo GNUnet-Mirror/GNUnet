@@ -228,7 +228,7 @@ struct ProxyCurlTask
 static unsigned long port = GNUNET_GNS_PROXY_PORT;
 
 /* The CA file (pem) to use for the proxy CA */
-static char* cafile;
+static char* cafile_opt;
 
 /* The listen socket of the proxy */
 static struct GNUNET_NETWORK_Handle *lsock;
@@ -2260,7 +2260,7 @@ load_local_zone_key (const struct GNUNET_CONFIGURATION_Handle *cfg)
   if (GNUNET_NO == GNUNET_DISK_file_test (keyfile))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Unable to load zone key!\n");
+                "Unable to load zone key %s!\n", keyfile);
     GNUNET_free(keyfile);
     return GNUNET_NO;
   }
@@ -2305,14 +2305,14 @@ load_local_shorten_key (const struct GNUNET_CONFIGURATION_Handle *cfg)
                                                           &keyfile))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Unable to load zone key config value!\n");
+                "Unable to load shorten key config value! (not fatal)\n");
     return GNUNET_NO;
   }
 
   if (GNUNET_NO == GNUNET_DISK_file_test (keyfile))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Unable to load zone key!\n");
+                "Unable to load shorten key %s! (not fatal)\n", keyfile);
     GNUNET_free(keyfile);
     return GNUNET_NO;
   }
@@ -2349,10 +2349,29 @@ run (void *cls, char *const *args, const char *cfgfile,
   struct sockaddr_un mhd_unix_sock_addr;
   size_t len;
   char* proxy_sockfile;
+  char* cafile_cfg = NULL;
+  char* cafile;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Loading CA\n");
+  
+  cafile = cafile_opt;
 
+  if (NULL == cafile)
+  {
+    if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns-proxy",
+                                                          "PROXY_CACERT",
+                                                          &cafile_cfg))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Unable to load proxy CA config value!\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "No proxy CA provided!\n");
+      return;
+    }
+    cafile = cafile_cfg;
+  }
+  
   gnutls_global_init ();
 
   gnutls_x509_crt_init (&proxy_ca.cert);
@@ -2360,6 +2379,9 @@ run (void *cls, char *const *args, const char *cfgfile,
   
   load_cert_from_file (proxy_ca.cert, cafile);
   load_key_from_file (proxy_ca.key, cafile);
+
+  if (cafile_cfg)
+    GNUNET_free (cafile_cfg);
   
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Loading Template\n");
@@ -2524,7 +2546,7 @@ main (int argc, char *const *argv)
      &GNUNET_GETOPT_set_string, &port},
     {'a', "authority", NULL,
       gettext_noop ("pem file to use as CA"), 1,
-      &GNUNET_GETOPT_set_string, &cafile},
+      &GNUNET_GETOPT_set_string, &cafile_opt},
     GNUNET_GETOPT_OPTION_END
   };
 

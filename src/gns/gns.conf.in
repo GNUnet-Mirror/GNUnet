@@ -16,7 +16,8 @@ RECORD_PUT_INTERVAL = 60
 ZONE_PUT_INTERVAL = 900
 
 [gns-proxy]
-PROXY_UNIXPATH= /tmp/gnunet-gns-proxy.sock
+PROXY_CACERT = $SERVICEHOME/gns/gnsCAcert.pem
+PROXY_UNIXPATH = /tmp/gnunet-gns-proxy.sock
 
 [fcfsd]
 HTTPPORT = 18080
