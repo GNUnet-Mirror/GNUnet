@@ -155,17 +155,6 @@ main (int argc, char *const *argv)
     int arg_start;
     int ret;
 
-    struct GNUNET_OS_Process *p;
-
-    p = GNUNET_OS_start_process(GNUNET_YES, NULL, NULL, "sgjldsjg");
-
-    if (p != NULL) {
-      printf("bogus!\n");
-    }
-
-
-    return 0;
-
     arg_start = GNUNET_GETOPT_run("gnunet-testing-run-service", options, argc, argv);
     
     if (arg_start == GNUNET_SYSERR) {
