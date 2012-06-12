@@ -6,12 +6,9 @@ echo "Removing passphrase from key"
 openssl rsa -passin pass:"GNUnet Naming System" -in gnscakey.pem -out gnscakeynoenc.pem
 
 cp gnscacert.pem $HOME/.gnunet/gns/gnscert.pem
-cat gnscacert.pem >> $HOME/.gnunet/gns/gnsCAcert.pem
+cat gnscacert.pem > $HOME/.gnunet/gns/gnsCAcert.pem
 cat gnscakeynoenc.pem >> $HOME/.gnunet/gns/gnsCAcert.pem
-cat gnscakey.pem
-cat gnscacert.pem
 
-echo "Cleaning up"
 rm gnscakey.pem gnscakeynoenc.pem gnscacert.pem
 
 echo "Next steps:"

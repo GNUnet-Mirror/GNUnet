@@ -2380,8 +2380,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   load_cert_from_file (proxy_ca.cert, cafile);
   load_key_from_file (proxy_ca.key, cafile);
 
-  if (cafile_cfg)
-    GNUNET_free (cafile_cfg);
+  GNUNET_free_non_null (cafile_cfg);
   
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Loading Template\n");
