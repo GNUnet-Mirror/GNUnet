@@ -654,7 +654,6 @@ run (void *cls, char *const *args, const char *cfgfile,
                                        &monitor_notify_disconnect);
     if (NULL == handle)
     {
-      FPRINTF (stderr, _("Failed to connect to transport service\n"));
       GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
     }
     else
