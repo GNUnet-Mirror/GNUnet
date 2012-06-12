@@ -24,11 +24,12 @@
  * @brief tool to start a service for testing
  * @author Florian Dold
  *
- * Start a peer with the service specified on the command line.
+ * Start a peer, running only the service specified on the command line.
  * Outputs the path to the temporary configuration file to stdout.
  *
  * The peer will run until this program is killed,
- * or stdin is closed.
+ * or stdin is closed. When reading the character 'r' from stdin, the running service is
+ * restarted with the same configuration.
  *
  * This executable is intended to be used by gnunet-java, in order to reliably
  * start and stop services for test cases.
@@ -60,11 +61,11 @@ static struct GNUNET_TESTING_Peer *my_peer = NULL;
 void
 cleanup (void)
 {
-    if (NULL != tmpfilename)
-    {
-        remove (tmpfilename);
-    }
-    GNUNET_SCHEDULER_shutdown ();
+  if (NULL != tmpfilename)
+  {
+    remove (tmpfilename);
+  }
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 /**
@@ -110,30 +111,30 @@ void
 testing_main (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
               const struct GNUNET_TESTING_Peer *peer)
 {
-    my_peer = peer;
-    tmpfilename = tmpnam (NULL);
-    if (NULL == tmpfilename)
-    {
-        GNUNET_break (0);
-        cleanup ();
-        return;
-    }
+  my_peer = peer;
+  tmpfilename = tmpnam (NULL);
+  if (NULL == tmpfilename)
+  {
+    GNUNET_break (0);
+    cleanup ();
+    return;
+  }
 
-    if (GNUNET_SYSERR == 
-            GNUNET_CONFIGURATION_write((struct GNUNET_CONFIGURATION_Handle *) cfg, tmpfilename))
-    {
-        GNUNET_break (0);
-        return;
-    }
+  if (GNUNET_SYSERR == 
+          GNUNET_CONFIGURATION_write((struct GNUNET_CONFIGURATION_Handle *) cfg, tmpfilename))
+  {
+    GNUNET_break (0);
+    return;
+  }
 
-    printf("%s\n", tmpfilename);
-    fflush(stdout);
+  printf("%s\n", tmpfilename);
+  fflush(stdout);
 
-    GNUNET_break(NULL != GNUNET_SIGNAL_handler_install(SIGTERM, &cleanup));
-    GNUNET_break(NULL != GNUNET_SIGNAL_handler_install(SIGINT, &cleanup));
+  GNUNET_break(NULL != GNUNET_SIGNAL_handler_install(SIGTERM, &cleanup));
+  GNUNET_break(NULL != GNUNET_SIGNAL_handler_install(SIGINT, &cleanup));
 
-    fh.fd = 0; /* 0=stdin */
-    tid = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL, &fh, &stdin_cb, NULL);
+  fh.fd = 0; /* 0=stdin */
+  tid = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL, &fh, &stdin_cb, NULL);
 }
 
 
@@ -148,29 +149,30 @@ testing_main (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
 int
 main (int argc, char *const *argv)
 {
-    static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-        GNUNET_GETOPT_OPTION_HELP("tool to start a service for testing"),
-        GNUNET_GETOPT_OPTION_END
-    };
-    int arg_start;
-    int ret;
+  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
+    GNUNET_GETOPT_OPTION_HELP("tool to start a service for testing"),
+    GNUNET_GETOPT_OPTION_END
+  };
+  int arg_start;
+  int ret;
 
-    arg_start = GNUNET_GETOPT_run("gnunet-testing-run-service", options, argc, argv);
-    
-    if (arg_start == GNUNET_SYSERR) {
-        return 1;
-    }
-    
-    if (arg_start != 1 || argc != 2)
-    {
-        fprintf (stderr, "Invalid number of arguments\n");
-        return 1;
-    }
+  arg_start = GNUNET_GETOPT_run("gnunet-testing-run-service", options, argc, argv);
 
-    ret =  GNUNET_TESTING_service_run_restartable ("gnunet_service_test", argv[1],
-                                                   NULL, &testing_main, NULL);
+  if (arg_start == GNUNET_SYSERR)
+  {
+    return 1;
+  }
 
-    printf ("bye\n");
+  if (arg_start != 1 || argc != 2)
+  {
+    fprintf (stderr, "Invalid number of arguments\n");
+    return 1;
+  }
 
-    return ret;
+  ret =  GNUNET_TESTING_service_run_restartable ("gnunet_service_test", argv[1],
+                                                 NULL, &testing_main, NULL);
+
+  printf ("bye\n");
+
+  return ret;
 }
