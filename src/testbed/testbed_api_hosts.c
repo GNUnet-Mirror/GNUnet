@@ -146,7 +146,7 @@ GNUNET_TESTBED_host_get_id_ (struct GNUNET_TESTBED_Host *host)
  * @param port port number to use for ssh; use 0 to let ssh decide
  * @return handle to the host, NULL on error
  */
-static struct GNUNET_TESTBED_Host *
+struct GNUNET_TESTBED_Host *
 GNUNET_TESTBED_host_create_with_id_ (uint32_t id,
 				     const char *hostname,
 				     const char *username,
