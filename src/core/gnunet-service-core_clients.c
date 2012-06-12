@@ -239,7 +239,7 @@ send_to_all_clients (const struct GNUNET_PeerIdentity *partner,
     if ( (0 != (options & GNUNET_CORE_OPTION_SEND_HDR_OUTBOUND)) &&
 	 (0 != (c->options & GNUNET_CORE_OPTION_SEND_FULL_OUTBOUND)) )
       continue;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEUBG,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Sending %u message with %u bytes to client interested in messages of type %u.\n",
 		options,
 		ntohs (msg->size),
