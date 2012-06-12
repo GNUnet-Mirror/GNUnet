@@ -44,6 +44,8 @@ static int monitor_connections_counter;
 
 static struct GNUNET_CORE_Handle *ch;
 
+static struct GNUNET_PeerIdentity my_id;
+
 /**
  * Task run in monitor mode when the user presses CTRL-C to abort.
  * Stops monitoring activity.
@@ -84,6 +86,15 @@ connected_peer_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
   printf (_("Peer `%s'\n"), (const char *) &enc);
 }
 
+void
+monitor_notify_startup (void *cls,
+                       struct GNUNET_CORE_Handle * server,
+                       const struct GNUNET_PeerIdentity *
+                       my_identity)
+{
+  my_id = (*my_identity);
+}
+
 
 /**
  * Function called to notify core users that another
@@ -98,16 +109,20 @@ static void
 monitor_notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
                 const struct GNUNET_ATS_Information *ats, uint32_t ats_count)
 {
-  monitor_connections_counter ++;
   struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get();
-  char *now_str = GNUNET_STRINGS_absolute_time_to_string (now);
-  FPRINTF (stdout, _("%24s: %-17s %4s   (%u connections in total)\n"),
-           now_str,
-           _("Connected to"),
-           GNUNET_i2s (peer),
-           monitor_connections_counter);
+  char *now_str;
+  if (0 != memcmp (&my_id, peer, sizeof (my_id)))
+  {
+    monitor_connections_counter ++;
+    now_str = GNUNET_STRINGS_absolute_time_to_string (now);
+    FPRINTF (stdout, _("%24s: %-17s %4s   (%u connections in total)\n"),
+             now_str,
+             _("Connected to"),
+             GNUNET_i2s (peer),
+             monitor_connections_counter);
 
-  GNUNET_free (now_str);
+    GNUNET_free (now_str);
+  }
 }
 
 
@@ -122,17 +137,22 @@ static void
 monitor_notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
   struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get();
-  char *now_str = GNUNET_STRINGS_absolute_time_to_string (now);
+  char *now_str;
 
-  GNUNET_assert (monitor_connections_counter > 0);
-  monitor_connections_counter --;
+  if (0 != memcmp (&my_id, peer, sizeof (my_id)))
+  {
+    now_str = GNUNET_STRINGS_absolute_time_to_string (now);
 
-  FPRINTF (stdout, _("%24s: %-17s %4s   (%u connections in total)\n"),
-           now_str,
-           _("Disconnected from"),
-           GNUNET_i2s (peer),
-           monitor_connections_counter);
-  GNUNET_free (now_str);
+    GNUNET_assert (monitor_connections_counter > 0);
+    monitor_connections_counter --;
+
+    FPRINTF (stdout, _("%24s: %-17s %4s   (%u connections in total)\n"),
+             now_str,
+             _("Disconnected from"),
+             GNUNET_i2s (peer),
+             monitor_connections_counter);
+    GNUNET_free (now_str);
+  }
 }
 
 
@@ -162,7 +182,10 @@ run (void *cls, char *const *args, const char *cfgfile,
       {NULL, 0, 0}
     };
 
-    ch = GNUNET_CORE_connect (cfg, NULL, NULL,
+    memset(&my_id, '\0', sizeof (my_id));
+
+    ch = GNUNET_CORE_connect (cfg, NULL,
+                              monitor_notify_startup,
                               monitor_notify_connect,
                               monitor_notify_disconnect,
                               NULL, GNUNET_NO,
