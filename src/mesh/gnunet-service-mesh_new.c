@@ -2811,6 +2811,7 @@ queue_send (void *cls, size_t size, void *buf)
             GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********   type unknown\n");
             data_size = 0;
     }
+    queue->tunnel->queue_n--;
 
     /* Free queue, but cls was freed by send_core_* */
     queue_destroy(queue, GNUNET_NO);
@@ -2860,6 +2861,7 @@ queue_add (void *cls, uint16_t type, size_t size,
         GNUNET_break(0);
       return;                       // Drop message
     }
+    t->queue_n++;
     queue = GNUNET_malloc (sizeof (struct MeshPeerQueue));
     queue->cls = cls;
     queue->type = type;
