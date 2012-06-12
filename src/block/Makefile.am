@@ -20,6 +20,7 @@ plugin_LTLIBRARIES = \
 libgnunet_plugin_block_template_la_SOURCES = \
   plugin_block_template.c
 libgnunet_plugin_block_template_la_LIBADD = \
+  $(top_builddir)/src/block/libgnunetblock.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(LTLIBINTL)
 libgnunet_plugin_block_template_la_LDFLAGS = \
