@@ -80,17 +80,17 @@ create_indices (PGconn * dbh)
 {
   /* create indices */
   if ( (GNUNET_OK !=
-	GNUNET_POSTGRES_exec (dbh, "CREATE INDEX IF NOT EXISTS ir_zone_name_rv ON ns091records (zone_hash,record_name_hash,rvalue)")) ||
+	GNUNET_POSTGRES_exec (dbh, "CREATE INDEX ir_zone_name_rv ON ns091records (zone_hash,record_name_hash,rvalue)")) ||
        (GNUNET_OK !=
-	GNUNET_POSTGRES_exec (dbh, "CREATE INDEX IF NOT EXISTS ir_zone_delegation ON ns091records (zone_hash,zone_delegation)")) ||
+	GNUNET_POSTGRES_exec (dbh, "CREATE INDEX ir_zone_delegation ON ns091records (zone_hash,zone_delegation)")) ||
        (GNUNET_OK !=
-	GNUNET_POSTGRES_exec (dbh, "CREATE INDEX IF NOT EXISTS ir_zone_rv ON ns091records (zone_hash,rvalue)")) ||
+	GNUNET_POSTGRES_exec (dbh, "CREATE INDEX ir_zone_rv ON ns091records (zone_hash,rvalue)")) ||
        (GNUNET_OK !=
-	GNUNET_POSTGRES_exec (dbh, "CREATE INDEX IF NOT EXISTS ir_zone ON ns091records (zone_hash)")) ||
+	GNUNET_POSTGRES_exec (dbh, "CREATE INDEX ir_zone ON ns091records (zone_hash)")) ||
        (GNUNET_OK !=
-	GNUNET_POSTGRES_exec (dbh, "CREATE INDEX IF NOT EXISTS ir_name_rv ON ns091records (record_name_hash,rvalue)")) ||
+	GNUNET_POSTGRES_exec (dbh, "CREATE INDEX ir_name_rv ON ns091records (record_name_hash,rvalue)")) ||
        (GNUNET_OK !=
-	GNUNET_POSTGRES_exec (dbh, "CREATE INDEX IF NOT EXISTS ir_rv ON ns091records (rvalue)")) )
+	GNUNET_POSTGRES_exec (dbh, "CREATE INDEX ir_rv ON ns091records (rvalue)")) )
     LOG (GNUNET_ERROR_TYPE_ERROR, 
 	 _("Failed to create indices\n"));
 }
@@ -116,16 +116,16 @@ database_setup (struct Plugin *plugin)
   res =
       PQexec (plugin->dbh,
               "CREATE TABLE ns091records ("
-	      " zone_key BLOB NOT NULL DEFAULT ''," 
-	      " zone_delegation BLOB NOT NULL DEFAULT ''," 
-	      " zone_hash BLOB NOT NULL DEFAULT ''," 
-	      " record_count INT NOT NULL DEFAULT 0,"
-	      " record_data BLOB NOT NULL DEFAULT '',"
-	      " block_expiration_time INT8 NOT NULL DEFAULT 0," 
-	      " signature BLOB NOT NULL DEFAULT '',"
+	      " zone_key BYTEA NOT NULL DEFAULT ''," 
+	      " zone_delegation BYTEA NOT NULL DEFAULT ''," 
+	      " zone_hash BYTEA NOT NULL DEFAULT ''," 
+	      " record_count INTEGER NOT NULL DEFAULT 0,"
+	      " record_data BYTEA NOT NULL DEFAULT '',"
+	      " block_expiration_time BIGINT NOT NULL DEFAULT 0," 
+	      " signature BYTEA NOT NULL DEFAULT '',"
 	      " record_name TEXT NOT NULL DEFAULT ''," 
-	      " record_name_hash BLOB NOT NULL DEFAULT ''," 
-	      " rvalue INT8 NOT NULL DEFAULT ''"
+	      " record_name_hash BYTEA NOT NULL DEFAULT ''," 
+	      " rvalue BIGINT NOT NULL DEFAULT 0"
 	      ")" "WITH OIDS");
   if ((NULL == res) || ((PQresultStatus (res) != PGRES_COMMAND_OK) && (0 != strcmp ("42P07",    /* duplicate table */
                                                                                     PQresultErrorField
@@ -225,7 +225,7 @@ namestore_postgres_remove_records (void *cls,
       PQexecPrepared (plugin->dbh, "remove_records", 2, paramValues, paramLengths,
                       paramFormats, 1);
   if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result (plugin->dbh, ret, PGRES_COMMAND_OK, "PQexecPrepared", "put"))
+      GNUNET_POSTGRES_check_result (plugin->dbh, ret, PGRES_COMMAND_OK, "PQexecPrepared", "remove_records"))
     return GNUNET_SYSERR;
   PQclear (ret);
   return GNUNET_OK;
@@ -308,7 +308,7 @@ namestore_postgres_put_records (void *cls,
     };
     int paramLengths[] = {
       sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
-      name_len + 1,
+      name_len,
       sizeof (uint32_t),
       data_size,
       sizeof (uint64_t),
@@ -327,10 +327,10 @@ namestore_postgres_put_records (void *cls,
       return GNUNET_SYSERR;
     }
     ret =
-      PQexecPrepared (plugin->dbh, "put", 10, paramValues, paramLengths,
+      PQexecPrepared (plugin->dbh, "put_records", 10, paramValues, paramLengths,
                       paramFormats, 1);
     if (GNUNET_OK !=
-	GNUNET_POSTGRES_check_result (plugin->dbh, ret, PGRES_COMMAND_OK, "PQexecPrepared", "put"))
+	GNUNET_POSTGRES_check_result (plugin->dbh, ret, PGRES_COMMAND_OK, "PQexecPrepared", "put_records"))
       return GNUNET_SYSERR;
     PQclear (ret);
   }
@@ -363,6 +363,7 @@ get_record_and_call_iterator (struct Plugin *plugin,
   const char *data;
   const char *name;
   unsigned int cnt;
+  size_t name_len;
 
   if (GNUNET_OK !=
       GNUNET_POSTGRES_check_result (plugin->dbh, res, PGRES_TUPLES_OK, "PQexecPrepared",
@@ -383,10 +384,10 @@ get_record_and_call_iterator (struct Plugin *plugin,
   }
   GNUNET_assert (1 == cnt);
   if ((6 != PQnfields (res)) || 
-      (sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded) != PQfsize (res, 0)) || 
+      (sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded) != PQgetlength (res, 0, 0)) || 
       (sizeof (uint32_t) != PQfsize (res, 2)) || 
       (sizeof (uint64_t) != PQfsize (res, 4)) || 
-      (sizeof (struct GNUNET_CRYPTO_RsaSignature) != PQfsize (res, 5)))
+      (sizeof (struct GNUNET_CRYPTO_RsaSignature) != PQgetlength (res, 0, 5)))
   {
     GNUNET_break (0);
     PQclear (res);
@@ -394,12 +395,7 @@ get_record_and_call_iterator (struct Plugin *plugin,
   }
   zone_key = (const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *) PQgetvalue (res, 0, 0);
   name = PQgetvalue (res, 0, 1);
-  if ('\0' != name[PQgetlength (res, 0, 1)-1])
-  {
-    GNUNET_break (0);
-    PQclear (res);
-    return GNUNET_SYSERR;
-  }
+  name_len = PQgetlength (res, 0, 1);
   record_count = ntohl (*(uint32_t *) PQgetvalue (res, 0, 2));
   data_size = PQgetlength (res, 0, 3);
   data = PQgetvalue (res, 0, 3);
@@ -416,7 +412,10 @@ get_record_and_call_iterator (struct Plugin *plugin,
   }
   {
     struct GNUNET_NAMESTORE_RecordData rd[record_count];
+    char buf[name_len + 1];
     
+    memcpy (buf, name, name_len);
+    buf[name_len] = '\0';
     if (GNUNET_OK !=
 	GNUNET_NAMESTORE_records_deserialize (data_size, data,
 					      record_count, rd))
@@ -425,7 +424,7 @@ get_record_and_call_iterator (struct Plugin *plugin,
       PQclear (res);
       return GNUNET_SYSERR;
     }
-    iter (iter_cls, zone_key, expiration, name, 
+    iter (iter_cls, zone_key, expiration, buf, 
 	  record_count, rd, sig);
   }
   PQclear (res);
