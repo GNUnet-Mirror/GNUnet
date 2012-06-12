@@ -14,4 +14,4 @@ rm gnscakey.pem gnscakeynoenc.pem gnscacert.pem
 echo "Next steps:"
 echo "1. The new CA will be used automatically by the proxy with the default settings"
 echo "2. Please import the certificate $HOME/.gnunet/gns/gnscert.pem into the browser of your choice"
-echo "3. Start gnunet-gns-proxy and configure your broser to use a SOCKS proxy on port 7777"
+echo "3. Start gnunet-gns-proxy and configure your browser to use a SOCKS proxy on port 7777"
