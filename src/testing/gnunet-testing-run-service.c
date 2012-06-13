@@ -83,14 +83,14 @@ stdin_cb (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (GNUNET_SCHEDULER_REASON_READ_READY & tc->reason)
   {
     c = getchar ();
-    if (EOF == c)
+    if (EOF == c || 'q' == c)
     {
       tid = GNUNET_SCHEDULER_NO_TASK;
       cleanup ();
     }
     else
     {
-      if (c == 'r')
+      if ('r' == c)
       {
         GNUNET_TESTING_peer_stop(my_peer); 
         GNUNET_TESTING_peer_start(my_peer); 
@@ -128,7 +128,7 @@ testing_main (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
     return;
   }
 
-  printf("%s\n", tmpfilename);
+  printf("started\n%s\n", tmpfilename);
   fflush(stdout);
 
   GNUNET_break(NULL != GNUNET_SIGNAL_handler_install(SIGTERM, &cleanup));
@@ -179,8 +179,14 @@ main (int argc, char *const *argv)
 
   ret =  GNUNET_TESTING_service_run_restartable ("gnunet_service_test", argv[1],
                                                  NULL, &testing_main, NULL);
-
-  printf ("bye\n");
-
+  if (ret)
+  {
+    printf ("error\n");
+  }
+  else 
+  {
+    printf ("bye\n");
+  }
   return ret;
 }
+
