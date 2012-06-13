@@ -520,16 +520,26 @@ GNUNET_OS_check_helper_binary (const char *binary)
   return GNUNET_NO;
 #else
   GNUNET_free (p);
-  rawsock = socket (AF_INET, SOCK_RAW, IPPROTO_ICMP);
-  if (INVALID_SOCKET == rawsock)
   {
-    DWORD err = GetLastError ();
+    static int once; /* remember result from previous runs... */
 
-    LOG (GNUNET_ERROR_TYPE_INFO,
-         "socket (AF_INET, SOCK_RAW, IPPROTO_ICMP) failed! GLE = %d\n", err);
-    return GNUNET_NO;           /* not running as administrator */
-  }
-  closesocket (rawsock);
+    if (0 == once)
+    {
+      rawsock = socket (AF_INET, SOCK_RAW, IPPROTO_ICMP);
+      if (INVALID_SOCKET == rawsock)
+	{
+	  DWORD err = GetLastError ();
+	  
+	  LOG (GNUNET_ERROR_TYPE_INFO,
+	       "socket (AF_INET, SOCK_RAW, IPPROTO_ICMP) failed! GLE = %d\n", err);
+	  once = -1;
+	  return GNUNET_NO;           /* not running as administrator */
+	}
+      once = 1;
+      closesocket (rawsock);
+    }
+    if (-1 == once)
+      return GNUNET_NO;
   return GNUNET_YES;
 #endif
 }

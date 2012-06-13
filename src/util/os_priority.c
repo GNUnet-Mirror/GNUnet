@@ -795,6 +795,8 @@ start_process (int pipe_control,
   int fd_stdin_read;
   int fd_stdin_write;
 
+  if (GNUNET_SYSERR == GNUNET_OS_check_helper_binary (filename))
+    return NULL; /* not executable */
   if ( (GNUNET_YES == pipe_control) &&
        (GNUNET_OK != npipe_setup (&childpipename)) )
     return NULL;  
@@ -952,6 +954,9 @@ start_process (int pipe_control,
   long lRet;
   HANDLE stdin_handle;
   HANDLE stdout_handle;
+
+  if (GNUNET_SYSERR == GNUNET_OS_check_helper_binary (filename))
+    return NULL; /* not executable */
  
   /* Search in prefix dir (hopefully - the directory from which
    * the current module was loaded), bindir and libdir, then in PATH
