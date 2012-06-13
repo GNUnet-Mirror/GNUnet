@@ -540,7 +540,8 @@ GNUNET_OS_check_helper_binary (const char *binary)
     }
     if (-1 == once)
       return GNUNET_NO;
-  return GNUNET_YES;
+    return GNUNET_YES;
+  }
 #endif
 }
 
