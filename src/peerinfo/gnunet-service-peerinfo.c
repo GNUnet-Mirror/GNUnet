@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2001, 2002, 2004, 2005, 2007, 2009, 2010 Christian Grothoff (and other contributing authors)
+     (C) 2001, 2002, 2004, 2005, 2007, 2009, 2010, 2012 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -28,7 +28,7 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - HostEntries are never 'free'd (add expiration, upper bound?)
+ * - notify clients when addresses in HELLO expire (#1933)
  */
 
 #include "platform.h"
@@ -103,7 +103,7 @@ make_info_message (const struct HostEntry *he)
   struct InfoMessage *im;
   size_t hs;
 
-  hs = (he->hello == NULL) ? 0 : GNUNET_HELLO_size (he->hello);
+  hs = (NULL == he->hello) ? 0 : GNUNET_HELLO_size (he->hello);
   im = GNUNET_malloc (sizeof (struct InfoMessage) + hs);
   im->header.size = htons (hs + sizeof (struct InfoMessage));
   im->header.type = htons (GNUNET_MESSAGE_TYPE_PEERINFO_INFO);
@@ -135,6 +135,25 @@ discard_expired (void *cls, const struct GNUNET_HELLO_Address *address,
                 address->transport_name);
     return GNUNET_NO;
   }
+  return GNUNET_OK;
+}
+
+
+/**
+ * Address iterator that counts the remaining addresses.
+ *
+ * @param cls pointer to the counter
+ * @param address the address
+ * @param expiration expiration time for the address
+ * @return GNUNET_OK (always)
+ */
+static int
+count_addresses (void *cls, const struct GNUNET_HELLO_Address *address,
+                 struct GNUNET_TIME_Absolute expiration)
+{
+  unsigned int *cnt = cls;
+
+  (*cnt)++;
   return GNUNET_OK;
 }
 
@@ -177,19 +196,25 @@ notify_all (struct HostEntry *entry)
 
 
 /**
- * Try to read the HELLO in the given filename and discard expired addresses.
+ * Try to read the HELLO in the given filename and discard expired
+ * addresses.  Removes the file if the HELLO is mal-formed.  If all
+ * addresses are expired, the HELLO is also removed (but the HELLO
+ * with the public key is still returned if it was found and valid).
  * 
  * @param fn name of the file
+ * @param unlink_garbage if GNUNET_YES, try to remove useless files
  * @return HELLO of the file, NULL on error
  */
 static struct GNUNET_HELLO_Message *
-read_host_file (const char *fn)
+read_host_file (const char *fn,
+		int unlink_garbage)
 {
   char buffer[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1] GNUNET_ALIGN;
   const struct GNUNET_HELLO_Message *hello;
   struct GNUNET_HELLO_Message *hello_clean;
   int size;
   struct GNUNET_TIME_Absolute now;
+  unsigned int left;
 
   if (GNUNET_YES != GNUNET_DISK_file_test (fn))
     return NULL;
@@ -202,12 +227,25 @@ read_host_file (const char *fn)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		_("Failed to parse HELLO in file `%s'\n"),
 		fn);
+    if ( (GNUNET_YES == unlink_garbage) &&
+	 (0 != UNLINK (fn)) )
+      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "unlink", fn);
     return NULL;
   }
   now = GNUNET_TIME_absolute_get ();
   hello_clean =
     GNUNET_HELLO_iterate_addresses (hello, GNUNET_YES, &discard_expired,
 				    &now);
+  left = 0;
+  (void) GNUNET_HELLO_iterate_addresses (hello, GNUNET_NO, &count_addresses,
+					 &left);
+  if (0 == left)
+  {
+    /* no addresses left, remove from disk */
+    if ( (GNUNET_YES == unlink_garbage) &&
+	 (0 != UNLINK (fn)) )
+      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "unlink", fn);
+  }
   return hello_clean; 
 }
 
@@ -224,7 +262,7 @@ add_host_to_known_hosts (const struct GNUNET_PeerIdentity *identity)
   char *fn;
 
   entry = GNUNET_CONTAINER_multihashmap_get (hostmap, &identity->hashPubKey);
-  if (entry != NULL)
+  if (NULL != entry)
     return;
   GNUNET_STATISTICS_update (stats, gettext_noop ("# peers known"), 1,
                             GNUNET_NO);
@@ -233,7 +271,7 @@ add_host_to_known_hosts (const struct GNUNET_PeerIdentity *identity)
   GNUNET_CONTAINER_multihashmap_put (hostmap, &identity->hashPubKey, entry,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
   fn = get_host_filename (identity);
-  entry->hello = read_host_file (fn);
+  entry->hello = read_host_file (fn, GNUNET_YES);
   GNUNET_free (fn);
   notify_all (entry);
 }
@@ -260,6 +298,26 @@ remove_garbage (const char *fullname)
 
 
 /**
+ * Closure for 'hosts_directory_scan_callback'.
+ */
+struct DirScanContext
+{
+  /**
+   * GNUNET_YES if we should remove files that are broken,
+   * GNUNET_NO if the directory we are iterating over should
+   * be treated as read-only by us.
+   */ 
+  int remove_files;
+
+  /**
+   * Counter for the number of (valid) entries found, incremented
+   * by one for each match.
+   */
+  unsigned int matched;
+};
+
+
+/**
  * Function that is called on each HELLO file in a particular directory.
  * Try to parse the file and add the HELLO to our list.
  *
@@ -271,53 +329,55 @@ remove_garbage (const char *fullname)
 static int
 hosts_directory_scan_callback (void *cls, const char *fullname)
 {
-  unsigned int *matched = cls;
+  struct DirScanContext *dsc = cls;
   struct GNUNET_PeerIdentity identity;
   const char *filename;
   struct HostEntry *entry;
   struct GNUNET_HELLO_Message *hello;
+  struct GNUNET_PeerIdentity id;
 
-  if (GNUNET_DISK_file_test (fullname) != GNUNET_YES)
+  if (GNUNET_YES != GNUNET_DISK_file_test (fullname))
     return GNUNET_OK;           /* ignore non-files */
   if (strlen (fullname) < sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded))
   {
-    if (NULL != matched)
+    if (GNUNET_YES == dsc->remove_files)
       remove_garbage (fullname);
     return GNUNET_OK;
   }
   filename =
       &fullname[strlen (fullname) -
                 sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) + 1];
-  if (filename[-1] != DIR_SEPARATOR)
+  if (DIR_SEPARATOR != filename[-1])
   {
-    if (NULL != matched)
+    if (GNUNET_YES == dsc->remove_files)
       remove_garbage (fullname);
     return GNUNET_OK;
   }
   if (GNUNET_OK !=
       GNUNET_CRYPTO_hash_from_string (filename, &identity.hashPubKey))
   {
-    if (NULL != (hello = read_host_file (filename)))
-    {
-      entry = GNUNET_malloc (sizeof (struct HostEntry));
-      if (GNUNET_OK ==
+    /* odd filename, but might still be valid, try getting identity from HELLO */
+    if ( (NULL != (hello = read_host_file (filename, 
+					   dsc->remove_files))) &&
+	 (GNUNET_OK ==
 	  GNUNET_HELLO_get_id (hello,
-			       &entry->identity))
-      {
-	GNUNET_CONTAINER_multihashmap_put (hostmap, &entry->identity.hashPubKey, entry,
-					   GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
-	entry->hello = hello;
-	notify_all (entry);
-	return GNUNET_OK;
-      }
-      GNUNET_free (entry);
+			       &id)) )
+    {
+      /* ok, found something valid, remember HELLO */
+      entry = GNUNET_malloc (sizeof (struct HostEntry));
+      entry->identity = id;
+      GNUNET_CONTAINER_multihashmap_put (hostmap, &entry->identity.hashPubKey, entry,
+					 GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+      entry->hello = hello;
+      notify_all (entry);
+      dsc->matched++;
+      return GNUNET_OK;   
     }
-    if (NULL != matched)
+    if (GNUNET_YES == dsc->remove_files)
       remove_garbage (fullname);
     return GNUNET_OK;
   }
-  if (NULL != matched)
-    (*matched)++;
+  dsc->matched++;
   add_host_to_known_hosts (&identity);
   return GNUNET_OK;
 }
@@ -334,11 +394,10 @@ cron_scan_directory_data_hosts (void *cls,
                                 const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   static unsigned int retries;
-  unsigned int count;
+  struct DirScanContext dsc;
 
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
-  count = 0;
   if (GNUNET_SYSERR == GNUNET_DISK_directory_create (networkIdDirectory))
   {
     GNUNET_SCHEDULER_add_delayed_with_priority (DATA_HOST_FREQ,
@@ -346,9 +405,11 @@ cron_scan_directory_data_hosts (void *cls,
 						&cron_scan_directory_data_hosts, NULL);
     return;
   }
+  dsc.matched = 0;
+  dsc.remove_files = GNUNET_YES;
   GNUNET_DISK_directory_scan (networkIdDirectory,
-                              &hosts_directory_scan_callback, &count);
-  if ((0 == count) && (0 == (++retries & 31)))
+                              &hosts_directory_scan_callback, &dsc);
+  if ((0 == dsc.matched) && (0 == (++retries & 31)))
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING | GNUNET_ERROR_TYPE_BULK,
                 _("Still no peers found in `%s'!\n"), networkIdDirectory);
   GNUNET_SCHEDULER_add_delayed_with_priority (DATA_HOST_FREQ, 
@@ -372,11 +433,12 @@ bind_address (const struct GNUNET_PeerIdentity *peer,
   struct HostEntry *host;
   struct GNUNET_HELLO_Message *mrg;
   struct GNUNET_TIME_Absolute delta;
+  unsigned int cnt;
 
   add_host_to_known_hosts (peer);
   host = GNUNET_CONTAINER_multihashmap_get (hostmap, &peer->hashPubKey);
-  GNUNET_assert (host != NULL);
-  if (host->hello == NULL)
+  GNUNET_assert (NULL != host);
+  if (NULL == host->hello)
   {
     host->hello = GNUNET_malloc (GNUNET_HELLO_size (hello));
     memcpy (host->hello, hello, GNUNET_HELLO_size (hello));
@@ -396,14 +458,24 @@ bind_address (const struct GNUNET_PeerIdentity *peer,
   fn = get_host_filename (peer);
   if (GNUNET_OK == GNUNET_DISK_directory_create_for_file (fn))
   {
-    if (GNUNET_SYSERR ==
-        GNUNET_DISK_fn_write (fn, host->hello, GNUNET_HELLO_size (host->hello),
-                              GNUNET_DISK_PERM_USER_READ |
-                              GNUNET_DISK_PERM_USER_WRITE |
-                              GNUNET_DISK_PERM_GROUP_READ |
-                              GNUNET_DISK_PERM_OTHER_READ))
-      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "write", fn);
-
+    cnt = 0;
+    (void) GNUNET_HELLO_iterate_addresses (hello, GNUNET_NO, &count_addresses,
+					   &cnt);
+    if (0 == cnt)
+    {      
+      /* no valid addresses, don't put HELLO on disk */
+      (void) UNLINK (fn); 
+    }
+    else
+    {
+      if (GNUNET_SYSERR ==
+	  GNUNET_DISK_fn_write (fn, host->hello, GNUNET_HELLO_size (host->hello),
+				GNUNET_DISK_PERM_USER_READ |
+				GNUNET_DISK_PERM_USER_WRITE |
+				GNUNET_DISK_PERM_GROUP_READ |
+				GNUNET_DISK_PERM_OTHER_READ))
+	GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "write", fn);
+    }
   }
   GNUNET_free (fn);
   notify_all (host);
@@ -461,6 +533,7 @@ discard_hosts_helper (void *cls, const char *fn)
   const struct GNUNET_HELLO_Message *hello;
   struct GNUNET_HELLO_Message *new_hello;
   int size;
+  unsigned int cnt;
 
   size = GNUNET_DISK_fn_read (fn, buffer, sizeof (buffer));
   if (size < sizeof (struct GNUNET_MessageHeader))
@@ -472,15 +545,17 @@ discard_hosts_helper (void *cls, const char *fn)
   }
   hello = (const struct GNUNET_HELLO_Message *) buffer;
   new_hello =
-      GNUNET_HELLO_iterate_addresses (hello, GNUNET_YES, &discard_expired, now);
-  if (new_hello != NULL)
+    GNUNET_HELLO_iterate_addresses (hello, GNUNET_YES, &discard_expired, now);
+  cnt = 0;
+  if (NULL != new_hello)
+    (void) GNUNET_HELLO_iterate_addresses (hello, GNUNET_NO, &count_addresses, &cnt);
+  if ( (NULL != new_hello) && (0 < cnt) )
   {
     GNUNET_DISK_fn_write (fn, new_hello, GNUNET_HELLO_size (new_hello),
                           GNUNET_DISK_PERM_USER_READ |
                           GNUNET_DISK_PERM_USER_WRITE |
                           GNUNET_DISK_PERM_GROUP_READ |
                           GNUNET_DISK_PERM_OTHER_READ);
-    GNUNET_free (new_hello);
   }
   else
   {
@@ -488,6 +563,7 @@ discard_hosts_helper (void *cls, const char *fn)
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING |
                                 GNUNET_ERROR_TYPE_BULK, "unlink", fn);
   }
+  GNUNET_free_non_null (new_hello);
   return GNUNET_OK;
 }
 
@@ -591,7 +667,13 @@ handle_get_all (void *cls, struct GNUNET_SERVER_Client *client,
 
 
 /**
- * FIXME.
+ * Pass the given client the information we have in the respective
+ * host entry; the client is already in the notification context.
+ *
+ * @param cls the 'struct GNUNET_SERVER_Client' to notify
+ * @param key key for the value (unused)
+ * @param value the 'struct HostEntry' to notify the client about
+ * @return GNUNET_YES (always, continue to iterate)
  */
 static int
 do_notify_entry (void *cls, const struct GNUNET_HashCode * key, void *value)
@@ -628,7 +710,12 @@ handle_notify (void *cls, struct GNUNET_SERVER_Client *client,
 
 
 /**
- * FIXME.
+ * Release memory taken by a host entry.
+ *
+ * @param cls NULL
+ * @param key key of the host entry
+ * @param value the 'struct HostEntry' to free
+ * @return GNUNET_YES (continue to iterate)
  */
 static int
 free_host_entry (void *cls, const struct GNUNET_HashCode * key, void *value)
@@ -654,7 +741,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   notify_list = NULL;
   GNUNET_CONTAINER_multihashmap_iterate (hostmap, &free_host_entry, NULL);
   GNUNET_CONTAINER_multihashmap_destroy (hostmap);
-  if (stats != NULL)
+  if (NULL != stats)
   {
     GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
     stats = NULL;
@@ -685,6 +772,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   };
   char *peerdir;
   char *ip;
+  struct DirScanContext dsc;
 
   hostmap = GNUNET_CONTAINER_multihashmap_create (1024);
   stats = GNUNET_STATISTICS_create ("peerinfo", cfg);
@@ -709,8 +797,10 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 	      _("Importing HELLOs from `%s'\n"),
 	      peerdir);
+  dsc.matched = 0;
+  dsc.remove_files = GNUNET_NO;
   GNUNET_DISK_directory_scan (peerdir,
-			      &hosts_directory_scan_callback, NULL);
+			      &hosts_directory_scan_callback, &dsc);
   GNUNET_free (peerdir);
 }
 
