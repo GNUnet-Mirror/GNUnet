@@ -85,6 +85,12 @@ GNUNET_TESTBED_host_get_id_ (const struct GNUNET_TESTBED_Host *host);
 
 
 /**
+ * Opaque wrapper around GNUNET_HELPER_Handle
+ */
+struct GNUNET_TESTBED_HelperHandle;
+
+
+/**
  * Run a given helper process at the given host.  Communication
  * with the helper will be via GNUnet messages on stdin/stdout.
  * Runs the process via 'ssh' at the specified host, or locally.
@@ -96,10 +102,19 @@ GNUNET_TESTBED_host_get_id_ (const struct GNUNET_TESTBED_Host *host);
  * @param cb_cls closure for cb
  * @return handle to terminate the command, NULL on error
  */
-struct GNUNET_HELPER_Handle *
+struct GNUNET_TESTBED_HelperHandle *
 GNUNET_TESTBED_host_run_ (struct GNUNET_TESTBED_Host *host,
 			  char *const binary_argv[],
 			  GNUNET_SERVER_MessageTokenizerCallback cb, void *cb_cls);
+
+
+/**
+ * Stops a helper in the HelperHandle using GNUNET_HELPER_stop
+ *
+ * @param handle the handle returned from GNUNET_TESTBED_host_start_
+ */
+void
+GNUNET_TESTBED_host_stop_ (struct GNUNET_TESTBED_HelperHandle *handle);
 
 #endif
 /* end of testbed_api_hosts.h */

@@ -82,7 +82,7 @@ struct GNUNET_TESTBED_Controller
   /**
    * The helper handle
    */
-  struct GNUNET_HELPER_Handle *helper;
+  struct GNUNET_TESTBED_HelperHandle *helper;
 
   /**
    * The controller callback
@@ -337,7 +337,7 @@ GNUNET_TESTBED_controller_stop (struct GNUNET_TESTBED_Controller *controller)
     GNUNET_free (mq_entry);
   }
   GNUNET_CLIENT_disconnect (controller->client);
-  GNUNET_HELPER_stop (controller->helper);
+  GNUNET_TESTBED_host_stop_ (controller->helper);
   GNUNET_CONFIGURATION_destroy (controller->cfg);
   GNUNET_free (controller);
 }

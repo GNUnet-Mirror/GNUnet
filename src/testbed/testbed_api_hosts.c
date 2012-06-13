@@ -213,8 +213,30 @@ void
 GNUNET_TESTBED_host_destroy (struct GNUNET_TESTBED_Host *host)
 {  
   GNUNET_CONTAINER_DLL_remove (host_list_head, host_list_tail, host);
-  GNUNET_free (host);  
+  GNUNET_free (host);
 }
+
+
+/**
+ * Wrapper around GNUNET_HELPER_Handle
+ */
+struct GNUNET_TESTBED_HelperHandle
+{
+  /**
+   * The helper handle
+   */
+  struct GNUNET_HELPER_Handle *handle;
+
+  /**
+   * The port number for ssh; used for helpers starting ssh
+   */
+  char *port;
+
+  /**
+   * The ssh destination string; used for helpers starting ssh
+   */
+  char *dst; 
+};
 
 
 /**
@@ -229,33 +251,51 @@ GNUNET_TESTBED_host_destroy (struct GNUNET_TESTBED_Host *host)
  * @param cb_cls closure for cb
  * @return handle to terminate the command, NULL on error
  */
-struct GNUNET_HELPER_Handle *
+struct GNUNET_TESTBED_HelperHandle *
 GNUNET_TESTBED_host_run_ (struct GNUNET_TESTBED_Host *host,
 			  char *const binary_argv[],
 			  GNUNET_SERVER_MessageTokenizerCallback cb, void *cb_cls)
 {
   /* FIXME: decide on the SSH command line, prepend it and
      run GNUNET_HELPER_start with the modified binary_name and binary_argv! */
-  struct GNUNET_HELPER_Handle *h;
-  char *const local_args[] = {NULL};
-  char *port;
-  char *dst;
-  char *remote_args[] = {"ssh", "-p", port, "-q", dst,
-                         "gnunet-service-testbed", NULL};
+  struct GNUNET_TESTBED_HelperHandle *h;
+  char *const local_args[] = {NULL};  
 
+  h = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_HelperHandle));
   if (0 == host->unique_id)
-    return GNUNET_HELPER_start ("gnunet-service-testbed", local_args,
-                                cb, cb_cls);
-  else
   {
-    GNUNET_asprintf (&port, "%d", host->port);
-    GNUNET_asprintf (&dst, "%s@%s", host->hostname, host->username);
-    h = GNUNET_HELPER_start ("ssh", remote_args, cb, cb_cls);
-    GNUNET_free (port);         /* FIXME: Can we free them? */
-    GNUNET_free (dst);
-    return h;
+    h->handle = GNUNET_HELPER_start ("gnunet-service-testbed", local_args,
+                                     cb, cb_cls);
   }
+  else
+  {    
+    GNUNET_asprintf (&h->port, "%d", host->port);
+    GNUNET_asprintf (&h->dst, "%s@%s", host->hostname, host->username);
+    char *remote_args[] = {"ssh", "-p", h->port, "-q", h->dst,
+                           "gnunet-service-testbed", NULL};
+    h->handle = GNUNET_HELPER_start ("ssh", remote_args, cb, cb_cls);
+  }
+  if (NULL == h->handle)
+  {
+    GNUNET_free (h);
+    return NULL;
+  }
+  return h;
 }
 
+
+/**
+ * Stops a helper in the HelperHandle using GNUNET_HELPER_stop
+ *
+ * @param handle the handle returned from GNUNET_TESTBED_host_start_
+ */
+void
+GNUNET_TESTBED_host_stop_ (struct GNUNET_TESTBED_HelperHandle *handle)
+{
+  GNUNET_HELPER_stop (handle->handle);
+  GNUNET_free_non_null (handle->port);
+  GNUNET_free_non_null (handle->dst);
+  GNUNET_free (handle);
+}
 
 /* end of testbed_api_hosts.c */
