@@ -236,8 +236,25 @@ GNUNET_TESTBED_host_run_ (struct GNUNET_TESTBED_Host *host,
 {
   /* FIXME: decide on the SSH command line, prepend it and
      run GNUNET_HELPER_start with the modified binary_name and binary_argv! */
-  GNUNET_break (0);
-  return NULL;
+  struct GNUNET_HELPER_Handle *h;
+  char *const local_args[] = {NULL};
+  char *port;
+  char *dst;
+  char *remote_args[] = {"ssh", "-p", port, "-q", dst,
+                         "gnunet-service-testbed", NULL};
+
+  if (0 == host->unique_id)
+    return GNUNET_HELPER_start ("gnunet-service-testbed", local_args,
+                                cb, cb_cls);
+  else
+  {
+    GNUNET_asprintf (&port, "%d", host->port);
+    GNUNET_asprintf (&dst, "%s@%s", host->hostname, host->username);
+    h = GNUNET_HELPER_start ("ssh", remote_args, cb, cb_cls);
+    GNUNET_free (port);         /* FIXME: Can we free them? */
+    GNUNET_free (dst);
+    return h;
+  }
 }
 
 
