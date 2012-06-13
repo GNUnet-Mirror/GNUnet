@@ -41,6 +41,7 @@
 
 #define GNUNET_OS_CONTROL_PIPE "GNUNET_OS_CONTROL_PIPE"
 
+
 struct GNUNET_OS_Process
 {
   /**
@@ -541,6 +542,7 @@ child_wait_thread (void *arg)
 }
 #endif
 
+
 /**
  * Set process priority
  *
@@ -645,6 +647,7 @@ GNUNET_OS_set_process_priority (struct GNUNET_OS_Process *proc,
 #endif
   return GNUNET_OK;
 }
+
 
 #if MINGW
 static char *
@@ -760,29 +763,40 @@ CreateCustomEnvTable (char **vars)
  * @param pipe_control should a pipe be used to send signals to the child?
  * @param pipe_stdin pipe to use to send input to child process (or NULL)
  * @param pipe_stdout pipe to use to get output from child process (or NULL)
+ * @param lsocks array of listen sockets to dup systemd-style (or NULL);
+ *         must be NULL on platforms where dup is not supported
  * @param filename name of the binary
- * @param argv NULL-terminated array of arguments to the process
- * @return pointer to process structure of the new process, NULL on error
+ * @param argv NULL-terminated list of arguments to the process
+ * @return process ID of the new process, -1 on error
  */
-struct GNUNET_OS_Process *
-GNUNET_OS_start_process_vap (int pipe_control,
-			     struct GNUNET_DISK_PipeHandle *pipe_stdin,
-			     struct GNUNET_DISK_PipeHandle *pipe_stdout,
-			     const char *filename, 
-			     char *const argv[])
+static struct GNUNET_OS_Process *
+start_process (int pipe_control,
+	       struct GNUNET_DISK_PipeHandle *pipe_stdin,
+	       struct GNUNET_DISK_PipeHandle *pipe_stdout,
+	       const SOCKTYPE *lsocks,
+	       const char *filename,
+	       char *const argv[])
 {
 #ifndef MINGW
-  char *childpipename = NULL;
-  struct GNUNET_OS_Process *gnunet_proc = NULL;
   pid_t ret;
+  char lpid[16];
+  char fds[16];
+  struct GNUNET_OS_Process *gnunet_proc = NULL;
+  char *childpipename = NULL;
+  int i;
+  int j;
+  int k;
+  int tgt;
+  int flags;
+  int *lscp;
+  unsigned int ls;
   int fd_stdout_write;
   int fd_stdout_read;
   int fd_stdin_read;
   int fd_stdin_write;
 
   if ( (GNUNET_YES == pipe_control) &&
-       (GNUNET_OK != 
-	npipe_setup (&childpipename)) )
+       (GNUNET_OK != npipe_setup (&childpipename)) )
     return NULL;  
   if (pipe_stdout != NULL)
   {
@@ -807,374 +821,6 @@ GNUNET_OS_start_process_vap (int pipe_control,
 						      (pipe_stdin, GNUNET_DISK_PIPE_END_WRITE),
 						      &fd_stdin_write, sizeof (int)));
   }
-
-  ret = fork ();
-  if (-1 == ret)
-  {
-    int eno = errno;
-
-    LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "fork");
-    GNUNET_free_non_null (childpipename);
-    errno = eno;
-    return NULL;
-  }
-  if (0 != ret)
-  {
-    gnunet_proc = GNUNET_malloc (sizeof (struct GNUNET_OS_Process));
-    gnunet_proc->pid = ret;
-    gnunet_proc->childpipename = childpipename;
-    return gnunet_proc;
-  }
-  if (NULL != childpipename)
-  {
-    setenv (GNUNET_OS_CONTROL_PIPE, childpipename, 1);
-    GNUNET_free (childpipename);
-  }
-  if (pipe_stdout != NULL)
-  {
-    GNUNET_break (0 == close (fd_stdout_read));
-    if (-1 == dup2 (fd_stdout_write, 1))
-      LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "dup2");
-    GNUNET_break (0 == close (fd_stdout_write));
-  }
-
-  if (pipe_stdin != NULL)
-  {
-
-    GNUNET_break (0 == close (fd_stdin_write));
-    if (-1 == dup2 (fd_stdin_read, 0))
-      LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "dup2");
-    GNUNET_break (0 == close (fd_stdin_read));
-  }
-  execvp (filename, argv);
-  LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_ERROR, "execvp", filename);
-  _exit (1);
-#else
-  char *childpipename = NULL;
-  struct GNUNET_OS_Process *gnunet_proc = NULL;
-  char *arg;
-  unsigned int cmdlen;
-  char *cmd, *idx;
-  STARTUPINFOW start;
-  PROCESS_INFORMATION proc;
-  int argc, arg_count;
-  HANDLE stdin_handle;
-  HANDLE stdout_handle;
-  struct GNUNET_DISK_FileHandle *control_pipe;
-
-  char path[MAX_PATH + 1];
-
-  char *our_env[3] = { NULL, NULL, NULL };
-  char *env_block = NULL;
-  char *pathbuf;
-  DWORD pathbuf_len, alloc_len;
-  char *self_prefix;
-  char *bindir;
-  char *libdir;
-  char *ptr;
-  char *non_const_filename;
-  char win_path[MAX_PATH + 1];
-  wchar_t *wpath, *wcmd;
-  size_t wpath_len, wcmd_len;
-  long lRet;
-
-  /* Search in prefix dir (hopefully - the directory from which
-   * the current module was loaded), bindir and libdir, then in PATH
-   */
-  self_prefix = GNUNET_OS_installation_get_path (GNUNET_OS_IPK_SELF_PREFIX);
-  bindir = GNUNET_OS_installation_get_path (GNUNET_OS_IPK_BINDIR);
-  libdir = GNUNET_OS_installation_get_path (GNUNET_OS_IPK_LIBDIR);
-
-  pathbuf_len = GetEnvironmentVariableA ("PATH", (char *) &pathbuf, 0);
-
-  alloc_len =
-      pathbuf_len + 1 + strlen (self_prefix) + 1 + strlen (bindir) + 1 +
-      strlen (libdir);
-
-  pathbuf = GNUNET_malloc (alloc_len * sizeof (char));
-
-  ptr = pathbuf;
-  ptr += sprintf (pathbuf, "%s;%s;%s;", self_prefix, bindir, libdir);
-  GNUNET_free (self_prefix);
-  GNUNET_free (bindir);
-  GNUNET_free (libdir);
-
-  alloc_len = GetEnvironmentVariableA ("PATH", ptr, pathbuf_len);
-  GNUNET_assert (alloc_len == (pathbuf_len - 1));
-
-  cmdlen = strlen (filename);
-  if (cmdlen < 5 || strcmp (&filename[cmdlen - 4], ".exe") != 0)
-    GNUNET_asprintf (&non_const_filename, "%s.exe", filename);
-  else
-    GNUNET_asprintf (&non_const_filename, "%s", filename);
-
-  /* It could be in POSIX form, convert it to a DOS path early on */
-  if (ERROR_SUCCESS != (lRet = plibc_conv_to_win_path (non_const_filename, win_path)))
-  {
-     SetErrnoFromWinError (lRet);
-     LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_ERROR, "plibc_conv_to_win_path",
-                        non_const_filename);
-     GNUNET_free (non_const_filename);
-     GNUNET_free (pathbuf);
-     return NULL;
-  }
-  GNUNET_free (non_const_filename);
-  non_const_filename = GNUNET_strdup (win_path);
-  /* Check that this is the full path. If it isn't, search. */
-  /* FIXME: convert it to wchar_t and use SearchPathW?
-   * Remember: arguments to _start_process() are technically in UTF-8...
-   */
-  if (non_const_filename[1] == ':')
-    snprintf (path, sizeof (path) / sizeof (char), "%s", non_const_filename);
-  else if (!SearchPathA
-           (pathbuf, non_const_filename, NULL, sizeof (path) / sizeof (char),
-            path, NULL))
-  {
-    SetErrnoFromWinError (GetLastError ());
-    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_ERROR, "SearchPath",
-                       non_const_filename);
-    GNUNET_free (non_const_filename);
-    GNUNET_free (pathbuf);
-    return NULL;
-  }
-  GNUNET_free (pathbuf);
-  GNUNET_free (non_const_filename);
-
-  cmdlen = 0;
-  argc = 0;
-  while (NULL != (arg = argv[argc++]))
-  {
-    if (cmdlen == 0)
-      cmdlen = cmdlen + strlen (path) + 4;
-    else
-      cmdlen = cmdlen + strlen (arg) + 4;
-  }
-  arg_count = argc;
-
-  cmd = idx = GNUNET_malloc (sizeof (char) * (cmdlen + 1));
-  argc = 0;
-  while (NULL != (arg = argv[argc++]))
-  {
-    /* This is to escape trailing slash */
-    char arg_lastchar = arg[strlen (arg) - 1];
-    if (idx == cmd)
-      idx += sprintf (idx, "\"%s%s\"%s", path,
-          arg_lastchar == '\\' ? "\\" : "", argc + 1 == arg_count ? "" : " ");
-    else
-      idx += sprintf (idx, "\"%s%s\"%s", arg,
-          arg_lastchar == '\\' ? "\\" : "", argc + 1 == arg_count ? "" : " ");
-  }
-
-  memset (&start, 0, sizeof (start));
-  start.cb = sizeof (start);
-
-  if ((pipe_stdin != NULL) || (pipe_stdout != NULL))
-    start.dwFlags |= STARTF_USESTDHANDLES;
-
-  if (pipe_stdin != NULL)
-  {
-    GNUNET_DISK_internal_file_handle_ (GNUNET_DISK_pipe_handle
-                                       (pipe_stdin, GNUNET_DISK_PIPE_END_READ),
-                                       &stdin_handle, sizeof (HANDLE));
-    start.hStdInput = stdin_handle;
-  }
-
-  if (pipe_stdout != NULL)
-  {
-    GNUNET_DISK_internal_file_handle_ (GNUNET_DISK_pipe_handle
-                                       (pipe_stdout,
-                                        GNUNET_DISK_PIPE_END_WRITE),
-                                       &stdout_handle, sizeof (HANDLE));
-    start.hStdOutput = stdout_handle;
-  }
-  if (GNUNET_YES == pipe_control)
-  {
-    control_pipe =
-      npipe_create (&childpipename, GNUNET_DISK_OPEN_WRITE,
-		    GNUNET_DISK_PERM_USER_READ |
-		    GNUNET_DISK_PERM_USER_WRITE);
-    if (control_pipe == NULL)
-    {
-      GNUNET_free (cmd);
-      GNUNET_free (path);
-      return NULL;
-    }
-  }
-  else
-    control_pipe = NULL;
-  if (NULL != childpipename)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Opened the parent end of the pipe `%s'\n",
-	 childpipename);
-    GNUNET_asprintf (&our_env[0], "%s=", GNUNET_OS_CONTROL_PIPE);
-    GNUNET_asprintf (&our_env[1], "%s", childpipename);
-    our_env[2] = NULL;
-  }
-  else
-  {
-    our_env[0] = NULL;
-  }
-  env_block = CreateCustomEnvTable (our_env);
-  GNUNET_free_non_null (our_env[0]);
-  GNUNET_free_non_null (our_env[1]);
-
-  wpath_len = 0;
-  if (NULL == (wpath = u8_to_u16 ((uint8_t *) path, 1 + strlen (path), NULL, &wpath_len)))
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-        "Failed to convert `%s' from UTF-8 to UTF-16: %d\n", path, errno);
-    GNUNET_free (env_block);
-    GNUNET_free (cmd);
-    return NULL;
-  }
-
-  wcmd_len = 0;
-  if (NULL == (wcmd = u8_to_u16 ((uint8_t *) cmd, 1 + strlen (cmd), NULL, &wcmd_len)))
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-        "Failed to convert `%s' from UTF-8 to UTF-16: %d\n", cmd, errno);
-    GNUNET_free (env_block);
-    GNUNET_free (cmd);
-    free (wpath);
-    return NULL;
-  }
-
-  if (!CreateProcessW (wpath, wcmd, NULL, NULL, TRUE,
-      DETACHED_PROCESS | CREATE_SUSPENDED, env_block, NULL, &start, &proc))
-  {
-    SetErrnoFromWinError (GetLastError ());
-    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_ERROR, "CreateProcess", path);
-    GNUNET_free (env_block);
-    GNUNET_free (cmd);
-    free (wpath);
-    free (wcmd);
-    return NULL;
-  }
-
-  GNUNET_free (env_block);
-
-  gnunet_proc = GNUNET_malloc (sizeof (struct GNUNET_OS_Process));
-  gnunet_proc->pid = proc.dwProcessId;
-  gnunet_proc->handle = proc.hProcess;
-  gnunet_proc->control_pipe = control_pipe;
-
-  CreateThread (NULL, 64000, &child_wait_thread, (void *) gnunet_proc, 0, NULL);
-
-  ResumeThread (proc.hThread);
-  CloseHandle (proc.hThread);
-
-  GNUNET_free (cmd);
-  free (wpath);
-  free (wcmd);
-  return gnunet_proc;
-#endif
-}
-
-
-/**
- * Start a process.
- *
- * @param pipe_control should a pipe be used to send signals to the child?
- * @param pipe_stdin pipe to use to send input to child process (or NULL)
- * @param pipe_stdout pipe to use to get output from child process (or NULL)
- * @param filename name of the binary
- * @param va NULL-terminated list of arguments to the process
- * @return pointer to process structure of the new process, NULL on error
- */
-struct GNUNET_OS_Process *
-GNUNET_OS_start_process_va (int pipe_control,
-			    struct GNUNET_DISK_PipeHandle *pipe_stdin,
-                            struct GNUNET_DISK_PipeHandle *pipe_stdout,
-                            const char *filename, va_list va)
-{
-  struct GNUNET_OS_Process *ret;
-  va_list ap;
-  char **argv;
-  int argc;
-
-  argc = 0;
-  va_copy (ap, va);
-  while (NULL != va_arg (ap, char *))
-    argc++;
-  va_end (ap);
-  argv = GNUNET_malloc (sizeof (char *) * (argc + 1));
-  argc = 0;
-  va_copy (ap, va);
-  while (NULL != (argv[argc] = va_arg (ap, char *)))
-    argc++;
-  va_end (ap);
-  ret = GNUNET_OS_start_process_vap (pipe_control,
-				     pipe_stdin,
-				     pipe_stdout,
-				     filename,
-				     argv);
-  GNUNET_free (argv);
-  return ret;
-}
-
-
-
-/**
- * Start a process.
- *
- * @param pipe_control should a pipe be used to send signals to the child?
- * @param pipe_stdin pipe to use to send input to child process (or NULL)
- * @param pipe_stdout pipe to use to get output from child process (or NULL)
- * @param filename name of the binary
- * @param ... NULL-terminated list of arguments to the process
- *
- * @return pointer to process structure of the new process, NULL on error
- *
- */
-struct GNUNET_OS_Process *
-GNUNET_OS_start_process (int pipe_control,
-			 struct GNUNET_DISK_PipeHandle *pipe_stdin,
-                         struct GNUNET_DISK_PipeHandle *pipe_stdout,
-                         const char *filename, ...)
-{
-  struct GNUNET_OS_Process *ret;
-  va_list ap;
-
-  va_start (ap, filename);
-  ret = GNUNET_OS_start_process_va (pipe_control, pipe_stdin, pipe_stdout, filename, ap);
-  va_end (ap);
-  return ret;
-}
-
-
-/**
- * Start a process.
- *
- * @param pipe_control should a pipe be used to send signals to the child?
- * @param lsocks array of listen sockets to dup systemd-style (or NULL);
- *         must be NULL on platforms where dup is not supported
- * @param filename name of the binary
- * @param argv NULL-terminated list of arguments to the process
- * @return process ID of the new process, -1 on error
- */
-struct GNUNET_OS_Process *
-GNUNET_OS_start_process_v (int pipe_control,
-			   const SOCKTYPE *lsocks,
-                           const char *filename,
-                           char *const argv[])
-{
-#ifndef MINGW
-  pid_t ret;
-  char lpid[16];
-  char fds[16];
-  struct GNUNET_OS_Process *gnunet_proc = NULL;
-  char *childpipename = NULL;
-  int i;
-  int j;
-  int k;
-  int tgt;
-  int flags;
-  int *lscp;
-  unsigned int ls;
-
-  if ( (GNUNET_YES == pipe_control) &&
-       (GNUNET_OK != npipe_setup (&childpipename)) )
-    return NULL;  
   lscp = NULL;
   ls = 0;
   if (lsocks != NULL)
@@ -1207,6 +853,21 @@ GNUNET_OS_start_process_v (int pipe_control,
   {
     setenv (GNUNET_OS_CONTROL_PIPE, childpipename, 1);
     GNUNET_free (childpipename);
+  }
+  if (pipe_stdout != NULL)
+  {
+    GNUNET_break (0 == close (fd_stdout_read));
+    if (-1 == dup2 (fd_stdout_write, 1))
+      LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "dup2");
+    GNUNET_break (0 == close (fd_stdout_write));
+  }
+  if (pipe_stdin != NULL)
+  {
+
+    GNUNET_break (0 == close (fd_stdin_write));
+    if (-1 == dup2 (fd_stdin_read, 0))
+      LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "dup2");
+    GNUNET_break (0 == close (fd_stdin_read));
   }
   if (lscp != NULL)
   {
@@ -1257,9 +918,11 @@ GNUNET_OS_start_process_v (int pipe_control,
 #else
   struct GNUNET_DISK_FileHandle *control_pipe = NULL;
   char *childpipename = NULL;
-  char **arg, **non_const_argv;
+  char **arg;
+  char **non_const_argv;
   unsigned int cmdlen;
-  char *cmd, *idx;
+  char *cmd;
+  char *idx;
   STARTUPINFOW start;
   PROCESS_INFORMATION proc;
   int argcount = 0;
@@ -1268,7 +931,8 @@ GNUNET_OS_start_process_v (int pipe_control,
   char *our_env[5] = { NULL, NULL, NULL, NULL, NULL };
   char *env_block = NULL;
   char *pathbuf;
-  DWORD pathbuf_len, alloc_len;
+  DWORD pathbuf_len;
+  DWORD alloc_len;
   char *self_prefix;
   char *bindir;
   char *libdir;
@@ -1279,12 +943,16 @@ GNUNET_OS_start_process_v (int pipe_control,
   const struct GNUNET_DISK_FileHandle *lsocks_write_fd;
   HANDLE lsocks_read;
   HANDLE lsocks_write;
-  wchar_t *wpath, *wcmd;
-  size_t wpath_len, wcmd_len;
+  wchar_t *wpath;
+  wchar_t *wcmd;
+  size_t wpath_len;
+  size_t wcmd_len;
   int env_off;
   int fail;
   long lRet;
-
+  HANDLE stdin_handle;
+  HANDLE stdout_handle;
+ 
   /* Search in prefix dir (hopefully - the directory from which
    * the current module was loaded), bindir and libdir, then in PATH
    */
@@ -1403,6 +1071,25 @@ GNUNET_OS_start_process_v (int pipe_control,
 
   memset (&start, 0, sizeof (start));
   start.cb = sizeof (start);
+  if ((pipe_stdin != NULL) || (pipe_stdout != NULL))
+    start.dwFlags |= STARTF_USESTDHANDLES;
+
+  if (pipe_stdin != NULL)
+  {
+    GNUNET_DISK_internal_file_handle_ (GNUNET_DISK_pipe_handle
+                                       (pipe_stdin, GNUNET_DISK_PIPE_END_READ),
+                                       &stdin_handle, sizeof (HANDLE));
+    start.hStdInput = stdin_handle;
+  }
+
+  if (pipe_stdout != NULL)
+  {
+    GNUNET_DISK_internal_file_handle_ (GNUNET_DISK_pipe_handle
+                                       (pipe_stdout,
+                                        GNUNET_DISK_PIPE_END_WRITE),
+                                       &stdout_handle, sizeof (HANDLE));
+    start.hStdOutput = stdout_handle;
+  }
 
   if (GNUNET_YES == pipe_control)
   {
@@ -1592,6 +1279,130 @@ GNUNET_OS_start_process_v (int pipe_control,
   }
   return gnunet_proc;
 #endif
+}
+
+
+
+
+/**
+ * Start a process.
+ *
+ * @param pipe_control should a pipe be used to send signals to the child?
+ * @param pipe_stdin pipe to use to send input to child process (or NULL)
+ * @param pipe_stdout pipe to use to get output from child process (or NULL)
+ * @param filename name of the binary
+ * @param argv NULL-terminated array of arguments to the process
+ * @return pointer to process structure of the new process, NULL on error
+ */
+struct GNUNET_OS_Process *
+GNUNET_OS_start_process_vap (int pipe_control,
+			     struct GNUNET_DISK_PipeHandle *pipe_stdin,
+			     struct GNUNET_DISK_PipeHandle *pipe_stdout,
+			     const char *filename, 
+			     char *const argv[])
+{
+  return start_process (pipe_control,
+			pipe_stdin,
+			pipe_stdout,
+			NULL,
+			filename,
+			argv);
+}
+
+
+/**
+ * Start a process.
+ *
+ * @param pipe_control should a pipe be used to send signals to the child?
+ * @param pipe_stdin pipe to use to send input to child process (or NULL)
+ * @param pipe_stdout pipe to use to get output from child process (or NULL)
+ * @param filename name of the binary
+ * @param va NULL-terminated list of arguments to the process
+ * @return pointer to process structure of the new process, NULL on error
+ */
+struct GNUNET_OS_Process *
+GNUNET_OS_start_process_va (int pipe_control,
+			    struct GNUNET_DISK_PipeHandle *pipe_stdin,
+                            struct GNUNET_DISK_PipeHandle *pipe_stdout,
+                            const char *filename, va_list va)
+{
+  struct GNUNET_OS_Process *ret;
+  va_list ap;
+  char **argv;
+  int argc;
+
+  argc = 0;
+  va_copy (ap, va);
+  while (NULL != va_arg (ap, char *))
+    argc++;
+  va_end (ap);
+  argv = GNUNET_malloc (sizeof (char *) * (argc + 1));
+  argc = 0;
+  va_copy (ap, va);
+  while (NULL != (argv[argc] = va_arg (ap, char *)))
+    argc++;
+  va_end (ap);
+  ret = GNUNET_OS_start_process_vap (pipe_control,
+				     pipe_stdin,
+				     pipe_stdout,
+				     filename,
+				     argv);
+  GNUNET_free (argv);
+  return ret;
+}
+
+
+
+/**
+ * Start a process.
+ *
+ * @param pipe_control should a pipe be used to send signals to the child?
+ * @param pipe_stdin pipe to use to send input to child process (or NULL)
+ * @param pipe_stdout pipe to use to get output from child process (or NULL)
+ * @param filename name of the binary
+ * @param ... NULL-terminated list of arguments to the process
+ *
+ * @return pointer to process structure of the new process, NULL on error
+ *
+ */
+struct GNUNET_OS_Process *
+GNUNET_OS_start_process (int pipe_control,
+			 struct GNUNET_DISK_PipeHandle *pipe_stdin,
+                         struct GNUNET_DISK_PipeHandle *pipe_stdout,
+                         const char *filename, ...)
+{
+  struct GNUNET_OS_Process *ret;
+  va_list ap;
+
+  va_start (ap, filename);
+  ret = GNUNET_OS_start_process_va (pipe_control, pipe_stdin, pipe_stdout, filename, ap);
+  va_end (ap);
+  return ret;
+}
+
+
+/**
+ * Start a process.
+ *
+ * @param pipe_control should a pipe be used to send signals to the child?
+ * @param lsocks array of listen sockets to dup systemd-style (or NULL);
+ *         must be NULL on platforms where dup is not supported
+ * @param filename name of the binary
+ * @param argv NULL-terminated list of arguments to the process
+ * @return process ID of the new process, -1 on error
+ */
+struct GNUNET_OS_Process *
+GNUNET_OS_start_process_v (int pipe_control,
+			   const SOCKTYPE *lsocks,
+                           const char *filename,
+                           char *const argv[])
+{
+  return start_process (pipe_control,
+			NULL,
+			NULL,
+			lsocks,
+			filename,
+			argv);
 }
 
 
