@@ -216,8 +216,13 @@ get_path_from_PATH (const char *binary)
   p = getenv ("PATH");
   if (NULL == p)
     return NULL;
+#if WINDOWS
+  /* On W32 look in CWD first. */
+  GNUNET_asprintf (&path, ".%c%s", PATH_SEPARATOR, p);
+#else
   path = GNUNET_strdup (p);     /* because we write on it */
-  buf = GNUNET_malloc (strlen (path) + 20);
+#endif
+  buf = GNUNET_malloc (strlen (path) + strlen (binary) + 1 + 1);
   pos = path;
   while (NULL != (end = strchr (pos, PATH_SEPARATOR)))
   {
