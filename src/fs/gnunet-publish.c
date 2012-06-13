@@ -355,7 +355,7 @@ uri_ksk_continuation (void *cls, const struct GNUNET_FS_Uri *ksk_uri,
     ns = GNUNET_FS_namespace_create (ctx, pseudonym);
     if (ns == NULL)
     {
-      FPRINTF (stderr, _("Failed to create namespace `%s'\n"), pseudonym);
+      FPRINTF (stderr, _("Failed to create namespace `%s' (illegal filename?)\n"), pseudonym);
       ret = 1;
     }
     else
@@ -609,7 +609,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     namespace = GNUNET_FS_namespace_create (ctx, pseudonym);
     if (NULL == namespace)
     {
-      FPRINTF (stderr, _("Could not create namespace `%s'\n"), pseudonym);
+      FPRINTF (stderr, _("Failed to create namespace `%s' (illegal filename?)\n"), pseudonym);
       GNUNET_FS_stop (ctx);
       ret = 1;
       return;

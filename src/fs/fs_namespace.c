@@ -232,7 +232,7 @@ END:
  *
  * @param h handle to the file sharing subsystem
  * @param name name to use for the namespace
- * @return handle to the namespace, NULL on error
+ * @return handle to the namespace, NULL on error (i.e. invalid filename)
  */
 struct GNUNET_FS_Namespace *
 GNUNET_FS_namespace_create (struct GNUNET_FS_Handle *h, const char *name)
