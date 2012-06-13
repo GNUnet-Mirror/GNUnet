@@ -1403,6 +1403,12 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_TESTBED_PEERCONFIG 478
 
+/**
+ * Not really a message, but for careful checks on the testbed messages; Should
+ * always be the maximum and never be used to send messages with this type
+ */
+#define GNUNET_MESSAGE_TYPE_TESTBED_MAX 479
+
 
 /**
  *  Next available: 500

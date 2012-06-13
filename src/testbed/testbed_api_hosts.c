@@ -130,7 +130,7 @@ GNUNET_TESTBED_host_create_by_id_ (uint32_t id)
  *         'localhost', but then obviously not globally unique)
  */
 uint32_t
-GNUNET_TESTBED_host_get_id_ (struct GNUNET_TESTBED_Host *host)
+GNUNET_TESTBED_host_get_id_ (const struct GNUNET_TESTBED_Host *host)
 {
     return host->unique_id;
 }
