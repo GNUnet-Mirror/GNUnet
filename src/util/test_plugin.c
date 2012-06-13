@@ -24,7 +24,6 @@
 #include "platform.h"
 #include "gnunet_plugin_lib.h"
 
-#define VERBOSE GNUNET_NO
 
 static void
 test_cb (void *cls, const char *libname, void *lib_ret)
@@ -39,11 +38,12 @@ test_cb (void *cls, const char *libname, void *lib_ret)
 }
 
 
-static int
-check ()
+int
+main (int argc, char *argv[])
 {
   void *ret;
 
+  GNUNET_log_setup ("test-plugin", "WARNING", NULL);
   GNUNET_log_skip (1, GNUNET_NO);
   ret = GNUNET_PLUGIN_load ("libgnunet_plugin_missing", NULL);
   GNUNET_log_skip (0, GNUNET_NO);
@@ -52,7 +52,7 @@ check ()
   ret = GNUNET_PLUGIN_load ("libgnunet_plugin_test", "in");
   if (ret == NULL)
     return 1;
-  if (0 != strcmp (ret, "Hello"))
+  if (0 != strcmp (ret, "Hello"))    
     return 2;
   ret = GNUNET_PLUGIN_unload ("libgnunet_plugin_test", "out");
   if (ret == NULL)
@@ -60,20 +60,8 @@ check ()
   if (0 != strcmp (ret, "World"))
     return 4;
   free (ret);
-
   GNUNET_PLUGIN_load_all ("libgnunet_plugin_tes", "in", &test_cb, "test");
   return 0;
-}
-
-int
-main (int argc, char *argv[])
-{
-  int ret;
-
-  GNUNET_log_setup ("test-plugin", "WARNING", NULL);
-  ret = check ();
-
-  return ret;
 }
 
 /* end of test_plugin.c */

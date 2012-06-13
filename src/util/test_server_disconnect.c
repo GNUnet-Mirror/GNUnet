@@ -28,7 +28,6 @@
 #include "gnunet_server_lib.h"
 #include "gnunet_time_lib.h"
 
-#define VERBOSE GNUNET_NO
 
 #define PORT 12435
 

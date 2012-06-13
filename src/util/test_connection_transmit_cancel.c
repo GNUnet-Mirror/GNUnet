@@ -27,8 +27,6 @@
 #include "gnunet_scheduler_lib.h"
 #include "gnunet_time_lib.h"
 
-#define VERBOSE GNUNET_NO
-
 #define PORT 12435
 
 static struct GNUNET_CONFIGURATION_Handle *cfg;
@@ -61,16 +59,14 @@ task_transmit_cancel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
-
-
-/**
- * Main method, starts scheduler with task_timeout.
- */
-static int
-check_transmit_cancel ()
+int
+main (int argc, char *argv[])
 {
   int ok;
 
+  GNUNET_log_setup ("test_connection_transmit_cancel",
+                    "WARNING",
+                    NULL);
   ok = 1;
   cfg = GNUNET_CONFIGURATION_create ();
   GNUNET_CONFIGURATION_set_value_string (cfg, "resolver", "HOSTNAME",
@@ -78,24 +74,6 @@ check_transmit_cancel ()
   GNUNET_SCHEDULER_run (&task_transmit_cancel, &ok);
   GNUNET_CONFIGURATION_destroy (cfg);
   return ok;
-}
-
-
-int
-main (int argc, char *argv[])
-{
-  int ret = 0;
-
-  GNUNET_log_setup ("test_connection_transmit_cancel",
-#if VERBOSE
-                    "DEBUG",
-#else
-                    "WARNING",
-#endif
-                    NULL);
-  ret += check_transmit_cancel ();
-
-  return ret;
 }
 
 /* end of test_connection_transmit_cancel.c */

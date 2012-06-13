@@ -27,8 +27,6 @@
 #include "gnunet_scheduler_lib.h"
 #include "gnunet_time_lib.h"
 
-#define VERBOSE GNUNET_NO
-
 #define PORT 12435
 
 
@@ -80,17 +78,13 @@ receive_check (void *cls, const void *buf, size_t available,
 {
   int *ok = cls;
 
-#if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Receive validates incoming data\n");
-#endif
   GNUNET_assert (buf != NULL);  /* no timeout */
   if (0 == memcmp (&"Hello World"[sofar], buf, available))
     sofar += available;
   if (sofar < 12)
   {
-#if VERBOSE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Receive needs more data\n");
-#endif
     GNUNET_CONNECTION_receive (asock, 1024,
                                GNUNET_TIME_relative_multiply
                                (GNUNET_TIME_UNIT_SECONDS, 5), &receive_check,
@@ -98,9 +92,7 @@ receive_check (void *cls, const void *buf, size_t available,
   }
   else
   {
-#if VERBOSE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Receive closes accepted socket\n");
-#endif
     *ok = 0;
     GNUNET_CONNECTION_destroy (asock);
     GNUNET_CONNECTION_destroy (csock);
@@ -111,40 +103,32 @@ receive_check (void *cls, const void *buf, size_t available,
 static void
 run_accept (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-#if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test accepts connection\n");
-#endif
   asock = GNUNET_CONNECTION_create_from_accept (NULL, NULL, ls);
   GNUNET_assert (asock != NULL);
   GNUNET_assert (GNUNET_YES == GNUNET_CONNECTION_check (asock));
-#if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test destroys listen socket\n");
-#endif
   GNUNET_CONNECTION_destroy (lsock);
-#if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Test asks to receive on accepted socket\n");
-#endif
   GNUNET_CONNECTION_receive (asock, 1024,
                              GNUNET_TIME_relative_multiply
                              (GNUNET_TIME_UNIT_SECONDS, 5), &receive_check,
                              cls);
 }
 
+
 static size_t
 make_hello (void *cls, size_t size, void *buf)
 {
-#if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Test prepares to transmit on connect socket\n");
-#endif
   GNUNET_assert (size >= 12);
   strcpy ((char *) buf, "Hello World");
-#if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test destroys client socket\n");
-#endif
   return 12;
 }
+
 
 static void
 task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -154,29 +138,25 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_assert (lsock != NULL);
   csock = GNUNET_CONNECTION_create_from_connect (cfg, "localhost", PORT);
   GNUNET_assert (csock != NULL);
-#if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test asks for write notification\n");
-#endif
   GNUNET_assert (NULL !=
                  GNUNET_CONNECTION_notify_transmit_ready (csock, 12,
                                                           GNUNET_TIME_UNIT_SECONDS,
                                                           &make_hello, NULL));
-#if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test prepares to accept\n");
-#endif
   GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL, ls, &run_accept,
                                  cls);
 }
 
 
-/**
- * Main method, starts scheduler with task ,
- * checks that "ok" is correct at the end.
- */
-static int
-check ()
+int
+main (int argc, char *argv[])
 {
   int ok;
+
+  GNUNET_log_setup ("test_connection",
+                    "WARNING",
+                    NULL);
 
   ok = 1;
   cfg = GNUNET_CONFIGURATION_create ();
@@ -185,24 +165,6 @@ check ()
   GNUNET_SCHEDULER_run (&task, &ok);
   GNUNET_CONFIGURATION_destroy (cfg);
   return ok;
-}
-
-
-
-int
-main (int argc, char *argv[])
-{
-  int ret = 0;
-
-  GNUNET_log_setup ("test_connection",
-#if VERBOSE
-                    "DEBUG",
-#else
-                    "WARNING",
-#endif
-                    NULL);
-  ret += check ();
-  return ret;
 }
 
 /* end of test_connection.c */

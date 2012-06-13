@@ -25,13 +25,12 @@
 #include "gnunet_common.h"
 #include "gnunet_strings_lib.h"
 
-#define VERBOSE GNUNET_NO
 
 #define WANT(a,b) if (0 != strcmp(a,b)) { fprintf(stderr, "Got `%s', wanted `%s'\n", b, a); GNUNET_free(b); GNUNET_break(0); return 1;} else { GNUNET_free (b); }
 #define WANTB(a,b,l) if (0 != memcmp(a,b,l)) { GNUNET_break(0); return 1;} else { }
 
-static int
-check ()
+int
+main (int argc, char *argv[])
 {
   char buf[128];
   char *r;
@@ -39,6 +38,7 @@ check ()
   struct GNUNET_TIME_Absolute at;
   const char *hdir;
 
+  GNUNET_log_setup ("test_strings", "ERROR", NULL);
   sprintf (buf, "4 %s", _( /* size unit */ "b"));
   b = GNUNET_STRINGS_byte_size_fancy (4);
   WANT (buf, b);
@@ -106,14 +106,5 @@ check ()
   return 0;
 }
 
-int
-main (int argc, char *argv[])
-{
-  int ret;
-
-  GNUNET_log_setup ("test_strings", "ERROR", NULL);
-  ret = check ();
-  return ret;
-}
 
 /* end of test_strings.c */

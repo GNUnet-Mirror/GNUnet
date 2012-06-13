@@ -25,7 +25,6 @@
 #include "gnunet_common.h"
 #include "gnunet_os_lib.h"
 
-#define VERBOSE 0
 
 static int
 testprio ()

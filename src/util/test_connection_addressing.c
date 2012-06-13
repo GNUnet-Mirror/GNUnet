@@ -27,7 +27,6 @@
 #include "gnunet_scheduler_lib.h"
 #include "gnunet_time_lib.h"
 
-#define VERBOSE GNUNET_NO
 
 #define PORT 12435
 
@@ -174,36 +173,17 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
-/**
- * Main method, starts scheduler with task ,
- * checks that "ok" is correct at the end.
- */
-static int
-check ()
-{
-  int ok;
-
-  ok = 1;
-  GNUNET_SCHEDULER_run (&task, &ok);
-  return ok;
-}
-
-
-
 int
 main (int argc, char *argv[])
 {
-  int ret = 0;
+  int ok;
 
   GNUNET_log_setup ("test_connection_addressing",
-#if VERBOSE
-                    "DEBUG",
-#else
                     "WARNING",
-#endif
                     NULL);
-  ret += check ();
-  return ret;
+  ok = 1;
+  GNUNET_SCHEDULER_run (&task, &ok);
+  return ok;
 }
 
 /* end of test_connection_addressing.c */

@@ -28,8 +28,6 @@
 #include "gnunet_scheduler_lib.h"
 #include "gnunet_time_lib.h"
 
-#define VERBOSE GNUNET_NO
-
 static struct GNUNET_TIME_Absolute target;
 
 static int i;
@@ -71,9 +69,13 @@ test_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   i += INCR;
 }
 
-static int
-check ()
+
+int
+main (int argc, char *argv[])
 {
+  int ret;
+
+  GNUNET_log_setup ("test-scheduler-delay", "WARNING", NULL);
   target = GNUNET_TIME_absolute_get ();
   GNUNET_SCHEDULER_run (&test_task, NULL);
   FPRINTF (stdout, "Sleep precision: %llu ms. ",
@@ -87,17 +89,6 @@ check ()
   else
     FPRINTF (stdout, "%s",  "Timer precision is acceptable.\n");
   return 0;
-}
-
-int
-main (int argc, char *argv[])
-{
-  int ret;
-
-  GNUNET_log_setup ("test-scheduler-delay", "WARNING", NULL);
-  ret = check ();
-
-  return ret;
 }
 
 /* end of test_scheduler_delay.c */

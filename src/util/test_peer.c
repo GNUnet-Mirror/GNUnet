@@ -29,8 +29,6 @@
 
 #define NUMBER_OF_PEERS 10
 
-#define VERBOSE GNUNET_NO
-
 /**
  * A list of Peer ID's to play with
  */
@@ -46,9 +44,8 @@ generatePeerIdList ()
   {
     GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK,
                                       &pidArr[i].hashPubKey);
-#if VERBOSE
-    printf ("Peer %d: %s\n", i, GNUNET_i2s (&pidArr[i]));
-#endif
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Peer %d: %s\n", i, GNUNET_i2s (&pidArr[i]));
   }
 }
 
@@ -124,7 +121,7 @@ check ()
 int
 main ()
 {
-  int i;
+  unsigned int i;
 
   GNUNET_log_setup ("test-peer", "ERROR", NULL);
   for (i = 0; i < 1; i++)

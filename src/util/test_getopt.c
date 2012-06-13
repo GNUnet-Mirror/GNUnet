@@ -26,7 +26,6 @@
 #include "gnunet_configuration_lib.h"
 #include "gnunet_getopt_lib.h"
 
-#define VERBOSE 0
 
 static int
 testMinimal ()
@@ -44,6 +43,7 @@ testMinimal ()
 
   return 0;
 }
+
 
 static int
 testVerbose ()
@@ -75,6 +75,7 @@ testVerbose ()
   return 0;
 }
 
+
 static int
 testVersion ()
 {
@@ -96,6 +97,7 @@ testVersion ()
   return 0;
 }
 
+
 static int
 testAbout ()
 {
@@ -116,6 +118,7 @@ testAbout ()
   }
   return 0;
 }
+
 
 static int
 testLogOpts ()
@@ -153,6 +156,7 @@ testLogOpts ()
   return 0;
 }
 
+
 static int
 testFlagNum ()
 {
@@ -189,6 +193,7 @@ testFlagNum ()
   }
   return 0;
 }
+
 
 int
 main (int argc, char *argv[])

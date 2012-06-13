@@ -29,7 +29,6 @@
 #include "gnunet_server_lib.h"
 #include "gnunet_time_lib.h"
 
-#define VERBOSE GNUNET_NO
 
 #define PORT 14325
 
@@ -174,15 +173,14 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
-/**
- * Main method, starts scheduler with task1,
- * checks that "ok" is correct at the end.
- */
-static int
-check ()
+int
+main (int argc, char *argv[])
 {
   int ok;
 
+  GNUNET_log_setup ("test_client",
+                    "WARNING",
+                    NULL);
   cfg = GNUNET_CONFIGURATION_create ();
   GNUNET_CONFIGURATION_set_value_number (cfg, MYNAME, "PORT", PORT);
   GNUNET_CONFIGURATION_set_value_string (cfg, MYNAME, "HOSTNAME", "localhost");
@@ -192,23 +190,6 @@ check ()
   GNUNET_SCHEDULER_run (&task, &ok);
   GNUNET_CONFIGURATION_destroy (cfg);
   return ok;
-}
-
-int
-main (int argc, char *argv[])
-{
-  int ret = 0;
-
-  GNUNET_log_setup ("test_client",
-#if VERBOSE
-                    "DEBUG",
-#else
-                    "WARNING",
-#endif
-                    NULL);
-  ret += check ();
-
-  return ret;
 }
 
 /* end of test_client.c */

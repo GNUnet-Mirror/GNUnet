@@ -30,8 +30,6 @@
 #include "gnunet_server_lib.h"
 #include "gnunet_time_lib.h"
 
-#define VERBOSE GNUNET_NO
-
 #define MY_TYPE 128
 
 
@@ -42,6 +40,7 @@ static struct GNUNET_CLIENT_Connection *client;
 static struct GNUNET_CONFIGURATION_Handle *cfg;
 
 static int ok;
+
 
 static void
 send_done (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -150,7 +149,6 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   un.sun_path[0] = '\0';
 #endif
 
-
   sap[0] = (struct sockaddr *) &un;
   slens[0] = sizeof (un);
   sap[1] = NULL;
@@ -178,35 +176,15 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
-/**
- * Main method, starts scheduler with task1,
- * checks that "ok" is correct at the end.
- */
-static int
-check ()
-{
-
-  ok = 1;
-  GNUNET_SCHEDULER_run (&task, NULL);
-  return ok;
-}
-
-
 int
 main (int argc, char *argv[])
 {
-  int ret = 0;
-
   GNUNET_log_setup ("test_server_with_client_unix",
-#if VERBOSE
-                    "DEBUG",
-#else
                     "WARNING",
-#endif
                     NULL);
-  ret += check ();
-
-  return ret;
+  ok = 1;
+  GNUNET_SCHEDULER_run (&task, NULL);
+  return ok;
 }
 
 /* end of test_server_with_client_unix.c */

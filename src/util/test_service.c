@@ -31,8 +31,6 @@
 #include "gnunet_time_lib.h"
 
 
-#define VERBOSE GNUNET_NO
-
 #define PORT 12435
 
 #define MY_TYPE 256
@@ -148,17 +146,11 @@ check ()
     "test_service",
     "-c",
     "test_service_data.conf",
-    "-L",
-#if VERBOSE
-    "DEBUG",
-#else
-    "WARNING",
-#endif
     NULL
   };
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting service\n");
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_SERVICE_run (5, argv, "test_service",
+                 GNUNET_SERVICE_run (3, argv, "test_service",
                                      GNUNET_SERVICE_OPTION_NONE, &runner, &ok));
   GNUNET_assert (0 == ok);
   return ok;
@@ -201,17 +193,11 @@ check6 ()
     "test_service6",
     "-c",
     "test_service_data.conf",
-    "-L",
-#if VERBOSE
-    "DEBUG",
-#else
-    "WARNING",
-#endif
     NULL
   };
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting v6 service\n");
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_SERVICE_run (5, argv, "test_service6",
+                 GNUNET_SERVICE_run (3, argv, "test_service6",
                                      GNUNET_SERVICE_OPTION_NONE, &runner6,
                                      &ok));
   GNUNET_assert (0 == ok);
@@ -241,12 +227,6 @@ check_start_stop ()
     "test-service-program",
     "-c",
     "test_service_data.conf",
-    "-L",
-#if VERBOSE
-    "DEBUG",
-#else
-    "WARNING",
-#endif
     NULL
   };
   const struct GNUNET_GETOPT_CommandLineOption options[] = {
@@ -255,9 +235,9 @@ check_start_stop ()
   int ret = 1;
 
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_PROGRAM_run (5, argv, "test-service-program", "no help",
+                 GNUNET_PROGRAM_run (3, argv, "test-service-program", "no help",
                                      options, &start_stop_main, &ret));
-
+  
   GNUNET_break (0 == ret);
   return ret;
 }
@@ -270,11 +250,7 @@ main (int argc, char *argv[])
   struct GNUNET_NETWORK_Handle *s = NULL;
 
   GNUNET_log_setup ("test-service",
-#if VERBOSE
-                    "DEBUG",
-#else
                     "WARNING",
-#endif
                     NULL);
   ret += check ();
   ret += check ();

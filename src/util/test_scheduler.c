@@ -27,7 +27,11 @@
 #include "gnunet_time_lib.h"
 #include "gnunet_disk_lib.h"
 
-#define VERBOSE GNUNET_NO
+
+struct GNUNET_DISK_PipeHandle *p;
+
+static const struct GNUNET_DISK_FileHandle *fds[2];
+
 
 static void
 task2 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -51,9 +55,6 @@ task3 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   (*ok) = 4;
 }
 
-struct GNUNET_DISK_PipeHandle *p;
-static const struct GNUNET_DISK_FileHandle *fds[2];
-
 
 static void
 taskWrt (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -74,6 +75,7 @@ taskNeverRun (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_assert (0);
 }
 
+
 static void
 taskLast (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -83,6 +85,7 @@ taskLast (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_assert (8 == *ok);
   (*ok) = 0;
 }
+
 
 static void
 taskRd (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -130,7 +133,6 @@ task1 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                       cls);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &task4, cls);
 }
-
 
 
 /**
@@ -227,7 +229,6 @@ checkCancel ()
   GNUNET_SCHEDULER_run (&taskCancel, &ok);
   return ok;
 }
-
 
 
 int

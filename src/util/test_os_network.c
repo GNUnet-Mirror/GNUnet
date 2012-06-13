@@ -26,7 +26,6 @@
 #include "gnunet_configuration_lib.h"
 #include "gnunet_os_lib.h"
 
-#define VERBOSE 1
 
 /**
  * Check if the address we got is IPv4 or IPv6 loopback (which should
@@ -40,20 +39,20 @@ proc (void *cls, const char *name, int isDefault, const struct sockaddr *addr,
 {
   int *ok = cls;
   char buf[INET6_ADDRSTRLEN];
+  const char * protocol;
 
   if (NULL == addr)
     return GNUNET_OK;
-#if VERBOSE
-  const char * protocol;
   if (addrlen == sizeof (struct sockaddr_in))
     protocol = "IPv4";
   else
     protocol = "IPv6";
-  printf ("%s Address `%s'\n", protocol, GNUNET_a2s ((const struct sockaddr *) addr,addrlen) );
-  printf ("     Netmask `%s'\n", GNUNET_a2s ((const struct sockaddr *) netmask, addrlen) );
-  printf ("     Broadcast `%s'\n", GNUNET_a2s ((const struct sockaddr *) broadcast_addr,addrlen) );
-#endif
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "%s Address `%s'\n", protocol, GNUNET_a2s ((const struct sockaddr *) addr,addrlen) );
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Netmask `%s'\n", GNUNET_a2s ((const struct sockaddr *) netmask, addrlen) );
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "`%s'\n", GNUNET_a2s ((const struct sockaddr *) broadcast_addr,addrlen) );
   inet_ntop (addr->sa_family,
              (addr->sa_family ==
               AF_INET) ? (void *) &((struct sockaddr_in *) addr)->sin_addr
@@ -64,23 +63,16 @@ proc (void *cls, const char *name, int isDefault, const struct sockaddr *addr,
   return GNUNET_OK;
 }
 
-static int
-testifcs ()
+
+int
+main (int argc, char *argv[])
 {
   int ret;
 
+  GNUNET_log_setup ("test-os-network", "WARNING", NULL);
   ret = 1;
   GNUNET_OS_network_interfaces_list (&proc, &ret);
   return ret;
 }
 
-int
-main (int argc, char *argv[])
-{
-  int errCnt = 0;
-
-  GNUNET_log_setup ("test-os-network", "WARNING", NULL);
-  if (0 != testifcs ())
-    errCnt++;
-  return errCnt;
-}
+/* end of test_os_network.c */

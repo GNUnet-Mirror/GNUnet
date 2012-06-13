@@ -25,10 +25,9 @@
 #include "gnunet_common.h"
 #include "gnunet_time_lib.h"
 
-#define VERBOSE GNUNET_NO
 
-static int
-check ()
+int
+main (int argc, char *argv[])
 {
   struct GNUNET_TIME_Absolute now;
   struct GNUNET_TIME_AbsoluteNBO nown;
@@ -43,6 +42,7 @@ check ()
   struct GNUNET_TIME_RelativeNBO reln;
   unsigned int i;
 
+  GNUNET_log_setup ("test-time", "WARNING", NULL);
   forever = GNUNET_TIME_UNIT_FOREVER_ABS;
   relForever = GNUNET_TIME_UNIT_FOREVER_REL;
   relUnit = GNUNET_TIME_UNIT_MILLISECONDS;
@@ -230,15 +230,5 @@ check ()
   return 0;
 }
 
-int
-main (int argc, char *argv[])
-{
-  int ret;
-
-  GNUNET_log_setup ("test-time", "WARNING", NULL);
-  ret = check ();
-
-  return ret;
-}
 
 /* end of test_time.c */

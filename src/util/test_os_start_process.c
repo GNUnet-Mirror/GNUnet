@@ -33,20 +33,25 @@
 #include "gnunet_scheduler_lib.h"
 #include "disk.h"
 
-#define VERBOSE GNUNET_NO
 
-static char *test_phrase = "HELLO WORLD";
+static const char *test_phrase = "HELLO WORLD";
+
 static int ok;
 
 static struct GNUNET_OS_Process *proc;
 
-/* Pipe to write to started processes stdin (on write end) */
+/**
+ * Pipe to write to started processes stdin (on write end) 
+ */
 static struct GNUNET_DISK_PipeHandle *hello_pipe_stdin;
 
-/* Pipe to read from started processes stdout (on read end) */
+/**
+ * Pipe to read from started processes stdout (on read end) 
+ */
 static struct GNUNET_DISK_PipeHandle *hello_pipe_stdout;
 
 static GNUNET_SCHEDULER_TaskIdentifier die_task;
+
 
 static void
 end_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -62,6 +67,7 @@ end_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_DISK_pipe_close (hello_pipe_stdin);
 }
 
+
 static void
 read_call (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -73,9 +79,7 @@ read_call (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   bytes = GNUNET_DISK_file_read (stdout_read_handle, &buf, sizeof (buf));
 
-#if VERBOSE
-  FPRINTF (stderr, "bytes is %d\n", bytes);
-#endif
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "bytes is %d\n", bytes);
 
   if (bytes < 1)
   {
@@ -87,10 +91,8 @@ read_call (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
 
   ok = strncmp (&buf[0], test_phrase, strlen (test_phrase));
-#if VERBOSE
-  FPRINTF (stderr, "read %s\n", &buf[0]);
-#endif
-  if (ok == 0)
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "read %s\n", &buf[0]);
+  if (0 == ok)
   {
     GNUNET_SCHEDULER_cancel (die_task);
     GNUNET_SCHEDULER_add_now (&end_task, NULL);
@@ -190,11 +192,9 @@ check_kill ()
   proc =
     GNUNET_OS_start_process (GNUNET_YES, hello_pipe_stdin, hello_pipe_stdout, "cat",
 			     "gnunet-service-resolver", "-", NULL); 
-  sleep (1); /* give process time to start and open pipe */
+  sleep (1); /* give process time to start, so we actually use the pipe-kill mechanism! */
   if (0 != GNUNET_OS_process_kill (proc, SIGTERM))
-  {
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-  }
   GNUNET_assert (GNUNET_OK == GNUNET_OS_process_wait (proc));
   GNUNET_OS_process_destroy (proc);
   proc = NULL;
@@ -238,16 +238,13 @@ main (int argc, char *argv[])
   int ret;
 
   GNUNET_log_setup ("test-os-start-process",
-#if VERBOSE
-                    "DEBUG",
-#else
                     "WARNING",
-#endif
                     NULL);
   ret = 0;
   ret |= check_run ();
   ret |= check_kill ();
   ret |= check_instant_kill ();
-
   return ret;
 }
+
+/* end of test_os_start_process.c */

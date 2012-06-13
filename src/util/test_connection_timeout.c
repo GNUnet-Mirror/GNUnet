@@ -27,8 +27,6 @@
 #include "gnunet_scheduler_lib.h"
 #include "gnunet_time_lib.h"
 
-#define VERBOSE GNUNET_NO
-
 #define PORT 12435
 
 static struct GNUNET_CONNECTION_Handle *csock;
@@ -78,18 +76,14 @@ send_kilo (void *cls, size_t size, void *buf)
 
   if (size == 0)
   {
-#if VERBOSE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got the desired timeout!\n");
-#endif
     GNUNET_assert (buf == NULL);
     *ok = 0;
     GNUNET_CONNECTION_destroy (lsock);
     GNUNET_CONNECTION_destroy (csock);
     return 0;
   }
-#if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending kilo to fill buffer.\n");
-#endif
   GNUNET_assert (size >= 1024);
   memset (buf, 42, 1024);
 
@@ -117,14 +111,14 @@ task_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
-
-/**
- * Main method, starts scheduler with task_timeout.
- */
-static int
-check_timeout ()
+int
+main (int argc, char *argv[])
 {
   int ok;
+
+  GNUNET_log_setup ("test_connection_timeout",
+                    "WARNING",
+                    NULL);
 
   ok = 1;
   cfg = GNUNET_CONFIGURATION_create ();
@@ -133,22 +127,6 @@ check_timeout ()
   GNUNET_SCHEDULER_run (&task_timeout, &ok);
   GNUNET_CONFIGURATION_destroy (cfg);
   return ok;
-}
-
-int
-main (int argc, char *argv[])
-{
-  int ret = 0;
-
-  GNUNET_log_setup ("test_connection_timeout",
-#if VERBOSE
-                    "DEBUG",
-#else
-                    "WARNING",
-#endif
-                    NULL);
-  ret += check_timeout ();
-  return ret;
 }
 
 /* end of test_connection_timeout.c */

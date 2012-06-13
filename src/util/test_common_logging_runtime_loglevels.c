@@ -351,34 +351,16 @@ task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   runone ();
 }
 
-/**
- * Main method, starts scheduler with task1,
- * checks that "ok" is correct at the end.
- */
-static int
-check ()
-{
-  ok = 1;
-  GNUNET_SCHEDULER_run (&task, &ok);
-  return ok;
-}
-
 
 int
 main (int argc, char *argv[])
 {
-  int ret;
-
   GNUNET_log_setup ("test-common-logging-runtime-loglevels",
-#if VERBOSE
-                    "DEBUG",
-#else
                     "WARNING",
-#endif
                     NULL);
-  ret = check ();
-
-  return ret;
+  ok = 1;
+  GNUNET_SCHEDULER_run (&task, &ok);
+  return ok;
 }
 
 /* end of test_common_logging_runtime_loglevels.c */
