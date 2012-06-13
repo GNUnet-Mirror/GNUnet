@@ -150,6 +150,7 @@ commence_testing (void *cls, int32_t success, const char *emsg)
 
   GNUNET_GNS_lookup(gns_handle, TEST_DOMAIN, GNUNET_GNS_RECORD_TYPE_A,
                     GNUNET_YES,
+                    NULL,
                     &on_lookup_result, TEST_DOMAIN);
 }
 

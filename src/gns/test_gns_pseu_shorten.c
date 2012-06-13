@@ -43,14 +43,16 @@
 #define DEFAULT_NUM_PEERS 2
 
 /* test records to resolve */
-#define TEST_DOMAIN "www.alice.bob.gnunet"
+#define TEST_DOMAIN "www.alicewonderland.bobbuilder.gnunet"
 #define TEST_IP "127.0.0.1"
 #define TEST_RECORD_NAME "www"
 
-#define TEST_AUTHORITY_BOB "bob"
-#define TEST_AUTHORITY_ALICE "alice"
+#define TEST_PRIVATE_ZONE "private"
+#define TEST_SHORTEN_ZONE "short"
+#define TEST_AUTHORITY_BOB "bobbuilder"
+#define TEST_AUTHORITY_ALICE "alicewonderland"
 #define TEST_PSEU_ALICE "carol"
-#define TEST_EXPECTED_RESULT "www.carol.gnunet"
+#define TEST_EXPECTED_RESULT "www.carol.short.private.gnunet"
 
 #define DHT_OPERATION_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
@@ -85,12 +87,18 @@ const struct GNUNET_CONFIGURATION_Handle *cfg;
 struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded alice_pkey;
 struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded bob_pkey;
 struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded our_pkey;
+struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded priv_pkey;
+struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded short_pkey;
 struct GNUNET_CRYPTO_RsaPrivateKey *alice_key;
 struct GNUNET_CRYPTO_RsaPrivateKey *bob_key;
 struct GNUNET_CRYPTO_RsaPrivateKey *our_key;
+struct GNUNET_CRYPTO_RsaPrivateKey *priv_key;
+struct GNUNET_CRYPTO_RsaPrivateKey *short_key;
 struct GNUNET_CRYPTO_ShortHashCode alice_hash;
 struct GNUNET_CRYPTO_ShortHashCode bob_hash;
 struct GNUNET_CRYPTO_ShortHashCode our_zone;
+struct GNUNET_CRYPTO_ShortHashCode priv_zone;
+struct GNUNET_CRYPTO_ShortHashCode short_zone;
 
 /**
  * Check whether peers successfully shut down.
@@ -163,9 +171,9 @@ static void
 do_shorten(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_GNS_shorten_zone (gns_handle, TEST_DOMAIN,
-                     &our_zone, &our_zone,
+                     &our_zone,
                      &process_shorten_result,
-TEST_DOMAIN);
+                     TEST_DOMAIN);
 }
 
 static void
@@ -235,10 +243,11 @@ commence_testing (void *cls, int success)
   }
 
   GNUNET_GNS_lookup_zone (gns_handle, TEST_DOMAIN,
-                          &our_zone, &our_zone,
+                          &our_zone,
                           GNUNET_GNS_RECORD_TYPE_A,
                           GNUNET_NO,
-                    &on_lookup_result, TEST_DOMAIN);
+                          short_key,
+                          &on_lookup_result, TEST_DOMAIN);
 }
 
 /**
@@ -501,12 +510,49 @@ put_pkey_dht(void *cls, int32_t success, const char *emsg)
 }
 
 static void
-do_lookup(void *cls, const struct GNUNET_PeerIdentity *id,
-          const struct GNUNET_CONFIGURATION_Handle *_cfg,
-          struct GNUNET_TESTING_Daemon *d, const char *emsg)
+fin_init_zone (void *cls, int32_t success, const char *emsg)
+{
+  struct GNUNET_NAMESTORE_RecordData rd;
+  rd.expiration = GNUNET_TIME_UNIT_FOREVER_ABS;
+  rd.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
+  rd.data = &bob_hash;
+  rd.record_type = GNUNET_GNS_RECORD_PKEY;
+
+  GNUNET_NAMESTORE_record_create (namestore_handle,
+                                  our_key,
+                                  TEST_AUTHORITY_BOB,
+                                  &rd,
+                                  &put_pkey_dht,
+                                  NULL);
+
+}
+
+static void
+cont_init_zone (void *cls, int32_t success, const char *emsg)
+{
+
+  struct GNUNET_NAMESTORE_RecordData rd;
+  rd.expiration = GNUNET_TIME_UNIT_FOREVER_ABS;
+  rd.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
+  rd.data = &short_zone;
+  rd.record_type = GNUNET_GNS_RECORD_PKEY;
+
+  GNUNET_NAMESTORE_record_create (namestore_handle,
+                                  priv_key,
+                                  TEST_SHORTEN_ZONE,
+                                  &rd,
+                                  &fin_init_zone,
+                                  NULL);
+}
+
+static void
+do_lookup (void *cls, const struct GNUNET_PeerIdentity *id,
+           const struct GNUNET_CONFIGURATION_Handle *_cfg,
+           struct GNUNET_TESTING_Daemon *d, const char *emsg)
 {
   
-  
+  char* private_keyfile;
+  char* shorten_keyfile;
   char* our_keyfile;
   
   cfg = _cfg;
@@ -539,32 +585,61 @@ do_lookup(void *cls, const struct GNUNET_PeerIdentity *id,
     ok = -1;
     return;
   }
-
+  
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
+                                                          "SHORTEN_ZONEKEY",
+                                                          &shorten_keyfile))
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+               "Failed to get shorten zone key from cfg\n");
+    ok = -1;
+    return;
+  }
+  
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
+                                                          "PRIVATE_ZONEKEY",
+                                                          &private_keyfile))
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+               "Failed to get private zone key from cfg\n");
+    ok = -1;
+    return;
+  }
   our_key = GNUNET_CRYPTO_rsa_key_create_from_file (our_keyfile);
+  priv_key = GNUNET_CRYPTO_rsa_key_create_from_file (private_keyfile);
+  short_key = GNUNET_CRYPTO_rsa_key_create_from_file (shorten_keyfile);
   bob_key = GNUNET_CRYPTO_rsa_key_create_from_file (KEYFILE_BOB);
   alice_key = GNUNET_CRYPTO_rsa_key_create_from_file (KEYFILE_ALICE);
   
   GNUNET_free(our_keyfile);
+  GNUNET_free(shorten_keyfile);
+  GNUNET_free(private_keyfile);
 
   GNUNET_CRYPTO_rsa_key_get_public (our_key, &our_pkey);
+  GNUNET_CRYPTO_rsa_key_get_public (priv_key, &priv_pkey);
+  GNUNET_CRYPTO_rsa_key_get_public (short_key, &short_pkey);
   GNUNET_CRYPTO_rsa_key_get_public (bob_key, &bob_pkey);
   GNUNET_CRYPTO_rsa_key_get_public (alice_key, &alice_pkey);
   GNUNET_CRYPTO_short_hash(&bob_pkey, sizeof(bob_pkey), &bob_hash);
   GNUNET_CRYPTO_short_hash(&alice_pkey, sizeof(alice_pkey), &alice_hash);
   GNUNET_CRYPTO_short_hash(&our_pkey, sizeof(our_pkey), &our_zone);
-
+  GNUNET_CRYPTO_short_hash(&priv_pkey, sizeof(priv_pkey), &priv_zone);
+  GNUNET_CRYPTO_short_hash(&short_pkey, sizeof(short_pkey), &short_zone);
+  
   struct GNUNET_NAMESTORE_RecordData rd;
   rd.expiration = GNUNET_TIME_UNIT_FOREVER_ABS;
   rd.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
-  rd.data = &bob_hash;
+  rd.data = &priv_zone;
   rd.record_type = GNUNET_GNS_RECORD_PKEY;
 
   GNUNET_NAMESTORE_record_create (namestore_handle,
                                   our_key,
-                                  TEST_AUTHORITY_BOB,
+                                  TEST_PRIVATE_ZONE,
                                   &rd,
-                                  &put_pkey_dht,
+                                  &cont_init_zone,
                                   NULL);
+
+
 
 
 }

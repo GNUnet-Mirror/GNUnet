@@ -169,6 +169,7 @@ commence_testing (void *cls, int32_t success, const char *emsg)
 
   GNUNET_GNS_lookup(gns_handle, name, GNUNET_GNS_RECORD_TYPE_A,
                     GNUNET_NO,
+                    NULL,
                     &on_lookup_result, NULL);
 }
 

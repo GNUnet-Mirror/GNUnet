@@ -128,6 +128,7 @@ typedef void (*GNUNET_GNS_LookupResultProcessor) (void *cls,
  * @param name the name to look up
  * @param type the GNUNET_GNS_RecordType to look for
  * @param only_cached GNUNET_NO to only check locally not DHT for performance
+ * @param shorten_key the private key of the shorten zone (can be NULL)
  * @param proc function to call on result
  * @param proc_cls closure for processor
  *
@@ -138,6 +139,7 @@ GNUNET_GNS_lookup (struct GNUNET_GNS_Handle *handle,
                          const char * name,
                          enum GNUNET_GNS_RecordType type,
                          int only_cached,
+                         struct GNUNET_CRYPTO_RsaPrivateKey *shorten_key,
                          GNUNET_GNS_LookupResultProcessor proc,
                          void *proc_cls);
 
@@ -148,9 +150,9 @@ GNUNET_GNS_lookup (struct GNUNET_GNS_Handle *handle,
  * @param handle handle to the GNS service
  * @param name the name to look up
  * @param zone the zone to start the resolution in
- * @param shorten_zone the zone where to shorten names into
  * @param type the GNUNET_GNS_RecordType to look for
  * @param only_cached GNUNET_NO to only check locally not DHT for performance
+ * @param shorten_key the private key of the shorten zone (can be NULL)
  * @param proc function to call on result
  * @param proc_cls closure for processor
  *
@@ -160,9 +162,9 @@ struct GNUNET_GNS_QueueEntry *
 GNUNET_GNS_lookup_zone (struct GNUNET_GNS_Handle *handle,
                          const char * name,
                          struct GNUNET_CRYPTO_ShortHashCode *zone,
-                         struct GNUNET_CRYPTO_ShortHashCode *shorten_zone,
                          enum GNUNET_GNS_RecordType type,
                          int only_cached,
+                         struct GNUNET_CRYPTO_RsaPrivateKey *shorten_key,
                          GNUNET_GNS_LookupResultProcessor proc,
                          void *proc_cls);
 
@@ -202,7 +204,6 @@ GNUNET_GNS_shorten (struct GNUNET_GNS_Handle *handle,
  * @param handle handle to the GNS service
  * @param name the name to look up
  * @param zone the zone to start the resolution in
- * @param shorten_zone the zone where to shorten names into
  * @param proc function to call on result
  * @param proc_cls closure for processor
  * @return handle to the operation
@@ -211,7 +212,6 @@ struct GNUNET_GNS_QueueEntry *
 GNUNET_GNS_shorten_zone (struct GNUNET_GNS_Handle *handle,
                     const char * name,
                     struct GNUNET_CRYPTO_ShortHashCode *zone,
-                    struct GNUNET_CRYPTO_ShortHashCode *shorten_zone,
                     GNUNET_GNS_ShortenResultProcessor proc,
                     void *proc_cls);
 

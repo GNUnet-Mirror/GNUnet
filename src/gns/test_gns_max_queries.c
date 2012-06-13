@@ -180,11 +180,13 @@ commence_testing (void *cls, int32_t success, const char *emsg)
                     "www.doesnotexist-%d.bob.gnunet", i);
     GNUNET_GNS_lookup(gns_handle, lookup_name, GNUNET_GNS_RECORD_TYPE_A,
                       GNUNET_NO,
+                      NULL,
                       &on_lookup_result_dummy, NULL);
   }
 
   GNUNET_GNS_lookup(gns_handle, TEST_DOMAIN, GNUNET_GNS_RECORD_TYPE_A,
                     GNUNET_NO,
+                    NULL,
                     &on_lookup_result, TEST_DOMAIN);
 }
 

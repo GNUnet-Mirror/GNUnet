@@ -292,17 +292,14 @@ static regex_t re_dotplus;
 /* The users local GNS zone hash */
 static struct GNUNET_CRYPTO_ShortHashCode local_gns_zone;
 
-/* The users local shorten zone hash */
-static struct GNUNET_CRYPTO_ShortHashCode local_shorten_zone;
-
 /* The CA for SSL certificate generation */
 static struct ProxyCA proxy_ca;
 
 /* UNIX domain socket for mhd */
 struct GNUNET_NETWORK_Handle *mhd_unix_socket;
 
-/* Shorten names? */
-int use_shorten;
+/* Shorten zone private key */
+struct GNUNET_CRYPTO_RsaPrivateKey *shorten_zonekey;
 
 /**
  * Checks if name is in tld
@@ -1110,9 +1107,9 @@ process_get_authority (void *cls,
   GNUNET_GNS_lookup_zone (gns_handle,
                           ctask->host,
                           &local_gns_zone,
-                          &local_shorten_zone,
                           GNUNET_GNS_RECORD_LEHO,
                           GNUNET_YES, //Only cached for performance
+                          shorten_zonekey,
                           &process_leho_lookup,
                           ctask);
 }
@@ -2366,58 +2363,6 @@ load_local_zone_key (const struct GNUNET_CONFIGURATION_Handle *cfg)
 }
 
 /**
- * Loads the users local shorten zone key
- *
- * @return GNUNET_YES on success
- */
-static int
-load_local_shorten_key (const struct GNUNET_CONFIGURATION_Handle *cfg)
-{
-  char *keyfile;
-  struct GNUNET_CRYPTO_RsaPrivateKey *key = NULL;
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pkey;
-  struct GNUNET_CRYPTO_ShortHashCode *zone = NULL;
-  struct GNUNET_CRYPTO_ShortHashAsciiEncoded zonename;
-
-  if (GNUNET_NO == GNUNET_CONFIGURATION_get_value_yesno (cfg, "gns",
-                                                "AUTO_IMPORT_PKEY"))
-  {
-    return GNUNET_NO;
-  }
-
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
-                                                          "AUTO_IMPORT_ZONEKEY",
-                                                          &keyfile))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Unable to load shorten key config value! (not fatal)\n");
-    return GNUNET_NO;
-  }
-
-  if (GNUNET_NO == GNUNET_DISK_file_test (keyfile))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Unable to load shorten key %s! (not fatal)\n", keyfile);
-    GNUNET_free(keyfile);
-    return GNUNET_NO;
-  }
-
-  key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
-  GNUNET_CRYPTO_rsa_key_get_public (key, &pkey);
-  GNUNET_CRYPTO_short_hash(&pkey,
-                           sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
-                           &local_shorten_zone);
-  zone = &local_gns_zone;
-  GNUNET_CRYPTO_short_hash_to_enc (zone, &zonename);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Using shorten zone: %s!\n", &zonename);
-  GNUNET_CRYPTO_rsa_key_free(key);
-  GNUNET_free(keyfile);
-
-  return GNUNET_YES;
-}
-
-/**
  * Main function that will be run
  *
  * @param cls closure
@@ -2436,6 +2381,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   char* proxy_sockfile;
   char* cafile_cfg = NULL;
   char* cafile;
+  char* shorten_keyfile;
 
   curl_multi = NULL;
 
@@ -2471,7 +2417,26 @@ run (void *cls, char *const *args, const char *cfgfile,
   
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Loading Template\n");
-
+  
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns-proxy",
+                                                        "PROXY_CACERT",
+                                                        &shorten_keyfile))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Unable to load shorten zonekey config value!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "No shorten key provided!\n");
+    return;
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Loading shorten zonekey %s!\n",
+                shorten_keyfile);
+    shorten_zonekey = GNUNET_CRYPTO_rsa_key_create_from_file (shorten_keyfile);
+    GNUNET_free (shorten_keyfile);
+  }
+  
   compile_regex (&re_dotplus, (char*) RE_A_HREF);
 
   gns_handle = GNUNET_GNS_connect (cfg);
@@ -2482,8 +2447,6 @@ run (void *cls, char *const *args, const char *cfgfile,
                 "Unable to load zone!\n");
     return;
   }
-
-  use_shorten = load_local_shorten_key (cfg);
 
   if (NULL == gns_handle)
   {

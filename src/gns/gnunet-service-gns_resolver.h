@@ -206,6 +206,25 @@ struct NameShortenHandle
 
   /* closure to pass to proc */
   void* proc_cls;
+
+  /* result of shorten */
+  char result[MAX_DNS_NAME_LENGTH];
+
+  /* root zone */
+  struct GNUNET_CRYPTO_ShortHashCode *root_zone;
+
+  /* private zone */
+  struct GNUNET_CRYPTO_ShortHashCode *private_zone;
+
+  /* name of private zone */
+  char private_zone_name[MAX_DNS_LABEL_LENGTH];
+
+  /* shorten zone */
+  struct GNUNET_CRYPTO_ShortHashCode *shorten_zone;
+
+  /* name of shorten zone */
+  char shorten_zone_name[MAX_DNS_LABEL_LENGTH];
+
 };
 
 /**
@@ -309,18 +328,22 @@ gns_resolver_lookup_record(struct GNUNET_CRYPTO_ShortHashCode zone,
  * There is no guarantee that the shortened name will
  * actually be canonical/short etc.
  *
- * @param zone the zone to perform the operation in
- * @param pzone the private local zone
+ * @param zone the root zone to use
+ * @param pzone the private zone to use
+ * @param szone the shorten zone to use
  * @param name name to shorten
- * @param key optional private key for background lookups and PSEU import
+ * @param private_zone_name name of the private zone
+ * @param shorten_zone_name name of the shorten zone
  * @param proc the processor to call on shorten result
  * @param proc_cls the closure to pass to proc
  */
 void
-gns_resolver_shorten_name(struct GNUNET_CRYPTO_ShortHashCode zone,
-                          struct GNUNET_CRYPTO_ShortHashCode pzone,
+gns_resolver_shorten_name(struct GNUNET_CRYPTO_ShortHashCode *zone,
+                          struct GNUNET_CRYPTO_ShortHashCode *pzone,
+                          struct GNUNET_CRYPTO_ShortHashCode *szone,
                           const char* name,
-                          struct GNUNET_CRYPTO_RsaPrivateKey *key,
+                          const char* private_zone_name,
+                          const char* shorten_zone_name,
                           ShortenResultProcessor proc,
                           void* proc_cls);
 

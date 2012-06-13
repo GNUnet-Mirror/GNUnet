@@ -149,10 +149,9 @@ run (void *cls, char *const *args, const char *cfgfile,
   struct GNUNET_CRYPTO_RsaPrivateKey *key = NULL;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pkey;
   struct GNUNET_CRYPTO_ShortHashCode *zone = NULL;
-  struct GNUNET_CRYPTO_ShortHashCode *shorten_zone = NULL;
   struct GNUNET_CRYPTO_ShortHashCode user_zone;
-  struct GNUNET_CRYPTO_ShortHashCode user_shorten_zone;
   struct GNUNET_CRYPTO_ShortHashAsciiEncoded zonename;
+  struct GNUNET_CRYPTO_RsaPrivateKey *shorten_key = NULL;
 
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
                                                            "ZONEKEY", &keyfile))
@@ -182,29 +181,18 @@ run (void *cls, char *const *args, const char *cfgfile,
   }
   
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
-                                                          "AUTO_IMPORT_ZONEKEY",
-                                                          &keyfile))
+                                                   "SHORTEN_ZONEKEY", &keyfile))
   {
     if (!raw)
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  "No private key for shorten zone found!\n");
-    shorten_zone = NULL;
+                  "No shorten key found!\n");
+    shorten_key = NULL;
   }
   else
   {
     if (GNUNET_YES == GNUNET_DISK_file_test (keyfile))
     {
-      key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
-      GNUNET_CRYPTO_rsa_key_get_public (key, &pkey);
-      GNUNET_CRYPTO_short_hash(&pkey,
-                         sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
-                         &user_shorten_zone);
-      shorten_zone = &user_shorten_zone;
-      GNUNET_CRYPTO_short_hash_to_enc (shorten_zone, &zonename);
-      if (!raw)
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "Using shorten zone: %s!\n", &zonename);
-      GNUNET_CRYPTO_rsa_key_free(key);
+      shorten_key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
     }
     GNUNET_free(keyfile);
   }
@@ -226,7 +214,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   {
     /** shorten name */
     GNUNET_GNS_shorten_zone (gns, shorten_name,
-                             zone, shorten_zone,
+                             zone,
                              &process_shorten_result,
                              shorten_name);
   }
@@ -236,9 +224,10 @@ run (void *cls, char *const *args, const char *cfgfile,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Lookup\n");
     GNUNET_GNS_lookup_zone (gns, lookup_name,
-                            zone, shorten_zone,
+                            zone,
                             rtype,
                             GNUNET_YES, //Use DHT
+                            shorten_key,
                             &process_lookup_result, lookup_name);
   }
 

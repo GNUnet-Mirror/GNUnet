@@ -168,6 +168,7 @@ process_pseu_lookup_ns (void* cls,
         GNUNET_free (gph->ahead);
         gph->ahead = iter;
       } while (iter != NULL);
+      GNUNET_CRYPTO_rsa_key_free (gph->key);
 
       GNUNET_free (gph);
       return;
@@ -208,8 +209,8 @@ process_pseu_lookup_ns (void* cls,
     GNUNET_free (gph->ahead);
     gph->ahead = iter;
   } while (iter != NULL);
-
-  GNUNET_free(gph);
+  GNUNET_CRYPTO_rsa_key_free (gph->key);
+  GNUNET_free (gph);
 
 }
 
@@ -329,7 +330,7 @@ process_auth_discovery_dht_result(void* cls,
       GNUNET_free (gph->ahead);
       gph->ahead = iter;
     } while (iter != NULL);
-
+    GNUNET_CRYPTO_rsa_key_free (gph->key);
     GNUNET_free (gph);
     return;
   }
@@ -528,7 +529,7 @@ process_zone_to_name_discover (void *cls,
       GNUNET_free (gph->ahead);
       gph->ahead = iter;
     } while (iter != NULL);
-
+    GNUNET_CRYPTO_rsa_key_free (gph->key);
     GNUNET_free (gph);
   }
   else
@@ -579,6 +580,7 @@ start_shorten (struct AuthorityChain *atail,
   struct AuthorityChain *acopy;
   struct GetPseuAuthorityHandle *gph;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pkey;
+  struct GNUNET_CRYPTO_RsaPrivateKeyBinaryEncoded *pb_key;
 
   /* First copy the authority chain in reverse order */
   for (iter = atail; iter != NULL; iter = iter->prev)
@@ -593,7 +595,9 @@ start_shorten (struct AuthorityChain *atail,
   gph = GNUNET_malloc (sizeof (struct GetPseuAuthorityHandle));
 
   GNUNET_CRYPTO_rsa_key_get_public (key, &pkey);
-  gph->key = key;//GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_RsaPrivateKey));
+  pb_key = GNUNET_CRYPTO_rsa_encode_key (key);
+  gph->key = GNUNET_CRYPTO_rsa_decode_key ((char*)pb_key, ntohs (pb_key->len));
+  //gph->key = key;//GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_RsaPrivateKey));
   //memcpy (gph->key, key, sizeof (struct GNUNET_CRYPTO_RsaPrivateKey));
   
   GNUNET_CRYPTO_short_hash (&pkey,
@@ -2293,6 +2297,12 @@ gns_resolver_lookup_record(struct GNUNET_CRYPTO_ShortHashCode zone,
   rh->get_handle = NULL;
   rh->private_local_zone = pzone;
   rh->only_cached = only_cached;
+  
+  if (NULL == key)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "No shorten key for resolution\n");
+  }
 
   if (timeout.rel_value != GNUNET_TIME_UNIT_FOREVER_REL.rel_value)
   {
@@ -2394,7 +2404,6 @@ gns_resolver_lookup_record(struct GNUNET_CRYPTO_ShortHashCode zone,
 
 /******** END Record Resolver ***********/
 
-
 /**
  * Callback calles by namestore for a zone to name
  * result
@@ -2408,7 +2417,29 @@ gns_resolver_lookup_record(struct GNUNET_CRYPTO_ShortHashCode zone,
  * @param signature the signature for the record data
  */
 static void
-process_zone_to_name_shorten(void *cls,
+process_zone_to_name_shorten_root (void *cls,
+                 const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
+                 struct GNUNET_TIME_Absolute expire,
+                 const char *name,
+                 unsigned int rd_len,
+                 const struct GNUNET_NAMESTORE_RecordData *rd,
+                 const struct GNUNET_CRYPTO_RsaSignature *signature);
+
+
+/**
+ * Callback called by namestore for a zone to name
+ * result
+ *
+ * @param cls the closure
+ * @param zone_key the zone we queried
+ * @param expire the expiration time of the name
+ * @param name the name found or NULL
+ * @param rd_len number of records for the name
+ * @param rd the record data (PKEY) for the name
+ * @param signature the signature for the record data
+ */
+static void
+process_zone_to_name_shorten_shorten (void *cls,
                  const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
                  struct GNUNET_TIME_Absolute expire,
                  const char *name,
@@ -2424,53 +2455,184 @@ process_zone_to_name_shorten(void *cls,
   char tmp_name[MAX_DNS_NAME_LENGTH];
   size_t answer_len;
   
-  /* we found a match in our own zone */
+  /* we found a match in our own root zone */
   if (rd_len != 0)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                "result strlen %d\n", strlen(name));
     answer_len = strlen(rh->name) + strlen(name) + strlen(GNUNET_GNS_TLD) + 3;
     memset(result, 0, answer_len);
+
     if (strlen(rh->name) > 0)
     {
-      strcpy(result, rh->name);
-      strcpy(result+strlen(rh->name), ".");
+      sprintf (result, "%s.%s.%s.%s.%s",
+               rh->name, name,
+               nsh->shorten_zone_name, nsh->private_zone_name,
+               GNUNET_GNS_TLD);
+    }
+    else
+    {
+      sprintf (result, "%s.%s.%s.%s", name,
+               nsh->shorten_zone_name, nsh->private_zone_name,
+               GNUNET_GNS_TLD);
     }
     
-    strcpy(result+strlen(result), name);
-    strcpy(result+strlen(result), ".");
-    strcpy(result+strlen(result), GNUNET_GNS_TLD);
-    
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "Sending shorten result %s\n", result);
-
-    nsh->proc(nsh->proc_cls, result);
-    GNUNET_free(nsh);
-    free_resolver_handle(rh);
+               "Found shorten result %s\n", result);
+    if (strlen (nsh->result) > strlen (result))
+      strcpy (nsh->result, result);
   }
   else if (GNUNET_CRYPTO_short_hash_cmp(&rh->authority_chain_head->zone,
-                                        &rh->private_local_zone) == 0)
+                                        nsh->shorten_zone) == 0)
   {
-    /* our zone, just append .gnunet */
-    answer_len = strlen(rh->name) + strlen(GNUNET_GNS_TLD) + 2;
-    memset(result, 0, answer_len);
-    strcpy(result, rh->name);
-    strcpy(result+strlen(rh->name), ".");
-    strcpy(result+strlen(rh->name)+1, GNUNET_GNS_TLD);
-
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "Our zone: Sending name as shorten result %s\n", rh->name);
+    /**
+     * This is our zone append .gnunet unless name is empty
+     * (it shouldn't be, usually FIXME what happens if we
+     * shorten to our zone to a "" record??)
+     */
     
-    nsh->proc(nsh->proc_cls, result);
-    GNUNET_free(nsh);
-    free_resolver_handle(rh);
+    sprintf (result, "%s.%s.%s.%s",
+             rh->name,
+             nsh->shorten_zone_name, nsh->private_zone_name,
+             GNUNET_GNS_TLD);
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "Our zone: Found %s as shorten result\n", result);
+    
+    if (strlen (nsh->result) > strlen (result))
+      strcpy (nsh->result, result);
+    //nsh->proc(nsh->proc_cls, result);
+    //GNUNET_free(nsh);
+    //free_resolver_handle(rh);
+    //return;
+  }
+  
+  
+  /**
+   * No PSEU found.
+   * continue with next authority if exists
+   */
+  if ((rh->authority_chain_head->next == NULL))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Sending %s as shorten result\n", nsh->result);
+    nsh->proc(nsh->proc_cls, nsh->result);
+    GNUNET_free (nsh);
+    free_resolver_handle (rh);
+    return;
+  }
+  next_authority = rh->authority_chain_head;
+  
+  GNUNET_snprintf(tmp_name, MAX_DNS_NAME_LENGTH,
+                  "%s.%s", rh->name, next_authority->name);
+  
+  strcpy(rh->name, tmp_name);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "No PSEU found for authority %s. Promoting back: %s\n",
+             next_authority->name, rh->name);
+  
+  GNUNET_CONTAINER_DLL_remove(rh->authority_chain_head,
+                            rh->authority_chain_tail,
+                            next_authority);
+
+  GNUNET_NAMESTORE_zone_to_name (namestore_handle,
+                                 &rh->authority_chain_tail->zone,
+                                 &rh->authority_chain_head->zone,
+                                 &process_zone_to_name_shorten_root,
+                                 rh);
+}
+
+/**
+ * Callback calles by namestore for a zone to name
+ * result
+ *
+ * @param cls the closure
+ * @param zone_key the zone we queried
+ * @param expire the expiration time of the name
+ * @param name the name found or NULL
+ * @param rd_len number of records for the name
+ * @param rd the record data (PKEY) for the name
+ * @param signature the signature for the record data
+ */
+static void
+process_zone_to_name_shorten_private (void *cls,
+                 const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
+                 struct GNUNET_TIME_Absolute expire,
+                 const char *name,
+                 unsigned int rd_len,
+                 const struct GNUNET_NAMESTORE_RecordData *rd,
+                 const struct GNUNET_CRYPTO_RsaSignature *signature)
+{
+  struct ResolverHandle *rh = (struct ResolverHandle *)cls;
+  struct NameShortenHandle* nsh = (struct NameShortenHandle*)rh->proc_cls;
+  struct AuthorityChain *next_authority;
+
+  char result[MAX_DNS_NAME_LENGTH];
+  char tmp_name[MAX_DNS_NAME_LENGTH];
+  size_t answer_len;
+  
+  /* we found a match in our own root zone */
+  if (rd_len != 0)
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "result strlen %d\n", strlen(name));
+    answer_len = strlen(rh->name) + strlen(name) + strlen(GNUNET_GNS_TLD) + 3;
+    memset(result, 0, answer_len);
+
+    if (strlen(rh->name) > 0)
+    {
+      sprintf (result, "%s.%s.%s", rh->name, name, GNUNET_GNS_TLD);
+    }
+    else
+    {
+      sprintf (result, "%s.%s", name, GNUNET_GNS_TLD);
+    }
+    
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "Found shorten result %s\n", result);
+    if (strlen (nsh->result) > strlen (result))
+      strcpy (nsh->result, result);
+  }
+  else if (GNUNET_CRYPTO_short_hash_cmp(&rh->authority_chain_head->zone,
+                                        nsh->private_zone) == 0)
+  {
+    /**
+     * This is our zone append .gnunet unless name is empty
+     * (it shouldn't be, usually FIXME what happens if we
+     * shorten to our zone to a "" record??)
+     */
+    
+    sprintf (result, "%s.%s.%s",
+             rh->name, nsh->private_zone_name, GNUNET_GNS_TLD);
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "Our private zone: Found %s as shorten result %s\n", result);
+    if (strlen (nsh->result) > strlen (result))
+      strcpy (nsh->result, result);
+  }
+  
+  if (nsh->shorten_zone != NULL)
+  {
+    /* backtrack authorities for names in priv zone */
+    GNUNET_NAMESTORE_zone_to_name (namestore_handle,
+                                   nsh->shorten_zone,
+                                   &rh->authority_chain_head->zone,
+                                   &process_zone_to_name_shorten_shorten,
+                                   rh);
   }
   else
   {
     /**
      * No PSEU found.
-     * continue with next authority
+     * continue with next authority if exists
      */
+    if ((rh->authority_chain_head->next == NULL))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                 "Sending %s as shorten result\n", nsh->result);
+      nsh->proc(nsh->proc_cls, nsh->result);
+      GNUNET_free(nsh);
+      free_resolver_handle(rh);
+      return;
+    }
     next_authority = rh->authority_chain_head;
     
     GNUNET_snprintf(tmp_name, MAX_DNS_NAME_LENGTH,
@@ -2488,31 +2650,124 @@ process_zone_to_name_shorten(void *cls,
     GNUNET_NAMESTORE_zone_to_name (namestore_handle,
                                    &rh->authority_chain_tail->zone,
                                    &rh->authority_chain_head->zone,
-                                   &process_zone_to_name_shorten,
+                                   &process_zone_to_name_shorten_root,
                                    rh);
   }
 }
 
 /**
- * DHT resolution for delegation. Processing result.
+ * Callback calles by namestore for a zone to name
+ * result
  *
  * @param cls the closure
- * @param rh resolver handle
- * @param rd_count number of results
- * @param rd record data
+ * @param zone_key the zone we queried
+ * @param expire the expiration time of the name
+ * @param name the name found or NULL
+ * @param rd_len number of records for the name
+ * @param rd the record data (PKEY) for the name
+ * @param signature the signature for the record data
  */
 static void
-handle_delegation_dht_bg_shorten(void* cls, struct ResolverHandle *rh,
-                          unsigned int rd_count,
-                          const struct GNUNET_NAMESTORE_RecordData *rd)
+process_zone_to_name_shorten_root (void *cls,
+                 const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
+                 struct GNUNET_TIME_Absolute expire,
+                 const char *name,
+                 unsigned int rd_len,
+                 const struct GNUNET_NAMESTORE_RecordData *rd,
+                 const struct GNUNET_CRYPTO_RsaSignature *signature)
 {
+  struct ResolverHandle *rh = (struct ResolverHandle *)cls;
+  struct NameShortenHandle* nsh = (struct NameShortenHandle*)rh->proc_cls;
+  struct AuthorityChain *next_authority;
+
+  char result[MAX_DNS_NAME_LENGTH];
+  char tmp_name[MAX_DNS_NAME_LENGTH];
+  size_t answer_len;
   
-  /* We resolved full name for delegation. resolving record */
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-    "GNS_SHORTEN: Resolved up to %s for delegation via DHT in background.\n",
-    rh->name);
-  free_resolver_handle(rh);
+  /* we found a match in our own root zone */
+  if (rd_len != 0)
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "result strlen %d\n", strlen(name));
+    answer_len = strlen(rh->name) + strlen(name) + strlen(GNUNET_GNS_TLD) + 3;
+    memset(result, 0, answer_len);
+
+    if (strlen(rh->name) > 0)
+    {
+      sprintf (result, "%s.%s.%s", rh->name, name, GNUNET_GNS_TLD);
+    }
+    else
+    {
+      sprintf (result, "%s.%s", name, GNUNET_GNS_TLD);
+    }
+    
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "Found shorten result %s\n", result);
+    if (strlen (nsh->result) > strlen (result))
+      strcpy (nsh->result, result);
+  }
+  else if (GNUNET_CRYPTO_short_hash_cmp(&rh->authority_chain_head->zone,
+                                        nsh->root_zone) == 0)
+  {
+    /**
+     * This is our zone append .gnunet unless name is empty
+     * (it shouldn't be, usually FIXME what happens if we
+     * shorten to our zone to a "" record??)
+     */
+    
+    sprintf (result, "%s.%s", rh->name, GNUNET_GNS_TLD);
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "Our zone: Found %s as shorten result\n", result);
+    if (strlen (nsh->result) > strlen (result))
+      strcpy (nsh->result, result);
+  }
+  
+  if (nsh->private_zone != NULL)
+  {
+    /* backtrack authorities for names in priv zone */
+    GNUNET_NAMESTORE_zone_to_name (namestore_handle,
+                                   nsh->private_zone,
+                                   &rh->authority_chain_head->zone,
+                                   &process_zone_to_name_shorten_private,
+                                   rh);
+  }
+  else
+  {
+    /**
+     * No PSEU found.
+     * continue with next authority if exists
+     */
+    if ((rh->authority_chain_head->next == NULL))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                 "Sending %s as shorten result\n", nsh->result);
+      nsh->proc(nsh->proc_cls, nsh->result);
+      GNUNET_free(nsh);
+      free_resolver_handle(rh);
+      return;
+    }
+    next_authority = rh->authority_chain_head;
+    
+    GNUNET_snprintf(tmp_name, MAX_DNS_NAME_LENGTH,
+                    "%s.%s", rh->name, next_authority->name);
+    
+    strcpy(rh->name, tmp_name);
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "No PSEU found for authority %s. Promoting back: %s\n",
+               next_authority->name, rh->name);
+    
+    GNUNET_CONTAINER_DLL_remove(rh->authority_chain_head,
+                              rh->authority_chain_tail,
+                              next_authority);
+
+    GNUNET_NAMESTORE_zone_to_name (namestore_handle,
+                                   &rh->authority_chain_tail->zone,
+                                   &rh->authority_chain_head->zone,
+                                   &process_zone_to_name_shorten_root,
+                                   rh);
+  }
 }
+
 
 /**
  * Process result from namestore delegation lookup
@@ -2531,8 +2786,6 @@ handle_delegation_ns_shorten(void* cls,
 {
   struct NameShortenHandle *nsh;
   char result[MAX_DNS_NAME_LENGTH];
-  size_t answer_len;
-  struct ResolverHandle *rh_bg;
 
   nsh = (struct NameShortenHandle *)cls;
   
@@ -2545,9 +2798,10 @@ handle_delegation_ns_shorten(void* cls,
   
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
              "PKEY resolved as far as possible in ns up to %s!\n", rh->name);
+  memset(result, 0, sizeof (result));
 
   if (GNUNET_CRYPTO_short_hash_cmp(&rh->authority_chain_head->zone,
-                                   &rh->private_local_zone) == 0)
+                                   nsh->root_zone) == 0)
   {
     /**
      * This is our zone append .gnunet unless name is empty
@@ -2555,64 +2809,57 @@ handle_delegation_ns_shorten(void* cls,
      * shorten to our zone to a "" record??)
      */
     
-    answer_len = strlen(rh->name) + strlen(GNUNET_GNS_TLD) + 2;
-    memset(result, 0, answer_len);
-    strcpy(result, rh->name);
-    strcpy(result+strlen(rh->name), ".");
-    strcpy(result+strlen(rh->name)+1, GNUNET_GNS_TLD);
-
+    sprintf (result, "%s.%s", rh->name, GNUNET_GNS_TLD);
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "Our zone: Sending name as shorten result %s\n", rh->name);
+               "Our zone: Found %s as shorten result\n", result);
     
-    nsh->proc(nsh->proc_cls, result);
-    GNUNET_free(nsh);
-    free_resolver_handle(rh);
-    return;
+    if (strlen (nsh->result) > strlen (result))
+      strcpy (nsh->result, result);
+
+  }
+  else if (GNUNET_CRYPTO_short_hash_cmp(&rh->authority_chain_head->zone,
+                                        nsh->private_zone) == 0)
+  {
+    /**
+     * This is our zone append .gnunet unless name is empty
+     * (it shouldn't be, usually FIXME what happens if we
+     * shorten to our zone to a "" record??)
+     */
+    
+    sprintf (result, "%s.%s.%s",
+             rh->name, nsh->private_zone_name, GNUNET_GNS_TLD);
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "Our zone: Found %s as shorten result %s\n", result);
+    
+    if (strlen (nsh->result) > strlen (result))
+      strcpy (nsh->result, result);
+  }
+  else if (GNUNET_CRYPTO_short_hash_cmp(&rh->authority_chain_head->zone,
+                                        nsh->shorten_zone) == 0)
+  {
+    /**
+     * This is our zone append .gnunet unless name is empty
+     * (it shouldn't be, usually FIXME what happens if we
+     * shorten to our zone to a "" record??)
+     */
+    
+    sprintf (result, "%s.%s.%s",
+             rh->name, nsh->private_zone_name, GNUNET_GNS_TLD);
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "Our zone: Found %s as shorten result\n", result);
+    
+    if (strlen (nsh->result) > strlen (result))
+      strcpy (nsh->result, result);
   }
   
-  /**
-   * we have to this before zone to name for rh might
-   * be freed by then
-   */
-  rh_bg = NULL;
-  if (!is_canonical(rh->name))
-  {
-    rh_bg = GNUNET_malloc(sizeof(struct ResolverHandle));
-    memcpy(rh_bg, rh, sizeof(struct ResolverHandle));
-    rh_bg->id = rid++;
-  }
-
+  
   /* backtrack authorities for names */
   GNUNET_NAMESTORE_zone_to_name (namestore_handle,
-                                 &rh->authority_chain_tail->zone, //ours
+                                 nsh->root_zone,
                                  &rh->authority_chain_head->zone,
-                                 &process_zone_to_name_shorten,
+                                 &process_zone_to_name_shorten_root,
                                  rh);
   
-  if (rh_bg == NULL)
-  {
-    return;
-  }
-
-  /**
-   * If authority resolution is incomplete we can do a background lookup
-   * of the full name so that next time we can (likely) fully or at least
-   * further shorten the name
-   */
-  rh_bg->authority_chain_head = GNUNET_malloc(sizeof(struct AuthorityChain));
-  rh_bg->authority_chain_tail = rh_bg->authority_chain_head;
-  rh_bg->authority_chain_head->zone = rh_bg->authority;
-  
-  rh_bg->proc = &handle_delegation_dht_bg_shorten;
-  rh_bg->proc_cls = NULL;
-  rh_bg->timeout = GNUNET_TIME_UNIT_FOREVER_REL;
-  
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "GNS_SHORTEN: Starting background lookup for %s\n",
-             rh_bg->name);
-
-  resolve_delegation_dht(rh_bg);
-
 }
 
 
@@ -2662,6 +2909,9 @@ process_zone_to_name_zkey(void *cls,
     else
       GNUNET_snprintf(new_name, MAX_DNS_NAME_LENGTH, "%s.%s",
                       enc, GNUNET_GNS_TLD_ZKEY);
+
+    strcpy (nsh->result, new_name);
+
     nsh->proc(nsh->proc_cls, new_name);
     GNUNET_free(nsh);
     free_resolver_handle(rh);
@@ -2692,20 +2942,24 @@ process_zone_to_name_zkey(void *cls,
 /**
  * Shorten api from resolver
  *
- * @param zone the zone to use
- * @param pzone the private local zone
+ * @param zone the root zone to use
+ * @param pzone the private zone to use
+ * @param szone the shorten zone to use
  * @param name the name to shorten
- * @param key optional private key for background lookups and PSEU import
+ * @param private_zone_name name of the private zone
+ * @param shorten_zone_name name of the shorten zone
  * @param proc the processor to call with result
  * @param proc_cls closure to pass to proc
  */
 void
-gns_resolver_shorten_name(struct GNUNET_CRYPTO_ShortHashCode zone,
-                          struct GNUNET_CRYPTO_ShortHashCode pzone,
-                          const char* name,
-                          struct GNUNET_CRYPTO_RsaPrivateKey *key,
-                          ShortenResultProcessor proc,
-                          void* proc_cls)
+gns_resolver_shorten_name (struct GNUNET_CRYPTO_ShortHashCode *zone,
+                           struct GNUNET_CRYPTO_ShortHashCode *pzone,
+                           struct GNUNET_CRYPTO_ShortHashCode *szone,
+                           const char* name,
+                           const char* private_zone_name,
+                           const char* shorten_zone_name,
+                           ShortenResultProcessor proc,
+                           void* proc_cls)
 {
   struct ResolverHandle *rh;
   struct NameShortenHandle *nsh;
@@ -2718,31 +2972,37 @@ gns_resolver_shorten_name(struct GNUNET_CRYPTO_ShortHashCode zone,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Starting shorten for %s!\n", name);
   
-  if (is_canonical((char*)name))
+  if (is_canonical ((char*)name))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "%s is canonical. Returning verbatim\n", name);
-    proc(proc_cls, name);
+    proc (proc_cls, name);
     return;
   }
 
-  nsh = GNUNET_malloc(sizeof (struct NameShortenHandle));
+  nsh = GNUNET_malloc (sizeof (struct NameShortenHandle));
 
   nsh->proc = proc;
   nsh->proc_cls = proc_cls;
+  nsh->root_zone = zone;
+  nsh->private_zone = pzone;
+  nsh->shorten_zone = szone;
+  strcpy (nsh->private_zone_name, private_zone_name);
+  strcpy (nsh->shorten_zone_name, shorten_zone_name);
+  strcpy (nsh->result, name);
   
-  rh = GNUNET_malloc(sizeof (struct ResolverHandle));
-  rh->authority = zone;
+  rh = GNUNET_malloc (sizeof (struct ResolverHandle));
+  rh->authority = *zone;
   rh->id = rid++;
-  rh->priv_key = key;
+  rh->priv_key = NULL;
   rh->proc = &handle_delegation_ns_shorten;
   rh->proc_cls = nsh;
   rh->id = rid++;
-  rh->private_local_zone = pzone;
+  rh->private_local_zone = *zone;
   
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Checking for TLD...\n");
-  if (is_zkey_tld(name) == GNUNET_YES)
+  if (is_zkey_tld (name) == GNUNET_YES)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "TLD is zkey\n");
@@ -2751,30 +3011,30 @@ gns_resolver_shorten_name(struct GNUNET_CRYPTO_ShortHashCode zone,
      * build hash and use as initial authority
      * FIXME sscanf
      */
-    memset(rh->name, 0,
-           strlen(name)-strlen(GNUNET_GNS_TLD_ZKEY));
-    memcpy(rh->name, name,
-           strlen(name)-strlen(GNUNET_GNS_TLD_ZKEY) - 1);
-    pop_tld(rh->name, string_hash);
+    memset (rh->name, 0,
+            strlen (name)-strlen (GNUNET_GNS_TLD_ZKEY));
+    memcpy (rh->name, name,
+            strlen(name)-strlen (GNUNET_GNS_TLD_ZKEY) - 1);
+    pop_tld (rh->name, string_hash);
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "ZKEY is %s!\n", string_hash);
     
-    GNUNET_STRINGS_utf8_toupper(string_hash, &nzkey_ptr);
+    GNUNET_STRINGS_utf8_toupper (string_hash, &nzkey_ptr);
 
-    if (GNUNET_OK != GNUNET_CRYPTO_short_hash_from_string(nzkey,
-                                                          &zkey))
+    if (GNUNET_OK != GNUNET_CRYPTO_short_hash_from_string (nzkey,
+                                                           &zkey))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   "Cannot convert ZKEY %s to hash!\n", nzkey);
-      GNUNET_free(rh);
-      GNUNET_free(nsh);
-      proc(proc_cls, name);
+      GNUNET_free (rh);
+      GNUNET_free (nsh);
+      proc (proc_cls, name);
       return;
     }
 
     GNUNET_NAMESTORE_zone_to_name (namestore_handle,
-                                   &zone, //ours
+                                   zone, //ours
                                    &zkey,
                                    &process_zone_to_name_zkey,
                                    rh);
@@ -2788,19 +3048,19 @@ gns_resolver_shorten_name(struct GNUNET_CRYPTO_ShortHashCode zone,
     /**
      * Presumably GNUNET tld
      */
-    memset(rh->name, 0,
-           strlen(name)-strlen(GNUNET_GNS_TLD));
-    memcpy(rh->name, name,
-           strlen(name)-strlen(GNUNET_GNS_TLD) - 1);
+    memset (rh->name, 0,
+            strlen (name)-strlen (GNUNET_GNS_TLD));
+    memcpy (rh->name, name,
+            strlen (name)-strlen (GNUNET_GNS_TLD) - 1);
   }
 
-  rh->authority_chain_head = GNUNET_malloc(sizeof(struct AuthorityChain));
+  rh->authority_chain_head = GNUNET_malloc (sizeof (struct AuthorityChain));
   rh->authority_chain_tail = rh->authority_chain_head;
-  rh->authority_chain_head->zone = zone;
+  rh->authority_chain_head->zone = *zone;
   
   
   /* Start delegation resolution in our namestore */
-  resolve_delegation_ns(rh);
+  resolve_delegation_ns (rh);
 }
 
 /*********** END NAME SHORTEN ********************/
