@@ -82,7 +82,7 @@ struct GNUNET_TESTBED_Controller
   /**
    * The helper handle
    */
-  struct GNUNET_HELPER_Handle *h;
+  struct GNUNET_HELPER_Handle *helper;
 
   /**
    * The controller callback
@@ -142,6 +142,7 @@ transmit_ready_notify (void *cls, size_t size, void *buf)
   struct GNUNET_TESTBED_Controller *c = cls;
   struct MessageQueue *mq_entry;
 
+  c->th = NULL;
   mq_entry = c->mq_head;
   GNUNET_assert (NULL != mq_entry);
   GNUNET_assert (ntohs (mq_entry->msg->size) <= size);
@@ -277,9 +278,9 @@ GNUNET_TESTBED_controller_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                           "gnunet-service-testbed",
                           NULL};
   controller = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Controller));
-  controller->h = GNUNET_TESTBED_host_run_ (host, binary_argv,
+  controller->helper = GNUNET_TESTBED_host_run_ (host, binary_argv,
                                             &server_mst_cb, controller);
-  if (NULL == controller->h)
+  if (NULL == controller->helper)
   {
     GNUNET_free (controller);
     return NULL;
@@ -325,7 +326,20 @@ GNUNET_TESTBED_controller_configure_sharing (struct GNUNET_TESTBED_Controller *c
 void
 GNUNET_TESTBED_controller_stop (struct GNUNET_TESTBED_Controller *controller)
 {
-  GNUNET_break (0);
+  struct MessageQueue *mq_entry;
+
+  if (NULL != controller->th)
+    GNUNET_CLIENT_notify_transmit_ready_cancel (controller->th);
+  for (mq_entry = controller->mq_head; /* Clear the message queue */
+       NULL != mq_entry; mq_entry = controller->mq_head)
+  {
+    GNUNET_free (mq_entry->msg);
+    GNUNET_free (mq_entry);
+  }
+  GNUNET_CLIENT_disconnect (controller->client);
+  GNUNET_HELPER_stop (controller->helper);
+  GNUNET_CONFIGURATION_destroy (controller->cfg);
+  GNUNET_free (controller);
 }
 
 

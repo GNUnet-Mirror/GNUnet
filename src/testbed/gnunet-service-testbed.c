@@ -35,6 +35,36 @@
   GNUNET_log (kind, __VA_ARGS__)
 
 
+struct Context
+{
+  /**
+   * The client handle associated with this context
+   */
+  struct GNUNET_SERVER_Client *client;
+  
+  /**
+   * Event mask of event to be responded in this context
+   */
+  uint64_t event_mask;
+
+  /**
+   * Our host id according to this context
+   */
+  uint32_t host_id;
+};
+
+
+/**
+ * The master context; generated with the first INIT message
+ */
+static struct Context *master_context;
+
+/**
+ * The shutdown task handle
+ */
+static GNUNET_SCHEDULER_TaskIdentifier shutdown_task_id;
+
+
 /**
  * Message handler for GNUNET_MESSAGE_TYPE_TESTBED_INIT messages
  *
@@ -47,20 +77,23 @@ handle_init (void *cls,
              struct GNUNET_SERVER_Client *client,
              const struct GNUNET_MessageHeader *message)
 {
-  GNUNET_break (0);
-}
+  const struct GNUNET_TESTBED_Message *msg;
 
-
-/**
- * Callback for client disconnect
- *
- * @param cls NULL
- * @param client the client which has disconnected
- */
-static void
-client_disconnect_cb (void *cls, struct GNUNET_SERVER_Client *client)
-{
-  GNUNET_break (0);
+  if (NULL != master_context)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  msg = (const struct GNUNET_TESTBED_Message *) message;  
+  master_context = GNUNET_malloc (sizeof (struct Context));
+  master_context->client = client;
+  master_context->host_id = ntohl (msg->host_id);
+  master_context->event_mask = GNUNET_ntohll (msg->event_mask);
+  GNUNET_SERVER_client_keep (client);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Created master context with host ID: %u\n", master_context->host_id);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 
@@ -74,7 +107,30 @@ static void
 shutdown_task (void *cls,
                const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_break (0);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Shutting down testbed service\n");
+  GNUNET_free_non_null (master_context);
+}
+
+
+/**
+ * Callback for client disconnect
+ *
+ * @param cls NULL
+ * @param client the client which has disconnected
+ */
+static void
+client_disconnect_cb (void *cls, struct GNUNET_SERVER_Client *client)
+{
+  if (NULL == master_context)
+    return;
+  if (client == master_context->client)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Master client disconnected\n");
+    GNUNET_SERVER_client_drop (client);
+    GNUNET_SCHEDULER_cancel (shutdown_task_id);    
+    shutdown_task_id = 
+      GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
+  }
 }
 
 
@@ -87,22 +143,25 @@ shutdown_task (void *cls,
  */
 static void 
 testbed_run (void *cls,
-             struct GNUNET_SERVER_Handle * server,
+             struct GNUNET_SERVER_Handle *server,
              const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   static const struct GNUNET_SERVER_MessageHandler message_handlers[] =
     {
-      {&handle_init, NULL, GNUNET_MESSAGE_TYPE_TESTBED_INIT, 0},
+      {&handle_init, NULL, GNUNET_MESSAGE_TYPE_TESTBED_INIT,
+       sizeof (struct GNUNET_TESTBED_Message)},
       {NULL}
     };
+
   GNUNET_SERVER_add_handlers (server,
                               message_handlers);
   GNUNET_SERVER_disconnect_notify (server,
                                    &client_disconnect_cb,
                                    NULL);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                &shutdown_task,
-                                NULL);
+  shutdown_task_id = 
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
+                                  &shutdown_task,
+                                  NULL);
 }
 
 
