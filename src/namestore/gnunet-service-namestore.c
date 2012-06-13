@@ -251,8 +251,11 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_NAMESTORE_Client * nc;
   struct GNUNET_NAMESTORE_Client * next;
 
-  GNUNET_SERVER_notification_context_destroy (snc);
-  snc = NULL;
+  if (NULL != snc)
+  {
+    GNUNET_SERVER_notification_context_destroy (snc);
+    snc = NULL;
+  }
   GNUNET_CONTAINER_multihashmap_iterate(zonekeys, &zone_to_disk_it, NULL);
   GNUNET_CONTAINER_multihashmap_destroy(zonekeys);
 
