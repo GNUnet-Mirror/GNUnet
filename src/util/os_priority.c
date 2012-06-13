@@ -781,7 +781,7 @@ start_process (int pipe_control,
   pid_t ret;
   char lpid[16];
   char fds[16];
-  struct GNUNET_OS_Process *gnunet_proc = NULL;
+  struct GNUNET_OS_Process *gnunet_proc;
   char *childpipename = NULL;
   int i;
   int j;
@@ -918,7 +918,7 @@ start_process (int pipe_control,
   LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_ERROR, "execvp", filename);
   _exit (1);
 #else
-  struct GNUNET_DISK_FileHandle *control_pipe = NULL;
+  struct GNUNET_DISK_FileHandle *control_pipe;
   char *childpipename = NULL;
   char **arg;
   char **non_const_argv;
@@ -928,7 +928,7 @@ start_process (int pipe_control,
   STARTUPINFOW start;
   PROCESS_INFORMATION proc;
   int argcount = 0;
-  struct GNUNET_OS_Process *gnunet_proc = NULL;
+  struct GNUNET_OS_Process *gnunet_proc;
   char path[MAX_PATH + 1];
   char *our_env[5] = { NULL, NULL, NULL, NULL, NULL };
   char *env_block = NULL;

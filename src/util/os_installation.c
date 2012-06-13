@@ -56,8 +56,7 @@ get_path_from_proc_maps ()
   char *lgu;
 
   GNUNET_snprintf (fn, sizeof (fn), "/proc/%u/maps", getpid ());
-  f = FOPEN (fn, "r");
-  if (f == NULL)
+  if (NULL == (f = FOPEN (fn, "r")))
     return NULL;
   while (NULL != fgets (line, sizeof (line), f))
   {
@@ -73,6 +72,7 @@ get_path_from_proc_maps ()
   FCLOSE (f);
   return NULL;
 }
+
 
 /**
  * Try to determine path by reading /proc/PID/exe
@@ -131,6 +131,7 @@ get_path_from_module_filename ()
 #if DARWIN
 typedef int (*MyNSGetExecutablePathProto) (char *buf, size_t * bufsize);
 
+
 static char *
 get_path_from_NSGetExecutablePath ()
 {
@@ -138,22 +139,19 @@ get_path_from_NSGetExecutablePath ()
   char *path;
   size_t len;
   MyNSGetExecutablePathProto func;
-  int ret;
 
   path = NULL;
-  func =
-      (MyNSGetExecutablePathProto) dlsym (RTLD_DEFAULT, "_NSGetExecutablePath");
-  if (!func)
+  if (NULL == (func =
+	       (MyNSGetExecutablePathProto) dlsym (RTLD_DEFAULT, "_NSGetExecutablePath")))
     return NULL;
   path = &zero;
   len = 0;
   /* get the path len, including the trailing \0 */
   func (path, &len);
-  if (len == 0)
+  if (0 == len)
     return NULL;
   path = GNUNET_malloc (len);
-  ret = func (path, &len);
-  if (ret != 0)
+  if (0 != func (path, &len))
   {
     GNUNET_free (path);
     return NULL;
@@ -165,11 +163,13 @@ get_path_from_NSGetExecutablePath ()
   return path;
 }
 
+
 static char *
 get_path_from_dyld_image ()
 {
   const char *path;
-  char *p, *s;
+  char *p;
+  char *s;
   int i;
   int c;
 
@@ -180,11 +180,11 @@ get_path_from_dyld_image ()
     if (_dyld_get_image_header (i) == &_mh_dylib_header)
     {
       path = _dyld_get_image_name (i);
-      if (path != NULL && strlen (path) > 0)
+      if ( (NULL != path) && (strlen (path) > 0) )
       {
         p = GNUNET_strdup (path);
         s = p + strlen (p);
-        while ((s > p) && (*s != '/'))
+        while ((s > p) && ('/' != *s))
           s--;
         s++;
         *s = '\0';
@@ -195,6 +195,7 @@ get_path_from_dyld_image ()
   return p;
 }
 #endif
+
 
 /**
  * Return the actual path to a file found in the current
@@ -213,7 +214,7 @@ get_path_from_PATH (const char *binary)
   const char *p;
 
   p = getenv ("PATH");
-  if (p == NULL)
+  if (NULL == p)
     return NULL;
   path = GNUNET_strdup (p);     /* because we write on it */
   buf = GNUNET_malloc (strlen (path) + 20);
@@ -232,7 +233,7 @@ get_path_from_PATH (const char *binary)
     pos = end + 1;
   }
   sprintf (buf, "%s/%s", pos, binary);
-  if (GNUNET_DISK_file_test (buf) == GNUNET_YES)
+  if (GNUNET_YES == GNUNET_DISK_file_test (buf))
   {
     pos = GNUNET_strdup (pos);
     GNUNET_free (buf);
@@ -244,16 +245,17 @@ get_path_from_PATH (const char *binary)
   return NULL;
 }
 
+
 static char *
 get_path_from_GNUNET_PREFIX ()
 {
   const char *p;
 
-  p = getenv ("GNUNET_PREFIX");
-  if (p != NULL)
+  if (NULL != (p = getenv ("GNUNET_PREFIX")))
     return GNUNET_strdup (p);
   return NULL;
 }
+
 
 /**
  * @brief get the path to GNUnet bin/ or lib/, prefering the lib/ path
@@ -266,32 +268,25 @@ os_get_gnunet_path ()
 {
   char *ret;
 
-  ret = get_path_from_GNUNET_PREFIX ();
-  if (ret != NULL)
+  if (NULL != (ret = get_path_from_GNUNET_PREFIX ()))
     return ret;
 #if LINUX
-  ret = get_path_from_proc_maps ();
-  if (ret != NULL)
+  if (NULL != (ret = get_path_from_proc_maps ()))
     return ret;
-  ret = get_path_from_proc_exe ();
-  if (ret != NULL)
+  if (NULL != (ret = get_path_from_proc_exe ()))
     return ret;
 #endif
 #if WINDOWS
-  ret = get_path_from_module_filename ();
-  if (ret != NULL)
+  if (NULL != (ret = get_path_from_module_filename ()))
     return ret;
 #endif
 #if DARWIN
-  ret = get_path_from_dyld_image ();
-  if (ret != NULL)
+  if (NULL != (ret = get_path_from_dyld_image ()))
     return ret;
-  ret = get_path_from_NSGetExecutablePath ();
-  if (ret != NULL)
+  if (NULL != (ret = get_path_from_NSGetExecutablePath ()))
     return ret;
 #endif
-  ret = get_path_from_PATH ("gnunet-arm");
-  if (ret != NULL)
+  if (NULL != (ret = get_path_from_PATH ("gnunet-arm")))
     return ret;
   /* other attempts here */
   LOG (GNUNET_ERROR_TYPE_ERROR,
@@ -312,24 +307,20 @@ os_get_exec_path ()
 {
   char *ret;
 
-  ret = NULL;
 #if LINUX
-  ret = get_path_from_proc_exe ();
-  if (ret != NULL)
+  if (NULL != (ret = get_path_from_proc_exe ()))
     return ret;
 #endif
 #if WINDOWS
-  ret = get_path_from_module_filename ();
-  if (ret != NULL)
+  if (NULL != (ret = get_path_from_module_filename ()))
     return ret;
 #endif
 #if DARWIN
-  ret = get_path_from_NSGetExecutablePath ();
-  if (ret != NULL)
+  if (NULL != (ret = get_path_from_NSGetExecutablePath ()))
     return ret;
 #endif
   /* other attempts here */
-  return ret;
+  return NULL;
 }
 
 
@@ -355,21 +346,21 @@ GNUNET_OS_installation_get_path (enum GNUNET_OS_InstallationPathKind dirkind)
 
   /* try to get GNUnet's bin/ or lib/, or if previous was unsuccessful some
    * guess for the current app */
-  if (execpath == NULL)
+  if (NULL == execpath)
     execpath = os_get_gnunet_path ();
 
-  if (execpath == NULL)
+  if (NULL == execpath)
     return NULL;
 
   n = strlen (execpath);
-  if (n == 0)
+  if (0 == n)
   {
     /* should never happen, but better safe than sorry */
     GNUNET_free (execpath);
     return NULL;
   }
   /* remove filename itself */
-  while ((n > 1) && (execpath[n - 1] == DIR_SEPARATOR))
+  while ((n > 1) && (DIR_SEPARATOR == execpath[n - 1]))
     execpath[--n] = '\0';
 
   isbasedir = 1;
@@ -377,7 +368,7 @@ GNUNET_OS_installation_get_path (enum GNUNET_OS_InstallationPathKind dirkind)
       ((0 == strcasecmp (&execpath[n - 5], "lib32")) ||
        (0 == strcasecmp (&execpath[n - 5], "lib64"))))
   {
-    if (dirkind != GNUNET_OS_IPK_LIBDIR)
+    if (GNUNET_OS_IPK_LIBDIR != dirkind)
     {
       /* strip '/lib32' or '/lib64' */
       execpath[n - 5] = '\0';
@@ -458,30 +449,39 @@ GNUNET_OS_check_helper_binary (const char *binary)
   struct stat statbuf;
   char *p;
   char *pf;
-
 #ifdef MINGW
   SOCKET rawsock;
   char *binaryexe;
 
   GNUNET_asprintf (&binaryexe, "%s.exe", binary);
-  p = get_path_from_PATH (binaryexe);
-  if (p != NULL)
+  if (DIR_SEPARATOR == binary[0])
+    p = GNUNET_strdup (binary);
+  else
   {
-    GNUNET_asprintf (&pf, "%s/%s", p, binaryexe);
-    GNUNET_free (p);
-    p = pf;
+    p = get_path_from_PATH (binaryexe);
+    if (NULL != p)
+    {
+      GNUNET_asprintf (&pf, "%s/%s", p, binaryexe);
+      GNUNET_free (p);
+      p = pf;
+    }
   }
   GNUNET_free (binaryexe);
 #else
-  p = get_path_from_PATH (binary);
-  if (p != NULL)
+  if (DIR_SEPARATOR == binary[0])
+    p = GNUNET_strdup (binary);
+  else
   {
-    GNUNET_asprintf (&pf, "%s/%s", p, binary);
-    GNUNET_free (p);
-    p = pf;
+    p = get_path_from_PATH (binary);
+    if (NULL != p)
+    {
+      GNUNET_asprintf (&pf, "%s/%s", p, binary);
+      GNUNET_free (p);
+      p = pf;
+    }
   }
 #endif
-  if (p == NULL)
+  if (NULL == p)
   {
     LOG (GNUNET_ERROR_TYPE_INFO, _("Could not find binary `%s' in PATH!\n"),
          binary);
