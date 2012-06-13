@@ -28,7 +28,7 @@
 #include "gnunet_regex_lib.h"
 
 void
-key_iterator (void *cls, const struct GNUNET_HashCode * key, const char *proof,
+key_iterator (void *cls, const struct GNUNET_HashCode *key, const char *proof,
               int accepting, unsigned int num_edges,
               const struct GNUNET_REGEX_Edge *edges)
 {
