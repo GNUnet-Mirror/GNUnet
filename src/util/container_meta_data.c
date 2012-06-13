@@ -40,9 +40,14 @@
 struct MetaItem
 {
   /**
-   * This is a linked list.
+   * This is a doubly linked list.
    */
   struct MetaItem *next;
+
+  /**
+   * This is a doubly linked list.
+   */
+  struct MetaItem *prev;
 
   /**
    * Name of the extracting plugin.
@@ -82,9 +87,14 @@ struct MetaItem
 struct GNUNET_CONTAINER_MetaData
 {
   /**
-   * Linked list of the meta data items.
+   * Head of linked list of the meta data items.
    */
-  struct MetaItem *items;
+  struct MetaItem *items_head;
+
+  /**
+   * Tail of linked list of the meta data items.
+   */
+  struct MetaItem *items_tail;
 
   /**
    * Complete serialized and compressed buffer of the items.
@@ -120,15 +130,15 @@ GNUNET_CONTAINER_meta_data_create ()
 /**
  * Free meta data item.
  *
- * @param item item to free
+ * @param mi item to free
  */
 static void
-meta_item_free (struct MetaItem *item)
+meta_item_free (struct MetaItem *mi)
 {
-  GNUNET_free_non_null (item->plugin_name);
-  GNUNET_free_non_null (item->mime_type);
-  GNUNET_free_non_null (item->data);
-  GNUNET_free (item);
+  GNUNET_free_non_null (mi->plugin_name);
+  GNUNET_free_non_null (mi->mime_type);
+  GNUNET_free_non_null (mi->data);
+  GNUNET_free (mi);
 }
 
 
@@ -141,7 +151,7 @@ meta_item_free (struct MetaItem *item)
 static void
 invalidate_sbuf (struct GNUNET_CONTAINER_MetaData *md)
 {
-  if (md->sbuf == NULL)
+  if (NULL == md->sbuf)
     return;
   GNUNET_free (md->sbuf);
   md->sbuf = NULL;
@@ -157,14 +167,14 @@ invalidate_sbuf (struct GNUNET_CONTAINER_MetaData *md)
 void
 GNUNET_CONTAINER_meta_data_destroy (struct GNUNET_CONTAINER_MetaData *md)
 {
-  struct MetaItem *item;
+  struct MetaItem *pos;
 
-  if (md == NULL)
+  if (NULL == md)
     return;
-  while (NULL != (item = md->items))
+  while (NULL != (pos = md->items_head))
   {
-    md->items = item->next;
-    meta_item_free (item);
+    GNUNET_CONTAINER_DLL_remove (md->items_head, md->items_tail, pos);
+    meta_item_free (pos);
   }
   GNUNET_free_non_null (md->sbuf);
   GNUNET_free (md);
@@ -179,19 +189,18 @@ GNUNET_CONTAINER_meta_data_destroy (struct GNUNET_CONTAINER_MetaData *md)
 void
 GNUNET_CONTAINER_meta_data_clear (struct GNUNET_CONTAINER_MetaData *md)
 {
-  struct MetaItem *item;
+  struct MetaItem *mi;
 
-  if (md == NULL)
+  if (NULL == md)
     return;
-  while (NULL != (item = md->items))
+  while (NULL != (mi = md->items_head))
   {
-    md->items = item->next;
-    meta_item_free (item);
+    GNUNET_CONTAINER_DLL_remove (md->items_head, md->items_tail, mi);
+    meta_item_free (mi);
   }
   GNUNET_free_non_null (md->sbuf);
   memset (md, 0, sizeof (struct GNUNET_CONTAINER_MetaData));
 }
-
 
 
 /**
@@ -218,13 +227,10 @@ GNUNET_CONTAINER_meta_data_test_equal (const struct GNUNET_CONTAINER_MetaData
     return GNUNET_YES;
   if (md1->item_count != md2->item_count)
     return GNUNET_NO;
-
-  i = md1->items;
-  while (NULL != i)
+  for (i = md1->items_head; NULL != i; i = i->next)
   {
     found = GNUNET_NO;
-    j = md2->items;
-    while (NULL != j)
+    for (j = md2->items_head; NULL != j; j = j->next)
     {
       if ((i->type == j->type) && (i->format == j->format) &&
           (i->data_size == j->data_size) &&
@@ -233,11 +239,11 @@ GNUNET_CONTAINER_meta_data_test_equal (const struct GNUNET_CONTAINER_MetaData
         found = GNUNET_YES;
         break;
       }
-      j = j->next;
+      if (j->data_size < i->data_size)
+	break; /* elements are sorted by (decreasing) size... */
     }
-    if (found == GNUNET_NO)
+    if (GNUNET_NO == found)
       return GNUNET_NO;
-    i = i->next;
   }
   return GNUNET_YES;
 }
@@ -257,7 +263,7 @@ GNUNET_CONTAINER_meta_data_test_equal (const struct GNUNET_CONTAINER_MetaData
  * @param data_mime_type mime-type of data (not of the original file);
  *        can be NULL (if mime-type is not known)
  * @param data actual meta-data found
- * @param data_len number of bytes in data
+ * @param data_size number of bytes in data
  * @return GNUNET_OK on success, GNUNET_SYSERR if this entry already exists
  *         data_mime_type and plugin_name are not considered for "exists" checks
  */
@@ -267,64 +273,61 @@ GNUNET_CONTAINER_meta_data_insert (struct GNUNET_CONTAINER_MetaData *md,
                                    enum EXTRACTOR_MetaType type,
                                    enum EXTRACTOR_MetaFormat format,
                                    const char *data_mime_type, const char *data,
-                                   size_t data_len)
+                                   size_t data_size)
 {
-  struct MetaItem *prev;
   struct MetaItem *pos;
-  struct MetaItem *i;
+  struct MetaItem *mi;
   char *p;
 
-  prev = NULL;
-  pos = md->items;
-  while (NULL != pos)
+  for (pos = md->items_head; NULL != pos; pos = pos->next)
   {
-    if (pos->data_size < data_len)
-      break;
-    if ((pos->type == type) && (pos->data_size == data_len) &&
-        (0 == memcmp (pos->data, data, data_len)))
+    if (pos->data_size < data_size)
+      break; /* elements are sorted by size in the list */
+    if ((pos->type == type) && (pos->data_size == data_size) &&
+        (0 == memcmp (pos->data, data, data_size)))
     {
-      if ((pos->mime_type == NULL) && (data_mime_type != NULL))
+      if ((NULL == pos->mime_type) && (NULL != data_mime_type))
       {
         pos->mime_type = GNUNET_strdup (data_mime_type);
         invalidate_sbuf (md);
       }
-      if ((pos->format == EXTRACTOR_METAFORMAT_C_STRING) &&
-          (format == EXTRACTOR_METAFORMAT_UTF8))
+      if ((EXTRACTOR_METAFORMAT_C_STRING == pos->format) &&
+          (EXTRACTOR_METAFORMAT_UTF8 == format))
       {
         pos->format = EXTRACTOR_METAFORMAT_UTF8;
         invalidate_sbuf (md);
       }
       return GNUNET_SYSERR;
     }
-    prev = pos;
-    pos = pos->next;
   }
   md->item_count++;
-  i = GNUNET_malloc (sizeof (struct MetaItem));
-  i->type = type;
-  i->format = format;
-  i->data_size = data_len;
-  i->next = pos;
-  if (prev == NULL)
-    md->items = i;
+  mi = GNUNET_malloc (sizeof (struct MetaItem));
+  mi->type = type;
+  mi->format = format;
+  mi->data_size = data_size;
+  if (NULL == pos)
+    GNUNET_CONTAINER_DLL_insert_tail (md->items_head,
+				      md->items_tail,
+				      mi);
   else
-    prev->next = i;
-  i->mime_type =
-      (data_mime_type == NULL) ? NULL : GNUNET_strdup (data_mime_type);
-  i->plugin_name = (plugin_name == NULL) ? NULL : GNUNET_strdup (plugin_name);
-  i->data = GNUNET_malloc (data_len);
-  memcpy (i->data, data, data_len);
-  /* change OS native dir separators to unix '/' and others to '_' */
-  if ( (type == EXTRACTOR_METATYPE_FILENAME) ||
-       (type == EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME) )
+    GNUNET_CONTAINER_DLL_insert_after (md->items_head,
+				       md->items_tail,
+				       pos->prev,
+				       mi);
+  mi->mime_type =
+      (NULL == data_mime_type) ? NULL : GNUNET_strdup (data_mime_type);
+  mi->plugin_name = (NULL == plugin_name) ? NULL : GNUNET_strdup (plugin_name);
+  mi->data = GNUNET_malloc (data_size);
+  memcpy (mi->data, data, data_size);
+  /* change all dir separators to POSIX style ('/') */
+  if ( (EXTRACTOR_METATYPE_FILENAME == type) ||
+       (EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME == type) )
   {
-    p = i->data;
-    while ((*p != '\0') && (p < i->data + data_len))
+    p = mi->data;
+    while (('\0' != *p) && (p < mi->data + data_size))
     {
-      if (*p == DIR_SEPARATOR)
+      if ('\\' == *p)
         *p = '/';
-      else if (*p == '\\')
-        *p = '_';
       p++;
     }
   }
@@ -346,18 +349,18 @@ GNUNET_CONTAINER_meta_data_insert (struct GNUNET_CONTAINER_MetaData *md,
  * @param data_mime_type mime-type of data (not of the original file);
  *        can be NULL (if mime-type is not known)
  * @param data actual meta-data found
- * @param data_len number of bytes in data
+ * @param data_size number of bytes in data
  * @return 0 (to continue)
  */
 static int
 merge_helper (void *cls, const char *plugin_name, enum EXTRACTOR_MetaType type,
               enum EXTRACTOR_MetaFormat format, const char *data_mime_type,
-              const char *data, size_t data_len)
+              const char *data, size_t data_size)
 {
   struct GNUNET_CONTAINER_MetaData *md = cls;
 
   (void) GNUNET_CONTAINER_meta_data_insert (md, plugin_name, type, format,
-                                            data_mime_type, data, data_len);
+                                            data_mime_type, data, data_size);
   return 0;
 }
 
@@ -384,37 +387,31 @@ GNUNET_CONTAINER_meta_data_merge (struct GNUNET_CONTAINER_MetaData *md,
  * @param type type of the item to remove
  * @param data specific value to remove, NULL to remove all
  *        entries of the given type
- * @param data_len number of bytes in data
+ * @param data_size number of bytes in data
  * @return GNUNET_OK on success, GNUNET_SYSERR if the item does not exist in md
  */
 int
 GNUNET_CONTAINER_meta_data_delete (struct GNUNET_CONTAINER_MetaData *md,
                                    enum EXTRACTOR_MetaType type,
-                                   const char *data, size_t data_len)
+                                   const char *data, size_t data_size)
 {
   struct MetaItem *pos;
-  struct MetaItem *prev;
 
-  prev = NULL;
-  pos = md->items;
-  while (NULL != pos)
+  for (pos = md->items_head; NULL != pos; pos = pos->next)
   {
+    if (pos->data_size < data_size)
+      break; /* items are sorted by (decreasing) size */
     if ((pos->type == type) &&
-        ((data == NULL) ||
-         ((pos->data_size == data_len) &&
-          (0 == memcmp (pos->data, data, data_len)))))
+        ((NULL == data) ||
+         ((pos->data_size == data_size) &&
+          (0 == memcmp (pos->data, data, data_size)))))
     {
-      if (prev == NULL)
-        md->items = pos->next;
-      else
-        prev->next = pos->next;
+      GNUNET_CONTAINER_DLL_remove (md->items_head, md->items_tail, pos);
       meta_item_free (pos);
       md->item_count--;
       invalidate_sbuf (md);
       return GNUNET_OK;
     }
-    prev = pos;
-    pos = pos->next;
   }
   return GNUNET_SYSERR;
 }
@@ -460,19 +457,15 @@ GNUNET_CONTAINER_meta_data_iterate (const struct GNUNET_CONTAINER_MetaData *md,
 {
   struct MetaItem *pos;
 
-  if (md == NULL)
+  if (NULL == md)
     return 0;
-  if (iter == NULL)
+  if (NULL == iter)
     return md->item_count;
-  pos = md->items;
-  while (NULL != pos)
-  {
+  for (pos = md->items_head; NULL != pos; pos = pos->next)
     if (0 !=
         iter (iter_cls, pos->plugin_name, pos->type, pos->format,
               pos->mime_type, pos->data, pos->data_size))
       return md->item_count;
-    pos = pos->next;
-  }
   return md->item_count;
 }
 
@@ -493,17 +486,13 @@ GNUNET_CONTAINER_meta_data_get_by_type (const struct GNUNET_CONTAINER_MetaData
 {
   struct MetaItem *pos;
 
-  if (md == NULL)
+  if (NULL == md)
     return NULL;
-  pos = md->items;
-  while (NULL != pos)
-  {
+  for (pos = md->items_head; NULL != pos; pos = pos->next)
     if ((type == pos->type) &&
         ((pos->format == EXTRACTOR_METAFORMAT_UTF8) ||
          (pos->format == EXTRACTOR_METAFORMAT_C_STRING)))
       return GNUNET_strdup (pos->data);
-    pos = pos->next;
-  }
   return NULL;
 }
 
@@ -528,18 +517,16 @@ GNUNET_CONTAINER_meta_data_get_first_by_types (const struct
   va_list args;
   enum EXTRACTOR_MetaType type;
 
-  if (md == NULL)
+  if (NULL == md)
     return NULL;
   ret = NULL;
   va_start (args, md);
   while (1)
   {
     type = va_arg (args, enum EXTRACTOR_MetaType);
-
-    if (type == -1)
+    if (-1 == type)
       break;
-    ret = GNUNET_CONTAINER_meta_data_get_by_type (md, type);
-    if (ret != NULL)
+    if (NULL != (ret = GNUNET_CONTAINER_meta_data_get_by_type (md, type)))
       break;
   }
   va_end (args);
@@ -562,25 +549,23 @@ GNUNET_CONTAINER_meta_data_get_thumbnail (const struct GNUNET_CONTAINER_MetaData
   struct MetaItem *pos;
   struct MetaItem *match;
 
-  if (md == NULL)
+  if (NULL == md)
     return 0;
   match = NULL;
-  pos = md->items;
-  while (NULL != pos)
+  for (pos = md->items_head; NULL != pos; pos = pos->next)
   {
     if ((NULL != pos->mime_type) &&
         (0 == strncasecmp ("image/", pos->mime_type, strlen ("image/"))) &&
-        (pos->format == EXTRACTOR_METAFORMAT_BINARY))
+        (EXTRACTOR_METAFORMAT_BINARY == pos->format))
     {
-      if (match == NULL)
+      if (NULL == match)
         match = pos;
       else if ((match->type != EXTRACTOR_METATYPE_THUMBNAIL) &&
                (pos->type == EXTRACTOR_METATYPE_THUMBNAIL))
         match = pos;
     }
-    pos = pos->next;
   }
-  if ((match == NULL) || (match->data_size == 0))
+  if ((NULL == match) || (0 == match->data_size))
     return 0;
   *thumb = GNUNET_malloc (match->data_size);
   memcpy (*thumb, match->data, match->data_size);
@@ -601,17 +586,13 @@ GNUNET_CONTAINER_meta_data_duplicate (const struct GNUNET_CONTAINER_MetaData
   struct GNUNET_CONTAINER_MetaData *ret;
   struct MetaItem *pos;
 
-  if (md == NULL)
+  if (NULL == md)
     return NULL;
   ret = GNUNET_CONTAINER_meta_data_create ();
-  pos = md->items;
-  while (NULL != pos)
-  {
+  for (pos = md->items_tail; NULL != pos; pos = pos->prev)
     GNUNET_CONTAINER_meta_data_insert (ret, pos->plugin_name, pos->type,
                                        pos->format, pos->mime_type, pos->data,
                                        pos->data_size);
-    pos = pos->next;
-  }
   return ret;
 }
 
@@ -781,10 +762,10 @@ GNUNET_CONTAINER_meta_data_serialize (const struct GNUNET_CONTAINER_MetaData
 
   if (max < sizeof (struct MetaDataHeader))
     return GNUNET_SYSERR;       /* far too small */
-  if (md == NULL)
+  if (NULL == md)
     return 0;
 
-  if (md->sbuf != NULL)
+  if (NULL != md->sbuf)
   {
     /* try to use serialization cache */
     if (md->sbuf_size <= max)
@@ -800,16 +781,14 @@ GNUNET_CONTAINER_meta_data_serialize (const struct GNUNET_CONTAINER_MetaData
   }
   dst = NULL;
   msize = 0;
-  pos = md->items;
-  while (NULL != pos)
+  for (pos = md->items_tail; NULL != pos; pos = pos->prev)
   {
     msize += sizeof (struct MetaDataEntry);
     msize += pos->data_size;
-    if (pos->plugin_name != NULL)
+    if (NULL != pos->plugin_name)
       msize += strlen (pos->plugin_name) + 1;
-    if (pos->mime_type != NULL)
+    if (NULL != pos->mime_type)
       msize += strlen (pos->mime_type) + 1;
-    pos = pos->next;
   }
   size = (size_t) msize;
   if (size != msize)
@@ -826,8 +805,7 @@ GNUNET_CONTAINER_meta_data_serialize (const struct GNUNET_CONTAINER_MetaData
   mdata = (char *) &ent[md->item_count];
   off = size - (md->item_count * sizeof (struct MetaDataEntry));
   i = 0;
-  pos = md->items;
-  while (NULL != pos)
+  for (pos = md->items_tail; NULL != pos; pos = pos->prev)
   {
     ent[i].type = htonl ((uint32_t) pos->type);
     ent[i].format = htonl ((uint32_t) pos->format);
@@ -851,22 +829,20 @@ GNUNET_CONTAINER_meta_data_serialize (const struct GNUNET_CONTAINER_MetaData
     if (pos->mime_type != NULL)
       memcpy (&mdata[off], pos->mime_type, mlen);
     i++;
-    pos = pos->next;
   }
-  GNUNET_assert (off == 0);
+  GNUNET_assert (0 == off);
 
   clen = 0;
   cdata = NULL;
   left = size;
   i = 0;
-  pos = md->items;
-  while (pos != NULL)
+  for (pos = md->items_tail; NULL != pos; pos = pos->prev)
   {
     comp = GNUNET_NO;
     if (0 == (opt & GNUNET_CONTAINER_META_DATA_SERIALIZE_NO_COMPRESS))
       comp = try_compression ((const char *) &ent[i], left, &cdata, &clen);
 
-    if ((md->sbuf == NULL) && (i == 0))
+    if ((NULL == md->sbuf) && (0 == i))
     {
       /* fill 'sbuf'; this "modifies" md, but since this is only
        * an internal cache we will cast away the 'const' instead
@@ -892,12 +868,12 @@ GNUNET_CONTAINER_meta_data_serialize (const struct GNUNET_CONTAINER_MetaData
     }
 
     if (((left + sizeof (struct MetaDataHeader)) <= max) ||
-        ((comp == GNUNET_YES) && (clen <= max)))
+        ((GNUNET_YES == comp) && (clen <= max)))
     {
       /* success, this now fits! */
       if (GNUNET_YES == comp)
       {
-        if (dst == NULL)
+        if (NULL == dst)
           dst = GNUNET_malloc (clen + sizeof (struct MetaDataHeader));
         hdr = (struct MetaDataHeader *) dst;
         hdr->version = htonl (2 | HEADER_COMPRESSED);
@@ -910,7 +886,7 @@ GNUNET_CONTAINER_meta_data_serialize (const struct GNUNET_CONTAINER_MetaData
       }
       else
       {
-        if (dst == NULL)
+        if (NULL == dst)
           dst = GNUNET_malloc (left + sizeof (struct MetaDataHeader));
         hdr = (struct MetaDataHeader *) dst;
         hdr->version = htonl (2);
@@ -943,11 +919,10 @@ GNUNET_CONTAINER_meta_data_serialize (const struct GNUNET_CONTAINER_MetaData
      * end and try again without it */
     left -= sizeof (struct MetaDataEntry);
     left -= pos->data_size;
-    if (pos->plugin_name != NULL)
+    if (NULL != pos->plugin_name)
       left -= strlen (pos->plugin_name) + 1;
-    if (pos->mime_type != NULL)
+    if (NULL != pos->mime_type)
       left -= strlen (pos->mime_type) + 1;
-    pos = pos->next;
     i++;
   }
   GNUNET_free (ent);
@@ -956,7 +931,7 @@ GNUNET_CONTAINER_meta_data_serialize (const struct GNUNET_CONTAINER_MetaData
   ihdr.version = htonl (2);
   ihdr.entries = htonl (0);
   ihdr.size = htonl (0);
-  if (*target == NULL)
+  if (NULL == *target)
     *target = GNUNET_malloc (sizeof (struct MetaDataHeader));
   memcpy (*target, &ihdr, sizeof (struct MetaDataHeader));
   return sizeof (struct MetaDataHeader);
@@ -976,13 +951,13 @@ GNUNET_CONTAINER_meta_data_get_serialized_size (const struct
   ssize_t ret;
   char *ptr;
 
-  if (md->sbuf != NULL)
+  if (NULL != md->sbuf)
     return md->sbuf_size;
   ptr = NULL;
   ret =
       GNUNET_CONTAINER_meta_data_serialize (md, &ptr, GNUNET_MAX_MALLOC_CHECKED,
                                             GNUNET_CONTAINER_META_DATA_SERIALIZE_FULL);
-  if (ret != -1)
+  if (-1 != ret)
     GNUNET_free (ptr);
   return ret;
 }
@@ -1008,14 +983,9 @@ decompress (const char *input, size_t inputSize, size_t outputSize)
   output = GNUNET_malloc (olen);
   if (Z_OK ==
       uncompress ((Bytef *) output, &olen, (const Bytef *) input, inputSize))
-  {
     return output;
-  }
-  else
-  {
-    GNUNET_free (output);
-    return NULL;
-  }
+  GNUNET_free (output);
+  return NULL;  
 }
 
 
@@ -1056,9 +1026,9 @@ GNUNET_CONTAINER_meta_data_deserialize (const char *input, size_t size)
   version = ntohl (hdr.version) & HEADER_VERSION_MASK;
   compressed = (ntohl (hdr.version) & HEADER_COMPRESSED) != 0;
 
-  if (version == 1)
+  if (1 == version)
     return NULL;                /* null pointer */
-  if (version != 2)
+  if (2 != version)
   {
     GNUNET_break_op (0);        /* unsupported version */
     return NULL;
@@ -1084,7 +1054,7 @@ GNUNET_CONTAINER_meta_data_deserialize (const char *input, size_t size)
     data =
         decompress ((const char *) &input[sizeof (struct MetaDataHeader)],
                     size - sizeof (struct MetaDataHeader), dataSize);
-    if (data == NULL)
+    if (NULL == data)
     {
       GNUNET_break_op (0);
       return NULL;
@@ -1110,9 +1080,9 @@ GNUNET_CONTAINER_meta_data_deserialize (const char *input, size_t size)
     memcpy (&ent, &cdata[i * sizeof (struct MetaDataEntry)],
             sizeof (struct MetaDataEntry));
     format = (enum EXTRACTOR_MetaFormat) ntohl (ent.format);
-    if ((format != EXTRACTOR_METAFORMAT_UTF8) &&
-        (format != EXTRACTOR_METAFORMAT_C_STRING) &&
-        (format != EXTRACTOR_METAFORMAT_BINARY))
+    if ((EXTRACTOR_METAFORMAT_UTF8 != format) &&
+        (EXTRACTOR_METAFORMAT_C_STRING != format) &&
+        (EXTRACTOR_METAFORMAT_BINARY != format))
     {
       GNUNET_break_op (0);
       break;
@@ -1127,10 +1097,10 @@ GNUNET_CONTAINER_meta_data_deserialize (const char *input, size_t size)
     }
     left -= dlen;
     meta_data = &mdata[left];
-    if ((format == EXTRACTOR_METAFORMAT_UTF8) ||
-        (format == EXTRACTOR_METAFORMAT_C_STRING))
+    if ((EXTRACTOR_METAFORMAT_UTF8 == format) ||
+        (EXTRACTOR_METAFORMAT_C_STRING == format))
     {
-      if ((dlen == 0) || (mdata[left + dlen - 1] != '\0'))
+      if ((0 == dlen) || ('\0' != mdata[left + dlen - 1]))
       {
         GNUNET_break_op (0);
         break;
@@ -1142,12 +1112,12 @@ GNUNET_CONTAINER_meta_data_deserialize (const char *input, size_t size)
       break;
     }
     left -= plen;
-    if ((plen > 0) && (mdata[left + plen - 1] != '\0'))
+    if ((plen > 0) && ('\0' != mdata[left + plen - 1]))
     {
       GNUNET_break_op (0);
       break;
     }
-    if (plen == 0)
+    if (0 == plen)
       plugin_name = NULL;
     else
       plugin_name = &mdata[left];
@@ -1158,12 +1128,12 @@ GNUNET_CONTAINER_meta_data_deserialize (const char *input, size_t size)
       break;
     }
     left -= mlen;
-    if ((mlen > 0) && (mdata[left + mlen - 1] != '\0'))
+    if ((mlen > 0) && ('\0' != mdata[left + mlen - 1]))
     {
       GNUNET_break_op (0);
       break;
     }
-    if (mlen == 0)
+    if (0 == mlen)
       mime_type = NULL;
     else
       mime_type = &mdata[left];

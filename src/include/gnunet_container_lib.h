@@ -294,7 +294,7 @@ GNUNET_CONTAINER_meta_data_test_equal (const struct GNUNET_CONTAINER_MetaData
  * @param data_mime_type mime-type of data (not of the original file);
  *        can be NULL (if mime-type is not known)
  * @param data actual meta-data found
- * @param data_len number of bytes in data
+ * @param data_size number of bytes in data
  * @return GNUNET_OK on success, GNUNET_SYSERR if this entry already exists
  *         data_mime_type and plugin_name are not considered for "exists" checks
  */
@@ -304,7 +304,7 @@ GNUNET_CONTAINER_meta_data_insert (struct GNUNET_CONTAINER_MetaData *md,
                                    enum EXTRACTOR_MetaType type,
                                    enum EXTRACTOR_MetaFormat format,
                                    const char *data_mime_type, const char *data,
-                                   size_t data_len);
+                                   size_t data_size);
 
 
 /**
@@ -326,13 +326,13 @@ GNUNET_CONTAINER_meta_data_merge (struct GNUNET_CONTAINER_MetaData *md,
  * @param type type of the item to remove
  * @param data specific value to remove, NULL to remove all
  *        entries of the given type
- * @param data_len number of bytes in data
+ * @param data_size number of bytes in data
  * @return GNUNET_OK on success, GNUNET_SYSERR if the item does not exist in md
  */
 int
 GNUNET_CONTAINER_meta_data_delete (struct GNUNET_CONTAINER_MetaData *md,
                                    enum EXTRACTOR_MetaType type,
-                                   const char *data, size_t data_len);
+                                   const char *data, size_t data_size);
 
 
 /**
