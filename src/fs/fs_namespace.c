@@ -106,7 +106,7 @@ write_update_information_graph (struct GNUNET_FS_Namespace *ns)
 
   fn = get_update_information_directory (ns);
   wh = GNUNET_BIO_write_open (fn);
-  if (wh == NULL)
+  if (NULL == wh)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Failed to open `%s' for writing: %s\n"), STRERROR (errno));
@@ -160,7 +160,7 @@ read_update_information_graph (struct GNUNET_FS_Namespace *ns)
     return;
   }
   rh = GNUNET_BIO_read_open (fn);
-  if (rh == NULL)
+  if (NULL == rh)
   {
     GNUNET_free (fn);
     return;
@@ -175,7 +175,7 @@ read_update_information_graph (struct GNUNET_FS_Namespace *ns)
     GNUNET_break (0);
     goto END;
   }
-  if (count == 0)
+  if (0 == count)
   {
     GNUNET_break (GNUNET_OK == GNUNET_BIO_read_close (rh, NULL));
     GNUNET_free (fn);
@@ -226,8 +226,6 @@ END:
 }
 
 
-
-
 /**
  * Create a namespace with the given name; if one already
  * exists, return a handle to the existing namespace.
@@ -250,7 +248,7 @@ GNUNET_FS_namespace_create (struct GNUNET_FS_Handle *h, const char *name)
   ret->h = h;
   ret->rc = 1;
   ret->key = GNUNET_CRYPTO_rsa_key_create_from_file (fn);
-  if (ret->key == NULL)
+  if (NULL == ret->key)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Failed to create or read private key for namespace `%s'\n"),
@@ -364,7 +362,7 @@ process_namespace (void *cls, const char *filename)
   const char *t;
 
   key = GNUNET_CRYPTO_rsa_key_create_from_file (filename);
-  if (key == NULL)
+  if (NULL == key)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _
@@ -402,7 +400,7 @@ GNUNET_FS_namespace_list (struct GNUNET_FS_Handle *h,
   struct ProcessNamespaceContext ctx;
 
   dn = get_namespace_directory (h);
-  if (dn == NULL)
+  if (NULL == dn)
     return;
   ctx.cb = cb;
   ctx.cb_cls = cb_cls;
@@ -555,7 +553,7 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
   uris = GNUNET_FS_uri_to_string (uri);
   slen = strlen (uris) + 1;
   idlen = strlen (identifier);
-  if (update != NULL)
+  if (NULL != update)
     nidlen = strlen (update) + 1;
   else
     nidlen = 1;
@@ -580,7 +578,7 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
       GNUNET_CONTAINER_meta_data_serialize (mmeta, &dest, mdsize,
                                             GNUNET_CONTAINER_META_DATA_SERIALIZE_PART);
   GNUNET_CONTAINER_meta_data_destroy (mmeta);
-  if (mdsize == -1)
+  if (-1 == mdsize)
   {
     GNUNET_break (0);
     GNUNET_free (sb);
@@ -782,7 +780,7 @@ find_trees (void *cls, const struct GNUNET_HashCode * key, void *value)
 
   if (nsn->nug == fc->nug)
   {
-    if (nsn->tree_id == UINT_MAX)
+    if (UINT_MAX == nsn->tree_id)
       return GNUNET_YES;        /* circular */
     GNUNET_assert (nsn->tree_id < fc->tree_array_size);
     if (fc->tree_array[nsn->tree_id] != nsn)
@@ -792,7 +790,7 @@ find_trees (void *cls, const struct GNUNET_HashCode * key, void *value)
       return GNUNET_YES;        /* that's our own root (can this be?) */
     /* merge existing TREE, we have a root for both */
     fc->tree_array[nsn->tree_id] = NULL;
-    if (fc->id == UINT_MAX)
+    if (UINT_MAX == fc->id)
       fc->id = nsn->tree_id;    /* take over ID */
   }
   else
@@ -843,15 +841,15 @@ GNUNET_FS_namespace_list_updateable (struct GNUNET_FS_Namespace *namespace,
   struct ProcessUpdateClosure pc;
   struct FindTreeClosure fc;
 
-  if (namespace->update_nodes == NULL)
+  if (NULL == namespace->update_nodes)
     read_update_information_graph (namespace);
-  if (namespace->update_nodes == NULL)
+  if (NULL == namespace->update_nodes)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "No updateable nodes found for ID `%s'\n", next_id);
     return;                     /* no nodes */
   }
-  if (namespace->update_map == NULL)
+  if (NULL == namespace->update_map)
   {
     /* need to construct */
     namespace->update_map =
@@ -866,7 +864,7 @@ GNUNET_FS_namespace_list_updateable (struct GNUNET_FS_Namespace *namespace,
                                          GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
     }
   }
-  if (next_id != NULL)
+  if (NULL != next_id)
   {
     GNUNET_CRYPTO_hash (next_id, strlen (next_id), &hc);
     pc.ip = ip;
@@ -899,7 +897,7 @@ GNUNET_FS_namespace_list_updateable (struct GNUNET_FS_Namespace *namespace,
     fc.namespace = namespace;
     GNUNET_CONTAINER_multihashmap_get_multiple (namespace->update_map, &hc,
                                                 &find_trees, &fc);
-    if (fc.id == UINT_MAX)
+    if (UINT_MAX == fc.id)
     {
       /* start new TREE */
       for (fc.id = 0; fc.id < fc.tree_array_size; fc.id++)

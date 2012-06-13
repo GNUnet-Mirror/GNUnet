@@ -449,6 +449,7 @@ bind_address (const struct GNUNET_PeerIdentity *peer,
     delta = GNUNET_HELLO_equals (mrg, host->hello, GNUNET_TIME_absolute_get ());
     if (delta.abs_value == GNUNET_TIME_UNIT_FOREVER_ABS.abs_value)
     {
+      /* no differences, just ignore the update */
       GNUNET_free (mrg);
       return;
     }
@@ -463,7 +464,8 @@ bind_address (const struct GNUNET_PeerIdentity *peer,
 					   &cnt);
     if (0 == cnt)
     {      
-      /* no valid addresses, don't put HELLO on disk */
+      /* no valid addresses, don't put HELLO on disk; in fact,
+	 if one exists on disk, remove it */
       (void) UNLINK (fn); 
     }
     else
