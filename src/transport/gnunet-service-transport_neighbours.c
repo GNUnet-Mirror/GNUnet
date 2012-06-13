@@ -2125,7 +2125,7 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
   {
     GNUNET_break (0);
     if (strlen (address->transport_name) > 0)
-      GNUNET_ATS_address_destroyed (GST_ats, address, session);
+      GNUNET_ATS_address_destroyed (GST_ats, address, NULL);
     return;
   }
   if (NULL == session)
