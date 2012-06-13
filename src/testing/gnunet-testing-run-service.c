@@ -112,7 +112,7 @@ void
 testing_main (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
               const struct GNUNET_TESTING_Peer *peer)
 {
-  my_peer = peer;
+  my_peer = (struct GNUNET_TESTING_Peer *) peer;
   tmpfilename = tmpnam (NULL);
   if (NULL == tmpfilename)
   {
@@ -134,7 +134,14 @@ testing_main (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
   GNUNET_break(NULL != GNUNET_SIGNAL_handler_install(SIGTERM, &cleanup));
   GNUNET_break(NULL != GNUNET_SIGNAL_handler_install(SIGINT, &cleanup));
 
+#if !WINDOWS
   fh.fd = 0; /* 0=stdin */
+#else
+  /* FIXME: box GetStdHandle(STD_INPUT_HANDLE) somehow.
+   * Note that it will only work if parent process spawns
+   * gnunet-testing-run-service with custom-created asynchronous standard input
+   */
+#endif
   tid = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL, &fh, &stdin_cb, NULL);
 }
 
