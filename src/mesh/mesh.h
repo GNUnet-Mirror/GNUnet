@@ -169,7 +169,7 @@ struct GNUNET_MESH_PeerControl
 {
 
   /**
-   * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_[ADD|DEL]
+   * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_[ADD|DEL|[UN]BLACKLIST]
    *       (client to service, client created tunnel)
    *       GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_[CONNECTED|DISCONNECTED]
    *       (service to client)
