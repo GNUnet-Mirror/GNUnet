@@ -461,8 +461,9 @@ GNUNET_OS_check_helper_binary (const char *binary)
   char *binaryexe;
 
   GNUNET_asprintf (&binaryexe, "%s.exe", binary);
-  if (GNUNET_YES == GNUNET_STRINGS_path_is_absolute (binaryexe, GNUNET_NO,
-      NULL, NULL))
+  if ( (GNUNET_YES == GNUNET_STRINGS_path_is_absolute (binaryexe, GNUNET_NO,
+						       NULL, NULL)) ||
+       (0 == strncmp (binary, "./", 2)) )
     p = GNUNET_strdup (binaryexe);
   else
   {
