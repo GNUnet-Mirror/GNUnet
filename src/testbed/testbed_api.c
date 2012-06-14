@@ -123,7 +123,35 @@ struct GNUNET_TESTBED_Controller
    * The controller event mask
    */
   uint64_t event_mask;
+
+  /**
+   * Did we start the receive loop yet?
+   */
+  int in_receive;
 };
+
+
+
+/**
+ * Handler for messages from controller (testbed service)
+ *
+ * @param cls the controller handler
+ * @param msg message received, NULL on timeout or fatal error
+ */
+static void 
+message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
+{
+  struct GNUNET_TESTBED_Controller *c = cls;
+
+  /* FIXME: Add checks for message integrity */
+  switch (ntohs (msg->type))
+  {
+  default:
+    GNUNET_break (0);
+  }
+  GNUNET_CLIENT_receive (c->client, &message_handler, c,
+                         GNUNET_TIME_UNIT_FOREVER_REL);
+}
 
 
 /**
@@ -159,6 +187,13 @@ transmit_ready_notify (void *cls, size_t size, void *buf)
                                            GNUNET_TIME_UNIT_FOREVER_REL,
                                            GNUNET_NO, &transmit_ready_notify,
                                            c);
+  if ( (GNUNET_NO == c->in_receive) &&
+       (size > 0) )
+  {
+    c->in_receive = GNUNET_YES;
+    GNUNET_CLIENT_receive (c->client, &message_handler, c,
+			   GNUNET_TIME_UNIT_FOREVER_REL);
+  }
   return size;
 }
 
@@ -198,61 +233,6 @@ queue_message (struct GNUNET_TESTBED_Controller *controller,
 
 
 /**
- * Handler for messages from controller (testbed service)
- *
- * @param cls the controller handler
- * @param msg message received, NULL on timeout or fatal error
- */
-static void 
-message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
-{
-  struct GNUNET_TESTBED_Controller *c = cls;
-
-  /* FIXME: Add checks for message integrity */
-  switch (ntohs (msg->type))
-  {
-  default:
-    GNUNET_break (0);
-  }
-  GNUNET_CLIENT_receive (c->client, &message_handler, c,
-                         GNUNET_TIME_UNIT_FOREVER_REL);
-}
-
-
-/**
- * ?Callback for messages recevied from server? 
- *
- * Do not call GNUNET_SERVER_mst_destroy in callback
- *
- * @param cls closure
- * @param client identification of the client
- * @param message the actual message
- *
- * @return GNUNET_OK on success, GNUNET_SYSERR to stop further processing
- */
-static int 
-server_mst_cb (void *cls, void *client,
-               const struct GNUNET_MessageHeader *message)
-{
-  struct GNUNET_TESTBED_Controller *c = cls;
-  struct GNUNET_TESTBED_InitMessage *msg;
-  
-  c->client = GNUNET_CLIENT_connect ("testbed", c->cfg);
-  if (NULL == c->client)
-    return GNUNET_SYSERR;       /* FIXME: Call controller startup_cb ? */
-  GNUNET_CLIENT_receive (c->client, &message_handler, c,
-                         GNUNET_TIME_UNIT_FOREVER_REL);
-  msg = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_InitMessage));
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_INIT);
-  msg->header.size = htons (sizeof (struct GNUNET_TESTBED_InitMessage));
-  msg->host_id = htonl (GNUNET_TESTBED_host_get_id_ (c->host));
-  msg->event_mask = GNUNET_htonll (c->event_mask);
-  queue_message (c, (struct GNUNET_MessageHeader *) msg);
-  return GNUNET_OK;
-}
-
-
-/**
  * Start a controller process using the given configuration at the
  * given host.
  *
@@ -279,9 +259,10 @@ GNUNET_TESTBED_controller_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
     "gnunet-service-testbed",
     NULL
   };
+  struct GNUNET_TESTBED_InitMessage *msg;
+
   controller = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Controller));
-  controller->helper = GNUNET_TESTBED_host_run_ (host, binary_argv,
-						 &server_mst_cb, controller);
+  controller->helper = GNUNET_TESTBED_host_run_ (host, binary_argv);
   if (NULL == controller->helper)
   {
     GNUNET_free (controller);
@@ -292,6 +273,18 @@ GNUNET_TESTBED_controller_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   controller->cc_cls = cc_cls;
   controller->event_mask = event_mask;
   controller->cfg = GNUNET_CONFIGURATION_dup (cfg);
+  controller->client = GNUNET_CLIENT_connect ("testbed", controller->cfg);
+  if (NULL == controller->client)
+  {
+    GNUNET_TESTBED_controller_stop (controller);
+    return NULL;
+  }  
+  msg = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_InitMessage));
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_INIT);
+  msg->header.size = htons (sizeof (struct GNUNET_TESTBED_InitMessage));
+  msg->host_id = htonl (GNUNET_TESTBED_host_get_id_ (controller->host));
+  msg->event_mask = GNUNET_htonll (controller->event_mask);
+  queue_message (controller, (struct GNUNET_MessageHeader *) msg);
   return controller;
 }
 
@@ -338,7 +331,8 @@ GNUNET_TESTBED_controller_stop (struct GNUNET_TESTBED_Controller *controller)
     GNUNET_free (mq_entry->msg);
     GNUNET_free (mq_entry);
   }
-  GNUNET_CLIENT_disconnect (controller->client);
+  if (NULL != controller->client)
+    GNUNET_CLIENT_disconnect (controller->client);
   GNUNET_TESTBED_host_stop_ (controller->helper);
   GNUNET_CONFIGURATION_destroy (controller->cfg);
   GNUNET_free (controller);
@@ -391,6 +385,7 @@ void
 GNUNET_TESTBED_overlay_write_topology_to_file (struct GNUNET_TESTBED_Controller *controller,
 					       const char *filename)
 {
+  GNUNET_break (0);
 }
 
 

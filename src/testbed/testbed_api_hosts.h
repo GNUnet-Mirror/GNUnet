@@ -55,25 +55,6 @@ GNUNET_TESTBED_host_create_by_id_ (uint32_t id);
 
 
 /**
- * Create a host to run peers and controllers on.  This function is used
- * if a peer learns about a host via IPC between controllers (and thus 
- * some higher-level controller has already determined the unique IDs).
- * 
- * @param id global host ID assigned to the host; 0 is
- *        reserved to always mean 'localhost'
- * @param hostname name of the host, use "NULL" for localhost
- * @param username username to use for the login; may be NULL
- * @param port port number to use for ssh; use 0 to let ssh decide
- * @return handle to the host, NULL on error
- */
-struct GNUNET_TESTBED_Host *
-GNUNET_TESTBED_host_create_with_id_ (uint32_t id,
-				     const char *hostname,
-				     const char *username,
-				     uint16_t port);
-
-
-/**
  * Obtain a host's unique global ID.
  * 
  * @param host handle to the host, NULL means 'localhost'
@@ -98,14 +79,11 @@ struct GNUNET_TESTBED_HelperHandle;
  * 
  * @param host host to use, use "NULL" for localhost
  * @param binary_argv binary name and command-line arguments to give to the binary
- * @param cb function to call for messages received from the binary
- * @param cb_cls closure for cb
  * @return handle to terminate the command, NULL on error
  */
 struct GNUNET_TESTBED_HelperHandle *
-GNUNET_TESTBED_host_run_ (struct GNUNET_TESTBED_Host *host,
-			  char *const binary_argv[],
-			  GNUNET_SERVER_MessageTokenizerCallback cb, void *cb_cls);
+GNUNET_TESTBED_host_run_ (const struct GNUNET_TESTBED_Host *host,
+			  char *const binary_argv[]);
 
 
 /**

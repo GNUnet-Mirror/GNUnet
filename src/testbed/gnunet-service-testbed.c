@@ -55,6 +55,11 @@ struct Context
 
 
 /**
+ * Wrapped stdin.
+ */
+static struct GNUNET_DISK_FileHandle *fh;
+
+/**
  * The master context; generated with the first INIT message
  */
 static struct Context *master_context;
@@ -139,7 +144,12 @@ handle_addhost (void *cls,
   host = GNUNET_TESTBED_host_create (hostname, username, ntohs
                                      (msg->ssh_port));
   /* Store host in a hashmap? But the host_id will be different */
+  /* hashmap? maybe array? 4-8 bytes/host and O(1) lookup vs.
+     > 80 bytes for hash map with slightly worse lookup; only
+     if we really get a tiny fraction of the hosts, the hash
+     map would result in any savings... (GNUNET_array_grow) */
 }
+
 
 /**
  * Task to clean up and shutdown nicely
@@ -151,8 +161,16 @@ static void
 shutdown_task (void *cls,
                const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  shutdown_task_id = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_SCHEDULER_shutdown ();
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Shutting down testbed service\n");
+  if (NULL != fh)
+  {
+    GNUNET_DISK_file_close (fh);
+    fh = NULL;
+  }
   GNUNET_free_non_null (master_context);
+  master_context = NULL;
 }
 
 
@@ -171,9 +189,12 @@ client_disconnect_cb (void *cls, struct GNUNET_SERVER_Client *client)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Master client disconnected\n");
     GNUNET_SERVER_client_drop (client);
-    GNUNET_SCHEDULER_cancel (shutdown_task_id);    
-    shutdown_task_id = 
-      GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
+    /* should not be needed as we're terminated by failure to read
+       from stdin, but if stdin fails for some reason, this shouldn't 
+       hurt for now --- might need to revise this later if we ever
+       decide that master connections might be temporarily down 
+       for some reason */
+    GNUNET_SCHEDULER_shutdown ();
   }
 }
 
@@ -202,11 +223,19 @@ testbed_run (void *cls,
                               message_handlers);
   GNUNET_SERVER_disconnect_notify (server,
                                    &client_disconnect_cb,
-                                   NULL);
-  shutdown_task_id = 
-    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                  &shutdown_task,
-                                  NULL);
+                                   NULL);  
+  fh = GNUNET_DISK_get_handle_from_native (stdin);
+  if (NULL == fh)
+    shutdown_task_id = 
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,				   
+				    &shutdown_task,
+				    NULL);
+  else
+    shutdown_task_id = 
+      GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
+				      fh,
+				      &shutdown_task,
+				      NULL);
 }
 
 

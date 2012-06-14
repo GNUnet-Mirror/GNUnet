@@ -88,6 +88,26 @@ GNUNET_TESTBED_host_create (const char *hostname,
 			    uint16_t port);
 
 
+
+/**
+ * Create a host to run peers and controllers on.  This function is used
+ * if a peer learns about a host via IPC between controllers (and thus 
+ * some higher-level controller has already determined the unique IDs).
+ * 
+ * @param id global host ID assigned to the host; 0 is
+ *        reserved to always mean 'localhost'
+ * @param hostname name of the host, use "NULL" for localhost
+ * @param username username to use for the login; may be NULL
+ * @param port port number to use for ssh; use 0 to let ssh decide
+ * @return handle to the host, NULL on error
+ */
+struct GNUNET_TESTBED_Host *
+GNUNET_TESTBED_host_create_with_id (uint32_t id,
+				    const char *hostname,
+				    const char *username,
+				    uint16_t port);
+
+
 /**
  * Load a set of hosts from a configuration file.
  *
@@ -783,7 +803,6 @@ GNUNET_TESTBED_overlay_configure_topology (void *op_cls,
 					   struct GNUNET_TESTBED_Peer *peers,
 					   enum GNUNET_TESTBED_TopologyOption topo,
 					   ...);
-
 
 
 /**

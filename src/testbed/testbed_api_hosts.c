@@ -132,7 +132,7 @@ GNUNET_TESTBED_host_create_by_id_ (uint32_t id)
 uint32_t
 GNUNET_TESTBED_host_get_id_ (const struct GNUNET_TESTBED_Host *host)
 {
-    return host->unique_id;
+  return host->unique_id;
 }
 
 
@@ -147,10 +147,10 @@ GNUNET_TESTBED_host_get_id_ (const struct GNUNET_TESTBED_Host *host)
  * @return handle to the host, NULL on error
  */
 struct GNUNET_TESTBED_Host *
-GNUNET_TESTBED_host_create_with_id_ (uint32_t id,
-				     const char *hostname,
-				     const char *username,
-				     uint16_t port)
+GNUNET_TESTBED_host_create_with_id (uint32_t id,
+				    const char *hostname,
+				    const char *username,
+				    uint16_t port)
 {
   struct GNUNET_TESTBED_Host *host;
 
@@ -180,10 +180,10 @@ GNUNET_TESTBED_host_create (const char *hostname,
   static uint32_t uid_generator;
 
   if (NULL == hostname)
-    return GNUNET_TESTBED_host_create_with_id_ (0, hostname, username, port);
-  return GNUNET_TESTBED_host_create_with_id_ (++uid_generator, 
-					      hostname, username,
-					      port);
+    return GNUNET_TESTBED_host_create_with_id (0, hostname, username, port);
+  return GNUNET_TESTBED_host_create_with_id (++uid_generator, 
+					     hostname, username,
+					     port);
 }
 
 
@@ -198,6 +198,7 @@ unsigned int
 GNUNET_TESTBED_hosts_load_from_file (const char *filename,
 				     struct GNUNET_TESTBED_Host **hosts)
 {
+  // see testing_group.c, GNUNET_TESTING_hosts_load
   GNUNET_break (0);
   return 0;
 }
@@ -223,9 +224,14 @@ GNUNET_TESTBED_host_destroy (struct GNUNET_TESTBED_Host *host)
 struct GNUNET_TESTBED_HelperHandle
 {
   /**
-   * The helper handle
+   * The process handle
    */
-  struct GNUNET_HELPER_Handle *handle;
+  struct GNUNET_OS_Process *process;
+
+  /**
+   * Pipe connecting to stdin of the process.
+   */
+  struct GNUNET_DISK_PipeHandle *cpipe;
 
   /**
    * The port number for ssh; used for helpers starting ssh
@@ -247,39 +253,62 @@ struct GNUNET_TESTBED_HelperHandle
  * 
  * @param host host to use, use "NULL" for localhost
  * @param binary_argv binary name and command-line arguments to give to the binary
- * @param cb function to call for messages received from the binary
- * @param cb_cls closure for cb
  * @return handle to terminate the command, NULL on error
  */
 struct GNUNET_TESTBED_HelperHandle *
-GNUNET_TESTBED_host_run_ (struct GNUNET_TESTBED_Host *host,
-			  char *const binary_argv[],
-			  GNUNET_SERVER_MessageTokenizerCallback cb, void *cb_cls)
+GNUNET_TESTBED_host_run_ (const struct GNUNET_TESTBED_Host *host,
+			  char *const binary_argv[])
 {
-  /* FIXME: decide on the SSH command line, prepend it and
-     run GNUNET_HELPER_start with the modified binary_name and binary_argv! */
   struct GNUNET_TESTBED_HelperHandle *h;
-  char *const local_args[] = {NULL};  
+  unsigned int argc;
 
+  argc = 0;
+  while (NULL != binary_argv[argc]) 
+    argc++;
   h = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_HelperHandle));
+  h->cpipe = GNUNET_DISK_pipe (GNUNET_NO, GNUNET_NO, GNUNET_YES, GNUNET_NO);
   if (0 == host->unique_id)
   {
-    h->handle = GNUNET_HELPER_start ("gnunet-service-testbed", local_args,
-                                     cb, cb_cls);
+    h->process = GNUNET_OS_start_process_vap (GNUNET_YES,
+					      h->cpipe, NULL,
+					      "gnunet-service-testbed", 
+					      binary_argv);
   }
   else
   {    
+    char *remote_args[argc + 6 + 1];
+    unsigned int argp;
+
     GNUNET_asprintf (&h->port, "%d", host->port);
     GNUNET_asprintf (&h->dst, "%s@%s", host->hostname, host->username);
-    char *remote_args[] = {"ssh", "-p", h->port, "-q", h->dst,
-                           "gnunet-service-testbed", NULL};
-    h->handle = GNUNET_HELPER_start ("ssh", remote_args, cb, cb_cls);
+    argp = 0;
+    remote_args[argp++] = "ssh";
+    remote_args[argp++] = "-p";
+    remote_args[argp++] = h->port;
+    remote_args[argp++] = "-q";
+    remote_args[argp++] = h->dst;
+    remote_args[argp++] = "gnunet-service-testbed";
+    while (NULL != binary_argv[argp-6])
+    {
+      remote_args[argp] = binary_argv[argp - 6];
+      argp++;
+    } 
+    remote_args[argp++] = NULL;
+    GNUNET_assert (argp == argc + 6 + 1);
+    h->process = GNUNET_OS_start_process_vap (GNUNET_YES,
+					      h->cpipe, NULL,
+					      "ssh", 
+					      remote_args);
   }
-  if (NULL == h->handle)
+  if (NULL == h->process)
   {
+    GNUNET_break (GNUNET_OK == GNUNET_DISK_pipe_close (h->cpipe));
+    GNUNET_free_non_null (h->port);
+    GNUNET_free_non_null (h->dst);
     GNUNET_free (h);
     return NULL;
-  }
+  } 
+  GNUNET_break (GNUNET_OK == GNUNET_DISK_pipe_close_end (h->cpipe, GNUNET_DISK_PIPE_END_READ));
   return h;
 }
 
@@ -292,7 +321,10 @@ GNUNET_TESTBED_host_run_ (struct GNUNET_TESTBED_Host *host,
 void
 GNUNET_TESTBED_host_stop_ (struct GNUNET_TESTBED_HelperHandle *handle)
 {
-  GNUNET_HELPER_stop (handle->handle);
+  GNUNET_break (GNUNET_OK == GNUNET_DISK_pipe_close (handle->cpipe));
+  GNUNET_break (0 == GNUNET_OS_process_kill (handle->process, SIGTERM));
+  GNUNET_break (GNUNET_OK == GNUNET_OS_process_wait (handle->process));
+  GNUNET_OS_process_destroy (handle->process);
   GNUNET_free_non_null (handle->port);
   GNUNET_free_non_null (handle->dst);
   GNUNET_free (handle);
