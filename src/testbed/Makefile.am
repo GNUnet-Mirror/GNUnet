@@ -21,6 +21,7 @@ gnunet_service_testbed_SOURCES = \
   gnunet-service-testbed.c
 gnunet_service_testbed_LDADD = $(XLIB) \
   $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/testbed/libgnunettestbed.la \
   $(LTLIBINTL)
 
 dist_pkgcfg_DATA = \

@@ -29,7 +29,7 @@
 #include "gnunet_server_lib.h"
 
 #include "testbed.h"
-
+#include "gnunet_testbed_service.h"
 
 #define LOG(kind,...)                           \
   GNUNET_log (kind, __VA_ARGS__)
@@ -98,6 +98,50 @@ handle_init (void *cls,
 
 
 /**
+ * Message handler for GNUNET_MESSAGE_TYPE_TESTBED_ADDHOST messages
+ *
+ * @param cls NULL
+ * @param client identification of the client
+ * @param message the actual message
+ */
+static void 
+handle_addhost (void *cls,
+                struct GNUNET_SERVER_Client *client,
+                const struct GNUNET_MessageHeader *message)
+{
+  struct GNUNET_TESTBED_Host *host;
+  const struct GNUNET_TESTBED_AddHostMessage *msg;
+  char *username;
+  char *hostname;
+  uint16_t username_length;
+  uint16_t hostname_length;
+  
+  msg = (const struct GNUNET_TESTBED_AddHostMessage *) message;
+  username_length = ntohs (msg->user_name_length);
+  username_length = (0 == username_length) ? 0 : username_length + 1;
+  username = (char *) &(msg[1]);
+  hostname = username + username_length;
+  if (ntohs (message->size) <=
+      (sizeof (struct GNUNET_TESTBED_AddHostMessage) + username_length))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  hostname_length = ntohs (message->size)
+    - (sizeof (struct GNUNET_TESTBED_AddHostMessage) + username_length);
+  if (strlen (hostname) != hostname_length)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  host = GNUNET_TESTBED_host_create (hostname, username, ntohs
+                                     (msg->ssh_port));
+  /* Store host in a hashmap? But the host_id will be different */
+}
+
+/**
  * Task to clean up and shutdown nicely
  *
  * @param cls NULL
@@ -150,6 +194,7 @@ testbed_run (void *cls,
     {
       {&handle_init, NULL, GNUNET_MESSAGE_TYPE_TESTBED_INIT,
        sizeof (struct GNUNET_TESTBED_Message)},
+      {&handle_addhost, NULL, GNUNET_MESSAGE_TYPE_TESTBED_ADDHOST, 0},
       {NULL}
     };
 
