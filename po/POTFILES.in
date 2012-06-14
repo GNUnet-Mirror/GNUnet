@@ -105,7 +105,6 @@ src/gns/gnocksy/gns_glue.c
 src/gns/gns_api.c
 src/gns/gnunet-gns.c
 src/gns/gnunet-gns-fcfsd.c
-src/gns/gnunet-gns-lookup.c
 src/gns/gnunet-gns-proxy.c
 src/gns/gnunet-service-gns.c
 src/gns/gnunet-service-gns_interceptor.c
@@ -131,6 +130,7 @@ src/namestore/gnunet-namestore.c
 src/namestore/gnunet-service-namestore.c
 src/namestore/namestore_api.c
 src/namestore/namestore_common.c
+src/namestore/plugin_namestore_postgres.c
 src/namestore/plugin_namestore_sqlite.c
 src/nat/gnunet-helper-nat-client.c
 src/nat/gnunet-helper-nat-client-windows.c
@@ -157,6 +157,7 @@ src/statistics/statistics_api.c
 src/stream/stream_api.c
 src/template/gnunet-service-template.c
 src/template/gnunet-template.c
+src/testbed/gnunet-service-testbed.c
 src/testbed/testbed_api.c
 src/testbed/testbed_api_hosts.c
 src/testbed/testbed_api_operations.c
@@ -165,6 +166,7 @@ src/testbed/testbed_api_services.c
 src/testbed/testbed_api_testbed.c
 src/testbed/testbed_api_test.c
 src/testbed/testbed_api_topology.c
+src/testing/gnunet-testing-run-service.c
 src/testing_old/gnunet-testing.c
 src/testing_old/helper.c
 src/testing_old/testing.c

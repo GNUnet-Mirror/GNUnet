@@ -44,107 +44,132 @@
 #include "gnunet_os_lib.h"
 
 
-static struct GNUNET_DISK_FileHandle fh;
-static char *tmpfilename = NULL;
-static GNUNET_SCHEDULER_TaskIdentifier tid = GNUNET_SCHEDULER_NO_TASK;
-static struct GNUNET_TESTING_Peer *my_peer = NULL;
-
-
 #define LOG(kind,...)                                           \
-  GNUNET_log_from (kind, "gnunettestingnew", __VA_ARGS__)
+  GNUNET_log_from (kind, "gnunet-testing", __VA_ARGS__)
+
+
+/**
+ * FIXME
+ */
+static struct GNUNET_DISK_FileHandle *fh;
+
+/**
+ * FIXME
+ */
+static char *tmpfilename;
+
+/**
+ * FIXME
+ */
+static GNUNET_SCHEDULER_TaskIdentifier tid;
+
+/**
+ * FIXME
+ */
+static struct GNUNET_TESTING_Peer *my_peer;
+
+
 
 
 /**
  * Cleanup called by signal handlers and when stdin is closed.
- * Removes the temporary file with the configuration and shuts down the scheduler.
+ * Removes the temporary file.
+ *
+ * @param cls unused
+ * @param tc scheduler context 
  */
-void
-cleanup (void)
+static void
+cleanup (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   if (NULL != tmpfilename)
   {
-    remove (tmpfilename);
+    if (0 != UNLINK (tmpfilename))
+      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "unlink", tmpfilename);
   }
-  GNUNET_SCHEDULER_shutdown ();
+  if (GNUNET_SCHEDULER_NO_TASK != tid)
+  {
+    GNUNET_SCHEDULER_cancel (tid);
+    tid = GNUNET_SCHEDULER_NO_TASK;
+  }
+  if (NULL != fh)
+  {
+    GNUNET_DISK_file_close (fh);
+    fh = NULL;
+  }
 }
+
 
 /**
  * Called whenever we can read stdin non-blocking 
+ *
+ * @param cls unused
+ * @param tc scheduler context 
  */
-void
+static void
 stdin_cb (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   int c;
 
-  if (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason)
-  {
-      return;
-  }
-  if (GNUNET_SCHEDULER_REASON_READ_READY & tc->reason)
-  {
-    c = getchar ();
-    if (EOF == c || 'q' == c)
-    {
-      tid = GNUNET_SCHEDULER_NO_TASK;
-      cleanup ();
-    }
-    else
-    {
-      if ('r' == c)
-      {
-        GNUNET_TESTING_peer_stop(my_peer); 
-        GNUNET_TESTING_peer_start(my_peer); 
-        printf("restarted\n");
-        fflush(stdout);
-      }
-      tid = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL, &fh, &stdin_cb, NULL);
-    }
+  tid = GNUNET_SCHEDULER_NO_TASK;
+  if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
     return;
+  GNUNET_assert (0 != (GNUNET_SCHEDULER_REASON_READ_READY & tc->reason));
+  c = getchar ();
+  switch (c)
+  {
+  case EOF:
+  case 'q':
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  case 'r':
+    GNUNET_TESTING_peer_stop (my_peer); 
+    GNUNET_TESTING_peer_start (my_peer); 
+    printf ("restarted\n");
+    fflush (stdout);
+    break;
+  case '\n':
+  case '\r':
+    /* ignore whitespace */
+    break;
+  default:
+    fprintf (stderr, _("Unknown command, use 'q' to quit or 'r' to restart peer\n"));
+    break;
   }
-  GNUNET_break (0);
+  tid = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL, &fh, &stdin_cb, NULL);    
 }
+
 
 /**
  * Main function called by the testing library.
  * Executed inside a running scheduler.
+ *
+ * @param cls unused
+ * @param cfg configuration of the peer that was started
+ * @param peer handle to the peer
  */
-void
+static void
 testing_main (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
               const struct GNUNET_TESTING_Peer *peer)
 {
   my_peer = (struct GNUNET_TESTING_Peer *) peer;
-  tmpfilename = tmpnam (NULL);
-  if (NULL == tmpfilename)
+  if (NULL == (tmpfilename = GNUNET_DISK_mktemp ("gnunet-testing")))
   {
     GNUNET_break (0);
     cleanup ();
     return;
   }
-
   if (GNUNET_SYSERR == 
-          GNUNET_CONFIGURATION_write((struct GNUNET_CONFIGURATION_Handle *) cfg, tmpfilename))
+      GNUNET_CONFIGURATION_write ((struct GNUNET_CONFIGURATION_Handle *) cfg, tmpfilename))
   {
     GNUNET_break (0);
     return;
   }
-
-  printf("started\n%s\n", tmpfilename);
+  printf("%s\n", tmpfilename);
   fflush(stdout);
-
-  GNUNET_break(NULL != GNUNET_SIGNAL_handler_install(SIGTERM, &cleanup));
-  GNUNET_break(NULL != GNUNET_SIGNAL_handler_install(SIGINT, &cleanup));
-
-#if !WINDOWS
-  fh.fd = 0; /* 0=stdin */
-#else
-  /* FIXME: box GetStdHandle(STD_INPUT_HANDLE) somehow.
-   * Note that it will only work if parent process spawns
-   * gnunet-testing-run-service with custom-created asynchronous standard input
-   */
-#endif
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREFER_REL, &cleanup);
+  fh = GNUNET_DISK_get_handle_from_native (stdin);
   tid = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL, &fh, &stdin_cb, NULL);
 }
-
 
 
 /**
@@ -157,29 +182,26 @@ testing_main (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
 int
 main (int argc, char *const *argv)
 {
+  static char *cfg_name;
+  static char *srv_name;
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_OPTION_HELP("tool to start a service for testing"),
+    {'c', "config", "FILENAME",
+     gettext_noop ("name of the configuration file to use"), 1,
+     &GNUNET_GETOPT_set_string, &cfg_name},
+    {'s', "service", "SERVICE",
+     gettext_noop ("name of the service to run"), 1,
+     &GNUNET_GETOPT_set_string, &srv_name},
+    GNUNET_GETOPT_OPTION_HELP ("tool to start a service for testing"),
     GNUNET_GETOPT_OPTION_END
   };
-  int arg_start;
   int ret;
 
-  arg_start = GNUNET_GETOPT_run("gnunet-testing-run-service", options, argc, argv);
-
-  if (arg_start == GNUNET_SYSERR)
-  {
+  if (GNUNET_SYSERR ==
+      GNUNET_GETOPT_run("gnunet-testing-run-service", options, argc, argv))
     return 1;
-  }
-
-  if (arg_start != 1 || argc != 2)
-  {
-    fprintf (stderr, "Invalid number of arguments\n");
-    return 1;
-  }
-
-  ret =  GNUNET_TESTING_service_run_restartable ("gnunet_service_test", argv[1],
-                                                 NULL, &testing_main, NULL);
-  if (ret)
+  ret = GNUNET_TESTING_service_run_restartable ("gnunet_service_test", srv_name,
+						cfg_name, &testing_main, NULL);
+  if (0 != ret)
   {
     printf ("error\n");
   }
