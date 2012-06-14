@@ -474,9 +474,8 @@ GNUNET_DISK_pipe_handle (const struct GNUNET_DISK_PipeHandle *p,
  * @param fd native file descriptor
  * @return file handle corresponding to the descriptor
  */
-const struct GNUNET_DISK_FileHandle *
+struct GNUNET_DISK_FileHandle *
 GNUNET_DISK_get_handle_from_native (FILE *fd);
-
 
 
 /**
