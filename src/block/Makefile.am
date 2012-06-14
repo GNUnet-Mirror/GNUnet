@@ -25,6 +25,8 @@ libgnunet_plugin_block_template_la_LIBADD = \
   $(LTLIBINTL)
 libgnunet_plugin_block_template_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
+libgnunet_plugin_block_template_la_DEPENDENCIES = \
+  libgnunetblock.la
 
 libgnunet_plugin_block_test_la_SOURCES = \
   plugin_block_test.c

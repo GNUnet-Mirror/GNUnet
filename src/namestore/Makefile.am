@@ -107,7 +107,6 @@ libgnunet_plugin_namestore_sqlite_la_LIBADD = \
 libgnunet_plugin_namestore_sqlite_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 libgnunet_plugin_namestore_sqlite_la_DEPENDENCIES = \
-  $(top_builddir)/src/namestore/libgnunetnamestore.la  \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   libgnunetnamestore.la
@@ -124,7 +123,6 @@ libgnunet_plugin_namestore_postgres_la_LIBADD = \
 libgnunet_plugin_namestore_postgres_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 libgnunet_plugin_namestore_postgres_la_DEPENDENCIES = \
-  $(top_builddir)/src/namestore/libgnunetnamestore.la  \
   $(top_builddir)/src/postgres/libgnunetpostgres.la  \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
