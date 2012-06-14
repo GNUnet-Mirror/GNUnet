@@ -379,6 +379,8 @@ destroy_tunnel (struct GNUNET_MESH_Tunnel *t, int call_cleaner)
   struct GNUNET_MESH_TransmitHandle *next;
   unsigned int i;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "destroy_tunnel %X\n", t->tid);
+
   if (NULL == t)
   {
     GNUNET_break (0);
@@ -948,7 +950,7 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
     t = retrieve_tunnel (h, ntohl (ucast->tid));
     payload = (struct GNUNET_MessageHeader *) &ucast[1];
     peer = &ucast->oid;
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  ucast on tunnel %s [%x]\n",
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  ucast on tunnel %s [%X]\n",
          GNUNET_i2s (peer), ntohl (ucast->tid));
     break;
   case GNUNET_MESSAGE_TYPE_MESH_MULTICAST:
@@ -956,7 +958,7 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
     t = retrieve_tunnel (h, ntohl (mcast->tid));
     payload = (struct GNUNET_MessageHeader *) &mcast[1];
     peer = &mcast->oid;
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  mcast on tunnel %s [%x]\n",
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  mcast on tunnel %s [%X]\n",
          GNUNET_i2s (peer), ntohl (mcast->tid));
     break;
   case GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN:
@@ -964,7 +966,7 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
     t = retrieve_tunnel (h, ntohl (to_orig->tid));
     payload = (struct GNUNET_MessageHeader *) &to_orig[1];
     peer = &to_orig->sender;
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  torig on tunnel %s [%x]\n",
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  torig on tunnel %s [%X]\n",
          GNUNET_i2s (peer), ntohl (to_orig->tid));
     break;
   default:
@@ -1167,6 +1169,9 @@ send_callback (void *cls, size_t size, void *buf)
     }
     else
     {
+      struct GNUNET_MessageHeader *mh = (struct GNUNET_MessageHeader *) &th[1];
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "  mesh traffic, type %u\n",
+             ntohs (mh->type));
       memcpy (cbuf, &th[1], th->size);
       psize = th->size;
     }
@@ -1317,6 +1322,8 @@ GNUNET_MESH_disconnect (struct GNUNET_MESH_Handle *handle)
   struct GNUNET_MESH_Tunnel *t;
   struct GNUNET_MESH_Tunnel *aux;
   struct GNUNET_MESH_TransmitHandle *th;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "MESH DISCONNECT\n");
 
   t = handle->tunnels_head;
   while (NULL != t)
