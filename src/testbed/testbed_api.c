@@ -274,12 +274,14 @@ GNUNET_TESTBED_controller_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 				 void *cc_cls)
 {
   struct GNUNET_TESTBED_Controller *controller;
-  char * binary_argv[] = {"gnunet-service-testbed",
-                          "gnunet-service-testbed",
-                          NULL};
+  char * const binary_argv[] = {
+    "gnunet-service-testbed",
+    "gnunet-service-testbed",
+    NULL
+  };
   controller = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Controller));
   controller->helper = GNUNET_TESTBED_host_run_ (host, binary_argv,
-                                            &server_mst_cb, controller);
+						 &server_mst_cb, controller);
   if (NULL == controller->helper)
   {
     GNUNET_free (controller);
