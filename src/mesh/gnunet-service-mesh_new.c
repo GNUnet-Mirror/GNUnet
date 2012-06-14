@@ -371,6 +371,16 @@ struct MeshTunnel
      */
   unsigned int nignore;
 
+    /**
+     * Blacklisted peers
+     */
+  GNUNET_PEER_Id *blacklisted;
+
+    /**
+     * Number of elements in blacklisted
+     */
+  unsigned int nblacklisted;
+
   /**
    * Tunnel paths
    */
@@ -4223,6 +4233,110 @@ handle_local_connect_del (void *cls, struct GNUNET_SERVER_Client *client,
   return;
 }
 
+/**
+ * Handler for blacklist requests of peers in a tunnel
+ *
+ * @param cls closure
+ * @param client identification of the client
+ * @param message the actual message (PeerControl)
+ */
+static void
+handle_local_blacklist (void *cls, struct GNUNET_SERVER_Client *client,
+                          const struct GNUNET_MessageHeader *message)
+{
+  struct GNUNET_MESH_PeerControl *peer_msg;
+
+  struct MeshClient *c;
+  struct MeshTunnel *t;
+  MESH_TunnelNumber tid;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got a PEER BLACKLIST request\n");
+  /* Sanity check for client registration */
+  if (NULL == (c = client_get (client)))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  peer_msg = (struct GNUNET_MESH_PeerControl *) message;
+
+  /* Sanity check for message size */
+  if (sizeof (struct GNUNET_MESH_PeerControl) != ntohs (peer_msg->header.size))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+
+  /* Tunnel exists? */
+  tid = ntohl (peer_msg->tunnel_id);
+  t = tunnel_get_by_local_id (c, tid);
+  if (NULL == t)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  on tunnel %X\n", t->id.tid);
+
+//   GNUNET_array_append(t->blacklisted, t->nblacklisted, GNUNET_PEER_intern(peer));
+}
+
+
+/**
+ * Handler for unblacklist requests of peers in a tunnel
+ *
+ * @param cls closure
+ * @param client identification of the client
+ * @param message the actual message (PeerControl)
+ */
+static void
+handle_local_unblacklist (void *cls, struct GNUNET_SERVER_Client *client,
+                          const struct GNUNET_MessageHeader *message)
+{
+  struct GNUNET_MESH_PeerControl *peer_msg;
+  struct MeshClient *c;
+  struct MeshTunnel *t;
+  MESH_TunnelNumber tid;
+//   GNUNET_PEER_Id pid;
+//   unsigned int i;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got a PEER UNBLACKLIST request\n");
+  /* Sanity check for client registration */
+  if (NULL == (c = client_get (client)))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  peer_msg = (struct GNUNET_MESH_PeerControl *) message;
+
+  /* Sanity check for message size */
+  if (sizeof (struct GNUNET_MESH_PeerControl) != ntohs (peer_msg->header.size))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+
+  /* Tunnel exists? */
+  tid = ntohl (peer_msg->tunnel_id);
+  t = tunnel_get_by_local_id (c, tid);
+  if (NULL == t)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  on tunnel %X\n", t->id.tid);
+
+//   pid = GNUNET_PEER_search (peer);
+//   for (i = 0; i < t->nblacklisted; i++)
+//   {
+//     if (t->blacklisted[i]
+//   }
+}
+
 
 /**
  * Handler for connection requests to new peers by type
@@ -4590,6 +4704,12 @@ static struct GNUNET_SERVER_MessageHandler client_handlers[] = {
    sizeof (struct GNUNET_MESH_PeerControl)},
   {&handle_local_connect_del, NULL,
    GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_DEL,
+   sizeof (struct GNUNET_MESH_PeerControl)},
+  {&handle_local_blacklist, NULL,
+   GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_BLACKLIST,
+   sizeof (struct GNUNET_MESH_PeerControl)},
+  {&handle_local_unblacklist, NULL,
+   GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_UNBLACKLIST,
    sizeof (struct GNUNET_MESH_PeerControl)},
   {&handle_local_connect_by_type, NULL,
    GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_ADD_BY_TYPE,
