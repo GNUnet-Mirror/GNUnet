@@ -4245,7 +4245,6 @@ handle_local_blacklist (void *cls, struct GNUNET_SERVER_Client *client,
                           const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_MESH_PeerControl *peer_msg;
-
   struct MeshClient *c;
   struct MeshTunnel *t;
   MESH_TunnelNumber tid;
@@ -4279,7 +4278,8 @@ handle_local_blacklist (void *cls, struct GNUNET_SERVER_Client *client,
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  on tunnel %X\n", t->id.tid);
 
-//   GNUNET_array_append(t->blacklisted, t->nblacklisted, GNUNET_PEER_intern(peer));
+  GNUNET_array_append(t->blacklisted, t->nblacklisted,
+                      GNUNET_PEER_intern(&peer_msg->peer));
 }
 
 
@@ -4298,8 +4298,8 @@ handle_local_unblacklist (void *cls, struct GNUNET_SERVER_Client *client,
   struct MeshClient *c;
   struct MeshTunnel *t;
   MESH_TunnelNumber tid;
-//   GNUNET_PEER_Id pid;
-//   unsigned int i;
+  GNUNET_PEER_Id pid;
+  unsigned int i;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got a PEER UNBLACKLIST request\n");
   /* Sanity check for client registration */
@@ -4330,11 +4330,27 @@ handle_local_unblacklist (void *cls, struct GNUNET_SERVER_Client *client,
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  on tunnel %X\n", t->id.tid);
 
-//   pid = GNUNET_PEER_search (peer);
-//   for (i = 0; i < t->nblacklisted; i++)
-//   {
-//     if (t->blacklisted[i]
-//   }
+  /* if peer is not known, complain */
+  pid = GNUNET_PEER_search (&peer_msg->peer);
+  if (0 == pid)
+  {
+    GNUNET_break (0);
+    return;
+  }
+
+  /* search and remove from list */
+  for (i = 0; i < t->nblacklisted; i++)
+  {
+    if (t->blacklisted[i] == pid)
+    {
+      t->blacklisted[i] = t->blacklisted[t->nblacklisted - 1];
+      GNUNET_array_grow (t->blacklisted, t->nblacklisted, t->nblacklisted - 1);
+      return;
+    }
+  }
+
+  /* if peer hasn't been blacklisted, complain */
+  GNUNET_break (0);
 }
 
 
