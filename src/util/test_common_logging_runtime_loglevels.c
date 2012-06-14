@@ -324,6 +324,7 @@ runone ()
                                   "./test_common_logging_dummy",
 #endif
                                   "test_common_logging_dummy", NULL);
+  GNUNET_assert (NULL != proc);
   putenv ("GNUNET_FORCE_LOG=");
   putenv ("GNUNET_LOG=");
 
