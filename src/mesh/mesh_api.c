@@ -1567,6 +1567,45 @@ GNUNET_MESH_peer_request_connect_by_type (struct GNUNET_MESH_Tunnel *tunnel,
 
 
 /**
+ * Request that the mesh should try to connect to a peer matching the
+ * description given in the service string.
+ *
+ * @param tunnel handle to existing tunnel
+ * @param description string describing the destination node requirements
+ */
+void
+GNUNET_MESH_peer_request_connect_by_string (struct GNUNET_MESH_Tunnel *tunnel,
+                                            const char *description);
+
+
+/**
+ * Request that the given peer isn't added to this tunnel in calls to
+ * connect_by_* calls, (due to misbehaviour, bad performance, ...).
+ *
+ * @param tunnel handle to existing tunnel.
+ * @param peer peer identity of the peer which should be blacklisted
+ *                  for the tunnel.
+ */
+void
+GNUNET_MESH_peer_blacklist (struct GNUNET_MESH_Tunnel *tunnel,
+                            const struct GNUNET_PeerIdentity *peer);
+
+
+/**
+ * Request that the given peer isn't blacklisted anymore from this tunnel,
+ * and therefore can be added in future calls to connect_by_*.
+ * The peer must have been previously blacklisted for this tunnel.
+ *
+ * @param tunnel handle to existing tunnel.
+ * @param peer peer identity of the peer which shouldn't be blacklisted
+ *                  for the tunnel anymore.
+ */
+void
+GNUNET_MESH_peer_unblacklist (struct GNUNET_MESH_Tunnel *tunnel,
+                              const struct GNUNET_PeerIdentity *peer);
+
+
+/**
  * Ask the mesh to call "notify" once it is ready to transmit the
  * given number of bytes to the specified "target".  If we are not yet
  * connected to the specified peer, a call to this function will cause

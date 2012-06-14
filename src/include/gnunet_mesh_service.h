@@ -224,7 +224,7 @@ typedef void (*GNUNET_MESH_PeerConnectHandler) (void *cls,
 
 
 /**
- * Store the given regex (describing offered local services) in the DHT,
+ * Announce to ther peer the availability of services described by the regex,
  * in order to be reachable to other peers via connect_by_string.
  *
  * @param h handle to mesh.
