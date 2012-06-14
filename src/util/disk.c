@@ -1775,6 +1775,33 @@ GNUNET_DISK_file_close (struct GNUNET_DISK_FileHandle *h)
 
 
 /**
+ * Get a handle from a native FD.
+ *
+ * @param fd native file descriptor
+ * @return file handle corresponding to the descriptor
+ */
+struct GNUNET_DISK_FileHandle *
+GNUNET_DISK_get_handle_from_native (FILE *fd)
+{
+#if MINGW
+  // FIXME: LRN help!
+  GNUNET_break (0);
+  return NULL;
+#else
+  struct GNUNET_DISK_FileHandle *fh;
+  int fno;
+
+  fno = fileno (fd);
+  if (-1 == fno)
+    return NULL;
+  fh = GNUNET_malloc (sizeof (struct GNUNET_DISK_FileHandle));
+  fh->fd = fno;
+  return fh;
+#endif
+}
+
+
+/**
  * Construct full path to a file inside of the private
  * directory used by GNUnet.  Also creates the corresponding
  * directory.  If the resulting name is supposed to be

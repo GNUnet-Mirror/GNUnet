@@ -425,6 +425,7 @@ GNUNET_DISK_pipe (int blocking_read, int blocking_write, int inherit_read, int i
 struct GNUNET_DISK_PipeHandle *
 GNUNET_DISK_pipe_from_fd (int blocking_read, int blocking_write, int fd[2]);
 
+
 /**
  * Closes an interprocess channel
  * @param p pipe
@@ -432,6 +433,7 @@ GNUNET_DISK_pipe_from_fd (int blocking_read, int blocking_write, int fd[2]);
  */
 int
 GNUNET_DISK_pipe_close (struct GNUNET_DISK_PipeHandle *p);
+
 
 /**
  * Closes one half of an interprocess channel
@@ -465,6 +467,18 @@ const struct GNUNET_DISK_FileHandle *
 GNUNET_DISK_pipe_handle (const struct GNUNET_DISK_PipeHandle *p,
                          enum GNUNET_DISK_PipeEnd n);
 
+
+/**
+ * Get a handle from a native FD.
+ *
+ * @param fd native file descriptor
+ * @return file handle corresponding to the descriptor
+ */
+const struct GNUNET_DISK_FileHandle *
+GNUNET_DISK_get_handle_from_native (FILE *fd);
+
+
+
 /**
  * Read the contents of a binary file into a buffer.
  * @param h handle to an open file
@@ -475,6 +489,7 @@ GNUNET_DISK_pipe_handle (const struct GNUNET_DISK_PipeHandle *p,
 ssize_t
 GNUNET_DISK_file_read (const struct GNUNET_DISK_FileHandle *h, void *result,
                        size_t len);
+
 
 /**
  * Read the contents of a binary file into a buffer.
@@ -488,7 +503,8 @@ GNUNET_DISK_file_read (const struct GNUNET_DISK_FileHandle *h, void *result,
  */
 ssize_t
 GNUNET_DISK_file_read_non_blocking (const struct GNUNET_DISK_FileHandle * h,
-    void *result, size_t len);
+				    void *result, size_t len);
+
 
 /**
  * Read the contents of a binary file into a buffer.
