@@ -23,6 +23,8 @@ gnunet_service_testbed_LDADD = $(XLIB) \
   $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/testbed/libgnunettestbed.la \
   $(LTLIBINTL)
+gnunet_service_testbed_DEPENDENCIES = \
+  libgnunettestbed.la
 
 dist_pkgcfg_DATA = \
   testbed.conf
