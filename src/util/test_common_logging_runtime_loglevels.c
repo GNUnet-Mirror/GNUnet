@@ -50,13 +50,16 @@ end_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Ending phase %d, ok is %d\n", phase,
               ok);
-  if (0 != GNUNET_OS_process_kill (proc, SIGTERM))
+  if (NULL != proc)
   {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
+    if (0 != GNUNET_OS_process_kill (proc, SIGTERM))
+    {
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
+    }
+    GNUNET_OS_process_wait (proc);
+    GNUNET_OS_process_destroy (proc);
+    proc = NULL;
   }
-  GNUNET_OS_process_wait (proc);
-  GNUNET_OS_process_destroy (proc);
-  proc = NULL;
   GNUNET_DISK_pipe_close (pipe_stdout);
   if (ok == 1)
   {
