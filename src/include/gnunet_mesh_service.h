@@ -324,6 +324,20 @@ GNUNET_MESH_peer_blacklist (struct GNUNET_MESH_Tunnel *tunnel,
 
 
 /**
+ * Request that the given peer isn't blacklisted anymore from this tunnel,
+ * and therefore can be added in future calls to connect_by_*.
+ * The peer must have been previously blacklisted for this tunnel.
+ *
+ * @param tunnel handle to existing tunnel.
+ * @param peer peer identity of the peer which shouldn't be blacklisted
+ *                  for the tunnel anymore.
+ */
+void
+GNUNET_MESH_peer_unblacklist (struct GNUNET_MESH_Tunnel *tunnel,
+                              const struct GNUNET_PeerIdentity *peer);
+
+
+/**
  * Handle for a transmission request.
  */
 struct GNUNET_MESH_TransmitHandle;
