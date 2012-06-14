@@ -33,6 +33,7 @@
 #include "gnunet_configuration_lib.h"
 #include "gnunet_disk_lib.h"
 #include "gnunet_os_lib.h"
+#include "gnunet_strings_lib.h"
 #if DARWIN
 #include <mach-o/ldsyms.h>
 #include <mach-o/dyld.h>
@@ -443,7 +444,8 @@ GNUNET_OS_installation_get_path (enum GNUNET_OS_InstallationPathKind dirkind)
  * Attempts to find the file using the current
  * PATH environment variable as a search path.
  *
- * @param binary the name of the file to check
+ * @param binary the name of the file to check.
+ *        W32: must not have an .exe suffix.
  * @return GNUNET_YES if the file is SUID,
  *         GNUNET_NO if not SUID (but binary exists)
  *         GNUNET_SYSERR on error (no such binary or not executable)
@@ -459,8 +461,9 @@ GNUNET_OS_check_helper_binary (const char *binary)
   char *binaryexe;
 
   GNUNET_asprintf (&binaryexe, "%s.exe", binary);
-  if (DIR_SEPARATOR == binary[0])
-    p = GNUNET_strdup (binary);
+  if (GNUNET_YES == GNUNET_STRINGS_path_is_absolute (binaryexe, GNUNET_NO,
+      NULL, NULL))
+    p = GNUNET_strdup (binaryexe);
   else
   {
     p = get_path_from_PATH (binaryexe);
@@ -473,7 +476,8 @@ GNUNET_OS_check_helper_binary (const char *binary)
   }
   GNUNET_free (binaryexe);
 #else
-  if (DIR_SEPARATOR == binary[0])
+  if (GNUNET_YES == GNUNET_STRINGS_path_is_absolute (binary, GNUNET_NO,
+      NULL, NULL))
     p = GNUNET_strdup (binary);
   else
   {
