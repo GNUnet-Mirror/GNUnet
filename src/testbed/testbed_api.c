@@ -235,16 +235,16 @@ server_mst_cb (void *cls, void *client,
                const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_TESTBED_Controller *c = cls;
-  struct GNUNET_TESTBED_Message *msg;
+  struct GNUNET_TESTBED_InitMessage *msg;
   
   c->client = GNUNET_CLIENT_connect ("testbed", c->cfg);
   if (NULL == c->client)
     return GNUNET_SYSERR;       /* FIXME: Call controller startup_cb ? */
   GNUNET_CLIENT_receive (c->client, &message_handler, c,
                          GNUNET_TIME_UNIT_FOREVER_REL);
-  msg = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Message));
+  msg = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_InitMessage));
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_INIT);
-  msg->header.size = htons (sizeof (struct GNUNET_TESTBED_Message));
+  msg->header.size = htons (sizeof (struct GNUNET_TESTBED_InitMessage));
   msg->host_id = htonl (GNUNET_TESTBED_host_get_id_ (c->host));
   msg->event_mask = GNUNET_htonll (c->event_mask);
   queue_message (c, (struct GNUNET_MessageHeader *) msg);

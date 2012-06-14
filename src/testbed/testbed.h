@@ -33,7 +33,7 @@
 /**
  * Initial message from a client to a testing control service.
  */
-struct GNUNET_TESTBED_Message
+struct GNUNET_TESTBED_InitMessage
 {
 
   /**

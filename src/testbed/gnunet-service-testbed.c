@@ -77,7 +77,7 @@ handle_init (void *cls,
              struct GNUNET_SERVER_Client *client,
              const struct GNUNET_MessageHeader *message)
 {
-  const struct GNUNET_TESTBED_Message *msg;
+  const struct GNUNET_TESTBED_InitMessage *msg;
 
   if (NULL != master_context)
   {
@@ -85,7 +85,7 @@ handle_init (void *cls,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  msg = (const struct GNUNET_TESTBED_Message *) message;  
+  msg = (const struct GNUNET_TESTBED_InitMessage *) message;  
   master_context = GNUNET_malloc (sizeof (struct Context));
   master_context->client = client;
   master_context->host_id = ntohl (msg->host_id);
@@ -193,7 +193,7 @@ testbed_run (void *cls,
   static const struct GNUNET_SERVER_MessageHandler message_handlers[] =
     {
       {&handle_init, NULL, GNUNET_MESSAGE_TYPE_TESTBED_INIT,
-       sizeof (struct GNUNET_TESTBED_Message)},
+       sizeof (struct GNUNET_TESTBED_InitMessage)},
       {&handle_addhost, NULL, GNUNET_MESSAGE_TYPE_TESTBED_ADDHOST, 0},
       {NULL}
     };
