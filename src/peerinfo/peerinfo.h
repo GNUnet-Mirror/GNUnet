@@ -38,7 +38,8 @@ struct ListPeerMessage
 {
 
   /**
-   * Type will be GNUNET_MESSAGE_TYPE_PEERINFO_GET
+   * Type will be GNUNET_MESSAGE_TYPE_PEERINFO_GET or
+   * GNUNET_MESSAGE_TYPE_PEERINFO_GET_ALL.
    */
   struct GNUNET_MessageHeader header;
 

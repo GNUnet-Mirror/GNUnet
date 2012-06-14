@@ -135,7 +135,7 @@ stdin_cb (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     fprintf (stderr, _("Unknown command, use 'q' to quit or 'r' to restart peer\n"));
     break;
   }
-  tid = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL, &fh, &stdin_cb, NULL);    
+  tid = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL, fh, &stdin_cb, NULL);    
 }
 
 
@@ -155,7 +155,7 @@ testing_main (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
   if (NULL == (tmpfilename = GNUNET_DISK_mktemp ("gnunet-testing")))
   {
     GNUNET_break (0);
-    cleanup ();
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
   if (GNUNET_SYSERR == 
@@ -166,9 +166,9 @@ testing_main (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
   }
   printf("%s\n", tmpfilename);
   fflush(stdout);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREFER_REL, &cleanup);
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleanup, NULL);
   fh = GNUNET_DISK_get_handle_from_native (stdin);
-  tid = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL, &fh, &stdin_cb, NULL);
+  tid = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL, fh, &stdin_cb, NULL);
 }
 
 
