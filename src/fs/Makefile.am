@@ -274,18 +274,21 @@ test_fs_directory_LDADD = \
 test_fs_download_SOURCES = \
  test_fs_download.c
 test_fs_download_LDADD = \
+  $(top_builddir)/src/testing/libgnunettesting.la  \
   $(top_builddir)/src/fs/libgnunetfs.la  \
   $(top_builddir)/src/util/libgnunetutil.la  
 
 test_fs_download_indexed_SOURCES = \
  test_fs_download_indexed.c
 test_fs_download_indexed_LDADD = \
+  $(top_builddir)/src/testing/libgnunettesting.la  \
   $(top_builddir)/src/fs/libgnunetfs.la  \
   $(top_builddir)/src/util/libgnunetutil.la  
 
 test_fs_download_persistence_SOURCES = \
  test_fs_download_persistence.c
 test_fs_download_persistence_LDADD = \
+  $(top_builddir)/src/testing/libgnunettesting.la  \
   $(top_builddir)/src/fs/libgnunetfs.la  \
   $(top_builddir)/src/util/libgnunetutil.la  
 
