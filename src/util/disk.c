@@ -1783,21 +1783,45 @@ GNUNET_DISK_file_close (struct GNUNET_DISK_FileHandle *h)
 struct GNUNET_DISK_FileHandle *
 GNUNET_DISK_get_handle_from_native (FILE *fd)
 {
-#if MINGW
-  // FIXME: LRN help!
-  GNUNET_break (0);
-  return NULL;
-#else
   struct GNUNET_DISK_FileHandle *fh;
   int fno;
+#if MINGW
+  intptr_t osfh;
+#endif
 
   fno = fileno (fd);
   if (-1 == fno)
     return NULL;
-  fh = GNUNET_malloc (sizeof (struct GNUNET_DISK_FileHandle));
-  fh->fd = fno;
-  return fh;
+
+#if MINGW
+  osfh = _get_osfhandle (fno);
+  if (osfh == INVALID_HANDLE_VALUE)
+    return NULL;
 #endif
+
+  fh = GNUNET_malloc (sizeof (struct GNUNET_DISK_FileHandle));
+
+#if MINGW
+  fh->h = osfh;
+  /* Assume it to be a pipe. TODO: use some kind of detection
+   * function to figure out handle type.
+   * Note that we can't make it overlapped if it isn't already.
+   * (ReOpenFile() is only available in 2003/Vista).
+   * The process that opened this file in the first place (usually a parent
+   * process, if this is stdin/stdout/stderr) must make it overlapped,
+   * otherwise we're screwed, as selecting on non-overlapped handle
+   * will block.
+   */
+  fh->type = GNUNET_PIPE;
+  fh->oOverlapRead = GNUNET_malloc (sizeof (OVERLAPPED));
+  fh->oOverlapWrite = GNUNET_malloc (sizeof (OVERLAPPED));
+  fh->oOverlapRead->hEvent = CreateEvent (NULL, FALSE, FALSE, NULL);
+  fh->oOverlapWrite->hEvent = CreateEvent (NULL, FALSE, FALSE, NULL);
+#else
+  fh->fd = fno;
+#endif
+
+  return fh;
 }
 
 
