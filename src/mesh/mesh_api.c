@@ -1382,6 +1382,20 @@ GNUNET_MESH_disconnect (struct GNUNET_MESH_Handle *handle)
 
 
 /**
+ * Announce to ther peer the availability of services described by the regex,
+ * in order to be reachable to other peers via connect_by_string.
+ *
+ * @param h handle to mesh.
+ * @param regex string with the regular expression describing local services.
+ */
+void
+GNUNET_MESH_announce_regex (struct GNUNET_MESH_Handle *h,
+                            const char *regex)
+{
+  
+}
+
+/**
  * Create a new tunnel (we're initiator and will be allowed to add/remove peers
  * and to broadcast).
  *
@@ -1575,7 +1589,10 @@ GNUNET_MESH_peer_request_connect_by_type (struct GNUNET_MESH_Tunnel *tunnel,
  */
 void
 GNUNET_MESH_peer_request_connect_by_string (struct GNUNET_MESH_Tunnel *tunnel,
-                                            const char *description);
+                                            const char *description)
+{
+  
+}
 
 
 /**
@@ -1588,7 +1605,18 @@ GNUNET_MESH_peer_request_connect_by_string (struct GNUNET_MESH_Tunnel *tunnel,
  */
 void
 GNUNET_MESH_peer_blacklist (struct GNUNET_MESH_Tunnel *tunnel,
-                            const struct GNUNET_PeerIdentity *peer);
+                            const struct GNUNET_PeerIdentity *peer)
+{
+  struct GNUNET_MESH_PeerControl msg;
+
+  msg.header.size = htons (sizeof (struct GNUNET_MESH_PeerControl));
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_BLACKLIST);
+  msg.tunnel_id = htonl (tunnel->tid);
+  msg.peer = *peer;
+  send_packet (tunnel->mesh, &msg.header, tunnel);
+
+  return;
+}
 
 
 /**
@@ -1602,7 +1630,18 @@ GNUNET_MESH_peer_blacklist (struct GNUNET_MESH_Tunnel *tunnel,
  */
 void
 GNUNET_MESH_peer_unblacklist (struct GNUNET_MESH_Tunnel *tunnel,
-                              const struct GNUNET_PeerIdentity *peer);
+                              const struct GNUNET_PeerIdentity *peer)
+{
+  struct GNUNET_MESH_PeerControl msg;
+
+  msg.header.size = htons (sizeof (struct GNUNET_MESH_PeerControl));
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_UNBLACKLIST);
+  msg.tunnel_id = htonl (tunnel->tid);
+  msg.peer = *peer;
+  send_packet (tunnel->mesh, &msg.header, tunnel);
+
+  return;
+}
 
 
 /**
