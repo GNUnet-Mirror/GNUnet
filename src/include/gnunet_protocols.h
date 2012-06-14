@@ -1034,6 +1034,11 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_ATS_RESET_BACKOFF 352
 
+/**
+ * Type of the 'struct AddressUpdateMessage' sent by client to ATS
+ * to add a new address
+ */
+#define GNUNET_MESSAGE_TYPE_ATS_ADDRESS_ADD 353
 
 /*******************************************************************************
  * TRANSPORT message types

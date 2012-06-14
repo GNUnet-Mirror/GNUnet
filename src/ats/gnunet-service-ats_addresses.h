@@ -156,6 +156,12 @@ GAS_addresses_change_preference (const struct GNUNET_PeerIdentity *peer,
                                  enum GNUNET_ATS_PreferenceKind kind,
                                  float score);
 
+void
+GAS_addresses_add (const struct GNUNET_PeerIdentity *peer,
+                      const char *plugin_name, const void *plugin_addr,
+                      size_t plugin_addr_len, uint32_t session_id,
+                      const struct GNUNET_ATS_Information *atsi,
+                      uint32_t atsi_count);
 
 /* FIXME: add performance request API */
 

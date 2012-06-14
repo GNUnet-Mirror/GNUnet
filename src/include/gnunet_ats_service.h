@@ -568,6 +568,23 @@ GNUNET_ATS_address_get_type (struct GNUNET_ATS_SchedulingHandle *sh,
                              const struct sockaddr * addr,
                              socklen_t addrlen);
 
+/**
+ * We have a new address ATS should know. Addresses have to be added with this
+ * function before they can be: updated, set in use and destroyed
+ *
+ * @param sh handle
+ * @param address the address
+ * @param session session handle (if available)
+ * @param ats performance data for the address
+ * @param ats_count number of performance records in 'ats'
+ */
+int
+GNUNET_ATS_address_add (struct GNUNET_ATS_SchedulingHandle *sh,
+                        const struct GNUNET_HELLO_Address *address,
+                        struct Session *session,
+                        const struct GNUNET_ATS_Information *ats,
+                        uint32_t ats_count);
+
 
 /**
  * We have updated performance statistics for a given address.  Note

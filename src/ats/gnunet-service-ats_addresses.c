@@ -330,6 +330,70 @@ find_exact_address (const struct GNUNET_PeerIdentity *peer,
 
 
 void
+GAS_addresses_add (const struct GNUNET_PeerIdentity *peer,
+                      const char *plugin_name, const void *plugin_addr,
+                      size_t plugin_addr_len, uint32_t session_id,
+                      const struct GNUNET_ATS_Information *atsi,
+                      uint32_t atsi_count)
+{
+  struct ATS_Address *aa;
+  struct ATS_Address *old;
+
+  if (GNUNET_NO == running)
+    return;
+
+  GNUNET_assert (NULL != addresses);
+
+  aa = create_address (peer,
+                       plugin_name,
+                       plugin_addr, plugin_addr_len,
+                       session_id);
+
+  aa->mlp_information = NULL;
+  aa->ats = GNUNET_malloc (atsi_count * sizeof (struct GNUNET_ATS_Information));
+  aa->ats_count = atsi_count;
+  memcpy (aa->ats, atsi, atsi_count * sizeof (struct GNUNET_ATS_Information));
+
+  /* Get existing address or address with session == 0 */
+  old = find_address (peer, aa);
+  if (old == NULL)
+  {
+    /* We have a new address */
+    GNUNET_assert (GNUNET_OK ==
+                   GNUNET_CONTAINER_multihashmap_put (addresses,
+                                                      &peer->hashPubKey, aa,
+                                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Added new address for peer `%s' %p\n",
+                GNUNET_i2s (peer), aa);
+    return;
+  }
+
+  if (old->session_id == 0)
+  {
+    /* We have a base address with out an session, update this address */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Updated existing address for peer `%s' %p with new session %u\n",
+              GNUNET_i2s (peer), old, session_id);
+    GNUNET_free_non_null (old->ats);
+    old->session_id = session_id;
+    old->ats = NULL;
+    old->ats_count = 0;
+    old->ats = aa->ats;
+    old->ats_count = aa->ats_count;
+    GNUNET_free (aa->plugin);
+    GNUNET_free (aa);
+    return;
+  }
+
+  /* This address and session is already existing */
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+            "Added already existing address for peer `%s' `%s' %p with new session %u\n",
+            GNUNET_i2s (peer), plugin_name, session_id);
+  GNUNET_break (0);
+}
+
+
+void
 GAS_addresses_update (const struct GNUNET_PeerIdentity *peer,
                       const char *plugin_name, const void *plugin_addr,
                       size_t plugin_addr_len, uint32_t session_id,
@@ -368,7 +432,7 @@ GAS_addresses_update (const struct GNUNET_PeerIdentity *peer,
                                                       &peer->hashPubKey, aa,
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
 #if DEBUG_ATS
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Added new address for peer `%s' %X\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Added new address for peer `%s' %p\n",
                 GNUNET_i2s (peer), aa);
 #endif
     old = aa;
@@ -640,6 +704,11 @@ GAS_addresses_in_use (const struct GNUNET_PeerIdentity *peer,
 
   if (NULL == old)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Unknown address `%s', %s %u %s \n",
+                GNUNET_i2s (peer),
+                plugin_name, session_id,
+                (GNUNET_NO == in_use) ? "NO" : "YES");
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
