@@ -826,6 +826,21 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_ADD_BY_TYPE 277
 
 /**
+ * Ask the mesh service to add a peer described by a service string
+ */
+#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_ADD_BY_STRING 278
+
+/**
+ * Ask the mesh service to add a peer to the blacklist of an existing tunnel
+ */
+#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_BLACKLIST   279
+
+/**
+ * Ask the mesh service to remove a peer from the blacklist of a tunnel
+ */
+#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_UNBLACKLIST 280
+
+/**
  * 640kb should be enough for everybody
  */
 #define GNUNET_MESSAGE_TYPE_MESH_RESERVE_END            288
