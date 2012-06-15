@@ -276,12 +276,12 @@ find_address (const struct GNUNET_PeerIdentity *peer,
   GNUNET_CONTAINER_multihashmap_get_multiple (addresses, &peer->hashPubKey,
                                               &compare_address_it, &cac);
 
-/*
+#if 0
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               "exact address: %s           base address: %s\n",
               (cac.exact_address != NULL) ? "YES" : "NO",
               (cac.base_address != NULL) ? "YES" : "NO");
-*/
+#endif
   if (cac.exact_address == NULL)
     return cac.base_address;
   return cac.exact_address;
@@ -317,7 +317,6 @@ lookup_address (const struct GNUNET_PeerIdentity *peer,
   }
   else if (old->session_id != session_id)
   {
-
     GNUNET_free (aa);
     GNUNET_break (0);
     return NULL;
@@ -401,8 +400,8 @@ GAS_addresses_add (const struct GNUNET_PeerIdentity *peer,
                    GNUNET_CONTAINER_multihashmap_put (addresses,
                                                       &peer->hashPubKey, aa,
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Added new address for peer `%s' %p\n",
-                GNUNET_i2s (peer), aa);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Added new address for peer `%s' session id %u, %p\n",
+                GNUNET_i2s (peer), session_id, aa);
     return;
   }
 
@@ -447,7 +446,7 @@ GAS_addresses_update (const struct GNUNET_PeerIdentity *peer,
   GNUNET_assert (NULL != addresses);
 
   /* Get existing address */
-  old = lookup_address(peer, plugin_name, plugin_addr, plugin_addr_len,
+  old = lookup_address (peer, plugin_name, plugin_addr, plugin_addr_len,
                        session_id, atsi, atsi_count);
   if (old == NULL)
   {
