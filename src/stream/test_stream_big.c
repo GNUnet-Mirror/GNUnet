@@ -164,9 +164,9 @@ write_completion (void *cls,
     }
   else
     {
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-           "Finished writing the data; waiting for the other peer to finish"
-           "reading");
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "Writing successfully finished\n");
+      result = GNUNET_OK;
+      GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
     }
 }
 
@@ -271,8 +271,7 @@ input_processor (void *cls,
   else 
   {
     /* Peer2 has completed reading*/
-    result = GNUNET_OK;
-    GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Reading finished successfully\n");
   } 
   return size;
 }

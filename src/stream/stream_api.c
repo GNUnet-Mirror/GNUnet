@@ -471,22 +471,6 @@ static unsigned int default_timeout = 10;
 
 
 /**
- * Function to print the contents of an address location. Used only for debugging
- *
- * @param ptr the address location; Should be more than 5 bytes long
- */
-static void
-debug_print_contents (const void *ptr)
-{
-  /* const char *c; */
-  
-  /* c = ptr; */
-  /* LOG (GNUNET_ERROR_TYPE_DEBUG, */
-  /*      "--- contents: %u %u %u %u %u\n", c[0], c[1], c[2], c[3], c[4]); */
-}
-
-
-/**
  * Callback function for sending queued message
  *
  * @param cls closure the socket
@@ -846,7 +830,6 @@ write_data (struct GNUNET_STREAM_Socket *socket)
            "%s: Placing DATA message with sequence %u in send queue\n",
            GNUNET_i2s (&socket->other_peer),
            ntohl (io_handle->messages[packet]->sequence_number));
-      debug_print_contents(&(io_handle->messages[packet][1]));
       copy_and_queue_message (socket,
                               &io_handle->messages[packet]->header,
                               NULL,
@@ -866,7 +849,6 @@ write_data (struct GNUNET_STREAM_Socket *socket)
          "%s: Placing DATA message with sequence %u in send queue\n",
          GNUNET_i2s (&socket->other_peer),
          ntohl (io_handle->messages[packet]->sequence_number));
-    debug_print_contents(&(io_handle->messages[packet][1]));
     copy_and_queue_message (socket,
                             &io_handle->messages[packet]->header,
                             NULL,
@@ -928,7 +910,6 @@ call_read_processor (void *cls,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "%s: Calling read processor\n",
        GNUNET_i2s (&socket->other_peer));
-  debug_print_contents (socket->receive_buffer + socket->copy_offset);
   read_size = 
     socket->read_handle->proc (socket->read_handle->proc_cls,
                                socket->status,
@@ -1159,7 +1140,6 @@ handle_data (struct GNUNET_STREAM_Socket *socket,
       
     /* Copy Data to buffer */
     payload = &msg[1];
-    debug_print_contents(payload);
     GNUNET_assert (relative_offset + size <= socket->receive_buffer_size);
     memcpy (socket->receive_buffer + relative_offset,
             payload,
