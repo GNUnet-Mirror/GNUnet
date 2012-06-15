@@ -426,7 +426,6 @@ process_listen_socket (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static struct GNUNET_NETWORK_Handle *
 open_listen_socket (const struct sockaddr *serverAddr, socklen_t socklen)
 {
-  static int on = 1;
   struct GNUNET_NETWORK_Handle *sock;
   uint16_t port;
   int eno;
