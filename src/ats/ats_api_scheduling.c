@@ -384,9 +384,6 @@ find_empty_session_slot (struct GNUNET_ATS_SchedulingHandle *sh, struct Session 
                        sh->session_array_size * 2);
   }
   GNUNET_assert (f > 0);
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "ats-scheduling-api",
-              "Session %p for peer `%s' stored in slot %u \n",
-              session, GNUNET_i2s (peer), f);
   sh->session_array[f].session = session;
   sh->session_array[f].peer = *peer;
   sh->session_array[f].slot_used = GNUNET_YES;
@@ -1117,8 +1114,11 @@ GNUNET_ATS_address_add (struct GNUNET_ATS_SchedulingHandle *sh,
     s = find_session_id (sh, session, &address->peer);
     if (NOT_FOUND != s)
     {
-      /* Already existing */
-      GNUNET_break (0);
+      /* Already existing, nothing todo */
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Adding duplicate address for peer `%s', plugin `%s', session %p id %u\n",
+                  GNUNET_i2s (&address->peer),
+                  address->transport_name, session, s);
       return GNUNET_SYSERR;
     }
     s = find_empty_session_slot (sh, session, &address->peer);
@@ -1213,12 +1213,8 @@ GNUNET_ATS_address_update (struct GNUNET_ATS_SchedulingHandle *sh,
   {
     s = find_session_id (sh, session, &address->peer);
     if (NOT_FOUND == s)
-    {
-      /* new session without slot, find one */
-      s = find_empty_session_slot (sh, session, &address->peer);
-      GNUNET_break (NOT_FOUND != s);
+      GNUNET_break (0);
       return;
-    }
   }
   m->session_id = htonl (s);
 
@@ -1272,7 +1268,7 @@ GNUNET_ATS_address_in_use (struct GNUNET_ATS_SchedulingHandle *sh,
     return;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Trying to set address to %s for peer `%s', plugin `%s', session %p\n",
               GNUNET_i2s (&address->peer),
               (GNUNET_NO == in_use) ? "NO" : "YES",

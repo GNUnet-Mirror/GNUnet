@@ -1091,7 +1091,6 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
   ve->latency = GNUNET_TIME_absolute_get_duration (ve->send_time);
   {
     struct GNUNET_ATS_Information ats;
-
     ats.type = htonl (GNUNET_ATS_QUALITY_NET_DELAY);
     ats.value = htonl ((uint32_t) ve->latency.rel_value);
     GNUNET_ATS_address_add (GST_ats, ve->address, NULL, &ats, 1);

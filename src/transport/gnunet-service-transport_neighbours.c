@@ -221,10 +221,10 @@ struct MessageQueue
  * Possible state of a neighbour.  Initially, we are S_NOT_CONNECTED.
  *
  * Then, there are two main paths. If we receive a CONNECT message, we
- * first run a check against the blacklist and ask ATS for a
- * suggestion.  (S_CONNECT_RECV_ATS).  If the blacklist comes back
- * positive, we give the address to ATS.  If ATS makes a suggestion,
- * we ALSO give that suggestion to the blacklist
+ * first run a check against the blacklist (S_CONNECT_RECV_BLACKLIST_INBOUND).
+ * If this check is successful, we give the inbound address to ATS.
+ * After the check we ask ATS for a suggestion (S_CONNECT_RECV_ATS).
+ * If ATS makes a suggestion, we ALSO give that suggestion to the blacklist
  * (S_CONNECT_RECV_BLACKLIST).  Once the blacklist approves the
  * address we got from ATS, we send our CONNECT_ACK and go to
  * S_CONNECT_RECV_ACK.  If we receive a SESSION_ACK, we go to
@@ -300,6 +300,11 @@ enum State
    * Sent CONNECT message to other peer, waiting for CONNECT_ACK
    */
   S_CONNECT_SENT,
+
+  /**
+   * Received a CONNECT, do a blacklist check for inbound address
+   */
+  S_CONNECT_RECV_BLACKLIST_INBOUND,
 
   /**
    * Received a CONNECT, asking ATS about address suggestions.
@@ -639,6 +644,9 @@ print_state (int state)
   case S_CONNECT_SENT:
     return "S_CONNECT_SENT";
     break;
+  case S_CONNECT_RECV_BLACKLIST_INBOUND:
+    return "S_CONNECT_RECV_BLACKLIST_INBOUND";
+    break;
   case S_CONNECT_RECV_ATS:
     return "S_CONNECT_RECV_ATS";
     break;
@@ -832,7 +840,6 @@ set_address (struct NeighbourAddress *na,
   if (GNUNET_YES == is_active)
   {
     /* Telling ATS about new session */
-    GNUNET_ATS_address_add (GST_ats, na->address, na->session, NULL, 0);
     GNUNET_ATS_address_in_use (GST_ats, na->address, na->session, GNUNET_YES);
     GST_validation_set_address_use (na->address, na->session, GNUNET_YES,  __LINE__);
 
@@ -1728,14 +1735,6 @@ handle_test_blacklist_cont (void *cls,
               "Connection to new address of peer `%s' based on blacklist is `%s'\n",
               GNUNET_i2s (peer),
               (GNUNET_OK == result) ? "allowed" : "FORBIDDEN");
-  if (GNUNET_OK == result)
-  {
-    /* valid new address, let ATS know! */
-    GNUNET_ATS_address_add (GST_ats,
-			    bcc->na.address,
-			    bcc->na.session,
-			    bcc->ats, bcc->ats_count);
-  }
   if (NULL == (n = lookup_neighbour (peer)))
     goto cleanup; /* nobody left to care about new address */
   switch (n->state)
@@ -1791,9 +1790,23 @@ handle_test_blacklist_cont (void *cls,
 					n->connect_ack_timestamp);
     }
     break; 
+  case S_CONNECT_RECV_BLACKLIST_INBOUND:
+    if (GNUNET_OK == result)
+    {
+      /* valid new address, let ATS know! */
+      GNUNET_ATS_address_add (GST_ats,
+                              bcc->na.address,
+                              bcc->na.session,
+                              bcc->ats, bcc->ats_count);
+    }
+    n->state = S_CONNECT_RECV_ATS;
+    n->timeout = GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT);
+    GNUNET_ATS_reset_backoff (GST_ats, peer);
+    GNUNET_ATS_suggest_address (GST_ats, peer);
+    break;
   case S_CONNECT_RECV_ATS:
     /* still waiting on ATS suggestion, don't care about blacklist */
-    break; 
+    break;
   case S_CONNECT_RECV_BLACKLIST:
     if (GNUNET_YES != address_matches (&bcc->na, &n->primary_address))
       break; /* result for an address we currently don't care about */
@@ -2016,10 +2029,8 @@ GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
   switch (n->state)
   {  
   case S_NOT_CONNECTED:
-    n->state = S_CONNECT_RECV_ATS;
-    n->timeout = GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT);
-    GNUNET_ATS_reset_backoff (GST_ats, peer);
-    GNUNET_ATS_suggest_address (GST_ats, peer);
+    n->state = S_CONNECT_RECV_BLACKLIST_INBOUND;
+    /* Do a blacklist check for the new address */
     check_blacklist (peer, ts, address, session, ats, ats_count);
     break;
   case S_INIT_ATS:
@@ -2349,6 +2360,17 @@ master_task (void *cls,
 		  "Connection to `%s' timed out waiting for other peer to send CONNECT_ACK\n",
 		  GNUNET_i2s (&n->id));
       disconnect_neighbour (n);
+      return;
+    }
+    break;
+  case S_CONNECT_RECV_BLACKLIST_INBOUND:
+    if (0 == delay.rel_value)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Connection to `%s' timed out waiting BLACKLIST to approve address to use for received CONNECT\n",
+                  GNUNET_i2s (&n->id));
+      n->state = S_DISCONNECT_FINISHED;
+      free_neighbour (n, GNUNET_NO);
       return;
     }
     break;

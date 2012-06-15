@@ -287,11 +287,6 @@ plugin_env_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
     break;
   }
 end:
-#if 1
-  /* FIXME: this should not be needed, and not sure it's good to have it, but without
-   * this connections seem to go extra-slow */
-  GNUNET_ATS_address_update (GST_ats, &address, session, ats, ats_count);
-#endif
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Allowing receive from peer %s to continue in %llu ms\n",
               GNUNET_i2s (peer), (unsigned long long) ret.rel_value);
