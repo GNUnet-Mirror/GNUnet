@@ -405,7 +405,7 @@ client_receive (void *stream, size_t size, size_t nmemb, void *cls)
   struct Plugin *plugin = s->plugin;
 
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                   "Client: Received %Zu bytes from peer `%s'\n", len,
+                   "Client: Received %u bytes from peer `%s'\n", len,
                    GNUNET_i2s (&s->target));
   now = GNUNET_TIME_absolute_get ();
   if (now.abs_value < s->next_receive.abs_value)
