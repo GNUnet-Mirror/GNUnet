@@ -2200,6 +2200,11 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
 		     address, session, ats, ats_count);    
     break;
   case S_CONNECT_RECV_BLACKLIST_INBOUND:
+    n->timeout = GNUNET_TIME_relative_to_absolute (BLACKLIST_RESPONSE_TIMEOUT);
+    check_blacklist (&n->id,
+                     n->connect_ack_timestamp,
+                     address, session, ats, ats_count);
+    break;
   case S_CONNECT_RECV_BLACKLIST:
   case S_CONNECT_RECV_ACK:
     /* ATS asks us to switch while we were trying to connect; switch to new
@@ -2595,6 +2600,11 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
 			   ++neighbours_connected,
 			   GNUNET_NO);
     connect_notify_cb (callback_cls, &n->id, ats, ats_count);
+    /* Tell ATS that the outbound session we created to send CONNECT was successfull */
+    GNUNET_ATS_address_add(GST_ats,
+                           n->primary_address.address,
+                           n->primary_address.session,
+                           ats, ats_count);
     set_address (&n->primary_address,
 		 n->primary_address.address,
 		 n->primary_address.session,
@@ -2712,7 +2722,6 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
   }
 
   n->expect_latency_response = GNUNET_NO;
-
   switch (n->state)
   {
   case S_NOT_CONNECTED:
