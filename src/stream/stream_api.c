@@ -471,6 +471,22 @@ static unsigned int default_timeout = 10;
 
 
 /**
+ * Function to print the contents of an address location. Used only for debugging
+ *
+ * @param ptr the address location; Should be more than 5 bytes long
+ */
+static void
+debug_print_contents (const void *ptr)
+{
+  /* const char *c; */
+  
+  /* c = ptr; */
+  /* LOG (GNUNET_ERROR_TYPE_DEBUG, */
+  /*      "--- contents: %u %u %u %u %u\n", c[0], c[1], c[2], c[3], c[4]); */
+}
+
+
+/**
  * Callback function for sending queued message
  *
  * @param cls closure the socket
@@ -830,6 +846,7 @@ write_data (struct GNUNET_STREAM_Socket *socket)
            "%s: Placing DATA message with sequence %u in send queue\n",
            GNUNET_i2s (&socket->other_peer),
            ntohl (io_handle->messages[packet]->sequence_number));
+      debug_print_contents(&(io_handle->messages[packet][1]));
       copy_and_queue_message (socket,
                               &io_handle->messages[packet]->header,
                               NULL,
@@ -849,6 +866,7 @@ write_data (struct GNUNET_STREAM_Socket *socket)
          "%s: Placing DATA message with sequence %u in send queue\n",
          GNUNET_i2s (&socket->other_peer),
          ntohl (io_handle->messages[packet]->sequence_number));
+    debug_print_contents(&(io_handle->messages[packet][1]));
     copy_and_queue_message (socket,
                             &io_handle->messages[packet]->header,
                             NULL,
@@ -910,6 +928,7 @@ call_read_processor (void *cls,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "%s: Calling read processor\n",
        GNUNET_i2s (&socket->other_peer));
+  debug_print_contents (socket->receive_buffer + socket->copy_offset);
   read_size = 
     socket->read_handle->proc (socket->read_handle->proc_cls,
                                socket->status,
@@ -943,11 +962,12 @@ call_read_processor (void *cls,
        GNUNET_i2s (&socket->other_peer), sequence_increase);
 
   /* Shift the data in the receive buffer */
-  memmove (socket->receive_buffer,
-           socket->receive_buffer 
-           + socket->receive_buffer_boundaries[sequence_increase-1],
-           socket->receive_buffer_size
-           - socket->receive_buffer_boundaries[sequence_increase-1]);
+  socket->receive_buffer = 
+    memmove (socket->receive_buffer,
+	     socket->receive_buffer 
+	     + socket->receive_buffer_boundaries[sequence_increase-1],
+	     socket->receive_buffer_size
+	     - socket->receive_buffer_boundaries[sequence_increase-1]);
   /* Shift the bitmap */
   socket->ack_bitmap = socket->ack_bitmap >> sequence_increase;
   /* Set read_sequence_number */
@@ -963,9 +983,18 @@ call_read_processor (void *cls,
   {
     if (packet < GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH - sequence_increase)
     {
-      socket->receive_buffer_boundaries[packet] = 
-        socket->receive_buffer_boundaries[packet + sequence_increase] 
-        - offset_increase;
+      uint32_t ahead_buffer_boundary;
+
+      ahead_buffer_boundary = 
+	socket->receive_buffer_boundaries[packet + sequence_increase];
+      if (0 == ahead_buffer_boundary)
+	socket->receive_buffer_boundaries[packet] = 0;
+      else
+      {
+	GNUNET_assert (offset_increase < ahead_buffer_boundary);
+	socket->receive_buffer_boundaries[packet] = 
+	  ahead_buffer_boundary - offset_increase;
+      }
     }
     else
       socket->receive_buffer_boundaries[packet] = 0;
@@ -1130,6 +1159,7 @@ handle_data (struct GNUNET_STREAM_Socket *socket,
       
     /* Copy Data to buffer */
     payload = &msg[1];
+    debug_print_contents(payload);
     GNUNET_assert (relative_offset + size <= socket->receive_buffer_size);
     memcpy (socket->receive_buffer + relative_offset,
             payload,
@@ -2418,22 +2448,24 @@ handle_ack (struct GNUNET_STREAM_Socket *socket,
     }
     else      /* We have to call the write continuation callback now */
     {
+      struct GNUNET_STREAM_IOWriteHandle *write_handle;
+      
       /* Free the packets */
       for (packet=0; packet < GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH; packet++)
       {
         GNUNET_free_non_null (socket->write_handle->messages[packet]);
       }
-      if (NULL != socket->write_handle->write_cont)
-        socket->write_handle->write_cont
-          (socket->write_handle->write_cont_cls,
-           socket->status,
-           socket->write_handle->size);
+      write_handle = socket->write_handle;
+      socket->write_handle = NULL;
+      if (NULL != write_handle->write_cont)
+        write_handle->write_cont (write_handle->write_cont_cls,
+				  socket->status,
+				  write_handle->size);
+      /* We are done with the write handle - Freeing it */
+      GNUNET_free (write_handle);
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "%s: Write completion callback completed\n",
-           GNUNET_i2s (&socket->other_peer));
-      /* We are done with the write handle - Freeing it */
-      GNUNET_free (socket->write_handle);
-      socket->write_handle = NULL;
+           GNUNET_i2s (&socket->other_peer));      
     }
     break;
   default:
