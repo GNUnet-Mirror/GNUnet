@@ -37,7 +37,8 @@ libgnunetats_la_LDFLAGS = \
 
 
 bin_PROGRAMS = \
- gnunet-service-ats
+ gnunet-service-ats \
+ gnunet-ats 
 
 gnunet_service_ats_SOURCES = \
  gnunet-service-ats.c gnunet-service-ats.h\
@@ -51,6 +52,13 @@ gnunet_service_ats_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBGLPK) \
   $(GN_LIBINTL)
+  
+gnunet_ats_SOURCES = \
+ gnunet-ats.c gnunet-service-ats.h
+gnunet_ats_LDADD = \ 
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/ats/libgnunetats.la \
+  $(GN_LIBINTL)  
 
 
 check_PROGRAMS = \
