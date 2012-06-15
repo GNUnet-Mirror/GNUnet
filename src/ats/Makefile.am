@@ -52,6 +52,8 @@ gnunet_service_ats_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBGLPK) \
   $(GN_LIBINTL)
+gnunet_service_ats_DEPENDENCIES = \
+  libgnunetats.la
   
 gnunet_ats_SOURCES = \
  gnunet-ats.c gnunet-service-ats.h
@@ -59,6 +61,8 @@ gnunet_ats_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/ats/libgnunetats.la \
   $(GN_LIBINTL)  
+gnunet_ats_DEPENDENCIES = \
+  libgnunetats.la
 
 
 check_PROGRAMS = \
