@@ -28,8 +28,8 @@ check_PROGRAMS = \
 EXTRA_DIST = test_stream_local.conf
 
 if ENABLE_TEST_RUN
-TESTS = \
- test_stream_2peers \
+TESTS = $(check_PROGRAMS)
+# test_stream_2peers \
  test_stream_2peers_halfclose \
  test_stream_local
 endif
