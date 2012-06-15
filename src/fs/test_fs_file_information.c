@@ -31,12 +31,10 @@
  * - other API functions may not yet be tested (such as
  *   filedata-from-callback)
  */
-
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_fs_service.h"
 
-#define VERBOSE GNUNET_NO
 
 /**
  * File-size we use for testing.
@@ -137,9 +135,6 @@ run (void *cls, char *const *args, const char *cfgfile,
 }
 
 
-
-
-
 int
 main (int argc, char *argv[])
 {
@@ -147,9 +142,6 @@ main (int argc, char *argv[])
     "test-fs-file_information",
     "-c",
     "test_fs_file_information_data.conf",
-#if VERBOSE
-    "-L", "DEBUG",
-#endif
     NULL
   };
   struct GNUNET_GETOPT_CommandLineOption options[] = {
@@ -157,11 +149,7 @@ main (int argc, char *argv[])
   };
 
   GNUNET_log_setup ("test_fs_file_information",
-#if VERBOSE
-                    "DEBUG",
-#else
                     "WARNING",
-#endif
                     NULL);
   GNUNET_PROGRAM_run ((sizeof (argvx) / sizeof (char *)) - 1, argvx,
                       "test-fs-file_information", "nohelp", options, &run,

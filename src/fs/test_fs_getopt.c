@@ -25,15 +25,12 @@
 #include "platform.h"
 #include "gnunet_fs_service.h"
 
+
 int
 main (int argc, char *argv[])
 {
-  GNUNET_log_setup ("test_fs_directory",
-#if VERBOSE
-                    "DEBUG",
-#else
+  GNUNET_log_setup ("test_fs_getopt",
                     "WARNING",
-#endif
                     NULL);
   FPRINTF (stderr, "%s",  "WARNING: testcase not yet written.\n");
   return 0;                     /* testcase passed */
