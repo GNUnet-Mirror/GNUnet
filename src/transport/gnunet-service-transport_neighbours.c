@@ -706,6 +706,7 @@ test_connected (struct NeighbourMapEntry *n)
   case S_INIT_ATS:
   case S_INIT_BLACKLIST:
   case S_CONNECT_SENT:
+  case S_CONNECT_RECV_BLACKLIST_INBOUND:
   case S_CONNECT_RECV_ATS:
   case S_CONNECT_RECV_BLACKLIST:
   case S_CONNECT_RECV_ACK:
@@ -1063,7 +1064,8 @@ disconnect_neighbour (struct NeighbourMapEntry *n)
   case S_CONNECT_SENT:
     send_disconnect (n); 
     n->state = S_DISCONNECT;
-    break;   
+    break;
+  case S_CONNECT_RECV_BLACKLIST_INBOUND:
   case S_CONNECT_RECV_ATS:
   case S_CONNECT_RECV_BLACKLIST:
     /* we never ACK'ed the other peer's request, no need to send DISCONNECT */
@@ -1675,6 +1677,7 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
     case S_INIT_ATS:
     case S_INIT_BLACKLIST:
     case S_CONNECT_SENT:
+    case S_CONNECT_RECV_BLACKLIST_INBOUND:
     case S_CONNECT_RECV_ATS:
     case S_CONNECT_RECV_BLACKLIST:
     case S_CONNECT_RECV_ACK:
@@ -2196,6 +2199,7 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
 		     n->connect_ack_timestamp,
 		     address, session, ats, ats_count);    
     break;
+  case S_CONNECT_RECV_BLACKLIST_INBOUND:
   case S_CONNECT_RECV_BLACKLIST:
   case S_CONNECT_RECV_ACK:
     /* ATS asks us to switch while we were trying to connect; switch to new
@@ -2599,6 +2603,7 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
 		 GNUNET_YES);
     send_session_ack_message (n);
     break;
+  case S_CONNECT_RECV_BLACKLIST_INBOUND:
   case S_CONNECT_RECV_ATS:
   case S_CONNECT_RECV_BLACKLIST:
   case S_CONNECT_RECV_ACK:
@@ -2726,6 +2731,7 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
     // FIXME: need to ask ATS for suggestions again?
     GNUNET_ATS_suggest_address (GST_ats, &n->id);
     break;
+  case S_CONNECT_RECV_BLACKLIST_INBOUND:
   case S_CONNECT_RECV_ATS:    
   case S_CONNECT_RECV_BLACKLIST:
   case S_CONNECT_RECV_ACK:
@@ -3069,6 +3075,7 @@ GST_neighbour_get_latency (const struct GNUNET_PeerIdentity *peer)
   case S_NOT_CONNECTED:
   case S_INIT_BLACKLIST:
   case S_INIT_ATS:
+  case S_CONNECT_RECV_BLACKLIST_INBOUND:
   case S_CONNECT_SENT:
   case S_CONNECT_RECV_BLACKLIST:
   case S_DISCONNECT:
