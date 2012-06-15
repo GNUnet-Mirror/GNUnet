@@ -27,26 +27,12 @@
 #include <curl/curl.h>
 #include <microhttpd.h>
 #include "gnunet_vpn_service.h"
-#include "gnunet_arm_service.h"
+#include "gnunet_testing_lib-new.h"
 
 #define PORT 48080
 
-#define START_ARM GNUNET_YES
-
-#define VERBOSE GNUNET_NO
-
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 300)
 
-struct PeerContext
-{
-  struct GNUNET_CONFIGURATION_Handle *cfg;
-  struct GNUNET_PeerIdentity id;
-#if START_ARM
-  struct GNUNET_OS_Process *arm_proc;
-#endif
-};
-
-static struct PeerContext p1;
 
 /**
  * Return value for 'main'.
@@ -94,7 +80,6 @@ struct CBC
 };
 
 static struct CBC cbc;
-
 
 
 static size_t
@@ -388,7 +373,7 @@ mhd_main ()
 
 
 static void
-run (void *cls, char *const *args, const char *cfgfile,
+run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct in_addr v4;
@@ -435,41 +420,6 @@ run (void *cls, char *const *args, const char *cfgfile,
 }
 
 
-static void
-setup_peer (struct PeerContext *p, const char *cfgname)
-{
-  p->cfg = GNUNET_CONFIGURATION_create ();
-#if START_ARM
-  p->arm_proc =
-      GNUNET_OS_start_process (GNUNET_YES, NULL, NULL, "gnunet-service-arm",
-                               "gnunet-service-arm",
-                               "-c", cfgname, NULL);
-#endif
-  GNUNET_assert (NULL != p->arm_proc);
-  GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
-}
-
-
-static void
-stop_peer (struct PeerContext *p)
-{
-#if START_ARM
-  if (NULL != p->arm_proc)
-  {
-    if (0 != GNUNET_OS_process_kill (p->arm_proc, SIGTERM))
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-    if (GNUNET_OS_process_wait (p->arm_proc) != GNUNET_OK)
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ARM process %u stopped\n",
-                GNUNET_OS_process_get_pid (p->arm_proc));
-    GNUNET_OS_process_destroy (p->arm_proc);
-    p->arm_proc = NULL;
-  }
-#endif
-  GNUNET_CONFIGURATION_destroy (p->cfg);
-}
-
-
 /**
  * Test if the given AF is supported by this system.
  * 
@@ -494,21 +444,11 @@ test_af (int af)
 }
 
 
-
 int
 main (int argc, char *const *argv)
 {
   const char *type;
   const char *bin;
-  char *const argvx[] = {
-    "test_gnunet_vpn",
-    "-c",
-    "test_gnunet_vpn.conf",
-    NULL
-  };
-  struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_OPTION_END
-  };
   
   if (0 != ACCESS ("/dev/net/tun", R_OK))
   {
@@ -577,20 +517,15 @@ main (int argc, char *const *argv)
 	     "Required address families not supported by this system, skipping test.\n");
     return 0;
   }
-
-
   if (0 != curl_global_init (CURL_GLOBAL_WIN32))
   {
     fprintf (stderr, "failed to initialize curl\n");
     return 2;
   }
-  setup_peer (&p1, "test_gnunet_vpn.conf");
-  GNUNET_log_setup ("test_gnunet_vpn",
-                    "WARNING",
-                    NULL);
-  GNUNET_PROGRAM_run ((sizeof (argvx) / sizeof (char *)) - 1, argvx,
-                      "test_gnunet_vpn", "nohelp", options, &run, NULL);
-  stop_peer (&p1);
+  if (0 != GNUNET_TESTING_peer_run ("test-gnunet-vpn",
+				    "test_gnunet_vpn.conf",
+				    &run, NULL))
+    return 1;
   GNUNET_DISK_directory_remove ("/tmp/gnunet-test-vpn");
   return global_ret;
 }
