@@ -73,6 +73,7 @@ test_nse_api_SOURCES = \
  test_nse_api.c
 test_nse_api_LDADD = \
   $(top_builddir)/src/nse/libgnunetnse.la \
+  $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la 
 
 test_nse_multipeer_SOURCES = \
