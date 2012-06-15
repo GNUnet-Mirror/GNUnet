@@ -17,19 +17,16 @@
      Free Software Foundation, Inc., 59 Temple Place - Suite 330,
      Boston, MA 02111-1307, USA.
 */
-
 /**
  * @file fs/test_fs_uri.c
  * @brief Test for fs_uri.c
  * @author Christian Grothoff
  */
-
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_fs_service.h"
 #include "fs_api.h"
 
-#define ABORT() { fprintf(stderr, "Error at %s:%d\n", __FILE__, __LINE__); return 1; }
 
 static int
 testKeyword ()
@@ -41,26 +38,26 @@ testKeyword ()
   if (NULL != (ret = GNUNET_FS_uri_parse ("gnunet://fs/ksk/++", &emsg)))
   {
     GNUNET_FS_uri_destroy (ret);
-    ABORT ();
+    GNUNET_assert (0);
   }
   GNUNET_free (emsg);
   ret = GNUNET_FS_uri_parse ("gnunet://fs/ksk/foo+bar", &emsg);
   if (ret == NULL)
   {
     GNUNET_free (emsg);
-    ABORT ();
+    GNUNET_assert (0);
   }
   if (!GNUNET_FS_uri_test_ksk (ret))
   {
     GNUNET_FS_uri_destroy (ret);
-    ABORT ();
+    GNUNET_assert (0);
   }
   if ((2 != ret->data.ksk.keywordCount) ||
       (0 != strcmp (" foo", ret->data.ksk.keywords[0])) ||
       (0 != strcmp (" bar", ret->data.ksk.keywords[1])))
   {
     GNUNET_FS_uri_destroy (ret);
-    ABORT ();
+    GNUNET_assert (0);
   }
 
   uri = GNUNET_FS_uri_to_string (ret);
@@ -68,12 +65,13 @@ testKeyword ()
   {
     GNUNET_free (uri);
     GNUNET_FS_uri_destroy (ret);
-    ABORT ();
+    GNUNET_assert (0);
   }
   GNUNET_free (uri);
   GNUNET_FS_uri_destroy (ret);
   return 0;
 }
+
 
 static int
 testLocation ()
@@ -157,6 +155,7 @@ testLocation ()
   return 0;
 }
 
+
 static int
 testNamespace (int i)
 {
@@ -170,7 +169,7 @@ testNamespace (int i)
                             &emsg)))
   {
     GNUNET_FS_uri_destroy (ret);
-    ABORT ();
+    GNUNET_assert (0);
   }
   GNUNET_free (emsg);
   if (NULL !=
@@ -179,13 +178,13 @@ testNamespace (int i)
        ("gnunet://fs/sks/D1KJS9H2A82Q65VKQ0ML3RFU6U1D3V/test", &emsg)))
   {
     GNUNET_FS_uri_destroy (ret);
-    ABORT ();
+    GNUNET_assert (0);
   }
   GNUNET_free (emsg);
   if (NULL != (ret = GNUNET_FS_uri_parse ("gnunet://fs/sks/test", &emsg)))
   {
     GNUNET_FS_uri_destroy (ret);
-    ABORT ();
+    GNUNET_assert (0);
   }
   GNUNET_free (emsg);
   ret =
@@ -195,17 +194,17 @@ testNamespace (int i)
   if (ret == NULL)
   {
     GNUNET_free (emsg);
-    ABORT ();
+    GNUNET_assert (0);
   }
   if (GNUNET_FS_uri_test_ksk (ret))
   {
     GNUNET_FS_uri_destroy (ret);
-    ABORT ();
+    GNUNET_assert (0);
   }
   if (!GNUNET_FS_uri_test_sks (ret))
   {
     GNUNET_FS_uri_destroy (ret);
-    ABORT ();
+    GNUNET_assert (0);
   }
 
   uri = GNUNET_FS_uri_to_string (ret);
@@ -215,7 +214,7 @@ testNamespace (int i)
   {
     GNUNET_FS_uri_destroy (ret);
     GNUNET_free (uri);
-    ABORT ();
+    GNUNET_assert (0);
   }
   GNUNET_free (uri);
   GNUNET_FS_uri_destroy (ret);
@@ -236,7 +235,7 @@ testFile (int i)
         &emsg)))
   {
     GNUNET_FS_uri_destroy (ret);
-    ABORT ();
+    GNUNET_assert (0);
   }
   GNUNET_free (emsg);
   if (NULL !=
@@ -246,7 +245,7 @@ testFile (int i)
         &emsg)))
   {
     GNUNET_FS_uri_destroy (ret);
-    ABORT ();
+    GNUNET_assert (0);
   }
   GNUNET_free (emsg);
   if (NULL !=
@@ -256,7 +255,7 @@ testFile (int i)
         &emsg)))
   {
     GNUNET_FS_uri_destroy (ret);
-    ABORT ();
+    GNUNET_assert (0);
   }
   GNUNET_free (emsg);
   ret =
@@ -266,22 +265,22 @@ testFile (int i)
   if (ret == NULL)
   {
     GNUNET_free (emsg);
-    ABORT ();
+    GNUNET_assert (0);
   }
   if (GNUNET_FS_uri_test_ksk (ret))
   {
     GNUNET_FS_uri_destroy (ret);
-    ABORT ();
+    GNUNET_assert (0);
   }
   if (GNUNET_FS_uri_test_sks (ret))
   {
     GNUNET_FS_uri_destroy (ret);
-    ABORT ();
+    GNUNET_assert (0);
   }
   if (GNUNET_ntohll (ret->data.chk.file_length) != 42)
   {
     GNUNET_FS_uri_destroy (ret);
-    ABORT ();
+    GNUNET_assert (0);
   }
 
   uri = GNUNET_FS_uri_to_string (ret);
@@ -291,12 +290,13 @@ testFile (int i)
   {
     GNUNET_free (uri);
     GNUNET_FS_uri_destroy (ret);
-    ABORT ();
+    GNUNET_assert (0);
   }
   GNUNET_free (uri);
   GNUNET_FS_uri_destroy (ret);
   return 0;
 }
+
 
 int
 main (int argc, char *argv[])
@@ -305,11 +305,7 @@ main (int argc, char *argv[])
   int i;
 
   GNUNET_log_setup ("test_fs_uri",
-#if VERBOSE
-                    "DEBUG",
-#else
                     "WARNING",
-#endif
                     NULL);
   GNUNET_CRYPTO_random_disable_entropy_gathering ();
   failureCount += testKeyword ();

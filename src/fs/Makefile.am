@@ -327,36 +327,42 @@ test_fs_namespace_list_updateable_LDADD = \
 test_fs_publish_SOURCES = \
  test_fs_publish.c
 test_fs_publish_LDADD = \
+  $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/fs/libgnunetfs.la  \
   $(top_builddir)/src/util/libgnunetutil.la  
 
 test_fs_publish_persistence_SOURCES = \
  test_fs_publish_persistence.c
 test_fs_publish_persistence_LDADD = \
+  $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/fs/libgnunetfs.la  \
   $(top_builddir)/src/util/libgnunetutil.la  
 
 test_fs_search_SOURCES = \
  test_fs_search.c
 test_fs_search_LDADD = \
+  $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/fs/libgnunetfs.la	\
   $(top_builddir)/src/util/libgnunetutil.la
 
 test_fs_search_probes_SOURCES = \
  test_fs_search_probes.c
 test_fs_search_probes_LDADD = \
+  $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/fs/libgnunetfs.la	\
   $(top_builddir)/src/util/libgnunetutil.la
 
 test_fs_search_persistence_SOURCES = \
  test_fs_search_persistence.c
 test_fs_search_persistence_LDADD = \
+  $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/fs/libgnunetfs.la	\
   $(top_builddir)/src/util/libgnunetutil.la
 
 test_fs_start_stop_SOURCES = \
  test_fs_start_stop.c
 test_fs_start_stop_LDADD = \
+  $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/fs/libgnunetfs.la  \
   $(top_builddir)/src/util/libgnunetutil.la  
 
