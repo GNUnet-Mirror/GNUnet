@@ -18,17 +18,10 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file ats/test_ats_api_scheduling.c
- * @brief test automatic transport selection scheduling API
+ * @file ats/test_ats_api_scheduling_add_address.c
+ * @brief test adding addresses in automatic transport selection scheduling API
  * @author Christian Grothoff
  * @author Matthias Wachs
- *
- * TODO:
- * - write test case
- * - extend API to get performance data
- * - implement simplistic strategy based on say 'lowest latency' or strict ordering
- * - extend API to get peer preferences, implement proportional bandwidth assignment
- * - re-implement API against a real ATS service (!)
  */
 #include "platform.h"
 #include "gnunet_ats_service.h"
@@ -223,4 +216,4 @@ main (int argc, char *argv[])
   return ret;
 }
 
-/* end of file test_ats_api_scheduling.c */
+/* end of file test_ats_api_scheduling_add_address.c */

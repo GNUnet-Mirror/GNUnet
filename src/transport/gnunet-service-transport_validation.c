@@ -661,7 +661,7 @@ add_valid_address (void *cls, const struct GNUNET_HELLO_Address *address,
 
   if (GNUNET_SCHEDULER_NO_TASK == ve->revalidation_task)
     ve->revalidation_task = GNUNET_SCHEDULER_add_now (&revalidate_address, ve);
-  GNUNET_ATS_address_update (GST_ats, address, NULL, NULL, 0);
+  GNUNET_ATS_address_add (GST_ats, address, NULL, NULL, 0);
   return GNUNET_OK;
 }
 
@@ -1094,7 +1094,7 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
 
     ats.type = htonl (GNUNET_ATS_QUALITY_NET_DELAY);
     ats.value = htonl ((uint32_t) ve->latency.rel_value);
-    GNUNET_ATS_address_update (GST_ats, ve->address, NULL, &ats, 1);
+    GNUNET_ATS_address_add (GST_ats, ve->address, NULL, &ats, 1);
   }
   /* build HELLO to store in PEERINFO */
   ve->copied = GNUNET_NO;

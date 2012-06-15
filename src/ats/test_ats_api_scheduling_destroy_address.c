@@ -18,17 +18,11 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file ats/test_ats_api_scheduling.c
- * @brief test automatic transport selection scheduling API
+ * @file ats/test_ats_api_scheduling_destroy_address.c
+ * @brief test destroying addresses in automatic transport selection scheduling API
  * @author Christian Grothoff
  * @author Matthias Wachs
  *
- * TODO:
- * - write test case
- * - extend API to get performance data
- * - implement simplistic strategy based on say 'lowest latency' or strict ordering
- * - extend API to get peer preferences, implement proportional bandwidth assignment
- * - re-implement API against a real ATS service (!)
  */
 #include "platform.h"
 #include "gnunet_ats_service.h"
@@ -45,6 +39,7 @@ struct GNUNET_OS_Process *arm_proc;
 
 
 static int ret;
+static int stage;
 
 struct Address
 {
@@ -67,9 +62,10 @@ struct PeerContext
   struct Address *addr;
 };
 
-struct Address addr[2];
-struct PeerContext p[2];
-struct GNUNET_ATS_Information atsi[2];
+struct Address addr;
+struct PeerContext p;
+struct GNUNET_ATS_Information atsi;
+struct GNUNET_HELLO_Address address0;
 
 static void
 stop_arm ()
@@ -107,7 +103,13 @@ end ()
 
   GNUNET_ATS_scheduling_done (ats);
 
-  ret = 0;
+  if (2 == stage)
+    ret = 0;
+  else
+  {
+    GNUNET_break (0);
+    ret = 1;
+  }
 
   stop_arm ();
 }
@@ -118,25 +120,39 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
                     struct Session *session,
                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-                    const struct GNUNET_ATS_Information *ats,
+                    const struct GNUNET_ATS_Information *atsi,
                     uint32_t ats_count)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ATS suggests address `%s'\n",
-              GNUNET_i2s (&address->peer));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stage %u: ATS suggests address `%s' session %p\n",
+              stage, GNUNET_i2s (&address->peer), session);
+  GNUNET_ATS_reset_backoff(ats, &address->peer);
 
   GNUNET_assert (0 ==
-                 memcmp (&address->peer, &p[0].id,
+                 memcmp (&address->peer, &p.id,
                          sizeof (struct GNUNET_PeerIdentity)));
-  GNUNET_assert (0 == strcmp (address->transport_name, addr[0].plugin));
-  GNUNET_assert (address->address_length == addr[0].addr_len);
+  GNUNET_assert (0 == strcmp (address->transport_name, addr.plugin));
+  GNUNET_assert (address->address_length == addr.addr_len);
   GNUNET_assert (0 ==
-                 memcmp (address->address, addr[0].plugin,
+                 memcmp (address->address, addr.plugin,
                          address->address_length));
-  GNUNET_assert (addr[0].session == session);
+  GNUNET_assert (addr.session == session);
 
-  ret = 0;
-
-  GNUNET_SCHEDULER_add_now (&end, NULL);
+  if (0 == stage)
+  {
+    /* Delete session */
+    GNUNET_ATS_address_destroyed (ats, &address0, addr.session);
+    addr.session = NULL;
+    GNUNET_ATS_suggest_address (ats, &p.id);
+  }
+  if (1 == stage)
+  {
+    /* Delete address */
+    GNUNET_ATS_address_destroyed (ats, &address0, addr.session);
+    addr.session = NULL;
+    GNUNET_ATS_suggest_address (ats, &p.id);
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &end, NULL);
+  }
+  stage++;
 }
 
 void
@@ -152,8 +168,6 @@ static void
 check (void *cls, char *const *args, const char *cfgfile,
        const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  struct GNUNET_HELLO_Address address0;
-
   ret = GNUNET_SYSERR;
 
   die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
@@ -170,55 +184,29 @@ check (void *cls, char *const *args, const char *cfgfile,
 
   /* set up peer */
   GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK,
-                                    &p[0].id.hashPubKey);
+                                    &p.id.hashPubKey);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created peer `%s'\n",
-              GNUNET_i2s (&p[0].id));
+              GNUNET_i2s (&p.id));
 
-  GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK,
-                                    &p[1].id.hashPubKey);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created peer `%s'\n",
-              GNUNET_i2s (&p[1].id));
+  addr.plugin = "test";
+  addr.session = &addr;
+  addr.addr = GNUNET_strdup ("test");
+  addr.addr_len = 4;
 
-  addr[0].plugin = "test";
-  addr[0].session = NULL;
-  addr[0].addr = GNUNET_strdup ("test");
-  addr[0].addr_len = 4;
+  /* Adding address with session */
+  address0.peer = p.id;
+  address0.transport_name = addr.plugin;
+  address0.address = addr.addr;
+  address0.address_length = addr.addr_len;
+  GNUNET_ATS_address_add (ats, &address0, addr.session, NULL, 0);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Testing address creation\n");
-
-  address0.peer = p[0].id;
-  address0.transport_name = addr[0].plugin;
-  address0.address = addr[0].addr;
-  address0.address_length = addr[0].addr_len;
-  GNUNET_ATS_address_add (ats, &address0, addr[0].session, NULL, 0);
-  GNUNET_ATS_address_update (ats, &address0, addr[0].session, NULL, 0);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Testing ATS info creation\n");
-
-  atsi[0].type = htonl (GNUNET_ATS_UTILIZATION_UP);
-  atsi[0].value = htonl (1024);
-
-  GNUNET_ATS_address_update (ats, &address0, addr[0].session, atsi, 1);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Testing ATS info update\n");
-
-  atsi[0].type = htonl (GNUNET_ATS_UTILIZATION_UP);
-  atsi[0].value = htonl (2048);
-
-  atsi[1].type = htonl (GNUNET_ATS_UTILIZATION_DOWN);
-  atsi[1].value = htonl (1024);
-
-  GNUNET_ATS_address_update (ats, &address0, addr[0].session, atsi, 2);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Requesting peer `%s'\n",
-              GNUNET_i2s (&p[0].id));
-  GNUNET_ATS_suggest_address (ats, &p[0].id);
+  GNUNET_ATS_suggest_address (ats, &p.id);
 }
 
 int
 main (int argc, char *argv[])
 {
-  static char *const argv2[] = { "test_ats_api_scheduling",
+  static char *const argv2[] = { "test_ats_api_scheduling_destroy_address",
     "-c",
     "test_ats_api.conf",
     "-L", "WARNING",
@@ -230,11 +218,11 @@ main (int argc, char *argv[])
   };
 
   GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
-                      "test_ats_api_scheduling", "nohelp", options, &check,
+                      "test_ats_api_scheduling_destroy_address", "nohelp", options, &check,
                       NULL);
 
 
   return ret;
 }
 
-/* end of file test_ats_api_scheduling.c */
+/* end of file test_ats_api_scheduling_destroy_address.c */

@@ -832,7 +832,7 @@ set_address (struct NeighbourAddress *na,
   if (GNUNET_YES == is_active)
   {
     /* Telling ATS about new session */
-    GNUNET_ATS_address_update (GST_ats, na->address, na->session, NULL, 0);
+    GNUNET_ATS_address_add (GST_ats, na->address, na->session, NULL, 0);
     GNUNET_ATS_address_in_use (GST_ats, na->address, na->session, GNUNET_YES);
     GST_validation_set_address_use (na->address, na->session, GNUNET_YES,  __LINE__);
 
@@ -1731,10 +1731,10 @@ handle_test_blacklist_cont (void *cls,
   if (GNUNET_OK == result)
   {
     /* valid new address, let ATS know! */
-    GNUNET_ATS_address_update (GST_ats, 
-			       bcc->na.address, 
-			       bcc->na.session, 
-			       bcc->ats, bcc->ats_count);
+    GNUNET_ATS_address_add (GST_ats,
+			    bcc->na.address,
+			    bcc->na.session,
+			    bcc->ats, bcc->ats_count);
   }
   if (NULL == (n = lookup_neighbour (peer)))
     goto cleanup; /* nobody left to care about new address */

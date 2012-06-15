@@ -273,6 +273,7 @@ check (void *cls, char *const *args, const char *cfgfile,
   hello_addr.transport_name = address.plugin;
   hello_addr.address = address.addr;
   hello_addr.address_length = address.addr_len;
+  GNUNET_ATS_address_add (ats, &hello_addr, address.session, NULL, 0);
   GNUNET_ATS_address_update (ats, &hello_addr, address.session, NULL, 0);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Requesting address for peer `%s'\n",
