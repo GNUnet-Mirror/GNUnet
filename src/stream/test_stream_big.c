@@ -284,7 +284,6 @@ input_processor (void *cls,
 static void
 stream_read_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct GNUNET_STREAM_Socket *socket = cls;
   struct PeerData *peer = cls;
 
   read_task = GNUNET_SCHEDULER_NO_TASK;
