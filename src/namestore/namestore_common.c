@@ -319,6 +319,13 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
   uint32_t soa_retry;
   uint32_t soa_expire;
   uint32_t soa_min;
+  uint32_t *af;
+  uint32_t *proto;
+  char* vpn_str;
+  struct GNUNET_HashCode *h_peer;
+  struct GNUNET_HashCode *h_serv;
+  struct GNUNET_CRYPTO_HashAsciiEncoded s_peer;
+  struct GNUNET_CRYPTO_HashAsciiEncoded s_serv;
 
   switch (type)
   {
@@ -377,7 +384,16 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
   case GNUNET_NAMESTORE_TYPE_LEHO:
     return GNUNET_strndup (data, data_size);
   case GNUNET_NAMESTORE_TYPE_VPN:
-    return GNUNET_strndup (data, data_size);
+    af = (uint32_t*)data;
+    proto = (uint32_t*)((char*)af + sizeof (uint32_t));
+    h_peer = (struct GNUNET_HashCode*)((char*)proto + sizeof (struct GNUNET_HashCode));
+    h_serv = (struct GNUNET_HashCode*)((char*)h_peer + sizeof (struct GNUNET_HashCode));
+
+    GNUNET_CRYPTO_hash_to_enc (h_peer, &s_peer);
+    GNUNET_CRYPTO_hash_to_enc (h_serv, &s_serv);
+    if (GNUNET_OK != GNUNET_asprintf (&vpn_str, "%d:%d:%s:%s", af, proto, (char*)&s_peer, (char*)&s_serv))
+      return NULL;
+    return vpn_str;
   default:
     GNUNET_break (0);
   }
@@ -416,11 +432,12 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
   uint32_t soa_retry;
   uint32_t soa_expire;
   uint32_t soa_min;
-  struct GNUNET_HashCode hash;
+  struct GNUNET_HashCode *h_peer;
+  struct GNUNET_HashCode *h_serv;
   struct GNUNET_CRYPTO_HashAsciiEncoded s_peer;
   struct GNUNET_CRYPTO_HashAsciiEncoded s_serv;
-  int af;
-  int proto;
+  uint32_t* af;
+  uint32_t* proto;
   
   switch (type)
   {
@@ -503,18 +520,26 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
     *data_size = strlen (s);
     return GNUNET_OK;
   case GNUNET_NAMESTORE_TYPE_VPN:
+    
+    *data_size = sizeof (uint32_t) * 2;
+    *data_size += sizeof (struct GNUNET_HashCode) * 2;
+    *data = GNUNET_malloc (*data_size);
+    af = (uint32_t*)(*data);
+    proto = (uint32_t*) ((char*)af + sizeof (uint32_t));
+    h_peer = (struct GNUNET_HashCode*)((char*)proto + sizeof (uint32_t));
+    h_serv = (struct GNUNET_HashCode*)((char*)h_peer + sizeof (struct GNUNET_HashCode));
+    
     if (4 != SSCANF (s,"%d:%d:%s:%s",
-                     &af, &proto, (char*)&s_peer, (char*)&s_serv))
+                     af, proto, (char*)&s_peer, (char*)&s_serv))
     {
       return GNUNET_SYSERR;
     }
-    if ((GNUNET_OK != GNUNET_CRYPTO_hash_from_string ((char*)&s_peer, &hash)) ||
-        (GNUNET_OK != GNUNET_CRYPTO_hash_from_string ((char*)&s_serv, &hash)))
+    if ((GNUNET_OK != GNUNET_CRYPTO_hash_from_string ((char*)&s_peer, h_peer)) ||
+        (GNUNET_OK != GNUNET_CRYPTO_hash_from_string ((char*)&s_serv, h_serv)))
     {
+      GNUNET_free (*data);
       return GNUNET_SYSERR;
     }
-    *data = GNUNET_strdup (s);
-    *data_size = strlen (s);
     return GNUNET_OK;
   default:
     GNUNET_break (0);

@@ -1593,6 +1593,8 @@ resolve_record_vpn (struct ResolverHandle *rh,
   struct GNUNET_CRYPTO_HashAsciiEncoded s_pid;
   struct GNUNET_HashCode serv_desc;
   struct GNUNET_CRYPTO_HashAsciiEncoded s_sd;
+  char* pos;
+  size_t len = (sizeof (uint32_t) * 2) + (sizeof (struct GNUNET_HashCode) * 2);
   
   /* We cancel here as to not include the ns lookup in the timeout */
   if (rh->timeout_task != GNUNET_SCHEDULER_NO_TASK)
@@ -1611,8 +1613,7 @@ resolve_record_vpn (struct ResolverHandle *rh,
   }
 
   /* Extracting VPN information FIXME rd parsing with NS API?*/
-  if (4 != SSCANF ((char*)rd, "%d:%d:%s:%s", &af, &proto,
-                   (char*)&s_pid, (char*)&s_sd))
+  if (len != rd->data_size)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "GNS_PHASE_REC_VPN-%llu: Error parsing VPN RR!\n",
@@ -1620,6 +1621,16 @@ resolve_record_vpn (struct ResolverHandle *rh,
     rh->proc(rh->proc_cls, rh, 0, NULL);
     return;
   }
+
+  pos = (char*)rd;
+  memcpy (&af, pos, sizeof (uint32_t));
+  pos += sizeof (uint32_t);
+  memcpy (&proto, pos, sizeof (uint32_t));
+  pos += sizeof (uint32_t);
+  memcpy (&s_pid, pos, sizeof (struct GNUNET_HashCode));
+  pos += sizeof (struct GNUNET_HashCode);
+  memcpy (&s_sd, pos, sizeof (struct GNUNET_HashCode));
+
 
   if ((GNUNET_OK != GNUNET_CRYPTO_hash_from_string ((char*)&s_pid, &peer_id)) ||
       (GNUNET_OK != GNUNET_CRYPTO_hash_from_string ((char*)&s_sd, &serv_desc)))
