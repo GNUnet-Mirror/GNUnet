@@ -31,6 +31,7 @@
 #include "gnunet_dns_service.h"
 #include "gnunet_dht_service.h"
 #include "gnunet_namestore_service.h"
+#include "gnunet_vpn_service.h"
 #include "gnunet_dns_service.h"
 #include "gnunet_dnsparser_lib.h"
 #include "gnunet_gns_service.h"
@@ -47,6 +48,11 @@
  * Our handle to the namestore service
  */
 static struct GNUNET_NAMESTORE_Handle *namestore_handle;
+
+/**
+ * Our handle to the vpn service
+ */
+static struct GNUNET_VPN_Handle *vpn_handle;
 
 /**
  * Resolver handle to the dht
@@ -1166,11 +1172,202 @@ process_record_result_ns(void* cls,
 
 
 /**
+ * VPN redirect result callback
+ *
+ * @param cls the resolver handle
+ * @param af the requested address family
+ * @param address in_addr(6) respectively
+ */
+static void
+process_record_result_vpn (void* cls, int af, const void *address)
+{
+  struct ResolverHandle *rh = cls;
+  struct RecordLookupHandle *rlh;
+  struct GNUNET_NAMESTORE_RecordData rd;
+
+  rlh = (struct RecordLookupHandle *)rh->proc_cls;
+
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "GNS_PHASE_REC_VPN-%d: Got answer from VPN to query!\n",
+             rh->id);
+  if (af == AF_INET)
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "GNS_PHASE_REC-%d: Answer is IPv4!\n",
+               rh->id);
+    if (rlh->record_type != GNUNET_GNS_RECORD_TYPE_A)
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                 "GNS_PHASE_REC-%d: Requested record is not IPv4!\n",
+                 rh->id);
+      rh->proc (rh->proc_cls, rh, 0, NULL);
+      return;
+    }
+    rd.record_type = GNUNET_GNS_RECORD_TYPE_A;
+    rd.expiration = GNUNET_TIME_UNIT_FOREVER_ABS;
+    rd.data = address;
+    rd.data_size = sizeof (struct in_addr);
+    rd.flags = 0;
+    rh->proc (rh->proc_cls, rh, 1, &rd);
+    return;
+  }
+  else if (af == AF_INET6)
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "GNS_PHASE_REC-%d: Answer is IPv6!\n",
+               rh->id);
+    if (rlh->record_type != GNUNET_GNS_RECORD_AAAA)
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                 "GNS_PHASE_REC-%d: Requested record is not IPv6!\n",
+                 rh->id);
+      rh->proc (rh->proc_cls, rh, 0, NULL);
+      return;
+    }
+    rd.record_type = GNUNET_GNS_RECORD_AAAA;
+    rd.expiration = GNUNET_TIME_UNIT_FOREVER_ABS;
+    rd.data = address;
+    rd.data_size = sizeof (struct in6_addr);
+    rd.flags = 0;
+    rh->proc (rh->proc_cls, rh, 1, &rd);
+    return;
+  }
+  
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "GNS_PHASE_REC-%d: Got garbage from VPN!\n",
+             rh->id);
+  rh->proc (rh->proc_cls, rh, 0, NULL);
+}
+
+
+/**
+ * finish lookup
+ *
+ * @param rh resolver handle
+ * @param rlh record lookup handle
+ * @param rd_cound number of results
+ * @param rd results
+ */
+static void
+finish_lookup(struct ResolverHandle *rh,
+              struct RecordLookupHandle* rlh,
+              unsigned int rd_count,
+              const struct GNUNET_NAMESTORE_RecordData *rd);
+
+/**
+ * Process VPN lookup result for record
+ *
+ * @param cls the record lookup handle
+ * @param rh resolver handle
+ * @param rd_count number of results (1)
+ * @param rd record data containing the result
+ */
+static void
+handle_record_vpn (void* cls, struct ResolverHandle *rh,
+                   unsigned int rd_count,
+                   const struct GNUNET_NAMESTORE_RecordData *rd)
+{
+  struct RecordLookupHandle* rlh = (struct RecordLookupHandle*) cls;
+  
+  if (rd_count == 0)
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "GNS_PHASE_REC_VPN-%d: VPN returned no records. (status: %d)!\n",
+               rh->id,
+               rh->status);
+    /* give up, cannot resolve */
+    finish_lookup(rh, rlh, 0, NULL);
+    free_resolver_handle(rh);
+    return;
+  }
+
+  /* results found yay */
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "GNS_PHASE_REC_VPN-%d: Record resolved from VPN!", rh->id);
+
+  finish_lookup(rh, rlh, rd_count, rd);
+
+  free_resolver_handle(rh);
+}
+
+
+/**
+ * The final phase of resoution.
+ * We found a VPN RR and want to request an IPv4/6 address
+ *
+ * @param rh the pending lookup handle
+ * @param rd_count length of record data
+ * @param rd record data containing VPN RR
+ */
+static void
+resolve_record_vpn (struct ResolverHandle *rh,
+                    int rd_count,
+                    const struct GNUNET_NAMESTORE_RecordData *rd)
+{
+  int af;
+  int proto;
+  struct GNUNET_HashCode peer_id;
+  struct GNUNET_CRYPTO_HashAsciiEncoded s_pid;
+  struct GNUNET_HashCode serv_desc;
+  struct GNUNET_CRYPTO_HashAsciiEncoded s_sd;
+  
+  /* We cancel here as to not include the ns lookup in the timeout */
+  if (rh->timeout_task != GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel(rh->timeout_task);
+    rh->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  /* Start shortening */
+  if ((rh->priv_key != NULL) && is_canonical (rh->name))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+             "GNS_PHASE_REC_VPN-%llu: Trying to shorten authority chain\n",
+             rh->id);
+             start_shorten (rh->authority_chain_tail,
+             rh->priv_key);
+  }
+
+  /* Extracting VPN information FIXME rd parsing with NS API?*/
+  if (4 != SSCANF ((char*)rd, "%d:%d:%s:%s", &af, &proto,
+                   (char*)&s_pid, (char*)&s_sd))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "GNS_PHASE_REC_VPN-%llu: Error parsing VPN RR!\n",
+                rh->id);
+    rh->proc(rh->proc_cls, rh, 0, NULL);
+    return;
+  }
+
+  if ((GNUNET_OK != GNUNET_CRYPTO_hash_from_string ((char*)&s_pid, &peer_id)) ||
+      (GNUNET_OK != GNUNET_CRYPTO_hash_from_string ((char*)&s_sd, &serv_desc)))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "GNS_PHASE_REC_VPN-%llu: Error parsing VPN RR hashes!\n",
+                rh->id);
+    rh->proc(rh->proc_cls, rh, 0, NULL);
+    return;
+  }
+
+  rh->proc = &handle_record_vpn;
+  
+  //FIXME timeout??
+  rh->vpn_handle = GNUNET_VPN_redirect_to_peer (vpn_handle,
+                                          af, proto,
+                                          (struct GNUNET_PeerIdentity*)&peer_id,
+                                          &serv_desc,
+                                          GNUNET_NO, //nac
+                                          GNUNET_TIME_UNIT_FOREVER_ABS, //FIXME
+                                          &process_record_result_vpn,
+                                          rh);
+
+}
+
+/**
  * The final phase of resolution.
  * rh->name is a name that is canonical and we do not have a delegation.
  * Query namestore for this record
  *
- * @param rh the pending lookup
+ * @param rh the pending lookup handle
  */
 static void
 resolve_record_ns(struct ResolverHandle *rh)
@@ -1665,6 +1862,8 @@ handle_record_dht(void* cls, struct ResolverHandle *rh,
 }
 
 
+
+
 /**
  * Process namestore lookup result for record.
  *
@@ -1674,9 +1873,9 @@ handle_record_dht(void* cls, struct ResolverHandle *rh,
  * @param rd record data
  */
 static void
-handle_record_ns(void* cls, struct ResolverHandle *rh,
-                       unsigned int rd_count,
-                       const struct GNUNET_NAMESTORE_RecordData *rd)
+handle_record_ns (void* cls, struct ResolverHandle *rh,
+                  unsigned int rd_count,
+                  const struct GNUNET_NAMESTORE_RecordData *rd)
 {
   struct RecordLookupHandle* rlh;
   rlh = (struct RecordLookupHandle*) cls;
@@ -1956,9 +2155,25 @@ handle_delegation_ns(void* cls, struct ResolverHandle *rh,
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
               "GNS_PHASE_DELEGATE_NS-%llu: Resolved full name for delegation.\n",
               rh->id);
-    strcpy(rh->name, "+\0");
-    rh->proc = &handle_record_ns;
-    resolve_record_ns(rh);
+
+    if (rh->status & RSL_DELEGATE_VPN)
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "GNS_PHASE_DELEGATE_NS-%llu: VPN delegation starting.\n",
+             rh->id);
+      GNUNET_assert (NULL != rd);
+      rh->proc = &handle_record_vpn;
+      resolve_record_vpn (rh, rd_count, rd);
+    }
+    else
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                 "GNS_PHASE_DELEGATE_NS-%llu: Resolving record +\n",
+                 rh->id);
+      strcpy(rh->name, "+\0");
+      rh->proc = &handle_record_ns;
+      resolve_record_ns(rh);
+    }
     return;
   }
 
@@ -2118,6 +2333,18 @@ process_delegation_result_ns(void* cls,
   int i;
   for (i=0; i<rd_count;i++)
   {
+    /**
+     * Redirect via VPN
+     */
+    if (rd[i].record_type == GNUNET_GNS_RECORD_VPN)
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                 "GNS_PHASE_DELEGATE_NS-%llu: VPNRR found.\n",
+                 rh->id);
+      rh->status |= RSL_DELEGATE_VPN;
+      rh->proc(rh->proc_cls, rh, rd_count, rd);
+      return;
+    }
   
     if (rd[i].record_type != GNUNET_GNS_RECORD_PKEY)
       continue;
@@ -2127,8 +2354,8 @@ process_delegation_result_ns(void* cls,
     {
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
       "GNS_PHASE_DELEGATE_NS-%llu: PKEY for %s is pending user confirmation.\n",
-        name,
-        rh->id);
+        rh->id,
+        name);
       continue;
     }
     

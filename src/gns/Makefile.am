@@ -226,6 +226,7 @@ gnunet_service_gns_LDADD = \
 	$(top_builddir)/src/dns/libgnunetdnsparser.la \
 	$(top_builddir)/src/dht/libgnunetdht.la \
 	$(top_builddir)/src/namestore/libgnunetnamestore.la \
+	$(top_builddir)/src/vpn/libgnunetvpn.la \
   $(GN_LIBINTL)
 gnunet_service_gns_DEPENDENCIES = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
@@ -233,7 +234,8 @@ gnunet_service_gns_DEPENDENCIES = \
 	$(top_builddir)/src/dns/libgnunetdns.la \
 	$(top_builddir)/src/dns/libgnunetdnsparser.la \
 	$(top_builddir)/src/dht/libgnunetdht.la \
-	$(top_builddir)/src/namestore/libgnunetnamestore.la
+	$(top_builddir)/src/namestore/libgnunetnamestore.la \
+	$(top_builddir)/src/vpn/libgnunetvpn.la
 
 
 gnunet_gns_fcfsd_SOURCES = \

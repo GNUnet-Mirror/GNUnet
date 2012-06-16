@@ -93,7 +93,8 @@ enum ResolutionStatus
 {
   RSL_RECORD_EXISTS = 1,
   RSL_RECORD_EXPIRED = 2,
-  RSL_TIMED_OUT = 4
+  RSL_TIMED_OUT = 4,
+  RSL_DELEGATE_VPN = 8
 };
 
 /**
@@ -128,6 +129,9 @@ struct ResolverHandle
 
   /* timeout set for this lookup task */
   struct GNUNET_TIME_Relative timeout;
+
+  /* a handle to a vpn request */
+  struct GNUNET_VPN_RedirectionRequest *vpn_handle;
 
   /* timeout task for the lookup */
   GNUNET_SCHEDULER_TaskIdentifier timeout_task;
