@@ -64,6 +64,11 @@ extern "C"
 #define GNUNET_NAMESTORE_TYPE_LEHO 65538
 
 /**
+ * Record type for VPN resolution
+ */
+#define GNUNET_NAMESTORE_TYPE_VPN 65539
+
+/**
  * Entry in the queue.
  */
 struct GNUNET_NAMESTORE_QueueEntry;

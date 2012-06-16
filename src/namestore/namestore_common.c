@@ -376,6 +376,8 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
     return GNUNET_strndup (data, data_size);
   case GNUNET_NAMESTORE_TYPE_LEHO:
     return GNUNET_strndup (data, data_size);
+  case GNUNET_NAMESTORE_TYPE_VPN:
+    return GNUNET_strndup (data, data_size);
   default:
     GNUNET_break (0);
   }
@@ -414,6 +416,9 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
   uint32_t soa_retry;
   uint32_t soa_expire;
   uint32_t soa_min;
+  struct GNUNET_HashCode hash;
+  struct GNUNET_CRYPTO_HashAsciiEncoded s_peer, s_serv;
+  int af, proto;
   
   switch (type)
   {
@@ -492,6 +497,20 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
     *data_size = strlen (s);
     return GNUNET_OK;
   case GNUNET_NAMESTORE_TYPE_LEHO:
+    *data = GNUNET_strdup (s);
+    *data_size = strlen (s);
+    return GNUNET_OK;
+  case GNUNET_NAMESTORE_TYPE_VPN:
+    if (4 != SSCANF (s,"%d:%d:%s:%s",
+                     &af, &proto, (char*)&s_peer, (char*)&s_serv))
+    {
+      return GNUNET_SYSERR;
+    }
+    if ((GNUNET_OK != GNUNET_CRYPTO_hash_from_string ((char*)&s_peer, &hash)) ||
+        (GNUNET_OK != GNUNET_CRYPTO_hash_from_string ((char*)&s_serv, &hash)))
+    {
+      return GNUNET_SYSERR;
+    }
     *data = GNUNET_strdup (s);
     *data_size = strlen (s);
     return GNUNET_OK;
