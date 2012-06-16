@@ -720,6 +720,10 @@ free_resolver_handle(struct ResolverHandle* rh)
     GNUNET_free(ac);
     ac = ac_next;
   }
+  
+  if (NULL != rh->dns_raw_packet)
+    GNUNET_free (rh->dns_raw_packet);
+
   GNUNET_free(rh);
 }
 
