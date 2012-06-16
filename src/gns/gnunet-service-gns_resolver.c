@@ -1488,7 +1488,12 @@ resolve_record_dns (struct ResolverHandle *rh,
   {
     /* Synthesize dns name */
     if (rd[i].record_type == GNUNET_GNS_RECORD_TYPE_NS)
-      sprintf (rh->dns_name, "%s.%s", rh->name, (char*)rd[i].data);
+    {
+      if (0 == strcmp (rh->name, ""))
+        strcpy (rh->dns_name, (char*)rd[i].data);
+      else
+        sprintf (rh->dns_name, "%s.%s", rh->name, (char*)rd[i].data);
+    }
     /* The glue */
     if (rd[i].record_type == GNUNET_GNS_RECORD_TYPE_A)
       dnsip = *((struct in_addr*)rd[i].data);
