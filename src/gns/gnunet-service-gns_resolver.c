@@ -108,10 +108,7 @@ is_canonical(char* name)
 /**
  * Callback that shortens authorities
  *
- * @param name the name given by delegation
- * @param zone the authority
- * @param our_zone our local zone
- * @param key the private key of our authority
+ * @param gph the handle containing the name to shorten
  */
 static void
 shorten_authority_chain (struct GetPseuAuthorityHandle *gph);

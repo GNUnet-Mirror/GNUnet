@@ -1806,7 +1806,7 @@ accept_cb (void* cls, const struct sockaddr *addr, socklen_t addrlen)
  * correct. In most cases we need to start a new daemon
  *
  * @param h the handle to add to a daemon
- * @praram domain the domain the ssl daemon has to serve
+ * @param domain the domain the ssl daemon has to serve
  * @return MHD_YES on success
  */
 static int
