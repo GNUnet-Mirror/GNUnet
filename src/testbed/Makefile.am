@@ -26,9 +26,6 @@ gnunet_service_testbed_LDADD = $(XLIB) \
 gnunet_service_testbed_DEPENDENCIES = \
   libgnunettestbed.la
 
-dist_pkgcfg_DATA = \
-  testbed.conf
-
 lib_LTLIBRARIES = \
   libgnunettestbed.la
 
