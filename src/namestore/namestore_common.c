@@ -417,8 +417,10 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
   uint32_t soa_expire;
   uint32_t soa_min;
   struct GNUNET_HashCode hash;
-  struct GNUNET_CRYPTO_HashAsciiEncoded s_peer, s_serv;
-  int af, proto;
+  struct GNUNET_CRYPTO_HashAsciiEncoded s_peer;
+  struct GNUNET_CRYPTO_HashAsciiEncoded s_serv;
+  int af;
+  int proto;
   
   switch (type)
   {
