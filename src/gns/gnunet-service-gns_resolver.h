@@ -88,13 +88,16 @@ typedef void (*ResolutionResultProcessor) (void *cls,
  * RSL_RECORD_EXISTS: the name to lookup exists
  * RSL_RECORD_EXPIRED: the name in the record expired
  * RSL_TIMED_OUT: resolution timed out
+ * RSL_DELEGATE_VPN: Found VPN delegation
+ * RSL_DELEGATE_NS: Found NS delegation
  */
 enum ResolutionStatus
 {
   RSL_RECORD_EXISTS = 1,
   RSL_RECORD_EXPIRED = 2,
   RSL_TIMED_OUT = 4,
-  RSL_DELEGATE_VPN = 8
+  RSL_DELEGATE_VPN = 8,
+  RSL_DELEGATE_NS = 16
 };
 
 /**
@@ -132,6 +135,15 @@ struct ResolverHandle
 
   /* a handle to a vpn request */
   struct GNUNET_VPN_RedirectionRequest *vpn_handle;
+
+  /* a socket for a dns request */
+  struct GNUNET_NETWORK_Handle *dns_sock;
+
+  /* the address of the DNS server FIXME not needed? */
+  struct in_addr dns_ip;
+
+  /* pointer to raw dns query payload FIXME needs to be freed/NULL */
+  char *dns_raw_packet;
 
   /* timeout task for the lookup */
   GNUNET_SCHEDULER_TaskIdentifier timeout_task;

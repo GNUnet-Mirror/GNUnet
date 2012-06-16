@@ -1293,6 +1293,129 @@ handle_record_vpn (void* cls, struct ResolverHandle *rh,
 
 /**
  * The final phase of resoution.
+ * We found a NS RR and want to resolve via DNS
+ *
+ * @param rh the pending lookup handle
+ * @param rd_count length of record data
+ * @param rd record data containing VPN RR
+ */
+static void
+resolve_record_dns (struct ResolverHandle *rh,
+                    int rd_count,
+                    const struct GNUNET_NAMESTORE_RecordData *rd)
+{
+  struct GNUNET_DNSPARSER_Query query;
+  struct GNUNET_DNSPARSER_Packet packet;
+  struct GNUNET_DNSPARSER_Flags flags;
+  char dns_name[MAX_DNS_NAME_LENGTH];
+  struct in_addr dnsip;
+  struct sockaddr_in addr;
+  struct sockaddr *sa;
+  int i;
+  struct RecordLookupHandle *rlh = rh->proc_cls;
+  size_t packet_size;
+  
+  /* We cancel here as to not include the ns lookup in the timeout */
+  if (rh->timeout_task != GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel(rh->timeout_task);
+    rh->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  /* Start shortening */
+  if ((rh->priv_key != NULL) && is_canonical (rh->name))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+             "GNS_PHASE_REC_DNS-%llu: Trying to shorten authority chain\n",
+             rh->id);
+             start_shorten (rh->authority_chain_tail,
+             rh->priv_key);
+  }
+
+  for (i = 0; i < rd_count; i++)
+  {
+    /* Synthesize dns name */
+    if (rd[i].record_type == GNUNET_GNS_RECORD_TYPE_NS)
+      sprintf (dns_name, "%s.%s", rh->name, (char*)rd[i].data);
+    /* The glue */
+    if (rd[i].record_type == GNUNET_GNS_RECORD_TYPE_A)
+      dnsip = *((struct in_addr*)rd[i].data);
+  }
+  
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "GNS_PHASE_REC_DNS-%llu: Looking up %s from %s\n",
+              dns_name,
+              inet_ntoa (dnsip));
+  rh->dns_ip = dnsip;
+  rh->dns_sock = GNUNET_NETWORK_socket_create (AF_INET, SOCK_DGRAM, 0);
+  if (rh->dns_sock == NULL)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "GNS_PHASE_REC_DNS-%llu: Error creating udp socket for dns!\n",
+                rh->id);
+    rh->proc(rh->proc_cls, rh, 0, NULL);
+    return;
+  }
+
+  memset (&addr, 0, sizeof (struct sockaddr_in));
+  sa = (struct sockaddr *) &addr;
+  sa->sa_family = AF_INET;
+  if (GNUNET_OK != GNUNET_NETWORK_socket_bind (rh->dns_sock,
+                                               sa,
+                                               sizeof (struct sockaddr_in)))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "GNS_PHASE_REC_DNS-%llu: Error binding udp socket for dns!\n",
+                rh->id);
+    GNUNET_NETWORK_socket_close (rh->dns_sock);
+    rh->proc(rh->proc_cls, rh, 0, NULL);
+    return;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "GNS_PHASE_REC_DNS-%llu: NOT IMPLEMENTED!\n",
+              rh->id);
+  GNUNET_NETWORK_socket_close (rh->dns_sock);
+  rh->proc(rh->proc_cls, rh, 0, NULL);
+  /*TODO create dnsparser query, serialize, sendto, handle reply*/
+  query.name = dns_name;
+  query.type = rlh->record_type;
+  query.class = GNUNET_DNSPARSER_CLASS_INTERNET;
+  memset (&flags, 0, sizeof (flags));
+  flags.recursion_desired = 1;
+  flags.checking_disabled = 1;
+  packet.queries = &query;
+  packet.answers = NULL;
+  packet.authority_records = NULL;
+  packet.num_queries = 1;
+  packet.num_answers = 0;
+  packet.num_authority_records = 0;
+  packet.num_additional_records = 0;
+  packet.flags = flags;
+  packet.id = rh->id;
+  if (GNUNET_OK != GNUNET_DNSPARSER_pack (&packet,
+                                          UINT16_MAX,
+                                          &rh->dns_raw_packet,
+                                          &packet_size))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "GNS_PHASE_REC_DNS-%llu: Creating raw dns packet!\n",
+                rh->id);
+    GNUNET_NETWORK_socket_close (rh->dns_sock);
+    rh->proc(rh->proc_cls, rh, 0, NULL);
+    return;
+  }
+
+  
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "GNS_PHASE_REC_DNS-%llu: NOT IMPLEMENTED!\n",
+              rh->id);
+  GNUNET_free (rh->dns_raw_packet);
+  GNUNET_NETWORK_socket_close (rh->dns_sock);
+  rh->proc(rh->proc_cls, rh, 0, NULL);
+}
+
+
+/**
+ * The final phase of resoution.
  * We found a VPN RR and want to request an IPv4/6 address
  *
  * @param rh the pending lookup handle
@@ -2141,7 +2264,7 @@ handle_delegation_ns(void* cls, struct ResolverHandle *rh,
   
   if (strcmp(rh->name, "") == 0)
   {
-    if ((rlh->record_type == GNUNET_GNS_RECORD_PKEY))
+    if (rlh->record_type == GNUNET_GNS_RECORD_PKEY)
     {
       GNUNET_assert(rd_count == 1);
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
@@ -2158,12 +2281,39 @@ handle_delegation_ns(void* cls, struct ResolverHandle *rh,
 
     if (rh->status & RSL_DELEGATE_VPN)
     {
+      if (rlh->record_type == GNUNET_GNS_RECORD_VPN)
+      {
+        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                 "GNS_PHASE_DELEGATE_NS-%llu: Resolved queried VPNRR in NS.\n",
+                 rh->id);
+        finish_lookup(rh, rlh, rd_count, rd);
+        free_resolver_handle(rh);
+        return;
+      }
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
              "GNS_PHASE_DELEGATE_NS-%llu: VPN delegation starting.\n",
              rh->id);
       GNUNET_assert (NULL != rd);
       rh->proc = &handle_record_vpn;
       resolve_record_vpn (rh, rd_count, rd);
+    }
+    else if (rh->status & RSL_DELEGATE_NS)
+    {
+      if (rlh->record_type == GNUNET_GNS_RECORD_TYPE_NS)
+      {
+        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                   "GNS_PHASE_DELEGATE_NS-%llu: Resolved queried NSRR in NS.\n",
+                   rh->id);
+        finish_lookup(rh, rlh, rd_count, rd);
+        free_resolver_handle(rh);
+        return;
+      }
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                 "GNS_PHASE_DELEGATE_NS-%llu: VPN delegation starting.\n",
+                 rh->id);
+      GNUNET_assert (NULL != rd);
+      rh->proc = &handle_record_ns;
+      resolve_record_dns (rh, rd_count, rd);
     }
     else
     {
@@ -2342,8 +2492,21 @@ process_delegation_result_ns(void* cls,
                  "GNS_PHASE_DELEGATE_NS-%llu: VPNRR found.\n",
                  rh->id);
       rh->status |= RSL_DELEGATE_VPN;
-      rh->proc(rh->proc_cls, rh, rd_count, rd);
+      rh->proc (rh->proc_cls, rh, rd_count, rd);
       return;
+    }
+
+    /**
+     * Redirect via NS
+     * FIXME make optional
+     */
+    if (rd[i].record_type == GNUNET_GNS_RECORD_TYPE_NS)
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                 "GNS_PHASE_DELEGATE_NS-%llu: NS found.\n",
+                 rh->id);
+      rh->status |= RSL_DELEGATE_NS;
+      rh->proc (rh->proc_cls, rh, rd_count, rd);
     }
   
     if (rd[i].record_type != GNUNET_GNS_RECORD_PKEY)
