@@ -103,7 +103,13 @@ enum GNUNET_STREAM_Option
      * of '0' means to use the round-trip time (plus a tiny grace period);
      * this is also the default.
      */
-    GNUNET_STREAM_OPTION_INITIAL_RETRANSMIT_TIMEOUT
+    GNUNET_STREAM_OPTION_INITIAL_RETRANSMIT_TIMEOUT,
+
+    /**
+     * Option to set the write sequence number. Takes a uint32_t as parameter
+     * to set the value of the write sequence number
+     */
+    GNUNET_STREAM_OPTION_TESTING_SET_WRITE_SEQUENCE_NUMBER
   };
 
 
@@ -211,13 +217,15 @@ struct GNUNET_STREAM_ListenSocket;
  * @param listen_cb this function will be called when a peer tries to establish
  *            a stream with us
  * @param listen_cb_cls closure for listen_cb
+ * @param ... options to the stream, terminated by GNUNET_STREAM_OPTION_END
  * @return listen socket, NULL for any error
  */
 struct GNUNET_STREAM_ListenSocket *
 GNUNET_STREAM_listen (const struct GNUNET_CONFIGURATION_Handle *cfg,
                       GNUNET_MESH_ApplicationType app_port,
                       GNUNET_STREAM_ListenCallback listen_cb,
-                      void *listen_cb_cls);
+                      void *listen_cb_cls,
+                      ...);
 
 
 /**

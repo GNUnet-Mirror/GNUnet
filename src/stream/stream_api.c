@@ -301,6 +301,16 @@ struct GNUNET_STREAM_Socket
   GNUNET_MESH_ApplicationType app_port;
 
   /**
+   * Whether testing mode is active or not
+   */
+  int testing_active;
+
+  /**
+   * The write sequence number to be set incase of testing
+   */
+  uint32_t testing_set_write_sequence_number_value;
+
+  /**
    * The session id associated with this stream connection
    * FIXME: Not used currently, may be removed
    */
@@ -374,6 +384,21 @@ struct GNUNET_STREAM_ListenSocket
    * FIXME: Remove if not required!
    */
   GNUNET_MESH_ApplicationType port;
+
+  /**
+   * The retransmit timeout
+   */
+  struct GNUNET_TIME_Relative retransmit_timeout;
+  
+  /**
+   * Whether testing mode is active or not
+   */
+  int testing_active;
+
+  /**
+   * The write sequence number to be set incase of testing
+   */
+  uint32_t testing_set_write_sequence_number_value;
 };
 
 
@@ -2666,7 +2691,11 @@ new_tunnel_notify (void *cls,
   socket->session_id = 0;       /* FIXME */
   socket->state = STATE_INIT;
   socket->lsocket = lsocket;
-  
+  socket->retransmit_timeout = lsocket->retransmit_timeout;
+  socket->testing_active = lsocket->testing_active;
+  socket->testing_set_write_sequence_number_value =
+    lsocket->testing_set_write_sequence_number_value;
+    
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "%s: Peer %s initiated tunnel to us\n", 
        GNUNET_i2s (&socket->other_peer),
@@ -2777,6 +2806,7 @@ GNUNET_STREAM_open (const struct GNUNET_CONFIGURATION_Handle *cfg,
   /* Set defaults */
   socket->retransmit_timeout = 
     GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, default_timeout);
+  socket->testing_active = GNUNET_NO;
   va_start (vargs, open_cb_cls); /* Parse variable args */
   do {
     option = va_arg (vargs, enum GNUNET_STREAM_Option);
@@ -2786,6 +2816,11 @@ GNUNET_STREAM_open (const struct GNUNET_CONFIGURATION_Handle *cfg,
       /* Expect struct GNUNET_TIME_Relative */
       socket->retransmit_timeout = va_arg (vargs,
                                            struct GNUNET_TIME_Relative);
+      break;
+    case GNUNET_STREAM_OPTION_TESTING_SET_WRITE_SEQUENCE_NUMBER:
+      socket->testing_active = GNUNET_YES;
+      socket->testing_set_write_sequence_number_value = va_arg (vargs,
+                                                                uint32_t);
       break;
     case GNUNET_STREAM_OPTION_END:
       break;
@@ -3018,19 +3053,46 @@ GNUNET_STREAM_close (struct GNUNET_STREAM_Socket *socket)
  * @param listen_cb this function will be called when a peer tries to establish
  *            a stream with us
  * @param listen_cb_cls closure for listen_cb
+ * @param ... options to the stream, terminated by GNUNET_STREAM_OPTION_END
  * @return listen socket, NULL for any error
  */
 struct GNUNET_STREAM_ListenSocket *
 GNUNET_STREAM_listen (const struct GNUNET_CONFIGURATION_Handle *cfg,
                       GNUNET_MESH_ApplicationType app_port,
                       GNUNET_STREAM_ListenCallback listen_cb,
-                      void *listen_cb_cls)
+                      void *listen_cb_cls,
+                      ...)
 {
   /* FIXME: Add variable args for passing configration options? */
   struct GNUNET_STREAM_ListenSocket *lsocket;
   GNUNET_MESH_ApplicationType ports[] = {app_port, 0};
+  enum GNUNET_STREAM_Option option;
+  va_list vargs;
 
   lsocket = GNUNET_malloc (sizeof (struct GNUNET_STREAM_ListenSocket));
+  /* Set defaults */
+  lsocket->retransmit_timeout = 
+    GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, default_timeout);
+  lsocket->testing_active = GNUNET_NO;
+  va_start (vargs, listen_cb_cls);
+  do {
+    option = va_arg (vargs, enum GNUNET_STREAM_Option);
+    switch (option)
+    {
+    case GNUNET_STREAM_OPTION_INITIAL_RETRANSMIT_TIMEOUT:
+      lsocket->retransmit_timeout = va_arg (vargs,
+                                            struct GNUNET_TIME_Relative);
+      break;
+    case GNUNET_STREAM_OPTION_TESTING_SET_WRITE_SEQUENCE_NUMBER:
+      lsocket->testing_active = GNUNET_YES;
+      lsocket->testing_set_write_sequence_number_value = va_arg (vargs,
+                                                                 uint32_t);
+      break;
+    case GNUNET_STREAM_OPTION_END:
+      break;
+    }
+  } while (GNUNET_STREAM_OPTION_END != option);
+  va_end (vargs);
   lsocket->port = app_port;
   lsocket->listen_cb = listen_cb;
   lsocket->listen_cb_cls = listen_cb_cls;

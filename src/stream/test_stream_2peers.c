@@ -474,7 +474,8 @@ peergroup_ready (void *cls, const char *emsg)
   peer2_listen_socket = GNUNET_STREAM_listen (d2->cfg,
                                               10, /* App port */
                                               &stream_listen_cb,
-                                              NULL);
+                                              NULL,
+                                              GNUNET_STREAM_OPTION_END);
   GNUNET_assert (NULL != peer2_listen_socket);
 
   /* Connect to stream library */

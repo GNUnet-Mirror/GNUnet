@@ -373,7 +373,8 @@ test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   peer2_listen_socket = GNUNET_STREAM_listen (config_peer2,
                                               10, /* App port */
                                               &stream_listen_cb,
-                                              &peer2);
+                                              &peer2,
+                                              GNUNET_STREAM_OPTION_END);
   GNUNET_assert (NULL != peer2_listen_socket);
 
   /* Connect to stream library */
