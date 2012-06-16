@@ -98,6 +98,14 @@ void
 GNUNET_PEER_resolve (GNUNET_PEER_Id id, struct GNUNET_PeerIdentity *pid);
 
 
+#if 0                           /* keep Emacsens' auto-indent happy */
+{
+#endif
+#ifdef __cplusplus
+}
+#endif
+
+
 /* ifndef GNUNET_PEER_LIB_H */
 #endif
 /* end of gnunet_peer_lib.h */

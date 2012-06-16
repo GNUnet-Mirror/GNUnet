@@ -331,6 +331,15 @@ GNUNET_HELLO_get_id (const struct GNUNET_HELLO_Message *hello,
 struct GNUNET_MessageHeader *
 GNUNET_HELLO_get_header (struct GNUNET_HELLO_Message *hello);
 
+
+#if 0                           /* keep Emacsens' auto-indent happy */
+{
+#endif
+#ifdef __cplusplus
+}
+#endif
+
+
 /* ifndef GNUNET_HELLO_LIB_H */
 #endif
 /* end of gnunet_hello_lib.h */
