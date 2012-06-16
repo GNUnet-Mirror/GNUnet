@@ -1359,6 +1359,19 @@ read_dns_response (void *cls,
 
   for (i = 0; i < packet->num_answers; i++)
   {
+    /* http://tools.ietf.org/html/rfc1034#section-3.6.2 */
+    if (packet->authority_records[i].type == GNUNET_GNS_RECORD_TYPE_CNAME)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "CNAME... restarting query with %s\n",
+                  packet->answers[i].data.hostname
+                 );
+      strcpy (rh->dns_name, packet->answers[i].data.hostname);
+      send_dns_packet (rh);
+      GNUNET_DNSPARSER_free_packet (packet);
+      return;
+    }
+    
     if ((packet->answers[i].type == rlh->record_type) &&
         (0 == strcmp (packet->answers[i].name, rh->dns_name)))
     {
@@ -1379,6 +1392,7 @@ read_dns_response (void *cls,
 
   for (i = 0; i < packet->num_authority_records; i++)
   {
+    
     if (packet->authority_records[i].type == GNUNET_GNS_RECORD_TYPE_NS)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
