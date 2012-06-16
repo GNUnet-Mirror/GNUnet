@@ -1292,6 +1292,156 @@ handle_record_vpn (void* cls, struct ResolverHandle *rh,
 
 
 /**
+ * Sends a UDP dns query to a nameserver specified in the rh
+ * 
+ * @param rh the request handle
+ */
+static void
+send_dns_packet (struct ResolverHandle *rh);
+
+
+static void
+read_dns_response (void *cls,
+                   const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct ResolverHandle *rh = cls;
+  struct RecordLookupHandle *rlh = rh->proc_cls;
+  char buf[UINT16_MAX];
+  ssize_t r;
+  struct sockaddr_in addr;
+  socklen_t addrlen;
+  struct GNUNET_DNSPARSER_Packet *packet;
+  struct GNUNET_NAMESTORE_RecordData rd;
+  int found_delegation = GNUNET_NO;
+  char* delegation_name = NULL;
+  int i;
+
+  rh->dns_read_task = GNUNET_SCHEDULER_NO_TASK;
+  if (0 == (tc->reason & GNUNET_SCHEDULER_REASON_READ_READY))
+  {
+    /* timeout or shutdown */
+    rh->proc (rh->proc_cls, rh, 0, NULL);
+    GNUNET_NETWORK_socket_close (rh->dns_sock);
+    free_resolver_handle (rh);
+    return;
+  }
+
+  addrlen = sizeof (addr);
+  r = GNUNET_NETWORK_socket_recvfrom (rh->dns_sock,
+                                      buf, sizeof (buf),
+                                      (struct sockaddr*) &addr,
+                                      &addrlen);
+
+  if (-1 == r)
+  {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "recvfrom");
+    rh->proc (rh->proc_cls, rh, 0, NULL);
+    GNUNET_NETWORK_socket_close (rh->dns_sock);
+    free_resolver_handle (rh);
+    return;
+  }
+
+  packet = GNUNET_DNSPARSER_parse (buf, r);
+  
+  if (NULL == packet)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Failed to parse DNS reply!\n");
+    rh->proc (rh->proc_cls, rh, 0, NULL);
+    GNUNET_NETWORK_socket_close (rh->dns_sock);
+    free_resolver_handle (rh);
+    return;
+  }
+
+  for (i = 0; i < packet->num_answers; i++)
+  {
+    if ((packet->answers[i].type == rlh->record_type) &&
+        (0 == strcmp (packet->answers[i].name, rh->dns_name)))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Found record!\n");
+      rd.data = packet->answers[i].data.raw.data;
+      rd.data_size = packet->answers[i].data.raw.data_len;
+      rd.record_type = packet->answers[i].type;
+      rd.flags = 0;
+      rd.expiration = packet->answers[i].expiration_time;
+      rh->proc (rh->proc_cls, rh, 1, &rd);
+      GNUNET_NETWORK_socket_close (rh->dns_sock);
+      GNUNET_DNSPARSER_free_packet (packet);
+      free_resolver_handle (rh);
+      return;
+    }
+  }
+
+  for (i = 0; i < packet->num_authority_records; i++)
+  {
+    if (packet->authority_records[i].type == GNUNET_GNS_RECORD_TYPE_NS)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Found NS delegation!\n");
+      found_delegation = GNUNET_YES;
+      delegation_name = packet->authority_records[i].data.hostname;
+      break;
+    }
+  }
+
+  for (i = 0; i < packet->num_additional_records; i++)
+  {
+    if (found_delegation == GNUNET_NO)
+      break;
+
+    if ((packet->additional_records[i].type == GNUNET_GNS_RECORD_TYPE_A) &&
+        (0 == strcmp (packet->additional_records[i].name, delegation_name)))
+    {
+      GNUNET_assert (sizeof (struct in_addr) ==
+                     packet->authority_records[i].data.raw.data_len);
+      
+      rh->dns_addr.sin_addr =
+        *((struct in_addr*)packet->authority_records[i].data.raw.data);
+      send_dns_packet (rh);
+      GNUNET_DNSPARSER_free_packet (packet);
+      return;
+    }
+  }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Failed to parse DNS reply!\n");
+  rh->proc (rh->proc_cls, rh, 0, NULL);
+  GNUNET_NETWORK_socket_close (rh->dns_sock);
+  free_resolver_handle (rh);
+  GNUNET_DNSPARSER_free_packet (packet);
+  return;
+}
+
+/**
+ * Sends a UDP dns query to a nameserver specified in the rh
+ * 
+ * @param rh the request handle
+ */
+static void
+send_dns_packet (struct ResolverHandle *rh)
+{
+  struct GNUNET_NETWORK_FDSet *rset = GNUNET_NETWORK_fdset_create ();
+  GNUNET_NETWORK_fdset_set (rset, rh->dns_sock);
+  
+  GNUNET_NETWORK_socket_sendto (rh->dns_sock,
+                                rh->dns_raw_packet,
+                                rh->dns_raw_packet_size,
+                                (struct sockaddr*)&rh->dns_addr,
+                                sizeof (struct sockaddr_in));
+
+  rh->dns_read_task = GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+                                                    rh->timeout, //FIXME less?
+                                                    rset,
+                                                    NULL,
+                                                    &read_dns_response,
+                                                    rh);
+
+  GNUNET_NETWORK_fdset_destroy (rset);
+
+}
+
+/**
  * The final phase of resoution.
  * We found a NS RR and want to resolve via DNS
  *
@@ -1313,7 +1463,6 @@ resolve_record_dns (struct ResolverHandle *rh,
   struct sockaddr *sa;
   int i;
   struct RecordLookupHandle *rlh = rh->proc_cls;
-  size_t packet_size;
   
   /* We cancel here as to not include the ns lookup in the timeout */
   if (rh->timeout_task != GNUNET_SCHEDULER_NO_TASK)
@@ -1335,7 +1484,7 @@ resolve_record_dns (struct ResolverHandle *rh,
   {
     /* Synthesize dns name */
     if (rd[i].record_type == GNUNET_GNS_RECORD_TYPE_NS)
-      sprintf (dns_name, "%s.%s", rh->name, (char*)rd[i].data);
+      sprintf (rh->dns_name, "%s.%s", rh->name, (char*)rd[i].data);
     /* The glue */
     if (rd[i].record_type == GNUNET_GNS_RECORD_TYPE_A)
       dnsip = *((struct in_addr*)rd[i].data);
@@ -1345,7 +1494,6 @@ resolve_record_dns (struct ResolverHandle *rh,
               "GNS_PHASE_REC_DNS-%llu: Looking up %s from %s\n",
               dns_name,
               inet_ntoa (dnsip));
-  rh->dns_ip = dnsip;
   rh->dns_sock = GNUNET_NETWORK_socket_create (AF_INET, SOCK_DGRAM, 0);
   if (rh->dns_sock == NULL)
   {
@@ -1394,7 +1542,7 @@ resolve_record_dns (struct ResolverHandle *rh,
   if (GNUNET_OK != GNUNET_DNSPARSER_pack (&packet,
                                           UINT16_MAX,
                                           &rh->dns_raw_packet,
-                                          &packet_size))
+                                          &rh->dns_raw_packet_size))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "GNS_PHASE_REC_DNS-%llu: Creating raw dns packet!\n",
@@ -1404,6 +1552,14 @@ resolve_record_dns (struct ResolverHandle *rh,
     return;
   }
 
+  rh->dns_addr.sin_family = AF_INET;
+  rh->dns_addr.sin_port = htons (53); //domain
+  rh->dns_addr.sin_addr = dnsip;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+  rh->dns_addr.sin_len = (u_char) sizeof (struct sockaddr_in);
+#endif
+
+  send_dns_packet (rh);
   
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "GNS_PHASE_REC_DNS-%llu: NOT IMPLEMENTED!\n",

@@ -139,11 +139,20 @@ struct ResolverHandle
   /* a socket for a dns request */
   struct GNUNET_NETWORK_Handle *dns_sock;
 
+  /* a synthesized dns name */
+  char dns_name[MAX_DNS_NAME_LENGTH];
+
   /* the address of the DNS server FIXME not needed? */
-  struct in_addr dns_ip;
+  struct sockaddr_in dns_addr;
+
+  /* select task for DNS */
+  GNUNET_SCHEDULER_TaskIdentifier dns_read_task;
 
   /* pointer to raw dns query payload FIXME needs to be freed/NULL */
   char *dns_raw_packet;
+
+  /* size of the raw dns query */
+  size_t dns_raw_packet_size;
 
   /* timeout task for the lookup */
   GNUNET_SCHEDULER_TaskIdentifier timeout_task;
