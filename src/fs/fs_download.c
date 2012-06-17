@@ -1121,7 +1121,7 @@ process_result_with_request (void *cls, const struct GNUNET_HashCode * key,
       {
 	/* 'chkarr' does not have enough space for this chk_idx;
 	   internal error! */
-	GNUNET_break (0);
+	GNUNET_break (0); GNUNET_assert (0);
 	dc->emsg = GNUNET_strdup (_("internal error decoding tree"));
 	goto signal_error;
       }
@@ -1536,15 +1536,20 @@ create_download_request (struct DownloadRequest *parent,
    * from the start (rounded down), either because of the requested
    * file offset or because this IBlock is further along */
   if (dr_offset < file_start_offset)
-    head_skip = file_start_offset / child_block_size;
+  {
+    head_skip = (file_start_offset - dr_offset) / child_block_size;
+  }
   else
+  {
     head_skip = 0;
+  }
   
   /* calculate index of last block at this level that is interesting (rounded up) */
   dr->num_children = (file_start_offset + desired_length - dr_offset) / child_block_size;
   if (dr->num_children * child_block_size <
       file_start_offset + desired_length - dr_offset)
     dr->num_children++;       /* round up */
+  GNUNET_assert (dr->num_children > head_skip);
   dr->num_children -= head_skip;
   if (dr->num_children > CHK_PER_INODE)
     dr->num_children = CHK_PER_INODE; /* cap at max */
@@ -1562,10 +1567,12 @@ create_download_request (struct DownloadRequest *parent,
   dr->children =
     GNUNET_malloc (dr->num_children * sizeof (struct DownloadRequest *));
   for (i = 0; i < dr->num_children; i++)
+  {
     dr->children[i] =
       create_download_request (dr, i + head_skip, depth - 1,
 			       dr_offset + (i + head_skip) * child_block_size,
 			       file_start_offset, desired_length);
+  }
   return dr;
 }
 
