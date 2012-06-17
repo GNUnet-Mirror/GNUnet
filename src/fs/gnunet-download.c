@@ -75,6 +75,41 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
+ * Display progress bar (if tty).
+ *
+ * @param x current position in the download
+ * @param n total size of the download
+ * @param w desired number of steps in the progress bar
+ */
+static void 
+display_bar (unsigned long long x, 
+	     unsigned long long n, 
+	     unsigned int w)
+{
+  char buf[w + 20];
+  unsigned int p;
+  unsigned int endeq;
+  float ratio_complete;
+
+#ifndef MINGW
+  if (0 == isatty (1))
+    return;
+#endif
+  ratio_complete = x/(float)n;
+  endeq = ratio_complete * w;
+  GNUNET_snprintf (buf, sizeof (buf),
+		   "%3d%% [", (int)(ratio_complete*100) );
+  for (p=0; p<endeq; p++)
+    strcat (buf, "=");
+  for (p=endeq; p<w; p++)
+    strcat (buf, " ");
+  strcat (buf, "]\r");
+  printf (buf);
+  fflush(stdout);
+}
+
+
+/**
  * Called by FS client to give information about the progress of an
  * operation.
  *
@@ -123,6 +158,12 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
       GNUNET_free (s);
       GNUNET_free (s2);
       GNUNET_free (t);
+    }
+    else
+    {
+      display_bar (info->value.download.completed,
+		   info->value.download.size,
+		   60);
     }
     break;
   case GNUNET_FS_STATUS_DOWNLOAD_ERROR:
