@@ -635,6 +635,8 @@ gns_resolver_init(struct GNUNET_NAMESTORE_Handle *nh,
     GNUNET_CONTAINER_heap_create(GNUNET_CONTAINER_HEAP_ORDER_MIN);
   max_allowed_background_queries = max_bg_queries;
   ignore_pending_records = ignore_pending;
+
+  GNUNET_RESOLVER_connect (cfg);
   
   if (NULL == vpn_handle)
   {
