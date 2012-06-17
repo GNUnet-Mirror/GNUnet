@@ -60,6 +60,7 @@ libgnunetfstest_a_LIBADD = \
   $(top_builddir)/src/testing_old/libgnunettesting_old.la 
 
 bin_PROGRAMS = \
+  gnunet-auto-share \
   gnunet-directory \
   gnunet-download \
   gnunet-publish \
@@ -110,6 +111,15 @@ gnunet_publish_LDADD =  \
  -lextractor \
  $(GN_LIBINTL)
 gnunet_publish_DEPENDENCIES = \
+  libgnunetfs.la
+
+gnunet_auto_share_SOURCES =  \
+ gnunet-auto-share.c         
+gnunet_auto_share_LDADD =  \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ -lextractor \
+ $(GN_LIBINTL)
+gnunet_auto_share_DEPENDENCIES = \
   libgnunetfs.la
 
 gnunet_helper_fs_publish_SOURCES =  \
