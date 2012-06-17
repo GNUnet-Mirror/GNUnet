@@ -38,11 +38,15 @@
 #include "platform.h"
 #include "gnunet_common.h"
 #include "gnunet_crypto_lib.h"
+#include "gnunet_lockmanager_service.h"
 #include "gnunet_stream_lib.h"
 #include "stream_protocol.h"
 
 #define LOG(kind,...)                                   \
   GNUNET_log_from (kind, "stream-api", __VA_ARGS__)
+
+#define TIME_REL_SECS(sec) \
+  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, sec)
 
 /**
  * The maximum packet size of a stream packet
@@ -370,6 +374,21 @@ struct GNUNET_STREAM_ListenSocket
   struct GNUNET_MESH_Handle *mesh;
 
   /**
+   * Our configuration
+   */
+  struct GNUNET_CONFIGURATION_Handle *cfg;
+
+  /**
+   * Handle to the lock manager service
+   */
+  struct GNUNET_LOCKMANAGER_Handle *lockmanager;
+
+  /**
+   * The active LockingRequest from lockmanager
+   */
+  struct GNUNET_LOCKMANAGER_LockingRequest *locking_request;
+
+  /**
    * The callback function which is called after successful opening socket
    */
   GNUNET_STREAM_ListenCallback listen_cb;
@@ -381,15 +400,24 @@ struct GNUNET_STREAM_ListenSocket
 
   /**
    * The service port
-   * FIXME: Remove if not required!
    */
   GNUNET_MESH_ApplicationType port;
+  
+  /**
+   * The id of the lockmanager timeout task
+   */
+  GNUNET_SCHEDULER_TaskIdentifier lockmanager_acquire_timeout_task;
 
   /**
    * The retransmit timeout
    */
   struct GNUNET_TIME_Relative retransmit_timeout;
   
+  /**
+   * Listen enabled?
+   */
+  int listening;
+
   /**
    * Whether testing mode is active or not
    */
@@ -492,7 +520,12 @@ struct GNUNET_STREAM_ShutdownHandle
 /**
  * Default value in seconds for various timeouts
  */
-static unsigned int default_timeout = 10;
+static const unsigned int default_timeout = 10;
+
+/**
+ * The domain name for locks we use here
+ */
+static const char *locking_domain = "GNUNET_STREAM_APPLOCK";
 
 
 /**
@@ -2690,6 +2723,15 @@ new_tunnel_notify (void *cls,
   /* FIXME: If a tunnel is already created, we should not accept new tunnels
      from the same peer again until the socket is closed */
 
+  if (GNUNET_NO == lsocket->listening)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "%s: Destroying tunnel from peer %s as we don't have the lock\n",
+         GNUNET_i2s (&socket->other_peer),
+         GNUNET_i2s (&socket->other_peer));
+    GNUNET_MESH_tunnel_destroy (tunnel);
+    return NULL;
+  }
   socket = GNUNET_malloc (sizeof (struct GNUNET_STREAM_Socket));
   socket->other_peer = *initiator;
   socket->tunnel = tunnel;
@@ -2768,6 +2810,71 @@ tunnel_cleaner (void *cls,
   }
   /* FIXME: Cancel all other tasks using socket->tunnel */
   socket->tunnel = NULL;
+}
+
+
+/**
+ * Callback to signal timeout on lockmanager lock acquire
+ *
+ * @param cls the ListenSocket
+ * @param tc the scheduler task context
+ */
+static void
+lockmanager_acquire_timeout (void *cls, 
+                             const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_STREAM_ListenSocket *lsocket = cls;
+  GNUNET_STREAM_ListenCallback listen_cb;
+  void *listen_cb_cls;
+
+  lsocket->lockmanager_acquire_timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  listen_cb = lsocket->listen_cb;
+  listen_cb_cls = lsocket->listen_cb_cls;
+  GNUNET_STREAM_listen_close (lsocket);
+  if (NULL != listen_cb)
+    listen_cb (listen_cb_cls, NULL, NULL);  
+}
+
+
+/**
+ * Callback to notify us on the status changes on app_port lock
+ *
+ * @param cls the ListenSocket
+ * @param domain the domain name of the lock
+ * @param lock the app_port
+ * @param status the current status of the lock
+ */
+static void
+lock_status_change_cb (void *cls, const char *domain_name, uint32_t lock,
+                       enum GNUNET_LOCKMANAGER_Status status)
+{
+  struct GNUNET_STREAM_ListenSocket *lsocket = cls;
+
+  GNUNET_assert (lock == (uint32_t) lsocket->port);
+  if (GNUNET_LOCKMANAGER_SUCCESS == status)
+  {
+    lsocket->listening = GNUNET_YES;
+    if (GNUNET_SCHEDULER_NO_TASK != lsocket->lockmanager_acquire_timeout_task)
+    {
+      GNUNET_SCHEDULER_cancel (lsocket->lockmanager_acquire_timeout_task);
+      lsocket->lockmanager_acquire_timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    }
+    if (NULL == lsocket->mesh)
+    {
+      GNUNET_MESH_ApplicationType ports[] = {lsocket->port, 0};
+
+      lsocket->mesh = GNUNET_MESH_connect (lsocket->cfg,
+                                           RECEIVE_BUFFER_SIZE, /* FIXME: QUEUE size as parameter? */
+                                           lsocket, /* Closure */
+                                           &new_tunnel_notify,
+                                           &tunnel_cleaner,
+                                           server_message_handlers,
+                                           ports);
+      GNUNET_assert (NULL != lsocket->mesh);
+    }
+  }
+  if (GNUNET_LOCKMANAGER_RELEASE == status)
+    lsocket->listening = GNUNET_NO;
 }
 
 
@@ -3070,11 +3177,19 @@ GNUNET_STREAM_listen (const struct GNUNET_CONFIGURATION_Handle *cfg,
 {
   /* FIXME: Add variable args for passing configration options? */
   struct GNUNET_STREAM_ListenSocket *lsocket;
-  GNUNET_MESH_ApplicationType ports[] = {app_port, 0};
   enum GNUNET_STREAM_Option option;
   va_list vargs;
 
   lsocket = GNUNET_malloc (sizeof (struct GNUNET_STREAM_ListenSocket));
+  lsocket->cfg = GNUNET_CONFIGURATION_dup (cfg);
+  lsocket->lockmanager = GNUNET_LOCKMANAGER_connect (lsocket->cfg);
+  if (NULL == lsocket->lockmanager)
+  {
+    GNUNET_CONFIGURATION_destroy (lsocket->cfg);
+    GNUNET_free (lsocket);
+    return NULL;
+  }
+  lsocket->listening = GNUNET_NO;/* We listen when we get a lock on app_port */  
   /* Set defaults */
   lsocket->retransmit_timeout = 
     GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, default_timeout);
@@ -3101,14 +3216,13 @@ GNUNET_STREAM_listen (const struct GNUNET_CONFIGURATION_Handle *cfg,
   lsocket->port = app_port;
   lsocket->listen_cb = listen_cb;
   lsocket->listen_cb_cls = listen_cb_cls;
-  lsocket->mesh = GNUNET_MESH_connect (cfg,
-                                       RECEIVE_BUFFER_SIZE, /* FIXME: QUEUE size as parameter? */
-                                       lsocket, /* Closure */
-                                       &new_tunnel_notify,
-                                       &tunnel_cleaner,
-                                       server_message_handlers,
-                                       ports);
-  GNUNET_assert (NULL != lsocket->mesh);
+  lsocket->locking_request = 
+    GNUNET_LOCKMANAGER_acquire_lock (lsocket->lockmanager, locking_domain,
+                                     (uint32_t) lsocket->port,
+                                     &lock_status_change_cb, lsocket);
+  lsocket->lockmanager_acquire_timeout_task =
+    GNUNET_SCHEDULER_add_delayed (TIME_REL_SECS (20),
+                                  &lockmanager_acquire_timeout, lsocket);
   return lsocket;
 }
 
@@ -3122,9 +3236,15 @@ void
 GNUNET_STREAM_listen_close (struct GNUNET_STREAM_ListenSocket *lsocket)
 {
   /* Close MESH connection */
-  GNUNET_assert (NULL != lsocket->mesh);
-  GNUNET_MESH_disconnect (lsocket->mesh);
-  
+  if (NULL != lsocket->mesh)
+    GNUNET_MESH_disconnect (lsocket->mesh);
+  GNUNET_CONFIGURATION_destroy (lsocket->cfg);
+  if (GNUNET_SCHEDULER_NO_TASK != lsocket->lockmanager_acquire_timeout_task)
+    GNUNET_SCHEDULER_cancel (lsocket->lockmanager_acquire_timeout_task);
+  if (NULL != lsocket->locking_request)
+    GNUNET_LOCKMANAGER_cancel_request (lsocket->locking_request);
+  if (NULL != lsocket->lockmanager)
+    GNUNET_LOCKMANAGER_disconnect (lsocket->lockmanager);
   GNUNET_free (lsocket);
 }
 

@@ -192,9 +192,9 @@ GNUNET_STREAM_close (struct GNUNET_STREAM_Socket *socket);
  * Functions of this type are called upon new stream connection from other peers
  *
  * @param cls the closure from GNUNET_STREAM_listen
- * @param socket the socket representing the stream
+ * @param socket the socket representing the stream; NULL on binding error
  * @param initiator the identity of the peer who wants to establish a stream
- *            with us
+ *            with us; NULL on binding error
  * @return GNUNET_OK to keep the socket open, GNUNET_SYSERR to close the
  *             stream (the socket will be invalid after the call)
  */
@@ -213,7 +213,12 @@ struct GNUNET_STREAM_ListenSocket;
  * Listens for stream connections for a specific application ports
  *
  * @param cfg the configuration to use
- * @param app_port the application port for which new streams will be accepted
+ *
+ * @param app_port the application port for which new streams will be
+ *         accepted. If another stream is listening on the same port the
+ *         listen_cb will be called to signal binding error and the returned
+ *         ListenSocket will be invalidated.
+ *
  * @param listen_cb this function will be called when a peer tries to establish
  *            a stream with us
  * @param listen_cb_cls closure for listen_cb

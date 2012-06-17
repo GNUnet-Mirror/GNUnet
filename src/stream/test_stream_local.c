@@ -34,6 +34,10 @@
 
 #define VERBOSE 1
 
+#define TIME_REL_SECS(sec) \
+  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, sec)
+
+
 /**
  * Structure for holding peer's sockets and IO Handles
  */
@@ -355,6 +359,32 @@ stream_listen_cb (void *cls,
 
 
 /**
+ * Task for connecting the peer to stream as client
+ *
+ * @param cls PeerData
+ * @param tc the TaskContext
+ */
+static void
+stream_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct PeerData *peer = cls;
+  struct GNUNET_PeerIdentity self;
+
+  GNUNET_assert (&peer1 == peer);
+  GNUNET_assert (GNUNET_OK == GNUNET_TESTING_get_peer_identity (config_peer1,
+                                                                &self));
+  /* Connect to stream library */
+  peer->socket = GNUNET_STREAM_open (config_peer1,
+                                     &self,         /* Null for local peer? */
+                                     10,           /* App port */
+                                     &stream_open_cb,
+                                     &peer1,
+				     GNUNET_STREAM_OPTION_END);
+  GNUNET_assert (NULL != peer1.socket);
+}
+
+
+/**
  * Testing function
  *
  * @param cls NULL
@@ -376,15 +406,7 @@ test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                               &peer2,
                                               GNUNET_STREAM_OPTION_END);
   GNUNET_assert (NULL != peer2_listen_socket);
-
-  /* Connect to stream library */
-  peer1.socket = GNUNET_STREAM_open (config_peer1,
-                                     &self,         /* Null for local peer? */
-                                     10,           /* App port */
-                                     &stream_open_cb,
-                                     &peer1,
-				     GNUNET_STREAM_OPTION_END);
-  GNUNET_assert (NULL != peer1.socket);
+  GNUNET_SCHEDULER_add_delayed (TIME_REL_SECS(2), &stream_connect, &peer1);
 }
 
 /**
@@ -417,7 +439,7 @@ run (void *cls, char *const *args, const char *cfgfile,
                                    (GNUNET_TIME_UNIT_SECONDS, 60), &do_abort,
                                     NULL);
    
-   test_task = GNUNET_SCHEDULER_add_now (&test, NULL);
+   test_task = GNUNET_SCHEDULER_add_delayed (TIME_REL_SECS(2), &test, NULL);
 }
 
 /**

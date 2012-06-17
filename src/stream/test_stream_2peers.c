@@ -39,6 +39,9 @@
  */
 #define NUM_PEERS 2
 
+#define TIME_REL_SECS(sec) \
+  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, sec)
+
 /**
  * Structure for holding peer's sockets and IO Handles
  */
@@ -433,6 +436,26 @@ stream_listen_cb (void *cls,
 
 
 /**
+ * Task for connecting the peer to stream as client
+ *
+ * @param cls PeerData
+ * @param tc the TaskContext
+ */
+static void
+stream_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  /* Connect to stream library */
+  peer1.socket = GNUNET_STREAM_open (d1->cfg,
+                                     &d2->id,         /* Null for local peer? */
+                                     10,           /* App port */
+                                     &stream_open_cb,
+                                     &peer1,
+				     GNUNET_STREAM_OPTION_END);
+  GNUNET_assert (NULL != peer1.socket);
+}
+
+
+/**
  * Callback to be called when testing peer group is ready
  *
  * @param cls NULL
@@ -477,15 +500,7 @@ peergroup_ready (void *cls, const char *emsg)
                                               NULL,
                                               GNUNET_STREAM_OPTION_END);
   GNUNET_assert (NULL != peer2_listen_socket);
-
-  /* Connect to stream library */
-  peer1.socket = GNUNET_STREAM_open (d1->cfg,
-                                     &d2->id,         /* Null for local peer? */
-                                     10,           /* App port */
-                                     &stream_open_cb,
-                                     &peer1,
-				     GNUNET_STREAM_OPTION_END);
-  GNUNET_assert (NULL != peer1.socket);
+  GNUNET_SCHEDULER_add_delayed (TIME_REL_SECS(2), &stream_connect, NULL);
 }
 
 
