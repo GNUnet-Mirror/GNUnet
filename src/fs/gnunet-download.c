@@ -91,8 +91,11 @@ display_bar (unsigned long long x,
   unsigned int endeq;
   float ratio_complete;
 
-#ifndef MINGW
+#if !WINDOWS
   if (0 == isatty (1))
+    return;
+#else
+  if (FILE_TYPE_CHAR != GetFileType (GetStdHandle (STD_OUTPUT_HANDLE)))
     return;
 #endif
   ratio_complete = x/(float)n;
