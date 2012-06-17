@@ -19,8 +19,8 @@
 */
 
 /**
- * @file stream/test_stream_big.c
- * @brief large data transfer using stream API between local peers
+ * @file stream/test_stream_sequence_wraparound.c
+ * @brief test cases for sequence wrap around situations during data transfer
  * @author Sree Harsha Totakura
  */
 
@@ -355,6 +355,9 @@ test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                      10,           /* App port */
                                      &stream_open_cb,
                                      (void *) &peer1,
+                                     GNUNET_STREAM_OPTION_TESTING_SET_WRITE_SEQUENCE_NUMBER,
+                                     UINT32_MAX - GNUNET_CRYPTO_random_u32
+                                     (GNUNET_CRYPTO_QUALITY_WEAK, 64),
                                      GNUNET_STREAM_OPTION_END);
   GNUNET_assert (NULL != peer1.socket);                  
 }

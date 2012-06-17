@@ -23,7 +23,8 @@ check_PROGRAMS = \
  test_stream_2peers \
  test_stream_2peers_halfclose \
  test_stream_local \
- test_stream_big
+ test_stream_big \
+ test_stream_sequence_wraparound
 
 EXTRA_DIST = test_stream_local.conf
 
@@ -58,6 +59,13 @@ test_stream_local_LDADD = \
 test_stream_big_SOURCES = \
  test_stream_big.c
 test_stream_big_LDADD = \
+ $(top_builddir)/src/stream/libgnunetstream.la \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/testing_old/libgnunettesting_old.la
+
+test_stream_sequence_wraparound_SOURCES = \
+ test_stream_sequence_wraparound.c
+test_stream_sequence_wraparound_LDADD = \
  $(top_builddir)/src/stream/libgnunetstream.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/testing_old/libgnunettesting_old.la

@@ -1384,10 +1384,14 @@ generate_hello_ack_msg (struct GNUNET_STREAM_Socket *socket)
   struct GNUNET_STREAM_HelloAckMessage *msg;
 
   /* Get the random sequence number */
-  socket->write_sequence_number = 
-    GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
+  if (GNUNET_YES == socket->testing_active)
+    socket->write_sequence_number =
+      socket->testing_set_write_sequence_number_value;
+  else
+    socket->write_sequence_number = 
+      GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "%s: Generated write sequence number %u\n",
+       "%s: write sequence number %u\n",
        GNUNET_i2s (&socket->other_peer),
        (unsigned int) socket->write_sequence_number);
   
@@ -2356,8 +2360,8 @@ handle_ack (struct GNUNET_STREAM_Socket *socket,
 {
   unsigned int packet;
   int need_retransmission;
+  uint32_t sequence_difference;
   
-
   if (0 != memcmp (sender,
                    &socket->other_peer,
                    sizeof (struct GNUNET_PeerIdentity)))
@@ -2367,7 +2371,6 @@ handle_ack (struct GNUNET_STREAM_Socket *socket,
          GNUNET_i2s (&socket->other_peer));
     return GNUNET_YES;
   }
-
   switch (socket->state)
   {
   case (STATE_ESTABLISHED):
@@ -2397,7 +2400,6 @@ handle_ack (struct GNUNET_STREAM_Socket *socket,
     }
     /* FIXME: include the case when write_handle is cancelled - ignore the 
        acks */
-
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "%s: Received DATA_ACK from %s\n",
          GNUNET_i2s (&socket->other_peer),
@@ -2410,31 +2412,34 @@ handle_ack (struct GNUNET_STREAM_Socket *socket,
       socket->retransmission_timeout_task_id = 
         GNUNET_SCHEDULER_NO_TASK;
     }
-
     for (packet=0; packet < GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH; packet++)
     {
       if (NULL == socket->write_handle->messages[packet]) break;
-      if (ntohl (ack->base_sequence_number)
-          >= ntohl (socket->write_handle->messages[packet]->sequence_number))
-        ackbitmap_modify_bit (&socket->write_handle->ack_bitmap,
-                              packet,
+      /* BS: Base sequence from ack; PS: sequence num of current packet */
+      sequence_difference = ntohl (ack->base_sequence_number)
+        - ntohl (socket->write_handle->messages[packet]->sequence_number);
+      /* case where BS = PS + GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH */
+      if ((sequence_difference == GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH)
+          || ((sequence_difference < GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH)
+              && (0 != sequence_difference))) /* case: BS > PS and BS != PS*/
+      {
+        ackbitmap_modify_bit (&socket->write_handle->ack_bitmap, packet,
                               GNUNET_YES);
-      else
-        if (GNUNET_YES == 
-            ackbitmap_is_bit_set (&socket->write_handle->ack_bitmap,
-                                  ntohl (socket->write_handle->messages[packet]->sequence_number)
-                                  - ntohl (ack->base_sequence_number)))
-          ackbitmap_modify_bit (&socket->write_handle->ack_bitmap,
-                                packet,
-                                GNUNET_YES);
+        continue;
+      }
+      if (GNUNET_YES == 
+          ackbitmap_is_bit_set (&socket->write_handle->ack_bitmap,
+                                -sequence_difference))/*inversion as PS >= BS */
+      {
+        ackbitmap_modify_bit (&socket->write_handle->ack_bitmap, packet,
+                              GNUNET_YES);
+      }
     }
-
     /* Update the receive window remaining
        FIXME : Should update with the value from a data ack with greater
        sequence number */
     socket->receiver_window_available = 
       ntohl (ack->receive_window_remaining);
-
     /* Check if we have received all acknowledgements */
     need_retransmission = GNUNET_NO;
     for (packet=0; packet < GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH; packet++)
