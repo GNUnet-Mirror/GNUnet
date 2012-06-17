@@ -26,35 +26,316 @@
 #include "gnunet_util_lib.h"
 
 
-static int ret;
+/**
+ * Item in our work queue (or in the set of files/directories
+ * we have successfully published).
+ */
+struct WorkItem
+{
 
-static int verbose;
+  /**
+   * PENDING Work is kept in a linked list.
+   */
+  struct WorkItem *prev;
 
-static const struct GNUNET_CONFIGURATION_Handle *cfg;
+  /**
+   * PENDING Work is kept in a linked list.
+   */
+  struct WorkItem *next;
 
-static int disable_extractor;
+  /**
+   * Filename of the work item.
+   */
+  const char *filename;
 
-static int do_disable_creation_time;
-
-static GNUNET_SCHEDULER_TaskIdentifier kill_task;
-
-static unsigned int anonymity_level = 1;
-
-static unsigned int content_priority = 365;
-
-static unsigned int replication_level = 1;
+  /**
+   * Unique identity for this work item (used to detect
+   * if we need to do the work again).
+   */
+  struct GNUNET_HashCode id;
+};
 
 
 /**
- * FIXME: docu
+ * Global return value from 'main'.
+ */
+static int ret;
+
+/**
+ * Are we running 'verbosely'?
+ */
+static int verbose;
+
+/**
+ * Configuration to use.
+ */
+static const struct GNUNET_CONFIGURATION_Handle *cfg;
+
+/**
+ * Disable extractor option to use for publishing.
+ */
+static int disable_extractor;
+
+/**
+ * Disable creation time option to use for publishing.
+ */
+static int do_disable_creation_time;
+
+/**
+ * Handle for the 'shutdown' task.
+ */
+static GNUNET_SCHEDULER_TaskIdentifier kill_task;
+
+/**
+ * Handle for the main task that does scanning and working.
+ */
+static GNUNET_SCHEDULER_TaskIdentifier run_task;
+
+/**
+ * Anonymity level option to use for publishing.
+ */
+static unsigned int anonymity_level = 1;
+
+/**
+ * Content priority option to use for publishing.
+ */
+static unsigned int content_priority = 365;
+
+/**
+ * Replication level option to use for publishing.
+ */
+static unsigned int replication_level = 1;
+
+/**
+ * Top-level directory we monitor to auto-publish.
+ */
+static const char *dir_name;
+
+/**
+ * Head of linked list of files still to publish.
+ */
+static struct WorkItem *work_head;
+
+/**
+ * Tail of linked list of files still to publish.
+ */
+static struct WorkItem *work_tail;
+
+/**
+ * Map from the hash of the filename (!) to a 'struct WorkItem'
+ * that was finished.
+ */
+static struct GNUNET_CONTAINER_MultiHashMap *work_finished;
+
+/**
+ * Set to GNUNET_YES if we are shutting down.
+ */
+static int do_shutdown;
+
+/**
+ * Start time of the current round; used to determine how long
+ * one iteration takes (which influences how fast we schedule
+ * the next one).
+ */
+static struct GNUNET_TIME_Absolute start_time;
+
+
+/**
+ * Load the set of 'work_finished' items from disk.
+ */
+static void
+load_state ()
+{
+  GNUNET_break (0);
+  // FIXME: implement!
+}
+
+
+/**
+ * Save the set of 'work_finished' items on disk.
+ */
+static void
+save_state ()
+{
+  GNUNET_break (0);
+  // FIXME: implement!
+}
+
+
+/**
+ * Task run on shutdown.  Serializes our current state to disk.
+ *
+ * @param cls closure, unused
+ * @param tc scheduler context, unused
  */
 static void
 do_stop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   kill_task = GNUNET_SCHEDULER_NO_TASK;
+  do_shutdown = GNUNET_YES;
+  if (GNUNET_SCHEDULER_NO_TASK != run_task)
+  {
+    GNUNET_SCHEDULER_cancel (run_task);
+    run_task = GNUNET_SCHEDULER_NO_TASK;
+  }
 }
 
 
+/**
+ * Decide what the next task is (working or scanning) and schedule it.
+ */
+static void
+schedule_next_task (void);
+
+
+/**
+ * Function called to process work items.
+ *
+ * @param cls closure, NULL
+ * @param tc scheduler context (unused)
+ */
+static void
+work (void *cls,
+      const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct WorkItem *wi;
+  struct GNUNET_HashCode key;
+
+  run_task = GNUNET_SCHEDULER_NO_TASK;
+  wi = work_head;
+  GNUNET_CONTAINER_DLL_remove (work_head,
+			       work_tail,
+			       wi);
+  // FIXME: actually run 'publish' here!
+
+  GNUNET_CRYPTO_hash (wi->filename,
+		      strlen (wi->filename),
+		      &key);
+  GNUNET_CONTAINER_multihashmap_put (work_finished,
+				     &key,
+				     wi,
+				     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+  save_state ();
+  schedule_next_task ();    
+}
+
+
+/**
+ * Recursively scan the given file/directory structure to determine
+ * a unique ID that represents the current state of the hierarchy.
+ *
+ * @param filename file to scan
+ * @param id where to store the unique ID we computed
+ */
+static void
+determine_id (const char *filename,
+	      struct GNUNET_HashCode *id)
+{
+  // FIXME: implement!
+  GNUNET_break (0);
+}
+
+
+/**
+ * Function called with a filename (or directory name) to publish
+ * (if it has changed since the last time we published it).  This function
+ * is called for the top-level files only.
+ *
+ * @param cls closure, NULL
+ * @param filename complete filename (absolute path)
+ * @return GNUNET_OK to continue to iterate, GNUNET_SYSERR during shutdown
+ */
+static int
+add_file (void *cls,
+	  const char *filename)
+{
+  struct WorkItem *wi;
+  struct GNUNET_HashCode key;
+  struct GNUNET_HashCode id;
+
+  if (GNUNET_YES == do_shutdown)
+    return GNUNET_SYSERR;
+  GNUNET_CRYPTO_hash (filename,
+		      strlen (filename),
+		      &key);
+  wi = GNUNET_CONTAINER_multihashmap_get (work_finished,
+					  &key);
+  memset (&id, 0, sizeof (struct GNUNET_HashCode));
+  determine_id (filename, &id);
+  if (NULL != wi)
+  {
+    if (0 == memcmp (&id,
+		     &wi->id,
+		     sizeof (struct GNUNET_HashCode)))
+      return GNUNET_OK; /* skip: we did this one already */
+    /* contents changed, need to re-do the directory... */
+    GNUNET_CONTAINER_multihashmap_remove (work_finished,
+					  &key,
+					  wi);
+    wi->id = id; 
+  }
+  else
+  {
+    wi = GNUNET_malloc (sizeof (struct WorkItem));
+    wi->filename = GNUNET_strdup (filename);
+  }
+  GNUNET_CONTAINER_DLL_insert (work_head,
+			       work_tail,
+			       wi);
+  if (GNUNET_YES == do_shutdown)
+    return GNUNET_SYSERR; 
+  return GNUNET_OK;
+}
+
+
+/**
+ * Periodically run task to update our view of the directory to share.
+ *
+ * @param cls NULL
+ * @param tc scheduler context, unused
+ */
+static void
+scan (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  run_task = GNUNET_SCHEDULER_NO_TASK;
+  start_time = GNUNET_TIME_absolute_get ();
+  (void) GNUNET_DISK_directory_scan (dir_name,
+				     &add_file,
+				     NULL);
+  schedule_next_task ();
+}
+
+
+/**
+ * Decide what the next task is (working or scanning) and schedule it.
+ */
+static void
+schedule_next_task ()
+{
+  struct GNUNET_TIME_Relative delay;
+
+  if (GNUNET_YES == do_shutdown)
+    return;  
+  if (NULL == work_head)
+  {
+    /* delay by at most 4h, at least 1s, and otherwise in between depending
+       on how long it took to scan */
+    delay = GNUNET_TIME_absolute_get_duration (start_time);
+    delay = GNUNET_TIME_relative_min (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS,
+								     4),
+				      GNUNET_TIME_relative_multiply (delay,
+								     100));
+    delay = GNUNET_TIME_relative_max (delay,
+				      GNUNET_TIME_UNIT_MINUTES);
+    run_task = GNUNET_SCHEDULER_add_delayed (delay,
+					     &scan,
+					     NULL);
+  }
+  else
+  {
+    run_task = GNUNET_SCHEDULER_add_now (&work, NULL);
+  }
+}
 
 
 /**
@@ -78,7 +359,12 @@ run (void *cls, char *const *args, const char *cfgfile,
     return;
   }
   cfg = c;
-  // FIXME...
+  dir_name = args[0];
+  work_finished = GNUNET_CONTAINER_multihashmap_create (1024);
+  load_state ();
+  run_task = GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_IDLE,
+						 &scan, NULL);
+  
   kill_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &do_stop_task,
                                     NULL);
@@ -94,7 +380,7 @@ run (void *cls, char *const *args, const char *cfgfile,
  */
 int
 main (int argc, char *const *argv)
-{
+{  
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
     {'a', "anonymity", "LEVEL",
      gettext_noop ("set the desired LEVEL of sender-anonymity"),
@@ -117,13 +403,17 @@ main (int argc, char *const *argv)
      0, &GNUNET_GETOPT_set_one, &verbose},
     GNUNET_GETOPT_OPTION_END
   };
+  int ok;
+
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
-  return (GNUNET_OK ==
-          GNUNET_PROGRAM_run (argc, argv, "gnunet-auto-share [OPTIONS] FILENAME",
-                              gettext_noop
-                              ("Automatically publish files from a directory on GNUnet"),
-                              options, &run, NULL)) ? ret : 1;
+  ok = (GNUNET_OK ==
+	GNUNET_PROGRAM_run (argc, argv, "gnunet-auto-share [OPTIONS] FILENAME",
+			    gettext_noop
+			    ("Automatically publish files from a directory on GNUnet"),
+			    options, &run, NULL)) ? ret : 1;
+  // FIXME: free memory in work lists and hash map...
+  return ok;
 }
 
 /* end of gnunet-auto-share.c */
