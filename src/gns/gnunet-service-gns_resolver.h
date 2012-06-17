@@ -142,8 +142,14 @@ struct ResolverHandle
   /* a synthesized dns name */
   char dns_name[MAX_DNS_NAME_LENGTH];
 
+  /* the authoritative dns zone */
+  char dns_zone[MAX_DNS_NAME_LENGTH];
+
   /* the address of the DNS server FIXME not needed? */
   struct sockaddr_in dns_addr;
+
+  /* handle to the local stub resolver request */
+  struct GNUNET_RESOLVER_RequestHandle *dns_resolver_handle;
 
   /* select task for DNS */
   GNUNET_SCHEDULER_TaskIdentifier dns_read_task;
@@ -301,6 +307,7 @@ struct GetPseuAuthorityHandle
  * @param nh handle to the namestore
  * @param dh handle to the dht
  * @param lz the local zone
+ * @param cfg configuration handle
  * @param max_bg_queries maximum amount of background queries
  * @param ignore_pending ignore records that still require user confirmation
  *        on lookup
@@ -310,6 +317,7 @@ int
 gns_resolver_init(struct GNUNET_NAMESTORE_Handle *nh,
                   struct GNUNET_DHT_Handle *dh,
                   struct GNUNET_CRYPTO_ShortHashCode lz,
+                  const struct GNUNET_CONFIGURATION_Handle *cfg,
                   unsigned long long max_bg_queries,
                   int ignore_pending);
 

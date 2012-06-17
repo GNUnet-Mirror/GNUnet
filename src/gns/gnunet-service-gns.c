@@ -1121,7 +1121,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Could not connect to DHT!\n");
   }
   
-  if (gns_resolver_init(namestore_handle, dht_handle, zone_hash,
+  if (gns_resolver_init(namestore_handle, dht_handle, zone_hash, c,
                         max_parallel_bg_queries,
                         ignore_pending)
       == GNUNET_SYSERR)
