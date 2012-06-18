@@ -357,7 +357,7 @@ plugin_env_session_end (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (GNUNET_NO == ret)
   {
     /* This was a session currently not used by
-     * neighbours so we have to destroy it here */
+     * neighbours so we have to try to destroy it here */
     GNUNET_ATS_address_destroyed (GST_ats, &address, session);
   }
 }

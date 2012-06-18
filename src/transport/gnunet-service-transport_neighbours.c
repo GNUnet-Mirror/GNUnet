@@ -2154,9 +2154,11 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "ATS tells us to switch to address '%s' for peer `%s'\n",
+              "ATS tells us to switch to address '%s' session %p for peer `%s'\n",
               (address->address_length != 0) ? GST_plugins_a2s (address): "<inbound>",
+              session,
               GNUNET_i2s (peer));
+
   switch (n->state)
   {
   case S_NOT_CONNECTED:
@@ -2602,10 +2604,10 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
 			   GNUNET_NO);
     connect_notify_cb (callback_cls, &n->id, ats, ats_count);
     /* Tell ATS that the outbound session we created to send CONNECT was successfull */
-    GNUNET_ATS_address_add(GST_ats,
-                           n->primary_address.address,
-                           n->primary_address.session,
-                           ats, ats_count);
+    GNUNET_ATS_address_add (GST_ats,
+                            n->primary_address.address,
+                            n->primary_address.session,
+                            ats, ats_count);
     set_address (&n->primary_address,
 		 n->primary_address.address,
 		 n->primary_address.session,
@@ -2650,6 +2652,10 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
     n->state = S_CONNECTED;
     n->timeout = GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
     GNUNET_break (GNUNET_NO == n->alternative_address.ats_active);
+    GNUNET_ATS_address_add(GST_ats,
+                           n->alternative_address.address,
+                           n->alternative_address.session,
+                           ats, ats_count);
     set_address (&n->primary_address,
 		 n->alternative_address.address,
 		 n->alternative_address.session,
@@ -2856,6 +2862,10 @@ GST_neighbours_handle_session_ack (const struct GNUNET_MessageHeader *message,
 			 ++neighbours_connected,
 			 GNUNET_NO);
   connect_notify_cb (callback_cls, &n->id, ats, ats_count);
+  GNUNET_ATS_address_add(GST_ats,
+                         n->primary_address.address,
+                         n->primary_address.session,
+                         ats, ats_count);
   set_address (&n->primary_address,
 	       n->primary_address.address,
 	       n->primary_address.session,
