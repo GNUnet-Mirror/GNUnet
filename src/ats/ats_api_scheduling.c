@@ -1213,13 +1213,20 @@ GNUNET_ATS_address_update (struct GNUNET_ATS_SchedulingHandle *sh,
   {
     s = find_session_id (sh, session, &address->peer);
     if (NOT_FOUND == s)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Update for unknown address for peer `%s', plugin `%s', session %p id %u\n",
+                  GNUNET_i2s (&address->peer),
+                  address->transport_name, session, s);
+
       GNUNET_break (0);
       return;
+    }
   }
   m->session_id = htonl (s);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Trying to update address for peer `%s', plugin `%s', session %p id %u\n",
+              "Updating address for peer `%s', plugin `%s', session %p id %u\n",
               GNUNET_i2s (&address->peer),
               address->transport_name, session, s);
 
@@ -1268,12 +1275,6 @@ GNUNET_ATS_address_in_use (struct GNUNET_ATS_SchedulingHandle *sh,
     return;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Trying to set address to %s for peer `%s', plugin `%s', session %p\n",
-              GNUNET_i2s (&address->peer),
-              (GNUNET_NO == in_use) ? "NO" : "YES",
-              address->transport_name, session);
-
   p = GNUNET_malloc (sizeof (struct PendingMessage) + msize);
   p->size = msize;
   p->is_init = GNUNET_NO;
@@ -1303,6 +1304,11 @@ GNUNET_ATS_address_in_use (struct GNUNET_ATS_SchedulingHandle *sh,
       GNUNET_assert (NOT_FOUND != s);
     }
   }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Setting address used to %s for peer `%s', plugin `%s', session %p\n",
+              (GNUNET_YES == in_use) ? "YES" : "NO",
+              GNUNET_i2s (&address->peer), address->transport_name, session);
 
   m->session_id = htonl (s);
   pm = (char *) &m[1];
@@ -1362,9 +1368,10 @@ GNUNET_ATS_address_destroyed (struct GNUNET_ATS_SchedulingHandle *sh,
   if ((NULL != session) && (NOT_FOUND == s))
   {
     /* trying to delete unknown address */
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Trying to delete unknown address for peer `%s', plugin `%s', session %p\n",
                 GNUNET_i2s (&address->peer), address->transport_name, session);
+    GNUNET_break (0);
     return;
   }
   else
