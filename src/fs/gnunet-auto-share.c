@@ -224,15 +224,45 @@ work (void *cls,
  * Recursively scan the given file/directory structure to determine
  * a unique ID that represents the current state of the hierarchy.
  *
+ * @param cls where to store the unique ID we are computing
  * @param filename file to scan
- * @param id where to store the unique ID we computed
+ * @return GNUNET_OK (always)
  */
-static void
-determine_id (const char *filename,
-	      struct GNUNET_HashCode *id)
+static int
+determine_id (void *cls,
+	      const char *filename)
 {
-  // FIXME: implement!
-  GNUNET_break (0);
+  struct GNUNET_HashCode *id = cls;
+  struct stat sbuf;
+  struct GNUNET_HashCode fx[2];
+  struct GNUNET_HashCode ft;
+
+  if (0 != STAT (filename, &sbuf))
+  {
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "stat", filename);
+    return GNUNET_OK;
+  }
+  GNUNET_CRYPTO_hash (filename, strlen (filename), &fx[0]);
+  if (!S_ISDIR (sbuf.st_mode))
+  {
+    uint64_t fsize = GNUNET_htonll (sbuf.st_size);
+
+    GNUNET_CRYPTO_hash (&fsize, sizeof (uint64_t), &fx[1]);
+  }
+  else
+  {
+    memset (&fx[1], 1, sizeof (struct GNUNET_HashCode));
+    GNUNET_DISK_directory_scan (filename,
+				&determine_id,
+				&fx[1]);
+  }
+  /* use hash here to make hierarchical structure distinct from
+     all files on the same level */
+  GNUNET_CRYPTO_hash (fx, sizeof (fx), &ft);
+  /* use XOR here so that order of the files in the directory 
+     does not matter! */
+  GNUNET_CRYPTO_hash_xor (&ft, id, id);
+  return GNUNET_OK;
 }
 
 
@@ -261,7 +291,7 @@ add_file (void *cls,
   wi = GNUNET_CONTAINER_multihashmap_get (work_finished,
 					  &key);
   memset (&id, 0, sizeof (struct GNUNET_HashCode));
-  determine_id (filename, &id);
+  determine_id (&id, filename);
   if (NULL != wi)
   {
     if (0 == memcmp (&id,
