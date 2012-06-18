@@ -1368,18 +1368,15 @@ GNUNET_ATS_address_destroyed (struct GNUNET_ATS_SchedulingHandle *sh,
   if ((NULL != session) && (NOT_FOUND == s))
   {
     /* trying to delete unknown address */
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Trying to delete unknown address for peer `%s', plugin `%s', session %p\n",
                 GNUNET_i2s (&address->peer), address->transport_name, session);
-    GNUNET_break (0);
     return;
   }
-  else
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Deleting address for peer `%s', plugin `%s', session %p\n",
-                GNUNET_i2s (&address->peer), address->transport_name, session);
-  }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Deleting address for peer `%s', plugin `%s', session %p\n",
+              GNUNET_i2s (&address->peer), address->transport_name, session);
 
   m->session_id = htonl (s);
   pm = (char *) &m[1];
