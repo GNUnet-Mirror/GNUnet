@@ -149,7 +149,7 @@ get_state_file ()
   char *ret;
 
   GNUNET_asprintf (&ret,
-		   "%s%s.auto",
+		   "%s%s.auto-share",
 		   dir_name,
 		   (DIR_SEPARATOR == dir_name[strlen(dir_name)-1]) ? "" : DIR_SEPARATOR_STR);
   return ret;
@@ -213,13 +213,63 @@ load_state ()
 
 
 /**
+ * Write work item from the work_finished map to the given write handle.
+ *
+ * @param cls the 'struct GNUNET_BIO_WriteHandle*'
+ * @param key key of the item in the map (unused)
+ * @param value the 'struct WorkItem' to write
+ * @return GNUNET_OK to continue to iterate (if write worked)
+ */
+static int
+write_item (void *cls,
+	    const struct GNUNET_HashCode *key,
+	    void *value)
+{
+  struct GNUNET_BIO_WriteHandle *wh = cls;
+  struct WorkItem *wi = value;
+
+  if ( (GNUNET_OK != 
+	GNUNET_BIO_write_string (wh, wi->filename)) ||
+       (GNUNET_OK !=
+	GNUNET_BIO_write (wh,
+			  &wi->id,
+			  sizeof (struct GNUNET_HashCode))) )
+    return GNUNET_SYSERR; /* write error, abort iteration */
+  return GNUNET_OK;
+}
+
+
+/**
  * Save the set of 'work_finished' items on disk.
  */
 static void
 save_state ()
 {
-  GNUNET_break (0);
-  // FIXME: implement!
+  uint32_t n;
+  struct GNUNET_BIO_WriteHandle *wh;
+  char *fn;
+
+  n = GNUNET_CONTAINER_multihashmap_size (work_finished);
+  fn = get_state_file ();
+  wh = GNUNET_BIO_write_open (fn);
+  if (GNUNET_OK !=
+      GNUNET_BIO_write_int32 (wh, n))
+  {
+    (void) GNUNET_BIO_write_close (wh);
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		_("Failed to save state to file %s\n"),
+		fn);
+    GNUNET_free (fn);
+    return;
+  }
+  (void) GNUNET_CONTAINER_multihashmap_iterate (work_finished,
+						&write_item,
+						wh);
+  if (GNUNET_OK != GNUNET_BIO_write_close (wh))
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		_("Failed to save state to file %s\n"),
+		fn);
+  GNUNET_free (fn);
 }
 
 
@@ -298,6 +348,9 @@ determine_id (void *cls,
   struct GNUNET_HashCode fx[2];
   struct GNUNET_HashCode ft;
 
+  if (NULL != strstr (filename,
+		      DIR_SEPARATOR_STR ".auto-share"))
+    return GNUNET_OK; /* skip internal file */
   if (0 != STAT (filename, &sbuf))
   {
     GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "stat", filename);
