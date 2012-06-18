@@ -21,6 +21,9 @@
  * @file fs/gnunet-auto-share.c
  * @brief automatically publish files on GNUnet
  * @author Christian Grothoff
+ * 
+ * TODO:
+ * - support loading meta data / keywords from resource file
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -70,6 +73,11 @@ static int verbose;
  * Configuration to use.
  */
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
+
+/**
+ * Name of the configuration file.
+ */
+static char *cfg_filename;
 
 /**
  * Disable extractor option to use for publishing.
@@ -138,6 +146,16 @@ static int do_shutdown;
  * the next one).
  */
 static struct GNUNET_TIME_Absolute start_time;
+
+/**
+ * Pipe used to communicate 'gnunet-publish' completion (SIGCHLD) via signal.
+ */
+static struct GNUNET_DISK_PipeHandle *sigpipe;
+
+/**
+ * Handle to the 'gnunet-publish' process that we executed.
+ */
+static struct GNUNET_OS_Process *publish_proc;
 
 
 /**
@@ -284,6 +302,11 @@ do_stop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   kill_task = GNUNET_SCHEDULER_NO_TASK;
   do_shutdown = GNUNET_YES;
+  if (NULL != publish_proc)
+  {
+    GNUNET_OS_process_kill (publish_proc, SIGKILL);
+    return;
+  }
   if (GNUNET_SCHEDULER_NO_TASK != run_task)
   {
     GNUNET_SCHEDULER_cancel (run_task);
@@ -300,25 +323,23 @@ schedule_next_task (void);
 
 
 /**
- * Function called to process work items.
+ * Task triggered whenever we receive a SIGCHLD (child
+ * process died).
  *
- * @param cls closure, NULL
- * @param tc scheduler context (unused)
+ * @param cls the 'struct WorkItem' we were working on
+ * @param tc context
  */
 static void
-work (void *cls,
-      const struct GNUNET_SCHEDULER_TaskContext *tc)
+maint_child_death (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct WorkItem *wi;
+  struct WorkItem *wi = cls;
   struct GNUNET_HashCode key;
 
   run_task = GNUNET_SCHEDULER_NO_TASK;
-  wi = work_head;
-  GNUNET_CONTAINER_DLL_remove (work_head,
-			       work_tail,
-			       wi);
-  // FIXME: actually run 'publish' here!
-
+  GNUNET_break (GNUNET_OK ==
+		GNUNET_OS_process_wait (publish_proc));
+  GNUNET_OS_process_destroy (publish_proc);
+  publish_proc = NULL;
   GNUNET_CRYPTO_hash (wi->filename,
 		      strlen (wi->filename),
 		      &key);
@@ -328,6 +349,95 @@ work (void *cls,
 				     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
   save_state ();
   schedule_next_task ();    
+}
+
+
+/**
+ * Signal handler called for SIGCHLD.  Triggers the
+ * respective handler by writing to the trigger pipe.
+ */
+static void
+sighandler_child_death ()
+{
+  static char c;
+  int old_errno = errno;	/* back-up errno */
+
+  GNUNET_break (1 ==
+		GNUNET_DISK_file_write (GNUNET_DISK_pipe_handle
+					(sigpipe, GNUNET_DISK_PIPE_END_WRITE),
+					&c, sizeof (c)));
+  errno = old_errno;		/* restore errno */
+}
+
+
+/**
+ * Function called to process work items.
+ *
+ * @param cls closure, NULL
+ * @param tc scheduler context (unused)
+ */
+static void
+work (void *cls,
+      const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  static char *argv[14];
+  static char anon_level[20];
+  static char content_prio[20];
+  static char repl_level[20];
+  struct WorkItem *wi;
+  const struct GNUNET_DISK_FileHandle *pr;  
+  int argc;
+
+  run_task = GNUNET_SCHEDULER_NO_TASK;
+  wi = work_head;
+  GNUNET_CONTAINER_DLL_remove (work_head,
+			       work_tail,
+			       wi);
+  argc = 0;
+  argv[argc++] = "gnunet-publish";
+  if (verbose)
+    argv[argc++] = "-V";
+  if (disable_extractor)
+    argv[argc++] = "-D";
+  if (do_disable_creation_time)
+    argv[argc++] = "-d";
+  argv[argc++] = "-c";
+  argv[argc++] = cfg_filename;
+  GNUNET_snprintf (anon_level, sizeof (anon_level),
+		   "%u", anonymity_level);
+  argv[argc++] = "-a";
+  argv[argc++] = anon_level;
+  GNUNET_snprintf (content_prio, sizeof (content_prio),
+		   "%u", content_priority);
+  argv[argc++] = "-p";
+  argv[argc++] = content_prio;
+  GNUNET_snprintf (repl_level, sizeof (repl_level),
+		   "%u", replication_level);
+  argv[argc++] = "-r";
+  argv[argc++] = repl_level;
+  argv[argc++] = wi->filename;
+  argv[argc] = NULL;
+  publish_proc = GNUNET_OS_start_process_vap (GNUNET_YES,
+					      NULL, NULL,
+					      "gnunet-publish",
+					      argv);
+  if (NULL == publish_proc)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		_("Failed to run `%s'\n"),
+		"gnunet-publish");
+    GNUNET_CONTAINER_DLL_insert (work_head,
+				 work_tail,
+				 wi);
+    run_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
+					     &work,
+					     NULL);
+    return;
+  }
+  pr = GNUNET_DISK_pipe_handle (sigpipe, GNUNET_DISK_PIPE_END_READ);
+  run_task =
+    GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
+				    pr, &maint_child_death, wi);
 }
 
 
@@ -502,6 +612,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     ret = -1;
     return;
   }
+  cfg_filename = GNUNET_strdup (cfgfile);
   cfg = c;
   dir_name = args[0];
   work_finished = GNUNET_CONTAINER_multihashmap_create (1024);
@@ -569,9 +680,14 @@ main (int argc, char *const *argv)
   };
   struct WorkItem *wi;
   int ok;
+  struct GNUNET_SIGNAL_Context *shc_chld;
 
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
+  sigpipe = GNUNET_DISK_pipe (GNUNET_NO, GNUNET_NO, GNUNET_NO, GNUNET_NO);
+  GNUNET_assert (sigpipe != NULL);
+  shc_chld =
+    GNUNET_SIGNAL_handler_install (GNUNET_SIGCHLD, &sighandler_child_death);
   ok = (GNUNET_OK ==
 	GNUNET_PROGRAM_run (argc, argv, "gnunet-auto-share [OPTIONS] FILENAME",
 			    gettext_noop
@@ -587,6 +703,12 @@ main (int argc, char *const *argv)
     GNUNET_free (wi->filename);
     GNUNET_free (wi);
   }
+  GNUNET_SIGNAL_handler_uninstall (shc_chld);
+  shc_chld = NULL;
+  GNUNET_DISK_pipe_close (sigpipe);
+  sigpipe = NULL;
+  GNUNET_free (cfg_filename);
+  cfg_filename = NULL;
   return ok;
 }
 
