@@ -6,13 +6,11 @@ gnunet\-publish \- a command line interface for publishing new content into GNUn
 [\fIOPTIONS\fR] FILENAME
 .SH DESCRIPTION
 .PP
-In order to share files with other GNUnet users, the files must first be made available to GNUnet.  GNUnet does not automatically share all files from a certain directory.  In fact, even files that are downloaded are not automatically shared.
+In order to share files with other GNUnet users, the files must first be made available to GNUnet.  GNUnet does not automatically share all files from a certain directory (however, you can do this with the gnunet\-auto\-share tool).  In fact, even files that are downloaded are not automatically shared.
 .PP
 In order to start sharing files, the files must be added either using gnunet\-publish or a graphical interface such as gnunet\-fs\-gtk.  The command line tool gnunet\-publish is more useful if many files are supposed to be added.  gnunet\-publish can automatically publish batches of files, recursively publish directories, create directories that can be browsed within GNUnet and publish file lists in a namespace.  When run on a directory, gnunet\-publish will always recursively publish all of the files in the directory.
 .PP
 gnunet\-publish can automatically extract keywords from the files that are shared.  Users that want to download files from GNUnet use keywords to search for the appropriate content.  You can disable keyword extraction with the \-D option.  You can manually add keywords using the \-k option. The keywords are case\-sensitive.
-.PP
-You can use automatic meta\-data extraction (based on libextractor) or the command\-line option \-m to specify meta-data.  For the \-m option you need to use the form keyword\-type:value.  For example, use "\-m os:Linux" to specify that the operating system is Linux.  Common meta\-data types are "author name", "title" , "mimetype", "filename", "language", "subject" and "keywords".  A full list can be obtained from the extract tool using the option \-\-list.  The meta\-data is used to help users in searching for files on the network.  
 .PP
 In addition to searching for files by keyword, GNUnet allows organizing files into directories.  With directories, the user only needs to find the directory in order to be able to download any of the files listed in the directory.  Directories can contain pointers to other directories.
 .PP
@@ -171,4 +169,4 @@ GNUnet configuration file
 .SH "REPORTING BUGS"
 Report bugs to <https://gnunet.org/bugs/> or by sending electronic mail to <gnunet\-developers@gnu.org>
 .SH "SEE ALSO"
-\fBgnunet\-fs\-gtk\fP(1), \fBgnunet\-pseudonym\fP(1), \fBgnunet\-search\fP(1), \fBgnunet\-download\fP(1), \fBgnunet.conf\fP(5), \fBextract\fP(1)
+\fBgnunet\-auto\-share\fP(1), \fBgnunet\-fs\-gtk\fP(1), \fBgnunet\-pseudonym\fP(1), \fBgnunet\-search\fP(1), \fBgnunet\-download\fP(1), \fBgnunet.conf\fP(5), \fBextract\fP(1)

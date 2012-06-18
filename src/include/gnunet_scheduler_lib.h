@@ -212,6 +212,8 @@ typedef int (*GNUNET_SCHEDULER_select) (void *cls,
                                         struct GNUNET_NETWORK_FDSet * wfds,
                                         struct GNUNET_NETWORK_FDSet * efds,
                                         struct GNUNET_TIME_Relative timeout);
+
+
 /**
  * Initialize and run scheduler.  This function will return when all
  * tasks have completed.  On systems with signals, receiving a SIGTERM

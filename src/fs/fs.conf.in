@@ -32,7 +32,7 @@ EXPECTED_NEIGHBOUR_COUNT = 128
 PREFIX = @MONKEYPREFIX@
 
 
-[fs-auto-share]
+[gnunet-auto-share]
 BINARY = gnunet-auto-share
 CONFIG = $DEFAULTCONFIG
 
