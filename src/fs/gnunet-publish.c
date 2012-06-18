@@ -28,7 +28,7 @@
 #include "platform.h"
 #include "gnunet_fs_service.h"
 
-static int ret;
+static int ret = 1;
 
 static int verbose;
 
@@ -177,6 +177,7 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
       }
       kill_task = GNUNET_SCHEDULER_add_now (&do_stop_task, NULL);
     }
+    ret = 0;
     break;
   case GNUNET_FS_STATUS_PUBLISH_STOPPED:
     GNUNET_break (NULL == pc);

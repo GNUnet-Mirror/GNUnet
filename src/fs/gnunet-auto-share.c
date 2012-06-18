@@ -29,6 +29,10 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 
+#define MIN_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 4)
+
+#define MAX_FREQUENCY GNUNET_TIME_UNIT_MINUTES
+
 
 /**
  * Item in our work queue (or in the set of files/directories
@@ -207,6 +211,10 @@ load_state ()
     wi = GNUNET_malloc (sizeof (struct WorkItem));
     wi->id = id;
     wi->filename = fn;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Loaded serialization ID for `%s' is `%s'\n",
+		wi->filename,
+		GNUNET_h2s (&id));
     fn = NULL;
     GNUNET_CRYPTO_hash (wi->filename,
 			strlen (wi->filename),
@@ -247,6 +255,10 @@ write_item (void *cls,
   struct GNUNET_BIO_WriteHandle *wh = cls;
   struct WorkItem *wi = value;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Saving serialization ID of file `%s' with value `%s'\n",
+	      wi->filename,
+	      GNUNET_h2s (&wi->id));
   if ( (GNUNET_OK != 
 	GNUNET_BIO_write_string (wh, wi->filename)) ||
        (GNUNET_OK !=
@@ -335,19 +347,65 @@ maint_child_death (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct WorkItem *wi = cls;
   struct GNUNET_HashCode key;
+  enum GNUNET_OS_ProcessStatusType type;
+  unsigned long code;
+  int ret;
+  char c;
+  const struct GNUNET_DISK_FileHandle *pr;
+
 
   run_task = GNUNET_SCHEDULER_NO_TASK;
-  GNUNET_break (GNUNET_OK ==
-		GNUNET_OS_process_wait (publish_proc));
+  pr = GNUNET_DISK_pipe_handle (sigpipe, GNUNET_DISK_PIPE_END_READ);
+  if (0 == (tc->reason & GNUNET_SCHEDULER_REASON_READ_READY))
+  {
+    /* shutdown scheduled us, ignore! */
+    run_task =
+      GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
+				      pr, &maint_child_death, wi);
+    return;
+  }
+
+  ret = GNUNET_OS_process_status (publish_proc,
+				  &type,
+				  &code);
+  GNUNET_assert (GNUNET_SYSERR != ret);
+  if (GNUNET_NO == ret)
+  {
+    GNUNET_break (0);
+    GNUNET_OS_process_kill (publish_proc, SIGKILL);
+    type = GNUNET_OS_PROCESS_SIGNALED;    
+  }
   GNUNET_OS_process_destroy (publish_proc);
   publish_proc = NULL;
-  GNUNET_CRYPTO_hash (wi->filename,
-		      strlen (wi->filename),
-		      &key);
-  GNUNET_CONTAINER_multihashmap_put (work_finished,
-				     &key,
-				     wi,
-				     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+  /* consume the signal */
+  GNUNET_break (0 < GNUNET_DISK_file_read (pr, &c, sizeof (c)));
+
+  if (GNUNET_YES == do_shutdown)
+  {
+    GNUNET_free (wi->filename);
+    GNUNET_free (wi);
+    return;
+  }
+  if ( (GNUNET_OS_PROCESS_EXITED == type) &&
+       (0 == code) )
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		_("Publication of `%s' done\n"),
+		wi->filename);
+    GNUNET_CRYPTO_hash (wi->filename,
+			strlen (wi->filename),
+			&key);
+    GNUNET_CONTAINER_multihashmap_put (work_finished,
+				       &key,
+				       wi,
+				       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+  }
+  else
+  {
+    GNUNET_CONTAINER_DLL_insert_tail (work_head,
+				      work_tail,
+				      wi);
+  }
   save_state ();
   schedule_next_task ();    
 }
@@ -418,6 +476,9 @@ work (void *cls,
   argv[argc++] = repl_level;
   argv[argc++] = wi->filename;
   argv[argc] = NULL;
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+	      _("Publishing `%s'\n"),
+	      wi->filename);
   publish_proc = GNUNET_OS_start_process_vap (GNUNET_YES,
 					      NULL, NULL,
 					      "gnunet-publish",
@@ -459,9 +520,6 @@ determine_id (void *cls,
   struct GNUNET_HashCode fx[2];
   struct GNUNET_HashCode ft;
 
-  if (NULL != strstr (filename,
-		      DIR_SEPARATOR_STR ".auto-share"))
-    return GNUNET_OK; /* skip internal file */
   if (0 != STAT (filename, &sbuf))
   {
     GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "stat", filename);
@@ -470,9 +528,12 @@ determine_id (void *cls,
   GNUNET_CRYPTO_hash (filename, strlen (filename), &fx[0]);
   if (!S_ISDIR (sbuf.st_mode))
   {
-    uint64_t fsize = GNUNET_htonll (sbuf.st_size);
+    uint64_t fattr[2];
 
-    GNUNET_CRYPTO_hash (&fsize, sizeof (uint64_t), &fx[1]);
+    fattr[0] = GNUNET_htonll (sbuf.st_size);
+    fattr[0] = GNUNET_htonll (sbuf.st_mtime);
+
+    GNUNET_CRYPTO_hash (fattr, sizeof (fattr), &fx[1]);
   }
   else
   {
@@ -510,6 +571,9 @@ add_file (void *cls,
 
   if (GNUNET_YES == do_shutdown)
     return GNUNET_SYSERR;
+  if (NULL != strstr (filename,
+		      DIR_SEPARATOR_STR ".auto-share"))
+    return GNUNET_OK; /* skip internal file */
   GNUNET_CRYPTO_hash (filename,
 		      strlen (filename),
 		      &key);
@@ -527,13 +591,13 @@ add_file (void *cls,
     GNUNET_CONTAINER_multihashmap_remove (work_finished,
 					  &key,
 					  wi);
-    wi->id = id; 
   }
   else
   {
     wi = GNUNET_malloc (sizeof (struct WorkItem));
     wi->filename = GNUNET_strdup (filename);
   }
+  wi->id = id;
   GNUNET_CONTAINER_DLL_insert (work_head,
 			       work_tail,
 			       wi);
@@ -576,12 +640,11 @@ schedule_next_task ()
     /* delay by at most 4h, at least 1s, and otherwise in between depending
        on how long it took to scan */
     delay = GNUNET_TIME_absolute_get_duration (start_time);
-    delay = GNUNET_TIME_relative_min (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS,
-								     4),
+    delay = GNUNET_TIME_relative_min (MIN_FREQUENCY,
 				      GNUNET_TIME_relative_multiply (delay,
 								     100));
     delay = GNUNET_TIME_relative_max (delay,
-				      GNUNET_TIME_UNIT_MINUTES);
+				      MAX_FREQUENCY);
     run_task = GNUNET_SCHEDULER_add_delayed (delay,
 					     &scan,
 					     NULL);
