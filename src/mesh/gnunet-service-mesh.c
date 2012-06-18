@@ -2419,7 +2419,9 @@ tunnel_destroy (struct MeshTunnel *t)
  * Create a new tunnel
  * 
  * @param owner Who is the owner of the tunnel (short ID).
- * @param id Tunnel Number of the tunnel.
+ * @param tid Tunnel Number of the tunnel.
+ * @param client Clients that owns the tunnel, NULL for foreign tunnels.
+ * @param local Tunnel Number for the tunnel, for the client point of view.
  * 
  */
 static struct MeshTunnel *
