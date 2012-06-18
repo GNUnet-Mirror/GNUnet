@@ -2845,7 +2845,7 @@ lockmanager_acquire_timeout (void *cls,
  * @param status the current status of the lock
  */
 static void
-lock_status_change_cb (void *cls, const char *domain_name, uint32_t lock,
+lock_status_change_cb (void *cls, const char *domain, uint32_t lock,
                        enum GNUNET_LOCKMANAGER_Status status)
 {
   struct GNUNET_STREAM_ListenSocket *lsocket = cls;
