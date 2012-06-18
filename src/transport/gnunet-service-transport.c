@@ -179,6 +179,7 @@ process_payload (const struct GNUNET_PeerIdentity *peer,
       htonl ((uint32_t) GST_neighbour_get_latency (peer).rel_value);
   memcpy (&ap[ats_count + 1], message, ntohs (message->size));
 
+  GNUNET_ATS_address_add (GST_ats, address, session, ap, ats_count + 1);
   GNUNET_ATS_address_update (GST_ats, address, session, ap, ats_count + 1);
   GST_clients_broadcast (&im->header, GNUNET_YES);
 

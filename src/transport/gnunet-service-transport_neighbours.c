@@ -2015,6 +2015,7 @@ GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received CONNECT message from peer `%s'\n", 
 	      GNUNET_i2s (peer));
+
   if (ntohs (message->size) != sizeof (struct SessionConnectMessage))
   {
     GNUNET_break_op (0);
@@ -2030,6 +2031,7 @@ GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
     n = setup_neighbour (peer);
   n->send_connect_ack = 1;
   n->connect_ack_timestamp = ts;
+
   switch (n->state)
   {  
   case S_NOT_CONNECTED:
@@ -2143,8 +2145,21 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
       GNUNET_ATS_address_destroyed (GST_ats, address, NULL);
     return;
   }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "ATS tells us to switch to address '%s' session %p for peer `%s' in state %s\n",
+              (address->address_length != 0) ? GST_plugins_a2s (address): "<inbound>",
+              session,
+              GNUNET_i2s (peer),
+              print_state (n->state));
+
   if (NULL == session)
+  {
     session = papi->get_session (papi->cls, address);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Obtained new session for peer `%s' and  address '%s': %p\n",
+                GNUNET_i2s (&address->peer), GST_plugins_a2s (address), session);
+  }
   if (NULL == session)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -2153,12 +2168,6 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
     GNUNET_ATS_address_destroyed (GST_ats, address, NULL);
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "ATS tells us to switch to address '%s' session %p for peer `%s'\n",
-              (address->address_length != 0) ? GST_plugins_a2s (address): "<inbound>",
-              session,
-              GNUNET_i2s (peer));
-
   switch (n->state)
   {
   case S_NOT_CONNECTED:
@@ -2564,6 +2573,7 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received CONNECT_ACK message from peer `%s'\n",
               GNUNET_i2s (peer));
+
   if (ntohs (message->size) != sizeof (struct SessionConnectMessage))
   {
     GNUNET_break_op (0);
