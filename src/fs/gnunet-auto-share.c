@@ -141,13 +141,74 @@ static struct GNUNET_TIME_Absolute start_time;
 
 
 /**
+ * Compute the name of the state database file we will use.
+ */
+static char *
+get_state_file ()
+{
+  char *ret;
+
+  GNUNET_asprintf (&ret,
+		   "%s%s.auto",
+		   dir_name,
+		   (DIR_SEPARATOR == dir_name[strlen(dir_name)-1]) ? "" : DIR_SEPARATOR_STR);
+  return ret;
+}
+
+
+/**
  * Load the set of 'work_finished' items from disk.
  */
 static void
 load_state ()
 {
-  GNUNET_break (0);
-  // FIXME: implement!
+  char *fn;
+  struct GNUNET_BIO_ReadHandle *rh;
+  uint32_t n;
+  struct GNUNET_HashCode id;
+  struct WorkItem *wi;
+  char *emsg;
+
+  emsg = NULL;
+  fn = get_state_file ();
+  rh = GNUNET_BIO_read_open (fn);
+  GNUNET_free (fn);
+  if (NULL == rh)
+    return;
+  fn = NULL;
+  if (GNUNET_OK != GNUNET_BIO_read_int32 (rh, &n))
+    goto error;
+  while (n-- > 0)
+  {
+    if ( (GNUNET_OK !=
+	  GNUNET_BIO_read_string (rh, "filename", &fn, 1024)) || 
+	 (GNUNET_OK !=
+	  GNUNET_BIO_read (rh, "id", &id, sizeof (struct GNUNET_HashCode))) )
+      goto error;
+    wi = GNUNET_malloc (sizeof (struct WorkItem));
+    wi->id = id;
+    wi->filename = fn;
+    fn = NULL;
+    GNUNET_CRYPTO_hash (wi->filename,
+			strlen (wi->filename),
+			&id);
+    GNUNET_CONTAINER_multihashmap_put (work_finished,
+				       &id,
+				       wi,
+				       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+  }
+  if (GNUNET_OK == 
+      GNUNET_BIO_read_close (rh, &emsg))
+    return;
+  rh = NULL;
+ error:
+  GNUNET_free_non_null (fn);
+  if (NULL != rh)
+    GNUNET_BIO_read_close (rh, &emsg);
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+	      _("Failed to load state: %s\n"),
+	      emsg);
+  GNUNET_free_non_null (emsg);
 }
 
 
