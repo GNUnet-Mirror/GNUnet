@@ -1311,7 +1311,7 @@ process_inbound_tokenized_messages (void *cls, void *client,
 				&si->sender,
 				hdr,
 				(const struct GNUNET_ATS_Information *) &ats, 2,
-				NULL,
+				si->session,
 				si->arg,
 				si->args);
   si->session->flow_delay_for_other_peer = delay;
