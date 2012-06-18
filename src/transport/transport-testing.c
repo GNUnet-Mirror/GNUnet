@@ -538,7 +538,7 @@ GNUNET_TRANSPORT_TESTING_connect_peers (struct GNUNET_TRANSPORT_TESTING_handle *
   GNUNET_CONTAINER_DLL_insert (tth->cc_head, tth->cc_tail, cc);
   cc->tct = GNUNET_SCHEDULER_add_now (&try_connect, cc);
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-testing",
-                   "New connect request %X\n", cc);
+                   "New connect request %p\n", cc);
 
   return cc;
 }
@@ -563,7 +563,7 @@ GNUNET_TRANSPORT_TESTING_connect_peers_cancel (struct
   GNUNET_assert (tth != NULL);
 
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-testing",
-                   "Canceling connect request %X!\n", cc);
+                   "Canceling connect request %p!\n", cc);
 
   if (cc->tct != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (cc->tct);
@@ -592,7 +592,7 @@ GNUNET_TRANSPORT_TESTING_done (struct GNUNET_TRANSPORT_TESTING_handle *tth)
   {
     ct = cc->next;
     GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "transport-testing",
-                     "Developer forgot to cancel connect request %X!\n", cc);
+                     "Developer forgot to cancel connect request %p!\n", cc);
     GNUNET_TRANSPORT_TESTING_connect_peers_cancel (tth, cc);
     cc = ct;
   }
