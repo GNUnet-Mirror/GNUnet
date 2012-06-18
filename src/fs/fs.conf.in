@@ -31,3 +31,11 @@ EXPECTED_NEIGHBOUR_COUNT = 128
 # Enable monkey?
 PREFIX = @MONKEYPREFIX@
 
+
+[fs-auto-share]
+BINARY = gnunet-auto-share
+CONFIG = $DEFAULTCONFIG
+
+# Note: MUST specify path to auto-share directory and CAN specify other options
+# to gnunet-auto-share here!
+OPTIONS = $SERVICEHOME/fs/share/

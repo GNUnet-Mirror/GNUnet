@@ -24,6 +24,7 @@
  * 
  * TODO:
  * - support loading meta data / keywords from resource file
+ * - add stability timer (a la buildbot)
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
