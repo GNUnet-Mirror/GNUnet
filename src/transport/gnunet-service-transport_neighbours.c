@@ -766,6 +766,7 @@ free_address (struct NeighbourAddress *na)
   {
     GST_validation_set_address_use (na->address, na->session, GNUNET_NO, __LINE__);
     GNUNET_ATS_address_in_use (GST_ats, na->address, na->session, GNUNET_NO);
+    GNUNET_ATS_address_destroyed (GST_ats, na->address, na->session);
   }
   na->ats_active = GNUNET_NO;
   if (NULL != na->address)
@@ -2681,8 +2682,10 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
  *
  * @param peer identity of the peer where the session died
  * @param session session that is gone
+ * @param GNUNET_YES if this was a session used, GNUNET_NO if
+ *        this session was not in use
  */
-void
+int
 GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
                                    struct Session *session)
 {
@@ -2706,7 +2709,7 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
     }
   }
   if (NULL == (n = lookup_neighbour (peer)))
-    return; /* can't affect us */
+    return GNUNET_NO; /* can't affect us */
   if (session != n->primary_address.session)
   {
     if (session == n->alternative_address.session)
@@ -2718,7 +2721,7 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
       else
 	GNUNET_break (0);
     }
-    return; /* doesn't affect us further */
+    return GNUNET_NO; /* doesn't affect us further */
   }
 
   n->expect_latency_response = GNUNET_NO;
@@ -2727,11 +2730,11 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
   case S_NOT_CONNECTED:
     GNUNET_break (0);
     free_neighbour (n, GNUNET_NO);
-    return;
+    return GNUNET_YES;
   case S_INIT_ATS:
     GNUNET_break (0);
     free_neighbour (n, GNUNET_NO);
-    return;
+    return GNUNET_YES;
   case S_INIT_BLACKLIST:
   case S_CONNECT_SENT:
     free_address (&n->primary_address);
@@ -2747,7 +2750,7 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
     /* error on inbound session; free neighbour entirely */
     free_address (&n->primary_address);
     free_neighbour (n, GNUNET_NO);
-    return;
+    return GNUNET_YES;
   case S_CONNECTED:
     free_address (&n->primary_address);
     n->state = S_RECONNECT_ATS;
@@ -2798,6 +2801,7 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
   if (GNUNET_SCHEDULER_NO_TASK != n->task)
     GNUNET_SCHEDULER_cancel (n->task);
   n->task = GNUNET_SCHEDULER_add_now (&master_task, n);
+  return GNUNET_YES;
 }
 
 
