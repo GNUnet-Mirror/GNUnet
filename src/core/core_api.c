@@ -1313,6 +1313,7 @@ GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle, int cork,
   th->priority = priority;
   th->msize = notify_size;
   th->cork = cork;
+  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == pr->ntr_task);
   pr->ntr_task =
     GNUNET_SCHEDULER_add_now (&run_request_next_transmission, pr);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Transmission request added to queue\n");
@@ -1352,6 +1353,11 @@ GNUNET_CORE_notify_transmit_ready_cancel (struct GNUNET_CORE_TransmitHandle *th)
      * canceled before it could be transmitted; remove
      * us from the 'ready' list */
     GNUNET_CONTAINER_DLL_remove (h->ready_peer_head, h->ready_peer_tail, pr);
+  }
+  if (GNUNET_SCHEDULER_NO_TASK != pr->ntr_task)
+  {
+    GNUNET_SCHEDULER_cancel (pr->ntr_task);
+    pr->ntr_task = GNUNET_SCHEDULER_NO_TASK;
   }
 }
 
