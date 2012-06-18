@@ -46,7 +46,7 @@ struct WorkItem
   /**
    * Filename of the work item.
    */
-  const char *filename;
+  char *filename;
 
   /**
    * Unique identity for this work item (used to detect
@@ -516,6 +516,26 @@ run (void *cls, char *const *args, const char *cfgfile,
 
 
 /**
+ * Free memory associated with the work item from the work_finished map.
+ *
+ * @param cls NULL (unused)
+ * @param key key of the item in the map (unused)
+ * @param value the 'struct WorkItem' to free
+ * @return GNUNET_OK to continue to iterate 
+ */
+static int
+free_item (void *cls,
+	   const struct GNUNET_HashCode *key,
+	   void *value)
+{
+  struct WorkItem *wi = value;
+
+  GNUNET_free (wi->filename);
+  GNUNET_free (wi);
+  return GNUNET_OK;
+}
+
+/**
  * The main function to automatically publish content to GNUnet.
  *
  * @param argc number of arguments from the command line
@@ -547,6 +567,7 @@ main (int argc, char *const *argv)
      0, &GNUNET_GETOPT_set_one, &verbose},
     GNUNET_GETOPT_OPTION_END
   };
+  struct WorkItem *wi;
   int ok;
 
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
@@ -556,7 +577,16 @@ main (int argc, char *const *argv)
 			    gettext_noop
 			    ("Automatically publish files from a directory on GNUnet"),
 			    options, &run, NULL)) ? ret : 1;
-  // FIXME: free memory in work lists and hash map...
+  (void) GNUNET_CONTAINER_multihashmap_iterate (work_finished,
+						&free_item,
+						NULL);
+  GNUNET_CONTAINER_multihashmap_destroy (work_finished);
+  while (NULL != (wi = work_head))
+  {
+    GNUNET_CONTAINER_DLL_remove (work_head, work_tail, wi);
+    GNUNET_free (wi->filename);
+    GNUNET_free (wi);
+  }
   return ok;
 }
 
