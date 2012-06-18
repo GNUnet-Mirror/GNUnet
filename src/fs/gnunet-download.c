@@ -107,7 +107,7 @@ display_bar (unsigned long long x,
   for (p=endeq; p<w; p++)
     strcat (buf, " ");
   strcat (buf, "]\r");
-  printf (buf);
+  printf ("%s", buf);
   fflush(stdout);
 }
 
