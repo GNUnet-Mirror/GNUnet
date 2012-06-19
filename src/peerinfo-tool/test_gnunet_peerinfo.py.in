@@ -35,21 +35,27 @@ from gnunet_pyexpect import pexpect
 if os.name == 'posix':
   peerinfo = 'gnunet-peerinfo'
   gnunetarm = 'gnunet-arm'
+  gnunettesting = 'gnunet-testing'
 elif os.name == 'nt':
   peerinfo = 'gnunet-peerinfo.exe'
   gnunetarm = 'gnunet-arm.exe'
-
-
+  gnunettesting = 'gnunet-testing.exe'
 
 pinfo = pexpect ()
 pinfo.spawn (None, [peerinfo, '-i', '-c', 'test_gnunet_peerinfo_data.conf', '-L', 'ERROR'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 pinfo.expect ("stdout", re.compile (r'Error in communication with PEERINFO service: Timeout transmitting iteration request to `PEERINFO\' service.\r?\n'))
 pinfo.expect ("stdout", "EOF")
 
+
 if os.name == "nt":
   shutil.rmtree (os.path.join (os.getenv ("TEMP"), "gnunet-test-peerinfo"), True)
 else:
   shutil.rmtree ("/tmp/gnunet-test-peerinfo", True)
+
+# create hostkey via testing lib
+hkk = subprocess.Popen ([gnunettesting, '-n 1', '-k', '/tmp/gnunet-test-peerinfo/.hostkey'])
+hkk.communicate ()
+
 arm = subprocess.Popen ([gnunetarm, '-sq', '-c', 'test_gnunet_peerinfo_data.conf'])
 arm.communicate ()
 

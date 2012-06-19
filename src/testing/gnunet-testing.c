@@ -131,6 +131,7 @@ create_hostkeys (const unsigned int no)
     fprintf (stderr, _("Could not extract hostkey %u (offset too large?)\n"), create_no);
     return 1;
   }
+  (void) GNUNET_DISK_directory_create_for_file (create_hostkey);
   fd = GNUNET_DISK_file_open (create_hostkey,
 			      GNUNET_DISK_OPEN_READWRITE |
 			      GNUNET_DISK_OPEN_CREATE,
