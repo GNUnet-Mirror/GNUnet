@@ -69,6 +69,7 @@ check_PROGRAMS = \
  test_ats_api_scheduling_add_address \
  test_ats_api_scheduling \
  test_ats_api_scheduling_destroy_address \
+ test_ats_api_scheduling_destroy_session \
  test_ats_api_reset_backoff \
  $(GN_MLP_TEST) \
  $(GN_MLP_TEST_AVG) \
@@ -127,6 +128,12 @@ test_ats_api_scheduling_add_address_LDADD = \
 test_ats_api_scheduling_destroy_address_SOURCES = \
  test_ats_api_scheduling_destroy_address.c
 test_ats_api_scheduling_destroy_address_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/ats/libgnunetats.la
+
+test_ats_api_scheduling_destroy_session_SOURCES = \
+ test_ats_api_scheduling_destroy_session.c
+test_ats_api_scheduling_destroy_session_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/ats/libgnunetats.la
 
