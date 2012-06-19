@@ -1097,16 +1097,6 @@ GNUNET_ATS_address_add (struct GNUNET_ATS_SchedulingHandle *sh,
     return GNUNET_SYSERR;
   }
 
-  p = GNUNET_malloc (sizeof (struct PendingMessage) + msize);
-  p->size = msize;
-  p->is_init = GNUNET_NO;
-  m = (struct AddressUpdateMessage *) &p[1];
-  m->header.type = htons (GNUNET_MESSAGE_TYPE_ATS_ADDRESS_ADD);
-  m->header.size = htons (msize);
-  m->ats_count = htonl (ats_count);
-  m->peer = address->peer;
-  m->address_length = htons (address->address_length);
-  m->plugin_name_length = htons (namelen);
   if (NULL != session)
   {
     s = find_session_id (sh, session, &address->peer);
@@ -1122,6 +1112,17 @@ GNUNET_ATS_address_add (struct GNUNET_ATS_SchedulingHandle *sh,
     s = find_empty_session_slot (sh, session, &address->peer);
     GNUNET_break (NOT_FOUND != s);
   }
+
+  p = GNUNET_malloc (sizeof (struct PendingMessage) + msize);
+  p->size = msize;
+  p->is_init = GNUNET_NO;
+  m = (struct AddressUpdateMessage *) &p[1];
+  m->header.type = htons (GNUNET_MESSAGE_TYPE_ATS_ADDRESS_ADD);
+  m->header.size = htons (msize);
+  m->ats_count = htonl (ats_count);
+  m->peer = address->peer;
+  m->address_length = htons (address->address_length);
+  m->plugin_name_length = htons (namelen);
   m->session_id = htonl (s);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1197,16 +1198,6 @@ GNUNET_ATS_address_update (struct GNUNET_ATS_SchedulingHandle *sh,
     return;
   }
 
-  p = GNUNET_malloc (sizeof (struct PendingMessage) + msize);
-  p->size = msize;
-  p->is_init = GNUNET_NO;
-  m = (struct AddressUpdateMessage *) &p[1];
-  m->header.type = htons (GNUNET_MESSAGE_TYPE_ATS_ADDRESS_UPDATE);
-  m->header.size = htons (msize);
-  m->ats_count = htonl (ats_count);
-  m->peer = address->peer;
-  m->address_length = htons (address->address_length);
-  m->plugin_name_length = htons (namelen);
   if (NULL != session)
   {
     s = find_session_id (sh, session, &address->peer);
@@ -1221,6 +1212,18 @@ GNUNET_ATS_address_update (struct GNUNET_ATS_SchedulingHandle *sh,
       return;
     }
   }
+
+  p = GNUNET_malloc (sizeof (struct PendingMessage) + msize);
+  p->size = msize;
+  p->is_init = GNUNET_NO;
+  m = (struct AddressUpdateMessage *) &p[1];
+  m->header.type = htons (GNUNET_MESSAGE_TYPE_ATS_ADDRESS_UPDATE);
+  m->header.size = htons (msize);
+  m->ats_count = htonl (ats_count);
+  m->peer = address->peer;
+  m->address_length = htons (address->address_length);
+  m->plugin_name_length = htons (namelen);
+
   m->session_id = htonl (s);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1273,16 +1276,6 @@ GNUNET_ATS_address_in_use (struct GNUNET_ATS_SchedulingHandle *sh,
     return;
   }
 
-  p = GNUNET_malloc (sizeof (struct PendingMessage) + msize);
-  p->size = msize;
-  p->is_init = GNUNET_NO;
-  m = (struct AddressUseMessage *) &p[1];
-  m->header.type = htons (GNUNET_MESSAGE_TYPE_ATS_ADDRESS_IN_USE);
-  m->header.size = htons (msize);
-  m->peer = address->peer;
-  m->in_use = htons (in_use);
-  m->address_length = htons (address->address_length);
-  m->plugin_name_length = htons (namelen);
   if (session != NULL)
   {
     s = find_session_id (sh, session, &address->peer);
@@ -1302,6 +1295,17 @@ GNUNET_ATS_address_in_use (struct GNUNET_ATS_SchedulingHandle *sh,
       GNUNET_assert (NOT_FOUND != s);
     }
   }
+
+  p = GNUNET_malloc (sizeof (struct PendingMessage) + msize);
+  p->size = msize;
+  p->is_init = GNUNET_NO;
+  m = (struct AddressUseMessage *) &p[1];
+  m->header.type = htons (GNUNET_MESSAGE_TYPE_ATS_ADDRESS_IN_USE);
+  m->header.size = htons (msize);
+  m->peer = address->peer;
+  m->in_use = htons (in_use);
+  m->address_length = htons (address->address_length);
+  m->plugin_name_length = htons (namelen);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Setting address used to %s for peer `%s', plugin `%s', session %p\n",
@@ -1351,6 +1355,16 @@ GNUNET_ATS_address_destroyed (struct GNUNET_ATS_SchedulingHandle *sh,
     return;
   }
 
+  s = find_session_id (sh, session, &address->peer);
+  if ((NULL != session) && (NOT_FOUND == s))
+  {
+    /* trying to delete unknown address */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Trying to delete unknown address for peer `%s', plugin `%s', session %p\n",
+                GNUNET_i2s (&address->peer), address->transport_name, session);
+    return;
+  }
+
   p = GNUNET_malloc (sizeof (struct PendingMessage) + msize);
   p->size = msize;
   p->is_init = GNUNET_NO;
@@ -1361,16 +1375,6 @@ GNUNET_ATS_address_destroyed (struct GNUNET_ATS_SchedulingHandle *sh,
   m->peer = address->peer;
   m->address_length = htons (address->address_length);
   m->plugin_name_length = htons (namelen);
-
-  s = find_session_id (sh, session, &address->peer);
-  if ((NULL != session) && (NOT_FOUND == s))
-  {
-    /* trying to delete unknown address */
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Trying to delete unknown address for peer `%s', plugin `%s', session %p\n",
-                GNUNET_i2s (&address->peer), address->transport_name, session);
-    return;
-  }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Deleting address for peer `%s', plugin `%s', session %p\n",
