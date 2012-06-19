@@ -54,17 +54,41 @@ struct GNUNET_NAMESTORE_QueueEntry
    */
   struct GNUNET_NAMESTORE_QueueEntry *prev;
 
+  /**
+   * Main handle to access the namestore.
+   */
   struct GNUNET_NAMESTORE_Handle *nsh;
 
-  uint32_t op_id;
-
+  /**
+   *
+   */
   GNUNET_NAMESTORE_ContinuationWithStatus cont;
+
+  /**
+   * Closure for 'cont'.
+   */
   void *cont_cls;
 
+  /**
+   * Function to call with the records we get back; or NULL.
+   */
   GNUNET_NAMESTORE_RecordProcessor proc;
+
+  /**
+   * Closure for 'proc'.
+   */
   void *proc_cls;
 
-  char *data; /*stub data pointer*/
+  /**
+   * stub data pointer (???)
+   */
+  char *data; 
+
+  /**
+   *
+   */
+  uint32_t op_id;
+
 };
 
 
@@ -84,15 +108,46 @@ struct GNUNET_NAMESTORE_ZoneIterator
    */
   struct GNUNET_NAMESTORE_ZoneIterator *prev;
 
+  /**
+   * Main handle to access the namestore.
+   */
+  struct GNUNET_NAMESTORE_Handle *h;
+
+  /**
+   *
+   */
+  GNUNET_NAMESTORE_RecordProcessor proc;
+
+  /**
+   * Closure for 'proc'.
+   */
+  void* proc_cls;
+
+  /**
+   *
+   */
+  struct GNUNET_CRYPTO_ShortHashCode zone;
+
+  /**
+   *
+   */
+  uint32_t no_flags;
+
+  /**
+   *
+   */
+  uint32_t flags;
+
+  /**
+   *
+   */
   uint32_t op_id;
 
-  struct GNUNET_NAMESTORE_Handle *h;
-  GNUNET_NAMESTORE_RecordProcessor proc;
-  void* proc_cls;
-  struct GNUNET_CRYPTO_ShortHashCode zone;
-  uint32_t no_flags;
-  uint32_t flags;
+  /**
+   *
+   */
   int has_zone;
+
 };
 
 
@@ -147,38 +202,56 @@ struct GNUNET_NAMESTORE_Handle
   struct GNUNET_CLIENT_TransmitHandle *th;
 
   /**
+   * Head of linked list of pending messages to send to the service
+   */
+  struct PendingMessage * pending_head;
+
+  /**
+   * Tail of linked list of pending messages to send to the service
+   */
+  struct PendingMessage * pending_tail;
+
+  /**
+   * Head of pending namestore queue entries
+   */
+  struct GNUNET_NAMESTORE_QueueEntry * op_head;
+
+  /**
+   * Tail of pending namestore queue entries
+   */
+  struct GNUNET_NAMESTORE_QueueEntry * op_tail;
+
+  /**
+   * Head of pending namestore zone iterator entries
+   */
+  struct GNUNET_NAMESTORE_ZoneIterator * z_head;
+
+  /**
+   * Tail of pending namestore zone iterator entries
+   */
+  struct GNUNET_NAMESTORE_ZoneIterator * z_tail;
+
+  /**
    * Reconnect task
    */
   GNUNET_SCHEDULER_TaskIdentifier reconnect_task;
-
-  /**
-   * Pending messages to send to the service
-   */
-
-  struct PendingMessage * pending_head;
-  struct PendingMessage * pending_tail;
 
   /**
    * Should we reconnect to service due to some serious error?
    */
   int reconnect;
 
-
   /**
-   * Pending namestore queue entries
+   * ???
    */
-  struct GNUNET_NAMESTORE_QueueEntry * op_head;
-  struct GNUNET_NAMESTORE_QueueEntry * op_tail;
-
   uint32_t op_id;
 
-  /**
-   * Pending namestore zone iterator entries
-   */
-  struct GNUNET_NAMESTORE_ZoneIterator * z_head;
-  struct GNUNET_NAMESTORE_ZoneIterator * z_tail;
 };
 
+
+/**
+ * ???
+ */
 struct GNUNET_NAMESTORE_SimpleRecord
 {
   /**
@@ -191,13 +264,41 @@ struct GNUNET_NAMESTORE_SimpleRecord
    */
   struct GNUNET_NAMESTORE_SimpleRecord *prev;
   
+  /**
+   * ???
+   */
   const char *name;
+
+  /**
+   * ???
+   */
   const struct GNUNET_CRYPTO_ShortHashCode *zone;
-  uint32_t record_type;
-  struct GNUNET_TIME_Absolute expiration;
-  enum GNUNET_NAMESTORE_RecordFlags flags;
-  size_t data_size;
+
+  /**
+   * ???
+   */
   const void *data;
+
+  /**
+   * ???
+   */
+  struct GNUNET_TIME_Absolute expiration;
+
+  /**
+   * ???
+   */
+  size_t data_size;
+
+  /**
+   * ???
+   */
+  enum GNUNET_NAMESTORE_RecordFlags flags;
+
+  /**
+   * ???
+   */
+  uint32_t record_type;
+
 };
 
 
@@ -210,23 +311,15 @@ struct GNUNET_NAMESTORE_SimpleRecord
 static void
 force_reconnect (struct GNUNET_NAMESTORE_Handle *h);
 
+
 static void
 handle_lookup_name_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
                              struct LookupNameResponseMessage * msg,
                              size_t size)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' \n",
-              "LOOKUP_NAME_RESPONSE");
-
   struct GNUNET_NAMESTORE_Handle *h = qe->nsh;
-
-  /* Operation done, remove */
-  GNUNET_CONTAINER_DLL_remove(h->op_head, h->op_tail, qe);
-
-
   char *name;
   char * rd_tmp;
-
   struct GNUNET_CRYPTO_RsaSignature *signature = NULL;
   struct GNUNET_TIME_Absolute expire;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *public_key_tmp;
@@ -237,6 +330,10 @@ handle_lookup_name_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
   int contains_sig = GNUNET_NO;
   int rd_count = 0;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' \n",
+              "LOOKUP_NAME_RESPONSE");
+  /* Operation done, remove */
+  GNUNET_CONTAINER_DLL_remove(h->op_head, h->op_tail, qe);
   rd_len = ntohs (msg->rd_len);
   rd_count = ntohs (msg->rd_count);
   msg_len = ntohs (msg->gns_header.header.size);
@@ -437,6 +534,7 @@ handle_record_remove_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
   GNUNET_free (qe);
 }
 
+
 static void
 handle_zone_to_name_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
                              struct ZoneToNameResponseMessage* msg,
@@ -559,6 +657,7 @@ manage_record_operations (struct GNUNET_NAMESTORE_QueueEntry *qe,
   }
 }
 
+
 static void
 handle_zone_iteration_response (struct GNUNET_NAMESTORE_ZoneIterator *ze,
                                 struct ZoneIterationResponseMessage *msg,
@@ -652,6 +751,7 @@ manage_zone_operations (struct GNUNET_NAMESTORE_ZoneIterator *ze,
       break;
   }
 }
+
 
 /**
  * Type of a function to call when we receive a message
@@ -870,6 +970,7 @@ force_reconnect (struct GNUNET_NAMESTORE_Handle *h)
                                     h);
 }
 
+
 static uint32_t
 get_op_id (struct GNUNET_NAMESTORE_Handle *h)
 {
@@ -877,6 +978,7 @@ get_op_id (struct GNUNET_NAMESTORE_Handle *h)
   h->op_id ++;
   return op_id;
 }
+
 
 /**
  * Initialize the connection with the NAMESTORE service.
@@ -895,6 +997,7 @@ GNUNET_NAMESTORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
   h->op_id = 0;
   return h;
 }
+
 
 static void
 clean_up_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -1477,8 +1580,6 @@ GNUNET_NAMESTORE_zone_iteration_start (struct GNUNET_NAMESTORE_Handle *h,
   uint32_t rid = 0;
 
   GNUNET_assert (NULL != h);
-
-
   rid = get_op_id(h);
   it = GNUNET_malloc (sizeof (struct GNUNET_NAMESTORE_ZoneIterator));
   it->h = h;
@@ -1522,8 +1623,6 @@ GNUNET_NAMESTORE_zone_iteration_start (struct GNUNET_NAMESTORE_Handle *h,
   }
   msg->must_have_flags = ntohs (must_have_flags);
   msg->must_not_have_flags = ntohs (must_not_have_flags);
-
-
 
   /* transmit message */
   GNUNET_CONTAINER_DLL_insert_tail (h->pending_head, h->pending_tail, pe);
@@ -1637,10 +1736,8 @@ GNUNET_NAMESTORE_cancel (struct GNUNET_NAMESTORE_QueueEntry *qe)
   struct GNUNET_NAMESTORE_Handle *h = qe->nsh;
 
   GNUNET_assert (qe != NULL);
-
   GNUNET_CONTAINER_DLL_remove(h->op_head, h->op_tail, qe);
   GNUNET_free(qe);
-
 }
 
 /* end of namestore_api.c */
