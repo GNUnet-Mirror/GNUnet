@@ -2340,9 +2340,9 @@ master_task (void *cls,
   n->task = GNUNET_SCHEDULER_NO_TASK;
   delay = GNUNET_TIME_absolute_get_remaining (n->timeout);  
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "master task runs for neighbour `%s' in state %d with timeout in %llu ms\n",
+	      "Master task runs for neighbour `%s' in state %s with timeout in %llu ms\n",
 	      GNUNET_i2s (&n->id),
-	      n->state,
+	      print_state(n->state),
 	      (unsigned long long) delay.rel_value);
   switch (n->state)
   {
@@ -2698,7 +2698,7 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
  *
  * @param peer identity of the peer where the session died
  * @param session session that is gone
- * @param GNUNET_YES if this was a session used, GNUNET_NO if
+ * @return GNUNET_YES if this was a session used, GNUNET_NO if
  *        this session was not in use
  */
 int

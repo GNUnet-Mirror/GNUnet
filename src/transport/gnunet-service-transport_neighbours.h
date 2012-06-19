@@ -195,7 +195,7 @@ GST_neighbours_iterate (GST_NeighbourIterator cb, void *cb_cls);
  *
  * @param peer identity of the peer where the session died
  * @param session session that is gone
- * @param GNUNET_YES if this was a session used, GNUNET_NO if
+ * @return GNUNET_YES if this was a session used, GNUNET_NO if
  *        this session was not in use
  */
 int
