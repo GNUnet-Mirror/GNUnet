@@ -98,7 +98,12 @@ enum GNUNET_BLOCK_Type
     /**
      * Block for storing record data
      */
-  GNUNET_BLOCK_TYPE_GNS_NAMERECORD = 11
+  GNUNET_BLOCK_TYPE_GNS_NAMERECORD = 11,
+
+    /**
+     * Block for storing mesh peers
+     */
+  GNUNET_BLOCK_TYPE_MESH_PEER = 20
 };
 
 

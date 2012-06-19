@@ -14,6 +14,8 @@ pkgcfgdir= $(pkgdatadir)/config.d/
 pkgcfg_DATA = \
   mesh.conf
 
+plugindir = $(libdir)/gnunet
+
 AM_CLFAGS = -g
 
 bin_PROGRAMS = \
@@ -22,12 +24,27 @@ bin_PROGRAMS = \
 lib_LTLIBRARIES = \
   libgnunetmesh.la
 
+plugin_LTLIBRARIES = \
+ libgnunet_plugin_block_mesh.la
+
+libgnunet_plugin_block_mesh_la_SOURCES = \
+ plugin_block_mesh.c
+libgnunet_plugin_block_mesh_la_LIBADD = \
+ $(top_builddir)/src/block/libgnunetblock.la \
+ $(top_builddir)/src/util/libgnunetutil.la
+libgnunet_plugin_block_mesh_la_LDFLAGS = \
+ $(GN_PLUGIN_LDFLAGS)
+libgnunet_plugin_block_mesh_la_DEPENDENCIES = \
+ $(top_builddir)/src/block/libgnunetblock.la
+
+
 gnunet_service_mesh_SOURCES = \
  gnunet-service-mesh.c \
  mesh_tunnel_tree.c mesh_tunnel_tree.h
 gnunet_service_mesh_LDADD = \
-  $(top_builddir)/src/core/libgnunetcore.la\
+  $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/dht/libgnunetdht.la \
+  $(top_builddir)/src/block/libgnunetblock.la \
   $(top_builddir)/src/util/libgnunetutil.la
  gnunet_service_mesh_DEPENDENCIES = \
   $(top_builddir)/src/core/libgnunetcore.la\

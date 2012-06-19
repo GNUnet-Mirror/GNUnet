@@ -70,8 +70,10 @@
 
 /* TODO END */
 
-#define MESH_DEBUG_DHT GNUNET_YES
-#define MESH_DEBUG_CONNECTION GNUNET_NO
+#define MESH_BLOOM_SIZE         128
+
+#define MESH_DEBUG_DHT          GNUNET_YES
+#define MESH_DEBUG_CONNECTION   GNUNET_NO
 
 #if MESH_DEBUG_CONNECTION
 #define DEBUG_CONN(...) GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__)
@@ -382,6 +384,11 @@ struct MeshTunnel
   unsigned int nblacklisted;
 
   /**
+   * Bloomfilter (for peer identities) to stop circular routes
+   */
+  char bloomfilter[MESH_BLOOM_SIZE];
+
+  /**
    * Tunnel paths
    */
   struct MeshTunnelTree *tree;
@@ -655,7 +662,8 @@ announce_application (void *cls, const struct GNUNET_HashCode * key, void *value
   /* FIXME: keep return value of 'put' to possibly cancel!? */
   GNUNET_DHT_put (dht_handle, key, 10,
                   GNUNET_DHT_RO_RECORD_ROUTE |
-                  GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE, GNUNET_BLOCK_TYPE_TEST,
+                  GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
+                  GNUNET_BLOCK_TYPE_MESH_PEER,
                   sizeof (struct GNUNET_PeerIdentity),
                   (const char *) &my_full_id,
                   GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get (),
@@ -717,7 +725,7 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                   &my_full_id.hashPubKey,       /* Key to use */
                   10,          /* Replication level */
                   GNUNET_DHT_RO_RECORD_ROUTE | GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,    /* DHT options */
-                  GNUNET_BLOCK_TYPE_TEST,       /* Block type */
+                  GNUNET_BLOCK_TYPE_MESH_PEER,       /* Block type */
                   sizeof (my_full_id),  /* Size of the data */
                   (char *) &my_full_id, /* Data itself */
                   GNUNET_TIME_UNIT_FOREVER_ABS,  /* Data expiration */
@@ -1514,11 +1522,13 @@ peer_info_connect (struct MeshPeerInfo *peer, struct MeshTunnel *t)
                 "  Starting DHT GET for peer %s\n", GNUNET_i2s (&id));
     peer->dhtgetcls = path_info;
     peer->dhtget = GNUNET_DHT_get_start (dht_handle,    /* handle */
-                                         GNUNET_BLOCK_TYPE_TEST,        /* type */
-                                         &id.hashPubKey,        /* key to search */
+                                         GNUNET_BLOCK_TYPE_MESH_PEER, /* type */
+                                         &id.hashPubKey,     /* key to search */
                                          10,     /* replication level */
-                                         GNUNET_DHT_RO_RECORD_ROUTE | GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE, NULL,       /* xquery */
-                                         0,     /* xquery bits */
+                                         GNUNET_DHT_RO_RECORD_ROUTE |
+                                         GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
+                                         NULL,       /* xquery */ // FIXME BLOOMFILTER
+                                         0,     /* xquery bits */ // FIXME BLOOMFILTER SIZE
                                          &dht_get_id_handler, path_info);
   }
   /* Otherwise, there is no path but the DHT get is already started. */
@@ -4449,9 +4459,12 @@ handle_local_connect_by_type (void *cls, struct GNUNET_SERVER_Client *client,
               GNUNET_h2s (&hash));
   t->dht_get_type =
       GNUNET_DHT_get_start (dht_handle, 
-                            GNUNET_BLOCK_TYPE_TEST, &hash, 10,
+                            GNUNET_BLOCK_TYPE_MESH_PEER,
+                            &hash,
+                            10,
                             GNUNET_DHT_RO_RECORD_ROUTE |
-                            GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE, NULL, 0,
+                            GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
+                            NULL, 0,
                             &dht_get_type_handler, t);
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
