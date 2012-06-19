@@ -79,7 +79,7 @@ run (void *cls, char *const *args, const char *cfgfile,
       GNUNET_break (0);
       res = 1;
     }
-    if (0 != GNUNET_TIME_absolute_get_difference(src[c].expiration, dst[c].expiration).rel_value)
+    if (src[c].expiration_time != dst[c].expiration_time)
     {
       GNUNET_break (0);
       res = 1;

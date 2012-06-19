@@ -345,15 +345,15 @@ put_cont (void *cls, int32_t success, const char *emsg)
 
 
 static struct GNUNET_NAMESTORE_RecordData *
-create_record (int count)
+create_record (unsigned int count)
 {
-  int c;
+  unsigned int c;
   struct GNUNET_NAMESTORE_RecordData * rd;
-  rd = GNUNET_malloc (count * sizeof (struct GNUNET_NAMESTORE_RecordData));
 
+  rd = GNUNET_malloc (count * sizeof (struct GNUNET_NAMESTORE_RecordData));
   for (c = 0; c < count; c++)
   {
-    rd[c].expiration = GNUNET_TIME_absolute_get();
+    rd[c].expiration_time = GNUNET_TIME_absolute_get().abs_value;
     rd[c].record_type = 1111;
     rd[c].data_size = 50;
     rd[c].data = GNUNET_malloc(50);
@@ -368,6 +368,7 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   char *hostkey_file;
+  struct GNUNET_TIME_Absolute et;
 
   endbadly_task = GNUNET_SCHEDULER_add_delayed(TIMEOUT,&endbadly, NULL);
   GNUNET_asprintf(&hostkey_file,"zonefiles%s%s",DIR_SEPARATOR_STR,
@@ -396,7 +397,8 @@ run (void *cls,
 
   GNUNET_asprintf(&s_name_1, "dummy1");
   s_rd_1 = create_record(1);
-  sig_1 = GNUNET_NAMESTORE_create_signature(privkey, s_rd_1->expiration, s_name_1, s_rd_1, 1);
+  et.abs_value = s_rd_1->expiration_time;
+  sig_1 = GNUNET_NAMESTORE_create_signature(privkey, et, s_name_1, s_rd_1, 1);
   GNUNET_NAMESTORE_record_create(nsh, privkey, s_name_1, s_rd_1, &put_cont, NULL);
 
 
@@ -404,14 +406,16 @@ run (void *cls,
   GNUNET_asprintf(&s_name_2, "dummy2");
   s_rd_2 = create_record(1);
 
-  sig_2 = GNUNET_NAMESTORE_create_signature(privkey, s_rd_2->expiration, s_name_2, s_rd_2, 1);
+  et.abs_value = s_rd_2->expiration_time;
+  sig_2 = GNUNET_NAMESTORE_create_signature(privkey, et, s_name_2, s_rd_2, 1);
   GNUNET_NAMESTORE_record_create(nsh, privkey, s_name_2, s_rd_2, &put_cont, NULL);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created record 3\n");
   /* name in different zone */
   GNUNET_asprintf(&s_name_3, "dummy3");
   s_rd_3 = create_record(1);
-  sig_3 = GNUNET_NAMESTORE_create_signature(privkey2, s_rd_3->expiration, s_name_3, s_rd_3, 1);
+  et.abs_value = s_rd_3->expiration_time;
+  sig_3 = GNUNET_NAMESTORE_create_signature(privkey2, et, s_name_3, s_rd_3, 1);
   GNUNET_NAMESTORE_record_put (nsh, &pubkey2, s_name_3, GNUNET_TIME_UNIT_FOREVER_ABS, 1, s_rd_3, sig_3, &put_cont, NULL);
 }
 

@@ -113,15 +113,15 @@ put_cont (void *cls, int32_t success, const char *emsg)
 
 
 static struct GNUNET_NAMESTORE_RecordData *
-create_record (int count)
+create_record (unsigned int count)
 {
   unsigned int c;
   struct GNUNET_NAMESTORE_RecordData * rd;
 
   rd = GNUNET_malloc (count * sizeof (struct GNUNET_NAMESTORE_RecordData));
-  for (c = 0; c < RECORDS; c++)
+  for (c = 0; c < count; c++)
   {
-    rd[c].expiration = GNUNET_TIME_absolute_get();
+    rd[c].expiration_time = GNUNET_TIME_absolute_get().abs_value;
     rd[c].record_type = TEST_RECORD_TYPE;
     rd[c].data_size = TEST_RECORD_DATALEN;
     rd[c].data = GNUNET_malloc(TEST_RECORD_DATALEN);
@@ -139,6 +139,7 @@ run (void *cls,
   const char * s_name = "dummy.dummy.gnunet";
   int c;
   char *hostkey_file;
+  struct GNUNET_TIME_Absolute et;
 
   endbadly_task = GNUNET_SCHEDULER_add_delayed(TIMEOUT,endbadly, NULL);
   /* load privat key */
@@ -154,7 +155,8 @@ run (void *cls,
   GNUNET_break (NULL != nsh);
   /* create record */
   s_rd = create_record (RECORDS);
-  signature = GNUNET_NAMESTORE_create_signature(privkey, s_rd[0].expiration, s_name, s_rd, RECORDS);
+  et.abs_value = s_rd[0].expiration_time;
+  signature = GNUNET_NAMESTORE_create_signature(privkey, et, s_name, s_rd, RECORDS);
   GNUNET_break (s_rd != NULL);
   GNUNET_break (s_name != NULL);
   GNUNET_NAMESTORE_record_put (nsh, &pubkey, s_name,

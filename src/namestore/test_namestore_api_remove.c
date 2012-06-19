@@ -214,21 +214,20 @@ put_cont (void *cls, int32_t success, const char *emsg)
 
 
 static struct GNUNET_NAMESTORE_RecordData *
-create_record (int count)
+create_record (unsigned int count)
 {
-  int c;
+  unsigned int c;
   struct GNUNET_NAMESTORE_RecordData * rd;
-  rd = GNUNET_malloc (count * sizeof (struct GNUNET_NAMESTORE_RecordData));
 
-  rd[0].expiration = GNUNET_TIME_absolute_get();
+  rd = GNUNET_malloc (count * sizeof (struct GNUNET_NAMESTORE_RecordData));
+  rd[0].expiration_time = GNUNET_TIME_absolute_get().abs_value;
   rd[0].record_type = 0;
   rd[0].data_size = TEST_REMOVE_RECORD_DATALEN;
   rd[0].data = GNUNET_malloc(TEST_REMOVE_RECORD_DATALEN);
   memset ((char *) rd[0].data, TEST_RECORD_DATA, TEST_RECORD_DATALEN);
-
-  for (c = 1; c < RECORDS; c++)
+  for (c = 1; c < count; c++)
   {
-    rd[c].expiration = GNUNET_TIME_UNIT_ZERO_ABS;
+    rd[c].expiration_time = 0;
     rd[c].record_type = TEST_RECORD_TYPE;
     rd[c].data_size = TEST_RECORD_DATALEN;
     rd[c].data = GNUNET_malloc(TEST_RECORD_DATALEN);
@@ -245,6 +244,7 @@ run (void *cls,
 {
   size_t rd_ser_len;
   char *hostkey_file;
+  struct GNUNET_TIME_Absolute et;
 
   endbadly_task = GNUNET_SCHEDULER_add_delayed(TIMEOUT,endbadly, NULL);
   /* load privat key */
@@ -266,7 +266,8 @@ run (void *cls,
   GNUNET_NAMESTORE_records_serialize(RECORDS, s_rd, rd_ser_len, rd_ser);
 
   /* sign */
-  s_signature = GNUNET_NAMESTORE_create_signature(privkey, s_rd[0].expiration, s_name, s_rd, RECORDS);
+  et.abs_value = s_rd[0].expiration_time;
+  s_signature = GNUNET_NAMESTORE_create_signature(privkey, et, s_name, s_rd, RECORDS);
 
   /* create random zone hash */
   GNUNET_CRYPTO_short_hash (&pubkey, sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), &s_zone);

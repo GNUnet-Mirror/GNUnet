@@ -279,7 +279,7 @@ name_lookup_initial_proc (void *cls,
 
     /* create a second record */
     s_second_record = GNUNET_malloc(sizeof (struct GNUNET_NAMESTORE_RecordData) + TEST_CREATE_RECORD_DATALEN);
-    s_second_record->expiration = GNUNET_TIME_UNIT_FOREVER_ABS;
+    s_second_record->expiration_time = UINT64_MAX;
     s_second_record->record_type = TEST_CREATE_RECORD_TYPE;
     s_second_record->flags = GNUNET_NAMESTORE_RF_AUTHORITY;
     s_second_record->data = &s_second_record[1];
@@ -323,21 +323,20 @@ create_first_cont (void *cls, int32_t success, const char *emsg)
 
 
 static struct GNUNET_NAMESTORE_RecordData *
-create_record (int count)
+create_record (unsigned int count)
 {
-  int c;
+  unsigned int c;
   struct GNUNET_NAMESTORE_RecordData * rd;
-  rd = GNUNET_malloc (count * sizeof (struct GNUNET_NAMESTORE_RecordData));
 
+  rd = GNUNET_malloc (count * sizeof (struct GNUNET_NAMESTORE_RecordData));
   for (c = 0; c < count; c++)
   {
-  rd[c].expiration = GNUNET_TIME_absolute_get();
-  rd[c].record_type = TEST_RECORD_TYPE;
-  rd[c].data_size = TEST_RECORD_DATALEN;
-  rd[c].data = GNUNET_malloc(TEST_RECORD_DATALEN);
-  memset ((char *) rd[c].data, TEST_RECORD_DATA, TEST_RECORD_DATALEN);
+    rd[c].expiration_time = GNUNET_TIME_absolute_get().abs_value;
+    rd[c].record_type = TEST_RECORD_TYPE;
+    rd[c].data_size = TEST_RECORD_DATALEN;
+    rd[c].data = GNUNET_malloc(TEST_RECORD_DATALEN);
+    memset ((char *) rd[c].data, TEST_RECORD_DATA, TEST_RECORD_DATALEN);
   }
-
   return rd;
 }
 
@@ -348,6 +347,7 @@ run (void *cls,
 {
   size_t rd_ser_len;
   char *hostkey_file;
+  struct GNUNET_TIME_Absolute et;
 
   endbadly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,endbadly, NULL);
   /* load privat key */
@@ -366,8 +366,8 @@ run (void *cls,
   rd_ser_len = GNUNET_NAMESTORE_records_get_size(1, s_first_record);
   char rd_ser[rd_ser_len];
   GNUNET_NAMESTORE_records_serialize(1, s_first_record, rd_ser_len, rd_ser);
-
-  s_signature = GNUNET_NAMESTORE_create_signature(privkey, s_first_record->expiration, s_name, s_first_record, 1);
+  et.abs_value = s_first_record->expiration_time;
+  s_signature = GNUNET_NAMESTORE_create_signature(privkey, et, s_name, s_first_record, 1);
 
   /* create random zone hash */
   GNUNET_CRYPTO_short_hash (&pubkey, sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), &s_zone);
