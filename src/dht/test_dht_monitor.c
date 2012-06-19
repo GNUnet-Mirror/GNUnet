@@ -484,11 +484,12 @@ peergroup_ready (void *cls, const char *emsg)
     return;
   }
   monitor_counter = 0;
-  put_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+  put_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+					   (GNUNET_TIME_UNIT_SECONDS, 3),
 					   &put_id, NULL);
   test_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                    (GNUNET_TIME_UNIT_SECONDS, 3), &do_test,
+                                    (GNUNET_TIME_UNIT_SECONDS, 6), &do_test,
                                     NULL);
   disconnect_task =
       GNUNET_SCHEDULER_add_delayed (GET_TIMEOUT, &disconnect_peers, NULL);
