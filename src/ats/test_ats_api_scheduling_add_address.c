@@ -60,7 +60,7 @@ struct PeerContext
   struct Address *addr;
 };
 
-struct Address addr;
+struct Address test_addr;
 struct PeerContext p;
 struct GNUNET_ATS_Information atsi;
 
@@ -120,12 +120,12 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
   GNUNET_assert (0 ==
                  memcmp (&address->peer, &p.id,
                          sizeof (struct GNUNET_PeerIdentity)));
-  GNUNET_assert (0 == strcmp (address->transport_name, addr.plugin));
-  GNUNET_assert (address->address_length == addr.addr_len);
+  GNUNET_assert (0 == strcmp (address->transport_name, test_addr.plugin));
+  GNUNET_assert (address->address_length == test_addr.addr_len);
   GNUNET_assert (0 ==
-                 memcmp (address->address, addr.plugin,
+                 memcmp (address->address, test_addr.plugin,
                          address->address_length));
-  GNUNET_assert (addr.session == session);
+  GNUNET_assert (test_addr.session == session);
 
   ret = 0;
 
@@ -167,27 +167,27 @@ check (void *cls, char *const *args, const char *cfgfile,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created peer `%s'\n",
               GNUNET_i2s (&p.id));
 
-  addr.plugin = "test";
-  addr.session = NULL;
-  addr.addr = GNUNET_strdup ("test");
-  addr.addr_len = 4;
+  test_addr.plugin = "test";
+  test_addr.session = NULL;
+  test_addr.addr = GNUNET_strdup ("test");
+  test_addr.addr_len = 4;
 
   /* Adding address without session */
   address0.peer = p.id;
-  address0.transport_name = addr.plugin;
-  address0.address = addr.addr;
-  address0.address_length = addr.addr_len;
-  GNUNET_ATS_address_add (ats, &address0, addr.session, NULL, 0);
+  address0.transport_name = test_addr.plugin;
+  address0.address = test_addr.addr;
+  address0.address_length = test_addr.addr_len;
+  GNUNET_ATS_address_add (ats, &address0, test_addr.session, NULL, 0);
 
-  addr.session = &addr;
+  test_addr.session = &test_addr;
   /* Update address with session */
-  GNUNET_ATS_address_add (ats, &address0, addr.session, NULL, 0);
+  GNUNET_ATS_address_add (ats, &address0, test_addr.session, NULL, 0);
 
   /* Update address with session */
-  addr.session = &address0;
-  GNUNET_assert (GNUNET_OK == GNUNET_ATS_address_add (ats, &address0, addr.session, NULL, 0));
+  test_addr.session = &address0;
+  GNUNET_assert (GNUNET_OK == GNUNET_ATS_address_add (ats, &address0, test_addr.session, NULL, 0));
   GNUNET_log_skip (2, GNUNET_NO);
-  GNUNET_assert (GNUNET_SYSERR == GNUNET_ATS_address_add (ats, &address0, addr.session, NULL, 0));
+  GNUNET_assert (GNUNET_SYSERR == GNUNET_ATS_address_add (ats, &address0, test_addr.session, NULL, 0));
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Requesting peer `%s'\n",
               GNUNET_i2s (&p.id));
