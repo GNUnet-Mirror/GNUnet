@@ -223,35 +223,65 @@ compare_address_it (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct CompareAddressContext *cac = cls;
   struct ATS_Address *aa = value;
-/*
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-              "Comparing to: %s %s %u session %u\n",
-              GNUNET_i2s (&aa->peer), aa->plugin, aa->addr_len, aa->session_id);
 
-*/
-  /* find an exact matching address: aa->addr == cac->search->addr && aa->session == cac->search->session */
+  /* Find an matching exact address:
+   *
+   * Compare by:
+   * aa->addr_len == cac->search->addr_len
+   * aa->plugin == cac->search->plugin
+   * aa->addr == cac->search->addr
+   * aa->session == cac->search->session
+   *
+   * return as exact address
+   */
   if ((aa->addr_len == cac->search->addr_len) && (0 == strcmp (aa->plugin, cac->search->plugin)))
   {
       if ((0 == memcmp (aa->addr, cac->search->addr, aa->addr_len)) && (aa->session_id == cac->search->session_id))
-      {
         cac->exact_address = aa;
-      }
   }
 
-  /* find an matching address: aa->addr == cac->search->addr && aa->session == 0 */
-  /* this address can be used to be updated */
+  /* Find an matching base address:
+   *
+   * Properties:
+   *
+   * aa->session_id == 0
+   *
+   * Compare by:
+   * aa->addr_len == cac->search->addr_len
+   * aa->plugin == cac->search->plugin
+   * aa->addr == cac->search->addr
+   *
+   * return as base address
+   */
   if ((aa->addr_len == cac->search->addr_len) && (0 == strcmp (aa->plugin, cac->search->plugin)))
   {
       if ((0 == memcmp (aa->addr, cac->search->addr, aa->addr_len)) && (aa->session_id == 0))
-      {
         cac->base_address = aa;
-      }
+  }
+
+  /* Find an matching exact address based on session:
+   *
+   * Properties:
+   *
+   * cac->search->addr_len == 0
+   * cac->addr == NULL
+   *
+   * Compare by:
+   * aa->plugin == cac->search->plugin
+   * aa->session_id == cac->search->session_id
+   *
+   * return as exact address
+   */
+  if ((0 == cac->search->addr_len) && (NULL == cac->search->addr))
+  {
+      if ((0 == strcmp (aa->plugin, cac->search->plugin)) && (aa->session_id == cac->search->session_id))
+        cac->exact_address = aa;
   }
 
   if (cac->exact_address == NULL)
-    return GNUNET_YES;
+    return GNUNET_YES; /* Continue iteration to find exact address */
   else
-    return GNUNET_NO;
+    return GNUNET_NO; /* Stop iteration since we have an exact address */
 }
 
 
