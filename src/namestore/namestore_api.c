@@ -265,30 +265,30 @@ handle_lookup_name_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
   rd_tmp = &name[name_len];
 
   /* deserialize records */
-  struct GNUNET_NAMESTORE_RecordData rd[rd_count];
-  if (GNUNET_OK != GNUNET_NAMESTORE_records_deserialize(rd_len, rd_tmp, rd_count, rd))
   {
-    GNUNET_break_op (0);
-    return;
-  }
+    struct GNUNET_NAMESTORE_RecordData rd[rd_count];
+    if (GNUNET_OK != GNUNET_NAMESTORE_records_deserialize(rd_len, rd_tmp, rd_count, rd))
+    {
+      GNUNET_break_op (0);
+      return;
+    }
 
 
-  /* reset values if values not contained */
-  if (contains_sig == GNUNET_NO)
-    signature = NULL;
-  else
-    signature = &msg->signature;
-  if (name_len == 0)
-    name = NULL;
-
-  if (name != NULL)
+    /* reset values if values not contained */
+    if (GNUNET_NO == contains_sig)
+      signature = NULL;
+    else
+      signature = &msg->signature;
+    if (0 == name_len)
+      name = NULL;
+    
+    if (NULL != name)
       public_key_tmp =  &msg->public_key;
-  else
+    else
       public_key_tmp = NULL;
-
-  if (qe->proc != NULL)
-  {
-    qe->proc (qe->proc_cls, public_key_tmp, expire, name, rd_count, (rd_count > 0) ? rd : NULL, signature);
+    
+    if (NULL != qe->proc)
+      qe->proc (qe->proc_cls, public_key_tmp, expire, name, rd_count, (rd_count > 0) ? rd : NULL, signature);      
   }
   GNUNET_free (qe);
 }
