@@ -50,7 +50,8 @@ check_PROGRAMS = \
   test_gns_pseu_shorten \
   test_gns_max_queries \
   test_gns_dht_threepeer \
-	test_gns_cname_lookup
+	test_gns_cname_lookup \
+	test_gns_ns_lookup
 
 
 #  test_gns_simple_lookup
@@ -210,6 +211,20 @@ test_gns_cname_lookup_DEPENDENCIES = \
   $(top_builddir)/src/gns/libgnunetgns.la \
   $(top_builddir)/src/testing_old/libgnunettesting_old.la
 
+
+test_gns_ns_lookup_SOURCES = \
+  test_gns_ns_lookup.c
+test_gns_ns_lookup_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/namestore/libgnunetnamestore.la \
+  $(top_builddir)/src/gns/libgnunetgns.la \
+  $(top_builddir)/src/testing_old/libgnunettesting_old.la
+test_gns_ns_lookup_DEPENDENCIES = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/namestore/libgnunetnamestore.la \
+  $(top_builddir)/src/gns/libgnunetgns.la \
+  $(top_builddir)/src/testing_old/libgnunettesting_old.la
+
 gnunet_gns_SOURCES = \
  gnunet-gns.c
 gnunet_gns_LDADD = \
@@ -306,5 +321,7 @@ endif
 EXTRA_DIST = \
   test_gns_defaults.conf \
   test_gns_simple_lookup.conf \
-  test_gns_dht_default.conf
+  test_gns_dht_default.conf \
+	zonefiles/188JSUMKEF25GVU8TTV0PBNNN8JVCPUEDFV1UHJJU884JD25V0T0.zkey \
+	zonefiles/OEFL7A4VEF1B40QLEMTG5D8G1CN6EN16QUSG5R2DT71GRJN34LSG.zkey
 
