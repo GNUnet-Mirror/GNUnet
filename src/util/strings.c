@@ -308,6 +308,38 @@ GNUNET_STRINGS_fancy_time_to_relative (const char *fancy_time,
   return ret;
 }
 
+
+/**
+ * Convert a given fancy human-readable time to our internal
+ * representation.
+ *
+ * @param fancy_time human readable string (i.e. %Y-%m-%d %H:%M:%S)
+ * @param atime set to the absolute time
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ */
+int
+GNUNET_STRINGS_fancy_time_to_absolute (const char *fancy_time,
+                                       struct GNUNET_TIME_Absolute *atime)
+{
+  struct tm tv;
+  time_t t;
+
+  if ( (NULL == strptime (fancy_time, "%c", &tv)) &&
+       (NULL == strptime (fancy_time, "%Ec", &tv)) &&
+       (NULL == strptime (fancy_time, "%Y-%m-%d %H:%M:%S", &tv)) &&
+       (NULL == strptime (fancy_time, "%Y-%m-%d %H:%M", &tv)) &&
+       (NULL == strptime (fancy_time, "%x", &tv)) &&
+       (NULL == strptime (fancy_time, "%Ex", &tv)) &&
+       (NULL == strptime (fancy_time, "%Y-%m-%d", &tv)) &&
+       (NULL == strptime (fancy_time, "%Y-%m", &tv)) &&
+       (NULL == strptime (fancy_time, "%Y", &tv)) )
+    return GNUNET_SYSERR;
+  t = mktime (&tv);
+  atime->abs_value = (uint64_t) ((uint64_t) t * 1000LL);
+  return GNUNET_OK;
+}
+
+
 /**
  * Convert the len characters long character sequence
  * given in input that is in the given input charset
@@ -389,10 +421,11 @@ GNUNET_STRINGS_to_utf8 (const char *input, size_t len, const char *charset)
   return GNUNET_STRINGS_conv (input, len, charset, "UTF-8");
 }
 
+
 /**
  * Convert the len bytes-long UTF-8 string
  * given in input to the given charset.
-
+ *
  * @return the converted string (0-terminated),
  *  if conversion fails, a copy of the orignal
  *  string is returned.
@@ -402,6 +435,7 @@ GNUNET_STRINGS_from_utf8 (const char *input, size_t len, const char *charset)
 {
   return GNUNET_STRINGS_conv (input, len, "UTF-8", charset);
 }
+
 
 /**
  * Convert the utf-8 input string to lowercase
@@ -422,6 +456,7 @@ GNUNET_STRINGS_utf8_tolower(const char* input, char** output)
   (*output)[len] = '\0';
   free(tmp_in);
 }
+
 
 /**
  * Convert the utf-8 input string to uppercase
@@ -455,7 +490,6 @@ char *
 GNUNET_STRINGS_filename_expand (const char *fil)
 {
   char *buffer;
-
 #ifndef MINGW
   size_t len;
   size_t n;
@@ -982,7 +1016,6 @@ GNUNET_STRINGS_check_filename (const char *filename,
 }
 
 
-
 /**
  * Tries to convert 'zt_addr' string to an IPv6 address.
  * The string is expected to have the format "[ABCD::01]:80".
@@ -1114,6 +1147,7 @@ GNUNET_STRINGS_to_address_ip (const char *addr,
   return GNUNET_STRINGS_to_address_ipv4 (addr, addrlen, (struct sockaddr_in *) r_buf);
 }
 
+
 /**
  * Makes a copy of argv that consists of a single memory chunk that can be
  * freed with a single call to GNUNET_free ();
@@ -1138,6 +1172,7 @@ _make_continuous_arg_copy (int argc, char *const *argv)
   new_argv[argc] = NULL;
   return (char *const *) new_argv;
 }
+
 
 /**
  * Returns utf-8 encoded arguments.

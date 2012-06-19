@@ -76,6 +76,19 @@ GNUNET_STRINGS_fancy_time_to_relative (const char *fancy_time,
 
 
 /**
+ * Convert a given fancy human-readable time to our internal
+ * representation.
+ *
+ * @param fancy_time human readable string (i.e. %Y-%m-%d %H:%M:%S)
+ * @param atime set to the absolute time
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ */
+int
+GNUNET_STRINGS_fancy_time_to_absolute (const char *fancy_time,
+                                       struct GNUNET_TIME_Absolute *atime);
+
+
+/**
  * Convert a given filesize into a fancy human-readable format.
  *
  * @param size number of bytes
