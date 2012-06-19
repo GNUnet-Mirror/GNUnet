@@ -895,11 +895,11 @@ GNUNET_CRYPTO_rsa_public_key_from_string (const char *enc,
 /**
  * Encode the private key in a format suitable for
  * storing it into a file.
- * @returns encoding of the private key.
- *    The first 4 bytes give the size of the array, as usual.
+ * @return encoding of the private key
  */
 struct GNUNET_CRYPTO_RsaPrivateKeyBinaryEncoded *
 GNUNET_CRYPTO_rsa_encode_key (const struct GNUNET_CRYPTO_RsaPrivateKey *hostkey);
+
 
 /**
  * Decode the private key from the data-format back
@@ -910,6 +910,7 @@ GNUNET_CRYPTO_rsa_encode_key (const struct GNUNET_CRYPTO_RsaPrivateKey *hostkey)
  */
 struct GNUNET_CRYPTO_RsaPrivateKey *
 GNUNET_CRYPTO_rsa_decode_key (const char *buf, uint16_t len);
+
 
 /**
  * Create a new private key by reading it from a file.  If the

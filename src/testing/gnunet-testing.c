@@ -27,8 +27,8 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_testing_lib-new.h"
 
-#define HOSTKEYFILESIZE 914
 
+#define HOSTKEYFILESIZE 914
 
 /**
  * Final status code.
@@ -122,20 +122,28 @@ create_hostkeys (const unsigned int no)
   struct GNUNET_PeerIdentity id;
   struct GNUNET_DISK_FileHandle *fd;
   struct GNUNET_CRYPTO_RsaPrivateKey *pk;
+  struct GNUNET_CRYPTO_RsaPrivateKeyBinaryEncoded *pkb;
 
   system = GNUNET_TESTING_system_create ("testing", NULL);
   pk = GNUNET_TESTING_hostkey_get (system, create_no, &id);
+  if (NULL == pk)
+  {
+    fprintf (stderr, _("Could not extract hostkey %u (offset too large?)\n"), create_no);
+    return 1;
+  }
   fd = GNUNET_DISK_file_open (create_hostkey,
 			      GNUNET_DISK_OPEN_READWRITE |
 			      GNUNET_DISK_OPEN_CREATE,
 			      GNUNET_DISK_PERM_USER_READ |
 			      GNUNET_DISK_PERM_USER_WRITE);
   GNUNET_assert (fd != NULL);
+  pkb = GNUNET_CRYPTO_rsa_encode_key (pk);
   GNUNET_assert (HOSTKEYFILESIZE ==
-		 GNUNET_DISK_file_write (fd, pk, HOSTKEYFILESIZE));
+		 GNUNET_DISK_file_write (fd, pkb, ntohs (pkb->len)));
   GNUNET_assert (GNUNET_OK == GNUNET_DISK_file_close (fd));
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-testing",
 		   "Wrote hostkey to file: `%s'\n", create_hostkey);
+  GNUNET_free (pkb);
   GNUNET_CRYPTO_rsa_key_free (pk);
   return 0;
 }
