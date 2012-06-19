@@ -2017,6 +2017,22 @@ process_delegation_result_dht(void* cls,
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                  "GNS_PHASE_DELEGATE_DHT-%llu: Got flag %d\n",
                  rh->id, rd[i].flags);
+      
+      if ((rd[i].record_type == GNUNET_GNS_RECORD_VPN) ||
+          (rd[i].record_type == GNUNET_GNS_RECORD_TYPE_NS) ||
+          (rd[i].record_type == GNUNET_GNS_RECORD_TYPE_CNAME))
+      {
+        /**
+         * This is a VPN,NS,CNAME entry. Let namestore handle this after caching
+         */
+        if (strcmp(rh->name, "") == 0)
+          strcpy(rh->name, rh->authority_name);
+        else
+          GNUNET_snprintf(rh->name, MAX_DNS_NAME_LENGTH, "%s.%s",
+                 rh->name, rh->authority_name); //FIXME ret
+        rh->answered = 1;
+        break;
+      }
 
       if ((strcmp(name, rh->authority_name) == 0) &&
           (rd[i].record_type == GNUNET_GNS_RECORD_PKEY))
@@ -2094,7 +2110,7 @@ process_delegation_result_dht(void* cls,
     else
     {
       rh->proc = &handle_delegation_ns;
-      resolve_delegation_ns(rh);
+      resolve_delegation_ns (rh);
     }
     return;
   }
@@ -2560,9 +2576,9 @@ resolve_delegation_dht(struct ResolverHandle *rh)
  * @param rd record data (always NULL)
  */
 static void
-handle_delegation_ns(void* cls, struct ResolverHandle *rh,
-                          unsigned int rd_count,
-                          const struct GNUNET_NAMESTORE_RecordData *rd)
+handle_delegation_ns (void* cls, struct ResolverHandle *rh,
+                      unsigned int rd_count,
+                      const struct GNUNET_NAMESTORE_RecordData *rd)
 {
   struct RecordLookupHandle* rlh;
   rlh = (struct RecordLookupHandle*) cls;
@@ -2573,22 +2589,30 @@ handle_delegation_ns(void* cls, struct ResolverHandle *rh,
   
   if (strcmp(rh->name, "") == 0)
   {
-    if (rlh->record_type == GNUNET_GNS_RECORD_PKEY)
-    {
-      GNUNET_assert(rd_count == 1);
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "GNS_PHASE_DELEGATE_NS-%llu: Resolved queried PKEY in NS.\n",
-                 rh->id);
-      finish_lookup(rh, rlh, rd_count, rd);
-      free_resolver_handle(rh);
-      return;
-    }
+    
     /* We resolved full name for delegation. resolving record */
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
               "GNS_PHASE_DELEGATE_NS-%llu: Resolved full name for delegation.\n",
               rh->id);
-
-    if (rh->status & RSL_DELEGATE_VPN)
+    if (rh->status & RSL_CNAME_FOUND)
+    {
+      if (rlh->record_type == GNUNET_GNS_RECORD_TYPE_CNAME)
+      {
+        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                  "GNS_PHASE_DELEGATE_NS-%llu: Resolved queried CNAME in NS.\n",
+                  rh->id);
+        finish_lookup(rh, rlh, rd_count, rd);
+        free_resolver_handle(rh);
+        return;
+      }
+      
+      /* A CNAME can only occur alone */
+      GNUNET_assert (is_canonical ((char*)rd->data));
+      strcpy (rh->name, rd->data);
+      resolve_delegation_ns (rh);
+      return;
+    }
+    else if (rh->status & RSL_DELEGATE_VPN)
     {
       if (rlh->record_type == GNUNET_GNS_RECORD_VPN)
       {
@@ -2617,12 +2641,26 @@ handle_delegation_ns(void* cls, struct ResolverHandle *rh,
         free_resolver_handle(rh);
         return;
       }
+      
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                  "GNS_PHASE_DELEGATE_NS-%llu: VPN delegation starting.\n",
                  rh->id);
       GNUNET_assert (NULL != rd);
       rh->proc = &handle_record_ns;
       resolve_record_dns (rh, rd_count, rd);
+    }
+    else if (rh->status & RSL_DELEGATE_PKEY)
+    {
+      if (rlh->record_type == GNUNET_GNS_RECORD_PKEY)
+      {
+        GNUNET_assert(rd_count == 1);
+        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                   "GNS_PHASE_DELEGATE_NS-%llu: Resolved queried PKEY in NS.\n",
+                   rh->id);
+        finish_lookup(rh, rlh, rd_count, rd);
+        free_resolver_handle(rh);
+        return;
+      }
     }
     else
     {
@@ -2792,13 +2830,32 @@ process_delegation_result_ns(void* cls,
   int i;
   for (i=0; i<rd_count;i++)
   {
+    
+    /**
+     * A CNAME. Like regular DNS this means the is no other record for this
+     * name.
+     */
+    if (rd[i].record_type == GNUNET_GNS_RECORD_TYPE_CNAME)
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                 "GNS_PHASE_DELEGATE_NS-%llu: CNAME found.\n",
+                 rh->id);
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                 "GNS_PHASE_DELEGATE_NS-%llu: new name to resolve: %s.\n",
+                 rh->id, rh->name);
+
+      rh->status |= RSL_CNAME_FOUND;
+      rh->proc (rh->proc_cls, rh, rd_count, rd);
+      return;
+    }
+
     /**
      * Redirect via VPN
      */
     if (rd[i].record_type == GNUNET_GNS_RECORD_VPN)
     {
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "GNS_PHASE_DELEGATE_NS-%llu: VPNRR found.\n",
+                 "GNS_PHASE_DELEGATE_NS-%llu: VPN found.\n",
                  rh->id);
       rh->status |= RSL_DELEGATE_VPN;
       rh->proc (rh->proc_cls, rh, rd_count, rd);
@@ -2820,6 +2877,8 @@ process_delegation_result_ns(void* cls,
   
     if (rd[i].record_type != GNUNET_GNS_RECORD_PKEY)
       continue;
+
+    rh->status |= RSL_DELEGATE_PKEY;
 
     if (ignore_pending_records &&
         (rd[i].flags & GNUNET_NAMESTORE_RF_PENDING))
@@ -2875,10 +2934,10 @@ process_delegation_result_ns(void* cls,
      * We are done with PKEY resolution if name is empty
      * else resolve again with new authority
      */
-    if (strcmp(rh->name, "") == 0)
-      rh->proc(rh->proc_cls, rh, rd_count, rd);
+    if (strcmp (rh->name, "") == 0)
+      rh->proc (rh->proc_cls, rh, rd_count, rd);
     else
-      resolve_delegation_ns(rh);
+      resolve_delegation_ns (rh);
     return;
   }
     
@@ -2922,7 +2981,7 @@ process_delegation_result_ns(void* cls,
  * @param rh the resolver handle
  */
 static void
-resolve_delegation_ns(struct ResolverHandle *rh)
+resolve_delegation_ns (struct ResolverHandle *rh)
 {
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
              "GNS_PHASE_DELEGATE_NS-%llu: Resolving delegation for %s\n",
@@ -3475,7 +3534,7 @@ process_zone_to_name_shorten_root (void *cls,
  * @param rd data (NULL)
  */
 void
-handle_delegation_ns_shorten(void* cls,
+handle_delegation_ns_shorten (void* cls,
                       struct ResolverHandle *rh,
                       uint32_t rd_count,
                       const struct GNUNET_NAMESTORE_RecordData *rd)
