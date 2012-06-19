@@ -32,7 +32,7 @@
 /**
  * Number of messages to transmit (note: each uses ~32k memory!)
  */
-#define NUM_MSGS 5000
+#define NUM_MSGS 500
 
 /**
  * MTU to force on fragmentation (must be > 1k + 12)
@@ -42,7 +42,7 @@
 /**
  * Simulate dropping of 1 out of how many messages? (must be > 1)
  */
-#define DROPRATE 10
+#define DROPRATE 5
 
 static int ret = 1;
 
