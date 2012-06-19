@@ -25,8 +25,6 @@
  *
  * Other functions we might want:
  * - enumerate all known zones
- * - convenience function to gather record and the full affilliated stree
- *   in one shot
  */
 
 #ifndef GNUNET_NAMESTORE_SERVICE_H
@@ -159,7 +157,13 @@ enum GNUNET_NAMESTORE_RecordFlags
    * This record was added by the system
    * and is pending user confimation
    */
-  GNUNET_NAMESTORE_RF_PENDING = 4
+  GNUNET_NAMESTORE_RF_PENDING = 4,
+
+  /**
+   * This expiration time of the record is a relative
+   * time (not an absolute time).
+   */
+  GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION = 8
 
 };
 
@@ -176,9 +180,10 @@ struct GNUNET_NAMESTORE_RecordData
   const void *data;
 
   /**
-   * Expiration time for the DNS record.
+   * Expiration time for the DNS record.  Can be relative
+   * or absolute, depending on 'flags'.
    */
-  struct GNUNET_TIME_Absolute expiration;
+  uint64_t expiration_time;
 
   /**
    * Number of bytes in 'data'.
@@ -232,7 +237,7 @@ GNUNET_NAMESTORE_record_put (struct GNUNET_NAMESTORE_Handle *h,
  * to validate signatures received from the network.
  *
  * @param public_key public key of the zone
- * @param expire block expiration
+ * @param freshness time set for block expiration
  * @param name name that is being mapped (at most 255 characters long)
  * @param rd_count number of entries in 'rd' array
  * @param rd array of records with data to store
@@ -299,7 +304,7 @@ GNUNET_NAMESTORE_record_remove (struct GNUNET_NAMESTORE_Handle *h,
  *
  * @param cls closure
  * @param zone_key public key of the zone
- * @param expire when does the corresponding block in the DHT expire (until
+ * @param freshness when does the corresponding block in the DHT expire (until
  *               when should we never do a DHT lookup for the same name again)?; 
  *               GNUNET_TIME_UNIT_ZERO_ABS if there are no records of any type in the namestore,
  *               or the expiration time of the block in the namestore (even if there are zero
@@ -364,9 +369,23 @@ GNUNET_NAMESTORE_zone_to_name (struct GNUNET_NAMESTORE_Handle *h,
 
 /**
  * Starts a new zone iteration (used to periodically PUT all of our
- * records into our DHT). "proc" will be called once
- * immediately, and then again after
- * "GNUNET_NAMESTORE_zone_iterator_next" is invoked.
+ * records into our DHT). "proc" will be called once immediately, and
+ * then again after "GNUNET_NAMESTORE_zone_iterator_next" is invoked.
+ *
+ * By specifying a 'zone' of NULL and setting 'GNUNET_NAMESTORE_RF_AUTHORITY'
+ * in 'must_have_flags', we can iterate over all records for which we are
+ * the authority.  In this case, the 'GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION'
+ * bit in 'must_have_flags' has a special meaning:
+ *
+ * 0) If the bit is clear, all relative expriation times are converted to
+ *    absolute expiration times.  This is useful for performing DHT PUT
+ *    operations (and zone transfers) of our zone.
+ * 1) if it is set, it means that relative expiration times should be
+ *    preserved when returned (this is useful for the zone editor user 
+ *    interface).
+ *
+ * Note that not all queries against this interface are equally performant
+ * as for some combinations no efficient index may exist.
  *
  * @param h handle to the namestore
  * @param zone zone to access, NULL for all zones

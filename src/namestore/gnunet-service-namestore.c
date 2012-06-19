@@ -228,11 +228,24 @@ get_block_expiration_time (unsigned int rd_count, const struct GNUNET_NAMESTORE_
 {
   unsigned int c;
   struct GNUNET_TIME_Absolute expire = GNUNET_TIME_UNIT_FOREVER_ABS;
+  struct GNUNET_TIME_Absolute at;
+  struct GNUNET_TIME_Relative rt;
 
   if (NULL == rd)
     return GNUNET_TIME_UNIT_ZERO_ABS;
   for (c = 0; c < rd_count; c++)  
-    expire = GNUNET_TIME_absolute_min (rd[c].expiration, expire);  
+  {
+    if (0 != (rd[c].flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION))
+    {
+      rt.rel_value = rd[c].expiration_time;
+      at = GNUNET_TIME_relative_to_absolute (rt);
+    }
+    else
+    {
+      at.abs_value = rd[c].expiration_time;
+    }
+    expire = GNUNET_TIME_absolute_min (at, expire);  
+  }
   return expire;
 }
 
@@ -725,12 +738,12 @@ struct CreateRecordContext
 
 static void
 handle_create_record_it (void *cls,
-    const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *pubkey,
-    struct GNUNET_TIME_Absolute expire,
-    const char *name,
-    unsigned int rd_count,
-    const struct GNUNET_NAMESTORE_RecordData *rd,
-    const struct GNUNET_CRYPTO_RsaSignature *signature)
+			 const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *pubkey,
+			 struct GNUNET_TIME_Absolute expire,
+			 const char *name,
+			 unsigned int rd_count,
+			 const struct GNUNET_NAMESTORE_RecordData *rd,
+			 const struct GNUNET_CRYPTO_RsaSignature *signature)
 {
   struct CreateRecordContext * crc = cls;
   struct GNUNET_NAMESTORE_RecordData *rd_new = NULL;
@@ -745,37 +758,43 @@ handle_create_record_it (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found %u existing records for `%s'\n", rd_count, crc->name);
   for (c = 0; c < rd_count; c++)
   {
-    if ((crc->rd->record_type == GNUNET_NAMESTORE_TYPE_PKEY) && (rd[c].record_type == GNUNET_NAMESTORE_TYPE_PKEY))
+    if ( (crc->rd->record_type == GNUNET_NAMESTORE_TYPE_PKEY) && 
+	 (rd[c].record_type == GNUNET_NAMESTORE_TYPE_PKEY))
     {
       /* Update unique PKEY */
       exist = c;
       update = GNUNET_YES;
-     break;
+      break;
     }
-    else if ((crc->rd->record_type == GNUNET_NAMESTORE_TYPE_PSEU) && (rd[c].record_type == GNUNET_NAMESTORE_TYPE_PSEU))
+    if ( (crc->rd->record_type == GNUNET_NAMESTORE_TYPE_PSEU) && 
+	 (rd[c].record_type == GNUNET_NAMESTORE_TYPE_PSEU))
     {
       /* Update unique PSEU */
       exist = c;
       update = GNUNET_YES;
-     break;
+      break;
     }
-    else if ((crc->rd->record_type == rd[c].record_type) &&
-        (crc->rd->data_size == rd[c].data_size) &&
-        (0 == memcmp (crc->rd->data, rd[c].data, rd[c].data_size)))
+    if ((crc->rd->record_type == rd[c].record_type) &&
+	(crc->rd->data_size == rd[c].data_size) &&
+	(0 == memcmp (crc->rd->data, rd[c].data, rd[c].data_size)))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found existing records for `%s' to update expiration date!\n", crc->name);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		  "Found existing records for `%s' to update expiration date!\n",
+		  crc->name);
       exist = c;
-      if (crc->rd->expiration.abs_value != rd[c].expiration.abs_value)
+      if ( (crc->rd->expiration_time != rd[c].expiration_time) &&
+	   ((crc->rd->flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION) 
+	    == (rd[c].flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION) ) )
         update = GNUNET_YES;
-       break;
+      break;
     }
   }
 
   if (exist == GNUNET_SYSERR)
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "New record does not exist for name `%s'!\n", crc->name);
-
-  if (exist == GNUNET_SYSERR)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		"No existing record for name `%s'!\n", 
+		crc->name);
     rd_new = GNUNET_malloc ((rd_count+1) * sizeof (struct GNUNET_NAMESTORE_RecordData));
     memcpy (rd_new, rd, rd_count * sizeof (struct GNUNET_NAMESTORE_RecordData));
     rd_count_new = rd_count + 1;
@@ -784,24 +803,34 @@ handle_create_record_it (void *cls,
   else if (update == GNUNET_NO)
   {
     /* Exact same record already exists */
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "No update for %s' record required!\n", crc->name);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		"Matching record for %s' exists, no change required!\n",
+		crc->name);
     res = GNUNET_NO;
     goto end;
   }
-  else if (update == GNUNET_YES)
+  else 
   {
     /* Update record */
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Updating existing records for `%s'!\n", crc->name);
+    GNUNET_assert (GNUNET_YES == update);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		"Updating existing records for `%s'!\n", 
+		crc->name);
     rd_new = GNUNET_malloc ((rd_count) * sizeof (struct GNUNET_NAMESTORE_RecordData));
     memcpy (rd_new, rd, rd_count * sizeof (struct GNUNET_NAMESTORE_RecordData));
     rd_count_new = rd_count;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Updating expiration from %llu to %llu!\n", rd_new[exist].expiration.abs_value, crc->rd->expiration.abs_value);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		(0 == (crc->rd->flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION)) 
+		? "Updating absolute expiration from %llu to %llu!\n"
+		: "Updating relative expiration from %llu to %llu!\n", 
+		rd_new[exist].expiration_time, crc->rd->expiration_time);
     rd_new[exist] = *(crc->rd);
   }
 
   block_expiration = GNUNET_TIME_absolute_max(crc->expire, expire);
   if (block_expiration.abs_value != expire.abs_value)
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Updated block expiration time\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		"Updated block expiration time\n");
 
   memset (&dummy_signature, '\0', sizeof (dummy_signature));
 

@@ -40,13 +40,19 @@
  */
 struct InterceptLookupHandle
 {
-  /* the request handle to reply to */
+  /**
+   * the request handle to reply to 
+   */
   struct GNUNET_DNS_RequestHandle *request_handle;
   
-  /* the dns parser packet received */
+  /**
+   * the dns parser packet received 
+   */
   struct GNUNET_DNSPARSER_Packet *packet;
   
-  /* the query parsed from the packet */
+  /**
+   * the query parsed from the packet 
+   */
   struct GNUNET_DNSPARSER_Query *query;
 };
 
@@ -71,6 +77,7 @@ static struct GNUNET_CRYPTO_RsaPrivateKey *our_key;
  */
 static struct GNUNET_TIME_Relative default_lookup_timeout;
 
+
 /**
  * Reply to dns request with the result from our lookup.
  *
@@ -82,7 +89,7 @@ static void
 reply_to_dns(void* cls, uint32_t rd_count,
              const struct GNUNET_NAMESTORE_RecordData *rd)
 {
-  int i;
+  uint32_t i;
   size_t len;
   int ret;
   char *buf;
@@ -137,7 +144,8 @@ reply_to_dns(void* cls, uint32_t rd_count,
         answer_records[i].data.raw.data_len = rd[i].data_size;
         answer_records[i].data.raw.data = (char*)rd[i].data;
       }
-      answer_records[i].expiration_time = rd[i].expiration;
+      GNUNET_break (0 == (rd[i].flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION));
+      answer_records[i].expiration_time.abs_value = rd[i].expiration_time;
       answer_records[i].class = GNUNET_DNSPARSER_CLASS_INTERNET;//hmmn
     }
     else
@@ -163,7 +171,8 @@ reply_to_dns(void* cls, uint32_t rd_count,
         additional_records[i].data.raw.data_len = rd[i].data_size;
         additional_records[i].data.raw.data = (char*)rd[i].data;
       }
-      additional_records[i].expiration_time = rd[i].expiration;
+      GNUNET_break (0 == (rd[i].flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION));
+      additional_records[i].expiration_time.abs_value = rd[i].expiration_time;
       additional_records[i].class = GNUNET_DNSPARSER_CLASS_INTERNET;//hmmn
     }
   }

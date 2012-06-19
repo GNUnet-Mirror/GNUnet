@@ -500,13 +500,16 @@ process_shorten_zone_shorten (void *cls,
 {
   struct ClientShortenHandle *csh = cls;
   struct GNUNET_TIME_Relative remaining_time;
+  struct GNUNET_TIME_Absolute et;
 
   remaining_time = GNUNET_TIME_absolute_get_remaining (expiration);
 
   if ((rd_count == 1) &&
       (remaining_time.rel_value != 0))
   {
-    remaining_time = GNUNET_TIME_absolute_get_remaining (rd->expiration);
+    GNUNET_break (0 == (rd->flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION));
+    et.abs_value = rd->expiration_time;
+    remaining_time = GNUNET_TIME_absolute_get_remaining (et);
     if ((rd->record_type == GNUNET_GNS_RECORD_PKEY) &&
         (remaining_time.rel_value != 0))
     {
@@ -523,6 +526,7 @@ process_shorten_zone_shorten (void *cls,
 
 }
 
+
 static void
 process_private_zone_shorten (void *cls,
                       const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *key,
@@ -534,13 +538,16 @@ process_private_zone_shorten (void *cls,
 {
   struct GNUNET_TIME_Relative remaining_time;
   struct ClientShortenHandle *csh = cls;
+  struct GNUNET_TIME_Absolute et;
 
   remaining_time = GNUNET_TIME_absolute_get_remaining (expiration);
 
   if ((rd_count == 1) &&
       (remaining_time.rel_value != 0))
   {
-    remaining_time = GNUNET_TIME_absolute_get_remaining (rd->expiration);
+    GNUNET_break (0 == (rd->flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION));
+    et.abs_value = rd->expiration_time;
+    remaining_time = GNUNET_TIME_absolute_get_remaining (et);
     if ((rd->record_type == GNUNET_GNS_RECORD_PKEY) &&
         (remaining_time.rel_value != 0))
     {

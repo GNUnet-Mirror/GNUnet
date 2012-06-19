@@ -200,11 +200,11 @@ process_pseu_lookup_ns (void* cls,
     return;
   }
 
-  /** name is free */
+  /* name is free */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
             "GNS_AUTO_PSEU: Name %s not taken in NS! Adding\n", gph->test_name);
 
-  new_pkey.expiration = GNUNET_TIME_UNIT_FOREVER_ABS;
+  new_pkey.expiration_time = UINT64_MAX;
   new_pkey.data_size = sizeof (struct GNUNET_CRYPTO_ShortHashCode);
   new_pkey.data = &gph->ahead->zone;
   new_pkey.record_type = GNUNET_GNS_RECORD_PKEY;
@@ -1136,6 +1136,8 @@ process_record_result_ns(void* cls,
   struct RecordLookupHandle *rlh;
   struct GNUNET_TIME_Relative remaining_time;
   struct GNUNET_CRYPTO_ShortHashCode zone;
+  struct GNUNET_TIME_Absolute et;
+  unsigned int i;
 
   rh = (struct ResolverHandle *) cls;
   rlh = (struct RecordLookupHandle *)rh->proc_cls;
@@ -1179,14 +1181,11 @@ process_record_result_ns(void* cls,
   }
   else
   {
-
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                "GNS_PHASE_REC-%d: Processing additional result %s from namestore\n",
                rh->id, name);
-    int i;
     for (i=0; i<rd_count;i++)
     {
-
       if (rd[i].record_type != rlh->record_type)
         continue;
 
@@ -1199,7 +1198,9 @@ process_record_result_ns(void* cls,
         continue;
       }
 
-      if ((GNUNET_TIME_absolute_get_remaining (rd[i].expiration)).rel_value
+      GNUNET_break (0 == (rd[i].flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION));
+      et.abs_value = rd[i].expiration_time;
+      if ((GNUNET_TIME_absolute_get_remaining (et)).rel_value
           == 0)
       {
         GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
@@ -1207,9 +1208,7 @@ process_record_result_ns(void* cls,
                    rh->id);
         continue;
       }
-
       rh->answered++;
-
     }
 
     /**
@@ -1265,7 +1264,7 @@ process_record_result_vpn (void* cls, int af, const void *address)
       return;
     }
     rd.record_type = GNUNET_GNS_RECORD_TYPE_A;
-    rd.expiration = GNUNET_TIME_UNIT_FOREVER_ABS;
+    rd.expiration_time = UINT64_MAX; /* FIXME: should probably pick something shorter... */
     rd.data = address;
     rd.data_size = sizeof (struct in_addr);
     rd.flags = 0;
@@ -1286,7 +1285,7 @@ process_record_result_vpn (void* cls, int af, const void *address)
       return;
     }
     rd.record_type = GNUNET_GNS_RECORD_AAAA;
-    rd.expiration = GNUNET_TIME_UNIT_FOREVER_ABS;
+    rd.expiration_time = UINT64_MAX; /* FIXME: should probably pick something shorter... */
     rd.data = address;
     rd.data_size = sizeof (struct in6_addr);
     rd.flags = 0;
@@ -1360,6 +1359,7 @@ handle_record_vpn (void* cls, struct ResolverHandle *rh,
 static void
 send_dns_packet (struct ResolverHandle *rh);
 
+
 static void
 handle_dns_resolver (void *cls,
                      const struct sockaddr *addr,
@@ -1395,7 +1395,7 @@ handle_dns_resolver (void *cls,
     rd.data = &sai6->sin6_addr;
   }
   
-  rd.expiration = GNUNET_TIME_UNIT_FOREVER_ABS;
+  rd.expiration_time = UINT64_MAX; /* FIXME: should probably pick something shorter */
 
   finish_lookup (rh, rlh, 1, &rd);
   free_resolver_handle (rh);
@@ -1530,7 +1530,7 @@ read_dns_response (void *cls,
       rd.data_size = packet->answers[i].data.raw.data_len;
       rd.record_type = packet->answers[i].type;
       rd.flags = 0;
-      rd.expiration = packet->answers[i].expiration_time;
+      rd.expiration_time = packet->answers[i].expiration_time.abs_value;
       finish_lookup (rh, rlh, 1, &rd);
       GNUNET_NETWORK_socket_close (rh->dns_sock);
       GNUNET_DNSPARSER_free_packet (packet);
@@ -2956,6 +2956,8 @@ process_delegation_result_ns (void* cls,
   struct GNUNET_TIME_Relative remaining_time;
   struct GNUNET_CRYPTO_ShortHashCode zone;
   char new_name[MAX_DNS_NAME_LENGTH];
+  unsigned int i;
+  struct GNUNET_TIME_Absolute et;
  
   rh = (struct ResolverHandle *)cls; 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
@@ -3032,7 +3034,6 @@ process_delegation_result_ns (void* cls,
    * move on with query
    * Note only 1 pkey should have been returned.. anything else would be strange
    */
-  int i;
   for (i=0; i<rd_count;i++)
   {
     
@@ -3096,7 +3097,9 @@ process_delegation_result_ns (void* cls,
       continue;
     }
     
-    if ((GNUNET_TIME_absolute_get_remaining (rd[i].expiration)).rel_value
+    GNUNET_break (0 == (rd[i].flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION));
+    et.abs_value = rd[i].expiration_time;
+    if ((GNUNET_TIME_absolute_get_remaining (et)).rel_value
          == 0)
     {
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,

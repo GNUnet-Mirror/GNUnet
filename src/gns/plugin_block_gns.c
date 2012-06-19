@@ -135,7 +135,8 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
   {
     struct GNUNET_NAMESTORE_RecordData rd[rd_count];
     unsigned int i;
-    struct GNUNET_TIME_Absolute exp = GNUNET_TIME_UNIT_FOREVER_ABS;
+    uint64_t exp = UINT64_MAX;
+    struct GNUNET_TIME_Absolute et;
     
     if (GNUNET_SYSERR == GNUNET_NAMESTORE_records_deserialize (rd_len,
                                                                rd_data,
@@ -154,26 +155,25 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
       record_xquery = ntohl(*((uint32_t*)xquery));
     
     for (i=0; i<rd_count; i++)
-    {
-      
-      exp = GNUNET_TIME_absolute_min (exp, rd[i].expiration);
-      
+    {     
+      GNUNET_break (0 == (rd[i].flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION));
+      exp = GNUNET_MIN (exp, rd[i].expiration_time);
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "Got record of size %d\n", rd[i].data_size);
-
+		 "Got record of size %d\n", rd[i].data_size);
       if ((record_xquery != 0)
           && (rd[i].record_type == record_xquery))
       {
         record_match++;
       }
     }
+    et.abs_value = exp;
     
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                "Verifying signature of %d records for name %s\n",
                rd_count, name);
 
     if (GNUNET_OK != GNUNET_NAMESTORE_verify_signature (&nrb->public_key,
-                                                        exp,
+                                                        et,
                                                         name,
                                                         rd_count,
                                                         rd,

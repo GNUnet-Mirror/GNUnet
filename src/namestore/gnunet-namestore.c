@@ -32,6 +32,7 @@
 #include <gnunet_dnsparser_lib.h>
 #include <gnunet_namestore_service.h>
 
+
 /**
  * Handle to the namestore.
  */
@@ -264,7 +265,9 @@ run (void *cls, char *const *args, const char *cfgfile,
   uint32_t type;
   void *data = NULL;
   size_t data_size = 0;
-  struct GNUNET_TIME_Relative etime;
+  struct GNUNET_TIME_Relative etime_rel;
+  struct GNUNET_TIME_Absolute etime_abs;
+  int etime_is_rel = GNUNET_SYSERR;
   struct GNUNET_NAMESTORE_RecordData rd;
 
   if (NULL == keyfile)
@@ -356,11 +359,22 @@ run (void *cls, char *const *args, const char *cfgfile,
   {
     if (0 == strcmp (expirationstring, "never"))
     {
-      etime = GNUNET_TIME_UNIT_FOREVER_REL;
+      etime_abs = GNUNET_TIME_UNIT_FOREVER_ABS;
+      etime_is_rel = GNUNET_NO;
     }
-    else if (GNUNET_OK !=
-	GNUNET_STRINGS_fancy_time_to_relative (expirationstring,
-					       &etime))
+    else if (GNUNET_OK ==
+	     GNUNET_STRINGS_fancy_time_to_relative (expirationstring,
+						    &etime_rel))
+    {
+      etime_is_rel = GNUNET_YES;
+    }
+    else if (GNUNET_OK == 
+	     GNUNET_STRINGS_fancy_time_to_absolute (expirationstring,
+						    &etime_abs))
+    {
+      etime_is_rel = GNUNET_NO;
+    }
+    else
     {
       fprintf (stderr,
 	       _("Invalid time format `%s'\n"),
@@ -368,7 +382,8 @@ run (void *cls, char *const *args, const char *cfgfile,
       GNUNET_SCHEDULER_shutdown ();
       return;     
     }
-  } else if (add)
+  } 
+  else if (add)
   {
     fprintf (stderr,
 	     _("Missing option `%s' for operation `%s'\n"),
@@ -389,7 +404,21 @@ run (void *cls, char *const *args, const char *cfgfile,
     rd.data = data;
     rd.data_size = data_size;
     rd.record_type = type;
-    rd.expiration = GNUNET_TIME_relative_to_absolute (etime);
+    if (GNUNET_YES == etime_is_rel)
+    {
+      rd.expiration_time = etime_rel.rel_value;
+      rd.flags |= GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION;
+    }
+    else if (GNUNET_NO == etime_is_rel)
+      rd.expiration_time = etime_abs.abs_value;
+    else
+    {
+      fprintf (stderr,
+	       _("No valid expiration time for operation `%s'\n"),
+	       _("add"));
+      GNUNET_SCHEDULER_shutdown ();
+      return;
+    }
     if (1 != nonauthority)
       rd.flags |= GNUNET_NAMESTORE_RF_AUTHORITY;
     if (1 != public)
@@ -414,7 +443,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     rd.data = data;
     rd.data_size = data_size;
     rd.record_type = type;
-    rd.expiration.abs_value = 0;
+    rd.expiration_time = 0;
     rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
     del_qe = GNUNET_NAMESTORE_record_remove (ns,
 					     zone_pkey,

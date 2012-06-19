@@ -386,7 +386,7 @@ zone_to_name_cb (void *cls,
 							&pub));
   r.data = &pub;
   r.data_size = sizeof (pub);
-  r.expiration = GNUNET_TIME_UNIT_FOREVER_ABS;
+  r.expiration_time = UINT64_MAX;
   r.record_type = GNUNET_NAMESTORE_TYPE_PKEY;
   r.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
   request->qe = GNUNET_NAMESTORE_record_create (ns,
