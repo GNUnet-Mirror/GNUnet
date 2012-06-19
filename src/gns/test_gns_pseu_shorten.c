@@ -289,7 +289,7 @@ put_pseu_dht(void *cls, int success)
   struct GNUNET_CRYPTO_RsaSignature *sig;
   struct GNUNET_NAMESTORE_RecordData rd;
   
-  rd.expiration = GNUNET_TIME_UNIT_FOREVER_ABS;
+  rd.expiration_time = UINT64_MAX;
   rd.data_size = strlen(TEST_PSEU_ALICE)+1;
   rd.data = TEST_PSEU_ALICE;
   rd.record_type = GNUNET_GNS_RECORD_PSEU;
@@ -344,7 +344,7 @@ put_pseu_dht(void *cls, int success)
                   GNUNET_BLOCK_TYPE_GNS_NAMERECORD,
                   rd_payload_length,
                   (char*)nrb,
-                  rd.expiration,
+                  GNUNET_TIME_UNIT_FOREVER_ABS,
                   DHT_OPERATION_TIMEOUT,
                   &commence_testing,
                   NULL);
@@ -369,7 +369,7 @@ put_www_dht(void *cls, int success)
   char* ip = TEST_IP;
   struct in_addr *web = GNUNET_malloc(sizeof(struct in_addr));
   
-  rd.expiration = GNUNET_TIME_UNIT_FOREVER_ABS;
+  rd.expiration_time = UINT64_MAX;
   GNUNET_assert(1 == inet_pton (AF_INET, ip, web));
   rd.data_size = sizeof(struct in_addr);
   rd.data = web;
@@ -423,7 +423,7 @@ put_www_dht(void *cls, int success)
                   GNUNET_BLOCK_TYPE_GNS_NAMERECORD,
                   rd_payload_length,
                   (char*)nrb,
-                  rd.expiration,
+		  GNUNET_TIME_UNIT_FOREVER_ABS,
                   DHT_OPERATION_TIMEOUT,
                   &put_pseu_dht,
                   NULL);
@@ -447,7 +447,7 @@ put_pkey_dht(void *cls, int32_t success, const char *emsg)
   struct GNUNET_CRYPTO_RsaSignature *sig;
   struct GNUNET_NAMESTORE_RecordData rd;
   
-  rd.expiration = GNUNET_TIME_UNIT_FOREVER_ABS;
+  rd.expiration_time = UINT64_MAX;
   rd.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
   rd.data = &alice_hash;
   rd.record_type = GNUNET_GNS_RECORD_PKEY;
@@ -503,7 +503,7 @@ put_pkey_dht(void *cls, int32_t success, const char *emsg)
                   GNUNET_BLOCK_TYPE_GNS_NAMERECORD,
                   rd_payload_length,
                   (char*)nrb,
-                  rd.expiration,
+                  GNUNET_TIME_UNIT_FOREVER_ABS,
                   DHT_OPERATION_TIMEOUT,
                   &put_www_dht,
                   NULL);
@@ -515,7 +515,7 @@ static void
 fin_init_zone (void *cls, int32_t success, const char *emsg)
 {
   struct GNUNET_NAMESTORE_RecordData rd;
-  rd.expiration = GNUNET_TIME_UNIT_FOREVER_ABS;
+  rd.expiration_time = UINT64_MAX;
   rd.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
   rd.data = &bob_hash;
   rd.record_type = GNUNET_GNS_RECORD_PKEY;
@@ -534,7 +534,7 @@ cont_init_zone (void *cls, int32_t success, const char *emsg)
 {
 
   struct GNUNET_NAMESTORE_RecordData rd;
-  rd.expiration = GNUNET_TIME_UNIT_FOREVER_ABS;
+  rd.expiration_time = UINT64_MAX;
   rd.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
   rd.data = &short_zone;
   rd.record_type = GNUNET_GNS_RECORD_PKEY;
@@ -629,7 +629,7 @@ do_lookup (void *cls, const struct GNUNET_PeerIdentity *id,
   GNUNET_CRYPTO_short_hash(&short_pkey, sizeof(short_pkey), &short_zone);
   
   struct GNUNET_NAMESTORE_RecordData rd;
-  rd.expiration = GNUNET_TIME_UNIT_FOREVER_ABS;
+  rd.expiration_time = UINT64_MAX;
   rd.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
   rd.data = &priv_zone;
   rd.record_type = GNUNET_GNS_RECORD_PKEY;

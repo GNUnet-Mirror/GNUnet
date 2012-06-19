@@ -318,7 +318,7 @@ do_lookup(void *cls, const struct GNUNET_PeerIdentity *id,
   struct GNUNET_NAMESTORE_RecordData rd;
   char* ip = TEST_IP_NS;
   struct in_addr *ns = GNUNET_malloc(sizeof(struct in_addr));
-  rd.expiration = GNUNET_TIME_UNIT_FOREVER_ABS;
+  rd.expiration_time = UINT64_MAX;
   GNUNET_assert(1 == inet_pton (AF_INET, ip, ns));
   rd.data_size = sizeof(struct in_addr);
   rd.data = ns;

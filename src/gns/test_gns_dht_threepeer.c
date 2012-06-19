@@ -300,7 +300,7 @@ daemon_started (void *cls, const struct GNUNET_PeerIdentity *id,
   struct GNUNET_NAMESTORE_RecordData rd;
 
   rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY | GNUNET_NAMESTORE_RF_NONE;
-  rd.expiration = GNUNET_TIME_UNIT_FOREVER_ABS;
+  rd.expiration_time = UINT64_MAX;
   
   if (NULL == dave_daemon)
   {
