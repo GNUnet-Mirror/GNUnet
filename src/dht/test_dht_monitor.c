@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2011 Christian Grothoff (and other contributing authors)
+     (C) 2011, 2012 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -107,25 +107,30 @@ static GNUNET_SCHEDULER_TaskIdentifier shutdown_handle;
 
 static char *topology_file;
 
-struct GNUNET_TESTING_Daemon *d1;
+static struct GNUNET_TESTING_Daemon *d1;
 
-struct GNUNET_TESTING_Daemon *d2;
+static struct GNUNET_TESTING_Daemon *d2;
 
-struct GNUNET_DHT_Handle **hs;
+static struct GNUNET_DHT_Handle **hs;
 
-struct GNUNET_DHT_MonitorHandle **mhs;
+static struct GNUNET_DHT_MonitorHandle **mhs;
 
-struct GNUNET_DHT_GetHandle *get_h_far;
+static struct GNUNET_DHT_GetHandle *get_h_far;
 
-const char *id_origin = "FC74";
-const char *id_far = "2UVH";
+static const char *id_origin = "FC74";
 
-struct GNUNET_TESTING_Daemon *d_far;
-struct GNUNET_TESTING_Daemon *o;
+static const char *id_far = "2UVH";
 
-unsigned int monitor_counter;
+static struct GNUNET_TESTING_Daemon *d_far;
 
-int in_test;
+static struct GNUNET_TESTING_Daemon *o;
+
+static unsigned int monitor_counter;
+
+static unsigned int monitor_expect = UINT_MAX;
+
+static int in_test;
+
 
 /**
  * Check whether peers successfully shut down.
@@ -217,17 +222,15 @@ dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test:   %s\n",
                 GNUNET_i2s (&put_path[i]));
   }
-  if (monitor_counter >= get_path_length + put_path_length)
+  monitor_expect = get_path_length + put_path_length;
+  if (monitor_counter >= monitor_expect)
   {
     ok = 0;
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "expected at least %u hops, got %u\n",
                 get_path_length + put_path_length, monitor_counter);
+    GNUNET_SCHEDULER_cancel (disconnect_task);
+    disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_peers, NULL);
   }
-  else
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "expected at least %u hops, got %u\n",
-                get_path_length + put_path_length, monitor_counter);
-  GNUNET_SCHEDULER_cancel (disconnect_task);
-  disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_peers, NULL);
 }
 
 
@@ -329,7 +332,17 @@ monitor_get_cb (void *cls,
               i, s_key);
 
   if (strncmp (s_key, id_far, 4) == 0 && in_test == GNUNET_YES)
+  {
     monitor_counter++;
+    if (monitor_counter >= monitor_expect)
+    {
+      ok = 0;
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "expected at least %u hops, got %u\n",
+		  monitor_expect, monitor_counter);
+      GNUNET_SCHEDULER_cancel (disconnect_task);
+      disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_peers, NULL);
+    }
+  }
 }
 
 
@@ -531,7 +544,6 @@ connect_cb (void *cls, const struct GNUNET_PeerIdentity *first,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "test: Problem with new connection (%s)\n", emsg);
   }
-
 }
 
 
@@ -623,7 +635,6 @@ run (void *cls, char *const *args, const char *cfgfile,
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                     &shutdown_task, NULL);
 }
-
 
 
 /**
