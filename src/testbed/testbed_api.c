@@ -229,7 +229,7 @@ queue_message (struct GNUNET_TESTBED_Controller *controller,
                                            GNUNET_TIME_UNIT_FOREVER_REL,
                                            GNUNET_NO, &transmit_ready_notify,
                                            controller);
- }
+}
 
 
 /**
