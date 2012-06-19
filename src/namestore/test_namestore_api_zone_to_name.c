@@ -24,63 +24,41 @@
 #include "platform.h"
 #include "gnunet_common.h"
 #include "gnunet_namestore_service.h"
+#include "gnunet_testing_lib-new.h"
 #include "namestore.h"
 #include "gnunet_signatures.h"
 
-#define VERBOSE GNUNET_NO
-
 #define RECORDS 5
+
 #define TEST_RECORD_TYPE 1234
+
 #define TEST_RECORD_DATALEN 123
+
 #define TEST_RECORD_DATA 'a'
 
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 
+
 static struct GNUNET_NAMESTORE_Handle * nsh;
 
 static GNUNET_SCHEDULER_TaskIdentifier endbadly_task;
-static struct GNUNET_OS_Process *arm;
 
 static struct GNUNET_CRYPTO_RsaPrivateKey * privkey;
+
 static struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pubkey;
 
-struct GNUNET_TIME_Absolute expire;
+static struct GNUNET_TIME_Absolute expire;
 
 static struct GNUNET_CRYPTO_ShortHashCode s_zone;
+
 static struct GNUNET_CRYPTO_ShortHashCode s_zone_value;
 
-char * s_name;
+static char * s_name;
 
-struct GNUNET_NAMESTORE_RecordData *s_rd;
-struct GNUNET_CRYPTO_RsaSignature *s_signature;
+static struct GNUNET_CRYPTO_RsaSignature *s_signature;
 
 static int res;
 
-static void
-start_arm (const char *cfgname)
-{
-  arm = GNUNET_OS_start_process (GNUNET_YES, NULL, NULL, "gnunet-service-arm",
-                               "gnunet-service-arm", "-c", cfgname,
-#if VERBOSE_PEERS
-                               "-L", "DEBUG",
-#else
-                               "-L", "ERROR",
-#endif
-                               NULL);
-}
-
-static void
-stop_arm ()
-{
-  if (NULL != arm)
-  {
-    if (0 != GNUNET_OS_process_kill (arm, SIGTERM))
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-    GNUNET_OS_process_wait (arm);
-    GNUNET_OS_process_destroy (arm);
-    arm = NULL;
-  }
-}
 
 /**
  * Re-establish the connection to the service.
@@ -94,14 +72,9 @@ endbadly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (nsh != NULL)
     GNUNET_NAMESTORE_disconnect (nsh, GNUNET_YES);
   nsh = NULL;
-
   if (privkey != NULL)
     GNUNET_CRYPTO_rsa_key_free (privkey);
   privkey = NULL;
-
-  if (NULL != arm)
-    stop_arm();
-
   res = 1;
 }
 
@@ -114,26 +87,23 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_SCHEDULER_cancel (endbadly_task);
     endbadly_task = GNUNET_SCHEDULER_NO_TASK;
   }
-
   if (privkey != NULL)
     GNUNET_CRYPTO_rsa_key_free (privkey);
   privkey = NULL;
-
   if (nsh != NULL)
     GNUNET_NAMESTORE_disconnect (nsh, GNUNET_YES);
   nsh = NULL;
-
-  if (NULL != arm)
-    stop_arm();
 }
 
-void zone_to_name_proc (void *cls,
-                            const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
-                            struct GNUNET_TIME_Absolute expire,
-                            const char *n,
-                            unsigned int rd_count,
-                            const struct GNUNET_NAMESTORE_RecordData *rd,
-                            const struct GNUNET_CRYPTO_RsaSignature *signature)
+
+static void
+zone_to_name_proc (void *cls,
+		   const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
+		   struct GNUNET_TIME_Absolute expire,
+		   const char *n,
+		   unsigned int rd_count,
+		   const struct GNUNET_NAMESTORE_RecordData *rd,
+		   const struct GNUNET_CRYPTO_RsaSignature *signature)
 {
   int fail = GNUNET_NO;
 
@@ -169,26 +139,7 @@ void zone_to_name_proc (void *cls,
 }
 
 
-void
-delete_existing_db (const struct GNUNET_CONFIGURATION_Handle *cfg)
-{
-  char *afsdir;
-
-  if (GNUNET_OK ==
-      GNUNET_CONFIGURATION_get_value_filename (cfg, "namestore-sqlite",
-                                               "FILENAME", &afsdir))
-  {
-    if (GNUNET_OK == GNUNET_DISK_file_test (afsdir))
-      if (GNUNET_OK == GNUNET_DISK_file_test (afsdir))
-        if (GNUNET_OK == GNUNET_DISK_directory_remove(afsdir))
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Deleted existing database `%s' \n", afsdir);
-   GNUNET_free (afsdir);
-  }
-
-}
-
-
-void
+static void
 put_cont (void *cls, int32_t success, const char *emsg)
 {
   char *name = cls;
@@ -209,16 +160,13 @@ put_cont (void *cls, int32_t success, const char *emsg)
   }
 }
 
+
 static void
-run (void *cls, char *const *args, const char *cfgfile,
+run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  delete_existing_db(cfg);
-
   endbadly_task = GNUNET_SCHEDULER_add_delayed(TIMEOUT,endbadly, NULL);
   GNUNET_asprintf(&s_name, "dummy");
-
-
   /* load privat key */
   char *hostkey_file;
   GNUNET_asprintf(&hostkey_file,"zonefiles%s%s",DIR_SEPARATOR_STR,
@@ -241,10 +189,6 @@ run (void *cls, char *const *args, const char *cfgfile,
   rd.data_size = sizeof (struct GNUNET_CRYPTO_ShortHashCode);
   rd.data = GNUNET_malloc(sizeof (struct GNUNET_CRYPTO_ShortHashCode));
   memcpy ((char *) rd.data, &s_zone_value, sizeof (struct GNUNET_CRYPTO_ShortHashCode));
-
-  start_arm (cfgfile);
-  GNUNET_assert (arm != NULL);
-
   nsh = GNUNET_NAMESTORE_connect (cfg);
   GNUNET_break (NULL != nsh);
 
@@ -255,34 +199,20 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_free ((void *) rd.data);
 }
 
-static int
-check ()
-{
-  static char *const argv[] = { "test-namestore-api",
-    "-c",
-    "test_namestore_api.conf",
-#if VERBOSE
-    "-L", "DEBUG",
-#endif
-    NULL
-  };
-  static struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_OPTION_END
-  };
 
-  res = 1;
-  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv, "test-namestore-api",
-                      "nohelp", options, &run, &res);
-  return res;
-}
 
 int
 main (int argc, char *argv[])
 {
-  int ret;
-
-  ret = check ();
-  return ret;
+  res = 1;
+  if (0 != 
+      GNUNET_TESTING_service_run ("test-namestore-api-zone-to-name",
+				  "namestore",
+				  "test_namestore_api.conf",
+				  &run,
+				  NULL))
+    return 1;
+  return res;
 }
 
-/* end of test_namestore_api.c */
+/* end of test_namestore_api_zone_to_name.c */

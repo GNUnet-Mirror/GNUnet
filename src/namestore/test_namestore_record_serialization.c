@@ -32,6 +32,7 @@
 
 static int res;
 
+
 static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
@@ -128,9 +129,6 @@ check ()
   static char *const argv[] = { "test_namestore_record_serialization",
     "-c",
     "test_namestore_api.conf",
-#if VERBOSE
-    "-L", "DEBUG",
-#endif
     NULL
   };
   static struct GNUNET_GETOPT_CommandLineOption options[] = {

@@ -132,24 +132,6 @@ create_record (int count)
 
 
 static void
-delete_existing_db (const struct GNUNET_CONFIGURATION_Handle *cfg)
-{
-  char *afsdir;
-
-  if (GNUNET_OK ==
-      GNUNET_CONFIGURATION_get_value_filename (cfg, "namestore-sqlite",
-                                               "FILENAME", &afsdir))
-  {
-    if (GNUNET_OK == GNUNET_DISK_file_test (afsdir))
-      if (GNUNET_OK == GNUNET_DISK_file_test (afsdir))
-        if (GNUNET_OK == GNUNET_DISK_directory_remove(afsdir))
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Deleted existing database `%s' \n", afsdir);
-   GNUNET_free (afsdir);
-  }
-}
-
-
-static void
 run (void *cls, 
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
@@ -158,7 +140,6 @@ run (void *cls,
   int c;
   char *hostkey_file;
 
-  delete_existing_db(cfg);
   endbadly_task = GNUNET_SCHEDULER_add_delayed(TIMEOUT,endbadly, NULL);
   /* load privat key */
   GNUNET_asprintf(&hostkey_file,"zonefiles%s%s",DIR_SEPARATOR_STR,

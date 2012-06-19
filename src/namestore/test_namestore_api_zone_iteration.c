@@ -24,67 +24,55 @@
 #include "platform.h"
 #include "gnunet_common.h"
 #include "gnunet_namestore_service.h"
+#include "gnunet_testing_lib-new.h"
 #include "namestore.h"
 
-#define VERBOSE GNUNET_NO
 
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
+
 
 static struct GNUNET_NAMESTORE_Handle * nsh;
 
 static GNUNET_SCHEDULER_TaskIdentifier endbadly_task;
+
 static GNUNET_SCHEDULER_TaskIdentifier stopiteration_task;
-static struct GNUNET_OS_Process *arm;
 
 static struct GNUNET_CRYPTO_RsaPrivateKey * privkey;
+
 static struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pubkey;
+
 static struct GNUNET_HashCode zone;
 
 static struct GNUNET_CRYPTO_RsaPrivateKey * privkey2;
+
 static struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pubkey2;
+
 static struct GNUNET_HashCode zone2;
 
 static struct GNUNET_NAMESTORE_ZoneIterator *zi;
+
 static int res;
+
 static int returned_records;
 
-struct GNUNET_CRYPTO_RsaSignature *sig_1;
-char * s_name_1;
-struct GNUNET_NAMESTORE_RecordData *s_rd_1;
+static struct GNUNET_CRYPTO_RsaSignature *sig_1;
 
-struct GNUNET_CRYPTO_RsaSignature *sig_2;
-char * s_name_2;
-struct GNUNET_NAMESTORE_RecordData *s_rd_2;
+static char * s_name_1;
 
-struct GNUNET_CRYPTO_RsaSignature *sig_3;
-char * s_name_3;
-struct GNUNET_NAMESTORE_RecordData *s_rd_3;
+static struct GNUNET_NAMESTORE_RecordData *s_rd_1;
 
-static void
-start_arm (const char *cfgname)
-{
-  arm = GNUNET_OS_start_process (GNUNET_YES, NULL, NULL, "gnunet-service-arm",
-                               "gnunet-service-arm", "-c", cfgname,
-#if VERBOSE_PEERS
-                               "-L", "DEBUG",
-#else
-                               "-L", "ERROR",
-#endif
-                               NULL);
-}
+static struct GNUNET_CRYPTO_RsaSignature *sig_2;
 
-static void
-stop_arm ()
-{
-  if (NULL != arm)
-  {
-    if (0 != GNUNET_OS_process_kill (arm, SIGTERM))
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-    GNUNET_OS_process_wait (arm);
-    GNUNET_OS_process_destroy (arm);
-    arm = NULL;
-  }
-}
+static char * s_name_2;
+
+static struct GNUNET_NAMESTORE_RecordData *s_rd_2;
+
+static struct GNUNET_CRYPTO_RsaSignature *sig_3;
+
+static char * s_name_3;
+
+static struct GNUNET_NAMESTORE_RecordData *s_rd_3;
+
 
 /**
  * Re-establish the connection to the service.
@@ -135,10 +123,6 @@ endbadly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (privkey2 != NULL)
     GNUNET_CRYPTO_rsa_key_free (privkey2);
   privkey2 = NULL;
-
-  if (NULL != arm)
-    stop_arm();
-
   res = 1;
 }
 
@@ -187,23 +171,20 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_free ((void *)s_rd_3->data);
     GNUNET_free (s_rd_3);
   }
-
   if (nsh != NULL)
     GNUNET_NAMESTORE_disconnect (nsh, GNUNET_YES);
   nsh = NULL;
-
-
-  if (NULL != arm)
-    stop_arm();
 }
 
-void zone_proc (void *cls,
-                const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
-                struct GNUNET_TIME_Absolute expire,
-                const char *name,
-                unsigned int rd_count,
-                const struct GNUNET_NAMESTORE_RecordData *rd,
-                const struct GNUNET_CRYPTO_RsaSignature *signature)
+
+static void
+zone_proc (void *cls,
+	   const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
+	   struct GNUNET_TIME_Absolute expire,
+	   const char *name,
+	   unsigned int rd_count,
+	   const struct GNUNET_NAMESTORE_RecordData *rd,
+	   const struct GNUNET_CRYPTO_RsaSignature *signature)
 {
   int failed = GNUNET_NO;
   if ((zone_key == NULL) &&  (name == NULL))
@@ -322,25 +303,8 @@ void zone_proc (void *cls,
   }
 }
 
-void
-delete_existing_db (const struct GNUNET_CONFIGURATION_Handle *cfg)
-{
-  char *afsdir;
 
-  if (GNUNET_OK ==
-      GNUNET_CONFIGURATION_get_value_filename (cfg, "namestore-sqlite",
-                                               "FILENAME", &afsdir))
-  {
-    if (GNUNET_OK == GNUNET_DISK_file_test (afsdir))
-      if (GNUNET_OK == GNUNET_DISK_file_test (afsdir))
-        if (GNUNET_OK == GNUNET_DISK_directory_remove(afsdir))
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Deleted existing database `%s' \n", afsdir);
-   GNUNET_free (afsdir);
-  }
-
-}
-
-void
+static void
 put_cont (void *cls, int32_t success, const char *emsg)
 {
   static int c = 0;
@@ -379,6 +343,7 @@ put_cont (void *cls, int32_t success, const char *emsg)
   }
 }
 
+
 static struct GNUNET_NAMESTORE_RecordData *
 create_record (int count)
 {
@@ -397,14 +362,14 @@ create_record (int count)
   return rd;
 }
 
+
 static void
-run (void *cls, char *const *args, const char *cfgfile,
+run (void *cls, 
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  delete_existing_db(cfg);
-  endbadly_task = GNUNET_SCHEDULER_add_delayed(TIMEOUT,&endbadly, NULL);
-
   char *hostkey_file;
+
+  endbadly_task = GNUNET_SCHEDULER_add_delayed(TIMEOUT,&endbadly, NULL);
   GNUNET_asprintf(&hostkey_file,"zonefiles%s%s",DIR_SEPARATOR_STR,
       "N0UJMP015AFUNR2BTNM3FKPBLG38913BL8IDMCO2H0A1LIB81960.zkey");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Using zonekey file `%s' \n", hostkey_file);
@@ -424,11 +389,6 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_assert (privkey2 != NULL);
   GNUNET_CRYPTO_rsa_key_get_public(privkey2, &pubkey2);
   GNUNET_CRYPTO_hash(&pubkey2, sizeof (pubkey), &zone2);
-
-
-  start_arm (cfgfile);
-  GNUNET_assert (arm != NULL);
-
   nsh = GNUNET_NAMESTORE_connect (cfg);
   GNUNET_break (NULL != nsh);
 
@@ -455,35 +415,20 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_NAMESTORE_record_put (nsh, &pubkey2, s_name_3, GNUNET_TIME_UNIT_FOREVER_ABS, 1, s_rd_3, sig_3, &put_cont, NULL);
 }
 
-static int
-check ()
-{
-  static char *const argv[] = { "test_namestore_api_zone_iteration",
-    "-c",
-    "test_namestore_api.conf",
-#if VERBOSE
-    "-L", "DEBUG",
-#endif
-    NULL
-  };
-  static struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_OPTION_END
-  };
-
-  res = 1;
-  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv, "test_namestore_api_zone_iteration",
-                      "nohelp", options, &run, &res);
-  return res;
-}
 
 int
 main (int argc, char *argv[])
 {
-  int ret;
-
-  ret = check ();
-
-  return ret;
+  res = 1;
+  if (0 != 
+      GNUNET_TESTING_service_run ("test-namestore-api-zone-iteration",
+				  "namestore",
+				  "test_namestore_api.conf",
+				  &run,
+				  NULL))
+    return 1;
+  return res;
 }
+
 
 /* end of test_namestore_api_zone_iteration.c */

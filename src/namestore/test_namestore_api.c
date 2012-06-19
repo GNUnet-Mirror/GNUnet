@@ -27,10 +27,13 @@
 #include "gnunet_testing_lib-new.h"
 
 #define TEST_RECORD_TYPE 1234
+
 #define TEST_RECORD_DATALEN 123
+
 #define TEST_RECORD_DATA 'a'
 
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
+
 
 static struct GNUNET_NAMESTORE_Handle *nsh;
 
@@ -118,24 +121,6 @@ put_cont (void *cls, int32_t success, const char *emsg)
 
 
 static void
-delete_existing_db (const struct GNUNET_CONFIGURATION_Handle *cfg)
-{
-  char *afsdir;
-
-  if (GNUNET_OK ==
-      GNUNET_CONFIGURATION_get_value_filename (cfg, "namestore-sqlite",
-                                               "FILENAME", &afsdir))
-  {
-    if (GNUNET_OK == GNUNET_DISK_file_test (afsdir))
-      if (GNUNET_OK == GNUNET_DISK_file_test (afsdir))
-        if (GNUNET_OK == GNUNET_DISK_directory_remove(afsdir))
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Deleted existing database `%s' \n", afsdir);
-   GNUNET_free (afsdir);
-  }
-}
-
-
-static void
 run (void *cls, 
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
@@ -144,7 +129,6 @@ run (void *cls,
   char *hostkey_file;
   const char * name = "dummy.dummy.gnunet";
 
-  delete_existing_db(cfg);
   endbadly_task = GNUNET_SCHEDULER_add_delayed(TIMEOUT,endbadly, NULL);
 
   GNUNET_asprintf(&hostkey_file,"zonefiles%s%s",DIR_SEPARATOR_STR,

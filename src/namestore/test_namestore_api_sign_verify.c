@@ -27,24 +27,31 @@
 #include "namestore.h"
 #include "gnunet_signatures.h"
 
-#define VERBOSE GNUNET_NO
-
 #define RECORDS 5
+
 #define TEST_RECORD_TYPE 1234
+
 #define TEST_RECORD_DATALEN 123
+
 #define TEST_RECORD_DATA 'a'
 
 #define TEST_REMOVE_RECORD_TYPE 4321
+
 #define TEST_REMOVE_RECORD_DATALEN 255
+
 #define TEST_REMOVE_RECORD_DATA 'b'
 
+
 static struct GNUNET_CRYPTO_RsaPrivateKey * privkey;
+
 static struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pubkey;
-struct GNUNET_CRYPTO_RsaSignature s_signature;
-struct GNUNET_NAMESTORE_RecordData *s_rd;
+
+static struct GNUNET_NAMESTORE_RecordData *s_rd;
+
 static char *s_name;
 
 static int res;
+
 
 static struct GNUNET_NAMESTORE_RecordData *
 create_record (int count)
@@ -64,7 +71,6 @@ create_record (int count)
 
   return rd;
 }
-
 
 
 static void
@@ -116,15 +122,13 @@ run (void *cls, char *const *args, const char *cfgfile,
 
 }
 
-static int
-check ()
+
+int
+main (int argc, char *argv[])
 {
-  static char *const argv[] = { "test-namestore-api",
+  static char *const argvx[] = { "test-namestore-api",
     "-c",
     "test_namestore_api.conf",
-#if VERBOSE
-    "-L", "DEBUG",
-#endif
     NULL
   };
   static struct GNUNET_GETOPT_CommandLineOption options[] = {
@@ -132,19 +136,9 @@ check ()
   };
 
   res = 1;
-  GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv, "test-namestore-api",
+  GNUNET_PROGRAM_run ((sizeof (argvx) / sizeof (char *)) - 1, argvx, "test-namestore-api",
                       "nohelp", options, &run, &res);
   return res;
-}
-
-int
-main (int argc, char *argv[])
-{
-  int ret;
-
-  ret = check ();
-
-  return ret;
 }
 
 /* end of test_namestore_api_sign_verify.c */
