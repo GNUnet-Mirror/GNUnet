@@ -54,9 +54,6 @@ libgnunettesting_old_la_LDFLAGS = \
  -version-info 0:1:0
 
 
-bin_PROGRAMS = \
- gnunet-testing
-
 check_PROGRAMS = \
  test_testing \
  test_testing_connect \
@@ -91,14 +88,6 @@ TESTS = \
  test_testing_peergroup 
 endif
 
-gnunet_testing_SOURCES = \
- gnunet-testing.c         
-gnunet_testing_LDADD = \
- $(top_builddir)/src/testing_old/libgnunettesting_old.la \
- $(top_builddir)/src/util/libgnunetutil.la \
- $(GN_LIBINTL)
-gnunet_testing_DEPENDENCIES = \
- libgnunettesting_old.la
 
 
 test_testing_SOURCES = \

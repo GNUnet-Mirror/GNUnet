@@ -34,15 +34,9 @@
  * This executable is intended to be used by gnunet-java, in order to reliably
  * start and stop services for test cases.
  */
-
 #include "platform.h"
-#include "gnunet_getopt_lib.h"
-#include "gnunet_program_lib.h"
 #include "gnunet_util_lib.h"
-#include "gnunet_signal_lib.h"
 #include "gnunet_testing_lib-new.h"
-#include "gnunet_os_lib.h"
-
 
 #define LOG(kind,...)                                           \
   GNUNET_log_from (kind, "gnunet-testing", __VA_ARGS__)

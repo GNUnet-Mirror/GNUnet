@@ -441,9 +441,9 @@ reserve_path (struct GNUNET_TESTING_System *system)
  * @param key_number desired pre-created hostkey to obtain
  * @param id set to the peer's identity (hash of the public
  *        key; if NULL, GNUNET_SYSERR is returned immediately
- * @return GNUNET_SYSERR on error (not enough keys)
+ * @return NULL on error (not enough keys)
  */
-int
+struct GNUNET_CRYPTO_RsaPrivateKey *
 GNUNET_TESTING_hostkey_get (const struct GNUNET_TESTING_System *system,
 			    uint32_t key_number,
 			    struct GNUNET_PeerIdentity *id)
@@ -452,12 +452,12 @@ GNUNET_TESTING_hostkey_get (const struct GNUNET_TESTING_System *system,
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded public_key;
   
   if ((NULL == id) || (NULL == system->hostkeys_data))
-    return GNUNET_SYSERR;
+    return NULL;
   if (key_number >= system->total_hostkeys)
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
          _("Key number %u does not exist\n"), key_number);
-    return GNUNET_SYSERR;
+    return NULL;
   }   
   private_key = GNUNET_CRYPTO_rsa_decode_key (system->hostkeys_data +
                                               (key_number * HOSTKEYFILESIZE),
@@ -466,14 +466,13 @@ GNUNET_TESTING_hostkey_get (const struct GNUNET_TESTING_System *system,
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
          _("Error while decoding key %u\n"), key_number);
-    return GNUNET_SYSERR;
+    return NULL;
   }
   GNUNET_CRYPTO_rsa_key_get_public (private_key, &public_key);
   GNUNET_CRYPTO_hash (&public_key,
                       sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
                       &(id->hashPubKey));
-  GNUNET_CRYPTO_rsa_key_free (private_key);
-  return GNUNET_OK;
+  return private_key;
 }
 
 
@@ -698,6 +697,7 @@ GNUNET_TESTING_peer_configure (struct GNUNET_TESTING_System *system,
   char hostkey_filename[128];
   char *config_filename;
   char *emsg_;
+  struct GNUNET_CRYPTO_RsaPrivateKey *pk;
 
   if (NULL != emsg)
     *emsg = NULL;
@@ -724,8 +724,9 @@ GNUNET_TESTING_peer_configure (struct GNUNET_TESTING_System *system,
       GNUNET_free (emsg_);
     return NULL;
   }
+  pk = NULL;
   if ((NULL != id) &&
-      (GNUNET_SYSERR == GNUNET_TESTING_hostkey_get (system, key_number, id)))
+      (NULL == (pk = GNUNET_TESTING_hostkey_get (system, key_number, id))))
   {
     GNUNET_asprintf (&emsg_,
 		     _("Failed to initialize hostkey for peer %u\n"),
@@ -737,6 +738,8 @@ GNUNET_TESTING_peer_configure (struct GNUNET_TESTING_System *system,
       GNUNET_free (emsg_);
     return NULL;
   }
+  if (NULL != pk)
+    GNUNET_CRYPTO_rsa_key_free (pk);
   GNUNET_assert (GNUNET_OK == 
                  GNUNET_CONFIGURATION_get_value_string (cfg, "PATHS",
                                                         "SERVICEHOME",

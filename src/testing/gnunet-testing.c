@@ -24,9 +24,8 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
-#include "gnunet_getopt_lib.h"
-#include "gnunet_program_lib.h"
-#include "gnunet_testing_lib.h"
+#include "gnunet_util_lib.h"
+#include "gnunet_testing_lib-new.h"
 
 #define HOSTKEYFILESIZE 914
 
@@ -45,28 +44,23 @@ static char * create_cfg_template;
 
 static char * create_hostkey_file;
 
+
 static int
 create_unique_cfgs (const char * template, const unsigned int no)
 {
-  int fail = GNUNET_NO;
-
-  uint16_t port = 20000;
-  uint32_t upnum = 1;
-  uint32_t fdnum = 1;
+  struct GNUNET_TESTING_System *system;
+  int fail;
+  unsigned int cur;
+  char *cur_file;
+  struct GNUNET_CONFIGURATION_Handle *cfg_new;
+  struct GNUNET_CONFIGURATION_Handle *cfg_tmpl;
 
   if (GNUNET_NO == GNUNET_DISK_file_test(template))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Configuration template `%s': file not found\n", create_cfg_template);
     return 1;
   }
-
-  int cur = 0;
-  char * cur_file;
-  char *service_home = NULL;
-  char *cur_service_home = NULL;
-
-  struct GNUNET_CONFIGURATION_Handle *cfg_new = NULL;
-  struct GNUNET_CONFIGURATION_Handle *cfg_tmpl = GNUNET_CONFIGURATION_create();
+  cfg_tmpl = GNUNET_CONFIGURATION_create();
 
   /* load template */
   if ((create_cfg_template != NULL) && (GNUNET_OK != GNUNET_CONFIGURATION_load(cfg_tmpl, create_cfg_template)))
@@ -77,24 +71,15 @@ create_unique_cfgs (const char * template, const unsigned int no)
     return 1;
   }
   /* load defaults */
-  else if (GNUNET_OK != GNUNET_CONFIGURATION_load(cfg_tmpl,  NULL))
+  if (GNUNET_OK != GNUNET_CONFIGURATION_load (cfg_tmpl,  NULL))
   {
     GNUNET_break (0);
     return 1;
   }
 
-  if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string(cfg_tmpl, "PATHS", "SERVICEHOME", &service_home))
-  {
-    GNUNET_asprintf(&service_home, "%s", "/tmp/testing");
-  }
-  else
-  {
-    int s = strlen (service_home);
-    if (service_home[s-1] == DIR_SEPARATOR)
-      service_home[s-1] = '\0';
-  }
-
-  while (cur < no)
+  fail = GNUNET_NO;
+  system = GNUNET_TESTING_system_create ("testing", NULL /* controller */);
+  for (cur = 0; cur < no; cur++)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Creating configuration no. %u \n", cur);
     if (create_cfg_template != NULL)
@@ -102,35 +87,34 @@ create_unique_cfgs (const char * template, const unsigned int no)
     else
       GNUNET_asprintf (&cur_file,"%04u%s",cur, ".conf");
 
-
-    GNUNET_asprintf (&cur_service_home, "%s-%04u%c",service_home, cur, DIR_SEPARATOR);
-    GNUNET_CONFIGURATION_set_value_string (cfg_tmpl,"PATHS","SERVICEHOME", cur_service_home);
-    GNUNET_CONFIGURATION_set_value_string (cfg_tmpl,"PATHS","DEFAULTCONFIG", cur_file);
-    GNUNET_free (cur_service_home);
-
-    cfg_new = GNUNET_TESTING_create_cfg(cfg_tmpl, cur, &port, &upnum, NULL, &fdnum);
-
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Writing configuration no. %u to file `%s' \n", cur, cur_file);
+    cfg_new = GNUNET_CONFIGURATION_dup (cfg_tmpl);
+    if (GNUNET_OK !=
+	GNUNET_TESTING_configuration_create (system, cfg_new))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not create another configuration\n");
+      GNUNET_CONFIGURATION_destroy (cfg_new);
+      fail = GNUNET_YES;
+      break;
+    }
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Writing configuration no. %u to file `%s' \n", cur, cur_file);
     if (GNUNET_OK != GNUNET_CONFIGURATION_write(cfg_new, cur_file))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to write configuration no. %u \n", cur);
       fail = GNUNET_YES;
     }
-
     GNUNET_CONFIGURATION_destroy (cfg_new);
     GNUNET_free (cur_file);
     if (fail == GNUNET_YES)
       break;
-    cur ++;
   }
-
   GNUNET_CONFIGURATION_destroy(cfg_tmpl);
-  GNUNET_free (service_home);
-  if (fail == GNUNET_NO)
-    return 0;
-  else
+  GNUNET_TESTING_system_destroy (system, GNUNET_NO);
+  if (GNUNET_YES == fail)
     return 1;
+  return 0;
 }
+
 
 static int
 create_hostkeys (const unsigned int no)

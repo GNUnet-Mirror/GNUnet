@@ -27,7 +27,8 @@ libgnunettesting_la_LDFLAGS = \
  -version-info 0:1:0
 
 bin_PROGRAMS = \
- gnunet-testing-run-service
+ gnunet-testing-run-service \
+ gnunet-testing
 
 
 gnunet_testing_run_service_SOURCES = \
@@ -39,6 +40,15 @@ gnunet_testing_run_service_LDADD = \
  $(GN_LIBINTL)
 gnunet_testing_run_service_DEPENDENCIES = \
   libgnunettesting.la
+
+gnunet_testing_SOURCES = \
+ gnunet-testing.c         
+gnunet_testing_LDADD = \
+ $(top_builddir)/src/testing/libgnunettesting.la \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(GN_LIBINTL)
+gnunet_testing_DEPENDENCIES = \
+ libgnunettesting.la
 
 
 check_PROGRAMS = \

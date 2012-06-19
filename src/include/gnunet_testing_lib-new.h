@@ -102,9 +102,9 @@ GNUNET_TESTING_system_destroy (struct GNUNET_TESTING_System *system,
  * @param key_number desired pre-created hostkey to obtain
  * @param id set to the peer's identity (hash of the public
  *        key; if NULL, GNUNET_SYSERR is returned immediately
- * @return GNUNET_SYSERR on error (not enough keys)
+ * @return NULL on error (not enough keys)
  */
-int
+struct GNUNET_CRYPTO_RsaPrivateKey *
 GNUNET_TESTING_hostkey_get (const struct GNUNET_TESTING_System *system,
 			    uint32_t key_number,
 			    struct GNUNET_PeerIdentity *id);
