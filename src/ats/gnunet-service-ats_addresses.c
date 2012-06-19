@@ -224,6 +224,11 @@ compare_address_it (void *cls, const struct GNUNET_HashCode * key, void *value)
   struct CompareAddressContext *cac = cls;
   struct ATS_Address *aa = value;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Comparing peer %4s: address length %u session %u <-> address length %u session %u\n",
+      GNUNET_h2s (key),
+      aa->addr_len, aa->session_id,
+      cac->search->addr_len, cac->search->session_id);
+
   /* Find an matching exact address:
    *
    * Compare by:
@@ -264,7 +269,6 @@ compare_address_it (void *cls, const struct GNUNET_HashCode * key, void *value)
    * Properties:
    *
    * cac->search->addr_len == 0
-   * cac->addr == NULL
    *
    * Compare by:
    * aa->plugin == cac->search->plugin
@@ -272,7 +276,7 @@ compare_address_it (void *cls, const struct GNUNET_HashCode * key, void *value)
    *
    * return as exact address
    */
-  if ((0 == cac->search->addr_len) && (NULL == cac->search->addr))
+  if (0 == cac->search->addr_len)
   {
       if ((0 == strcmp (aa->plugin, cac->search->plugin)) && (aa->session_id == cac->search->session_id))
         cac->exact_address = aa;
@@ -307,8 +311,8 @@ find_address (const struct GNUNET_PeerIdentity *peer,
                                               &compare_address_it, &cac);
 
 #if 0
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-              "exact address: %s           base address: %s\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Found exact address: %s           base address: %s\n",
               (cac.exact_address != NULL) ? "YES" : "NO",
               (cac.base_address != NULL) ? "YES" : "NO");
 #endif
@@ -616,7 +620,7 @@ GAS_addresses_destroy (const struct GNUNET_PeerIdentity *peer,
     return;
 
   /* Get existing address */
-  old = lookup_address(peer, plugin_name, plugin_addr, plugin_addr_len,
+  old = lookup_address (peer, plugin_name, plugin_addr, plugin_addr_len,
                        session_id, NULL, 0);
   if (old == NULL)
   {
