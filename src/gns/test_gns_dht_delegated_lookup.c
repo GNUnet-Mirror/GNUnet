@@ -213,7 +213,7 @@ put_dht(void *cls, int32_t success, const char *emsg)
   char* ip = TEST_IP;
   struct in_addr *web = GNUNET_malloc(sizeof(struct in_addr));
   
-  rd.expiration = GNUNET_TIME_UNIT_FOREVER_ABS;
+  rd.expiration_time = UINT64_MAX;
   GNUNET_assert(1 == inet_pton (AF_INET, ip, web));
   rd.data_size = sizeof(struct in_addr);
   rd.data = web;
@@ -258,7 +258,7 @@ put_dht(void *cls, int32_t success, const char *emsg)
                   GNUNET_BLOCK_TYPE_GNS_NAMERECORD,
                   rd_payload_length,
                   (char*)nrb,
-                  rd.expiration,
+                  GNUNET_TIME_UNIT_FOREVER_ABS,
                   DHT_OPERATION_TIMEOUT,
                   NULL,
                   NULL);
@@ -317,7 +317,7 @@ do_lookup(void *cls, const struct GNUNET_PeerIdentity *id,
   GNUNET_CRYPTO_short_hash(&bob_pkey, sizeof(bob_pkey), &bob_hash);
 
   struct GNUNET_NAMESTORE_RecordData rd;
-  rd.expiration = GNUNET_TIME_UNIT_FOREVER_ABS;
+  rd.expiration_time = UINT64_MAX;
   rd.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
   rd.data = &bob_hash;
   rd.record_type = GNUNET_GNS_RECORD_PKEY;

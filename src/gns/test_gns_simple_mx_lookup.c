@@ -225,6 +225,7 @@ do_lookup(void *cls, const struct GNUNET_PeerIdentity *id,
   struct GNUNET_CRYPTO_ShortHashCode bob_hash;
   struct GNUNET_CRYPTO_RsaSignature *sig;
   char* alice_keyfile;
+  struct GNUNET_TIME_Absolute et;
 
   cfg = _cfg;
 
@@ -259,7 +260,7 @@ do_lookup(void *cls, const struct GNUNET_PeerIdentity *id,
   struct in_addr *mail = GNUNET_malloc(sizeof(struct in_addr));
   char *mx_record;
   uint16_t mx_preference = 1;
-  rd.expiration = GNUNET_TIME_UNIT_FOREVER_ABS;
+  rd.expiration_time = UINT64_MAX;
   GNUNET_assert(1 == inet_pton (AF_INET, ip, mail));
   
   GNUNET_CRYPTO_short_hash(&bob_pkey, sizeof(bob_pkey), &bob_hash);
@@ -282,11 +283,11 @@ do_lookup(void *cls, const struct GNUNET_PeerIdentity *id,
                                           GNUNET_TIME_UNIT_FOREVER_ABS,
                                           TEST_RECORD_NAME,
                                           &rd, 1);
-
+  et.abs_value = rd.expiration_time;
   GNUNET_NAMESTORE_record_put (namestore_handle,
                                &bob_pkey,
                                TEST_RECORD_NAME,
-                               rd.expiration,
+                               et,
                                1,
                                &rd,
                                sig,
@@ -303,10 +304,11 @@ do_lookup(void *cls, const struct GNUNET_PeerIdentity *id,
                                           GNUNET_TIME_UNIT_FOREVER_ABS,
                                           "+",
                                           &rd, 1);
+  et.abs_value = rd.expiration_time;
   GNUNET_NAMESTORE_record_put (namestore_handle,
                                &bob_pkey,
                                "+",
-                               rd.expiration,
+                               et,
                                1,
                                &rd,
                                sig,
