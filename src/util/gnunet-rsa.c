@@ -65,6 +65,8 @@ run (void *cls, char *const *args, const char *cfgfile,
     return;
   }
   pk = GNUNET_CRYPTO_rsa_key_create_from_file (args[0]);
+  if (NULL == pk)
+    return;
   if (print_public_key)
   {
     char *s;
