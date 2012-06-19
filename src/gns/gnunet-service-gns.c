@@ -194,7 +194,7 @@ static void
 on_resolver_cleanup(void)
 {
   GNUNET_NAMESTORE_disconnect(namestore_handle, 1);
-  
+  GNUNET_DHT_disconnect(dht_handle);
 }
 
 /**
@@ -218,7 +218,6 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   /* Kill zone task for it may make the scheduler hang */
   if (zone_update_taskid != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel(zone_update_taskid);
-  GNUNET_DHT_disconnect(dht_handle);
 }
 
 
