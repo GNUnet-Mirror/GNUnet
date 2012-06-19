@@ -117,8 +117,11 @@ GNUNET_TESTBED_host_lookup_by_id_ (uint32_t id)
 struct GNUNET_TESTBED_Host *
 GNUNET_TESTBED_host_create_by_id_ (uint32_t id)
 {
-  GNUNET_break (0);
-  return NULL;
+  struct GNUNET_TESTBED_Host *host;
+  
+  host = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Host));
+  host->unique_id = id;
+  return host;
 }
 
 
@@ -280,7 +283,10 @@ GNUNET_TESTBED_host_run_ (const struct GNUNET_TESTBED_Host *host,
     unsigned int argp;
 
     GNUNET_asprintf (&h->port, "%d", host->port);
-    GNUNET_asprintf (&h->dst, "%s@%s", host->hostname, host->username);
+    if (NULL == host->username)
+      GNUNET_asprintf (&h->dst, "%s", host->hostname);
+    else 
+      GNUNET_asprintf (&h->dst, "%s@%s", host->hostname, host->username);
     argp = 0;
     remote_args[argp++] = "ssh";
     remote_args[argp++] = "-p";
