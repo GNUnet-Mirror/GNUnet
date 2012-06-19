@@ -51,7 +51,8 @@ check_PROGRAMS = \
   test_gns_max_queries \
   test_gns_dht_threepeer \
 	test_gns_cname_lookup \
-	test_gns_ns_lookup
+	test_gns_ns_lookup \
+	test_gns_revocation
 
 
 #  test_gns_simple_lookup
@@ -224,6 +225,21 @@ test_gns_ns_lookup_DEPENDENCIES = \
   $(top_builddir)/src/namestore/libgnunetnamestore.la \
   $(top_builddir)/src/gns/libgnunetgns.la \
   $(top_builddir)/src/testing_old/libgnunettesting_old.la
+
+
+test_gns_revocation_SOURCES = \
+  test_gns_revocation.c
+test_gns_revocation_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/namestore/libgnunetnamestore.la \
+  $(top_builddir)/src/gns/libgnunetgns.la \
+  $(top_builddir)/src/testing_old/libgnunettesting_old.la
+test_gns_revocation_DEPENDENCIES = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/namestore/libgnunetnamestore.la \
+  $(top_builddir)/src/gns/libgnunetgns.la \
+  $(top_builddir)/src/testing_old/libgnunettesting_old.la
+
 
 gnunet_gns_SOURCES = \
  gnunet-gns.c

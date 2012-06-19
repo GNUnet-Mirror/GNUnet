@@ -2603,6 +2603,13 @@ handle_delegation_ns (void* cls, struct ResolverHandle *rh,
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
              "GNS_PHASE_DELEGATE_NS-%llu: Resolution status: %d.\n",
              rh->id, rh->status);
+
+  if (rh->status & RSL_PKEY_REVOKED)
+  {
+    finish_lookup (rh, rlh, 0, NULL);
+    free_resolver_handle (rh);
+    return;
+  }
   
   if (strcmp(rh->name, "") == 0)
   {
@@ -2668,7 +2675,16 @@ handle_delegation_ns (void* cls, struct ResolverHandle *rh,
     }
     else if (rh->status & RSL_DELEGATE_PKEY)
     {
-      if (rlh->record_type == GNUNET_GNS_RECORD_PKEY)
+      if (rh->status & RSL_PKEY_REVOKED)
+      {
+        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                   "GNS_PHASE_DELEGATE_NS-%llu: Resolved PKEY is revoked.\n",
+                   rh->id);
+        finish_lookup (rh, rlh, 0, NULL);
+        free_resolver_handle (rh);
+        return;
+      }
+      else if (rlh->record_type == GNUNET_GNS_RECORD_PKEY)
       {
         GNUNET_assert(rd_count == 1);
         GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
@@ -2760,6 +2776,77 @@ handle_delegation_ns (void* cls, struct ResolverHandle *rh,
   resolve_delegation_dht(rh);
 }
 
+/**
+ * This is a callback function that checks for key revocation
+ *
+ * @param cls the pending query
+ * @param key the key of the zone we did the lookup
+ * @param expiration expiration date of the record data set in the namestore
+ * @param name the name for which we need an authority
+ * @param rd_count the number of records with 'name'
+ * @param rd the record data
+ * @param signature the signature of the authority for the record data
+ */
+static void
+process_pkey_revocation_result_ns (void *cls,
+                    const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *key,
+                    struct GNUNET_TIME_Absolute expiration,
+                    const char *name,
+                    unsigned int rd_count,
+                    const struct GNUNET_NAMESTORE_RecordData *rd,
+                    const struct GNUNET_CRYPTO_RsaSignature *signature)
+{
+  struct ResolverHandle *rh = cls;
+  struct GNUNET_TIME_Relative remaining_time;
+  int i;
+  
+  remaining_time = GNUNET_TIME_absolute_get_remaining (expiration);
+  
+  for (i = 0; i < rd_count; i++)
+  {
+    if (rd[i].record_type == GNUNET_GNS_RECORD_REV)
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                 "GNS_PHASE_DELEGATE_NS-%llu: Zone has been revoked.\n",
+                 rh->id);
+      rh->status |= RSL_PKEY_REVOKED;
+      rh->proc (rh->proc_cls, rh, 0, NULL);
+      return;
+    }
+  }
+  
+  if ((name == NULL) ||
+      (remaining_time.rel_value == 0))
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+          "GNS_PHASE_DELEGATE_NS-%llu: + Records don't exist or are expired.\n",
+          rh->id, name);
+    //FIXME start BG lookup
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+        "GNS_PHASE_DELEGATE_NS-%d: Starting background lookup for %s type %d\n",
+        rh->id, "+.gnunet", GNUNET_GNS_RECORD_REV);
+
+    gns_resolver_lookup_record(rh->authority,
+                               rh->private_local_zone,
+                               GNUNET_GNS_RECORD_REV,
+                               GNUNET_GNS_TLD,
+                               rh->priv_key,
+                               GNUNET_TIME_UNIT_FOREVER_REL,
+                               GNUNET_NO,
+                               &background_lookup_result_processor,
+                               NULL);
+  }
+  
+  /**
+   * We are done with PKEY resolution if name is empty
+   * else resolve again with new authority
+   */
+  if (strcmp (rh->name, "") == 0)
+    rh->proc (rh->proc_cls, rh, 0, NULL);
+  else
+    resolve_delegation_ns (rh);
+  return;
+}
 
 
 /**
@@ -2777,7 +2864,7 @@ handle_delegation_ns (void* cls, struct ResolverHandle *rh,
  * @param signature the signature of the authority for the record data
  */
 static void
-process_delegation_result_ns(void* cls,
+process_delegation_result_ns (void* cls,
                    const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *key,
                    struct GNUNET_TIME_Absolute expiration,
                    const char *name,
@@ -2962,22 +3049,15 @@ process_delegation_result_ns(void* cls,
                                  rh->authority_chain_tail,
                                  auth);
     
-    /** try to import pkey if private key available
-     * TODO: Only import last one?
-     */
-    //if (rh->priv_key && (name != NULL) && is_canonical (rh->name))
-    //  process_discovered_authority((char*)name, auth->zone,
-    //                               rh->authority_chain_tail->zone,
-    //                               rh->priv_key);
-    /**
-     * We are done with PKEY resolution if name is empty
-     * else resolve again with new authority
-     */
-    if (strcmp (rh->name, "") == 0)
-      rh->proc (rh->proc_cls, rh, rd_count, rd);
-    else
-      resolve_delegation_ns (rh);
+    /* Check for key revocation and delegate */
+    GNUNET_NAMESTORE_lookup_record (namestore_handle,
+                                    &rh->authority,
+                                    "+",
+                                    GNUNET_GNS_RECORD_REV,
+                                    &process_pkey_revocation_result_ns,
+                                    rh);
     return;
+    
   }
     
   /**

@@ -92,6 +92,7 @@ typedef void (*ResolutionResultProcessor) (void *cls,
  * RSL_DELEGATE_NS: Found NS delegation
  * RSL_DELEGATE_PKEY: Found PKEY delegation
  * RSL_CNAME_FOUND: Found CNAME record
+ * RSL_PKEY_REVOKED: Found PKEY has been revoked
  */
 enum ResolutionStatus
 {
@@ -101,7 +102,8 @@ enum ResolutionStatus
   RSL_DELEGATE_VPN = 8,
   RSL_DELEGATE_NS = 16,
   RSL_DELEGATE_PKEY = 32,
-  RSL_CNAME_FOUND = 64
+  RSL_CNAME_FOUND = 64,
+  RSL_PKEY_REVOKED = 128
 };
 
 /**

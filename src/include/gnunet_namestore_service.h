@@ -69,6 +69,11 @@ extern "C"
 #define GNUNET_NAMESTORE_TYPE_VPN 65539
 
 /**
+ * Record type for zone revocation
+ */
+#define GNUNET_NAMESTORE_TYPE_REV 65540
+
+/**
  * Entry in the queue.
  */
 struct GNUNET_NAMESTORE_QueueEntry;
