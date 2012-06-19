@@ -182,6 +182,7 @@ disconnect_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   shutdown_handle = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
 }
 
+
 static void
 dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
                     const struct GNUNET_HashCode * key,
@@ -228,6 +229,7 @@ dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
   GNUNET_SCHEDULER_cancel (disconnect_task);
   disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_peers, NULL);
 }
+
 
 /**
  * Start test: start GET request from the first node in the line looking for
@@ -293,6 +295,7 @@ put_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   put_task = GNUNET_SCHEDULER_add_delayed (PUT_FREQUENCY, &put_id, NULL);
 }
 
+
 /**
  * Callback called on each GET request going through the DHT.
  * Prints the info about the intercepted packet and increments a counter.
@@ -306,7 +309,7 @@ put_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param desired_replication_level Desired replication level.
  * @param key Key of the requested data.
  */
-void
+static void
 monitor_get_cb (void *cls,
                 enum GNUNET_DHT_RouteOption options,
                 enum GNUNET_BLOCK_Type type,
@@ -346,7 +349,7 @@ monitor_get_cb (void *cls,
  * @param data Pointer to the data carried.
  * @param size Number of bytes in data.
  */
-void
+static void
 monitor_put_cb (void *cls,
                 enum GNUNET_DHT_RouteOption options,
                 enum GNUNET_BLOCK_Type type,
@@ -389,7 +392,7 @@ monitor_put_cb (void *cls,
  * @param data Pointer to the result data.
  * @param size Number of bytes in data.
  */
-void
+static void
 monitor_res_cb (void *cls,
                 enum GNUNET_BLOCK_Type type,
                 const struct GNUNET_PeerIdentity *get_path,
@@ -481,10 +484,11 @@ peergroup_ready (void *cls, const char *emsg)
     return;
   }
   monitor_counter = 0;
-  put_task = GNUNET_SCHEDULER_add_now (&put_id, NULL);
+  put_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+					   &put_id, NULL);
   test_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                    (GNUNET_TIME_UNIT_SECONDS, 2), &do_test,
+                                    (GNUNET_TIME_UNIT_SECONDS, 3), &do_test,
                                     NULL);
   disconnect_task =
       GNUNET_SCHEDULER_add_delayed (GET_TIMEOUT, &disconnect_peers, NULL);
