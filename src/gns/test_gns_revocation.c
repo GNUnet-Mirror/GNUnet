@@ -257,7 +257,7 @@ do_lookup(void *cls, const struct GNUNET_PeerIdentity *id,
                                1,
                                &rd,
                                sig,
-                               &commence_testing,
+                               NULL,
                                NULL);
   rd.data_size = 0;
   rd.record_type = GNUNET_GNS_RECORD_REV;

@@ -284,6 +284,12 @@ struct GetNameAuthorityHandle
  */
 struct GetPseuAuthorityHandle
 {
+  /* DLL */
+  struct GetPseuAuthorityHandle *next;
+
+  /* DLL */
+  struct GetPseuAuthorityHandle *prev;
+
   /* the name to store the zone under */
   char name[MAX_DNS_LABEL_LENGTH];
 
