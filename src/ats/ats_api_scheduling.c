@@ -409,7 +409,6 @@ find_session_id (struct GNUNET_ATS_SchedulingHandle *sh, struct Session *session
                 const struct GNUNET_PeerIdentity *peer)
 {
   unsigned int i;
-  unsigned int f;
   char * p2;
 
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "ats-scheduling-api",
@@ -418,7 +417,6 @@ find_session_id (struct GNUNET_ATS_SchedulingHandle *sh, struct Session *session
 
   if (NULL == session)
     return NOT_FOUND;
-  f = 0;
   for (i = 1; i < sh->session_array_size; i++)
   {
     if (session == sh->session_array[i].session)
