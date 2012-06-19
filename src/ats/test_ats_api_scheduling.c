@@ -67,7 +67,7 @@ struct PeerContext
   struct Address *addr;
 };
 
-struct Address addr[2];
+struct Address test_addr[2];
 struct PeerContext p[2];
 struct GNUNET_ATS_Information atsi[2];
 
@@ -127,12 +127,12 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
   GNUNET_assert (0 ==
                  memcmp (&address->peer, &p[0].id,
                          sizeof (struct GNUNET_PeerIdentity)));
-  GNUNET_assert (0 == strcmp (address->transport_name, addr[0].plugin));
-  GNUNET_assert (address->address_length == addr[0].addr_len);
+  GNUNET_assert (0 == strcmp (address->transport_name, test_addr[0].plugin));
+  GNUNET_assert (address->address_length == test_addr[0].addr_len);
   GNUNET_assert (0 ==
-                 memcmp (address->address, addr[0].plugin,
+                 memcmp (address->address, test_addr[0].plugin,
                          address->address_length));
-  GNUNET_assert (addr[0].session == session);
+  GNUNET_assert (test_addr[0].session == session);
 
   ret = 0;
 
@@ -179,26 +179,26 @@ check (void *cls, char *const *args, const char *cfgfile,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created peer `%s'\n",
               GNUNET_i2s (&p[1].id));
 
-  addr[0].plugin = "test";
-  addr[0].session = NULL;
-  addr[0].addr = GNUNET_strdup ("test");
-  addr[0].addr_len = 4;
+  test_addr[0].plugin = "test";
+  test_addr[0].session = NULL;
+  test_addr[0].addr = GNUNET_strdup ("test");
+  test_addr[0].addr_len = 4;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Testing address creation\n");
 
   address0.peer = p[0].id;
-  address0.transport_name = addr[0].plugin;
-  address0.address = addr[0].addr;
-  address0.address_length = addr[0].addr_len;
-  GNUNET_ATS_address_add (ats, &address0, addr[0].session, NULL, 0);
-  GNUNET_ATS_address_update (ats, &address0, addr[0].session, NULL, 0);
+  address0.transport_name = test_addr[0].plugin;
+  address0.address = test_addr[0].addr;
+  address0.address_length = test_addr[0].addr_len;
+  GNUNET_ATS_address_add (ats, &address0, test_addr[0].session, NULL, 0);
+  GNUNET_ATS_address_update (ats, &address0, test_addr[0].session, NULL, 0);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Testing ATS info creation\n");
 
   atsi[0].type = htonl (GNUNET_ATS_UTILIZATION_UP);
   atsi[0].value = htonl (1024);
 
-  GNUNET_ATS_address_update (ats, &address0, addr[0].session, atsi, 1);
+  GNUNET_ATS_address_update (ats, &address0, test_addr[0].session, atsi, 1);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Testing ATS info update\n");
 
@@ -208,7 +208,7 @@ check (void *cls, char *const *args, const char *cfgfile,
   atsi[1].type = htonl (GNUNET_ATS_UTILIZATION_DOWN);
   atsi[1].value = htonl (1024);
 
-  GNUNET_ATS_address_update (ats, &address0, addr[0].session, atsi, 2);
+  GNUNET_ATS_address_update (ats, &address0, test_addr[0].session, atsi, 2);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Requesting peer `%s'\n",
               GNUNET_i2s (&p[0].id));

@@ -62,10 +62,10 @@ struct PeerContext
   struct Address *addr;
 };
 
-struct Address addr;
+struct Address test_addr;
 struct PeerContext p;
 struct GNUNET_ATS_Information atsi;
-struct GNUNET_HELLO_Address address0;
+struct GNUNET_HELLO_Address hello_address;
 
 static void
 stop_arm ()
@@ -130,25 +130,25 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
   GNUNET_assert (0 ==
                  memcmp (&address->peer, &p.id,
                          sizeof (struct GNUNET_PeerIdentity)));
-  GNUNET_assert (0 == strcmp (address->transport_name, addr.plugin));
-  GNUNET_assert (address->address_length == addr.addr_len);
+  GNUNET_assert (0 == strcmp (address->transport_name, test_addr.plugin));
+  GNUNET_assert (address->address_length == test_addr.addr_len);
   GNUNET_assert (0 ==
-                 memcmp (address->address, addr.plugin,
+                 memcmp (address->address, test_addr.plugin,
                          address->address_length));
-  GNUNET_assert (addr.session == session);
+  GNUNET_assert (test_addr.session == session);
 
   if (0 == stage)
   {
     /* Delete session */
-    GNUNET_ATS_address_destroyed (ats, &address0, addr.session);
-    addr.session = NULL;
+    GNUNET_ATS_address_destroyed (ats, &hello_address, test_addr.session);
+    test_addr.session = NULL;
     GNUNET_ATS_suggest_address (ats, &p.id);
   }
   if (1 == stage)
   {
     /* Delete address */
-    GNUNET_ATS_address_destroyed (ats, &address0, addr.session);
-    addr.session = NULL;
+    GNUNET_ATS_address_destroyed (ats, &hello_address, test_addr.session);
+    test_addr.session = NULL;
     GNUNET_ATS_suggest_address (ats, &p.id);
     GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &end, NULL);
   }
@@ -188,17 +188,17 @@ check (void *cls, char *const *args, const char *cfgfile,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created peer `%s'\n",
               GNUNET_i2s (&p.id));
 
-  addr.plugin = "test";
-  addr.session = &addr;
-  addr.addr = GNUNET_strdup ("test");
-  addr.addr_len = 4;
+  test_addr.plugin = "test";
+  test_addr.session = &test_addr;
+  test_addr.addr = GNUNET_strdup ("test");
+  test_addr.addr_len = 4;
 
   /* Adding address with session */
-  address0.peer = p.id;
-  address0.transport_name = addr.plugin;
-  address0.address = addr.addr;
-  address0.address_length = addr.addr_len;
-  GNUNET_ATS_address_add (ats, &address0, addr.session, NULL, 0);
+  hello_address.peer = p.id;
+  hello_address.transport_name = test_addr.plugin;
+  hello_address.address = test_addr.addr;
+  hello_address.address_length = test_addr.addr_len;
+  GNUNET_ATS_address_add (ats, &hello_address, test_addr.session, NULL, 0);
 
   GNUNET_ATS_suggest_address (ats, &p.id);
 }
