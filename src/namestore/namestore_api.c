@@ -39,7 +39,8 @@
 #define LOG(kind,...) GNUNET_log_from (kind, "gns-api",__VA_ARGS__)
 
 /**
- * A QueueEntry.
+ * An QueueEntry used to store information for a pending
+ * NAMESTORE record operation
  */
 struct GNUNET_NAMESTORE_QueueEntry
 {
@@ -78,7 +79,6 @@ struct GNUNET_NAMESTORE_QueueEntry
    * Closure for 'proc'.
    */
   void *proc_cls;
-
 
   /**
    * The operation id this zone iteration operation has
@@ -134,7 +134,7 @@ struct GNUNET_NAMESTORE_ZoneIterator
    * GNUNET_YES if this iterator iterates over a specific zone
    * GNUNET_NO if this iterator iterates over all zones
    *
-   * Zone is stored 'GNUNET_CRYPTO_ShortHashCode zone';
+   * Zone is stored GNUNET_CRYPTO_ShortHashCode 'zone';
    */
   int has_zone;
 };
