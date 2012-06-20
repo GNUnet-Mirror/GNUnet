@@ -24,11 +24,6 @@
  * @author Sree Harsha Totakura
  */
 
-/**
- * To be fixed:
- *  Should the handle be freed when the connection to service is lost?
- *  Should cancel_request have a call back (else simultaneous calls break)
- */
 
 #include "platform.h"
 #include "gnunet_common.h"
@@ -244,11 +239,11 @@ transmit_notify (void *cls, size_t size, void *buf)
   }
   if (GNUNET_NO == handle->in_replies)
   {
+    handle->in_replies = GNUNET_YES;
     GNUNET_CLIENT_receive (handle->conn,
                            &handle_replies,
                            handle,
                            GNUNET_TIME_UNIT_FOREVER_REL);
-    handle->in_replies = GNUNET_YES;
   }
   return msg_size;
 }
@@ -325,7 +320,7 @@ match_iterator (void *cls, const struct GNUNET_HashCode *key, void *value)
 
   if ( (match->lock == lr->lock) && (0 == strcmp (match->domain, lr->domain)) )
   {
-    match->matched_entry = lr;    
+    match->matched_entry = lr;
     return GNUNET_NO;
   }
   return GNUNET_YES;
@@ -478,11 +473,11 @@ handle_replies (void *cls,
                                            handle);
     return;
   }
+  handle->in_replies = GNUNET_YES;
   GNUNET_CLIENT_receive (handle->conn,
                          &handle_replies,
                          handle,
                          GNUNET_TIME_UNIT_FOREVER_REL);
-  handle->in_replies = GNUNET_YES;
   if (GNUNET_MESSAGE_TYPE_LOCKMANAGER_SUCCESS != ntohs(msg->type))
   {
     GNUNET_break (0);
@@ -588,11 +583,11 @@ GNUNET_LOCKMANAGER_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
   }  
   h->hashmap = GNUNET_CONTAINER_multihashmap_create (15);
   GNUNET_assert (NULL != h->hashmap);
+  h->in_replies = GNUNET_YES;
   GNUNET_CLIENT_receive (h->conn,
                          &handle_replies,
                          h,
-                         GNUNET_TIME_UNIT_FOREVER_REL);
-  h->in_replies = GNUNET_YES;
+                         GNUNET_TIME_UNIT_FOREVER_REL);  
   LOG (GNUNET_ERROR_TYPE_DEBUG, "%s() END\n", __func__);
   return h;
 }

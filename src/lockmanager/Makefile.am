@@ -55,6 +55,7 @@ test_lockmanager_api_SOURCES = \
   test_lockmanager_api.c
 test_lockmanager_api_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/testing/libgnunettesting.la \
   libgnunetlockmanager.la
 
 test_lockmanager_api_lockrelease_SOURCES = \
