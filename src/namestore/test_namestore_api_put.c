@@ -133,7 +133,8 @@ create_record (unsigned int count)
 
 static void
 run (void *cls, 
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
+     const struct GNUNET_CONFIGURATION_Handle *cfg,
+     struct GNUNET_TESTING_Peer *peer)
 {
   struct GNUNET_CRYPTO_RsaSignature *signature;
   const char * s_name = "dummy.dummy.gnunet";

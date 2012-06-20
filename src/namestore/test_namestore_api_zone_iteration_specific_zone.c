@@ -324,7 +324,8 @@ create_record (unsigned int count)
 
 static void
 run (void *cls, 
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
+     const struct GNUNET_CONFIGURATION_Handle *cfg,
+     struct GNUNET_TESTING_Peer *peer)
 {
   char *hostkey_file;
   struct GNUNET_TIME_Absolute et;

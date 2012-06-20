@@ -196,7 +196,8 @@ create_record (unsigned int count)
 
 static void
 run (void *cls, 
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
+     const struct GNUNET_CONFIGURATION_Handle *cfg,
+     struct GNUNET_TESTING_Peer *peer)
 {
   size_t rd_ser_len;
   struct GNUNET_TIME_Absolute et;
