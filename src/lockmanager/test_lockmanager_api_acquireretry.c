@@ -225,3 +225,5 @@ int main (int argc, char **argv)
     return 1;
   return (TEST_CLIENT_LOCK_AGAIN_SUCCESS != result) ? 1 : 0;
 }
+
+/* end of test_lockmanager_api_acquireretry.c */

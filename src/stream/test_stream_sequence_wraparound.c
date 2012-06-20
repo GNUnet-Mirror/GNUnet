@@ -29,11 +29,17 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_stream_lib.h"
-#include "gnunet_testing_lib.h"
+#include "gnunet_testing_lib-new.h"
 
+/**
+ * Generic logging shorthand
+ */
 #define LOG(kind, ...)                         \
   GNUNET_log (kind, __VA_ARGS__);
 
+/**
+ * Relative seconds shorthand
+ */
 #define TIME_REL_SECS(sec) \
   GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, sec)
 
@@ -68,14 +74,14 @@ struct PeerData
   unsigned int bytes_read;
 };
 
-static struct GNUNET_OS_Process *arm_pid;
 static struct PeerData peer1;
 static struct PeerData peer2;
 static struct GNUNET_STREAM_ListenSocket *peer2_listen_socket;
-static struct GNUNET_CONFIGURATION_Handle *config;
+static const struct GNUNET_CONFIGURATION_Handle *config;
+static struct GNUNET_TESTING_Peer *self;
+static struct GNUNET_PeerIdentity self_id;
 
 static GNUNET_SCHEDULER_TaskIdentifier abort_task;
-static GNUNET_SCHEDULER_TaskIdentifier test_task;
 static GNUNET_SCHEDULER_TaskIdentifier read_task;
 static GNUNET_SCHEDULER_TaskIdentifier write_task;
 
@@ -99,16 +105,6 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     GNUNET_SCHEDULER_cancel (abort_task);
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: arm\n");
-  if (0 != GNUNET_OS_process_kill (arm_pid, SIGTERM))
-  {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: Wait\n");
-  /* Free the duplicated configuration */
-  GNUNET_CONFIGURATION_destroy (config);
-  GNUNET_assert (GNUNET_OK == GNUNET_OS_process_wait (arm_pid));
-  GNUNET_OS_process_destroy (arm_pid);
 }
 
 
@@ -119,11 +115,7 @@ static void
 do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: ABORT\n");
-  if (0 != test_task)
-  {
-    GNUNET_SCHEDULER_cancel (test_task);
-  }
-  if (0 != read_task)
+  if (GNUNET_SCHEDULER_NO_TASK != read_task)
     {
       GNUNET_SCHEDULER_cancel (read_task);
     }
@@ -263,13 +255,6 @@ input_processor (void *cls,
   {
     GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == read_task);
     read_task = GNUNET_SCHEDULER_add_now (&stream_read_task, &peer2);
-    /* peer->io_read_handle = GNUNET_STREAM_read ((struct GNUNET_STREAM_Socket *) */
-    /*                                            peer->socket, */
-    /*                                            GNUNET_TIME_relative_multiply */
-    /*                                            (GNUNET_TIME_UNIT_SECONDS, 5), */
-    /*                                            &input_processor, */
-    /*                                            cls); */
-    /* GNUNET_assert (NULL != peer->io_read_handle); */
   }
   else 
   {
@@ -318,10 +303,8 @@ stream_listen_cb (void *cls,
 {
   GNUNET_assert (NULL != socket);
   GNUNET_assert (socket != peer1.socket);
-
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Peer connected: %s\n", GNUNET_i2s(initiator));
-
   peer2.socket = socket;
   peer2.bytes_read = 0;
   read_task = GNUNET_SCHEDULER_add_now (&stream_read_task, &peer2);
@@ -339,14 +322,11 @@ static void
 stream_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct PeerData *peer = cls;
-  struct GNUNET_PeerIdentity self;
 
   GNUNET_assert (&peer1 == peer);
-  GNUNET_assert (GNUNET_OK == GNUNET_TESTING_get_peer_identity (config,
-                                                                &self));
   /* Connect to stream */
   peer->socket = GNUNET_STREAM_open (config,
-                                     &self,         /* Null for local peer? */
+                                     &self_id,         /* Null for local peer? */
                                      10,           /* App port */
                                      &stream_open_cb,
                                      &peer1,
@@ -359,21 +339,16 @@ stream_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
- * Testing function
- *
- * @param cls NULL
- * @param tc the task context
+ * Initialize framework and start test
  */
 static void
-test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+run (void *cls,
+     const struct GNUNET_CONFIGURATION_Handle *cfg,
+     struct GNUNET_TESTING_Peer *peer)
 {
-  struct GNUNET_PeerIdentity self;
-
-  test_task = GNUNET_SCHEDULER_NO_TASK;
-  /* Get our identity */
-  GNUNET_assert (GNUNET_OK == GNUNET_TESTING_get_peer_identity (config,
-                                                                &self));
-
+  config = cfg;
+  self = peer;
+  (void) GNUNET_TESTING_peer_get_identity (peer, &self_id);
   peer2_listen_socket = GNUNET_STREAM_listen (config,
                                               10, /* App port */
                                               &stream_listen_cb,
@@ -381,65 +356,23 @@ test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                               GNUNET_STREAM_OPTION_END);
   GNUNET_assert (NULL != peer2_listen_socket);
   GNUNET_SCHEDULER_add_delayed (TIME_REL_SECS(2), &stream_connect, &peer1);
-}
-
-
-/**
- * Initialize framework and start test
- */
-static void
-run (void *cls, char *const *args, const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
-{
-  /* Duplicate the configuration */
-  config = GNUNET_CONFIGURATION_dup (cfg);
-  arm_pid =
-    GNUNET_OS_start_process (GNUNET_YES, NULL, NULL, "gnunet-service-arm",
-                             "gnunet-service-arm",
-#if VERBOSE_ARM
-                             "-L", "DEBUG",
-#endif
-                             "-c", "test_stream_local.conf", NULL);
-  
   abort_task =
     GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                   (GNUNET_TIME_UNIT_SECONDS, 60), &do_abort,
                                   NULL);
-  test_task = GNUNET_SCHEDULER_add_delayed (TIME_REL_SECS(3), &test, NULL);
 }
+
 
 /**
  * Main function
  */
 int main (int argc, char **argv)
 {
-  int ret;
-  
-  char *const argv2[] = { "test-stream-big",
-                          "-c", "test_stream_local.conf",
-                          "-L", "DEBUG",
-                          NULL
-  };
-  
-  struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_OPTION_END
-  };
-  
-  ret =
-    GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
-                        "test-stream-big", "nohelp", options, &run, NULL);
-  
-  if (GNUNET_OK != ret)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "run failed with error code %d\n",
-                ret);
+  if (0 != GNUNET_TESTING_peer_run ("test_stream_sequence_wraparound",
+				    "test_stream_local.conf",
+				    &run, NULL))
     return 1;
-  }
-  if (GNUNET_SYSERR == result)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "test failed\n");
-    return 1;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test ok\n");
-  return 0;
+  return (GNUNET_SYSERR == result) ? 1 : 0;
 }
+
+/* end of test_stream_sequence_wraparound.c */

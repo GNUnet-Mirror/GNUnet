@@ -251,3 +251,5 @@ int main (int argc, char **argv)
     return 1;
   return (TEST_CLIENT2_SERVER_CRASH_SUCCESS != result) ? 1 : 0;
 }
+
+/* end of test_lockmanager_api_servercrash.c */

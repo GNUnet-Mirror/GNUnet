@@ -381,9 +381,11 @@ run (void *cls,
  */
 int main (int argc, char **argv)
 {
-  if (0 != GNUNET_TESTING_peer_run ("test-stream-big",
-				    "test_stream_local.conf",						   
+  if (0 != GNUNET_TESTING_peer_run ("test_stream_big",
+				    "test_stream_local.conf",
 				    &run, NULL))
     return 1;
   return (GNUNET_SYSERR == result) ? 1 : 0;
 }
+
+/* end of test_stream_big.c */
