@@ -391,7 +391,7 @@ disconnect_and_free_peer_entry (void *cls, const struct GNUNET_HashCode * key,
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multihashmap_remove (h->peers, key, pr));
   GNUNET_assert (pr->ch == h);
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == pr->timeout_taks);
+  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == pr->timeout_task);
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == pr->ntr_task);
   GNUNET_free (pr);
   return GNUNET_YES;
