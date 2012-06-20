@@ -27,6 +27,7 @@
 #define BLOCK_MESH_H
 
 #include "gnunet_util_lib.h"
+#include "gnunet_mesh_service.h"
 #include <stdint.h>
 
 /**
@@ -42,7 +43,7 @@ struct PBlock
     /**
      * Type of service offered
      */
-  uint32_t type;
+  GNUNET_MESH_ApplicationType type;
 };
 
 #endif
