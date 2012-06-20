@@ -41,13 +41,14 @@ libgnunetlockmanager_la_LDFLAGS = \
 check_PROGRAMS = \
   test_lockmanager_api \
   test_lockmanager_api_lockrelease \
-  test_lockmanager_api_servercrash
+  test_lockmanager_api_servercrash \
+  test_lockmanager_api_acquireretry
 
 EXTRA_DIST = \
   test_lockmanager_api.conf
 
 if ENABLE_TEST_RUN
-TESTS = $(check_PROGRAMS)
+ TESTS = $(check_PROGRAMS)
 endif
 
 test_lockmanager_api_SOURCES = \
@@ -65,5 +66,11 @@ test_lockmanager_api_lockrelease_LDADD = \
 test_lockmanager_api_servercrash_SOURCES = \
   test_lockmanager_api_servercrash.c
 test_lockmanager_api_servercrash_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  libgnunetlockmanager.la
+
+test_lockmanager_api_acquireretry_SOURCES = \
+  test_lockmanager_api_acquireretry.c
+test_lockmanager_api_acquireretry_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   libgnunetlockmanager.la

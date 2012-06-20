@@ -418,6 +418,8 @@ release_n_retry_iterator (void *cls,
   struct GNUNET_LOCKMANAGER_Handle *h = cls;
   struct GNUNET_LOCKMANAGER_Message *msg;
 
+  msg = generate_acquire_msg (r->domain, r->lock);
+  queue_message (h, msg);
   if (GNUNET_LOCKMANAGER_RELEASE == r->status)
     return GNUNET_YES;
   if (NULL != r->status_cb)
@@ -429,10 +431,8 @@ release_n_retry_iterator (void *cls,
     r->status_cb (r->status_cb_cls,
                   r->domain,
                   r->lock,
-                  GNUNET_LOCKMANAGER_RELEASE);    
+                  GNUNET_LOCKMANAGER_RELEASE);
   }
-  msg = generate_acquire_msg (r->domain, r->lock);
-  queue_message (h, msg);
   return GNUNET_YES;
 }
 

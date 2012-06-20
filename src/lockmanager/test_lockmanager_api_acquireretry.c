@@ -56,7 +56,7 @@ enum Test
     /**
      * Client has successfully acquired the lock
      */
-    TEST_CLIENT_LOCK_SUCESS,
+    TEST_CLIENT_LOCK_SUCCESS,
 
     /**
      * Client has lost the lock
@@ -77,7 +77,7 @@ static struct GNUNET_OS_Process *arm_pid = NULL;
 /**
  * Configuration Handle
  */
-static struct GNUNET_CONFIGURATION_Handle *config;
+static const struct GNUNET_CONFIGURATION_Handle *config;
 
 /**
  * The handle to the lockmanager service
@@ -126,8 +126,6 @@ do_shutdown (void *cls, const const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_OS_process_wait (arm_pid);
     GNUNET_OS_process_destroy (arm_pid);
   }
-  if (NULL != config)
-    GNUNET_CONFIGURATION_destroy (config);
 }
 
 /**
@@ -195,7 +193,7 @@ status_cb (void *cls,
     GNUNET_assert (NULL != arm_pid);
     break;
   case TEST_CLIENT_LOCK_RELEASE:
-    GNUNET_asset (handle == cls);
+    GNUNET_assert (handle == cls);
     GNUNET_assert (GNUNET_LOCKMANAGER_SUCCESS == status);
     result = TEST_CLIENT_LOCK_AGAIN_SUCCESS;
     GNUNET_LOCKMANAGER_cancel_request (request);
@@ -226,7 +224,7 @@ test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                              &status_cb,
                                              handle);
   GNUNET_assert (NULL != request);
-  abort_task_id = GNUNET_SCHEDULER_add_delayed (TIME_REL_SECS (10),
+  abort_task_id = GNUNET_SCHEDULER_add_delayed (TIME_REL_SECS (30),
                                                 &do_abort,
                                                 NULL);  
 }
