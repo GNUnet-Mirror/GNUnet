@@ -1019,6 +1019,31 @@ disconnect_session (struct Session *session)
   GNUNET_free (session);
 }
 
+/* FIXME WORKAROUND FOR MANTIS 0002445 */
+struct result
+{
+  struct Session *s;
+  int res;
+};
+
+int session_it (void *cls,
+               const struct GNUNET_HashCode * key,
+               void *value)
+{
+  struct result *res = cls;
+
+  if (res->s == value)
+  {
+    res->res = GNUNET_OK;
+    return GNUNET_NO;
+  }
+  else
+  {
+    return GNUNET_YES;
+  }
+}
+
+/* FIXME END WORKAROUND FOR MANTIS 0002445 */
 
 /**
  * Function that can be used by the transport service to transmit
@@ -1061,6 +1086,27 @@ tcp_plugin_send (void *cls,
   GNUNET_assert (NULL != plugin);
   GNUNET_assert (NULL != session);
 
+  /* FIXME WORKAROUND FOR MANTIS 0002445 */
+  struct result res1;
+  struct result res2;
+
+  res1.s = session;
+  res1.res = GNUNET_SYSERR;
+  GNUNET_CONTAINER_multihashmap_iterate (plugin->sessionmap, &session_it, &res1);
+
+  res2.s = session;
+  res2.res = GNUNET_SYSERR;
+  GNUNET_CONTAINER_multihashmap_iterate (plugin->sessionmap, &session_it, &res2);
+
+  if ((res1.res == GNUNET_SYSERR) && (res2.res == GNUNET_SYSERR))
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         "WORKAROUND MANTIS BUG 2445: This Trying to send to invalid session %p\n", session);
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  /* FIXME END WORKAROUND FOR MANTIS 0002445 */
+
   /* create new message entry */
   pm = GNUNET_malloc (sizeof (struct PendingMessage) + msgbuf_size);
   pm->msg = (const char *) &pm[1];
@@ -1074,12 +1120,10 @@ tcp_plugin_send (void *cls,
        "Asked to transmit %u bytes to `%s', added message to list.\n",
        msgbuf_size, GNUNET_i2s (&session->target));
 
-  reschedule_session_timeout (session);
-
   if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains_value(plugin->sessionmap, &session->target.hashPubKey, session))
   {
     GNUNET_assert (session->client != NULL);
-
+    reschedule_session_timeout (session);
     GNUNET_SERVER_client_set_timeout (session->client,
                                       GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
     GNUNET_STATISTICS_update (plugin->env->stats,
@@ -1098,7 +1142,7 @@ tcp_plugin_send (void *cls,
     LOG (GNUNET_ERROR_TYPE_DEBUG, 
 	 "This NAT WAIT session for peer `%s' is not yet ready!\n",
 	 GNUNET_i2s (&session->target));
-
+    reschedule_session_timeout (session);
     GNUNET_STATISTICS_update (plugin->env->stats,
                               gettext_noop ("# bytes currently in TCP buffers"),
                               msgbuf_size, GNUNET_NO);
@@ -1110,6 +1154,8 @@ tcp_plugin_send (void *cls,
   }
   else
   {
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         "Invalid session %p\n", session);
     if (NULL != cont)
       cont (cont_cls, &session->target, GNUNET_SYSERR);
     GNUNET_break (0);
