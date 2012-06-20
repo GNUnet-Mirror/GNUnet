@@ -325,9 +325,12 @@ GNUNET_TESTBED_controller_stop (struct GNUNET_TESTBED_Controller *controller)
 
   if (NULL != controller->th)
     GNUNET_CLIENT_notify_transmit_ready_cancel (controller->th);
-  for (mq_entry = controller->mq_head; /* Clear the message queue */
-       NULL != mq_entry; mq_entry = controller->mq_head)
+ /* Clear the message queue */
+  while (NULL != (mq_entry = controller->mq_head))
   {
+    GNUNET_CONTAINER_DLL_remove (controller->mq_head,
+				 controller->mq_tail,
+				 mq_entry);
     GNUNET_free (mq_entry->msg);
     GNUNET_free (mq_entry);
   }
