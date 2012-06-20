@@ -1174,44 +1174,45 @@ GNUNET_NAMESTORE_verify_signature (const struct GNUNET_CRYPTO_RsaPublicKeyBinary
 				   const struct GNUNET_NAMESTORE_RecordData *rd,
 				   const struct GNUNET_CRYPTO_RsaSignature *signature)
 {
-  int res = GNUNET_SYSERR;
-  size_t rd_ser_len = 0;
-  size_t name_len = 0;
+  int res;
+  size_t rd_ser_len;
+  size_t name_len;
   char * name_tmp;
   char * rd_tmp;
   struct GNUNET_CRYPTO_RsaSignaturePurpose *sig_purpose;
   struct GNUNET_TIME_AbsoluteNBO *expire_tmp;
-  struct GNUNET_TIME_AbsoluteNBO expire_nbo = GNUNET_TIME_absolute_hton(freshness);
+  struct GNUNET_TIME_AbsoluteNBO expire_nbo = GNUNET_TIME_absolute_hton (freshness);
+  uint32_t sig_len;
 
-  GNUNET_assert (public_key != NULL);
-  GNUNET_assert (name != NULL);
-  GNUNET_assert (rd != NULL);
-  GNUNET_assert (signature != NULL);
-
-
-  rd_ser_len = GNUNET_NAMESTORE_records_get_size(rd_count, rd);
-  char rd_ser[rd_ser_len];
-  GNUNET_NAMESTORE_records_serialize(rd_count, rd, rd_ser_len, rd_ser);
-
+  GNUNET_assert (NULL != public_key);
+  GNUNET_assert (NULL != name);
+  GNUNET_assert (NULL != rd);
+  GNUNET_assert (NULL != signature);
   name_len = strlen (name) + 1;
   if (name_len > 256)
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
+  rd_ser_len = GNUNET_NAMESTORE_records_get_size (rd_count, rd);
+  {
+    char rd_ser[rd_ser_len];    
 
-  sig_purpose = GNUNET_malloc(sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose) + sizeof (struct GNUNET_TIME_AbsoluteNBO) + rd_ser_len + name_len);
-  sig_purpose->size = htonl (sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose)+ rd_ser_len + name_len);
-  sig_purpose->purpose = htonl (GNUNET_SIGNATURE_PURPOSE_GNS_RECORD_SIGN);
-  expire_tmp = (struct GNUNET_TIME_AbsoluteNBO *) &sig_purpose[1];
-  name_tmp = (char *) &expire_tmp[1];
-  rd_tmp = &name_tmp[name_len];
-  memcpy (expire_tmp, &expire_nbo, sizeof (struct GNUNET_TIME_AbsoluteNBO));
-  memcpy (name_tmp, name, name_len);
-  memcpy (rd_tmp, rd_ser, rd_ser_len);
+    GNUNET_assert (rd_ser_len ==
+		   GNUNET_NAMESTORE_records_serialize (rd_count, rd, rd_ser_len, rd_ser));
+    sig_len = sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose) + sizeof (struct GNUNET_TIME_AbsoluteNBO) + rd_ser_len + name_len;
+    sig_purpose = GNUNET_malloc (sig_len);
+    sig_purpose->size = htonl (sig_len);
+    sig_purpose->purpose = htonl (GNUNET_SIGNATURE_PURPOSE_GNS_RECORD_SIGN);
+    expire_tmp = (struct GNUNET_TIME_AbsoluteNBO *) &sig_purpose[1];
+    memcpy (expire_tmp, &expire_nbo, sizeof (struct GNUNET_TIME_AbsoluteNBO));
+    name_tmp = (char *) &expire_tmp[1];
+    memcpy (name_tmp, name, name_len);
+    rd_tmp = &name_tmp[name_len];
+    memcpy (rd_tmp, rd_ser, rd_ser_len);
+    res = GNUNET_CRYPTO_rsa_verify(GNUNET_SIGNATURE_PURPOSE_GNS_RECORD_SIGN, sig_purpose, signature, public_key);
 
-  res = GNUNET_CRYPTO_rsa_verify(GNUNET_SIGNATURE_PURPOSE_GNS_RECORD_SIGN, sig_purpose, signature, public_key);
-
+  }
   GNUNET_free (sig_purpose);
 
   return res;

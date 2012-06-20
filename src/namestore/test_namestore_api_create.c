@@ -158,7 +158,6 @@ name_lookup_second_proc (void *cls,
       failed = GNUNET_YES;
     }
 
-
     if (GNUNET_OK != GNUNET_NAMESTORE_verify_signature(&pubkey, expire, n, rd_count, rd, signature))
     {
       GNUNET_break (0);
@@ -259,7 +258,7 @@ name_lookup_initial_proc (void *cls,
       }
     }
 
-    if (GNUNET_OK != GNUNET_NAMESTORE_verify_signature(&pubkey, expire,n, rd_count, rd, signature))
+    if (GNUNET_OK != GNUNET_NAMESTORE_verify_signature (&pubkey, expire, n, rd_count, rd, signature))
     {
       GNUNET_break (0);
       failed = GNUNET_YES;
