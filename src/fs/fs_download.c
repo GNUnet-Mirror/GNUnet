@@ -2302,7 +2302,8 @@ GNUNET_FS_download_stop (struct GNUNET_FS_DownloadContext *dc, int do_delete)
   {
     if ((dc->completed != dc->length) && (GNUNET_YES == do_delete))
     {
-      if (0 != UNLINK (dc->filename))
+      if ( (0 != UNLINK (dc->filename)) &&
+	   (ENOENT != errno) )
         GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "unlink",
                                   dc->filename);
     }
