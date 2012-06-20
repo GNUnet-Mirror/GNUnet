@@ -152,8 +152,8 @@ on_lookup_result(void *cls, uint32_t rd_count,
 
   if (!ip_found && mx_found)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-  "Test partially succeeded: A record not passed along!(NOT IMPLEMENTED)\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  "A record not passed along!(NOT IMPLEMENTED)\n");
     ok = 0;
   }
 
@@ -354,7 +354,7 @@ check ()
   int ret;
 
   /* Arguments for GNUNET_PROGRAM_run */
-  char *const argv[] = { "test-gns-simple-delegated-lookup", /* Name to give running binary */
+  char *const argv[] = { "test-gns-simple-mx-lookup", /* Name to give running binary */
     "-c",
     "test_gns_simple_lookup.conf",       /* Config file to use */
 #if VERBOSE
@@ -368,12 +368,12 @@ check ()
   /* Run the run function as a new program */
   ret =
       GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv,
-                          "test-gns-simple-delegated-lookup", "nohelp", options, &run,
+                          "test-gns-simple-mx-lookup", "nohelp", options, &run,
                           &ok);
   if (ret != GNUNET_OK)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "`test-gns-simple-delegated-lookup': Failed with error code %d\n", ret);
+                "`test-gns-simple-mx-lookup': Failed with error code %d\n", ret);
   }
   return ok;
 }
@@ -383,7 +383,7 @@ main (int argc, char *argv[])
 {
   int ret;
 
-  GNUNET_log_setup ("test-gns-simple-lookup",
+  GNUNET_log_setup ("test-gns-simple-mx-lookup",
 #if VERBOSE
                     "DEBUG",
 #else
@@ -398,4 +398,4 @@ main (int argc, char *argv[])
   return ret;
 }
 
-/* end of test_gns_twopeer.c */
+/* end of test_gns_simple_mx_lookup.c */
