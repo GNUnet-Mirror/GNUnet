@@ -1181,7 +1181,7 @@ GNUNET_NAMESTORE_verify_signature (const struct GNUNET_CRYPTO_RsaPublicKeyBinary
   char * rd_tmp;
   struct GNUNET_CRYPTO_RsaSignaturePurpose *sig_purpose;
   struct GNUNET_TIME_AbsoluteNBO *expire_tmp;
-  struct GNUNET_TIME_AbsoluteNBO expire_nbo = GNUNET_TIME_absolute_hton(expire);
+  struct GNUNET_TIME_AbsoluteNBO expire_nbo = GNUNET_TIME_absolute_hton(freshness);
 
   GNUNET_assert (public_key != NULL);
   GNUNET_assert (name != NULL);
