@@ -38,16 +38,46 @@
  */
 struct GNUNET_NAMESTORE_ZoneIteration
 {
+  /**
+   * Next element in the DLL
+   */
   struct GNUNET_NAMESTORE_ZoneIteration *next;
+
+  /**
+   * Previous element in the DLL
+   */
   struct GNUNET_NAMESTORE_ZoneIteration *prev;
 
+  /**
+   * Namestore client which intiated this zone iteration
+   */
   struct GNUNET_NAMESTORE_Client * client;
 
+  /**
+   * GNUNET_YES if we iterate over a specific zone
+   * GNUNET_NO if we iterate over all zones
+   */
   int has_zone;
 
+  /**
+   * Hash of the specific zone if 'has_zone' is GNUNET_YES,
+   * othwerwise set to '\0'
+   */
   struct GNUNET_CRYPTO_ShortHashCode zone;
 
+  /**
+   * The operation id fot the zone iteration in the response for the client
+   */
   uint64_t request_id;
+
+  /**
+   * Offset of the zone iteration used to address next result of the zone
+   * iteration in the store
+   *
+   * Initialy set to 0 in handle_iteration_start
+   * Incremented with by every call to handle_iteration_next
+   *
+   */
   uint32_t offset;
 
   /**
@@ -67,21 +97,58 @@ struct GNUNET_NAMESTORE_ZoneIteration
  */
 struct GNUNET_NAMESTORE_Client
 {
+  /**
+   * Next element in the DLL
+   */
   struct GNUNET_NAMESTORE_Client *next;
+
+  /**
+   * Previous element in the DLL
+   */
   struct GNUNET_NAMESTORE_Client *prev;
 
+  /**
+   * The client
+   */
   struct GNUNET_SERVER_Client * client;
 
+  /**
+   * Head of the DLL of
+   * Zone iteration operations in progress initiated by this client
+   */
   struct GNUNET_NAMESTORE_ZoneIteration *op_head;
+
+  /**
+   * Tail of the DLL of
+   * Zone iteration operations in progress initiated by this client
+   */
   struct GNUNET_NAMESTORE_ZoneIteration *op_tail;
 };
 
+
+/**
+ * A container struct to store information belonging to a zone crypto key pair
+ */
 struct GNUNET_NAMESTORE_CryptoContainer
 {
+  /**
+   * Filename where to store the container
+   */
   char * filename;
 
+  /**
+   * Short hash of the zone's public key
+   */
   struct GNUNET_CRYPTO_ShortHashCode zone;
+
+  /**
+   * Zone's private key
+   */
   struct GNUNET_CRYPTO_RsaPrivateKey *privkey;
+
+  /**
+   * Zone's public key
+   */
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *pubkey;
 };
 
@@ -101,6 +168,9 @@ struct GNUNET_NAMESTORE_PluginFunctions *GSN_database;
 */
 static char *zonefile_directory;
 
+/**
+ * Name of the database plugin
+ */
 static char *db_lib_name;
 
 
@@ -109,9 +179,22 @@ static char *db_lib_name;
  */
 static struct GNUNET_SERVER_NotificationContext *snc;
 
+/**
+ * Head of the Client DLL
+ */
 static struct GNUNET_NAMESTORE_Client *client_head;
+
+/**
+ * Tail of the Client DLL
+ */
 static struct GNUNET_NAMESTORE_Client *client_tail;
 
+/**
+ * Hashmap containing the zone keys this namestore has is authoritative for
+ *
+ * Keys are the GNUNET_CRYPTO_HashCode of the GNUNET_CRYPTO_ShortHashCode
+ * The values are 'struct GNUNET_NAMESTORE_CryptoContainer *'
+ */
 struct GNUNET_CONTAINER_MultiHashMap *zonekeys;
 
 
