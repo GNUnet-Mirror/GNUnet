@@ -129,6 +129,7 @@ create_hostkeys (const unsigned int no)
   if (NULL == pk)
   {
     fprintf (stderr, _("Could not extract hostkey %u (offset too large?)\n"), create_no);
+    GNUNET_TESTING_system_destroy (system, GNUNET_YES);
     return 1;
   }
   (void) GNUNET_DISK_directory_create_for_file (create_hostkey);
@@ -146,6 +147,7 @@ create_hostkeys (const unsigned int no)
 		   "Wrote hostkey to file: `%s'\n", create_hostkey);
   GNUNET_free (pkb);
   GNUNET_CRYPTO_rsa_key_free (pk);
+  GNUNET_TESTING_system_destroy (system, GNUNET_YES);
   return 0;
 }
 
