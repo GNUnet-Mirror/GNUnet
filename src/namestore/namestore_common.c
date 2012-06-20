@@ -37,6 +37,7 @@
 
 #define LOG(kind,...) GNUNET_log_from (kind, "gns-api",__VA_ARGS__)
 
+GNUNET_NETWORK_STRUCT_BEGIN
 
 /**
  * Internal format of a record in the serialized form.
@@ -48,24 +49,26 @@ struct NetworkRecord
    * Expiration time for the DNS record; relative or absolute depends
    * on 'flags', network byte order.
    */
-  uint64_t expiration_time;
+  uint64_t expiration_time GNUNET_PACKED;
 
   /**
    * Number of bytes in 'data', network byte order.
    */
-  uint32_t data_size;
+  uint32_t data_size GNUNET_PACKED;
 
   /**
    * Type of the GNS/DNS record, network byte order.
    */
-  uint32_t record_type;
+  uint32_t record_type GNUNET_PACKED;
 
   /**
    * Flags for the record, network byte order.
    */
-  uint32_t flags;
+  uint32_t flags GNUNET_PACKED;
   
 };
+
+GNUNET_NETWORK_STRUCT_END
 
 
 /**
@@ -245,33 +248,35 @@ GNUNET_NAMESTORE_create_signature (const struct GNUNET_CRYPTO_RsaPrivateKey *key
   char * name_tmp;
   char * rd_tmp;
   int res;
+  uint32_t sig_len;
 
   if (NULL == name)
   {
     GNUNET_break (0);
     return NULL;
   }
-  sig = GNUNET_malloc(sizeof (struct GNUNET_CRYPTO_RsaSignature));
+  sig = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_RsaSignature));
   name_len = strlen (name) + 1;
-  expire_nbo = GNUNET_TIME_absolute_hton(expire);
-  rd_ser_len = GNUNET_NAMESTORE_records_get_size(rd_count, rd);
+  expire_nbo = GNUNET_TIME_absolute_hton (expire);
+  rd_ser_len = GNUNET_NAMESTORE_records_get_size (rd_count, rd);
   {
     char rd_ser[rd_ser_len];
 
-    GNUNET_NAMESTORE_records_serialize(rd_count, rd, rd_ser_len, rd_ser);
-    sig_purpose = GNUNET_malloc(sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose) + sizeof (struct GNUNET_TIME_AbsoluteNBO) + rd_ser_len + name_len);
-    sig_purpose->size = htonl (sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose)+ rd_ser_len + name_len);
+    GNUNET_assert (rd_ser_len ==
+		   GNUNET_NAMESTORE_records_serialize (rd_count, rd, rd_ser_len, rd_ser));
+    sig_len = sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose) + sizeof (struct GNUNET_TIME_AbsoluteNBO) + rd_ser_len + name_len;
+    sig_purpose = GNUNET_malloc (sig_len);
+    sig_purpose->size = htonl (sig_len);
     sig_purpose->purpose = htonl (GNUNET_SIGNATURE_PURPOSE_GNS_RECORD_SIGN);
     expire_tmp = (struct GNUNET_TIME_AbsoluteNBO *) &sig_purpose[1];
-    name_tmp = (char *) &expire_tmp[1];
-    rd_tmp = &name_tmp[name_len];
     memcpy (expire_tmp, &expire_nbo, sizeof (struct GNUNET_TIME_AbsoluteNBO));
+    name_tmp = (char *) &expire_tmp[1];
     memcpy (name_tmp, name, name_len);
+    rd_tmp = &name_tmp[name_len];
     memcpy (rd_tmp, rd_ser, rd_ser_len);
+    res = GNUNET_CRYPTO_rsa_sign (key, sig_purpose, sig);
+    GNUNET_free (sig_purpose);
   }
-  res = GNUNET_CRYPTO_rsa_sign (key, sig_purpose, sig);
-  GNUNET_free (sig_purpose);
-
   if (GNUNET_OK != res)
   {
     GNUNET_break (0);
