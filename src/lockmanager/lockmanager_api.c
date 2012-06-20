@@ -68,6 +68,12 @@ struct MessageQueue
    * The LOCKMANAGER Message
    */
   struct GNUNET_LOCKMANAGER_Message *msg;
+
+  /**
+   * If this is a AQUIRE_LOCK message, this is the
+   * affiliated locking request.
+   */
+  struct GNUNET_LOCKMANAGER_LockingRequest *lr;
 };
 
 
@@ -122,6 +128,12 @@ struct GNUNET_LOCKMANAGER_LockingRequest
    * The status callback
    */
   GNUNET_LOCKMANAGER_StatusCallback status_cb;
+
+  /**
+   * Entry in the request message queue for aquiring this
+   * lock; NULL after request has been sent.
+   */
+  struct MessageQueue *mqe;
 
   /**
    * Closure for the status callback
@@ -678,14 +690,14 @@ GNUNET_LOCKMANAGER_acquire_lock (struct GNUNET_LOCKMANAGER_Handle *handle,
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Queueing ACQUIRE message\n");
   queue_message (handle, msg);
   get_key (r->domain, r->lock, &hash);
-  GNUNET_CONTAINER_multihashmap_put (r->handle->hashmap,
-                                     &hash,
-                                     r,
-                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+  GNUNET_assert (GNUNET_OK == 
+		 GNUNET_CONTAINER_multihashmap_put (r->handle->hashmap,
+						    &hash,
+						    r,
+						    GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
   LOG (GNUNET_ERROR_TYPE_DEBUG, "%s() END\n", __func__);
   return r;
 }
-
 
 
 /**
