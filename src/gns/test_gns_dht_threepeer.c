@@ -327,6 +327,7 @@ daemon_started (void *cls, const struct GNUNET_PeerIdentity *id,
     rd.data_size = sizeof(struct in_addr);
     rd.data = web;
     rd.record_type = GNUNET_GNS_RECORD_TYPE_A;
+    rd.flags = 0;
 
     GNUNET_NAMESTORE_record_create (ns, key, "www", &rd, NULL, NULL);
 
@@ -367,6 +368,7 @@ daemon_started (void *cls, const struct GNUNET_PeerIdentity *id,
     rd.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
     rd.data = &dave_hash;
     rd.record_type = GNUNET_GNS_RECORD_PKEY;
+    rd.flags = 0;
 
     GNUNET_NAMESTORE_record_create (ns, key, "buddy", &rd, ns_create_cont, ns);
 
@@ -400,6 +402,7 @@ daemon_started (void *cls, const struct GNUNET_PeerIdentity *id,
     rd.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
     rd.data = &bob_hash;
     rd.record_type = GNUNET_GNS_RECORD_PKEY;
+    rd.flags = 0;
 
     GNUNET_NAMESTORE_record_create (ns, key, "bob", &rd, ns_create_cont, ns);
 

@@ -293,6 +293,7 @@ put_pseu_dht(void *cls, int success)
   rd.data_size = strlen(TEST_PSEU_ALICE)+1;
   rd.data = TEST_PSEU_ALICE;
   rd.record_type = GNUNET_GNS_RECORD_PSEU;
+  rd.flags = 0;
 
   sig = GNUNET_NAMESTORE_create_signature(alice_key,
                                           GNUNET_TIME_UNIT_FOREVER_ABS,
@@ -374,7 +375,8 @@ put_www_dht(void *cls, int success)
   rd.data_size = sizeof(struct in_addr);
   rd.data = web;
   rd.record_type = GNUNET_DNSPARSER_TYPE_A;
-
+  rd.flags = 0;
+  
   sig = GNUNET_NAMESTORE_create_signature(alice_key,
                                           GNUNET_TIME_UNIT_FOREVER_ABS,
                                           TEST_RECORD_NAME,
@@ -451,7 +453,8 @@ put_pkey_dht(void *cls, int32_t success, const char *emsg)
   rd.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
   rd.data = &alice_hash;
   rd.record_type = GNUNET_GNS_RECORD_PKEY;
-
+  rd.flags = 0;
+  
   sig = GNUNET_NAMESTORE_create_signature(bob_key,
                                           GNUNET_TIME_UNIT_FOREVER_ABS,
                                           TEST_AUTHORITY_ALICE,
@@ -519,7 +522,8 @@ fin_init_zone (void *cls, int32_t success, const char *emsg)
   rd.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
   rd.data = &bob_hash;
   rd.record_type = GNUNET_GNS_RECORD_PKEY;
-
+  rd.flags = 0;
+  
   GNUNET_NAMESTORE_record_create (namestore_handle,
                                   our_key,
                                   TEST_AUTHORITY_BOB,
@@ -538,6 +542,7 @@ cont_init_zone (void *cls, int32_t success, const char *emsg)
   rd.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
   rd.data = &short_zone;
   rd.record_type = GNUNET_GNS_RECORD_PKEY;
+  rd.flags = 0;
 
   GNUNET_NAMESTORE_record_create (namestore_handle,
                                   priv_key,
@@ -633,6 +638,7 @@ do_lookup (void *cls, const struct GNUNET_PeerIdentity *id,
   rd.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
   rd.data = &priv_zone;
   rd.record_type = GNUNET_GNS_RECORD_PKEY;
+  rd.flags = 0;
 
   GNUNET_NAMESTORE_record_create (namestore_handle,
                                   our_key,

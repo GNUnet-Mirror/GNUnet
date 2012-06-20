@@ -3140,9 +3140,9 @@ process_delegation_result_ns (void* cls,
                                     &process_pkey_revocation_result_ns,
                                     rh);
     return;
-    
+  
   }
-    
+  
   /**
    * no answers found
    */
