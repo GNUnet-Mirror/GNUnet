@@ -34,7 +34,7 @@ noinst_PROGRAMS = \
  gnunet-nse-profiler
 
 gnunet_nse_profiler_SOURCES = \
- gnunet-nse-profiler.c         
+ gnunet-nse-profiler.c
 gnunet_nse_profiler_LDADD = -lm \
   $(top_builddir)/src/nse/libgnunetnse.la \
   $(top_builddir)/src/util/libgnunetutil.la \

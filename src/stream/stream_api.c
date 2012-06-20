@@ -702,6 +702,7 @@ send_ack_notify (void *cls, size_t size, void *buf)
   return size;
 }
 
+
 /**
  * Writes data using the given socket. The amount of data written is limited by
  * the receiver_window_size
@@ -710,6 +711,7 @@ send_ack_notify (void *cls, size_t size, void *buf)
  */
 static void 
 write_data (struct GNUNET_STREAM_Socket *socket);
+
 
 /**
  * Task for retransmitting data messages if they aren't ACK before their ack
@@ -1294,7 +1296,6 @@ set_state_established (void *cls,
   socket->write_offset = 0;
   socket->read_offset = 0;
   socket->state = STATE_ESTABLISHED;
-  /* FIXME: What if listen_cb is NULL */
   if (NULL != socket->lsocket)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -1306,12 +1307,12 @@ set_state_established (void *cls,
                                     &socket->other_peer))
     {
       socket->state = STATE_CLOSED;
-      /* FIXME: We should close in a decent way */
+      /* FIXME: We should close in a decent way (send RST) */
       GNUNET_MESH_tunnel_destroy (socket->tunnel); /* Destroy the tunnel */
       GNUNET_free (socket);
     }
   }
-  else if (socket->open_cb)
+  else if (NULL != socket->open_cb)
     socket->open_cb (socket->open_cls, socket);
 }
 
@@ -1403,6 +1404,7 @@ set_state_closed (void *cls,
 {
   socket->state = STATE_CLOSED;
 }
+
 
 /**
  * Returns a new HelloAckMessage. Also sets the write sequence number for the
@@ -3068,7 +3070,6 @@ GNUNET_STREAM_shutdown_cancel (struct GNUNET_STREAM_ShutdownHandle *handle)
   if (GNUNET_SCHEDULER_NO_TASK != handle->close_msg_retransmission_task_id)
     GNUNET_SCHEDULER_cancel (handle->close_msg_retransmission_task_id);
   GNUNET_free (handle);
-  return;
 }
 
 
@@ -3180,6 +3181,7 @@ GNUNET_STREAM_listen (const struct GNUNET_CONFIGURATION_Handle *cfg,
   enum GNUNET_STREAM_Option option;
   va_list vargs;
 
+  GNUNET_assert (NULL != listen_cb);
   lsocket = GNUNET_malloc (sizeof (struct GNUNET_STREAM_ListenSocket));
   lsocket->cfg = GNUNET_CONFIGURATION_dup (cfg);
   lsocket->lockmanager = GNUNET_LOCKMANAGER_connect (lsocket->cfg);
@@ -3376,7 +3378,6 @@ GNUNET_STREAM_write (struct GNUNET_STREAM_Socket *socket,
 }
 
 
-
 /**
  * Tries to read data from the stream.
  *
@@ -3479,7 +3480,6 @@ GNUNET_STREAM_io_write_cancel (struct GNUNET_STREAM_IOWriteHandle *ioh)
       
   GNUNET_free (socket->write_handle);
   socket->write_handle = NULL;
-  return;
 }
 
 
@@ -3491,5 +3491,7 @@ GNUNET_STREAM_io_write_cancel (struct GNUNET_STREAM_IOWriteHandle *ioh)
 void
 GNUNET_STREAM_io_read_cancel (struct GNUNET_STREAM_IOReadHandle *ioh)
 {
-  return;
+  // FIXME: do stuff
 }
+
+/* end of stream_api.c */

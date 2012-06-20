@@ -177,6 +177,17 @@ GNUNET_TESTING_peer_configure (struct GNUNET_TESTING_System *system,
 
 
 /**
+ * Obtain the peer identity from a peer handle.
+ *
+ * @param peer peer handle for which we want the peer's identity
+ * @param id identifier for the daemon, will be set
+ */
+void
+GNUNET_TESTING_peer_get_identity (struct GNUNET_TESTING_Peer *peer,
+				  struct GNUNET_PeerIdentity *id);
+
+
+/**
  * Start the peer. 
  *
  * @param peer peer to start
@@ -224,10 +235,11 @@ typedef void (*GNUNET_TESTING_TestMain)(void *cls,
  * 
  * @param cls closure
  * @param cfg configuration of the peer that was started
+ * @param peer identity of the peer that was created
  */
 typedef void (*GNUNET_TESTING_RestartableTestMain)(void *cls,
-					const struct GNUNET_CONFIGURATION_Handle *cfg,
-                    const struct GNUNET_TESTING_Peer *peer);
+						   const struct GNUNET_CONFIGURATION_Handle *cfg,
+						   const struct GNUNET_TESTING_Peer *peer);
 
 
 /**
@@ -287,6 +299,10 @@ GNUNET_TESTING_service_run (const char *testdir,
  * The only difference is that we handle the GNUNET_TESTING_Peer to
  * the RestartableTestMain, so that the peer can be destroyed and re-created
  * to simulate failure in tests.
+ *
+ * FIXME: change 'GNUNET_TESTING_TestMain' to have the 'restartable' signature
+ * and remove this extra function (in some sense, make this the primary one,
+ * but keep the old name).
  */
 int
 GNUNET_TESTING_service_run_restartable (const char *testdir,

@@ -800,6 +800,21 @@ GNUNET_TESTING_peer_configure (struct GNUNET_TESTING_System *system,
 
 
 /**
+ * Obtain the peer identity from a peer handle.
+ *
+ * @param peer peer handle for which we want the peer's identity
+ * @param id identifier for the daemon, will be set
+ */
+void
+GNUNET_TESTING_peer_get_identity (struct GNUNET_TESTING_Peer *peer,
+				  struct GNUNET_PeerIdentity *id)
+{
+  GNUNET_assert (0); // FIXME-SREE.
+  // *id = peer->id;
+}
+
+
+/**
  * Start the peer. 
  *
  * @param peer peer to start

@@ -62,7 +62,7 @@ test_stream_big_SOURCES = \
 test_stream_big_LDADD = \
  $(top_builddir)/src/stream/libgnunetstream.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/testing_old/libgnunettesting_old.la
+ $(top_builddir)/src/testing/libgnunettesting.la
 
 test_stream_sequence_wraparound_SOURCES = \
  test_stream_sequence_wraparound.c
