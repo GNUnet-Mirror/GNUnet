@@ -93,8 +93,7 @@ enum GNUNET_LOCKMANAGER_Status
  *
  * @param status GNUNET_LOCKMANAGER_SUCCESS if the lock has been successfully
  *          acquired; GNUNET_LOCKMANAGER_RELEASE when the acquired lock is
- *          lost. GNUNET_LOCKMANAGER_cancel_request must NOT be called in this
- *          callback when status == GNUNET_LOCKMANAGER_RELEASE
+ *          lost.
  */
 typedef void 
 (*GNUNET_LOCKMANAGER_StatusCallback) (void *cls,
