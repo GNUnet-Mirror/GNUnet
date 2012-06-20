@@ -53,7 +53,7 @@ main (int argc, char **argv)
   if (argc != 3)
     return 1;
   removecerts (argv[1], argv[2]);
-  close (2);                    /* eliminate stderr */
+  (void) close (2);                    /* eliminate stderr */
   /* Create RSA Private Key */
   /* openssl genrsa -out $1 1024 2> /dev/null */
   openssl =

@@ -182,17 +182,13 @@ shutdown_callback (void *cls, const char *emsg)
 {
   if (emsg != NULL)
   {
-#if VERBOSE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown of peers failed!\n");
-#endif
     if (ok == 0)
       ok = 666;
   }
   else
   {
-#if VERBOSE
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "All peers successfully shut down!\n");
-#endif
     ok = 0;
   }
 }
@@ -203,10 +199,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct NSEPeer *pos;
 
-#if VERBOSE
-  FPRINTF (stderr, "%s",  "Ending test.\n");
-#endif
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Ending test.\n");
   if (disconnect_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (disconnect_task);
@@ -366,19 +359,15 @@ connect_nse_service (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct NSEPeer *current_peer;
   unsigned int i;
 
-#if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting to nse service of peers\n");
-#endif
   for (i = 0; i < num_peers; i++)
   {
     if ((connection_limit > 0) &&
 	(num_peers > connection_limit) && 
 	(i % (num_peers / connection_limit) != 0))
       continue;
-#if VERBOSE
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "nse-profiler: connecting to nse service of peer %d\n", i);
-#endif
     current_peer = GNUNET_malloc (sizeof (struct NSEPeer));
     current_peer->daemon = GNUNET_TESTING_daemon_get (pg, i);
     if (GNUNET_YES ==
@@ -747,10 +736,8 @@ my_cb (void *cls, const char *emsg)
     GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
     return;
   }
-#if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Peer Group started successfully, connecting to NSE service for each peer!\n");
-#endif
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Have %u connections\n",
               total_connections);
   if (data_file != NULL)
@@ -806,8 +793,8 @@ run (void *cls, char *const *args, const char *cfgfile,
   ok = 1;
   //testing_cfg = GNUNET_CONFIGURATION_create ();
   testing_cfg = GNUNET_CONFIGURATION_dup (cfg);
-#if VERBOSE
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting daemons.\n");
+#if VERBOSE
   GNUNET_CONFIGURATION_set_value_string (testing_cfg, "testing",
                                          "use_progressbars", "YES");
 #endif
@@ -920,16 +907,14 @@ main (int argc, char *const *argv)
     return 2;
 
   GNUNET_log_setup ("nse-profiler",
-#if VERBOSE
-                    "DEBUG",
-#else
                     "WARNING",
-#endif
                     NULL);
-  GNUNET_PROGRAM_run (argc, argv, "nse-profiler",
-                      gettext_noop
-                      ("Measure quality and performance of the NSE service."),
-                      options, &run, NULL);
+  if (GNUNET_OK !=
+      GNUNET_PROGRAM_run (argc, argv, "nse-profiler",
+			  gettext_noop
+			  ("Measure quality and performance of the NSE service."),
+			  options, &run, NULL))
+    ok = 1;
 #if REMOVE_DIR
   GNUNET_DISK_directory_remove ("/tmp/nse-profiler");
 #endif

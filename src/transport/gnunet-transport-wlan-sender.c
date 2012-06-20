@@ -163,7 +163,10 @@ main (int argc, char *argv[])
   if (pid)
   {
     /* A positive (non-negative) PID indicates the parent process */
-    close (commpipe[0]);        /* Close unused side of pipe (in side) */
+    if (0 != close (commpipe[0]))        /* Close unused side of pipe (in side) */
+      fprintf (stderr,
+	       "Failed to close fd: %s\n",
+	       strerror (errno));
     setvbuf (stdout, (char *) NULL, _IONBF, 0); /* Set non-buffered output on stdout */
 
 
