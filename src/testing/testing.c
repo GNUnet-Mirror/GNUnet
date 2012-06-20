@@ -1005,9 +1005,7 @@ GNUNET_TESTING_service_run (const char *testdir,
   struct GNUNET_TESTING_Peer *peer;
   struct GNUNET_CONFIGURATION_Handle *cfg;
 
-  GNUNET_log_setup (testdir,
-                    "WARNING",
-                    NULL);
+  GNUNET_log_setup (testdir, "WARNING", NULL);
   system = GNUNET_TESTING_system_create (testdir, "127.0.0.1");
   if (NULL == system)
     return 1;
@@ -1042,7 +1040,8 @@ GNUNET_TESTING_service_run (const char *testdir,
   sc.tm_cls = tm_cls;
   sc.peer = peer;
   GNUNET_SCHEDULER_run (&service_run_main, &sc); /* Scheduler loop */
-  if (GNUNET_OK != GNUNET_TESTING_peer_stop (peer))
+  if ((NULL != peer->main_process) &&
+      (GNUNET_OK != GNUNET_TESTING_peer_stop (peer)))
   {
     GNUNET_TESTING_peer_destroy (peer);
     GNUNET_CONFIGURATION_destroy (cfg);
