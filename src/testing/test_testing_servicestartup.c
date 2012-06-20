@@ -45,7 +45,8 @@ static int test_success;
  * @param cfg the configuration with which the current testing service is run
  */
 static void
-test_run (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
+test_run (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
+	  struct GNUNET_TESTING_Peer *peer)
 {
   GNUNET_assert (NULL == cls);
   GNUNET_assert (NULL != cfg);

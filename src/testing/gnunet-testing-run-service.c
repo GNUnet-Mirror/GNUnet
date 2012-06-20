@@ -143,9 +143,9 @@ stdin_cb (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  */
 static void
 testing_main (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
-              const struct GNUNET_TESTING_Peer *peer)
+              struct GNUNET_TESTING_Peer *peer)
 {
-  my_peer = (struct GNUNET_TESTING_Peer *) peer;
+  my_peer = peer;
   if (NULL == (tmpfilename = GNUNET_DISK_mktemp ("gnunet-testing")))
   {
     GNUNET_break (0);
@@ -193,8 +193,8 @@ main (int argc, char *const *argv)
   if (GNUNET_SYSERR ==
       GNUNET_GETOPT_run("gnunet-testing-run-service", options, argc, argv))
     return 1;
-  ret = GNUNET_TESTING_service_run_restartable ("gnunet_service_test", srv_name,
-						cfg_name, &testing_main, NULL);
+  ret = GNUNET_TESTING_service_run ("gnunet_service_test", srv_name,
+				    cfg_name, &testing_main, NULL);
   if (0 != ret)
   {
     printf ("error\n");

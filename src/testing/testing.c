@@ -132,6 +132,10 @@ struct GNUNET_TESTING_System
  */
 struct GNUNET_TESTING_Peer
 {
+  /**
+   * The TESTING system associated with this peer
+   */
+  struct GNUNET_TESTING_System *system;
 
   /**
    * Path to the configuration file for this peer.
@@ -151,6 +155,11 @@ struct GNUNET_TESTING_Peer
    * peer/service is currently not running.
    */
   struct GNUNET_OS_Process *main_process;
+
+  /**
+   * The keynumber of this peer's hostkey
+   */
+  uint32_t key_number;
 };
 
 
@@ -795,6 +804,8 @@ GNUNET_TESTING_peer_configure (struct GNUNET_TESTING_System *system,
   peer = GNUNET_malloc (sizeof (struct GNUNET_TESTING_Peer));
   peer->cfgfile = config_filename; /* Free in peer_destroy */
   peer->main_binary = GNUNET_strdup ("gnunet-service-arm");
+  peer->system = system;
+  peer->key_number = key_number;
   return peer;
 }
 
@@ -806,11 +817,12 @@ GNUNET_TESTING_peer_configure (struct GNUNET_TESTING_System *system,
  * @param id identifier for the daemon, will be set
  */
 void
-GNUNET_TESTING_peer_get_identity (struct GNUNET_TESTING_Peer *peer,
+GNUNET_TESTING_peer_get_identity (const struct GNUNET_TESTING_Peer *peer,
 				  struct GNUNET_PeerIdentity *id)
 {
-  GNUNET_assert (0); // FIXME-SREE.
-  // *id = peer->id;
+  GNUNET_CRYPTO_rsa_key_free (GNUNET_TESTING_hostkey_get (peer->system,
+							  peer->key_number,
+							  id));
 }
 
 
@@ -931,33 +943,11 @@ struct ServiceContext
    * Callback to signal service startup
    */
   GNUNET_TESTING_TestMain tm;
-
-  /**
-   * Closure for the above callback
-   */
-  void *tm_cls;
-};
-
-
-/**
- * Structure for holding service data
- */
-struct RestartableServiceContext
-{
-  /**
-   * The configuration of the peer in which the service is run
-   */
-  const struct GNUNET_CONFIGURATION_Handle *cfg;
-
-  /**
-   * Callback to signal service startup
-   */
-  GNUNET_TESTING_RestartableTestMain tm;
-
+  
   /**
    * The peer in which the service is run.
    */
-  const struct GNUNET_TESTING_Peer *peer;
+  struct GNUNET_TESTING_Peer *peer;
 
   /**
    * Closure for the above callback
@@ -977,22 +967,6 @@ service_run_main (void *cls,
 		  const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct ServiceContext *sc = cls;
-
-  sc->tm (sc->tm_cls, sc->cfg);
-}
-
-
-/**
- * Callback to be called when SCHEDULER has been started
- *
- * @param cls the ServiceContext
- * @param tc the TaskContext
- */
-static void
-service_run_restartable_main (void *cls,
-		  const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct RestartableServiceContext *sc = cls;
 
   sc->tm (sc->tm_cls, sc->cfg, sc->peer);
 }
@@ -1066,77 +1040,8 @@ GNUNET_TESTING_service_run (const char *testdir,
   sc.cfg = cfg;
   sc.tm = tm;
   sc.tm_cls = tm_cls;
-  GNUNET_SCHEDULER_run (&service_run_main, &sc); /* Scheduler loop */
-  if (GNUNET_OK != GNUNET_TESTING_peer_stop (peer))
-  {
-    GNUNET_TESTING_peer_destroy (peer);
-    GNUNET_CONFIGURATION_destroy (cfg);
-    GNUNET_TESTING_system_destroy (system, GNUNET_YES);
-    return 1;
-  }
-  GNUNET_TESTING_peer_destroy (peer);
-  GNUNET_CONFIGURATION_destroy (cfg);
-  GNUNET_TESTING_system_destroy (system, GNUNET_YES);
-  return 0;
-}
-
-
-
-/**
- * See GNUNET_TESTING_service_run.
- * The only difference is that we handle the GNUNET_TESTING_Peer to
- * the RestartableTestMain, so that the peer can be destroyed and re-created
- * to simulate failure in tests.
- */
-int
-GNUNET_TESTING_service_run_restartable (const char *testdir,
-			    const char *service_name,
-			    const char *cfgfilename,
-			    GNUNET_TESTING_RestartableTestMain tm,
-			    void *tm_cls)
-{
-  struct RestartableServiceContext sc;
-  struct GNUNET_TESTING_System *system;
-  struct GNUNET_TESTING_Peer *peer;
-  struct GNUNET_CONFIGURATION_Handle *cfg;
-
-  GNUNET_log_setup (testdir,
-                    "WARNING",
-                    NULL);
-  system = GNUNET_TESTING_system_create (testdir, "127.0.0.1");
-  if (NULL == system)
-    return 1;
-  cfg = GNUNET_CONFIGURATION_create ();
-  if (GNUNET_OK != GNUNET_CONFIGURATION_load (cfg, cfgfilename))
-  {
-    LOG (GNUNET_ERROR_TYPE_ERROR,
-	 _("Failed to load configuration from %s\n"), cfgfilename);
-    GNUNET_CONFIGURATION_destroy (cfg);
-    GNUNET_TESTING_system_destroy (system, GNUNET_YES);
-    return 1;
-  }
-  peer = GNUNET_TESTING_peer_configure (system, cfg, 0, NULL, NULL);
-  if (NULL == peer)
-  {
-    GNUNET_CONFIGURATION_destroy (cfg);
-    hostkeys_unload (system);
-    GNUNET_TESTING_system_destroy (system, GNUNET_YES);
-    return 1;
-  }
-  GNUNET_free (peer->main_binary);
-  GNUNET_asprintf (&peer->main_binary, "gnunet-service-%s", service_name);
-  if (GNUNET_OK != GNUNET_TESTING_peer_start (peer))
-  {
-    GNUNET_TESTING_peer_destroy (peer);
-    GNUNET_CONFIGURATION_destroy (cfg);
-    GNUNET_TESTING_system_destroy (system, GNUNET_YES);
-    return 1;
-  }
-  sc.cfg = cfg;
-  sc.tm = tm;
-  sc.tm_cls = tm_cls;
   sc.peer = peer;
-  GNUNET_SCHEDULER_run (&service_run_restartable_main, &sc); /* Scheduler loop */
+  GNUNET_SCHEDULER_run (&service_run_main, &sc); /* Scheduler loop */
   if (GNUNET_OK != GNUNET_TESTING_peer_stop (peer))
   {
     GNUNET_TESTING_peer_destroy (peer);
