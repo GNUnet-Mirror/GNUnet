@@ -60,7 +60,7 @@ struct GNUNET_NAMESTORE_QueueEntry
   struct GNUNET_NAMESTORE_Handle *nsh;
 
   /**
-   *
+   * Continuation to call
    */
   GNUNET_NAMESTORE_ContinuationWithStatus cont;
 
@@ -79,13 +79,9 @@ struct GNUNET_NAMESTORE_QueueEntry
    */
   void *proc_cls;
 
-  /**
-   * stub data pointer (???)
-   */
-  char *data; 
 
   /**
-   *
+   * The operation id this zone iteration operation has
    */
   uint32_t op_id;
 
@@ -93,7 +89,7 @@ struct GNUNET_NAMESTORE_QueueEntry
 
 
 /**
- * Zone iterator
+ * Handle for a zone iterator operation
  */
 struct GNUNET_NAMESTORE_ZoneIterator
 {
@@ -114,7 +110,7 @@ struct GNUNET_NAMESTORE_ZoneIterator
   struct GNUNET_NAMESTORE_Handle *h;
 
   /**
-   *
+   * The continuation to call with the results
    */
   GNUNET_NAMESTORE_RecordProcessor proc;
 
@@ -124,30 +120,23 @@ struct GNUNET_NAMESTORE_ZoneIterator
   void* proc_cls;
 
   /**
-   *
+   * If this iterator iterates over a specific zone this value contains the
+   * short hash of the zone
    */
   struct GNUNET_CRYPTO_ShortHashCode zone;
 
   /**
-   *
-   */
-  uint32_t no_flags;
-
-  /**
-   *
-   */
-  uint32_t flags;
-
-  /**
-   *
+   * The operation id this zone iteration operation has
    */
   uint32_t op_id;
 
   /**
+   * GNUNET_YES if this iterator iterates over a specific zone
+   * GNUNET_NO if this iterator iterates over all zones
    *
+   * Zone is stored 'GNUNET_CRYPTO_ShortHashCode zone';
    */
   int has_zone;
-
 };
 
 
@@ -242,65 +231,11 @@ struct GNUNET_NAMESTORE_Handle
   int reconnect;
 
   /**
-   * ???
+   * The last operation id used for a NAMESTORE operation
    */
-  uint32_t op_id;
+  uint32_t last_op_id_used;
 
 };
-
-
-/**
- * ???
- */
-struct GNUNET_NAMESTORE_SimpleRecord
-{
-  /**
-   * DLL
-   */
-  struct GNUNET_NAMESTORE_SimpleRecord *next;
-
-  /**
-   * DLL
-   */
-  struct GNUNET_NAMESTORE_SimpleRecord *prev;
-  
-  /**
-   * ???
-   */
-  const char *name;
-
-  /**
-   * ???
-   */
-  const struct GNUNET_CRYPTO_ShortHashCode *zone;
-
-  /**
-   * ???
-   */
-  const void *data;
-
-  /**
-   * ???
-   */
-  struct GNUNET_TIME_Absolute expiration;
-
-  /**
-   * ???
-   */
-  size_t data_size;
-
-  /**
-   * ???
-   */
-  enum GNUNET_NAMESTORE_RecordFlags flags;
-
-  /**
-   * ???
-   */
-  uint32_t record_type;
-
-};
-
 
 
 /**
@@ -312,6 +247,13 @@ static void
 force_reconnect (struct GNUNET_NAMESTORE_Handle *h);
 
 
+/**
+ * Handle an incoming message of type 'GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_NAME_RESPONSE'
+ *
+ * @param qe the respective entry in the message queue
+ * @param msg the message we received
+ * @param size the message size
+ */
 static void
 handle_lookup_name_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
                              struct LookupNameResponseMessage * msg,
@@ -391,6 +333,13 @@ handle_lookup_name_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
 }
 
 
+/**
+ * Handle an incoming message of type 'GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_PUT_RESPONSE'
+ *
+ * @param qe the respective entry in the message queue
+ * @param msg the message we received
+ * @param size the message size
+ */
 static void
 handle_record_put_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
                              struct RecordPutResponseMessage* msg,
@@ -430,6 +379,13 @@ handle_record_put_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
 }
 
 
+/**
+ * Handle an incoming message of type 'GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_CREATE_RESPONSE'
+ *
+ * @param qe the respective entry in the message queue
+ * @param msg the message we received
+ * @param size the message size
+ */
 static void
 handle_record_create_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
                              struct RecordCreateResponseMessage* msg,
@@ -470,6 +426,13 @@ handle_record_create_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
 }
 
 
+/**
+ * Handle an incoming message of type 'GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_REMOVE_RESPONSE'
+ *
+ * @param qe the respective entry in the message queue
+ * @param msg the message we received
+ * @param size the message size
+ */
 static void
 handle_record_remove_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
                              struct RecordRemoveResponseMessage* msg,
@@ -535,6 +498,13 @@ handle_record_remove_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
 }
 
 
+/**
+ * Handle an incoming message of type 'GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_TO_NAME_RESPONSE'
+ *
+ * @param qe the respective entry in the message queue
+ * @param msg the message we received
+ * @param size the message size
+ */
 static void
 handle_zone_to_name_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
                              struct ZoneToNameResponseMessage* msg,
@@ -603,6 +573,14 @@ handle_zone_to_name_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
 }
 
 
+/**
+ * Handle incoming messages for record operations
+ *
+ * @param ze the respective zone iteration handle
+ * @param msg the message we received
+ * @param type the message type in HBO
+ * @param size the message size
+ */
 static void
 manage_record_operations (struct GNUNET_NAMESTORE_QueueEntry *qe,
                           const struct GNUNET_MessageHeader *msg,
@@ -658,6 +636,13 @@ manage_record_operations (struct GNUNET_NAMESTORE_QueueEntry *qe,
 }
 
 
+/**
+ * Handle a response from NAMESTORE service for a zone iteration request
+ *
+ * @param ze the respective iterator for this operation
+ * @param msg the message containing the respoonse
+ * @param size the message size
+ */
 static void
 handle_zone_iteration_response (struct GNUNET_NAMESTORE_ZoneIterator *ze,
                                 struct ZoneIterationResponseMessage *msg,
@@ -730,6 +715,14 @@ handle_zone_iteration_response (struct GNUNET_NAMESTORE_ZoneIterator *ze,
 }
 
 
+/**
+ * Handle incoming messages for zone iterations
+ *
+ * @param ze the respective zone iteration handle
+ * @param msg the message we received
+ * @param type the message type in HBO
+ * @param size the message size
+ */
 static void
 manage_zone_operations (struct GNUNET_NAMESTORE_ZoneIterator *ze,
                         const struct GNUNET_MessageHeader *msg,
@@ -794,7 +787,7 @@ process_namestore_message (void *cls, const struct GNUNET_MessageHeader *msg)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received message type %i size %i op %u\n", type, size, r_id);
 
   /* Find matching operation */
-  if (r_id > h->op_id)
+  if (r_id > h->last_op_id_used)
   {
     /* No matching pending operation found */
     GNUNET_break_op (0);
@@ -912,7 +905,7 @@ do_transmit (struct GNUNET_NAMESTORE_Handle *h)
 /**
  * Reconnect to namestore service.
  *
- * @param h the handle to the namestore service
+ * @param h the handle to the NAMESTORE service
  */
 static void
 reconnect (struct GNUNET_NAMESTORE_Handle *h)
@@ -971,11 +964,16 @@ force_reconnect (struct GNUNET_NAMESTORE_Handle *h)
 }
 
 
+/**
+ * Get an unused operation id to distinguish between namestore requests
+ * @param h the namestore handle
+ * @return operation id
+ */
 static uint32_t
 get_op_id (struct GNUNET_NAMESTORE_Handle *h)
 {
-  uint32_t op_id = h->op_id;
-  h->op_id ++;
+  uint32_t op_id = h->last_op_id_used;
+  h->last_op_id_used ++;
   return op_id;
 }
 
@@ -994,7 +992,7 @@ GNUNET_NAMESTORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
   h = GNUNET_malloc (sizeof (struct GNUNET_NAMESTORE_Handle));
   h->cfg = cfg;
   h->reconnect_task = GNUNET_SCHEDULER_add_now (&reconnect_task, h);
-  h->op_id = 0;
+  h->last_op_id_used = 0;
   return h;
 }
 
