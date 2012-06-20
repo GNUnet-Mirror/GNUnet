@@ -68,9 +68,21 @@ struct GNUNET_NETWORK_FDSet
 };
 
 
-
 #include "gnunet_disk_lib.h"
 #include "gnunet_time_lib.h"
+
+
+/**
+ * Given a unixpath that is too long (larger than UNIX_PATH_MAX),
+ * shorten it to an acceptable length while keeping it unique
+ * and making sure it remains a valid filename (if possible).
+ *
+ * @param unixpath long path, will be freed (or same pointer returned
+ *        with moved 0-termination).
+ * @return shortened unixpath, NULL on error
+ */
+char *
+GNUNET_NETWORK_shorten_unixpath (char *unixpath);
 
 
 /**
