@@ -219,7 +219,7 @@ run (void *cls,
  */
 int main (int argc, char **argv)
 {
-  if (0 != GNUNET_TESTING_peer_run ("test_lockmanager_api_servercrash",
+  if (0 != GNUNET_TESTING_peer_run ("test_lockmanager_api_acquireretry",
 				    "test_lockmanager_api.conf",
 				    &run, NULL))
     return 1;
