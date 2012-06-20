@@ -1333,7 +1333,7 @@ load_hostlist_file ()
 
   GNUNET_free_non_null (uri);
   emsg = NULL;
-  GNUNET_BIO_read_close (rh, &emsg);
+  (void) GNUNET_BIO_read_close (rh, &emsg);
   if (emsg != NULL)
     GNUNET_free (emsg);
   GNUNET_free (filename);

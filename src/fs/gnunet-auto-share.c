@@ -231,7 +231,7 @@ load_state ()
  error:
   GNUNET_free_non_null (fn);
   if (NULL != rh)
-    GNUNET_BIO_read_close (rh, &emsg);
+    (void) GNUNET_BIO_read_close (rh, &emsg);
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 	      _("Failed to load state: %s\n"),
 	      emsg);
@@ -588,9 +588,10 @@ add_file (void *cls,
 		     sizeof (struct GNUNET_HashCode)))
       return GNUNET_OK; /* skip: we did this one already */
     /* contents changed, need to re-do the directory... */
-    GNUNET_CONTAINER_multihashmap_remove (work_finished,
-					  &key,
-					  wi);
+    GNUNET_assert (GNUNET_YES ==
+		   GNUNET_CONTAINER_multihashmap_remove (work_finished,
+							 &key,
+							 wi));
   }
   else
   {
