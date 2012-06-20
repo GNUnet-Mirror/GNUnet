@@ -199,13 +199,12 @@ struct GNUNET_CONTAINER_MultiHashMap *zonekeys;
 
 
 /**
- * Write zonefile to disk
- * @param filename where to write
- * @param c the crypto container
+ * Writes the encrypted private key of a zone in a file
  *
+ * @param filename where to store the zone
+ * @param c the crypto container containing private key of the zone
  * @return GNUNET_OK on success, GNUNET_SYSERR on fail
  */
-
 static int
 write_key_to_file (const char *filename, struct GNUNET_NAMESTORE_CryptoContainer *c)
 {
@@ -282,6 +281,17 @@ write_key_to_file (const char *filename, struct GNUNET_NAMESTORE_CryptoContainer
   return GNUNET_OK;
 }
 
+
+/**
+ * Write all zone keys to disk.
+ * Iterates over all entries of the hashmap 'zonekeys'
+ *
+ * @param cls unused
+ * @param key zone key
+ * @param value 'struct GNUNET_NAMESTORE_CryptoContainer' containing the private
+ *        key
+ * @return GNUNET_OK to continue iteration
+ */
 static int
 zone_to_disk_it (void *cls,
                  const struct GNUNET_HashCode *key,
@@ -296,7 +306,6 @@ zone_to_disk_it (void *cls,
     write_key_to_file(c->filename, c);
   }
 
-
   GNUNET_assert (GNUNET_OK == GNUNET_CONTAINER_multihashmap_remove (zonekeys, key, value));
   GNUNET_CRYPTO_rsa_key_free (c->privkey);
   GNUNET_free (c->pubkey);
@@ -307,6 +316,15 @@ zone_to_disk_it (void *cls,
 }
 
 
+/**
+ * Returns the expiration time of the given block of records
+ * The block expiration time is the expiration time of the block with smallest
+ * expiration time
+ *
+ * @param rd_count number of records given in 'rd'
+ * @param rd array of records
+ * @return absolute expiration time
+ */
 struct GNUNET_TIME_Absolute
 get_block_expiration_time (unsigned int rd_count, const struct GNUNET_NAMESTORE_RecordData *rd)
 {
@@ -391,8 +409,8 @@ client_lookup (struct GNUNET_SERVER_Client *client)
 }
 
 /**
-* Called whenever a client is disconnected.  Frees our
- * resources associated with that client.
+ * Called whenever a client is disconnected.
+ * Frees our resources associated with that client.
  *
  * @param cls closure
  * @param client identification of the client
@@ -426,8 +444,13 @@ client_disconnect_notification (void *cls, struct GNUNET_SERVER_Client *client)
   nc = NULL;
 }
 
-
-
+/**
+ * Handles a 'GNUNET_MESSAGE_TYPE_NAMESTORE_START' message
+ *
+ * @param cls unused
+ * @param client GNUNET_SERVER_Client sending the message
+ * @param message unused
+ */
 static void
 handle_start (void *cls,
               struct GNUNET_SERVER_Client *client,
@@ -453,29 +476,6 @@ struct LookupNameContext
   struct GNUNET_CRYPTO_ShortHashCode *zone;
   char *name;
 };
-
-static void
-drop_iterator (void *cls,
-               const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
-               struct GNUNET_TIME_Absolute expire,
-               const char *name,
-               unsigned int rd_len,
-               const struct GNUNET_NAMESTORE_RecordData *rd,
-               const struct GNUNET_CRYPTO_RsaSignature *signature)
-{
-  struct GNUNET_CRYPTO_ShortHashCode zone_hash;
-  int *stop = cls;
-  if (NULL != zone_key)
-  {
-    GNUNET_CRYPTO_short_hash(zone_key, sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), &zone_hash);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Deleting zone `%s'\n", GNUNET_short_h2s (&zone_hash));
-    GSN_database->delete_zone (GSN_database->cls, &zone_hash);
-  }
-  else
-  {
-    (*stop) = GNUNET_YES;
-  }
-}
 
 
 static void
@@ -630,6 +630,13 @@ handle_lookup_name_it (void *cls,
   GNUNET_free (lnr_msg);
 }
 
+/**
+ * Handles a 'GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_NAME' message
+ *
+ * @param cls unused
+ * @param client GNUNET_SERVER_Client sending the message
+ * @param message message of type 'struct LookupNameMessage'
+ */
 static void
 handle_lookup_name (void *cls,
                     struct GNUNET_SERVER_Client *client,
@@ -694,6 +701,14 @@ handle_lookup_name (void *cls,
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
+
+/**
+ * Handles a 'GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_PUT' message
+ *
+ * @param cls unused
+ * @param client GNUNET_SERVER_Client sending the message
+ * @param message message of type 'struct RecordPutMessage'
+ */
 static void
 handle_record_put (void *cls,
                    struct GNUNET_SERVER_Client *client,
@@ -701,6 +716,7 @@ handle_record_put (void *cls,
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "NAMESTORE_RECORD_PUT");
   struct GNUNET_NAMESTORE_Client *nc;
+  struct RecordPutMessage *rp_msg;
   struct GNUNET_TIME_Absolute expire;
   struct GNUNET_CRYPTO_RsaSignature *signature;
   struct RecordPutResponseMessage rpr_msg;
@@ -729,8 +745,7 @@ handle_record_put (void *cls,
     return;
   }
 
-  struct RecordPutMessage *rp_msg = (struct RecordPutMessage *) message;
-
+  rp_msg = (struct RecordPutMessage *) message;
   rid = ntohl (rp_msg->gns_header.r_id);
   msg_size = ntohs (rp_msg->gns_header.header.size);
   name_len = ntohs (rp_msg->name_len);
@@ -967,11 +982,17 @@ end:
     default:
       break;
   }
-
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Update result for name `%s' %u\n", crc->name, res);
-
 }
 
+
+/**
+ * Handles a 'GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_CREATE' message
+ *
+ * @param cls unused
+ * @param client GNUNET_SERVER_Client sending the message
+ * @param message message of type 'struct RecordCreateMessage'
+ */
 static void
 handle_record_create (void *cls,
                       struct GNUNET_SERVER_Client *client,
@@ -979,6 +1000,7 @@ handle_record_create (void *cls,
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "NAMESTORE_RECORD_CREATE");
   struct GNUNET_NAMESTORE_Client *nc;
+  struct RecordCreateMessage *rp_msg;
   struct GNUNET_NAMESTORE_CryptoContainer *cc;
   struct CreateRecordContext crc;
   struct GNUNET_CRYPTO_RsaPrivateKey *pkey;
@@ -1015,7 +1037,7 @@ handle_record_create (void *cls,
     return;
   }
 
-  struct RecordCreateMessage *rp_msg = (struct RecordCreateMessage *) message;
+  rp_msg = (struct RecordCreateMessage *) message;
   rid = ntohl (rp_msg->gns_header.r_id);
   name_len = ntohs (rp_msg->name_len);
   msg_size = ntohs (message->size);
@@ -1228,7 +1250,13 @@ handle_record_remove_it (void *cls,
   rrc->op_res = 0;
 }
 
-
+/**
+ * Handles a 'GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_REMOVE' message
+ *
+ * @param cls unused
+ * @param client GNUNET_SERVER_Client sending the message
+ * @param message message of type 'struct RecordRemoveMessage'
+ */
 static void
 handle_record_remove (void *cls,
 		      struct GNUNET_SERVER_Client *client,
@@ -1496,7 +1524,13 @@ handle_zone_to_name_it (void *cls,
   GNUNET_free_non_null (rd_ser);
 }
 
-
+/**
+ * Handles a 'GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_TO_NAME' message
+ *
+ * @param cls unused
+ * @param client GNUNET_SERVER_Client sending the message
+ * @param message message of type 'struct ZoneToNameMessage'
+ */
 static void
 handle_zone_to_name (void *cls,
                      struct GNUNET_SERVER_Client *client,
@@ -1504,6 +1538,7 @@ handle_zone_to_name (void *cls,
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "ZONE_TO_NAME");
   struct GNUNET_NAMESTORE_Client *nc;
+  struct ZoneToNameMessage *ztn_msg;
   struct ZoneToNameCtx ztn_ctx;
   size_t msg_size = 0;
   uint32_t rid = 0;
@@ -1523,7 +1558,7 @@ handle_zone_to_name (void *cls,
     return;
   }
 
-  struct ZoneToNameMessage *ztn_msg = (struct ZoneToNameMessage *) message;
+  ztn_msg = (struct ZoneToNameMessage *) message;
 
   if (msg_size > GNUNET_SERVER_MAX_MESSAGE_SIZE)
   {
@@ -1816,6 +1851,14 @@ clean_up_zone_iteration_result (struct ZoneIterationProcResult *proc)
   proc->rd = NULL;
 }
 
+
+/**
+ * Handles a 'GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_START' message
+ *
+ * @param cls unused
+ * @param client GNUNET_SERVER_Client sending the message
+ * @param message message of type 'struct ZoneIterationStartMessage'
+ */
 static void
 handle_iteration_start (void *cls,
                         struct GNUNET_SERVER_Client *client,
@@ -1826,6 +1869,8 @@ handle_iteration_start (void *cls,
   struct ZoneIterationStartMessage *zis_msg = (struct ZoneIterationStartMessage *) message;
   struct GNUNET_NAMESTORE_Client *nc;
   struct GNUNET_NAMESTORE_ZoneIteration *zi;
+  struct GNUNET_CRYPTO_ShortHashCode dummy;
+  struct ZoneIterationProcResult proc;
 
   nc = client_lookup(client);
   if (nc == NULL)
@@ -1842,7 +1887,6 @@ handle_iteration_start (void *cls,
   zi->must_have_flags = ntohs (zis_msg->must_have_flags);
   zi->must_not_have_flags = ntohs (zis_msg->must_not_have_flags);
 
-  struct GNUNET_CRYPTO_ShortHashCode dummy;
   memset (&dummy, '\0', sizeof (dummy));
   if (0 == memcmp (&dummy, &zis_msg->zone, sizeof (dummy)))
   {
@@ -1859,9 +1903,7 @@ handle_iteration_start (void *cls,
 
   GNUNET_CONTAINER_DLL_insert (nc->op_head, nc->op_tail, zi);
 
-  struct ZoneIterationProcResult proc;
   proc.zi = zi;
-
   find_next_zone_iteration_result (&proc);
   if (GNUNET_YES == proc.res_iteration_finished)
   {
@@ -1877,6 +1919,14 @@ handle_iteration_start (void *cls,
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
+
+/**
+ * Handles a 'GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_STOP' message
+ *
+ * @param cls unused
+ * @param client GNUNET_SERVER_Client sending the message
+ * @param message message of type 'struct ZoneIterationStopMessage'
+ */
 static void
 handle_iteration_stop (void *cls,
                        struct GNUNET_SERVER_Client *client,
@@ -1886,7 +1936,7 @@ handle_iteration_stop (void *cls,
 
   struct GNUNET_NAMESTORE_Client *nc;
   struct GNUNET_NAMESTORE_ZoneIteration *zi;
-  struct ZoneIterationStopMessage *zis_msg = (struct ZoneIterationStopMessage *) message;
+  struct ZoneIterationStopMessage *zis_msg;
   uint32_t rid;
 
   nc = client_lookup(client);
@@ -1897,6 +1947,7 @@ handle_iteration_stop (void *cls,
     return;
   }
 
+  zis_msg = (struct ZoneIterationStopMessage *) message;
   rid = ntohl (zis_msg->gns_header.r_id);
   for (zi = nc->op_head; zi != NULL; zi = zi->next)
   {
@@ -1920,6 +1971,14 @@ handle_iteration_stop (void *cls,
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
+
+/**
+ * Handles a 'GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_STOP' message
+ *
+ * @param cls unused
+ * @param client GNUNET_SERVER_Client sending the message
+ * @param message message of type 'struct ZoneIterationNextMessage'
+ */
 static void
 handle_iteration_next (void *cls,
                        struct GNUNET_SERVER_Client *client,
@@ -1929,7 +1988,7 @@ handle_iteration_next (void *cls,
 
   struct GNUNET_NAMESTORE_Client *nc;
   struct GNUNET_NAMESTORE_ZoneIteration *zi;
-  struct ZoneIterationStopMessage *zis_msg = (struct ZoneIterationStopMessage *) message;
+  struct ZoneIterationNextMessage *zis_msg;
   uint32_t rid;
 
   nc = client_lookup(client);
@@ -1940,6 +1999,7 @@ handle_iteration_next (void *cls,
     return;
   }
 
+  zis_msg = (struct ZoneIterationNextMessage *) message;
   rid = ntohl (zis_msg->gns_header.r_id);
   for (zi = nc->op_head; zi != NULL; zi = zi->next)
   {
