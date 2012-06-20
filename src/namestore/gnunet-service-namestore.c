@@ -325,7 +325,7 @@ zone_to_disk_it (void *cls,
  * @param rd array of records
  * @return absolute expiration time
  */
-struct GNUNET_TIME_Absolute
+static struct GNUNET_TIME_Absolute
 get_block_expiration_time (unsigned int rd_count, const struct GNUNET_NAMESTORE_RecordData *rd)
 {
   unsigned int c;
@@ -720,6 +720,7 @@ handle_record_put (void *cls,
   struct GNUNET_TIME_Absolute expire;
   struct GNUNET_CRYPTO_RsaSignature *signature;
   struct RecordPutResponseMessage rpr_msg;
+  struct GNUNET_CRYPTO_ShortHashCode zone_hash;
   size_t name_len;
   size_t msg_size;
   size_t msg_size_exp;
@@ -802,9 +803,7 @@ handle_record_put (void *cls,
     goto send;
   }
 
-  struct GNUNET_CRYPTO_ShortHashCode zone_hash;
   GNUNET_CRYPTO_short_hash (&rp_msg->public_key, sizeof (rp_msg->public_key), &zone_hash);
-
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Putting %u record for name `%s' in zone `%s'\n", rd_count, name, GNUNET_short_h2s(&zone_hash));
 
   /* Database operation */
