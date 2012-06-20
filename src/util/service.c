@@ -973,12 +973,12 @@ GNUNET_SERVICE_get_server_addresses (const char *service_name,
     {
       LOG (GNUNET_ERROR_TYPE_WARNING,
            _("UNIXPATH `%s' too long, maximum length is %llu\n"), unixpath,
-           sizeof (s_un.sun_path));
-      GNUNET_free_non_null (hostname);
-      GNUNET_free (unixpath);
-      return GNUNET_SYSERR;
+           (unsigned long long) sizeof (s_un.sun_path));
+      unixpath = GNUNET_NETWORK_shorten_unixpath (unixpath);
     }
-
+  }
+  if (NULL != unixpath)
+  {
     desc = GNUNET_NETWORK_socket_create (AF_UNIX, SOCK_STREAM, 0);
     if (NULL == desc)
     {

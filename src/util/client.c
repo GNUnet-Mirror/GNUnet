@@ -738,40 +738,41 @@ GNUNET_CLIENT_service_test (const char *service,
       {
         LOG (GNUNET_ERROR_TYPE_WARNING,
              _("UNIXPATH `%s' too long, maximum length is %llu\n"), unixpath,
-             sizeof (s_un.sun_path));
+             (unsigned long long) sizeof (s_un.sun_path));
+	unixpath = GNUNET_NETWORK_shorten_unixpath (unixpath);
       }
-      else
+    }
+    if (NULL != unixpath)
+    {
+      sock = GNUNET_NETWORK_socket_create (PF_UNIX, SOCK_STREAM, 0);
+      if (NULL != sock)
       {
-        sock = GNUNET_NETWORK_socket_create (PF_UNIX, SOCK_STREAM, 0);
-        if (NULL != sock)
-        {
-          memset (&s_un, 0, sizeof (s_un));
-          s_un.sun_family = AF_UNIX;
-          slen = strlen (unixpath) + 1;
-          if (slen >= sizeof (s_un.sun_path))
-            slen = sizeof (s_un.sun_path) - 1;
-          memcpy (s_un.sun_path, unixpath, slen);
-          s_un.sun_path[slen] = '\0';
-          slen = sizeof (struct sockaddr_un);
+	memset (&s_un, 0, sizeof (s_un));
+	s_un.sun_family = AF_UNIX;
+	slen = strlen (unixpath) + 1;
+	if (slen >= sizeof (s_un.sun_path))
+	  slen = sizeof (s_un.sun_path) - 1;
+	memcpy (s_un.sun_path, unixpath, slen);
+	s_un.sun_path[slen] = '\0';
+	slen = sizeof (struct sockaddr_un);
 #if LINUX
-          s_un.sun_path[0] = '\0';
+	s_un.sun_path[0] = '\0';
 #endif
 #if HAVE_SOCKADDR_IN_SIN_LEN
-          s_un.sun_len = (u_char) slen;
+	s_un.sun_len = (u_char) slen;
 #endif
-          if (GNUNET_OK !=
-              GNUNET_NETWORK_socket_bind (sock, (const struct sockaddr *) &s_un,
-                                          slen))
-          {
-            /* failed to bind => service must be running */
-            GNUNET_free (unixpath);
-            (void) GNUNET_NETWORK_socket_close (sock);
-            GNUNET_SCHEDULER_add_continuation (task, task_cls,
-                                               GNUNET_SCHEDULER_REASON_PREREQ_DONE);
-            return;
-          }
-          (void) GNUNET_NETWORK_socket_close (sock);
-        }
+	if (GNUNET_OK !=
+	    GNUNET_NETWORK_socket_bind (sock, (const struct sockaddr *) &s_un,
+					slen))
+        {
+	  /* failed to bind => service must be running */
+	  GNUNET_free (unixpath);
+	  (void) GNUNET_NETWORK_socket_close (sock);
+	  GNUNET_SCHEDULER_add_continuation (task, task_cls,
+					     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+	  return;
+	}
+	(void) GNUNET_NETWORK_socket_close (sock);        
         /* let's try IP */
       }
     }

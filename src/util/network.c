@@ -22,12 +22,11 @@
  * @file util/network.c
  * @brief basic, low-level networking interface
  * @author Nils Durner
+ * @author Christian Grothoff
  */
-
 #include "platform.h"
-#include "gnunet_disk_lib.h"
 #include "disk.h"
-#include "gnunet_container_lib.h"
+#include "gnunet_util_lib.h"
 
 #define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
 #define LOG_STRERROR_FILE(kind,syscall,filename) GNUNET_log_from_strerror_file (kind, "util", syscall, filename)
@@ -65,6 +64,49 @@ struct GNUNET_NETWORK_Handle
   struct sockaddr *addr;
 
 };
+
+
+/**
+ * Given a unixpath that is too long (larger than UNIX_PATH_MAX),
+ * shorten it to an acceptable length while keeping it unique
+ * and making sure it remains a valid filename (if possible).
+ *
+ * @param unixpath long path, will be freed (or same pointer returned
+ *        with moved 0-termination).
+ * @return shortened unixpath, NULL on error
+ */
+char *
+GNUNET_NETWORK_shorten_unixpath (char *unixpath)
+{
+  struct sockaddr_un dummy;
+  size_t slen;
+  char *end;
+  struct GNUNET_CRYPTO_ShortHashCode sh;
+  struct GNUNET_CRYPTO_ShortHashAsciiEncoded ae;
+  size_t upm;
+
+  upm = sizeof (dummy.sun_path);   
+  slen = strlen (unixpath);
+  if (slen < upm)
+    return unixpath; /* no shortening required */
+  GNUNET_CRYPTO_short_hash (unixpath, slen, &sh);
+  while (sizeof (struct GNUNET_CRYPTO_ShortHashAsciiEncoded) + 
+	 strlen (unixpath) >= upm)
+  {
+    if (NULL == (end = strrchr (unixpath, '/')))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  _("Unable to shorten unix path `%s' while keeping name unique\n"),
+		  unixpath);
+      GNUNET_free (unixpath);
+      return NULL;
+    }
+    *end = '\0';
+  }
+  GNUNET_CRYPTO_short_hash_to_enc (&sh, &ae);
+  strcat (unixpath, (char*) ae.short_encoding);
+  return unixpath;
+}
 
 
 #ifndef FD_COPY
