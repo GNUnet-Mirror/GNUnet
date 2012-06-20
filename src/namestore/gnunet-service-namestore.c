@@ -1137,31 +1137,34 @@ handle_record_remove_it (void *cls,
   rrc->op_res = 0;
 }
 
-static void handle_record_remove (void *cls,
-                          struct GNUNET_SERVER_Client * client,
-                          const struct GNUNET_MessageHeader * message)
+
+static void
+handle_record_remove (void *cls,
+		      struct GNUNET_SERVER_Client * client,
+		      const struct GNUNET_MessageHeader * message)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "NAMESTORE_RECORD_REMOVE");
   struct GNUNET_NAMESTORE_Client *nc;
+  const struct RecordRemoveMessage * rr_msg;
   struct RecordRemoveResponseMessage rrr_msg;
   struct GNUNET_CRYPTO_RsaPrivateKey *pkey;
-  struct GNUNET_NAMESTORE_CryptoContainer *cc = NULL;
+  struct GNUNET_NAMESTORE_CryptoContainer *cc;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pub;
   struct GNUNET_CRYPTO_ShortHashCode pubkey_hash;
   struct GNUNET_HashCode long_hash;
-  char * pkey_tmp = NULL;
-  char * name_tmp = NULL;
-  char * rd_ser = NULL;
-  size_t key_len = 0;
-  size_t name_len = 0;
-  size_t rd_ser_len = 0;
-  size_t msg_size = 0;
+  const char * pkey_tmp;
+  const char * name_tmp;
+  const char * rd_ser;
+  size_t key_len;
+  size_t name_len;
+  size_t rd_ser_len;
+  size_t msg_size;
   size_t msg_size_exp = 0;
   uint32_t rd_count;
-  uint32_t rid = 0;
+  uint32_t rid;
 
   int res = GNUNET_SYSERR;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "NAMESTORE_RECORD_REMOVE");
   if (ntohs (message->size) < sizeof (struct RecordRemoveMessage))
   {
     GNUNET_break_op (0);
@@ -1177,7 +1180,7 @@ static void handle_record_remove (void *cls,
     return;
   }
 
-  struct RecordRemoveMessage * rr_msg = (struct RecordRemoveMessage *) message;
+  rr_msg = (const struct RecordRemoveMessage *) message;
   rid = ntohl (rr_msg->gns_header.r_id);
   name_len = ntohs (rr_msg->name_len);
   rd_ser_len = ntohs (rr_msg->rd_len);
@@ -1208,7 +1211,7 @@ static void handle_record_remove (void *cls,
     return;
   }
 
-  pkey_tmp = (char *) &rr_msg[1];
+  pkey_tmp = (const char *) &rr_msg[1];
   name_tmp = &pkey_tmp[key_len];
   rd_ser = &name_tmp[name_len];
 
@@ -1236,7 +1239,9 @@ static void handle_record_remove (void *cls,
 
   if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains(zonekeys, &long_hash))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received new private key for zone `%s'\n",GNUNET_short_h2s(&pubkey_hash));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		"Received new private key for zone `%s'\n",
+		GNUNET_short_h2s(&pubkey_hash));
     cc = GNUNET_malloc (sizeof (struct GNUNET_NAMESTORE_CryptoContainer));
     cc->privkey = GNUNET_CRYPTO_rsa_decode_key((char *) pkey_tmp, key_len);
     cc->pubkey = GNUNET_malloc(sizeof (pub));

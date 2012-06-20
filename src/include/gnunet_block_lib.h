@@ -103,7 +103,12 @@ enum GNUNET_BLOCK_Type
     /**
      * Block for storing mesh peers
      */
-  GNUNET_BLOCK_TYPE_MESH_PEER = 20
+  GNUNET_BLOCK_TYPE_MESH_PEER = 20,
+
+    /**
+     * Block for finding peers by type
+     */
+  GNUNET_BLOCK_TYPE_MESH_PEER_BY_TYPE = 21
 };
 
 

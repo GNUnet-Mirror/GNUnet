@@ -28,8 +28,6 @@
 #include "platform.h"
 #include "gnunet_block_plugin.h"
 
-#define DEBUG_TEST GNUNET_EXTRA_LOGGING
-
 
 /**
  * Number of bits we set per entry in the bloomfilter.
@@ -63,9 +61,9 @@ block_plugin_test_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
   struct GNUNET_HashCode chash;
   struct GNUNET_HashCode mhash;
 
-  if (type != GNUNET_BLOCK_TYPE_TEST)
+  if ( GNUNET_BLOCK_TYPE_TEST != type)
     return GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED;
-  if (xquery_size != 0)
+  if (0 != xquery_size)
   {
     GNUNET_break_op (0);
     return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;

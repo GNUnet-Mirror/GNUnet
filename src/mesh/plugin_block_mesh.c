@@ -26,8 +26,14 @@
 
 #include "platform.h"
 #include "gnunet_block_plugin.h"
+#include "block_mesh.h"
 
-#define DEBUG_MESH_BLOCK GNUNET_EXTRA_LOGGING
+/**
+ * Number of bits we set per entry in the bloomfilter.
+ * Do not change!
+ */
+#define BLOOMFILTER_K 16
+
 
 /**
  * Function called to validate a reply or a request.  For
@@ -55,16 +61,52 @@ block_plugin_mesh_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
                             size_t xquery_size, const void *reply_block,
                             size_t reply_block_size)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Evaluate called\n");
-  if (GNUNET_BLOCK_TYPE_MESH_PEER == type)
+  struct GNUNET_HashCode chash;
+  struct GNUNET_HashCode mhash;
+
+  switch (type)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Type MESH PEER\n");
+  case GNUNET_BLOCK_TYPE_MESH_PEER:
+    if (0 != xquery_size)
+    {
+      GNUNET_break_op (0);
+      return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
+    }
+    if (NULL == reply_block)
+      return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
+    if (sizeof (struct PBlock) != reply_block_size)  
+      return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;  
+    return GNUNET_BLOCK_EVALUATION_OK_LAST;
+  case GNUNET_BLOCK_TYPE_MESH_PEER_BY_TYPE:
+    /* FIXME: have an xquery? not sure */
+    if (0 != xquery_size)
+    {
+      GNUNET_break_op (0);
+      return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
+    }
+    if (NULL == reply_block)
+      return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
+    if (sizeof (struct PBlock) != reply_block_size)  
+      return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;  
+    if (NULL != bf)
+    {
+      GNUNET_CRYPTO_hash (reply_block, reply_block_size, &chash);
+      GNUNET_BLOCK_mingle_hash (&chash, bf_mutator, &mhash);
+      if (NULL != *bf)
+      {
+	if (GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test (*bf, &mhash))
+	  return GNUNET_BLOCK_EVALUATION_OK_DUPLICATE;
+      }
+      else
+      {
+	*bf = GNUNET_CONTAINER_bloomfilter_init (NULL, 8, BLOOMFILTER_K);
+      }
+      GNUNET_CONTAINER_bloomfilter_add (*bf, &mhash);
+    }
+    return GNUNET_BLOCK_EVALUATION_OK_MORE;
+  default:
+    return GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED;
   }
-  else
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Other type\n");
-  }
-  return GNUNET_BLOCK_EVALUATION_OK_LAST;
 }
 
 
@@ -84,8 +126,20 @@ block_plugin_mesh_get_key (void *cls, enum GNUNET_BLOCK_Type type,
                            const void *block, size_t block_size,
                            struct GNUNET_HashCode * key)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Get key called\n");
-  return GNUNET_SYSERR;
+  const struct PBlock *pb;
+
+  switch (type)
+  {
+  case GNUNET_BLOCK_TYPE_MESH_PEER:
+    if (sizeof (struct PBlock) != block_size)
+      return GNUNET_SYSERR;
+    pb = block;
+    *key = pb->id.hashPubKey;
+    return GNUNET_OK;
+    // FIXME: other types...
+  default:
+    return GNUNET_SYSERR;
+  }
 }
 
 
@@ -98,6 +152,7 @@ libgnunet_plugin_block_mesh_init (void *cls)
   static enum GNUNET_BLOCK_Type types[] =
   {
     GNUNET_BLOCK_TYPE_MESH_PEER,
+    GNUNET_BLOCK_TYPE_MESH_PEER_BY_TYPE,
     GNUNET_BLOCK_TYPE_ANY       /* end of list */
   };
   struct GNUNET_BLOCK_PluginFunctions *api;
