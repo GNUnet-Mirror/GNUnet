@@ -464,7 +464,8 @@ run_tests (void *cls, int32_t success, struct GNUNET_TIME_Absolute min_expiratio
 
 static void
 run (void *cls, 
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
+     const struct GNUNET_CONFIGURATION_Handle *cfg,
+     struct GNUNET_TESTING_Peer *peer)
 {
   struct CpsRunContext *crc;
   static struct GNUNET_HashCode zkey;

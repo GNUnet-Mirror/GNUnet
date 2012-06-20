@@ -177,7 +177,7 @@ status_cb (void *cls,
 static void
 run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg,
-     const struct GNUNET_TESTING_Peer *peer)
+     struct GNUNET_TESTING_Peer *peer)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Starting test...\n");
   config = cfg;
@@ -201,10 +201,9 @@ run (void *cls,
 int main (int argc, char **argv)
 {
 
-  if (0 != GNUNET_TESTING_service_run_restartable ("test_lockmanager_api",
-						   "arm",
-						   "test_lockmanager_api.conf",						   
-						   &run, NULL))
+  if (0 != GNUNET_TESTING_peer_run ("test_lockmanager_api",
+				    "test_lockmanager_api.conf",						   
+				    &run, NULL))
     return 1;
   return (TEST_FAIL == result) ? 1 : 0;
 }

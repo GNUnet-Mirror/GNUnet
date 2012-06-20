@@ -102,6 +102,7 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_SCHEDULER_cancel (abort_task);
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: Wait\n");
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 
@@ -306,8 +307,8 @@ stream_read_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  */
 static int
 stream_listen_cb (void *cls,
-           struct GNUNET_STREAM_Socket *socket,
-           const struct GNUNET_PeerIdentity *initiator)
+		  struct GNUNET_STREAM_Socket *socket,
+		  const struct GNUNET_PeerIdentity *initiator)
 {
   GNUNET_assert (NULL != socket);
   GNUNET_assert (socket != peer1.socket);
@@ -354,7 +355,7 @@ stream_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 run (void *cls, 
      const struct GNUNET_CONFIGURATION_Handle *cfg,
-     const struct GNUNET_TESTING_Peer *peer)
+     struct GNUNET_TESTING_Peer *peer)
 {
   struct GNUNET_PeerIdentity self;
   
@@ -380,10 +381,9 @@ run (void *cls,
  */
 int main (int argc, char **argv)
 {
-  if (0 != GNUNET_TESTING_service_run_restartable ("test-stream-big",
-						   "arm",
-						   "test_stream_local.conf",						   
-						   &run, NULL))
+  if (0 != GNUNET_TESTING_peer_run ("test-stream-big",
+				    "test_stream_local.conf",						   
+				    &run, NULL))
     return 1;
   return (GNUNET_SYSERR == result) ? 1 : 0;
 }
