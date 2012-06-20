@@ -1134,7 +1134,8 @@ GNUNET_ATS_address_add (struct GNUNET_ATS_SchedulingHandle *sh,
   memcpy (am, ats, ats_count * sizeof (struct GNUNET_ATS_Information));
   pm = (char *) &am[ats_count];
   memcpy (pm, address->address, address->address_length);
-  memcpy (&pm[address->address_length], address->transport_name, namelen);
+  if (NULL != address->transport_name)
+	memcpy (&pm[address->address_length], address->transport_name, namelen);
   GNUNET_CONTAINER_DLL_insert_tail (sh->pending_head, sh->pending_tail, p);
   do_transmit (sh);
   return GNUNET_OK;
