@@ -146,7 +146,8 @@ process (void *cls, const struct GNUNET_PeerIdentity *peer,
 
 static void
 run (void *cls, 
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
+     const struct GNUNET_CONFIGURATION_Handle *cfg,
+     struct GNUNET_TESTING_Peer *peer)
 {
   h = GNUNET_PEERINFO_connect (cfg);
   GNUNET_assert (NULL != h);
