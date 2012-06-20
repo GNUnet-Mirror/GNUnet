@@ -663,7 +663,7 @@ announce_application (void *cls, const struct GNUNET_HashCode * key, void *value
   GNUNET_DHT_put (dht_handle, key, 10,
                   GNUNET_DHT_RO_RECORD_ROUTE |
                   GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
-                  GNUNET_BLOCK_TYPE_MESH_PEER,
+                  GNUNET_BLOCK_TYPE_MESH_PEER_BY_TYPE,
                   sizeof (struct GNUNET_PeerIdentity),
                   (const char *) &my_full_id,
                   GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get (),
@@ -4459,7 +4459,7 @@ handle_local_connect_by_type (void *cls, struct GNUNET_SERVER_Client *client,
               GNUNET_h2s (&hash));
   t->dht_get_type =
       GNUNET_DHT_get_start (dht_handle, 
-                            GNUNET_BLOCK_TYPE_MESH_PEER,
+                            GNUNET_BLOCK_TYPE_MESH_PEER_BY_TYPE,
                             &hash,
                             10,
                             GNUNET_DHT_RO_RECORD_ROUTE |
