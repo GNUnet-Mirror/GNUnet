@@ -576,7 +576,7 @@ handle_zone_to_name_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
 /**
  * Handle incoming messages for record operations
  *
- * @param ze the respective zone iteration handle
+ * @param qe the respective zone iteration handle
  * @param msg the message we received
  * @param type the message type in HBO
  * @param size the message size
@@ -1159,7 +1159,7 @@ GNUNET_NAMESTORE_record_put (struct GNUNET_NAMESTORE_Handle *h,
  * to validate signatures received from the network.
  *
  * @param public_key public key of the zone
- * @param expire block expiration
+ * @param freshness block expiration
  * @param name name that is being mapped (at most 255 characters long)
  * @param rd_count number of entries in 'rd' array
  * @param rd array of records with data to store
@@ -1168,7 +1168,7 @@ GNUNET_NAMESTORE_record_put (struct GNUNET_NAMESTORE_Handle *h,
  */
 int
 GNUNET_NAMESTORE_verify_signature (const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *public_key,
-                                   const struct GNUNET_TIME_Absolute expire,
+                                   const struct GNUNET_TIME_Absolute freshness,
 				   const char *name,
 				   unsigned int rd_count,
 				   const struct GNUNET_NAMESTORE_RecordData *rd,

@@ -408,6 +408,7 @@ client_lookup (struct GNUNET_SERVER_Client *client)
   return nc;
 }
 
+
 /**
  * Called whenever a client is disconnected.
  * Frees our resources associated with that client.
@@ -444,6 +445,7 @@ client_disconnect_notification (void *cls, struct GNUNET_SERVER_Client *client)
   nc = NULL;
 }
 
+
 /**
  * Handles a 'GNUNET_MESSAGE_TYPE_NAMESTORE_START' message
  *
@@ -467,17 +469,52 @@ handle_start (void *cls,
 }
 
 
+/**
+ * LookupNameContext
+ *
+ * Context for name lookups passed from 'handle_lookup_name' to
+ * 'handle_lookup_name_it' as closure
+ */
 struct LookupNameContext
 {
-
+  /**
+   * The client to send the response to
+   */
   struct GNUNET_NAMESTORE_Client *nc;
+
+  /**
+   * Operation id for the name lookup
+   */
   uint32_t request_id;
+
+  /**
+   * Requested specific record type
+   */
   uint32_t record_type;
+
+  /**
+   * Requested zone
+   */
   struct GNUNET_CRYPTO_ShortHashCode *zone;
+
+  /**
+   * Requested name
+   */
   char *name;
 };
 
 
+/**
+ * A 'GNUNET_NAMESTORE_RecordIterator' for name lookups in handle_lookup_name
+ *
+ * @param cls a 'struct LookupNameContext *' with information about the request
+ * @param zone_key zone key of the zone
+ * @param expire expiration time
+ * @param name name
+ * @param rd_count number of records
+ * @param rd array of records
+ * @param signature signature
+ */
 static void
 handle_lookup_name_it (void *cls,
     const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
@@ -829,17 +866,62 @@ send:
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
+
+/**
+ * CreateRecordContext
+ *
+ * Context for record create operations passed from 'handle_record_create' to
+ * 'handle_create_record_it' as closure
+ */
 struct CreateRecordContext
 {
+  /**
+   * Record data
+   */
   struct GNUNET_NAMESTORE_RecordData *rd;
+
+  /**
+   * Zone's private key
+   */
   struct GNUNET_CRYPTO_RsaPrivateKey *pkey;
+
+  /**
+   * Zone's public key
+   */
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *pubkey;
+
+  /**
+   * Record expiration time
+   */
   struct GNUNET_TIME_Absolute expire;
+
+  /**
+   * Name for the record to create
+   */
   char *name;
+
+  /**
+   * result returned from 'handle_create_record_it'
+   * GNUNET_SYSERR: failed to create the record
+   * GNUNET_NO: we updated an existing record or identical entry existed
+   * GNUNET_YES : we created a new record
+   */
   int res;
 };
 
 
+/**
+ * A 'GNUNET_NAMESTORE_RecordIterator' for record create operations
+ * in handle_record_create
+ *
+ * @param cls a 'struct CreateRecordContext *' with information about the request
+ * @param pubkey zone key of the zone
+ * @param expire expiration time
+ * @param name name
+ * @param rd_count number of records
+ * @param rd array of records
+ * @param signature signature
+ */
 static void
 handle_create_record_it (void *cls,
 			 const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *pubkey,
@@ -1131,12 +1213,36 @@ send:
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
-
+/**
+ * RemoveRecordContext
+ *
+ * Context for record remove operations passed from 'handle_record_remove' to
+ * 'handle_record_remove_it' as closure
+ */
 struct RemoveRecordContext
 {
+  /**
+   * Record to remove
+   */
   struct GNUNET_NAMESTORE_RecordData *rd;
+
+  /**
+   * Zone's private keys
+   */
   struct GNUNET_CRYPTO_RsaPrivateKey *pkey;
+
+  /**
+   * Name to remove
+   */
   int remove_name;
+
+  /**
+   * 0 : Success
+   * 1 : Could not find record to remove, empty result set
+   * 2 : Could not find record to remove, record did not exist in result set
+   * 3 : Could not remove records from database
+   * 4 : Could not put records into database
+   */
   uint16_t op_res;
 };
 
@@ -1203,8 +1309,8 @@ handle_record_remove_it (void *cls,
                 name, res);
     if (GNUNET_OK != res)
     {
-      /* Could put records into database */
-      rrc->op_res = 4;
+      /* Could not remove records from database */
+      rrc->op_res = 3;
       return;
     }
     rrc->op_res = 0;
@@ -1241,7 +1347,7 @@ handle_record_remove_it (void *cls,
                                   &dummy_signature);
   if (GNUNET_OK != res)
   {
-    /* Could put records into database */
+    /* Could not put records into database */
     rrc->op_res = 4;
     return;
   }
@@ -1428,13 +1534,37 @@ send:
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
-
+/**
+ * ZoneToNameCtx
+ *
+ * Context for record remove operations passed from 'handle_zone_to_name' to
+ * 'handle_zone_to_name_it' as closure
+ */
 struct ZoneToNameCtx
 {
+  /**
+   * Namestore client
+   */
   struct GNUNET_NAMESTORE_Client *nc;
+
+  /**
+   * Request id
+   */
   uint32_t rid;
 };
 
+
+/**
+ * Zone to name iterator
+ *
+ * @param cls struct ZoneToNameCtx *
+ * @param zone_key the zone key
+ * @param expire expiration date
+ * @param name name
+ * @param rd_count number of records
+ * @param rd record data
+ * @param signature signature
+ */
 static void
 handle_zone_to_name_it (void *cls,
     const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
@@ -1584,7 +1714,10 @@ handle_zone_to_name (void *cls,
 
 
 /**
- * Copy record, data has to be free separetely
+ * Copy record, data has to be free'd separetely
+ *
+ * @param src source record
+ * @param dest destination record
  */
 static void
 copy_record (const struct GNUNET_NAMESTORE_RecordData *src, struct GNUNET_NAMESTORE_RecordData *dest)
@@ -1595,22 +1728,78 @@ copy_record (const struct GNUNET_NAMESTORE_RecordData *src, struct GNUNET_NAMEST
   memcpy ((void *) dest->data, src->data, src->data_size);
 }
 
+
+/**
+ * ZoneIterationProcResult
+ *
+ * Context for record remove operations passed from
+ * 'find_next_zone_iteration_result' to 'zone_iteraterate_proc' as closure
+ */
 struct ZoneIterationProcResult
 {
+  /**
+   * The zone iteration handle
+   */
   struct GNUNET_NAMESTORE_ZoneIteration *zi;
 
+  /**
+   * Iteration result: iteration done?
+   */
   int res_iteration_finished;
+
+  /**
+   * Iteration result: number of records included
+   */
   int records_included;
+
+  /**
+   * Iteration result: is a valid signature included?
+   */
   int has_signature;
 
+  /**
+   * Name
+   */
   char *name;
+
+  /**
+   * Zone hash
+   */
   struct GNUNET_CRYPTO_ShortHashCode zone_hash;
+
+  /**
+   * Record data
+   */
   struct GNUNET_NAMESTORE_RecordData *rd;
+
+  /**
+   * Zone's public key
+   */
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded zone_key;
+
+  /**
+   * Signature
+   */
   struct GNUNET_CRYPTO_RsaSignature signature;
+
+  /**
+   * Expiration date
+   */
   struct GNUNET_TIME_Absolute expire;
 };
 
+
+/**
+ * Process results for zone iteration from database
+ *
+ * @param cls struct ZoneIterationProcResult *proc
+ * @param zone_key the zone key
+ * @param expire expiration time
+ * @param name name
+ * @param rd_count number of records for this name
+ * @param rd record data
+ * @param signature block signature
+ */
 
 static void
 zone_iteraterate_proc (void *cls,
@@ -1738,6 +1927,11 @@ zone_iteraterate_proc (void *cls,
 
 }
 
+
+/**
+ *  Find next zone iteration result in database
+ *  @param proc the zone iteration processing to use
+ */
 static void
 find_next_zone_iteration_result (struct ZoneIterationProcResult *proc)
 {
@@ -1758,6 +1952,10 @@ find_next_zone_iteration_result (struct ZoneIterationProcResult *proc)
 }
 
 
+/**
+ * Send zone iteration result to client
+ * @param proc the zone iteration processing result to send
+ */
 static void
 send_zone_iteration_result (struct ZoneIterationProcResult *proc)
 {
@@ -1836,6 +2034,11 @@ send_zone_iteration_result (struct ZoneIterationProcResult *proc)
   }
 }
 
+
+/**
+ * Clean up after zone iteration
+ * @param proc the zone iteration processor
+ */
 static void
 clean_up_zone_iteration_result (struct ZoneIterationProcResult *proc)
 {
@@ -2030,6 +2233,14 @@ handle_iteration_next (void *cls,
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
+
+/**
+ * Load zone keys from directory by reading all .zkey files in this directory
+ *
+ * @param cls int * 'counter' to store the number of files found
+ * @param filename directory to scan
+ * @return GNUNET_OK to continue
+ */
 static int
 zonekey_file_it (void *cls, const char *filename)
 {
@@ -2059,7 +2270,7 @@ zonekey_file_it (void *cls, const char *filename)
 
 
 /**
- * Process template requests.
+ * Process namestore requests.
  *
  * @param cls closure
  * @param server the initialized server
