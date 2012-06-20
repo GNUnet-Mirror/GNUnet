@@ -897,3 +897,5 @@ int main (int argc, char *const *argv)
                          &lockmanager_run,
                          NULL)) ? 0 : 1;
 }
+
+/* end of gnunet-service-lockmanager.c */

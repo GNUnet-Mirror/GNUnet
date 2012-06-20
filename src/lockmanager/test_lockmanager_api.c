@@ -202,8 +202,10 @@ int main (int argc, char **argv)
 {
 
   if (0 != GNUNET_TESTING_peer_run ("test_lockmanager_api",
-				    "test_lockmanager_api.conf",						   
+				    "test_lockmanager_api.conf",
 				    &run, NULL))
     return 1;
   return (TEST_FAIL == result) ? 1 : 0;
 }
+
+/* end of test_lockmanager_api.c */

@@ -62,16 +62,19 @@ test_lockmanager_api_lockrelease_SOURCES = \
   test_lockmanager_api_lockrelease.c
 test_lockmanager_api_lockrelease_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/testing/libgnunettesting.la \
   libgnunetlockmanager.la
 
 test_lockmanager_api_servercrash_SOURCES = \
   test_lockmanager_api_servercrash.c
 test_lockmanager_api_servercrash_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/testing/libgnunettesting.la \
   libgnunetlockmanager.la
 
 test_lockmanager_api_acquireretry_SOURCES = \
   test_lockmanager_api_acquireretry.c
 test_lockmanager_api_acquireretry_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/testing/libgnunettesting.la \
   libgnunetlockmanager.la

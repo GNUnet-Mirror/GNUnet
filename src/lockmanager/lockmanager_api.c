@@ -734,3 +734,5 @@ GNUNET_LOCKMANAGER_cancel_request (struct GNUNET_LOCKMANAGER_LockingRequest
   GNUNET_free (request);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "%s() END\n", __func__);
 }
+
+/* end of lockmanager_api.c */
