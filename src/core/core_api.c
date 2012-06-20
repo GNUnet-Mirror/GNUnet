@@ -364,19 +364,19 @@ disconnect_and_free_peer_entry (void *cls, const struct GNUNET_HashCode * key,
   struct GNUNET_CORE_TransmitHandle *th;
   struct PeerRecord *pr = value;
 
-  if (pr->timeout_task != GNUNET_SCHEDULER_NO_TASK)
+  if (GNUNET_SCHEDULER_NO_TASK != pr->timeout_task)
   {
     GNUNET_SCHEDULER_cancel (pr->timeout_task);
     pr->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   }
-  if (pr->ntr_task != GNUNET_SCHEDULER_NO_TASK)
+  if (GNUNET_SCHEDULER_NO_TASK != pr->ntr_task)
   {
     GNUNET_SCHEDULER_cancel (pr->ntr_task);
     pr->ntr_task = GNUNET_SCHEDULER_NO_TASK;
   }
-  if ((pr->prev != NULL) || (pr->next != NULL) || (h->ready_peer_head == pr))
+  if ((NULL != pr->prev) || (NULL != pr->next) || (h->ready_peer_head == pr))
     GNUNET_CONTAINER_DLL_remove (h->ready_peer_head, h->ready_peer_tail, pr);
-  if (h->disconnects != NULL)
+  if (NULL != h->disconnects)
     h->disconnects (h->cls, &pr->peer);
   /* all requests should have been cancelled, clean up anyway, just in case */
   th = &pr->th;
@@ -384,15 +384,15 @@ disconnect_and_free_peer_entry (void *cls, const struct GNUNET_HashCode * key,
   {
     GNUNET_break (0);
     th->peer = NULL;
-    if (th->cm != NULL)
+    if (NULL != th->cm)
       th->cm->th = NULL;
   }
   /* done with 'voluntary' cleanups, now on to normal freeing */
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multihashmap_remove (h->peers, key, pr));
   GNUNET_assert (pr->ch == h);
-  GNUNET_assert (pr->timeout_task == GNUNET_SCHEDULER_NO_TASK);
-  GNUNET_assert (pr->ntr_task == GNUNET_SCHEDULER_NO_TASK);
+  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == pr->timeout_taks);
+  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == pr->ntr_task);
   GNUNET_free (pr);
   return GNUNET_YES;
 }
@@ -410,13 +410,13 @@ reconnect_later (struct GNUNET_CORE_Handle *h)
   struct ControlMessage *cm;
   struct PeerRecord *pr;
 
-  GNUNET_assert (h->reconnect_task == GNUNET_SCHEDULER_NO_TASK);
+  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == h->reconnect_task);
   if (NULL != h->cth)
   {
     GNUNET_CLIENT_notify_transmit_ready_cancel (h->cth);
     h->cth = NULL;
   }
-  if (h->client != NULL)
+  if (NULL != h->client)
   {
     GNUNET_CLIENT_disconnect (h->client);
     h->client = NULL;
@@ -429,9 +429,9 @@ reconnect_later (struct GNUNET_CORE_Handle *h)
   {
     GNUNET_CONTAINER_DLL_remove (h->control_pending_head,
                                  h->control_pending_tail, cm);
-    if (cm->th != NULL)
+    if (NULL != cm->th)
       cm->th->cm = NULL;
-    if (cm->cont != NULL)
+    if (NULL != cm->cont)
       cm->cont (cm->cont_cls, GNUNET_NO);
     GNUNET_free (cm);
   }
@@ -537,9 +537,14 @@ transmission_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_CORE_TransmitHandle *th;
 
   pr->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  if (GNUNET_SCHEDULER_NO_TASK != pr->ntr_task)
+  {
+    GNUNET_SCHEDULER_cancel (pr->ntr_task);
+    pr->ntr_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   th = &pr->th;
   th->peer = NULL;
-  if ((pr->prev != NULL) || (pr->next != NULL) || (pr == h->ready_peer_head))
+  if ((NULL != pr->prev) || (NULL != pr->next) || (pr == h->ready_peer_head))
   {
     /* the request that was 'approved' by core was
      * canceled before it could be transmitted; remove
@@ -584,7 +589,7 @@ transmit_message (void *cls, size_t size, void *buf)
 
   GNUNET_assert (h->reconnect_task == GNUNET_SCHEDULER_NO_TASK);
   h->cth = NULL;
-  if (buf == NULL)
+  if (NULL == buf)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Transmission failed, initiating reconnect\n");
@@ -607,7 +612,7 @@ transmit_message (void *cls, size_t size, void *buf)
     memcpy (buf, hdr, msize);
     GNUNET_CONTAINER_DLL_remove (h->control_pending_head,
                                  h->control_pending_tail, cm);
-    if (cm->th != NULL)
+    if (NULL != cm->th)
       cm->th->cm = NULL;
     if (NULL != cm->cont)
       cm->cont (cm->cont_cls, GNUNET_OK);
@@ -627,7 +632,7 @@ transmit_message (void *cls, size_t size, void *buf)
   }
   GNUNET_CONTAINER_DLL_remove (h->ready_peer_head, h->ready_peer_tail, pr);
   th->peer = NULL;
-  if (pr->timeout_task != GNUNET_SCHEDULER_NO_TASK)
+  if (GNUNET_SCHEDULER_NO_TASK != pr->timeout_task)
   {
     GNUNET_SCHEDULER_cancel (pr->timeout_task);
     pr->timeout_task = GNUNET_SCHEDULER_NO_TASK;
@@ -699,7 +704,7 @@ trigger_next_request (struct GNUNET_CORE_Handle *h, int ignore_currently_down)
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Request pending, not processing queue\n");
     return;
   }
-  if (h->control_pending_head != NULL)
+  if (NULL != h->control_pending_head)
     msize =
         ntohs (((struct GNUNET_MessageHeader *) &h->
                 control_pending_head[1])->size);
