@@ -268,7 +268,7 @@ do_lookup(void *cls, const struct GNUNET_PeerIdentity *id,
   rd.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
   rd.data = &bob_hash;
   rd.record_type = GNUNET_GNS_RECORD_PKEY;
-  rd.flags = 0;
+  rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
 
   GNUNET_NAMESTORE_record_create (namestore_handle,
                                   alice_key,

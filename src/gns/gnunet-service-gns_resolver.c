@@ -1396,6 +1396,7 @@ handle_dns_resolver (void *cls,
   }
   
   rd.expiration_time = UINT64_MAX; /* FIXME: should probably pick something shorter */
+  rd.flags = 0;
 
   finish_lookup (rh, rlh, 1, &rd);
   free_resolver_handle (rh);

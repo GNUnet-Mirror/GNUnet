@@ -269,7 +269,7 @@ do_lookup(void *cls, const struct GNUNET_PeerIdentity *id,
   rd.data_size = sizeof(struct in_addr);
   rd.data = web;
   rd.record_type = GNUNET_DNSPARSER_TYPE_A;
-  rd.flags = 0;
+  rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
 
   GNUNET_NAMESTORE_record_create (namestore_handle,
                                   alice_key,
