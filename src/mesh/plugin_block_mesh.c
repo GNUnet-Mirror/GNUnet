@@ -127,16 +127,18 @@ block_plugin_mesh_get_key (void *cls, enum GNUNET_BLOCK_Type type,
                            struct GNUNET_HashCode * key)
 {
   const struct PBlock *pb;
+  pb = block;
 
   switch (type)
   {
   case GNUNET_BLOCK_TYPE_MESH_PEER:
     if (sizeof (struct PBlock) != block_size)
       return GNUNET_SYSERR;
-    pb = block;
     *key = pb->id.hashPubKey;
     return GNUNET_OK;
-    // FIXME: other types...
+  case GNUNET_BLOCK_TYPE_MESH_PEER_BY_TYPE:
+    GNUNET_CRYPTO_hash (&pb->type, sizeof(GNUNET_MESH_ApplicationType), key);
+    return GNUNET_OK;
   default:
     return GNUNET_SYSERR;
   }

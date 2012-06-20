@@ -677,8 +677,8 @@ announce_application (void *cls, const struct GNUNET_HashCode * key, void *value
                   GNUNET_DHT_RO_RECORD_ROUTE |
                   GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
                   GNUNET_BLOCK_TYPE_MESH_PEER_BY_TYPE,
-                  sizeof (struct PBlock),
-                  &block,
+                  sizeof (block),
+                  (const char *) &block,
                   GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get (),
                                             APP_ANNOUNCE_TIME),
                   APP_ANNOUNCE_TIME, NULL, NULL);
@@ -723,6 +723,8 @@ announce_applications (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  struct PBlock block;
+
   if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
   {
     announce_id_task = GNUNET_SCHEDULER_NO_TASK;
@@ -734,13 +736,15 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
    */
   DEBUG_DHT ("DHT_put for ID %s started.\n", GNUNET_i2s (&my_full_id));
 
+  block.id = my_full_id;
+  block.type = htonl (0);
   GNUNET_DHT_put (dht_handle,   /* DHT handle */
                   &my_full_id.hashPubKey,       /* Key to use */
                   10,          /* Replication level */
                   GNUNET_DHT_RO_RECORD_ROUTE | GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,    /* DHT options */
                   GNUNET_BLOCK_TYPE_MESH_PEER,       /* Block type */
-                  sizeof (my_full_id),  /* Size of the data */
-                  (char *) &my_full_id, /* Data itself */
+                  sizeof (block),  /* Size of the data */
+                  (const char *) &block, /* Data itself */
                   GNUNET_TIME_UNIT_FOREVER_ABS,  /* Data expiration */
                   GNUNET_TIME_UNIT_FOREVER_REL, /* Retry time */
                   NULL,         /* Continuation */
