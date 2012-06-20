@@ -19,8 +19,9 @@
 */
 
 /**
- * @file lockmanager/test_lockmanager_api_lockrelease.c
- * @brief Test cases for lockmanager_api where client disconnects abruptly
+ * @file lockmanager/test_lockmanager_api_acquireretry.c
+ * @brief Test cases for lockmanager_api where the server crashes and comes
+ *          back; the api should try to acqurie the lock again
  * @author Sree Harsha Totakura
  */
 
@@ -28,18 +29,17 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_lockmanager_service.h"
 
-#define VERBOSE GNUNET_YES
-
-#define VERBOSE_ARM 1
-
+/**
+ * Generic logging shortcut
+ */
 #define LOG(kind,...)                           \
   GNUNET_log (kind, __VA_ARGS__)
 
-#define TIME_REL_SECONDS(min)                                   \
-  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, min)
+#define TIME_REL_SECS(sec)                                      \
+  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, sec)
 
 /**
- * Various steps of the test
+ * Various stages in test
  */
 enum Test
   {
@@ -47,28 +47,27 @@ enum Test
      * Signal test failure
      */
     TEST_FAIL,
-
+    
     /**
      * Testing just began
      */
     TEST_INIT,
+    
+    /**
+     * Client has successfully acquired the lock
+     */
+    TEST_CLIENT_LOCK_SUCESS,
 
     /**
-     * Client 1 has got the lock successfully; Client 2 should try to acquire
-     * the lock now; after some time client 1 has to release the lock
+     * Client has lost the lock
      */
-    TEST_CLIENT1_LOCK_SUCCESS,
+    TEST_CLIENT_LOCK_RELEASE,
 
     /**
-     * Client 2 has got the lock; Should release it and call shutdown
+     * Client has again acquired the lock
      */
-    TEST_CLIENT2_LOCK_SUCCESS,
+    TEST_CLIENT_LOCK_AGAIN_SUCCESS
   };
-
-/**
- * The testing result
- */
-static enum Test result;
 
 /**
  * The process id of the GNUNET ARM process
@@ -86,24 +85,19 @@ static struct GNUNET_CONFIGURATION_Handle *config;
 static struct GNUNET_LOCKMANAGER_Handle *handle;
 
 /**
- * A second client handle to the lockmanager service
- */
-static struct GNUNET_LOCKMANAGER_Handle *handle2;
-
-/**
  * The locking request
  */
 static struct GNUNET_LOCKMANAGER_LockingRequest *request;
 
 /**
- * The locking request of second client
- */
-static struct GNUNET_LOCKMANAGER_LockingRequest *request2;
-
-/**
  * Abort task identifier
  */
 static GNUNET_SCHEDULER_TaskIdentifier abort_task_id;
+
+/**
+ * The test result
+ */
+enum Test result;
 
 
 /**
@@ -120,21 +114,21 @@ do_shutdown (void *cls, const const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_SCHEDULER_cancel (abort_task_id);
     abort_task_id = GNUNET_SCHEDULER_NO_TASK;
   }
-  
-  GNUNET_LOCKMANAGER_disconnect (handle);
-  GNUNET_LOCKMANAGER_disconnect (handle2);
-  if (0 != GNUNET_OS_process_kill (arm_pid, SIGTERM))
+  if (NULL != handle)
+    GNUNET_LOCKMANAGER_disconnect (handle);
+  if (NULL != arm_pid)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Kill gnunet-service-arm manually\n");
+    if (0 != GNUNET_OS_process_kill (arm_pid, SIGTERM))
+    {
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Kill gnunet-service-arm manually\n");
+    }
+    GNUNET_OS_process_wait (arm_pid);
+    GNUNET_OS_process_destroy (arm_pid);
   }
-  GNUNET_OS_process_wait (arm_pid);
-  GNUNET_OS_process_destroy (arm_pid);
-
   if (NULL != config)
     GNUNET_CONFIGURATION_destroy (config);
 }
-
 
 /**
  * Abort
@@ -173,33 +167,44 @@ status_cb (void *cls,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Status change callback called on lock: %d of domain: %s\n",
        lock, domain_name);
-  GNUNET_assert (GNUNET_LOCKMANAGER_SUCCESS == status);
   switch (result)
   {
   case TEST_INIT:
     GNUNET_assert (handle == cls);
-    result = TEST_CLIENT1_LOCK_SUCCESS;
-    request2 = GNUNET_LOCKMANAGER_acquire_lock (handle2,
-                                                "GNUNET_LOCKMANAGER_TESTING",
-                                                99,
-                                                &status_cb,
-                                                handle2);
-    GNUNET_assert (NULL != request2);
+    GNUNET_assert (GNUNET_LOCKMANAGER_SUCCESS == status);
+    result = TEST_CLIENT_LOCK_SUCCESS;
+    /* We should kill the lockmanager process */
+    if (0 != GNUNET_OS_process_kill (arm_pid, SIGTERM))
+    {
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Kill gnunet-service-arm manually\n");
+    }
+    GNUNET_OS_process_wait (arm_pid);
+    GNUNET_OS_process_destroy (arm_pid);
+    arm_pid =NULL;
+    break;
+  case TEST_CLIENT_LOCK_SUCCESS:
+    GNUNET_assert (handle == cls);
+    GNUNET_assert (GNUNET_LOCKMANAGER_RELEASE == status);
+    result = TEST_CLIENT_LOCK_RELEASE;
+    /* Now we should start again the lockmanager process */
+    arm_pid = 
+      GNUNET_OS_start_process (GNUNET_YES, NULL, NULL, "gnunet-service-arm",
+                               "gnunet-service-arm",
+                               "-c", "test_lockmanager_api.conf", NULL);
+    GNUNET_assert (NULL != arm_pid);
+    break;
+  case TEST_CLIENT_LOCK_RELEASE:
+    GNUNET_asset (handle == cls);
+    GNUNET_assert (GNUNET_LOCKMANAGER_SUCCESS == status);
+    result = TEST_CLIENT_LOCK_AGAIN_SUCCESS;
     GNUNET_LOCKMANAGER_cancel_request (request);
     request = NULL;
-    break;
-  case TEST_CLIENT1_LOCK_SUCCESS:
-    GNUNET_assert (handle2 == cls);
-    result = TEST_CLIENT2_LOCK_SUCCESS;
-    GNUNET_LOCKMANAGER_cancel_request (request2);
-    GNUNET_SCHEDULER_add_delayed (TIME_REL_SECONDS (1),
-                                  &do_shutdown,
-                                  NULL);
+    GNUNET_SCHEDULER_add_delayed (TIME_REL_SECS(1), &do_shutdown, NULL);
     break;
   default:
     GNUNET_assert (0);          /* We should never reach here */
   }
-
 }
 
 
@@ -215,17 +220,15 @@ test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   result = TEST_INIT;
   handle = GNUNET_LOCKMANAGER_connect (config);
   GNUNET_assert (NULL != handle);
-  handle2 = GNUNET_LOCKMANAGER_connect (config);
-  
   request = GNUNET_LOCKMANAGER_acquire_lock (handle,
                                              "GNUNET_LOCKMANAGER_TESTING",
                                              99,
                                              &status_cb,
                                              handle);
   GNUNET_assert (NULL != request);
-  abort_task_id = GNUNET_SCHEDULER_add_delayed (TIME_REL_SECONDS (10),
+  abort_task_id = GNUNET_SCHEDULER_add_delayed (TIME_REL_SECS (10),
                                                 &do_abort,
-                                                NULL);
+                                                NULL);  
 }
 
 
@@ -236,20 +239,13 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Starting test...\n");
-  config = GNUNET_CONFIGURATION_dup (cfg);
+  config = cfg;
   arm_pid = 
     GNUNET_OS_start_process (GNUNET_YES, NULL, NULL, "gnunet-service-arm",
                              "gnunet-service-arm",
-#if VERBOSE_ARM
-                             "-L", "DEBUG",
-#endif
                              "-c", "test_lockmanager_api.conf", NULL);
-
   GNUNET_assert (NULL != arm_pid);
-  GNUNET_SCHEDULER_add_delayed (TIME_REL_SECONDS (3),
-                                &test,
-                                NULL);
+  GNUNET_SCHEDULER_add_delayed (TIME_REL_SECS(3), &test, NULL);
 }
 
 
@@ -260,38 +256,25 @@ int main (int argc, char **argv)
 {
   int ret;
 
-  char *const argv2[] = { "test_lockmanager_api_lockrelease",
+  char *const argv2[] = { "test_lockmanager_api_servercrash",
                           "-c", "test_lockmanager_api.conf",
-#if VERBOSE
-                          "-L", "DEBUG",
-#endif
                           NULL
-  };
-  
+  };  
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
   
-  GNUNET_log_setup ("test_lockmanager_api_lockrelease",
-#if VERBOSE
-                    "DEBUG",
-#else
-                    "WARNING",
-#endif
-                    NULL);
-
   ret =
     GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
-                        "test_lockmanager_api_lockrelease",
+                        "test_lockmanager_api_servercrash",
                         "nohelp", options, &run, NULL);
-
   if (GNUNET_OK != ret)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING, "run failed with error code %d\n",
          ret);
     return 1;
   }
-  if (TEST_CLIENT2_LOCK_SUCCESS != result)
+  if (TEST_CLIENT_LOCK_AGAIN_SUCCESS != result)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING, "test failed\n");
     return 1;

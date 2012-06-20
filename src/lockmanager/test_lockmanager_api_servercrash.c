@@ -217,6 +217,8 @@ status_cb (void *cls,
     GNUNET_assert (99 == lock);
     GNUNET_assert (0 == strcmp (domain_name, "GNUNET_LOCKMANAGER_TESTING"));
     result = TEST_CLIENT2_SERVER_CRASH_SUCCESS;
+    GNUNET_LOCKMANAGER_cancel_request (request2);
+    request2 = NULL;
     GNUNET_SCHEDULER_add_delayed (TIME_REL_SECONDS (1),
                                   &do_shutdown,
                                   NULL);
@@ -285,7 +287,7 @@ int main (int argc, char **argv)
 {
   int ret;
 
-  char *const argv2[] = { "test-lockmanager-api-servercrash",
+  char *const argv2[] = { "test_lockmanager_api_servercrash",
                           "-c", "test_lockmanager_api.conf",
 #if VERBOSE
                           "-L", "DEBUG",
@@ -297,7 +299,7 @@ int main (int argc, char **argv)
     GNUNET_GETOPT_OPTION_END
   };
   
-  GNUNET_log_setup ("test-lockmanager-api-servercrash",
+  GNUNET_log_setup ("test_lockmanager_api_servercrash",
 #if VERBOSE
                     "DEBUG",
 #else
@@ -307,7 +309,7 @@ int main (int argc, char **argv)
 
   ret =
     GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
-                        "test-lockmanager-api-servercrash",
+                        "test_lockmanager_api_servercrash",
                         "nohelp", options, &run, NULL);
 
   if (GNUNET_OK != ret)

@@ -39,9 +39,9 @@ libgnunetlockmanager_la_LDFLAGS = \
   -version-info 0:0:0
 
 check_PROGRAMS = \
-  test-lockmanager-api \
-  test-lockmanager-api-lockrelease \
-  test-lockmanager-api-servercrash
+  test_lockmanager_api \
+  test_lockmanager_api_lockrelease \
+  test_lockmanager_api_servercrash
 
 EXTRA_DIST = \
   test_lockmanager_api.conf

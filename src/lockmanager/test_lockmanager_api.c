@@ -239,7 +239,7 @@ int main (int argc, char **argv)
 {
   int ret;
 
-  char *const argv2[] = { "test-lockmanager-api",
+  char *const argv2[] = { "test_lockmanager_api",
                           "-c", "test_lockmanager_api.conf",
 #if VERBOSE
                           "-L", "DEBUG",
@@ -251,7 +251,7 @@ int main (int argc, char **argv)
     GNUNET_GETOPT_OPTION_END
   };
   
-  GNUNET_log_setup ("test-lockmanager-api",
+  GNUNET_log_setup ("test_lockmanager_api",
 #if VERBOSE
                     "DEBUG",
 #else
@@ -261,7 +261,7 @@ int main (int argc, char **argv)
 
   ret =
     GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
-                        "test-lockmanager-api", "nohelp", options, &run, NULL);
+                        "test_lockmanager_api", "nohelp", options, &run, NULL);
 
   if (GNUNET_OK != ret)
   {
