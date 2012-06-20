@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009 Christian Grothoff (and other contributing authors)
+     (C) 2012 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -154,25 +154,24 @@ struct GNUNET_NAMESTORE_CryptoContainer
 
 
 /**
-* Configuration handle.
-*/
+ * Configuration handle.
+ */
 const struct GNUNET_CONFIGURATION_Handle *GSN_cfg;
 
 /**
-* Database handle
-*/
+ * Database handle
+ */
 struct GNUNET_NAMESTORE_PluginFunctions *GSN_database;
 
 /**
-* Zonefile directory
-*/
+ * Zonefile directory
+ */
 static char *zonefile_directory;
 
 /**
  * Name of the database plugin
  */
 static char *db_lib_name;
-
 
 /**
  * Our notification context.
@@ -222,7 +221,8 @@ write_key_to_file (const char *filename, struct GNUNET_NAMESTORE_CryptoContainer
     if (privkey == NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-           _("File zone `%s' but corrupt content already exists, failed to write! \n"), GNUNET_short_h2s (&zone));
+		  _("File zone `%s' but corrupt content already exists, failed to write! \n"), 
+		  GNUNET_short_h2s (&zone));
       return GNUNET_SYSERR;
     }
 
@@ -239,7 +239,8 @@ write_key_to_file (const char *filename, struct GNUNET_NAMESTORE_CryptoContainer
     else
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-           _("File zone `%s' but different zone key already exists, failed to write! \n"), GNUNET_short_h2s (&zone));
+		  _("File zone `%s' but different zone key already exists, failed to write! \n"),
+		  GNUNET_short_h2s (&zone));
       return GNUNET_OK;
     }
   }
@@ -277,7 +278,8 @@ write_key_to_file (const char *filename, struct GNUNET_NAMESTORE_CryptoContainer
   GNUNET_assert (GNUNET_YES == GNUNET_DISK_file_close (fd));
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-       _("Stored zonekey for zone `%s' in file `%s'\n"), GNUNET_short_h2s(&c->zone), c->filename);
+	      "Stored zonekey for zone `%s' in file `%s'\n",
+	      GNUNET_short_h2s(&c->zone), c->filename);
   return GNUNET_OK;
 }
 
@@ -1213,6 +1215,7 @@ send:
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
+
 /**
  * RemoveRecordContext
  *
@@ -1246,6 +1249,10 @@ struct RemoveRecordContext
   uint16_t op_res;
 };
 
+
+/**
+ * FIXME...
+ */
 static void
 handle_record_remove_it (void *cls,
     const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
@@ -1354,6 +1361,7 @@ handle_record_remove_it (void *cls,
 
   rrc->op_res = 0;
 }
+
 
 /**
  * Handles a 'GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_REMOVE' message
@@ -1616,8 +1624,6 @@ handle_zone_to_name_it (void *cls,
   else
     contains_sig = GNUNET_NO;
 
-
-
   msg_size = sizeof (struct ZoneToNameResponseMessage) + name_len + rd_ser_len + contains_sig * sizeof (struct GNUNET_CRYPTO_RsaSignature);
   ztnr_msg = GNUNET_malloc (msg_size);
 
@@ -1652,6 +1658,7 @@ handle_zone_to_name_it (void *cls,
   GNUNET_free (ztnr_msg);
   GNUNET_free_non_null (rd_ser);
 }
+
 
 /**
  * Handles a 'GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_TO_NAME' message
@@ -1722,7 +1729,6 @@ handle_zone_to_name (void *cls,
 static void
 copy_record (const struct GNUNET_NAMESTORE_RecordData *src, struct GNUNET_NAMESTORE_RecordData *dest)
 {
-
   memcpy (dest, src, sizeof (struct GNUNET_NAMESTORE_RecordData));
   dest->data = GNUNET_malloc (src->data_size);
   memcpy ((void *) dest->data, src->data, src->data_size);
@@ -1800,7 +1806,6 @@ struct ZoneIterationProcResult
  * @param rd record data
  * @param signature block signature
  */
-
 static void
 zone_iteraterate_proc (void *cls,
                        const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
@@ -1924,7 +1929,6 @@ zone_iteraterate_proc (void *cls,
     GNUNET_break (0);
     return;
   }
-
 }
 
 
@@ -1948,7 +1952,7 @@ find_next_zone_iteration_result (struct ZoneIterationProcResult *proc)
     GSN_database->iterate_records (GSN_database->cls, zone , NULL, proc->zi->offset, &zone_iteraterate_proc, proc);
     proc->zi->offset++;
   }
-  while ((proc->records_included == 0) && (GNUNET_NO == proc->res_iteration_finished));
+  while ((0 == proc->records_included) && (GNUNET_NO == proc->res_iteration_finished));
 }
 
 
@@ -1987,51 +1991,49 @@ send_zone_iteration_result (struct ZoneIterationProcResult *proc)
     GNUNET_free (zi);
     return;
   }
-  else
-  {
-    GNUNET_assert (proc->records_included > 0);
 
-    struct ZoneIterationResponseMessage *zir_msg;
-    if (zi->has_zone == GNUNET_YES)
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending name `%s' for iteration over zone `%s'\n",
-          proc->name, GNUNET_short_h2s(&zi->zone));
-    if (zi->has_zone == GNUNET_NO)
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending name `%s' for iteration over all zones\n",
-          proc->name);
+  GNUNET_assert (proc->records_included > 0);
 
-    size_t name_len;
-    size_t rd_ser_len;
-    size_t msg_size;
-    char *name_tmp;
-    char *rd_tmp;
-    name_len = strlen (proc->name) +1;
+  struct ZoneIterationResponseMessage *zir_msg;
+  size_t name_len;
+  size_t rd_ser_len;
+  size_t msg_size;
+  char *name_tmp;
+  char *rd_tmp;
 
-    rd_ser_len = GNUNET_NAMESTORE_records_get_size(proc->records_included, proc->rd);
-    char rd_ser[rd_ser_len];
-    GNUNET_NAMESTORE_records_serialize(proc->records_included, proc->rd, rd_ser_len, rd_ser);
-    msg_size = sizeof (struct ZoneIterationResponseMessage) + name_len + rd_ser_len;
-    zir_msg = GNUNET_malloc(msg_size);
-
-    name_tmp = (char *) &zir_msg[1];
-    rd_tmp = &name_tmp[name_len];
-
-    zir_msg->gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_RESPONSE);
-    zir_msg->gns_header.header.size = htons (msg_size);
-    zir_msg->gns_header.r_id = htonl(zi->request_id);
-    zir_msg->expire = GNUNET_TIME_absolute_hton(proc->expire);
-    zir_msg->reserved = htons (0);
-    zir_msg->name_len = htons (name_len);
-    zir_msg->rd_count = htons (proc->records_included);
-    zir_msg->rd_len = htons (rd_ser_len);
-    zir_msg->signature = proc->signature;
-    zir_msg->public_key = proc->zone_key;
-    memcpy (name_tmp, proc->name, name_len);
-    memcpy (rd_tmp, rd_ser, rd_ser_len);
-
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message with size %u\n", "ZONE_ITERATION_RESPONSE", msg_size);
-    GNUNET_SERVER_notification_context_unicast (snc, zi->client->client, (const struct GNUNET_MessageHeader *) zir_msg, GNUNET_NO);
-    GNUNET_free (zir_msg);
-  }
+  if (zi->has_zone == GNUNET_YES)
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending name `%s' for iteration over zone `%s'\n",
+		proc->name, GNUNET_short_h2s(&zi->zone));
+  if (zi->has_zone == GNUNET_NO)
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending name `%s' for iteration over all zones\n",
+		proc->name);
+  name_len = strlen (proc->name) +1;
+  rd_ser_len = GNUNET_NAMESTORE_records_get_size(proc->records_included, proc->rd);  
+  char rd_ser[rd_ser_len];
+  GNUNET_NAMESTORE_records_serialize(proc->records_included, proc->rd, rd_ser_len, rd_ser);
+  msg_size = sizeof (struct ZoneIterationResponseMessage) + name_len + rd_ser_len;
+  zir_msg = GNUNET_malloc(msg_size);
+  name_tmp = (char *) &zir_msg[1];
+  rd_tmp = &name_tmp[name_len];
+  zir_msg->gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_RESPONSE);
+  zir_msg->gns_header.header.size = htons (msg_size);
+  zir_msg->gns_header.r_id = htonl(zi->request_id);
+  zir_msg->expire = GNUNET_TIME_absolute_hton(proc->expire);
+  zir_msg->reserved = htons (0);
+  zir_msg->name_len = htons (name_len);
+  zir_msg->rd_count = htons (proc->records_included);
+  zir_msg->rd_len = htons (rd_ser_len);
+  zir_msg->signature = proc->signature;
+  zir_msg->public_key = proc->zone_key;
+  memcpy (name_tmp, proc->name, name_len);
+  memcpy (rd_tmp, rd_ser, rd_ser_len);
+  
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Sending `%s' message with size %u\n", "ZONE_ITERATION_RESPONSE", msg_size);
+  GNUNET_SERVER_notification_context_unicast (snc, zi->client->client, 
+					      (const struct GNUNET_MessageHeader *) zir_msg,
+					      GNUNET_NO);
+  GNUNET_free (zir_msg);
 }
 
 
@@ -2042,7 +2044,8 @@ send_zone_iteration_result (struct ZoneIterationProcResult *proc)
 static void
 clean_up_zone_iteration_result (struct ZoneIterationProcResult *proc)
 {
-  int c;
+  unsigned int c;
+
   GNUNET_free_non_null (proc->name);
   for (c = 0; c < proc->records_included; c++)
   {
@@ -2051,6 +2054,35 @@ clean_up_zone_iteration_result (struct ZoneIterationProcResult *proc)
   GNUNET_free_non_null (proc->rd);
   proc->name = NULL;
   proc->rd = NULL;
+}
+
+
+/**
+ * Perform the next round of the zone iteration.
+ *
+ * @param zi zone iterator to process
+ */
+static void
+run_zone_iteration_round (struct GNUNET_NAMESTORE_ZoneIteration *zi)
+{
+  struct ZoneIterationProcResult proc;
+
+  memset (&proc, 0, sizeof (proc));
+  proc.zi = zi;
+  find_next_zone_iteration_result (&proc);
+  if (GNUNET_YES == proc.res_iteration_finished)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		"Zone iteration done\n");
+  }
+  else if (0 != proc.records_included)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		"Zone iteration return %u records\n", 
+		proc.records_included);
+  }
+  send_zone_iteration_result (&proc);
+  clean_up_zone_iteration_result (&proc);
 }
 
 
@@ -2066,31 +2098,27 @@ handle_iteration_start (void *cls,
                         struct GNUNET_SERVER_Client *client,
                         const struct GNUNET_MessageHeader *message)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "ZONE_ITERATION_START");
-
-  struct ZoneIterationStartMessage *zis_msg = (struct ZoneIterationStartMessage *) message;
+  static struct GNUNET_CRYPTO_ShortHashCode zeros;
+  const struct ZoneIterationStartMessage *zis_msg;
   struct GNUNET_NAMESTORE_Client *nc;
   struct GNUNET_NAMESTORE_ZoneIteration *zi;
-  struct GNUNET_CRYPTO_ShortHashCode dummy;
-  struct ZoneIterationProcResult proc;
 
-  nc = client_lookup(client);
-  if (nc == NULL)
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "ZONE_ITERATION_START");
+  nc = client_lookup (client);
+  if (NULL == nc)
   {
     GNUNET_break_op (0);
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
-
+  zis_msg = (const struct ZoneIterationStartMessage *) message;
   zi = GNUNET_malloc (sizeof (struct GNUNET_NAMESTORE_ZoneIteration));
   zi->request_id = ntohl (zis_msg->gns_header.r_id);
   zi->offset = 0;
   zi->client = nc;
   zi->must_have_flags = ntohs (zis_msg->must_have_flags);
   zi->must_not_have_flags = ntohs (zis_msg->must_not_have_flags);
-
-  memset (&dummy, '\0', sizeof (dummy));
-  if (0 == memcmp (&dummy, &zis_msg->zone, sizeof (dummy)))
+  if (0 == memcmp (&zeros, &zis_msg->zone, sizeof (zeros)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting to iterate over all zones\n");
     zi->zone = zis_msg->zone;
@@ -2098,26 +2126,13 @@ handle_iteration_start (void *cls,
   }
   else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting to iterate over zone  `%s'\n", GNUNET_short_h2s (&zis_msg->zone));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		"Starting to iterate over zone  `%s'\n", GNUNET_short_h2s (&zis_msg->zone));
     zi->zone = zis_msg->zone;
     zi->has_zone = GNUNET_YES;
   }
-
   GNUNET_CONTAINER_DLL_insert (nc->op_head, nc->op_tail, zi);
-
-  proc.zi = zi;
-  find_next_zone_iteration_result (&proc);
-  if (GNUNET_YES == proc.res_iteration_finished)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Zone iteration done\n");
-  }
-  else if (proc.records_included != 0)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Zone iteration return %u records\n", proc.records_included);
-  }
-  send_zone_iteration_result (&proc);
-  clean_up_zone_iteration_result (&proc);
-
+  run_zone_iteration_round (zi);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
@@ -2134,48 +2149,47 @@ handle_iteration_stop (void *cls,
                        struct GNUNET_SERVER_Client *client,
                        const struct GNUNET_MessageHeader *message)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "ZONE_ITERATION_STOP");
-
   struct GNUNET_NAMESTORE_Client *nc;
   struct GNUNET_NAMESTORE_ZoneIteration *zi;
   struct ZoneIterationStopMessage *zis_msg;
   uint32_t rid;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Received `%s' message\n",
+	      "ZONE_ITERATION_STOP");
   nc = client_lookup(client);
-  if (nc == NULL)
+  if (NULL == nc)
   {
-    GNUNET_break_op (0);
+    GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
-
   zis_msg = (struct ZoneIterationStopMessage *) message;
   rid = ntohl (zis_msg->gns_header.r_id);
-  for (zi = nc->op_head; zi != NULL; zi = zi->next)
-  {
+  for (zi = nc->op_head; NULL != zi; zi = zi->next)
     if (zi->request_id == rid)
       break;
-  }
-  if (zi == NULL)
+  if (NULL == zi)
   {
-    GNUNET_break_op (0);
+    GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
-
-  GNUNET_CONTAINER_DLL_remove(nc->op_head, nc->op_tail, zi);
+  GNUNET_CONTAINER_DLL_remove (nc->op_head, nc->op_tail, zi);
   if (GNUNET_YES == zi->has_zone)
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopped zone iteration for zone `%s'\n", GNUNET_short_h2s (&zi->zone));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		"Stopped zone iteration for zone `%s'\n",
+		GNUNET_short_h2s (&zi->zone));
   else
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopped zone iteration all zones\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		"Stopped zone iteration over all zones\n");
   GNUNET_free (zi);
-
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 
 /**
- * Handles a 'GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_STOP' message
+ * Handles a 'GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_NEXT' message
  *
  * @param cls unused
  * @param client GNUNET_SERVER_Client sending the message
@@ -2186,50 +2200,31 @@ handle_iteration_next (void *cls,
                        struct GNUNET_SERVER_Client *client,
                        const struct GNUNET_MessageHeader *message)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "ZONE_ITERATION_NEXT");
-
   struct GNUNET_NAMESTORE_Client *nc;
   struct GNUNET_NAMESTORE_ZoneIteration *zi;
-  struct ZoneIterationNextMessage *zis_msg;
+  const struct ZoneIterationNextMessage *zis_msg;
   uint32_t rid;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "ZONE_ITERATION_NEXT");
   nc = client_lookup(client);
-  if (nc == NULL)
+  if (NULL == nc)
   {
-    GNUNET_break_op (0);
+    GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
-
-  zis_msg = (struct ZoneIterationNextMessage *) message;
+  zis_msg = (const struct ZoneIterationNextMessage *) message;
   rid = ntohl (zis_msg->gns_header.r_id);
-  for (zi = nc->op_head; zi != NULL; zi = zi->next)
-  {
+  for (zi = nc->op_head; NULL != zi; zi = zi->next)
     if (zi->request_id == rid)
       break;
-  }
-  if (zi == NULL)
+  if (NULL == zi)
   {
-    GNUNET_break_op (0);
+    GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
-
-  struct ZoneIterationProcResult proc;
-  proc.zi = zi;
-
-  find_next_zone_iteration_result (&proc);
-  if (GNUNET_YES == proc.res_iteration_finished)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Zone iteration done\n");
-  }
-  else if (proc.records_included != 0)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Zone iteration return %u records\n", proc.records_included);
-  }
-  send_zone_iteration_result (&proc);
-  clean_up_zone_iteration_result (&proc);
-
+  run_zone_iteration_round (zi);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
@@ -2244,28 +2239,37 @@ handle_iteration_next (void *cls,
 static int
 zonekey_file_it (void *cls, const char *filename)
 {
+  unsigned int *counter = cls;
   struct GNUNET_HashCode long_hash;
-  int *counter = cls;
-   if ((filename != NULL) && (NULL != strstr(filename, ".zkey")))
-   {
-     struct GNUNET_CRYPTO_RsaPrivateKey *privkey;
-     struct GNUNET_NAMESTORE_CryptoContainer *c;
-     privkey = GNUNET_CRYPTO_rsa_key_create_from_file(filename);
-     if (privkey == NULL)
-       return GNUNET_OK;
+  struct GNUNET_CRYPTO_RsaPrivateKey *privkey;
+  struct GNUNET_NAMESTORE_CryptoContainer *c;
 
-     c = GNUNET_malloc (sizeof (struct GNUNET_NAMESTORE_CryptoContainer));
-     c->pubkey = GNUNET_malloc(sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
-     c->privkey = privkey;
-     GNUNET_CRYPTO_rsa_key_get_public(privkey, c->pubkey);
-     GNUNET_CRYPTO_short_hash(c->pubkey, sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), &c->zone);
-
-     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found zonefile for zone `%s'\n", GNUNET_short_h2s (&c->zone));
-     GNUNET_CRYPTO_short_hash_double (&c->zone, &long_hash);
-     GNUNET_CONTAINER_multihashmap_put(zonekeys, &long_hash, c, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
-     (*counter) ++;
-   }
-   return GNUNET_OK;
+  if ((NULL == filename) ||
+      (NULL == strstr(filename, ".zkey")))
+    return GNUNET_OK;
+  privkey = GNUNET_CRYPTO_rsa_key_create_from_file (filename);
+  if (NULL == privkey)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		_("Could not parse zone key file `%s'\n"),
+		filename);
+    return GNUNET_OK;
+  }
+  c = GNUNET_malloc (sizeof (struct GNUNET_NAMESTORE_CryptoContainer));
+  c->pubkey = GNUNET_malloc(sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
+  c->privkey = privkey;
+  GNUNET_CRYPTO_rsa_key_get_public(privkey, c->pubkey);
+  GNUNET_CRYPTO_short_hash(c->pubkey, 
+			   sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), 
+			   &c->zone);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Found zonefile for zone `%s'\n", GNUNET_short_h2s (&c->zone));
+  GNUNET_CRYPTO_short_hash_double (&c->zone, &long_hash);
+  GNUNET_assert (GNUNET_OK == 
+		 GNUNET_CONTAINER_multihashmap_put (zonekeys, &long_hash, c, 
+						    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+  (*counter)++;
+  return GNUNET_OK;
 }
 
 
@@ -2280,10 +2284,6 @@ static void
 run (void *cls, struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  char *database;
-  int counter = 0;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting namestore service\n");
-
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
     {&handle_start, NULL,
      GNUNET_MESSAGE_TYPE_NAMESTORE_START, sizeof (struct StartMessage)},
@@ -2305,15 +2305,20 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
       GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_STOP, 0},
     {NULL, NULL, 0, 0}
   };
+  char *database;
+  unsigned int counter;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Starting namestore service\n");
   GSN_cfg = cfg;
 
   /* Load private keys from disk */
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (cfg, "namestore", "zonefile_directory",
-                                             &zonefile_directory))
+      GNUNET_CONFIGURATION_get_value_filename (cfg, "namestore", 
+					       "zonefile_directory",
+					       &zonefile_directory))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("No directory to load zonefiles specified in configuration\n"));
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+		_("No directory to load zonefiles specified in configuration\n"));
     GNUNET_SCHEDULER_add_now (&cleanup_task, NULL);
     return;
   }
@@ -2322,17 +2327,25 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   {
     if (GNUNET_SYSERR == GNUNET_DISK_directory_create (zonefile_directory))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Creating directory `%s' for zone files failed!\n"), zonefile_directory);
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+		  _("Creating directory `%s' for zone files failed!\n"),
+		  zonefile_directory);
       GNUNET_SCHEDULER_add_now (&cleanup_task, NULL);
       return;
     }
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created directory `%s' for zone files\n", zonefile_directory);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		"Created directory `%s' for zone files\n", 
+		zonefile_directory);
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Scanning directory `%s' for zone files\n", zonefile_directory);
-  zonekeys = GNUNET_CONTAINER_multihashmap_create (10);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Scanning directory `%s' for zone files\n", zonefile_directory);
+  zonekeys = GNUNET_CONTAINER_multihashmap_create (16);
+  counter = 0;
   GNUNET_DISK_directory_scan (zonefile_directory, zonekey_file_it, &counter);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found %u zone files\n", counter);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Found %u zone files\n", 
+	      counter);
 
   /* Loading database plugin */
   if (GNUNET_OK !=
@@ -2343,10 +2356,11 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   GNUNET_asprintf (&db_lib_name, "libgnunet_plugin_namestore_%s", database);
   GSN_database = GNUNET_PLUGIN_load (db_lib_name, (void *) GSN_cfg);
   GNUNET_free (database);
-  if (GSN_database == NULL)
+  if (NULL == GSN_database)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not load database backend `%s'\n",
-        db_lib_name);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+		"Could not load database backend `%s'\n",
+		db_lib_name);
     GNUNET_SCHEDULER_add_now (&cleanup_task, NULL);
     return;
   }
@@ -2357,10 +2371,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   GNUNET_SERVER_disconnect_notify (server,
                                    &client_disconnect_notification,
                                    NULL);
-
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleanup_task,
                                 NULL);
-
 }
 
 
