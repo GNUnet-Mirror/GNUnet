@@ -666,16 +666,16 @@ GNUNET_GNS_lookup_zone (struct GNUNET_GNS_Handle *handle,
   size_t key_len = 0;
   char* pkey_tmp;
 
+  if (NULL == name)
+  {
+    return NULL;
+  }
+  
   if (NULL != shorten_key)
   {
     pkey_enc = GNUNET_CRYPTO_rsa_encode_key (shorten_key);
     GNUNET_assert (pkey_enc != NULL);
     key_len = ntohs (pkey_enc->len);
-  }
-
-  if (NULL == name)
-  {
-    return NULL;
   }
 
   msize = sizeof (struct GNUNET_GNS_ClientLookupMessage)

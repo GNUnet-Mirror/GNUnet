@@ -289,6 +289,7 @@ put_pseu_dht(void *cls, int success)
   struct GNUNET_CRYPTO_RsaSignature *sig;
   struct GNUNET_NAMESTORE_RecordData rd;
   
+  memset (&rd, 0, sizeof (struct GNUNET_NAMESTORE_RecordData));
   rd.expiration_time = GNUNET_TIME_UNIT_FOREVER_ABS.abs_value;
   rd.data_size = strlen(TEST_PSEU_ALICE)+1;
   rd.data = TEST_PSEU_ALICE;

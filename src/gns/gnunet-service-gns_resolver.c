@@ -1399,8 +1399,8 @@ handle_dns_resolver (void *cls,
   rd.flags = 0;
 
   finish_lookup (rh, rlh, 1, &rd);
-  free_resolver_handle (rh);
   GNUNET_RESOLVER_request_cancel (rh->dns_resolver_handle);
+  free_resolver_handle (rh);
 }
 
 /**
@@ -1655,6 +1655,8 @@ resolve_record_dns (struct ResolverHandle *rh,
   struct sockaddr *sa;
   int i;
   struct RecordLookupHandle *rlh = rh->proc_cls;
+
+  memset (&packet, 0, sizeof (struct GNUNET_DNSPARSER_Packet));
   
   /* We cancel here as to not include the ns lookup in the timeout */
   if (rh->timeout_task != GNUNET_SCHEDULER_NO_TASK)
@@ -2516,8 +2518,9 @@ handle_record_ns (void* cls, struct ResolverHandle *rh,
      *    would already have an entry in the NS for the record)
      * 5. We are not in cache only mode
      */
-    if (((rh->status & RSL_RECORD_EXPIRED) || (rh->status &!RSL_RECORD_EXISTS))
-        && GNUNET_CRYPTO_short_hash_cmp(&rh->authority_chain_head->zone,
+    if (( ((rh->status & RSL_RECORD_EXPIRED) != 0) ||
+         ((rh->status & RSL_RECORD_EXISTS) == 0) ) &&
+        GNUNET_CRYPTO_short_hash_cmp(&rh->authority_chain_head->zone,
                                         &rh->private_local_zone) &&
         (strcmp(rh->name, "+") == 0) &&
         (rh->only_cached == GNUNET_NO))
