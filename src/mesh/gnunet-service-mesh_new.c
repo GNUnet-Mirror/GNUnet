@@ -48,6 +48,7 @@
 #include "platform.h"
 #include "mesh.h"
 #include "mesh_protocol.h"
+#include "block_mesh.h"
 #include "gnunet_dht_service.h"
 #include "mesh_tunnel_tree.h"
 
@@ -658,14 +659,26 @@ unsigned int next_client_id;
 static int
 announce_application (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
+  struct PBlock block;
+  struct MeshClient *c;
+
+  block.id = my_full_id;
+  c =  GNUNET_CONTAINER_multihashmap_get (applications, key);
+  block.type = (long) GNUNET_CONTAINER_multihashmap_get (c->apps, key);
+  if (0 == block.type)
+  {
+    GNUNET_break(0);
+    return GNUNET_YES;
+  }
+  block.type = htonl (block.type);
   /* FIXME are hashes in multihash map equal on all aquitectures? */
   /* FIXME: keep return value of 'put' to possibly cancel!? */
   GNUNET_DHT_put (dht_handle, key, 10,
                   GNUNET_DHT_RO_RECORD_ROUTE |
                   GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
                   GNUNET_BLOCK_TYPE_MESH_PEER_BY_TYPE,
-                  sizeof (struct GNUNET_PeerIdentity),
-                  (const char *) &my_full_id,
+                  sizeof (struct PBlock),
+                  &block,
                   GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get (),
                                             APP_ANNOUNCE_TIME),
                   APP_ANNOUNCE_TIME, NULL, NULL);
@@ -3919,7 +3932,7 @@ handle_local_new_client (void *cls, struct GNUNET_SERVER_Client *client,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  app type: %u\n", at);
       GNUNET_CRYPTO_hash (&at, sizeof (at), &hc);
       /* store in clients hashmap */
-      GNUNET_CONTAINER_multihashmap_put (c->apps, &hc, c,
+      GNUNET_CONTAINER_multihashmap_put (c->apps, &hc, (void *) (long) at,
                                          GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
       /* store in global hashmap, for announcements */
       GNUNET_CONTAINER_multihashmap_put (applications, &hc, c,
