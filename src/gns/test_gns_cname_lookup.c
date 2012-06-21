@@ -41,10 +41,22 @@
 #define DEFAULT_NUM_PEERS 2
 
 /* test records to resolve */
-#define TEST_DOMAIN "www.gnunet"
-#define TEST_IP "127.0.0.1"
-#define TEST_RECORD_NAME "server"
-#define TEST_RECORD_CNAME "www"
+#define TEST_DOMAIN_PLUS "www.gnunet"
+#define TEST_DOMAIN_ZKEY "www2.gnunet"
+#define TEST_DOMAIN_DNS  "www3.gnunet"
+#define TEST_IP_PLUS "127.0.0.1"
+#define TEST_IP_ZKEY "127.0.0.2"
+#define TEST_IP_DNS  "131.159.74.67"
+#define TEST_RECORD_CNAME_SERVER "server.gnunet"
+#define TEST_RECORD_CNAME_PLUS "server.+"
+#define TEST_RECORD_CNAME_ZKEY "www.188JSUMKEF25GVU8TTV0PBNNN8JVCPUEDFV1UHJJU884JD25V0T0.zkey"
+#define TEST_RECORD_CNAME_DNS "gnunet.org"
+#define TEST_RECORD_NAME_SERVER "server"
+#define TEST_RECORD_NAME_PLUS "www"
+#define TEST_RECORD_NAME_ZKEY "www2"
+#define TEST_RECORD_NAME_DNS "www3"
+
+#define KEYFILE_BOB "zonefiles/188JSUMKEF25GVU8TTV0PBNNN8JVCPUEDFV1UHJJU884JD25V0T0.zkey"
 
 /* Globals */
 
@@ -106,10 +118,10 @@ on_lookup_result_cname (void *cls, uint32_t rd_count,
       if (rd[i].record_type == GNUNET_GNS_RECORD_TYPE_CNAME)
       {
         GNUNET_log (GNUNET_ERROR_TYPE_INFO, "CNAME: %s\n", rd[i].data);
-        if (0 == strcmp(rd[i].data, TEST_RECORD_NAME))
+        if (0 == strcmp(rd[i].data, TEST_RECORD_CNAME_SERVER))
         {
           GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                    "%s correctly resolved to %s!\n", TEST_DOMAIN, rd[i].data);
+                    "%s correctly resolved to %s!\n", TEST_DOMAIN_PLUS, rd[i].data);
           ok = 0;
         }
       }
@@ -123,8 +135,9 @@ on_lookup_result_cname (void *cls, uint32_t rd_count,
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Shutting down peer1!\n");
   GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
 }
+
 static void
-on_lookup_result(void *cls, uint32_t rd_count,
+on_lookup_result_dns (void *cls, uint32_t rd_count,
                  const struct GNUNET_NAMESTORE_RecordData *rd)
 {
   struct in_addr a;
@@ -149,10 +162,10 @@ on_lookup_result(void *cls, uint32_t rd_count,
         memcpy(&a, rd[i].data, sizeof(a));
         addr = inet_ntoa(a);
         GNUNET_log (GNUNET_ERROR_TYPE_INFO, "address: %s\n", addr);
-        if (0 == strcmp(addr, TEST_IP))
+        if (0 == strcmp(addr, TEST_IP_DNS))
         {
           GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                    "%s correctly resolved to %s!\n", TEST_DOMAIN, addr);
+                    "%s correctly resolved to %s!\n", TEST_DOMAIN_DNS, addr);
           ok = 0;
         }
       }
@@ -163,10 +176,102 @@ on_lookup_result(void *cls, uint32_t rd_count,
     }
   }
 
-  GNUNET_GNS_lookup(gns_handle, TEST_DOMAIN, GNUNET_GNS_RECORD_TYPE_CNAME,
+  GNUNET_GNS_lookup (gns_handle, TEST_DOMAIN_PLUS, GNUNET_GNS_RECORD_TYPE_CNAME,
+                     GNUNET_YES,
+                     NULL,
+                     &on_lookup_result_cname, TEST_DOMAIN_PLUS);
+}
+
+static void
+on_lookup_result_zkey (void *cls, uint32_t rd_count,
+                 const struct GNUNET_NAMESTORE_RecordData *rd)
+{
+  struct in_addr a;
+  int i;
+  char* addr;
+  
+  if (rd_count == 0)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Lookup failed, rp_filtering?\n");
+    ok = 2;
+  }
+  else
+  {
+    ok = 1;
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "name: %s\n", (char*)cls);
+    for (i=0; i<rd_count; i++)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "type: %d\n", rd[i].record_type);
+      if (rd[i].record_type == GNUNET_GNS_RECORD_TYPE_A)
+      {
+        memcpy(&a, rd[i].data, sizeof(a));
+        addr = inet_ntoa(a);
+        GNUNET_log (GNUNET_ERROR_TYPE_INFO, "address: %s\n", addr);
+        if (0 == strcmp(addr, TEST_IP_ZKEY))
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                    "%s correctly resolved to %s!\n", TEST_DOMAIN_ZKEY, addr);
+          ok = 0;
+        }
+      }
+      else
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "No resolution!\n");
+      }
+    }
+  }
+
+  GNUNET_GNS_lookup(gns_handle, TEST_DOMAIN_DNS, GNUNET_GNS_RECORD_TYPE_A,
                     GNUNET_YES,
                     NULL,
-                    &on_lookup_result_cname, TEST_DOMAIN);
+                    &on_lookup_result_dns, TEST_DOMAIN_DNS);
+}
+
+static void
+on_lookup_result_plus (void *cls, uint32_t rd_count,
+                 const struct GNUNET_NAMESTORE_RecordData *rd)
+{
+  struct in_addr a;
+  int i;
+  char* addr;
+  
+  if (rd_count == 0)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Lookup failed, rp_filtering?\n");
+    ok = 2;
+  }
+  else
+  {
+    ok = 1;
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "name: %s\n", (char*)cls);
+    for (i=0; i<rd_count; i++)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "type: %d\n", rd[i].record_type);
+      if (rd[i].record_type == GNUNET_GNS_RECORD_TYPE_A)
+      {
+        memcpy(&a, rd[i].data, sizeof(a));
+        addr = inet_ntoa(a);
+        GNUNET_log (GNUNET_ERROR_TYPE_INFO, "address: %s\n", addr);
+        if (0 == strcmp(addr, TEST_IP_PLUS))
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                    "%s correctly resolved to %s!\n", TEST_DOMAIN_PLUS, addr);
+          ok = 0;
+        }
+      }
+      else
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "No resolution!\n");
+      }
+    }
+  }
+
+  GNUNET_GNS_lookup(gns_handle, TEST_DOMAIN_ZKEY, GNUNET_GNS_RECORD_TYPE_A,
+                    GNUNET_YES,
+                    NULL,
+                    &on_lookup_result_zkey, TEST_DOMAIN_ZKEY);
 }
 
 
@@ -190,10 +295,10 @@ commence_testing (void *cls, int32_t success, const char *emsg)
     ok = 2;
   }
 
-  GNUNET_GNS_lookup(gns_handle, TEST_DOMAIN, GNUNET_GNS_RECORD_TYPE_A,
+  GNUNET_GNS_lookup(gns_handle, TEST_DOMAIN_PLUS, GNUNET_GNS_RECORD_TYPE_A,
                     GNUNET_YES,
                     NULL,
-                    &on_lookup_result, TEST_DOMAIN);
+                    &on_lookup_result_plus, TEST_DOMAIN_PLUS);
 }
 
 
@@ -231,6 +336,7 @@ do_lookup(void *cls, const struct GNUNET_PeerIdentity *id,
 {
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded alice_pkey;
   struct GNUNET_CRYPTO_RsaPrivateKey *alice_key;
+  struct GNUNET_CRYPTO_RsaPrivateKey *bob_key;
   char* alice_keyfile;
   
   cfg = _cfg;
@@ -261,8 +367,10 @@ do_lookup(void *cls, const struct GNUNET_PeerIdentity *id,
   
   GNUNET_free(alice_keyfile);
 
+  bob_key = GNUNET_CRYPTO_rsa_key_create_from_file (KEYFILE_BOB);
+
   struct GNUNET_NAMESTORE_RecordData rd;
-  char* ip = TEST_IP;
+  char* ip = TEST_IP_PLUS;
   struct in_addr *web = GNUNET_malloc(sizeof(struct in_addr));
   rd.expiration_time = UINT64_MAX;
   GNUNET_assert(1 == inet_pton (AF_INET, ip, web));
@@ -273,23 +381,58 @@ do_lookup(void *cls, const struct GNUNET_PeerIdentity *id,
 
   GNUNET_NAMESTORE_record_create (namestore_handle,
                                   alice_key,
-                                  TEST_RECORD_NAME,
+                                  TEST_RECORD_NAME_SERVER,
                                   &rd,
                                   NULL,
                                   NULL);
 
-  rd.data_size = strlen (TEST_RECORD_NAME);
-  rd.data = TEST_RECORD_NAME;
+  rd.data_size = strlen (TEST_RECORD_CNAME_PLUS);
+  rd.data = TEST_RECORD_CNAME_PLUS;
   rd.record_type = GNUNET_GNS_RECORD_TYPE_CNAME;
 
   GNUNET_NAMESTORE_record_create (namestore_handle,
                                   alice_key,
-                                  TEST_RECORD_CNAME,
+                                  TEST_RECORD_NAME_PLUS,
+                                  &rd,
+                                  NULL,
+                                  NULL);
+
+  rd.data_size = strlen (TEST_RECORD_CNAME_ZKEY);
+  rd.data = TEST_RECORD_CNAME_ZKEY;
+  rd.record_type = GNUNET_GNS_RECORD_TYPE_CNAME;
+
+  GNUNET_NAMESTORE_record_create (namestore_handle,
+                                  alice_key,
+                                  TEST_RECORD_NAME_ZKEY,
+                                  &rd,
+                                  NULL,
+                                  NULL);
+
+  rd.data_size = strlen (TEST_RECORD_CNAME_DNS);
+  rd.data = TEST_RECORD_CNAME_DNS;
+  rd.record_type = GNUNET_GNS_RECORD_TYPE_CNAME;
+
+  GNUNET_NAMESTORE_record_create (namestore_handle,
+                                  alice_key,
+                                  TEST_RECORD_NAME_DNS,
+                                  &rd,
+                                  NULL,
+                                  NULL);
+
+  GNUNET_assert(1 == inet_pton (AF_INET, TEST_IP_ZKEY, web));
+  rd.data_size = sizeof(struct in_addr);
+  rd.data = web;
+  rd.record_type = GNUNET_DNSPARSER_TYPE_A;
+  
+  GNUNET_NAMESTORE_record_create (namestore_handle,
+                                  bob_key,
+                                  TEST_RECORD_NAME_PLUS,
                                   &rd,
                                   &commence_testing,
                                   NULL);
   
   GNUNET_CRYPTO_rsa_key_free(alice_key);
+  GNUNET_CRYPTO_rsa_key_free(bob_key);
   GNUNET_free(web);
 
 }

@@ -2757,6 +2757,7 @@ handle_delegation_ns (void* cls, struct ResolverHandle *rh,
 {
   struct RecordLookupHandle* rlh;
   rlh = (struct RecordLookupHandle*) cls;
+  int s_len = 0;
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
              "GNS_PHASE_DELEGATE_NS-%llu: Resolution status: %d.\n",
@@ -2783,16 +2784,44 @@ handle_delegation_ns (void* cls, struct ResolverHandle *rh,
         GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                   "GNS_PHASE_DELEGATE_NS-%llu: Resolved queried CNAME in NS.\n",
                   rh->id);
-        finish_lookup(rh, rlh, rd_count, rd);
-        free_resolver_handle(rh);
+        strcpy (rh->name, rh->authority_name);
+        finish_lookup (rh, rlh, rd_count, rd);
+        free_resolver_handle (rh);
         return;
       }
       
-      /* A CNAME can only occur alone */
-      GNUNET_assert (is_canonical ((char*)rd->data));
-      strcpy (rh->name, rd->data);
-      resolve_delegation_ns (rh);
-      return;
+      /* A .+ CNAME  */
+      if (is_tld ((char*)rd->data, GNUNET_GNS_TLD_PLUS))
+      {
+        s_len = strlen (rd->data) - 2;
+        memcpy (rh->name, rd->data, s_len);
+        rh->name[s_len] = '\0';
+        resolve_delegation_ns (rh);
+        return;
+      }
+      else if (is_tld ((char*)rd->data, GNUNET_GNS_TLD_ZKEY))
+      {
+        gns_resolver_lookup_record (rh->authority,
+                                    rh->private_local_zone,
+                                    rlh->record_type,
+                                    (char*)rd->data,
+                                    rh->priv_key,
+                                    rh->timeout,
+                                    rh->only_cached,
+                                    rlh->proc,
+                                    rlh->proc_cls);
+        GNUNET_free (rlh);
+        free_resolver_handle (rh);
+        return;
+      }
+      else
+      {
+        //Try DNS resolver
+        strcpy (rh->dns_name, (char*)rd->data);
+        resolve_dns_name (rh);
+        return;
+      }
+
     }
     else if (rh->status & RSL_DELEGATE_VPN)
     {
@@ -3051,9 +3080,6 @@ process_delegation_result_ns (void* cls,
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                  "GNS_PHASE_DELEGATE_NS-%llu: CNAME found.\n",
                  rh->id);
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "GNS_PHASE_DELEGATE_NS-%llu: new name to resolve: %s.\n",
-                 rh->id, rh->name);
 
       rh->status |= RSL_CNAME_FOUND;
       rh->proc (rh->proc_cls, rh, rd_count, rd);
@@ -3219,15 +3245,15 @@ resolve_delegation_ns (struct ResolverHandle *rh)
  * @param cls the closure to pass to proc
  */
 void
-gns_resolver_lookup_record(struct GNUNET_CRYPTO_ShortHashCode zone,
-                           struct GNUNET_CRYPTO_ShortHashCode pzone,
-                           uint32_t record_type,
-                           const char* name,
-                           struct GNUNET_CRYPTO_RsaPrivateKey *key,
-                           struct GNUNET_TIME_Relative timeout,
-                           int only_cached,
-                           RecordLookupProcessor proc,
-                           void* cls)
+gns_resolver_lookup_record (struct GNUNET_CRYPTO_ShortHashCode zone,
+                            struct GNUNET_CRYPTO_ShortHashCode pzone,
+                            uint32_t record_type,
+                            const char* name,
+                            struct GNUNET_CRYPTO_RsaPrivateKey *key,
+                            struct GNUNET_TIME_Relative timeout,
+                            int only_cached,
+                            RecordLookupProcessor proc,
+                            void* cls)
 {
   struct ResolverHandle *rh;
   struct RecordLookupHandle* rlh;

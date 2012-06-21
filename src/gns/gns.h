@@ -30,6 +30,7 @@
 
 #define GNUNET_GNS_TLD "gnunet"
 #define GNUNET_GNS_TLD_ZKEY "zkey"
+#define GNUNET_GNS_TLD_PLUS "+"
 #define GNUNET_GNS_DHT_MAX_UPDATE_INTERVAL 3600
 
 #define MAX_DNS_LABEL_LENGTH 63
