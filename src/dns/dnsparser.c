@@ -325,6 +325,9 @@ parse_record (const char *udp_payload,
   struct soa_data soa;
   uint16_t mxpref;
   uint16_t data_len;
+  struct srv_data srv;
+  char *ndup;
+  char *tok;
 
   name = parse_name (udp_payload, 
 		     udp_payload_length,
@@ -390,6 +393,49 @@ parse_record (const char *udp_payload,
     r->data.mx->mxhost = parse_name (udp_payload,
 				     udp_payload_length,
 				     off, 0);
+    if (old_off + data_len != *off) 
+      return GNUNET_SYSERR;
+    return GNUNET_OK;
+  case GNUNET_DNSPARSER_TYPE_SRV:
+    if ('_' != *r->data.hostname)
+      return GNUNET_SYSERR; /* all valid srv names must start with "_" */
+    if (NULL == strstr (r->data.hostname, "._"))
+      return GNUNET_SYSERR; /* necessary string from "._$PROTO" not present */
+    old_off = *off;
+    if (*off + sizeof (struct srv_data) > udp_payload_length)
+      return GNUNET_SYSERR;
+    memcpy (&srv, &udp_payload[*off], sizeof (struct srv_data));    
+    (*off) += sizeof (struct srv_data);
+    r->data.srv = GNUNET_malloc (sizeof (struct GNUNET_DNSPARSER_SrvRecord));
+    r->data.srv->priority = ntohs (srv.prio);
+    r->data.srv->weight = ntohs (srv.weight);
+    r->data.srv->port = ntohs (srv.port);
+    /* parse 'data.hostname' into components, which are
+       "_$SERVICE._$PROTO.$DOMAIN_NAME" */
+    ndup = GNUNET_strdup (r->data.hostname);
+    tok = strtok (ndup, ".");
+    GNUNET_assert ('_' == *tok);
+    r->data.srv->service = GNUNET_strdup (&tok[1]);
+    tok = strtok (NULL, ".");
+    if ('_' != *tok)
+    {
+      GNUNET_free (r->data.srv);
+      GNUNET_free (ndup);
+      return GNUNET_SYSERR;
+    }
+    r->data.srv->proto = GNUNET_strdup (&tok[1]);
+    tok = strtok (NULL, ".");
+    if (NULL == tok)
+    {
+      GNUNET_free (r->data.srv);
+      GNUNET_free (ndup);
+      return GNUNET_SYSERR;
+    }
+    r->data.srv->domain_name = GNUNET_strdup (tok);
+    GNUNET_free (ndup);
+    r->data.srv->target = parse_name (udp_payload,
+				      udp_payload_length,
+				      off, 0);
     if (old_off + data_len != *off) 
       return GNUNET_SYSERR;
     return GNUNET_OK;
@@ -505,6 +551,24 @@ free_soa (struct GNUNET_DNSPARSER_SoaRecord *soa)
 
 
 /**
+ * Free SRV information record.
+ *
+ * @param srv record to free
+ */
+static void
+free_srv (struct GNUNET_DNSPARSER_SrvRecord *srv)
+{
+  if (NULL == srv)
+    return;
+  GNUNET_free_non_null (srv->target);
+  GNUNET_free_non_null (srv->domain_name);
+  GNUNET_free_non_null (srv->proto);
+  GNUNET_free_non_null (srv->service);
+  GNUNET_free (srv);      
+}
+
+
+/**
  * Free MX information record.
  *
  * @param mx record to free
@@ -530,6 +594,9 @@ free_record (struct GNUNET_DNSPARSER_Record *r)
     break;
   case GNUNET_DNSPARSER_TYPE_SOA:
     free_soa (r->data.soa);
+    break;
+  case GNUNET_DNSPARSER_TYPE_SRV:
+    free_srv (r->data.srv);
     break;
   case GNUNET_DNSPARSER_TYPE_NS:
   case GNUNET_DNSPARSER_TYPE_CNAME:
@@ -727,6 +794,43 @@ add_soa (char *dst,
 
 
 /**
+ * Add an SRV record to the UDP packet at the given location.
+ *
+ * @param dst where to write the SRV record
+ * @param dst_len number of bytes in dst
+ * @param off pointer to offset where to write the SRV information (increment by bytes used)
+ *            can also change if there was an error
+ * @param srv SRV information to write
+ * @return GNUNET_SYSERR if 'srv' is invalid
+ *         GNUNET_NO if 'srv' did not fit
+ *         GNUNET_OK if 'srv' was added to 'dst'
+ */
+static int
+add_srv (char *dst,
+	 size_t dst_len,
+	 size_t *off,
+	 const struct GNUNET_DNSPARSER_SrvRecord *srv)
+{
+  struct srv_data sd;
+  int ret;
+
+  if (*off + sizeof (struct srv_data) > dst_len)
+    return GNUNET_NO;
+  sd.prio = htons (srv->priority);
+  sd.weight = htons (srv->weight);
+  sd.port = htons (srv->port);
+  memcpy (&dst[*off], &sd, sizeof (sd));
+  (*off) += sizeof (sd);
+  if (GNUNET_OK != (ret = add_name (dst,
+				    dst_len,
+				    off,
+				    srv->target)))
+    return ret;
+  return GNUNET_OK;
+}
+
+
+/**
  * Add a DNS record to the UDP packet at the given location.
  *
  * @param dst where to write the query
@@ -748,10 +852,23 @@ add_record (char *dst,
   size_t start;
   size_t pos;
   struct record_line rl;
-
+  char *name;
+  
   start = *off;
-  ret = add_name (dst, dst_len - sizeof (struct record_line), off, record->name);
-  if (ret != GNUNET_OK)
+  /* for SRV records, we can create the name from the details
+     of the record if needed */
+  name = record->name;
+  if  ( (GNUNET_DNSPARSER_TYPE_SRV == record->type) &&
+	(NULL == name) )
+    GNUNET_asprintf (&name,
+		     "_%s._%s.%s",
+		     record->data.srv->service,
+		     record->data.srv->proto,
+		     record->data.srv->domain_name);
+  ret = add_name (dst, dst_len - sizeof (struct record_line), off, name);
+  if (name != record->name)
+    GNUNET_free (name);
+  if (GNUNET_OK != ret)
     return ret;
   /* '*off' is now the position where we will need to write the record line */
 
@@ -769,6 +886,9 @@ add_record (char *dst,
   case GNUNET_DNSPARSER_TYPE_PTR:
     ret = add_name (dst, dst_len, &pos, record->data.hostname);
     break;
+  case GNUNET_DNSPARSER_TYPE_SRV:
+    ret = add_srv (dst, dst_len, &pos, record->data.srv);
+    break;
   default:
     if (pos + record->data.raw.data_len > dst_len)
     {
@@ -780,7 +900,7 @@ add_record (char *dst,
     ret = GNUNET_OK;
     break;
   }
-  if (ret != GNUNET_OK)
+  if (GNUNET_OK != ret)
   {
     *off = start;
     return GNUNET_NO;
