@@ -397,9 +397,9 @@ parse_record (const char *udp_payload,
       return GNUNET_SYSERR;
     return GNUNET_OK;
   case GNUNET_DNSPARSER_TYPE_SRV:
-    if ('_' != *r->data.hostname)
+    if ('_' != *r->name)
       return GNUNET_SYSERR; /* all valid srv names must start with "_" */
-    if (NULL == strstr (r->data.hostname, "._"))
+    if (NULL == strstr (r->name, "._"))
       return GNUNET_SYSERR; /* necessary string from "._$PROTO" not present */
     old_off = *off;
     if (*off + sizeof (struct srv_data) > udp_payload_length)
@@ -412,7 +412,7 @@ parse_record (const char *udp_payload,
     r->data.srv->port = ntohs (srv.port);
     /* parse 'data.hostname' into components, which are
        "_$SERVICE._$PROTO.$DOMAIN_NAME" */
-    ndup = GNUNET_strdup (r->data.hostname);
+    ndup = GNUNET_strdup (r->name);
     tok = strtok (ndup, ".");
     GNUNET_assert ('_' == *tok);
     r->data.srv->service = GNUNET_strdup (&tok[1]);
