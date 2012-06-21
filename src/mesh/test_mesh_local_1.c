@@ -343,13 +343,14 @@ main (int argc, char *argv[])
 
   if (GNUNET_OK != ret)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "run failed with error code %d\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "run failed with error code %d\n",
                 ret);
     return 1;
   }
   if (GNUNET_SYSERR == result)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "test failed\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "test failed: connect and find_by_type\n");
     return 1;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test ok\n");
