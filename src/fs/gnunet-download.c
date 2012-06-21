@@ -52,6 +52,7 @@ static char *filename;
 
 static int local_only;
 
+
 static void
 cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -63,13 +64,10 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct GNUNET_FS_DownloadContext *d;
-
-  if (dc != NULL)
+  if (NULL != dc)
   {
-    d = dc;
+    GNUNET_FS_download_stop (dc, delete_incomplete);
     dc = NULL;
-    GNUNET_FS_download_stop (d, delete_incomplete);
   }
 }
 
@@ -170,6 +168,13 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
     }
     break;
   case GNUNET_FS_STATUS_DOWNLOAD_ERROR:
+#if !WINDOWS
+    if (0 != isatty (1))
+      fprintf (stdout, "\n");
+#else
+    if (FILE_TYPE_CHAR == GetFileType (GetStdHandle (STD_OUTPUT_HANDLE)))
+      fprintf (stdout, "\n");
+#endif
     FPRINTF (stderr, _("Error downloading: %s.\n"),
              info->value.download.specifics.error.message);
     GNUNET_SCHEDULER_shutdown ();
@@ -178,6 +183,13 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
     s = GNUNET_STRINGS_byte_size_fancy (info->value.download.completed * 1000 /
                                         (info->value.download.
                                          duration.rel_value + 1));
+#if !WINDOWS
+    if (0 != isatty (1))
+      fprintf (stdout, "\n");
+#else
+    if (FILE_TYPE_CHAR == GetFileType (GetStdHandle (STD_OUTPUT_HANDLE)))
+      fprintf (stdout, "\n");
+#endif
     FPRINTF (stdout, _("Downloading `%s' done (%s/s).\n"),
              info->value.download.filename, s);
     GNUNET_free (s);
