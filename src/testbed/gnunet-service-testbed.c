@@ -172,7 +172,7 @@ transmit_ready_notify (void *cls, size_t size, void *buf)
 /**
  * Queues a message in send queue for sending to the service
  *
- * @param controller the handle to the controller
+ * @param client the client to whom the queued message has to be sent
  * @param msg the message to queue
  */
 static void
