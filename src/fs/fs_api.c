@@ -174,10 +174,81 @@ process_job_queue (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	break;
     }
   }
+  
+  /* calculate stop decisions */
+  num_probes_change = 0;
+  num_download_change = 0;
+  if (h->active_downloads + num_download_waiting > h->max_parallel_requests)
+  {
+    if (num_probes_active > 0)
+      num_probes_change = - GNUNET_MIN (num_probes_active,
+					h->max_parallel_requests - (h->active_downloads + num_download_waiting));
+    else if (h->active_downloads + num_download_waiting > h->max_parallel_requests)
+      num_download_change = - GNUNET_MIN (num_download_expired,
+					  h->max_parallel_requests - (h->active_downloads + num_download_waiting));
+  }
 
-  // FIXME: calculate how many probes/downloads to start/stop
-  num_probes_change = 42;
-  num_download_change = 42;
+  /* then, check if we should stop some jobs */
+  next = h->running_head;
+  while (NULL != (qe = next))
+  {
+    next = qe->next;
+    run_time =
+        GNUNET_TIME_relative_multiply (h->avg_block_latency,
+                                       qe->blocks * qe->start_times);
+    switch (qe->priority)
+      {
+      case GNUNET_FS_QUEUE_PRIORITY_PROBE:
+	/* run probes for at most 1s * number-of-restarts; note that
+	   as the total runtime of a probe is limited to 2m, we don't
+	   need to additionally limit the total time of a probe to 
+	   strictly limit its lifetime. */
+	run_time = GNUNET_TIME_relative_min (run_time,
+					     GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
+									    1 + qe->start_times));
+	end_time = GNUNET_TIME_absolute_add (qe->start_time, run_time);
+	rst = GNUNET_TIME_absolute_get_remaining (end_time);
+	restart_at = GNUNET_TIME_relative_min (rst, restart_at);
+	if ( (num_probes_change < 0) &&
+	     ( (num_probes_expired < - num_probes_change) ||
+	       (0 == rst.rel_value) ) )
+	{
+	  stop_job (qe);
+	  num_probes_change++;
+	  if (0 == rst.rel_value)
+	    num_probes_expired--;
+	}
+	break;
+      case GNUNET_FS_QUEUE_PRIORITY_NORMAL:
+	end_time = GNUNET_TIME_absolute_add (qe->start_time, run_time);
+	rst = GNUNET_TIME_absolute_get_remaining (end_time);
+	restart_at = GNUNET_TIME_relative_min (rst, restart_at);
+	if ( (num_download_change < 0) &&
+	     ( (num_download_expired < - num_download_change) ||
+	       (0 == rst.rel_value) ) )
+	{
+	  stop_job (qe);
+	  num_download_change++;
+	  if (0 == rst.rel_value)
+	    num_download_expired--;
+	}
+	break;
+      default:
+	GNUNET_break (0);
+	break;
+      }
+  }
+
+  /* FIXME: calculate start decisions */
+  num_probes_change = 0;
+  num_download_change = 0;
+  if (h->active_downloads + num_download_waiting < h->max_parallel_requests)
+  {
+    num_download_change = num_download_waiting;
+    num_probes_change = GNUNET_MIN (num_probes_waiting,
+				    h->max_parallel_requests - (h->active_downloads + num_download_waiting)); 
+  }
+
 
   next = h->pending_head;
   while (NULL != (qe = next))
