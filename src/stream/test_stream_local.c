@@ -335,19 +335,12 @@ stream_listen_cb (void *cls,
 
 
 /**
- * Task for connecting the peer to stream as client
- *
- * @param cls PeerData
- * @param tc the TaskContext
+ * Listen success callback; connects a peer to stream as client
  */
 static void
-stream_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+stream_connect (void)
 {
-  struct PeerData *peer = cls;
-
-  GNUNET_assert (&peer1 == peer);
-  /* Connect to stream library */
-  peer->socket = GNUNET_STREAM_open (config,
+  peer1.socket = GNUNET_STREAM_open (config,
                                      &self_id,
                                      10,           /* App port */
                                      &stream_open_cb,
@@ -368,13 +361,15 @@ run (void *cls,
   config = cfg;
   self = peer;
   GNUNET_TESTING_peer_get_identity (peer, &self_id);
-  peer2_listen_socket = GNUNET_STREAM_listen (config,
-                                              10, /* App port */
-                                              &stream_listen_cb,
-                                              &peer2,
-                                              GNUNET_STREAM_OPTION_END);
+  peer2_listen_socket = 
+    GNUNET_STREAM_listen (config,
+                          10, /* App port */
+                          &stream_listen_cb,
+                          &peer2,
+                          GNUNET_STREAM_OPTION_SIGNAL_LISTEN_SUCCESS,
+                          &stream_connect,
+                          GNUNET_STREAM_OPTION_END);
   GNUNET_assert (NULL != peer2_listen_socket);
-  GNUNET_SCHEDULER_add_delayed (TIME_REL_SECS(2), &stream_connect, &peer1);  
   abort_task =
     GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                   (GNUNET_TIME_UNIT_SECONDS, 30), &do_abort,

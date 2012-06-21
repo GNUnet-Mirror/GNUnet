@@ -86,6 +86,13 @@ typedef void (*GNUNET_STREAM_OpenCallback) (void *cls,
 
 
 /**
+ * Callback for signalling stream listen success; See
+ * GNUNET_STREAM_OPTION_SIGNAL_LISTEN_SUCCESS
+ */
+typedef void (*GNUNET_STREAM_ListenSuccessCallback) (void);
+
+
+/**
  * Options for the stream.
  */
 enum GNUNET_STREAM_Option
@@ -112,9 +119,17 @@ enum GNUNET_STREAM_Option
     GNUNET_STREAM_OPTION_TESTING_SET_WRITE_SEQUENCE_NUMBER,
 
     /**
-     * Listen socket timeout in milliseconds
+     * Listen socket timeout in milliseconds given as uint32_t
      */
-    GNUNET_STREAM_OPTION_LISTEN_TIMEOUT
+    GNUNET_STREAM_OPTION_LISTEN_TIMEOUT,
+
+    /**
+     * Option to register a callback when stream listening is
+     * successfull. Takes parameter of the form
+     * GNUNET_STREAM_ListenSuccessCallback. The callback is only called if
+     * listen is successful
+     */
+    GNUNET_STREAM_OPTION_SIGNAL_LISTEN_SUCCESS
   };
 
 

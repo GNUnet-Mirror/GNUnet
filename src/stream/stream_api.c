@@ -389,6 +389,11 @@ struct GNUNET_STREAM_ListenSocket
   struct GNUNET_LOCKMANAGER_LockingRequest *locking_request;
 
   /**
+   * Callback to call after acquring a lock and listening
+   */
+  GNUNET_STREAM_ListenSuccessCallback listen_ok_cb;
+
+  /**
    * The callback function which is called after successful opening socket
    */
   GNUNET_STREAM_ListenCallback listen_cb;
@@ -2873,6 +2878,10 @@ lock_status_change_cb (void *cls, const char *domain, uint32_t lock,
                                            server_message_handlers,
                                            ports);
       GNUNET_assert (NULL != lsocket->mesh);
+      if (NULL != lsocket->listen_ok_cb)
+      {
+        (void) lsocket->listen_ok_cb ();
+      }
     }
   }
   if (GNUNET_LOCKMANAGER_RELEASE == status)
@@ -2937,6 +2946,9 @@ GNUNET_STREAM_open (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                                                 uint32_t);
       break;
     case GNUNET_STREAM_OPTION_LISTEN_TIMEOUT:
+      GNUNET_break (0);          /* Option irrelevant in STREAM_open */
+      break;
+    case GNUNET_STREAM_OPTION_SIGNAL_LISTEN_SUCCESS:
       GNUNET_break (0);          /* Option irrelevant in STREAM_open */
       break;
     case GNUNET_STREAM_OPTION_END:
@@ -3200,7 +3212,8 @@ GNUNET_STREAM_listen (const struct GNUNET_CONFIGURATION_Handle *cfg,
   lsocket->retransmit_timeout = 
     GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, default_timeout);
   lsocket->testing_active = GNUNET_NO;
-  listen_timeout = TIME_REL_SECS (60); /* A minute for listen timeout */
+  lsocket->listen_ok_cb = NULL;
+  listen_timeout = TIME_REL_SECS (60); /* A minute for listen timeout */  
   va_start (vargs, listen_cb_cls);
   do {
     option = va_arg (vargs, enum GNUNET_STREAM_Option);
@@ -3218,6 +3231,10 @@ GNUNET_STREAM_listen (const struct GNUNET_CONFIGURATION_Handle *cfg,
     case GNUNET_STREAM_OPTION_LISTEN_TIMEOUT:
       listen_timeout = GNUNET_TIME_relative_multiply
         (GNUNET_TIME_UNIT_MILLISECONDS, va_arg (vargs, uint32_t));
+      break;
+    case GNUNET_STREAM_OPTION_SIGNAL_LISTEN_SUCCESS:
+      lsocket->listen_ok_cb = va_arg (vargs,
+                                      GNUNET_STREAM_ListenSuccessCallback);
       break;
     case GNUNET_STREAM_OPTION_END:
       break;
