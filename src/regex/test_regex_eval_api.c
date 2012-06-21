@@ -265,7 +265,7 @@ main (int argc, char *argv[])
   int check_rand;
   char *check_proof;
 
-  struct Regex_String_Pair rxstr[12] = {
+  struct Regex_String_Pair rxstr[14] = {
     {"ab?(abcd)?", 5,
      {"ababcd", "abab", "aabcd", "a", "abb"},
      {match, nomatch, match, match, nomatch}},
@@ -302,6 +302,12 @@ main (int argc, char *argv[])
     {"ab(c|d)+c*(a(b|c)+d)+(bla)+", 1,
      {"abcabdblaacdbla"},
      {nomatch}},
+    {"(ac|b)+", 8,
+     {"b", "bb", "ac", "", "acb", "bacbacac", "acacac", "abc"},
+     {match, match, match, nomatch, match, match, match, nomatch}},
+    {"(ab|c)+", 7,
+     {"", "ab", "c", "abc", "ababcc", "acc", "abac"},
+     {nomatch, match, match, match, match, nomatch, nomatch}},
     {"ab(c|d)+c*(a(b|c)d)+", 1,
      {"abacd"},
      {nomatch}}
@@ -311,7 +317,7 @@ main (int argc, char *argv[])
   check_dfa = 0;
   check_rand = 0;
 
-  for (i = 0; i < 12; i++)
+  for (i = 0; i < 14; i++)
   {
     if (0 != regcomp (&rx, rxstr[i].regex, REG_EXTENDED))
     {
@@ -341,8 +347,8 @@ main (int argc, char *argv[])
   }
 
   srand (time (NULL));
-  for (i = 0; i < 150; i++)
-    check_rand += test_random (150, 200, 25);
+  for (i = 0; i < 50; i++)
+    check_rand += test_random (100, 120, 20);
 
   return check_nfa + check_dfa + check_rand;
 }
