@@ -297,18 +297,18 @@ put_pseu_dht(void *cls, int success)
   rd.flags = 0;
 
   sig = GNUNET_NAMESTORE_create_signature(alice_key,
-                                          GNUNET_TIME_UNIT_FOREVER_ABS,
-                                          "+",
-                                          &rd, 1);
+                                           GNUNET_TIME_UNIT_FOREVER_ABS,
+                                           "+",
+                                           &rd, 1);
 
   GNUNET_assert (NULL != sig);
 
-  /*GNUNET_assert (GNUNET_OK == GNUNET_NAMESTORE_verify_signature (&alice_pkey,
+  GNUNET_break (GNUNET_OK == GNUNET_NAMESTORE_verify_signature (&alice_pkey,
                                                                  GNUNET_TIME_UNIT_FOREVER_ABS,
                                                                  "+",
                                                                  1,
                                                                  &rd,
-                                                                 sig));*/
+                                                                 sig));
   rd_payload_length = GNUNET_NAMESTORE_records_get_size (1, &rd);
   nrb = GNUNET_malloc(rd_payload_length + strlen("+") + 1
                       + sizeof(struct GNSNameRecordBlock));
@@ -391,6 +391,13 @@ put_www_dht(void *cls, int success)
                                           GNUNET_TIME_UNIT_FOREVER_ABS,
                                           TEST_RECORD_NAME,
                                           &rd, 1);
+  
+  GNUNET_break (GNUNET_OK == GNUNET_NAMESTORE_verify_signature (&alice_pkey,
+                                                                 GNUNET_TIME_UNIT_FOREVER_ABS,
+                                                                 TEST_RECORD_NAME,
+                                                                 1,
+                                                                 &rd,
+                                                                 sig));
   rd_payload_length = GNUNET_NAMESTORE_records_get_size (1, &rd);
   nrb = GNUNET_malloc(rd_payload_length + strlen(TEST_RECORD_NAME) + 1
                       + sizeof(struct GNSNameRecordBlock));
@@ -471,6 +478,12 @@ put_pkey_dht(void *cls, int32_t success, const char *emsg)
                                           &rd,
                                           1);
 
+  GNUNET_break (GNUNET_OK == GNUNET_NAMESTORE_verify_signature (&bob_pkey,
+                                                                 GNUNET_TIME_UNIT_FOREVER_ABS,
+                                                                 TEST_AUTHORITY_ALICE,
+                                                                 1,
+                                                                 &rd,
+                                                                 sig));
   rd_payload_length = GNUNET_NAMESTORE_records_get_size (1, &rd);
   nrb = GNUNET_malloc(rd_payload_length + strlen(TEST_AUTHORITY_ALICE) + 1
                       + sizeof(struct GNSNameRecordBlock));

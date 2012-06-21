@@ -221,6 +221,13 @@ put_dht(void *cls, int32_t success, const char *emsg)
 
   sig = GNUNET_NAMESTORE_create_signature(bob_key, GNUNET_TIME_UNIT_FOREVER_ABS, TEST_RECORD_NAME,
                                           &rd, 1);
+
+  GNUNET_assert (GNUNET_OK == GNUNET_NAMESTORE_verify_signature (&bob_pkey,
+                                                                 GNUNET_TIME_UNIT_FOREVER_ABS,
+                                                                 TEST_RECORD_NAME,
+                                                                 1,
+                                                                 &rd,
+                                                                 sig));
   rd_payload_length = GNUNET_NAMESTORE_records_get_size (1, &rd);
   nrb = GNUNET_malloc(rd_payload_length + strlen(TEST_RECORD_NAME) + 1
                       + sizeof(struct GNSNameRecordBlock));

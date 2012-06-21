@@ -631,6 +631,7 @@ start_shorten (struct AuthorityChain *atail,
  * @param nh the namestore handle
  * @param dh the dht handle
  * @param lz the local zone's hash
+ * @param cfg configuration handle
  * @param max_bg_queries maximum number of parallel background queries in dht
  * @param ignore_pending ignore records that still require user confirmation
  *        on lookup
