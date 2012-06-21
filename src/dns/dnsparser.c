@@ -29,40 +29,151 @@
 #include "gnunet_dnsparser_lib.h"
 
 
-// DNS-Stuff
 GNUNET_NETWORK_STRUCT_BEGIN
-/* FIXME: replace this one with the one from tcpip_tun.h! */
+
+/* FIXME: replace this one with the one from tcpip_tun.h!? */
+/**
+ * Head of a any DNS message.
+ */
 struct GNUNET_TUN_DnsHeader
 {
+  /**
+   * Request/response ID. (NBO)
+   */
   uint16_t id GNUNET_PACKED;
+
+  /**
+   * Flags for the operation.
+   */
   struct GNUNET_DNSPARSER_Flags flags; 
-  uint16_t query_count GNUNET_PACKED;       // number of questions
-  uint16_t answer_rcount GNUNET_PACKED;       // number of answers
-  uint16_t authority_rcount GNUNET_PACKED;       // number of authority-records
-  uint16_t additional_rcount GNUNET_PACKED;       // number of additional records
+
+  /**
+   * number of questions (NBO)
+   */
+  uint16_t query_count GNUNET_PACKED;
+
+  /**
+   * number of answers (NBO)
+   */
+  uint16_t answer_rcount GNUNET_PACKED;
+
+  /**
+   * number of authority-records (NBO)
+   */
+  uint16_t authority_rcount GNUNET_PACKED;
+
+  /**
+   * number of additional records (NBO)
+   */
+  uint16_t additional_rcount GNUNET_PACKED;
 };
 
+
+/**
+ * DNS query prefix.
+ */
 struct query_line
 {
+  /**
+   * Desired type (GNUNET_DNSPARSER_TYPE_XXX). (NBO)
+   */
   uint16_t type GNUNET_PACKED;
+
+  /**
+   * Desired class (usually GNUNET_DNSPARSER_CLASS_INTERNET). (NBO)
+   */
   uint16_t class GNUNET_PACKED;
 };
 
+
+/**
+ * General DNS record prefix.
+ */
 struct record_line
 {
+  /**
+   * Record type (GNUNET_DNSPARSER_TYPE_XXX). (NBO)
+   */
   uint16_t type GNUNET_PACKED;
+
+  /**
+   * Record class (usually GNUNET_DNSPARSER_CLASS_INTERNET). (NBO)
+   */
   uint16_t class GNUNET_PACKED;
+
+  /**
+   * Expiration for the record (in seconds). (NBO)
+   */
   uint32_t ttl GNUNET_PACKED;
+
+  /**
+   * Number of bytes of data that follow. (NBO)
+   */
   uint16_t data_len GNUNET_PACKED;
 };
 
+
+/**
+ * Payload of DNS SOA record (header).
+ */
 struct soa_data
 {
+  /**
+   * The version number of the original copy of the zone.   (NBO)
+   */
   uint32_t serial GNUNET_PACKED;
+  
+  /**
+   * Time interval before the zone should be refreshed. (NBO)
+   */
   uint32_t refresh GNUNET_PACKED;
+  
+  /**
+   * Time interval that should elapse before a failed refresh should
+   * be retried. (NBO)
+   */
   uint32_t retry GNUNET_PACKED;
+ 
+  /**
+   * Time value that specifies the upper limit on the time interval
+   * that can elapse before the zone is no longer authoritative. (NBO)
+   */
   uint32_t expire GNUNET_PACKED;
+
+  /**
+   * The bit minimum TTL field that should be exported with any RR
+   * from this zone. (NBO)
+   */
   uint32_t minimum GNUNET_PACKED;
+};
+
+
+/**
+ * Payload of DNS SRV record (header).
+ */
+struct srv_data
+{
+
+  /**
+   * Preference for this entry (lower value is higher preference).  Clients
+   * will contact hosts from the lowest-priority group first and fall back
+   * to higher priorities if the low-priority entries are unavailable. (NBO)
+   */
+  uint16_t prio GNUNET_PACKED;
+
+  /**
+   * Relative weight for records with the same priority.  Clients will use
+   * the hosts of the same (lowest) priority with a probability proportional
+   * to the weight given. (NBO)
+   */
+  uint16_t weight GNUNET_PACKED;
+
+  /**
+   * TCP or UDP port of the service. (NBO)
+   */
+  uint16_t port GNUNET_PACKED;
+
+  /* followed by 'target' name */
 };
 
 GNUNET_NETWORK_STRUCT_END

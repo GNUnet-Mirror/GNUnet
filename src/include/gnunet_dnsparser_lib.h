@@ -41,6 +41,7 @@
 #define GNUNET_DNSPARSER_TYPE_MX 15
 #define GNUNET_DNSPARSER_TYPE_TXT 16
 #define GNUNET_DNSPARSER_TYPE_AAAA 28
+#define GNUNET_DNSPARSER_TYPE_SRV 33
 
 /**
  * A few common DNS classes (ok, only one is common, but I list a
@@ -173,6 +174,65 @@ struct GNUNET_DNSPARSER_MxRecord
 
 };
 
+
+/**
+ * Information from SRV records (RFC 2782).  The 'service', 'proto'
+ * and 'domain_name' fields together give the DNS-name which for SRV
+ * records is of the form "_$SERVICE._$PROTO.$DOMAIN_NAME".  The DNS
+ * parser provides the full name in 'struct DNSPARSER_Record' and the
+ * individual components in the respective fields of this struct.
+ * When serializing, you CAN set the 'name' field of 'struct
+ * GNUNET_DNSPARSER_Record' to NULL, in which case the DNSPARSER code
+ * will populate 'name' from the 'service', 'proto' and 'domain_name'
+ * fields in this struct.
+ */
+struct GNUNET_DNSPARSER_SrvRecord
+{
+  
+  /**
+   * Preference for this entry (lower value is higher preference).
+   * Without the underscore (!).  Note that RFC 6335 clarifies the
+   * set of legal characters for service names.
+   */
+  char *service;
+
+  /**
+   * Transport protocol (typcially "tcp" or "udp", but others might be allowed).
+   * Without the underscore (!).
+   */
+  char *proto;
+
+  /**
+   * Domain name for which the record is valid
+   */
+  char *domain_name;
+
+  /**
+   * Hostname offering the service.
+   */
+  char *target;
+
+  /**
+   * Preference for this entry (lower value is higher preference).  Clients
+   * will contact hosts from the lowest-priority group first and fall back
+   * to higher priorities if the low-priority entries are unavailable.
+   */
+  uint16_t priority;
+
+  /**
+   * Relative weight for records with the same priority.  Clients will use
+   * the hosts of the same (lowest) priority with a probability proportional
+   * to the weight given.
+   */
+  uint16_t weight;
+
+  /**
+   * TCP or UDP port of the service.
+   */
+  uint16_t port;
+
+};
+
   
 /**
  * Information from SOA records (RFC 1035).
@@ -252,6 +312,9 @@ struct GNUNET_DNSPARSER_Record
    */
   char *name;
 
+  /**
+   * Payload of the record (which one of these is valid depends on the 'type').
+   */
   union 
   {
 
@@ -269,6 +332,11 @@ struct GNUNET_DNSPARSER_Record
      * MX data for MX records.
      */
     struct GNUNET_DNSPARSER_MxRecord *mx;
+
+    /**
+     * SRV data for SRV records.
+     */
+    struct GNUNET_DNSPARSER_SrvRecord *srv;
 
     /**
      * Raw data for all other types.
