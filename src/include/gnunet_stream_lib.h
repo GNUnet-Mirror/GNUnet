@@ -109,7 +109,12 @@ enum GNUNET_STREAM_Option
      * Option to set the write sequence number. Takes a uint32_t as parameter
      * to set the value of the write sequence number
      */
-    GNUNET_STREAM_OPTION_TESTING_SET_WRITE_SEQUENCE_NUMBER
+    GNUNET_STREAM_OPTION_TESTING_SET_WRITE_SEQUENCE_NUMBER,
+
+    /**
+     * Listen socket timeout in milliseconds
+     */
+    GNUNET_STREAM_OPTION_LISTEN_TIMEOUT
   };
 
 

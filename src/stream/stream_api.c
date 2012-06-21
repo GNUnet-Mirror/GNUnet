@@ -2936,6 +2936,9 @@ GNUNET_STREAM_open (const struct GNUNET_CONFIGURATION_Handle *cfg,
       socket->testing_set_write_sequence_number_value = va_arg (vargs,
                                                                 uint32_t);
       break;
+    case GNUNET_STREAM_OPTION_LISTEN_TIMEOUT:
+      GNUNET_break (0);          /* Option irrelevant in STREAM_open */
+      break;
     case GNUNET_STREAM_OPTION_END:
       break;
     }
@@ -3178,6 +3181,7 @@ GNUNET_STREAM_listen (const struct GNUNET_CONFIGURATION_Handle *cfg,
 {
   /* FIXME: Add variable args for passing configration options? */
   struct GNUNET_STREAM_ListenSocket *lsocket;
+  struct GNUNET_TIME_Relative listen_timeout;
   enum GNUNET_STREAM_Option option;
   va_list vargs;
 
@@ -3196,6 +3200,7 @@ GNUNET_STREAM_listen (const struct GNUNET_CONFIGURATION_Handle *cfg,
   lsocket->retransmit_timeout = 
     GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, default_timeout);
   lsocket->testing_active = GNUNET_NO;
+  listen_timeout = TIME_REL_SECS (60); /* A minute for listen timeout */
   va_start (vargs, listen_cb_cls);
   do {
     option = va_arg (vargs, enum GNUNET_STREAM_Option);
@@ -3210,6 +3215,10 @@ GNUNET_STREAM_listen (const struct GNUNET_CONFIGURATION_Handle *cfg,
       lsocket->testing_set_write_sequence_number_value = va_arg (vargs,
                                                                  uint32_t);
       break;
+    case GNUNET_STREAM_OPTION_LISTEN_TIMEOUT:
+      listen_timeout = GNUNET_TIME_relative_multiply
+        (GNUNET_TIME_UNIT_MILLISECONDS, va_arg (vargs, uint32_t));
+      break;
     case GNUNET_STREAM_OPTION_END:
       break;
     }
@@ -3223,7 +3232,7 @@ GNUNET_STREAM_listen (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                      (uint32_t) lsocket->port,
                                      &lock_status_change_cb, lsocket);
   lsocket->lockmanager_acquire_timeout_task =
-    GNUNET_SCHEDULER_add_delayed (TIME_REL_SECS (20),
+    GNUNET_SCHEDULER_add_delayed (listen_timeout,
                                   &lockmanager_acquire_timeout, lsocket);
   return lsocket;
 }

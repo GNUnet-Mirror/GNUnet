@@ -353,12 +353,14 @@ run (void *cls,
                                               10, /* App port */
                                               &stream_listen_cb,
                                               NULL,
+                                              GNUNET_STREAM_OPTION_LISTEN_TIMEOUT,
+                                              30 * 1000,
                                               GNUNET_STREAM_OPTION_END);
   GNUNET_assert (NULL != peer2_listen_socket);
-  GNUNET_SCHEDULER_add_delayed (TIME_REL_SECS(2), &stream_connect, &peer1);
+  GNUNET_SCHEDULER_add_delayed (TIME_REL_SECS(10), &stream_connect, &peer1);
   abort_task =
     GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                  (GNUNET_TIME_UNIT_SECONDS, 60), &do_abort,
+                                  (GNUNET_TIME_UNIT_SECONDS, 100), &do_abort,
                                   NULL);
 }
 
