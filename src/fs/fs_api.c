@@ -106,10 +106,79 @@ process_job_queue (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_TIME_Relative restart_at;
   struct GNUNET_TIME_Relative rst;
   struct GNUNET_TIME_Absolute end_time;
+  unsigned int num_download_waiting;
+  unsigned int num_download_active;
+  unsigned int num_download_expired;
+  unsigned int num_probes_active;
+  unsigned int num_probes_waiting;
+  unsigned int num_probes_expired;
+  int num_probes_change;
+  int num_download_change;
 
   h->queue_job = GNUNET_SCHEDULER_NO_TASK;
   restart_at = GNUNET_TIME_UNIT_FOREVER_REL;
   /* first, see if we can start all the jobs */
+  num_probes_waiting = 0;
+  num_download_waiting = 0;
+  for (qe = h->pending_head; NULL != qe; qe = qe->next)
+  {
+    switch (qe->priority)
+    {
+      case GNUNET_FS_QUEUE_PRIORITY_PROBE:
+	num_probes_waiting++;
+	break;
+      case GNUNET_FS_QUEUE_PRIORITY_NORMAL:
+	num_download_waiting++;
+	break;
+      default:
+	GNUNET_break (0);
+	break;
+    }
+  }
+  num_probes_active = 0;
+  num_probes_expired = 0;
+  num_download_active = 0;
+  num_download_expired = 0;
+  for (qe = h->running_head; NULL != qe; qe = qe->next)
+  {
+    run_time =
+        GNUNET_TIME_relative_multiply (h->avg_block_latency,
+                                       qe->blocks * qe->start_times);
+    switch (qe->priority)
+    {
+      case GNUNET_FS_QUEUE_PRIORITY_PROBE:
+	num_probes_active++;
+	/* run probes for at most 1s * number-of-restarts; note that
+	   as the total runtime of a probe is limited to 2m, we don't
+	   need to additionally limit the total time of a probe to 
+	   strictly limit its lifetime. */
+	run_time = GNUNET_TIME_relative_min (run_time,
+					     GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
+									    1 + qe->start_times));
+	end_time = GNUNET_TIME_absolute_add (qe->start_time, run_time);
+	rst = GNUNET_TIME_absolute_get_remaining (end_time);
+	restart_at = GNUNET_TIME_relative_min (rst, restart_at);
+	if (0 == rst.rel_value)
+	  num_probes_expired++;
+	break;
+      case GNUNET_FS_QUEUE_PRIORITY_NORMAL:
+	num_download_active++;
+	end_time = GNUNET_TIME_absolute_add (qe->start_time, run_time);
+	rst = GNUNET_TIME_absolute_get_remaining (end_time);
+	restart_at = GNUNET_TIME_relative_min (rst, restart_at);
+	if (0 == rst.rel_value)
+	  num_download_expired++;
+	break;
+      default:
+	GNUNET_break (0);
+	break;
+    }
+  }
+
+  // FIXME: calculate how many probes/downloads to start/stop
+  num_probes_change = 42;
+  num_download_change = 42;
+
   next = h->pending_head;
   while (NULL != (qe = next))
   {
@@ -151,6 +220,7 @@ process_job_queue (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	break;
       default:
 	GNUNET_break (0);
+	break;
       }
     end_time = GNUNET_TIME_absolute_add (qe->start_time, run_time);
     rst = GNUNET_TIME_absolute_get_remaining (end_time);
