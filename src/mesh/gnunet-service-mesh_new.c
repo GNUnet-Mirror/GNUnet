@@ -3783,13 +3783,19 @@ dht_get_type_handler (void *cls, struct GNUNET_TIME_Absolute exp,
                       unsigned int put_path_length, enum GNUNET_BLOCK_Type type,
                       size_t size, const void *data)
 {
-  const struct GNUNET_PeerIdentity *pi = data;
+  const struct PBlock *pb = data;
+  const struct GNUNET_PeerIdentity *pi = &pb->id;
   struct MeshTunnel *t = cls;
   struct MeshPeerInfo *peer_info;
   struct MeshPeerPath *p;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "got type DHT result!\n");
-  if (size != sizeof (struct GNUNET_PeerIdentity))
+  if (size != sizeof (struct PBlock))
+  {
+    GNUNET_break_op (0);
+    return;
+  }
+  if (ntohl(pb->type) != t->type)
   {
     GNUNET_break_op (0);
     return;
