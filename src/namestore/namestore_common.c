@@ -32,6 +32,7 @@
 #include "gnunet_arm_service.h"
 #include "gnunet_namestore_service.h"
 #include "gnunet_dnsparser_lib.h"
+#include "../dns/dnsparser.h"
 #include "namestore.h"
 
 
@@ -322,19 +323,13 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
   char* result;
   char* soa_rname;
   char* soa_mname;
-  uint32_t* soa_data;
-  uint32_t soa_serial;
-  uint32_t soa_refresh;
-  uint32_t soa_retry;
-  uint32_t soa_expire;
-  uint32_t soa_min;
-  uint32_t *af;
-  uint32_t *proto;
+  struct soa_data *soa;
+
+  struct vpn_data *vpn;
   char* vpn_str;
-  struct GNUNET_HashCode *h_peer;
-  struct GNUNET_HashCode *h_serv;
+  char* srv_str;
   struct GNUNET_CRYPTO_HashAsciiEncoded s_peer;
-  struct GNUNET_CRYPTO_HashAsciiEncoded s_serv;
+  struct srv_data *srv;
 
   switch (type)
   {
@@ -351,17 +346,13 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
   case GNUNET_DNSPARSER_TYPE_CNAME:
     return GNUNET_strndup (data, data_size);
   case GNUNET_DNSPARSER_TYPE_SOA:
-    soa_rname = (char*)data;
-    soa_mname = (char*)data+strlen(soa_rname)+1;
-    soa_data = (uint32_t*)(soa_mname+strlen(soa_mname)+1);
-    soa_serial = ntohl(soa_data[0]);
-    soa_refresh = ntohl(soa_data[1]);
-    soa_retry = ntohl(soa_data[2]);
-    soa_expire = ntohl(soa_data[3]);
-    soa_min = ntohl(soa_data[4]);
+    soa = (struct soa_data*)data;
+    soa_rname = (char*)&soa[1];
+    soa_mname = (char*)&soa[1]+strlen(soa_rname)+1;
     if (GNUNET_asprintf(&result, "rname=%s mname=%s %lu,%lu,%lu,%lu,%lu", 
                      soa_rname, soa_mname,
-                     soa_serial, soa_refresh, soa_retry, soa_expire, soa_min))
+                     ntohl (soa->serial), ntohl (soa->refresh),
+                     ntohl (soa->retry), ntohl (soa->expire), ntohl (soa->minimum)))
       return result;
     else
       return NULL;
@@ -393,16 +384,25 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
   case GNUNET_NAMESTORE_TYPE_LEHO:
     return GNUNET_strndup (data, data_size);
   case GNUNET_NAMESTORE_TYPE_VPN:
-    af = (uint32_t*)data;
-    proto = (uint32_t*)((char*)af + sizeof (uint32_t));
-    h_peer = (struct GNUNET_HashCode*)((char*)proto + sizeof (struct GNUNET_HashCode));
-    h_serv = (struct GNUNET_HashCode*)((char*)h_peer + sizeof (struct GNUNET_HashCode));
+    vpn = (struct vpn_data*)data;
 
-    GNUNET_CRYPTO_hash_to_enc (h_peer, &s_peer);
-    GNUNET_CRYPTO_hash_to_enc (h_serv, &s_serv);
-    if (GNUNET_OK != GNUNET_asprintf (&vpn_str, "%d:%d:%s:%s", af, proto, (char*)&s_peer, (char*)&s_serv))
+    GNUNET_CRYPTO_hash_to_enc (&vpn->peer, &s_peer);
+    if (GNUNET_OK != GNUNET_asprintf (&vpn_str, "%d:%s:%s",
+                                      vpn->proto,
+                                      (char*)&s_peer,
+                                      (char*)&vpn[1]))
       return NULL;
     return vpn_str;
+  case GNUNET_DNSPARSER_TYPE_SRV:
+    srv = (struct srv_data*)data;
+
+    if (GNUNET_OK != GNUNET_asprintf (&srv_str, "%d:%d:%d:%s",
+                                      ntohs (srv->prio),
+                                      ntohs (srv->weight),
+                                      ntohs (srv->port),
+                                      (char*)&srv[1]))
+      return NULL;
+    return srv_str;
   default:
     GNUNET_break (0);
   }
@@ -432,7 +432,7 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
   struct GNUNET_CRYPTO_ShortHashCode pkey;
   uint16_t mx_pref;
   uint16_t mx_pref_n;
-  uint32_t soa_data[5];
+  struct soa_data *soa;
   char result[253];
   char soa_rname[63];
   char soa_mname[63];
@@ -441,12 +441,10 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
   uint32_t soa_retry;
   uint32_t soa_expire;
   uint32_t soa_min;
-  struct GNUNET_HashCode *h_peer;
-  struct GNUNET_HashCode *h_serv;
   struct GNUNET_CRYPTO_HashAsciiEncoded s_peer;
-  struct GNUNET_CRYPTO_HashAsciiEncoded s_serv;
-  uint32_t* af;
-  uint32_t* proto;
+  char s_serv[253];
+  struct vpn_data* vpn;
+  uint16_t proto;
   
   switch (type)
   {
@@ -475,17 +473,16 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
         != 7)
       return GNUNET_SYSERR;
     
-    *data_size = sizeof (soa_data)+strlen(soa_rname)+strlen(soa_mname)+2;
+    *data_size = sizeof (struct soa_data)+strlen(soa_rname)+strlen(soa_mname)+2;
     *data = GNUNET_malloc (*data_size);
-    soa_data[0] = htonl(soa_serial);
-    soa_data[1] = htonl(soa_refresh);
-    soa_data[2] = htonl(soa_retry);
-    soa_data[3] = htonl(soa_expire);
-    soa_data[4] = htonl(soa_min);
-    strcpy(*data, soa_rname);
-    strcpy(*data+strlen(*data)+1, soa_mname);
-    memcpy(*data+strlen(*data)+1+strlen(soa_mname)+1,
-           soa_data, sizeof(soa_data));
+    soa = (struct soa_data*)*data;
+    soa->serial = htonl(soa_serial);
+    soa->refresh = htonl(soa_refresh);
+    soa->retry = htonl(soa_retry);
+    soa->expire = htonl(soa_expire);
+    soa->minimum = htonl(soa_min);
+    strcpy((char*)&soa[1], soa_rname);
+    strcpy((char*)&soa[1]+strlen(*data)+1, soa_mname);
     return GNUNET_OK;
 
   case GNUNET_DNSPARSER_TYPE_PTR:
@@ -530,25 +527,26 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
     return GNUNET_OK;
   case GNUNET_NAMESTORE_TYPE_VPN:
     
-    *data_size = sizeof (uint32_t) * 2;
-    *data_size += sizeof (struct GNUNET_HashCode) * 2;
-    *data = GNUNET_malloc (*data_size);
-    af = (uint32_t*)(*data);
-    proto = (uint32_t*) ((char*)af + sizeof (uint32_t));
-    h_peer = (struct GNUNET_HashCode*)((char*)proto + sizeof (uint32_t));
-    h_serv = (struct GNUNET_HashCode*)((char*)h_peer + sizeof (struct GNUNET_HashCode));
     
-    if (4 != SSCANF (s,"%d:%d:%s:%s",
-                     af, proto, (char*)&s_peer, (char*)&s_serv))
+    if (4 != SSCANF (s,"%hu:%s:%s",
+                     &proto, (char*)&s_peer, s_serv))
     {
       return GNUNET_SYSERR;
     }
-    if ((GNUNET_OK != GNUNET_CRYPTO_hash_from_string ((char*)&s_peer, h_peer)) ||
-        (GNUNET_OK != GNUNET_CRYPTO_hash_from_string ((char*)&s_serv, h_serv)))
+    *data_size = sizeof (struct vpn_data) + strlen (s_serv) + 1;
+    
+    *data = GNUNET_malloc (*data_size);
+
+    vpn = (struct vpn_data*)*data;
+    
+    if (GNUNET_OK != GNUNET_CRYPTO_hash_from_string ((char*)&s_peer, &vpn->peer))
     {
       GNUNET_free (*data);
       return GNUNET_SYSERR;
     }
+
+    vpn->proto = htons (proto);
+    strcpy ((char*)&vpn[1], s_serv);
     return GNUNET_OK;
   default:
     GNUNET_break (0);

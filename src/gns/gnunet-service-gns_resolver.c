@@ -35,6 +35,7 @@
 #include "gnunet_dns_service.h"
 #include "gnunet_resolver_service.h"
 #include "gnunet_dnsparser_lib.h"
+#include "../dns/dnsparser.h"
 #include "gnunet_gns_service.h"
 #include "block_gns.h"
 #include "gns.h"
@@ -1811,14 +1812,10 @@ resolve_record_vpn (struct ResolverHandle *rh,
                     int rd_count,
                     const struct GNUNET_NAMESTORE_RecordData *rd)
 {
-  int af;
-  int proto;
-  struct GNUNET_HashCode peer_id;
-  struct GNUNET_CRYPTO_HashAsciiEncoded s_pid;
+  struct RecordLookupHandle *rlh = rh->proc_cls;
   struct GNUNET_HashCode serv_desc;
-  struct GNUNET_CRYPTO_HashAsciiEncoded s_sd;
-  char* pos;
-  size_t len = (sizeof (uint32_t) * 2) + (sizeof (struct GNUNET_HashCode) * 2);
+  struct vpn_data* vpn;
+  int af;
   
   /* We cancel here as to not include the ns lookup in the timeout */
   if (rh->timeout_task != GNUNET_SCHEDULER_NO_TASK)
@@ -1836,37 +1833,12 @@ resolve_record_vpn (struct ResolverHandle *rh,
                    rh->priv_key);
   }
 
-  /* Extracting VPN information FIXME rd parsing with NS API?*/
-  if (len != rd->data_size)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "GNS_PHASE_REC_VPN-%llu: Error parsing VPN RR!\n",
-                rh->id);
-    finish_lookup (rh, rh->proc_cls, 0, NULL);
-    free_resolver_handle (rh);
-    return;
-  }
-
-  pos = (char*)rd;
-  memcpy (&af, pos, sizeof (uint32_t));
-  pos += sizeof (uint32_t);
-  memcpy (&proto, pos, sizeof (uint32_t));
-  pos += sizeof (uint32_t);
-  memcpy (&s_pid, pos, sizeof (struct GNUNET_HashCode));
-  pos += sizeof (struct GNUNET_HashCode);
-  memcpy (&s_sd, pos, sizeof (struct GNUNET_HashCode));
+  vpn = (struct vpn_data*)rd;
 
 
-  if ((GNUNET_OK != GNUNET_CRYPTO_hash_from_string ((char*)&s_pid, &peer_id)) ||
-      (GNUNET_OK != GNUNET_CRYPTO_hash_from_string ((char*)&s_sd, &serv_desc)))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "GNS_PHASE_REC_VPN-%llu: Error parsing VPN RR hashes!\n",
-                rh->id);
-    finish_lookup (rh, rh->proc_cls, 0, NULL);
-    free_resolver_handle (rh);
-    return;
-  }
+  GNUNET_CRYPTO_hash ((char*)&vpn[1],
+                      strlen ((char*)&vpn[1]),
+                      &serv_desc);
 
   rh->proc = &handle_record_vpn;
 
@@ -1879,11 +1851,16 @@ resolve_record_vpn (struct ResolverHandle *rh,
     free_resolver_handle (rh);
     return;
   }
+
+  if (rlh->record_type == GNUNET_GNS_RECORD_TYPE_A)
+    af = AF_INET;
+  else
+    af = AF_INET6;
   
   //FIXME timeout??
   rh->vpn_handle = GNUNET_VPN_redirect_to_peer (vpn_handle,
-                                          af, proto,
-                                          (struct GNUNET_PeerIdentity*)&peer_id,
+                                          af, ntohs (vpn->proto),
+                                          (struct GNUNET_PeerIdentity *)&vpn->peer,
                                           &serv_desc,
                                           GNUNET_NO, //nac
                                           GNUNET_TIME_UNIT_FOREVER_ABS, //FIXME
@@ -2351,7 +2328,7 @@ process_delegation_result_dht(void* cls,
 
 
 static void
-expand_plus(char** dest, char* src, char* repl)
+expand_plus(char* dest, char* src, char* repl)
 {
   char* pos;
   unsigned int s_len = strlen(src)+1;
@@ -2365,7 +2342,7 @@ expand_plus(char** dest, char* src, char* repl)
                "GNS_POSTPROCESS: %s to short\n", src);
 
     /* no postprocessing */
-    memcpy(*dest, src, s_len+1);
+    memcpy(dest, src, s_len+1);
     return;
   }
   
@@ -2373,17 +2350,17 @@ expand_plus(char** dest, char* src, char* repl)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                "GNS_POSTPROCESS: Expanding .+ in %s\n", src);
-    memset(*dest, 0, s_len+strlen(repl)+strlen(GNUNET_GNS_TLD));
-    strcpy(*dest, src);
-    pos = *dest+s_len-2;
+    memset(dest, 0, s_len+strlen(repl)+strlen(GNUNET_GNS_TLD));
+    strcpy(dest, src);
+    pos = dest+s_len-2;
     strcpy(pos, repl);
     pos += strlen(repl);
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "GNS_POSTPROCESS: Expanded to %s\n", *dest);
+               "GNS_POSTPROCESS: Expanded to %s\n", dest);
   }
   else
   {
-    memcpy(*dest, src, s_len+1);
+    memcpy(dest, src, s_len+1);
   }
 }
 
@@ -2401,6 +2378,10 @@ finish_lookup(struct ResolverHandle *rh,
   char new_mx_data[MAX_MX_LENGTH];
   char new_soa_data[MAX_SOA_LENGTH];
   char new_srv_data[MAX_SRV_LENGTH];
+  struct srv_data *old_srv;
+  struct srv_data *new_srv;
+  struct soa_data *old_soa;
+  struct soa_data *new_soa;
   struct GNUNET_NAMESTORE_RecordData p_rd[rd_count];
   char* repl_string;
   char* pos;
@@ -2448,7 +2429,7 @@ finish_lookup(struct ResolverHandle *rh,
       memcpy (new_mx_data, (char*)rd[i].data, sizeof(uint16_t));
       offset = sizeof(uint16_t);
       pos = new_mx_data+offset;
-      expand_plus(&pos, (char*)rd[i].data+sizeof(uint16_t),
+      expand_plus(pos, (char*)rd[i].data+sizeof(uint16_t),
                   repl_string);
       offset += strlen(new_mx_data+sizeof(uint16_t))+1;
       p_rd[i].data = new_mx_data;
@@ -2459,34 +2440,36 @@ finish_lookup(struct ResolverHandle *rh,
       /*
        * Prio, weight and port
        */
-      memcpy (new_srv_data, (char*)rd[i].data, sizeof (uint16_t) * 3);
-      offset = sizeof (uint16_t) * 3;
-      pos = new_srv_data+offset;
-      expand_plus(&pos, (char*)rd[i].data+(sizeof(uint16_t)*3),
+      new_srv = (struct srv_data*)new_srv_data;
+      old_srv = (struct srv_data*)rd[i].data;
+      new_srv->prio = old_srv->prio;
+      new_srv->weight = old_srv->weight;
+      new_srv->port = old_srv->port;
+      expand_plus((char*)&new_srv[1], (char*)&old_srv[1],
                   repl_string);
-      offset += strlen(new_srv_data+(sizeof(uint16_t)*3))+1;
       p_rd[i].data = new_srv_data;
-      p_rd[i].data_size = offset;
+      p_rd[i].data_size = sizeof (struct srv_data) + strlen ((char*)&new_srv[1]) + 1;
     }
     else if (rd[i].record_type == GNUNET_GNS_RECORD_TYPE_SOA)
     {
       /* expand mname and rname */
-      pos = new_soa_data;
-      expand_plus(&pos, (char*)rd[i].data, repl_string);
-      offset = strlen(new_soa_data)+1;
-      pos = new_soa_data+offset;
-      expand_plus(&pos, (char*)rd[i].data+offset, repl_string);
-      offset += strlen(new_soa_data+offset)+1;
-      /* cpy the 4 numbers serial refresh retry and expire */
-      memcpy(new_soa_data+offset, (char*)rd[i].data+offset, sizeof(uint32_t)*5);
-      offset += sizeof(uint32_t)*5;
-      p_rd[i].data_size = offset;
+      old_soa = (struct soa_data*)rd[i].data;
+      new_soa = (struct soa_data*)new_soa_data;
+      memcpy (new_soa, old_soa, sizeof (struct soa_data));
+      expand_plus((char*)&new_soa[1], (char*)&old_soa[1], repl_string);
+      offset = strlen ((char*)&new_soa[1]) + 1;
+      expand_plus((char*)&new_soa[1] + offset,
+                  (char*)&old_soa[1] + strlen ((char*)&old_soa[1]) + 1,
+                  repl_string);
+      p_rd[i].data_size = sizeof (struct soa_data)
+                          + offset
+                          + strlen ((char*)&new_soa[1] + offset);
       p_rd[i].data = new_soa_data;
     }
     else
     {
       pos = new_rr_data;
-      expand_plus(&pos, (char*)rd[i].data, repl_string);
+      expand_plus(pos, (char*)rd[i].data, repl_string);
       p_rd[i].data_size = strlen(new_rr_data)+1;
       p_rd[i].data = new_rr_data;
     }
