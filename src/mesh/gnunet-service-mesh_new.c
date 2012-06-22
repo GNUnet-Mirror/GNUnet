@@ -3989,6 +3989,26 @@ handle_local_new_client (void *cls, struct GNUNET_SERVER_Client *client,
 
 
 /**
+ * Handler for clients announcing available services by a regular expression.
+ *
+ * @param cls closure
+ * @param client identification of the client
+ * @param message the actual message, which includes messages the client wants
+ */
+static void
+handle_local_announce_regex (void *cls, struct GNUNET_SERVER_Client *client,
+                             const struct GNUNET_MessageHeader *message)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "announce regex started\n");
+
+  // FIXME complete
+
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "announce regex processed\n");
+}
+
+
+/**
  * Handler for requests of new tunnels
  *
  * @param cls closure
@@ -4496,6 +4516,26 @@ handle_local_connect_by_type (void *cls, struct GNUNET_SERVER_Client *client,
 
 
 /**
+ * Handler for connection requests to new peers by a string service description.
+ *
+ * @param cls closure
+ * @param client identification of the client
+ * @param message the actual message, which includes messages the client wants
+ */
+static void
+handle_local_connect_by_string (void *cls, struct GNUNET_SERVER_Client *client,
+                                const struct GNUNET_MessageHeader *message)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "connect by string started\n");
+
+  // FIXME complete
+
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "connect by string processed\n");
+}
+
+
+/**
  * Handler for client traffic directed to one peer
  *
  * @param cls closure
@@ -4747,6 +4787,8 @@ handle_local_multicast (void *cls, struct GNUNET_SERVER_Client *client,
 static struct GNUNET_SERVER_MessageHandler client_handlers[] = {
   {&handle_local_new_client, NULL,
    GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT, 0},
+  {&handle_local_announce_regex, NULL,
+   GNUNET_MESSAGE_TYPE_MESH_LOCAL_ANNOUNCE_REGEX, 0},
   {&handle_local_tunnel_create, NULL,
    GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_CREATE,
    sizeof (struct GNUNET_MESH_TunnelMessage)},
@@ -4768,6 +4810,8 @@ static struct GNUNET_SERVER_MessageHandler client_handlers[] = {
   {&handle_local_connect_by_type, NULL,
    GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_ADD_BY_TYPE,
    sizeof (struct GNUNET_MESH_ConnectPeerByType)},
+  {&handle_local_connect_by_string, NULL,
+   GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_ADD_BY_STRING, 0},
   {&handle_local_unicast, NULL,
    GNUNET_MESSAGE_TYPE_MESH_UNICAST, 0},
   {&handle_local_to_origin, NULL,
