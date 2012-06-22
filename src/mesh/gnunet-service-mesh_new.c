@@ -48,9 +48,10 @@
 #include "platform.h"
 #include "mesh.h"
 #include "mesh_protocol.h"
+#include "mesh_tunnel_tree.h"
 #include "block_mesh.h"
 #include "gnunet_dht_service.h"
-#include "mesh_tunnel_tree.h"
+#include "gnunet_regex_lib.h"
 
 /* TODO: move into configuration file */
 #define REFRESH_PATH_TIME       GNUNET_TIME_relative_multiply(\
@@ -495,6 +496,21 @@ struct MeshClient
      * ID of the client, mainly for debug messages
      */
   unsigned int id;
+  
+    /**
+     * Regular expressions describing the services offered by this client.
+     */
+  char **regexes; // FIXME add timeout? API to remove a regex?
+
+    /**
+     * Number of regular expressions in regexes.
+     */
+  unsigned int n_regex;
+
+    /**
+     * Task to refresh all regular expresions in the DHT.
+     */
+  GNUNET_SCHEDULER_TaskIdentifier regex_announce_task;
 
 };
 
@@ -2590,6 +2606,24 @@ tunnel_reset_timeout (struct MeshTunnel *t)
                                     (REFRESH_PATH_TIME, 4), &tunnel_timeout, t);
 }
 
+/**
+ * Regex callback iterator to store own service description in the DHT.
+ *
+ * @param cls closure.
+ * @param key hash for current state.
+ * @param proof proof for current state.
+ * @param accepting GNUNET_YES if this is an accepting state, GNUNET_NO if not.
+ * @param num_edges number of edges leaving current state.
+ * @param edges edges leaving current state.
+ */
+void
+regex_iterator (void *cls, const struct GNUNET_HashCode *key, const char *proof,
+                int accepting, unsigned int num_edges,
+                const struct GNUNET_REGEX_Edge *edges)
+{
+  
+}
+
 
 /******************************************************************************/
 /****************      MESH NETWORK HANDLER HELPERS     ***********************/
@@ -3832,6 +3866,7 @@ handle_local_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
 {
   struct MeshClient *c;
   struct MeshClient *next;
+  unsigned int i;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "client disconnected\n");
   if (client == NULL)
@@ -3878,6 +3913,12 @@ handle_local_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
     }
     if (NULL != c->types)
       GNUNET_CONTAINER_multihashmap_destroy (c->types);
+    for (i = 0; i < c->n_regex; i++)
+    {
+      GNUNET_free (c->regexes[i]);
+    }
+    if (GNUNET_SCHEDULER_NO_TASK != c->regex_announce_task)
+      GNUNET_SCHEDULER_cancel (c->regex_announce_task);
     next = c->next;
     GNUNET_CONTAINER_DLL_remove (clients, clients_tail, c);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  CLIENT FREE at %p\n", c);
@@ -3999,10 +4040,31 @@ static void
 handle_local_announce_regex (void *cls, struct GNUNET_SERVER_Client *client,
                              const struct GNUNET_MessageHeader *message)
 {
+  struct GNUNET_REGEX_Automaton *dfa;
+  struct MeshClient *c;
+  char *regex;
+  size_t len;
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "announce regex started\n");
 
-  // FIXME complete
+  /* Sanity check for client registration */
+  if (NULL == (c = client_get (client)))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  by client %u\n", c->id);
 
+  len = ntohs (message->size) - sizeof(struct GNUNET_MessageHeader);
+  regex = GNUNET_malloc (len + 1);
+  memcpy (regex, &message[1], len);
+  regex[len] = '\0';
+  GNUNET_array_append (c->regexes, c->n_regex, regex);
+  dfa = GNUNET_REGEX_construct_dfa (regex, len);
+  GNUNET_REGEX_iterate_all_edges (dfa, &regex_iterator, NULL);
+
+  GNUNET_REGEX_automaton_destroy (dfa);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "announce regex processed\n");
 }

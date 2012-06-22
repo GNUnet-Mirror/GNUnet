@@ -57,6 +57,7 @@ gnunet_service_mesh_new_SOURCES = \
 gnunet_service_mesh_new_LDADD = \
   $(top_builddir)/src/core/libgnunetcore.la\
   $(top_builddir)/src/dht/libgnunetdht.la \
+  $(top_builddir)/src/regex/libgnunetregex.la \
   $(top_builddir)/src/util/libgnunetutil.la
  gnunet_service_mesh_new_DEPENDENCIES = \
   $(top_builddir)/src/core/libgnunetcore.la\
