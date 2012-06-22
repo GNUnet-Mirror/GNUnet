@@ -768,6 +768,14 @@ free_address (struct NeighbourAddress *na)
     GNUNET_ATS_address_in_use (GST_ats, na->address, na->session, GNUNET_NO);
     GNUNET_ATS_address_destroyed (GST_ats, na->address, na->session);
   }
+  else
+  {
+    if (NULL != na->address)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "HACK: destroy address\n");
+      GNUNET_ATS_address_destroyed (GST_ats, na->address, na->session);
+    }
+  }
   na->ats_active = GNUNET_NO;
   if (NULL != na->address)
   {
@@ -2497,8 +2505,8 @@ master_task (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Cleaning up connection to `%s' after sending DISCONNECT\n",
 		GNUNET_i2s (&n->id));
-    n->state = S_DISCONNECT_FINISHED;
     free_neighbour (n, GNUNET_NO);
+    n->state = S_DISCONNECT_FINISHED;
     return;
   case S_DISCONNECT_FINISHED:
     /* how did we get here!? */
