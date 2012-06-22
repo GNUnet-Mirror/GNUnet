@@ -3,7 +3,7 @@
 #endif
 
 if HAVE_EXPERIMENTAL
- EXP_DIR = chat dv stream regex
+ EXP_DIR = chat dv stream 
 endif
 
 if LINUX
@@ -49,6 +49,7 @@ SUBDIRS = \
   hostlist \
   topology \
   fs \
+  regex \
   mesh \
   lockmanager \
   $(LINUX_DIR) \
