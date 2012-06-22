@@ -975,6 +975,9 @@ GNUNET_SERVICE_get_server_addresses (const char *service_name,
            _("UNIXPATH `%s' too long, maximum length is %llu\n"), unixpath,
            (unsigned long long) sizeof (s_un.sun_path));
       unixpath = GNUNET_NETWORK_shorten_unixpath (unixpath);
+      LOG (GNUNET_ERROR_TYPE_INFO,
+	   _("Using `%s' instead\n"), unixpath);
+
     }
   }
   if (NULL != unixpath)
