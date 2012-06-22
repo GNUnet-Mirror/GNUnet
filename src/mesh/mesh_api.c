@@ -1393,8 +1393,19 @@ GNUNET_MESH_announce_regex (struct GNUNET_MESH_Handle *h,
                             const char *regex)
 {
   struct GNUNET_MessageHeader *msg;
-  
-  msg = GNUNET_malloc
+  size_t len;
+  size_t msgsize;
+
+  len = strlen (regex);
+  msgsize = sizeof(struct GNUNET_MessageHeader) + len;
+  GNUNET_assert (UINT16_MAX > msgsize);
+
+  msg = GNUNET_malloc (msgsize);
+  msg->size = htons (msgsize);
+  msg->type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_ANNOUNCE_REGEX);
+  memcpy (&msg[1], regex, len);
+
+  send_packet(h, msg, NULL);
 }
 
 /**
