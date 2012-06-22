@@ -261,6 +261,7 @@ try_unixpath (const char *service_name,
 #if AF_UNIX
   struct GNUNET_CONNECTION_Handle *connection;
   char *unixpath;
+  struct sockaddr_un s_un;
 
   unixpath = NULL;
   if ((GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (cfg, service_name, "UNIXPATH", &unixpath)) && 
