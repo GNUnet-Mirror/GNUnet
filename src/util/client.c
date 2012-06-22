@@ -267,6 +267,15 @@ try_unixpath (const char *service_name,
       (0 < strlen (unixpath)))     
   {
     /* We have a non-NULL unixpath, need to validate it */
+    if (strlen (unixpath) >= sizeof (s_un.sun_path))
+    {
+      LOG (GNUNET_ERROR_TYPE_WARNING,
+	   _("UNIXPATH `%s' too long, maximum length is %llu\n"), unixpath,
+	   (unsigned long long) sizeof (s_un.sun_path));
+      unixpath = GNUNET_NETWORK_shorten_unixpath (unixpath);
+      LOG (GNUNET_ERROR_TYPE_INFO,
+	   _("Using `%s' instead\n"), unixpath);
+    }
     connection = GNUNET_CONNECTION_create_from_connect_to_unixpath (cfg, unixpath);
     if (NULL != connection)
     {
