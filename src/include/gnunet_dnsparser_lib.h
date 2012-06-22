@@ -190,8 +190,7 @@ struct GNUNET_DNSPARSER_SrvRecord
 {
   
   /**
-   * Preference for this entry (lower value is higher preference).
-   * Without the underscore (!).  Note that RFC 6335 clarifies the
+   * Service name without the underscore (!).  Note that RFC 6335 clarifies the
    * set of legal characters for service names.
    */
   char *service;

@@ -97,6 +97,31 @@ static struct GetPseuAuthorityHandle *gph_tail;
  */
 static unsigned long long rid = 0;
 
+static int
+is_srv (char* name)
+{
+  char* ndup;
+  int ret = 1;
+
+  if (*name != '_')
+    return 0;
+  if (NULL == strstr (name, "._"))
+    return 0;
+
+  ndup = GNUNET_strdup (name);
+  strtok (ndup, ".");
+
+  if (NULL == strtok (NULL, "."))
+    ret = 0;
+
+  if (NULL == strtok (NULL, "."))
+    ret = 0;
+
+  if (NULL != strtok (NULL, "."))
+    ret = 0;
+
+  return ret;
+}
 
 /**
  * Determine if this name is canonical.
@@ -110,14 +135,23 @@ static unsigned long long rid = 0;
 static int
 is_canonical(char* name)
 {
-  uint32_t len = strlen(name);
-  int i;
+  char* ndup;
+  char* tok;
 
-  for (i=0; i<len; i++)
+  ndup = GNUNET_strdup (name);
+  tok = strtok (ndup, ".");
+
+  for (tok = strtok (NULL, "."); tok != NULL; tok = strtok (NULL, "."))
   {
-    if (*(name+i) == '.')
-      return 0;
+    /*
+     * probably srv
+     */
+    if (*tok == '_')
+      continue;
+    GNUNET_free (ndup);
+    return 0;
   }
+  GNUNET_free (ndup);
   return 1;
 }
 
@@ -1126,12 +1160,12 @@ resolve_record_dht (struct ResolverHandle *rh)
  * @param signature the signature of the authority for the record data
  */
 static void
-process_record_result_ns(void* cls,
-                         const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *key,
-                         struct GNUNET_TIME_Absolute expiration,
-                         const char *name, unsigned int rd_count,
-                         const struct GNUNET_NAMESTORE_RecordData *rd,
-                         const struct GNUNET_CRYPTO_RsaSignature *signature)
+process_record_result_ns (void* cls,
+                          const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *key,
+                          struct GNUNET_TIME_Absolute expiration,
+                          const char *name, unsigned int rd_count,
+                          const struct GNUNET_NAMESTORE_RecordData *rd,
+                          const struct GNUNET_CRYPTO_RsaSignature *signature)
 {
   struct ResolverHandle *rh;
   struct RecordLookupHandle *rlh;
@@ -2313,6 +2347,7 @@ process_delegation_result_dht(void* cls,
 #define MAX_SOA_LENGTH sizeof(uint32_t)+sizeof(uint32_t)+sizeof(uint32_t)+sizeof(uint32_t)\
                         +(MAX_DNS_NAME_LENGTH*2)
 #define MAX_MX_LENGTH sizeof(uint16_t)+MAX_DNS_NAME_LENGTH
+#define MAX_SRV_LENGTH (sizeof(uint16_t)*3)+MAX_DNS_NAME_LENGTH
 
 
 static void
@@ -2365,6 +2400,7 @@ finish_lookup(struct ResolverHandle *rh,
   char new_rr_data[MAX_DNS_NAME_LENGTH];
   char new_mx_data[MAX_MX_LENGTH];
   char new_soa_data[MAX_SOA_LENGTH];
+  char new_srv_data[MAX_SRV_LENGTH];
   struct GNUNET_NAMESTORE_RecordData p_rd[rd_count];
   char* repl_string;
   char* pos;
@@ -2385,7 +2421,8 @@ finish_lookup(struct ResolverHandle *rh,
     if (rd[i].record_type != GNUNET_GNS_RECORD_TYPE_NS &&
         rd[i].record_type != GNUNET_GNS_RECORD_TYPE_CNAME &&
         rd[i].record_type != GNUNET_GNS_RECORD_MX &&
-        rd[i].record_type != GNUNET_GNS_RECORD_TYPE_SOA)
+        rd[i].record_type != GNUNET_GNS_RECORD_TYPE_SOA &&
+        rd[i].record_type != GNUNET_GNS_RECORD_TYPE_SRV)
     {
       p_rd[i].data = rd[i].data;
       continue;
@@ -2408,13 +2445,27 @@ finish_lookup(struct ResolverHandle *rh,
     offset = 0;
     if (rd[i].record_type == GNUNET_GNS_RECORD_MX)
     {
-      memcpy(new_mx_data, (char*)rd[i].data, sizeof(uint16_t));
+      memcpy (new_mx_data, (char*)rd[i].data, sizeof(uint16_t));
       offset = sizeof(uint16_t);
       pos = new_mx_data+offset;
       expand_plus(&pos, (char*)rd[i].data+sizeof(uint16_t),
                   repl_string);
       offset += strlen(new_mx_data+sizeof(uint16_t))+1;
       p_rd[i].data = new_mx_data;
+      p_rd[i].data_size = offset;
+    }
+    else if (rd[i].record_type == GNUNET_GNS_RECORD_TYPE_SRV)
+    {
+      /*
+       * Prio, weight and port
+       */
+      memcpy (new_srv_data, (char*)rd[i].data, sizeof (uint16_t) * 3);
+      offset = sizeof (uint16_t) * 3;
+      pos = new_srv_data+offset;
+      expand_plus(&pos, (char*)rd[i].data+(sizeof(uint16_t)*3),
+                  repl_string);
+      offset += strlen(new_srv_data+(sizeof(uint16_t)*3))+1;
+      p_rd[i].data = new_srv_data;
       p_rd[i].data_size = offset;
     }
     else if (rd[i].record_type == GNUNET_GNS_RECORD_TYPE_SOA)
@@ -2501,6 +2552,8 @@ handle_record_ns (void* cls, struct ResolverHandle *rh,
 {
   struct RecordLookupHandle* rlh;
   rlh = (struct RecordLookupHandle*) cls;
+  int check_dht = GNUNET_YES;
+
   if (rd_count == 0)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
@@ -2519,12 +2572,22 @@ handle_record_ns (void* cls, struct ResolverHandle *rh,
      *    would already have an entry in the NS for the record)
      * 5. We are not in cache only mode
      */
-    if (( ((rh->status & RSL_RECORD_EXPIRED) != 0) ||
-         ((rh->status & RSL_RECORD_EXISTS) == 0) ) &&
-        GNUNET_CRYPTO_short_hash_cmp(&rh->authority_chain_head->zone,
-                                        &rh->private_local_zone) &&
-        (strcmp(rh->name, "+") == 0) &&
-        (rh->only_cached == GNUNET_NO))
+    if (((rh->status & RSL_RECORD_EXPIRED) != 0) &&
+        ((rh->status & RSL_RECORD_EXISTS) == 0) )
+      check_dht = GNUNET_NO;
+    
+    if (0 != GNUNET_CRYPTO_short_hash_cmp(&rh->authority_chain_head->zone,
+                                          &rh->private_local_zone))
+      check_dht = GNUNET_NO;
+    
+    if ((strcmp (rh->name, "+") != 0) && (is_srv (rh->name) != 0))
+        check_dht = GNUNET_NO;
+
+
+    if (rh->only_cached == GNUNET_YES)
+      check_dht = GNUNET_NO;
+    
+    if (GNUNET_YES == check_dht)
     {
       rh->proc = &handle_record_dht;
       resolve_record_dht(rh);
@@ -2559,7 +2622,7 @@ pop_tld(char* name, char* dest)
 {
   uint32_t len;
 
-  if (is_canonical(name))
+  if (is_canonical (name))
   {
     strcpy(dest, name);
     strcpy(name, "");
@@ -2757,6 +2820,7 @@ handle_delegation_ns (void* cls, struct ResolverHandle *rh,
 {
   struct RecordLookupHandle* rlh;
   rlh = (struct RecordLookupHandle*) cls;
+  int check_dht = GNUNET_YES;
   int s_len = 0;
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
@@ -2920,9 +2984,19 @@ handle_delegation_ns (void* cls, struct ResolverHandle *rh,
    * and exists
    * or we are authority
    **/
-  if (((rh->status & RSL_RECORD_EXISTS) && (!(rh->status & RSL_RECORD_EXPIRED)))
-      || !GNUNET_CRYPTO_short_hash_cmp(&rh->authority_chain_head->zone,
-                                       &rh->private_local_zone))
+
+  if ((rh->status & RSL_RECORD_EXISTS) &&
+       !(rh->status & RSL_RECORD_EXPIRED))
+    check_dht = GNUNET_NO;
+
+  if (0 == GNUNET_CRYPTO_short_hash_cmp(&rh->authority_chain_head->zone,
+                                        &rh->private_local_zone))
+    check_dht = GNUNET_NO;
+
+  if (rh->only_cached == GNUNET_YES)
+    check_dht = GNUNET_NO;
+
+  if (check_dht == GNUNET_NO)
   {
     if (is_canonical(rh->name))
     {
@@ -2946,15 +3020,6 @@ handle_delegation_ns (void* cls, struct ResolverHandle *rh,
     return;
   }
 
-  if (rh->only_cached == GNUNET_YES)
-  {
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "GNS_PHASE_DELEGATE_NS-%llu: Only cache resolution, no result\n",
-               rh->id, rh->name);
-    finish_lookup(rh, rlh, rd_count, rd);
-    return;
-  }
-  
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
       "GNS_PHASE_DELEGATE_NS-%llu: Trying to resolve delegation for %s via DHT\n",
       rh->id, rh->name);
@@ -2994,29 +3059,29 @@ process_delegation_result_ns (void* cls,
   struct GNUNET_TIME_Absolute et;
  
   rh = (struct ResolverHandle *)cls; 
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "GNS_PHASE_DELEGATE_NS-%llu: Got %d records from authority lookup\n",
-             rh->id, rd_count);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+          "GNS_PHASE_DELEGATE_NS-%llu: Got %d records from authority lookup\n",
+          rh->id, rd_count);
 
-  GNUNET_CRYPTO_short_hash(key,
-                     sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
-                     &zone);
+  GNUNET_CRYPTO_short_hash (key,
+                      sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+                      &zone);
   remaining_time = GNUNET_TIME_absolute_get_remaining (expiration);
   
   rh->status = 0;
   
   if (name != NULL)
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "GNS_PHASE_DELEGATE_NS-%llu: Records with name %s exist.\n",
-               rh->id, name);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "GNS_PHASE_DELEGATE_NS-%llu: Records with name %s exist.\n",
+                rh->id, name);
     rh->status |= RSL_RECORD_EXISTS;
   
     if (remaining_time.rel_value == 0)
     {
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "GNS_PHASE_DELEGATE_NS-%llu: Record set %s expired.\n",
-                 rh->id, name);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "GNS_PHASE_DELEGATE_NS-%llu: Record set %s expired.\n",
+                  rh->id, name);
       rh->status |= RSL_RECORD_EXPIRED;
     }
   }
@@ -3035,31 +3100,29 @@ process_delegation_result_ns (void* cls,
      * Promote this authority back to a name maybe it is
      * our record.
      */
-    if (strcmp(rh->name, "") == 0)
+    if (strcmp (rh->name, "") == 0)
     {
       /* simply promote back */
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "GNS_PHASE_DELEGATE_NS-%llu: Promoting %s back to name\n",
-                 rh->id, rh->authority_name);
-      strcpy(rh->name, rh->authority_name);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "GNS_PHASE_DELEGATE_NS-%llu: Promoting %s back to name\n",
+                  rh->id, rh->authority_name);
+      strcpy (rh->name, rh->authority_name);
     }
     else
     {
       /* add back to existing name */
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "GNS_PHASE_DELEGATE_NS-%llu: Adding %s back to %s\n",
-                 rh->id, rh->authority_name, rh->name);
-      //memset(new_name, 0, strlen(rh->name) + strlen(rh->authority_name) + 2);
-      GNUNET_snprintf(new_name, MAX_DNS_NAME_LENGTH, "%s.%s",
-                      rh->name, rh->authority_name);
-      //strcpy(new_name, rh->name);
-      //strcpy(new_name+strlen(new_name), ".");
-      //strcpy(new_name+strlen(new_name), rh->authority_name);
-      strcpy(rh->name, new_name);
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "GNS_PHASE_DELEGATE_NS-%llu: %s restored\n", rh->id, rh->name);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "GNS_PHASE_DELEGATE_NS-%llu: Adding %s back to %s\n",
+                  rh->id, rh->authority_name, rh->name);
+      GNUNET_snprintf (new_name, MAX_DNS_NAME_LENGTH, "%s.%s",
+                       rh->name, rh->authority_name);
+      strcpy (rh->name, new_name);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "GNS_PHASE_DELEGATE_NS-%llu: %s restored\n",
+                  rh->id, rh->name);
     }
-    rh->proc(rh->proc_cls, rh, 0, NULL);
+
+    rh->proc (rh->proc_cls, rh, 0, NULL);
     return;
   }
 
@@ -3068,7 +3131,7 @@ process_delegation_result_ns (void* cls,
    * move on with query
    * Note only 1 pkey should have been returned.. anything else would be strange
    */
-  for (i=0; i<rd_count;i++)
+  for (i=0; i < rd_count;i++)
   {
     
     /**
@@ -3118,11 +3181,11 @@ process_delegation_result_ns (void* cls,
 
     rh->status |= RSL_DELEGATE_PKEY;
 
-    if (ignore_pending_records &&
+    if ((ignore_pending_records != 0) &&
         (rd[i].flags & GNUNET_NAMESTORE_RF_PENDING))
     {
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-      "GNS_PHASE_DELEGATE_NS-%llu: PKEY for %s is pending user confirmation.\n",
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+     "GNS_PHASE_DELEGATE_NS-%llu: PKEY for %s is pending user confirmation.\n",
         rh->id,
         name);
       continue;
@@ -3133,16 +3196,16 @@ process_delegation_result_ns (void* cls,
     if ((GNUNET_TIME_absolute_get_remaining (et)).rel_value
          == 0)
     {
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "GNS_PHASE_DELEGATE_NS-%llu: This pkey is expired.\n",
-                 rh->id);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "GNS_PHASE_DELEGATE_NS-%llu: This pkey is expired.\n",
+                  rh->id);
       if (remaining_time.rel_value == 0)
       {
-        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                   "GNS_PHASE_DELEGATE_NS-%llu: This dht entry is expired.\n",
-                   rh->id);
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    "GNS_PHASE_DELEGATE_NS-%llu: This dht entry is expired.\n",
+                    rh->id);
         rh->authority_chain_head->fresh = 0;
-        rh->proc(rh->proc_cls, rh, 0, NULL);
+        rh->proc (rh->proc_cls, rh, 0, NULL);
         return;
       }
 
@@ -3152,13 +3215,13 @@ process_delegation_result_ns (void* cls,
     /**
      * Resolve rest of query with new authority
      */
-    GNUNET_assert(rd[i].record_type == GNUNET_GNS_RECORD_PKEY);
-    memcpy(&rh->authority, rd[i].data,
-           sizeof(struct GNUNET_CRYPTO_ShortHashCode));
-    struct AuthorityChain *auth = GNUNET_malloc(sizeof(struct AuthorityChain));
+    GNUNET_assert (rd[i].record_type == GNUNET_GNS_RECORD_PKEY);
+    memcpy (&rh->authority, rd[i].data,
+            sizeof (struct GNUNET_CRYPTO_ShortHashCode));
+    struct AuthorityChain *auth = GNUNET_malloc(sizeof (struct AuthorityChain));
     auth->zone = rh->authority;
-    memset(auth->name, 0, strlen(rh->authority_name)+1);
-    strcpy(auth->name, rh->authority_name);
+    memset (auth->name, 0, strlen (rh->authority_name)+1);
+    strcpy (auth->name, rh->authority_name);
     GNUNET_CONTAINER_DLL_insert (rh->authority_chain_head,
                                  rh->authority_chain_tail,
                                  auth);
