@@ -1392,7 +1392,9 @@ void
 GNUNET_MESH_announce_regex (struct GNUNET_MESH_Handle *h,
                             const char *regex)
 {
+  struct GNUNET_MessageHeader *msg;
   
+  msg = GNUNET_malloc
 }
 
 /**
@@ -1603,6 +1605,8 @@ GNUNET_MESH_peer_request_connect_by_string (struct GNUNET_MESH_Tunnel *tunnel,
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_ADD_BY_STRING);
   msg->tunnel_id = htonl (tunnel->tid);
   memcpy(&msg[1], description, len);
+
+  send_packet (tunnel->mesh, &msg->header, tunnel);
 }
 
 
