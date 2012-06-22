@@ -191,7 +191,7 @@ struct GNUNET_MESH_PeerControl
 
 
 /**
- * Message for connecting to peers offering a certain service.
+ * Message for connecting to peers offering a service, by service number.
  */
 struct GNUNET_MESH_ConnectPeerByType
 {
@@ -210,6 +210,25 @@ struct GNUNET_MESH_ConnectPeerByType
    * Type specification
    */
   GNUNET_MESH_ApplicationType type GNUNET_PACKED;
+};
+
+
+/**
+ * Message for connecting to peers offering a service, by service string.
+ */
+struct GNUNET_MESH_ConnectPeerByString
+{
+    /**
+     * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_ADD_BY_STRING
+     */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * ID of a tunnel controlled by this client.
+   */
+  MESH_TunnelNumber tunnel_id GNUNET_PACKED;
+
+  /* String describing the service */
 };
 GNUNET_NETWORK_STRUCT_END
 
