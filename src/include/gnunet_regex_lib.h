@@ -48,7 +48,7 @@ struct GNUNET_REGEX_Automaton;
 struct GNUNET_REGEX_Edge
 {
   /**
-   * Label of the edge.
+   * Label of the edge.  FIXME: might want to not consume exactly multiples of 8 bits, need length?
    */
   const char *label;
 
@@ -132,8 +132,8 @@ GNUNET_REGEX_get_computed_regex (struct GNUNET_REGEX_Automaton *a);
  * @return number of bits of 'input_string' that have been consumed
  *         to construct the key
  */
-unsigned int
-GNUNET_REGEX_get_first_key (const char *input_string, unsigned int string_len,
+unsigned int /* FIXME: size_t */
+GNUNET_REGEX_get_first_key (const char *input_string, /* FIXME: size_t */ unsigned int string_len,
                             struct GNUNET_HashCode * key);
 
 /**
