@@ -165,7 +165,6 @@ GNUNET_PROGRAM_run2 (int argc, char *const *argv, const char *binaryName,
   char *lpfx;
   char *spc;
 
-
   logfile = NULL;
   gargs = getenv ("GNUNET_ARGS");
   if (gargs != NULL)

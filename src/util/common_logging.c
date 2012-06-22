@@ -64,6 +64,19 @@
 #define DATE_STR_SIZE 64
 
 /**
+ * How many log files to keep?
+ */
+#define ROTATION_KEEP 3
+
+#ifndef PATH_MAX
+/**
+ * Assumed maximum path length (for the log file name).
+ */
+#define PATH_MAX 4096
+#endif
+
+
+/**
  * Linked list of active loggers.
  */
 struct CustomLogger
@@ -120,6 +133,11 @@ static char *component;
  * Running component (without pid).
  */
 static char *component_nopid;
+
+/**
+ * Format string describing the name of the log file.
+ */
+static char *log_file_name;
 
 /**
  * Minimum log level.
@@ -190,39 +208,40 @@ struct LogDef
 /**
  * Dynamic array of logging definitions
  */
-struct LogDef *logdefs = NULL;
+static struct LogDef *logdefs;
 
 /**
  * Allocated size of logdefs array (in units)
  */
-int logdefs_size = 0;
+static int logdefs_size;
 
 /**
  * The number of units used in logdefs array.
  */
-int logdefs_len = 0;
+static int logdefs_len;
 
 /**
  * GNUNET_YES if GNUNET_LOG environment variable is already parsed.
  */
-int gnunet_log_parsed = GNUNET_NO;
+static int gnunet_log_parsed;
 
 /**
  * GNUNET_YES if GNUNET_FORCE_LOG environment variable is already parsed.
  */
-int gnunet_force_log_parsed = GNUNET_NO;
+static int gnunet_force_log_parsed;
 
 /**
  * GNUNET_YES if at least one definition with forced == 1 is available.
  */
-int gnunet_force_log_present = GNUNET_NO;
+static int gnunet_force_log_present;
 
 #ifdef WINDOWS
 /**
  * Contains the number of performance counts per second.
  */
-LARGE_INTEGER performance_frequency;
+static LARGE_INTEGER performance_frequency;
 #endif
+
 
 /**
  * Convert a textual description of a loglevel
@@ -234,7 +253,7 @@ LARGE_INTEGER performance_frequency;
 static enum GNUNET_ErrorType
 get_type (const char *log)
 {
-  if (log == NULL)
+  if (NULL == log)
     return GNUNET_ERROR_TYPE_UNSPECIFIED;
   if (0 == strcasecmp (log, _("DEBUG")))
     return GNUNET_ERROR_TYPE_DEBUG;
@@ -248,6 +267,7 @@ get_type (const char *log)
     return GNUNET_ERROR_TYPE_NONE;
   return GNUNET_ERROR_TYPE_INVALID;
 }
+
 
 #if !defined(GNUNET_CULL_LOGGING)
 /**
@@ -275,6 +295,99 @@ GNUNET_abort ()
 
 
 /**
+ * Rotate logs, deleting the oldest log.
+ *
+ * @param new_name new name to add to the rotation
+ */ 
+static void
+log_rotate (const char *new_name)
+{
+  static char *rotation[ROTATION_KEEP];
+  static unsigned int rotation_off;
+  char *discard;
+
+  if ('\0' == *new_name)
+    return; /* not a real log file name */
+  discard = rotation[rotation_off % ROTATION_KEEP];
+  if (NULL != discard)
+  {
+    /* Note: can't log errors during logging (recursion!), so this
+       operation MUST silently fail... */
+    (void) UNLINK (discard);
+    GNUNET_free (discard);
+  }
+  rotation[rotation_off % ROTATION_KEEP] = GNUNET_strdup (new_name);
+  rotation_off++;  
+}
+
+
+/**
+ * Setup the log file.
+ *
+ * @param tm timestamp for which we should setup logging
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ */
+static int
+setup_log_file (const struct tm *tm)
+{
+  static char last_fn[PATH_MAX + 1];  
+  char fn[PATH_MAX + 1];
+  int dirwarn;
+  int altlog_fd;
+  int dup_return;
+  FILE *altlog;
+  
+  if (0 == strftime (fn, sizeof (fn), log_file_name, tm))
+    return GNUNET_SYSERR;
+  if (0 == strcmp (fn, last_fn))
+    return GNUNET_OK; /* no change */
+  log_rotate (last_fn);
+  strcpy (last_fn, fn);
+  dirwarn = (GNUNET_OK != GNUNET_DISK_directory_create_for_file (fn));
+#if WINDOWS
+  altlog_fd = OPEN (fn, O_APPEND |
+                        O_BINARY |
+                        O_WRONLY | O_CREAT,
+                        _S_IREAD | _S_IWRITE);
+#else
+  altlog_fd = OPEN (fn, O_APPEND |
+                        O_WRONLY | O_CREAT,
+                        S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+#endif
+  if (-1 != altlog_fd)
+  {
+    if (NULL != GNUNET_stderr)
+      fclose (GNUNET_stderr);
+    dup_return = dup2 (altlog_fd, 2);
+    (void) close (altlog_fd);
+    if (-1 != dup_return)
+    {
+      altlog = fdopen (2, "ab");
+      if (NULL == altlog)
+      {
+        (void) close (2);
+        altlog_fd = -1;
+      }
+    }
+    else
+    {
+      altlog_fd = -1;
+    }
+  }
+  if (-1 == altlog_fd)
+  {
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "open", fn);
+    if (dirwarn)
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  _("Failed to create or access directory for log file `%s'\n"),
+                  fn);
+    return GNUNET_SYSERR;
+  }
+  GNUNET_stderr = altlog; 
+  return GNUNET_OK;
+}
+
+/**
  * Utility function - adds a parsed definition to logdefs array.
  *
  * @param component see struct LogDef, can't be NULL
@@ -296,25 +409,25 @@ add_definition (char *component, char *file, char *function, int from_line,
   if (logdefs_size == logdefs_len)
     resize_logdefs ();
   memset (&n, 0, sizeof (n));
-  if (strlen (component) == 0)
+  if (0 == strlen (component))
     component = (char *) ".*";
   r = regcomp (&n.component_regex, (const char *) component, REG_NOSUB);
-  if (r != 0)
+  if (0 != r)
   {
     return r;
   }
-  if (strlen (file) == 0)
+  if (0 == strlen (file))
     file = (char *) ".*";
   r = regcomp (&n.file_regex, (const char *) file, REG_NOSUB);
-  if (r != 0)
+  if (0 != r)
   {
     regfree (&n.component_regex);
     return r;
   }
-  if ((NULL == function) || (strlen (function) == 0))
+  if ((NULL == function) || (0 == strlen (function)))
     function = (char *) ".*";
   r = regcomp (&n.function_regex, (const char *) function, REG_NOSUB);
-  if (r != 0)
+  if (0 != r)
   {
     regfree (&n.component_regex);
     regfree (&n.file_regex);
@@ -350,14 +463,14 @@ GNUNET_get_log_call_status (int caller_level, const char *comp,
   int i;
   int force_only;
 
-  if (comp == NULL)
+  if (NULL == comp)
     /* Use default component */
     comp = component_nopid;
 
   /* We have no definitions to override globally configured log level,
    * so just use it right away.
    */
-  if (min_level >= 0 && gnunet_force_log_present == GNUNET_NO)
+  if ( (min_level >= 0) && (GNUNET_NO == gnunet_force_log_present) )
     return caller_level <= min_level;
 
   /* Only look for forced definitions? */
@@ -365,11 +478,11 @@ GNUNET_get_log_call_status (int caller_level, const char *comp,
   for (i = 0; i < logdefs_len; i++)
   {
     ld = &logdefs[i];
-    if ((!force_only || ld->force) &&
+    if (( (!force_only) || ld->force) &&
         (line >= ld->from_line && line <= ld->to_line) &&
-        (regexec (&ld->component_regex, comp, 0, NULL, 0) == 0) &&
-        (regexec (&ld->file_regex, file, 0, NULL, 0) == 0) &&
-        (regexec (&ld->function_regex, function, 0, NULL, 0) == 0))
+        (0 == regexec (&ld->component_regex, comp, 0, NULL, 0)) &&
+        (0 == regexec (&ld->file_regex, file, 0, NULL, 0)) &&
+        (0 == regexec (&ld->function_regex, function, 0, NULL, 0)))
     {
       /* We're finished */
       return caller_level <= ld->level;
@@ -426,7 +539,7 @@ parse_definitions (const char *constname, int force)
   int keep_looking = 1;
 
   tmp = getenv (constname);
-  if (tmp == NULL)
+  if (NULL == tmp)
     return 0;
   def = GNUNET_strdup (tmp);
   from_line = 0;
@@ -454,17 +567,17 @@ parse_definitions (const char *constname, int force)
         {
           errno = 0;
           from_line = strtol (start, &t, 10);
-          if (errno != 0 || from_line < 0)
+          if ( (0 != errno) || (from_line < 0) )
           {
             GNUNET_free (def);
             return counter;
           }
-          if (t < p && t[0] == '-')
+          if ( (t < p) && ('-' == t[0]) )
           {
             errno = 0;
             start = t + 1;
             to_line = strtol (start, &t, 10);
-            if (errno != 0 || to_line < 0 || t != p)
+            if ( (0 != errno) || (to_line < 0) || (t != p) )
             {
               GNUNET_free (def);
               return counter;
@@ -481,7 +594,7 @@ parse_definitions (const char *constname, int force)
         break;
       }
       start = p + 1;
-      state += 1;
+      state++;
       break;
     case '\0':                 /* found EOL */
       keep_looking = 0;
@@ -493,15 +606,15 @@ parse_definitions (const char *constname, int force)
         p[0] = '\0';
         state = 0;
         level = get_type ((const char *) start);
-        if (level == GNUNET_ERROR_TYPE_INVALID ||
-            level == GNUNET_ERROR_TYPE_UNSPECIFIED ||
-            0 != add_definition (comp, file, function, from_line, to_line,
-                                 level, force))
+        if ( (GNUNET_ERROR_TYPE_INVALID == level) ||
+	     (GNUNET_ERROR_TYPE_UNSPECIFIED == level) ||
+	     (0 != add_definition (comp, file, function, from_line, to_line,
+				   level, force)) )
         {
           GNUNET_free (def);
           return counter;
         }
-        counter += 1;
+        counter++;
         start = p + 1;
         break;
       default:
@@ -515,16 +628,17 @@ parse_definitions (const char *constname, int force)
   return counter;
 }
 
+
 /**
  * Utility function - parses GNUNET_LOG and GNUNET_FORCE_LOG.
  */
 static void
 parse_all_definitions ()
 {
-  if (gnunet_log_parsed == GNUNET_NO)
+  if (GNUNET_NO == gnunet_log_parsed)
     parse_definitions ("GNUNET_LOG", 0);
   gnunet_log_parsed = GNUNET_YES;
-  if (gnunet_force_log_parsed == GNUNET_NO)
+  if (GNUNET_NO == gnunet_force_log_parsed)
     gnunet_force_log_present =
         parse_definitions ("GNUNET_FORCE_LOG", 1) > 0 ? GNUNET_YES : GNUNET_NO;
   gnunet_force_log_parsed = GNUNET_YES;
@@ -543,11 +657,9 @@ parse_all_definitions ()
 int
 GNUNET_log_setup (const char *comp, const char *loglevel, const char *logfile)
 {
-  FILE *altlog;
-  int dirwarn;
-  char *fn;
-  const char *env_logfile = NULL;
-  int altlog_fd;
+  const char *env_logfile;
+  const struct tm *tm;
+  time_t t;
 
   min_level = get_type (loglevel);
 #if !defined(GNUNET_CULL_LOGGING)
@@ -562,60 +674,19 @@ GNUNET_log_setup (const char *comp, const char *loglevel, const char *logfile)
   component_nopid = GNUNET_strdup (comp);
 
   env_logfile = getenv ("GNUNET_FORCE_LOGFILE");
-  if ((env_logfile != NULL) && (strlen (env_logfile) > 0))
+  if ((NULL != env_logfile) && (strlen (env_logfile) > 0))
     logfile = env_logfile;
-
-  if (logfile == NULL)
+  if (NULL == logfile)
     return GNUNET_OK;
-  fn = GNUNET_STRINGS_filename_expand (logfile);
-  if (NULL == fn)
+  GNUNET_free_non_null (log_file_name);
+  log_file_name = GNUNET_STRINGS_filename_expand (logfile);
+  if (NULL == log_file_name)
     return GNUNET_SYSERR;
-  dirwarn = (GNUNET_OK != GNUNET_DISK_directory_create_for_file (fn));
-#if WINDOWS
-  altlog_fd = OPEN (fn, O_APPEND |
-                        O_BINARY |
-                        O_WRONLY | O_CREAT,
-                        _S_IREAD | _S_IWRITE);
-#else
-  altlog_fd = OPEN (fn, O_APPEND |
-                        O_WRONLY | O_CREAT,
-                        S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
-#endif
-  if (altlog_fd != -1)
-  {
-    int dup_return;
-    if (GNUNET_stderr != NULL)
-      fclose (GNUNET_stderr);
-    dup_return = dup2 (altlog_fd, 2);
-    (void) close (altlog_fd);
-    if (dup_return != -1)
-    {
-      altlog = fdopen (2, "ab");
-      if (altlog == NULL)
-      {
-        (void) close (2);
-        altlog_fd = -1;
-      }
-    }
-    else
-    {
-      altlog_fd = -1;
-    }
-  }
-  if (altlog_fd == -1)
-  {
-    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "open", fn);
-    if (dirwarn)
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  _("Failed to create or access directory for log file `%s'\n"),
-                  fn);
-    GNUNET_free (fn);
-    return GNUNET_SYSERR;
-  }
-  GNUNET_free (fn);
-  GNUNET_stderr = altlog;
-  return GNUNET_OK;
+  t = time (NULL);
+  tm = gmtime (&t);
+  return setup_log_file (tm);
 }
+
 
 /**
  * Add a custom logger.
@@ -634,6 +705,7 @@ GNUNET_logger_add (GNUNET_Logger logger, void *logger_cls)
   entry->next = loggers;
   loggers = entry;
 }
+
 
 /**
  * Remove a custom logger.
@@ -678,7 +750,7 @@ output_message (enum GNUNET_ErrorType kind, const char *comp,
 {
   struct CustomLogger *pos;
 
-  if (GNUNET_stderr != NULL)
+  if (NULL != GNUNET_stderr)
   {
     FPRINTF (GNUNET_stderr, "%s %s %s %s", datestr, comp,
              GNUNET_error_type_to_string (kind), msg);
@@ -742,17 +814,19 @@ flush_bulk (const char *datestr)
 void
 GNUNET_log_skip (unsigned int n, int check_reset)
 {
-  if (n == 0)
-  {
-    int ok;
+  int ok;
 
+  if (0 == n)
+  {
     ok = (0 == skip_log);
     skip_log = 0;
     if (check_reset)
       GNUNET_assert (ok);
   }
   else
+  {
     skip_log += n;
+  }
 }
 
 
@@ -770,8 +844,6 @@ mylog (enum GNUNET_ErrorType kind, const char *comp, const char *message,
 {
   char date[DATE_STR_SIZE];
   char date2[DATE_STR_SIZE];
-  time_t timetmp;
-  struct timeval timeofday;
   struct tm *tmptr;
   size_t size;
   va_list vacp;
@@ -780,32 +852,45 @@ mylog (enum GNUNET_ErrorType kind, const char *comp, const char *message,
   size = VSNPRINTF (NULL, 0, message, vacp) + 1;
   GNUNET_assert (0 != size);
   va_end (vacp);
+  memset (date, 0, DATE_STR_SIZE);
   {
     char buf[size];
-
-    VSNPRINTF (buf, size, message, va);
-    time (&timetmp);
-    memset (date, 0, DATE_STR_SIZE);
-    tmptr = localtime (&timetmp);
-    gettimeofday (&timeofday, NULL);
-    if (NULL != tmptr)
-    {
 #ifdef WINDOWS
-      LARGE_INTEGER pc;
+    LARGE_INTEGER pc;
+    time_t timetmp;
 
-      pc.QuadPart = 0;
-      QueryPerformanceCounter (&pc);
-      strftime (date2, DATE_STR_SIZE, "%b %d %H:%M:%S-%%020llu", tmptr);
-      snprintf (date, sizeof (date), date2,
-                (long long) (pc.QuadPart /
-                             (performance_frequency.QuadPart / 1000)));
-#else
-      strftime (date2, DATE_STR_SIZE, "%b %d %H:%M:%S-%%06u", tmptr);
-      snprintf (date, sizeof (date), date2, timeofday.tv_usec);
-#endif
+    time (&timetmp);
+    tmptr = localtime (&timetmp);
+    pc.QuadPart = 0;
+    QueryPerformanceCounter (&pc);
+    if (NULL == tmptr)
+    {
+      strcpy (date, "localtime error");
     }
     else
+    {
+      strftime (date2, DATE_STR_SIZE, "%b %d %H:%M:%S-%%020llu", tmptr);
+      snprintf (date, sizeof (date), date2,
+		(long long) (pc.QuadPart /
+			     (performance_frequency.QuadPart / 1000)));
+    }
+#else
+    struct timeval timeofday;
+
+    gettimeofday (&timeofday, NULL);
+    tmptr = localtime (&timeofday.tv_sec);
+    if (NULL == tmptr)
+    {
       strcpy (date, "localtime error");
+    }
+    else
+    {
+      strftime (date2, DATE_STR_SIZE, "%b %d %H:%M:%S-%%06u", tmptr);
+      snprintf (date, sizeof (date), date2, timeofday.tv_usec);
+    }
+#endif  
+    VSNPRINTF (buf, size, message, va);
+    (void) setup_log_file (tmptr);
     if ((0 != (kind & GNUNET_ERROR_TYPE_BULK)) &&
         (last_bulk_time.abs_value != 0) &&
         (0 == strncmp (buf, last_bulk, sizeof (last_bulk))))
@@ -912,6 +997,7 @@ GNUNET_h2s (const struct GNUNET_HashCode * hc)
   return (const char *) ret.encoding;
 }
 
+
 /**
  * Convert a hash to a string (for printing debug messages).
  * This is one of the very few calls in the entire API that is
@@ -929,6 +1015,7 @@ GNUNET_h2s_full (const struct GNUNET_HashCode * hc)
   ret.encoding[sizeof (ret) - 1] = '\0';
   return (const char *) ret.encoding;
 }
+
 
 /**
  * Convert a peer identity to a string (for printing debug messages).
@@ -948,6 +1035,7 @@ GNUNET_i2s (const struct GNUNET_PeerIdentity *pid)
   ret.encoding[4] = '\0';
   return (const char *) ret.encoding;
 }
+
 
 /**
  * Convert a peer identity to a string (for printing debug messages).
