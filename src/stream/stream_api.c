@@ -479,6 +479,11 @@ struct GNUNET_STREAM_IOWriteHandle
 struct GNUNET_STREAM_IOReadHandle
 {
   /**
+   * The socket to which this read handle is associated
+   */
+  struct GNUNET_STREAM_Socket *socket;
+  
+  /**
    * Callback for the read processor
    */
   GNUNET_STREAM_DataProcessor proc;
@@ -1055,7 +1060,7 @@ call_read_processor (void *cls,
  * @param tc the task context
  */
 static void
-read_io_timeout (void *cls, 
+read_io_timeout (void *cls,
                  const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_STREAM_Socket *socket = cls;
@@ -1074,7 +1079,6 @@ read_io_timeout (void *cls,
   GNUNET_assert (NULL != socket->read_handle);
   proc = socket->read_handle->proc;
   proc_cls = socket->read_handle->proc_cls;
-
   GNUNET_free (socket->read_handle);
   socket->read_handle = NULL;
   /* Call the read processor to signal timeout */
@@ -3428,13 +3432,11 @@ GNUNET_STREAM_read (struct GNUNET_STREAM_Socket *socket,
        "%s: %s()\n", 
        GNUNET_i2s (&socket->other_peer),
        __func__);
-
   /* Return NULL if there is already a read handle; the user has to cancel that
      first before continuing or has to wait until it is completed */
-  if (NULL != socket->read_handle) return NULL;
-
+  if (NULL != socket->read_handle) 
+    return NULL;
   GNUNET_assert (NULL != proc);
-
   switch (socket->state)
   {
   case STATE_RECEIVE_CLOSED:
@@ -3450,21 +3452,18 @@ GNUNET_STREAM_read (struct GNUNET_STREAM_Socket *socket,
   default:
     break;
   }
-
   read_handle = GNUNET_malloc (sizeof (struct GNUNET_STREAM_IOReadHandle));
   read_handle->proc = proc;
   read_handle->proc_cls = proc_cls;
+  read_handle->socket = socket;
   socket->read_handle = read_handle;
-
   /* Check if we have a packet at bitmap 0 */
   if (GNUNET_YES == ackbitmap_is_bit_set (&socket->ack_bitmap,
                                           0))
   {
     socket->read_task_id = GNUNET_SCHEDULER_add_now (&call_read_processor,
-                                                     socket);
-   
+                                                     socket);   
   }
-  
   /* Setup the read timeout task */
   socket->read_io_timeout_task_id =
     GNUNET_SCHEDULER_add_delayed (timeout,
@@ -3517,7 +3516,24 @@ GNUNET_STREAM_io_write_cancel (struct GNUNET_STREAM_IOWriteHandle *ioh)
 void
 GNUNET_STREAM_io_read_cancel (struct GNUNET_STREAM_IOReadHandle *ioh)
 {
-  // FIXME: do stuff
+  struct GNUNET_STREAM_Socket *socket;
+  
+  socket = ioh->socket;
+  GNUNET_assert (NULL != socket->read_handle);
+  GNUNET_assert (ioh == socket->read_handle);
+  /* Read io time task should be there; if it is already executed then this
+  read handle is not valid */
+  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != socket->read_io_timeout_task_id);
+  GNUNET_SCHEDULER_cancel (socket->read_io_timeout_task_id);
+  socket->read_io_timeout_task_id = GNUNET_SCHEDULER_NO_TASK;
+  /* reading task may be present; if so we have to stop it */
+  if (GNUNET_SCHEDULER_NO_TASK != socket->read_task_id)
+  {
+    GNUNET_SCHEDULER_cancel (socket->read_task_id);
+    socket->read_task_id = GNUNET_SCHEDULER_NO_TASK;
+  }
+  GNUNET_free (ioh);
+  socket->read_handle = NULL;
 }
 
 /* end of stream_api.c */
