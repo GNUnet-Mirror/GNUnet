@@ -25,6 +25,7 @@
  */
 #include "platform.h"
 #include "gnunet_ats_service.h"
+#include "gnunet_testing_lib-new.h"
 #include "ats.h"
 
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
@@ -36,9 +37,8 @@ static GNUNET_SCHEDULER_TaskIdentifier suggest_timeout_task;
 
 static struct GNUNET_ATS_SchedulingHandle *ats;
 
-struct GNUNET_OS_Process *arm_proc;
-
 static int ret;
+
 
 struct Address
 {
@@ -62,41 +62,29 @@ struct PeerContext
 };
 
 struct GNUNET_HELLO_Address hello_addr;
-struct Address address;
-struct PeerContext peer;
-struct GNUNET_ATS_Information atsi[2];
 
-static void
-stop_arm ()
-{
-  if (0 != GNUNET_OS_process_kill (arm_proc, SIGTERM))
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-  GNUNET_OS_process_wait (arm_proc);
-  GNUNET_OS_process_destroy (arm_proc);
-  arm_proc = NULL;
-}
+struct Address address;
+
+struct PeerContext peer;
+
+struct GNUNET_ATS_Information atsi[2];
 
 
 static void
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   die_task = GNUNET_SCHEDULER_NO_TASK;
-
   if (suggest_timeout_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (suggest_timeout_task);
     suggest_timeout_task = GNUNET_SCHEDULER_NO_TASK;
   }
-
   if (ats != NULL)
   {
     GNUNET_ATS_scheduling_done (ats);
     ats = NULL;
   }
-
   ret = GNUNET_SYSERR;
-
-  stop_arm ();
 }
 
 
@@ -115,12 +103,8 @@ end ()
     GNUNET_SCHEDULER_cancel (suggest_timeout_task);
     suggest_timeout_task = GNUNET_SCHEDULER_NO_TASK;
   }
-
   GNUNET_ATS_scheduling_done (ats);
-
   ret = 0;
-
-  stop_arm ();
 }
 
 
@@ -128,17 +112,15 @@ static void
 suggest_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   suggest_timeout_task = GNUNET_SCHEDULER_NO_TASK;
-
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Requesting address for peer timed out\n");
-
   if (die_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (die_task);
     die_task = GNUNET_SCHEDULER_NO_TASK;
   }
-
   die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
 }
+
 
 static void
 address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *a,
@@ -149,6 +131,7 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *a,
                     uint32_t ats_count)
 {
   static int suggestions;
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ATS suggests address `%s'\n",
               GNUNET_i2s (&a->peer));
 
@@ -230,26 +213,15 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *a,
   suggest_timeout_task = GNUNET_SCHEDULER_add_delayed(ATS_TIMEOUT, &suggest_timeout, NULL);
 }
 
-void
-start_arm (const char *cfgname)
-{
-  arm_proc =
-    GNUNET_OS_start_process (GNUNET_YES, NULL, NULL, "gnunet-service-arm",
-                               "gnunet-service-arm",
-                               "-c", cfgname, NULL);
-}
 
 static void
-check (void *cls, char *const *args, const char *cfgfile,
-       const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls, 
+     const struct GNUNET_CONFIGURATION_Handle *cfg,
+     struct GNUNET_TESTING_Peer *peerx)
 {
   ret = GNUNET_SYSERR;
-
   die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
-  start_arm (cfgfile);
-
   ats = GNUNET_ATS_scheduling_init (cfg, &address_suggest_cb, NULL);
-
   if (ats == NULL)
   {
     ret = GNUNET_SYSERR;
@@ -280,30 +252,18 @@ check (void *cls, char *const *args, const char *cfgfile,
               GNUNET_i2s (&peer.id));
   /* Increase block timout far beyond ATS_TIMEOUT */
   GNUNET_ATS_suggest_address (ats, &peer.id);
-
   GNUNET_ATS_reset_backoff(ats, &peer.id);
   GNUNET_ATS_suggest_address (ats, &peer.id);
 }
 
+
 int
 main (int argc, char *argv[])
 {
-  static char *const argv2[] = { "test_ats_api_scheduling",
-    "-c",
-    "test_ats_api.conf",
-    "-L", "WARNING",
-    NULL
-  };
-
-  static struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_OPTION_END
-  };
-
-  GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
-                      "test_ats_api_scheduling", "nohelp", options, &check,
-                      NULL);
-
-
+  if (0 != GNUNET_TESTING_peer_run ("test_ats_api_reset_backoff",
+				    "test_ats_api.conf",
+				    &run, NULL))
+    return 1;
   return ret;
 }
 /* end of file test_ats_api_reset_backoff.c */

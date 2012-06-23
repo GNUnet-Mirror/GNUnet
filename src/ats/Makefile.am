@@ -54,10 +54,10 @@ gnunet_service_ats_LDADD = \
   $(GN_LIBINTL)
 gnunet_service_ats_DEPENDENCIES = \
   libgnunetats.la
-  
+
 gnunet_ats_SOURCES = \
  gnunet-ats.c gnunet-service-ats.h
-gnunet_ats_LDADD = \ 
+gnunet_ats_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/ats/libgnunetats.la \
   $(GN_LIBINTL)  
@@ -111,30 +111,35 @@ test_ats_api_scheduling_SOURCES = \
  test_ats_api_scheduling.c
 test_ats_api_scheduling_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/ats/libgnunetats.la  
 
 test_ats_api_reset_backoff_SOURCES = \
  test_ats_api_reset_backoff.c
 test_ats_api_reset_backoff_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/ats/libgnunetats.la  
 
 test_ats_api_scheduling_add_address_SOURCES = \
  test_ats_api_scheduling_add_address.c
 test_ats_api_scheduling_add_address_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/ats/libgnunetats.la  
 
 test_ats_api_scheduling_destroy_address_SOURCES = \
  test_ats_api_scheduling_destroy_address.c
 test_ats_api_scheduling_destroy_address_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/ats/libgnunetats.la
 
 test_ats_api_scheduling_destroy_session_SOURCES = \
  test_ats_api_scheduling_destroy_session.c
 test_ats_api_scheduling_destroy_session_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/ats/libgnunetats.la
 
 #test_ats_api_scheduling_get_type_SOURCES = \
@@ -147,6 +152,7 @@ test_ats_api_scheduling_destroy_session_LDADD = \
 # test_ats_api_bandwidth_consumption.c
 #test_ats_api_bandwidth_consumption_LDADD = \
 #  $(top_builddir)/src/util/libgnunetutil.la \
+#  $(top_builddir)/src/testing/libgnunettesting.la \
 #  $(top_builddir)/src/ats/libgnunetats.la  
 
 #test_ats_api_update_address_SOURCES = \

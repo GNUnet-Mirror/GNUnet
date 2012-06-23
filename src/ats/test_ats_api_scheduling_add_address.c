@@ -25,6 +25,7 @@
  */
 #include "platform.h"
 #include "gnunet_ats_service.h"
+#include "gnunet_testing_lib-new.h"
 #include "ats.h"
 
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
@@ -32,10 +33,6 @@
 static GNUNET_SCHEDULER_TaskIdentifier die_task;
 
 static struct GNUNET_ATS_SchedulingHandle *ats;
-
-struct GNUNET_OS_Process *arm_proc;
-
-
 
 static int ret;
 
@@ -60,19 +57,12 @@ struct PeerContext
   struct Address *addr;
 };
 
-struct Address test_addr;
-struct PeerContext p;
-struct GNUNET_ATS_Information atsi;
 
-static void
-stop_arm ()
-{
-  if (0 != GNUNET_OS_process_kill (arm_proc, SIGTERM))
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-  GNUNET_OS_process_wait (arm_proc);
-  GNUNET_OS_process_destroy (arm_proc);
-  arm_proc = NULL;
-}
+static struct Address test_addr;
+
+static struct PeerContext p;
+
+static struct GNUNET_ATS_Information atsi;
 
 
 static void
@@ -81,10 +71,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   die_task = GNUNET_SCHEDULER_NO_TASK;
   if (ats != NULL)
     GNUNET_ATS_scheduling_done (ats);
-
   ret = GNUNET_SYSERR;
-
-  stop_arm ();
 }
 
 
@@ -97,12 +84,8 @@ end ()
     GNUNET_SCHEDULER_cancel (die_task);
     die_task = GNUNET_SCHEDULER_NO_TASK;
   }
-
   GNUNET_ATS_scheduling_done (ats);
-
   ret = 0;
-
-  stop_arm ();
 }
 
 
@@ -132,26 +115,16 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
   GNUNET_SCHEDULER_add_now (&end, NULL);
 }
 
-void
-start_arm (const char *cfgname)
-{
-  arm_proc =
-    GNUNET_OS_start_process (GNUNET_YES, NULL, NULL, "gnunet-service-arm",
-                               "gnunet-service-arm",
-                               "-c", cfgname, NULL);
-}
 
 static void
-check (void *cls, char *const *args, const char *cfgfile,
-       const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls, 
+     const struct GNUNET_CONFIGURATION_Handle *cfg,
+     struct GNUNET_TESTING_Peer *peer)
 {
   struct GNUNET_HELLO_Address address0;
 
   ret = GNUNET_SYSERR;
-
   die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
-  start_arm (cfgfile);
-
   ats = GNUNET_ATS_scheduling_init (cfg, &address_suggest_cb, NULL);
 
   if (ats == NULL)
@@ -194,25 +167,14 @@ check (void *cls, char *const *args, const char *cfgfile,
   GNUNET_ATS_suggest_address (ats, &p.id);
 }
 
+
 int
 main (int argc, char *argv[])
 {
-  static char *const argv2[] = { "test_ats_api_scheduling_add_address",
-    "-c",
-    "test_ats_api.conf",
-    "-L", "WARNING",
-    NULL
-  };
-
-  static struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_OPTION_END
-  };
-
-  GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
-                      "test_ats_api_scheduling_add_address", "nohelp", options, &check,
-                      NULL);
-
-
+  if (0 != GNUNET_TESTING_peer_run ("test_ats_api_scheduling_add_address",
+				    "test_ats_api.conf",
+				    &run, NULL))
+    return 1;
   return ret;
 }
 

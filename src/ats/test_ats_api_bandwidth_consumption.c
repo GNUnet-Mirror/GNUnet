@@ -26,6 +26,7 @@
  */
 #include "platform.h"
 #include "gnunet_ats_service.h"
+#include "gnunet_testing_lib-new.h"
 #include "ats.h"
 
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
@@ -40,8 +41,6 @@ static struct GNUNET_ATS_PerformanceHandle *atp;
 
 struct GNUNET_ATS_ReservationContext *sh;
 
-static struct GNUNET_OS_Process *arm_proc;
-
 static struct PeerContext *p;
 
 static uint32_t bw_in;
@@ -53,12 +52,15 @@ static int ret;
 struct Address
 {
   char *plugin;
+
   size_t plugin_len;
 
   void *addr;
+
   size_t addr_len;
 
   struct GNUNET_ATS_Information *ats;
+
   int ats_count;
 
   void *session;
@@ -73,41 +75,23 @@ struct PeerContext
 
 
 static void
-stop_arm ()
-{
-  if (0 != GNUNET_OS_process_kill (arm_proc, SIGTERM))
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-  GNUNET_OS_process_wait (arm_proc);
-  GNUNET_OS_process_destroy (arm_proc);
-  arm_proc = NULL;
-}
-
-
-static void
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   die_task = GNUNET_SCHEDULER_NO_TASK;
-
   if (consume_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (consume_task);
     consume_task = GNUNET_SCHEDULER_NO_TASK;
   }
-
   if (sh != NULL)
     GNUNET_ATS_reserve_bandwidth_cancel (sh);
-
   if (ats != NULL)
     GNUNET_ATS_scheduling_done (ats);
   if (atp != NULL)
     GNUNET_ATS_performance_done (atp);
-
   GNUNET_free (p->addr);
   GNUNET_free (p);
-
   ret = GNUNET_SYSERR;
-
-  stop_arm ();
 }
 
 
@@ -119,26 +103,20 @@ end ()
     GNUNET_SCHEDULER_cancel (die_task);
     die_task = GNUNET_SCHEDULER_NO_TASK;
   }
-
   if (consume_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (consume_task);
     consume_task = GNUNET_SCHEDULER_NO_TASK;
   }
-
   GNUNET_ATS_scheduling_done (ats);
-
   GNUNET_ATS_performance_done (atp);
-
   GNUNET_free (p->addr);
   GNUNET_free (p);
-
   ret = 0;
-
-  stop_arm ();
 }
 
-void
+
+static void
 performance_cb (void *cls, const struct GNUNET_PeerIdentity *peer,
                 const char *plugin_name, const void *plugin_addr,
                 size_t plugin_addr_len,
@@ -149,7 +127,8 @@ performance_cb (void *cls, const struct GNUNET_PeerIdentity *peer,
 
 }
 
-void
+
+static void
 reservation_cb (void *cls, const struct GNUNET_PeerIdentity *peer,
                 int32_t amount, struct GNUNET_TIME_Relative res_delay)
 {
@@ -158,6 +137,7 @@ reservation_cb (void *cls, const struct GNUNET_PeerIdentity *peer,
               "ATS reserved bandwidth of %i to peer `%s' in %llu ms\n", amount,
               GNUNET_i2s (peer), res_delay.rel_value);
 }
+
 
 static void
 consume_bandwidth (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -172,6 +152,7 @@ consume_bandwidth (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   sh = GNUNET_ATS_reserve_bandwidth (atp, &p->id, to_reserve, &reservation_cb,
                                      NULL);
 }
+
 
 static void
 address_suggest_cb (void *cls, const struct GNUNET_PeerIdentity *peer,
@@ -191,25 +172,16 @@ address_suggest_cb (void *cls, const struct GNUNET_PeerIdentity *peer,
   consume_task = GNUNET_SCHEDULER_add_now (&consume_bandwidth, NULL);
 }
 
-void
-start_arm (const char *cfgname)
-{
-  arm_proc =
-      GNUNET_OS_start_process (GNUNET_YES, NULL, NULL, "gnunet-service-arm",
-                               "gnunet-service-arm",
-                               "-c", cfgname, NULL);
-}
 
 static void
-check (void *cls, char *const *args, const char *cfgfile,
-       const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls, 
+     const struct GNUNET_CONFIGURATION_Handle *cfg,
+     struct GNUNET_TESTING_Peer *peer)
 {
-  ret = GNUNET_SYSERR;
   struct Address *addr;
 
+  ret = GNUNET_SYSERR;
   die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
-  start_arm (cfgfile);
-
   ats = GNUNET_ATS_scheduling_init (cfg, &address_suggest_cb, NULL);
   if (ats == NULL)
   {
@@ -217,7 +189,6 @@ check (void *cls, char *const *args, const char *cfgfile,
     end ();
     return;
   }
-
   p = GNUNET_malloc (sizeof (struct PeerContext));
   addr = GNUNET_malloc (sizeof (struct Address));
 
@@ -250,25 +221,14 @@ check (void *cls, char *const *args, const char *cfgfile,
   GNUNET_ATS_suggest_address (ats, &p->id);
 }
 
+
 int
 main (int argc, char *argv[])
 {
-  static char *const argv2[] = { "test_ats_api_bandwidth_consumption",
-    "-c",
-    "test_ats_api.conf",
-    "-L", "WARNING",
-    NULL
-  };
-
-  static struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_OPTION_END
-  };
-
-  GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
-                      "test_ats_api_bandwidth_consumption", "nohelp", options,
-                      &check, NULL);
-
-
+  if (0 != GNUNET_TESTING_peer_run ("test_ats_api_bandwidth_consumption",
+				    "test_ats_api.conf",
+				    &run, NULL))
+    return 1;
   return ret;
 }
 
