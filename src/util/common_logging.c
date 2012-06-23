@@ -336,11 +336,22 @@ setup_log_file (const struct tm *tm)
   int altlog_fd;
   int dup_return;
   FILE *altlog;
+  char *leftsquare;
   
   if (NULL == log_file_name)
     return GNUNET_SYSERR;
   if (0 == strftime (fn, sizeof (fn), log_file_name, tm))
     return GNUNET_SYSERR;
+  leftsquare = strrchr (fn, '[');
+  if ( (NULL != leftsquare) && (']' == leftsquare[1]) )
+  {
+    char *logfile_copy = GNUNET_strdup (fn);
+    logfile_copy[leftsquare - fn] = '\0';
+    logfile_copy[leftsquare - fn + 1] = '\0';
+    snprintf (fn, PATH_MAX, "%s%d%s",
+         logfile_copy, getpid (), &logfile_copy[leftsquare - fn + 2]);
+    GNUNET_free (logfile_copy);
+  }
   if (0 == strcmp (fn, last_fn))
     return GNUNET_OK; /* no change */
   log_rotate (last_fn);
