@@ -70,7 +70,7 @@ static struct GNUNET_DHT_GetHandle *get_handle;
 
 struct RetryContext retry_context;
 
-static int ok;
+static int ok = 1;
 
 static GNUNET_SCHEDULER_TaskIdentifier die_task;
 
