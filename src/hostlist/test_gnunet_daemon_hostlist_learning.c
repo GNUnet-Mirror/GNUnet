@@ -30,8 +30,6 @@
 #include "gnunet_resolver_service.h"
 #include "gnunet_statistics_service.h"
 
-#define START_ARM GNUNET_YES
-
 #define MAX_URL_LEN 1000
 
 /**
@@ -49,9 +47,7 @@ struct PeerContext
   struct GNUNET_MessageHeader *hello;
   struct GNUNET_CORE_Handle *core;
   struct GNUNET_STATISTICS_Handle *stats;
-#if START_ARM
   struct GNUNET_OS_Process *arm_proc;
-#endif
 };
 
 static int timeout;
@@ -147,7 +143,6 @@ shutdown_testcase ()
     GNUNET_CORE_disconnect (learn_peer.core);
     learn_peer.core = NULL;
   }
-#if START_ARM
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Killing hostlist server ARM process.\n");
   if (0 != GNUNET_OS_process_kill (adv_peer.arm_proc, SIGTERM))
@@ -164,7 +159,6 @@ shutdown_testcase ()
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");
   GNUNET_OS_process_destroy (learn_peer.arm_proc);
   learn_peer.arm_proc = NULL;
-#endif
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown complete....\n");
 }
 
@@ -390,12 +384,10 @@ setup_learn_peer (struct PeerContext *p, const char *cfgname)
   unsigned int result;
 
   p->cfg = GNUNET_CONFIGURATION_create ();
-#if START_ARM
   p->arm_proc =
     GNUNET_OS_start_process (GNUNET_YES, NULL, NULL, "gnunet-service-arm",
                                "gnunet-service-arm",
                                "-c", cfgname, NULL);
-#endif
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
   if (GNUNET_OK ==
       GNUNET_CONFIGURATION_get_value_string (p->cfg, "HOSTLIST", "HOSTLISTFILE",
@@ -423,12 +415,10 @@ static void
 setup_adv_peer (struct PeerContext *p, const char *cfgname)
 {
   p->cfg = GNUNET_CONFIGURATION_create ();
-#if START_ARM
   p->arm_proc =
     GNUNET_OS_start_process (GNUNET_YES, NULL, NULL, "gnunet-service-arm",
                                "gnunet-service-arm",
                                "-c", cfgname, NULL);
-#endif
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
   p->stats = GNUNET_STATISTICS_create ("hostlist", p->cfg);
   GNUNET_assert (NULL != p->stats);

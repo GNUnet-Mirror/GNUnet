@@ -284,9 +284,12 @@ typedef void (*GNUNET_Logger) (void *cls, enum GNUNET_ErrorType kind,
 
 
 /**
- * Number of log calls to ignore.
+ * Get the number of log calls that are going to be skipped
+ *
+ * @return number of log calls to be ignored
  */
-extern unsigned int skip_log;
+int
+GNUNET_get_log_skip ();
 
 #if !defined(GNUNET_CULL_LOGGING)
 int
@@ -344,7 +347,7 @@ GNUNET_log_from_nocheck (enum GNUNET_ErrorType kind, const char *comp,
   if ((GNUNET_EXTRA_LOGGING > 0) || ((GNUNET_ERROR_TYPE_DEBUG & (kind)) == 0)) { \
     if (GN_UNLIKELY(log_call_enabled == -1))\
       log_call_enabled = GNUNET_get_log_call_status ((kind) & (~GNUNET_ERROR_TYPE_BULK), (comp), __FILE__, __FUNCTION__, log_line); \
-    if (GN_UNLIKELY(skip_log > 0)) {skip_log--;}\
+    if (GN_UNLIKELY(GNUNET_get_log_skip () > 0)) { GNUNET_log_skip (-1, GNUNET_NO); }\
     else {\
       if (GN_UNLIKELY(log_call_enabled))\
         GNUNET_log_from_nocheck ((kind), comp, __VA_ARGS__);	\
@@ -357,7 +360,7 @@ GNUNET_log_from_nocheck (enum GNUNET_ErrorType kind, const char *comp,
   if ((GNUNET_EXTRA_LOGGING > 0) || ((GNUNET_ERROR_TYPE_DEBUG & (kind)) == 0)) { \
     if (GN_UNLIKELY(log_call_enabled == -1))\
       log_call_enabled = GNUNET_get_log_call_status ((kind) & (~GNUNET_ERROR_TYPE_BULK), NULL, __FILE__, __FUNCTION__, log_line);\
-    if (GN_UNLIKELY(skip_log > 0)) {skip_log--;}\
+    if (GN_UNLIKELY(GNUNET_get_log_skip () > 0)) { GNUNET_log_skip (-1, GNUNET_NO); }\
     else {\
       if (GN_UNLIKELY(log_call_enabled))\
         GNUNET_log_nocheck ((kind), __VA_ARGS__);	\
@@ -379,11 +382,11 @@ GNUNET_abort (void) GNUNET_NORETURN;
 /**
  * Ignore the next n calls to the log function.
  *
- * @param n number of log calls to ignore
+ * @param n number of log calls to ignore (could be negative)
  * @param check_reset GNUNET_YES to assert that the log skip counter is currently zero
  */
 void
-GNUNET_log_skip (unsigned int n, int check_reset);
+GNUNET_log_skip (int n, int check_reset);
 
 
 /**

@@ -27,10 +27,6 @@
 #include "gnunet_arm_service.h"
 #include "gnunet_transport_service.h"
 
-#define VERBOSE GNUNET_NO
-
-#define START_ARM GNUNET_YES
-
 
 /**
  * How long until we give up on transmitting the message?
@@ -47,9 +43,7 @@ struct PeerContext
   struct GNUNET_TRANSPORT_Handle *th;
   struct GNUNET_MessageHeader *hello;
   struct GNUNET_TRANSPORT_GetHelloHandle *ghh;
-#if START_ARM
   struct GNUNET_OS_Process *arm_proc;
-#endif
 };
 
 static struct PeerContext p1;
@@ -138,12 +132,10 @@ static void
 setup_peer (struct PeerContext *p, const char *cfgname)
 {
   p->cfg = GNUNET_CONFIGURATION_create ();
-#if START_ARM
   p->arm_proc =
       GNUNET_OS_start_process (GNUNET_YES, NULL, NULL, "gnunet-service-arm",
                                "gnunet-service-arm",
                                "-c", cfgname, NULL);
-#endif
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
   p->th =
       GNUNET_TRANSPORT_connect (p->cfg, NULL, p, NULL, &notify_connect, NULL);
@@ -157,7 +149,6 @@ waitpid_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct PeerContext *p = cls;
 
-#if START_ARM
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Killing ARM process.\n");
   if (0 != GNUNET_OS_process_kill (p->arm_proc, SIGTERM))
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
@@ -167,7 +158,6 @@ waitpid_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
               GNUNET_OS_process_get_pid (p->arm_proc));
   GNUNET_OS_process_destroy (p->arm_proc);
   p->arm_proc = NULL;
-#endif
   GNUNET_CONFIGURATION_destroy (p->cfg);
 }
 

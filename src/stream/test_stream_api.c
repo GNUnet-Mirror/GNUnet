@@ -78,6 +78,7 @@ static GNUNET_SCHEDULER_TaskIdentifier read_task;
 static char *data = "ABCD";
 static int result;
 
+
 /**
  * Shutdown nicely
  */

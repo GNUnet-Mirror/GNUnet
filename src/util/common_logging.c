@@ -152,7 +152,7 @@ static struct CustomLogger *loggers;
 /**
  * Number of log calls to ignore.
  */
-unsigned int skip_log;
+int skip_log = 0;
 
 /**
  * File descriptor to use for "stderr", or NULL for none.
@@ -810,11 +810,11 @@ flush_bulk (const char *datestr)
 /**
  * Ignore the next n calls to the log function.
  *
- * @param n number of log calls to ignore
+ * @param n number of log calls to ignore (could be negative)
  * @param check_reset GNUNET_YES to assert that the log skip counter is currently zero
  */
 void
-GNUNET_log_skip (unsigned int n, int check_reset)
+GNUNET_log_skip (int n, int check_reset)
 {
   int ok;
 
@@ -831,6 +831,16 @@ GNUNET_log_skip (unsigned int n, int check_reset)
   }
 }
 
+/**
+ * Get the number of log calls that are going to be skipped
+ *
+ * @return number of log calls to be ignored
+ */
+int
+GNUNET_get_log_skip ()
+{
+  return skip_log;
+}
 
 /**
  * Output a log message using the default mechanism.
