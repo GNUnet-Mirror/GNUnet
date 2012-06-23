@@ -337,6 +337,8 @@ setup_log_file (const struct tm *tm)
   int dup_return;
   FILE *altlog;
   
+  if (NULL == log_file_name)
+    return GNUNET_SYSERR;
   if (0 == strftime (fn, sizeof (fn), log_file_name, tm))
     return GNUNET_SYSERR;
   if (0 == strcmp (fn, last_fn))
