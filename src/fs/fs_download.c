@@ -166,6 +166,11 @@ struct ProcessResultClosure
   struct GNUNET_FS_DownloadContext *dc;
 
   /**
+   * When did we last transmit the request?
+   */
+  struct GNUNET_TIME_Absolute last_transmission;
+
+  /**
    * Number of bytes in data.
    */
   size_t size;
@@ -181,9 +186,14 @@ struct ProcessResultClosure
   int do_store;
 
   /**
-   * When did we last transmit the request?
+   * how much respect did we offer to get this reply?
    */
-  struct GNUNET_TIME_Absolute last_transmission;
+  uint32_t respect_offered;
+
+  /**
+   * how often did we transmit the query?
+   */
+  uint32_t num_transmissions;
 
 };
 
@@ -1069,7 +1079,8 @@ process_result_with_request (void *cls, const struct GNUNET_HashCode * key,
   pi.value.download.specifics.progress.offset = dr->offset;
   pi.value.download.specifics.progress.data_len = prc->size;
   pi.value.download.specifics.progress.depth = dr->depth;
-  pi.value.download.specifics.progress.respect_offered = 0;
+  pi.value.download.specifics.progress.respect_offered = prc->respect_offered;
+  pi.value.download.specifics.progress.num_transmissions = prc->num_transmissions;
   if (prc->last_transmission.abs_value != GNUNET_TIME_UNIT_FOREVER_ABS.abs_value)
     pi.value.download.specifics.progress.block_download_duration 
       = GNUNET_TIME_absolute_get_duration (prc->last_transmission);
@@ -1195,6 +1206,8 @@ signal_error:
  *
  * @param dc our download context
  * @param type type of the result
+ * @param respect_offered how much respect did we offer to get this reply?
+ * @param num_transmissions how often did we transmit the query?
  * @param last_transmission when was this block requested the last time? (FOREVER if unknown/not applicable)
  * @param data the (encrypted) response
  * @param size size of data
@@ -1202,6 +1215,8 @@ signal_error:
 static void
 process_result (struct GNUNET_FS_DownloadContext *dc,
                 enum GNUNET_BLOCK_Type type,
+		uint32_t respect_offered,
+		uint32_t num_transmissions,
                 struct GNUNET_TIME_Absolute last_transmission,
                 const void *data, size_t size)
 {
@@ -1209,10 +1224,12 @@ process_result (struct GNUNET_FS_DownloadContext *dc,
 
   prc.dc = dc;
   prc.data = data;
+  prc.last_transmission = last_transmission;
   prc.size = size;
   prc.type = type;
   prc.do_store = GNUNET_YES;
-  prc.last_transmission = last_transmission;
+  prc.respect_offered = respect_offered;
+  prc.num_transmissions = num_transmissions;
   GNUNET_CRYPTO_hash (data, size, &prc.query);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received result for query `%s' from `%s'-service\n",
@@ -1247,6 +1264,8 @@ receive_results (void *cls, const struct GNUNET_MessageHeader *msg)
   msize = ntohs (msg->size);
   cm = (const struct ClientPutMessage *) msg;
   process_result (dc, ntohl (cm->type),
+		  ntohl (cm->respect_offered),
+		  ntohl (cm->num_transmissions),
                   GNUNET_TIME_absolute_ntoh (cm->last_transmission), &cm[1],
                   msize - sizeof (struct ClientPutMessage));
   if (NULL == dc->client)

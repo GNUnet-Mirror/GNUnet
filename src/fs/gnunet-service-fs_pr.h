@@ -133,6 +133,22 @@ struct GSF_PendingRequestData
   uint32_t original_priority;
 
   /**
+   * Counter for how often this request has been transmitted (estimate,
+   * because we might have the same request pending for multiple clients,
+   * and of course because a transmission may have failed at a lower
+   * layer).
+   */
+  uint32_t num_transmissions;
+
+  /**
+   * How much respect did we (in total) offer for this request so far (estimate,
+   * because we might have the same request pending for multiple clients,
+   * and of course because a transmission may have failed at a lower
+   * layer).
+   */
+  uint32_t respect_offered;
+
+  /**
    * Options for the request.
    */
   enum GSF_PendingRequestOptions options;

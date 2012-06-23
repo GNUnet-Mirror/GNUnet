@@ -762,7 +762,8 @@ process_sblock (struct GNUNET_FS_SearchContext *sc, const struct SBlock *sb,
  */
 static void
 process_result (struct GNUNET_FS_SearchContext *sc, enum GNUNET_BLOCK_Type type,
-                struct GNUNET_TIME_Absolute expiration, const void *data,
+                struct GNUNET_TIME_Absolute expiration, 
+		const void *data,
                 size_t size)
 {
   if (GNUNET_TIME_absolute_get_duration (expiration).rel_value > 0)

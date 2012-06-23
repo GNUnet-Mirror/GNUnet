@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009 Christian Grothoff (and other contributing authors)
+     (C) 2003--2012 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -320,6 +320,18 @@ struct ClientPutMessage
    * (FOREVER if unknown/not relevant)
    */
   struct GNUNET_TIME_AbsoluteNBO last_transmission;
+
+  /**
+   * How often did we transmit this query before getting an
+   * answer (estimate).
+   */
+  uint32_t num_transmissions;
+
+  /**
+   * How much respect did we offer (in total) before getting an
+   * answer (estimate).
+   */
+  uint32_t respect_offered;
 
   /* this is followed by the actual encrypted content */
 

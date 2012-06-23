@@ -267,6 +267,8 @@ client_response_handler (void *cls, enum GNUNET_BLOCK_EvaluationResult eval,
     pm->type = htonl (type);
     pm->expiration = GNUNET_TIME_absolute_hton (expiration);
     pm->last_transmission = GNUNET_TIME_absolute_hton (last_transmission);
+    pm->num_transmissions = htonl (prd->num_transmissions);
+    pm->respect_offered = htonl (prd->respect_offered);
     memcpy (&pm[1], data, data_len);
     GSF_local_client_transmit_ (lc, &pm->header);
   }

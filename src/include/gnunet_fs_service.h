@@ -1018,21 +1018,32 @@ struct GNUNET_FS_ProgressInfo
           uint64_t data_len;
 
           /**
+	   * How much time passed between us asking for this block and
+           * actually getting it? GNUNET_TIME_UNIT_FOREVER_REL if unknown.
+	   */
+          struct GNUNET_TIME_Relative block_download_duration;
+
+          /**
 	   * Depth of the given block in the tree;
 	   * 0 would be the lowest level (DBLOCKS).
 	   */
           unsigned int depth;
 
           /**
-	   * How much respect did we offer for downloading this block?
+	   * How much respect did we offer for downloading this block? (estimate,
+	   * because we might have the same request pending for multiple clients,
+	   * and of course because a transmission may have failed at a lower
+	   * layer).
 	   */
-          unsigned int respect_offered;
+          uint32_t respect_offered;
 
           /**
-	   * How much time passed between us asking for this block and
-           * actually getting it? GNUNET_TIME_UNIT_FOREVER_REL if unknown.
+	   * How often did we transmit the request? (estimate,
+	   * because we might have the same request pending for multiple clients,
+	   * and of course because a transmission may have failed at a lower
+	   * layer).
 	   */
-          struct GNUNET_TIME_Relative block_download_duration;
+          uint32_t num_transmissions;
 
         } progress;
 

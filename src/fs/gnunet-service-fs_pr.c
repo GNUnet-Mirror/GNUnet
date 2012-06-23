@@ -530,6 +530,8 @@ GSF_pending_request_get_message_ (struct GSF_PendingRequest *pr,
   else
     prio = 0;
   pr->public_data.priority -= prio;
+  pr->public_data.num_transmissions++;
+  pr->public_data.respect_offered += prio;
   gm->priority = htonl (prio);
   now = GNUNET_TIME_absolute_get ();
   ttl = (int64_t) (pr->public_data.ttl.abs_value - now.abs_value);
