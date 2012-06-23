@@ -198,6 +198,17 @@ GNUNET_xfree_ (void *ptr, const char *filename, int linenumber)
   ptr = &((size_t *) ptr)[-1];
   mem_used -= *((size_t *) ptr);
 #endif
+#if WINDOWS
+#if ENABLE_POISONING
+  {
+    size_t i;
+    char baadfood[4] = "\xBA\xAD\xF0\x0D";
+    size_t s = _msize (ptr);
+    for (i = 0; i < s; i++)
+      ((char *) ptr)[i] = baadfood[i % 4];
+  }
+#endif
+#endif
   free (ptr);
 }
 
