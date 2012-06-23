@@ -19,8 +19,8 @@
 */
 
 /**
- * @file fs/perf_gnunet_service_fs_p2p_trust.c
- * @brief profile P2P routing trust mechanism. Creates
+ * @file fs/perf_gnunet_service_fs_p2p_respect.c
+ * @brief profile P2P routing respect mechanism. Creates
  *        a clique of NUM_DAEMONS (i.e. 3) where two
  *        peers share (seed) different files and download
  *        them from each other while all the other peers
@@ -401,7 +401,7 @@ main (int argc, char *argv[])
   };
   progname = argv[0];
   GNUNET_DISK_directory_remove ("/tmp/gnunet-test-fs-lib/");
-  GNUNET_log_setup ("perf_gnunet_service_fs_p2p_trust",
+  GNUNET_log_setup ("perf_gnunet_service_fs_p2p_respect",
 #if VERBOSE
                     "DEBUG",
 #else
@@ -409,10 +409,10 @@ main (int argc, char *argv[])
 #endif
                     NULL);
   GNUNET_PROGRAM_run ((sizeof (argvx) / sizeof (char *)) - 1, argvx,
-                      "perf-gnunet-service-fs-p2p-trust", "nohelp", options,
+                      "perf-gnunet-service-fs-p2p-respect", "nohelp", options,
                       &run, NULL);
   GNUNET_DISK_directory_remove ("/tmp/gnunet-test-fs-lib/");
   return ok;
 }
 
-/* end of perf_gnunet_service_fs_p2p_trust.c */
+/* end of perf_gnunet_service_fs_p2p_respect.c */

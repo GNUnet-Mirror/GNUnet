@@ -201,7 +201,7 @@ if HAVE_BENCHMARKS
  perf_gnunet_service_fs_p2p \
  perf_gnunet_service_fs_p2p_dht \
  perf_gnunet_service_fs_p2p_index \
- perf_gnunet_service_fs_p2p_trust 
+ perf_gnunet_service_fs_p2p_respect 
 endif
 
 check_PROGRAMS = \
