@@ -107,6 +107,7 @@ test_mesh_local_1_SOURCES = \
  test_mesh_local_1.c
 test_mesh_local_1_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/mesh/libgnunetmesh.la
 test_mesh_local_1_DEPENDENCIES = \
   libgnunetmesh.la
@@ -115,6 +116,7 @@ test_mesh_local_2_SOURCES = \
  test_mesh_local_2.c
 test_mesh_local_2_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/mesh/libgnunetmesh.la
 test_mesh_local_2_DEPENDENCIES = \
   libgnunetmesh.la
