@@ -682,10 +682,10 @@ signal_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
- * Call a method for each known matching host and change its trust
- * value.  The callback method will be invoked once for each matching
- * host and then finally once with a NULL pointer.  After that final
- * invocation, the iterator context must no longer be used.
+ * Call a method for each known matching host.  The callback method
+ * will be invoked once for each matching host and then finally once
+ * with a NULL pointer.  After that final invocation, the iterator
+ * context must no longer be used.
  *
  * Instead of calling this function with 'peer == NULL' it is often
  * better to use 'GNUNET_PEERINFO_notify'.

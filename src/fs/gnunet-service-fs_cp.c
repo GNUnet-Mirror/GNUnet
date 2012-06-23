@@ -41,9 +41,9 @@
 #define RUNAVG_DELAY_N 16
 
 /**
- * How often do we flush trust values to disk?
+ * How often do we flush respect values to disk?
  */
-#define TRUST_FLUSH_FREQ GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5)
+#define RESPECT_FLUSH_FREQ GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5)
 
 /**
  * After how long do we discard a reply?
@@ -270,9 +270,9 @@ struct GSF_ConnectedPeer
   unsigned int cth_in_progress;
 
   /**
-   * Trust rating for this peer on disk.
+   * Respect rating for this peer on disk.
    */
-  uint32_t disk_trust;
+  uint32_t disk_respect;
 
   /**
    * Which offset in "last_p2p_replies" will be updated next?
@@ -306,9 +306,9 @@ struct GSF_ConnectedPeer
 static struct GNUNET_CONTAINER_MultiHashMap *cp_map;
 
 /**
- * Where do we store trust information?
+ * Where do we store respect information?
  */
-static char *trustDirectory;
+static char *respectDirectory;
 
 /**
  * Handle to ATS service.
@@ -316,18 +316,20 @@ static char *trustDirectory;
 static struct GNUNET_ATS_PerformanceHandle *ats;
 
 /**
- * Get the filename under which we would store the GNUNET_HELLO_Message
- * for the given host and protocol.
- * @return filename of the form DIRECTORY/HOSTID
+ * Get the filename under which we would store respect
+ * for the given peer.
+ *
+ * @param id peer to get the filename for
+ * @return filename of the form DIRECTORY/PEERID
  */
 static char *
-get_trust_filename (const struct GNUNET_PeerIdentity *id)
+get_respect_filename (const struct GNUNET_PeerIdentity *id)
 {
   struct GNUNET_CRYPTO_HashAsciiEncoded fil;
   char *fn;
 
   GNUNET_CRYPTO_hash_to_enc (&id->hashPubKey, &fil);
-  GNUNET_asprintf (&fn, "%s%s%s", trustDirectory, DIR_SEPARATOR_STR, &fil);
+  GNUNET_asprintf (&fn, "%s%s%s", respectDirectory, DIR_SEPARATOR_STR, &fil);
   return fn;
 }
 
@@ -597,7 +599,7 @@ GSF_peer_connect_handler_ (const struct GNUNET_PeerIdentity *peer,
 {
   struct GSF_ConnectedPeer *cp;
   char *fn;
-  uint32_t trust;
+  uint32_t respect;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connected to peer %s\n",
               GNUNET_i2s (peer));
@@ -607,10 +609,10 @@ GSF_peer_connect_handler_ (const struct GNUNET_PeerIdentity *peer,
   cp->rc =
       GNUNET_ATS_reserve_bandwidth (ats, peer, DBLOCK_SIZE,
                                     &ats_reserve_callback, cp);
-  fn = get_trust_filename (peer);
+  fn = get_respect_filename (peer);
   if ((GNUNET_DISK_file_test (fn) == GNUNET_YES) &&
-      (sizeof (trust) == GNUNET_DISK_fn_read (fn, &trust, sizeof (trust))))
-    cp->disk_trust = cp->ppd.trust = ntohl (trust);
+      (sizeof (respect) == GNUNET_DISK_fn_read (fn, &respect, sizeof (respect))))
+    cp->disk_respect = cp->ppd.respect = ntohl (respect);
   GNUNET_free (fn);
   cp->request_map = GNUNET_CONTAINER_multihashmap_create (128);
   GNUNET_break (GNUNET_OK ==
@@ -982,38 +984,38 @@ handle_p2p_reply (void *cls, enum GNUNET_BLOCK_EvaluationResult eval,
 
 
 /**
- * Increase the host credit by a value.
+ * Increase the peer's respect by a value.
  *
- * @param cp which peer to change the trust value on
+ * @param cp which peer to change the respect value on
  * @param value is the int value by which the
- *  host credit is to be increased or decreased
- * @returns the actual change in trust (positive or negative)
+ *  peer's credit is to be increased or decreased
+ * @returns the actual change in respect (positive or negative)
  */
 static int
-change_host_trust (struct GSF_ConnectedPeer *cp, int value)
+change_peer_respect (struct GSF_ConnectedPeer *cp, int value)
 {
   if (value == 0)
     return 0;
   GNUNET_assert (cp != NULL);
   if (value > 0)
   {
-    if (cp->ppd.trust + value < cp->ppd.trust)
+    if (cp->ppd.respect + value < cp->ppd.respect)
     {
-      value = UINT32_MAX - cp->ppd.trust;
-      cp->ppd.trust = UINT32_MAX;
+      value = UINT32_MAX - cp->ppd.respect;
+      cp->ppd.respect = UINT32_MAX;
     }
     else
-      cp->ppd.trust += value;
+      cp->ppd.respect += value;
   }
   else
   {
-    if (cp->ppd.trust < -value)
+    if (cp->ppd.respect < -value)
     {
-      value = -cp->ppd.trust;
-      cp->ppd.trust = 0;
+      value = -cp->ppd.respect;
+      cp->ppd.respect = 0;
     }
     else
-      cp->ppd.trust += value;
+      cp->ppd.respect += value;
   }
   return value;
 }
@@ -1021,7 +1023,7 @@ change_host_trust (struct GSF_ConnectedPeer *cp, int value)
 
 /**
  * We've received a request with the specified priority.  Bound it
- * according to how much we trust the given peer.
+ * according to how much we respect the given peer.
  *
  * @param prio_in requested priority
  * @param cp the peer making the request
@@ -1046,7 +1048,7 @@ bound_priority (uint32_t prio_in, struct GSF_ConnectedPeer *cp)
   }
   if (prio_in > INT32_MAX)
     prio_in = INT32_MAX;
-  ret = -change_host_trust (cp, -(int) prio_in);
+  ret = -change_peer_respect (cp, -(int) prio_in);
   if (ret > 0)
   {
     if (ret > GSF_current_priorities + N)
@@ -1067,7 +1069,7 @@ bound_priority (uint32_t prio_in, struct GSF_ConnectedPeer *cp)
                               ("# request dropped, priority insufficient"), 1,
                               GNUNET_NO);
     /* undo charge */
-    change_host_trust (cp, (int) ret);
+    change_peer_respect (cp, (int) ret);
     return -1;                  /* not enough resources */
   }
   else
@@ -1720,27 +1722,27 @@ GSF_block_peer_migration_ (struct GSF_ConnectedPeer *cp,
 
 
 /**
- * Write host-trust information to a file - flush the buffer entry!
+ * Write peer-respect information to a file - flush the buffer entry!
  *
- * @param cls closure, not used
- * @param key host identity
+ * @param cls unused
+ * @param key peer identity
  * @param value the 'struct GSF_ConnectedPeer' to flush
  * @return GNUNET_OK to continue iteration
  */
 static int
-flush_trust (void *cls, const struct GNUNET_HashCode * key, void *value)
+flush_respect (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct GSF_ConnectedPeer *cp = value;
   char *fn;
-  uint32_t trust;
+  uint32_t respect;
   struct GNUNET_PeerIdentity pid;
 
-  if (cp->ppd.trust == cp->disk_trust)
+  if (cp->ppd.respect == cp->disk_respect)
     return GNUNET_OK;           /* unchanged */
   GNUNET_assert (0 != cp->ppd.pid);
   GNUNET_PEER_resolve (cp->ppd.pid, &pid);
-  fn = get_trust_filename (&pid);
-  if (cp->ppd.trust == 0)
+  fn = get_respect_filename (&pid);
+  if (cp->ppd.respect == 0)
   {
     if ((0 != UNLINK (fn)) && (errno != ENOENT))
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING |
@@ -1748,14 +1750,14 @@ flush_trust (void *cls, const struct GNUNET_HashCode * key, void *value)
   }
   else
   {
-    trust = htonl (cp->ppd.trust);
+    respect = htonl (cp->ppd.respect);
     if (sizeof (uint32_t) ==
-        GNUNET_DISK_fn_write (fn, &trust, sizeof (uint32_t),
+        GNUNET_DISK_fn_write (fn, &respect, sizeof (uint32_t),
                               GNUNET_DISK_PERM_USER_READ |
                               GNUNET_DISK_PERM_USER_WRITE |
                               GNUNET_DISK_PERM_GROUP_READ |
                               GNUNET_DISK_PERM_OTHER_READ))
-      cp->disk_trust = cp->ppd.trust;
+      cp->disk_respect = cp->ppd.respect;
   }
   GNUNET_free (fn);
   return GNUNET_OK;
@@ -1780,25 +1782,25 @@ GSF_connected_peer_change_preference_ (struct GSF_ConnectedPeer *cp,
 
 
 /**
- * Call this method periodically to flush trust information to disk.
+ * Call this method periodically to flush respect information to disk.
  *
  * @param cls closure, not used
  * @param tc task context, not used
  */
 static void
-cron_flush_trust (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+cron_flush_respect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
 
   if (NULL == cp_map)
     return;
-  GNUNET_CONTAINER_multihashmap_iterate (cp_map, &flush_trust, NULL);
+  GNUNET_CONTAINER_multihashmap_iterate (cp_map, &flush_respect, NULL);
   if (NULL == tc)
     return;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
-  GNUNET_SCHEDULER_add_delayed_with_priority (TRUST_FLUSH_FREQ,
+  GNUNET_SCHEDULER_add_delayed_with_priority (RESPECT_FLUSH_FREQ,
 					      GNUNET_SCHEDULER_PRIORITY_HIGH,
-					      &cron_flush_trust, NULL);
+					      &cron_flush_respect, NULL);
 }
 
 
@@ -1812,11 +1814,11 @@ GSF_connected_peer_init_ ()
   ats = GNUNET_ATS_performance_init (GSF_cfg, NULL, NULL);
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONFIGURATION_get_value_filename (GSF_cfg, "fs",
-                                                          "TRUST",
-                                                          &trustDirectory));
-  GNUNET_DISK_directory_create (trustDirectory);
+                                                          "RESPECT",
+                                                          &respectDirectory));
+  GNUNET_DISK_directory_create (respectDirectory);
   GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_HIGH,
-                                      &cron_flush_trust, NULL);
+                                      &cron_flush_respect, NULL);
 }
 
 
@@ -1842,12 +1844,12 @@ clean_peer (void *cls, const struct GNUNET_HashCode * key, void *value)
 void
 GSF_connected_peer_done_ ()
 {
-  cron_flush_trust (NULL, NULL);
+  cron_flush_respect (NULL, NULL);
   GNUNET_CONTAINER_multihashmap_iterate (cp_map, &clean_peer, NULL);
   GNUNET_CONTAINER_multihashmap_destroy (cp_map);
   cp_map = NULL;
-  GNUNET_free (trustDirectory);
-  trustDirectory = NULL;
+  GNUNET_free (respectDirectory);
+  respectDirectory = NULL;
   GNUNET_ATS_performance_done (ats);
   ats = NULL;
 }

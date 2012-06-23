@@ -139,7 +139,7 @@ GNUNET_ATS_peer_change_preference (struct GNUNET_ATS_SchedulingHandle *h,
 
 /**
  * Cancel request for getting information about a peer.
- * Note that an eventual change in preference, trust or bandwidth
+ * Note that an eventual change in preference or bandwidth
  * assignment MAY have already been committed at the time,
  * so cancelling a request is NOT sure to undo the original
  * request.  The original request may or may not still commit.
@@ -267,7 +267,7 @@ GNUNET_ATS_peer_change_preference (struct GNUNET_ATS_SchedulingHandle *h,
 
 /**
  * Cancel request for getting information about a peer.
- * Note that an eventual change in preference, trust or bandwidth
+ * Note that an eventual change in preference or bandwidth
  * assignment MAY have already been committed at the time,
  * so cancelling a request is NOT sure to undo the original
  * request.  The original request may or may not still commit.

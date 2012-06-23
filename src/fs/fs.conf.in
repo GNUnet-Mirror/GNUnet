@@ -1,7 +1,7 @@
 [fs]
 AUTOSTART = YES
 INDEXDB = $SERVICEHOME/fs/idxinfo.lst
-TRUST = $SERVICEHOME/fs/credit/
+RESPECT = $SERVICEHOME/fs/credit/
 IDENTITY_DIR = $SERVICEHOME/fs/identities/
 STATE_DIR = $SERVICEHOME/fs/persistence/
 UPDATE_DIR = $SERVICEHOME/fs/updates/

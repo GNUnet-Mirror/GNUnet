@@ -525,7 +525,7 @@ try_match_block (struct GNUNET_FS_DownloadContext *dc,
     pi.value.download.specifics.progress.offset = 0;
     pi.value.download.specifics.progress.data_len = dlen;
     pi.value.download.specifics.progress.depth = 0;
-    pi.value.download.specifics.progress.trust_offered = 0;
+    pi.value.download.specifics.progress.respect_offered = 0;
     pi.value.download.specifics.progress.block_download_duration = GNUNET_TIME_UNIT_ZERO;
     GNUNET_FS_download_make_status_ (&pi, dc);
     if ((NULL != dc->filename) &&
@@ -1069,7 +1069,7 @@ process_result_with_request (void *cls, const struct GNUNET_HashCode * key,
   pi.value.download.specifics.progress.offset = dr->offset;
   pi.value.download.specifics.progress.data_len = prc->size;
   pi.value.download.specifics.progress.depth = dr->depth;
-  pi.value.download.specifics.progress.trust_offered = 0;
+  pi.value.download.specifics.progress.respect_offered = 0;
   if (prc->last_transmission.abs_value != GNUNET_TIME_UNIT_FOREVER_ABS.abs_value)
     pi.value.download.specifics.progress.block_download_duration 
       = GNUNET_TIME_absolute_get_duration (prc->last_transmission);
@@ -1725,7 +1725,7 @@ reconstruct_cb (void *cls, const struct ContentHashKey *chk, uint64_t offset,
       pi.value.download.specifics.progress.offset = offset;
       pi.value.download.specifics.progress.data_len = 0;
       pi.value.download.specifics.progress.depth = 0;
-      pi.value.download.specifics.progress.trust_offered = 0;
+      pi.value.download.specifics.progress.respect_offered = 0;
       pi.value.download.specifics.progress.block_download_duration = GNUNET_TIME_UNIT_ZERO;
       GNUNET_FS_download_make_status_ (&pi, dc);
       /* FIXME: duplicated code from 'process_result_with_request - refactor */

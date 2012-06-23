@@ -11,7 +11,13 @@ DEFAULTSERVICES = topology hostlist dht nse mesh fs
 UNIXPATH = /tmp/gnunet-service-arm.sock
 UNIX_MATCH_UID = YES
 UNIX_MATCH_GID = YES
-# GLOBAL_POSTFIX = -l $SERVICEHOME/{}-logs
+
+# In the "-l" option, format characters from 'strftime' are allowed;
+# In the GLOBAL_POSTFIX, "{}" stands for the name of the respective
+# service.  Thus the following option would introduce per-service
+# logging with a new log file each day.  Note that only the last 3
+# log files are preserved.
+# GLOBAL_POSTFIX = -l $SERVICEHOME/{}-%Y-%m-%d.log
 # GLOBAL_PREFIX =
 # USERNAME =
 # MAXBUF =
