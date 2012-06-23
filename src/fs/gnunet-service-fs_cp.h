@@ -133,9 +133,9 @@ struct GSF_PeerPerformanceData
   GNUNET_PEER_Id pid;
 
   /**
-   * Trust rating for this peer
+   * Respect rating for this peer
    */
-  uint32_t trust;
+  uint32_t respect;
 
   /**
    * Number of pending queries (replies are not counted)
