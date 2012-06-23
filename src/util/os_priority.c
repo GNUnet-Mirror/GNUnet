@@ -455,10 +455,17 @@ GNUNET_OS_process_kill (struct GNUNET_OS_Process *proc, int sig)
   case SIGKILL:
   case SIGTERM:
 #if WINDOWS && !defined(__CYGWIN__)
-    if (0 == TerminateProcess (proc->handle, 0))
     {
-      /* FIXME: set 'errno' */
-      return -1;
+      DWORD exitcode;
+      int must_kill = GNUNET_YES;
+      if (0 != GetExitCodeProcess (proc->handle, &exitcode))
+        must_kill = (exitcode == STILL_ACTIVE) ? GNUNET_YES : GNUNET_NO;
+      if (GNUNET_YES == must_kill)
+        if (0 == TerminateProcess (proc->handle, 0))
+        {
+          SetErrnoFromWinError (GetLastError ());
+          return -1;
+        }
     }
     return 0;
 #else
