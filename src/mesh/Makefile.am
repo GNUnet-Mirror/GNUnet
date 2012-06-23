@@ -89,6 +89,7 @@ test_mesh_api_SOURCES = \
  test_mesh_api.c
 test_mesh_api_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/mesh/libgnunetmesh.la
 test_mesh_api_DEPENDENCIES = \
   libgnunetmesh.la \
@@ -98,7 +99,7 @@ test_mesh_tree_api_SOURCES = \
  test_mesh_tree_api.c
 test_mesh_tree_api_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/dht/libgnunetdht.la
+ $(top_builddir)/src/dht/libgnunetdht.la
 test_mesh_tree_api_DEPENDENCIES = \
   libgnunetmesh.la \
   $(top_builddir)/src/dht/libgnunetdht.la
