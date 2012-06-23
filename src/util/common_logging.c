@@ -737,6 +737,10 @@ GNUNET_logger_remove (GNUNET_Logger logger, void *logger_cls)
   GNUNET_free (pos);
 }
 
+#if WINDOWS
+CRITICAL_SECTION output_message_cs;
+#endif
+
 
 /**
  * Actually output the log message.
@@ -751,7 +755,9 @@ output_message (enum GNUNET_ErrorType kind, const char *comp,
                 const char *datestr, const char *msg)
 {
   struct CustomLogger *pos;
-
+#if WINDOWS
+  EnterCriticalSection (&output_message_cs);
+#endif
   if (NULL != GNUNET_stderr)
   {
     FPRINTF (GNUNET_stderr, "%s %s %s %s", datestr, comp,
@@ -764,6 +770,9 @@ output_message (enum GNUNET_ErrorType kind, const char *comp,
     pos->logger (pos->logger_cls, kind, comp, datestr, msg);
     pos = pos->next;
   }
+#if WINDOWS
+  LeaveCriticalSection (&output_message_cs);
+#endif
 }
 
 
@@ -1141,6 +1150,10 @@ void __attribute__ ((constructor)) GNUNET_util_cl_init ()
 #ifdef MINGW
   GNInitWinEnv (NULL);
 #endif
+#if WINDOWS
+  if (!InitializeCriticalSectionAndSpinCount (&output_message_cs, 0x00000400))
+    GNUNET_abort ();
+#endif
 }
 
 
@@ -1149,6 +1162,9 @@ void __attribute__ ((constructor)) GNUNET_util_cl_init ()
  */
 void __attribute__ ((destructor)) GNUNET_util_cl_fini ()
 {
+#if WINDOWS
+  DeleteCriticalSection (&output_message_cs);
+#endif
 #ifdef MINGW
   GNShutdownWinEnv ();
 #endif
