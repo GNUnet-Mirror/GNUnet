@@ -82,9 +82,10 @@ struct UNIXMessage
 
 struct Session
 {
+  struct GNUNET_PeerIdentity target;
+
   void *addr;
   size_t addrlen;
-  struct GNUNET_PeerIdentity target;
 
   /**
    * Session timeout task

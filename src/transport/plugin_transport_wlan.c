@@ -152,6 +152,11 @@ struct PendingMessage
  */
 struct Session
 {
+  /**
+   * To whom are we talking to (set to our identity
+   * if we are still waiting for the welcome message)
+   */
+  struct GNUNET_PeerIdentity target;
 
   /**
    * API requirement (must be first).
@@ -184,12 +189,6 @@ struct Session
    * Tail of messages currently pending for transmission to this peer.
    */
   struct PendingMessage *pending_message_tail;
-
-  /**
-   * To whom are we talking to (set to our identity
-   * if we are still waiting for the welcome message)
-   */
-  struct GNUNET_PeerIdentity target;
 
   /**
    * When should this session time out?

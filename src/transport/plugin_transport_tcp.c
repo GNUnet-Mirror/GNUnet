@@ -223,6 +223,11 @@ struct PendingMessage
  */
 struct Session
 {
+  /**
+   * To whom are we talking to (set to our identity
+   * if we are still waiting for the welcome message)
+   */
+  struct GNUNET_PeerIdentity target;
 
   /**
    * API requirement.
@@ -260,12 +265,6 @@ struct Session
    * Handle for pending transmission request.
    */
   struct GNUNET_SERVER_TransmitHandle *transmit_handle;
-
-  /**
-   * To whom are we talking to (set to our identity
-   * if we are still waiting for the welcome message)
-   */
-  struct GNUNET_PeerIdentity target;
 
   /**
    * ID of task used to delay receiving more to throttle sender.

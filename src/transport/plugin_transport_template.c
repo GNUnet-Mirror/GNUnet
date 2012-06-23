@@ -54,6 +54,11 @@ struct Plugin;
  */
 struct Session
 {
+  /**
+   * To whom are we talking to (set to our identity
+   * if we are still waiting for the welcome message)
+   */
+  struct GNUNET_PeerIdentity sender;
 
   /**
    * Stored in a linked list.
@@ -81,12 +86,6 @@ struct Session
    * Closure for transmit_cont.
    */
   void *transmit_cont_cls;
-
-  /**
-   * To whom are we talking to (set to our identity
-   * if we are still waiting for the welcome message)
-   */
-  struct GNUNET_PeerIdentity sender;
 
   /**
    * At what time did we reset last_received last?

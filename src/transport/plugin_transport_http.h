@@ -339,6 +339,10 @@ struct ServerConnection
  */
 struct Session
 {
+  /**
+   * To whom are we talking to
+   */
+  struct GNUNET_PeerIdentity target;
 
   /**
    * Stored in a linked list.
@@ -369,11 +373,6 @@ struct Session
    * ATS network type in NBO
    */
   uint32_t ats_address_network_type;
-
-  /**
-   * To whom are we talking to
-   */
-  struct GNUNET_PeerIdentity target;
 
   /**
    * next pointer for double linked list
