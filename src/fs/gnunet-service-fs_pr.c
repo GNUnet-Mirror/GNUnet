@@ -1526,7 +1526,7 @@ GSF_handle_p2p_content_ (struct GSF_ConnectedPeer *cp,
     GSF_connected_peer_change_preference_ (cp,
                                            CONTENT_BANDWIDTH_VALUE +
                                            1000 * prq.priority);
-    GSF_get_peer_performance_data_ (cp)->trust += prq.priority;
+    GSF_get_peer_performance_data_ (cp)->respect += prq.priority;
   }
   if ((GNUNET_YES == active_to_migration) &&
       (GNUNET_NO == test_put_load_too_high (prq.priority)))
