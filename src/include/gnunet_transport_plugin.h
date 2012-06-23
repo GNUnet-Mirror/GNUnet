@@ -44,6 +44,10 @@
  * useful since sometimes (i.e. for inbound TCP connections) a
  * connection may not have an address that can be used for meaningful
  * distinction between sessions to the same peer.
+ *
+ * Each 'struct Session' MUST start with the 'struct GNUNET_PeerIdentity'
+ * of the peer the session is for (which will be used for some error
+ * checking by the ATS code).
  */
 struct Session;
 
