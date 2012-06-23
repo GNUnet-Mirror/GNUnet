@@ -23,12 +23,12 @@
  * @brief
  * @author Philipp Toelke
  */
-#include <platform.h>
-#include <gnunet_common.h>
-#include <gnunet_program_lib.h>
-#include <gnunet_protocols.h>
-#include <gnunet_core_service.h>
-#include <gnunet_constants.h>
+#include "platform.h"
+#include "gnunet_util_lib.h"
+#include "gnunet_testing_lib-new.h"
+#include "gnunet_protocols.h"
+#include "gnunet_core_service.h"
+#include "gnunet_constants.h"
 
 /**
  * Final status code.
@@ -40,22 +40,16 @@ static int ret;
  */
 GNUNET_SCHEDULER_TaskIdentifier die_task;
 
-static struct GNUNET_PeerIdentity myself;
-
 /**
- * Configuration to load for the new peer.
+ * Identity of this peer.
  */
-struct GNUNET_CONFIGURATION_Handle *core_cfg;
+static struct GNUNET_PeerIdentity myself;
 
 /**
  * The handle to core
  */
 struct GNUNET_CORE_Handle *core;
 
-/**
- * Handle to gnunet-service-arm.
- */
-struct GNUNET_OS_Process *arm_proc;
 
 /**
  * Function scheduled as very last function, cleans up after us
@@ -71,21 +65,9 @@ cleanup (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tskctx)
     GNUNET_CORE_disconnect (core);
     core = NULL;
   }
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping peer\n");
-  if (0 != GNUNET_OS_process_kill (arm_proc, SIGTERM))
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-
-  if (GNUNET_OS_process_wait (arm_proc) != GNUNET_OK)
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ARM process %u stopped\n",
-              GNUNET_OS_process_get_pid (arm_proc));
-  GNUNET_OS_process_destroy (arm_proc);
-  arm_proc = NULL;
-
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Ending test.\n");
 }
+
 
 static int
 receive (void *cls, const struct GNUNET_PeerIdentity *other,
@@ -100,6 +82,7 @@ receive (void *cls, const struct GNUNET_PeerIdentity *other,
   ret = 0;
   return GNUNET_OK;
 }
+
 
 static size_t
 send_message (void *cls, size_t size, void *buf)
@@ -117,6 +100,7 @@ send_message (void *cls, size_t size, void *buf)
   return ntohs (hdr->size);
 }
 
+
 static void
 init (void *cls, struct GNUNET_CORE_Handle *core,
       const struct GNUNET_PeerIdentity *my_identity)
@@ -131,6 +115,7 @@ init (void *cls, struct GNUNET_CORE_Handle *core,
               GNUNET_i2s (my_identity));
   memcpy (&myself, my_identity, sizeof (struct GNUNET_PeerIdentity));
 }
+
 
 static void
 connect_cb (void *cls, const struct GNUNET_PeerIdentity *peer,
@@ -154,71 +139,29 @@ connect_cb (void *cls, const struct GNUNET_PeerIdentity *peer,
  * Main function that will be run by the scheduler.
  *
  * @param cls closure
- * @param args remaining command-line arguments
- * @param cfgfile name of the configuration file used (for saving, can be NULL!)
  * @param cfg configuration
  */
 static void
-run (void *cls, char *const *args, const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls,
+     const struct GNUNET_CONFIGURATION_Handle *cfg,
+     struct GNUNET_TESTING_Peer *peer)
 {
   const static struct GNUNET_CORE_MessageHandler handlers[] = {
     {&receive, GNUNET_MESSAGE_TYPE_DUMMY, 0},
     {NULL, 0, 0}
   };
-
-  core_cfg = GNUNET_CONFIGURATION_create ();
-
-  arm_proc =
-    GNUNET_OS_start_process (GNUNET_YES, NULL, NULL, "gnunet-service-arm",
-                               "gnunet-service-arm",
-#if VERBOSE
-                               "-L", "DEBUG",
-#endif
-                               "-c", "test_core_api_peer1.conf", NULL);
-
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONFIGURATION_load (core_cfg,
-                                            "test_core_api_peer1.conf"));
-
   core =
-      GNUNET_CORE_connect (core_cfg, NULL, &init, &connect_cb, NULL, NULL,
-                           0, NULL, 0, handlers);
-
+    GNUNET_CORE_connect (cfg, NULL, &init, &connect_cb, NULL, NULL,
+			 0, NULL, 0, handlers); 
   die_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                     (GNUNET_TIME_UNIT_SECONDS, 300), &cleanup,
-                                    cls);
+                                    NULL);
 }
 
-
-static int
-check ()
-{
-  char *const argv[] = { "test-core-api-send-to-self",
-    "-c",
-    "test_core_api_data.conf",
-#if VERBOSE
-    "-L", "DEBUG",
-#endif
-    NULL
-  };
-
-  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_OPTION_END
-  };
-
-  ret = 1;
-
-  return (GNUNET_OK ==
-          GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv,
-                              "test_core_api_send_to_self",
-                              gettext_noop ("help text"), options, &run,
-                              NULL)) ? ret : 1;
-}
 
 /**
- * The main function to obtain template from gnunetd.
+ * The main function to test sending a message to the local peer via core
  *
  * @param argc number of arguments from the command line
  * @param argv command line arguments
@@ -227,15 +170,10 @@ check ()
 int
 main (int argc, char *argv[])
 {
-  GNUNET_log_setup ("test-core-api-send-to-self",
-#if VERBOSE
-                    "DEBUG",
-#else
-                    "WARNING",
-#endif
-                    NULL);
-  ret = check ();
-  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-core-peer-1");
+  if (0 != GNUNET_TESTING_peer_run ("test-core-api-send-to-self",
+				    "test_core_api_peer1.conf",
+				    &run, NULL))
+    return 1;
   return ret;
 }
 

@@ -31,11 +31,7 @@
 #include "gnunet_program_lib.h"
 #include "gnunet_scheduler_lib.h"
 
-#define VERBOSE GNUNET_NO
-
 #define TIMEOUT 5
-
-#define START_ARM GNUNET_YES
 
 #define MTYPE 12345
 
@@ -44,9 +40,7 @@ struct PeerContext
   struct GNUNET_CONFIGURATION_Handle *cfg;
   struct GNUNET_CORE_Handle *ch;
   struct GNUNET_PeerIdentity id;
-#if START_ARM
   struct GNUNET_OS_Process *arm_proc;
-#endif
 };
 
 static struct PeerContext p1;
@@ -115,8 +109,6 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
-
-
 static void
 init_notify (void *cls, struct GNUNET_CORE_Handle *server,
              const struct GNUNET_PeerIdentity *my_identity)
@@ -146,15 +138,10 @@ static void
 setup_peer (struct PeerContext *p, const char *cfgname)
 {
   p->cfg = GNUNET_CONFIGURATION_create ();
-#if START_ARM
   p->arm_proc =
     GNUNET_OS_start_process (GNUNET_YES, NULL, NULL, "gnunet-service-arm",
                                "gnunet-service-arm",
-#if VERBOSE
-                               "-L", "DEBUG",
-#endif
                                "-c", cfgname, NULL);
-#endif
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
 }
 
@@ -175,7 +162,6 @@ timeout_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   ok = 42;
 }
-
 
 
 static void
@@ -201,7 +187,6 @@ static void
 stop_arm (struct PeerContext *p)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping peer\n");
-#if START_ARM
   if (0 != GNUNET_OS_process_kill (p->arm_proc, SIGTERM))
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
   if (GNUNET_OS_process_wait (p->arm_proc) != GNUNET_OK)
@@ -210,7 +195,6 @@ stop_arm (struct PeerContext *p)
               GNUNET_OS_process_get_pid (p->arm_proc));
   GNUNET_OS_process_destroy (p->arm_proc);
   p->arm_proc = NULL;
-#endif
   GNUNET_CONFIGURATION_destroy (p->cfg);
 }
 
@@ -221,9 +205,6 @@ check ()
   char *const argv[] = { "test-core-api-start-only",
     "-c",
     "test_core_api_data.conf",
-#if VERBOSE
-    "-L", "DEBUG",
-#endif
     NULL
   };
   struct GNUNET_GETOPT_CommandLineOption options[] = {
@@ -241,17 +222,14 @@ check ()
   return ok;
 }
 
+
 int
 main (int argc, char *argv[])
 {
   int ret;
 
   GNUNET_log_setup ("test-core-api-start-only",
-#if VERBOSE
-                    "DEBUG",
-#else
                     "WARNING",
-#endif
                     NULL);
   ret = check ();
   GNUNET_DISK_directory_remove ("/tmp/test-gnunet-core-peer-1");
