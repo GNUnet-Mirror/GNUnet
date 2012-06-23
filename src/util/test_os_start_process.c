@@ -113,7 +113,11 @@ run_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   const struct GNUNET_DISK_FileHandle *stdout_read_handle;
   const struct GNUNET_DISK_FileHandle *wh;
 
+#if !WINDOWS
   GNUNET_asprintf (&fn, "cat");
+#else
+  GNUNET_asprintf (&fn, "w32cat");
+#endif
 
   hello_pipe_stdin = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_YES, GNUNET_YES, GNUNET_NO);
   hello_pipe_stdout = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_YES, GNUNET_NO, GNUNET_YES);
@@ -183,6 +187,12 @@ check_run ()
 static int
 check_kill ()
 {
+  char *fn;
+#if !WINDOWS
+  GNUNET_asprintf (&fn, "cat");
+#else
+  GNUNET_asprintf (&fn, "w32cat");
+#endif
   hello_pipe_stdin = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_YES, GNUNET_YES, GNUNET_NO);
   hello_pipe_stdout = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_YES, GNUNET_NO, GNUNET_YES);
   if ((hello_pipe_stdout == NULL) || (hello_pipe_stdin == NULL))
@@ -190,7 +200,7 @@ check_kill ()
     return 1;
   }
   proc =
-    GNUNET_OS_start_process (GNUNET_YES, hello_pipe_stdin, hello_pipe_stdout, "cat",
+    GNUNET_OS_start_process (GNUNET_YES, hello_pipe_stdin, hello_pipe_stdout, fn,
 			     "gnunet-service-resolver", "-", NULL); 
   sleep (1); /* give process time to start, so we actually use the pipe-kill mechanism! */
   if (0 != GNUNET_OS_process_kill (proc, SIGTERM))
@@ -210,6 +220,12 @@ check_kill ()
 static int
 check_instant_kill ()
 {
+  char *fn;
+#if !WINDOWS
+  GNUNET_asprintf (&fn, "cat");
+#else
+  GNUNET_asprintf (&fn, "w32cat");
+#endif
   hello_pipe_stdin = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_YES, GNUNET_YES, GNUNET_NO);
   hello_pipe_stdout = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_YES, GNUNET_NO, GNUNET_YES);
   if ((hello_pipe_stdout == NULL) || (hello_pipe_stdin == NULL))
@@ -217,7 +233,7 @@ check_instant_kill ()
     return 1;
   }
   proc =
-    GNUNET_OS_start_process (GNUNET_YES, hello_pipe_stdin, hello_pipe_stdout, "cat",
+    GNUNET_OS_start_process (GNUNET_YES, hello_pipe_stdin, hello_pipe_stdout, fn,
 			     "gnunet-service-resolver", "-", NULL); 
   if (0 != GNUNET_OS_process_kill (proc, SIGTERM))
   {

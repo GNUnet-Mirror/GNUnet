@@ -22,6 +22,7 @@ libgnunetutilwin_la_LIBADD = \
   -lshell32 -liconv -lstdc++ \
   -lcomdlg32 -lgdi32 -liphlpapi
 WINLIB = libgnunetutilwin.la
+W32CAT = w32cat
 endif
 
 if !MINGW
@@ -33,8 +34,11 @@ if USE_COVERAGE
   XLIB = -lgcov
 endif
 
+cat_SOURCES = w32cat.c
+
 noinst_PROGRAMS = \
  gnunet-config-diff \
+ $(W32CAT) \
  test_common_logging_dummy
 
 
@@ -224,6 +228,8 @@ test_os_start_process_SOURCES = \
  test_os_start_process.c
 test_os_start_process_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la
+test_os_start_process_DEPENDENCIES = \
+ $(WINCAT)
 
 test_client_SOURCES = \
  test_client.c
