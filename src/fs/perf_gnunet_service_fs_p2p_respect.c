@@ -391,9 +391,6 @@ main (int argc, char *argv[])
     "perf-gnunet-service-fs-p2p",
     "-c",
     "fs_test_lib_data.conf",
-#if VERBOSE
-    "-L", "DEBUG",
-#endif
     NULL
   };
   struct GNUNET_GETOPT_CommandLineOption options[] = {
@@ -402,11 +399,7 @@ main (int argc, char *argv[])
   progname = argv[0];
   GNUNET_DISK_directory_remove ("/tmp/gnunet-test-fs-lib/");
   GNUNET_log_setup ("perf_gnunet_service_fs_p2p_respect",
-#if VERBOSE
-                    "DEBUG",
-#else
                     "WARNING",
-#endif
                     NULL);
   GNUNET_PROGRAM_run ((sizeof (argvx) / sizeof (char *)) - 1, argvx,
                       "perf-gnunet-service-fs-p2p-respect", "nohelp", options,
