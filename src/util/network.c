@@ -1296,7 +1296,14 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
   if (timeout.rel_value == GNUNET_TIME_UNIT_FOREVER_REL.rel_value)
     ms_total = INFINITE;
   else
+  {
     ms_total = timeout.rel_value / GNUNET_TIME_UNIT_MILLISECONDS.rel_value;
+    if (timeout.rel_value / GNUNET_TIME_UNIT_MILLISECONDS.rel_value > 0xFFFFFFFFLL - 1)
+    {
+      GNUNET_break (0);
+      ms_total = 0xFFFFFFFF - 1;
+    }
+  }
   /* select() may be used as a portable way to sleep */
   if (!(rfds || wfds || efds))
   {
@@ -1513,8 +1520,8 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
   }
 
   handle_array[nhandles] = NULL;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "nfds: %d, handles: %d, will wait: %d ms\n", 
-       nfds, nhandles, ms_total);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "nfds: %d, handles: %d, will wait: %llu ms\n", 
+       nfds, nhandles, (unsigned long long) ms_total);
   if (nhandles)
     returncode =
         WaitForMultipleObjects (nhandles, handle_array, FALSE, ms_total);
