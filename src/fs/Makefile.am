@@ -267,7 +267,7 @@ TESTS = \
  test_gnunet_service_fs_p2p \
  perf_gnunet_service_fs_p2p \
  perf_gnunet_service_fs_p2p_index \
- perf_gnunet_service_fs_p2p_trust \
+ perf_gnunet_service_fs_p2p_respect \
  $(check_SCRIPTS)  
 endif
 
@@ -447,9 +447,9 @@ perf_gnunet_service_fs_p2p_dht_LDADD = \
   $(top_builddir)/src/fs/libgnunetfs.la  \
   $(top_builddir)/src/util/libgnunetutil.la  
 
-perf_gnunet_service_fs_p2p_trust_SOURCES = \
- perf_gnunet_service_fs_p2p_trust.c
-perf_gnunet_service_fs_p2p_trust_LDADD = \
+perf_gnunet_service_fs_p2p_respect_SOURCES = \
+ perf_gnunet_service_fs_p2p_respect.c
+perf_gnunet_service_fs_p2p_respect_LDADD = \
   $(top_builddir)/src/fs/libgnunetfstest.a \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/testing_old/libgnunettesting_old.la \
