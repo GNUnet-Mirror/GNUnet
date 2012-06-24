@@ -1741,8 +1741,6 @@ handle_generic_close_ack (struct GNUNET_STREAM_Socket *socket,
   if (NULL != shutdown_handle->completion_cb) /* Shutdown completion */
     shutdown_handle->completion_cb(shutdown_handle->completion_cls,
                                    operation);
-  GNUNET_free (shutdown_handle); /* Free shutdown handle */
-  socket->shutdown_handle = NULL;
   if (GNUNET_SCHEDULER_NO_TASK
       != shutdown_handle->close_msg_retransmission_task_id)
   {
@@ -1751,6 +1749,8 @@ handle_generic_close_ack (struct GNUNET_STREAM_Socket *socket,
     shutdown_handle->close_msg_retransmission_task_id =
       GNUNET_SCHEDULER_NO_TASK;
   }
+  GNUNET_free (shutdown_handle); /* Free shutdown handle */
+  socket->shutdown_handle = NULL;
   return GNUNET_OK;
 }
 
