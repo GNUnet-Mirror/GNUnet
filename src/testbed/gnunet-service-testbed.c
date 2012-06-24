@@ -90,6 +90,27 @@ struct MessageQueue
 };
 
 
+/**
+ * The structure for identifying a shared service
+ */
+struct SharedService
+{
+  /**
+   * The name of the shared service
+   */
+  char *name;
+
+  /**
+   * Number of shared peers per instance of the shared service
+   */
+  uint32_t num_shared;
+
+  /**
+   * Number of peers currently sharing the service
+   */
+  uint32_t num_sharing;
+};
+
 
 /**
  * Wrapped stdin.
@@ -130,6 +151,11 @@ static struct MessageQueue *mq_tail;
  * Current Transmit Handle; NULL if no notify transmit exists currently
  */
 struct GNUNET_SERVER_TransmitHandle *transmit_handle;
+
+/**
+ * The hashmap of shared services
+ */
+struct GNUNET_CONTAINER_MultiHashMap *ss_map;
 
 
 /**
@@ -232,6 +258,24 @@ host_list_add (struct GNUNET_TESTBED_Host *host)
 
 
 /**
+ * Routes message to a host given its host_id
+ *
+ * @param host_id the id of the destination host
+ * @param msg the message to be routed
+ */
+static void
+route_message (uint32_t host_id, const struct GNUNET_MessageHeader *msg)
+{
+  GNUNET_break (0);
+}
+
+
+/**
+ * 
+ */
+
+
+/**
  * Message handler for GNUNET_MESSAGE_TYPE_TESTBED_INIT messages
  *
  * @param cls NULL
@@ -275,9 +319,9 @@ handle_init (void *cls,
  * @param message the actual message
  */
 static void 
-handle_addhost (void *cls,
-                struct GNUNET_SERVER_Client *client,
-                const struct GNUNET_MessageHeader *message)
+handle_add_host (void *cls,
+                 struct GNUNET_SERVER_Client *client,
+                 const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_TESTBED_Host *host;
   const struct GNUNET_TESTBED_AddHostMessage *msg;
@@ -336,6 +380,83 @@ handle_addhost (void *cls,
 
 
 /**
+ * Message handler for GNUNET_MESSAGE_TYPE_TESTBED_ADDHOST messages
+ *
+ * @param cls NULL
+ * @param client identification of the client
+ * @param message the actual message
+ */
+static void 
+handle_configure_shared_service (void *cls,
+                                 struct GNUNET_SERVER_Client *client,
+                                 const struct GNUNET_MessageHeader *message)
+{
+  struct GNUNET_TESTBED_ConfigureSharedServiceMessage *msg;
+  struct SharedService *ss;
+  char *service_name;
+  struct GNUNET_HashCode hash;
+  uint16_t msg_size;
+  uint16_t service_name_size;
+    
+  msg = (struct GNUNET_TESTBED_ConfigureSharedServiceMessage *) message;
+  msg_size = ntohs (message->size);
+  if (msg_size <= sizeof (struct GNUNET_TESTBED_ConfigureSharedServiceMessage))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  service_name_size = msg_size - 
+    sizeof (struct GNUNET_TESTBED_ConfigureSharedServiceMessage);
+  service_name = (char *) &msg[1];
+  if ('\0' != service_name[service_name_size - 1])
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  LOG_DEBUG ("Received service sharing request for %s, with %d peers\n",
+             service_name, ntohl (msg->num_peers));
+  if (ntohl (msg->host_id) != master_context->host_id)
+  {
+    route_message (ntohl (msg->host_id), message);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
+  ss = GNUNET_malloc (sizeof (struct SharedService));
+  ss->name = strdup (service_name);
+  ss->num_shared = ntohl (msg->num_peers);
+  GNUNET_CRYPTO_hash (ss->name, service_name_size, &hash);
+  GNUNET_CONTAINER_multihashmap_put (ss_map, &hash, ss,
+                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
+
+
+/**
+ * Iterator over hash map entries.
+ *
+ * @param cls closure
+ * @param key current key code
+ * @param value value in the hash map
+ * @return GNUNET_YES if we should continue to
+ *         iterate,
+ *         GNUNET_NO if not.
+ */
+static int 
+ss_map_free_iterator (void *cls,
+                      const struct GNUNET_HashCode * key, void *value)
+{
+  struct SharedService *ss = value;
+
+  GNUNET_CONTAINER_multihashmap_remove (ss_map, key, value);
+  GNUNET_free (ss->name);
+  GNUNET_free (ss);
+  return GNUNET_YES;
+}
+
+
+/**
  * Task to clean up and shutdown nicely
  *
  * @param cls NULL
@@ -350,6 +471,9 @@ shutdown_task (void *cls,
   shutdown_task_id = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_SCHEDULER_shutdown ();
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Shutting down testbed service\n");
+  (void) GNUNET_CONTAINER_multihashmap_iterate (ss_map, &ss_map_free_iterator,
+                                                NULL);
+  GNUNET_CONTAINER_multihashmap_destroy (ss_map);
   if (NULL != fh)
   {
     GNUNET_DISK_file_close (fh);
@@ -404,7 +528,9 @@ testbed_run (void *cls,
     {
       {&handle_init, NULL, GNUNET_MESSAGE_TYPE_TESTBED_INIT,
        sizeof (struct GNUNET_TESTBED_InitMessage)},
-      {&handle_addhost, NULL, GNUNET_MESSAGE_TYPE_TESTBED_ADDHOST, 0},
+      {&handle_add_host, NULL, GNUNET_MESSAGE_TYPE_TESTBED_ADDHOST, 0},
+      {&handle_configure_shared_service, NULL,
+       GNUNET_MESSAGE_TYPE_TESTBED_SERVICESHARE, 0},
       {NULL}
     };
 
@@ -412,7 +538,8 @@ testbed_run (void *cls,
                               message_handlers);
   GNUNET_SERVER_disconnect_notify (server,
                                    &client_disconnect_cb,
-                                   NULL);  
+                                   NULL);
+  ss_map = GNUNET_CONTAINER_multihashmap_create (5);
   fh = GNUNET_DISK_get_handle_from_native (stdin);
   if (NULL == fh)
     shutdown_task_id = 

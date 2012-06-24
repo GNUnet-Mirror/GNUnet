@@ -96,6 +96,7 @@ struct GNUNET_TESTBED_AddHostMessage
 /**
  * Confirmation from the service that adding a host
  * worked (or failed).
+ * FIXME: Where is this required?
  */
 struct GNUNET_TESTBED_HostConfirmedMessage
 {
