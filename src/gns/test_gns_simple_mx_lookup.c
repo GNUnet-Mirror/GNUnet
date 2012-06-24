@@ -93,11 +93,7 @@ static void
 on_lookup_result(void *cls, uint32_t rd_count,
                  const struct GNUNET_NAMESTORE_RecordData *rd)
 {
-  struct in_addr a;
   int i;
-  char* addr;
-  int mx_found = 0;
-  int ip_found = 0;
   uint16_t mx_preference;
   char* mx;
   
@@ -114,19 +110,7 @@ on_lookup_result(void *cls, uint32_t rd_count,
     for (i=0; i<rd_count; i++)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO, "type: %d\n", rd[i].record_type);
-      if (rd[i].record_type == GNUNET_GNS_RECORD_TYPE_A)
-      {
-        memcpy(&a, rd[i].data, sizeof(a));
-        addr = inet_ntoa(a);
-        GNUNET_log (GNUNET_ERROR_TYPE_INFO, "address: %s\n", addr);
-        if (0 == strcmp(addr, TEST_IP))
-        {
-          GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                    "%s correctly resolved to %s!\n", TEST_DOMAIN, addr);
-          ip_found = 1;
-        }
-      }
-      else if (rd[i].record_type == GNUNET_GNS_RECORD_MX)
+      if (rd[i].record_type == GNUNET_GNS_RECORD_MX)
       {
         mx = (char*)rd[i].data+sizeof(uint16_t);
         mx_preference = *(uint16_t*)rd[i].data;
@@ -137,24 +121,10 @@ on_lookup_result(void *cls, uint32_t rd_count,
           GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                       "%s correctly resolved to %s!\n", TEST_DOMAIN,
                       TEST_EXPECTED_MX);
-          mx_found = 1;
+          ok = 0;
         }
       }
     }
-  }
-
-  if (ip_found && mx_found)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "Test succeeded!\n");
-    ok = 0;
-  }
-
-  if (!ip_found && mx_found)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-  "A record not passed along!(NOT IMPLEMENTED)\n");
-    ok = 0;
   }
 
   GNUNET_GNS_disconnect(gns_handle);

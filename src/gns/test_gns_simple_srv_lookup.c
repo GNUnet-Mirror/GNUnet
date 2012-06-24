@@ -30,6 +30,7 @@
 #include "gnunet_namestore_service.h"
 #include "../namestore/namestore.h"
 #include "gnunet_dnsparser_lib.h"
+#include "../dns/dnsparser.h"
 #include "gnunet_gns_service.h"
 
 /* DEFINES */
@@ -185,14 +186,6 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   ok = 1;
 }
 
-GNUNET_NETWORK_STRUCT_BEGIN
-struct srv_data
-{
-  uint16_t prio GNUNET_PACKED;
-  uint16_t weight GNUNET_PACKED;
-  uint16_t port GNUNET_PACKED;
-};
-GNUNET_NETWORK_STRUCT_END
 
 static void
 do_lookup(void *cls, const struct GNUNET_PeerIdentity *id,
