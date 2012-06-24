@@ -32,7 +32,6 @@ import subprocess
 import re
 import shutil
 import time
-import pexpect
 from gnunet_testing import Peer
 from gnunet_testing import Test
 from gnunet_testing import Check
