@@ -108,7 +108,17 @@ enum GNUNET_BLOCK_Type
     /**
      * Block for finding peers by type
      */
-  GNUNET_BLOCK_TYPE_MESH_PEER_BY_TYPE = 21
+  GNUNET_BLOCK_TYPE_MESH_PEER_BY_TYPE = 21,
+
+    /**
+     * Block to store a mesh regex state
+     */
+  GNUNET_BLOCK_TYPE_MESH_REGEX = 22,
+
+    /**
+     * Block to store a mesh regex accepting state
+     */
+  GNUNET_BLOCK_TYPE_MESH_REGEX_ACCEPT = 23
 };
 
 

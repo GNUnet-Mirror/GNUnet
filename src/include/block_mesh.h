@@ -46,4 +46,74 @@ struct PBlock
   GNUNET_MESH_ApplicationType type;
 };
 
+/**
+ * @brief A MeshRegexBlock contains one or more of this struct in the payload.
+ */
+struct MeshRegexEdge
+{
+      /**
+       * Destination of this edge.
+       */
+    struct GNUNET_HashCode key;
+
+      /**
+       * Length of the token towards the new state.
+       */
+    unsigned int n_token;
+
+    /* char token[n_token] */
+};
+
+/**
+ * @brief Block to announce a regex state.
+ */
+struct MeshRegexBlock
+{
+      /**
+       * The key of the state.
+       */
+    struct GNUNET_HashCode key;
+
+      /**
+       * Length of the proof regex string..
+       */
+    unsigned int n_proof;
+
+      /**
+       * Numer of edges parting from this state.
+       */
+    unsigned int n_edges;
+
+      /**
+       * Is this state an accepting state?
+       */
+    int accepting;
+
+    /* char proof[n_proof] */
+    /* struct MeshEdge edges[n_edges] */
+};
+
+/**
+ * @brief Block to announce a peer accepting a state.
+ */
+struct MeshRegexAccept
+{
+      /**
+       * The key of the state.
+       */
+    struct GNUNET_HashCode key;
+
+      /**
+       * Length of the proof regex string.
+       * FIXME necessary???
+       * already present in the leading MeshRegexBlock
+       */
+    // unsigned int n_proof;
+
+      /**
+       * The identity of the peer accepting the state
+       */
+    struct GNUNET_PeerIdentity id;
+
+};
 #endif
