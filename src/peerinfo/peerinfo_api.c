@@ -523,13 +523,16 @@ peerinfo_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     /* normal end of list of peers, signal end, process next pending request */
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Received end of list of peers from `%s' service\n", "PEERINFO");
-    GNUNET_PEERINFO_iterate_cancel (ic);   
+    GNUNET_PEERINFO_iterate_cancel (ic);
     trigger_transmit (h);
     if (GNUNET_NO == h->in_receive)
     {
       h->in_receive = GNUNET_YES;
-      GNUNET_CLIENT_receive (h->client, &peerinfo_handler, h,
-			     GNUNET_TIME_absolute_get_remaining (ic->timeout));
+      if (h->ic_head != NULL)
+        GNUNET_CLIENT_receive (h->client, &peerinfo_handler, h,
+			       GNUNET_TIME_absolute_get_remaining (h->ic_head->timeout));
+      else
+        GNUNET_break (0);
     }
     if (NULL != cb)
       cb (cb_cls, NULL, NULL, NULL);
