@@ -1749,6 +1749,15 @@ handle_test_blacklist_cont (void *cls,
               (GNUNET_OK == result) ? "allowed" : "FORBIDDEN");
   if (NULL == (n = lookup_neighbour (peer)))
     goto cleanup; /* nobody left to care about new address */
+  if (GNUNET_OK == result)
+  {
+    /* valid new address, let ATS know (regardless of where we are
+       in the state machine) */
+    GNUNET_ATS_address_add (GST_ats,
+			    bcc->na.address,
+			    bcc->na.session,
+			    bcc->ats, bcc->ats_count);
+  }
   switch (n->state)
   {
   case S_NOT_CONNECTED:
@@ -1792,25 +1801,31 @@ handle_test_blacklist_cont (void *cls,
     }
     break;
   case S_CONNECT_SENT:
-    /* waiting on CONNECT_ACK, send ACK if one is pending */
+    /* waiting on CONNECT_ACK, switch session and send ACK if one is pending */
     if ( (GNUNET_OK == result) &&
 	 (1 == n->send_connect_ack) )
     {
       n->send_connect_ack = 2;
+      /* FIXME: we might be switching to a different address here without
+	 asking (or telling!) ATS; while this is done for a good reason --
+	 our CONNECT was not answered, but we got another session with
+	 a CONNECT from the other peer, so maybe this is an inbound session
+	 that actually works -- this is unclean as ATS needs to be told
+	 about this (or even asked first!?) Anyway, I'm adding this as
+	 something expermental for now to see if it fixes issues LRN reported
+	 on IRC on 24/6/2012.  */
+      set_address (&n->primary_address,
+		   bcc->na.address,
+		   bcc->na.session,
+		   n->primary_address.bandwidth_in,
+		   n->primary_address.bandwidth_out,
+		   GNUNET_YES);
       send_session_connect_ack_message (n->primary_address.address,
 					n->primary_address.session,
 					n->connect_ack_timestamp);
     }
     break; 
   case S_CONNECT_RECV_BLACKLIST_INBOUND:
-    if (GNUNET_OK == result)
-    {
-      /* valid new address, let ATS know! */
-      GNUNET_ATS_address_add (GST_ats,
-                              bcc->na.address,
-                              bcc->na.session,
-                              bcc->ats, bcc->ats_count);
-    }
     n->state = S_CONNECT_RECV_ATS;
     n->timeout = GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT);
     GNUNET_ATS_reset_backoff (GST_ats, peer);
@@ -2091,9 +2106,8 @@ GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
     /* get rid of remains without terminating sessions, ready to re-try */
     free_neighbour (n, GNUNET_YES);
     n = setup_neighbour (peer);
-    n->state = S_CONNECT_RECV_ATS;
-    GNUNET_ATS_reset_backoff (GST_ats, peer);
-    GNUNET_ATS_suggest_address (GST_ats, peer);
+    n->state = S_CONNECT_RECV_BLACKLIST_INBOUND;
+    check_blacklist (peer, ts, address, session, ats, ats_count);
     break;
   case S_DISCONNECT_FINISHED:
     /* should not be possible */
