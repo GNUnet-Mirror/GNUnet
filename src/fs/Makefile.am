@@ -229,7 +229,7 @@ check_PROGRAMS = \
  $(FS_BENCHMARKS)
 
 
-if HAVE_PYTHON_PEXPECT
+if HAVE_PYTHON
 check_SCRIPTS = \
  test_gnunet_fs_psd.py \
  test_gnunet_fs_rec.py \

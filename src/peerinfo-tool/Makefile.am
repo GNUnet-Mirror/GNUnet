@@ -23,7 +23,7 @@ gnunet_peerinfo_LDADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la 
 
-if HAVE_PYTHON_PEXPECT
+if HAVE_PYTHON
 check_SCRIPTS = \
  test_gnunet_peerinfo.py 
 endif

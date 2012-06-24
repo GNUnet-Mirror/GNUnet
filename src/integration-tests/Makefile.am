@@ -21,7 +21,7 @@ noinst_SCRIPTS = \
  test_integration_connection_values_tcp_udp.py \
  test_integration_connection_values_tcp_udp_http.py
 
-if HAVE_PYTHON_PEXPECT
+if HAVE_PYTHON
 check_SCRIPTS = \
  test_integration_bootstrap_and_connect.py \
  test_integration_bootstrap_and_connect_and_disconnect.py \
