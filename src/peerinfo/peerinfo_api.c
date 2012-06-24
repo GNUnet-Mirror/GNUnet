@@ -527,12 +527,12 @@ peerinfo_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     trigger_transmit (h);
     if (GNUNET_NO == h->in_receive)
     {
-      h->in_receive = GNUNET_YES;
-      if (h->ic_head != NULL)
+      if (NULL != h->ic_head)
+      {
+	h->in_receive = GNUNET_YES;
         GNUNET_CLIENT_receive (h->client, &peerinfo_handler, h,
 			       GNUNET_TIME_absolute_get_remaining (h->ic_head->timeout));
-      else
-        GNUNET_break (0);
+      }
     }
     if (NULL != cb)
       cb (cb_cls, NULL, NULL, NULL);
