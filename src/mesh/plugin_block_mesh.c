@@ -36,6 +36,52 @@
 
 
 /**
+ * Check if the regex block is well formed, including all edges
+ * 
+ * @param block The start of the block.
+ * @param size The size of the block.
+ * 
+ * @return GNUNET_OK in case it's fine, GNUNET_SYSERR otherwise.
+ */
+static int
+check_mesh_regex_block (const struct MeshRegexBlock *block, size_t size)
+{
+  struct MeshRegexEdge *edge;
+  unsigned int n;
+  unsigned int n_token;
+  unsigned int i;
+  size_t offset;
+  char *aux;
+
+  offset = sizeof (struct MeshRegexBlock);
+  if (offset > size) // Is it safe to access the regex block?
+    return GNUNET_SYSERR;
+  n = ntohl (block->n_proof);
+  offset =+ n;
+  if (offset > size) // Is it safe to access the regex proof?
+    return GNUNET_SYSERR;
+  aux = (char *) &block[1];  // Skip regex block
+  aux = &aux[n];             // Skip regex proof
+  n = ntohl (block->n_edges);
+  for (i = 0; i < n; n++) // aux always points at the end of the previous block
+  {
+    offset += sizeof (struct MeshRegexEdge);
+    if (offset > size) // Is it safe to access the next edge block?
+      return GNUNET_SYSERR;
+    edge = (struct MeshRegexEdge *) aux;
+    n_token = ntohl (edge->n_token);
+    offset += n_token;
+    if (offset > size) // Is it safe to access the edge token?
+      return GNUNET_SYSERR;
+    aux = (char *) &edge[1]; // Skip edge block
+    aux = &aux[n_token];     // Skip edge token
+  }
+  // The total size should be exactly the size of (regex + all edges) blocks
+  return (offset == size) ? GNUNET_OK : GNUNET_SYSERR;
+}
+
+
+/**
  * Function called to validate a reply or a request.  For
  * request evaluation, simply pass "NULL" for the reply_block.
  * Note that it is assumed that the reply has already been
@@ -100,6 +146,58 @@ block_plugin_mesh_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
       else
       {
 	*bf = GNUNET_CONTAINER_bloomfilter_init (NULL, 8, BLOOMFILTER_K);
+      }
+      GNUNET_CONTAINER_bloomfilter_add (*bf, &mhash);
+    }
+    return GNUNET_BLOCK_EVALUATION_OK_MORE;
+  case GNUNET_BLOCK_TYPE_MESH_REGEX:
+    if (0 != xquery_size)
+    {
+      GNUNET_break_op (0);
+      return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
+    }
+    if (NULL == reply_block)
+      return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
+    if (GNUNET_OK != check_mesh_regex_block (reply_block, reply_block_size))
+      return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
+    if (NULL != bf)
+    {
+      GNUNET_CRYPTO_hash (reply_block, reply_block_size, &chash);
+      GNUNET_BLOCK_mingle_hash (&chash, bf_mutator, &mhash);
+      if (NULL != *bf)
+      {
+        if (GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test (*bf, &mhash))
+          return GNUNET_BLOCK_EVALUATION_OK_DUPLICATE;
+      }
+      else
+      {
+        *bf = GNUNET_CONTAINER_bloomfilter_init (NULL, 8, BLOOMFILTER_K);
+      }
+      GNUNET_CONTAINER_bloomfilter_add (*bf, &mhash);
+    }
+    return GNUNET_BLOCK_EVALUATION_OK_MORE;
+  case GNUNET_BLOCK_TYPE_MESH_REGEX_ACCEPT:
+    if (0 != xquery_size)
+    {
+      GNUNET_break_op (0);
+      return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
+    }
+    if (NULL == reply_block)
+      return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
+    if (sizeof (struct MeshRegexAccept) != reply_block_size)  
+      return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
+    if (NULL != bf)
+    {
+      GNUNET_CRYPTO_hash (reply_block, reply_block_size, &chash);
+      GNUNET_BLOCK_mingle_hash (&chash, bf_mutator, &mhash);
+      if (NULL != *bf)
+      {
+        if (GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test (*bf, &mhash))
+          return GNUNET_BLOCK_EVALUATION_OK_DUPLICATE;
+      }
+      else
+      {
+        *bf = GNUNET_CONTAINER_bloomfilter_init (NULL, 8, BLOOMFILTER_K);
       }
       GNUNET_CONTAINER_bloomfilter_add (*bf, &mhash);
     }
