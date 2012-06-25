@@ -28,7 +28,7 @@
 #include "gnunet_regex_lib.h"
 #include "regex.h"
 
-#define initial_bits 10
+#define INITIAL_BITS 10
 
 /**
  * Context that contains an id counter for states and transitions as well as a
@@ -65,7 +65,7 @@ struct GNUNET_REGEX_Context
 /**
  * Type of an automaton.
  */
-enum GNUNET_REGEX_automaton_type
+enum GNUNET_REGEX_AutomatonType
 {
   NFA,
   DFA
@@ -115,7 +115,7 @@ struct GNUNET_REGEX_Automaton
   /**
    * Type of the automaton.
    */
-  enum GNUNET_REGEX_automaton_type type;
+  enum GNUNET_REGEX_AutomatonType type;
 
   /**
    * Regex
@@ -1059,21 +1059,12 @@ automaton_create_proofs (struct GNUNET_REGEX_Automaton *a)
         R_cur_r = NULL;
         R_cur_l = NULL;
 
-        // Assign R_temp_(ij|ik|kk|kj) to R_last[][] and remove epsilon as well
-        // as parentheses, so we can better compare the contents
-	R_temp_ij = NULL;
-        R_temp_ik = NULL;
-        R_temp_kk = remove_parentheses (remove_epsilon (R_last[k][k]));
-        R_temp_kj = remove_parentheses (remove_epsilon (R_last[k][j]));
-
 	// cache results from strcmp, we might need these many times
 	ij_kj_cmp = nullstrcmp (R_last[i][j], R_last[k][j]);
 	ij_ik_cmp = nullstrcmp (R_last[i][j], R_last[i][k]);
 	ik_kk_cmp = nullstrcmp (R_last[i][k], R_last[k][k]);
 	ik_kj_cmp = nullstrcmp (R_last[i][k], R_last[k][j]);
 	kk_kj_cmp = nullstrcmp (R_last[k][k], R_last[k][j]);
-	clean_ik_kk_cmp = nullstrcmp (R_last[i][k], R_temp_kk);
-	clean_kk_kj_cmp = nullstrcmp (R_temp_kk, R_last[k][j]);
 
         // $R^{(k)}_{ij} = R^{(k-1)}_{ij} | R^{(k-1)}_{ik} ( R^{(k-1)}_{kk})^* R^{(k-1)}_{kj}
         // With: R_cur[i][j] = R_cur_l | R_cur_r
@@ -1095,11 +1086,21 @@ automaton_create_proofs (struct GNUNET_REGEX_Automaton *a)
           /* GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, */
           /* "R_temp_ij = %s  R_temp_ik = %s  R_temp_kk = %s  R_temp_kj = %s\n", */
           /* R_temp_ij, R_temp_ik, R_temp_kk, R_temp_kj); */
-	  R_temp_ik = remove_parentheses (remove_epsilon (R_last[i][k]));
 
+          // Assign R_temp_(ik|kk|kj) to R_last[][] and remove epsilon as well
+          // as parentheses, so we can better compare the contents
+	  R_temp_ik = remove_parentheses (remove_epsilon (R_last[i][k]));
+          R_temp_kk = remove_parentheses (remove_epsilon (R_last[k][k]));
+          R_temp_kj = remove_parentheses (remove_epsilon (R_last[k][j]));
+
+          clean_ik_kk_cmp = nullstrcmp (R_last[i][k], R_temp_kk);
+          clean_kk_kj_cmp = nullstrcmp (R_temp_kk, R_last[k][j]);
+          
           // construct R_cur_l (and, if necessary R_cur_r)
           if (NULL != R_last[i][j])
           {
+            // Assign R_temp_ij to R_last[i][j] and remove epsilon as well
+            // as parentheses, so we can better compare the contents
 	    R_temp_ij = remove_parentheses (remove_epsilon (R_last[i][j]));
 
             if (0 == strcmp (R_temp_ij, R_temp_ik) &&
@@ -1194,6 +1195,8 @@ automaton_create_proofs (struct GNUNET_REGEX_Automaton *a)
               temp_a = remove_parentheses (temp_a);
               R_cur_l = temp_a;
             }
+
+            GNUNET_free_non_null (R_temp_ij);
           }
           // we have no left side
           else
@@ -1387,12 +1390,11 @@ automaton_create_proofs (struct GNUNET_REGEX_Automaton *a)
 
           GNUNET_free_non_null (R_cur_l);
           GNUNET_free_non_null (R_cur_r);
-        }
 
-        GNUNET_free_non_null (R_temp_ij);
-        GNUNET_free_non_null (R_temp_ik);
-        GNUNET_free_non_null (R_temp_kk);
-        GNUNET_free_non_null (R_temp_kj);
+          GNUNET_free_non_null (R_temp_ik);
+          GNUNET_free_non_null (R_temp_kk);
+          GNUNET_free_non_null (R_temp_kj);
+        }
       }
     }
 
@@ -2778,7 +2780,7 @@ GNUNET_REGEX_get_first_key (const char *input_string, unsigned int string_len,
 {
   unsigned int size;
 
-  size = string_len < initial_bits ? string_len : initial_bits;
+  size = string_len < INITIAL_BITS ? string_len : INITIAL_BITS;
 
   if (NULL == input_string)
   {
