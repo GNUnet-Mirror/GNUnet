@@ -4024,13 +4024,29 @@ dht_get_string_handler (void *cls, struct GNUNET_TIME_Absolute exp,
                         size_t size, const void *data)
 {
   const struct MeshRegexBlock *block = data;
+  struct MeshRegexSerachContext *ctx = cls;
   char *proof;
+  size_t len;
 
   // FIXME: does proof have to be NULL terminated?
   proof = (char *) &block[1];
   if (GNUNET_OK != GNUNET_REGEX_check_proof (proof, key))
   {
     GNUNET_break_op (0);
+    return;
+  }
+  len = strlen (ctx->description);
+  if (len == ctx->position)
+  {
+    if (GNUNET_YES == ntohl (block->accepting))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found peer by service\n");
+    }
+    else
+    {
+      GNUNET_break (0);
+      // FIXME ERROR? Backtrace?
+    }
     return;
   }
   // FIXME complete
