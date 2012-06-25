@@ -44,6 +44,17 @@ struct Regex_String_Pair
 static const char allowed_literals[] =
     "0123456789" "ABCDEFGHIJKLMNOPQRSTUVWXYZ" "abcdefghijklmnopqrstuvwxyz";
 
+/**
+ * Random regex test. Generate a random regex as well as 'str_count' strings to
+ * match it against. Will match using GNUNET_REGEX implementation and compare
+ * the result to glibc regex result. 'rx_length' has to be smaller then 'max_str_len'.
+ *
+ * @param rx_length length of the regular expression.
+ * @param max_str_len maximum length of the random strings.
+ * @param str_count number of generated random strings.
+ *
+ * @return 0 on success, non 0 otherwise.
+ */
 int
 test_random (unsigned int rx_length, unsigned int max_str_len,
              unsigned int str_count)
@@ -199,6 +210,17 @@ test_random (unsigned int rx_length, unsigned int max_str_len,
   return result;
 }
 
+/**
+ * Automaton test that compares the result of matching regular expression 'rx'
+ * with the strings and expected results in 'rxstr' with the result of matching
+ * the same strings with glibc regex.
+ *
+ * @param a automaton.
+ * @param rx compiled glibc regex.
+ * @param rxstr regular expression and strings with expected results to match against.
+ *
+ * @return 0 on successfull, non 0 otherwise
+ */
 int
 test_automaton (struct GNUNET_REGEX_Automaton *a, regex_t * rx,
                 struct Regex_String_Pair *rxstr)
@@ -347,8 +369,8 @@ main (int argc, char *argv[])
   }
 
   srand (time (NULL));
-  for (i = 0; i < 50; i++)
-    check_rand += test_random (100, 120, 20);
+  /* for (i = 0; i < 50; i++) */
+  /* check_rand += test_random (100, 120, 20); */
 
   return check_nfa + check_dfa + check_rand;
 }
