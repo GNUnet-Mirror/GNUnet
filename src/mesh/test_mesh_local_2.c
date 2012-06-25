@@ -40,7 +40,7 @@ static unsigned int one = 1;
 
 static unsigned int two = 2;
 
-static int result;
+static int result = GNUNET_OK;
 
 static GNUNET_SCHEDULER_TaskIdentifier abort_task;
 
