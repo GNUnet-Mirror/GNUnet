@@ -328,11 +328,11 @@ put_cont (void *cls, int32_t success, const char *emsg)
     returned_records = 0;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "All records created, starting iteration over all zones \n");
     zi = GNUNET_NAMESTORE_zone_iteration_start(nsh,
-                                        NULL,
-                                        GNUNET_NAMESTORE_RF_NONE,
-                                        GNUNET_NAMESTORE_RF_NONE,
-                                        zone_proc,
-                                        &zone);
+					       NULL,
+					       GNUNET_NAMESTORE_RF_NONE,
+					       GNUNET_NAMESTORE_RF_NONE,
+					       &zone_proc,
+					       &zone);
     if (zi == NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to create zone iterator\n");
@@ -363,15 +363,27 @@ create_record (unsigned int count)
 }
 
 
+/**
+ * Callback called from the zone iterator when we iterate over
+ * the empty zone.  Check that we got no records and then
+ * start the actual tests by filling the zone.
+ */
 static void
-run (void *cls, 
-     const struct GNUNET_CONFIGURATION_Handle *cfg,
-     struct GNUNET_TESTING_Peer *peer)
+empty_zone_proc (void *cls,
+		 const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
+		 struct GNUNET_TIME_Absolute expire,
+		 const char *name,
+		 unsigned int rd_count,
+		 const struct GNUNET_NAMESTORE_RecordData *rd,
+		 const struct GNUNET_CRYPTO_RsaSignature *signature)
 {
   char *hostkey_file;
   struct GNUNET_TIME_Absolute et;
 
-  endbadly_task = GNUNET_SCHEDULER_add_delayed(TIMEOUT,&endbadly, NULL);
+  GNUNET_assert (nsh == cls);
+  GNUNET_assert (NULL == name);
+  GNUNET_assert (NULL == zone_key);
+  zi = NULL;
   GNUNET_asprintf(&hostkey_file,"zonefiles%s%s",DIR_SEPARATOR_STR,
       "N0UJMP015AFUNR2BTNM3FKPBLG38913BL8IDMCO2H0A1LIB81960.zkey");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Using zonekey file `%s' \n", hostkey_file);
@@ -391,8 +403,6 @@ run (void *cls,
   GNUNET_assert (privkey2 != NULL);
   GNUNET_CRYPTO_rsa_key_get_public(privkey2, &pubkey2);
   GNUNET_CRYPTO_hash(&pubkey2, sizeof (pubkey), &zone2);
-  nsh = GNUNET_NAMESTORE_connect (cfg);
-  GNUNET_break (NULL != nsh);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created record 1\n");
 
@@ -418,6 +428,31 @@ run (void *cls,
   et.abs_value = s_rd_3->expiration_time;
   sig_3 = GNUNET_NAMESTORE_create_signature(privkey2, et, s_name_3, s_rd_3, 1);
   GNUNET_NAMESTORE_record_put (nsh, &pubkey2, s_name_3, GNUNET_TIME_UNIT_FOREVER_ABS, 1, s_rd_3, sig_3, &put_cont, NULL);
+}
+
+
+static void
+run (void *cls, 
+     const struct GNUNET_CONFIGURATION_Handle *cfg,
+     struct GNUNET_TESTING_Peer *peer)
+{
+  endbadly_task = GNUNET_SCHEDULER_add_delayed(TIMEOUT, &endbadly, NULL);
+  nsh = GNUNET_NAMESTORE_connect (cfg);
+  GNUNET_break (NULL != nsh);
+  /* first, iterate over empty namestore */
+  zi = GNUNET_NAMESTORE_zone_iteration_start(nsh,
+					     NULL,
+					     GNUNET_NAMESTORE_RF_NONE,
+					     GNUNET_NAMESTORE_RF_NONE,
+					     &empty_zone_proc,
+					     nsh);
+  if (NULL == zi)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to create zone iterator\n");
+    GNUNET_break (0);
+    GNUNET_SCHEDULER_cancel (endbadly_task);
+    endbadly_task = GNUNET_SCHEDULER_add_now (&endbadly, NULL);
+  }
 }
 
 
