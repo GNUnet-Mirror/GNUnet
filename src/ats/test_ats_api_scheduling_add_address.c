@@ -62,8 +62,6 @@ static struct Address test_addr;
 
 static struct PeerContext p;
 
-static struct GNUNET_ATS_Information atsi;
-
 
 static void
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
