@@ -65,7 +65,7 @@ main (int argc, char *argv[])
   /* regex = "(bla)*"; */
   /*regex = "b(lab)*la"; */
   /* regex = "(ab)*"; */
-  /*regex = "ab(c|d)+c*(a(b|c)+d)+(bla)(bla)*"; */
+  regex = "ab(c|d)+c*(a(b|c)+d)+(bla)(bla)*";
   /*regex = "z(abc|def)?xyz"; */
   /* regex = "1*0(0|1)*"; */
   /* regex = "a*b*"; */
@@ -83,8 +83,7 @@ main (int argc, char *argv[])
   /* regex = "(ab)+"; */
   /* regex = "(ab|cs|df|sdf)*"; */
   /* regex = "(ab|cd)*"; */
-  regex = "(cd|ab)*";
-  regex = "(cd|ab)*";
+  /* regex = "(cd|ab)*"; */
   /* regex = "(ab|c)+"; */
   /* regex = "(a|bc)+"; */
   /* regex = "(ab|c)(ab|c)*"; */

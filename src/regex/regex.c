@@ -47,11 +47,6 @@ struct GNUNET_REGEX_Context
   unsigned int transition_id;
 
   /**
-   * Unique SCC (Strongly Connected Component) id.
-   */
-  unsigned int scc_id;
-
-  /**
    * DLL of GNUNET_REGEX_Automaton's used as a stack.
    */
   struct GNUNET_REGEX_Automaton *stack_head;
@@ -77,12 +72,12 @@ enum GNUNET_REGEX_AutomatonType
 struct GNUNET_REGEX_Automaton
 {
   /**
-   * This is a linked list.
+   * Linked list of NFAs used for partial NFA creation.
    */
   struct GNUNET_REGEX_Automaton *prev;
 
   /**
-   * This is a linked list.
+   * Linked list of NFAs used for partial NFA creation.
    */
   struct GNUNET_REGEX_Automaton *next;
 
@@ -93,7 +88,7 @@ struct GNUNET_REGEX_Automaton
   struct GNUNET_REGEX_State *start;
 
   /**
-   * End state of the automaton.
+   * End state of the partial NFA. This is undefined for DFAs
    */
   struct GNUNET_REGEX_State *end;
 
@@ -368,8 +363,8 @@ debug_print_transitions (struct GNUNET_REGEX_State *s)
  * @param stack_size current size of the stack
  */
 static void
-scc_tarjan_strongconnect (struct GNUNET_REGEX_Context *ctx,
-                          struct GNUNET_REGEX_State *v, int *index,
+scc_tarjan_strongconnect (unsigned int *scc_counter,
+                          struct GNUNET_REGEX_State *v, unsigned int *index,
                           struct GNUNET_REGEX_State **stack,
                           unsigned int *stack_size)
 {
@@ -387,7 +382,7 @@ scc_tarjan_strongconnect (struct GNUNET_REGEX_Context *ctx,
     w = t->to_state;
     if (NULL != w && w->index < 0)
     {
-      scc_tarjan_strongconnect (ctx, w, index, stack, stack_size);
+      scc_tarjan_strongconnect (scc_counter, w, index, stack, stack_size);
       v->lowlink = (v->lowlink > w->lowlink) ? w->lowlink : v->lowlink;
     }
     else if (0 != w->contained)
@@ -401,14 +396,14 @@ scc_tarjan_strongconnect (struct GNUNET_REGEX_Context *ctx,
 
     if (v != w)
     {
-      ctx->scc_id++;
+      (*scc_counter)++;
       while (v != w)
       {
-        w->scc_id = ctx->scc_id;
+        w->scc_id = *scc_counter;
         w = stack[--(*stack_size)];
         w->contained = 0;
       }
-      w->scc_id = ctx->scc_id;
+      w->scc_id = *scc_counter;
     }
   }
 }
@@ -421,9 +416,10 @@ scc_tarjan_strongconnect (struct GNUNET_REGEX_Context *ctx,
  * @param a automaton
  */
 static void
-scc_tarjan (struct GNUNET_REGEX_Context *ctx, struct GNUNET_REGEX_Automaton *a)
+scc_tarjan (struct GNUNET_REGEX_Automaton *a)
 {
-  int index;
+  unsigned int index;
+  unsigned int scc_counter;
   struct GNUNET_REGEX_State *v;
   struct GNUNET_REGEX_State *stack[a->state_count];
   unsigned int stack_size;
@@ -437,11 +433,12 @@ scc_tarjan (struct GNUNET_REGEX_Context *ctx, struct GNUNET_REGEX_Automaton *a)
 
   stack_size = 0;
   index = 0;
+  scc_counter = 0;
 
   for (v = a->states_head; NULL != v; v = v->next)
   {
     if (v->index < 0)
-      scc_tarjan_strongconnect (ctx, v, &index, stack, &stack_size);
+      scc_tarjan_strongconnect (&scc_counter, v, &index, stack, &stack_size);
   }
 }
 
@@ -840,12 +837,39 @@ static int
 needs_parentheses (const char *str)
 {
   size_t slen;
+  const char *op;
+  const char *cl;
+  const char *pos;
+  unsigned int cnt;
 
   if ( (NULL == str) ||
-       ((slen = strlen(str)) < 2) ||
-       ( ('(' == str[0]) && (')' == str[slen-1]) ) )
+       ((slen = strlen(str)) < 2) )
     return GNUNET_NO;
-  return GNUNET_YES;
+  
+  if ('(' != str[0])
+    return GNUNET_YES;
+  cnt = 1;
+  pos = &str[1];
+  while (cnt > 0)
+  {
+    cl = strchr (pos, ')');
+    if (NULL == cl)
+    {
+      GNUNET_break (0);
+      return GNUNET_YES;
+    }
+    op = strchr (pos, '(');
+    if ( (NULL != op) && (op < cl))
+    {
+      cnt++;
+      pos = op + 1;
+      continue;
+    }
+    /* got ')' first */
+    cnt--;
+    pos = cl + 1;
+  }
+  return (*pos == '\0') ? GNUNET_NO : GNUNET_YES;
 }
 
 
@@ -948,7 +972,14 @@ nullstrcmp (const char *str1, const char *str2)
   return strcmp (str1, str2);
 }
 
-
+/** 
+ * Helper function used as 'action' in 'automaton_traverse' function to create
+ * the depth-first numbering of the states.
+ * 
+ * @param cls states array.
+ * @param count current state counter.
+ * @param s current state.
+ */
 static void
 number_states (void *cls, unsigned int count, struct GNUNET_REGEX_State *s)
 {
@@ -2192,7 +2223,6 @@ GNUNET_REGEX_context_init (struct GNUNET_REGEX_Context *ctx)
   }
   ctx->state_id = 0;
   ctx->transition_id = 0;
-  ctx->scc_id = 0;
   ctx->stack_head = NULL;
   ctx->stack_tail = NULL;
 }
@@ -2456,9 +2486,6 @@ GNUNET_REGEX_construct_dfa (const char *regex, const size_t len)
   // Minimize DFA
   dfa_minimize (&ctx, dfa);
 
-  // Calculate SCCs
-  scc_tarjan (&ctx, dfa);
-
   // Create proofs for all states
   automaton_create_proofs (dfa);
 
@@ -2606,6 +2633,9 @@ GNUNET_REGEX_automaton_save_graph (struct GNUNET_REGEX_Automaton *a,
                 filename);
     return;
   }
+
+  /* First add the SCCs to the automaton, so we can color them nicely */
+  scc_tarjan (a);
 
   start = "digraph G {\nrankdir=LR\n";
   fwrite (start, strlen (start), 1, p);
