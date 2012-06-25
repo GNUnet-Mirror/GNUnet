@@ -115,18 +115,12 @@ printer (void *cls, const char *subsystem, const char *name, uint64_t value,
 static void
 cleanup (void *cls, int success)
 {
-  struct GNUNET_STATISTICS_Handle *h = cls;
-
   if (success != GNUNET_OK)
   {
     FPRINTF (stderr, "%s", _("Failed to obtain statistics.\n"));
     ret = 1;
   }
-  if (NULL != h)
-  {
-    GNUNET_STATISTICS_destroy (h, GNUNET_NO);
-    h = NULL;
-  }
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 
