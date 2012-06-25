@@ -2048,6 +2048,9 @@ GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
     check_blacklist (peer, ts, address, session, ats, ats_count);
     break;
   case S_INIT_ATS:
+    /* CONNECT message takes priority over us asking ATS for address */
+    n->state = S_CONNECT_RECV_BLACKLIST_INBOUND;
+    /* fallthrough */
   case S_INIT_BLACKLIST:
   case S_CONNECT_SENT:
   case S_CONNECT_RECV_ATS:
