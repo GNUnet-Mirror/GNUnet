@@ -738,8 +738,7 @@ automaton_merge_states (struct GNUNET_REGEX_Context *ctx,
   }
 
   // 3. Rename s1 to {s1,s2}
-  new_name = GNUNET_strdup (s1->name);
-  GNUNET_free_non_null (s1->name);
+  new_name = s1->name;
   GNUNET_asprintf (&s1->name, "{%s,%s}", new_name, s2->name);
   GNUNET_free (new_name);
 
@@ -828,39 +827,40 @@ automaton_traverse (void *cls, struct GNUNET_REGEX_Automaton *a,
   automaton_state_traverse (cls, a->start, &count, action);
 }
 
+
 /**
  * Check if the given string 'str' needs parentheses around it when
  * using it to generate a regex.
+ *
+ * Currently only tests for first and last characters being '()' respectively.
+ * FIXME: What about "(ab)|(cd)"?  
  *
  * @param str string
  *
  * @return GNUNET_YES if parentheses are needed, GNUNET_NO otherwise
  */
 static int
-needs_parentheses (char *str)
+needs_parentheses (const char *str)
 {
-  int length;
+  size_t slen;
 
-  if (NULL == str)
+  if ( (NULL == str) ||
+       ((slen = strlen(str)) < 2) ||
+       ( ('(' == str[0]) && (')' == str[slen-1]) ) )
     return GNUNET_NO;
-
-  length = strlen (str);
-
-  if (length < 2)
-    return GNUNET_NO;
-
-  if (str[0] == '(' && str[strlen (str) - 1] == ')')
-    return GNUNET_NO;
-
   return GNUNET_YES;
 }
+
 
 /**
  * Remove parentheses surrounding string 'str'.
  * Example: "(a)" becomes "a".
- * You need to GNUNET_free the retunred string.
+ * You need to GNUNET_free the returned string.
  *
- * @param str string
+ * Currently only tests for first and last characters being '()' respectively.
+ * FIXME: What about "(ab)|(cd)"?  
+ *
+ * @param str string, free'd or re-used by this function, can be NULL
  *
  * @return string without surrounding parentheses, string 'str' if no preceding
  *         epsilon could be found, NULL if 'str' was NULL
@@ -868,49 +868,30 @@ needs_parentheses (char *str)
 static char *
 remove_parentheses (char *str)
 {
-  char *new_str;
-  int length;
-  int i;
-  int j;
+  size_t slen;
 
-  if (NULL == str)
-    return NULL;
-
-  length = strlen (str);
-
-  if (str[0] == '(' && str[length - 1] == ')')
-  {
-    new_str = GNUNET_malloc (length - 1);
-    for (j = 0, i = 1; i < length - 1; i++, j++)
-      new_str[j] = str[i];
-    new_str[j] = '\0';
-  }
-  else
-    new_str = GNUNET_strdup (str);
-
-  return new_str;
+  if ( (NULL == str) || ('(' != str[0]) || (str[(slen = strlen(str)) - 1] != ')') )
+    return str;
+  memmove (str, &str[1], slen - 2);
+  str[slen - 2] = '\0';
+  return str;
 }
+
 
 /**
  * Check if the string 'str' starts with an epsilon (empty string).
  * Example: "(|a)" is starting with an epsilon.
  *
- * @param str
+ * @param str string to test
  *
- * @return
+ * @return 0 if str has no epsilon, 1 if str starts with '(|' and ends with ')'
  */
 static int
-has_epsilon (char *str)
+has_epsilon (const char *str)
 {
-  int len;
-
-  if (NULL == str)
-    return 0;
-
-  len = strlen (str);
-
-  return (0 == strncmp (str, "(|", 2) && str[len - 1] == ')');
+  return  (NULL != str) && ('(' == str[0]) && ('|' == str[1]) && (')' == str[strlen(str) - 1]);
 }
+
 
 /**
  * Remove an epsilon from the string str. Where epsilon is an empty string
@@ -923,52 +904,47 @@ has_epsilon (char *str)
  *         could be found, NULL if 'str' was NULL
  */
 static char *
-remove_epsilon (char *str)
+remove_epsilon (const char *str)
 {
-  int len;
-  char *new_str;
-  int i;
-  int j;
+  size_t len;
 
   if (NULL == str)
     return NULL;
-
-  len = strlen (str);
-
-  if (len > 2 && 0 == strncmp (str, "(|", 2) && str[len - 1] == ')')
+  if ( ('(' == str[0]) && ('|' == str[1]) )
   {
-    new_str = GNUNET_malloc (len - 1);
-
-    j = 0;
-    for (i = 2; i < len - 1; i++)
-    {
-      new_str[j] = str[i];
-      j++;
-    }
-    new_str[j] = '\0';
+    len = strlen (str);
+    if (')' == str[len-1])    
+      return GNUNET_strndup (&str[2], len - 3);
   }
-  else
-  {
-    new_str = GNUNET_strdup (str);
-  }
-
-  return new_str;
+  return GNUNET_strdup (str);
 }
+
 
 static int
-strkcmp (const char *str1, const char *str2, int k)
+strkcmp (const char *str1, const char *str2, size_t k)
 {
-  const char *new_str1;
-
   if (NULL == str1 || NULL == str2)
     return -1;
-
-  new_str1 = &str1[k];
-
-  return strcmp (new_str1, str2);
+  return strcmp (&str1[k], str2);
 }
 
-void
+
+/**
+ * Compare two strings for equality. If either is NULL (or if both are
+ * NULL), they are not equal.
+ *
+ * @return 0 if the strings are the same, 1 or -1 if not
+ */
+static int
+nullstrcmp (const char *str1, const char *str2)
+{
+  if ( (NULL == str1) || (NULL == str2) )
+    return -1;
+  return strcmp (str1, str2);
+}
+
+
+static void
 number_states (void *cls, unsigned int count, struct GNUNET_REGEX_State *s)
 {
   struct GNUNET_REGEX_State **states;
@@ -1085,54 +1061,19 @@ automaton_create_proofs (struct GNUNET_REGEX_Automaton *a)
 
         // Assign R_temp_(ij|ik|kk|kj) to R_last[][] and remove epsilon as well
         // as parentheses, so we can better compare the contents
-        temp_a = remove_epsilon (R_last[i][j]);
-        R_temp_ij = remove_parentheses (temp_a);
-        GNUNET_free_non_null (temp_a);
-        temp_a = remove_epsilon (R_last[i][k]);
-        R_temp_ik = remove_parentheses (temp_a);
-        GNUNET_free_non_null (temp_a);
-        temp_a = remove_epsilon (R_last[k][k]);
-        R_temp_kk = remove_parentheses (temp_a);
-        GNUNET_free_non_null (temp_a);
-        temp_a = remove_epsilon (R_last[k][j]);
-        R_temp_kj = remove_parentheses (temp_a);
-        GNUNET_free_non_null (temp_a);
+	R_temp_ij = NULL;
+        R_temp_ik = NULL;
+        R_temp_kk = remove_parentheses (remove_epsilon (R_last[k][k]));
+        R_temp_kj = remove_parentheses (remove_epsilon (R_last[k][j]));
 
-        if (NULL != R_last[i][j] && NULL != R_last[k][j])
-          ij_kj_cmp = strcmp (R_last[i][j], R_last[k][j]);
-        else
-          ij_kj_cmp = -1;
-
-        if (NULL != R_last[i][j] && NULL != R_last[i][k])
-          ij_ik_cmp = strcmp (R_last[i][j], R_last[i][k]);
-        else
-          ij_ik_cmp = -1;
-
-        if (NULL != R_last[i][k] && NULL != R_last[k][k])
-          ik_kk_cmp = strcmp (R_last[i][k], R_last[k][k]);
-        else
-          ik_kk_cmp = -1;
-
-        if (NULL != R_last[i][k] && NULL != R_last[k][j])
-          ik_kj_cmp = strcmp (R_last[i][k], R_last[k][j]);
-        else
-          ik_kj_cmp = -1;
-
-        if (NULL != R_last[k][k] && NULL != R_last[k][j])
-          kk_kj_cmp = strcmp (R_last[k][k], R_last[k][j]);
-        else
-          kk_kj_cmp = -1;
-
-        if (NULL != R_last[i][k] && NULL != R_temp_kk)
-          clean_ik_kk_cmp = strcmp (R_last[i][k], R_temp_kk);
-        else
-          clean_ik_kk_cmp = 1;
-
-        if (NULL != R_temp_kk && NULL != R_last[k][j])
-          clean_kk_kj_cmp = strcmp (R_temp_kk, R_last[k][j]);
-        else
-          clean_kk_kj_cmp = -1;
-
+	// cache results from strcmp, we might need these many times
+	ij_kj_cmp = nullstrcmp (R_last[i][j], R_last[k][j]);
+	ij_ik_cmp = nullstrcmp (R_last[i][j], R_last[i][k]);
+	ik_kk_cmp = nullstrcmp (R_last[i][k], R_last[k][k]);
+	ik_kj_cmp = nullstrcmp (R_last[i][k], R_last[k][j]);
+	kk_kj_cmp = nullstrcmp (R_last[k][k], R_last[k][j]);
+	clean_ik_kk_cmp = nullstrcmp (R_last[i][k], R_temp_kk);
+	clean_kk_kj_cmp = nullstrcmp (R_temp_kk, R_last[k][j]);
 
         // $R^{(k)}_{ij} = R^{(k-1)}_{ij} | R^{(k-1)}_{ik} ( R^{(k-1)}_{kk})^* R^{(k-1)}_{kj}
         // With: R_cur[i][j] = R_cur_l | R_cur_r
@@ -1154,22 +1095,20 @@ automaton_create_proofs (struct GNUNET_REGEX_Automaton *a)
           /* GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, */
           /* "R_temp_ij = %s  R_temp_ik = %s  R_temp_kk = %s  R_temp_kj = %s\n", */
           /* R_temp_ij, R_temp_ik, R_temp_kk, R_temp_kj); */
-
-          GNUNET_assert (NULL != R_last[i][k] && NULL != R_last[k][k] &&
-                         NULL != R_last[k][j]);
-          GNUNET_assert (NULL != R_temp_ik && NULL != R_temp_kk &&
-                         NULL != R_temp_kj);
+	  R_temp_ik = remove_parentheses (remove_epsilon (R_last[i][k]));
 
           // construct R_cur_l (and, if necessary R_cur_r)
           if (NULL != R_last[i][j])
           {
+	    R_temp_ij = remove_parentheses (remove_epsilon (R_last[i][j]));
+
             if (0 == strcmp (R_temp_ij, R_temp_ik) &&
                 0 == strcmp (R_temp_ik, R_temp_kk) &&
                 0 == strcmp (R_temp_kk, R_temp_kj))
             {
               if (0 == strlen (R_temp_ij))
               {
-                GNUNET_asprintf (&R_cur_r, "");
+                R_cur_r = GNUNET_strdup ("");
               }
               // a|(e|a)a*(e|a) = a*
               // a|(e|a)(e|a)*(e|a) = a*
@@ -1251,10 +1190,9 @@ automaton_create_proofs (struct GNUNET_REGEX_Automaton *a)
             else
             {
               /* GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "NO SIMPLIFICATION\n"); */
-
-              temp_a = remove_parentheses (R_last[i][j]);
-              R_cur_l = GNUNET_strdup (temp_a);
-              GNUNET_free (temp_a);
+	      temp_a = (NULL == R_last[i][j]) ? NULL : GNUNET_strdup (R_last[i][j]);
+              temp_a = remove_parentheses (temp_a);
+              R_cur_l = temp_a;
             }
           }
           // we have no left side
@@ -1464,13 +1402,8 @@ automaton_create_proofs (struct GNUNET_REGEX_Automaton *a)
       for (j = 0; j < n; j++)
       {
         GNUNET_free_non_null (R_last[i][j]);
-
-        if (NULL != R_cur[i][j])
-        {
-          R_last[i][j] = GNUNET_strdup (R_cur[i][j]);
-          GNUNET_free (R_cur[i][j]);
-          R_cur[i][j] = NULL;
-        }
+	R_last[i][j] = R_cur[i][j];
+	R_cur[i][j] = NULL;       
       }
     }
   }

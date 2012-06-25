@@ -369,8 +369,8 @@ main (int argc, char *argv[])
   }
 
   srand (time (NULL));
-  /* for (i = 0; i < 50; i++) */
-  /* check_rand += test_random (100, 120, 20); */
+  for (i = 0; i < 50; i++) 
+    check_rand += test_random (100, 120, 20); 
 
   return check_nfa + check_dfa + check_rand;
 }
