@@ -3,22 +3,22 @@ SUBDIRS = .
 gnunetincludedir = $(includedir)/gnunet
 
 nodist_gnunetinclude_HEADERS = \
-  gnunet_directories.h \
-  block_fs.h
+  gnunet_directories.h 
 
 if MINGW
   WINPROC = winproc.h
 endif
 
-gnunetinclude_HEADERS = \
+EXTRA_DIST = \
   gauger.h \
   gettext.h \
-  platform.h \
-  plibc.h \
-  $(WINPROC) \
-  block_dns.h \
-  block_gns.h \
+  plibc.h $(WINPROC) \
   block_fs.h \
+  block_dns.h \
+  block_gns.h
+
+gnunetinclude_HEADERS = \
+  platform.h \
   gnunet_applications.h \
   gnunet_arm_service.h \
   gnunet_ats_service.h \
