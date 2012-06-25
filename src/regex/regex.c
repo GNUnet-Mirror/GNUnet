@@ -919,7 +919,15 @@ remove_epsilon (const char *str)
   return GNUNET_strdup (str);
 }
 
-
+/** 
+ * Compare 'str1', starting from position 'k',  with whole 'str2'
+ * 
+ * @param str1 first string to compare, starting from position 'k'
+ * @param str2 second string for comparison
+ * @param k starting position in 'str1'
+ * 
+ * @return -1 if any of the strings is NULL, 0 if equal, non 0 otherwise
+ */
 static int
 strkcmp (const char *str1, const char *str2, size_t k)
 {
