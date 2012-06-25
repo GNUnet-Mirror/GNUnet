@@ -126,6 +126,7 @@ run (void *cls,
 int
 main (int argc, char *argv[])
 {
+  result = GNUNET_OK;
   if (0 != GNUNET_TESTING_peer_run ("test-mesh-api",
 				    "test_mesh.conf",
 				    &run, NULL))
