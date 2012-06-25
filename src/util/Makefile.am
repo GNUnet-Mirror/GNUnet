@@ -34,7 +34,7 @@ if USE_COVERAGE
   XLIB = -lgcov
 endif
 
-cat_SOURCES = w32cat.c
+w32cat_SOURCES = w32cat.c
 
 noinst_PROGRAMS = \
  gnunet-config-diff \
