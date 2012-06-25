@@ -88,7 +88,7 @@ endbadly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     stopiteration_task = GNUNET_SCHEDULER_NO_TASK;
   }
   if (nsh != NULL)
-    GNUNET_NAMESTORE_disconnect (nsh, GNUNET_YES);
+    GNUNET_NAMESTORE_disconnect (nsh);
   nsh = NULL;
   GNUNET_free_non_null(sig_1);
   GNUNET_free_non_null(sig_2);
@@ -165,7 +165,7 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_free (s_rd_3);
   }
   if (nsh != NULL)
-    GNUNET_NAMESTORE_disconnect (nsh, GNUNET_YES);
+    GNUNET_NAMESTORE_disconnect (nsh);
   nsh = NULL;
   if (returned_records == 1)
     res = 0;

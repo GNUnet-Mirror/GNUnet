@@ -187,9 +187,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 	     "Failed to initialize namestore.  Database likely not setup, skipping test.\n");
     return;
   }
-
   put_record (nsp, 1);
-
   get_record (nsp, 1);
 
   memset (&zone_key, 1, sizeof (zone_key));

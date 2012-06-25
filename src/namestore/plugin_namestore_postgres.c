@@ -113,7 +113,28 @@ database_setup (struct Plugin *plugin)
 					 "namestore-postgres");
   if (NULL == plugin->dbh)
     return GNUNET_SYSERR;
-  res =
+  if (GNUNET_YES == 
+      GNUNET_CONFIGURATION_get_value_yesno (plugin->cfg,
+					    "namestore-postgres",
+					    "TEMPORARY_TABLE"))
+  {
+    res =
+      PQexec (plugin->dbh,
+              "CREATE TEMPORARY TABLE ns091records ("
+	      " zone_key BYTEA NOT NULL DEFAULT ''," 
+	      " zone_delegation BYTEA NOT NULL DEFAULT ''," 
+	      " zone_hash BYTEA NOT NULL DEFAULT ''," 
+	      " record_count INTEGER NOT NULL DEFAULT 0,"
+	      " record_data BYTEA NOT NULL DEFAULT '',"
+	      " block_expiration_time BIGINT NOT NULL DEFAULT 0," 
+	      " signature BYTEA NOT NULL DEFAULT '',"
+	      " record_name TEXT NOT NULL DEFAULT ''," 
+	      " record_name_hash BYTEA NOT NULL DEFAULT ''," 
+	      " rvalue BIGINT NOT NULL DEFAULT 0"
+	      ")" "WITH OIDS");
+  }
+  else
+    res =
       PQexec (plugin->dbh,
               "CREATE TABLE ns091records ("
 	      " zone_key BYTEA NOT NULL DEFAULT ''," 
@@ -127,6 +148,7 @@ database_setup (struct Plugin *plugin)
 	      " record_name_hash BYTEA NOT NULL DEFAULT ''," 
 	      " rvalue BIGINT NOT NULL DEFAULT 0"
 	      ")" "WITH OIDS");
+
   if ((NULL == res) || ((PQresultStatus (res) != PGRES_COMMAND_OK) && (0 != strcmp ("42P07",    /* duplicate table */
                                                                                     PQresultErrorField
                                                                                     (res,
@@ -380,6 +402,7 @@ get_record_and_call_iterator (struct Plugin *plugin,
     LOG (GNUNET_ERROR_TYPE_DEBUG, 
 	 "Ending iteration (no more results)\n");
     PQclear (res);
+    iter (iter_cls, NULL, GNUNET_TIME_UNIT_ZERO_ABS, NULL, 0, NULL, NULL);
     return GNUNET_NO;
   }
   GNUNET_assert (1 == cnt);

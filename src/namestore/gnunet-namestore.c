@@ -126,7 +126,7 @@ do_shutdown (void *cls,
 {
   if (NULL != ns)
   {
-    GNUNET_NAMESTORE_disconnect (ns, GNUNET_NO);
+    GNUNET_NAMESTORE_disconnect (ns);
     ns = NULL;
   }
   if (NULL != zone_pkey)

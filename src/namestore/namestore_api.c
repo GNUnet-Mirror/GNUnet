@@ -1000,10 +1000,11 @@ GNUNET_NAMESTORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
 static void
 clean_up_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  struct GNUNET_NAMESTORE_Handle *h = cls;
   struct PendingMessage *p;
   struct GNUNET_NAMESTORE_QueueEntry *q;
   struct GNUNET_NAMESTORE_ZoneIterator *z;
-  struct GNUNET_NAMESTORE_Handle *h = cls;
+
   GNUNET_assert (h != NULL);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Cleaning up\n");
   while (NULL != (p = h->pending_head))
@@ -1011,19 +1012,16 @@ clean_up_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_CONTAINER_DLL_remove (h->pending_head, h->pending_tail, p);
     GNUNET_free (p);
   }
-
   while (NULL != (q = h->op_head))
   {
     GNUNET_CONTAINER_DLL_remove (h->op_head, h->op_tail, q);
     GNUNET_free (q);
   }
-
   while (NULL != (z = h->z_head))
   {
     GNUNET_CONTAINER_DLL_remove (h->z_head, h->z_tail, z);
     GNUNET_free (z);
   }
-
   if (NULL != h->client)
   {
     GNUNET_CLIENT_disconnect (h->client);
@@ -1044,10 +1042,9 @@ clean_up_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * resources).
  *
  * @param h handle to the namestore
- * @param drop set to GNUNET_YES to delete all data in namestore (!)
  */
 void
-GNUNET_NAMESTORE_disconnect (struct GNUNET_NAMESTORE_Handle *h, int drop)
+GNUNET_NAMESTORE_disconnect (struct GNUNET_NAMESTORE_Handle *h)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from namestore service\n");
   GNUNET_SCHEDULER_add_now (&clean_up_task, h);

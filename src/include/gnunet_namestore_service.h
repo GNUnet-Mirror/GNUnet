@@ -108,10 +108,9 @@ GNUNET_NAMESTORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg);
  * resources).
  *
  * @param h handle to the namestore
- * @param drop set to GNUNET_YES to delete all data in namestore (!)
  */
 void
-GNUNET_NAMESTORE_disconnect (struct GNUNET_NAMESTORE_Handle *h, int drop);
+GNUNET_NAMESTORE_disconnect (struct GNUNET_NAMESTORE_Handle *h);
 
 
 /**

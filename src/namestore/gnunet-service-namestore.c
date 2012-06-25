@@ -1949,7 +1949,12 @@ find_next_zone_iteration_result (struct ZoneIterationProcResult *proc)
 
   do
   {
-    GSN_database->iterate_records (GSN_database->cls, zone , NULL, proc->zi->offset, &zone_iteraterate_proc, proc);
+    if (GNUNET_SYSERR ==
+	GSN_database->iterate_records (GSN_database->cls, zone, NULL, proc->zi->offset, &zone_iteraterate_proc, proc))
+    {
+      GNUNET_break (0);
+      break;
+    }
     proc->zi->offset++;
   }
   while ((0 == proc->records_included) && (GNUNET_NO == proc->res_iteration_finished));

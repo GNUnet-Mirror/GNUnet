@@ -18,14 +18,5 @@ FILENAME = $SERVICEHOME/namestore/sqlite.db
 
 [namestore-postgres]
 CONFIG = connect_timeout=10; dbname=gnunet
-
-[namestore-mysql]
-DATABASE = gnunet
-CONFIG = ~/.my.cnf
-# USER = gnunet
-# PASSWORD = 
-# HOST = localhost
-# PORT = 3306
-
-
+TEMPORARY_TABLE = NO
 
