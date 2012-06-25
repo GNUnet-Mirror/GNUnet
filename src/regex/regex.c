@@ -931,7 +931,7 @@ remove_epsilon (const char *str)
 static int
 strkcmp (const char *str1, const char *str2, size_t k)
 {
-  if (NULL == str1 || NULL == str2)
+  if ( (NULL == str1) || (NULL == str2) || (strlen(str1) < k) )
     return -1;
   return strcmp (&str1[k], str2);
 }
