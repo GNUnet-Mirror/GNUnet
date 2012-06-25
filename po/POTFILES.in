@@ -6,6 +6,7 @@ src/arm/mockup-service.c
 src/ats/ats_api_peer_change_preference.c
 src/ats/ats_api_performance.c
 src/ats/ats_api_scheduling.c
+src/ats/gnunet-ats.c
 src/ats/gnunet-service-ats_addresses.c
 src/ats/gnunet-service-ats_addresses_mlp.c
 src/ats/gnunet-service-ats.c
@@ -83,6 +84,7 @@ src/fs/fs_test_lib.c
 src/fs/fs_tree.c
 src/fs/fs_unindex.c
 src/fs/fs_uri.c
+src/fs/gnunet-auto-share.c
 src/fs/gnunet-directory.c
 src/fs/gnunet-download.c
 src/fs/gnunet-fs.c
@@ -125,6 +127,7 @@ src/mesh/gnunet-service-mesh.c
 src/mesh/gnunet-service-mesh_new.c
 src/mesh/mesh_api.c
 src/mesh/mesh_tunnel_tree.c
+src/mesh/plugin_block_mesh.c
 src/mysql/mysql.c
 src/namestore/gnunet-namestore.c
 src/namestore/gnunet-service-namestore.c
@@ -166,8 +169,8 @@ src/testbed/testbed_api_services.c
 src/testbed/testbed_api_testbed.c
 src/testbed/testbed_api_test.c
 src/testbed/testbed_api_topology.c
+src/testing/gnunet-testing.c
 src/testing/gnunet-testing-run-service.c
-src/testing_old/gnunet-testing.c
 src/testing_old/helper.c
 src/testing_old/testing.c
 src/testing_old/testing_group.c
@@ -185,7 +188,6 @@ src/transport/gnunet-service-transport_plugins.c
 src/transport/gnunet-service-transport_validation.c
 src/transport/gnunet-transport.c
 src/transport/gnunet-transport-certificate-creation.c
-src/transport/gnunet-transport-connect-running-peers.c
 src/transport/gnunet-transport-wlan-sender.c
 src/transport/plugin_transport_http.c
 src/transport/plugin_transport_http_client.c
@@ -252,6 +254,7 @@ src/util/signal.c
 src/util/speedup.c
 src/util/strings.c
 src/util/time.c
+src/util/w32cat.c
 src/util/winproc.c
 src/vpn/gnunet-helper-vpn.c
 src/vpn/gnunet-service-vpn.c
