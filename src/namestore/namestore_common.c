@@ -387,7 +387,7 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
     vpn = (struct vpn_data*)data;
 
     GNUNET_CRYPTO_hash_to_enc (&vpn->peer, &s_peer);
-    if (GNUNET_OK != GNUNET_asprintf (&vpn_str, "%d:%s:%s",
+    if (GNUNET_OK != GNUNET_asprintf (&vpn_str, "%hu %s %s",
                                       vpn->proto,
                                       (char*)&s_peer,
                                       (char*)&vpn[1]))
@@ -396,7 +396,7 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
   case GNUNET_DNSPARSER_TYPE_SRV:
     srv = (struct srv_data*)data;
 
-    if (GNUNET_OK != GNUNET_asprintf (&srv_str, "%d:%d:%d:%s",
+    if (GNUNET_OK != GNUNET_asprintf (&srv_str, "%d %d %d %s",
                                       ntohs (srv->prio),
                                       ntohs (srv->weight),
                                       ntohs (srv->port),
@@ -441,10 +441,11 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
   uint32_t soa_retry;
   uint32_t soa_expire;
   uint32_t soa_min;
-  struct GNUNET_CRYPTO_HashAsciiEncoded s_peer;
+  char s_peer[104];
   char s_serv[253];
   struct vpn_data* vpn;
   uint16_t proto;
+  int ret;
   
   switch (type)
   {
@@ -527,10 +528,12 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
     return GNUNET_OK;
   case GNUNET_NAMESTORE_TYPE_VPN:
     
-    
-    if (4 != SSCANF (s,"%hu:%s:%s",
-                     &proto, (char*)&s_peer, s_serv))
+    ret = SSCANF (s,"%hu %s %s",
+                  &proto, s_peer, s_serv);
+    if (3 != ret)
     {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Unable to parse VPN record string %s %d\n", s, ret);
       return GNUNET_SYSERR;
     }
     *data_size = sizeof (struct vpn_data) + strlen (s_serv) + 1;

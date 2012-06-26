@@ -26,6 +26,7 @@ if HAVE_MHD
  test_gnunet_vpn-6_to_4 \
  test_gnunet_vpn-6_over \
  test_gnunet_vpn-4_over
+ #test_gns_vpn
 endif
 else
 install-exec-hook:
@@ -48,7 +49,8 @@ TESTS = $(check_PROGRAMS)
 endif
 
 EXTRA_DIST = \
-  test_gnunet_vpn.conf
+  test_gnunet_vpn.conf \
+	test_gns_vpn.conf
 
 gnunet_helper_vpn_SOURCES = \
  gnunet-helper-vpn.c
@@ -80,6 +82,14 @@ libgnunetvpn_la_LIBADD = \
 libgnunetvpn_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)
 
+#test_gns_vpn_SOURCES = \
+# test_gns_vpn.c
+#test_gns_vpn_LDADD = -lmicrohttpd @LIBCURL@ \
+# $(top_builddir)/src/namestore/libgnunetnamestore.la \
+# $(top_builddir)/src/testing/libgnunettesting.la \
+# $(top_builddir)/src/util/libgnunetutil.la
+#test_gnunet_vpn_4_over_CPPFLAGS = \
+# @LIBCURL_CPPFLAGS@
 
 test_gnunet_vpn_4_over_SOURCES = \
  test_gnunet_vpn.c

@@ -1833,13 +1833,23 @@ resolve_record_vpn (struct ResolverHandle *rh,
                    rh->priv_key);
   }
 
-  vpn = (struct vpn_data*)rd;
+  vpn = (struct vpn_data*)rd->data;
 
 
   GNUNET_CRYPTO_hash ((char*)&vpn[1],
-                      strlen ((char*)&vpn[1]),
+                      strlen ((char*)&vpn[1]) + 1,
                       &serv_desc);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "GNS_PHASE_REC_VPN-%llu: proto %hu peer %s!\n",
+              rh->id,
+              ntohs (vpn->proto),
+              GNUNET_h2s (&vpn->peer));
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "GNS_PHASE_REC_VPN-%llu: service %s -> %s!\n",
+              rh->id,
+              (char*)&vpn[1],
+              GNUNET_h2s (&serv_desc));
   rh->proc = &handle_record_vpn;
 
   if (NULL == vpn_handle)
