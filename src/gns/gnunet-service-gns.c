@@ -193,7 +193,7 @@ static char *shorten_zone_id;
 static void
 on_resolver_cleanup(void)
 {
-  GNUNET_NAMESTORE_disconnect(namestore_handle, 1);
+  GNUNET_NAMESTORE_disconnect(namestore_handle);
   GNUNET_DHT_disconnect(dht_handle);
 }
 
