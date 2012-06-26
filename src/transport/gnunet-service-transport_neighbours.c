@@ -2518,7 +2518,6 @@ master_task (void *cls,
 		"Cleaning up connection to `%s' after sending DISCONNECT\n",
 		GNUNET_i2s (&n->id));
     free_neighbour (n, GNUNET_NO);
-    n->state = S_DISCONNECT_FINISHED;
     return;
   case S_DISCONNECT_FINISHED:
     /* how did we get here!? */
