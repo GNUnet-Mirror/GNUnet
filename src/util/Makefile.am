@@ -122,7 +122,8 @@ libgnunetutil_la_LDFLAGS = \
 bin_PROGRAMS = \
  gnunet-service-resolver \
  gnunet-resolver \
- gnunet-rsa
+ gnunet-rsa \
+ gnunet-uri 
 
 
 gnunet_service_resolver_SOURCES = \
@@ -149,6 +150,15 @@ gnunet_rsa_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
 gnunet_rsa_DEPENDENCIES = \
+  libgnunetutil.la
+
+
+gnunet_uri_SOURCES = \
+ gnunet-uri.c         
+gnunet_uri_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(GN_LIBINTL)
+gnunet_uri_DEPENDENCIES = \
   libgnunetutil.la
 
 plugin_LTLIBRARIES = \
