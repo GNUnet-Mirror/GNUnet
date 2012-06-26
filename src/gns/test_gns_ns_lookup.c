@@ -28,6 +28,7 @@
 #include "block_dns.h"
 #include "gnunet_signatures.h"
 #include "gnunet_namestore_service.h"
+#include "gnunet_resolver_service.h"
 #include "gnunet_dnsparser_lib.h"
 #include "gnunet_gns_service.h"
 
@@ -65,9 +66,13 @@ GNUNET_SCHEDULER_TaskIdentifier die_task;
 /* Global return value (0 for success, anything else for failure) */
 static int ok;
 
+static int resolver_working;
+
 static struct GNUNET_NAMESTORE_Handle *namestore_handle;
 
 static struct GNUNET_GNS_Handle *gns_handle;
+
+static struct GNUNET_RESOLVER_RequestHandle *resolver_handle;
 
 const struct GNUNET_CONFIGURATION_Handle *cfg;
 
@@ -224,18 +229,12 @@ on_lookup_result(void *cls, uint32_t rd_count,
 }
 
 
-/**
- * Function scheduled to be run on the successful start of services
- * tries to look up the dns record for TEST_DOMAIN
- */
 static void
-commence_testing (void *cls, int32_t success, const char *emsg)
+start_lookup (void)
 {
+
   
-  
-  GNUNET_NAMESTORE_disconnect(namestore_handle, GNUNET_YES);
-  
-  gns_handle = GNUNET_GNS_connect(cfg);
+  gns_handle = GNUNET_GNS_connect (cfg);
 
   if (NULL == gns_handle)
   {
@@ -244,10 +243,64 @@ commence_testing (void *cls, int32_t success, const char *emsg)
     ok = 2;
   }
 
-  GNUNET_GNS_lookup(gns_handle, TEST_DOMAIN, GNUNET_GNS_RECORD_TYPE_A,
-                    GNUNET_YES,
-                    NULL,
-                    &on_lookup_result, TEST_DOMAIN);
+  GNUNET_GNS_lookup (gns_handle, TEST_DOMAIN, GNUNET_GNS_RECORD_TYPE_A,
+                     GNUNET_YES,
+                     NULL,
+                     &on_lookup_result, TEST_DOMAIN);
+}
+
+
+static void
+handle_dns_test (void *cls,
+                 const struct sockaddr *addr,
+                 socklen_t addrlen)
+{
+  struct sockaddr_in* sai;
+
+  if (NULL == addr)
+  {
+    /* end of results */
+    if (GNUNET_YES != resolver_working)
+    {
+      ok = 0;
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "System resolver not working. Test inconclusive!\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Shutting down peer1!\n");
+      GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
+      return;
+    }
+    start_lookup ();
+    return;
+  }
+
+  if (addrlen == sizeof (struct sockaddr_in))
+  {
+    sai = (struct sockaddr_in*) addr;
+    if (0 == strcmp (TEST_IP, inet_ntoa (sai->sin_addr)))
+      resolver_working = GNUNET_YES;
+  }
+}
+
+
+
+
+/**
+ * Function scheduled to be run on the successful start of services
+ * tries to look up the dns record for TEST_DOMAIN
+ */
+static void
+commence_testing (void *cls, int32_t success, const char *emsg)
+{
+  
+  GNUNET_NAMESTORE_disconnect(namestore_handle, GNUNET_YES);
+  resolver_working = GNUNET_NO;
+
+  GNUNET_RESOLVER_connect (cfg);
+  resolver_handle = GNUNET_RESOLVER_ip_get (TEST_RECORD_NS,
+                                            AF_INET,
+                                            TIMEOUT,
+                                            &handle_dns_test,
+                                            NULL);
 }
 
 
@@ -258,7 +311,8 @@ commence_testing (void *cls, int32_t success, const char *emsg)
 static void
 end_badly_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-
+  if (resolver_handle != NULL)
+    GNUNET_RESOLVER_request_cancel (resolver_handle);
   if (pg != NULL)
     GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
   GNUNET_SCHEDULER_cancel (die_task);
