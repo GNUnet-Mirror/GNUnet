@@ -516,7 +516,7 @@ shutdown_task (void *cls,
   for (host_id = 0; host_id < host_list_size; host_id++)
     if (NULL != host_list[host_id])
       GNUNET_TESTBED_host_destroy (host_list[host_id]);
-  GNUNET_free (host_list);
+  GNUNET_free_non_null (host_list);
   GNUNET_free_non_null (master_context);
   master_context = NULL;
 }
