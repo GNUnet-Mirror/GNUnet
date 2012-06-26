@@ -366,8 +366,6 @@ mhd_main ()
 					     NULL);  
 }
 
-#include "../dns/dnsparser.h"
-
 static void
 run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg,
@@ -416,17 +414,12 @@ run (void *cls,
 
   host_key = GNUNET_CRYPTO_rsa_key_create_from_file (zone_keyfile);
   rd.expiration_time = GNUNET_TIME_UNIT_FOREVER_ABS.abs_value;
-  GNUNET_asprintf (&rd_string, "6 %s %s", (char*)&peername, "localhost4");
+  GNUNET_asprintf (&rd_string, "6 %s %s", (char*)&peername, "www.gnunet.");
   GNUNET_assert (GNUNET_OK == GNUNET_NAMESTORE_string_to_value (GNUNET_GNS_RECORD_VPN,
                                                                rd_string,
                                                                (void**)&rd.data,
                                                                &rd.data_size));
   rd.record_type = GNUNET_GNS_RECORD_VPN;
-
-  struct vpn_data* vpn = (struct vpn_data*)rd.data;
-
-  printf ("%hu %s %s\n", ntohs (vpn->proto), GNUNET_h2s (&vpn->peer),
-          (char*)&vpn[1]);
 
   GNUNET_NAMESTORE_record_create (namestore,
                                   host_key,
