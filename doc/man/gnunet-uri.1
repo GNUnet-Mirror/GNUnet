@@ -1,0 +1,30 @@
+.TH GNUNET\-URI 1 "Jun 26, 2012" "GNUnet"
+
+.SH NAME
+gnunet\-uri \- invoke default handler for GNUnet URIs
+
+.SH SYNOPSIS
+.B gnunet\-uri
+.RI URI
+.br
+
+.SH DESCRIPTION
+\fBgnunet\-uri\fP can be used to invoke the correct tool to handle a GNUnet URI.  GNUnet URIs have the format "gnunet://SUBSYSTEM/DETAILS" and thus the specific tool to handle the URI depends on the subsystem.  gnunet\-uri will determine the correct tool (by looking for SUBSYSTEM in the configuration section "uri") and invoke it.
+
+.SH OPTIONS
+.B
+.IP "\-c FILENAME,  \-\-config=FILENAME"
+Use the configuration file FILENAME.
+.B
+.IP "\-h, \-\-help"
+Print short help on options.
+.B
+.IP "\-L LOGLEVEL, \-\-loglevel=LOGLEVEL"
+Use LOGLEVEL for logging.  Valid values are DEBUG, INFO, WARNING and ERROR.
+.B
+.IP "\-v, \-\-version"
+Print GNUnet version number.
+
+
+.SH BUGS
+Report bugs by using Mantis <https://gnunet.org/bugs/> or by sending electronic mail to <gnunet\-developers@gnu.org>
