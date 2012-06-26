@@ -111,15 +111,19 @@ int
 GNUNET_REGEX_eval (struct GNUNET_REGEX_Automaton *a,
                    const char *string);
 
-/**
- * Get the computed regex of the given automaton.
+/** 
+ * Get the canonical regex of the given automaton.
  * When constructing the automaton a proof is computed for each state,
  * consisting of the regular expression leading to this state. A complete
  * regex for the automaton can be computed by combining these proofs.
- * As of now this computed regex is only useful for testing.
+ * As of now this function is only useful for testing.
+ * 
+ * @param a automaton for which the canonical regex should be returned.
+ * 
+ * @return 
  */
 const char *
-GNUNET_REGEX_get_computed_regex (struct GNUNET_REGEX_Automaton *a);
+GNUNET_REGEX_get_canonical_regex (struct GNUNET_REGEX_Automaton *a);
 
 /**
  * Get the first key for the given 'input_string'. This hashes

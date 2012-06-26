@@ -40,6 +40,7 @@ main (int argc, char *argv[])
 
   int error;
   int i;
+
   const char *regex[21] = {
     "ab(c|d)+c*(a(b|c)+d)+(bla)+",
     "(bla)*",
@@ -63,7 +64,7 @@ main (int argc, char *argv[])
     "(ab|cs|df|sdf)*",
     "a|aa*a"
   };
-  char *computed_regex;
+  char *canonical_regex;
   struct GNUNET_REGEX_Automaton *dfa;
 
   error = 0;
@@ -71,14 +72,18 @@ main (int argc, char *argv[])
   for (i = 0; i < 21; i++)
   {
     dfa = GNUNET_REGEX_construct_dfa (regex[i], strlen (regex[i]));
-    computed_regex = GNUNET_strdup (GNUNET_REGEX_get_computed_regex (dfa));
+    canonical_regex = GNUNET_strdup (GNUNET_REGEX_get_canonical_regex (dfa));
     GNUNET_REGEX_automaton_destroy (dfa);
 
-    dfa = GNUNET_REGEX_construct_dfa (computed_regex, strlen (computed_regex));
-    error += (0 == strcmp (computed_regex, GNUNET_REGEX_get_computed_regex (dfa))) ? 0 : 1;
-    GNUNET_free (computed_regex);
+    dfa =
+        GNUNET_REGEX_construct_dfa (canonical_regex, strlen (canonical_regex));
+    error +=
+        (0 ==
+         strcmp (canonical_regex,
+                 GNUNET_REGEX_get_canonical_regex (dfa))) ? 0 : 1;
+    GNUNET_free (canonical_regex);
     GNUNET_REGEX_automaton_destroy (dfa);
   }
-  
+
   return error;
 }

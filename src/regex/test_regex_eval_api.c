@@ -71,14 +71,14 @@ test_random (unsigned int rx_length, unsigned int max_str_len,
   char current_char;
   int eval;
   int eval_check;
-  int eval_computed;
+  int eval_canonical;
   struct GNUNET_REGEX_Automaton *dfa;
   regex_t rx;
   regmatch_t matchptr[1];
   char error[200];
   int result;
   unsigned int str_len;
-  char *computed_regex;
+  char *canonical_regex;
 
   // At least one string is needed for matching
   GNUNET_assert (str_count > 0);
@@ -164,7 +164,7 @@ test_random (unsigned int rx_length, unsigned int max_str_len,
     }
 
     eval = GNUNET_REGEX_eval (dfa, matching_str[i]);
-    computed_regex = GNUNET_strdup (GNUNET_REGEX_get_computed_regex (dfa));
+    canonical_regex = GNUNET_strdup (GNUNET_REGEX_get_canonical_regex (dfa));
     GNUNET_REGEX_automaton_destroy (dfa);
 
     // Match string using glibc regex
@@ -178,18 +178,18 @@ test_random (unsigned int rx_length, unsigned int max_str_len,
     eval_check = regexec (&rx, matching_str[i], 1, matchptr, 0);
     regfree (&rx);
 
-    // Match computed regex
-    if (0 != regcomp (&rx, computed_regex, REG_EXTENDED))
+    // Match canonical regex
+    if (0 != regcomp (&rx, canonical_regex, REG_EXTENDED))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   "Could not compile regex using regcomp: %s\n",
-                  computed_regex);
+                  canonical_regex);
       return -1;
     }
 
-    eval_computed = regexec (&rx, matching_str[i], 1, matchptr, 0);
+    eval_canonical = regexec (&rx, matching_str[i], 1, matchptr, 0);
     regfree (&rx);
-    GNUNET_free (computed_regex);
+    GNUNET_free (canonical_regex);
 
     // We only want to match the whole string, because that's what our DFA does, too.
     if (eval_check == 0 &&
@@ -356,7 +356,7 @@ main (int argc, char *argv[])
     // DFA test
     a = GNUNET_REGEX_construct_dfa (rxstr[i].regex, strlen (rxstr[i].regex));
     check_dfa += test_automaton (a, &rx, &rxstr[i]);
-    check_proof = GNUNET_strdup (GNUNET_REGEX_get_computed_regex (a));
+    check_proof = GNUNET_strdup (GNUNET_REGEX_get_canonical_regex (a));
     GNUNET_REGEX_automaton_destroy (a);
     a = GNUNET_REGEX_construct_dfa (check_proof, strlen (check_proof));
     check_dfa += test_automaton (a, &rx, &rxstr[i]);
@@ -369,8 +369,8 @@ main (int argc, char *argv[])
   }
 
   srand (time (NULL));
-  for (i = 0; i < 50; i++) 
-    check_rand += test_random (100, 120, 20); 
+  for (i = 0; i < 50; i++)
+    check_rand += test_random (100, 120, 20);
 
   return check_nfa + check_dfa + check_rand;
 }
