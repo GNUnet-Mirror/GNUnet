@@ -66,6 +66,36 @@ GNUNET_TESTBED_host_get_id_ (const struct GNUNET_TESTBED_Host *host);
 
 
 /**
+ * Obtain the host's hostname.
+ * 
+ * @param host handle to the host, NULL means 'localhost'
+ * @return hostname of the host
+ */
+const char *
+GNUNET_TESTBED_host_get_hostname_ (const struct GNUNET_TESTBED_Host *host);
+
+
+/**
+ * Obtain the host's username
+ * 
+ * @param host handle to the host, NULL means 'localhost'
+ * @return username to login to the host
+ */
+const char *
+GNUNET_TESTBED_host_get_username_ (const struct GNUNET_TESTBED_Host *host);
+
+
+/**
+ * Obtain the host's ssh port
+ * 
+ * @param host handle to the host, NULL means 'localhost'
+ * @return username to login to the host
+ */
+uint16_t
+GNUNET_TESTBED_host_get_ssh_port_ (const struct GNUNET_TESTBED_Host *host);
+
+
+/**
  * Opaque wrapper around GNUNET_HELPER_Handle
  */
 struct GNUNET_TESTBED_HelperHandle;
@@ -93,6 +123,25 @@ GNUNET_TESTBED_host_run_ (const struct GNUNET_TESTBED_Host *host,
  */
 void
 GNUNET_TESTBED_host_stop_ (struct GNUNET_TESTBED_HelperHandle *handle);
+
+
+/**
+ * Marks a host as registered with a controller
+ *
+ * @param host the host to mark
+ */
+void
+GNUNET_TESTBED_mark_host_as_registered_ (struct GNUNET_TESTBED_Host *host);
+
+
+/**
+ * Checks whether a host has been registered
+ *
+ * @param host the host to check
+ * @return GNUNET_YES if registered; GNUNET_NO if not
+ */
+int
+GNUNET_TESTBED_is_host_registered_ (const struct GNUNET_TESTBED_Host *host);
 
 #endif
 /* end of testbed_api_hosts.h */

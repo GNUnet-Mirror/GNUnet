@@ -1346,7 +1346,7 @@ extern "C"
 /**
  * Message to signal that a add host succeeded
  */
-#define GNUNET_MESSAGE_TYPE_TESTBED_ADDHOSTSUCCESS 462
+#define GNUNET_MESSAGE_TYPE_TESTBED_ADDHOSTCONFIRM 462
 
 /**
  * Message to configure a service to be shared among peers

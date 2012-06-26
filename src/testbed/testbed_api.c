@@ -35,9 +35,17 @@
 #include "testbed.h"
 #include "testbed_api_hosts.h"
 
-
+/**
+ * Generic logging shorthand
+ */
 #define LOG(kind, ...)                          \
   GNUNET_log_from (kind, "testbed-api", __VA_ARGS__);
+
+/**
+ * Debug logging
+ */
+#define LOG_DEBUG(...)                          \
+  LOG (GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__);
 
 
 /**
@@ -59,6 +67,45 @@ struct MessageQueue
    * prev pointer for DLL
    */
   struct MessageQueue *prev;
+};
+
+
+/**
+ * Structure for a controller link
+ */
+struct ControllerLink
+{
+  /**
+   * The next ptr for DLL
+   */
+  struct ControllerLink *next;
+
+  /**
+   * The prev ptr for DLL
+   */
+  struct ControllerLink *prev;
+
+  /**
+   * The host which will be referred in the peer start request. This is the
+   * host where the peer should be started
+   */
+  struct GNUNET_TESTBED_Host *delegated_host;
+
+  /**
+   * The host which will contacted to delegate the peer start request
+   */
+  struct GNUNET_TESTBED_Host *slave_host;
+
+  /**
+   * The configuration to be used to connect to slave host
+   */
+  const struct GNUNET_CONFIGURATION_Handle *slave_cfg;
+
+  /**
+   * GNUNET_YES if the slave should be started (and stopped) by us; GNUNET_NO
+   * if we are just allowed to use the slave via TCP/IP
+   */
+  int is_subordinate;
 };
 
 
@@ -115,9 +162,25 @@ struct GNUNET_TESTBED_Controller
   struct MessageQueue *mq_tail;
 
   /**
+   * The head of the ControllerLink list
+   */
+  struct ControllerLink *cl_head;
+
+  /**
+   * The tail of the ControllerLink list
+   */
+  struct ControllerLink *cl_tail;
+
+  /**
    * The client transmit handle
    */
   struct GNUNET_CLIENT_TransmitHandle *th;
+
+  /**
+   * The host registration handle; NULL if no current registration requests are
+   * present 
+   */
+  struct GNUNET_TESTBED_HostRegistrationHandle *rh;
 
   /**
    * The controller event mask
@@ -131,6 +194,82 @@ struct GNUNET_TESTBED_Controller
 };
 
 
+/**
+ * handle for host registration
+ */
+struct GNUNET_TESTBED_HostRegistrationHandle
+{
+  /**
+   * The host being registered
+   */
+  struct GNUNET_TESTBED_Host *host;
+
+  /**
+   * The Registartion completion callback
+   */
+  GNUNET_TESTBED_HostRegistrationCompletion cc;
+
+  /**
+   * The closure for above callback
+   */
+  void *cc_cls;
+};
+
+
+/**
+ * Handler for GNUNET_MESSAGE_TYPE_TESTBED_ADDHOSTCONFIRM message from
+ * controller (testbed service)
+ *
+ * @param c the controller handler
+ * @param msg message received
+ * @return GNUNET_YES if we can continue receiving from service; GNUNET_NO if
+ *           not
+ */
+static int
+handle_addhostconfirm (struct GNUNET_TESTBED_Controller *c,
+                       const struct GNUNET_TESTBED_HostConfirmedMessage *msg)
+{
+  struct GNUNET_TESTBED_HostRegistrationHandle *rh;
+  char *emsg;
+  uint16_t msg_size;
+
+  rh = c->rh;
+  if (NULL == rh)
+  {  
+    return GNUNET_OK;    
+  }
+  if (GNUNET_TESTBED_host_get_id_ (rh->host) != ntohl (msg->host_id))
+  {
+    LOG_DEBUG ("Mismatch in host id's %u, %u of host confirm msg\n",
+               GNUNET_TESTBED_host_get_id_ (rh->host), ntohl (msg->host_id));
+    return GNUNET_OK;
+  }
+  c->rh = NULL;
+  msg_size = ntohs (msg->header.size);
+  if (sizeof (struct GNUNET_TESTBED_HostConfirmedMessage) == msg_size)
+  {
+    LOG_DEBUG ("Host %u successfully registered\n", ntohl (msg->host_id));
+    GNUNET_TESTBED_mark_host_as_registered_  (rh->host);
+    rh->cc (rh->cc_cls, NULL);
+    GNUNET_free (rh);
+    return GNUNET_OK;
+  } 
+  /* We have an error message */
+  emsg = (char *) &msg[1];
+  if ('\0' != emsg[msg_size - 
+                   sizeof (struct GNUNET_TESTBED_HostConfirmedMessage)])
+  {
+    GNUNET_break (0);
+    GNUNET_free (rh);
+    return GNUNET_NO;
+  }  
+  LOG (GNUNET_ERROR_TYPE_ERROR, _("Adding host %u failed with error: %s\n"),
+       ntohl (msg->host_id), emsg);
+  rh->cc (rh->cc_cls, emsg);
+  GNUNET_free (rh);
+  return GNUNET_OK;
+}
+
 
 /**
  * Handler for messages from controller (testbed service)
@@ -141,16 +280,29 @@ struct GNUNET_TESTBED_Controller
 static void 
 message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 {
-  struct GNUNET_TESTBED_Controller *c = cls;
+  struct GNUNET_TESTBED_Controller *c = cls;  
+  int status;
 
   /* FIXME: Add checks for message integrity */
+  if (NULL == msg)
+  {
+    LOG_DEBUG ("Receive timed out or connection to service dropped\n");
+    return;
+  }
+  status = GNUNET_OK;
   switch (ntohs (msg->type))
   {
+  case GNUNET_MESSAGE_TYPE_TESTBED_ADDHOSTCONFIRM:
+    status =
+      handle_addhostconfirm (c, (const struct
+                                 GNUNET_TESTBED_HostConfirmedMessage *) msg);   
+    break;
   default:
     GNUNET_break (0);
   }
-  GNUNET_CLIENT_receive (c->client, &message_handler, c,
-                         GNUNET_TIME_UNIT_FOREVER_REL);
+  if (GNUNET_OK == status)
+    GNUNET_CLIENT_receive (c->client, &message_handler, c,
+                           GNUNET_TIME_UNIT_FOREVER_REL);
 }
 
 
@@ -352,6 +504,87 @@ GNUNET_TESTBED_controller_stop (struct GNUNET_TESTBED_Controller *controller)
   GNUNET_TESTBED_host_stop_ (controller->helper);
   GNUNET_CONFIGURATION_destroy (controller->cfg);
   GNUNET_free (controller);
+}
+
+
+/**
+ * Register a host with the controller
+ *
+ * @param controller the controller handle
+ * @param host the host to register
+ * @param cc the completion callback to call to inform the status of
+ *          registration. After calling this callback the registration handle
+ *          will be invalid. Cannot be NULL.
+ * @param cc_cls the closure for the cc
+ * @return handle to the host registration which can be used to cancel the
+ *           registration 
+ */
+struct GNUNET_TESTBED_HostRegistrationHandle *
+GNUNET_TESTBED_register_host (struct GNUNET_TESTBED_Controller *controller,
+                              struct GNUNET_TESTBED_Host *host,
+                              GNUNET_TESTBED_HostRegistrationCompletion cc,
+                              void *cc_cls)
+{
+  struct GNUNET_TESTBED_HostRegistrationHandle *rh;
+  struct GNUNET_TESTBED_AddHostMessage *msg;
+  const char *username;
+  const char *hostname;
+  uint16_t msg_size;
+  uint16_t user_name_length;
+
+  if (NULL != controller->rh)
+    return NULL;
+  hostname = GNUNET_TESTBED_host_get_hostname_ (host);
+  if (GNUNET_YES == GNUNET_TESTBED_is_host_registered_ (host))
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "Host hostname: %s already registered\n",
+         (NULL == hostname) ? "localhost" : hostname);
+    return NULL;
+  }  
+  rh = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_HostRegistrationHandle));
+  rh->host = host;
+  GNUNET_assert (NULL != cc);
+  rh->cc = cc;
+  rh->cc_cls = cc_cls;
+  controller->rh = rh;
+  username = GNUNET_TESTBED_host_get_username_ (host);
+  msg_size = (sizeof (struct GNUNET_TESTBED_AddHostMessage));
+  user_name_length = 0;
+  if (NULL != username)
+  {
+    user_name_length = strlen (username) + 1;
+    msg_size += user_name_length;
+  }
+  /* FIXME: what happens when hostname is NULL? localhost */
+  GNUNET_assert (NULL != hostname);
+  msg_size += strlen (hostname) + 1;
+  msg = GNUNET_malloc (msg_size);
+  msg->header.size = htons (msg_size);
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_ADDHOST);
+  msg->host_id = htonl (GNUNET_TESTBED_host_get_id_ (host));
+  msg->ssh_port = htons (GNUNET_TESTBED_host_get_ssh_port_ (host));
+  msg->user_name_length = htons (user_name_length);
+  if (NULL != username)
+    memcpy (&msg[1], username, user_name_length);
+  strcpy (((void *) msg) + user_name_length, hostname);
+  queue_message (controller, (struct GNUNET_MessageHeader *) msg);
+  return rh;
+}
+
+
+/**
+ * Cancel the pending registration. Note that if the registration message is
+ * already sent to the service the cancellation has only the effect that the
+ * registration completion callback for the registration is never called.
+ *
+ * @param handle the registration handle to cancel
+ */
+void
+GNUNET_TESTBED_cancel_registration (struct GNUNET_TESTBED_HostRegistrationHandle
+                                    *handle)
+{
+  GNUNET_break (0);
 }
 
 

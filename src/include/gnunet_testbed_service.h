@@ -448,6 +448,56 @@ GNUNET_TESTBED_controller_stop (struct GNUNET_TESTBED_Controller *controller);
 
 
 /**
+ * Opaque handle for host registration
+ */
+struct GNUNET_TESTBED_HostRegistrationHandle;
+
+
+/**
+ * Callback which will be called to after a host registration succeeded or failed
+ *
+ * @param cls the closure
+ * @param emsg the error message; NULL if host registration is successful
+ */
+typedef void (* GNUNET_TESTBED_HostRegistrationCompletion) (void *cls, 
+                                                            const char *emsg);
+
+
+/**
+ * Register a host with the controller
+ *
+ * @param controller the controller handle
+ * @param host the host to register
+ * @param cc the completion callback to call to inform the status of
+ *          registration. After calling this callback the registration handle
+ *          will be invalid. Cannot be NULL
+ * @param cc_cls the closure for the cc
+ * @return handle to the host registration which can be used to cancel the
+ *           registration; NULL if another registration handle is present and
+ *           is not cancelled
+ */
+struct GNUNET_TESTBED_HostRegistrationHandle *
+GNUNET_TESTBED_register_host (struct GNUNET_TESTBED_Controller *controller,
+                              struct GNUNET_TESTBED_Host *host,
+                              GNUNET_TESTBED_HostRegistrationCompletion cc,
+                              void *cc_cls);
+
+
+/**
+ * Cancel the pending registration. Note that the registration message will
+ * already be queued to be sent to the service, cancellation has only the
+ * effect that the registration completion callback for the registration is
+ * never called and from our perspective the host is not registered until the
+ * completion callback is called.
+ *
+ * @param handle the registration handle to cancel
+ */
+void
+GNUNET_TESTBED_cancel_registration (struct GNUNET_TESTBED_HostRegistrationHandle
+                                    *handle);
+
+
+/**
  * Create a link from a 'master' controller to a slave controller.
  * Whenever the master controller is asked to start a peer at the
  * given 'delegated_host', it will delegate the request to the

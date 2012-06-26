@@ -72,6 +72,11 @@ struct GNUNET_TESTBED_Host
    * The port which is to be used for SSH
    */
   uint16_t port;
+
+  /**
+   * Set this flag to 1 if host is registered with a controller; 0 if not
+   */
+  uint8_t is_registered;
 };
 
 
@@ -126,7 +131,7 @@ GNUNET_TESTBED_host_create_by_id_ (uint32_t id)
 
 
 /**
- * Obtain a host's unique global ID.
+ * Obtain the host's unique global ID.
  * 
  * @param host handle to the host, NULL means 'localhost'
  * @return id global host ID assigned to the host (0 is
@@ -136,6 +141,45 @@ uint32_t
 GNUNET_TESTBED_host_get_id_ (const struct GNUNET_TESTBED_Host *host)
 {
   return host->unique_id;
+}
+
+
+/**
+ * Obtain the host's hostname.
+ * 
+ * @param host handle to the host, NULL means 'localhost'
+ * @return hostname of the host
+ */
+const char *
+GNUNET_TESTBED_host_get_hostname_ (const struct GNUNET_TESTBED_Host *host)
+{
+  return host->hostname;
+}
+
+
+/**
+ * Obtain the host's username
+ * 
+ * @param host handle to the host, NULL means 'localhost'
+ * @return username to login to the host
+ */
+const char *
+GNUNET_TESTBED_host_get_username_ (const struct GNUNET_TESTBED_Host *host)
+{
+  return host->username;
+}
+
+
+/**
+ * Obtain the host's ssh port
+ * 
+ * @param host handle to the host, NULL means 'localhost'
+ * @return username to login to the host
+ */
+uint16_t
+GNUNET_TESTBED_host_get_ssh_port_ (const struct GNUNET_TESTBED_Host *host)
+{
+  return host->port;
 }
 
 
@@ -335,5 +379,31 @@ GNUNET_TESTBED_host_stop_ (struct GNUNET_TESTBED_HelperHandle *handle)
   GNUNET_free_non_null (handle->dst);
   GNUNET_free (handle);
 }
+
+
+/**
+ * Marks a host as registered with a controller
+ *
+ * @param host the host to mark
+ */
+void
+GNUNET_TESTBED_mark_host_as_registered_ (struct GNUNET_TESTBED_Host *host)
+{
+  host->is_registered = 1;
+}
+
+
+/**
+ * Checks whether a host has been registered
+ *
+ * @param host the host to check
+ * @return GNUNET_YES if registered; GNUNET_NO if not
+ */
+int
+GNUNET_TESTBED_is_host_registered_ (const struct GNUNET_TESTBED_Host *host)
+{
+  return (1 == host->is_registered) ? GNUNET_YES : GNUNET_NO;
+}
+
 
 /* end of testbed_api_hosts.c */

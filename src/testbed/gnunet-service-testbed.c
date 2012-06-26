@@ -271,11 +271,6 @@ route_message (uint32_t host_id, const struct GNUNET_MessageHeader *msg)
 
 
 /**
- * 
- */
-
-
-/**
  * Message handler for GNUNET_MESSAGE_TYPE_TESTBED_INIT messages
  *
  * @param cls NULL
@@ -363,21 +358,48 @@ handle_add_host (void *cls,
   host = GNUNET_TESTBED_host_create_with_id (host_id, hostname, username,
                                              ntohs (msg->ssh_port));
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
-  if (GNUNET_OK == host_list_add (host))
-    return;
-  /* We are unable to add a host */
-  emsg = "A host exists with given host-id";
-  GNUNET_TESTBED_host_destroy (host);
-  reply_size = sizeof (struct GNUNET_TESTBED_HostConfirmedMessage)
-    + strlen (emsg) + 1;
-  reply = GNUNET_malloc (reply_size);
-  reply->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_ADDHOSTSUCCESS);
+  reply_size = sizeof (struct GNUNET_TESTBED_HostConfirmedMessage);
+  if (GNUNET_OK != host_list_add (host))
+  {    
+    /* We are unable to add a host */  
+    emsg = "A host exists with given host-id";
+    LOG_DEBUG ("%s: %u", emsg, host_id);
+    GNUNET_TESTBED_host_destroy (host);
+    reply_size += strlen (emsg) + 1;
+    reply = GNUNET_malloc (reply_size);
+    memcpy (&reply[1], emsg, strlen (emsg) + 1);
+  }
+  else
+    reply = GNUNET_malloc (reply_size);  
+  reply->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_ADDHOSTCONFIRM);
   reply->header.size = htons (reply_size);
-  reply->host_id = htonl (host_id);
-  memcpy (&reply[1], emsg, strlen (emsg) + 1);
+  reply->host_id = htonl (host_id);  
   queue_message (client, (struct GNUNET_MessageHeader *) reply);
 }
 
+
+/**
+ * Iterator over hash map entries.
+ *
+ * @param cls closure
+ * @param key current key code
+ * @param value value in the hash map
+ * @return GNUNET_YES if we should continue to
+ *         iterate,
+ *         GNUNET_NO if not.
+ */
+int ss_exists_iterator (void *cls,
+                        const struct GNUNET_HashCode * key,
+                        void *value)
+{
+  struct SharedService *queried_ss = cls;
+  struct SharedService *ss = value;
+
+  if (0 == strcmp (ss->name, queried_ss->name))
+    return GNUNET_NO;
+  else
+    return GNUNET_YES;
+}
 
 /**
  * Message handler for GNUNET_MESSAGE_TYPE_TESTBED_ADDHOST messages
@@ -423,13 +445,24 @@ handle_configure_shared_service (void *cls,
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
   ss = GNUNET_malloc (sizeof (struct SharedService));
   ss->name = strdup (service_name);
   ss->num_shared = ntohl (msg->num_peers);
   GNUNET_CRYPTO_hash (ss->name, service_name_size, &hash);
+  if (GNUNET_SYSERR == 
+      GNUNET_CONTAINER_multihashmap_get_multiple (ss_map, &hash,
+                                                  &ss_exists_iterator, ss))
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "Service %s already configured as a shared service. "
+         "Ignoring service sharing request \n", ss->name);
+    GNUNET_free (ss->name);
+    GNUNET_free (ss);
+    return;
+  }
   GNUNET_CONTAINER_multihashmap_put (ss_map, &hash, ss,
-                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);  
 }
 
 
@@ -474,6 +507,7 @@ shutdown_task (void *cls,
   (void) GNUNET_CONTAINER_multihashmap_iterate (ss_map, &ss_map_free_iterator,
                                                 NULL);
   GNUNET_CONTAINER_multihashmap_destroy (ss_map);
+  /* Clear host array */
   if (NULL != fh)
   {
     GNUNET_DISK_file_close (fh);
@@ -482,6 +516,7 @@ shutdown_task (void *cls,
   for (host_id = 0; host_id < host_list_size; host_id++)
     if (NULL != host_list[host_id])
       GNUNET_TESTBED_host_destroy (host_list[host_id]);
+  GNUNET_free (host_list);
   GNUNET_free_non_null (master_context);
   master_context = NULL;
 }

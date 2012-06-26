@@ -54,7 +54,6 @@ struct GNUNET_TESTBED_InitMessage
    * is interested in.  In NBO.
    */
   uint64_t event_mask GNUNET_PACKED;
-
 };
 
 
