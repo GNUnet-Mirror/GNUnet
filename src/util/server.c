@@ -478,10 +478,17 @@ open_listen_socket (const struct sockaddr *serverAddr, socklen_t socklen)
              "bind", port,
              (AF_INET == serverAddr->sa_family) ? "IPv4" : "IPv6");
       else if (AF_UNIX == serverAddr->sa_family)
-        LOG (GNUNET_ERROR_TYPE_WARNING,
-             _("`%s' failed for `%s': address already in use\n"), "bind",
-             ((const struct sockaddr_un *) serverAddr)->sun_path);
+      {
+	const struct sockaddr_un *un = (const struct sockaddr_un *) serverAddr;
+	unsigned int off = 0;
 
+	if ('\0' == un->sun_path[0])
+	  off = 1; /* some UNIXPATHs start with 0 */
+        LOG (GNUNET_ERROR_TYPE_WARNING,
+             _("`%s' failed for `%.*s': address already in use\n"), "bind",
+	     (int) ((sizeof (un->sun_path) - off)),
+	     (&un->sun_path[off]));
+      }
     }
     GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (sock));
     errno = eno;
