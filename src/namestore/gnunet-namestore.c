@@ -118,6 +118,11 @@ static char *typestring;
  */
 static char *expirationstring;
 
+/**
+ * Global return value
+ */
+static int ret;
+
 
 /**
  * Task run on shutdown.  Cleans up everything.
@@ -163,10 +168,14 @@ add_continuation (void *cls,
 		  const char *emsg)
 {
   add_qe = NULL;
-  if (success != GNUNET_YES)
+  if (GNUNET_YES != success)
+  {
     fprintf (stderr,
 	     _("Adding record failed: %s\n"),
-	     (success == GNUNET_NO) ? "record exists" : emsg);
+	     (GNUNET_NO == success) ? "record exists" : emsg);
+    if (GNUNET_NO != success)
+      ret = 1;
+  }
   if ( (NULL == del_qe) &&
        (NULL == list_it) )
     GNUNET_SCHEDULER_shutdown ();
@@ -280,19 +289,21 @@ run (void *cls, char *const *args, const char *cfgfile,
   int etime_is_rel = GNUNET_SYSERR;
   struct GNUNET_NAMESTORE_RecordData rd;
 
+  if ( (NULL != args[0]) && (NULL == uri) )
+    uri = GNUNET_strdup (args[0]);
   if (NULL == keyfile)
   {
-      if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
-                                                 "ZONEKEY", &keyfile))
-      {
-        fprintf (stderr,
-                 _("Option `%s' not given, but I need a zone key file!\n"),
-                 "z");
-        return;
-      }
+    if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
+							      "ZONEKEY", &keyfile))
+    {
       fprintf (stderr,
-               _("Using default zone file `%s'\n"),
-               keyfile);
+	       _("Option `%s' not given, but I need a zone key file!\n"),
+	       "z");
+      return;
+    }
+    fprintf (stderr,
+	     _("Using default zone file `%s'\n"),
+	     keyfile);
   }
   zone_pkey = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
   GNUNET_free (keyfile);
@@ -333,6 +344,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   {
     fprintf (stderr, _("Unsupported type `%s'\n"), typestring);
     GNUNET_SCHEDULER_shutdown ();
+    ret = 1;
     return;
   }
   if ((NULL == typestring) && (add | del))
@@ -341,6 +353,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 	     _("Missing option `%s' for operation `%s'\n"),
 	     "-t", _("add/del"));
     GNUNET_SCHEDULER_shutdown ();
+    ret = 1;
     return;     
   }
   if (NULL != value)
@@ -355,6 +368,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 		 value,
 		 typestring);
 	GNUNET_SCHEDULER_shutdown ();
+	ret = 1;
 	return;
       }
   } else if (add | del)
@@ -362,6 +376,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     fprintf (stderr,
 	     _("Missing option `%s' for operation `%s'\n"),
 	     "-V", _("add/del"));
+    ret = 1;   
     GNUNET_SCHEDULER_shutdown ();
     return;     
   }
@@ -390,6 +405,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 	       _("Invalid time format `%s'\n"),
 	       expirationstring);
       GNUNET_SCHEDULER_shutdown ();
+      ret = 1;
       return;     
     }
   } 
@@ -399,6 +415,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 	     _("Missing option `%s' for operation `%s'\n"),
 	     "-e", _("add"));
     GNUNET_SCHEDULER_shutdown ();
+    ret = 1;    
     return;     
   }
   if (add)
@@ -409,6 +426,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 	       _("Missing option `%s' for operation `%s'\n"),
 	       "-n", _("add"));
       GNUNET_SCHEDULER_shutdown ();
+      ret = 1;    
       return;     
     }
     rd.data = data;
@@ -427,6 +445,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 	       _("No valid expiration time for operation `%s'\n"),
 	       _("add"));
       GNUNET_SCHEDULER_shutdown ();
+      ret = 1;
       return;
     }
     if (1 != nonauthority)
@@ -448,6 +467,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 	       _("Missing option `%s' for operation `%s'\n"),
 	       "-n", _("del"));
       GNUNET_SCHEDULER_shutdown ();
+      ret = 1;
       return;     
     }
     rd.data = data;
@@ -493,13 +513,12 @@ run (void *cls, char *const *args, const char *cfgfile,
 	  GNUNET_CRYPTO_short_hash_from_string (sh, &sc)) )
     {
       fprintf (stderr, 
-	       _("Invalid URI `%s'"),
+	       _("Invalid URI `%s'\n"),
 	       uri);
       GNUNET_SCHEDULER_shutdown ();
+      ret = 1;
       return;
     }
-
-
     rd.data = &sc;
     rd.data_size = sizeof (struct GNUNET_CRYPTO_ShortHashCode);
     rd.record_type = GNUNET_NAMESTORE_TYPE_PKEY;
@@ -576,18 +595,16 @@ main (int argc, char *const *argv)
     GNUNET_GETOPT_OPTION_END
   };
 
-  int ret;
-
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
 
   GNUNET_log_setup ("gnunet-namestore", "WARNING", NULL);
-  ret =
-      (GNUNET_OK ==
-       GNUNET_PROGRAM_run (argc, argv, "gnunet-namestore",
-                           _("GNUnet zone manipulation tool"), 
-			   options,
-                           &run, NULL)) ? 0 : 1;
+  if (GNUNET_OK !=
+      GNUNET_PROGRAM_run (argc, argv, "gnunet-namestore",
+			  _("GNUnet zone manipulation tool"), 
+			  options,
+			  &run, NULL))
+    return 1;
 
   return ret;
 }

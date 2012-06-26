@@ -20,3 +20,5 @@ FILENAME = $SERVICEHOME/namestore/sqlite.db
 CONFIG = connect_timeout=10; dbname=gnunet
 TEMPORARY_TABLE = NO
 
+[uri]
+gns = gnunet-namestore
