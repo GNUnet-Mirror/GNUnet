@@ -48,8 +48,6 @@ static GNUNET_SCHEDULER_TaskIdentifier mhd_task_id;
 
 static GNUNET_SCHEDULER_TaskIdentifier curl_task_id;
 
-static GNUNET_SCHEDULER_TaskIdentifier ctrl_c_task_id;
-
 static CURL *curl;
 
 static CURLM *multi;
@@ -141,11 +139,6 @@ do_shutdown ()
   {
     GNUNET_SCHEDULER_cancel (curl_task_id);
     curl_task_id = GNUNET_SCHEDULER_NO_TASK;
-  }
-  if (ctrl_c_task_id != GNUNET_SCHEDULER_NO_TASK)
-  {
-    GNUNET_SCHEDULER_cancel (ctrl_c_task_id);
-    ctrl_c_task_id = GNUNET_SCHEDULER_NO_TASK;
   }
   if (NULL != mhd)
   {
@@ -317,17 +310,6 @@ mhd_task (void *cls,
 }
 
 
-static void
-ctrl_c_shutdown (void *cls,
-		 const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  ctrl_c_task_id = GNUNET_SCHEDULER_NO_TASK;
-  do_shutdown ();
-  GNUNET_break (0);
-  global_ret = 1;
-}
-
-
 static void 
 mhd_main ()
 {
@@ -394,16 +376,7 @@ run (void *cls,
 			  MHD_OPTION_END);
   GNUNET_assert (NULL != mhd);
   mhd_main ();
-  /*rr = GNUNET_VPN_redirect_to_ip (vpn,
-				  src_af,
-				  dest_af,
-				  addr,
-				  GNUNET_YES,
-				  GNUNET_TIME_UNIT_FOREVER_ABS,
-				  &allocation_cb, NULL);
-  ctrl_c_task_id = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
-						 &ctrl_c_shutdown,
-						 NULL);*/
+  
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
                                                             "ZONEKEY",
                                                             &zone_keyfile))
