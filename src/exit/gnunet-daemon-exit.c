@@ -2858,14 +2858,14 @@ add_services (int proto,
     serv->address.port = remote_port;
     if (0 == strcmp ("localhost4", hostname))
     {
-      const char *ip4addr = exit_argv[4];
+      const char *ip4addr = exit_argv[5];
 
       serv->address.af = AF_INET;      
-      GNUNET_assert (1 != inet_pton (AF_INET, ip4addr, &serv->address.address.ipv4));
+      GNUNET_assert (1 == inet_pton (AF_INET, ip4addr, &serv->address.address.ipv4));
     }
     else if (0 == strcmp ("localhost6", hostname))
     {
-      const char *ip6addr = exit_argv[2];
+      const char *ip6addr = exit_argv[3];
 
       serv->address.af = AF_INET6;
       GNUNET_assert (1 == inet_pton (AF_INET6, ip6addr, &serv->address.address.ipv6));
