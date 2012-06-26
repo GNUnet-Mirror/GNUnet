@@ -104,6 +104,11 @@ static char *name;
 static char *value;
 
 /**
+ * URI to import.
+ */
+static char *uri;
+
+/**
  * Type of the record to add/remove, NULL to remove all.
  */
 static char *typestring;
@@ -133,6 +138,11 @@ do_shutdown (void *cls,
   {
     GNUNET_CRYPTO_rsa_key_free (zone_pkey);
     zone_pkey = NULL;
+  }
+  if (NULL != uri)
+  {
+    GNUNET_free (uri);
+    uri = NULL;
   }
 }
 
@@ -287,7 +297,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   zone_pkey = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
   GNUNET_free (keyfile);
   keyfile = NULL;
-  if (! (add|del|list))
+  if (! (add|del|list|(NULL != uri)))
   {
     /* nothing more to be done */  
     fprintf (stderr,
@@ -469,6 +479,49 @@ run (void *cls, char *const *args, const char *cfgfile,
 						     &display_record,
 						     NULL);
   }
+  if (NULL != uri)
+  {
+    char sh[53];
+    char name[64];
+    struct GNUNET_CRYPTO_ShortHashCode sc;
+
+    if ( (2 != (sscanf (uri,
+			"gnunet://gns/%52s/%63s",
+			sh,
+			name)) ) ||
+	 (GNUNET_OK !=
+	  GNUNET_CRYPTO_short_hash_from_string (sh, &sc)) )
+    {
+      fprintf (stderr, 
+	       _("Invalid URI `%s'"),
+	       uri);
+      GNUNET_SCHEDULER_shutdown ();
+      return;
+    }
+
+
+    rd.data = &sc;
+    rd.data_size = sizeof (struct GNUNET_CRYPTO_ShortHashCode);
+    rd.record_type = GNUNET_NAMESTORE_TYPE_PKEY;
+    if (GNUNET_YES == etime_is_rel)
+    {
+      rd.expiration_time = etime_rel.rel_value;
+      rd.flags |= GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION;
+    }
+    else if (GNUNET_NO == etime_is_rel)
+      rd.expiration_time = etime_abs.abs_value;
+    else    
+      rd.expiration_time = GNUNET_TIME_UNIT_FOREVER_ABS.abs_value;
+    if (1 != nonauthority)
+      rd.flags |= GNUNET_NAMESTORE_RF_AUTHORITY;
+
+    add_qe = GNUNET_NAMESTORE_record_create (ns,
+					     zone_pkey,
+					     name,
+					     &rd,
+					     &add_continuation,
+					     NULL);
+  }
   GNUNET_free_non_null (data);
 }
 
@@ -505,6 +558,9 @@ main (int argc, char *const *argv)
     {'t', "type", "TYPE",
      gettext_noop ("type of the record to add/delete/display"), 1,
      &GNUNET_GETOPT_set_string, &typestring},   
+    {'u', "uri", "URI",
+     gettext_noop ("URI to import into our zone"), 1,
+     &GNUNET_GETOPT_set_string, &uri},   
     {'V', "value", "VALUE",
      gettext_noop ("value of the record to add/delete"), 1,
      &GNUNET_GETOPT_set_string, &value},   
