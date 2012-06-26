@@ -431,9 +431,85 @@ test_af (int af)
 }
 
 
+/**
+ * Run the given command and wait for it to complete.
+ * 
+ * @param file name of the binary to run
+ * @param cmd command line arguments (as given to 'execv')
+ * @return 0 on success, 1 on any error
+ */
+static int
+fork_and_exec (const char *file, 
+	       char *const cmd[])
+{
+  int status;
+  pid_t pid;
+  pid_t ret;
+
+  pid = fork ();
+  if (-1 == pid)
+  {
+    fprintf (stderr, 
+	     "fork failed: %s\n", 
+	     strerror (errno));
+    return 1;
+  }
+  if (0 == pid)
+  {
+    /* we are the child process */
+    /* close stdin/stdout to not cause interference
+       with the helper's main protocol! */
+    (void) close (0); 
+    (void) close (1); 
+    (void) execv (file, cmd);
+    /* can only get here on error */
+    fprintf (stderr, 
+	     "exec `%s' failed: %s\n", 
+	     file,
+	     strerror (errno));
+    _exit (1);
+  }
+  /* keep running waitpid as long as the only error we get is 'EINTR' */
+  while ( (-1 == (ret = waitpid (pid, &status, 0))) &&
+	  (errno == EINTR) ); 
+  if (-1 == ret)
+  {
+    fprintf (stderr, 
+	     "waitpid failed: %s\n", 
+	     strerror (errno));
+    return 1;
+  }
+  if (! (WIFEXITED (status) && (0 == WEXITSTATUS (status))))
+    return 1;
+  /* child process completed and returned success, we're happy */
+  return 0;
+}
+
 int
 main (int argc, char *const *argv)
 {
+  char *sbin_sysctl;
+  char *const sysctl_args[] = {"sysctl", "-w", "net.ipv4.conf.default.rp_filter=0", NULL};
+
+  if (0 == ACCESS ("/sbin/sysctl", X_OK))
+      sbin_sysctl = "/sbin/sysctl";
+  else if (0 == ACCESS ("/usr/sbin/sysctl", X_OK))
+    sbin_sysctl = "/usr/sbin/sysctl";
+  else
+  {
+    fprintf (stderr,
+             "Fatal: executable sysctl not found in approved directories: %s\n",
+             strerror (errno));
+    return 0;
+  }
+
+  if (0 != fork_and_exec (sbin_sysctl, sysctl_args))
+  {
+    fprintf (stderr,
+             "Failed to enable IPv4 forwarding.  Will continue anyway.\n");
+    return 1;
+  }
+
   if (0 != ACCESS ("/dev/net/tun", R_OK))
   {
     GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
