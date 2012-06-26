@@ -100,6 +100,11 @@ struct in6_ifreq
 static const char *sbin_iptables;
 
 /**
+ * Name and full path of sysctl binary
+ */
+static const char *sbin_sysctl;
+
+/**
  * Name and full path of IPTABLES binary.
  */
 static const char *sbin_ip;
@@ -714,6 +719,17 @@ main (int argc, char *const*argv)
 	     strerror (errno));
     return 4;
   }
+  if (0 == access ("/sbin/sysctl", X_OK))
+    sbin_sysctl = "/sbin/sysctl";
+  else if (0 == access ("/usr/sbin/sysctl", X_OK))
+    sbin_sysctl = "/usr/sbin/sysctl";
+  else
+  {
+    fprintf (stderr,
+             "Fatal: executable sysctl not found in approved directories: %s\n",
+             strerror (errno));
+    return 5;
+  }
 
   /* setup 'mygid' string */
   snprintf (mygid, sizeof (mygid), "%d", (int) getegid());
@@ -778,6 +794,22 @@ main (int argc, char *const*argv)
   strncpy (dev, argv[1], IFNAMSIZ);
   dev[IFNAMSIZ - 1] = '\0';
 
+  /* Disable rp filtering */
+  {
+    char *const sysctl_args[] = {"sysctl", "-w",
+      "net.ipv4.conf.all.rp_filter=0", NULL};
+    char *const sysctl_args2[] = {"sysctl", "-w",
+      "net.ipv4.conf.default.rp_filter=0", NULL};
+    if ((0 != fork_and_exec (sbin_sysctl, sysctl_args)) ||
+        (0 != fork_and_exec (sbin_sysctl, sysctl_args2)))
+    {
+      fprintf (stderr,
+               "Failed to disable rp filtering.\n");
+      return 5;
+    }
+  }
+  
+  
   /* now open virtual interface (first part that requires root) */
   if (-1 == (fd_tun = init_tun (dev)))
   {
@@ -814,6 +846,7 @@ main (int argc, char *const*argv)
 
     set_address4 (dev, address, mask);
   }
+
   
   /* update routing tables -- next part why we need SUID! */
   /* Forward everything from our EGID (which should only be held
