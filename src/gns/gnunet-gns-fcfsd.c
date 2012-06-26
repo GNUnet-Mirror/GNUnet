@@ -683,7 +683,7 @@ do_shutdown (void *cls,
   }
   if (NULL != ns)
   {
-    GNUNET_NAMESTORE_disconnect (ns, GNUNET_NO);
+    GNUNET_NAMESTORE_disconnect (ns);
     ns = NULL;
   }
   if (NULL != httpd)
@@ -771,7 +771,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		_("Failed to start HTTP server\n"));
-    GNUNET_NAMESTORE_disconnect (ns, GNUNET_NO);
+    GNUNET_NAMESTORE_disconnect (ns);
     ns = NULL;
     return;
   }
