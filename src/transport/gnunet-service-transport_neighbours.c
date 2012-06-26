@@ -1255,8 +1255,9 @@ try_transmission_to_peer (struct NeighbourMapEntry *n)
 
 /**
  * Send keepalive message to the neighbour.  Must only be called
- * if we are on 'connected' state.  Will internally determine
- * if a keepalive is truly needed (so can always be called).
+ * if we are on 'connected' state or while trying to switch addresses.
+ * Will internally determine if a keepalive is truly needed (so can
+ * always be called).
  *
  * @param n neighbour that went idle and needs a keepalive
  */
@@ -1265,7 +1266,9 @@ send_keepalive (struct NeighbourMapEntry *n)
 {
   struct GNUNET_MessageHeader m;
 
-  GNUNET_assert (S_CONNECTED == n->state);
+  GNUNET_assert ((S_CONNECTED == n->state) ||
+                 (S_CONNECTED_SWITCHING_BLACKLIST == n->state) ||
+                 (S_CONNECTED_SWITCHING_CONNECT_SENT));
   if (GNUNET_TIME_absolute_get_remaining (n->keep_alive_time).rel_value > 0)
     return; /* no keepalive needed at this time */
   m.size = htons (sizeof (struct GNUNET_MessageHeader));
