@@ -533,7 +533,7 @@ put_pkey_dht(void *cls, int32_t success, const char *emsg)
                   DHT_OPERATION_TIMEOUT,
                   &put_www_dht,
                   NULL);
-  GNUNET_NAMESTORE_disconnect(namestore_handle, GNUNET_NO);
+  GNUNET_NAMESTORE_disconnect (namestore_handle);
   GNUNET_free (nrb);
 }
 

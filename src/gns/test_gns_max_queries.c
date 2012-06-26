@@ -160,7 +160,7 @@ commence_testing (void *cls, int32_t success, const char *emsg)
   int i;
   char lookup_name[MAX_DNS_NAME_LENGTH];
   
-  GNUNET_NAMESTORE_disconnect(namestore_handle, GNUNET_YES);
+  GNUNET_NAMESTORE_disconnect (namestore_handle);
   
   gns_handle = GNUNET_GNS_connect(cfg);
 

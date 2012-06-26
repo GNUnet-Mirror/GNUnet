@@ -292,7 +292,7 @@ static void
 commence_testing (void *cls, int32_t success, const char *emsg)
 {
   
-  GNUNET_NAMESTORE_disconnect(namestore_handle, GNUNET_YES);
+  GNUNET_NAMESTORE_disconnect (namestore_handle);
   resolver_working = GNUNET_NO;
 
   GNUNET_RESOLVER_connect (cfg);

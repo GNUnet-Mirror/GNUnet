@@ -284,7 +284,7 @@ all_connected(void *cls, const char *emsg)
 void
 ns_create_cont(void *cls, int32_t s, const char *emsg)
 {
-  GNUNET_NAMESTORE_disconnect((struct GNUNET_NAMESTORE_Handle *)cls, 0);
+  GNUNET_NAMESTORE_disconnect ((struct GNUNET_NAMESTORE_Handle *)cls);
 }
 
 static void

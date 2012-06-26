@@ -137,7 +137,7 @@ commence_testing (void *cls, int32_t success, const char *emsg)
 {
   
   
-  GNUNET_NAMESTORE_disconnect(namestore_handle, GNUNET_YES);
+  GNUNET_NAMESTORE_disconnect (namestore_handle);
   
   gns_handle = GNUNET_GNS_connect(cfg);
 

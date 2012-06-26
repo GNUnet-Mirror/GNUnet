@@ -152,7 +152,7 @@ on_lookup_result(void *cls, uint32_t rd_count,
 static void
 commence_testing (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_NAMESTORE_disconnect(namestore_handle, GNUNET_YES);
+  GNUNET_NAMESTORE_disconnect (namestore_handle);
 
   gns_handle = GNUNET_GNS_connect(cfg);
 
