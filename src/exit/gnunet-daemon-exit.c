@@ -2854,6 +2854,7 @@ add_services (int proto,
     }
 
     serv = GNUNET_malloc (sizeof (struct LocalService));
+    serv->address.proto = proto;
     serv->my_port = (uint16_t) local_port;
     serv->address.port = remote_port;
     if (0 == strcmp ("localhost4", hostname))
