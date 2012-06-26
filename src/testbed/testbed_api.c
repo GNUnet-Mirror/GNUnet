@@ -205,6 +205,11 @@ struct GNUNET_TESTBED_HostRegistrationHandle
   struct GNUNET_TESTBED_Host *host;
 
   /**
+   * The controller at which this host is being registered
+   */
+  struct GNUNET_TESTBED_Controller *c;
+
+  /**
    * The Registartion completion callback
    */
   GNUNET_TESTBED_HostRegistrationCompletion cc;
@@ -544,6 +549,7 @@ GNUNET_TESTBED_register_host (struct GNUNET_TESTBED_Controller *controller,
   }  
   rh = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_HostRegistrationHandle));
   rh->host = host;
+  rh->c = controller;
   GNUNET_assert (NULL != cc);
   rh->cc = cc;
   rh->cc_cls = cc_cls;
@@ -584,7 +590,13 @@ void
 GNUNET_TESTBED_cancel_registration (struct GNUNET_TESTBED_HostRegistrationHandle
                                     *handle)
 {
-  GNUNET_break (0);
+  if (handle != handle->c->rh)
+  {
+    GNUNET_break (0);
+    return;
+  }
+  handle->c->rh = NULL;
+  GNUNET_free (handle);  
 }
 
 
