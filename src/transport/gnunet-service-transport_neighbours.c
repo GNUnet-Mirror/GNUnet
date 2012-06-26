@@ -368,7 +368,13 @@ enum State
   S_DISCONNECT,
 
   /**
-   * We're finished with the disconnect; clean up state now!
+   * We're finished with the disconnect; and are cleaning up the state
+   * now!  We put the struct into this state when we are really in the
+   * task that calls 'free' on it and are about to remove the record
+   * from the map.  We should never find a 'struct NeighbourMapEntry'
+   * in this state in the map.  Accessing a 'struct NeighbourMapEntry'
+   * in this state virtually always means using memory that has been
+   * freed (the exception being the cleanup code in 'free_neighbour').
    */
   S_DISCONNECT_FINISHED
 };
