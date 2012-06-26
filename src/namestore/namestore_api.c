@@ -1086,7 +1086,6 @@ GNUNET_NAMESTORE_record_put (struct GNUNET_NAMESTORE_Handle *h,
   /* pointer to elements */
   char * rd_tmp;
   char * name_tmp;
-
   size_t msg_size = 0;
   size_t name_len = 0;
   size_t rd_ser_len = 0;
@@ -1097,7 +1096,10 @@ GNUNET_NAMESTORE_record_put (struct GNUNET_NAMESTORE_Handle *h,
   GNUNET_assert (NULL != name);
   GNUNET_assert (NULL != rd);
   GNUNET_assert (NULL != signature);
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Storing %u records under name `%s'\n",
+	      rd_count,
+	      name);
   name_len = strlen(name) + 1;
   if (name_len > 256)
   {
@@ -1251,7 +1253,10 @@ GNUNET_NAMESTORE_record_create (struct GNUNET_NAMESTORE_Handle *h,
   GNUNET_assert (NULL != pkey);
   GNUNET_assert (NULL != name);
   GNUNET_assert (NULL != rd);
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Creating record of type %u under name `%s'\n",
+	      rd->record_type,
+	      name);
   name_len = strlen(name) + 1;
   if (name_len > 256)
   {
@@ -1302,8 +1307,9 @@ GNUNET_NAMESTORE_record_create (struct GNUNET_NAMESTORE_Handle *h,
   memcpy (rd_tmp, rd_ser, rd_ser_len);
   GNUNET_free (pkey_enc);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message for name `%s' with size %u\n", "NAMESTORE_RECORD_CREATE", name, msg_size);
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Sending `%s' message for name `%s' with size %u\n", 
+	      "NAMESTORE_RECORD_CREATE", name, msg_size);
   GNUNET_CONTAINER_DLL_insert_tail (h->pending_head, h->pending_tail, pe);
   do_transmit(h);
   return qe;
@@ -1346,7 +1352,15 @@ GNUNET_NAMESTORE_record_remove (struct GNUNET_NAMESTORE_Handle *h,
   uint16_t rd_count = 1;
 
   GNUNET_assert (NULL != h);
-
+  if (NULL != rd)
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Removing record of type %u under name `%s'\n",
+		rd->record_type,
+		name);
+  else
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Removing all records under name `%s'\n",
+		name);
   rid = get_op_id(h);
   qe = GNUNET_malloc(sizeof (struct GNUNET_NAMESTORE_QueueEntry));
   qe->nsh = h;
@@ -1434,6 +1448,10 @@ GNUNET_NAMESTORE_lookup_record (struct GNUNET_NAMESTORE_Handle *h,
   GNUNET_assert (NULL != h);
   GNUNET_assert (NULL != zone);
   GNUNET_assert (NULL != name);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Looking for record of type %u under name `%s'\n",
+	      record_type,
+	      name);
 
   name_len = strlen (name) + 1;
   if ((name_len == 0) || (name_len > 256))
