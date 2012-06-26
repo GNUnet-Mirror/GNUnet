@@ -103,7 +103,7 @@ on_lookup_result_alt2 (void *cls, uint32_t rd_count,
   if (rd_count == 0)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Lookup failed, rp_filtering?\n");
+                "Lookup failed\n");
     ok = 2;
   }
   else
@@ -147,7 +147,7 @@ on_lookup_result_alt (void *cls, uint32_t rd_count,
   if (rd_count == 0)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Lookup failed, rp_filtering?\n");
+                "Lookup failed\n");
     ok = 2;
   }
   else
@@ -193,7 +193,7 @@ on_lookup_result(void *cls, uint32_t rd_count,
   if (rd_count == 0)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Lookup failed, rp_filtering?\n");
+                "Lookup failed\n");
     ok = 2;
   }
   else
