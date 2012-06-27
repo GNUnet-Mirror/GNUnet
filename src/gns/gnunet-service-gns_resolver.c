@@ -1652,6 +1652,10 @@ send_dns_packet (struct ResolverHandle *rh)
 {
   struct GNUNET_NETWORK_FDSet *rset = GNUNET_NETWORK_fdset_create ();
   GNUNET_NETWORK_fdset_set (rset, rh->dns_sock);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Sending %dbyte DNS query\n",
+              rh->dns_raw_packet_size);
   
   GNUNET_NETWORK_socket_sendto (rh->dns_sock,
                                 rh->dns_raw_packet,
