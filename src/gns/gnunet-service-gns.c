@@ -1068,9 +1068,9 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
                                              "ZONE_PUT_INTERVAL",
                                              &dht_max_update_interval))
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-               "DHT zone update interval: %d\n",
-               dht_max_update_interval);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		"DHT zone update interval: %llu\n",
+		dht_max_update_interval);
   }
   
   max_record_put_interval = 1;
