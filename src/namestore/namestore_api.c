@@ -1122,7 +1122,7 @@ GNUNET_NAMESTORE_verify_signature (const struct GNUNET_CRYPTO_RsaPublicKeyBinary
   rd_ser_len = GNUNET_NAMESTORE_records_get_size (rd_count, rd);
   sig_len = sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose) + sizeof (struct GNUNET_TIME_AbsoluteNBO) + rd_ser_len + name_len;
   {
-    char sig_buf[rd_ser_len] GNUNET_ALIGN;
+    char sig_buf[sig_len] GNUNET_ALIGN;
 
     sig_purpose = (struct GNUNET_CRYPTO_RsaSignaturePurpose *) sig_buf;
     sig_purpose->size = htonl (sig_len);
