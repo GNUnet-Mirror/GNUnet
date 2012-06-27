@@ -35,12 +35,14 @@ extern "C"
 #include "mesh_block_lib.h"
 
 /**
- * Iterator over edges in a block.
+ * Noop iterator over all edges in a block.
  *
- * @param cls Closure.
+ * @param cls Closure, not used.
  * @param token Token that follows to next state.
  * @param len Lenght of token.
  * @param key Hash of next state.
+ * 
+ * @return GNUNET_YES, to keep iterating
  */
 static int
 check_edge (void *cls,
