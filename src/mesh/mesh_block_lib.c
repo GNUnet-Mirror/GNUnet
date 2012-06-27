@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2001 - 2011 Christian Grothoff (and other contributing authors)
+     (C) 2012 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -128,4 +128,4 @@ GNUNET_MESH_regex_block_iterate (void *cls,
 }
 #endif
 
-/* end of mesh_protocol.h */
+/* end of mesh_block_lib.c */
