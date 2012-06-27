@@ -187,6 +187,12 @@ static char *private_zone_id;
 /* name of the public zone */
 static char *shorten_zone_id;
 
+/* ipv6 support */
+static int v6_enabled;
+
+/* ipv4 support */
+static int v4_enabled;
+
 /**
  * Continue shutdown
  */
@@ -944,6 +950,26 @@ handle_lookup(void *cls,
     return;
   }
 
+  if ((clh->type == GNUNET_GNS_RECORD_TYPE_A) &&
+      (GNUNET_OK != v4_enabled))
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "LOOKUP: Query for A record but AF_INET not supported!");
+    clh->name = NULL;
+    send_lookup_response(clh, 0, NULL);
+    return;
+  }
+  
+  if ((clh->type == GNUNET_GNS_RECORD_AAAA) &&
+      (GNUNET_OK != v6_enabled))
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "LOOKUP: Query for AAAA record but AF_INET6 not supported!");
+    clh->name = NULL;
+    send_lookup_response(clh, 0, NULL);
+    return;
+  }
+  
   if (1 == ntohl(sh_msg->use_default_zone))
     clh->zone = zone_hash; //Default zone
   else
@@ -967,7 +993,28 @@ handle_lookup(void *cls,
   }
 }
 
+/**
+ * Test if the given AF is supported by this system.
+ *
+ * @param af to test
+ * @return GNUNET_OK if the AF is supported
+ */
+static int
+test_af (int af)
+{
+  int s;
 
+  s = socket (af, SOCK_STREAM, 0);
+  if (-1 == s)
+  {
+    if (EAFNOSUPPORT == errno)
+      return GNUNET_NO;
+    fprintf (stderr, "Failed to create test socket: %s\n", STRERROR (errno));
+    return GNUNET_SYSERR;
+  }
+  close (s);
+  return GNUNET_OK;
+}
 
 /**
  * Process GNS requests.
@@ -996,6 +1043,9 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   };
 
   GNS_cfg = c;
+
+  v6_enabled = test_af (AF_INET6);
+  v4_enabled = test_af (AF_INET);
 
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (c, "gns",
                                              "ZONEKEY", &keyfile))
