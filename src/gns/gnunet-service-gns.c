@@ -1081,7 +1081,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
                                              &max_record_put_interval))
   {
     GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-               "Record put interval: %d\n",
+               "Record put interval: %llu\n",
                max_record_put_interval);
   }
   
@@ -1091,7 +1091,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
                                             &max_parallel_bg_queries))
   {
     GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-               "Number of allowed parallel background queries: %d\n",
+               "Number of allowed parallel background queries: %llu\n",
                max_parallel_bg_queries);
   }
 
@@ -1110,7 +1110,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
                                             &default_lookup_timeout_secs))
   {
     GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-               "Default lookup timeout: %ds\n", default_lookup_timeout_secs);
+               "Default lookup timeout: %llus\n", default_lookup_timeout_secs);
     default_lookup_timeout = GNUNET_TIME_relative_multiply(
                                             GNUNET_TIME_UNIT_SECONDS,
                                             default_lookup_timeout_secs);
