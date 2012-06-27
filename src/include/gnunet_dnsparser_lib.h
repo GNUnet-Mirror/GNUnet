@@ -132,44 +132,9 @@ struct GNUNET_DNSPARSER_Flags
 #elif __BYTE_ORDER == __BIG_ENDIAN
   
   /**
-   * See GNUNET_DNSPARSER_RETURN_CODE_ defines.
+   * query:0, response:1
    */
-  unsigned int return_code          : 4 GNUNET_PACKED; 
-  
-  /**
-   * See RFC 4035.
-   */
-  unsigned int checking_disabled    : 1 GNUNET_PACKED; 
-  
-  /**
-   * Response has been cryptographically verified, RFC 4035.
-   */
-  unsigned int authenticated_data   : 1 GNUNET_PACKED;
-  
-  /**
-   * Always zero.
-   */
-  unsigned int zero                 : 1 GNUNET_PACKED;
-  
-  /**
-   * Set to 1 if recursion is available (server -> client)
-   */
-  unsigned int recursion_available  : 1 GNUNET_PACKED;
-
-  /**
-   * Set to 1 if recursion is desired (client -> server)
-   */
-  unsigned int recursion_desired    : 1 GNUNET_PACKED;  
-  
-  /**
-   * Set to 1 if message is truncated
-   */
-  unsigned int message_truncated    : 1 GNUNET_PACKED; 
-  
-  /**
-   * Set to 1 if this is an authoritative answer
-   */
-  unsigned int authoritative_answer : 1 GNUNET_PACKED;
+  unsigned int query_or_response    : 1 GNUNET_PACKED;  
   
   /**
    * See GNUNET_DNSPARSER_OPCODE_ defines.
@@ -177,10 +142,45 @@ struct GNUNET_DNSPARSER_Flags
   unsigned int opcode               : 4 GNUNET_PACKED;  
   
   /**
-   * query:0, response:1
+   * Set to 1 if this is an authoritative answer
    */
-  unsigned int query_or_response    : 1 GNUNET_PACKED;  
+  unsigned int authoritative_answer : 1 GNUNET_PACKED;
+  
+  /**
+   * Set to 1 if message is truncated
+   */
+  unsigned int message_truncated    : 1 GNUNET_PACKED; 
+  
+  /**
+   * Set to 1 if recursion is desired (client -> server)
+   */
+  unsigned int recursion_desired    : 1 GNUNET_PACKED;  
 
+ 
+  /**
+   * Set to 1 if recursion is available (server -> client)
+   */
+  unsigned int recursion_available  : 1 GNUNET_PACKED;
+  
+  /**
+   * Always zero.
+   */
+  unsigned int zero                 : 1 GNUNET_PACKED;
+  
+  /**
+   * Response has been cryptographically verified, RFC 4035.
+   */
+  unsigned int authenticated_data   : 1 GNUNET_PACKED;
+  
+  /**
+   * See RFC 4035.
+   */
+  unsigned int checking_disabled    : 1 GNUNET_PACKED; 
+  
+  /**
+   * See GNUNET_DNSPARSER_RETURN_CODE_ defines.
+   */  
+  unsigned int return_code          : 4 GNUNET_PACKED; 
 #else
   #error byteorder undefined
 #endif
