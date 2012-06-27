@@ -39,11 +39,6 @@
 
 #define LOG(kind,...) GNUNET_log_from (kind, "gns-api",__VA_ARGS__)
 
-/**
- * Maximum length of any name, including 0-termination.
- */
-#define MAX_NAME_LEN 256
-
 
 /**
  * An QueueEntry used to store information for a pending

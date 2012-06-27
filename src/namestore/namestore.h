@@ -26,6 +26,13 @@
 #ifndef NAMESTORE_H
 #define NAMESTORE_H
 
+/**
+ * Maximum length of any name, including 0-termination.
+ */
+#define MAX_NAME_LEN 256
+
+
+
 /*
  * Collect message types here, move to protocols later
  */
