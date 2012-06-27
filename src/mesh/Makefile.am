@@ -22,7 +22,8 @@ bin_PROGRAMS = \
  gnunet-service-mesh  gnunet-service-mesh_new
 
 lib_LTLIBRARIES = \
-  libgnunetmesh.la
+  libgnunetmesh.la \
+  libgnunetmeshblock.la
 
 plugin_LTLIBRARIES = \
  libgnunet_plugin_block_mesh.la
@@ -47,7 +48,7 @@ gnunet_service_mesh_LDADD = \
   $(top_builddir)/src/block/libgnunetblock.la \
   $(top_builddir)/src/util/libgnunetutil.la
  gnunet_service_mesh_DEPENDENCIES = \
-  $(top_builddir)/src/core/libgnunetcore.la\
+  $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/dht/libgnunetdht.la \
   $(top_builddir)/src/util/libgnunetutil.la
 
@@ -55,6 +56,7 @@ gnunet_service_mesh_new_SOURCES = \
  gnunet-service-mesh_new.c \
  mesh_tunnel_tree.c mesh_tunnel_tree.h
 gnunet_service_mesh_new_LDADD = \
+  libgnunetmeshblock.la \
   $(top_builddir)/src/core/libgnunetcore.la\
   $(top_builddir)/src/dht/libgnunetdht.la \
   $(top_builddir)/src/regex/libgnunetregex.la \
@@ -73,6 +75,17 @@ libgnunetmesh_la_LIBADD = \
 libgnunetmesh_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) $(WINFLAGS) \
   -version-info 1:0:0
+
+libgnunetmeshblock_la_SOURCES = \
+  mesh_block_lib.c
+libgnunetmeshblock_la_LIBADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(XLIB) \
+  $(LTLIBINTL)
+libgnunetmeshblock_la_LDFLAGS = \
+  $(GN_LIB_LDFLAGS) $(WINFLAGS) \
+  -version-info 1:0:0
+
 
 check_PROGRAMS = \
  test_mesh_api \

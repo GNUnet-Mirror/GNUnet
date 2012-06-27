@@ -287,6 +287,6 @@ GNUNET_NETWORK_STRUCT_END
 }
 #endif
 
-/* ifndef MES_PROTOCOL_H */
+/* ifndef MESH_PROTOCOL_H */
 #endif
 /* end of mesh_protocol.h */

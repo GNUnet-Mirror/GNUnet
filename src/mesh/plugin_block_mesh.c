@@ -27,58 +27,13 @@
 #include "platform.h"
 #include "gnunet_block_plugin.h"
 #include "block_mesh.h"
+#include "mesh_block_lib.h"
 
 /**
  * Number of bits we set per entry in the bloomfilter.
  * Do not change!
  */
 #define BLOOMFILTER_K 16
-
-
-/**
- * Check if the regex block is well formed, including all edges
- * 
- * @param block The start of the block.
- * @param size The size of the block.
- * 
- * @return GNUNET_OK in case it's fine, GNUNET_SYSERR otherwise.
- */
-static int
-check_mesh_regex_block (const struct MeshRegexBlock *block, size_t size)
-{
-  struct MeshRegexEdge *edge;
-  unsigned int n;
-  unsigned int n_token;
-  unsigned int i;
-  size_t offset;
-  char *aux;
-
-  offset = sizeof (struct MeshRegexBlock);
-  if (offset > size) // Is it safe to access the regex block?
-    return GNUNET_SYSERR;
-  n = ntohl (block->n_proof);
-  offset =+ n;
-  if (offset > size) // Is it safe to access the regex proof?
-    return GNUNET_SYSERR;
-  aux = (char *) &block[1];  // Skip regex block
-  aux = &aux[n];             // Skip regex proof
-  n = ntohl (block->n_edges);
-  for (i = 0; i < n; n++) // aux always points at the end of the previous block
-  {
-    offset += sizeof (struct MeshRegexEdge);
-    if (offset > size) // Is it safe to access the next edge block?
-      return GNUNET_SYSERR;
-    edge = (struct MeshRegexEdge *) aux;
-    n_token = ntohl (edge->n_token);
-    offset += n_token;
-    if (offset > size) // Is it safe to access the edge token?
-      return GNUNET_SYSERR;
-    aux = (char *) &edge[1]; // Skip edge block
-    aux = &aux[n_token];     // Skip edge token
-  }
-  // The total size should be exactly the size of (regex + all edges) blocks
-  return (offset == size) ? GNUNET_OK : GNUNET_SYSERR;
-}
 
 
 /**
@@ -158,7 +113,8 @@ block_plugin_mesh_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
     }
     if (NULL == reply_block)
       return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
-    if (GNUNET_OK != check_mesh_regex_block (reply_block, reply_block_size))
+    if (GNUNET_OK != GNUNET_MESH_regex_block_check (reply_block,
+                                                    reply_block_size))
       return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
     if (NULL != bf)
     {

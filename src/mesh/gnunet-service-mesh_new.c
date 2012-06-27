@@ -4029,6 +4029,7 @@ dht_get_string_handler (void *cls, struct GNUNET_TIME_Absolute exp,
   size_t len;
 
   // FIXME: does proof have to be NULL terminated?
+  ctx->dht_get_handle = NULL;
   proof = (char *) &block[1];
   if (GNUNET_OK != GNUNET_REGEX_check_proof (proof, key))
   {
@@ -4050,6 +4051,21 @@ dht_get_string_handler (void *cls, struct GNUNET_TIME_Absolute exp,
     return;
   }
   // FIXME complete
+  ctx->n_dht_gets++;
+  ctx->dht_get_handle = GNUNET_realloc (ctx->dht_get_handle,
+                                        sizeof(struct GNUNET_DHT_GetHandle *)
+                                        * ctx->n_dht_gets);
+
+  /* Start search in DHT */
+  ctx->dht_get_handle[ctx->n_dht_gets - 1] = 
+      GNUNET_DHT_get_start (dht_handle,    /* handle */
+                            GNUNET_BLOCK_TYPE_MESH_REGEX, /* type */
+                            &key,     /* key to search */
+                            DHT_REPLICATION_LEVEL, /* replication level */
+                            GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
+                            NULL,       /* xquery */ // FIXME BLOOMFILTER
+                            0,     /* xquery bits */ // FIXME BLOOMFILTER SIZE
+                            &dht_get_string_handler, ctx);
   return;
 }
 
