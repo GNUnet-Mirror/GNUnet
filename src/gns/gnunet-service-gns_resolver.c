@@ -1504,7 +1504,7 @@ read_dns_response (void *cls,
   {
     /* timeout or shutdown */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Terminating DNS query\n");
+                "Terminating DNS query %d\n", tc->reason);
     finish_lookup (rh, rlh, 0, NULL);
     GNUNET_NETWORK_socket_close (rh->dns_sock);
     free_resolver_handle (rh);
