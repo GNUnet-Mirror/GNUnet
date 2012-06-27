@@ -32,9 +32,6 @@
 #include "gnunet_dnsparser_lib.h"
 #include "gnunet_gns_service.h"
 
-/* DEFINES */
-#define VERBOSE GNUNET_YES
-
 /* Timeout for entire testcase */
 #define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 20)
 
@@ -437,9 +434,6 @@ check ()
   char *const argv[] = { "test-gns-ns-lookup", /* Name to give running binary */
     "-c",
     "test_gns_simple_lookup.conf",       /* Config file to use */
-#if VERBOSE
-    "-L", "DEBUG",
-#endif
     NULL
   };
   struct GNUNET_GETOPT_CommandLineOption options[] = {
@@ -464,11 +458,7 @@ main (int argc, char *argv[])
   int ret;
 
   GNUNET_log_setup ("test-gns-simple-lookup",
-#if VERBOSE
-                    "DEBUG",
-#else
                     "WARNING",
-#endif
                     NULL);
   ret = check ();
   /**
