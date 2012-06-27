@@ -113,6 +113,19 @@ GNUNET_CONFIGURATION_parse (struct GNUNET_CONFIGURATION_Handle *cfg,
 
 
 /**
+ * Serializes the given configuration.
+ *
+ * @param cfg configuration to serialize
+ * @param size will be set to the size of the serialized memory block
+ * @return the memory block where the serialized configuration is
+ *           present. This memory should be freed by the caller
+ */
+char *
+GNUNET_CONFIGURATION_serialize (struct GNUNET_CONFIGURATION_Handle *cfg,
+				uint16_t *size);
+
+
+/**
  * Write configuration file.
  *
  * @param cfg configuration to write

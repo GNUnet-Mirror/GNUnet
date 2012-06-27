@@ -271,6 +271,101 @@ GNUNET_CONFIGURATION_is_dirty (const struct GNUNET_CONFIGURATION_Handle *cfg)
 
 
 /**
+ * Serializes the given configuration.
+ *
+ * @param cfg configuration to serialize
+ * @param size will be set to the size of the serialized memory block
+ * @return the memory block where the serialized configuration is
+ *           present. This memory should be freed by the caller
+ */
+char *
+GNUNET_CONFIGURATION_serialize (struct GNUNET_CONFIGURATION_Handle *cfg,
+				uint16_t *size)
+{
+  struct ConfigSection *sec;
+  struct ConfigEntry *ent;
+  char *mem;
+  char *cbuf;
+  char *val;
+  char *pos;
+  uint16_t len;
+  uint16_t m_size;
+  uint16_t c_size;
+
+
+  /* Pass1 : calculate the buffer size required */
+  m_size = 0;
+  sec = cfg->sections;
+  while (NULL != sec)
+  {
+    /* For each section we need to add 3 charaters: {'[',']','\n'} */
+    m_size += strlen (sec->name) + 3;
+    ent = sec->entries;
+    while (NULL != ent)
+    {
+      if (NULL != ent->val)
+      {
+	/* if val has any '\n' then they occupy +1 character as '\n'->'\\','n' */
+	pos = ent->val;
+	while (NULL != (pos = strstr (pos, "\n")))
+	{
+	  m_size++;
+	  pos++;
+	}
+	/* For each key = value pair we need to add 4 characters (2
+	   spaces and 1 equal-to character and 1 new line) */
+	m_size += strlen (ent->key) + strlen (ent->val) + 4;	
+      }
+      ent = ent->next;
+    }
+    /* A new line after section end */
+    m_size++;
+    sec = sec->next;
+  }
+
+  /* Pass2: Allocate memory and write the configuration to it */
+  mem = GNUNET_malloc (m_size);
+  sec = cfg->sections;
+  c_size = 0;
+  *size = c_size;  
+  while (NULL != sec)
+  {
+    len = GNUNET_asprintf (&cbuf, "[%s]\n", sec->name);
+    memcpy (mem + c_size, cbuf, len);
+    c_size += len;
+    GNUNET_free (cbuf);
+    ent = sec->entries;
+    while (NULL != ent)
+    {
+      if (NULL != ent->val)
+      {
+	val = GNUNET_malloc (strlen (ent->val) * 2 + 1);
+	strcpy (val, ent->val);
+        while (NULL != (pos = strstr (val, "\n")))
+        {
+          memmove (&pos[2], &pos[1], strlen (&pos[1]));
+          pos[0] = '\\';
+          pos[1] = 'n';
+        }
+	len = GNUNET_asprintf (&cbuf, "%s = %s\n", ent->key, val);
+	GNUNET_free (val);
+	memcpy (mem + c_size, cbuf, len);
+	c_size += len;
+	GNUNET_free (cbuf);	
+      }
+      ent = ent->next;
+    }
+    memcpy (mem + c_size, "\n", 1);
+    c_size ++;
+    sec = sec->next;
+  }
+  GNUNET_assert (c_size == m_size);
+  *size = c_size;
+  return mem;
+}
+
+
+/**
  * Write configuration file.
  *
  * @param cfg configuration to write
@@ -281,13 +376,9 @@ int
 GNUNET_CONFIGURATION_write (struct GNUNET_CONFIGURATION_Handle *cfg,
                             const char *filename)
 {
-  struct ConfigSection *sec;
-  struct ConfigEntry *ent;
-  FILE *fp;
-  int error;
   char *fn;
-  char *val;
-  char *pos;
+  char *cfg_buf;
+  uint16_t size;
 
   fn = GNUNET_STRINGS_filename_expand (filename);
   if (fn == NULL)
@@ -297,62 +388,22 @@ GNUNET_CONFIGURATION_write (struct GNUNET_CONFIGURATION_Handle *cfg,
     GNUNET_free (fn);
     return GNUNET_SYSERR;
   }
-  if (NULL == (fp = FOPEN (fn, "w")))
+  cfg_buf = GNUNET_CONFIGURATION_serialize (cfg, &size);
+  if (size != GNUNET_DISK_fn_write (fn, cfg_buf, size,
+				    GNUNET_DISK_PERM_USER_READ 
+				    | GNUNET_DISK_PERM_USER_WRITE
+				    | GNUNET_DISK_PERM_GROUP_READ 
+				    | GNUNET_DISK_PERM_GROUP_WRITE))
   {
-    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "fopen", fn);
     GNUNET_free (fn);
-    return GNUNET_SYSERR;
-  }
-  GNUNET_free (fn);
-  error = 0;
-  sec = cfg->sections;
-  while (sec != NULL)
-  {
-    if (0 > FPRINTF (fp, "[%s]\n", sec->name))
-    {
-      error = 1;
-      break;
-    }
-    ent = sec->entries;
-    while (ent != NULL)
-    {
-      if (ent->val != NULL)
-      {
-        val = GNUNET_malloc (strlen (ent->val) * 2 + 1);
-        strcpy (val, ent->val);
-        while (NULL != (pos = strstr (val, "\n")))
-        {
-          memmove (&pos[2], &pos[1], strlen (&pos[1]));
-          pos[0] = '\\';
-          pos[1] = 'n';
-        }
-        if (0 > FPRINTF (fp, "%s = %s\n", ent->key, val))
-        {
-          error = 1;
-          GNUNET_free (val);
-          break;
-        }
-        GNUNET_free (val);
-      }
-      ent = ent->next;
-    }
-    if (error != 0)
-      break;
-    if (0 > FPRINTF (fp, "%s\n", ""))
-    {
-      error = 1;
-      break;
-    }
-    sec = sec->next;
-  }
-  if (error != 0)
-    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "fprintf", filename);
-  GNUNET_assert (0 == FCLOSE (fp));
-  if (error != 0)
-  {
+    GNUNET_free (cfg_buf);
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+	 "Writing configration to file: %s failed\n", filename);
     cfg->dirty = GNUNET_SYSERR; /* last write failed */
     return GNUNET_SYSERR;
   }
+  GNUNET_free (fn);
+  GNUNET_free (cfg_buf);
   cfg->dirty = GNUNET_NO;       /* last write succeeded */
   return GNUNET_OK;
 }
