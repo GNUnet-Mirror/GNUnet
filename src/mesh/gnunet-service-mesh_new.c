@@ -50,6 +50,7 @@
 #include "mesh_protocol.h"
 #include "mesh_tunnel_tree.h"
 #include "block_mesh.h"
+#include "mesh_block_lib.h"
 #include "gnunet_dht_service.h"
 #include "gnunet_regex_lib.h"
 
@@ -536,12 +537,8 @@ struct MeshRegexSerachContext
     /**
      * Running DHT GETs.
      */
-  struct GNUNET_DHT_GetHandle **dht_get_handle;
+  struct GNUNET_CONTAINER_MultiHashMap *dht_get_handles;
 
-    /**
-     * Number of running DHT GETs.
-     */
-  unsigned int n_dht_gets;
 };
 
 /******************************************************************************/
@@ -3996,6 +3993,85 @@ dht_get_type_handler (void *cls, struct GNUNET_TIME_Absolute exp,
   peer_info_connect (peer_info, t);
 }
 
+/**
+ * Function to process DHT string to regex matching..
+ * Called on each result obtained for the DHT search.
+ *
+ * @param cls closure (search context)
+ * @param exp when will this value expire
+ * @param key key of the result
+ * @param get_path path of the get request (not used)
+ * @param get_path_length lenght of get_path (not used)
+ * @param put_path path of the put request (not used)
+ * @param put_path_length length of the put_path (not used)
+ * @param type type of the result
+ * @param size number of bytes in data
+ * @param data pointer to the result data
+ *
+ * TODO: re-issue the request after certain time? cancel after X results?
+ */
+static void
+dht_get_string_handler (void *cls, struct GNUNET_TIME_Absolute exp,
+                        const struct GNUNET_HashCode * key,
+                        const struct GNUNET_PeerIdentity *get_path,
+                        unsigned int get_path_length,
+                        const struct GNUNET_PeerIdentity *put_path,
+                        unsigned int put_path_length, enum GNUNET_BLOCK_Type type,
+                        size_t size, const void *data);
+
+/**
+ * Iterator over edges in a block.
+ *
+ * @param cls Closure.
+ * @param token Token that follows to next state.
+ * @param len Lenght of token.
+ * @param key Hash of next state.
+ *
+ * @return GNUNET_YES if should keep iterating, GNUNET_NO otherwise.
+ */
+static int
+regex_edge_iterator (void *cls,
+                     const char *token,
+                     size_t len,
+                     const struct GNUNET_HashCode *key)
+{
+  struct MeshRegexSerachContext *ctx = cls;
+  struct GNUNET_DHT_GetHandle *get_h;
+  char *current;
+  size_t current_len;
+
+  current = &ctx->description[ctx->position];
+  current_len = strlen (ctx->description) - ctx->position;
+  if (len > current_len)
+    return GNUNET_YES; // Token too long, wont match
+  if (0 != strncmp (current, token, len))
+    return GNUNET_YES; // Token doesn't match
+  
+  if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains(ctx->dht_get_handles,
+                                                           key))
+  {
+    return GNUNET_YES; // We are already looking for it
+  }
+  /* Start search in DHT */
+  get_h = 
+      GNUNET_DHT_get_start (dht_handle,    /* handle */
+                            GNUNET_BLOCK_TYPE_MESH_REGEX, /* type */
+                            key,     /* key to search */
+                            DHT_REPLICATION_LEVEL, /* replication level */
+                            GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
+                            NULL,       /* xquery */ // FIXME BLOOMFILTER
+                            0,     /* xquery bits */ // FIXME BLOOMFILTER SIZE
+                            &dht_get_string_handler, ctx);
+  if (GNUNET_OK !=
+      GNUNET_CONTAINER_multihashmap_put(ctx->dht_get_handles, key, get_h,
+                                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST))
+  {
+    GNUNET_break (0);
+    return GNUNET_YES;
+  }
+  return GNUNET_YES;
+}
+
 
 /**
  * Function to process DHT string to regex matching..
@@ -4029,7 +4105,6 @@ dht_get_string_handler (void *cls, struct GNUNET_TIME_Absolute exp,
   size_t len;
 
   // FIXME: does proof have to be NULL terminated?
-  ctx->dht_get_handle = NULL;
   proof = (char *) &block[1];
   if (GNUNET_OK != GNUNET_REGEX_check_proof (proof, key))
   {
@@ -4050,22 +4125,7 @@ dht_get_string_handler (void *cls, struct GNUNET_TIME_Absolute exp,
     }
     return;
   }
-  // FIXME complete
-  ctx->n_dht_gets++;
-  ctx->dht_get_handle = GNUNET_realloc (ctx->dht_get_handle,
-                                        sizeof(struct GNUNET_DHT_GetHandle *)
-                                        * ctx->n_dht_gets);
-
-  /* Start search in DHT */
-  ctx->dht_get_handle[ctx->n_dht_gets - 1] = 
-      GNUNET_DHT_get_start (dht_handle,    /* handle */
-                            GNUNET_BLOCK_TYPE_MESH_REGEX, /* type */
-                            &key,     /* key to search */
-                            DHT_REPLICATION_LEVEL, /* replication level */
-                            GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
-                            NULL,       /* xquery */ // FIXME BLOOMFILTER
-                            0,     /* xquery bits */ // FIXME BLOOMFILTER SIZE
-                            &dht_get_string_handler, ctx);
+  GNUNET_MESH_regex_block_iterate (block, size, &regex_edge_iterator, ctx);
   return;
 }
 
@@ -4813,6 +4873,7 @@ handle_local_connect_by_string (void *cls, struct GNUNET_SERVER_Client *client,
 {
   struct GNUNET_MESH_ConnectPeerByString *msg;
   struct MeshRegexSerachContext *ctx;
+  struct GNUNET_DHT_GetHandle *get_h;
   struct GNUNET_HashCode key;
   struct MeshTunnel *t;
   struct MeshClient *c;
@@ -4870,18 +4931,24 @@ handle_local_connect_by_string (void *cls, struct GNUNET_SERVER_Client *client,
   ctx->description = GNUNET_malloc (len + 1);
   memcpy (ctx->description, string, len);
   ctx->description[len] = '\0';
-  ctx->n_dht_gets = 1;
-  ctx->dht_get_handle = GNUNET_malloc (sizeof(struct GNUNET_DHT_GetHandle *));
+
+  ctx->dht_get_handles = GNUNET_CONTAINER_multihashmap_create(32);
 
   /* Start search in DHT */
-  ctx->dht_get_handle[0] = GNUNET_DHT_get_start (dht_handle,    /* handle */
-                                         GNUNET_BLOCK_TYPE_MESH_REGEX, /* type */
-                                         &key,     /* key to search */
-                                         DHT_REPLICATION_LEVEL, /* replication level */
-                                         GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
-                                         NULL,       /* xquery */ // FIXME BLOOMFILTER
-                                         0,     /* xquery bits */ // FIXME BLOOMFILTER SIZE
-                                         &dht_get_string_handler, ctx);
+  get_h = GNUNET_DHT_get_start (dht_handle,    /* handle */
+                                GNUNET_BLOCK_TYPE_MESH_REGEX, /* type */
+                                &key,     /* key to search */
+                                DHT_REPLICATION_LEVEL, /* replication level */
+                                GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
+                                NULL,       /* xquery */ // FIXME BLOOMFILTER
+                                0,     /* xquery bits */ // FIXME BLOOMFILTER SIZE
+                                &dht_get_string_handler, ctx);
+  
+  GNUNET_break (GNUNET_OK ==
+                GNUNET_CONTAINER_multihashmap_put(ctx->dht_get_handles,
+                                                  &key,
+                                                  get_h,
+                                                  GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "connect by string processed\n");
