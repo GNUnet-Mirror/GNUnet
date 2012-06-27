@@ -28,8 +28,8 @@
  * Outputs the path to the temporary configuration file to stdout.
  *
  * The peer will run until this program is killed,
- * or stdin is closed. When reading the character 'r' from stdin, the running service is
- * restarted with the same configuration.
+ * or stdin is closed. When reading the character 'r' from stdin,
+ * the running service is restarted with the same configuration.
  *
  * This executable is intended to be used by gnunet-java, in order to reliably
  * start and stop services for test cases.
@@ -43,7 +43,7 @@
 
 
 /**
- * FIXME
+ * File handle to STDIN, for reading restart/quit commands.
  */
 static struct GNUNET_DISK_FileHandle *fh;
 
@@ -129,7 +129,8 @@ stdin_cb (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     fprintf (stderr, _("Unknown command, use 'q' to quit or 'r' to restart peer\n"));
     break;
   }
-  tid = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL, fh, &stdin_cb, NULL);    
+  tid = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL, fh,
+                                        &stdin_cb, NULL);    
 }
 
 
@@ -153,16 +154,18 @@ testing_main (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
     return;
   }
   if (GNUNET_SYSERR == 
-      GNUNET_CONFIGURATION_write ((struct GNUNET_CONFIGURATION_Handle *) cfg, tmpfilename))
+      GNUNET_CONFIGURATION_write ((struct GNUNET_CONFIGURATION_Handle *) cfg,
+                                  tmpfilename))
   {
     GNUNET_break (0);
     return;
   }
-  printf("%s\n", tmpfilename);
+  printf("ok\n%s\n", tmpfilename);
   fflush(stdout);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleanup, NULL);
   fh = GNUNET_DISK_get_handle_from_native (stdin);
-  tid = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL, fh, &stdin_cb, NULL);
+  tid = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL, fh,
+                                        &stdin_cb, NULL);
 }
 
 
@@ -180,7 +183,7 @@ main (int argc, char *const *argv)
   static char *srv_name;
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
     {'c', "config", "FILENAME",
-     gettext_noop ("name of the configuration file to use"), 1,
+     gettext_noop ("name of the template configuration file to use (optional)"), 1,
      &GNUNET_GETOPT_set_string, &cfg_name},
     {'s', "service", "SERVICE",
      gettext_noop ("name of the service to run"), 1,
