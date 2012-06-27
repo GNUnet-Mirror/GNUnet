@@ -30,6 +30,15 @@ gnunet_daemon_pt_LDADD = \
   $(top_builddir)/src/mesh/libgnunetmesh.la \
   $(GN_LIBINTL)
 
+if HAVE_MHD
+ VPN_TEST = \
+ test_gnunet_vpn-4_to_6 \
+ test_gnunet_vpn-6_to_4 \
+ test_gnunet_vpn-6_over \
+ test_gnunet_vpn-4_over \
+ test_gns_vpn
+endif
+
 check_PROGRAMS = $(VPN_TEST)
 
 if ENABLE_TEST_RUN
@@ -40,14 +49,6 @@ EXTRA_DIST = \
  test_gnunet_vpn.conf \
  test_gns_vpn.conf
 
-if HAVE_MHD
- VPN_TEST = \
- test_gnunet_vpn-4_to_6 \
- test_gnunet_vpn-6_to_4 \
- test_gnunet_vpn-6_over \
- test_gnunet_vpn-4_over \
- test_gns_vpn
-endif
 
 
 test_gns_vpn_SOURCES = \
@@ -56,7 +57,7 @@ test_gns_vpn_LDADD = -lmicrohttpd @LIBCURL@ \
  $(top_builddir)/src/namestore/libgnunetnamestore.la \
  $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/util/libgnunetutil.la
-test_gnunet_vpn_4_over_CPPFLAGS = \
+test_gns_vpn_CPPFLAGS = \
  @LIBCURL_CPPFLAGS@
 
 test_gnunet_vpn_4_over_SOURCES = \
