@@ -22,10 +22,128 @@
  * @brief test for regex.c
  * @author Maximilian Szengel
  */
-#include <regex.h>
-#include <time.h>
 #include "platform.h"
 #include "gnunet_regex_lib.h"
+#include "regex_internal.h"
+
+
+/**
+ * Test if the given regex's canonical regex is the same as this canonical
+ * regex's canonical regex. Confused? Ok, then: 1. construct a dfa A from the
+ * given 'regex' 2. get the canonical regex of dfa A 3. construct a dfa B from
+ * this canonical regex 3. compare the canonical regex of dfa A with the
+ * canonical regex of dfa B.
+ *
+ * @param regex regular expression used for this test (see above).
+ *
+ * @return 0 on success, 1 on failure
+ */
+unsigned int
+test_proof (const char *regex)
+{
+  unsigned int error;
+  struct GNUNET_REGEX_Automaton *dfa;
+  char *c_rx1;
+  const char *c_rx2;
+
+  dfa = GNUNET_REGEX_construct_dfa (regex, strlen (regex));
+  c_rx1 = GNUNET_strdup (GNUNET_REGEX_get_canonical_regex (dfa));
+  GNUNET_REGEX_automaton_destroy (dfa);
+  dfa = GNUNET_REGEX_construct_dfa (c_rx1, strlen (c_rx1));
+  c_rx2 = GNUNET_REGEX_get_canonical_regex (dfa);
+
+  error = (0 == strcmp (c_rx1, c_rx2)) ? 0 : 1;
+
+  if (error > 0)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Comparing canonical regex of\n%s\nfailed:\n%s\nvs.\n%s\n",
+                regex, c_rx1, c_rx2);
+  }
+
+  GNUNET_free (c_rx1);
+  GNUNET_REGEX_automaton_destroy (dfa);
+
+  return error;
+}
+
+/**
+ * Use 'test_proof' function to randomly test the canonical regexes of 'count'
+ * random expressions of length 'rx_length'.
+ *
+ * @param count number of random regular expressions to test.
+ * @param rx_length length of the random regular expressions.
+ *
+ * @return 0 on succes, number of failures otherwise.
+ */
+unsigned int
+test_proofs_random (unsigned int count, size_t rx_length)
+{
+  unsigned int i;
+  char *rand_rx;
+  unsigned int failures;
+
+  failures = 0;
+
+  for (i = 0; i < count; i++)
+  {
+    rand_rx = GNUNET_REGEX_generate_random_regex (rx_length, NULL);
+    failures += test_proof (rand_rx);
+    GNUNET_free (rand_rx);
+  }
+
+  return failures;
+}
+
+/**
+ * Test a number of known examples of regexes for proper canonicalization.
+ *
+ * @return 0 on success, number of failures otherwise.
+ */
+unsigned int
+test_proofs_static (void)
+{
+  unsigned int i;
+  unsigned int error;
+
+  const char *regex[4] = {
+    "a|aa*a",
+    "a+",
+    "a*",
+    "a*a*"
+  };
+
+  char *canonical_regex;
+  struct GNUNET_REGEX_Automaton *dfa;
+
+  error = 0;
+
+  for (i = 0; i < 4; i += 2)
+  {
+    dfa = GNUNET_REGEX_construct_dfa (regex[i], strlen (regex[i]));
+    canonical_regex = GNUNET_strdup (GNUNET_REGEX_get_canonical_regex (dfa));
+    GNUNET_REGEX_automaton_destroy (dfa);
+
+    dfa = GNUNET_REGEX_construct_dfa (regex[i + 1], strlen (regex[i + 1]));
+    error +=
+        (0 ==
+         strcmp (canonical_regex,
+                 GNUNET_REGEX_get_canonical_regex (dfa))) ? 0 : 1;
+
+    if (error > 0)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Comparing canonical regex of %s with %s failed.\n", regex[i],
+                  regex[i + 1]);
+    }
+
+    GNUNET_free (canonical_regex);
+    GNUNET_REGEX_automaton_destroy (dfa);
+  }
+
+  return error;
+}
+
 
 int
 main (int argc, char *argv[])
@@ -39,51 +157,11 @@ main (int argc, char *argv[])
                     NULL);
 
   int error;
-  int i;
-
-  const char *regex[21] = {
-    "ab(c|d)+c*(a(b|c)+d)+(bla)+",
-    "(bla)*",
-    "b(lab)*la",
-    "(ab)*",
-    "ab(c|d)+c*(a(b|c)+d)+(bla)(bla)*",
-    "z(abc|def)?xyz",
-    "1*0(0|1)*",
-    "a+X*y+c|p|R|Z*K*y*R+w|Y*6+n+h*k*w+V*F|W*B*e*",
-    "(cd|ab)*",
-    "abcd:(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1):(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)",
-    "abc(1|0)*def",
-    "ab|ac",
-    "(ab)(ab)*",
-    "ab|cd|ef|gh",
-    "a|b|c|d|e|f|g",
-    "(ab)|(ac)",
-    "a(b|c)",
-    "a*a",
-    "ab?(abcd)?",
-    "(ab|cs|df|sdf)*",
-    "a|aa*a"
-  };
-  char *canonical_regex;
-  struct GNUNET_REGEX_Automaton *dfa;
 
   error = 0;
 
-  for (i = 0; i < 21; i++)
-  {
-    dfa = GNUNET_REGEX_construct_dfa (regex[i], strlen (regex[i]));
-    canonical_regex = GNUNET_strdup (GNUNET_REGEX_get_canonical_regex (dfa));
-    GNUNET_REGEX_automaton_destroy (dfa);
-
-    dfa =
-        GNUNET_REGEX_construct_dfa (canonical_regex, strlen (canonical_regex));
-    error +=
-        (0 ==
-         strcmp (canonical_regex,
-                 GNUNET_REGEX_get_canonical_regex (dfa))) ? 0 : 1;
-    GNUNET_free (canonical_regex);
-    GNUNET_REGEX_automaton_destroy (dfa);
-  }
+  error += test_proofs_static ();
+//  error += test_proofs_random (100, 10);
 
   return error;
 }

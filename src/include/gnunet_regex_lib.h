@@ -42,6 +42,7 @@ extern "C"
  */
 struct GNUNET_REGEX_Automaton;
 
+
 /**
  * Edge representation.
  */
@@ -58,6 +59,7 @@ struct GNUNET_REGEX_Edge
   struct GNUNET_HashCode destination;
 };
 
+
 /**
  * Construct an NFA by parsing the regex string of length 'len'.
  *
@@ -68,6 +70,7 @@ struct GNUNET_REGEX_Edge
  */
 struct GNUNET_REGEX_Automaton *
 GNUNET_REGEX_construct_nfa (const char *regex, const size_t len);
+
 
 /**
  * Construct DFA for the given 'regex' of length 'len'.
@@ -80,6 +83,7 @@ GNUNET_REGEX_construct_nfa (const char *regex, const size_t len);
 struct GNUNET_REGEX_Automaton *
 GNUNET_REGEX_construct_dfa (const char *regex, const size_t len);
 
+
 /**
  * Free the memory allocated by constructing the GNUNET_REGEX_Automaton.
  * data structure.
@@ -88,6 +92,7 @@ GNUNET_REGEX_construct_dfa (const char *regex, const size_t len);
  */
 void
 GNUNET_REGEX_automaton_destroy (struct GNUNET_REGEX_Automaton *a);
+
 
 /**
  * Save the given automaton as a GraphViz dot file.
@@ -111,19 +116,6 @@ int
 GNUNET_REGEX_eval (struct GNUNET_REGEX_Automaton *a,
                    const char *string);
 
-/** 
- * Get the canonical regex of the given automaton.
- * When constructing the automaton a proof is computed for each state,
- * consisting of the regular expression leading to this state. A complete
- * regex for the automaton can be computed by combining these proofs.
- * As of now this function is only useful for testing.
- * 
- * @param a automaton for which the canonical regex should be returned.
- * 
- * @return 
- */
-const char *
-GNUNET_REGEX_get_canonical_regex (struct GNUNET_REGEX_Automaton *a);
 
 /**
  * Get the first key for the given 'input_string'. This hashes
@@ -140,6 +132,7 @@ unsigned int /* FIXME: size_t */
 GNUNET_REGEX_get_first_key (const char *input_string, /* FIXME: size_t */ unsigned int string_len,
                             struct GNUNET_HashCode * key);
 
+
 /**
  * Check if the given 'proof' matches the given 'key'.
  *
@@ -151,6 +144,7 @@ GNUNET_REGEX_get_first_key (const char *input_string, /* FIXME: size_t */ unsign
 int
 GNUNET_REGEX_check_proof (const char *proof,
                           const struct GNUNET_HashCode *key);
+
 
 /**
  * Iterator callback function.
@@ -169,6 +163,7 @@ typedef void (*GNUNET_REGEX_KeyIterator)(void *cls,
                                          unsigned int num_edges,
                                          const struct GNUNET_REGEX_Edge *edges);
 
+
 /**
  * Iterate over all edges starting from start state of automaton 'a'. Calling
  * iterator for each edge.
@@ -181,6 +176,7 @@ void
 GNUNET_REGEX_iterate_all_edges (struct GNUNET_REGEX_Automaton *a,
                                 GNUNET_REGEX_KeyIterator iterator,
                                 void *iterator_cls);
+
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

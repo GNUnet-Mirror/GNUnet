@@ -26,7 +26,7 @@
 #include "gnunet_container_lib.h"
 #include "gnunet_crypto_lib.h"
 #include "gnunet_regex_lib.h"
-#include "regex.h"
+#include "regex_internal.h"
 
 /**
  * Constant for how many bits the initial string regex should have.
@@ -1078,12 +1078,6 @@ automaton_create_proofs (struct GNUNET_REGEX_Automaton *a)
         GNUNET_asprintf (&R_last[i][j], "%s|%c", R_last[i][j], t->label);
         GNUNET_free (temp_a);
       }
-      if (GNUNET_YES == needs_parentheses (R_last[i][j]))
-      {
-        temp_a = R_last[i][j];
-        GNUNET_asprintf (&R_last[i][j], "(%s)", R_last[i][j]);
-        GNUNET_free (temp_a);
-      }
     }
     if (NULL == R_last[i][i])
       GNUNET_asprintf (&R_last[i][i], "");
@@ -1094,7 +1088,16 @@ automaton_create_proofs (struct GNUNET_REGEX_Automaton *a)
       GNUNET_free (temp_a);
     }
   }
+  for (i = 0; i < n; i++)
+    for (j = 0; j < n; j++)
+      if (needs_parentheses (R_last[i][j]))
+      {
+        temp_a = R_last[i][j];
+        GNUNET_asprintf (&R_last[i][j], "(%s)", R_last[i][j]);
+        GNUNET_free (temp_a);
+      }
 
+  // TODO: clean up and fix the induction part
 
   // INDUCTION
   for (k = 0; k < n; k++)

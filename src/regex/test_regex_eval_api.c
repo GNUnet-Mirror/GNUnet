@@ -26,6 +26,7 @@
 #include <time.h>
 #include "platform.h"
 #include "gnunet_regex_lib.h"
+#include "regex_internal.h"
 
 enum Match_Result
 {
@@ -41,8 +42,6 @@ struct Regex_String_Pair
   enum Match_Result expected_results[20];
 };
 
-static const char allowed_literals[] =
-    "0123456789" "ABCDEFGHIJKLMNOPQRSTUVWXYZ" "abcdefghijklmnopqrstuvwxyz";
 
 /**
  * Random regex test. Generate a random regex as well as 'str_count' strings to
@@ -60,15 +59,8 @@ test_random (unsigned int rx_length, unsigned int max_str_len,
              unsigned int str_count)
 {
   int i;
-  int j;
-  int rx_exp;
-  char rand_rx[rx_length + 1];
-  char matching_str[str_count][max_str_len + 1];
-  char *rand_rxp;
-  char *matching_strp;
-  int char_op_switch;
-  int last_was_op;
-  char current_char;
+  char *rand_rx;
+  char *matching_str;
   int eval;
   int eval_check;
   int eval_canonical;
@@ -77,7 +69,7 @@ test_random (unsigned int rx_length, unsigned int max_str_len,
   regmatch_t matchptr[1];
   char error[200];
   int result;
-  unsigned int str_len;
+  size_t str_len;
   char *canonical_regex;
 
   // At least one string is needed for matching
@@ -85,76 +77,20 @@ test_random (unsigned int rx_length, unsigned int max_str_len,
   // The string should be at least as long as the regex itself
   GNUNET_assert (max_str_len >= rx_length);
 
-  rand_rxp = rand_rx;
-  matching_strp = matching_str[0];
-  current_char = 0;
-  last_was_op = 1;
-
   // Generate random regex and a string that matches the regex
-  for (i = 0; i < rx_length; i++)
-  {
-    char_op_switch = 0 + (int) (1.0 * rand () / (RAND_MAX + 1.0));
-
-    if (0 == char_op_switch && !last_was_op)
-    {
-      last_was_op = 1;
-      rx_exp = rand () % 4;
-
-      switch (rx_exp)
-      {
-      case 0:
-        current_char = '+';
-        break;
-      case 1:
-        current_char = '*';
-        break;
-      case 2:
-        current_char = '?';
-        break;
-      case 3:
-        if (i < rx_length - 1)  // '|' cannot be at the end
-          current_char = '|';
-        else
-          current_char =
-              allowed_literals[rand () % (sizeof (allowed_literals) - 1)];
-        break;
-      }
-    }
-    else
-    {
-      current_char =
-          allowed_literals[rand () % (sizeof (allowed_literals) - 1)];
-      last_was_op = 0;
-    }
-
-    if (current_char != '+' && current_char != '*' && current_char != '?' &&
-        current_char != '|')
-    {
-      *matching_strp = current_char;
-      matching_strp++;
-    }
-
-    *rand_rxp = current_char;
-    rand_rxp++;
-  }
-  *rand_rxp = '\0';
-  *matching_strp = '\0';
-
-  // Generate some random strings for matching...
-  // Start at 1, because the first string is generated above during regex generation
-  for (i = 1; i < str_count; i++)
-  {
-    str_len = rand () % max_str_len;
-    for (j = 0; j < str_len; j++)
-      matching_str[i][j] =
-          allowed_literals[rand () % (sizeof (allowed_literals) - 1)];
-    matching_str[i][str_len] = '\0';
-  }
+  matching_str = GNUNET_malloc (rx_length + 1);
+  rand_rx = GNUNET_REGEX_generate_random_regex (rx_length, matching_str);
 
   // Now match
   result = 0;
   for (i = 0; i < str_count; i++)
   {
+    if (0 < i)
+    {
+      matching_str = GNUNET_REGEX_generate_random_string (max_str_len);
+      str_len = strlen (matching_str);
+    }
+
     // Match string using DFA
     dfa = GNUNET_REGEX_construct_dfa (rand_rx, strlen (rand_rx));
     if (NULL == dfa)
@@ -163,7 +99,7 @@ test_random (unsigned int rx_length, unsigned int max_str_len,
       return -1;
     }
 
-    eval = GNUNET_REGEX_eval (dfa, matching_str[i]);
+    eval = GNUNET_REGEX_eval (dfa, matching_str);
     canonical_regex = GNUNET_strdup (GNUNET_REGEX_get_canonical_regex (dfa));
     GNUNET_REGEX_automaton_destroy (dfa);
 
@@ -175,7 +111,7 @@ test_random (unsigned int rx_length, unsigned int max_str_len,
       return -1;
     }
 
-    eval_check = regexec (&rx, matching_str[i], 1, matchptr, 0);
+    eval_check = regexec (&rx, matching_str, 1, matchptr, 0);
     regfree (&rx);
 
     // Match canonical regex
@@ -187,14 +123,13 @@ test_random (unsigned int rx_length, unsigned int max_str_len,
       return -1;
     }
 
-    eval_canonical = regexec (&rx, matching_str[i], 1, matchptr, 0);
+    eval_canonical = regexec (&rx, matching_str, 1, matchptr, 0);
     regfree (&rx);
     GNUNET_free (canonical_regex);
 
     // We only want to match the whole string, because that's what our DFA does, too.
     if (eval_check == 0 &&
-        (matchptr[0].rm_so != 0 ||
-         matchptr[0].rm_eo != strlen (matching_str[i])))
+        (matchptr[0].rm_so != 0 || matchptr[0].rm_eo != strlen (matching_str)))
       eval_check = 1;
 
     // compare result
@@ -206,7 +141,12 @@ test_random (unsigned int rx_length, unsigned int max_str_len,
                   rand_rx, matching_str, eval, eval_check, error);
       result += 1;
     }
+
+    GNUNET_free (matching_str);
   }
+
+  GNUNET_free (rand_rx);
+
   return result;
 }
 
