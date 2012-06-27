@@ -8,7 +8,7 @@ endif
 
 if LINUX
 # All of these currently only work on GNU/Linux
- LINUX_DIR = dns gns exit vpn pt
+ LINUX_DIR = dns vpn gns exit pt
 endif
 
 if HAVE_MYSQL
