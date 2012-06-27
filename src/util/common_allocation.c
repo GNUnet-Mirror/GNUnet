@@ -251,7 +251,7 @@ GNUNET_xstrndup_ (const char *str, size_t len, const char *filename,
   len = GNUNET_MIN (len, strlen (str));
   res = GNUNET_xmalloc_ (len + 1, filename, linenumber);
   memcpy (res, str, len);
-  res[len] = '\0';
+  /* res[len] = '\0'; 'malloc' zeros out anyway */
   return res;
 }
 
