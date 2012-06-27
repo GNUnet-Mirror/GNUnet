@@ -140,46 +140,55 @@ GNUNET_CONFIGURATION_destroy (struct GNUNET_CONFIGURATION_Handle *cfg)
 
 
 /**
- * Parse a configuration file, add all of the options in the
- * file to the configuration environment.
+ * De-serializes configuration
  *
  * @param cfg configuration to update
- * @param filename name of the configuration file
- * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ * @param mem the memory block of serialized configuration
+ * @param size the size of the memory block
+ * @param allow_inline set to GNUNET_YES if we recursively load configuration
+ *          from inlined configurations; GNUNET_NO if not and raise warnings
+ *          when we come across them
+ * @return GNUNET_OK on success, GNUNET_ERROR on error
  */
 int
-GNUNET_CONFIGURATION_parse (struct GNUNET_CONFIGURATION_Handle *cfg,
-                            const char *filename)
+GNUNET_CONFIGURATION_deserialize (struct GNUNET_CONFIGURATION_Handle *cfg,
+				  const char *mem,
+				  const size_t size,
+				  int allow_inline)
 {
-  int dirty;
   char line[256];
   char tag[64];
   char value[192];
-  FILE *fp;
+  char *pos;
   unsigned int nr;
+  size_t r_bytes;
+  size_t to_read;
   int i;
   int emptyline;
   int ret;
   char *section;
-  char *fn;
 
-  fn = GNUNET_STRINGS_filename_expand (filename);
-  if (fn == NULL)
-    return GNUNET_SYSERR;
-  dirty = cfg->dirty;           /* back up value! */
-  if (NULL == (fp = FOPEN (fn, "r")))
-  {
-    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "fopen", fn);
-    GNUNET_free (fn);
-    return GNUNET_SYSERR;
-  }
-  GNUNET_free (fn);
   ret = GNUNET_OK;
   section = GNUNET_strdup ("");
-  memset (line, 0, 256);
   nr = 0;
-  while (NULL != fgets (line, 255, fp))
+  r_bytes = 0;
+  memset (line, 0, 256);
+  while (r_bytes < size)
   {
+    /* fgets-like behaviour on buffer. read size is 255 bytes */
+    to_read = size - r_bytes;
+    if (to_read > 255)
+      to_read = 255;
+    memcpy (line, mem + r_bytes, to_read);
+    line[to_read] = '\0';
+    if (NULL != (pos = strstr (line, "\n")))
+    {
+      pos[1] = '\0';
+      r_bytes += (pos - line) + 1;
+    }
+    else
+      r_bytes += to_read;
+    /* fgets-like behaviour end */
     nr++;
     for (i = 0; i < 255; i++)
       if (line[i] == '\t')
@@ -197,10 +206,16 @@ GNUNET_CONFIGURATION_parse (struct GNUNET_CONFIGURATION_Handle *cfg,
          i--)
       line[i] = '\0';
     if (1 == SSCANF (line, "@INLINE@ %191[^\n]", value))
-    {
+    {      
       /* @INLINE@ value */
-      if (GNUNET_OK != GNUNET_CONFIGURATION_parse (cfg, value))
-        ret = GNUNET_SYSERR;    /* failed to parse included config */
+      if (GNUNET_YES == allow_inline)
+      {
+	if (GNUNET_OK != GNUNET_CONFIGURATION_parse (cfg, value))
+	  ret = GNUNET_SYSERR;    /* failed to parse included config */
+      }
+      else
+	LOG (GNUNET_ERROR_TYPE_DEBUG,
+	     "Ignoring parsing INLINE configurations as allow_inline is false\n");
     }
     else if (1 == SSCANF (line, "[%99[^]]]", value))
     {
@@ -241,17 +256,70 @@ GNUNET_CONFIGURATION_parse (struct GNUNET_CONFIGURATION_Handle *cfg,
     {
       /* parse error */
       LOG (GNUNET_ERROR_TYPE_WARNING,
-           _("Syntax error in configuration file `%s' at line %u.\n"), filename,
-           nr);
+           _("Syntax error while deserializing operation at line %u\n"), nr);
       ret = GNUNET_SYSERR;
       break;
     }
   }
-  GNUNET_assert (0 == FCLOSE (fp));
+  GNUNET_free (section);  
+  GNUNET_assert (r_bytes == size);
+  return ret;
+}
+
+
+/**
+ * Parse a configuration file, add all of the options in the
+ * file to the configuration environment.
+ *
+ * @param cfg configuration to update
+ * @param filename name of the configuration file
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ */
+int
+GNUNET_CONFIGURATION_parse (struct GNUNET_CONFIGURATION_Handle *cfg,
+                            const char *filename)
+{
+  uint64_t fs64;
+  size_t fs;
+  char *fn;
+  char *mem;
+  int dirty;
+  int ret;
+
+  fn = GNUNET_STRINGS_filename_expand (filename);
+  if (fn == NULL)
+    return GNUNET_SYSERR;
+  dirty = cfg->dirty;           /* back up value! */
+  if (GNUNET_SYSERR == 
+       GNUNET_DISK_file_size (fn, &fs64, GNUNET_YES, GNUNET_YES))
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+	 "Error while determining the file size of %s\n", fn);
+    GNUNET_free (fn);
+    return GNUNET_SYSERR;
+  }
+  if (fs64 > SIZE_MAX)
+  {
+    GNUNET_break (0); 		/* File size is more than the heap size */
+    GNUNET_free (fn);
+    return GNUNET_SYSERR;
+  }
+  fs = fs64;
+  mem = GNUNET_malloc (fs);
+  if (fs != GNUNET_DISK_fn_read (fn, mem, fs))
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+	 "Error while reading file %s\n", fn);
+    GNUNET_free (fn);
+    GNUNET_free (mem);
+    return GNUNET_SYSERR;
+  }
+  GNUNET_free (fn);
+  ret = GNUNET_CONFIGURATION_deserialize (cfg, mem, fs, GNUNET_YES);  
+  GNUNET_free (mem);
   /* restore dirty flag - anything we set in the meantime
    * came from disk */
   cfg->dirty = dirty;
-  GNUNET_free (section);
   return ret;
 }
 
