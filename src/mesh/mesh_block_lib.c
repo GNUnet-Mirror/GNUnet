@@ -66,25 +66,25 @@ int
 GNUNET_MESH_regex_block_check (const struct MeshRegexBlock *block,
                                size_t size)
 {
-  return GNUNET_MESH_regex_block_iterate(NULL, block, size, &check_edge);
+  return GNUNET_MESH_regex_block_iterate(block, size, &check_edge, NULL);
 }
 
 
 /**
  * Iterate over all edges of a block of a regex state.
  *
- * @param cls Closure for the iterator.
  * @param block Block to iterate over.
  * @param size Size of block.
  * @param iterator Function to call on each edge in the block.
+ * @param iter_cls Closure for the iterator.
  *
  * @return How many bytes of block have been processed
  */
 int
-GNUNET_MESH_regex_block_iterate (void *cls,
-                                 const struct MeshRegexBlock *block,
+GNUNET_MESH_regex_block_iterate (const struct MeshRegexBlock *block,
                                  size_t size,
-                                 GNUNET_MESH_EgdeIterator iterator)
+                                 GNUNET_MESH_EgdeIterator iterator,
+                                 void *iter_cls)
 {
   struct MeshRegexEdge *edge;
   unsigned int n;
@@ -115,7 +115,7 @@ GNUNET_MESH_regex_block_iterate (void *cls,
       return GNUNET_SYSERR;
     aux = (char *) &edge[1]; // Skip edge block
     if (NULL != iterator)
-        if (GNUNET_NO == iterator (cls, aux, n_token, &edge->key))
+        if (GNUNET_NO == iterator (iter_cls, aux, n_token, &edge->key))
             return GNUNET_OK;
     aux = &aux[n_token];     // Skip edge token
   }

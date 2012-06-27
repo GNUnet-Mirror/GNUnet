@@ -69,18 +69,18 @@ typedef int (*GNUNET_MESH_EgdeIterator)(void *cls,
 /**
  * Iterate over all edges of a block of a regex state.
  *
- * @param cls Closure for the iterator.
  * @param block Block to iterate over.
  * @param size Size of block.
  * @param iterator Function to call on each edge in the block.
+ * @param iter_cls Closure for the iterator.
  *
  * @return GNUNET_SYSERR if an error has been encountered, GNUNET_OK otherwise
  */
 int
-GNUNET_MESH_regex_block_iterate (void *cls,
-                                 const struct MeshRegexBlock *block,
+GNUNET_MESH_regex_block_iterate (const struct MeshRegexBlock *block,
                                  size_t size,
-                                 GNUNET_MESH_EgdeIterator iterator);
+                                 GNUNET_MESH_EgdeIterator iterator,
+                                 void *iter_cls);
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
