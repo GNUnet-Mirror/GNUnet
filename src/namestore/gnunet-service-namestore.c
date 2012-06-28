@@ -847,9 +847,6 @@ handle_record_put (void *cls,
 }
 
 
-/////////////////////////////////////////////////////////////
-
-
 /**
  * Context for record create operations passed from 'handle_record_create' to
  * 'handle_create_record_it' as closure
@@ -860,11 +857,6 @@ struct CreateRecordContext
    * Record data
    */
   const struct GNUNET_NAMESTORE_RecordData *rd;
-
-  /**
-   * Zone's private key
-   */
-  const struct GNUNET_CRYPTO_RsaPrivateKey *pkey;
 
   /**
    * Zone's public key
@@ -912,43 +904,46 @@ handle_create_record_it (void *cls,
 			 const struct GNUNET_NAMESTORE_RecordData *rd,
 			 const struct GNUNET_CRYPTO_RsaSignature *signature)
 {
+  static struct GNUNET_CRYPTO_RsaSignature dummy_signature;
   struct CreateRecordContext *crc = cls;
-  struct GNUNET_NAMESTORE_RecordData *rd_new = NULL;
-  struct GNUNET_CRYPTO_RsaSignature dummy_signature;
+  struct GNUNET_NAMESTORE_RecordData *rd_new;
   struct GNUNET_TIME_Absolute block_expiration;
-  int res;
-  int exist = GNUNET_SYSERR;
-  int update = GNUNET_NO;
-  int c;
-  int rd_count_new = 0;
+  int exist;
+  int update;
+  unsigned int c;
+  unsigned int rd_count_new;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      "Found %u existing records for `%s'\n", 
 	      rd_count, crc->name);
+  exist = -1;
+  update = GNUNET_NO;
   for (c = 0; c < rd_count; c++)
   {
-    if ( (crc->rd->record_type == GNUNET_NAMESTORE_TYPE_PKEY) && 
-	 (rd[c].record_type == GNUNET_NAMESTORE_TYPE_PKEY))
+    if (crc->rd->record_type != rd[c].record_type)
+      continue; /* no match */
+    if ( (GNUNET_NAMESTORE_TYPE_PKEY == crc->rd->record_type) ||
+	 (GNUNET_NAMESTORE_TYPE_PSEU == crc->rd->record_type) )
     {
-      /* Update unique PKEY */
+      /* Update unique PKEY or PSEU */
+      /* FIXME: should we do this test here? Is this not something
+	 that should be handled closer to the UI? If not, what 
+	 about othrer 'unique' record types like CNAME? */
       exist = c;
-      update = GNUNET_YES;
+      if ( (crc->rd->data_size != rd[c].data_size) ||
+	   (0 != memcmp (crc->rd->data, rd[c].data, rd[c].data_size)) ||
+	   (crc->rd->expiration_time != rd[c].expiration_time) ||
+	   ((crc->rd->flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION) 
+	    != (rd[c].flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION)) )
+	update = GNUNET_YES;
       break;
     }
-    if ( (crc->rd->record_type == GNUNET_NAMESTORE_TYPE_PSEU) && 
-	 (rd[c].record_type == GNUNET_NAMESTORE_TYPE_PSEU))
+    if ( (crc->rd->data_size == rd[c].data_size) &&
+	 (0 == memcmp (crc->rd->data, rd[c].data, rd[c].data_size)))
     {
-      /* Update unique PSEU */
-      exist = c;
-      update = GNUNET_YES;
-      break;
-    }
-    if ((crc->rd->record_type == rd[c].record_type) &&
-	(crc->rd->data_size == rd[c].data_size) &&
-	(0 == memcmp (crc->rd->data, rd[c].data, rd[c].data_size)))
-    {
+      /* FIXME: again, do we need to handle this special case here? */
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-		  "Found existing records for `%s' to update expiration date!\n",
+		  "Found matching existing record for `%s'; only updating expiration date!\n",
 		  crc->name);
       exist = c;
       if ( (crc->rd->expiration_time != rd[c].expiration_time) &&
@@ -959,93 +954,50 @@ handle_create_record_it (void *cls,
     }
   }
 
-  if (exist == GNUNET_SYSERR)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-		"No existing record for name `%s'!\n", 
-		crc->name);
-    rd_new = GNUNET_malloc ((rd_count+1) * sizeof (struct GNUNET_NAMESTORE_RecordData));
-    memcpy (rd_new, rd, rd_count * sizeof (struct GNUNET_NAMESTORE_RecordData));
-    rd_count_new = rd_count + 1;
-    rd_new[rd_count] = *(crc->rd);
-  }
-  else if (update == GNUNET_NO)
+  if ( (-1 != exist) &&
+       (GNUNET_NO == update) )
   {
     /* Exact same record already exists */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 		"Matching record for %s' exists, no change required!\n",
 		crc->name);
-    crc->res = GNUNET_NO;
+    crc->res = GNUNET_NO; /* identical record existed */
     return;
+  }
+  if (-1 == exist)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		"No existing record for name `%s'!\n", 
+		crc->name);
+    rd_count_new = rd_count + 1;
+    rd_new = GNUNET_malloc (rd_count_new * sizeof (struct GNUNET_NAMESTORE_RecordData));
+    memcpy (rd_new, rd, rd_count * sizeof (struct GNUNET_NAMESTORE_RecordData));
+    rd_new[rd_count] = *(crc->rd);
   }
   else 
   {
-    /* Update record */
-    GNUNET_assert (GNUNET_YES == update);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 		"Updating existing records for `%s'!\n", 
 		crc->name);
-    rd_new = GNUNET_malloc ((rd_count) * sizeof (struct GNUNET_NAMESTORE_RecordData));
-    memcpy (rd_new, rd, rd_count * sizeof (struct GNUNET_NAMESTORE_RecordData));
     rd_count_new = rd_count;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-		(0 == (crc->rd->flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION)) 
-		? "Updating absolute expiration from %llu to %llu!\n"
-		: "Updating relative expiration from %llu to %llu!\n", 
-		rd_new[exist].expiration_time, crc->rd->expiration_time);
+    rd_new = GNUNET_malloc (rd_count_new * sizeof (struct GNUNET_NAMESTORE_RecordData));
+    memcpy (rd_new, rd, rd_count * sizeof (struct GNUNET_NAMESTORE_RecordData));
     rd_new[exist] = *(crc->rd);
   }
-
-  block_expiration = GNUNET_TIME_absolute_max(crc->expire, expire);
-  if (block_expiration.abs_value != expire.abs_value)
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-		"Updated block expiration time\n");
-
-  memset (&dummy_signature, '\0', sizeof (dummy_signature));
-
-  /* Database operation */
-  GNUNET_assert ((rd_new != NULL) && (rd_count_new > 0));
-  res = GSN_database->put_records(GSN_database->cls,
-                                (const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *) crc->pubkey,
-                                block_expiration,
-                                crc->name,
-                                rd_count_new, rd_new,
-                                &dummy_signature);
-  GNUNET_break (GNUNET_OK == res);
-  if (res == GNUNET_OK)
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Successfully put record for `%s' in database \n", crc->name);
+  block_expiration = GNUNET_TIME_absolute_max (crc->expire, expire);
+  if (GNUNET_OK !=
+      GSN_database->put_records (GSN_database->cls,
+				 crc->pubkey,
+				 block_expiration,
+				 crc->name,
+				 rd_count_new, rd_new,
+				 &dummy_signature))
+    crc->res = GNUNET_SYSERR; /* error */
+  else if (GNUNET_YES == update)
+    crc->res = GNUNET_NO; /* update */
   else
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Failed to put record for `%s' in database \n", crc->name);
-  res = GNUNET_YES;
-
-  GNUNET_free_non_null (rd_new);
-
-  switch (res) {
-    case GNUNET_SYSERR:
-       /* failed to create the record */
-       crc->res = GNUNET_SYSERR;
-      break;
-    case GNUNET_YES:
-      /* database operations OK */
-      if (GNUNET_YES == update)
-      {
-        /* we updated an existing record */
-        crc->res = GNUNET_NO;
-      }
-      else
-      {
-        /* we created a new record */
-        crc->res = GNUNET_YES;
-      }
-      break;
-    case GNUNET_NO:
-        /* identical entry existed, so we did nothing */
-        crc->res = GNUNET_NO;
-      break;
-    default:
-      break;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Update result for name `%s' %u\n", crc->name, res);
+    crc->res = GNUNET_YES; /* created new record */
+  GNUNET_free (rd_new);
 }
 
 
@@ -1140,6 +1092,7 @@ handle_record_create (void *cls,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
+
   /* Extracting and converting private key */
   GNUNET_CRYPTO_rsa_key_get_public (pkey, &pub);
   GNUNET_CRYPTO_short_hash (&pub,
@@ -1153,7 +1106,8 @@ handle_record_create (void *cls,
 		"Received new private key for zone `%s'\n",
 		GNUNET_short_h2s(&pubkey_hash));
     cc = GNUNET_malloc (sizeof (struct GNUNET_NAMESTORE_CryptoContainer));
-    cc->privkey = GNUNET_CRYPTO_rsa_decode_key (pkey_tmp, key_len);
+    cc->privkey = pkey;
+    pkey = NULL;
     cc->zone = pubkey_hash;
     GNUNET_assert (GNUNET_YES ==
 		   GNUNET_CONTAINER_multihashmap_put(zonekeys, &long_hash, cc, 
@@ -1165,7 +1119,6 @@ handle_record_create (void *cls,
 	      name_tmp, GNUNET_short_h2s(&pubkey_hash));
   crc.expire = GNUNET_TIME_absolute_ntoh(rp_msg->expire);
   crc.res = GNUNET_SYSERR;
-  crc.pkey = pkey;
   crc.pubkey = &pub;
   crc.rd = &rd;
   crc.name = name_tmp;
@@ -1175,7 +1128,8 @@ handle_record_create (void *cls,
 				       &handle_create_record_it, &crc);
   if (res != GNUNET_SYSERR)
     res = GNUNET_OK;
-  GNUNET_CRYPTO_rsa_key_free (pkey);
+  if (NULL != pkey)
+    GNUNET_CRYPTO_rsa_key_free (pkey);
 
   /* Send response */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
@@ -1196,9 +1150,10 @@ handle_record_create (void *cls,
 }
 
 
+/////////////////////////////////////////////////////////////
+
+
 /**
- * RemoveRecordContext
- *
  * Context for record remove operations passed from 'handle_record_remove' to
  * 'handle_record_remove_it' as closure
  */
@@ -1207,40 +1162,39 @@ struct RemoveRecordContext
   /**
    * Record to remove
    */
-  struct GNUNET_NAMESTORE_RecordData *rd;
+  const struct GNUNET_NAMESTORE_RecordData *rd;
 
   /**
-   * Zone's private keys
+   * See RECORD_REMOVE_RESULT_*-codes.  Set by 'handle_record_remove_it'
+   * to the result of the operation.
    */
-  struct GNUNET_CRYPTO_RsaPrivateKey *pkey;
-
-  /**
-   * Name to remove
-   */
-  int remove_name;
-
-  /**
-   * 0 : Success
-   * 1 : Could not find record to remove, empty result set
-   * 2 : Could not find record to remove, record did not exist in result set
-   * 3 : Could not remove records from database
-   * 4 : Could not put records into database
-   */
-  uint16_t op_res;
+  int32_t op_res;
 };
 
 
 /**
- * FIXME...
+ * We are to remove a record (or all records for a given name).  This function
+ * will be called with the existing records (if there are any) and is to then
+ * compute what to keep and trigger the necessary changes.
+ *
+ * @param cls the 'struct RecordRemoveContext' with information about what to remove
+ * @param zone_key public key of the zone
+ * @param expire when does the corresponding block in the DHT expire (until
+ *               when should we never do a DHT lookup for the same name again)?
+ * @param name name that is being mapped (at most 255 characters long)
+ * @param rd_count number of entries in 'rd' array
+ * @param rd array of records with data to store
+ * @param signature signature of the record block, NULL if signature is unavailable (i.e. 
+ *        because the user queried for a particular record type only)
  */
 static void
 handle_record_remove_it (void *cls,
-    const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
-    struct GNUNET_TIME_Absolute expire,
-    const char *name,
-    unsigned int rd_count,
-    const struct GNUNET_NAMESTORE_RecordData *rd,
-    const struct GNUNET_CRYPTO_RsaSignature *signature)
+			 const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
+			 struct GNUNET_TIME_Absolute expire,
+			 const char *name,
+			 unsigned int rd_count,
+			 const struct GNUNET_NAMESTORE_RecordData *rd,
+			 const struct GNUNET_CRYPTO_RsaSignature *signature)
 {
   static struct GNUNET_CRYPTO_RsaSignature dummy_signature;
   struct RemoveRecordContext *rrc = cls;
@@ -1301,7 +1255,7 @@ handle_record_remove_it (void *cls,
 				      name))
     {
       /* Could not remove records from database */
-      rrc->op_res = RECORD_REMOVE_RESULT_FAILED_TO_SIGN; /* ??? */
+      rrc->op_res = RECORD_REMOVE_RESULT_FAILED_TO_REMOVE;
       return;
     }
     rrc->op_res = RECORD_REMOVE_RESULT_SUCCESS;
@@ -1469,7 +1423,6 @@ handle_record_remove (void *cls,
 		"Removing record for name `%s' in zone `%s'\n", name_tmp, 
 		GNUNET_short_h2s (&pubkey_hash));
     rrc.rd = &rd;
-    rrc.pkey = pkey;
     res = GSN_database->iterate_records (GSN_database->cls,
                                          &pubkey_hash,
                                          name_tmp,

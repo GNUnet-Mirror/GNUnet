@@ -423,6 +423,7 @@ struct RecordRemoveMessage
 
 /**
  * Internal error, failed to sign the remaining records.
+ * (Note: not used?)
  */
 #define RECORD_REMOVE_RESULT_FAILED_TO_SIGN 3
 
@@ -430,6 +431,12 @@ struct RecordRemoveMessage
  * Internal error, failed to store the updated record set
  */
 #define RECORD_REMOVE_RESULT_FAILED_TO_PUT_UPDATE 4
+
+/**
+ * Internal error, failed to remove records from database
+ */
+#define RECORD_REMOVE_RESULT_FAILED_TO_REMOVE 5
+
 
 /**
  * Remove a record from the namestore response

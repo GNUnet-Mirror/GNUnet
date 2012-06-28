@@ -418,6 +418,10 @@ handle_record_remove_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
     ret = GNUNET_SYSERR;
     emsg = _("Failed to put new set of records in database");
     break;
+  case RECORD_REMOVE_RESULT_FAILED_TO_REMOVE:
+    ret = GNUNET_SYSERR;
+    emsg = _("Failed to remove records from database");
+    break;
   default:
     GNUNET_break (0);
     ret = GNUNET_SYSERR;
