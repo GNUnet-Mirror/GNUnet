@@ -1133,7 +1133,7 @@ handle_record_create (void *cls,
     return;
   }
   if (GNUNET_OK !=
-      GNUNET_NAMESTORE_records_deserialize (rd_ser_len, rd_ser, 1, &rd))
+      GNUNET_NAMESTORE_records_deserialize (rd_ser_len, rd_ser, rd_count, &rd))
   {
     GNUNET_break (0);
     GNUNET_CRYPTO_rsa_key_free (pkey);
@@ -1358,6 +1358,7 @@ handle_record_remove (void *cls,
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pub;
   struct GNUNET_CRYPTO_ShortHashCode pubkey_hash;
   struct GNUNET_HashCode long_hash;
+  struct GNUNET_NAMESTORE_RecordData rd;
   const char *pkey_tmp;
   const char *name_tmp;
   const char *rd_ser;
@@ -1365,11 +1366,11 @@ handle_record_remove (void *cls,
   size_t name_len;
   size_t rd_ser_len;
   size_t msg_size;
-  size_t msg_size_exp = 0;
+  size_t msg_size_exp;
   uint32_t rd_count;
   uint32_t rid;
-
-  int res = GNUNET_SYSERR;
+  struct RemoveRecordContext rrc;
+  int res;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "NAMESTORE_RECORD_REMOVE");
   if (ntohs (message->size) < sizeof (struct RecordRemoveMessage))
@@ -1391,8 +1392,7 @@ handle_record_remove (void *cls,
   rd_count = ntohs (rr_msg->rd_count);
   key_len = ntohs (rr_msg->pkey_len);
   msg_size = ntohs (message->size);
-
-  if ((name_len >=MAX_NAME_LEN) || (0 == name_len))
+  if ((name_len >= MAX_NAME_LEN) || (0 == name_len) || (1 < rd_count) )
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
@@ -1421,9 +1421,10 @@ handle_record_remove (void *cls,
     return;
   }
   GNUNET_CRYPTO_rsa_key_get_public (pkey, &pub);
-  GNUNET_CRYPTO_short_hash (&pub, sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), &pubkey_hash);
+  GNUNET_CRYPTO_short_hash (&pub, 
+			    sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), 
+			    &pubkey_hash);
   GNUNET_CRYPTO_short_hash_double (&pubkey_hash, &long_hash);
-
   if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains (zonekeys, &long_hash))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
@@ -1437,26 +1438,24 @@ handle_record_remove (void *cls,
 						      &long_hash, cc, 
 						      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   }
-
-
-  struct GNUNET_NAMESTORE_RecordData rd[rd_count];
-  res = GNUNET_NAMESTORE_records_deserialize(rd_ser_len, rd_ser, rd_count, rd);
-  if ((res != GNUNET_OK) || (rd_count > 1))
+  if (GNUNET_OK !=
+      GNUNET_NAMESTORE_records_deserialize (rd_ser_len, rd_ser, rd_count, &rd))
   {
-    GNUNET_break_op (0);
-    goto send;
+    GNUNET_break (0);
+    GNUNET_CRYPTO_rsa_key_free (pkey);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
   }
 
   if (0 == rd_count)
   {
     /* remove the whole name and all records */
-    /* Database operation */
     res = GSN_database->remove_records (GSN_database->cls,
-                                         &pubkey_hash,
-                                         name_tmp);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Removing name `%s': %s\n",
-        name_tmp, (GNUNET_OK == res) ? "OK" : "FAIL");
-
+					&pubkey_hash,
+					name_tmp);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		"Removing name `%s': %s\n",
+		name_tmp, (GNUNET_OK == res) ? "OK" : "FAIL");
     if (GNUNET_OK != res)
       /* Could not remove entry from database */
       res = 4;
@@ -1466,40 +1465,39 @@ handle_record_remove (void *cls,
   else
   {
     /* remove a single record */
-    struct RemoveRecordContext rrc;
-    rrc.rd = rd;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		"Removing record for name `%s' in zone `%s'\n", name_tmp, 
+		GNUNET_short_h2s (&pubkey_hash));
+    rrc.rd = &rd;
     rrc.pkey = pkey;
-
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Removing record for name `%s' in zone `%s'\n", name_tmp, GNUNET_short_h2s(&pubkey_hash));
-
-    /* Database operation */
     res = GSN_database->iterate_records (GSN_database->cls,
                                          &pubkey_hash,
                                          name_tmp,
                                          0,
                                          handle_record_remove_it, &rrc);
 
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Removing record for name `%s': %s\n",
-        name_tmp, (rrc.op_res == 0) ? "OK" : "FAIL");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		"Removing record for name `%s': %s\n",
+		name_tmp, 
+		(0 == rrc.op_res) ? "OK" : "FAIL");
     res = rrc.op_res;
   }
-  /* Send response */
-send:
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message\n", "RECORD_REMOVE_RESPONSE");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Sending `%s' message\n",
+	      "RECORD_REMOVE_RESPONSE");
   rrr_msg.gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_REMOVE_RESPONSE);
   rrr_msg.gns_header.header.size = htons (sizeof (struct RecordRemoveResponseMessage));
   rrr_msg.gns_header.r_id = htonl (rid);
   rrr_msg.op_result = htonl (res);
-  GNUNET_SERVER_notification_context_unicast (snc, nc->client, (const struct GNUNET_MessageHeader *) &rrr_msg, GNUNET_NO);
-
+  GNUNET_SERVER_notification_context_unicast (snc, nc->client, 
+					      &rrr_msg.gns_header.header,
+					      GNUNET_NO);
   GNUNET_CRYPTO_rsa_key_free (pkey);
-
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
+
 /**
- * ZoneToNameCtx
- *
  * Context for record remove operations passed from 'handle_zone_to_name' to
  * 'handle_zone_to_name_it' as closure
  */
@@ -1514,6 +1512,11 @@ struct ZoneToNameCtx
    * Request id
    */
   uint32_t rid;
+
+  /**
+   * Set to GNUNET_OK on success, GNUNET_SYSERR on error
+   */
+  int success;
 };
 
 
@@ -1530,22 +1533,19 @@ struct ZoneToNameCtx
  */
 static void
 handle_zone_to_name_it (void *cls,
-    const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
-    struct GNUNET_TIME_Absolute expire,
-    const char *name,
-    unsigned int rd_count,
-    const struct GNUNET_NAMESTORE_RecordData *rd,
-    const struct GNUNET_CRYPTO_RsaSignature *signature)
+			const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
+			struct GNUNET_TIME_Absolute expire,
+			const char *name,
+			unsigned int rd_count,
+			const struct GNUNET_NAMESTORE_RecordData *rd,
+			const struct GNUNET_CRYPTO_RsaSignature *signature)
 {
   struct ZoneToNameCtx *ztn_ctx = cls;
   struct ZoneToNameResponseMessage *ztnr_msg;
-  int16_t res = GNUNET_SYSERR;
-  uint16_t name_len = 0;
-  uint16_t rd_ser_len = 0 ;
-  int32_t contains_sig = 0;
-  size_t msg_size = 0;
-
-  char *rd_ser = NULL;
+  int16_t res;
+  size_t name_len;
+  size_t rd_ser_len;
+  size_t msg_size;
   char *name_tmp;
   char *rd_tmp;
   char *sig_tmp;
@@ -1555,7 +1555,7 @@ handle_zone_to_name_it (void *cls,
     /* found result */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found results: name is `%s', has %u records\n", name, rd_count);
     res = GNUNET_YES;
-    name_len = strlen (name) +1;
+    name_len = strlen (name) + 1;
   }
   else
   {
@@ -1566,27 +1566,23 @@ handle_zone_to_name_it (void *cls,
   }
 
   if (rd_count > 0)
-  {
     rd_ser_len = GNUNET_NAMESTORE_records_get_size (rd_count, rd);
-    rd_ser = GNUNET_malloc (rd_ser_len);
-    GNUNET_NAMESTORE_records_serialize(rd_count, rd, rd_ser_len, rd_ser);
-  }
   else
     rd_ser_len = 0;
 
-  if (signature != NULL)
-    contains_sig = GNUNET_YES;
-  else
-    contains_sig = GNUNET_NO;
-
-  msg_size = sizeof (struct ZoneToNameResponseMessage) + name_len + rd_ser_len + contains_sig * sizeof (struct GNUNET_CRYPTO_RsaSignature);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Sending `%s' message\n", 
+	      "ZONE_TO_NAME_RESPONSE");
+  msg_size = sizeof (struct ZoneToNameResponseMessage) + name_len + rd_ser_len;
+  if (NULL != signature)
+    msg_size += sizeof (struct GNUNET_CRYPTO_RsaSignature);
+  if (msg_size >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  {
+    GNUNET_break (0);
+    ztn_ctx->success = GNUNET_SYSERR;
+    return;
+  }
   ztnr_msg = GNUNET_malloc (msg_size);
-
-  name_tmp = (char *) &ztnr_msg[1];
-  rd_tmp = &name_tmp[name_len];
-  sig_tmp = &rd_tmp[rd_ser_len];
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message\n", "ZONE_TO_NAME_RESPONSE");
   ztnr_msg->gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_TO_NAME_RESPONSE);
   ztnr_msg->gns_header.header.size = htons (msg_size);
   ztnr_msg->gns_header.r_id = htonl (ztn_ctx->rid);
@@ -1594,24 +1590,22 @@ handle_zone_to_name_it (void *cls,
   ztnr_msg->rd_len = htons (rd_ser_len);
   ztnr_msg->rd_count = htons (rd_count);
   ztnr_msg->name_len = htons (name_len);
-  ztnr_msg->expire = GNUNET_TIME_absolute_hton(expire);
-  if (zone_key != NULL)
+  ztnr_msg->expire = GNUNET_TIME_absolute_hton (expire);
+  if (NULL != zone_key)
     ztnr_msg->zone_key = *zone_key;
-  else
-    memset (&ztnr_msg->zone_key, '\0', sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded));
-
-  if ((name_len > 0) && (name != NULL))
+  name_tmp = (char *) &ztnr_msg[1];
+  if (NULL != name)
     memcpy (name_tmp, name, name_len);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Name is `%s', has %u records, rd ser len %u msg_size %u\n", name, rd_count, rd_ser_len, msg_size);
-  if ((rd_ser_len > 0) && (rd_ser != NULL))
-    memcpy (rd_tmp, rd_ser, rd_ser_len);
-  if ((GNUNET_YES == contains_sig) && (signature != NULL))
-    memcpy (sig_tmp, signature, contains_sig * sizeof (struct GNUNET_CRYPTO_RsaSignature));
-
-  GNUNET_SERVER_notification_context_unicast (snc, ztn_ctx->nc->client, (const struct GNUNET_MessageHeader *) ztnr_msg, GNUNET_NO);
+  rd_tmp = &name_tmp[name_len];
+  GNUNET_NAMESTORE_records_serialize (rd_count, rd, rd_ser_len, rd_tmp);
+  sig_tmp = &rd_tmp[rd_ser_len];
+  if (NULL != signature)
+    memcpy (sig_tmp, signature, sizeof (struct GNUNET_CRYPTO_RsaSignature));
+  ztn_ctx->success = GNUNET_OK;
+  GNUNET_SERVER_notification_context_unicast (snc, ztn_ctx->nc->client,
+					      &ztnr_msg->gns_header.header,
+					      GNUNET_NO);
   GNUNET_free (ztnr_msg);
-  GNUNET_free_non_null (rd_ser);
 }
 
 
@@ -1627,51 +1621,34 @@ handle_zone_to_name (void *cls,
                      struct GNUNET_SERVER_Client *client,
                      const struct GNUNET_MessageHeader *message)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "ZONE_TO_NAME");
   struct GNUNET_NAMESTORE_Client *nc;
-  struct ZoneToNameMessage *ztn_msg;
+  const struct ZoneToNameMessage *ztn_msg;
   struct ZoneToNameCtx ztn_ctx;
-  size_t msg_size = 0;
-  uint32_t rid = 0;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Received `%s' message\n",
+	      "ZONE_TO_NAME");
   if (ntohs (message->size) != sizeof (struct ZoneToNameMessage))
   {
-    GNUNET_break_op (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-
-  nc = client_lookup(client);
-  if (nc == NULL)
+  if (NULL == (nc = client_lookup(client)))
   {
-    GNUNET_break_op (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-
-  ztn_msg = (struct ZoneToNameMessage *) message;
-
-  if (msg_size > GNUNET_SERVER_MAX_MESSAGE_SIZE)
-  {
-    GNUNET_break_op (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_OK);
-    return;
-  }
-
-  rid = ntohl (ztn_msg->gns_header.r_id);
-
-  ztn_ctx.rid = rid;
+  ztn_msg = (const struct ZoneToNameMessage *) message;
+  ztn_ctx.rid = ntohl (ztn_msg->gns_header.r_id);
   ztn_ctx.nc = nc;
-
-  struct GNUNET_CRYPTO_ShortHashAsciiEncoded z_tmp;
-  GNUNET_CRYPTO_short_hash_to_enc(&ztn_msg->zone, &z_tmp);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Looking up name for zone `%s' in zone `%s'\n",
-      (char *) &z_tmp,
-      GNUNET_short_h2s (&ztn_msg->value_zone));
-
-  GSN_database->zone_to_name (GSN_database->cls, &ztn_msg->zone, &ztn_msg->value_zone, &handle_zone_to_name_it, &ztn_ctx);
-
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  ztn_ctx.success = GNUNET_SYSERR;
+  GSN_database->zone_to_name (GSN_database->cls, 
+			      &ztn_msg->zone,
+			      &ztn_msg->value_zone,
+			      &handle_zone_to_name_it, &ztn_ctx);
+  GNUNET_SERVER_receive_done (client, ztn_ctx.success);
 }
 
 
@@ -1682,7 +1659,8 @@ handle_zone_to_name (void *cls,
  * @param dest destination record
  */
 static void
-copy_record (const struct GNUNET_NAMESTORE_RecordData *src, struct GNUNET_NAMESTORE_RecordData *dest)
+copy_record (const struct GNUNET_NAMESTORE_RecordData *src,
+	     struct GNUNET_NAMESTORE_RecordData *dest)
 {
   memcpy (dest, src, sizeof (struct GNUNET_NAMESTORE_RecordData));
   dest->data = GNUNET_malloc (src->data_size);
@@ -1691,8 +1669,6 @@ copy_record (const struct GNUNET_NAMESTORE_RecordData *src, struct GNUNET_NAMEST
 
 
 /**
- * ZoneIterationProcResult
- *
  * Context for record remove operations passed from
  * 'find_next_zone_iteration_result' to 'zone_iteraterate_proc' as closure
  */
@@ -1719,7 +1695,7 @@ struct ZoneIterationProcResult
   int has_signature;
 
   /**
-   * Name
+   * Name????
    */
   char *name;
 
