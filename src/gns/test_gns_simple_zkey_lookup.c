@@ -37,7 +37,7 @@
 #define VERBOSE GNUNET_YES
 
 /* Timeout for entire testcase */
-#define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 20)
+#define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 40)
 
 /* If number of peers not in config file, use this number */
 #define DEFAULT_NUM_PEERS 2
@@ -101,7 +101,7 @@ on_lookup_result(void *cls, uint32_t rd_count,
   if (rd_count == 0)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Lookup failed, rp_filtering?\n");
+                "Lookup failed\n");
     ok = 2;
   }
   else
@@ -314,12 +314,9 @@ check ()
   int ret;
 
   /* Arguments for GNUNET_PROGRAM_run */
-  char *const argv[] = { "test-gns-simple-delegated-lookup", /* Name to give running binary */
+  char *const argv[] = { "test-gns-simple-zkey-lookup", /* Name to give running binary */
     "-c",
     "test_gns_simple_lookup.conf",       /* Config file to use */
-#if VERBOSE
-    "-L", "DEBUG",
-#endif
     NULL
   };
   struct GNUNET_GETOPT_CommandLineOption options[] = {
@@ -328,12 +325,12 @@ check ()
   /* Run the run function as a new program */
   ret =
       GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv,
-                          "test-gns-simple-delegated-lookup", "nohelp", options, &run,
+                          "test-gns-simple-zkey-lookup", "nohelp", options, &run,
                           &ok);
   if (ret != GNUNET_OK)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "`test-gns-simple-delegated-lookup': Failed with error code %d\n", ret);
+                "`test-gns-simple-zkey-lookup': Failed with error code %d\n", ret);
   }
   return ok;
 }
@@ -343,12 +340,8 @@ main (int argc, char *argv[])
 {
   int ret;
 
-  GNUNET_log_setup ("test-gns-simple-lookup",
-#if VERBOSE
-                    "DEBUG",
-#else
+  GNUNET_log_setup ("test-gns-simple-zkey-lookup",
                     "WARNING",
-#endif
                     NULL);
   ret = check ();
   /**
