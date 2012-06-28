@@ -422,6 +422,14 @@ handle_record_remove_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
     ret = GNUNET_SYSERR;
     emsg = _("Failed to remove records from database");
     break;
+  case RECORD_REMOVE_RESULT_FAILED_ACCESS_DATABASE:
+    ret = GNUNET_SYSERR;
+    emsg = _("Failed to access database");
+    break;
+  case RECORD_REMOVE_RESULT_FAILED_INTERNAL_ERROR:
+    ret = GNUNET_SYSERR;
+    emsg = _("unknown internal error in namestore");
+    break;
   default:
     GNUNET_break (0);
     ret = GNUNET_SYSERR;

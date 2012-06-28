@@ -370,6 +370,7 @@ namestore_postgres_put_records (void *cls,
  * @param iter iterator to call with the result
  * @param iter_cls closure for 'iter'
  * @return GNUNET_OK on success, GNUNET_NO if there were no results, GNUNET_SYSERR on error
+ *       'iter' will have been called unless the return value is 'GNUNET_SYSERR'
  */
 static int
 get_record_and_call_iterator (struct Plugin *plugin,
@@ -466,6 +467,7 @@ get_record_and_call_iterator (struct Plugin *plugin,
  * @param iter function to call with the result
  * @param iter_cls closure for iter
  * @return GNUNET_OK on success, GNUNET_NO if there were no results, GNUNET_SYSERR on error
+ *       'iter' will have been called unless the return value is 'GNUNET_SYSERR'
  */
 static int 
 namestore_postgres_iterate_records (void *cls, 
@@ -544,6 +546,7 @@ namestore_postgres_iterate_records (void *cls,
  * @param iter function to call with the result
  * @param iter_cls closure for iter
  * @return GNUNET_OK on success, GNUNET_NO if there were no results, GNUNET_SYSERR on error
+ *       'iter' will have been called unless the return value is 'GNUNET_SYSERR'
  */
 static int
 namestore_postgres_zone_to_name (void *cls, 

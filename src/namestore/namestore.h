@@ -437,6 +437,16 @@ struct RecordRemoveMessage
  */
 #define RECORD_REMOVE_RESULT_FAILED_TO_REMOVE 5
 
+/**
+ * Internal error, failed to access database
+ */
+#define RECORD_REMOVE_RESULT_FAILED_ACCESS_DATABASE 6
+
+/**
+ * Internal error, failed to access database
+ */
+#define RECORD_REMOVE_RESULT_FAILED_INTERNAL_ERROR 7
+
 
 /**
  * Remove a record from the namestore response

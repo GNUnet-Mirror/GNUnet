@@ -752,7 +752,6 @@ namestore_sqlite_zone_to_name (void *cls,
 		  "sqlite3_reset");
     return GNUNET_SYSERR;
   }      
-
   return get_record_and_call_iterator (plugin, stmt, iter, iter_cls);
 }
 
