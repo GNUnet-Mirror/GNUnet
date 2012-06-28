@@ -297,6 +297,44 @@ zone_to_disk_it (void *cls,
 
 
 /**
+ * Add the given private key to the set of private keys
+ * this namestore can use to sign records when needed.
+ *
+ * @param pkey private key to add to our list (reference will
+ *        be taken over or freed and should not be used afterwards)
+ */
+static void
+learn_private_key (struct GNUNET_CRYPTO_RsaPrivateKey *pkey)
+{
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pub;
+  struct GNUNET_HashCode long_hash;
+  struct GNUNET_CRYPTO_ShortHashCode pubkey_hash;
+  struct GNUNET_NAMESTORE_CryptoContainer *cc;
+
+  GNUNET_CRYPTO_rsa_key_get_public (pkey, &pub);
+  GNUNET_CRYPTO_short_hash (&pub,
+			    sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+			    &pubkey_hash);
+  GNUNET_CRYPTO_short_hash_double (&pubkey_hash, &long_hash);
+
+  if (GNUNET_NO != GNUNET_CONTAINER_multihashmap_contains(zonekeys, &long_hash))
+  {
+    GNUNET_CRYPTO_rsa_key_free (pkey);
+    return;
+  }  
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Received new private key for zone `%s'\n",
+	      GNUNET_short_h2s(&pubkey_hash));
+  cc = GNUNET_malloc (sizeof (struct GNUNET_NAMESTORE_CryptoContainer));
+  cc->privkey = pkey;
+  cc->zone = pubkey_hash;
+  GNUNET_assert (GNUNET_YES ==
+		 GNUNET_CONTAINER_multihashmap_put(zonekeys, &long_hash, cc, 
+						   GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));  
+}
+
+
+/**
  * Returns the expiration time of the given block of records. The block
  * expiration time is the expiration time of the block with smallest
  * expiration time.
@@ -412,8 +450,7 @@ client_disconnect_notification (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      "Client %p disconnected\n", 
 	      client);
-  nc = client_lookup (client);
-  if (NULL == nc)
+  if (NULL == (nc = client_lookup (client)))
     return;
   while (NULL != (no = nc->op_head))
   {
@@ -693,7 +730,7 @@ handle_lookup_name (void *cls,
     return;
   }
   name = (const char *) &ln_msg[1];
-  if (name[name_len -1] != '\0')
+  if ('\0' != name[name_len -1])
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
@@ -830,7 +867,7 @@ handle_record_put (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 		"Putting record for name `%s': %s\n",
 		name, 
-		(res == GNUNET_OK) ? "OK" : "FAILED");
+		(GNUNET_OK == res) ? "OK" : "FAILED");
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      "Sending `%s' message\n", 
@@ -861,7 +898,7 @@ struct CreateRecordContext
   /**
    * Zone's public key
    */
-  const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *pubkey;
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pubkey;
 
   /**
    * Name for the record to create
@@ -987,7 +1024,7 @@ handle_create_record_it (void *cls,
   block_expiration = GNUNET_TIME_absolute_max (crc->expire, expire);
   if (GNUNET_OK !=
       GSN_database->put_records (GSN_database->cls,
-				 crc->pubkey,
+				 &crc->pubkey,
 				 block_expiration,
 				 crc->name,
 				 rd_count_new, rd_new,
@@ -1015,13 +1052,9 @@ handle_record_create (void *cls,
 {
   struct GNUNET_NAMESTORE_Client *nc;
   const struct RecordCreateMessage *rp_msg;
-  struct GNUNET_NAMESTORE_CryptoContainer *cc;
   struct CreateRecordContext crc;
   struct GNUNET_CRYPTO_RsaPrivateKey *pkey;
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pub;
   struct RecordCreateResponseMessage rcr_msg;
-  struct GNUNET_CRYPTO_ShortHashCode pubkey_hash;
-  struct GNUNET_HashCode long_hash;
   size_t name_len;
   size_t msg_size;
   size_t msg_size_exp;
@@ -1034,6 +1067,7 @@ handle_record_create (void *cls,
   unsigned int rd_count;
   int res;
   struct GNUNET_NAMESTORE_RecordData rd;
+  struct GNUNET_CRYPTO_ShortHashCode pubkey_hash;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      "Received `%s' message\n", "NAMESTORE_RECORD_CREATE");
@@ -1072,7 +1106,7 @@ handle_record_create (void *cls,
   pkey_tmp = (const char *) &rp_msg[1];
   name_tmp = &pkey_tmp[key_len];
   rd_ser = &name_tmp[name_len];
-  if (name_tmp[name_len -1] != '\0')
+  if ('\0' != name_tmp[name_len -1])
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
@@ -1094,32 +1128,16 @@ handle_record_create (void *cls,
   }
 
   /* Extracting and converting private key */
-  GNUNET_CRYPTO_rsa_key_get_public (pkey, &pub);
-  GNUNET_CRYPTO_short_hash (&pub,
+  GNUNET_CRYPTO_rsa_key_get_public (pkey, &crc.pubkey);
+  GNUNET_CRYPTO_short_hash (&crc.pubkey,
 			    sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
 			    &pubkey_hash);
-  GNUNET_CRYPTO_short_hash_double (&pubkey_hash, &long_hash);
-
-  if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains(zonekeys, &long_hash))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-		"Received new private key for zone `%s'\n",
-		GNUNET_short_h2s(&pubkey_hash));
-    cc = GNUNET_malloc (sizeof (struct GNUNET_NAMESTORE_CryptoContainer));
-    cc->privkey = pkey;
-    pkey = NULL;
-    cc->zone = pubkey_hash;
-    GNUNET_assert (GNUNET_YES ==
-		   GNUNET_CONTAINER_multihashmap_put(zonekeys, &long_hash, cc, 
-						     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-  }
-
+  learn_private_key (pkey);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Creating record for name `%s' in zone `%s'\n",
 	      name_tmp, GNUNET_short_h2s(&pubkey_hash));
   crc.expire = GNUNET_TIME_absolute_ntoh(rp_msg->expire);
   crc.res = GNUNET_SYSERR;
-  crc.pubkey = &pub;
   crc.rd = &rd;
   crc.name = name_tmp;
 
@@ -1128,8 +1146,6 @@ handle_record_create (void *cls,
 				       &handle_create_record_it, &crc);
   if (res != GNUNET_SYSERR)
     res = GNUNET_OK;
-  if (NULL != pkey)
-    GNUNET_CRYPTO_rsa_key_free (pkey);
 
   /* Send response */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
@@ -1301,10 +1317,8 @@ handle_record_remove (void *cls,
   const struct RecordRemoveMessage *rr_msg;
   struct RecordRemoveResponseMessage rrr_msg;
   struct GNUNET_CRYPTO_RsaPrivateKey *pkey;
-  struct GNUNET_NAMESTORE_CryptoContainer *cc;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pub;
   struct GNUNET_CRYPTO_ShortHashCode pubkey_hash;
-  struct GNUNET_HashCode long_hash;
   struct GNUNET_NAMESTORE_RecordData rd;
   const char *pkey_tmp;
   const char *name_tmp;
@@ -1373,24 +1387,7 @@ handle_record_remove (void *cls,
   GNUNET_CRYPTO_short_hash (&pub, 
 			    sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), 
 			    &pubkey_hash);
-  GNUNET_CRYPTO_short_hash_double (&pubkey_hash, &long_hash);
-  if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains (zonekeys, &long_hash))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-		"Received new private key for zone `%s'\n",
-		GNUNET_short_h2s (&pubkey_hash));
-    cc = GNUNET_malloc (sizeof (struct GNUNET_NAMESTORE_CryptoContainer));
-    cc->privkey = pkey;
-    pkey = NULL;
-    cc->zone = pubkey_hash;
-    GNUNET_assert (GNUNET_YES ==
-		   GNUNET_CONTAINER_multihashmap_put (zonekeys, 
-						      &long_hash, cc, 
-						      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-  }
-  if (NULL != pkey)
-    GNUNET_CRYPTO_rsa_key_free (pkey);
-
+  learn_private_key (pkey);
   if (GNUNET_OK !=
       GNUNET_NAMESTORE_records_deserialize (rd_ser_len, rd_ser, rd_count, &rd))
   {
@@ -1407,7 +1404,7 @@ handle_record_remove (void *cls,
 					name_tmp);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 		"Removing name `%s': %s\n",
-		name_tmp, (GNUNET_OK == res) ? "OK" : "FAIL");
+		name_tmp, (GNUNET_OK == res) ? "OK" : "FAILED");
     if (GNUNET_OK != res)
       /* Could not remove entry from database */
       res = RECORD_REMOVE_RESULT_FAILED_TO_PUT_UPDATE;
@@ -1614,28 +1611,9 @@ handle_zone_to_name (void *cls,
 }
 
 
-/////////////////////////////////////////////////////////////
-
-
-/**
- * Copy record, data has to be free'd separetely
- *
- * @param src source record
- * @param dest destination record
- */
-static void
-copy_record (const struct GNUNET_NAMESTORE_RecordData *src,
-	     struct GNUNET_NAMESTORE_RecordData *dest)
-{
-  memcpy (dest, src, sizeof (struct GNUNET_NAMESTORE_RecordData));
-  dest->data = GNUNET_malloc (src->data_size);
-  memcpy ((void *) dest->data, src->data, src->data_size);
-}
-
-
 /**
  * Context for record remove operations passed from
- * 'find_next_zone_iteration_result' to 'zone_iteraterate_proc' as closure
+ * 'run_zone_iteration_round' to 'zone_iteraterate_proc' as closure
  */
 struct ZoneIterationProcResult
 {
@@ -1645,49 +1623,13 @@ struct ZoneIterationProcResult
   struct GNUNET_NAMESTORE_ZoneIteration *zi;
 
   /**
-   * Iteration result: iteration done?
+   * Iteration result: iteration done?  Set to GNUNET_YES
+   * if there are no further results, GNUNET_NO if there
+   * may be more results overall but we got one for now,
+   * GNUNET_SYSERR if all results were filtered so far.
    */
   int res_iteration_finished;
 
-  /**
-   * Iteration result: number of records included
-   */
-  int records_included;
-
-  /**
-   * Iteration result: is a valid signature included?
-   */
-  int has_signature;
-
-  /**
-   * Name????
-   */
-  char *name;
-
-  /**
-   * Zone hash
-   */
-  struct GNUNET_CRYPTO_ShortHashCode zone_hash;
-
-  /**
-   * Record data
-   */
-  struct GNUNET_NAMESTORE_RecordData *rd;
-
-  /**
-   * Zone's public key
-   */
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded zone_key;
-
-  /**
-   * Signature
-   */
-  struct GNUNET_CRYPTO_RsaSignature signature;
-
-  /**
-   * Expiration date
-   */
-  struct GNUNET_TIME_Absolute expire;
 };
 
 
@@ -1712,248 +1654,155 @@ zone_iteraterate_proc (void *cls,
                        const struct GNUNET_CRYPTO_RsaSignature *signature)
 {
   struct ZoneIterationProcResult *proc = cls;
-  struct GNUNET_NAMESTORE_RecordData *rd_filtered;
+  struct GNUNET_NAMESTORE_RecordData rd_filtered[rd_count];
   struct GNUNET_CRYPTO_RsaSignature *new_signature;
   struct GNUNET_NAMESTORE_CryptoContainer *cc;
-  struct GNUNET_CRYPTO_ShortHashCode hash;
   struct GNUNET_HashCode long_hash;
-  struct GNUNET_TIME_Absolute e;
-  unsigned int rd_count_filtered  = 0;
-  int include;
-  int c;
-
-  proc->res_iteration_finished = GNUNET_NO;
-  proc->records_included = 0;
-
-  if ((zone_key == NULL) && (name == NULL))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Iteration done\n");
-    proc->res_iteration_finished = GNUNET_YES;
-    proc->rd = NULL;
-    proc->name = NULL;
-  }
-  else if ((zone_key != NULL) && (name != NULL)) /* just a safety check */
-  {
-    rd_filtered = GNUNET_malloc (rd_count * sizeof (struct GNUNET_NAMESTORE_RecordData));
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received result for zone iteration: `%s'\n", name);
-    for (c = 0; c < rd_count; c++)
-    {
-      include = GNUNET_YES;
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Record %i has flags: 0x%x must have 0x%x \n",
-          c, rd[c].flags, proc->zi->must_have_flags);
-      /* Checking must have flags */
-      if ((rd[c].flags & proc->zi->must_have_flags) == proc->zi->must_have_flags)
-      {
-        /* Include */
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Record %i has flags: Include \n", c);
-      }
-      else
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Record %i has flags: Not include \n", c);
-        include = GNUNET_NO;
-      }
-
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Record %i has flags: 0x%x must not have 0x%x\n",
-          c, rd[c].flags, proc->zi->must_not_have_flags);
-      if ((rd[c].flags & proc->zi->must_not_have_flags) != 0)
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Record %i has flags: Not include \n", c);
-        include = GNUNET_NO;
-      }
-      else
-      {
-        /* Include */
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Record %i has flags: Include \n", c);
-      }
-      if (GNUNET_YES == include)
-      {
-        copy_record (&rd[c], &rd_filtered[rd_count_filtered]);
-        rd_count_filtered++;
-      }
-
-    }
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Included %i of %i records \n", rd_count_filtered, rd_count);
-
-    proc->records_included = rd_count_filtered;
-    if (0 == rd_count_filtered)
-    {
-      GNUNET_free (rd_filtered);
-      rd_filtered = NULL;
-    }
-    proc->rd = rd_filtered;
-    proc->name = GNUNET_strdup(name);
-    memcpy (&proc->zone_key, zone_key, sizeof (proc->zone_key));
-
-    /* Signature */
-    proc->has_signature = GNUNET_NO;
-    GNUNET_CRYPTO_short_hash (zone_key, sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), &hash);
-    GNUNET_CRYPTO_short_hash_double(&hash, &long_hash);
-    proc->zone_hash = hash;
-
-    if (GNUNET_CONTAINER_multihashmap_contains(zonekeys, &long_hash))
-    {
-      cc = GNUNET_CONTAINER_multihashmap_get(zonekeys, &long_hash);
-      e = get_block_expiration_time(rd_count_filtered, rd_filtered);
-      proc->expire = e;
-      new_signature = GNUNET_NAMESTORE_create_signature(cc->privkey, e, name, rd_filtered, rd_count_filtered);
-      GNUNET_assert (signature != NULL);
-      proc->signature = (*new_signature);
-      GNUNET_free (new_signature);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Creating signature for `%s' in zone `%s' with %u records and expiration %llu\n",
-          name, GNUNET_short_h2s(&hash), rd_count_filtered, e.abs_value);
-      proc->has_signature = GNUNET_YES;
-    }
-    else if (rd_count_filtered == rd_count)
-    {
-      proc->expire = expire;
-      if (NULL != signature)
-      {
-        proc->signature = (*signature);
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Using provided signature for `%s' in zone `%s' with %u records and expiration %llu\n",
-            name, GNUNET_short_h2s(&hash), rd_count_filtered, expire.abs_value);
-        proc->has_signature = GNUNET_YES;
-      }
-      else
-      {
-        memset (&proc->signature, '\0', sizeof (proc->signature));
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "No signature provided for `%s'\n", name);
-      }
-    }
-  }
-  else
-  {
-    GNUNET_break (0);
-    return;
-  }
-}
-
-
-/////////////////////////////////////////////////////////////
-
-
-/**
- * Find next zone iteration result in database
- *
- * @param proc the zone iteration processing to use
- */
-static void
-find_next_zone_iteration_result (struct ZoneIterationProcResult *proc)
-{
-  struct GNUNET_CRYPTO_ShortHashCode *zone;
-
-  if (GNUNET_YES == proc->zi->has_zone)
-    zone = &proc->zi->zone;
-  else
-    zone = NULL;
-  do
-  {
-    if (GNUNET_SYSERR ==
-	GSN_database->iterate_records (GSN_database->cls, zone, NULL, 
-				       proc->zi->offset, 
-				       &zone_iteraterate_proc, proc))
-    {
-      GNUNET_break (0);
-      break;
-    }
-    proc->zi->offset++;
-  }
-  while ((0 == proc->records_included) && (GNUNET_NO == proc->res_iteration_finished));
-}
-
-
-/**
- * Send zone iteration result to client
- *
- * @param proc the zone iteration processing result to send
- */
-static void
-send_zone_iteration_result (struct ZoneIterationProcResult *proc)
-{
-  struct GNUNET_NAMESTORE_ZoneIteration *zi = proc->zi;
-  struct ZoneIterationResponseMessage zir_end;
+  struct GNUNET_CRYPTO_ShortHashCode zone_hash;
   struct ZoneIterationResponseMessage *zir_msg;
+  unsigned int rd_count_filtered;
+  unsigned int c;
   size_t name_len;
   size_t rd_ser_len;
   size_t msg_size;
   char *name_tmp;
   char *rd_ser;
+  int include;
 
-  if (GNUNET_YES == proc->res_iteration_finished)
+  proc->res_iteration_finished = GNUNET_NO;
+  if ((NULL == zone_key) && (NULL == name))
   {
-    if (zi->has_zone == GNUNET_YES)
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-		  "No more results for zone `%s'\n", 
-		  GNUNET_short_h2s(&zi->zone));
-    else
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "No more results for all zones\n");
-    memset (&zir_end, 0, sizeof (zir_end));
-    zir_end.gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_RESPONSE);
-    zir_end.gns_header.header.size = htons (sizeof (struct ZoneIterationResponseMessage));
-    zir_end.gns_header.r_id = htonl(zi->request_id);
-    GNUNET_SERVER_notification_context_unicast (snc, 
-						zi->client->client, 
-						&zir_end.gns_header.header, GNUNET_NO);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Removing zone iterator\n");
-    GNUNET_CONTAINER_DLL_remove (zi->client->op_head, zi->client->op_tail, zi);
-    GNUNET_free (zi);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		"Iteration done\n");
+    proc->res_iteration_finished = GNUNET_YES;
     return;
   }
-  GNUNET_assert (proc->records_included > 0);
-  if (GNUNET_YES == zi->has_zone)
+  if ((NULL == zone_key) || (NULL == name)) 
+  {
+    /* what is this!? should never happen */
+    GNUNET_break (0);
+    return;    
+  }
+  rd_count_filtered  = 0;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Received result for zone iteration: `%s'\n", 
+	      name);
+  for (c = 0; c < rd_count; c++)
+  {
+    // FIXME: new expiration flags need additional special treatment here!
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Record %i has flags: 0x%x must have 0x%x \n",
+		c, rd[c].flags, 
+		proc->zi->must_have_flags);
+    include = GNUNET_YES;
+    /* Checking must have flags */
+    if ((rd[c].flags & proc->zi->must_have_flags) == proc->zi->must_have_flags)
+    {
+      /* Include */
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Record %i has flags: Include \n", c);
+    }
+    else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Record %i has flags: Not include \n", c);
+      include = GNUNET_NO;
+    }
+    
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Record %i has flags: 0x%x must not have 0x%x\n",
+		c, rd[c].flags, proc->zi->must_not_have_flags);
+    if (0 != (rd[c].flags & proc->zi->must_not_have_flags))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		  "Record %i has flags: Not include \n", c);
+      include = GNUNET_NO;
+    }
+    else
+    {
+      /* Include */
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Record %i has flags: Include \n", c);
+    }
+    if (GNUNET_YES == include)
+      rd_filtered[rd_count_filtered++] = rd[c];
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Included %u of %u records\n", 
+	      rd_count_filtered, rd_count);
+
+  /* compute / obtain signature */
+  GNUNET_CRYPTO_short_hash (zone_key, 
+			    sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+			    &zone_hash);
+  GNUNET_CRYPTO_short_hash_double (&zone_hash, &long_hash);
+  if (NULL != (cc = GNUNET_CONTAINER_multihashmap_get(zonekeys, &long_hash)))
+  {
+    expire = get_block_expiration_time (rd_count_filtered, rd_filtered);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Creating signature for `%s' in zone `%s' with %u records and expiration %llu\n",
+		name, GNUNET_short_h2s(&zone_hash), 
+		rd_count_filtered,
+		(unsigned long long) expire.abs_value);
+    new_signature = GNUNET_NAMESTORE_create_signature (cc->privkey, expire, name, 
+						       rd_filtered, rd_count_filtered);
+    GNUNET_assert (NULL != signature);
+    signature = new_signature;
+  }
+  else if (rd_count_filtered == rd_count)
+  {
+    if (NULL != signature)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		  "Using provided signature for `%s' in zone `%s' with %u records and expiration %llu\n",
+		  name, GNUNET_short_h2s (&zone_hash), rd_count_filtered, 
+		  (unsigned long long) expire.abs_value);
+      return;
+    }
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		"No signature provided for `%s'\n",
+		name);
+    signature = NULL;
+  }
+
+  if (GNUNET_YES == proc->zi->has_zone)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 		"Sending name `%s' for iteration over zone `%s'\n",
-		proc->name, GNUNET_short_h2s(&zi->zone));
+		name, GNUNET_short_h2s(&proc->zi->zone));
   else
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 		"Sending name `%s' for iteration over all zones\n",
-		proc->name);
-  name_len = strlen (proc->name) + 1;
-  rd_ser_len = GNUNET_NAMESTORE_records_get_size(proc->records_included, proc->rd);  
+		name);
+  name_len = strlen (name) + 1;
+  rd_ser_len = GNUNET_NAMESTORE_records_get_size (rd_count_filtered, rd_filtered);  
   msg_size = sizeof (struct ZoneIterationResponseMessage) + name_len + rd_ser_len;
 
-  zir_msg = GNUNET_malloc(msg_size);
+  zir_msg = GNUNET_malloc (msg_size);
   zir_msg->gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_RESPONSE);
   zir_msg->gns_header.header.size = htons (msg_size);
-  zir_msg->gns_header.r_id = htonl(zi->request_id);
-  zir_msg->expire = GNUNET_TIME_absolute_hton(proc->expire);
+  zir_msg->gns_header.r_id = htonl (proc->zi->request_id);
+  zir_msg->expire = GNUNET_TIME_absolute_hton (expire);
   zir_msg->reserved = htons (0);
   zir_msg->name_len = htons (name_len);
-  zir_msg->rd_count = htons (proc->records_included);
+  zir_msg->rd_count = htons (rd_count_filtered);
   zir_msg->rd_len = htons (rd_ser_len);
-  zir_msg->signature = proc->signature;
-  zir_msg->public_key = proc->zone_key;
+  if (NULL != signature)
+    zir_msg->signature = *signature;
+  zir_msg->public_key = *zone_key;
   name_tmp = (char *) &zir_msg[1];
-  memcpy (name_tmp, proc->name, name_len);
+  memcpy (name_tmp, name, name_len);
   rd_ser = &name_tmp[name_len];
-  GNUNET_NAMESTORE_records_serialize (proc->records_included, proc->rd, rd_ser_len, rd_ser);
+  GNUNET_NAMESTORE_records_serialize (rd_count_filtered, rd_filtered, rd_ser_len, rd_ser);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      "Sending `%s' message with size %u\n", 
 	      "ZONE_ITERATION_RESPONSE",
 	      msg_size);
-  GNUNET_SERVER_notification_context_unicast (snc, zi->client->client, 
+  GNUNET_SERVER_notification_context_unicast (snc, proc->zi->client->client, 
 					      (const struct GNUNET_MessageHeader *) zir_msg,
 					      GNUNET_NO);
+  proc->res_iteration_finished = GNUNET_NO;
   GNUNET_free (zir_msg);
-}
-
-
-/**
- * Clean up after zone iteration
- * @param proc the zone iteration processor
- */
-static void
-clean_up_zone_iteration_result (struct ZoneIterationProcResult *proc)
-{
-  unsigned int c;
-
-  GNUNET_free_non_null (proc->name);
-  proc->name = NULL;
-  for (c = 0; c < proc->records_included; c++)  
-    GNUNET_free ((void *) proc->rd[c].data);  
-  GNUNET_free_non_null (proc->rd);
-  proc->rd = NULL;
-  proc->records_included = 0;
+  GNUNET_free_non_null (new_signature);
 }
 
 
@@ -1966,23 +1815,48 @@ static void
 run_zone_iteration_round (struct GNUNET_NAMESTORE_ZoneIteration *zi)
 {
   struct ZoneIterationProcResult proc;
+  struct ZoneIterationResponseMessage zir_end;
+  struct GNUNET_CRYPTO_ShortHashCode *zone;
 
   memset (&proc, 0, sizeof (proc));
   proc.zi = zi;
-  find_next_zone_iteration_result (&proc);
-  if (GNUNET_YES == proc.res_iteration_finished)
+  if (GNUNET_YES == zi->has_zone)
+    zone = &zi->zone;
+  else
+    zone = NULL;
+  proc.res_iteration_finished = GNUNET_SYSERR;
+  while (GNUNET_SYSERR == proc.res_iteration_finished)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-		"Zone iteration done\n");
+    if (GNUNET_SYSERR ==
+	GSN_database->iterate_records (GSN_database->cls, zone, NULL, 
+				       zi->offset, 
+				       &zone_iteraterate_proc, &proc))
+    {
+      GNUNET_break (0);
+      break;
+    }
+    zi->offset++;
   }
-  else if (0 != proc.records_included)
-  {
+  if (GNUNET_YES != proc.res_iteration_finished)
+    return; /* more results later */
+  if (GNUNET_YES == zi->has_zone)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-		"Zone iteration returns %u records\n", 
-		proc.records_included);
-  }
-  send_zone_iteration_result (&proc);
-  clean_up_zone_iteration_result (&proc);
+		"No more results for zone `%s'\n", 
+		GNUNET_short_h2s(&zi->zone));
+  else
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"No more results for all zones\n");
+  memset (&zir_end, 0, sizeof (zir_end));
+  zir_end.gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_RESPONSE);
+  zir_end.gns_header.header.size = htons (sizeof (struct ZoneIterationResponseMessage));
+  zir_end.gns_header.r_id = htonl(zi->request_id);
+  GNUNET_SERVER_notification_context_unicast (snc, 
+					      zi->client->client, 
+					      &zir_end.gns_header.header, GNUNET_NO);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Removing zone iterator\n");
+  GNUNET_CONTAINER_DLL_remove (zi->client->op_head, zi->client->op_tail, zi);
+  GNUNET_free (zi);
 }
 
 
@@ -2004,11 +1878,10 @@ handle_iteration_start (void *cls,
   struct GNUNET_NAMESTORE_ZoneIteration *zi;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "ZONE_ITERATION_START");
-  nc = client_lookup (client);
-  if (NULL == nc)
+  if (NULL == (nc = client_lookup (client)))
   {
-    GNUNET_break_op (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
   zis_msg = (const struct ZoneIterationStartMessage *) message;
@@ -2057,11 +1930,10 @@ handle_iteration_stop (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Received `%s' message\n",
 	      "ZONE_ITERATION_STOP");
-  nc = client_lookup(client);
-  if (NULL == nc)
+  if (NULL == (nc = client_lookup(client)))
   {
     GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
   zis_msg = (const struct ZoneIterationStopMessage *) message;
@@ -2072,7 +1944,7 @@ handle_iteration_stop (void *cls,
   if (NULL == zi)
   {
     GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
   GNUNET_CONTAINER_DLL_remove (nc->op_head, nc->op_tail, zi);
@@ -2106,11 +1978,10 @@ handle_iteration_next (void *cls,
   uint32_t rid;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "ZONE_ITERATION_NEXT");
-  nc = client_lookup(client);
-  if (NULL == nc)
+  if (NULL == (nc = client_lookup(client)))
   {
     GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
   zis_msg = (const struct ZoneIterationNextMessage *) message;
@@ -2121,7 +1992,7 @@ handle_iteration_next (void *cls,
   if (NULL == zi)
   {
     GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
   run_zone_iteration_round (zi);
@@ -2140,10 +2011,7 @@ static int
 zonekey_file_it (void *cls, const char *filename)
 {
   unsigned int *counter = cls;
-  struct GNUNET_HashCode long_hash;
   struct GNUNET_CRYPTO_RsaPrivateKey *privkey;
-  struct GNUNET_NAMESTORE_CryptoContainer *c;
-  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pubkey;
 
   if ((NULL == filename) ||
       (NULL == strstr(filename, ".zkey")))
@@ -2156,18 +2024,7 @@ zonekey_file_it (void *cls, const char *filename)
 		filename);
     return GNUNET_OK;
   }
-  c = GNUNET_malloc (sizeof (struct GNUNET_NAMESTORE_CryptoContainer));
-  c->privkey = privkey;
-  GNUNET_CRYPTO_rsa_key_get_public (privkey, &pubkey);
-  GNUNET_CRYPTO_short_hash (&pubkey, 
-			    sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), 
-			    &c->zone);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-	      "Found zonefile for zone `%s'\n", GNUNET_short_h2s (&c->zone));
-  GNUNET_CRYPTO_short_hash_double (&c->zone, &long_hash);
-  GNUNET_assert (GNUNET_OK == 
-		 GNUNET_CONTAINER_multihashmap_put (zonekeys, &long_hash, c, 
-						    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+  learn_private_key (privkey);
   (*counter)++;
   return GNUNET_OK;
 }

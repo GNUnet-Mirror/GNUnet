@@ -187,7 +187,7 @@ zone_proc (void *cls,
 	   const struct GNUNET_CRYPTO_RsaSignature *signature)
 {
   int failed = GNUNET_NO;
-  if ((zone_key == NULL) &&  (name == NULL))
+  if ((zone_key == NULL) && (name == NULL))
   {
     GNUNET_break (3 == returned_records);
     if (3 == returned_records)
