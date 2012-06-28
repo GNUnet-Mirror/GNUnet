@@ -158,7 +158,7 @@ process_shorten_result(void* cls, const char* sname)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   "shorten test failed! (wanted: %s got: %s\n",
-                  (char*)cls, sname);
+                  TEST_EXPECTED_RESULT, sname);
       ok = 1;
     }
 
@@ -236,6 +236,7 @@ commence_testing (void *cls, int success)
   GNUNET_CRYPTO_rsa_key_free(bob_key);
   GNUNET_CRYPTO_rsa_key_free(alice_key);
 
+  GNUNET_NAMESTORE_disconnect (namestore_handle);
   gns_handle = GNUNET_GNS_connect(cfg);
 
   if (NULL == gns_handle)
@@ -478,12 +479,6 @@ put_pkey_dht(void *cls, int32_t success, const char *emsg)
                                           &rd,
                                           1);
 
-  GNUNET_break (GNUNET_OK == GNUNET_NAMESTORE_verify_signature (&bob_pkey,
-                                                                 GNUNET_TIME_UNIT_FOREVER_ABS,
-                                                                 TEST_AUTHORITY_ALICE,
-                                                                 1,
-                                                                 &rd,
-                                                                 sig));
   rd_payload_length = GNUNET_NAMESTORE_records_get_size (1, &rd);
   nrb = GNUNET_malloc(rd_payload_length + strlen(TEST_AUTHORITY_ALICE) + 1
                       + sizeof(struct GNSNameRecordBlock));
@@ -533,7 +528,6 @@ put_pkey_dht(void *cls, int32_t success, const char *emsg)
                   DHT_OPERATION_TIMEOUT,
                   &put_www_dht,
                   NULL);
-  GNUNET_NAMESTORE_disconnect (namestore_handle);
   GNUNET_free (nrb);
 }
 

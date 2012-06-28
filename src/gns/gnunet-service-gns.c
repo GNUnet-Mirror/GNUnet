@@ -199,6 +199,8 @@ static int v4_enabled;
 static void
 on_resolver_cleanup(void)
 {
+  if (NULL != namestore_iter)
+    GNUNET_NAMESTORE_zone_iteration_stop (namestore_iter);
   GNUNET_NAMESTORE_disconnect(namestore_handle);
   GNUNET_DHT_disconnect(dht_handle);
 }
@@ -238,7 +240,7 @@ static void
 update_zone_dht_next(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   zone_update_taskid = GNUNET_SCHEDULER_NO_TASK;
-  GNUNET_NAMESTORE_zone_iterator_next(namestore_iter);
+  GNUNET_NAMESTORE_zone_iterator_next (namestore_iter);
 }
 
 /**
@@ -298,6 +300,7 @@ put_gns_record(void *cls,
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                "Zone iteration finished. Rescheduling put in %ds\n",
                dht_max_update_interval);
+    namestore_iter = NULL;
     zone_update_taskid = GNUNET_SCHEDULER_add_delayed (
                                         GNUNET_TIME_relative_multiply(
                                             GNUNET_TIME_UNIT_SECONDS,
@@ -854,7 +857,7 @@ send_lookup_response(void* cls,
   rmsg->header.type = htons(GNUNET_MESSAGE_TYPE_GNS_LOOKUP_RESULT);
   rmsg->header.size = 
     htons(len+sizeof(struct GNUNET_GNS_ClientLookupResultMessage));
-
+  
   GNUNET_NAMESTORE_records_serialize (rd_count, rd, len, (char*)&rmsg[1]);
   
   GNUNET_SERVER_notification_context_unicast (nc, clh->client,
@@ -932,7 +935,8 @@ handle_lookup(void *cls,
   }
   
   namelen = strlen(name)+1;
-  clh = GNUNET_malloc(sizeof(struct ClientLookupHandle));
+  clh = GNUNET_malloc (sizeof (struct ClientLookupHandle));
+  memset (clh, 0, sizeof (struct ClientLookupHandle));
   clh->client = client;
   clh->name = GNUNET_malloc(namelen);
   strcpy(clh->name, name);

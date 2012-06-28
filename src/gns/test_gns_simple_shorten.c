@@ -99,6 +99,10 @@ process_shorten_result(void* cls, const char* sname)
 {
   GNUNET_GNS_disconnect(gns_handle);
 
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "disconnecting from namestore\n");
+  GNUNET_NAMESTORE_disconnect (namestore_handle);
   ok = 0;
 
   if (sname == NULL)
@@ -136,10 +140,6 @@ commence_testing (void *cls, int32_t success, const char *emsg)
 {
   
   
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "disconnecting from namestore\n");
-  GNUNET_NAMESTORE_disconnect (namestore_handle);
   
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "connecting to gns\n");

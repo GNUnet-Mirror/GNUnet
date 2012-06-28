@@ -95,6 +95,7 @@ on_lookup_result(void *cls, uint32_t rd_count,
   int i;
   char* addr;
   
+  GNUNET_NAMESTORE_disconnect (namestore_handle);
   if (rd_count == 0)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -139,7 +140,6 @@ on_lookup_result(void *cls, uint32_t rd_count,
 static void
 commence_testing (void *cls, int32_t success, const char *emsg)
 {
-  GNUNET_NAMESTORE_disconnect (namestore_handle);
 
   gns_handle = GNUNET_GNS_connect(cfg);
 

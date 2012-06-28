@@ -11,6 +11,7 @@
 #define DHT_GNS_REPLICATION_LEVEL 5
 
 #define GNUNET_GNS_MAX_PARALLEL_LOOKUPS 500
+#define GNUNET_GNS_MAX_NS_TASKS 500
 
 /*
  * DLL to hold the authority chain
@@ -118,6 +119,13 @@ enum ResolutionStatus
  */
 struct ResolverHandle
 {
+
+  /* DLL */
+  struct ResolverHandle *next;
+
+  /* DLL */
+  struct ResolverHandle *prev;
+
   /* The name to resolve */
   char name[MAX_DNS_NAME_LENGTH];
 
@@ -210,6 +218,11 @@ struct ResolverHandle
    */
   unsigned long long id;
 
+  /**
+   * Pending Namestore task
+   */
+  struct GNUNET_NAMESTORE_QueueEntry *namestore_task;
+
 };
 
 
@@ -271,6 +284,9 @@ struct GetNameAuthorityHandle
 {
   /* the name to look up authority for */
   char name[MAX_DNS_NAME_LENGTH];
+
+  /* the result */
+  char result[MAX_DNS_NAME_LENGTH];
   
   /* Method to call on result */
   GetAuthorityResultProcessor proc;
@@ -310,6 +326,21 @@ struct GetPseuAuthorityHandle
 
   /* Head of the authority list */
   struct AuthorityChain *ahead;
+
+  /* handle to namestore request */
+  struct GNUNET_NAMESTORE_QueueEntry* namestore_task;
+};
+
+/**
+ * Namestore queue entries in background
+ */
+struct NamestoreBGTask
+{
+  /* node in heap */
+  struct GNUNET_CONTAINER_HeapNode *node;
+
+  /* queue entry */
+  struct GNUNET_NAMESTORE_QueueEntry *qe;
 };
 
 /**

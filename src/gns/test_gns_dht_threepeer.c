@@ -179,7 +179,6 @@ on_lookup_result(void *cls, uint32_t rd_count,
       string_val = GNUNET_NAMESTORE_value_to_string(rd[i].record_type,
                                                     rd[i].data,
                                                     rd[i].data_size);
-      printf("Got %s record: %s\n", typename, string_val);
       if (0 == strcmp(string_val, TEST_IP))
       {
         GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -200,7 +199,6 @@ static void
 commence_testing(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   
-
   gh = GNUNET_GNS_connect(alice_cfg);
 
   GNUNET_GNS_lookup(gh, TEST_DOMAIN, GNUNET_GNS_RECORD_TYPE_A,
@@ -281,10 +279,16 @@ all_connected(void *cls, const char *emsg)
   GNUNET_SCHEDULER_add_delayed (ZONE_PUT_WAIT_TIME, &commence_testing, NULL);
 }
 
-void
-ns_create_cont(void *cls, int32_t s, const char *emsg)
+static void
+disconnect_ns (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_NAMESTORE_disconnect ((struct GNUNET_NAMESTORE_Handle *)cls);
+  GNUNET_NAMESTORE_disconnect (cls);
+}
+
+static void
+cont_ns (void* cls, int32_t s, const char* emsg)
+{
+  GNUNET_SCHEDULER_add_now (&disconnect_ns, cls);
 }
 
 static void
@@ -335,7 +339,7 @@ daemon_started (void *cls, const struct GNUNET_PeerIdentity *id,
     rd.data = TEST_DAVE_PSEU;
     rd.record_type = GNUNET_GNS_RECORD_PSEU;
 
-    GNUNET_NAMESTORE_record_create (ns, key, "+", &rd, ns_create_cont, ns);
+    GNUNET_NAMESTORE_record_create (ns, key, "+", &rd, &cont_ns, ns);
 
     GNUNET_CRYPTO_rsa_key_free(key);
     GNUNET_free(keyfile);
@@ -370,7 +374,7 @@ daemon_started (void *cls, const struct GNUNET_PeerIdentity *id,
     rd.record_type = GNUNET_GNS_RECORD_PKEY;
     rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
 
-    GNUNET_NAMESTORE_record_create (ns, key, "buddy", &rd, ns_create_cont, ns);
+    GNUNET_NAMESTORE_record_create (ns, key, "buddy", &rd, &cont_ns, ns);
 
     GNUNET_CRYPTO_rsa_key_free(key);
     GNUNET_free(keyfile);
@@ -404,7 +408,7 @@ daemon_started (void *cls, const struct GNUNET_PeerIdentity *id,
     rd.record_type = GNUNET_GNS_RECORD_PKEY;
     rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
 
-    GNUNET_NAMESTORE_record_create (ns, key, "bob", &rd, ns_create_cont, ns);
+    GNUNET_NAMESTORE_record_create (ns, key, "bob", &rd, &cont_ns, ns);
 
     GNUNET_CRYPTO_rsa_key_free(key);
     GNUNET_free(keyfile);

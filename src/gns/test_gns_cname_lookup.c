@@ -275,6 +275,12 @@ on_lookup_result_plus (void *cls, uint32_t rd_count,
 }
 
 
+static void
+disco_ns (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_NAMESTORE_disconnect (namestore_handle);
+}
+
 /**
  * Function scheduled to be run on the successful start of services
  * tries to look up the dns record for TEST_DOMAIN
@@ -283,8 +289,7 @@ static void
 commence_testing (void *cls, int32_t success, const char *emsg)
 {
   
-  
-  GNUNET_NAMESTORE_disconnect (namestore_handle);
+  GNUNET_SCHEDULER_add_now (disco_ns, NULL);
   
   gns_handle = GNUNET_GNS_connect(cfg);
 

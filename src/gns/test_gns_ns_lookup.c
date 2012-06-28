@@ -231,6 +231,7 @@ start_lookup (void)
 {
 
   
+  GNUNET_NAMESTORE_disconnect (namestore_handle);
   gns_handle = GNUNET_GNS_connect (cfg);
 
   if (NULL == gns_handle)
@@ -289,7 +290,6 @@ static void
 commence_testing (void *cls, int32_t success, const char *emsg)
 {
   
-  GNUNET_NAMESTORE_disconnect (namestore_handle);
   resolver_working = GNUNET_NO;
 
   GNUNET_RESOLVER_connect (cfg);
