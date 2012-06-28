@@ -2623,6 +2623,7 @@ finish_lookup (struct ResolverHandle *rh,
   {
     
     if (rd[i].record_type != GNUNET_GNS_RECORD_TYPE_NS &&
+        rd[i].record_type != GNUNET_GNS_RECORD_TYPE_PTR &&
         rd[i].record_type != GNUNET_GNS_RECORD_TYPE_CNAME &&
         rd[i].record_type != GNUNET_GNS_RECORD_MX &&
         rd[i].record_type != GNUNET_GNS_RECORD_TYPE_SOA &&
