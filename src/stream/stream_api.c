@@ -42,9 +42,21 @@
 #include "gnunet_stream_lib.h"
 #include "stream_protocol.h"
 
+/**
+ * Generic logging shorthand
+ */
 #define LOG(kind,...)                                   \
   GNUNET_log_from (kind, "stream-api", __VA_ARGS__)
 
+/**
+ * Debug logging shorthand
+ */
+#define LOG_DEBUG(...)                          \
+  LOG (GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__)
+
+/**
+ * Time in relative seconds shorthand
+ */
 #define TIME_REL_SECS(sec) \
   GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, sec)
 
@@ -1462,10 +1474,9 @@ generate_hello_ack (struct GNUNET_STREAM_Socket *socket,
     else
       socket->write_sequence_number = 
         GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "%s: write sequence number %u\n",
-         GNUNET_i2s (&socket->other_peer),
-         (unsigned int) socket->write_sequence_number);
+    LOG_DEBUG ("%s: write sequence number %u\n",
+               GNUNET_i2s (&socket->other_peer),
+               (unsigned int) socket->write_sequence_number);
   }
   msg = GNUNET_malloc (sizeof (struct GNUNET_STREAM_HelloAckMessage));
   msg->header.header.size = 
@@ -1493,6 +1504,8 @@ control_retransmission_task (void *cls,
   if (GNUNET_SCHEDULER_REASON_SHUTDOWN == tc->reason)
     return;
   socket->control_retransmission_task_id = GNUNET_SCHEDULER_NO_TASK;
+  LOG_DEBUG ("%s: Retransmitting a control message\n",
+                 GNUNET_i2s (&socket->other_peer));
   switch (socket->status)
   {
   case STATE_INIT:    
@@ -1508,13 +1521,20 @@ control_retransmission_task (void *cls,
       queue_message (socket,
                      (struct GNUNET_STREAM_MessageHeader *)
                      generate_hello_ack (socket, GNUNET_NO), NULL, NULL);
-    break;
-  default:
-    GNUNET_break (0);
-  }
-  socket->control_retransmission_task_id =
+    socket->control_retransmission_task_id =
     GNUNET_SCHEDULER_add_delayed (socket->retransmit_timeout,
                                   &control_retransmission_task, socket);
+    break;
+  case STATE_ESTABLISHED:
+    if (NULL == socket->lsocket)
+      queue_message (socket,
+                     (struct GNUNET_STREAM_MessageHeader *)
+                     generate_hello_ack (socket, GNUNET_NO), NULL, NULL);
+    else
+      GNUNET_break (0);
+  default:
+    GNUNET_break (0);
+  }  
 }
 
 
@@ -1574,20 +1594,20 @@ client_handle_hello_ack (void *cls,
                    NULL);    
     return GNUNET_OK;
   case STATE_ESTABLISHED:
-  case STATE_RECEIVE_CLOSE_WAIT:
     // call statistics (# ACKs ignored++)
+    GNUNET_assert (GNUNET_SCHEDULER_NO_TASK ==
+                   socket->control_retransmission_task_id);
+    socket->control_retransmission_task_id =
+      GNUNET_SCHEDULER_add_now (&control_retransmission_task, socket);
     return GNUNET_OK;
-  case STATE_INIT:
   default:
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "%s: Server %s sent HELLO_ACK when in state %d\n", 
-         GNUNET_i2s (&socket->other_peer),
-         GNUNET_i2s (&socket->other_peer),
-         socket->state);
+    LOG_DEBUG ("%s: Server %s sent HELLO_ACK when in state %d\n", 
+               GNUNET_i2s (&socket->other_peer),
+               GNUNET_i2s (&socket->other_peer),
+               socket->state);
     socket->state = STATE_CLOSED; // introduce STATE_ERROR?
     return GNUNET_SYSERR;
   }
-
 }
 
 
@@ -2149,40 +2169,38 @@ server_handle_hello (void *cls,
                    &socket->other_peer,
                    sizeof (struct GNUNET_PeerIdentity)))
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "%s: Received HELLO from non-confirming peer\n",
-         GNUNET_i2s (&socket->other_peer));
+    LOG_DEBUG ("%s: Received HELLO from non-confirming peer\n",
+               GNUNET_i2s (&socket->other_peer));
     return GNUNET_YES;
   }
-
   GNUNET_assert (GNUNET_MESSAGE_TYPE_STREAM_HELLO == ntohs (message->type));
   GNUNET_assert (socket->tunnel == tunnel);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "%s: Received HELLO from %s\n", 
-       GNUNET_i2s (&socket->other_peer),
-       GNUNET_i2s (&socket->other_peer));
-
+  LOG_DEBUG ("%s: Received HELLO from %s\n", GNUNET_i2s (&socket->other_peer),
+             GNUNET_i2s (&socket->other_peer));
   switch (socket->status)
   {
   case STATE_INIT:
     reply = generate_hello_ack (socket, GNUNET_YES);
-    queue_message (socket, 
-                   &reply->header,
-                   &set_state_hello_wait, 
-                   NULL);
+    queue_message (socket, &reply->header, &set_state_hello_wait, NULL);
+    GNUNET_assert (GNUNET_SCHEDULER_NO_TASK ==
+                   socket->control_retransmission_task_id);
+    socket->control_retransmission_task_id =
+      GNUNET_SCHEDULER_add_delayed (socket->retransmit_timeout,
+                                    &control_retransmission_task, socket);
+    break;
+  case STATE_HELLO_WAIT:
+    /* Perhaps our HELLO_ACK was lost */
+    GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != 
+                   socket->control_retransmission_task_id);
+    GNUNET_SCHEDULER_cancel (socket->control_retransmission_task_id);
+    socket->control_retransmission_task_id =
+      GNUNET_SCHEDULER_add_now (&control_retransmission_task, socket);
     break;
   default:
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "%s: Client sent HELLO when in state %d\n", 
-         GNUNET_i2s (&socket->other_peer),
-         socket->state);
+    LOG_DEBUG( "%s: Client sent HELLO when in state %d\n",
+               GNUNET_i2s (&socket->other_peer), socket->state);
     /* FIXME: Send RESET? */
   }
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK ==
-                 socket->control_retransmission_task_id);
-  socket->control_retransmission_task_id =
-    GNUNET_SCHEDULER_add_delayed (socket->retransmit_timeout,
-                                  &control_retransmission_task, socket);
   return GNUNET_OK;
 }
 
@@ -2214,8 +2232,9 @@ server_handle_hello_ack (void *cls,
                  ntohs (message->type));
   GNUNET_assert (socket->tunnel == tunnel);
   ack_message = (struct GNUNET_STREAM_HelloAckMessage *) message;
-  if (STATE_HELLO_WAIT == socket->state)
+  switch (socket->state)  
   {
+  case STATE_HELLO_WAIT:
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "%s: Received HELLO_ACK from %s\n",
          GNUNET_i2s (&socket->other_peer),
@@ -2227,15 +2246,11 @@ server_handle_hello_ack (void *cls,
          (unsigned int) socket->read_sequence_number);
     socket->receiver_window_available = 
       ntohl (ack_message->receiver_window_size);
-    /* Attain ESTABLISHED state */
     set_state_established (NULL, socket);
-  }
-  else
-  {
+    break;
+  default:
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Client sent HELLO_ACK when in state %d\n", socket->state);
-    /* FIXME: Send RESET? */
-      
+         "Client sent HELLO_ACK when in state %d\n", socket->state);    
   }
   return GNUNET_OK;
 }
