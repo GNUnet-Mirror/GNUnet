@@ -390,41 +390,31 @@ handle_record_remove_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
 			       const struct RecordRemoveResponseMessage* msg,
 			       size_t size)
 {
-  int res;
   int ret;
   const char *emsg;
 
   /* Operation done, remove */
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Received `%s'\n",
        "RECORD_REMOVE_RESPONSE");
-  /*
-   *  results:
-   *  0 : successful
-   *  1 : No records for entry
-   *  2 : Could not find record to remove
-   *  3 : Failed to create new signature
-   *  4 : Failed to put new set of records in database
-   */
-  res = ntohl (msg->op_result);
-  switch (res) 
+  switch (ntohl (msg->op_result)) 
   {
-  case 0:
+  case RECORD_REMOVE_RESULT_SUCCESS:
     ret = GNUNET_OK;
     emsg = NULL;
     break;
-  case 1:
+  case RECORD_REMOVE_RESULT_NO_RECORDS:
     ret = GNUNET_NO;
     emsg = NULL;
     break;
-  case 2:
+  case RECORD_REMOVE_RESULT_RECORD_NOT_FOUND:
     ret = GNUNET_NO;
     emsg = NULL;
     break;
-  case 3:
+  case RECORD_REMOVE_RESULT_FAILED_TO_SIGN:
     ret = GNUNET_SYSERR;
     emsg = _("Failed to create new signature");
     break;
-  case 4:
+  case RECORD_REMOVE_RESULT_FAILED_TO_PUT_UPDATE:
     ret = GNUNET_SYSERR;
     emsg = _("Failed to put new set of records in database");
     break;

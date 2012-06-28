@@ -406,6 +406,32 @@ struct RecordRemoveMessage
 
 
 /**
+ * Removal of the record succeeded.
+ */
+#define RECORD_REMOVE_RESULT_SUCCESS 0
+
+/**
+ * There are NO records for the given name.
+ */
+#define RECORD_REMOVE_RESULT_NO_RECORDS 1
+
+/**
+ * The specific record that was to be removed was
+ * not found.
+ */
+#define RECORD_REMOVE_RESULT_RECORD_NOT_FOUND 2
+
+/**
+ * Internal error, failed to sign the remaining records.
+ */
+#define RECORD_REMOVE_RESULT_FAILED_TO_SIGN 3
+
+/**
+ * Internal error, failed to store the updated record set
+ */
+#define RECORD_REMOVE_RESULT_FAILED_TO_PUT_UPDATE 4
+
+/**
  * Remove a record from the namestore response
  */
 struct RecordRemoveResponseMessage
@@ -416,12 +442,7 @@ struct RecordRemoveResponseMessage
   struct GNUNET_NAMESTORE_Header gns_header;
 
   /**
-   *  result:
-   *  0 : successful
-   *  1 : no records for entry
-   *  2 : Could not find record to remove
-   *  3 : Failed to create new signature
-   *  4 : Failed to put new set of records in database
+   * Result code (see RECORD_REMOVE_RESULT_*).  In network byte order.
    */
   int32_t op_result;
 };

@@ -1254,7 +1254,7 @@ handle_record_remove_it (void *cls,
   if (0 == rd_count)
   {
     /* Could not find record to remove */
-    rrc->op_res = 1;
+    rrc->op_res = RECORD_REMOVE_RESULT_NO_RECORDS;
     return;
   }
 
@@ -1281,7 +1281,7 @@ handle_record_remove_it (void *cls,
   if (GNUNET_SYSERR == found)
   {
     /* Could not find record to remove */
-    rrc->op_res = 2;
+    rrc->op_res = RECORD_REMOVE_RESULT_RECORD_NOT_FOUND;
     return;
   }
 
@@ -1301,10 +1301,10 @@ handle_record_remove_it (void *cls,
 				      name))
     {
       /* Could not remove records from database */
-      rrc->op_res = 3;
+      rrc->op_res = RECORD_REMOVE_RESULT_FAILED_TO_SIGN; /* ??? */
       return;
     }
-    rrc->op_res = 0;
+    rrc->op_res = RECORD_REMOVE_RESULT_SUCCESS;
     return;
   }
 
@@ -1331,10 +1331,10 @@ handle_record_remove_it (void *cls,
 				&dummy_signature))
   {
     /* Could not put records into database */
-    rrc->op_res = 4;
+    rrc->op_res = RECORD_REMOVE_RESULT_FAILED_TO_PUT_UPDATE;
     return;
   }
-  rrc->op_res = 0;
+  rrc->op_res = RECORD_REMOVE_RESULT_SUCCESS;
 }
 
 
@@ -1429,7 +1429,7 @@ handle_record_remove (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 		"Received new private key for zone `%s'\n",
-		GNUNET_short_h2s(&pubkey_hash));
+		GNUNET_short_h2s (&pubkey_hash));
     cc = GNUNET_malloc (sizeof (struct GNUNET_NAMESTORE_CryptoContainer));
     cc->privkey = GNUNET_CRYPTO_rsa_decode_key (pkey_tmp, key_len);
     cc->zone = pubkey_hash;
@@ -1458,9 +1458,9 @@ handle_record_remove (void *cls,
 		name_tmp, (GNUNET_OK == res) ? "OK" : "FAIL");
     if (GNUNET_OK != res)
       /* Could not remove entry from database */
-      res = 4;
+      res = RECORD_REMOVE_RESULT_FAILED_TO_PUT_UPDATE;
     else
-      res = 0;
+      res = RECORD_REMOVE_RESULT_SUCCESS;
   }
   else
   {
