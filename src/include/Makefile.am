@@ -11,14 +11,12 @@ endif
 
 EXTRA_DIST = \
   gauger.h \
-  gettext.h \
-  plibc.h $(WINPROC) \
   block_fs.h \
   block_dns.h \
   block_gns.h
 
 gnunetinclude_HEADERS = \
-  platform.h \
+  platform.h plibc.h $(WINPROC) gettext.h \
   gnunet_applications.h \
   gnunet_arm_service.h \
   gnunet_ats_service.h \

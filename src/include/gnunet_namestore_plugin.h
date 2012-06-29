@@ -120,6 +120,7 @@ struct GNUNET_NAMESTORE_PluginFunctions
    * @param iter function to call with the result
    * @param iter_cls closure for iter
    * @return GNUNET_OK on success, GNUNET_NO if there were no results, GNUNET_SYSERR on error
+   *       'iter' will have been called unless the return value is 'GNUNET_SYSERR'
    */
   int (*iterate_records) (void *cls, 
 			  const struct GNUNET_CRYPTO_ShortHashCode *zone,
@@ -138,6 +139,7 @@ struct GNUNET_NAMESTORE_PluginFunctions
    * @param iter function to call with the result
    * @param iter_cls closure for iter
    * @return GNUNET_OK on success, GNUNET_NO if there were no results, GNUNET_SYSERR on error
+   *       'iter' will have been called unless the return value is 'GNUNET_SYSERR'
    */
   int (*zone_to_name) (void *cls, 
 		       const struct GNUNET_CRYPTO_ShortHashCode *zone,
