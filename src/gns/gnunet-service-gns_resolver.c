@@ -1081,7 +1081,7 @@ dht_lookup_timeout(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   char new_name[MAX_DNS_NAME_LENGTH];
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "GNS_PHASE_REC-%d: dht lookup for query %s (%ds)timed out.\n",
+             "GNS_PHASE_REC-%llu: dht lookup for query %s (%ds)timed out.\n",
              rh->id, rh->name, rh->timeout.rel_value);
   /**
    * Start resolution in bg
@@ -1092,7 +1092,7 @@ dht_lookup_timeout(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                   rh->name, GNUNET_GNS_TLD);
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "GNS_PHASE_REC-%d: Starting background lookup for %s type %d\n",
+             "GNS_PHASE_REC-%llu: Starting background lookup for %s type %d\n",
              rh->id, new_name, rlh->record_type);
 
   gns_resolver_lookup_record(rh->authority,
@@ -1149,7 +1149,7 @@ process_record_result_dht(void* cls,
 
   rh = (struct ResolverHandle *)cls;
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "GNS_PHASE_REC-%d: got dht result (size=%d)\n", rh->id, size);
+             "GNS_PHASE_REC-%llu: got dht result (size=%d)\n", rh->id, size);
 
   //FIXME maybe check expiration here, check block type
 
@@ -1190,23 +1190,23 @@ process_record_result_dht(void* cls,
                                                                rd))
     {
       GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-                 "GNS_PHASE_REC-%d: Error deserializing data!\n", rh->id);
+                 "GNS_PHASE_REC-%llu: Error deserializing data!\n", rh->id);
       return;
     }
 
     for (i=0; i<num_records; i++)
     {
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "GNS_PHASE_REC-%d: Got name: %s (wanted %s)\n",
+                 "GNS_PHASE_REC-%llu: Got name: %s (wanted %s)\n",
                  rh->id, name, rh->name);
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "GNS_PHASE_REC-%d: Got type: %d (wanted %d)\n",
+                 "GNS_PHASE_REC-%llu: Got type: %d (wanted %d)\n",
                  rh->id, rd[i].record_type, rlh->record_type);
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "GNS_PHASE_REC-%d: Got data length: %d\n",
+                 "GNS_PHASE_REC-%llu: Got data length: %d\n",
                  rh->id, rd[i].data_size);
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "GNS_PHASE_REC-%d: Got flag %d\n",
+                 "GNS_PHASE_REC-%llu: Got flag %d\n",
                  rh->id, rd[i].flags);
 
       if ((strcmp(name, rh->name) == 0) &&
@@ -1228,7 +1228,7 @@ process_record_result_dht(void* cls,
       GNUNET_NAMESTORE_cancel (ns_heap_root->qe);
 
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "GNS_PHASE_REC-%d: Replacing oldest background ns task\n",
+                 "GNS_PHASE_REC-%llu: Replacing oldest background ns task\n",
                  rh->id);
     }
     
@@ -1283,7 +1283,7 @@ resolve_record_dht (struct ResolverHandle *rh)
   GNUNET_CRYPTO_hash_to_enc (&lookup_key, &lookup_key_string);
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "GNS_PHASE_REC-%d: starting dht lookup for %s with key: %s\n",
+             "GNS_PHASE_REC-%llu: starting dht lookup for %s with key: %s\n",
              rh->id, rh->name, (char*)&lookup_key_string);
 
   //rh->timeout_task = GNUNET_SCHEDULER_NO_TASK;
@@ -1298,7 +1298,7 @@ resolve_record_dht (struct ResolverHandle *rh)
     {
 
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "GNS_PHASE_REC-%d: Adjusting timeout\n", rh->id);
+                 "GNS_PHASE_REC-%llu: Adjusting timeout\n", rh->id);
       /*
        * Set timeout for authority lookup phase to 1/2
        */
@@ -1324,7 +1324,7 @@ resolve_record_dht (struct ResolverHandle *rh)
       rh_heap_root->dht_heap_node = NULL;
 
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "GNS_PHASE_REC-%d: Replacing oldest background query for %s\n",
+                 "GNS_PHASE_REC-%llu: Replacing oldest background query for %s\n",
                  rh->id, rh_heap_root->name);
       rh_heap_root->proc(rh_heap_root->proc_cls,
                          rh_heap_root,
@@ -1408,11 +1408,11 @@ process_record_result_ns (void* cls,
      * Lookup terminated and no results
      */
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "GNS_PHASE_REC-%d: Namestore lookup for %s terminated without results\n",
+               "GNS_PHASE_REC-%llu: Namestore lookup for %s terminated without results\n",
                rh->id, name);
 
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "GNS_PHASE_REC-%d: Record %s unknown in namestore\n",
+               "GNS_PHASE_REC-%llu: Record %s unknown in namestore\n",
                rh->id, rh->name);
     /**
      * Our zone and no result? Cannot resolve TT
@@ -1424,7 +1424,7 @@ process_record_result_ns (void* cls,
   else
   {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "GNS_PHASE_REC-%d: Processing additional result %s from namestore\n",
+               "GNS_PHASE_REC-%llu: Processing additional result %s from namestore\n",
                rh->id, name);
     for (i=0; i<rd_count;i++)
     {
@@ -1435,7 +1435,7 @@ process_record_result_ns (void* cls,
           (rd[i].flags & GNUNET_NAMESTORE_RF_PENDING))
       {
         GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                   "GNS_PHASE_REC-%d: Record %s is awaiting user confirmation. Skipping\n",
+                   "GNS_PHASE_REC-%llu: Record %s is awaiting user confirmation. Skipping\n",
                    rh->id, name);
         continue;
       }
@@ -1446,7 +1446,7 @@ process_record_result_ns (void* cls,
           == 0)
       {
         GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                   "GNS_PHASE_REC-%d: This record is expired. Skipping\n",
+                   "GNS_PHASE_REC-%llu: This record is expired. Skipping\n",
                    rh->id);
         continue;
       }
@@ -1459,13 +1459,13 @@ process_record_result_ns (void* cls,
     if (rh->answered == 0)
     {
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, 
-                 "GNS_PHASE_REC-%d: No answers found. This is odd!\n", rh->id);
+                 "GNS_PHASE_REC-%llu: No answers found. This is odd!\n", rh->id);
       rh->proc(rh->proc_cls, rh, 0, NULL);
       return;
     }
 
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "GNS_PHASE_REC-%d: Found %d answer(s) to query in %d records!\n",
+               "GNS_PHASE_REC-%llu: Found %d answer(s) to query in %d records!\n",
                rh->id, rh->answered, rd_count);
 
     rh->proc(rh->proc_cls, rh, rd_count, rd);
@@ -1495,12 +1495,12 @@ process_record_result_vpn (void* cls, int af, const void *address)
   if (af == AF_INET)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "GNS_PHASE_REC-%d: Answer is IPv4!\n",
+               "GNS_PHASE_REC-%llu: Answer is IPv4!\n",
                rh->id);
     if (rlh->record_type != GNUNET_GNS_RECORD_A)
     {
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "GNS_PHASE_REC-%d: Requested record is not IPv4!\n",
+                 "GNS_PHASE_REC-%llu: Requested record is not IPv4!\n",
                  rh->id);
       rh->proc (rh->proc_cls, rh, 0, NULL);
       return;
@@ -1516,12 +1516,12 @@ process_record_result_vpn (void* cls, int af, const void *address)
   else if (af == AF_INET6)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "GNS_PHASE_REC-%d: Answer is IPv6!\n",
+               "GNS_PHASE_REC-%llu: Answer is IPv6!\n",
                rh->id);
     if (rlh->record_type != GNUNET_GNS_RECORD_AAAA)
     {
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "GNS_PHASE_REC-%d: Requested record is not IPv6!\n",
+                 "GNS_PHASE_REC-%llu: Requested record is not IPv6!\n",
                  rh->id);
       rh->proc (rh->proc_cls, rh, 0, NULL);
       return;
@@ -1536,7 +1536,7 @@ process_record_result_vpn (void* cls, int af, const void *address)
   }
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "GNS_PHASE_REC-%d: Got garbage from VPN!\n",
+             "GNS_PHASE_REC-%llu: Got garbage from VPN!\n",
              rh->id);
   rh->proc (rh->proc_cls, rh, 0, NULL);
 }
@@ -1562,7 +1562,7 @@ handle_record_vpn (void* cls, struct ResolverHandle *rh,
   if (rd_count == 0)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "GNS_PHASE_REC_VPN-%d: VPN returned no records. (status: %d)!\n",
+               "GNS_PHASE_REC_VPN-%llu: VPN returned no records. (status: %d)!\n",
                rh->id,
                rh->status);
     /* give up, cannot resolve */
@@ -1572,7 +1572,7 @@ handle_record_vpn (void* cls, struct ResolverHandle *rh,
 
   /* results found yay */
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "GNS_PHASE_REC_VPN-%d: Record resolved from VPN!", rh->id);
+             "GNS_PHASE_REC_VPN-%llu: Record resolved from VPN!", rh->id);
 
   finish_lookup(rh, rlh, rd_count, rd);
 }
@@ -2243,7 +2243,7 @@ process_pkey_revocation_result_ns (void *cls,
     if (rh->timeout.rel_value != GNUNET_TIME_UNIT_FOREVER_REL.rel_value)
     {
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-        "GNS_PHASE_DELEGATE_REV-%d: Starting background lookup for %s type %d\n",
+        "GNS_PHASE_DELEGATE_REV-%llu: Starting background lookup for %s type %d\n",
         rh->id, "+.gnunet", GNUNET_GNS_RECORD_REV);
 
       gns_resolver_lookup_record(rh->authority,
@@ -2258,7 +2258,7 @@ process_pkey_revocation_result_ns (void *cls,
     }
   }
  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "GNS_PHASE_DELEGATE_REV-%llu: Revocation checkpassed\n",
+             "GNS_PHASE_DELEGATE_REV-%llu: Revocation check passed\n",
              rh->id);
   /**
    * We are done with PKEY resolution if name is empty
@@ -2463,7 +2463,7 @@ process_delegation_result_dht(void* cls,
         GNUNET_NAMESTORE_cancel (ns_heap_root->qe);
 
         GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                   "GNS_PHASE_REC-%d: Replacing oldest background ns task\n",
+                   "GNS_PHASE_REC-%llu: Replacing oldest background ns task\n",
                    rh->id);
       }
       
@@ -2724,7 +2724,7 @@ handle_record_dht(void* cls, struct ResolverHandle *rh,
   if (rd_count == 0)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "GNS_PHASE_REC-%d: No records for %s found in DHT. Aborting\n",
+               "GNS_PHASE_REC-%llu: No records for %s found in DHT. Aborting\n",
                rh->id, rh->name);
     /* give up, cannot resolve */
     finish_lookup(rh, rlh, 0, NULL);
@@ -2733,7 +2733,7 @@ handle_record_dht(void* cls, struct ResolverHandle *rh,
 
   /* results found yay */
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "GNS_PHASE_REC-%d: Record resolved from DHT!", rh->id);
+             "GNS_PHASE_REC-%llu: Record resolved from DHT!", rh->id);
 
   finish_lookup(rh, rlh, rd_count, rd);
 
@@ -2762,7 +2762,7 @@ handle_record_ns (void* cls, struct ResolverHandle *rh,
   if (rd_count == 0)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "GNS_PHASE_REC-%d: NS returned no records. (status: %d)!\n",
+               "GNS_PHASE_REC-%llu: NS returned no records. (status: %d)!\n",
                rh->id,
                rh->status);
     
@@ -2805,7 +2805,7 @@ handle_record_ns (void* cls, struct ResolverHandle *rh,
 
   /* results found yay */
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "GNS_PHASE_REC-%d: Record resolved from namestore!\n", rh->id);
+             "GNS_PHASE_REC-%llu: Record resolved from namestore!\n", rh->id);
 
   finish_lookup(rh, rlh, rd_count, rd);
 
