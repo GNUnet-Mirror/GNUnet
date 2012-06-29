@@ -2115,7 +2115,7 @@ dht_authority_lookup_timeout(void *cls,
   char new_name[MAX_DNS_NAME_LENGTH];
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-         "GNS_PHASE_DELEGATE_DHT-%llu: dht lookup for query %s (%ds)timed out.\n",
+         "GNS_PHASE_DELEGATE_DHT-%llu: dht lookup for query %s (%llus)timed out.\n",
          rh->id, rh->authority_name, rh->timeout.rel_value);
 
   rh->status |= RSL_TIMED_OUT;
