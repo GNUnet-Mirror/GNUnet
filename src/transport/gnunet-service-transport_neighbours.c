@@ -870,6 +870,7 @@ free_neighbour (struct NeighbourMapEntry *n, int keep_sessions)
 {
   struct MessageQueue *mq;
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
+  struct GNUNET_HELLO_Address *old_address;
 
   n->is_active = NULL; /* always free'd by its own continuation! */
 
@@ -892,6 +893,12 @@ free_neighbour (struct NeighbourMapEntry *n, int keep_sessions)
     disconnect_notify_cb (callback_cls, &n->id);
   }
 
+
+  /* cut transport-level connection */
+  old_address = GNUNET_HELLO_address_copy(n->primary_address.address);
+  free_address (&n->primary_address);
+  free_address (&n->alternative_address);
+
   /* FIXME-PLUGIN-API: This does not seem to guarantee that all
      transport sessions eventually get killed due to inactivity; they
      MUST have their own timeout logic (but at least TCP doesn't have
@@ -901,20 +908,19 @@ free_neighbour (struct NeighbourMapEntry *n, int keep_sessions)
      API gives us not even the means to selectively kill only one of
      them! Killing all sessions like this seems to be very, very
      wrong. */
+
   if ((GNUNET_NO == keep_sessions) &&
-      (NULL != n->primary_address.address) &&
-      (NULL != (papi = GST_plugins_find (n->primary_address.address->transport_name))))
+      (NULL != old_address) &&
+      (NULL != (papi = GST_plugins_find (old_address->transport_name))))
     papi->disconnect (papi->cls, &n->id);
+
+  GNUNET_free (old_address);
 
   n->state = S_DISCONNECT_FINISHED;
 
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multihashmap_remove (neighbours,
                                                        &n->id.hashPubKey, n));
-
-  /* cut transport-level connection */
-  free_address (&n->primary_address);
-  free_address (&n->alternative_address);
 
   // FIXME-ATS-API: we might want to be more specific about
   // which states we do this from in the future (ATS should
