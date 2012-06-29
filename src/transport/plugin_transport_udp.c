@@ -1798,6 +1798,7 @@ udp_select_send (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *sock)
   size_t slen;
   struct GNUNET_TIME_Absolute max;
   struct UDPMessageWrapper *udpw = NULL;
+  static int network_down_error;
 
   if (sock == plugin->sockv4)
   {
@@ -1889,24 +1890,39 @@ udp_select_send (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *sock)
     const struct GNUNET_ATS_Information type = plugin->env->get_address_type
         (plugin->env->cls,sa, slen);
 
-    if ((GNUNET_ATS_NET_WAN == type.value) &&
+    if (((GNUNET_ATS_NET_LAN == ntohl(type.value)) || (GNUNET_ATS_NET_WAN == ntohl(type.value))) &&
         ((ENETUNREACH == errno) || (ENETDOWN == errno)))
     {
-      /* "Network unreachable" or "Network down" */
-      /*
-       * This indicates that this system is IPv6 enabled, but does not
-       * have a valid global IPv6 address assigned
-       */
-       LOG (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-           _("UDP could not message to `%s': `%s'. "
+      if ((network_down_error == GNUNET_NO) && (slen == sizeof (struct sockaddr_in)))
+      {
+        /* IPv4: "Network unreachable" or "Network down"
+         *
+         * This indicates we do not have connectivity
+         */
+        LOG (GNUNET_ERROR_TYPE_WARNING | GNUNET_ERROR_TYPE_BULK,
+            _("UDP could not message to `%s': "
+              "Network seems down, please check your network configuration\n"),
+            GNUNET_a2s (sa, slen));
+      }
+      if ((network_down_error == GNUNET_NO) && (slen == sizeof (struct sockaddr_in6)))
+      {
+        /* IPv6: "Network unreachable" or "Network down"
+         *
+         * This indicates that this system is IPv6 enabled, but does not
+         * have a valid global IPv6 address assigned or we do not have
+         * connectivity
+         */
+
+       LOG (GNUNET_ERROR_TYPE_WARNING | GNUNET_ERROR_TYPE_BULK,
+           _("UDP could not message to `%s': "
 	     "Please check your network configuration and disable IPv6 if your "
 	     "connection does not have a global IPv6 address\n"),
-           GNUNET_a2s (sa, slen),
-           STRERROR (errno));
+	   GNUNET_a2s (sa, slen));
+      }
     }
     else
     {
-      LOG (GNUNET_ERROR_TYPE_ERROR,
+      LOG (GNUNET_ERROR_TYPE_WARNING,
          "UDP could not transmit %u-byte message to `%s': `%s'\n",
          (unsigned int) (udpw->msg_size), GNUNET_a2s (sa, slen),
          STRERROR (errno));
@@ -1920,6 +1936,7 @@ udp_select_send (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *sock)
          (unsigned int) (udpw->msg_size), GNUNET_a2s (sa, slen), (int) sent,
          (sent < 0) ? STRERROR (errno) : "ok");
     call_continuation(udpw, GNUNET_OK);
+    network_down_error = GNUNET_NO;
   }
 
   if (sock == plugin->sockv4)
@@ -2276,6 +2293,7 @@ libgnunet_plugin_transport_udp_init (void *cls)
   unsigned long long enable_v6;
   char * bind4_address;
   char * bind6_address;
+  char * fancy_interval;
   struct GNUNET_TIME_Relative interval;
   struct sockaddr_in serverAddrv4;
   struct sockaddr_in6 serverAddrv6;
@@ -2364,10 +2382,18 @@ libgnunet_plugin_transport_udp_init (void *cls)
   if (broadcast == GNUNET_SYSERR)
     broadcast = GNUNET_NO;
 
-  if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_time (env->cfg, "transport-udp",
-                                           "BROADCAST_INTERVAL", &interval))
+  if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string (env->cfg, "transport-udp",
+                                           "BROADCAST_INTERVAL", &fancy_interval))
   {
     interval = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10);
+  }
+  else
+  {
+     if (GNUNET_SYSERR == GNUNET_STRINGS_fancy_time_to_relative(fancy_interval, &interval))
+     {
+       interval = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30);
+     }
+     GNUNET_free (fancy_interval);
   }
 
   /* Maximum datarate */
