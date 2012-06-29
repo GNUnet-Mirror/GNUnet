@@ -324,6 +324,7 @@ GNUNET_STRINGS_fancy_time_to_absolute (const char *fancy_time,
   struct tm tv;
   time_t t;
 
+  memset (&tv, 0, sizeof (tv));
   if ( (NULL == strptime (fancy_time, "%c", &tv)) &&
        (NULL == strptime (fancy_time, "%Ec", &tv)) &&
        (NULL == strptime (fancy_time, "%Y-%m-%d %H:%M:%S", &tv)) &&
