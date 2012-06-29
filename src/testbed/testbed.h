@@ -169,10 +169,10 @@ struct GNUNET_TESTBED_ControllerLinkMessage
   uint32_t slave_host_id GNUNET_PACKED;
 
   /**
-   * Is the receiving controller the master controller for
-   * the slave host (and thus responsible for starting it?). NBO.
+   * Set to 1 if the receiving controller is the master controller for
+   * the slave host (and thus responsible for starting it?). 0 if not
    */
-  int32_t is_subordinate GNUNET_PACKED;
+  uint8_t is_subordinate;
 
   /* followed by serialized slave configuration;
      gzip'ed configuration file in INI format */

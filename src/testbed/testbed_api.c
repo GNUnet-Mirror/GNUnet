@@ -31,6 +31,7 @@
 #include "gnunet_constants.h"
 #include "gnunet_transport_service.h"
 #include "gnunet_hello_lib.h"
+#include <zlib.h>
 
 #include "testbed.h"
 #include "testbed_api_hosts.h"
@@ -629,7 +630,37 @@ GNUNET_TESTBED_controller_link (struct GNUNET_TESTBED_Controller *master,
 				const struct GNUNET_CONFIGURATION_Handle *slave_cfg,
 				int is_subordinate)
 {
-  GNUNET_break (0);
+  struct GNUNET_TESTBED_ControllerLinkMessage *msg;
+  char *config;
+  Bytef *cconfig;
+  uLongf cc_size;
+  size_t config_size;  
+  uint16_t msg_size;
+
+  GNUNET_assert (GNUNET_YES == 
+		 GNUNET_TESTBED_is_host_registered_ (delegated_host));
+  GNUNET_assert (GNUNET_YES == 
+		 GNUNET_TESTBED_is_host_registered_ (slave_host));
+  config = GNUNET_CONFIGURATION_serialize (slave_cfg, &config_size);
+  cc_size = compressBound ((uLong) config_size);
+  cconfig = GNUNET_malloc (cc_size);
+  GNUNET_assert (Z_OK ==
+		 compress2 (cconfig, &cc_size, 
+			    (Bytef *) config, config_size, Z_BEST_SPEED));
+  GNUNET_free (config);
+  GNUNET_assert ((UINT16_MAX -
+		  sizeof (struct GNUNET_TESTBED_ControllerLinkMessage))
+		  >= cc_size); /* Configuration doesn't fit in 1 message */
+  msg_size = cc_size + sizeof (struct GNUNET_TESTBED_ControllerLinkMessage);
+  msg = GNUNET_realloc (cconfig, msg_size);
+  memmove (msg + sizeof (struct GNUNET_TESTBED_ControllerLinkMessage),
+	   msg, cc_size);
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_LCONTROLLERS);
+  msg->header.size = htons (msg_size);
+  msg->delegated_host_id = htonl (GNUNET_TESTBED_host_get_id_ (delegated_host));
+  msg->slave_host_id = htonl (GNUNET_TESTBED_host_get_id_ (slave_host));
+  msg->is_subordinate = (GNUNET_YES == is_subordinate) ? 1 : 0;
+  queue_message (master, (struct GNUNET_MessageHeader *) msg);
 }
 
 
