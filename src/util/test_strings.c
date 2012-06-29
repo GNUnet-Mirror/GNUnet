@@ -36,6 +36,7 @@ main (int argc, char *argv[])
   char *r;
   char *b;
   struct GNUNET_TIME_Absolute at;
+  struct GNUNET_TIME_Absolute atx;
   const char *hdir;
 
   GNUNET_log_setup ("test_strings", "ERROR", NULL);
@@ -97,6 +98,14 @@ main (int argc, char *argv[])
   GNUNET_free (r);
   b = GNUNET_STRINGS_to_utf8 ("TEST", 4, "ASCII");
   WANT ("TEST", b);
+  
+  at = GNUNET_TIME_UNIT_FOREVER_ABS;
+  b = GNUNET_STRINGS_absolute_time_to_string (at);
+  GNUNET_assert (GNUNET_OK ==
+		 GNUNET_STRINGS_fancy_time_to_absolute (b, &atx));
+  GNUNET_assert (atx.abs_value == at.abs_value);
+  GNUNET_free (b);
+
 #if ENABLE_NLS && HAVE_ICONV
   GNUNET_log_skip (2, GNUNET_NO);
   b = GNUNET_STRINGS_to_utf8 ("TEST", 4, "unknown");
