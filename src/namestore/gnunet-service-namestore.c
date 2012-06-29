@@ -1229,20 +1229,11 @@ handle_record_remove_it (void *cls,
   found = -1;
   for (c = 0; c < rd_count; c++)
   {
-    /* FIXME: shouldn't we test for all fields to match? Otherwise
-       we might remove the wrong record, just because the type matches! */
-    /*
-    if (rd[c].flags != rrc->rd->flags)
-       continue;*/
-    if (rd[c].record_type != rrc->rd->record_type)
-       continue;
-    /*
-    if (rd[c].data_size != rrc->rd->data_size)
-       continue;
-    GNUNET_break(0);
-    if (0 != memcmp (rd[c].data, rrc->rd->data, rrc->rd->data_size))
-        continue;
-    GNUNET_break(0); */
+    if ( (rd[c].flags != rrc->rd->flags) ||
+	 (rd[c].record_type != rrc->rd->record_type) ||
+	 (rd[c].data_size != rrc->rd->data_size) ||
+	 (0 != memcmp (rd[c].data, rrc->rd->data, rrc->rd->data_size)) )
+      continue;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found record to remove!\n", rd_count);
     found = c;
     break;
