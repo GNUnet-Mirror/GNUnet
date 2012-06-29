@@ -1900,7 +1900,7 @@ udp_select_send (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *sock)
          * This indicates we do not have connectivity
          */
         LOG (GNUNET_ERROR_TYPE_WARNING | GNUNET_ERROR_TYPE_BULK,
-            _("UDP could not message to `%s': "
+            _("UDP could not transmit message to `%s': "
               "Network seems down, please check your network configuration\n"),
             GNUNET_a2s (sa, slen));
       }
@@ -1914,7 +1914,7 @@ udp_select_send (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *sock)
          */
 
        LOG (GNUNET_ERROR_TYPE_WARNING | GNUNET_ERROR_TYPE_BULK,
-           _("UDP could not message to `%s': "
+           _("UDP could not transmit message to `%s': "
 	     "Please check your network configuration and disable IPv6 if your "
 	     "connection does not have a global IPv6 address\n"),
 	   GNUNET_a2s (sa, slen));
