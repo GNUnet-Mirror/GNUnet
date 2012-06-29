@@ -1081,7 +1081,7 @@ dht_lookup_timeout(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   char new_name[MAX_DNS_NAME_LENGTH];
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "GNS_PHASE_REC-%llu: dht lookup for query %s (%ds)timed out.\n",
+             "GNS_PHASE_REC-%llu: dht lookup for query %s (%llus)timed out.\n",
              rh->id, rh->name, rh->timeout.rel_value);
   /**
    * Start resolution in bg
@@ -2122,7 +2122,9 @@ dht_authority_lookup_timeout(void *cls,
 
   rh->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   
-  GNUNET_DHT_get_stop (rh->get_handle);
+  if (NULL != rh->get_handle)
+    GNUNET_DHT_get_stop (rh->get_handle);
+
   rh->get_handle = NULL;
   
   if (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN)
