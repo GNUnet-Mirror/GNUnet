@@ -31,12 +31,14 @@ gnunet_daemon_pt_LDADD = \
   $(GN_LIBINTL)
 
 if HAVE_MHD
+if LINUX
  VPN_TEST = \
  test_gnunet_vpn-4_to_6 \
  test_gnunet_vpn-6_to_4 \
  test_gnunet_vpn-6_over \
  test_gnunet_vpn-4_over \
  test_gns_vpn
+endif
 endif
 
 check_PROGRAMS = $(VPN_TEST)
