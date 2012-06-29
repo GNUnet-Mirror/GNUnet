@@ -432,8 +432,6 @@ handle_record_remove_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
     break;
   default:
     GNUNET_break (0);
-    ret = GNUNET_SYSERR;
-    emsg = _("Protocol error");
     if (NULL != qe->cont)      
       qe->cont (qe->cont_cls, GNUNET_SYSERR, _("Protocol error"));
     return GNUNET_NO;

@@ -1646,7 +1646,7 @@ zone_iteraterate_proc (void *cls,
 {
   struct ZoneIterationProcResult *proc = cls;
   struct GNUNET_NAMESTORE_RecordData rd_filtered[rd_count];
-  struct GNUNET_CRYPTO_RsaSignature *new_signature;
+  struct GNUNET_CRYPTO_RsaSignature *new_signature = NULL;
   struct GNUNET_NAMESTORE_CryptoContainer *cc;
   struct GNUNET_HashCode long_hash;
   struct GNUNET_CRYPTO_ShortHashCode zone_hash;
@@ -1746,7 +1746,7 @@ zone_iteraterate_proc (void *cls,
 		  name, GNUNET_short_h2s (&zone_hash), rd_count_filtered, 
 		  (unsigned long long) expire.abs_value);
       return;
-    }
+    }    
   }
   else
   {
