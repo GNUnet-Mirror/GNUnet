@@ -772,16 +772,8 @@ free_address (struct NeighbourAddress *na)
   {
     GST_validation_set_address_use (na->address, na->session, GNUNET_NO, __LINE__);
     GNUNET_ATS_address_in_use (GST_ats, na->address, na->session, GNUNET_NO);
-    GNUNET_ATS_address_destroyed (GST_ats, na->address, na->session);
   }
-  else
-  {
-    if (NULL != na->address)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "HACK: destroy address\n");
-      GNUNET_ATS_address_destroyed (GST_ats, na->address, na->session);
-    }
-  }
+
   na->ats_active = GNUNET_NO;
   if (NULL != na->address)
   {
@@ -2827,6 +2819,7 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
     break;
   case S_DISCONNECT_FINISHED:
     /* neighbour was freed and plugins told to terminate session */
+    return GNUNET_NO;
     break;
   default:
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Unhandled state `%s' \n",print_state (n->state));

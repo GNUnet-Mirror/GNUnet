@@ -340,7 +340,6 @@ plugin_env_session_end (void *cls, const struct GNUNET_PeerIdentity *peer,
 {
   const char *transport_name = cls;
   struct GNUNET_HELLO_Address address;
-  int ret;
 
   GNUNET_assert (strlen (transport_name) > 0);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Session %p to peer `%s' ended \n",
@@ -354,13 +353,10 @@ plugin_env_session_end (void *cls, const struct GNUNET_PeerIdentity *peer,
   address.address = NULL;
   address.address_length = 0;
   address.transport_name = transport_name;
-  ret = GST_neighbours_session_terminated (peer, session);
-  if (GNUNET_NO == ret)
-  {
-    /* This was a session currently not used by
-     * neighbours so we have to try to destroy it here */
-    GNUNET_ATS_address_destroyed (GST_ats, &address, session);
-  }
+  GST_neighbours_session_terminated (peer, session);
+
+  /* Tell ATS that session has ended */
+  GNUNET_ATS_address_destroyed (GST_ats, &address, session);
 }
 
 
