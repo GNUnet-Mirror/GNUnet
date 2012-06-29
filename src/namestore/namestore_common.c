@@ -614,6 +614,22 @@ GNUNET_NAMESTORE_number_to_typename (uint32_t type)
   return name_map[i].name;  
 }
 
+/**
+ * Test if a given record is expired.
+ * 
+ * @return GNUNET_YES if the record is expired,
+ *         GNUNET_NO if not
+ */
+int
+GNUNET_NAMESTORE_is_expired (const struct GNUNET_NAMESTORE_RecordData *rd)
+{
+  struct GNUNET_TIME_Absolute at;
+
+  if (0 != (rd->flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION))
+    return GNUNET_NO;
+  at.abs_value = rd->expiration_time;
+  return (0 == GNUNET_TIME_absolute_get_remaining (at).rel_value) ? GNUNET_YES : GNUNET_NO;
+}
 
 
 /* end of namestore_common.c */

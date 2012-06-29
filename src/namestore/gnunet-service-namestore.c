@@ -24,8 +24,8 @@
  * @author Matthias Wachs
  */
 #include "platform.h"
-#include "gnunet_getopt_lib.h"
-#include "gnunet_service_lib.h"
+#include "gnunet_util_lib.h"
+#include "gnunet_dnsparser_lib.h"
 #include "gnunet_namestore_service.h"
 #include "gnunet_namestore_plugin.h"
 #include "gnunet_signatures.h"
@@ -553,6 +553,7 @@ handle_lookup_name_it (void *cls,
   struct GNUNET_NAMESTORE_CryptoContainer *cc;
   struct GNUNET_CRYPTO_RsaSignature *signature_new;
   struct GNUNET_TIME_Absolute e;
+  struct GNUNET_TIME_Relative re;
   struct GNUNET_CRYPTO_ShortHashCode zone_key_hash;
   struct GNUNET_HashCode long_hash;
   char *rd_tmp;
@@ -563,79 +564,139 @@ handle_lookup_name_it (void *cls,
   int copied_elements;
   int contains_signature;
   int authoritative;
-  int c;
+  int rd_modified;
+  unsigned int c;
 
-  name_len = (NULL == name) ? 0 : strlen(name) + 1;
-  copied_elements = 0;
-  rd_selected = NULL;
-  /* count records to copy */
-  if (0 != lnc->record_type)
-  {
-    /* special record type needed */
-    for (c = 0; c < rd_count; c++)
-      if (rd[c].record_type == lnc->record_type)
-	copied_elements++; /* found matching record */
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-		"Found %u records with type %u for name `%s' in zone `%s'\n",
-		copied_elements, 
-		lnc->record_type, 
-		lnc->name, 
-		GNUNET_short_h2s(lnc->zone));
-    if (copied_elements > 0)
-    {
-      rd_selected = GNUNET_malloc (copied_elements * sizeof (struct GNUNET_NAMESTORE_RecordData));
-      copied_elements = 0;
-      for (c = 0; c < rd_count; c++)
-      {
-	if (rd[c].record_type == lnc->record_type)
-	{
-	  /* found matching record */
-	  rd_selected[copied_elements] = rd[c]; /* shallow copy! */
-	  copied_elements++;
-	}
-      }
-    }
-  }
-  else
-  {
-    copied_elements = rd_count;
-    rd_selected = (struct GNUNET_NAMESTORE_RecordData *) rd;
-  }
-  // FIXME: need to adjust 'rd' from relative to absolute times!
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-	      "Found %u records for name `%s' in zone `%s'\n",
-	      copied_elements,
-	      lnc->name, 
-	      GNUNET_short_h2s (lnc->zone));
-
-  if ((copied_elements == rd_count) && (NULL != signature))
-    contains_signature = GNUNET_YES; /* returning all records, so include signature */
-  else
-    contains_signature = GNUNET_NO; /* returning not all records, so do not include signature */
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Found %u records under name `%s'\n",
+	      rd_count,
+	      name);
   authoritative = GNUNET_NO;
   signature_new = NULL;
-  if ((NULL != zone_key) && (copied_elements == rd_count))
+  cc = NULL;
+  if (NULL != zone_key) 
   {
     GNUNET_CRYPTO_short_hash (zone_key, 
 			      sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded), 
 			      &zone_key_hash);
     GNUNET_CRYPTO_short_hash_double (&zone_key_hash, &long_hash);
-    if (NULL != (cc = GNUNET_CONTAINER_multihashmap_get(zonekeys, &long_hash)))
+    if (NULL != (cc = GNUNET_CONTAINER_multihashmap_get (zonekeys, &long_hash)))   
     {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Am authoritative for zone `%s'\n",
+		  GNUNET_short_h2s (&zone_key_hash));
+      authoritative = GNUNET_YES;    
+    }
+  }
+
+  copied_elements = 0;
+  rd_modified = GNUNET_NO;
+  rd_selected = NULL;
+  /* count records to copy */
+  for (c = 0; c < rd_count; c++)
+  {
+    if ( (GNUNET_YES == authoritative) &&
+	 (GNUNET_YES ==
+	  GNUNET_NAMESTORE_is_expired (&rd[c]) ) )
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Skipping expired record\n");
+      continue; 
+    }
+    if ( (GNUNET_NAMESTORE_TYPE_ANY == lnc->record_type) || 
+	 (rd[c].record_type == lnc->record_type) )
+      copied_elements++; /* found matching record */
+    else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		  "Skipping non-mtaching record\n");
+      rd_modified = GNUNET_YES;
+    }
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Found %u records with type %u for name `%s' in zone `%s'\n",
+	      copied_elements, 
+	      lnc->record_type, 
+	      lnc->name, 
+	      GNUNET_short_h2s(lnc->zone));
+  if (copied_elements > 0)
+  {
+    rd_selected = GNUNET_malloc (copied_elements * sizeof (struct GNUNET_NAMESTORE_RecordData));
+    copied_elements = 0;
+    for (c = 0; c < rd_count; c++)
+    {
+      if ( (GNUNET_YES == authoritative) &&
+	   (GNUNET_YES ==
+	    GNUNET_NAMESTORE_is_expired (&rd[c])) )
+	continue;
+      if ( (GNUNET_NAMESTORE_TYPE_ANY == lnc->record_type) || 
+	   (rd[c].record_type == lnc->record_type) )
+      {
+	if (0 != (rd[c].flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION))
+	{
+	  GNUNET_break (GNUNET_YES == authoritative);
+	  rd_modified = GNUNET_YES;
+	  re.rel_value = rd[c].expiration_time;
+	  e = GNUNET_TIME_relative_to_absolute (re);
+	}
+	else
+	{
+	  e.abs_value = rd[c].expiration_time;
+	}
+	/* found matching record, copy and convert flags to public format */
+	rd_selected[copied_elements] = rd[c]; /* shallow copy! */
+	rd_selected[copied_elements].expiration_time = e.abs_value;
+	if (0 != (rd_selected[copied_elements].flags &
+		  (GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION | GNUNET_NAMESTORE_RF_AUTHORITY)))
+	{
+	  rd_selected[copied_elements].flags &= ~ (GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION | 
+				  GNUNET_NAMESTORE_RF_AUTHORITY);
+	  rd_modified = GNUNET_YES;
+	}
+	copied_elements++;
+      }
+      else
+      {
+	rd_modified = GNUNET_YES;
+      }
+    }
+  }
+  else
+    rd_selected = NULL;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Found %u matching records for name `%s' in zone `%s'\n",
+	      copied_elements,
+	      lnc->name, 
+	      GNUNET_short_h2s (lnc->zone));
+  contains_signature = GNUNET_NO;
+  if (copied_elements > 0)
+  {
+    if (GNUNET_YES == authoritative)
+    {
+      GNUNET_assert (NULL != cc);
       e = get_block_expiration_time (rd_count, rd);
-      signature_new = GNUNET_NAMESTORE_create_signature (cc->privkey, e, name, rd, rd_count);
+      signature_new = GNUNET_NAMESTORE_create_signature (cc->privkey, e, name, rd_selected, copied_elements);
       GNUNET_assert (NULL != signature_new);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 		  "Creating signature for name `%s' with %u records in zone `%s'\n",
 		  name, 
 		  copied_elements,
 		  GNUNET_short_h2s(&zone_key_hash));
-      authoritative = GNUNET_YES;
+    }
+    else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Not authoritative, records modified is %d, have sig is %d\n",
+		  rd_modified,
+		  NULL != signature);
+      if ((GNUNET_NO == rd_modified) && (NULL != signature))
+	contains_signature = GNUNET_YES; /* returning all records, so include signature */
     }
   }
 
   rd_ser_len = GNUNET_NAMESTORE_records_get_size (copied_elements, rd_selected);
+  name_len = (NULL == name) ? 0 : strlen(name) + 1;
   r_size = sizeof (struct LookupNameResponseMessage) +
            sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded) +
            name_len +
@@ -656,13 +717,12 @@ handle_lookup_name_it (void *cls,
   memcpy (name_tmp, name, name_len);
   rd_tmp = &name_tmp[name_len];
   GNUNET_NAMESTORE_records_serialize (copied_elements, rd_selected, rd_ser_len, rd_tmp);
-
   if (rd_selected != rd)
     GNUNET_free_non_null (rd_selected);
-
   if (NULL != zone_key)
     lnr_msg->public_key = *zone_key;
-  if (GNUNET_YES == authoritative)
+  if ( (GNUNET_YES == authoritative) &&
+       (copied_elements > 0) )
   {
     /* use new created signature */
     lnr_msg->contains_sig = htons (GNUNET_YES);
@@ -957,35 +1017,31 @@ handle_create_record_it (void *cls,
   update = GNUNET_NO;
   for (c = 0; c < rd_count; c++)
   {
-    if (crc->rd->record_type != rd[c].record_type)
+    if ( (crc->rd->record_type != rd[c].record_type) ||
+	 ((crc->rd->flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION) 
+	  != (rd[c].flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION)) )
       continue; /* no match */
     if ( (GNUNET_NAMESTORE_TYPE_PKEY == crc->rd->record_type) ||
-	 (GNUNET_NAMESTORE_TYPE_PSEU == crc->rd->record_type) )
+	 (GNUNET_NAMESTORE_TYPE_PSEU == crc->rd->record_type) ||
+	 (GNUNET_DNSPARSER_TYPE_CNAME == crc->rd->record_type) )
     {
-      /* Update unique PKEY or PSEU */
-      /* FIXME: should we do this test here? Is this not something
-	 that should be handled closer to the UI? If not, what 
-	 about othrer 'unique' record types like CNAME? */
+      /* Update unique PKEY, PSEU or CNAME record; for these
+	 record types, only one can be active at any time */
       exist = c;
       if ( (crc->rd->data_size != rd[c].data_size) ||
 	   (0 != memcmp (crc->rd->data, rd[c].data, rd[c].data_size)) ||
-	   (crc->rd->expiration_time != rd[c].expiration_time) ||
-	   ((crc->rd->flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION) 
-	    != (rd[c].flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION)) )
+	   (crc->rd->expiration_time != rd[c].expiration_time) )
 	update = GNUNET_YES;
       break;
     }
     if ( (crc->rd->data_size == rd[c].data_size) &&
 	 (0 == memcmp (crc->rd->data, rd[c].data, rd[c].data_size)))
     {
-      /* FIXME: again, do we need to handle this special case here? */
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 		  "Found matching existing record for `%s'; only updating expiration date!\n",
 		  crc->name);
       exist = c;
-      if ( (crc->rd->expiration_time != rd[c].expiration_time) &&
-	   ((crc->rd->flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION) 
-	    == (rd[c].flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION) ) )
+      if (crc->rd->expiration_time != rd[c].expiration_time) 
         update = GNUNET_YES;
       break;
     }
@@ -1682,7 +1738,7 @@ zone_iteraterate_proc (void *cls,
   {
     // FIXME: new expiration flags need additional special treatment here!
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Record %i has flags: 0x%x must have 0x%x \n",
+		"Record %i has flags: 0x%x must have 0x%x\n",
 		c, rd[c].flags, 
 		proc->zi->must_have_flags);
     include = GNUNET_YES;
@@ -1719,43 +1775,39 @@ zone_iteraterate_proc (void *cls,
 	      "Included %u of %u records\n", 
 	      rd_count_filtered, rd_count);
 
-  /* compute / obtain signature */
-  GNUNET_CRYPTO_short_hash (zone_key, 
-			    sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
-			    &zone_hash);
-  GNUNET_CRYPTO_short_hash_double (&zone_hash, &long_hash);
-  if (NULL != (cc = GNUNET_CONTAINER_multihashmap_get(zonekeys, &long_hash)))
+  signature = NULL;    
+  if (rd_count_filtered > 0)
   {
-    expire = get_block_expiration_time (rd_count_filtered, rd_filtered);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Creating signature for `%s' in zone `%s' with %u records and expiration %llu\n",
-		name, GNUNET_short_h2s(&zone_hash), 
-		rd_count_filtered,
-		(unsigned long long) expire.abs_value);
-    new_signature = GNUNET_NAMESTORE_create_signature (cc->privkey, expire, name, 
-						       rd_filtered, rd_count_filtered);
-    GNUNET_assert (NULL != signature);
-    signature = new_signature;
-  }
-  else if (rd_count_filtered == rd_count)
-  {
-    if (NULL != signature)
+    /* compute / obtain signature */
+    GNUNET_CRYPTO_short_hash (zone_key, 
+			      sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+			      &zone_hash);
+    GNUNET_CRYPTO_short_hash_double (&zone_hash, &long_hash);
+    if (NULL != (cc = GNUNET_CONTAINER_multihashmap_get(zonekeys, &long_hash)))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-		  "Using provided signature for `%s' in zone `%s' with %u records and expiration %llu\n",
-		  name, GNUNET_short_h2s (&zone_hash), rd_count_filtered, 
+      expire = get_block_expiration_time (rd_count_filtered, rd_filtered);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		  "Creating signature for `%s' in zone `%s' with %u records and expiration %llu\n",
+		  name, GNUNET_short_h2s(&zone_hash), 
+		  rd_count_filtered,
 		  (unsigned long long) expire.abs_value);
-      return;
-    }    
+      new_signature = GNUNET_NAMESTORE_create_signature (cc->privkey, expire, name, 
+							 rd_filtered, rd_count_filtered);
+      GNUNET_assert (NULL != new_signature);
+      signature = new_signature;
+    }
+    else if (rd_count_filtered == rd_count)
+    {
+      if (NULL != signature)
+	{
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		      "Using provided signature for `%s' in zone `%s' with %u records and expiration %llu\n",
+		      name, GNUNET_short_h2s (&zone_hash), rd_count_filtered, 
+		      (unsigned long long) expire.abs_value);
+	  return;
+	}    
+    }
   }
-  else
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-		"No signature provided for `%s'\n",
-		name);
-    signature = NULL;
-  }
-
   if (GNUNET_YES == proc->zi->has_zone)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 		"Sending name `%s' for iteration over zone `%s'\n",

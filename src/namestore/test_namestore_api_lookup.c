@@ -28,8 +28,6 @@
 #include "namestore.h"
 #include "gnunet_signatures.h"
 
-#define VERBOSE GNUNET_NO
-
 #define RECORDS 5
 
 #define TEST_RECORD_TYPE 1234
@@ -120,6 +118,7 @@ name_lookup_proc (void *cls,
     {
       GNUNET_break (0);
     }
+    GNUNET_assert (NULL != signature);
     if (0 != memcmp (signature, s_signature, sizeof (struct GNUNET_CRYPTO_RsaSignature)))
     {
       GNUNET_break (0);
@@ -184,7 +183,7 @@ create_record (unsigned int count)
   rd = GNUNET_malloc (count * sizeof (struct GNUNET_NAMESTORE_RecordData));
   for (c = 0; c < count; c++)
   {
-    rd[c].expiration_time = GNUNET_TIME_absolute_get().abs_value;
+    rd[c].expiration_time = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_HOURS).abs_value;
     rd[c].record_type = TEST_RECORD_TYPE;
     rd[c].data_size = TEST_RECORD_DATALEN;
     rd[c].data = GNUNET_malloc(TEST_RECORD_DATALEN);

@@ -220,14 +220,14 @@ create_record (unsigned int count)
   struct GNUNET_NAMESTORE_RecordData * rd;
 
   rd = GNUNET_malloc (count * sizeof (struct GNUNET_NAMESTORE_RecordData));
-  rd[0].expiration_time = GNUNET_TIME_absolute_get().abs_value;
+  rd[0].expiration_time = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_HOURS).abs_value;
   rd[0].record_type = 0;
   rd[0].data_size = TEST_REMOVE_RECORD_DATALEN;
   rd[0].data = GNUNET_malloc(TEST_REMOVE_RECORD_DATALEN);
   memset ((char *) rd[0].data, TEST_RECORD_DATA, TEST_RECORD_DATALEN);
   for (c = 1; c < count; c++)
   {
-    rd[c].expiration_time = 0;
+    rd[c].expiration_time = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_HOURS).abs_value;
     rd[c].record_type = TEST_RECORD_TYPE;
     rd[c].data_size = TEST_RECORD_DATALEN;
     rd[c].data = GNUNET_malloc(TEST_RECORD_DATALEN);

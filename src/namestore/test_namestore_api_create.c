@@ -152,13 +152,13 @@ name_lookup_second_proc (void *cls,
       }
     }
 
-    if (GNUNET_OK != GNUNET_NAMESTORE_verify_signature(zone_key, expire, n, rd_count, rd, signature))
+    if (GNUNET_OK != GNUNET_NAMESTORE_verify_signature (zone_key, expire, n, rd_count, rd, signature))
     {
       GNUNET_break (0);
       failed = GNUNET_YES;
     }
 
-    if (GNUNET_OK != GNUNET_NAMESTORE_verify_signature(&pubkey, expire, n, rd_count, rd, signature))
+    if (GNUNET_OK != GNUNET_NAMESTORE_verify_signature (&pubkey, expire, n, rd_count, rd, signature))
     {
       GNUNET_break (0);
       failed = GNUNET_YES;
@@ -167,7 +167,8 @@ name_lookup_second_proc (void *cls,
     struct GNUNET_NAMESTORE_RecordData rd_new[2];
     rd_new[0] = *s_first_record;
     rd_new[1] = *s_second_record;
-    s_signature_updated = GNUNET_NAMESTORE_create_signature(privkey, expire, s_name, rd_new, 2);
+    rd_new[1].flags = 0; /* unset GNUNET_NAMESTORE_RF_AUTHORITY */
+    s_signature_updated = GNUNET_NAMESTORE_create_signature (privkey, expire, s_name, rd_new, 2);
 
     if (0 != memcmp (s_signature_updated, signature, sizeof (struct GNUNET_CRYPTO_RsaSignature)))
     {
@@ -330,7 +331,7 @@ create_record (unsigned int count)
   rd = GNUNET_malloc (count * sizeof (struct GNUNET_NAMESTORE_RecordData));
   for (c = 0; c < count; c++)
   {
-    rd[c].expiration_time = GNUNET_TIME_absolute_get().abs_value;
+    rd[c].expiration_time = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_HOURS).abs_value;
     rd[c].record_type = TEST_RECORD_TYPE;
     rd[c].data_size = TEST_RECORD_DATALEN;
     rd[c].data = GNUNET_malloc(TEST_RECORD_DATALEN);

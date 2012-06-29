@@ -140,11 +140,6 @@ name_lookup_existing_record_type (void *cls,
     GNUNET_break(0);
     failed = GNUNET_YES;
   }
-  if (NULL != signature)
-  {
-    GNUNET_break(0);
-    failed = GNUNET_YES;
-  }
   if (failed == GNUNET_YES)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Namestore returned invalid response\n");
@@ -254,13 +249,13 @@ create_record (unsigned int count)
   rd = GNUNET_malloc (count * sizeof (struct GNUNET_NAMESTORE_RecordData));
   for (c = 0; c < count-1; c++)
   {
-    rd[c].expiration_time = 0;
+    rd[c].expiration_time = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_HOURS).abs_value;
     rd[c].record_type = 1;
     rd[c].data_size = TEST_RECORD_DATALEN;
     rd[c].data = GNUNET_malloc(TEST_RECORD_DATALEN);
     memset ((char *) rd[c].data, TEST_RECORD_DATA, TEST_RECORD_DATALEN);
   }
-  rd[c].expiration_time = GNUNET_TIME_absolute_get().abs_value;
+  rd[c].expiration_time = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_HOURS).abs_value;
   rd[c].record_type = TEST_RECORD_LOOKUP_TYPE_EXISTING;
   rd[c].data_size = TEST_RECORD_DATALEN;
   rd[c].data = GNUNET_malloc(TEST_RECORD_DATALEN);
