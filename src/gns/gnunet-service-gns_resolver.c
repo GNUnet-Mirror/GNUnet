@@ -180,7 +180,7 @@ is_canonical(char* name)
   char* tok;
 
   ndup = GNUNET_strdup (name);
-  tok = strtok (ndup, ".");
+  strtok (ndup, ".");
 
   for (tok = strtok (NULL, "."); tok != NULL; tok = strtok (NULL, "."))
   {
@@ -3982,7 +3982,7 @@ process_zone_to_name_shorten_root (void *cls,
       strcpy (nsh->result, result);
   }
   
-  if (0 != strcmp (nsh->private_zone_name, ""))
+  if (NULL != nsh->private_zone)
   {
     /* backtrack authorities for names in priv zone */
     rh->namestore_task = GNUNET_NAMESTORE_zone_to_name (namestore_handle,
@@ -3991,7 +3991,7 @@ process_zone_to_name_shorten_root (void *cls,
                                    &process_zone_to_name_shorten_private,
                                    rh);
   }
-  else if (0 != strcmp (nsh->shorten_zone_name, ""))
+  else if (NULL != nsh->shorten_zone)
   {
     /* backtrack authorities for names in shorten zone */
     rh->namestore_task = GNUNET_NAMESTORE_zone_to_name (namestore_handle,
@@ -4084,15 +4084,15 @@ handle_delegation_ns_shorten (void* cls,
       strcpy (nsh->result, result);
 
   }
-  else if (GNUNET_CRYPTO_short_hash_cmp(&rh->authority_chain_head->zone,
-                                        nsh->private_zone) == 0)
+  else if (NULL != nsh->private_zone)
   {
     /**
      * This is our zone append .gnunet unless name is empty
      * (it shouldn't be, usually FIXME what happens if we
      * shorten to our zone to a "" record??)
      */
-    if (0 != strcmp (nsh->private_zone_name, ""))
+    if (GNUNET_CRYPTO_short_hash_cmp(&rh->authority_chain_head->zone,
+                                     nsh->private_zone) == 0)
     {
     
       sprintf (result, "%s.%s.%s",
@@ -4105,15 +4105,15 @@ handle_delegation_ns_shorten (void* cls,
         strcpy (nsh->result, result);
     }
   }
-  else if (GNUNET_CRYPTO_short_hash_cmp(&rh->authority_chain_head->zone,
-                                        nsh->shorten_zone) == 0)
+  else if (NULL != nsh->shorten_zone)
   {
     /**
      * This is our zone append .gnunet unless name is empty
      * (it shouldn't be, usually FIXME what happens if we
      * shorten to our zone to a "" record??)
      */
-    if (0 != strcmp (nsh->shorten_zone_name, ""))
+    if (GNUNET_CRYPTO_short_hash_cmp(&rh->authority_chain_head->zone,
+                                     nsh->shorten_zone) == 0)
     {
       sprintf (result, "%s.%s.%s",
                rh->name, nsh->private_zone_name, GNUNET_GNS_TLD);

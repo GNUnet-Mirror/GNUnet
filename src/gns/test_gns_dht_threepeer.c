@@ -161,7 +161,6 @@ on_lookup_result(void *cls, uint32_t rd_count,
 {
   int i;
   char* string_val;
-  const char* typename;
 
   if (rd_count == 0)
   {
@@ -175,7 +174,6 @@ on_lookup_result(void *cls, uint32_t rd_count,
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "name: %s\n", (char*)cls);
     for (i=0; i<rd_count; i++)
     {
-      typename = GNUNET_NAMESTORE_number_to_typename (rd[i].record_type);
       string_val = GNUNET_NAMESTORE_value_to_string(rd[i].record_type,
                                                     rd[i].data,
                                                     rd[i].data_size);

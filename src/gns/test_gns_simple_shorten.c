@@ -75,6 +75,14 @@ static struct GNUNET_GNS_Handle *gns_handle;
 
 const struct GNUNET_CONFIGURATION_Handle *cfg;
 
+struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded priv_pkey;
+struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded short_pkey;
+struct GNUNET_CRYPTO_RsaPrivateKey *priv_key;
+struct GNUNET_CRYPTO_RsaPrivateKey *short_key;
+
+struct GNUNET_CRYPTO_ShortHashCode priv_zone;
+struct GNUNET_CRYPTO_ShortHashCode short_zone;
+
 /**
  * Check whether peers successfully shut down.
  */
@@ -153,7 +161,10 @@ commence_testing (void *cls, int32_t success, const char *emsg)
     return;
   }
 
-  GNUNET_GNS_shorten(gns_handle, TEST_DOMAIN, &process_shorten_result,
+  GNUNET_GNS_shorten(gns_handle, TEST_DOMAIN,
+                     &priv_zone,
+                     &short_zone,
+                     &process_shorten_result,
                      TEST_DOMAIN);
   
 }
@@ -200,6 +211,8 @@ do_shorten(void *cls, const struct GNUNET_PeerIdentity *id,
   struct GNUNET_CRYPTO_ShortHashCode alice_hash;
   struct GNUNET_CRYPTO_RsaSignature *sig;
   char* our_keyfile;
+  char* private_keyfile;
+  char* shorten_keyfile;
 
   cfg = _cfg;
 
@@ -222,16 +235,46 @@ do_shorten(void *cls, const struct GNUNET_PeerIdentity *id,
     ok = -1;
     return;
   }
+  
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
+                                                            "SHORTEN_ZONEKEY",
+                                                            &shorten_keyfile))
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+               "Failed to get shorten zone key from cfg\n");
+    ok = -1;
+    return;
+  }
+  
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
+                                                            "PRIVATE_ZONEKEY",
+                                                            &private_keyfile))
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+               "Failed to get private zone key from cfg\n");
+    ok = -1;
+    return;
+  }
 
   our_key = GNUNET_CRYPTO_rsa_key_create_from_file (our_keyfile);
   GNUNET_free(our_keyfile);
 
   bob_key = GNUNET_CRYPTO_rsa_key_create_from_file (KEYFILE_BOB);
   alice_key = GNUNET_CRYPTO_rsa_key_create_from_file (KEYFILE_ALICE);
+  priv_key = GNUNET_CRYPTO_rsa_key_create_from_file (private_keyfile);
+  short_key = GNUNET_CRYPTO_rsa_key_create_from_file (shorten_keyfile);
+
+  GNUNET_free(shorten_keyfile);
+  GNUNET_free(private_keyfile);
   
   GNUNET_CRYPTO_rsa_key_get_public (our_key, &our_pkey);
   GNUNET_CRYPTO_rsa_key_get_public (alice_key, &alice_pkey);
   GNUNET_CRYPTO_rsa_key_get_public (bob_key, &bob_pkey);
+  GNUNET_CRYPTO_rsa_key_get_public (priv_key, &priv_pkey);
+  GNUNET_CRYPTO_rsa_key_get_public (short_key, &short_pkey);
+
+  GNUNET_CRYPTO_short_hash(&priv_pkey, sizeof(priv_pkey), &priv_zone);
+  GNUNET_CRYPTO_short_hash(&short_pkey, sizeof(short_pkey), &short_zone);
 
   struct GNUNET_NAMESTORE_RecordData rd;
   char* ip = TEST_IP;
@@ -308,6 +351,8 @@ do_shorten(void *cls, const struct GNUNET_PeerIdentity *id,
   GNUNET_CRYPTO_rsa_key_free(our_key);
   GNUNET_CRYPTO_rsa_key_free(bob_key);
   GNUNET_CRYPTO_rsa_key_free(alice_key);
+  GNUNET_CRYPTO_rsa_key_free(priv_key);
+  GNUNET_CRYPTO_rsa_key_free(short_key);
 }
 
 static void

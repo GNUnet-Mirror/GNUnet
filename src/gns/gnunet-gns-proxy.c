@@ -1557,7 +1557,7 @@ add_handle_to_mhd (struct GNUNET_NETWORK_Handle *h, struct MHD_Daemon *daemon)
   struct sockaddr *addr;
   socklen_t len;
 
-  fd = dup (GNUNET_NETWORK_get_fd (h));
+  fd = GNUNET_NETWORK_get_fd (h);
   addr = GNUNET_NETWORK_get_addr (h);
   len = GNUNET_NETWORK_get_addrlen (h);
 
@@ -2593,7 +2593,13 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   mhd_unix_sock_addr.sun_family = AF_UNIX;
   strcpy (mhd_unix_sock_addr.sun_path, proxy_sockfile);
-  unlink (proxy_sockfile);
+  if (0 != unlink (proxy_sockfile))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Unable to unlink sockfile!\n");
+    return;
+  }
+
   len = strlen (proxy_sockfile) + sizeof(AF_UNIX);
 
   GNUNET_free (proxy_sockfile);
