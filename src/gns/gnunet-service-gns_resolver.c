@@ -1490,7 +1490,7 @@ process_record_result_vpn (void* cls, int af, const void *address)
   rlh = (struct RecordLookupHandle *)rh->proc_cls;
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "GNS_PHASE_REC_VPN-%d: Got answer from VPN to query!\n",
+             "GNS_PHASE_REC_VPN-%llu: Got answer from VPN to query!\n",
              rh->id);
   if (af == AF_INET)
   {
