@@ -129,19 +129,25 @@ GNUNET_TESTBED_host_stop_ (struct GNUNET_TESTBED_HelperHandle *handle);
  * Marks a host as registered with a controller
  *
  * @param host the host to mark
+ * @param controller the controller at which this host is registered
  */
 void
-GNUNET_TESTBED_mark_host_as_registered_ (struct GNUNET_TESTBED_Host *host);
+GNUNET_TESTBED_mark_host_as_registered_ (struct GNUNET_TESTBED_Host *host,
+					 const struct GNUNET_TESTBED_Controller
+					 *controller);
 
 
 /**
- * Checks whether a host has been registered
+ * Checks whether a host has been registered with the given controller
  *
  * @param host the host to check
+ * @param controller the controller at which host's registration is checked
  * @return GNUNET_YES if registered; GNUNET_NO if not
  */
 int
-GNUNET_TESTBED_is_host_registered_ (const struct GNUNET_TESTBED_Host *host);
+GNUNET_TESTBED_is_host_registered_ (const struct GNUNET_TESTBED_Host *host,
+				    const struct GNUNET_TESTBED_Controller
+					 *controller);
 
 #endif
 /* end of testbed_api_hosts.h */

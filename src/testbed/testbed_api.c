@@ -255,7 +255,7 @@ handle_addhostconfirm (struct GNUNET_TESTBED_Controller *c,
   if (sizeof (struct GNUNET_TESTBED_HostConfirmedMessage) == msg_size)
   {
     LOG_DEBUG ("Host %u successfully registered\n", ntohl (msg->host_id));
-    GNUNET_TESTBED_mark_host_as_registered_  (rh->host);
+    GNUNET_TESTBED_mark_host_as_registered_  (rh->host, c);
     rh->cc (rh->cc_cls, NULL);
     GNUNET_free (rh);
     return GNUNET_OK;
@@ -541,7 +541,7 @@ GNUNET_TESTBED_register_host (struct GNUNET_TESTBED_Controller *controller,
   if (NULL != controller->rh)
     return NULL;
   hostname = GNUNET_TESTBED_host_get_hostname_ (host);
-  if (GNUNET_YES == GNUNET_TESTBED_is_host_registered_ (host))
+  if (GNUNET_YES == GNUNET_TESTBED_is_host_registered_ (host, controller))
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
          "Host hostname: %s already registered\n",
@@ -638,9 +638,9 @@ GNUNET_TESTBED_controller_link (struct GNUNET_TESTBED_Controller *master,
   uint16_t msg_size;
 
   GNUNET_assert (GNUNET_YES == 
-		 GNUNET_TESTBED_is_host_registered_ (delegated_host));
+		 GNUNET_TESTBED_is_host_registered_ (delegated_host, master));
   GNUNET_assert (GNUNET_YES == 
-		 GNUNET_TESTBED_is_host_registered_ (slave_host));
+		 GNUNET_TESTBED_is_host_registered_ (slave_host, master));
   config = GNUNET_CONFIGURATION_serialize (slave_cfg, &config_size);
   cc_size = compressBound ((uLong) config_size);
   cconfig = GNUNET_malloc (cc_size);

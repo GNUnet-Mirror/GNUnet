@@ -64,6 +64,11 @@ struct GNUNET_TESTBED_Host
   const char *username;
 
   /**
+   * The controller at which this host is registered
+   */
+  const struct GNUNET_TESTBED_Controller *controller;
+
+  /**
    * Global ID we use to refer to a host on the network
    */
   uint32_t unique_id;
@@ -73,10 +78,6 @@ struct GNUNET_TESTBED_Host
    */
   uint16_t port;
 
-  /**
-   * Set this flag to 1 if host is registered with a controller; 0 if not
-   */
-  uint8_t is_registered;
 };
 
 
@@ -385,11 +386,14 @@ GNUNET_TESTBED_host_stop_ (struct GNUNET_TESTBED_HelperHandle *handle)
  * Marks a host as registered with a controller
  *
  * @param host the host to mark
+ * @param controller the controller at which this host is registered
  */
 void
-GNUNET_TESTBED_mark_host_as_registered_ (struct GNUNET_TESTBED_Host *host)
+GNUNET_TESTBED_mark_host_as_registered_ (struct GNUNET_TESTBED_Host *host,
+					 const struct GNUNET_TESTBED_Controller
+					 *controller)
 {
-  host->is_registered = 1;
+  host->controller = controller;
 }
 
 
@@ -397,12 +401,15 @@ GNUNET_TESTBED_mark_host_as_registered_ (struct GNUNET_TESTBED_Host *host)
  * Checks whether a host has been registered
  *
  * @param host the host to check
+ * @param controller the controller at which host's registration is checked
  * @return GNUNET_YES if registered; GNUNET_NO if not
  */
 int
-GNUNET_TESTBED_is_host_registered_ (const struct GNUNET_TESTBED_Host *host)
+GNUNET_TESTBED_is_host_registered_ (const struct GNUNET_TESTBED_Host *host,
+				    const struct GNUNET_TESTBED_Controller
+				    *controller)
 {
-  return (1 == host->is_registered) ? GNUNET_YES : GNUNET_NO;
+  return (controller == host->controller) ? GNUNET_YES : GNUNET_NO;
 }
 
 
