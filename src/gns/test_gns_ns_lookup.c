@@ -110,7 +110,7 @@ on_lookup_result_alt2 (void *cls, uint32_t rd_count,
     for (i=0; i<rd_count; i++)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO, "type: %d\n", rd[i].record_type);
-      if (rd[i].record_type == GNUNET_GNS_RECORD_TYPE_A)
+      if (rd[i].record_type == GNUNET_GNS_RECORD_A)
       {
         memcpy(&a, rd[i].data, sizeof(a));
         addr = inet_ntoa(a);
@@ -154,7 +154,7 @@ on_lookup_result_alt (void *cls, uint32_t rd_count,
     for (i=0; i<rd_count; i++)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO, "type: %d\n", rd[i].record_type);
-      if (rd[i].record_type == GNUNET_GNS_RECORD_TYPE_A)
+      if (rd[i].record_type == GNUNET_GNS_RECORD_A)
       {
         memcpy(&a, rd[i].data, sizeof(a));
         addr = inet_ntoa(a);
@@ -173,7 +173,7 @@ on_lookup_result_alt (void *cls, uint32_t rd_count,
     }
   }
 
-  GNUNET_GNS_lookup(gns_handle, TEST_DOMAIN_ALT2, GNUNET_GNS_RECORD_TYPE_A,
+  GNUNET_GNS_lookup(gns_handle, TEST_DOMAIN_ALT2, GNUNET_GNS_RECORD_A,
                     GNUNET_YES,
                     NULL,
                     &on_lookup_result_alt2, TEST_DOMAIN_ALT2);
@@ -200,7 +200,7 @@ on_lookup_result(void *cls, uint32_t rd_count,
     for (i=0; i<rd_count; i++)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO, "type: %d\n", rd[i].record_type);
-      if (rd[i].record_type == GNUNET_GNS_RECORD_TYPE_A)
+      if (rd[i].record_type == GNUNET_GNS_RECORD_A)
       {
         memcpy(&a, rd[i].data, sizeof(a));
         addr = inet_ntoa(a);
@@ -219,7 +219,7 @@ on_lookup_result(void *cls, uint32_t rd_count,
     }
   }
 
-  GNUNET_GNS_lookup(gns_handle, TEST_DOMAIN_ALT, GNUNET_GNS_RECORD_TYPE_A,
+  GNUNET_GNS_lookup(gns_handle, TEST_DOMAIN_ALT, GNUNET_GNS_RECORD_A,
                     GNUNET_YES,
                     NULL,
                     &on_lookup_result_alt, TEST_DOMAIN_ALT);
@@ -241,7 +241,7 @@ start_lookup (void)
     ok = 2;
   }
 
-  GNUNET_GNS_lookup (gns_handle, TEST_DOMAIN, GNUNET_GNS_RECORD_TYPE_A,
+  GNUNET_GNS_lookup (gns_handle, TEST_DOMAIN, GNUNET_GNS_RECORD_A,
                      GNUNET_YES,
                      NULL,
                      &on_lookup_result, TEST_DOMAIN);
@@ -386,7 +386,7 @@ do_lookup(void *cls, const struct GNUNET_PeerIdentity *id,
 
   rd.data_size = strlen (TEST_RECORD_NS);
   rd.data = TEST_RECORD_NS;
-  rd.record_type = GNUNET_GNS_RECORD_TYPE_NS;
+  rd.record_type = GNUNET_GNS_RECORD_NS;
  
   GNUNET_NAMESTORE_record_create (namestore_handle,
                                   alice_key,

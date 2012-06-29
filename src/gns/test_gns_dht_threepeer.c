@@ -201,7 +201,7 @@ commence_testing(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   
   gh = GNUNET_GNS_connect(alice_cfg);
 
-  GNUNET_GNS_lookup(gh, TEST_DOMAIN, GNUNET_GNS_RECORD_TYPE_A,
+  GNUNET_GNS_lookup(gh, TEST_DOMAIN, GNUNET_GNS_RECORD_A,
                     GNUNET_NO,
                     NULL,
                     &on_lookup_result, TEST_DOMAIN);
@@ -330,7 +330,7 @@ daemon_started (void *cls, const struct GNUNET_PeerIdentity *id,
     GNUNET_assert(1 == inet_pton (AF_INET, TEST_IP, web));
     rd.data_size = sizeof(struct in_addr);
     rd.data = web;
-    rd.record_type = GNUNET_GNS_RECORD_TYPE_A;
+    rd.record_type = GNUNET_GNS_RECORD_A;
     rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
 
     GNUNET_NAMESTORE_record_create (ns, key, "www", &rd, NULL, NULL);

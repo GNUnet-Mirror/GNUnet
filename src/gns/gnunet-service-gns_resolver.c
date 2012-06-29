@@ -1497,7 +1497,7 @@ process_record_result_vpn (void* cls, int af, const void *address)
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                "GNS_PHASE_REC-%d: Answer is IPv4!\n",
                rh->id);
-    if (rlh->record_type != GNUNET_GNS_RECORD_TYPE_A)
+    if (rlh->record_type != GNUNET_GNS_RECORD_A)
     {
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                  "GNS_PHASE_REC-%d: Requested record is not IPv4!\n",
@@ -1505,7 +1505,7 @@ process_record_result_vpn (void* cls, int af, const void *address)
       rh->proc (rh->proc_cls, rh, 0, NULL);
       return;
     }
-    rd.record_type = GNUNET_GNS_RECORD_TYPE_A;
+    rd.record_type = GNUNET_GNS_RECORD_A;
     rd.expiration_time = UINT64_MAX; /* FIXME: should probably pick something shorter... */
     rd.data = address;
     rd.data_size = sizeof (struct in_addr);
@@ -1609,7 +1609,7 @@ handle_dns_resolver (void *cls,
   if (addrlen == sizeof (struct sockaddr_in))
   {
     sai = (struct sockaddr_in*) addr;
-    rd.record_type = GNUNET_GNS_RECORD_TYPE_A;
+    rd.record_type = GNUNET_GNS_RECORD_A;
     rd.data_size = sizeof (struct in_addr);
     rd.data = &sai->sin_addr;
   }
@@ -1639,7 +1639,7 @@ resolve_dns_name (struct ResolverHandle *rh)
   struct RecordLookupHandle *rlh = rh->proc_cls;
   int af;
 
-  if ((rlh->record_type != GNUNET_GNS_RECORD_TYPE_A) &&
+  if ((rlh->record_type != GNUNET_GNS_RECORD_A) &&
       (rlh->record_type != GNUNET_GNS_RECORD_AAAA))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1648,7 +1648,7 @@ resolve_dns_name (struct ResolverHandle *rh)
     return;
   }
 
-  if (rlh->record_type == GNUNET_GNS_RECORD_TYPE_A)
+  if (rlh->record_type == GNUNET_GNS_RECORD_A)
     af = AF_INET;
   else
     af = AF_INET6;
@@ -1727,7 +1727,7 @@ read_dns_response (void *cls,
                packet->answers[i].type,
                rlh->record_type);
     /* http://tools.ietf.org/html/rfc1034#section-3.6.2 */
-    if (packet->answers[i].type == GNUNET_GNS_RECORD_TYPE_CNAME)
+    if (packet->answers[i].type == GNUNET_GNS_RECORD_CNAME)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "CNAME... restarting query with %s\n",
@@ -1784,7 +1784,7 @@ read_dns_response (void *cls,
   for (i = 0; i < packet->num_authority_records; i++)
   {
     
-    if (packet->authority_records[i].type == GNUNET_GNS_RECORD_TYPE_NS)
+    if (packet->authority_records[i].type == GNUNET_GNS_RECORD_NS)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Found NS delegation!\n");
@@ -1799,7 +1799,7 @@ read_dns_response (void *cls,
     if (found_delegation == GNUNET_NO)
       break;
 
-    if ((packet->additional_records[i].type == GNUNET_GNS_RECORD_TYPE_A) &&
+    if ((packet->additional_records[i].type == GNUNET_GNS_RECORD_A) &&
         (0 == strcmp (packet->additional_records[i].name, delegation_name)))
     {
       GNUNET_assert (sizeof (struct in_addr) ==
@@ -1895,7 +1895,7 @@ resolve_record_dns (struct ResolverHandle *rh,
   for (i = 0; i < rd_count; i++)
   {
     /* Synthesize dns name */
-    if (rd[i].record_type == GNUNET_GNS_RECORD_TYPE_NS)
+    if (rd[i].record_type == GNUNET_GNS_RECORD_NS)
     {
       strcpy (rh->dns_zone, (char*)rd[i].data);
       if (0 == strcmp (rh->name, ""))
@@ -1904,7 +1904,7 @@ resolve_record_dns (struct ResolverHandle *rh,
         sprintf (rh->dns_name, "%s.%s", rh->name, (char*)rd[i].data);
     }
     /* The glue */
-    if (rd[i].record_type == GNUNET_GNS_RECORD_TYPE_A)
+    if (rd[i].record_type == GNUNET_GNS_RECORD_A)
       dnsip = *((struct in_addr*)rd[i].data);
   }
   
@@ -2039,7 +2039,7 @@ resolve_record_vpn (struct ResolverHandle *rh,
     return;
   }
 
-  if (rlh->record_type == GNUNET_GNS_RECORD_TYPE_A)
+  if (rlh->record_type == GNUNET_GNS_RECORD_A)
     af = AF_INET;
   else
     af = AF_INET6;
@@ -2405,8 +2405,8 @@ process_delegation_result_dht(void* cls,
                  rh->id, rd[i].flags);
       
       if ((rd[i].record_type == GNUNET_GNS_RECORD_VPN) ||
-          (rd[i].record_type == GNUNET_GNS_RECORD_TYPE_NS) ||
-          (rd[i].record_type == GNUNET_GNS_RECORD_TYPE_CNAME))
+          (rd[i].record_type == GNUNET_GNS_RECORD_NS) ||
+          (rd[i].record_type == GNUNET_GNS_RECORD_CNAME))
       {
         /**
          * This is a VPN,NS,CNAME entry. Let namestore handle this after caching
@@ -2622,12 +2622,12 @@ finish_lookup (struct ResolverHandle *rh,
   for (i = 0; i < rd_count; i++)
   {
     
-    if (rd[i].record_type != GNUNET_GNS_RECORD_TYPE_NS &&
-        rd[i].record_type != GNUNET_GNS_RECORD_TYPE_PTR &&
-        rd[i].record_type != GNUNET_GNS_RECORD_TYPE_CNAME &&
+    if (rd[i].record_type != GNUNET_GNS_RECORD_NS &&
+        rd[i].record_type != GNUNET_GNS_RECORD_PTR &&
+        rd[i].record_type != GNUNET_GNS_RECORD_CNAME &&
         rd[i].record_type != GNUNET_GNS_RECORD_MX &&
-        rd[i].record_type != GNUNET_GNS_RECORD_TYPE_SOA &&
-        rd[i].record_type != GNUNET_GNS_RECORD_TYPE_SRV)
+        rd[i].record_type != GNUNET_GNS_RECORD_SOA &&
+        rd[i].record_type != GNUNET_GNS_RECORD_SRV)
     {
       p_rd[i].data = rd[i].data;
       continue;
@@ -2659,7 +2659,7 @@ finish_lookup (struct ResolverHandle *rh,
       p_rd[i].data = new_mx_data;
       p_rd[i].data_size = offset;
     }
-    else if (rd[i].record_type == GNUNET_GNS_RECORD_TYPE_SRV)
+    else if (rd[i].record_type == GNUNET_GNS_RECORD_SRV)
     {
       /*
        * Prio, weight and port
@@ -2674,7 +2674,7 @@ finish_lookup (struct ResolverHandle *rh,
       p_rd[i].data = new_srv_data;
       p_rd[i].data_size = sizeof (struct srv_data) + strlen ((char*)&new_srv[1]) + 1;
     }
-    else if (rd[i].record_type == GNUNET_GNS_RECORD_TYPE_SOA)
+    else if (rd[i].record_type == GNUNET_GNS_RECORD_SOA)
     {
       /* expand mname and rname */
       old_soa = (struct soa_data*)rd[i].data;
@@ -3044,7 +3044,7 @@ handle_delegation_ns (void* cls, struct ResolverHandle *rh,
               rh->id);
     if (rh->status & RSL_CNAME_FOUND)
     {
-      if (rlh->record_type == GNUNET_GNS_RECORD_TYPE_CNAME)
+      if (rlh->record_type == GNUNET_GNS_RECORD_CNAME)
       {
         GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                   "GNS_PHASE_DELEGATE_NS-%llu: Resolved queried CNAME in NS.\n",
@@ -3108,7 +3108,7 @@ handle_delegation_ns (void* cls, struct ResolverHandle *rh,
     }
     else if (rh->status & RSL_DELEGATE_NS)
     {
-      if (rlh->record_type == GNUNET_GNS_RECORD_TYPE_NS)
+      if (rlh->record_type == GNUNET_GNS_RECORD_NS)
       {
         GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                    "GNS_PHASE_DELEGATE_NS-%llu: Resolved queried NSRR in NS.\n",
@@ -3156,7 +3156,7 @@ handle_delegation_ns (void* cls, struct ResolverHandle *rh,
   
   if (rh->status & RSL_DELEGATE_NS)
   {
-    if (rlh->record_type == GNUNET_GNS_RECORD_TYPE_NS)
+    if (rlh->record_type == GNUNET_GNS_RECORD_NS)
     {
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                  "GNS_PHASE_DELEGATE_NS-%llu: Resolved queried NSRR in NS.\n",
@@ -3335,7 +3335,7 @@ process_delegation_result_ns (void* cls,
      * A CNAME. Like regular DNS this means the is no other record for this
      * name.
      */
-    if (rd[i].record_type == GNUNET_GNS_RECORD_TYPE_CNAME)
+    if (rd[i].record_type == GNUNET_GNS_RECORD_CNAME)
     {
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                  "GNS_PHASE_DELEGATE_NS-%llu: CNAME found.\n",
@@ -3363,7 +3363,7 @@ process_delegation_result_ns (void* cls,
      * Redirect via NS
      * FIXME make optional
      */
-    if (rd[i].record_type == GNUNET_GNS_RECORD_TYPE_NS)
+    if (rd[i].record_type == GNUNET_GNS_RECORD_NS)
     {
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                  "GNS_PHASE_DELEGATE_NS-%llu: NS found.\n",

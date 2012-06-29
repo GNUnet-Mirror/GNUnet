@@ -954,7 +954,7 @@ handle_lookup(void *cls,
     return;
   }
 
-  if ((clh->type == GNUNET_GNS_RECORD_TYPE_A) &&
+  if ((clh->type == GNUNET_GNS_RECORD_A) &&
       (GNUNET_OK != v4_enabled))
   {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,

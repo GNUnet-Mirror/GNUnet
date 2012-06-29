@@ -113,7 +113,7 @@ on_lookup_result(void *cls, uint32_t rd_count,
     for (i=0; i<rd_count; i++)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO, "type: %d\n", rd[i].record_type);
-      if (rd[i].record_type == GNUNET_GNS_RECORD_TYPE_SRV)
+      if (rd[i].record_type == GNUNET_GNS_RECORD_SRV)
       {
         srv_data = (uint16_t*)rd[i].data;
         srv = (char*)&srv_data[3];
@@ -153,7 +153,7 @@ commence_testing (void *cls, int32_t success, const char *emsg)
                 "Failed to connect to GNS!\n");
   }
 
-  GNUNET_GNS_lookup(gns_handle, TEST_DOMAIN, GNUNET_GNS_RECORD_TYPE_SRV,
+  GNUNET_GNS_lookup(gns_handle, TEST_DOMAIN, GNUNET_GNS_RECORD_SRV,
                     GNUNET_NO,
                     NULL,
                     &on_lookup_result, TEST_DOMAIN);
@@ -279,7 +279,7 @@ do_lookup(void *cls, const struct GNUNET_PeerIdentity *id,
   srv_data->weight = srv_weight;
   strcpy((char*)&srv_data[1], TEST_SRV_NAME);
   rd.data = srv_data;
-  rd.record_type = GNUNET_GNS_RECORD_TYPE_SRV;
+  rd.record_type = GNUNET_GNS_RECORD_SRV;
   sig = GNUNET_NAMESTORE_create_signature(bob_key,
                                           GNUNET_TIME_UNIT_FOREVER_ABS,
                                           TEST_RECORD_NAME_SRV,

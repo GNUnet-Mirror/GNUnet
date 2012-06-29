@@ -115,7 +115,7 @@ on_lookup_result_cname (void *cls, uint32_t rd_count,
     for (i=0; i<rd_count; i++)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO, "type: %d\n", rd[i].record_type);
-      if (rd[i].record_type == GNUNET_GNS_RECORD_TYPE_CNAME)
+      if (rd[i].record_type == GNUNET_GNS_RECORD_CNAME)
       {
         GNUNET_log (GNUNET_ERROR_TYPE_INFO, "CNAME: %s\n", rd[i].data);
         if (0 == strcmp(rd[i].data, TEST_RECORD_CNAME_SERVER))
@@ -157,7 +157,7 @@ on_lookup_result_dns (void *cls, uint32_t rd_count,
     for (i=0; i<rd_count; i++)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO, "type: %d\n", rd[i].record_type);
-      if (rd[i].record_type == GNUNET_GNS_RECORD_TYPE_A)
+      if (rd[i].record_type == GNUNET_GNS_RECORD_A)
       {
         memcpy(&a, rd[i].data, sizeof(a));
         addr = inet_ntoa(a);
@@ -176,7 +176,7 @@ on_lookup_result_dns (void *cls, uint32_t rd_count,
     }
   }
 
-  GNUNET_GNS_lookup (gns_handle, TEST_DOMAIN_PLUS, GNUNET_GNS_RECORD_TYPE_CNAME,
+  GNUNET_GNS_lookup (gns_handle, TEST_DOMAIN_PLUS, GNUNET_GNS_RECORD_CNAME,
                      GNUNET_YES,
                      NULL,
                      &on_lookup_result_cname, TEST_DOMAIN_PLUS);
@@ -203,7 +203,7 @@ on_lookup_result_zkey (void *cls, uint32_t rd_count,
     for (i=0; i<rd_count; i++)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO, "type: %d\n", rd[i].record_type);
-      if (rd[i].record_type == GNUNET_GNS_RECORD_TYPE_A)
+      if (rd[i].record_type == GNUNET_GNS_RECORD_A)
       {
         memcpy(&a, rd[i].data, sizeof(a));
         addr = inet_ntoa(a);
@@ -222,7 +222,7 @@ on_lookup_result_zkey (void *cls, uint32_t rd_count,
     }
   }
 
-  GNUNET_GNS_lookup(gns_handle, TEST_DOMAIN_DNS, GNUNET_GNS_RECORD_TYPE_A,
+  GNUNET_GNS_lookup(gns_handle, TEST_DOMAIN_DNS, GNUNET_GNS_RECORD_A,
                     GNUNET_YES,
                     NULL,
                     &on_lookup_result_dns, TEST_DOMAIN_DNS);
@@ -249,7 +249,7 @@ on_lookup_result_plus (void *cls, uint32_t rd_count,
     for (i=0; i<rd_count; i++)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO, "type: %d\n", rd[i].record_type);
-      if (rd[i].record_type == GNUNET_GNS_RECORD_TYPE_A)
+      if (rd[i].record_type == GNUNET_GNS_RECORD_A)
       {
         memcpy(&a, rd[i].data, sizeof(a));
         addr = inet_ntoa(a);
@@ -268,7 +268,7 @@ on_lookup_result_plus (void *cls, uint32_t rd_count,
     }
   }
 
-  GNUNET_GNS_lookup(gns_handle, TEST_DOMAIN_ZKEY, GNUNET_GNS_RECORD_TYPE_A,
+  GNUNET_GNS_lookup(gns_handle, TEST_DOMAIN_ZKEY, GNUNET_GNS_RECORD_A,
                     GNUNET_YES,
                     NULL,
                     &on_lookup_result_zkey, TEST_DOMAIN_ZKEY);
@@ -300,7 +300,7 @@ commence_testing (void *cls, int32_t success, const char *emsg)
     ok = 2;
   }
 
-  GNUNET_GNS_lookup(gns_handle, TEST_DOMAIN_PLUS, GNUNET_GNS_RECORD_TYPE_A,
+  GNUNET_GNS_lookup(gns_handle, TEST_DOMAIN_PLUS, GNUNET_GNS_RECORD_A,
                     GNUNET_YES,
                     NULL,
                     &on_lookup_result_plus, TEST_DOMAIN_PLUS);
@@ -393,7 +393,7 @@ do_lookup(void *cls, const struct GNUNET_PeerIdentity *id,
 
   rd.data_size = strlen (TEST_RECORD_CNAME_PLUS);
   rd.data = TEST_RECORD_CNAME_PLUS;
-  rd.record_type = GNUNET_GNS_RECORD_TYPE_CNAME;
+  rd.record_type = GNUNET_GNS_RECORD_CNAME;
 
   GNUNET_NAMESTORE_record_create (namestore_handle,
                                   alice_key,
@@ -404,7 +404,7 @@ do_lookup(void *cls, const struct GNUNET_PeerIdentity *id,
 
   rd.data_size = strlen (TEST_RECORD_CNAME_ZKEY);
   rd.data = TEST_RECORD_CNAME_ZKEY;
-  rd.record_type = GNUNET_GNS_RECORD_TYPE_CNAME;
+  rd.record_type = GNUNET_GNS_RECORD_CNAME;
 
   GNUNET_NAMESTORE_record_create (namestore_handle,
                                   alice_key,
@@ -415,7 +415,7 @@ do_lookup(void *cls, const struct GNUNET_PeerIdentity *id,
 
   rd.data_size = strlen (TEST_RECORD_CNAME_DNS);
   rd.data = TEST_RECORD_CNAME_DNS;
-  rd.record_type = GNUNET_GNS_RECORD_TYPE_CNAME;
+  rd.record_type = GNUNET_GNS_RECORD_CNAME;
 
   GNUNET_NAMESTORE_record_create (namestore_handle,
                                   alice_key,

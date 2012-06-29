@@ -109,7 +109,7 @@ on_lookup_result(void *cls, uint32_t rd_count,
     for (i=0; i<rd_count; i++)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "type: %d\n", rd[i].record_type);
-      if (rd[i].record_type == GNUNET_GNS_RECORD_TYPE_A)
+      if (rd[i].record_type == GNUNET_GNS_RECORD_A)
       {
         memcpy(&a, rd[i].data, sizeof(a));
         addr = inet_ntoa(a);
@@ -149,7 +149,7 @@ commence_testing (void *cls, int32_t success, const char *emsg)
                 "Failed to connect to GNS!\n");
   }
 
-  GNUNET_GNS_lookup(gns_handle, TEST_DOMAIN, GNUNET_GNS_RECORD_TYPE_A,
+  GNUNET_GNS_lookup(gns_handle, TEST_DOMAIN, GNUNET_GNS_RECORD_A,
                     GNUNET_NO,
                     NULL,
                     &on_lookup_result, TEST_DOMAIN);

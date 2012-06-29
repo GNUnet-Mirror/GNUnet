@@ -201,7 +201,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   if (lookup_type != NULL)
     rtype = GNUNET_NAMESTORE_typename_to_number(lookup_type);
   else
-    rtype = GNUNET_GNS_RECORD_TYPE_A;
+    rtype = GNUNET_GNS_RECORD_A;
 
   if (NULL == gns)
   {
