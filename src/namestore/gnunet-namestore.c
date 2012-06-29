@@ -236,6 +236,9 @@ display_record (void *cls,
   const char *typestring;
   char *s;
   unsigned int i;
+  char *etime;
+  struct GNUNET_TIME_Absolute aex;
+  struct GNUNET_TIME_Relative rex;
 
   if (NULL == name)
   {
@@ -260,7 +263,22 @@ display_record (void *cls,
 	       (unsigned int) rd[i].record_type);
       continue;
     }
-    FPRINTF (stdout, "\t%s: %s\n", typestring, s);
+    if (0 != (rd[i].flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION))
+    {
+      rex.rel_value = rd[i].expiration_time;
+      etime = GNUNET_STRINGS_relative_time_to_string (rex);
+    }
+    else
+    {
+      aex.abs_value = rd[i].expiration_time;
+      etime = GNUNET_STRINGS_absolute_time_to_string (aex);
+    }
+    FPRINTF (stdout, "\t%s: %s (%s %s)\n", typestring, s, 
+	     (0 != (rd[i].flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION)) 
+	     ? _(/* what follows is relative expiration */ "for at least")
+	     : _(/* what follows is absolute expiration */ "until"),
+	     etime);
+    GNUNET_free (etime);
     GNUNET_free (s);    
   }
   FPRINTF (stdout, "%s", "\n");
