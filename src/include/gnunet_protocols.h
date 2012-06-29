@@ -1301,14 +1301,86 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_FS_PUBLISH_HELPER_FINISHED 426
 
+
 /*******************************************************************************
  * NAMESTORE message types
  ******************************************************************************/
 
 /**
- * Request update and listing of a peer.
+ * Client to service: register.
  */
 #define GNUNET_MESSAGE_TYPE_NAMESTORE_START 430
+
+/**
+ * Client to service: lookup name
+ */
+#define GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_NAME 431
+
+/**
+ * Service to client: result of name lookup
+ */
+#define GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_NAME_RESPONSE 432
+
+/**
+ * Client to service: put records (for caching)
+ */
+#define GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_PUT 433
+
+/**
+ * Service to client: result of put operation.
+ */
+#define GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_PUT_RESPONSE 434
+
+/**
+ * Client to service: create record as authority
+ */
+#define GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_CREATE 435
+
+/**
+ * Service to client: result of record creation request
+ */
+#define GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_CREATE_RESPONSE 436
+
+/**
+ * Client to service: remove record(s)
+ */
+#define GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_REMOVE 437
+
+/**
+ * Service to client: result of removal request.
+ */
+#define GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_REMOVE_RESPONSE 438
+
+/**
+ * Client to service: "reverse" lookup for zone name based on zone key
+ */
+#define GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_TO_NAME 439
+
+/**
+ * Service to client: result of zone-to-name lookup.
+ */
+#define GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_TO_NAME_RESPONSE 440
+
+/**
+ * Client to service: please start iteration
+ */
+#define GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_START 445
+
+/**
+ * Service to client: current record in iteration (or end of list).
+ */
+#define GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_RESPONSE 446
+
+/**
+ * Client to service: next record in iteration please.
+ */
+#define GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_NEXT 447
+
+/**
+ * Client to service: stop iterating.
+ */
+#define GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_STOP 448
+
 
 /*******************************************************************************
  * LOCKMANAGER message types
@@ -1317,17 +1389,17 @@ extern "C"
 /**
  * Message to acquire Lock
  */
-#define GNUNET_MESSAGE_TYPE_LOCKMANAGER_ACQUIRE 440
+#define GNUNET_MESSAGE_TYPE_LOCKMANAGER_ACQUIRE 450
 
 /**
  * Message to release lock
  */
-#define GNUNET_MESSAGE_TYPE_LOCKMANAGER_RELEASE 441
+#define GNUNET_MESSAGE_TYPE_LOCKMANAGER_RELEASE 451
 
 /**
  * SUCESS reply from lockmanager
  */
-#define GNUNET_MESSAGE_TYPE_LOCKMANAGER_SUCCESS 442
+#define GNUNET_MESSAGE_TYPE_LOCKMANAGER_SUCCESS 452
 
 /*******************************************************************************
  * TESTBED message types
