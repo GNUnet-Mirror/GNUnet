@@ -870,7 +870,7 @@ free_neighbour (struct NeighbourMapEntry *n, int keep_sessions)
 {
   struct MessageQueue *mq;
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
-  struct GNUNET_HELLO_Address *old_address;
+  //struct GNUNET_HELLO_Address *old_address;
 
   n->is_active = NULL; /* always free'd by its own continuation! */
 
@@ -895,9 +895,9 @@ free_neighbour (struct NeighbourMapEntry *n, int keep_sessions)
 
 
   /* cut transport-level connection */
-  old_address = GNUNET_HELLO_address_copy(n->primary_address.address);
-  free_address (&n->primary_address);
-  free_address (&n->alternative_address);
+  //old_address = GNUNET_HELLO_address_copy(n->primary_address.address);
+
+
 
   /* FIXME-PLUGIN-API: This does not seem to guarantee that all
      transport sessions eventually get killed due to inactivity; they
@@ -910,13 +910,15 @@ free_neighbour (struct NeighbourMapEntry *n, int keep_sessions)
      wrong. */
 
   if ((GNUNET_NO == keep_sessions) &&
-      (NULL != old_address) &&
-      (NULL != (papi = GST_plugins_find (old_address->transport_name))))
+      (NULL != n->primary_address.address) &&
+      (NULL != (papi = GST_plugins_find (n->primary_address.address->transport_name))))
     papi->disconnect (papi->cls, &n->id);
 
-  GNUNET_free (old_address);
 
   n->state = S_DISCONNECT_FINISHED;
+
+  free_address (&n->primary_address);
+  free_address (&n->alternative_address);
 
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multihashmap_remove (neighbours,
