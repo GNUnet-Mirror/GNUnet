@@ -922,7 +922,8 @@ mylog (enum GNUNET_ErrorType kind, const char *comp, const char *message,
     }
 #endif  
     VSNPRINTF (buf, size, message, va);
-    (void) setup_log_file (tmptr);
+    if (NULL != tmptr)
+      (void) setup_log_file (tmptr);
     if ((0 != (kind & GNUNET_ERROR_TYPE_BULK)) &&
         (last_bulk_time.abs_value != 0) &&
         (0 == strncmp (buf, last_bulk, sizeof (last_bulk))))

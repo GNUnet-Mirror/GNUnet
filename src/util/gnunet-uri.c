@@ -62,7 +62,7 @@ maint_child_death (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
        (0 == code) )
     ret = 0;
   else
-    GNUNET_OS_process_kill (p, SIGTERM);
+    GNUNET_break (0 == GNUNET_OS_process_kill (p, SIGTERM));
   GNUNET_OS_process_destroy (p);
 }
 
@@ -110,8 +110,10 @@ run (void *cls, char *const *args, const char *cfgfile,
 					     &program))
   {
     fprintf (stderr, _("No handler known for subsystem `%s'\n"), subsystem);
+    GNUNET_free (subsystem);
     return;
   }
+  GNUNET_free (subsystem);
   rt = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
 				       GNUNET_DISK_pipe_handle (sigpipe,
 								GNUNET_DISK_PIPE_END_READ),
@@ -122,6 +124,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 			       program,
 			       args[0], 
 			       NULL);
+  GNUNET_free (program);
   if (NULL == p)
     GNUNET_SCHEDULER_cancel (rt);
 }

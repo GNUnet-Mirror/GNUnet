@@ -266,10 +266,11 @@ parse_record (const char *udp_payload,
        "_$SERVICE._$PROTO.$DOMAIN_NAME" */
     ndup = GNUNET_strdup (r->name);
     tok = strtok (ndup, ".");
+    GNUNET_assert (NULL != tok);
     GNUNET_assert ('_' == *tok);
     r->data.srv->service = GNUNET_strdup (&tok[1]);
     tok = strtok (NULL, ".");
-    if ('_' != *tok)
+    if ( (NULL == tok) || ('_' != *tok) )
     {
       GNUNET_free (r->data.srv);
       GNUNET_free (ndup);

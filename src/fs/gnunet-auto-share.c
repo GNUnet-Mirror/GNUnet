@@ -283,6 +283,14 @@ save_state ()
   n = GNUNET_CONTAINER_multihashmap_size (work_finished);
   fn = get_state_file ();
   wh = GNUNET_BIO_write_open (fn);
+  if (NULL == wh)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		_("Failed to save state to file %s\n"),
+		fn);
+    GNUNET_free (fn);
+    return;
+  }
   if (GNUNET_OK !=
       GNUNET_BIO_write_int32 (wh, n))
   {
