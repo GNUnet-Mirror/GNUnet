@@ -261,6 +261,12 @@ start_curl (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   curl_main ();
 }
 
+static void
+disco_ns (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_NAMESTORE_disconnect (namestore);
+}
+
 /**
  * Callback invoked from the namestore service once record is
  * created.
@@ -276,8 +282,8 @@ start_curl (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 commence_testing (void *cls, int32_t success, const char *emsg)
 {
-  GNUNET_NAMESTORE_disconnect (namestore);
-  
+  GNUNET_SCHEDULER_add_now (&disco_ns, NULL);
+
   if ((emsg != NULL) && (GNUNET_YES != success))
   {
     fprintf (stderr, 
