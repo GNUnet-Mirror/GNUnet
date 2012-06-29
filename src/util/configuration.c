@@ -347,8 +347,8 @@ GNUNET_CONFIGURATION_is_dirty (const struct GNUNET_CONFIGURATION_Handle *cfg)
  *           present. This memory should be freed by the caller
  */
 char *
-GNUNET_CONFIGURATION_serialize (struct GNUNET_CONFIGURATION_Handle *cfg,
-				uint16_t *size)
+GNUNET_CONFIGURATION_serialize (const struct GNUNET_CONFIGURATION_Handle *cfg,
+				size_t *size)
 {
   struct ConfigSection *sec;
   struct ConfigEntry *ent;
@@ -356,9 +356,9 @@ GNUNET_CONFIGURATION_serialize (struct GNUNET_CONFIGURATION_Handle *cfg,
   char *cbuf;
   char *val;
   char *pos;
-  uint16_t len;
-  uint16_t m_size;
-  uint16_t c_size;
+  int len;
+  size_t m_size;
+  size_t c_size;
 
 
   /* Pass1 : calculate the buffer size required */
@@ -399,6 +399,7 @@ GNUNET_CONFIGURATION_serialize (struct GNUNET_CONFIGURATION_Handle *cfg,
   while (NULL != sec)
   {
     len = GNUNET_asprintf (&cbuf, "[%s]\n", sec->name);
+    GNUNET_assert (0 < len);
     memcpy (mem + c_size, cbuf, len);
     c_size += len;
     GNUNET_free (cbuf);
@@ -446,7 +447,7 @@ GNUNET_CONFIGURATION_write (struct GNUNET_CONFIGURATION_Handle *cfg,
 {
   char *fn;
   char *cfg_buf;
-  uint16_t size;
+  size_t size;
 
   fn = GNUNET_STRINGS_filename_expand (filename);
   if (fn == NULL)

@@ -121,8 +121,8 @@ GNUNET_CONFIGURATION_parse (struct GNUNET_CONFIGURATION_Handle *cfg,
  *           present. This memory should be freed by the caller
  */
 char *
-GNUNET_CONFIGURATION_serialize (struct GNUNET_CONFIGURATION_Handle *cfg,
-				uint16_t *size);
+GNUNET_CONFIGURATION_serialize (const struct GNUNET_CONFIGURATION_Handle *cfg,
+				size_t *size);
 
 
 /**
