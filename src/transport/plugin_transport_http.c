@@ -1495,79 +1495,71 @@ session_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct Session *s = cls;
 
   s->timeout_task = GNUNET_SCHEDULER_NO_TASK;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Session %p was idle for %llu, disconnecting\n",
-      s, GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Session %p was idle for %llu ms, disconnecting\n",
+              s, (unsigned long long) GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value);
 
   /* call session destroy function */
   if (s->inbound == GNUNET_NO)
     GNUNET_assert (GNUNET_OK == client_disconnect (s));
   else
     GNUNET_assert (GNUNET_OK == server_disconnect (s));
-
 }
 
 
 /**
- * Start session timeout
- */
+* Start session timeout
+*/
 static void
 start_session_timeout (struct Session *s)
 {
-  GNUNET_assert (NULL != s);
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == s->timeout_task);
-
-  s->timeout_task =  GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
-                                                   &session_timeout,
-                                                   s);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Timeout for session %p set to %llu\n",
-      s, GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value);
+ GNUNET_assert (NULL != s);
+ GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == s->timeout_task);
+ s->timeout_task =  GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
+                                                  &session_timeout,
+                                                  s);
+ GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+             "Timeout for session %p set to %llu ms\n",
+             s,  (unsigned long long) GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value);
 }
 
 
 /**
- * Increment session timeout due to activity
- */
+* Increment session timeout due to activity
+*/
 static void
 reschedule_session_timeout (struct Session *s)
 {
-  GNUNET_assert (NULL != s);
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != s->timeout_task);
+ GNUNET_assert (NULL != s);
+ GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != s->timeout_task);
 
-  GNUNET_SCHEDULER_cancel (s->timeout_task);
-  s->timeout_task =  GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
-                                                   &session_timeout,
-                                                   s);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Timeout rescheduled for session %p set to %llu\n",
-      s, GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value);
+ GNUNET_SCHEDULER_cancel (s->timeout_task);
+ s->timeout_task =  GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
+                                                  &session_timeout,
+                                                  s);
+ GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+             "Timeout rescheduled for session %p set to %llu ms\n",
+             s, (unsigned long long) GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value);
 }
 
 
 /**
- * Cancel timeout
- */
+* Cancel timeout
+*/
 static void
 stop_session_timeout (struct Session *s)
 {
-  GNUNET_assert (NULL != s);
+ GNUNET_assert (NULL != s);
 
-  if (GNUNET_SCHEDULER_NO_TASK != s->timeout_task)
-  {
-    GNUNET_SCHEDULER_cancel (s->timeout_task);
-    s->timeout_task = GNUNET_SCHEDULER_NO_TASK;
-
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Timeout rescheduled for session %p canceled\n",
-      s, GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value);
-  }
-  else
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Timeout for session %p was not active\n",
-      s);
-  }
+ if (GNUNET_SCHEDULER_NO_TASK != s->timeout_task)
+ {
+   GNUNET_SCHEDULER_cancel (s->timeout_task);
+   s->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+               "Timeout stopped for session %p canceled\n",
+               s, (unsigned long long) GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value);
+ }
 }
-
 
 /**
  * Entry point for the plugin.

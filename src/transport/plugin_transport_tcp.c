@@ -1706,7 +1706,7 @@ handle_tcp_nat_probe (void *cls, struct GNUNET_SERVER_Client *client,
   const struct sockaddr_in *s4;
   const struct sockaddr_in6 *s6;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "received NAT probe\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Received NAT probe\n");
 
   /* We have received a TCP NAT probe, meaning we (hopefully) initiated
    * a connection to this peer by running gnunet-nat-client.  This peer
@@ -2188,8 +2188,8 @@ session_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   s->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Session %p was idle for %llu, disconnecting\n",
-	      s, GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value);
+	      "Session %p was idle for %llu ms, disconnecting\n",
+	      s, (unsigned long long) GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value);
   /* call session destroy function */
   disconnect_session(s);
 }
@@ -2206,10 +2206,9 @@ start_session_timeout (struct Session *s)
   s->timeout_task =  GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
                                                    &session_timeout,
                                                    s);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-	      "Timeout for session %p set to %llu\n",
-	      s, 
-	      GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Timeout for session %p set to %llu ms\n",
+	      s,  (unsigned long long) GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value);
 }
 
 
@@ -2220,21 +2219,15 @@ static void
 reschedule_session_timeout (struct Session *s)
 {
   GNUNET_assert (NULL != s);
-  if (GNUNET_SCHEDULER_NO_TASK == s->timeout_task)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
-		"Timeout for peer `%s' %s not scheduled\n",
-		GNUNET_i2s (&s->target), 
-		tcp_address_to_string(NULL, s->addr, s->addrlen));
-    return;
-  }
+  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != s->timeout_task);
+
   GNUNET_SCHEDULER_cancel (s->timeout_task);
   s->timeout_task =  GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
                                                    &session_timeout,
                                                    s);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Timeout rescheduled for session %p set to %llu\n",
-	      s,
-	      (unsigned long long) GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Timeout rescheduled for session %p set to %llu ms\n",
+	      s, (unsigned long long) GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value);
 }
 
 
@@ -2245,19 +2238,14 @@ static void
 stop_session_timeout (struct Session *s)
 {
   GNUNET_assert (NULL != s);
+
   if (GNUNET_SCHEDULER_NO_TASK != s->timeout_task)
   {
     GNUNET_SCHEDULER_cancel (s->timeout_task);
     s->timeout_task = GNUNET_SCHEDULER_NO_TASK;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-		"Timeout rescheduled for session %p canceled\n",
-		s, GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value);
-  }
-  else
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-		"Timeout for session %p was not active\n",
-		s);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Timeout stopped for session %p canceled\n",
+                s, (unsigned long long) GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value);
   }
 }
 
