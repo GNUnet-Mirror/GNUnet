@@ -268,7 +268,19 @@ udp_ipv4_broadcast_send (void *cls,
                                       (const struct sockaddr *) addr,
                                       baddr->addrlen);
     if (sent == GNUNET_SYSERR)
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "sendto");
+    {
+      if ((ENETUNREACH == errno) || (ENETDOWN == errno))
+      {
+        /* "Network unreachable" or "Network down"
+         *
+         * This indicates that we just do not have network connectivity
+         */
+        GNUNET_log (GNUNET_ERROR_TYPE_BULK | GNUNET_ERROR_TYPE_WARNING,
+            "Network connectivity is down, cannot send beacon!\n");
+      }
+      else
+        GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "sendto");
+    }
     else
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -301,7 +313,20 @@ udp_ipv6_broadcast_send (void *cls,
                                     &plugin->ipv6_multicast_address,
                                     sizeof (struct sockaddr_in6));
   if (sent == GNUNET_SYSERR)
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "sendto");
+  {
+    if ((ENETUNREACH == errno) || (ENETDOWN == errno))
+    {
+      /* "Network unreachable" or "Network down"
+       *
+       * This indicates that this system is IPv6 enabled, but does not
+       * have a valid global IPv6 address assigned
+       */
+      GNUNET_log (GNUNET_ERROR_TYPE_BULK | GNUNET_ERROR_TYPE_WARNING,
+          "Network connectivity is down, cannot send beacon!\n");
+    }
+    else
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "sendto");
+  }
   else
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
