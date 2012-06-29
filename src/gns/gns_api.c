@@ -766,6 +766,8 @@ GNUNET_GNS_lookup (struct GNUNET_GNS_Handle *handle,
  *
  * @param handle handle to the GNS service
  * @param name the name to look up
+ * @param private_zone the public zone of the private zone
+ * @param shorten_zone the public zone of the shorten zone
  * @param zone the zone to start the resolution in
  * @param proc function to call on result
  * @param proc_cls closure for processor
@@ -773,10 +775,12 @@ GNUNET_GNS_lookup (struct GNUNET_GNS_Handle *handle,
  */
 struct GNUNET_GNS_QueueEntry *
 GNUNET_GNS_shorten_zone (struct GNUNET_GNS_Handle *handle,
-                    const char * name,
-                    struct GNUNET_CRYPTO_ShortHashCode *zone,
-                    GNUNET_GNS_ShortenResultProcessor proc,
-                    void *proc_cls)
+                         const char * name,
+                         struct GNUNET_CRYPTO_ShortHashCode *private_zone,
+                         struct GNUNET_CRYPTO_ShortHashCode *shorten_zone,
+                         struct GNUNET_CRYPTO_ShortHashCode *zone,
+                         GNUNET_GNS_ShortenResultProcessor proc,
+                         void *proc_cls)
 {
   /* IPC to shorten gns names, return shorten_handle */
   struct GNUNET_GNS_ClientShortenMessage *shorten_msg;
@@ -809,6 +813,8 @@ GNUNET_GNS_shorten_zone (struct GNUNET_GNS_Handle *handle,
   shorten_msg->header.type = htons (GNUNET_MESSAGE_TYPE_GNS_SHORTEN);
   shorten_msg->header.size = htons (msize);
   shorten_msg->id = htonl(qe->r_id);
+  shorten_msg->private_zone = *private_zone;
+  shorten_msg->shorten_zone = *shorten_zone;
   
   if (NULL != zone)
   {
@@ -836,6 +842,8 @@ GNUNET_GNS_shorten_zone (struct GNUNET_GNS_Handle *handle,
  *
  * @param handle handle to the GNS service
  * @param name the name to look up
+ * @param private_zone the public zone of the private zone
+ * @param shorten_zone the public zone of the shorten zone
  * @param proc function to call on result
  * @param proc_cls closure for processor
  * @return handle to the operation
@@ -843,10 +851,14 @@ GNUNET_GNS_shorten_zone (struct GNUNET_GNS_Handle *handle,
 struct GNUNET_GNS_QueueEntry *
 GNUNET_GNS_shorten (struct GNUNET_GNS_Handle *handle,
                     const char * name,
+                    struct GNUNET_CRYPTO_ShortHashCode *private_zone,
+                    struct GNUNET_CRYPTO_ShortHashCode *shorten_zone,
                     GNUNET_GNS_ShortenResultProcessor proc,
                     void *proc_cls)
 {
-  return GNUNET_GNS_shorten_zone (handle, name, NULL, proc, proc_cls);
+  return GNUNET_GNS_shorten_zone (handle, name,
+                                  private_zone, shorten_zone,
+                                  NULL, proc, proc_cls);
 }
 /**
  * Perform an authority lookup for a given name.

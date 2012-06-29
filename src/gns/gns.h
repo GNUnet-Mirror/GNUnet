@@ -133,6 +133,16 @@ struct GNUNET_GNS_ClientShortenMessage
    * If use_default_zone is empty this zone is used for lookup
    */
   struct GNUNET_CRYPTO_ShortHashCode zone;
+
+  /**
+   * Shorten zone
+   */
+  struct GNUNET_CRYPTO_ShortHashCode shorten_zone;
+
+  /**
+   * Private zone
+   */
+  struct GNUNET_CRYPTO_ShortHashCode private_zone;
   
   /* Followed by the name to shorten up */
 };

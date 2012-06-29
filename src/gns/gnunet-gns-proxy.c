@@ -292,6 +292,12 @@ static regex_t re_dotplus;
 /* The users local GNS zone hash */
 static struct GNUNET_CRYPTO_ShortHashCode local_gns_zone;
 
+/* The users local private zone */
+static struct GNUNET_CRYPTO_ShortHashCode local_private_zone;
+
+/* The users local shorten zone */
+static struct GNUNET_CRYPTO_ShortHashCode local_shorten_zone;
+
 /* The CA for SSL certificate generation */
 static struct ProxyCA proxy_ca;
 
@@ -687,10 +693,13 @@ mhd_content_cb (void *cls,
         ctask->is_postprocessing = GNUNET_YES;
         ctask->pp_finished = GNUNET_NO;
         
-        GNUNET_GNS_shorten (gns_handle,
-                           ctask->pp_buf,
-                           &process_shorten,
-                           ctask);
+        GNUNET_GNS_shorten_zone (gns_handle,
+                                 ctask->pp_buf,
+                                 &local_private_zone,
+                                 &local_shorten_zone,
+                                 &local_gns_zone,
+                                 &process_shorten,
+                                 ctask);
 
         return 0;
       }
@@ -2356,6 +2365,60 @@ load_local_zone_key (const struct GNUNET_CONFIGURATION_Handle *cfg)
   GNUNET_CRYPTO_short_hash_to_enc (zone, &zonename);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Using zone: %s!\n", &zonename);
+  GNUNET_CRYPTO_rsa_key_free(key);
+  GNUNET_free(keyfile);
+  
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
+                                                   "PRIVATE_ZONEKEY", &keyfile))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Unable to load private zone key config value!\n");
+    return GNUNET_NO;
+  }
+
+  if (GNUNET_NO == GNUNET_DISK_file_test (keyfile))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Unable to load private zone key %s!\n", keyfile);
+    GNUNET_free(keyfile);
+    return GNUNET_NO;
+  }
+
+  key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
+  GNUNET_CRYPTO_rsa_key_get_public (key, &pkey);
+  GNUNET_CRYPTO_short_hash(&pkey,
+                           sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+                           &local_private_zone);
+  GNUNET_CRYPTO_short_hash_to_enc (zone, &zonename);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Using private zone: %s!\n", &zonename);
+  GNUNET_CRYPTO_rsa_key_free(key);
+  GNUNET_free(keyfile);
+
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
+                                                   "SHORTEN_ZONEKEY", &keyfile))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Unable to load shorten zone key config value!\n");
+    return GNUNET_NO;
+  }
+
+  if (GNUNET_NO == GNUNET_DISK_file_test (keyfile))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Unable to load shorten zone key %s!\n", keyfile);
+    GNUNET_free(keyfile);
+    return GNUNET_NO;
+  }
+
+  key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
+  GNUNET_CRYPTO_rsa_key_get_public (key, &pkey);
+  GNUNET_CRYPTO_short_hash(&pkey,
+                           sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+                           &local_shorten_zone);
+  GNUNET_CRYPTO_short_hash_to_enc (zone, &zonename);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Using shorten zone: %s!\n", &zonename);
   GNUNET_CRYPTO_rsa_key_free(key);
   GNUNET_free(keyfile);
 

@@ -173,9 +173,11 @@ static void
 do_shorten(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_GNS_shorten_zone (gns_handle, TEST_DOMAIN,
-                     &our_zone,
-                     &process_shorten_result,
-                     TEST_DOMAIN);
+                           &priv_zone,
+                           &short_zone,
+                           &our_zone,
+                           &process_shorten_result,
+                           TEST_DOMAIN);
 }
 
 static void

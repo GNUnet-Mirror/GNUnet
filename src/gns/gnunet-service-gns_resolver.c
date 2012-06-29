@@ -3726,22 +3726,20 @@ process_zone_to_name_shorten_shorten (void *cls,
   /* we found a match in our own root zone */
   if (rd_len != 0)
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "result strlen %d\n", strlen(name));
     answer_len = strlen(rh->name) + strlen(name) + strlen(GNUNET_GNS_TLD) + 3;
     memset(result, 0, answer_len);
 
     if (strlen(rh->name) > 0)
     {
-      sprintf (result, "%s.%s.%s.%s.%s",
+      sprintf (result, "%s.%s.%s.%s",
                rh->name, name,
-               nsh->shorten_zone_name, nsh->private_zone_name,
+               nsh->shorten_zone_name,
                GNUNET_GNS_TLD);
     }
     else
     {
-      sprintf (result, "%s.%s.%s.%s", name,
-               nsh->shorten_zone_name, nsh->private_zone_name,
+      sprintf (result, "%s.%s.%s", name,
+               nsh->shorten_zone_name,
                GNUNET_GNS_TLD);
     }
     
@@ -3759,9 +3757,9 @@ process_zone_to_name_shorten_shorten (void *cls,
      * shorten to our zone to a "" record??)
      */
     
-    sprintf (result, "%s.%s.%s.%s",
+    sprintf (result, "%s.%s.%s",
              rh->name,
-             nsh->shorten_zone_name, nsh->private_zone_name,
+             nsh->shorten_zone_name,
              GNUNET_GNS_TLD);
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                "Our zone: Found %s as shorten result\n", result);
@@ -3840,8 +3838,6 @@ process_zone_to_name_shorten_private (void *cls,
   /* we found a match in our own root zone */
   if (rd_len != 0)
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "result strlen %d\n", strlen(name));
     answer_len = strlen(rh->name) + strlen(name) + strlen(GNUNET_GNS_TLD) + 3;
     memset(result, 0, answer_len);
 
@@ -3876,7 +3872,7 @@ process_zone_to_name_shorten_private (void *cls,
       strcpy (nsh->result, result);
   }
   
-  if (nsh->shorten_zone != NULL)
+  if (0 != strcmp (nsh->shorten_zone_name, ""))
   {
     /* backtrack authorities for names in priv zone */
     rh->namestore_task = GNUNET_NAMESTORE_zone_to_name (namestore_handle,
@@ -3953,8 +3949,6 @@ process_zone_to_name_shorten_root (void *cls,
   /* we found a match in our own root zone */
   if (rd_len != 0)
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "result strlen %d\n", strlen(name));
     answer_len = strlen(rh->name) + strlen(name) + strlen(GNUNET_GNS_TLD) + 3;
     memset(result, 0, answer_len);
 
@@ -3988,7 +3982,7 @@ process_zone_to_name_shorten_root (void *cls,
       strcpy (nsh->result, result);
   }
   
-  if (nsh->private_zone != NULL)
+  if (0 != strcmp (nsh->private_zone_name, ""))
   {
     /* backtrack authorities for names in priv zone */
     rh->namestore_task = GNUNET_NAMESTORE_zone_to_name (namestore_handle,
@@ -3996,6 +3990,15 @@ process_zone_to_name_shorten_root (void *cls,
                                    &rh->authority_chain_head->zone,
                                    &process_zone_to_name_shorten_private,
                                    rh);
+  }
+  else if (0 != strcmp (nsh->shorten_zone_name, ""))
+  {
+    /* backtrack authorities for names in shorten zone */
+    rh->namestore_task = GNUNET_NAMESTORE_zone_to_name (namestore_handle,
+                                          nsh->shorten_zone,
+                                          &rh->authority_chain_head->zone,
+                                          &process_zone_to_name_shorten_shorten,
+                                          rh);
   }
   else
   {
@@ -4089,14 +4092,18 @@ handle_delegation_ns_shorten (void* cls,
      * (it shouldn't be, usually FIXME what happens if we
      * shorten to our zone to a "" record??)
      */
+    if (0 != strcmp (nsh->private_zone_name, ""))
+    {
     
-    sprintf (result, "%s.%s.%s",
-             rh->name, nsh->private_zone_name, GNUNET_GNS_TLD);
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "Our zone: Found %s as shorten result %s\n", result);
+      sprintf (result, "%s.%s.%s",
+               rh->name, nsh->private_zone_name, GNUNET_GNS_TLD);
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                 "Our zone: Found %s as shorten result in private zone %s\n",
+                 result);
     
-    if (strlen (nsh->result) > strlen (result))
-      strcpy (nsh->result, result);
+      if (strlen (nsh->result) > strlen (result))
+        strcpy (nsh->result, result);
+    }
   }
   else if (GNUNET_CRYPTO_short_hash_cmp(&rh->authority_chain_head->zone,
                                         nsh->shorten_zone) == 0)
@@ -4106,14 +4113,17 @@ handle_delegation_ns_shorten (void* cls,
      * (it shouldn't be, usually FIXME what happens if we
      * shorten to our zone to a "" record??)
      */
+    if (0 != strcmp (nsh->shorten_zone_name, ""))
+    {
+      sprintf (result, "%s.%s.%s",
+               rh->name, nsh->private_zone_name, GNUNET_GNS_TLD);
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                 "Our zone: Found %s as shorten result in shorten zone\n",
+                 result);
     
-    sprintf (result, "%s.%s.%s",
-             rh->name, nsh->private_zone_name, GNUNET_GNS_TLD);
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "Our zone: Found %s as shorten result\n", result);
-    
-    if (strlen (nsh->result) > strlen (result))
-      strcpy (nsh->result, result);
+      if (strlen (nsh->result) > strlen (result))
+        strcpy (nsh->result, result);
+    }
   }
   
   

@@ -51,6 +51,13 @@
  */
 struct ClientShortenHandle
 {
+
+  /* DLL */
+  struct ClientShortenHandle *next;
+
+  /* DLL */
+  struct ClientShortenHandle *prev;
+
   /* the requesting client that */
   struct GNUNET_SERVER_Client *client;
 
@@ -60,12 +67,15 @@ struct ClientShortenHandle
   /* request type */
   enum GNUNET_GNS_RecordType type;
 
-  /* optional zone private key used for shorten */
-  struct GNUNET_CRYPTO_RsaPrivateKey *shorten_key;
-  
   /* name to shorten */
   char name[MAX_DNS_NAME_LENGTH];
 
+  /* name of private zone (relative to root) */
+  char private_zone_id[MAX_DNS_NAME_LENGTH];
+  
+  /* name of shorten zone (relative to root) */
+  char shorten_zone_id[MAX_DNS_NAME_LENGTH];
+  
   /* root zone */
   struct GNUNET_CRYPTO_ShortHashCode root_zone;
 
@@ -74,6 +84,10 @@ struct ClientShortenHandle
   
   /* shorten zone */
   struct GNUNET_CRYPTO_ShortHashCode shorten_zone;
+
+  /* Namestore lookup task */
+  struct GNUNET_NAMESTORE_QueueEntry *namestore_task;
+
 };
 
 
@@ -99,6 +113,7 @@ struct ClientGetAuthHandle
  */
 struct ClientLookupHandle
 {
+
   /* the requesting client that */
   struct GNUNET_SERVER_Client *client;
 
@@ -181,17 +196,27 @@ static int auto_import_pkey;
 /* lookup timeout */
 static struct GNUNET_TIME_Relative default_lookup_timeout;
 
-/* name of the private zone */
-static char *private_zone_id;
-
-/* name of the public zone */
-static char *shorten_zone_id;
-
 /* ipv6 support */
 static int v6_enabled;
 
 /* ipv4 support */
 static int v4_enabled;
+
+/* Shorten DLL for cancelling NS requests */
+static struct ClientShortenHandle *csh_head;
+
+/* Shorten DLL for cancelling NS requests */
+static struct ClientShortenHandle *csh_tail;
+
+/**
+ * Send shorten response back to client
+ * 
+ * @param cls the closure containing a client shorten handle
+ * @param name the shortened name result or NULL if cannot be shortened
+ */
+static void
+send_shorten_response(void* cls, const char* name);
+
 
 /**
  * Continue shutdown
@@ -214,10 +239,16 @@ on_resolver_cleanup(void)
 static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  struct ClientShortenHandle *csh_tmp = csh_head;
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
              "Shutting down!");
   
+  while (csh_tmp != NULL)
+  {
+    GNUNET_CONTAINER_DLL_remove (csh_head, csh_tail, csh_tmp);
+    send_shorten_response (csh_tmp, csh_tmp->name);
+  }
   
   GNUNET_SERVER_notification_context_destroy (nc);
   
@@ -489,16 +520,24 @@ send_shorten_response(void* cls, const char* name)
                               (const struct GNUNET_MessageHeader *) rmsg,
                               GNUNET_NO);
   GNUNET_SERVER_receive_done (csh->client, GNUNET_OK);
+
+  if (NULL != csh->namestore_task)
+    GNUNET_NAMESTORE_cancel (csh->namestore_task);
   
   GNUNET_free(rmsg);
-  GNUNET_free_non_null(csh->shorten_key);
   GNUNET_free(csh);
 
 }
 
 
+/**
+ * Lookup the zone infos and shorten name
+ *
+ * @param csh the shorten handle
+ *
+ */
 static void
-process_shorten_zone_shorten (void *cls,
+process_shorten_in_private_zone_lookup (void *cls,
                       const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *key,
                       struct GNUNET_TIME_Absolute expiration,
                       const char *name,
@@ -507,36 +546,55 @@ process_shorten_zone_shorten (void *cls,
                       const struct GNUNET_CRYPTO_RsaSignature *signature)
 {
   struct ClientShortenHandle *csh = cls;
-  struct GNUNET_TIME_Relative remaining_time;
-  struct GNUNET_TIME_Absolute et;
+  csh->namestore_task = NULL;
+  struct GNUNET_CRYPTO_ShortHashCode *szone = &csh->shorten_zone;
+  struct GNUNET_CRYPTO_ShortHashCode *pzone = &csh->private_zone;
 
-  remaining_time = GNUNET_TIME_absolute_get_remaining (expiration);
-
-  if ((rd_count == 1) &&
-      (remaining_time.rel_value != 0))
+  if (0 == strcmp (csh->private_zone_id, ""))
+    pzone = NULL;
+  
+  if (rd_count == 0)
   {
-    GNUNET_break (0 == (rd->flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION));
-    et.abs_value = rd->expiration_time;
-    remaining_time = GNUNET_TIME_absolute_get_remaining (et);
-    if ((rd->record_type == GNUNET_GNS_RECORD_PKEY) &&
-        (remaining_time.rel_value != 0))
-    {
-      csh->shorten_zone = *((struct GNUNET_CRYPTO_ShortHashCode*)rd->data);
-    }
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "No shorten zone in private zone!\n");
+
+    strcpy (csh->shorten_zone_id, "");
+    szone = NULL;
+
   }
+  else
+  {
+
+    GNUNET_assert (rd_count == 1);
+
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Shorten zone %s found in private zone %s\n",
+                name, csh->private_zone_id);
+
+    sprintf (csh->shorten_zone_id, "%s.%s", name, csh->private_zone_id);
+  }
+  
+  GNUNET_CONTAINER_DLL_remove (csh_head, csh_tail, csh);
+
   gns_resolver_shorten_name (&csh->root_zone,
-                             &csh->private_zone,
-                             &csh->shorten_zone,
+                             pzone,
+                             szone,
                              csh->name,
-                             private_zone_id,
-                             shorten_zone_id,
+                             csh->private_zone_id,
+                             csh->shorten_zone_id,
                              &send_shorten_response, csh);
 
 }
 
 
+/**
+ * Lookup the zone infos and shorten name
+ *
+ * @param csh the shorten handle
+ *
+ */
 static void
-process_private_zone_shorten (void *cls,
+process_shorten_in_root_zone_lookup (void *cls,
                       const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *key,
                       struct GNUNET_TIME_Absolute expiration,
                       const char *name,
@@ -544,46 +602,94 @@ process_private_zone_shorten (void *cls,
                       const struct GNUNET_NAMESTORE_RecordData *rd,
                       const struct GNUNET_CRYPTO_RsaSignature *signature)
 {
-  struct GNUNET_TIME_Relative remaining_time;
   struct ClientShortenHandle *csh = cls;
-  struct GNUNET_TIME_Absolute et;
+  csh->namestore_task = NULL;
+  struct GNUNET_CRYPTO_ShortHashCode *szone = &csh->shorten_zone;
+  struct GNUNET_CRYPTO_ShortHashCode *pzone = &csh->private_zone;
+  
+  if (0 == strcmp (csh->private_zone_id, ""))
+    pzone = NULL;
 
-  remaining_time = GNUNET_TIME_absolute_get_remaining (expiration);
-
-  if ((rd_count == 1) &&
-      (remaining_time.rel_value != 0))
+  if (rd_count == 0)
   {
-    GNUNET_break (0 == (rd->flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION));
-    et.abs_value = rd->expiration_time;
-    remaining_time = GNUNET_TIME_absolute_get_remaining (et);
-    if ((rd->record_type == GNUNET_GNS_RECORD_PKEY) &&
-        (remaining_time.rel_value != 0))
-    {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "No shorten zone in zone and no private zone!\n");
 
+    strcpy (csh->shorten_zone_id, "");
 
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  "Looking for shorten zone in private zone\n");
-      csh->private_zone = *((struct GNUNET_CRYPTO_ShortHashCode*)rd->data);
-      GNUNET_NAMESTORE_lookup_record (namestore_handle,
-                                      &csh->private_zone,
-                                      shorten_zone_id,
-                                      GNUNET_GNS_RECORD_ANY,
-                                      &process_shorten_zone_shorten,
-                                      cls);
-    }
+    GNUNET_CONTAINER_DLL_remove (csh_head, csh_tail, csh);
+    szone = NULL;
+
+    gns_resolver_shorten_name (&csh->root_zone,
+                               pzone,
+                               szone,
+                               csh->name,
+                               csh->private_zone_id,
+                               csh->shorten_zone_id,
+                               &send_shorten_response, csh);
     return;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "No private zone found!\n");
-  gns_resolver_shorten_name (&csh->root_zone,
-                             &csh->private_zone,
-                             &csh->shorten_zone,
-                             csh->name,
-                             private_zone_id,
-                             shorten_zone_id,
-                             &send_shorten_response, csh);
+  GNUNET_assert (rd_count == 1);
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Private zone %s found in root zone\n", name);
+
+  strcpy (csh->private_zone_id, name);
+
+  csh->namestore_task = GNUNET_NAMESTORE_zone_to_name (namestore_handle,
+                                  pzone,
+                                  szone,
+                                  &process_shorten_in_private_zone_lookup,
+                                  csh);
+}
+
+
+/**
+ * Lookup the zone infos and shorten name
+ *
+ * @param csh the shorten handle
+ *
+ */
+static void
+process_private_in_root_zone_lookup (void *cls,
+                      const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *key,
+                      struct GNUNET_TIME_Absolute expiration,
+                      const char *name,
+                      unsigned int rd_count,
+                      const struct GNUNET_NAMESTORE_RecordData *rd,
+                      const struct GNUNET_CRYPTO_RsaSignature *signature)
+{
+  struct ClientShortenHandle *csh = cls;
+  csh->namestore_task = NULL;
+
+  if (rd_count == 0)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "No private zone in root zone\n");
+
+    strcpy (csh->private_zone_id, "");
+  
+    csh->namestore_task = GNUNET_NAMESTORE_zone_to_name (namestore_handle,
+                                  &csh->root_zone,
+                                  &csh->shorten_zone,
+                                  &process_shorten_in_root_zone_lookup,
+                                  csh);
+    return;
+  }
+
+  GNUNET_assert (rd_count == 1);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Private zone %s found in root zone\n", name);
+
+  strcpy (csh->private_zone_id, name);
+
+  csh->namestore_task = GNUNET_NAMESTORE_zone_to_name (namestore_handle,
+                                  &csh->private_zone,
+                                  &csh->shorten_zone,
+                                  &process_shorten_in_private_zone_lookup,
+                                  csh);
 }
 
 /**
@@ -596,13 +702,12 @@ static void
 start_shorten_name (struct ClientShortenHandle *csh)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Looking for private zone in root zone\n");
+              "Looking for private zone name in root zone\n");
 
-  GNUNET_NAMESTORE_lookup_record (namestore_handle,
+  csh->namestore_task = GNUNET_NAMESTORE_zone_to_name (namestore_handle,
                                   &csh->root_zone,
-                                  private_zone_id,
-                                  GNUNET_GNS_RECORD_ANY,
-                                  &process_private_zone_shorten,
+                                  &csh->private_zone,
+                                  &process_private_in_root_zone_lookup,
                                   csh);
 }
 
@@ -648,7 +753,8 @@ static void handle_shorten (void *cls,
   csh = GNUNET_malloc(sizeof(struct ClientShortenHandle));
   csh->client = client;
   csh->unique_id = sh_msg->id;
-  csh->shorten_key = NULL;
+
+  GNUNET_CONTAINER_DLL_insert (csh_head, csh_tail, csh);
   
   GNUNET_STRINGS_utf8_tolower((char*)&sh_msg[1], &nameptr);
 
@@ -673,6 +779,9 @@ static void handle_shorten (void *cls,
     send_shorten_response(csh, name);
     return;
   }
+
+  csh->shorten_zone = sh_msg->shorten_zone;
+  csh->private_zone = sh_msg->private_zone;
 
   strcpy (csh->name, name);
   
@@ -1097,22 +1206,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
                "Automatic PKEY import is enabled.\n");
     auto_import_pkey = GNUNET_YES;
 
-  }
-
-  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (c, "gns",
-                                                          "PRIVATE_ZONE",
-                                                          &private_zone_id))
-  {
-    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-               "Private zone id: %s\n", private_zone_id);
-  }
-
-  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (c, "gns",
-                                                          "SHORTEN_ZONE",
-                                                          &shorten_zone_id))
-  {
-    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-               "Shorten zone id: %s\n", shorten_zone_id);
   }
 
   dht_max_update_interval = GNUNET_GNS_DHT_MAX_UPDATE_INTERVAL;

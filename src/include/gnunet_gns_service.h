@@ -190,6 +190,8 @@ typedef void (*GNUNET_GNS_ShortenResultProcessor) (void *cls,
  *
  * @param handle handle to the GNS service
  * @param name the name to look up
+ * @param private_zone the public zone of the private zone
+ * @param shorten_zone the public zone of the shorten zone
  * @param proc function to call on result
  * @param proc_cls closure for processor
  * @return handle to the operation
@@ -197,6 +199,8 @@ typedef void (*GNUNET_GNS_ShortenResultProcessor) (void *cls,
 struct GNUNET_GNS_QueueEntry *
 GNUNET_GNS_shorten (struct GNUNET_GNS_Handle *handle,
                     const char * name,
+                    struct GNUNET_CRYPTO_ShortHashCode *private_zone,
+                    struct GNUNET_CRYPTO_ShortHashCode *shorten_zone,
                     GNUNET_GNS_ShortenResultProcessor proc,
                     void *proc_cls);
 
@@ -206,6 +210,8 @@ GNUNET_GNS_shorten (struct GNUNET_GNS_Handle *handle,
  *
  * @param handle handle to the GNS service
  * @param name the name to look up
+ * @param private_zone the public zone of the private zone
+ * @param shorten_zone the public zone of the shorten zone
  * @param zone the zone to start the resolution in
  * @param proc function to call on result
  * @param proc_cls closure for processor
@@ -213,10 +219,12 @@ GNUNET_GNS_shorten (struct GNUNET_GNS_Handle *handle,
  */
 struct GNUNET_GNS_QueueEntry *
 GNUNET_GNS_shorten_zone (struct GNUNET_GNS_Handle *handle,
-                    const char * name,
-                    struct GNUNET_CRYPTO_ShortHashCode *zone,
-                    GNUNET_GNS_ShortenResultProcessor proc,
-                    void *proc_cls);
+                         const char * name,
+                         struct GNUNET_CRYPTO_ShortHashCode *private_zone,
+                         struct GNUNET_CRYPTO_ShortHashCode *shorten_zone,
+                         struct GNUNET_CRYPTO_ShortHashCode *zone,
+                         GNUNET_GNS_ShortenResultProcessor proc,
+                         void *proc_cls);
 
 /* *************** Standard API: get authority ******************* */
 
