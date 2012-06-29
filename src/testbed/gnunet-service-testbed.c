@@ -482,7 +482,8 @@ ss_map_free_iterator (void *cls,
 {
   struct SharedService *ss = value;
 
-  GNUNET_CONTAINER_multihashmap_remove (ss_map, key, value);
+  GNUNET_assert (GNUNET_YES ==
+		 GNUNET_CONTAINER_multihashmap_remove (ss_map, key, value));
   GNUNET_free (ss->name);
   GNUNET_free (ss);
   return GNUNET_YES;
