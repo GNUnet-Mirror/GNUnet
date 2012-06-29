@@ -3642,6 +3642,7 @@ gns_resolver_lookup_record (struct GNUNET_CRYPTO_ShortHashCode zone,
   rh->authority_chain_head->next = NULL;
   rh->authority_chain_tail = rh->authority_chain_head;
   rh->authority_chain_head->zone = rh->authority;
+  strcpy (rh->authority_chain_head->name, "");
   
   /**
    * Copy original query into lookup handle
