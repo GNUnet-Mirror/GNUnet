@@ -533,7 +533,13 @@ send_shorten_response(void* cls, const char* name)
 /**
  * Lookup the zone infos and shorten name
  *
- * @param csh the shorten handle
+ * @param cls the client shorten handle
+ * @param key key of the zone
+ * @param expiration expiration of record
+ * @param name name found or null if no result
+ * @param rd_count number of records found
+ * @param rd record data
+ * @param signature
  *
  */
 static void
@@ -590,7 +596,13 @@ process_shorten_in_private_zone_lookup (void *cls,
 /**
  * Lookup the zone infos and shorten name
  *
- * @param csh the shorten handle
+ * @param cls the shorten handle
+ * @param key key of the zone
+ * @param expiration expiration of record
+ * @param name name found or null if no result
+ * @param rd_count number of records found
+ * @param rd record data
+ * @param signature
  *
  */
 static void
@@ -648,7 +660,13 @@ process_shorten_in_root_zone_lookup (void *cls,
 /**
  * Lookup the zone infos and shorten name
  *
- * @param csh the shorten handle
+ * @param cls the shorten handle
+ * @param key key of the zone
+ * @param expiration expiration of record
+ * @param name name found or null if no result
+ * @param rd_count number of records found
+ * @param rd record data
+ * @param signature
  *
  */
 static void

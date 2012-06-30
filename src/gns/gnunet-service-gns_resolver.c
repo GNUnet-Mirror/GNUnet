@@ -4345,6 +4345,12 @@ gns_resolver_shorten_name (struct GNUNET_CRYPTO_ShortHashCode *zone,
 
 /*********** END NAME SHORTEN ********************/
 
+/**
+ * Conclude get authority lookup
+ *
+ * @param rh resolver handle
+ * @param nah get authority lookup handle
+ */
 static void
 finish_get_auth (struct ResolverHandle *rh,
                  struct GetNameAuthorityHandle *nah)
