@@ -351,7 +351,9 @@ GNUNET_STRINGS_fancy_time_to_absolute (const char *fancy_time,
     return GNUNET_SYSERR;
   t = mktime (&tv);
   atime->abs_value = (uint64_t) ((uint64_t) t * 1000LL);
+#if LINUX
   atime->abs_value -= 1000LL * timezone;
+#endif
   return GNUNET_OK;
 }
 
