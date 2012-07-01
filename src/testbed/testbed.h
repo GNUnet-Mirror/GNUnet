@@ -169,6 +169,11 @@ struct GNUNET_TESTBED_ControllerLinkMessage
   uint32_t slave_host_id GNUNET_PACKED;
 
   /**
+   * The size of the uncompressed configuration
+   */
+  uint16_t config_size GNUNET_PACKED;
+
+  /**
    * Set to 1 if the receiving controller is the master controller for
    * the slave host (and thus responsible for starting it?). 0 if not
    */

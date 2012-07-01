@@ -27,6 +27,7 @@
 #include "platform.h"
 #include "gnunet_service_lib.h"
 #include "gnunet_server_lib.h"
+#include <zlib.h>
 
 #include "testbed.h"
 #include "gnunet_testbed_service.h"
@@ -413,14 +414,14 @@ handle_configure_shared_service (void *cls,
                                  struct GNUNET_SERVER_Client *client,
                                  const struct GNUNET_MessageHeader *message)
 {
-  struct GNUNET_TESTBED_ConfigureSharedServiceMessage *msg;
+  const struct GNUNET_TESTBED_ConfigureSharedServiceMessage *msg;
   struct SharedService *ss;
   char *service_name;
   struct GNUNET_HashCode hash;
   uint16_t msg_size;
   uint16_t service_name_size;
     
-  msg = (struct GNUNET_TESTBED_ConfigureSharedServiceMessage *) message;
+  msg = (const struct GNUNET_TESTBED_ConfigureSharedServiceMessage *) message;
   msg_size = ntohs (message->size);
   if (msg_size <= sizeof (struct GNUNET_TESTBED_ConfigureSharedServiceMessage))
   {
@@ -463,6 +464,80 @@ handle_configure_shared_service (void *cls,
   }
   GNUNET_CONTAINER_multihashmap_put (ss_map, &hash, ss,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);  
+}
+
+
+/**
+ * Message handler for GNUNET_MESSAGE_TYPE_TESTBED_LCONTROLLERS message
+ *
+ * @param cls NULL
+ * @param client identification of the client
+ * @param message the actual message
+ */
+static void 
+handle_link_controllers (void *cls,
+                         struct GNUNET_SERVER_Client *client,
+                         const struct GNUNET_MessageHeader *message)
+{
+  const struct GNUNET_TESTBED_ControllerLinkMessage *msg;
+  struct GNUNET_CONFIGURATION_Handle *cfg;
+  char *config;  
+  uLongf dest_size;
+  size_t config_size;
+  uint32_t delegated_host_id;
+  uint32_t slave_host_id;
+  uint16_t msize;
+   
+  msize = ntohs (message->size);
+  if (sizeof (struct GNUNET_TESTBED_ControllerLinkMessage) >= msize)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  msg = (const struct GNUNET_TESTBED_ControllerLinkMessage *) message;
+  delegated_host_id = ntohl (msg->delegated_host_id);
+  if ((delegated_host_id >= host_list_size) || 
+      (NULL == host_list[delegated_host_id]))
+  {
+    GNUNET_break (0);           /* Delegated host not registered with us */
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  slave_host_id = ntohl (msg->slave_host_id);
+  if ((slave_host_id >= host_list_size) || (NULL == host_list[slave_host_id]))
+  {
+    GNUNET_break (0);           /* Slave host not registered with us */
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  config_size = ntohs (msg->config_size);
+  config = GNUNET_malloc (config_size);
+  dest_size = (uLongf) config_size;
+  msize -= sizeof (struct GNUNET_TESTBED_ControllerLinkMessage);
+  if (Z_OK != uncompress ((Bytef *) config, &dest_size,
+                          (const Bytef *) &msg[1], (uLong) msize))
+  {
+    GNUNET_break (0);           /* Compression error */
+    GNUNET_free (config);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  GNUNET_assert (config_size == dest_size);
+  cfg = GNUNET_CONFIGURATION_create ();
+  if (GNUNET_OK != GNUNET_CONFIGURATION_deserialize (cfg, config, config_size,
+                                                     GNUNET_NO))
+  {
+    GNUNET_break (0);           /* Configuration parsing error */
+    GNUNET_break (config);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  GNUNET_free (config);
+  /* FIXME: start the slave controller if is_subordinate is yes; else store it
+  in routing */
+
+  GNUNET_CONFIGURATION_destroy (cfg);
 }
 
 
@@ -567,6 +642,8 @@ testbed_run (void *cls,
       {&handle_add_host, NULL, GNUNET_MESSAGE_TYPE_TESTBED_ADDHOST, 0},
       {&handle_configure_shared_service, NULL,
        GNUNET_MESSAGE_TYPE_TESTBED_SERVICESHARE, 0},
+      {&handle_link_controllers, NULL,
+       GNUNET_MESSAGE_TYPE_TESTBED_LCONTROLLERS, 0},
       {NULL}
     };
 

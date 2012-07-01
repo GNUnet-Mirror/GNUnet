@@ -659,6 +659,7 @@ GNUNET_TESTBED_controller_link (struct GNUNET_TESTBED_Controller *master,
   msg->header.size = htons (msg_size);
   msg->delegated_host_id = htonl (GNUNET_TESTBED_host_get_id_ (delegated_host));
   msg->slave_host_id = htonl (GNUNET_TESTBED_host_get_id_ (slave_host));
+  msg->config_size = htons ((uint16_t) config_size);
   msg->is_subordinate = (GNUNET_YES == is_subordinate) ? 1 : 0;
   queue_message (master, (struct GNUNET_MessageHeader *) msg);
 }
