@@ -114,6 +114,29 @@ struct SharedService
 
 
 /**
+ * A routing entry
+ */
+struct Route
+{
+  /**
+   * The destination host
+   */
+  const struct GNUNET_TESTBED_Host *dest;
+
+  /**
+   * The forwarding (next hop) host
+   */
+  const struct GNUNET_TESTBED_Host *fhost;
+
+  /**
+   * The controller handle if we have started the controller at the next hop
+   * host 
+   */
+  struct GNUNET_TESTBED_Controller *fcontroller;
+};
+
+
+/**
  * Wrapped stdin.
  */
 static struct GNUNET_DISK_FileHandle *fh;
@@ -137,6 +160,16 @@ static struct GNUNET_TESTBED_Host **host_list;
  * The size of the host list
  */
 static uint32_t host_list_size;
+
+/**
+ * A list of routes
+ */
+static struct Route **route_list;
+
+/**
+ * The size of the route list
+ */
+static uint32_t route_list_size;
 
 /**
  * The message queue head
@@ -497,17 +530,32 @@ handle_link_controllers (void *cls,
   }
   msg = (const struct GNUNET_TESTBED_ControllerLinkMessage *) message;
   delegated_host_id = ntohl (msg->delegated_host_id);
+  if (delegated_host_id == master_context->host_id)
+  {
+    GNUNET_break (0);
+    LOG (GNUNET_ERROR_TYPE_WARNING, "Trying to link ourselves\n");
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  if ((delegated_host_id < route_list_size) &&
+      (NULL != route_list[delegated_host_id]))
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "Delegated host has already been linked\n");
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
   if ((delegated_host_id >= host_list_size) || 
       (NULL == host_list[delegated_host_id]))
   {
-    GNUNET_break (0);           /* Delegated host not registered with us */
+    LOG (GNUNET_ERROR_TYPE_WARNING, "Delegated host not registered with us\n");
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
   slave_host_id = ntohl (msg->slave_host_id);
   if ((slave_host_id >= host_list_size) || (NULL == host_list[slave_host_id]))
   {
-    GNUNET_break (0);           /* Slave host not registered with us */
+    LOG (GNUNET_ERROR_TYPE_WARNING, "Slave host not registered with us\n");
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
@@ -534,9 +582,14 @@ handle_link_controllers (void *cls,
     return;
   }
   GNUNET_free (config);
-  /* FIXME: start the slave controller if is_subordinate is yes; else store it
-  in routing */
-
+  GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+  /* If we are not the slave controller then we have to route the request
+     towards the slave controller */
+  if (1 == msg->is_subordinate)
+  {
+    GNUNET_break (0);           /* FIXME: Implement the slave controller
+                                   startup */ 
+  }  
   GNUNET_CONFIGURATION_destroy (cfg);
 }
 
@@ -576,6 +629,7 @@ shutdown_task (void *cls,
                const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   uint32_t host_id;
+  uint32_t route_id;
 
   shutdown_task_id = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_SCHEDULER_shutdown ();
@@ -583,18 +637,26 @@ shutdown_task (void *cls,
   (void) GNUNET_CONTAINER_multihashmap_iterate (ss_map, &ss_map_free_iterator,
                                                 NULL);
   GNUNET_CONTAINER_multihashmap_destroy (ss_map);
-  /* Clear host array */
   if (NULL != fh)
   {
     GNUNET_DISK_file_close (fh);
     fh = NULL;
   }
+  /* Clear host list */
   for (host_id = 0; host_id < host_list_size; host_id++)
     if (NULL != host_list[host_id])
       GNUNET_TESTBED_host_destroy (host_list[host_id]);
   GNUNET_free_non_null (host_list);
+  /* Clear route list */
+  for (route_id = 0; route_id < route_list_size; route_id++)
+    if (NULL != route_list[route_id])
+    {
+      if (NULL != route_list[route_id]->fcontroller)
+        GNUNET_TESTBED_controller_stop (route_list[route_id]->fcontroller);
+      GNUNET_free (route_list[route_id]);
+    }
+  GNUNET_free_non_null (route_list);
   GNUNET_free_non_null (master_context);
-  master_context = NULL;
 }
 
 
