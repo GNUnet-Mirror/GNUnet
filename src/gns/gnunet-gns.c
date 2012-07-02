@@ -196,7 +196,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     if (GNUNET_YES == GNUNET_DISK_file_test (keyfile))
     {
       shorten_key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
-      GNUNET_CRYPTO_rsa_key_get_public (key, &pkey);
+      GNUNET_CRYPTO_rsa_key_get_public (shorten_key, &pkey);
       GNUNET_CRYPTO_short_hash(&pkey,
                          sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
                          &shorten_zone);
@@ -223,7 +223,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     if (GNUNET_YES == GNUNET_DISK_file_test (keyfile))
     {
       private_key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
-      GNUNET_CRYPTO_rsa_key_get_public (key, &pkey);
+      GNUNET_CRYPTO_rsa_key_get_public (private_key, &pkey);
       GNUNET_CRYPTO_short_hash(&pkey,
                          sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
                          &private_zone);
