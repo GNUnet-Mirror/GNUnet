@@ -244,7 +244,28 @@ struct ProxyCurlTask
 
   /* The associated response */
   struct MHD_Response *response;
+
+  /* Cookies to set */
+  struct ProxySetCookieHeader *set_cookies_head;
+
+  /* Cookies to set */
+  struct ProxySetCookieHeader *set_cookies_tail;
   
+};
+
+/**
+ * Struct for set-cookies
+ */
+struct ProxySetCookieHeader
+{
+  /* DLL */
+  struct ProxySetCookieHeader *next;
+
+  /* DLL */
+  struct ProxySetCookieHeader *prev;
+
+  /* the cookie */
+  char *cookie;
 };
 
 /* The port the proxy is running on (default 7777) */
@@ -376,20 +397,46 @@ curl_check_hdr (void *buffer, size_t size, size_t nmemb, void *cls)
 {
   size_t bytes = size * nmemb;
   struct ProxyCurlTask *ctask = cls;
-  int len = strlen (HTML_HDR_CONTENT);
-  char hdr[len+1];
+  int html_mime_len = strlen (HTML_HDR_CONTENT);
+  int cookie_hdr_len = strlen (MHD_HTTP_HEADER_SET_COOKIE);
+  char hdr_mime[html_mime_len+1];
+  char hdr_cookie[size+1];
+  struct ProxySetCookieHeader *pch;
+  size_t len;
   
-  if ( (len+1) > bytes)
-    return bytes;
-
-  memcpy (hdr, buffer, len);
-  hdr[len] = '\0';
-
-  if (0 == strcmp (hdr, HTML_HDR_CONTENT))
+  if (html_mime_len <= size)
   {
+    memcpy (hdr_mime, buffer, html_mime_len);
+    hdr_mime[html_mime_len] = '\0';
+
+    if (0 == strcmp (hdr_mime, HTML_HDR_CONTENT))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Got HTML HTTP response header\n");
+      ctask->parse_content = GNUNET_YES;
+    }
+  }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Got header %s\n", buffer);
+
+  if (cookie_hdr_len <= size)
+  {
+    memcpy (hdr_cookie, buffer, size);
+    hdr_cookie[size] = '\0';
+
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Got HTML HTTP response header\n");
-    ctask->parse_content = GNUNET_YES;
+                "Got Set-Cookie HTTP header %s\n", hdr_cookie);
+    GNUNET_assert (0);
+    
+    pch = GNUNET_malloc (sizeof (struct ProxySetCookieHeader));
+    len = strlen (hdr_cookie) - strlen (MHD_HTTP_HEADER_SET_COOKIE);
+    pch->cookie = GNUNET_malloc (len + 1);
+    memset (pch->cookie, 0, len + 1);
+    memcpy (pch->cookie, hdr_cookie+strlen (MHD_HTTP_HEADER_SET_COOKIE), len);
+    GNUNET_CONTAINER_DLL_insert (ctask->set_cookies_head,
+                                 ctask->set_cookies_tail,
+                                 pch);
   }
 
   return bytes;
@@ -572,9 +619,28 @@ mhd_content_cb (void *cls,
   int nomatch;
   char *hostptr;
   regmatch_t m[RE_N_MATCHES];
+  struct ProxySetCookieHeader *pch;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "MHD: content cb %s\n", ctask->url);
+  
+  pch = ctask->set_cookies_head;
+  while (pch != NULL)
+  {
+    if (GNUNET_NO == MHD_add_response_header (ctask->response,
+                                              MHD_HTTP_HEADER_SET_COOKIE,
+                                              pch->cookie))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "MHD: Error adding set-cookie header field %s\n",
+                  pch->cookie);
+    }
+    GNUNET_free (pch->cookie);
+    GNUNET_CONTAINER_DLL_remove (ctask->set_cookies_head,
+                                 ctask->set_cookies_tail,
+                                 pch);
+    pch = ctask->set_cookies_head;
+  }
 
   if (ctask->download_successful &&
       (ctask->buf_status == BUF_WAIT_FOR_CURL))
@@ -1557,7 +1623,7 @@ add_handle_to_mhd (struct GNUNET_NETWORK_Handle *h, struct MHD_Daemon *daemon)
   struct sockaddr *addr;
   socklen_t len;
 
-  fd = GNUNET_NETWORK_get_fd (h);
+  fd = dup (GNUNET_NETWORK_get_fd (h));
   addr = GNUNET_NETWORK_get_addr (h);
   len = GNUNET_NETWORK_get_addrlen (h);
 
@@ -2444,7 +2510,6 @@ run (void *cls, char *const *args, const char *cfgfile,
   char* proxy_sockfile;
   char* cafile_cfg = NULL;
   char* cafile;
-  char* shorten_keyfile;
 
   curl_multi = NULL;
 
@@ -2480,25 +2545,6 @@ run (void *cls, char *const *args, const char *cfgfile,
   
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Loading Template\n");
-  
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns-proxy",
-                                                        "PROXY_CACERT",
-                                                        &shorten_keyfile))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Unable to load shorten zonekey config value!\n");
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "No shorten key provided!\n");
-    return;
-  }
-  else
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Loading shorten zonekey %s!\n",
-                shorten_keyfile);
-    shorten_zonekey = GNUNET_CRYPTO_rsa_key_create_from_file (shorten_keyfile);
-    GNUNET_free (shorten_keyfile);
-  }
   
   compile_regex (&re_dotplus, (char*) RE_A_HREF);
 
@@ -2593,12 +2639,13 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   mhd_unix_sock_addr.sun_family = AF_UNIX;
   strcpy (mhd_unix_sock_addr.sun_path, proxy_sockfile);
-  if (0 != unlink (proxy_sockfile))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Unable to unlink sockfile!\n");
-    return;
-  }
+
+#if LINUX
+  mhd_unix_sock_addr.sun_path[0] = '\0';
+#endif
+#if HAVE_SOCKADDR_IN_SIN_LEN
+  mhd_unix_sock_addr.sun_len = (u_char) sizeof (struct sockaddr_un);
+#endif
 
   len = strlen (proxy_sockfile) + sizeof(AF_UNIX);
 

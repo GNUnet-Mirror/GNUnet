@@ -126,6 +126,12 @@ struct ResolverHandle
   /* DLL */
   struct ResolverHandle *prev;
 
+  /* Last record data found */
+  struct GNUNET_NAMESTORE_RecordData rd;
+
+  /* Number of last record data found */
+  unsigned int rd_count;
+
   /* The name to resolve */
   char name[MAX_DNS_NAME_LENGTH];
 

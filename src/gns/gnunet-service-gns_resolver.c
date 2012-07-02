@@ -906,6 +906,9 @@ free_resolver_handle (struct ResolverHandle* rh)
     GNUNET_NETWORK_socket_close (rh->dns_sock);
   if (NULL != rh->dns_resolver_handle)
     GNUNET_RESOLVER_request_cancel (rh->dns_resolver_handle);
+
+  if (NULL != rh->rd.data)
+    GNUNET_free ((void*)(rh->rd.data));
   GNUNET_free(rh);
 }
 
@@ -2260,7 +2263,7 @@ process_pkey_revocation_result_ns (void *cls,
                                  rh->private_local_zone,
                                  GNUNET_GNS_RECORD_REV,
                                  GNUNET_GNS_TLD,
-                                 rh->priv_key,
+                                 NULL,
                                  GNUNET_TIME_UNIT_FOREVER_REL,
                                  GNUNET_NO,
                                  &background_lookup_result_processor,
@@ -2275,9 +2278,10 @@ process_pkey_revocation_result_ns (void *cls,
    * else resolve again with new authority
    */
   if (strcmp (rh->name, "") == 0)
-    rh->proc (rh->proc_cls, rh, 0, NULL);
+    rh->proc (rh->proc_cls, rh, rh->rd_count, &rh->rd);
   else
     resolve_delegation_ns (rh);
+
   return;
 }
 
@@ -2447,6 +2451,14 @@ process_delegation_result_dht(void* cls,
                                      rh->authority_chain_tail,
                                      auth);
 
+        if (NULL != rh->rd.data)
+          GNUNET_free ((void*)rh->rd.data);
+
+        rh->rd.data = GNUNET_malloc (rd[i].data_size);
+        memcpy (&rh->rd, &rd[i], sizeof (struct GNUNET_NAMESTORE_RecordData));
+        memcpy ((void*)(rh->rd.data), rd[i].data, rd[i].data_size);
+        rh->rd_count = 1;
+
         /** try to import pkey if private key available */
         //if (rh->priv_key && is_canonical (rh->name))
         //  process_discovered_authority(name, auth->zone,
@@ -2519,6 +2531,7 @@ process_delegation_result_dht(void* cls,
     }
     else
       rh->proc = &handle_delegation_ns;
+
 
     /* Check for key revocation and delegate */
     rh->namestore_task = GNUNET_NAMESTORE_lookup_record (namestore_handle,
@@ -3147,7 +3160,6 @@ handle_delegation_ns (void* cls, struct ResolverHandle *rh,
       }
       else if (rlh->record_type == GNUNET_GNS_RECORD_PKEY)
       {
-        GNUNET_assert(rd_count == 1);
         GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                    "GNS_PHASE_DELEGATE_NS-%llu: Resolved queried PKEY in NS.\n",
                    rh->id);
@@ -3432,7 +3444,13 @@ process_delegation_result_ns (void* cls,
     GNUNET_CONTAINER_DLL_insert (rh->authority_chain_head,
                                  rh->authority_chain_tail,
                                  auth);
+    if (NULL != rh->rd.data)
+      GNUNET_free ((void*)(rh->rd.data));
     
+    rh->rd.data = GNUNET_malloc (rd[i].data_size);
+    memcpy (&rh->rd, &rd[i], sizeof (struct GNUNET_NAMESTORE_RecordData));
+    memcpy ((void*)rh->rd.data, rd[i].data, rd[i].data_size);
+    rh->rd_count = 1;
     /* Check for key revocation and delegate */
     rh->namestore_task = GNUNET_NAMESTORE_lookup_record (namestore_handle,
                                     &rh->authority,
@@ -3557,6 +3575,7 @@ gns_resolver_lookup_record (struct GNUNET_CRYPTO_ShortHashCode zone,
   rh->private_local_zone = pzone;
   rh->only_cached = only_cached;
   rh->namestore_task = NULL;
+  rh->rd.data = NULL;
 
   GNUNET_CONTAINER_DLL_insert (rlh_head, rlh_tail, rh);
   
