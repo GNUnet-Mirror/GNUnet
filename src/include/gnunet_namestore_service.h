@@ -181,6 +181,10 @@ struct GNUNET_NAMESTORE_RecordData
 
   /**
    * Binary value stored in the DNS record.
+   * FIXME: goofy API: sometimes 'data' is individually
+   * 'malloc'ed, sometimes it points into some existing
+   * data area (so sometimes this should be a 'void *',
+   * sometimes a 'const void *').  This is unclean.
    */
   const void *data;
 
@@ -387,7 +391,10 @@ GNUNET_NAMESTORE_zone_to_name (struct GNUNET_NAMESTORE_Handle *h,
  *
  * By specifying a 'zone' of NULL and setting 'GNUNET_NAMESTORE_RF_AUTHORITY'
  * in 'must_have_flags', we can iterate over all records for which we are
- * the authority.  In this case, the 'GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION'
+ * the authority (the 'authority' flag will NOT be set in the returned
+ * records anyway).  
+ *
+ * The 'GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION'
  * bit in 'must_have_flags' has a special meaning:
  *
  * 0) If the bit is clear, all relative expriation times are converted to
