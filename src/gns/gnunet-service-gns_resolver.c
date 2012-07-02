@@ -4359,7 +4359,7 @@ gns_resolver_shorten_name (struct GNUNET_CRYPTO_ShortHashCode *zone,
     return;
 
   }
-  else
+  else if (is_gnunet_tld (name) == GNUNET_YES)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "TLD is gnunet\n");
@@ -4370,6 +4370,15 @@ gns_resolver_shorten_name (struct GNUNET_CRYPTO_ShortHashCode *zone,
             strlen (name)-strlen (GNUNET_GNS_TLD));
     memcpy (rh->name, name,
             strlen (name)-strlen (GNUNET_GNS_TLD) - 1);
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Unknown TLD in %s\n", name);
+    GNUNET_free (rh);
+    GNUNET_free (nsh);
+    GNUNET_CONTAINER_DLL_remove (nsh_head, nsh_tail, rh);
+    proc (proc_cls, name);
+    return;
   }
 
   rh->authority_chain_head = GNUNET_malloc (sizeof (struct AuthorityChain));
