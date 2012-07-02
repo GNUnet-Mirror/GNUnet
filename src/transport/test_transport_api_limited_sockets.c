@@ -241,7 +241,7 @@ start_cb (struct PeerContext *p, void *cls)
   if (started != 2)
     return;
 
-  cc = GNUNET_TRANSPORT_TESTING_connect_peers (tth, p1, p2, &testing_connect_cb,
+  cc = GNUNET_TRANSPORT_TESTING_connect_peers (tth, p2, p1, &testing_connect_cb,
                                                NULL);
 
 }
