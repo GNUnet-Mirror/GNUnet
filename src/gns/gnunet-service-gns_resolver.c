@@ -3630,7 +3630,7 @@ gns_resolver_lookup_record (struct GNUNET_CRYPTO_ShortHashCode zone,
       }
 
     }
-    else
+    else if (is_gnunet_tld (name) == GNUNET_YES)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "TLD is gnunet\n");
@@ -3641,6 +3641,17 @@ gns_resolver_lookup_record (struct GNUNET_CRYPTO_ShortHashCode zone,
               strlen(name)-strlen(GNUNET_GNS_TLD));
       memcpy (rh->name, name,
               strlen(name)-strlen(GNUNET_GNS_TLD) - 1);
+    }
+    else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Cannot handle this TLD %s\n", string_hash);
+      
+      GNUNET_CONTAINER_DLL_remove (rlh_head, rlh_tail, rh);
+      GNUNET_free (rh);
+      GNUNET_free (rlh);
+      proc (cls, 0, NULL);
+      return;
     }
   }
   
