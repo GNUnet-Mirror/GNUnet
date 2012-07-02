@@ -525,6 +525,26 @@ state_add_transition (struct GNUNET_REGEX_Context *ctx,
                                       from_state->transitions_tail, oth, t);
 }
 
+/** 
+ * Remove a 'transition' from 'state'.
+ * 
+ * @param state state from which the to-be-removed transition originates.
+ * @param transition transition that should be removed from state 'state'.
+ */
+static void
+state_remove_transition (struct GNUNET_REGEX_State *state, struct Transition *transition)
+{
+  if (NULL == state || NULL == transition)
+    return;
+
+  if (transition->from_state != state)
+    return;
+
+  state->transition_count--;
+  GNUNET_CONTAINER_DLL_remove (state->transitions_head, state->transitions_tail, transition);
+  GNUNET_free (transition);
+}
+
 /**
  * Compare two states. Used for sorting.
  *
@@ -763,11 +783,7 @@ automaton_merge_states (struct GNUNET_REGEX_Context *ctx,
         if (GNUNET_NO == is_dup)
           t_check->to_state = s1;
         else
-        {
-          GNUNET_CONTAINER_DLL_remove (t_check->from_state->transitions_head,
-                                       t_check->from_state->transitions_tail,
-                                       t_check);
-        }
+          state_remove_transition (t_check->from_state, t_check);
       }
     }
   }
@@ -1065,7 +1081,6 @@ automaton_create_proofs_simplify (char *R_last_ij, char *R_last_ik,
   int ij_ik_cmp;
   int ij_kj_cmp;
 
-  //int ik_kj_cmp;
   int ik_kk_cmp;
   int kk_kj_cmp;
   int clean_ik_kk_cmp;
@@ -1110,7 +1125,6 @@ automaton_create_proofs_simplify (char *R_last_ij, char *R_last_ik,
   ij_kj_cmp = nullstrcmp (R_last_ij, R_last_kj);
   ij_ik_cmp = nullstrcmp (R_last_ij, R_last_ik);
   ik_kk_cmp = nullstrcmp (R_last_ik, R_last_kk);
-  //ik_kj_cmp = nullstrcmp (R_last_ik, R_last_kj);
   kk_kj_cmp = nullstrcmp (R_last_kk, R_last_kj);
 
   // Assign R_temp_(ik|kk|kj) to R_last[][] and remove epsilon as well
@@ -1373,6 +1387,10 @@ automaton_create_proofs_simplify (char *R_last_ij, char *R_last_ik,
     }
   }
 
+  GNUNET_free_non_null (R_temp_ik);
+  GNUNET_free_non_null (R_temp_kk);
+  GNUNET_free_non_null (R_temp_kj);
+  
   if (NULL == R_cur_l && NULL == R_cur_r)
   {
     *R_cur_ij = NULL;
@@ -1381,31 +1399,26 @@ automaton_create_proofs_simplify (char *R_last_ij, char *R_last_ik,
 
   if (NULL != R_cur_l && NULL == R_cur_r)
   {
-    *R_cur_ij = GNUNET_strdup (R_cur_l);
+    *R_cur_ij = R_cur_l;
     return;
   }
 
   if (NULL == R_cur_l && NULL != R_cur_r)
   {
-    *R_cur_ij = GNUNET_strdup (R_cur_r);
+    *R_cur_ij = R_cur_r;
     return;
   }
 
   if (0 == nullstrcmp (R_cur_l, R_cur_r))
   {
-    *R_cur_ij = GNUNET_strdup (R_cur_l);
+    *R_cur_ij = R_cur_l;
+    GNUNET_free (R_cur_r);
     return;
   }
 
   GNUNET_asprintf (R_cur_ij, "(%s|%s)", R_cur_l, R_cur_r);
-
-  GNUNET_free_non_null (R_cur_l);
-  GNUNET_free_non_null (R_cur_r);
-
-  GNUNET_free_non_null (R_temp_ik);
-  GNUNET_free_non_null (R_temp_kk);
-  GNUNET_free_non_null (R_temp_kj);
-
+  GNUNET_free (R_cur_l);
+  GNUNET_free (R_cur_r);
 }
 
 /**
