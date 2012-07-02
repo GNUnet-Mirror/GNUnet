@@ -1103,7 +1103,6 @@ automaton_create_proofs_simplify (char *R_last_ij, char *R_last_ik,
   // $R^{(k)}_{ij} = N | R^{(k-1)}_{ik} ( R^{(k-1)}_{kk} )^* R^{(k-1)}_{kj} OR
   // $R^{(k)}_{ij} = R^{(k-1)}_{ij} | R^{(k-1)}_{ik} ( R^{(k-1)}_{kk} )^* R^{(k-1)}_{kj}
 
-  /* *R_cur_ij = NULL; */
   R_cur_r = NULL;
   R_cur_l = NULL;
 
@@ -1374,9 +1373,6 @@ automaton_create_proofs_simplify (char *R_last_ij, char *R_last_ik,
     }
   }
 
-  /* GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "R_cur_l: %s\n", R_cur_l); */
-  /* GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "R_cur_r: %s\n", R_cur_r); */
-
   if (NULL == R_cur_l && NULL == R_cur_r)
   {
     *R_cur_ij = NULL;
@@ -1395,23 +1391,11 @@ automaton_create_proofs_simplify (char *R_last_ij, char *R_last_ik,
     return;
   }
 
-  if (R_cur_l[0] == 'C' || R_cur_r[0] == 'C')
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "R_cur_l: %s R_cur_r: %s\n", R_cur_l,
-                R_cur_r);
-
-
   if (0 == nullstrcmp (R_cur_l, R_cur_r))
   {
     *R_cur_ij = GNUNET_strdup (R_cur_l);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, ">>>>>>>>>>>>>> %s == %s\n", R_cur_l,
-                R_cur_r);
     return;
   }
-
-  /* else */
-  /* { */
-  /*   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, ">>>>>>>>>>>>>> %s != %s\n", R_cur_l, R_cur_r); */
-  /* } */
 
   GNUNET_asprintf (R_cur_ij, "(%s|%s)", R_cur_l, R_cur_r);
 
