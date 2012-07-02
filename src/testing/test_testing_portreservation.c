@@ -66,7 +66,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_assert (old_port1 == new_port1);
   GNUNET_TESTING_release_port (system, GNUNET_YES, new_port1);
   GNUNET_TESTING_release_port (system, GNUNET_YES, new_port2);
-  GNUNET_TESTING_system_destroy (system, GNUNET_NO);
+  GNUNET_TESTING_system_destroy (system, GNUNET_YES);
 }
 
 

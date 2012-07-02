@@ -614,12 +614,59 @@ static void
 update_config_sections (void *cls,
                         const char *section)
 {
-  struct UpdateContext *uc = cls;
+  struct UpdateContext *uc = cls;  
+  char **ikeys;
+  char *val;
+  char *ptr;
   char *orig_allowed_hosts;
   char *allowed_hosts;
+  uint16_t ikeys_cnt;
+  uint16_t key;
+  
+  ikeys_cnt = 0;
+  val = NULL;
+  if (GNUNET_YES == GNUNET_CONFIGURATION_have_value (uc->cfg, section,
+                                                     "TESTING_IGNORE_KEYS"))
+  {
+    GNUNET_assert 
+      (GNUNET_YES == 
+       GNUNET_CONFIGURATION_get_value_string (uc->cfg, section,
+                                              "TESTING_IGNORE_KEYS", &val));
+    ptr = val;
+    for (ikeys_cnt = 0; NULL != (ptr = strstr (ptr, ";")); ikeys_cnt++)
+      ptr++;
+    if (0 == ikeys_cnt)
+      GNUNET_break (0);
+    else
+    {
+      ikeys = GNUNET_malloc ((sizeof (char *)) * ikeys_cnt);
+      ptr = val;
+      for (key = 0; key < ikeys_cnt; key++)
+      {
+        ikeys[key] = ptr;
+        ptr = strstr (ptr, ";");
+        *ptr = '\0';
+        ptr++;
+      }
+    }
+  }
+  if (0 != ikeys_cnt)
+  {
+    for (key = 0; key < ikeys_cnt; key++)
+    {
+      if (NULL != strstr (ikeys[key], "ACCEPT_FROM"))
+      {
+        GNUNET_free (ikeys);
+        GNUNET_free (val);
+        return;
+      }
+    }
+    GNUNET_free (ikeys);
+  }
+  GNUNET_free_non_null (val);
 
-  if (NULL != strstr (section, "transport-"))
-    return;
+  /* if (NULL != strstr (section, "transport-")) */
+  /*   return; */
 
   if (GNUNET_OK != 
       GNUNET_CONFIGURATION_get_value_string (uc->cfg, section, "ACCEPT_FROM",
