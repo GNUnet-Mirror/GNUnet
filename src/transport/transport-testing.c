@@ -608,6 +608,8 @@ GNUNET_TRANSPORT_TESTING_done (struct GNUNET_TRANSPORT_TESTING_handle *tth)
 
   GNUNET_free_non_null (tth->hostkey_data);
 
+  GNUNET_TESTING_system_destroy (tth->tl_system, GNUNET_YES);
+
   GNUNET_free (tth);
   tth = NULL;
 }
@@ -625,9 +627,14 @@ GNUNET_TRANSPORT_TESTING_init ()
   uint64_t fs;
   uint64_t total_hostkeys;
 
-
   /* prepare hostkeys */
   tth = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_TESTING_handle));
+
+  /* Init testing the testing lib */
+  tth->tl_system = GNUNET_TESTING_system_create ("transport-testing",
+                                                 "127.0.0.1");
+
+
   tth->hostkey_data = NULL;
   const char *hostkeys_file = "../../contrib/testing_hostkeys.dat";
 

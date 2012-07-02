@@ -182,6 +182,11 @@ struct GNUNET_TRANSPORT_TESTING_handle
   struct ConnectingContext *cc_head;
   struct ConnectingContext *cc_tail;
 
+  /**
+   * Testing library system handle
+   */
+  struct GNUNET_TESTING_System *tl_system;
+
   char *hostkey_data;
   int hostkeys_total;
   int hostkeys_last;
