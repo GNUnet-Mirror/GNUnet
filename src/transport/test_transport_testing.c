@@ -29,20 +29,9 @@
 #include "platform.h"
 #include "gnunet_common.h"
 #include "gnunet_hello_lib.h"
-#include "gnunet_getopt_lib.h"
-#include "gnunet_os_lib.h"
-#include "gnunet_program_lib.h"
 #include "gnunet_scheduler_lib.h"
 #include "gnunet_transport_service.h"
-#include "transport.h"
 #include "transport-testing.h"
-
-#define VERBOSE GNUNET_NO
-
-#define VERBOSE_ARM GNUNET_NO
-
-#define START_ARM GNUNET_YES
-
 /**
  * How long until we give up on transmitting the message?
  */
@@ -80,6 +69,12 @@ end_badly ()
 {
   timeout_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Fail! Stopping peers\n");
+
+  if (NULL != cc)
+  {
+    GNUNET_TRANSPORT_TESTING_connect_peers_cancel (tth, cc);
+    cc = NULL;
+  }
 
   if (p1 != NULL)
     GNUNET_TRANSPORT_TESTING_stop_peer (tth, p1);
@@ -167,14 +162,10 @@ run (void *cls, char *const *args, const char *cfgfile,
                                             1, &notify_receive, &notify_connect,
                                             &notify_disconnect, &start_cb, p1);
 
-  GNUNET_assert (p1->hostkeyfile != NULL);
-
   p2 = GNUNET_TRANSPORT_TESTING_start_peer (tth,
                                             "test_transport_api_tcp_peer2.conf",
                                             2, &notify_receive, &notify_connect,
                                             &notify_disconnect, &start_cb, p2);
-
-  GNUNET_assert (p2->hostkeyfile != NULL);
 
   if (p1 == NULL)
   {
@@ -198,19 +189,12 @@ int
 main (int argc, char *argv[])
 {
   GNUNET_log_setup ("test_transport_testing",
-#if VERBOSE
-                    "DEBUG",
-#else
                     "WARNING",
-#endif
                     NULL);
 
   char *const argv_1[] = { "test_transport_testing",
     "-c",
     "test_transport_api_data.conf",
-#if VERBOSE
-    "-L", "DEBUG",
-#endif
     NULL
   };
 

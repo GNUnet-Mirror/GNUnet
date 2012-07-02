@@ -27,9 +27,7 @@
 
 #include "platform.h"
 #include "gnunet_common.h"
-#include "gnunet_getopt_lib.h"
 #include "gnunet_hello_lib.h"
-#include "gnunet_os_lib.h"
 #include "gnunet_program_lib.h"
 #include "gnunet_container_lib.h"
 #include "gnunet_transport_service.h"
@@ -146,16 +144,6 @@ struct PeerContext
   void *cb_cls;
 
   /**
-   * Peer's service home directory
-   */
-  char *servicehome;
-
-  /**
-   * Hostkey file
-   */
-  char *hostkeyfile;
-
-  /**
    * An unique number to identify the peer
    */
   unsigned int no;
@@ -179,19 +167,29 @@ struct ConnectingContext
 
 struct GNUNET_TRANSPORT_TESTING_handle
 {
-  struct ConnectingContext *cc_head;
-  struct ConnectingContext *cc_tail;
-
   /**
    * Testing library system handle
    */
   struct GNUNET_TESTING_System *tl_system;
 
-  char *hostkey_data;
-  int hostkeys_total;
-  int hostkeys_last;
+  /**
+   * head DLL of connect contexts
+   */
+  struct ConnectingContext *cc_head;
 
+  /**
+   * head DLL of connect contexts
+   */
+  struct ConnectingContext *cc_tail;
+
+  /**
+   * head DLL of peers
+   */
   struct PeerContext *p_head;
+
+  /**
+   * tail DLL of peers
+   */
   struct PeerContext *p_tail;
 };
 

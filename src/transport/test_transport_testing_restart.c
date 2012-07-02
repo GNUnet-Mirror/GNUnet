@@ -18,9 +18,9 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file transport/test_transport_testing_startstop.c
+ * @file transport/test_transport_testing_restart.c
  * @brief test case for transport testing library:
- * start the peer, get the HELLO message and stop the peer
+ * start the peer, get the HELLO message, restart and stop the peer
  *
  */
 #include "platform.h"
@@ -68,6 +68,26 @@ end_badly ()
   ret = GNUNET_SYSERR;
 }
 
+static void
+restart_cb (struct PeerContext *p, void *cls)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer %u (`%s') successfully restarted\n",
+              p->no,
+              GNUNET_i2s (&p->id));
+
+  ret = 0;
+  GNUNET_SCHEDULER_add_now (&end, NULL);
+}
+
+
+static void
+restart_task ()
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer %u (`%s') restarting, \n",
+              p->no,
+              GNUNET_i2s (&p->id));
+  GNUNET_TRANSPORT_TESTING_restart_peer (tth, p, NULL, restart_cb, p);
+}
 
 static void
 start_cb (struct PeerContext *p, void *cls)
@@ -76,8 +96,7 @@ start_cb (struct PeerContext *p, void *cls)
               p->no,
               GNUNET_i2s (&p->id));
 
-  ret = 0;
-  GNUNET_SCHEDULER_add_now (&end, NULL);
+  GNUNET_SCHEDULER_add_now (&restart_task, NULL);
 }
 
 
@@ -110,11 +129,11 @@ run (void *cls, char *const *args, const char *cfgfile,
 int
 main (int argc, char *argv[])
 {
-  GNUNET_log_setup ("test_transport_testing_startstop",
+  GNUNET_log_setup ("test_transport_testing_restart",
                     "WARNING",
                     NULL);
 
-  char *const argv_1[] = { "test_transport_testing",
+  char *const argv_1[] = { "test_transport_testing_restart",
     "-c",
     "test_transport_api_data.conf",
     NULL
@@ -125,9 +144,9 @@ main (int argc, char *argv[])
   };
 
   GNUNET_PROGRAM_run ((sizeof (argv_1) / sizeof (char *)) - 1, argv_1,
-                      "test_transport_testing_startstop", "nohelp", options, &run, &ret);
+                      "test_transport_testing_restart", "nohelp", options, &run, &ret);
 
   return ret;
 }
 
-/* end of test_transport_testing_startstop.c */
+/* end of test_transport_testing_restart.c */
