@@ -32,7 +32,7 @@ key_iterator (void *cls, const struct GNUNET_HashCode *key, const char *proof,
               int accepting, unsigned int num_edges,
               const struct GNUNET_REGEX_Edge *edges)
 {
-  int i;
+  unsigned int i;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Iterating... (accepting: %i)\n",
               accepting);

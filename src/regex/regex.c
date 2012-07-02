@@ -503,7 +503,7 @@ state_add_transition (struct GNUNET_REGEX_Context *ctx,
     }
   }
 
-  if (is_dup)
+  if (GNUNET_YES == is_dup)
     return;
 
   // sort transitions by label
@@ -734,21 +734,41 @@ automaton_merge_states (struct GNUNET_REGEX_Context *ctx,
 {
   struct GNUNET_REGEX_State *s_check;
   struct Transition *t_check;
+  struct Transition *t;
+  struct Transition *t_next;
   char *new_name;
+  int is_dup;
 
   GNUNET_assert (NULL != ctx && NULL != a && NULL != s1 && NULL != s2);
 
   if (s1 == s2)
     return;
 
-  // 1. Make all transitions pointing to s2 point to s1
+  // 1. Make all transitions pointing to s2 point to s1, unless this transition
+  // does not already exists, if it already exists remove transition.
   for (s_check = a->states_head; NULL != s_check; s_check = s_check->next)
   {
-    for (t_check = s_check->transitions_head; NULL != t_check;
-         t_check = t_check->next)
+    for (t_check = s_check->transitions_head; NULL != t_check; t_check = t_next)
     {
+      t_next = t_check->next;
+
       if (s2 == t_check->to_state)
-        t_check->to_state = s1;
+      {
+        is_dup = GNUNET_NO;
+        for (t = t_check->from_state->transitions_head; NULL != t; t = t->next)
+        {
+          if (t->to_state == s1 && t_check->label == t->label)
+            is_dup = GNUNET_YES;
+        }
+        if (GNUNET_NO == is_dup)
+          t_check->to_state = s1;
+        else
+        {
+          GNUNET_CONTAINER_DLL_remove (t_check->from_state->transitions_head,
+                                       t_check->from_state->transitions_tail,
+                                       t_check);
+        }
+      }
     }
   }
 
@@ -1015,6 +1035,394 @@ number_states (void *cls, unsigned int count, struct GNUNET_REGEX_State *s)
   states[count] = s;
 }
 
+/** 
+ * Construct the regular expression given the inductive step,
+ * $R^{(k)}_{ij} = R^{(k-1)}_{ij} | R^{(k-1)}_{ik} ( R^{(k-1)}_{kk} )^*
+ * R^{(k-1)}_{kj}, and simplify the resulting expression saved in R_cur_ij.
+ * 
+ * @param R_last_ij value of  $R^{(k-1)_{ij}.
+ * @param R_last_ik value of  $R^{(k-1)_{ik}.
+ * @param R_last_kk value of  $R^{(k-1)_{kk}.
+ * @param R_last_kj value of  $R^{(k-1)_{kj}.
+ * @param R_cur_ij result for this inductive step is saved in R_cur_ij, R_cur_ij
+ *                 is expected to be NULL when called!
+ */
+static void
+automaton_create_proofs_simplify (char *R_last_ij, char *R_last_ik,
+                                  char *R_last_kk, char *R_last_kj,
+                                  char **R_cur_ij)
+{
+  char *R_cur_l;
+  char *R_cur_r;
+  char *temp_a;
+  char *temp_b;
+  char *R_temp_ij;
+  char *R_temp_ik;
+  char *R_temp_kj;
+  char *R_temp_kk;
+
+  int eps_check;
+  int ij_ik_cmp;
+  int ij_kj_cmp;
+
+  //int ik_kj_cmp;
+  int ik_kk_cmp;
+  int kk_kj_cmp;
+  int clean_ik_kk_cmp;
+  int clean_kk_kj_cmp;
+  unsigned int cnt;
+
+  size_t length;
+  size_t length_l;
+  size_t length_r;
+
+  GNUNET_assert (NULL == *R_cur_ij && NULL != R_cur_ij);
+
+  // $R^{(k)}_{ij} = R^{(k-1)}_{ij} | R^{(k-1)}_{ik} ( R^{(k-1)}_{kk} )^* R^{(k-1)}_{kj}
+  // R_last == R^{(k-1)}, R_cur == R^{(k)}
+  // R_cur_ij = R_cur_l | R_cur_r
+  // R_cur_l == R^{(k-1)}_{ij}
+  // R_cur_r == R^{(k-1)}_{ik} ( R^{(k-1)}_{kk} )^* R^{(k-1)}_{kj}
+
+  if ((NULL == R_last_ij) && ((NULL == R_last_ik) || (NULL == R_last_kk) ||     /* technically cannot happen, but looks saner */
+                              (NULL == R_last_kj)))
+  {
+    /* R^{(k)}_{ij} = N | N */
+    *R_cur_ij = NULL;
+    return;
+  }
+
+  if ((NULL == R_last_ik) || (NULL == R_last_kk) ||     /* technically cannot happen, but looks saner */
+      (NULL == R_last_kj))
+  {
+    /*  R^{(k)}_{ij} = R^{(k-1)}_{ij} | N */
+    *R_cur_ij = GNUNET_strdup (R_last_ij);
+    return;
+  }
+
+  // $R^{(k)}_{ij} = N | R^{(k-1)}_{ik} ( R^{(k-1)}_{kk} )^* R^{(k-1)}_{kj} OR
+  // $R^{(k)}_{ij} = R^{(k-1)}_{ij} | R^{(k-1)}_{ik} ( R^{(k-1)}_{kk} )^* R^{(k-1)}_{kj}
+
+  /* *R_cur_ij = NULL; */
+  R_cur_r = NULL;
+  R_cur_l = NULL;
+
+  // cache results from strcmp, we might need these many times
+  ij_kj_cmp = nullstrcmp (R_last_ij, R_last_kj);
+  ij_ik_cmp = nullstrcmp (R_last_ij, R_last_ik);
+  ik_kk_cmp = nullstrcmp (R_last_ik, R_last_kk);
+  //ik_kj_cmp = nullstrcmp (R_last_ik, R_last_kj);
+  kk_kj_cmp = nullstrcmp (R_last_kk, R_last_kj);
+
+  // Assign R_temp_(ik|kk|kj) to R_last[][] and remove epsilon as well
+  // as parentheses, so we can better compare the contents
+  R_temp_ik = remove_parentheses (remove_epsilon (R_last_ik));
+  R_temp_kk = remove_parentheses (remove_epsilon (R_last_kk));
+  R_temp_kj = remove_parentheses (remove_epsilon (R_last_kj));
+
+  clean_ik_kk_cmp = nullstrcmp (R_last_ik, R_temp_kk);
+  clean_kk_kj_cmp = nullstrcmp (R_temp_kk, R_last_kj);
+
+  // construct R_cur_l (and, if necessary R_cur_r)
+  if (NULL != R_last_ij)
+  {
+    // Assign R_temp_ij to R_last_ij and remove epsilon as well
+    // as parentheses, so we can better compare the contents
+    R_temp_ij = remove_parentheses (remove_epsilon (R_last_ij));
+
+    if (0 == strcmp (R_temp_ij, R_temp_ik) && 0 == strcmp (R_temp_ik, R_temp_kk)
+        && 0 == strcmp (R_temp_kk, R_temp_kj))
+    {
+      if (0 == strlen (R_temp_ij))
+      {
+        R_cur_r = GNUNET_strdup ("");
+      }
+      else if ((0 == strncmp (R_last_ij, "(|", 2)) ||
+               (0 == strncmp (R_last_ik, "(|", 2) &&
+                0 == strncmp (R_last_kj, "(|", 2)))
+      {
+        // a|(e|a)a*(e|a) = a*
+        // a|(e|a)(e|a)*(e|a) = a*
+        // (e|a)|aa*a = a*
+        // (e|a)|aa*(e|a) = a*
+        // (e|a)|(e|a)a*a = a*
+        // (e|a)|(e|a)a*(e|a) = a*
+        // (e|a)|(e|a)(e|a)*(e|a) = a*
+        if (GNUNET_YES == needs_parentheses (R_temp_ij))
+          GNUNET_asprintf (&R_cur_r, "(%s)*", R_temp_ij);
+        else
+          GNUNET_asprintf (&R_cur_r, "%s*", R_temp_ij);
+      }
+      else
+      {
+        // a|aa*a = a+
+        // a|(e|a)a*a = a+
+        // a|aa*(e|a) = a+
+        // a|(e|a)(e|a)*a = a+
+        // a|a(e|a)*(e|a) = a+
+        if (GNUNET_YES == needs_parentheses (R_temp_ij))
+          GNUNET_asprintf (&R_cur_r, "(%s)+", R_temp_ij);
+        else
+          GNUNET_asprintf (&R_cur_r, "%s+", R_temp_ij);
+      }
+    }
+    else if (0 == ij_ik_cmp && 0 == clean_kk_kj_cmp && 0 != clean_ik_kk_cmp)
+    {
+      // a|ab*b = ab*
+      if (strlen (R_last_kk) < 1)
+        R_cur_r = GNUNET_strdup (R_last_ij);
+      else if (GNUNET_YES == needs_parentheses (R_temp_kk))
+        GNUNET_asprintf (&R_cur_r, "%s(%s)*", R_last_ij, R_temp_kk);
+      else
+        GNUNET_asprintf (&R_cur_r, "%s%s*", R_last_ij, R_last_kk);
+
+      R_cur_l = NULL;
+    }
+    else if (0 == ij_kj_cmp && 0 == clean_ik_kk_cmp && 0 != clean_kk_kj_cmp)
+    {
+      // a|bb*a = b*a
+      if (strlen (R_last_kk) < 1)
+        R_cur_r = GNUNET_strdup (R_last_kj);
+      else if (GNUNET_YES == needs_parentheses (R_temp_kk))
+        GNUNET_asprintf (&R_cur_r, "(%s)*%s", R_temp_kk, R_last_kj);
+      else
+        GNUNET_asprintf (&R_cur_r, "%s*%s", R_temp_kk, R_last_kj);
+
+      R_cur_l = NULL;
+    }
+    else if (0 == ij_ik_cmp && 0 == kk_kj_cmp && !has_epsilon (R_last_ij) &&
+             has_epsilon (R_last_kk))
+    {
+      // a|a(e|b)*(e|b) = a|ab* = a|a|ab|abb|abbb|... = ab*
+      if (needs_parentheses (R_temp_kk))
+        GNUNET_asprintf (&R_cur_r, "%s(%s)*", R_last_ij, R_temp_kk);
+      else
+        GNUNET_asprintf (&R_cur_r, "%s%s*", R_last_ij, R_temp_kk);
+
+      R_cur_l = NULL;
+    }
+    else if (0 == ij_kj_cmp && 0 == ik_kk_cmp && !has_epsilon (R_last_ij) &&
+             has_epsilon (R_last_kk))
+    {
+      // a|(e|b)(e|b)*a = a|b*a = a|a|ba|bba|bbba|...  = b*a
+      if (needs_parentheses (R_temp_kk))
+        GNUNET_asprintf (&R_cur_r, "(%s)*%s", R_temp_kk, R_last_ij);
+      else
+        GNUNET_asprintf (&R_cur_r, "%s*%s", R_temp_kk, R_last_ij);
+
+      R_cur_l = NULL;
+    }
+    else
+    {
+      temp_a = (NULL == R_last_ij) ? NULL : GNUNET_strdup (R_last_ij);
+      temp_a = remove_parentheses (temp_a);
+      R_cur_l = temp_a;
+    }
+
+    GNUNET_free_non_null (R_temp_ij);
+  }
+  else
+  {
+    // we have no left side
+    R_cur_l = NULL;
+  }
+
+  // construct R_cur_r, if not already constructed
+  if (NULL == R_cur_r)
+  {
+    length = strlen (R_temp_kk) - strlen (R_last_ik);
+
+    // a(ba)*bx = (ab)+x
+    if (length > 0 && NULL != R_last_kk && 0 < strlen (R_last_kk) &&
+        NULL != R_last_kj && 0 < strlen (R_last_kj) && NULL != R_last_ik &&
+        0 < strlen (R_last_ik) && 0 == strkcmp (R_temp_kk, R_last_ik, length) &&
+        0 == strncmp (R_temp_kk, R_last_kj, length))
+    {
+      temp_a = GNUNET_malloc (length + 1);
+      temp_b = GNUNET_malloc ((strlen (R_last_kj) - length) + 1);
+
+      length_l = 0;
+      length_r = 0;
+
+      for (cnt = 0; cnt < strlen (R_last_kj); cnt++)
+      {
+        if (cnt < length)
+        {
+          temp_a[length_l] = R_last_kj[cnt];
+          length_l++;
+        }
+        else
+        {
+          temp_b[length_r] = R_last_kj[cnt];
+          length_r++;
+        }
+      }
+      temp_a[length_l] = '\0';
+      temp_b[length_r] = '\0';
+
+      // e|(ab)+ = (ab)*
+      if (NULL != R_cur_l && 0 == strlen (R_cur_l) && 0 == strlen (temp_b))
+      {
+        GNUNET_asprintf (&R_cur_r, "(%s%s)*", R_last_ik, temp_a);
+        GNUNET_free (R_cur_l);
+        R_cur_l = NULL;
+      }
+      else
+      {
+        GNUNET_asprintf (&R_cur_r, "(%s%s)+%s", R_last_ik, temp_a, temp_b);
+      }
+      GNUNET_free (temp_a);
+      GNUNET_free (temp_b);
+    }
+    else if (0 == strcmp (R_temp_ik, R_temp_kk) &&
+             0 == strcmp (R_temp_kk, R_temp_kj))
+    {
+      // (e|a)a*(e|a) = a*
+      // (e|a)(e|a)*(e|a) = a*
+      if (has_epsilon (R_last_ik) && has_epsilon (R_last_kj))
+      {
+        if (needs_parentheses (R_temp_kk))
+          GNUNET_asprintf (&R_cur_r, "(%s)*", R_temp_kk);
+        else
+          GNUNET_asprintf (&R_cur_r, "%s*", R_temp_kk);
+      }
+      // aa*a = a+a
+      else if (0 == clean_ik_kk_cmp && 0 == clean_kk_kj_cmp &&
+               !has_epsilon (R_last_ik))
+      {
+        if (needs_parentheses (R_temp_kk))
+          GNUNET_asprintf (&R_cur_r, "(%s)+%s", R_temp_kk, R_temp_kk);
+        else
+          GNUNET_asprintf (&R_cur_r, "(%s)+%s", R_temp_kk, R_temp_kk);
+      }
+      // (e|a)a*a = a+
+      // aa*(e|a) = a+
+      // a(e|a)*(e|a) = a+
+      // (e|a)a*a = a+
+      else
+      {
+        eps_check =
+            (has_epsilon (R_last_ik) + has_epsilon (R_last_kk) +
+             has_epsilon (R_last_kj));
+
+        if (eps_check == 1)
+        {
+          if (needs_parentheses (R_temp_kk))
+            GNUNET_asprintf (&R_cur_r, "(%s)+", R_temp_kk);
+          else
+            GNUNET_asprintf (&R_cur_r, "%s+", R_temp_kk);
+        }
+      }
+    }
+    // aa*b = a+b
+    // (e|a)(e|a)*b = a*b
+    else if (0 == strcmp (R_temp_ik, R_temp_kk))
+    {
+      if (has_epsilon (R_last_ik))
+      {
+        if (needs_parentheses (R_temp_kk))
+          GNUNET_asprintf (&R_cur_r, "(%s)*%s", R_temp_kk, R_last_kj);
+        else
+          GNUNET_asprintf (&R_cur_r, "%s*%s", R_temp_kk, R_last_kj);
+      }
+      else
+      {
+        if (needs_parentheses (R_temp_kk))
+          GNUNET_asprintf (&R_cur_r, "(%s)+%s", R_temp_kk, R_last_kj);
+        else
+          GNUNET_asprintf (&R_cur_r, "%s+%s", R_temp_kk, R_last_kj);
+      }
+    }
+    // ba*a = ba+
+    // b(e|a)*(e|a) = ba*
+    else if (0 == strcmp (R_temp_kk, R_temp_kj))
+    {
+      if (has_epsilon (R_last_kj))
+      {
+        if (needs_parentheses (R_temp_kk))
+          GNUNET_asprintf (&R_cur_r, "%s(%s)*", R_last_ik, R_temp_kk);
+        else
+          GNUNET_asprintf (&R_cur_r, "%s%s*", R_last_ik, R_temp_kk);
+      }
+      else
+      {
+        if (needs_parentheses (R_temp_kk))
+          GNUNET_asprintf (&R_cur_r, "(%s)+%s", R_last_ik, R_temp_kk);
+        else
+          GNUNET_asprintf (&R_cur_r, "%s+%s", R_last_ik, R_temp_kk);
+      }
+    }
+    else
+    {
+      if (strlen (R_temp_kk) > 0)
+      {
+        if (needs_parentheses (R_temp_kk))
+        {
+          GNUNET_asprintf (&R_cur_r, "%s(%s)*%s", R_last_ik, R_temp_kk,
+                           R_last_kj);
+        }
+        else
+        {
+          GNUNET_asprintf (&R_cur_r, "%s%s*%s", R_last_ik, R_temp_kk,
+                           R_last_kj);
+        }
+      }
+      else
+      {
+        GNUNET_asprintf (&R_cur_r, "%s%s", R_last_ik, R_last_kj);
+      }
+    }
+  }
+
+  /* GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "R_cur_l: %s\n", R_cur_l); */
+  /* GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "R_cur_r: %s\n", R_cur_r); */
+
+  if (NULL == R_cur_l && NULL == R_cur_r)
+  {
+    *R_cur_ij = NULL;
+    return;
+  }
+
+  if (NULL != R_cur_l && NULL == R_cur_r)
+  {
+    *R_cur_ij = GNUNET_strdup (R_cur_l);
+    return;
+  }
+
+  if (NULL == R_cur_l && NULL != R_cur_r)
+  {
+    *R_cur_ij = GNUNET_strdup (R_cur_r);
+    return;
+  }
+
+  if (R_cur_l[0] == 'C' || R_cur_r[0] == 'C')
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "R_cur_l: %s R_cur_r: %s\n", R_cur_l,
+                R_cur_r);
+
+
+  if (0 == nullstrcmp (R_cur_l, R_cur_r))
+  {
+    *R_cur_ij = GNUNET_strdup (R_cur_l);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, ">>>>>>>>>>>>>> %s == %s\n", R_cur_l,
+                R_cur_r);
+    return;
+  }
+
+  /* else */
+  /* { */
+  /*   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, ">>>>>>>>>>>>>> %s != %s\n", R_cur_l, R_cur_r); */
+  /* } */
+
+  GNUNET_asprintf (R_cur_ij, "(%s|%s)", R_cur_l, R_cur_r);
+
+  GNUNET_free_non_null (R_cur_l);
+  GNUNET_free_non_null (R_cur_r);
+
+  GNUNET_free_non_null (R_temp_ik);
+  GNUNET_free_non_null (R_temp_kk);
+  GNUNET_free_non_null (R_temp_kj);
+
+}
 
 /**
  * create proofs for all states in the given automaton. Implementation of the
@@ -1030,32 +1438,13 @@ automaton_create_proofs (struct GNUNET_REGEX_Automaton *a)
   struct GNUNET_REGEX_State *states[n];
   char *R_last[n][n];
   char *R_cur[n][n];
+  char *temp;
   struct Transition *t;
-  char *R_cur_l;
-  char *R_cur_r;
-  char *temp_a;
-  char *temp_b;
-  char *R_temp_ij;
-  char *R_temp_ik;
-  char *R_temp_kj;
-  char *R_temp_kk;
   char *complete_regex;
   unsigned int i;
   unsigned int j;
   unsigned int k;
-  unsigned int cnt;
-  int eps_check;
-  int ij_ik_cmp;
-  int ij_kj_cmp;
 
-  //int ik_kj_cmp;
-  int ik_kk_cmp;
-  int kk_kj_cmp;
-  int clean_ik_kk_cmp;
-  int clean_kk_kj_cmp;
-  size_t length;
-  size_t length_l;
-  size_t length_r;
 
   /* create depth-first numbering of the states, initializes 'state' */
   automaton_traverse (a, &number_states, states);
@@ -1075,30 +1464,28 @@ automaton_create_proofs (struct GNUNET_REGEX_Automaton *a)
         GNUNET_asprintf (&R_last[i][j], "%c", t->label);
       else
       {
-        temp_a = R_last[i][j];
+        temp = R_last[i][j];
         GNUNET_asprintf (&R_last[i][j], "%s|%c", R_last[i][j], t->label);
-        GNUNET_free (temp_a);
+        GNUNET_free (temp);
       }
     }
     if (NULL == R_last[i][i])
       GNUNET_asprintf (&R_last[i][i], "");
     else
     {
-      temp_a = R_last[i][i];
+      temp = R_last[i][i];
       GNUNET_asprintf (&R_last[i][i], "(|%s)", R_last[i][i]);
-      GNUNET_free (temp_a);
+      GNUNET_free (temp);
     }
   }
   for (i = 0; i < n; i++)
     for (j = 0; j < n; j++)
       if (needs_parentheses (R_last[i][j]))
       {
-        temp_a = R_last[i][j];
+        temp = R_last[i][j];
         GNUNET_asprintf (&R_last[i][j], "(%s)", R_last[i][j]);
-        GNUNET_free (temp_a);
+        GNUNET_free (temp);
       }
-
-  // TODO: clean up and fix the induction part
 
   /* Compute regular expressions of length "k" between each pair of states per induction */
   for (k = 0; k < n; k++)
@@ -1110,341 +1497,11 @@ automaton_create_proofs (struct GNUNET_REGEX_Automaton *a)
         // Basis for the recursion:
         // $R^{(k)}_{ij} = R^{(k-1)}_{ij} | R^{(k-1)}_{ik} ( R^{(k-1)}_{kk} )^* R^{(k-1)}_{kj}
         // R_last == R^{(k-1)}, R_cur == R^{(k)}
-        // With: R_cur[i][j] = R_cur_l | R_cur_r
-        // R_cur_l == R^{(k-1)}_{ij}
-        // R_cur_r == R^{(k-1)}_{ik} ( R^{(k-1)}_{kk} )^* R^{(k-1)}_{kj}
 
-        if ((NULL == R_last[i][j]) && ((NULL == R_last[i][k]) || (NULL == R_last[k][k]) ||      /* technically cannot happen, but looks saner */
-                                       (NULL == R_last[k][j])))
-        {
-          /*  R^{(k)}_{ij} = N | N */
-          /* R_cur[i][j] is already NULL */
-          continue;
-        }
-        if ((NULL == R_last[i][k]) || (NULL == R_last[k][k]) || /* technically cannot happen, but looks saner */
-            (NULL == R_last[k][j]))
-        {
-          /*  R^{(k)}_{ij} = R^{(k-1)}_{ij} | N */
-          R_cur[i][j] = GNUNET_strdup (R_last[i][j]);
-          continue;
-        }
-        // $R^{(k)}_{ij} = N | R^{(k-1)}_{ik} ( R^{(k-1)}_{kk} )^* R^{(k-1)}_{kj} OR
-        // $R^{(k)}_{ij} = R^{(k-1)}_{ij} | R^{(k-1)}_{ik} ( R^{(k-1)}_{kk} )^* R^{(k-1)}_{kj}
-
-        R_cur[i][j] = NULL;
-        R_cur_r = NULL;
-        R_cur_l = NULL;
-
-        // cache results from strcmp, we might need these many times
-        ij_kj_cmp = nullstrcmp (R_last[i][j], R_last[k][j]);
-        ij_ik_cmp = nullstrcmp (R_last[i][j], R_last[i][k]);
-        ik_kk_cmp = nullstrcmp (R_last[i][k], R_last[k][k]);
-        //ik_kj_cmp = nullstrcmp (R_last[i][k], R_last[k][j]);
-        kk_kj_cmp = nullstrcmp (R_last[k][k], R_last[k][j]);
-
-        // Assign R_temp_(ik|kk|kj) to R_last[][] and remove epsilon as well
-        // as parentheses, so we can better compare the contents
-        R_temp_ik = remove_parentheses (remove_epsilon (R_last[i][k]));
-        R_temp_kk = remove_parentheses (remove_epsilon (R_last[k][k]));
-        R_temp_kj = remove_parentheses (remove_epsilon (R_last[k][j]));
-
-        clean_ik_kk_cmp = nullstrcmp (R_last[i][k], R_temp_kk);
-        clean_kk_kj_cmp = nullstrcmp (R_temp_kk, R_last[k][j]);
-
-        // construct R_cur_l (and, if necessary R_cur_r)
-        if (NULL != R_last[i][j])
-        {
-          // Assign R_temp_ij to R_last[i][j] and remove epsilon as well
-          // as parentheses, so we can better compare the contents
-          R_temp_ij = remove_parentheses (remove_epsilon (R_last[i][j]));
-
-          if (0 == strcmp (R_temp_ij, R_temp_ik) &&
-              0 == strcmp (R_temp_ik, R_temp_kk) &&
-              0 == strcmp (R_temp_kk, R_temp_kj))
-          {
-            if (0 == strlen (R_temp_ij))
-            {
-              R_cur_r = GNUNET_strdup ("");
-            }
-            else if ((0 == strncmp (R_last[i][j], "(|", 2)) ||
-                     (0 == strncmp (R_last[i][k], "(|", 2) &&
-                      0 == strncmp (R_last[k][j], "(|", 2)))
-            {
-              // a|(e|a)a*(e|a) = a*
-              // a|(e|a)(e|a)*(e|a) = a*
-              // (e|a)|aa*a = a*
-              // (e|a)|aa*(e|a) = a*
-              // (e|a)|(e|a)a*a = a*
-              // (e|a)|(e|a)a*(e|a) = a*
-              // (e|a)|(e|a)(e|a)*(e|a) = a*
-              if (GNUNET_YES == needs_parentheses (R_temp_ij))
-                GNUNET_asprintf (&R_cur_r, "(%s)*", R_temp_ij);
-              else
-                GNUNET_asprintf (&R_cur_r, "%s*", R_temp_ij);
-            }
-            else
-            {
-              // a|aa*a = a+
-              // a|(e|a)a*a = a+
-              // a|aa*(e|a) = a+
-              // a|(e|a)(e|a)*a = a+
-              // a|a(e|a)*(e|a) = a+
-              if (GNUNET_YES == needs_parentheses (R_temp_ij))
-                GNUNET_asprintf (&R_cur_r, "(%s)+", R_temp_ij);
-              else
-                GNUNET_asprintf (&R_cur_r, "%s+", R_temp_ij);
-            }
-          }
-          else if (0 == ij_ik_cmp && 0 == clean_kk_kj_cmp &&
-                   0 != clean_ik_kk_cmp)
-          {
-            // a|ab*b = ab*
-            if (strlen (R_last[k][k]) < 1)
-              R_cur_r = GNUNET_strdup (R_last[i][j]);
-            else if (GNUNET_YES == needs_parentheses (R_temp_kk))
-              GNUNET_asprintf (&R_cur_r, "%s(%s)*", R_last[i][j], R_temp_kk);
-            else
-              GNUNET_asprintf (&R_cur_r, "%s%s*", R_last[i][j], R_last[k][k]);
-
-            R_cur_l = NULL;
-          }
-          else if (0 == ij_kj_cmp && 0 == clean_ik_kk_cmp &&
-                   0 != clean_kk_kj_cmp)
-          {
-            // a|bb*a = b*a
-            if (strlen (R_last[k][k]) < 1)
-              R_cur_r = GNUNET_strdup (R_last[k][j]);
-            else if (GNUNET_YES == needs_parentheses (R_temp_kk))
-              GNUNET_asprintf (&R_cur_r, "(%s)*%s", R_temp_kk, R_last[k][j]);
-            else
-              GNUNET_asprintf (&R_cur_r, "%s*%s", R_temp_kk, R_last[k][j]);
-
-            R_cur_l = NULL;
-          }
-          else if (0 == ij_ik_cmp && 0 == kk_kj_cmp &&
-                   !has_epsilon (R_last[i][j]) && has_epsilon (R_last[k][k]))
-          {
-            // a|a(e|b)*(e|b) = a|ab* = a|a|ab|abb|abbb|... = ab*
-            if (needs_parentheses (R_temp_kk))
-              GNUNET_asprintf (&R_cur_r, "%s(%s)*", R_last[i][j], R_temp_kk);
-            else
-              GNUNET_asprintf (&R_cur_r, "%s%s*", R_last[i][j], R_temp_kk);
-
-            R_cur_l = NULL;
-          }
-          else if (0 == ij_kj_cmp && 0 == ik_kk_cmp &&
-                   !has_epsilon (R_last[i][j]) && has_epsilon (R_last[k][k]))
-          {
-            // a|(e|b)(e|b)*a = a|b*a = a|a|ba|bba|bbba|...  = b*a
-            if (needs_parentheses (R_temp_kk))
-              GNUNET_asprintf (&R_cur_r, "(%s)*%s", R_temp_kk, R_last[i][j]);
-            else
-              GNUNET_asprintf (&R_cur_r, "%s*%s", R_temp_kk, R_last[i][j]);
-
-            R_cur_l = NULL;
-          }
-          else
-          {
-            temp_a =
-                (NULL == R_last[i][j]) ? NULL : GNUNET_strdup (R_last[i][j]);
-            temp_a = remove_parentheses (temp_a);
-            R_cur_l = temp_a;
-          }
-
-          GNUNET_free_non_null (R_temp_ij);
-        }
-        else
-        {
-          // we have no left side
-          R_cur_l = NULL;
-        }
-
-        // construct R_cur_r, if not already constructed
-        if (NULL == R_cur_r)
-        {
-          length = strlen (R_temp_kk) - strlen (R_last[i][k]);
-
-          // a(ba)*bx = (ab)+x
-          if (length > 0 && NULL != R_last[k][k] && 0 < strlen (R_last[k][k]) &&
-              NULL != R_last[k][j] && 0 < strlen (R_last[k][j]) &&
-              NULL != R_last[i][k] && 0 < strlen (R_last[i][k]) &&
-              0 == strkcmp (R_temp_kk, R_last[i][k], length) &&
-              0 == strncmp (R_temp_kk, R_last[k][j], length))
-          {
-            temp_a = GNUNET_malloc (length + 1);
-            temp_b = GNUNET_malloc ((strlen (R_last[k][j]) - length) + 1);
-
-            length_l = 0;
-            length_r = 0;
-
-            for (cnt = 0; cnt < strlen (R_last[k][j]); cnt++)
-            {
-              if (cnt < length)
-              {
-                temp_a[length_l] = R_last[k][j][cnt];
-                length_l++;
-              }
-              else
-              {
-                temp_b[length_r] = R_last[k][j][cnt];
-                length_r++;
-              }
-            }
-            temp_a[length_l] = '\0';
-            temp_b[length_r] = '\0';
-
-            // e|(ab)+ = (ab)*
-            if (NULL != R_cur_l && 0 == strlen (R_cur_l) &&
-                0 == strlen (temp_b))
-            {
-              GNUNET_asprintf (&R_cur_r, "(%s%s)*", R_last[i][k], temp_a);
-              GNUNET_free (R_cur_l);
-              R_cur_l = NULL;
-            }
-            else
-            {
-              GNUNET_asprintf (&R_cur_r, "(%s%s)+%s", R_last[i][k], temp_a,
-                               temp_b);
-            }
-            GNUNET_free (temp_a);
-            GNUNET_free (temp_b);
-          }
-          else if (0 == strcmp (R_temp_ik, R_temp_kk) &&
-                   0 == strcmp (R_temp_kk, R_temp_kj))
-          {
-            // (e|a)a*(e|a) = a*
-            // (e|a)(e|a)*(e|a) = a*
-            if (has_epsilon (R_last[i][k]) && has_epsilon (R_last[k][j]))
-            {
-              if (needs_parentheses (R_temp_kk))
-                GNUNET_asprintf (&R_cur_r, "(%s)*", R_temp_kk);
-              else
-                GNUNET_asprintf (&R_cur_r, "%s*", R_temp_kk);
-            }
-            // aa*a = a+a
-            else if (0 == clean_ik_kk_cmp && 0 == clean_kk_kj_cmp &&
-                     !has_epsilon (R_last[i][k]))
-            {
-              if (needs_parentheses (R_temp_kk))
-                GNUNET_asprintf (&R_cur_r, "(%s)+%s", R_temp_kk, R_temp_kk);
-              else
-                GNUNET_asprintf (&R_cur_r, "(%s)+%s", R_temp_kk, R_temp_kk);
-            }
-            // (e|a)a*a = a+
-            // aa*(e|a) = a+
-            // a(e|a)*(e|a) = a+
-            // (e|a)a*a = a+
-            else
-            {
-              eps_check =
-                  (has_epsilon (R_last[i][k]) + has_epsilon (R_last[k][k]) +
-                   has_epsilon (R_last[k][j]));
-
-              if (eps_check == 1)
-              {
-                if (needs_parentheses (R_temp_kk))
-                  GNUNET_asprintf (&R_cur_r, "(%s)+", R_temp_kk);
-                else
-                  GNUNET_asprintf (&R_cur_r, "%s+", R_temp_kk);
-              }
-            }
-          }
-          // aa*b = a+b
-          // (e|a)(e|a)*b = a*b
-          else if (0 == strcmp (R_temp_ik, R_temp_kk))
-          {
-            if (has_epsilon (R_last[i][k]))
-            {
-              if (needs_parentheses (R_temp_kk))
-                GNUNET_asprintf (&R_cur_r, "(%s)*%s", R_temp_kk, R_last[k][j]);
-              else
-                GNUNET_asprintf (&R_cur_r, "%s*%s", R_temp_kk, R_last[k][j]);
-            }
-            else
-            {
-              if (needs_parentheses (R_temp_kk))
-                GNUNET_asprintf (&R_cur_r, "(%s)+%s", R_temp_kk, R_last[k][j]);
-              else
-                GNUNET_asprintf (&R_cur_r, "%s+%s", R_temp_kk, R_last[k][j]);
-            }
-          }
-          // ba*a = ba+
-          // b(e|a)*(e|a) = ba*
-          else if (0 == strcmp (R_temp_kk, R_temp_kj))
-          {
-            if (has_epsilon (R_last[k][j]))
-            {
-              if (needs_parentheses (R_temp_kk))
-                GNUNET_asprintf (&R_cur_r, "%s(%s)*", R_last[i][k], R_temp_kk);
-              else
-                GNUNET_asprintf (&R_cur_r, "%s%s*", R_last[i][k], R_temp_kk);
-            }
-            else
-            {
-              if (needs_parentheses (R_temp_kk))
-                GNUNET_asprintf (&R_cur_r, "(%s)+%s", R_last[i][k], R_temp_kk);
-              else
-                GNUNET_asprintf (&R_cur_r, "%s+%s", R_last[i][k], R_temp_kk);
-            }
-          }
-          else
-          {
-            if (strlen (R_temp_kk) > 0)
-            {
-              if (needs_parentheses (R_temp_kk))
-              {
-                GNUNET_asprintf (&R_cur_r, "%s(%s)*%s", R_last[i][k], R_temp_kk,
-                                 R_last[k][j]);
-              }
-              else
-              {
-                GNUNET_asprintf (&R_cur_r, "%s%s*%s", R_last[i][k], R_temp_kk,
-                                 R_last[k][j]);
-              }
-            }
-            else
-            {
-              GNUNET_asprintf (&R_cur_r, "%s%s", R_last[i][k], R_last[k][j]);
-            }
-          }
-        }
-
-        /* GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "R_cur_l: %s\n", R_cur_l); */
-        /* GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "R_cur_r: %s\n", R_cur_r); */
-
-        // putting it all together
-        if (NULL != R_cur_l && NULL != R_cur_r)
-        {
-          // a|a = a
-          if (0 == strcmp (R_cur_l, R_cur_r))
-          {
-            R_cur[i][j] = GNUNET_strdup (R_cur_l);
-          }
-          // R_cur_l | R_cur_r
-          else
-          {
-            GNUNET_asprintf (&R_cur[i][j], "(%s|%s)", R_cur_l, R_cur_r);
-          }
-        }
-        else if (NULL != R_cur_l)
-        {
-          R_cur[i][j] = GNUNET_strdup (R_cur_l);
-        }
-        else if (NULL != R_cur_r)
-        {
-          R_cur[i][j] = GNUNET_strdup (R_cur_r);
-        }
-        else
-        {
-          R_cur[i][j] = NULL;
-        }
-
-        GNUNET_free_non_null (R_cur_l);
-        GNUNET_free_non_null (R_cur_r);
-
-        GNUNET_free_non_null (R_temp_ik);
-        GNUNET_free_non_null (R_temp_kk);
-        GNUNET_free_non_null (R_temp_kj);
+        // Create R_cur[i][j] and simplify the expression
+        automaton_create_proofs_simplify (R_last[i][j], R_last[i][k],
+                                          R_last[k][k], R_last[k][j],
+                                          &R_cur[i][j]);
       }
     }
 
@@ -1478,14 +1535,16 @@ automaton_create_proofs (struct GNUNET_REGEX_Automaton *a)
     if (states[i]->accepting)
     {
       if (NULL == complete_regex && 0 < strlen (R_last[a->start->proof_id][i]))
+      {
         GNUNET_asprintf (&complete_regex, "%s", R_last[a->start->proof_id][i]);
+      }
       else if (NULL != R_last[a->start->proof_id][i] &&
                0 < strlen (R_last[a->start->proof_id][i]))
       {
-        temp_a = complete_regex;
+        temp = complete_regex;
         GNUNET_asprintf (&complete_regex, "%s|%s", complete_regex,
                          R_last[a->start->proof_id][i]);
-        GNUNET_free (temp_a);
+        GNUNET_free (temp);
       }
     }
   }
@@ -1524,8 +1583,6 @@ dfa_state_create (struct GNUNET_REGEX_Context *ctx,
   int len = 0;
   struct GNUNET_REGEX_State *cstate;
   struct Transition *ctran;
-  int insert = 1;
-  struct Transition *t;
   unsigned int i;
 
   s = GNUNET_malloc (sizeof (struct GNUNET_REGEX_State));
@@ -1573,21 +1630,7 @@ dfa_state_create (struct GNUNET_REGEX_Context *ctx,
     for (ctran = cstate->transitions_head; NULL != ctran; ctran = ctran->next)
     {
       if (0 != ctran->label)
-      {
-        insert = 1;
-
-        for (t = s->transitions_head; NULL != t; t = t->next)
-        {
-          if (t->label == ctran->label)
-          {
-            insert = 0;
-            break;
-          }
-        }
-
-        if (insert)
-          state_add_transition (ctx, s, ctran->label, NULL);
-      }
+        state_add_transition (ctx, s, ctran->label, NULL);
     }
 
     // If the nfa_states contain an accepting state, the new dfa state is also

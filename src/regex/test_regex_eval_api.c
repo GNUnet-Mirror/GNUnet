@@ -58,7 +58,7 @@ int
 test_random (unsigned int rx_length, unsigned int max_str_len,
              unsigned int str_count)
 {
-  int i;
+  unsigned int i;
   char *rand_rx;
   char *matching_str;
   int eval;
@@ -114,6 +114,11 @@ test_random (unsigned int rx_length, unsigned int max_str_len,
     eval_check = regexec (&rx, matching_str, 1, matchptr, 0);
     regfree (&rx);
 
+    // We only want to match the whole string, because that's what our DFA does, too.
+    if (eval_check == 0 &&
+        (matchptr[0].rm_so != 0 || matchptr[0].rm_eo != strlen (matching_str)))
+      eval_check = 1;
+
     // Match canonical regex
     if (0 != regcomp (&rx, canonical_regex, REG_EXTENDED))
     {
@@ -126,11 +131,6 @@ test_random (unsigned int rx_length, unsigned int max_str_len,
     eval_canonical = regexec (&rx, matching_str, 1, matchptr, 0);
     regfree (&rx);
     GNUNET_free (canonical_regex);
-
-    // We only want to match the whole string, because that's what our DFA does, too.
-    if (eval_check == 0 &&
-        (matchptr[0].rm_so != 0 || matchptr[0].rm_eo != strlen (matching_str)))
-      eval_check = 1;
 
     // compare result
     if (eval_check != eval)
@@ -198,11 +198,11 @@ test_automaton (struct GNUNET_REGEX_Automaton *a, regex_t * rx,
       result = 1;
       regerror (eval_check, rx, error, sizeof error);
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Unexpected result:\nregex: %s\nstring: %s\nexpected result: %i\n"
+                  "Unexpected result:\nregex: %s\ncanonical_regex: %s\nstring: %s\nexpected result: %i\n"
                   "gnunet regex: %i\nglibc regex: %i\nglibc error: %s\nrm_so: %i\nrm_eo: %i\n\n",
-                  rxstr->regex, rxstr->strings[i], rxstr->expected_results[i],
-                  eval, eval_check, error, matchptr[0].rm_so,
-                  matchptr[0].rm_eo);
+                  rxstr->regex, GNUNET_REGEX_get_canonical_regex (a),
+                  rxstr->strings[i], rxstr->expected_results[i], eval,
+                  eval_check, error, matchptr[0].rm_so, matchptr[0].rm_eo);
     }
   }
   return result;
@@ -298,6 +298,7 @@ main (int argc, char *argv[])
     check_dfa += test_automaton (a, &rx, &rxstr[i]);
     check_proof = GNUNET_strdup (GNUNET_REGEX_get_canonical_regex (a));
     GNUNET_REGEX_automaton_destroy (a);
+
     a = GNUNET_REGEX_construct_dfa (check_proof, strlen (check_proof));
     check_dfa += test_automaton (a, &rx, &rxstr[i]);
     GNUNET_REGEX_automaton_destroy (a);
