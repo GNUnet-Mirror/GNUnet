@@ -512,7 +512,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 
     list_it = GNUNET_NAMESTORE_zone_iteration_start (ns,
 						     &zone,
-						     0,
+						     GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION,
 						     must_not_flags,
 						     &display_record,
 						     NULL);
