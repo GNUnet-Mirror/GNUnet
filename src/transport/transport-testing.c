@@ -633,7 +633,12 @@ GNUNET_TRANSPORT_TESTING_init ()
   /* Init testing the testing lib */
   tth->tl_system = GNUNET_TESTING_system_create ("transport-testing",
                                                  "127.0.0.1");
-
+  if (NULL == tth->tl_system)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Failed to initialize testing library!\n"));
+    GNUNET_free (tth);
+    return NULL;
+  }
 
   tth->hostkey_data = NULL;
   const char *hostkeys_file = "../../contrib/testing_hostkeys.dat";

@@ -252,6 +252,7 @@ libgnunet_plugin_transport_https_la_CPPFLAGS = \
 
 
 check_PROGRAMS = \
+ test_transport_testing_startstop \
  test_transport_testing \
  test_transport_startonly \
  test_transport_api_blacklisting \
@@ -296,6 +297,7 @@ check_PROGRAMS = \
 
 if ENABLE_TEST_RUN
 TESTS = \
+ test_transport_testing_startstop \
  test_transport_testing \
  test_transport_startonly \
  test_transport_api_blacklisting \
@@ -338,6 +340,14 @@ TESTS = \
  $(WLAN_REL_TEST) \
  $(WLAN_UREL_TEST)
 endif
+
+test_transport_testing_startstop_SOURCES = \
+ test_transport_testing_startstop.c
+test_transport_testing_startstop_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/transport/libgnunettransporttesting.la 
 
 test_transport_testing_SOURCES = \
  test_transport_testing.c
