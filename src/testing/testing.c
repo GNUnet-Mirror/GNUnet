@@ -618,6 +618,9 @@ update_config_sections (void *cls,
   char *orig_allowed_hosts;
   char *allowed_hosts;
 
+  if (NULL != strstr (section, "transport-"))
+    return;
+
   if (GNUNET_OK != 
       GNUNET_CONFIGURATION_get_value_string (uc->cfg, section, "ACCEPT_FROM",
                                              &orig_allowed_hosts))
