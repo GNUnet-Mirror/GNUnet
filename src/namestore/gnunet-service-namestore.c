@@ -905,7 +905,7 @@ handle_record_put (void *cls,
     struct GNUNET_NAMESTORE_RecordData rd[rd_count];
 
     if (GNUNET_OK !=
-	GNUNET_NAMESTORE_records_deserialize(rd_ser_len, rd_ser, rd_count, rd))
+	GNUNET_NAMESTORE_records_deserialize (rd_ser_len, rd_ser, rd_count, rd))
     {
       GNUNET_break (0);
       GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
@@ -1707,6 +1707,7 @@ zone_iteraterate_proc (void *cls,
   struct GNUNET_HashCode long_hash;
   struct GNUNET_CRYPTO_ShortHashCode zone_hash;
   struct ZoneIterationResponseMessage *zir_msg;
+  struct GNUNET_TIME_Relative rt;
   unsigned int rd_count_filtered;
   unsigned int c;
   size_t name_len;
@@ -1714,7 +1715,6 @@ zone_iteraterate_proc (void *cls,
   size_t msg_size;
   char *name_tmp;
   char *rd_ser;
-  int include;
 
   proc->res_iteration_finished = GNUNET_NO;
   if ((NULL == zone_key) && (NULL == name))
@@ -1736,49 +1736,49 @@ zone_iteraterate_proc (void *cls,
 	      name);
   for (c = 0; c < rd_count; c++)
   {
-    // FIXME: new expiration flags need additional special treatment here!
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Record %i has flags: 0x%x must have 0x%x\n",
+		"Record %u has flags: %x must have flags are %x, must not have flags are %x\n",
 		c, rd[c].flags, 
-		proc->zi->must_have_flags);
-    include = GNUNET_YES;
-    /* Checking must have flags */
-    if ((rd[c].flags & proc->zi->must_have_flags) == proc->zi->must_have_flags)
+		proc->zi->must_have_flags,
+		proc->zi->must_not_have_flags);
+    /* Checking must have flags, except 'relative-expiration' which is a special flag */
+    if ((rd[c].flags & proc->zi->must_have_flags & (~GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION))
+	!= (proc->zi->must_have_flags & (~ GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION)))
     {
-      /* Include */
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Record %i has flags: Include \n", c);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Record %u lacks 'must-have' flags: Not included\n", c);
+      continue;
     }
-    else
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Record %i has flags: Not include \n", c);
-      include = GNUNET_NO;
-    }
-    
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Record %i has flags: 0x%x must not have 0x%x\n",
-		c, rd[c].flags, proc->zi->must_not_have_flags);
+    /* Checking must-not-have flags */
     if (0 != (rd[c].flags & proc->zi->must_not_have_flags))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-		  "Record %i has flags: Not include \n", c);
-      include = GNUNET_NO;
+		  "Record %u has 'must-not-have' flags: Not included\n", c);
+      continue;
     }
-    else
+    rd_filtered[rd_count_filtered] = rd[c];
+    /* convert relative to absolute expiration time unless explicitly requested otherwise */
+    if ( (0 == (proc->zi->must_have_flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION)) &&
+	 (0 != (rd[c].flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION)) )
     {
-      /* Include */
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Record %i has flags: Include \n", c);
+      /* should convert relative-to-absolute expiration time */
+      rt.rel_value = rd[c].expiration_time;
+      rd_filtered[c].expiration_time = GNUNET_TIME_relative_to_absolute (rt).abs_value;
+      rd_filtered[c].flags &= ~ GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION;
     }
-    if (GNUNET_YES == include)
-      rd_filtered[rd_count_filtered++] = rd[c];
+    /* we NEVER keep the 'authority' flag */
+    rd_filtered[c].flags &= ~ GNUNET_NAMESTORE_RF_AUTHORITY;
+    rd_count_filtered++;    
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      "Included %u of %u records\n", 
 	      rd_count_filtered, rd_count);
 
   signature = NULL;    
-  if (rd_count_filtered > 0)
+  if ( (rd_count_filtered > 0) &&
+       (0 == (proc->zi->must_have_flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION)) )
   {
-    /* compute / obtain signature */
+    /* compute / obtain signature, but only if we (a) have records and (b) expiration times were 
+       converted to absolute expiration times */
     GNUNET_CRYPTO_short_hash (zone_key, 
 			      sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
 			      &zone_hash);
