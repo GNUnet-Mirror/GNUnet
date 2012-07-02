@@ -2453,9 +2453,9 @@ process_delegation_result_dht(void* cls,
 
         if (NULL != rh->rd.data)
           GNUNET_free ((void*)rh->rd.data);
-
-        rh->rd.data = GNUNET_malloc (rd[i].data_size);
+        
         memcpy (&rh->rd, &rd[i], sizeof (struct GNUNET_NAMESTORE_RecordData));
+        rh->rd.data = GNUNET_malloc (rd[i].data_size);
         memcpy ((void*)(rh->rd.data), rd[i].data, rd[i].data_size);
         rh->rd_count = 1;
 
@@ -3447,8 +3447,8 @@ process_delegation_result_ns (void* cls,
     if (NULL != rh->rd.data)
       GNUNET_free ((void*)(rh->rd.data));
     
-    rh->rd.data = GNUNET_malloc (rd[i].data_size);
     memcpy (&rh->rd, &rd[i], sizeof (struct GNUNET_NAMESTORE_RecordData));
+    rh->rd.data = GNUNET_malloc (rd[i].data_size);
     memcpy ((void*)rh->rd.data, rd[i].data, rd[i].data_size);
     rh->rd_count = 1;
     /* Check for key revocation and delegate */
