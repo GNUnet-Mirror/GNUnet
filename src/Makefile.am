@@ -10,6 +10,9 @@ if LINUX
 # All of these currently only work on GNU/Linux
  LINUX_DIR = dns exit vpn gns pt
 endif
+if MINGW
+ MINGW_DIR = dns vpn gns
+endif
 
 if HAVE_MYSQL
  MYSQL_DIR = mysql
@@ -53,5 +56,6 @@ SUBDIRS = \
   mesh \
   lockmanager \
   $(LINUX_DIR) \
+  $(MINGW_DIR) \
   integration-tests \
   $(EXP_DIR) 

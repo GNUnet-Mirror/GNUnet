@@ -214,8 +214,7 @@ GNUNET_STRINGS_buffer_tokenize (const char *buffer, size_t size,
 
 
 /**
- * "man ctime_r", except for GNUnet time; also, unlike ctime, the
- * return value does not include the newline character.
+ * "asctime", except for GNUnet time.
  *
  * @param t the absolute time to convert
  * @return timestamp in human-readable form
