@@ -140,12 +140,19 @@ enum nss_status _nss_gns_gethostbyname2_r(
         if (!gns_resolve_name(af, name, &u) == 0)
         {
           status = NSS_STATUS_NOTFOUND;
+          goto finish;
         }
+    }
+    else
+    {
+      status = NSS_STATUS_UNAVAIL;
+      goto finish;
     }
 
     if (u.count == 0) {
         *errnop = ETIMEDOUT;
         *h_errnop = HOST_NOT_FOUND;
+        status = NSS_STATUS_NOTFOUND;
         goto finish;
     }
 

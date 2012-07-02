@@ -46,8 +46,11 @@ int gns_resolve_name(int af, const char *name, struct userdata *u)
         line[strlen(line)-1] = '\0';
         if (af == AF_INET)
         {
-          if (inet_pton(af, line, &(u->data.ipv4[u->count++])))
+          if (inet_pton(af, line, &(u->data.ipv4[u->count])))
+          {
+            u->count++;
             u->data_len += sizeof(ipv4_address_t);
+          }
           else
           {
             fclose (p);
@@ -57,8 +60,11 @@ int gns_resolve_name(int af, const char *name, struct userdata *u)
         }
         else if ((af == AF_INET6))
         {
-          if (inet_pton(af, line, &(u->data.ipv6[u->count++])))
+          if (inet_pton(af, line, &(u->data.ipv6[u->count])))
+          {
+            u->count++;
             u->data_len += sizeof(ipv6_address_t);
+          }
           else
           {
             fclose (p);
