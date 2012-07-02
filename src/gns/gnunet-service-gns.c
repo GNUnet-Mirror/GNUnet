@@ -182,7 +182,7 @@ static int num_public_records;
  */
 static unsigned long long max_record_put_interval;
 
-static unsigned long long dht_max_update_interval;
+static struct GNUNET_TIME_Relative dht_max_update_interval;
 
 /* dht update interval FIXME define? */
 static struct GNUNET_TIME_Relative record_put_interval;
@@ -329,14 +329,10 @@ put_gns_record(void *cls,
   if (NULL == name)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "Zone iteration finished. Rescheduling put in %ds\n",
-               dht_max_update_interval);
+               "Zone iteration finished. Rescheduling put in %llus\n",
+               (unsigned long long) dht_max_update_interval.rel_value / 1000LL);
     namestore_iter = NULL;
-    zone_update_taskid = GNUNET_SCHEDULER_add_delayed (
-                                        GNUNET_TIME_relative_multiply(
-                                            GNUNET_TIME_UNIT_SECONDS,
-                                            dht_max_update_interval
-                                            ),
+    zone_update_taskid = GNUNET_SCHEDULER_add_delayed (dht_max_update_interval,
                                             &update_zone_dht_start,
                                             NULL);
     return;
@@ -1226,16 +1222,16 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 
   }
 
-  dht_max_update_interval = GNUNET_GNS_DHT_MAX_UPDATE_INTERVAL;
+  dht_max_update_interval.rel_value = GNUNET_GNS_DHT_MAX_UPDATE_INTERVAL; // yuck
 
   if (GNUNET_OK ==
-      GNUNET_CONFIGURATION_get_value_number (c, "gns",
-                                             "ZONE_PUT_INTERVAL",
-                                             &dht_max_update_interval))
+      GNUNET_CONFIGURATION_get_value_time (c, "gns",
+					   "ZONE_PUT_INTERVAL",
+					   &dht_max_update_interval))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		"DHT zone update interval: %llu\n",
-		dht_max_update_interval);
+		(unsigned long long) dht_max_update_interval.rel_value);
   }
   
   max_record_put_interval = 1;
