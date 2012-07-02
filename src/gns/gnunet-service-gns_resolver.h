@@ -350,7 +350,7 @@ struct NamestoreBGTask
  * @param nh handle to the namestore
  * @param dh handle to the dht
  * @param lz the local zone
- * @param cfg configuration handle
+ * @param c configuration handle
  * @param max_bg_queries maximum amount of background queries
  * @param ignore_pending ignore records that still require user confirmation
  *        on lookup
@@ -360,7 +360,7 @@ int
 gns_resolver_init(struct GNUNET_NAMESTORE_Handle *nh,
                   struct GNUNET_DHT_Handle *dh,
                   struct GNUNET_CRYPTO_ShortHashCode lz,
-                  const struct GNUNET_CONFIGURATION_Handle *cfg,
+                  const struct GNUNET_CONFIGURATION_Handle *c,
                   unsigned long long max_bg_queries,
                   int ignore_pending);
 

@@ -132,6 +132,11 @@ static struct ResolverHandle *nah_head;
 static struct ResolverHandle *nah_tail;
 
 /**
+ * Global configuration.
+ */
+static const struct GNUNET_CONFIGURATION_Handle *cfg;
+
+/**
  * a resolution identifier pool variable
  * FIXME overflow?
  * This is a non critical identifier useful for debugging
@@ -719,20 +724,21 @@ start_shorten (struct AuthorityChain *atail,
  * @param nh the namestore handle
  * @param dh the dht handle
  * @param lz the local zone's hash
- * @param cfg configuration handle
+ * @param c configuration handle
  * @param max_bg_queries maximum number of parallel background queries in dht
  * @param ignore_pending ignore records that still require user confirmation
  *        on lookup
  * @return GNUNET_OK on success
  */
 int
-gns_resolver_init(struct GNUNET_NAMESTORE_Handle *nh,
-                  struct GNUNET_DHT_Handle *dh,
-                  struct GNUNET_CRYPTO_ShortHashCode lz,
-                  const struct GNUNET_CONFIGURATION_Handle *cfg,
-                  unsigned long long max_bg_queries,
-                  int ignore_pending)
+gns_resolver_init (struct GNUNET_NAMESTORE_Handle *nh,
+		   struct GNUNET_DHT_Handle *dh,
+		   struct GNUNET_CRYPTO_ShortHashCode lz,
+		   const struct GNUNET_CONFIGURATION_Handle *c,
+		   unsigned long long max_bg_queries,
+		   int ignore_pending)
 {
+  cfg = c;
   namestore_handle = nh;
   dht_handle = dh;
   local_zone = lz;
@@ -756,17 +762,6 @@ gns_resolver_init(struct GNUNET_NAMESTORE_Handle *nh,
   
   GNUNET_RESOLVER_connect (cfg);
   
-  if (NULL == vpn_handle)
-  {
-    vpn_handle = GNUNET_VPN_connect (cfg);
-    if (NULL == vpn_handle)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "GNS_PHASE_INIT: Error connecting to VPN!\n");
-
-      return GNUNET_SYSERR;
-    }
-  }
 
   if ((namestore_handle != NULL) && (dht_handle != NULL))
   {
@@ -2045,14 +2040,27 @@ resolve_record_vpn (struct ResolverHandle *rh,
     af = AF_INET6;
   
   //FIXME timeout??
+  if (NULL == vpn_handle)
+  {
+    vpn_handle = GNUNET_VPN_connect (cfg);
+    if (NULL == vpn_handle)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "GNS_PHASE_INIT: Error connecting to VPN!\n");
+      finish_lookup (rh, rh->proc_cls, 0, NULL);
+      return;
+    }
+  }
+
+
   rh->vpn_handle = GNUNET_VPN_redirect_to_peer (vpn_handle,
-                                          af, ntohs (vpn->proto),
-                                          (struct GNUNET_PeerIdentity *)&vpn->peer,
-                                          &serv_desc,
-                                          GNUNET_NO, //nac
-                                          GNUNET_TIME_UNIT_FOREVER_ABS, //FIXME
-                                          &process_record_result_vpn,
-                                          rh);
+						af, ntohs (vpn->proto),
+						(struct GNUNET_PeerIdentity *)&vpn->peer,
+						&serv_desc,
+						GNUNET_NO, //nac
+						GNUNET_TIME_UNIT_FOREVER_ABS, //FIXME
+						&process_record_result_vpn,
+						rh);
 
 }
 
