@@ -1280,15 +1280,13 @@ handle_record_remove_it (void *cls,
     rrc->op_res = RECORD_REMOVE_RESULT_NO_RECORDS;
     return;
   }
-
   /* Find record to remove */
   found = -1;
   for (c = 0; c < rd_count; c++)
   {
-    if ( (rd[c].flags != rrc->rd->flags) ||
-	 (rd[c].record_type != rrc->rd->record_type) ||
-	 (rd[c].data_size != rrc->rd->data_size) ||
-	 (0 != memcmp (rd[c].data, rrc->rd->data, rrc->rd->data_size)) )
+    if (GNUNET_YES !=
+	GNUNET_NAMESTORE_records_cmp (&rd[c],
+				      rrc->rd))
       continue;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found record to remove!\n", rd_count);
     found = c;
@@ -1379,6 +1377,7 @@ handle_record_remove (void *cls,
   uint32_t rid;
   struct RemoveRecordContext rrc;
   int res;
+  uint64_t off;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      "Received `%s' message\n", 
@@ -1465,18 +1464,28 @@ handle_record_remove (void *cls,
 		"Removing record for name `%s' in zone `%s'\n", name_tmp, 
 		GNUNET_short_h2s (&pubkey_hash));
     rrc.rd = &rd;
-    res = GSN_database->iterate_records (GSN_database->cls,
-                                         &pubkey_hash,
-                                         name_tmp,
-                                         0,
-                                         handle_record_remove_it, &rrc);
+    rrc.op_res = RECORD_REMOVE_RESULT_RECORD_NOT_FOUND;
+    off = 0;
+    res = GNUNET_OK;
+    while ( (RECORD_REMOVE_RESULT_RECORD_NOT_FOUND == rrc.op_res) &&
+	    (GNUNET_OK == res) )
+    {
+      res = GSN_database->iterate_records (GSN_database->cls,
+					   &pubkey_hash,
+					   name_tmp,
+					   off++,
+					   &handle_record_remove_it, &rrc);
+    } 
     switch (res)
     {
     case GNUNET_OK:
       res = rrc.op_res;
       break;
     case GNUNET_NO:
+      GNUNET_break (RECORD_REMOVE_RESULT_NO_RECORDS == rrc.op_res);
       res = RECORD_REMOVE_RESULT_NO_RECORDS;
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  _("Failed to find record to remove\n"));
       break;
     case GNUNET_SYSERR:
       res = RECORD_REMOVE_RESULT_FAILED_ACCESS_DATABASE;

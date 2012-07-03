@@ -172,8 +172,8 @@ GNUNET_NAMESTORE_records_cmp (const struct GNUNET_NAMESTORE_RecordData *a,
 {
   if ((a->record_type == b->record_type) &&
       (a->expiration_time == b->expiration_time) &&
-      ((a->flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION) 
-       == (b->flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION) ) &&
+      ((a->flags & GNUNET_NAMESTORE_RF_RCMP_FLAGS) 
+       == (b->flags & GNUNET_NAMESTORE_RF_RCMP_FLAGS) ) &&
       (a->data_size == b->data_size) &&
       (0 == memcmp (a->data, b->data, a->data_size)))
     return GNUNET_YES;

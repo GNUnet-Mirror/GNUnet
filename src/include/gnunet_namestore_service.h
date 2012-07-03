@@ -170,6 +170,18 @@ enum GNUNET_NAMESTORE_RecordFlags
    */
   GNUNET_NAMESTORE_RF_SHADOW_RECORD = 16
 
+  /**
+   * When comparing flags for record equality for removal,
+   * which flags should must match (in addition to the type,
+   * name, expiration value and data of the record)?  All flags
+   * that are not listed here will be ignored for this purpose.
+   * (for example, we don't expect that users will remember to
+   * pass the '--private' option when removing a record from
+   * the namestore, hence we don't require this particular option
+   * to match upon removal).  See also
+   * 'GNUNET_NAMESTORE_records_cmp'.
+   */
+#define GNUNET_NAMESTORE_RF_RCMP_FLAGS (GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION)
 };
 
 
