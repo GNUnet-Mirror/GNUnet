@@ -33,7 +33,26 @@
 #include "gnunet_hello_lib.h"
 #include "gnunet_container_lib.h"
 
+/**
+ * A list entry for registered controllers list
+ */
+struct RegisteredController
+{
+  /**
+   * The controller at which this host is registered
+   */
+  const struct GNUNET_TESTBED_Controller *controller;
+  
+  /**
+   * The next ptr for DLL
+   */
+  struct RegisteredController *next;
 
+  /**
+   * The prev ptr for DLL
+   */
+  struct RegisteredController *prev;
+};
 
 /**
  * Opaque handle to a host running experiments managed by the testing framework.
@@ -64,9 +83,14 @@ struct GNUNET_TESTBED_Host
   const char *username;
 
   /**
-   * The controller at which this host is registered
+   * The head for the list of controllers where this host is registered
    */
-  const struct GNUNET_TESTBED_Controller *controller;
+  struct RegisteredController *rc_head;
+
+  /**
+   * The tail for the list of controllers where this host is registered
+   */
+  struct RegisteredController *rc_tail;
 
   /**
    * Global ID we use to refer to a host on the network
@@ -261,7 +285,15 @@ GNUNET_TESTBED_hosts_load_from_file (const char *filename,
 void
 GNUNET_TESTBED_host_destroy (struct GNUNET_TESTBED_Host *host)
 {  
-  GNUNET_CONTAINER_DLL_remove (host_list_head, host_list_tail, host);
+  struct RegisteredController *rc;
+  
+  GNUNET_CONTAINER_DLL_remove (host_list_head, host_list_tail, host);  
+  /* clear registered controllers list */
+  for (rc=host->rc_head; NULL != rc; rc=host->rc_head)
+  {
+    GNUNET_CONTAINER_DLL_remove (host->rc_head, host->rc_tail, rc);
+    GNUNET_free (rc);
+  }
   GNUNET_free (host);
 }
 
@@ -389,11 +421,24 @@ GNUNET_TESTBED_host_stop_ (struct GNUNET_TESTBED_HelperHandle *handle)
  * @param controller the controller at which this host is registered
  */
 void
-GNUNET_TESTBED_mark_host_as_registered_ (struct GNUNET_TESTBED_Host *host,
+GNUNET_TESTBED_mark_host_registered_at_ (struct GNUNET_TESTBED_Host *host,
 					 const struct GNUNET_TESTBED_Controller
-					 *controller)
+					 * const controller)
 {
-  host->controller = controller;
+  struct RegisteredController *rc;
+  
+  for (rc=host->rc_head; NULL != rc; rc=rc->next)
+  {
+    if (controller == rc->controller) /* already registered at controller */
+    {
+      GNUNET_break (0);
+      return;
+    }
+  }
+  rc = GNUNET_malloc (sizeof (struct RegisteredController));
+  rc->controller = controller;
+  //host->controller = controller;
+  GNUNET_CONTAINER_DLL_insert_tail (host->rc_head, host->rc_tail, rc);
 }
 
 
@@ -407,9 +452,18 @@ GNUNET_TESTBED_mark_host_as_registered_ (struct GNUNET_TESTBED_Host *host,
 int
 GNUNET_TESTBED_is_host_registered_ (const struct GNUNET_TESTBED_Host *host,
 				    const struct GNUNET_TESTBED_Controller
-				    *controller)
+				    *const controller)
 {
-  return (controller == host->controller) ? GNUNET_YES : GNUNET_NO;
+  struct RegisteredController *rc;
+  
+  for (rc=host->rc_head; NULL != rc; rc=rc->next)
+  {
+    if (controller == rc->controller) /* already registered at controller */
+    {
+      return GNUNET_YES;
+    }
+  }
+  return GNUNET_NO;
 }
 
 

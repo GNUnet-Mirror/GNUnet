@@ -255,7 +255,7 @@ handle_addhostconfirm (struct GNUNET_TESTBED_Controller *c,
   if (sizeof (struct GNUNET_TESTBED_HostConfirmedMessage) == msg_size)
   {
     LOG_DEBUG ("Host %u successfully registered\n", ntohl (msg->host_id));
-    GNUNET_TESTBED_mark_host_as_registered_  (rh->host, c);
+    GNUNET_TESTBED_mark_host_registered_at_  (rh->host, c);
     rh->cc (rh->cc_cls, NULL);
     GNUNET_free (rh);
     return GNUNET_OK;

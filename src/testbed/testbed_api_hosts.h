@@ -132,7 +132,7 @@ GNUNET_TESTBED_host_stop_ (struct GNUNET_TESTBED_HelperHandle *handle);
  * @param controller the controller at which this host is registered
  */
 void
-GNUNET_TESTBED_mark_host_as_registered_ (struct GNUNET_TESTBED_Host *host,
+GNUNET_TESTBED_mark_host_registered_at_ (struct GNUNET_TESTBED_Host *host,
 					 const struct GNUNET_TESTBED_Controller
 					 *controller);
 

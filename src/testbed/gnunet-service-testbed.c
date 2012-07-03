@@ -119,20 +119,108 @@ struct SharedService
 struct Route
 {
   /**
-   * The destination host
+   * The forwarding (next hop) host id
    */
-  const struct GNUNET_TESTBED_Host *dest;
-
-  /**
-   * The forwarding (next hop) host
-   */
-  const struct GNUNET_TESTBED_Host *fhost;
+  uint32_t next_hop;
 
   /**
    * The controller handle if we have started the controller at the next hop
    * host 
    */
   struct GNUNET_TESTBED_Controller *fcontroller;
+};
+
+
+/**
+ * States of LCFContext
+ */
+enum LCFContextState
+  {
+    /**
+     * The Context has been initialized; Nothing has been done on it
+     */
+    INIT,
+
+    /**
+     * Delegated host has been registered at the forwarding controller
+     */
+    DELEGATED_HOST_REGISTERED,
+    
+    /**
+     * The slave host has been registred at the forwarding controller
+     */
+    SLAVE_HOST_REGISTERED,
+
+    /**
+     * The context has been finished (may have error)
+     */
+    FINISHED
+
+  };
+
+
+/**
+ * Link controllers request forwarding context
+ */
+struct LCFContext
+{
+  /**
+   * The configuration
+   */
+  struct GNUNET_CONFIGURATION_Handle *cfg;
+
+  /**
+   * The handle of the controller this request has to be forwarded to
+   */
+  struct GNUNET_TESTBED_Controller *fcontroller;
+
+  /**
+   * The host registration handle while registered hosts in this context
+   */
+  struct GNUNET_TESTBED_HostRegistrationHandle *rhandle;
+
+  /**
+   * Should the delegated host be started by the slave host?
+   */
+  int is_subordinate;
+
+  /**
+   * The state of this context
+   */
+  enum LCFContextState state;
+
+  /**
+   * The delegated host
+   */
+  uint32_t delegated_host_id;
+
+  /**
+   * The slave host
+   */
+  uint32_t slave_host_id;
+
+};
+
+
+/**
+ * Structure of a queue entry in LCFContext request queue
+ */
+struct LCFContextQueue
+{
+  /**
+   * The LCFContext
+   */
+  struct LCFContext *lcf;
+
+  /**
+   * Head prt for DLL
+   */
+  struct LCFContextQueue *next;
+
+  /**
+   * Tail ptr for DLL
+   */
+  struct LCFContextQueue *prev;
 };
 
 
@@ -180,6 +268,16 @@ static struct MessageQueue *mq_head;
  * The message queue tail
  */
 static struct MessageQueue *mq_tail;
+
+/**
+ * The head for the LCF queue
+ */
+static struct LCFContextQueue *lcfq_head;
+
+/**
+ * The tail for the LCF queue
+ */
+static struct LCFContextQueue *lcfq_tail;
 
 /**
  * Current Transmit Handle; NULL if no notify transmit exists currently
@@ -301,6 +399,120 @@ static void
 route_message (uint32_t host_id, const struct GNUNET_MessageHeader *msg)
 {
   GNUNET_break (0);
+}
+
+
+/**
+ * The  Link Controller forwarding task
+ *
+ * @param cls the LCFContext
+ * @param tc the Task context from scheduler
+ */
+static void
+lcf_proc_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+
+/**
+ * Completion callback for host registrations while forwarding Link Controller messages
+ *
+ * @param cls the LCFContext
+ * @param emsg the error message; NULL if host registration is successful
+ */
+static void
+lcf_proc_cc (void *cls, const char *emsg)
+{
+  struct LCFContext *lcf = cls;
+
+  lcf->rhandle = NULL;
+  switch (lcf->state)
+  {
+  case INIT:
+    if (NULL != emsg)
+      goto registration_error;
+    lcf->state = DELEGATED_HOST_REGISTERED;
+    (void) GNUNET_SCHEDULER_add_now (&lcf_proc_task, lcf);
+    break;
+  case DELEGATED_HOST_REGISTERED:
+     if (NULL != emsg)
+      goto registration_error;
+     lcf->state = SLAVE_HOST_REGISTERED;
+     (void) GNUNET_SCHEDULER_add_now (&lcf_proc_task, lcf);
+     break;
+  default:
+    GNUNET_assert (0); 		/* Shouldn't reach here */
+  }  
+  return;
+
+ registration_error:
+  LOG (GNUNET_ERROR_TYPE_WARNING, 
+       "Host registration failed with message: %s\n", emsg);
+  lcf->state = FINISHED;
+  (void) GNUNET_SCHEDULER_add_now (&lcf_proc_task, lcf);
+}
+
+
+/**
+ * The  Link Controller forwarding task
+ *
+ * @param cls the LCFContext
+ * @param tc the Task context from scheduler
+ */
+static void
+lcf_proc_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct LCFContext *lcf = cls;
+  struct LCFContextQueue *lcfq;
+
+  switch (lcf->state)
+  {
+  case INIT:
+    if (GNUNET_NO ==
+	GNUNET_TESTBED_is_host_registered_ (host_list[lcf->delegated_host_id],
+					    lcf->fcontroller))
+    {
+      lcf->rhandle =
+	GNUNET_TESTBED_register_host (lcf->fcontroller,
+				      host_list[lcf->delegated_host_id],
+				      lcf_proc_cc, lcf);						   
+    }
+    else
+    {
+      lcf->state = DELEGATED_HOST_REGISTERED;
+      (void) GNUNET_SCHEDULER_add_now (&lcf_proc_task, lcf);
+    }
+    break;
+  case DELEGATED_HOST_REGISTERED:
+    if (GNUNET_NO ==
+	GNUNET_TESTBED_is_host_registered_ (host_list[lcf->slave_host_id],
+					    lcf->fcontroller))
+    {
+      lcf->rhandle =
+	GNUNET_TESTBED_register_host (lcf->fcontroller,
+				      host_list[lcf->slave_host_id],
+				      lcf_proc_cc, lcf);						   
+    }
+    else
+    {
+      lcf->state = SLAVE_HOST_REGISTERED;
+      (void) GNUNET_SCHEDULER_add_now (&lcf_proc_task, lcf);
+    }
+    break;
+  case SLAVE_HOST_REGISTERED:
+    GNUNET_TESTBED_controller_link (lcf->fcontroller,
+				    host_list[lcf->delegated_host_id],
+				    host_list[lcf->slave_host_id],
+				    lcf->cfg, lcf->is_subordinate);
+    lcf->state = FINISHED;
+    break;
+  case FINISHED:
+    lcfq = lcfq_head;
+    GNUNET_CONFIGURATION_destroy (lcfq->lcf->cfg);
+    GNUNET_free (lcfq->lcf);
+    GNUNET_CONTAINER_DLL_remove (lcfq_head, lcfq_tail, lcfq);
+    GNUNET_free (lcfq);
+    if (NULL != lcfq_head)
+      (void) GNUNET_SCHEDULER_add_now (&lcf_proc_task, lcfq_head->lcf);
+  }
 }
 
 
@@ -514,6 +726,8 @@ handle_link_controllers (void *cls,
 {
   const struct GNUNET_TESTBED_ControllerLinkMessage *msg;
   struct GNUNET_CONFIGURATION_Handle *cfg;
+  struct LCFContextQueue *lcfq;
+  struct Route *route;
   char *config;  
   uLongf dest_size;
   size_t config_size;
@@ -537,14 +751,6 @@ handle_link_controllers (void *cls,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  if ((delegated_host_id < route_list_size) &&
-      (NULL != route_list[delegated_host_id]))
-  {
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-         "Delegated host has already been linked\n");
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
-  }
   if ((delegated_host_id >= host_list_size) || 
       (NULL == host_list[delegated_host_id]))
   {
@@ -559,6 +765,7 @@ handle_link_controllers (void *cls,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
+
   config_size = ntohs (msg->config_size);
   config = GNUNET_malloc (config_size);
   dest_size = (uLongf) config_size;
@@ -582,7 +789,45 @@ handle_link_controllers (void *cls,
     return;
   }
   GNUNET_free (config);
-  GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+
+  /* If delegated host and slave host are not same we have to forward
+     towards delegated host */
+  if (slave_host_id != delegated_host_id)
+  {
+    if ((slave_host_id >= route_list_size) ||
+	(NULL == (route = route_list[slave_host_id])) ||
+	(NULL == route->fcontroller))
+    {
+      LOG (GNUNET_ERROR_TYPE_WARNING, "Not route towards slave host");
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      return;
+    }
+    if (slave_host_id == route->next_hop) /* Slave directly connected */
+    {
+      /* Then make slave host and delegated host same so that slave
+	 will startup directly link to the delegated host */
+      slave_host_id = delegated_host_id;
+    }
+    lcfq = GNUNET_malloc (sizeof (struct LCFContextQueue));
+    lcfq->lcf = GNUNET_malloc (sizeof (struct LCFContext));
+    lcfq->lcf->delegated_host_id = delegated_host_id;
+    lcfq->lcf->slave_host_id = slave_host_id;
+    lcfq->lcf->is_subordinate =
+      (1 == msg->is_subordinate) ? GNUNET_YES : GNUNET_NO;
+    lcfq->lcf->state = INIT;
+    lcfq->lcf->fcontroller = route->fcontroller;
+    lcfq->lcf->cfg = cfg;
+    if (NULL == lcfq_head)
+    {
+      GNUNET_CONTAINER_DLL_insert_tail (lcfq_head, lcfq_tail, lcfq);
+      (void) GNUNET_SCHEDULER_add_now (&lcf_proc_task, lcfq);
+    }
+    else
+      GNUNET_CONTAINER_DLL_insert_tail (lcfq_head, lcfq_tail, lcfq);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
   /* If we are not the slave controller then we have to route the request
      towards the slave controller */
   if (1 == msg->is_subordinate)
