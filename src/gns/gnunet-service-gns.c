@@ -228,6 +228,9 @@ send_shorten_response(void* cls, const char* name);
 static void
 on_resolver_cleanup(void)
 {
+  if (NULL != statistics)
+    GNUNET_STATISTICS_destroy (statistics, GNUNET_NO);
+
   if (NULL != namestore_iter)
     GNUNET_NAMESTORE_zone_iteration_stop (namestore_iter);
   GNUNET_NAMESTORE_disconnect(namestore_handle);
