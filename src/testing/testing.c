@@ -654,6 +654,23 @@ update_config_sections (void *cls,
   {
     for (key = 0; key < ikeys_cnt; key++)
     {
+      if (NULL != strstr (ikeys[key], "ADVERTISED_PORT"))
+	break;
+    }
+    if ((key == ikeys_cnt) &&
+	(GNUNET_YES == GNUNET_CONFIGURATION_have_value (uc->cfg, section,
+							"ADVERTISED_PORT")))
+    {
+      if (GNUNET_OK == 
+	  GNUNET_CONFIGURATION_get_value_string (uc->cfg, section, "PORT", &ptr))
+      {
+	GNUNET_CONFIGURATION_set_value_string (uc->cfg, section, 
+					       "ADVERTISED_PORT", ptr);
+	GNUNET_free (ptr);
+      }
+    }
+    for (key = 0; key < ikeys_cnt; key++)
+    {
       if (NULL != strstr (ikeys[key], "ACCEPT_FROM"))
       {
         GNUNET_free (ikeys);
@@ -664,10 +681,6 @@ update_config_sections (void *cls,
     GNUNET_free (ikeys);
   }
   GNUNET_free_non_null (val);
-
-  /* if (NULL != strstr (section, "transport-")) */
-  /*   return; */
-
   if (GNUNET_OK != 
       GNUNET_CONFIGURATION_get_value_string (uc->cfg, section, "ACCEPT_FROM",
                                              &orig_allowed_hosts))
