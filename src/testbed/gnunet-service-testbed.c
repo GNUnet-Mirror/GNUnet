@@ -225,49 +225,27 @@ struct LCFContextQueue
 
 
 /**
+ * The master context; generated with the first INIT message
+ */
+static struct Context *master_context;
+
+/***********/
+/* Handles */
+/***********/
+
+/**
  * Wrapped stdin.
  */
 static struct GNUNET_DISK_FileHandle *fh;
 
 /**
- * The master context; generated with the first INIT message
+ * Current Transmit Handle; NULL if no notify transmit exists currently
  */
-static struct Context *master_context;
+static struct GNUNET_SERVER_TransmitHandle *transmit_handle;
 
-/**
- * The shutdown task handle
- */
-static GNUNET_SCHEDULER_TaskIdentifier shutdown_task_id;
-
-/**
- * Array of host list
- */
-static struct GNUNET_TESTBED_Host **host_list;
-
-/**
- * The size of the host list
- */
-static uint32_t host_list_size;
-
-/**
- * A list of routes
- */
-static struct Route **route_list;
-
-/**
- * The size of the route list
- */
-static uint32_t route_list_size;
-
-/**
- * The message queue head
- */
-static struct MessageQueue *mq_head;
-
-/**
- * The message queue tail
- */
-static struct MessageQueue *mq_tail;
+/****************/
+/* Lists & Maps */
+/****************/
 
 /**
  * The head for the LCF queue
@@ -280,14 +258,53 @@ static struct LCFContextQueue *lcfq_head;
 static struct LCFContextQueue *lcfq_tail;
 
 /**
- * Current Transmit Handle; NULL if no notify transmit exists currently
+ * The message queue head
  */
-struct GNUNET_SERVER_TransmitHandle *transmit_handle;
+static struct MessageQueue *mq_head;
+
+/**
+ * The message queue tail
+ */
+static struct MessageQueue *mq_tail;
+
+/**
+ * Array of host list
+ */
+static struct GNUNET_TESTBED_Host **host_list;
+
+/**
+ * A list of routes
+ */
+static struct Route **route_list;
 
 /**
  * The hashmap of shared services
  */
-struct GNUNET_CONTAINER_MultiHashMap *ss_map;
+static struct GNUNET_CONTAINER_MultiHashMap *ss_map;
+
+/**
+ * The size of the host list
+ */
+static uint32_t host_list_size;
+
+/**
+ * The size of the route list
+ */
+static uint32_t route_list_size;
+
+/*********/
+/* Tasks */
+/*********/
+
+/**
+ * The lcf_task handle
+ */
+static GNUNET_SCHEDULER_TaskIdentifier lcf_proc_task_id;
+
+/**
+ * The shutdown task handle
+ */
+static GNUNET_SCHEDULER_TaskIdentifier shutdown_task_id;
 
 
 /**
@@ -424,19 +441,20 @@ lcf_proc_cc (void *cls, const char *emsg)
   struct LCFContext *lcf = cls;
 
   lcf->rhandle = NULL;
+  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == lcf_proc_task_id);
   switch (lcf->state)
   {
   case INIT:
     if (NULL != emsg)
       goto registration_error;
     lcf->state = DELEGATED_HOST_REGISTERED;
-    (void) GNUNET_SCHEDULER_add_now (&lcf_proc_task, lcf);
+    lcf_proc_task_id = GNUNET_SCHEDULER_add_now (&lcf_proc_task, lcf);
     break;
   case DELEGATED_HOST_REGISTERED:
      if (NULL != emsg)
       goto registration_error;
      lcf->state = SLAVE_HOST_REGISTERED;
-     (void) GNUNET_SCHEDULER_add_now (&lcf_proc_task, lcf);
+     lcf_proc_task_id = GNUNET_SCHEDULER_add_now (&lcf_proc_task, lcf);
      break;
   default:
     GNUNET_assert (0); 		/* Shouldn't reach here */
@@ -447,7 +465,7 @@ lcf_proc_cc (void *cls, const char *emsg)
   LOG (GNUNET_ERROR_TYPE_WARNING, 
        "Host registration failed with message: %s\n", emsg);
   lcf->state = FINISHED;
-  (void) GNUNET_SCHEDULER_add_now (&lcf_proc_task, lcf);
+  lcf_proc_task_id = GNUNET_SCHEDULER_add_now (&lcf_proc_task, lcf);
 }
 
 
@@ -463,6 +481,7 @@ lcf_proc_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct LCFContext *lcf = cls;
   struct LCFContextQueue *lcfq;
 
+  lcf_proc_task_id = GNUNET_SCHEDULER_NO_TASK;
   switch (lcf->state)
   {
   case INIT:
@@ -478,7 +497,7 @@ lcf_proc_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     else
     {
       lcf->state = DELEGATED_HOST_REGISTERED;
-      (void) GNUNET_SCHEDULER_add_now (&lcf_proc_task, lcf);
+      lcf_proc_task_id = GNUNET_SCHEDULER_add_now (&lcf_proc_task, lcf);
     }
     break;
   case DELEGATED_HOST_REGISTERED:
@@ -494,7 +513,7 @@ lcf_proc_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     else
     {
       lcf->state = SLAVE_HOST_REGISTERED;
-      (void) GNUNET_SCHEDULER_add_now (&lcf_proc_task, lcf);
+      lcf_proc_task_id = GNUNET_SCHEDULER_add_now (&lcf_proc_task, lcf);
     }
     break;
   case SLAVE_HOST_REGISTERED:
@@ -511,7 +530,7 @@ lcf_proc_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_CONTAINER_DLL_remove (lcfq_head, lcfq_tail, lcfq);
     GNUNET_free (lcfq);
     if (NULL != lcfq_head)
-      (void) GNUNET_SCHEDULER_add_now (&lcf_proc_task, lcfq_head->lcf);
+      lcf_proc_task_id = GNUNET_SCHEDULER_add_now (&lcf_proc_task, lcfq_head->lcf);
   }
 }
 
@@ -816,11 +835,12 @@ handle_link_controllers (void *cls,
       (1 == msg->is_subordinate) ? GNUNET_YES : GNUNET_NO;
     lcfq->lcf->state = INIT;
     lcfq->lcf->fcontroller = route->fcontroller;
-    lcfq->lcf->cfg = cfg;
+    lcfq->lcf->cfg = cfg;    
     if (NULL == lcfq_head)
     {
+      GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == lcf_proc_task_id);
       GNUNET_CONTAINER_DLL_insert_tail (lcfq_head, lcfq_tail, lcfq);
-      (void) GNUNET_SCHEDULER_add_now (&lcf_proc_task, lcfq);
+      lcf_proc_task_id = GNUNET_SCHEDULER_add_now (&lcf_proc_task, lcfq);
     }
     else
       GNUNET_CONTAINER_DLL_insert_tail (lcfq_head, lcfq_tail, lcfq);
