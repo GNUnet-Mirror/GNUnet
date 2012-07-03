@@ -469,7 +469,7 @@ put_gns_record(void *cls,
   else
     next_put_interval = zone_iteration_interval;
 
-  GNUNET_STATISTICS_update (statistics,
+  GNUNET_STATISTICS_set (statistics,
                             "Current zone iteration interval [msec]",
                             next_put_interval.rel_value,
                             GNUNET_NO);
