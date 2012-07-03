@@ -1196,7 +1196,11 @@ test_af (int af)
     fprintf (stderr, "Failed to create test socket: %s\n", STRERROR (errno));
     return GNUNET_SYSERR;
   }
+#if WINDOWS
+  closesocket (s);
+#else
   close (s);
+#endif
   return GNUNET_OK;
 }
 
@@ -1211,7 +1215,7 @@ static void
 run (void *cls, struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
-  
+
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Initializing GNS\n");
   
   char* keyfile;
