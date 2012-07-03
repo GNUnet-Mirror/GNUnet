@@ -3124,15 +3124,20 @@ GST_neighbour_get_latency (const struct GNUNET_PeerIdentity *peer)
   switch (n->state)
   {
   case S_CONNECTED:
+  case S_CONNECTED_SWITCHING_CONNECT_SENT:
+  case S_CONNECTED_SWITCHING_BLACKLIST:
   case S_RECONNECT_SENT:
   case S_RECONNECT_ATS:
+  case S_RECONNECT_BLACKLIST:
     return n->latency;
   case S_NOT_CONNECTED:
   case S_INIT_BLACKLIST:
   case S_INIT_ATS:
   case S_CONNECT_RECV_BLACKLIST_INBOUND:
-  case S_CONNECT_SENT:
+  case S_CONNECT_RECV_ATS:
   case S_CONNECT_RECV_BLACKLIST:
+  case S_CONNECT_RECV_ACK:
+  case S_CONNECT_SENT:
   case S_DISCONNECT:
   case S_DISCONNECT_FINISHED:
     return GNUNET_TIME_UNIT_FOREVER_REL;
