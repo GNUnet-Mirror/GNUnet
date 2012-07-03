@@ -1659,6 +1659,30 @@ handle_zone_to_name (void *cls,
 
 
 /**
+ * Zone iteration processor result
+ */
+enum ZoneIterationResult
+{
+  /**
+   * Found records, but all records were filtered
+   * Continue to iterate
+   */
+  IT_ALL_RECORDS_FILTERED = -1,
+
+  /**
+   * Found records,
+   * Continue to iterate with next iteration_next call
+   */
+  IT_SUCCESS_MORE_AVAILABLE = 0,
+
+  /**
+   * Iteration complete
+   */
+  IT_SUCCESS_NOT_MORE_RESULTS_AVAILABLE = 1,
+};
+
+
+/**
  * Context for record remove operations passed from
  * 'run_zone_iteration_round' to 'zone_iteraterate_proc' as closure
  */
@@ -1670,10 +1694,11 @@ struct ZoneIterationProcResult
   struct GNUNET_NAMESTORE_ZoneIteration *zi;
 
   /**
-   * Iteration result: iteration done?  Set to GNUNET_YES
-   * if there are no further results, GNUNET_NO if there
-   * may be more results overall but we got one for now,
-   * GNUNET_SYSERR if all results were filtered so far.
+   * Iteration result: iteration done?
+   * IT_SUCCESS_MORE_AVAILABLE:  if there may be more results overall but
+   * we got one for now and have sent it to the client
+   * IT_SUCCESS_NOT_MORE_RESULTS_AVAILABLE: if there are no further results,
+   * IT_ALL_RECORDS_FILTERED: if all results were filtered so far.
    */
   int res_iteration_finished;
 
@@ -1716,12 +1741,12 @@ zone_iteraterate_proc (void *cls,
   char *name_tmp;
   char *rd_ser;
 
-  proc->res_iteration_finished = GNUNET_NO;
+  proc->res_iteration_finished = IT_SUCCESS_MORE_AVAILABLE;
   if ((NULL == zone_key) && (NULL == name))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 		"Iteration done\n");
-    proc->res_iteration_finished = GNUNET_YES;
+    proc->res_iteration_finished = IT_SUCCESS_NOT_MORE_RESULTS_AVAILABLE;
     return;
   }
   if ((NULL == zone_key) || (NULL == name)) 
@@ -1808,6 +1833,14 @@ zone_iteraterate_proc (void *cls,
 	}    
     }
   }
+  if (rd_count_filtered == 0)
+  {
+    /* After filtering records there are no records left to return */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "No records to transmit\n");
+    proc->res_iteration_finished = IT_ALL_RECORDS_FILTERED;
+    return;
+  }
+
   if (GNUNET_YES == proc->zi->has_zone)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 		"Sending name `%s' for iteration over zone `%s'\n",
@@ -1843,7 +1876,7 @@ zone_iteraterate_proc (void *cls,
   GNUNET_SERVER_notification_context_unicast (snc, proc->zi->client->client, 
 					      (const struct GNUNET_MessageHeader *) zir_msg,
 					      GNUNET_NO);
-  proc->res_iteration_finished = GNUNET_NO;
+  proc->res_iteration_finished = IT_SUCCESS_MORE_AVAILABLE;
   GNUNET_free (zir_msg);
   GNUNET_free_non_null (new_signature);
 }
@@ -1867,8 +1900,8 @@ run_zone_iteration_round (struct GNUNET_NAMESTORE_ZoneIteration *zi)
     zone = &zi->zone;
   else
     zone = NULL;
-  proc.res_iteration_finished = GNUNET_SYSERR;
-  while (GNUNET_SYSERR == proc.res_iteration_finished)
+  proc.res_iteration_finished = IT_ALL_RECORDS_FILTERED;
+  while (IT_ALL_RECORDS_FILTERED == proc.res_iteration_finished)
   {
     if (GNUNET_SYSERR ==
 	GSN_database->iterate_records (GSN_database->cls, zone, NULL, 
@@ -1880,8 +1913,12 @@ run_zone_iteration_round (struct GNUNET_NAMESTORE_ZoneIteration *zi)
     }
     zi->offset++;
   }
-  if (GNUNET_YES != proc.res_iteration_finished)
+  if (IT_SUCCESS_MORE_AVAILABLE == proc.res_iteration_finished)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "More results available\n");
     return; /* more results later */
+  }
   if (GNUNET_YES == zi->has_zone)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 		"No more results for zone `%s'\n", 
