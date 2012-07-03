@@ -3666,6 +3666,8 @@ gns_resolver_lookup_record (struct GNUNET_CRYPTO_ShortHashCode zone,
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   "Cannot handle this TLD %s\n", string_hash);
       
+      if (GNUNET_SCHEDULER_NO_TASK != rh->timeout_task)
+        GNUNET_SCHEDULER_cancel (rh->timeout_task);
       GNUNET_CONTAINER_DLL_remove (rlh_head, rlh_tail, rh);
       GNUNET_free (rh);
       GNUNET_free (rlh);
