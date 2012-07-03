@@ -338,6 +338,7 @@ put_gns_record(void *cls,
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                "Zone iteration finished. Rescheduling put in %llus\n",
                (unsigned long long) dht_max_update_interval.rel_value / 1000LL);
+
     namestore_iter = NULL;
     zone_update_taskid = GNUNET_SCHEDULER_add_delayed (dht_max_update_interval,
                                             &update_zone_dht_start,
@@ -348,6 +349,16 @@ put_gns_record(void *cls,
   }
   
   namelen = strlen(name) + 1;
+
+  if (rd_count == 0)
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+               "No records given for name %s! Skipping...\n",
+               name);
+    zone_update_taskid = GNUNET_SCHEDULER_add_now (&update_zone_dht_next,
+                                                   NULL);
+    return;
+  }
   
   if (signature == NULL)
   {
@@ -410,14 +421,16 @@ put_gns_record(void *cls,
              "zone identity: %s\n", GNUNET_h2s (&zone_hash_double));
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "putting records for %s under key: %s with size %d\n",
-             name, GNUNET_h2s (&xor_hash), rd_payload_length);
+             "putting %d records for %s under key: %s with size %d\n",
+             rd_count, name, GNUNET_h2s (&xor_hash), rd_payload_length);
   
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
              "DHT req to %d\n", DHT_OPERATION_TIMEOUT.rel_value);
 
   GNUNET_STATISTICS_update (statistics,
-                            "Record data set put into DHT", 1, GNUNET_NO);
+                            "Records put into DHT", rd_count, GNUNET_NO);
+  GNUNET_STATISTICS_update (statistics,
+                            "Record bytes put into DHT", rd_payload_length, GNUNET_NO);
 
   /* FIXME: keep return value to possibly cancel? */
   GNUNET_DHT_put (dht_handle, &xor_hash,
@@ -1277,6 +1290,12 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 		"DHT zone update interval: %llu\n",
 		(unsigned long long) dht_max_update_interval.rel_value);
   }
+
+
+  GNUNET_STATISTICS_set (statistics,
+                         "Zone update interval (secs)",
+                         (unsigned long long) dht_max_update_interval.rel_value / 1000LL,
+                         GNUNET_NO);
   
   max_record_put_interval = 1;
 
