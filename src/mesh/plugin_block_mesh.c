@@ -209,6 +209,8 @@ libgnunet_plugin_block_mesh_init (void *cls)
   {
     GNUNET_BLOCK_TYPE_MESH_PEER,
     GNUNET_BLOCK_TYPE_MESH_PEER_BY_TYPE,
+    GNUNET_BLOCK_TYPE_MESH_REGEX,
+    GNUNET_BLOCK_TYPE_MESH_REGEX_ACCEPT,
     GNUNET_BLOCK_TYPE_ANY       /* end of list */
   };
   struct GNUNET_BLOCK_PluginFunctions *api;

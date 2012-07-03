@@ -98,6 +98,7 @@ check_PROGRAMS = \
  test_mesh_local_1 \
  test_mesh_local_2 \
  test_mesh_2dtorus \
+ test_mesh_regex \
  test_mesh_small_unicast \
  test_mesh_small_multicast \
  test_mesh_small_speed \
@@ -145,6 +146,16 @@ test_mesh_2dtorus_SOURCES = \
 test_mesh_2dtorus_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testing_old/libgnunettesting_old.la
+
+test_mesh_regex_SOURCES = \
+ test_mesh_regex.c
+test_mesh_regex_LDADD = \
+  $(top_builddir)/src/mesh/libgnunetmesh.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/testing_old/libgnunettesting_old.la
+test_mesh_regex_DEPENDENCIES = \
+  libgnunetmesh.la
+
 
 test_mesh_small_unicast_SOURCES = \
  test_mesh_small.c

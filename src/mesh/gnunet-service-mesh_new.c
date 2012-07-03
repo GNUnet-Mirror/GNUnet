@@ -708,13 +708,24 @@ regex_iterator (void *cls, const struct GNUNET_HashCode *key, const char *proof,
     size_t size;
     size_t len;
     unsigned int i;
+    unsigned int offset;
     char *aux;
+
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "  regex dht put for state %s\n",
+                GNUNET_h2s(key));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "  proof: %s\n",
+                proof);
 
     opt = GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE;
     if (GNUNET_YES == accepting)
     {
         struct MeshRegexAccept block;
 
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    "  state %s is accepting, putting own id\n",
+                    GNUNET_h2s(key));
         size = sizeof (block);
         block.key = *key;
         block.id = my_full_id;
@@ -749,11 +760,19 @@ regex_iterator (void *cls, const struct GNUNET_HashCode *key, const char *proof,
      */
     for (i = 0; i < num_edges; i++)
     {
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    "    edge %s towards %s\n",
+                    edges[i].label,
+                    GNUNET_h2s(&edges[i].destination));
+
         /* aux points at the end of the last block */
-        block_edge = (struct MeshRegexEdge *) aux;
         len = strlen (edges[i].label);
         size += sizeof (struct MeshRegexEdge) + len;
+        // Calculate offset FIXME is this ok? use size instead?
+        offset = aux - (char *) block;
         block = GNUNET_realloc (block, size);
+        aux = &((char *) block)[offset];
+        block_edge = (struct MeshRegexEdge *) aux;
         block_edge->key = edges[i].destination;
         block_edge->n_token = htonl (len);
         aux = (char *) &block_edge[1];
@@ -784,9 +803,11 @@ regex_put (const char *regex)
 {
   struct GNUNET_REGEX_Automaton *dfa;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "regex_put (%s) start\n", regex);
   dfa = GNUNET_REGEX_construct_dfa (regex, strlen(regex));
   GNUNET_REGEX_iterate_all_edges (dfa, &regex_iterator, NULL);
   GNUNET_REGEX_automaton_destroy (dfa);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "regex_put (%s) end\n", regex);
 
 }
 
@@ -4184,6 +4205,14 @@ dht_get_string_handler (void *cls, struct GNUNET_TIME_Absolute exp,
   size_t len;
 
   // FIXME: does proof have to be NULL terminated?
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "*******************************\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "DHT GET STRING RETURNED RESULTS\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "  key: %s\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "DHT GET STRING RETURNED RESULTS\n");
   proof = (char *) &block[1];
   if (GNUNET_OK != GNUNET_REGEX_check_proof (proof, key))
   {
@@ -4973,7 +5002,7 @@ handle_local_connect_by_string (void *cls, struct GNUNET_SERVER_Client *client,
   size_t size;
   size_t len;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "connect by string started\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connect by string started\n");
   msg = (struct GNUNET_MESH_ConnectPeerByString *) message;
   size = htons (message->size);
 

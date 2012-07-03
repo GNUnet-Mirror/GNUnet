@@ -27,6 +27,8 @@
  * - RECEIVE HANDLERS
  * - SEND FUNCTIONS
  * - API CALL DEFINITIONS
+ *
+ * TODO: add regex to reconnect
  */
 #include "platform.h"
 #include "gnunet_common.h"
