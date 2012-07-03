@@ -2064,6 +2064,7 @@ GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
     /* fallthrough */
   case S_INIT_BLACKLIST:
   case S_CONNECT_SENT:
+  case S_CONNECT_RECV_BLACKLIST_INBOUND:
   case S_CONNECT_RECV_ATS:
   case S_CONNECT_RECV_BLACKLIST:
   case S_CONNECT_RECV_ACK:
