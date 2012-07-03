@@ -47,6 +47,10 @@
 #define GNUNET_MESSAGE_TYPE_GNS_GET_AUTH_RESULT 28
 
 
+#define INITIAL_ZONE_ITERATION_INTERVAL GNUNET_TIME_UNIT_MILLISECONDS
+#define MINIMUM_ZONE_ITERATION_INTERVAL GNUNET_TIME_UNIT_SECONDS
+#define DEFAULT_RECORD_PUT_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 4)
+
 /**
  * Handle to a shorten operation from api
  */
@@ -176,14 +180,14 @@ struct GNUNET_CRYPTO_ShortHashCode zone_hash;
 /**
  * Useful for zone update for DHT put
  */
-static int num_public_records;
+static unsigned long long num_public_records;
 
 /**
- * update interval in seconds
+ * Last seen record count
  */
-static unsigned long long max_record_put_interval;
+static unsigned long long last_num_public_records;
 
-static struct GNUNET_TIME_Relative dht_max_update_interval;
+static struct GNUNET_TIME_Relative zone_iteration_interval;
 
 /* dht update interval FIXME define? */
 static struct GNUNET_TIME_Relative record_put_interval;
@@ -331,20 +335,27 @@ put_gns_record(void *cls,
   uint32_t rd_payload_length;
   char* nrb_data = NULL;
   size_t namelen;
+  int interval_adjustment = 1;
+  struct GNUNET_TIME_Relative next_put_interval;
+
+  
 
   /* we're done */
   if (NULL == name)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "Zone iteration finished. Rescheduling put in %llus\n",
-               (unsigned long long) dht_max_update_interval.rel_value / 1000LL);
+               "Zone iteration finished. Rescheduling zone iteration\n");
 
     namestore_iter = NULL;
-    zone_update_taskid = GNUNET_SCHEDULER_add_delayed (dht_max_update_interval,
-                                            &update_zone_dht_start,
-                                            NULL);
+    zone_update_taskid = GNUNET_SCHEDULER_add_now (&update_zone_dht_start, NULL);
     GNUNET_STATISTICS_update (statistics,
                               "Number of zone iterations", 1, GNUNET_NO);
+
+    last_num_public_records = num_public_records;
+    GNUNET_STATISTICS_set (statistics,
+                           "Number of public records in DHT",
+                           last_num_public_records,
+                           GNUNET_NO);
     return;
   }
   
@@ -445,11 +456,28 @@ put_gns_record(void *cls,
                   NULL); //cls for cont
   
   num_public_records++;
+  
+  if (num_public_records > last_num_public_records)
+  {
+    interval_adjustment = ceil ((double)num_public_records / (double)last_num_public_records);
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "Last record count was lower than current record count... increasing.\n");
+    next_put_interval = GNUNET_TIME_relative_divide (zone_iteration_interval,
+                                                     interval_adjustment);
 
+  }
+  else
+    next_put_interval = zone_iteration_interval;
+
+  GNUNET_STATISTICS_update (statistics,
+                            "Current zone iteration interval [msec]",
+                            next_put_interval.rel_value,
+                            GNUNET_NO);
+  
   /**
    * Reschedule periodic put
    */
-  zone_update_taskid = GNUNET_SCHEDULER_add_delayed (record_put_interval,
+  zone_update_taskid = GNUNET_SCHEDULER_add_delayed (next_put_interval,
                                 &update_zone_dht_next,
                                 NULL);
 
@@ -466,39 +494,38 @@ put_gns_record(void *cls,
 static void
 update_zone_dht_start(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  unsigned long long interval = 0;
-
   zone_update_taskid = GNUNET_SCHEDULER_NO_TASK;
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Scheduling DHT zone update!\n");
-  if (0 == num_public_records)
+  
+  if (0 == last_num_public_records)
   {
     /**
      * If no records are known (startup) or none present
      * we can safely set the interval to 1s
      */
-    record_put_interval = GNUNET_TIME_relative_multiply(
-                                            GNUNET_TIME_UNIT_SECONDS,
-                                            1);
+    zone_iteration_interval = INITIAL_ZONE_ITERATION_INTERVAL;
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "No records in db. Adjusted record put interval to 1s\n");
+               "No records in db. Adjusted zone iteration interval to %llums\n",
+               zone_iteration_interval.rel_value);
     GNUNET_STATISTICS_set (statistics,
-                           "Current PUT interval (sec)", 1,
+                           "Current zone iteration interval [msec]",
+                           zone_iteration_interval.rel_value,
                            GNUNET_NO);
   }
   else
   {
-    interval = max_record_put_interval/num_public_records;
-    if (interval == 0)
-      interval = 1;
-    record_put_interval = GNUNET_TIME_relative_multiply(
-                                  GNUNET_TIME_UNIT_SECONDS,
-                                  interval);
+    zone_iteration_interval = GNUNET_TIME_relative_divide (record_put_interval,
+                                                           last_num_public_records);
+    zone_iteration_interval = GNUNET_TIME_relative_max (MINIMUM_ZONE_ITERATION_INTERVAL,
+                                                        zone_iteration_interval);
+    
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "Adjusted DHT update interval to %ds!\n",
-               interval);
+               "Adjusted zone iteration interval to %llus!\n",
+               zone_iteration_interval.rel_value);
     GNUNET_STATISTICS_set (statistics,
-                           "Current PUT interval (sec)", interval,
+                           "Current zone iteration interval [msec]",
+                           zone_iteration_interval.rel_value,
                            GNUNET_NO);
   }
 
@@ -1283,36 +1310,20 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 
   }
 
-  dht_max_update_interval.rel_value = GNUNET_GNS_DHT_MAX_UPDATE_INTERVAL; // yuck
+  zone_iteration_interval = INITIAL_ZONE_ITERATION_INTERVAL; // yuck
+
+  record_put_interval = DEFAULT_RECORD_PUT_INTERVAL;
 
   if (GNUNET_OK ==
       GNUNET_CONFIGURATION_get_value_time (c, "gns",
-					   "ZONE_PUT_INTERVAL",
-					   &dht_max_update_interval))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		"DHT zone update interval: %llu\n",
-		(unsigned long long) dht_max_update_interval.rel_value);
-  }
-
-
-  GNUNET_STATISTICS_set (statistics,
-                         "Zone update interval (secs)",
-                         (unsigned long long) dht_max_update_interval.rel_value / 1000LL,
-                         GNUNET_NO);
-  
-  max_record_put_interval = 1;
-
-  if (GNUNET_OK ==
-      GNUNET_CONFIGURATION_get_value_number (c, "gns",
                                              "RECORD_PUT_INTERVAL",
-                                             &max_record_put_interval))
+                                             &record_put_interval))
   {
     GNUNET_log(GNUNET_ERROR_TYPE_INFO,
                "Record put interval: %llu\n",
-               max_record_put_interval);
+               record_put_interval);
   }
-  
+
   if (GNUNET_OK ==
       GNUNET_CONFIGURATION_get_value_number (c, "gns",
                                             "MAX_PARALLEL_BACKGROUND_QUERIES",
@@ -1385,8 +1396,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
    * for our records
    * We have roughly an hour for all records;
    */
-  record_put_interval = GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS,
-                                                      1);
   zone_update_taskid = GNUNET_SCHEDULER_add_now (&update_zone_dht_start, NULL);
 
   GNUNET_SERVER_add_handlers (server, handlers);
