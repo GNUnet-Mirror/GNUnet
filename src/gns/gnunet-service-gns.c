@@ -32,6 +32,7 @@
 #include "gnunet_dht_service.h"
 #include "gnunet_namestore_service.h"
 #include "gnunet_gns_service.h"
+#include "gnunet_statistics_service.h"
 #include "block_gns.h"
 #include "gns.h"
 #include "gnunet-service-gns_resolver.h"
@@ -208,6 +209,9 @@ static struct ClientShortenHandle *csh_head;
 /* Shorten DLL for cancelling NS requests */
 static struct ClientShortenHandle *csh_tail;
 
+/* Statistics handle */
+static struct GNUNET_STATISTICS_Handle *statistics;
+
 /**
  * Send shorten response back to client
  * 
@@ -335,6 +339,8 @@ put_gns_record(void *cls,
     zone_update_taskid = GNUNET_SCHEDULER_add_delayed (dht_max_update_interval,
                                             &update_zone_dht_start,
                                             NULL);
+    GNUNET_STATISTICS_update (statistics,
+                              "Number of zone iterations", 1, GNUNET_NO);
     return;
   }
   
@@ -406,6 +412,10 @@ put_gns_record(void *cls,
   
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
              "DHT req to %d\n", DHT_OPERATION_TIMEOUT.rel_value);
+
+  GNUNET_STATISTICS_update (statistics,
+                            "Record data set put into DHT", 1, GNUNET_NO);
+
   /* FIXME: keep return value to possibly cancel? */
   GNUNET_DHT_put (dht_handle, &xor_hash,
                   DHT_GNS_REPLICATION_LEVEL,
@@ -456,6 +466,9 @@ update_zone_dht_start(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                             1);
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                "No records in db. Adjusted record put interval to 1s\n");
+    GNUNET_STATISTICS_set (statistics,
+                           "Current PUT interval (sec)", 1,
+                           GNUNET_NO);
   }
   else
   {
@@ -468,6 +481,9 @@ update_zone_dht_start(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                "Adjusted DHT update interval to %ds!\n",
                interval);
+    GNUNET_STATISTICS_set (statistics,
+                           "Current PUT interval (sec)", interval,
+                           GNUNET_NO);
   }
 
   /* start counting again */
@@ -500,6 +516,9 @@ send_shorten_response(void* cls, const char* name)
   {
     name = "";
   }
+
+  GNUNET_STATISTICS_update (statistics,
+                            "Name shorten results", 1, GNUNET_NO);
 
   rmsg = GNUNET_malloc(sizeof(struct GNUNET_GNS_ClientShortenResultMessage)
                        + strlen(name) + 1);
@@ -807,6 +826,9 @@ static void handle_shorten (void *cls,
     csh->root_zone = sh_msg->zone;
 
   start_shorten_name (csh);
+
+  GNUNET_STATISTICS_update (statistics,
+                            "Name shorten attempts", 1, GNUNET_NO);
   
 }
 
@@ -824,6 +846,12 @@ send_get_auth_response(void *cls, const char* name)
               "GET_AUTH_RESULT", name);
   struct GNUNET_GNS_ClientGetAuthResultMessage *rmsg;
   struct ClientGetAuthHandle *cah = (struct ClientGetAuthHandle *)cls;
+  
+  if (name != NULL)
+  {
+    GNUNET_STATISTICS_update (statistics,
+                              "Authorities resolved", 1, GNUNET_NO);
+  }
   
   if (name == NULL)
   {
@@ -846,14 +874,12 @@ send_get_auth_response(void *cls, const char* name)
                               GNUNET_NO);
   GNUNET_SERVER_receive_done (cah->client, GNUNET_OK);
   
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Cleaning up handles...\n");
-
   GNUNET_free(rmsg);
   GNUNET_free_non_null(cah->name);
   GNUNET_free(cah);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "done.\n");
-
+  
+  
 }
 
 
@@ -949,6 +975,9 @@ static void handle_get_authority(void *cls,
 
   /* Start delegation resolution in our namestore */
   gns_resolver_get_authority(zone_hash, zone_hash, name, &send_get_auth_response, cah);
+
+  GNUNET_STATISTICS_update (statistics,
+                            "Authority lookup attempts", 1, GNUNET_NO);
 }
 
 
@@ -995,6 +1024,15 @@ send_lookup_response(void* cls,
     GNUNET_free(clh->shorten_key);
 
   GNUNET_free(clh);
+
+  GNUNET_STATISTICS_update (statistics,
+                            "Completed lookups", 1, GNUNET_NO);
+
+  if (rd != NULL)
+  {
+    GNUNET_STATISTICS_update (statistics,
+                              "Records resolved", rd_count, GNUNET_NO);
+  }
 
 }
 
@@ -1118,6 +1156,9 @@ handle_lookup(void *cls,
                                 only_cached,
                                 &send_lookup_response, clh);
   }
+
+  GNUNET_STATISTICS_update (statistics,
+                            "Record lookup attempts", 1, GNUNET_NO);
 }
 
 /**
@@ -1328,6 +1369,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   //GNUNET_SERVER_disconnect_notify (server,
   //                                 &client_disconnect_notification,
   //                                 NULL);
+
+  statistics = GNUNET_STATISTICS_create ("gns", c);
 
   nc = GNUNET_SERVER_notification_context_create (server, 1);
 
