@@ -893,6 +893,7 @@ static void
 shutdown_task (void *cls,
                const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  struct LCFContextQueue *lcfq;
   uint32_t host_id;
   uint32_t route_id;
 
@@ -906,6 +907,24 @@ shutdown_task (void *cls,
   {
     GNUNET_DISK_file_close (fh);
     fh = NULL;
+  }
+  if (NULL != lcfq_head)
+  {
+    if (GNUNET_SCHEDULER_NO_TASK != lcf_proc_task_id)
+    {
+      GNUNET_SCHEDULER_cancel (lcf_proc_task_id);
+      lcf_proc_task_id = GNUNET_SCHEDULER_NO_TASK;
+    }
+    if (NULL != lcfq_head->lcf->rhandle)
+      GNUNET_TESTBED_cancel_registration (lcfq_head->lcf->rhandle);
+  }
+  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == lcf_proc_task_id);
+  for (lcfq = lcfq_head; NULL != lcfq; lcfq = lcfq_head)
+  {
+    GNUNET_CONFIGURATION_destroy (lcfq->lcf->cfg);
+    GNUNET_free (lcfq->lcf);
+    GNUNET_CONTAINER_DLL_remove (lcfq_head, lcfq_tail, lcfq);
+    GNUNET_free (lcfq);
   }
   /* Clear host list */
   for (host_id = 0; host_id < host_list_size; host_id++)
