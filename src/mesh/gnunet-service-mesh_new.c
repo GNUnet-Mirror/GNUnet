@@ -407,6 +407,11 @@ struct MeshTunnel
      * Used to search peers offering a service
      */
   struct GNUNET_DHT_GetHandle *dht_get_type;
+  
+    /**
+     * Context of the regex search for a connect_by_string
+     */
+  struct MeshRegexSearchContext *regex_ctx;
 
   /**
    * Task to keep the used paths alive
@@ -522,7 +527,7 @@ struct MeshClient
  * Struct to keep state of searches of services described by a regex
  * using a user-provided string service description.
  */
-struct MeshRegexSerachContext
+struct MeshRegexSearchContext
 {
     /**
      * Which tunnel is this for
@@ -686,6 +691,26 @@ unsigned int next_client_id;
 /******************************************************************************/
 
 /* FIXME move iterators here */
+/**
+ * Iterator over hash map entries to cancel DHT GET requests after a
+ * successful connect_by_string.
+ *
+ * @param cls closure (unused)
+ * @param key current key code (unused)
+ * @param value value in the hash map (get handle)
+ * @return GNUNET_YES if we should continue to iterate,
+ *         GNUNET_NO if not.
+ */
+static int
+regex_cancel_dht_get (void *cls,
+                      const struct GNUNET_HashCode * key,
+                      void *value)
+{
+  struct GNUNET_DHT_GetHandle *h = value;
+
+  GNUNET_DHT_get_stop (h);
+  return GNUNET_YES;
+}
 
 /**
  * Regex callback iterator to store own service description in the DHT.
@@ -984,6 +1009,22 @@ dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
 /******************************************************************************/
 /******************      GENERAL HELPER FUNCTIONS      ************************/
 /******************************************************************************/
+
+/**
+ * Cancel an ongoing regex search in the DHT and free all resources.
+ * 
+ * @param ctx The search context.
+ */
+static void
+regex_cancel_search(struct MeshRegexSearchContext *ctx)
+{
+  GNUNET_free (ctx->description);
+  GNUNET_CONTAINER_multihashmap_iterate (ctx->dht_get_handles,
+                                         &regex_cancel_dht_get, NULL);
+  GNUNET_CONTAINER_multihashmap_destroy (ctx->dht_get_handles);
+  ctx->t->regex_ctx = NULL;
+  GNUNET_free (ctx);
+}
 
 /**
  * Search for a tunnel by global ID using full PeerIdentities
@@ -2646,6 +2687,8 @@ tunnel_destroy (struct MeshTunnel *t)
   }
 
   tree_destroy (t->tree);
+  if (NULL != t->regex_ctx)
+    regex_cancel_search (t->regex_ctx);
   if (NULL != t->dht_get_type)
     GNUNET_DHT_get_stop (t->dht_get_type);
   if (GNUNET_SCHEDULER_NO_TASK != t->timeout_task)
@@ -4061,7 +4104,7 @@ regex_edge_iterator (void *cls,
                      size_t len,
                      const struct GNUNET_HashCode *key)
 {
-  struct MeshRegexSerachContext *ctx = cls;
+  struct MeshRegexSearchContext *ctx = cls;
   struct GNUNET_DHT_GetHandle *get_h;
   char *current;
   size_t current_len;
@@ -4100,27 +4143,6 @@ regex_edge_iterator (void *cls,
 
 
 /**
- * Iterator over hash map entries to cancel DHT GET requests after a
- * successful connect_by_string.
- *
- * @param cls closure (unused)
- * @param key current key code (unused)
- * @param value value in the hash map (get handle)
- * @return GNUNET_YES if we should continue to iterate,
- *         GNUNET_NO if not.
- */
-static int cancel_dht_get (void *cls,
-                           const struct GNUNET_HashCode * key,
-                           void *value)
-{
-  struct GNUNET_DHT_GetHandle *h = value;
-
-  GNUNET_DHT_get_stop (h);
-  return GNUNET_YES;
-}
-
-
-/**
  * Function to process DHT string to regex matching..
  * Called on each result obtained for the DHT search.
  *
@@ -4145,7 +4167,7 @@ dht_get_string_accept_handler (void *cls, struct GNUNET_TIME_Absolute exp,
                                size_t size, const void *data)
 {
   const struct MeshRegexAccept *block = data;
-  struct MeshRegexSerachContext *ctx = cls;
+  struct MeshRegexSearchContext *ctx = cls;
   struct MeshPeerPath *p;
   struct MeshPeerInfo *peer_info;
 
@@ -4163,11 +4185,7 @@ dht_get_string_accept_handler (void *cls, struct GNUNET_TIME_Absolute exp,
   peer_info_connect (peer_info, ctx->t);
 
   // FIXME cancel only AFTER successful connection (received ACK)
-  GNUNET_free (ctx->description);
-  GNUNET_CONTAINER_multihashmap_iterate (ctx->dht_get_handles,
-                                         &cancel_dht_get, NULL);
-  GNUNET_CONTAINER_multihashmap_destroy (ctx->dht_get_handles);
-  GNUNET_free (ctx);
+  regex_cancel_search (ctx);
 
   return;
 }
@@ -4200,7 +4218,7 @@ dht_get_string_handler (void *cls, struct GNUNET_TIME_Absolute exp,
                         size_t size, const void *data)
 {
   const struct MeshRegexBlock *block = data;
-  struct MeshRegexSerachContext *ctx = cls;
+  struct MeshRegexSearchContext *ctx = cls;
   char *proof;
   size_t len;
 
@@ -4992,7 +5010,7 @@ handle_local_connect_by_string (void *cls, struct GNUNET_SERVER_Client *client,
                                 const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_MESH_ConnectPeerByString *msg;
-  struct MeshRegexSerachContext *ctx;
+  struct MeshRegexSearchContext *ctx;
   struct GNUNET_DHT_GetHandle *get_h;
   struct GNUNET_HashCode key;
   struct MeshTunnel *t;
@@ -5040,18 +5058,29 @@ handle_local_connect_by_string (void *cls, struct GNUNET_SERVER_Client *client,
     return;
   }
 
+  /* Only one connect_by_string allowed at the same time! */
+  /* FIXME: allow more, return handle at api level to cancel, document */
+  if (NULL != t->regex_ctx)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+
   /* Find string itself */
   len = size - sizeof(struct GNUNET_MESH_ConnectPeerByString);
   string = (const char *) &msg[1];
 
   /* Initialize context */
   size = GNUNET_REGEX_get_first_key(string, len, &key);
-  ctx = GNUNET_malloc (sizeof (struct MeshRegexSerachContext));
+  ctx = GNUNET_malloc (sizeof (struct MeshRegexSearchContext));
   ctx->position = size;
   ctx->t = t;
+  t->regex_ctx = ctx;
   ctx->description = GNUNET_malloc (len + 1);
   memcpy (ctx->description, string, len);
   ctx->description[len] = '\0';
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   string: %s\n", ctx->description);
 
   ctx->dht_get_handles = GNUNET_CONTAINER_multihashmap_create(32);
 
@@ -5523,6 +5552,7 @@ shutdown_peer (void *cls, const struct GNUNET_HashCode * key, void *value)
 static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  struct MeshClient *c;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "shutting down\n");
 
   if (core_handle != NULL)
