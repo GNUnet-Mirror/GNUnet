@@ -344,6 +344,36 @@ put_gns_record(void *cls,
   /* we're done */
   if (NULL == name)
   {
+    if (0 == num_public_records)
+    {
+      /**
+       * If no records are known (startup) or none present
+       * we can safely set the interval to the value for a single
+       * record
+       */
+      zone_iteration_interval = GNUNET_TIME_relative_divide (record_put_interval,
+                                                             1);
+
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                 "No records in db.\n");
+    }
+    else
+    {
+      zone_iteration_interval = GNUNET_TIME_relative_divide (record_put_interval,
+                                                             num_public_records);
+    }
+
+    zone_iteration_interval = GNUNET_TIME_relative_max (MINIMUM_ZONE_ITERATION_INTERVAL,
+                                                        zone_iteration_interval);
+
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "Adjusted zone iteration interval to %llus!\n",
+               zone_iteration_interval.rel_value);
+    GNUNET_STATISTICS_set (statistics,
+                           "Current zone iteration interval [msec]",
+                           zone_iteration_interval.rel_value,
+                           GNUNET_NO);
+    
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                "Zone iteration finished. Rescheduling zone iteration\n");
 
@@ -497,37 +527,6 @@ update_zone_dht_start(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Scheduling DHT zone update!\n");
   
-  if (0 == last_num_public_records)
-  {
-    /**
-     * If no records are known (startup) or none present
-     * we can safely set the interval to 1s
-     */
-    zone_iteration_interval = INITIAL_ZONE_ITERATION_INTERVAL;
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "No records in db. Adjusted zone iteration interval to %llums\n",
-               zone_iteration_interval.rel_value);
-    GNUNET_STATISTICS_set (statistics,
-                           "Current zone iteration interval [msec]",
-                           zone_iteration_interval.rel_value,
-                           GNUNET_NO);
-  }
-  else
-  {
-    zone_iteration_interval = GNUNET_TIME_relative_divide (record_put_interval,
-                                                           last_num_public_records);
-    zone_iteration_interval = GNUNET_TIME_relative_max (MINIMUM_ZONE_ITERATION_INTERVAL,
-                                                        zone_iteration_interval);
-    
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "Adjusted zone iteration interval to %llus!\n",
-               zone_iteration_interval.rel_value);
-    GNUNET_STATISTICS_set (statistics,
-                           "Current zone iteration interval [msec]",
-                           zone_iteration_interval.rel_value,
-                           GNUNET_NO);
-  }
-
   /* start counting again */
   num_public_records = 0;
   namestore_iter = GNUNET_NAMESTORE_zone_iteration_start (namestore_handle,
@@ -1309,7 +1308,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 
   }
 
-  zone_iteration_interval = INITIAL_ZONE_ITERATION_INTERVAL; // yuck
+  zone_iteration_interval = INITIAL_ZONE_ITERATION_INTERVAL;
 
   record_put_interval = DEFAULT_RECORD_PUT_INTERVAL;
 
