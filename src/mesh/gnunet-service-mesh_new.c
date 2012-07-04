@@ -5552,7 +5552,6 @@ shutdown_peer (void *cls, const struct GNUNET_HashCode * key, void *value)
 static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct MeshClient *c;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "shutting down\n");
 
   if (core_handle != NULL)
