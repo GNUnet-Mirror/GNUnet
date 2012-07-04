@@ -467,6 +467,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     ret = 1;    
     return;     
   }
+  memset (&rd, 0, sizeof (rd));
   if (add)
   {
     if (NULL == name)
