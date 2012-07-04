@@ -478,7 +478,7 @@ transmit_ping_if_allowed (void *cls, const struct GNUNET_PeerIdentity *pid,
     memcpy (&message_buf[sizeof (struct TransportPingMessage) + hsize],
             ve->address->transport_name, slen);
     memcpy (&message_buf[sizeof (struct TransportPingMessage) + slen + hsize],
-            ve->address, ve->address->address_length);
+            ve->address->address, ve->address->address_length);
     papi = GST_plugins_find (ve->address->transport_name);
     if (papi == NULL)
       ret = -1;
