@@ -178,7 +178,7 @@ GNUNET_GNS_lookup (struct GNUNET_GNS_Handle *handle,
  * @param name the name to look up
  * @param zone the zone to start the resolution in
  * @param type the GNUNET_GNS_RecordType to look for
- * @param only_cached GNUNET_NO to only check locally not DHT for performance
+ * @param only_cached GNUNET_YES to only check locally not DHT for performance
  * @param shorten_key the private key of the shorten zone (can be NULL)
  * @param proc function to call on result
  * @param proc_cls closure for processor

@@ -269,7 +269,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     GNUNET_GNS_lookup_zone (gns, lookup_name,
                             zone,
                             rtype,
-                            GNUNET_YES, //Use DHT
+                            GNUNET_NO, //Use DHT
                             shorten_key,
                             &process_lookup_result, lookup_name);
   }

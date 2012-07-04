@@ -641,7 +641,7 @@ get_request_id (struct GNUNET_GNS_Handle *h)
  * @param name the name to look up
  * @param zone the zone to start the resolution in
  * @param type the record type to look up
- * @param only_cached GNUNET_NO to only check locally not DHT for performance
+ * @param only_cached GNUNET_YES to only check locally not DHT for performance
  * @param shorten_key the private key of the shorten zone (can be NULL)
  * @param proc processor to call on result
  * @param proc_cls closure for processor
@@ -739,7 +739,7 @@ GNUNET_GNS_lookup_zone (struct GNUNET_GNS_Handle *handle,
  * @param handle handle to the GNS service
  * @param name the name to look up
  * @param type the record type to look up
- * @param only_cached GNUNET_NO to only check locally not DHT for performance
+ * @param only_cached GNUNET_YES to only check locally not DHT for performance
  * @param shorten_key the private key of the shorten zone (can be NULL)
  * @param proc processor to call on result
  * @param proc_cls closure for processor
