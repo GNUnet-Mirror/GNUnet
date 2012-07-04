@@ -51,6 +51,7 @@
 #define INITIAL_ZONE_ITERATION_INTERVAL GNUNET_TIME_UNIT_MILLISECONDS
 #define MINIMUM_ZONE_ITERATION_INTERVAL GNUNET_TIME_UNIT_SECONDS
 #define DEFAULT_RECORD_PUT_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 4)
+#define LATE_ITERATION_SPEEDUP_FACTOR 2
 
 /**
  * Handle to a shorten operation from api
@@ -199,6 +200,9 @@ GNUNET_SCHEDULER_TaskIdentifier zone_update_taskid = GNUNET_SCHEDULER_NO_TASK;
 /* automatic pkey import for name shortening */
 static int auto_import_pkey;
 
+/* first zone iteration is specia */
+static int first_zone_iteration;
+
 /* lookup timeout */
 static struct GNUNET_TIME_Relative default_lookup_timeout;
 
@@ -336,7 +340,6 @@ put_gns_record(void *cls,
   uint32_t rd_payload_length;
   char* nrb_data = NULL;
   size_t namelen;
-  int interval_adjustment = 1;
   struct GNUNET_TIME_Relative next_put_interval;
 
   
@@ -344,6 +347,7 @@ put_gns_record(void *cls,
   /* we're done */
   if (NULL == name)
   {
+    first_zone_iteration = GNUNET_NO;
     if (0 == num_public_records)
     {
       /**
@@ -486,13 +490,15 @@ put_gns_record(void *cls,
   
   num_public_records++;
   
-  if (num_public_records > last_num_public_records)
+  if ((num_public_records > last_num_public_records)
+      && (first_zone_iteration == GNUNET_NO))
   {
-    interval_adjustment = ceil ((double)num_public_records / (double)last_num_public_records);
+    zone_iteration_interval = GNUNET_TIME_relative_divide (record_put_interval,
+                                                           num_public_records);
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                "Last record count was lower than current record count... increasing.\n");
     next_put_interval = GNUNET_TIME_relative_divide (zone_iteration_interval,
-                                                     interval_adjustment);
+                                                 LATE_ITERATION_SPEEDUP_FACTOR);
 
   }
   else
@@ -1394,6 +1400,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
    * for our records
    * We have roughly an hour for all records;
    */
+  first_zone_iteration = GNUNET_YES;
   zone_update_taskid = GNUNET_SCHEDULER_add_now (&update_zone_dht_start, NULL);
 
   GNUNET_SERVER_add_handlers (server, handlers);
