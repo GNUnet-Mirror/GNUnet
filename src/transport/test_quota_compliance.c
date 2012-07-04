@@ -24,23 +24,9 @@
  * This test case tests quota compliance both on transport level
  */
 #include "platform.h"
-#include "gnunet_common.h"
-#include "gnunet_hello_lib.h"
-#include "gnunet_getopt_lib.h"
-#include "gnunet_os_lib.h"
-#include "gnunet_program_lib.h"
-#include "gnunet_scheduler_lib.h"
-#include "gnunet_server_lib.h"
 #include "gnunet_transport_service.h"
 #include "gauger.h"
-#include "transport.h"
 #include "transport-testing.h"
-
-#define VERBOSE GNUNET_NO
-
-#define VERBOSE_ARM GNUNET_NO
-
-#define START_ARM GNUNET_YES
 
 /**
  * Testcase timeout
@@ -564,9 +550,6 @@ check ()
   static char *argv[] = { "test_transport-quota-compliance",
     "-c",
     "test_quota_compliance_data.conf",
-#if VERBOSE
-    "-L", "DEBUG",
-#endif
     NULL
   };
   static struct GNUNET_GETOPT_CommandLineOption options[] = {
@@ -586,11 +569,7 @@ main (int argc, char *argv[])
   GNUNET_TRANSPORT_TESTING_get_test_name (argv[0], &test_name);
 
   GNUNET_log_setup (test_name,
-#if VERBOSE
-                    "DEBUG",
-#else
                     "WARNING",
-#endif
                     NULL);
 
   GNUNET_TRANSPORT_TESTING_get_test_source_name (__FILE__, &test_source);

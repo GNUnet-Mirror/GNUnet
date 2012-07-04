@@ -27,18 +27,8 @@
  * C code apparently.
  */
 #include "platform.h"
-#include "gnunet_common.h"
-#include "gnunet_hello_lib.h"
-#include "gnunet_getopt_lib.h"
-#include "gnunet_os_lib.h"
-#include "gnunet_program_lib.h"
-#include "gnunet_scheduler_lib.h"
 #include "gnunet_transport_service.h"
-#include "transport.h"
 #include "transport-testing.h"
-
-
-#define START_ARM GNUNET_YES
 
 /**
  * How long until we give up on transmitting the message?
@@ -383,9 +373,6 @@ check ()
     GNUNET_GETOPT_OPTION_END
   };
 
-#if WRITECONFIG
-  setTransportOptions ("test_transport_api_data.conf");
-#endif
   send_task = GNUNET_SCHEDULER_NO_TASK;
 
   ok = 1;

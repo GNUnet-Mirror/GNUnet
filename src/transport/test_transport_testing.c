@@ -27,9 +27,6 @@
  * C code apparently.
  */
 #include "platform.h"
-#include "gnunet_common.h"
-#include "gnunet_hello_lib.h"
-#include "gnunet_scheduler_lib.h"
 #include "gnunet_transport_service.h"
 #include "transport-testing.h"
 /**

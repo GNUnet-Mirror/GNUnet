@@ -24,20 +24,8 @@
  * This test case tests disconnect notifications in peer shutdown
  */
 #include "platform.h"
-#include "gnunet_common.h"
-#include "gnunet_hello_lib.h"
-#include "gnunet_getopt_lib.h"
-#include "gnunet_os_lib.h"
-#include "gnunet_program_lib.h"
-#include "gnunet_scheduler_lib.h"
 #include "gnunet_transport_service.h"
-#include "transport.h"
 #include "transport-testing.h"
-
-#define VERBOSE GNUNET_NO
-#define VERBOSE_ARM GNUNET_NO
-
-#define START_ARM GNUNET_YES
 
 /**
  * How long until we give up on transmitting the message?
@@ -374,18 +362,12 @@ check ()
   static char *const argv[] = { "test-transport-api",
     "-c",
     "test_transport_api_data.conf",
-#if VERBOSE
-    "-L", "DEBUG",
-#endif
     NULL
   };
   static struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
 
-#if WRITECONFIG
-  setTransportOptions ("test_transport_api_data.conf");
-#endif
   send_task = GNUNET_SCHEDULER_NO_TASK;
 
   ok = 1;
@@ -403,11 +385,7 @@ main (int argc, char *argv[])
   GNUNET_TRANSPORT_TESTING_get_test_name (argv[0], &test_name);
 
   GNUNET_log_setup (test_name,
-#if VERBOSE
-                    "DEBUG",
-#else
                     "WARNING",
-#endif
                     NULL);
 
   GNUNET_TRANSPORT_TESTING_get_test_source_name (__FILE__, &test_source);
