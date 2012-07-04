@@ -3471,7 +3471,7 @@ process_delegation_result_ns (void* cls,
    * If we have found some records for the LAST label
    * we return the results. Else null.
    */
-  if (strcmp(rh->name, "") == 0)
+  if (strcmp (rh->name, "") == 0)
   {
     /* Start shortening */
     if ((rh->priv_key != NULL) && is_canonical (rh->name))
@@ -3483,15 +3483,18 @@ process_delegation_result_ns (void* cls,
                     rh->priv_key);
     }
     /* simply promote back */
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "GNS_PHASE_DELEGATE_NS-%llu: Promoting %s back to name\n",
-               rh->id, rh->authority_name);
-    strcpy(rh->name, rh->authority_name);
-    rh->proc(rh->proc_cls, rh, rd_count, rd);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "GNS_PHASE_DELEGATE_NS-%llu: Promoting %s back to name\n",
+                rh->id, rh->authority_name);
+    strcpy (rh->name, rh->authority_name);
+    rh->proc (rh->proc_cls, rh, rd_count, rd);
   }
   else
   {
-    rh->proc(rh->proc_cls, rh, 0, NULL);
+    GNUNET_snprintf (new_name, MAX_DNS_NAME_LENGTH,
+                     "%s.%s", rh->name, rh->authority_name);
+    strcpy (rh->name, new_name);
+    rh->proc (rh->proc_cls, rh, 0, NULL);
   }
 }
 
