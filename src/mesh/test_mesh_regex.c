@@ -373,8 +373,12 @@ peergroup_ready (void *cls, const char *emsg)
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "************************************************************\n");
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Create tunnel & connect by string\n");
+              "Create tunnel\n");
   t = GNUNET_MESH_tunnel_create (h1, NULL, &ch, &dh, NULL);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "************************************************************\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Connect by string\n");
   GNUNET_MESH_peer_request_connect_by_string (t, "abc");
   /* connect handler = success, timeout = error */
   

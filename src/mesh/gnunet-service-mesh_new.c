@@ -60,11 +60,11 @@
                                     300)
 #define APP_ANNOUNCE_TIME       GNUNET_TIME_relative_multiply(\
                                     GNUNET_TIME_UNIT_SECONDS,\
-                                    5)
+                                    15)
 
 #define ID_ANNOUNCE_TIME        GNUNET_TIME_relative_multiply(\
                                     GNUNET_TIME_UNIT_SECONDS,\
-                                    5)
+                                    15)
 
 #define UNACKNOWLEDGED_WAIT     GNUNET_TIME_relative_multiply(\
                                     GNUNET_TIME_UNIT_SECONDS,\
@@ -4228,9 +4228,7 @@ dht_get_string_handler (void *cls, struct GNUNET_TIME_Absolute exp,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "DHT GET STRING RETURNED RESULTS\n");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "  key: %s\n");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "DHT GET STRING RETURNED RESULTS\n");
+              "  key: %s\n", GNUNET_h2s (key));
   proof = (char *) &block[1];
   if (GNUNET_OK != GNUNET_REGEX_check_proof (proof, key))
   {
@@ -5019,8 +5017,10 @@ handle_local_connect_by_string (void *cls, struct GNUNET_SERVER_Client *client,
   const char *string;
   size_t size;
   size_t len;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connect by string started\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "************************************************************\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Connect by string started\n");
   msg = (struct GNUNET_MESH_ConnectPeerByString *) message;
   size = htons (message->size);
 
@@ -5073,6 +5073,13 @@ handle_local_connect_by_string (void *cls, struct GNUNET_SERVER_Client *client,
 
   /* Initialize context */
   size = GNUNET_REGEX_get_first_key(string, len, &key);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "************************************************************\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "  consumed %u bits out of %u\n", size, len);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "  looking for %s\n", GNUNET_h2s (&key));
+
   ctx = GNUNET_malloc (sizeof (struct MeshRegexSearchContext));
   ctx->position = size;
   ctx->t = t;
