@@ -38,6 +38,7 @@
 #include "gnunet-service-gns_resolver.h"
 #include "gnunet-service-gns_interceptor.h"
 
+
 /* FIXME move to proper header in include */
 #define GNUNET_MESSAGE_TYPE_GNS_LOOKUP 23
 #define GNUNET_MESSAGE_TYPE_GNS_LOOKUP_RESULT 24

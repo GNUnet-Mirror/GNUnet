@@ -279,6 +279,7 @@ gnunet_service_gns_SOURCES = \
  gnunet-service-gns_resolver.c gnunet-service-gns_resolver.h \
  gnunet-service-gns_interceptor.c gnunet-service-gns_interceptor.h 
 gnunet_service_gns_LDADD = \
+  -lm \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
 	$(top_builddir)/src/dns/libgnunetdns.la \
