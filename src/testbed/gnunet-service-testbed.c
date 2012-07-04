@@ -128,6 +128,11 @@ struct Route
    * host 
    */
   struct GNUNET_TESTBED_Controller *fcontroller;
+
+  /**
+   * The controller process handle if we started the controller
+   */
+  struct GNUNET_TESTBED_ControllerProc *fcontroller_proc;
 };
 
 
@@ -522,7 +527,6 @@ lcf_proc_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 				    host_list[lcf->slave_host_id],
 				    lcf->cfg, lcf->is_subordinate);
     lcf->state = FINISHED;
-    break;
   case FINISHED:
     lcfq = lcfq_head;
     GNUNET_CONFIGURATION_destroy (lcfq->lcf->cfg);
@@ -798,7 +802,7 @@ handle_link_controllers (void *cls,
     return;
   }
   GNUNET_assert (config_size == dest_size);
-  cfg = GNUNET_CONFIGURATION_create ();
+  cfg = GNUNET_CONFIGURATION_create (); /* Free here or in lcfcontext */
   if (GNUNET_OK != GNUNET_CONFIGURATION_deserialize (cfg, config, config_size,
                                                      GNUNET_NO))
   {
@@ -846,6 +850,10 @@ handle_link_controllers (void *cls,
       GNUNET_CONTAINER_DLL_insert_tail (lcfq_head, lcfq_tail, lcfq);
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
+  }
+  else
+  {
+    
   }
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
   /* If we are not the slave controller then we have to route the request
@@ -936,7 +944,9 @@ shutdown_task (void *cls,
     if (NULL != route_list[route_id])
     {
       if (NULL != route_list[route_id]->fcontroller)
-        GNUNET_TESTBED_controller_stop (route_list[route_id]->fcontroller);
+        GNUNET_TESTBED_controller_disconnect (route_list[route_id]->fcontroller);
+      if (NULL != route_list[route_id]->fcontroller_proc)
+	GNUNET_TESTBED_controller_stop (route_list[route_id]->fcontroller_proc);
       GNUNET_free (route_list[route_id]);
     }
   GNUNET_free_non_null (route_list);

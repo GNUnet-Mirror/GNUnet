@@ -392,15 +392,45 @@ struct GNUNET_TESTBED_EventInformation
  * @param event information about the event
  */
 typedef void (*GNUNET_TESTBED_ControllerCallback)(void *cls,
-						  const struct GNUNET_TESTBED_EventInformation *event);						  
+						  const struct GNUNET_TESTBED_EventInformation *event);
 
 
 /**
- * Start a controller process using the given configuration at the
+ * Opaque Handle for Controller process
+ */
+struct GNUNET_TESTBED_ControllerProc;
+
+
+/**
+ * Starts a controller process at the host
+ *
+ * @param host the host where the controller has to be started; NULL for localhost
+ * @return the controller process handle
+ */
+struct GNUNET_TESTBED_ControllerProc *
+GNUNET_TESTBED_controller_start (struct GNUNET_TESTBED_Host *host);
+
+
+/**
+ * Stop the controller process (also will terminate all peers and controllers
+ * dependent on this controller).  This function blocks until the testbed has
+ * been fully terminated (!).
+ *
+ * @param cproc the controller process handle
+ */
+void
+GNUNET_TESTBED_controller_stop (struct GNUNET_TESTBED_ControllerProc *cproc);
+
+
+/**
+ * Connect to a controller process using the given configuration at the
  * given host.
  *
  * @param cfg configuration to use
- * @param host host to run the controller on, NULL for 'localhost'
+ * @param host host to run the controller on; This should be the same host if
+ *          the controller was previously started with
+ *          GNUNET_TESTBED_controller_start; NULL for localhost
+ * @param host host where this controller is being run;
  * @param event_mask bit mask with set of events to call 'cc' for;
  *                   or-ed values of "1LL" shifted by the
  *                   respective 'enum GNUNET_TESTBED_EventType'
@@ -410,11 +440,11 @@ typedef void (*GNUNET_TESTBED_ControllerCallback)(void *cls,
  * @return handle to the controller
  */
 struct GNUNET_TESTBED_Controller *
-GNUNET_TESTBED_controller_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
-				 struct GNUNET_TESTBED_Host *host,
-				 uint64_t event_mask,
-				 GNUNET_TESTBED_ControllerCallback cc,
-				 void *cc_cls);
+GNUNET_TESTBED_controller_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
+				   struct GNUNET_TESTBED_Host *host,
+				   uint64_t event_mask,
+				   GNUNET_TESTBED_ControllerCallback cc,
+				   void *cc_cls);
 
 
 /**
@@ -444,7 +474,7 @@ GNUNET_TESTBED_controller_configure_sharing (struct GNUNET_TESTBED_Controller *c
  * @param controller handle to controller to stop
  */
 void
-GNUNET_TESTBED_controller_stop (struct GNUNET_TESTBED_Controller *controller);
+GNUNET_TESTBED_controller_disconnect (struct GNUNET_TESTBED_Controller *controller);
 
 
 /**

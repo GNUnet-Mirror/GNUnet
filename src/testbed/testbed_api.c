@@ -125,12 +125,7 @@ struct GNUNET_TESTBED_Controller
   /**
    * The host where the controller is running
    */
-  const struct GNUNET_TESTBED_Host *host;
-
-  /**
-   * The helper handle
-   */
-  struct GNUNET_TESTBED_HelperHandle *helper;
+  struct GNUNET_TESTBED_Host *host;
 
   /**
    * The controller callback
@@ -192,6 +187,11 @@ struct GNUNET_TESTBED_Controller
    * Did we start the receive loop yet?
    */
   int in_receive;
+
+  /**
+   * Did we create the host for this?
+   */
+  int aux_host;
 };
 
 
@@ -391,11 +391,68 @@ queue_message (struct GNUNET_TESTBED_Controller *controller,
 
 
 /**
+ * Handle for controller process
+ */
+struct GNUNET_TESTBED_ControllerProc
+{
+  /**
+   * The helper handle
+   */
+  struct GNUNET_TESTBED_HelperHandle *helper;
+
+};
+
+
+/**
+ * Starts a controller process at the host
+ *
+ * @param host the host where the controller has to be started; NULL for localhost
+ * @return the controller process handle
+ */
+struct GNUNET_TESTBED_ControllerProc *
+GNUNET_TESTBED_controller_start (struct GNUNET_TESTBED_Host *host)
+{
+  struct GNUNET_TESTBED_ControllerProc *cproc;
+  char * const binary_argv[] = {
+    "gnunet-service-testbed",
+    "gnunet-service-testbed",
+    NULL
+  };
+
+  cproc = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_ControllerProc));
+  cproc->helper = GNUNET_TESTBED_host_run_ (host, binary_argv);
+  if (NULL == cproc->helper)
+  {
+    GNUNET_free (cproc);
+    return NULL;
+  }
+  return cproc;
+}
+
+
+/**
+ * Stop the controller process (also will terminate all peers and controllers
+ * dependent on this controller).  This function blocks until the testbed has
+ * been fully terminated (!).
+ *
+ * @param cproc the controller process handle
+ */
+void
+GNUNET_TESTBED_controller_stop (struct GNUNET_TESTBED_ControllerProc *cproc)
+{
+  GNUNET_TESTBED_host_stop_ (cproc->helper);
+  GNUNET_free (cproc);
+}
+
+
+/**
  * Start a controller process using the given configuration at the
  * given host.
  *
  * @param cfg configuration to use
- * @param host host to run the controller on, NULL for 'localhost'
+ * @param host host to run the controller on; This should be the same host if
+ *          the controller was previously started with
+ *          GNUNET_TESTBED_controller_start; NULL for localhost
  * @param event_mask bit mask with set of events to call 'cc' for;
  *                   or-ed values of "1LL" shifted by the
  *                   respective 'enum GNUNET_TESTBED_EventType'
@@ -405,42 +462,46 @@ queue_message (struct GNUNET_TESTBED_Controller *controller,
  * @return handle to the controller
  */
 struct GNUNET_TESTBED_Controller *
-GNUNET_TESTBED_controller_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
-				 struct GNUNET_TESTBED_Host *host,
-				 uint64_t event_mask,
-				 GNUNET_TESTBED_ControllerCallback cc,
-				 void *cc_cls)
+GNUNET_TESTBED_controller_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
+				   struct GNUNET_TESTBED_Host *host,
+				   uint64_t event_mask,
+				   GNUNET_TESTBED_ControllerCallback cc,
+				   void *cc_cls)
 {
   struct GNUNET_TESTBED_Controller *controller;
-  char * const binary_argv[] = {
-    "gnunet-service-testbed",
-    "gnunet-service-testbed",
-    NULL
-  };
   struct GNUNET_TESTBED_InitMessage *msg;
 
   controller = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Controller));
-  controller->helper = GNUNET_TESTBED_host_run_ (host, binary_argv);
-  if (NULL == controller->helper)
-  {
-    GNUNET_free (controller);
-    return NULL;
-  }
-  controller->host = host;
   controller->cc = cc;
   controller->cc_cls = cc_cls;
   controller->event_mask = event_mask;
   controller->cfg = GNUNET_CONFIGURATION_dup (cfg);
-  controller->client = GNUNET_CLIENT_connect ("testbed", controller->cfg);
+  controller->client = GNUNET_CLIENT_connect ("testbed", controller->cfg);  
   if (NULL == controller->client)
   {
-    GNUNET_TESTBED_controller_stop (controller);
+    GNUNET_TESTBED_controller_disconnect (controller);
     return NULL;
-  }  
+  }
+  if (NULL == host)
+  {
+    host = GNUNET_TESTBED_host_create_by_id_ (0);
+    if (NULL == host)
+    {
+      LOG (GNUNET_ERROR_TYPE_WARNING,
+	   "Treating NULL host as localhost. Multiple references to localhost. "
+	   " May break when localhost freed before calling disconnect \n");
+      host = GNUNET_TESTBED_host_lookup_by_id_ (0);
+    }
+    else
+    {
+      controller->aux_host = GNUNET_YES;
+    }
+  }
+  GNUNET_assert (NULL != host);
   msg = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_InitMessage));
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_INIT);
   msg->header.size = htons (sizeof (struct GNUNET_TESTBED_InitMessage));
-  msg->host_id = htonl (GNUNET_TESTBED_host_get_id_ (controller->host));
+  msg->host_id = htonl (GNUNET_TESTBED_host_get_id_ (host));
   msg->event_mask = GNUNET_htonll (controller->event_mask);
   queue_message (controller, (struct GNUNET_MessageHeader *) msg);
   return controller;
@@ -483,14 +544,12 @@ GNUNET_TESTBED_controller_configure_sharing (struct GNUNET_TESTBED_Controller *c
 
 
 /**
- * Stop the given controller (also will terminate all peers and
- * controllers dependent on this controller).  This function 
- * blocks until the testbed has been fully terminated (!).
+ * disconnects from the controller.
  *
  * @param controller handle to controller to stop
  */
 void
-GNUNET_TESTBED_controller_stop (struct GNUNET_TESTBED_Controller *controller)
+GNUNET_TESTBED_controller_disconnect (struct GNUNET_TESTBED_Controller *controller)
 {
   struct MessageQueue *mq_entry;
 
@@ -507,8 +566,9 @@ GNUNET_TESTBED_controller_stop (struct GNUNET_TESTBED_Controller *controller)
   }
   if (NULL != controller->client)
     GNUNET_CLIENT_disconnect (controller->client);
-  GNUNET_TESTBED_host_stop_ (controller->helper);
   GNUNET_CONFIGURATION_destroy (controller->cfg);
+  if (GNUNET_YES == controller->aux_host)
+    GNUNET_TESTBED_host_destroy (controller->host);
   GNUNET_free (controller);
 }
 

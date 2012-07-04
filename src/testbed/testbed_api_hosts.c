@@ -34,6 +34,18 @@
 #include "gnunet_container_lib.h"
 
 /**
+ * Generic logging shorthand
+ */
+#define LOG(kind, ...)                          \
+  GNUNET_log_from (kind, "testbed-api-hosts", __VA_ARGS__);
+
+/**
+ * Number of extra elements we create space for when we grow host list
+ */
+#define HOST_LIST_GROW_STEP 10
+
+
+/**
  * A list entry for registered controllers list
  */
 struct RegisteredController
@@ -53,6 +65,7 @@ struct RegisteredController
    */
   struct RegisteredController *prev;
 };
+
 
 /**
  * Opaque handle to a host running experiments managed by the testing framework.
@@ -95,7 +108,7 @@ struct GNUNET_TESTBED_Host
   /**
    * Global ID we use to refer to a host on the network
    */
-  uint32_t unique_id;
+  uint32_t id;
 
   /**
    * The port which is to be used for SSH
@@ -106,14 +119,14 @@ struct GNUNET_TESTBED_Host
 
 
 /**
- * Head element in the list of available hosts
+ * Array of available hosts
  */
-static struct GNUNET_TESTBED_Host *host_list_head;
+static struct GNUNET_TESTBED_Host **host_list;
 
 /**
- * Tail element in the list of available hosts
+ * The size of the available hosts list
  */
-static struct GNUNET_TESTBED_Host *host_list_tail;
+static uint32_t host_list_size;
 
 
 /**
@@ -126,12 +139,9 @@ static struct GNUNET_TESTBED_Host *host_list_tail;
 struct GNUNET_TESTBED_Host *
 GNUNET_TESTBED_host_lookup_by_id_ (uint32_t id)
 {
-  struct GNUNET_TESTBED_Host *host;
-
-  for (host = host_list_head; NULL != host; host=host->next)
-    if (id == host->unique_id)
-      return host;
-  return NULL;
+  if (host_list_size <= id)
+    return NULL;
+  return host_list[id];
 }
 
 
@@ -147,11 +157,7 @@ GNUNET_TESTBED_host_lookup_by_id_ (uint32_t id)
 struct GNUNET_TESTBED_Host *
 GNUNET_TESTBED_host_create_by_id_ (uint32_t id)
 {
-  struct GNUNET_TESTBED_Host *host;
-  
-  host = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Host));
-  host->unique_id = id;
-  return host;
+  return GNUNET_TESTBED_host_create_with_id (id, NULL, NULL, 0);
 }
 
 
@@ -165,7 +171,7 @@ GNUNET_TESTBED_host_create_by_id_ (uint32_t id)
 uint32_t
 GNUNET_TESTBED_host_get_id_ (const struct GNUNET_TESTBED_Host *host)
 {
-  return host->unique_id;
+  return host->id;
 }
 
 
@@ -226,12 +232,23 @@ GNUNET_TESTBED_host_create_with_id (uint32_t id,
 {
   struct GNUNET_TESTBED_Host *host;
 
+  if ((id < host_list_size) && (NULL != host_list[host_list_size]))
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING, "Host with id: %u already created\n");
+    return NULL;
+  }
   host = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Host));
   host->hostname = hostname;
   host->username = username;
-  host->unique_id = id;
+  host->id = id;
   host->port = (0 == port) ? 22 : port;
-  GNUNET_CONTAINER_DLL_insert_tail (host_list_head, host_list_tail, host);
+  if (id < host_list_size)
+  {
+    host_list_size += HOST_LIST_GROW_STEP;
+    host_list = GNUNET_realloc (host_list, sizeof (struct GNUNET_TESTBED_Host)
+				* host_list_size);
+  }
+  host_list[id] = host;
   return host;
 }
 
@@ -286,13 +303,26 @@ void
 GNUNET_TESTBED_host_destroy (struct GNUNET_TESTBED_Host *host)
 {  
   struct RegisteredController *rc;
-  
-  GNUNET_CONTAINER_DLL_remove (host_list_head, host_list_tail, host);  
+  uint32_t id;
+
+  GNUNET_assert (host->id < host_list_size);
+  GNUNET_assert (host_list[host->id] == host);
+  host_list[host->id] = NULL;
   /* clear registered controllers list */
   for (rc=host->rc_head; NULL != rc; rc=host->rc_head)
   {
     GNUNET_CONTAINER_DLL_remove (host->rc_head, host->rc_tail, rc);
     GNUNET_free (rc);
+  }
+  for (id = 0; id < HOST_LIST_GROW_STEP; id++)
+  {
+    if ((host->id + id >= host_list_size) || (NULL != host_list[host->id + id]))
+      break;
+  }
+  if (HOST_LIST_GROW_STEP == id)
+  {
+    host_list_size -= HOST_LIST_GROW_STEP;
+    host_list = GNUNET_realloc (host_list, host_list_size);
   }
   GNUNET_free (host);
 }
@@ -347,7 +377,7 @@ GNUNET_TESTBED_host_run_ (const struct GNUNET_TESTBED_Host *host,
     argc++;
   h = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_HelperHandle));
   h->cpipe = GNUNET_DISK_pipe (GNUNET_NO, GNUNET_NO, GNUNET_YES, GNUNET_NO);
-  if (0 == host->unique_id)
+  if ((NULL == host) || (0 == host->id))
   {
     h->process = GNUNET_OS_start_process_vap (GNUNET_YES,
 					      h->cpipe, NULL,
@@ -355,7 +385,7 @@ GNUNET_TESTBED_host_run_ (const struct GNUNET_TESTBED_Host *host,
 					      binary_argv);
   }
   else
-  {    
+  {
     char *remote_args[argc + 6 + 1];
     unsigned int argp;
 
