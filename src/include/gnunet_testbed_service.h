@@ -564,9 +564,9 @@ GNUNET_TESTBED_controller_link (struct GNUNET_TESTBED_Controller *master,
  * @param delegated_host requests to which host should be delegated; cannot be NULL
  * @param slave_host which host is used to run the slave controller; use NULL to
  *          make the master controller connect to the delegated host
- * @param scfg serialized and compressed configuration
- * @param scfg_size the size scfg
- * @param cfg_size the size of uncompressed serialized configuration
+ * @param sxcfg serialized and compressed configuration
+ * @param sxcfg_size the size scfg
+ * @param scfg_size the size of uncompressed serialized configuration
  * @param is_subordinate GNUNET_YES if the controller at delegated_host should
  *          be started by the master controller; GNUNET_NO if we are just
  *          allowed to use the slave via TCP/IP
@@ -575,9 +575,9 @@ void
 GNUNET_TESTBED_controller_link_2 (struct GNUNET_TESTBED_Controller *master,
 				  struct GNUNET_TESTBED_Host *delegated_host,
 				  struct GNUNET_TESTBED_Host *slave_host,
-				  const char *scfg,
+				  const char *sxcfg,
+				  size_t sxcfg_size,
 				  size_t scfg_size,
-				  size_t cfg_size,
 				  int is_subordinate); 
 
 
