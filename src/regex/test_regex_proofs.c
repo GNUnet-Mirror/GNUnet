@@ -106,16 +106,15 @@ test_proofs_static (void)
   unsigned int i;
   unsigned int error;
 
-  const char *regex[6] = {
+  const char *regex[8] = {
     "a|aa*a",
     "a+",
     "a*",
     "a*a*",
     "(F*C|WfPf|y+F*C)",
     "y*F*C|WfPf",
-    /* "2?jA?e?D*K", */
-    /* "((j|2j)K|(j|2j)AK|(j|2j)(D|e|(j|2j)A(D|e))D*K)", */
-    /* "((j|2j)K|(j|2j)(D|e|((j|2j)j|(j|2j)2j)A(D|e))D*K|(j|2j)AK)", */
+    "((a|b)c|(a|b)(d|(a|b)e))",
+    "((a|b)(c|d)|(a|b)(a|b)e)"
   };
 
   const char *canon_rx1;
@@ -125,7 +124,7 @@ test_proofs_static (void)
 
   error = 0;
 
-  for (i = 0; i < 6; i += 2)
+  for (i = 0; i < 8; i += 2)
   {
     dfa1 = GNUNET_REGEX_construct_dfa (regex[i], strlen (regex[i]));
     dfa2 = GNUNET_REGEX_construct_dfa (regex[i + 1], strlen (regex[i + 1]));
@@ -138,12 +137,8 @@ test_proofs_static (void)
     if (error > 0)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Comparing canonical regex failed:\nrx1: %s\ncrx1: %s\nrx2: %s\ncrx2: %s\n",
+                  "Comparing canonical regex failed:\nrx1:\t%s\ncrx1:\t%s\nrx2:\t%s\ncrx2:\t%s\n",
                   regex[i], canon_rx1, regex[i + 1], canon_rx2);
-
-      /* Save the graphs of the two conflicting DFAs */
-      /* GNUNET_REGEX_automaton_save_graph (dfa1, "proofs_fail_dfa1.dot"); */
-      /* GNUNET_REGEX_automaton_save_graph (dfa2, "proofs_fail_dfa2.dot"); */
     }
 
     GNUNET_REGEX_automaton_destroy (dfa1);
@@ -170,7 +165,7 @@ main (int argc, char *argv[])
   error = 0;
 
   error += test_proofs_static ();
-  /* error += test_proofs_random (10000, 10); */
+  error += test_proofs_random (100, 30);
 
   return error;
 }

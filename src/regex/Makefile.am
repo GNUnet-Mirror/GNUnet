@@ -12,7 +12,7 @@ lib_LTLIBRARIES = libgnunetregex.la
 
 libgnunetregex_la_SOURCES = \
   regex_internal.h regex.c \
-  regex_random.c
+  regex_graph.c regex_random.c
 libgnunetregex_la_LIBADD = -lm \
  $(top_builddir)/src/util/libgnunetutil.la
 libgnunetregex_la_LDFLAGS = \

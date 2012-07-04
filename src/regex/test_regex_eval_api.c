@@ -227,7 +227,7 @@ main (int argc, char *argv[])
   int check_rand;
   char *check_proof;
 
-  struct Regex_String_Pair rxstr[14] = {
+  struct Regex_String_Pair rxstr[16] = {
     {"ab?(abcd)?", 5,
      {"ababcd", "abab", "aabcd", "a", "abb"},
      {match, nomatch, match, match, nomatch}},
@@ -270,6 +270,12 @@ main (int argc, char *argv[])
     {"(ab|c)+", 7,
      {"", "ab", "c", "abc", "ababcc", "acc", "abac"},
      {nomatch, match, match, match, match, nomatch, nomatch}},
+    {"((j|2j)K|(j|2j)AK|(j|2j)(D|e|(j|2j)A(D|e))D*K)", 1,
+     {"", "2j2jADK", "j2jADK"},
+     {nomatch, match, match}},
+    {"((j|2j)K|(j|2j)(D|e|((j|2j)j|(j|2j)2j)A(D|e))D*K|(j|2j)AK)", 2,
+     {"", "2j2jjADK", "j2jADK"},
+     {nomatch, match, match}},
     {"ab(c|d)+c*(a(b|c)d)+", 1,
      {"abacd"},
      {nomatch}}
@@ -279,7 +285,7 @@ main (int argc, char *argv[])
   check_dfa = 0;
   check_rand = 0;
 
-  for (i = 0; i < 14; i++)
+  for (i = 0; i < 16; i++)
   {
     if (0 != regcomp (&rx, rxstr[i].regex, REG_EXTENDED))
     {
