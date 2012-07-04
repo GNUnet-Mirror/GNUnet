@@ -64,6 +64,11 @@ static int add;
 static struct GNUNET_NAMESTORE_QueueEntry *add_qe;
 
 /**
+ * Queue entry for the 'add-uri' operation.
+ */
+static struct GNUNET_NAMESTORE_QueueEntry *add_qe_uri;
+
+/**
  * Desired action is to list records.
  */
 static int list;
@@ -134,6 +139,26 @@ static void
 do_shutdown (void *cls,
 	     const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  if (NULL != list_it)
+  {
+    GNUNET_NAMESTORE_zone_iteration_stop (list_it);
+    list_it = NULL;
+  }
+  if (NULL != add_qe)
+  {
+    GNUNET_NAMESTORE_cancel (add_qe);
+    add_qe = NULL;
+  }
+  if (NULL != add_qe_uri)
+  {
+    GNUNET_NAMESTORE_cancel (add_qe_uri);
+    add_qe_uri = NULL;
+  }
+  if (NULL != del_qe)
+  {
+    GNUNET_NAMESTORE_cancel (del_qe);
+    del_qe = NULL;
+  }
   if (NULL != ns)
   {
     GNUNET_NAMESTORE_disconnect (ns);
@@ -156,7 +181,7 @@ do_shutdown (void *cls,
  * Continuation called to notify client about result of the
  * operation.
  *
- * @param cls closure, unused
+ * @param cls closure, location of the QueueEntry pointer to NULL out
  * @param success GNUNET_SYSERR on failure (including timeout/queue drop/failure to validate)
  *                GNUNET_NO if content was already there
  *                GNUNET_YES (or other positive value) on success
@@ -167,7 +192,9 @@ add_continuation (void *cls,
 		  int32_t success,
 		  const char *emsg)
 {
-  add_qe = NULL;
+  struct GNUNET_NAMESTORE_QueueEntry **qe = cls;
+
+  *qe = NULL;
   if (GNUNET_YES != success)
   {
     fprintf (stderr,
@@ -176,7 +203,9 @@ add_continuation (void *cls,
     if (GNUNET_NO != success)
       ret = 1;
   }
-  if ( (NULL == del_qe) &&
+  if ( (NULL == add_qe) &&
+       (NULL == add_qe_uri) &&
+       (NULL == del_qe) &&
        (NULL == list_it) )
     GNUNET_SCHEDULER_shutdown ();
 }
@@ -203,6 +232,7 @@ del_continuation (void *cls,
 	     _("Deleting record failed: %s\n"),
 	     emsg);
   if ( (NULL == add_qe) &&
+       (NULL == add_qe_uri) &&
        (NULL == list_it) )
     GNUNET_SCHEDULER_shutdown ();
 }
@@ -244,6 +274,7 @@ display_record (void *cls,
   {
     list_it = NULL;
     if ( (NULL == del_qe) &&
+	 (NULL == add_qe_uri) &&
 	 (NULL == add_qe) )
       GNUNET_SCHEDULER_shutdown ();
     return;
@@ -475,7 +506,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 					     name,
 					     &rd,
 					     &add_continuation,
-					     NULL);
+					     &add_qe);
   }
   if (del)
   {
@@ -552,12 +583,12 @@ run (void *cls, char *const *args, const char *cfgfile,
     if (1 != nonauthority)
       rd.flags |= GNUNET_NAMESTORE_RF_AUTHORITY;
 
-    add_qe = GNUNET_NAMESTORE_record_create (ns,
-					     zone_pkey,
-					     name,
-					     &rd,
-					     &add_continuation,
-					     NULL);
+    add_qe_uri = GNUNET_NAMESTORE_record_create (ns,
+						 zone_pkey,
+						 name,
+						 &rd,
+						 &add_continuation,
+						 &add_qe_uri);
   }
   GNUNET_free_non_null (data);
 }
