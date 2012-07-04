@@ -382,7 +382,12 @@ put_gns_record(void *cls,
                "Zone iteration finished. Rescheduling zone iteration\n");
 
     namestore_iter = NULL;
-    zone_update_taskid = GNUNET_SCHEDULER_add_now (&update_zone_dht_start, NULL);
+    if (num_public_records == 0)
+      zone_update_taskid = GNUNET_SCHEDULER_add_delayed (zone_iteration_interval,
+                                                         &update_zone_dht_start,
+                                                         NULL);
+    else
+      zone_update_taskid = GNUNET_SCHEDULER_add_now (&update_zone_dht_start, NULL);
     GNUNET_STATISTICS_update (statistics,
                               "Number of zone iterations", 1, GNUNET_NO);
 
