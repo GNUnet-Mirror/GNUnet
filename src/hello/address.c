@@ -113,7 +113,7 @@ GNUNET_HELLO_address_cmp (const struct GNUNET_HELLO_Address *a1,
     return -1;
   if (a1->address_length > a2->address_length)
     return 1;
-  return memcmp (a1->address, a1->address, a1->address_length);
+  return memcmp (a1->address, a2->address, a1->address_length);
 }
 
 
