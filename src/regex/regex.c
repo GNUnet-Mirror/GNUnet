@@ -287,7 +287,8 @@ state_compare (const void *a, const void *b)
  * Get all edges leaving state 's'.
  *
  * @param s state.
- * @param edges all edges leaving 's'.
+ * @param edges all edges leaving 's', expected to be allocated and have enough
+ *        space for s->transitions_count elements.
  *
  * @return number of edges.
  */
@@ -2471,7 +2472,7 @@ GNUNET_REGEX_get_canonical_regex (struct GNUNET_REGEX_Automaton *a)
 
 /**
  * Get the first key for the given 'input_string'. This hashes the first x bits
- * of the 'input_strings'.
+ * of the 'input_string'.
  *
  * @param input_string string.
  * @param string_len length of the 'input_string'.
@@ -2480,9 +2481,9 @@ GNUNET_REGEX_get_canonical_regex (struct GNUNET_REGEX_Automaton *a)
  * @return number of bits of 'input_string' that have been consumed
  *         to construct the key
  */
-unsigned int
-GNUNET_REGEX_get_first_key (const char *input_string, unsigned int string_len,
-                            struct GNUNET_HashCode *key)
+size_t
+GNUNET_REGEX_get_first_key (const char *input_string, size_t string_len,
+                            struct GNUNET_HashCode * key)
 {
   unsigned int size;
 
@@ -2503,15 +2504,17 @@ GNUNET_REGEX_get_first_key (const char *input_string, unsigned int string_len,
 /**
  * Check if the given 'proof' matches the given 'key'.
  *
- * @param proof partial regex
- * @param key hash
+ * @param proof partial regex of a state.
+ * @param key hash of a state.
  *
- * @return GNUNET_OK if the proof is valid for the given key
+ * @return GNUNET_OK if the proof is valid for the given key.
  */
 int
 GNUNET_REGEX_check_proof (const char *proof, const struct GNUNET_HashCode *key)
 {
-  return GNUNET_OK;
+  struct GNUNET_HashCode key_check;
+  GNUNET_CRYPTO_hash (proof, strlen (proof), &key_check);
+  return (0 == GNUNET_CRYPTO_hash_cmp (key, &key_check)) ? GNUNET_OK : GNUNET_NO;
 }
 
 

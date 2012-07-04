@@ -33,6 +33,7 @@ key_iterator (void *cls, const struct GNUNET_HashCode *key, const char *proof,
               const struct GNUNET_REGEX_Edge *edges)
 {
   unsigned int i;
+  int *error = cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Iterating... (accepting: %i)\n",
               accepting);
@@ -40,6 +41,8 @@ key_iterator (void *cls, const struct GNUNET_HashCode *key, const char *proof,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Edge %i: %s\n", i, edges[i].label);
   }
+
+  *error += (GNUNET_OK == GNUNET_REGEX_check_proof (proof, key)) ? 0 : 1;
 
   if (NULL != proof)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Proof: %s\n", proof);
@@ -57,44 +60,37 @@ main (int argc, char *argv[])
                     NULL);
 
   int error;
-  const char *regex;
+  int i;
   struct GNUNET_REGEX_Automaton *dfa;
 
   error = 0;
-  /* regex = "ab(c|d)+c*(a(b|c)+d)+(bla)+"; */
-  /* regex = "(bla)*"; */
-  /*regex = "b(lab)*la"; */
-  /* regex = "(ab)*"; */
-  regex = "ab(c|d)+c*(a(b|c)+d)+(bla)(bla)*";
-  /*regex = "z(abc|def)?xyz"; */
-  /* regex = "1*0(0|1)*"; */
-  /* regex = "a*b*"; */
-  /* regex = "a+X*y+c|p|R|Z*K*y*R+w|Y*6+n+h*k*w+V*F|W*B*e*"; */
-  /* regex = "abcd:(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1):(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)"; */
-  /* regex = "abc(1|0)*def"; */
-  /* regex = "ab|ac"; */
-  /* regex = "(ab)(ab)*"; */
-  /* regex = "ab|cd|ef|gh"; */
-  /* regex = "a|b|c|d|e|f|g"; */
-  /* regex = "(ab)|(ac)"; */
-  /* regex = "a(b|c)"; */
-  /* regex = "a*a"; */
-  /* regex = "ab?(abcd)?"; */
-  /* regex = "(ab)+"; */
-  /* regex = "(ab|cs|df|sdf)*"; */
-  /* regex = "(ab|cd)*"; */
-  /* regex = "(cd|ab)*"; */
-  /* regex = "(ab|c)+"; */
-  /* regex = "(a|bc)+"; */
-  /* regex = "(ab|c)(ab|c)*"; */
-  /* regex = "(a|bc)(a|bc)*"; */
-  /* regex = "(ac|b)*"; */
-  /* regex = "a|aa*a"; */
 
-  dfa = GNUNET_REGEX_construct_dfa (regex, strlen (regex));
-  GNUNET_REGEX_automaton_save_graph (dfa, "dfa.dot");
-  GNUNET_REGEX_iterate_all_edges (dfa, key_iterator, NULL);
-  GNUNET_REGEX_automaton_destroy (dfa);
+  const char *regex[17] = {
+    "ab(c|d)+c*(a(b|c)+d)+(bla)+",
+    "(bla)*",
+    "b(lab)*la",
+    "(ab)*",
+    "ab(c|d)+c*(a(b|c)+d)+(bla)(bla)*",
+    "z(abc|def)?xyz",
+    "1*0(0|1)*",
+    "a*b*",
+    "a+X*y+c|p|R|Z*K*y*R+w|Y*6+n+h*k*w+V*F|W*B*e*",
+    "abcd:(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1):(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)",
+    "abc(1|0)*def",
+    "ab|ac",
+    "(ab)(ab)*",
+    "ab|cd|ef|gh",
+    "a|b|c|d|e|f|g",
+    "(ab)|(ac)",
+    "a(b|c)"
+  };
 
+  for (i = 0; i < 17; i++)
+  {
+    dfa = GNUNET_REGEX_construct_dfa (regex[i], strlen (regex[i]));
+    GNUNET_REGEX_iterate_all_edges (dfa, key_iterator, &error);
+    GNUNET_REGEX_automaton_destroy (dfa);
+  }
+  
   return error;
 }
