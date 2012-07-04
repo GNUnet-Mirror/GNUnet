@@ -528,26 +528,25 @@ GNUNET_TESTBED_cancel_registration (struct GNUNET_TESTBED_HostRegistrationHandle
 
 
 /**
- * Create a link from a 'master' controller to a slave controller.
- * Whenever the master controller is asked to start a peer at the
- * given 'delegated_host', it will delegate the request to the
- * specified slave controller.  Note that the slave controller runs at
- * the 'slave_host', which may or may not be the same host as the
- * 'delegated_host' (for hierarchical delegations).  The configuration
- * of the slave controller is given and to be used to either create
- * the slave controller or to connect to an existing slave controller
- * process.  'is_subordinate' specifies if the given slave controller
- * should be started and managed by the master controller, or if the
- * slave already has a master and this is just a secondary master that
- * is also allowed to use the existing slave.
+ * Create a link from slave controller to delegated controller. Whenever the
+ * master controller is asked to start a peer at the delegated controller the
+ * request will be routed towards slave controller (if a route exists). The
+ * slave controller will then route it to the delegated controller. The
+ * configuration of the slave controller is given and to be used to either
+ * create the slave controller or to connect to an existing slave controller
+ * process.  'is_subordinate' specifies if the given slave controller should be
+ * started and managed by the master controller, or if the slave already has a
+ * master and this is just a secondary master that is also allowed to use the
+ * existing slave.
  *
  * @param master handle to the master controller who creates the association
- * @param delegated_host requests to which host should be delegated
- * @param slave_host which host is used to run the slave controller 
+ * @param delegated_host requests to which host should be delegated; cannot be NULL
+ * @param slave_host which host is used to run the slave controller; use NULL to
+ *          make the master controller connect to the delegated host
  * @param slave_cfg configuration to use for the slave controller
- * @param is_subordinate GNUNET_YES if the slave should be started (and stopped)
- *                       by the master controller; GNUNET_NO if we are just
- *                       allowed to use the slave via TCP/IP
+ * @param is_subordinate GNUNET_YES if the controller at delegated_host should
+ *          be started by the master controller; GNUNET_NO if we are just
+ *          allowed to use the slave via TCP/IP
  */
 void
 GNUNET_TESTBED_controller_link (struct GNUNET_TESTBED_Controller *master,
@@ -555,6 +554,31 @@ GNUNET_TESTBED_controller_link (struct GNUNET_TESTBED_Controller *master,
 				struct GNUNET_TESTBED_Host *slave_host,
 				const struct GNUNET_CONFIGURATION_Handle *slave_cfg,
 				int is_subordinate);
+
+
+/**
+ * Same as the GNUNET_TESTBED_controller_link, however expects configuration in
+ * serialized and compressed
+ *
+ * @param master handle to the master controller who creates the association
+ * @param delegated_host requests to which host should be delegated; cannot be NULL
+ * @param slave_host which host is used to run the slave controller; use NULL to
+ *          make the master controller connect to the delegated host
+ * @param scfg serialized and compressed configuration
+ * @param scfg_size the size scfg
+ * @param cfg_size the size of uncompressed serialized configuration
+ * @param is_subordinate GNUNET_YES if the controller at delegated_host should
+ *          be started by the master controller; GNUNET_NO if we are just
+ *          allowed to use the slave via TCP/IP
+ */
+void
+GNUNET_TESTBED_controller_link_2 (struct GNUNET_TESTBED_Controller *master,
+				  struct GNUNET_TESTBED_Host *delegated_host,
+				  struct GNUNET_TESTBED_Host *slave_host,
+				  const char *scfg,
+				  size_t scfg_size,
+				  size_t cfg_size,
+				  int is_subordinate); 
 
 
 /**
