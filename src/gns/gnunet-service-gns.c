@@ -440,8 +440,6 @@ put_gns_record(void *cls,
              "DHT req to %d\n", DHT_OPERATION_TIMEOUT.rel_value);
 
   GNUNET_STATISTICS_update (statistics,
-                            "Records put into DHT", rd_count, GNUNET_NO);
-  GNUNET_STATISTICS_update (statistics,
                             "Record bytes put into DHT", rd_payload_length, GNUNET_NO);
 
   /* FIXME: keep return value to possibly cancel? */
