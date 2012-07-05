@@ -3049,7 +3049,6 @@ queue_send (void *cls, size_t size, void *buf)
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "********* Queue send\n");
 
-
     /* If queue is empty, send should have been cancelled */
     if (NULL == queue)
     {
@@ -4227,8 +4226,6 @@ dht_get_string_handler (void *cls, struct GNUNET_TIME_Absolute exp,
 
   // FIXME: does proof have to be NULL terminated?
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "*******************************\n");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "DHT GET STRING RETURNED RESULTS\n");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "  key: %s\n", GNUNET_h2s (key));
@@ -5021,8 +5018,6 @@ handle_local_connect_by_string (void *cls, struct GNUNET_SERVER_Client *client,
   size_t size;
   size_t len;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "************************************************************\n");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Connect by string started\n");
   msg = (struct GNUNET_MESH_ConnectPeerByString *) message;
   size = htons (message->size);
@@ -5076,8 +5071,6 @@ handle_local_connect_by_string (void *cls, struct GNUNET_SERVER_Client *client,
 
   /* Initialize context */
   size = GNUNET_REGEX_get_first_key(string, len, &key);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "************************************************************\n");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "  consumed %u bits out of %u\n", size, len);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

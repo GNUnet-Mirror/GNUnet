@@ -156,8 +156,6 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 disconnect_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "************************************************\n");
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: disconnecting peers\n");
 
   GNUNET_MESH_tunnel_destroy (t);
@@ -221,8 +219,6 @@ ch (void *cls, const struct GNUNET_PeerIdentity *peer,
 {
   long i = (long) cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "************************************************************\n");
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Peer connected: %s\n",
               GNUNET_i2s (peer));
@@ -319,17 +315,15 @@ peergroup_ready (void *cls, const char *emsg)
 
   if (emsg != NULL)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "test: Peergroup callback called with error, aborting test!\n");
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: Error from testing: `%s'\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "test: Error from testing: `%s'\n",
                 emsg);
     ok = GNUNET_NO;
     GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
     return;
   }
 #if VERBOSE
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "************************************************************\n");
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "test: Peer Group started successfully!\n");
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "test: Have %u connections\n",
@@ -352,8 +346,6 @@ peergroup_ready (void *cls, const char *emsg)
   app = (GNUNET_MESH_ApplicationType) 0;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "************************************************************\n");
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Connect to mesh\n");
   h1 = GNUNET_MESH_connect (d1->cfg, 5, (void *) 1L,
                             NULL,
@@ -366,21 +358,15 @@ peergroup_ready (void *cls, const char *emsg)
                             handlers,
                             &app);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "************************************************************\n");
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Announce REGEX\n");
-  GNUNET_MESH_announce_regex (h2, "abc");
+  GNUNET_MESH_announce_regex (h2, "0123456789ABC");
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "************************************************************\n");
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Create tunnel\n");
   t = GNUNET_MESH_tunnel_create (h1, NULL, &ch, &dh, (void *) 1L);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "************************************************************\n");
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Connect by string\n");
-  GNUNET_MESH_peer_request_connect_by_string (t, "abc");
+  GNUNET_MESH_peer_request_connect_by_string (t, "01234567890ABC");
   /* connect handler = success, timeout = error */
   
 }
