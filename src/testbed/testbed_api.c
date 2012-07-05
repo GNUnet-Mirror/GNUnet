@@ -723,7 +723,6 @@ GNUNET_TESTBED_controller_link_2 (struct GNUNET_TESTBED_Controller *master,
  * @param delegated_host requests to which host should be delegated
  * @param slave_host which host is used to run the slave controller 
  * @param slave_cfg configuration to use for the slave controller
- * @param cfg_size the size of uncompressed configuration
  * @param is_subordinate GNUNET_YES if the slave should be started (and stopped)
  *                       by the master controller; GNUNET_NO if we are just
  *                       allowed to use the slave via TCP/IP
