@@ -740,8 +740,11 @@ regex_iterator (void *cls, const struct GNUNET_HashCode *key, const char *proof,
                 "  regex dht put for state %s\n",
                 GNUNET_h2s(key));
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "  proof: %s\n",
+                "   proof: %s\n",
                 proof);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "   num edges: %u\n",
+                num_edges);
 
     opt = GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE;
     if (GNUNET_YES == accepting)
@@ -749,7 +752,7 @@ regex_iterator (void *cls, const struct GNUNET_HashCode *key, const char *proof,
         struct MeshRegexAccept block;
 
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "  state %s is accepting, putting own id\n",
+                    "   state %s is accepting, putting own id\n",
                     GNUNET_h2s(key));
         size = sizeof (block);
         block.key = *key;
