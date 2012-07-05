@@ -117,7 +117,7 @@ shutdown_callback (void *cls, const char *emsg)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "test: Shutdown of peers failed! (%s)\n", emsg);
-    ok--;
+    ok = GNUNET_NO;
   }
 #if VERBOSE
   else
@@ -156,7 +156,9 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 disconnect_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: disconnecting peers\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "************************************************\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: disconnecting peers\n");
 
   GNUNET_MESH_tunnel_destroy (t);
   GNUNET_MESH_disconnect (h1);
@@ -226,9 +228,9 @@ ch (void *cls, const struct GNUNET_PeerIdentity *peer,
               GNUNET_i2s (peer));
 
   if (i != 1L || peer == NULL)
-    ok = 0;
+    ok = GNUNET_NO;
   else
-    ok = 1;
+    ok = GNUNET_OK;
   if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
   {
     GNUNET_SCHEDULER_cancel (disconnect_task);
@@ -256,7 +258,7 @@ incoming_tunnel (void *cls, struct GNUNET_MESH_Tunnel *tunnel,
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Incoming tunnel from %s to peer %d\n",
               GNUNET_i2s (initiator), (long) cls);
-  ok++;
+//   ok++;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, " ok: %d\n", ok);
   if ((long) cls == 2L)
     incoming_t = tunnel;
@@ -321,7 +323,7 @@ peergroup_ready (void *cls, const char *emsg)
                 "test: Peergroup callback called with error, aborting test!\n");
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: Error from testing: `%s'\n",
                 emsg);
-    ok--;
+    ok = GNUNET_NO;
     GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
     return;
   }
@@ -337,13 +339,12 @@ peergroup_ready (void *cls, const char *emsg)
   peers_running = GNUNET_TESTING_daemons_running (pg);
   if (0 < failed_connections)
   {
-    ok = GNUNET_SYSERR;
+    ok = GNUNET_NO;
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "test: %u connections have FAILED!\n",
                 failed_connections);
     disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_peers, NULL);
     return;
   }
-  ok = 0;
   disconnect_task =
     GNUNET_SCHEDULER_add_delayed (TIMEOUT, &disconnect_peers, NULL);
   d1 = GNUNET_TESTING_daemon_get (pg, 1);
@@ -374,7 +375,7 @@ peergroup_ready (void *cls, const char *emsg)
               "************************************************************\n");
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Create tunnel\n");
-  t = GNUNET_MESH_tunnel_create (h1, NULL, &ch, &dh, NULL);
+  t = GNUNET_MESH_tunnel_create (h1, NULL, &ch, &dh, (void *) 1L);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "************************************************************\n");
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -515,7 +516,7 @@ main (int argc, char *argv[])
 #endif
   if (GNUNET_OK != ok)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "test: FAILED!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "test: FAILED! (ok = %d)\n", ok);
     return 1;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: success\n");
