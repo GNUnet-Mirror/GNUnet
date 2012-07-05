@@ -94,25 +94,50 @@ GNUNET_MESH_regex_block_iterate (const struct MeshRegexBlock *block,
   char *aux;
 
   offset = sizeof (struct MeshRegexBlock);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "* Start iterating block of size %u, off %u\n",
+              size, offset);
   if (offset > size) // Is it safe to access the regex block?
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "*   Block is smaller than struct MeshRegexBlock, END\n");
     return GNUNET_SYSERR;
+  }
   n = ntohl (block->n_proof);
-  offset =+ n;
+  offset += n;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "*  Proof length: %u, off %u\n", n, offset);
   if (offset > size) // Is it safe to access the regex proof?
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "*   Block is smaller than Block + proof, END\n");
     return GNUNET_SYSERR;
+  }
   aux = (char *) &block[1];  // Skip regex block
   aux = &aux[n];             // Skip regex proof
   n = ntohl (block->n_edges);
-  for (i = 0; i < n; n++) // aux always points at the end of the previous block
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "* Edges: %u\n", n);
+  for (i = 0; i < n; i++) // aux always points at the end of the previous block
   {
     offset += sizeof (struct MeshRegexEdge);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*  Edge %u, off %u\n", i, offset);
     if (offset > size) // Is it safe to access the next edge block?
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "*   Size not enough for MeshRegexEdge, END\n");
       return GNUNET_SYSERR;
+    }
     edge = (struct MeshRegexEdge *) aux;
     n_token = ntohl (edge->n_token);
     offset += n_token;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "*   Token lenght %u, off %u\n", n_token, offset);
     if (offset > size) // Is it safe to access the edge token?
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "*   Size not enough for edge token, END\n");
       return GNUNET_SYSERR;
+    }
     aux = (char *) &edge[1]; // Skip edge block
     if (NULL != iterator)
         if (GNUNET_NO == iterator (iter_cls, aux, n_token, &edge->key))
@@ -120,7 +145,15 @@ GNUNET_MESH_regex_block_iterate (const struct MeshRegexBlock *block,
     aux = &aux[n_token];     // Skip edge token
   }
   // The total size should be exactly the size of (regex + all edges) blocks
-  return (offset == size) ? GNUNET_OK : GNUNET_SYSERR;
+  if (offset == size)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "* Block processed, END OK\n");
+    return GNUNET_OK;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "*   Size %u, read %u END KO\n", size, offset);
+  return GNUNET_SYSERR;
 }
 
 #if 0                           /* keep Emacsens' auto-indent happy */
