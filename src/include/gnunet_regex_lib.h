@@ -95,14 +95,19 @@ GNUNET_REGEX_automaton_destroy (struct GNUNET_REGEX_Automaton *a);
 
 
 /**
- * Save the given automaton as a GraphViz dot file.
+ * Save the given automaton as a GraphViz dot file
  *
- * @param a the automaton to be saved.
- * @param filename where to save the file.
+ * @param a the automaton to be saved
+ * @param filename where to save the file
+ * @param verbose if set to GNUNET_YES the generated graph will include extra
+ *                information such as the NFA states that were used to generate
+ *                the DFA state etc.
  */
 void
 GNUNET_REGEX_automaton_save_graph (struct GNUNET_REGEX_Automaton *a,
-                                   const char *filename);
+                                   const char *filename,
+                                   int verbose);
+
 
 /**
  * Evaluates the given 'string' against the given compiled regex.

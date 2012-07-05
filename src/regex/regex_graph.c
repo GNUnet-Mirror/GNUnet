@@ -26,6 +26,25 @@
 #include "gnunet_regex_lib.h"
 #include "regex_internal.h"
 
+/** 
+ * Context for graph creation. Passed as the cls to
+ * GNUNET_REGEX_automaton_save_graph_step.
+ */
+struct GNUNET_REGEX_Graph_Context
+{
+  /**
+   * File pointer to the dot file used for output.
+   */
+  FILE *filep;
+
+  /**
+   * Verbose flag, if it's set to GNUNET_YES additional info will be printed in
+   * the graph.
+   */
+  int verbose;
+};
+
+
 /**
  * Recursive function doing DFS with 'v' as a start, detecting all SCCs inside
  * the subgraph reachable from 'v'. Used with scc_tarjan function to detect all
@@ -135,23 +154,27 @@ void
 GNUNET_REGEX_automaton_save_graph_step (void *cls, unsigned int count,
                                         struct GNUNET_REGEX_State *s)
 {
-  FILE *p;
+  struct GNUNET_REGEX_Graph_Context *ctx = cls;
   struct GNUNET_REGEX_Transition *ctran;
   char *s_acc = NULL;
   char *s_tran = NULL;
-
-  p = cls;
+  char *name;
+  char *to_name;
+  
+  if (GNUNET_YES == ctx->verbose)
+    GNUNET_asprintf (&name, "%i (%s)", s->proof_id, s->name);
+  else
+    GNUNET_asprintf (&name, "%i", s->proof_id);
 
   if (s->accepting)
   {
     GNUNET_asprintf (&s_acc,
-                     "\"%s(%i)\" [shape=doublecircle, color=\"0.%i 0.8 0.95\"];\n",
-                     s->name, s->proof_id, s->scc_id);
+                     "\"%s\" [shape=doublecircle, color=\"0.%i 0.8 0.95\"];\n",
+                     name, s->scc_id);
   }
   else
   {
-    GNUNET_asprintf (&s_acc, "\"%s(%i)\" [color=\"0.%i 0.8 0.95\"];\n", s->name,
-                     s->proof_id, s->scc_id);
+    GNUNET_asprintf (&s_acc, "\"%s\" [color=\"0.%i 0.8 0.95\"];\n", name, s->scc_id);
   }
 
   if (NULL == s_acc)
@@ -159,7 +182,7 @@ GNUNET_REGEX_automaton_save_graph_step (void *cls, unsigned int count,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not print state %s\n", s->name);
     return;
   }
-  fwrite (s_acc, strlen (s_acc), 1, p);
+  fwrite (s_acc, strlen (s_acc), 1, ctx->filep);
   GNUNET_free (s_acc);
   s_acc = NULL;
 
@@ -173,20 +196,25 @@ GNUNET_REGEX_automaton_save_graph_step (void *cls, unsigned int count,
       continue;
     }
 
+    if (GNUNET_YES == ctx->verbose)
+      GNUNET_asprintf (&to_name, "%i (%s)", ctran->to_state->proof_id, ctran->to_state->name);
+    else
+      GNUNET_asprintf (&to_name, "%i", ctran->to_state->proof_id);
+    
     if (ctran->label == 0)
     {
       GNUNET_asprintf (&s_tran,
-                       "\"%s(%i)\" -> \"%s(%i)\" [label = \"epsilon\", color=\"0.%i 0.8 0.95\"];\n",
-                       s->name, s->proof_id, ctran->to_state->name,
-                       ctran->to_state->proof_id, s->scc_id);
+                       "\"%s\" -> \"%s\" [label = \"epsilon\", color=\"0.%i 0.8 0.95\"];\n",
+                       name, to_name, s->scc_id);
     }
     else
     {
       GNUNET_asprintf (&s_tran,
-                       "\"%s(%i)\" -> \"%s(%i)\" [label = \"%c\", color=\"0.%i 0.8 0.95\"];\n",
-                       s->name, s->proof_id, ctran->to_state->name,
-                       ctran->to_state->proof_id, ctran->label, s->scc_id);
+                       "\"%s\" -> \"%s\" [label = \"%c\", color=\"0.%i 0.8 0.95\"];\n",
+                       name, to_name, ctran->label, s->scc_id);
     }
+
+    GNUNET_free (to_name);
 
     if (NULL == s_tran)
     {
@@ -195,10 +223,12 @@ GNUNET_REGEX_automaton_save_graph_step (void *cls, unsigned int count,
       return;
     }
 
-    fwrite (s_tran, strlen (s_tran), 1, p);
+    fwrite (s_tran, strlen (s_tran), 1, ctx->filep);
     GNUNET_free (s_tran);
     s_tran = NULL;
   }
+
+  GNUNET_free (name);
 }
 
 
@@ -207,15 +237,19 @@ GNUNET_REGEX_automaton_save_graph_step (void *cls, unsigned int count,
  *
  * @param a the automaton to be saved
  * @param filename where to save the file
+ * @param verbose if set to GNUNET_YES the generated graph will include extra
+ *                information such as the NFA states that were used to generate
+ *                the DFA state etc.
  */
 void
 GNUNET_REGEX_automaton_save_graph (struct GNUNET_REGEX_Automaton *a,
-                                   const char *filename)
+                                   const char *filename,
+                                   int verbose)
 {
   char *start;
   char *end;
-  FILE *p;
-
+  struct GNUNET_REGEX_Graph_Context ctx;
+  
   if (NULL == a)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not print NFA, was NULL!");
@@ -228,9 +262,9 @@ GNUNET_REGEX_automaton_save_graph (struct GNUNET_REGEX_Automaton *a,
     return;
   }
 
-  p = fopen (filename, "w");
+  ctx.filep = fopen (filename, "w");
 
-  if (NULL == p)
+  if (NULL == ctx.filep)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not open file for writing: %s",
                 filename);
@@ -241,12 +275,12 @@ GNUNET_REGEX_automaton_save_graph (struct GNUNET_REGEX_Automaton *a,
   scc_tarjan (a);
 
   start = "digraph G {\nrankdir=LR\n";
-  fwrite (start, strlen (start), 1, p);
+  fwrite (start, strlen (start), 1, ctx.filep);
 
   GNUNET_REGEX_automaton_traverse (a, &GNUNET_REGEX_automaton_save_graph_step,
-                                   p);
+                                   &ctx);
 
   end = "\n}\n";
-  fwrite (end, strlen (end), 1, p);
-  fclose (p);
+  fwrite (end, strlen (end), 1, ctx.filep);
+  fclose (ctx.filep);
 }
