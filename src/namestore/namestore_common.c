@@ -170,14 +170,44 @@ int
 GNUNET_NAMESTORE_records_cmp (const struct GNUNET_NAMESTORE_RecordData *a,
                               const struct GNUNET_NAMESTORE_RecordData *b)
 {
-  if ((a->record_type == b->record_type) &&
-      (a->expiration_time == b->expiration_time) &&
-      ((a->flags & GNUNET_NAMESTORE_RF_RCMP_FLAGS) 
-       == (b->flags & GNUNET_NAMESTORE_RF_RCMP_FLAGS) ) &&
-      (a->data_size == b->data_size) &&
-      (0 == memcmp (a->data, b->data, a->data_size)))
-    return GNUNET_YES;
-  return GNUNET_NO;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      "Comparing records\n");
+  if (a->record_type != b->record_type)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+        "Record type %lu != %lu\n", a->record_type, b->record_type);
+    return GNUNET_NO;
+  }
+  if (a->expiration_time != b->expiration_time)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+        "Expiration time %llu != %llu\n", a->expiration_time, b->expiration_time);
+    return GNUNET_NO;
+  }
+  if ((a->flags & GNUNET_NAMESTORE_RF_RCMP_FLAGS) 
+       != (b->flags & GNUNET_NAMESTORE_RF_RCMP_FLAGS))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+        "Flags %lu (%lu) != %lu (%lu)\n", a->flags,
+        a->flags & GNUNET_NAMESTORE_RF_RCMP_FLAGS, b->flags,
+        b->flags & GNUNET_NAMESTORE_RF_RCMP_FLAGS);
+    return GNUNET_NO;
+  }
+  if (a->data_size != b->data_size)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+        "Data size %lu != %lu\n", a->data_size, b->data_size);
+    return GNUNET_NO;
+  }
+  if (0 != memcmp (a->data, b->data, a->data_size))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+        "Data contents do not match\n");
+    return GNUNET_NO;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      "Records are equal\n");
+  return GNUNET_YES;
 }
 
 
