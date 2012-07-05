@@ -232,7 +232,7 @@ GNUNET_TESTBED_host_create_with_id (uint32_t id,
 {
   struct GNUNET_TESTBED_Host *host;
 
-  if ((id < host_list_size) && (NULL != host_list[host_list_size]))
+  if ((id < host_list_size) && (NULL != host_list[id]))
   {
     LOG (GNUNET_ERROR_TYPE_WARNING, "Host with id: %u already created\n");
     return NULL;
@@ -242,12 +242,16 @@ GNUNET_TESTBED_host_create_with_id (uint32_t id,
   host->username = username;
   host->id = id;
   host->port = (0 == port) ? 22 : port;
-  if (id < host_list_size)
+  if (id >= host_list_size)
   {
     host_list_size += HOST_LIST_GROW_STEP;
     host_list = GNUNET_realloc (host_list, sizeof (struct GNUNET_TESTBED_Host)
 				* host_list_size);
+    (void) memset(&host_list[host_list_size - HOST_LIST_GROW_STEP],
+                  0, sizeof (struct GNUNET_TESTBED_Host) * host_list_size);
   }
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Adding host with id: %u\n", host->id);
   host_list[id] = host;
   return host;
 }
@@ -316,7 +320,8 @@ GNUNET_TESTBED_host_destroy (struct GNUNET_TESTBED_Host *host)
   }
   for (id = 0; id < HOST_LIST_GROW_STEP; id++)
   {
-    if ((host->id + id >= host_list_size) || (NULL != host_list[host->id + id]))
+    if (((host->id + id) >= host_list_size) || 
+        (NULL != host_list[host->id + id]))
       break;
   }
   if (HOST_LIST_GROW_STEP == id)
