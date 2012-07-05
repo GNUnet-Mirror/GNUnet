@@ -178,7 +178,8 @@ GNUNET_NAMESTORE_records_cmp (const struct GNUNET_NAMESTORE_RecordData *a,
         "Record type %lu != %lu\n", a->record_type, b->record_type);
     return GNUNET_NO;
   }
-  if (a->expiration_time != b->expiration_time)
+  if ((a->expiration_time != b->expiration_time) &&
+      ((a->expiration_time != 0) && (b->expiration_time != 0)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
         "Expiration time %llu != %llu\n", a->expiration_time, b->expiration_time);

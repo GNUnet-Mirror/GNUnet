@@ -457,6 +457,15 @@ run (void *cls, char *const *args, const char *cfgfile,
       ret = 1;
       return;     
     }
+    if (etime_is_rel && del)
+    {
+      fprintf (stderr,
+	       _("Deletion requires either absolute time, or no time at all. Got relative time `%s' instead.\n"),
+	       expirationstring);
+      GNUNET_SCHEDULER_shutdown ();
+      ret = 1;
+      return;
+    }
   } 
   else if (add)
   {
@@ -524,6 +533,8 @@ run (void *cls, char *const *args, const char *cfgfile,
     rd.data_size = data_size;
     rd.record_type = type;
     rd.expiration_time = 0;
+    if (!etime_is_rel)
+      rd.expiration_time = etime_abs.abs_value;
     rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
     del_qe = GNUNET_NAMESTORE_record_remove (ns,
 					     zone_pkey,
