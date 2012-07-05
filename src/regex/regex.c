@@ -1816,8 +1816,10 @@ nfa_add_concatenation (struct GNUNET_REGEX_Context *ctx)
   struct GNUNET_REGEX_Automaton *new;
 
   b = ctx->stack_tail;
+  GNUNET_assert (NULL != b);
   GNUNET_CONTAINER_DLL_remove (ctx->stack_head, ctx->stack_tail, b);
   a = ctx->stack_tail;
+  GNUNET_assert (NULL != a);
   GNUNET_CONTAINER_DLL_remove (ctx->stack_head, ctx->stack_tail, a);
 
   state_add_transition (ctx, a->end, 0, b->start);
@@ -1953,8 +1955,10 @@ nfa_add_alternation (struct GNUNET_REGEX_Context *ctx)
   struct GNUNET_REGEX_State *end;
 
   b = ctx->stack_tail;
+  GNUNET_assert (NULL != b);
   GNUNET_CONTAINER_DLL_remove (ctx->stack_head, ctx->stack_tail, b);
   a = ctx->stack_tail;
+  GNUNET_assert (NULL != a);
   GNUNET_CONTAINER_DLL_remove (ctx->stack_head, ctx->stack_tail, a);
 
   start = nfa_state_create (ctx, 0);
@@ -2391,7 +2395,6 @@ evaluate_nfa (struct GNUNET_REGEX_Automaton *a, const char *string)
     return 0;
 
   result = 1;
-  strp = string;
   sset = nfa_closure_create (a, a->start, 0);
 
   for (strp = string; NULL != strp && *strp; strp++)

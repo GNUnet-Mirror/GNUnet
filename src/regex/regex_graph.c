@@ -55,7 +55,11 @@ scc_tarjan_strongconnect (unsigned int *scc_counter,
   for (t = v->transitions_head; NULL != t; t = t->next)
   {
     w = t->to_state;
-    if (NULL != w && w->index < 0)
+
+    if (NULL == w)
+      continue;
+    
+    if (w->index < 0)
     {
       scc_tarjan_strongconnect (scc_counter, w, index, stack, stack_size);
       v->lowlink = (v->lowlink > w->lowlink) ? w->lowlink : v->lowlink;
