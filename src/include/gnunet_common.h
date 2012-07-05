@@ -46,6 +46,14 @@
 #include <stdarg.h>
 #endif
 
+#ifdef __cplusplus
+extern "C"
+{
+#if 0                           /* keep Emacsens' auto-indent happy */
+}
+#endif
+#endif
+
 /**
  * Version of the API (for entire gnunetutil.so library).
  */
@@ -856,5 +864,18 @@ GNUNET_copy_message (const struct GNUNET_MessageHeader *msg);
 #define __func__ "<unknown>"
 #endif
 #endif
+
+
+
+
+#if 0                           /* keep Emacsens' auto-indent happy */
+{
+#endif
+#ifdef __cplusplus
+}
+#endif
+
+
+
 
 #endif /*GNUNET_COMMON_H_ */
