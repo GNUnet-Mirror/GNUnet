@@ -439,7 +439,7 @@ schedule_peer_transmission (void *cls,
   struct GNUNET_TIME_Relative delay;
 
   pp->task = GNUNET_SCHEDULER_NO_TASK;
-  if (pp->pth != NULL)
+  if (NULL != pp->pth)
   {
     GSF_peer_transmit_cancel_ (pp->pth);
     pp->pth = NULL;
@@ -641,7 +641,10 @@ GSF_plan_notify_peer_disconnect_ (const struct GSF_ConnectedPeer *cp)
                  GNUNET_CONTAINER_multihashmap_remove (plans, &id.hashPubKey,
                                                        pp));
   if (NULL != pp->pth)
+  {
     GSF_peer_transmit_cancel_ (pp->pth);
+    pp->pth = NULL;
+  }
   if (GNUNET_SCHEDULER_NO_TASK != pp->task)
   {
     GNUNET_SCHEDULER_cancel (pp->task);
