@@ -5,6 +5,7 @@ HOME = $SERVICEHOME
 CONFIG = $DEFAULTCONFIG
 BINARY = gnunet-service-gns
 UNIXPATH = /tmp/gnunet-service-gns.sock
+PORT = 2102
 ZONEKEY = $SERVICEHOME/gns/zonekey.zkey
 PRIVATE_ZONEKEY = $SERVICEHOME/gns/zonekey_priv.zkey
 SHORTEN_ZONEKEY = $SERVICEHOME/gns/zonekey_short.zkey
