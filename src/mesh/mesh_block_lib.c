@@ -116,11 +116,11 @@ GNUNET_MESH_regex_block_iterate (const struct MeshRegexBlock *block,
   aux = (char *) &block[1];  // Skip regex block
   aux = &aux[n];             // Skip regex proof
   n = ntohl (block->n_edges);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "* Edges: %u\n", n);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*  Edges: %u\n", n);
   for (i = 0; i < n; i++) // aux always points at the end of the previous block
   {
     offset += sizeof (struct MeshRegexEdge);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*  Edge %u, off %u\n", i, offset);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*   Edge %u, off %u\n", i, offset);
     if (offset > size) // Is it safe to access the next edge block?
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -131,7 +131,7 @@ GNUNET_MESH_regex_block_iterate (const struct MeshRegexBlock *block,
     n_token = ntohl (edge->n_token);
     offset += n_token;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "*   Token lenght %u, off %u\n", n_token, offset);
+                "*    Token lenght %u, off %u\n", n_token, offset);
     if (offset > size) // Is it safe to access the edge token?
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

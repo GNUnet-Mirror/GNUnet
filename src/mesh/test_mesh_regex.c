@@ -359,14 +359,14 @@ peergroup_ready (void *cls, const char *emsg)
                             &app);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Announce REGEX\n");
-  GNUNET_MESH_announce_regex (h2, "0123456789ABC");
+  GNUNET_MESH_announce_regex (h2, "0123456789A*BC");
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Create tunnel\n");
   t = GNUNET_MESH_tunnel_create (h1, NULL, &ch, &dh, (void *) 1L);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Connect by string\n");
-  GNUNET_MESH_peer_request_connect_by_string (t, "01234567890ABC");
+  GNUNET_MESH_peer_request_connect_by_string (t, "0123456789ABC");
   /* connect handler = success, timeout = error */
   
 }
