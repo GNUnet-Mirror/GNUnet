@@ -45,6 +45,9 @@
 #define LOG_DEBUG(...)                          \
   LOG (GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__)
 
+
+#define LIST_GROW_STEP 10
+
 struct Context
 {
   /**
@@ -229,6 +232,29 @@ struct LCFContextQueue
 };
 
 
+
+/**
+ * Structure representing a connected(directly-linked) controller
+ */
+struct Slave
+{
+  /**
+   * The controller process handle if we had started the controller
+   */
+  struct GNUNET_TESTBED_ControllerProc *controller_proc;
+
+  /**
+   * The controller handle
+   */
+  struct GNUNET_TESTBED_Controller *controller;
+
+  /**
+   * The id of the host this controller is running on
+   */
+  uint32_t host;
+};
+
+
 /**
  * The master context; generated with the first INIT message
  */
@@ -283,6 +309,11 @@ static struct GNUNET_TESTBED_Host **host_list;
 static struct Route **route_list;
 
 /**
+ * A list of directly linked neighbours
+ */
+static struct Slave **slave_list;
+
+/**
  * The hashmap of shared services
  */
 static struct GNUNET_CONTAINER_MultiHashMap *ss_map;
@@ -296,6 +327,11 @@ static uint32_t host_list_size;
  * The size of the route list
  */
 static uint32_t route_list_size;
+
+/**
+ * The size of directly linked neighbours list
+ */
+static uint32_t slave_list_size;
 
 /*********/
 /* Tasks */
@@ -540,6 +576,21 @@ lcf_proc_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
+ * Callback for event from slave controllers
+ *
+ * @param cls struct Slave *
+ * @param event information about the event
+ */
+static void 
+slave_event_callback(void *cls,
+                     const struct GNUNET_TESTBED_EventInformation *event)
+{
+  GNUNET_break (0);
+}
+
+
+
+/**
  * Message handler for GNUNET_MESSAGE_TYPE_TESTBED_INIT messages
  *
  * @param cls NULL
@@ -758,6 +809,12 @@ handle_link_controllers (void *cls,
   uint32_t slave_host_id;
   uint16_t msize;
    
+  if (NULL == master_context)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
   msize = ntohs (message->size);
   if (sizeof (struct GNUNET_TESTBED_ControllerLinkMessage) >= msize)
   {
@@ -788,30 +845,63 @@ handle_link_controllers (void *cls,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-
-  config_size = ntohs (msg->config_size);
-  config = GNUNET_malloc (config_size);
-  dest_size = (uLongf) config_size;
-  msize -= sizeof (struct GNUNET_TESTBED_ControllerLinkMessage);
-  if (Z_OK != uncompress ((Bytef *) config, &dest_size,
-                          (const Bytef *) &msg[1], (uLong) msize))
+  if (slave_host_id == master_context->host_id) /* Link from us */
   {
-    GNUNET_break (0);           /* Compression error */
+    if ((delegated_host_id < slave_list_size) && 
+        (NULL != slave_list[delegated_host_id])) /* We have already added */
+    {
+      LOG (GNUNET_ERROR_TYPE_WARNING, "Host %u already connected\n",
+           delegated_host_id);
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      return;
+    }
+    config_size = ntohs (msg->config_size);
+    config = GNUNET_malloc (config_size);
+    dest_size = (uLongf) config_size;
+    msize -= sizeof (struct GNUNET_TESTBED_ControllerLinkMessage);
+    if (Z_OK != uncompress ((Bytef *) config, &dest_size,
+                            (const Bytef *) &msg[1], (uLong) msize))
+    {
+      GNUNET_break (0);           /* Compression error */
+      GNUNET_free (config);
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      return;
+    }
+    GNUNET_assert (config_size == dest_size);
+    cfg = GNUNET_CONFIGURATION_create (); /* Free here or in lcfcontext */
+    if (GNUNET_OK != GNUNET_CONFIGURATION_deserialize (cfg, config, config_size,
+                                                       GNUNET_NO))
+    {
+      GNUNET_break (0);           /* Configuration parsing error */
+      GNUNET_break (config);
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      return;
+    }
     GNUNET_free (config);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
+    if (delegated_host_id >= slave_list_size)
+    {
+      slave_list_size += LIST_GROW_STEP;
+      slave_list = GNUNET_realloc (slave_list,
+                                   sizeof (struct Slave *) * slave_list_size);
+    }
+    struct Slave *slave;
+    slave = GNUNET_malloc (sizeof (struct Slave));
+    slave->host = delegated_host_id;
+    slave_list[delegated_host_id] = slave;
+    if (1 == msg->is_subordinate)
+    {
+      slave->controller_proc =
+        GNUNET_TESTBED_controller_start (host_list[delegated_host_id]);
+    }
+    slave->controller =
+      GNUNET_TESTBED_controller_connect (cfg, host_list[delegated_host_id],
+                                         master_context->event_mask,
+                                         &slave_event_callback, slave);
+    GNUNET_CONFIGURATION_destroy (cfg);        
   }
-  GNUNET_assert (config_size == dest_size);
-  cfg = GNUNET_CONFIGURATION_create (); /* Free here or in lcfcontext */
-  if (GNUNET_OK != GNUNET_CONFIGURATION_deserialize (cfg, config, config_size,
-                                                     GNUNET_NO))
-  {
-    GNUNET_break (0);           /* Configuration parsing error */
-    GNUNET_break (config);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
-  }
-  GNUNET_free (config);
+  /* Route the request */
+
+  
 
   /* If delegated host and slave host are not same we have to forward
      towards delegated host */
@@ -863,7 +953,6 @@ handle_link_controllers (void *cls,
     GNUNET_break (0);           /* FIXME: Implement the slave controller
                                    startup */ 
   }  
-  GNUNET_CONFIGURATION_destroy (cfg);
 }
 
 
