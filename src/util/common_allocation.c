@@ -182,6 +182,24 @@ GNUNET_xrealloc_ (void *ptr, size_t n, const char *filename, int linenumber)
 }
 
 
+# if __BYTE_ORDER == __LITTLE_ENDIAN
+#define BAADFOOD_STR "\x0D\xF0\xAD\xBA"
+#endif
+# if __BYTE_ORDER == __BIG_ENDIAN
+#define BAADFOOD_STR "\xBA\xAD\xF0\x0D"
+#endif
+
+#if WINDOWS
+#define MSIZE(p) _msize (p)
+#endif
+#if LINUX
+/* FIXME: manpage claims that this function is a GNU extension,
+ * but googling shows that it is available on many platforms via
+ * inclusion of various headers. For now let's make it Linux-only.
+ */
+#define MSIZE(p) malloc_usable_size (p)
+#endif
+
 /**
  * Free memory. Merely a wrapper for the case that we
  * want to keep track of allocations.
@@ -198,12 +216,12 @@ GNUNET_xfree_ (void *ptr, const char *filename, int linenumber)
   ptr = &((size_t *) ptr)[-1];
   mem_used -= *((size_t *) ptr);
 #endif
-#if WINDOWS
+#if defined(MSIZE)
 #if ENABLE_POISONING
   {
     size_t i;
-    char baadfood[4] = "\xBA\xAD\xF0\x0D";
-    size_t s = _msize (ptr);
+    char baadfood[5] = BAADFOOD_STR;
+    size_t s = MSIZE (ptr);
     for (i = 0; i < s; i++)
       ((char *) ptr)[i] = baadfood[i % 4];
   }
