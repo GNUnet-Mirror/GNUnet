@@ -122,20 +122,36 @@ struct SharedService
 struct Route
 {
   /**
-   * The forwarding (next hop) host id
+   * destination host
    */
-  uint32_t next_hop;
+  uint32_t dest;
 
   /**
-   * The controller handle if we have started the controller at the next hop
-   * host 
+   * The host destination is reachable thru
    */
-  struct GNUNET_TESTBED_Controller *fcontroller;
+  uint32_t thru;
+};
+
+
+/**
+ * Structure representing a connected(directly-linked) controller
+ */
+struct Slave
+{
+  /**
+   * The controller process handle if we had started the controller
+   */
+  struct GNUNET_TESTBED_ControllerProc *controller_proc;
 
   /**
-   * The controller process handle if we started the controller
+   * The controller handle
    */
-  struct GNUNET_TESTBED_ControllerProc *fcontroller_proc;
+  struct GNUNET_TESTBED_Controller *controller;
+
+  /**
+   * The id of the host this controller is running on
+   */
+  uint32_t host_id;
 };
 
 
@@ -155,11 +171,6 @@ enum LCFContextState
     DELEGATED_HOST_REGISTERED,
     
     /**
-     * The slave host has been registred at the forwarding controller
-     */
-    SLAVE_HOST_REGISTERED,
-
-    /**
      * The context has been finished (may have error)
      */
     FINISHED
@@ -173,19 +184,29 @@ enum LCFContextState
 struct LCFContext
 {
   /**
-   * The configuration
+   * The serialized and compressed configuration
    */
-  struct GNUNET_CONFIGURATION_Handle *cfg;
+  char *sxcfg;
 
   /**
-   * The handle of the controller this request has to be forwarded to
+   * The gateway which will pass the link message to delegated host
    */
-  struct GNUNET_TESTBED_Controller *fcontroller;
+  struct Slave *gateway;
 
   /**
    * The host registration handle while registered hosts in this context
    */
   struct GNUNET_TESTBED_HostRegistrationHandle *rhandle;
+
+  /**
+   * The size of the compressed serialized configuration
+   */
+  size_t sxcfg_size;
+
+  /**
+   * The size of the uncompressed configuration
+   */
+  size_t scfg_size;
 
   /**
    * Should the delegated host be started by the slave host?
@@ -201,11 +222,7 @@ struct LCFContext
    * The delegated host
    */
   uint32_t delegated_host_id;
-
-  /**
-   * The slave host
-   */
-  uint32_t slave_host_id;
+  
 
 };
 
@@ -229,29 +246,6 @@ struct LCFContextQueue
    * Tail ptr for DLL
    */
   struct LCFContextQueue *prev;
-};
-
-
-
-/**
- * Structure representing a connected(directly-linked) controller
- */
-struct Slave
-{
-  /**
-   * The controller process handle if we had started the controller
-   */
-  struct GNUNET_TESTBED_ControllerProc *controller_proc;
-
-  /**
-   * The controller handle
-   */
-  struct GNUNET_TESTBED_Controller *controller;
-
-  /**
-   * The id of the host this controller is running on
-   */
-  uint32_t host;
 };
 
 
@@ -448,6 +442,25 @@ host_list_add (struct GNUNET_TESTBED_Host *host)
 
 
 /**
+ * Adds a route to the route list
+ *
+ * @param route the route to add
+ */
+static void
+route_list_add (struct Route *route)
+{
+  if (route->dest > route_list_size)
+  {
+    route_list_size += LIST_GROW_STEP;
+    route_list = GNUNET_realloc (route_list, sizeof (struct Route *)
+                                 * route_list_size);
+  }
+  GNUNET_assert (NULL == route_list[route->dest]);
+  route_list[route->dest] = route;
+}
+
+
+/**
  * Routes message to a host given its host_id
  *
  * @param host_id the id of the destination host
@@ -487,26 +500,19 @@ lcf_proc_cc (void *cls, const char *emsg)
   {
   case INIT:
     if (NULL != emsg)
-      goto registration_error;
+    {
+      LOG (GNUNET_ERROR_TYPE_WARNING, 
+           "Host registration failed with message: %s\n", emsg);
+      lcf->state = FINISHED;
+      lcf_proc_task_id = GNUNET_SCHEDULER_add_now (&lcf_proc_task, lcf);
+      return;
+    }
     lcf->state = DELEGATED_HOST_REGISTERED;
     lcf_proc_task_id = GNUNET_SCHEDULER_add_now (&lcf_proc_task, lcf);
     break;
-  case DELEGATED_HOST_REGISTERED:
-     if (NULL != emsg)
-      goto registration_error;
-     lcf->state = SLAVE_HOST_REGISTERED;
-     lcf_proc_task_id = GNUNET_SCHEDULER_add_now (&lcf_proc_task, lcf);
-     break;
   default:
     GNUNET_assert (0); 		/* Shouldn't reach here */
   }  
-  return;
-
- registration_error:
-  LOG (GNUNET_ERROR_TYPE_WARNING, 
-       "Host registration failed with message: %s\n", emsg);
-  lcf->state = FINISHED;
-  lcf_proc_task_id = GNUNET_SCHEDULER_add_now (&lcf_proc_task, lcf);
 }
 
 
@@ -528,10 +534,10 @@ lcf_proc_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   case INIT:
     if (GNUNET_NO ==
 	GNUNET_TESTBED_is_host_registered_ (host_list[lcf->delegated_host_id],
-					    lcf->fcontroller))
+					    lcf->gateway->controller))
     {
       lcf->rhandle =
-	GNUNET_TESTBED_register_host (lcf->fcontroller,
+	GNUNET_TESTBED_register_host (lcf->gateway->controller,
 				      host_list[lcf->delegated_host_id],
 				      lcf_proc_cc, lcf);						   
     }
@@ -542,35 +548,23 @@ lcf_proc_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     }
     break;
   case DELEGATED_HOST_REGISTERED:
-    if (GNUNET_NO ==
-	GNUNET_TESTBED_is_host_registered_ (host_list[lcf->slave_host_id],
-					    lcf->fcontroller))
-    {
-      lcf->rhandle =
-	GNUNET_TESTBED_register_host (lcf->fcontroller,
-				      host_list[lcf->slave_host_id],
-				      lcf_proc_cc, lcf);						   
-    }
-    else
-    {
-      lcf->state = SLAVE_HOST_REGISTERED;
-      lcf_proc_task_id = GNUNET_SCHEDULER_add_now (&lcf_proc_task, lcf);
-    }
-    break;
-  case SLAVE_HOST_REGISTERED:
-    GNUNET_TESTBED_controller_link (lcf->fcontroller,
-				    host_list[lcf->delegated_host_id],
-				    host_list[lcf->slave_host_id],
-				    lcf->cfg, lcf->is_subordinate);
+    GNUNET_TESTBED_controller_link_2 (lcf->gateway->controller,
+                                      host_list[lcf->delegated_host_id],
+                                      host_list[lcf->gateway->host_id],
+                                      lcf->sxcfg, lcf->sxcfg_size,
+                                      lcf->scfg_size,
+                                      lcf->is_subordinate);
     lcf->state = FINISHED;
-  case FINISHED:
+  case FINISHED:   
     lcfq = lcfq_head;
-    GNUNET_CONFIGURATION_destroy (lcfq->lcf->cfg);
-    GNUNET_free (lcfq->lcf);
+    GNUNET_assert (lcfq->lcf == lcf);
+    GNUNET_free (lcf->sxcfg);
+    GNUNET_free (lcf);
     GNUNET_CONTAINER_DLL_remove (lcfq_head, lcfq_tail, lcfq);
     GNUNET_free (lcfq);
     if (NULL != lcfq_head)
-      lcf_proc_task_id = GNUNET_SCHEDULER_add_now (&lcf_proc_task, lcfq_head->lcf);
+      lcf_proc_task_id = 
+        GNUNET_SCHEDULER_add_now (&lcf_proc_task, lcfq_head->lcf);
   }
 }
 
@@ -802,6 +796,7 @@ handle_link_controllers (void *cls,
   struct GNUNET_CONFIGURATION_Handle *cfg;
   struct LCFContextQueue *lcfq;
   struct Route *route;
+  struct Route *new_route;
   char *config;  
   uLongf dest_size;
   size_t config_size;
@@ -845,8 +840,19 @@ handle_link_controllers (void *cls,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
+  if (slave_host_id == delegated_host_id)
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING, "Slave and delegated host are same\n");
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  msize -= sizeof (struct GNUNET_TESTBED_ControllerLinkMessage);
+  config_size = ntohs (msg->config_size);
+  
   if (slave_host_id == master_context->host_id) /* Link from us */
   {
+    struct Slave *slave;
+
     if ((delegated_host_id < slave_list_size) && 
         (NULL != slave_list[delegated_host_id])) /* We have already added */
     {
@@ -854,11 +860,9 @@ handle_link_controllers (void *cls,
            delegated_host_id);
       GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
       return;
-    }
-    config_size = ntohs (msg->config_size);
+    }    
     config = GNUNET_malloc (config_size);
-    dest_size = (uLongf) config_size;
-    msize -= sizeof (struct GNUNET_TESTBED_ControllerLinkMessage);
+    dest_size = (uLongf) config_size;    
     if (Z_OK != uncompress ((Bytef *) config, &dest_size,
                             (const Bytef *) &msg[1], (uLong) msize))
     {
@@ -867,13 +871,18 @@ handle_link_controllers (void *cls,
       GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
       return;
     }
-    GNUNET_assert (config_size == dest_size);
+    if (config_size == dest_size)
+    {
+      LOG (GNUNET_ERROR_TYPE_WARNING, "Uncompressed config size mismatch\n");
+      GNUNET_free (config);
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    }
     cfg = GNUNET_CONFIGURATION_create (); /* Free here or in lcfcontext */
     if (GNUNET_OK != GNUNET_CONFIGURATION_deserialize (cfg, config, config_size,
                                                        GNUNET_NO))
     {
       GNUNET_break (0);           /* Configuration parsing error */
-      GNUNET_break (config);
+      GNUNET_free (config);
       GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
       return;
     }
@@ -884,9 +893,8 @@ handle_link_controllers (void *cls,
       slave_list = GNUNET_realloc (slave_list,
                                    sizeof (struct Slave *) * slave_list_size);
     }
-    struct Slave *slave;
     slave = GNUNET_malloc (sizeof (struct Slave));
-    slave->host = delegated_host_id;
+    slave->host_id = delegated_host_id;
     slave_list[delegated_host_id] = slave;
     if (1 == msg->is_subordinate)
     {
@@ -897,62 +905,55 @@ handle_link_controllers (void *cls,
       GNUNET_TESTBED_controller_connect (cfg, host_list[delegated_host_id],
                                          master_context->event_mask,
                                          &slave_event_callback, slave);
-    GNUNET_CONFIGURATION_destroy (cfg);        
-  }
-  /* Route the request */
-
-  
-
-  /* If delegated host and slave host are not same we have to forward
-     towards delegated host */
-  if (slave_host_id != delegated_host_id)
-  {
-    if ((slave_host_id >= route_list_size) ||
-	(NULL == (route = route_list[slave_host_id])) ||
-	(NULL == route->fcontroller))
-    {
-      LOG (GNUNET_ERROR_TYPE_WARNING, "Not route towards slave host");
-      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-      return;
-    }
-    if (slave_host_id == route->next_hop) /* Slave directly connected */
-    {
-      /* Then make slave host and delegated host same so that slave
-	 will startup directly link to the delegated host */
-      slave_host_id = delegated_host_id;
-    }
-    lcfq = GNUNET_malloc (sizeof (struct LCFContextQueue));
-    lcfq->lcf = GNUNET_malloc (sizeof (struct LCFContext));
-    lcfq->lcf->delegated_host_id = delegated_host_id;
-    lcfq->lcf->slave_host_id = slave_host_id;
-    lcfq->lcf->is_subordinate =
-      (1 == msg->is_subordinate) ? GNUNET_YES : GNUNET_NO;
-    lcfq->lcf->state = INIT;
-    lcfq->lcf->fcontroller = route->fcontroller;
-    lcfq->lcf->cfg = cfg;    
-    if (NULL == lcfq_head)
-    {
-      GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == lcf_proc_task_id);
-      GNUNET_CONTAINER_DLL_insert_tail (lcfq_head, lcfq_tail, lcfq);
-      lcf_proc_task_id = GNUNET_SCHEDULER_add_now (&lcf_proc_task, lcfq);
-    }
-    else
-      GNUNET_CONTAINER_DLL_insert_tail (lcfq_head, lcfq_tail, lcfq);
+    GNUNET_CONFIGURATION_destroy (cfg);
+    new_route = GNUNET_malloc (sizeof (struct Route));
+    new_route->dest = delegated_host_id;
+    new_route->thru = master_context->host_id;
+    route_list_add (new_route);
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
-  else
+
+  /* Route the request */
+  if (slave_host_id >= route_list_size)
   {
-    
+    LOG (GNUNET_ERROR_TYPE_WARNING, "No route towards slave host");
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
   }
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
-  /* If we are not the slave controller then we have to route the request
-     towards the slave controller */
-  if (1 == msg->is_subordinate)
+  while (NULL != (route = route_list[slave_host_id]))
   {
-    GNUNET_break (0);           /* FIXME: Implement the slave controller
-                                   startup */ 
-  }  
+    if (route->thru == master_context->host_id)
+      break;
+    slave_host_id = route->thru;
+  }
+  GNUNET_assert (NULL != route); /* because we add routes carefully */
+  GNUNET_assert (route->dest < slave_list_size);
+  GNUNET_assert (NULL != slave_list[route->dest]);  
+  lcfq = GNUNET_malloc (sizeof (struct LCFContextQueue));
+  lcfq->lcf = GNUNET_malloc (sizeof (struct LCFContext));
+  lcfq->lcf->delegated_host_id = delegated_host_id;
+  lcfq->lcf->is_subordinate =
+    (1 == msg->is_subordinate) ? GNUNET_YES : GNUNET_NO;
+  lcfq->lcf->state = INIT;
+  lcfq->lcf->gateway = slave_list[route->dest];
+  lcfq->lcf->sxcfg_size = msize;
+  lcfq->lcf->sxcfg = GNUNET_malloc (msize);
+  lcfq->lcf->scfg_size = config_size;
+  (void) memcpy (lcfq->lcf->sxcfg, &msg[1], msize);
+  if (NULL == lcfq_head)
+  {
+    GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == lcf_proc_task_id);
+    GNUNET_CONTAINER_DLL_insert_tail (lcfq_head, lcfq_tail, lcfq);
+    lcf_proc_task_id = GNUNET_SCHEDULER_add_now (&lcf_proc_task, lcfq);
+  }
+  else
+    GNUNET_CONTAINER_DLL_insert_tail (lcfq_head, lcfq_tail, lcfq);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  new_route = GNUNET_malloc (sizeof (struct Route));
+  new_route->dest = delegated_host_id;
+  new_route->thru = route->dest;
+  route_list_add (new_route);
 }
 
 
@@ -991,8 +992,7 @@ shutdown_task (void *cls,
                const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct LCFContextQueue *lcfq;
-  uint32_t host_id;
-  uint32_t route_id;
+  uint32_t id;
 
   shutdown_task_id = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_SCHEDULER_shutdown ();
@@ -1018,27 +1018,30 @@ shutdown_task (void *cls,
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == lcf_proc_task_id);
   for (lcfq = lcfq_head; NULL != lcfq; lcfq = lcfq_head)
   {
-    GNUNET_CONFIGURATION_destroy (lcfq->lcf->cfg);
+    GNUNET_free (lcfq->lcf->sxcfg);
     GNUNET_free (lcfq->lcf);
     GNUNET_CONTAINER_DLL_remove (lcfq_head, lcfq_tail, lcfq);
     GNUNET_free (lcfq);
   }
   /* Clear host list */
-  for (host_id = 0; host_id < host_list_size; host_id++)
-    if (NULL != host_list[host_id])
-      GNUNET_TESTBED_host_destroy (host_list[host_id]);
+  for (id = 0; id < host_list_size; id++)
+    if (NULL != host_list[id])
+      GNUNET_TESTBED_host_destroy (host_list[id]);
   GNUNET_free_non_null (host_list);
   /* Clear route list */
-  for (route_id = 0; route_id < route_list_size; route_id++)
-    if (NULL != route_list[route_id])
-    {
-      if (NULL != route_list[route_id]->fcontroller)
-        GNUNET_TESTBED_controller_disconnect (route_list[route_id]->fcontroller);
-      if (NULL != route_list[route_id]->fcontroller_proc)
-	GNUNET_TESTBED_controller_stop (route_list[route_id]->fcontroller_proc);
-      GNUNET_free (route_list[route_id]);
-    }
+  for (id = 0; id < route_list_size; id++)
+    if (NULL != route_list[id])
+      GNUNET_free (route_list[id]);
   GNUNET_free_non_null (route_list);
+  /* Clear slave_list */
+  for (id = 0; id < slave_list_size; id++)
+    if (NULL != slave_list[id])
+    {
+      GNUNET_assert (NULL != slave_list[id]->controller);
+      GNUNET_TESTBED_controller_disconnect (slave_list[id]->controller);
+      if (NULL != slave_list[id]->controller_proc)
+        GNUNET_TESTBED_controller_stop (slave_list[id]->controller_proc);
+    }
   GNUNET_free_non_null (master_context);
 }
 
