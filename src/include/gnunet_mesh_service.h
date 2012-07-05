@@ -385,12 +385,16 @@ GNUNET_MESH_notify_transmit_ready_cancel (struct GNUNET_MESH_TransmitHandle
 
 /**
  * Transition API for tunnel ctx management
+ * 
+ * FIXME deprecated
  */
 void
 GNUNET_MESH_tunnel_set_data (struct GNUNET_MESH_Tunnel *tunnel, void *data);
 
 /**
  * Transition API for tunnel ctx management
+ * 
+ * FIXME deprecated
  */
 void *
 GNUNET_MESH_tunnel_get_data (struct GNUNET_MESH_Tunnel *tunnel);
