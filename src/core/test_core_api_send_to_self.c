@@ -78,6 +78,8 @@ receive (void *cls, const struct GNUNET_PeerIdentity *other,
     GNUNET_SCHEDULER_cancel (die_task);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received message from peer %s\n",
               GNUNET_i2s (other));
+  GNUNET_assert (GNUNET_MESSAGE_TYPE_DUMMY == ntohs (message->type));
+  GNUNET_assert (0 == memcmp (other, &myself, sizeof (myself)));
   GNUNET_SCHEDULER_add_now (&cleanup, NULL);
   ret = 0;
   return GNUNET_OK;
