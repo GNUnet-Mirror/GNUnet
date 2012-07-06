@@ -32,7 +32,7 @@
 /**
  * Constant for how many bits the initial string regex should have.
  */
-#define INITIAL_BITS 10
+#define INITIAL_BITS 8
 
 
 /**
@@ -2516,8 +2516,87 @@ int
 GNUNET_REGEX_check_proof (const char *proof, const struct GNUNET_HashCode *key)
 {
   struct GNUNET_HashCode key_check;
+
   GNUNET_CRYPTO_hash (proof, strlen (proof), &key_check);
-  return (0 == GNUNET_CRYPTO_hash_cmp (key, &key_check)) ? GNUNET_OK : GNUNET_NO;
+  return (0 ==
+          GNUNET_CRYPTO_hash_cmp (key, &key_check)) ? GNUNET_OK : GNUNET_NO;
+}
+
+/**
+ * Recursive helper function for iterate_initial_edges. Will call iterator
+ * function for each initial state.
+ *
+ * @param max_len maximum length of the path in the graph.
+ * @param cur_len current length of the path already traversed.
+ * @param consumed_string string consumed by traversing the graph till this state.
+ * @param next_state next state in the graph that is reachable with 'label' transition.
+ * @param label label of the transition to the next state.
+ * @param iterator iterator function called for each edge.
+ * @param iterator_cls closure for the iterator function.
+ */
+static void
+iterate_initial_edge (const unsigned int max_len, unsigned int cur_len,
+                      char *consumed_string,
+                      struct GNUNET_REGEX_State *next_state, const char label,
+                      GNUNET_REGEX_KeyIterator iterator, void *iterator_cls)
+{
+  char *temp;
+  struct GNUNET_REGEX_Transition *t;
+  struct GNUNET_REGEX_Edge edge;
+  struct GNUNET_HashCode hash;
+  size_t constr_len;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "max_len: %u, cur_len: %u, consumed_string: %s\n", max_len,
+              cur_len, consumed_string);
+
+  if (max_len == cur_len)
+  {
+    constr_len = strlen (consumed_string);
+    GNUNET_CRYPTO_hash (consumed_string, constr_len - 1, &hash);
+    GNUNET_asprintf (&temp, "%c", label);
+    edge.label = temp;
+    edge.destination = next_state->hash;
+    consumed_string[constr_len - 1] = '\0';
+    iterator (iterator_cls, &hash, consumed_string, 0, 1, &edge);
+    GNUNET_free (temp);
+
+    return;
+  }
+  else if (cur_len <= max_len)
+  {
+    cur_len++;
+    for (t = next_state->transitions_head; NULL != t; t = t->next)
+    {
+      if (NULL != consumed_string)
+        GNUNET_asprintf (&temp, "%s%c", consumed_string, t->label);
+      else
+        GNUNET_asprintf (&temp, "%c", t->label);
+
+      iterate_initial_edge (max_len, cur_len, temp, t->to_state, t->label,
+                            iterator, iterator_cls);
+      GNUNET_free (temp);
+    }
+  }
+}
+
+/**
+ * Iterate over all initial edges that aren't actually part of the automaton.
+ * This is needed to find the initial states returned by
+ * GNUNET_REGEX_get_first_key.
+ *
+ * @param a the automaton for which the initial states should be computed.
+ * @param initial_len length of the initial state string.
+ * @param iterator iterator function called for each edge.
+ * @param iterator_cls closure for the iterator function.
+ */
+void
+iterate_initial_edges (struct GNUNET_REGEX_Automaton *a,
+                       const unsigned int initial_len,
+                       GNUNET_REGEX_KeyIterator iterator, void *iterator_cls)
+{
+  iterate_initial_edge (initial_len + 1, 0, NULL, a->start, 0, iterator,
+                        iterator_cls);
 }
 
 
@@ -2569,5 +2648,6 @@ GNUNET_REGEX_iterate_all_edges (struct GNUNET_REGEX_Automaton *a,
   for (s = a->states_head; NULL != s; s = s->next)
     s->marked = GNUNET_NO;
 
+  iterate_initial_edges (a, INITIAL_BITS, iterator, iterator_cls);
   iterate_edge (a->start, iterator, iterator_cls);
 }

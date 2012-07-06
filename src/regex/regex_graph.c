@@ -26,7 +26,7 @@
 #include "gnunet_regex_lib.h"
 #include "regex_internal.h"
 
-/** 
+/**
  * Context for graph creation. Passed as the cls to
  * GNUNET_REGEX_automaton_save_graph_step.
  */
@@ -77,7 +77,7 @@ scc_tarjan_strongconnect (unsigned int *scc_counter,
 
     if (NULL == w)
       continue;
-    
+
     if (w->index < 0)
     {
       scc_tarjan_strongconnect (scc_counter, w, index, stack, stack_size);
@@ -160,9 +160,10 @@ GNUNET_REGEX_automaton_save_graph_step (void *cls, unsigned int count,
   char *s_tran = NULL;
   char *name;
   char *to_name;
-  
+
   if (GNUNET_YES == ctx->verbose)
-    GNUNET_asprintf (&name, "%i (%s)", s->proof_id, s->name);
+    GNUNET_asprintf (&name, "%i (%s) (%s) (%s)", s->proof_id, s->name, s->proof,
+                     GNUNET_h2s (&s->hash));
   else
     GNUNET_asprintf (&name, "%i", s->proof_id);
 
@@ -174,7 +175,8 @@ GNUNET_REGEX_automaton_save_graph_step (void *cls, unsigned int count,
   }
   else
   {
-    GNUNET_asprintf (&s_acc, "\"%s\" [color=\"0.%i 0.8 0.95\"];\n", name, s->scc_id);
+    GNUNET_asprintf (&s_acc, "\"%s\" [color=\"0.%i 0.8 0.95\"];\n", name,
+                     s->scc_id);
   }
 
   if (NULL == s_acc)
@@ -197,10 +199,14 @@ GNUNET_REGEX_automaton_save_graph_step (void *cls, unsigned int count,
     }
 
     if (GNUNET_YES == ctx->verbose)
-      GNUNET_asprintf (&to_name, "%i (%s)", ctran->to_state->proof_id, ctran->to_state->name);
+    {
+      GNUNET_asprintf (&to_name, "%i (%s) (%s) (%s)", ctran->to_state->proof_id,
+                       ctran->to_state->name, ctran->to_state->proof,
+                       GNUNET_h2s (&ctran->to_state->hash));
+    }
     else
       GNUNET_asprintf (&to_name, "%i", ctran->to_state->proof_id);
-    
+
     if (ctran->label == 0)
     {
       GNUNET_asprintf (&s_tran,
@@ -243,13 +249,12 @@ GNUNET_REGEX_automaton_save_graph_step (void *cls, unsigned int count,
  */
 void
 GNUNET_REGEX_automaton_save_graph (struct GNUNET_REGEX_Automaton *a,
-                                   const char *filename,
-                                   int verbose)
+                                   const char *filename, int verbose)
 {
   char *start;
   char *end;
   struct GNUNET_REGEX_Graph_Context ctx;
-  
+
   if (NULL == a)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not print NFA, was NULL!");
@@ -263,6 +268,7 @@ GNUNET_REGEX_automaton_save_graph (struct GNUNET_REGEX_Automaton *a,
   }
 
   ctx.filep = fopen (filename, "w");
+  ctx.verbose = verbose;
 
   if (NULL == ctx.filep)
   {
