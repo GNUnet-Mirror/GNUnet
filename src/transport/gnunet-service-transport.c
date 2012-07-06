@@ -90,12 +90,16 @@ static int connections;
  * @param ats performance information (unused)
  * @param ats_count number of records in ats (unused)
  * @param address the address
+ * @param bandwidth_in inbound quota in NBO
+ * @param bandwidth_out outbound quota in NBO
  */
 static void
 transmit_our_hello (void *cls, const struct GNUNET_PeerIdentity *target,
                     const struct GNUNET_ATS_Information *ats,
                     uint32_t ats_count,
-                    const struct GNUNET_HELLO_Address *address)
+                    const struct GNUNET_HELLO_Address *address,
+                    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
+                    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out)
 {
   const struct GNUNET_MessageHeader *hello = cls;
 
@@ -451,7 +455,9 @@ static void
 neighbours_connect_notification (void *cls,
                                  const struct GNUNET_PeerIdentity *peer,
                                  const struct GNUNET_ATS_Information *ats,
-                                 uint32_t ats_count)
+                                 uint32_t ats_count,
+                                 struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
+                                 struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out)
 {
   size_t len =
       sizeof (struct ConnectInfoMessage) +
@@ -469,6 +475,8 @@ neighbours_connect_notification (void *cls,
   connect_msg->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT);
   connect_msg->ats_count = htonl (ats_count);
   connect_msg->id = *peer;
+  connect_msg->quota_in = bandwidth_in;
+  connect_msg->quota_out = bandwidth_out;
   ap = (struct GNUNET_ATS_Information *) &connect_msg[1];
   memcpy (ap, ats, ats_count * sizeof (struct GNUNET_ATS_Information));
   GST_clients_broadcast (&connect_msg->header, GNUNET_NO);

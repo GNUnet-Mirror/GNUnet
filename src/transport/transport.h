@@ -56,6 +56,26 @@
  */
 #define CONNECTED_LATENCY_EVALUATION_MAX_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 1)
 
+/**
+ * Similiar to GNUNET_TRANSPORT_NotifyDisconnect but in and out quotas are
+ * included here. These values are not required outside transport_api
+ *
+ * @param cls closure
+ * @param peer the peer that connected
+ * @param ats performance data
+ * @param ats_count number of entries in ats (excluding 0-termination)
+ * @param bandwidth_in inbound bandwidth in NBO
+ * @param bandwidth_out outbound bandwidth in NBO
+ *
+ */
+
+typedef void (*NotifyConnect) (void *cls,
+                              const struct GNUNET_PeerIdentity *peer,
+                              const struct GNUNET_ATS_Information *ats,
+                              uint32_t ats_count,
+                              struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
+                              struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out);
+
 GNUNET_NETWORK_STRUCT_BEGIN
 
 /**
@@ -109,6 +129,16 @@ struct ConnectInfoMessage
    * Identity of the new neighbour.
    */
   struct GNUNET_PeerIdentity id;
+
+  /**
+   * Current inbound quota for this peer
+   */
+  struct GNUNET_BANDWIDTH_Value32NBO quota_in;
+
+  /**
+   * Current outbound quota for this peer
+   */
+  struct GNUNET_BANDWIDTH_Value32NBO quota_out;
 };
 
 

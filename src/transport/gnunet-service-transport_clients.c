@@ -437,7 +437,9 @@ notify_client_about_neighbour (void *cls,
                                const struct GNUNET_PeerIdentity *peer,
                                const struct GNUNET_ATS_Information *ats,
                                uint32_t ats_count,
-                               const struct GNUNET_HELLO_Address *address)
+                               const struct GNUNET_HELLO_Address *address,
+                               struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
+                               struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out)
 {
   struct TransportClient *tc = cls;
   struct ConnectInfoMessage *cim;
@@ -453,6 +455,8 @@ notify_client_about_neighbour (void *cls,
   cim->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT);
   cim->ats_count = htonl (ats_count);
   cim->id = *peer;
+  cim->quota_in = bandwidth_in;
+  cim->quota_out = bandwidth_out;
   ap = (struct GNUNET_ATS_Information *) &cim[1];
   memcpy (ap, ats, ats_count * sizeof (struct GNUNET_ATS_Information));
   unicast (tc, &cim->header, GNUNET_NO);
@@ -832,11 +836,15 @@ compose_address_iterate_response_message (const struct GNUNET_PeerIdentity
  * @param ats performance data
  * @param ats_count number of entries in ats (excluding 0-termination)
  * @param address the address
+ * @param bandwidth_in inbound quota in NBO
+ * @param bandwidth_out outbound quota in NBO
  */
 static void
 output_address (void *cls, const struct GNUNET_PeerIdentity *peer,
                 const struct GNUNET_ATS_Information *ats, uint32_t ats_count,
-                const struct GNUNET_HELLO_Address *address)
+                const struct GNUNET_HELLO_Address *address,
+                struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
+                struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out)
 {
   struct GNUNET_SERVER_TransmitContext *tc = cls;
   struct AddressIterateResponseMessage *msg;
@@ -900,7 +908,9 @@ clients_handle_address_iterate (void *cls, struct GNUNET_SERVER_Client *client,
     /* just return one neighbour */
     address = GST_neighbour_get_current_address (&msg->peer);
     if (address != NULL)
-      output_address (tc, &msg->peer, NULL, 0, address);
+      output_address (tc, &msg->peer, NULL, 0, address,
+                      GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT,
+                      GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT);
   }
   if (GNUNET_YES != ntohl (msg->one_shot))
     setup_monitoring_client (client, &msg->peer);

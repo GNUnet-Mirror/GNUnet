@@ -543,12 +543,16 @@ struct TestConnectionContext
  * @param ats performance data
  * @param ats_count number of entries in ats (excluding 0-termination)
  * @param address the address
+ * @param bandwidth_in inbound quota in NBO
+ * @param bandwidth_out outbound quota in NBO
  */
 static void
 test_connection_ok (void *cls, const struct GNUNET_PeerIdentity *neighbour,
                     const struct GNUNET_ATS_Information *ats,
                     uint32_t ats_count,
-                    const struct GNUNET_HELLO_Address *address)
+                    const struct GNUNET_HELLO_Address *address,
+                    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
+                    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out)
 {
   struct TestConnectionContext *tcc = cls;
   struct GST_BlacklistCheck *bc;

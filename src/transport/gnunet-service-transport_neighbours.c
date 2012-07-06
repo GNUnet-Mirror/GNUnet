@@ -595,7 +595,7 @@ static void *callback_cls;
 /**
  * Function to call when we connected to a neighbour.
  */
-static GNUNET_TRANSPORT_NotifyConnect connect_notify_cb;
+static NotifyConnect connect_notify_cb;
 
 /**
  * Function to call when we disconnected from a neighbour.
@@ -2170,11 +2170,14 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "ATS tells us to switch to address '%s' session %p for peer `%s' in state %s\n",
+              "ATS tells us to switch to address '%s' session %p for "
+              "peer `%s' in state %s (quota in/out %u %u )\n",
               (address->address_length != 0) ? GST_plugins_a2s (address): "<inbound>",
               session,
               GNUNET_i2s (peer),
-              print_state (n->state));
+              print_state (n->state),
+              ntohl (bandwidth_in.value__),
+              ntohl (bandwidth_out.value__));
 
   if (NULL == session)
   {
@@ -2634,7 +2637,9 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
 			   gettext_noop ("# peers connected"), 
 			   ++neighbours_connected,
 			   GNUNET_NO);
-    connect_notify_cb (callback_cls, &n->id, ats, ats_count);
+    connect_notify_cb (callback_cls, &n->id, ats, ats_count,
+                       n->primary_address.bandwidth_in,
+                       n->primary_address.bandwidth_out);
     /* Tell ATS that the outbound session we created to send CONNECT was successfull */
     GNUNET_ATS_address_add (GST_ats,
                             n->primary_address.address,
@@ -2894,7 +2899,9 @@ GST_neighbours_handle_session_ack (const struct GNUNET_MessageHeader *message,
 			 gettext_noop ("# peers connected"), 
 			 ++neighbours_connected,
 			 GNUNET_NO);
-  connect_notify_cb (callback_cls, &n->id, ats, ats_count);
+  connect_notify_cb (callback_cls, &n->id, ats, ats_count,
+                     n->primary_address.bandwidth_in,
+                     n->primary_address.bandwidth_out);
   GNUNET_ATS_address_add(GST_ats,
                          n->primary_address.address,
                          n->primary_address.session,
@@ -3062,7 +3069,25 @@ neighbours_iterate (void *cls, const struct GNUNET_HashCode * key, void *value)
   struct NeighbourMapEntry *n = value;
 
   if (GNUNET_YES == test_connected (n))
-    ic->cb (ic->cb_cls, &n->id, NULL, 0, n->primary_address.address);
+  {
+    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in;
+    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out;
+
+    if (NULL != n->primary_address.address)
+    {
+      bandwidth_in = n->primary_address.bandwidth_in;
+      bandwidth_out = n->primary_address.bandwidth_out;
+    }
+    else
+    {
+      bandwidth_in = GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT;
+      bandwidth_out = GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT;
+    }
+
+    ic->cb (ic->cb_cls, &n->id, NULL, 0,
+            n->primary_address.address,
+            bandwidth_in, bandwidth_out);
+  }
   return GNUNET_OK;
 }
 
@@ -3180,7 +3205,7 @@ GST_neighbour_get_current_address (const struct GNUNET_PeerIdentity *peer)
  */
 void
 GST_neighbours_start (void *cls,
-                      GNUNET_TRANSPORT_NotifyConnect connect_cb,
+    NotifyConnect connect_cb,
                       GNUNET_TRANSPORT_NotifyDisconnect disconnect_cb,
                       GNUNET_TRANSPORT_PeerIterateCallback peer_address_cb)
 {

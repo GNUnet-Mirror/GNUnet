@@ -477,6 +477,7 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
       break;
     }
     n = neighbour_add (h, &cim->id);
+    GNUNET_BANDWIDTH_tracker_update_quota (&n->out_tracker, cim->quota_out);
     if (h->nc_cb != NULL)
       h->nc_cb (h->cls, &n->id, ats, ats_count);
     break;
