@@ -355,6 +355,9 @@ transmit_data (void *cls, size_t size, void *buf)
 {
   struct GNUNET_MessageHeader *m = buf;
 
+  if ((NULL == buf) && (0 == size))
+    return 0;
+
   GNUNET_assert (size >= sizeof (struct GNUNET_MessageHeader));
   GNUNET_assert (size < GNUNET_SERVER_MAX_MESSAGE_SIZE);
   m->size = ntohs (size);
