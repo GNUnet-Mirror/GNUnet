@@ -450,6 +450,8 @@ ats_request_address_change (void *cls,
  * @param peer the peer that connected
  * @param ats performance data
  * @param ats_count number of entries in ats
+ * @param bandwidth_in inbound bandwidth in NBO
+ * @param bandwidth_out outbound bandwidth in NBO
  */
 static void
 neighbours_connect_notification (void *cls,

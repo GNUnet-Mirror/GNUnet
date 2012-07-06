@@ -431,6 +431,8 @@ client_disconnect_notification (void *cls, struct GNUNET_SERVER_Client *client)
  * @param ats performance data
  * @param ats_count number of entries in ats (excluding 0-termination)
  * @param address the address
+ * @param bandwidth_in inbound bandwidth in NBO
+ * @param bandwidth_out outbound bandwidth in NBO
  */
 static void
 notify_client_about_neighbour (void *cls,
