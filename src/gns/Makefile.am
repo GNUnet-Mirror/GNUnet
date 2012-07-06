@@ -8,6 +8,9 @@ SUBDIRS = . $(NSS_SUBDIR)
 
 if MINGW
   WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols
+  DO_W32_HELPER = gnunet-gns-helper-service-w32
+  DO_W32_NSP = libw32nsp.la
+  DO_W32_NSPTOOLS = w32nsp-install w32nsp-uninstall w32nsp-resolve
 endif
 
 if USE_COVERAGE
@@ -19,9 +22,11 @@ pkgcfgdir= $(pkgdatadir)/config.d/
 plugindir = $(libdir)/gnunet
 
 pkgcfg_DATA = \
+  gns-helper-service-w32.conf \
   gns.conf
 
 lib_LTLIBRARIES = \
+  $(DO_W32_NSP) \
   libgnunetgns.la
 
 if HAVE_MHD
@@ -35,6 +40,8 @@ bin_PROGRAMS = \
   gnunet-service-gns \
   $(DO_FCFSD) \
 	$(DO_PROXY) \
+  $(DO_W32_HELPER) \
+  $(DO_W32_NSPTOOLS) \
   gnunet-gns
 
 bin_SCRIPTS=gnunet-gns-proxy-setup-ca
@@ -274,6 +281,27 @@ gnunet_gns_proxy_LDADD = -lmicrohttpd -lcurl -lgnutls \
 gnunet_gns_proxy_DEPENDENCIES = \
   libgnunetgns.la
 
+gnunet_gns_helper_service_w32_SOURCES = \
+  gnunet-gns-helper-service-w32.c
+gnunet_gns_helper_service_w32_LDADD = \
+  $(top_builddir)/src/gns/libgnunetgns.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(GN_LIBINTL)
+gnunet_gns_helper_service_w32_DEPENDENCIES = \
+  libgnunetgns.la
+
+w32nsp_install_SOURCES = \
+  w32nsp-install.c
+w32nsp_install_LDADD = -lws2_32
+
+w32nsp_uninstall_SOURCES = \
+  w32nsp-uninstall.c
+w32nsp_uninstall_LDADD = -lws2_32
+
+w32nsp_resolve_SOURCES = \
+  w32nsp-resolve.c
+w32nsp_resolve_LDADD = -lws2_32
+
 gnunet_service_gns_SOURCES = \
  gnunet-service-gns.c \
  gnunet-service-gns_resolver.c gnunet-service-gns_resolver.h \
@@ -308,6 +336,13 @@ gnunet_gns_fcfsd_DEPENDENCIES = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la
 
+libw32nsp_la_SOURCES = \
+  w32nsp.c
+libw32nsp_la_LIBADD = \
+  -lole32 -lws2_32
+libw32nsp_la_LDFLAGS = \
+  -export-symbols $(top_srcdir)/src/gns/w32nsp.def \
+  $(GN_LIB_LDFLAGS)
 
 libgnunetgns_la_SOURCES = \
  gns_api.c gns.h
