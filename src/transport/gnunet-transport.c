@@ -417,6 +417,12 @@ notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
   if (verbosity > 0)
     FPRINTF (stdout, _("Disconnected from %s\n"), GNUNET_i2s (peer));
+  if (NULL != th)
+  {
+    GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
+    th = NULL;
+  }
+
 }
 
 /**
