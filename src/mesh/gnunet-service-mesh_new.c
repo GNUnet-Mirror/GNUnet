@@ -4120,6 +4120,45 @@ dht_get_string_handler (void *cls, struct GNUNET_TIME_Absolute exp,
                         unsigned int put_path_length, enum GNUNET_BLOCK_Type type,
                         size_t size, const void *data);
 
+/**
+ * Iterator over edges in a block.
+ *
+ * @param cls Closure.
+ * @param token Token that follows to next state.
+ * @param len Lenght of token.
+ * @param key Hash of next state.
+ *
+ * @return GNUNET_YES if should keep iterating, GNUNET_NO otherwise.
+ */
+static int
+regex_edge_iterator (void *cls,
+                     const char *token,
+                     size_t len,
+                     const struct GNUNET_HashCode *key);
+/**
+ * Iterator over hash map entries.
+ *
+ * @param cls closure
+ * @param key current key code
+ * @param value value in the hash map
+ * @return GNUNET_YES if we should continue to
+ *         iterate,
+ *         GNUNET_NO if not.
+ */
+static int
+regex_result_iterator (void *cls,
+                       const struct GNUNET_HashCode * key,
+                       void *value)
+{
+  struct MeshRegexBlock *block = value;
+  struct MeshRegexSearchContext *ctx = cls;
+
+  // block was checked when stored, no need to check again
+  (void) GNUNET_MESH_regex_block_iterate (block, SIZE_MAX,
+                                          &regex_edge_iterator, ctx);
+
+  return GNUNET_YES;
+}
 
 /**
  * Iterator over edges in a block.
@@ -4167,7 +4206,7 @@ regex_edge_iterator (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*     GET running, END\n");
     GNUNET_CONTAINER_multihashmap_get_multiple (ctx->dht_get_results, key,
-                                                NULL, ctx);
+                                                &regex_result_iterator, ctx);
     return GNUNET_YES; // We are already looking for it
   }
   /* Start search in DHT */
