@@ -655,6 +655,7 @@ run (void *cls, char *const *args, const char *cfgfile,
         GNUNET_TRANSPORT_connect (cfg, NULL, NULL, &notify_receive,
                                   &notify_connect, &notify_disconnect);
     GNUNET_TRANSPORT_try_connect (handle, &pid);
+    start_time = GNUNET_TIME_absolute_get ();
     end =
         GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                       &do_disconnect, NULL);
