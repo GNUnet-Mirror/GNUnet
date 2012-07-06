@@ -356,7 +356,10 @@ transmit_data (void *cls, size_t size, void *buf)
   struct GNUNET_MessageHeader *m = buf;
 
   if ((NULL == buf) && (0 == size))
+  {
+    th = NULL;
     return 0;
+  }
 
   GNUNET_assert (size >= sizeof (struct GNUNET_MessageHeader));
   GNUNET_assert (size < GNUNET_SERVER_MAX_MESSAGE_SIZE);
@@ -395,7 +398,8 @@ notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (benchmark_send)
   {
     start_time = GNUNET_TIME_absolute_get ();
-    th = GNUNET_TRANSPORT_notify_transmit_ready (handle, peer, 32 * 1024, 0,
+    if (NULL == th)
+      th = GNUNET_TRANSPORT_notify_transmit_ready (handle, peer, 32 * 1024, 0,
                                                  GNUNET_TIME_UNIT_FOREVER_REL,
                                                  &transmit_data, NULL);
   }
@@ -585,6 +589,11 @@ static void
 shutdown_task (void *cls,
 	       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  if (NULL != th)
+  {
+    GNUNET_TRANSPORT_notify_transmit_ready_cancel(th);
+    th = NULL;
+  }
   if (NULL != handle)
   {
     GNUNET_TRANSPORT_disconnect(handle);
