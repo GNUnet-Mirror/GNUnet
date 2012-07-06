@@ -24,8 +24,8 @@
  * @author Christian Grothoff
  */
 
-#ifndef NEW_TESTING_H
-#define NEW_TESTING_H
+#ifndef TESTBED_H
+#define TESTBED_H
 
 #include "gnunet_util_lib.h"
 

@@ -389,9 +389,9 @@ transmit_ready_notify (void *cls, size_t size, void *buf)
  * @param controller the handle to the controller
  * @param msg the message to queue
  */
-static void
-queue_message (struct GNUNET_TESTBED_Controller *controller,
-               struct GNUNET_MessageHeader *msg)
+void
+GNUNET_TESTBED_queue_message (struct GNUNET_TESTBED_Controller *controller,
+                              struct GNUNET_MessageHeader *msg)
 {
   struct MessageQueue *mq_entry;
   uint16_t type;
@@ -530,7 +530,7 @@ GNUNET_TESTBED_controller_connect (const struct GNUNET_CONFIGURATION_Handle *cfg
   msg->header.size = htons (sizeof (struct GNUNET_TESTBED_InitMessage));
   msg->host_id = htonl (GNUNET_TESTBED_host_get_id_ (host));
   msg->event_mask = GNUNET_htonll (controller->event_mask);
-  queue_message (controller, (struct GNUNET_MessageHeader *) msg);
+  GNUNET_TESTBED_queue_message (controller, (struct GNUNET_MessageHeader *) msg);
   return controller;
 }
 
@@ -566,7 +566,7 @@ GNUNET_TESTBED_controller_configure_sharing (struct GNUNET_TESTBED_Controller *c
   msg->host_id = htonl (GNUNET_TESTBED_host_get_id_ (controller->host));
   msg->num_peers = htonl (num_peers);
   memcpy (&msg[1], service_name, service_name_size);
-  queue_message (controller, (struct GNUNET_MessageHeader *) msg);
+  GNUNET_TESTBED_queue_message (controller, (struct GNUNET_MessageHeader *) msg);
 }
 
 
@@ -662,7 +662,7 @@ GNUNET_TESTBED_register_host (struct GNUNET_TESTBED_Controller *controller,
   if (NULL != username)
     memcpy (&msg[1], username, user_name_length);
   strcpy (((void *) &msg[1]) + user_name_length, hostname);
-  queue_message (controller, (struct GNUNET_MessageHeader *) msg);
+  GNUNET_TESTBED_queue_message (controller, (struct GNUNET_MessageHeader *) msg);
   return rh;
 }
 
@@ -730,9 +730,34 @@ GNUNET_TESTBED_controller_link_2 (struct GNUNET_TESTBED_Controller *master,
   msg->config_size = htons ((uint16_t) scfg_size);
   msg->is_subordinate = (GNUNET_YES == is_subordinate) ? 1 : 0;
   memcpy (&msg[1], sxcfg, sxcfg_size);
-  queue_message (master, (struct GNUNET_MessageHeader *) msg);
+  GNUNET_TESTBED_queue_message (master, (struct GNUNET_MessageHeader *) msg);
 }
 
+
+/**
+ * Compresses given configuration using zlib compress
+ *
+ * @param config the serialized configuration
+ * @param size the size of config
+ * @param xconfig will be set to the compressed configuration (memory is fresly
+ *          allocated) 
+ * @return the size of the xconfig
+ */
+size_t
+GNUNET_TESTBED_compress_config (const char *config, size_t size,
+                                char **xconfig)
+{
+  size_t xsize;
+  
+  xsize = compressBound ((uLong) size);
+  *xconfig = GNUNET_malloc (xsize);
+  GNUNET_assert (Z_OK ==
+		 compress2 ((Bytef *)* xconfig, (uLongf *) &xsize,
+                            (const Bytef *) config, (uLongf) size, 
+                            Z_BEST_SPEED));
+  return xsize;
+}
+                                
 
 /**
  * Create a link from slave controller to delegated controller. Whenever the
@@ -762,8 +787,8 @@ GNUNET_TESTBED_controller_link (struct GNUNET_TESTBED_Controller *master,
 				int is_subordinate)
 {
   char *config;
-  Bytef *cconfig;
-  uLongf cc_size;
+  char *cconfig;
+  size_t cc_size;
   size_t config_size;  
   
   GNUNET_assert (GNUNET_YES == 
@@ -772,11 +797,7 @@ GNUNET_TESTBED_controller_link (struct GNUNET_TESTBED_Controller *master,
     GNUNET_assert (GNUNET_YES == 
 		   GNUNET_TESTBED_is_host_registered_ (slave_host, master));
   config = GNUNET_CONFIGURATION_serialize (slave_cfg, &config_size);
-  cc_size = compressBound ((uLong) config_size);
-  cconfig = GNUNET_malloc (cc_size);
-  GNUNET_assert (Z_OK ==
-		 compress2 (cconfig, &cc_size, 
-			    (Bytef *) config, config_size, Z_BEST_SPEED));
+  cc_size = GNUNET_TESTBED_compress_config (config, config_size, &cconfig);
   GNUNET_free (config);
   GNUNET_assert ((UINT16_MAX -
 		  sizeof (struct GNUNET_TESTBED_ControllerLinkMessage))
