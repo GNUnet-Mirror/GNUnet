@@ -26,7 +26,9 @@
  */
 #include "platform.h"
 #include "testbed_api_peers.h"
-
+#include "testbed_api.h"
+#include "testbed.h"
+#include "testbed_api_hosts.h"
 
 /**
  * Details about a peer; kept in a separate struct to avoid bloating
@@ -67,7 +69,7 @@ struct GNUNET_TESTBED_Peer
   /**
    * Which host does this peer run on?
    */
-  struct GNUENT_TESTING_Host *host;
+  struct GNUNET_TESTBED_Host *host;
 
   /**
    * Globally unique ID of the peer.
@@ -127,14 +129,36 @@ GNUNET_TESTBED_peer_lookup_by_id_ (uint32_t id)
  * @return handle to the peer (actual startup will happen asynchronously)
  */
 struct GNUNET_TESTBED_Peer *
-GNUNET_TESTBED_peer_create_with_id_ (uint32_t unique_id,				     
-				     struct GNUNET_TESTBED_Controller *controller,				     
+GNUNET_TESTBED_peer_create_with_id_ (uint32_t unique_id,
+				     struct GNUNET_TESTBED_Controller *controller,
 				     struct GNUNET_TESTBED_Host *host,
 				     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  // FIXME: create locally or delegate...
-  GNUNET_break (0);
-  return NULL;  
+  struct GNUNET_TESTBED_Peer *peer;
+  struct GNUNET_TESTBED_PeerCreateMessage *msg;
+  char *config;
+  char *xconfig;
+  size_t c_size;
+  size_t xc_size;
+  uint16_t msize;
+
+  peer = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Peer));
+  peer->controller = controller;
+  peer->host = host;
+  peer->unique_id = unique_id;
+  config = GNUNET_CONFIGURATION_serialize (cfg, &c_size);
+  xc_size = GNUNET_TESTBED_compress_config (config, c_size, &xconfig);
+  GNUNET_free (config);
+  msize = xc_size + sizeof (struct GNUNET_TESTBED_PeerCreateMessage);
+  msg = GNUNET_realloc (xconfig, msize);
+  memmove (&msg[1], msg, sizeof (struct GNUNET_TESTBED_PeerCreateMessage));
+  msg->header.size = htons (msize);
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_CREATEPEER);
+  msg->host_id = htonl (GNUNET_TESTBED_host_get_id_ (peer->host));
+  msg->peer_id = htonl (peer->unique_id);
+  GNUNET_TESTBED_queue_message (controller,
+                                (struct GNUNET_MessageHeader *) msg);
+  return peer;
 }
 
 
