@@ -22,8 +22,8 @@ pkgcfgdir= $(pkgdatadir)/config.d/
 plugindir = $(libdir)/gnunet
 
 pkgcfg_DATA = \
-  gns-helper-service-w32.conf \
   gns.conf
+#gns-helper-service-w32.conf
 
 lib_LTLIBRARIES = \
   $(DO_W32_NSP) \
