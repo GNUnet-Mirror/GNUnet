@@ -493,6 +493,8 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
 {
   if (!benchmark_receive)
     return;
+  if (GNUNET_MESSAGE_TYPE_DUMMY != ntohs (message->type))
+    return;
   if (verbosity > 0)
     FPRINTF (stdout, _("Received %u bytes from %s\n"),
              (unsigned int) ntohs (message->size), GNUNET_i2s (peer));
