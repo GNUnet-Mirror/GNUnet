@@ -40,6 +40,8 @@ if LINUX
  WLAN_API_TEST = test_transport_api_wlan
  WLAN_REL_TEST = test_transport_api_reliability_wlan
  WLAN_UREL_TEST = test_transport_api_unreliability_wlan
+ WLAN_QUOTA_TEST = test_quota_compliance_wlan \
+		test_quota_compliance_wlan_asymmetric
 endif
 
 
@@ -276,6 +278,7 @@ check_PROGRAMS = \
  $(HTTPS_API_TEST) \
  $(HTTPS_NAT_API_TEST) \
  $(HTTPS_API_TIMEOUT_TEST) \
+ $(WLAN_API_TEST) \
  test_transport_api_multi \
  test_transport_api_reliability_tcp \
  test_transport_api_reliability_tcp_nat \
@@ -286,15 +289,14 @@ check_PROGRAMS = \
  $(HTTP_NAT_REL_TEST) \
  $(HTTPS_REL_TEST) \
  $(HTTPS_NAT_REL_TEST) \
+ $(WLAN_REL_TEST) \
+ $(WLAN_UREL_TEST) \ 
  test_quota_compliance_tcp \
  test_quota_compliance_tcp_asymmetric \
  test_quota_compliance_udp \
  $(UNIX_QUOTA_TEST) \
  $(HTTP_QUOTA_TEST) \
- $(HTTPS_QUOTA_TEST) \
- $(WLAN_API_TEST) \
- $(WLAN_REL_TEST) \
- $(WLAN_UREL_TEST)
+ $(WLAN_QUOTA_TEST)
 
 if ENABLE_TEST_RUN
 TESTS = \
@@ -322,6 +324,7 @@ TESTS = \
  $(HTTPS_API_TEST) \
  $(HTTPS_NAT_API_TEST) \
  $(HTTPS_API_TIMEOUT_TEST) \
+ $(WLAN_API_TEST) \
  test_transport_api_multi \
  test_transport_api_reliability_tcp \
  test_transport_api_reliability_tcp_nat \
@@ -332,15 +335,14 @@ TESTS = \
  $(HTTP_NAT_REL_TEST) \
  $(HTTPS_REL_TEST) \
  $(HTTPS_NAT_REL_TEST) \
+ $(WLAN_REL_TEST) \
+ $(WLAN_UREL_TEST) \ 
  test_quota_compliance_tcp \
  test_quota_compliance_tcp_asymmetric \
  test_quota_compliance_udp \
  $(UNIX_QUOTA_TEST) \
  $(HTTP_QUOTA_TEST) \
- $(HTTPS_QUOTA_TEST) \
- $(WLAN_API_TEST) \
- $(WLAN_REL_TEST) \
- $(WLAN_UREL_TEST)
+ $(HTTPS_QUOTA_TEST)
 endif
 
 test_transport_testing_startstop_SOURCES = \
@@ -655,12 +657,6 @@ test_quota_compliance_tcp_asymmetric_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la 
 
-#test_quota_compliance_tcp_asymmetric_send_constant_SOURCES = \
-# test_quota_compliance.c
-#test_quota_compliance_tcp_asymmetric_send_constant_LDADD = \
-# $(top_builddir)/src/transport/libgnunettransport.la \
-# $(top_builddir)/src/util/libgnunetutil.la
-
 test_quota_compliance_http_SOURCES = \
  test_quota_compliance.c
 test_quota_compliance_http_LDADD = \
@@ -677,12 +673,6 @@ test_quota_compliance_http_asymmetric_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la
 
-#test_quota_compliance_http_asymmetric_send_constant_SOURCES = \
-# test_quota_compliance.c
-#test_quota_compliance_http_asymmetric_send_constant_LDADD = \
-# $(top_builddir)/src/transport/libgnunettransport.la \
-# $(top_builddir)/src/util/libgnunetutil.la
-
 test_quota_compliance_https_SOURCES = \
  test_quota_compliance.c
 test_quota_compliance_https_LDADD = \
@@ -698,12 +688,6 @@ test_quota_compliance_https_asymmetric_LDADD = \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la
-
-#test_quota_compliance_https_asymmetric_send_constant_SOURCES = \
-# test_quota_compliance.c
-#test_quota_compliance_https_asymmetric_send_constant_LDADD = \
-# $(top_builddir)/src/transport/libgnunettransport.la \
-# $(top_builddir)/src/util/libgnunetutil.la
 
 test_quota_compliance_udp_SOURCES = \
  test_quota_compliance.c
@@ -724,6 +708,22 @@ test_quota_compliance_unix_LDADD = \
 test_quota_compliance_unix_asymmetric_SOURCES = \
  test_quota_compliance.c
 test_quota_compliance_unix_asymmetric_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/transport/libgnunettransporttesting.la
+
+test_quota_compliance_wlan_SOURCES = \
+ test_quota_compliance.c
+test_quota_compliance_wlan_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/transport/libgnunettransporttesting.la
+
+test_quota_compliance_wlan_asymmetric_SOURCES = \
+ test_quota_compliance.c
+test_quota_compliance_wlan_asymmetric_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \

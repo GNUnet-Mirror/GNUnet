@@ -477,6 +477,8 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
       break;
     }
     n = neighbour_add (h, &cim->id);
+    LOG (GNUNET_ERROR_TYPE_ERROR, "Receiving `%s' message for `%4s' with quota %u\n",
+         "CONNECT", GNUNET_i2s (&cim->id), ntohl (cim->quota_out.value__));
     GNUNET_BANDWIDTH_tracker_update_quota (&n->out_tracker, cim->quota_out);
     if (h->nc_cb != NULL)
       h->nc_cb (h->cls, &n->id, ats, ats_count);
@@ -564,6 +566,8 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
     n = neighbour_find (h, &qm->peer);
     if (n == NULL)
       break;
+    LOG (GNUNET_ERROR_TYPE_ERROR, "Receiving `%s' message for `%4s' with quota %u\n",
+         "SET_QUOTA", GNUNET_i2s (&qm->peer), ntohl (qm->quota.value__));
     GNUNET_BANDWIDTH_tracker_update_quota (&n->out_tracker, qm->quota);
     break;
   default:
