@@ -4122,31 +4122,6 @@ dht_get_string_handler (void *cls, struct GNUNET_TIME_Absolute exp,
 
 
 /**
- * Iterator over hash map entries.
- *
- * @param cls closure
- * @param key current key code
- * @param value value in the hash map
- * @return GNUNET_YES if we should continue to
- *         iterate,
- *         GNUNET_NO if not.
- */
-static int
-regex_result_iterator (void *cls,
-                       const struct GNUNET_HashCode * key,
-                       void *value)
-{
-  struct MeshRegexBlock *block = value;
-  struct MeshRegexSearchContext *ctx = cls;
-
-  // block was checked when stored, no need to check again
-  (void) GNUNET_MESH_regex_block_iterate (block, SIZE_MAX,
-                                          &regex_edge_iterator, ctx);
-
-  return GNUNET_YES;
-}
-
-/**
  * Iterator over edges in a block.
  *
  * @param cls Closure.
