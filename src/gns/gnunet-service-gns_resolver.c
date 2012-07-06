@@ -166,6 +166,8 @@ is_srv (char* name)
   if (NULL != strtok (NULL, "."))
     ret = 0;
 
+  GNUNET_free (ndup);
+
   return ret;
 }
 
