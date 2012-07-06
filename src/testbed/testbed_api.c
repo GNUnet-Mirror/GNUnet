@@ -48,6 +48,18 @@
 #define LOG_DEBUG(...)                          \
   LOG (GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__);
 
+/**
+ * Relative time seconds shorthand
+ */
+#define TIME_REL_SECS(sec) \
+  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, sec)
+
+
+/**
+ * Default server message sending retry timeout
+ */
+#define TIMEOUT_REL TIME_REL_SECS(1)
+
 
 /**
  * The message queue for sending messages to the controller service
@@ -289,6 +301,7 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
   struct GNUNET_TESTBED_Controller *c = cls;  
   int status;
 
+  c->in_receive = GNUNET_NO;
   /* FIXME: Add checks for message integrity */
   if (NULL == msg)
   {
@@ -306,11 +319,13 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
   default:
     GNUNET_break (0);
   }
-  if (GNUNET_OK == status)
+  if ((GNUNET_OK == status) && (GNUNET_NO == c->in_receive))
+  {
+    c->in_receive = GNUNET_YES;
     GNUNET_CLIENT_receive (c->client, &message_handler, c,
-                           GNUNET_TIME_UNIT_FOREVER_REL);
+                           GNUNET_TIME_UNIT_FOREVER_REL);    
+  }
 }
-
 
 /**
  * Function called to notify a client about the connection begin ready to queue
@@ -331,9 +346,22 @@ transmit_ready_notify (void *cls, size_t size, void *buf)
   c->th = NULL;
   mq_entry = c->mq_head;
   GNUNET_assert (NULL != mq_entry);
+  if ((0 == size) && (NULL == buf)) /* Timeout */
+  {
+    LOG_DEBUG ("Message sending timed out -- retrying\n");
+    c->th =
+      GNUNET_CLIENT_notify_transmit_ready (c->client,
+                                           ntohs (mq_entry->msg->size),
+                                           TIMEOUT_REL,
+                                           GNUNET_YES, &transmit_ready_notify,
+                                           c);
+    return 0;
+  }
   GNUNET_assert (ntohs (mq_entry->msg->size) <= size);
-  size = ntohs (mq_entry->msg->size);
+  size = ntohs (mq_entry->msg->size);  
   memcpy (buf, mq_entry->msg, size);
+  LOG_DEBUG ("Message of type: %u and size: %u sent\n",
+	     ntohs (mq_entry->msg->type), size);
   GNUNET_free (mq_entry->msg);
   GNUNET_CONTAINER_DLL_remove (c->mq_head, c->mq_tail, mq_entry);
   GNUNET_free (mq_entry);
@@ -342,11 +370,10 @@ transmit_ready_notify (void *cls, size_t size, void *buf)
     c->th = 
       GNUNET_CLIENT_notify_transmit_ready (c->client,
                                            ntohs (mq_entry->msg->size),
-                                           GNUNET_TIME_UNIT_FOREVER_REL,
-                                           GNUNET_NO, &transmit_ready_notify,
+                                           TIMEOUT_REL,
+                                           GNUNET_YES, &transmit_ready_notify,
                                            c);
-  if ( (GNUNET_NO == c->in_receive) &&
-       (size > 0) )
+  if (GNUNET_NO == c->in_receive)
   {
     c->in_receive = GNUNET_YES;
     GNUNET_CLIENT_receive (c->client, &message_handler, c,
@@ -384,8 +411,8 @@ queue_message (struct GNUNET_TESTBED_Controller *controller,
   if (NULL == controller->th)
     controller->th = 
       GNUNET_CLIENT_notify_transmit_ready (controller->client, size,
-                                           GNUNET_TIME_UNIT_FOREVER_REL,
-                                           GNUNET_NO, &transmit_ready_notify,
+                                           TIMEOUT_REL,
+                                           GNUNET_YES, &transmit_ready_notify,
                                            controller);
 }
 
@@ -634,7 +661,7 @@ GNUNET_TESTBED_register_host (struct GNUNET_TESTBED_Controller *controller,
   msg->user_name_length = htons (user_name_length);
   if (NULL != username)
     memcpy (&msg[1], username, user_name_length);
-  strcpy (((void *) msg) + user_name_length, hostname);
+  strcpy (((void *) &msg[1]) + user_name_length, hostname);
   queue_message (controller, (struct GNUNET_MessageHeader *) msg);
   return rh;
 }

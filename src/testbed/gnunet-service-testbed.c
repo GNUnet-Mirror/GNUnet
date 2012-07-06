@@ -422,14 +422,18 @@ static int
 host_list_add (struct GNUNET_TESTBED_Host *host)
 {
   uint32_t host_id;
-  
+  uint32_t new_size;
+
   host_id = GNUNET_TESTBED_host_get_id_ (host);
   if (host_list_size <= host_id)
   {
+    new_size = host_list_size + LIST_GROW_STEP;
     host_list = GNUNET_realloc (host_list, 
                                 sizeof (struct GNUNET_TESTBED_Host *)
-                                * (host_id + 10));
-    host_list_size += (host_id + 10);
+                                * new_size);
+    memset (&host_list[host_list_size], 0,
+	    sizeof (struct Slave *) * LIST_GROW_STEP);
+    host_list_size = new_size;
   }
   if (NULL != host_list[host_id])
   {
@@ -449,14 +453,43 @@ host_list_add (struct GNUNET_TESTBED_Host *host)
 static void
 route_list_add (struct Route *route)
 {
-  if (route->dest > route_list_size)
+  uint32_t new_size;
+
+  if (route->dest >= route_list_size)
   {
-    route_list_size += LIST_GROW_STEP;
+    new_size = route_list_size + LIST_GROW_STEP;
     route_list = GNUNET_realloc (route_list, sizeof (struct Route *)
-                                 * route_list_size);
+                                 * new_size);
+    memset (&route_list[route_list_size], 0,
+	    sizeof (struct Slave *) * LIST_GROW_STEP);
+    route_list_size = new_size;
   }
   GNUNET_assert (NULL == route_list[route->dest]);
   route_list[route->dest] = route;
+}
+
+
+/**
+ * Adds a slave to the slave array
+ *
+ * @param route the route to add
+ */
+static void
+slave_list_add (struct Slave *slave)
+{
+  uint32_t new_size;
+
+  if (slave->host_id  >= slave_list_size)
+  {
+    new_size = slave_list_size + LIST_GROW_STEP;
+    slave_list = GNUNET_realloc (slave_list, sizeof (struct Slave *)
+                                 * new_size);
+    memset (&slave_list[slave_list_size], 0,
+	    sizeof (struct Slave *) * LIST_GROW_STEP);
+    slave_list_size = new_size;
+  }
+  GNUNET_assert (NULL == slave_list[slave->host_id]);
+  slave_list[slave->host_id] = slave;
 }
 
 
@@ -657,7 +690,7 @@ handle_add_host (void *cls,
   }
   hostname_length = ntohs (message->size)
     - (sizeof (struct GNUNET_TESTBED_AddHostMessage) + username_length);
-  if (strlen (hostname) != hostname_length)
+  if (strlen (hostname) != hostname_length - 1)
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
@@ -667,7 +700,8 @@ handle_add_host (void *cls,
   LOG_DEBUG ("Received ADDHOST message\n");
   LOG_DEBUG ("-------host id: %u\n", host_id);
   if (NULL != hostname) LOG_DEBUG ("-------hostname: %s\n", hostname);
-  if (NULL != username) LOG_DEBUG ("-------username: %s\n", username);
+  if (0 != username_length) LOG_DEBUG ("-------username: %s\n", username);
+  else LOG_DEBUG ("-------username: NULL\n");
   LOG_DEBUG ("-------ssh port: %u\n", ntohs (msg->ssh_port));
   host = GNUNET_TESTBED_host_create_with_id (host_id, hostname, username,
                                              ntohs (msg->ssh_port));
@@ -887,15 +921,16 @@ handle_link_controllers (void *cls,
       return;
     }
     GNUNET_free (config);
-    if (delegated_host_id >= slave_list_size)
+    if ((delegated_host_id < slave_list_size) &&
+	(NULL != slave_list[delegated_host_id]))
     {
-      slave_list_size += LIST_GROW_STEP;
-      slave_list = GNUNET_realloc (slave_list,
-                                   sizeof (struct Slave *) * slave_list_size);
+      GNUNET_break (0);           /* Configuration parsing error */
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      return;
     }
     slave = GNUNET_malloc (sizeof (struct Slave));
     slave->host_id = delegated_host_id;
-    slave_list[delegated_host_id] = slave;
+    slave_list_add (slave);
     if (1 == msg->is_subordinate)
     {
       slave->controller_proc =
@@ -1113,6 +1148,7 @@ testbed_run (void *cls,
 				      fh,
 				      &shutdown_task,
 				      NULL);
+  LOG_DEBUG ("Testbed startup complete\n");
 }
 
 

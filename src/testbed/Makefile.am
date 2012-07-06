@@ -51,7 +51,8 @@ libgnunettestbed_la_LDFLAGS = \
  -version-info 0:0:0
 
 check_PROGRAMS = \
- test_testbed_api_hosts
+ test_testbed_api_hosts \
+ test_testbed_api
 
 if ENABLE_TEST_RUN
   TESTS = $(check_PROGRAMS)
@@ -61,4 +62,11 @@ test_testbed_api_hosts_SOURCES = \
  test_testbed_api_hosts.c
 test_testbed_api_hosts_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
+ libgnunettestbed.la
+
+test_testbed_api_SOURCES = \
+ test_testbed_api.c
+test_testbed_api_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/testing/libgnunettesting.la \
  libgnunettestbed.la
