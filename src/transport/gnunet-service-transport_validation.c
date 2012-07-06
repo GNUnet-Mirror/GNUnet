@@ -949,10 +949,6 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
   }
 #endif
 
-  GNUNET_assert (GNUNET_OK == GNUNET_CRYPTO_rsa_verify (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_OWN,
-                            &pong->purpose, &pong->signature,
-                            &GST_my_public_key));
-
   GNUNET_assert (sender_address != NULL);
 
   /* first see if the session we got this PING from can be used to transmit
