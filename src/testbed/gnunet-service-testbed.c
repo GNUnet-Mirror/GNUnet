@@ -32,6 +32,7 @@
 #include "testbed.h"
 #include "gnunet_testbed_service.h"
 #include "testbed_api_hosts.h"
+#include "gnunet_testing_lib-new.h"
 
 /**
  * Generic logging
@@ -250,6 +251,30 @@ struct LCFContextQueue
 
 
 /**
+ * A locally started peer
+ */
+struct Peer
+{
+  /**
+   * The peer handle from testing API
+   */
+  struct GNUNET_TESTING_Peer *peer;
+
+  /**
+   * The modified (by GNUNET_TESTING_peer_configure) configuration this peer is
+   * configured with
+   */
+  struct GNUNET_CONFIGURATION_Handle *cfg;
+
+  /**
+   * Our local reference id for this peer
+   */
+  uint32_t id;
+
+};
+
+
+/**
  * The master context; generated with the first INIT message
  */
 static struct Context *master_context;
@@ -308,6 +333,11 @@ static struct Route **route_list;
 static struct Slave **slave_list;
 
 /**
+ * A list of peers we own locally
+ */
+static struct Peer **peer_list;
+
+/**
  * The hashmap of shared services
  */
 static struct GNUNET_CONTAINER_MultiHashMap *ss_map;
@@ -327,6 +357,11 @@ static uint32_t route_list_size;
  */
 static uint32_t slave_list_size;
 
+/**
+ * The size of the peer list
+ */
+static uint32_t peer_list_size;
+
 /*********/
 /* Tasks */
 /*********/
@@ -340,6 +375,15 @@ static GNUNET_SCHEDULER_TaskIdentifier lcf_proc_task_id;
  * The shutdown task handle
  */
 static GNUNET_SCHEDULER_TaskIdentifier shutdown_task_id;
+
+/******************/
+/* Testing System */
+/******************/
+
+/**
+ * Handle to the local testing system - for starting peers locally
+ */
+static struct GNUNET_TESTING_System *test_system;
 
 
 /**
@@ -412,6 +456,24 @@ queue_message (struct GNUNET_SERVER_Client *client,
 
 
 /**
+ * Similar to GNUNET_realloc; however clears tail part of newly allocated memory
+ *
+ * @param ptr the memory block to realloc
+ * @param size the size of ptr
+ * @param new_size the size to which ptr has to be realloc'ed
+ * @return the newly reallocated memory block
+ */
+static void *
+TESTBED_realloc (void *ptr, size_t size, size_t new_size)
+{
+  ptr = GNUNET_realloc (ptr, new_size);
+  if (new_size > size)
+    ptr = memset (ptr + size, 0, new_size - size);
+  return ptr;
+}
+
+
+/**
  * Function to add a host to the current list of known hosts
  *
  * @param host the host to add 
@@ -422,18 +484,16 @@ static int
 host_list_add (struct GNUNET_TESTBED_Host *host)
 {
   uint32_t host_id;
-  uint32_t new_size;
 
   host_id = GNUNET_TESTBED_host_get_id_ (host);
   if (host_list_size <= host_id)
   {
-    new_size = host_list_size + LIST_GROW_STEP;
-    host_list = GNUNET_realloc (host_list, 
-                                sizeof (struct GNUNET_TESTBED_Host *)
-                                * new_size);
-    memset (&host_list[host_list_size], 0,
-	    sizeof (struct Slave *) * LIST_GROW_STEP);
-    host_list_size = new_size;
+    host_list = 
+      TESTBED_realloc (host_list, 
+                       sizeof (struct GNUNET_TESTBED_Host *) * host_list_size,
+                       sizeof (struct GNUNET_TESTBED_Host *) *
+                       (host_list_size + LIST_GROW_STEP));
+    host_list_size += LIST_GROW_STEP;
   }
   if (NULL != host_list[host_id])
   {
@@ -453,16 +513,14 @@ host_list_add (struct GNUNET_TESTBED_Host *host)
 static void
 route_list_add (struct Route *route)
 {
-  uint32_t new_size;
-
   if (route->dest >= route_list_size)
   {
-    new_size = route_list_size + LIST_GROW_STEP;
-    route_list = GNUNET_realloc (route_list, sizeof (struct Route *)
-                                 * new_size);
-    memset (&route_list[route_list_size], 0,
-	    sizeof (struct Slave *) * LIST_GROW_STEP);
-    route_list_size = new_size;
+    route_list = 
+      TESTBED_realloc (route_list, 
+                       sizeof (struct Route *) * route_list_size,
+                       sizeof (struct Route *) * 
+                       (route_list_size + LIST_GROW_STEP));
+    route_list_size += LIST_GROW_STEP;
   }
   GNUNET_assert (NULL == route_list[route->dest]);
   route_list[route->dest] = route;
@@ -477,19 +535,37 @@ route_list_add (struct Route *route)
 static void
 slave_list_add (struct Slave *slave)
 {
-  uint32_t new_size;
-
   if (slave->host_id  >= slave_list_size)
   {
-    new_size = slave_list_size + LIST_GROW_STEP;
-    slave_list = GNUNET_realloc (slave_list, sizeof (struct Slave *)
-                                 * new_size);
-    memset (&slave_list[slave_list_size], 0,
-	    sizeof (struct Slave *) * LIST_GROW_STEP);
-    slave_list_size = new_size;
+    slave_list = TESTBED_realloc (slave_list, 
+                                 sizeof (struct Slave *) *slave_list_size,
+                                 sizeof (struct Slave *) *
+                                 (slave_list_size) + LIST_GROW_STEP);
+    slave_list_size += LIST_GROW_STEP;
   }
   GNUNET_assert (NULL == slave_list[slave->host_id]);
   slave_list[slave->host_id] = slave;
+}
+
+
+/**
+ * Adds a peer to the peer array
+ *
+ * @param route the route to add
+ */
+static void
+peer_list_add (struct Peer *peer)
+{
+  if (peer->id  >= peer_list_size)
+  {
+    peer_list = TESTBED_realloc (peer_list, 
+                                 sizeof (struct Peer *) *peer_list_size,
+                                 sizeof (struct Peer *) *
+                                 (peer_list_size) + LIST_GROW_STEP);
+    peer_list_size += LIST_GROW_STEP;
+  }
+  GNUNET_assert (NULL == peer_list[peer->id]);
+  peer_list[peer->id] = peer;
 }
 
 
@@ -749,6 +825,7 @@ int ss_exists_iterator (void *cls,
     return GNUNET_YES;
 }
 
+
 /**
  * Message handler for GNUNET_MESSAGE_TYPE_TESTBED_ADDHOST messages
  *
@@ -993,6 +1070,93 @@ handle_link_controllers (void *cls,
 
 
 /**
+ * Handler for GNUNET_MESSAGE_TYPE_TESTBED_CREATEPEER messages
+ *
+ * @param cls NULL
+ * @param client identification of the client
+ * @param message the actual message
+ */
+static void 
+handle_peer_create (void *cls,
+                    struct GNUNET_SERVER_Client *client,
+                    const struct GNUNET_MessageHeader *message)
+{
+  const struct GNUNET_TESTBED_PeerCreateMessage *msg;
+  struct GNUNET_CONFIGURATION_Handle *cfg;
+  char *config;
+  size_t dest_size;
+  uint16_t msize;
+  uint16_t config_size;
+  
+
+  msize = ntohs (message->size);
+  if (msize <= sizeof (struct GNUNET_TESTBED_PeerCreateMessage))
+  {
+    GNUNET_break (0);           /* We need configuration */
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
+  msg = (const struct GNUNET_TESTBED_PeerCreateMessage *) message;
+  if (ntohs (msg->host_id) == master_context->host_id)
+  {
+    struct Peer *peer;
+    char *emsg;
+    
+    /* We are responsidble for this peer */
+    msize -= sizeof (struct GNUNET_TESTBED_PeerCreateMessage);
+    config_size = ntohl (msg->config_size);    
+    config = GNUNET_malloc (msg->config_size);
+    if (Z_OK != uncompress ((Bytef *) config, (uLongf *) &dest_size,
+                            (const Bytef *) &msg[1], (uLong) msize))
+    {
+      GNUNET_break (0);           /* uncompression error */
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      return;
+    }
+    if (config_size == dest_size)
+    {
+      GNUNET_break (0);/* Uncompressed config size mismatch */
+      GNUNET_free (config);
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      return;
+    }
+    cfg = GNUNET_CONFIGURATION_create ();
+    if (GNUNET_OK != GNUNET_CONFIGURATION_deserialize (cfg, config, config_size,
+                                                       GNUNET_NO))
+    {
+      GNUNET_break (0);           /* Configuration parsing error */
+      GNUNET_free (config);
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      return;
+    }
+    GNUNET_free (config);
+    peer = GNUNET_malloc (sizeof (struct Peer));
+    peer->cfg = cfg;
+    peer->id = ntohl (msg->peer_id);
+    peer->peer = GNUNET_TESTING_peer_configure (test_system, peer->cfg,
+                                                peer->id,
+                                                NULL /* Peer id */,
+                                                &emsg);
+    if (NULL == peer->peer)
+    {
+      LOG (GNUNET_ERROR_TYPE_WARNING, "Configuring peer failed: %s\n", emsg);
+      GNUNET_free (emsg);
+      GNUNET_break (0);
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      return;
+    }
+    peer_list_add (peer);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
+
+  /* Forward the peer to other host */
+  GNUNET_break (0);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
+
+
+/**
  * Iterator over hash map entries.
  *
  * @param cls closure
@@ -1035,6 +1199,7 @@ shutdown_task (void *cls,
   (void) GNUNET_CONTAINER_multihashmap_iterate (ss_map, &ss_map_free_iterator,
                                                 NULL);
   GNUNET_CONTAINER_multihashmap_destroy (ss_map);
+  GNUNET_TESTING_system_destroy (test_system, GNUNET_YES);
   if (NULL != fh)
   {
     GNUNET_DISK_file_close (fh);
@@ -1127,6 +1292,7 @@ testbed_run (void *cls,
        GNUNET_MESSAGE_TYPE_TESTBED_SERVICESHARE, 0},
       {&handle_link_controllers, NULL,
        GNUNET_MESSAGE_TYPE_TESTBED_LCONTROLLERS, 0},
+      {&handle_peer_create, NULL, GNUNET_MESSAGE_TYPE_TESTBED_CREATEPEER, 0},
       {NULL}
     };
 
@@ -1136,6 +1302,8 @@ testbed_run (void *cls,
                                    &client_disconnect_cb,
                                    NULL);
   ss_map = GNUNET_CONTAINER_multihashmap_create (5);
+  test_system = GNUNET_TESTING_system_create ("testbed_peers", NULL);
+  
   fh = GNUNET_DISK_get_handle_from_native (stdin);
   if (NULL == fh)
     shutdown_task_id = 

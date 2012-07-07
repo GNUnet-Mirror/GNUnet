@@ -156,6 +156,7 @@ GNUNET_TESTBED_peer_create_with_id_ (uint32_t unique_id,
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_CREATEPEER);
   msg->host_id = htonl (GNUNET_TESTBED_host_get_id_ (peer->host));
   msg->peer_id = htonl (peer->unique_id);
+  msg->config_size = htonl (c_size);
   GNUNET_TESTBED_queue_message (controller,
                                 (struct GNUNET_MessageHeader *) msg);
   return peer;

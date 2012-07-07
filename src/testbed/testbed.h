@@ -207,6 +207,11 @@ struct GNUNET_TESTBED_PeerCreateMessage
    */
   uint32_t peer_id GNUNET_PACKED;
 
+  /**
+   * Size of the uncompressed configuration
+   */
+  uint32_t config_size GNUNET_PACKED;
+
   /* followed by serialized peer configuration;
      gzip'ed configuration file in INI format */
   
