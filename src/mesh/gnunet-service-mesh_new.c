@@ -4200,12 +4200,11 @@ regex_edge_iterator (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*     Token doesn't match, END\n");
     return GNUNET_YES; // Token doesn't match
   }
-
+  ctx->position += len;
   if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains(ctx->dht_get_handles,
                                                            key))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*     GET running, END\n");
-    if (0)
     GNUNET_CONTAINER_multihashmap_get_multiple (ctx->dht_get_results, key,
                                                 &regex_result_iterator, ctx);
     return GNUNET_YES; // We are already looking for it
@@ -4220,7 +4219,6 @@ regex_edge_iterator (void *cls,
                             NULL,       /* xquery */ // FIXME BLOOMFILTER
                             0,     /* xquery bits */ // FIXME BLOOMFILTER SIZE
                             &dht_get_string_handler, ctx);
-  ctx->position += len;
   if (GNUNET_OK !=
       GNUNET_CONTAINER_multihashmap_put(ctx->dht_get_handles, key, get_h,
                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST))
