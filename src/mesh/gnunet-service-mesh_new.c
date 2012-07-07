@@ -4205,6 +4205,7 @@ regex_edge_iterator (void *cls,
                                                            key))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*     GET running, END\n");
+    if (0)
     GNUNET_CONTAINER_multihashmap_get_multiple (ctx->dht_get_results, key,
                                                 &regex_result_iterator, ctx);
     return GNUNET_YES; // We are already looking for it
