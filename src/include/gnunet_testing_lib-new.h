@@ -62,7 +62,7 @@ struct GNUNET_TESTING_Peer;
  * Create a system handle.  There must only be one system
  * handle per operating system.
  *
- ** @param testdir only the directory name without any path. This is used for
+ * @param testdir only the directory name without any path. This is used for
  *          all service homes; the directory will be created in a temporary
  *          location depending on the underlying OS
  * @param controller hostname of the controlling host, 
@@ -165,7 +165,8 @@ GNUNET_TESTING_configuration_create (struct GNUNET_TESTING_System *system,
  *            changes in port numbers and paths)
  * @param key_number number of the hostkey to use for the peer
  * @param id identifier for the daemon, will be set, can be NULL
- * @param emsg set to error message (set to NULL on success), can be NULL
+ * @param emsg set to freshly allocated error message (set to NULL on success), 
+ *          can be NULL
  * @return handle to the peer, NULL on error
  */
 struct GNUNET_TESTING_Peer *

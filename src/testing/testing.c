@@ -753,7 +753,8 @@ GNUNET_TESTING_configuration_create (struct GNUNET_TESTING_System *system,
  *            changes in port numbers and paths)
  * @param key_number number of the hostkey to use for the peer
  * @param id identifier for the daemon, will be set, can be NULL
- * @param emsg set to error message (set to NULL on success), can be NULL
+ * @param emsg set to freshly allocated error message (set to NULL on success), 
+ *          can be NULL
  * @return handle to the peer, NULL on error
  */
 struct GNUNET_TESTING_Peer *
