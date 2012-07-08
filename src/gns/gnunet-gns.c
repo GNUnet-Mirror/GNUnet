@@ -211,11 +211,11 @@ run (void *cls, char *const *args, const char *cfgfile,
   
   
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
-                                                   "PRIVATE_ZONEKEY", &keyfile))
+							    "PRIVATE_ZONEKEY", &keyfile))
   {
     if (!raw)
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  "No private zone key found!\n");
+                  "No private zone key file name specified in configuration!\n");
     shorten_key = NULL;
   }
   else
@@ -231,16 +231,28 @@ run (void *cls, char *const *args, const char *cfgfile,
       if (!raw)
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                     "Using private zone: %s!\n", &zonename);
+    }
+    else
+    {
+      /* FIXME: shouldn't we just create the private key in this case? */
+      if (!raw)
+        fprintf (stderr,
+		 _("Key file `%s' for private zone does not exist!\n"),
+		 keyfile);
 
     }
     GNUNET_free(keyfile);
-    GNUNET_CRYPTO_rsa_key_free (private_key);
+    if (NULL != private_key)
+    {
+      GNUNET_CRYPTO_rsa_key_free (private_key);
+      private_key = NULL;
+    }
   }
   
   
   gns = GNUNET_GNS_connect (cfg);
-  if (lookup_type != NULL)
-    rtype = GNUNET_NAMESTORE_typename_to_number(lookup_type);
+  if (NULL != lookup_type)
+    rtype = GNUNET_NAMESTORE_typename_to_number (lookup_type);
   else
     rtype = GNUNET_GNS_RECORD_A;
 
@@ -251,9 +263,8 @@ run (void *cls, char *const *args, const char *cfgfile,
     return;
   }
   
-  if (shorten_name != NULL)
+  if (NULL != shorten_name)
   {
-    /** shorten name */
     GNUNET_GNS_shorten_zone (gns, shorten_name,
                              &private_zone,
                              &shorten_zone,
@@ -262,7 +273,7 @@ run (void *cls, char *const *args, const char *cfgfile,
                              shorten_name);
   }
 
-  if (lookup_name != NULL)
+  if (NULL != lookup_name)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Lookup\n");
@@ -274,7 +285,7 @@ run (void *cls, char *const *args, const char *cfgfile,
                             &process_lookup_result, lookup_name);
   }
 
-  if (auth_name != NULL)
+  if (NULL != auth_name)
   {
     GNUNET_GNS_get_authority(gns, auth_name, &process_auth_result, auth_name);
   }
