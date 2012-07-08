@@ -27,6 +27,57 @@
 #ifndef TESTBED_API_H
 #define TESTBED_API_H
 
+
+/**
+ * Enumeration of operations
+ */
+enum OperationType
+  {
+    /**
+     * Peer destroy operation
+     */
+    OP_PEER_DESTROY
+  };
+
+
+/**
+ * The counter for generating unique operation ids. Use its current value and
+ * increment it (defined in testbed_api.c)
+ */
+extern uint64_t GNUNET_TESTBED_operation_id;
+
+/**
+ * Testbed operation structure
+ */
+struct GNUNET_TESTBED_Operation
+{
+  /**
+   * next pointer for DLL
+   */
+  struct GNUNET_TESTBED_Operation *next;
+
+  /**
+   * prev pointer for DLL
+   */
+  struct GNUNET_TESTBED_Operation *prev;
+
+  /**
+   * The ID for the operation;
+   */
+  uint64_t operation_id;
+
+  /**
+   * The type of operation
+   */
+  enum OperationType type;
+
+  /**
+   * Data specific to OperationType
+   */
+  void *data;
+};
+
+
 /**
  * Queues a message in send queue for sending to the service
  *
@@ -50,5 +101,14 @@ GNUNET_TESTBED_queue_message (struct GNUNET_TESTBED_Controller *controller,
 size_t
 GNUNET_TESTBED_compress_config (const char *config, size_t size,
                                 char **xconfig);
+
+
+/**
+ * Adds an operation to the queue of operations
+ *
+ * @param op the operation to add
+ */
+void
+GNUNET_TESTBED_operation_add (struct GNUNET_TESTBED_Operation *op);
 
 #endif

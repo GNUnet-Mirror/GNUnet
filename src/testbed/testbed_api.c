@@ -24,7 +24,10 @@
  *        This library is supposed to make it easier to write
  *        testcases and script large-scale benchmarks.
  * @author Christian Grothoff
+ * @author Sree Harsha Totakura
  */
+
+
 #include "platform.h"
 #include "gnunet_testbed_service.h"
 #include "gnunet_core_service.h"
@@ -34,6 +37,7 @@
 #include <zlib.h>
 
 #include "testbed.h"
+#include "testbed_api.h"
 #include "testbed_api_hosts.h"
 
 /**
@@ -232,6 +236,34 @@ struct GNUNET_TESTBED_HostRegistrationHandle
    */
   void *cc_cls;
 };
+
+
+/**
+ * The global operation id counter
+ */
+uint64_t GNUNET_TESTBED_operation_id;
+
+/**
+ * The head of the operation queue
+ */
+struct GNUNET_TESTBED_Operation *op_head;
+
+/**
+ * The tail of the operation queue
+ */
+struct GNUNET_TESTBED_Operation *op_tail;
+
+
+/**
+ * Adds an operation to the queue of operations
+ *
+ * @param op the operation to add
+ */
+void
+GNUNET_TESTBED_operation_add (struct GNUNET_TESTBED_Operation *op)
+{
+  GNUNET_CONTAINER_DLL_insert_tail (op_head, op_tail, op);
+}
 
 
 /**
