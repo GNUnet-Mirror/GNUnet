@@ -178,10 +178,10 @@ is_srv (char* name)
  * a           = canonical
  *
  * @param name the name to test
- * @return 1 if canonical
+ * @return GNUNET_YES if canonical
  */
 static int
-is_canonical(char* name)
+is_canonical (char* name)
 {
   char* ndup;
   char* tok;
@@ -197,10 +197,10 @@ is_canonical(char* name)
     if (*tok == '_')
       continue;
     GNUNET_free (ndup);
-    return 0;
+    return GNUNET_NO;
   }
   GNUNET_free (ndup);
-  return 1;
+  return GNUNET_YES;
 }
 
 
@@ -1883,7 +1883,8 @@ resolve_record_dns (struct ResolverHandle *rh,
     rh->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   }
   /* Start shortening */
-  if ((rh->priv_key != NULL) && is_canonical (rh->name))
+  if ((rh->priv_key != NULL) &&
+      (is_canonical (rh->name) == GNUNET_YES))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
              "GNS_PHASE_REC_DNS-%llu: Trying to shorten authority chain\n",
@@ -2002,7 +2003,8 @@ resolve_record_vpn (struct ResolverHandle *rh,
     rh->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   }
   /* Start shortening */
-  if ((rh->priv_key != NULL) && is_canonical (rh->name))
+  if ((rh->priv_key != NULL) &&
+      (is_canonical (rh->name) == GNUNET_YES))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
              "GNS_PHASE_REC_VPN-%llu: Trying to shorten authority chain\n",
@@ -2088,7 +2090,8 @@ resolve_record_ns(struct ResolverHandle *rh)
     rh->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   }
   /* Start shortening */
-  if ((rh->priv_key != NULL) && is_canonical (rh->name))
+  if ((rh->priv_key != NULL) &&
+     (is_canonical (rh->name) == GNUNET_YES))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
              "GNS_PHASE_REC-%llu: Trying to shorten authority chain\n",
@@ -2522,7 +2525,8 @@ process_delegation_result_dht(void* cls,
     if (strcmp(rh->name, "") == 0)
     {
       /* Start shortening */
-      if ((rh->priv_key != NULL) && is_canonical (rh->name))
+      if ((rh->priv_key != NULL) &&
+          (is_canonical (rh->name) == GNUNET_YES))
       {
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
              "GNS_PHASE_DELEGATE_DHT-%llu: Trying to shorten authority chain\n",
@@ -2850,7 +2854,7 @@ pop_tld(char* name, char* dest)
 {
   uint32_t len;
 
-  if (is_canonical (name))
+  if (is_canonical (name) == GNUNET_YES)
   {
     strcpy(dest, name);
     strcpy(name, "");
@@ -2939,7 +2943,7 @@ handle_delegation_dht(void* cls, struct ResolverHandle *rh,
   /**
    * we still have some left
    **/
-  if (is_canonical(rh->name))
+  if (is_canonical (rh->name) == GNUNET_YES)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
              "GNS_PHASE_DELEGATE_DHT-%llu: Resolving canonical record %s in ns\n",
@@ -3218,7 +3222,7 @@ handle_delegation_ns (void* cls, struct ResolverHandle *rh,
 
   if (check_dht == GNUNET_NO)
   {
-    if (is_canonical(rh->name))
+    if (is_canonical (rh->name) == GNUNET_YES)
     {
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                  "GNS_PHASE_DELEGATE_NS-%llu: Resolving canonical record %s\n",
@@ -3476,7 +3480,8 @@ process_delegation_result_ns (void* cls,
   if (strcmp (rh->name, "") == 0)
   {
     /* Start shortening */
-    if ((rh->priv_key != NULL) && is_canonical (rh->name))
+    if ((rh->priv_key != NULL) &&
+        (is_canonical (rh->name) == GNUNET_YES))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "GNS_PHASE_DELEGATE_NS-%llu: Trying to shorten authority chain\n",
@@ -3559,7 +3564,8 @@ gns_resolver_lookup_record (struct GNUNET_CRYPTO_ShortHashCode zone,
               name, record_type);
 
   
-  if (is_canonical((char*)name) && (strcmp(GNUNET_GNS_TLD, name) != 0))
+  if ((is_canonical ((char*)name) == GNUNET_YES) &&
+      (strcmp(GNUNET_GNS_TLD, name) != 0))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "%s is canonical and not gnunet -> cannot resolve!\n", name);
@@ -4292,7 +4298,7 @@ gns_resolver_shorten_name (struct GNUNET_CRYPTO_ShortHashCode *zone,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Starting shorten for %s!\n", name);
   
-  if (is_canonical ((char*)name))
+  if (is_canonical ((char*)name) == GNUNET_YES)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "%s is canonical. Returning verbatim\n", name);
@@ -4450,7 +4456,7 @@ handle_delegation_result_ns_get_auth(void* cls,
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
              "Building response!\n");
-  if (is_canonical(rh->name))
+  if (is_canonical (rh->name) == GNUNET_YES)
   {
     /**
      * We successfully resolved the authority in the ns
