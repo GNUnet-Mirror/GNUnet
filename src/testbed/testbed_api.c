@@ -128,91 +128,6 @@ struct ControllerLink
 
 
 /**
- * Handle to interact with a GNUnet testbed controller.  Each
- * controller has at least one master handle which is created when the
- * controller is created; this master handle interacts with the
- * controller process, destroying it destroys the controller (by
- * closing stdin of the controller process).  Additionally,
- * controllers can interact with each other (in a P2P fashion); those
- * links are established via TCP/IP on the controller's service port.
- */
-struct GNUNET_TESTBED_Controller
-{
-
-  /**
-   * The host where the controller is running
-   */
-  struct GNUNET_TESTBED_Host *host;
-
-  /**
-   * The controller callback
-   */
-  GNUNET_TESTBED_ControllerCallback cc;
-
-  /**
-   * The closure for controller callback
-   */
-  void *cc_cls;
-
-  /**
-   * The configuration to use while connecting to controller
-   */
-  struct GNUNET_CONFIGURATION_Handle *cfg;
-
-  /**
-   * The client connection handle to the controller service
-   */
-  struct GNUNET_CLIENT_Connection *client;
-  
-  /**
-   * The head of the message queue
-   */
-  struct MessageQueue *mq_head;
-
-  /**
-   * The tail of the message queue
-   */
-  struct MessageQueue *mq_tail;
-
-  /**
-   * The head of the ControllerLink list
-   */
-  struct ControllerLink *cl_head;
-
-  /**
-   * The tail of the ControllerLink list
-   */
-  struct ControllerLink *cl_tail;
-
-  /**
-   * The client transmit handle
-   */
-  struct GNUNET_CLIENT_TransmitHandle *th;
-
-  /**
-   * The host registration handle; NULL if no current registration requests are
-   * present 
-   */
-  struct GNUNET_TESTBED_HostRegistrationHandle *rh;
-
-  /**
-   * The controller event mask
-   */
-  uint64_t event_mask;
-
-  /**
-   * Did we start the receive loop yet?
-   */
-  int in_receive;
-
-  /**
-   * Did we create the host for this?
-   */
-  int aux_host;
-};
-
-
-/**
  * handle for host registration
  */
 struct GNUNET_TESTBED_HostRegistrationHandle
@@ -237,34 +152,6 @@ struct GNUNET_TESTBED_HostRegistrationHandle
    */
   void *cc_cls;
 };
-
-
-/**
- * The global operation id counter
- */
-uint64_t GNUNET_TESTBED_operation_id;
-
-/**
- * The head of the operation queue
- */
-struct GNUNET_TESTBED_Operation *op_head;
-
-/**
- * The tail of the operation queue
- */
-struct GNUNET_TESTBED_Operation *op_tail;
-
-
-/**
- * Adds an operation to the queue of operations
- *
- * @param op the operation to add
- */
-void
-GNUNET_TESTBED_operation_add (struct GNUNET_TESTBED_Operation *op)
-{
-  GNUNET_CONTAINER_DLL_insert_tail (op_head, op_tail, op);
-}
 
 
 /**
@@ -342,7 +229,7 @@ handle_opsuccess (struct GNUNET_TESTBED_Controller *c,
   
   op_id = GNUNET_ntohll (msg->operation_id);
   LOG_DEBUG ("Operation %ul successful\n", op_id);
-  for (op = op_head; NULL != op; op = op->next)
+  for (op = c->op_head; NULL != op; op = op->next)
   {
     if (op->operation_id == op_id)
       break;
@@ -391,7 +278,7 @@ handle_opsuccess (struct GNUNET_TESTBED_Controller *c,
     if (NULL != c->cc)
       c->cc (c->cc_cls, event);
   }
-  GNUNET_CONTAINER_DLL_remove (op_head, op_tail, op);
+  GNUNET_CONTAINER_DLL_remove (c->op_head, c->op_tail, op);
   GNUNET_free (op);
   return GNUNET_YES;  
 }

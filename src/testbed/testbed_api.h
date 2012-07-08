@@ -41,12 +41,6 @@ enum OperationType
 
 
 /**
- * The counter for generating unique operation ids. Use its current value and
- * increment it (defined in testbed_api.c)
- */
-extern uint64_t GNUNET_TESTBED_operation_id;
-
-/**
  * Testbed operation structure
  */
 struct GNUNET_TESTBED_Operation
@@ -75,6 +69,118 @@ struct GNUNET_TESTBED_Operation
    * Data specific to OperationType
    */
   void *data;
+};
+
+
+/**
+ * The message queue for sending messages to the controller service
+ */
+struct MessageQueue;
+
+
+/**
+ * Structure for a controller link
+ */
+struct ControllerLink;
+
+
+/**
+ * Handle to interact with a GNUnet testbed controller.  Each
+ * controller has at least one master handle which is created when the
+ * controller is created; this master handle interacts with the
+ * controller process, destroying it destroys the controller (by
+ * closing stdin of the controller process).  Additionally,
+ * controllers can interact with each other (in a P2P fashion); those
+ * links are established via TCP/IP on the controller's service port.
+ */
+struct GNUNET_TESTBED_Controller
+{
+
+  /**
+   * The host where the controller is running
+   */
+  struct GNUNET_TESTBED_Host *host;
+
+  /**
+   * The controller callback
+   */
+  GNUNET_TESTBED_ControllerCallback cc;
+
+  /**
+   * The closure for controller callback
+   */
+  void *cc_cls;
+
+  /**
+   * The configuration to use while connecting to controller
+   */
+  struct GNUNET_CONFIGURATION_Handle *cfg;
+
+  /**
+   * The client connection handle to the controller service
+   */
+  struct GNUNET_CLIENT_Connection *client;
+  
+  /**
+   * The head of the message queue
+   */
+  struct MessageQueue *mq_head;
+
+  /**
+   * The tail of the message queue
+   */
+  struct MessageQueue *mq_tail;
+
+  /**
+   * The head of the ControllerLink list
+   */
+  struct ControllerLink *cl_head;
+
+  /**
+   * The tail of the ControllerLink list
+   */
+  struct ControllerLink *cl_tail;
+
+  /**
+   * The client transmit handle
+   */
+  struct GNUNET_CLIENT_TransmitHandle *th;
+
+  /**
+   * The host registration handle; NULL if no current registration requests are
+   * present 
+   */
+  struct GNUNET_TESTBED_HostRegistrationHandle *rh;
+
+  /**
+   * The head of the operation queue
+   */
+  struct GNUNET_TESTBED_Operation *op_head;
+  
+  /**
+   * The tail of the operation queue
+   */
+  struct GNUNET_TESTBED_Operation *op_tail;
+
+  /**
+   * The operation id counter. use current value and increment
+   */
+  uint64_t operation_counter;
+  
+  /**
+   * The controller event mask
+   */
+  uint64_t event_mask;
+
+  /**
+   * Did we start the receive loop yet?
+   */
+  int in_receive;
+
+  /**
+   * Did we create the host for this?
+   */
+  int aux_host;
 };
 
 
