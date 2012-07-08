@@ -407,8 +407,12 @@ curl_check_hdr (void *buffer, size_t size, size_t nmemb, void *cls)
   int cookie_hdr_len = strlen (MHD_HTTP_HEADER_SET_COOKIE);
   char hdr_mime[html_mime_len+1];
   char hdr_cookie[bytes+1];
-  //char hdr_cookie_gns[bytes+strlen (ctask->leho)+1];
-  //char* ndup;
+  char new_cookie_hdr[bytes+strlen (ctask->leho)+1];
+  char* ndup;
+  char* tok;
+  char* cookie_domain;
+  int delta_cdomain;
+  size_t offset = 0;
   
   if (html_mime_len <= bytes)
   {
@@ -439,16 +443,73 @@ curl_check_hdr (void *buffer, size_t size, size_t nmemb, void *cls)
                    MHD_HTTP_HEADER_SET_COOKIE,
                    cookie_hdr_len))
   {
-    //ndup = GNUNET_strdup (hdr_cookie);
-    //tok = strtok (ndup, ";");
+    ndup = GNUNET_strdup (hdr_cookie+cookie_hdr_len+1);
+    memset (new_cookie_hdr, 0, sizeof (new_cookie_hdr));
+    tok = strtok (ndup, ";");
 
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "Got Set-Cookie HTTP header %s\n", hdr_cookie);
+                "Looking for cookie in : %s\n", hdr_cookie);
+    
+    for (; tok != NULL; tok = strtok (NULL, ";"))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  "Got Cookie token: %s\n", tok);
+      //memcpy (new_cookie_hdr+offset, tok, strlen (tok));
+      if (0 == memcmp (tok, " domain", strlen (" domain")))
+      {
+        cookie_domain = tok + strlen (" domain") + 1;
+
+        GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                    "Got Set-Cookie Domain: %s\n", cookie_domain);
+
+        if (strlen (cookie_domain) < strlen (ctask->leho))
+        {
+          delta_cdomain = strlen (ctask->leho) - strlen (cookie_domain);
+          if (0 == strcmp (cookie_domain, ctask->leho + (delta_cdomain)))
+          {
+            GNUNET_snprintf (new_cookie_hdr+offset,
+                             sizeof (new_cookie_hdr),
+                             " domain=%s", ctask->authority);
+            offset += strlen (" domain=") + strlen (ctask->authority);
+            new_cookie_hdr[offset] = ';';
+            offset++;
+            continue;
+          }
+        }
+        else if (strlen (cookie_domain) == strlen (ctask->leho))
+        {
+          if (0 == strcmp (cookie_domain, ctask->leho))
+          {
+            GNUNET_snprintf (new_cookie_hdr+offset,
+                             sizeof (new_cookie_hdr),
+                             " domain=%s", ctask->host);
+            offset += strlen (" domain=") + strlen (ctask->host);
+            new_cookie_hdr[offset] = ';';
+            offset++;
+            continue;
+          }
+        }
+        GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                    "Cookie domain invalid\n");
+
+        
+      }
+      memcpy (new_cookie_hdr+offset, tok, strlen (tok));
+      offset += strlen (tok);
+      new_cookie_hdr[offset] = ';';
+      offset++;
+    }
+    
+    //memcpy (new_cookie_hdr+offset, tok, strlen (tok));
+
+    GNUNET_free (ndup);
+
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Got Set-Cookie HTTP header %s\n", new_cookie_hdr);
+
     //pch = GNUNET_malloc (sizeof (struct ProxySetCookieHeader));
     //len = strlen (hdr_cookie) - cookie_hdr_len - 1;
     //pch->cookie = GNUNET_malloc (len + 1);
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "Copying Set-Cookie data %s:\n", hdr_cookie+cookie_hdr_len+1);
     //memset (pch->cookie, 0, len + 1);
     //memcpy (pch->cookie, hdr_cookie+cookie_hdr_len+1, len);
     //GNUNET_CONTAINER_DLL_insert (ctask->set_cookies_head,
@@ -457,21 +518,14 @@ curl_check_hdr (void *buffer, size_t size, size_t nmemb, void *cls)
     //pch = ctask->set_cookies_head;
     //while (pch != NULL)
     //{
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  "MHD: adding cookie: %s\n",
+    if (GNUNET_NO == MHD_add_response_header (ctask->response,
+                                              MHD_HTTP_HEADER_SET_COOKIE,
+                                              new_cookie_hdr))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "MHD: Error adding set-cookie header field %s\n",
                   hdr_cookie+cookie_hdr_len+1);
-    
-      if (GNUNET_NO == MHD_add_response_header (ctask->response,
-                                                MHD_HTTP_HEADER_SET_COOKIE,
-                                                hdr_cookie+cookie_hdr_len+1))
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                    "MHD: Error adding set-cookie header field %s\n",
-                    hdr_cookie+cookie_hdr_len+1);
-      }
-      MHD_add_response_header (ctask->response,
-                               MHD_HTTP_HEADER_SET_COOKIE,
-                               "test=test; domain=homepage.gnunet; secure");
+    }
       //GNUNET_free (pch->cookie);
       //GNUNET_CONTAINER_DLL_remove (ctask->set_cookies_head,
       //                             ctask->set_cookies_tail,
@@ -539,7 +593,7 @@ callback_download (void *ptr, size_t size, size_t nmemb, void *ctx)
   {
     MHD_queue_response (ctask->connection,
                         MHD_HTTP_OK,
-                        ctask->response);
+                       ctask->response);
     ctask->con_status = MHD_YES;
   }
   total = size*nmemb;
