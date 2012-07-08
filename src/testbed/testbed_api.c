@@ -39,6 +39,7 @@
 #include "testbed.h"
 #include "testbed_api.h"
 #include "testbed_api_hosts.h"
+#include "testbed_api_peers.h"
 
 /**
  * Generic logging shorthand
@@ -322,6 +323,81 @@ handle_addhostconfirm (struct GNUNET_TESTBED_Controller *c,
 
 
 /**
+ * Handler for GNUNET_MESSAGE_TYPE_TESTBED_ADDHOSTCONFIRM message from
+ * controller (testbed service)
+ *
+ * @param c the controller handler
+ * @param msg message received
+ * @return GNUNET_YES if we can continue receiving from service; GNUNET_NO if
+ *           not
+ */
+static int
+handle_opsuccess (struct GNUNET_TESTBED_Controller *c,
+                  const struct
+                  GNUNET_TESTBED_GenericOperationSuccessEventMessage *msg)
+{
+  struct GNUNET_TESTBED_Operation *op;
+  struct GNUNET_TESTBED_EventInformation *event;
+  uint64_t op_id;
+  
+  op_id = GNUNET_ntohll (msg->operation_id);
+  LOG_DEBUG ("Operation %ul successful\n", op_id);
+  for (op = op_head; NULL != op; op = op->next)
+  {
+    if (op->operation_id == op_id)
+      break;
+  }
+  if (NULL == op)
+  {
+    LOG_DEBUG ("Operation not found\n");
+    return GNUNET_YES;
+  }
+  event = NULL;
+  if (0 != (c->event_mask & (1L << GNUNET_TESTBED_ET_OPERATION_FINISHED)))
+    event = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_EventInformation));
+  if (NULL != event)
+    event->type = GNUNET_TESTBED_ET_OPERATION_FINISHED; 
+  switch (op->type)
+  {
+  case OP_PEER_DESTROY:
+    {
+      struct PeerDestroyData *data;
+      
+      if (NULL != event)
+      {
+        event->details.operation_finished.operation = op;
+        event->details.operation_finished.op_cls = NULL;
+        event->details.operation_finished.emsg = NULL;
+        event->details.operation_finished.pit = GNUNET_TESTBED_PIT_GENERIC;
+        event->details.operation_finished.op_result.generic = NULL;
+      }
+      data = (struct PeerDestroyData *) op->data;
+      if (NULL != data->peer->details)
+      {
+        if (NULL != data->peer->details->cfg)
+          GNUNET_CONFIGURATION_destroy (data->peer->details->cfg);
+        //PEER_DETAILS
+      }
+      GNUNET_free (data->peer);
+      GNUNET_free (data);
+      //PEERDESTROYDATA
+    }
+    break;
+  default:
+    GNUNET_break (0);
+  }
+  if (NULL != event)
+  {
+    if (NULL != c->cc)
+      c->cc (c->cc_cls, event);
+  }
+  GNUNET_CONTAINER_DLL_remove (op_head, op_tail, op);
+  GNUNET_free (op);
+  return GNUNET_YES;  
+}
+
+
+/**
  * Handler for messages from controller (testbed service)
  *
  * @param cls the controller handler
@@ -346,8 +422,13 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
   case GNUNET_MESSAGE_TYPE_TESTBED_ADDHOSTCONFIRM:
     status =
       handle_addhostconfirm (c, (const struct
-                                 GNUNET_TESTBED_HostConfirmedMessage *) msg);   
+                                 GNUNET_TESTBED_HostConfirmedMessage *) msg);
     break;
+  case GNUNET_MESSAGE_TYPE_TESTBED_GENERICOPSUCCESS:
+    status =
+      handle_opsuccess (c, (const struct
+                            GNUNET_TESTBED_GenericOperationSuccessEventMessage
+                            *) msg);
   default:
     GNUNET_break (0);
   }

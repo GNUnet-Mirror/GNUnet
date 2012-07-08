@@ -31,11 +31,64 @@
 
 
 /**
+ * Details about a peer; kept in a separate struct to avoid bloating
+ * memory consumption everywhere...
+ */
+struct PeerDetails
+{
+  /**
+   * Configuration of the peer; NULL if we are not sure what the peer's correct
+   * configuration actually is; non-NULL if this peer is controlled by this
+   * process.
+   */
+  struct GNUNET_CONFIGURATION_Handle *cfg;
+
+  //PEER_DETAILS
+};
+
+
+/**
+ * A peer controlled by the testing framework.  A peer runs
+ * at a particular host.
+ */ 
+struct GNUNET_TESTBED_Peer
+{
+  /**
+   * Our controller context (not necessarily the controller
+   * that is responsible for starting/running the peer!).
+   */
+  struct GNUNET_TESTBED_Controller *controller;
+			   
+  /**
+   * Which host does this peer run on?
+   */
+  struct GNUNET_TESTBED_Host *host;
+
+  /**
+   * Globally unique ID of the peer.
+   */
+  uint32_t unique_id;
+
+  /**
+   * Internals of the peer for the controlling process; NULL if 
+   * this process is not controlling this peer.
+   */
+  struct PeerDetails *details;
+
+};
+
+
+/**
  * Data for the OperationType OP_PEER_DESTROY;
  */
 struct PeerDestroyData
 {
+  /**
+   * The peer structure
+   */
   struct GNUNET_TESTBED_Peer *peer;
+
+  //PEERDESTROYDATA
 };
 
 

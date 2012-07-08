@@ -1176,6 +1176,8 @@ handle_peer_destroy (void *cls,
   
   msg = (const struct GNUNET_TESTBED_PeerDestroyMessage *) message;
   peer_id = ntohl (msg->peer_id);
+  LOG_DEBUG ("Received peer destory on peer: %u and operation id: %ul\n",
+             peer_id, GNUNET_ntohll (msg->operation_id));
   if ((peer_list_size <= peer_id) || (NULL == peer_list[peer_id]))
   {
     GNUNET_break (0);
