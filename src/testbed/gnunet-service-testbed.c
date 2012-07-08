@@ -1157,6 +1157,57 @@ handle_peer_create (void *cls,
 
 
 /**
+ * Message handler for GNUNET_MESSAGE_TYPE_TESTBED_DESTROYPEER messages
+ *
+ * @param cls NULL
+ * @param client identification of the client
+ * @param message the actual message
+ */
+static void 
+handle_peer_destroy (void *cls,
+                     struct GNUNET_SERVER_Client *client,
+                     const struct GNUNET_MessageHeader *message)
+{
+  const struct GNUNET_TESTBED_PeerDestroyMessage *msg;
+  struct GNUNET_TESTBED_GenericOperationSuccessEventMessage *reply;
+  uint32_t peer_id;
+  uint32_t id;
+  uint16_t reply_size;
+  
+  msg = (const struct GNUNET_TESTBED_PeerDestroyMessage *) message;
+  peer_id = ntohl (msg->peer_id);
+  if ((peer_list_size <= peer_id) || (NULL == peer_list[peer_id]))
+  {
+    GNUNET_break (0);
+    /* Reply with failure event message */
+  }  
+  GNUNET_TESTING_peer_destroy (peer_list[peer_id]->peer);
+  GNUNET_CONFIGURATION_destroy (peer_list[peer_id]->cfg);
+  GNUNET_free (peer_list[peer_id]);
+  peer_list[peer_id] = NULL;
+  for (id = 0; id < LIST_GROW_STEP; id++)
+  {
+    if (((peer_id + id >= peer_list_size) ||
+         (NULL != peer_list[peer_id])))
+      break;
+  }
+  if (LIST_GROW_STEP == id)
+  {
+    peer_list_size -= LIST_GROW_STEP;
+    peer_list = GNUNET_realloc (peer_list, peer_list_size);
+  }
+  reply_size = 
+    sizeof (struct GNUNET_TESTBED_GenericOperationSuccessEventMessage);
+  reply = GNUNET_malloc (reply_size);
+  reply->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_GENERICOPSUCCESS);
+  reply->header.size = htons (reply_size);
+  reply->operation_id = msg->operation_id;
+  queue_message (client, (struct GNUNET_MessageHeader *) reply);
+  
+}
+
+
+/**
  * Iterator over hash map entries.
  *
  * @param cls closure
@@ -1223,6 +1274,15 @@ shutdown_task (void *cls,
     GNUNET_CONTAINER_DLL_remove (lcfq_head, lcfq_tail, lcfq);
     GNUNET_free (lcfq);
   }
+  /* Clear peer list */
+  for (id = 0; id < peer_list_size; id++)
+    if (NULL != peer_list[id])
+    {
+      GNUNET_TESTING_peer_destroy (peer_list[id]->peer);
+      GNUNET_CONFIGURATION_destroy (peer_list[id]->cfg);
+      GNUNET_free (peer_list[id]);
+    }
+  GNUNET_free_non_null (peer_list);
   /* Clear host list */
   for (id = 0; id < host_list_size; id++)
     if (NULL != host_list[id])
@@ -1293,6 +1353,8 @@ testbed_run (void *cls,
       {&handle_link_controllers, NULL,
        GNUNET_MESSAGE_TYPE_TESTBED_LCONTROLLERS, 0},
       {&handle_peer_create, NULL, GNUNET_MESSAGE_TYPE_TESTBED_CREATEPEER, 0},
+      {&handle_peer_destroy, NULL, GNUNET_MESSAGE_TYPE_TESTBED_DESTROYPEER,
+       sizeof (struct GNUNET_TESTBED_PeerDestroyMessage)},
       {NULL}
     };
 

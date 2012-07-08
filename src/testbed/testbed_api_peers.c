@@ -295,7 +295,7 @@ GNUNET_TESTBED_peer_destroy (struct GNUNET_TESTBED_Peer *peer)
   msg = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_PeerDestroyMessage));
   msg->header.size = htons (sizeof (struct GNUNET_TESTBED_PeerDestroyMessage));
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_DESTROYPEER);
-  msg->peer_id = peer->unique_id;
+  msg->peer_id = htonl (peer->unique_id);
   msg->operation_id = GNUNET_htonll (op->operation_id);
   GNUNET_TESTBED_operation_add (op);
   GNUNET_TESTBED_queue_message (peer->controller, 
