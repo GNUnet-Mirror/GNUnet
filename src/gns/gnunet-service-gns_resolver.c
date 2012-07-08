@@ -19,8 +19,6 @@
 */
 
 /**
- *
- *
  * @file gns/gnunet-service-gns_resolver.c
  * @brief GNUnet GNS resolver logic
  * @author Martin Schanzenbach
@@ -143,28 +141,34 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
  */
 static unsigned long long rid = 0;
 
+/*
+ * Check if name is in srv format (_x._y.xxx)
+ *
+ * @param name
+ * @return GNUNET_YES if true
+ */
 static int
 is_srv (char* name)
 {
   char* ndup;
-  int ret = 1;
+  int ret = GNUNET_YES;
 
   if (*name != '_')
-    return 0;
+    return GNUNET_NO;
   if (NULL == strstr (name, "._"))
-    return 0;
+    return GNUNET_NO;
 
   ndup = GNUNET_strdup (name);
   strtok (ndup, ".");
 
   if (NULL == strtok (NULL, "."))
-    ret = 0;
+    ret = GNUNET_NO;
 
   if (NULL == strtok (NULL, "."))
-    ret = 0;
+    ret = GNUNET_NO;
 
   if (NULL != strtok (NULL, "."))
-    ret = 0;
+    ret = GNUNET_NO;
 
   GNUNET_free (ndup);
 
@@ -2814,7 +2818,7 @@ handle_record_ns (void* cls, struct ResolverHandle *rh,
                                           &rh->private_local_zone))
       check_dht = GNUNET_NO;
     
-    if ((strcmp (rh->name, "+") != 0) && (is_srv (rh->name) != 0))
+    if ((strcmp (rh->name, "+") != 0) && (is_srv (rh->name) == GNUNET_YES))
         check_dht = GNUNET_NO;
 
 
