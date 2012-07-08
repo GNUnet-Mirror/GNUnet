@@ -217,8 +217,15 @@ static void
 shorten_authority_chain (struct GetPseuAuthorityHandle *gph);
 
 
+/**
+ * Continueation for pkey record creation (shorten)
+ *
+ * @param cls a GetPseuAuthorityHandle
+ * @param success unused
+ * @param emsg unused
+ */
 static void
-create_pseu_cont (void* cls, int32_t success, const char* emsg)
+create_pkey_cont (void* cls, int32_t success, const char* emsg)
 {
   //FIXME do sth with error
   struct GetPseuAuthorityHandle* gph = (struct GetPseuAuthorityHandle*)cls;
@@ -322,7 +329,7 @@ process_pseu_lookup_ns (void* cls,
                                   gph->key,
                                   gph->test_name,
                                   &new_pkey,
-                                  &create_pseu_cont, //cont
+                                  &create_pkey_cont, //cont
                                   gph); //cls
 }
 
@@ -366,8 +373,8 @@ process_pseu_result (struct GetPseuAuthorityHandle* gph, char* name)
  * @param tc the task context
  */
 static void
-handle_auth_discovery_timeout(void *cls,
-                              const struct GNUNET_SCHEDULER_TaskContext *tc)
+handle_auth_discovery_timeout (void *cls,
+                               const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GetPseuAuthorityHandle* gph = (struct GetPseuAuthorityHandle*)cls;
   struct AuthorityChain *iter;
@@ -409,15 +416,15 @@ handle_auth_discovery_timeout(void *cls,
  * @param data the record data
  */
 static void
-process_auth_discovery_dht_result(void* cls,
-                                  struct GNUNET_TIME_Absolute exp,
-                                  const struct GNUNET_HashCode * key,
-                                  const struct GNUNET_PeerIdentity *get_path,
-                                  unsigned int get_path_length,
-                                  const struct GNUNET_PeerIdentity *put_path,
-                                  unsigned int put_path_length,
-                                  enum GNUNET_BLOCK_Type type,
-                                  size_t size, const void *data)
+process_auth_discovery_dht_result (void* cls,
+                                   struct GNUNET_TIME_Absolute exp,
+                                   const struct GNUNET_HashCode * key,
+                                   const struct GNUNET_PeerIdentity *get_path,
+                                   unsigned int get_path_length,
+                                   const struct GNUNET_PeerIdentity *put_path,
+                                   unsigned int put_path_length,
+                                   enum GNUNET_BLOCK_Type type,
+                                   size_t size, const void *data)
 {
   struct GetPseuAuthorityHandle* gph = (struct GetPseuAuthorityHandle*)cls;
   struct AuthorityChain *iter;
@@ -523,7 +530,7 @@ process_auth_discovery_dht_result(void* cls,
  * @param signature the signature
  */
 static void
-process_auth_discovery_ns_result(void* cls,
+process_auth_discovery_ns_result (void* cls,
                       const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *key,
                       struct GNUNET_TIME_Absolute expiration,
                       const char *name,
@@ -565,15 +572,15 @@ process_auth_discovery_ns_result(void* cls,
     
     GNUNET_assert (gph->get_handle == NULL);
 
-    gph->get_handle = GNUNET_DHT_get_start(dht_handle,
-                                           GNUNET_BLOCK_TYPE_GNS_NAMERECORD,
-                                           &lookup_key,
-                                           DHT_GNS_REPLICATION_LEVEL,
-                                           GNUNET_DHT_RO_NONE,
-                                           &xquery,
-                                           sizeof(xquery),
-                                           &process_auth_discovery_dht_result,
-                                           gph);
+    gph->get_handle = GNUNET_DHT_get_start (dht_handle,
+                                            GNUNET_BLOCK_TYPE_GNS_NAMERECORD,
+                                            &lookup_key,
+                                            DHT_GNS_REPLICATION_LEVEL,
+                                            GNUNET_DHT_RO_NONE,
+                                            &xquery,
+                                            sizeof(xquery),
+                                            &process_auth_discovery_dht_result,
+                                            gph);
     return;
   }
 
@@ -711,8 +718,6 @@ start_shorten (struct AuthorityChain *atail,
   GNUNET_CRYPTO_rsa_key_get_public (key, &pkey);
   pb_key = GNUNET_CRYPTO_rsa_encode_key (key);
   gph->key = GNUNET_CRYPTO_rsa_decode_key ((char*)pb_key, ntohs (pb_key->len));
-  //gph->key = key;//GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_RsaPrivateKey));
-  //memcpy (gph->key, key, sizeof (struct GNUNET_CRYPTO_RsaPrivateKey));
   
   GNUNET_CRYPTO_short_hash (&pkey,
                         sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
@@ -749,9 +754,9 @@ gns_resolver_init (struct GNUNET_NAMESTORE_Handle *nh,
   dht_handle = dh;
   local_zone = lz;
   dht_lookup_heap =
-    GNUNET_CONTAINER_heap_create(GNUNET_CONTAINER_HEAP_ORDER_MIN);
+    GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
   ns_task_heap =
-    GNUNET_CONTAINER_heap_create(GNUNET_CONTAINER_HEAP_ORDER_MIN);
+    GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
   max_allowed_background_queries = max_bg_queries;
   max_allowed_ns_tasks = GNUNET_GNS_MAX_NS_TASKS;
 
@@ -788,10 +793,10 @@ gns_resolver_init (struct GNUNET_NAMESTORE_Handle *nh,
  * @return always GNUNET_YES
  */
 static int
-cleanup_pending_ns_tasks(void* cls,
-                         struct GNUNET_CONTAINER_HeapNode *node,
-                         void *element,
-                         GNUNET_CONTAINER_HeapCostType cost)
+cleanup_pending_ns_tasks (void* cls,
+                          struct GNUNET_CONTAINER_HeapNode *node,
+                          void *element,
+                          GNUNET_CONTAINER_HeapCostType cost)
 {
   struct NamestoreBGTask *nbg = (struct NamestoreBGTask *)element;
   ResolverCleanupContinuation cont = cls;
@@ -800,10 +805,10 @@ cleanup_pending_ns_tasks(void* cls,
              "GNS_CLEANUP: Terminating ns task\n");
   GNUNET_NAMESTORE_cancel (nbg->qe);
 
-  GNUNET_CONTAINER_heap_remove_node(node);
+  GNUNET_CONTAINER_heap_remove_node (node);
 
-  if (GNUNET_CONTAINER_heap_get_size(ns_task_heap) == 0)
-    cont();
+  if (GNUNET_CONTAINER_heap_get_size (ns_task_heap) == 0)
+    cont ();
 
   return GNUNET_YES;
 }
@@ -846,16 +851,12 @@ cleanup_pending_background_queries (void* cls,
              "GNS_CLEANUP-%llu: Terminating background lookup for %s\n",
              rh->id, rh->name);
   
-  //finish_lookup (rh, rh->proc_cls, 0, NULL);
-  //rh->get_handle = NULL;
-  //rh->proc(rh->proc_cls, rh, 0, NULL);
+  GNUNET_CONTAINER_heap_remove_node (node);
 
-  GNUNET_CONTAINER_heap_remove_node(node);
-
-  if (GNUNET_CONTAINER_heap_get_size(dht_lookup_heap) == 0)
+  if (GNUNET_CONTAINER_heap_get_size (dht_lookup_heap) == 0)
   {
-    if (GNUNET_CONTAINER_heap_get_size(ns_task_heap) == 0)
-      cont();
+    if (GNUNET_CONTAINER_heap_get_size (ns_task_heap) == 0)
+      cont ();
     else
     {
       GNUNET_CONTAINER_heap_iterate (ns_task_heap,
@@ -888,7 +889,7 @@ free_resolver_handle (struct ResolverHandle* rh)
   while (NULL != ac)
   {
     ac_next = ac->next;
-    GNUNET_free(ac);
+    GNUNET_free (ac);
     ac = ac_next;
   }
   
@@ -915,7 +916,7 @@ free_resolver_handle (struct ResolverHandle* rh)
 
   if (NULL != rh->rd.data)
     GNUNET_free ((void*)(rh->rd.data));
-  GNUNET_free(rh);
+  GNUNET_free (rh);
 }
 
 
@@ -990,21 +991,21 @@ gns_resolver_cleanup (ResolverCleanupContinuation cont)
     finish_get_auth (nah_head, nah_head->proc_cls);
   }
 
-  s = GNUNET_CONTAINER_heap_get_size(dht_lookup_heap);
+  s = GNUNET_CONTAINER_heap_get_size (dht_lookup_heap);
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
              "GNS_CLEANUP: %d pending background queries to terminate\n", s);
   if (0 != s)
     GNUNET_CONTAINER_heap_iterate (dht_lookup_heap,
                                    &cleanup_pending_background_queries,
                                    cont);
-  else if (0 != GNUNET_CONTAINER_heap_get_size(ns_task_heap))
+  else if (0 != GNUNET_CONTAINER_heap_get_size (ns_task_heap))
   {
     GNUNET_CONTAINER_heap_iterate (ns_task_heap,
                                    &cleanup_pending_ns_tasks,
                                    cont);
   }
   else
-    cont();
+    cont ();
 }
 
 
@@ -1018,9 +1019,9 @@ gns_resolver_cleanup (ResolverCleanupContinuation cont)
  * @param emsg the error message. NULL if SUCCESS==GNUNET_OK
  */
 void
-on_namestore_record_put_result(void *cls,
-                               int32_t success,
-                               const char *emsg)
+on_namestore_record_put_result (void *cls,
+                                int32_t success,
+                                const char *emsg)
 {
   struct NamestoreBGTask *nbg = cls;
 
@@ -1045,12 +1046,12 @@ on_namestore_record_put_result(void *cls,
 }
 
 static void
-handle_lookup_timeout(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+handle_lookup_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct ResolverHandle *rh = cls;
 
   if (rh->timeout_cont)
-    rh->timeout_cont(rh->timeout_cont_cls, tc);
+    rh->timeout_cont (rh->timeout_cont_cls, tc);
 }
 
 /**
@@ -1061,14 +1062,14 @@ handle_lookup_timeout(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param rd record data
  */
 static void
-background_lookup_result_processor(void *cls,
+background_lookup_result_processor (void *cls,
                                    uint32_t rd_count,
                                    const struct GNUNET_NAMESTORE_RecordData *rd)
 {
   //We could do sth verbose/more useful here but it doesn't make any difference
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "GNS_BG: background dht lookup finished. (%d results)\n",
-             rd_count);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "GNS_BG: background dht lookup finished. (%d results)\n",
+              rd_count);
 }
 
 /**
@@ -1078,41 +1079,39 @@ background_lookup_result_processor(void *cls,
  * @param tc the task context
  */
 static void
-dht_lookup_timeout(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+dht_lookup_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct ResolverHandle *rh = cls;
   struct RecordLookupHandle *rlh = (struct RecordLookupHandle *)rh->proc_cls;
   char new_name[MAX_DNS_NAME_LENGTH];
 
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "GNS_PHASE_REC-%llu: dht lookup for query %s (%llus)timed out.\n",
-             rh->id, rh->name, rh->timeout.rel_value);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "GNS_PHASE_REC-%llu: dht lookup for query %s (%llus)timed out.\n",
+              rh->id, rh->name, rh->timeout.rel_value);
   /**
    * Start resolution in bg
    */
-  //strcpy(new_name, rh->name);
-  //memcpy(new_name+strlen(new_name), GNUNET_GNS_TLD, strlen(GNUNET_GNS_TLD));
-  GNUNET_snprintf(new_name, MAX_DNS_NAME_LENGTH, "%s.%s",
-                  rh->name, GNUNET_GNS_TLD);
+  GNUNET_snprintf (new_name, MAX_DNS_NAME_LENGTH, "%s.%s",
+                   rh->name, GNUNET_GNS_TLD);
 
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "GNS_PHASE_REC-%llu: Starting background lookup for %s type %d\n",
-             rh->id, new_name, rlh->record_type);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "GNS_PHASE_REC-%llu: Starting background lookup for %s type %d\n",
+              rh->id, new_name, rlh->record_type);
 
-  gns_resolver_lookup_record(rh->authority,
-                             rh->private_local_zone,
-                             rlh->record_type,
-                             new_name,
-                             NULL,
-                             GNUNET_TIME_UNIT_FOREVER_REL,
-                             GNUNET_NO,
-                             &background_lookup_result_processor,
-                             NULL);
+  gns_resolver_lookup_record (rh->authority,
+                              rh->private_local_zone,
+                              rlh->record_type,
+                              new_name,
+                              NULL,
+                              GNUNET_TIME_UNIT_FOREVER_REL,
+                              GNUNET_NO,
+                              &background_lookup_result_processor,
+                              NULL);
   rh->timeout_task = GNUNET_SCHEDULER_NO_TASK;
 
   GNUNET_DHT_get_stop (rh->get_handle);
   rh->get_handle = NULL;
-  rh->proc(rh->proc_cls, rh, 0, NULL);
+  rh->proc (rh->proc_cls, rh, 0, NULL);
 }
 
 
@@ -1132,15 +1131,15 @@ dht_lookup_timeout(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param data the record data
  */
 static void
-process_record_result_dht(void* cls,
-                          struct GNUNET_TIME_Absolute exp,
-                          const struct GNUNET_HashCode * key,
-                          const struct GNUNET_PeerIdentity *get_path,
-                          unsigned int get_path_length,
-                          const struct GNUNET_PeerIdentity *put_path,
-                          unsigned int put_path_length,
-                          enum GNUNET_BLOCK_Type type,
-                          size_t size, const void *data)
+process_record_result_dht (void* cls,
+                           struct GNUNET_TIME_Absolute exp,
+                           const struct GNUNET_HashCode * key,
+                           const struct GNUNET_PeerIdentity *get_path,
+                           unsigned int get_path_length,
+                           const struct GNUNET_PeerIdentity *put_path,
+                           unsigned int put_path_length,
+                           enum GNUNET_BLOCK_Type type,
+                           size_t size, const void *data)
 {
   struct ResolverHandle *rh;
   struct RecordLookupHandle *rlh;
@@ -1152,11 +1151,8 @@ process_record_result_dht(void* cls,
   int rd_size;
 
   rh = (struct ResolverHandle *)cls;
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "GNS_PHASE_REC-%llu: got dht result (size=%d)\n", rh->id, size);
-
-  //FIXME maybe check expiration here, check block type
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "GNS_PHASE_REC-%llu: got dht result (size=%d)\n", rh->id, size);
 
   rlh = (struct RecordLookupHandle *) rh->proc_cls;
   nrb = (struct GNSNameRecordBlock*)data;
@@ -1167,53 +1163,53 @@ process_record_result_dht(void* cls,
 
   if (rh->dht_heap_node != NULL)
   {
-    GNUNET_CONTAINER_heap_remove_node(rh->dht_heap_node);
+    GNUNET_CONTAINER_heap_remove_node (rh->dht_heap_node);
     rh->dht_heap_node = NULL;
   }
 
   if (rh->timeout_task != GNUNET_SCHEDULER_NO_TASK)
   {
-    GNUNET_SCHEDULER_cancel(rh->timeout_task);
+    GNUNET_SCHEDULER_cancel (rh->timeout_task);
     rh->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   }
 
   rh->get_handle = NULL;
   name = (char*)&nrb[1];
-  num_records = ntohl(nrb->rd_count);
+  num_records = ntohl (nrb->rd_count);
   {
     struct GNUNET_NAMESTORE_RecordData rd[num_records];
     struct NamestoreBGTask *ns_heap_root;
     struct NamestoreBGTask *namestore_bg_task;
 
-    rd_data += strlen(name) + 1 + sizeof(struct GNSNameRecordBlock);
-    rd_size = size - strlen(name) - 1 - sizeof(struct GNSNameRecordBlock);
+    rd_data += strlen (name) + 1 + sizeof (struct GNSNameRecordBlock);
+    rd_size = size - strlen (name) - 1 - sizeof (struct GNSNameRecordBlock);
 
     if (GNUNET_SYSERR == GNUNET_NAMESTORE_records_deserialize (rd_size,
                                                                rd_data,
                                                                num_records,
                                                                rd))
     {
-      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-                 "GNS_PHASE_REC-%llu: Error deserializing data!\n", rh->id);
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "GNS_PHASE_REC-%llu: Error deserializing data!\n", rh->id);
       return;
     }
 
     for (i=0; i<num_records; i++)
     {
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "GNS_PHASE_REC-%llu: Got name: %s (wanted %s)\n",
-                 rh->id, name, rh->name);
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "GNS_PHASE_REC-%llu: Got type: %d (wanted %d)\n",
-                 rh->id, rd[i].record_type, rlh->record_type);
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "GNS_PHASE_REC-%llu: Got data length: %d\n",
-                 rh->id, rd[i].data_size);
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "GNS_PHASE_REC-%llu: Got flag %d\n",
-                 rh->id, rd[i].flags);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "GNS_PHASE_REC-%llu: Got name: %s (wanted %s)\n",
+                  rh->id, name, rh->name);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "GNS_PHASE_REC-%llu: Got type: %d (wanted %d)\n",
+                  rh->id, rd[i].record_type, rlh->record_type);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "GNS_PHASE_REC-%llu: Got data length: %d\n",
+                  rh->id, rd[i].data_size);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "GNS_PHASE_REC-%llu: Got flag %d\n",
+                  rh->id, rd[i].flags);
 
-      if ((strcmp(name, rh->name) == 0) &&
+      if ((strcmp (name, rh->name) == 0) &&
           (rd[i].record_type == rlh->record_type))
       {
         rh->answered++;
@@ -1231,9 +1227,9 @@ process_record_result_dht(void* cls,
       ns_heap_root = GNUNET_CONTAINER_heap_remove_root (ns_task_heap);
       GNUNET_NAMESTORE_cancel (ns_heap_root->qe);
 
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "GNS_PHASE_REC-%llu: Replacing oldest background ns task\n",
-                 rh->id);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "GNS_PHASE_REC-%llu: Replacing oldest background ns task\n",
+                  rh->id);
     }
     
     /* Save to namestore */
@@ -1254,9 +1250,9 @@ process_record_result_dht(void* cls,
 
   
     if (rh->answered)
-     rh->proc(rh->proc_cls, rh, num_records, rd);
+     rh->proc (rh->proc_cls, rh, num_records, rd);
    else
-     rh->proc(rh->proc_cls, rh, 0, NULL);
+     rh->proc (rh->proc_cls, rh, 0, NULL);
   }
 
 }
@@ -1280,15 +1276,15 @@ resolve_record_dht (struct ResolverHandle *rh)
   struct RecordLookupHandle *rlh = (struct RecordLookupHandle *)rh->proc_cls;
   struct ResolverHandle *rh_heap_root;
 
-  GNUNET_CRYPTO_short_hash(rh->name, strlen(rh->name), &name_hash);
-  GNUNET_CRYPTO_short_hash_double(&name_hash, &name_hash_double);
-  GNUNET_CRYPTO_short_hash_double(&rh->authority, &zone_hash_double);
-  GNUNET_CRYPTO_hash_xor(&name_hash_double, &zone_hash_double, &lookup_key);
+  GNUNET_CRYPTO_short_hash (rh->name, strlen (rh->name), &name_hash);
+  GNUNET_CRYPTO_short_hash_double (&name_hash, &name_hash_double);
+  GNUNET_CRYPTO_short_hash_double (&rh->authority, &zone_hash_double);
+  GNUNET_CRYPTO_hash_xor (&name_hash_double, &zone_hash_double, &lookup_key);
   GNUNET_CRYPTO_hash_to_enc (&lookup_key, &lookup_key_string);
 
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "GNS_PHASE_REC-%llu: starting dht lookup for %s with key: %s\n",
-             rh->id, rh->name, (char*)&lookup_key_string);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "GNS_PHASE_REC-%llu: starting dht lookup for %s with key: %s\n",
+              rh->id, rh->name, (char*)&lookup_key_string);
 
   //rh->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   rh->dht_heap_node = NULL;
@@ -1301,19 +1297,16 @@ resolve_record_dht (struct ResolverHandle *rh)
     if (rh->timeout_task == GNUNET_SCHEDULER_NO_TASK)
     {
 
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                 "GNS_PHASE_REC-%llu: Adjusting timeout\n", rh->id);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "GNS_PHASE_REC-%llu: Adjusting timeout\n", rh->id);
       /*
        * Set timeout for authority lookup phase to 1/2
        */
-      rh->timeout_task = GNUNET_SCHEDULER_add_delayed(
-                                                      GNUNET_TIME_relative_divide(rh->timeout, 2),
-                                                      &handle_lookup_timeout,
-                                                      rh);
+      rh->timeout_task = GNUNET_SCHEDULER_add_delayed (
+                                   GNUNET_TIME_relative_divide (rh->timeout, 2),
+                                   &handle_lookup_timeout,
+                                   rh);
     }
-    //rh->timeout_task = GNUNET_SCHEDULER_add_delayed (DHT_LOOKUP_TIMEOUT,
-    //                                                   &dht_lookup_timeout,
-    //                                                   rh);
     rh->timeout_cont = &dht_lookup_timeout;
     rh->timeout_cont_cls = rh;
   }
@@ -1323,35 +1316,35 @@ resolve_record_dht (struct ResolverHandle *rh)
         GNUNET_CONTAINER_heap_get_size (dht_lookup_heap))
     {
       rh_heap_root = GNUNET_CONTAINER_heap_remove_root (dht_lookup_heap);
-      GNUNET_DHT_get_stop(rh_heap_root->get_handle);
+      GNUNET_DHT_get_stop (rh_heap_root->get_handle);
       rh_heap_root->get_handle = NULL;
       rh_heap_root->dht_heap_node = NULL;
 
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                  "GNS_PHASE_REC-%llu: Replacing oldest background query for %s\n",
                  rh->id, rh_heap_root->name);
-      rh_heap_root->proc(rh_heap_root->proc_cls,
-                         rh_heap_root,
-                         0,
-                         NULL);
+      rh_heap_root->proc (rh_heap_root->proc_cls,
+                          rh_heap_root,
+                          0,
+                          NULL);
     }
     rh->dht_heap_node = GNUNET_CONTAINER_heap_insert (dht_lookup_heap,
-                                                      rh,
-                                                      GNUNET_TIME_absolute_get().abs_value);
+                                         rh,
+                                         GNUNET_TIME_absolute_get ().abs_value);
   }
 
-  xquery = htonl(rlh->record_type);
+  xquery = htonl (rlh->record_type);
 
-  GNUNET_assert(rh->get_handle == NULL);
-  rh->get_handle = GNUNET_DHT_get_start(dht_handle, 
-                                        GNUNET_BLOCK_TYPE_GNS_NAMERECORD,
-                                        &lookup_key,
-                                        DHT_GNS_REPLICATION_LEVEL,
-                                        GNUNET_DHT_RO_NONE,
-                                        &xquery, 
-                                        sizeof(xquery),
-                                        &process_record_result_dht,
-                                        rh);
+  GNUNET_assert (rh->get_handle == NULL);
+  rh->get_handle = GNUNET_DHT_get_start (dht_handle, 
+                                         GNUNET_BLOCK_TYPE_GNS_NAMERECORD,
+                                         &lookup_key,
+                                         DHT_GNS_REPLICATION_LEVEL,
+                                         GNUNET_DHT_RO_NONE,
+                                         &xquery,
+                                         sizeof (xquery),
+                                         &process_record_result_dht,
+                                         rh);
 
 }
 
@@ -1387,9 +1380,9 @@ process_record_result_ns (void* cls,
   rlh = (struct RecordLookupHandle *)rh->proc_cls;
 
   rh->namestore_task = NULL;
-  GNUNET_CRYPTO_short_hash(key,
-                           sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
-                           &zone);
+  GNUNET_CRYPTO_short_hash (key,
+                        sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+                        &zone);
   remaining_time = GNUNET_TIME_absolute_get_remaining (expiration);
 
 
