@@ -559,9 +559,9 @@ peer_list_add (struct Peer *peer)
   if (peer->id  >= peer_list_size)
   {
     peer_list = TESTBED_realloc (peer_list, 
-                                 sizeof (struct Peer *) *peer_list_size,
+                                 sizeof (struct Peer *) * peer_list_size,
                                  sizeof (struct Peer *) *
-                                 (peer_list_size) + LIST_GROW_STEP);
+                                 (peer_list_size + LIST_GROW_STEP));
     peer_list_size += LIST_GROW_STEP;
   }
   GNUNET_assert (NULL == peer_list[peer->id]);
