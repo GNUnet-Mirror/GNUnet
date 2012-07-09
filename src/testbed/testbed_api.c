@@ -277,6 +277,7 @@ handle_opsuccess (struct GNUNET_TESTBED_Controller *c,
   {
     if (NULL != c->cc)
       c->cc (c->cc_cls, event);
+    GNUNET_free (event);
   }
   GNUNET_CONTAINER_DLL_remove (c->op_head, c->op_tail, op);
   GNUNET_free (op);
@@ -316,6 +317,7 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
       handle_opsuccess (c, (const struct
                             GNUNET_TESTBED_GenericOperationSuccessEventMessage
                             *) msg);
+    break;
   default:
     GNUNET_break (0);
   }

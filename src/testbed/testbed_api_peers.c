@@ -97,7 +97,7 @@ GNUNET_TESTBED_peer_create_with_id_ (uint32_t unique_id,
   GNUNET_free (config);
   msize = xc_size + sizeof (struct GNUNET_TESTBED_PeerCreateMessage);
   msg = GNUNET_realloc (xconfig, msize);
-  memmove (&msg[1], msg, sizeof (struct GNUNET_TESTBED_PeerCreateMessage));
+  memmove (&msg[1], msg, xc_size); /* Move the compressed config */
   msg->header.size = htons (msize);
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_CREATEPEER);
   msg->host_id = htonl (GNUNET_TESTBED_host_get_id_ (peer->host));

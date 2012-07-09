@@ -36,6 +36,11 @@
 #define LOG(kind,...)				\
   GNUNET_log (kind, __VA_ARGS__)
 
+/**
+ * Relative time seconds shorthand
+ */
+#define TIME_REL_SECS(sec) \
+  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, sec)
 
 /**
  * Our localhost
@@ -45,7 +50,7 @@ static struct GNUNET_TESTBED_Host *host;
 /**
  * The controller handle
  */
-static struct GNUNET_TESTBED_Controller *c;
+static struct GNUNET_TESTBED_Controller *controller;
 
 /**
  * A neighbouring host
@@ -58,9 +63,29 @@ static struct GNUNET_TESTBED_Host *neighbour;
 static struct GNUNET_TESTBED_HostRegistrationHandle *reg_handle;
 
 /**
+ * Handle for a peer
+ */
+static struct GNUNET_TESTBED_Peer *peer;
+
+/**
+ * Handle to configuration
+ */
+static const struct GNUNET_CONFIGURATION_Handle *cfg;
+
+/**
+ * Handle to operation
+ */
+static struct GNUNET_TESTBED_Operation *operation;
+
+/**
  * Abort task identifier
  */
-static GNUNET_SCHEDULER_TaskIdentifier abort_task_id;
+static GNUNET_SCHEDULER_TaskIdentifier abort_task;
+
+/**
+ * Peer destroy task identifier
+ */
+static GNUNET_SCHEDULER_TaskIdentifier peer_destroy_task;
 
 /**
  * The testing result
@@ -77,11 +102,11 @@ static int result;
 static void
 do_shutdown (void *cls, const const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  if (GNUNET_SCHEDULER_NO_TASK != abort_task_id)
-    GNUNET_SCHEDULER_cancel (abort_task_id);
+  if (GNUNET_SCHEDULER_NO_TASK != abort_task)
+    GNUNET_SCHEDULER_cancel (abort_task);
   if (NULL != reg_handle)
     GNUNET_TESTBED_cancel_registration (reg_handle);
-  GNUNET_TESTBED_controller_disconnect (c);
+  GNUNET_TESTBED_controller_disconnect (controller);
   GNUNET_TESTBED_host_destroy (neighbour);
   GNUNET_TESTBED_host_destroy (host);
 }
@@ -97,7 +122,9 @@ static void
 do_abort (void *cls, const const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   LOG (GNUNET_ERROR_TYPE_WARNING, "Test timedout -- Aborting\n");
-  abort_task_id = GNUNET_SCHEDULER_NO_TASK;
+  abort_task = GNUNET_SCHEDULER_NO_TASK;
+  if (GNUNET_SCHEDULER_NO_TASK != peer_destroy_task)
+    GNUNET_SCHEDULER_cancel (peer_destroy_task);
   do_shutdown (cls, tc);
 }
 
@@ -112,7 +139,31 @@ do_abort (void *cls, const const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void 
 controller_cb(void *cls, const struct GNUNET_TESTBED_EventInformation *event)
 {
-  GNUNET_break (0);
+  GNUNET_assert (GNUNET_TESTBED_ET_OPERATION_FINISHED == event->type);
+  GNUNET_assert (event->details.operation_finished.operation == operation);
+  GNUNET_assert (NULL == event->details.operation_finished.op_cls);
+  GNUNET_assert (NULL == event->details.operation_finished.emsg);
+  GNUNET_assert (GNUNET_TESTBED_PIT_GENERIC ==
+                 event->details.operation_finished.pit);
+  GNUNET_assert (NULL == event->details.operation_finished.op_result.generic);
+  result = GNUNET_YES;  
+  GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+}
+
+
+/**
+ * Task for destroying the peer
+ *
+ * @param cls NULL
+ * @param tc the task context
+ */
+static void
+do_peer_destroy (void *cls,
+                 const const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  peer_destroy_task = GNUNET_SCHEDULER_NO_TASK;
+  operation = GNUNET_TESTBED_peer_destroy (peer);
+  GNUNET_assert (NULL != operation);
 }
 
 
@@ -126,9 +177,11 @@ static void
 registration_comp (void *cls, const char *emsg)
 {
   GNUNET_assert (cls == neighbour);
-  reg_handle = NULL;
-  result = GNUNET_YES;
-  GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+  reg_handle = NULL;  
+  peer = GNUNET_TESTBED_peer_create (controller, host, cfg);
+  GNUNET_assert (NULL != peer);
+  peer_destroy_task = 
+    GNUNET_SCHEDULER_add_now (&do_peer_destroy, NULL);
 }
 
 
@@ -137,27 +190,29 @@ registration_comp (void *cls, const char *emsg)
  */
 static void
 run (void *cls,
-     const struct GNUNET_CONFIGURATION_Handle *cfg,
+     const struct GNUNET_CONFIGURATION_Handle *config,
      struct GNUNET_TESTING_Peer *peer)
 {
   uint64_t event_mask;
 
+  cfg = config;
   host = GNUNET_TESTBED_host_create (NULL, NULL, 0);
   GNUNET_assert (NULL != host);
   event_mask ^= event_mask;	/* NULL out */
   event_mask |= (1L << GNUNET_TESTBED_ET_PEER_START);
   event_mask |= (1L << GNUNET_TESTBED_ET_PEER_STOP);
   event_mask |= (1L << GNUNET_TESTBED_ET_CONNECT);
-  c = GNUNET_TESTBED_controller_connect (cfg, host, event_mask,
-					 &controller_cb, NULL);
-  GNUNET_assert (NULL != c);
+  event_mask |= (1L << GNUNET_TESTBED_ET_OPERATION_FINISHED);
+  controller = GNUNET_TESTBED_controller_connect (config, host, event_mask,
+                                                  &controller_cb, NULL);
+  GNUNET_assert (NULL != controller);
   neighbour = GNUNET_TESTBED_host_create ("localhost", NULL, 0);
   GNUNET_assert (NULL != neighbour);
   reg_handle = 
-    GNUNET_TESTBED_register_host (c, neighbour, &registration_comp, neighbour);
-  GNUNET_assert (NULL != reg_handle);
-  
-  abort_task_id = GNUNET_SCHEDULER_add_delayed 
+    GNUNET_TESTBED_register_host (controller, neighbour, &registration_comp,
+                                  neighbour);
+  GNUNET_assert (NULL != reg_handle);  
+  abort_task = GNUNET_SCHEDULER_add_delayed 
     (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 30), &do_abort, NULL);
 }
 
@@ -168,10 +223,10 @@ run (void *cls,
 int main (int argc, char **argv)
 {
   result = GNUNET_SYSERR;
-  if (0 != GNUNET_TESTING_service_run ("test_testbed_api",
-				       "testbed",
-				       "test_testbed_api.conf",
-				       &run, NULL))
+  if (0 != GNUNET_TESTING_peer_run ("test_testbed_api",
+                                    //				       "arm",
+                                    "test_testbed_api.conf",
+                                    &run, NULL))
     return 1;
   else return (GNUNET_OK == result) ? 0 : 1;
 }

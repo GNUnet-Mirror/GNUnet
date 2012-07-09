@@ -1085,8 +1085,9 @@ handle_peer_create (void *cls,
   struct GNUNET_CONFIGURATION_Handle *cfg;
   char *config;
   size_t dest_size;
+  int ret;
+  uint32_t config_size;
   uint16_t msize;
-  uint16_t config_size;
   
 
   msize = ntohs (message->size);
@@ -1097,23 +1098,24 @@ handle_peer_create (void *cls,
     return;
   }
   msg = (const struct GNUNET_TESTBED_PeerCreateMessage *) message;
-  if (ntohs (msg->host_id) == master_context->host_id)
+  if (ntohl (msg->host_id) == master_context->host_id)
   {
     struct Peer *peer;
     char *emsg;
     
-    /* We are responsidble for this peer */
+    /* We are responsible for this peer */
     msize -= sizeof (struct GNUNET_TESTBED_PeerCreateMessage);
     config_size = ntohl (msg->config_size);    
-    config = GNUNET_malloc (msg->config_size);
-    if (Z_OK != uncompress ((Bytef *) config, (uLongf *) &dest_size,
-                            (const Bytef *) &msg[1], (uLong) msize))
+    config = GNUNET_malloc (config_size);
+    dest_size = config_size;
+    if (Z_OK != (ret = uncompress ((Bytef *) config, (uLongf *) &dest_size,
+                                   (const Bytef *) &msg[1], (uLong) msize)))
     {
       GNUNET_break (0);           /* uncompression error */
       GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
       return;
     }
-    if (config_size == dest_size)
+    if (config_size != dest_size)
     {
       GNUNET_break (0);/* Uncompressed config size mismatch */
       GNUNET_free (config);
@@ -1133,6 +1135,7 @@ handle_peer_create (void *cls,
     peer = GNUNET_malloc (sizeof (struct Peer));
     peer->cfg = cfg;
     peer->id = ntohl (msg->peer_id);
+    LOG_DEBUG ("Creating peer with id: %u\n", peer->id);
     peer->peer = GNUNET_TESTING_peer_configure (test_system, peer->cfg,
                                                 peer->id,
                                                 NULL /* Peer id */,
