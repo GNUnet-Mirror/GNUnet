@@ -83,10 +83,20 @@ test_statistics_api_watch_zero_value_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la  
 
 check_SCRIPTS = \
-  test_gnunet_statistics.sh
+  test_gnunet_statistics.py
+
+do_subst = $(SED) -e 's,[@]PYTHON[@],$(PYTHON),g'
+
+%.py: %.py.in Makefile
+	$(do_subst) < $(srcdir)/$< > $@
+	chmod +x $@
+
+test_gnunet_statistics.py: test_gnunet_statistics.py.in Makefile
+	$(do_subst) < $(srcdir)/test_gnunet_statistics.py.in > test_gnunet_statistics.py
+	chmod +x test_gnunet_statistics.py
 
 EXTRA_DIST = \
   test_statistics_api_data.conf \
-  $(check_SCRIPTS) 
+  test_gnunet_statistics.py.in
 
 

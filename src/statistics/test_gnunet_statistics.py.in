@@ -1,0 +1,151 @@
+#!@PYTHON@
+from __future__ import print_function
+import os
+import sys
+import shutil
+import re
+import subprocess
+import time
+
+if os.name == "nt":
+  tmp = os.getenv ("TEMP")
+else:
+  tmp = "/tmp"
+
+if os.name == 'nt':
+  st = 'gnunet-statistics.exe'
+  arm = 'gnunet-arm.exe'
+else:
+  st = 'gnunet-statistics'
+  arm = 'gnunet-arm'
+
+run_st = [st, '-c', 'test_statistics_api_data.conf']
+run_arm = [arm, '-c', 'test_statistics_api_data.conf']
+debug = os.getenv ('DEBUG')
+if debug:
+  run_arm += [debug.split (' ')]
+
+def cleanup ():
+  shutil.rmtree (os.path.join (tmp, "test-gnunetd-statistics"), True)
+
+def sub_run (args, want_stdo = True, want_stde = False, nofail = False):
+  if want_stdo:
+    stdo = subprocess.PIPE
+  else:
+    stdo = None
+  if want_stde:
+    stde = subprocess.PIPE
+  else:
+    stde = None
+  p = subprocess.Popen (args, stdout = stdo, stderr = stde)
+  stdo, stde = p.communicate ()
+  if not nofail:
+    if p.returncode != 0:
+      sys.exit (p.returncode)
+  return (p.returncode, stdo, stde)
+
+def fail (result):
+  print (result)
+  r_arm (['-e'], want_stdo = False)
+  sys.exit (1)
+
+def r_arm (extra_args, **kw):
+  rc, stdo, stde = sub_run (run_arm + extra_args, **kw)
+  if rc != 0:
+    fail ("FAIL: error running {}".format (run_arm))
+  return (rc, stdo, stde)
+
+def r_st (extra_args, normal = True, **kw):
+  rc, stdo, stde = sub_run (run_st + extra_args, **kw)
+  if normal:
+    if rc != 0:
+      fail ("FAIL: error running {}".format (run_st))
+  else:
+    if rc == 0:
+      fail ("FAIL: expected error while running {}".format (run_st))
+  return (rc, stdo, stde)
+
+def restart ():
+  print ("Restarting service...")
+  t = r_arm (['-k', 'statistics'])
+  time.sleep (1)
+  t = r_arm (['-i', 'statistics'])
+  time.sleep (1)
+  print ("DONE")
+
+
+cleanup ()
+
+print ("Preparing: Starting service...")
+t = r_arm (['-s'], want_stdo = False)
+time.sleep (1)
+t = r_arm (['-i', 'statistics'], want_stdo = False)
+time.sleep (1)
+print ("DONE")
+
+print ("TEST: Bad argument checking...", end='')
+r_st (['-x'], normal = False, nofail = True, want_stdo = False)
+print ("PASS")
+
+print ("TEST: Set value...", end='')
+r_st (['-n', 'test', '-s', 'subsystem', '42'], nofail = True, want_stdo = False)
+print ("PASS")
+
+print ("TEST: Set another value...", end='')
+r_st (['-n', 'other', '-s', 'osystem', '43'], nofail = True, want_stdo = False)
+print ("PASS")
+
+print ("TEST: Viewing all stats...", end='')
+rc, stdo, stde = r_st ([], nofail = True, want_stdo = True)
+if len (stdo.splitlines ()) != 2:
+  fail ("FAIL: unexpected output:\n{}".format (stdo))
+print ("PASS")
+
+print ("TEST: Viewing stats by name...", end='')
+rc, stdo, stde = r_st (['-n', 'other'], nofail = True, want_stdo = True)
+if len ([x for x in stdo.splitlines () if re.search ('43', x)]) != 1:
+  fail ("FAIL: unexpected output:\n{}".format (stdo))
+print ("PASS")
+
+print ("TEST: Viewing stats by subsystem...", end='')
+rc, stdo, stde = r_st (['-s', 'subsystem'], nofail = True, want_stdo = True)
+if len ([x for x in stdo.splitlines () if re.search ('42', x)]) != 1:
+  fail ("FAIL: unexpected output:\n{}".format (stdo))
+print ("PASS")
+
+print ("TEST: Set persistent value...", end='')
+rc, stdo, stde = r_st (['-n', 'lasting', '-s', 'subsystem', '40', '-p'], nofail = True, want_stdo = False)
+rc, stdo, stde = r_st ([], nofail = True, want_stdo = True)
+if len ([x for x in stdo.splitlines () if re.search ('40', x)]) != 1:
+  fail ("FAIL: unexpected output:\n{}".format (stdo))
+print ("PASS")
+
+restart ()
+
+print ("TEST: Checking persistence...", end='')
+rc, stdo, stde = r_st ([], nofail = True, want_stdo = True)
+if len ([x for x in stdo.splitlines () if re.search ('40', x)]) != 1:
+  fail ("FAIL: unexpected output:\n{}".format (stdo))
+print ("PASS")
+
+print ("TEST: Removing persistence...", end='')
+rc, stdo, stde = r_st (['-n', 'lasting', '-s', 'subsystem', '40'], nofail = True, want_stdo = False)
+rc, stdo, stde = r_st ([], nofail = True, want_stdo = True)
+if len ([x for x in stdo.splitlines () if re.search ('!', x)]) != 0:
+  fail ("FAIL: unexpected output:\n{}".format (stdo))
+print ("PASS")
+
+restart ()
+
+print ("TEST: Checking removed persistence...", end='')
+rc, stdo, stde = r_st ([], nofail = True, want_stdo = True)
+if len ([x for x in stdo.splitlines () if re.search ('40', x)]) != 0:
+  fail ("FAIL: unexpected output:\n{}".format (stdo))
+print ("PASS")
+
+print ("Stopping service...")
+t = r_arm (['-e'], want_stdo = False)
+time.sleep (1)
+print ("DONE")
+
+cleanup ()
