@@ -37,15 +37,20 @@ key_iterator (void *cls, const struct GNUNET_HashCode *key, const char *proof,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Iterating... (accepting: %i)\n",
               accepting);
-  for (i = 0; i < num_edges; i++)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Edge %i: %s\n", i, edges[i].label);
-  }
-
-  *error += (GNUNET_OK == GNUNET_REGEX_check_proof (proof, key)) ? 0 : 1;
 
   if (NULL != proof)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Proof: %s\n", proof);
+
+  if (NULL != key)
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Hash: %s\n", GNUNET_h2s (key));
+
+  for (i = 0; i < num_edges; i++)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Edge %i: Label: %s Destination: %s\n",
+                i, edges[i].label, GNUNET_h2s (&edges[i].destination));
+  }
+
+  *error += (GNUNET_OK == GNUNET_REGEX_check_proof (proof, key)) ? 0 : 1;
 }
 
 int
@@ -82,7 +87,7 @@ main (int argc, char *argv[])
     "ab|cd|ef|gh",
     "a|b|c|d|e|f|g",
     "(ab)|(ac)",
-    "a(b|c)"
+    "x*|(0|1|2)(a|b|c|d)"
   };
 
   for (i = 0; i < 17; i++)
@@ -91,6 +96,6 @@ main (int argc, char *argv[])
     GNUNET_REGEX_iterate_all_edges (dfa, key_iterator, &error);
     GNUNET_REGEX_automaton_destroy (dfa);
   }
-  
+
   return error;
 }
