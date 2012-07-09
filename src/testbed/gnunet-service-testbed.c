@@ -1312,6 +1312,21 @@ shutdown_task (void *cls,
 
 
 /**
+ * Debug shutdown task in case of stdin getting closed
+ *
+ * @param cls NULL
+ * @param tc the TaskContext from scheduler
+ */
+static void
+shutdown_task_ (void *cls,
+                const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "STDIN closed ...\n");
+  shutdown_task (cls, tc);
+}
+
+
+/**
  * Callback for client disconnect
  *
  * @param cls NULL
@@ -1381,7 +1396,7 @@ testbed_run (void *cls,
     shutdown_task_id = 
       GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
 				      fh,
-				      &shutdown_task,
+				      &shutdown_task_,
 				      NULL);
   LOG_DEBUG ("Testbed startup complete\n");
 }
