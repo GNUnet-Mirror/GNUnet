@@ -252,7 +252,10 @@ struct ProxyCurlTask
   struct ProxySetCookieHeader *set_cookies_tail;
 
   /* connection status */
-  int con_status;
+  int ready_to_queue;
+  
+  /* are we done */
+  int fin;
 
   /* connection */
   struct MHD_Connection *connection;
@@ -589,13 +592,14 @@ callback_download (void *ptr, size_t size, size_t nmemb, void *ctx)
   struct ProxyCurlTask *ctask = ctx;
 
   //MHD_run (httpd);
-  if (ctask->con_status == MHD_NO)
+  ctask->ready_to_queue = GNUNET_YES;
+  /*if (ctask->con_status == MHD_NO)
   {
     MHD_queue_response (ctask->connection,
                         MHD_HTTP_OK,
                        ctask->response);
     ctask->con_status = MHD_YES;
-  }
+  }*/
   total = size*nmemb;
 
   if (total == 0)
@@ -1305,7 +1309,6 @@ create_response (void *cls,
                  size_t *upload_data_size,
                  void **con_cls)
 {
-  static int dummy;
   struct MhdHttpList* hd = cls;
   const char* page = "<html><head><title>gnoxy</title>"\
                       "</head><body>cURL fail</body></html>";
@@ -1316,18 +1319,12 @@ create_response (void *cls,
 
   struct ProxyCurlTask *ctask;
   
+  //FIXME handle
   if (0 != strcmp (meth, "GET"))
     return MHD_NO;
-  if (&dummy != *con_cls)
-  {
-    *con_cls = &dummy;
-    return MHD_YES;
-  }
 
   if (0 != *upload_data_size)
     return MHD_NO;
-
-  *con_cls = NULL;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "url %s\n", url);
@@ -1336,77 +1333,95 @@ create_response (void *cls,
                              MHD_HEADER_KIND,
                              &con_val_iter, host);
 
-  
-  /* Do cURL */
-  ctask = GNUNET_malloc (sizeof (struct ProxyCurlTask));
-  ctask->mhd = hd;
-
-  if (curl_multi == NULL)
+  if (NULL == *con_cls)
+  {
+    ctask = GNUNET_malloc (sizeof (struct ProxyCurlTask));
+    ctask->mhd = hd;
+    *con_cls = ctask;
+    
+    if (curl_multi == NULL)
     curl_multi = curl_multi_init ();
 
-  ctask->curl = curl_easy_init();
+    ctask->curl = curl_easy_init();
   
-  if ((ctask->curl == NULL) || (curl_multi == NULL))
-  {
-    ctask->response = MHD_create_response_from_buffer (strlen (page),
-                                              (void*)page,
-                                              MHD_RESPMEM_PERSISTENT);
-    ret = MHD_queue_response (con,
-                              MHD_HTTP_OK,
-                              ctask->response);
-    MHD_destroy_response (ctask->response);
-    GNUNET_free (ctask);
-    return ret;
+    if ((ctask->curl == NULL) || (curl_multi == NULL))
+    {
+      ctask->response = MHD_create_response_from_buffer (strlen (page),
+                                                (void*)page,
+                                                MHD_RESPMEM_PERSISTENT);
+      ret = MHD_queue_response (con,
+                                MHD_HTTP_OK,
+                                ctask->response);
+      MHD_destroy_response (ctask->response);
+      GNUNET_free (ctask);
+      return ret;
+    }
+  
+    ctask->prev = NULL;
+    ctask->next = NULL;
+    ctask->headers = NULL;
+    ctask->resolver = NULL;
+    ctask->buffer_ptr = NULL;
+    ctask->download_in_progress = GNUNET_YES;
+    ctask->download_successful = GNUNET_NO;
+    ctask->buf_status = BUF_WAIT_FOR_CURL;
+    ctask->bytes_in_buffer = 0;
+    ctask->parse_content = GNUNET_NO;
+    ctask->connection = con;
+    ctask->ready_to_queue = MHD_NO;
+    ctask->fin = GNUNET_NO;
+
+    curl_easy_setopt (ctask->curl, CURLOPT_HEADERFUNCTION, &curl_check_hdr);
+    curl_easy_setopt (ctask->curl, CURLOPT_HEADERDATA, ctask);
+    curl_easy_setopt (ctask->curl, CURLOPT_WRITEFUNCTION, &callback_download);
+    curl_easy_setopt (ctask->curl, CURLOPT_WRITEDATA, ctask);
+    curl_easy_setopt (ctask->curl, CURLOPT_FOLLOWLOCATION, 1);
+    curl_easy_setopt (ctask->curl, CURLOPT_MAXREDIRS, 4);
+    /* no need to abort if the above failed */
+    if (GNUNET_NO == ctask->mhd->is_ssl)
+    {
+      sprintf (curlurl, "http://%s%s", host, url);
+      curl_easy_setopt (ctask->curl, CURLOPT_URL, curlurl);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Adding new curl task for %s\n", curlurl);
+    }
+    strcpy (ctask->host, host);
+    strcpy (ctask->url, url);
+  
+    //curl_easy_setopt (ctask->curl, CURLOPT_URL, curlurl);
+    curl_easy_setopt (ctask->curl, CURLOPT_FAILONERROR, 1);
+    curl_easy_setopt (ctask->curl, CURLOPT_CONNECTTIMEOUT, 600L);
+    curl_easy_setopt (ctask->curl, CURLOPT_TIMEOUT, 600L);
+
+    GNUNET_GNS_get_authority (gns_handle,
+                              ctask->host,
+                              &process_get_authority,
+                              ctask);
+
+    ctask->response = MHD_create_response_from_callback (MHD_SIZE_UNKNOWN,
+                                                  20,
+                                                  &mhd_content_cb,
+                                                  ctask,
+                                                  NULL);
+    
+    ctask->ready_to_queue = GNUNET_NO;
+    ctask->fin = GNUNET_NO;
+    return MHD_YES;
   }
-  
-  ctask->prev = NULL;
-  ctask->next = NULL;
-  ctask->headers = NULL;
-  ctask->resolver = NULL;
-  ctask->buffer_ptr = NULL;
-  ctask->download_in_progress = GNUNET_YES;
-  ctask->download_successful = GNUNET_NO;
-  ctask->buf_status = BUF_WAIT_FOR_CURL;
-  ctask->bytes_in_buffer = 0;
-  ctask->parse_content = GNUNET_NO;
-  ctask->connection = con;
-  ctask->con_status = MHD_NO;
 
-  curl_easy_setopt (ctask->curl, CURLOPT_HEADERFUNCTION, &curl_check_hdr);
-  curl_easy_setopt (ctask->curl, CURLOPT_HEADERDATA, ctask);
-  curl_easy_setopt (ctask->curl, CURLOPT_WRITEFUNCTION, &callback_download);
-  curl_easy_setopt (ctask->curl, CURLOPT_WRITEDATA, ctask);
-  curl_easy_setopt (ctask->curl, CURLOPT_FOLLOWLOCATION, 1);
-  curl_easy_setopt (ctask->curl, CURLOPT_MAXREDIRS, 4);
-  /* no need to abort if the above failed */
-  if (GNUNET_NO == ctask->mhd->is_ssl)
+  ctask = (struct ProxyCurlTask *) *con_cls;
+
+  if (ctask->fin == GNUNET_YES)
+    return MHD_YES;
+
+  if (ctask->ready_to_queue == GNUNET_YES)
   {
-    sprintf (curlurl, "http://%s%s", host, url);
-    curl_easy_setopt (ctask->curl, CURLOPT_URL, curlurl);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Adding new curl task for %s\n", curlurl);
+    ctask->fin = GNUNET_YES;
+    return MHD_queue_response (con, MHD_HTTP_OK, ctask->response);
   }
-  strcpy (ctask->host, host);
-  strcpy (ctask->url, url);
+
   
-  //curl_easy_setopt (ctask->curl, CURLOPT_URL, curlurl);
-  curl_easy_setopt (ctask->curl, CURLOPT_FAILONERROR, 1);
-  curl_easy_setopt (ctask->curl, CURLOPT_CONNECTTIMEOUT, 600L);
-  curl_easy_setopt (ctask->curl, CURLOPT_TIMEOUT, 600L);
-
-  GNUNET_GNS_get_authority (gns_handle,
-                            ctask->host,
-                            &process_get_authority,
-                            ctask);
-  //download_prepare (ctask);
-  //curl_download_prepare ();
-
-  ctask->response = MHD_create_response_from_callback (MHD_SIZE_UNKNOWN,
-                                                20,
-                                                &mhd_content_cb,
-                                                ctask,
-                                                NULL);
-  //ret = MHD_queue_response (con, MHD_HTTP_OK, ctask->response);
+  
   
   //MHD_destroy_response (response);
 
