@@ -961,6 +961,10 @@ start_process (int pipe_control,
   long lRet;
   HANDLE stdin_handle;
   HANDLE stdout_handle;
+  BOOL bresult;
+  DWORD error_code;
+  HANDLE stdih, stdoh, stdeh;
+  DWORD stdif, stdof, stdef;
 
   if (GNUNET_SYSERR == GNUNET_OS_check_helper_binary (filename))
     return NULL; /* not executable */
@@ -1083,8 +1087,7 @@ start_process (int pipe_control,
 
   memset (&start, 0, sizeof (start));
   start.cb = sizeof (start);
-  if ((pipe_stdin != NULL) || (pipe_stdout != NULL))
-    start.dwFlags |= STARTF_USESTDHANDLES;
+  start.dwFlags |= STARTF_USESTDHANDLES;
 
   if (pipe_stdin != NULL)
   {
@@ -1179,23 +1182,53 @@ start_process (int pipe_control,
     return NULL;
   }
 
-  if (!CreateProcessW (wpath, wcmd, NULL, NULL, TRUE,
-       DETACHED_PROCESS | CREATE_SUSPENDED, env_block, NULL, &start, &proc))
+  /* Prevents our std handles from being inherited by the child */
+  stdih = GetStdHandle (STD_INPUT_HANDLE);
+  stdoh = GetStdHandle (STD_OUTPUT_HANDLE);
+  stdeh = GetStdHandle (STD_ERROR_HANDLE);
+  if (stdih)
   {
-    SetErrnoFromWinError (GetLastError ());
+    GetHandleInformation (stdih, &stdif);
+    SetHandleInformation (stdih, HANDLE_FLAG_INHERIT, 0);
+  }
+  if (stdoh)
+  {
+    GetHandleInformation (stdoh, &stdof);
+    SetHandleInformation (stdoh, HANDLE_FLAG_INHERIT, 0);
+  }
+  if (stdeh)
+  {
+    GetHandleInformation (stdeh, &stdef);
+    SetHandleInformation (stdeh, HANDLE_FLAG_INHERIT, 0);
+  }
+
+  bresult = CreateProcessW (wpath, wcmd, NULL, NULL, TRUE,
+       DETACHED_PROCESS | CREATE_SUSPENDED, env_block, NULL, &start, &proc);
+  error_code = GetLastError ();
+
+  if (stdih)
+    SetHandleInformation (stdih, stdif, stdif);
+  if (stdoh)
+    SetHandleInformation (stdoh, stdof, stdof);
+  if (stdeh)
+    SetHandleInformation (stdeh, stdef, stdef);
+
+  GNUNET_free (env_block);
+  GNUNET_free (cmd);
+  free (wpath);
+  free (wcmd);
+
+  if (!bresult)
+  {
+    SetErrnoFromWinError (error_code);
     LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "CreateProcess");
+
     if (NULL != control_pipe)
       GNUNET_DISK_file_close (control_pipe);
     if (NULL != lsocks)
       GNUNET_DISK_pipe_close (lsocks_pipe);
-    GNUNET_free (env_block);
-    GNUNET_free (cmd);
-    free (wpath);
-    free (wcmd);
     return NULL;
   }
-
-  GNUNET_free (env_block);
 
   gnunet_proc = GNUNET_malloc (sizeof (struct GNUNET_OS_Process));
   gnunet_proc->pid = proc.dwProcessId;
@@ -1206,9 +1239,6 @@ start_process (int pipe_control,
 
   ResumeThread (proc.hThread);
   CloseHandle (proc.hThread);
-  GNUNET_free (cmd);
-  free (wpath);
-  free (wcmd);
 
   if (lsocks == NULL || lsocks[0] == INVALID_SOCKET)
     return gnunet_proc;
