@@ -538,9 +538,9 @@ slave_list_add (struct Slave *slave)
   if (slave->host_id  >= slave_list_size)
   {
     slave_list = TESTBED_realloc (slave_list, 
-                                 sizeof (struct Slave *) *slave_list_size,
-                                 sizeof (struct Slave *) *
-                                 (slave_list_size) + LIST_GROW_STEP);
+                                  sizeof (struct Slave *) *slave_list_size,
+                                  sizeof (struct Slave *) *
+                                  (slave_list_size + LIST_GROW_STEP));
     slave_list_size += LIST_GROW_STEP;
   }
   GNUNET_assert (NULL == slave_list[slave->host_id]);
