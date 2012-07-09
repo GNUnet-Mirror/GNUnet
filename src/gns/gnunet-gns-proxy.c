@@ -44,7 +44,7 @@
 
 /* regexp */
 //#define RE_DOTPLUS "<a href=\"http://(([A-Za-z]+[.])+)([+])"
-#define RE_A_HREF  "<a href=\"https?://(([A-Za-z0-9]+[.])+)([+]|zkey)"
+#define RE_A_HREF  "href=\"https?://(([A-Za-z0-9]+[.])+)([+]|[a-z]+)"
 #define RE_N_MATCHES 4
 
 /* The usual suspects */
@@ -744,8 +744,8 @@ process_shorten (void* cls, const char* short_name)
               "MHD PP: Shorten %s -> %s\n",
               ctask->pp_buf,
               short_name);
-
-  sprintf (tmp, "<a href=\"http://%s", short_name);
+  //this is evil.. what about https
+  sprintf (tmp, "href=\"http://%s", short_name);
   strcpy (ctask->pp_buf, tmp);
 
   ctask->pp_finished = GNUNET_YES;
@@ -814,7 +814,8 @@ mhd_content_cb (void *cls,
     GNUNET_log ( GNUNET_ERROR_TYPE_DEBUG,
                  "MHD: We need to parse the HTML %s\n", ctask->buffer_ptr);
 
-    nomatch = regexec ( &re_dotplus, ctask->buffer_ptr, RE_N_MATCHES, m, 0);
+    nomatch = regexec ( &re_dotplus,
+                        ctask->buffer_ptr, RE_N_MATCHES, m, 0);
 
     if (nomatch)
     {
@@ -885,12 +886,31 @@ mhd_content_cb (void *cls,
            strcpy ( ctask->pp_buf+strlen(ctask->pp_buf),
                     ctask->authority);
         }
-        /* If .zkey simply copy the name */
+        /* If .zkey or .tld simply copy the name */
         else
         {
+          memcpy (ctask->pp_buf, hostptr, (m[3].rm_eo-m[1].rm_so));
+          if (is_tld (ctask->pp_buf, GNUNET_GNS_TLD_ZKEY) == GNUNET_NO)
+          {
+            if (0 == strcmp (ctask->pp_buf, ctask->leho))
+            {
+              GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                          "Replacing LEHO\n");
+              memcpy (ctask->pp_buf,
+                      ctask->buffer_ptr+m[0].rm_so,
+                      m[1].rm_so-m[0].rm_so);
+              strcpy (ctask->pp_buf+(m[1].rm_so-m[0].rm_so),
+                      ctask->host);
+              GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                          "New tag: %s\n", ctask->pp_buf);
+              ctask->is_postprocessing = GNUNET_YES;
+              ctask->pp_finished = GNUNET_YES;
+              return 0;
+            }
+            goto copy_data;
+          }
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "Link is zkey\n");
-          memcpy (ctask->pp_buf, hostptr, (m[1].rm_eo-m[1].rm_so + strlen (GNUNET_GNS_TLD_ZKEY)));
+                      "Link %s is zkey\n", ctask->pp_buf);
         }
 
         ctask->is_postprocessing = GNUNET_YES;
@@ -908,7 +928,7 @@ mhd_content_cb (void *cls,
       }
     }
   }
-
+copy_data:
   if ( bytes_to_copy > max )
   {
     GNUNET_log ( GNUNET_ERROR_TYPE_DEBUG,
