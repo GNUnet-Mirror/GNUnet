@@ -290,7 +290,8 @@ run (void *cls, char *const *args, const char *cfgfile,
     GNUNET_GNS_get_authority(gns, auth_name, &process_auth_result, auth_name);
   }
 
-  GNUNET_CRYPTO_rsa_key_free (shorten_key);
+  if (NULL != shorten_key)
+    GNUNET_CRYPTO_rsa_key_free (shorten_key);
   
   // FIXME: do work here...
   //GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
