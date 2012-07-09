@@ -368,6 +368,18 @@ is_tld(const char* name, const char* tld)
   return GNUNET_YES;
 }
 
+static int
+get_uri_val_iter (void *cls,
+                  enum MHD_ValueKind kind,
+                  const char *key,
+                  const char *value)
+{
+  char* buf = cls;
+
+  sprintf (buf+strlen (buf), "?%s=%s", key, value);
+
+  return MHD_YES;
+}
 
 /**
  * Read HTTP request header field 'Host'
@@ -1408,7 +1420,11 @@ create_response (void *cls,
   
   //FIXME handle
   if (0 != strcmp (meth, "GET"))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "%s NOT IMPLEMENTED!\n", meth);
     return MHD_NO;
+  }
 
   if (0 != *upload_data_size)
     return MHD_NO;
@@ -1472,11 +1488,17 @@ create_response (void *cls,
     if (GNUNET_NO == ctask->mhd->is_ssl)
     {
       sprintf (curlurl, "http://%s%s", ctask->host, url);
+      MHD_get_connection_values (con,
+                                 MHD_GET_ARGUMENT_KIND,
+                                 &get_uri_val_iter, curlurl);
       curl_easy_setopt (ctask->curl, CURLOPT_URL, curlurl);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Adding new curl task for %s\n", curlurl);
     }
     strcpy (ctask->url, url);
+    MHD_get_connection_values (con,
+                               MHD_GET_ARGUMENT_KIND,
+                               &get_uri_val_iter, ctask->url);
   
     //curl_easy_setopt (ctask->curl, CURLOPT_URL, curlurl);
     curl_easy_setopt (ctask->curl, CURLOPT_FAILONERROR, 1);
