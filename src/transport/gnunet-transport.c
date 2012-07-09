@@ -607,24 +607,18 @@ shutdown_task (void *cls,
   }
 }
 
-
-
-/**
- * Main function that will be run by the scheduler.
- *
- * @param cls closure
- * @param args remaining command-line arguments
- * @param cfgfile name of the configuration file used (for saving, can be NULL!)
- * @param cfg configuration
- */
 static void
-run (void *cls, char *const *args, const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
+testservice_task (void *cls,
+                  const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  if (test_configuration)
+  struct GNUNET_CONFIGURATION_Handle *cfg = cls;
+
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT))
   {
-    do_test_configuration (cfg);
+      FPRINTF (stderr, _("Service `%s' is not running\n"), "transport");
+      return;
   }
+
   if (benchmark_send && (NULL == cpid))
   {
     FPRINTF (stderr, _("Option `%s' makes no sense without option `%s'.\n"),
@@ -684,6 +678,32 @@ run (void *cls, char *const *args, const char *cfgfile,
                                     NULL);
     }
   }
+
+
+}
+
+
+/**
+ * Main function that will be run by the scheduler.
+ *
+ * @param cls closure
+ * @param args remaining command-line arguments
+ * @param cfgfile name of the configuration file used (for saving, can be NULL!)
+ * @param cfg configuration
+ */
+static void
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
+{
+  if (test_configuration)
+  {
+    do_test_configuration (cfg);
+  }
+
+  GNUNET_CLIENT_service_test ("transport", cfg,
+      GNUNET_TIME_UNIT_SECONDS,
+      &testservice_task,
+      (void *) cfg);
 }
 
 
