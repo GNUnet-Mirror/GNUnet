@@ -21,7 +21,7 @@
 /**
  * @file testbed/test_testbed_api.c
  * @brief testcases for the testbed api
- * @author Sree Harsha Totakura <sreeharsha@totakura.in> 
+ * @author Sree Harsha Totakura
  */
 
 #include "platform.h"
@@ -83,11 +83,6 @@ static struct GNUNET_TESTBED_Operation *operation;
 static GNUNET_SCHEDULER_TaskIdentifier abort_task;
 
 /**
- * Peer destroy task identifier
- */
-static GNUNET_SCHEDULER_TaskIdentifier peer_destroy_task;
-
-/**
  * The testing result
  */
 static int result;
@@ -123,8 +118,6 @@ do_abort (void *cls, const const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   LOG (GNUNET_ERROR_TYPE_WARNING, "Test timedout -- Aborting\n");
   abort_task = GNUNET_SCHEDULER_NO_TASK;
-  if (GNUNET_SCHEDULER_NO_TASK != peer_destroy_task)
-    GNUNET_SCHEDULER_cancel (peer_destroy_task);
   do_shutdown (cls, tc);
 }
 
@@ -152,22 +145,6 @@ controller_cb(void *cls, const struct GNUNET_TESTBED_EventInformation *event)
 
 
 /**
- * Task for destroying the peer
- *
- * @param cls NULL
- * @param tc the task context
- */
-static void
-do_peer_destroy (void *cls,
-                 const const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  peer_destroy_task = GNUNET_SCHEDULER_NO_TASK;
-  operation = GNUNET_TESTBED_peer_destroy (peer);
-  GNUNET_assert (NULL != operation);
-}
-
-
-/**
  * Callback which will be called to after a host registration succeeded or failed
  *
  * @param cls the host which has been registered
@@ -180,8 +157,8 @@ registration_comp (void *cls, const char *emsg)
   reg_handle = NULL;  
   peer = GNUNET_TESTBED_peer_create (controller, host, cfg);
   GNUNET_assert (NULL != peer);
-  peer_destroy_task = 
-    GNUNET_SCHEDULER_add_now (&do_peer_destroy, NULL);
+  operation = GNUNET_TESTBED_peer_destroy (peer);
+  GNUNET_assert (NULL != operation);
 }
 
 
