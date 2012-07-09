@@ -1113,7 +1113,8 @@ curl_task_download (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                                 &resp_code))
                ctask->curl_response_code = resp_code;
              ctask->ready_to_queue = MHD_YES;
-
+             GNUNET_SCHEDULER_add_now (&run_mhd, ctask->mhd);
+             
              GNUNET_CONTAINER_DLL_remove (ctasks_head, ctasks_tail,
                                           ctask);
              GNUNET_CONTAINER_DLL_insert (clean_head, clean_tail, ctask);
@@ -1142,6 +1143,8 @@ curl_task_download (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                ctask->curl_response_code = resp_code;
              ctask->ready_to_queue = MHD_YES;
              ctask->download_successful = GNUNET_YES;
+
+             GNUNET_SCHEDULER_add_now (&run_mhd, ctask->mhd);
              GNUNET_CONTAINER_DLL_remove (ctasks_head, ctasks_tail,
                                           ctask);
              GNUNET_CONTAINER_DLL_insert (clean_head, clean_tail, ctask);
@@ -1331,6 +1334,16 @@ process_get_authority (void *cls,
 }
 
 /**
+ * Task run whenever HTTP server operations are pending.
+ *
+ * @param cls unused
+ * @param tc sched context
+ */
+static void
+do_httpd (void *cls,
+          const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+/**
  * Main MHD callback for handling requests.
  *
  * @param cls unused
@@ -1473,10 +1486,10 @@ create_response (void *cls,
   if (ctask->ready_to_queue == GNUNET_YES)
   {
     ctask->fin = GNUNET_YES;
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "Queueing response with code=%ld\n",
-                ctask->curl_response_code);
-    return MHD_queue_response (con, ctask->curl_response_code, ctask->response);
+
+    ret = MHD_queue_response (con, ctask->curl_response_code, ctask->response);
+    GNUNET_SCHEDULER_add_now (&run_mhd, ctask->mhd);
+    return ret;
   }
 
   
@@ -1488,15 +1501,6 @@ create_response (void *cls,
   return MHD_YES;
 }
 
-/**
- * Task run whenever HTTP server operations are pending.
- *
- * @param cls unused
- * @param tc sched context
- */
-static void
-do_httpd (void *cls,
-          const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
