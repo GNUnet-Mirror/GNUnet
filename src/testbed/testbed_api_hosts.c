@@ -385,8 +385,7 @@ GNUNET_TESTBED_host_run_ (const struct GNUNET_TESTBED_Host *host,
   if ((NULL == host) || (0 == host->id))
   {
     h->process = GNUNET_OS_start_process_vap (GNUNET_YES,
-                                              GNUNET_OS_INHERIT_STD_OUT |
-                                              GNUNET_OS_INHERIT_STD_ERR, 
+                                              GNUNET_OS_INHERIT_STD_ALL,
 					      h->cpipe, NULL,
 					      "gnunet-service-testbed", 
 					      binary_argv);
@@ -416,8 +415,7 @@ GNUNET_TESTBED_host_run_ (const struct GNUNET_TESTBED_Host *host,
     remote_args[argp++] = NULL;
     GNUNET_assert (argp == argc + 6 + 1);
     h->process = GNUNET_OS_start_process_vap (GNUNET_YES,
-                                              GNUNET_OS_INHERIT_STD_OUT |
-                                              GNUNET_OS_INHERIT_STD_ERR, 
+                                              GNUNET_OS_INHERIT_STD_ALL,
 					      h->cpipe, NULL,
 					      "ssh", 
 					      remote_args);
