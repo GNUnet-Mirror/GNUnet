@@ -905,6 +905,7 @@ mhd_content_cb (void *cls,
                           "New tag: %s\n", ctask->pp_buf);
               ctask->is_postprocessing = GNUNET_YES;
               ctask->pp_finished = GNUNET_YES;
+              GNUNET_SCHEDULER_add_now (&run_mhd, ctask->mhd);
               return 0;
             }
             goto copy_data;
