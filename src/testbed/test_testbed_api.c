@@ -190,7 +190,7 @@ run (void *cls,
                                   neighbour);
   GNUNET_assert (NULL != reg_handle);  
   abort_task = GNUNET_SCHEDULER_add_delayed 
-    (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 30), &do_abort, NULL);
+    (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5), &do_abort, NULL);
 }
 
 
