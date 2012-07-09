@@ -191,6 +191,9 @@ struct ProxyCurlTask
   /* Optional resolver replacements for curl (LEHO) */
   struct curl_slist *resolver;
 
+  /* curl response code */
+  long curl_response_code;
+
   /* The URL to fetch */
   char url[2048];
 
@@ -381,13 +384,32 @@ con_val_iter (void *cls,
               const char *key,
               const char *value)
 {
-  char* buf = (char*)cls;
+  struct ProxyCurlTask *ctask = (struct ProxyCurlTask *) cls;
+  char* buf = ctask->host;
+  char* cstr;
+  const char* hdr_val;
 
   if (0 == strcmp ("Host", key))
   {
     strcpy (buf, value);
-    return MHD_NO;
+    return MHD_YES;
   }
+
+  if (0 == strcmp ("Accept-Encoding", key))
+    hdr_val = "";
+  else
+    hdr_val = value;
+
+  cstr = GNUNET_malloc (strlen (key) + strlen (hdr_val) + 3);
+  GNUNET_snprintf (cstr, strlen (key) + strlen (hdr_val) + 3,
+                   "%s: %s", key, hdr_val);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Client Header: %s\n", cstr);
+
+  ctask->headers = curl_slist_append (ctask->headers, cstr);
+  GNUNET_free (cstr);
+
   return MHD_YES;
 }
 
@@ -409,11 +431,13 @@ curl_check_hdr (void *buffer, size_t size, size_t nmemb, void *cls)
   int html_mime_len = strlen (HTML_HDR_CONTENT);
   int cookie_hdr_len = strlen (MHD_HTTP_HEADER_SET_COOKIE);
   char hdr_mime[html_mime_len+1];
-  char hdr_cookie[bytes+1];
+  char hdr_generic[bytes+1];
   char new_cookie_hdr[bytes+strlen (ctask->leho)+1];
   char* ndup;
   char* tok;
   char* cookie_domain;
+  char* hdr_type;
+  char* hdr_val;
   int delta_cdomain;
   size_t offset = 0;
   
@@ -433,25 +457,25 @@ curl_check_hdr (void *buffer, size_t size, size_t nmemb, void *cls)
   if (cookie_hdr_len > bytes)
     return bytes;
 
-  memcpy (hdr_cookie, buffer, bytes);
-  hdr_cookie[bytes] = '\0';
+  memcpy (hdr_generic, buffer, bytes);
+  hdr_generic[bytes] = '\0';
   /*remove crlf*/
-  if (hdr_cookie[bytes-1] == '\n')
-    hdr_cookie[bytes-1] = '\0';
+  if (hdr_generic[bytes-1] == '\n')
+    hdr_generic[bytes-1] = '\0';
 
-  if (hdr_cookie[bytes-2] == '\r')
-    hdr_cookie[bytes-2] = '\0';
+  if (hdr_generic[bytes-2] == '\r')
+    hdr_generic[bytes-2] = '\0';
   
-  if (0 == memcmp (hdr_cookie,
+  if (0 == memcmp (hdr_generic,
                    MHD_HTTP_HEADER_SET_COOKIE,
                    cookie_hdr_len))
   {
-    ndup = GNUNET_strdup (hdr_cookie+cookie_hdr_len+1);
+    ndup = GNUNET_strdup (hdr_generic+cookie_hdr_len+1);
     memset (new_cookie_hdr, 0, sizeof (new_cookie_hdr));
     tok = strtok (ndup, ";");
 
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "Looking for cookie in : %s\n", hdr_cookie);
+                "Looking for cookie in : %s\n", hdr_generic);
     
     for (; tok != NULL; tok = strtok (NULL, ";"))
     {
@@ -527,8 +551,9 @@ curl_check_hdr (void *buffer, size_t size, size_t nmemb, void *cls)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   "MHD: Error adding set-cookie header field %s\n",
-                  hdr_cookie+cookie_hdr_len+1);
+                  hdr_generic+cookie_hdr_len+1);
     }
+    return bytes;
       //GNUNET_free (pch->cookie);
       //GNUNET_CONTAINER_DLL_remove (ctask->set_cookies_head,
       //                             ctask->set_cookies_tail,
@@ -537,6 +562,31 @@ curl_check_hdr (void *buffer, size_t size, size_t nmemb, void *cls)
       //pch = ctask->set_cookies_head;
     //}
   }
+
+  ndup = GNUNET_strdup (hdr_generic);
+  hdr_type = strtok (ndup, ":");
+
+  if (hdr_type != NULL)
+  {
+    hdr_val = strtok (NULL, "");
+    if (hdr_val != NULL)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  "Trying to set %s: %s\n",
+                  hdr_type,
+                  hdr_val+1);
+      if (GNUNET_NO == MHD_add_response_header (ctask->response,
+                                                hdr_type,
+                                                hdr_val+1))
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    "MHD: Error adding %s header field %s\n",
+                    hdr_type,
+                    hdr_val+1);
+      }
+    }
+  }
+  GNUNET_free (ndup);
 
   return bytes;
 }
@@ -985,6 +1035,7 @@ curl_task_download (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   CURLMcode mret;
   struct ProxyCurlTask *ctask;
   int num_ctasks;
+  long resp_code;
 
   struct ProxyCurlTask *clean_head = NULL;
   struct ProxyCurlTask *clean_tail = NULL;
@@ -1057,9 +1108,12 @@ curl_task_download (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                          curl_easy_strerror (msg->data.result));
              ctask->download_successful = GNUNET_NO;
              ctask->download_error = GNUNET_YES;
-             //curl_multi_remove_handle (curl_multi, ctask->curl);
-             //curl_easy_cleanup (ctask->curl);
-             //ctask->curl = NULL;
+             if (CURLE_OK == curl_easy_getinfo (ctask->curl,
+                                                CURLINFO_RESPONSE_CODE,
+                                                &resp_code))
+               ctask->curl_response_code = resp_code;
+             ctask->ready_to_queue = MHD_YES;
+
              GNUNET_CONTAINER_DLL_remove (ctasks_head, ctasks_tail,
                                           ctask);
              GNUNET_CONTAINER_DLL_insert (clean_head, clean_tail, ctask);
@@ -1082,10 +1136,12 @@ curl_task_download (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
              
              GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                          "cURL task %s found.\n", ctask->url);
+             if (CURLE_OK == curl_easy_getinfo (ctask->curl,
+                                                CURLINFO_RESPONSE_CODE,
+                                                &resp_code))
+               ctask->curl_response_code = resp_code;
+             ctask->ready_to_queue = MHD_YES;
              ctask->download_successful = GNUNET_YES;
-             //curl_multi_remove_handle (curl_multi, ctask->curl);
-             //curl_easy_cleanup (ctask->curl);
-             //ctask->curl = NULL;
              GNUNET_CONTAINER_DLL_remove (ctasks_head, ctasks_tail,
                                           ctask);
              GNUNET_CONTAINER_DLL_insert (clean_head, clean_tail, ctask);
@@ -1161,8 +1217,6 @@ process_leho_lookup (void *cls,
   char *ssl_ip;
   char resolvename[512];
   char curlurl[512];
-
-  ctask->headers = NULL;
 
   strcpy (ctask->leho, "");
 
@@ -1313,7 +1367,6 @@ create_response (void *cls,
   const char* page = "<html><head><title>gnoxy</title>"\
                       "</head><body>cURL fail</body></html>";
   
-  char host[265];
   char curlurl[512];
   int ret = MHD_YES;
 
@@ -1329,9 +1382,6 @@ create_response (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "url %s\n", url);
 
-  MHD_get_connection_values (con,
-                             MHD_HEADER_KIND,
-                             &con_val_iter, host);
 
   if (NULL == *con_cls)
   {
@@ -1370,22 +1420,28 @@ create_response (void *cls,
     ctask->connection = con;
     ctask->ready_to_queue = MHD_NO;
     ctask->fin = GNUNET_NO;
+    ctask->headers = NULL;
+    ctask->curl_response_code = MHD_HTTP_OK;
+
+
+    MHD_get_connection_values (con,
+                               MHD_HEADER_KIND,
+                               &con_val_iter, ctask);
 
     curl_easy_setopt (ctask->curl, CURLOPT_HEADERFUNCTION, &curl_check_hdr);
     curl_easy_setopt (ctask->curl, CURLOPT_HEADERDATA, ctask);
     curl_easy_setopt (ctask->curl, CURLOPT_WRITEFUNCTION, &callback_download);
     curl_easy_setopt (ctask->curl, CURLOPT_WRITEDATA, ctask);
-    curl_easy_setopt (ctask->curl, CURLOPT_FOLLOWLOCATION, 1);
-    curl_easy_setopt (ctask->curl, CURLOPT_MAXREDIRS, 4);
+    curl_easy_setopt (ctask->curl, CURLOPT_FOLLOWLOCATION, 0);
+    //curl_easy_setopt (ctask->curl, CURLOPT_MAXREDIRS, 4);
     /* no need to abort if the above failed */
     if (GNUNET_NO == ctask->mhd->is_ssl)
     {
-      sprintf (curlurl, "http://%s%s", host, url);
+      sprintf (curlurl, "http://%s%s", ctask->host, url);
       curl_easy_setopt (ctask->curl, CURLOPT_URL, curlurl);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Adding new curl task for %s\n", curlurl);
     }
-    strcpy (ctask->host, host);
     strcpy (ctask->url, url);
   
     //curl_easy_setopt (ctask->curl, CURLOPT_URL, curlurl);
@@ -1417,7 +1473,10 @@ create_response (void *cls,
   if (ctask->ready_to_queue == GNUNET_YES)
   {
     ctask->fin = GNUNET_YES;
-    return MHD_queue_response (con, MHD_HTTP_OK, ctask->response);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Queueing response with code=%ld\n",
+                ctask->curl_response_code);
+    return MHD_queue_response (con, ctask->curl_response_code, ctask->response);
   }
 
   
