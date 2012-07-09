@@ -295,6 +295,11 @@ struct RequestContext
    */
   uint16_t type;
 
+  /**
+   * Flags for passing std descriptors to ARM (when starting ARM).
+   */
+  enum GNUNET_OS_InheritStdioFlags std_inheritance;
+
 };
 
 #include "do_start_process.c"
@@ -381,14 +386,14 @@ arm_service_report (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     /* Means we are ONLY running locally */
     /* we're clearly running a test, don't daemonize */
-    proc = do_start_process (GNUNET_NO,
+    proc = do_start_process (GNUNET_NO, pos->std_inheritance,
 			     NULL, loprefix, binary, "-c", config,
 			     /* no daemonization! */
 			     lopostfix, NULL);
   }
   else
   {
-    proc = do_start_process (GNUNET_NO,
+    proc = do_start_process (GNUNET_NO, pos->std_inheritance,
 			     NULL, loprefix, binary, "-c", config,
 			     "-d", lopostfix, NULL);
   }
@@ -522,6 +527,7 @@ change_service (struct GNUNET_ARM_Handle *h, const char *service_name,
  *
  * @param h handle to ARM
  * @param service_name name of the service
+ * @param std_inheritance inheritance of std streams
  * @param timeout how long to wait before failing for good
  * @param cb callback to invoke when service is ready
  * @param cb_cls closure for callback
@@ -529,6 +535,7 @@ change_service (struct GNUNET_ARM_Handle *h, const char *service_name,
 void
 GNUNET_ARM_start_service (struct GNUNET_ARM_Handle *h,
 			  const char *service_name,
+                          enum GNUNET_OS_InheritStdioFlags std_inheritance,
 			  struct GNUNET_TIME_Relative timeout,
 			  GNUNET_ARM_Callback cb, void *cb_cls)
 {
@@ -547,12 +554,13 @@ GNUNET_ARM_start_service (struct GNUNET_ARM_Handle *h,
     sctx->callback = cb;
     sctx->cls = cb_cls;
     sctx->timeout = GNUNET_TIME_relative_to_absolute (timeout);
+    sctx->std_inheritance = std_inheritance;
     memcpy (&sctx[1], service_name, slen);
     GNUNET_CLIENT_service_test ("arm", h->cfg, timeout, &arm_service_report,
 				sctx);
     return;
   }
-  if (h->client == NULL)
+  if (NULL == h->client)
   {
     client = GNUNET_CLIENT_connect ("arm", h->cfg);
     if (client == NULL)

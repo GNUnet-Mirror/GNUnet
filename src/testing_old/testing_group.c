@@ -2904,7 +2904,7 @@ create_and_copy_friend_files (struct GNUNET_TESTING_PeerGroup *pg)
                          pg->peers[pg_iter].daemon->hostname,
                          temp_service_path);
       procarr[pg_iter] =
-	GNUNET_OS_start_process (GNUNET_NO, NULL, NULL, "scp", "scp", mytemp, arg, NULL);
+	GNUNET_OS_start_process (GNUNET_NO, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, "scp", "scp", mytemp, arg, NULL);
       GNUNET_assert (procarr[pg_iter] != NULL);
       ret = GNUNET_OS_process_wait (procarr[pg_iter]);  /* FIXME: schedule this, throttle! */
       GNUNET_OS_process_destroy (procarr[pg_iter]);
@@ -3090,7 +3090,7 @@ create_and_copy_blacklist_files (struct GNUNET_TESTING_PeerGroup *pg,
                          pg->peers[pg_iter].daemon->hostname,
                          temp_service_path);
       procarr[pg_iter] =
-	GNUNET_OS_start_process (GNUNET_NO, NULL, NULL, "scp", "scp", mytemp, arg, NULL);
+	GNUNET_OS_start_process (GNUNET_NO, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, "scp", "scp", mytemp, arg, NULL);
       GNUNET_assert (procarr[pg_iter] != NULL);
       GNUNET_OS_process_wait (procarr[pg_iter]);        /* FIXME: add scheduled blacklist file copy that parallelizes file copying! */
 
@@ -5693,7 +5693,7 @@ start_peer_helper (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   /* FIXME: Doesn't support ssh_port option! */
   helper->proc =
-    GNUNET_OS_start_process (GNUNET_NO, NULL, NULL, "ssh", "ssh", arg,
+    GNUNET_OS_start_process (GNUNET_NO, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, "ssh", "ssh", arg,
                                "peerStartHelper.pl", tempdir, NULL);
   GNUNET_assert (helper->proc != NULL);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "starting peers with cmd ssh %s %s %s\n",
@@ -5916,13 +5916,13 @@ GNUNET_TESTING_daemons_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
     {
       GNUNET_asprintf (&ssh_port_str, "%d", pg->hosts[i].sshport);
       proc =
-	GNUNET_OS_start_process (GNUNET_NO, NULL, NULL, "ssh", "ssh", "-P", ssh_port_str,
+	GNUNET_OS_start_process (GNUNET_NO, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, "ssh", "ssh", "-P", ssh_port_str,
                                    "-q",
                                    arg, "mkdir -p", tmpdir, NULL);
     }
     else
       proc =
-	GNUNET_OS_start_process (GNUNET_NO, NULL, NULL, "ssh", "ssh", arg, "mkdir -p",
+	GNUNET_OS_start_process (GNUNET_NO, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, "ssh", "ssh", arg, "mkdir -p",
                                    tmpdir, NULL);
     GNUNET_assert (proc != NULL);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -6141,7 +6141,7 @@ GNUNET_TESTING_daemons_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
       /* FIXME: Doesn't support ssh_port option! */
       proc =
-	GNUNET_OS_start_process (GNUNET_NO, NULL, NULL, "rsync", "rsync", "-r",
+	GNUNET_OS_start_process (GNUNET_NO, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, "rsync", "rsync", "-r",
                                    newservicehome, arg, NULL);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "copying directory with command rsync -r %s %s\n",

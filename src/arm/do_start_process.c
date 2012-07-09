@@ -8,13 +8,14 @@
  * with spaces to the new process.
  *
  * @param pipe_control should a pipe be used to send signals to the child?
+ * @param std_inheritance a set of GNUNET_OS_INHERIT_STD_* flags
  * @param lsocks array of listen sockets to dup starting at fd3 (systemd-style), or NULL
  * @param first_arg first argument for argv (may be an empty string)
  * @param ... more arguments, NULL terminated
  * @return handle of the started process, NULL on error
  */
 static struct GNUNET_OS_Process *
-do_start_process (int pipe_control,
+do_start_process (int pipe_control, unsigned int std_inheritance,
 		  const SOCKTYPE * lsocks, const char *first_arg, ...)
 {
   va_list ap;
@@ -97,7 +98,7 @@ do_start_process (int pipe_control,
 /* *INDENT-ON* */
   va_end (ap);
   argv[argv_size] = NULL;
-  proc = GNUNET_OS_start_process_v (pipe_control, lsocks, argv[0], argv);
+  proc = GNUNET_OS_start_process_v (pipe_control, std_inheritance, lsocks, argv[0], argv);
   while (argv_size > 0)
     GNUNET_free (argv[--argv_size]);
   GNUNET_free (argv);

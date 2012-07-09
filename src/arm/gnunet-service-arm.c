@@ -320,12 +320,12 @@ start_process (struct ServiceList *sl)
   GNUNET_assert (NULL == sl->proc);
   if (GNUNET_YES == use_debug)
     sl->proc =
-      do_start_process (sl->pipe_control,
+      do_start_process (sl->pipe_control, GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
 			lsocks, loprefix, sl->binary, "-c", sl->config, "-L",
 			"DEBUG", options, NULL);
   else
     sl->proc =
-      do_start_process (sl->pipe_control,
+      do_start_process (sl->pipe_control, GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
 			lsocks, loprefix, sl->binary, "-c", sl->config,
 			options, NULL);
   if (sl->proc == NULL)

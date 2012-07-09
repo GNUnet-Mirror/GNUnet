@@ -109,7 +109,7 @@ arm_notify (void *cls, enum GNUNET_ARM_ProcessStatus success)
       GNUNET_ARM_stop_service (arm, "arm", TIMEOUT, &arm_stopped, NULL);
 #endif
     }
-  GNUNET_ARM_start_service (arm, "resolver", START_TIMEOUT, &resolver_notify,
+  GNUNET_ARM_start_service (arm, "resolver", GNUNET_OS_INHERIT_STD_OUT_AND_ERR, START_TIMEOUT, &resolver_notify,
 			    NULL);
 }
 
@@ -121,7 +121,7 @@ task (void *cls, char *const *args, const char *cfgfile,
   cfg = c;
   arm = GNUNET_ARM_connect (cfg, NULL);
 #if START_ARM
-  GNUNET_ARM_start_service (arm, "arm", START_TIMEOUT, &arm_notify, NULL);
+  GNUNET_ARM_start_service (arm, "arm", GNUNET_OS_INHERIT_STD_OUT_AND_ERR, START_TIMEOUT, &arm_notify, NULL);
 #else
   arm_notify (NULL, GNUNET_YES);
 #endif

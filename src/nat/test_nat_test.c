@@ -102,7 +102,7 @@ main (int argc, char *const argv[])
   }
 
   gns =
-      GNUNET_OS_start_process (GNUNET_YES, NULL, NULL, "gnunet-nat-server",
+      GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, "gnunet-nat-server",
                                "gnunet-nat-server",
                                "-c", "test_nat_test_data.conf", "12345", NULL);
   GNUNET_assert (NULL != gns);

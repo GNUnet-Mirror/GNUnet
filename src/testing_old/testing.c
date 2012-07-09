@@ -245,7 +245,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                     "gnunet-peerinfo", "gnunet-peerinfo", "-c", d->cfgfile,
                     "-sq");
         d->proc_arm_peerinfo =
-	    GNUNET_OS_start_process (GNUNET_YES, NULL, d->pipe_stdout, "gnunet-peerinfo",
+	    GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, d->pipe_stdout, "gnunet-peerinfo",
                                      "gnunet-peerinfo", "-c", d->cfgfile, "-sq",
                                      NULL);
         GNUNET_DISK_pipe_close_end (d->pipe_stdout, GNUNET_DISK_PIPE_END_WRITE);
@@ -263,7 +263,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                     d->cfgfile, "-sq");
         if (d->ssh_port_str == NULL)
         {
-          d->proc_arm_peerinfo = GNUNET_OS_start_process (GNUNET_NO, NULL, d->pipe_stdout, "ssh", "ssh",
+          d->proc_arm_peerinfo = GNUNET_OS_start_process (GNUNET_NO, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, d->pipe_stdout, "ssh", "ssh",
                                              "-q",
                                              dst, "gnunet-peerinfo", "-c",
                                              d->cfgfile, "-sq", NULL);
@@ -271,7 +271,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         else
         {
           d->proc_arm_peerinfo =
-	      GNUNET_OS_start_process (GNUNET_NO, NULL, d->pipe_stdout, "ssh", "ssh", "-p",
+	      GNUNET_OS_start_process (GNUNET_NO, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, d->pipe_stdout, "ssh", "ssh", "-p",
                                        d->ssh_port_str,
                                        "-q",
                                        dst, "gnunet-peerinfo", "-c", d->cfgfile,
@@ -414,7 +414,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                   "gnunet-arm", "gnunet-arm", "-c", d->cfgfile, 
                   "-s");
       d->proc_arm_start =
-	  GNUNET_OS_start_process (GNUNET_YES, NULL, NULL, "gnunet-arm", "gnunet-arm", "-c",
+	  GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, "gnunet-arm", "gnunet-arm", "-c",
                                    d->cfgfile,
                                    "-s", "-q", "-T",
                                    GNUNET_TIME_relative_to_string
@@ -434,7 +434,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                   "-s", "-q");
       if (d->ssh_port_str == NULL)
       {
-        d->proc_arm_start = GNUNET_OS_start_process (GNUNET_NO, NULL, NULL, "ssh", "ssh",
+        d->proc_arm_start = GNUNET_OS_start_process (GNUNET_NO, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, "ssh", "ssh",
                                            "-q",
                                            dst, "gnunet-arm",
                                            "-c", d->cfgfile, "-s", "-q", "-T",
@@ -446,7 +446,7 @@ start_fsm (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       {
 
         d->proc_arm_start =
-	    GNUNET_OS_start_process (GNUNET_NO, NULL, NULL, "ssh", "ssh", "-p",
+	    GNUNET_OS_start_process (GNUNET_NO, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, "ssh", "ssh", "-p",
                                      d->ssh_port_str,
                                      "-q",
                                      dst, "gnunet-arm",
@@ -892,7 +892,7 @@ GNUNET_TESTING_daemon_start_stopped_service (struct GNUNET_TESTING_Daemon *d,
     else
       arg = GNUNET_strdup (d->hostname);
 
-    d->proc_arm_srv_start = GNUNET_OS_start_process (GNUNET_NO, NULL, NULL, "ssh", "ssh",
+    d->proc_arm_srv_start = GNUNET_OS_start_process (GNUNET_NO, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, "ssh", "ssh",
                                        "-q",
                                        arg, "gnunet-arm",
                                        "-c", d->cfgfile, "-i", service, "-q",
@@ -908,7 +908,7 @@ GNUNET_TESTING_daemon_start_stopped_service (struct GNUNET_TESTING_Daemon *d,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Starting gnunet-arm with config `%s' locally.\n", d->cfgfile);
-    d->proc_arm_srv_start = GNUNET_OS_start_process (GNUNET_YES, NULL, NULL, "gnunet-arm", "gnunet-arm",
+    d->proc_arm_srv_start = GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, "gnunet-arm", "gnunet-arm",
                                        "-c", d->cfgfile, "-i", service, "-q",
                                        "-T",
                                        GNUNET_TIME_relative_to_string (timeout),
@@ -960,7 +960,7 @@ GNUNET_TESTING_daemon_start_service (struct GNUNET_TESTING_Daemon *d,
     else
       arg = GNUNET_strdup (d->hostname);
 
-    d->proc_arm_srv_start = GNUNET_OS_start_process (GNUNET_NO, NULL, NULL, "ssh", "ssh",
+    d->proc_arm_srv_start = GNUNET_OS_start_process (GNUNET_NO, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, "ssh", "ssh",
                                        "-q",
                                        arg, "gnunet-arm",
                                        "-c", d->cfgfile, "-i", service, "-q",
@@ -977,7 +977,7 @@ GNUNET_TESTING_daemon_start_service (struct GNUNET_TESTING_Daemon *d,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Starting gnunet-arm with config `%s' locally.\n", d->cfgfile);
-    d->proc_arm_srv_start = GNUNET_OS_start_process (GNUNET_YES, NULL, NULL, "gnunet-arm", "gnunet-arm",
+    d->proc_arm_srv_start = GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, "gnunet-arm", "gnunet-arm",
                                        "-c", d->cfgfile, "-i", service, "-q",
                                        "-T",
                                        GNUNET_TIME_relative_to_string (timeout),
@@ -1184,7 +1184,7 @@ GNUNET_TESTING_daemon_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
       GNUNET_free (baseservicehome);
       if (ret->ssh_port_str == NULL)
       {
-        ret->proc_arm_copying = GNUNET_OS_start_process (GNUNET_NO, NULL, NULL, "scp", "scp", "-r",
+        ret->proc_arm_copying = GNUNET_OS_start_process (GNUNET_NO, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, "scp", "scp", "-r",
                                              "-q",
                                              servicehome, arg, NULL);
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1194,7 +1194,7 @@ GNUNET_TESTING_daemon_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
       else
       {
         ret->proc_arm_copying =
-	    GNUNET_OS_start_process (GNUNET_NO, NULL, NULL, "scp", "scp", "-r", "-P",
+	    GNUNET_OS_start_process (GNUNET_NO, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, "scp", "scp", "-r", "-P",
                                      ret->ssh_port_str,
                                      "-q",
                                      servicehome, arg, NULL);
@@ -1304,7 +1304,7 @@ GNUNET_TESTING_daemon_restart (struct GNUNET_TESTING_Daemon *d,
     else
       arg = GNUNET_strdup (d->hostname);
 
-    d->proc_arm_stop = GNUNET_OS_start_process (GNUNET_NO, NULL, NULL, "ssh", "ssh",
+    d->proc_arm_stop = GNUNET_OS_start_process (GNUNET_NO, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, "ssh", "ssh",
                                        "-q",
                                        arg, "gnunet-arm",
                                        "-c", d->cfgfile, "-e", "-r", NULL);
@@ -1316,7 +1316,7 @@ GNUNET_TESTING_daemon_restart (struct GNUNET_TESTING_Daemon *d,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Stopping gnunet-arm with config `%s' locally.\n", d->cfgfile);
-    d->proc_arm_stop = GNUNET_OS_start_process (GNUNET_YES, NULL, NULL, "gnunet-arm", "gnunet-arm",
+    d->proc_arm_stop = GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, "gnunet-arm", "gnunet-arm",
                                        "-c", d->cfgfile, "-e", "-r", NULL);
   }
 
@@ -1377,7 +1377,7 @@ GNUNET_TESTING_daemon_stop_service (struct GNUNET_TESTING_Daemon *d,
     else
       arg = GNUNET_strdup (d->hostname);
     
-    d->proc_arm_srv_stop = GNUNET_OS_start_process (GNUNET_NO, NULL, NULL, "ssh", "ssh",
+    d->proc_arm_srv_stop = GNUNET_OS_start_process (GNUNET_NO, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, "ssh", "ssh",
                                        "-q",
                                        arg, "gnunet-arm",
                                        "-c", d->cfgfile, "-k", service, "-q",
@@ -1393,7 +1393,7 @@ GNUNET_TESTING_daemon_stop_service (struct GNUNET_TESTING_Daemon *d,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Stopping gnunet-arm with config `%s' locally.\n", d->cfgfile);
-    d->proc_arm_srv_stop = GNUNET_OS_start_process (GNUNET_YES, NULL, NULL, "gnunet-arm", "gnunet-arm",
+    d->proc_arm_srv_stop = GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, "gnunet-arm", "gnunet-arm",
                                        "-c", d->cfgfile, "-k", service, "-q",
                                        "-T",
                                        GNUNET_TIME_relative_to_string (timeout),
@@ -1546,7 +1546,7 @@ GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
     else
       arg = GNUNET_strdup (d->hostname);
 
-    d->proc_arm_stop = GNUNET_OS_start_process (GNUNET_NO, NULL, NULL, "ssh", "ssh",
+    d->proc_arm_stop = GNUNET_OS_start_process (GNUNET_NO, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, "ssh", "ssh",
                                        "-q",
                                        arg, "gnunet-arm",
                                        "-c", d->cfgfile, "-e", "-q", "-T",
@@ -1562,7 +1562,7 @@ GNUNET_TESTING_daemon_stop (struct GNUNET_TESTING_Daemon *d,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Stopping gnunet-arm with config `%s' locally.\n", d->cfgfile);
-    d->proc_arm_stop = GNUNET_OS_start_process (GNUNET_NO, NULL, NULL, "gnunet-arm", "gnunet-arm",
+    d->proc_arm_stop = GNUNET_OS_start_process (GNUNET_NO, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, "gnunet-arm", "gnunet-arm",
                                        "-c", d->cfgfile, "-e", "-q", "-T",
                                        GNUNET_TIME_relative_to_string (timeout),
                                        del_arg, NULL);
@@ -1626,7 +1626,7 @@ GNUNET_TESTING_daemon_reconfigure (struct GNUNET_TESTING_Daemon *d,
     GNUNET_asprintf (&arg, "%s@%s:%s", d->username, d->hostname, d->cfgfile);
   else
     GNUNET_asprintf (&arg, "%s:%s", d->hostname, d->cfgfile);
-  d->proc_arm_copying = GNUNET_OS_start_process (GNUNET_NO, NULL, NULL, "scp", "scp",
+  d->proc_arm_copying = GNUNET_OS_start_process (GNUNET_NO, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, "scp", "scp",
                                      "-q",
                                      d->cfgfile, arg, NULL);
   GNUNET_free (arg);

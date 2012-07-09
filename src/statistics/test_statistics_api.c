@@ -139,7 +139,7 @@ check ()
   struct GNUNET_OS_Process *proc;
 
   proc =
-      GNUNET_OS_start_process (GNUNET_YES, NULL, NULL, "gnunet-service-statistics",
+      GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, "gnunet-service-statistics",
                                "gnunet-service-statistics",
                                "-c", "test_statistics_api_data.conf", NULL);
 #endif
@@ -162,7 +162,7 @@ check ()
 #if START_SERVICE
   /* restart to check persistence! */
   proc =
-      GNUNET_OS_start_process (GNUNET_YES, NULL, NULL, "gnunet-service-statistics",
+      GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, "gnunet-service-statistics",
                                "gnunet-service-statistics",
                                "-c", "test_statistics_api_data.conf", NULL);
 #endif

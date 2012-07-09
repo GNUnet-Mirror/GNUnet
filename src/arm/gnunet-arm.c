@@ -127,6 +127,16 @@ static struct GNUNET_TIME_Relative timeout;
 
 
 /**
+ * Do we want to give our stdout to gnunet-service-arm?
+ */
+static unsigned int no_stdout = 0;
+
+/**
+ * Do we want to give our stderr to gnunet-service-arm?
+ */
+static unsigned int no_stderr = 0;
+
+/**
  * Main continuation-passing-style loop.  Runs the various
  * jobs that we've been asked to do in order.
  *
@@ -323,6 +333,8 @@ cps_loop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	  if (start)
 	    {
 	      GNUNET_ARM_start_service (h, "arm",
+                                        (no_stdout ? 0 : GNUNET_OS_INHERIT_STD_OUT) |
+                                        (no_stderr ? 0 : GNUNET_OS_INHERIT_STD_ERR),
 					(0 ==
 					 timeout.rel_value) ? START_TIMEOUT :
 					timeout, &confirm_cb, "arm");
@@ -333,6 +345,8 @@ cps_loop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	  if (init != NULL)
 	    {
 	      GNUNET_ARM_start_service (h, init,
+                                        (no_stdout ? 0 : GNUNET_OS_INHERIT_STD_OUT) |
+                                        (no_stderr ? 0 : GNUNET_OS_INHERIT_STD_ERR),
 					(0 ==
 					 timeout.rel_value) ? START_TIMEOUT :
 					timeout, &confirm_cb, init);
@@ -422,6 +436,10 @@ main (int argc, char *const *argv)
      GNUNET_YES, &GNUNET_GETOPT_set_ulong, &temp_timeout_ms},
     {'I', "info", NULL, gettext_noop ("List currently running services"),
      GNUNET_NO, &GNUNET_GETOPT_set_one, &list},
+    {'O', "no-stdout", NULL, gettext_noop ("Don't let gnunet-service-arm inherit standard output"),
+     GNUNET_NO, &GNUNET_GETOPT_set_one, &no_stdout},
+    {'E', "no-stderr", NULL, gettext_noop ("Don't let gnunet-service-arm inherit standard error"),
+     GNUNET_NO, &GNUNET_GETOPT_set_one, &no_stderr},
     GNUNET_GETOPT_OPTION_END
   };
 

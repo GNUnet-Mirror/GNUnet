@@ -284,7 +284,7 @@ do_test_configuration (const struct GNUNET_CONFIGURATION_Handle *cfg)
       adv_port = bnd_port;
     if (NULL == resolver)
       resolver =
-	  GNUNET_OS_start_process (GNUNET_YES, NULL, NULL, "gnunet-service-resolver",
+	  GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, "gnunet-service-resolver",
                                    "gnunet-service-resolver", NULL);
     resolver_users++;
     GNUNET_RESOLVER_connect (cfg);

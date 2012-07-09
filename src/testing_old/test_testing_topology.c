@@ -194,7 +194,7 @@ gather_log_data ()
   GNUNET_asprintf (&peer_number, "%llu", num_peers);
   GNUNET_asprintf (&connect_number, "%llu", expected_connections);
   mem_process =
-      GNUNET_OS_start_process (NULL, NULL, "./memsize.pl", "memsize.pl",
+      GNUNET_OS_start_process (NULL, NULL, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, "./memsize.pl", "memsize.pl",
                                "totals.txt", peer_number, connect_number, NULL);
   GNUNET_OS_process_wait (mem_process);
   GNUNET_OS_process_destroy (mem_process);

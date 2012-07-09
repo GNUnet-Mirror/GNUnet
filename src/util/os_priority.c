@@ -768,6 +768,10 @@ CreateCustomEnvTable (char **vars)
  * Start a process.
  *
  * @param pipe_control should a pipe be used to send signals to the child?
+ * @param std_inheritance a set of GNUNET_OS_INHERIT_STD_* flags controlling which
+ *        std handles of the parent are inherited by the child.
+ *        pipe_stdin and pipe_stdout take priority over std_inheritance
+ *        (when they are non-NULL).
  * @param pipe_stdin pipe to use to send input to child process (or NULL)
  * @param pipe_stdout pipe to use to get output from child process (or NULL)
  * @param lsocks array of listen sockets to dup systemd-style (or NULL);
@@ -778,6 +782,7 @@ CreateCustomEnvTable (char **vars)
  */
 static struct GNUNET_OS_Process *
 start_process (int pipe_control,
+               enum GNUNET_OS_InheritStdioFlags std_inheritance,
 	       struct GNUNET_DISK_PipeHandle *pipe_stdin,
 	       struct GNUNET_DISK_PipeHandle *pipe_stdout,
 	       const SOCKTYPE *lsocks,
@@ -870,6 +875,10 @@ start_process (int pipe_control,
       LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "dup2");
     GNUNET_break (0 == close (fd_stdout_write));
   }
+  else if (!(std_inheritance & GNUNET_OS_INHERIT_STD_OUT))
+  {
+    close (1);
+  }
   if (pipe_stdin != NULL)
   {
 
@@ -877,6 +886,14 @@ start_process (int pipe_control,
     if (-1 == dup2 (fd_stdin_read, 0))
       LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "dup2");
     GNUNET_break (0 == close (fd_stdin_read));
+  }
+  else if (!(std_inheritance & GNUNET_OS_INHERIT_STD_IN))
+  {
+    close (0);
+  }
+  if (!(std_inheritance & GNUNET_OS_INHERIT_STD_ERR))
+  {
+    close (2);
   }
   if (lscp != NULL)
   {
@@ -961,6 +978,10 @@ start_process (int pipe_control,
   long lRet;
   HANDLE stdin_handle;
   HANDLE stdout_handle;
+  HANDLE stdih, stdoh, stdeh;
+  DWORD stdif, stdof, stdef;
+  BOOL bresult;
+  DWORD error_code;
 
   if (GNUNET_SYSERR == GNUNET_OS_check_helper_binary (filename))
     return NULL; /* not executable */
@@ -1083,9 +1104,11 @@ start_process (int pipe_control,
 
   memset (&start, 0, sizeof (start));
   start.cb = sizeof (start);
-  if ((pipe_stdin != NULL) || (pipe_stdout != NULL))
+  if ((pipe_stdin != NULL) || (pipe_stdout != NULL) || (std_inheritance != 0))
     start.dwFlags |= STARTF_USESTDHANDLES;
 
+  stdih = GetStdHandle (STD_INPUT_HANDLE);
+  GetHandleInformation (stdih, &stdif);
   if (pipe_stdin != NULL)
   {
     GNUNET_DISK_internal_file_handle_ (GNUNET_DISK_pipe_handle
@@ -1093,7 +1116,21 @@ start_process (int pipe_control,
                                        &stdin_handle, sizeof (HANDLE));
     start.hStdInput = stdin_handle;
   }
+  if (stdih)
+  {
+    if (std_inheritance & GNUNET_OS_INHERIT_STD_IN)
+    {
+      SetHandleInformation (stdih, HANDLE_FLAG_INHERIT, 1);
+      if (pipe_stdin == NULL)
+        start.hStdInput = stdih;
+    }
+    else
+      SetHandleInformation (stdih, HANDLE_FLAG_INHERIT, 0);
+  }
+    
 
+  stdoh = GetStdHandle (STD_OUTPUT_HANDLE);
+  GetHandleInformation (stdoh, &stdof);
   if (pipe_stdout != NULL)
   {
     GNUNET_DISK_internal_file_handle_ (GNUNET_DISK_pipe_handle
@@ -1101,6 +1138,30 @@ start_process (int pipe_control,
                                         GNUNET_DISK_PIPE_END_WRITE),
                                        &stdout_handle, sizeof (HANDLE));
     start.hStdOutput = stdout_handle;
+  }
+  if (stdoh)
+  {
+    if (std_inheritance & GNUNET_OS_INHERIT_STD_OUT)
+    {
+      SetHandleInformation (stdoh, HANDLE_FLAG_INHERIT, 1);
+      if (pipe_stdout == NULL)
+        start.hStdOutput = stdoh;
+    }
+    else
+      SetHandleInformation (stdoh, HANDLE_FLAG_INHERIT, 0);
+  }
+
+  stdeh = GetStdHandle (STD_ERROR_HANDLE);
+  GetHandleInformation (stdeh, &stdef);
+  if (stdeh)
+  {
+    if (std_inheritance & GNUNET_OS_INHERIT_STD_ERR)
+    {
+      SetHandleInformation (stdeh, HANDLE_FLAG_INHERIT, 1);
+      start.hStdError = stdeh;
+    }
+    else
+      SetHandleInformation (stdeh, HANDLE_FLAG_INHERIT, 0);
   }
 
   if (GNUNET_YES == pipe_control)
@@ -1179,23 +1240,35 @@ start_process (int pipe_control,
     return NULL;
   }
 
-  if (!CreateProcessW (wpath, wcmd, NULL, NULL, TRUE,
-       DETACHED_PROCESS | CREATE_SUSPENDED, env_block, NULL, &start, &proc))
+  bresult = CreateProcessW (wpath, wcmd, NULL, NULL, TRUE,
+       DETACHED_PROCESS | CREATE_SUSPENDED, env_block, NULL, &start, &proc);
+  error_code = GetLastError ();
+
+  if ((NULL == pipe_stdin) && (stdih))
+    SetHandleInformation (stdih, HANDLE_FLAG_INHERIT, stdif);
+    
+
+  if ((NULL == pipe_stdout) && (stdoh))
+    SetHandleInformation (stdoh, HANDLE_FLAG_INHERIT, stdof);
+
+  if (stdeh)
+    SetHandleInformation (stdeh, HANDLE_FLAG_INHERIT, stdef);
+
+  GNUNET_free (env_block);
+  GNUNET_free (cmd);
+  free (wpath);
+  free (wcmd);
+
+  if (!bresult)
   {
-    SetErrnoFromWinError (GetLastError ());
+    SetErrnoFromWinError (error_code);
     LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "CreateProcess");
     if (NULL != control_pipe)
       GNUNET_DISK_file_close (control_pipe);
     if (NULL != lsocks)
       GNUNET_DISK_pipe_close (lsocks_pipe);
-    GNUNET_free (env_block);
-    GNUNET_free (cmd);
-    free (wpath);
-    free (wcmd);
     return NULL;
   }
-
-  GNUNET_free (env_block);
 
   gnunet_proc = GNUNET_malloc (sizeof (struct GNUNET_OS_Process));
   gnunet_proc->pid = proc.dwProcessId;
@@ -1206,9 +1279,6 @@ start_process (int pipe_control,
 
   ResumeThread (proc.hThread);
   CloseHandle (proc.hThread);
-  GNUNET_free (cmd);
-  free (wpath);
-  free (wcmd);
 
   if (lsocks == NULL || lsocks[0] == INVALID_SOCKET)
     return gnunet_proc;
@@ -1300,6 +1370,7 @@ start_process (int pipe_control,
  * Start a process.
  *
  * @param pipe_control should a pipe be used to send signals to the child?
+ * @param std_inheritance a set of GNUNET_OS_INHERIT_STD_* flags
  * @param pipe_stdin pipe to use to send input to child process (or NULL)
  * @param pipe_stdout pipe to use to get output from child process (or NULL)
  * @param filename name of the binary
@@ -1308,12 +1379,14 @@ start_process (int pipe_control,
  */
 struct GNUNET_OS_Process *
 GNUNET_OS_start_process_vap (int pipe_control,
+                             enum GNUNET_OS_InheritStdioFlags std_inheritance,
 			     struct GNUNET_DISK_PipeHandle *pipe_stdin,
 			     struct GNUNET_DISK_PipeHandle *pipe_stdout,
 			     const char *filename, 
 			     char *const argv[])
 {
   return start_process (pipe_control,
+                        std_inheritance,
 			pipe_stdin,
 			pipe_stdout,
 			NULL,
@@ -1326,6 +1399,7 @@ GNUNET_OS_start_process_vap (int pipe_control,
  * Start a process.
  *
  * @param pipe_control should a pipe be used to send signals to the child?
+ * @param std_inheritance a set of GNUNET_OS_INHERIT_STD_* flags
  * @param pipe_stdin pipe to use to send input to child process (or NULL)
  * @param pipe_stdout pipe to use to get output from child process (or NULL)
  * @param filename name of the binary
@@ -1334,6 +1408,7 @@ GNUNET_OS_start_process_vap (int pipe_control,
  */
 struct GNUNET_OS_Process *
 GNUNET_OS_start_process_va (int pipe_control,
+                            enum GNUNET_OS_InheritStdioFlags std_inheritance,
 			    struct GNUNET_DISK_PipeHandle *pipe_stdin,
                             struct GNUNET_DISK_PipeHandle *pipe_stdout,
                             const char *filename, va_list va)
@@ -1355,6 +1430,7 @@ GNUNET_OS_start_process_va (int pipe_control,
     argc++;
   va_end (ap);
   ret = GNUNET_OS_start_process_vap (pipe_control,
+                                     std_inheritance,
 				     pipe_stdin,
 				     pipe_stdout,
 				     filename,
@@ -1369,6 +1445,7 @@ GNUNET_OS_start_process_va (int pipe_control,
  * Start a process.
  *
  * @param pipe_control should a pipe be used to send signals to the child?
+ * @param std_inheritance a set of GNUNET_OS_INHERIT_STD_* flags
  * @param pipe_stdin pipe to use to send input to child process (or NULL)
  * @param pipe_stdout pipe to use to get output from child process (or NULL)
  * @param filename name of the binary
@@ -1379,6 +1456,7 @@ GNUNET_OS_start_process_va (int pipe_control,
  */
 struct GNUNET_OS_Process *
 GNUNET_OS_start_process (int pipe_control,
+                         enum GNUNET_OS_InheritStdioFlags std_inheritance,
 			 struct GNUNET_DISK_PipeHandle *pipe_stdin,
                          struct GNUNET_DISK_PipeHandle *pipe_stdout,
                          const char *filename, ...)
@@ -1387,7 +1465,8 @@ GNUNET_OS_start_process (int pipe_control,
   va_list ap;
 
   va_start (ap, filename);
-  ret = GNUNET_OS_start_process_va (pipe_control, pipe_stdin, pipe_stdout, filename, ap);
+  ret = GNUNET_OS_start_process_va (pipe_control, std_inheritance, pipe_stdin,
+      pipe_stdout, filename, ap);
   va_end (ap);
   return ret;
 }
@@ -1405,11 +1484,13 @@ GNUNET_OS_start_process (int pipe_control,
  */
 struct GNUNET_OS_Process *
 GNUNET_OS_start_process_v (int pipe_control,
+                           enum GNUNET_OS_InheritStdioFlags std_inheritance,
 			   const SOCKTYPE *lsocks,
                            const char *filename,
                            char *const argv[])
 {
   return start_process (pipe_control,
+                        std_inheritance,
 			NULL,
 			NULL,
 			lsocks,
@@ -1723,7 +1804,8 @@ GNUNET_OS_command_run (GNUNET_OS_LineProcessor proc, void *proc_cls,
   if (NULL == opipe)
     return NULL;
   va_start (ap, binary);
-  eip = GNUNET_OS_start_process_va (GNUNET_NO, NULL, opipe, binary, ap);
+  /* redirect stdout, don't inherit stderr/stdin */
+  eip = GNUNET_OS_start_process_va (GNUNET_NO, 0, NULL, opipe, binary, ap);
   va_end (ap);
   if (NULL == eip)
   {

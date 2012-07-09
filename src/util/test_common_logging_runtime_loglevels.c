@@ -317,7 +317,7 @@ runone ()
     break;
   }
 
-  proc = GNUNET_OS_start_process (GNUNET_NO, NULL, pipe_stdout,
+  proc = GNUNET_OS_start_process (GNUNET_NO, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, pipe_stdout,
 #if MINGW
                                   "test_common_logging_dummy",
 #else

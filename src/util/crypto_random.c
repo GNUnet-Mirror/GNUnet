@@ -284,7 +284,7 @@ entropy_generator (void *cls, const char *what, int printchar, int current,
   LOG (GNUNET_ERROR_TYPE_INFO, _("Starting `%s' process to generate entropy\n"),
        "find");
   genproc =
-     GNUNET_OS_start_process (GNUNET_NO,
+     GNUNET_OS_start_process (GNUNET_NO, 0, 
 			      NULL, NULL, "sh", "sh", "-c",
 			      "exec find / -mount -type f -exec cp {} /dev/null \\; 2>/dev/null",
 			      NULL);

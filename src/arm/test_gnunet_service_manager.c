@@ -124,7 +124,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   cfg = c;
 #if START_ARM
   arm = GNUNET_ARM_connect (cfg, NULL);
-  GNUNET_ARM_start_service (arm, "arm", START_TIMEOUT, &arm_notify, NULL);
+  GNUNET_ARM_start_service (arm, "arm", GNUNET_OS_INHERIT_STD_OUT_AND_ERR, START_TIMEOUT, &arm_notify, NULL);
 #else
   arm_notify (NULL, GNUNET_YES);
 #endif

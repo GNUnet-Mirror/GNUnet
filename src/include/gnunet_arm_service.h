@@ -37,6 +37,7 @@ extern "C"
 
 #include "gnunet_configuration_lib.h"
 #include "gnunet_scheduler_lib.h"
+#include "gnunet_os_lib.h"
 #include "gnunet_time_lib.h"
 
 /**
@@ -169,12 +170,14 @@ GNUNET_ARM_disconnect (struct GNUNET_ARM_Handle *h);
  *
  * @param h handle to ARM
  * @param service_name name of the service
+ * @param std_inheritance flags controlling std descriptors inheritance
  * @param timeout how long to wait before failing for good
  * @param cb callback to invoke when service is ready
  * @param cb_cls closure for callback
  */
 void
 GNUNET_ARM_start_service (struct GNUNET_ARM_Handle *h, const char *service_name,
+                          enum GNUNET_OS_InheritStdioFlags std_inheritance,
                           struct GNUNET_TIME_Relative timeout,
                           GNUNET_ARM_Callback cb, void *cb_cls);
 

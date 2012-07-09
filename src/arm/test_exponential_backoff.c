@@ -270,7 +270,7 @@ static void
 arm_notify (void *cls, enum GNUNET_ARM_ProcessStatus status)
 {
   GNUNET_assert (status == GNUNET_ARM_PROCESS_STARTING);
-  GNUNET_ARM_start_service (arm, "do-nothing", TIMEOUT, &do_nothing_notify,
+  GNUNET_ARM_start_service (arm, "do-nothing", GNUNET_OS_INHERIT_STD_OUT_AND_ERR, TIMEOUT, &do_nothing_notify,
 			    NULL);
 }
 
@@ -365,7 +365,7 @@ task (void *cls, char *const *args, const char *cfgfile,
 
   arm = GNUNET_ARM_connect (cfg, NULL);
 #if START_ARM
-  GNUNET_ARM_start_service (arm, "arm", GNUNET_TIME_UNIT_ZERO, &arm_notify,
+  GNUNET_ARM_start_service (arm, "arm", GNUNET_OS_INHERIT_STD_OUT_AND_ERR, GNUNET_TIME_UNIT_ZERO, &arm_notify,
 			    NULL);
 #else
   arm_do_nothing (NULL, GNUNET_YES);

@@ -167,7 +167,7 @@ server_load_certificate (struct Plugin *plugin)
                 "No usable TLS certificate found, creating certificate\n");
     errno = 0;
     cert_creation =
-        GNUNET_OS_start_process (GNUNET_NO, NULL, NULL,
+        GNUNET_OS_start_process (GNUNET_NO, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL,
                                  "gnunet-transport-certificate-creation",
                                  "gnunet-transport-certificate-creation",
                                  key_file, cert_file, NULL);
