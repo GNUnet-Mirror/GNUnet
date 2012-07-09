@@ -1,0 +1,106 @@
+#!@PYTHON@
+from __future__ import print_function
+import os
+import sys
+import shutil
+import re
+import subprocess
+import time
+
+if os.name == "nt":
+  tmp = os.getenv ("TEMP")
+else:
+  tmp = "/tmp"
+
+if os.name == 'nt':
+  st = 'gnunet-statistics.exe'
+  arm = 'gnunet-arm.exe'
+else:
+  st = 'gnunet-statistics'
+  arm = 'gnunet-arm'
+
+run_arm = [arm, '-c', 'test_arm_api_data.conf', '--no-stdout', '--no-stderr']
+debug = os.getenv ('DEBUG')
+if debug:
+  run_arm += [debug.split (' ')]
+
+def cleanup ():
+  shutil.rmtree (os.path.join (tmp, "test-gnunetd-arm"), True)
+
+def sub_run (args, want_stdo = True, want_stde = False, nofail = False):
+  if want_stdo:
+    stdo = subprocess.PIPE
+  else:
+    stdo = None
+  if want_stde:
+    stde = subprocess.PIPE
+  else:
+    stde = None
+  p = subprocess.Popen (args, stdout = stdo, stderr = stde)
+  stdo, stde = p.communicate ()
+  if not nofail:
+    if p.returncode != 0:
+      sys.exit (p.returncode)
+  return (p.returncode, stdo, stde)
+
+def fail (result):
+  print (result)
+  r_arm (['-e'], want_stdo = False)
+  sys.exit (1)
+
+
+def end_arm_failer (command, rc, stdo, stde, normal):
+  if normal:
+    if rc != 0:
+      fail ("FAIL: error running {}\nCommand output was:\n{}\n{}".format (command, stdo, stde))
+  else:
+    if rc == 0:
+      fail ("FAIL: expected error while running {}\nCommand output was:\n{}\n{}".format (command, stdo, stde))
+
+def print_only_failer (command, rc, stdo, stde, normal):
+  if normal:
+    if rc != 0:
+      print ("FAIL: error running {}\nCommand output was:\n{}\n{}".format (command, stdo, stde))
+      sys.exit (1)
+  else:
+    if rc == 0:
+      print ("FAIL: expected error while running {}\nCommand output was:\n{}\n{}".format (command, stdo, stde))
+      sys.exit (1)
+
+
+def r_something (to_run, extra_args, failer = None, normal = True, **kw):
+  rc, stdo, stde = sub_run (to_run + extra_args, nofail = True, want_stde = True, **kw)
+  if failer is not None:
+    failer (to_run + extra_args, rc, stdo, stde, normal)
+  return (rc, stdo, stde)
+
+def r_arm (extra_args, **kw):
+  return r_something (run_arm, extra_args, **kw)
+
+cleanup ()
+
+print ("TEST: Bad argument checking...", end='')
+r_arm (['-x'], normal = False, failer = print_only_failer)
+print ("PASS")
+
+print ("TEST: Start ARM...", end='')
+r_arm (['-s'], failer = print_only_failer)
+time.sleep (1)
+print ("PASS")
+
+print ("TEST: Start another service...", end='')
+r_arm (['-i', 'resolver'], failer = end_arm_failer)
+time.sleep (1)
+print ("PASS")
+
+print ("TEST: Stop a service...", end='')
+r_arm (['-k', 'resolver'], failer = end_arm_failer)
+time.sleep (1)
+print ("PASS")
+
+print ("TEST: Stop ARM...", end='')
+r_arm (['-e'], failer = print_only_failer)
+time.sleep (1)
+print ("PASS")
+
+cleanup ()

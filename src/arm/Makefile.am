@@ -61,7 +61,7 @@ check_PROGRAMS = \
  test_gnunet_service_manager
 
 check_SCRIPTS = \
- test_gnunet_arm.sh
+ test_gnunet_arm.py
 
 if ENABLE_TEST_RUN
 TESTS = $(check_PROGRAMS)  $(check_SCRIPTS)
@@ -85,7 +85,17 @@ test_gnunet_service_manager_SOURCES = \
   $(top_builddir)/src/arm/libgnunetarm.la \
   $(top_builddir)/src/util/libgnunetutil.la  
 
+do_subst = $(SED) -e 's,[@]PYTHON[@],$(PYTHON),g'
+
+%.py: %.py.in Makefile
+	$(do_subst) < $(srcdir)/$< > $@
+	chmod +x $@
+
+test_gnunet_arm.py: test_gnunet_arm.py.in Makefile
+	$(do_subst) < $(srcdir)/test_gnunet_arm.py.in > test_gnunet_arm.py
+	chmod +x test_gnunet_arm.py
+
 EXTRA_DIST = \
   test_arm_api_data.conf \
-  do_start_process.c \
-  $(check_SCRIPTS) 
+  test_gnunet_arm.py.in \
+  do_start_process.c
