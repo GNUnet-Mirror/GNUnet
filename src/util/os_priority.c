@@ -761,6 +761,38 @@ CreateCustomEnvTable (char **vars)
   *result_ptr = 0;
   return result;
 }
+
+#else
+
+/**
+ * Open '/dev/null' and make the result the given
+ * file descriptor.
+ *
+ * @param target_fd desired FD to point to /dev/null
+ * @param flags open flags (O_RDONLY, O_WRONLY)
+ */
+static void
+open_dev_null (int target_fd,
+	       int flags)
+{
+  int fd;
+
+  fd = open ("/dev/null", flags);
+  if (-1 == fd)
+  {
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "open", "/dev/null");
+    return;
+  }
+  if (fd == target_fd)
+    return;
+  if (-1 == dup2 (fd, target_fd))
+  {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "dup2");
+    (void) close (fd);
+    return;
+  }
+  GNUNET_break (0 == close (fd));
+}
 #endif
 
 
@@ -812,7 +844,7 @@ start_process (int pipe_control,
   if ( (GNUNET_YES == pipe_control) &&
        (GNUNET_OK != npipe_setup (&childpipename)) )
     return NULL;  
-  if (pipe_stdout != NULL)
+  if (NULL != pipe_stdout)
   {
     GNUNET_assert (GNUNET_OK ==
 		   GNUNET_DISK_internal_file_handle_ (GNUNET_DISK_pipe_handle
@@ -824,7 +856,7 @@ start_process (int pipe_control,
 						      (pipe_stdout, GNUNET_DISK_PIPE_END_READ),
 						      &fd_stdout_read, sizeof (int)));
   }
-  if (pipe_stdin != NULL)
+  if (NULL != pipe_stdin)
   {
     GNUNET_assert (GNUNET_OK ==
 		   GNUNET_DISK_internal_file_handle_ (GNUNET_DISK_pipe_handle
@@ -837,7 +869,7 @@ start_process (int pipe_control,
   }
   lscp = NULL;
   ls = 0;
-  if (lsocks != NULL)
+  if (NULL != lsocks)
   {
     i = 0;
     while (-1 != (k = lsocks[i++]))
@@ -868,34 +900,36 @@ start_process (int pipe_control,
     setenv (GNUNET_OS_CONTROL_PIPE, childpipename, 1);
     GNUNET_free (childpipename);
   }
-  if (pipe_stdout != NULL)
+  if (NULL != pipe_stdin)
+  {
+    GNUNET_break (0 == close (fd_stdin_write));
+    if (-1 == dup2 (fd_stdin_read, 0))
+      LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "dup2");
+    GNUNET_break (0 == close (fd_stdin_read));
+  }
+  else if (0 == (std_inheritance & GNUNET_OS_INHERIT_STD_IN))
+  {
+    GNUNET_break (0 == close (0));
+    open_dev_null (0, O_RDONLY);
+  }
+  if (NULL != pipe_stdout)
   {
     GNUNET_break (0 == close (fd_stdout_read));
     if (-1 == dup2 (fd_stdout_write, 1))
       LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "dup2");
     GNUNET_break (0 == close (fd_stdout_write));
   }
-  else if (!(std_inheritance & GNUNET_OS_INHERIT_STD_OUT))
+  else if (0 == (std_inheritance & GNUNET_OS_INHERIT_STD_OUT))
   {
-    close (1);
+    GNUNET_break (0 == close (1));
+    open_dev_null (1, O_WRONLY);
   }
-  if (pipe_stdin != NULL)
+  if (0 == (std_inheritance & GNUNET_OS_INHERIT_STD_ERR))
   {
-
-    GNUNET_break (0 == close (fd_stdin_write));
-    if (-1 == dup2 (fd_stdin_read, 0))
-      LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "dup2");
-    GNUNET_break (0 == close (fd_stdin_read));
+    GNUNET_break (0 == close (2));
+    open_dev_null (2, O_WRONLY);
   }
-  else if (!(std_inheritance & GNUNET_OS_INHERIT_STD_IN))
-  {
-    close (0);
-  }
-  if (!(std_inheritance & GNUNET_OS_INHERIT_STD_ERR))
-  {
-    close (2);
-  }
-  if (lscp != NULL)
+  if (NULL != lscp)
   {
     /* read systemd documentation... */
     GNUNET_snprintf (lpid, sizeof (lpid), "%u", getpid ());
@@ -1131,7 +1165,7 @@ start_process (int pipe_control,
 
   stdoh = GetStdHandle (STD_OUTPUT_HANDLE);
   GetHandleInformation (stdoh, &stdof);
-  if (pipe_stdout != NULL)
+  if (NULL != pipe_stdout)
   {
     GNUNET_DISK_internal_file_handle_ (GNUNET_DISK_pipe_handle
                                        (pipe_stdout,
