@@ -669,6 +669,9 @@ notify_session_end (void *cls, const struct GNUNET_PeerIdentity *peer,
 {
   struct Plugin *plugin = cls;
 
+  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+                   "Notifying transport about ending session %p\n");
+
   plugin->env->session_end (plugin->env->cls, peer, s);
   GNUNET_CONTAINER_DLL_remove (plugin->head, plugin->tail, s);
   delete_session (s);
@@ -842,7 +845,7 @@ http_plugin_disconnect (void *cls, const struct GNUNET_PeerIdentity *target)
   struct Session *next = NULL;
   struct Session *s = plugin->head;
 
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
                    "Transport tells me to disconnect `%s'\n",
                    GNUNET_i2s (target));
   while (s != NULL)
