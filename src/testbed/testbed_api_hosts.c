@@ -382,6 +382,13 @@ GNUNET_TESTBED_host_run_ (const struct GNUNET_TESTBED_Host *host,
     argc++;
   h = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_HelperHandle));
   h->cpipe = GNUNET_DISK_pipe (GNUNET_NO, GNUNET_NO, GNUNET_YES, GNUNET_NO);
+  if (NULL == h->cpipe)
+  {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
+			 "pipe");
+    GNUNET_free (h);
+    return NULL;
+  }
   if ((NULL == host) || (0 == host->id))
   {
     h->process = GNUNET_OS_start_process_vap (GNUNET_YES,

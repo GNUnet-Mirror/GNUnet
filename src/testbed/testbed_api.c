@@ -444,7 +444,6 @@ GNUNET_TESTBED_controller_start (struct GNUNET_TESTBED_Host *host)
   struct GNUNET_TESTBED_ControllerProc *cproc;
   char * const binary_argv[] = {
     "gnunet-service-testbed",
-    "gnunet-service-testbed",
     NULL
   };
 
