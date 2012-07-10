@@ -864,15 +864,46 @@ server_disconnect_cb (void *cls, struct MHD_Connection *connection,
 int
 server_disconnect (struct Session *s)
 {
+  struct ServerConnection * send;
+  struct ServerConnection * recv;
+
+  send = (struct ServerConnection *) s->server_send;
   if (s->server_send != NULL)
   {
-    ((struct ServerConnection *) s->server_send)->disconnect = GNUNET_YES;
-  }
-  if (s->server_recv != NULL)
-  {
-    ((struct ServerConnection *) s->server_recv)->disconnect = GNUNET_YES;
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, s->plugin->name,
+                     "Server: %p / %p Terminating inbound PUT session to peer `%s'\n",
+                     s, s->server_send, GNUNET_i2s (&s->target));
+
+    send->disconnect = GNUNET_YES;
+#if MHD_VERSION >= 0x00090E00
+      MHD_set_connection_option (send->mhd_conn, MHD_CONNECTION_OPTION_TIMEOUT,
+                                 1);
+#endif
   }
 
+  recv = (struct ServerConnection *) s->server_recv;
+  if (recv != NULL)
+  {
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, s->plugin->name,
+                     "Server: %p / %p Terminating inbound GET session to peer `%s'\n",
+                     s, s->server_recv, GNUNET_i2s (&s->target));
+
+    recv->disconnect = GNUNET_YES;
+#if MHD_VERSION >= 0x00090E00
+      MHD_set_connection_option (recv->mhd_conn, MHD_CONNECTION_OPTION_TIMEOUT,
+                                 1);
+#endif
+  }
+
+  /* Schedule connection immediately */
+  if (s->addrlen == sizeof (struct IPv4HttpAddress))
+  {
+    server_reschedule (s->plugin, s->plugin->server_v4, GNUNET_YES);
+  }
+  else if (s->addrlen == sizeof (struct IPv6HttpAddress))
+  {
+    server_reschedule (s->plugin, s->plugin->server_v6, GNUNET_YES);
+  }
   return GNUNET_OK;
 }
 
