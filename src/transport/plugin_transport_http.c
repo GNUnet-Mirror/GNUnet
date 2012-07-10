@@ -608,16 +608,56 @@ create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
                 const void *addr, size_t addrlen)
 {
   struct Session *s = NULL;
+  struct GNUNET_ATS_Information ats;
 
   GNUNET_assert ((addrlen == sizeof (struct IPv6HttpAddress)) ||
                  (addrlen == sizeof (struct IPv4HttpAddress)));
+
+
+
+
+  if (addrlen == sizeof (struct IPv4HttpAddress))
+  {
+    struct IPv4HttpAddress *a4 = (struct IPv4HttpAddress *) addr;
+    struct sockaddr_in s4;
+
+    if (0 == ntohs(a4->u4_port))
+      return NULL;
+
+    s4.sin_family = AF_INET;
+    s4.sin_addr.s_addr = a4->ipv4_addr;
+    s4.sin_port = a4->u4_port;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+    s4.sin_len = sizeof (struct sockaddr_in);
+#endif
+    ats = plugin->env->get_address_type (plugin->env->cls, (const struct sockaddr *) &s4, sizeof (struct sockaddr_in));
+  }
+  if (addrlen == sizeof (struct IPv6HttpAddress))
+  {
+    struct IPv6HttpAddress *a6 = (struct IPv6HttpAddress *) addr;
+    struct sockaddr_in6 s6;
+
+    if (0 == ntohs(a6->u6_port))
+        return NULL;
+
+    s6.sin6_family = AF_INET6;
+    s6.sin6_addr = a6->ipv6_addr;
+    s6.sin6_port = a6->u6_port;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+    s6.sin6_len = sizeof (struct sockaddr_in6);
+#endif
+    ats = plugin->env->get_address_type (plugin->env->cls, (const struct sockaddr *) &s6, sizeof (struct sockaddr_in6));
+  }
+
   s = GNUNET_malloc (sizeof (struct Session));
   memcpy (&s->target, target, sizeof (struct GNUNET_PeerIdentity));
   s->plugin = plugin;
   s->addr = GNUNET_malloc (addrlen);
   memcpy (s->addr, addr, addrlen);
   s->addrlen = addrlen;
-  s->ats_address_network_type = htonl (GNUNET_ATS_NET_UNSPECIFIED);
+  s->ats_address_network_type = ats.value;
+
+
   start_session_timeout(s);
   return s;
 }
@@ -649,15 +689,11 @@ http_get_session (void *cls,
 {
   struct Plugin *plugin = cls;
   struct Session * s = NULL;
-  struct GNUNET_ATS_Information ats;
   size_t addrlen;
 
   GNUNET_assert (plugin != NULL);
   GNUNET_assert (address != NULL);
   GNUNET_assert (address->address != NULL);
-
-  ats.type = htonl (GNUNET_ATS_ARRAY_TERMINATOR);
-  ats.value = htonl (GNUNET_ATS_ARRAY_TERMINATOR);
 
   /* find existing session */
   s = lookup_session (plugin, address);
@@ -679,35 +715,6 @@ http_get_session (void *cls,
                  (addrlen == sizeof (struct IPv4HttpAddress)));
 
   s = create_session (plugin, &address->peer, address->address, address->address_length);
-
-  /* Get ATS type */
-  if (addrlen == sizeof (struct IPv4HttpAddress))
-  {
-    struct IPv4HttpAddress *a4 = (struct IPv4HttpAddress *) address->address;
-    struct sockaddr_in s4;
-
-    s4.sin_family = AF_INET;
-    s4.sin_addr.s_addr = a4->ipv4_addr;
-    s4.sin_port = a4->u4_port;
-#if HAVE_SOCKADDR_IN_SIN_LEN
-    s4.sin_len = sizeof (struct sockaddr_in);
-#endif
-    ats = plugin->env->get_address_type (plugin->env->cls, (const struct sockaddr *) &s4, sizeof (struct sockaddr_in));
-  }
-  if (addrlen == sizeof (struct IPv6HttpAddress))
-  {
-    struct IPv6HttpAddress *a6 = (struct IPv6HttpAddress *) address->address;
-    struct sockaddr_in6 s6;
-
-    s6.sin6_family = AF_INET6;
-    s6.sin6_addr = a6->ipv6_addr;
-    s6.sin6_port = a6->u6_port;
-#if HAVE_SOCKADDR_IN_SIN_LEN
-    s6.sin6_len = sizeof (struct sockaddr_in6);
-#endif
-    ats = plugin->env->get_address_type (plugin->env->cls, (const struct sockaddr *) &s6, sizeof (struct sockaddr_in6));
-  }
-  s->ats_address_network_type = ats.value;
 
   /* add new session */
   GNUNET_CONTAINER_DLL_insert (plugin->head, plugin->tail, s);
@@ -1150,6 +1157,13 @@ http_get_addresses (struct Plugin *plugin, const char *serviceName,
       return GNUNET_SYSERR;
     }
   }
+  if (0 == port)
+  {
+    GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, plugin->name,
+                     "Starting in listen only mode\n");
+    return -1; /* listen only */
+  }
+
 
   if (GNUNET_CONFIGURATION_have_value (cfg, serviceName, "BINDTO"))
   {
@@ -1295,40 +1309,39 @@ start_report_addresses (struct Plugin *plugin)
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                    _("Found %u addresses to report to NAT service\n"), res);
 
-  if (res != GNUNET_SYSERR)
+  if (GNUNET_SYSERR == res)
   {
-    plugin->nat =
-        GNUNET_NAT_register (plugin->env->cfg, GNUNET_YES, plugin->port,
-                             (unsigned int) res,
-                             (const struct sockaddr **) addrs, addrlens,
-                             &nat_port_map_callback, NULL, plugin);
-    while (res > 0)
-    {
-      res--;
+    plugin->nat = NULL;
+    return;
+  }
+
+  plugin->nat =
+      GNUNET_NAT_register (plugin->env->cfg, GNUNET_YES, plugin->port,
+                           (unsigned int) res,
+                           (const struct sockaddr **) addrs, addrlens,
+                           &nat_port_map_callback, NULL, plugin);
+  while (res > 0)
+  {
+    res--;
 #if 0
-      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name, _("FREEING %s\n"),
-                       GNUNET_a2s (addrs[res], addrlens[res]));
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name, _("FREEING %s\n"),
+                     GNUNET_a2s (addrs[res], addrlens[res]));
 #endif
-      GNUNET_assert (addrs[res] != NULL);
-      GNUNET_free (addrs[res]);
-    }
-    GNUNET_free_non_null (addrs);
-    GNUNET_free_non_null (addrlens);
+    GNUNET_assert (addrs[res] != NULL);
+    GNUNET_free (addrs[res]);
   }
-  else
-  {
-    plugin->nat =
-        GNUNET_NAT_register (plugin->env->cfg, GNUNET_YES, 0, 0, NULL, NULL,
-                             NULL, NULL, plugin);
-  }
+  GNUNET_free_non_null (addrs);
+  GNUNET_free_non_null (addrlens);
 }
 
 
 static void
 stop_report_addresses (struct Plugin *plugin)
 {
+
   /* Stop NAT handle */
-  GNUNET_NAT_unregister (plugin->nat);
+  if (NULL != plugin->nat)
+    GNUNET_NAT_unregister (plugin->nat);
 
   /* Clean up addresses */
   struct IPv4HttpAddressWrapper *w_t4;
