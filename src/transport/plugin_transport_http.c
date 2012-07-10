@@ -585,11 +585,33 @@ exist_session (struct Plugin *plugin, struct Session *s)
   return GNUNET_NO;
 }
 
+/**
+ * Deleting the session
+ * Must not be used afterwards
+ */
 
 void
 delete_session (struct Session *s)
 {
+  struct Plugin *plugin = s->plugin;
   stop_session_timeout(s);
+
+  GNUNET_CONTAINER_DLL_remove (plugin->head, plugin->tail, s);
+  struct HTTP_Message *msg = s->msg_head;
+  struct HTTP_Message *tmp = NULL;
+
+  while (msg != NULL)
+  {
+    tmp = msg->next;
+
+    GNUNET_CONTAINER_DLL_remove (s->msg_head, s->msg_tail, msg);
+    if (msg->transmit_cont != NULL)
+    {
+      msg->transmit_cont (msg->transmit_cont_cls, &s->target, GNUNET_SYSERR);
+    }
+    GNUNET_free (msg);
+    msg = tmp;
+  }
 
   if (s->msg_tk != NULL)
   {
@@ -669,11 +691,12 @@ notify_session_end (void *cls, const struct GNUNET_PeerIdentity *peer,
 {
   struct Plugin *plugin = cls;
 
-  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
-                   "Notifying transport about ending session %p\n");
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                   "Notifying transport about ending session %p (`%s')\n",
+                   s,
+                   http_plugin_address_to_string(NULL, s->addr,s->addrlen));
 
   plugin->env->session_end (plugin->env->cls, peer, s);
-  GNUNET_CONTAINER_DLL_remove (plugin->head, plugin->tail, s);
   delete_session (s);
 }
 
@@ -845,7 +868,7 @@ http_plugin_disconnect (void *cls, const struct GNUNET_PeerIdentity *target)
   struct Session *next = NULL;
   struct Session *s = plugin->head;
 
-  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                    "Transport tells me to disconnect `%s'\n",
                    GNUNET_i2s (target));
   while (s != NULL)
@@ -853,29 +876,15 @@ http_plugin_disconnect (void *cls, const struct GNUNET_PeerIdentity *target)
     next = s->next;
     if (0 == memcmp (target, &s->target, sizeof (struct GNUNET_PeerIdentity)))
     {
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                       "Disconnecting %s session %p to `%s'\n",
+                       (s->inbound == GNUNET_NO) ? "outbound" : "inbound",
+                       s, GNUNET_i2s (target));
+
       if (s->inbound == GNUNET_NO)
         GNUNET_assert (GNUNET_OK == client_disconnect (s));
       else
         GNUNET_assert (GNUNET_OK == server_disconnect (s));
-      GNUNET_CONTAINER_DLL_remove (plugin->head, plugin->tail, s);
-
-      struct HTTP_Message *msg = s->msg_head;
-      struct HTTP_Message *tmp = NULL;
-
-      while (msg != NULL)
-      {
-        tmp = msg->next;
-
-        GNUNET_CONTAINER_DLL_remove (s->msg_head, s->msg_tail, msg);
-        if (msg->transmit_cont != NULL)
-        {
-          msg->transmit_cont (msg->transmit_cont_cls, target, GNUNET_SYSERR);
-        }
-        GNUNET_free (msg);
-        msg = tmp;
-      }
-
-      delete_session (s);
     }
     s = next;
   }
@@ -1326,10 +1335,6 @@ start_report_addresses (struct Plugin *plugin)
   while (res > 0)
   {
     res--;
-#if 0
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name, _("FREEING %s\n"),
-                     GNUNET_a2s (addrs[res], addrlens[res]));
-#endif
     GNUNET_assert (addrs[res] != NULL);
     GNUNET_free (addrs[res]);
   }
@@ -1500,6 +1505,16 @@ fail:
   return res;
 }
 
+#define TESTING GNUNET_NO
+
+#if TESTING
+#define TIMEOUT_LOG GNUNET_ERROR_TYPE_ERROR
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+#else
+#define TIMEOUT_LOG GNUNET_ERROR_TYPE_DEBUG
+#define TIMEOUT GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT
+#endif
+
 
 /**
  * Session was idle, so disconnect it
@@ -1511,9 +1526,9 @@ session_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct Session *s = cls;
 
   s->timeout_task = GNUNET_SCHEDULER_NO_TASK;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log (TIMEOUT_LOG,
               "Session %p was idle for %llu ms, disconnecting\n",
-              s, (unsigned long long) GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value);
+              s, (unsigned long long) TIMEOUT.rel_value);
 
   /* call session destroy function */
   if (s->inbound == GNUNET_NO)
@@ -1531,12 +1546,12 @@ start_session_timeout (struct Session *s)
 {
  GNUNET_assert (NULL != s);
  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == s->timeout_task);
- s->timeout_task =  GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
+ s->timeout_task =  GNUNET_SCHEDULER_add_delayed (TIMEOUT,
                                                   &session_timeout,
                                                   s);
- GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+ GNUNET_log (TIMEOUT_LOG,
              "Timeout for session %p set to %llu ms\n",
-             s,  (unsigned long long) GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value);
+             s,  (unsigned long long) TIMEOUT.rel_value);
 }
 
 
@@ -1550,12 +1565,12 @@ reschedule_session_timeout (struct Session *s)
  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != s->timeout_task);
 
  GNUNET_SCHEDULER_cancel (s->timeout_task);
- s->timeout_task =  GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
+ s->timeout_task =  GNUNET_SCHEDULER_add_delayed (TIMEOUT,
                                                   &session_timeout,
                                                   s);
- GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+ GNUNET_log (TIMEOUT_LOG,
              "Timeout rescheduled for session %p set to %llu ms\n",
-             s, (unsigned long long) GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value);
+             s, (unsigned long long) TIMEOUT.rel_value);
 }
 
 
@@ -1571,9 +1586,9 @@ stop_session_timeout (struct Session *s)
  {
    GNUNET_SCHEDULER_cancel (s->timeout_task);
    s->timeout_task = GNUNET_SCHEDULER_NO_TASK;
-   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-               "Timeout stopped for session %p canceled\n",
-               s, (unsigned long long) GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value);
+   GNUNET_log (TIMEOUT_LOG,
+               "Timeout stopped for session %p\n",
+               s);
  }
 }
 
@@ -1680,6 +1695,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
   struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;
   struct Session *s;
+  struct Session *next;
 
   if (NULL == plugin)
   {
@@ -1694,13 +1710,14 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
   s = plugin->head;
   while (s != NULL)
   {
+    next = s->next;
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                      "Disconnecting `%s' \n", GNUNET_i2s (&s->target));
     if (s->inbound == GNUNET_NO)
       GNUNET_assert (GNUNET_OK == client_disconnect (s));
     else
       GNUNET_assert (GNUNET_OK == server_disconnect (s));
-    s = s->next;
+    s = next;
   }
 
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name, "Stopping server\n");
@@ -1710,34 +1727,6 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name, "Stopping client\n");
   /* Stop client */
   client_stop (plugin);
-
-  /* deleting up sessions */
-  s = plugin->head;
-  while (s != NULL)
-  {
-    struct Session *t = s->next;
-
-    GNUNET_CONTAINER_DLL_remove (plugin->head, plugin->tail, s);
-
-    struct HTTP_Message *msg = s->msg_head;
-    struct HTTP_Message *tmp = NULL;
-
-    while (msg != NULL)
-    {
-      tmp = msg->next;
-
-      GNUNET_CONTAINER_DLL_remove (s->msg_head, s->msg_tail, msg);
-      if (msg->transmit_cont != NULL)
-      {
-        msg->transmit_cont (msg->transmit_cont_cls, &s->target, GNUNET_SYSERR);
-      }
-      GNUNET_free (msg);
-      msg = tmp;
-    }
-
-    delete_session (s);
-    s = t;
-  }
 
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                    "Plugin `%s' unloaded\n", plugin->name);

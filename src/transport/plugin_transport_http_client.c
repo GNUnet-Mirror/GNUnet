@@ -200,10 +200,9 @@ client_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       struct Session *s = NULL;
       char *d = (char *) s;
 
-
-      //GNUNET_assert (easy_h != NULL);
       if (easy_h == NULL)
       {
+        GNUNET_break (0);
         GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                          "Client: connection to ended with reason %i: `%s', %i handles running\n",
                          msg->data.result,
@@ -222,7 +221,6 @@ client_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       }
 
       GNUNET_assert (s != NULL);
-
       if (msg->msg == CURLMSG_DONE)
       {
         GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
@@ -233,13 +231,8 @@ client_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                          msg->data.result,
                          curl_easy_strerror (msg->data.result));
 
+        /* Disconnect other transmission direction and tell transport */
         client_disconnect (s);
-        GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, 
-			 plugin->name,
-			 "Notifying about ended session to peer `%s' `%s'\n", 
-			 GNUNET_i2s (&s->target), 
-			 http_plugin_address_to_string (plugin, s->addr, s->addrlen));
-        notify_session_end (plugin, &s->target, s);
       }
     }
   }
@@ -266,13 +259,14 @@ client_disconnect (struct Session *s)
   if (s->client_put != NULL)
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                     "Client: %p Deleting outbound PUT session to peer `%s'\n",
-                     s->client_put, GNUNET_i2s (&s->target));
+                     "Client: %p / %p Deleting outbound PUT session to peer `%s'\n",
+                     s, s->client_put, GNUNET_i2s (&s->target));
 
+    /* remove curl handle from multi handle */
     mret = curl_multi_remove_handle (plugin->client_mh, s->client_put);
     if (mret != CURLM_OK)
     {
-      curl_easy_cleanup (s->client_put);
+      /* clean up easy handle, handle is now invalid and free'd */
       res = GNUNET_SYSERR;
       GNUNET_break (0);
     }
@@ -290,13 +284,15 @@ client_disconnect (struct Session *s)
   if (s->client_get != NULL)
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                     "Client: %p Deleting outbound GET session to peer `%s'\n",
+                     "Client: %p / %p Deleting outbound GET session to peer `%s'\n",
+                     s,
                      s->client_get, GNUNET_i2s (&s->target));
 
+    /* remove curl handle from multi handle */
     mret = curl_multi_remove_handle (plugin->client_mh, s->client_get);
     if (mret != CURLM_OK)
     {
-      curl_easy_cleanup (s->client_get);
+      /* clean up easy handle, handle is now invalid and free'd */
       res = GNUNET_SYSERR;
       GNUNET_break (0);
     }
@@ -317,6 +313,8 @@ client_disconnect (struct Session *s)
 
   plugin->cur_connections -= 2;
 
+  notify_session_end (plugin, &s->target, s);
+
   GNUNET_assert (plugin->outbound_sessions > 0);
   plugin->outbound_sessions --;
   GNUNET_STATISTICS_set (plugin->env->stats,
@@ -330,7 +328,6 @@ client_disconnect (struct Session *s)
     GNUNET_SCHEDULER_cancel (plugin->client_perform_task);
     plugin->client_perform_task = GNUNET_SCHEDULER_NO_TASK;
   }
-
   client_schedule (plugin, GNUNET_YES);
 
   return res;
