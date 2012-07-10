@@ -48,6 +48,11 @@
 static struct GNUNET_TESTBED_Host *host;
 
 /**
+ * The controller process
+ */
+static struct GNUNET_TESTBED_ControllerProc *cp;
+
+/**
  * The controller handle
  */
 static struct GNUNET_TESTBED_Controller *controller;
@@ -102,6 +107,8 @@ do_shutdown (void *cls, const const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (NULL != reg_handle)
     GNUNET_TESTBED_cancel_registration (reg_handle);
   GNUNET_TESTBED_controller_disconnect (controller);
+  if (NULL != cp)
+    GNUNET_TESTBED_controller_stop (cp);
   GNUNET_TESTBED_host_destroy (neighbour);
   GNUNET_TESTBED_host_destroy (host);
 }
@@ -163,18 +170,23 @@ registration_comp (void *cls, const char *emsg)
 
 
 /**
- * Main point of test execution
+ * Main run function. 
+ *
+ * @param cls NULL
+ * @param args arguments passed to GNUNET_PROGRAM_run
+ * @param cfgfile the path to configuration file
+ * @param cfg the configuration file handle
  */
 static void
-run (void *cls,
-     const struct GNUNET_CONFIGURATION_Handle *config,
-     struct GNUNET_TESTING_Peer *peer)
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *config)
 {
   uint64_t event_mask;
 
   cfg = config;
   host = GNUNET_TESTBED_host_create (NULL, NULL, 0);
   GNUNET_assert (NULL != host);
+  cp = GNUNET_TESTBED_controller_start (host);
   event_mask = 0;
   event_mask |= (1L << GNUNET_TESTBED_ET_PEER_START);
   event_mask |= (1L << GNUNET_TESTBED_ET_PEER_STOP);
@@ -199,15 +211,20 @@ run (void *cls,
  */
 int main (int argc, char **argv)
 {
-  struct GNUNET_TESTBED_ControllerProc *cp;
+  int ret;
 
-  cp = GNUNET_TESTBED_controller_start (NULL);
-  
+  char *const argv2[] = { "test_testbed_api",
+                          "-c", "test_testbed_api.conf",
+                          NULL
+  };
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+    GNUNET_GETOPT_OPTION_END
+  };
   result = GNUNET_SYSERR;
-  if (0 != GNUNET_TESTING_peer_run ("test_testbed_api",
-                                    "test_testbed_api.conf",
-                                    &run, NULL))
+  ret = GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
+			    "test_testbed_api", "nohelp", options, &run,
+			    NULL);
+  if ((GNUNET_OK != ret) || (GNUNET_OK != result))
     return 1;
-  GNUNET_TESTBED_controller_stop (cp);
-  return result;
+  return 0;
 }

@@ -90,7 +90,7 @@ int main (int argc, char **argv)
 {
   int ret;
 
-  char *const argv2[] = { "test_lockmanager_api_hosts",
+  char *const argv2[] = { "test_testbed_api_hosts",
                           "-c", "test_testbed_api.conf",
                           NULL
   };
