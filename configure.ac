@@ -68,7 +68,7 @@ fi
 # Use Linux interface name unless the OS has a different preference
 DEFAULT_INTERFACE="\"eth0\""
 
-funcstocheck="socket select inet_ntoa getnameinfo gethostname gethostbyname gethostbyaddr getaddrinfo"
+funcstocheck="getnameinfo gethostname gethostbyname gethostbyaddr getaddrinfo"
 
 # Check system type
 case "$host_os" in
@@ -690,7 +690,7 @@ AC_FUNC_VPRINTF
 AC_HEADER_SYS_WAIT
 AC_TYPE_OFF_T
 AC_TYPE_UID_T
-AC_CHECK_FUNCS([floor memmove rmdir strncasecmp strrchr strtol atoll dup2 fdatasync ftruncate gettimeofday memset mkdir mkfifo strcasecmp strchr strdup strerror strstr clock_gettime getrusage rand uname setlocale getcwd mktime gmtime_r gmtime strlcpy strlcat ftruncate stat64 sbrk mmap mremap setrlimit sysconf initgroups getifaddrs freeifaddrs localtime_r nl_langinfo putenv realpath strndup gethostbyname2 gethostbyname getpeerucred getpeereid setresuid $funcstocheck])
+AC_CHECK_FUNCS([atoll stat64  mremap setrlimit sysconf initgroups strndup gethostbyname2 getpeerucred getpeereid setresuid $funcstocheck])
 
 # restore LIBS
 LIBS=$SAVE_LIBS
