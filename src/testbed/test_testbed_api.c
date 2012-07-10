@@ -175,7 +175,7 @@ run (void *cls,
   cfg = config;
   host = GNUNET_TESTBED_host_create (NULL, NULL, 0);
   GNUNET_assert (NULL != host);
-  event_mask ^= event_mask;	/* NULL out */
+  event_mask = 0;
   event_mask |= (1L << GNUNET_TESTBED_ET_PEER_START);
   event_mask |= (1L << GNUNET_TESTBED_ET_PEER_STOP);
   event_mask |= (1L << GNUNET_TESTBED_ET_CONNECT);
@@ -199,11 +199,15 @@ run (void *cls,
  */
 int main (int argc, char **argv)
 {
+  struct GNUNET_TESTBED_ControllerProc *cp;
+
+  cp = GNUNET_TESTBED_controller_start (NULL);
+  
   result = GNUNET_SYSERR;
   if (0 != GNUNET_TESTING_peer_run ("test_testbed_api",
-                                    //				       "arm",
                                     "test_testbed_api.conf",
                                     &run, NULL))
     return 1;
-  else return (GNUNET_OK == result) ? 0 : 1;
+  GNUNET_TESTBED_controller_stop (cp);
+  return result;
 }

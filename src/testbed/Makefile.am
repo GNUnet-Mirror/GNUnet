@@ -56,7 +56,8 @@ check_PROGRAMS = \
  test_testbed_api
 
 if ENABLE_TEST_RUN
-  TESTS = $(check_PROGRAMS)
+ TESTS = \
+   test_testbed_api_hosts 
 endif
 
 test_testbed_api_hosts_SOURCES = \
