@@ -4095,7 +4095,7 @@ dht_get_type_handler (void *cls, struct GNUNET_TIME_Absolute exp,
 }
 
 /**
- * Function to process DHT string to regex matching..
+ * Function to process DHT string to regex matching.
  * Called on each result obtained for the DHT search.
  *
  * @param cls closure (search context)
@@ -4232,7 +4232,7 @@ regex_edge_iterator (void *cls,
 
 
 /**
- * Function to process DHT string to regex matching..
+ * Function to process DHT string to regex matching.
  * Called on each result obtained for the DHT search.
  *
  * @param cls closure (search context)

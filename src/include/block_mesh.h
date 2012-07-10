@@ -75,7 +75,7 @@ struct MeshRegexBlock
     struct GNUNET_HashCode key;
 
       /**
-       * Length of the proof regex string..
+       * Length of the proof regex string.
        */
     unsigned int n_proof;
 
