@@ -2029,14 +2029,7 @@ resolve_record_vpn (struct ResolverHandle *rh,
               GNUNET_h2s (&serv_desc));
   rh->proc = &handle_record_vpn;
 
-  if (NULL == vpn_handle)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "GNS_PHASE_REC_VPN-%llu: VPN not connected!\n",
-                rh->id);
-    finish_lookup (rh, rh->proc_cls, 0, NULL);
-    return;
-  }
+  
 
   if (rlh->record_type == GNUNET_GNS_RECORD_A)
     af = AF_INET;
@@ -2055,7 +2048,6 @@ resolve_record_vpn (struct ResolverHandle *rh,
       return;
     }
   }
-
 
   rh->vpn_handle = GNUNET_VPN_redirect_to_peer (vpn_handle,
 						af, ntohs (vpn->proto),
