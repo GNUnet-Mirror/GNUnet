@@ -690,7 +690,7 @@ AC_FUNC_VPRINTF
 AC_HEADER_SYS_WAIT
 AC_TYPE_OFF_T
 AC_TYPE_UID_T
-AC_CHECK_FUNCS([atoll stat64 strnlen mremap setrlimit sysconf initgroups strndup gethostbyname2 getpeerucred getpeereid setresuid $funcstocheck])
+AC_CHECK_FUNCS([atoll stat64 strnlen mremap setrlimit sysconf initgroups strndup gethostbyname2 getpeerucred getpeereid setresuid $funcstocheck getifaddrs freeifaddrs])
 
 # restore LIBS
 LIBS=$SAVE_LIBS
