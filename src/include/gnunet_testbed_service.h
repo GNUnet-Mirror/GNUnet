@@ -402,13 +402,39 @@ struct GNUNET_TESTBED_ControllerProc;
 
 
 /**
+ * Function called on errors with the controller.
+ *
+ * @param cls closure
+ * @param emsg error message if available; can be NULL, which does NOT mean
+ *             that there was no error
+ */
+typedef void (*GNUNET_TESTBED_ControllerErrorCallback)(void *cls,
+						       const char *emsg);
+
+
+/**
  * Starts a controller process at the host
  *
+ * @param system used for reserving ports if host is NULL and to determine
+ *               which 'host' to set as TRUSTED ('controller') when starting testbed remotely
  * @param host the host where the controller has to be started; NULL for localhost
- * @return the controller process handle
+ * @param cfg template configuration to use for the remote controller; will
+ *            be modified to contain the actual host/port/unixpath used for
+ *            the testbed service
+ * @param cec function called if the contoller dies unexpectedly; will not be 
+ *            invoked after GNUNET_TESTBED_controller_stop, if 'cec' was called,
+ *            GNUNET_TESTBED_controller_stop must no longer be called; will
+ *            never be called in the same task as 'GNUNET_TESTBED_controller_start'
+ *            (synchronous errors will be signalled by returning NULL)
+ * @param cec_cls closure for 'cec'
+ * @return the controller process handle, NULL on errors
  */
 struct GNUNET_TESTBED_ControllerProc *
-GNUNET_TESTBED_controller_start (struct GNUNET_TESTBED_Host *host);
+GNUNET_TESTBED_controller_start (struct GNUNET_TESTING_System *system,
+				 struct GNUNET_TESTBED_Host *host,
+				 struct GNUNET_CONFIGURATION_Handle *cfg,
+				 GNUNET_TESTBED_ControllerErrorCallback cec,
+				 void *cec_cls);
 
 
 /**

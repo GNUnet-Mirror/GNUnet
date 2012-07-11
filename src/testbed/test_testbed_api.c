@@ -182,11 +182,13 @@ run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *config)
 {
   uint64_t event_mask;
+  struct GNUNET_CONFIGURATION_Handle *cdup;
 
   cfg = config;
   host = GNUNET_TESTBED_host_create (NULL, NULL, 0);
   GNUNET_assert (NULL != host);
-  cp = GNUNET_TESTBED_controller_start (host);
+  cdup = GNUNET_CONFIGURATION_dup (config);
+  cp = GNUNET_TESTBED_controller_start (system, host, cdup, NULL, NULL);
   event_mask = 0;
   event_mask |= (1L << GNUNET_TESTBED_ET_PEER_START);
   event_mask |= (1L << GNUNET_TESTBED_ET_PEER_STOP);
