@@ -2542,7 +2542,7 @@ iterate_initial_edge (const unsigned int min_len, const unsigned int max_len,
                       GNUNET_REGEX_KeyIterator iterator, void *iterator_cls)
 {
   unsigned int i;
-  char label[2];
+  char label[state->transition_count][2];
   char *temp;
   struct GNUNET_REGEX_Transition *t;
   unsigned int num_edges = state->transition_count;
@@ -2553,9 +2553,9 @@ iterate_initial_edge (const unsigned int min_len, const unsigned int max_len,
   {
     for (i = 0, t = state->transitions_head; NULL != t; t = t->next, i++)
     {
-      label[0] = t->label;
-      label[1] = '\0';
-      edges[i].label = label;
+      label[i][0] = t->label;
+      label[i][1] = '\0';
+      edges[i].label = label[i];
       edges[i].destination = t->to_state->hash;
     }
 
