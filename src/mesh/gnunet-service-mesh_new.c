@@ -69,6 +69,9 @@
 #define UNACKNOWLEDGED_WAIT     GNUNET_TIME_relative_multiply(\
                                     GNUNET_TIME_UNIT_SECONDS,\
                                     2)
+#define CONNECT_TIMEOUT         GNUNET_TIME_relative_multiply(\
+                                    GNUNET_TIME_UNIT_SECONDS,\
+                                    30)
 #define DEFAULT_TTL             64
 
 #define DHT_REPLICATION_LEVEL   10
@@ -413,11 +416,6 @@ struct MeshTunnel
      */
   struct MeshRegexSearchContext *regex_ctx;
 
-    /**
-     * Peer that is connecting via connect_by_string. When connected, free ctx.
-     */
-  GNUNET_PEER_Id regex_peer;
-
   /**
    * Task to keep the used paths alive
    */
@@ -562,12 +560,39 @@ struct MeshRegexSearchInfo
     /**
      * Contexts, for each running DHT GET. Free all on end of search.
      */
-  struct MeshRegexSearchContext **copies;
-  
+  struct MeshRegexSearchContext **contexts;
+
     /**
      * Number of contexts (branches/steps in search).
      */
-  unsigned int n_copies;
+  unsigned int n_contexts;
+
+    /**
+     * Peer that is connecting via connect_by_string. When connected, free ctx.
+     */
+  GNUNET_PEER_Id peer;
+
+    /**
+     * Other peers that are found but not yet being connected to.
+     */
+  GNUNET_PEER_Id *peers;
+
+    /**
+     * Number of elements in peers.
+     */
+  unsigned int n_peers;
+
+    /**
+     * Next peer to try to connect to.
+     */
+  unsigned int i_peer;
+
+    /**
+     * Timeout for a connect attempt.
+     * When reached, try to connect to a different peer, if any. If not,
+     * try the same peer again.
+     */
+  GNUNET_SCHEDULER_TaskIdentifier timeout;
 
 };
 
@@ -959,7 +984,7 @@ announce_regex (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct MeshClient *c = cls;
   unsigned int i;
 
-  if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
     c->regex_announce_task = GNUNET_SCHEDULER_NO_TASK;
     return;
@@ -989,7 +1014,7 @@ announce_regex (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 announce_applications (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
     announce_applications_task = GNUNET_SCHEDULER_NO_TASK;
     return;
@@ -1019,7 +1044,7 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct PBlock block;
 
-  if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
     announce_id_task = GNUNET_SCHEDULER_NO_TASK;
     return;
@@ -1093,9 +1118,17 @@ regex_cancel_search(struct MeshRegexSearchContext *ctx)
   GNUNET_CONTAINER_multihashmap_destroy (info->dht_get_results);
   GNUNET_CONTAINER_multihashmap_destroy (info->dht_get_handles);
   info->t->regex_ctx = NULL;
-  for (i = 0; i < info->n_copies; i++)
+  for (i = 0; i < info->n_contexts; i++)
   {
-    GNUNET_free (info->copies[i]);
+    GNUNET_free (info->contexts[i]);
+  }
+  if (0 < info->n_contexts)
+    GNUNET_free (info->contexts);
+  if (0 < info->n_peers)
+    GNUNET_free (info->peers);
+  if (GNUNET_SCHEDULER_NO_TASK != info->timeout)
+  {
+    GNUNET_SCHEDULER_cancel(info->timeout);
   }
   GNUNET_free (info);
 }
@@ -1195,7 +1228,7 @@ client_allow_send (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct MeshData *mdata = cls;
 
-  if (GNUNET_SCHEDULER_REASON_SHUTDOWN == tc->reason)
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   GNUNET_assert (NULL != mdata->reference_counter);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -2891,7 +2924,7 @@ tunnel_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct MeshTunnel *t = cls;
 
-  if (GNUNET_SCHEDULER_REASON_SHUTDOWN == tc->reason)
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   t->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   tunnel_destroy (t);
@@ -3852,13 +3885,12 @@ handle_mesh_path_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
 
   peer_info = peer_info_get (&msg->peer_id);
   
-  if (t->regex_peer == peer_info->id && NULL != t->regex_ctx)
+  if (NULL != t->regex_ctx && t->regex_ctx->info->peer == peer_info->id)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "connect_by_string completed, stopping search\n");
     regex_cancel_search (t->regex_ctx);
     t->regex_ctx = NULL;
-    t->regex_peer = 0;
   }
 
   /* Add paths to peers? */
@@ -4010,7 +4042,7 @@ path_refresh (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       sizeof (struct GNUNET_MessageHeader);
   char cbuf[size];
 
-  if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
     return;
   }
@@ -4255,7 +4287,7 @@ regex_edge_iterator (void *cls,
   new_ctx = GNUNET_malloc (sizeof (struct MeshRegexSearchContext));
   new_ctx->info = info;
   new_ctx->position += ctx->position + len;
-  GNUNET_array_append (info->copies, info->n_copies, new_ctx);
+  GNUNET_array_append (info->contexts, info->n_contexts, new_ctx);
   if (GNUNET_YES ==
       GNUNET_CONTAINER_multihashmap_contains(info->dht_get_handles, key))
   {
@@ -4284,6 +4316,53 @@ regex_edge_iterator (void *cls,
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*    End of regex edge iterator\n");
   return GNUNET_YES;
+}
+
+
+/**
+ * Function called if the connect attempt to a peer found via
+ * connect_by_string times out. Try to connect to another peer, if any.
+ * Otherwise try to reconnect to the same peer.
+ * 
+ * @param cls Closure (info about regex search).
+ * @param tc TaskContext.
+ */ 
+static void
+regex_connect_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct MeshRegexSearchInfo *info = cls;
+  struct MeshPeerInfo *peer_info;
+  GNUNET_PEER_Id id;
+  GNUNET_PEER_Id old;
+
+  info->timeout = GNUNET_SCHEDULER_NO_TASK;
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+  {
+    return;
+  }
+
+  old = info->peer;
+
+  if (0 < info->n_peers)
+  {
+    // Select next peer, put current in that spot.
+    id = info->peers[info->i_peer];
+    info->peers[info->i_peer] = info->peer;
+    info->i_peer = (info->i_peer + 1) % info->n_peers;
+  }
+  else
+  {
+    // Try to connect to same peer again.
+    id = info->peer;
+  }
+  
+  peer_info = peer_info_get_short(id);
+  tunnel_add_peer (info->t, peer_info);
+  tunnel_delete_peer (info->t, old);
+  peer_info_connect (peer_info, info->t);
+  info->timeout = GNUNET_SCHEDULER_add_delayed (CONNECT_TIMEOUT,
+                                                &regex_connect_timeout,
+                                                info);
 }
 
 
@@ -4318,10 +4397,9 @@ dht_get_string_accept_handler (void *cls, struct GNUNET_TIME_Absolute exp,
   struct MeshPeerInfo *peer_info;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got results from DHT!\n");
-
-  peer_info = peer_info_get(&block->id);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  for %s\n", info->description);
 
+  peer_info = peer_info_get(&block->id);
   p = path_build_from_dht (get_path, get_path_length, put_path,
                            put_path_length);
   path_add_to_peers (p, GNUNET_NO);
@@ -4329,7 +4407,18 @@ dht_get_string_accept_handler (void *cls, struct GNUNET_TIME_Absolute exp,
 
   tunnel_add_peer (info->t, peer_info);
   peer_info_connect (peer_info, info->t);
-  info->t->regex_peer = peer_info->id;
+  if (0 != info->peer)
+  {
+    info->peer = peer_info->id;
+  }
+  else
+  {
+    GNUNET_array_append (info->peers, info->n_peers, peer_info->id);
+  }
+
+  info->timeout = GNUNET_SCHEDULER_add_delayed (CONNECT_TIMEOUT,
+                                                &regex_connect_timeout,
+                                                info);
 
   return;
 }
@@ -5248,7 +5337,7 @@ handle_local_connect_by_string (void *cls, struct GNUNET_SERVER_Client *client,
   ctx->info = info;
   t->regex_ctx = ctx;
 
-  GNUNET_array_append (info->copies, info->n_copies, ctx);
+  GNUNET_array_append (info->contexts, info->n_contexts, ctx);
 
   /* Start search in DHT */
   get_h = GNUNET_DHT_get_start (dht_handle,    /* handle */
