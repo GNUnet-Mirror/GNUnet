@@ -52,13 +52,19 @@ extern "C"
 struct GNUNET_GNS_Handle;
 
 /**
- * Handle to control a get operation.
+ * Handle to control a lookup operation.
  */
-struct GNUNET_GNS_LookupHandle;
+struct GNUNET_GNS_LookupRequest;
 
 /**
- * Handle to control a shorten operation
+ * Handle to control a shorten operation.
  */
+struct GNUNET_GNS_ShortenRequest;
+
+/**
+ * Handle to control a get authority operation
+ */
+struct GNUNET_GNS_GetAuthRequest;
 
 /**
  * Record types
@@ -304,7 +310,7 @@ GNUNET_GNS_get_authority (struct GNUNET_GNS_Handle *handle,
  * @param gar the lookup request to cancel
  */
 void
-GNUNET_GNS_cancel_get_auth_request (struct GNUNET_GNS_GetAuthRequest *gar)
+GNUNET_GNS_cancel_get_auth_request (struct GNUNET_GNS_GetAuthRequest *gar);
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

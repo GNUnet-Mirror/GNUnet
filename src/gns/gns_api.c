@@ -719,7 +719,7 @@ get_request_id (struct GNUNET_GNS_Handle *h)
 void
 GNUNET_GNS_cancel_lookup_request (struct GNUNET_GNS_LookupRequest *lr)
 {
-  GNUNET_assert (NULL == lr->gns_handle);
+  GNUNET_assert (NULL != lr->gns_handle);
 
   GNUNET_CONTAINER_DLL_remove (lr->gns_handle->pending_head,
                                lr->gns_handle->pending_tail,

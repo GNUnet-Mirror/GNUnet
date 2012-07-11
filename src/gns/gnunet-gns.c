@@ -64,6 +64,18 @@ static int raw = 0;
 
 static enum GNUNET_GNS_RecordType rtype;
 
+/* Handle to lookup request */
+static struct GNUNET_GNS_LookupRequest *lookup_request;
+
+/* Handle to shorten request */
+static struct GNUNET_GNS_ShortenRequest *shorten_request;
+
+/* Handle to get authority request */
+static struct GNUNET_GNS_GetAuthRequest *getauth_request;
+
+/* shutdown task */
+static GNUNET_SCHEDULER_TaskIdentifier shutdown_task;
+
 /**
  * Task run on shutdown.  Cleans up everything.
  *
@@ -74,21 +86,29 @@ static void
 do_shutdown (void *cls,
 	     const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  if (NULL != lookup_request)
+    GNUNET_GNS_cancel_lookup_request (lookup_request);
+
+  if (NULL != shorten_request)
+    GNUNET_GNS_cancel_shorten_request (shorten_request);
+
+  if (NULL != getauth_request)
+    GNUNET_GNS_cancel_get_auth_request (getauth_request);
+
   if (NULL != gns)
-  {
     GNUNET_GNS_disconnect (gns);
-    gns = NULL;
-  }
 }
 
 
 static void
 process_shorten_result(void* cls, const char* nshort)
 {
+  shorten_request = NULL;
   if (raw)
     printf("%s", nshort);
   else
     printf("%s shortened to %s\n", (char*) cls, nshort);
+  GNUNET_SCHEDULER_cancel (shutdown_task);
   GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
 }
 
@@ -100,6 +120,7 @@ process_lookup_result(void* cls, uint32_t rd_count,
   char* name = (char*) cls;
   const char* typename;
   char* string_val;
+  lookup_request = NULL;
   
   if (!raw) {
     if (rd_count == 0)
@@ -122,14 +143,16 @@ process_lookup_result(void* cls, uint32_t rd_count,
       printf("Got %s record: %s\n", typename, string_val);
 
   }
-
+  GNUNET_SCHEDULER_cancel (shutdown_task);
   GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
 }
 
 static void
 process_auth_result(void* cls, const char* auth)
 {
+  getauth_request = NULL;
   printf ("%s\n", auth);
+  GNUNET_SCHEDULER_cancel (shutdown_task);
   GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
 }
 
@@ -155,6 +178,10 @@ run (void *cls, char *const *args, const char *cfgfile,
   struct GNUNET_CRYPTO_RsaPrivateKey *private_key = NULL;
   struct GNUNET_CRYPTO_ShortHashCode private_zone;
   struct GNUNET_CRYPTO_ShortHashCode shorten_zone;
+
+  shorten_request = NULL;
+  lookup_request = NULL;
+  getauth_request = NULL;
 
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
                                                            "ZONEKEY", &keyfile))
@@ -265,7 +292,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   
   if (NULL != shorten_name)
   {
-    GNUNET_GNS_shorten_zone (gns, shorten_name,
+    shorten_request = GNUNET_GNS_shorten_zone (gns, shorten_name,
                              &private_zone,
                              &shorten_zone,
                              zone,
@@ -277,7 +304,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Lookup\n");
-    GNUNET_GNS_lookup_zone (gns, lookup_name,
+    lookup_request = GNUNET_GNS_lookup_zone (gns, lookup_name,
                             zone,
                             rtype,
                             GNUNET_NO, //Use DHT
@@ -287,14 +314,15 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   if (NULL != auth_name)
   {
-    GNUNET_GNS_get_authority(gns, auth_name, &process_auth_result, auth_name);
+    getauth_request = GNUNET_GNS_get_authority(gns, auth_name,
+                                               &process_auth_result, auth_name);
   }
 
   if (NULL != shorten_key)
     GNUNET_CRYPTO_rsa_key_free (shorten_key);
   
-  // FIXME: do work here...
-  //GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+  shutdown_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
+                                                &do_shutdown, NULL);
 }
 
 
