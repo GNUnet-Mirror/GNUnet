@@ -161,7 +161,7 @@ typedef void (*GNUNET_GNS_LookupResultProcessor) (void *cls,
  *
  * @return handle to the queued request
  */
-struct GNUNET_GNS_QueueEntry *
+struct GNUNET_GNS_LookupRequest*
 GNUNET_GNS_lookup (struct GNUNET_GNS_Handle *handle,
                          const char * name,
                          enum GNUNET_GNS_RecordType type,
@@ -185,7 +185,7 @@ GNUNET_GNS_lookup (struct GNUNET_GNS_Handle *handle,
  *
  * @return handle to the queued request
  */
-struct GNUNET_GNS_QueueEntry *
+struct GNUNET_GNS_LookupRequest*
 GNUNET_GNS_lookup_zone (struct GNUNET_GNS_Handle *handle,
                          const char * name,
                          struct GNUNET_CRYPTO_ShortHashCode *zone,
@@ -220,7 +220,7 @@ typedef void (*GNUNET_GNS_ShortenResultProcessor) (void *cls,
  * @param proc_cls closure for processor
  * @return handle to the operation
  */
-struct GNUNET_GNS_QueueEntry *
+struct GNUNET_GNS_ShortenRequest*
 GNUNET_GNS_shorten (struct GNUNET_GNS_Handle *handle,
                     const char * name,
                     struct GNUNET_CRYPTO_ShortHashCode *private_zone,
@@ -241,7 +241,7 @@ GNUNET_GNS_shorten (struct GNUNET_GNS_Handle *handle,
  * @param proc_cls closure for processor
  * @return handle to the operation
  */
-struct GNUNET_GNS_QueueEntry *
+struct GNUNET_GNS_ShortenRequest*
 GNUNET_GNS_shorten_zone (struct GNUNET_GNS_Handle *handle,
                          const char * name,
                          struct GNUNET_CRYPTO_ShortHashCode *private_zone,
@@ -273,7 +273,7 @@ typedef void (*GNUNET_GNS_GetAuthResultProcessor) (void *cls,
  * @param proc_cls closure for processor
  * @return handle to the operation
  */
-struct GNUNET_GNS_QueueEntry *
+struct GNUNET_GNS_GetAuthRequest*
 GNUNET_GNS_get_authority (struct GNUNET_GNS_Handle *handle,
                     const char * name,
                     GNUNET_GNS_GetAuthResultProcessor proc,
