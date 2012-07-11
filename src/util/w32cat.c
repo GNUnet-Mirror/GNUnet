@@ -79,7 +79,7 @@ main (int argc, char **argv)
     {
       unsigned char c;
       b = ReadFile (stdi, &c, 1, &r, NULL);
-      if (r > 0)
+      if (b && r > 0)
       {
         b = WriteFile (stdo, &c, 1, &w, NULL);
         if (b == 0)
