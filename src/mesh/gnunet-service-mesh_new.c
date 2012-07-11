@@ -407,11 +407,16 @@ struct MeshTunnel
      * Used to search peers offering a service
      */
   struct GNUNET_DHT_GetHandle *dht_get_type;
-  
+
     /**
-     * Context of the regex search for a connect_by_string
+     * Initial context of the regex search for a connect_by_string
      */
   struct MeshRegexSearchContext *regex_ctx;
+
+    /**
+     * Peer that is connecting via connect_by_string. When connected, free ctx.
+     */
+  GNUNET_PEER_Id regex_peer;
 
   /**
    * Task to keep the used paths alive
@@ -3846,6 +3851,15 @@ handle_mesh_path_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
 
   peer_info = peer_info_get (&msg->peer_id);
+  
+  if (t->regex_peer == peer_info->id && NULL != t->regex_ctx)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "connect_by_string completed, stopping search\n");
+    regex_cancel_search (t->regex_ctx);
+    t->regex_ctx = NULL;
+    t->regex_peer = 0;
+  }
 
   /* Add paths to peers? */
   p = tree_get_path_to_peer (t->tree, peer_info->id);
@@ -4315,9 +4329,7 @@ dht_get_string_accept_handler (void *cls, struct GNUNET_TIME_Absolute exp,
 
   tunnel_add_peer (info->t, peer_info);
   peer_info_connect (peer_info, info->t);
-
-  // FIXME REGEX cancel only AFTER successful connection (received ACK)
-  regex_cancel_search (ctx);
+  info->t->regex_peer = peer_info->id;
 
   return;
 }
