@@ -70,7 +70,8 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  char *const binary_args[] = {NULL};
+  char *const binary_args[] = {"gnunet-service-testbed",
+			       NULL};
 
   host = GNUNET_TESTBED_host_create ("localhost", NULL, 0);
   GNUNET_assert (NULL != host);
@@ -82,7 +83,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_assert (host == GNUNET_TESTBED_host_lookup_by_id_ (0));
   helper_handle = GNUNET_TESTBED_host_run_ (host, binary_args);
   GNUNET_assert (NULL != helper_handle);
-  GNUNET_SCHEDULER_add_delayed (TIME_REL_SECS (2), &do_shutdown, NULL);
+  GNUNET_SCHEDULER_add_delayed (TIME_REL_SECS (1), &do_shutdown, NULL);
 }
 
 

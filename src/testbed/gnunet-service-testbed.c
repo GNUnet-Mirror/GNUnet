@@ -385,6 +385,11 @@ static GNUNET_SCHEDULER_TaskIdentifier shutdown_task_id;
  */
 static struct GNUNET_TESTING_System *test_system;
 
+/**
+ * Our configuration; we also use this as template for starting other controllers
+ */
+static struct GNUNET_CONFIGURATION_Handle *config;
+
 
 /**
  * Function called to notify a client about the connection begin ready to queue
@@ -691,6 +696,27 @@ slave_event_callback(void *cls,
   GNUNET_break (0);
 }
 
+
+/**
+ * Callback for unexpected slave shutdowns
+ *
+ * @param cls closure
+ * @param emsg error message if available; can be NULL, which does NOT mean
+ *             that there was no error
+ */
+static void 
+slave_shutdown_handler (void *cls, const char *emsg)
+{
+  struct Slave *slave;
+
+  slave = (struct Slave *) cls;
+  slave->controller_proc = NULL;
+  LOG (GNUNET_ERROR_TYPE_WARNING,
+       "Unexpected slave shutdown\n");
+  if (NULL != emsg)
+    LOG (GNUNET_ERROR_TYPE_WARNING, "Error: %s\n", emsg);
+  GNUNET_SCHEDULER_shutdown ();	/* We too shutdown */
+}
 
 
 /**
@@ -1011,7 +1037,10 @@ handle_link_controllers (void *cls,
     if (1 == msg->is_subordinate)
     {
       slave->controller_proc =
-        GNUNET_TESTBED_controller_start (host_list[delegated_host_id]);
+        GNUNET_TESTBED_controller_start (test_system,
+					 host_list[delegated_host_id],
+					 cfg, &slave_shutdown_handler,
+					 slave);
     }
     slave->controller =
       GNUNET_TESTBED_controller_connect (cfg, host_list[delegated_host_id],
@@ -1378,13 +1407,14 @@ testbed_run (void *cls,
       {NULL}
     };
 
+  config = GNUNET_CONFIGURATION_dup (cfg);
   GNUNET_SERVER_add_handlers (server,
                               message_handlers);
   GNUNET_SERVER_disconnect_notify (server,
                                    &client_disconnect_cb,
                                    NULL);
   ss_map = GNUNET_CONTAINER_multihashmap_create (5);
-  test_system = GNUNET_TESTING_system_create ("testbed_peers", NULL);
+  test_system = GNUNET_TESTING_system_create ("testbed", NULL);
   
   fh = GNUNET_DISK_get_handle_from_native (stdin);
   if (NULL == fh)

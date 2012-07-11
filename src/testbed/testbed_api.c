@@ -329,6 +329,7 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
   }
 }
 
+
 /**
  * Function called to notify a client about the connection begin ready to queue
  * more data.  "buf" will be NULL and "size" zero if the connection was closed
@@ -433,25 +434,85 @@ struct GNUNET_TESTBED_ControllerProc
 
 
 /**
+ * Context to use while starting a controller
+ */
+struct ControllerStartContext
+{
+  /**
+   * The error callback
+   */
+  GNUNET_TESTBED_ControllerErrorCallback cec;
+
+  /**
+   * Closure for the above callback
+   */
+  void *cec_cls;
+
+  /**
+   * error message if any
+   */
+  char *emsg;
+};
+
+
+/**
  * Starts a controller process at the host
  *
+ * @param system used for reserving ports if host is NULL and to determine
+ *               which 'host' to set as TRUSTED ('controller') when starting testbed remotely
  * @param host the host where the controller has to be started; NULL for localhost
- * @return the controller process handle
+ * @param cfg template configuration to use for the remote controller; will
+ *            be modified to contain the actual host/port/unixpath used for
+ *            the testbed service
+ * @param cec function called if the contoller dies unexpectedly; will not be 
+ *            invoked after GNUNET_TESTBED_controller_stop, if 'cec' was called,
+ *            GNUNET_TESTBED_controller_stop must no longer be called; will
+ *            never be called in the same task as 'GNUNET_TESTBED_controller_start'
+ *            (synchronous errors will be signalled by returning NULL)
+ * @param cec_cls closure for 'cec'
+ * @return the controller process handle, NULL on errors
  */
 struct GNUNET_TESTBED_ControllerProc *
-GNUNET_TESTBED_controller_start (struct GNUNET_TESTBED_Host *host)
+GNUNET_TESTBED_controller_start (struct GNUNET_TESTING_System *system,
+				 struct GNUNET_TESTBED_Host *host,
+				 struct GNUNET_CONFIGURATION_Handle *cfg,
+				 GNUNET_TESTBED_ControllerErrorCallback cec,
+				 void *cec_cls)
 {
   struct GNUNET_TESTBED_ControllerProc *cproc;
-  char * const binary_argv[] = {
-    "gnunet-service-testbed",
-    NULL
-  };
+  //struct ControllerStartContext *csc;
+  char *cfg_filename;
 
-  cproc = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_ControllerProc));
-  cproc->helper = GNUNET_TESTBED_host_run_ (host, binary_argv);
-  if (NULL == cproc->helper)
+  if ((NULL == host) || (0 == GNUNET_TESTBED_host_get_id_ (host)))
   {
-    GNUNET_free (cproc);
+    if (GNUNET_OK != GNUNET_TESTING_configuration_create (system, cfg))
+      return NULL;
+    GNUNET_assert 
+      (GNUNET_OK == 
+       GNUNET_CONFIGURATION_get_value_string (cfg, "PATHS", "DEFAULTCONFIG",
+					      &cfg_filename));
+    if (GNUNET_OK != GNUNET_CONFIGURATION_write (cfg, cfg_filename))
+    {
+      GNUNET_break (0);
+      return NULL;
+    }
+    char * const binary_argv[] = {
+      "gnunet-service-testbed",
+      "-c", cfg_filename,
+      NULL
+    };
+    cproc = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_ControllerProc));
+    cproc->helper = GNUNET_TESTBED_host_run_ (host, binary_argv);
+    GNUNET_free (cfg_filename);
+    if (NULL == cproc->helper)
+    {
+      GNUNET_free (cproc);
+      return NULL;
+    }
+  }
+  else
+  {
+    GNUNET_break (0);
     return NULL;
   }
   return cproc;
