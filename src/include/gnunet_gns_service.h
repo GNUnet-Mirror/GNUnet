@@ -195,6 +195,15 @@ GNUNET_GNS_lookup_zone (struct GNUNET_GNS_Handle *handle,
                          GNUNET_GNS_LookupResultProcessor proc,
                          void *proc_cls);
 
+
+/**
+ * Cancel pending lookup request
+ *
+ * @param lr the lookup request to cancel
+ */
+void
+GNUNET_GNS_cancel_lookup_request (struct GNUNET_GNS_LookupRequest *lr);
+
 /* *************** Standard API: shorten ******************* */
 
 
@@ -250,6 +259,15 @@ GNUNET_GNS_shorten_zone (struct GNUNET_GNS_Handle *handle,
                          GNUNET_GNS_ShortenResultProcessor proc,
                          void *proc_cls);
 
+
+/**
+ * Cancel pending shorten request
+ *
+ * @param sr the lookup request to cancel
+ */
+void
+GNUNET_GNS_cancel_shorten_request (struct GNUNET_GNS_ShortenRequest *sr);
+
 /* *************** Standard API: get authority ******************* */
 
 
@@ -278,6 +296,15 @@ GNUNET_GNS_get_authority (struct GNUNET_GNS_Handle *handle,
                     const char * name,
                     GNUNET_GNS_GetAuthResultProcessor proc,
                     void *proc_cls);
+
+
+/**
+ * Cancel pending get auth request
+ *
+ * @param gar the lookup request to cancel
+ */
+void
+GNUNET_GNS_cancel_get_auth_request (struct GNUNET_GNS_GetAuthRequest *gar)
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

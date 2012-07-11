@@ -738,7 +738,7 @@ GNUNET_GNS_cancel_lookup_request (struct GNUNET_GNS_LookupRequest *lr)
 /**
  * Cancel pending shorten request
  *
- * @param lr the lookup request to cancel
+ * @param sr the lookup request to cancel
  */
 void
 GNUNET_GNS_cancel_shorten_request (struct GNUNET_GNS_ShortenRequest *sr)
@@ -762,7 +762,7 @@ GNUNET_GNS_cancel_shorten_request (struct GNUNET_GNS_ShortenRequest *sr)
 /**
  * Cancel pending get auth  request
  *
- * @param lr the lookup request to cancel
+ * @param gar the lookup request to cancel
  */
 void
 GNUNET_GNS_cancel_get_auth_request (struct GNUNET_GNS_GetAuthRequest *gar)
