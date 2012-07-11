@@ -618,6 +618,15 @@ run_httpd (struct MhdHttpList *hd);
 static void
 run_httpds (void);
 
+/**
+ * Task run whenever HTTP server operations are pending.
+ *
+ * @param cls unused
+ * @param tc sched context
+ */
+static void
+do_httpd (void *cls,
+          const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 /**
  * Task that simply runs MHD main loop
@@ -635,77 +644,11 @@ run_mhd (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
-/**
- * Process cURL download bits
- *
- * @param ptr buffer with data
- * @param size size of a record
- * @param nmemb number of records downloaded
- * @param ctx context
- * @return number of processed bytes
- */
-static size_t
-callback_download (void *ptr, size_t size, size_t nmemb, void *ctx)
+static void
+run_mhd_now (struct MhdHttpList *hd)
 {
-  const char *cbuf = ptr;
-  size_t total;
-  struct ProxyCurlTask *ctask = ctx;
-  
-  if (NULL == ctask->response)
-  {
-    /* FIXME: get total size from curl (if available) */
-    ctask->response = MHD_create_response_from_callback (MHD_SIZE_UNKNOWN,
-							 20 /* 20 bytes IO buffers!? */,
-							 &mhd_content_cb,
-							 ctask,
-							 NULL);
-    
-  }
-
-  //MHD_run (httpd);
-  ctask->ready_to_queue = GNUNET_YES;
-  /*if (ctask->con_status == MHD_NO)
-  {
-    MHD_queue_response (ctask->connection,
-                        MHD_HTTP_OK,
-                       ctask->response);
-    ctask->con_status = MHD_YES;
-  }*/
-  total = size*nmemb;
-
-  if (total == 0)
-  {
-    return total;
-  }
-
-  if (total > sizeof (ctask->buffer))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "CURL gave us too much data to handle (%d)!\n",
-                total);
-    return 0;
-  }
-  
-  if (ctask->buf_status == BUF_WAIT_FOR_MHD)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "CURL: Waiting for MHD (%s)\n", ctask->url);
-    return CURL_WRITEFUNC_PAUSE;
-  }
-
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "CURL: Copying to MHD (%s, %d)\n", ctask->url, total);
-  memcpy (ctask->buffer, cbuf, total);
-  ctask->bytes_in_buffer = total;
-  ctask->buffer_ptr = ctask->buffer;
-
-  ctask->buf_status = BUF_WAIT_FOR_MHD;
-
-  //GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-  //            "cURL chunk:\n%s\n", (char*)ctask->buffer);
-  run_mhd_now (ctask->mhd);
-  return total;
+  GNUNET_SCHEDULER_cancel (hd->httpd_task);
+  hd->httpd_task = GNUNET_SCHEDULER_add_now (&do_httpd, hd);
 }
 
 /**
@@ -986,6 +929,79 @@ copy_data:
   GNUNET_SCHEDULER_add_now (&run_mhd, ctask->mhd);
 
   return copied;
+}
+
+/**
+ * Process cURL download bits
+ *
+ * @param ptr buffer with data
+ * @param size size of a record
+ * @param nmemb number of records downloaded
+ * @param ctx context
+ * @return number of processed bytes
+ */
+static size_t
+callback_download (void *ptr, size_t size, size_t nmemb, void *ctx)
+{
+  const char *cbuf = ptr;
+  size_t total;
+  struct ProxyCurlTask *ctask = ctx;
+  
+  if (NULL == ctask->response)
+  {
+    /* FIXME: get total size from curl (if available) */
+    ctask->response = MHD_create_response_from_callback (MHD_SIZE_UNKNOWN,
+							 20 /* 20 bytes IO buffers!? */,
+							 &mhd_content_cb,
+							 ctask,
+							 NULL);
+    
+  }
+
+  //MHD_run (httpd);
+  ctask->ready_to_queue = GNUNET_YES;
+  /*if (ctask->con_status == MHD_NO)
+  {
+    MHD_queue_response (ctask->connection,
+                        MHD_HTTP_OK,
+                       ctask->response);
+    ctask->con_status = MHD_YES;
+  }*/
+  total = size*nmemb;
+
+  if (total == 0)
+  {
+    return total;
+  }
+
+  if (total > sizeof (ctask->buffer))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "CURL gave us too much data to handle (%d)!\n",
+                total);
+    return 0;
+  }
+  
+  if (ctask->buf_status == BUF_WAIT_FOR_MHD)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "CURL: Waiting for MHD (%s)\n", ctask->url);
+    return CURL_WRITEFUNC_PAUSE;
+  }
+
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "CURL: Copying to MHD (%s, %d)\n", ctask->url, total);
+  memcpy (ctask->buffer, cbuf, total);
+  ctask->bytes_in_buffer = total;
+  ctask->buffer_ptr = ctask->buffer;
+
+  ctask->buf_status = BUF_WAIT_FOR_MHD;
+
+  //GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  //            "cURL chunk:\n%s\n", (char*)ctask->buffer);
+  run_mhd_now (ctask->mhd);
+  return total;
 }
 
 
@@ -1373,15 +1389,6 @@ process_get_authority (void *cls,
                           ctask);
 }
 
-/**
- * Task run whenever HTTP server operations are pending.
- *
- * @param cls unused
- * @param tc sched context
- */
-static void
-do_httpd (void *cls,
-          const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 /**
  * Main MHD callback for handling requests.
@@ -1606,13 +1613,6 @@ do_httpd (void *cls,
 }
 
 
-static void
-run_mhd_now (struct MhdHttpList *hd)
-{
-  GNUNET_SCHEDULER_cancel (hd->httpd_task);
-  hd->httpd_task = GNUNET_SCHEDULER_add_now (&do_httpd, hd);
-}
-
 
 /**
  * Read data from socket
@@ -1819,27 +1819,6 @@ add_handle_to_mhd (struct GNUNET_NETWORK_Handle *h, struct MHD_Daemon *daemon)
 }
 
 /**
- * Calculate size of file
- *
- * @param filename name of file
- * @return filesize or 0 on error
- */
-static long
-get_file_size (const char* filename)
-{
-  FILE *fp;
-  long size;
-
-  if (NULL == (fp = fopen (filename, "rb")))
-    return 0; 
-  if ((0 != fseek (fp, 0, SEEK_END)) || (-1 == (size = ftell (fp))))
-    size = 0;  
-  fclose (fp);  
-  return size;
-}
-
-
-/**
  * Read file in filename
  *
  * @param filename file to read
@@ -1903,27 +1882,26 @@ load_key_from_file (gnutls_x509_privkey_t key, const char* keyfile)
  *
  * @param crt struct to store data in
  * @param certfile path to pem file
+ * @return GNUNET_OK on success
  */
-static void
+static int
 load_cert_from_file (gnutls_x509_crt_t crt, char* certfile)
 {
   gnutls_datum_t cert_data;
   cert_data.data = NULL;
   int ret;
 
-  cert_data.data = (unsigned char*)load_file (certfile, &cert_data.size);
-
+  cert_data.data = (unsigned char*) load_file (certfile, &cert_data.size);
   ret = gnutls_x509_crt_import (crt, &cert_data,
-                                 GNUTLS_X509_FMT_PEM);
+                                GNUTLS_X509_FMT_PEM);
   if (GNUTLS_E_SUCCESS != ret)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Unable to import certificate %s(ret=%d)\n", certfile, ret);
+               _("Unable to import certificate %s\n"), certfile);
     GNUNET_break (0);
   }
-
   GNUNET_free (cert_data.data);
-
+  return (GNUTLS_E_SUCCESS != ret) ? GNUNET_SYSERR : GNUNET_OK;
 }
 
 
