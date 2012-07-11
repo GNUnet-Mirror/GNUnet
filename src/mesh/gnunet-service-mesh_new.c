@@ -749,12 +749,183 @@ GNUNET_SCHEDULER_TaskIdentifier announce_id_task;
 unsigned int next_client_id;
 
 
+/******************************************************************************/
+/***********************         DECLARATIONS        **************************/
+/******************************************************************************/
+
+/* FIXME move declarations here */
+
+/**
+ * Function to process paths received for a new peer addition. The recorded
+ * paths form the initial tunnel, which can be optimized later.
+ * Called on each result obtained for the DHT search.
+ *
+ * @param cls closure
+ * @param exp when will this value expire
+ * @param key key of the result
+ * @param type type of the result
+ * @param size number of bytes in data
+ * @param data pointer to the result data
+ */
+static void
+dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
+                    const struct GNUNET_HashCode * key,
+                    const struct GNUNET_PeerIdentity *get_path,
+                    unsigned int get_path_length,
+                    const struct GNUNET_PeerIdentity *put_path,
+                    unsigned int put_path_length, enum GNUNET_BLOCK_Type type,
+                    size_t size, const void *data);
+
+
+/**
+ * Function to process DHT string to regex matching.
+ * Called on each result obtained for the DHT search.
+ *
+ * @param cls closure (search context)
+ * @param exp when will this value expire
+ * @param key key of the result
+ * @param get_path path of the get request (not used)
+ * @param get_path_length lenght of get_path (not used)
+ * @param put_path path of the put request (not used)
+ * @param put_path_length length of the put_path (not used)
+ * @param type type of the result
+ * @param size number of bytes in data
+ * @param data pointer to the result data
+ *
+ * TODO: re-issue the request after certain time? cancel after X results?
+ */
+static void
+dht_get_string_handler (void *cls, struct GNUNET_TIME_Absolute exp,
+                        const struct GNUNET_HashCode * key,
+                        const struct GNUNET_PeerIdentity *get_path,
+                        unsigned int get_path_length,
+                        const struct GNUNET_PeerIdentity *put_path,
+                        unsigned int put_path_length, enum GNUNET_BLOCK_Type type,
+                        size_t size, const void *data);
+
 
 /******************************************************************************/
 /************************         ITERATORS        ****************************/
 /******************************************************************************/
 
 /* FIXME move iterators here */
+
+/**
+ * Iterator over edges in a regex block retrieved from the DHT.
+ *
+ * @param cls Closure.
+ * @param token Token that follows to next state.
+ * @param len Lenght of token.
+ * @param key Hash of next state.
+ *
+ * @return GNUNET_YES if should keep iterating, GNUNET_NO otherwise.
+ */
+static int
+regex_edge_iterator (void *cls,
+                     const char *token,
+                     size_t len,
+                     const struct GNUNET_HashCode *key);
+/**
+ * Iterator over hash map entries.
+ *
+ * @param cls closure
+ * @param key current key code
+ * @param value value in the hash map
+ * @return GNUNET_YES if we should continue to
+ *         iterate,
+ *         GNUNET_NO if not.
+ */
+static int
+regex_result_iterator (void *cls,
+                       const struct GNUNET_HashCode * key,
+                       void *value)
+{
+  struct MeshRegexBlock *block = value;
+  struct MeshRegexSearchContext *ctx = cls;
+
+  // block was checked when stored, no need to check again
+  (void) GNUNET_MESH_regex_block_iterate (block, SIZE_MAX,
+                                          &regex_edge_iterator, ctx);
+
+  return GNUNET_YES;
+}
+
+/**
+ * Iterator over edges in a regex block retrieved from the DHT.
+ *
+ * @param cls Closure (context of the search).
+ * @param token Token that follows to next state.
+ * @param len Lenght of token.
+ * @param key Hash of next state.
+ *
+ * @return GNUNET_YES if should keep iterating, GNUNET_NO otherwise.
+ */
+static int
+regex_edge_iterator (void *cls,
+                     const char *token,
+                     size_t len,
+                     const struct GNUNET_HashCode *key)
+{
+  struct MeshRegexSearchContext *ctx = cls;
+  struct MeshRegexSearchContext *new_ctx;
+  struct MeshRegexSearchInfo *info = ctx->info;
+  struct GNUNET_DHT_GetHandle *get_h;
+  char *current;
+  size_t current_len;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*    Start of regex edge iterator\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*     descr : %s\n", info->description);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*     posit : %u\n", ctx->position);
+  current = &info->description[ctx->position];
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*     currt : %s\n", current);
+  current_len = strlen (info->description) - ctx->position;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*     ctlen : %u\n", current_len);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*     tklen : %u\n", len);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*     tk[0] : %c\n", token[0]);
+  if (len > current_len)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*     Token too long, END\n");
+    return GNUNET_YES; // Token too long, wont match
+  }
+  if (0 != strncmp (current, token, len))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*     Token doesn't match, END\n");
+    return GNUNET_YES; // Token doesn't match
+  }
+  new_ctx = GNUNET_malloc (sizeof (struct MeshRegexSearchContext));
+  new_ctx->info = info;
+  new_ctx->position += ctx->position + len;
+  GNUNET_array_append (info->contexts, info->n_contexts, new_ctx);
+  if (GNUNET_YES ==
+      GNUNET_CONTAINER_multihashmap_contains(info->dht_get_handles, key))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*     GET running, END\n");
+    GNUNET_CONTAINER_multihashmap_get_multiple (info->dht_get_results, key,
+                                                &regex_result_iterator,
+                                                new_ctx);
+    return GNUNET_YES; // We are already looking for it
+  }
+  /* Start search in DHT */
+  get_h = 
+      GNUNET_DHT_get_start (dht_handle,    /* handle */
+                            GNUNET_BLOCK_TYPE_MESH_REGEX, /* type */
+                            key,     /* key to search */
+                            DHT_REPLICATION_LEVEL, /* replication level */
+                            GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
+                            NULL,       /* xquery */ // FIXME BLOOMFILTER
+                            0,     /* xquery bits */ // FIXME BLOOMFILTER SIZE
+                            &dht_get_string_handler, new_ctx);
+  if (GNUNET_OK !=
+      GNUNET_CONTAINER_multihashmap_put(info->dht_get_handles, key, get_h,
+                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST))
+  {
+    GNUNET_break (0);
+    return GNUNET_YES;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*    End of regex edge iterator\n");
+  return GNUNET_YES;
+}
+
 /**
  * Iterator over hash map entries to cancel DHT GET requests after a
  * successful connect_by_string.
@@ -1071,28 +1242,6 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   announce_id_task =
       GNUNET_SCHEDULER_add_delayed (ID_ANNOUNCE_TIME, &announce_id, cls);
 }
-
-
-/**
- * Function to process paths received for a new peer addition. The recorded
- * paths form the initial tunnel, which can be optimized later.
- * Called on each result obtained for the DHT search.
- *
- * @param cls closure
- * @param exp when will this value expire
- * @param key key of the result
- * @param type type of the result
- * @param size number of bytes in data
- * @param data pointer to the result data
- */
-static void
-dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
-                    const struct GNUNET_HashCode * key,
-                    const struct GNUNET_PeerIdentity *get_path,
-                    unsigned int get_path_length,
-                    const struct GNUNET_PeerIdentity *put_path,
-                    unsigned int put_path_length, enum GNUNET_BLOCK_Type type,
-                    size_t size, const void *data);
 
 
 /******************************************************************************/
@@ -4174,148 +4323,6 @@ dht_get_type_handler (void *cls, struct GNUNET_TIME_Absolute exp,
   path_destroy(p);
   tunnel_add_peer (t, peer_info);
   peer_info_connect (peer_info, t);
-}
-
-/**
- * Function to process DHT string to regex matching.
- * Called on each result obtained for the DHT search.
- *
- * @param cls closure (search context)
- * @param exp when will this value expire
- * @param key key of the result
- * @param get_path path of the get request (not used)
- * @param get_path_length lenght of get_path (not used)
- * @param put_path path of the put request (not used)
- * @param put_path_length length of the put_path (not used)
- * @param type type of the result
- * @param size number of bytes in data
- * @param data pointer to the result data
- *
- * TODO: re-issue the request after certain time? cancel after X results?
- */
-static void
-dht_get_string_handler (void *cls, struct GNUNET_TIME_Absolute exp,
-                        const struct GNUNET_HashCode * key,
-                        const struct GNUNET_PeerIdentity *get_path,
-                        unsigned int get_path_length,
-                        const struct GNUNET_PeerIdentity *put_path,
-                        unsigned int put_path_length, enum GNUNET_BLOCK_Type type,
-                        size_t size, const void *data);
-
-/**
- * Iterator over edges in a regex block retrieved from the DHT.
- *
- * @param cls Closure.
- * @param token Token that follows to next state.
- * @param len Lenght of token.
- * @param key Hash of next state.
- *
- * @return GNUNET_YES if should keep iterating, GNUNET_NO otherwise.
- */
-static int
-regex_edge_iterator (void *cls,
-                     const char *token,
-                     size_t len,
-                     const struct GNUNET_HashCode *key);
-/**
- * Iterator over hash map entries.
- *
- * @param cls closure
- * @param key current key code
- * @param value value in the hash map
- * @return GNUNET_YES if we should continue to
- *         iterate,
- *         GNUNET_NO if not.
- */
-static int
-regex_result_iterator (void *cls,
-                       const struct GNUNET_HashCode * key,
-                       void *value)
-{
-  struct MeshRegexBlock *block = value;
-  struct MeshRegexSearchContext *ctx = cls;
-
-  // block was checked when stored, no need to check again
-  (void) GNUNET_MESH_regex_block_iterate (block, SIZE_MAX,
-                                          &regex_edge_iterator, ctx);
-
-  return GNUNET_YES;
-}
-
-/**
- * Iterator over edges in a regex block retrieved from the DHT.
- *
- * @param cls Closure (context of the search).
- * @param token Token that follows to next state.
- * @param len Lenght of token.
- * @param key Hash of next state.
- *
- * @return GNUNET_YES if should keep iterating, GNUNET_NO otherwise.
- */
-static int
-regex_edge_iterator (void *cls,
-                     const char *token,
-                     size_t len,
-                     const struct GNUNET_HashCode *key)
-{
-  struct MeshRegexSearchContext *ctx = cls;
-  struct MeshRegexSearchContext *new_ctx;
-  struct MeshRegexSearchInfo *info = ctx->info;
-  struct GNUNET_DHT_GetHandle *get_h;
-  char *current;
-  size_t current_len;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*    Start of regex edge iterator\n");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*     descr : %s\n", info->description);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*     posit : %u\n", ctx->position);
-  current = &info->description[ctx->position];
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*     currt : %s\n", current);
-  current_len = strlen (info->description) - ctx->position;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*     ctlen : %u\n", current_len);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*     tklen : %u\n", len);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*     tk[0] : %c\n", token[0]);
-  if (len > current_len)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*     Token too long, END\n");
-    return GNUNET_YES; // Token too long, wont match
-  }
-  if (0 != strncmp (current, token, len))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*     Token doesn't match, END\n");
-    return GNUNET_YES; // Token doesn't match
-  }
-  new_ctx = GNUNET_malloc (sizeof (struct MeshRegexSearchContext));
-  new_ctx->info = info;
-  new_ctx->position += ctx->position + len;
-  GNUNET_array_append (info->contexts, info->n_contexts, new_ctx);
-  if (GNUNET_YES ==
-      GNUNET_CONTAINER_multihashmap_contains(info->dht_get_handles, key))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*     GET running, END\n");
-    GNUNET_CONTAINER_multihashmap_get_multiple (info->dht_get_results, key,
-                                                &regex_result_iterator,
-                                                new_ctx);
-    return GNUNET_YES; // We are already looking for it
-  }
-  /* Start search in DHT */
-  get_h = 
-      GNUNET_DHT_get_start (dht_handle,    /* handle */
-                            GNUNET_BLOCK_TYPE_MESH_REGEX, /* type */
-                            key,     /* key to search */
-                            DHT_REPLICATION_LEVEL, /* replication level */
-                            GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
-                            NULL,       /* xquery */ // FIXME BLOOMFILTER
-                            0,     /* xquery bits */ // FIXME BLOOMFILTER SIZE
-                            &dht_get_string_handler, new_ctx);
-  if (GNUNET_OK !=
-      GNUNET_CONTAINER_multihashmap_put(info->dht_get_handles, key, get_h,
-                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST))
-  {
-    GNUNET_break (0);
-    return GNUNET_YES;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*    End of regex edge iterator\n");
-  return GNUNET_YES;
 }
 
 
