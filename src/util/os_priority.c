@@ -461,10 +461,16 @@ GNUNET_OS_process_kill (struct GNUNET_OS_Process *proc, int sig)
       if (0 != GetExitCodeProcess (proc->handle, &exitcode))
         must_kill = (exitcode == STILL_ACTIVE) ? GNUNET_YES : GNUNET_NO;
       if (GNUNET_YES == must_kill)
-        if (0 == TerminateProcess (proc->handle, 0))
+        if (0 == SafeTerminateProcess (proc->handle, 0, 0))
         {
-          SetErrnoFromWinError (GetLastError ());
-          return -1;
+          DWORD error_code = GetLastError ();
+          if (error_code != WAIT_TIMEOUT) /* OK, since timeout is 0 */
+          {
+            LOG (GNUNET_ERROR_TYPE_WARNING,
+                "SafeTermiateProcess failed with code %lu\n", error_code);
+            SetErrnoFromWinError (error_code);
+            return -1;
+          }
         }
     }
     return 0;
@@ -1386,7 +1392,7 @@ start_process (int pipe_control,
     /* If we can't pass on the socket(s), the child will block forever,
      * better put it out of its misery.
      */
-    TerminateProcess (gnunet_proc->handle, 0);
+    SafeTerminateProcess (gnunet_proc->handle, 0, 0);
     CloseHandle (gnunet_proc->handle);
     if (NULL != gnunet_proc->control_pipe)
       GNUNET_DISK_file_close (gnunet_proc->control_pipe);

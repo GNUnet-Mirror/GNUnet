@@ -227,6 +227,7 @@ extern "C"
   int GNInitWinEnv ();
   void GNShutdownWinEnv ();
 
+  BOOL SafeTerminateProcess (HANDLE hProcess, UINT uExitCode, DWORD dwTimeout);
 #ifdef __cplusplus
 }
 #endif

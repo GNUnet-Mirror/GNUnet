@@ -13,6 +13,7 @@ timeout_watchdog_SOURCES = \
 endif
 
 noinst_SCRIPTS = \
+ terminate.py \
  gnunet_pyexpect.py \
  gnunet_janitor.py
 
@@ -28,6 +29,7 @@ EXTRA_DIST = \
  hostlist.cgi \
  hostlist.php \
  report.sh \
+ terminate.py.in \
  gnunet_pyexpect.py.in \
  gnunet_janitor.py.in \
  gnunet-gns-import.sh

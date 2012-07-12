@@ -1261,6 +1261,75 @@ char *winErrorStr(const char *prefix, int dwErr)
   return ret;
 }
 
+/**
+ * Terminate a process by creating a remote thread within it,
+ * which proceeds to call ExitProcess() inside that process.
+ * Safer than TerminateProcess ().
+ *
+ * Code is from From http://private-storm.de/2009/08/11/case-terminateprocess/
+ *
+ * @param hProcess handle of a process to terminate
+ * @param uExitCode exit code to use for ExitProcess()
+ * @param dwTimeout number of ms to wait for the process to terminate
+ * @return TRUE on success, FALSE on failure (check last error for the code)
+ */
+BOOL
+SafeTerminateProcess (HANDLE hProcess, UINT uExitCode, DWORD dwTimeout)
+{
+  DWORD dwTID, dwCode, dwErr = 0;
+  HANDLE hProcessDup = INVALID_HANDLE_VALUE;
+  HANDLE hRT = NULL;
+  HINSTANCE hKernel = GetModuleHandle ("Kernel32");
+  BOOL bSuccess = FALSE;
+
+  BOOL bDup = DuplicateHandle (GetCurrentProcess (), hProcess,
+      GetCurrentProcess (), &hProcessDup, PROCESS_ALL_ACCESS,
+      FALSE, 0);
+
+  /* Detect the special case where the process is
+   * already dead...
+   */
+  if (GetExitCodeProcess (bDup ? hProcessDup : hProcess, &dwCode) &&
+      (STILL_ACTIVE ==  dwCode))
+  {
+    FARPROC pfnExitProc;
+
+    pfnExitProc = GetProcAddress (hKernel, "ExitProcess");
+
+    hRT = CreateRemoteThread ((bDup) ? hProcessDup : hProcess, NULL, 0,
+        (LPTHREAD_START_ROUTINE) pfnExitProc, (PVOID) uExitCode, 0, &dwTID);
+
+    dwErr = GetLastError ();
+  }
+  else
+  {
+    dwErr = ERROR_PROCESS_ABORTED;
+  }
+
+  if (hRT)
+  {
+    /* Must wait process to terminate to
+     * guarantee that it has exited...
+     */
+    DWORD dwWaitResult = WaitForSingleObject ((bDup) ? hProcessDup : hProcess,
+        dwTimeout);
+    if (dwWaitResult == WAIT_TIMEOUT)
+      dwErr = WAIT_TIMEOUT;
+    else
+      dwErr = GetLastError ();
+
+    CloseHandle (hRT);
+    bSuccess = dwErr == NO_ERROR;
+  }
+
+  if (bDup)
+    CloseHandle (hProcessDup);
+
+  SetLastError (dwErr);
+
+  return bSuccess;
+}
+
 } /* extern "C" */
 
 #endif
