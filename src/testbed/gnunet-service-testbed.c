@@ -1279,7 +1279,6 @@ shutdown_task (void *cls,
   uint32_t id;
 
   shutdown_task_id = GNUNET_SCHEDULER_NO_TASK;
-  GNUNET_SCHEDULER_shutdown ();
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Shutting down testbed service\n");
   (void) GNUNET_CONTAINER_multihashmap_iterate (ss_map, &ss_map_free_iterator,
                                                 NULL);

@@ -31,6 +31,38 @@
 
 
 /**
+ * Wrapper around
+ */
+struct GNUNET_TESTBED_HelperHandle
+{
+  /**
+   * The process handle
+   */
+  struct GNUNET_OS_Process *process;
+
+  /**
+   * Pipe connecting to stdin of the process.
+   */
+  struct GNUNET_DISK_PipeHandle *cpipe_in;
+
+  /**
+   * Pipe from the stdout of the process.
+   */
+  struct GNUNET_DISK_PipeHandle *cpipe_out;
+
+  /**
+   * The port number for ssh; used for helpers starting ssh
+   */
+  char *port;
+
+  /**
+   * The ssh destination string; used for helpers starting ssh
+   */
+  char *dst; 
+};
+
+
+/**
  * Lookup a host by ID.
  * 
  * @param id global host ID assigned to the host; 0 is

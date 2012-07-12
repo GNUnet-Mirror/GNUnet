@@ -33,6 +33,8 @@
 #include "gnunet_hello_lib.h"
 #include "gnunet_container_lib.h"
 
+#include "testbed_api_hosts.h"
+
 /**
  * Generic logging shorthand
  */
@@ -334,33 +336,6 @@ GNUNET_TESTBED_host_destroy (struct GNUNET_TESTBED_Host *host)
 
 
 /**
- * Wrapper around GNUNET_HELPER_Handle
- */
-struct GNUNET_TESTBED_HelperHandle
-{
-  /**
-   * The process handle
-   */
-  struct GNUNET_OS_Process *process;
-
-  /**
-   * Pipe connecting to stdin of the process.
-   */
-  struct GNUNET_DISK_PipeHandle *cpipe;
-
-  /**
-   * The port number for ssh; used for helpers starting ssh
-   */
-  char *port;
-
-  /**
-   * The ssh destination string; used for helpers starting ssh
-   */
-  char *dst; 
-};
-
-
-/**
  * Run a given helper process at the given host.  Communication
  * with the helper will be via GNUnet messages on stdin/stdout.
  * Runs the process via 'ssh' at the specified host, or locally.
@@ -381,8 +356,9 @@ GNUNET_TESTBED_host_run_ (const struct GNUNET_TESTBED_Host *host,
   while (NULL != binary_argv[argc]) 
     argc++;
   h = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_HelperHandle));
-  h->cpipe = GNUNET_DISK_pipe (GNUNET_NO, GNUNET_NO, GNUNET_YES, GNUNET_NO);
-  if (NULL == h->cpipe)
+  h->cpipe_in = GNUNET_DISK_pipe (GNUNET_NO, GNUNET_NO, GNUNET_YES, GNUNET_NO);
+  h->cpipe_out = GNUNET_DISK_pipe (GNUNET_NO, GNUNET_NO, GNUNET_NO, GNUNET_YES);
+  if ((NULL == h->cpipe_in) || (NULL == h->cpipe_out))
   {
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
 			 "pipe");
@@ -393,7 +369,7 @@ GNUNET_TESTBED_host_run_ (const struct GNUNET_TESTBED_Host *host,
   {
     h->process = GNUNET_OS_start_process_vap (GNUNET_YES,
                                               GNUNET_OS_INHERIT_STD_ALL,
-					      h->cpipe, NULL,
+					      h->cpipe_in, h->cpipe_out,
 					      "gnunet-service-testbed", 
 					      binary_argv);
   }
@@ -423,19 +399,19 @@ GNUNET_TESTBED_host_run_ (const struct GNUNET_TESTBED_Host *host,
     GNUNET_assert (argp == argc + 6 + 1);
     h->process = GNUNET_OS_start_process_vap (GNUNET_YES,
                                               GNUNET_OS_INHERIT_STD_ALL,
-					      h->cpipe, NULL,
+					      h->cpipe_in, NULL,
 					      "ssh", 
 					      remote_args);
   }
   if (NULL == h->process)
   {
-    GNUNET_break (GNUNET_OK == GNUNET_DISK_pipe_close (h->cpipe));
+    GNUNET_break (GNUNET_OK == GNUNET_DISK_pipe_close (h->cpipe_in));
     GNUNET_free_non_null (h->port);
     GNUNET_free_non_null (h->dst);
     GNUNET_free (h);
     return NULL;
   } 
-  GNUNET_break (GNUNET_OK == GNUNET_DISK_pipe_close_end (h->cpipe, GNUNET_DISK_PIPE_END_READ));
+  GNUNET_break (GNUNET_OK == GNUNET_DISK_pipe_close_end (h->cpipe_in, GNUNET_DISK_PIPE_END_READ));
   return h;
 }
 
@@ -448,7 +424,8 @@ GNUNET_TESTBED_host_run_ (const struct GNUNET_TESTBED_Host *host,
 void
 GNUNET_TESTBED_host_stop_ (struct GNUNET_TESTBED_HelperHandle *handle)
 {
-  GNUNET_break (GNUNET_OK == GNUNET_DISK_pipe_close (handle->cpipe));
+  GNUNET_break (GNUNET_OK == GNUNET_DISK_pipe_close (handle->cpipe_in));
+  GNUNET_break (GNUNET_OK == GNUNET_DISK_pipe_close (handle->cpipe_out));
   GNUNET_break (0 == GNUNET_OS_process_kill (handle->process, SIGTERM));
   GNUNET_break (GNUNET_OK == GNUNET_OS_process_wait (handle->process));
   GNUNET_OS_process_destroy (handle->process);

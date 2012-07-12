@@ -430,29 +430,38 @@ struct GNUNET_TESTBED_ControllerProc
    */
   struct GNUNET_TESTBED_HelperHandle *helper;
 
-};
-
-
-/**
- * Context to use while starting a controller
- */
-struct ControllerStartContext
-{
   /**
-   * The error callback
+   * The controller error callback
    */
   GNUNET_TESTBED_ControllerErrorCallback cec;
 
   /**
-   * Closure for the above callback
+   * The closure for the above callback
    */
   void *cec_cls;
 
   /**
-   * error message if any
+   * The task id of the task that will be called when controller dies
    */
-  char *emsg;
+  GNUNET_SCHEDULER_TaskIdentifier controller_dead_task_id;
 };
+
+
+/**
+ * The task which is run when a controller dies (its stdout is closed)
+ *
+ * @param cls the ControllerProc struct
+ * @param tc the context
+ */
+static void
+controller_dead_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_TESTBED_ControllerProc *cproc = cls;
+
+  cproc->controller_dead_task_id = GNUNET_SCHEDULER_NO_TASK;
+  if (NULL != cproc->cec)
+    cproc->cec (cproc->cec_cls, NULL); /* FIXME: How to get the error message? */
+}
 
 
 /**
@@ -480,7 +489,7 @@ GNUNET_TESTBED_controller_start (struct GNUNET_TESTING_System *system,
 				 void *cec_cls)
 {
   struct GNUNET_TESTBED_ControllerProc *cproc;
-  //struct ControllerStartContext *csc;
+  const struct GNUNET_DISK_FileHandle *read_fh;
   char *cfg_filename;
 
   if ((NULL == host) || (0 == GNUNET_TESTBED_host_get_id_ (host)))
@@ -512,9 +521,20 @@ GNUNET_TESTBED_controller_start (struct GNUNET_TESTING_System *system,
   }
   else
   {
-    GNUNET_break (0);
+    GNUNET_break (0); /* FIXME: start controller remotely */
     return NULL;
   }
+  read_fh = GNUNET_DISK_pipe_handle (cproc->helper->cpipe_out,
+				     GNUNET_DISK_PIPE_END_READ);
+  if (NULL == read_fh)
+  {
+    GNUNET_break (0); // we can't catch the process 
+  }
+  cproc->cec = cec;
+  cproc->cec_cls = cec_cls;
+  cproc->controller_dead_task_id =
+    GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL, read_fh,
+				    &controller_dead_task, cproc);
   return cproc;
 }
 
@@ -529,6 +549,11 @@ GNUNET_TESTBED_controller_start (struct GNUNET_TESTING_System *system,
 void
 GNUNET_TESTBED_controller_stop (struct GNUNET_TESTBED_ControllerProc *cproc)
 {
+  if (GNUNET_SCHEDULER_NO_TASK != cproc->controller_dead_task_id)
+  {
+    GNUNET_SCHEDULER_cancel (cproc->controller_dead_task_id);
+    cproc->controller_dead_task_id = GNUNET_SCHEDULER_NO_TASK;
+  }
   GNUNET_TESTBED_host_stop_ (cproc->helper);
   GNUNET_free (cproc);
 }
