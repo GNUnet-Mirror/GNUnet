@@ -884,6 +884,7 @@ mhd_content_cb (void *cls,
     memmove (ctask->buffer, ctask->buffer_read_ptr, bytes_to_copy);
     ctask->buffer_read_ptr = ctask->buffer;
     ctask->buffer_write_ptr = ctask->buffer + bytes_to_copy;
+    ctask->buffer[bytes_to_copy] = '\0';
   }
   
   if (bytes_to_copy+copied > max)
@@ -1068,6 +1069,7 @@ curl_download_cb (void *ptr, size_t size, size_t nmemb, void* ctx)
   memcpy (ctask->buffer_write_ptr, cbuf, total);
   ctask->bytes_in_buffer += total;
   ctask->buffer_write_ptr += total;
+  ctask->buffer_write_ptr[0] = '\0';
 
   //run_mhd_now (ctask->mhd);
   return total;
