@@ -29,11 +29,12 @@
 
 #define VERBOSE GNUNET_YES
 #define REMOVE_DIR GNUNET_YES
+#define MESH_REGEX_PEERS 2
 
 /**
  * How long until we give up on connecting the peers?
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1500)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
 /**
  * Time to wait for stuff that should be rather fast
@@ -42,9 +43,14 @@
 
 
 /**
- * How many events have happened
+ * Which strings have been found & connected.
  */
-static int ok;
+static int ok[MESH_REGEX_PEERS];
+
+/**
+ * How many connects have happened.
+ */
+static int connected_peers;
 
 /**
  * Be verbose
@@ -91,18 +97,47 @@ static GNUNET_SCHEDULER_TaskIdentifier disconnect_task;
  */
 static GNUNET_SCHEDULER_TaskIdentifier shutdown_handle;
 
-
-static struct GNUNET_TESTING_Daemon *d1;
-
-static struct GNUNET_TESTING_Daemon *d2;
-
+/**
+ * Mesh handle for connecting peer.
+ */
 static struct GNUNET_MESH_Handle *h1;
 
-static struct GNUNET_MESH_Handle *h2;
+/**
+ * Mesh handle for announcing peers.
+ */
+static struct GNUNET_MESH_Handle *h2[MESH_REGEX_PEERS];
 
-static struct GNUNET_MESH_Tunnel *t;
+/**
+ * Tunnel handles for announcing peer.
+ */
+static struct GNUNET_MESH_Tunnel *t[MESH_REGEX_PEERS];
 
-static struct GNUNET_MESH_Tunnel *incoming_t;
+/**
+ * Incoming tunnels for announcing peers.
+ */
+static struct GNUNET_MESH_Tunnel *incoming_t[MESH_REGEX_PEERS];
+
+/**
+ * Regular expressions for the announces.
+ */
+static char *regexes[MESH_REGEX_PEERS] = {"(0|1)"
+                                          "(0|1)"
+                                          "23456789A*BC",
+
+                                          "0123456789ABC"/*,
+
+                                          "0*123456789ABC*"*/};
+//                                          "(0|1|2|3|4|5|6|7|8|9)"
+
+
+/**
+ * Service strings to look for.
+ */
+static char *strings[MESH_REGEX_PEERS] = {"0123456789ABC",
+
+                                          "0123456789ABC"/*,
+
+                                          "000123456789ABCCCC"*/};
 
 /**
  * Check whether peers successfully shut down.
@@ -113,11 +148,14 @@ static struct GNUNET_MESH_Tunnel *incoming_t;
 static void
 shutdown_callback (void *cls, const char *emsg)
 {
+  unsigned int i;
+
   if (emsg != NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "test: Shutdown of peers failed! (%s)\n", emsg);
-    ok = GNUNET_NO;
+    for (i = 0; i < MESH_REGEX_PEERS; i++)
+      ok[i] = GNUNET_NO;
   }
 #if VERBOSE
   else
@@ -156,11 +194,16 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 disconnect_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: disconnecting peers\n");
+  unsigned int i;
 
-  GNUNET_MESH_tunnel_destroy (t);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: disconnecting peers\n");
+
+  for (i = 0; i < MESH_REGEX_PEERS; i++)
+  {
+    GNUNET_MESH_tunnel_destroy (t[i]);
+    GNUNET_MESH_disconnect (h2[i]);
+  }
   GNUNET_MESH_disconnect (h1);
-  GNUNET_MESH_disconnect (h2);
   if (GNUNET_SCHEDULER_NO_TASK != shutdown_handle)
   {
     GNUNET_SCHEDULER_cancel (shutdown_handle);
@@ -222,11 +265,9 @@ ch (void *cls, const struct GNUNET_PeerIdentity *peer,
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Peer connected: %s\n",
               GNUNET_i2s (peer));
+  connected_peers++;
+  GNUNET_assert (i = 1L);
 
-  if (i != 1L || peer == NULL)
-    ok = GNUNET_NO;
-  else
-    ok = GNUNET_OK;
   if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
   {
     GNUNET_SCHEDULER_cancel (disconnect_task);
@@ -251,13 +292,16 @@ incoming_tunnel (void *cls, struct GNUNET_MESH_Tunnel *tunnel,
                  const struct GNUNET_PeerIdentity *initiator,
                  const struct GNUNET_ATS_Information *atsi)
 {
+  long i = (long) cls;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Incoming tunnel from %s to peer %d\n",
               GNUNET_i2s (initiator), (long) cls);
-//   ok++;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, " ok: %d\n", ok);
-  if ((long) cls == 2L)
-    incoming_t = tunnel;
+  if (i > 1L && i <= 1L + MESH_REGEX_PEERS)
+  {
+    incoming_t[i - 1] = tunnel;
+    ok[i - 1] = GNUNET_OK;
+  }
   else
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -290,7 +334,6 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
                const struct GNUNET_MessageHeader *message,
                const struct GNUNET_ATS_Information *atsi)
 {
-
     return GNUNET_OK;
 }
 
@@ -312,6 +355,8 @@ static void
 peergroup_ready (void *cls, const char *emsg)
 {
   GNUNET_MESH_ApplicationType app;
+  struct GNUNET_TESTING_Daemon *d;
+  unsigned int i;
 
   if (emsg != NULL)
   {
@@ -319,7 +364,6 @@ peergroup_ready (void *cls, const char *emsg)
                 "test: Peergroup callback called with error, aborting test!\n");
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "test: Error from testing: `%s'\n",
                 emsg);
-    ok = GNUNET_NO;
     GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
     return;
   }
@@ -333,7 +377,6 @@ peergroup_ready (void *cls, const char *emsg)
   peers_running = GNUNET_TESTING_daemons_running (pg);
   if (0 < failed_connections)
   {
-    ok = GNUNET_NO;
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "test: %u connections have FAILED!\n",
                 failed_connections);
     disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_peers, NULL);
@@ -341,32 +384,40 @@ peergroup_ready (void *cls, const char *emsg)
   }
   disconnect_task =
     GNUNET_SCHEDULER_add_delayed (TIMEOUT, &disconnect_peers, NULL);
-  d1 = GNUNET_TESTING_daemon_get (pg, 1);
-  d2 = GNUNET_TESTING_daemon_get (pg, 10);
+  d = GNUNET_TESTING_daemon_get (pg, 1);
+
   app = (GNUNET_MESH_ApplicationType) 0;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Connect to mesh\n");
-  h1 = GNUNET_MESH_connect (d1->cfg, 5, (void *) 1L,
+  h1 = GNUNET_MESH_connect (d->cfg, 5, (void *) 1L,
                             NULL,
                             NULL,
                             handlers,
                             &app);
-  h2 = GNUNET_MESH_connect (d2->cfg, 5, (void *) 2L,
-                            &incoming_tunnel,
-                            &tunnel_cleaner,
-                            handlers,
-                            &app);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Announce REGEX\n");
-  GNUNET_MESH_announce_regex (h2, "0123456789A*BC");
+  for (i = 0; i < MESH_REGEX_PEERS; i++)
+  {
+    ok[i] = GNUNET_NO;
+    d = GNUNET_TESTING_daemon_get (pg, 10 + i);
+    h2[i] = GNUNET_MESH_connect (d->cfg, 5, (void *) (long) (i + 1),
+                                 &incoming_tunnel,
+                                 &tunnel_cleaner,
+                                 handlers,
+                                 &app);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Announce REGEX %u: %s\n", i, regexes[i]);
+    GNUNET_MESH_announce_regex (h2[i], regexes[i]);
+  }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Create tunnel\n");
-  t = GNUNET_MESH_tunnel_create (h1, NULL, &ch, &dh, (void *) 1L);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Connect by string\n");
-  GNUNET_MESH_peer_request_connect_by_string (t, "0123456789ABC");
+  for (i = 0; i < MESH_REGEX_PEERS; i++)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Create tunnel\n");
+    t[i] = GNUNET_MESH_tunnel_create (h1, NULL, &ch, &dh, (void *) 1L);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Connect by string %s\n", strings[i]);
+    GNUNET_MESH_peer_request_connect_by_string (t[i], strings[i]);
+  }
   /* connect handler = success, timeout = error */
   
 }
@@ -422,7 +473,6 @@ run (void *cls, char *const *args, const char *cfgfile,
 {
   struct GNUNET_TESTING_Host *hosts;
 
-  ok = GNUNET_NO;
   total_connections = 0;
   failed_connections = 0;
   testing_cfg = GNUNET_CONFIGURATION_dup (cfg);
@@ -489,6 +539,8 @@ main (int argc, char *argv[])
 #endif
     NULL
   };
+  int result;
+  unsigned int i;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: Start\n");
 
@@ -500,9 +552,22 @@ main (int argc, char *argv[])
 #if REMOVE_DIR
   GNUNET_DISK_directory_remove ("/tmp/test_mesh_2dtorus");
 #endif
-  if (GNUNET_OK != ok)
+  result = GNUNET_OK;
+  for (i = 0; i < MESH_REGEX_PEERS; i++)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "test: FAILED! (ok = %d)\n", ok);
+    if (GNUNET_OK != ok[i])
+    {
+      result = GNUNET_SYSERR;
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "COULD NOT CONNECT TO %u: %s!\n",
+                  i, strings[i]);
+    }
+  }
+  if (GNUNET_OK != result || connected_peers != MESH_REGEX_PEERS)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "test: FAILED! %u connected peers\n",
+                connected_peers);
     return 1;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: success\n");

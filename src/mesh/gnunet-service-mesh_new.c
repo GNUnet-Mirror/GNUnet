@@ -4029,11 +4029,13 @@ handle_mesh_path_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (NULL == t)
   {
     /* TODO notify that we don't know the tunnel */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  don't know the tunnel %s [%X]!\n",
+                GNUNET_i2s (&msg->oid), ntohl(msg->tid));
     return GNUNET_OK;
   }
 
   peer_info = peer_info_get (&msg->peer_id);
-  
+
   if (NULL != t->regex_ctx && t->regex_ctx->info->peer == peer_info->id)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -5309,6 +5311,11 @@ handle_local_connect_by_string (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "  on tunnel %s [%u]\n",
+              GNUNET_i2s(&my_full_id),
+              t->id.tid);
 
   /* Only one connect_by_string allowed at the same time! */
   /* FIXME: allow more, return handle at api level to cancel, document */
