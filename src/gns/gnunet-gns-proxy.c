@@ -40,7 +40,11 @@
 /* MHD/cURL defines */
 #define BUF_WAIT_FOR_CURL 0
 #define BUF_WAIT_FOR_MHD 1
+#define BUF_WAIT_FOR_PP 2
 #define HTML_HDR_CONTENT "Content-Type: text/html"
+
+/* buffer padding for proper RE matching */
+#define CURL_BUF_PADDING 1000
 
 /* regexp */
 //#define RE_DOTPLUS "<a href=\"http://(([A-Za-z]+[.])+)([+])"
@@ -199,10 +203,13 @@ struct ProxyCurlTask
   char url[2048];
 
   /* The cURL write buffer / MHD read buffer */
-  char buffer[CURL_MAX_WRITE_SIZE];
+  char buffer[CURL_MAX_WRITE_SIZE + CURL_BUF_PADDING];
 
-  /* The pointer to the data in the buffer */
-  char *buffer_ptr;
+  /* Read pos of the data in the buffer */
+  char *buffer_read_ptr;
+
+  /* Write pos in the buffer */
+  char *buffer_write_ptr;
 
   /* The buffer status (BUF_WAIT_FOR_CURL or BUF_WAIT_FOR_MHD) */
   int buf_status;
@@ -214,7 +221,7 @@ struct ProxyCurlTask
   int download_in_progress;
 
   /* Indicates wheather the download was successful */
-  int download_successful;
+  int download_is_finished;
 
   /* Indicates wheather the download failed */
   int download_error;
@@ -228,11 +235,14 @@ struct ProxyCurlTask
   /* Indicates wheather postprocessing has finished */
   int pp_finished;
 
-  /* Task ID of the postprocessing task */
+  /* PP task */
   GNUNET_SCHEDULER_TaskIdentifier pp_task;
 
-  /* The postprocessing buffer TODO length? */
-  char pp_buf[256];
+  /* PP match list */
+  struct ProxyREMatch *pp_match_head;
+
+  /* PP match list */
+  struct ProxyREMatch *pp_match_tail;
 
   /* The authority of the corresponding host (site of origin) */
   char authority[256];
@@ -264,6 +274,39 @@ struct ProxyCurlTask
   /* connection */
   struct MHD_Connection *connection;
   
+};
+
+/**
+ * Struct for RE matches in postprocessing of HTML
+ */
+struct ProxyREMatch
+{
+  /* DLL */
+  struct ProxyREMatch *next;
+
+  /* DLL */
+  struct ProxyREMatch *prev;
+
+  /* hostname found */
+  char hostname[255];
+
+  /* PP result */
+  char result[255];
+
+  /* shorten task */
+  struct GNUNET_GNS_ShortenRequest *shorten_task;
+
+  /* are we done */
+  int done;
+
+  /* start of match in buffer */
+  char* start;
+
+  /* end of match in buffer */
+  char* end;
+
+  /* associated proxycurltask */
+  struct ProxyCurlTask *ctask;
 };
 
 /**
@@ -415,7 +458,7 @@ con_val_iter (void *cls,
   GNUNET_snprintf (cstr, strlen (key) + strlen (hdr_val) + 3,
                    "%s: %s", key, hdr_val);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Client Header: %s\n", cstr);
 
   ctask->headers = curl_slist_append (ctask->headers, cstr);
@@ -424,6 +467,21 @@ con_val_iter (void *cls,
   return MHD_YES;
 }
 
+
+/**
+ * Callback for MHD response
+ *
+ * @param cls closure
+ * @param pos in buffer
+ * @param buf buffer
+ * @param max space in buffer
+ * @return number of bytes written
+ */
+static ssize_t
+mhd_content_cb (void *cls,
+                uint64_t pos,
+                char* buf,
+                size_t max);
 
 /**
  * Check HTTP response header for mime
@@ -451,6 +509,20 @@ curl_check_hdr (void *buffer, size_t size, size_t nmemb, void *cls)
   char* hdr_val;
   int delta_cdomain;
   size_t offset = 0;
+  
+  if (NULL == ctask->response)
+  {
+    /* FIXME: get total size from curl (if available) */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Creating response for %s\n", ctask->url);
+    ctask->response = MHD_create_response_from_callback (MHD_SIZE_UNKNOWN,
+							 sizeof (ctask->buffer),
+							 &mhd_content_cb,
+							 ctask,
+							 NULL);
+    ctask->ready_to_queue = GNUNET_YES;
+    
+  }
   
   if (html_mime_len <= bytes)
   {
@@ -582,7 +654,7 @@ curl_check_hdr (void *buffer, size_t size, size_t nmemb, void *cls)
     hdr_val = strtok (NULL, "");
     if (hdr_val != NULL)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Trying to set %s: %s\n",
                   hdr_type,
                   hdr_val+1);
@@ -628,26 +700,17 @@ static void
 do_httpd (void *cls,
           const struct GNUNET_SCHEDULER_TaskContext *tc);
 
-/**
- * Task that simply runs MHD main loop
- *
- * @param cls NULL --- FIXME: interesting...
- * @param tc task context
- */
-static void
-run_mhd (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct MhdHttpList *hd = cls;
-
-  //for (hd=mhd_httpd_head; hd != NULL; hd = hd->next)
-    MHD_run (hd->daemon);
-}
-
-
 static void
 run_mhd_now (struct MhdHttpList *hd)
 {
-  GNUNET_SCHEDULER_cancel (hd->httpd_task);
+  if (GNUNET_SCHEDULER_NO_TASK != hd->httpd_task)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "MHD: killing old task\n");
+    GNUNET_SCHEDULER_cancel (hd->httpd_task);
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "MHD: Scheduling MHD now\n");
   hd->httpd_task = GNUNET_SCHEDULER_add_now (&do_httpd, hd);
 }
 
@@ -664,8 +727,12 @@ curl_download_prepare ();
  * @param tc task context
  */
 static void
-mhd_content_free (struct ProxyCurlTask *ctask)
+mhd_content_free (void *cls,
+                  const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  struct ProxyCurlTask *ctask = cls;
+  GNUNET_assert (NULL == ctask->pp_match_head);
+
   if (NULL != ctask->headers)
     curl_slist_free_all (ctask->headers);
 
@@ -675,42 +742,8 @@ mhd_content_free (struct ProxyCurlTask *ctask)
   if (NULL != ctask->response)
     MHD_destroy_response (ctask->response);
 
+
   GNUNET_free (ctask);
-}
-
-
-/**
- * Shorten result callback
- *
- * @param cls the proxycurltask
- * @param short_name the shortened name (NULL on error)
- */
-static void
-process_shorten (void* cls, const char* short_name)
-{
-  struct ProxyCurlTask *ctask = cls;
-
-  char tmp[strlen(ctask->pp_buf)]; //TODO length
-
-  if (NULL == short_name)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "MHD PP: Unable to shorten %s\n",
-                ctask->pp_buf);
-    return;
-  }
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "MHD PP: Shorten %s -> %s\n",
-              ctask->pp_buf,
-              short_name);
-  //this is evil.. what about https
-  sprintf (tmp, "href=\"http://%s", short_name);
-  strcpy (ctask->pp_buf, tmp);
-
-  ctask->pp_finished = GNUNET_YES;
-
-  GNUNET_SCHEDULER_add_now (&run_mhd, ctask->mhd);
 }
 
 
@@ -730,281 +763,297 @@ mhd_content_cb (void *cls,
                 size_t max)
 {
   struct ProxyCurlTask *ctask = cls;
+  struct ProxyREMatch *re_match = ctask->pp_match_head;
   ssize_t copied = 0;
-  size_t bytes_to_copy;
-  int nomatch;
-  char *hostptr;
-  regmatch_t m[RE_N_MATCHES];
+  size_t bytes_to_copy = ctask->buffer_write_ptr - ctask->buffer_read_ptr;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "MHD: content cb %s\n", ctask->url);
+              "MHD: content cb for %s\n", ctask->url);
 
-  if (ctask->download_successful &&
-      (ctask->buf_status == BUF_WAIT_FOR_CURL))
+  if ((GNUNET_YES == ctask->download_is_finished) &&
+      (GNUNET_NO == ctask->download_error) &&
+      (0 == bytes_to_copy) &&
+      (BUF_WAIT_FOR_CURL == ctask->buf_status))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "MHD: sending response for %s\n", ctask->url);
     ctask->download_in_progress = GNUNET_NO;
     run_mhd_now (ctask->mhd);
-    GNUNET_SCHEDULER_add_now (&run_mhd, ctask->mhd);
-    mhd_content_free (ctask);
+    GNUNET_SCHEDULER_add_now (&mhd_content_free, ctask);
     total_mhd_connections--;
     return MHD_CONTENT_READER_END_OF_STREAM;
   }
   
-  if (ctask->download_error &&
-      (ctask->buf_status == BUF_WAIT_FOR_CURL))
+  if ((GNUNET_YES == ctask->download_error) &&
+      (GNUNET_YES == ctask->download_is_finished) &&
+      (0 == bytes_to_copy) &&
+      (BUF_WAIT_FOR_CURL == ctask->buf_status))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "MHD: sending error response\n");
     ctask->download_in_progress = GNUNET_NO;
     run_mhd_now (ctask->mhd);
-    mhd_content_free (ctask);
+    GNUNET_SCHEDULER_add_now (&mhd_content_free, ctask);
     total_mhd_connections--;
     return MHD_CONTENT_READER_END_WITH_ERROR;
   }
 
   if ( ctask->buf_status == BUF_WAIT_FOR_CURL )
     return 0;
-
-  bytes_to_copy = ctask->bytes_in_buffer;
   
-  if (ctask->parse_content == GNUNET_YES)
+  copied = 0;
+  for (; NULL != re_match; re_match = ctask->pp_match_head)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "MHD: Processing PP %s\n",
+                re_match->hostname);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "re start %d\n",
+                re_match->start);
+    bytes_to_copy = re_match->start - ctask->buffer_read_ptr;
 
-    GNUNET_log ( GNUNET_ERROR_TYPE_DEBUG,
-                 "MHD: We need to parse the HTML %s\n", ctask->buffer_ptr);
-
-    nomatch = regexec ( &re_dotplus,
-                        ctask->buffer_ptr, RE_N_MATCHES, m, 0);
-
-    if (nomatch)
+    if (bytes_to_copy+copied > max)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "MHD RE: No match\n");
+             "MHD: buffer in response too small for %d. Using available space (%d). (%s)\n",
+             bytes_to_copy,
+             max,
+             ctask->url);
+      memcpy (buf+copied, ctask->buffer_read_ptr, max-copied);
+      ctask->buffer_read_ptr += max-copied;
+      copied = max;
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "MHD: copied %d bytes\n", copied);
+      return copied;
     }
-    else
+
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "MHD: copying %d bytes to mhd response at offset %d\n",
+                bytes_to_copy, ctask->buffer_read_ptr);
+    memcpy (buf+copied, ctask->buffer_read_ptr, bytes_to_copy);
+    copied += bytes_to_copy;
+
+    if (GNUNET_NO == re_match->done)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "MHD RE: Match\n");
-
-      GNUNET_assert (m[1].rm_so != -1);
-
-      hostptr = ctask->buffer_ptr+m[1].rm_so;
-
-      if (m[0].rm_so > 0)
-      {
-        bytes_to_copy = m[0].rm_so;
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "Copying %d bytes.\n", m[0].rm_so);
-
-
-      }
-      else
-      {
-        if (ctask->is_postprocessing == GNUNET_YES)
-        {
-          
-          /*Done?*/
-          if ( ctask->pp_finished == GNUNET_NO )
-          {
-            GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                        "MHD PP: Waiting for PP of %s\n", ctask->pp_buf);
-            return 0;
-          }
-          
-          ctask->is_postprocessing = GNUNET_NO;
-
-          ctask->bytes_in_buffer -= m[0].rm_eo;//(m[1].rm_eo-m[1].rm_so);
-          ctask->buffer_ptr += m[0].rm_eo;//(m[1].rm_eo-m[1].rm_so);
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "Skipping next %d bytes in buffer\n", m[0].rm_eo);
-
-          GNUNET_SCHEDULER_add_now (&run_mhd, ctask->mhd);
-
-          if ( strlen (ctask->pp_buf) <= max )
-          {
-            GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                        "Copying postprocessed %s.\n", ctask->pp_buf);
-            memcpy ( buf, ctask->pp_buf, strlen (ctask->pp_buf) );
-            GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                        "Done %s.\n", buf);
-            ctask->is_postprocessing = GNUNET_NO;
-            return strlen (ctask->pp_buf);
-          }
-          // OOPS!
-          return 0;
-        }
-
-        memset (ctask->pp_buf, 0, sizeof(ctask->pp_buf));
-        
-        /* If .+ extend with authority */
-        if (*(ctask->buffer_ptr+m[1].rm_eo) == '+')
-        {
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "Links is .+\n");
-           memcpy (ctask->pp_buf, hostptr, (m[1].rm_eo-m[1].rm_so));
-           strcpy ( ctask->pp_buf+strlen(ctask->pp_buf),
-                    ctask->authority);
-        }
-        /* If .zkey or .tld simply copy the name */
-        else
-        {
-          memcpy (ctask->pp_buf, hostptr, (m[3].rm_eo-m[1].rm_so));
-          if (is_tld (ctask->pp_buf, GNUNET_GNS_TLD_ZKEY) == GNUNET_NO)
-          {
-            if (0 == strcmp (ctask->pp_buf, ctask->leho))
-            {
-              GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                          "Replacing LEHO\n");
-              memcpy (ctask->pp_buf,
-                      ctask->buffer_ptr+m[0].rm_so,
-                      m[1].rm_so-m[0].rm_so);
-              strcpy (ctask->pp_buf+(m[1].rm_so-m[0].rm_so),
-                      ctask->host);
-              GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                          "New tag: %s\n", ctask->pp_buf);
-              ctask->is_postprocessing = GNUNET_YES;
-              ctask->pp_finished = GNUNET_YES;
-              GNUNET_SCHEDULER_add_now (&run_mhd, ctask->mhd);
-	      // WTF?
-              return 0;
-            }
-            goto copy_data;
-          }
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "Link %s is zkey\n", ctask->pp_buf);
-        }
-
-        ctask->is_postprocessing = GNUNET_YES;
-        ctask->pp_finished = GNUNET_NO;
-        
-        GNUNET_GNS_shorten_zone (gns_handle,
-                                 ctask->pp_buf,
-                                 &local_private_zone,
-                                 &local_shorten_zone,
-                                 &local_gns_zone,
-                                 &process_shorten,
-                                 ctask); // FIXME: use after free of 'ctask'?
-
-        return 0;
-      }
+                  "MHD: Waiting for PP of %s\n", re_match->hostname);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "MHD: copied %d bytes\n", copied);
+      ctask->buffer_read_ptr += bytes_to_copy;
+      return copied;
     }
-  }
-copy_data:
-  if ( bytes_to_copy > max )
-  {
-    GNUNET_log ( GNUNET_ERROR_TYPE_DEBUG,
-                 "MHD: buffer in response too small! (%s)\n",
-                 ctask->url);
-    memcpy ( buf, ctask->buffer_ptr, max);
-    ctask->bytes_in_buffer -= max;
-    ctask->buffer_ptr += max;
-    copied = max;
-  }
-  else
-  {
-    GNUNET_log ( GNUNET_ERROR_TYPE_DEBUG,
-                 "MHD: copying %d bytes to mhd response at offset %d\n",
-                 bytes_to_copy, pos);
-
-    memcpy ( buf, ctask->buffer_ptr, bytes_to_copy );
-    copied = bytes_to_copy;
-    if (bytes_to_copy < ctask->bytes_in_buffer)
+    
+    if (strlen (re_match->result) > (max - copied))
     {
-      ctask->bytes_in_buffer -= bytes_to_copy;
-      ctask->buffer_ptr += bytes_to_copy;
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "MHD: buffer in response too small for %s! (%s)\n",
+                  re_match->result,
+                  ctask->url);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "MHD: copied %d bytes\n", copied);
+      ctask->buffer_read_ptr += bytes_to_copy;
+      return copied;
     }
-    else
-    {
-      ctask->bytes_in_buffer = 0;
-      ctask->buf_status = BUF_WAIT_FOR_CURL;
-      ctask->buffer_ptr = ctask->buffer;
-      if (NULL != ctask->curl)
-        curl_easy_pause (ctask->curl, CURLPAUSE_CONT);
-      GNUNET_SCHEDULER_add_now (&run_mhd, ctask->mhd);
-    }
+    
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "MHD: Adding PP result %s to buffer\n",
+                re_match->result);
+    memcpy (buf+copied, re_match->result, strlen (re_match->result));
+    copied += strlen (re_match->result);
+    ctask->buffer_read_ptr = re_match->end;
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Setting buffer ptr to re end %d\n",
+                re_match->end);
+    GNUNET_CONTAINER_DLL_remove (ctask->pp_match_head,
+                                 ctask->pp_match_tail,
+                                 re_match);
+    GNUNET_free (re_match);
   }
 
-  GNUNET_SCHEDULER_add_now (&run_mhd, ctask->mhd);
+  bytes_to_copy = ctask->buffer_write_ptr - ctask->buffer_read_ptr;
+  
+  if (GNUNET_NO == ctask->download_is_finished)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "MHD: Purging buffer\n");
+    memmove (ctask->buffer, ctask->buffer_read_ptr, bytes_to_copy);
+    ctask->buffer_read_ptr = ctask->buffer;
+    ctask->buffer_write_ptr = ctask->buffer + bytes_to_copy;
+  }
+  
+  if (bytes_to_copy+copied > max)
+    bytes_to_copy = max-copied;
 
+  if (0 > bytes_to_copy)
+    bytes_to_copy = 0;
+  
+  memcpy (buf+copied, ctask->buffer_read_ptr, bytes_to_copy);
+  ctask->buffer_read_ptr += bytes_to_copy;
+  copied += bytes_to_copy;
+  ctask->buf_status = BUF_WAIT_FOR_CURL;
+  
+  if ((NULL != ctask->curl) &&
+      (GNUNET_NO == ctask->download_is_finished))
+    curl_easy_pause (ctask->curl, CURLPAUSE_CONT);
+  
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "MHD: copied %d bytes\n", copied);
+  run_mhd_now (ctask->mhd);
   return copied;
 }
 
 /**
- * Process cURL download bits
+ * Shorten result callback
  *
- * @param ptr buffer with data
- * @param size size of a record
- * @param nmemb number of records downloaded
- * @param ctx context
- * @return number of processed bytes
+ * @param cls the proxycurltask
+ * @param short_name the shortened name (NULL on error)
  */
-static size_t
-callback_download (void *ptr, size_t size, size_t nmemb, void *ctx)
+static void
+process_shorten (void* cls, const char* short_name)
 {
-  const char *cbuf = ptr;
-  size_t total;
-  struct ProxyCurlTask *ctask = ctx;
+  struct ProxyREMatch *re_match = cls;
   
-  if (NULL == ctask->response)
+  if (NULL == short_name)
   {
-    /* FIXME: get total size from curl (if available) */
-    ctask->response = MHD_create_response_from_callback (MHD_SIZE_UNKNOWN,
-							 20 /* 20 bytes IO buffers!? */,
-							 &mhd_content_cb,
-							 ctask,
-							 NULL);
-    
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "PP: Unable to shorten %s\n",
+                re_match->hostname);
+    GNUNET_CONTAINER_DLL_remove (re_match->ctask->pp_match_head,
+                                 re_match->ctask->pp_match_tail,
+                                 re_match);
+    GNUNET_free (re_match);
+    return;
   }
 
-  //MHD_run (httpd);
-  ctask->ready_to_queue = GNUNET_YES;
-  /*if (ctask->con_status == MHD_NO)
-  {
-    MHD_queue_response (ctask->connection,
-                        MHD_HTTP_OK,
-                       ctask->response);
-    ctask->con_status = MHD_YES;
-  }*/
-  total = size*nmemb;
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "PP: Shorten %s -> %s\n",
+              re_match->hostname,
+              short_name);
+  //this is evil.. what about https
+  if (re_match->ctask->mhd->is_ssl)
+    sprintf (re_match->result, "href=\"https://%s", short_name);
+  else
+    sprintf (re_match->result, "href=\"http://%s", short_name);
 
-  if (total == 0)
-  {
-    return total;
-  }
-
-  if (total > sizeof (ctask->buffer))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "CURL gave us too much data to handle (%d)!\n",
-                total);
-    return 0;
-  }
-  
-  if (ctask->buf_status == BUF_WAIT_FOR_MHD)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "CURL: Waiting for MHD (%s)\n", ctask->url);
-    return CURL_WRITEFUNC_PAUSE;
-  }
-
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "CURL: Copying to MHD (%s, %d)\n", ctask->url, total);
-  memcpy (ctask->buffer, cbuf, total);
-  ctask->bytes_in_buffer = total;
-  ctask->buffer_ptr = ctask->buffer;
-
-  ctask->buf_status = BUF_WAIT_FOR_MHD;
-
-  //GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-  //            "cURL chunk:\n%s\n", (char*)ctask->buffer);
-  run_mhd_now (ctask->mhd);
-  return total;
+  re_match->done = GNUNET_YES;
+  run_mhd_now (re_match->ctask->mhd);
 }
 
 
+/**
+ * Tabula Rasa postprocess buffer
+ *
+ */
+static void
+postprocess_buffer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct ProxyCurlTask *ctask = cls;
+  struct ProxyREMatch *re_match;
+  char* re_ptr = ctask->buffer_read_ptr;
+  char re_hostname[255];
+  regmatch_t m[RE_N_MATCHES];
+
+  ctask->pp_task = GNUNET_SCHEDULER_NO_TASK;
+
+  if (GNUNET_YES != ctask->parse_content)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "PP: Not parsing content\n");
+    ctask->buf_status = BUF_WAIT_FOR_MHD;
+    run_mhd_now (ctask->mhd);
+    return;
+  }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "PP: We need to parse the HTML\n");
+
+  /* 0 means match found */
+  while (0 == regexec (&re_dotplus, re_ptr, RE_N_MATCHES, m, 0))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "PP: regex match\n");
+
+    GNUNET_assert (m[1].rm_so != -1);
+
+    memset (re_hostname, 0, sizeof (re_hostname));
+    memcpy (re_hostname, re_ptr+m[1].rm_so, (m[3].rm_eo-m[1].rm_so));
+
+    re_match = GNUNET_malloc (sizeof (struct ProxyREMatch));
+    re_match->start = re_ptr + m[0].rm_so;
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "XXXXX: %d\n", re_match->start);
+    re_match->end = re_ptr + m[3].rm_eo;
+    re_match->done = GNUNET_NO;
+    re_match->ctask = ctask;
+    strcpy (re_match->hostname, re_hostname);
+    re_ptr += m[3].rm_eo;
+
+    if (GNUNET_YES == is_tld (re_match->hostname, GNUNET_GNS_TLD_PLUS))
+    {
+      re_match->hostname[strlen(re_match->hostname)-1] = '\0';
+      strcpy (re_match->hostname+strlen(re_match->hostname),
+              ctask->authority);
+    }
+
+    re_match->shorten_task = GNUNET_GNS_shorten_zone (gns_handle,
+                             re_match->hostname,
+                             &local_private_zone,
+                             &local_shorten_zone,
+                             &local_gns_zone,
+                             &process_shorten,
+                             re_match); //FIXME cancel appropriately
+
+    GNUNET_CONTAINER_DLL_insert_tail (ctask->pp_match_head,
+                                      ctask->pp_match_tail,
+                                      re_match);
+  }
+  
+  ctask->buf_status = BUF_WAIT_FOR_MHD;
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "PP: No more matches\n");
+  run_mhd_now (ctask->mhd);
+}
+
+/**
+ * Tabula Rasa cURL download
+ *
+ */
+static size_t
+curl_download_cb (void *ptr, size_t size, size_t nmemb, void* ctx)
+{
+  const char *cbuf = ptr;
+  size_t total = size * nmemb;
+  struct ProxyCurlTask *ctask = ctx;
+  size_t buf_space = sizeof (ctask->buffer) -
+    (ctask->buffer_write_ptr-ctask->buffer);
+
+  if (total > (buf_space - CURL_BUF_PADDING))
+  {
+    if (ctask->buf_status == BUF_WAIT_FOR_CURL)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "CURL: Buffer full starting postprocessing\n");
+      ctask->buf_status = BUF_WAIT_FOR_PP;
+      ctask->pp_task = GNUNET_SCHEDULER_add_now (&postprocess_buffer,
+                                                 ctask);
+      return CURL_WRITEFUNC_PAUSE;
+    }
+
+    /* we should not get called in that case */
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "CURL: called out of context and no space in buffer!\n");
+    return CURL_WRITEFUNC_PAUSE;
+  }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "CURL: Copying %d bytes to buffer (%s)\n", total, ctask->url);
+  memcpy (ctask->buffer_write_ptr, cbuf, total);
+  ctask->bytes_in_buffer += total;
+  ctask->buffer_write_ptr += total;
+
+  //run_mhd_now (ctask->mhd);
+  return total;
+}
 
 /**
  * Task that is run when we are ready to receive more data
@@ -1159,17 +1208,18 @@ curl_task_download (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                continue;
              
              GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                         "Download curl failed for task %s: %s.\n",
+                         "CURL: Download failed for task %s: %s.\n",
                          ctask->url,
                          curl_easy_strerror (msg->data.result));
-             ctask->download_successful = GNUNET_NO;
+             ctask->download_is_finished = GNUNET_YES;
              ctask->download_error = GNUNET_YES;
              if (CURLE_OK == curl_easy_getinfo (ctask->curl,
                                                 CURLINFO_RESPONSE_CODE,
                                                 &resp_code))
                ctask->curl_response_code = resp_code;
              ctask->ready_to_queue = MHD_YES;
-             GNUNET_SCHEDULER_add_now (&run_mhd, ctask->mhd);
+             ctask->buf_status = BUF_WAIT_FOR_MHD;
+             run_mhd_now (ctask->mhd);
              
              GNUNET_CONTAINER_DLL_remove (ctasks_head, ctasks_tail,
                                           ctask);
@@ -1181,7 +1231,7 @@ curl_task_download (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
          else
          {
            GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                       "cURL download completed.\n");
+                       "CURL: download completed.\n");
 
            for (; ctask != NULL; ctask = ctask->next)
            {
@@ -1191,16 +1241,29 @@ curl_task_download (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
              if (memcmp (msg->easy_handle, ctask->curl, sizeof (CURL)) != 0)
                continue;
              
+             if (ctask->buf_status != BUF_WAIT_FOR_CURL)
+               continue;
+             
              GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                         "cURL task %s found.\n", ctask->url);
+                         "CURL: task %s found.\n", ctask->url);
              if (CURLE_OK == curl_easy_getinfo (ctask->curl,
                                                 CURLINFO_RESPONSE_CODE,
                                                 &resp_code))
                ctask->curl_response_code = resp_code;
-             ctask->ready_to_queue = MHD_YES;
-             ctask->download_successful = GNUNET_YES;
 
-             GNUNET_SCHEDULER_add_now (&run_mhd, ctask->mhd);
+
+             GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                         "CURL: Completed ctask!\n");
+             ctask->buf_status = BUF_WAIT_FOR_PP;
+             ctask->pp_task = GNUNET_SCHEDULER_add_now (&postprocess_buffer,
+                                                        ctask);
+
+             //ctask->ready_to_queue = MHD_YES;
+             ctask->download_is_finished = GNUNET_YES;
+
+             //GNUNET_SCHEDULER_add_now (&run_mhd, ctask->mhd);
+             
+             /* We MUST not modify the multi handle else we loose messages */
              GNUNET_CONTAINER_DLL_remove (ctasks_head, ctasks_tail,
                                           ctask);
              GNUNET_CONTAINER_DLL_insert (clean_head, clean_tail, ctask);
@@ -1210,7 +1273,7 @@ curl_task_download (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
            GNUNET_assert (ctask != NULL);
          }
          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                     "curl end %s\n", curl_easy_strerror(msg->data.result));
+                     "CURL: %s\n", curl_easy_strerror(msg->data.result));
          break;
        default:
          GNUNET_assert (0);
@@ -1221,7 +1284,7 @@ curl_task_download (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     for (ctask=clean_head; ctask != NULL; ctask = ctask->next)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Removing cURL task %s.\n", ctask->url);
+                  "CURL: Removing task %s.\n", ctask->url);
       curl_multi_remove_handle (curl_multi, ctask->curl);
       curl_easy_cleanup (ctask->curl);
       ctask->curl = NULL;
@@ -1236,19 +1299,17 @@ curl_task_download (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     if (num_ctasks != running)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "%d ctasks, %d curl running\n", num_ctasks, running);
+                  "CURL: %d tasks, %d running\n", num_ctasks, running);
     }
 
     GNUNET_assert ( num_ctasks == running );
 
-    run_httpds ();
-
+    //run_httpds ();
   } while (mret == CURLM_CALL_MULTI_PERFORM);
-  
   
   if (mret != CURLM_OK)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s failed at %s:%d: `%s'\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "CURL: %s failed at %s:%d: `%s'\n",
                 "curl_multi_perform", __FILE__, __LINE__,
                 curl_multi_strerror (mret));
   }
@@ -1331,7 +1392,7 @@ process_leho_lookup (void *cls,
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   "gethostbyname failed for %s!\n", ctask->host);
-      ctask->download_successful = GNUNET_NO;
+      ctask->download_is_finished = GNUNET_YES;
       ctask->download_error = GNUNET_YES;
       return;
     }
@@ -1343,7 +1404,7 @@ process_leho_lookup (void *cls,
                 "%s failed at %s:%d: `%s'\n",
                 "curl_multi_add_handle", __FILE__, __LINE__,
                 curl_multi_strerror (mret));
-    ctask->download_successful = GNUNET_NO;
+    ctask->download_is_finished = GNUNET_YES;
     ctask->download_error = GNUNET_YES;
     return;
   }
@@ -1436,16 +1497,12 @@ create_response (void *cls,
   if (0 != strcasecmp (meth, MHD_HTTP_METHOD_GET))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "%s NOT IMPLEMENTED!\n", meth);
+                "MHD: %s NOT IMPLEMENTED!\n", meth);
     return MHD_NO;
   }
 
   if (0 != *upload_data_size)
     return MHD_NO;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "url %s\n", url);
-
 
   if (NULL == *con_cls)
   {
@@ -1476,6 +1533,8 @@ create_response (void *cls,
     ctask->buf_status = BUF_WAIT_FOR_CURL;
     ctask->connection = con;
     ctask->curl_response_code = MHD_HTTP_OK;
+    ctask->buffer_read_ptr = ctask->buffer;
+    ctask->buffer_write_ptr = ctask->buffer;
 
     MHD_get_connection_values (con,
                                MHD_HEADER_KIND,
@@ -1483,7 +1542,7 @@ create_response (void *cls,
 
     curl_easy_setopt (ctask->curl, CURLOPT_HEADERFUNCTION, &curl_check_hdr);
     curl_easy_setopt (ctask->curl, CURLOPT_HEADERDATA, ctask);
-    curl_easy_setopt (ctask->curl, CURLOPT_WRITEFUNCTION, &callback_download);
+    curl_easy_setopt (ctask->curl, CURLOPT_WRITEFUNCTION, &curl_download_cb);
     curl_easy_setopt (ctask->curl, CURLOPT_WRITEDATA, ctask);
     curl_easy_setopt (ctask->curl, CURLOPT_FOLLOWLOCATION, 0);
     //curl_easy_setopt (ctask->curl, CURLOPT_MAXREDIRS, 4);
@@ -1495,10 +1554,10 @@ create_response (void *cls,
                                  MHD_GET_ARGUMENT_KIND,
                                  &get_uri_val_iter, curlurl);
       curl_easy_setopt (ctask->curl, CURLOPT_URL, curlurl);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Adding new curl task for %s\n", curlurl);
     }
     strcpy (ctask->url, url);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "MHD: Adding new curl task for %s%s\n", ctask->host, url);
     MHD_get_connection_values (con,
                                MHD_GET_ARGUMENT_KIND,
                                &get_uri_val_iter, ctask->url);
@@ -1522,6 +1581,8 @@ create_response (void *cls,
   if (GNUNET_YES != ctask->ready_to_queue)
     return MHD_YES; /* wait longer */
   ctask->fin = GNUNET_YES;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "MHD: Queueing response\n");
   ret = MHD_queue_response (con, ctask->curl_response_code, ctask->response);
   run_mhd_now (ctask->mhd);
   return ret;
@@ -1607,6 +1668,8 @@ do_httpd (void *cls,
 {
   struct MhdHttpList *hd = cls;
   
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "MHD: Main loop\n");
   hd->httpd_task = GNUNET_SCHEDULER_NO_TASK; 
   MHD_run (hd->daemon);
   run_httpd (hd);
@@ -2062,7 +2125,7 @@ add_handle_to_ssl_mhd (struct GNUNET_NETWORK_Handle *h, const char* domain)
                 "No previous SSL instance found... starting new one for %s\n",
                 domain);
 
-    hd->daemon = MHD_start_daemon (MHD_USE_DEBUG | MHD_USE_SSL, 0,
+    hd->daemon = MHD_start_daemon (MHD_USE_DEBUG | MHD_USE_SSL, 4444,
             &accept_cb, NULL,
             &create_response, hd,
             MHD_OPTION_LISTEN_SOCKET, GNUNET_NETWORK_get_fd (mhd_unix_socket),

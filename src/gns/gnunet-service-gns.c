@@ -835,7 +835,7 @@ static void handle_shorten (void *cls,
     return;
   }
 
-  csh = GNUNET_malloc(sizeof(struct ClientShortenHandle));
+  csh = GNUNET_malloc(sizeof (struct ClientShortenHandle));
   csh->client = client;
   csh->unique_id = sh_msg->id;
 
@@ -843,9 +843,12 @@ static void handle_shorten (void *cls,
   
   GNUNET_STRINGS_utf8_tolower((char*)&sh_msg[1], &nameptr);
 
+  GNUNET_SERVER_notification_context_add (nc, client);
+  
   if (strlen (name) < strlen(GNUNET_GNS_TLD)) {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                "SHORTEN: %s is too short", name);
+    GNUNET_CONTAINER_DLL_remove (csh_head, csh_tail, csh);
     send_shorten_response(csh, name);
     return;
   }
@@ -853,6 +856,7 @@ static void handle_shorten (void *cls,
   if (strlen (name) > MAX_DNS_NAME_LENGTH) {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                "SHORTEN: %s is too long", name);
+    GNUNET_CONTAINER_DLL_remove (csh_head, csh_tail, csh);
     send_shorten_response(csh, name);
     return;
   }
@@ -861,6 +865,7 @@ static void handle_shorten (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "%s is not our domain. Returning\n", name);
+    GNUNET_CONTAINER_DLL_remove (csh_head, csh_tail, csh);
     send_shorten_response(csh, name);
     return;
   }
@@ -870,7 +875,6 @@ static void handle_shorten (void *cls,
 
   strcpy (csh->name, name);
   
-  GNUNET_SERVER_notification_context_add (nc, client);
   
   if (1 == ntohl(sh_msg->use_default_zone))
     csh->root_zone = zone_hash; //Default zone
