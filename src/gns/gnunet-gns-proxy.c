@@ -599,7 +599,7 @@ curl_check_hdr (void *buffer, size_t size, size_t nmemb, void *cls)
             continue;
           }
         }
-        GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                     "Cookie domain invalid\n");
 
         
@@ -767,7 +767,7 @@ mhd_content_cb (void *cls,
   ssize_t copied = 0;
   long long int bytes_to_copy = ctask->buffer_write_ptr - ctask->buffer_read_ptr;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "MHD: content cb for %s. To copy: %lld\n",
               ctask->url, bytes_to_copy);
   GNUNET_assert (bytes_to_copy >= 0);
@@ -777,7 +777,7 @@ mhd_content_cb (void *cls,
       (0 == bytes_to_copy) &&
       (BUF_WAIT_FOR_CURL == ctask->buf_status))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "MHD: sending response for %s\n", ctask->url);
     ctask->download_in_progress = GNUNET_NO;
     run_mhd_now (ctask->mhd);
@@ -791,7 +791,7 @@ mhd_content_cb (void *cls,
       (0 == bytes_to_copy) &&
       (BUF_WAIT_FOR_CURL == ctask->buf_status))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "MHD: sending error response\n");
     ctask->download_in_progress = GNUNET_NO;
     run_mhd_now (ctask->mhd);
@@ -806,7 +806,7 @@ mhd_content_cb (void *cls,
   copied = 0;
   for (; NULL != re_match; re_match = ctask->pp_match_head)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "MHD: Processing PP %s\n",
                 re_match->hostname);
     bytes_to_copy = re_match->start - ctask->buffer_read_ptr;
@@ -814,7 +814,7 @@ mhd_content_cb (void *cls,
 
     if (bytes_to_copy+copied > max)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
              "MHD: buffer in response too small for %d. Using available space (%d). (%s)\n",
              bytes_to_copy,
              max,
@@ -822,12 +822,12 @@ mhd_content_cb (void *cls,
       memcpy (buf+copied, ctask->buffer_read_ptr, max-copied);
       ctask->buffer_read_ptr += max-copied;
       copied = max;
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "MHD: copied %d bytes\n", copied);
       return copied;
     }
 
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "MHD: copying %d bytes to mhd response at offset %d\n",
                 bytes_to_copy, ctask->buffer_read_ptr);
     memcpy (buf+copied, ctask->buffer_read_ptr, bytes_to_copy);
@@ -835,9 +835,9 @@ mhd_content_cb (void *cls,
 
     if (GNUNET_NO == re_match->done)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "MHD: Waiting for PP of %s\n", re_match->hostname);
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "MHD: copied %d bytes\n", copied);
       ctask->buffer_read_ptr += bytes_to_copy;
       return copied;
@@ -898,9 +898,10 @@ mhd_content_cb (void *cls,
   copied += bytes_to_copy;
   ctask->buf_status = BUF_WAIT_FOR_CURL;
   
-  if ((NULL != ctask->curl) &&
-      (GNUNET_NO == ctask->download_is_finished) &&
-      ((ctask->buffer_write_ptr - ctask->buffer_read_ptr) <= 0))
+  //if ((NULL != ctask->curl) &&
+  //    (GNUNET_NO == ctask->download_is_finished) &&
+  //    ((ctask->buffer_write_ptr - ctask->buffer_read_ptr) <= 0))
+  if (NULL != ctask->curl)
     curl_easy_pause (ctask->curl, CURLPAUSE_CONT);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1327,7 +1328,7 @@ curl_task_download (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
     GNUNET_assert ( num_ctasks == running );
 
-    //run_httpds ();
+    run_httpds ();
   } while (mret == CURLM_CALL_MULTI_PERFORM);
   
   if (mret != CURLM_OK)
@@ -1569,6 +1570,7 @@ create_response (void *cls,
     curl_easy_setopt (ctask->curl, CURLOPT_WRITEFUNCTION, &curl_download_cb);
     curl_easy_setopt (ctask->curl, CURLOPT_WRITEDATA, ctask);
     curl_easy_setopt (ctask->curl, CURLOPT_FOLLOWLOCATION, 0);
+    curl_easy_setopt (ctask->curl, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
     //curl_easy_setopt (ctask->curl, CURLOPT_MAXREDIRS, 4);
     /* no need to abort if the above failed */
     if (GNUNET_NO == ctask->mhd->is_ssl)
