@@ -83,7 +83,7 @@ static const char *sbin_iptables;
 struct in6_ifreq
 {
   struct in6_addr ifr6_addr;
-  __u32 ifr6_prefixlen;
+  uint32_t ifr6_prefixlen; /* __u32 in the original */
   int ifr6_ifindex;
 };
 #endif
