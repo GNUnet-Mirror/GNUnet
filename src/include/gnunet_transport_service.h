@@ -315,7 +315,7 @@ GNUNET_TRANSPORT_address_to_string_cancel (struct
 
 /**
  * Return all the known addresses for a specific peer or all peers.
- * Returns continously all address if one_shot is set to GNUNET_NO
+ * Returns continuously all address if one_shot is set to GNUNET_NO
  *
  * CHANGE: Returns the address(es) that we are currently using for this
  * peer.  Upon completion, the 'AddressLookUpCallback' is called one more

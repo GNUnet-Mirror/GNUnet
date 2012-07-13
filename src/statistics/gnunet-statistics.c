@@ -230,7 +230,7 @@ main (int argc, char *const *argv)
      gettext_noop ("just print the statistics value"), 0,
      &GNUNET_GETOPT_set_one, &quiet},
     {'w', "watch", NULL,
-     gettext_noop ("watch value continously"), 0,
+     gettext_noop ("watch value continuously"), 0,
      &GNUNET_GETOPT_set_one, &watch},
     GNUNET_GETOPT_OPTION_END
   };

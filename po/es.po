@@ -4168,7 +4168,7 @@ msgid "just print the statistics value"
 msgstr ""
 
 #: src/statistics/gnunet-statistics.c:239
-msgid "watch value continously"
+msgid "watch value continuously"
 msgstr ""
 
 #: src/statistics/gnunet-statistics.c:246

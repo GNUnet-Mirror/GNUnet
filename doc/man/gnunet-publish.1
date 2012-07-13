@@ -125,7 +125,7 @@ Index a file COPYING with the keywords \fBgpl\fR and \fBtest\fR:
 
 Index a file COPYING with description "GNU License", mime-type "text/plain" and keywords \fBgpl\fR and \fBtest\fR:
 
- # gnunet\-publish \-m "description:GNU License" \-k gpl \-k test -m "mimetype:text/plain" COPYING
+ # gnunet\-publish \-m "description:GNU License" \-k gpl \-k test \-m "mimetype:text/plain" COPYING
 
 \fBUsing directories\fR
 
@@ -155,7 +155,7 @@ Recursively publish (\-n) /var/lib/mysql and build a matching directory structur
 
 Create a namespace entry 'root' in namespace MPAA-1 and announce that the next update will be called 'next':
 
- # gnunet\-publish \-P MPAA-1 -t root \-N next noise.mp3
+ # gnunet\-publish \-P MPAA-1 \-t root \-N next noise.mp3
 
 Update the previous entry, do not allow any future updates:
 

@@ -17,7 +17,7 @@ gnunet\-arm \- control GNUnet services
 Use the configuration file FILENAME.
 .B
 .IP "\-e, \-\-end"
-Shutdown all GNUnet services (including ARM itself).  Running "gnunet-arm -e" is the usual way to shutdown a GNUnet peer.
+Shutdown all GNUnet services (including ARM itself).  Running "gnunet-arm \-e" is the usual way to shutdown a GNUnet peer.
 .B
 .IP "\-h, \-\-help"
 Print short help on options.
@@ -32,7 +32,7 @@ Starts the specified SERVICE if it is not already running.  More specifically, t
 Stop the specified SERVICE if it is running.  While this will kill the service right now, the service may be restarted immediately if other services depend on it (service is then started 'on-demand').  If the service used to be a 'default' service, its default-service status will be revoked.  If the service was not a default service, it will just be (temporarily) stopped, but could be re-started on-demand at any time.
 .B
 .IP "\-s, \-\-start"
-Start all GNUnet default services on this system (and also ARM).  Naturally, if a service is demanded by a default service, it will then also be started.  Running "gnunet-arm -s" is the usual way to start a GNUnet peer.
+Start all GNUnet default services on this system (and also ARM).  Naturally, if a service is demanded by a default service, it will then also be started.  Running "gnunet-arm \-s" is the usual way to start a GNUnet peer.
 .B
 .IP "\-I, \-\-info"
 List all running services.
