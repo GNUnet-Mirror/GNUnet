@@ -464,12 +464,27 @@ GNUNET_OS_process_kill (struct GNUNET_OS_Process *proc, int sig)
         if (0 == SafeTerminateProcess (proc->handle, 0, 0))
         {
           DWORD error_code = GetLastError ();
-          if (error_code != WAIT_TIMEOUT) /* OK, since timeout is 0 */
+          if ((error_code != WAIT_TIMEOUT) && (error_code != ERROR_PROCESS_ABORTED))
           {
-            LOG (GNUNET_ERROR_TYPE_WARNING,
+            LOG ((error_code == ERROR_ACCESS_DENIED) ?
+                GNUNET_ERROR_TYPE_INFO : GNUNET_ERROR_TYPE_WARNING,
                 "SafeTermiateProcess failed with code %lu\n", error_code);
-            SetErrnoFromWinError (error_code);
-            return -1;
+            /* The problem here is that a process that is already dying
+             * might cause SafeTerminateProcess to fail with
+             * ERROR_ACCESS_DENIED, but the process WILL die eventually.
+             * If we really had a permissions problem, hanging up (which
+             * is what will happen in process_wait() in that case) is
+             * a valid option.
+             */
+            if (error_code == ERROR_ACCESS_DENIED)
+            {
+              errno = 0;
+            }
+            else
+            {
+              SetErrnoFromWinError (error_code);
+              return -1;
+            }
           }
         }
     }
