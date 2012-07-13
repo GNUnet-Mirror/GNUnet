@@ -1708,9 +1708,12 @@ GNUNET_DISK_file_open (const char *fn, enum GNUNET_DISK_OpenFlags flags,
     h = INVALID_HANDLE_VALUE;
   if (h == INVALID_HANDLE_VALUE)
   {
+    int err;
     SetErrnoFromWinError (GetLastError ());
-    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "open", expfn);
+    err = errno;
+    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_INFO, "open", expfn);
     GNUNET_free (expfn);
+    errno = err;
     return NULL;
   }
 
