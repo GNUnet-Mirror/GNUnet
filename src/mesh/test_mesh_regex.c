@@ -50,7 +50,7 @@ static int ok[MESH_REGEX_PEERS];
 /**
  * How many connects have happened.
  */
-static int connected_peers;
+static int regex_peers;
 
 /**
  * Be verbose
@@ -286,7 +286,7 @@ ch (void *cls, const struct GNUNET_PeerIdentity *peer,
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Peer connected: %s\n",
               GNUNET_i2s (peer));
-  connected_peers++;
+  regex_peers++;
  
   GNUNET_MESH_notify_transmit_ready(t[i], 0, 0,
                                     GNUNET_TIME_UNIT_FOREVER_REL,
@@ -432,7 +432,7 @@ peergroup_ready (void *cls, const char *emsg)
                             NULL,
                             handlers,
                             &app);
-  connected_peers = 0;
+  regex_peers = 0;
   for (i = 0; i < MESH_REGEX_PEERS; i++)
   {
     ok[i] = GNUNET_NO;
@@ -601,11 +601,11 @@ main (int argc, char *argv[])
                   i, strings[i]);
     }
   }
-  if (GNUNET_OK != result || connected_peers != MESH_REGEX_PEERS)
+  if (GNUNET_OK != result || regex_peers != MESH_REGEX_PEERS)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "test: FAILED! %u connected peers\n",
-                connected_peers);
+                regex_peers);
     return 1;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: success\n");

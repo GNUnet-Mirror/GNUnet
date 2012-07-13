@@ -804,11 +804,31 @@ dht_get_string_handler (void *cls, struct GNUNET_TIME_Absolute exp,
                         size_t size, const void *data);
 
 
-/******************************************************************************/
-/************************         ITERATORS        ****************************/
-/******************************************************************************/
+/**
+ * Function to process DHT string to regex matching.
+ * Called on each result obtained for the DHT search.
+ *
+ * @param cls closure (search context)
+ * @param exp when will this value expire
+ * @param key key of the result
+ * @param get_path path of the get request (not used)
+ * @param get_path_length lenght of get_path (not used)
+ * @param put_path path of the put request (not used)
+ * @param put_path_length length of the put_path (not used)
+ * @param type type of the result
+ * @param size number of bytes in data
+ * @param data pointer to the result data
+ */
+static void
+dht_get_string_accept_handler (void *cls, struct GNUNET_TIME_Absolute exp,
+                               const struct GNUNET_HashCode * key,
+                               const struct GNUNET_PeerIdentity *get_path,
+                               unsigned int get_path_length,
+                               const struct GNUNET_PeerIdentity *put_path,
+                               unsigned int put_path_length,
+                               enum GNUNET_BLOCK_Type type,
+                               size_t size, const void *data);
 
-/* FIXME move iterators here */
 
 /**
  * Iterator over edges in a regex block retrieved from the DHT.
@@ -825,14 +845,32 @@ regex_edge_iterator (void *cls,
                      const char *token,
                      size_t len,
                      const struct GNUNET_HashCode *key);
+
+
 /**
- * Iterator over hash map entries.
+ * Find a path to a peer that offers a regex servcie compatible
+ * with a given string.
+ * 
+ * @param key The key of the accepting state.
+ * @param ctx Context containing info about the string, tunnel, etc.
+ */
+static void
+regex_find_path (const struct GNUNET_HashCode *key,
+                 struct MeshRegexSearchContext *ctx);
+
+/******************************************************************************/
+/************************         ITERATORS        ****************************/
+/******************************************************************************/
+
+/* FIXME move iterators here */
+
+/**
+ * Iterator over found existing mesh regex blocks that match an ongoing search.
  *
  * @param cls closure
  * @param key current key code
  * @param value value in the hash map
- * @return GNUNET_YES if we should continue to
- *         iterate,
+ * @return GNUNET_YES if we should continue to iterate,
  *         GNUNET_NO if not.
  */
 static int
@@ -843,7 +881,20 @@ regex_result_iterator (void *cls,
   struct MeshRegexBlock *block = value;
   struct MeshRegexSearchContext *ctx = cls;
 
-  // block was checked when stored, no need to check again
+  if (GNUNET_YES == ntohl(block->accepting) &&
+      ctx->position == strlen (ctx->info->description))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "* Found accepting known block\n");
+    regex_find_path (key, ctx);
+    return GNUNET_YES; // We found an accept state!
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "* %u, %u, [%u]\n",
+                ctx->position, strlen(ctx->info->description),
+                ntohl(block->accepting));
+
+  }
   (void) GNUNET_MESH_regex_block_iterate (block, SIZE_MAX,
                                           &regex_edge_iterator, ctx);
 
@@ -882,6 +933,7 @@ regex_edge_iterator (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*     ctlen : %u\n", current_len);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*     tklen : %u\n", len);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*     tk[0] : %c\n", token[0]);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*     nextk : %s\n", GNUNET_h2s(key));
   if (len > current_len)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*     Token too long, END\n");
@@ -894,7 +946,7 @@ regex_edge_iterator (void *cls,
   }
   new_ctx = GNUNET_malloc (sizeof (struct MeshRegexSearchContext));
   new_ctx->info = info;
-  new_ctx->position += ctx->position + len;
+  new_ctx->position = ctx->position + len;
   GNUNET_array_append (info->contexts, info->n_contexts, new_ctx);
   if (GNUNET_YES ==
       GNUNET_CONTAINER_multihashmap_contains(info->dht_get_handles, key))
@@ -1094,6 +1146,36 @@ regex_put (const char *regex)
   GNUNET_REGEX_automaton_destroy (dfa);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "regex_put (%s) end\n", regex);
 
+}
+
+/**
+ * Find a path to a peer that offers a regex servcie compatible
+ * with a given string.
+ * 
+ * @param key The key of the accepting state.
+ * @param ctx Context containing info about the string, tunnel, etc.
+ */
+static void
+regex_find_path (const struct GNUNET_HashCode *key,
+                 struct MeshRegexSearchContext *ctx)
+{
+  struct GNUNET_DHT_GetHandle *get_h;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found peer by service\n");
+  get_h = GNUNET_DHT_get_start (dht_handle,    /* handle */
+                                GNUNET_BLOCK_TYPE_MESH_REGEX_ACCEPT, /* type */
+                                key,     /* key to search */
+                                DHT_REPLICATION_LEVEL, /* replication level */
+                                GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE |
+                                GNUNET_DHT_RO_RECORD_ROUTE,
+                                NULL,       /* xquery */ // FIXME BLOOMFILTER
+                                0,     /* xquery bits */ // FIXME BLOOMFILTER SIZE
+                                &dht_get_string_accept_handler, ctx);
+  GNUNET_break (GNUNET_OK ==
+                GNUNET_CONTAINER_multihashmap_put(ctx->info->dht_get_handles,
+                                                  key,
+                                                  get_h,
+                                                  GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
 }
 
 
@@ -4025,7 +4107,7 @@ handle_mesh_path_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received a path ACK msg [%s]\n",
               GNUNET_i2s (&my_full_id));
   msg = (struct GNUNET_MESH_PathACK *) message;
-  t = tunnel_get (&msg->oid, msg->tid);
+  t = tunnel_get (&msg->oid, ntohl(msg->tid));
   if (NULL == t)
   {
     /* TODO notify that we don't know the tunnel */
@@ -4396,7 +4478,8 @@ dht_get_string_accept_handler (void *cls, struct GNUNET_TIME_Absolute exp,
                                const struct GNUNET_PeerIdentity *get_path,
                                unsigned int get_path_length,
                                const struct GNUNET_PeerIdentity *put_path,
-                               unsigned int put_path_length, enum GNUNET_BLOCK_Type type,
+                               unsigned int put_path_length,
+                               enum GNUNET_BLOCK_Type type,
                                size_t size, const void *data)
 {
   const struct MeshRegexAccept *block = data;
@@ -4490,22 +4573,7 @@ dht_get_string_handler (void *cls, struct GNUNET_TIME_Absolute exp,
   {
     if (GNUNET_YES == ntohl (block->accepting))
     {
-      struct GNUNET_DHT_GetHandle *get_h;
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found peer by service\n");
-      get_h = GNUNET_DHT_get_start (dht_handle,    /* handle */
-                                    GNUNET_BLOCK_TYPE_MESH_REGEX_ACCEPT, /* type */
-                                    key,     /* key to search */
-                                    DHT_REPLICATION_LEVEL, /* replication level */
-                                    GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE |
-                                    GNUNET_DHT_RO_RECORD_ROUTE,
-                                    NULL,       /* xquery */ // FIXME BLOOMFILTER
-                                    0,     /* xquery bits */ // FIXME BLOOMFILTER SIZE
-                                    &dht_get_string_accept_handler, ctx);
-      GNUNET_break (GNUNET_OK ==
-                    GNUNET_CONTAINER_multihashmap_put(info->dht_get_handles,
-                                                      key,
-                                                      get_h,
-                                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
+      regex_find_path(key, ctx);
     }
     else
     {
