@@ -290,12 +290,13 @@ check_PROGRAMS = \
  $(HTTPS_REL_TEST) \
  $(HTTPS_NAT_REL_TEST) \
  $(WLAN_REL_TEST) \
- $(WLAN_UREL_TEST) \ 
+ $(WLAN_UREL_TEST) \
  test_quota_compliance_tcp \
  test_quota_compliance_tcp_asymmetric \
  test_quota_compliance_udp \
  $(UNIX_QUOTA_TEST) \
  $(HTTP_QUOTA_TEST) \
+ $(HTTPS_QUOTA_TEST) \
  $(WLAN_QUOTA_TEST)
 
 if ENABLE_TEST_RUN
@@ -336,7 +337,7 @@ TESTS = \
  $(HTTPS_REL_TEST) \
  $(HTTPS_NAT_REL_TEST) \
  $(WLAN_REL_TEST) \
- $(WLAN_UREL_TEST) \ 
+ $(WLAN_UREL_TEST) \
  test_quota_compliance_tcp \
  test_quota_compliance_tcp_asymmetric \
  test_quota_compliance_udp \
@@ -665,7 +666,7 @@ test_quota_compliance_http_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la 
 
- test_quota_compliance_http_asymmetric_SOURCES = \
+test_quota_compliance_http_asymmetric_SOURCES = \
  test_quota_compliance.c
 test_quota_compliance_http_asymmetric_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
@@ -681,7 +682,7 @@ test_quota_compliance_https_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la
 
- test_quota_compliance_https_asymmetric_SOURCES = \
+test_quota_compliance_https_asymmetric_SOURCES = \
  test_quota_compliance.c
 test_quota_compliance_https_asymmetric_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
