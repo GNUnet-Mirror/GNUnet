@@ -1523,10 +1523,22 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
   LOG (GNUNET_ERROR_TYPE_DEBUG, "nfds: %d, handles: %d, will wait: %llu ms\n", 
        nfds, nhandles, (unsigned long long) ms_total);
   if (nhandles)
+  {
     returncode =
         WaitForMultipleObjects (nhandles, handle_array, FALSE, ms_total);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "WaitForMultipleObjects Returned : %d\n",
-       returncode);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "WaitForMultipleObjects Returned : %d\n",
+         returncode);
+  }
+  else if (nfds > 0)
+  {
+    i = (int) WaitForSingleObject (select_finished_event, INFINITE);
+    returncode = WAIT_TIMEOUT;
+  }
+  else
+  {
+    /* Shouldn't come this far. If it does - investigate. */
+    GNUNET_assert (0);
+  }
 
   if (nfds > 0)
   {
