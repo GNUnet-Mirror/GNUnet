@@ -15,7 +15,8 @@ pkgcfg_DATA = \
   testbed.conf
 
 bin_PROGRAMS = \
-  gnunet-service-testbed
+  gnunet-service-testbed \
+  gnunet-testbed-helper
 
 gnunet_service_testbed_SOURCES = \
   gnunet-service-testbed.c
@@ -27,12 +28,21 @@ gnunet_service_testbed_LDADD = $(XLIB) \
 gnunet_service_testbed_DEPENDENCIES = \
   libgnunettestbed.la
 
+gnunet_testbed_helper_SOURCES = \
+  gnunet-testbed-helper.c
+gnunet_testbed_helper_LDADD = $(XLIB) \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/testing/libgnunettesting.la \
+ $(LTLIBINTL) -lz
+gnunet_testbed_helper_DEPENDENCIES = \
+  gnunet-service-testbed.$(OBJEXT)
+
 lib_LTLIBRARIES = \
   libgnunettestbed.la
 
 libgnunettestbed_la_SOURCES = \
-  testbed_api.c testbed.h \
-  testbed_api_hosts.c testbed_api_hosts.h \
+  testbed_api.c testbed_api.h testbed.h \
+  testbed_api_hosts.c testbed_api_hosts.h testbed_helper.h \
   testbed_api_operations.c testbed_api_operations.h \
   testbed_api_peers.c testbed_api_peers.h \
   testbed_api_services.c \
