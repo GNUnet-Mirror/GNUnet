@@ -36,7 +36,7 @@
 #define LOG_STRERROR(kind,syscall) GNUNET_log_from_strerror (kind, "util-scheduler", syscall)
 
 
-#ifdef LINUX
+#if HAVE_EXECINFO_H
 #include "execinfo.h"
 
 /**
