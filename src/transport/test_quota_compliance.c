@@ -46,8 +46,6 @@ static char *test_plugin;
 
 static char *test_name;
 
-static int ok;
-
 static GNUNET_SCHEDULER_TaskIdentifier die_task;
 
 static GNUNET_SCHEDULER_TaskIdentifier measure_task;
@@ -198,7 +196,7 @@ end_badly ()
   if (p2 != NULL)
     GNUNET_TRANSPORT_TESTING_stop_peer (tth, p2);
 
-  ok = GNUNET_SYSERR;
+  test_failed = GNUNET_YES;
 }
 
 
@@ -297,7 +295,7 @@ notify_ready (void *cls, size_t size, void *buf)
     if (GNUNET_SCHEDULER_NO_TASK != die_task)
       GNUNET_SCHEDULER_cancel (die_task);
     die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
-    ok = 42;
+    test_failed = 1;
     return 0;
   }
 
@@ -556,11 +554,9 @@ check ()
     GNUNET_GETOPT_OPTION_END
   };
 
-  ok = 1;
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv, test_name,
-                      "nohelp", options, &run, &ok);
-
-  return ok;
+                      "nohelp", options, &run, NULL);
+  return test_failed;
 }
 
 int
