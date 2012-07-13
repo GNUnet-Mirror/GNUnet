@@ -29,7 +29,7 @@
 
 #define VERBOSE GNUNET_YES
 #define REMOVE_DIR GNUNET_YES
-#define MESH_REGEX_PEERS 1
+#define MESH_REGEX_PEERS 3
 
 /**
  * How long until we give up on connecting the peers?
@@ -120,11 +120,11 @@ static struct GNUNET_MESH_Tunnel *incoming_t[MESH_REGEX_PEERS];
 /**
  * Regular expressions for the announces.
  */
-static char *regexes[MESH_REGEX_PEERS] = {/*"(0|1)"
+static char *regexes[MESH_REGEX_PEERS] = {"(0|1)"
                                           "(0|1)"
                                           "23456789ABC",
 
-                                          "0123456789A*BC",*/
+                                          "0123456789A*BC",
 
                                           "0*123456789ABC*"};
 
@@ -132,9 +132,9 @@ static char *regexes[MESH_REGEX_PEERS] = {/*"(0|1)"
 /**
  * Service strings to look for.
  */
-static char *strings[MESH_REGEX_PEERS] = {/*"1123456789ABC",
+static char *strings[MESH_REGEX_PEERS] = {"1123456789ABC",
 
-                                          "0123456789AABC",*/
+                                          "0123456789AABC",
 
                                           "00123456789ABCCCC"};
 
