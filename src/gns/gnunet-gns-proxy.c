@@ -36,6 +36,7 @@
 
 #define GNUNET_GNS_PROXY_PORT 7777
 #define MHD_MAX_CONNECTIONS 300
+#define MAX_HTTP_URI_LENGTH 2048
 
 /* MHD/cURL defines */
 #define BUF_WAIT_FOR_CURL 0
@@ -200,7 +201,7 @@ struct ProxyCurlTask
   long curl_response_code;
 
   /* The URL to fetch */
-  char url[2048];
+  char url[MAX_HTTP_URI_LENGTH];
 
   /* The cURL write buffer / MHD read buffer */
   char buffer[CURL_MAX_WRITE_SIZE + CURL_BUF_PADDING];
@@ -421,7 +422,9 @@ get_uri_val_iter (void *cls,
                   const char *value)
 {
   char* buf = cls;
-
+  
+  if (strlen (buf) + strlen (value) + 3 > MAX_HTTP_URI_LENGTH)
+    return MHD_NO;
   sprintf (buf+strlen (buf), "?%s=%s", key, value);
 
   return MHD_YES;
@@ -1510,7 +1513,7 @@ create_response (void *cls,
   const char* page = "<html><head><title>gnoxy</title>"\
                       "</head><body>cURL fail</body></html>";
   
-  char curlurl[512]; // buffer overflow!
+  char curlurl[MAX_HTTP_URI_LENGTH]; // buffer overflow!
   int ret = MHD_YES;
 
   struct ProxyCurlTask *ctask;
