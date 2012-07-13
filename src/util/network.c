@@ -1599,7 +1599,11 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
              i, readArray[i]->h, bret, waitstatus, error);
         if (bret == 0)
         {
-          if (error != ERROR_BROKEN_PIPE)
+          /* TODO: either add more errors to this condition, or eliminate it
+           * entirely (failed to peek -> pipe is in serious trouble, should
+           * be selected as readable).
+           */
+          if (error != ERROR_BROKEN_PIPE && error != ERROR_INVALID_HANDLE)
             continue;
         }
         else if (waitstatus <= 0)
