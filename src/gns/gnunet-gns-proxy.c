@@ -1286,8 +1286,6 @@ curl_task_download (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
              ctask->ready_to_queue = MHD_YES;
              ctask->download_is_finished = GNUNET_YES;
 
-             //GNUNET_SCHEDULER_add_now (&run_mhd, ctask->mhd);
-             
              /* We MUST not modify the multi handle else we loose messages */
              GNUNET_CONTAINER_DLL_remove (ctasks_head, ctasks_tail,
                                           ctask);
@@ -1329,7 +1327,6 @@ curl_task_download (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
     GNUNET_assert ( num_ctasks == running );
 
-    run_httpds ();
   } while (mret == CURLM_CALL_MULTI_PERFORM);
   
   if (mret != CURLM_OK)
@@ -1538,13 +1535,8 @@ create_response (void *cls,
     ctask->mhd = hd;
     *con_cls = ctask;
     
-    // FIXME: probably not best here, also never free'ed...
-    if (NULL == curl_multi)
-      curl_multi = curl_multi_init ();
-
     ctask->curl = curl_easy_init();
-  
-    if ((NULL == ctask->curl) || (NULL == curl_multi)) // ugh, curl_multi init failure check MUCH earlier
+    if (NULL == ctask->curl)
     {
       ctask->response = MHD_create_response_from_buffer (strlen (page),
                                                 (void*)page,
@@ -1617,8 +1609,7 @@ create_response (void *cls,
     curl_easy_setopt (ctask->curl, CURLOPT_WRITEDATA, ctask);
     curl_easy_setopt (ctask->curl, CURLOPT_FOLLOWLOCATION, 0);
     curl_easy_setopt (ctask->curl, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
-    //curl_easy_setopt (ctask->curl, CURLOPT_MAXREDIRS, 4);
-    /* no need to abort if the above failed */
+    
     if (GNUNET_NO == ctask->mhd->is_ssl)
     {
       sprintf (curlurl, "http://%s%s", ctask->host, url);
@@ -1634,7 +1625,6 @@ create_response (void *cls,
                                MHD_GET_ARGUMENT_KIND,
                                &get_uri_val_iter, ctask->url);
   
-    //curl_easy_setopt (ctask->curl, CURLOPT_URL, curlurl);
     curl_easy_setopt (ctask->curl, CURLOPT_FAILONERROR, 1);
     curl_easy_setopt (ctask->curl, CURLOPT_CONNECTTIMEOUT, 600L);
     curl_easy_setopt (ctask->curl, CURLOPT_TIMEOUT, 600L);
@@ -1673,7 +1663,7 @@ run_httpds ()
 {
   struct MhdHttpList *hd;
 
-  for (hd=mhd_httpd_head; hd != NULL; hd = hd->next)
+  for (hd=mhd_httpd_head; NULL != hd; hd = hd->next)
     run_httpd (hd);
 
 }
@@ -1712,7 +1702,7 @@ run_httpd (struct MhdHttpList *hd)
   
   haveto = MHD_get_timeout (hd->daemon, &timeout);
 
-  if (haveto == MHD_YES)
+  if (MHD_YES == haveto)
     tv.rel_value = (uint64_t) timeout;
   else
     tv = GNUNET_TIME_UNIT_FOREVER_REL;
@@ -1720,7 +1710,7 @@ run_httpd (struct MhdHttpList *hd)
   GNUNET_NETWORK_fdset_copy_native (wws, &ws, max + 1);
   GNUNET_NETWORK_fdset_copy_native (wes, &es, max + 1);
   
-  if (hd->httpd_task != GNUNET_SCHEDULER_NO_TASK)
+  if (GNUNET_SCHEDULER_NO_TASK != hd->httpd_task)
     GNUNET_SCHEDULER_cancel (hd->httpd_task);
   hd->httpd_task =
     GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_HIGH,
@@ -1797,12 +1787,11 @@ do_write_remote (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   else
   {
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "write remote");
-    //Really!?!?!?
-    if (s5r->rtask != GNUNET_SCHEDULER_NO_TASK)
+    if (GNUNET_SCHEDULER_NO_TASK != s5r->rtask)
       GNUNET_SCHEDULER_cancel (s5r->rtask);
-    if (s5r->wtask != GNUNET_SCHEDULER_NO_TASK)
+    if (GNUNET_SCHEDULER_NO_TASK != s5r->wtask)
       GNUNET_SCHEDULER_cancel (s5r->wtask);
-    if (s5r->fwdrtask != GNUNET_SCHEDULER_NO_TASK)
+    if (GNUNET_SCHEDULER_NO_TASK != s5r->fwdrtask)
       GNUNET_SCHEDULER_cancel (s5r->fwdrtask);
     GNUNET_NETWORK_socket_close (s5r->remote_sock);
     GNUNET_NETWORK_socket_close (s5r->sock);
@@ -1825,11 +1814,11 @@ do_write_remote (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 cleanup_s5r (struct Socks5Request *s5r)
 {
-  if (s5r->rtask != GNUNET_SCHEDULER_NO_TASK)
+  if (GNUNET_SCHEDULER_NO_TASK != s5r->rtask)
     GNUNET_SCHEDULER_cancel (s5r->rtask);
-  if (s5r->fwdwtask != GNUNET_SCHEDULER_NO_TASK)
+  if (GNUNET_SCHEDULER_NO_TASK != s5r->fwdwtask)
     GNUNET_SCHEDULER_cancel (s5r->fwdwtask);
-  if (s5r->fwdrtask != GNUNET_SCHEDULER_NO_TASK)
+  if (GNUNET_SCHEDULER_NO_TASK != s5r->fwdrtask)
     GNUNET_SCHEDULER_cancel (s5r->fwdrtask);
   
   if (NULL != s5r->remote_sock)
@@ -2511,8 +2500,6 @@ do_read (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   }
 
-  //GNUNET_CONTAINER_DLL_remove (s5conns.head, s5conns.tail, s5r);
-
 }
 
 
@@ -2556,7 +2543,6 @@ do_accept (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   s5r->rtask = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
                                               s5r->sock,
                                               &do_read, s5r);
-  //GNUNET_CONTAINER_DLL_insert (s5conns.head, s5conns.tail, s5r);
 }
 
 
@@ -2651,6 +2637,7 @@ do_shutdown (void *cls,
 
     GNUNET_free (ctask);
   }
+  curl_multi_cleanup (curl_multi);
 
   GNUNET_GNS_disconnect (gns_handle);
 }
@@ -2800,13 +2787,18 @@ run (void *cls, char *const *args, const char *cfgfile,
   char* cafile_cfg = NULL;
   char* cafile;
 
-  curl_multi = NULL;
+  curl_multi = curl_multi_init ();
 
+  if (NULL == curl_multi)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Failed to create cURL multo handle!\n");
+    return;
+  }
+  
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Loading CA\n");
-  
   cafile = cafile_opt;
-
   if (NULL == cafile)
   {
     if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns-proxy",
@@ -2823,7 +2815,6 @@ run (void *cls, char *const *args, const char *cfgfile,
   }
   
   gnutls_global_init ();
-
   gnutls_x509_crt_init (&proxy_ca.cert);
   gnutls_x509_privkey_init (&proxy_ca.key);
   
