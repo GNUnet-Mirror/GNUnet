@@ -1506,6 +1506,11 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_TESTBED_MAX 479
 
+/**
+ * The initialization message towards gnunet-testbed-helper
+ */
+#define GNUNET_MESSAGE_TYPE_TESTBED_HELPER_INIT 495
+
 
 /**
  *  Next available: 500
