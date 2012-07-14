@@ -1672,6 +1672,25 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 int
 main (int argc, char *const *argv)
 {
+  /* make use of SGID capabilities on POSIX */
+  /* FIXME: this might need a port on systems without 'getresgid' */
+#if HAVE_GETRESGID
+  gid_t rgid;
+  gid_t egid;
+  gid_t sgid;
+
+  if (-1 == getresgid (&rgid, &egid, &sgid))
+  {
+    fprintf (stderr,
+	     "getresgid failed: %s\n",
+	     strerror (errno));
+  }
+  else if (sgid != rgid)
+  {    
+    if (-1 ==  setregid (sgid, sgid))
+      fprintf (stderr, "setregid failed: %s\n", strerror (errno));
+  }
+#endif
   return (GNUNET_OK ==
           GNUNET_SERVICE_run (argc, argv, "dns", GNUNET_SERVICE_OPTION_NONE,
                               &run, NULL)) ? global_ret : 1;
