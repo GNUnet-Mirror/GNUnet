@@ -330,8 +330,8 @@ struct GetPseuAuthorityHandle
   /* timeout task for lookup */
   GNUNET_SCHEDULER_TaskIdentifier timeout;
 
-  /* Head of the authority list */
-  struct AuthorityChain *ahead;
+  /* Authority to shorten */
+  struct AuthorityChain *auth;
 
   /* handle to namestore request */
   struct GNUNET_NAMESTORE_QueueEntry* namestore_task;

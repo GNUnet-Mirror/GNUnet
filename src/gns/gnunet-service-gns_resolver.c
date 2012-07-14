@@ -229,15 +229,9 @@ create_pkey_cont (void* cls, int32_t success, const char* emsg)
 {
   //FIXME do sth with error
   struct GetPseuAuthorityHandle* gph = (struct GetPseuAuthorityHandle*)cls;
-  struct AuthorityChain *iter;
 
   gph->namestore_task = NULL;
-  do
-  {
-    iter = gph->ahead->next;
-    GNUNET_free (gph->ahead);
-    gph->ahead = iter;
-  } while (iter != NULL);
+  GNUNET_free (gph->auth);
   GNUNET_CRYPTO_rsa_key_free (gph->key);
   GNUNET_CONTAINER_DLL_remove (gph_head, gph_tail, gph);
   GNUNET_free (gph);
@@ -266,51 +260,16 @@ process_pseu_lookup_ns (void* cls,
 {
   struct GetPseuAuthorityHandle* gph = (struct GetPseuAuthorityHandle*)cls;
   struct GNUNET_NAMESTORE_RecordData new_pkey;
-  struct AuthorityChain *iter;
 
   gph->namestore_task = NULL;
   if (rd_count > 0)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                "GNS_AUTO_PSEU: Name %s already taken in NS!\n", name);
-    if (0 == strcmp (gph->name, name))
-    {
-      if (gph->ahead->next != NULL)
-      {
-        if (GNUNET_CRYPTO_short_hash_cmp (&gph->ahead->next->zone,
-                                          &gph->our_zone))
-        {
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "GNS_GET_AUTH: trying next!\n");
-          iter = gph->ahead->next;
-          GNUNET_free (gph->ahead);
-          gph->ahead = iter;
-          shorten_authority_chain (gph);
-          return;
-        }
-      }
-
-      /* Clean up */
-      do
-      {
-        iter = gph->ahead->next;
-        GNUNET_free (gph->ahead);
-        gph->ahead = iter;
-      } while (iter != NULL);
-      GNUNET_CRYPTO_rsa_key_free (gph->key);
-      GNUNET_CONTAINER_DLL_remove (gph_head, gph_tail, gph);
-      GNUNET_free (gph);
-      return;
-    }
-
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "GNS_AUTO_PSEU: Trying delegated name %s\n", gph->name);
-    memcpy (gph->test_name, gph->name, strlen (gph->name)+1);
-    gph->namestore_task = GNUNET_NAMESTORE_lookup_record (namestore_handle,
-                                    &gph->our_zone,
-                                    gph->test_name,
-                                    GNUNET_NAMESTORE_TYPE_ANY,
-                                    &process_pseu_lookup_ns,
-                                    gph);
+    GNUNET_free (gph->auth);
+    GNUNET_CRYPTO_rsa_key_free (gph->key);
+    GNUNET_CONTAINER_DLL_remove (gph_head, gph_tail, gph);
+    GNUNET_free (gph);
     return;
   }
 
@@ -320,7 +279,7 @@ process_pseu_lookup_ns (void* cls,
 
   new_pkey.expiration_time = UINT64_MAX;
   new_pkey.data_size = sizeof (struct GNUNET_CRYPTO_ShortHashCode);
-  new_pkey.data = &gph->ahead->zone;
+  new_pkey.data = &gph->auth->zone;
   new_pkey.record_type = GNUNET_GNS_RECORD_PKEY;
   new_pkey.flags = GNUNET_NAMESTORE_RF_AUTHORITY
                  | GNUNET_NAMESTORE_RF_PRIVATE
@@ -344,17 +303,19 @@ process_pseu_result (struct GetPseuAuthorityHandle* gph, char* name)
 {
   if (NULL == name)
   {
-    memcpy (gph->test_name, gph->ahead->name, strlen (gph->ahead->name)+1);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "GNS_AUTO_PSEU: No PSEU, no shorten. Finished.\n");
+    GNUNET_free (gph->auth);
+    GNUNET_CRYPTO_rsa_key_free (gph->key);
+    GNUNET_CONTAINER_DLL_remove (gph_head, gph_tail, gph);
+    GNUNET_free (gph);
   }
   else
-  {
     memcpy (gph->test_name, name, strlen(name)+1);
-  }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "GNS_AUTO_PSEU: Checking %s for collision in NS\n",
               gph->test_name);
-
   /**
    * Check for collision
    */
@@ -377,27 +338,11 @@ handle_auth_discovery_timeout (void *cls,
                                const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GetPseuAuthorityHandle* gph = (struct GetPseuAuthorityHandle*)cls;
-  struct AuthorityChain *iter;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "GNS_GET_AUTH: dht lookup for query PSEU timed out.\n");
   GNUNET_DHT_get_stop (gph->get_handle);
   gph->get_handle = NULL;
-  
-  if (gph->ahead->next != NULL)
-  {
-    if (GNUNET_CRYPTO_short_hash_cmp (&gph->ahead->next->zone,
-                                      &gph->our_zone))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "GNS_GET_AUTH: trying next!\n");
-      iter = gph->ahead->next;
-      GNUNET_free (gph->ahead);
-      gph->ahead = iter;
-      shorten_authority_chain (gph);
-      return;
-    }
-  }
-  
   process_pseu_result (gph, NULL);
 }
 
@@ -427,7 +372,6 @@ process_auth_discovery_dht_result (void* cls,
                                    size_t size, const void *data)
 {
   struct GetPseuAuthorityHandle* gph = (struct GetPseuAuthorityHandle*)cls;
-  struct AuthorityChain *iter;
   struct GNSNameRecordBlock *nrb;
   char* rd_data = (char*)data;
   char* name;
@@ -438,7 +382,6 @@ process_auth_discovery_dht_result (void* cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "GNS_GET_AUTH: got dht result (size=%d)\n", size);
 
-  
   /* stop lookup and timeout task */
   GNUNET_DHT_get_stop (gph->get_handle);
   gph->get_handle = NULL;
@@ -448,13 +391,7 @@ process_auth_discovery_dht_result (void* cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "GNS_GET_AUTH: got dht result null!\n", size);
-    
-    do
-    {
-      iter = gph->ahead->next;
-      GNUNET_free (gph->ahead);
-      gph->ahead = iter;
-    } while (iter != NULL);
+    GNUNET_free (gph->auth);
     GNUNET_CRYPTO_rsa_key_free (gph->key);
     GNUNET_CONTAINER_DLL_remove (gph_head, gph_tail, gph);
     GNUNET_free (gph);
@@ -462,11 +399,6 @@ process_auth_discovery_dht_result (void* cls,
   }
   
   nrb = (struct GNSNameRecordBlock*)data;
-
-
-
-  nrb = (struct GNSNameRecordBlock*)data;
-  
   name = (char*)&nrb[1];
   num_records = ntohl (nrb->rd_count);
   {
@@ -495,22 +427,6 @@ process_auth_discovery_dht_result (void* cls,
           return;
         }
       }
-    }
-  }
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "GNS_GET_AUTH: no pseu in dht!\n");
-
-  if (gph->ahead->next != NULL)
-  {
-    if (GNUNET_CRYPTO_short_hash_cmp (&gph->ahead->next->zone,
-                                      &gph->our_zone))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "GNS_GET_AUTH: trying next!\n");
-      iter = gph->ahead->next;
-      GNUNET_free (gph->ahead);
-      gph->ahead = iter;
-      shorten_authority_chain (gph);
-      return;
     }
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -546,7 +462,6 @@ process_auth_discovery_ns_result (void* cls,
   struct GNUNET_HashCode zone_hash_double;
   int i;
   struct GetPseuAuthorityHandle* gph = (struct GetPseuAuthorityHandle*)cls;
-  struct AuthorityChain *iter;
   
   gph->namestore_task = NULL;
   /* no pseu found */
@@ -557,7 +472,7 @@ process_auth_discovery_ns_result (void* cls,
      */
     GNUNET_CRYPTO_short_hash ("+", strlen ("+"), &name_hash);
     GNUNET_CRYPTO_short_hash_double (&name_hash, &name_hash_double);
-    GNUNET_CRYPTO_short_hash_double (&gph->ahead->zone, &zone_hash_double);
+    GNUNET_CRYPTO_short_hash_double (&gph->auth->zone, &zone_hash_double);
     GNUNET_CRYPTO_hash_xor (&name_hash_double, &zone_hash_double, &lookup_key);
     GNUNET_CRYPTO_hash_to_enc (&lookup_key, &lookup_key_string);
 
@@ -596,21 +511,6 @@ process_auth_discovery_ns_result (void* cls,
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "GNS_GET_AUTH: no pseu in namestore!\n");
-  
-  if (gph->ahead->next != NULL)
-  {
-    if (GNUNET_CRYPTO_short_hash_cmp (&gph->ahead->next->zone,
-                                      &gph->our_zone))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "GNS_GET_AUTH: trying next!\n");
-      iter = gph->ahead->next;
-      GNUNET_free (gph->ahead);
-      gph->ahead = iter;
-      shorten_authority_chain (gph);
-      return;
-    }
-  }
-  
   process_pseu_result (gph, NULL);
 }
 
@@ -636,7 +536,6 @@ process_zone_to_name_discover (void *cls,
                  const struct GNUNET_CRYPTO_RsaSignature *signature)
 {
   struct GetPseuAuthorityHandle* gph = (struct GetPseuAuthorityHandle*)cls;
-  struct AuthorityChain *iter;
   
   gph->namestore_task = NULL;
   /* we found a match in our own zone */
@@ -644,14 +543,8 @@ process_zone_to_name_discover (void *cls,
   {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                "GNS_AUTO_PSEU: name for zone in our root %s\n", name);
-
-    iter = gph->ahead;
-    do
-    {
-      iter = gph->ahead->next;
-      GNUNET_free (gph->ahead);
-      gph->ahead = iter;
-    } while (iter != NULL);
+    
+    GNUNET_free (gph->auth);
     GNUNET_CRYPTO_rsa_key_free (gph->key);
     GNUNET_CONTAINER_DLL_remove (gph_head, gph_tail, gph);
     GNUNET_free (gph);
@@ -660,7 +553,7 @@ process_zone_to_name_discover (void *cls,
   {
 
     gph->namestore_task = GNUNET_NAMESTORE_lookup_record (namestore_handle,
-                                    &gph->ahead->zone,
+                                    &gph->auth->zone,
                                     "+",
                                     GNUNET_GNS_RECORD_PSEU,
                                     &process_auth_discovery_ns_result,
@@ -681,37 +574,28 @@ shorten_authority_chain (struct GetPseuAuthorityHandle *gph)
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "GNS_AUTO_PSEU: New authority %s discovered\n",
-              gph->ahead->name);
+              gph->auth->name);
 
   gph->namestore_task = GNUNET_NAMESTORE_zone_to_name (namestore_handle,
                                  &gph->our_zone,
-                                 &gph->ahead->zone,
+                                 &gph->auth->zone,
                                  &process_zone_to_name_discover,
                                  gph);
 
 }
 
 static void
-start_shorten (struct AuthorityChain *atail,
+start_shorten (struct AuthorityChain *auth,
                struct GNUNET_CRYPTO_RsaPrivateKey *key)
 {
-  struct AuthorityChain *new_head = NULL;
-  struct AuthorityChain *new_tail = NULL;
-  struct AuthorityChain *iter;
   struct AuthorityChain *acopy;
   struct GetPseuAuthorityHandle *gph;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pkey;
   struct GNUNET_CRYPTO_RsaPrivateKeyBinaryEncoded *pb_key;
 
-  /* First copy the authority chain in reverse order */
-  for (iter = atail; iter != NULL; iter = iter->prev)
-  {
-    acopy = GNUNET_malloc (sizeof (struct AuthorityChain));
-    memcpy (acopy, iter, sizeof (struct AuthorityChain));
-    acopy->next = NULL;
-    acopy->prev = NULL;
-    GNUNET_CONTAINER_DLL_insert (new_head, new_tail, acopy);
-  }
+  
+  acopy = GNUNET_malloc (sizeof (struct AuthorityChain));
+  memcpy (acopy, auth, sizeof (struct AuthorityChain));
 
   gph = GNUNET_malloc (sizeof (struct GetPseuAuthorityHandle));
 
@@ -722,7 +606,7 @@ start_shorten (struct AuthorityChain *atail,
   GNUNET_CRYPTO_short_hash (&pkey,
                         sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
                         &gph->our_zone);
-  gph->ahead = new_head;
+  gph->auth = acopy;
 
   GNUNET_CONTAINER_DLL_insert (gph_head, gph_tail, gph);
 
@@ -946,7 +830,6 @@ gns_resolver_cleanup (ResolverCleanupContinuation cont)
 {
   unsigned int s;
   struct GetPseuAuthorityHandle *tmp;
-  struct AuthorityChain *iter;
 
   
   tmp = gph_head;
@@ -962,15 +845,7 @@ gns_resolver_cleanup (ResolverCleanupContinuation cont)
     if (NULL != tmp->namestore_task)
       GNUNET_NAMESTORE_cancel (tmp->namestore_task);
     tmp->namestore_task = NULL;
-    
-    iter = tmp->ahead;
-    do
-    {
-      iter = tmp->ahead->next;
-      GNUNET_free (tmp->ahead);
-      tmp->ahead = iter;
-    } while (iter != NULL);
-    
+    GNUNET_free (tmp->auth);
     GNUNET_CRYPTO_rsa_key_free (tmp->key);
     GNUNET_CONTAINER_DLL_remove (gph_head, gph_tail, tmp);
     GNUNET_free (tmp);
@@ -1886,7 +1761,7 @@ resolve_record_dns (struct ResolverHandle *rh,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
              "GNS_PHASE_REC_DNS-%llu: Trying to shorten authority chain\n",
              rh->id);
-    start_shorten (rh->authority_chain_tail,
+    start_shorten (rh->authority_chain_head,
                    rh->priv_key);
   }
 
@@ -2006,7 +1881,7 @@ resolve_record_vpn (struct ResolverHandle *rh,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
              "GNS_PHASE_REC_VPN-%llu: Trying to shorten authority chain\n",
              rh->id);
-    start_shorten (rh->authority_chain_tail,
+    start_shorten (rh->authority_chain_head,
                    rh->priv_key);
   }
 
@@ -2085,7 +1960,7 @@ resolve_record_ns(struct ResolverHandle *rh)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
              "GNS_PHASE_REC-%llu: Trying to shorten authority chain\n",
              rh->id);
-    start_shorten (rh->authority_chain_tail,
+    start_shorten (rh->authority_chain_head,
                    rh->priv_key);
   }
   
@@ -2520,7 +2395,7 @@ process_delegation_result_dht(void* cls,
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
              "GNS_PHASE_DELEGATE_DHT-%llu: Trying to shorten authority chain\n",
              rh->id);
-        start_shorten (rh->authority_chain_tail,
+        start_shorten (rh->authority_chain_head,
                        rh->priv_key);
       }
     }
@@ -3475,7 +3350,7 @@ process_delegation_result_ns (void* cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "GNS_PHASE_DELEGATE_NS-%llu: Trying to shorten authority chain\n",
               rh->id);
-      start_shorten (rh->authority_chain_tail,
+      start_shorten (rh->authority_chain_head,
                     rh->priv_key);
     }
     /* simply promote back */
