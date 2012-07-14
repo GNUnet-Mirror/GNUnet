@@ -36,10 +36,12 @@
 
 #define PERF GNUNET_YES
 
+static struct GNUNET_CRYPTO_RsaPrivateKey *key;
+
+
 static int
 testEncryptDecrypt ()
 {
-  struct GNUNET_CRYPTO_RsaPrivateKey *hostkey;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pkey;
   struct GNUNET_CRYPTO_RsaEncryptedData target;
   char result[MAX_TESTVAL];
@@ -48,9 +50,7 @@ testEncryptDecrypt ()
   int ok;
 
   FPRINTF (stderr, "%s",  "W");
-  hostkey = GNUNET_CRYPTO_rsa_key_create ();
-  GNUNET_CRYPTO_rsa_key_get_public (hostkey, &pkey);
-
+  GNUNET_CRYPTO_rsa_key_get_public (key, &pkey);
   ok = 0;
   start = GNUNET_TIME_absolute_get ();
   for (i = 0; i < ITER; i++)
@@ -65,7 +65,7 @@ testEncryptDecrypt ()
       continue;
     }
     if (-1 ==
-        GNUNET_CRYPTO_rsa_decrypt (hostkey, &target, result,
+        GNUNET_CRYPTO_rsa_decrypt (key, &target, result,
                                    strlen (TESTSTRING) + 1))
     {
       FPRINTF (stderr, "%s",  "GNUNET_CRYPTO_rsa_decrypt returned SYSERR\n");
@@ -84,18 +84,16 @@ testEncryptDecrypt ()
   printf ("%d RSA encrypt/decrypt operations %llums (%d failures)\n", ITER,
           (unsigned long long)
           GNUNET_TIME_absolute_get_duration (start).rel_value, ok);
-  GNUNET_CRYPTO_rsa_key_free (hostkey);
   if (ok == 0)
     return GNUNET_OK;
-  else
-    return GNUNET_SYSERR;
+  return GNUNET_SYSERR;
 }
+
 
 #if PERF
 static int
 testEncryptPerformance ()
 {
-  struct GNUNET_CRYPTO_RsaPrivateKey *hostkey;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pkey;
   struct GNUNET_CRYPTO_RsaEncryptedData target;
   int i;
@@ -103,9 +101,7 @@ testEncryptPerformance ()
   int ok;
 
   FPRINTF (stderr, "%s",  "W");
-  hostkey = GNUNET_CRYPTO_rsa_key_create ();
-  GNUNET_CRYPTO_rsa_key_get_public (hostkey, &pkey);
-
+  GNUNET_CRYPTO_rsa_key_get_public (key, &pkey);
   ok = 0;
   start = GNUNET_TIME_absolute_get ();
   for (i = 0; i < ITER; i++)
@@ -123,7 +119,6 @@ testEncryptPerformance ()
   printf ("%d RSA encrypt operations %llu ms (%d failures)\n", ITER,
           (unsigned long long)
           GNUNET_TIME_absolute_get_duration (start).rel_value, ok);
-  GNUNET_CRYPTO_rsa_key_free (hostkey);
   if (ok != 0)
     return GNUNET_SYSERR;
   return GNUNET_OK;
@@ -133,7 +128,6 @@ testEncryptPerformance ()
 static int
 testEncryptDecryptSK ()
 {
-  struct GNUNET_CRYPTO_RsaPrivateKey *hostkey;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pkey;
   struct GNUNET_CRYPTO_RsaEncryptedData target;
   struct GNUNET_CRYPTO_AesSessionKey insk;
@@ -143,9 +137,7 @@ testEncryptDecryptSK ()
   int ok;
 
   FPRINTF (stderr, "%s",  "W");
-  hostkey = GNUNET_CRYPTO_rsa_key_create ();
-  GNUNET_CRYPTO_rsa_key_get_public (hostkey, &pkey);
-
+  GNUNET_CRYPTO_rsa_key_get_public (key, &pkey);
   ok = 0;
   start = GNUNET_TIME_absolute_get ();
   for (i = 0; i < ITER; i++)
@@ -162,7 +154,7 @@ testEncryptDecryptSK ()
       continue;
     }
     if (-1 ==
-        GNUNET_CRYPTO_rsa_decrypt (hostkey, &target, &outsk,
+        GNUNET_CRYPTO_rsa_decrypt (key, &target, &outsk,
                                    sizeof (struct GNUNET_CRYPTO_AesSessionKey)))
     {
       FPRINTF (stderr, "%s",  "GNUNET_CRYPTO_rsa_decrypt returned SYSERR\n");
@@ -180,7 +172,6 @@ testEncryptDecryptSK ()
   printf ("%d RSA encrypt/decrypt SK operations %llums (%d failures)\n", ITER,
           (unsigned long long)
           GNUNET_TIME_absolute_get_duration (start).rel_value, ok);
-  GNUNET_CRYPTO_rsa_key_free (hostkey);
   if (ok != 0)
     return GNUNET_SYSERR;
   return GNUNET_OK;
@@ -190,7 +181,6 @@ testEncryptDecryptSK ()
 static int
 testSignVerify ()
 {
-  struct GNUNET_CRYPTO_RsaPrivateKey *hostkey;
   struct GNUNET_CRYPTO_RsaSignature sig;
   struct GNUNET_CRYPTO_RsaSignaturePurpose purp;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pkey;
@@ -199,8 +189,7 @@ testSignVerify ()
   int ok = GNUNET_OK;
 
   FPRINTF (stderr, "%s",  "W");
-  hostkey = GNUNET_CRYPTO_rsa_key_create ();
-  GNUNET_CRYPTO_rsa_key_get_public (hostkey, &pkey);
+  GNUNET_CRYPTO_rsa_key_get_public (key, &pkey);
   start = GNUNET_TIME_absolute_get ();
   purp.size = htonl (sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose));
   purp.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TEST);
@@ -208,7 +197,7 @@ testSignVerify ()
   for (i = 0; i < ITER; i++)
   {
     FPRINTF (stderr, "%s",  ".");
-    if (GNUNET_SYSERR == GNUNET_CRYPTO_rsa_sign (hostkey, &purp, &sig))
+    if (GNUNET_SYSERR == GNUNET_CRYPTO_rsa_sign (key, &purp, &sig))
     {
       FPRINTF (stderr, "%s",  "GNUNET_CRYPTO_rsa_sign returned SYSERR\n");
       ok = GNUNET_SYSERR;
@@ -234,7 +223,6 @@ testSignVerify ()
   printf ("%d RSA sign/verify operations %llums\n", ITER,
           (unsigned long long)
           GNUNET_TIME_absolute_get_duration (start).rel_value);
-  GNUNET_CRYPTO_rsa_key_free (hostkey);
   return ok;
 }
 
@@ -243,7 +231,6 @@ testSignVerify ()
 static int
 testSignPerformance ()
 {
-  struct GNUNET_CRYPTO_RsaPrivateKey *hostkey;
   struct GNUNET_CRYPTO_RsaSignaturePurpose purp;
   struct GNUNET_CRYPTO_RsaSignature sig;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pkey;
@@ -254,13 +241,12 @@ testSignPerformance ()
   purp.size = htonl (sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose));
   purp.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TEST);
   FPRINTF (stderr, "%s",  "W");
-  hostkey = GNUNET_CRYPTO_rsa_key_create ();
-  GNUNET_CRYPTO_rsa_key_get_public (hostkey, &pkey);
+  GNUNET_CRYPTO_rsa_key_get_public (key, &pkey);
   start = GNUNET_TIME_absolute_get ();
   for (i = 0; i < ITER; i++)
   {
     FPRINTF (stderr, "%s",  ".");
-    if (GNUNET_SYSERR == GNUNET_CRYPTO_rsa_sign (hostkey, &purp, &sig))
+    if (GNUNET_SYSERR == GNUNET_CRYPTO_rsa_sign (key, &purp, &sig))
     {
       FPRINTF (stderr, "%s",  "GNUNET_CRYPTO_rsa_sign returned SYSERR\n");
       ok = GNUNET_SYSERR;
@@ -270,7 +256,6 @@ testSignPerformance ()
   printf ("%d RSA sign operations %llu ms\n", ITER,
           (unsigned long long)
           GNUNET_TIME_absolute_get_duration (start).rel_value);
-  GNUNET_CRYPTO_rsa_key_free (hostkey);
   return ok;
 }
 #endif
@@ -279,7 +264,6 @@ testSignPerformance ()
 static int
 testCreateFromFile ()
 {
-  struct GNUNET_CRYPTO_RsaPrivateKey *key;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded p1;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded p2;
 
@@ -297,9 +281,41 @@ testCreateFromFile ()
   GNUNET_assert (NULL != key);
   GNUNET_CRYPTO_rsa_key_get_public (key, &p2);
   GNUNET_assert (0 != memcmp (&p1, &p2, sizeof (p1)));
-  GNUNET_CRYPTO_rsa_key_free (key);
-  GNUNET_assert (0 == UNLINK (KEYFILE));
   return GNUNET_OK;
+}
+
+
+static void
+key_cont (void *cls,
+	  struct GNUNET_CRYPTO_RsaPrivateKey *pk,
+	  const char *emsg)
+{
+  const char *txt = cls;
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pub1;
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pub2;
+
+  GNUNET_assert (0 == strcmp ("ok", txt));
+  GNUNET_CRYPTO_rsa_key_get_public (pk, &pub1);
+  GNUNET_CRYPTO_rsa_key_get_public (key, &pub2);
+  GNUNET_assert (0 == memcmp (&pub1, &pub2, 
+			      sizeof (pub1)));
+  GNUNET_CRYPTO_rsa_key_free (pk);
+}
+
+
+static void
+test_async_creation (void *cls,
+		     const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_CRYPTO_RsaKeyGenerationContext *gc;
+
+  gc = GNUNET_CRYPTO_rsa_key_create_start (KEYFILE,
+					   &key_cont, 
+					   (void*) "bug");
+  GNUNET_CRYPTO_rsa_key_create_stop (gc);
+  gc = GNUNET_CRYPTO_rsa_key_create_start (KEYFILE,
+					   &key_cont, 
+					   (void*) "ok");
 }
 
 
@@ -312,6 +328,7 @@ main (int argc, char *argv[])
   GNUNET_CRYPTO_random_disable_entropy_gathering ();
   if (GNUNET_OK != testCreateFromFile ())
     failureCount++;
+  GNUNET_SCHEDULER_run (&test_async_creation, NULL);
 #if PERF
   if (GNUNET_OK != testEncryptPerformance ())
     failureCount++;
@@ -324,6 +341,8 @@ main (int argc, char *argv[])
     failureCount++;
   if (GNUNET_OK != testSignVerify ())
     failureCount++;
+  GNUNET_CRYPTO_rsa_key_free (key);
+  GNUNET_assert (0 == UNLINK (KEYFILE));
 
   if (failureCount != 0)
   {

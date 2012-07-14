@@ -860,15 +860,6 @@ GNUNET_CRYPTO_kdf (void *result, size_t out_len, const void *xts,
 
 
 /**
- * Create a new private key. Caller must free return value.
- *
- * @return fresh private key
- */
-struct GNUNET_CRYPTO_RsaPrivateKey *
-GNUNET_CRYPTO_rsa_key_create (void);
-
-
-/**
  * Convert a public key to a string.
  *
  * @param pub key to convert
@@ -925,9 +916,54 @@ GNUNET_CRYPTO_rsa_decode_key (const char *buf, uint16_t len);
  * @param filename name of file to use for storage
  * @return new private key, NULL on error (for example,
  *   permission denied)
+ * @deprecated use 'GNUNET_CRYPTO_rsa_key_create_start' instead
  */
 struct GNUNET_CRYPTO_RsaPrivateKey *
 GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename);
+
+
+/**
+ * Handle to cancel private key generation.
+ */
+struct GNUNET_CRYPTO_RsaKeyGenerationContext;
+
+
+/**
+ * Function called upon completion of 'GNUNET_CRYPTO_rsa_key_create_async'.
+ *
+ * @param cls closure
+ * @param pk NULL on error, otherwise the private key (which must be free'd by the callee)
+ * @param emsg NULL on success, otherwise an error message
+ */
+typedef void (*GNUNET_CRYPTO_RsaKeyCallback)(void *cls,
+					     struct GNUNET_CRYPTO_RsaPrivateKey *pk,
+					     const char *emsg);
+
+
+/**
+ * Create a new private key by reading it from a file.  If the files
+ * does not exist, create a new key and write it to the file.  If the
+ * contents of the file are invalid the old file is deleted and a
+ * fresh key is created.
+ *
+ * @param filename name of file to use for storage
+ * @param cont function to call when done (or on errors)
+ * @param cont_cls closure for 'cont'
+ * @return handle to abort operation, NULL on fatal errors (cont will not be called if NULL is returned)
+ */
+struct GNUNET_CRYPTO_RsaKeyGenerationContext *
+GNUNET_CRYPTO_rsa_key_create_start (const char *filename,
+				    GNUNET_CRYPTO_RsaKeyCallback cont,
+				    void *cont_cls);
+
+
+/**
+ * Abort RSA key generation.
+ *
+ * @param gc key generation context to abort
+ */
+void
+GNUNET_CRYPTO_rsa_key_create_stop (struct GNUNET_CRYPTO_RsaKeyGenerationContext *gc);
 
 
 /**

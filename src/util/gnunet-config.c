@@ -146,7 +146,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 
 
 /**
- * The main function to obtain statistics in GNUnet.
+ * Program to manipulate configuration files.
  *
  * @param argc number of arguments from the command line
  * @param argv command line arguments

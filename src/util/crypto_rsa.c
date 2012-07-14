@@ -34,9 +34,7 @@
 #include "platform.h"
 #include <gcrypt.h>
 #include "gnunet_common.h"
-#include "gnunet_crypto_lib.h"
-#include "gnunet_disk_lib.h"
-#include "gnunet_strings_lib.h"
+#include "gnunet_util_lib.h"
 
 #define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
 
@@ -44,9 +42,10 @@
 
 #define LOG_STRERROR_FILE(kind,syscall,filename) GNUNET_log_from_strerror_file (kind, "util", syscall, filename)
 
+
 /**
  * The private information of an RSA key pair.
- * NOTE: this must match the definition in crypto_ksk.c
+ * NOTE: this must match the definition in crypto_ksk.c and gnunet-rsa.c!
  */
 struct GNUNET_CRYPTO_RsaPrivateKey
 {
@@ -81,31 +80,6 @@ adjust (unsigned char *buf, size_t size, size_t target)
   }
 }
 
-/**
- * Create a new private key. Caller must free return value.
- *
- * @return fresh private key
- */
-struct GNUNET_CRYPTO_RsaPrivateKey *
-GNUNET_CRYPTO_rsa_key_create ()
-{
-  struct GNUNET_CRYPTO_RsaPrivateKey *ret;
-  gcry_sexp_t s_key;
-  gcry_sexp_t s_keyparam;
-
-  GNUNET_assert (0 ==
-                 gcry_sexp_build (&s_keyparam, NULL,
-                                  "(genkey(rsa(nbits %d)(rsa-use-e 3:257)))",
-                                  HOSTKEY_LEN));
-  GNUNET_assert (0 == gcry_pk_genkey (&s_key, s_keyparam));
-  gcry_sexp_release (s_keyparam);
-#if EXTRA_CHECKS
-  GNUNET_assert (0 == gcry_pk_testkey (s_key));
-#endif
-  ret = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_RsaPrivateKey));
-  ret->sexp = s_key;
-  return ret;
-}
 
 /**
  * Free memory occupied by hostkey
@@ -118,6 +92,10 @@ GNUNET_CRYPTO_rsa_key_free (struct GNUNET_CRYPTO_RsaPrivateKey *hostkey)
   GNUNET_free (hostkey);
 }
 
+
+/**
+ * FIXME: document!
+ */
 static int
 key_from_sexp (gcry_mpi_t * array, gcry_sexp_t sexp, const char *topname,
                const char *elems)
@@ -594,6 +572,98 @@ GNUNET_CRYPTO_rsa_decode_key (const char *buf, uint16_t len)
 
 
 /**
+ * Create a new private key. Caller must free return value.
+ *
+ * @return fresh private key
+ */
+static struct GNUNET_CRYPTO_RsaPrivateKey *
+rsa_key_create ()
+{
+  struct GNUNET_CRYPTO_RsaPrivateKey *ret;
+  gcry_sexp_t s_key;
+  gcry_sexp_t s_keyparam;
+
+  GNUNET_assert (0 ==
+                 gcry_sexp_build (&s_keyparam, NULL,
+                                  "(genkey(rsa(nbits %d)(rsa-use-e 3:257)))",
+                                  HOSTKEY_LEN));
+  GNUNET_assert (0 == gcry_pk_genkey (&s_key, s_keyparam));
+  gcry_sexp_release (s_keyparam);
+#if EXTRA_CHECKS
+  GNUNET_assert (0 == gcry_pk_testkey (s_key));
+#endif
+  ret = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_RsaPrivateKey));
+  ret->sexp = s_key;
+  return ret;
+}
+
+
+/**
+ * Try to read the private key from the given file.
+ *
+ * @param filename file to read the key from
+ * @return NULL on error
+ */
+static struct GNUNET_CRYPTO_RsaPrivateKey *
+try_read_key (const char *filename)
+{
+  struct GNUNET_CRYPTO_RsaPrivateKey *ret;
+  struct GNUNET_CRYPTO_RsaPrivateKeyBinaryEncoded *enc;
+  struct GNUNET_DISK_FileHandle *fd;
+  OFF_T fs;
+  uint16_t len;
+
+  if (GNUNET_YES != GNUNET_DISK_file_test (filename))
+    return NULL;
+
+  /* hostkey file exists already, read it! */
+  if (NULL == (fd = GNUNET_DISK_file_open (filename, GNUNET_DISK_OPEN_READ,
+					   GNUNET_DISK_PERM_NONE)))
+  {
+    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_ERROR, "open", filename);
+    return NULL;
+  }
+  if (GNUNET_OK != (GNUNET_DISK_file_handle_size (fd, &fs)))
+  {
+    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_ERROR, "stat", filename);
+    (void) GNUNET_DISK_file_close (fd);
+    return NULL;
+  }
+  if (fs > UINT16_MAX)
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         _("File `%s' does not contain a valid private key.  Deleting it.\n"),
+         filename);
+    GNUNET_break (GNUNET_OK == GNUNET_DISK_file_close (fd));
+    if (0 != UNLINK (filename))    
+      LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "unlink", filename);
+    return NULL;
+  }
+
+  enc = GNUNET_malloc (fs);
+  GNUNET_break (fs == GNUNET_DISK_file_read (fd, enc, fs));
+  len = ntohs (enc->len);
+  ret = NULL;
+  if ((len != fs) ||
+      (NULL == (ret = GNUNET_CRYPTO_rsa_decode_key ((char *) enc, len))))
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         _("File `%s' does not contain a valid private key.  Deleting it.\n"),
+         filename);
+    GNUNET_break (GNUNET_OK == GNUNET_DISK_file_close (fd));
+    if (0 != UNLINK (filename))    
+      LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "unlink", filename);
+    GNUNET_free (enc);
+    return NULL;
+  }
+  GNUNET_free (enc);
+
+  GNUNET_break (GNUNET_OK == GNUNET_DISK_file_close (fd));
+  return ret;  
+}
+
+
+/**
  * Create a new private key by reading it from a file.  If the
  * files does not exist, create a new key and write it to the
  * file.  Caller must free return value.  Note that this function
@@ -658,13 +728,13 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
       {
         ec = errno;
         LOG (GNUNET_ERROR_TYPE_ERROR,
-             _("Could not aquire lock on file `%s': %s...\n"), filename,
+             _("Could not acquire lock on file `%s': %s...\n"), filename,
              STRERROR (ec));
       }
     }
     LOG (GNUNET_ERROR_TYPE_INFO,
          _("Creating a new private key.  This may take a while.\n"));
-    ret = GNUNET_CRYPTO_rsa_key_create ();
+    ret = rsa_key_create ();
     GNUNET_assert (ret != NULL);
     enc = GNUNET_CRYPTO_rsa_encode_key (ret);
     GNUNET_assert (enc != NULL);
@@ -705,7 +775,7 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
       {
         ec = errno;
         LOG (GNUNET_ERROR_TYPE_ERROR,
-             _("Could not aquire lock on file `%s': %s...\n"), filename,
+             _("Could not acquire lock on file `%s': %s...\n"), filename,
              STRERROR (ec));
         LOG (GNUNET_ERROR_TYPE_ERROR,
              _
@@ -782,6 +852,230 @@ GNUNET_CRYPTO_rsa_key_create_from_file (const char *filename)
          filename);
   }
   return ret;
+}
+
+
+/**
+ * Handle to cancel private key generation and state for the
+ * key generation operation.
+ */
+struct GNUNET_CRYPTO_RsaKeyGenerationContext
+{
+  
+  /**
+   * Continuation to call upon completion.
+   */
+  GNUNET_CRYPTO_RsaKeyCallback cont;
+
+  /**
+   * Closure for 'cont'.
+   */
+  void *cont_cls;
+
+  /**
+   * Name of the file.
+   */
+  char *filename;
+
+  /**
+   * Handle to the helper process which does the key generation.
+   */ 
+  struct GNUNET_OS_Process *gnunet_rsa;
+  
+  /**
+   * Handle to 'stdout' of gnunet-rsa.  We 'read' on stdout to detect
+   * process termination (instead of messing with SIGCHLD).
+   */
+  struct GNUNET_DISK_PipeHandle *gnunet_rsa_out;
+
+  /**
+   * Location where we store the private key if it already existed.
+   * (if this is used, 'filename', 'gnunet_rsa' and 'gnunet_rsa_out' will
+   * not be used).
+   */
+  struct GNUNET_CRYPTO_RsaPrivateKey *pk;
+  
+  /**
+   * Task reading from 'gnunet_rsa_out' to wait for process termination.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier read_task;
+  
+};
+
+
+/**
+ * Task called upon shutdown or process termination of 'gnunet-rsa' during
+ * RSA key generation.  Check where we are and perform the appropriate
+ * action.
+ *
+ * @param cls the 'struct GNUNET_CRYPTO_RsaKeyGenerationContext'
+ * @param tc scheduler context
+ */
+static void
+check_key_generation_completion (void *cls,
+				 const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_CRYPTO_RsaKeyGenerationContext *gc = cls;
+  enum GNUNET_OS_ProcessStatusType type;
+  unsigned long code;
+  struct GNUNET_CRYPTO_RsaPrivateKey *pk;
+
+  gc->read_task = GNUNET_SCHEDULER_NO_TASK;
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+  {
+    gc->cont (gc->cont_cls, NULL, _("interrupted by shutdown"));
+    GNUNET_CRYPTO_rsa_key_create_stop (gc);
+    return;
+  }
+  if (GNUNET_OK != 
+      GNUNET_OS_process_status (gc->gnunet_rsa,
+				&type, &code))
+  {
+    GNUNET_break (0);
+    gc->cont (gc->cont_cls, NULL, _("internal error"));
+    GNUNET_CRYPTO_rsa_key_create_stop (gc);
+    return;
+  }
+  GNUNET_OS_process_destroy (gc->gnunet_rsa);
+  gc->gnunet_rsa = NULL;
+  if ( (GNUNET_OS_PROCESS_EXITED != type) ||
+       (0 != code) )
+  {
+    gc->cont (gc->cont_cls, NULL, _("gnunet-rsa failed"));
+    GNUNET_CRYPTO_rsa_key_create_stop (gc);
+    return;
+  }
+  if (NULL == (pk = try_read_key (gc->filename)))
+  {
+    GNUNET_break (0);
+    gc->cont (gc->cont_cls, NULL, _("gnunet-rsa failed"));
+    GNUNET_CRYPTO_rsa_key_create_stop (gc);
+    return;
+  }
+  gc->cont (gc->cont_cls, pk, NULL);
+  GNUNET_free (gc->filename);
+  GNUNET_free (gc);
+}
+
+
+/**
+ * Return the private RSA key which already existed on disk
+ * (asynchronously) to the caller.
+ *
+ * @param cls the 'struct GNUNET_CRYPTO_RsaKeyGenerationContext'
+ * @param tc scheduler context (unused)
+ */
+static void
+async_return_key (void *cls,
+		  const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_CRYPTO_RsaKeyGenerationContext *gc = cls;
+
+  gc->cont (gc->cont_cls,
+	    gc->pk,
+	    NULL);
+  GNUNET_free (gc);
+}
+
+
+/**
+ * Create a new private key by reading it from a file.  If the files
+ * does not exist, create a new key and write it to the file.  If the
+ * contents of the file are invalid the old file is deleted and a
+ * fresh key is created.
+ *
+ * @param filename name of file to use for storage
+ * @param cont function to call when done (or on errors)
+ * @param cont_cls closure for 'cont'
+ * @return handle to abort operation, NULL on fatal errors (cont will not be called if NULL is returned)
+ */
+struct GNUNET_CRYPTO_RsaKeyGenerationContext *
+GNUNET_CRYPTO_rsa_key_create_start (const char *filename,
+				    GNUNET_CRYPTO_RsaKeyCallback cont,
+				    void *cont_cls)
+{
+  struct GNUNET_CRYPTO_RsaKeyGenerationContext *gc;
+  struct GNUNET_CRYPTO_RsaPrivateKey *pk;
+
+  if (NULL != (pk = try_read_key (filename)))
+  {
+    /* quick happy ending: key already exists! */
+    gc = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_RsaKeyGenerationContext));
+    gc->pk = pk;
+    gc->cont = cont;
+    gc->cont_cls = cont_cls;
+    gc->read_task = GNUNET_SCHEDULER_add_now (&async_return_key,
+					      gc);
+    return gc;
+  }
+  gc = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_RsaKeyGenerationContext));
+  gc->filename = GNUNET_strdup (filename);
+  gc->cont = cont;
+  gc->cont_cls = cont_cls;
+  gc->gnunet_rsa_out = GNUNET_DISK_pipe (GNUNET_NO,
+					 GNUNET_NO,
+					 GNUNET_NO,
+					 GNUNET_YES);
+  if (NULL == gc->gnunet_rsa_out)
+  {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "pipe");
+    GNUNET_free (gc->filename);
+    GNUNET_free (gc);
+    return NULL;
+  }
+  gc->gnunet_rsa = GNUNET_OS_start_process (GNUNET_YES,
+					    GNUNET_OS_INHERIT_STD_ERR,
+					    NULL, 
+					    gc->gnunet_rsa_out,
+					    "gnunet-rsa",
+					    "gnunet-rsa",
+					    gc->filename,
+					    NULL);
+  if (NULL == gc->gnunet_rsa)
+  {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "fork");
+    GNUNET_DISK_pipe_close (gc->gnunet_rsa_out);
+    GNUNET_free (gc->filename);
+    GNUNET_free (gc);
+    return NULL;
+  }
+  GNUNET_assert (GNUNET_OK ==
+		 GNUNET_DISK_pipe_close_end (gc->gnunet_rsa_out,
+					     GNUNET_DISK_PIPE_END_WRITE));
+  gc->read_task = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
+						  GNUNET_DISK_pipe_handle (gc->gnunet_rsa_out,
+									   GNUNET_DISK_PIPE_END_READ),
+						  &check_key_generation_completion,
+						  gc);
+  return gc;
+}
+
+
+/**
+ * Abort RSA key generation.
+ *
+ * @param gc key generation context to abort
+ */
+void
+GNUNET_CRYPTO_rsa_key_create_stop (struct GNUNET_CRYPTO_RsaKeyGenerationContext *gc)
+{
+  GNUNET_SCHEDULER_cancel (gc->read_task);
+  if (NULL != gc->gnunet_rsa)
+  {
+    (void) GNUNET_OS_process_kill (gc->gnunet_rsa, SIGKILL);
+    GNUNET_break (GNUNET_OK ==
+		  GNUNET_OS_process_wait (gc->gnunet_rsa));
+    GNUNET_OS_process_destroy (gc->gnunet_rsa);
+  }
+  if (NULL != gc->filename)
+  {
+    if (0 != UNLINK (gc->filename))
+      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "unlink", gc->filename);
+    GNUNET_free (gc->filename);
+  }
+  if (NULL != gc->pk)
+    GNUNET_CRYPTO_rsa_key_free (gc->pk);
+  GNUNET_free (gc);
 }
 
 

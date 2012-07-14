@@ -25,6 +25,7 @@
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
+#include <gcrypt.h>
 
 
 /**
@@ -41,6 +42,45 @@ static int print_peer_identity;
  * Flag for printing short hash of public key.
  */
 static int print_short_identity;
+
+
+/**
+ * The private information of an RSA key pair.
+ * NOTE: this must match the definition in crypto_ksk.c and crypto_rsa.c!
+ */
+struct GNUNET_CRYPTO_RsaPrivateKey
+{
+  gcry_sexp_t sexp;
+};
+
+
+#if 0
+/**
+ * Create a new private key. Caller must free return value.
+ *
+ * @return fresh private key
+ */
+struct GNUNET_CRYPTO_RsaPrivateKey *
+GNUNET_CRYPTO_rsa_key_create ()
+{
+  struct GNUNET_CRYPTO_RsaPrivateKey *ret;
+  gcry_sexp_t s_key;
+  gcry_sexp_t s_keyparam;
+
+  GNUNET_assert (0 ==
+                 gcry_sexp_build (&s_keyparam, NULL,
+                                  "(genkey(rsa(nbits %d)(rsa-use-e 3:257)))",
+                                  HOSTKEY_LEN));
+  GNUNET_assert (0 == gcry_pk_genkey (&s_key, s_keyparam));
+  gcry_sexp_release (s_keyparam);
+#if EXTRA_CHECKS
+  GNUNET_assert (0 == gcry_pk_testkey (s_key));
+#endif
+  ret = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_RsaPrivateKey));
+  ret->sexp = s_key;
+  return ret;
+}
+#endif
 
 
 /**
@@ -100,7 +140,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 
 
 /**
- * The main function to obtain statistics in GNUnet.
+ * Program to manipulate RSA key files.
  *
  * @param argc number of arguments from the command line
  * @param argv command line arguments
