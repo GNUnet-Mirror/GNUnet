@@ -3121,6 +3121,8 @@ run (void *cls, char *const *args, const char *cfgfile,
     }
     cafile = cafile_cfg;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Using %s as CA\n", cafile);
   
   gnutls_global_init ();
   gnutls_x509_crt_init (&proxy_ca.cert);

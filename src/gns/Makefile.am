@@ -60,7 +60,8 @@ check_PROGRAMS = \
   test_gns_dht_threepeer \
 	test_gns_cname_lookup \
 	test_gns_ns_lookup \
-	test_gns_revocation
+	test_gns_revocation \
+	test_gns_proxy
 
 
 #  test_gns_simple_lookup
@@ -70,6 +71,19 @@ check_PROGRAMS = \
 
 plugin_LTLIBRARIES = \
   libgnunet_plugin_block_gns.la
+
+test_gns_proxy_SOURCES = \
+  test_gns_proxy.c
+test_gns_proxy_LDADD = -lmicrohttpd @LIBCURL@ \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/namestore/libgnunetnamestore.la \
+  $(top_builddir)/src/gns/libgnunetgns.la \
+  $(top_builddir)/src/testing/libgnunettesting.la
+test_gns_proxy_DEPENDENCIES = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/namestore/libgnunetnamestore.la \
+  $(top_builddir)/src/gns/libgnunetgns.la \
+  $(top_builddir)/src/testing/libgnunettesting.la
 
 test_gns_dht_threepeer_SOURCES = \
   test_gns_dht_threepeer.c
