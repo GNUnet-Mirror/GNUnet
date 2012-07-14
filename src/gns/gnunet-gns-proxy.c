@@ -286,6 +286,8 @@ struct ProxyCurlTask
   /* post data */
   struct ProxyPostData *post_data_head;
   struct ProxyPostData *post_data_tail;
+
+  int post_done;
   
 };
 
@@ -348,11 +350,14 @@ struct ProxyPostData
   /* DLL */
   struct ProxyPostData *prev;
   
-  /* key */
-  char *key;
-  
   /* value */
   char *value;
+
+  /* to copy */
+  size_t bytes_left;
+
+  /* size */
+  size_t total_bytes;
 };
 
 
@@ -501,6 +506,7 @@ con_post_data_iter (void *cls,
 {
   struct ProxyCurlTask* ctask = cls;
   struct ProxyPostData* pdata;
+  char* enc;
   
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Got POST data: '%s : %s' at offset %llu size %lld\n",
@@ -508,18 +514,49 @@ con_post_data_iter (void *cls,
 
   /* FIXME ! if transfer enc == urlenc! */
 
+  if (0 == off)
+  {
+    /* a key */
+    pdata = GNUNET_malloc (sizeof (struct ProxyPostData));
+    enc = escape_to_urlenc (key);
+    pdata->value = GNUNET_malloc (strlen (enc) + 3);
+    if (NULL != ctask->post_data_head)
+    {
+      pdata->value[0] = '&';
+      memcpy (pdata->value+1, enc, strlen (enc));
+    }
+    else
+      memcpy (pdata->value, enc, strlen (enc));
+    pdata->value[strlen (pdata->value)] = '=';
+    pdata->bytes_left = strlen (pdata->value);
+    pdata->total_bytes = pdata->bytes_left;
+    GNUNET_free (enc);
+
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Escaped POST key: '%s'\n",
+                pdata->value);
+
+    GNUNET_CONTAINER_DLL_insert_tail (ctask->post_data_head,
+                                      ctask->post_data_tail,
+                                      pdata);
+  }
+
+  /* a value */
   pdata = GNUNET_malloc (sizeof (struct ProxyPostData));
-  pdata->key = escape_to_urlenc (key);
-  pdata->value = escape_to_urlenc (data);
+  enc = escape_to_urlenc (data);
+  pdata->value = GNUNET_malloc (strlen (enc) + 1);
+  memcpy (pdata->value, enc, strlen (enc));
+  pdata->bytes_left = strlen (pdata->value);
+  pdata->total_bytes = pdata->bytes_left;
+  GNUNET_free (enc);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Escaped POST data: '%s : %s'\n",
-              pdata->key, pdata->value);
+              "Escaped POST value: '%s'\n",
+              pdata->value);
 
   GNUNET_CONTAINER_DLL_insert_tail (ctask->post_data_head,
                                     ctask->post_data_tail,
                                     pdata);
-
   return MHD_YES;
 }
 
@@ -618,6 +655,9 @@ curl_check_hdr (void *buffer, size_t size, size_t nmemb, void *cls)
   char hdr_mime[html_mime_len+1];
   char hdr_generic[bytes+1];
   char new_cookie_hdr[bytes+strlen (ctask->leho)+1];
+  char new_location[MAX_HTTP_URI_LENGTH+500];
+  char real_host[264];
+  char leho_host[264];
   char* ndup;
   char* tok;
   char* cookie_domain;
@@ -759,18 +799,40 @@ curl_check_hdr (void *buffer, size_t size, size_t nmemb, void *cls)
     return bytes;
   }
 
+  hdr_val++;
+
+  if (0 == strcasecmp (MHD_HTTP_HEADER_LOCATION, hdr_type))
+  {
+    if (ctask->mhd->is_ssl)
+    {
+      sprintf (leho_host, "https://%s", ctask->leho);
+      sprintf (real_host, "https://%s", ctask->host);
+    }
+    else
+    {
+      sprintf (leho_host, "http://%s", ctask->leho);
+      sprintf (real_host, "http://%s", ctask->host);
+    }
+
+    if (0 == memcmp (leho_host, hdr_val, strlen (leho_host)))
+    {
+      sprintf (new_location, "%s%s", real_host, hdr_val+strlen (leho_host));
+      hdr_val = new_location;
+    }
+  }
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Trying to set %s: %s\n",
               hdr_type,
-              hdr_val+1);
+              hdr_val);
   if (GNUNET_NO == MHD_add_response_header (ctask->response,
                                             hdr_type,
-                                            hdr_val+1))
+                                            hdr_val))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "MHD: Error adding %s header field %s\n",
                 hdr_type,
-                hdr_val+1);
+                hdr_val);
   }
   GNUNET_free (ndup);
   return bytes;
@@ -876,8 +938,8 @@ mhd_content_cb (void *cls,
 
   if ((GNUNET_YES == ctask->download_is_finished) &&
       (GNUNET_NO == ctask->download_error) &&
-      (0 == bytes_to_copy) &&
-      (BUF_WAIT_FOR_CURL == ctask->buf_status))
+      (0 == bytes_to_copy)) /* &&
+      (BUF_WAIT_FOR_CURL == ctask->buf_status))*/
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "MHD: sending response for %s\n", ctask->url);
@@ -890,8 +952,8 @@ mhd_content_cb (void *cls,
   
   if ((GNUNET_YES == ctask->download_error) &&
       (GNUNET_YES == ctask->download_is_finished) &&
-      (0 == bytes_to_copy) &&
-      (BUF_WAIT_FOR_CURL == ctask->buf_status))
+      (0 == bytes_to_copy)) /* &&
+      (BUF_WAIT_FOR_CURL == ctask->buf_status))*/
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "MHD: sending error response\n");
@@ -1177,6 +1239,68 @@ curl_download_cb (void *ptr, size_t size, size_t nmemb, void* ctx)
   ctask->buffer_write_ptr[0] = '\0';
 
   return total;
+}
+
+/**
+ * cURL callback for post data
+ */
+static size_t
+read_callback (void *buf, size_t size, size_t nmemb, void *cls)
+{
+  struct ProxyCurlTask *ctask = cls;
+  struct ProxyPostData *pdata = ctask->post_data_head;
+  size_t len = size * nmemb;
+  size_t to_copy;
+  char* pos;
+  char tmp[2048];
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "CURL: read callback\n");
+
+  if (NULL == pdata)
+    return 0;
+  
+  //fin
+  if (NULL == pdata->value)
+  {
+    return 0;
+    if (len < 2)
+      return 0;
+
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "CURL: Terminating POST data\n");
+
+    memcpy (buf, "\n\r", 2);
+    GNUNET_CONTAINER_DLL_remove (ctask->post_data_head,
+                                 ctask->post_data_tail,
+                                 pdata);
+    GNUNET_free (pdata);
+    return 2;
+  }
+ 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "CURL: read callback value %s\n", pdata->value); 
+  
+  to_copy = pdata->bytes_left;
+  if (to_copy > len)
+    to_copy = len;
+  
+  pos = pdata->value + (pdata->total_bytes - pdata->bytes_left);
+  memcpy (buf, pos, to_copy);
+  memcpy (tmp, pos, to_copy);
+  tmp[to_copy] = 'c';
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "CURL: Wrote %s\n", tmp);
+  pdata->bytes_left -= to_copy;
+  if (pdata->bytes_left <= 0)
+  {
+    GNUNET_free (pdata->value);
+    GNUNET_CONTAINER_DLL_remove (ctask->post_data_head,
+                                 ctask->post_data_tail,
+                                 pdata);
+    GNUNET_free (pdata);
+  }
+  return to_copy;
 }
 
 /**
@@ -1626,6 +1750,7 @@ create_response (void *cls,
   int ret = MHD_YES;
 
   struct ProxyCurlTask *ctask;
+  struct ProxyPostData *fin_post;
   
   //FIXME handle
   if ((0 != strcasecmp (meth, MHD_HTTP_METHOD_GET)) &&
@@ -1696,17 +1821,19 @@ create_response (void *cls,
 
     if (0 == strcasecmp (meth, MHD_HTTP_METHOD_POST))
     {
-      if (0 == *upload_data_size)
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                    "Setting up POST processor\n");
-        ctask->post_handler = MHD_create_post_processor (con,
-                                   POSTBUFFERSIZE,
-                                   &con_post_data_iter,
-                                   ctask);
-        return MHD_YES;
-      }
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  "Setting up POST processor\n");
+      ctask->post_handler = MHD_create_post_processor (con,
+                                 POSTBUFFERSIZE,
+                                 &con_post_data_iter,
+                                 ctask);
       curl_easy_setopt (ctask->curl, CURLOPT_POST, 1);
+      curl_easy_setopt (ctask->curl, CURLOPT_READFUNCTION,
+                        &read_callback);
+      curl_easy_setopt (ctask->curl, CURLOPT_READDATA, ctask);
+      ctask->headers = curl_slist_append (ctask->headers,
+                                          "Transfer-Encoding: chunked");
+      /*curl_easy_setopt (ctask->curl, CURLOPT_POST, 1);
       curl_easy_setopt (ctask->curl, CURLOPT_POSTFIELDSIZE, *upload_data_size);
       curl_easy_setopt (ctask->curl, CURLOPT_COPYPOSTFIELDS, upload_data);
       
@@ -1714,7 +1841,7 @@ create_response (void *cls,
                   "Got POST data: %s\n", upload_data);
       curl_easy_cleanup (ctask->curl);
       GNUNET_free (ctask);
-      return MHD_NO;
+      return MHD_NO;*/
     }
 
     curl_easy_setopt (ctask->curl, CURLOPT_HEADERFUNCTION, &curl_check_hdr);
@@ -1754,18 +1881,27 @@ create_response (void *cls,
 
   ctask = (struct ProxyCurlTask *) *con_cls;
   if (0 == strcasecmp (meth, MHD_HTTP_METHOD_POST))
+  {
+    if (0 != *upload_data_size)
     {
-      if (0 != *upload_data_size)
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                    "Invoking POST processor\n");
-        MHD_post_process (ctask->post_handler,
-                          upload_data, *upload_data_size);
-        *upload_data_size = 0;
-        return MHD_YES;
-      }
-      return MHD_NO;
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  "Invoking POST processor\n");
+      MHD_post_process (ctask->post_handler,
+                        upload_data, *upload_data_size);
+      *upload_data_size = 0;
+      return MHD_YES;
     }
+    else if (GNUNET_NO == ctask->post_done)
+    {
+      fin_post = GNUNET_malloc (sizeof (struct ProxyPostData));
+      GNUNET_CONTAINER_DLL_insert_tail (ctask->post_data_head,
+                                        ctask->post_data_tail,
+                                        fin_post);
+      ctask->post_done = GNUNET_YES;
+      return MHD_YES;
+    }
+  }
+  
   if (GNUNET_YES != ctask->ready_to_queue)
     return MHD_YES; /* wait longer */
   
