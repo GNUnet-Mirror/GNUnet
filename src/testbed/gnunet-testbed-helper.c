@@ -150,7 +150,7 @@ read_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (GNUNET_YES == ignore_reading)
     return;
   ret = GNUNET_SERVER_mst_receive (tokenizer, NULL, buf, sread,
-                                   GNUNET_YES, GNUNET_YES);
+                                   GNUNET_NO, GNUNET_NO);
   GNUNET_assert (GNUNET_SYSERR != ret);
   if (GNUNET_NO == ret)
   {
@@ -172,6 +172,7 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle * cfg)
 {
+  LOG_DEBUG ("Starting testbed helper...\n");
   tokenizer = GNUNET_SERVER_mst_create (&tokenizer_cb, NULL);
   stdin_fd = GNUNET_DISK_get_handle_from_native (stdin);
   buf_size = sizeof (struct GNUNET_TESTBED_HelperInit) + 8 * 1024;

@@ -109,7 +109,9 @@ cont_cb (void *cls, int result)
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Message sent\n");
   GNUNET_assert (GNUNET_OK == result);
   if (GNUNET_SCHEDULER_NO_TASK == shutdown_task)
-    shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+    shutdown_task = GNUNET_SCHEDULER_add_delayed 
+      (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 2),
+       &do_shutdown, NULL);
 }
 
 
