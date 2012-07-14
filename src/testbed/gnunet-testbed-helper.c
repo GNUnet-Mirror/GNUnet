@@ -32,14 +32,19 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_testing_lib-new.h"
 #include "testbed_helper.h"
-
+#include <zlib.h>
 
 /**
- * Generic debug logging shortcut
+ * Generic logging shortcut
  */
-#define LOG_DEBUG(...)                                  \
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__)
+#define LOG(kind, ...)                                   \
+  GNUNET_log (kind, __VA_ARGS__)
 
+/**
+ * Debug logging shorthand
+ */
+#define LOG_DEBUG(...)                          \
+  LOG (GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__)
 
 /**
  * Handle to the testing system
@@ -57,6 +62,21 @@ struct GNUNET_SERVER_MessageStreamTokenizer *tokenizer;
 static struct GNUNET_DISK_FileHandle *stdin_fd;
 
 /**
+ * The process handle to the testbed service
+ */
+static struct GNUNET_OS_Process *testbed;
+
+/**
+ * Pipe handle to child's stdin
+ */
+static struct GNUNET_DISK_PipeHandle *pipe_in;
+
+/**
+ * Pipe handle to child's stdout
+ */
+static struct GNUNET_DISK_PipeHandle *pipe_out;
+
+/**
  * Task identifier for the read task
  */
 static GNUNET_SCHEDULER_TaskIdentifier read_task_id;
@@ -65,6 +85,11 @@ static GNUNET_SCHEDULER_TaskIdentifier read_task_id;
  * Are we done reading messages from stdin?
  */
 static int done_reading;
+
+/**
+ * Result to return in case we fail
+ */
+static int ret;
 
 
 /**
@@ -108,10 +133,82 @@ static int
 tokenizer_cb (void *cls, void *client,
               const struct GNUNET_MessageHeader *message)
 {
-  GNUNET_break (0);
-  // FIXME: write config & start gnunet-service-testbed
+  const struct GNUNET_TESTBED_HelperInit *msg;
+  struct GNUNET_CONFIGURATION_Handle *cfg;
+  char *controller;
+  char *config;
+  uLongf config_size;
+  uint16_t xconfig_size;
+  uint16_t cname_size;
+
+  if ((sizeof (struct GNUNET_TESTBED_HelperInit) >= ntohs (message->size)) ||
+      (GNUNET_MESSAGE_TYPE_TESTBED_HELPER_INIT != ntohs (message->type)))
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "Received unexpected message -- exiting\n");
+    goto error;
+  }
+  msg = (const struct GNUNET_TESTBED_HelperInit *) message;
+  cname_size = ntohs (msg->cname_size);
+  controller = (char *) &msg[1];
+  if ('\0' != controller[cname_size])
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING, 
+         "Controller name cannot be empty -- exiting\n");
+    goto error;
+  }
+  config_size = (uLongf) ntohs (msg->config_size);
+  config = GNUNET_malloc (config_size);
+  xconfig_size = ntohs (message->size) - (cname_size + 1);
+  if (Z_OK != uncompress ((Bytef *) config, &config_size,
+                          (const Bytef *) (controller + cname_size + 1),
+                          (uLongf) xconfig_size))
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING, 
+         "Error while uncompressing config -- exiting\n");
+    GNUNET_free (config);
+    goto error;
+  }
+  cfg = GNUNET_CONFIGURATION_create ();  
+  if (GNUNET_OK != GNUNET_CONFIGURATION_deserialize (cfg, config, config_size,
+                                                     GNUNET_NO))
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING, 
+         "Unable to deserialize config -- exiting\n");
+    GNUNET_free (config);
+    goto error;
+  }
+  GNUNET_free (config);
+  test_system = GNUNET_TESTING_system_create ("testbed-helper", controller);
+  GNUNET_assert (NULL != test_system);
+  GNUNET_assert (GNUNET_OK ==  GNUNET_TESTING_configuration_create
+                 (test_system, cfg));
+  pipe_in = GNUNET_DISK_pipe (GNUNET_NO, GNUNET_NO, GNUNET_YES, GNUNET_NO);
+  pipe_out = GNUNET_DISK_pipe (GNUNET_NO, GNUNET_NO, GNUNET_NO, GNUNET_YES);
+  if ((NULL == pipe_in) || (NULL == pipe_out))
+  {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "pipe");
+    GNUNET_free (config);
+    goto error;
+  }  
+  testbed = GNUNET_OS_start_process 
+    (GNUNET_YES, GNUNET_OS_INHERIT_STD_ERR /*verbose? */, pipe_in, pipe_out,
+     "gnunet-service-testbed", "gnunet-service-testbed", "-c", config, NULL);
+  if (NULL == testbed)
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING, 
+         "Unable to deserialize config -- exiting\n");
+    goto error;
+  }
+  GNUNET_DISK_pipe_close_end (pipe_out, GNUNET_DISK_PIPE_END_WRITE);
+  GNUNET_DISK_pipe_close_end (pipe_in, GNUNET_DISK_PIPE_END_READ);
   done_reading = GNUNET_YES;
   return GNUNET_OK;
+  
+ error:
+  ret = GNUNET_SYSERR;
+  GNUNET_SCHEDULER_shutdown ();
+  return GNUNET_SYSERR;
 }
 
 
@@ -194,12 +291,14 @@ int main (int argc, char **argv)
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
+
+  ret = GNUNET_OK;
   if (GNUNET_OK != 
       GNUNET_PROGRAM_run (argc, argv, "gnunet-testbed-helper",
 			  "Helper for starting gnunet-service-testbed",
 			  options, &run, NULL))
     return 1;
-  return 0;
+  return (GNUNET_OK == ret) ? 0 : 1;
 }
 
 /* end of gnunet-testbed-helper.c */

@@ -28,6 +28,9 @@
 #ifndef TESTBED_HELPER_H
 #define TESTBED_HELPER_H
 
+/**
+ * Initialization message for gnunet-testbed-helper to start testbed service
+ */
 struct GNUNET_TESTBED_HelperInit
 {
   /**
@@ -42,7 +45,7 @@ struct GNUNET_TESTBED_HelperInit
   uint16_t cname_size GNUNET_PACKED;
 
   /**
-   * The sizeof the configuration following
+   * The size of the uncompressed configuration
    */
   uint16_t config_size GNUNET_PACKED;
 
