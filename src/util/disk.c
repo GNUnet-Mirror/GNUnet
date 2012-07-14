@@ -660,7 +660,7 @@ GNUNET_DISK_file_test (const char *fil)
     GNUNET_free (rdir);
     return GNUNET_NO;
   }
-  if (ACCESS (rdir, R_OK) < 0)
+  if (ACCESS (rdir, F_OK) < 0)
   {
     LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "access", rdir);
     GNUNET_free (rdir);
