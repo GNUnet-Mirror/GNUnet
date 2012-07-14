@@ -927,6 +927,9 @@ mhd_content_free (void *cls,
   if (NULL != ctask->response)
     MHD_destroy_response (ctask->response);
 
+  if (NULL != ctask->post_handler)
+    MHD_destroy_post_processor (ctask->post_handler);
+
 
   GNUNET_free (ctask);
 }
