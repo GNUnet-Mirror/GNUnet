@@ -45,7 +45,6 @@ static struct GNUNET_HELPER_Handle *helper;
  */
 static struct GNUNET_TESTBED_HelperInit msg;
 
-
 /**
  * Message send handle
  */
@@ -115,7 +114,6 @@ cont_cb (void *cls, int result)
 }
 
 
-
 /**
  * Main function that will be run.
  *
@@ -128,12 +126,12 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle * cfg)
 {
-  char * const binary_argv[] = {
+  static char * const binary_argv[] = {
     "gnunet-testbed-helper",
     NULL
     };
-
-  helper = GNUNET_HELPER_start ("gnunet-testbed-helper", binary_argv,
+  helper = GNUNET_HELPER_start ("gnunet-testbed-helper", 
+				binary_argv,
                                 NULL, NULL);
   GNUNET_assert (NULL != helper);
   msg.header.size = htons (sizeof (struct GNUNET_TESTBED_HelperInit));
@@ -141,8 +139,8 @@ run (void *cls, char *const *args, const char *cfgfile,
   msg.cname_size = htons (0);
   msg.config_size = htons (0);
   shandle = GNUNET_HELPER_send (helper,
-                                (const struct GNUNET_MessageHeader *) &msg,
-                                GNUNET_NO, cont_cb, NULL);
+                                &msg.header,
+                                GNUNET_NO, &cont_cb, NULL);
   GNUNET_assert (NULL != shandle);
   abort_task = GNUNET_SCHEDULER_add_delayed 
     (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 1), &do_abort, NULL);
@@ -162,10 +160,12 @@ int main (int argc, char **argv)
     GNUNET_GETOPT_OPTION_END
   };
 
-   if (GNUNET_OK != 
-       GNUNET_PROGRAM_run (argc, argv, "test_gnunet_testbed_helper",
-                           "Testcase for testing gnunet-testbed-helper.c",
-                           options, &run, NULL))
-     return 1;
-  else return 0;
+  if (GNUNET_OK != 
+      GNUNET_PROGRAM_run (argc, argv, "test_gnunet_testbed_helper",
+			  "Testcase for testing gnunet-testbed-helper.c",
+			  options, &run, NULL))
+    return 1;
+  return 0;
 }
+
+/* end of test_gnunet_testbed_helper.c */

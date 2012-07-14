@@ -28,12 +28,9 @@
  *          should the connection from the remote controller is dropped
  * @author Sree Harsha Totakura <sreeharsha@totakura.in> 
  */
-
-
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_testing_lib-new.h"
-
 #include "testbed_helper.h"
 
 
@@ -60,24 +57,15 @@ struct GNUNET_SERVER_MessageStreamTokenizer *tokenizer;
 static struct GNUNET_DISK_FileHandle *stdin_fd;
 
 /**
- * Message receive buffer
- */
-static void *buf;
-
-/**
- * The size of the above buffer
- */
-static size_t buf_size;
-
-/**
  * Task identifier for the read task
  */
 static GNUNET_SCHEDULER_TaskIdentifier read_task_id;
 
 /**
- * Task identifier for the shutdown task
+ * Are we done reading messages from stdin?
  */
-static GNUNET_SCHEDULER_TaskIdentifier shutdown_task_id;
+static int done_reading;
+
 
 /**
  * Task to shutting down nicely
@@ -89,12 +77,18 @@ static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   if (GNUNET_SCHEDULER_NO_TASK != read_task_id)
+  {
     GNUNET_SCHEDULER_cancel (read_task_id);
+    read_task_id = GNUNET_SCHEDULER_NO_TASK;
+  }
   (void) GNUNET_DISK_file_close (stdin_fd);
-  GNUNET_free_non_null (buf);  
   GNUNET_SERVER_mst_destroy (tokenizer);  
+  tokenizer = NULL;
   if (NULL != test_system)
+  {
     GNUNET_TESTING_system_destroy (test_system, GNUNET_YES);
+    test_system = NULL;
+  }
 }
 
 
@@ -115,6 +109,8 @@ tokenizer_cb (void *cls, void *client,
               const struct GNUNET_MessageHeader *message)
 {
   GNUNET_break (0);
+  // FIXME: write config & start gnunet-service-testbed
+  done_reading = GNUNET_YES;
   return GNUNET_OK;
 }
 
@@ -128,35 +124,38 @@ tokenizer_cb (void *cls, void *client,
 static void
 read_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  char buf[GNUNET_SERVER_MAX_MESSAGE_SIZE];
   ssize_t sread;
-  static int ignore_reading = GNUNET_NO;
-  int ret;
 
   read_task_id = GNUNET_SCHEDULER_NO_TASK;
-  if (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason)
+  if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
     return;  
-  sread = GNUNET_DISK_file_read (stdin_fd, buf, buf_size);
+  sread = GNUNET_DISK_file_read (stdin_fd, buf, sizeof (buf));
   if (GNUNET_SYSERR == sread)
   {
     GNUNET_break (0);           /* FIXME: stdin closed - kill child */
-    GNUNET_SCHEDULER_cancel (shutdown_task_id);
-    shutdown_task_id = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+  if (GNUNET_YES == done_reading)
+  {
+    /* didn't expect any more data! */
+    GNUNET_break (0);
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
   LOG_DEBUG ("Read %u bytes\n", sread);
+  if (GNUNET_OK !=
+      GNUNET_SERVER_mst_receive (tokenizer, NULL, buf, sread,
+				 GNUNET_NO, GNUNET_NO))
+  {
+    GNUNET_break (0);
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
   read_task_id =                /* No timeout while reading */
     GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
                                     stdin_fd, &read_task, NULL);
-  if (GNUNET_YES == ignore_reading)
-    return;
-  ret = GNUNET_SERVER_mst_receive (tokenizer, NULL, buf, sread,
-                                   GNUNET_NO, GNUNET_NO);
-  GNUNET_assert (GNUNET_SYSERR != ret);
-  if (GNUNET_NO == ret)
-  {
-    LOG_DEBUG ("We only listen for 1 message -- ignoring others\n");
-    ignore_reading = GNUNET_YES;
-  }
 }
 
 
@@ -175,14 +174,11 @@ run (void *cls, char *const *args, const char *cfgfile,
   LOG_DEBUG ("Starting testbed helper...\n");
   tokenizer = GNUNET_SERVER_mst_create (&tokenizer_cb, NULL);
   stdin_fd = GNUNET_DISK_get_handle_from_native (stdin);
-  buf_size = sizeof (struct GNUNET_TESTBED_HelperInit) + 8 * 1024;
-  buf = GNUNET_malloc (buf_size);
-  read_task_id =                /* No timeout while reading */
+  read_task_id =
     GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
                                     stdin_fd, &read_task, NULL);
-  shutdown_task_id = 
-    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                  &shutdown_task, NULL);
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
+				&shutdown_task, NULL);
 }
 
 
@@ -195,14 +191,15 @@ run (void *cls, char *const *args, const char *cfgfile,
  */
 int main (int argc, char **argv)
 {
-   struct GNUNET_GETOPT_CommandLineOption options[] = {
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
-
-   if (GNUNET_OK != 
-       GNUNET_PROGRAM_run ( argc, argv, "gnunet-testbed-helper",
-                            "Helper for starting gnunet-service-testbed",
-                            options, &run, NULL))
-     return 1;
-  else return 0;
+  if (GNUNET_OK != 
+      GNUNET_PROGRAM_run (argc, argv, "gnunet-testbed-helper",
+			  "Helper for starting gnunet-service-testbed",
+			  options, &run, NULL))
+    return 1;
+  return 0;
 }
+
+/* end of gnunet-testbed-helper.c */
