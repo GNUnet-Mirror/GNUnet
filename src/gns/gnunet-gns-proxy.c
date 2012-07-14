@@ -37,6 +37,7 @@
 #define GNUNET_GNS_PROXY_PORT 7777
 #define MHD_MAX_CONNECTIONS 300
 #define MAX_HTTP_URI_LENGTH 2048
+#define POSTBUFFERSIZE 4096
 
 /* MHD/cURL defines */
 #define BUF_WAIT_FOR_CURL 0
@@ -278,6 +279,13 @@ struct ProxyCurlTask
   /*put*/
   size_t put_read_offset;
   size_t put_read_size;
+
+  /*post*/
+  struct MHD_PostProcessor *post_handler;
+
+  /* post data */
+  struct ProxyPostData *post_data_head;
+  struct ProxyPostData *post_data_tail;
   
 };
 
@@ -328,6 +336,25 @@ struct ProxySetCookieHeader
   /* the cookie */
   char *cookie;
 };
+
+/**
+ * Post data structure
+ */
+struct ProxyPostData
+{
+  /* DLL */
+  struct ProxyPostData *next;
+
+  /* DLL */
+  struct ProxyPostData *prev;
+  
+  /* key */
+  char *key;
+  
+  /* value */
+  char *value;
+};
+
 
 /* The port the proxy is running on (default 7777) */
 static unsigned long port = GNUNET_GNS_PROXY_PORT;
@@ -414,6 +441,88 @@ is_tld(const char* name, const char* tld)
 
   return GNUNET_YES;
 }
+
+/**
+ * convert integer to string representation
+ *
+ * @param i integer
+ * @return the character
+ */
+char i_to_hexchar (char i)
+{
+  static char hexmap[] = "0123456789abcdef";
+  GNUNET_assert (sizeof (hexmap) > (i & 15));
+  return hexmap[i & 15];
+}
+
+/**
+ * Escape giben 0-terminated string
+ *
+ * @param to_esc string to escapse
+ * @return allocated new escaped string (MUST free!)
+ */
+static char*
+escape_to_urlenc (const char *to_esc)
+{
+  char *pos = (char*)to_esc;
+  char *res = GNUNET_malloc (strlen (to_esc) * 3 + 1);
+  char *rpos = res;
+
+  while ('\0' != *pos)
+  {
+    if (isalnum (*pos) ||
+        ('-' == *pos) || ('_' == *pos) ||
+        ('.' == *pos) || ('~' == *pos))
+        *rpos++ = *pos;
+    else if (' ' == *pos)
+      *rpos++ = '+';
+    else
+    {
+      *rpos++ = '%';
+      *rpos++ = i_to_hexchar (*pos >> 4);
+      *rpos++ = i_to_hexchar (*pos >> 15);
+    }
+    pos++;
+  }
+  *rpos = '\0';
+  return res;
+}
+
+static int
+con_post_data_iter (void *cls,
+                  enum MHD_ValueKind kind,
+                  const char *key,
+                  const char *filename,
+                  const char *content_type,
+                  const char *transfer_encoding,
+                  const char *data,
+                  uint64_t off,
+                  size_t size)
+{
+  struct ProxyCurlTask* ctask = cls;
+  struct ProxyPostData* pdata;
+  
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Got POST data: '%s : %s' at offset %llu size %lld\n",
+              key, data, off, size);
+
+  /* FIXME ! if transfer enc == urlenc! */
+
+  pdata = GNUNET_malloc (sizeof (struct ProxyPostData));
+  pdata->key = escape_to_urlenc (key);
+  pdata->value = escape_to_urlenc (data);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Escaped POST data: '%s : %s'\n",
+              pdata->key, pdata->value);
+
+  GNUNET_CONTAINER_DLL_insert_tail (ctask->post_data_head,
+                                    ctask->post_data_tail,
+                                    pdata);
+
+  return MHD_YES;
+}
+
 
 static int
 get_uri_val_iter (void *cls,
@@ -1589,11 +1698,13 @@ create_response (void *cls,
     {
       if (0 == *upload_data_size)
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                    "NO data for post!\n");
-        curl_easy_cleanup (ctask->curl);
-        GNUNET_free (ctask);
-        return MHD_NO;
+        GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                    "Setting up POST processor\n");
+        ctask->post_handler = MHD_create_post_processor (con,
+                                   POSTBUFFERSIZE,
+                                   &con_post_data_iter,
+                                   ctask);
+        return MHD_YES;
       }
       curl_easy_setopt (ctask->curl, CURLOPT_POST, 1);
       curl_easy_setopt (ctask->curl, CURLOPT_POSTFIELDSIZE, *upload_data_size);
@@ -1642,7 +1753,19 @@ create_response (void *cls,
   }
 
   ctask = (struct ProxyCurlTask *) *con_cls;
-  
+  if (0 == strcasecmp (meth, MHD_HTTP_METHOD_POST))
+    {
+      if (0 != *upload_data_size)
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                    "Invoking POST processor\n");
+        MHD_post_process (ctask->post_handler,
+                          upload_data, *upload_data_size);
+        *upload_data_size = 0;
+        return MHD_YES;
+      }
+      return MHD_NO;
+    }
   if (GNUNET_YES != ctask->ready_to_queue)
     return MHD_YES; /* wait longer */
   
