@@ -253,7 +253,7 @@ struct ProxyCurlTask
   char host[256];
 
   /* The port */
-  int port;
+  uint16_t port;
 
   /* The LEgacy HOstname (can be empty) */
   char leho[256];
@@ -606,6 +606,7 @@ con_val_iter (void *cls,
   char* port;
   char* cstr;
   const char* hdr_val;
+  unsigned int uport;
 
   if (0 == strcmp ("Host", key))
   {
@@ -613,7 +614,14 @@ con_val_iter (void *cls,
     if (NULL != port)
     {
       strncpy (buf, value, port-value);
-      ctask->port = atoi (++port);
+      port++;
+      if ((1 != sscanf (port, "%u", &uport)) ||
+           (uport > UINT16_MAX) ||
+           (0 == uport))
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    "Unable to parse port!\n");
+      else
+        ctask->port = (uint16_t) uport;
     }
     else
       strcpy (buf, value);
@@ -1640,7 +1648,7 @@ process_leho_lookup (void *cls,
 
   if (0 != strcmp (ctask->leho, ""))
   {
-    sprintf (hosthdr, "%s%s", "Host: ", ctask->leho);
+    sprintf (hosthdr, "%s%s:%d", "Host: ", ctask->leho, ctask->port);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "New HTTP header value: %s\n", hosthdr);
     ctask->headers = curl_slist_append (ctask->headers, hosthdr);
