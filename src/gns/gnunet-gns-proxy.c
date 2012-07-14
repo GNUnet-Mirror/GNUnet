@@ -288,6 +288,9 @@ struct ProxyCurlTask
   struct ProxyPostData *post_data_tail;
 
   int post_done;
+
+  /* the type of POST encoding */
+  char* post_type;
   
 };
 
@@ -512,7 +515,11 @@ con_post_data_iter (void *cls,
               "Got POST data: '%s : %s' at offset %llu size %lld\n",
               key, data, off, size);
 
-  /* FIXME ! if transfer enc == urlenc! */
+  if (0 != strcasecmp (MHD_HTTP_POST_ENCODING_FORM_URLENCODED,
+                       ctask->post_type))
+  {
+    return MHD_NO;
+  }
 
   if (0 == off)
   {
@@ -606,6 +613,20 @@ con_val_iter (void *cls,
     hdr_val = "";
   else
     hdr_val = value;
+
+  if (0 == strcmp (MHD_HTTP_HEADER_CONTENT_TYPE,
+                   key))
+  {
+    if (0 == strcmp (value,
+                     MHD_HTTP_POST_ENCODING_FORM_URLENCODED))
+      ctask->post_type = MHD_HTTP_POST_ENCODING_FORM_URLENCODED;
+    else if (0 == strcmp (value,
+                          MHD_HTTP_POST_ENCODING_MULTIPART_FORMDATA))
+      ctask->post_type = MHD_HTTP_POST_ENCODING_MULTIPART_FORMDATA;
+    else
+      ctask->post_type = NULL;
+
+  }
 
   cstr = GNUNET_malloc (strlen (key) + strlen (hdr_val) + 3);
   GNUNET_snprintf (cstr, strlen (key) + strlen (hdr_val) + 3,
