@@ -1252,7 +1252,6 @@ read_callback (void *buf, size_t size, size_t nmemb, void *cls)
   size_t len = size * nmemb;
   size_t to_copy;
   char* pos;
-  char tmp[2048];
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "CURL: read callback\n");
@@ -1263,19 +1262,14 @@ read_callback (void *buf, size_t size, size_t nmemb, void *cls)
   //fin
   if (NULL == pdata->value)
   {
-    return 0;
-    if (len < 2)
-      return 0;
-
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "CURL: Terminating POST data\n");
 
-    memcpy (buf, "\n\r", 2);
     GNUNET_CONTAINER_DLL_remove (ctask->post_data_head,
                                  ctask->post_data_tail,
                                  pdata);
     GNUNET_free (pdata);
-    return 2;
+    return 0;
   }
  
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1287,10 +1281,6 @@ read_callback (void *buf, size_t size, size_t nmemb, void *cls)
   
   pos = pdata->value + (pdata->total_bytes - pdata->bytes_left);
   memcpy (buf, pos, to_copy);
-  memcpy (tmp, pos, to_copy);
-  tmp[to_copy] = 'c';
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "CURL: Wrote %s\n", tmp);
   pdata->bytes_left -= to_copy;
   if (pdata->bytes_left <= 0)
   {
