@@ -1,0 +1,43 @@
+.TH GNUNET\-CONFIG 1 "Jul 15, 2012" "GNUnet"
+
+.SH NAME
+gnunet\-config \- manipulate GNUnet configuration files
+
+.SH SYNOPSIS
+.B gnunet\-config
+.RI [ options ]
+.br
+
+.SH DESCRIPTION
+\fBgnunet\-config\fP can be used to read or modify GNUnet configuration files.
+
+.SH OPTIONS
+.B
+.IP "\-f, \-\-filename"
+When accessing a specific option using \-s and \-o, perform expansions as if the value represents a filename.
+.B
+.IP "\-s SECTION, \-\-section=SECTION"
+Which configuration section should be accessed or edited. Required option.
+.B
+.IP "\-o OPTION, \-\-option=OPTION"
+Which configuration option should be accessed or edited.  Required to set a value.  If not given, all values of a given section will be printed in the format "OPTION = VALUE".
+.B
+.IP "\-V VALUE, \-\-value VALUE"
+Configuration value to store in the given section under the given option.  Must only be given together with \-s and \-o options.
+.B
+.IP "\-c FILENAME,  \-\-config=FILENAME"
+Use the configuration file FILENAME.
+.B
+.IP "\-h, \-\-help"
+Print short help on options.
+.B
+.IP "\-L LOGLEVEL, \-\-loglevel=LOGLEVEL"
+Use LOGLEVEL for logging.  Valid values are DEBUG, INFO, WARNING and ERROR.
+.B
+.IP "\-v, \-\-version"
+Print GNUnet version number.
+
+
+.SH BUGS
+Report bugs by using Mantis <https://gnunet.org/bugs/> or by sending electronic mail to <gnunet\-developers@gnu.org>
+
