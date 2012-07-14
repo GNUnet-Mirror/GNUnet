@@ -356,15 +356,13 @@ GNUNET_DISK_mktemp (const char *t);
 
 
 /**
- * Create an (empty) temporary file on disk.  If the given name is not
- * an absolute path, the current 'TMPDIR' will be prepended.  In any case,
- * 6 random characters will be appended to the name to create a unique
- * filename.
+ * Create an (empty) temporary directory on disk.  If the given name is not an
+ * absolute path, the current 'TMPDIR' will be prepended.  In any case, 6
+ * random characters will be appended to the name to create a unique name.
  *
  * @param t component to use for the name;
  *        does NOT contain "XXXXXX" or "/tmp/".
- * @return NULL on error, otherwise name of fresh
- *         file on disk in directory for temporary files
+ * @return NULL on error, otherwise name of freshly created directory
  */
 char *
 GNUNET_DISK_mkdtemp (const char *t);
