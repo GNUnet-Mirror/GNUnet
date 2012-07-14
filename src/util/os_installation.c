@@ -46,6 +46,8 @@
 #if LINUX
 /**
  * Try to determine path by reading /proc/PID/exe
+ *
+ * @return NULL on error
  */
 static char *
 get_path_from_proc_maps ()
@@ -77,6 +79,8 @@ get_path_from_proc_maps ()
 
 /**
  * Try to determine path by reading /proc/PID/exe
+ *
+ * @return NULL on error
  */
 static char *
 get_path_from_proc_exe ()
@@ -109,6 +113,8 @@ get_path_from_proc_exe ()
 #if WINDOWS
 /**
  * Try to determine path with win32-specific function
+ *
+ * @return NULL on error
  */
 static char *
 get_path_from_module_filename ()
@@ -130,9 +136,21 @@ get_path_from_module_filename ()
 #endif
 
 #if DARWIN
+/**
+ * Signature of the '_NSGetExecutablePath" function.
+ *
+ * @param buf where to write the path
+ * @param number of bytes available in 'buf'
+ * @return 0 on success, otherwise desired number of bytes is stored in 'bufsize'
+ */
 typedef int (*MyNSGetExecutablePathProto) (char *buf, size_t * bufsize);
 
 
+/**
+ * Try to obtain the path of our executable using '_NSGetExecutablePath'.
+ *
+ * @return NULL on error
+ */
 static char *
 get_path_from_NSGetExecutablePath ()
 {
@@ -148,7 +166,7 @@ get_path_from_NSGetExecutablePath ()
   path = &zero;
   len = 0;
   /* get the path len, including the trailing \0 */
-  func (path, &len);
+  (void) func (path, &len);
   if (0 == len)
     return NULL;
   path = GNUNET_malloc (len);
@@ -165,6 +183,11 @@ get_path_from_NSGetExecutablePath ()
 }
 
 
+/**
+ * Try to obtain the path of our executable using '_dyld_image' API.
+ *
+ * @return NULL on error
+ */
 static char *
 get_path_from_dyld_image ()
 {
@@ -252,6 +275,12 @@ get_path_from_PATH (const char *binary)
 }
 
 
+/**
+ * Try to obtain the installation path using the "GNUNET_PREFIX" environment
+ * variable.
+ *
+ * @return NULL on error (environment variable not set)
+ */
 static char *
 get_path_from_GNUNET_PREFIX ()
 {
@@ -302,7 +331,8 @@ os_get_gnunet_path ()
   return NULL;
 }
 
-/*
+
+/**
  * @brief get the path to current app's bin/
  * @author Milan
  *
@@ -328,7 +358,6 @@ os_get_exec_path ()
   /* other attempts here */
   return NULL;
 }
-
 
 
 /**
@@ -500,8 +529,7 @@ GNUNET_OS_check_helper_binary (const char *binary)
   }
   if (0 != ACCESS (p, X_OK))
   {
-    LOG (GNUNET_ERROR_TYPE_WARNING, _("access (%s, X_OK) failed: %s\n"), p,
-         STRERROR (errno));
+    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "access", p);
     GNUNET_free (p);
     return GNUNET_SYSERR;
   }
@@ -515,13 +543,12 @@ GNUNET_OS_check_helper_binary (const char *binary)
 #endif
   if (0 != STAT (p, &statbuf))
   {
-    LOG (GNUNET_ERROR_TYPE_WARNING, _("stat (%s) failed: %s\n"), p,
-         STRERROR (errno));
+    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "stat", p);
     GNUNET_free (p);
     return GNUNET_SYSERR;
   }
 #ifndef MINGW
-  if ((0 != (statbuf.st_mode & S_ISUID)) && (statbuf.st_uid == 0))
+  if ((0 != (statbuf.st_mode & S_ISUID)) && (0 == statbuf.st_uid))
   {
     GNUNET_free (p);
     return GNUNET_YES;
@@ -541,7 +568,7 @@ GNUNET_OS_check_helper_binary (const char *binary)
 	{
 	  DWORD err = GetLastError ();
 	  
-	  LOG (GNUNET_ERROR_TYPE_INFO,
+	  LOG (GNUNET_ERROR_TYPE_DEBUG,
 	       "socket (AF_INET, SOCK_RAW, IPPROTO_ICMP) failed! GLE = %d\n", err);
 	  once = -1;
 	  return GNUNET_NO;           /* not running as administrator */
