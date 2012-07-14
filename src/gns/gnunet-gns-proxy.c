@@ -252,6 +252,9 @@ struct ProxyCurlTask
   /* The hostname (Host header field) */
   char host[256];
 
+  /* The port */
+  int port;
+
   /* The LEgacy HOstname (can be empty) */
   char leho[256];
 
@@ -407,13 +410,13 @@ static struct MhdHttpList *mhd_httpd_tail;
 static regex_t re_dotplus;
 
 /* The users local GNS zone hash */
-static struct GNUNET_CRYPTO_ShortHashCode local_gns_zone;
+static struct GNUNET_CRYPTO_ShortHashCode *local_gns_zone;
 
 /* The users local private zone */
-static struct GNUNET_CRYPTO_ShortHashCode local_private_zone;
+static struct GNUNET_CRYPTO_ShortHashCode *local_private_zone;
 
 /* The users local shorten zone */
-static struct GNUNET_CRYPTO_ShortHashCode local_shorten_zone;
+static struct GNUNET_CRYPTO_ShortHashCode *local_shorten_zone;
 
 /* The CA for SSL certificate generation */
 static struct ProxyCA proxy_ca;
@@ -600,12 +603,20 @@ con_val_iter (void *cls,
 {
   struct ProxyCurlTask *ctask = cls;
   char* buf = ctask->host;
+  char* port;
   char* cstr;
   const char* hdr_val;
 
   if (0 == strcmp ("Host", key))
   {
-    strcpy (buf, value);
+    port = strstr (value, ":");
+    if (NULL != port)
+    {
+      strncpy (buf, value, port-value);
+      ctask->port = atoi (++port);
+    }
+    else
+      strcpy (buf, value);
     return MHD_YES;
   }
 
@@ -1198,9 +1209,9 @@ postprocess_buffer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
     re_match->shorten_task = GNUNET_GNS_shorten_zone (gns_handle,
                              re_match->hostname,
-                             &local_private_zone,
-                             &local_shorten_zone,
-                             &local_gns_zone,
+                             local_private_zone,
+                             local_shorten_zone,
+                             local_gns_zone,
                              &process_shorten,
                              re_match); //FIXME cancel appropriately
 
@@ -1657,7 +1668,7 @@ process_leho_lookup (void *cls,
                   "Curl resolve: %s\n", resolvename);
       ctask->resolver = curl_slist_append ( ctask->resolver, resolvename);
       curl_easy_setopt (ctask->curl, CURLOPT_RESOLVE, ctask->resolver);
-      sprintf (curlurl, "https://%s%s", ctask->leho, ctask->url);
+      sprintf (curlurl, "https://%s:%d%s", ctask->leho, ctask->port, ctask->url);
       curl_easy_setopt (ctask->curl, CURLOPT_URL, curlurl);
     }
     else
@@ -1714,7 +1725,7 @@ process_get_authority (void *cls,
 
   GNUNET_GNS_lookup_zone (gns_handle,
                           ctask->host,
-                          &local_gns_zone,
+                          local_gns_zone,
                           GNUNET_GNS_RECORD_LEHO,
                           GNUNET_YES, //Only cached for performance
                           shorten_zonekey,
@@ -1807,6 +1818,7 @@ create_response (void *cls,
     ctask->buffer_read_ptr = ctask->buffer;
     ctask->buffer_write_ptr = ctask->buffer;
     ctask->pp_task = GNUNET_SCHEDULER_NO_TASK;
+    ctask->port = HTTP_PORT;
 
     MHD_get_connection_values (con,
                                MHD_HEADER_KIND,
@@ -1867,7 +1879,7 @@ create_response (void *cls,
     
     if (GNUNET_NO == ctask->mhd->is_ssl)
     {
-      sprintf (curlurl, "http://%s%s", ctask->host, url);
+      sprintf (curlurl, "http://%s:%d%s", ctask->host, ctask->port, url);
       MHD_get_connection_values (con,
                                  MHD_GET_ARGUMENT_KIND,
                                  &get_uri_val_iter, curlurl);
@@ -2844,6 +2856,13 @@ do_shutdown (void *cls,
               "Shutting down...\n");
 
   gnutls_global_deinit ();
+ 
+  if (NULL != local_gns_zone)
+    GNUNET_free (local_gns_zone); 
+  if (NULL != local_private_zone)
+    GNUNET_free (local_private_zone);
+  if (NULL != local_shorten_zone)
+    GNUNET_free (local_shorten_zone);
 
   if (GNUNET_SCHEDULER_NO_TASK != curl_download_task)
   {
@@ -2976,69 +2995,74 @@ load_local_zone_key (const struct GNUNET_CONFIGURATION_Handle *cfg)
 
   key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
   GNUNET_CRYPTO_rsa_key_get_public (key, &pkey);
+  local_gns_zone = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_ShortHashCode));
   GNUNET_CRYPTO_short_hash(&pkey,
                            sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
-                           &local_gns_zone);
-  zone = &local_gns_zone;
+                           local_gns_zone);
+  zone = local_gns_zone;
   GNUNET_CRYPTO_short_hash_to_enc (zone, &zonename);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Using zone: %s!\n", &zonename);
   GNUNET_CRYPTO_rsa_key_free(key);
   GNUNET_free(keyfile);
-  
+  keyfile = NULL;
+
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
                                                    "PRIVATE_ZONEKEY", &keyfile))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Unable to load private zone key config value!\n");
-    return GNUNET_NO;
   }
 
-  if (GNUNET_NO == GNUNET_DISK_file_test (keyfile))
+  if ((NULL != keyfile) && (GNUNET_NO == GNUNET_DISK_file_test (keyfile)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Unable to load private zone key %s!\n", keyfile);
     GNUNET_free(keyfile);
-    return GNUNET_NO;
   }
-
-  key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
-  GNUNET_CRYPTO_rsa_key_get_public (key, &pkey);
-  GNUNET_CRYPTO_short_hash(&pkey,
-                           sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
-                           &local_private_zone);
-  GNUNET_CRYPTO_short_hash_to_enc (zone, &zonename);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Using private zone: %s!\n", &zonename);
-  GNUNET_CRYPTO_rsa_key_free(key);
-  GNUNET_free(keyfile);
+  else
+  {
+    key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
+    GNUNET_CRYPTO_rsa_key_get_public (key, &pkey);
+    local_private_zone = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_ShortHashCode));
+    GNUNET_CRYPTO_short_hash(&pkey,
+                             sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+                             local_private_zone);
+    GNUNET_CRYPTO_short_hash_to_enc (zone, &zonename);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Using private zone: %s!\n", &zonename);
+    GNUNET_CRYPTO_rsa_key_free(key);
+    GNUNET_free(keyfile);
+  }
+  keyfile = NULL;
 
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
                                                    "SHORTEN_ZONEKEY", &keyfile))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Unable to load shorten zone key config value!\n");
-    return GNUNET_NO;
   }
 
-  if (GNUNET_NO == GNUNET_DISK_file_test (keyfile))
+  if ((NULL != keyfile) && (GNUNET_NO == GNUNET_DISK_file_test (keyfile)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Unable to load shorten zone key %s!\n", keyfile);
     GNUNET_free(keyfile);
-    return GNUNET_NO;
   }
-
-  key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
-  GNUNET_CRYPTO_rsa_key_get_public (key, &pkey);
-  GNUNET_CRYPTO_short_hash(&pkey,
-                           sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
-                           &local_shorten_zone);
-  GNUNET_CRYPTO_short_hash_to_enc (zone, &zonename);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Using shorten zone: %s!\n", &zonename);
-  GNUNET_CRYPTO_rsa_key_free(key);
-  GNUNET_free(keyfile);
+  else
+  {
+    key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
+    GNUNET_CRYPTO_rsa_key_get_public (key, &pkey);
+    local_shorten_zone = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_ShortHashCode));
+    GNUNET_CRYPTO_short_hash(&pkey,
+                             sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
+                             local_shorten_zone);
+    GNUNET_CRYPTO_short_hash_to_enc (zone, &zonename);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Using shorten zone: %s!\n", &zonename);
+    GNUNET_CRYPTO_rsa_key_free(key);
+    GNUNET_free(keyfile);
+  }
 
   return GNUNET_YES;
 }
