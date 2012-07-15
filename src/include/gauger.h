@@ -29,13 +29,13 @@
             sprintf(__gauger_s,"%Lf", (long double) (value));\
             __gauger_v[0] = "gauger";\
             __gauger_v[1] = "-n";\
-            __gauger_v[2] = counter;\
+            __gauger_v[2] = (char*) counter;	\
             __gauger_v[3] = "-d";\
             __gauger_v[4] = __gauger_s;\
             __gauger_v[5] = "-u";\
-            __gauger_v[6] = unit;\
+            __gauger_v[6] = (char*) unit;	\
             __gauger_v[7] = "-c";\
-            __gauger_v[8] = category;\
+            __gauger_v[8] = (char*) category;	\
             __gauger_v[9] = (char *)NULL;\
             execvp("gauger",__gauger_v);\
             _exit(1);\
@@ -59,15 +59,15 @@
             sprintf(__gauger_s,"%Lf", (long double) (value));\
             __gauger_v[0] = "gauger";\
             __gauger_v[1] = "-n";\
-            __gauger_v[2] = counter;\
+            __gauger_v[2] = (char*) counter;	\
             __gauger_v[3] = "-d";\
             __gauger_v[4] = __gauger_s;\
             __gauger_v[5] = "-u";\
-            __gauger_v[6] = unit;\
+            __gauger_v[6] = (char*) unit;	\
             __gauger_v[7] = "-i";\
             __gauger_v[8] = id;\
             __gauger_v[9] = "-c";\
-            __gauger_v[10] = category;\
+            __gauger_v[10] = (char *) category;	\
             __gauger_v[11] = (char *)NULL;\
             execvp("gauger",__gauger_v);\
             _exit(1);\
