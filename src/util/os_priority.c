@@ -1340,7 +1340,7 @@ start_process (int pipe_control,
   fail = 1;
   do
   {
-    int wrote;
+    ssize_t wrote;
     uint64_t size;
     unsigned int count;
     unsigned int i;
@@ -1349,9 +1349,11 @@ start_process (int pipe_control,
     for (count = 0; lsocks && lsocks[count] != INVALID_SOCKET; count++);
 
     wrote = GNUNET_DISK_file_write (lsocks_write_fd, &count, sizeof (count));
-    if (wrote != sizeof (count))
+    if (sizeof (count) != wrote)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to write %u count bytes to the child: %u\n", sizeof (count), GetLastError ());
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+		  "Failed to write %u count bytes to the child: %u\n",
+		  sizeof (count), GetLastError ());
       break;
     }
     for (i = 0; lsocks && lsocks[i] != INVALID_SOCKET; i++)
@@ -1360,8 +1362,9 @@ start_process (int pipe_control,
       /* Get a socket duplication info */
       if (SOCKET_ERROR == WSADuplicateSocketA (lsocks[i], gnunet_proc->pid, &pi))
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to duplicate an socket[%llu]: %u\n", i, GetLastError ());
-        LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "CreateProcess");
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+		    "Failed to duplicate an socket[%llu]: %u\n", i, 
+		    GetLastError ());
         break;
       }
       /* Synchronous I/O is not nice, but we can't schedule this:
@@ -1374,16 +1377,20 @@ start_process (int pipe_control,
        */
       size = sizeof (pi);
       wrote = GNUNET_DISK_file_write (lsocks_write_fd, &size, sizeof (size));
-      if (wrote != sizeof (size))
+      if (sizeof (size) != wrote)
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to write %u size[%llu] bytes to the child: %u\n", sizeof (size), i, GetLastError ());
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+		    "Failed to write %u size[%llu] bytes to the child: %u\n", 
+		    sizeof (size), i, GetLastError ());
         break;
       }
       /* Finally! Send the data */
       wrote = GNUNET_DISK_file_write (lsocks_write_fd, &pi, sizeof (pi));
-      if (wrote != sizeof (pi))
+      if (sizeof (pi) != wrote)
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to write %u socket[%llu] bytes to the child: %u\n", sizeof (pi), i, GetLastError ());
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+		    "Failed to write %u socket[%llu] bytes to the child: %u\n", 
+		    sizeof (pi), i, GetLastError ());
         break;
       }
     }
@@ -1502,9 +1509,7 @@ GNUNET_OS_start_process_va (int pipe_control,
  * @param pipe_stdout pipe to use to get output from child process (or NULL)
  * @param filename name of the binary
  * @param ... NULL-terminated list of arguments to the process
- *
  * @return pointer to process structure of the new process, NULL on error
- *
  */
 struct GNUNET_OS_Process *
 GNUNET_OS_start_process (int pipe_control,
@@ -1654,6 +1659,7 @@ GNUNET_OS_process_status (struct GNUNET_OS_Process *proc,
 
 /**
  * Wait for a process
+ *
  * @param proc pointer to process structure
  * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
  */
@@ -1758,8 +1764,7 @@ struct GNUNET_OS_CommandHandle
 void
 GNUNET_OS_command_stop (struct GNUNET_OS_CommandHandle *cmd)
 {
-
-  if (cmd->proc != NULL)
+  if (NULL != cmd->proc)
   {
     GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != cmd->rtask);
     GNUNET_SCHEDULER_cancel (cmd->rtask);
@@ -1812,7 +1817,7 @@ cmd_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   end = memchr (&cmd->buf[cmd->off], '\n', ret);
   cmd->off += ret;
-  while (end != NULL)
+  while (NULL != end)
   {
     *end = '\0';
     cmd->proc (cmd->proc_cls, cmd->buf);
@@ -1870,8 +1875,6 @@ GNUNET_OS_command_run (GNUNET_OS_LineProcessor proc, void *proc_cls,
   cmd->rtask = GNUNET_SCHEDULER_add_read_file (timeout, cmd->r, &cmd_read, cmd);
   return cmd;
 }
-
-
 
 
 /* end of os_priority.c */
