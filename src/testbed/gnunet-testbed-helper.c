@@ -24,10 +24,12 @@
  *          gnunet-service-testbed. This binary also receives configuration
  *          from the remove controller which is put in a temporary location
  *          with ports and paths fixed so that gnunet-service-testbed runs
- *          without any hurdels. This binary also kills the testbed service
+ *          without any hurdles. This binary also kills the testbed service
  *          should the connection from the remote controller is dropped
  * @author Sree Harsha Totakura <sreeharsha@totakura.in> 
  */
+
+
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_testing_lib-new.h"
@@ -101,6 +103,7 @@ static int ret;
 static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  LOG_DEBUG ("Shutting down\n");
   if (GNUNET_SCHEDULER_NO_TASK != read_task_id)
   {
     GNUNET_SCHEDULER_cancel (read_task_id);
@@ -109,6 +112,23 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   (void) GNUNET_DISK_file_close (stdin_fd);
   GNUNET_SERVER_mst_destroy (tokenizer);  
   tokenizer = NULL;
+  if (NULL != testbed)
+  {
+    (void) GNUNET_OS_process_kill (testbed, SIGTERM);
+    GNUNET_assert (GNUNET_OK == GNUNET_OS_process_wait (testbed));
+    GNUNET_OS_process_destroy (testbed);
+    testbed = NULL;
+  }
+  if (NULL != pipe_in)
+  {
+    (void) GNUNET_DISK_pipe_close (pipe_in);
+    pipe_in = NULL;
+  }
+  if (NULL != pipe_out)
+  {
+    (void) GNUNET_DISK_pipe_close (pipe_out);
+    pipe_out = NULL;
+  }
   if (NULL != test_system)
   {
     GNUNET_TESTING_system_destroy (test_system, GNUNET_YES);
@@ -183,6 +203,8 @@ tokenizer_cb (void *cls, void *client,
   GNUNET_assert (NULL != test_system);
   GNUNET_assert (GNUNET_OK ==  GNUNET_TESTING_configuration_create
                  (test_system, cfg));
+  GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string 
+                 (cfg, "PATHS", "DEFAULTCONFIG", &config));
   pipe_in = GNUNET_DISK_pipe (GNUNET_NO, GNUNET_NO, GNUNET_YES, GNUNET_NO);
   pipe_out = GNUNET_DISK_pipe (GNUNET_NO, GNUNET_NO, GNUNET_NO, GNUNET_YES);
   if ((NULL == pipe_in) || (NULL == pipe_out))
@@ -190,14 +212,23 @@ tokenizer_cb (void *cls, void *client,
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "pipe");
     GNUNET_free (config);
     goto error;
-  }  
+  }
+  if (GNUNET_OK != GNUNET_CONFIGURATION_write (cfg, config))
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING, 
+         "Unable to write config file: %s -- exiting\n", config);
+    GNUNET_free (config);
+    goto error;
+  }
+  LOG_DEBUG ("Staring testbed with config: %s\n", config);
   testbed = GNUNET_OS_start_process 
     (GNUNET_YES, GNUNET_OS_INHERIT_STD_ERR /*verbose? */, pipe_in, pipe_out,
      "gnunet-service-testbed", "gnunet-service-testbed", "-c", config, NULL);
+  GNUNET_free (config);
   if (NULL == testbed)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING, 
-         "Unable to deserialize config -- exiting\n");
+         "Error staring gnunet-service-testbed -- exiting\n");
     goto error;
   }
   GNUNET_DISK_pipe_close_end (pipe_out, GNUNET_DISK_PIPE_END_WRITE);

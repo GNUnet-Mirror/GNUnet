@@ -26,6 +26,9 @@
 
 #include "platform.h"
 #include "gnunet_util_lib.h"
+#include "gnunet_testbed_service.h"
+
+#include "testbed_api.h"
 #include "testbed_helper.h"
 
 /**
@@ -43,7 +46,7 @@ static struct GNUNET_HELPER_Handle *helper;
 /**
  * Message to helper
  */
-static struct GNUNET_TESTBED_HelperInit msg;
+static struct GNUNET_TESTBED_HelperInit *msg;
 
 /**
  * Message send handle
@@ -60,6 +63,11 @@ static GNUNET_SCHEDULER_TaskIdentifier abort_task;
  */
 static GNUNET_SCHEDULER_TaskIdentifier shutdown_task;
 
+/**
+ * Configuratin handler
+ */
+static struct GNUNET_CONFIGURATION_Handle *cfg;
+
 
 /**
  * Shutdown nicely
@@ -72,7 +80,10 @@ do_shutdown (void *cls, const const struct GNUNET_SCHEDULER_TaskContext *tc)
 {  
   if (GNUNET_SCHEDULER_NO_TASK != abort_task)
     GNUNET_SCHEDULER_cancel (abort_task);
-  GNUNET_HELPER_stop (helper);  
+  GNUNET_HELPER_stop (helper);
+  GNUNET_free_non_null (msg);
+  if (NULL != cfg)
+    GNUNET_CONFIGURATION_destroy (cfg);
 }
 
 
@@ -109,7 +120,7 @@ cont_cb (void *cls, int result)
   GNUNET_assert (GNUNET_OK == result);
   if (GNUNET_SCHEDULER_NO_TASK == shutdown_task)
     shutdown_task = GNUNET_SCHEDULER_add_delayed 
-      (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 2),
+      (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5),
        &do_shutdown, NULL);
 }
 
@@ -124,22 +135,42 @@ cont_cb (void *cls, int result)
  */
 static void 
 run (void *cls, char *const *args, const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle * cfg)
+     const struct GNUNET_CONFIGURATION_Handle * cfg2)
 {
   static char * const binary_argv[] = {
     "gnunet-testbed-helper",
     NULL
     };
+  char *config;
+  char *xconfig;
+  const char *hostname = "127.0.0.1";
+  size_t config_size;
+  size_t xconfig_size;
+  uint16_t hostname_len;
+  uint16_t msg_size;
+
   helper = GNUNET_HELPER_start ("gnunet-testbed-helper", 
 				binary_argv,
                                 NULL, NULL);
   GNUNET_assert (NULL != helper);
-  msg.header.size = htons (sizeof (struct GNUNET_TESTBED_HelperInit));
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_HELPER_INIT);
-  msg.cname_size = htons (0);
-  msg.config_size = htons (0);
+  cfg = GNUNET_CONFIGURATION_dup (cfg2);  
+  config = GNUNET_CONFIGURATION_serialize (cfg, &config_size);
+  GNUNET_assert (NULL != config);
+  xconfig_size =
+    GNUNET_TESTBED_compress_config (config, config_size, &xconfig);
+  GNUNET_free (config);
+  hostname_len = strlen (hostname);
+  msg_size = xconfig_size + hostname_len + 1 + 
+    sizeof (struct GNUNET_TESTBED_HelperInit);
+  msg = GNUNET_realloc (xconfig, msg_size);
+  (void) memmove ( ((void *) &msg[1]) + hostname_len + 1, msg, xconfig_size);
+  msg->header.size = htons (msg_size);
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_HELPER_INIT);
+  msg->cname_size = htons (hostname_len);
+  msg->config_size = htons (config_size);
+  (void) strcpy ((char *) &msg[1], hostname);
   shandle = GNUNET_HELPER_send (helper,
-                                &msg.header,
+                                &msg->header,
                                 GNUNET_NO, &cont_cb, NULL);
   GNUNET_assert (NULL != shandle);
   abort_task = GNUNET_SCHEDULER_add_delayed 
