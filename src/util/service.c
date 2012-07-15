@@ -36,6 +36,11 @@
 #include "gnunet_server_lib.h"
 #include "gnunet_service_lib.h"
 
+#if HAVE_MALLINFO
+#include "gauger.h"
+#endif
+
+
 #define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
 
 #define LOG_STRERROR(kind,syscall) GNUNET_log_from_strerror (kind, "util", syscall)
@@ -62,6 +67,7 @@ struct IPv4NetworkSet
 };
 
 /**
+
  * @brief network in CIDR notation for IPV6.
  */
 struct IPv6NetworkSet
@@ -1799,7 +1805,26 @@ shutdown:
       LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "write");
     GNUNET_break (0 == CLOSE (sctx.ready_confirm_fd));
   }
-
+#if HAVE_MALLINFO
+  {
+    char *counter;
+    
+    if ( (GNUNET_YES ==
+	  GNUNET_CONFIGURATION_have_value (sctx.cfg, service_name,
+					   "GAUGER_HEAP")) &&
+	 (GNUNET_OK ==
+	  GNUNET_CONFIGURATION_get_value_string (sctx.cfg, service_name,
+						 "GAUGER_HEAP",
+						 &counter)) )
+    {
+      struct mallinfo mi;
+      
+      mi = mallinfo ();
+      GAUGER (service_name, counter, mi.usmblks, "blocks");
+      GNUNET_free (counter);
+    }     
+  }
+#endif
   GNUNET_SPEEDUP_stop_ ();
   GNUNET_CONFIGURATION_destroy (cfg);
   i = 0;
@@ -1899,6 +1924,26 @@ GNUNET_SERVICE_stop (struct GNUNET_SERVICE_Context *sctx)
 {
   unsigned int i;
 
+#if HAVE_MALLINFO
+  {
+    char *counter;
+    
+    if ( (GNUNET_YES ==
+	  GNUNET_CONFIGURATION_have_value (sctx->cfg, sctx->service_name,
+					   "GAUGER_HEAP")) &&
+	 (GNUNET_OK ==
+	  GNUNET_CONFIGURATION_get_value_string (sctx->cfg, sctx->service_name,
+						 "GAUGER_HEAP",
+						 &counter)) )
+    {
+      struct mallinfo mi;
+      
+      mi = mallinfo ();
+      GAUGER (service_name, counter, mi.usmblks, "blocks");
+      GNUNET_free (counter);
+    }     
+  }
+#endif
   if (GNUNET_SCHEDULER_NO_TASK != sctx->shutdown_task)
   {
     GNUNET_SCHEDULER_cancel (sctx->shutdown_task);
