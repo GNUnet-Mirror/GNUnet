@@ -286,7 +286,7 @@ commence_testing (void *cls, int32_t success, const char *emsg)
     return;
   }
   
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10), start_curl, NULL);
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1), start_curl, NULL);
 
 }
 
