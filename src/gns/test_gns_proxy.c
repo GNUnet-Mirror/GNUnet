@@ -437,8 +437,7 @@ main (int argc, char *const *argv)
 
   if (GNUNET_SYSERR == GNUNET_OS_check_helper_binary ("gnunet-gns-proxy"))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Proxy binary not in PATH... skipping!\n");
+    fprintf (stderr, "Proxy binary not in PATH... skipping!\n");
     return 0;
   }
 
