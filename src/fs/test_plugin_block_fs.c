@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     (C) 2010 Christian Grothoff (and other contributing authors)
+     (C) 2010, 2012 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -18,16 +18,13 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file block/test_block.c
- * @brief test for block.c
+ * @file fs/test_plugin_block_fs.c
+ * @brief test for plugin_block_fs.c
  * @author Christian Grothoff
  */
 #include "platform.h"
 #include "gnunet_block_lib.h"
 
-#define DEBUG GNUNET_EXTRA_LOGGING
-
-#define VERBOSE GNUNET_NO
 
 static int
 test_fs (struct GNUNET_BLOCK_Context *ctx)
@@ -57,6 +54,7 @@ test_fs (struct GNUNET_BLOCK_Context *ctx)
   return 0;
 }
 
+
 int
 main (int argc, char *argv[])
 {
@@ -75,3 +73,5 @@ main (int argc, char *argv[])
     FPRINTF (stderr, "Tests failed: %d\n", ret);
   return ret;
 }
+
+/* end of test_plugin_block_fs.c */

@@ -205,6 +205,7 @@ if HAVE_BENCHMARKS
 endif
 
 check_PROGRAMS = \
+ test_plugin_block_fs \
  test_fs_directory \
  test_fs_download \
  test_fs_download_indexed \
@@ -228,6 +229,11 @@ check_PROGRAMS = \
  test_gnunet_service_fs_p2p \
  $(FS_BENCHMARKS)
 
+test_plugin_block_fs_SOURCES = \
+ test_plugin_block_fs.c
+test_plugin_block_fs_LDADD = \
+ $(top_builddir)/src/block/libgnunetblock.la \
+ $(top_builddir)/src/util/libgnunetutil.la  
 
 if HAVE_PYTHON
 check_SCRIPTS = \

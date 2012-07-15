@@ -49,15 +49,3 @@ libgnunetblock_la_DEPENDENCIES = \
 libgnunetblock_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) \
   -version-info 0:0:0
-
-check_PROGRAMS = \
- test_block
-
-#TESTS = $(check_PROGRAMS)
-
-test_block_SOURCES = \
- test_block.c
-test_block_LDADD = \
- $(top_builddir)/src/block/libgnunetblock.la \
- $(top_builddir)/src/util/libgnunetutil.la  
-
