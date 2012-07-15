@@ -79,7 +79,8 @@ static struct GNUNET_OS_Process current_process;
 /**
  * Creates a named pipe/FIFO and opens it
  *
- * @param fn pointer to the name of the named pipe or to NULL
+ * @param fn pointer to the name of the named pipe or to NULL,
+ *           possibly updated to the new name (or free'd)
  * @param flags open flags
  * @param perm access permissions
  * @return pipe handle on success, NULL on error
@@ -103,12 +104,12 @@ npipe_create (char **fn, enum GNUNET_DISK_OpenFlags flags,
   if (flags & GNUNET_DISK_OPEN_FAILIFEXISTS)
     openMode |= FILE_FLAG_FIRST_PIPE_INSTANCE;
 
-  while (h == NULL)
+  while (NULL == h)
   {
     DWORD error_code;
 
     name = NULL;
-    if (*fn != NULL)
+    if (NULL != *fn)
     {
       GNUNET_asprintf (&name, "\\\\.\\pipe\\%.246s", fn);
       LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -134,25 +135,22 @@ npipe_create (char **fn, enum GNUNET_DISK_OpenFlags flags,
                            NULL);
     }
     error_code = GetLastError ();
-    if (name)
-      GNUNET_free (name);
+    GNUNET_free_non_null (name);
     /* don't re-set name to NULL yet */
-    if (h == INVALID_HANDLE_VALUE)
+    if (INVALID_HANDLE_VALUE == h)
     {
       SetErrnoFromWinError (error_code);
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "Pipe creation have failed because of %d, errno is %d\n", error_code,
            errno);
-      if (name == NULL)
+      if (NULL != *fn)
       {
         LOG (GNUNET_ERROR_TYPE_DEBUG,
              "Pipe was to be unique, considering re-creation\n");
         GNUNET_free (*fn);
         *fn = NULL;
-        if (error_code != ERROR_ACCESS_DENIED && error_code != ERROR_PIPE_BUSY)
-        {
-          return NULL;
-        }
+        if ( (ERROR_ACCESS_DENIED != error_code) && (ERROR_PIPE_BUSY != error_code) )        
+          return NULL;        
         LOG (GNUNET_ERROR_TYPE_DEBUG,
              "Pipe name was not unique, trying again\n");
         h = NULL;
@@ -161,9 +159,7 @@ npipe_create (char **fn, enum GNUNET_DISK_OpenFlags flags,
         return NULL;
     }
   }
-  errno = 0;
-
-  ret = GNUNET_malloc (sizeof (*ret));
+  ret = GNUNET_malloc (sizeof (struct GNUNET_DISK_FileHandle));
   ret->h = h;
   ret->type = GNUNET_PIPE;
   ret->oOverlapRead = GNUNET_malloc (sizeof (OVERLAPPED));
@@ -198,13 +194,13 @@ npipe_open (const char *fn, enum GNUNET_DISK_OpenFlags flags)
 
   h = CreateFile (fn, openMode, 0, NULL, OPEN_EXISTING,
                   FILE_FLAG_OVERLAPPED | FILE_READ_ATTRIBUTES, NULL);
-  if (h == INVALID_HANDLE_VALUE)
+  if (INVALID_HANDLE_VALUE == h)
   {
     SetErrnoFromWinError (GetLastError ());
     return NULL;
   }
 
-  ret = GNUNET_malloc (sizeof (*ret));
+  ret = GNUNET_malloc (sizeof (struct GNUNET_DISK_FileHandle));
   ret->h = h;
   ret->type = GNUNET_PIPE;
   ret->oOverlapRead = GNUNET_malloc (sizeof (OVERLAPPED));
@@ -374,7 +370,7 @@ GNUNET_OS_install_parent_control_handler (void *cls,
   struct GNUNET_DISK_FileHandle *control_pipe;
 
   env_buf = getenv (GNUNET_OS_CONTROL_PIPE);
-  if ( (env_buf == NULL) || (strlen (env_buf) <= 0) )
+  if ( (NULL == env_buf) || (strlen (env_buf) <= 0) )
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
 	 "Not installing a handler because $%s is empty\n",
@@ -442,7 +438,7 @@ GNUNET_OS_process_kill (struct GNUNET_OS_Process *proc, int sig)
   if (NULL != proc->control_pipe)
   {
     ret = GNUNET_DISK_file_write (proc->control_pipe, &csig, sizeof (csig));
-    if (ret == sizeof (csig))  
+    if (sizeof (csig) == ret)
       return 0;
   }
   /* pipe failed or non-existent, try other methods */
@@ -476,7 +472,7 @@ GNUNET_OS_process_kill (struct GNUNET_OS_Process *proc, int sig)
              * is what will happen in process_wait() in that case) is
              * a valid option.
              */
-            if (error_code == ERROR_ACCESS_DENIED)
+            if (ERROR_ACCESS_DENIED == error_code)
             {
               errno = 0;
             }
@@ -585,7 +581,7 @@ GNUNET_OS_set_process_priority (struct GNUNET_OS_Process *proc,
   int rprio;
 
   GNUNET_assert (prio < GNUNET_SCHEDULER_PRIORITY_COUNT);
-  if (prio == GNUNET_SCHEDULER_PRIORITY_KEEP)
+  if (GNUNET_SCHEDULER_PRIORITY_KEEP == prio)
     return GNUNET_OK;
 
   /* convert to MINGW/Unix values */
@@ -697,7 +693,7 @@ CreateCustomEnvTable (char **vars)
   char *val;
 
   win32_env_table = GetEnvironmentStringsA ();
-  if (win32_env_table == NULL)
+  if (NULL == win32_env_table)
     return NULL;
   for (c = 0, var_ptr = vars; *var_ptr; var_ptr += 2, c++) ;
   n_var = c;
@@ -1071,7 +1067,7 @@ start_process (int pipe_control,
   }
 
   cmdlen = strlen (filename);
-  if (cmdlen < 5 || strcmp (&filename[cmdlen - 4], ".exe") != 0)
+  if ( (cmdlen < 5) || (0 != strcmp (&filename[cmdlen - 4], ".exe")) )
     GNUNET_asprintf (&non_const_filename, "%s.exe", filename);
   else
     GNUNET_asprintf (&non_const_filename, "%s", filename);
@@ -1335,7 +1331,7 @@ start_process (int pipe_control,
   ResumeThread (proc.hThread);
   CloseHandle (proc.hThread);
 
-  if (lsocks == NULL || lsocks[0] == INVALID_SOCKET)
+  if ( (NULL == lsocks) || (INVALID_SOCKET == lsocks[0]) )
     return gnunet_proc;
 
   GNUNET_DISK_pipe_close_end (lsocks_pipe, GNUNET_DISK_PIPE_END_READ);
@@ -1345,7 +1341,9 @@ start_process (int pipe_control,
   do
   {
     int wrote;
-    uint64_t size, count, i;
+    uint64_t size;
+    unsigned int count;
+    unsigned int i;
 
     /* Tell the number of sockets */
     for (count = 0; lsocks && lsocks[count] != INVALID_SOCKET; count++);
@@ -1495,7 +1493,6 @@ GNUNET_OS_start_process_va (int pipe_control,
 }
 
 
-
 /**
  * Start a process.
  *
@@ -1521,7 +1518,7 @@ GNUNET_OS_start_process (int pipe_control,
 
   va_start (ap, filename);
   ret = GNUNET_OS_start_process_va (pipe_control, std_inheritance, pipe_stdin,
-      pipe_stdout, filename, ap);
+				    pipe_stdout, filename, ap);
   va_end (ap);
   return ret;
 }
@@ -1663,7 +1660,6 @@ GNUNET_OS_process_status (struct GNUNET_OS_Process *proc,
 int
 GNUNET_OS_process_wait (struct GNUNET_OS_Process *proc)
 {
-
 #ifndef MINGW
   pid_t pid = proc->pid;
   pid_t ret;
@@ -1678,7 +1674,6 @@ GNUNET_OS_process_wait (struct GNUNET_OS_Process *proc)
   return GNUNET_OK;
 #else
   HANDLE h;
-  int ret;
 
   h = proc->handle;
   if (NULL == h)
@@ -1687,18 +1682,15 @@ GNUNET_OS_process_wait (struct GNUNET_OS_Process *proc)
          proc->pid, h);
     return GNUNET_SYSERR;
   }
-  if (h == NULL)
+  if (NULL == h)
     h = GetCurrentProcess ();
 
   if (WAIT_OBJECT_0 != WaitForSingleObject (h, INFINITE))
   {
     SetErrnoFromWinError (GetLastError ());
-    ret = GNUNET_SYSERR;
+    return GNUNET_SYSERR;
   }
-  else
-    ret = GNUNET_OK;
-
-  return ret;
+  return GNUNET_OK;
 #endif
 }
 
