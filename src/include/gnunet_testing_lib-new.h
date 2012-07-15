@@ -137,9 +137,11 @@ GNUNET_TESTING_release_port (struct GNUNET_TESTING_System *system,
 
 
 /**
- * Create a new configuration using the given configuration
- * as a template; ports and paths will be modified to select
- * available ports on the local system.  If we run
+ * Create a new configuration using the given configuration as a template;
+ * ports and paths will be modified to select available ports on the local
+ * system. The default configuration will be available in PATHS section under
+ * the option DEFAULTCONFIG after the call. SERVICE_HOME is also set in PATHS
+ * section to the temporary directory specific to this configuration. If we run
  * out of "*port" numbers, return SYSERR.
  *
  * This is primarily a helper function used internally
