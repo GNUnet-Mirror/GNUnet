@@ -298,7 +298,7 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  GNUNET_FS_TEST_daemons_start ("fs_test_lib_data.conf", TIMEOUT, NUM_DAEMONS,
+  GNUNET_FS_TEST_daemons_start ("perf_gnunet_service_fs_p2p.conf", TIMEOUT, NUM_DAEMONS,
                                 daemons, &do_connect, NULL);
 }
 
@@ -309,10 +309,7 @@ main (int argc, char *argv[])
   char *const argvx[] = {
     "perf-gnunet-service-fs-p2p",
     "-c",
-    "fs_test_lib_data.conf",
-#if VERBOSE
-    "-L", "DEBUG",
-#endif
+    "perf_gnunet_service_fs_p2p.conf",
     NULL
   };
   struct GNUNET_GETOPT_CommandLineOption options[] = {
@@ -321,11 +318,7 @@ main (int argc, char *argv[])
   progname = argv[0];
   GNUNET_DISK_directory_remove ("/tmp/gnunet-test-fs-lib/");
   GNUNET_log_setup ("perf_gnunet_service_fs_p2p_index",
-#if VERBOSE
-                    "DEBUG",
-#else
                     "WARNING",
-#endif
                     NULL);
   GNUNET_PROGRAM_run ((sizeof (argvx) / sizeof (char *)) - 1, argvx,
                       "perf-gnunet-service-fs-p2p-index", "nohelp", options,
