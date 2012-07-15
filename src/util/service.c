@@ -37,6 +37,7 @@
 #include "gnunet_service_lib.h"
 
 #if HAVE_MALLINFO
+#include <malloc.h>
 #include "gauger.h"
 #endif
 
@@ -1939,7 +1940,7 @@ GNUNET_SERVICE_stop (struct GNUNET_SERVICE_Context *sctx)
       struct mallinfo mi;
       
       mi = mallinfo ();
-      GAUGER (service_name, counter, mi.usmblks, "blocks");
+      GAUGER (sctx->service_name, counter, mi.usmblks, "blocks");
       GNUNET_free (counter);
     }     
   }
