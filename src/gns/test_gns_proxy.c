@@ -383,6 +383,7 @@ run (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Failed to write tmp cfg\n");
+    do_shutdown ();
     return;
   }
   
@@ -394,7 +395,13 @@ run (void *cls,
                                         "gnunet-gns-proxy",
                                         "-c", tmp_cfgfile, NULL);
 
-  GNUNET_assert (NULL != proxy_proc);
+  if (NULL == proxy_proc)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Unable to start proxy\n");
+    do_shutdown ();
+    return;
+  }
   
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
                                                             "ZONEKEY",
@@ -427,6 +434,13 @@ run (void *cls,
 int
 main (int argc, char *const *argv)
 {
+
+  if (GNUNET_SYSERR == GNUNET_OS_check_helper_binary ("gnunet-gns-proxy"))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Proxy binay not in PATH... skipping!");
+    return 0;
+  }
 
   GNUNET_CRYPTO_setup_hostkey ("test_gns_proxy.conf");
   

@@ -1405,7 +1405,7 @@ curl_download_prepare ()
   else if (NULL != ctasks_head)
   {
     /* as specified in curl docs */
-    curl_download_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+    curl_download_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MILLISECONDS,
                                                        &curl_task_download,
                                                        curl_multi);
   }
