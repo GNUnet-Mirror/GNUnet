@@ -4115,8 +4115,12 @@ handle_mesh_path_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
                 GNUNET_i2s (&msg->oid), ntohl(msg->tid));
     return GNUNET_OK;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  on tunnel %s [%X]\n",
+              GNUNET_i2s (&msg->oid), ntohl(msg->tid));
 
   peer_info = peer_info_get (&msg->peer_id);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  from peer %s\n",
+              GNUNET_i2s (&msg->peer_id));
 
   if (NULL != t->regex_ctx && t->regex_ctx->info->peer == peer_info->id)
   {
