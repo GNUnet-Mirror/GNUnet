@@ -1070,7 +1070,9 @@ GNUNET_CRYPTO_rsa_key_create_stop (struct GNUNET_CRYPTO_RsaKeyGenerationContext 
     GNUNET_break (GNUNET_OK ==
 		  GNUNET_OS_process_wait (gc->gnunet_rsa));
     GNUNET_OS_process_destroy (gc->gnunet_rsa);
+    GNUNET_DISK_pipe_close (gc->gnunet_rsa_out);
   }
+
   if (NULL != gc->filename)
   {
     if (0 != UNLINK (gc->filename))
