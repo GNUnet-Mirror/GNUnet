@@ -4503,7 +4503,7 @@ dht_get_string_accept_handler (void *cls, struct GNUNET_TIME_Absolute exp,
 
   tunnel_add_peer (info->t, peer_info);
   peer_info_connect (peer_info, info->t);
-  if (0 != info->peer)
+  if (0 == info->peer)
   {
     info->peer = peer_info->id;
   }
