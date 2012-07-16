@@ -61,6 +61,12 @@ struct GNUNET_PeerIdentity GST_my_identity;
  */
 struct GNUNET_PEERINFO_Handle *GST_peerinfo;
 
+
+/**
+ * Hostkey generation context
+ */
+struct GNUNET_CRYPTO_RsaKeyGenerationContext * GST_keygen;
+
 /**
  * Our public key.
  */
@@ -538,6 +544,12 @@ neighbours_address_notification (void *cls,
 static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  if (NULL != GST_keygen)
+  {
+    GNUNET_CRYPTO_rsa_key_create_stop (GST_keygen);
+    GST_keygen = NULL;
+  }
+
   GST_neighbours_stop ();
   GST_validation_stop ();
   GST_plugins_unload ();
@@ -565,43 +577,34 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
 }
 
-
-/**
- * Initiate transport service.
- *
- * @param cls closure
- * @param server the initialized server
- * @param c configuration to use
- */
-static void
-run (void *cls, struct GNUNET_SERVER_Handle *server,
-     const struct GNUNET_CONFIGURATION_Handle *c)
+struct KeyGenerationContext
 {
-  char *keyfile;
+  struct GNUNET_SERVER_Handle *server;
+  const struct GNUNET_CONFIGURATION_Handle *c;
+
+};
+
+static void key_generation_cb (void *cls,
+                               struct GNUNET_CRYPTO_RsaPrivateKey *pk,
+                               const char *emsg)
+{
+  struct KeyGenerationContext *scx = cls;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded tmp;
-  /* setup globals */
-  GST_cfg = c;
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (c, "GNUNETD", "HOSTKEY",
-                                               &keyfile))
+
+  GST_keygen = NULL;
+  if (NULL == pk)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _
-                ("Transport service is lacking key configuration settings.  Exiting.\n"));
+                _("Transport service could not access hostkey: %s. Exiting.\n"),
+                emsg);
+    GNUNET_free (scx);
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  GST_my_private_key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
-  GNUNET_free (keyfile);
-  if (GST_my_private_key == NULL)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Transport service could not access hostkey.  Exiting.\n"));
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
-  GST_stats = GNUNET_STATISTICS_create ("transport", c);
-  GST_peerinfo = GNUNET_PEERINFO_connect (c);
+  GST_my_private_key = pk;
+
+  GST_stats = GNUNET_STATISTICS_create ("transport", scx->c);
+  GST_peerinfo = GNUNET_PEERINFO_connect (scx->c);
   memset (&GST_my_public_key, '\0', sizeof (GST_my_public_key));
   memset (&tmp, '\0', sizeof (tmp));
   GNUNET_CRYPTO_rsa_key_get_public (GST_my_private_key, &GST_my_public_key);
@@ -624,7 +627,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   /* start subsystems */
   GST_hello_start (&process_hello_update, NULL);
   GNUNET_assert (NULL != GST_hello_get());
-  GST_blacklist_start (server);
+  GST_blacklist_start (scx->server);
   GST_ats =
       GNUNET_ATS_scheduling_init (GST_cfg, &ats_request_address_change, NULL);
   GST_plugins_load (&plugin_env_receive_callback,
@@ -635,8 +638,49 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
                         &neighbours_connect_notification,
                         &neighbours_disconnect_notification,
                         &neighbours_address_notification);
-  GST_clients_start (server);
+  GST_clients_start (scx->server);
   GST_validation_start ();
+  GNUNET_free (scx);
+}
+
+
+/**
+ * Initiate transport service.
+ *
+ * @param cls closure
+ * @param server the initialized server
+ * @param c configuration to use
+ */
+static void
+run (void *cls, struct GNUNET_SERVER_Handle *server,
+     const struct GNUNET_CONFIGURATION_Handle *c)
+{
+  struct KeyGenerationContext *scx;
+  char *keyfile;
+
+  /* setup globals */
+  GST_cfg = c;
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_filename (c, "GNUNETD", "HOSTKEY",
+                                               &keyfile))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _
+                ("Transport service is lacking key configuration settings.  Exiting.\n"));
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+  scx = GNUNET_malloc (sizeof (struct KeyGenerationContext));
+  scx->c = c;
+  scx->server = server;
+  GST_keygen = GNUNET_CRYPTO_rsa_key_create_start (keyfile, key_generation_cb, scx);
+  GNUNET_free (keyfile);
+  if (NULL == GST_keygen)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Transport service is unable to access hostkey. Exiting.\n"));
+    GNUNET_SCHEDULER_shutdown ();
+  }
 }
 
 
