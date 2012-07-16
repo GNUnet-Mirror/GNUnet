@@ -1023,7 +1023,7 @@ GNUNET_CRYPTO_rsa_key_create_start (const char *filename,
     GNUNET_free (gc);
     return NULL;
   }
-  gc->gnunet_rsa = GNUNET_OS_start_process (GNUNET_YES,
+  gc->gnunet_rsa = GNUNET_OS_start_process (GNUNET_NO,
 					    GNUNET_OS_INHERIT_STD_ERR,
 					    NULL, 
 					    gc->gnunet_rsa_out,
