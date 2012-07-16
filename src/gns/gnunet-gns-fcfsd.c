@@ -544,6 +544,22 @@ create_response (void *cls,
       switch (request->phase)
 	{
 	case RP_START:
+	  if (NULL != strchr (request->domain_name, (int) '.'))
+	  {
+	    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+			_("Domain name must not contain `.'\n"));
+	    request->phase = RP_FAIL;
+	    return fill_s_reply ("Domain name must not contain `.', sorry.",
+				 request, connection);
+	  }
+	  if (NULL != strchr (request->domain_name, (int) '+'))
+	  {
+	    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+			_("Domain name must not contain `+'\n"));
+	    request->phase = RP_FAIL;
+	    return fill_s_reply ("Domain name must not contain `+', sorry.",
+				 request, connection);
+	  }
 	  request->phase = RP_LOOKUP;
 	  request->qe = GNUNET_NAMESTORE_lookup_record (ns,
 							&fcfsd_zone,
