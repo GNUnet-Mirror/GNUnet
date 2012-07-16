@@ -225,7 +225,7 @@ tunnel_cleaner (void *cls, const struct GNUNET_MESH_Tunnel *tunnel,
 {
   long i = (long) cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Incoming tunnel disconnected at peer %d\n",
               i);
   return;
@@ -449,7 +449,7 @@ peergroup_ready (void *cls, const char *emsg)
 
   for (i = 0; i < MESH_REGEX_PEERS; i++)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Create tunnel\n");
     t[i] = GNUNET_MESH_tunnel_create (h1, NULL, &ch, &dh, (void *) (long) i);
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -608,7 +608,7 @@ main (int argc, char *argv[])
                 regex_peers);
     return 1;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: success\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "test: success\n");
   return 0;
 }
 

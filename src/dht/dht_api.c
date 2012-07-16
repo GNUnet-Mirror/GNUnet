@@ -880,6 +880,9 @@ service_message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     break;
   default:
     GNUNET_break(0);
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "Unknown DHT message type: %su\n",
+         ntohs (msg->type));
     break;
   }
   if (GNUNET_OK != ret)
