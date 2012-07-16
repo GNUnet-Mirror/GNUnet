@@ -3213,7 +3213,8 @@ run (void *cls, char *const *args GNUNET_UNUSED,
   }
   helper_handle = GNUNET_HELPER_start ("gnunet-helper-exit", 
 				       exit_argv,
-				       &message_token, NULL);
+				       &message_token,
+				       NULL, NULL);
 }
 
 

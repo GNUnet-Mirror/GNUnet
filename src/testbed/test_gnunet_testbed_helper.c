@@ -151,7 +151,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   helper = GNUNET_HELPER_start ("gnunet-testbed-helper", 
 				binary_argv,
-                                NULL, NULL);
+                                NULL, NULL, NULL);
   GNUNET_assert (NULL != helper);
   cfg = GNUNET_CONFIGURATION_dup (cfg2);  
   config = GNUNET_CONFIGURATION_serialize (cfg, &config_size);

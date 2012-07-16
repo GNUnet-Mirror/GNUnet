@@ -109,6 +109,16 @@ struct GNUNET_HELPER_Handle
   struct GNUNET_SERVER_MessageStreamTokenizer *mst;
 
   /**
+   * The exception callback
+   */
+  GNUNET_HELPER_ExceptionCallback exp_cb;
+
+  /**
+   * The closure for callbacks
+   */
+  void *cb_cls;
+
+  /**
    * First message queued for transmission to helper.
    */
   struct GNUNET_HELPER_SendHandle *sh_head;
@@ -244,11 +254,16 @@ helper_read (void *cls,
                 _("Error reading from `%s': %s\n"),
 		h->binary_name,
 		STRERROR (errno));
+    if (NULL != h->exp_cb)
+    {
+      h->exp_cb (h->cb_cls, h);
+      GNUNET_HELPER_stop (h);
+      return;
+    }
     stop_helper (h);
     /* Restart the helper */
     h->restart_task =
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-				    &restart_task, h);
+	GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &restart_task, h);
     return;
   }
   if (0 == t)
@@ -258,6 +273,12 @@ helper_read (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
 		_("Got 0 bytes from helper `%s' (EOF)\n"),
 		h->binary_name);
+    if (NULL != h->exp_cb)
+    {
+      h->exp_cb (h->cb_cls, h);
+      GNUNET_HELPER_stop (h);
+      return;
+    }
     stop_helper (h);
     /* Restart the helper */
     h->restart_task =
@@ -277,6 +298,12 @@ helper_read (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, 
 		_("Failed to parse inbound message from helper `%s'\n"),
 		h->binary_name);
+    if (NULL != h->exp_cb)
+    {
+      h->exp_cb (h->cb_cls, h);
+      GNUNET_HELPER_stop (h);
+      return;
+    }     
     stop_helper (h);
     /* Restart the helper */
     h->restart_task =
@@ -354,27 +381,35 @@ restart_task (void *cls,
 
 
 /**
- * @brief Starts a helper and begins reading from it
+ * Starts a helper and begins reading from it. The helper process is
+ * restarted when it dies except when it is stopped using GNUNET_HELPER_stop()
+ * or when the exp_cb callback is not NULL.
  *
  * @param binary_name name of the binary to run
  * @param binary_argv NULL-terminated list of arguments to give when starting the binary (this
  *                    argument must not be modified by the client for
- *                     the lifetime of the helper h)
+ *                     the lifetime of the helper handle)
  * @param cb function to call if we get messages from the helper
- * @param cb_cls Closure for the callback
- * @return the new H, NULL on error
+ * @param exp_cb the exception callback to call. Set this to NULL if the helper
+ *          process has to be restarted automatically when it dies/crashes
+ * @param cb_cls closure for the above callback
+ * @return the new Handle, NULL on error
  */
-struct GNUNET_HELPER_Handle*
+struct GNUNET_HELPER_Handle *
 GNUNET_HELPER_start (const char *binary_name,
 		     char *const binary_argv[],
-		     GNUNET_SERVER_MessageTokenizerCallback cb, void *cb_cls)
+		     GNUNET_SERVER_MessageTokenizerCallback cb,
+		     GNUNET_HELPER_ExceptionCallback exp_cb,
+		     void *cb_cls)
 {
   struct GNUNET_HELPER_Handle*h;
 
   h =  GNUNET_malloc (sizeof (struct GNUNET_HELPER_Handle));
   h->binary_name = binary_name;
   h->binary_argv = binary_argv;
-  h->mst = GNUNET_SERVER_mst_create (cb, cb_cls);
+  h->cb_cls = cb_cls;
+  h->mst = GNUNET_SERVER_mst_create (cb, h->cb_cls);
+  h->exp_cb = exp_cb;
   start_helper (h);
   return h;
 }
@@ -390,6 +425,7 @@ GNUNET_HELPER_stop (struct GNUNET_HELPER_Handle *h)
 {
   struct GNUNET_HELPER_SendHandle *sh;
 
+  h->exp_cb = NULL;
   /* signal pending writes that we were stopped */
   while (NULL != (sh = h->sh_head))
   {

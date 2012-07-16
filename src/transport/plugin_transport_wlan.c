@@ -1713,6 +1713,7 @@ libgnunet_plugin_transport_wlan_init (void *cls)
     plugin->suid_helper = GNUNET_HELPER_start ("gnunet-helper-transport-wlan",
 					       plugin->helper_argv,
 					       &handle_helper_message,
+					       NULL,
 					       plugin);
     break;
   case 1: /* testmode, peer 1 */
@@ -1722,6 +1723,7 @@ libgnunet_plugin_transport_wlan_init (void *cls)
     plugin->suid_helper = GNUNET_HELPER_start ("gnunet-helper-transport-wlan-dummy",
 					       plugin->helper_argv,
 					       &handle_helper_message,
+					       NULL,
 					       plugin);
     break;
   case 2: /* testmode, peer 2 */
@@ -1731,6 +1733,7 @@ libgnunet_plugin_transport_wlan_init (void *cls)
     plugin->suid_helper = GNUNET_HELPER_start ("gnunet-helper-transport-wlan-dummy",
 					       plugin->helper_argv,
 					       &handle_helper_message,
+					       NULL,
 					       plugin);
     break;
   default:

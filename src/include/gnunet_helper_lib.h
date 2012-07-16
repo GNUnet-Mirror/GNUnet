@@ -24,6 +24,7 @@
  * @author Philipp Toelke
  * @author Christian Grothoff
  */
+
 #ifndef GNUNET_HELPER_LIB_H
 #define GNUNET_HELPER_LIB_H
 
@@ -37,24 +38,43 @@ struct GNUNET_HELPER_Handle;
 
 
 /**
- * @brief Starts a helper and begins reading from it
+ * Callback that will be called when the helper process dies. This is not called
+ * when the helper process is stoped using GNUNET_HELPER_stop()
+ *
+ * @param cls the closure from GNUNET_HELPER_start()
+ * @param h the handle representing the helper process. This handle is invalid
+ *          in this callback. It is only presented for reference. No operations
+ *          can be performed using it.
+ */
+typedef void (*GNUNET_HELPER_ExceptionCallback) (void *cls,
+						 const struct GNUNET_HELPER_Handle *h);
+
+
+/**
+ * Starts a helper and begins reading from it. The helper process is
+ * restarted when it dies except when it is stopped using GNUNET_HELPER_stop()
+ * or when the exp_cb callback is not NULL.
  *
  * @param binary_name name of the binary to run
  * @param binary_argv NULL-terminated list of arguments to give when starting the binary (this
  *                    argument must not be modified by the client for
  *                     the lifetime of the helper handle)
  * @param cb function to call if we get messages from the helper
- * @param cb_cls Closure for the callback
+ * @param exp_cb the exception callback to call. Set this to NULL if the helper
+ *          process has to be restarted automatically when it dies/crashes
+ * @param cb_cls closure for the above callbacks
  * @return the new Handle, NULL on error
  */
 struct GNUNET_HELPER_Handle *
 GNUNET_HELPER_start (const char *binary_name,
 		     char *const binary_argv[],
-		     GNUNET_SERVER_MessageTokenizerCallback cb, void *cb_cls);
+		     GNUNET_SERVER_MessageTokenizerCallback cb,
+		     GNUNET_HELPER_ExceptionCallback exp_cb,
+		     void *cb_cls);
 
 
 /**
- * @brief Kills the helper, closes the pipe and frees the handle
+ * Kills the helper, closes the pipe and frees the handle
  *
  * @param h handle to helper to stop
  */

@@ -1656,7 +1656,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   hijacker = GNUNET_HELPER_start ("gnunet-helper-dns",
 				  helper_argv,
 				  &process_helper_messages,
-				  NULL);
+				  NULL, NULL);
   GNUNET_SERVER_add_handlers (server, handlers);
   GNUNET_SERVER_disconnect_notify (server, &client_disconnect, NULL);
 }

@@ -3183,7 +3183,7 @@ run (void *cls,
 			 mesh_handlers,
 			 types);
   helper_handle = GNUNET_HELPER_start ("gnunet-helper-vpn", vpn_argv,
-				       &message_token, NULL);
+				       &message_token, NULL, NULL);
   nc = GNUNET_SERVER_notification_context_create (server, 1);
   GNUNET_SERVER_add_handlers (server, service_handlers);
   GNUNET_SERVER_disconnect_notify (server, &client_disconnect, NULL);

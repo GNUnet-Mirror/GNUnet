@@ -457,7 +457,7 @@ GNUNET_FS_directory_scan_start (const char *filename,
   ds->helper = GNUNET_HELPER_start ("gnunet-helper-fs-publish",
 				    ds->args,
 				    &process_helper_msgs,
-				    ds);
+				    NULL, ds);
   if (NULL == ds->helper)
   {
     GNUNET_free (filename_expanded);
