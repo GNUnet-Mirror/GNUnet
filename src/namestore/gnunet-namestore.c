@@ -34,6 +34,11 @@
 
 
 /**
+ * Hostkey generation context
+ */
+struct GNUNET_CRYPTO_RsaKeyGenerationContext * keygen;
+
+/**
  * Handle to the namestore.
  */
 static struct GNUNET_NAMESTORE_Handle *ns;
@@ -139,6 +144,12 @@ static void
 do_shutdown (void *cls,
 	     const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  if (NULL != keygen)
+  {
+    GNUNET_CRYPTO_rsa_key_create_stop (keygen);
+    keygen = NULL;
+  }
+
   if (NULL != list_it)
   {
     GNUNET_NAMESTORE_zone_iteration_stop (list_it);
@@ -316,11 +327,12 @@ display_record (void *cls,
   GNUNET_NAMESTORE_zone_iterator_next (list_it);
 }
 
-
 static void
-testservice_task (void *cls,
-                  const struct GNUNET_SCHEDULER_TaskContext *tc)
+key_generation_cb (void *cls,
+                   struct GNUNET_CRYPTO_RsaPrivateKey *pk,
+                   const char *emsg)
 {
+  struct GNUNET_CONFIGURATION_Handle *cfg = cls;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pub;
   uint32_t type;
   void *data = NULL;
@@ -330,32 +342,14 @@ testservice_task (void *cls,
   int etime_is_rel = GNUNET_SYSERR;
   struct GNUNET_NAMESTORE_RecordData rd;
 
-  struct GNUNET_CONFIGURATION_Handle *cfg = cls;
-
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT))
+  keygen = NULL;
+  if (NULL == pk)
   {
-      FPRINTF (stderr, _("Service `%s' is not running\n"), "namestore");
-      return;
+    GNUNET_SCHEDULER_shutdown ();
+    return;
   }
+  zone_pkey = pk;
 
-
-  if (NULL == keyfile)
-  {
-    if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
-                                                              "ZONEKEY", &keyfile))
-    {
-      fprintf (stderr,
-               _("Option `%s' not given, but I need a zone key file!\n"),
-               "z");
-      return;
-    }
-    fprintf (stderr,
-             _("Using default zone file `%s'\n"),
-             keyfile);
-  }
-  zone_pkey = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
-  GNUNET_free (keyfile);
-  keyfile = NULL;
   if (! (add|del|list|(NULL != uri)))
   {
     /* nothing more to be done */  
@@ -602,6 +596,45 @@ testservice_task (void *cls,
                                                  &add_qe_uri);
   }
   GNUNET_free_non_null (data);
+
+}
+
+
+static void
+testservice_task (void *cls,
+                  const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_CONFIGURATION_Handle *cfg = cls;
+
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT))
+  {
+      FPRINTF (stderr, _("Service `%s' is not running\n"), "namestore");
+      return;
+  }
+
+
+  if (NULL == keyfile)
+  {
+    if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
+                                                              "ZONEKEY", &keyfile))
+    {
+      fprintf (stderr,
+               _("Option `%s' not given, but I need a zone key file!\n"),
+               "z");
+      return;
+    }
+    fprintf (stderr,
+             _("Using default zone file `%s'\n"),
+             keyfile);
+  }
+  keygen = GNUNET_CRYPTO_rsa_key_create_start (keyfile, key_generation_cb, cfg);
+  GNUNET_free (keyfile);
+  keyfile = NULL;
+  if (NULL == keygen)
+  {
+    GNUNET_SCHEDULER_shutdown ();
+    ret = 1;
+  }
 }
 
 
