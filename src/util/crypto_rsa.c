@@ -1059,7 +1059,11 @@ GNUNET_CRYPTO_rsa_key_create_start (const char *filename,
 void
 GNUNET_CRYPTO_rsa_key_create_stop (struct GNUNET_CRYPTO_RsaKeyGenerationContext *gc)
 {
-  GNUNET_SCHEDULER_cancel (gc->read_task);
+  if (GNUNET_SCHEDULER_NO_TASK != gc->read_task)
+  {
+    GNUNET_SCHEDULER_cancel (gc->read_task);
+    gc->read_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   if (NULL != gc->gnunet_rsa)
   {
     (void) GNUNET_OS_process_kill (gc->gnunet_rsa, SIGKILL);
