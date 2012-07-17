@@ -256,7 +256,7 @@ helper_read (void *cls,
 		STRERROR (errno));
     if (NULL != h->exp_cb)
     {
-      h->exp_cb (h->cb_cls, h);
+      h->exp_cb (h->cb_cls);
       GNUNET_HELPER_stop (h);
       return;
     }
@@ -275,7 +275,7 @@ helper_read (void *cls,
 		h->binary_name);
     if (NULL != h->exp_cb)
     {
-      h->exp_cb (h->cb_cls, h);
+      h->exp_cb (h->cb_cls);
       GNUNET_HELPER_stop (h);
       return;
     }
@@ -300,7 +300,7 @@ helper_read (void *cls,
 		h->binary_name);
     if (NULL != h->exp_cb)
     {
-      h->exp_cb (h->cb_cls, h);
+      h->exp_cb (h->cb_cls);
       GNUNET_HELPER_stop (h);
       return;
     }     

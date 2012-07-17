@@ -447,12 +447,9 @@ struct GNUNET_TESTBED_ControllerProc
  * when the helper process is stoped using GNUNET_HELPER_stop()
  *
  * @param cls the closure from GNUNET_HELPER_start()
- * @param h the handle representing the helper process. This handle is invalid
- *          in this callback. It is only presented for reference. No operations
- *          can be performed using it.
  */
 static void 
-controller_exp_cb (void *cls, const struct GNUNET_HELPER_Handle *h)
+controller_exp_cb (void *cls)
 {
   struct GNUNET_TESTBED_ControllerProc *cproc = cls;
 

@@ -42,12 +42,8 @@ struct GNUNET_HELPER_Handle;
  * when the helper process is stoped using GNUNET_HELPER_stop()
  *
  * @param cls the closure from GNUNET_HELPER_start()
- * @param h the handle representing the helper process. This handle is invalid
- *          in this callback. It is only presented for reference. No operations
- *          can be performed using it.
  */
-typedef void (*GNUNET_HELPER_ExceptionCallback) (void *cls,
-						 const struct GNUNET_HELPER_Handle *h);
+typedef void (*GNUNET_HELPER_ExceptionCallback) (void *cls);
 
 
 /**

@@ -357,18 +357,15 @@ clear_msg (void *cls, int result)
  * when the helper process is stoped using GNUNET_HELPER_stop()
  *
  * @param cls the closure from GNUNET_HELPER_start()
- * @param h the handle representing the helper process. This handle is invalid
- *          in this callback. It is only presented for reference. No operations
- *          can be performed using it.
  */
 static void 
-helper_exp_cb (void *cls, const struct GNUNET_HELPER_Handle *h)
+helper_exp_cb (void *cls)
 {
   struct GNUNET_TESTBED_HelperHandle *handle = cls;
 
   handle->is_stopped = GNUNET_YES;
   GNUNET_TESTBED_host_stop_ (handle);
-  handle->exp_cb (handle->exp_cb_cls, h);
+  handle->exp_cb (handle->exp_cb_cls);
 }
 
 
