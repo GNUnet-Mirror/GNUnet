@@ -584,9 +584,10 @@ struct KeyGenerationContext
 
 };
 
-static void key_generation_cb (void *cls,
-                               struct GNUNET_CRYPTO_RsaPrivateKey *pk,
-                               const char *emsg)
+static void
+key_generation_cb (void *cls,
+                   struct GNUNET_CRYPTO_RsaPrivateKey *pk,
+                   const char *emsg)
 {
   struct KeyGenerationContext *scx = cls;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded tmp;
