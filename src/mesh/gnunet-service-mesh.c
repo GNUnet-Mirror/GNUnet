@@ -858,6 +858,20 @@ static void
 regex_find_path (const struct GNUNET_HashCode *key,
                  struct MeshRegexSearchContext *ctx);
 
+
+/**
+ * Queue and pass message to core when possible.
+ *
+ * @param cls Closure (type dependant).
+ * @param type Type of the message.
+ * @param size Size of the message.
+ * @param dst Neighbor to send message to.
+ * @param t Tunnel this message belongs to.
+ */
+static void
+queue_add (void *cls, uint16_t type, size_t size,
+           struct MeshPeerInfo *dst, struct MeshTunnel *t);
+
 /******************************************************************************/
 /************************         ITERATORS        ****************************/
 /******************************************************************************/
@@ -1773,7 +1787,7 @@ static void
 data_descriptor_decrement_multicast (struct MeshData *mesh_data)
 {
   /* Make sure it's a multicast packet */
-  GNUNET_assert (NULL != mesh_data->reference_counter); // FIXME URGENT #2499
+  GNUNET_assert (NULL != mesh_data->reference_counter);
 
   if (0 == --(*(mesh_data->reference_counter)))
   {
@@ -1873,19 +1887,6 @@ peer_info_delete_tunnel (void *cls, const struct GNUNET_HashCode * key, void *va
 
 
 /**
- * Queue and pass message to core when possible.
- *
- * @param cls Closure (type dependant).
- * @param type Type of the message.
- * @param size Size of the message.
- * @param dst Neighbor to send message to.
- * @param t Tunnel this message belongs to.
- */
-static void
-queue_add (void *cls, uint16_t type, size_t size,
-           struct MeshPeerInfo *dst, struct MeshTunnel *t);
-
-/**
   * Core callback to write a pre-constructed data packet to core buffer
   *
   * @param cls Closure (MeshTransmissionDescriptor with data in "data" member).
@@ -1944,6 +1945,8 @@ send_message (const struct GNUNET_MessageHeader *message,
   info->mesh_data->data = GNUNET_malloc (size);
   memcpy (info->mesh_data->data, message, size);
   info->mesh_data->data_len = size;
+  info->mesh_data->reference_counter = GNUNET_malloc (sizeof (unsigned int));
+  *info->mesh_data->reference_counter = 1;
   neighbor = peer_info_get (peer);
   for (p = neighbor->path_head; NULL != p; p = p->next)
   {
