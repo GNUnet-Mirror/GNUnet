@@ -34,7 +34,7 @@
 /**
  * How long until we give up on connecting the peers?
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 300)
 
 /**
  * Time to wait for stuff that should be rather fast
