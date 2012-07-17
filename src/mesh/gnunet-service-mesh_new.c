@@ -1773,7 +1773,7 @@ static void
 data_descriptor_decrement_multicast (struct MeshData *mesh_data)
 {
   /* Make sure it's a multicast packet */
-  GNUNET_assert (NULL != mesh_data->reference_counter);
+  GNUNET_assert (NULL != mesh_data->reference_counter); // FIXME URGENT #2499
 
   if (0 == --(*(mesh_data->reference_counter)))
   {
@@ -1954,7 +1954,7 @@ send_message (const struct GNUNET_MessageHeader *message,
   }
   if (NULL == p)
   {
-    GNUNET_break (0);
+    GNUNET_break (0); // FIXME sometimes fails (testing disconnect?)
     GNUNET_free (info->mesh_data->data);
     GNUNET_free (info->mesh_data);
     GNUNET_free (info);
@@ -2225,6 +2225,7 @@ peer_info_remove_path (struct MeshPeerInfo *peer, GNUNET_PEER_Id p1,
   unsigned int cost;
   unsigned int i;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "peer_info_remove_path\n");
   destroyed = 0;
   p = peer->path_head;
   while (NULL != p)
@@ -2285,6 +2286,7 @@ peer_info_remove_path (struct MeshPeerInfo *peer, GNUNET_PEER_Id p1,
       peer_info_connect (peer_d, peer->tunnels[i]);
     }
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "peer_info_remove_path END\n");
 }
 
 
@@ -2716,6 +2718,7 @@ tunnel_add_peer (struct MeshTunnel *t, struct MeshPeerInfo *peer)
   unsigned int best_cost;
   unsigned int cost;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "tunnel_add_peer\n");
   GNUNET_PEER_resolve (peer->id, &id);
   if (GNUNET_NO ==
       GNUNET_CONTAINER_multihashmap_contains (t->peers, &id.hashPubKey))
@@ -2751,6 +2754,7 @@ tunnel_add_peer (struct MeshTunnel *t, struct MeshPeerInfo *peer)
     /* Start a DHT get */
     peer_info_connect (peer, t);
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "tunnel_add_peer END\n");
 }
 
 /**
@@ -2769,6 +2773,7 @@ tunnel_add_path (struct MeshTunnel *t, struct MeshPeerPath *p,
 {
   struct GNUNET_PeerIdentity id;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "tunnel_add_path\n");
   GNUNET_assert (0 != own_pos);
   tree_add_path (t->tree, p, NULL, NULL);
   if (own_pos < p->length - 1)
@@ -2776,6 +2781,7 @@ tunnel_add_path (struct MeshTunnel *t, struct MeshPeerPath *p,
     GNUNET_PEER_resolve (p->peers[own_pos + 1], &id);
     tree_update_first_hops (t->tree, myid, &id);
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "tunnel_add_path END\n");
 }
 
 
@@ -3660,6 +3666,7 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
                                                      peer_info_get
                                                      (&my_full_id),
                                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE));
+    // FIXME URGENT (GNUNET_NO?)
     info = GNUNET_malloc (sizeof (struct MeshTransmissionDescriptor));
     info->origin = &t->id;
     info->peer = GNUNET_CONTAINER_multihashmap_get (peers, &peer->hashPubKey);
@@ -4119,8 +4126,10 @@ handle_mesh_path_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
               GNUNET_i2s (&msg->oid), ntohl(msg->tid));
 
   peer_info = peer_info_get (&msg->peer_id);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  from peer %s\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  by peer %s\n",
               GNUNET_i2s (&msg->peer_id));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  via peer %s\n",
+              GNUNET_i2s (peer));
 
   if (NULL != t->regex_ctx && t->regex_ctx->info->peer == peer_info->id)
   {
@@ -4430,6 +4439,7 @@ regex_connect_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_PEER_Id id;
   GNUNET_PEER_Id old;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Regex connect timeout\n");
   info->timeout = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
@@ -4437,6 +4447,7 @@ regex_connect_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
 
   old = info->peer;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  timed out: %u\n", old);
 
   if (0 < info->n_peers)
   {
@@ -4450,14 +4461,17 @@ regex_connect_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     // Try to connect to same peer again.
     id = info->peer;
   }
-  
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  trying: %u\n", id);
+
   peer_info = peer_info_get_short(id);
   tunnel_add_peer (info->t, peer_info);
-  tunnel_delete_peer (info->t, old);
+  if (old != id)
+    tunnel_delete_peer (info->t, old);
   peer_info_connect (peer_info, info->t);
   info->timeout = GNUNET_SCHEDULER_add_delayed (CONNECT_TIMEOUT,
                                                 &regex_connect_timeout,
                                                 info);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Regex connect timeout END\n");
 }
 
 
@@ -4492,7 +4506,7 @@ dht_get_string_accept_handler (void *cls, struct GNUNET_TIME_Absolute exp,
   struct MeshPeerPath *p;
   struct MeshPeerInfo *peer_info;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got results from DHT!\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got regex results from DHT!\n");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  for %s\n", info->description);
 
   peer_info = peer_info_get(&block->id);
