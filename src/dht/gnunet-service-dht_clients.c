@@ -984,6 +984,7 @@ forward_reply (void *cls, const struct GNUNET_HashCode * key, void *value)
     memcpy (pm, frc->pm,
             sizeof (struct PendingMessage) + ntohs (frc->pm->msg->size));
     pm->next = pm->prev = NULL;
+    pm->msg = (struct GNUNET_MessageHeader *) &pm[1];
   }
   GNUNET_STATISTICS_update (GDS_stats,
                             gettext_noop ("# RESULTS queued for clients"), 1,
