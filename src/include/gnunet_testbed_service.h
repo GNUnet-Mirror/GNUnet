@@ -403,14 +403,17 @@ struct GNUNET_TESTBED_ControllerProc;
 
 
 /**
- * Function called on errors with the controller.
+ * Callback to signal successfull startup of the controller process
  *
- * @param cls closure
- * @param emsg error message if available; can be NULL, which does NOT mean
- *             that there was no error
+ * @param cls the closure from GNUNET_TESTBED_controller_start()
+ * @param cfg the configuration with which the controller has been started;
+ *          NULL if status is not GNUNET_OK
+ * @param status GNUNET_OK if the startup is successfull; GNUNET_SYSERR if not,
+ *          GNUNET_TESTBED_controller_stop() shouldn't be called in this case
  */
-typedef void (*GNUNET_TESTBED_ControllerErrorCallback)(void *cls,
-						       const char *emsg);
+typedef void (*GNUNET_TESTBED_ControllerStatusCallback) (void *cls, 
+                                                        const struct GNUNET_CONFIGURATION_Handle *cfg,
+                                                        int status);
 
 
 /**
@@ -419,25 +422,26 @@ typedef void (*GNUNET_TESTBED_ControllerErrorCallback)(void *cls,
  *
  * @param controller_ip the ip address of the controller. Will be set as TRUSTED
  *          host when starting testbed controller at host
- * @param host the host where the controller has to be started; NULL for localhost
+ * @param host the host where the controller has to be started; NULL for
+ *          localhost
  * @param cfg template configuration to use for the remote controller; the
  *          remote controller will be started with a slightly modified
  *          configuration (port numbers, unix domain sockets and service home
  *          values are changed as per TESTING library on the remote host)
- * @param cec function called if the contoller dies unexpectedly; will not be 
- *            invoked after GNUNET_TESTBED_controller_stop, if 'cec' was called,
- *            GNUNET_TESTBED_controller_stop must no longer be called; will
- *            never be called in the same task as 'GNUNET_TESTBED_controller_start'
- *            (synchronous errors will be signalled by returning NULL)
- * @param cec_cls closure for 'cec'
+ * @param cb function called when the controller is successfully started or
+ *           dies unexpectedly; GNUNET_TESTBED_controller_stop shouldn't be
+ *           called if cb is called with GNUNET_SYSERR as status. Will never be
+ *           called in the same task as 'GNUNET_TESTBED_controller_start'
+ *           (synchronous errors will be signalled by returning NULL)
+ * @param cls closure for above callbacks
  * @return the controller process handle, NULL on errors
  */
 struct GNUNET_TESTBED_ControllerProc *
 GNUNET_TESTBED_controller_start (const char *controller_ip,
 				 struct GNUNET_TESTBED_Host *host,
 				 const struct GNUNET_CONFIGURATION_Handle *cfg,
-				 GNUNET_TESTBED_ControllerErrorCallback cec,
-				 void *cec_cls);
+                                 GNUNET_TESTBED_ControllerStatusCallback cb,
+				 void *cls);
 
 
 /**

@@ -33,6 +33,7 @@ gnunet_testbed_helper_SOURCES = \
 gnunet_testbed_helper_LDADD = $(XLIB) \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/testing/libgnunettesting.la \
+ libgnunettestbed.la \
  $(LTLIBINTL) -lz
 gnunet_testbed_helper_DEPENDENCIES = \
   gnunet-service-testbed.$(OBJEXT)
@@ -70,7 +71,7 @@ check_PROGRAMS = \
 if ENABLE_TEST_RUN
  TESTS = \
   test_testbed_api_hosts \
-  test_gnunet_testbed_helper
+  #test_gnunet_testbed_helper
 endif
 
 test_testbed_api_hosts_SOURCES = \

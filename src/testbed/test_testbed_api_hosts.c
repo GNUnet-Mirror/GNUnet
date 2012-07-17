@@ -39,11 +39,6 @@
 static struct GNUNET_TESTBED_Host *host;
 
 /**
- * The host helper handle
- */
-static struct GNUNET_TESTBED_HelperHandle *helper_handle;
-
-/**
  * Global test status
  */
 static int status;
@@ -62,23 +57,7 @@ GNUNET_SCHEDULER_TaskIdentifier shutdown_id;
 static void
 do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_TESTBED_host_stop_ (helper_handle);
   GNUNET_TESTBED_host_destroy (host);
-}
-
-
-/**
- * Callback that will be called when the helper process dies. This is not called
- * when the helper process is stoped using GNUNET_HELPER_stop()
- *
- * @param cls the closure from GNUNET_HELPER_start()
- */
-static void 
-exp_cb (void *cls)
-{
-  status = GNUNET_SYSERR;
-  GNUNET_SCHEDULER_cancel (shutdown_id);
-  GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
 }
 
 
@@ -102,8 +81,6 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_assert (NULL != host);
   GNUNET_assert (0 == GNUNET_TESTBED_host_get_id_ (host));
   GNUNET_assert (host == GNUNET_TESTBED_host_lookup_by_id_ (0));
-  helper_handle = GNUNET_TESTBED_host_run_ ("127.0.0.1", host, cfg, &exp_cb, NULL);
-  GNUNET_assert (NULL != helper_handle);
   shutdown_id = 
     GNUNET_SCHEDULER_add_delayed (TIME_REL_SECS (2), &do_shutdown, NULL);
 }

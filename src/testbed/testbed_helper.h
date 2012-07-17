@@ -52,7 +52,26 @@ struct GNUNET_TESTBED_HelperInit
   /* Followed by NULL terminated controller hostname */
   
   /* Followed by serialized and compressed configuration which should be
-     config_size long */
+     config_size long when un-compressed */
+};
+
+/**
+ * Reply message from helper process
+ */
+struct GNUNET_TESTBED_HelperReply
+{
+  /**
+   * Type is GNUNET_MESSAGE_TYPE_TESTBED_HELPER_REPLY
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Size of the uncompressed configuration
+   */
+  uint16_t config_size GNUNET_PACKED;
+
+  /* Followed by compressed configuration which should be config_size long when
+     un-compressed */
 };
 
 #endif

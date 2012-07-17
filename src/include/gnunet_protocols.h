@@ -1511,6 +1511,11 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_TESTBED_HELPER_INIT 495
 
+/**
+ * The reply message from gnunet-testbed-helper
+ */
+#define GNUNET_MESSAGE_TYPE_TESTBED_HELPER_REPLY 496
+
 
 /**
  *  Next available: 500
