@@ -439,26 +439,23 @@ struct GNUNET_TESTBED_ControllerProc
    * The closure for the above callback
    */
   void *cec_cls;
-
-  /**
-   * The task id of the task that will be called when controller dies
-   */
-  GNUNET_SCHEDULER_TaskIdentifier controller_dead_task_id;
 };
 
 
 /**
- * The task which is run when a controller dies (its stdout is closed)
+ * Callback that will be called when the helper process dies. This is not called
+ * when the helper process is stoped using GNUNET_HELPER_stop()
  *
- * @param cls the ControllerProc struct
- * @param tc the context
+ * @param cls the closure from GNUNET_HELPER_start()
+ * @param h the handle representing the helper process. This handle is invalid
+ *          in this callback. It is only presented for reference. No operations
+ *          can be performed using it.
  */
-static void
-controller_dead_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+static void 
+controller_exp_cb (void *cls, const struct GNUNET_HELPER_Handle *h)
 {
   struct GNUNET_TESTBED_ControllerProc *cproc = cls;
 
-  cproc->controller_dead_task_id = GNUNET_SCHEDULER_NO_TASK;
   if (NULL != cproc->cec)
     cproc->cec (cproc->cec_cls, NULL); /* FIXME: How to get the error message? */
 }
@@ -467,12 +464,13 @@ controller_dead_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * Starts a controller process at the host
  *
- * @param system used for reserving ports if host is NULL and to determine
- *               which 'host' to set as TRUSTED ('controller') when starting testbed remotely
+ * @param controller_ip the ip address of the controller. Will be set as TRUSTED
+ *          host when starting testbed controller at host
  * @param host the host where the controller has to be started; NULL for localhost
- * @param cfg template configuration to use for the remote controller; will
- *            be modified to contain the actual host/port/unixpath used for
- *            the testbed service
+ * @param cfg template configuration to use for the remote controller; the
+ *          remote controller will be started with a slightly modified
+ *          configuration (port numbers, unix domain sockets and service home
+ *          values are changed as per TESTING library on the remote host)
  * @param cec function called if the contoller dies unexpectedly; will not be 
  *            invoked after GNUNET_TESTBED_controller_stop, if 'cec' was called,
  *            GNUNET_TESTBED_controller_stop must no longer be called; will
@@ -482,59 +480,24 @@ controller_dead_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @return the controller process handle, NULL on errors
  */
 struct GNUNET_TESTBED_ControllerProc *
-GNUNET_TESTBED_controller_start (struct GNUNET_TESTING_System *system,
+GNUNET_TESTBED_controller_start (const char *controller_ip,
 				 struct GNUNET_TESTBED_Host *host,
-				 struct GNUNET_CONFIGURATION_Handle *cfg,
+				 const struct GNUNET_CONFIGURATION_Handle *cfg,
 				 GNUNET_TESTBED_ControllerErrorCallback cec,
 				 void *cec_cls)
 {
   struct GNUNET_TESTBED_ControllerProc *cproc;
-  const struct GNUNET_DISK_FileHandle *read_fh;
-  char *cfg_filename;
-
-  if ((NULL == host) || (0 == GNUNET_TESTBED_host_get_id_ (host)))
+  
+  cproc = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_ControllerProc));
+  cproc->helper = GNUNET_TESTBED_host_run_ (controller_ip, host, cfg,
+					    &controller_exp_cb, cproc);
+  if (NULL == cproc->helper)
   {
-    if (GNUNET_OK != GNUNET_TESTING_configuration_create (system, cfg))
-      return NULL;
-    GNUNET_assert 
-      (GNUNET_OK == 
-       GNUNET_CONFIGURATION_get_value_string (cfg, "PATHS", "DEFAULTCONFIG",
-					      &cfg_filename));
-    if (GNUNET_OK != GNUNET_CONFIGURATION_write (cfg, cfg_filename))
-    {
-      GNUNET_break (0);
-      return NULL;
-    }
-    char * const binary_argv[] = {
-      "gnunet-service-testbed",
-      "-c", cfg_filename,
-      NULL
-    };
-    cproc = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_ControllerProc));
-    cproc->helper = GNUNET_TESTBED_host_run_ (host, binary_argv);
-    GNUNET_free (cfg_filename);
-    if (NULL == cproc->helper)
-    {
-      GNUNET_free (cproc);
-      return NULL;
-    }
-  }
-  else
-  {
-    GNUNET_break (0); /* FIXME: start controller remotely */
+    GNUNET_free (cproc);
     return NULL;
-  }
-  read_fh = GNUNET_DISK_pipe_handle (cproc->helper->cpipe_out,
-				     GNUNET_DISK_PIPE_END_READ);
-  if (NULL == read_fh)
-  {
-    GNUNET_break (0); // we can't catch the process 
   }
   cproc->cec = cec;
   cproc->cec_cls = cec_cls;
-  cproc->controller_dead_task_id =
-    GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL, read_fh,
-				    &controller_dead_task, cproc);
   return cproc;
 }
 
@@ -549,11 +512,6 @@ GNUNET_TESTBED_controller_start (struct GNUNET_TESTING_System *system,
 void
 GNUNET_TESTBED_controller_stop (struct GNUNET_TESTBED_ControllerProc *cproc)
 {
-  if (GNUNET_SCHEDULER_NO_TASK != cproc->controller_dead_task_id)
-  {
-    GNUNET_SCHEDULER_cancel (cproc->controller_dead_task_id);
-    cproc->controller_dead_task_id = GNUNET_SCHEDULER_NO_TASK;
-  }
   GNUNET_TESTBED_host_stop_ (cproc->helper);
   GNUNET_free (cproc);
 }

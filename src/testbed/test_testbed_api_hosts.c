@@ -43,6 +43,15 @@ static struct GNUNET_TESTBED_Host *host;
  */
 static struct GNUNET_TESTBED_HelperHandle *helper_handle;
 
+/**
+ * Global test status
+ */
+static int status;
+
+/**
+ * Shutdown task identifier
+ */
+GNUNET_SCHEDULER_TaskIdentifier shutdown_id;
 
 /**
  * The shutdown task
@@ -59,6 +68,24 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
+ * Callback that will be called when the helper process dies. This is not called
+ * when the helper process is stoped using GNUNET_HELPER_stop()
+ *
+ * @param cls the closure from GNUNET_HELPER_start()
+ * @param h the handle representing the helper process. This handle is invalid
+ *          in this callback. It is only presented for reference. No operations
+ *          can be performed using it.
+ */
+static void 
+exp_cb (void *cls, const struct GNUNET_HELPER_Handle *h)
+{
+  status = GNUNET_SYSERR;
+  GNUNET_SCHEDULER_cancel (shutdown_id);
+  GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+}
+
+
+/**
  * Main run function. 
  *
  * @param cls NULL
@@ -70,9 +97,6 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  char *const binary_args[] = {"gnunet-service-testbed",
-			       NULL};
-
   host = GNUNET_TESTBED_host_create ("localhost", NULL, 0);
   GNUNET_assert (NULL != host);
   GNUNET_assert (0 != GNUNET_TESTBED_host_get_id_ (host));
@@ -81,16 +105,15 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_assert (NULL != host);
   GNUNET_assert (0 == GNUNET_TESTBED_host_get_id_ (host));
   GNUNET_assert (host == GNUNET_TESTBED_host_lookup_by_id_ (0));
-  helper_handle = GNUNET_TESTBED_host_run_ (host, binary_args);
+  helper_handle = GNUNET_TESTBED_host_run_ ("127.0.0.1", host, cfg, &exp_cb, NULL);
   GNUNET_assert (NULL != helper_handle);
-  GNUNET_SCHEDULER_add_delayed (TIME_REL_SECS (1), &do_shutdown, NULL);
+  shutdown_id = 
+    GNUNET_SCHEDULER_add_delayed (TIME_REL_SECS (2), &do_shutdown, NULL);
 }
 
 
 int main (int argc, char **argv)
 {
-  int ret;
-
   char *const argv2[] = { "test_testbed_api_hosts",
                           "-c", "test_testbed_api.conf",
                           NULL
@@ -99,8 +122,11 @@ int main (int argc, char **argv)
     GNUNET_GETOPT_OPTION_END
   };
 
-  ret = GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
-			    "test_testbed_api_hosts", "nohelp", options, &run, NULL);
-
-  return GNUNET_OK == ret ? 0 : 1;
+  status = GNUNET_YES;
+  if (GNUNET_OK != 
+      GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
+			  "test_testbed_api_hosts", "nohelp", 
+			  options, &run, NULL))
+    return 1;
+  return (GNUNET_OK == status) ? 0 : 1;
 }

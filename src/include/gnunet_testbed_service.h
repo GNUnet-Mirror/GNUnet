@@ -414,14 +414,16 @@ typedef void (*GNUNET_TESTBED_ControllerErrorCallback)(void *cls,
 
 
 /**
- * Starts a controller process at the host
+ * Starts a controller process at the host. FIXME: add controller start callback
+ * with the configuration with which the controller is started
  *
- * @param system used for reserving ports if host is NULL and to determine
- *               which 'host' to set as TRUSTED ('controller') when starting testbed remotely
+ * @param controller_ip the ip address of the controller. Will be set as TRUSTED
+ *          host when starting testbed controller at host
  * @param host the host where the controller has to be started; NULL for localhost
- * @param cfg template configuration to use for the remote controller; will
- *            be modified to contain the actual host/port/unixpath used for
- *            the testbed service
+ * @param cfg template configuration to use for the remote controller; the
+ *          remote controller will be started with a slightly modified
+ *          configuration (port numbers, unix domain sockets and service home
+ *          values are changed as per TESTING library on the remote host)
  * @param cec function called if the contoller dies unexpectedly; will not be 
  *            invoked after GNUNET_TESTBED_controller_stop, if 'cec' was called,
  *            GNUNET_TESTBED_controller_stop must no longer be called; will
@@ -431,9 +433,9 @@ typedef void (*GNUNET_TESTBED_ControllerErrorCallback)(void *cls,
  * @return the controller process handle, NULL on errors
  */
 struct GNUNET_TESTBED_ControllerProc *
-GNUNET_TESTBED_controller_start (struct GNUNET_TESTING_System *system,
+GNUNET_TESTBED_controller_start (const char *controller_ip,
 				 struct GNUNET_TESTBED_Host *host,
-				 struct GNUNET_CONFIGURATION_Handle *cfg,
+				 const struct GNUNET_CONFIGURATION_Handle *cfg,
 				 GNUNET_TESTBED_ControllerErrorCallback cec,
 				 void *cec_cls);
 

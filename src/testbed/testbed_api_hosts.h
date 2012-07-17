@@ -39,17 +39,12 @@ struct GNUNET_TESTBED_HelperHandle
   /**
    * The process handle
    */
-  struct GNUNET_OS_Process *process;
+  struct GNUNET_HELPER_Handle *helper;
 
   /**
-   * Pipe connecting to stdin of the process.
+   * The send handle for the helper
    */
-  struct GNUNET_DISK_PipeHandle *cpipe_in;
-
-  /**
-   * Pipe from the stdout of the process.
-   */
-  struct GNUNET_DISK_PipeHandle *cpipe_out;
+  struct GNUNET_HELPER_SendHandle *helper_shandle;
 
   /**
    * The port number for ssh; used for helpers starting ssh
@@ -59,7 +54,22 @@ struct GNUNET_TESTBED_HelperHandle
   /**
    * The ssh destination string; used for helpers starting ssh
    */
-  char *dst; 
+  char *dst;
+
+  /**
+   * The helper exception callback
+   */
+  GNUNET_HELPER_ExceptionCallback exp_cb;
+
+  /**
+   * The closure for exp_cb
+   */
+  void *exp_cb_cls;
+
+  /**
+   * Is the helper stopped?
+   */
+  int is_stopped;
 };
 
 
@@ -140,13 +150,25 @@ struct GNUNET_TESTBED_HelperHandle;
  * Runs the process via 'ssh' at the specified host, or locally.
  * Essentially an SSH-wrapper around the 'gnunet_helper_lib.h' API.
  * 
+ * @param controller_ip the ip address of the controller. Will be set as TRUSTED
+ *          host when starting testbed controller at host
  * @param host host to use, use "NULL" for localhost
- * @param binary_argv binary name and command-line arguments to give to the binary
+ * @param binary_argv binary name and command-line arguments to give to the
+ *          binary
+ * @param cfg template configuration to use for the remote controller; the
+ *          remote controller will be started with a slightly modified
+ *          configuration (port numbers, unix domain sockets and service home
+ *          values are changed as per TESTING library on the remote host)
+ * @param cb the callback to run when helper process dies; cannot be NULL
+ * @param cb_cls the closure for the above callback
  * @return handle to terminate the command, NULL on error
  */
 struct GNUNET_TESTBED_HelperHandle *
-GNUNET_TESTBED_host_run_ (const struct GNUNET_TESTBED_Host *host,
-			  char *const binary_argv[]);
+GNUNET_TESTBED_host_run_ (const char *controller_ip,
+			  const struct GNUNET_TESTBED_Host *host,
+			  const struct GNUNET_CONFIGURATION_Handle *cfg,
+			  GNUNET_HELPER_ExceptionCallback cb,
+			  void *cb_cls);
 
 
 /**
@@ -193,7 +215,7 @@ GNUNET_TESTBED_is_host_registered_ (const struct GNUNET_TESTBED_Host *host,
  */
 struct GNUNET_TESTBED_HelperInit *
 GNUNET_TESTBED_create_helper_init_msg_ (const char *cname,
-					 const struct GNUNET_CONFIGURATION_Handle *cfg);
+					const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
 

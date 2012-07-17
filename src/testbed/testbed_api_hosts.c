@@ -35,6 +35,7 @@
 
 #include "testbed_api.h"
 #include "testbed_api_hosts.h"
+#include "testbed_helper.h"
 
 /**
  * Generic logging shorthand
@@ -337,46 +338,86 @@ GNUNET_TESTBED_host_destroy (struct GNUNET_TESTBED_Host *host)
 
 
 /**
+ * Continuation function from GNUNET_HELPER_send()
+ * 
+ * @param cls closure
+ * @param result GNUNET_OK on success,
+ *               GNUNET_NO if helper process died
+ *               GNUNET_SYSERR during GNUNET_HELPER_stop
+ */
+static void 
+clear_msg (void *cls, int result)
+{
+  GNUNET_free (cls);
+}
+
+
+/**
+ * Callback that will be called when the helper process dies. This is not called
+ * when the helper process is stoped using GNUNET_HELPER_stop()
+ *
+ * @param cls the closure from GNUNET_HELPER_start()
+ * @param h the handle representing the helper process. This handle is invalid
+ *          in this callback. It is only presented for reference. No operations
+ *          can be performed using it.
+ */
+static void 
+helper_exp_cb (void *cls, const struct GNUNET_HELPER_Handle *h)
+{
+  struct GNUNET_TESTBED_HelperHandle *handle = cls;
+
+  handle->is_stopped = GNUNET_YES;
+  GNUNET_TESTBED_host_stop_ (handle);
+  handle->exp_cb (handle->exp_cb_cls, h);
+}
+
+
+/**
  * Run a given helper process at the given host.  Communication
  * with the helper will be via GNUnet messages on stdin/stdout.
  * Runs the process via 'ssh' at the specified host, or locally.
  * Essentially an SSH-wrapper around the 'gnunet_helper_lib.h' API.
  * 
+ * @param controller_ip the ip address of the controller. Will be set as TRUSTED
+ *          host when starting testbed controller at host
  * @param host host to use, use "NULL" for localhost
- * @param binary_argv binary name and command-line arguments to give to the binary
+ * @param binary_argv binary name and command-line arguments to give to the
+ *          binary
+ * @param cfg template configuration to use for the remote controller; the
+ *          remote controller will be started with a slightly modified
+ *          configuration (port numbers, unix domain sockets and service home
+ *          values are changed as per TESTING library on the remote host)
+ * @param cb the callback to run when helper process dies; cannot be NULL
+ * @param cb_cls the closure for the above callback
  * @return handle to terminate the command, NULL on error
  */
 struct GNUNET_TESTBED_HelperHandle *
-GNUNET_TESTBED_host_run_ (const struct GNUNET_TESTBED_Host *host,
-			  char *const binary_argv[])
+GNUNET_TESTBED_host_run_ (const char *controller_ip,
+			  const struct GNUNET_TESTBED_Host *host,
+			  const struct GNUNET_CONFIGURATION_Handle *cfg,
+			  GNUNET_HELPER_ExceptionCallback cb,
+			  void *cb_cls)
 {
-  struct GNUNET_TESTBED_HelperHandle *h;
-  unsigned int argc;
+  struct GNUNET_TESTBED_HelperHandle *h;  
+  struct GNUNET_TESTBED_HelperInit *msg;
 
-  argc = 0;
-  while (NULL != binary_argv[argc]) 
-    argc++;
+  GNUNET_assert (NULL != cb);
   h = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_HelperHandle));
-  h->cpipe_in = GNUNET_DISK_pipe (GNUNET_NO, GNUNET_NO, GNUNET_YES, GNUNET_NO);
-  h->cpipe_out = GNUNET_DISK_pipe (GNUNET_NO, GNUNET_NO, GNUNET_NO, GNUNET_YES);
-  if ((NULL == h->cpipe_in) || (NULL == h->cpipe_out))
-  {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
-			 "pipe");
-    GNUNET_free (h);
-    return NULL;
-  }
+  h->exp_cb = cb;
+  h->exp_cb_cls = cb_cls;
+  h->is_stopped = GNUNET_NO;
   if ((NULL == host) || (0 == host->id))
   {
-    h->process = GNUNET_OS_start_process_vap (GNUNET_YES,
-                                              GNUNET_OS_INHERIT_STD_ALL,
-					      h->cpipe_in, h->cpipe_out,
-					      "gnunet-service-testbed", 
-					      binary_argv);
+    char * const binary_argv[] = {
+      "gnunet-testbed-helper", NULL
+    };
+
+    h->helper =
+      GNUNET_HELPER_start ("gnunet-testbed-helper", binary_argv, NULL, &helper_exp_cb, h);
   }
   else
   {
-    char *remote_args[argc + 6 + 1];
+    char *remote_args[6 + 1];
     unsigned int argp;
 
     GNUNET_asprintf (&h->port, "%d", host->port);
@@ -390,29 +431,22 @@ GNUNET_TESTBED_host_run_ (const struct GNUNET_TESTBED_Host *host,
     remote_args[argp++] = h->port;
     remote_args[argp++] = "-q";
     remote_args[argp++] = h->dst;
-    remote_args[argp++] = "gnunet-service-testbed";
-    while (NULL != binary_argv[argp-6])
-    {
-      remote_args[argp] = binary_argv[argp - 6];
-      argp++;
-    } 
+    remote_args[argp++] = "gnunet-testbed-helper";
     remote_args[argp++] = NULL;
-    GNUNET_assert (argp == argc + 6 + 1);
-    h->process = GNUNET_OS_start_process_vap (GNUNET_YES,
-                                              GNUNET_OS_INHERIT_STD_ALL,
-					      h->cpipe_in, NULL,
-					      "ssh", 
-					      remote_args);
+    GNUNET_assert (argp == 6 + 1);
+    h->helper = GNUNET_HELPER_start ("ssh", remote_args, NULL, &helper_exp_cb, h);
   }
-  if (NULL == h->process)
+  msg = GNUNET_TESTBED_create_helper_init_msg_ (controller_ip, cfg);
+  if ((NULL == h->helper) ||
+      (NULL == (h->helper_shandle = GNUNET_HELPER_send (h->helper, &msg->header, GNUNET_NO, 
+							&clear_msg, msg))))
   {
-    GNUNET_break (GNUNET_OK == GNUNET_DISK_pipe_close (h->cpipe_in));
+    GNUNET_free (msg);
     GNUNET_free_non_null (h->port);
     GNUNET_free_non_null (h->dst);
     GNUNET_free (h);
     return NULL;
   } 
-  GNUNET_break (GNUNET_OK == GNUNET_DISK_pipe_close_end (h->cpipe_in, GNUNET_DISK_PIPE_END_READ));
   return h;
 }
 
@@ -425,11 +459,8 @@ GNUNET_TESTBED_host_run_ (const struct GNUNET_TESTBED_Host *host,
 void
 GNUNET_TESTBED_host_stop_ (struct GNUNET_TESTBED_HelperHandle *handle)
 {
-  GNUNET_break (GNUNET_OK == GNUNET_DISK_pipe_close (handle->cpipe_in));
-  GNUNET_break (GNUNET_OK == GNUNET_DISK_pipe_close (handle->cpipe_out));
-  GNUNET_break (0 == GNUNET_OS_process_kill (handle->process, SIGTERM));
-  GNUNET_break (GNUNET_OK == GNUNET_OS_process_wait (handle->process));
-  GNUNET_OS_process_destroy (handle->process);
+  if (GNUNET_YES != handle->is_stopped)
+    GNUNET_HELPER_stop (handle->helper);
   GNUNET_free_non_null (handle->port);
   GNUNET_free_non_null (handle->dst);
   GNUNET_free (handle);

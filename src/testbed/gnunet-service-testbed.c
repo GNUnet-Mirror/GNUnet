@@ -55,6 +55,16 @@ struct Context
    * The client handle associated with this context
    */
   struct GNUNET_SERVER_Client *client;
+
+  /**
+   * The network address of the master controller
+   */
+  char *master_ip;
+
+  /**
+   * The TESTING system handle for starting peers locally
+   */
+  struct GNUNET_TESTING_System *system;
   
   /**
    * Event mask of event to be responded in this context
@@ -379,11 +389,6 @@ static GNUNET_SCHEDULER_TaskIdentifier shutdown_task_id;
 /******************/
 /* Testing System */
 /******************/
-
-/**
- * Handle to the local testing system - for starting peers locally
- */
-static struct GNUNET_TESTING_System *test_system;
 
 /**
  * Our configuration; we also use this as template for starting other controllers
@@ -733,6 +738,8 @@ handle_init (void *cls,
 {
   const struct GNUNET_TESTBED_InitMessage *msg;
   struct GNUNET_TESTBED_Host *host;
+  void *addr;
+  size_t addrlen;
 
   if (NULL != master_context)
   {
@@ -744,6 +751,18 @@ handle_init (void *cls,
   master_context = GNUNET_malloc (sizeof (struct Context));
   master_context->client = client;
   master_context->host_id = ntohl (msg->host_id);
+  GNUNET_assert (GNUNET_OK == 
+		 GNUNET_SERVER_client_get_address (client, &addr, &addrlen));
+  master_context->master_ip = GNUNET_malloc (NI_MAXHOST);
+  if (0 != getnameinfo (addr, addrlen, master_context->master_ip, NI_MAXHOST,
+			NULL, 0, NI_NUMERICHOST))
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+	 "Cannot determine the ip of master controller: %s\n", STRERROR (errno));
+    GNUNET_assert (0);
+  }
+  master_context->system = 
+    GNUNET_TESTING_system_create ("testbed", master_context->master_ip);
   host = GNUNET_TESTBED_host_create_with_id (master_context->host_id,
                                              NULL, NULL, 0);
   host_list_add (host);
@@ -1037,7 +1056,7 @@ handle_link_controllers (void *cls,
     if (1 == msg->is_subordinate)
     {
       slave->controller_proc =
-        GNUNET_TESTBED_controller_start (test_system,
+        GNUNET_TESTBED_controller_start (master_context->master_ip,
 					 host_list[delegated_host_id],
 					 cfg, &slave_shutdown_handler,
 					 slave);
@@ -1165,7 +1184,7 @@ handle_peer_create (void *cls,
     peer->cfg = cfg;
     peer->id = ntohl (msg->peer_id);
     LOG_DEBUG ("Creating peer with id: %u\n", peer->id);
-    peer->peer = GNUNET_TESTING_peer_configure (test_system, peer->cfg,
+    peer->peer = GNUNET_TESTING_peer_configure (master_context->system, peer->cfg,
                                                 peer->id,
                                                 NULL /* Peer id */,
                                                 &emsg);
@@ -1282,8 +1301,7 @@ shutdown_task (void *cls,
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Shutting down testbed service\n");
   (void) GNUNET_CONTAINER_multihashmap_iterate (ss_map, &ss_map_free_iterator,
                                                 NULL);
-  GNUNET_CONTAINER_multihashmap_destroy (ss_map);
-  GNUNET_TESTING_system_destroy (test_system, GNUNET_YES);
+  GNUNET_CONTAINER_multihashmap_destroy (ss_map);  
   if (NULL != fh)
   {
     GNUNET_DISK_file_close (fh);
@@ -1335,6 +1353,9 @@ shutdown_task (void *cls,
       if (NULL != slave_list[id]->controller_proc)
         GNUNET_TESTBED_controller_stop (slave_list[id]->controller_proc);
     }
+  GNUNET_free_non_null (master_context->master_ip);
+  if (NULL != master_context->system)
+    GNUNET_TESTING_system_destroy (master_context->system, GNUNET_YES);
   GNUNET_free_non_null (master_context);
 }
 
@@ -1413,12 +1434,10 @@ testbed_run (void *cls,
                                    &client_disconnect_cb,
                                    NULL);
   ss_map = GNUNET_CONTAINER_multihashmap_create (5);
-  test_system = GNUNET_TESTING_system_create ("testbed", NULL);
-  
   fh = GNUNET_DISK_get_handle_from_native (stdin);
   if (NULL == fh)
     shutdown_task_id = 
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,				   
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
 				    &shutdown_task,
 				    NULL);
   else

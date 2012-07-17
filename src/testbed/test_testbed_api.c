@@ -43,11 +43,6 @@
   GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, sec)
 
 /**
- * The testing system we work with
- */
-struct GNUNET_TESTING_System *test_system;
-
-/**
  * Our localhost
  */
 static struct GNUNET_TESTBED_Host *host;
@@ -117,7 +112,6 @@ do_shutdown (void *cls, const const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_TESTBED_controller_stop (cp);
   GNUNET_TESTBED_host_destroy (neighbour);
   GNUNET_TESTBED_host_destroy (host);
-  GNUNET_TESTING_system_destroy (test_system, GNUNET_YES);
 }
 
 
@@ -190,12 +184,10 @@ run (void *cls, char *const *args, const char *cfgfile,
 {
   uint64_t event_mask;
 
-  test_system = GNUNET_TESTING_system_create ("test_testbed", 
-					      "127.0.0.1");
   host = GNUNET_TESTBED_host_create (NULL, NULL, 0);
   GNUNET_assert (NULL != host);
   cfg = GNUNET_CONFIGURATION_dup (config);
-  cp = GNUNET_TESTBED_controller_start (test_system, host, cfg, NULL, NULL);
+  cp = GNUNET_TESTBED_controller_start ("127.0.0.1", host, cfg, NULL, NULL);
   event_mask = 0;
   event_mask |= (1L << GNUNET_TESTBED_ET_PEER_START);
   event_mask |= (1L << GNUNET_TESTBED_ET_PEER_STOP);
