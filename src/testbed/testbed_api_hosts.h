@@ -23,11 +23,12 @@
  * @brief internal API to access the 'hosts' subsystem
  * @author Christian Grothoff
  */
+
 #ifndef NEW_TESTING_API_HOSTS_H
 #define NEW_TESTING_API_HOSTS_H
 
 #include "gnunet_testbed_service.h"
-#include "gnunet_helper_lib.h"
+#include "testbed_helper.h"
 
 
 /**
@@ -180,6 +181,21 @@ int
 GNUNET_TESTBED_is_host_registered_ (const struct GNUNET_TESTBED_Host *host,
 				    const struct GNUNET_TESTBED_Controller
 					 *controller);
+
+
+/**
+ * Creates a helper initialization message. Only for testing.
+ *
+ * @param cname the ip address of the controlling host
+ * @param cfg the configuration that has to used to start the testbed service
+ *          thru helper
+ * @return the initialization message
+ */
+struct GNUNET_TESTBED_HelperInit *
+GNUNET_TESTBED_create_helper_init_msg_ (const char *cname,
+					 const struct GNUNET_CONFIGURATION_Handle *cfg);
+
+
 
 #endif
 /* end of testbed_api_hosts.h */

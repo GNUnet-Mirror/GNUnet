@@ -30,6 +30,7 @@
 
 #include "testbed_api.h"
 #include "testbed_helper.h"
+#include "testbed_api_hosts.h"
 
 /**
  * Generic logging shortcut
@@ -141,34 +142,14 @@ run (void *cls, char *const *args, const char *cfgfile,
     "gnunet-testbed-helper",
     NULL
     };
-  char *config;
-  char *xconfig;
-  const char *hostname = "127.0.0.1";
-  size_t config_size;
-  size_t xconfig_size;
-  uint16_t hostname_len;
-  uint16_t msg_size;
+  const char *controller_name = "127.0.0.1";
 
   helper = GNUNET_HELPER_start ("gnunet-testbed-helper", 
 				binary_argv,
                                 NULL, NULL, NULL);
   GNUNET_assert (NULL != helper);
   cfg = GNUNET_CONFIGURATION_dup (cfg2);  
-  config = GNUNET_CONFIGURATION_serialize (cfg, &config_size);
-  GNUNET_assert (NULL != config);
-  xconfig_size =
-    GNUNET_TESTBED_compress_config (config, config_size, &xconfig);
-  GNUNET_free (config);
-  hostname_len = strlen (hostname);
-  msg_size = xconfig_size + hostname_len + 1 + 
-    sizeof (struct GNUNET_TESTBED_HelperInit);
-  msg = GNUNET_realloc (xconfig, msg_size);
-  (void) memmove ( ((void *) &msg[1]) + hostname_len + 1, msg, xconfig_size);
-  msg->header.size = htons (msg_size);
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_HELPER_INIT);
-  msg->cname_size = htons (hostname_len);
-  msg->config_size = htons (config_size);
-  (void) strcpy ((char *) &msg[1], hostname);
+  msg = GNUNET_TESTBED_create_helper_init_msg_ (controller_name, cfg);
   shandle = GNUNET_HELPER_send (helper,
                                 &msg->header,
                                 GNUNET_NO, &cont_cb, NULL);
