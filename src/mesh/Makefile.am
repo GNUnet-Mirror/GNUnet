@@ -19,7 +19,7 @@ plugindir = $(libdir)/gnunet
 AM_CLFAGS = -g
 
 bin_PROGRAMS = \
- gnunet-service-mesh  gnunet-service-mesh_new
+ gnunet-service-mesh
 
 lib_LTLIBRARIES = \
   libgnunetmesh.la \
@@ -37,39 +37,27 @@ libgnunet_plugin_block_mesh_la_LIBADD = \
 libgnunet_plugin_block_mesh_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 libgnunet_plugin_block_mesh_la_DEPENDENCIES = \
+ $(top_builddir)/src/mesh/libgnunetmeshblock.la \
  $(top_builddir)/src/block/libgnunetblock.la \
- libgnunetmeshblock.la
-
+ $(top_builddir)/src/util/libgnunetutil.la
 
 gnunet_service_mesh_SOURCES = \
  gnunet-service-mesh.c \
  mesh_tunnel_tree.c mesh_tunnel_tree.h
 gnunet_service_mesh_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/dht/libgnunetdht.la \
   $(top_builddir)/src/block/libgnunetblock.la \
-  $(top_builddir)/src/util/libgnunetutil.la
-gnunet_service_mesh_DEPENDENCIES = \
-  $(top_builddir)/src/core/libgnunetcore.la \
-  $(top_builddir)/src/block/libgnunetblock.la \
-  $(top_builddir)/src/dht/libgnunetdht.la \
-  $(top_builddir)/src/util/libgnunetutil.la
-
-gnunet_service_mesh_new_SOURCES = \
- gnunet-service-mesh_new.c \
- mesh_tunnel_tree.c mesh_tunnel_tree.h
-gnunet_service_mesh_new_LDADD = \
   $(top_builddir)/src/mesh/libgnunetmeshblock.la \
-  $(top_builddir)/src/core/libgnunetcore.la\
+  $(top_builddir)/src/regex/libgnunetregex.la
+gnunet_service_mesh_DEPENDENCIES = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/dht/libgnunetdht.la \
-  $(top_builddir)/src/regex/libgnunetregex.la \
-  $(top_builddir)/src/util/libgnunetutil.la
-gnunet_service_mesh_new_DEPENDENCIES = \
-  libgnunetmeshblock.la \
-  $(top_builddir)/src/core/libgnunetcore.la\
-  $(top_builddir)/src/regex/libgnunetregex.la \
-  $(top_builddir)/src/dht/libgnunetdht.la \
-  $(top_builddir)/src/util/libgnunetutil.la
+  $(top_builddir)/src/block/libgnunetblock.la \
+  $(top_builddir)/src/mesh/libgnunetmeshblock.la \
+  $(top_builddir)/src/regex/libgnunetregex.la
 
 libgnunetmesh_la_SOURCES = \
   mesh_api.c mesh.h mesh_protocol.h
@@ -194,8 +182,11 @@ test_mesh_small_speed_ack_DEPENDENCIES = \
   libgnunetmesh.la
 
 if ENABLE_TEST_RUN
-TESTS = test_mesh_api test_mesh_tree_api test_mesh_local_1 test_mesh_local_2 \
- test_mesh_2dtorus test_mesh_small_unicast test_mesh_small_multicast
+TESTS = test_mesh_api \
+ test_mesh_tree_api \
+ test_mesh_local_1 test_mesh_local_2 \
+ test_mesh_2dtorus test_mesh_regex \
+ test_mesh_small_unicast test_mesh_small_multicast
 endif
 
 EXTRA_DIST = \

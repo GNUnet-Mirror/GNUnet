@@ -48,8 +48,11 @@
 #include "platform.h"
 #include "mesh.h"
 #include "mesh_protocol.h"
-#include "gnunet_dht_service.h"
 #include "mesh_tunnel_tree.h"
+#include "block_mesh.h"
+#include "mesh_block_lib.h"
+#include "gnunet_dht_service.h"
+#include "gnunet_regex_lib.h"
 
 /* TODO: move into configuration file */
 #define REFRESH_PATH_TIME       GNUNET_TIME_relative_multiply(\
@@ -57,21 +60,28 @@
                                     300)
 #define APP_ANNOUNCE_TIME       GNUNET_TIME_relative_multiply(\
                                     GNUNET_TIME_UNIT_SECONDS,\
-                                    5)
+                                    15)
 
 #define ID_ANNOUNCE_TIME        GNUNET_TIME_relative_multiply(\
                                     GNUNET_TIME_UNIT_SECONDS,\
-                                    5)
+                                    15)
 
 #define UNACKNOWLEDGED_WAIT     GNUNET_TIME_relative_multiply(\
                                     GNUNET_TIME_UNIT_SECONDS,\
                                     2)
-#define DEFAULT_TTL     64
+#define CONNECT_TIMEOUT         GNUNET_TIME_relative_multiply(\
+                                    GNUNET_TIME_UNIT_SECONDS,\
+                                    30)
+#define DEFAULT_TTL             64
+
+#define DHT_REPLICATION_LEVEL   10
 
 /* TODO END */
 
-#define MESH_DEBUG_DHT GNUNET_YES
-#define MESH_DEBUG_CONNECTION GNUNET_NO
+#define MESH_BLOOM_SIZE         128
+
+#define MESH_DEBUG_DHT          GNUNET_YES
+#define MESH_DEBUG_CONNECTION   GNUNET_NO
 
 #if MESH_DEBUG_CONNECTION
 #define DEBUG_CONN(...) GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__)
@@ -371,6 +381,21 @@ struct MeshTunnel
      */
   unsigned int nignore;
 
+    /**
+     * Blacklisted peers
+     */
+  GNUNET_PEER_Id *blacklisted;
+
+    /**
+     * Number of elements in blacklisted
+     */
+  unsigned int nblacklisted;
+
+  /**
+   * Bloomfilter (for peer identities) to stop circular routes
+   */
+  char bloomfilter[MESH_BLOOM_SIZE];
+
   /**
    * Tunnel paths
    */
@@ -385,6 +410,11 @@ struct MeshTunnel
      * Used to search peers offering a service
      */
   struct GNUNET_DHT_GetHandle *dht_get_type;
+
+    /**
+     * Initial context of the regex search for a connect_by_string
+     */
+  struct MeshRegexSearchContext *regex_ctx;
 
   /**
    * Task to keep the used paths alive
@@ -477,10 +507,113 @@ struct MeshClient
      * ID of the client, mainly for debug messages
      */
   unsigned int id;
+  
+    /**
+     * Regular expressions describing the services offered by this client.
+     */
+  char **regexes; // FIXME add timeout? API to remove a regex?
+
+    /**
+     * Number of regular expressions in regexes.
+     */
+  unsigned int n_regex;
+
+    /**
+     * Task to refresh all regular expresions in the DHT.
+     */
+  GNUNET_SCHEDULER_TaskIdentifier regex_announce_task;
 
 };
 
 
+/**
+ * Struct to keep information of searches of services described by a regex
+ * using a user-provided string service description.
+ */
+struct MeshRegexSearchInfo
+{
+    /**
+     * Which tunnel is this for
+     */
+  struct MeshTunnel *t;
+
+    /**
+     * User provided description of the searched service.
+     */
+  char *description;
+
+    /**
+     * Part of the description already consumed by the search.
+     */
+  size_t position;
+
+    /**
+     * Running DHT GETs.
+     */
+  struct GNUNET_CONTAINER_MultiHashMap *dht_get_handles;
+
+    /**
+     * Results from running DHT GETs.
+     */
+  struct GNUNET_CONTAINER_MultiHashMap *dht_get_results;
+
+    /**
+     * Contexts, for each running DHT GET. Free all on end of search.
+     */
+  struct MeshRegexSearchContext **contexts;
+
+    /**
+     * Number of contexts (branches/steps in search).
+     */
+  unsigned int n_contexts;
+
+    /**
+     * Peer that is connecting via connect_by_string. When connected, free ctx.
+     */
+  GNUNET_PEER_Id peer;
+
+    /**
+     * Other peers that are found but not yet being connected to.
+     */
+  GNUNET_PEER_Id *peers;
+
+    /**
+     * Number of elements in peers.
+     */
+  unsigned int n_peers;
+
+    /**
+     * Next peer to try to connect to.
+     */
+  unsigned int i_peer;
+
+    /**
+     * Timeout for a connect attempt.
+     * When reached, try to connect to a different peer, if any. If not,
+     * try the same peer again.
+     */
+  GNUNET_SCHEDULER_TaskIdentifier timeout;
+
+};
+
+/**
+ * Struct to keep state of running searches that have consumed a part of
+ * the inital string.
+ */
+struct MeshRegexSearchContext
+{
+    /**
+     * Part of the description already consumed by
+     * this particular search branch.
+     */
+  size_t position;
+
+    /**
+     * Information about the search.
+     */
+  struct MeshRegexSearchInfo *info;
+
+};
 
 /******************************************************************************/
 /************************      DEBUG FUNCTIONS     ****************************/
@@ -616,12 +749,434 @@ GNUNET_SCHEDULER_TaskIdentifier announce_id_task;
 unsigned int next_client_id;
 
 
+/******************************************************************************/
+/***********************         DECLARATIONS        **************************/
+/******************************************************************************/
+
+/* FIXME move declarations here */
+
+/**
+ * Function to process paths received for a new peer addition. The recorded
+ * paths form the initial tunnel, which can be optimized later.
+ * Called on each result obtained for the DHT search.
+ *
+ * @param cls closure
+ * @param exp when will this value expire
+ * @param key key of the result
+ * @param type type of the result
+ * @param size number of bytes in data
+ * @param data pointer to the result data
+ */
+static void
+dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
+                    const struct GNUNET_HashCode * key,
+                    const struct GNUNET_PeerIdentity *get_path,
+                    unsigned int get_path_length,
+                    const struct GNUNET_PeerIdentity *put_path,
+                    unsigned int put_path_length, enum GNUNET_BLOCK_Type type,
+                    size_t size, const void *data);
+
+
+/**
+ * Function to process DHT string to regex matching.
+ * Called on each result obtained for the DHT search.
+ *
+ * @param cls closure (search context)
+ * @param exp when will this value expire
+ * @param key key of the result
+ * @param get_path path of the get request (not used)
+ * @param get_path_length lenght of get_path (not used)
+ * @param put_path path of the put request (not used)
+ * @param put_path_length length of the put_path (not used)
+ * @param type type of the result
+ * @param size number of bytes in data
+ * @param data pointer to the result data
+ *
+ * TODO: re-issue the request after certain time? cancel after X results?
+ */
+static void
+dht_get_string_handler (void *cls, struct GNUNET_TIME_Absolute exp,
+                        const struct GNUNET_HashCode * key,
+                        const struct GNUNET_PeerIdentity *get_path,
+                        unsigned int get_path_length,
+                        const struct GNUNET_PeerIdentity *put_path,
+                        unsigned int put_path_length, enum GNUNET_BLOCK_Type type,
+                        size_t size, const void *data);
+
+
+/**
+ * Function to process DHT string to regex matching.
+ * Called on each result obtained for the DHT search.
+ *
+ * @param cls closure (search context)
+ * @param exp when will this value expire
+ * @param key key of the result
+ * @param get_path path of the get request (not used)
+ * @param get_path_length lenght of get_path (not used)
+ * @param put_path path of the put request (not used)
+ * @param put_path_length length of the put_path (not used)
+ * @param type type of the result
+ * @param size number of bytes in data
+ * @param data pointer to the result data
+ */
+static void
+dht_get_string_accept_handler (void *cls, struct GNUNET_TIME_Absolute exp,
+                               const struct GNUNET_HashCode * key,
+                               const struct GNUNET_PeerIdentity *get_path,
+                               unsigned int get_path_length,
+                               const struct GNUNET_PeerIdentity *put_path,
+                               unsigned int put_path_length,
+                               enum GNUNET_BLOCK_Type type,
+                               size_t size, const void *data);
+
+
+/**
+ * Iterator over edges in a regex block retrieved from the DHT.
+ *
+ * @param cls Closure.
+ * @param token Token that follows to next state.
+ * @param len Lenght of token.
+ * @param key Hash of next state.
+ *
+ * @return GNUNET_YES if should keep iterating, GNUNET_NO otherwise.
+ */
+static int
+regex_edge_iterator (void *cls,
+                     const char *token,
+                     size_t len,
+                     const struct GNUNET_HashCode *key);
+
+
+/**
+ * Find a path to a peer that offers a regex servcie compatible
+ * with a given string.
+ * 
+ * @param key The key of the accepting state.
+ * @param ctx Context containing info about the string, tunnel, etc.
+ */
+static void
+regex_find_path (const struct GNUNET_HashCode *key,
+                 struct MeshRegexSearchContext *ctx);
 
 /******************************************************************************/
 /************************         ITERATORS        ****************************/
 /******************************************************************************/
 
 /* FIXME move iterators here */
+
+/**
+ * Iterator over found existing mesh regex blocks that match an ongoing search.
+ *
+ * @param cls closure
+ * @param key current key code
+ * @param value value in the hash map
+ * @return GNUNET_YES if we should continue to iterate,
+ *         GNUNET_NO if not.
+ */
+static int
+regex_result_iterator (void *cls,
+                       const struct GNUNET_HashCode * key,
+                       void *value)
+{
+  struct MeshRegexBlock *block = value;
+  struct MeshRegexSearchContext *ctx = cls;
+
+  if (GNUNET_YES == ntohl(block->accepting) &&
+      ctx->position == strlen (ctx->info->description))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "* Found accepting known block\n");
+    regex_find_path (key, ctx);
+    return GNUNET_YES; // We found an accept state!
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "* %u, %u, [%u]\n",
+                ctx->position, strlen(ctx->info->description),
+                ntohl(block->accepting));
+
+  }
+  (void) GNUNET_MESH_regex_block_iterate (block, SIZE_MAX,
+                                          &regex_edge_iterator, ctx);
+
+  return GNUNET_YES;
+}
+
+/**
+ * Iterator over edges in a regex block retrieved from the DHT.
+ *
+ * @param cls Closure (context of the search).
+ * @param token Token that follows to next state.
+ * @param len Lenght of token.
+ * @param key Hash of next state.
+ *
+ * @return GNUNET_YES if should keep iterating, GNUNET_NO otherwise.
+ */
+static int
+regex_edge_iterator (void *cls,
+                     const char *token,
+                     size_t len,
+                     const struct GNUNET_HashCode *key)
+{
+  struct MeshRegexSearchContext *ctx = cls;
+  struct MeshRegexSearchContext *new_ctx;
+  struct MeshRegexSearchInfo *info = ctx->info;
+  struct GNUNET_DHT_GetHandle *get_h;
+  char *current;
+  size_t current_len;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*    Start of regex edge iterator\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*     descr : %s\n", info->description);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*     posit : %u\n", ctx->position);
+  current = &info->description[ctx->position];
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*     currt : %s\n", current);
+  current_len = strlen (info->description) - ctx->position;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*     ctlen : %u\n", current_len);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*     tklen : %u\n", len);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*     tk[0] : %c\n", token[0]);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*     nextk : %s\n", GNUNET_h2s(key));
+  if (len > current_len)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*     Token too long, END\n");
+    return GNUNET_YES; // Token too long, wont match
+  }
+  if (0 != strncmp (current, token, len))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*     Token doesn't match, END\n");
+    return GNUNET_YES; // Token doesn't match
+  }
+  new_ctx = GNUNET_malloc (sizeof (struct MeshRegexSearchContext));
+  new_ctx->info = info;
+  new_ctx->position = ctx->position + len;
+  GNUNET_array_append (info->contexts, info->n_contexts, new_ctx);
+  if (GNUNET_YES ==
+      GNUNET_CONTAINER_multihashmap_contains(info->dht_get_handles, key))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*     GET running, END\n");
+    GNUNET_CONTAINER_multihashmap_get_multiple (info->dht_get_results, key,
+                                                &regex_result_iterator,
+                                                new_ctx);
+    return GNUNET_YES; // We are already looking for it
+  }
+  /* Start search in DHT */
+  get_h = 
+      GNUNET_DHT_get_start (dht_handle,    /* handle */
+                            GNUNET_BLOCK_TYPE_MESH_REGEX, /* type */
+                            key,     /* key to search */
+                            DHT_REPLICATION_LEVEL, /* replication level */
+                            GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
+                            NULL,       /* xquery */ // FIXME BLOOMFILTER
+                            0,     /* xquery bits */ // FIXME BLOOMFILTER SIZE
+                            &dht_get_string_handler, new_ctx);
+  if (GNUNET_OK !=
+      GNUNET_CONTAINER_multihashmap_put(info->dht_get_handles, key, get_h,
+                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST))
+  {
+    GNUNET_break (0);
+    return GNUNET_YES;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*    End of regex edge iterator\n");
+  return GNUNET_YES;
+}
+
+/**
+ * Iterator over hash map entries to cancel DHT GET requests after a
+ * successful connect_by_string.
+ *
+ * @param cls Closure (unused).
+ * @param key Current key code (unused).
+ * @param value Value in the hash map (get handle).
+ * @return GNUNET_YES if we should continue to iterate,
+ *         GNUNET_NO if not.
+ */
+static int
+regex_cancel_dht_get (void *cls,
+                      const struct GNUNET_HashCode * key,
+                      void *value)
+{
+  struct GNUNET_DHT_GetHandle *h = value;
+
+  GNUNET_DHT_get_stop (h);
+  return GNUNET_YES;
+}
+
+
+/**
+ * Iterator over hash map entries to free MeshRegexBlocks stored during the
+ * search for connect_by_string.
+ *
+ * @param cls Closure (unused).
+ * @param key Current key code (unused).
+ * @param value MeshRegexBlock in the hash map.
+ * @return GNUNET_YES if we should continue to iterate,
+ *         GNUNET_NO if not.
+ */
+static int
+regex_free_result (void *cls,
+                   const struct GNUNET_HashCode * key,
+                   void *value)
+{
+
+  GNUNET_free (value);
+  return GNUNET_YES;
+}
+
+
+/**
+ * Regex callback iterator to store own service description in the DHT.
+ *
+ * @param cls closure.
+ * @param key hash for current state.
+ * @param proof proof for current state.
+ * @param accepting GNUNET_YES if this is an accepting state, GNUNET_NO if not.
+ * @param num_edges number of edges leaving current state.
+ * @param edges edges leaving current state.
+ */
+void
+regex_iterator (void *cls, const struct GNUNET_HashCode *key, const char *proof,
+                int accepting, unsigned int num_edges,
+                const struct GNUNET_REGEX_Edge *edges)
+{
+    struct MeshRegexBlock *block;
+    struct MeshRegexEdge *block_edge;
+    enum GNUNET_DHT_RouteOption opt;
+    size_t size;
+    size_t len;
+    unsigned int i;
+    unsigned int offset;
+    char *aux;
+
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "  regex dht put for state %s\n",
+                GNUNET_h2s(key));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "   proof: %s\n",
+                proof);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "   num edges: %u\n",
+                num_edges);
+
+    opt = GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE;
+    if (GNUNET_YES == accepting)
+    {
+        struct MeshRegexAccept block;
+
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    "   state %s is accepting, putting own id\n",
+                    GNUNET_h2s(key));
+        size = sizeof (block);
+        block.key = *key;
+        block.id = my_full_id;
+        (void)
+        GNUNET_DHT_put(dht_handle, key,
+                       DHT_REPLICATION_LEVEL,
+                       opt | GNUNET_DHT_RO_RECORD_ROUTE,
+                       GNUNET_BLOCK_TYPE_MESH_REGEX_ACCEPT,
+                       size,
+                       (char *) &block,
+                       GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get (),
+                                                 APP_ANNOUNCE_TIME),
+                       APP_ANNOUNCE_TIME,
+                       NULL, NULL);
+    }
+    len = strlen(proof);
+    size = sizeof (struct MeshRegexBlock) + len;
+    block = GNUNET_malloc (size);
+
+    block->key = *key;
+    block->n_proof = htonl (len);
+    block->n_edges = htonl (num_edges);
+    block->accepting = htonl (accepting);
+
+    /* Store the proof at the end of the block. */
+    aux = (char *) &block[1];
+    memcpy (aux, proof, len);
+    aux = &aux[len];
+
+    /* Store each edge in a variable length MeshEdge struct at the
+     * very end of the MeshRegexBlock structure.
+     */
+    for (i = 0; i < num_edges; i++)
+    {
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    "    edge %s towards %s\n",
+                    edges[i].label,
+                    GNUNET_h2s(&edges[i].destination));
+
+        /* aux points at the end of the last block */
+        len = strlen (edges[i].label);
+        size += sizeof (struct MeshRegexEdge) + len;
+        // Calculate offset FIXME is this ok? use size instead?
+        offset = aux - (char *) block;
+        block = GNUNET_realloc (block, size);
+        aux = &((char *) block)[offset];
+        block_edge = (struct MeshRegexEdge *) aux;
+        block_edge->key = edges[i].destination;
+        block_edge->n_token = htonl (len);
+        aux = (char *) &block_edge[1];
+        memcpy (aux, edges[i].label, len);
+        aux = &aux[len];
+    }
+    (void)
+    GNUNET_DHT_put(dht_handle, key,
+                   DHT_REPLICATION_LEVEL,
+                   opt,
+                   GNUNET_BLOCK_TYPE_MESH_REGEX, size,
+                   (char *) block,
+                   GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get (),
+                                            APP_ANNOUNCE_TIME),
+                   APP_ANNOUNCE_TIME,
+                   NULL, NULL);
+    GNUNET_free (block);
+}
+
+
+/**
+ * Store the regular expression describing a local service into the DHT.
+ *
+ * @param regex The regular expresion.
+ */
+static void
+regex_put (const char *regex)
+{
+  struct GNUNET_REGEX_Automaton *dfa;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "regex_put (%s) start\n", regex);
+  dfa = GNUNET_REGEX_construct_dfa (regex, strlen(regex));
+  GNUNET_REGEX_iterate_all_edges (dfa, &regex_iterator, NULL);
+  GNUNET_REGEX_automaton_destroy (dfa);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "regex_put (%s) end\n", regex);
+
+}
+
+/**
+ * Find a path to a peer that offers a regex servcie compatible
+ * with a given string.
+ * 
+ * @param key The key of the accepting state.
+ * @param ctx Context containing info about the string, tunnel, etc.
+ */
+static void
+regex_find_path (const struct GNUNET_HashCode *key,
+                 struct MeshRegexSearchContext *ctx)
+{
+  struct GNUNET_DHT_GetHandle *get_h;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found peer by service\n");
+  get_h = GNUNET_DHT_get_start (dht_handle,    /* handle */
+                                GNUNET_BLOCK_TYPE_MESH_REGEX_ACCEPT, /* type */
+                                key,     /* key to search */
+                                DHT_REPLICATION_LEVEL, /* replication level */
+                                GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE |
+                                GNUNET_DHT_RO_RECORD_ROUTE,
+                                NULL,       /* xquery */ // FIXME BLOOMFILTER
+                                0,     /* xquery bits */ // FIXME BLOOMFILTER SIZE
+                                &dht_get_string_accept_handler, ctx);
+  GNUNET_break (GNUNET_OK ==
+                GNUNET_CONTAINER_multihashmap_put(ctx->info->dht_get_handles,
+                                                  key,
+                                                  get_h,
+                                                  GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
+}
 
 
 /******************************************************************************/
@@ -641,13 +1196,27 @@ unsigned int next_client_id;
 static int
 announce_application (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
+  struct PBlock block;
+  struct MeshClient *c;
+
+  block.id = my_full_id;
+  c =  GNUNET_CONTAINER_multihashmap_get (applications, key);
+  block.type = (long) GNUNET_CONTAINER_multihashmap_get (c->apps, key);
+  if (0 == block.type)
+  {
+    GNUNET_break(0);
+    return GNUNET_YES;
+  }
+  block.type = htonl (block.type);
   /* FIXME are hashes in multihash map equal on all aquitectures? */
   /* FIXME: keep return value of 'put' to possibly cancel!? */
-  GNUNET_DHT_put (dht_handle, key, 10,
+  GNUNET_DHT_put (dht_handle, key,
+                  DHT_REPLICATION_LEVEL,
                   GNUNET_DHT_RO_RECORD_ROUTE |
-                  GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE, GNUNET_BLOCK_TYPE_TEST,
-                  sizeof (struct GNUNET_PeerIdentity),
-                  (const char *) &my_full_id,
+                  GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
+                  GNUNET_BLOCK_TYPE_MESH_PEER_BY_TYPE,
+                  sizeof (block),
+                  (const char *) &block,
                   GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get (),
                                             APP_ANNOUNCE_TIME),
                   APP_ANNOUNCE_TIME, NULL, NULL);
@@ -657,6 +1226,40 @@ announce_application (void *cls, const struct GNUNET_HashCode * key, void *value
 
 /**
  * Periodically announce what applications are provided by local clients
+ * (by regex)
+ *
+ * @param cls closure
+ * @param tc task context
+ */
+static void
+announce_regex (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct MeshClient *c = cls;
+  unsigned int i;
+
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+  {
+    c->regex_announce_task = GNUNET_SCHEDULER_NO_TASK;
+    return;
+  }
+
+  DEBUG_DHT ("Starting PUT for regex\n");
+
+  for (i = 0; i < c->n_regex; i++)
+  {
+    regex_put (c->regexes[i]);
+  }
+  c->regex_announce_task =
+      GNUNET_SCHEDULER_add_delayed (APP_ANNOUNCE_TIME, &announce_regex, cls);
+  DEBUG_DHT ("Finished PUT for regex\n");
+
+  return;
+}
+
+
+/**
+ * Periodically announce what applications are provided by local clients
+ * (by type)
  *
  * @param cls closure
  * @param tc task context
@@ -664,7 +1267,7 @@ announce_application (void *cls, const struct GNUNET_HashCode * key, void *value
 static void
 announce_applications (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
     announce_applications_task = GNUNET_SCHEDULER_NO_TASK;
     return;
@@ -692,7 +1295,9 @@ announce_applications (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
+  struct PBlock block;
+
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
     announce_id_task = GNUNET_SCHEDULER_NO_TASK;
     return;
@@ -703,13 +1308,15 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
    */
   DEBUG_DHT ("DHT_put for ID %s started.\n", GNUNET_i2s (&my_full_id));
 
+  block.id = my_full_id;
+  block.type = htonl (0);
   GNUNET_DHT_put (dht_handle,   /* DHT handle */
                   &my_full_id.hashPubKey,       /* Key to use */
-                  10,          /* Replication level */
+                  DHT_REPLICATION_LEVEL,     /* Replication level */
                   GNUNET_DHT_RO_RECORD_ROUTE | GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,    /* DHT options */
-                  GNUNET_BLOCK_TYPE_TEST,       /* Block type */
-                  sizeof (my_full_id),  /* Size of the data */
-                  (char *) &my_full_id, /* Data itself */
+                  GNUNET_BLOCK_TYPE_MESH_PEER,       /* Block type */
+                  sizeof (block),  /* Size of the data */
+                  (const char *) &block, /* Data itself */
                   GNUNET_TIME_UNIT_FOREVER_ABS,  /* Data expiration */
                   GNUNET_TIME_UNIT_FOREVER_REL, /* Retry time */
                   NULL,         /* Continuation */
@@ -719,31 +1326,43 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
-/**
- * Function to process paths received for a new peer addition. The recorded
- * paths form the initial tunnel, which can be optimized later.
- * Called on each result obtained for the DHT search.
- *
- * @param cls closure
- * @param exp when will this value expire
- * @param key key of the result
- * @param type type of the result
- * @param size number of bytes in data
- * @param data pointer to the result data
- */
-static void
-dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
-                    const struct GNUNET_HashCode * key,
-                    const struct GNUNET_PeerIdentity *get_path,
-                    unsigned int get_path_length,
-                    const struct GNUNET_PeerIdentity *put_path,
-                    unsigned int put_path_length, enum GNUNET_BLOCK_Type type,
-                    size_t size, const void *data);
-
-
 /******************************************************************************/
 /******************      GENERAL HELPER FUNCTIONS      ************************/
 /******************************************************************************/
+
+/**
+ * Cancel an ongoing regex search in the DHT and free all resources.
+ * 
+ * @param ctx The search context.
+ */
+static void
+regex_cancel_search(struct MeshRegexSearchContext *ctx)
+{
+  struct MeshRegexSearchInfo *info = ctx->info;
+  int i;
+
+  GNUNET_free (info->description);
+  GNUNET_CONTAINER_multihashmap_iterate (info->dht_get_handles,
+                                             &regex_cancel_dht_get, NULL);
+  GNUNET_CONTAINER_multihashmap_iterate (info->dht_get_results,
+                                         &regex_free_result, NULL);
+  GNUNET_CONTAINER_multihashmap_destroy (info->dht_get_results);
+  GNUNET_CONTAINER_multihashmap_destroy (info->dht_get_handles);
+  info->t->regex_ctx = NULL;
+  for (i = 0; i < info->n_contexts; i++)
+  {
+    GNUNET_free (info->contexts[i]);
+  }
+  if (0 < info->n_contexts)
+    GNUNET_free (info->contexts);
+  if (0 < info->n_peers)
+    GNUNET_free (info->peers);
+  if (GNUNET_SCHEDULER_NO_TASK != info->timeout)
+  {
+    GNUNET_SCHEDULER_cancel(info->timeout);
+  }
+  GNUNET_free (info);
+}
 
 /**
  * Search for a tunnel by global ID using full PeerIdentities
@@ -840,7 +1459,7 @@ client_allow_send (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct MeshData *mdata = cls;
 
-  if (GNUNET_SCHEDULER_REASON_SHUTDOWN == tc->reason)
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   GNUNET_assert (NULL != mdata->reference_counter);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1154,7 +1773,7 @@ static void
 data_descriptor_decrement_multicast (struct MeshData *mesh_data)
 {
   /* Make sure it's a multicast packet */
-  GNUNET_assert (NULL != mesh_data->reference_counter);
+  GNUNET_assert (NULL != mesh_data->reference_counter); // FIXME URGENT #2499
 
   if (0 == --(*(mesh_data->reference_counter)))
   {
@@ -1335,7 +1954,7 @@ send_message (const struct GNUNET_MessageHeader *message,
   }
   if (NULL == p)
   {
-    GNUNET_break (0);
+    GNUNET_break (0); // FIXME sometimes fails (testing disconnect?)
     GNUNET_free (info->mesh_data->data);
     GNUNET_free (info->mesh_data);
     GNUNET_free (info);
@@ -1504,11 +2123,13 @@ peer_info_connect (struct MeshPeerInfo *peer, struct MeshTunnel *t)
                 "  Starting DHT GET for peer %s\n", GNUNET_i2s (&id));
     peer->dhtgetcls = path_info;
     peer->dhtget = GNUNET_DHT_get_start (dht_handle,    /* handle */
-                                         GNUNET_BLOCK_TYPE_TEST,        /* type */
-                                         &id.hashPubKey,        /* key to search */
-                                         10,     /* replication level */
-                                         GNUNET_DHT_RO_RECORD_ROUTE | GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE, NULL,       /* xquery */
-                                         0,     /* xquery bits */
+                                         GNUNET_BLOCK_TYPE_MESH_PEER, /* type */
+                                         &id.hashPubKey,     /* key to search */
+                                         DHT_REPLICATION_LEVEL, /* replication level */
+                                         GNUNET_DHT_RO_RECORD_ROUTE |
+                                         GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
+                                         NULL,       /* xquery */ // FIXME BLOOMFILTER
+                                         0,     /* xquery bits */ // FIXME BLOOMFILTER SIZE
                                          &dht_get_id_handler, path_info);
   }
   /* Otherwise, there is no path but the DHT get is already started. */
@@ -1604,6 +2225,7 @@ peer_info_remove_path (struct MeshPeerInfo *peer, GNUNET_PEER_Id p1,
   unsigned int cost;
   unsigned int i;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "peer_info_remove_path\n");
   destroyed = 0;
   p = peer->path_head;
   while (NULL != p)
@@ -1664,6 +2286,7 @@ peer_info_remove_path (struct MeshPeerInfo *peer, GNUNET_PEER_Id p1,
       peer_info_connect (peer_d, peer->tunnels[i]);
     }
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "peer_info_remove_path END\n");
 }
 
 
@@ -2095,6 +2718,7 @@ tunnel_add_peer (struct MeshTunnel *t, struct MeshPeerInfo *peer)
   unsigned int best_cost;
   unsigned int cost;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "tunnel_add_peer\n");
   GNUNET_PEER_resolve (peer->id, &id);
   if (GNUNET_NO ==
       GNUNET_CONTAINER_multihashmap_contains (t->peers, &id.hashPubKey))
@@ -2130,6 +2754,7 @@ tunnel_add_peer (struct MeshTunnel *t, struct MeshPeerInfo *peer)
     /* Start a DHT get */
     peer_info_connect (peer, t);
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "tunnel_add_peer END\n");
 }
 
 /**
@@ -2148,6 +2773,7 @@ tunnel_add_path (struct MeshTunnel *t, struct MeshPeerPath *p,
 {
   struct GNUNET_PeerIdentity id;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "tunnel_add_path\n");
   GNUNET_assert (0 != own_pos);
   tree_add_path (t->tree, p, NULL, NULL);
   if (own_pos < p->length - 1)
@@ -2155,6 +2781,7 @@ tunnel_add_path (struct MeshTunnel *t, struct MeshPeerPath *p,
     GNUNET_PEER_resolve (p->peers[own_pos + 1], &id);
     tree_update_first_hops (t->tree, myid, &id);
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "tunnel_add_path END\n");
 }
 
 
@@ -2404,6 +3031,8 @@ tunnel_destroy (struct MeshTunnel *t)
   }
 
   tree_destroy (t->tree);
+  if (NULL != t->regex_ctx)
+    regex_cancel_search (t->regex_ctx);
   if (NULL != t->dht_get_type)
     GNUNET_DHT_get_stop (t->dht_get_type);
   if (GNUNET_SCHEDULER_NO_TASK != t->timeout_task)
@@ -2532,7 +3161,7 @@ tunnel_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct MeshTunnel *t = cls;
 
-  if (GNUNET_SCHEDULER_REASON_SHUTDOWN == tc->reason)
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   t->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   tunnel_destroy (t);
@@ -2760,7 +3389,6 @@ queue_send (void *cls, size_t size, void *buf)
     queue = peer->queue_head;
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "********* Queue send\n");
-
 
     /* If queue is empty, send should have been cancelled */
     if (NULL == queue)
@@ -3038,6 +3666,7 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
                                                      peer_info_get
                                                      (&my_full_id),
                                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE));
+    // FIXME URGENT (GNUNET_NO?)
     info = GNUNET_malloc (sizeof (struct MeshTransmissionDescriptor));
     info->origin = &t->id;
     info->peer = GNUNET_CONTAINER_multihashmap_get (peers, &peer->hashPubKey);
@@ -3485,14 +4114,30 @@ handle_mesh_path_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received a path ACK msg [%s]\n",
               GNUNET_i2s (&my_full_id));
   msg = (struct GNUNET_MESH_PathACK *) message;
-  t = tunnel_get (&msg->oid, msg->tid);
+  t = tunnel_get (&msg->oid, ntohl(msg->tid));
   if (NULL == t)
   {
     /* TODO notify that we don't know the tunnel */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  don't know the tunnel %s [%X]!\n",
+                GNUNET_i2s (&msg->oid), ntohl(msg->tid));
     return GNUNET_OK;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  on tunnel %s [%X]\n",
+              GNUNET_i2s (&msg->oid), ntohl(msg->tid));
 
   peer_info = peer_info_get (&msg->peer_id);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  by peer %s\n",
+              GNUNET_i2s (&msg->peer_id));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  via peer %s\n",
+              GNUNET_i2s (peer));
+
+  if (NULL != t->regex_ctx && t->regex_ctx->info->peer == peer_info->id)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "connect_by_string completed, stopping search\n");
+    regex_cancel_search (t->regex_ctx);
+    t->regex_ctx = NULL;
+  }
 
   /* Add paths to peers? */
   p = tree_get_path_to_peer (t->tree, peer_info->id);
@@ -3578,9 +4223,9 @@ static struct GNUNET_CORE_MessageHandler core_handlers[] = {
 static int
 deregister_app (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
+  struct GNUNET_CONTAINER_MultiHashMap *h = cls;
   GNUNET_break (GNUNET_YES ==
-                GNUNET_CONTAINER_multihashmap_remove (applications, key,
-                                                      value));
+                GNUNET_CONTAINER_multihashmap_remove (h, key, value));
   return GNUNET_OK;
 }
 
@@ -3643,7 +4288,7 @@ path_refresh (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       sizeof (struct GNUNET_MessageHeader);
   char cbuf[size];
 
-  if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
     return;
   }
@@ -3746,13 +4391,19 @@ dht_get_type_handler (void *cls, struct GNUNET_TIME_Absolute exp,
                       unsigned int put_path_length, enum GNUNET_BLOCK_Type type,
                       size_t size, const void *data)
 {
-  const struct GNUNET_PeerIdentity *pi = data;
+  const struct PBlock *pb = data;
+  const struct GNUNET_PeerIdentity *pi = &pb->id;
   struct MeshTunnel *t = cls;
   struct MeshPeerInfo *peer_info;
   struct MeshPeerPath *p;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "got type DHT result!\n");
-  if (size != sizeof (struct GNUNET_PeerIdentity))
+  if (size != sizeof (struct PBlock))
+  {
+    GNUNET_break_op (0);
+    return;
+  }
+  if (ntohl(pb->type) != t->type)
   {
     GNUNET_break_op (0);
     return;
@@ -3772,6 +4423,189 @@ dht_get_type_handler (void *cls, struct GNUNET_TIME_Absolute exp,
 }
 
 
+/**
+ * Function called if the connect attempt to a peer found via
+ * connect_by_string times out. Try to connect to another peer, if any.
+ * Otherwise try to reconnect to the same peer.
+ * 
+ * @param cls Closure (info about regex search).
+ * @param tc TaskContext.
+ */ 
+static void
+regex_connect_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct MeshRegexSearchInfo *info = cls;
+  struct MeshPeerInfo *peer_info;
+  GNUNET_PEER_Id id;
+  GNUNET_PEER_Id old;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Regex connect timeout\n");
+  info->timeout = GNUNET_SCHEDULER_NO_TASK;
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+  {
+    return;
+  }
+
+  old = info->peer;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  timed out: %u\n", old);
+
+  if (0 < info->n_peers)
+  {
+    // Select next peer, put current in that spot.
+    id = info->peers[info->i_peer];
+    info->peers[info->i_peer] = info->peer;
+    info->i_peer = (info->i_peer + 1) % info->n_peers;
+  }
+  else
+  {
+    // Try to connect to same peer again.
+    id = info->peer;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  trying: %u\n", id);
+
+  peer_info = peer_info_get_short(id);
+  tunnel_add_peer (info->t, peer_info);
+  if (old != id)
+    tunnel_delete_peer (info->t, old);
+  peer_info_connect (peer_info, info->t);
+  info->timeout = GNUNET_SCHEDULER_add_delayed (CONNECT_TIMEOUT,
+                                                &regex_connect_timeout,
+                                                info);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Regex connect timeout END\n");
+}
+
+
+/**
+ * Function to process DHT string to regex matching.
+ * Called on each result obtained for the DHT search.
+ *
+ * @param cls closure (search context)
+ * @param exp when will this value expire
+ * @param key key of the result
+ * @param get_path path of the get request (not used)
+ * @param get_path_length lenght of get_path (not used)
+ * @param put_path path of the put request (not used)
+ * @param put_path_length length of the put_path (not used)
+ * @param type type of the result
+ * @param size number of bytes in data
+ * @param data pointer to the result data
+ */
+static void
+dht_get_string_accept_handler (void *cls, struct GNUNET_TIME_Absolute exp,
+                               const struct GNUNET_HashCode * key,
+                               const struct GNUNET_PeerIdentity *get_path,
+                               unsigned int get_path_length,
+                               const struct GNUNET_PeerIdentity *put_path,
+                               unsigned int put_path_length,
+                               enum GNUNET_BLOCK_Type type,
+                               size_t size, const void *data)
+{
+  const struct MeshRegexAccept *block = data;
+  struct MeshRegexSearchContext *ctx = cls;
+  struct MeshRegexSearchInfo *info = ctx->info;
+  struct MeshPeerPath *p;
+  struct MeshPeerInfo *peer_info;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got regex results from DHT!\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  for %s\n", info->description);
+
+  peer_info = peer_info_get(&block->id);
+  p = path_build_from_dht (get_path, get_path_length, put_path,
+                           put_path_length);
+  path_add_to_peers (p, GNUNET_NO);
+  path_destroy(p);
+
+  tunnel_add_peer (info->t, peer_info);
+  peer_info_connect (peer_info, info->t);
+  if (0 == info->peer)
+  {
+    info->peer = peer_info->id;
+  }
+  else
+  {
+    GNUNET_array_append (info->peers, info->n_peers, peer_info->id);
+  }
+
+  info->timeout = GNUNET_SCHEDULER_add_delayed (CONNECT_TIMEOUT,
+                                                &regex_connect_timeout,
+                                                info);
+
+  return;
+}
+
+
+/**
+ * Function to process DHT string to regex matching..
+ * Called on each result obtained for the DHT search.
+ *
+ * @param cls closure (search context)
+ * @param exp when will this value expire
+ * @param key key of the result
+ * @param get_path path of the get request (not used)
+ * @param get_path_length lenght of get_path (not used)
+ * @param put_path path of the put request (not used)
+ * @param put_path_length length of the put_path (not used)
+ * @param type type of the result
+ * @param size number of bytes in data
+ * @param data pointer to the result data
+ *
+ * TODO: re-issue the request after certain time? cancel after X results?
+ */
+static void
+dht_get_string_handler (void *cls, struct GNUNET_TIME_Absolute exp,
+                        const struct GNUNET_HashCode * key,
+                        const struct GNUNET_PeerIdentity *get_path,
+                        unsigned int get_path_length,
+                        const struct GNUNET_PeerIdentity *put_path,
+                        unsigned int put_path_length, enum GNUNET_BLOCK_Type type,
+                        size_t size, const void *data)
+{
+  const struct MeshRegexBlock *block = data;
+  struct MeshRegexSearchContext *ctx = cls;
+  struct MeshRegexSearchInfo *info = ctx->info;
+  void *copy;
+  char *proof;
+  size_t len;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "DHT GET STRING RETURNED RESULTS\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "  key: %s\n", GNUNET_h2s (key));
+
+  copy = GNUNET_malloc (size);
+  memcpy (copy, data, size);
+  GNUNET_break (GNUNET_OK ==
+                GNUNET_CONTAINER_multihashmap_put(info->dht_get_results, key, copy,
+                                                  GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
+  len = ntohl (block->n_proof);
+  proof = GNUNET_malloc (len + 1);
+  memcpy (proof, &block[1], len);
+  proof[len] = '\0';
+  if (GNUNET_OK != GNUNET_REGEX_check_proof (proof, key))
+  {
+    GNUNET_break_op (0);
+    return;
+  }
+  len = strlen (info->description);
+  if (len == ctx->position) // String processed
+  {
+    if (GNUNET_YES == ntohl (block->accepting))
+    {
+      regex_find_path(key, ctx);
+    }
+    else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  block not accepting!\n");
+      // FIXME REGEX this block not successful, wait for more? start timeout?
+    }
+    return;
+  }
+  GNUNET_break (GNUNET_OK ==
+                GNUNET_MESH_regex_block_iterate (block, size,
+                                                 &regex_edge_iterator, ctx));
+  return;
+}
+
 /******************************************************************************/
 /*********************       MESH LOCAL HANDLES      **************************/
 /******************************************************************************/
@@ -3789,6 +4623,7 @@ handle_local_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
 {
   struct MeshClient *c;
   struct MeshClient *next;
+  unsigned int i;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "client disconnected\n");
   if (client == NULL)
@@ -3824,7 +4659,7 @@ handle_local_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
     /* deregister clients applications */
     if (NULL != c->apps)
     {
-      GNUNET_CONTAINER_multihashmap_iterate (c->apps, &deregister_app, NULL);
+      GNUNET_CONTAINER_multihashmap_iterate (c->apps, &deregister_app, c->apps);
       GNUNET_CONTAINER_multihashmap_destroy (c->apps);
     }
     if (0 == GNUNET_CONTAINER_multihashmap_size (applications) &&
@@ -3835,6 +4670,12 @@ handle_local_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
     }
     if (NULL != c->types)
       GNUNET_CONTAINER_multihashmap_destroy (c->types);
+    for (i = 0; i < c->n_regex; i++)
+    {
+      GNUNET_free (c->regexes[i]);
+    }
+    if (GNUNET_SCHEDULER_NO_TASK != c->regex_announce_task)
+      GNUNET_SCHEDULER_cancel (c->regex_announce_task);
     next = c->next;
     GNUNET_CONTAINER_DLL_remove (clients, clients_tail, c);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  CLIENT FREE at %p\n", c);
@@ -3899,7 +4740,7 @@ handle_local_new_client (void *cls, struct GNUNET_SERVER_Client *client,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  app type: %u\n", at);
       GNUNET_CRYPTO_hash (&at, sizeof (at), &hc);
       /* store in clients hashmap */
-      GNUNET_CONTAINER_multihashmap_put (c->apps, &hc, c,
+      GNUNET_CONTAINER_multihashmap_put (c->apps, &hc, (void *) (long) at,
                                          GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
       /* store in global hashmap, for announcements */
       GNUNET_CONTAINER_multihashmap_put (applications, &hc, c,
@@ -3942,6 +4783,50 @@ handle_local_new_client (void *cls, struct GNUNET_SERVER_Client *client,
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "new client processed\n");
+}
+
+
+/**
+ * Handler for clients announcing available services by a regular expression.
+ *
+ * @param cls closure
+ * @param client identification of the client
+ * @param message the actual message, which includes messages the client wants
+ */
+static void
+handle_local_announce_regex (void *cls, struct GNUNET_SERVER_Client *client,
+                             const struct GNUNET_MessageHeader *message)
+{
+  struct MeshClient *c;
+  char *regex;
+  size_t len;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "announce regex started\n");
+
+  /* Sanity check for client registration */
+  if (NULL == (c = client_get (client)))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  by client %u\n", c->id);
+
+  len = ntohs (message->size) - sizeof(struct GNUNET_MessageHeader);
+  regex = GNUNET_malloc (len + 1);
+  memcpy (regex, &message[1], len);
+  regex[len] = '\0';
+  GNUNET_array_append (c->regexes, c->n_regex, regex);
+  if (GNUNET_SCHEDULER_NO_TASK == c->regex_announce_task)
+  {
+    c->regex_announce_task = GNUNET_SCHEDULER_add_now(&announce_regex, c);
+  }
+  else
+  {
+    regex_put(regex);
+  }
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "announce regex processed\n");
 }
 
 
@@ -4225,6 +5110,126 @@ handle_local_connect_del (void *cls, struct GNUNET_SERVER_Client *client,
   return;
 }
 
+/**
+ * Handler for blacklist requests of peers in a tunnel
+ *
+ * @param cls closure
+ * @param client identification of the client
+ * @param message the actual message (PeerControl)
+ */
+static void
+handle_local_blacklist (void *cls, struct GNUNET_SERVER_Client *client,
+                          const struct GNUNET_MessageHeader *message)
+{
+  struct GNUNET_MESH_PeerControl *peer_msg;
+  struct MeshClient *c;
+  struct MeshTunnel *t;
+  MESH_TunnelNumber tid;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got a PEER BLACKLIST request\n");
+  /* Sanity check for client registration */
+  if (NULL == (c = client_get (client)))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  peer_msg = (struct GNUNET_MESH_PeerControl *) message;
+
+  /* Sanity check for message size */
+  if (sizeof (struct GNUNET_MESH_PeerControl) != ntohs (peer_msg->header.size))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+
+  /* Tunnel exists? */
+  tid = ntohl (peer_msg->tunnel_id);
+  t = tunnel_get_by_local_id (c, tid);
+  if (NULL == t)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  on tunnel %X\n", t->id.tid);
+
+  GNUNET_array_append(t->blacklisted, t->nblacklisted,
+                      GNUNET_PEER_intern(&peer_msg->peer));
+}
+
+
+/**
+ * Handler for unblacklist requests of peers in a tunnel
+ *
+ * @param cls closure
+ * @param client identification of the client
+ * @param message the actual message (PeerControl)
+ */
+static void
+handle_local_unblacklist (void *cls, struct GNUNET_SERVER_Client *client,
+                          const struct GNUNET_MessageHeader *message)
+{
+  struct GNUNET_MESH_PeerControl *peer_msg;
+  struct MeshClient *c;
+  struct MeshTunnel *t;
+  MESH_TunnelNumber tid;
+  GNUNET_PEER_Id pid;
+  unsigned int i;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got a PEER UNBLACKLIST request\n");
+  /* Sanity check for client registration */
+  if (NULL == (c = client_get (client)))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  peer_msg = (struct GNUNET_MESH_PeerControl *) message;
+
+  /* Sanity check for message size */
+  if (sizeof (struct GNUNET_MESH_PeerControl) != ntohs (peer_msg->header.size))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+
+  /* Tunnel exists? */
+  tid = ntohl (peer_msg->tunnel_id);
+  t = tunnel_get_by_local_id (c, tid);
+  if (NULL == t)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  on tunnel %X\n", t->id.tid);
+
+  /* if peer is not known, complain */
+  pid = GNUNET_PEER_search (&peer_msg->peer);
+  if (0 == pid)
+  {
+    GNUNET_break (0);
+    return;
+  }
+
+  /* search and remove from list */
+  for (i = 0; i < t->nblacklisted; i++)
+  {
+    if (t->blacklisted[i] == pid)
+    {
+      t->blacklisted[i] = t->blacklisted[t->nblacklisted - 1];
+      GNUNET_array_grow (t->blacklisted, t->nblacklisted, t->nblacklisted - 1);
+      return;
+    }
+  }
+
+  /* if peer hasn't been blacklisted, complain */
+  GNUNET_break (0);
+}
+
 
 /**
  * Handler for connection requests to new peers by type
@@ -4319,13 +5324,139 @@ handle_local_connect_by_type (void *cls, struct GNUNET_SERVER_Client *client,
               GNUNET_h2s (&hash));
   t->dht_get_type =
       GNUNET_DHT_get_start (dht_handle, 
-                            GNUNET_BLOCK_TYPE_TEST, &hash, 10,
+                            GNUNET_BLOCK_TYPE_MESH_PEER_BY_TYPE,
+                            &hash,
+                            DHT_REPLICATION_LEVEL,
                             GNUNET_DHT_RO_RECORD_ROUTE |
-                            GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE, NULL, 0,
+                            GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
+                            NULL, 0,
                             &dht_get_type_handler, t);
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
   return;
+}
+
+
+/**
+ * Handler for connection requests to new peers by a string service description.
+ *
+ * @param cls closure
+ * @param client identification of the client
+ * @param message the actual message, which includes messages the client wants
+ */
+static void
+handle_local_connect_by_string (void *cls, struct GNUNET_SERVER_Client *client,
+                                const struct GNUNET_MessageHeader *message)
+{
+  struct GNUNET_MESH_ConnectPeerByString *msg;
+  struct MeshRegexSearchContext *ctx;
+  struct MeshRegexSearchInfo *info;
+  struct GNUNET_DHT_GetHandle *get_h;
+  struct GNUNET_HashCode key;
+  struct MeshTunnel *t;
+  struct MeshClient *c;
+  MESH_TunnelNumber tid;
+  const char *string;
+  size_t size;
+  size_t len;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Connect by string started\n");
+  msg = (struct GNUNET_MESH_ConnectPeerByString *) message;
+  size = htons (message->size);
+
+  /* Sanity check for client registration */
+  if (NULL == (c = client_get (client)))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+
+  /* Message size sanity check */
+  if (sizeof(struct GNUNET_MESH_ConnectPeerByString) >= size)
+  {
+      GNUNET_break (0);
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      return;
+  }
+
+  /* Tunnel exists? */
+  tid = ntohl (msg->tunnel_id);
+  t = tunnel_get_by_local_id (c, tid);
+  if (NULL == t)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+
+  /* Does client own tunnel? */
+  if (t->owner->handle != client)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "  on tunnel %s [%u]\n",
+              GNUNET_i2s(&my_full_id),
+              t->id.tid);
+
+  /* Only one connect_by_string allowed at the same time! */
+  /* FIXME: allow more, return handle at api level to cancel, document */
+  if (NULL != t->regex_ctx)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+
+  /* Find string itself */
+  len = size - sizeof(struct GNUNET_MESH_ConnectPeerByString);
+  string = (const char *) &msg[1];
+
+  /* Initialize context */
+  size = GNUNET_REGEX_get_first_key(string, len, &key);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "  consumed %u bits out of %u\n", size, len);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "  looking for %s\n", GNUNET_h2s (&key));
+
+  info = GNUNET_malloc (sizeof (struct MeshRegexSearchInfo));
+  info->t = t;
+  info->description = GNUNET_malloc (len + 1);
+  memcpy (info->description, string, len);
+  info->description[len] = '\0';
+  info->dht_get_handles = GNUNET_CONTAINER_multihashmap_create(32);
+  info->dht_get_results = GNUNET_CONTAINER_multihashmap_create(32);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   string: %s\n", info->description);
+
+  ctx = GNUNET_malloc (sizeof (struct MeshRegexSearchContext));
+  ctx->position = size;
+  ctx->info = info;
+  t->regex_ctx = ctx;
+
+  GNUNET_array_append (info->contexts, info->n_contexts, ctx);
+
+  /* Start search in DHT */
+  get_h = GNUNET_DHT_get_start (dht_handle,    /* handle */
+                                GNUNET_BLOCK_TYPE_MESH_REGEX, /* type */
+                                &key,     /* key to search */
+                                DHT_REPLICATION_LEVEL, /* replication level */
+                                GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
+                                NULL,       /* xquery */ // FIXME BLOOMFILTER
+                                0,     /* xquery bits */ // FIXME BLOOMFILTER SIZE
+                                &dht_get_string_handler, ctx);
+
+  GNUNET_break (GNUNET_OK ==
+                GNUNET_CONTAINER_multihashmap_put(info->dht_get_handles,
+                                                  &key,
+                                                  get_h,
+                                                  GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
+
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "connect by string processed\n");
 }
 
 
@@ -4581,6 +5712,8 @@ handle_local_multicast (void *cls, struct GNUNET_SERVER_Client *client,
 static struct GNUNET_SERVER_MessageHandler client_handlers[] = {
   {&handle_local_new_client, NULL,
    GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT, 0},
+  {&handle_local_announce_regex, NULL,
+   GNUNET_MESSAGE_TYPE_MESH_LOCAL_ANNOUNCE_REGEX, 0},
   {&handle_local_tunnel_create, NULL,
    GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_CREATE,
    sizeof (struct GNUNET_MESH_TunnelMessage)},
@@ -4593,9 +5726,17 @@ static struct GNUNET_SERVER_MessageHandler client_handlers[] = {
   {&handle_local_connect_del, NULL,
    GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_DEL,
    sizeof (struct GNUNET_MESH_PeerControl)},
+  {&handle_local_blacklist, NULL,
+   GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_BLACKLIST,
+   sizeof (struct GNUNET_MESH_PeerControl)},
+  {&handle_local_unblacklist, NULL,
+   GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_UNBLACKLIST,
+   sizeof (struct GNUNET_MESH_PeerControl)},
   {&handle_local_connect_by_type, NULL,
    GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_ADD_BY_TYPE,
    sizeof (struct GNUNET_MESH_ConnectPeerByType)},
+  {&handle_local_connect_by_string, NULL,
+   GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_ADD_BY_STRING, 0},
   {&handle_local_unicast, NULL,
    GNUNET_MESSAGE_TYPE_MESH_UNICAST, 0},
   {&handle_local_to_origin, NULL,
