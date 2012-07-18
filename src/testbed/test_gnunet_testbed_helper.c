@@ -151,6 +151,8 @@ mst_cb (void *cls, void *client, const struct GNUNET_MessageHeader *message)
   uLongf xconfig_size;
     
   msg = (const struct GNUNET_TESTBED_HelperReply *) message;
+  config_size = 0;
+  xconfig_size = 0;
   GNUNET_assert (sizeof (struct GNUNET_TESTBED_HelperReply) 
                  < ntohs (msg->header.size));
   GNUNET_assert (GNUNET_MESSAGE_TYPE_TESTBED_HELPER_REPLY 
@@ -161,6 +163,7 @@ mst_cb (void *cls, void *client, const struct GNUNET_MessageHeader *message)
   config = GNUNET_malloc (config_size);
   GNUNET_assert (Z_OK == uncompress ((Bytef *) config, &config_size,
                                      (const Bytef *) &msg[1], xconfig_size));
+  GNUNET_free (config);
   if (GNUNET_SCHEDULER_NO_TASK == shutdown_task)
     shutdown_task = GNUNET_SCHEDULER_add_delayed 
       (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1),

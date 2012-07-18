@@ -431,6 +431,11 @@ struct GNUNET_TESTBED_ControllerProc
   struct GNUNET_HELPER_Handle *helper;
 
   /**
+   * The host where the helper is run
+   */
+  struct GNUNET_TESTBED_Host *host;
+
+  /**
    * The controller error callback
    */
   GNUNET_TESTBED_ControllerStatusCallback cb;
@@ -439,7 +444,6 @@ struct GNUNET_TESTBED_ControllerProc
    * The closure for the above callback
    */
   void *cls;
-
   /**
    * The send handle for the helper
    */
@@ -454,6 +458,11 @@ struct GNUNET_TESTBED_ControllerProc
    * The ssh destination string; used for helpers starting ssh
    */
   char *dst;
+
+  /**
+   * The configuration of the running testbed service
+   */
+  struct GNUNET_CONFIGURATION_Handle *cfg;
 
 };
 
@@ -473,7 +482,32 @@ struct GNUNET_TESTBED_ControllerProc
 static int helper_mst (void *cls, void *client,
                        const struct GNUNET_MessageHeader *message)
 {
-  GNUNET_break (0);
+  struct GNUNET_TESTBED_ControllerProc *cp = cls;
+  const struct GNUNET_TESTBED_HelperReply *msg;
+  char *config;
+  uLongf config_size;
+  uLongf xconfig_size;
+    
+  msg = (const struct GNUNET_TESTBED_HelperReply *) message;
+  GNUNET_assert (sizeof (struct GNUNET_TESTBED_HelperReply) 
+		 < ntohs (msg->header.size));
+  GNUNET_assert (GNUNET_MESSAGE_TYPE_TESTBED_HELPER_REPLY 
+                 == ntohs (msg->header.type));
+  config_size = (uLongf) ntohs (msg->config_size);
+  xconfig_size = (uLongf) (ntohs (msg->header.size)
+                           - sizeof (struct GNUNET_TESTBED_HelperReply));
+  config = GNUNET_malloc (config_size);
+  GNUNET_assert (Z_OK == uncompress ((Bytef *) config, &config_size,
+                                     (const Bytef *) &msg[1], xconfig_size));
+  GNUNET_assert (NULL == cp->cfg);
+  cp->cfg = GNUNET_CONFIGURATION_create ();
+  GNUNET_assert (GNUNET_CONFIGURATION_deserialize (cp->cfg, config, 
+						   config_size, GNUNET_NO));
+  /* Change the hostname so that we can connect to it */
+  GNUNET_CONFIGURATION_set_value_string (cp->cfg, "testbed", "hostname", 
+					 (NULL == cp->cfg) ? "localhost" :
+					 GNUNET_TESTBED_host_get_hostname_ (cp->host));
+  cp->cb (cp->cls, cp->cfg, GNUNET_OK);
   return GNUNET_OK;
 }
 
@@ -587,6 +621,7 @@ GNUNET_TESTBED_controller_start (const char *controller_ip,
     GNUNET_free (cp);
     return NULL;
   }
+  cp->host = host;
   cp->cb = cb;
   cp->cls = cls;
   msg = GNUNET_TESTBED_create_helper_init_msg_ (controller_ip, cfg);
