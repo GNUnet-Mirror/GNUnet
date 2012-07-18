@@ -152,7 +152,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (NULL != stdin_fd)
     (void) GNUNET_DISK_file_close (stdin_fd);
   if (NULL != stdout_fd)
-    (void) GNUNET_DISK_file_close (stdin_fd);
+    (void) GNUNET_DISK_file_close (stdout_fd);
   GNUNET_SERVER_mst_destroy (tokenizer);  
   tokenizer = NULL;
   if (NULL != testbed)
@@ -420,6 +420,7 @@ int main (int argc, char **argv)
   };
 
   ret = GNUNET_OK;
+  //sleep (60);
   if (GNUNET_OK != 
       GNUNET_PROGRAM_run (argc, argv, "gnunet-testbed-helper",
 			  "Helper for starting gnunet-service-testbed",

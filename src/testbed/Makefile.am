@@ -72,7 +72,7 @@ check_PROGRAMS = \
 if ENABLE_TEST_RUN
  TESTS = \
   test_testbed_api_hosts \
-  #test_gnunet_testbed_helper
+  test_gnunet_testbed_helper
 endif
 
 test_testbed_api_hosts_SOURCES = \

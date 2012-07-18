@@ -27,6 +27,7 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_testbed_service.h"
+#include <zlib.h>
 
 #include "testbed_api.h"
 #include "testbed_helper.h"
@@ -69,6 +70,11 @@ static GNUNET_SCHEDULER_TaskIdentifier shutdown_task;
  */
 static struct GNUNET_CONFIGURATION_Handle *cfg;
 
+/**
+ * Global testing status
+ */
+static int result;
+
 
 /**
  * Shutdown nicely
@@ -97,9 +103,11 @@ do_shutdown (void *cls, const const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 do_abort (void *cls, const const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  LOG (GNUNET_ERROR_TYPE_WARNING, "Test timedout -- Aborting\n");
   abort_task = GNUNET_SCHEDULER_NO_TASK;
-  GNUNET_HELPER_send_cancel (shandle);
+  LOG (GNUNET_ERROR_TYPE_WARNING, "Test timedout -- Aborting\n");
+  result = GNUNET_SYSERR;
+  if (NULL != shandle)
+    GNUNET_HELPER_send_cancel (shandle);
   if (GNUNET_SCHEDULER_NO_TASK == shutdown_task)
     shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
 }
@@ -119,10 +127,59 @@ cont_cb (void *cls, int result)
   shandle = NULL;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Message sent\n");
   GNUNET_assert (GNUNET_OK == result);
+}
+
+
+/**
+ * Functions with this signature are called whenever a
+ * complete message is received by the tokenizer.
+ *
+ * Do not call GNUNET_SERVER_mst_destroy in callback
+ *
+ * @param cls closure
+ * @param client identification of the client
+ * @param message the actual message
+ *
+ * @return GNUNET_OK on success, GNUNET_SYSERR to stop further processing
+ */
+static int 
+mst_cb (void *cls, void *client, const struct GNUNET_MessageHeader *message)
+{
+  const struct GNUNET_TESTBED_HelperReply *msg;
+  char *config;
+  uLongf config_size;
+  uLongf xconfig_size;
+    
+  msg = (const struct GNUNET_TESTBED_HelperReply *) message;
+  GNUNET_assert (sizeof (struct GNUNET_TESTBED_HelperReply) 
+                 < ntohs (msg->header.size));
+  GNUNET_assert (GNUNET_MESSAGE_TYPE_TESTBED_HELPER_REPLY 
+                 == ntohs (msg->header.type));
+  config_size = (uLongf) ntohs (msg->config_size);
+  xconfig_size = (uLongf) (ntohs (msg->header.size)
+                           - sizeof (struct GNUNET_TESTBED_HelperReply));
+  config = GNUNET_malloc (config_size);
+  GNUNET_assert (Z_OK == uncompress ((Bytef *) config, &config_size,
+                                     (const Bytef *) &msg[1], xconfig_size));
   if (GNUNET_SCHEDULER_NO_TASK == shutdown_task)
     shutdown_task = GNUNET_SCHEDULER_add_delayed 
-      (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5),
+      (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1),
        &do_shutdown, NULL);
+  return GNUNET_OK;
+}
+
+
+/**
+ * Callback that will be called when the helper process dies. This is not called
+ * when the helper process is stoped using GNUNET_HELPER_stop()
+ *
+ * @param cls the closure from GNUNET_HELPER_start()
+ */
+static void 
+exp_cb (void *cls)
+{
+  helper = NULL;
+  result = GNUNET_SYSERR;
 }
 
 
@@ -146,7 +203,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   helper = GNUNET_HELPER_start ("gnunet-testbed-helper", 
 				binary_argv,
-                                NULL, NULL, NULL);
+                                &mst_cb, &exp_cb, NULL);
   GNUNET_assert (NULL != helper);
   cfg = GNUNET_CONFIGURATION_dup (cfg2);  
   msg = GNUNET_TESTBED_create_helper_init_msg_ (controller_name, cfg);
@@ -171,13 +228,14 @@ int main (int argc, char **argv)
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
-
+  
+  result = GNUNET_OK;
   if (GNUNET_OK != 
       GNUNET_PROGRAM_run (argc, argv, "test_gnunet_testbed_helper",
 			  "Testcase for testing gnunet-testbed-helper.c",
 			  options, &run, NULL))
     return 1;
-  return 0;
+  return (GNUNET_OK == result) ? 0 : 1;
 }
 
 /* end of test_gnunet_testbed_helper.c */
