@@ -4627,7 +4627,6 @@ dht_get_string_handler (void *cls, struct GNUNET_TIME_Absolute exp,
   struct MeshRegexSearchContext *ctx = cls;
   struct MeshRegexSearchInfo *info = ctx->info;
   void *copy;
-  char *proof;
   size_t len;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -4641,13 +4640,16 @@ dht_get_string_handler (void *cls, struct GNUNET_TIME_Absolute exp,
                 GNUNET_CONTAINER_multihashmap_put(info->dht_get_results, key, copy,
                                                   GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
   len = ntohl (block->n_proof);
-  proof = GNUNET_malloc (len + 1);
-  memcpy (proof, &block[1], len);
-  proof[len] = '\0';
-  if (GNUNET_OK != GNUNET_REGEX_check_proof (proof, key))
   {
-    GNUNET_break_op (0);
-    return;
+    char proof[len + 1];
+
+    memcpy (proof, &block[1], len);
+    proof[len] = '\0';
+    if (GNUNET_OK != GNUNET_REGEX_check_proof (proof, key))
+    {
+      GNUNET_break_op (0);
+      return;
+    }
   }
   len = strlen (info->description);
   if (len == ctx->position) // String processed
@@ -4737,6 +4739,7 @@ handle_local_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
     {
       GNUNET_free (c->regexes[i]);
     }
+    GNUNET_free (c->regexes);
     if (GNUNET_SCHEDULER_NO_TASK != c->regex_announce_task)
       GNUNET_SCHEDULER_cancel (c->regex_announce_task);
     next = c->next;
