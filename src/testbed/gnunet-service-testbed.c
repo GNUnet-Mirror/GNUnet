@@ -1228,7 +1228,7 @@ handle_peer_create (void *cls,
     return;
   }
 
-  /* Forward the peer to other host */
+  /* FIXME: Forward the peer to other host */
   GNUNET_break (0);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
@@ -1259,7 +1259,7 @@ handle_peer_destroy (void *cls,
   if ((peer_list_size <= peer_id) || (NULL == peer_list[peer_id]))
   {
     GNUNET_break (0);
-    /* Reply with failure event message */
+    /* FIXME: Reply with failure event message or forward to slave controller */
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }  
@@ -1305,8 +1305,6 @@ handle_peer_start (void *cls,
   struct GNUNET_TESTBED_PeerCreateSuccessEventMessage *reply;
   uint32_t peer_id;
 
-  GNUNET_assert (ntohs (message->size) 
-		 == sizeof (struct GNUNET_TESTBED_PeerStartMessage));
   msg = (const struct GNUNET_TESTBED_PeerStartMessage *) message;
   peer_id = ntohl (msg->peer_id);
   if ((peer_id >= peer_list_size) 
@@ -1314,7 +1312,7 @@ handle_peer_start (void *cls,
       || (GNUNET_OK != GNUNET_TESTING_peer_start (peer_list[peer_id]->peer)))
   {
     GNUNET_break (0);
-    /* FIXME: reply with failure message */
+    /* FIXME: reply with failure message or forward to slave controller */
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
@@ -1323,6 +1321,47 @@ handle_peer_start (void *cls,
   reply->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_PEERCREATESUCCESS);
   reply->peer_id = htonl (peer_id);
   reply->operation_id = msg->operation_id;
+  queue_message (client, &reply->header);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
+
+
+/**
+ * Message handler for GNUNET_MESSAGE_TYPE_TESTBED_DESTROYPEER messages
+ *
+ * @param cls NULL
+ * @param client identification of the client
+ * @param message the actual message
+ */
+static void 
+handle_peer_stop (void *cls,
+		  struct GNUNET_SERVER_Client *client,
+		  const struct GNUNET_MessageHeader *message)
+{
+  const struct GNUNET_TESTBED_PeerStopMessage *msg;
+  struct GNUNET_TESTBED_GenericOperationSuccessEventMessage *reply;
+  uint32_t peer_id;
+
+  msg = (const struct GNUNET_TESTBED_PeerStopMessage *) message;
+  peer_id = ntohl (msg->peer_id);
+  if ((peer_id >= peer_list_size) || (NULL == peer_list[peer_id]))
+  {
+    GNUNET_break (0);		/* FIXME: route to slave? */
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
+  if (GNUNET_OK != GNUNET_TESTING_peer_stop (peer_list[peer_id]->peer))
+  {
+    /* FIXME: return FAILURE message */
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
+  reply = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_GenericOperationSuccessEventMessage));
+  reply->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_GENERICOPSUCCESS);
+  reply->header.size = htons (sizeof (struct GNUNET_TESTBED_GenericOperationSuccessEventMessage));
+  reply->operation_id = msg->operation_id;
+  reply->event_type = htonl (GNUNET_TESTBED_ET_PEER_STOP);
   queue_message (client, &reply->header);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
@@ -1494,6 +1533,8 @@ testbed_run (void *cls,
        sizeof (struct GNUNET_TESTBED_PeerDestroyMessage)},
       {&handle_peer_start, NULL, GNUNET_MESSAGE_TYPE_TESTBED_STARTPEER,
        sizeof (struct GNUNET_TESTBED_PeerStartMessage)},
+      {&handle_peer_stop, NULL, GNUNET_MESSAGE_TYPE_TESTBED_STOPPEER,
+       sizeof (struct GNUNET_TESTBED_PeerStopMessage)},
       {NULL}
     };
 

@@ -172,8 +172,7 @@ GNUNET_TESTBED_peer_start (struct GNUNET_TESTBED_Peer *peer)
   msg->operation_id = GNUNET_htonll (op->operation_id);
   GNUNET_CONTAINER_DLL_insert_tail (peer->controller->op_head,
                                     peer->controller->op_tail, op);
-  GNUNET_TESTBED_queue_message_ (peer->controller, 
-				 (struct GNUNET_MessageHeader *) msg);
+  GNUNET_TESTBED_queue_message_ (peer->controller, &msg->header);
   return NULL;
 }
 
@@ -189,8 +188,21 @@ GNUNET_TESTBED_peer_start (struct GNUNET_TESTBED_Peer *peer)
 struct GNUNET_TESTBED_Operation *
 GNUNET_TESTBED_peer_stop (struct GNUNET_TESTBED_Peer *peer)
 {
-  // FIXME: stop locally or delegate...
-  GNUNET_break (0);
+  struct GNUNET_TESTBED_Operation *op;
+  struct GNUNET_TESTBED_PeerStopMessage *msg;
+
+  op = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Operation));
+  op->operation_id = peer->controller->operation_counter++;
+  op->type = OP_PEER_STOP;
+  op->data = peer;
+  msg = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_PeerStopMessage));
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_STOPPEER);
+  msg->header.size = htons (sizeof (struct GNUNET_TESTBED_PeerStopMessage));
+  msg->peer_id = htonl (peer->unique_id);
+  msg->operation_id = GNUNET_htonll (op->operation_id);
+  GNUNET_CONTAINER_DLL_insert_tail (peer->controller->op_head,
+                                    peer->controller->op_tail, op);
+  GNUNET_TESTBED_queue_message_ (peer->controller, &msg->header);
   return NULL;
 }
 

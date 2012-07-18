@@ -39,6 +39,11 @@ enum OperationType
     OP_PEER_START,
 
     /**
+     * Peer stop operation
+     */
+    OP_PEER_STOP,
+
+    /**
      * Peer destroy operation
      */
     OP_PEER_DESTROY
