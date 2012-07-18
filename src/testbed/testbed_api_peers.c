@@ -93,7 +93,7 @@ GNUNET_TESTBED_peer_create_with_id_ (uint32_t unique_id,
   peer->host = host;
   peer->unique_id = unique_id;
   config = GNUNET_CONFIGURATION_serialize (cfg, &c_size);
-  xc_size = GNUNET_TESTBED_compress_config (config, c_size, &xconfig);
+  xc_size = GNUNET_TESTBED_compress_config_ (config, c_size, &xconfig);
   GNUNET_free (config);
   msize = xc_size + sizeof (struct GNUNET_TESTBED_PeerCreateMessage);
   msg = GNUNET_realloc (xconfig, msize);
@@ -103,8 +103,8 @@ GNUNET_TESTBED_peer_create_with_id_ (uint32_t unique_id,
   msg->host_id = htonl (GNUNET_TESTBED_host_get_id_ (peer->host));
   msg->peer_id = htonl (peer->unique_id);
   msg->config_size = htonl (c_size);
-  GNUNET_TESTBED_queue_message (controller,
-                                (struct GNUNET_MessageHeader *) msg);
+  GNUNET_TESTBED_queue_message_ (controller,
+				 (struct GNUNET_MessageHeader *) msg);
   return peer;
 }
 
@@ -245,8 +245,8 @@ GNUNET_TESTBED_peer_destroy (struct GNUNET_TESTBED_Peer *peer)
   msg->operation_id = GNUNET_htonll (op->operation_id);
   GNUNET_CONTAINER_DLL_insert_tail (peer->controller->op_head,
                                     peer->controller->op_tail, op);
-  GNUNET_TESTBED_queue_message (peer->controller, 
-                                (struct GNUNET_MessageHeader *) msg);
+  GNUNET_TESTBED_queue_message_ (peer->controller, 
+				 (struct GNUNET_MessageHeader *) msg);
   return op;
 }
 

@@ -66,6 +66,7 @@ libgnunettestbed_la_LDFLAGS = \
 
 check_PROGRAMS = \
  test_testbed_api_hosts \
+ test_testbed_api_2peers \
  test_testbed_api \
  test_gnunet_testbed_helper
 
@@ -85,6 +86,13 @@ test_testbed_api_hosts_LDADD = \
 test_testbed_api_SOURCES = \
  test_testbed_api.c
 test_testbed_api_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/testing/libgnunettesting.la \
+ libgnunettestbed.la
+
+test_testbed_api_2peers_SOURCES = \
+ test_testbed_api_2peers.c
+test_testbed_api_2peers_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/testing/libgnunettesting.la \
  libgnunettestbed.la

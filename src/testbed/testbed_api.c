@@ -393,8 +393,8 @@ transmit_ready_notify (void *cls, size_t size, void *buf)
  * @param msg the message to queue
  */
 void
-GNUNET_TESTBED_queue_message (struct GNUNET_TESTBED_Controller *controller,
-                              struct GNUNET_MessageHeader *msg)
+GNUNET_TESTBED_queue_message_ (struct GNUNET_TESTBED_Controller *controller,
+			       struct GNUNET_MessageHeader *msg)
 {
   struct MessageQueue *mq_entry;
   uint16_t type;
@@ -732,7 +732,7 @@ GNUNET_TESTBED_controller_connect (const struct GNUNET_CONFIGURATION_Handle *cfg
   msg->header.size = htons (sizeof (struct GNUNET_TESTBED_InitMessage));
   msg->host_id = htonl (GNUNET_TESTBED_host_get_id_ (host));
   msg->event_mask = GNUNET_htonll (controller->event_mask);
-  GNUNET_TESTBED_queue_message (controller, (struct GNUNET_MessageHeader *) msg);
+  GNUNET_TESTBED_queue_message_ (controller, (struct GNUNET_MessageHeader *) msg);
   return controller;
 }
 
@@ -768,7 +768,7 @@ GNUNET_TESTBED_controller_configure_sharing (struct GNUNET_TESTBED_Controller *c
   msg->host_id = htonl (GNUNET_TESTBED_host_get_id_ (controller->host));
   msg->num_peers = htonl (num_peers);
   memcpy (&msg[1], service_name, service_name_size);
-  GNUNET_TESTBED_queue_message (controller, (struct GNUNET_MessageHeader *) msg);
+  GNUNET_TESTBED_queue_message_ (controller, (struct GNUNET_MessageHeader *) msg);
 }
 
 
@@ -864,7 +864,7 @@ GNUNET_TESTBED_register_host (struct GNUNET_TESTBED_Controller *controller,
   if (NULL != username)
     memcpy (&msg[1], username, user_name_length);
   strcpy (((void *) &msg[1]) + user_name_length, hostname);
-  GNUNET_TESTBED_queue_message (controller, (struct GNUNET_MessageHeader *) msg);
+  GNUNET_TESTBED_queue_message_ (controller, (struct GNUNET_MessageHeader *) msg);
   return rh;
 }
 
@@ -932,7 +932,7 @@ GNUNET_TESTBED_controller_link_2 (struct GNUNET_TESTBED_Controller *master,
   msg->config_size = htons ((uint16_t) scfg_size);
   msg->is_subordinate = (GNUNET_YES == is_subordinate) ? 1 : 0;
   memcpy (&msg[1], sxcfg, sxcfg_size);
-  GNUNET_TESTBED_queue_message (master, (struct GNUNET_MessageHeader *) msg);
+  GNUNET_TESTBED_queue_message_ (master, (struct GNUNET_MessageHeader *) msg);
 }
 
 
@@ -946,8 +946,8 @@ GNUNET_TESTBED_controller_link_2 (struct GNUNET_TESTBED_Controller *master,
  * @return the size of the xconfig
  */
 size_t
-GNUNET_TESTBED_compress_config (const char *config, size_t size,
-                                char **xconfig)
+GNUNET_TESTBED_compress_config_ (const char *config, size_t size,
+				 char **xconfig)
 {
   size_t xsize;
   
@@ -999,7 +999,7 @@ GNUNET_TESTBED_controller_link (struct GNUNET_TESTBED_Controller *master,
     GNUNET_assert (GNUNET_YES == 
 		   GNUNET_TESTBED_is_host_registered_ (slave_host, master));
   config = GNUNET_CONFIGURATION_serialize (slave_cfg, &config_size);
-  cc_size = GNUNET_TESTBED_compress_config (config, config_size, &cconfig);
+  cc_size = GNUNET_TESTBED_compress_config_ (config, config_size, &cconfig);
   GNUNET_free (config);
   GNUNET_assert ((UINT16_MAX -
 		  sizeof (struct GNUNET_TESTBED_ControllerLinkMessage))
@@ -1027,6 +1027,44 @@ GNUNET_TESTBED_overlay_write_topology_to_file (struct GNUNET_TESTBED_Controller 
   GNUNET_break (0);
 }
 
+
+/**
+ * Creates a helper initialization message. Only for testing.
+ *
+ * @param cname the ip address of the controlling host
+ * @param cfg the configuration that has to used to start the testbed service
+ *          thru helper
+ * @return the initialization message
+ */
+struct GNUNET_TESTBED_HelperInit *
+GNUNET_TESTBED_create_helper_init_msg_ (const char *cname,
+					 const struct GNUNET_CONFIGURATION_Handle *cfg)
+{
+  struct GNUNET_TESTBED_HelperInit *msg;
+  char *config;
+  char *xconfig;
+  size_t config_size;
+  size_t xconfig_size;
+  uint16_t cname_len;
+  uint16_t msg_size;
+
+  config = GNUNET_CONFIGURATION_serialize (cfg, &config_size);
+  GNUNET_assert (NULL != config);
+  xconfig_size =
+    GNUNET_TESTBED_compress_config_ (config, config_size, &xconfig);
+  GNUNET_free (config);
+  cname_len = strlen (cname);
+  msg_size = xconfig_size + cname_len + 1 + 
+    sizeof (struct GNUNET_TESTBED_HelperInit);
+  msg = GNUNET_realloc (xconfig, msg_size);
+  (void) memmove ( ((void *) &msg[1]) + cname_len + 1, msg, xconfig_size);
+  msg->header.size = htons (msg_size);
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_HELPER_INIT);
+  msg->cname_size = htons (cname_len);
+  msg->config_size = htons (config_size);
+  (void) strcpy ((char *) &msg[1], cname);
+  return msg;
+}
 
 
 /* end of testbed_api.c */

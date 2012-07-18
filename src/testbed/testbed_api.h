@@ -191,8 +191,8 @@ struct GNUNET_TESTBED_Controller
  * @param msg the message to queue
  */
 void
-GNUNET_TESTBED_queue_message (struct GNUNET_TESTBED_Controller *controller,
-                              struct GNUNET_MessageHeader *msg);
+GNUNET_TESTBED_queue_message_ (struct GNUNET_TESTBED_Controller *controller,
+			       struct GNUNET_MessageHeader *msg);
 
 
 /**
@@ -205,8 +205,8 @@ GNUNET_TESTBED_queue_message (struct GNUNET_TESTBED_Controller *controller,
  * @return the size of the xconfig
  */
 size_t
-GNUNET_TESTBED_compress_config (const char *config, size_t size,
-                                char **xconfig);
+GNUNET_TESTBED_compress_config_ (const char *config, size_t size,
+				 char **xconfig);
 
 
 /**
@@ -215,6 +215,19 @@ GNUNET_TESTBED_compress_config (const char *config, size_t size,
  * @param op the operation to add
  */
 void
-GNUNET_TESTBED_operation_add (struct GNUNET_TESTBED_Operation *op);
+GNUNET_TESTBED_operation_add_ (struct GNUNET_TESTBED_Operation *op);
+
+
+/**
+ * Creates a helper initialization message. Only for testing.
+ *
+ * @param cname the ip address of the controlling host
+ * @param cfg the configuration that has to used to start the testbed service
+ *          thru helper
+ * @return the initialization message
+ */
+struct GNUNET_TESTBED_HelperInit *
+GNUNET_TESTBED_create_helper_init_msg_ (const char *cname,
+					const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 #endif

@@ -318,7 +318,7 @@ tokenizer_cb (void *cls, void *client,
   GNUNET_DISK_pipe_close_end (pipe_in, GNUNET_DISK_PIPE_END_READ);
   done_reading = GNUNET_YES;
   config = GNUNET_CONFIGURATION_serialize (cfg, &config_size);
-  xconfig_size = GNUNET_TESTBED_compress_config (config, config_size, &xconfig);
+  xconfig_size = GNUNET_TESTBED_compress_config_ (config, config_size, &xconfig);
   wc = GNUNET_malloc (sizeof (struct WriteContext));
   wc->length = xconfig_size + sizeof (struct GNUNET_TESTBED_HelperReply);
   reply = GNUNET_realloc (xconfig, wc->length);

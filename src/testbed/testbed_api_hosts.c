@@ -390,43 +390,4 @@ GNUNET_TESTBED_is_host_registered_ (const struct GNUNET_TESTBED_Host *host,
 }
 
 
-/**
- * Creates a helper initialization message. Only for testing.
- *
- * @param cname the ip address of the controlling host
- * @param cfg the configuration that has to used to start the testbed service
- *          thru helper
- * @return the initialization message
- */
-struct GNUNET_TESTBED_HelperInit *
-GNUNET_TESTBED_create_helper_init_msg_ (const char *cname,
-					 const struct GNUNET_CONFIGURATION_Handle *cfg)
-{
-  struct GNUNET_TESTBED_HelperInit *msg;
-  char *config;
-  char *xconfig;
-  size_t config_size;
-  size_t xconfig_size;
-  uint16_t cname_len;
-  uint16_t msg_size;
-
-  config = GNUNET_CONFIGURATION_serialize (cfg, &config_size);
-  GNUNET_assert (NULL != config);
-  xconfig_size =
-    GNUNET_TESTBED_compress_config (config, config_size, &xconfig);
-  GNUNET_free (config);
-  cname_len = strlen (cname);
-  msg_size = xconfig_size + cname_len + 1 + 
-    sizeof (struct GNUNET_TESTBED_HelperInit);
-  msg = GNUNET_realloc (xconfig, msg_size);
-  (void) memmove ( ((void *) &msg[1]) + cname_len + 1, msg, xconfig_size);
-  msg->header.size = htons (msg_size);
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_HELPER_INIT);
-  msg->cname_size = htons (cname_len);
-  msg->config_size = htons (config_size);
-  (void) strcpy ((char *) &msg[1], cname);
-  return msg;
-}
-
-
 /* end of testbed_api_hosts.c */
