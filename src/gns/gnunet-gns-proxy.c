@@ -34,6 +34,8 @@
 #include <gnutls/crypto.h>
 #include <time.h>
 
+#define HAVE_MHD_NO_LISTEN_SOCKET MHD_VERSION >= 0x00091401
+
 #define GNUNET_GNS_PROXY_PORT 7777
 #define MHD_MAX_CONNECTIONS 300
 #define MAX_HTTP_URI_LENGTH 2048
@@ -1256,6 +1258,9 @@ curl_download_cb (void *ptr, size_t size, size_t nmemb, void* ctx)
               "CURL: Got %d. %d free in buffer\n",
               total, buf_space);
 
+  if (BUF_WAIT_FOR_CURL != ctask->buf_status)
+    return CURL_WRITEFUNC_PAUSE;
+
   if (total > (buf_space - CURL_BUF_PADDING))
   {
     if (ctask->buf_status == BUF_WAIT_FOR_CURL)
@@ -1442,8 +1447,8 @@ curl_task_download (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Shutdown requested while trying to download\n");
-    //TODO cleanup
-    return;
+  //TODO cleanup
+  return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Ready to dl\n");
@@ -1529,10 +1534,7 @@ curl_task_download (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
              if (NULL == ctask->curl)
                continue;
 
-             if (memcmp (msg->easy_handle, ctask->curl, sizeof (CURL)) != 0)
-               continue;
-             
-             if (ctask->buf_status != BUF_WAIT_FOR_CURL)
+             if (0 != memcmp (msg->easy_handle, ctask->curl, sizeof (CURL)))
                continue;
              
              GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1826,7 +1828,10 @@ create_response (void *cls,
     ctask->buffer_read_ptr = ctask->buffer;
     ctask->buffer_write_ptr = ctask->buffer;
     ctask->pp_task = GNUNET_SCHEDULER_NO_TASK;
-    ctask->port = HTTP_PORT;
+    if (ctask->mhd->is_ssl)
+      ctask->port = HTTPS_PORT;
+    else
+      ctask->port = HTTP_PORT;
 
     MHD_get_connection_values (con,
                                MHD_HEADER_KIND,
@@ -2487,13 +2492,15 @@ add_handle_to_ssl_mhd (struct GNUNET_NETWORK_Handle *h, const char* domain)
                 domain);
     hd->daemon = MHD_start_daemon (MHD_USE_DEBUG
                                    | MHD_USE_SSL
-#if MHD_USE_NO_LISTEN_SOCKET
+#if HAVE_MHD_NO_LISTEN_SOCKET
                                    | MHD_USE_NO_LISTEN_SOCKET,
+                                   0,
+#else
+                                   , 4444, //Dummy
 #endif
-                                   , 4444,
                                    &accept_cb, NULL,
                                    &create_response, hd,
-#ifndef MHD_USE_NO_LISTEN_SOCKET
+#if !HAVE_MHD_NO_LISTEN_SOCKET
             MHD_OPTION_LISTEN_SOCKET, GNUNET_NETWORK_get_fd (mhd_unix_socket),
 #endif
                                    MHD_OPTION_CONNECTION_LIMIT,
@@ -3095,11 +3102,13 @@ run (void *cls, char *const *args, const char *cfgfile,
 {
   struct sockaddr_in sa;
   struct MhdHttpList *hd;
-  struct sockaddr_un mhd_unix_sock_addr;
-  size_t len;
-  char* proxy_sockfile;
   char* cafile_cfg = NULL;
   char* cafile;
+#if !HAVE_MHD_NO_LISTEN_SOCKET
+  size_t len;
+  char* proxy_sockfile;
+  struct sockaddr_un mhd_unix_sock_addr;
+#endif
 
   curl_multi = curl_multi_init ();
 
@@ -3216,7 +3225,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   mhd_httpd_head = NULL;
   mhd_httpd_tail = NULL;
   total_mhd_connections = 0;
-
+#ifndef HAVE_MHD_NO_LISTEN_SOCKET
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns-proxy",
                                                             "PROXY_UNIXPATH",
                                                             &proxy_sockfile))
@@ -3226,7 +3235,6 @@ run (void *cls, char *const *args, const char *cfgfile,
     return;
   }
 
-#ifndef MHD_USE_NO_LISTEN_SOCKET
   mhd_unix_socket = GNUNET_NETWORK_socket_create (AF_UNIX,
                                                 SOCK_STREAM,
                                                 0);
@@ -3274,13 +3282,15 @@ run (void *cls, char *const *args, const char *cfgfile,
   hd->is_ssl = GNUNET_NO;
   strcpy (hd->domain, "");
   httpd = MHD_start_daemon (MHD_USE_DEBUG
-#if MHD_USE_NO_LISTEN_SOCKET
+#if HAVE_MHD_NO_LISTEN_SOCKET
                             | MHD_USE_NO_LISTEN_SOCKET,
-#endif
+                            0,
+#else
                             , 4444, //Dummy port
+#endif
             &accept_cb, NULL,
             &create_response, hd,
-#ifndef MHD_USE_NO_LISTEN_SOCKET
+#if !HAVE_MHD_NO_LISTEN_SOCKET
             MHD_OPTION_LISTEN_SOCKET, GNUNET_NETWORK_get_fd (mhd_unix_socket),
 #endif
             MHD_OPTION_CONNECTION_LIMIT, MHD_MAX_CONNECTIONS,
