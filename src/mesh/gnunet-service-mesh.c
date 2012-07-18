@@ -328,12 +328,19 @@ struct MeshTunnel
     /**
      * How many messages are in the queue.
      */
-   unsigned int queue_n;
+  unsigned int queue_n;
 
     /**
      * How many messages do we accept in the queue.
      */
-   unsigned int queue_max;
+  unsigned int queue_max;
+
+    /**
+     * Flag to signal the destruction of the tunnel.
+     * If this is set GNUNET_YES the tunnel will be destroyed
+     * when the queue is empty.
+     */
+   int destroy;
 
     /**
      * Last time the tunnel was used
@@ -3428,6 +3435,7 @@ queue_send (void *cls, size_t size, void *buf)
 {
     struct MeshPeerInfo *peer = cls;
     struct MeshPeerQueue *queue;
+    struct MeshTunnel *t;
     size_t data_size;
 
     peer->core_transmit = NULL;
@@ -3486,10 +3494,18 @@ queue_send (void *cls, size_t size, void *buf)
             GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********   type unknown\n");
             data_size = 0;
     }
-    queue->tunnel->queue_n--;
+
+    t = queue->tunnel;
+    t->queue_n--;
 
     /* Free queue, but cls was freed by send_core_* */
     queue_destroy(queue, GNUNET_NO);
+
+    if (GNUNET_YES == t->destroy && 0 == t->queue_n)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********  destroying tunnel!\n");
+      tunnel_destroy (t);
+    }
 
     /* If more data in queue, send next */
     if (NULL != peer->queue_head)
@@ -3911,7 +3927,8 @@ handle_mesh_tunnel_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
     send_clients_tunnel_destroy (t);
   }
   tunnel_send_destroy (t);
-  tunnel_destroy (t);
+  t->destroy = GNUNET_YES;
+  // TODO: add timeout to destroy the tunnel anyway
   return GNUNET_OK;
 }
 
@@ -5010,7 +5027,8 @@ handle_local_tunnel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
   /* Don't try to ACK the client about the tunnel_destroy multicast packet */
   t->owner = NULL;
   tunnel_send_destroy (t);
-  tunnel_destroy (t);
+  t->destroy = GNUNET_YES;
+  // The tunnel will be destroyed when the last message is transmitted.
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
   return;
 }
