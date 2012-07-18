@@ -158,8 +158,22 @@ GNUNET_TESTBED_peer_create (struct GNUNET_TESTBED_Controller *controller,
 struct GNUNET_TESTBED_Operation *
 GNUNET_TESTBED_peer_start (struct GNUNET_TESTBED_Peer *peer)
 {
-  // FIXME: start locally or delegate...
-  GNUNET_break (0);
+  struct GNUNET_TESTBED_Operation *op;
+  struct GNUNET_TESTBED_PeerStartMessage *msg;
+
+  op = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Operation));
+  op->operation_id = peer->controller->operation_counter++;
+  op->type = OP_PEER_START;
+  op->data = peer;
+  msg = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_PeerStartMessage));
+  msg->header.size = htons (sizeof (struct GNUNET_TESTBED_PeerStartMessage));
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_STARTPEER);
+  msg->peer_id = htonl (peer->unique_id);
+  msg->operation_id = GNUNET_htonll (op->operation_id);
+  GNUNET_CONTAINER_DLL_insert_tail (peer->controller->op_head,
+                                    peer->controller->op_tail, op);
+  GNUNET_TESTBED_queue_message_ (peer->controller, 
+				 (struct GNUNET_MessageHeader *) msg);
   return NULL;
 }
 

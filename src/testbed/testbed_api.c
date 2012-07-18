@@ -286,6 +286,51 @@ handle_opsuccess (struct GNUNET_TESTBED_Controller *c,
 
 
 /**
+ * Handler for GNUNET_MESSAGE_TYPE_TESTBED_PEERCREATESUCCESS message from
+ * controller (testbed service)
+ *
+ * @param c the controller handler
+ * @param msg message received
+ * @return GNUNET_YES if we can continue receiving from service; GNUNET_NO if
+ *           not
+ */
+static int
+handle_peer_create_success (struct GNUNET_TESTBED_Controller *c,
+			    const struct
+			    GNUNET_TESTBED_PeerCreateSuccessEventMessage *msg)
+{
+  struct GNUNET_TESTBED_Operation *op;
+  struct GNUNET_TESTBED_Peer *peer;
+  uint64_t op_id;
+
+  GNUNET_assert (sizeof (struct GNUNET_TESTBED_PeerCreateSuccessEventMessage)
+		 == ntohs (msg->header.size));
+  op_id = GNUNET_ntohll (msg->operation_id);
+  for (op = c->op_head; NULL != op; op = op->next)
+  {
+    if (op->operation_id == op_id)
+      break;
+  }
+  GNUNET_assert (NULL != op);
+  peer = op->data;
+  GNUNET_assert (NULL != peer);
+  GNUNET_assert (peer->unique_id == ntohl (msg->peer_id));
+  if (0 != (c->event_mask & (1L << GNUNET_TESTBED_ET_PEER_START)))
+  {
+    struct GNUNET_TESTBED_EventInformation info;
+    
+    info.details.peer_start.host = peer->host;
+    info.details.peer_start.peer = peer;
+    if (NULL != c->cc)
+      c->cc (c->cc_cls, &info);
+  }
+  GNUNET_CONTAINER_DLL_remove (c->op_head, c->op_tail, op);
+  GNUNET_free (op);
+  return GNUNET_YES;
+}
+
+
+/**
  * Handler for messages from controller (testbed service)
  *
  * @param cls the controller handler
@@ -317,6 +362,11 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
       handle_opsuccess (c, (const struct
                             GNUNET_TESTBED_GenericOperationSuccessEventMessage
                             *) msg);
+    break;
+  case GNUNET_MESSAGE_TYPE_TESTBED_PEERCREATESUCCESS:
+    status =
+      handle_peer_create_success 
+      (c, (const struct GNUNET_TESTBED_PeerCreateSuccessEventMessage *)msg);
     break;
   default:
     GNUNET_break (0);

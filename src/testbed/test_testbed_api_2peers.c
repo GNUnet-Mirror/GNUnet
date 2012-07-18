@@ -19,8 +19,9 @@
  */
 
 /**
- * @file testbed/test_testbed_api.c
- * @brief testcases for the testbed api
+ * @file testbed/test_testbed_api_2peers.c
+ * @brief testcases for the testbed api: 2 peers are configured, started and
+ *          connected together
  * @author Sree Harsha Totakura
  */
 
