@@ -1260,6 +1260,8 @@ handle_peer_destroy (void *cls,
   {
     GNUNET_break (0);
     /* Reply with failure event message */
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
   }  
   GNUNET_TESTING_peer_destroy (peer_list[peer_id]->peer);
   GNUNET_CONFIGURATION_destroy (peer_list[peer_id]->cfg);
@@ -1282,8 +1284,47 @@ handle_peer_destroy (void *cls,
   reply->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_GENERICOPSUCCESS);
   reply->header.size = htons (reply_size);
   reply->operation_id = msg->operation_id;
-  queue_message (client, (struct GNUNET_MessageHeader *) reply);
-  
+  queue_message (client, &reply->header);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
+
+
+/**
+ * Message handler for GNUNET_MESSAGE_TYPE_TESTBED_DESTROYPEER messages
+ *
+ * @param cls NULL
+ * @param client identification of the client
+ * @param message the actual message
+ */
+static void 
+handle_peer_start (void *cls,
+		   struct GNUNET_SERVER_Client *client,
+		   const struct GNUNET_MessageHeader *message)
+{
+  const struct GNUNET_TESTBED_PeerStartMessage *msg;
+  struct GNUNET_TESTBED_PeerCreateSuccessEventMessage *reply;
+  uint32_t peer_id;
+
+  GNUNET_assert (ntohs (message->size) 
+		 == sizeof (struct GNUNET_TESTBED_PeerStartMessage));
+  msg = (const struct GNUNET_TESTBED_PeerStartMessage *) message;
+  peer_id = ntohl (msg->peer_id);
+  if ((peer_id >= peer_list_size) 
+      || (NULL == peer_list[peer_id])
+      || (GNUNET_OK != GNUNET_TESTING_peer_start (peer_list[peer_id]->peer)))
+  {
+    GNUNET_break (0);
+    /* FIXME: reply with failure message */
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
+  reply = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_PeerCreateSuccessEventMessage));
+  reply->header.size = htons (sizeof (struct GNUNET_TESTBED_PeerCreateSuccessEventMessage));
+  reply->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_PEERCREATESUCCESS);
+  reply->peer_id = htonl (peer_id);
+  reply->operation_id = msg->operation_id;
+  queue_message (client, &reply->header);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 
@@ -1451,6 +1492,8 @@ testbed_run (void *cls,
       {&handle_peer_create, NULL, GNUNET_MESSAGE_TYPE_TESTBED_CREATEPEER, 0},
       {&handle_peer_destroy, NULL, GNUNET_MESSAGE_TYPE_TESTBED_DESTROYPEER,
        sizeof (struct GNUNET_TESTBED_PeerDestroyMessage)},
+      {&handle_peer_start, NULL, GNUNET_MESSAGE_TYPE_TESTBED_STARTPEER,
+       sizeof (struct GNUNET_TESTBED_PeerStartMessage)},
       {NULL}
     };
 
