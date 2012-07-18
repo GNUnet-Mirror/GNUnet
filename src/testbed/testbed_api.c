@@ -444,10 +444,16 @@ struct GNUNET_TESTBED_ControllerProc
    * The closure for the above callback
    */
   void *cls;
+
   /**
    * The send handle for the helper
    */
   struct GNUNET_HELPER_SendHandle *shandle;
+
+  /**
+   * The message corresponding to send handle
+   */
+  struct GNUNET_MessageHeader *msg;
 
   /**
    * The port number for ssh; used for helpers starting ssh
@@ -484,6 +490,7 @@ static int helper_mst (void *cls, void *client,
 {
   struct GNUNET_TESTBED_ControllerProc *cp = cls;
   const struct GNUNET_TESTBED_HelperReply *msg;
+  const char *hostname;
   char *config;
   uLongf config_size;
   uLongf xconfig_size;
@@ -503,10 +510,13 @@ static int helper_mst (void *cls, void *client,
   cp->cfg = GNUNET_CONFIGURATION_create ();
   GNUNET_assert (GNUNET_CONFIGURATION_deserialize (cp->cfg, config, 
 						   config_size, GNUNET_NO));
+  GNUNET_free (config);
+  if ((NULL == cp->host) || 
+      (NULL == (hostname = GNUNET_TESTBED_host_get_hostname_ (cp->host))))
+    hostname = "localhost";
   /* Change the hostname so that we can connect to it */
   GNUNET_CONFIGURATION_set_value_string (cp->cfg, "testbed", "hostname", 
-					 (NULL == cp->host) ? "localhost" :
-					 GNUNET_TESTBED_host_get_hostname_ (cp->host));
+					 hostname);
   cp->cb (cp->cls, cp->cfg, GNUNET_OK);
   return GNUNET_OK;
 }
@@ -523,7 +533,11 @@ static int helper_mst (void *cls, void *client,
 static void 
 clear_msg (void *cls, int result)
 {
-  GNUNET_free (cls);
+  struct GNUNET_TESTBED_ControllerProc *cp = cls;
+  
+  GNUNET_assert (NULL != cp->shandle);
+  cp->shandle = NULL;
+  GNUNET_free (cp->msg);
 }
 
 
@@ -561,10 +575,11 @@ helper_exp_cb (void *cls)
  *          configuration (port numbers, unix domain sockets and service home
  *          values are changed as per TESTING library on the remote host)
  * @param cb function called when the controller is successfully started or
- *           dies unexpectedly; GNUNET_TESTBED_controller_stop shouldn't be
- *           called if cb is called with GNUNET_SYSERR as status. Will never be
- *           called in the same task as 'GNUNET_TESTBED_controller_start'
- *           (synchronous errors will be signalled by returning NULL)
+ *          dies unexpectedly; GNUNET_TESTBED_controller_stop shouldn't be
+ *          called if cb is called with GNUNET_SYSERR as status. Will never be
+ *          called in the same task as 'GNUNET_TESTBED_controller_start'
+ *          (synchronous errors will be signalled by returning NULL). This
+ *          parameter cannot be NULL.
  * @param cls closure for above callbacks
  * @return the controller process handle, NULL on errors
  */
@@ -625,8 +640,9 @@ GNUNET_TESTBED_controller_start (const char *controller_ip,
   cp->cb = cb;
   cp->cls = cls;
   msg = GNUNET_TESTBED_create_helper_init_msg_ (controller_ip, cfg);
+  cp->msg = &msg->header;
   cp->shandle = GNUNET_HELPER_send (cp->helper, &msg->header, GNUNET_NO,
-                                    &clear_msg, msg);
+                                    &clear_msg, cp);
   if (NULL == cp->shandle)
   {
     GNUNET_free (msg);
@@ -650,6 +666,8 @@ GNUNET_TESTBED_controller_stop (struct GNUNET_TESTBED_ControllerProc *cp)
   if (NULL != cp->shandle)
     GNUNET_HELPER_send_cancel (cp->shandle);
   GNUNET_HELPER_stop (cp->helper);
+  if (NULL != cp->cfg)
+    GNUNET_CONFIGURATION_destroy (cp->cfg);
   GNUNET_free_non_null (cp->port);
   GNUNET_free_non_null (cp->dst);
   GNUNET_free (cp);

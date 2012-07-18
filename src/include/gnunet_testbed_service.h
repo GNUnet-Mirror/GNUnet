@@ -429,10 +429,11 @@ typedef void (*GNUNET_TESTBED_ControllerStatusCallback) (void *cls,
  *          configuration (port numbers, unix domain sockets and service home
  *          values are changed as per TESTING library on the remote host)
  * @param cb function called when the controller is successfully started or
- *           dies unexpectedly; GNUNET_TESTBED_controller_stop shouldn't be
- *           called if cb is called with GNUNET_SYSERR as status. Will never be
- *           called in the same task as 'GNUNET_TESTBED_controller_start'
- *           (synchronous errors will be signalled by returning NULL)
+ *          dies unexpectedly; GNUNET_TESTBED_controller_stop shouldn't be
+ *          called if cb is called with GNUNET_SYSERR as status. Will never be
+ *          called in the same task as 'GNUNET_TESTBED_controller_start'
+ *          (synchronous errors will be signalled by returning NULL). This
+ *          parameter cannot be NULL.
  * @param cls closure for above callbacks
  * @return the controller process handle, NULL on errors
  */

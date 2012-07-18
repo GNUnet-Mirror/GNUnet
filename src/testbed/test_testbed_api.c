@@ -171,23 +171,21 @@ registration_comp (void *cls, const char *emsg)
 
 
 /**
- * Main run function. 
+ * Callback to signal successfull startup of the controller process
  *
- * @param cls NULL
- * @param args arguments passed to GNUNET_PROGRAM_run
- * @param cfgfile the path to configuration file
- * @param cfg the configuration file handle
+ * @param cls the closure from GNUNET_TESTBED_controller_start()
+ * @param cfg the configuration with which the controller has been started;
+ *          NULL if status is not GNUNET_OK
+ * @param status GNUNET_OK if the startup is successfull; GNUNET_SYSERR if not,
+ *          GNUNET_TESTBED_controller_stop() shouldn't be called in this case
  */
-static void
-run (void *cls, char *const *args, const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *config)
+static void 
+status_cb (void *cls, 
+	   const struct GNUNET_CONFIGURATION_Handle *cfg, int status)
 {
   uint64_t event_mask;
 
-  host = GNUNET_TESTBED_host_create (NULL, NULL, 0);
-  GNUNET_assert (NULL != host);
-  cfg = GNUNET_CONFIGURATION_dup (config);
-  cp = GNUNET_TESTBED_controller_start ("127.0.0.1", host, cfg, NULL, NULL);
+  GNUNET_assert (GNUNET_OK == status);
   event_mask = 0;
   event_mask |= (1L << GNUNET_TESTBED_ET_PEER_START);
   event_mask |= (1L << GNUNET_TESTBED_ET_PEER_STOP);
@@ -201,7 +199,27 @@ run (void *cls, char *const *args, const char *cfgfile,
   reg_handle = 
     GNUNET_TESTBED_register_host (controller, neighbour, &registration_comp,
                                   neighbour);
-  GNUNET_assert (NULL != reg_handle);  
+  GNUNET_assert (NULL != reg_handle);
+}
+
+
+
+/**
+ * Main run function. 
+ *
+ * @param cls NULL
+ * @param args arguments passed to GNUNET_PROGRAM_run
+ * @param cfgfile the path to configuration file
+ * @param cfg the configuration file handle
+ */
+static void
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *config)
+{
+  host = GNUNET_TESTBED_host_create (NULL, NULL, 0);
+  GNUNET_assert (NULL != host);
+  cfg = GNUNET_CONFIGURATION_dup (config);
+  cp = GNUNET_TESTBED_controller_start ("127.0.0.1", host, cfg, status_cb, NULL);
   abort_task = GNUNET_SCHEDULER_add_delayed 
     (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5), &do_abort, NULL);
 }

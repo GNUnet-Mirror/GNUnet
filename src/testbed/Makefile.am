@@ -71,6 +71,7 @@ check_PROGRAMS = \
 
 if ENABLE_TEST_RUN
  TESTS = \
+  test_testbed_api \
   test_testbed_api_hosts \
   test_gnunet_testbed_helper
 endif
