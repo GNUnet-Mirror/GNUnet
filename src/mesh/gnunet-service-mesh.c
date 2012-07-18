@@ -4739,8 +4739,7 @@ handle_local_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
     {
       GNUNET_free (c->regexes[i]);
     }
-    if (NULL != c->regexes)
-      GNUNET_free (c->regexes);
+    GNUNET_free_non_null (c->regexes);
     if (GNUNET_SCHEDULER_NO_TASK != c->regex_announce_task)
       GNUNET_SCHEDULER_cancel (c->regex_announce_task);
     next = c->next;
