@@ -1801,7 +1801,7 @@ send_client_tunnel_disconnect (struct MeshTunnel *t, struct MeshClient *c)
  *                  Freed no longer needed (last message).
  */
 static void
-data_descriptor_decrement_multicast (struct MeshData *mesh_data)
+data_descriptor_decrement_rc (struct MeshData *mesh_data)
 {
   /* Make sure it's a multicast packet */
   GNUNET_assert (NULL != mesh_data->reference_counter);
@@ -1930,7 +1930,7 @@ send_core_data_raw (void *cls, size_t size, void *buf)
     return 0;
   }
   memcpy (buf, msg, total_size);
-  GNUNET_free (info->mesh_data);
+  data_descriptor_decrement_rc (info->mesh_data);
   GNUNET_free (info);
   return total_size;
 }
@@ -3338,7 +3338,7 @@ send_core_data_multicast (void *cls, size_t size, void *buf)
     }
   }
 #endif
-  data_descriptor_decrement_multicast (info->mesh_data);
+  data_descriptor_decrement_rc (info->mesh_data);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "freeing info...\n");
   GNUNET_free (info);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "return %u\n", total_size);
@@ -3399,9 +3399,10 @@ queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
     {
     case GNUNET_MESSAGE_TYPE_MESH_UNICAST:
     case GNUNET_MESSAGE_TYPE_MESH_MULTICAST:
+    case GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN:
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   type payload\n");
         dd = queue->cls;
-        data_descriptor_decrement_multicast (dd->mesh_data);
+        data_descriptor_decrement_rc (dd->mesh_data);
         break;
     case GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE:
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   type create path\n");
