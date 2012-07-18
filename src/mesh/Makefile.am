@@ -37,7 +37,7 @@ libgnunet_plugin_block_mesh_la_LIBADD = \
 libgnunet_plugin_block_mesh_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 libgnunet_plugin_block_mesh_la_DEPENDENCIES = \
- $(top_builddir)/src/mesh/libgnunetmeshblock.la \
+ libgnunetmeshblock.la \
  $(top_builddir)/src/block/libgnunetblock.la \
  $(top_builddir)/src/util/libgnunetutil.la
 
@@ -76,7 +76,7 @@ gnunet_service_mesh_DEPENDENCIES = \
   $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/dht/libgnunetdht.la \
   $(top_builddir)/src/block/libgnunetblock.la \
-  $(top_builddir)/src/mesh/libgnunetmeshblock.la \
+  libgnunetmeshblock.la \
   $(top_builddir)/src/regex/libgnunetregex.la
 
 check_PROGRAMS = \
