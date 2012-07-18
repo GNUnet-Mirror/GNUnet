@@ -505,7 +505,7 @@ static int helper_mst (void *cls, void *client,
 						   config_size, GNUNET_NO));
   /* Change the hostname so that we can connect to it */
   GNUNET_CONFIGURATION_set_value_string (cp->cfg, "testbed", "hostname", 
-					 (NULL == cp->cfg) ? "localhost" :
+					 (NULL == cp->host) ? "localhost" :
 					 GNUNET_TESTBED_host_get_hostname_ (cp->host));
   cp->cb (cp->cls, cp->cfg, GNUNET_OK);
   return GNUNET_OK;
