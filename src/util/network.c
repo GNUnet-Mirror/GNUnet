@@ -1409,7 +1409,7 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
 
       fh = (struct GNUNET_DISK_FileHandle *) GNUNET_CONTAINER_slist_get (&i,
                                                                          NULL);
-      if (fh->type == GNUNET_PIPE)
+      if (fh->type == GNUNET_DISK_HANLDE_TYPE_PIPE)
       {
         /* Read zero bytes to check the status of the pipe */
         LOG (GNUNET_ERROR_TYPE_DEBUG, "Reading 0 bytes from the pipe 0x%x\n",
@@ -1470,7 +1470,7 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
 
       fh = (struct GNUNET_DISK_FileHandle *) GNUNET_CONTAINER_slist_get (&i,
                                                                          NULL);
-      if (fh->type == GNUNET_PIPE)
+      if (fh->type == GNUNET_DISK_HANLDE_TYPE_PIPE)
       {
         if (!PeekNamedPipe (fh->h, NULL, 0, NULL, &dwBytes, NULL))
         {
@@ -1632,7 +1632,7 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
 
       fh = (struct GNUNET_DISK_FileHandle *) GNUNET_CONTAINER_slist_get (&t,
                                                                          NULL);
-      if (fh->type == GNUNET_PIPE)
+      if (fh->type == GNUNET_DISK_HANLDE_TYPE_PIPE)
       {
         CancelIo (fh->h);
       }

@@ -161,7 +161,7 @@ npipe_create (char **fn, enum GNUNET_DISK_OpenFlags flags,
   }
   ret = GNUNET_malloc (sizeof (struct GNUNET_DISK_FileHandle));
   ret->h = h;
-  ret->type = GNUNET_PIPE;
+  ret->type = GNUNET_DISK_HANLDE_TYPE_PIPE;
   ret->oOverlapRead = GNUNET_malloc (sizeof (OVERLAPPED));
   ret->oOverlapWrite = GNUNET_malloc (sizeof (OVERLAPPED));
   ret->oOverlapRead->hEvent = CreateEvent (NULL, FALSE, FALSE, NULL);
@@ -202,7 +202,7 @@ npipe_open (const char *fn, enum GNUNET_DISK_OpenFlags flags)
 
   ret = GNUNET_malloc (sizeof (struct GNUNET_DISK_FileHandle));
   ret->h = h;
-  ret->type = GNUNET_PIPE;
+  ret->type = GNUNET_DISK_HANLDE_TYPE_PIPE;
   ret->oOverlapRead = GNUNET_malloc (sizeof (OVERLAPPED));
   ret->oOverlapWrite = GNUNET_malloc (sizeof (OVERLAPPED));
   ret->oOverlapRead->hEvent = CreateEvent (NULL, FALSE, FALSE, NULL);
