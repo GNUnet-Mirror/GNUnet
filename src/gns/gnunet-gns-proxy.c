@@ -2485,18 +2485,24 @@ add_handle_to_ssl_mhd (struct GNUNET_NETWORK_Handle *h, const char* domain)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "No previous SSL instance found... starting new one for %s\n",
                 domain);
-
-    hd->daemon = MHD_start_daemon (MHD_USE_DEBUG | MHD_USE_SSL, 4444,
-            &accept_cb, NULL,
-            &create_response, hd,
+    hd->daemon = MHD_start_daemon (MHD_USE_DEBUG
+                                   | MHD_USE_SSL
+#if MHD_USE_NO_LISTEN_SOCKET
+                                   | MHD_USE_NO_LISTEN_SOCKET,
+#endif
+                                   , 4444,
+                                   &accept_cb, NULL,
+                                   &create_response, hd,
+#ifndef MHD_USE_NO_LISTEN_SOCKET
             MHD_OPTION_LISTEN_SOCKET, GNUNET_NETWORK_get_fd (mhd_unix_socket),
-            MHD_OPTION_CONNECTION_LIMIT, MHD_MAX_CONNECTIONS,
-            MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 16,
-            MHD_OPTION_NOTIFY_COMPLETED,
-            NULL, NULL,
-            MHD_OPTION_HTTPS_MEM_KEY, pgc->key,
-            MHD_OPTION_HTTPS_MEM_CERT, pgc->cert,
-            MHD_OPTION_END);
+#endif
+                                   MHD_OPTION_CONNECTION_LIMIT,
+                                   MHD_MAX_CONNECTIONS,
+                               MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 16,
+                               MHD_OPTION_NOTIFY_COMPLETED, NULL, NULL,
+                               MHD_OPTION_HTTPS_MEM_KEY, pgc->key,
+                               MHD_OPTION_HTTPS_MEM_CERT, pgc->cert,
+                               MHD_OPTION_END);
 
     GNUNET_assert (hd->daemon != NULL);
     hd->httpd_task = GNUNET_SCHEDULER_NO_TASK;
@@ -3219,7 +3225,8 @@ run (void *cls, char *const *args, const char *cfgfile,
                 "Specify PROXY_UNIXPATH in gns-proxy config section!\n");
     return;
   }
-  
+
+#ifndef MHD_USE_NO_LISTEN_SOCKET
   mhd_unix_socket = GNUNET_NETWORK_socket_create (AF_UNIX,
                                                 SOCK_STREAM,
                                                 0);
@@ -3261,14 +3268,21 @@ run (void *cls, char *const *args, const char *cfgfile,
                 "Unable to listen on unix domain socket!\n");
     return;
   }
+#endif
 
   hd = GNUNET_malloc (sizeof (struct MhdHttpList));
   hd->is_ssl = GNUNET_NO;
   strcpy (hd->domain, "");
-  httpd = MHD_start_daemon (MHD_USE_DEBUG, 4444, //Dummy port
+  httpd = MHD_start_daemon (MHD_USE_DEBUG
+#if MHD_USE_NO_LISTEN_SOCKET
+                            | MHD_USE_NO_LISTEN_SOCKET,
+#endif
+                            , 4444, //Dummy port
             &accept_cb, NULL,
             &create_response, hd,
+#ifndef MHD_USE_NO_LISTEN_SOCKET
             MHD_OPTION_LISTEN_SOCKET, GNUNET_NETWORK_get_fd (mhd_unix_socket),
+#endif
             MHD_OPTION_CONNECTION_LIMIT, MHD_MAX_CONNECTIONS,
             MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 16,
             MHD_OPTION_NOTIFY_COMPLETED,
