@@ -36,7 +36,8 @@ gnunet_testbed_helper_LDADD = $(XLIB) \
  libgnunettestbed.la \
  $(LTLIBINTL) -lz
 gnunet_testbed_helper_DEPENDENCIES = \
-  gnunet-service-testbed.$(OBJEXT)
+  gnunet-service-testbed.$(OBJEXT) \
+  libgnunettestbed.la
 
 lib_LTLIBRARIES = \
   libgnunettestbed.la
