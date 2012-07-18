@@ -872,6 +872,16 @@ static void
 queue_add (void *cls, uint16_t type, size_t size,
            struct MeshPeerInfo *dst, struct MeshTunnel *t);
 
+/**
+ * Free a transmission that was already queued with all resources
+ * associated to the request.
+ *
+ * @param queue Queue handler to cancel.
+ * @param clear_cls Is it necessary to free associated cls?
+ */
+static void
+queue_destroy (struct MeshPeerQueue *queue, int clear_cls);
+
 /******************************************************************************/
 /************************         ITERATORS        ****************************/
 /******************************************************************************/
@@ -2951,7 +2961,35 @@ tunnel_send_destroy (struct MeshTunnel *t)
   tunnel_send_multicast (t, &msg.header, GNUNET_NO);
 }
 
+/**
+ * Cancel all transmissions towards a neighbor that belong to a certain tunnel.
+ *
+ * @param cls Closure (Tunnel which to cancel).
+ * @param neighbor_id Short ID of the neighbor to whom cancel the transmissions.
+ */
+static void
+tunnel_cancel_queues (void *cls, GNUNET_PEER_Id neighbor_id)
+{
+  struct MeshTunnel *t = cls;
+  struct MeshPeerInfo *peer_info;
+  struct MeshPeerQueue *pq;
+  struct MeshPeerQueue *next;
 
+  peer_info = peer_info_get_short (neighbor_id);
+  for (pq = peer_info->queue_head; NULL != pq; pq = next)
+  {
+    next = pq->next;
+    if (pq->tunnel == t)
+    {
+      queue_destroy (pq, GNUNET_YES);
+    }
+  }
+  if (NULL == peer_info->queue_head && NULL != peer_info->core_transmit)
+  {
+    GNUNET_CORE_notify_transmit_ready_cancel(peer_info->core_transmit);
+    peer_info->core_transmit = NULL;
+  }
+}
 
 /**
  * Destroy the tunnel and free any allocated resources linked to it.
@@ -2970,6 +3008,8 @@ tunnel_destroy (struct MeshTunnel *t)
 
   if (NULL == t)
     return GNUNET_OK;
+
+  tree_iterate_children (t->tree, &tunnel_cancel_queues, t);
 
   r = GNUNET_OK;
   c = t->owner;
@@ -3034,6 +3074,7 @@ tunnel_destroy (struct MeshTunnel *t)
   }
 
   tree_destroy (t->tree);
+
   if (NULL != t->regex_ctx)
     regex_cancel_search (t->regex_ctx);
   if (NULL != t->dht_get_type)
@@ -3042,6 +3083,7 @@ tunnel_destroy (struct MeshTunnel *t)
     GNUNET_SCHEDULER_cancel (t->timeout_task);
   if (GNUNET_SCHEDULER_NO_TASK != t->path_refresh_task)
     GNUNET_SCHEDULER_cancel (t->path_refresh_task);
+
   GNUNET_free (t);
   return r;
 }
