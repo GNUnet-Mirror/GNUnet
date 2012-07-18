@@ -1342,7 +1342,7 @@ start_process (int pipe_control,
   {
     ssize_t wrote;
     uint64_t size;
-    unsigned int count;
+    uint64_t count;
     unsigned int i;
 
     /* Tell the number of sockets */
