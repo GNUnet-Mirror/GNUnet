@@ -92,4 +92,5 @@ test_gnunet_testbed_helper_SOURCES = \
  test_gnunet_testbed_helper.c
 test_gnunet_testbed_helper_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
- libgnunettestbed.la
+ libgnunettestbed.la \
+ -lz
