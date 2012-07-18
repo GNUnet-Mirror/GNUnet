@@ -1357,6 +1357,8 @@ send_key (struct GSC_KeyExchangeInfo *kx)
     return;                     /* nothing to do */
   if (NULL == kx->public_key)
   {
+    if (NULL != kx->pitr)
+      return;
     /* lookup public key, then try again */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Trying to obtain public key for `%s'\n",
