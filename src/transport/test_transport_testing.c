@@ -78,7 +78,8 @@ end_badly ()
   if (p2 != NULL)
     GNUNET_TRANSPORT_TESTING_stop_peer (tth, p2);
 
-  GNUNET_TRANSPORT_TESTING_done (tth);
+  if (NULL != tth)
+    GNUNET_TRANSPORT_TESTING_done (tth);
 
   ret = GNUNET_SYSERR;
 }

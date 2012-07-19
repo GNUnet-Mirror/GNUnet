@@ -94,6 +94,8 @@ end ()
 
   GNUNET_TRANSPORT_TESTING_stop_peer (tth, p1);
   GNUNET_TRANSPORT_TESTING_stop_peer (tth, p2);
+  GNUNET_TRANSPORT_TESTING_done (tth);
+
 }
 
 static void
@@ -117,6 +119,9 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_TRANSPORT_TESTING_stop_peer (tth, p1);
   if (p2 != NULL)
     GNUNET_TRANSPORT_TESTING_stop_peer (tth, p2);
+
+  if (NULL != th)
+    GNUNET_TRANSPORT_TESTING_done (tth);
 
   ok = GNUNET_SYSERR;
 }
