@@ -1208,10 +1208,9 @@ server_stop (struct Plugin *plugin)
   struct Session *t = NULL;
 
   struct MHD_Daemon *server_v4_tmp = plugin->server_v4;
-
   plugin->server_v4 = NULL;
-  struct MHD_Daemon *server_v6_tmp = plugin->server_v6;
 
+  struct MHD_Daemon *server_v6_tmp = plugin->server_v6;
   plugin->server_v6 = NULL;
 
   if (plugin->server_v4_task != GNUNET_SCHEDULER_NO_TASK)
