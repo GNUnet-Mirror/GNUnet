@@ -344,18 +344,15 @@ lookup_address (const struct GNUNET_PeerIdentity *peer,
 
   /* Get existing address or address with session == 0 */
   old = find_address (peer, aa);
+  free_address (aa);
   if (old == NULL)
   {
-    GNUNET_free (aa);
     return NULL;
   }
   else if (old->session_id != session_id)
   {
-    GNUNET_free (aa);
-    GNUNET_break (0);
     return NULL;
   }
-
   return old;
 }
 
