@@ -65,7 +65,14 @@ struct GNUNET_PEERINFO_Handle *GST_peerinfo;
 /**
  * Hostkey generation context
  */
-struct GNUNET_CRYPTO_RsaKeyGenerationContext * GST_keygen;
+struct GNUNET_CRYPTO_RsaKeyGenerationContext *GST_keygen;
+
+/**
+ * Closure for hostkey generation
+ */
+
+struct KeyGenerationContext *GST_keygen_cls;
+
 
 /**
  * Our public key.
@@ -86,6 +93,13 @@ struct GNUNET_ATS_SchedulingHandle *GST_ats;
  * DEBUGGING connection counter
  */
 static int connections;
+
+
+struct KeyGenerationContext
+{
+  struct GNUNET_SERVER_Handle *server;
+  const struct GNUNET_CONFIGURATION_Handle *c;
+};
 
 
 /**
@@ -550,6 +564,12 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GST_keygen = NULL;
   }
 
+  if (NULL != GST_keygen_cls)
+  {
+    GNUNET_free (GST_keygen_cls);
+    GST_keygen_cls = NULL;
+  }
+
   GST_neighbours_stop ();
   GST_validation_stop ();
   GST_plugins_unload ();
@@ -577,35 +597,34 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
 }
 
-struct KeyGenerationContext
-{
-  struct GNUNET_SERVER_Handle *server;
-  const struct GNUNET_CONFIGURATION_Handle *c;
-
-};
-
+/**
+ * Callback for hostkey read/generation
+ * @param cls NULL
+ * @param pk the privatekey
+ * @param emsg error message
+ */
 static void
 key_generation_cb (void *cls,
                    struct GNUNET_CRYPTO_RsaPrivateKey *pk,
                    const char *emsg)
 {
-  struct KeyGenerationContext *scx = cls;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded tmp;
-
+  GNUNET_assert (NULL != GST_keygen_cls);
   GST_keygen = NULL;
   if (NULL == pk)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Transport service could not access hostkey: %s. Exiting.\n"),
                 emsg);
-    GNUNET_free (scx);
+    GNUNET_free (GST_keygen_cls);
+    GST_keygen_cls = NULL;
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
   GST_my_private_key = pk;
 
-  GST_stats = GNUNET_STATISTICS_create ("transport", scx->c);
-  GST_peerinfo = GNUNET_PEERINFO_connect (scx->c);
+  GST_stats = GNUNET_STATISTICS_create ("transport", GST_keygen_cls->c);
+  GST_peerinfo = GNUNET_PEERINFO_connect (GST_keygen_cls->c);
   memset (&GST_my_public_key, '\0', sizeof (GST_my_public_key));
   memset (&tmp, '\0', sizeof (tmp));
   GNUNET_CRYPTO_rsa_key_get_public (GST_my_private_key, &GST_my_public_key);
@@ -628,7 +647,7 @@ key_generation_cb (void *cls,
   /* start subsystems */
   GST_hello_start (&process_hello_update, NULL);
   GNUNET_assert (NULL != GST_hello_get());
-  GST_blacklist_start (scx->server);
+  GST_blacklist_start (GST_keygen_cls->server);
   GST_ats =
       GNUNET_ATS_scheduling_init (GST_cfg, &ats_request_address_change, NULL);
   GST_plugins_load (&plugin_env_receive_callback,
@@ -639,9 +658,10 @@ key_generation_cb (void *cls,
                         &neighbours_connect_notification,
                         &neighbours_disconnect_notification,
                         &neighbours_address_notification);
-  GST_clients_start (scx->server);
+  GST_clients_start (GST_keygen_cls->server);
   GST_validation_start ();
-  GNUNET_free (scx);
+  GNUNET_free (GST_keygen_cls);
+  GST_keygen_cls = NULL;
 }
 
 
@@ -656,7 +676,6 @@ static void
 run (void *cls, struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
-  struct KeyGenerationContext *scx;
   char *keyfile;
 
   /* setup globals */
@@ -671,10 +690,11 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  scx = GNUNET_malloc (sizeof (struct KeyGenerationContext));
-  scx->c = c;
-  scx->server = server;
-  GST_keygen = GNUNET_CRYPTO_rsa_key_create_start (keyfile, key_generation_cb, scx);
+  GST_keygen_cls = GNUNET_malloc (sizeof (struct KeyGenerationContext));
+  GST_keygen_cls->c = c;
+  GST_keygen_cls->server = server;
+
+  GST_keygen = GNUNET_CRYPTO_rsa_key_create_start (keyfile, key_generation_cb, GST_keygen_cls);
   GNUNET_free (keyfile);
   if (NULL == GST_keygen)
   {
