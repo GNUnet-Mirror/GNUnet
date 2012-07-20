@@ -791,9 +791,29 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY         266
 
 /**
- * We need flow control
+ * Set tunnel speed to slowest peer
  */
-#define GNUNET_MESSAGE_TYPE_MESH_SPEED_NOTIFY           270
+#define GNUNET_MESSAGE_TYPE_MESH_TUNNEL_MIN             267
+
+/**
+ * Set tunnel speed to fastest peer
+ */
+#define GNUNET_MESSAGE_TYPE_MESH_TUNNEL_MAX             268
+
+/**
+ * Set tunnel buffering on.
+ */
+#define GNUNET_MESSAGE_TYPE_MESH_TUNNEL_BUFFER          269
+
+/**
+ * Set tunnel buffering off.
+ */
+#define GNUNET_MESSAGE_TYPE_MESH_TUNNEL_NOBUFFER        270
+
+/**
+ * ACK for a data packet.
+ */
+#define GNUNET_MESSAGE_TYPE_MESH_ACK                    271
 
 /**
  * Connect to the mesh service, specifying subscriptions
@@ -854,6 +874,16 @@ extern "C"
  * Set tunnel speed to fastest peer
  */
 #define GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_MAX   283
+
+/**
+ * Set tunnel buffering on.
+ */
+#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_BUFFER   284
+
+/**
+ * Set tunnel buffering off.
+ */
+#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_NOBUFFER   285
 
 /**
  * 640kb should be enough for everybody

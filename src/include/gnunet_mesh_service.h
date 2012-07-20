@@ -286,6 +286,17 @@ GNUNET_MESH_tunnel_speed_max (struct GNUNET_MESH_Tunnel *tunnel);
 
 
 /**
+ * Turn on/off the buffering status of the tunnel.
+ * 
+ * @param tunnel Tunnel affected.
+ * @param buffer GNUNET_YES to turn buffering on (default),
+ *               GNUNET_NO otherwise.
+ */
+void
+GNUNET_MESH_tunnel_buffer (struct GNUNET_MESH_Tunnel *tunnel, int buffer);
+
+
+/**
  * Request that a peer should be added to the tunnel.  The connect handler
  * will be called when the peer connects
  *
