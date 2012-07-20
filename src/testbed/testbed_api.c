@@ -780,16 +780,16 @@ GNUNET_TESTBED_controller_start (const char *controller_ip,
  * @param cproc the controller process handle
  */
 void
-GNUNET_TESTBED_controller_stop (struct GNUNET_TESTBED_ControllerProc *cp)
+GNUNET_TESTBED_controller_stop (struct GNUNET_TESTBED_ControllerProc *cproc)
 {
-  if (NULL != cp->shandle)
-    GNUNET_HELPER_send_cancel (cp->shandle);
-  GNUNET_HELPER_stop (cp->helper);
-  if (NULL != cp->cfg)
-    GNUNET_CONFIGURATION_destroy (cp->cfg);
-  GNUNET_free_non_null (cp->port);
-  GNUNET_free_non_null (cp->dst);
-  GNUNET_free (cp);
+  if (NULL != cproc->shandle)
+    GNUNET_HELPER_send_cancel (cproc->shandle);
+  GNUNET_HELPER_stop (cproc->helper);
+  if (NULL != cproc->cfg)
+    GNUNET_CONFIGURATION_destroy (cproc->cfg);
+  GNUNET_free_non_null (cproc->port);
+  GNUNET_free_non_null (cproc->dst);
+  GNUNET_free (cproc);
 }
 
 

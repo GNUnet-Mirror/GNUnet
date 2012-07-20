@@ -19,7 +19,7 @@
  */
 
 /**
- * @file testbed/testbed_helper.c
+ * @file testbed/testbed_helper.h
  * @brief Message formats for communication between testbed api and
  *          gnunet-testbed-helper process
  * @author Sree Harsha Totakura <sreeharsha@totakura.in> 

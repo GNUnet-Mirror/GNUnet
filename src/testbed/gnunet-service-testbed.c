@@ -557,7 +557,7 @@ route_list_add (struct Route *route)
 /**
  * Adds a slave to the slave array
  *
- * @param route the route to add
+ * @param slave the slave controller to add
  */
 static void
 slave_list_add (struct Slave *slave)
@@ -578,7 +578,7 @@ slave_list_add (struct Slave *slave)
 /**
  * Adds a peer to the peer array
  *
- * @param route the route to add
+ * @param peer the peer to add
  */
 static void
 peer_list_add (struct Peer *peer)

@@ -133,7 +133,7 @@ static int ret;
  * Task to shutting down nicely
  *
  * @param cls NULL
- * @return tc the task context
+ * @param tc the task context
  */
 static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -183,8 +183,8 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * Task to write to the standard out
  *
- * @param 
- * @return 
+ * @param cls the WriteContext
+ * @param tc the TaskContext
  */
 static void
 write_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -342,7 +342,7 @@ tokenizer_cb (void *cls, void *client,
  * Task to read from stdin
  *
  * @param cls NULL
- * @return tc the task context
+ * @param tc the task context
  */
 static void
 read_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
