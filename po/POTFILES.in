@@ -124,7 +124,6 @@ src/integration-tests/connection_watchdog.c
 src/lockmanager/gnunet-service-lockmanager.c
 src/lockmanager/lockmanager_api.c
 src/mesh/gnunet-service-mesh.c
-src/mesh/gnunet-service-mesh_new.c
 src/mesh/mesh_api.c
 src/mesh/mesh_tunnel_tree.c
 src/mesh/plugin_block_mesh.c
