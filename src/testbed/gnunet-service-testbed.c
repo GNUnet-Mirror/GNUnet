@@ -1481,10 +1481,12 @@ shutdown_task (void *cls,
       if (NULL != slave_list[id]->controller_proc)
         GNUNET_TESTBED_controller_stop (slave_list[id]->controller_proc);
     }
-  GNUNET_free_non_null (master_context->master_ip);
-  if (NULL != master_context->system)
-    GNUNET_TESTING_system_destroy (master_context->system, GNUNET_YES);
-  GNUNET_free_non_null (master_context);
+  if (NULL != master_context)
+  {  
+    GNUNET_free_non_null (master_context->master_ip);
+    if (NULL != master_context->system)
+      GNUNET_TESTING_system_destroy (master_context->system, GNUNET_YES);
+  }
 }
 
 
