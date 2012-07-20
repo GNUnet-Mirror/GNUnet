@@ -153,6 +153,30 @@ controller_cb(void *cls, const struct GNUNET_TESTBED_EventInformation *event)
 
 
 /**
+ * Functions of this signature are called when a peer has been successfully
+ * created
+ *
+ * @param cls the closure from GNUNET_TESTBED_peer_create()
+ * @param peer the handle for the created peer; NULL on any error during
+ *          creation
+ * @param emsg NULL if peer is not NULL; else MAY contain the error description
+ */
+static void
+peer_create_cb (void *cls,
+		struct GNUNET_TESTBED_Peer *peer, const char *emsg)
+{
+  struct GNUNET_TESTBED_Peer **peer_ptr;
+  
+  peer_ptr = cls;
+  GNUNET_assert (NULL != peer);
+  GNUNET_assert (NULL != peer_ptr);
+  *peer_ptr = peer;
+  operation = GNUNET_TESTBED_peer_destroy (peer);
+  GNUNET_assert (NULL != operation);
+}
+
+
+/**
  * Callback which will be called to after a host registration succeeded or failed
  *
  * @param cls the host which has been registered
@@ -163,9 +187,7 @@ registration_comp (void *cls, const char *emsg)
 {
   GNUNET_assert (cls == neighbour);
   reg_handle = NULL;  
-  peer = GNUNET_TESTBED_peer_create (controller, host, cfg);
-  GNUNET_assert (NULL != peer);
-  operation = GNUNET_TESTBED_peer_destroy (peer);
+  operation = GNUNET_TESTBED_peer_create (controller, host, cfg, &peer_create_cb, &peer);
   GNUNET_assert (NULL != operation);
 }
 

@@ -198,6 +198,11 @@ struct GNUNET_TESTBED_PeerCreateMessage
   struct GNUNET_MessageHeader header;
 
   /**
+   * Unique operation id
+   */
+  uint64_t operation_id GNUNET_PACKED;
+
+  /**
    * On which host should the peer be started?
    */
   uint32_t host_id GNUNET_PACKED;

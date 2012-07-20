@@ -79,6 +79,29 @@ struct GNUNET_TESTBED_Peer
 
 
 /**
+ * Data for the OperationType OP_PEER_CREATE
+ */
+struct PeerCreateData
+{
+  /**
+   * THe call back to call when we receive peer create success message
+   */
+  GNUNET_TESTBED_PeerCreateCallback cb;
+  
+  /**
+   * The closure for the above callback
+   */
+  void *cls;
+
+  /**
+   * The peer structure to return when we get success message
+   */
+  struct GNUNET_TESTBED_Peer *peer;
+
+};
+
+
+/**
  * Data for the OperationType OP_PEER_DESTROY;
  */
 struct PeerDestroyData
@@ -119,13 +142,17 @@ struct PeerDestroyData
  * @param controller controller process to use
  * @param host host to run the peer on
  * @param cfg configuration to use for the peer
- * @return handle to the peer (actual startup will happen asynchronously)
+ * @param cb the callback to call when the peer has been created
+ * @param cls the closure to the above callback
+ * @return the operation handle
  */
-struct GNUNET_TESTBED_Peer *
+struct GNUNET_TESTBED_Operation *
 GNUNET_TESTBED_peer_create_with_id_ (uint32_t unique_id,
-				     struct GNUNET_TESTBED_Controller *controller,				     
+				     struct GNUNET_TESTBED_Controller *controller,
 				     struct GNUNET_TESTBED_Host *host,
-				     const struct GNUNET_CONFIGURATION_Handle *cfg);
+				     const struct GNUNET_CONFIGURATION_Handle *cfg,
+				     GNUNET_TESTBED_PeerCreateCallback cb,
+				     void *cls);
 
 
 

@@ -612,7 +612,21 @@ GNUNET_TESTBED_controller_link_2 (struct GNUNET_TESTBED_Controller *master,
 				  const char *sxcfg,
 				  size_t sxcfg_size,
 				  size_t scfg_size,
-				  int is_subordinate); 
+				  int is_subordinate);
+
+
+/**
+ * Functions of this signature are called when a peer has been successfully
+ * created
+ *
+ * @param cls the closure from GNUNET_TESTBED_peer_create()
+ * @param peer the handle for the created peer; NULL on any error during
+ *          creation
+ * @param emsg NULL if peer is not NULL; else MAY contain the error description
+ */
+typedef void (*GNUNET_TESTBED_PeerCreateCallback) (void *cls,
+						   struct GNUNET_TESTBED_Peer *peer,
+						   const char *emsg);
 
 
 /**
@@ -639,12 +653,16 @@ GNUNET_TESTBED_controller_link_2 (struct GNUNET_TESTBED_Controller *master,
  * @param controller controller process to use
  * @param host host to run the peer on
  * @param cfg configuration to use for the peer
- * @return handle to the peer (actual startup will happen asynchronously)
+ * @param cb the callback to call when the peer has been created
+ * @param cls the closure to the above callback
+ * @return the operation handle
  */
-struct GNUNET_TESTBED_Peer *
+struct GNUNET_TESTBED_Operation *
 GNUNET_TESTBED_peer_create (struct GNUNET_TESTBED_Controller *controller,
 			    struct GNUNET_TESTBED_Host *host,
-			    const struct GNUNET_CONFIGURATION_Handle *cfg);
+			    const struct GNUNET_CONFIGURATION_Handle *cfg,
+			    GNUNET_TESTBED_PeerCreateCallback cb,
+			    void *cls);
 
 
 /**

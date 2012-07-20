@@ -72,15 +72,21 @@ GNUNET_TESTBED_peer_lookup_by_id_ (uint32_t id)
  * @param controller controller process to use
  * @param host host to run the peer on
  * @param cfg configuration to use for the peer
- * @return handle to the peer (actual startup will happen asynchronously)
+ * @param cb the callback to call when the peer has been created
+ * @param cls the closure to the above callback
+ * @return the operation handle
  */
-struct GNUNET_TESTBED_Peer *
+struct GNUNET_TESTBED_Operation *
 GNUNET_TESTBED_peer_create_with_id_ (uint32_t unique_id,
 				     struct GNUNET_TESTBED_Controller *controller,
 				     struct GNUNET_TESTBED_Host *host,
-				     const struct GNUNET_CONFIGURATION_Handle *cfg)
+				     const struct GNUNET_CONFIGURATION_Handle *cfg,
+				     GNUNET_TESTBED_PeerCreateCallback cb,
+				     void *cls)
 {
   struct GNUNET_TESTBED_Peer *peer;
+  struct PeerCreateData *data;
+  struct GNUNET_TESTBED_Operation *op;
   struct GNUNET_TESTBED_PeerCreateMessage *msg;
   char *config;
   char *xconfig;
@@ -92,6 +98,14 @@ GNUNET_TESTBED_peer_create_with_id_ (uint32_t unique_id,
   peer->controller = controller;
   peer->host = host;
   peer->unique_id = unique_id;
+  data = GNUNET_malloc (sizeof (struct PeerCreateData));
+  data->cb = cb;
+  data->cls = cls;
+  data->peer = peer;
+  op = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Operation));
+  op->operation_id = controller->operation_counter++;
+  op->type = OP_PEER_CREATE;
+  op->data = data;
   config = GNUNET_CONFIGURATION_serialize (cfg, &c_size);
   xc_size = GNUNET_TESTBED_compress_config_ (config, c_size, &xconfig);
   GNUNET_free (config);
@@ -100,12 +114,15 @@ GNUNET_TESTBED_peer_create_with_id_ (uint32_t unique_id,
   memmove (&msg[1], msg, xc_size); /* Move the compressed config */
   msg->header.size = htons (msize);
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_CREATEPEER);
+  msg->operation_id = GNUNET_htonll (op->operation_id);
   msg->host_id = htonl (GNUNET_TESTBED_host_get_id_ (peer->host));
   msg->peer_id = htonl (peer->unique_id);
   msg->config_size = htonl (c_size);
+  GNUNET_CONTAINER_DLL_insert_tail (peer->controller->op_head,
+                                    peer->controller->op_tail, op);
   GNUNET_TESTBED_queue_message_ (controller,
 				 (struct GNUNET_MessageHeader *) msg);
-  return peer;
+  return op;
 }
 
 
@@ -133,19 +150,24 @@ GNUNET_TESTBED_peer_create_with_id_ (uint32_t unique_id,
  * @param controller controller process to use
  * @param host host to run the peer on
  * @param cfg configuration to use for the peer
- * @return handle to the peer (actual startup will happen asynchronously)
+ * @param cb the callback to call when the peer has been created
+ * @param cls the closure to the above callback
+ * @return the operation handle
  */
-struct GNUNET_TESTBED_Peer *
+struct GNUNET_TESTBED_Operation *
 GNUNET_TESTBED_peer_create (struct GNUNET_TESTBED_Controller *controller,
 			    struct GNUNET_TESTBED_Host *host,
-			    const struct GNUNET_CONFIGURATION_Handle *cfg)
+			    const struct GNUNET_CONFIGURATION_Handle *cfg,
+			    GNUNET_TESTBED_PeerCreateCallback cb,
+			    void *cls)
 {
   static uint32_t id_gen;
 
   return GNUNET_TESTBED_peer_create_with_id_ (++id_gen,
 					      controller,
 					      host,
-					      cfg);
+					      cfg,
+					      cb, cls);
 }
 
 

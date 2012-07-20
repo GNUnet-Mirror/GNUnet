@@ -300,7 +300,10 @@ handle_peer_create_success (struct GNUNET_TESTBED_Controller *c,
 			    GNUNET_TESTBED_PeerCreateSuccessEventMessage *msg)
 {
   struct GNUNET_TESTBED_Operation *op;
+  struct PeerCreateData *data;
   struct GNUNET_TESTBED_Peer *peer;
+  GNUNET_TESTBED_PeerCreateCallback cb;
+  void *cls;
   uint64_t op_id;
 
   GNUNET_assert (sizeof (struct GNUNET_TESTBED_PeerCreateSuccessEventMessage)
@@ -311,21 +314,24 @@ handle_peer_create_success (struct GNUNET_TESTBED_Controller *c,
     if (op->operation_id == op_id)
       break;
   }
-  GNUNET_assert (NULL != op);
-  peer = op->data;
-  GNUNET_assert (NULL != peer);
-  GNUNET_assert (peer->unique_id == ntohl (msg->peer_id));
-  if (0 != (c->event_mask & (1L << GNUNET_TESTBED_ET_PEER_START)))
+  if (NULL == op)
   {
-    struct GNUNET_TESTBED_EventInformation info;
-    
-    info.details.peer_start.host = peer->host;
-    info.details.peer_start.peer = peer;
-    if (NULL != c->cc)
-      c->cc (c->cc_cls, &info);
+    LOG_DEBUG ("Operation not found\n");
+    return GNUNET_YES;
   }
+  GNUNET_assert (OP_PEER_CREATE == op->type);
+  GNUNET_assert (NULL != op->data);
+  data = op->data;
+  GNUNET_assert (NULL != data->peer);
+  peer = data->peer;
+  GNUNET_assert (peer->unique_id == ntohl (msg->peer_id));
+  cb = data->cb;
+  cls = data->cls;
   GNUNET_CONTAINER_DLL_remove (c->op_head, c->op_tail, op);
+  GNUNET_free (data);
   GNUNET_free (op);
+  if (NULL != cb)
+    cb (cls, peer, NULL);
   return GNUNET_YES;
 }
 

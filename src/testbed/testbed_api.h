@@ -34,6 +34,11 @@
 enum OperationType
   {
     /**
+     * Peer create operation
+     */
+    OP_PEER_CREATE,
+    
+    /**
      * Peer start operation
      */
     OP_PEER_START,

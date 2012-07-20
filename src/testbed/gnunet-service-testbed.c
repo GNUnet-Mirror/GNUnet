@@ -1157,6 +1157,7 @@ handle_peer_create (void *cls,
                     const struct GNUNET_MessageHeader *message)
 {
   const struct GNUNET_TESTBED_PeerCreateMessage *msg;
+  struct GNUNET_TESTBED_PeerCreateSuccessEventMessage *reply;
   struct GNUNET_CONFIGURATION_Handle *cfg;
   char *config;
   size_t dest_size;
@@ -1224,6 +1225,12 @@ handle_peer_create (void *cls,
       return;
     }
     peer_list_add (peer);
+    reply = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_PeerCreateSuccessEventMessage));
+    reply->header.size = htons (sizeof (struct GNUNET_TESTBED_PeerCreateSuccessEventMessage));
+    reply->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_PEERCREATESUCCESS);
+    reply->peer_id = msg->peer_id;
+    reply->operation_id = msg->operation_id;
+    queue_message (client, &reply->header);
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
@@ -1284,6 +1291,7 @@ handle_peer_destroy (void *cls,
   reply->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_GENERICOPSUCCESS);
   reply->header.size = htons (reply_size);
   reply->operation_id = msg->operation_id;
+  reply->event_type = htonl (GNUNET_TESTBED_ET_OPERATION_FINISHED);
   queue_message (client, &reply->header);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
@@ -1302,7 +1310,7 @@ handle_peer_start (void *cls,
 		   const struct GNUNET_MessageHeader *message)
 {
   const struct GNUNET_TESTBED_PeerStartMessage *msg;
-  struct GNUNET_TESTBED_PeerCreateSuccessEventMessage *reply;
+  struct GNUNET_TESTBED_PeerEventMessage *reply;
   uint32_t peer_id;
 
   msg = (const struct GNUNET_TESTBED_PeerStartMessage *) message;
@@ -1316,10 +1324,19 @@ handle_peer_start (void *cls,
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
-  reply = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_PeerCreateSuccessEventMessage));
-  reply->header.size = htons (sizeof (struct GNUNET_TESTBED_PeerCreateSuccessEventMessage));
-  reply->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_PEERCREATESUCCESS);
-  reply->peer_id = htonl (peer_id);
+  if (GNUNET_OK != GNUNET_TESTING_peer_start (peer_list[peer_id]->peer))
+  {
+    /* FIXME: return FAILURE message */
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
+  reply = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_PeerEventMessage));
+  reply->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_PEEREVENT);
+  reply->header.size = htons (sizeof (struct GNUNET_TESTBED_PeerEventMessage));
+  reply->event_type = htonl (GNUNET_TESTBED_ET_PEER_START);
+  reply->host_id = htonl (master_context->host_id);
+  reply->peer_id = msg->peer_id;
   reply->operation_id = msg->operation_id;
   queue_message (client, &reply->header);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -1339,7 +1356,7 @@ handle_peer_stop (void *cls,
 		  const struct GNUNET_MessageHeader *message)
 {
   const struct GNUNET_TESTBED_PeerStopMessage *msg;
-  struct GNUNET_TESTBED_GenericOperationSuccessEventMessage *reply;
+  struct GNUNET_TESTBED_PeerEventMessage *reply;
   uint32_t peer_id;
 
   msg = (const struct GNUNET_TESTBED_PeerStopMessage *) message;
@@ -1357,11 +1374,13 @@ handle_peer_stop (void *cls,
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
-  reply = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_GenericOperationSuccessEventMessage));
-  reply->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_GENERICOPSUCCESS);
-  reply->header.size = htons (sizeof (struct GNUNET_TESTBED_GenericOperationSuccessEventMessage));
-  reply->operation_id = msg->operation_id;
+  reply = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_PeerEventMessage));
+  reply->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_PEEREVENT);
+  reply->header.size = htons (sizeof (struct GNUNET_TESTBED_PeerEventMessage));
   reply->event_type = htonl (GNUNET_TESTBED_ET_PEER_STOP);
+  reply->host_id = htonl (master_context->host_id);
+  reply->peer_id = msg->peer_id;
+  reply->operation_id = msg->operation_id;
   queue_message (client, &reply->header);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
