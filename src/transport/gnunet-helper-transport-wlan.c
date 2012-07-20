@@ -1869,35 +1869,9 @@ main (int argc, char *argv[])
   int raw_eno;
 
   /* make use of SGID capabilities on POSIX */
-  /* FIXME: this might need a port on systems without 'getresgid' */
-  if (-1 ==  setreuid (0, 0))
-    fprintf (stderr, "setreuid failed: %s\n", strerror (errno));
-
   memset (&dev, 0, sizeof (dev));
   dev.fd_raw = socket (PF_PACKET, SOCK_RAW, htons (ETH_P_ALL));
   raw_eno = errno; /* remember for later */
-
-  /* drop privs */
-  {
-    uid_t uid = getuid ();
-#ifdef HAVE_SETRESUID
-    if (0 != setresuid (uid, uid, uid))
-    {
-      fprintf (stderr, "Failed to setresuid: %s\n", strerror (errno));
-      if (-1 != dev.fd_raw)
-	(void) close (dev.fd_raw);
-      return 1;
-    }
-#else
-    if (0 != (setuid (uid) | seteuid (uid)))
-    {
-      fprintf (stderr, "Failed to setuid: %s\n", strerror (errno));
-      if (-1 != dev.fd_raw)
-	(void) close (dev.fd_raw);
-      return 1;
-    }
-  }
-#endif
 
   /* now that we've dropped root rights, we can do error checking */
   if (2 != argc)
@@ -1932,6 +1906,29 @@ main (int argc, char *argv[])
     (void) close (dev.fd_raw);
     return 1;
   }
+
+  /* drop privs */
+  {
+    uid_t uid = getuid ();
+#ifdef HAVE_SETRESUID
+    if (0 != setresuid (uid, uid, uid))
+    {
+      fprintf (stderr, "Failed to setresuid: %s\n", strerror (errno));
+      if (-1 != dev.fd_raw)
+	(void) close (dev.fd_raw);
+      return 1;
+    }
+#else
+    if (0 != (setuid (uid) | seteuid (uid)))
+    {
+      fprintf (stderr, "Failed to setuid: %s\n", strerror (errno));
+      if (-1 != dev.fd_raw)
+	(void) close (dev.fd_raw);
+      return 1;
+    }
+  }
+#endif
+
 
   /* send MAC address of the WLAN interface to STDOUT first */
   {
