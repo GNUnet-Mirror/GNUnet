@@ -311,11 +311,6 @@ struct MeshTunnel
   MESH_TunnelNumber local_tid_dest;
 
     /**
-     * Global count ID of the last *multicast* packet seen/sent.
-     */
-  uint32_t mid;
-
-    /**
      * Local count ID of the last packet seen/sent.
      */
   uint32_t pid;
@@ -3986,6 +3981,21 @@ handle_mesh_data_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_break_op (0);
     return GNUNET_OK;
   }
+  pid = ntohl (msg->pid);
+  if (t->pid == pid)
+  {
+    /* FIXME: already seen this packet, log dropping */
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                " Already seen mid %u, DROPPING!\n", pid);
+    return GNUNET_OK;
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                " mid %u not seen yet, forwarding\n", pid);
+  }
+  t->skip += (pid - t->pid) - 1;
+  t->pid = pid;
   tunnel_reset_timeout (t);
   pid = GNUNET_PEER_search (&msg->destination);
   if (pid == myid)
@@ -4024,6 +4034,7 @@ handle_mesh_data_multicast (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct GNUNET_MESH_Multicast *msg;
   struct MeshTunnel *t;
   size_t size;
+  uint32_t pid;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "got a multicast packet from %s\n",
               GNUNET_i2s (peer));
@@ -4043,19 +4054,21 @@ handle_mesh_data_multicast (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_break_op (0);
     return GNUNET_OK;
   }
-  if (t->mid == ntohl (msg->mid))
+  pid = ntohl (msg->pid);
+  if (t->pid == pid)
   {
     /* FIXME: already seen this packet, log dropping */
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                " Already seen mid %u, DROPPING!\n", t->mid);
+                " Already seen mid %u, DROPPING!\n", pid);
     return GNUNET_OK;
   }
   else
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                " mid %u not seen yet, forwarding\n", ntohl (msg->mid));
+                " mid %u not seen yet, forwarding\n", pid);
   }
-  t->mid = ntohl (msg->mid);
+  t->skip += (pid - t->pid) - 1;
+  t->pid = pid;
   tunnel_reset_timeout (t);
 
   /* Transmit to locally interested clients */
@@ -4376,8 +4389,8 @@ path_refresh (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   msg->oid = my_full_id;
   msg->tid = htonl (t->id.tid);
   msg->ttl = htonl (DEFAULT_TTL);
-  msg->mid = htonl (t->mid + 1);
-  t->mid++;
+  msg->pid = htonl (t->pid + 1);
+  t->pid++;
   payload = (struct GNUNET_MessageHeader *) &msg[1];
   payload->size = htons (sizeof (struct GNUNET_MessageHeader));
   payload->type = htons (GNUNET_MESSAGE_TYPE_MESH_PATH_KEEPALIVE);
@@ -5104,6 +5117,61 @@ handle_local_tunnel_speed (void *cls, struct GNUNET_SERVER_Client *client,
 
 
 /**
+ * Handler for requests of seeting tunnel's buffering policy.
+ *
+ * @param cls Closure (unused).
+ * @param client Identification of the client.
+ * @param message The actual message.
+ */
+static void
+handle_local_tunnel_buffer (void *cls, struct GNUNET_SERVER_Client *client,
+                            const struct GNUNET_MessageHeader *message)
+{
+  struct GNUNET_MESH_TunnelMessage *tunnel_msg;
+  struct MeshClient *c;
+  struct MeshTunnel *t;
+  MESH_TunnelNumber tid;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Got a BUFFER request from client!\n");
+
+  /* Sanity check for client registration */
+  if (NULL == (c = client_get (client)))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  by client %u\n", c->id);
+  tunnel_msg = (struct GNUNET_MESH_TunnelMessage *) message;
+
+  /* Retrieve tunnel */
+  tid = ntohl (tunnel_msg->tunnel_id);
+  t = tunnel_get_by_local_id(c, tid);
+  if (NULL == t)
+  {
+    GNUNET_break (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "  tunnel %X not found\n", tid);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+
+  switch (ntohs(message->type))
+  {
+      case GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_BUFFER:
+          t->buffering = GNUNET_YES;
+          break;
+      case GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_NOBUFFER:
+          t->buffering = GNUNET_NO;
+          break;
+      default:
+          GNUNET_break (0);
+  }
+}
+
+
+/**
  * Handler for connection requests to new peers
  *
  * @param cls closure
@@ -5671,6 +5739,8 @@ handle_local_unicast (void *cls, struct GNUNET_SERVER_Client *client,
     memcpy (buf, data_msg, size);
     copy->oid = my_full_id;
     copy->tid = htonl (t->id.tid);
+    copy->ttl = htonl (DEFAULT_TTL);
+    copy->pid = htonl (t->pid + 1);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "  calling generic handler...\n");
     handle_mesh_data_unicast (NULL, &my_full_id, &copy->header, NULL, 0);
@@ -5828,7 +5898,7 @@ handle_local_multicast (void *cls, struct GNUNET_SERVER_Client *client,
     copy->oid = my_full_id;
     copy->tid = htonl (t->id.tid);
     copy->ttl = htonl (DEFAULT_TTL);
-    copy->mid = htonl (t->mid + 1);
+    copy->pid = htonl (t->pid + 1);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "  calling generic handler...\n");
     handle_mesh_data_multicast (client, &my_full_id, &copy->header, NULL, 0);
@@ -5857,6 +5927,12 @@ static struct GNUNET_SERVER_MessageHandler client_handlers[] = {
    sizeof (struct GNUNET_MESH_TunnelMessage)},
   {&handle_local_tunnel_speed, NULL,
    GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_MAX,
+   sizeof (struct GNUNET_MESH_TunnelMessage)},
+  {&handle_local_tunnel_buffer, NULL,
+   GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_BUFFER,
+   sizeof (struct GNUNET_MESH_TunnelMessage)},
+  {&handle_local_tunnel_buffer, NULL,
+   GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_NOBUFFER,
    sizeof (struct GNUNET_MESH_TunnelMessage)},
   {&handle_local_connect_add, NULL,
    GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_ADD,
