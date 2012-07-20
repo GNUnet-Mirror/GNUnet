@@ -846,6 +846,16 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_UNBLACKLIST 281
 
 /**
+ * Set tunnel speed to slowest peer
+ */
+#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_MIN    282
+
+/**
+ * Set tunnel speed to fastest peer
+ */
+#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_MAX   283
+
+/**
  * 640kb should be enough for everybody
  */
 #define GNUNET_MESSAGE_TYPE_MESH_RESERVE_END            288

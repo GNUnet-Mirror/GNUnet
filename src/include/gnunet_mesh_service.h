@@ -226,6 +226,10 @@ typedef void (*GNUNET_MESH_PeerConnectHandler) (void *cls,
 /**
  * Announce to ther peer the availability of services described by the regex,
  * in order to be reachable to other peers via connect_by_string.
+ * 
+ * Note that the first 8 characters are considered to be part of a prefix,
+ * (for instance 'gnunet://'). If you put a variable part in there (*, +. ()),
+ * all matching strings will be stored in the DHT.
  *
  * @param h handle to mesh.
  * @param regex string with the regular expression describing local services.
@@ -259,6 +263,26 @@ GNUNET_MESH_tunnel_create (struct GNUNET_MESH_Handle *h, void *tunnel_ctx,
  */
 void
 GNUNET_MESH_tunnel_destroy (struct GNUNET_MESH_Tunnel *tunnel);
+
+
+/**
+ * Request that the tunnel data rate is limited to the speed of the slowest
+ * receiver.
+ * 
+ * @param tunnel Tunnel affected.
+ */
+void
+GNUNET_MESH_tunnel_speed_min (struct GNUNET_MESH_Tunnel *tunnel);
+
+
+/**
+ * Request that the tunnel data rate is limited to the speed of the fastest
+ * receiver. This is the default behavior.
+ * 
+ * @param tunnel Tunnel affected.
+ */
+void
+GNUNET_MESH_tunnel_speed_max (struct GNUNET_MESH_Tunnel *tunnel);
 
 
 /**

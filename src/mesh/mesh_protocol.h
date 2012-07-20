@@ -273,9 +273,14 @@ struct GNUNET_MESH_SpeedNotify
   struct GNUNET_PeerIdentity oid;
 
     /**
-     * Slowest link down the path (above minimum speed requirement).
+     * Is the speed limited by the slowest peer?.
      */
-  uint32_t speed_min;
+  int16_t speed_min;
+
+    /**
+     * Is the buffering allowed?.
+     */
+  int16_t buffering;
 
 };
 GNUNET_NETWORK_STRUCT_END

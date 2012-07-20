@@ -336,6 +336,16 @@ struct MeshTunnel
   unsigned int queue_max;
 
     /**
+     * Is the speed on the tunnel limited to the slowest peer?
+     */
+  int speed_min;
+
+    /**
+     * Is buffering allowed in the tunnel?
+     */
+  int buffering;
+
+  /**
      * Flag to signal the destruction of the tunnel.
      * If this is set GNUNET_YES the tunnel will be destroyed
      * when the queue is empty.
@@ -5039,6 +5049,61 @@ handle_local_tunnel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
 
 
 /**
+ * Handler for requests of seeting tunnel's speed.
+ *
+ * @param cls Closure (unused).
+ * @param client Identification of the client.
+ * @param message The actual message.
+ */
+static void
+handle_local_tunnel_speed (void *cls, struct GNUNET_SERVER_Client *client,
+                           const struct GNUNET_MessageHeader *message)
+{
+  struct GNUNET_MESH_TunnelMessage *tunnel_msg;
+  struct MeshClient *c;
+  struct MeshTunnel *t;
+  MESH_TunnelNumber tid;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Got a SPEED request from client!\n");
+
+  /* Sanity check for client registration */
+  if (NULL == (c = client_get (client)))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  by client %u\n", c->id);
+  tunnel_msg = (struct GNUNET_MESH_TunnelMessage *) message;
+
+  /* Retrieve tunnel */
+  tid = ntohl (tunnel_msg->tunnel_id);
+  t = tunnel_get_by_local_id(c, tid);
+  if (NULL == t)
+  {
+    GNUNET_break (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "  tunnel %X not found\n", tid);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+
+  switch (ntohs(message->type))
+  {
+      case GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_MIN:
+          t->speed_min = GNUNET_YES;
+          break;
+      case GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_MAX:
+          t->speed_min = GNUNET_NO;
+          break;
+      default:
+          GNUNET_break (0);
+  }
+}
+
+
+/**
  * Handler for connection requests to new peers
  *
  * @param cls closure
@@ -5786,6 +5851,12 @@ static struct GNUNET_SERVER_MessageHandler client_handlers[] = {
    sizeof (struct GNUNET_MESH_TunnelMessage)},
   {&handle_local_tunnel_destroy, NULL,
    GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_DESTROY,
+   sizeof (struct GNUNET_MESH_TunnelMessage)},
+  {&handle_local_tunnel_speed, NULL,
+   GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_MIN,
+   sizeof (struct GNUNET_MESH_TunnelMessage)},
+  {&handle_local_tunnel_speed, NULL,
+   GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_MAX,
    sizeof (struct GNUNET_MESH_TunnelMessage)},
   {&handle_local_connect_add, NULL,
    GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_ADD,

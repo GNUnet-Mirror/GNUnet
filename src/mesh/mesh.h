@@ -122,6 +122,7 @@ struct GNUNET_MESH_TunnelMessage
 {
     /**
      * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_[CREATE|DESTROY]
+     *       GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_[MAX|MIN]
      *
      * Size: sizeof(struct GNUNET_MESH_TunnelMessage)
      */
