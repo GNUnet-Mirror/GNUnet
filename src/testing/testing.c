@@ -605,7 +605,8 @@ update_config (void *cls, const char *section, const char *option,
 
 
 /**
- * Section iterator to set ACCEPT_FROM in all sections
+ * Section iterator to set ACCEPT_FROM/ACCEPT_FROM6 depending on the ip of the
+ * controller in all sections
  *
  * @param cls the UpdateContext
  * @param section name of the section
@@ -620,6 +621,7 @@ update_config_sections (void *cls,
   char *ptr;
   char *orig_allowed_hosts;
   char *allowed_hosts;
+  char *ACCEPT_FROM_key;
   uint16_t ikeys_cnt;
   uint16_t key;
   
@@ -681,8 +683,12 @@ update_config_sections (void *cls,
     GNUNET_free (ikeys);
   }
   GNUNET_free_non_null (val);
+  ACCEPT_FROM_key = "ACCEPT_FROM";  
+  if ((NULL != uc->system->controller) && 
+      (NULL != strstr (uc->system->controller, ":"))) /* IPv6 in use */
+    ACCEPT_FROM_key = "ACCEPT_FROM6";
   if (GNUNET_OK != 
-      GNUNET_CONFIGURATION_get_value_string (uc->cfg, section, "ACCEPT_FROM",
+      GNUNET_CONFIGURATION_get_value_string (uc->cfg, section, ACCEPT_FROM_key,
                                              &orig_allowed_hosts))
   {
     orig_allowed_hosts = GNUNET_strdup ("127.0.0.1;");
@@ -693,7 +699,7 @@ update_config_sections (void *cls,
     GNUNET_asprintf (&allowed_hosts, "%s%s;", orig_allowed_hosts,
                      uc->system->controller);
   GNUNET_free (orig_allowed_hosts);
-  GNUNET_CONFIGURATION_set_value_string (uc->cfg, section, "ACCEPT_FROM",
+  GNUNET_CONFIGURATION_set_value_string (uc->cfg, section, ACCEPT_FROM_key,
                                          allowed_hosts);
   GNUNET_free (allowed_hosts);  
 }
