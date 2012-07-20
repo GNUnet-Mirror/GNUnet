@@ -1966,6 +1966,13 @@ send_message (const struct GNUNET_MessageHeader *message,
   info->mesh_data = GNUNET_malloc (sizeof (struct MeshData));
   info->mesh_data->data = GNUNET_malloc (size);
   memcpy (info->mesh_data->data, message, size);
+  if (ntohs(message->type) == GNUNET_MESSAGE_TYPE_MESH_UNICAST)
+  {
+    struct GNUNET_MESH_Unicast *m;
+
+    m = (struct GNUNET_MESH_Unicast *) info->mesh_data->data;
+    m->ttl--;
+  }
   info->mesh_data->data_len = size;
   info->mesh_data->reference_counter = GNUNET_malloc (sizeof (unsigned int));
   *info->mesh_data->reference_counter = 1;
@@ -3958,7 +3965,8 @@ handle_mesh_data_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
 {
   struct GNUNET_MESH_Unicast *msg;
   struct MeshTunnel *t;
-  GNUNET_PEER_Id pid;
+  uint32_t pid;
+  uint32_t ttl;
   size_t size;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "got a unicast packet from %s\n",
@@ -4003,6 +4011,14 @@ handle_mesh_data_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "  it's for us! sending to clients...\n");
     send_subscribed_clients (message, (struct GNUNET_MessageHeader *) &msg[1]);
+    return GNUNET_OK;
+  }
+  ttl = ntohl (msg->ttl);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   ttl: %u\n", ttl);
+  if (ttl == 0)
+  {
+    /* FIXME: ttl is 0, log dropping */
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, " TTL is 0, DROPPING!\n");
     return GNUNET_OK;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

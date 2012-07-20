@@ -176,6 +176,36 @@ struct GNUNET_MESH_ToOrigin
 
 
 /**
+ * Message to acknowledte mesh data traffic.
+ */
+struct GNUNET_MESH_ACK
+{
+    /**
+     * Type: GNUNET_MESSAGE_TYPE_MESH_ACK
+     */
+  struct GNUNET_MessageHeader header;
+
+    /**
+     * TID of the tunnel
+     */
+  uint32_t tid GNUNET_PACKED;
+
+    /**
+     * OID of the tunnel
+     */
+  struct GNUNET_PeerIdentity oid;
+
+    /**
+     * Sender of the message.
+     */
+  struct GNUNET_PeerIdentity sender;
+
+    /**
+     * Payload follows
+     */
+};
+
+/**
  * Message for ack'ing a path
  */
 struct GNUNET_MESH_PathACK
