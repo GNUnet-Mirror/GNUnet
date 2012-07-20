@@ -116,6 +116,7 @@ enum GNUNET_GNS_RecordType
   GNUNET_GNS_RECORD_REV  = GNUNET_NAMESTORE_TYPE_REV
 };
 
+
 /**
  * Initialize the connection with the GNS service.
  *
@@ -169,12 +170,13 @@ typedef void (*GNUNET_GNS_LookupResultProcessor) (void *cls,
  */
 struct GNUNET_GNS_LookupRequest*
 GNUNET_GNS_lookup (struct GNUNET_GNS_Handle *handle,
-                         const char * name,
-                         enum GNUNET_GNS_RecordType type,
-                         int only_cached,
-                         struct GNUNET_CRYPTO_RsaPrivateKey *shorten_key,
-                         GNUNET_GNS_LookupResultProcessor proc,
-                         void *proc_cls);
+		   const char * name,
+		   enum GNUNET_GNS_RecordType type,
+		   int only_cached,
+		   struct GNUNET_CRYPTO_RsaPrivateKey *shorten_key,
+		   GNUNET_GNS_LookupResultProcessor proc,
+		   void *proc_cls);
+
 
 /**
  * Perform an asynchronous lookup operation on the GNS
@@ -193,13 +195,13 @@ GNUNET_GNS_lookup (struct GNUNET_GNS_Handle *handle,
  */
 struct GNUNET_GNS_LookupRequest*
 GNUNET_GNS_lookup_zone (struct GNUNET_GNS_Handle *handle,
-                         const char * name,
-                         struct GNUNET_CRYPTO_ShortHashCode *zone,
-                         enum GNUNET_GNS_RecordType type,
-                         int only_cached,
-                         struct GNUNET_CRYPTO_RsaPrivateKey *shorten_key,
-                         GNUNET_GNS_LookupResultProcessor proc,
-                         void *proc_cls);
+			const char * name,
+			struct GNUNET_CRYPTO_ShortHashCode *zone,
+			enum GNUNET_GNS_RecordType type,
+			int only_cached,
+			struct GNUNET_CRYPTO_RsaPrivateKey *shorten_key,
+			GNUNET_GNS_LookupResultProcessor proc,
+			void *proc_cls);
 
 
 /**
@@ -221,7 +223,7 @@ GNUNET_GNS_cancel_lookup_request (struct GNUNET_GNS_LookupRequest *lr);
  * @param short_name the shortened name or NULL if no result
  */
 typedef void (*GNUNET_GNS_ShortenResultProcessor) (void *cls,
-                                        const char* short_name);
+						   const char* short_name);
 
 
 /**
@@ -274,6 +276,7 @@ GNUNET_GNS_shorten_zone (struct GNUNET_GNS_Handle *handle,
 void
 GNUNET_GNS_cancel_shorten_request (struct GNUNET_GNS_ShortenRequest *sr);
 
+
 /* *************** Standard API: get authority ******************* */
 
 
@@ -285,7 +288,7 @@ GNUNET_GNS_cancel_shorten_request (struct GNUNET_GNS_ShortenRequest *sr);
  * @param auth_name the name of the auhtority or NULL
  */
 typedef void (*GNUNET_GNS_GetAuthResultProcessor) (void *cls,
-                                        const char* short_name);
+						   const char* short_name);
 
 
 /**
@@ -299,9 +302,9 @@ typedef void (*GNUNET_GNS_GetAuthResultProcessor) (void *cls,
  */
 struct GNUNET_GNS_GetAuthRequest*
 GNUNET_GNS_get_authority (struct GNUNET_GNS_Handle *handle,
-                    const char * name,
-                    GNUNET_GNS_GetAuthResultProcessor proc,
-                    void *proc_cls);
+			  const char * name,
+			  GNUNET_GNS_GetAuthResultProcessor proc,
+			  void *proc_cls);
 
 
 /**

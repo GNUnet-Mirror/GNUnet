@@ -197,7 +197,7 @@ GNUNET_NETWORK_socket_recvfrom_amount (const struct GNUNET_NETWORK_Handle
 ssize_t
 GNUNET_NETWORK_socket_recvfrom (const struct GNUNET_NETWORK_Handle *desc,
                                 void *buffer, size_t length,
-                                struct sockaddr *src_addr, socklen_t * addrlen);
+                                struct sockaddr *src_addr, socklen_t *addrlen);
 
 
 /**

@@ -194,29 +194,26 @@ get_path_from_dyld_image ()
   const char *path;
   char *p;
   char *s;
-  int i;
+  unsigned int i;
   int c;
 
-  p = NULL;
   c = _dyld_image_count ();
   for (i = 0; i < c; i++)
   {
-    if (_dyld_get_image_header (i) == &_mh_dylib_header)
-    {
-      path = _dyld_get_image_name (i);
-      if ( (NULL != path) && (strlen (path) > 0) )
-      {
-        p = GNUNET_strdup (path);
-        s = p + strlen (p);
-        while ((s > p) && ('/' != *s))
-          s--;
-        s++;
-        *s = '\0';
-      }
-      break;
-    }
+    if (_dyld_get_image_header (i) != &_mh_dylib_header)
+      continue;
+    path = _dyld_get_image_name (i);
+    if ( (NULL == path) || (0 == strlen (path)) )
+      continue;
+    p = GNUNET_strdup (path);
+    s = p + strlen (p);
+    while ((s > p) && ('/' != *s))
+      s--;
+    s++;
+    *s = '\0';
+    return p;
   }
-  return p;
+  return NULL;
 }
 #endif
 
@@ -237,8 +234,7 @@ get_path_from_PATH (const char *binary)
   char *buf;
   const char *p;
 
-  p = getenv ("PATH");
-  if (NULL == p)
+  if (NULL == (p = getenv ("PATH")))
     return NULL;
 #if WINDOWS
   /* On W32 look in CWD first. */
