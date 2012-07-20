@@ -303,6 +303,11 @@ struct GNUNET_MESH_Tunnel
      * Is the tunnel throttled to the slowest peer?
      */
   int speed_min;
+  
+    /**
+     * Is the tunnel allowed to buffer?
+     */
+  int buffering;
 
 };
 
@@ -718,14 +723,13 @@ do_reconnect (struct GNUNET_MESH_Handle *h)
     pmsg.tunnel_id = htonl (t->tid);
 
     /* Reconnect all peers */
-    for (i = 0; i < t->npeers; i++)
+    /* If the tunnel was "by type", dont connect individual peers */
+    for (i = 0; i < t->npeers && 0 == t->napps; i++)
     {
       GNUNET_PEER_resolve (t->peers[i]->id, &pmsg.peer);
       if (NULL != t->disconnect_handler && t->peers[i]->connected)
         t->disconnect_handler (t->cls, &pmsg.peer);
-      /* If the tunnel was "by type", dont connect individual peers */
-      if (0 == t->napps)
-        send_packet (t->mesh, &pmsg.header, t);
+      send_packet (t->mesh, &pmsg.header, t);
     }
     /* Reconnect all types, if any  */
     for (i = 0; i < t->napps; i++)
@@ -738,6 +742,10 @@ do_reconnect (struct GNUNET_MESH_Handle *h)
       msg.type = htonl (t->apps[i]);
       send_packet (t->mesh, &msg.header, t);
     }
+    if (GNUNET_NO == t->buffering)
+      GNUNET_MESH_tunnel_buffer (t, GNUNET_NO);
+    if (GNUNET_YES == t->speed_min)
+      GNUNET_MESH_tunnel_speed_min (t);
   }
   return GNUNET_YES;
 }
@@ -1539,6 +1547,32 @@ GNUNET_MESH_tunnel_speed_max (struct GNUNET_MESH_Tunnel *tunnel)
 }
 
 /**
+ * Turn on/off the buffering status of the tunnel.
+ * 
+ * @param tunnel Tunnel affected.
+ * @param buffer GNUNET_YES to turn buffering on (default),
+ *               GNUNET_NO otherwise.
+ */
+void
+GNUNET_MESH_tunnel_buffer (struct GNUNET_MESH_Tunnel *tunnel, int buffer)
+{
+  struct GNUNET_MESH_TunnelMessage msg;
+  struct GNUNET_MESH_Handle *h;
+
+  h = tunnel->mesh;
+  tunnel->buffering = buffer;
+
+  if (GNUNET_YES == buffer)
+    msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_BUFFER);
+  else
+    msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_NOBUFFER);
+  msg.header.size = htons (sizeof (struct GNUNET_MESH_TunnelMessage));
+  msg.tunnel_id = htonl (tunnel->tid);
+
+  send_packet (h, &msg.header, NULL);
+}
+
+/**
  * Request that a peer should be added to the tunnel.  The existing
  * connect handler will be called ONCE with either success or failure.
  * This function should NOT be called again with the same peer before the
@@ -1651,6 +1685,8 @@ GNUNET_MESH_peer_request_connect_by_type (struct GNUNET_MESH_Tunnel *tunnel,
 /**
  * Request that the mesh should try to connect to a peer matching the
  * description given in the service string.
+ * 
+ * FIXME: allow multiple? how to deal with reconnect?
  *
  * @param tunnel handle to existing tunnel
  * @param description string describing the destination node requirements
