@@ -140,15 +140,29 @@ do_abort (void *cls, const const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void 
 controller_cb(void *cls, const struct GNUNET_TESTBED_EventInformation *event)
 {
-  GNUNET_assert (GNUNET_TESTBED_ET_OPERATION_FINISHED == event->type);
-  GNUNET_assert (event->details.operation_finished.operation == operation);
-  GNUNET_assert (NULL == event->details.operation_finished.op_cls);
-  GNUNET_assert (NULL == event->details.operation_finished.emsg);
-  GNUNET_assert (GNUNET_TESTBED_PIT_GENERIC ==
-                 event->details.operation_finished.pit);
-  GNUNET_assert (NULL == event->details.operation_finished.op_result.generic);
-  result = GNUNET_YES;  
-  GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+  switch (event->type)
+  {
+  case GNUNET_TESTBED_ET_OPERATION_FINISHED:
+    GNUNET_assert (event->details.operation_finished.operation == operation);
+    GNUNET_assert (NULL == event->details.operation_finished.op_cls);
+    GNUNET_assert (NULL == event->details.operation_finished.emsg);
+    GNUNET_assert (GNUNET_TESTBED_PIT_GENERIC ==
+		   event->details.operation_finished.pit);
+    GNUNET_assert (NULL == event->details.operation_finished.op_result.generic);
+    break;
+  case GNUNET_TESTBED_ET_PEER_START:
+    GNUNET_assert (event->details.peer_start.host == host);
+    GNUNET_assert (event->details.peer_start.peer == peer);
+    operation = GNUNET_TESTBED_peer_stop (peer);
+    break;
+  case GNUNET_TESTBED_ET_PEER_STOP:
+    GNUNET_assert (event->details.peer_stop.peer == peer);    
+    result = GNUNET_YES;  
+    GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+    break;
+  default:
+    GNUNET_assert (0);		/* We should never reach this state */
+  }
 }
 
 
@@ -171,7 +185,7 @@ peer_create_cb (void *cls,
   GNUNET_assert (NULL != peer);
   GNUNET_assert (NULL != peer_ptr);
   *peer_ptr = peer;
-  operation = GNUNET_TESTBED_peer_destroy (peer);
+  operation = GNUNET_TESTBED_peer_start (peer);
   GNUNET_assert (NULL != operation);
 }
 

@@ -195,7 +195,7 @@ GNUNET_TESTBED_peer_start (struct GNUNET_TESTBED_Peer *peer)
   GNUNET_CONTAINER_DLL_insert_tail (peer->controller->op_head,
                                     peer->controller->op_tail, op);
   GNUNET_TESTBED_queue_message_ (peer->controller, &msg->header);
-  return NULL;
+  return op;
 }
 
 

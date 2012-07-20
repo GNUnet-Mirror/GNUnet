@@ -789,6 +789,7 @@ handle_init (void *cls,
 	 "Cannot determine the ip of master controller: %s\n", STRERROR (errno));
     GNUNET_assert (0);
   }
+  LOG_DEBUG ("Master Controller IP: %s\n", master_context->master_ip);
   master_context->system = 
     GNUNET_TESTING_system_create ("testbed", master_context->master_ip);
   host = GNUNET_TESTBED_host_create_with_id (master_context->host_id,
@@ -1316,8 +1317,7 @@ handle_peer_start (void *cls,
   msg = (const struct GNUNET_TESTBED_PeerStartMessage *) message;
   peer_id = ntohl (msg->peer_id);
   if ((peer_id >= peer_list_size) 
-      || (NULL == peer_list[peer_id])
-      || (GNUNET_OK != GNUNET_TESTING_peer_start (peer_list[peer_id]->peer)))
+      || (NULL == peer_list[peer_id]))
   {
     GNUNET_break (0);
     /* FIXME: reply with failure message or forward to slave controller */

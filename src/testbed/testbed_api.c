@@ -272,15 +272,15 @@ handle_opsuccess (struct GNUNET_TESTBED_Controller *c,
     break;
   default:
     GNUNET_break (0);
-  }
+  }  
+  GNUNET_CONTAINER_DLL_remove (c->op_head, c->op_tail, op);
+  GNUNET_free (op);
   if (NULL != event)
   {
     if (NULL != c->cc)
       c->cc (c->cc_cls, event);
     GNUNET_free (event);
   }
-  GNUNET_CONTAINER_DLL_remove (c->op_head, c->op_tail, op);
-  GNUNET_free (op);
   return GNUNET_YES;  
 }
 
@@ -337,6 +337,65 @@ handle_peer_create_success (struct GNUNET_TESTBED_Controller *c,
 
 
 /**
+ * Handler for GNUNET_MESSAGE_TYPE_TESTBED_PEEREVENT message from
+ * controller (testbed service)
+ *
+ * @param c the controller handler
+ * @param msg message received
+ * @return GNUNET_YES if we can continue receiving from service; GNUNET_NO if
+ *           not
+ */
+static int
+handle_peer_event (struct GNUNET_TESTBED_Controller *c,
+		   const struct GNUNET_TESTBED_PeerEventMessage *msg)
+{
+  struct GNUNET_TESTBED_Operation *op;
+  struct GNUNET_TESTBED_Peer *peer;
+  struct GNUNET_TESTBED_EventInformation event;
+  uint64_t op_id;
+
+  GNUNET_assert (sizeof (struct GNUNET_TESTBED_PeerEventMessage)
+		 == ntohs (msg->header.size));
+  op_id = GNUNET_ntohll (msg->operation_id);
+  for (op = c->op_head; NULL != op; op = op->next)
+  {
+    if (op->operation_id == op_id)
+      break;
+  }
+  if (NULL == op)
+  {
+    LOG_DEBUG ("Operation not found\n");
+    return GNUNET_YES;
+  }
+  GNUNET_assert ((OP_PEER_START == op->type) || (OP_PEER_STOP == op->type));
+  peer = op->data;
+  GNUNET_assert (NULL != peer);
+  event.type = (enum GNUNET_TESTBED_EventType) ntohl (msg->event_type);
+  switch (event.type)
+  {
+  case GNUNET_TESTBED_ET_PEER_START:
+    event.details.peer_start.host = peer->host;
+    event.details.peer_start.peer = peer;
+    break;
+  case GNUNET_TESTBED_ET_PEER_STOP:
+    event.details.peer_stop.peer = peer;  
+    break;
+  default:
+    GNUNET_assert (0);		/* We should never reach this state */
+  }  
+  GNUNET_CONTAINER_DLL_remove (c->op_head, c->op_tail, op);
+  GNUNET_free (op);
+  if (0 != ((GNUNET_TESTBED_ET_PEER_START | GNUNET_TESTBED_ET_PEER_STOP)
+	    & c->event_mask))
+  {
+    if (NULL != c->cc)
+      c->cc (c->cc_cls, &event);
+  }
+  return GNUNET_YES;
+}
+
+
+/**
  * Handler for messages from controller (testbed service)
  *
  * @param cls the controller handler
@@ -373,6 +432,10 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     status =
       handle_peer_create_success 
       (c, (const struct GNUNET_TESTBED_PeerCreateSuccessEventMessage *)msg);
+    break;
+  case GNUNET_MESSAGE_TYPE_TESTBED_PEEREVENT:
+    status =
+      handle_peer_event (c, (const struct GNUNET_TESTBED_PeerEventMessage *) msg);
     break;
   default:
     GNUNET_break (0);
