@@ -42,7 +42,8 @@ bin_PROGRAMS = \
 	$(DO_PROXY) \
   $(DO_W32_HELPER) \
   $(DO_W32_NSPTOOLS) \
-  gnunet-gns
+  gnunet-gns \
+  gnunet-dns2gns
 
 bin_SCRIPTS=gnunet-gns-proxy-setup-ca
 
@@ -285,6 +286,14 @@ gnunet_gns_LDADD = \
   $(GN_LIBINTL)
 gnunet_gns_DEPENDENCIES = \
   libgnunetgns.la
+
+gnunet_dns2gns_SOURCES = \
+ gnunet-dns2gns.c
+gnunet_dns2gns_LDADD = \
+  $(top_builddir)/src/gns/libgnunetgns.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/namestore/libgnunetnamestore.la \
+  $(GN_LIBINTL)
 
 gnunet_gns_proxy_SOURCES = \
  gnunet-gns-proxy.c gns_proxy_proto.h 
