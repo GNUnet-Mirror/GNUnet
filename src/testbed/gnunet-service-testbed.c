@@ -787,8 +787,10 @@ handle_init (void *cls,
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
 	 "Cannot determine the ip of master controller: %s\n", STRERROR (errno));
+    GNUNET_free (addr);
     GNUNET_assert (0);
   }
+  GNUNET_free (addr);
   LOG_DEBUG ("Master Controller IP: %s\n", master_context->master_ip);
   master_context->system = 
     GNUNET_TESTING_system_create ("testbed", master_context->master_ip);
