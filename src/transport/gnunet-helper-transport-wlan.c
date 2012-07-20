@@ -1868,6 +1868,11 @@ main (int argc, char *argv[])
   struct MessageStreamTokenizer *stdin_mst;
   int raw_eno;
 
+  /* make use of SGID capabilities on POSIX */
+  /* FIXME: this might need a port on systems without 'getresgid' */
+  if (-1 ==  setreuid (0, 0))
+    fprintf (stderr, "setreuid failed: %s\n", strerror (errno));
+
   memset (&dev, 0, sizeof (dev));
   dev.fd_raw = socket (PF_PACKET, SOCK_RAW, htons (ETH_P_ALL));
   raw_eno = errno; /* remember for later */
