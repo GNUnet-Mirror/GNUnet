@@ -175,8 +175,10 @@ do_timeout (void *cls,
 {
   struct Request *request = cls;
 
-  GNUNET_DNSPARSER_free_packet (request->packet);
-  GNUNET_GNS_cancel_lookup_request (request->lookup);
+  if (NULL != request->packet)
+    GNUNET_DNSPARSER_free_packet (request->packet);
+  if (NULL != request->lookup)
+    GNUNET_GNS_cancel_lookup_request (request->lookup);
   GNUNET_free (request);
 }
 
@@ -196,12 +198,57 @@ result_processor (void *cls,
 		  const struct GNUNET_NAMESTORE_RecordData *rd)
 {
   struct Request *request = cls;
+  struct GNUNET_DNSPARSER_Packet *packet;
+  uint32_t i;
+  struct GNUNET_DNSPARSER_Record rec;
 
-  // FIXME: is 'processor' called only once or
-  // possibly more than once?
   request->lookup = NULL;
-  GNUNET_break (0);
-  // FIXME: convert 'rd' to response here...
+  packet = request->packet;
+  packet->flags.query_or_response = 1;
+  packet->flags.return_code = GNUNET_DNSPARSER_RETURN_CODE_NO_ERROR;
+  packet->flags.checking_disabled = 0;
+  packet->flags.authenticated_data = 1;
+  packet->flags.zero = 0;
+  packet->flags.recursion_available = 1;
+  packet->flags.message_truncated = 0;
+  packet->flags.authoritative_answer = 0;
+  packet->flags.opcode = GNUNET_DNSPARSER_OPCODE_STATUS; // ???
+  for (i=0;i<rd_count;i++)
+    {
+      switch (rd[i].record_type)
+	{
+	case GNUNET_DNSPARSER_TYPE_A:
+	  GNUNET_assert (sizeof (struct in_addr) == rd[i].data_size);
+	  rec.name = GNUNET_strdup (packet->queries[0].name);
+	  rec.data.raw.data = GNUNET_malloc (sizeof (struct in_addr));
+	  memcpy (rec.data.raw.data,
+		  rd[i].data,
+		  rd[i].data_size);
+	  rec.data.raw.data_len = sizeof (struct in_addr);
+	  GNUNET_array_append (packet->answers,
+			       packet->num_answers,
+			       rec);
+	  break;
+	case GNUNET_DNSPARSER_TYPE_AAAA:
+	  GNUNET_assert (sizeof (struct in6_addr) == rd[i].data_size);
+	  rec.name = GNUNET_strdup ("foo"); // request->name
+	  rec.data.raw.data = GNUNET_malloc (sizeof (struct in6_addr));
+	  memcpy (rec.data.raw.data,
+		  rd[i].data,
+		  rd[i].data_size);
+	  rec.data.raw.data_len = sizeof (struct in6_addr);
+	  GNUNET_array_append (packet->answers,
+			       packet->num_answers,
+			       rec);
+	  break;
+	case GNUNET_DNSPARSER_TYPE_CNAME:
+	  GNUNET_break (0); // FIXME: not implemented!
+	  break;
+	default:
+	  /* skip */
+	  break;
+	}
+    }
   send_response (request);
 }
 
@@ -224,6 +271,9 @@ handle_request (struct GNUNET_NETWORK_Handle *lsock,
 {
   struct Request *request;
   struct GNUNET_DNSPARSER_Packet *packet;
+  char *name;
+  size_t name_len;
+  enum GNUNET_GNS_RecordType type;
 
   packet = GNUNET_DNSPARSER_parse (udp_msg, udp_msg_size);
   if (NULL == packet)
@@ -231,6 +281,25 @@ handle_request (struct GNUNET_NETWORK_Handle *lsock,
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		  _("Received malformed DNS request from %s\n"),
 		  GNUNET_a2s (addr, addr_len));
+      return;
+    }
+  if ( (0 != packet->flags.query_or_response) || 
+       (0 != packet->num_answers) ||
+       (0 != packet->num_authority_records) ||
+       (0 != packet->num_additional_records) )
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  _("Received malformed DNS request from %s\n"),
+		  GNUNET_a2s (addr, addr_len));
+      GNUNET_DNSPARSER_free_packet (packet);
+      return;
+    }
+  if ( (1 != packet->num_queries) )
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  _("Received unsupported DNS request from %s\n"),
+		  GNUNET_a2s (addr, addr_len));
+      GNUNET_DNSPARSER_free_packet (packet);
       return;
     }
   request = GNUNET_malloc (sizeof (struct Request) + addr_len);
@@ -242,16 +311,38 @@ handle_request (struct GNUNET_NETWORK_Handle *lsock,
   request->timeout_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
 							&do_timeout,
 							request);
-  // FIXME: extract name and type from 'request->packet'
-  const char *name = "foo";
-  enum GNUNET_GNS_RecordType type = GNUNET_GNS_RECORD_A;
-  request->lookup = GNUNET_GNS_lookup (gns,
-				       name,
-				       type,
-				       GNUNET_NO,
-				       NULL,
-				       &result_processor,
-				       request);
+  name = GNUNET_strdup (packet->queries[0].name);
+  name_len = strlen (name);
+  if ( (name_len > strlen (".zkey.eu")) &&
+       (0 == strcasecmp (".zkey.eu",
+			 &name[name_len - strlen (".zkey.eu")])) )
+    {
+      name[name_len - strlen (".zkey.eu")] = '\0';
+      strcat (name, ".gnunet"); /* little hack, only works because
+				   ".zkey.eu" is longer than ".gnunet" */
+      name_len = strlen (name);
+    }
+  if ( (name_len > strlen (".gnunet")) &&
+       (0 == strcasecmp (".gnunet",
+			 &name[name_len - strlen (".gnunet")])) )
+    {
+      type = packet->queries[0].type;
+      request->lookup = GNUNET_GNS_lookup (gns,
+					   name,
+					   type,
+					   GNUNET_NO,
+					   NULL,
+					   &result_processor,
+					   request);
+    }
+  else
+    {
+      /* FIXME: do traditional *DNS* lookup; note that
+	 gnunet-service-dns already has code to do this;
+	 factor into library to share! */
+      GNUNET_break (0);
+    }
+  GNUNET_free (name);
 }
 
 
