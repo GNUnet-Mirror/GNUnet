@@ -295,6 +295,8 @@ gnunet_dns2gns_LDADD = \
   $(top_builddir)/src/namestore/libgnunetnamestore.la \
   $(top_builddir)/src/dns/libgnunetdnsparser.la \
   $(GN_LIBINTL)
+gnunet_dns2gns_DEPENDENCIES = \
+  libgnunetgns.la
 
 gnunet_gns_proxy_SOURCES = \
  gnunet-gns-proxy.c gns_proxy_proto.h 
