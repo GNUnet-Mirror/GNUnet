@@ -1416,7 +1416,6 @@ curl_download_prepare ()
   }
   GNUNET_NETWORK_fdset_destroy (gws);
   GNUNET_NETWORK_fdset_destroy (grs);
-
 }
 
 
@@ -1790,7 +1789,8 @@ create_response (void *cls,
   //FIXME handle
   if ((0 != strcasecmp (meth, MHD_HTTP_METHOD_GET)) &&
       (0 != strcasecmp (meth, MHD_HTTP_METHOD_PUT)) &&
-      (0 != strcasecmp (meth, MHD_HTTP_METHOD_POST)))
+      (0 != strcasecmp (meth, MHD_HTTP_METHOD_POST)) &&
+      (0 != strcasecmp (meth, MHD_HTTP_METHOD_HEAD)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "MHD: %s NOT IMPLEMENTED!\n", meth);
@@ -1839,6 +1839,7 @@ create_response (void *cls,
 
     if (0 == strcasecmp (meth, MHD_HTTP_METHOD_PUT))
     {
+      //FIXME: this prolly works like POST?
       if (0 == *upload_data_size)
       {
         curl_easy_cleanup (ctask->curl);
@@ -1860,6 +1861,7 @@ create_response (void *cls,
 
     if (0 == strcasecmp (meth, MHD_HTTP_METHOD_POST))
     {
+      //FIXME handle multipart
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                   "Setting up POST processor\n");
       ctask->post_handler = MHD_create_post_processor (con,
@@ -1872,15 +1874,13 @@ create_response (void *cls,
       curl_easy_setopt (ctask->curl, CURLOPT_READDATA, ctask);
       ctask->headers = curl_slist_append (ctask->headers,
                                           "Transfer-Encoding: chunked");
-      /*curl_easy_setopt (ctask->curl, CURLOPT_POST, 1);
-      curl_easy_setopt (ctask->curl, CURLOPT_POSTFIELDSIZE, *upload_data_size);
-      curl_easy_setopt (ctask->curl, CURLOPT_COPYPOSTFIELDS, upload_data);
-      
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  "Got POST data: %s\n", upload_data);
-      curl_easy_cleanup (ctask->curl);
-      GNUNET_free (ctask);
-      return MHD_NO;*/
+    }
+
+    if (0 == strcasecmp (meth, MHD_HTTP_METHOD_HEAD))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Setting NOBODY\n");
+      curl_easy_setopt (ctask->curl, CURLOPT_NOBODY, 1);
     }
 
     curl_easy_setopt (ctask->curl, CURLOPT_HEADERFUNCTION, &curl_check_hdr);

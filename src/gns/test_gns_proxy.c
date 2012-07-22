@@ -441,6 +441,12 @@ main (int argc, char *const *argv)
     return 0;
   }
 
+  if (GNUNET_YES != GNUNET_OS_check_helper_binary ("gnunet-helper-dns"))
+  {
+    fprintf (stderr, "DNS helper binary has wrong permissions... skipping!\n");
+    return 0;
+  }
+
   GNUNET_CRYPTO_setup_hostkey ("test_gns_proxy.conf");
   
   if (0 != curl_global_init (CURL_GLOBAL_WIN32))
