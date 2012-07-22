@@ -611,7 +611,25 @@ extract_filename (const char *file)
   char *backup = pch;
   char *filename = NULL;
   char *res;
-
+#if WINDOWS
+  if ((strlen (pch) >= 3) && pch[1] == ':')
+  {
+    if (NULL != strstr (pch, "\\"))
+    {
+      pch = strtok (pch, "\\");
+      while (pch != NULL)
+      {
+        pch = strtok (NULL, "\\");
+        if (pch != NULL)
+          filename = pch;
+      }
+    }
+  }
+  if (filename != NULL)
+    pch = filename; /* If we miss the next condition, filename = pch will
+                     * not harm us.
+                     */
+#endif
   if (NULL != strstr (pch, "/"))
   {
     pch = strtok (pch, "/");
