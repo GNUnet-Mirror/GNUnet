@@ -14,6 +14,7 @@ endif
 
 noinst_SCRIPTS = \
  terminate.py \
+ pydiffer.py \
  gnunet_pyexpect.py \
  gnunet_janitor.py
 
@@ -32,6 +33,7 @@ EXTRA_DIST = \
  terminate.py.in \
  gnunet_pyexpect.py.in \
  gnunet_janitor.py.in \
+ pydiffer.py.in \
  gnunet-gns-import.sh
 
 do_subst = $(SED) -e 's,[@]PYTHON[@],$(PYTHON),g'

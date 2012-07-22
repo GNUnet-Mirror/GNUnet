@@ -23,6 +23,9 @@ import os
 import subprocess
 import re
 import shutil
+import tarfile
+import filecmp
+import pydiffer
 
 srcdir = "../.."
 gnunet_pyexpect_dir = os.path.join (srcdir, "contrib")
@@ -30,6 +33,7 @@ if gnunet_pyexpect_dir not in sys.path:
   sys.path.append (gnunet_pyexpect_dir)
 
 from gnunet_pyexpect import pexpect
+from pydiffer import dcdiff
 
 if os.name == 'posix':
   download = 'gnunet-download'
@@ -55,7 +59,8 @@ arm = subprocess.Popen ([gnunetarm, '-sq', '-c', 'test_gnunet_fs_rec_data.conf']
 arm.communicate ()
 
 # pray that `tar' is in PATH
-os.system ('tar xfz test_gnunet_fs_rec_data.tgz')
+tar = tarfile.open ('test_gnunet_fs_rec_data.tgz')
+tar.extractall ()
 # first, basic publish-search-download run
 try:
   pub = pexpect ()
@@ -93,8 +98,9 @@ try:
 
   os.remove ("rdir/b.gnd")
   os.remove ("rdir/a.gnd")
-  if 0 != os.system ("diff -r dir rdir"):
-    raise Exception ("Unexpected difference between source directory and downloaded result")
+  diff = dcdiff ('dir', 'rdir')
+  if len (diff) != 0:
+    raise Exception ("Unexpected difference between source directory and downloaded result:\n{}".format (diff))
   
 
 finally:
