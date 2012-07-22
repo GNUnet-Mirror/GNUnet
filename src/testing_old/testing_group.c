@@ -5940,9 +5940,26 @@ GNUNET_TESTING_daemons_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
       GNUNET_CONFIGURATION_get_value_string (cfg, "TESTING_OLD", "HOSTKEYSFILE",
                                              &hostkeys_file))
   {
+    /* This is a hack to make old testing able to load keys from datadir,
+     * just as new testing does.
+     * No need to document it, just convert everything to the new testing
+     * framework...
+     */
+    char *DATADIR = "${DATADIR}";
+    size_t ddl = strlen (DATADIR);
+    if (strncmp (hostkeys_file, DATADIR, ddl) == 0)
+    {
+      char *data_dir;
+      char *filename;
+      data_dir = GNUNET_OS_installation_get_path (GNUNET_OS_IPK_DATADIR);
+      GNUNET_asprintf (&filename, "%s%s", data_dir, &hostkeys_file[ddl]);
+      GNUNET_free (data_dir);
+      GNUNET_free (hostkeys_file);
+      hostkeys_file = filename;
+    }
     if (GNUNET_YES != GNUNET_DISK_file_test (hostkeys_file))
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  _("Could not read hostkeys file!\n"));
+                  _("Could not read hostkeys file `%s'!\n"), hostkeys_file);
     else
     {
       /* Check hostkey file size, read entire thing into memory */
