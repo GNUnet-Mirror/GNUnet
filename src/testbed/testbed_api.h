@@ -51,7 +51,12 @@ enum OperationType
     /**
      * Peer destroy operation
      */
-    OP_PEER_DESTROY
+    OP_PEER_DESTROY,
+
+    /**
+     * Get peer information operation
+     */
+    OP_PEER_INFO
   };
 
 

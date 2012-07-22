@@ -581,9 +581,9 @@ struct GNUNET_TESTBED_PeerConfigurationInformationMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Peer number of the peer that was created.
+   * The id of the peer relevant to this information
    */
-  uint32_t peer_number GNUNET_PACKED;
+  uint32_t peer_id GNUNET_PACKED;
   
   /**
    * Operation ID of the operation that created this event.
@@ -593,7 +593,12 @@ struct GNUNET_TESTBED_PeerConfigurationInformationMessage
   /**
    * Identity of the peer.
    */
-  struct GNUNET_PeerIdentity peer_id;
+  struct GNUNET_PeerIdentity peer_identity;
+
+  /**
+   * The size of configuration when uncompressed
+   */
+  uint16_t config_size;
 
   /* followed by gzip-compressed configuration of the peer */
 

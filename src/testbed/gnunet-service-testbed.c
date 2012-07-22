@@ -29,8 +29,9 @@
 #include "gnunet_server_lib.h"
 #include <zlib.h>
 
-#include "testbed.h"
 #include "gnunet_testbed_service.h"
+#include "testbed.h"
+#include "testbed_api.h"
 #include "testbed_api_hosts.h"
 #include "gnunet_testing_lib-new.h"
 
@@ -1389,6 +1390,55 @@ handle_peer_stop (void *cls,
 
 
 /**
+ * Handler for GNUNET_MESSAGE_TYPE_TESTBED_GETPEERCONFIG messages
+ *
+ * @param cls NULL
+ * @param client identification of the client
+ * @param message the actual message
+ */
+static void 
+handle_peer_get_config (void *cls,
+                        struct GNUNET_SERVER_Client *client,
+                        const struct GNUNET_MessageHeader *message)
+{
+  const struct GNUNET_TESTBED_PeerGetConfigurationMessage *msg;
+  struct GNUNET_TESTBED_PeerConfigurationInformationMessage *reply;
+  char *config;
+  char *xconfig;
+  size_t c_size;
+  size_t xc_size;  
+  uint32_t peer_id;
+  uint16_t msize;
+  
+  msg = (const struct GNUNET_TESTBED_PeerGetConfigurationMessage *) message;
+  peer_id = ntohl (msg->peer_id);
+  if ((peer_id >= peer_list_size) || (NULL == peer_list[peer_id]))
+  {
+    /* FIXME: return FAILURE message */
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  }
+  config = GNUNET_CONFIGURATION_serialize (peer_list[peer_id]->cfg,
+                                           &c_size);
+  xc_size = GNUNET_TESTBED_compress_config_ (config, c_size, &xconfig);
+  GNUNET_free (config);
+  msize = xc_size + sizeof (struct
+                            GNUNET_TESTBED_PeerConfigurationInformationMessage);
+  reply = GNUNET_realloc (xconfig, msize);
+  (void) memmove (&reply[1], reply, xc_size);
+  reply->header.size = htons (msize);
+  reply->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_PEERCONFIG);
+  reply->peer_id = msg->peer_id;
+  reply->operation_id = msg->operation_id;
+  GNUNET_TESTING_peer_get_identity (peer_list[peer_id]->peer,
+                                    &reply->peer_identity);
+  reply->config_size = htons ((uint16_t) c_size);
+  queue_message (client, &reply->header);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
+
+
+/**
  * Iterator over hash map entries.
  *
  * @param cls closure
@@ -1557,7 +1607,9 @@ testbed_run (void *cls,
       {&handle_peer_start, NULL, GNUNET_MESSAGE_TYPE_TESTBED_STARTPEER,
        sizeof (struct GNUNET_TESTBED_PeerStartMessage)},
       {&handle_peer_stop, NULL, GNUNET_MESSAGE_TYPE_TESTBED_STOPPEER,
-       sizeof (struct GNUNET_TESTBED_PeerStopMessage)},
+       sizeof (struct GNUNET_TESTBED_PeerStopMessage)},      
+      {&handle_peer_get_config, NULL, GNUNET_MESSAGE_TYPE_TESTBED_GETPEERCONFIG,
+       sizeof (struct GNUNET_TESTBED_PeerGetConfigurationMessage)},
       {NULL}
     };
 
