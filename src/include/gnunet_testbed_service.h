@@ -185,13 +185,6 @@ enum GNUNET_TESTBED_PeerInformationType
   GNUNET_TESTBED_PIT_GENERIC = 0,
 
   /**
-   * What host is the peer running on?  Returns a 'const struct
-   * GNUNET_TESTBED_Host *'.  Valid until
-   * 'GNUNET_TESTBED_operation_done' is called.
-   */
-  GNUNET_TESTBED_PIT_HOST,
-
-  /**
    * What configuration is the peer using?  Returns a 'const struct
    * GNUNET_CONFIGURATION_Handle *'.  Valid until
    * 'GNUNET_TESTNIG_operation_done' is called.  However, the
