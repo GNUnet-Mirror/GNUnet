@@ -212,7 +212,18 @@ EXTRA_DIST = \
   test_dht_multipeer_data.conf \
   test_dht_2dtorus.conf \
   test_dht_line.conf \
+  test_dht_tools.py.in \
   multipeer_topo.dat
 
 check_SCRIPTS = \
-  test_dht_tools.sh
+  test_dht_tools.py
+
+do_subst = $(SED) -e 's,[@]PYTHON[@],$(PYTHON),g'
+
+%.py: %.py.in Makefile
+	$(do_subst) < $(srcdir)/$< > $@
+	chmod +x $@
+
+test_dht_tools.py: test_dht_tools.py.in Makefile
+	$(do_subst) < $(srcdir)/test_dht_tools.py.in > test_dht_tools.py
+	chmod +x test_dht_tools.py

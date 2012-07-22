@@ -25,7 +25,6 @@ import re
 import shutil
 import tarfile
 import filecmp
-import pydiffer
 
 srcdir = "../.."
 gnunet_pyexpect_dir = os.path.join (srcdir, "contrib")
