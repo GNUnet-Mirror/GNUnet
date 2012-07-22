@@ -104,8 +104,6 @@ struct TransmitCallbackContext
    */
   struct GNUNET_MessageHeader *msg;
 
-  size_t msgsize;
-
   /**
    * Handle for the transmission request.
    */
@@ -154,7 +152,7 @@ transmit_callback (void *cls, size_t size, void *buf)
 
   tcc->th = NULL;
   GNUNET_CONTAINER_DLL_remove (tcc_head, tcc_tail, tcc);
-  msize = tcc->msgsize;
+  msize = ntohs (tcc->msg->size);
   if (size == 0)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -180,7 +178,8 @@ transmit_callback (void *cls, size_t size, void *buf)
  * @param msg message to transmit, will be freed!
  */
 static void
-transmit (struct GNUNET_SERVER_Client *client, struct GNUNET_MessageHeader *msg, size_t msgsize)
+transmit (struct GNUNET_SERVER_Client *client, 
+	  struct GNUNET_MessageHeader *msg)
 {
   struct TransmitCallbackContext *tcc;
 
@@ -194,11 +193,11 @@ transmit (struct GNUNET_SERVER_Client *client, struct GNUNET_MessageHeader *msg,
   }
   tcc = GNUNET_malloc (sizeof (struct TransmitCallbackContext));
   tcc->msg = msg;
-  tcc->msgsize = msgsize;
   tcc->client = client;
   if (NULL ==
       (tcc->th =
-       GNUNET_SERVER_notify_transmit_ready (client, msgsize,
+       GNUNET_SERVER_notify_transmit_ready (client, 
+					    ntohs (msg->size),
                                             GNUNET_TIME_UNIT_FOREVER_REL,
                                             &transmit_callback, tcc)))
   {
@@ -249,9 +248,11 @@ MarshallWSAQUERYSETW (WSAQUERYSETW *qs, GUID *sc)
   MarshallPtr (qs->lpBlob, qs, BLOB);
 }
 
+
 static void
-process_ip_lookup_result (void* cls, uint32_t rd_count,
-    const struct GNUNET_NAMESTORE_RecordData *rd)
+process_ip_lookup_result (void* cls, 
+			  uint32_t rd_count,
+			  const struct GNUNET_NAMESTORE_RecordData *rd)
 {
   int i, j, csanum;
   struct request *rq = (struct request *) cls;
@@ -274,7 +275,7 @@ process_ip_lookup_result (void* cls, uint32_t rd_count,
     msg = GNUNET_malloc (size);
     msg->header.size = htons (size);
     msg->header.type = htons (GNUNET_MESSAGE_TYPE_W32RESOLVER_RESPONSE);
-    transmit (rq->client, &msg->header, msg->header.size);
+    transmit (rq->client, &msg->header);
     return;
   }
 
@@ -504,7 +505,7 @@ process_ip_lookup_result (void* cls, uint32_t rd_count,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Error in WSAQUERYSETW size calc: expected %lu, got %lu (recalc %lu)\n", size, (unsigned long) ((char *) ptr - (char *) msg), size_recalc);
   }
   MarshallWSAQUERYSETW (qs, &rq->sc);
-  transmit (rq->client, &msg->header, size);
+  transmit (rq->client, &msg->header);
 }
 
 static void

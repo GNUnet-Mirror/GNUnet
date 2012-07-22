@@ -188,7 +188,6 @@ do_timeout (void *cls,
  * lookup
  *
  * @param cls closure
- * @param name "name" of the original lookup
  * @param rd_count number of records
  * @param rd the records in reply
  */
