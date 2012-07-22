@@ -52,16 +52,17 @@ arm.communicate ()
 
 try:
   pub = pexpect ()
-  pub.spawn (None, [publish, '-c', 'test_gnunet_fs_idx_data.conf', '-m', "description:The GNU Public License", '-k', 'gpl', '../../COPYING'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-  pub.expect ("stdout", re.compile (r"URI is `gnunet://fs/chk/PC0M19QMQC0BPSHR6BGA228PP6INER1D610MGEMOMEM87222FN8HVUO7PQGO0O9HD2GVLHF2N5IDHEQUNK6LKE428FPO96SKQEA486O\.PG7K85JGQ6N599MD5HEP3CHEVFPKQD9JB6NPSLVA3T1SKDS66CFI499VS6MGQ88B0QUAVT1282TCRD4GGFVUKDLGI8F0SPIANA3J2LG\.35147'\.\r?\n"))
+
+  pub.spawn (None, [publish, '-c', 'test_gnunet_fs_idx_data.conf', '-m', "description:Test archive", '-k', 'tst', 'test_gnunet_fs_rec_data.tgz'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+  pub.expect ("stdout", re.compile (r"URI is `gnunet://fs/chk/2VKHJMR74CB6GB1GFJNOO95BTINA2PEO25FL48GAS7SPBMA0GDEK5U74R1VIHK0LA6919QRS376BHQFDOE3OUP0JOU92K1NIRJMHFCO\.FPEBEAL6HCABM5LMFNNJOPPLKAF5TLUC86A11EIS1HLMIUBP8VEUTU7FT50OLF9ESKP7GTBUE7GDN392J2VKL6JKM1VT1KB4C7Q1U48\.17822'\.\r?\n"))
 
   down = pexpect ()
-  down.spawn (None, [download, '-c', 'test_gnunet_fs_idx_data.conf', '-o', 'COPYING', 'gnunet://fs/chk/PC0M19QMQC0BPSHR6BGA228PP6INER1D610MGEMOMEM87222FN8HVUO7PQGO0O9HD2GVLHF2N5IDHEQUNK6LKE428FPO96SKQEA486O.PG7K85JGQ6N599MD5HEP3CHEVFPKQD9JB6NPSLVA3T1SKDS66CFI499VS6MGQ88B0QUAVT1282TCRD4GGFVUKDLGI8F0SPIANA3J2LG.35147'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-  down.expect ("stdout", re.compile (r"Downloading `COPYING' done (.*).\r?\n"))
-  os.remove ("COPYING")
+  down.spawn (None, [download, '-c', 'test_gnunet_fs_idx_data.conf', '-o', 'test_gnunet_fs_rec_data.tar.gz', 'gnunet://fs/chk/2VKHJMR74CB6GB1GFJNOO95BTINA2PEO25FL48GAS7SPBMA0GDEK5U74R1VIHK0LA6919QRS376BHQFDOE3OUP0JOU92K1NIRJMHFCO.FPEBEAL6HCABM5LMFNNJOPPLKAF5TLUC86A11EIS1HLMIUBP8VEUTU7FT50OLF9ESKP7GTBUE7GDN392J2VKL6JKM1VT1KB4C7Q1U48.17822'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+  down.expect ("stdout", re.compile (r"Downloading `test_gnunet_fs_rec_data.tar.gz' done (.*).\r?\n"))
+  os.remove ("test_gnunet_fs_rec_data.tar.gz")
 
   un = pexpect ()
-  un.spawn (None, [unindex, '-c', 'test_gnunet_fs_idx_data.conf', '../../COPYING'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+  un.spawn (None, [unindex, '-c', 'test_gnunet_fs_idx_data.conf', 'test_gnunet_fs_rec_data.tgz'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
   un.expect ("stdout", re.compile (r'Unindexing done\.\r?\n'))
 
 finally:

@@ -55,20 +55,20 @@ arm.communicate ()
 # first, basic publish-search-download run
 try:
   pub = pexpect ()
-  pub.spawn (None, [publish, '-c', 'test_gnunet_fs_psd_data.conf', '-n', '-m', "description:The GNU Public License", '-k', 'gpl', '../../COPYING'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-  pub.expect ("stdout", re.compile (r"Publishing `.+[\\/]..[\\/]..[\\/]COPYING' done\.\r?\n"))
-  pub.expect ("stdout", re.compile (r"URI is `gnunet://fs/chk/PC0M19QMQC0BPSHR6BGA228PP6INER1D610MGEMOMEM87222FN8HVUO7PQGO0O9HD2GVLHF2N5IDHEQUNK6LKE428FPO96SKQEA486O\.PG7K85JGQ6N599MD5HEP3CHEVFPKQD9JB6NPSLVA3T1SKDS66CFI499VS6MGQ88B0QUAVT1282TCRD4GGFVUKDLGI8F0SPIANA3J2LG\.35147'\.\r?\n"))
+  pub.spawn (None, [publish, '-c', 'test_gnunet_fs_idx_data.conf', '-n', '-m', "description:Test archive", '-k', 'tst', 'test_gnunet_fs_rec_data.tgz'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+  pub.expect ("stdout", re.compile (r"Publishing `.+test_gnunet_fs_rec_data.tgz' done\.\r?\n"))
+  pub.expect ("stdout", re.compile (r"URI is `gnunet://fs/chk/2VKHJMR74CB6GB1GFJNOO95BTINA2PEO25FL48GAS7SPBMA0GDEK5U74R1VIHK0LA6919QRS376BHQFDOE3OUP0JOU92K1NIRJMHFCO\.FPEBEAL6HCABM5LMFNNJOPPLKAF5TLUC86A11EIS1HLMIUBP8VEUTU7FT50OLF9ESKP7GTBUE7GDN392J2VKL6JKM1VT1KB4C7Q1U48\.17822'\.\r?\n"))
 
   s = pexpect ()
-  s.spawn (None, [search, '-V', '-t', '1000', '-N', '1', '-c', 'test_gnunet_fs_psd_data.conf', 'gpl'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+  s.spawn (None, [search, '-V', '-t', '1000', '-N', '1', '-c', 'test_gnunet_fs_psd_data.conf', 'tst'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
   s.expect ("stdout", re.compile (r'#0:\r?\n'))
-  s.expect ("stdout", re.compile (r'gnunet-download -o "COPYING" gnunet://fs/chk/PC0M19QMQC0BPSHR6BGA228PP6INER1D610MGEMOMEM87222FN8HVUO7PQGO0O9HD2GVLHF2N5IDHEQUNK6LKE428FPO96SKQEA486O\.PG7K85JGQ6N599MD5HEP3CHEVFPKQD9JB6NPSLVA3T1SKDS66CFI499VS6MGQ88B0QUAVT1282TCRD4GGFVUKDLGI8F0SPIANA3J2LG\.35147\r?\n'))
-  s.expect ("stdout", re.compile (r"\s*description: The GNU Public License\r?\n"))
+  s.expect ("stdout", re.compile (r'gnunet-download -o "test_gnunet_fs_rec_data.tgz" gnunet://fs/chk/2VKHJMR74CB6GB1GFJNOO95BTINA2PEO25FL48GAS7SPBMA0GDEK5U74R1VIHK0LA6919QRS376BHQFDOE3OUP0JOU92K1NIRJMHFCO\.FPEBEAL6HCABM5LMFNNJOPPLKAF5TLUC86A11EIS1HLMIUBP8VEUTU7FT50OLF9ESKP7GTBUE7GDN392J2VKL6JKM1VT1KB4C7Q1U48\.17822\r?\n'))
+  s.expect ("stdout", re.compile (r"\s*description: Test archive\r?\n"))
   
   down = pexpect ()
-  down.spawn (None, [download, '-c', 'test_gnunet_fs_psd_data.conf', '-o', 'COPYING', 'gnunet://fs/chk/PC0M19QMQC0BPSHR6BGA228PP6INER1D610MGEMOMEM87222FN8HVUO7PQGO0O9HD2GVLHF2N5IDHEQUNK6LKE428FPO96SKQEA486O.PG7K85JGQ6N599MD5HEP3CHEVFPKQD9JB6NPSLVA3T1SKDS66CFI499VS6MGQ88B0QUAVT1282TCRD4GGFVUKDLGI8F0SPIANA3J2LG.35147'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-  down.expect ("stdout", re.compile (r"Downloading `COPYING' done (.*).\r?\n"))
-  os.remove ("COPYING")
+  down.spawn (None, [download, '-c', 'test_gnunet_fs_psd_data.conf', '-o', 'test_gnunet_fs_rec_data.tar.gz', 'gnunet://fs/chk/2VKHJMR74CB6GB1GFJNOO95BTINA2PEO25FL48GAS7SPBMA0GDEK5U74R1VIHK0LA6919QRS376BHQFDOE3OUP0JOU92K1NIRJMHFCO.FPEBEAL6HCABM5LMFNNJOPPLKAF5TLUC86A11EIS1HLMIUBP8VEUTU7FT50OLF9ESKP7GTBUE7GDN392J2VKL6JKM1VT1KB4C7Q1U48.17822'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+  down.expect ("stdout", re.compile (r"Downloading `test_gnunet_fs_rec_data.tar.gz' done (.*).\r?\n"))
+  os.remove ("test_gnunet_fs_rec_data.tar.gz")
 
 finally:
   arm = subprocess.Popen ([gnunetarm, '-eq', '-c', 'test_gnunet_fs_psd_data.conf'])
