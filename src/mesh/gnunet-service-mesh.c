@@ -4637,7 +4637,7 @@ dht_get_string_accept_handler (void *cls, struct GNUNET_TIME_Absolute exp,
 
 
 /**
- * Function to process DHT string to regex matching..
+ * Function to process DHT string to regex matching.
  * Called on each result obtained for the DHT search.
  *
  * @param cls closure (search context)

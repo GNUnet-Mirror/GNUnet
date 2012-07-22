@@ -144,13 +144,12 @@ GNUNET_GNS_disconnect (struct GNUNET_GNS_Handle *handle);
  * lookup
  *
  * @param cls closure
- * @param name "name" of the original lookup
  * @param rd_count number of records
  * @param rd the records in reply
  */
 typedef void (*GNUNET_GNS_LookupResultProcessor) (void *cls,
-                                 uint32_t rd_count,
-                                 const struct GNUNET_NAMESTORE_RecordData *rd);
+						  uint32_t rd_count,
+						  const struct GNUNET_NAMESTORE_RecordData *rd);
 
 
 

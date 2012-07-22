@@ -1533,6 +1533,10 @@ GNUNET_OS_start_process (int pipe_control,
  * Start a process.
  *
  * @param pipe_control should a pipe be used to send signals to the child?
+ * @param std_inheritance a set of GNUNET_OS_INHERIT_STD_* flags controlling which
+ *        std handles of the parent are inherited by the child.
+ *        pipe_stdin and pipe_stdout take priority over std_inheritance
+ *        (when they are non-NULL).
  * @param lsocks array of listen sockets to dup systemd-style (or NULL);
  *         must be NULL on platforms where dup is not supported
  * @param filename name of the binary
