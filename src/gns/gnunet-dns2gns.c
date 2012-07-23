@@ -241,7 +241,7 @@ result_processor (void *cls,
 			       rec);
 	  break;
 	case GNUNET_DNSPARSER_TYPE_CNAME:
-	  GNUNET_break (0); // FIXME: not implemented!
+	  GNUNET_break (0); // FIXME: CNAME is handled by the GNS resolver! We never return this unless explicitly requested!
 	  break;
 	default:
 	  /* skip */
@@ -316,6 +316,8 @@ handle_request (struct GNUNET_NETWORK_Handle *lsock,
        (0 == strcasecmp (".zkey.eu",
 			 &name[name_len - strlen (".zkey.eu")])) )
     {
+      //FIXME here check if the top label after zkey.eu is a hash and append
+      //correct TLD appropriately
       name[name_len - strlen (".zkey.eu")] = '\0';
       strcat (name, ".gnunet"); /* little hack, only works because
 				   ".zkey.eu" is longer than ".gnunet" */
@@ -338,7 +340,7 @@ handle_request (struct GNUNET_NETWORK_Handle *lsock,
     {
       /* FIXME: do traditional *DNS* lookup; note that
 	 gnunet-service-dns already has code to do this;
-	 factor into library to share! */
+	 factor into library to share! Why not use GNUNET_RESOLVER here?*/
       GNUNET_break (0);
     }
   GNUNET_free (name);
