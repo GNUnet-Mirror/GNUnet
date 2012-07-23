@@ -687,8 +687,8 @@ print_state (int state)
     return "S_DISCONNECT_FINISHED";
     break;
   default:
-    return "UNDEFINED";
     GNUNET_break (0);
+    return "UNDEFINED";
     break;
   }
   GNUNET_break (0);
