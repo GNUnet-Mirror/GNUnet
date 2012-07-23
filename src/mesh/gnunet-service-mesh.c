@@ -5143,6 +5143,7 @@ handle_local_tunnel_speed (void *cls, struct GNUNET_SERVER_Client *client,
       default:
           GNUNET_break (0);
   }
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 
@@ -5198,6 +5199,7 @@ handle_local_tunnel_buffer (void *cls, struct GNUNET_SERVER_Client *client,
       default:
           GNUNET_break (0);
   }
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 
