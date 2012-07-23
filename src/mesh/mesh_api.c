@@ -1695,20 +1695,24 @@ void
 GNUNET_MESH_peer_request_connect_by_string (struct GNUNET_MESH_Tunnel *tunnel,
                                             const char *description)
 {
-  struct GNUNET_MESH_ConnectPeerByString *msg;
+  struct GNUNET_MESH_ConnectPeerByString *m;
   size_t len;
   size_t msgsize;
 
-  len = strlen(description);
+  len = strlen (description);
   msgsize = sizeof(struct GNUNET_MESH_ConnectPeerByString) + len;
   GNUNET_assert (UINT16_MAX > msgsize);
-  msg = GNUNET_malloc (msgsize);
-  msg->header.size = htons (msgsize);
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_ADD_BY_STRING);
-  msg->tunnel_id = htonl (tunnel->tid);
-  memcpy(&msg[1], description, len);
+  {
+    char buffer[msgsize];
 
-  send_packet (tunnel->mesh, &msg->header, tunnel);
+    m = (struct GNUNET_MESH_ConnectPeerByString *) buffer;
+    m->header.size = htons (msgsize);
+    m->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_ADD_BY_STRING);
+    m->tunnel_id = htonl (tunnel->tid);
+    memcpy(&m[1], description, len);
+
+    send_packet (tunnel->mesh, &m->header, tunnel);
+  }
 }
 
 
