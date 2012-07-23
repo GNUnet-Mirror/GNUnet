@@ -176,8 +176,8 @@ run (void *cls, char *const *args, const char *cfgfile,
   struct GNUNET_CRYPTO_ShortHashAsciiEncoded zonename;
   struct GNUNET_CRYPTO_RsaPrivateKey *shorten_key = NULL;
   struct GNUNET_CRYPTO_RsaPrivateKey *private_key = NULL;
-  struct GNUNET_CRYPTO_ShortHashCode private_zone;
-  struct GNUNET_CRYPTO_ShortHashCode shorten_zone;
+  struct GNUNET_CRYPTO_ShortHashCode *private_zone = NULL;
+  struct GNUNET_CRYPTO_ShortHashCode *shorten_zone = NULL;
 
   shorten_request = NULL;
   lookup_request = NULL;
@@ -224,10 +224,11 @@ run (void *cls, char *const *args, const char *cfgfile,
     {
       shorten_key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
       GNUNET_CRYPTO_rsa_key_get_public (shorten_key, &pkey);
+      shorten_zone = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_ShortHashCode));
       GNUNET_CRYPTO_short_hash(&pkey,
                          sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
-                         &shorten_zone);
-      GNUNET_CRYPTO_short_hash_to_enc (&shorten_zone, &zonename);
+                         shorten_zone);
+      GNUNET_CRYPTO_short_hash_to_enc (shorten_zone, &zonename);
       if (!raw)
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                     "Using shorten zone: %s!\n", &zonename);
@@ -251,10 +252,11 @@ run (void *cls, char *const *args, const char *cfgfile,
     {
       private_key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
       GNUNET_CRYPTO_rsa_key_get_public (private_key, &pkey);
+      private_zone = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_ShortHashCode));
       GNUNET_CRYPTO_short_hash(&pkey,
                          sizeof(struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
-                         &private_zone);
-      GNUNET_CRYPTO_short_hash_to_enc (&private_zone, &zonename);
+                         private_zone);
+      GNUNET_CRYPTO_short_hash_to_enc (private_zone, &zonename);
       if (!raw)
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                     "Using private zone: %s!\n", &zonename);
@@ -293,8 +295,8 @@ run (void *cls, char *const *args, const char *cfgfile,
   if (NULL != shorten_name)
   {
     shorten_request = GNUNET_GNS_shorten_zone (gns, shorten_name,
-                             &private_zone,
-                             &shorten_zone,
+                             private_zone,
+                             shorten_zone,
                              zone,
                              &process_shorten_result,
                              shorten_name);
@@ -320,6 +322,12 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   if (NULL != shorten_key)
     GNUNET_CRYPTO_rsa_key_free (shorten_key);
+
+  if (NULL != shorten_zone)
+    GNUNET_free (shorten_zone);
+
+  if (NULL != private_zone)
+    GNUNET_free (private_zone);
   
   shutdown_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                                 &do_shutdown, NULL);

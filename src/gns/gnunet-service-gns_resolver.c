@@ -309,9 +309,10 @@ process_pseu_result (struct GetPseuAuthorityHandle* gph, char* name)
     GNUNET_CRYPTO_rsa_key_free (gph->key);
     GNUNET_CONTAINER_DLL_remove (gph_head, gph_tail, gph);
     GNUNET_free (gph);
+    return;
   }
-  else
-    memcpy (gph->test_name, name, strlen(name)+1);
+  
+  memcpy (gph->test_name, name, strlen(name)+1);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "GNS_AUTO_PSEU: Checking %s for collision in NS\n",
