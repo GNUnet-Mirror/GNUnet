@@ -68,6 +68,7 @@ gnunet_service_mesh_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/dht/libgnunetdht.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/block/libgnunetblock.la \
   $(top_builddir)/src/mesh/libgnunetmeshblock.la \
   $(top_builddir)/src/regex/libgnunetregex.la
@@ -75,6 +76,7 @@ gnunet_service_mesh_DEPENDENCIES = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/dht/libgnunetdht.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/block/libgnunetblock.la \
   libgnunetmeshblock.la \
   $(top_builddir)/src/regex/libgnunetregex.la
