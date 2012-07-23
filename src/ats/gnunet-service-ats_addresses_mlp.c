@@ -48,65 +48,45 @@ mlp_solve_to_string (int retcode)
   switch (retcode) {
     case 0:
       return "ok";
-      break;
     case GLP_EBADB:
       return "invalid basis";
-      break;
     case GLP_ESING:
       return "singular matrix";
-      break;
     case GLP_ECOND:
       return "ill-conditioned matrix";
-      break;
     case GLP_EBOUND:
       return "invalid bounds";
-      break;
     case GLP_EFAIL:
       return "solver failed";
-      break;
     case GLP_EOBJLL:
       return "objective lower limit reached";
-      break;
     case GLP_EOBJUL:
       return "objective upper limit reached";
-      break;
     case GLP_EITLIM:
       return "iteration limit exceeded";
-      break;
     case GLP_ETMLIM:
       return "time limit exceeded";
-      break;
     case GLP_ENOPFS:
       return "no primal feasible solution";
-      break;
     case GLP_EROOT:
       return "root LP optimum not provided";
-      break;
     case GLP_ESTOP:
       return "search terminated by application";
-      break;
     case GLP_EMIPGAP:
       return "relative mip gap tolerance reached";
-      break;
     case GLP_ENOFEAS:
       return "no dual feasible solution";
-      break;
     case GLP_ENOCVG:
       return "no convergence";
-      break;
     case GLP_EINSTAB:
       return "numerical instability";
-      break;
     case GLP_EDATA:
       return "invalid data";
-      break;
     case GLP_ERANGE:
       return "result out of range";
-      break;
     default:
       GNUNET_break (0);
       return "unknown error";
-      break;
   }
 }
 
@@ -122,26 +102,19 @@ mlp_status_to_string (int retcode)
   switch (retcode) {
     case GLP_UNDEF:
       return "solution is undefined";
-      break;
     case GLP_FEAS:
       return "solution is feasible";
-      break;
     case GLP_INFEAS:
       return "solution is infeasible";
-      break;
     case GLP_NOFEAS:
       return "no feasible solution exists";
-      break;
     case GLP_OPT:
       return "solution is optimal";
-      break;
     case GLP_UNBND:
       return "solution is unbounded";
-      break;
     default:
       GNUNET_break (0);
       return "unknown error";
-      break;
   }
 }
 
@@ -158,34 +131,25 @@ mlp_ats_to_string (int ats_index)
   switch (ats_index) {
     case GNUNET_ATS_ARRAY_TERMINATOR:
       return "GNUNET_ATS_ARRAY_TERMINATOR";
-      break;
     case GNUNET_ATS_UTILIZATION_UP:
       return "GNUNET_ATS_UTILIZATION_UP";
-      break;
     case GNUNET_ATS_UTILIZATION_DOWN:
       return "GNUNET_ATS_UTILIZATION_DOWN";
-      break;
     case GNUNET_ATS_COST_LAN:
       return "GNUNET_ATS_COST_LAN";
-      break;
     case GNUNET_ATS_COST_WAN:
       return "GNUNET_ATS_COST_LAN";
-      break;
     case GNUNET_ATS_COST_WLAN:
       return "GNUNET_ATS_COST_WLAN";
-      break;
     case GNUNET_ATS_NETWORK_TYPE:
       return "GNUNET_ATS_NETWORK_TYPE";
-      break;
     case GNUNET_ATS_QUALITY_NET_DELAY:
       return "GNUNET_ATS_QUALITY_NET_DELAY";
-      break;
     case GNUNET_ATS_QUALITY_NET_DISTANCE:
       return "GNUNET_ATS_QUALITY_NET_DISTANCE";
-      break;
     default:
+      GNUNET_break (0);
       return "unknown";
-      break;
   }
 }
 
