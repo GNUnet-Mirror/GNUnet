@@ -52,31 +52,8 @@
 #include "block_mesh.h"
 #include "mesh_block_lib.h"
 #include "gnunet_dht_service.h"
+#include "gnunet_statistics_service.h"
 #include "gnunet_regex_lib.h"
-
-/* TODO: move into configuration file */
-#define REFRESH_PATH_TIME       GNUNET_TIME_relative_multiply(\
-                                    GNUNET_TIME_UNIT_SECONDS,\
-                                    300)
-#define APP_ANNOUNCE_TIME       GNUNET_TIME_relative_multiply(\
-                                    GNUNET_TIME_UNIT_SECONDS,\
-                                    15)
-
-#define ID_ANNOUNCE_TIME        GNUNET_TIME_relative_multiply(\
-                                    GNUNET_TIME_UNIT_SECONDS,\
-                                    15)
-
-#define UNACKNOWLEDGED_WAIT     GNUNET_TIME_relative_multiply(\
-                                    GNUNET_TIME_UNIT_SECONDS,\
-                                    2)
-#define CONNECT_TIMEOUT         GNUNET_TIME_relative_multiply(\
-                                    GNUNET_TIME_UNIT_SECONDS,\
-                                    30)
-#define DEFAULT_TTL             64
-
-#define DHT_REPLICATION_LEVEL   10
-
-/* TODO END */
 
 #define MESH_BLOOM_SIZE         128
 
@@ -658,25 +635,42 @@ mesh_debug (void *cls, int success)
 /***********************      GLOBAL VARIABLES     ****************************/
 /******************************************************************************/
 
+
 /**
- * All the clients
+ * Configuration parameters
+ */
+static struct GNUNET_TIME_Relative refresh_path_time;
+static struct GNUNET_TIME_Relative app_announce_time;
+static struct GNUNET_TIME_Relative id_announce_time;
+static struct GNUNET_TIME_Relative unacknowledged_wait_time;
+static struct GNUNET_TIME_Relative connect_timeout;
+static long long unsigned int default_ttl;
+static long long unsigned int dht_replication_level;
+
+
+/**
+ * DLL with all the clients, head.
  */
 static struct MeshClient *clients;
+
+/**
+ * DLL with all the clients, tail.
+ */
 static struct MeshClient *clients_tail;
 
 /**
- * Tunnels known, indexed by MESH_TunnelID (MeshTunnel)
+ * Tunnels known, indexed by MESH_TunnelID (MeshTunnel).
  */
 static struct GNUNET_CONTAINER_MultiHashMap *tunnels;
 
 /**
  * Tunnels incoming, indexed by MESH_TunnelNumber
- * (which is greater than GNUNET_MESH_LOCAL_TUNNEL_ID_SERV)
+ * (which is greater than GNUNET_MESH_LOCAL_TUNNEL_ID_SERV).
  */
 static struct GNUNET_CONTAINER_MultiHashMap *incoming_tunnels;
 
 /**
- * Peers known, indexed by PeerIdentity (MeshPeerInfo)
+ * Peers known, indexed by PeerIdentity (MeshPeerInfo).
  */
 static struct GNUNET_CONTAINER_MultiHashMap *peers;
 
@@ -686,37 +680,42 @@ static struct GNUNET_CONTAINER_MultiHashMap *peers;
 // static struct GNUNET_TRANSPORT_Handle *transport_handle;
 
 /**
- * Handle to communicate with core
+ * Handle to communicate with core.
  */
 static struct GNUNET_CORE_Handle *core_handle;
 
 /**
- * Handle to use DHT
+ * Handle to use DHT.
  */
 static struct GNUNET_DHT_Handle *dht_handle;
 
 /**
- * Handle to server
+ * Handle to server.
  */
 static struct GNUNET_SERVER_Handle *server_handle;
 
 /**
- * Notification context, to send messages to local clients
+ * Handle to the statistics service.
+ */
+static struct GNUNET_STATISTICS_Handle *stats;
+
+/**
+ * Notification context, to send messages to local clients.
  */
 static struct GNUNET_SERVER_NotificationContext *nc;
 
 /**
- * Local peer own ID (memory efficient handle)
+ * Local peer own ID (memory efficient handle).
  */
 static GNUNET_PEER_Id myid;
 
 /**
- * Local peer own ID (full value)
+ * Local peer own ID (full value).
  */
 static struct GNUNET_PeerIdentity my_full_id;
 
 /**
- * Own private key
+ * Own private key.
  */
 static struct GNUNET_CRYPTO_RsaPrivateKey *my_private_key;
 
@@ -726,37 +725,37 @@ static struct GNUNET_CRYPTO_RsaPrivateKey *my_private_key;
 static struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded my_public_key;
 
 /**
- * Tunnel ID for the next created tunnel (global tunnel number)
+ * Tunnel ID for the next created tunnel (global tunnel number).
  */
 static MESH_TunnelNumber next_tid;
 
 /**
- * Tunnel ID for the next incoming tunnel (local tunnel number)
+ * Tunnel ID for the next incoming tunnel (local tunnel number).
  */
 static MESH_TunnelNumber next_local_tid;
 
 /**
- * All application types provided by this peer
+ * All application types provided by this peer.
  */
 static struct GNUNET_CONTAINER_MultiHashMap *applications;
 
 /**
- * All message types clients of this peer are interested in
+ * All message types clients of this peer are interested in.
  */
 static struct GNUNET_CONTAINER_MultiHashMap *types;
 
 /**
- * Task to periodically announce provided applications
+ * Task to periodically announce provided applications.
  */
 GNUNET_SCHEDULER_TaskIdentifier announce_applications_task;
 
 /**
- * Task to periodically announce itself in the network
+ * Task to periodically announce itself in the network.
  */
 GNUNET_SCHEDULER_TaskIdentifier announce_id_task;
 
 /**
- * Next ID to assign to a client
+ * Next ID to assign to a client.
  */
 unsigned int next_client_id;
 
@@ -998,7 +997,7 @@ regex_edge_iterator (void *cls,
       GNUNET_DHT_get_start (dht_handle,    /* handle */
                             GNUNET_BLOCK_TYPE_MESH_REGEX, /* type */
                             key,     /* key to search */
-                            DHT_REPLICATION_LEVEL, /* replication level */
+                            dht_replication_level, /* replication level */
                             GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
                             NULL,       /* xquery */ // FIXME BLOOMFILTER
                             0,     /* xquery bits */ // FIXME BLOOMFILTER SIZE
@@ -1104,14 +1103,14 @@ regex_iterator (void *cls, const struct GNUNET_HashCode *key, const char *proof,
         block.id = my_full_id;
         (void)
         GNUNET_DHT_put(dht_handle, key,
-                       DHT_REPLICATION_LEVEL,
+                       dht_replication_level,
                        opt | GNUNET_DHT_RO_RECORD_ROUTE,
                        GNUNET_BLOCK_TYPE_MESH_REGEX_ACCEPT,
                        size,
                        (char *) &block,
                        GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get (),
-                                                 APP_ANNOUNCE_TIME),
-                       APP_ANNOUNCE_TIME,
+                                                 app_announce_time),
+                       app_announce_time,
                        NULL, NULL);
     }
     len = strlen(proof);
@@ -1154,13 +1153,13 @@ regex_iterator (void *cls, const struct GNUNET_HashCode *key, const char *proof,
     }
     (void)
     GNUNET_DHT_put(dht_handle, key,
-                   DHT_REPLICATION_LEVEL,
+                   dht_replication_level,
                    opt,
                    GNUNET_BLOCK_TYPE_MESH_REGEX, size,
                    (char *) block,
                    GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get (),
-                                            APP_ANNOUNCE_TIME),
-                   APP_ANNOUNCE_TIME,
+                                            app_announce_time),
+                   app_announce_time,
                    NULL, NULL);
     GNUNET_free (block);
 }
@@ -1201,7 +1200,7 @@ regex_find_path (const struct GNUNET_HashCode *key,
   get_h = GNUNET_DHT_get_start (dht_handle,    /* handle */
                                 GNUNET_BLOCK_TYPE_MESH_REGEX_ACCEPT, /* type */
                                 key,     /* key to search */
-                                DHT_REPLICATION_LEVEL, /* replication level */
+                                dht_replication_level, /* replication level */
                                 GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE |
                                 GNUNET_DHT_RO_RECORD_ROUTE,
                                 NULL,       /* xquery */ // FIXME BLOOMFILTER
@@ -1247,15 +1246,15 @@ announce_application (void *cls, const struct GNUNET_HashCode * key, void *value
   /* FIXME are hashes in multihash map equal on all aquitectures? */
   /* FIXME: keep return value of 'put' to possibly cancel!? */
   GNUNET_DHT_put (dht_handle, key,
-                  DHT_REPLICATION_LEVEL,
+                  dht_replication_level,
                   GNUNET_DHT_RO_RECORD_ROUTE |
                   GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
                   GNUNET_BLOCK_TYPE_MESH_PEER_BY_TYPE,
                   sizeof (block),
                   (const char *) &block,
                   GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get (),
-                                            APP_ANNOUNCE_TIME),
-                  APP_ANNOUNCE_TIME, NULL, NULL);
+                                            app_announce_time),
+                  app_announce_time, NULL, NULL);
   return GNUNET_OK;
 }
 
@@ -1286,7 +1285,7 @@ announce_regex (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     regex_put (c->regexes[i]);
   }
   c->regex_announce_task =
-      GNUNET_SCHEDULER_add_delayed (APP_ANNOUNCE_TIME, &announce_regex, cls);
+      GNUNET_SCHEDULER_add_delayed (app_announce_time, &announce_regex, cls);
   DEBUG_DHT ("Finished PUT for regex\n");
 
   return;
@@ -1314,7 +1313,7 @@ announce_applications (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_CONTAINER_multihashmap_iterate (applications, &announce_application,
                                          NULL);
   announce_applications_task =
-      GNUNET_SCHEDULER_add_delayed (APP_ANNOUNCE_TIME, &announce_applications,
+      GNUNET_SCHEDULER_add_delayed (app_announce_time, &announce_applications,
                                     cls);
   DEBUG_DHT ("Finished PUT for apps\n");
 
@@ -1348,7 +1347,7 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   block.type = htonl (0);
   GNUNET_DHT_put (dht_handle,   /* DHT handle */
                   &my_full_id.hashPubKey,       /* Key to use */
-                  DHT_REPLICATION_LEVEL,     /* Replication level */
+                  dht_replication_level,     /* Replication level */
                   GNUNET_DHT_RO_RECORD_ROUTE | GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,    /* DHT options */
                   GNUNET_BLOCK_TYPE_MESH_PEER,       /* Block type */
                   sizeof (block),  /* Size of the data */
@@ -1358,7 +1357,7 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                   NULL,         /* Continuation */
                   NULL);        /* Continuation closure */
   announce_id_task =
-      GNUNET_SCHEDULER_add_delayed (ID_ANNOUNCE_TIME, &announce_id, cls);
+      GNUNET_SCHEDULER_add_delayed (id_announce_time, &announce_id, cls);
 }
 
 
@@ -1467,8 +1466,6 @@ client_get (struct GNUNET_SERVER_Client *client)
  * @param c Client to check
  *
  * @return GNUNET_YES or GNUNET_NO, depending on subscription status
- *
- * TODO inline?
  */
 static int
 client_is_subscribed (uint16_t message_type, struct MeshClient *c)
@@ -1971,7 +1968,7 @@ send_message (const struct GNUNET_MessageHeader *message,
     struct GNUNET_MESH_Unicast *m;
 
     m = (struct GNUNET_MESH_Unicast *) info->mesh_data->data;
-    m->ttl--;
+    m->ttl = htonl (ntohl (m->ttl) - 1);
   }
   info->mesh_data->data_len = size;
   info->mesh_data->reference_counter = GNUNET_malloc (sizeof (unsigned int));
@@ -2157,7 +2154,7 @@ peer_info_connect (struct MeshPeerInfo *peer, struct MeshTunnel *t)
     peer->dhtget = GNUNET_DHT_get_start (dht_handle,    /* handle */
                                          GNUNET_BLOCK_TYPE_MESH_PEER, /* type */
                                          &id.hashPubKey,     /* key to search */
-                                         DHT_REPLICATION_LEVEL, /* replication level */
+                                         dht_replication_level, /* replication level */
                                          GNUNET_DHT_RO_RECORD_ROUTE |
                                          GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
                                          NULL,       /* xquery */ // FIXME BLOOMFILTER
@@ -2779,7 +2776,7 @@ tunnel_add_peer (struct MeshTunnel *t, struct MeshPeerInfo *peer)
     tree_add_path (t->tree, best_p, &notify_peer_disconnected, t);
     if (GNUNET_SCHEDULER_NO_TASK == t->path_refresh_task)
       t->path_refresh_task =
-          GNUNET_SCHEDULER_add_delayed (REFRESH_PATH_TIME, &path_refresh, t);
+          GNUNET_SCHEDULER_add_delayed (refresh_path_time, &path_refresh, t);
   }
   else
   {
@@ -2936,7 +2933,7 @@ tunnel_send_multicast (struct MeshTunnel *t,
   {
     mdata->task = GNUNET_malloc (sizeof (GNUNET_SCHEDULER_TaskIdentifier));
     (*(mdata->task)) =
-        GNUNET_SCHEDULER_add_delayed (UNACKNOWLEDGED_WAIT, &client_allow_send,
+        GNUNET_SCHEDULER_add_delayed (unacknowledged_wait_time, &client_allow_send,
                                       mdata);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "timeout task %u\n",
                 *(mdata->task));
@@ -3243,7 +3240,7 @@ tunnel_reset_timeout (struct MeshTunnel *t)
     GNUNET_SCHEDULER_cancel (t->timeout_task);
   t->timeout_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                    (REFRESH_PATH_TIME, 4), &tunnel_timeout, t);
+                                    (refresh_path_time, 4), &tunnel_timeout, t);
 }
 
 
@@ -3925,6 +3922,7 @@ handle_mesh_tunnel_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
      * destroyed the tunnel and retransmitted to children.
      * Safe to ignore.
      */
+    GNUNET_STATISTICS_update (stats, "# control on unknown tunnel", 1, GNUNET_NO);
     return GNUNET_OK;
   }
   if (t->id.oid == myid)
@@ -3986,13 +3984,14 @@ handle_mesh_data_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (NULL == t)
   {
     /* TODO notify back: we don't know this tunnel */
+    GNUNET_STATISTICS_update (stats, "# data on unknown tunnel", 1, GNUNET_NO);
     GNUNET_break_op (0);
     return GNUNET_OK;
   }
   pid = ntohl (msg->pid);
   if (t->pid == pid)
   {
-    /* FIXME: already seen this packet, log dropping */
+    GNUNET_STATISTICS_update (stats, "# TTL drops", 1, GNUNET_NO);
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 " Already seen mid %u, DROPPING!\n", pid);
     return GNUNET_OK;
@@ -4017,7 +4016,7 @@ handle_mesh_data_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   ttl: %u\n", ttl);
   if (ttl == 0)
   {
-    /* FIXME: ttl is 0, log dropping */
+    GNUNET_STATISTICS_update (stats, "# TTL drops", 1, GNUNET_NO);
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, " TTL is 0, DROPPING!\n");
     return GNUNET_OK;
   }
@@ -4067,13 +4066,15 @@ handle_mesh_data_multicast (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (NULL == t)
   {
     /* TODO notify that we dont know that tunnel */
+    GNUNET_STATISTICS_update (stats, "# data on unknown tunnel", 1, GNUNET_NO);
     GNUNET_break_op (0);
     return GNUNET_OK;
   }
   pid = ntohl (msg->pid);
   if (t->pid == pid)
   {
-    /* FIXME: already seen this packet, log dropping */
+    /* already seen this packet, drop */
+    GNUNET_STATISTICS_update (stats, "# TTL drops", 1, GNUNET_NO);
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 " Already seen mid %u, DROPPING!\n", pid);
     return GNUNET_OK;
@@ -4096,7 +4097,7 @@ handle_mesh_data_multicast (void *cls, const struct GNUNET_PeerIdentity *peer,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   ttl: %u\n", ntohl (msg->ttl));
   if (ntohl (msg->ttl) == 0)
   {
-    /* FIXME: ttl is 0, log dropping */
+    GNUNET_STATISTICS_update (stats, "# TTL drops", 1, GNUNET_NO);
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, " TTL is 0, DROPPING!\n");
     return GNUNET_OK;
   }
@@ -4146,6 +4147,7 @@ handle_mesh_data_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (NULL == t)
   {
     /* TODO notify that we dont know this tunnel (whom)? */
+    GNUNET_STATISTICS_update (stats, "# data on unknown tunnel", 1, GNUNET_NO);
     GNUNET_break_op (0);
     return GNUNET_OK;
   }
@@ -4220,6 +4222,7 @@ handle_mesh_path_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (NULL == t)
   {
     /* TODO notify that we don't know the tunnel */
+    GNUNET_STATISTICS_update (stats, "# control on unknown tunnel", 1, GNUNET_NO);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  don't know the tunnel %s [%X]!\n",
                 GNUNET_i2s (&msg->oid), ntohl(msg->tid));
     return GNUNET_OK;
@@ -4404,7 +4407,7 @@ path_refresh (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_MULTICAST);
   msg->oid = my_full_id;
   msg->tid = htonl (t->id.tid);
-  msg->ttl = htonl (DEFAULT_TTL);
+  msg->ttl = htonl (default_ttl);
   msg->pid = htonl (t->pid + 1);
   t->pid++;
   payload = (struct GNUNET_MessageHeader *) &msg[1];
@@ -4413,7 +4416,7 @@ path_refresh (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   tunnel_send_multicast (t, &msg->header, GNUNET_YES);
 
   t->path_refresh_task =
-      GNUNET_SCHEDULER_add_delayed (REFRESH_PATH_TIME, &path_refresh, t);
+      GNUNET_SCHEDULER_add_delayed (refresh_path_time, &path_refresh, t);
   return;
 }
 
@@ -4570,7 +4573,7 @@ regex_connect_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (old != id)
     tunnel_delete_peer (info->t, old);
   peer_info_connect (peer_info, info->t);
-  info->timeout = GNUNET_SCHEDULER_add_delayed (CONNECT_TIMEOUT,
+  info->timeout = GNUNET_SCHEDULER_add_delayed (connect_timeout,
                                                 &regex_connect_timeout,
                                                 info);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Regex connect timeout END\n");
@@ -4628,7 +4631,7 @@ dht_get_string_accept_handler (void *cls, struct GNUNET_TIME_Absolute exp,
     GNUNET_array_append (info->peers, info->n_peers, peer_info->id);
   }
 
-  info->timeout = GNUNET_SCHEDULER_add_delayed (CONNECT_TIMEOUT,
+  info->timeout = GNUNET_SCHEDULER_add_delayed (connect_timeout,
                                                 &regex_connect_timeout,
                                                 info);
 
@@ -5542,7 +5545,7 @@ handle_local_connect_by_type (void *cls, struct GNUNET_SERVER_Client *client,
       GNUNET_DHT_get_start (dht_handle, 
                             GNUNET_BLOCK_TYPE_MESH_PEER_BY_TYPE,
                             &hash,
-                            DHT_REPLICATION_LEVEL,
+                            dht_replication_level,
                             GNUNET_DHT_RO_RECORD_ROUTE |
                             GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
                             NULL, 0,
@@ -5659,7 +5662,7 @@ handle_local_connect_by_string (void *cls, struct GNUNET_SERVER_Client *client,
   get_h = GNUNET_DHT_get_start (dht_handle,    /* handle */
                                 GNUNET_BLOCK_TYPE_MESH_REGEX, /* type */
                                 &key,     /* key to search */
-                                DHT_REPLICATION_LEVEL, /* replication level */
+                                dht_replication_level, /* replication level */
                                 GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
                                 NULL,       /* xquery */ // FIXME BLOOMFILTER
                                 0,     /* xquery bits */ // FIXME BLOOMFILTER SIZE
@@ -5755,7 +5758,7 @@ handle_local_unicast (void *cls, struct GNUNET_SERVER_Client *client,
     memcpy (buf, data_msg, size);
     copy->oid = my_full_id;
     copy->tid = htonl (t->id.tid);
-    copy->ttl = htonl (DEFAULT_TTL);
+    copy->ttl = htonl (default_ttl);
     copy->pid = htonl (t->pid + 1);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "  calling generic handler...\n");
@@ -5913,7 +5916,7 @@ handle_local_multicast (void *cls, struct GNUNET_SERVER_Client *client,
     memcpy (buf, message, ntohs (message->size));
     copy->oid = my_full_id;
     copy->tid = htonl (t->id.tid);
-    copy->ttl = htonl (DEFAULT_TTL);
+    copy->ttl = htonl (default_ttl);
     copy->pid = htonl (t->pid + 1);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "  calling generic handler...\n");
@@ -6205,10 +6208,95 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _
-                ("Mesh service is lacking key configuration settings.  Exiting.\n"));
+                ("Mesh service is lacking key configuration settings (%s).  Exiting.\n"),
+                "hostkey");
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
+
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_time (c, "MESH", "REFRESH_PATH_TIME",
+                                           &refresh_path_time))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _
+                ("Mesh service is lacking key configuration settings (%s).  Exiting.\n"),
+                "refresh path time");
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_time (c, "MESH", "APP_ANNOUNCE_TIME",
+                                           &app_announce_time))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _
+                ("Mesh service is lacking key configuration settings (%s).  Exiting.\n"),
+                "app announce time");
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_time (c, "MESH", "ID_ANNOUNCE_TIME",
+                                           &id_announce_time))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _
+                ("Mesh service is lacking key configuration settings (%s).  Exiting.\n"),
+                "id announce time");
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_time (c, "MESH", "UNACKNOWLEDGED_WAIT",
+                                           &unacknowledged_wait_time))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _
+                ("Mesh service is lacking key configuration settings (%s).  Exiting.\n"),
+                "unacknowledged wait time");
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_time (c, "MESH", "CONNECT_TIMEOUT",
+                                           &connect_timeout))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _
+                ("Mesh service is lacking key configuration settings (%s).  Exiting.\n"),
+                "connect timeout");
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_number (c, "MESH", "DEFAULT_TTL",
+                                             &default_ttl))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _
+                ("Mesh service is lacking key configuration settings (%s). Using default (%u).\n"),
+                "default ttl", 64);
+    default_ttl = 64;
+  }
+
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_number (c, "MESH", "DHT_REPLICATION_LEVEL",
+                                             &dht_replication_level))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _
+                ("Mesh service is lacking key configuration settings (%s). Using default (%u).\n"),
+                "dht replication level", 10);
+    dht_replication_level = 10;
+  }
+
+  
   my_private_key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
   GNUNET_free (keyfile);
   if (my_private_key == NULL)
@@ -6235,6 +6323,9 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   {
     GNUNET_break (0);
   }
+
+  stats = GNUNET_STATISTICS_create ("mesh", c);
+
 
   next_tid = 0;
   next_local_tid = GNUNET_MESH_LOCAL_TUNNEL_ID_SERV;

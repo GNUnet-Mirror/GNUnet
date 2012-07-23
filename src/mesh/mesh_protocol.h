@@ -323,6 +323,7 @@ struct GNUNET_MESH_SpeedNotify
   int16_t buffering;
 
 };
+
 GNUNET_NETWORK_STRUCT_END
 
 #if 0                           /* keep Emacsens' auto-indent happy */
