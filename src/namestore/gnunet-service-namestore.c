@@ -2165,8 +2165,8 @@ zonekey_file_it (void *cls, const char *filename)
   kl->keygen = GNUNET_CRYPTO_rsa_key_create_start (filename, zonekey_it_key_cb, kl);
   if (NULL == kl->keygen)
   {
-    GNUNET_free (kl);
     GNUNET_free (kl->filename);
+    GNUNET_free (kl);
     return GNUNET_OK;
   }
 
