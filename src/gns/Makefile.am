@@ -11,6 +11,7 @@ if MINGW
   DO_W32_HELPER = gnunet-gns-helper-service-w32
   DO_W32_NSP = libw32nsp.la
   DO_W32_NSPTOOLS = w32nsp-install w32nsp-uninstall w32nsp-resolve
+  DO_W32_HS_CONF = gns-helper-service-w32.conf
 endif
 
 if USE_COVERAGE
@@ -23,7 +24,7 @@ plugindir = $(libdir)/gnunet
 
 pkgcfg_DATA = \
   gns.conf \
-  gns-helper-service-w32.conf
+  $(DO_W32_HS_CONF)
 
 lib_LTLIBRARIES = \
   $(DO_W32_NSP) \
