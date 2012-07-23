@@ -108,8 +108,6 @@ mlp_solve_to_string (int retcode)
       return "unknown error";
       break;
   }
-  GNUNET_break (0);
-  return "unknown error";
 }
 
 
@@ -145,8 +143,6 @@ mlp_status_to_string (int retcode)
       return "unknown error";
       break;
   }
-  GNUNET_break (0);
-  return "unknown error";
 }
 
 /**
@@ -191,8 +187,6 @@ mlp_ats_to_string (int ats_index)
       return "unknown";
       break;
   }
-  GNUNET_break (0);
-  return "unknown error";
 }
 
 /**
