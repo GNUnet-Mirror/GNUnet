@@ -1419,12 +1419,16 @@ GNUNET_MESH_announce_regex (struct GNUNET_MESH_Handle *h,
   msgsize = sizeof(struct GNUNET_MessageHeader) + len;
   GNUNET_assert (UINT16_MAX > msgsize);
 
-  msg = GNUNET_malloc (msgsize);
-  msg->size = htons (msgsize);
-  msg->type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_ANNOUNCE_REGEX);
-  memcpy (&msg[1], regex, len);
+  {
+    char buffer[msgsize];
 
-  send_packet(h, msg, NULL);
+    msg = (struct GNUNET_MessageHeader *) buffer;
+    msg->size = htons (msgsize);
+    msg->type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_ANNOUNCE_REGEX);
+    memcpy (&msg[1], regex, len);
+
+    send_packet(h, msg, NULL);
+  }
 }
 
 /**
