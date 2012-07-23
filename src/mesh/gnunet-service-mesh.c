@@ -4009,6 +4009,7 @@ handle_mesh_data_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "  it's for us! sending to clients...\n");
+    GNUNET_STATISTICS_update (stats, "# unicast received", 1, GNUNET_NO);
     send_subscribed_clients (message, (struct GNUNET_MessageHeader *) &msg[1]);
     return GNUNET_OK;
   }
@@ -4022,6 +4023,8 @@ handle_mesh_data_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "  not for us, retransmitting...\n");
+  GNUNET_STATISTICS_update (stats, "# unicast forwarded", 1, GNUNET_NO);
+
   send_message (message, tree_get_first_hop (t->tree, pid), t);
   return GNUNET_OK;
 }
@@ -4092,6 +4095,7 @@ handle_mesh_data_multicast (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (NULL != t->peers &&
       GNUNET_CONTAINER_multihashmap_contains (t->peers, &my_full_id.hashPubKey))
   {
+    GNUNET_STATISTICS_update (stats, "# multicast received", 1, GNUNET_NO);
     send_subscribed_clients (message, &msg[1].header);
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   ttl: %u\n", ntohl (msg->ttl));
@@ -4101,6 +4105,7 @@ handle_mesh_data_multicast (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, " TTL is 0, DROPPING!\n");
     return GNUNET_OK;
   }
+  GNUNET_STATISTICS_update (stats, "# multicast forwarded", 1, GNUNET_NO);
   tunnel_send_multicast (t, message, GNUNET_NO);
   return GNUNET_OK;
 }
@@ -4162,6 +4167,8 @@ handle_mesh_data_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
     if (NULL == t->owner)
     {
       /* got data packet for ownerless tunnel */
+      GNUNET_STATISTICS_update (stats, "# data on ownerless tunnel",
+                                1, GNUNET_NO);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  no clients!\n");
       GNUNET_break_op (0);
       return GNUNET_OK;
@@ -4170,6 +4177,7 @@ handle_mesh_data_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
     memcpy (cbuf, message, size);
     copy = (struct GNUNET_MESH_ToOrigin *) cbuf;
     copy->tid = htonl (t->local_tid);
+    GNUNET_STATISTICS_update (stats, "# to origin received", 1, GNUNET_NO);
     GNUNET_SERVER_notification_context_unicast (nc, t->owner->handle,
                                                 &copy->header, GNUNET_YES);
     return GNUNET_OK;
@@ -4186,6 +4194,7 @@ handle_mesh_data_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
   GNUNET_PEER_resolve (tree_get_predecessor (t->tree), &id);
   send_message (message, &id, t);
+  GNUNET_STATISTICS_update (stats, "# to origin forwarded", 1, GNUNET_NO);
 
   return GNUNET_OK;
 }
@@ -4788,6 +4797,7 @@ handle_local_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
     GNUNET_CONTAINER_DLL_remove (clients, clients_tail, c);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  CLIENT FREE at %p\n", c);
     GNUNET_free (c);
+    GNUNET_STATISTICS_update (stats, "# clients", -1, GNUNET_NO);
     c = next;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   done!\n");
@@ -4888,6 +4898,7 @@ handle_local_new_client (void *cls, struct GNUNET_SERVER_Client *client,
   c->incoming_tunnels = GNUNET_CONTAINER_multihashmap_create (32);
   c->ignore_tunnels = GNUNET_CONTAINER_multihashmap_create (32);
   GNUNET_SERVER_notification_context_add (nc, client);
+  GNUNET_STATISTICS_update (stats, "# clients", 1, GNUNET_NO);
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "new client processed\n");
@@ -6036,6 +6047,7 @@ core_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
   GNUNET_PEER_change_rc (myid, 1);
   GNUNET_PEER_change_rc (peer_info->id, 1);
   peer_info_add_path (peer_info, path, GNUNET_YES);
+  GNUNET_STATISTICS_update (stats, "# peers", 1, GNUNET_NO);
   return;
 }
 
@@ -6075,6 +6087,7 @@ core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
   {
     DEBUG_CONN ("     (self)\n");
   }
+  GNUNET_STATISTICS_update (stats, "# peers", -1, GNUNET_NO);
   return;
 }
 
