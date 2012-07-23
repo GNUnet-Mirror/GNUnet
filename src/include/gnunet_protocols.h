@@ -791,29 +791,9 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY         266
 
 /**
- * Set tunnel speed to slowest peer
- */
-#define GNUNET_MESSAGE_TYPE_MESH_TUNNEL_MIN             267
-
-/**
- * Set tunnel speed to fastest peer
- */
-#define GNUNET_MESSAGE_TYPE_MESH_TUNNEL_MAX             268
-
-/**
- * Set tunnel buffering on.
- */
-#define GNUNET_MESSAGE_TYPE_MESH_TUNNEL_BUFFER          269
-
-/**
- * Set tunnel buffering off.
- */
-#define GNUNET_MESSAGE_TYPE_MESH_TUNNEL_NOBUFFER        270
-
-/**
  * ACK for a data packet.
  */
-#define GNUNET_MESSAGE_TYPE_MESH_ACK                    271
+#define GNUNET_MESSAGE_TYPE_MESH_ACK                    267
 
 /**
  * Connect to the mesh service, specifying subscriptions
