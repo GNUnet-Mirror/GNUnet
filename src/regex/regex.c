@@ -1600,7 +1600,7 @@ nfa_fragment_create (struct GNUNET_REGEX_State *start,
   n->start = NULL;
   n->end = NULL;
 
-  if (NULL == start && NULL == end)
+  if (NULL == start || NULL == end)
     return n;
 
   automaton_add_state (n, end);
@@ -1813,7 +1813,7 @@ nfa_add_concatenation (struct GNUNET_REGEX_Context *ctx)
 {
   struct GNUNET_REGEX_Automaton *a;
   struct GNUNET_REGEX_Automaton *b;
-  struct GNUNET_REGEX_Automaton *new;
+  struct GNUNET_REGEX_Automaton *new_nfa;
 
   b = ctx->stack_tail;
   GNUNET_assert (NULL != b);
@@ -1826,15 +1826,15 @@ nfa_add_concatenation (struct GNUNET_REGEX_Context *ctx)
   a->end->accepting = 0;
   b->end->accepting = 1;
 
-  new = nfa_fragment_create (NULL, NULL);
-  nfa_add_states (new, a->states_head, a->states_tail);
-  nfa_add_states (new, b->states_head, b->states_tail);
-  new->start = a->start;
-  new->end = b->end;
+  new_nfa = nfa_fragment_create (NULL, NULL);
+  nfa_add_states (new_nfa, a->states_head, a->states_tail);
+  nfa_add_states (new_nfa, b->states_head, b->states_tail);
+  new_nfa->start = a->start;
+  new_nfa->end = b->end;
   automaton_fragment_clear (a);
   automaton_fragment_clear (b);
 
-  GNUNET_CONTAINER_DLL_insert_tail (ctx->stack_head, ctx->stack_tail, new);
+  GNUNET_CONTAINER_DLL_insert_tail (ctx->stack_head, ctx->stack_tail, new_nfa);
 }
 
 
@@ -1847,12 +1847,11 @@ static void
 nfa_add_star_op (struct GNUNET_REGEX_Context *ctx)
 {
   struct GNUNET_REGEX_Automaton *a;
-  struct GNUNET_REGEX_Automaton *new;
+  struct GNUNET_REGEX_Automaton *new_nfa;
   struct GNUNET_REGEX_State *start;
   struct GNUNET_REGEX_State *end;
 
   a = ctx->stack_tail;
-  GNUNET_CONTAINER_DLL_remove (ctx->stack_head, ctx->stack_tail, a);
 
   if (NULL == a)
   {
@@ -1860,6 +1859,8 @@ nfa_add_star_op (struct GNUNET_REGEX_Context *ctx)
                 "nfa_add_star_op failed, because there was no element on the stack");
     return;
   }
+
+  GNUNET_CONTAINER_DLL_remove (ctx->stack_head, ctx->stack_tail, a);
 
   start = nfa_state_create (ctx, 0);
   end = nfa_state_create (ctx, 1);
@@ -1872,11 +1873,11 @@ nfa_add_star_op (struct GNUNET_REGEX_Context *ctx)
   a->end->accepting = 0;
   end->accepting = 1;
 
-  new = nfa_fragment_create (start, end);
-  nfa_add_states (new, a->states_head, a->states_tail);
+  new_nfa = nfa_fragment_create (start, end);
+  nfa_add_states (new_nfa, a->states_head, a->states_tail);
   automaton_fragment_clear (a);
 
-  GNUNET_CONTAINER_DLL_insert_tail (ctx->stack_head, ctx->stack_tail, new);
+  GNUNET_CONTAINER_DLL_insert_tail (ctx->stack_head, ctx->stack_tail, new_nfa);
 }
 
 
@@ -1908,19 +1909,20 @@ static void
 nfa_add_question_op (struct GNUNET_REGEX_Context *ctx)
 {
   struct GNUNET_REGEX_Automaton *a;
-  struct GNUNET_REGEX_Automaton *new;
+  struct GNUNET_REGEX_Automaton *new_nfa;
   struct GNUNET_REGEX_State *start;
   struct GNUNET_REGEX_State *end;
 
   a = ctx->stack_tail;
-  GNUNET_CONTAINER_DLL_remove (ctx->stack_head, ctx->stack_tail, a);
-
+  
   if (NULL == a)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "nfa_add_question_op failed, because there was no element on the stack");
     return;
   }
+
+  GNUNET_CONTAINER_DLL_remove (ctx->stack_head, ctx->stack_tail, a);
 
   start = nfa_state_create (ctx, 0);
   end = nfa_state_create (ctx, 1);
@@ -1931,11 +1933,11 @@ nfa_add_question_op (struct GNUNET_REGEX_Context *ctx)
 
   a->end->accepting = 0;
 
-  new = nfa_fragment_create (start, end);
-  nfa_add_states (new, a->states_head, a->states_tail);
+  new_nfa = nfa_fragment_create (start, end);
+  nfa_add_states (new_nfa, a->states_head, a->states_tail);
   automaton_fragment_clear (a);
 
-  GNUNET_CONTAINER_DLL_insert_tail (ctx->stack_head, ctx->stack_tail, new);
+  GNUNET_CONTAINER_DLL_insert_tail (ctx->stack_head, ctx->stack_tail, new_nfa);
 }
 
 
@@ -1950,7 +1952,7 @@ nfa_add_alternation (struct GNUNET_REGEX_Context *ctx)
 {
   struct GNUNET_REGEX_Automaton *a;
   struct GNUNET_REGEX_Automaton *b;
-  struct GNUNET_REGEX_Automaton *new;
+  struct GNUNET_REGEX_Automaton *new_nfa;
   struct GNUNET_REGEX_State *start;
   struct GNUNET_REGEX_State *end;
 
@@ -1973,13 +1975,13 @@ nfa_add_alternation (struct GNUNET_REGEX_Context *ctx)
   b->end->accepting = 0;
   end->accepting = 1;
 
-  new = nfa_fragment_create (start, end);
-  nfa_add_states (new, a->states_head, a->states_tail);
-  nfa_add_states (new, b->states_head, b->states_tail);
+  new_nfa = nfa_fragment_create (start, end);
+  nfa_add_states (new_nfa, a->states_head, a->states_tail);
+  nfa_add_states (new_nfa, b->states_head, b->states_tail);
   automaton_fragment_clear (a);
   automaton_fragment_clear (b);
 
-  GNUNET_CONTAINER_DLL_insert_tail (ctx->stack_head, ctx->stack_tail, new);
+  GNUNET_CONTAINER_DLL_insert_tail (ctx->stack_head, ctx->stack_tail, new_nfa);
 }
 
 
@@ -2137,6 +2139,7 @@ GNUNET_REGEX_construct_nfa (const char *regex, const size_t len)
     case 92:                   /* escape: \ */
       regexp++;
       count++;
+      /* fall through! */
     default:
       if (atomcount > 1)
       {
