@@ -313,16 +313,16 @@ struct MeshTunnel
   int speed_min;
 
     /**
-     * Is buffering allowed in the tunnel?
+     * Is the tunnel bufferless (minimum latency)?
      */
-  int buffering;
+  int nobuffer;
 
-  /**
+    /**
      * Flag to signal the destruction of the tunnel.
      * If this is set GNUNET_YES the tunnel will be destroyed
      * when the queue is empty.
      */
-   int destroy;
+  int destroy;
 
     /**
      * Last time the tunnel was used
@@ -3265,6 +3265,7 @@ send_core_path_create (void *cls, size_t size, void *buf)
   struct MeshTunnel *t = info->t;
   struct MeshPeerPath *p = info->path;
   size_t size_needed;
+  uint32_t opt;
   int i;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "CREATE PATH sending...\n");
@@ -3281,6 +3282,12 @@ send_core_path_create (void *cls, size_t size, void *buf)
   msg->header.size = htons (size_needed);
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE);
   msg->tid = ntohl (t->id.tid);
+
+  if (GNUNET_YES == t->speed_min)
+    opt = MESH_TUNNEL_OPT_SPEED_MIN;
+  if (GNUNET_YES == t->nobuffer)
+    opt |= MESH_TUNNEL_OPT_NOBUFFER;
+  msg->opt = htonl(opt);
 
   peer_ptr = (struct GNUNET_PeerIdentity *) &msg[1];
   for (i = 0; i < p->length; i++)
@@ -3655,8 +3662,15 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
   t = tunnel_get (pi, tid);
   if (NULL == t) // FIXME only for INCOMING tunnels?
   {
+    uint32_t opt;
+
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Creating tunnel\n");
     t = tunnel_new (GNUNET_PEER_intern (pi), tid, NULL, 0);
+    opt = ntohl (msg->opt);
+    t->speed_min = (0 != (opt & MESH_TUNNEL_OPT_SPEED_MIN)) ?
+                   GNUNET_YES : GNUNET_NO;
+    t->nobuffer = (0 != (opt & MESH_TUNNEL_OPT_NOBUFFER)) ?
+                  GNUNET_YES : GNUNET_NO;;
 
     while (NULL != tunnel_get_incoming (next_local_tid))
       next_local_tid = (next_local_tid + 1) | GNUNET_MESH_LOCAL_TUNNEL_ID_SERV;
@@ -5191,14 +5205,15 @@ handle_local_tunnel_buffer (void *cls, struct GNUNET_SERVER_Client *client,
   switch (ntohs(message->type))
   {
       case GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_BUFFER:
-          t->buffering = GNUNET_YES;
+          t->nobuffer = GNUNET_NO;
           break;
       case GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_NOBUFFER:
-          t->buffering = GNUNET_NO;
+          t->nobuffer = GNUNET_YES;
           break;
       default:
           GNUNET_break (0);
   }
+
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 

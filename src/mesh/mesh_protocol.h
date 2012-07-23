@@ -35,6 +35,10 @@ extern "C"
 #endif
 #endif
 
+#define MESH_TUNNEL_OPT_SPEED_MIN       0x1
+#define MESH_TUNNEL_OPT_NOBUFFER        0x2
+
+
 /******************************************************************************/
 /********************      MESH NETWORK MESSAGES     **************************/
 /******************************************************************************/
@@ -47,7 +51,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
 struct GNUNET_MESH_ManipulatePath
 {
     /**
-     * Type: GNUNET_MESSAGE_TYPE_MESH_PATH_[CREATE|CHANGE|ADD|DEL]
+     * Type: GNUNET_MESSAGE_TYPE_MESH_PATH_[CREATE|CHANGE|ADD|DESTROY]
      *
      * Size: sizeof(struct GNUNET_MESH_ManipulatePath) +
      *       path_length * sizeof (struct GNUNET_PeerIdentity)
@@ -59,6 +63,16 @@ struct GNUNET_MESH_ManipulatePath
      * unique in conjunction with the origin.
      */
   uint32_t tid GNUNET_PACKED;
+
+    /**
+     * Tunnel options (MESH_TUNNEL_OPT_*).
+     */
+  uint32_t opt GNUNET_PACKED;
+
+    /**
+     * 64 bit alignment padding.
+     */
+  uint32_t reserved GNUNET_PACKED;
 
     /**
      * path_length structs defining the *whole* path from the origin [0] to the
@@ -291,38 +305,6 @@ struct GNUNET_MESH_TunnelDestroy
   /* TODO: signature */
 };
 
-
-/**
- * Message for mesh flow control
- */
-struct GNUNET_MESH_SpeedNotify
-{
-    /**
-     * Type: GNUNET_MESSAGE_TYPE_DATA_SPEED_NOTIFY
-     */
-  struct GNUNET_MessageHeader header;
-
-    /**
-     * TID of the tunnel
-     */
-  uint32_t tid GNUNET_PACKED;
-
-    /**
-     * OID of the tunnel
-     */
-  struct GNUNET_PeerIdentity oid;
-
-    /**
-     * Is the speed limited by the slowest peer?.
-     */
-  int16_t speed_min;
-
-    /**
-     * Is the buffering allowed?.
-     */
-  int16_t buffering;
-
-};
 
 GNUNET_NETWORK_STRUCT_END
 
