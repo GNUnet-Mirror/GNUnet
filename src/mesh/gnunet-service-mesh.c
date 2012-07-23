@@ -2892,6 +2892,7 @@ tunnel_send_multicast_iterator (void *cls, GNUNET_PEER_Id neighbor_id)
             mdata->t);
 }
 
+
 /**
  * Send a message in a tunnel in multicast, sending a copy to each child node
  * down the local one in the tunnel tree.
@@ -2960,6 +2961,33 @@ tunnel_send_multicast (struct MeshTunnel *t,
 
 
 /**
+ * Send an ACK informing the predecessor about the available buffer space.
+ * 
+ * @param t Tunnel on which to send the ACK.
+ */
+static void
+tunnel_send_ack (struct MeshTunnel *t)
+{
+  struct GNUNET_MESH_ACK msg;
+  struct GNUNET_PeerIdentity id;
+  uint32_t count;
+  uint32_t buffer_free;
+
+  msg.header.size = htons (sizeof (msg));
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_ACK);
+  msg.tid = htonl (t->id.tid);
+  GNUNET_PEER_resolve(t->id.oid, &msg.oid);
+  count = t->pid - t->skip;
+  buffer_free = t->queue_max - t->queue_n;
+  msg.pid = htonl (count + buffer_free);
+
+  GNUNET_PEER_resolve (tree_get_predecessor (t->tree), &id);
+
+  send_message (&msg.header, &id, t);
+}
+
+
+/**
  * Send a message to all peers in this tunnel that the tunnel is no longer
  * valid.
  *
@@ -2976,6 +3004,7 @@ tunnel_send_destroy (struct MeshTunnel *t)
   msg.tid = htonl (t->id.tid);
   tunnel_send_multicast (t, &msg.header, GNUNET_NO);
 }
+
 
 /**
  * Cancel all transmissions towards a neighbor that belong to a certain tunnel.
@@ -3487,16 +3516,21 @@ queue_send (void *cls, size_t size, void *buf)
     }
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********   size ok\n");
 
+    t = queue->tunnel;
+    t->queue_n--;
+
     /* Fill buf */
     switch (queue->type)
     {
         case GNUNET_MESSAGE_TYPE_MESH_UNICAST:
             GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********   unicast\n");
             data_size = send_core_data_raw (queue->cls, size, buf);
+            // tunnel_send_ack (t); FIXME: might be not real unicast!
             break;
         case GNUNET_MESSAGE_TYPE_MESH_MULTICAST:
             GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********   multicast\n");
             data_size = send_core_data_multicast(queue->cls, size, buf);
+            tunnel_send_ack (t); // FIXME max speed behavior. implement min!!
             break;
         case GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE:
             GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********   path create\n");
@@ -3511,9 +3545,6 @@ queue_send (void *cls, size_t size, void *buf)
             GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********   type unknown\n");
             data_size = 0;
     }
-
-    t = queue->tunnel;
-    t->queue_n--;
 
     /* Free queue, but cls was freed by send_core_* */
     queue_destroy(queue, GNUNET_NO);
@@ -4025,6 +4056,7 @@ handle_mesh_data_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
                 "  it's for us! sending to clients...\n");
     GNUNET_STATISTICS_update (stats, "# unicast received", 1, GNUNET_NO);
     send_subscribed_clients (message, (struct GNUNET_MessageHeader *) &msg[1]);
+    tunnel_send_ack (t); // FIXME send after client processes the packet
     return GNUNET_OK;
   }
   ttl = ntohl (msg->ttl);

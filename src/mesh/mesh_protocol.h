@@ -210,13 +210,10 @@ struct GNUNET_MESH_ACK
   struct GNUNET_PeerIdentity oid;
 
     /**
-     * Sender of the message.
+     * Maximum packet ID authorized.
      */
-  struct GNUNET_PeerIdentity sender;
+  uint32_t pid;
 
-    /**
-     * Payload follows
-     */
 };
 
 /**
