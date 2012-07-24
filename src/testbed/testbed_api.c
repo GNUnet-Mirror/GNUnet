@@ -396,6 +396,93 @@ handle_peer_event (struct GNUNET_TESTBED_Controller *c,
 
 
 /**
+ * Handler for GNUNET_MESSAGE_TYPE_TESTBED_PEERCONFIG message from
+ * controller (testbed service)
+ *
+ * @param c the controller handler
+ * @param msg message received
+ * @return GNUNET_YES if we can continue receiving from service; GNUNET_NO if
+ *           not
+ */
+static int
+handle_peer_config (struct GNUNET_TESTBED_Controller *c,
+		    const struct GNUNET_TESTBED_PeerConfigurationInformationMessage *msg)
+{
+  struct GNUNET_TESTBED_Operation *op;
+  struct GNUNET_TESTBED_Peer *peer;
+  struct GNUNET_TESTBED_EventInformation info;
+  uint64_t op_id;
+  
+  op_id = GNUNET_ntohll (msg->operation_id);
+  for (op = c->op_head; NULL != op; op = op->next)
+  {
+    if (op->operation_id == op_id)
+      break;
+  }
+  if (NULL == op)
+  {
+    LOG_DEBUG ("Operation not found");
+    return GNUNET_YES;
+  }
+  peer = op->data;  
+  GNUNET_assert (NULL != peer);
+  GNUNET_assert (ntohl (msg->peer_id) == peer->unique_id);
+  if (0 == (c->event_mask & (1L << GNUNET_TESTBED_ET_OPERATION_FINISHED)))
+  {
+    GNUNET_CONTAINER_DLL_remove (c->op_head, c->op_tail, op);
+    GNUNET_free (op);
+    return GNUNET_YES;
+  }
+  info.type = GNUNET_TESTBED_ET_OPERATION_FINISHED;
+  info.details.operation_finished.operation = op;
+  info.details.operation_finished.op_cls = NULL;
+  info.details.operation_finished.emsg = NULL;
+  info.details.operation_finished.pit = op->operation_id;
+  switch (op->operation_id)
+  {
+  case GNUNET_TESTBED_PIT_IDENTITY:
+    {
+      struct GNUNET_PeerIdentity *peer_identity;
+
+      peer_identity = GNUNET_malloc (sizeof (struct GNUNET_PeerIdentity));
+      (void) memcpy (peer_identity, &msg->peer_identity, sizeof (struct GNUNET_PeerIdentity));
+      info.details.operation_finished.op_result.pid = peer_identity;
+    }
+    break;
+  case GNUNET_TESTBED_PIT_CONFIGURATION:
+    {
+      struct GNUNET_CONFIGURATION_Handle *cfg;
+      char *config;
+      uLong config_size;
+      int ret;
+      uint16_t msize;
+      
+      config_size = (uLong) ntohs (msg->config_size);
+      config = GNUNET_malloc (config_size);
+      msize = ntohs (msg->header.size);
+      msize -= sizeof (struct GNUNET_TESTBED_PeerConfigurationInformationMessage);
+      if (Z_OK != (ret = uncompress ((Bytef *) config, &config_size,
+				     (const Bytef *) &msg[1], (uLong) msize)))
+	GNUNET_assert (0);
+      cfg = GNUNET_CONFIGURATION_create ();
+      GNUNET_assert (GNUNET_OK == 
+		     GNUNET_CONFIGURATION_deserialize (cfg, config,
+						       (size_t) config_size, GNUNET_NO));
+      info.details.operation_finished.op_result.cfg = cfg;
+    }
+    break;
+  case GNUNET_TESTBED_PIT_GENERIC:
+    GNUNET_assert (0);		/* never reach here */
+    break;
+  }
+  c->cc (c->cc_cls, &info);
+  GNUNET_CONTAINER_DLL_remove (c->op_head, c->op_tail, op);
+  GNUNET_free (op);
+  return GNUNET_YES;
+}
+
+
+/**
  * Handler for messages from controller (testbed service)
  *
  * @param cls the controller handler
@@ -437,6 +524,10 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     status =
       handle_peer_event (c, (const struct GNUNET_TESTBED_PeerEventMessage *) msg);
     break;
+  case GNUNET_MESSAGE_TYPE_TESTBED_PEERCONFIG:
+    status = 
+      handle_peer_config 
+      (c, (const struct GNUNET_TESTBED_PeerConfigurationInformationMessage *) msg);
   default:
     GNUNET_break (0);
   }
