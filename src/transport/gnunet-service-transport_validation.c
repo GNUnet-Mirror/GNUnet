@@ -34,7 +34,7 @@
 #include "gnunet_peerinfo_service.h"
 #include "gnunet_signatures.h"
 
-#define KEEP_093_COMPATIBILITY GNUNET_YES
+#define KEEP_093_COMPATIBILITY GNUNET_NO
 
 /**
  * How long is a PONG signature valid?  We'll recycle a signature until
@@ -885,6 +885,11 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
     sig_cache_exp = &no_address_signature_expiration;
   }
 
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "I am `%s', sending PONG to peer `%s'\n",
+	      GNUNET_h2s (&GST_my_identity.hashPubKey),
+              GNUNET_i2s (sender));
+
   pong = GNUNET_malloc (sizeof (struct TransportPongMessage) + alen + slen);
   pong->header.size =
       htons (sizeof (struct TransportPongMessage) + alen + slen);
@@ -1134,6 +1139,10 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
                                 &ve->public_key))
   {
     GNUNET_break_op (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		"Invalid signature on address %s:%s from peer `%s'\n",
+		tname, GST_plugins_a2s (ve->address),
+		GNUNET_i2s (sender));
     return;
   }
 

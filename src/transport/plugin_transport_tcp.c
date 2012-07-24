@@ -487,8 +487,9 @@ plugin_tcp_access_check (void *cls,
 {
   struct Plugin *plugin = cls;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Accepting new incoming TCP connection\n");
+  LOG (GNUNET_ERROR_TYPE_ERROR,
+       "Accepting new incoming TCP connection from `%s'\n",
+       GNUNET_a2s (addr, addrlen));
   if (0 == plugin->max_connections)
     return GNUNET_NO;
   plugin->max_connections--;
