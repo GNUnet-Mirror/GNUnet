@@ -103,6 +103,7 @@ GNUNET_TESTBED_peer_create_with_id_ (uint32_t unique_id,
   data->cls = cls;
   data->peer = peer;
   op = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Operation));
+  op->controller = controller;
   op->operation_id = controller->operation_counter++;
   op->type = OP_PEER_CREATE;
   op->data = data;
@@ -185,6 +186,7 @@ GNUNET_TESTBED_peer_start (struct GNUNET_TESTBED_Peer *peer)
 
   op = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Operation));
   op->operation_id = peer->controller->operation_counter++;
+  op->controller = peer->controller;
   op->type = OP_PEER_START;
   op->data = peer;
   msg = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_PeerStartMessage));
@@ -215,6 +217,7 @@ GNUNET_TESTBED_peer_stop (struct GNUNET_TESTBED_Peer *peer)
 
   op = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Operation));
   op->operation_id = peer->controller->operation_counter++;
+  op->controller = peer->controller;
   op->type = OP_PEER_STOP;
   op->data = peer;
   msg = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_PeerStopMessage));
@@ -251,6 +254,7 @@ GNUNET_TESTBED_peer_get_information (struct GNUNET_TESTBED_Peer *peer,
   op = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Operation));
   op->type = OP_PEER_INFO;
   op->operation_id = peer->controller->operation_counter++;
+  op->controller = peer->controller;
   op->data = data;
   msg = GNUNET_malloc (sizeof (struct
                                GNUNET_TESTBED_PeerGetConfigurationMessage));
@@ -304,6 +308,7 @@ GNUNET_TESTBED_peer_destroy (struct GNUNET_TESTBED_Peer *peer)
   data->peer = peer;
   op = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Operation));
   op->operation_id = peer->controller->operation_counter++;
+  op->controller = peer->controller;
   op->type = OP_PEER_DESTROY;
   op->data = data;
   msg = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_PeerDestroyMessage));

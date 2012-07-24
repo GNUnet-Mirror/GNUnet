@@ -76,6 +76,11 @@ struct GNUNET_TESTBED_Operation
   struct GNUNET_TESTBED_Operation *prev;
 
   /**
+   * The controller on which this operation operates
+   */
+  struct GNUNET_TESTBED_Controller *controller;
+
+  /**
    * The ID for the operation;
    */
   uint64_t operation_id;

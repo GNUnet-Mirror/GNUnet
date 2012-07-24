@@ -146,49 +146,12 @@ GNUNET_TESTBED_operation_queue_remove_ (struct OperationQueue *queue,
  *
  * @param operation operation that finished
  */
-static void
-operation_release (struct GNUNET_TESTBED_Operation *operation)
+void
+operation_release_ (struct GNUNET_TESTBED_Operation *operation)
 {
   // call operation->release, remove from queues
   GNUNET_break (0);
 }
-
-
-/**
- * Cancel a pending operation.  Releases all resources
- * of the operation and will ensure that no event
- * is generated for the operation.  Does NOT guarantee
- * that the operation will be fully undone (or that
- * nothing ever happened).  
- * 
- * @param operation operation to cancel
- */
-void
-GNUNET_TESTBED_operation_cancel (struct GNUNET_TESTBED_Operation *operation)
-{
-  // test that operation had not yet generated an event
-  GNUNET_break (0);
-  operation_release (operation);
-}
-
-
-/**
- * Signal that the information from an operation has been fully
- * processed.  This function MUST be called for each event
- * of type 'operation_finished' to fully remove the operation
- * from the operation queue.  After calling this function, the
- * 'op_result' becomes invalid (!).
- * 
- * @param operation operation to signal completion for
- */
-void
-GNUNET_TESTBED_operation_done (struct GNUNET_TESTBED_Operation *operation)
-{
-  // test that operation was started and had generated an event
-  GNUNET_break (0);
-  operation_release (operation);
-}
-
 
 
 /* end of testbed_api_operations.c */

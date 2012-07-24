@@ -180,6 +180,7 @@ controller_cb(void *cls, const struct GNUNET_TESTBED_EventInformation *event)
 		     event->details.operation_finished.pit);
       GNUNET_assert (NULL != event->details.operation_finished.op_result.cfg);
       sub_test = PEER_DESTROY;
+      GNUNET_TESTBED_operation_done (operation);
       operation = GNUNET_TESTBED_peer_destroy (peer);
       break;
     case PEER_DESTROY:
@@ -190,6 +191,7 @@ controller_cb(void *cls, const struct GNUNET_TESTBED_EventInformation *event)
 		     event->details.operation_finished.pit);
       GNUNET_assert (NULL ==
 		     event->details.operation_finished.op_result.generic); 
+      GNUNET_TESTBED_operation_done (operation);
       GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
       break;
     case OTHER:
@@ -200,12 +202,14 @@ controller_cb(void *cls, const struct GNUNET_TESTBED_EventInformation *event)
   case GNUNET_TESTBED_ET_PEER_START:
     GNUNET_assert (event->details.peer_start.host == host);
     GNUNET_assert (event->details.peer_start.peer == peer);
+    GNUNET_TESTBED_operation_done (operation);
     operation = GNUNET_TESTBED_peer_stop (peer);
     break;
   case GNUNET_TESTBED_ET_PEER_STOP:
     GNUNET_assert (event->details.peer_stop.peer == peer);    
     result = GNUNET_YES;
     sub_test = PEER_GETCONFIG;
+    GNUNET_TESTBED_operation_done (operation);
     operation = 
       GNUNET_TESTBED_peer_get_information (peer,
 					   GNUNET_TESTBED_PIT_CONFIGURATION);
@@ -235,6 +239,7 @@ peer_create_cb (void *cls,
   GNUNET_assert (NULL != peer);
   GNUNET_assert (NULL != peer_ptr);
   *peer_ptr = peer;
+  GNUNET_TESTBED_operation_done (operation);
   operation = GNUNET_TESTBED_peer_start (peer);
   GNUNET_assert (NULL != operation);
 }

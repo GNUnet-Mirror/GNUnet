@@ -128,5 +128,15 @@ GNUNET_TESTBED_operation_create_ (void *cls,
 				  ...);
 
 
+/**
+ * An operation is 'done' (was cancelled or finished); remove
+ * it from the queues and release associated resources.
+ *
+ * @param operation operation that finished
+ */
+void
+operation_release_ (struct GNUNET_TESTBED_Operation *operation);
+
+
 #endif
 /* end of testbed_api_operations.h */
