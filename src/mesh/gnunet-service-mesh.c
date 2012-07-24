@@ -298,6 +298,16 @@ struct MeshTunnel
   uint32_t skip;
 
     /**
+     * MeshTunnelChildInfo of all children, indexed by GNUNET_PEER_Id.
+     */
+  struct GNUNET_CONTAINER_MultiHashMap *children_fc;
+
+    /**
+     * Maximum child ACK.
+     */
+  uint32_t max_child_ack;
+
+    /**
      * How many messages are in the queue.
      */
   unsigned int queue_n;
@@ -419,6 +429,32 @@ struct MeshTunnel
   GNUNET_SCHEDULER_TaskIdentifier timeout_task;
 };
 
+
+/**
+ * Info about a child node in a tunnel, needed to perform flow control.
+ */
+struct MeshTunnelChildInfo
+{
+    /**
+     * ID of the child node.
+     */
+  GNUNET_PEER_Id id;
+
+    /**
+     * SKIP value
+     */
+  uint32_t skip;
+
+    /**
+     * Last sent PID.
+     */
+  uint32_t pid;
+
+    /**
+     * Maximum PID allowed.
+     */
+  uint32_t max_pid;
+};
 
 /**
  * Info needed to work with tunnel paths and peers
@@ -2697,6 +2733,25 @@ tunnel_delete_client (struct MeshTunnel *t, const struct MeshClient *c)
 
 
 /**
+ * Iterator to free MeshTunnelChildInfo of tunnel children.
+ *
+ * @param cls Closure (tunnel info).
+ * @param key Hash of GNUNET_PEER_Id (unused).
+ * @param value MeshTunnelChildInfo of the child.
+ *
+ * @return always GNUNET_YES, to keep iterating
+ */
+static int
+tunnel_destroy_child (void *cls,
+                      const struct GNUNET_HashCode * key,
+                      void *value)
+{
+  GNUNET_free (value);
+  return GNUNET_YES;
+}
+
+
+/**
  * Callback used to notify a client owner of a tunnel that a peer has
  * disconnected, most likely because of a path change.
  *
@@ -2961,6 +3016,71 @@ tunnel_send_multicast (struct MeshTunnel *t,
 
 
 /**
+ * Iterator to get the appropiate ACK value from all children nodes
+ */
+static void
+tunnel_get_child_ack (void *cls,
+                      GNUNET_PEER_Id id)
+{
+  struct GNUNET_PeerIdentity peer_id;
+  struct MeshTunnelChildInfo *cinfo;
+  struct MeshTunnel *t = cls;
+  uint32_t ack;
+
+  GNUNET_PEER_resolve (id, &peer_id);
+  cinfo = GNUNET_CONTAINER_multihashmap_get (t->children_fc,
+                                             &peer_id.hashPubKey);
+  if (NULL == cinfo)
+  {
+    cinfo = GNUNET_malloc (sizeof (struct MeshTunnelChildInfo));
+    cinfo->id = id;
+    cinfo->pid = t->pid;
+    cinfo->skip = t->pid;
+    cinfo->max_pid = ack =  t->pid + 1;
+    GNUNET_assert (GNUNET_OK ==
+                   GNUNET_CONTAINER_multihashmap_put(t->children_fc,
+                                                     &peer_id.hashPubKey,
+                                                     cinfo,
+                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
+  }
+  else
+  {
+    ack = cinfo->max_pid;
+  }
+
+  if (0 == t->max_child_ack)
+    t->max_child_ack = ack;
+
+  if (GNUNET_YES == t->speed_min)
+  {
+    t->max_child_ack = t->max_child_ack > ack ? ack : t->max_child_ack;
+  }
+  else
+  {
+    t->max_child_ack = t->max_child_ack > ack ? t->max_child_ack : ack;
+  }
+
+}
+
+
+/**
+ * Get the maximum PID allowed to transmit to any
+ * tunnel child of the local peer.
+ *
+ * @param t Tunnel.
+ *
+ * @return Maximum PID allowed.
+ */
+static uint32_t
+tunnel_get_children_ack (struct MeshTunnel *t)
+{
+  t->max_child_ack = 0;
+  tree_iterate_children (t->tree, tunnel_get_child_ack, t);
+  return t->max_child_ack;
+}
+
+
+/**
  * Send an ACK informing the predecessor about the available buffer space.
  * 
  * @param t Tunnel on which to send the ACK.
@@ -2972,6 +3092,8 @@ tunnel_send_ack (struct MeshTunnel *t)
   struct GNUNET_PeerIdentity id;
   uint32_t count;
   uint32_t buffer_free;
+  uint32_t child_ack;
+  uint32_t ack;
 
   if (t->queue_max > t->queue_n * 2)
     return;
@@ -2982,7 +3104,18 @@ tunnel_send_ack (struct MeshTunnel *t)
   GNUNET_PEER_resolve(t->id.oid, &msg.oid);
   count = t->pid - t->skip;
   buffer_free = t->queue_max - t->queue_n;
-  msg.pid = htonl (count + buffer_free);
+  ack = count + buffer_free;
+  child_ack = tunnel_get_children_ack (t);
+
+  if (GNUNET_YES == t->speed_min)
+  {
+    ack = child_ack > ack ? ack : child_ack;
+  }
+  else
+  {
+    ack = child_ack > ack ? child_ack : ack;
+  }
+  msg.pid = htonl (ack);
 
   GNUNET_PEER_resolve (tree_get_predecessor (t->tree), &id);
 
@@ -3121,6 +3254,11 @@ tunnel_destroy (struct MeshTunnel *t)
     GNUNET_CONTAINER_multihashmap_destroy (t->peers);
   }
 
+  GNUNET_CONTAINER_multihashmap_iterate (t->children_fc,
+                                         &tunnel_destroy_child,
+                                         t);
+  GNUNET_CONTAINER_multihashmap_destroy (t->children_fc);
+
   tree_destroy (t->tree);
 
   if (NULL != t->regex_ctx)
@@ -3162,6 +3300,7 @@ tunnel_new (GNUNET_PEER_Id owner,
   t->tree = tree_new (owner);
   t->owner = client;
   t->local_tid = local;
+  t->children_fc = GNUNET_CONTAINER_multihashmap_create (8);
 
   GNUNET_CRYPTO_hash (&t->id, sizeof (struct MESH_TunnelID), &hash);
   if (GNUNET_OK !=
