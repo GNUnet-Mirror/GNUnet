@@ -410,6 +410,7 @@ handle_peer_config (struct GNUNET_TESTBED_Controller *c,
 {
   struct GNUNET_TESTBED_Operation *op;
   struct GNUNET_TESTBED_Peer *peer;
+  struct PeerInfoData *data;
   struct GNUNET_TESTBED_EventInformation info;
   uint64_t op_id;
   
@@ -424,12 +425,15 @@ handle_peer_config (struct GNUNET_TESTBED_Controller *c,
     LOG_DEBUG ("Operation not found");
     return GNUNET_YES;
   }
-  peer = op->data;  
+  data = op->data;
+  GNUNET_assert (NULL != data);
+  peer = data->peer;
   GNUNET_assert (NULL != peer);
   GNUNET_assert (ntohl (msg->peer_id) == peer->unique_id);
   if (0 == (c->event_mask & (1L << GNUNET_TESTBED_ET_OPERATION_FINISHED)))
   {
     GNUNET_CONTAINER_DLL_remove (c->op_head, c->op_tail, op);
+    GNUNET_free (data);
     GNUNET_free (op);
     return GNUNET_YES;
   }
@@ -437,8 +441,8 @@ handle_peer_config (struct GNUNET_TESTBED_Controller *c,
   info.details.operation_finished.operation = op;
   info.details.operation_finished.op_cls = NULL;
   info.details.operation_finished.emsg = NULL;
-  info.details.operation_finished.pit = op->operation_id;
-  switch (op->operation_id)
+  info.details.operation_finished.pit = data->pit;
+  switch (data->pit)
   {
   case GNUNET_TESTBED_PIT_IDENTITY:
     {
@@ -467,7 +471,9 @@ handle_peer_config (struct GNUNET_TESTBED_Controller *c,
       cfg = GNUNET_CONFIGURATION_create ();
       GNUNET_assert (GNUNET_OK == 
 		     GNUNET_CONFIGURATION_deserialize (cfg, config,
-						       (size_t) config_size, GNUNET_NO));
+						       (size_t) config_size,
+						       GNUNET_NO));
+      GNUNET_free (config);
       info.details.operation_finished.op_result.cfg = cfg;
     }
     break;
@@ -477,6 +483,7 @@ handle_peer_config (struct GNUNET_TESTBED_Controller *c,
   }
   c->cc (c->cc_cls, &info);
   GNUNET_CONTAINER_DLL_remove (c->op_head, c->op_tail, op);
+  GNUNET_free (data);
   GNUNET_free (op);
   return GNUNET_YES;
 }

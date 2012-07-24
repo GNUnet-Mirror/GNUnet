@@ -94,6 +94,32 @@ static int result;
 
 
 /**
+ * Enumeration of sub testcases
+ */
+enum Test
+  {
+    /**
+     * Test cases which are not covered by the below ones
+     */
+    OTHER,
+
+    /**
+     * Test where we get a peer config from controller
+     */
+    PEER_GETCONFIG,
+
+    /**
+     * Test where we get a peer's identity from controller
+     */
+    PEER_DESTROY,
+  };
+
+/**
+ * Testing status
+ */
+static enum Test sub_test;
+
+/**
  * Shutdown nicely
  *
  * @param cls NULL
@@ -102,6 +128,7 @@ static int result;
 static void
 do_shutdown (void *cls, const const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Shutting down...\n");
   if (GNUNET_SCHEDULER_NO_TASK != abort_task)
     GNUNET_SCHEDULER_cancel (abort_task);
   if (NULL != reg_handle)
@@ -143,12 +170,32 @@ controller_cb(void *cls, const struct GNUNET_TESTBED_EventInformation *event)
   switch (event->type)
   {
   case GNUNET_TESTBED_ET_OPERATION_FINISHED:
-    GNUNET_assert (event->details.operation_finished.operation == operation);
-    GNUNET_assert (NULL == event->details.operation_finished.op_cls);
-    GNUNET_assert (NULL == event->details.operation_finished.emsg);
-    GNUNET_assert (GNUNET_TESTBED_PIT_GENERIC ==
-		   event->details.operation_finished.pit);
-    GNUNET_assert (NULL == event->details.operation_finished.op_result.generic);
+    switch(sub_test)
+    {
+    case PEER_GETCONFIG:
+      GNUNET_assert (event->details.operation_finished.operation == operation);
+      GNUNET_assert (NULL == event->details.operation_finished.op_cls);
+      GNUNET_assert (NULL == event->details.operation_finished.emsg);
+      GNUNET_assert (GNUNET_TESTBED_PIT_CONFIGURATION ==
+		     event->details.operation_finished.pit);
+      GNUNET_assert (NULL != event->details.operation_finished.op_result.cfg);
+      sub_test = PEER_DESTROY;
+      operation = GNUNET_TESTBED_peer_destroy (peer);
+      break;
+    case PEER_DESTROY:
+      GNUNET_assert (event->details.operation_finished.operation == operation);
+      GNUNET_assert (NULL == event->details.operation_finished.op_cls);
+      GNUNET_assert (NULL == event->details.operation_finished.emsg);
+      GNUNET_assert (GNUNET_TESTBED_PIT_GENERIC ==
+		     event->details.operation_finished.pit);
+      GNUNET_assert (NULL ==
+		     event->details.operation_finished.op_result.generic); 
+      GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+      break;
+    case OTHER:
+      GNUNET_assert (0);
+      break;
+    }    
     break;
   case GNUNET_TESTBED_ET_PEER_START:
     GNUNET_assert (event->details.peer_start.host == host);
@@ -157,8 +204,11 @@ controller_cb(void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     break;
   case GNUNET_TESTBED_ET_PEER_STOP:
     GNUNET_assert (event->details.peer_stop.peer == peer);    
-    result = GNUNET_YES;  
-    GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+    result = GNUNET_YES;
+    sub_test = PEER_GETCONFIG;
+    operation = 
+      GNUNET_TESTBED_peer_get_information (peer,
+					   GNUNET_TESTBED_PIT_CONFIGURATION);
     break;
   default:
     GNUNET_assert (0);		/* We should never reach this state */

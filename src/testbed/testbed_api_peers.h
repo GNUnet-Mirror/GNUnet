@@ -116,6 +116,23 @@ struct PeerDestroyData
 
 
 /**
+ * Data for the OperationType OP_PEER_INFO
+ */
+struct PeerInfoData
+{
+  /**
+   * The peer whose information has been requested
+   */
+  struct GNUNET_TESTBED_Peer *peer;
+  
+  /**
+   * The type of peer information requested
+   */
+  enum GNUNET_TESTBED_PeerInformationType pit;
+};
+
+
+/**
  * Create the given peer at the specified host using the given
  * controller.  If the given controller is not running on the target
  * host, it should find or create a controller at the target host and

@@ -242,12 +242,16 @@ GNUNET_TESTBED_peer_get_information (struct GNUNET_TESTBED_Peer *peer,
 {
   struct GNUNET_TESTBED_PeerGetConfigurationMessage *msg;
   struct GNUNET_TESTBED_Operation *op;
+  struct PeerInfoData *data;
   
   GNUNET_assert (GNUNET_TESTBED_PIT_GENERIC != pit);
+  data = GNUNET_malloc (sizeof (struct PeerInfoData));
+  data->peer = peer;
+  data->pit = pit;
   op = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Operation));
   op->type = OP_PEER_INFO;
   op->operation_id = peer->controller->operation_counter++;
-  op->data = peer;
+  op->data = data;
   msg = GNUNET_malloc (sizeof (struct
                                GNUNET_TESTBED_PeerGetConfigurationMessage));
   msg->header.size = htons
