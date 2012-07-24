@@ -491,8 +491,9 @@ handle_peer_config (struct GNUNET_TESTBED_Controller *c,
 static void 
 message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 {
-  struct GNUNET_TESTBED_Controller *c = cls;  
+  struct GNUNET_TESTBED_Controller *c = cls;
   int status;
+  uint16_t msize;
 
   c->in_receive = GNUNET_NO;
   /* FIXME: Add checks for message integrity */
@@ -502,29 +503,39 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     return;
   }
   status = GNUNET_OK;
+  msize = ntohs (msg->size);
   switch (ntohs (msg->type))
   {
   case GNUNET_MESSAGE_TYPE_TESTBED_ADDHOSTCONFIRM:
+    GNUNET_assert (msize >= sizeof (struct
+				    GNUNET_TESTBED_HostConfirmedMessage));
     status =
-      handle_addhostconfirm (c, (const struct
-                                 GNUNET_TESTBED_HostConfirmedMessage *) msg);
+      handle_addhostconfirm (c, (const struct GNUNET_TESTBED_HostConfirmedMessage *) msg);
     break;
   case GNUNET_MESSAGE_TYPE_TESTBED_GENERICOPSUCCESS:
+    GNUNET_assert 
+      (msize == sizeof (struct GNUNET_TESTBED_GenericOperationSuccessEventMessage));
     status =
       handle_opsuccess (c, (const struct
                             GNUNET_TESTBED_GenericOperationSuccessEventMessage
                             *) msg);
     break;
   case GNUNET_MESSAGE_TYPE_TESTBED_PEERCREATESUCCESS:
+    GNUNET_assert (msize == 
+		   sizeof (struct GNUNET_TESTBED_PeerCreateSuccessEventMessage));
     status =
       handle_peer_create_success 
       (c, (const struct GNUNET_TESTBED_PeerCreateSuccessEventMessage *)msg);
     break;
   case GNUNET_MESSAGE_TYPE_TESTBED_PEEREVENT:
+    GNUNET_assert (msize == sizeof (struct GNUNET_TESTBED_PeerEventMessage));
     status =
       handle_peer_event (c, (const struct GNUNET_TESTBED_PeerEventMessage *) msg);
+    
     break;
   case GNUNET_MESSAGE_TYPE_TESTBED_PEERCONFIG:
+    GNUNET_assert (msize >= 
+		   sizeof (struct GNUNET_TESTBED_PeerConfigurationInformationMessage));
     status = 
       handle_peer_config 
       (c, (const struct GNUNET_TESTBED_PeerConfigurationInformationMessage *) msg);
