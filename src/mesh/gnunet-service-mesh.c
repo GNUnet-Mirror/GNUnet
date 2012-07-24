@@ -303,6 +303,11 @@ struct MeshTunnel
   struct GNUNET_CONTAINER_MultiHashMap *children_fc;
 
     /**
+     * Last ACK.
+     */
+  uint32_t last_ack;
+
+    /**
      * Maximum child ACK.
      */
   uint32_t max_child_ack;
@@ -3082,11 +3087,13 @@ tunnel_get_children_ack (struct MeshTunnel *t)
 
 /**
  * Send an ACK informing the predecessor about the available buffer space.
+ * If buffering is off, send only on behalf of children or self if endpoint.
+ * If buffering is on, send when sent to children and buffer space is free.
  * 
  * @param t Tunnel on which to send the ACK.
  */
 static void
-tunnel_send_ack (struct MeshTunnel *t)
+tunnel_send_ack (struct MeshTunnel *t, uint16_t type)
 {
   struct GNUNET_MESH_ACK msg;
   struct GNUNET_PeerIdentity id;
@@ -3095,13 +3102,23 @@ tunnel_send_ack (struct MeshTunnel *t)
   uint32_t child_ack;
   uint32_t ack;
 
-  if (t->queue_max > t->queue_n * 2)
-    return;
+  /* Is it after unicast / multicast retransmission? */
+  if (GNUNET_MESSAGE_TYPE_MESH_ACK != type)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ACK via DATA retransmission\n");
+    if (GNUNET_YES == t->nobuffer)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Not sending ACK, nobuffer\n");
+      return;
+    }
+    if (t->queue_max > t->queue_n * 2)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Not sending ACK, buffer free\n");
+      return;
+    }
+  }
 
-  msg.header.size = htons (sizeof (msg));
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_ACK);
-  msg.tid = htonl (t->id.tid);
-  GNUNET_PEER_resolve(t->id.oid, &msg.oid);
+  /* Ok, ACK might be necessary, what PID to ACK? */
   count = t->pid - t->skip;
   buffer_free = t->queue_max - t->queue_n;
   ack = count + buffer_free;
@@ -3115,10 +3132,22 @@ tunnel_send_ack (struct MeshTunnel *t)
   {
     ack = child_ack > ack ? child_ack : ack;
   }
+
+  if (ack == t->last_ack)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Not sending ACK, not ready\n");
+    return;
+  }
+
+  t->last_ack = ack;
   msg.pid = htonl (ack);
 
   GNUNET_PEER_resolve (tree_get_predecessor (t->tree), &id);
 
+  msg.header.size = htons (sizeof (msg));
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_ACK);
+  msg.tid = htonl (t->id.tid);
+  GNUNET_PEER_resolve(t->id.oid, &msg.oid);
   send_message (&msg.header, &id, t);
 }
 
@@ -3670,12 +3699,12 @@ queue_send (void *cls, size_t size, void *buf)
             data_size = send_core_data_raw (queue->cls, size, buf);
             msg = (struct GNUNET_MessageHeader *) buf;
             if (ntohs (msg->type) == GNUNET_MESSAGE_TYPE_MESH_UNICAST)
-              tunnel_send_ack (t);
+              tunnel_send_ack (t, GNUNET_MESSAGE_TYPE_MESH_UNICAST);
             break;
         case GNUNET_MESSAGE_TYPE_MESH_MULTICAST:
             GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********   multicast\n");
             data_size = send_core_data_multicast(queue->cls, size, buf);
-            tunnel_send_ack (t);
+            tunnel_send_ack (t, GNUNET_MESSAGE_TYPE_MESH_MULTICAST);
             break;
         case GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE:
             GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********   path create\n");
@@ -3846,7 +3875,10 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
     t->speed_min = (0 != (opt & MESH_TUNNEL_OPT_SPEED_MIN)) ?
                    GNUNET_YES : GNUNET_NO;
     t->nobuffer = (0 != (opt & MESH_TUNNEL_OPT_NOBUFFER)) ?
-                  GNUNET_YES : GNUNET_NO;;
+                  GNUNET_YES : GNUNET_NO;
+
+    if (GNUNET_YES == t->nobuffer)
+      t->queue_max = 1;
 
     while (NULL != tunnel_get_incoming (next_local_tid))
       next_local_tid = (next_local_tid + 1) | GNUNET_MESH_LOCAL_TUNNEL_ID_SERV;
@@ -4201,7 +4233,7 @@ handle_mesh_data_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
                 "  it's for us! sending to clients...\n");
     GNUNET_STATISTICS_update (stats, "# unicast received", 1, GNUNET_NO);
     send_subscribed_clients (message, (struct GNUNET_MessageHeader *) &msg[1]);
-    tunnel_send_ack (t); // FIXME send after client processes the packet
+    tunnel_send_ack (t, GNUNET_MESSAGE_TYPE_MESH_ACK); // FIXME send after client processes the packet
     return GNUNET_OK;
   }
   ttl = ntohl (msg->ttl);
