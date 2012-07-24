@@ -789,9 +789,16 @@ handle_init (void *cls,
     LOG (GNUNET_ERROR_TYPE_WARNING,
 	 "Cannot determine the ip of master controller: %s\n", STRERROR (errno));
     GNUNET_free (addr);
+    GNUNET_free (master_context->master_ip);
     GNUNET_assert (0);
   }
   GNUNET_free (addr);
+  if (0 == strcasecmp (master_context->master_ip, "localhost"))
+  {				/* Hack for connections via unix sockets */
+    LOG_DEBUG ("May be using local sockets - assuming loopback for master ip\n");
+    GNUNET_free (master_context->master_ip);
+    master_context->master_ip = strdup ("127.0.0.1");
+  }
   LOG_DEBUG ("Master Controller IP: %s\n", master_context->master_ip);
   master_context->system = 
     GNUNET_TESTING_system_create ("testbed", master_context->master_ip);
