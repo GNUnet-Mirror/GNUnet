@@ -498,7 +498,6 @@ unix_real_send (void *cls,
   size_t sbs;
   struct sockaddr_un un;
   size_t slen;
-  int retry;
 
   GNUNET_assert (NULL != plugin);
 
@@ -540,7 +539,6 @@ unix_real_send (void *cls,
 
   /* Send the data */
   sent = 0;
-  retry = GNUNET_NO;
   sent = GNUNET_NETWORK_socket_sendto (send_handle, msgbuf, msgbuf_size, sb, sbs);
 
   if ((GNUNET_SYSERR == sent) && ((errno == EAGAIN) || (errno == ENOBUFS)))
@@ -597,7 +595,7 @@ unix_real_send (void *cls,
   /* Calling continuation */
   if (cont != NULL)
   {
-    if ((sent == GNUNET_SYSERR) && (retry == GNUNET_NO))
+    if (sent == GNUNET_SYSERR)
       cont (cont_cls, target, GNUNET_SYSERR);
     if (sent > 0)
       cont (cont_cls, target, GNUNET_OK);
@@ -613,11 +611,8 @@ unix_real_send (void *cls,
     return -1;
   }
   /* failed and retry: return 0 */
-  if ((GNUNET_SYSERR == sent) && (retry == GNUNET_YES))
+  if (GNUNET_SYSERR == sent)
     return 0;
-  /* failed and no retry: return -1 */
-  if ((GNUNET_SYSERR == sent) && (retry == GNUNET_NO))
-    return -1;
   /* default */
   return -1;
 }
