@@ -135,10 +135,19 @@ do_shutdown ()
   GNUNET_free_non_null (url);
 
   if (NULL != tmp_cfgfile)
-    remove (tmp_cfgfile);
-
+    {
+      if (0 != remove (tmp_cfgfile))
+	GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "remove", tmp_cfgfile);
+      GNUNET_free (tmp_cfgfile);
+      tmp_cfgfile = NULL;
+    }
   if (NULL != proxy_proc)
-    GNUNET_OS_process_kill (proxy_proc, 9);
+    {
+      (void) GNUNET_OS_process_kill (proxy_proc, SIGKILL);
+      GNUNET_assert (GNUNET_OK == GNUNET_OS_process_wait (proxy_proc));
+      GNUNET_OS_process_destroy (proxy_proc);
+      proxy_proc = NULL;
+    }
   url = NULL;
 }
 
