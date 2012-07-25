@@ -1091,7 +1091,7 @@ GNUNET_ATS_address_add (struct GNUNET_ATS_SchedulingHandle *sh,
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-  if ((address == NULL) && (session == NULL))
+  if (session == NULL)
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
@@ -1193,7 +1193,7 @@ GNUNET_ATS_address_update (struct GNUNET_ATS_SchedulingHandle *sh,
     GNUNET_break (0);
     return;
   }
-  if ((address == NULL) && (session == NULL))
+  if (session == NULL)
   {
     GNUNET_break (0);
     return;
