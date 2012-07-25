@@ -325,6 +325,7 @@ handle_peer_create_success (struct GNUNET_TESTBED_Controller *c,
   GNUNET_assert (NULL != data->peer);
   peer = data->peer;
   GNUNET_assert (peer->unique_id == ntohl (msg->peer_id));
+  peer->state = PS_CREATED;
   cb = data->cb;
   cls = data->cls;
   GNUNET_free (data);
@@ -374,10 +375,12 @@ handle_peer_event (struct GNUNET_TESTBED_Controller *c,
   switch (event.type)
   {
   case GNUNET_TESTBED_ET_PEER_START:
+    peer->state = PS_STARTED;
     event.details.peer_start.host = peer->host;
     event.details.peer_start.peer = peer;
     break;
   case GNUNET_TESTBED_ET_PEER_STOP:
+    peer->state = PS_STOPPED;    
     event.details.peer_stop.peer = peer;  
     break;
   default:
@@ -1361,6 +1364,9 @@ GNUNET_TESTBED_operation_done (struct GNUNET_TESTBED_Operation *operation)
 	break;
       }
     }
+    GNUNET_free_non_null (operation->data);
+    break;
+  case OP_OVERLAY_CONNECT:
     GNUNET_free_non_null (operation->data);
     break;
   }

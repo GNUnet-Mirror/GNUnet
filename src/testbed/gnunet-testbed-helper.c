@@ -99,16 +99,6 @@ static struct GNUNET_DISK_FileHandle *stdout_fd;
 static struct GNUNET_OS_Process *testbed;
 
 /**
- * Pipe handle to child's stdin
- */
-static struct GNUNET_DISK_PipeHandle *pipe_in;
-
-/**
- * Pipe handle to child's stdout
- */
-static struct GNUNET_DISK_PipeHandle *pipe_out;
-
-/**
  * Task identifier for the read task
  */
 static GNUNET_SCHEDULER_TaskIdentifier read_task_id;
@@ -126,7 +116,13 @@ static int done_reading;
 /**
  * Result to return in case we fail
  */
-static int ret;
+static int status;
+
+
+/**
+ * Are we shutting down
+ */
+static int in_shutdown;
 
 
 /**
@@ -139,6 +135,7 @@ static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   LOG_DEBUG ("Shutting down\n");
+  in_shutdown = GNUNET_YES;
   if (GNUNET_SCHEDULER_NO_TASK != read_task_id)
   {
     GNUNET_SCHEDULER_cancel (read_task_id);
@@ -157,20 +154,10 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   tokenizer = NULL;
   if (NULL != testbed)
   {
-    (void) GNUNET_OS_process_kill (testbed, SIGTERM);
+    GNUNET_break (0 == GNUNET_OS_process_kill (testbed, SIGTERM));
     GNUNET_assert (GNUNET_OK == GNUNET_OS_process_wait (testbed));
     GNUNET_OS_process_destroy (testbed);
     testbed = NULL;
-  }
-  if (NULL != pipe_in)
-  {
-    (void) GNUNET_DISK_pipe_close (pipe_in);
-    pipe_in = NULL;
-  }
-  if (NULL != pipe_out)
-  {
-    (void) GNUNET_DISK_pipe_close (pipe_out);
-    pipe_out = NULL;
   }
   if (NULL != test_system)
   {
@@ -288,14 +275,6 @@ tokenizer_cb (void *cls, void *client,
                  (test_system, cfg));
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string 
                  (cfg, "PATHS", "DEFAULTCONFIG", &config));
-  pipe_in = GNUNET_DISK_pipe (GNUNET_NO, GNUNET_NO, GNUNET_YES, GNUNET_NO);
-  pipe_out = GNUNET_DISK_pipe (GNUNET_NO, GNUNET_NO, GNUNET_NO, GNUNET_YES);
-  if ((NULL == pipe_in) || (NULL == pipe_out))
-  {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "pipe");
-    GNUNET_free (config);
-    goto error;
-  }
   if (GNUNET_OK != GNUNET_CONFIGURATION_write (cfg, config))
   {
     LOG (GNUNET_ERROR_TYPE_WARNING, 
@@ -306,7 +285,7 @@ tokenizer_cb (void *cls, void *client,
   }
   LOG_DEBUG ("Staring testbed with config: %s\n", config);
   testbed = GNUNET_OS_start_process 
-    (GNUNET_YES, GNUNET_OS_INHERIT_STD_ERR /*verbose? */, pipe_in, pipe_out,
+    (GNUNET_YES, GNUNET_OS_INHERIT_STD_ERR /*verbose? */, NULL, NULL,
      "gnunet-service-testbed", "gnunet-service-testbed", "-c", config, NULL);
   GNUNET_free (config);
   if (NULL == testbed)
@@ -316,8 +295,6 @@ tokenizer_cb (void *cls, void *client,
     GNUNET_CONFIGURATION_destroy (cfg);
     goto error;
   }
-  GNUNET_DISK_pipe_close_end (pipe_out, GNUNET_DISK_PIPE_END_WRITE);
-  GNUNET_DISK_pipe_close_end (pipe_in, GNUNET_DISK_PIPE_END_READ);
   done_reading = GNUNET_YES;
   config = GNUNET_CONFIGURATION_serialize (cfg, &config_size);
   GNUNET_CONFIGURATION_destroy (cfg);
@@ -338,7 +315,7 @@ tokenizer_cb (void *cls, void *client,
   return GNUNET_OK;
   
  error:
-  ret = GNUNET_SYSERR;
+  status = GNUNET_SYSERR;
   GNUNET_SCHEDULER_shutdown ();
   return GNUNET_SYSERR;
 }
@@ -362,14 +339,12 @@ read_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   sread = GNUNET_DISK_file_read (stdin_fd, buf, sizeof (buf));
   if (GNUNET_SYSERR == sread)
   {
-    GNUNET_break (0);           /* FIXME: stdin closed - kill child */
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
   if (GNUNET_YES == done_reading)
   {
     /* didn't expect any more data! */
-    GNUNET_break (0);
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
@@ -413,6 +388,24 @@ run (void *cls, char *const *args, const char *cfgfile,
 
 
 /**
+ * Signal handler called for SIGCHLD.  Triggers the
+ * respective handler by writing to the trigger pipe.
+ */
+static void
+sighandler_child_death ()
+{
+  if ((NULL != testbed) && (GNUNET_NO == in_shutdown))
+  {
+    LOG_DEBUG ("Child died\n");
+    GNUNET_assert (GNUNET_OK == GNUNET_OS_process_wait (testbed));
+    GNUNET_OS_process_destroy (testbed);
+    testbed = NULL;
+    GNUNET_SCHEDULER_shutdown ();	/* We are done too! */
+  }  
+}
+
+
+/**
  * Main function
  *
  * @param argc the number of command line arguments
@@ -421,18 +414,25 @@ run (void *cls, char *const *args, const char *cfgfile,
  */
 int main (int argc, char **argv)
 {
+  struct GNUNET_SIGNAL_Context *shc_chld;
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
+  int ret;
 
-  ret = GNUNET_OK;
+  status = GNUNET_OK;
+  in_shutdown = GNUNET_NO;
   //sleep (60);
-  if (GNUNET_OK != 
-      GNUNET_PROGRAM_run (argc, argv, "gnunet-testbed-helper",
-			  "Helper for starting gnunet-service-testbed",
-			  options, &run, NULL))
+  shc_chld =
+    GNUNET_SIGNAL_handler_install (GNUNET_SIGCHLD, &sighandler_child_death);
+  ret = GNUNET_PROGRAM_run (argc, argv, "gnunet-testbed-helper",
+				 "Helper for starting gnunet-service-testbed",
+			    options, &run, NULL);
+  GNUNET_SIGNAL_handler_uninstall (shc_chld);
+  shc_chld = NULL;
+  if (GNUNET_OK != ret)
     return 1;
-  return (GNUNET_OK == ret) ? 0 : 1;
+  return (GNUNET_OK == status) ? 0 : 1;
 }
 
 /* end of gnunet-testbed-helper.c */

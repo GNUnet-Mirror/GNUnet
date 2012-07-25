@@ -62,6 +62,7 @@ enum OperationType
      * Overlay connection operation
      */
     OP_OVERLAY_CONNECT,
+
   };
 
 

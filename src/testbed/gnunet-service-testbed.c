@@ -27,6 +27,7 @@
 #include "platform.h"
 #include "gnunet_service_lib.h"
 #include "gnunet_server_lib.h"
+#include "gnunet_transport_service.h"
 #include <zlib.h>
 
 #include "gnunet_testbed_service.h"
@@ -303,6 +304,53 @@ struct Peer
 
 
 /**
+ * Context information for connecting 2 peers in overlay
+ */
+struct OverlayConnectContext
+{
+  /**
+   * peer 1
+   */
+  struct Peer *peer1;
+  
+  /**
+   * peer 2
+   */
+  struct Peer *peer2;
+
+  /**
+   * Transport handle of peer1
+   */
+  struct GNUNET_TRANSPORT_Handle *peer1_transport;
+  
+  /**
+   * Transport handle of peer2
+   */
+  struct GNUNET_TRANSPORT_Handle *peer2_transport;
+  
+  /**
+   * HELLO of peer1
+   */
+  struct GNUNET_MessageHeader *peer1_hello;
+  
+  /**
+   * HELLO of peer2
+   */
+  struct GNUNET_MessageHeader *peer2_hello;
+
+  /**
+   * Get hello handle for peer1
+   */
+  struct GNUNET_TRANSPORT_GetHelloHandle *peer1_ghh;
+  
+  /**
+   * Get hello handle for peer2
+   */
+  struct GNUNET_TRANSPORT_GetHelloHandle *peer2_ghh;
+};
+
+
+/**
  * The master context; generated with the first INIT message
  */
 static struct Context *master_context;
@@ -310,11 +358,6 @@ static struct Context *master_context;
 /***********/
 /* Handles */
 /***********/
-
-/**
- * Wrapped stdin.
- */
-static struct GNUNET_DISK_FileHandle *fh;
 
 /**
  * Current Transmit Handle; NULL if no notify transmit exists currently
@@ -1436,6 +1479,58 @@ handle_peer_get_config (void *cls,
 }
 
 
+
+/**
+ * Function called whenever there is an update to the
+ * HELLO of this peer.
+ *
+ * @param cls closure
+ * @param hello our updated HELLO
+ */
+static void 
+hello_update_cb (void *cls,
+		 const struct GNUNET_MessageHeader *hello)
+{
+  GNUNET_break(0);  
+}
+
+
+/**
+ * Handler for GNUNET_MESSAGE_TYPE_TESTBED_OLCONNECT messages
+ *
+ * @param cls NULL
+ * @param client identification of the client
+ * @param message the actual message
+ */
+static void 
+handle_overlay_connect (void *cls,
+                        struct GNUNET_SERVER_Client *client,
+                        const struct GNUNET_MessageHeader *message)
+{
+  const struct GNUNET_TESTBED_OverlayConnectMessage *msg;
+  struct OverlayConnectContext *occ;
+  uint32_t p1;
+  uint32_t p2;
+
+  msg = (const struct GNUNET_TESTBED_OverlayConnectMessage *) message;
+  p1 = ntohl (msg->peer1);
+  p2 = ntohl (msg->peer2);
+  GNUNET_assert (p1 < peer_list_size);
+  GNUNET_assert (NULL != peer_list[p1]);
+  GNUNET_assert (p2 < peer_list_size);
+  GNUNET_assert (NULL != peer_list[p2]);
+  occ = GNUNET_malloc (sizeof (struct OverlayConnectContext));
+  occ->peer1 = peer_list[p1];
+  occ->peer2 = peer_list[p2];
+  occ->peer1_transport = GNUNET_TRANSPORT_connect (occ->peer1->cfg, NULL, occ,
+						   NULL, NULL, NULL);
+  occ->peer2_transport = GNUNET_TRANSPORT_connect (occ->peer2->cfg, NULL, occ,
+						   NULL, NULL, NULL);
+  occ->peer1_ghh = GNUNET_TRANSPORT_get_hello (occ->peer1_transport, &hello_update_cb, occ);
+  occ->peer2_ghh = GNUNET_TRANSPORT_get_hello (occ->peer2_transport, &hello_update_cb, occ);
+}
+
+
 /**
  * Iterator over hash map entries.
  *
@@ -1478,11 +1573,6 @@ shutdown_task (void *cls,
   (void) GNUNET_CONTAINER_multihashmap_iterate (ss_map, &ss_map_free_iterator,
                                                 NULL);
   GNUNET_CONTAINER_multihashmap_destroy (ss_map);  
-  if (NULL != fh)
-  {
-    GNUNET_DISK_file_close (fh);
-    fh = NULL;
-  }
   if (NULL != lcfq_head)
   {
     if (GNUNET_SCHEDULER_NO_TASK != lcf_proc_task_id)
@@ -1541,21 +1631,6 @@ shutdown_task (void *cls,
 
 
 /**
- * Debug shutdown task in case of stdin getting closed
- *
- * @param cls NULL
- * @param tc the TaskContext from scheduler
- */
-static void
-shutdown_task_ (void *cls,
-                const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "STDIN closed ...\n");
-  shutdown_task (cls, tc);
-}
-
-
-/**
  * Callback for client disconnect
  *
  * @param cls NULL
@@ -1575,7 +1650,7 @@ client_disconnect_cb (void *cls, struct GNUNET_SERVER_Client *client)
        hurt for now --- might need to revise this later if we ever
        decide that master connections might be temporarily down 
        for some reason */
-    GNUNET_SCHEDULER_shutdown ();
+    //GNUNET_SCHEDULER_shutdown ();
   }
 }
 
@@ -1610,6 +1685,8 @@ testbed_run (void *cls,
        sizeof (struct GNUNET_TESTBED_PeerStopMessage)},      
       {&handle_peer_get_config, NULL, GNUNET_MESSAGE_TYPE_TESTBED_GETPEERCONFIG,
        sizeof (struct GNUNET_TESTBED_PeerGetConfigurationMessage)},
+      {&handle_overlay_connect, NULL, GNUNET_MESSAGE_TYPE_TESTBED_OLCONNECT,
+       sizeof (struct GNUNET_TESTBED_OverlayConnectMessage)},
       {NULL}
     };
 
@@ -1619,18 +1696,10 @@ testbed_run (void *cls,
                                    &client_disconnect_cb,
                                    NULL);
   ss_map = GNUNET_CONTAINER_multihashmap_create (5);
-  fh = GNUNET_DISK_get_handle_from_native (stdin);
-  if (NULL == fh)
-    shutdown_task_id = 
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-				    &shutdown_task,
-				    NULL);
-  else
-    shutdown_task_id = 
-      GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
-				      fh,
-				      &shutdown_task_,
-				      NULL);
+  shutdown_task_id = 
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
+				  &shutdown_task,
+				  NULL);
   LOG_DEBUG ("Testbed startup complete\n");
 }
 

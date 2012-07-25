@@ -98,6 +98,7 @@ GNUNET_TESTBED_peer_create_with_id_ (uint32_t unique_id,
   peer->controller = controller;
   peer->host = host;
   peer->unique_id = unique_id;
+  peer->state = PS_INVALID;
   data = GNUNET_malloc (sizeof (struct PeerCreateData));
   data->cb = cb;
   data->cls = cls;
@@ -184,6 +185,7 @@ GNUNET_TESTBED_peer_start (struct GNUNET_TESTBED_Peer *peer)
   struct GNUNET_TESTBED_Operation *op;
   struct GNUNET_TESTBED_PeerStartMessage *msg;
 
+  GNUNET_assert ((PS_CREATED == peer->state) || (PS_STOPPED == peer->state));
   op = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Operation));
   op->operation_id = peer->controller->operation_counter++;
   op->controller = peer->controller;
@@ -215,6 +217,7 @@ GNUNET_TESTBED_peer_stop (struct GNUNET_TESTBED_Peer *peer)
   struct GNUNET_TESTBED_Operation *op;
   struct GNUNET_TESTBED_PeerStopMessage *msg;
 
+  GNUNET_assert (PS_STARTED == peer->state);
   op = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Operation));
   op->operation_id = peer->controller->operation_counter++;
   op->controller = peer->controller;
@@ -365,7 +368,31 @@ GNUNET_TESTBED_overlay_connect (void *op_cls,
 				struct GNUNET_TESTBED_Peer *p1,
 				struct GNUNET_TESTBED_Peer *p2)
 {
-  GNUNET_break (0);
+  struct GNUNET_TESTBED_Operation *op;
+  struct OverlayConnectData *data;
+  struct GNUNET_TESTBED_OverlayConnectMessage *msg;
+  
+  GNUNET_assert ((PS_STARTED == p1->state) && (PS_STARTED == p2->state));
+  GNUNET_assert (p1->controller == p2->controller);
+  data = GNUNET_malloc (sizeof (struct OverlayConnectData));
+  data->p1 = p1;
+  data->p2 = p2;  
+  op = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Operation)); 
+  op->controller = p1->controller;
+  op->operation_id = op->controller->operation_counter++;
+  op->type = OP_OVERLAY_CONNECT;
+  op->data = data;
+  msg = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_OverlayConnectMessage));
+  msg->header.size = htons (sizeof (struct
+				    GNUNET_TESTBED_OverlayConnectMessage));
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_OLCONNECT);
+  msg->peer1 = htonl (p1->unique_id);
+  msg->peer2 = htonl (p2->unique_id);
+  msg->operation_id = GNUNET_htonll (op->operation_id);
+  GNUNET_CONTAINER_DLL_insert_tail (op->controller->op_head,
+                                    op->controller->op_tail, op);
+  GNUNET_TESTBED_queue_message_ (op->controller, 
+				 (struct GNUNET_MessageHeader *) msg);
   return NULL;
 }
 

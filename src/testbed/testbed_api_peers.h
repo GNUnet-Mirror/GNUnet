@@ -48,6 +48,33 @@ struct PeerDetails
 
 
 /**
+ * Enumeration of possible states a peer could be in
+ */
+enum PeerState 
+  {
+    /**
+     * State to signify that this peer is invalid
+     */
+    PS_INVALID,
+
+    /**
+     * The peer has been created
+     */
+    PS_CREATED,
+    
+    /**
+     * The peer is running
+     */
+    PS_STARTED,
+
+    /**
+     * The peer is stopped
+     */
+    PS_STOPPED,    
+  };
+
+
+/**
  * A peer controlled by the testing framework.  A peer runs
  * at a particular host.
  */ 
@@ -65,16 +92,20 @@ struct GNUNET_TESTBED_Peer
   struct GNUNET_TESTBED_Host *host;
 
   /**
-   * Globally unique ID of the peer.
-   */
-  uint32_t unique_id;
-
-  /**
    * Internals of the peer for the controlling process; NULL if 
    * this process is not controlling this peer.
    */
   struct PeerDetails *details;
 
+  /**
+   * Globally unique ID of the peer.
+   */
+  uint32_t unique_id;
+
+  /**
+   * Peer's state
+   */
+  enum PeerState state;
 };
 
 
@@ -158,6 +189,25 @@ struct PeerInfoData2
     struct GNUNET_PeerIdentity *peer_identity;
   } details;
 };
+
+
+/**
+ * Data structure for OperationType OP_OVERLAY_CONNECT
+ */
+struct OverlayConnectData
+{
+  /**
+   * Peer A to connect to peer B
+   */
+  struct GNUNET_TESTBED_Peer *p1;
+
+  /**
+   * Peer B
+   */
+  struct GNUNET_TESTBED_Peer *p2;
+
+};
+
 
 
 /**
