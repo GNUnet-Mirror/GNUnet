@@ -493,9 +493,9 @@ GNUNET_FS_data_reader_file_ (void *cls, uint64_t offset, size_t max, void *buf,
       return 0;
     }
   }
-  GNUNET_DISK_file_seek (fi->fd, offset, GNUNET_DISK_SEEK_SET);
-  ret = GNUNET_DISK_file_read (fi->fd, buf, max);
-  if (-1 == ret)
+  if ( (GNUNET_SYSERR == 
+	GNUNET_DISK_file_seek (fi->fd, offset, GNUNET_DISK_SEEK_SET)) ||
+       (-1 == (ret = GNUNET_DISK_file_read (fi->fd, buf, max))) )
   {
     GNUNET_asprintf (emsg, _("Could not read file `%s': %s"), fi->filename,
                      STRERROR (errno));

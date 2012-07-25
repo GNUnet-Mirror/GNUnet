@@ -760,7 +760,7 @@ main (int argc, char **argv)
   run (fd_tun);
   global_ret = 0;
  cleanup:
-  close (fd_tun);
+  (void) close (fd_tun);
   return global_ret;
 }
 
