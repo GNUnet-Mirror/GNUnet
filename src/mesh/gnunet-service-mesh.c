@@ -687,7 +687,8 @@ static struct GNUNET_TIME_Relative unacknowledged_wait_time;
 static struct GNUNET_TIME_Relative connect_timeout;
 static long long unsigned int default_ttl;
 static long long unsigned int dht_replication_level;
-
+static long long unsigned int max_tunnels;
+static long long unsigned int max_msgs_queue;
 
 /**
  * DLL with all the clients, head.
@@ -703,6 +704,11 @@ static struct MeshClient *clients_tail;
  * Tunnels known, indexed by MESH_TunnelID (MeshTunnel).
  */
 static struct GNUNET_CONTAINER_MultiHashMap *tunnels;
+
+/**
+ * Number of tunnels known.
+ */
+static unsigned long long n_tunnels;
 
 /**
  * Tunnels incoming, indexed by MESH_TunnelNumber
@@ -3329,6 +3335,9 @@ tunnel_destroy (struct MeshTunnel *t)
   if (GNUNET_SCHEDULER_NO_TASK != t->path_refresh_task)
     GNUNET_SCHEDULER_cancel (t->path_refresh_task);
 
+  n_tunnels--;
+  GNUNET_STATISTICS_update (stats, "# tunnels", -1, GNUNET_NO);
+  GNUNET_assert (0 <= n_tunnels);
   GNUNET_free (t);
   return r;
 }
@@ -3342,6 +3351,7 @@ tunnel_destroy (struct MeshTunnel *t)
  * @param client Clients that owns the tunnel, NULL for foreign tunnels.
  * @param local Tunnel Number for the tunnel, for the client point of view.
  * 
+ * @return A new initialized tunnel. NULL on error.
  */
 static struct MeshTunnel *
 tunnel_new (GNUNET_PEER_Id owner,
@@ -3351,15 +3361,20 @@ tunnel_new (GNUNET_PEER_Id owner,
 {
   struct MeshTunnel *t;
   struct GNUNET_HashCode hash;
+  
+  if (n_tunnels >= max_tunnels && NULL == client)
+    return NULL;
 
   t = GNUNET_malloc (sizeof (struct MeshTunnel));
   t->id.oid = owner;
   t->id.tid = tid;
-  t->queue_max = 1000; // FIXME API parameter
+  t->queue_max = (max_msgs_queue / max_tunnels) + 1;
   t->tree = tree_new (owner);
   t->owner = client;
   t->local_tid = local;
   t->children_fc = GNUNET_CONTAINER_multihashmap_create (8);
+  n_tunnels++;
+  GNUNET_STATISTICS_update (stats, "# tunnels", 1, GNUNET_NO);
 
   GNUNET_CRYPTO_hash (&t->id, sizeof (struct MESH_TunnelID), &hash);
   if (GNUNET_OK !=
@@ -3901,6 +3916,11 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Creating tunnel\n");
     t = tunnel_new (GNUNET_PEER_intern (pi), tid, NULL, 0);
+    if (NULL == t)
+    {
+      // FIXME notify failure
+      return GNUNET_OK;
+    }
     opt = ntohl (msg->opt);
     t->speed_min = (0 != (opt & MESH_TUNNEL_OPT_SPEED_MIN)) ?
                    GNUNET_YES : GNUNET_NO;
@@ -5331,6 +5351,12 @@ handle_local_tunnel_create (void *cls, struct GNUNET_SERVER_Client *client,
   while (NULL != tunnel_get_by_pi (myid, next_tid))
     next_tid = (next_tid + 1) & ~GNUNET_MESH_LOCAL_TUNNEL_ID_CLI;
   t = tunnel_new (myid, next_tid++, c, ntohl (t_msg->tunnel_id));
+  if (NULL == t)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Tunnel creation failed.\n");
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
   next_tid = next_tid & ~GNUNET_MESH_LOCAL_TUNNEL_ID_CLI;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "CREATED TUNNEL %s [%x] (%x)\n",
               GNUNET_i2s (&my_full_id), t->id.tid, t->local_tid);
@@ -6618,6 +6644,30 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
                 _
                 ("Mesh service is lacking key configuration settings (%s).  Exiting.\n"),
                 "connect timeout");
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_number (c, "MESH", "MAX_MSGS_QUEUE",
+                                             &max_msgs_queue))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _
+                ("Mesh service is lacking key configuration settings (%s).  Exiting.\n"),
+                "max msgs queue");
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_number (c, "MESH", "MAX_TUNNELS",
+                                             &max_tunnels))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _
+                ("Mesh service is lacking key configuration settings (%s).  Exiting.\n"),
+                "max tunnels");
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
