@@ -235,6 +235,7 @@ GNUNET_TESTBED_host_create_with_id (uint32_t id,
 				    uint16_t port)
 {
   struct GNUNET_TESTBED_Host *host;
+  uint32_t new_size;
 
   if ((id < host_list_size) && (NULL != host_list[id]))
   {
@@ -246,13 +247,17 @@ GNUNET_TESTBED_host_create_with_id (uint32_t id,
   host->username = username;
   host->id = id;
   host->port = (0 == port) ? 22 : port;
-  if (id >= host_list_size)
+  new_size = host_list_size;
+  while (id >= new_size)
+    new_size += HOST_LIST_GROW_STEP;
+  if (new_size != host_list_size)
   {
-    host_list_size += HOST_LIST_GROW_STEP;
     host_list = GNUNET_realloc (host_list, sizeof (struct GNUNET_TESTBED_Host)
-				* host_list_size);
-    (void) memset(&host_list[host_list_size - HOST_LIST_GROW_STEP],
-                  0, sizeof (struct GNUNET_TESTBED_Host) * host_list_size);
+				* new_size);
+    (void) memset(&host_list[host_list_size], 0, 
+		  sizeof (struct GNUNET_TESTBED_Host) *
+		  (new_size - host_list_size));
+    host_list_size = new_size;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Adding host with id: %u\n", host->id);
@@ -322,18 +327,21 @@ GNUNET_TESTBED_host_destroy (struct GNUNET_TESTBED_Host *host)
     GNUNET_CONTAINER_DLL_remove (host->rc_head, host->rc_tail, rc);
     GNUNET_free (rc);
   }
-  for (id = 0; id < HOST_LIST_GROW_STEP; id++)
-  {
-    if (((host->id + id) >= host_list_size) || 
-        (NULL != host_list[host->id + id]))
-      break;
-  }
-  if (HOST_LIST_GROW_STEP == id)
-  {
-    host_list_size -= HOST_LIST_GROW_STEP;
-    host_list = GNUNET_realloc (host_list, host_list_size);
-  }
   GNUNET_free (host);
+  while (host_list_size >= HOST_LIST_GROW_STEP)
+  {
+    for (id = host_list_size - 1;
+	 id > host_list_size - HOST_LIST_GROW_STEP; id--)
+      if (NULL != host_list[id])
+	break;
+    if (id != host_list_size - HOST_LIST_GROW_STEP)
+      break;
+    if (NULL != host_list[id])
+      break;
+    host_list_size -= HOST_LIST_GROW_STEP;
+  }
+  host_list = GNUNET_realloc (host_list, sizeof (struct GNUNET_TESTBED_Host) *
+			      host_list_size);  
 }
 
 

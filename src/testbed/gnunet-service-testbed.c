@@ -404,15 +404,6 @@ static GNUNET_SCHEDULER_TaskIdentifier lcf_proc_task_id;
  */
 static GNUNET_SCHEDULER_TaskIdentifier shutdown_task_id;
 
-/******************/
-/* Testing System */
-/******************/
-
-/**
- * Our configuration; we also use this as template for starting other controllers
- */
-static struct GNUNET_CONFIGURATION_Handle *config;
-
 
 /**
  * Function called to notify a client about the connection begin ready to queue
@@ -1543,6 +1534,8 @@ shutdown_task (void *cls,
     GNUNET_free_non_null (master_context->master_ip);
     if (NULL != master_context->system)
       GNUNET_TESTING_system_destroy (master_context->system, GNUNET_YES);
+    GNUNET_free (master_context);
+    master_context = NULL;
   }
 }
 
@@ -1620,7 +1613,6 @@ testbed_run (void *cls,
       {NULL}
     };
 
-  config = GNUNET_CONFIGURATION_dup (cfg);
   GNUNET_SERVER_add_handlers (server,
                               message_handlers);
   GNUNET_SERVER_disconnect_notify (server,

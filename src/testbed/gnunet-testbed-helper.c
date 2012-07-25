@@ -300,6 +300,7 @@ tokenizer_cb (void *cls, void *client,
   {
     LOG (GNUNET_ERROR_TYPE_WARNING, 
          "Unable to write config file: %s -- exiting\n", config);
+    GNUNET_CONFIGURATION_destroy (cfg);
     GNUNET_free (config);
     goto error;
   }
@@ -312,13 +313,18 @@ tokenizer_cb (void *cls, void *client,
   {
     LOG (GNUNET_ERROR_TYPE_WARNING, 
          "Error staring gnunet-service-testbed -- exiting\n");
+    GNUNET_CONFIGURATION_destroy (cfg);
     goto error;
   }
   GNUNET_DISK_pipe_close_end (pipe_out, GNUNET_DISK_PIPE_END_WRITE);
   GNUNET_DISK_pipe_close_end (pipe_in, GNUNET_DISK_PIPE_END_READ);
   done_reading = GNUNET_YES;
   config = GNUNET_CONFIGURATION_serialize (cfg, &config_size);
-  xconfig_size = GNUNET_TESTBED_compress_config_ (config, config_size, &xconfig);
+  GNUNET_CONFIGURATION_destroy (cfg);
+  cfg = NULL;
+  xconfig_size = GNUNET_TESTBED_compress_config_ (config, config_size,
+						  &xconfig);
+  GNUNET_free (config);
   wc = GNUNET_malloc (sizeof (struct WriteContext));
   wc->length = xconfig_size + sizeof (struct GNUNET_TESTBED_HelperReply);
   reply = GNUNET_realloc (xconfig, wc->length);

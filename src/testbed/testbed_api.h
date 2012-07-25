@@ -56,7 +56,12 @@ enum OperationType
     /**
      * Get peer information operation
      */
-    OP_PEER_INFO
+    OP_PEER_INFO,
+
+    /**
+     * Overlay connection operation
+     */
+    OP_OVERLAY_CONNECT,
   };
 
 
