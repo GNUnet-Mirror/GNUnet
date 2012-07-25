@@ -2562,7 +2562,7 @@ path_build_from_dht (const struct GNUNET_PeerIdentity *get_path,
  * Adds a path to the peer_infos of all the peers in the path
  *
  * @param p Path to process.
- * @param confirmed Whether we know if the path works or not. FIXME use
+ * @param confirmed Whether we know if the path works or not.
  */
 static void
 path_add_to_peers (struct MeshPeerPath *p, int confirmed)
@@ -3983,13 +3983,12 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
       /* New tunnel! Notify clients on data. */
       t->peers = GNUNET_CONTAINER_multihashmap_create (4);
     }
-    GNUNET_break (GNUNET_OK ==
+    GNUNET_break (GNUNET_SYSERR !=
                   GNUNET_CONTAINER_multihashmap_put (t->peers,
                                                      &my_full_id.hashPubKey,
                                                      peer_info_get
                                                      (&my_full_id),
                                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE));
-    // FIXME URGENT (GNUNET_NO?)
     info = GNUNET_malloc (sizeof (struct MeshTransmissionDescriptor));
     info->origin = &t->id;
     info->peer = GNUNET_CONTAINER_multihashmap_get (peers, &peer->hashPubKey);
