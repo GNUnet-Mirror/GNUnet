@@ -284,7 +284,7 @@ data_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_MESH_TransmitHandle *th;
   if ((GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) != 0)
     return;
-  th = GNUNET_MESH_notify_transmit_ready (t, GNUNET_NO, 0,
+  th = GNUNET_MESH_notify_transmit_ready (t, GNUNET_NO,
                                     GNUNET_TIME_UNIT_FOREVER_REL, &d2->id,
                                     sizeof (struct GNUNET_MessageHeader),
                                     &tmt_rdy, (void *) 1L);
@@ -384,7 +384,7 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               " received ack %u\n", data_ack);
-      GNUNET_MESH_notify_transmit_ready (tunnel, GNUNET_NO, 0,
+      GNUNET_MESH_notify_transmit_ready (tunnel, GNUNET_NO,
                                         GNUNET_TIME_UNIT_FOREVER_REL, sender,
                                         sizeof (struct GNUNET_MessageHeader),
                                         &tmt_rdy, (void *) 1L);
@@ -414,7 +414,7 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, " ok: %d\n", ok);
     if (SPEED != test || 1002 == ok)
     {
-      GNUNET_MESH_notify_transmit_ready (tunnel, GNUNET_NO, 0,
+      GNUNET_MESH_notify_transmit_ready (tunnel, GNUNET_NO,
                                         GNUNET_TIME_UNIT_FOREVER_REL, sender,
                                         sizeof (struct GNUNET_MessageHeader),
                                         &tmt_rdy, (void *) 1L);
@@ -606,7 +606,7 @@ ch (void *cls, const struct GNUNET_PeerIdentity *peer,
     data_received = 0;
     data_sent = 0;
     start_time = GNUNET_TIME_absolute_get();
-    GNUNET_MESH_notify_transmit_ready (t, GNUNET_NO, 0,
+    GNUNET_MESH_notify_transmit_ready (t, GNUNET_NO,
                                        GNUNET_TIME_UNIT_FOREVER_REL, dest,
                                        sizeof (struct GNUNET_MessageHeader),
                                        &tmt_rdy, (void *) 1L);
@@ -678,13 +678,13 @@ connect_mesh_service (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                 GNUNET_i2s (&d3->id));
   }
 #endif
-  h1 = GNUNET_MESH_connect (d1->cfg, 5, (void *) 1L, NULL, &tunnel_cleaner,
+  h1 = GNUNET_MESH_connect (d1->cfg, (void *) 1L, NULL, &tunnel_cleaner,
                             handlers, &app);
-  h2 = GNUNET_MESH_connect (d2->cfg, 5, (void *) 2L, &incoming_tunnel,
+  h2 = GNUNET_MESH_connect (d2->cfg, (void *) 2L, &incoming_tunnel,
                             &tunnel_cleaner, handlers, &app);
   if (test == MULTICAST)
   {
-    h3 = GNUNET_MESH_connect (d3->cfg, 5, (void *) 3L, &incoming_tunnel,
+    h3 = GNUNET_MESH_connect (d3->cfg, (void *) 3L, &incoming_tunnel,
                               &tunnel_cleaner, handlers, &app);
   }
   t = GNUNET_MESH_tunnel_create (h1, NULL, &ch, &dh, (void *) 1L);

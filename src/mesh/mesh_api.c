@@ -1196,6 +1196,7 @@ send_callback (void *cls, size_t size, void *buf)
     return 0;
   }
   tsize = 0;
+  next = h->th_head;
   while ((NULL != (th = next)) && (size >= th->size))
   {
     t = th->tunnel;

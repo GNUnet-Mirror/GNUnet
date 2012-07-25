@@ -288,7 +288,7 @@ ch (void *cls, const struct GNUNET_PeerIdentity *peer,
               GNUNET_i2s (peer));
   regex_peers++;
  
-  GNUNET_MESH_notify_transmit_ready(t[i], 0, 0,
+  GNUNET_MESH_notify_transmit_ready(t[i], GNUNET_NO,
                                     GNUNET_TIME_UNIT_FOREVER_REL,
                                     peer,
                                     sizeof(struct GNUNET_MessageHeader),
@@ -427,7 +427,7 @@ peergroup_ready (void *cls, const char *emsg)
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Connect to mesh\n");
-  h1 = GNUNET_MESH_connect (d->cfg, 5, (void *) 1L,
+  h1 = GNUNET_MESH_connect (d->cfg, (void *) 1L,
                             NULL,
                             NULL,
                             handlers,
@@ -437,7 +437,7 @@ peergroup_ready (void *cls, const char *emsg)
   {
     ok[i] = GNUNET_NO;
     d = GNUNET_TESTING_daemon_get (pg, 10 + i);
-    h2[i] = GNUNET_MESH_connect (d->cfg, 5, (void *) (long) (i + 2),
+    h2[i] = GNUNET_MESH_connect (d->cfg, (void *) (long) (i + 2),
                                  &incoming_tunnel,
                                  &tunnel_cleaner,
                                  handlers,

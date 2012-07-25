@@ -250,7 +250,6 @@ run (void *cls,
                                     (GNUNET_TIME_UNIT_SECONDS, 20), &do_abort,
                                     NULL);
   mesh_peer_1 = GNUNET_MESH_connect (cfg,       /* configuration */
-                                     10,        /* queue size */
                                      (void *) &one,     /* cls */
                                      &inbound_tunnel,   /* inbound new hndlr */
                                      &inbound_end,      /* inbound end hndlr */
@@ -258,7 +257,6 @@ run (void *cls,
                                      app1);     /* apps offered */
 
   mesh_peer_2 = GNUNET_MESH_connect (cfg,       /* configuration */
-                                     10,        /* queue size */
                                      (void *) &two,     /* cls */
                                      &inbound_tunnel,   /* inbound new hndlr */
                                      &inbound_end,      /* inbound end hndlr */

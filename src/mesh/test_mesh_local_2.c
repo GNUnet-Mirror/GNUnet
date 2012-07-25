@@ -226,7 +226,6 @@ do_connect_peer_1 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   test_task = GNUNET_SCHEDULER_NO_TASK;
   mesh_peer_1 = GNUNET_MESH_connect (cfg,       /* configuration */
-                                     10,        /* queue size */
                                      (void *) &one,     /* cls */
                                      &inbound_tunnel,   /* inbound new hndlr */
                                      &inbound_end,      /* inbound end hndlr */
@@ -250,7 +249,6 @@ run (void *cls,
                                     (GNUNET_TIME_UNIT_SECONDS, 20), &do_abort,
                                     NULL);
   mesh_peer_2 = GNUNET_MESH_connect (cfg,       /* configuration */
-                                     10,        /* queue size */
                                      (void *) &two,     /* cls */
                                      &inbound_tunnel,   /* inbound new hndlr */
                                      &inbound_end,      /* inbound end hndlr */

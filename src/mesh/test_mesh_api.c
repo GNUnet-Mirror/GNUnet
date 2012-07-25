@@ -101,7 +101,7 @@ run (void *cls,
   static const GNUNET_MESH_ApplicationType app[] =
     { 1, 2, 3, 4, 5, 6, 7, 8, 0 };
 
-  mesh = GNUNET_MESH_connect (cfg, 10, NULL, NULL, NULL, handlers, app);
+  mesh = GNUNET_MESH_connect (cfg, NULL, NULL, NULL, handlers, app);
   if (NULL == mesh)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "test: Couldn't connect to mesh :(\n");
