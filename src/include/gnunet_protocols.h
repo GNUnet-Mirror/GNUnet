@@ -848,27 +848,32 @@ extern "C"
 /**
  * Set tunnel speed to slowest peer
  */
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_MIN    282
+#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_MIN       282
 
 /**
  * Set tunnel speed to fastest peer
  */
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_MAX   283
+#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_MAX       283
 
 /**
  * Set tunnel buffering on.
  */
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_BUFFER   284
+#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_BUFFER    284
 
 /**
  * Set tunnel buffering off.
  */
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_NOBUFFER   285
+#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_NOBUFFER  285
+
+/**
+ * Local ACK for data.
+ */
+#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK              286
 
 /**
  * 640kb should be enough for everybody
  */
-#define GNUNET_MESSAGE_TYPE_MESH_RESERVE_END            288
+#define GNUNET_MESSAGE_TYPE_MESH_RESERVE_END            299
 
 
 

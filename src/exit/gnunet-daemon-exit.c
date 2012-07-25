@@ -3202,7 +3202,7 @@ run (void *cls, char *const *args GNUNET_UNUSED,
   connections_map = GNUNET_CONTAINER_multihashmap_create (65536);
   connections_heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
   mesh_handle 
-    = GNUNET_MESH_connect (cfg, 42 /* queue size */, NULL, 
+    = GNUNET_MESH_connect (cfg, NULL, 
 			   &new_tunnel, 
 			   &clean_tunnel, handlers,
                            apptypes);

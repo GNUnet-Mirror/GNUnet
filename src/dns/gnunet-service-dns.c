@@ -1647,7 +1647,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
       GNUNET_APPLICATION_TYPE_END
     };
     mesh = GNUNET_MESH_connect (cfg,
-				1, NULL,
+				NULL,
 				&accept_dns_tunnel, 
 				&destroy_dns_tunnel,
 				mesh_handlers,

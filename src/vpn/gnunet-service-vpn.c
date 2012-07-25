@@ -3177,7 +3177,7 @@ run (void *cls,
   vpn_argv[6] = NULL;
 
   mesh_handle =
-    GNUNET_MESH_connect (cfg_, 42 /* queue length */, NULL, 
+    GNUNET_MESH_connect (cfg_, NULL, 
 			 &inbound_tunnel_cb, 
 			 &tunnel_cleaner, 
 			 mesh_handlers,

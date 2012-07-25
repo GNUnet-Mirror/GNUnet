@@ -169,24 +169,24 @@ struct GNUNET_MESH_TunnelNotification
 struct GNUNET_MESH_PeerControl
 {
 
-  /**
-   * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_[ADD|DEL|[UN]BLACKLIST]
-   *       (client to service, client created tunnel)
-   *       GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_[CONNECTED|DISCONNECTED]
-   *       (service to client)
-   *
-   * Size: sizeof(struct GNUNET_MESH_PeerControl)
-   */
+    /**
+     * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_[ADD|DEL|[UN]BLACKLIST]
+     *       (client to service, client created tunnel)
+     *       GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_[CONNECTED|DISCONNECTED]
+     *       (service to client)
+     *
+     * Size: sizeof(struct GNUNET_MESH_PeerControl)
+     */
   struct GNUNET_MessageHeader header;
 
-  /**
-   * ID of a tunnel controlled by this client.
-   */
+    /**
+     * ID of a tunnel controlled by this client.
+     */
   MESH_TunnelNumber tunnel_id GNUNET_PACKED;
 
-  /**
-   * Peer to connect/disconnect.
-   */
+    /**
+     * Peer to connect/disconnect.
+     */
   struct GNUNET_PeerIdentity peer;
 };
 
@@ -199,17 +199,19 @@ struct GNUNET_MESH_ConnectPeerByType
     /**
      * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT_PEER_BY_TYPE |
      *       GNUNET_MESSAGE_TYPE_MESH_LOCAL_DISCONNECT_PEER_BY_TYPE
+     * 
+     * Size: sizeof(struct GNUNET_MESH_ConnectPeerByType)
      */
   struct GNUNET_MessageHeader header;
 
-  /**
-   * ID of a tunnel controlled by this client.
-   */
+    /**
+     * ID of a tunnel controlled by this client.
+     */
   MESH_TunnelNumber tunnel_id GNUNET_PACKED;
 
-  /**
-   * Type specification
-   */
+    /**
+     * Type specification
+     */
   GNUNET_MESH_ApplicationType type GNUNET_PACKED;
 };
 
@@ -221,16 +223,43 @@ struct GNUNET_MESH_ConnectPeerByString
 {
     /**
      * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_ADD_BY_STRING
+     * 
+     * Size: sizeof(struct GNUNET_MESH_ConnectPeerByString) + strlen (string)
      */
   struct GNUNET_MessageHeader header;
 
-  /**
-   * ID of a tunnel controlled by this client.
-   */
+    /**
+     * ID of a tunnel controlled by this client.
+     */
   MESH_TunnelNumber tunnel_id GNUNET_PACKED;
 
   /* String describing the service */
 };
+
+
+/**
+ * Message to allow the client send more data to the service
+ * (always service -> client).
+ */
+struct GNUNET_MESH_LocalAck
+{
+    /**
+     * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK
+     */
+  struct GNUNET_MessageHeader header;
+
+    /**
+     * ID of the tunnel allowed to send more data.
+     */
+  MESH_TunnelNumber tunnel_id GNUNET_PACKED;
+
+    /**
+     * ID of the last packet allowed.
+     */
+  uint32_t max_pid GNUNET_PACKED;
+};
+
+
 GNUNET_NETWORK_STRUCT_END
 
 /******************************************************************************/

@@ -2813,10 +2813,12 @@ new_tunnel_notify (void *cls,
 
   if (GNUNET_NO == lsocket->listening)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "%s: Destroying tunnel from peer %s as we don't have the lock\n",
-         GNUNET_i2s (&socket->other_peer),
-         GNUNET_i2s (&socket->other_peer));
+//     FIXME: socket uninitalized
+//     FIXME: cannot use GNUNET_i2s twice in same call (static buffer)
+//     LOG (GNUNET_ERROR_TYPE_DEBUG,
+//          "%s: Destroying tunnel from peer %s as we don't have the lock\n",
+//          GNUNET_i2s (&socket->other_peer),
+//          GNUNET_i2s (&socket->other_peer));
     GNUNET_MESH_tunnel_destroy (tunnel);
     return NULL;
   }
@@ -2949,7 +2951,6 @@ lock_status_change_cb (void *cls, const char *domain, uint32_t lock,
       GNUNET_MESH_ApplicationType ports[] = {lsocket->port, 0};
 
       lsocket->mesh = GNUNET_MESH_connect (lsocket->cfg,
-                                           RECEIVE_BUFFER_SIZE, /* FIXME: QUEUE size as parameter? */
                                            lsocket, /* Closure */
                                            &new_tunnel_notify,
                                            &tunnel_cleaner,
@@ -3036,7 +3037,6 @@ GNUNET_STREAM_open (const struct GNUNET_CONFIGURATION_Handle *cfg,
   } while (GNUNET_STREAM_OPTION_END != option);
   va_end (vargs);               /* End of variable args parsing */
   socket->mesh = GNUNET_MESH_connect (cfg, /* the configuration handle */
-                                      RECEIVE_BUFFER_SIZE,  /* QUEUE size as parameter? */
                                       socket, /* cls */
                                       NULL, /* No inbound tunnel handler */
                                       NULL, /* No in-tunnel cleaner */

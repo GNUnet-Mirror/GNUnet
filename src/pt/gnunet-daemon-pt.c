@@ -932,7 +932,7 @@ run (void *cls, char *const *args GNUNET_UNUSED,
       GNUNET_SCHEDULER_shutdown ();
       return;
     }
-    mesh_handle = GNUNET_MESH_connect (cfg, 1, NULL, NULL, NULL,
+    mesh_handle = GNUNET_MESH_connect (cfg, NULL, NULL, NULL,
 				       mesh_handlers, mesh_types);
     if (NULL == mesh_handle)
     {

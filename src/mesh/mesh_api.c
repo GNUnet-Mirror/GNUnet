@@ -43,6 +43,15 @@
 
 
 /******************************************************************************/
+/************************        CONSTANTS         ****************************/
+/******************************************************************************/
+
+#define HIGH_PID 0xFFFF0000
+#define LOW_PID 0x0000FFFF
+
+#define PID_OVERFLOW(pid, max) (pid > HIGH_PID && max < LOW_PID)
+
+/******************************************************************************/
 /************************      DATA STRUCTURES     ****************************/
 /******************************************************************************/
 
@@ -234,9 +243,13 @@ struct GNUNET_MESH_Tunnel
 {
 
     /**
-     * DLL
+     * DLL next
      */
   struct GNUNET_MESH_Tunnel *next;
+
+    /**
+     * DLL prev
+     */
   struct GNUNET_MESH_Tunnel *prev;
 
     /**
@@ -303,11 +316,22 @@ struct GNUNET_MESH_Tunnel
      * Is the tunnel throttled to the slowest peer?
      */
   int speed_min;
-  
+
     /**
      * Is the tunnel allowed to buffer?
      */
   int buffering;
+
+    /**
+     * Next packet PID.
+     */
+  uint32_t pid;
+
+    /**
+     * Maximum allowed PID.
+     */
+  uint32_t max_pid;
+
 
 };
 
@@ -1006,19 +1030,51 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
       if (GNUNET_OK !=
           handler->callback (h->cls, t, &t->ctx, peer, payload, &atsi))
       {
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "MESH: callback caused disconnection\n");
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "callback caused disconnection\n");
         GNUNET_MESH_disconnect (h);
         return GNUNET_NO;
       }
       else
       {
         LOG (GNUNET_ERROR_TYPE_DEBUG,
-             "MESH: callback completed successfully\n");
-
+             "callback completed successfully\n");
       }
     }
   }
   return GNUNET_YES;
+}
+
+
+/**
+ * Process a local ACK message, enabling the client to send
+ * more data to the service.
+ * 
+ * @param h Mesh handle.
+ * @param message Message itself.
+ */
+static void
+process_ack (struct GNUNET_MESH_Handle *h,
+             const struct GNUNET_MessageHeader *message)
+{
+  struct GNUNET_MESH_LocalAck *msg;
+  struct GNUNET_MESH_Tunnel *t;
+  uint32_t ack;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Got an ACK!\n");
+  msg = (struct GNUNET_MESH_LocalAck *) message;
+
+  t = retrieve_tunnel (h, ntohl (msg->tunnel_id));
+
+  if (NULL == t)
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "ACK on unknown tunnel %X\n",
+         ntohl (msg->tunnel_id));
+    return;
+  }
+  ack = ntohl (msg->max_pid);
+  if (ack > t->max_pid || PID_OVERFLOW (t->max_pid, ack))
+    t->max_pid = ack;
 }
 
 
@@ -1063,10 +1119,13 @@ msg_received (void *cls, const struct GNUNET_MessageHeader *msg)
     if (GNUNET_NO == process_incoming_data (h, msg))
       return;
     break;
-    /* We shouldn't get any other packages, log and ignore */
+  case GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK:
+    process_ack (h, msg);
+    break;
   default:
+    /* We shouldn't get any other packages, log and ignore */
     LOG (GNUNET_ERROR_TYPE_WARNING,
-         "MESH: unsolicited message form service (type %d)\n",
+         "unsolicited message form service (type %d)\n",
          ntohs (msg->type));
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "message processed\n");
@@ -1266,9 +1325,6 @@ send_packet (struct GNUNET_MESH_Handle *h,
  * Connect to the mesh service.
  *
  * @param cfg configuration to use
- * @param queue_size size of the data message queue, shared among all tunnels
- *                   (each tunnel is guaranteed to accept at least one message,
- *                    no matter what is the status of other tunnels)
  * @param cls closure for the various callbacks that follow
  *            (including handlers in the handlers array)
  * @param new_tunnel function called when an *inbound* tunnel is created
@@ -1284,8 +1340,7 @@ send_packet (struct GNUNET_MESH_Handle *h,
  *         (in this case, init is never called)
  */
 struct GNUNET_MESH_Handle *
-GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                     unsigned int queue_size, void *cls,
+GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg, void *cls,
                      GNUNET_MESH_InboundTunnelNotificationHandler new_tunnel,
                      GNUNET_MESH_TunnelEndHandler cleaner,
                      const struct GNUNET_MESH_MessageHandler *handlers,
@@ -1296,7 +1351,6 @@ GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
   LOG (GNUNET_ERROR_TYPE_DEBUG, "GNUNET_MESH_connect()\n");
   h = GNUNET_malloc (sizeof (struct GNUNET_MESH_Handle));
   h->cfg = cfg;
-  h->max_queue_size = queue_size;
   h->new_tunnel = new_tunnel;
   h->cleaner = cleaner;
   h->client = GNUNET_CLIENT_connect ("mesh", cfg);

@@ -154,9 +154,6 @@ typedef uint32_t GNUNET_MESH_ApplicationType;
  * Connect to the mesh service.
  *
  * @param cfg configuration to use
- * @param queue_size size of the data message queue, shared among all tunnels
- *                   (each tunnel is guaranteed to accept at least one message,
- *                    no matter what is the status of other tunnels)
  * @param cls closure for the various callbacks that follow
  *            (including handlers in the handlers array)
  * @param new_tunnel function called when an *inbound* tunnel is created
@@ -172,8 +169,7 @@ typedef uint32_t GNUNET_MESH_ApplicationType;
  *         (in this case, init is never called)
  */
 struct GNUNET_MESH_Handle *
-GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                     unsigned int queue_size, void *cls,
+GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg, void *cls,
                      GNUNET_MESH_InboundTunnelNotificationHandler new_tunnel,
                      GNUNET_MESH_TunnelEndHandler cleaner,
                      const struct GNUNET_MESH_MessageHandler *handlers,
