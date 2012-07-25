@@ -1803,7 +1803,7 @@ read_download_request (struct GNUNET_BIO_ReadHandle *rh)
   }
   if (dr->num_children > 0)
     dr->children =
-        GNUNET_malloc (dr->num_children * sizeof (struct DownloadRequest));
+        GNUNET_malloc (dr->num_children * sizeof (struct DownloadRequest *));
   switch (dr->state)
   {
   case BRS_INIT:
