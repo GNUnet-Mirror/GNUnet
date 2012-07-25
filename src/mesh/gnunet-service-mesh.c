@@ -1284,9 +1284,9 @@ announce_application (void *cls, const struct GNUNET_HashCode * key, void *value
     return GNUNET_YES;
   }
   block.type = htonl (block.type);
-  /* FIXME are hashes in multihash map equal on all aquitectures? */
-  /* FIXME: keep return value of 'put' to possibly cancel!? */
-  GNUNET_DHT_put (dht_handle, key,
+
+  GNUNET_break (NULL != 
+                GNUNET_DHT_put (dht_handle, key,
                   dht_replication_level,
                   GNUNET_DHT_RO_RECORD_ROUTE |
                   GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
@@ -1295,7 +1295,7 @@ announce_application (void *cls, const struct GNUNET_HashCode * key, void *value
                   (const char *) &block,
                   GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get (),
                                             app_announce_time),
-                  app_announce_time, NULL, NULL);
+                  app_announce_time, NULL, NULL));
   return GNUNET_OK;
 }
 
@@ -4521,6 +4521,7 @@ handle_mesh_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_break_op (0);
     return GNUNET_OK;
   }
+  cinfo->max_pid = ack;
   tunnel_send_ack (t, GNUNET_MESSAGE_TYPE_MESH_ACK);
   return GNUNET_OK;
 }
