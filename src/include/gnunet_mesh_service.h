@@ -377,10 +377,11 @@ struct GNUNET_MESH_TransmitHandle;
 /**
  * Ask the mesh to call "notify" once it is ready to transmit the
  * given number of bytes to the specified tunnel or target.
+ * Only one call can be active at any time, to issue another request,
+ * wait for the callback or cancel the current request.
  *
  * @param tunnel tunnel to use for transmission
  * @param cork is corking allowed for this transmission?
- * @param priority how important is the message?
  * @param maxdelay how long can the message wait?
  * @param target destination for the message
  *               NULL for multicast to all tunnel targets
@@ -396,7 +397,6 @@ struct GNUNET_MESH_TransmitHandle;
  */
 struct GNUNET_MESH_TransmitHandle *
 GNUNET_MESH_notify_transmit_ready (struct GNUNET_MESH_Tunnel *tunnel, int cork,
-                                   uint32_t priority,
                                    struct GNUNET_TIME_Relative maxdelay,
                                    const struct GNUNET_PeerIdentity *target,
                                    size_t notify_size,

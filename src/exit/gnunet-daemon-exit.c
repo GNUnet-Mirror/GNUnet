@@ -535,7 +535,6 @@ send_to_peer_notify_callback (void *cls, size_t size, void *buf)
   {
     s->th = GNUNET_MESH_notify_transmit_ready (tunnel, 
 					       GNUNET_NO /* corking */, 
-					       0 /* priority */,
 					       GNUNET_TIME_UNIT_FOREVER_REL,
 					       NULL,
 					       tnq->len,
@@ -553,7 +552,6 @@ send_to_peer_notify_callback (void *cls, size_t size, void *buf)
   if (NULL != (tnq = s->head))
     s->th = GNUNET_MESH_notify_transmit_ready (tunnel, 
 					       GNUNET_NO /* corking */, 
-					       0 /* priority */,
 					       GNUNET_TIME_UNIT_FOREVER_REL,
 					       NULL,
 					       tnq->len,
@@ -582,7 +580,8 @@ send_packet_to_mesh_tunnel (struct GNUNET_MESH_Tunnel *mesh_tunnel,
   GNUNET_assert (NULL != s);
   GNUNET_CONTAINER_DLL_insert_tail (s->head, s->tail, tnq);
   if (NULL == s->th)
-    s->th = GNUNET_MESH_notify_transmit_ready (mesh_tunnel, GNUNET_NO /* cork */, 0 /* priority */,
+    s->th = GNUNET_MESH_notify_transmit_ready (mesh_tunnel,
+                                               GNUNET_NO /* cork */,
 					       GNUNET_TIME_UNIT_FOREVER_REL,
 					       NULL, tnq->len,
 					       &send_to_peer_notify_callback,

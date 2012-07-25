@@ -689,7 +689,6 @@ send_to_peer_notify_callback (void *cls, size_t size, void *buf)
   if (NULL != (tnq = ts->tmq_head))
     ts->th = GNUNET_MESH_notify_transmit_ready (ts->tunnel, 
 						GNUNET_NO /* cork */, 
-						42 /* priority */,
 						GNUNET_TIME_UNIT_FOREVER_REL,
 						NULL, 
 						tnq->len,
@@ -742,7 +741,6 @@ send_to_tunnel (struct TunnelMessageQueueEntry *tnq,
   if (NULL == ts->th)
     ts->th = GNUNET_MESH_notify_transmit_ready (ts->tunnel, 
 						GNUNET_NO /* cork */,
-						42 /* priority */,
 						GNUNET_TIME_UNIT_FOREVER_REL,
 						NULL, 
 						tnq->len,

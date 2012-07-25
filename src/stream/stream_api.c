@@ -583,8 +583,7 @@ send_message_notify (void *cls, size_t size, void *buf)
          socket->retries);
     socket->transmit_handle = 
       GNUNET_MESH_notify_transmit_ready (socket->tunnel,
-                                         0, /* Corking */
-                                         1, /* Priority */
+                                         GNUNET_NO, /* Corking */
                                          /* FIXME: exponential backoff */
                                          socket->retransmit_timeout,
                                          &socket->other_peer,
@@ -611,8 +610,7 @@ send_message_notify (void *cls, size_t size, void *buf)
     socket->retries = 0;
     socket->transmit_handle = 
       GNUNET_MESH_notify_transmit_ready (socket->tunnel,
-                                         0, /* Corking */
-                                         1, /* Priority */
+                                         GNUNET_NO, /* Corking */
                                          /* FIXME: exponential backoff */
                                          socket->retransmit_timeout,
                                          &socket->other_peer,
@@ -662,8 +660,7 @@ queue_message (struct GNUNET_STREAM_Socket *socket,
     socket->retries = 0;
     socket->transmit_handle = 
       GNUNET_MESH_notify_transmit_ready (socket->tunnel,
-					 0, /* Corking */
-					 1, /* Priority */
+					 GNUNET_NO, /* Corking */
 					 socket->retransmit_timeout,
 					 &socket->other_peer,
 					 ntohs (message->header.size),
@@ -792,8 +789,7 @@ ack_task (void *cls,
   /* Request MESH for sending ACK */
   socket->ack_transmit_handle = 
     GNUNET_MESH_notify_transmit_ready (socket->tunnel,
-                                       0, /* Corking */
-                                       1, /* Priority */
+                                       GNUNET_NO, /* Corking */
                                        socket->retransmit_timeout,
                                        &socket->other_peer,
                                        ntohs (ack_msg->header.header.size),

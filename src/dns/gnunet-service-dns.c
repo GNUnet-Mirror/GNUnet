@@ -1027,7 +1027,7 @@ do_dns_read (struct GNUNET_NETWORK_Handle *dnsout)
       if (ts->th != NULL)
 	GNUNET_MESH_notify_transmit_ready_cancel (ts->th);
       ts->th = GNUNET_MESH_notify_transmit_ready (ts->tunnel,
-						  GNUNET_NO, 0,
+						  GNUNET_NO,
 						  GNUNET_TIME_UNIT_FOREVER_REL,
 						  NULL,
 						  sizeof (struct GNUNET_MessageHeader) + r,

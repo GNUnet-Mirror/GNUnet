@@ -550,7 +550,7 @@ transmit_dns_request_to_mesh (void *cls,
   if (mlen > size)
   {    
     mesh_th = GNUNET_MESH_notify_transmit_ready (mesh_tunnel,
-						 GNUNET_NO, 0,
+						 GNUNET_NO,
 						 TIMEOUT,
 						 NULL, mlen,
 						 &transmit_dns_request_to_mesh,
@@ -569,7 +569,7 @@ transmit_dns_request_to_mesh (void *cls,
   rc = transmit_queue_head;
   if (NULL != rc)
     mesh_th = GNUNET_MESH_notify_transmit_ready (mesh_tunnel,
-						 GNUNET_NO, 0,
+						 GNUNET_NO,
 						 TIMEOUT,
 						 NULL, ntohs (rc->mesh_message->size),
 						 &transmit_dns_request_to_mesh,
@@ -668,7 +668,7 @@ dns_pre_request_handler (void *cls,
 				    rc);
   if (NULL == mesh_th)
     mesh_th = GNUNET_MESH_notify_transmit_ready (mesh_tunnel,
-						 GNUNET_NO, 0,
+						 GNUNET_NO,
 						 TIMEOUT,
 						 NULL, mlen,
 						 &transmit_dns_request_to_mesh,

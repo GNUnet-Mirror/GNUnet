@@ -103,12 +103,6 @@ struct GNUNET_MESH_TransmitHandle
   GNUNET_SCHEDULER_TaskIdentifier timeout_task;
 
     /**
-     * Priority of the message.  The queue is sorted by priority,
-     * control messages have the maximum priority (UINT32_MAX).
-     */
-  uint32_t priority;
-
-    /**
      * Target of the message, 0 for multicast.  This field
      * is only valid if 'notify' is non-NULL.
      */
@@ -146,9 +140,13 @@ struct GNUNET_MESH_Handle
   const GNUNET_MESH_ApplicationType *applications;
 
     /**
-     * Double linked list of the tunnels this client is connected to.
+     * Double linked list of the tunnels this client is connected to, head.
      */
   struct GNUNET_MESH_Tunnel *tunnels_head;
+
+    /**
+     * Double linked list of the tunnels this client is connected to, tail.
+     */
   struct GNUNET_MESH_Tunnel *tunnels_tail;
 
     /**
@@ -172,29 +170,35 @@ struct GNUNET_MESH_Handle
   void *cls;
 
     /**
-     * Messages to send to the service
+     * Messages to send to the service, head.
      */
   struct GNUNET_MESH_TransmitHandle *th_head;
+
+    /**
+     * Messages to send to the service, tail.
+     */
   struct GNUNET_MESH_TransmitHandle *th_tail;
 
     /**
      * tid of the next tunnel to create (to avoid reusing IDs often)
      */
   MESH_TunnelNumber next_tid;
+
+    /**
+     * Number of handlers in the handlers array.
+     */
   unsigned int n_handlers;
+
+    /**
+     * Number of applications in the applications array.
+     */
   unsigned int n_applications;
-  unsigned int max_queue_size;
 
     /**
      * Have we started the task to receive messages from the service
      * yet? We do this after we send the 'MESH_LOCAL_CONNECT' message.
      */
   int in_receive;
-
-    /**
-     * Number of packets queued
-     */
-  unsigned int npackets;
 
   /**
    * Configuration given by the client, in case of reconnection
@@ -587,7 +591,7 @@ add_to_queue (struct GNUNET_MESH_Handle *h,
   struct GNUNET_MESH_TransmitHandle *p;
 
   p = h->th_head;
-  while ((NULL != p) && (th->priority <= p->priority))
+  while ((NULL != p))
     p = p->next;
   if (NULL == p)
     p = h->th_tail;
@@ -1253,7 +1257,6 @@ send_callback (void *cls, size_t size, void *buf)
       GNUNET_SCHEDULER_cancel (th->timeout_task);
     if (NULL != th->notify)
     {
-      th->tunnel->mesh->npackets--;
       th->tunnel->npackets--;
     }
     GNUNET_CONTAINER_DLL_remove (h->th_head, h->th_tail, th);
@@ -1302,7 +1305,6 @@ send_packet (struct GNUNET_MESH_Handle *h,
 
   msize = ntohs (msg->size);
   th = GNUNET_malloc (sizeof (struct GNUNET_MESH_TransmitHandle) + msize);
-  th->priority = UINT32_MAX;
   th->timeout = GNUNET_TIME_UNIT_FOREVER_ABS;
   th->size = msize;
   th->tunnel = tunnel;
@@ -1413,7 +1415,6 @@ GNUNET_MESH_disconnect (struct GNUNET_MESH_Handle *handle)
     /* Make sure it is an allowed packet (everything else should have been
      * already canceled).
      */
-    GNUNET_break (UINT32_MAX == th->priority);
     GNUNET_break (NULL == th->notify);
     msg = (struct GNUNET_MessageHeader *) &th[1];
     switch (ntohs(msg->type))
@@ -1825,15 +1826,14 @@ GNUNET_MESH_peer_unblacklist (struct GNUNET_MESH_Tunnel *tunnel,
 
 /**
  * Ask the mesh to call "notify" once it is ready to transmit the
- * given number of bytes to the specified "target".  If we are not yet
- * connected to the specified peer, a call to this function will cause
- * us to try to establish a connection.
+ * given number of bytes to the specified tunnel or target.
+ * Only one call can be active at any time, to issue another request,
+ * wait for the callback or cancel the current request.
  *
  * @param tunnel tunnel to use for transmission
  * @param cork is corking allowed for this transmission?
- * @param priority how important is the message?
  * @param maxdelay how long can the message wait?
- * @param target destination for the message,
+ * @param target destination for the message
  *               NULL for multicast to all tunnel targets
  * @param notify_size how many bytes of buffer space does notify want?
  * @param notify function to call when buffer space is available;
@@ -1847,7 +1847,6 @@ GNUNET_MESH_peer_unblacklist (struct GNUNET_MESH_Tunnel *tunnel,
  */
 struct GNUNET_MESH_TransmitHandle *
 GNUNET_MESH_notify_transmit_ready (struct GNUNET_MESH_Tunnel *tunnel, int cork,
-                                   uint32_t priority,
                                    struct GNUNET_TIME_Relative maxdelay,
                                    const struct GNUNET_PeerIdentity *target,
                                    size_t notify_size,
@@ -1855,8 +1854,6 @@ GNUNET_MESH_notify_transmit_ready (struct GNUNET_MESH_Tunnel *tunnel, int cork,
                                    void *notify_cls)
 {
   struct GNUNET_MESH_TransmitHandle *th;
-  struct GNUNET_MESH_TransmitHandle *least_priority_th;
-  uint32_t least_priority;
   size_t overhead;
 
   GNUNET_assert (NULL != tunnel);
@@ -1866,42 +1863,10 @@ GNUNET_MESH_notify_transmit_ready (struct GNUNET_MESH_Tunnel *tunnel, int cork,
   else
     LOG (GNUNET_ERROR_TYPE_DEBUG, "    target multicast\n");
   GNUNET_assert (NULL != notify);
-  if (tunnel->mesh->npackets >= tunnel->mesh->max_queue_size &&
-      tunnel->npackets > 0)
-  {
-    /* queue full */
-    if (0 == priority)
-      return NULL;
-    th = tunnel->mesh->th_tail;
-    least_priority = priority;
-    least_priority_th = NULL;
-    while (NULL != th)
-    {
-      if (th->priority < least_priority && th->tunnel->npackets > 1)
-      {
-        least_priority_th = th;
-        least_priority = th->priority;
-      }
-      th = th->prev;
-    }
-    if (NULL == least_priority_th)
-      return NULL;
-    /* Can't be a control message */
-    GNUNET_assert (NULL != least_priority_th->notify);
-    least_priority_th->notify (notify_cls, 0, NULL);
-    least_priority_th->tunnel->npackets--;
-    tunnel->mesh->npackets--;
-    GNUNET_CONTAINER_DLL_remove (tunnel->mesh->th_head, tunnel->mesh->th_tail,
-                                 least_priority_th);
-    if (GNUNET_SCHEDULER_NO_TASK != least_priority_th->timeout_task)
-      GNUNET_SCHEDULER_cancel (least_priority_th->timeout_task);
-    GNUNET_free (least_priority_th);
-  }
+  GNUNET_assert (0 == tunnel->npackets);
   tunnel->npackets++;
-  tunnel->mesh->npackets++;
   th = GNUNET_malloc (sizeof (struct GNUNET_MESH_TransmitHandle));
   th->tunnel = tunnel;
-  th->priority = priority;
   th->timeout = GNUNET_TIME_relative_to_absolute (maxdelay);
   th->target = GNUNET_PEER_intern (target);
   if (tunnel->tid >= GNUNET_MESH_LOCAL_TUNNEL_ID_SERV)
