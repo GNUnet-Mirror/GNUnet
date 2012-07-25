@@ -843,7 +843,8 @@ GNUNET_DISK_file_read (const struct GNUNET_DISK_FileHandle * h, void *result,
  */
 ssize_t
 GNUNET_DISK_file_read_non_blocking (const struct GNUNET_DISK_FileHandle * h,
-    void *result, size_t len)
+				    void *result, 
+				    size_t len)
 {
   if (h == NULL)
   {
@@ -891,10 +892,14 @@ GNUNET_DISK_file_read_non_blocking (const struct GNUNET_DISK_FileHandle * h,
   /* set to non-blocking, read, then set back */
   flags = fcntl (h->fd, F_GETFL);
   if (0 == (flags & O_NONBLOCK))
-    fcntl (h->fd, F_SETFL, flags | O_NONBLOCK);
+    (void) fcntl (h->fd, F_SETFL, flags | O_NONBLOCK);
   ret = read (h->fd, result, len);
   if (0 == (flags & O_NONBLOCK))
-    fcntl (h->fd, F_SETFL, flags);
+    {
+      int eno = errno;
+      (void) fcntl (h->fd, F_SETFL, flags);
+      errno = eno;
+    }
   return ret;
 #endif
 }
