@@ -1352,34 +1352,34 @@ remove_helper (void *unused, const char *fn)
  * caution.
  *
  *
- * @param fileName the file to remove
+ * @param filename the file to remove
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
 int
-GNUNET_DISK_directory_remove (const char *fileName)
+GNUNET_DISK_directory_remove (const char *filename)
 {
   struct stat istat;
 
-  if (0 != LSTAT (fileName, &istat))
+  if (0 != LSTAT (filename, &istat))
     return GNUNET_NO;           /* file may not exist... */
-  CHMOD (fileName, S_IWUSR | S_IRUSR | S_IXUSR);
-  if (UNLINK (fileName) == 0)
+  (void) CHMOD (filename, S_IWUSR | S_IRUSR | S_IXUSR);
+  if (UNLINK (filename) == 0)
     return GNUNET_OK;
   if ((errno != EISDIR) &&
       /* EISDIR is not sufficient in all cases, e.g.
        * sticky /tmp directory may result in EPERM on BSD.
        * So we also explicitly check "isDirectory" */
-      (GNUNET_YES != GNUNET_DISK_directory_test (fileName)))
+      (GNUNET_YES != GNUNET_DISK_directory_test (filename)))
   {
-    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "rmdir", fileName);
+    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "rmdir", filename);
     return GNUNET_SYSERR;
   }
   if (GNUNET_SYSERR ==
-      GNUNET_DISK_directory_scan (fileName, &remove_helper, NULL))
+      GNUNET_DISK_directory_scan (filename, &remove_helper, NULL))
     return GNUNET_SYSERR;
-  if (0 != RMDIR (fileName))
+  if (0 != RMDIR (filename))
   {
-    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "rmdir", fileName);
+    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "rmdir", filename);
     return GNUNET_SYSERR;
   }
   return GNUNET_OK;

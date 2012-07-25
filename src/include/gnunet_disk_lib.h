@@ -683,7 +683,7 @@ GNUNET_DISK_directory_test (const char *fil);
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
 int
-GNUNET_DISK_directory_remove (const char *fileName);
+GNUNET_DISK_directory_remove (const char *filename);
 
 
 /**
