@@ -3133,6 +3133,7 @@ tunnel_send_ack (struct MeshTunnel *t, uint16_t type)
     ack = child_ack > ack ? child_ack : ack;
   }
 
+  /* If speed_min and not all children have ack'd, dont send yet */
   if (ack == t->last_ack)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Not sending ACK, not ready\n");
@@ -4424,6 +4425,59 @@ handle_mesh_data_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
 
 
 /**
+ * Core handler for mesh network traffic point-to-point acks.
+ *
+ * @param cls closure
+ * @param message message
+ * @param peer peer identity this notification is about
+ * @param atsi performance data
+ * @param atsi_count number of records in 'atsi'
+ *
+ * @return GNUNET_OK to keep the connection open,
+ *         GNUNET_SYSERR to close it (signal serious error)
+ */
+static int
+handle_mesh_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
+                 const struct GNUNET_MessageHeader *message,
+                 const struct GNUNET_ATS_Information *atsi,
+                 unsigned int atsi_count)
+{
+  struct GNUNET_MESH_ACK *msg;
+  struct MeshTunnelChildInfo *cinfo;
+  struct MeshTunnel *t;
+  uint32_t ack;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "got an ACK packet from %s\n",
+              GNUNET_i2s (peer));
+  msg = (struct GNUNET_MESH_ACK *) message;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " of type %u\n",
+              ntohs (msg[1].header.type));
+  t = tunnel_get (&msg->oid, ntohl (msg->tid));
+
+  if (NULL == t)
+  {
+    /* TODO notify that we dont know this tunnel (whom)? */
+    GNUNET_STATISTICS_update (stats, "# ack on unknown tunnel", 1, GNUNET_NO);
+    GNUNET_break_op (0);
+    return GNUNET_OK;
+  }
+  ack = ntohl (msg->pid);
+  cinfo = GNUNET_CONTAINER_multihashmap_get (t->children_fc,
+                                             &peer->hashPubKey);
+  if (NULL == cinfo)
+  {
+    cinfo = GNUNET_malloc (sizeof (struct MeshTunnelChildInfo));
+    cinfo->id = GNUNET_PEER_intern (peer);
+    cinfo->max_pid = ack;
+    cinfo->skip = t->pid; // FIXME create on send?
+    cinfo->pid = t->pid;
+  }
+  tunnel_send_ack (t, GNUNET_MESSAGE_TYPE_MESH_ACK);
+  return GNUNET_OK;
+}
+
+
+/**
  * Core handler for path ACKs
  *
  * @param cls closure
@@ -4533,10 +4587,13 @@ static struct GNUNET_CORE_MessageHandler core_handlers[] = {
   {&handle_mesh_path_destroy, GNUNET_MESSAGE_TYPE_MESH_PATH_DESTROY, 0},
   {&handle_mesh_path_broken, GNUNET_MESSAGE_TYPE_MESH_PATH_BROKEN,
    sizeof (struct GNUNET_MESH_PathBroken)},
-  {&handle_mesh_tunnel_destroy, GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY, 0},
+  {&handle_mesh_tunnel_destroy, GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY,
+   sizeof (struct GNUNET_MESH_TunnelDestroy)},
   {&handle_mesh_data_unicast, GNUNET_MESSAGE_TYPE_MESH_UNICAST, 0},
   {&handle_mesh_data_multicast, GNUNET_MESSAGE_TYPE_MESH_MULTICAST, 0},
   {&handle_mesh_data_to_orig, GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN, 0},
+  {&handle_mesh_ack, GNUNET_MESSAGE_TYPE_MESH_ACK,
+    sizeof (struct GNUNET_MESH_ACK)},
   {&handle_mesh_path_ack, GNUNET_MESSAGE_TYPE_MESH_PATH_ACK,
    sizeof (struct GNUNET_MESH_PathACK)},
   {NULL, 0, 0}
