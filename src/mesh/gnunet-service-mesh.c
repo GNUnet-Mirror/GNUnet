@@ -3024,8 +3024,9 @@ tunnel_send_multicast (struct MeshTunnel *t,
  * Increase the SKIP value of all peers that
  * have not received a unicast message.
  *
- * @param cls Closure (Short id of the peer that HAS received the message).
- * @param id Short ID of the neighbor.
+ * @param cls Closure (ID of the peer that HAS received the message).
+ * @param key ID of the neighbor.
+ * @param value Information about the neighbor.
  */
 static int
 tunnel_add_skip (void *cls,
