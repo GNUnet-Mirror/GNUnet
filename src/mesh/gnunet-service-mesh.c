@@ -4518,11 +4518,8 @@ handle_mesh_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
                                              &peer->hashPubKey);
   if (NULL == cinfo)
   {
-    cinfo = GNUNET_malloc (sizeof (struct MeshTunnelChildInfo));
-    cinfo->id = GNUNET_PEER_intern (peer);
-    cinfo->max_pid = ack;
-    cinfo->skip = t->pid; // FIXME create on send?
-    cinfo->pid = t->pid;
+    GNUNET_break_op (0);
+    return GNUNET_OK;
   }
   tunnel_send_ack (t, GNUNET_MESSAGE_TYPE_MESH_ACK);
   return GNUNET_OK;
