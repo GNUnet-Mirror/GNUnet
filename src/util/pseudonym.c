@@ -487,8 +487,13 @@ GNUNET_PSEUDONYM_name_to_id (const struct GNUNET_CONFIGURATION_Handle *cfg,
                               GNUNET_DISK_PERM_USER_READ |
                               GNUNET_DISK_PERM_USER_WRITE);
   GNUNET_free (fn);
-  GNUNET_DISK_file_seek (fh, idx * sizeof (struct GNUNET_HashCode),
-                         GNUNET_DISK_SEEK_SET);
+  if (GNUNET_SYSERR ==
+      GNUNET_DISK_file_seek (fh, idx * sizeof (struct GNUNET_HashCode),
+			     GNUNET_DISK_SEEK_SET))
+  {
+    GNUNET_DISK_file_close (fh);
+    return GNUNET_SYSERR;
+  }
   if (sizeof (struct GNUNET_HashCode) !=
       GNUNET_DISK_file_read (fh, nsid, sizeof (struct GNUNET_HashCode)))
   {
