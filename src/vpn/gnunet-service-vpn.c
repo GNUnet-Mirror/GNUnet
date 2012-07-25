@@ -3024,7 +3024,7 @@ test_af (int af)
 			 "socket");
     return GNUNET_SYSERR;
   }
-  close (s);
+  (void) close (s);
   return GNUNET_OK;
 }
 

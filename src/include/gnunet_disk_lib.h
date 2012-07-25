@@ -679,7 +679,7 @@ GNUNET_DISK_directory_test (const char *fil);
  * Remove all files in a directory (rm -rf). Call with
  * caution.
  *
- * @param fileName the file to remove
+ * @param filename the file to remove
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
 int
