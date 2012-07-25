@@ -3021,7 +3021,35 @@ tunnel_send_multicast (struct MeshTunnel *t,
 
 
 /**
- * Iterator to get the appropiate ACK value from all children nodes
+ * Increase the SKIP value of all peers that
+ * have not received a unicast message.
+ *
+ * @param cls Closure (Short id of the peer that HAS received the message).
+ * @param id Short ID of the neighbor.
+ */
+static int
+tunnel_add_skip (void *cls,
+                 const struct GNUNET_HashCode * key,
+                 void *value)
+{
+  struct GNUNET_PeerIdentity *neighbor = cls;
+  struct MeshTunnelChildInfo *cinfo = value;
+
+  if (0 == memcmp (&neighbor->hashPubKey, key, sizeof (struct GNUNET_HashCode)))
+  {
+    return GNUNET_YES;
+  }
+  cinfo->skip++;
+  return GNUNET_YES;
+}
+
+
+
+/**
+ * Iterator to get the appropiate ACK value from all children nodes.
+ *
+ * @param cls Closue (tunnel).
+ * @param id Id of the child node.
  */
 static void
 tunnel_get_child_ack (void *cls,
@@ -4185,7 +4213,10 @@ handle_mesh_data_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
                           unsigned int atsi_count)
 {
   struct GNUNET_MESH_Unicast *msg;
+  struct GNUNET_PeerIdentity *neighbor;
+  struct MeshTunnelChildInfo *cinfo;
   struct MeshTunnel *t;
+  GNUNET_PEER_Id dest_id;
   uint32_t pid;
   uint32_t ttl;
   size_t size;
@@ -4227,8 +4258,8 @@ handle_mesh_data_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
   t->skip += (pid - t->pid) - 1;
   t->pid = pid;
   tunnel_reset_timeout (t);
-  pid = GNUNET_PEER_search (&msg->destination);
-  if (pid == myid)
+  dest_id = GNUNET_PEER_search (&msg->destination);
+  if (dest_id == myid)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "  it's for us! sending to clients...\n");
@@ -4249,7 +4280,27 @@ handle_mesh_data_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
               "  not for us, retransmitting...\n");
   GNUNET_STATISTICS_update (stats, "# unicast forwarded", 1, GNUNET_NO);
 
-  send_message (message, tree_get_first_hop (t->tree, pid), t);
+  neighbor = tree_get_first_hop (t->tree, dest_id);
+  cinfo = GNUNET_CONTAINER_multihashmap_get (t->children_fc,
+                                             &neighbor->hashPubKey);
+  if (NULL == cinfo)
+  {
+    cinfo = GNUNET_malloc (sizeof (struct MeshTunnelChildInfo));
+    cinfo->id = GNUNET_PEER_intern (neighbor);
+    cinfo->skip = pid;
+    cinfo->max_pid = pid + t->queue_max - t->queue_n; // FIXME review
+
+    GNUNET_assert (GNUNET_OK ==
+                   GNUNET_CONTAINER_multihashmap_put (t->children_fc,
+                       &neighbor->hashPubKey,
+                       cinfo,
+                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
+  }
+  cinfo->pid = pid;
+  GNUNET_CONTAINER_multihashmap_iterate (t->children_fc,
+                                         &tunnel_add_skip,
+                                         &neighbor);
+  send_message (message, neighbor, t);
   return GNUNET_OK;
 }
 
@@ -6221,6 +6272,7 @@ handle_local_multicast (void *cls, struct GNUNET_SERVER_Client *client,
   return;
 }
 
+
 /**
  * Functions to handle messages from clients
  */
@@ -6296,6 +6348,7 @@ core_init (void *cls, struct GNUNET_CORE_Handle *server,
   return;
 }
 
+
 /**
  * Method called whenever a given peer connects.
  *
@@ -6333,6 +6386,7 @@ core_connect (void *cls, const struct GNUNET_PeerIdentity *peer,
   GNUNET_STATISTICS_update (stats, "# peers", 1, GNUNET_NO);
   return;
 }
+
 
 /**
  * Method called whenever a peer disconnects.
