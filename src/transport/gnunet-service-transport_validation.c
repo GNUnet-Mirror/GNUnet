@@ -819,7 +819,7 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
   sig_cache = NULL;
   sig_cache_exp = NULL;
 
-  if (0 < alen)
+  if (alen > 0)
   {
     addrend = memchr (addr, '\0', alen);
     if (NULL == addrend)
@@ -890,6 +890,9 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
 	      GNUNET_h2s (&GST_my_identity.hashPubKey),
               GNUNET_i2s (sender));
 
+  /* message with structure:
+   * [TransportPongMessage][Transport name][Address] */
+
   pong = GNUNET_malloc (sizeof (struct TransportPongMessage) + alen + slen);
   pong->header.size =
       htons (sizeof (struct TransportPongMessage) + alen + slen);
@@ -931,7 +934,11 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
   else
   {
 #endif
-    memcpy (&((char *) &pong[1])[slen], addrend, alen);
+    if (alen > 0)
+    {
+        GNUNET_assert (NULL != addrend);
+        memcpy (&((char *) &pong[1])[slen], addrend, alen);
+    }
     if (GNUNET_TIME_absolute_get_remaining (*sig_cache_exp).rel_value <
         PONG_SIGNATURE_LIFETIME.rel_value / 4)
     {
@@ -1100,6 +1107,9 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
   GNUNET_STATISTICS_update (GST_stats,
                             gettext_noop ("# PONG messages received"), 1,
                             GNUNET_NO);
+
+  /* message with structure:
+   * [TransportPongMessage][Transport name][Address] */
 
   pong = (const struct TransportPongMessage *) hdr;
   tname = (const char *) &pong[1];
