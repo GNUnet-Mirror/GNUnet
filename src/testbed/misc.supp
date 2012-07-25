@@ -1,0 +1,34 @@
+{
+   <get_log_call_status>
+   Memcheck:Leak
+   fun:malloc
+   ...
+   fun:re_acquire_state_context
+   fun:build_trtable
+   fun:re_search_internal
+   fun:regexec@@GLIBC_2.3.4
+   fun:GNUNET_get_log_call_status
+   ...
+}
+{
+   <log_setup>
+   Memcheck:Leak
+   ...
+   fun:GNUNET_log_setup   
+   ...
+}
+{
+   <get_log_status>
+   Memcheck:Leak
+   ...
+   fun:GNUNET_get_log_call_status
+   ...
+}
+{
+   <linux-loader>
+   Memcheck:Leak
+   fun:malloc
+   obj:/lib/i386-linux-gnu/libgcrypt.so.11.7.0
+   ...
+   obj:/lib/i386-linux-gnu/ld-2.15.so
+}
