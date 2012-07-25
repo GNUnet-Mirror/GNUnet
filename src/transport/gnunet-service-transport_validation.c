@@ -912,7 +912,7 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
     }
     else if (alen <= (idsize + strlen (address.transport_name) + 1))
     {
-      memcpy (&((char *) &pong[1])[slen], &GST_my_identity, alen);
+      memcpy (&((char *) &pong[1])[slen], &GST_my_identity, idsize);
       memcpy (&((char *) &pong[1])[slen + idsize], address.transport_name, alen-idsize);
     }
     else
