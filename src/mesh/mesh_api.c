@@ -1206,7 +1206,7 @@ send_callback (void *cls, size_t size, void *buf)
   h->th = NULL;
   if ((0 == size) || (NULL == buf))
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Received NULL callback\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Received NULL send callback\n");
     reconnect (h);
     return 0;
   }
@@ -1217,6 +1217,7 @@ send_callback (void *cls, size_t size, void *buf)
     t = th->tunnel;
     if (GNUNET_YES == th_is_payload (th))
     {
+      LOG (GNUNET_ERROR_TYPE_DEBUG, " payload\n");
       if (t->max_pid < t->pid && ! PID_OVERFLOW (t->pid, t->max_pid)) {
         /* This tunnel is not ready to transmit yet, try next message */
         next = th->next;
@@ -1300,6 +1301,7 @@ send_callback (void *cls, size_t size, void *buf)
     else
     {
       struct GNUNET_MessageHeader *mh = (struct GNUNET_MessageHeader *) &th[1];
+
       LOG (GNUNET_ERROR_TYPE_DEBUG, "  mesh traffic, type %u\n",
              ntohs (mh->type));
       memcpy (cbuf, &th[1], th->size);
@@ -1319,9 +1321,14 @@ send_callback (void *cls, size_t size, void *buf)
   {
     int request = GNUNET_NO;
 
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  head not empty\n");
     for (th = h->th_head; NULL != th; th = th->next)
     {
       struct GNUNET_MESH_Tunnel *t = th->tunnel;
+
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "  [%p] notify: %p, size %u\n",
+           th, th->notify, th->size);
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "  pid %u, max %u\n", t->pid, t->max_pid);
 
       if (GNUNET_NO == th_is_payload (th) ||
           (t->max_pid >= t->pid || PID_OVERFLOW (t->pid, t->max_pid)))
