@@ -275,7 +275,7 @@ disconnect_mesh_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
 }
 
-size_t
+static size_t
 tmt_rdy (void *cls, size_t size, void *buf);
 
 static void
