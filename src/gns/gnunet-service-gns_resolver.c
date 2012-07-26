@@ -591,8 +591,6 @@ start_shorten (struct AuthorityChain *auth,
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pkey;
   struct GNUNET_CRYPTO_RsaPrivateKeyBinaryEncoded *pb_key;
 
-  gph = GNUNET_malloc (sizeof (struct GetPseuAuthorityHandle));
-
   GNUNET_CRYPTO_rsa_key_get_public (key, &pkey);
   pb_key = GNUNET_CRYPTO_rsa_encode_key (key);
 
