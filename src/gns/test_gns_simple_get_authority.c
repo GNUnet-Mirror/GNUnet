@@ -307,7 +307,9 @@ do_shorten(void *cls, const struct GNUNET_PeerIdentity *id,
                                NULL);
 
   GNUNET_free(sig);
-
+  GNUNET_CRYPTO_rsa_key_free (alice_key);
+  GNUNET_CRYPTO_rsa_key_free (bob_key);
+  GNUNET_CRYPTO_rsa_key_free (our_key);
 }
 
 static void
