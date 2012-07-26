@@ -1353,13 +1353,14 @@ send_callback (void *cls, size_t size, void *buf)
       LOG (GNUNET_ERROR_TYPE_DEBUG, "  nothing left to transmit\n");
     }
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Send packet() END\n");
   if (GNUNET_NO == h->in_receive)
   {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " start receiving from service\n");
     h->in_receive = GNUNET_YES;
     GNUNET_CLIENT_receive (h->client, &msg_received, h,
                            GNUNET_TIME_UNIT_FOREVER_REL);
   }
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Send packet() END\n");
   return tsize;
 }
 
