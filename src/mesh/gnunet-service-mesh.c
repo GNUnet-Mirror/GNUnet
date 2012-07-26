@@ -889,6 +889,93 @@ dht_get_string_accept_handler (void *cls, struct GNUNET_TIME_Absolute exp,
 
 
 /**
+ * Retrieve the MeshPeerInfo stucture associated with the peer, create one
+ * and insert it in the appropiate structures if the peer is not known yet.
+ *
+ * @param peer Short identity of the peer.
+ *
+ * @return Existing or newly created peer info.
+ */
+static struct MeshPeerInfo *
+peer_info_get_short (const GNUNET_PEER_Id peer);
+
+
+/**
+ * Try to establish a new connection to this peer.
+ * Use the best path for the given tunnel.
+ * If the peer doesn't have any path to it yet, try to get one.
+ * If the peer already has some path, send a CREATE PATH towards it.
+ *
+ * @param peer PeerInfo of the peer.
+ * @param t Tunnel for which to create the path, if possible.
+ */
+static void
+peer_info_connect (struct MeshPeerInfo *peer, struct MeshTunnel *t);
+
+
+/**
+ * Add a peer to a tunnel, accomodating paths accordingly and initializing all
+ * needed rescources.
+ * If peer already exists, reevaluate shortest path and change if different.
+ *
+ * @param t Tunnel we want to add a new peer to
+ * @param peer PeerInfo of the peer being added
+ *
+ */
+static void
+tunnel_add_peer (struct MeshTunnel *t, struct MeshPeerInfo *peer);
+
+
+/**
+ * Removes an explicit path from a tunnel, freeing all intermediate nodes
+ * that are no longer needed, as well as nodes of no longer reachable peers.
+ * The tunnel itself is also destoyed if results in a remote empty tunnel.
+ *
+ * @param t Tunnel from which to remove the path.
+ * @param peer Short id of the peer which should be removed.
+ */
+static void
+tunnel_delete_peer (struct MeshTunnel *t, GNUNET_PEER_Id peer);
+
+
+/**
+ * Search for a tunnel by global ID using full PeerIdentities.
+ *
+ * @param oid owner of the tunnel.
+ * @param tid global tunnel number.
+ *
+ * @return tunnel handler, NULL if doesn't exist.
+ */
+static struct MeshTunnel *
+tunnel_get (struct GNUNET_PeerIdentity *oid, MESH_TunnelNumber tid);
+
+
+/**
+ * Delete an active client from the tunnel.
+ *
+ * @param t Tunnel.
+ * @param c Client.
+ */
+static void
+tunnel_delete_active_client (struct MeshTunnel *t, const struct MeshClient *c);
+
+/**
+ * Notify a tunnel that a connection has broken that affects at least
+ * some of its peers.
+ *
+ * @param t Tunnel affected.
+ * @param p1 Peer that got disconnected from p2.
+ * @param p2 Peer that got disconnected from p1.
+ *
+ * @return Short ID of the peer disconnected (either p1 or p2).
+ *         0 if the tunnel remained unaffected.
+ */
+static GNUNET_PEER_Id
+tunnel_notify_connection_broken (struct MeshTunnel *t, GNUNET_PEER_Id p1,
+                                 GNUNET_PEER_Id p2);
+
+
+/**
  * Iterator over edges in a regex block retrieved from the DHT.
  *
  * @param cls Closure.
@@ -944,8 +1031,6 @@ queue_destroy (struct MeshPeerQueue *queue, int clear_cls);
 /************************         ITERATORS        ****************************/
 /******************************************************************************/
 
-/* FIXME move iterators here */
-
 /**
  * Iterator over found existing mesh regex blocks that match an ongoing search.
  *
@@ -982,6 +1067,7 @@ regex_result_iterator (void *cls,
 
   return GNUNET_YES;
 }
+
 
 /**
  * Iterator over edges in a regex block retrieved from the DHT.
@@ -1261,6 +1347,93 @@ regex_find_path (const struct GNUNET_HashCode *key,
 }
 
 
+/**
+ * Function called if the connect attempt to a peer found via
+ * connect_by_string times out. Try to connect to another peer, if any.
+ * Otherwise try to reconnect to the same peer.
+ *
+ * @param cls Closure (info about regex search).
+ * @param tc TaskContext.
+ */
+static void
+regex_connect_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct MeshRegexSearchInfo *info = cls;
+  struct MeshPeerInfo *peer_info;
+  GNUNET_PEER_Id id;
+  GNUNET_PEER_Id old;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Regex connect timeout\n");
+  info->timeout = GNUNET_SCHEDULER_NO_TASK;
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+  {
+    return;
+  }
+
+  old = info->peer;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  timed out: %u\n", old);
+
+  if (0 < info->n_peers)
+  {
+    // Select next peer, put current in that spot.
+    id = info->peers[info->i_peer];
+    info->peers[info->i_peer] = info->peer;
+    info->i_peer = (info->i_peer + 1) % info->n_peers;
+  }
+  else
+  {
+    // Try to connect to same peer again.
+    id = info->peer;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  trying: %u\n", id);
+
+  peer_info = peer_info_get_short(id);
+  tunnel_add_peer (info->t, peer_info);
+  if (old != id)
+    tunnel_delete_peer (info->t, old);
+  peer_info_connect (peer_info, info->t);
+  info->timeout = GNUNET_SCHEDULER_add_delayed (connect_timeout,
+                                                &regex_connect_timeout,
+                                                info);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Regex connect timeout END\n");
+}
+
+
+/**
+ * Cancel an ongoing regex search in the DHT and free all resources.
+ *
+ * @param ctx The search context.
+ */
+static void
+regex_cancel_search(struct MeshRegexSearchContext *ctx)
+{
+  struct MeshRegexSearchInfo *info = ctx->info;
+  int i;
+
+  GNUNET_free (info->description);
+  GNUNET_CONTAINER_multihashmap_iterate (info->dht_get_handles,
+                                             &regex_cancel_dht_get, NULL);
+  GNUNET_CONTAINER_multihashmap_iterate (info->dht_get_results,
+                                         &regex_free_result, NULL);
+  GNUNET_CONTAINER_multihashmap_destroy (info->dht_get_results);
+  GNUNET_CONTAINER_multihashmap_destroy (info->dht_get_handles);
+  info->t->regex_ctx = NULL;
+  for (i = 0; i < info->n_contexts; i++)
+  {
+    GNUNET_free (info->contexts[i]);
+  }
+  if (0 < info->n_contexts)
+    GNUNET_free (info->contexts);
+  if (0 < info->n_peers)
+    GNUNET_free (info->peers);
+  if (GNUNET_SCHEDULER_NO_TASK != info->timeout)
+  {
+    GNUNET_SCHEDULER_cancel(info->timeout);
+  }
+  GNUNET_free (info);
+}
+
+
 /******************************************************************************/
 /************************    PERIODIC FUNCTIONS    ****************************/
 /******************************************************************************/
@@ -1412,75 +1585,37 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /******************      GENERAL HELPER FUNCTIONS      ************************/
 /******************************************************************************/
 
+
 /**
- * Cancel an ongoing regex search in the DHT and free all resources.
- * 
- * @param ctx The search context.
+ * Decrements the reference counter and frees all resources if needed
+ *
+ * @param mesh_data Data Descriptor used in a multicast message.
+ *                  Freed no longer needed (last message).
  */
 static void
-regex_cancel_search(struct MeshRegexSearchContext *ctx)
+data_descriptor_decrement_rc (struct MeshData *mesh_data)
 {
-  struct MeshRegexSearchInfo *info = ctx->info;
-  int i;
+  /* Make sure it's a multicast packet */
+  GNUNET_assert (NULL != mesh_data->reference_counter);
 
-  GNUNET_free (info->description);
-  GNUNET_CONTAINER_multihashmap_iterate (info->dht_get_handles,
-                                             &regex_cancel_dht_get, NULL);
-  GNUNET_CONTAINER_multihashmap_iterate (info->dht_get_results,
-                                         &regex_free_result, NULL);
-  GNUNET_CONTAINER_multihashmap_destroy (info->dht_get_results);
-  GNUNET_CONTAINER_multihashmap_destroy (info->dht_get_handles);
-  info->t->regex_ctx = NULL;
-  for (i = 0; i < info->n_contexts; i++)
+  if (0 == --(*(mesh_data->reference_counter)))
   {
-    GNUNET_free (info->contexts[i]);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Last copy!\n");
+    if (NULL != mesh_data->task)
+    {
+      if (GNUNET_SCHEDULER_NO_TASK != *(mesh_data->task))
+      {
+        GNUNET_SCHEDULER_cancel (*(mesh_data->task));
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " notifying client...\n");
+        GNUNET_SERVER_receive_done (mesh_data->t->owner->handle, GNUNET_OK);
+      }
+      GNUNET_free (mesh_data->task);
+    }
+    GNUNET_free (mesh_data->reference_counter);
+    GNUNET_free (mesh_data->data);
+    GNUNET_free (mesh_data);
   }
-  if (0 < info->n_contexts)
-    GNUNET_free (info->contexts);
-  if (0 < info->n_peers)
-    GNUNET_free (info->peers);
-  if (GNUNET_SCHEDULER_NO_TASK != info->timeout)
-  {
-    GNUNET_SCHEDULER_cancel(info->timeout);
-  }
-  GNUNET_free (info);
 }
-
-/**
- * Search for a tunnel by global ID using full PeerIdentities
- *
- * @param oid owner of the tunnel
- * @param tid global tunnel number
- *
- * @return tunnel handler, NULL if doesn't exist
- */
-static struct MeshTunnel *
-tunnel_get (struct GNUNET_PeerIdentity *oid, MESH_TunnelNumber tid);
-
-
-/**
- * Delete an active client from the tunnel.
- * 
- * @param t Tunnel.
- * @param c Client.
- */
-static void
-tunnel_delete_active_client (struct MeshTunnel *t, const struct MeshClient *c);
-
-/**
- * Notify a tunnel that a connection has broken that affects at least
- * some of its peers.
- *
- * @param t Tunnel affected.
- * @param p1 Peer that got disconnected from p2.
- * @param p2 Peer that got disconnected from p1.
- *
- * @return Short ID of the peer disconnected (either p1 or p2).
- *         0 if the tunnel remained unaffected.
- */
-static GNUNET_PEER_Id
-tunnel_notify_connection_broken (struct MeshTunnel *t, GNUNET_PEER_Id p1,
-                                 GNUNET_PEER_Id p2);
 
 
 /**
@@ -1839,38 +1974,6 @@ send_client_tunnel_disconnect (struct MeshTunnel *t, struct MeshClient *c)
     msg.peer = my_full_id;
     GNUNET_SERVER_notification_context_unicast (nc, t->owner->handle,
                                                 &msg.header, GNUNET_NO);
-  }
-}
-
-
-/**
- * Decrements the reference counter and frees all resources if needed
- *
- * @param mesh_data Data Descriptor used in a multicast message.
- *                  Freed no longer needed (last message).
- */
-static void
-data_descriptor_decrement_rc (struct MeshData *mesh_data)
-{
-  /* Make sure it's a multicast packet */
-  GNUNET_assert (NULL != mesh_data->reference_counter);
-
-  if (0 == --(*(mesh_data->reference_counter)))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Last copy!\n");
-    if (NULL != mesh_data->task)
-    {
-      if (GNUNET_SCHEDULER_NO_TASK != *(mesh_data->task))
-      {
-        GNUNET_SCHEDULER_cancel (*(mesh_data->task));
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " notifying client...\n");
-        GNUNET_SERVER_receive_done (mesh_data->t->owner->handle, GNUNET_OK);
-      }
-      GNUNET_free (mesh_data->task);
-    }
-    GNUNET_free (mesh_data->reference_counter);
-    GNUNET_free (mesh_data->data);
-    GNUNET_free (mesh_data);
   }
 }
 
@@ -2770,7 +2873,7 @@ tunnel_destroy_child (void *cls,
  * @param peer_id Short ID of disconnected peer.
  */
 void
-notify_peer_disconnected (void *cls, GNUNET_PEER_Id peer_id)
+tunnel_notify_client_peer_disconnected (void *cls, GNUNET_PEER_Id peer_id)
 {
   struct MeshTunnel *t = cls;
   struct MeshPeerInfo *peer;
@@ -2839,7 +2942,7 @@ tunnel_add_peer (struct MeshTunnel *t, struct MeshPeerInfo *peer)
       }
       p = p->next;
     }
-    tree_add_path (t->tree, best_p, &notify_peer_disconnected, t);
+    tree_add_path (t->tree, best_p, &tunnel_notify_client_peer_disconnected, t);
     if (GNUNET_SCHEDULER_NO_TASK == t->path_refresh_task)
       t->path_refresh_task =
           GNUNET_SCHEDULER_add_delayed (refresh_path_time, &path_refresh, t);
@@ -2900,7 +3003,8 @@ tunnel_notify_connection_broken (struct MeshTunnel *t, GNUNET_PEER_Id p1,
   GNUNET_PEER_Id pid;
 
   pid =
-      tree_notify_connection_broken (t->tree, p1, p2, &notify_peer_disconnected,
+      tree_notify_connection_broken (t->tree, p1, p2,
+                                     &tunnel_notify_client_peer_disconnected,
                                      t);
   if (myid != p1 && myid != p2)
   {
@@ -3033,6 +3137,8 @@ tunnel_send_multicast (struct MeshTunnel *t,
  * @param cls Closure (ID of the peer that HAS received the message).
  * @param key ID of the neighbor.
  * @param value Information about the neighbor.
+ *
+ * @return GNUNET_YES to keep iterating.
  */
 static int
 tunnel_add_skip (void *cls,
@@ -3042,6 +3148,7 @@ tunnel_add_skip (void *cls,
   struct GNUNET_PeerIdentity *neighbor = cls;
   struct MeshTunnelChildInfo *cinfo = value;
 
+  /* TODO compare only pointers? key == neighbor? */
   if (0 == memcmp (&neighbor->hashPubKey, key, sizeof (struct GNUNET_HashCode)))
   {
     return GNUNET_YES;
@@ -4883,58 +4990,6 @@ dht_get_type_handler (void *cls, struct GNUNET_TIME_Absolute exp,
   path_destroy(p);
   tunnel_add_peer (t, peer_info);
   peer_info_connect (peer_info, t);
-}
-
-
-/**
- * Function called if the connect attempt to a peer found via
- * connect_by_string times out. Try to connect to another peer, if any.
- * Otherwise try to reconnect to the same peer.
- * 
- * @param cls Closure (info about regex search).
- * @param tc TaskContext.
- */ 
-static void
-regex_connect_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct MeshRegexSearchInfo *info = cls;
-  struct MeshPeerInfo *peer_info;
-  GNUNET_PEER_Id id;
-  GNUNET_PEER_Id old;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Regex connect timeout\n");
-  info->timeout = GNUNET_SCHEDULER_NO_TASK;
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-  {
-    return;
-  }
-
-  old = info->peer;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  timed out: %u\n", old);
-
-  if (0 < info->n_peers)
-  {
-    // Select next peer, put current in that spot.
-    id = info->peers[info->i_peer];
-    info->peers[info->i_peer] = info->peer;
-    info->i_peer = (info->i_peer + 1) % info->n_peers;
-  }
-  else
-  {
-    // Try to connect to same peer again.
-    id = info->peer;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  trying: %u\n", id);
-
-  peer_info = peer_info_get_short(id);
-  tunnel_add_peer (info->t, peer_info);
-  if (old != id)
-    tunnel_delete_peer (info->t, old);
-  peer_info_connect (peer_info, info->t);
-  info->timeout = GNUNET_SCHEDULER_add_delayed (connect_timeout,
-                                                &regex_connect_timeout,
-                                                info);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Regex connect timeout END\n");
 }
 
 
