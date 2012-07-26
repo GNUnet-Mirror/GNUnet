@@ -191,6 +191,9 @@ struct ProxyCurlTask
   /* DLL for tasks */
   struct ProxyCurlTask *next;
 
+  /* Already accepted */
+  int accepted;
+
   /* Handle to cURL */
   CURL *curl;
 
@@ -469,7 +472,7 @@ char i_to_hexchar (char i)
 }
 
 /**
- * Escape giben 0-terminated string
+ * Escape given 0-terminated string
  *
  * @param to_esc string to escapse
  * @return allocated new escaped string (MUST free!)
@@ -1742,6 +1745,16 @@ process_get_authority (void *cls,
                           ctask);
 }
 
+static void*
+mhd_log_callback (void* cls, const char* url)
+{
+  struct ProxyCurlTask *ctask;
+
+  ctask = GNUNET_malloc (sizeof (struct ProxyCurlTask));
+  strcpy (ctask->url, url);
+  ctask->accepted = GNUNET_NO;
+  return ctask;
+}
 
 /**
  * Main MHD callback for handling requests.
@@ -1783,7 +1796,7 @@ create_response (void *cls,
   char curlurl[MAX_HTTP_URI_LENGTH]; // buffer overflow!
   int ret = MHD_YES;
 
-  struct ProxyCurlTask *ctask;
+  struct ProxyCurlTask *ctask = *con_cls;
   struct ProxyPostData *fin_post;
   
   //FIXME handle
@@ -1798,14 +1811,13 @@ create_response (void *cls,
   }
 
 
-  if (NULL == *con_cls)
+  if (GNUNET_NO == ctask->accepted)
   {
 
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "Got %s request for %s\n", meth, url);
-    ctask = GNUNET_malloc (sizeof (struct ProxyCurlTask));
+    //ctask = GNUNET_malloc (sizeof (struct ProxyCurlTask));
     ctask->mhd = hd;
-    *con_cls = ctask;
     
     ctask->curl = curl_easy_init();
     if (NULL == ctask->curl)
@@ -1820,7 +1832,8 @@ create_response (void *cls,
       GNUNET_free (ctask);
       return ret;
     }
-  
+    
+    ctask->accepted = GNUNET_YES;
     ctask->download_in_progress = GNUNET_YES;
     ctask->buf_status = BUF_WAIT_FOR_CURL;
     ctask->connection = con;
@@ -1889,22 +1902,22 @@ create_response (void *cls,
     curl_easy_setopt (ctask->curl, CURLOPT_WRITEDATA, ctask);
     curl_easy_setopt (ctask->curl, CURLOPT_FOLLOWLOCATION, 0);
     curl_easy_setopt (ctask->curl, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
-    
+
     if (GNUNET_NO == ctask->mhd->is_ssl)
     {
-      sprintf (curlurl, "http://%s:%d%s", ctask->host, ctask->port, url);
-      MHD_get_connection_values (con,
-                                 MHD_GET_ARGUMENT_KIND,
-                                 &get_uri_val_iter, curlurl);
+      sprintf (curlurl, "http://%s:%d%s", ctask->host, ctask->port, ctask->url);
+      //MHD_get_connection_values (con,
+      //                           MHD_GET_ARGUMENT_KIND,
+      //                           &get_uri_val_iter, curlurl);
       curl_easy_setopt (ctask->curl, CURLOPT_URL, curlurl);
     }
-    strcpy (ctask->url, url);
+    
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "MHD: Adding new curl task for %s%s\n", ctask->host, url);
-    MHD_get_connection_values (con,
-                               MHD_GET_ARGUMENT_KIND,
-                               &get_uri_val_iter, ctask->url);
-  
+                  "MHD: Adding new curl task for %s\n", ctask->host);
+    //MHD_get_connection_values (con,
+    //                           MHD_GET_ARGUMENT_KIND,
+    //                           &get_uri_val_iter, ctask->url);
+
     curl_easy_setopt (ctask->curl, CURLOPT_FAILONERROR, 1);
     curl_easy_setopt (ctask->curl, CURLOPT_CONNECTTIMEOUT, 600L);
     curl_easy_setopt (ctask->curl, CURLOPT_TIMEOUT, 600L);
@@ -2509,6 +2522,8 @@ add_handle_to_ssl_mhd (struct GNUNET_NETWORK_Handle *h, const char* domain)
                                MHD_OPTION_NOTIFY_COMPLETED, NULL, NULL,
                                MHD_OPTION_HTTPS_MEM_KEY, pgc->key,
                                MHD_OPTION_HTTPS_MEM_CERT, pgc->cert,
+                               MHD_OPTION_URI_LOG_CALLBACK, &mhd_log_callback,
+                               NULL,
                                MHD_OPTION_END);
 
     GNUNET_assert (hd->daemon != NULL);
@@ -3297,6 +3312,7 @@ run (void *cls, char *const *args, const char *cfgfile,
             MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 16,
             MHD_OPTION_NOTIFY_COMPLETED,
             NULL, NULL,
+            MHD_OPTION_URI_LOG_CALLBACK, &mhd_log_callback, NULL,
             MHD_OPTION_END);
 
   GNUNET_assert (httpd != NULL);
