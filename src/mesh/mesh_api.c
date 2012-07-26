@@ -1203,7 +1203,6 @@ send_callback (void *cls, size_t size, void *buf)
   size_t psize;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Send packet() Buffer %u\n", size);
-  h->th = NULL;
   if ((0 == size) || (NULL == buf))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Received NULL send callback\n");
@@ -1328,6 +1327,7 @@ send_callback (void *cls, size_t size, void *buf)
 
       LOG (GNUNET_ERROR_TYPE_DEBUG, "  [%p] notify: %p, size %u\n",
            th, th->notify, th->size);
+      GNUNET_assert (NULL != t);
       LOG (GNUNET_ERROR_TYPE_DEBUG, "  pid %u, max %u\n", t->pid, t->max_pid);
 
       if (GNUNET_NO == th_is_payload (th) ||
@@ -1337,6 +1337,7 @@ send_callback (void *cls, size_t size, void *buf)
         break;
       }
     }
+    h->th = NULL;
 
     if (GNUNET_YES == request)
     {
