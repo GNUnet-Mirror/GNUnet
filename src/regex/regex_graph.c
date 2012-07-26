@@ -42,6 +42,11 @@ struct GNUNET_REGEX_Graph_Context
    * the graph.
    */
   int verbose;
+
+  /**
+   * Coloring flag, if set to GNUNET_YES SCCs will be colored.
+   */
+  int coloring;
 };
 
 
@@ -169,14 +174,26 @@ GNUNET_REGEX_automaton_save_graph_step (void *cls, unsigned int count,
 
   if (s->accepting)
   {
-    GNUNET_asprintf (&s_acc,
-                     "\"%s\" [shape=doublecircle, color=\"0.%i 0.8 0.95\"];\n",
-                     name, s->scc_id);
+    if (GNUNET_YES == ctx->coloring)
+    {
+      GNUNET_asprintf (&s_acc,
+                       "\"%s\" [shape=doublecircle, color=\"0.%i 0.8 0.95\"];\n",
+                       name, s->scc_id);
+    }
+    else
+    {
+      GNUNET_asprintf (&s_acc, "\"%s\" [shape=doublecircle];\n", name,
+                       s->scc_id);
+    }
+  }
+  else if (GNUNET_YES == ctx->coloring)
+  {
+    GNUNET_asprintf (&s_acc, "\"%s\" [shape=circle, color=\"0.%i 0.8 0.95\"];\n", name,
+                     s->scc_id);
   }
   else
   {
-    GNUNET_asprintf (&s_acc, "\"%s\" [color=\"0.%i 0.8 0.95\"];\n", name,
-                     s->scc_id);
+    GNUNET_asprintf (&s_acc, "\"%s\" [shape=circle];\n", name, s->scc_id);
   }
 
   if (NULL == s_acc)
@@ -209,15 +226,31 @@ GNUNET_REGEX_automaton_save_graph_step (void *cls, unsigned int count,
 
     if (ctran->label == 0)
     {
-      GNUNET_asprintf (&s_tran,
-                       "\"%s\" -> \"%s\" [label = \"epsilon\", color=\"0.%i 0.8 0.95\"];\n",
-                       name, to_name, s->scc_id);
+      if (GNUNET_YES == ctx->coloring)
+      {
+        GNUNET_asprintf (&s_tran,
+                         "\"%s\" -> \"%s\" [label = \"ε\", color=\"0.%i 0.8 0.95\"];\n",
+                         name, to_name, s->scc_id);
+      }
+      else
+      {
+        GNUNET_asprintf (&s_tran, "\"%s\" -> \"%s\" [label = \"ε\"];\n",
+                         name, to_name, s->scc_id);
+      }
     }
     else
     {
-      GNUNET_asprintf (&s_tran,
-                       "\"%s\" -> \"%s\" [label = \"%c\", color=\"0.%i 0.8 0.95\"];\n",
-                       name, to_name, ctran->label, s->scc_id);
+      if (GNUNET_YES == ctx->coloring)
+      {
+        GNUNET_asprintf (&s_tran,
+                         "\"%s\" -> \"%s\" [label = \"%c\", color=\"0.%i 0.8 0.95\"];\n",
+                         name, to_name, ctran->label, s->scc_id);
+      }
+      else
+      {
+        GNUNET_asprintf (&s_tran, "\"%s\" -> \"%s\" [label = \"%c\"];\n", name,
+                         to_name, ctran->label, s->scc_id);
+      }
     }
 
     GNUNET_free (to_name);
@@ -239,17 +272,17 @@ GNUNET_REGEX_automaton_save_graph_step (void *cls, unsigned int count,
 
 
 /**
- * Save the given automaton as a GraphViz dot file
+ * Save the given automaton as a GraphViz dot file.
  *
- * @param a the automaton to be saved
- * @param filename where to save the file
- * @param verbose if set to GNUNET_YES the generated graph will include extra
- *                information such as the NFA states that were used to generate
- *                the DFA state etc.
+ * @param a the automaton to be saved.
+ * @param filename where to save the file.
+ * @param options options for graph generation that include coloring or verbose
+ *                mode
  */
 void
 GNUNET_REGEX_automaton_save_graph (struct GNUNET_REGEX_Automaton *a,
-                                   const char *filename, int verbose)
+                                   const char *filename,
+                                   enum GNUNET_REGEX_GraphSavingOptions options)
 {
   char *start;
   char *end;
@@ -268,7 +301,10 @@ GNUNET_REGEX_automaton_save_graph (struct GNUNET_REGEX_Automaton *a,
   }
 
   ctx.filep = fopen (filename, "w");
-  ctx.verbose = verbose;
+  ctx.verbose =
+      (0 == (options & GNUNET_REGEX_GRAPH_VERBOSE)) ? GNUNET_NO : GNUNET_YES;
+  ctx.coloring =
+      (0 == (options & GNUNET_REGEX_GRAPH_COLORING)) ? GNUNET_NO : GNUNET_YES;
 
   if (NULL == ctx.filep)
   {

@@ -766,7 +766,8 @@ number_states (void *cls, unsigned int count, struct GNUNET_REGEX_State *s)
   struct GNUNET_REGEX_State **states = cls;
 
   s->proof_id = count;
-  states[count] = s;
+  if (NULL != states)
+    states[count] = s;
 }
 
 
@@ -1914,7 +1915,7 @@ nfa_add_question_op (struct GNUNET_REGEX_Context *ctx)
   struct GNUNET_REGEX_State *end;
 
   a = ctx->stack_tail;
-  
+
   if (NULL == a)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -2173,6 +2174,9 @@ GNUNET_REGEX_construct_nfa (const char *regex, const size_t len)
   }
 
   nfa->regex = GNUNET_strdup (regex);
+
+  /* create depth-first numbering of the states for pretty printing */
+  GNUNET_REGEX_automaton_traverse (nfa, &number_states, NULL);
 
   return nfa;
 

@@ -95,18 +95,42 @@ GNUNET_REGEX_automaton_destroy (struct GNUNET_REGEX_Automaton *a);
 
 
 /**
- * Save the given automaton as a GraphViz dot file
+ * Options for graph creation function
+ * GNUNET_REGEX_automaton_save_graph.
+ */
+
+enum GNUNET_REGEX_GraphSavingOptions
+{
+  /**
+   * Default. Do nothing special.
+   */
+  GNUNET_REGEX_GRAPH_DEFAULT = 0,
+
+  /**
+   * The generated graph will include extra information such as the NFA states
+   * that were used to generate the DFA state.
+   */
+  GNUNET_REGEX_GRAPH_VERBOSE = 1,
+
+  /**
+   * Enable graph coloring. Will color each SCC in a different color.
+   */
+  GNUNET_REGEX_GRAPH_COLORING = 2
+};
+
+
+/**
+ * Save the given automaton as a GraphViz dot file.
  *
- * @param a the automaton to be saved
- * @param filename where to save the file
- * @param verbose if set to GNUNET_YES the generated graph will include extra
- *                information such as the NFA states that were used to generate
- *                the DFA state etc.
+ * @param a the automaton to be saved.
+ * @param filename where to save the file.
+ * @param options options for graph generation that include coloring or verbose
+ *                mode
  */
 void
 GNUNET_REGEX_automaton_save_graph (struct GNUNET_REGEX_Automaton *a,
                                    const char *filename,
-                                   int verbose);
+                                   enum GNUNET_REGEX_GraphSavingOptions options);
 
 
 /**
@@ -192,4 +216,3 @@ GNUNET_REGEX_iterate_all_edges (struct GNUNET_REGEX_Automaton *a,
 
 /* end of gnunet_regex_lib.h */
 #endif
-
