@@ -1207,6 +1207,7 @@ send_callback (void *cls, size_t size, void *buf)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Received NULL send callback\n");
     reconnect (h);
+    h->th = NULL;
     return 0;
   }
   tsize = 0;
@@ -1316,6 +1317,7 @@ send_callback (void *cls, size_t size, void *buf)
     tsize += psize;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  total size: %u\n", tsize);
+  h->th = NULL;
   if (NULL != h->th_head)
   {
     int request = GNUNET_NO;
@@ -1337,7 +1339,6 @@ send_callback (void *cls, size_t size, void *buf)
         break;
       }
     }
-    h->th = NULL;
 
     if (GNUNET_YES == request)
     {
