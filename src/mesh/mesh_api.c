@@ -364,6 +364,21 @@ send_callback (void *cls, size_t size, void *buf);
 /******************************************************************************/
 
 /**
+ * Check if transmission is a payload packet.
+ *
+ * @param th Transmission handle.
+ *
+ * @return GNUNET_YES if it is a payload packet,
+ *         GNUNET_NO if it is a mesh management packet.
+ */
+static int
+th_is_payload (struct GNUNET_MESH_TransmitHandle *th)
+{
+  return (th->notify != NULL) ? GNUNET_YES : GNUNET_NO;
+}
+
+
+/**
  * Get the tunnel handler for the tunnel specified by id from the given handle
  * @param h Mesh handle
  * @param tid ID of the wanted tunnel
@@ -472,7 +487,7 @@ destroy_tunnel (struct GNUNET_MESH_Tunnel *t, int call_cleaner)
       continue;
     /* Clients should have aborted their requests already.
      * Management traffic should be ok, as clients can't cancel that */
-    GNUNET_break (NULL == th->notify);
+    GNUNET_break (GNUNET_NO == th_is_payload(th));
     GNUNET_CONTAINER_DLL_remove (h->th_head, h->th_tail, th);
 
     /* clean up request */
@@ -584,7 +599,7 @@ timeout_transmission (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   mesh = th->tunnel->mesh;
   GNUNET_CONTAINER_DLL_remove (mesh->th_head, mesh->th_tail, th);
-  if (th->notify != NULL)
+  if (GNUNET_YES == th_is_payload (th))
     th->notify (th->notify_cls, 0, NULL);
   GNUNET_free (th);
   if ((NULL == mesh->th_head) && (NULL != mesh->th))
@@ -1200,7 +1215,7 @@ send_callback (void *cls, size_t size, void *buf)
   while ((NULL != (th = next)) && (size >= th->size))
   {
     t = th->tunnel;
-    if (NULL != th->notify)
+    if (GNUNET_YES == th_is_payload (th))
     {
       if (t->max_pid < t->pid && ! PID_OVERFLOW (t->pid, t->max_pid)) {
         /* This tunnel is not ready to transmit yet, try next message */
@@ -1308,7 +1323,7 @@ send_callback (void *cls, size_t size, void *buf)
     {
       struct GNUNET_MESH_Tunnel *t = th->tunnel;
 
-      if (NULL != th->notify || 
+      if (GNUNET_NO == th_is_payload (th) ||
           (t->max_pid >= t->pid || PID_OVERFLOW (t->pid, t->max_pid)))
       {
         request = GNUNET_YES;
@@ -1469,7 +1484,7 @@ GNUNET_MESH_disconnect (struct GNUNET_MESH_Handle *handle)
     /* Make sure it is an allowed packet (everything else should have been
      * already canceled).
      */
-    GNUNET_break (NULL == th->notify);
+    GNUNET_break (GNUNET_NO == th_is_payload (th));
     msg = (struct GNUNET_MessageHeader *) &th[1];
     switch (ntohs(msg->type))
     {
@@ -1600,7 +1615,7 @@ GNUNET_MESH_tunnel_destroy (struct GNUNET_MESH_Tunnel *tunnel)
     {
       aux = th->next;
       /* FIXME call the handler? */
-      if (NULL != th->notify)
+      if (GNUNET_YES == th_is_payload (th))
         th->notify (th->notify_cls, 0, NULL);
       GNUNET_CONTAINER_DLL_remove (h->th_head, h->th_tail, th);
       GNUNET_free (th);
