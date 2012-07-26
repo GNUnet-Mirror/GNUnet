@@ -1065,7 +1065,7 @@ GNUNET_ATS_suggest_address_cancel (struct GNUNET_ATS_SchedulingHandle *sh,
  *
  * @param sh handle
  * @param address the address
- * @param session session handle (if available)
+ * @param session session handle, can be NULL
  * @param ats performance data for the address
  * @param ats_count number of performance records in 'ats'
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
@@ -1087,11 +1087,6 @@ GNUNET_ATS_address_add (struct GNUNET_ATS_SchedulingHandle *sh,
   uint32_t s = 0;
 
   if (address == NULL)
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  if (session == NULL)
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
@@ -1169,7 +1164,7 @@ GNUNET_ATS_address_add (struct GNUNET_ATS_SchedulingHandle *sh,
  *
  * @param sh handle
  * @param address the address
- * @param session session handle (if available)
+ * @param session session handle, can be NULL
  * @param ats performance data for the address
  * @param ats_count number of performance records in 'ats'
  */
@@ -1189,11 +1184,6 @@ GNUNET_ATS_address_update (struct GNUNET_ATS_SchedulingHandle *sh,
   uint32_t s = 0;
 
   if (address == NULL)
-  {
-    GNUNET_break (0);
-    return;
-  }
-  if (session == NULL)
   {
     GNUNET_break (0);
     return;
@@ -1264,7 +1254,7 @@ GNUNET_ATS_address_update (struct GNUNET_ATS_SchedulingHandle *sh,
  *
  * @param sh handle
  * @param address the address
- * @param session session handle
+ * @param session session handle, can be NULL
  * @param in_use GNUNET_YES if this address is now used, GNUNET_NO
  * if address is not used any more
  */
@@ -1344,7 +1334,7 @@ GNUNET_ATS_address_in_use (struct GNUNET_ATS_SchedulingHandle *sh,
  *
  * @param sh handle
  * @param address the address
- * @param session session handle that is no longer valid
+ * @param session session handle that is no longer valid, can be NULL
  */
 void
 GNUNET_ATS_address_destroyed (struct GNUNET_ATS_SchedulingHandle *sh,
@@ -1357,6 +1347,12 @@ GNUNET_ATS_address_destroyed (struct GNUNET_ATS_SchedulingHandle *sh,
   size_t namelen;
   size_t msize;
   uint32_t s = 0;
+
+  if (address == NULL)
+  {
+    GNUNET_break (0);
+    return;
+  }
 
   GNUNET_assert (address->transport_name != NULL);
   namelen = strlen (address->transport_name) + 1;
