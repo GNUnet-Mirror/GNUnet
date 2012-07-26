@@ -4374,13 +4374,13 @@ handle_mesh_data_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
   {
     GNUNET_STATISTICS_update (stats, "# TTL drops", 1, GNUNET_NO);
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                " Already seen mid %u, DROPPING!\n", pid);
+                " Already seen pid %u, DROPPING!\n", pid);
     return GNUNET_OK;
   }
   else
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                " mid %u not seen yet, forwarding\n", pid);
+                " pid %u not seen yet, forwarding\n", pid);
   }
   t->skip += (pid - t->pid) - 1;
   t->pid = pid;
@@ -4481,13 +4481,13 @@ handle_mesh_data_multicast (void *cls, const struct GNUNET_PeerIdentity *peer,
     /* already seen this packet, drop */
     GNUNET_STATISTICS_update (stats, "# TTL drops", 1, GNUNET_NO);
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                " Already seen mid %u, DROPPING!\n", pid);
+                " Already seen pid %u, DROPPING!\n", pid);
     return GNUNET_OK;
   }
   else
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                " mid %u not seen yet, forwarding\n", pid);
+                " pid %u not seen yet, forwarding\n", pid);
   }
   t->skip += (pid - t->pid) - 1;
   t->pid = pid;
