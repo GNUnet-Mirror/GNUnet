@@ -884,27 +884,22 @@ handle_add_host (void *cls,
   uint16_t username_length;
   uint16_t hostname_length;
   uint16_t reply_size;
+  uint16_t msize;
   
   msg = (const struct GNUNET_TESTBED_AddHostMessage *) message;
-  username_length = ntohs (msg->user_name_length);
-  username_length = (0 == username_length) ? 0 : username_length + 1;
+  msize = ntohs (msg->header.size);
   username = (char *) &(msg[1]);
+  username_length = ntohs (msg->user_name_length);
+  GNUNET_assert (msize > (sizeof (struct GNUNET_TESTBED_AddHostMessage)
+			  + username_length + 1)); /* msg must contain hostname */
+  if (0 != username_length)
+    GNUNET_assert ('\0' == username[username_length]);
+  username_length = (0 == username_length) ? 0 : username_length + 1;		   
   hostname = username + username_length;
-  if (ntohs (message->size) <=
-      (sizeof (struct GNUNET_TESTBED_AddHostMessage) + username_length))
-  {
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
-  }
-  hostname_length = ntohs (message->size)
-    - (sizeof (struct GNUNET_TESTBED_AddHostMessage) + username_length);
-  if (strlen (hostname) != hostname_length - 1)
-  {
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
-  }
+  hostname_length = msize - (sizeof (struct GNUNET_TESTBED_AddHostMessage)
+			     + username_length);
+  GNUNET_assert ('\0' == hostname[hostname_length - 1]);
+  GNUNET_assert (strlen (hostname) == hostname_length - 1);
   host_id = ntohl (msg->host_id);
   LOG_DEBUG ("Received ADDHOST message\n");
   LOG_DEBUG ("-------host id: %u\n", host_id);
