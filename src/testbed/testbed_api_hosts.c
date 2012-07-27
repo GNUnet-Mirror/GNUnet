@@ -35,7 +35,6 @@
 
 #include "testbed_api.h"
 #include "testbed_api_hosts.h"
-#include "testbed_helper.h"
 
 /**
  * Generic logging shorthand

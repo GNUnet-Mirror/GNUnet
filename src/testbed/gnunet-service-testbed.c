@@ -1115,6 +1115,7 @@ handle_link_controllers (void *cls,
       LOG (GNUNET_ERROR_TYPE_WARNING, "Uncompressed config size mismatch\n");
       GNUNET_free (config);
       GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      return;
     }
     cfg = GNUNET_CONFIGURATION_create (); /* Free here or in lcfcontext */
     if (GNUNET_OK != GNUNET_CONFIGURATION_deserialize (cfg, config, config_size,
@@ -1279,6 +1280,7 @@ handle_peer_create (void *cls,
     {
       LOG (GNUNET_ERROR_TYPE_WARNING, "Configuring peer failed: %s\n", emsg);
       GNUNET_free (emsg);
+      GNUNET_free (peer);
       GNUNET_break (0);
       GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
       return;
