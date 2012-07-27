@@ -2,7 +2,7 @@
 #include <windows.h>
 #include <nspapi.h>
 #include <ws2spi.h>
-#include <gnunet_w32nsp_lib.h>
+#include "gnunet_w32nsp_lib.h"
 #include <stdio.h>
 
 int

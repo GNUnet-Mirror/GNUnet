@@ -29,7 +29,7 @@
 #include <gnunet_dnsparser_lib.h>
 #include <gnunet_namestore_service.h>
 #include <gnunet_gns_service.h>
-#include <gnunet_w32nsp_lib.h>
+#include "gnunet_w32nsp_lib.h"
 #include "w32resolver.h"
 #include <nspapi.h>
 #include <unistr.h>

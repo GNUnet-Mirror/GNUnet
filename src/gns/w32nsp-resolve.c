@@ -4,7 +4,7 @@
 #include <ws2spi.h>
 #include <nspapi.h>
 #include <ws2tcpip.h>
-#include <gnunet_w32nsp_lib.h>
+#include "gnunet_w32nsp_lib.h"
 #include <stdio.h>
 
 typedef int (WSPAPI *LPNSPSTARTUP) (LPGUID lpProviderId, LPNSP_ROUTINE lpnspRoutines);

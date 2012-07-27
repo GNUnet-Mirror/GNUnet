@@ -45,8 +45,8 @@
 #endif
 #endif
 #endif
-#include <gnunet_w32nsp_lib.h>
-#include <w32resolver.h>
+#include "gnunet_w32nsp_lib.h"
+#include "w32resolver.h"
 
 #define NSPAPI_VERSION_MAJOR 4
 #define NSPAPI_VERSION_MINOR 4
