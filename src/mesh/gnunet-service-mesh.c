@@ -1943,12 +1943,19 @@ send_client_tunnel_ack (struct MeshClient *c, struct MeshTunnel *t)
   struct GNUNET_MESH_LocalAck msg;
   uint32_t ack;
 
+  if (NULL == c)
+    return;
+
   ack = tunnel_get_ack (t);
 
+  if (t->last_ack == ack)
+    return;
+
+  t->last_ack = ack;
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK);
   msg.tunnel_id = htonl (t->local_tid);
-  msg.max_pid = ack;
+  msg.max_pid = htonl (ack);
 
   GNUNET_SERVER_notification_context_unicast (nc, c->handle,
                                               &msg.header, GNUNET_NO);
