@@ -154,6 +154,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   tokenizer = NULL;
   if (NULL != testbed)
   {
+    LOG_DEBUG ("Killing testbed\n");
     GNUNET_break (0 == GNUNET_OS_process_kill (testbed, SIGTERM));
     GNUNET_assert (GNUNET_OK == GNUNET_OS_process_wait (testbed));
     GNUNET_OS_process_destroy (testbed);
@@ -337,7 +338,7 @@ read_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
     return;  
   sread = GNUNET_DISK_file_read (stdin_fd, buf, sizeof (buf));
-  if (GNUNET_SYSERR == sread)
+  if ((GNUNET_SYSERR == sread) || (0 == sread))
   {
     GNUNET_SCHEDULER_shutdown ();
     return;
@@ -388,8 +389,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 
 
 /**
- * Signal handler called for SIGCHLD.  Triggers the
- * respective handler by writing to the trigger pipe.
+ * Signal handler called for SIGCHLD.
  */
 static void
 sighandler_child_death ()
