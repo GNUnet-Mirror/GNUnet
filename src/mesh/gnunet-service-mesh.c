@@ -1666,6 +1666,8 @@ client_is_subscribed (uint16_t message_type, struct MeshClient *c)
 {
   struct GNUNET_HashCode hc;
 
+  if (NULL == c->types)
+    return GNUNET_NO;
   GNUNET_CRYPTO_hash (&message_type, sizeof (uint16_t), &hc);
   return GNUNET_CONTAINER_multihashmap_contains (c->types, &hc);
 }
@@ -6259,6 +6261,7 @@ handle_local_unicast (void *cls, struct GNUNET_SERVER_Client *client,
     handle_mesh_data_unicast (NULL, &my_full_id, &copy->header, NULL, 0);
     send_client_tunnel_ack (t->owner, t);
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "receive done OK\n");
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
   return;
 }
