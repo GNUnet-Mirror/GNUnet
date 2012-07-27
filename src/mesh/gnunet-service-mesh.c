@@ -3310,6 +3310,7 @@ tunnel_get_ack (struct MeshTunnel *t)
   {
     ack = child_ack > ack ? child_ack : ack;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "c %u, bf %u, ch %u\n", count, buffer_free, child_ack);
   return ack;
 }
 
