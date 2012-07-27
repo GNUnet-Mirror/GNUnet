@@ -169,23 +169,6 @@ struct Slave
 
 
 /**
- * Slave startup context
- */
-struct SlaveContext
-{
-  /**
-   * The slave corresponding to this context
-   */
-  struct Slave *slave;
-
-  /**
-   * The configuration used as a template while startup
-   */
-  struct GNUNET_CONFIGURATION_Handle *cfg;
-};
-
-
-/**
  * States of LCFContext
  */
 enum LCFContextState
@@ -768,22 +751,20 @@ slave_status_callback (void *cls,
                        const struct GNUNET_CONFIGURATION_Handle *cfg,
                        int status)
 {
-  struct SlaveContext *sc = cls;
+  struct Slave *slave = cls;
 
   if (GNUNET_SYSERR == status)
   {
-    sc->slave->controller_proc = NULL;
+    slave->controller_proc = NULL;
     LOG (GNUNET_ERROR_TYPE_WARNING,
          "Unexpected slave shutdown\n");
     GNUNET_SCHEDULER_shutdown ();	/* We too shutdown */
     return;
   }
-  GNUNET_CONFIGURATION_destroy (sc->cfg);
-  sc->slave->controller =
-    GNUNET_TESTBED_controller_connect (cfg, host_list[sc->slave->host_id],
+  slave->controller =
+    GNUNET_TESTBED_controller_connect (cfg, host_list[slave->host_id],
                                        master_context->event_mask,
-                                       &slave_event_callback, sc->slave);
-  GNUNET_free (sc);
+                                       &slave_event_callback, slave);
 }
 
 
@@ -1023,7 +1004,6 @@ handle_link_controllers (void *cls,
 {
   const struct GNUNET_TESTBED_ControllerLinkMessage *msg;
   struct GNUNET_CONFIGURATION_Handle *cfg;
-  struct SlaveContext *sc;
   struct LCFContextQueue *lcfq;
   struct Route *route;
   struct Route *new_route;
@@ -1125,19 +1105,23 @@ handle_link_controllers (void *cls,
       return;
     }
     slave = GNUNET_malloc (sizeof (struct Slave));
-    slave->host_id = delegated_host_id;
-    slave_list_add (slave);
-    sc = GNUNET_malloc (sizeof (struct SlaveContext));
-    sc->slave = slave;
-    sc->cfg = cfg;
+    slave->host_id = delegated_host_id;    
+    slave_list_add (slave);    
     if (1 == msg->is_subordinate)
     {
       slave->controller_proc =
         GNUNET_TESTBED_controller_start (master_context->master_ip,
 					 host_list[slave->host_id],
 					 cfg, &slave_status_callback,
-					 sc);
-    }    
+					 slave);
+    }
+    else {
+      slave->controller = 
+	GNUNET_TESTBED_controller_connect (cfg, host_list[slave->host_id],
+					   master_context->event_mask,
+					   &slave_event_callback, slave);
+    }
+    GNUNET_CONFIGURATION_destroy (cfg);
     new_route = GNUNET_malloc (sizeof (struct Route));
     new_route->dest = delegated_host_id;
     new_route->thru = master_context->host_id;
