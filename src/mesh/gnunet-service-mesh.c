@@ -976,6 +976,18 @@ tunnel_notify_connection_broken (struct MeshTunnel *t, GNUNET_PEER_Id p1,
 
 
 /**
+ * Get the current ack value for a tunnel, taking in account the tunnel
+ * mode and the status of all children nodes.
+ *
+ * @param t Tunnel.
+ *
+ * @return Maximum PID allowed.
+ */
+static uint32_t
+tunnel_get_ack (struct MeshTunnel *t);
+
+
+/**
  * Iterator over edges in a regex block retrieved from the DHT.
  *
  * @param cls Closure.
@@ -1915,6 +1927,31 @@ send_client_peer_connected (const struct MeshTunnel *t, const GNUNET_PEER_Id id)
   GNUNET_PEER_resolve (id, &pc.peer);
   GNUNET_SERVER_notification_context_unicast (nc, t->owner->handle, &pc.header,
                                               GNUNET_NO);
+}
+
+
+/**
+ * Notify a client about how many more payload packages will we accept
+ * on a given tunnel.
+ *
+ * @param c Client.
+ * @param t Tunnel.
+ */
+static void
+send_client_tunnel_ack (struct MeshClient *c, struct MeshTunnel *t)
+{
+  struct GNUNET_MESH_LocalAck msg;
+  uint32_t ack;
+
+  ack = tunnel_get_ack (t);
+
+  msg.header.size = htons (sizeof (msg));
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK);
+  msg.tunnel_id = htonl (t->local_tid);
+  msg.max_pid = ack;
+
+  GNUNET_SERVER_notification_context_unicast (nc, c->handle,
+                                              &msg.header, GNUNET_NO);
 }
 
 
@@ -3228,6 +3265,39 @@ tunnel_get_children_ack (struct MeshTunnel *t)
 
 
 /**
+ * Get the current ack value for a tunnel, taking in account the tunnel
+ * mode and the status of all children nodes.
+ *
+ * @param t Tunnel.
+ *
+ * @return Maximum PID allowed.
+ */
+static uint32_t
+tunnel_get_ack (struct MeshTunnel *t)
+{
+  uint32_t count;
+  uint32_t buffer_free;
+  uint32_t child_ack;
+  uint32_t ack;
+
+  count = t->pid - t->skip;
+  buffer_free = t->queue_max - t->queue_n;
+  ack = count + buffer_free;
+  child_ack = tunnel_get_children_ack (t);
+
+  if (GNUNET_YES == t->speed_min)
+  {
+    ack = child_ack > ack ? ack : child_ack;
+  }
+  else
+  {
+    ack = child_ack > ack ? child_ack : ack;
+  }
+  return ack;
+}
+
+
+/**
  * Send an ACK informing the predecessor about the available buffer space.
  * If buffering is off, send only on behalf of children or self if endpoint.
  * If buffering is on, send when sent to children and buffer space is free.
@@ -3239,9 +3309,6 @@ tunnel_send_ack (struct MeshTunnel *t, uint16_t type)
 {
   struct GNUNET_MESH_ACK msg;
   struct GNUNET_PeerIdentity id;
-  uint32_t count;
-  uint32_t buffer_free;
-  uint32_t child_ack;
   uint32_t ack;
 
   /* Is it after unicast / multicast retransmission? */
@@ -3261,19 +3328,7 @@ tunnel_send_ack (struct MeshTunnel *t, uint16_t type)
   }
 
   /* Ok, ACK might be necessary, what PID to ACK? */
-  count = t->pid - t->skip;
-  buffer_free = t->queue_max - t->queue_n;
-  ack = count + buffer_free;
-  child_ack = tunnel_get_children_ack (t);
-
-  if (GNUNET_YES == t->speed_min)
-  {
-    ack = child_ack > ack ? ack : child_ack;
-  }
-  else
-  {
-    ack = child_ack > ack ? child_ack : ack;
-  }
+  ack = tunnel_get_ack (t);
 
   /* If speed_min and not all children have ack'd, dont send yet */
   if (ack == t->last_ack)
@@ -6187,6 +6242,7 @@ handle_local_unicast (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "  calling generic handler...\n");
     handle_mesh_data_unicast (NULL, &my_full_id, &copy->header, NULL, 0);
+    send_client_tunnel_ack (t->owner, t);
   }
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
   return;
