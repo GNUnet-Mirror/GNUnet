@@ -1879,6 +1879,7 @@ send_subscribed_clients (const struct GNUNET_MessageHeader *msg,
           struct GNUNET_MESH_TunnelNotification tmsg;
           struct GNUNET_HashCode hash;
 
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "     sending tunnel create\n");
           tmsg.header.size = htons (sizeof (tmsg));
           tmsg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_CREATE);
           GNUNET_PEER_resolve (t->id.oid, &tmsg.peer);
@@ -1943,14 +1944,21 @@ send_client_tunnel_ack (struct MeshClient *c, struct MeshTunnel *t)
   struct GNUNET_MESH_LocalAck msg;
   uint32_t ack;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Sending client ACK on tunnel %X\n",
+              t->local_tid);
   if (NULL == c)
     return;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " to client %u\n", c->id);
+
   ack = tunnel_get_ack (t);
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " ack %u\n", ack);
   if (t->last_ack == ack)
     return;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " sending!\n");
   t->last_ack = ack;
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK);

@@ -1134,7 +1134,7 @@ msg_received (void *cls, const struct GNUNET_MessageHeader *msg)
 
   if (msg == NULL)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Received NULL msg\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Received NULL msg on %p\n", h);
     reconnect (h);
     return;
   }
@@ -1205,7 +1205,7 @@ send_callback (void *cls, size_t size, void *buf)
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Send packet() Buffer %u\n", size);
   if ((0 == size) || (NULL == buf))
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Received NULL send callback\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Received NULL send callback on %p\n", h);
     reconnect (h);
     h->th = NULL;
     return 0;
@@ -1431,6 +1431,7 @@ GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg, void *cls,
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "GNUNET_MESH_connect()\n");
   h = GNUNET_malloc (sizeof (struct GNUNET_MESH_Handle));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " addr %p\n", h);
   h->cfg = cfg;
   h->new_tunnel = new_tunnel;
   h->cleaner = cleaner;
@@ -1941,6 +1942,7 @@ GNUNET_MESH_notify_transmit_ready (struct GNUNET_MESH_Tunnel *tunnel, int cork,
     LOG (GNUNET_ERROR_TYPE_DEBUG, "    target %s\n", GNUNET_i2s (target));
   else
     LOG (GNUNET_ERROR_TYPE_DEBUG, "    target multicast\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "    payload size %u\n", notify_size);
   GNUNET_assert (NULL != notify);
   GNUNET_assert (0 == tunnel->packet_size); // Only one data packet allowed
   th = GNUNET_malloc (sizeof (struct GNUNET_MESH_TransmitHandle));
@@ -1954,11 +1956,13 @@ GNUNET_MESH_notify_transmit_ready (struct GNUNET_MESH_Tunnel *tunnel, int cork,
   else
     overhead = sizeof (struct GNUNET_MESH_Unicast);
   tunnel->packet_size = th->size = notify_size + overhead;
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "    total size %u\n", th->size);
   th->notify = notify;
   th->notify_cls = notify_cls;
   add_to_queue (tunnel->mesh, th);
   if (NULL != tunnel->mesh->th)
     return th;
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "    call notify tmt rdy\n");
   tunnel->mesh->th =
       GNUNET_CLIENT_notify_transmit_ready (tunnel->mesh->client, th->size,
                                            GNUNET_TIME_UNIT_FOREVER_REL,
