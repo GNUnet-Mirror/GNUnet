@@ -184,6 +184,11 @@ enum LCFContextState
     DELEGATED_HOST_REGISTERED,
     
     /**
+     * The slave host has been registred at the forwarding controller
+     */
+    SLAVE_HOST_REGISTERED,
+
+    /**
      * The context has been finished (may have error)
      */
     FINISHED
@@ -235,7 +240,11 @@ struct LCFContext
    * The delegated host
    */
   uint32_t delegated_host_id;
-  
+
+  /**
+   * The slave host
+   */
+  uint32_t slave_host_id;
 
 };
 
@@ -654,19 +663,26 @@ lcf_proc_cc (void *cls, const char *emsg)
   {
   case INIT:
     if (NULL != emsg)
-    {
-      LOG (GNUNET_ERROR_TYPE_WARNING, 
-           "Host registration failed with message: %s\n", emsg);
-      lcf->state = FINISHED;
-      lcf_proc_task_id = GNUNET_SCHEDULER_add_now (&lcf_proc_task, lcf);
-      return;
-    }
+      goto registration_error;
     lcf->state = DELEGATED_HOST_REGISTERED;
     lcf_proc_task_id = GNUNET_SCHEDULER_add_now (&lcf_proc_task, lcf);
     break;
+  case DELEGATED_HOST_REGISTERED:
+     if (NULL != emsg)
+      goto registration_error;
+     lcf->state = SLAVE_HOST_REGISTERED;
+     lcf_proc_task_id = GNUNET_SCHEDULER_add_now (&lcf_proc_task, lcf);
+     break;
   default:
     GNUNET_assert (0); 		/* Shouldn't reach here */
   }  
+  return;
+
+ registration_error:
+  LOG (GNUNET_ERROR_TYPE_WARNING, 
+       "Host registration failed with message: %s\n", emsg);
+  lcf->state = FINISHED;
+  lcf_proc_task_id = GNUNET_SCHEDULER_add_now (&lcf_proc_task, lcf);
 }
 
 
@@ -693,7 +709,7 @@ lcf_proc_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       lcf->rhandle =
 	GNUNET_TESTBED_register_host (lcf->gateway->controller,
 				      host_list[lcf->delegated_host_id],
-				      lcf_proc_cc, lcf);						   
+				      lcf_proc_cc, lcf);
     }
     else
     {
@@ -702,14 +718,32 @@ lcf_proc_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     }
     break;
   case DELEGATED_HOST_REGISTERED:
+    if (GNUNET_NO ==
+	GNUNET_TESTBED_is_host_registered_ (host_list[lcf->slave_host_id],
+					    lcf->gateway->controller))
+    {
+      lcf->rhandle =
+	GNUNET_TESTBED_register_host (lcf->gateway->controller,
+				      host_list[lcf->slave_host_id],
+				      lcf_proc_cc, lcf);
+    }
+    else
+    {
+      lcf->state = SLAVE_HOST_REGISTERED;
+      lcf_proc_task_id = GNUNET_SCHEDULER_add_now (&lcf_proc_task, lcf);
+    }
+    break;
+  case SLAVE_HOST_REGISTERED:
     GNUNET_TESTBED_controller_link_2 (lcf->gateway->controller,
                                       host_list[lcf->delegated_host_id],
-                                      host_list[lcf->gateway->host_id],
+                                      host_list[lcf->slave_host_id],
                                       lcf->sxcfg, lcf->sxcfg_size,
                                       lcf->scfg_size,
                                       lcf->is_subordinate);
     lcf->state = FINISHED;
-  case FINISHED:   
+    lcf_proc_task_id = GNUNET_SCHEDULER_add_now (&lcf_proc_task, lcf);
+    break;
+  case FINISHED:
     lcfq = lcfq_head;
     GNUNET_assert (lcfq->lcf == lcf);
     GNUNET_free (lcf->sxcfg);
@@ -1137,6 +1171,10 @@ handle_link_controllers (void *cls,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
+  lcfq = GNUNET_malloc (sizeof (struct LCFContextQueue));
+  lcfq->lcf = GNUNET_malloc (sizeof (struct LCFContext));
+  lcfq->lcf->delegated_host_id = delegated_host_id;
+  lcfq->lcf->slave_host_id = slave_host_id;
   while (NULL != (route = route_list[slave_host_id]))
   {
     if (route->thru == master_context->host_id)
@@ -1146,9 +1184,6 @@ handle_link_controllers (void *cls,
   GNUNET_assert (NULL != route); /* because we add routes carefully */
   GNUNET_assert (route->dest < slave_list_size);
   GNUNET_assert (NULL != slave_list[route->dest]);  
-  lcfq = GNUNET_malloc (sizeof (struct LCFContextQueue));
-  lcfq->lcf = GNUNET_malloc (sizeof (struct LCFContext));
-  lcfq->lcf->delegated_host_id = delegated_host_id;
   lcfq->lcf->is_subordinate =
     (1 == msg->is_subordinate) ? GNUNET_YES : GNUNET_NO;
   lcfq->lcf->state = INIT;
