@@ -252,10 +252,10 @@ GNUNET_TESTBED_host_create_with_id (uint32_t id,
     new_size += HOST_LIST_GROW_STEP;
   if (new_size != host_list_size)
   {
-    host_list = GNUNET_realloc (host_list, sizeof (struct GNUNET_TESTBED_Host)
+    host_list = GNUNET_realloc (host_list, sizeof (struct GNUNET_TESTBED_Host *)
 				* new_size);
     (void) memset(&host_list[host_list_size], 0, 
-		  sizeof (struct GNUNET_TESTBED_Host) *
+		  sizeof (struct GNUNET_TESTBED_Host *) *
 		  (new_size - host_list_size));
     host_list_size = new_size;
   }
