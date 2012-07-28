@@ -28,6 +28,68 @@
 
 
 /**
+ * An entry in the operation queue
+ */
+struct QueueEntry
+{
+  /**
+   * The next DLL pointer
+   */
+  struct QueueEntry *next;
+
+  /**
+   * The prev DLL pointer
+   */
+  struct QueueEntry *prev;
+
+  /**
+   * The operation this entry holds
+   */
+  struct GNUNET_TESTBED_Operation *op;
+};
+
+
+/**
+ * Queue of operations where we can only support a certain
+ * number of concurrent operations of a particular type.
+ */
+struct OperationQueue
+{
+ /**
+   * The head of the operation queue
+   */
+  struct QueueEntry *head;
+
+  /**
+   * The tail of the operation queue
+   */
+  struct QueueEntry *tail;
+
+  /**
+   * Number of operations that can be concurrently
+   * active in this queue.
+   */
+  unsigned int active;  
+};
+
+
+enum OperationState
+  {
+    /**
+     * The operation is currently waiting for resources
+     */
+    OP_STATE_WAITING,
+
+    /**
+     * The operation has started
+     */
+    OP_STATE_STARTED,
+  };
+
+  
+
+
+/**
  * Opaque handle to an abstract operation to be executed by the testing framework.
  */
 struct GNUNET_TESTBED_Operation
@@ -48,27 +110,76 @@ struct GNUNET_TESTBED_Operation
    */
   void *cb_cls;
 
-  // FIXME!
+  /**
+   * Array of operation queues this Operation belongs to.
+   */
+  struct OperationQueue **queues;
 
+  /**
+   * The Operation ID
+   */
+  uint64_t id;  
+
+  /**
+   * The id of the task which calls OperationStart for this operation
+   */
+  GNUNET_SCHEDULER_TaskIdentifier start_task_id;
+
+  /**
+   * Number of queues in the operation queues array
+   */
+  unsigned int nqueues;
+
+  /**
+   * The state of the operation
+   */
+  enum OperationState state;  
+  
 };
 
 
 /**
- * Queue of operations where we can only support a certain
- * number of concurrent operations of a particular type.
+ * Task for calling OperationStart on operation
+ *
+ * @param cls the Operation
+ * @param tc the TaskContext from scheduler
  */
-struct OperationQueue
-{
+static void
+call_start (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{  
+  struct GNUNET_TESTBED_Operation *op = cls;
+  
+  op->start_task_id = GNUNET_SCHEDULER_NO_TASK;  
+  if (NULL != op->start)
+  {
+    op->start (op->cb_cls);
+  }
+  op->state = OP_STATE_STARTED;  
+}
 
-  /**
-   * Maximum number of operationst that can be concurrently
-   * active in this queue.
-   */
-  unsigned int max_active;
 
-  // FIXME!
-
-};
+/**
+ * Checks for the readiness of an operation and schedules a operation start task
+ *
+ * @param op the operation
+ */
+static void
+check_readiness (struct GNUNET_TESTBED_Operation *op)
+{   
+  unsigned int i;
+  
+  for (i = 0; i < op->nqueues; i++)
+  {
+    if (0 == op->queues[i]->active)
+      return;
+  }
+  for (i = 0; i < op->nqueues; i++)
+  {
+    op->queues[i]->active--;
+  }
+  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == op->start_task_id);
+  op->start_task_id = GNUNET_SCHEDULER_add_now (&call_start, op);  
+}
 
 
 /**
@@ -84,7 +195,7 @@ GNUNET_TESTBED_operation_queue_create_ (unsigned int max_active)
   struct OperationQueue *queue;
 
   queue = GNUNET_malloc (sizeof (struct OperationQueue));
-  queue->max_active = max_active;
+  queue->active = max_active;
   return queue;
 }
 
@@ -98,7 +209,8 @@ GNUNET_TESTBED_operation_queue_create_ (unsigned int max_active)
 void
 GNUNET_TESTBED_operation_queue_destroy_ (struct OperationQueue *queue)
 {
-  GNUNET_break (0);
+  GNUNET_assert (NULL == queue->head);
+  GNUNET_assert (NULL == queue->tail);  
   GNUNET_free (queue);
 }
 
@@ -119,7 +231,16 @@ void
 GNUNET_TESTBED_operation_queue_insert_ (struct OperationQueue *queue,
 					struct GNUNET_TESTBED_Operation *operation)
 {
-  GNUNET_break (0);
+  struct QueueEntry *entry;
+
+  entry = GNUNET_malloc (sizeof (struct QueueEntry));
+  entry->op = operation;
+  GNUNET_CONTAINER_DLL_insert_tail (queue->head, queue->tail, entry);
+  operation->queues =
+    GNUNET_realloc (operation->queues,
+                    sizeof (struct OperationQueue *) * (++operation->nqueues));
+  operation->queues[operation->nqueues - 1] = queue;
+  check_readiness (operation);
 }
 
 
@@ -136,7 +257,24 @@ void
 GNUNET_TESTBED_operation_queue_remove_ (struct OperationQueue *queue,
 					struct GNUNET_TESTBED_Operation *operation)
 {
-  GNUNET_break (0);
+  struct QueueEntry *entry;
+  struct QueueEntry *entry2;
+  
+  for (entry = queue->head; NULL != entry; entry = entry->next)
+    if (entry->op == operation)
+      break;
+  GNUNET_assert (NULL != entry);
+  if (OP_STATE_STARTED == operation->state)
+    queue->active++;
+  GNUNET_CONTAINER_DLL_remove (queue->head, queue->tail, entry);
+  entry2 = entry->next;
+  GNUNET_free (entry);
+  for (; NULL != entry2; entry2 = entry2->next)
+    if (OP_STATE_STARTED != entry2->op->state)
+      break;
+  if (NULL == entry2)
+    return;
+  check_readiness (entry2->op);
 }
 
 
@@ -147,10 +285,19 @@ GNUNET_TESTBED_operation_queue_remove_ (struct OperationQueue *queue,
  * @param operation operation that finished
  */
 void
-operation_release_ (struct GNUNET_TESTBED_Operation *operation)
+GNUNET_TESTBED_operation_release_ (struct GNUNET_TESTBED_Operation *operation)
 {
-  // call operation->release, remove from queues
-  GNUNET_break (0);
+  unsigned int i;
+    
+  if (GNUNET_SCHEDULER_NO_TASK != operation->start_task_id)
+  {
+    GNUNET_SCHEDULER_cancel (operation->start_task_id);
+    operation->start_task_id = GNUNET_SCHEDULER_NO_TASK;
+  }
+  if (NULL != operation->release)
+    operation->release (operation->cb_cls);
+  for (i = 0; i < operation->nqueues; i++)
+    GNUNET_TESTBED_operation_queue_remove_ (operation->queues[i], operation);
 }
 
 

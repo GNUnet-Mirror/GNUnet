@@ -135,7 +135,7 @@ GNUNET_TESTBED_operation_create_ (void *cls,
  * @param operation operation that finished
  */
 void
-operation_release_ (struct GNUNET_TESTBED_Operation *operation);
+GNUNET_TESTBED_operation_release_ (struct GNUNET_TESTBED_Operation *operation);
 
 
 #endif
