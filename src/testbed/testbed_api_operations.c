@@ -116,11 +116,6 @@ struct GNUNET_TESTBED_Operation
   struct OperationQueue **queues;
 
   /**
-   * Pointer to operation's data
-   */
-  void *data;
-  
-  /**
    * The Operation ID
    */
   uint64_t id;  
@@ -199,15 +194,13 @@ check_readiness (struct GNUNET_TESTBED_Operation *op)
  * @param start function to call to start the operation
  * @param release function to call to close down the operation
  * @param type the type of the operation
- * @param data operation's relavant data
  * @return handle to the operation
  */
 struct GNUNET_TESTBED_Operation *
 GNUNET_TESTBED_operation_create_ (void *cls,
 				  OperationStart start,
 				  OperationRelease release,
-				  enum OperationType type, 
-                                  void *data)
+				  enum OperationType type)
 {
   struct GNUNET_TESTBED_Operation *op;
 
@@ -216,7 +209,6 @@ GNUNET_TESTBED_operation_create_ (void *cls,
   op->release = release;
   op->cb_cls = cls;
   op->type = type;
-  op->data = data;
   return op;  
 }
 

@@ -168,8 +168,7 @@ struct GNUNET_TESTBED_Operation *
 GNUNET_TESTBED_operation_create_ (void *cls,
 				  OperationStart start,
 				  OperationRelease release,
-				  enum OperationType type, 
-                                  void *data);
+				  enum OperationType type);
 
 
 /**

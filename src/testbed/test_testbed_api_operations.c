@@ -193,14 +193,13 @@ run (void *cls, char *const *args, const char *cfgfile,
   op1 = GNUNET_TESTBED_operation_create_ (&op1,
                                           start_cb,
                                           release_cb,
-                                          OP_PEER_CREATE, /* irrelavant here */
-                                          NULL);
+                                          OP_PEER_CREATE);
+                                          
   GNUNET_assert (NULL != op1);
   op2 = GNUNET_TESTBED_operation_create_ (&op2,
                                           start_cb,
                                           release_cb,
-                                          OP_PEER_CREATE, /* irrelavant here */
-                                          NULL);
+                                          OP_PEER_CREATE);
   GNUNET_TESTBED_operation_queue_insert_ (q1, op1);
   GNUNET_TESTBED_operation_queue_insert_ (q2, op1);
   GNUNET_TESTBED_operation_queue_insert_ (q1, op2);
