@@ -69,12 +69,14 @@ check_PROGRAMS = \
  test_testbed_api_hosts \
  test_testbed_api_2peers \
  test_testbed_api \
+ test_testbed_api_operations \
  test_gnunet_testbed_helper
 
 if ENABLE_TEST_RUN
  TESTS = \
   test_testbed_api \
   test_testbed_api_hosts \
+  test_testbed_api_operations \
   test_gnunet_testbed_helper
 endif
 
@@ -96,6 +98,12 @@ test_testbed_api_2peers_SOURCES = \
 test_testbed_api_2peers_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/testing/libgnunettesting.la \
+ libgnunettestbed.la
+
+test_testbed_api_operations_SOURCES = \
+ test_testbed_api_operations.c
+test_testbed_api_operations_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la \
  libgnunettestbed.la
 
 test_gnunet_testbed_helper_SOURCES = \

@@ -116,6 +116,11 @@ struct GNUNET_TESTBED_Operation
   struct OperationQueue **queues;
 
   /**
+   * Pointer to operation's data
+   */
+  void *data;
+  
+  /**
    * The Operation ID
    */
   uint64_t id;  
@@ -135,6 +140,11 @@ struct GNUNET_TESTBED_Operation
    */
   enum OperationState state;  
   
+  /**
+   * The type of the operation
+   */
+  enum OperationType type;
+  
 };
 
 
@@ -149,12 +159,12 @@ call_start (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {  
   struct GNUNET_TESTBED_Operation *op = cls;
   
-  op->start_task_id = GNUNET_SCHEDULER_NO_TASK;  
+  op->start_task_id = GNUNET_SCHEDULER_NO_TASK;
+  op->state = OP_STATE_STARTED;
   if (NULL != op->start)
   {
     op->start (op->cb_cls);
-  }
-  op->state = OP_STATE_STARTED;  
+  }  
 }
 
 
@@ -179,6 +189,35 @@ check_readiness (struct GNUNET_TESTBED_Operation *op)
   }
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == op->start_task_id);
   op->start_task_id = GNUNET_SCHEDULER_add_now (&call_start, op);  
+}
+
+
+/**
+ * Create an 'operation' to be performed.
+ *
+ * @param cls closure for the callbacks
+ * @param start function to call to start the operation
+ * @param release function to call to close down the operation
+ * @param type the type of the operation
+ * @param data operation's relavant data
+ * @return handle to the operation
+ */
+struct GNUNET_TESTBED_Operation *
+GNUNET_TESTBED_operation_create_ (void *cls,
+				  OperationStart start,
+				  OperationRelease release,
+				  enum OperationType type, 
+                                  void *data)
+{
+  struct GNUNET_TESTBED_Operation *op;
+
+  op = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Operation));
+  op->start = start;
+  op->release = release;
+  op->cb_cls = cls;
+  op->type = type;
+  op->data = data;
+  return op;  
 }
 
 
@@ -210,7 +249,7 @@ void
 GNUNET_TESTBED_operation_queue_destroy_ (struct OperationQueue *queue)
 {
   GNUNET_assert (NULL == queue->head);
-  GNUNET_assert (NULL == queue->tail);  
+  GNUNET_assert (NULL == queue->tail);
   GNUNET_free (queue);
 }
 
@@ -266,8 +305,8 @@ GNUNET_TESTBED_operation_queue_remove_ (struct OperationQueue *queue,
   GNUNET_assert (NULL != entry);
   if (OP_STATE_STARTED == operation->state)
     queue->active++;
-  GNUNET_CONTAINER_DLL_remove (queue->head, queue->tail, entry);
   entry2 = entry->next;
+  GNUNET_CONTAINER_DLL_remove (queue->head, queue->tail, entry);
   GNUNET_free (entry);
   for (; NULL != entry2; entry2 = entry2->next)
     if (OP_STATE_STARTED != entry2->op->state)
@@ -294,10 +333,12 @@ GNUNET_TESTBED_operation_release_ (struct GNUNET_TESTBED_Operation *operation)
     GNUNET_SCHEDULER_cancel (operation->start_task_id);
     operation->start_task_id = GNUNET_SCHEDULER_NO_TASK;
   }
-  if (NULL != operation->release)
-    operation->release (operation->cb_cls);
   for (i = 0; i < operation->nqueues; i++)
     GNUNET_TESTBED_operation_queue_remove_ (operation->queues[i], operation);
+  GNUNET_free (operation->queues);
+  if (NULL != operation->release)
+    operation->release (operation->cb_cls);
+  GNUNET_free (operation);
 }
 
 

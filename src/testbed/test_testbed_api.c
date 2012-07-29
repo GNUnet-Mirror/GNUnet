@@ -322,7 +322,6 @@ run (void *cls, char *const *args, const char *cfgfile,
 int main (int argc, char **argv)
 {
   int ret;
-
   char *const argv2[] = { "test_testbed_api",
                           "-c", "test_testbed_api.conf",
                           NULL
@@ -330,6 +329,7 @@ int main (int argc, char **argv)
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
+
   result = GNUNET_SYSERR;
   ret = GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
 			    "test_testbed_api", "nohelp", options, &run,
