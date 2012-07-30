@@ -18,11 +18,7 @@ pkgcfg_DATA = \
 if LINUX
 HIJACKBIN = gnunet-helper-dns
 install-exec-hook:
-	$(SUDO_BINARY) chown root $(bindir)/gnunet-helper-dns || true
-	$(SUDO_BINARY) chgrp $(GNUNETDNS_GROUP) $(bindir)/gnunet-helper-dns || true
-	$(SUDO_BINARY) chmod 4750 $(bindir)/gnunet-helper-dns || true
-	$(SUDO_BINARY) chown gnunet:$(GNUNETDNS_GROUP) $(bindir)/gnunet-service-dns || true
-	$(SUDO_BINARY) chmod 2750 $(bindir)/gnunet-service-dns || true
+	$(top_srcdir)/src/dns/install-dns-helper.sh $(SUDO_BINARY) $(bindir) $(GNUNETDNS_GROUP) || true
 else
 install-exec-hook:
 endif

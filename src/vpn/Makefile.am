@@ -18,8 +18,7 @@ pkgcfg_DATA = \
 if LINUX
 VPNBIN = gnunet-helper-vpn
 install-exec-hook:
-	$(SUDO_BINARY) chown root:root $(bindir)/gnunet-helper-vpn || true
-	$(SUDO_BINARY) chmod u+s $(bindir)/gnunet-helper-vpn || true
+	$(top_srcdir)/src/nat/install-vpn-helper.sh $(SUDO_BINARY) $(bindir) || true
 else
 install-exec-hook:
 endif
