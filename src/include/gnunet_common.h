@@ -178,9 +178,13 @@ extern "C"
  */
 #define GNUNET_NORETURN __attribute__((noreturn))
 
+#if MINGW
 #if __GNUC__ > 3
 /**
- * gcc 4.x-ism to pack structures even on W32 (to be used before structs)
+ * gcc 4.x-ism to pack structures even on W32 (to be used before structs);
+ * Using this would cause structs to be unaligned on the stack on Sparc,
+ * so we *only* use this on W32 (see #670578 from Debian); fortunately,
+ * W32 doesn't run on sparc anyway.
  */
 #define GNUNET_NETWORK_STRUCT_BEGIN \
   _Pragma("pack(push)") \
@@ -188,19 +192,23 @@ extern "C"
 
 /**
  * gcc 4.x-ism to pack structures even on W32 (to be used after structs)
+ * Using this would cause structs to be unaligned on the stack on Sparc,
+ * so we *only* use this on W32 (see #670578 from Debian); fortunately,
+ * W32 doesn't run on sparc anyway.
  */
 #define GNUNET_NETWORK_STRUCT_END _Pragma("pack(pop)")
+
 #else
-#ifdef MINGW
 #error gcc 4.x or higher required on W32 systems
 #endif
+#else
 /**
- * Good luck, GNUNET_PACKED should suffice, but this won't work on W32
+ * Define as empty, GNUNET_PACKED should suffice, but this won't work on W32
  */
 #define GNUNET_NETWORK_STRUCT_BEGIN 
 
 /**
- * Good luck, GNUNET_PACKED should suffice, but this won't work on W32
+ * Define as empty, GNUNET_PACKED should suffice, but this won't work on W32;
  */
 #define GNUNET_NETWORK_STRUCT_END
 #endif
