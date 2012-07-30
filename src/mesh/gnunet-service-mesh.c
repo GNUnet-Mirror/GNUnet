@@ -3322,6 +3322,7 @@ tunnel_get_ack (struct MeshTunnel *t)
  * If buffering is on, send when sent to children and buffer space is free.
  * 
  * @param t Tunnel on which to send the ACK.
+ * @param type Type of message that triggered the ACK transmission.
  */
 static void
 tunnel_send_ack (struct MeshTunnel *t, uint16_t type)
