@@ -2180,7 +2180,7 @@ send_message (const struct GNUNET_MessageHeader *message,
   neighbor = peer_info_get (peer);
   for (p = neighbor->path_head; NULL != p; p = p->next)
   {
-    if (2 == p->length)
+    if (2 >= p->length)
     {
       break;
     }
@@ -4465,7 +4465,8 @@ handle_mesh_data_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
                 "  it's for us! sending to clients...\n");
     GNUNET_STATISTICS_update (stats, "# unicast received", 1, GNUNET_NO);
     send_subscribed_clients (message, (struct GNUNET_MessageHeader *) &msg[1]);
-    tunnel_send_ack (t, GNUNET_MESSAGE_TYPE_MESH_ACK); // FIXME send after client processes the packet
+    // FIXME send after client processes the packet
+    tunnel_send_ack (t, GNUNET_MESSAGE_TYPE_MESH_ACK);
     return GNUNET_OK;
   }
   ttl = ntohl (msg->ttl);
