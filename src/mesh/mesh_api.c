@@ -588,6 +588,7 @@ remove_peer_from_tunnel (struct GNUNET_MESH_Peer *p)
 
 /**
  * Notify client that the transmission has timed out
+ * 
  * @param cls closure
  * @param tc task context
  */
@@ -601,6 +602,7 @@ timeout_transmission (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_CONTAINER_DLL_remove (mesh->th_head, mesh->th_tail, th);
   if (GNUNET_YES == th_is_payload (th))
     th->notify (th->notify_cls, 0, NULL);
+  th->tunnel->packet_size = 0;
   GNUNET_free (th);
   if ((NULL == mesh->th_head) && (NULL != mesh->th))
   {
