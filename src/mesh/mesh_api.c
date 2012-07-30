@@ -600,9 +600,9 @@ timeout_transmission (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   mesh = th->tunnel->mesh;
   GNUNET_CONTAINER_DLL_remove (mesh->th_head, mesh->th_tail, th);
+  th->tunnel->packet_size = 0;
   if (GNUNET_YES == th_is_payload (th))
     th->notify (th->notify_cls, 0, NULL);
-  th->tunnel->packet_size = 0;
   GNUNET_free (th);
   if ((NULL == mesh->th_head) && (NULL != mesh->th))
   {
