@@ -353,7 +353,7 @@ main (int argc, char *argv[])
              4 * 1000.0 / total_time.rel_value); // 4bytes * ms
     FPRINTF (stderr, "Test throughput: %f packets/s\n\n",
              TARGET * 1000.0 / total_time.rel_value); // 1000 packets * ms
-    GAUGER ("MESH", "Tunnel 5 peers", TARGET * 1000.0 / total_time.rel_value,
+    GAUGER ("MESH", "Local traffic default", TARGET * 1000.0 / total_time.rel_value,
             "packets/s");
   }
   return 0;
