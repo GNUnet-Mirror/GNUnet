@@ -3317,6 +3317,7 @@ tunnel_get_ack (struct MeshTunnel *t)
 
 /**
  * Send an ACK informing the predecessor about the available buffer space.
+ * In case there is no predecessor, inform the owning client.
  * If buffering is off, send only on behalf of children or self if endpoint.
  * If buffering is on, send when sent to children and buffer space is free.
  * 
@@ -3329,6 +3330,11 @@ tunnel_send_ack (struct MeshTunnel *t, uint16_t type)
   struct GNUNET_PeerIdentity id;
   uint32_t ack;
 
+  if (NULL != t->owner)
+  {
+    send_client_tunnel_ack (t->owner, t);
+    return;
+  }
   /* Is it after unicast / multicast retransmission? */
   if (GNUNET_MESSAGE_TYPE_MESH_ACK != type)
   {
@@ -6261,7 +6267,6 @@ handle_local_unicast (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "  calling generic handler...\n");
     handle_mesh_data_unicast (NULL, &my_full_id, &copy->header, NULL, 0);
-    send_client_tunnel_ack (t->owner, t);
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "receive done OK\n");
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
