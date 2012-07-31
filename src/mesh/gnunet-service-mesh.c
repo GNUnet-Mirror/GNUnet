@@ -303,7 +303,7 @@ struct MeshTunnel
   struct GNUNET_CONTAINER_MultiHashMap *children_fc;
 
     /**
-     * Last ACK.
+     * Last ACK sent towards the origin.
      */
   uint32_t last_ack;
 
@@ -366,17 +366,22 @@ struct MeshTunnel
   struct MeshClient *owner;
 
     /**
-     * Clients that have been informed about the tunnel, if any
+     * Clients that have been informed about and want to stay in the tunnel.
      */
   struct MeshClient **clients;
 
     /**
-     * Number of elements in clients
+     * ACK value of each active client.
+     */
+  uint32_t *clients_acks;
+
+    /**
+     * Number of elements in clients/clients_acks
      */
   unsigned int nclients;
 
     /**
-     * Clients that have requested to leave the tunnel
+     * Clients that have been informed but requested to leave the tunnel.
      */
   struct MeshClient **ignore;
 
@@ -985,6 +990,15 @@ tunnel_notify_connection_broken (struct MeshTunnel *t, GNUNET_PEER_Id p1,
  */
 static uint32_t
 tunnel_get_ack (struct MeshTunnel *t);
+
+/**
+ * Add a client to a tunnel, initializing all needed data structures.
+ * 
+ * @param t Tunnel to which add the client.
+ * @param c Client which to add to the tunnel.
+ */
+static void
+tunnel_add_client (struct MeshTunnel *t, struct MeshClient *c);
 
 
 /**
@@ -1757,7 +1771,7 @@ client_ignore_tunnel (struct MeshClient *c, struct MeshTunnel *t)
 {
   struct GNUNET_HashCode hash;
 
-  GNUNET_CRYPTO_hash(&t->local_tid_dest, sizeof (MESH_TunnelNumber), &hash);
+  GNUNET_CRYPTO_hash (&t->local_tid_dest, sizeof (MESH_TunnelNumber), &hash);
   GNUNET_break (GNUNET_YES ==
                 GNUNET_CONTAINER_multihashmap_remove (c->incoming_tunnels,
                                                       &hash, t));
@@ -1888,7 +1902,7 @@ send_subscribed_clients (const struct GNUNET_MessageHeader *msg,
           tmsg.tunnel_id = htonl (t->local_tid_dest);
           GNUNET_SERVER_notification_context_unicast (nc, c->handle,
                                                       &tmsg.header, GNUNET_NO);
-          GNUNET_array_append (t->clients, t->nclients, c);
+          tunnel_add_client (t, c);
           GNUNET_CRYPTO_hash (&t->local_tid_dest, sizeof (MESH_TunnelNumber),
                               &hash);
           GNUNET_break (GNUNET_OK == GNUNET_CONTAINER_multihashmap_put (
@@ -2855,7 +2869,10 @@ tunnel_delete_active_client (struct MeshTunnel *t, const struct MeshClient *c)
     if (t->clients[i] == c)
     {
       t->clients[i] = t->clients[t->nclients - 1];
+      t->clients_acks[i] = t->clients_acks[t->nclients - 1];
       GNUNET_array_grow (t->clients, t->nclients, t->nclients - 1);
+      t->nclients++;
+      GNUNET_array_grow (t->clients_acks, t->nclients, t->nclients - 1);
       break;
     }
   }
@@ -3266,7 +3283,8 @@ tunnel_get_child_ack (void *cls,
 
 /**
  * Get the maximum PID allowed to transmit to any
- * tunnel child of the local peer.
+ * tunnel child of the local peer, depending on the tunnel
+ * buffering/speed settings.
  *
  * @param t Tunnel.
  *
@@ -3278,6 +3296,105 @@ tunnel_get_children_ack (struct MeshTunnel *t)
   t->max_child_ack = 0;
   tree_iterate_children (t->tree, tunnel_get_child_ack, t);
   return t->max_child_ack;
+}
+
+
+/**
+ * Add a client to a tunnel, initializing all needed data structures.
+ * 
+ * @param t Tunnel to which add the client.
+ * @param c Client which to add to the tunnel.
+ */
+static void
+tunnel_add_client (struct MeshTunnel *t, struct MeshClient *c)
+{
+  uint32_t ack;
+
+  GNUNET_array_append (t->clients, t->nclients, c);
+  t->nclients--;
+  ack = t->pid + 1;
+  GNUNET_array_append (t->clients_acks, t->nclients, ack);
+}
+
+
+/**
+ * Set the ACK value of a client in a particular tunnel.
+ * 
+ * @param t Tunnel affected.
+ * @param c Client whose ACK to set.
+ * @param ack ACK value.
+ */
+static void
+tunnel_set_client_ack (struct MeshTunnel *t,
+                       struct MeshClient *c, 
+                       uint32_t ack)
+{
+  unsigned int i;
+
+  for (i = 0; i < t->nclients; i++)
+  {
+    if (t->clients[i] != c)
+      continue;
+    t->clients_acks[i] = ack;
+    return;
+  }
+  GNUNET_break (0);
+}
+
+
+/**
+ * Get the ACK value of a client in a particular tunnel.
+ * 
+ * @param t Tunnel on which to look.
+ * @param c Client whose ACK to get.
+ * 
+ * @return ACK value.
+ */
+uint32_t // FIXME static when used!!
+tunnel_get_client_ack (struct MeshTunnel *t,
+                       struct MeshClient *c)
+{
+  unsigned int i;
+
+  for (i = 0; i < t->nclients; i++)
+  {
+    if (t->clients[i] != c)
+      continue;
+    return t->clients_acks[i];
+  }
+  GNUNET_break (0);
+  return t->clients_acks[0];
+}
+
+
+/**
+ * Get the highest ACK value of all clients in a particular tunnel,
+ * according to the buffering/speed settings.
+ * 
+ * @param t Tunnel on which to look.
+ * 
+ * @return Corresponding ACK value.
+ */
+static uint32_t
+tunnel_get_clients_ack (struct MeshTunnel *t)
+{
+  unsigned int i;
+  uint32_t ack;
+
+  for (ack = 0, i = 0; i < t->nclients; i++)
+  {
+    if (0 == ack ||
+        (GNUNET_YES == t->speed_min && t->clients_acks[i] < ack) ||
+        (GNUNET_NO == t->speed_min && t->clients_acks[i] > ack))
+    {
+      ack = t->clients_acks[i];
+    }
+  }
+
+  if (GNUNET_YES == t->nobuffer && ack > t->pid)
+    ack = t->pid + 1;
+
+  return ack;
 }
 
 
@@ -3295,22 +3412,27 @@ tunnel_get_ack (struct MeshTunnel *t)
   uint32_t count;
   uint32_t buffer_free;
   uint32_t child_ack;
+  uint32_t client_ack;
   uint32_t ack;
 
   count = t->pid - t->skip;
   buffer_free = t->queue_max - t->queue_n;
   ack = count + buffer_free;
   child_ack = tunnel_get_children_ack (t);
+  client_ack = tunnel_get_clients_ack (t);
 
   if (GNUNET_YES == t->speed_min)
   {
     ack = child_ack > ack ? ack : child_ack;
+    ack = client_ack > ack ? ack : client_ack;
   }
   else
   {
     ack = child_ack > ack ? child_ack : ack;
+    ack = client_ack > ack ? client_ack : ack;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "c %u, bf %u, ch %u\n", count, buffer_free, child_ack);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "c %u, bf %u, ch %u, cl %u\n",
+              count, buffer_free, child_ack, client_ack);
   return ack;
 }
 
@@ -6449,6 +6571,42 @@ static void
 handle_local_ack (void *cls, struct GNUNET_SERVER_Client *client,
                   const struct GNUNET_MessageHeader *message)
 {
+  struct GNUNET_MESH_LocalAck *msg;
+  struct MeshTunnel *t;
+  struct MeshClient *c;
+  MESH_TunnelNumber tid;
+
+  /* Sanity check for client registration */
+  if (NULL == (c = client_get (client)))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+
+  msg = (struct GNUNET_MESH_LocalAck *) message;
+  /* Tunnel exists? */
+  tid = ntohl (msg->tunnel_id);
+  t = tunnel_get_by_local_id (c, tid);
+  if (NULL == t)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+
+  /* Does client own tunnel? */
+  if (t->owner->handle != client)
+  {
+    GNUNET_break (0);
+    // FIXME TODO
+  }
+  else
+  {
+    tunnel_set_client_ack (t, c, ntohl (msg->max_pid));
+  }
+
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
   return;
 }
 
