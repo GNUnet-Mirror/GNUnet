@@ -33,7 +33,7 @@
 #include "gnunet_dns_service.h"
 #include "gnunet_resolver_service.h"
 #include "gnunet_dnsparser_lib.h"
-#include "gns_records.h"
+#include "gns_protocol.h"
 #include "gnunet_gns_service.h"
 #include "block_gns.h"
 #include "gns.h"

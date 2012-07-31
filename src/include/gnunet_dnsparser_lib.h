@@ -42,6 +42,7 @@
 #define GNUNET_DNSPARSER_TYPE_TXT 16
 #define GNUNET_DNSPARSER_TYPE_AAAA 28
 #define GNUNET_DNSPARSER_TYPE_SRV 33
+#define GNUNET_DNSPARSER_TYPE_TLSA 52
 
 /**
  * A few common DNS classes (ok, only one is common, but I list a

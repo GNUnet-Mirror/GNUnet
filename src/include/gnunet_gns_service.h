@@ -23,10 +23,6 @@
  * @brief API to the GNS service
  * @author Martin Schanzenbach
  *
- * TODO:
- * - decide what goes into storage API and what into GNS-service API
- * - decide where to pass/expose/check keys / signatures
- * - are GNS private keys per peer or per user?
  */
 
 

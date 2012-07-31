@@ -32,7 +32,7 @@
 #include "gnunet_arm_service.h"
 #include "gnunet_namestore_service.h"
 #include "gnunet_dnsparser_lib.h"
-#include "../dns/dnsparser.h"
+#include "gns_protocol.h"
 #include "namestore.h"
 
 
@@ -348,19 +348,20 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
 				  const void *data,
 				  size_t data_size)
 {
-  char tmp[INET6_ADDRSTRLEN];
-  struct GNUNET_CRYPTO_ShortHashAsciiEncoded enc;
   uint16_t mx_pref;
+  struct soa_data *soa;
+  struct vpn_data *vpn;
+  struct srv_data *srv;
+  struct tlsa_data *tlsa;
+  struct GNUNET_CRYPTO_ShortHashAsciiEncoded enc;
+  struct GNUNET_CRYPTO_HashAsciiEncoded s_peer;
+  char* vpn_str;
+  char* srv_str;
+  char* tlsa_str;
   char* result;
   char* soa_rname;
   char* soa_mname;
-  struct soa_data *soa;
-
-  struct vpn_data *vpn;
-  char* vpn_str;
-  char* srv_str;
-  struct GNUNET_CRYPTO_HashAsciiEncoded s_peer;
-  struct srv_data *srv;
+  char tmp[INET6_ADDRSTRLEN];
 
   switch (type)
   {
@@ -434,6 +435,16 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
                                       (char*)&srv[1]))
       return NULL;
     return srv_str;
+  case GNUNET_DNSPARSER_TYPE_TLSA:
+    tlsa = (struct tlsa_data*)data;
+
+    if (GNUNET_OK != GNUNET_asprintf (&tlsa_str, "%c %c %c %s",
+                                      tlsa->usage,
+                                      tlsa->selector,
+                                      tlsa->matching_type,
+                                      tlsa[1]))
+      return NULL;
+    return tlsa_str;
   default:
     GNUNET_break (0);
   }
@@ -461,20 +472,21 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
   struct in_addr value_a;
   struct in6_addr value_aaaa;
   struct GNUNET_CRYPTO_ShortHashCode pkey;
-  uint16_t mx_pref;
-  uint16_t mx_pref_n;
   struct soa_data *soa;
+  struct vpn_data *vpn;
+  struct tlsa_data *tlsa;
   char result[253];
   char soa_rname[63];
   char soa_mname[63];
+  char s_peer[104];
+  char s_serv[253];
   uint32_t soa_serial;
   uint32_t soa_refresh;
   uint32_t soa_retry;
   uint32_t soa_expire;
   uint32_t soa_min;
-  char s_peer[104];
-  char s_serv[253];
-  struct vpn_data* vpn;
+  uint16_t mx_pref;
+  uint16_t mx_pref_n;
   uint16_t proto;
   int ret;
   
@@ -581,6 +593,26 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
 
     vpn->proto = htons (proto);
     strcpy ((char*)&vpn[1], s_serv);
+    return GNUNET_OK;
+  case GNUNET_DNSPARSER_TYPE_TLSA:
+    tlsa = (struct tlsa_data*)*data;
+    *data_size = sizeof (struct tlsa_data) + strlen (s) - 6;
+    tlsa = GNUNET_malloc (*data_size);
+    ret = SSCANF (s, "%c %c %c %s",
+                  &tlsa->usage,
+                  &tlsa->selector,
+                  &tlsa->matching_type,
+                  (char*)&tlsa[1]);
+
+    if (4 != ret)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Unable to parse TLSA record string %s\n", s);
+      *data_size = 0;
+      GNUNET_free (tlsa);
+      return GNUNET_SYSERR;
+    }
+
     return GNUNET_OK;
   default:
     GNUNET_break (0);
