@@ -32,7 +32,17 @@
 
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
-#define TARGET 100
+#define TARGET 1000
+
+GNUNET_NETWORK_STRUCT_BEGIN
+
+struct test_traffic_message
+{
+  struct GNUNET_MessageHeader header;
+  uint32_t data GNUNET_PACKED;
+};
+
+GNUNET_NETWORK_STRUCT_END
 
 
 static struct GNUNET_MESH_Handle *mesh_peer_1;
@@ -135,7 +145,11 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
                const struct GNUNET_MessageHeader *message,
                const struct GNUNET_ATS_Information *atsi)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Data callback\n");
+  struct test_traffic_message *msg;
+
+  msg = (struct test_traffic_message *) message;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got data packet # %u [%u]\n",
+              ntohl (msg->data), got + 1);
   got++;
   if (TARGET == got)
   {
@@ -217,10 +231,13 @@ static size_t
 tmt_rdy (void *cls, size_t size, void *buf)
 {
   struct GNUNET_MessageHeader *m = buf;
-  size_t msize = sizeof (struct GNUNET_MessageHeader);
+  struct test_traffic_message *msg = buf;
+  size_t msize = sizeof (struct test_traffic_message);
 
   if (0 == size || NULL == buf)
     return 0;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending data packet # %u\n",
+              sent);
   GNUNET_assert (size >= msize);
   sent++;
   if (TARGET > sent)
@@ -229,6 +246,7 @@ tmt_rdy (void *cls, size_t size, void *buf)
                                        &peer_id, msize, &tmt_rdy, NULL);
   m->size = htons (msize);
   m->type = htons (1);
+  msg->data = htonl (sent - 1);
   return msize;
 }
 
@@ -247,7 +265,7 @@ peer_connected (void *cls, const struct GNUNET_PeerIdentity *peer,
   peer_id = *peer;
   start_time = GNUNET_TIME_absolute_get();
   GNUNET_MESH_notify_transmit_ready (t, GNUNET_NO, GNUNET_TIME_UNIT_FOREVER_REL,
-                                     peer, sizeof (struct GNUNET_MessageHeader),
+                                     peer, sizeof (struct test_traffic_message),
                                      &tmt_rdy, NULL);
 }
 
@@ -349,7 +367,7 @@ main (int argc, char *argv[])
     total_time = GNUNET_TIME_absolute_get_difference(start_time, end_time);
     FPRINTF (stderr, "\nTest time %llu ms\n",
              (unsigned long long) total_time.rel_value);
-    FPRINTF (stderr, "Test bandwidth: %f kb/s\n",
+    FPRINTF (stderr, "Test payload bandwidth: %f kb/s\n",
              4 * 1000.0 / total_time.rel_value); // 4bytes * ms
     FPRINTF (stderr, "Test throughput: %f packets/s\n\n",
              TARGET * 1000.0 / total_time.rel_value); // 1000 packets * ms
