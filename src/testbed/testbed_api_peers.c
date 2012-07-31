@@ -91,6 +91,48 @@ oprelease_peer_create (void *cls)
 
 
 /**
+ * Function to called when a peer destroy operation is ready
+ *
+ * @param cls the closure from GNUNET_TESTBED_operation_create_()
+ */
+static void 
+opstart_peer_destroy (void *cls)
+{
+  struct OperationContext *opc = cls;
+  struct GNUNET_TESTBED_Peer *peer;
+  struct GNUNET_TESTBED_PeerDestroyMessage *msg;
+
+  GNUNET_assert (OP_PEER_DESTROY == opc->type);
+  peer = opc->data;
+  GNUNET_assert (NULL != peer);
+  msg = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_PeerDestroyMessage));
+  msg->header.size = htons (sizeof (struct GNUNET_TESTBED_PeerDestroyMessage));
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_DESTROYPEER);
+  msg->peer_id = htonl (peer->unique_id);
+  msg->operation_id = GNUNET_htonll (opc->id);
+  GNUNET_CONTAINER_DLL_insert_tail (opc->c->ocq_head,
+                                    opc->c->ocq_tail, opc);
+  GNUNET_TESTBED_queue_message_ (peer->controller,
+				 (struct GNUNET_MessageHeader *) msg);
+}
+
+
+/**
+ * Callback which will be called when peer_create type operation is released
+ *
+ * @param cls the closure from GNUNET_TESTBED_operation_create_()
+ */
+static void 
+oprelease_peer_destroy (void *cls)
+{
+  struct OperationContext *opc = cls;
+  
+  GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
+  GNUNET_free (opc);
+}
+
+
+/**
  * Lookup a peer by ID.
  * 
  * @param id global peer ID assigned to the peer
@@ -347,27 +389,18 @@ GNUNET_TESTBED_peer_update_configuration (struct GNUNET_TESTBED_Peer *peer,
 struct GNUNET_TESTBED_Operation *
 GNUNET_TESTBED_peer_destroy (struct GNUNET_TESTBED_Peer *peer)
 {
-  struct GNUNET_TESTBED_Operation *op;
-  struct PeerDestroyData *data;
-  struct GNUNET_TESTBED_PeerDestroyMessage *msg;
-  
-  data = GNUNET_malloc (sizeof (struct PeerDestroyData));
-  data->peer = peer;
-  op = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Operation));
-  op->operation_id = peer->controller->operation_counter++;
-  op->controller = peer->controller;
-  op->type = OP_PEER_DESTROY;
-  op->data = data;
-  msg = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_PeerDestroyMessage));
-  msg->header.size = htons (sizeof (struct GNUNET_TESTBED_PeerDestroyMessage));
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_DESTROYPEER);
-  msg->peer_id = htonl (peer->unique_id);
-  msg->operation_id = GNUNET_htonll (op->operation_id);
-  GNUNET_CONTAINER_DLL_insert_tail (peer->controller->op_head,
-                                    peer->controller->op_tail, op);
-  GNUNET_TESTBED_queue_message_ (peer->controller, 
-				 (struct GNUNET_MessageHeader *) msg);
-  return op;
+  struct OperationContext *opc;
+
+  opc = GNUNET_malloc (sizeof (struct OperationContext));
+  opc->data = peer;
+  opc->c = peer->controller;
+  opc->id = peer->controller->operation_counter++;
+  opc->type = OP_PEER_DESTROY;
+  opc->op = GNUNET_TESTBED_operation_create_ (opc, &opstart_peer_destroy,
+                                              &oprelease_peer_destroy);
+  GNUNET_TESTBED_operation_queue_insert_ (opc->c->opq_peer_create,
+                                          opc->op);
+  return opc->op;
 }
 
 

@@ -224,18 +224,18 @@ handle_opsuccess (struct GNUNET_TESTBED_Controller *c,
                   const struct
                   GNUNET_TESTBED_GenericOperationSuccessEventMessage *msg)
 {
-  struct GNUNET_TESTBED_Operation *op;
+  struct OperationContext *opc;
   struct GNUNET_TESTBED_EventInformation *event;
   uint64_t op_id;
   
   op_id = GNUNET_ntohll (msg->operation_id);
   LOG_DEBUG ("Operation %ul successful\n", op_id);
-  for (op = c->op_head; NULL != op; op = op->next)
+  for (opc = c->ocq_head; NULL != opc; opc = opc->next)
   {
-    if (op->operation_id == op_id)
+    if (opc->id == op_id)
       break;
   }
-  if (NULL == op)
+  if (NULL == opc)
   {
     LOG_DEBUG ("Operation not found\n");
     return GNUNET_YES;
@@ -245,37 +245,29 @@ handle_opsuccess (struct GNUNET_TESTBED_Controller *c,
     event = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_EventInformation));
   if (NULL != event)
     event->type = GNUNET_TESTBED_ET_OPERATION_FINISHED; 
-  switch (op->type)
+  switch (opc->type)
   {
   case OP_PEER_DESTROY:
     {
-      struct PeerDestroyData *data;
+      struct GNUNET_TESTBED_Peer *peer;
       
       if (NULL != event)
       {
-        event->details.operation_finished.operation = op;
+        event->details.operation_finished.operation = opc->op;
         event->details.operation_finished.op_cls = NULL;
         event->details.operation_finished.emsg = NULL;
         event->details.operation_finished.pit = GNUNET_TESTBED_PIT_GENERIC;
         event->details.operation_finished.op_result.generic = NULL;
       }
-      data = (struct PeerDestroyData *) op->data;
-      if (NULL != data->peer->details)
-      {
-        if (NULL != data->peer->details->cfg)
-          GNUNET_CONFIGURATION_destroy (data->peer->details->cfg);
-        //PEER_DETAILS
-      }
-      GNUNET_free (data->peer);
-      GNUNET_free (data);
-      op->data = NULL;
+      peer = opc->data;
+      GNUNET_free (peer);
+      opc->data = NULL;
       //PEERDESTROYDATA
     }
     break;
   default:
     GNUNET_assert (0);
   }  
-  GNUNET_CONTAINER_DLL_remove (c->op_head, c->op_tail, op);
   if (NULL != event)
   {
     if (NULL != c->cc)
@@ -1354,8 +1346,8 @@ GNUNET_TESTBED_operation_done (struct GNUNET_TESTBED_Operation *operation)
     GNUNET_TESTBED_operation_release_ (operation);
     return;
   case OP_PEER_DESTROY:
-    GNUNET_free_non_null (operation->data);
-    break;
+    GNUNET_TESTBED_operation_release_ (operation);
+    return;
   case OP_PEER_START:
   case OP_PEER_STOP:
     break;

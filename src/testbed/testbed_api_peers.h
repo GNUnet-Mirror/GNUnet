@@ -31,23 +31,6 @@
 
 
 /**
- * Details about a peer; kept in a separate struct to avoid bloating
- * memory consumption everywhere...
- */
-struct PeerDetails
-{
-  /**
-   * Configuration of the peer; NULL if we are not sure what the peer's correct
-   * configuration actually is; non-NULL if this peer is controlled by this
-   * process.
-   */
-  struct GNUNET_CONFIGURATION_Handle *cfg;
-
-  //PEER_DETAILS
-};
-
-
-/**
  * Enumeration of possible states a peer could be in
  */
 enum PeerState 
@@ -90,12 +73,6 @@ struct GNUNET_TESTBED_Peer
    * Which host does this peer run on?
    */
   struct GNUNET_TESTBED_Host *host;
-
-  /**
-   * Internals of the peer for the controlling process; NULL if 
-   * this process is not controlling this peer.
-   */
-  struct PeerDetails *details;
 
   /**
    * Globally unique ID of the peer.
