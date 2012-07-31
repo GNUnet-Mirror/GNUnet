@@ -38,44 +38,6 @@ struct OperationQueue;
 
 
 /**
- * Enumeration of operation types
- */
-enum OperationType
-  {
-    /**
-     * Peer create operation
-     */
-    OP_PEER_CREATE,
-    
-    /**
-     * Peer start operation
-     */
-    OP_PEER_START,
-
-    /**
-     * Peer stop operation
-     */
-    OP_PEER_STOP,
-
-    /**
-     * Peer destroy operation
-     */
-    OP_PEER_DESTROY,
-
-    /**
-     * Get peer information operation
-     */
-    OP_PEER_INFO,
-
-    /**
-     * Overlay connection operation
-     */
-    OP_OVERLAY_CONNECT,
-
-  };
-
-
-/**
  * Create an operation queue.
  *
  * @param max_active maximum number of operations in this
@@ -160,15 +122,12 @@ typedef void (*OperationRelease)(void *cls);
  * @param cls closure for the callbacks
  * @param start function to call to start the operation
  * @param release function to call to close down the operation
- * @param type the type of the operation
- * @param data operation's relavant data
  * @return handle to the operation
  */
 struct GNUNET_TESTBED_Operation *
 GNUNET_TESTBED_operation_create_ (void *cls,
 				  OperationStart start,
-				  OperationRelease release,
-				  enum OperationType type);
+				  OperationRelease release);
 
 
 /**

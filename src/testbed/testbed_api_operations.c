@@ -116,11 +116,6 @@ struct GNUNET_TESTBED_Operation
   struct OperationQueue **queues;
 
   /**
-   * The Operation ID
-   */
-  uint64_t id;  
-
-  /**
    * The id of the task which calls OperationStart for this operation
    */
   GNUNET_SCHEDULER_TaskIdentifier start_task_id;
@@ -134,11 +129,6 @@ struct GNUNET_TESTBED_Operation
    * The state of the operation
    */
   enum OperationState state;  
-  
-  /**
-   * The type of the operation
-   */
-  enum OperationType type;
   
 };
 
@@ -193,14 +183,12 @@ check_readiness (struct GNUNET_TESTBED_Operation *op)
  * @param cls closure for the callbacks
  * @param start function to call to start the operation
  * @param release function to call to close down the operation
- * @param type the type of the operation
  * @return handle to the operation
  */
 struct GNUNET_TESTBED_Operation *
 GNUNET_TESTBED_operation_create_ (void *cls,
 				  OperationStart start,
-				  OperationRelease release,
-				  enum OperationType type)
+				  OperationRelease release)
 {
   struct GNUNET_TESTBED_Operation *op;
 
@@ -208,7 +196,6 @@ GNUNET_TESTBED_operation_create_ (void *cls,
   op->start = start;
   op->release = release;
   op->cb_cls = cls;
-  op->type = type;
   return op;  
 }
 
