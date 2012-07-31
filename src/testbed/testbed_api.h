@@ -108,11 +108,52 @@ struct GNUNET_TESTBED_Operation
  */
 struct MessageQueue;
 
-
 /**
  * Structure for a controller link
  */
 struct ControllerLink;
+
+/**
+ * Context information for GNUNET_TESTBED_Operation
+ */
+struct OperationContext
+{
+  /**
+   * next ptr for DLL
+   */
+  struct OperationContext *next;
+
+  /**
+   * prev ptr for DLL
+   */
+  struct OperationContext *prev;
+
+  /**
+   * The controller to which this operation context belongs to
+   */
+  struct GNUNET_TESTBED_Controller *c;
+
+  /**
+   * The operation
+   */
+  struct GNUNET_TESTBED_Operation *op;
+
+  /**
+   * Data relevant to the operation
+   */
+  void *data;
+
+  /**
+   * The id of the opearation
+   */
+  uint64_t id;
+
+  /**
+   * The type of operation
+   */
+  enum OperationType type;
+
+};
 
 
 /**
@@ -184,14 +225,29 @@ struct GNUNET_TESTBED_Controller
   struct GNUNET_TESTBED_HostRegistrationHandle *rh;
 
   /**
-   * The head of the operation queue
+   * The head of the operation queue (FIXME: Remove, use ocq)
    */
   struct GNUNET_TESTBED_Operation *op_head;
   
   /**
-   * The tail of the operation queue
+   * The tail of the operation queue (FIXME: Remove, use ocq)
    */
   struct GNUNET_TESTBED_Operation *op_tail;
+
+  /**
+   * The head of the opeartion context queue
+   */
+  struct OperationContext *ocq_head;
+
+  /**
+   * The tail of the operation context queue
+   */
+  struct OperationContext *ocq_tail;
+
+  /**
+   * Operation queue for simultaneous peer creations
+   */
+  struct OperationQueue *opq_peer_create;
 
   /**
    * The operation id counter. use current value and increment

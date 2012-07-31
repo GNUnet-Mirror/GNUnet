@@ -115,7 +115,17 @@ struct GNUNET_TESTBED_Peer
 struct PeerCreateData
 {
   /**
-   * THe call back to call when we receive peer create success message
+   * The host where the peer has to be created
+   */
+  struct GNUNET_TESTBED_Host *host;
+
+  /**
+   * The template configuration of the peer
+   */
+  const struct GNUNET_CONFIGURATION_Handle *cfg;
+    
+  /**
+   * The call back to call when we receive peer create success message
    */
   GNUNET_TESTBED_PeerCreateCallback cb;
   

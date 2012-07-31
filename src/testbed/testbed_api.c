@@ -40,6 +40,7 @@
 #include "testbed_api.h"
 #include "testbed_api_hosts.h"
 #include "testbed_api_peers.h"
+#include "testbed_api_operations.h"
 
 /**
  * Generic logging shorthand
@@ -299,7 +300,7 @@ handle_peer_create_success (struct GNUNET_TESTBED_Controller *c,
 			    const struct
 			    GNUNET_TESTBED_PeerCreateSuccessEventMessage *msg)
 {
-  struct GNUNET_TESTBED_Operation *op;
+  struct OperationContext *opc;
   struct PeerCreateData *data;
   struct GNUNET_TESTBED_Peer *peer;
   GNUNET_TESTBED_PeerCreateCallback cb;
@@ -309,28 +310,25 @@ handle_peer_create_success (struct GNUNET_TESTBED_Controller *c,
   GNUNET_assert (sizeof (struct GNUNET_TESTBED_PeerCreateSuccessEventMessage)
 		 == ntohs (msg->header.size));
   op_id = GNUNET_ntohll (msg->operation_id);
-  for (op = c->op_head; NULL != op; op = op->next)
+  for (opc = c->ocq_head; NULL != opc; opc = opc->next)
   {
-    if (op->operation_id == op_id)
+    if (opc->id == op_id)
       break;
   }
-  if (NULL == op)
+  if (NULL == opc)
   {
-    LOG_DEBUG ("Operation not found\n");
+    LOG_DEBUG ("Operation context for PeerCreateSuccessEvent not found\n");
     return GNUNET_YES;
   }
-  GNUNET_assert (OP_PEER_CREATE == op->type);
-  GNUNET_assert (NULL != op->data);
-  data = op->data;
+  GNUNET_assert (OP_PEER_CREATE == opc->type);
+  GNUNET_assert (NULL != opc->data);
+  data = opc->data;
   GNUNET_assert (NULL != data->peer);
   peer = data->peer;
   GNUNET_assert (peer->unique_id == ntohl (msg->peer_id));
   peer->state = PS_CREATED;
   cb = data->cb;
-  cls = data->cls;
-  GNUNET_free (data);
-  op->data = NULL;
-  GNUNET_CONTAINER_DLL_remove (c->op_head, c->op_tail, op);
+  cls = data->cls;  
   if (NULL != cb)
     cb (cls, peer, NULL);
   return GNUNET_YES;
@@ -936,7 +934,16 @@ GNUNET_TESTBED_controller_connect (const struct GNUNET_CONFIGURATION_Handle *cfg
 {
   struct GNUNET_TESTBED_Controller *controller;
   struct GNUNET_TESTBED_InitMessage *msg;
+  unsigned long long max_parallel_peer_create;
 
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_number (cfg, "testbed",
+                                             "MAX_PARALLEL_PEER_CREATE",
+                                             &max_parallel_peer_create))
+  {
+    GNUNET_break (0);
+    return NULL;
+  }                                                          
   controller = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Controller));
   controller->cc = cc;
   controller->cc_cls = cc_cls;
@@ -954,8 +961,8 @@ GNUNET_TESTBED_controller_connect (const struct GNUNET_CONFIGURATION_Handle *cfg
     if (NULL == host)
     {
       LOG (GNUNET_ERROR_TYPE_WARNING,
-	   "Treating NULL host as localhost. Multiple references to localhost. "
-	   " May break when localhost freed before calling disconnect \n");
+	   "Treating NULL host as localhost. Multiple references to localhost "
+	   "may break when localhost freed before calling disconnect \n");
       host = GNUNET_TESTBED_host_lookup_by_id_ (0);
     }
     else
@@ -964,12 +971,17 @@ GNUNET_TESTBED_controller_connect (const struct GNUNET_CONFIGURATION_Handle *cfg
     }
   }
   GNUNET_assert (NULL != host);
+  controller->opq_peer_create =
+    GNUNET_TESTBED_operation_queue_create_ ((unsigned int)
+                                            max_parallel_peer_create);
   msg = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_InitMessage));
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_INIT);
   msg->header.size = htons (sizeof (struct GNUNET_TESTBED_InitMessage));
   msg->host_id = htonl (GNUNET_TESTBED_host_get_id_ (host));
   msg->event_mask = GNUNET_htonll (controller->event_mask);
-  GNUNET_TESTBED_queue_message_ (controller, (struct GNUNET_MessageHeader *) msg);
+  GNUNET_TESTBED_queue_message_ (controller, (struct GNUNET_MessageHeader *)
+                                 msg);
+  
   return controller;
 }
 
@@ -1035,6 +1047,7 @@ GNUNET_TESTBED_controller_disconnect (struct GNUNET_TESTBED_Controller *controll
   GNUNET_CONFIGURATION_destroy (controller->cfg);
   if (GNUNET_YES == controller->aux_host)
     GNUNET_TESTBED_host_destroy (controller->host);
+  GNUNET_TESTBED_operation_queue_destroy_ (controller->opq_peer_create);
   GNUNET_free (controller);
 }
 
@@ -1338,8 +1351,8 @@ GNUNET_TESTBED_operation_done (struct GNUNET_TESTBED_Operation *operation)
   switch (operation->type)
   {
   case OP_PEER_CREATE:
-    GNUNET_free_non_null (operation->data);
-    break;
+    GNUNET_TESTBED_operation_release_ (operation);
+    return;
   case OP_PEER_DESTROY:
     GNUNET_free_non_null (operation->data);
     break;

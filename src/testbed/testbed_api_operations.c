@@ -227,8 +227,8 @@ GNUNET_TESTBED_operation_queue_create_ (unsigned int max_active)
 void
 GNUNET_TESTBED_operation_queue_destroy_ (struct OperationQueue *queue)
 {
-  GNUNET_assert (NULL == queue->head);
-  GNUNET_assert (NULL == queue->tail);
+  GNUNET_break (NULL == queue->head);
+  GNUNET_break (NULL == queue->tail);
   GNUNET_free (queue);
 }
 

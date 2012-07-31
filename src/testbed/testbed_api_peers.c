@@ -29,6 +29,65 @@
 #include "testbed_api.h"
 #include "testbed.h"
 #include "testbed_api_hosts.h"
+#include "testbed_api_operations.h"
+
+/**
+ * Function to call to start a peer_create type operation once all
+ * queues the operation is part of declare that the
+ * operation can be activated.
+ *
+ * @param cls the closure from GNUNET_TESTBED_operation_create_()
+ */
+static void 
+opstart_peer_create (void *cls)
+{
+  struct OperationContext *opc = cls;
+  struct PeerCreateData *data;
+  struct GNUNET_TESTBED_PeerCreateMessage *msg;
+  char *config;
+  char *xconfig;
+  size_t c_size;
+  size_t xc_size;
+  uint16_t msize;
+
+  GNUNET_assert (OP_PEER_CREATE == opc->type);  
+  data = opc->data;
+  GNUNET_assert (NULL != data);
+  GNUNET_assert (NULL != data->peer);
+  config = GNUNET_CONFIGURATION_serialize (data->cfg, &c_size);
+  xc_size = GNUNET_TESTBED_compress_config_ (config, c_size, &xconfig);
+  GNUNET_free (config);
+  msize = xc_size + sizeof (struct GNUNET_TESTBED_PeerCreateMessage);
+  msg = GNUNET_realloc (xconfig, msize);
+  memmove (&msg[1], msg, xc_size);
+  msg->header.size = htons (msize);
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_CREATEPEER);
+  msg->operation_id = GNUNET_htonll (opc->id);
+  msg->host_id = htonl (GNUNET_TESTBED_host_get_id_ (data->peer->host));
+  msg->peer_id = htonl (data->peer->unique_id);
+  msg->config_size = htonl (c_size);
+  GNUNET_CONTAINER_DLL_insert_tail (opc->c->ocq_head,
+                                    opc->c->ocq_tail, opc);
+  GNUNET_TESTBED_queue_message_ (opc->c,
+				 (struct GNUNET_MessageHeader *) msg);
+};
+
+
+/**
+ * Callback which will be called when peer_create type operation is released
+ *
+ * @param cls the closure from GNUNET_TESTBED_operation_create_()
+ */
+static void 
+oprelease_peer_create (void *cls)
+{
+  struct OperationContext *opc = cls;  
+
+  GNUNET_assert (NULL != opc->data);
+  GNUNET_free (opc->data);  
+  GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
+  GNUNET_free (opc);
+}
 
 
 /**
@@ -71,7 +130,8 @@ GNUNET_TESTBED_peer_lookup_by_id_ (uint32_t id)
  * @param unique_id unique ID for this peer
  * @param controller controller process to use
  * @param host host to run the peer on
- * @param cfg configuration to use for the peer
+ * @param cfg Template configuration to use for the peer. Should exist until
+ *          operation is cancelled or GNUNET_TESTBED_operation_done() is called
  * @param cb the callback to call when the peer has been created
  * @param cls the closure to the above callback
  * @return the operation handle
@@ -86,13 +146,7 @@ GNUNET_TESTBED_peer_create_with_id_ (uint32_t unique_id,
 {
   struct GNUNET_TESTBED_Peer *peer;
   struct PeerCreateData *data;
-  struct GNUNET_TESTBED_Operation *op;
-  struct GNUNET_TESTBED_PeerCreateMessage *msg;
-  char *config;
-  char *xconfig;
-  size_t c_size;
-  size_t xc_size;
-  uint16_t msize;
+  struct OperationContext *opc;
 
   peer = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Peer));
   peer->controller = controller;
@@ -100,31 +154,20 @@ GNUNET_TESTBED_peer_create_with_id_ (uint32_t unique_id,
   peer->unique_id = unique_id;
   peer->state = PS_INVALID;
   data = GNUNET_malloc (sizeof (struct PeerCreateData));
+  data->host = host;
+  data->cfg = cfg;
   data->cb = cb;
   data->cls = cls;
   data->peer = peer;
-  op = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Operation));
-  op->controller = controller;
-  op->operation_id = controller->operation_counter++;
-  op->type = OP_PEER_CREATE;
-  op->data = data;
-  config = GNUNET_CONFIGURATION_serialize (cfg, &c_size);
-  xc_size = GNUNET_TESTBED_compress_config_ (config, c_size, &xconfig);
-  GNUNET_free (config);
-  msize = xc_size + sizeof (struct GNUNET_TESTBED_PeerCreateMessage);
-  msg = GNUNET_realloc (xconfig, msize);
-  memmove (&msg[1], msg, xc_size); /* Move the compressed config */
-  msg->header.size = htons (msize);
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_CREATEPEER);
-  msg->operation_id = GNUNET_htonll (op->operation_id);
-  msg->host_id = htonl (GNUNET_TESTBED_host_get_id_ (peer->host));
-  msg->peer_id = htonl (peer->unique_id);
-  msg->config_size = htonl (c_size);
-  GNUNET_CONTAINER_DLL_insert_tail (peer->controller->op_head,
-                                    peer->controller->op_tail, op);
-  GNUNET_TESTBED_queue_message_ (controller,
-				 (struct GNUNET_MessageHeader *) msg);
-  return op;
+  opc = GNUNET_malloc (sizeof (struct OperationContext));
+  opc->c = controller;
+  opc->data = data;
+  opc->id = controller->operation_counter++;
+  opc->type = OP_PEER_CREATE;
+  opc->op = GNUNET_TESTBED_operation_create_ (opc, &opstart_peer_create,
+                                              &oprelease_peer_create);
+  GNUNET_TESTBED_operation_queue_insert_ (controller->opq_peer_create, opc->op);
+  return opc->op;
 }
 
 
@@ -151,7 +194,8 @@ GNUNET_TESTBED_peer_create_with_id_ (uint32_t unique_id,
  *
  * @param controller controller process to use
  * @param host host to run the peer on
- * @param cfg configuration to use for the peer
+ * @param cfg Template configuration to use for the peer. Should exist until
+ *          operation is cancelled or GNUNET_TESTBED_operation_done() is called
  * @param cb the callback to call when the peer has been created
  * @param cls the closure to the above callback
  * @return the operation handle
