@@ -396,7 +396,7 @@ message_ready_size (struct GNUNET_MESH_Handle *h)
   {
     t = th->tunnel;
     if (GNUNET_NO == th_is_payload (th) ||
-        (t->max_pid > t->pid || PID_OVERFLOW (t->max_pid, t->pid)))
+        (t->max_pid > t->pid || PID_OVERFLOW (t->pid, t->max_pid)))
       return th->size;
   }
   return 0;
