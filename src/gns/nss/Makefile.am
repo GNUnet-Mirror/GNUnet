@@ -58,10 +58,10 @@ install-data-hook:
 
 uninstall-hook:
 	$(top_srcdir)/src/gns/nss/uninstall-nss-plugin.sh $(SUDO_BINARY) $(nssdir)
+endif	
 else
 install-data-hook:
 
 uninstall-hook:
 
-endif
 endif
