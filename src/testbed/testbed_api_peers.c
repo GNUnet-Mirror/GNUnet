@@ -112,8 +112,7 @@ opstart_peer_destroy (void *cls)
   msg->operation_id = GNUNET_htonll (opc->id);
   GNUNET_CONTAINER_DLL_insert_tail (opc->c->ocq_head,
                                     opc->c->ocq_tail, opc);
-  GNUNET_TESTBED_queue_message_ (peer->controller,
-				 (struct GNUNET_MessageHeader *) msg);
+  GNUNET_TESTBED_queue_message_ (peer->controller, &msg->header);
 }
 
 
@@ -124,6 +123,87 @@ opstart_peer_destroy (void *cls)
  */
 static void 
 oprelease_peer_destroy (void *cls)
+{
+  struct OperationContext *opc = cls;
+  
+  GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
+  GNUNET_free (opc);
+}
+
+
+/**
+ * Function to called when a peer start operation is ready
+ *
+ * @param cls the closure from GNUNET_TESTBED_operation_create_()
+ */
+static void 
+opstart_peer_start (void *cls)
+{
+  struct OperationContext *opc = cls;
+  struct GNUNET_TESTBED_PeerStartMessage *msg;
+  struct GNUNET_TESTBED_Peer *peer;
+
+  GNUNET_assert (OP_PEER_START == opc->type);
+  GNUNET_assert (NULL != opc->data);
+  peer = opc->data;
+  GNUNET_assert ((PS_CREATED == peer->state) || (PS_STOPPED == peer->state));
+  msg = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_PeerStartMessage));
+  msg->header.size = htons (sizeof (struct GNUNET_TESTBED_PeerStartMessage));
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_STARTPEER);
+  msg->peer_id = htonl (peer->unique_id);
+  msg->operation_id = GNUNET_htonll (opc->id);
+  GNUNET_CONTAINER_DLL_insert_tail (opc->c->ocq_head, opc->c->ocq_tail, opc);
+  GNUNET_TESTBED_queue_message_ (peer->controller, &msg->header);
+}
+
+
+/**
+ * Callback which will be called when peer start type operation is released
+ *
+ * @param cls the closure from GNUNET_TESTBED_operation_create_()
+ */
+static void 
+oprelease_peer_start (void *cls)
+{
+  struct OperationContext *opc = cls;
+  
+  GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
+  GNUNET_free (opc);
+}
+
+
+/**
+ * Function to called when a peer stop operation is ready
+ *
+ * @param cls the closure from GNUNET_TESTBED_operation_create_()
+ */
+static void 
+opstart_peer_stop (void *cls)
+{
+  struct OperationContext *opc = cls;
+  struct GNUNET_TESTBED_PeerStopMessage *msg;
+  struct GNUNET_TESTBED_Peer *peer;
+
+  GNUNET_assert (NULL != opc->data);
+  peer = opc->data;
+  GNUNET_assert (PS_STARTED == peer->state); 
+  msg = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_PeerStopMessage));
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_STOPPEER);
+  msg->header.size = htons (sizeof (struct GNUNET_TESTBED_PeerStopMessage));
+  msg->peer_id = htonl (peer->unique_id);
+  msg->operation_id = GNUNET_htonll (opc->id);
+  GNUNET_CONTAINER_DLL_insert_tail (opc->c->ocq_head, opc->c->ocq_tail, opc);
+  GNUNET_TESTBED_queue_message_ (peer->controller, &msg->header);
+}
+
+
+/**
+ * Callback which will be called when peer stop type operation is released
+ *
+ * @param cls the closure from GNUNET_TESTBED_operation_create_()
+ */
+static void 
+oprelease_peer_stop (void *cls)
 {
   struct OperationContext *opc = cls;
   
@@ -268,24 +348,17 @@ GNUNET_TESTBED_peer_create (struct GNUNET_TESTBED_Controller *controller,
 struct GNUNET_TESTBED_Operation *
 GNUNET_TESTBED_peer_start (struct GNUNET_TESTBED_Peer *peer)
 {
-  struct GNUNET_TESTBED_Operation *op;
-  struct GNUNET_TESTBED_PeerStartMessage *msg;
+  struct OperationContext *opc;
 
-  GNUNET_assert ((PS_CREATED == peer->state) || (PS_STOPPED == peer->state));
-  op = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Operation));
-  op->operation_id = peer->controller->operation_counter++;
-  op->controller = peer->controller;
-  op->type = OP_PEER_START;
-  op->data = peer;
-  msg = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_PeerStartMessage));
-  msg->header.size = htons (sizeof (struct GNUNET_TESTBED_PeerStartMessage));
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_STARTPEER);
-  msg->peer_id = htonl (peer->unique_id);
-  msg->operation_id = GNUNET_htonll (op->operation_id);
-  GNUNET_CONTAINER_DLL_insert_tail (peer->controller->op_head,
-                                    peer->controller->op_tail, op);
-  GNUNET_TESTBED_queue_message_ (peer->controller, &msg->header);
-  return op;
+  opc = GNUNET_malloc (sizeof (struct OperationContext));
+  opc->c = peer->controller;
+  opc->data = peer;
+  opc->id = opc->c->operation_counter++;
+  opc->type = OP_PEER_START;
+  opc->op = GNUNET_TESTBED_operation_create_ (opc, &opstart_peer_start,
+                                             &oprelease_peer_start);
+  GNUNET_TESTBED_operation_queue_insert_ (opc->c->opq_peer_create, opc->op);
+  return opc->op;  
 }
 
 
@@ -300,24 +373,17 @@ GNUNET_TESTBED_peer_start (struct GNUNET_TESTBED_Peer *peer)
 struct GNUNET_TESTBED_Operation *
 GNUNET_TESTBED_peer_stop (struct GNUNET_TESTBED_Peer *peer)
 {
-  struct GNUNET_TESTBED_Operation *op;
-  struct GNUNET_TESTBED_PeerStopMessage *msg;
+  struct OperationContext *opc;
 
-  GNUNET_assert (PS_STARTED == peer->state);
-  op = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Operation));
-  op->operation_id = peer->controller->operation_counter++;
-  op->controller = peer->controller;
-  op->type = OP_PEER_STOP;
-  op->data = peer;
-  msg = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_PeerStopMessage));
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_STOPPEER);
-  msg->header.size = htons (sizeof (struct GNUNET_TESTBED_PeerStopMessage));
-  msg->peer_id = htonl (peer->unique_id);
-  msg->operation_id = GNUNET_htonll (op->operation_id);
-  GNUNET_CONTAINER_DLL_insert_tail (peer->controller->op_head,
-                                    peer->controller->op_tail, op);
-  GNUNET_TESTBED_queue_message_ (peer->controller, &msg->header);
-  return op;
+  opc = GNUNET_malloc (sizeof (struct OperationContext));
+  opc->c = peer->controller;
+  opc->data = peer;
+  opc->id = opc->c->operation_counter++;
+  opc->type = OP_PEER_STOP;
+  opc->op = GNUNET_TESTBED_operation_create_ (opc, &opstart_peer_stop,
+                                              &oprelease_peer_stop);
+  GNUNET_TESTBED_operation_queue_insert_ (opc->c->opq_peer_create, opc->op);
+  return opc->op;
 }
 
 

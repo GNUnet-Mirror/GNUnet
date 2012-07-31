@@ -156,6 +156,28 @@ struct GNUNET_TESTBED_HostRegistrationHandle
 
 
 /**
+ * Returns the operation context with the given id if found in the Operation
+ * context queues of the controller
+ *
+ * @param c the controller whose queues are searched
+ * @param id the id which has to be checked
+ * @return the matching operation context; NULL if no match found
+ */
+static struct OperationContext *
+find_opc (const struct GNUNET_TESTBED_Controller *c, const uint64_t id)
+{
+  struct OperationContext *opc;
+
+  for (opc = c->ocq_head; NULL != opc; opc = opc->next)
+  {
+    if (id == opc->id)
+      return opc;
+  }
+  return NULL;
+}
+
+
+/**
  * Handler for GNUNET_MESSAGE_TYPE_TESTBED_ADDHOSTCONFIRM message from
  * controller (testbed service)
  *
@@ -230,12 +252,7 @@ handle_opsuccess (struct GNUNET_TESTBED_Controller *c,
   
   op_id = GNUNET_ntohll (msg->operation_id);
   LOG_DEBUG ("Operation %ul successful\n", op_id);
-  for (opc = c->ocq_head; NULL != opc; opc = opc->next)
-  {
-    if (opc->id == op_id)
-      break;
-  }
-  if (NULL == opc)
+  if (NULL == (opc = find_opc (c, op_id)))
   {
     LOG_DEBUG ("Operation not found\n");
     return GNUNET_YES;
@@ -302,12 +319,7 @@ handle_peer_create_success (struct GNUNET_TESTBED_Controller *c,
   GNUNET_assert (sizeof (struct GNUNET_TESTBED_PeerCreateSuccessEventMessage)
 		 == ntohs (msg->header.size));
   op_id = GNUNET_ntohll (msg->operation_id);
-  for (opc = c->ocq_head; NULL != opc; opc = opc->next)
-  {
-    if (opc->id == op_id)
-      break;
-  }
-  if (NULL == opc)
+  if (NULL == (opc = find_opc (c, op_id)))
   {
     LOG_DEBUG ("Operation context for PeerCreateSuccessEvent not found\n");
     return GNUNET_YES;
@@ -340,7 +352,7 @@ static int
 handle_peer_event (struct GNUNET_TESTBED_Controller *c,
 		   const struct GNUNET_TESTBED_PeerEventMessage *msg)
 {
-  struct GNUNET_TESTBED_Operation *op;
+  struct OperationContext *opc;
   struct GNUNET_TESTBED_Peer *peer;
   struct GNUNET_TESTBED_EventInformation event;
   uint64_t op_id;
@@ -348,18 +360,13 @@ handle_peer_event (struct GNUNET_TESTBED_Controller *c,
   GNUNET_assert (sizeof (struct GNUNET_TESTBED_PeerEventMessage)
 		 == ntohs (msg->header.size));
   op_id = GNUNET_ntohll (msg->operation_id);
-  for (op = c->op_head; NULL != op; op = op->next)
-  {
-    if (op->operation_id == op_id)
-      break;
-  }
-  if (NULL == op)
+  if (NULL == (opc = find_opc (c, op_id)))
   {
     LOG_DEBUG ("Operation not found\n");
     return GNUNET_YES;
   }
-  GNUNET_assert ((OP_PEER_START == op->type) || (OP_PEER_STOP == op->type));
-  peer = op->data;
+  GNUNET_assert ((OP_PEER_START == opc->type) || (OP_PEER_STOP == opc->type));
+  peer = opc->data;
   GNUNET_assert (NULL != peer);
   event.type = (enum GNUNET_TESTBED_EventType) ntohl (msg->event_type);
   switch (event.type)
@@ -376,7 +383,6 @@ handle_peer_event (struct GNUNET_TESTBED_Controller *c,
   default:
     GNUNET_assert (0);		/* We should never reach this state */
   }
-  GNUNET_CONTAINER_DLL_remove (c->op_head, c->op_tail, op);
   if (0 != ((GNUNET_TESTBED_ET_PEER_START | GNUNET_TESTBED_ET_PEER_STOP)
 	    & c->event_mask))
   {
@@ -1343,14 +1349,11 @@ GNUNET_TESTBED_operation_done (struct GNUNET_TESTBED_Operation *operation)
   switch (operation->type)
   {
   case OP_PEER_CREATE:
-    GNUNET_TESTBED_operation_release_ (operation);
-    return;
   case OP_PEER_DESTROY:
-    GNUNET_TESTBED_operation_release_ (operation);
-    return;
   case OP_PEER_START:
   case OP_PEER_STOP:
-    break;
+    GNUNET_TESTBED_operation_release_ (operation);
+    return;
   case OP_PEER_INFO:
     {
       struct PeerInfoData2 *data;

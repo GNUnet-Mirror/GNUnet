@@ -73,6 +73,9 @@ struct OperationQueue
 };
 
 
+/**
+ * Operation state
+ */
 enum OperationState
   {
     /**
@@ -85,8 +88,6 @@ enum OperationState
      */
     OP_STATE_STARTED,
   };
-
-  
 
 
 /**
