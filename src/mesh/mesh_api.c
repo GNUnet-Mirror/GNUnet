@@ -379,6 +379,31 @@ th_is_payload (struct GNUNET_MESH_TransmitHandle *th)
 
 
 /**
+ * Check whether there is any message ready in the queue and find the size.
+ * 
+ * @param h Mesh handle.
+ * 
+ * @return The size of the first ready message in the queue,
+ *         0 if there is none.
+ */
+static size_t
+message_ready_size (struct GNUNET_MESH_Handle *h)
+{
+  struct GNUNET_MESH_TransmitHandle *th;
+  struct GNUNET_MESH_Tunnel *t;
+
+  for (th = h->th_head; NULL != th; th = th->next)
+  {
+    t = th->tunnel;
+    if (GNUNET_NO == th_is_payload (th) ||
+        (t->max_pid > t->pid || PID_OVERFLOW (t->max_pid, t->pid)))
+      return th->size;
+  }
+  return 0;
+}
+
+
+/**
  * Get the tunnel handler for the tunnel specified by id from the given handle
  * @param h Mesh handle
  * @param tid ID of the wanted tunnel
@@ -498,7 +523,7 @@ destroy_tunnel (struct GNUNET_MESH_Tunnel *t, int call_cleaner)
 
   /* if there are no more pending requests with mesh service, cancel active request */
   /* Note: this should be unnecessary... */
-  if ( (NULL == h->th_head) && (NULL != h->th))
+  if ((0 == message_ready_size (h)) && (NULL != h->th))
   {
     GNUNET_CLIENT_notify_transmit_ready_cancel (h->th);
     h->th = NULL;
@@ -604,9 +629,9 @@ timeout_transmission (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (GNUNET_YES == th_is_payload (th))
     th->notify (th->notify_cls, 0, NULL);
   GNUNET_free (th);
-  if ((NULL == mesh->th_head) && (NULL != mesh->th))
+  if ((0 == message_ready_size (mesh)) && (NULL != mesh->th))
   {
-    /* queue empty, no point in asking for transmission */
+    /* nothing ready to transmit, no point in asking for transmission */
     GNUNET_CLIENT_notify_transmit_ready_cancel (mesh->th);
     mesh->th = NULL;
   }
@@ -1113,13 +1138,19 @@ process_ack (struct GNUNET_MESH_Handle *h,
     return;
   }
   ack = ntohl (msg->max_pid);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  on tunnel %X, ack %u!\n", t->tid, ack);
   if (ack > t->max_pid || PID_OVERFLOW (t->max_pid, ack))
     t->max_pid = ack;
+  else
+    return;
   if (NULL == h->th && 0 < t->packet_size)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  tmt rdy was NULL, requesting!\n", t->tid, ack);
     h->th =
         GNUNET_CLIENT_notify_transmit_ready (h->client, t->packet_size,
                                              GNUNET_TIME_UNIT_FOREVER_REL,
                                              GNUNET_YES, &send_callback, h);
+  }
 }
 
 
@@ -1320,40 +1351,18 @@ send_callback (void *cls, size_t size, void *buf)
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  total size: %u\n", tsize);
   h->th = NULL;
-  if (NULL != h->th_head)
+  size = message_ready_size (h);
+  if (0 != size)
   {
-    int request = GNUNET_NO;
-
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  head not empty\n");
-    for (th = h->th_head; NULL != th; th = th->next)
-    {
-      struct GNUNET_MESH_Tunnel *t = th->tunnel;
-
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "  [%p] notify: %p, size %u\n",
-           th, th->notify, th->size);
-      GNUNET_assert (NULL != t);
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "  pid %u, max %u\n", t->pid, t->max_pid);
-
-      if (GNUNET_NO == th_is_payload (th) ||
-          (t->max_pid >= t->pid || PID_OVERFLOW (t->pid, t->max_pid)))
-      {
-        request = GNUNET_YES;
-        break;
-      }
-    }
-
-    if (GNUNET_YES == request)
-    {
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "  next size: %u\n", th->size);
-      h->th =
-          GNUNET_CLIENT_notify_transmit_ready (h->client, th->size,
-                                               GNUNET_TIME_UNIT_FOREVER_REL,
-                                               GNUNET_YES, &send_callback, h);
-    }
-    else
-    {
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "  nothing left to transmit\n");
-    }
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  next size: %u\n", size);
+    h->th =
+        GNUNET_CLIENT_notify_transmit_ready (h->client, size,
+                                             GNUNET_TIME_UNIT_FOREVER_REL,
+                                             GNUNET_YES, &send_callback, h);
+  }
+  else
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  nothing left to transmit\n");
   }
   if (GNUNET_NO == h->in_receive)
   {
@@ -1989,7 +1998,7 @@ GNUNET_MESH_notify_transmit_ready_cancel (struct GNUNET_MESH_TransmitHandle *th)
     GNUNET_SCHEDULER_cancel (th->timeout_task);
   GNUNET_CONTAINER_DLL_remove (mesh->th_head, mesh->th_tail, th);
   GNUNET_free (th);
-  if ((NULL == mesh->th_head) && (NULL != mesh->th))
+  if ((0 == message_ready_size (mesh)) && (NULL != mesh->th))
   {
     /* queue empty, no point in asking for transmission */
     GNUNET_CLIENT_notify_transmit_ready_cancel (mesh->th);
