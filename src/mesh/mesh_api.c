@@ -683,6 +683,28 @@ send_packet (struct GNUNET_MESH_Handle *h,
 
 
 /**
+ * Send an ack on the tunnel to confirm the processing of a message.
+ * 
+ * @param h Mesh handle.
+ * @param t Tunnel on which to send the ACK.
+ */
+static void
+send_ack (struct GNUNET_MESH_Handle *h, struct GNUNET_MESH_Tunnel *t)
+{
+  struct GNUNET_MESH_LocalAck msg;
+
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK);
+  msg.header.size = htons (sizeof (msg));
+  msg.tunnel_id = htonl (t->tid);
+  msg.max_pid = t->pid + 1;
+
+  send_packet (h, &msg.header, t);
+  return;
+}
+
+
+
+/**
  * Reconnect callback: tries to reconnect again after a failer previous
  * reconnecttion
  * @param cls closure (mesh handle)
@@ -755,8 +777,9 @@ do_reconnect (struct GNUNET_MESH_Handle *h)
   LOG (GNUNET_ERROR_TYPE_DEBUG, "*****************************\n");
   LOG (GNUNET_ERROR_TYPE_DEBUG, "*******   RECONNECT   *******\n");
   LOG (GNUNET_ERROR_TYPE_DEBUG, "*****************************\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "******** on %p *******\n", h);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "*****************************\n");
 
-  h->in_receive = GNUNET_NO;
   /* disconnect */
   if (NULL != h->th)
   {
@@ -869,6 +892,7 @@ static void
 reconnect (struct GNUNET_MESH_Handle *h)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Requested RECONNECT\n");
+  h->in_receive = GNUNET_NO;
   if (GNUNET_SCHEDULER_NO_TASK == h->reconnect_task)
     h->reconnect_task = GNUNET_SCHEDULER_add_delayed (h->reconnect_time,
                                                       &reconnect_cbk, h);
@@ -1103,6 +1127,7 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
       {
         LOG (GNUNET_ERROR_TYPE_DEBUG,
              "callback completed successfully\n");
+        send_ack (h, t);
       }
     }
   }
@@ -1205,8 +1230,16 @@ msg_received (void *cls, const struct GNUNET_MessageHeader *msg)
          ntohs (msg->type));
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "message processed\n");
-  GNUNET_CLIENT_receive (h->client, &msg_received, h,
-                         GNUNET_TIME_UNIT_FOREVER_REL);
+  if (GNUNET_YES == h->in_receive)
+  {
+    GNUNET_CLIENT_receive (h->client, &msg_received, h,
+                           GNUNET_TIME_UNIT_FOREVER_REL);
+  }
+  else
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "in receive off, not calling CLIENT_receive\n");
+  }
 }
 
 

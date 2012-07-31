@@ -1905,7 +1905,7 @@ send_subscribed_clients (const struct GNUNET_MessageHeader *msg,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "     sending\n");
       GNUNET_SERVER_notification_context_unicast (nc, c->handle,
                                                   (struct GNUNET_MessageHeader
-                                                   *) cbuf, GNUNET_YES);
+                                                   *) cbuf, GNUNET_NO);
     }
   }
   return count;
@@ -4662,7 +4662,7 @@ handle_mesh_data_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
     copy->tid = htonl (t->local_tid);
     GNUNET_STATISTICS_update (stats, "# to origin received", 1, GNUNET_NO);
     GNUNET_SERVER_notification_context_unicast (nc, t->owner->handle,
-                                                &copy->header, GNUNET_YES);
+                                                &copy->header, GNUNET_NO);
     return GNUNET_OK;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -6872,8 +6872,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   types = GNUNET_CONTAINER_multihashmap_create (32);
 
   GNUNET_SERVER_add_handlers (server_handle, client_handlers);
-  nc = GNUNET_SERVER_notification_context_create (server_handle,
-                                                  LOCAL_QUEUE_SIZE);
+  nc = GNUNET_SERVER_notification_context_create (server_handle, 1);
   GNUNET_SERVER_disconnect_notify (server_handle,
                                    &handle_local_client_disconnect, NULL);
 
