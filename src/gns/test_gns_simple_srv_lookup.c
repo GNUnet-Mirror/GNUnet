@@ -30,7 +30,7 @@
 #include "gnunet_namestore_service.h"
 #include "../namestore/namestore.h"
 #include "gnunet_dnsparser_lib.h"
-#include "../dns/dnsparser.h"
+#include "gns_records.h"
 #include "gnunet_gns_service.h"
 
 /* DEFINES */

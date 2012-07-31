@@ -33,7 +33,7 @@
 #include "gnunet_dns_service.h"
 #include "gnunet_resolver_service.h"
 #include "gnunet_dnsparser_lib.h"
-#include "../dns/dnsparser.h"
+#include "gns_records.h"
 #include "gnunet_gns_service.h"
 #include "block_gns.h"
 #include "gns.h"
@@ -590,7 +590,7 @@ start_shorten (struct AuthorityChain *auth,
   struct GetPseuAuthorityHandle *gph;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pkey;
   struct GNUNET_CRYPTO_RsaPrivateKeyBinaryEncoded *pb_key;
-
+  
   GNUNET_CRYPTO_rsa_key_get_public (key, &pkey);
   pb_key = GNUNET_CRYPTO_rsa_encode_key (key);
 
