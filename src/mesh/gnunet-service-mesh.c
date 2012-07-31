@@ -3173,7 +3173,7 @@ tunnel_send_multicast (struct MeshTunnel *t,
     {
       GNUNET_SCHEDULER_cancel(*(mdata->task));
       GNUNET_free (mdata->task);
-      GNUNET_SERVER_receive_done(t->owner->handle, GNUNET_OK);
+      GNUNET_SERVER_receive_done (t->owner->handle, GNUNET_OK);
     }
     // FIXME change order?
     GNUNET_free (mdata);
@@ -3571,7 +3571,10 @@ tunnel_new (GNUNET_PEER_Id owner,
     GNUNET_break (0);
     tunnel_destroy (t);
     if (NULL != client)
+    {
+      GNUNET_break (0);
       GNUNET_SERVER_receive_done (client->handle, GNUNET_SYSERR);
+    }
     return NULL;
   }
 
@@ -3582,8 +3585,8 @@ tunnel_new (GNUNET_PEER_Id owner,
         GNUNET_CONTAINER_multihashmap_put (client->own_tunnels, &hash, t,
                                           GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
     {
-      GNUNET_break (0);
       tunnel_destroy (t);
+      GNUNET_break (0);
       GNUNET_SERVER_receive_done (client->handle, GNUNET_SYSERR);
       return NULL;
     }
@@ -5490,6 +5493,7 @@ handle_local_tunnel_create (void *cls, struct GNUNET_SERVER_Client *client,
   if (NULL == t)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Tunnel creation failed.\n");
+    GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
@@ -5545,8 +5549,8 @@ handle_local_tunnel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
   t = tunnel_get_by_local_id(c, tid);
   if (NULL == t)
   {
-    GNUNET_break (0);
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "  tunnel %X not found\n", tid);
+    GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
@@ -5617,8 +5621,8 @@ handle_local_tunnel_speed (void *cls, struct GNUNET_SERVER_Client *client,
   t = tunnel_get_by_local_id(c, tid);
   if (NULL == t)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "  tunnel %X not found\n", tid);
     GNUNET_break (0);
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "  tunnel %X not found\n", tid);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
@@ -5673,8 +5677,8 @@ handle_local_tunnel_buffer (void *cls, struct GNUNET_SERVER_Client *client,
   t = tunnel_get_by_local_id(c, tid);
   if (NULL == t)
   {
-    GNUNET_break (0);
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "  tunnel %X not found\n", tid);
+    GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
@@ -6099,9 +6103,9 @@ handle_local_connect_by_string (void *cls, struct GNUNET_SERVER_Client *client,
   /* Message size sanity check */
   if (sizeof(struct GNUNET_MESH_ConnectPeerByString) >= size)
   {
-      GNUNET_break (0);
-      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-      return;
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
   }
 
   /* Tunnel exists? */
