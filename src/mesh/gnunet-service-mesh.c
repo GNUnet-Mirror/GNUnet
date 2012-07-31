@@ -6439,6 +6439,21 @@ handle_local_multicast (void *cls, struct GNUNET_SERVER_Client *client,
 
 
 /**
+ * Handler for client ACKs for payload traffic.
+ *
+ * @param cls Closure (unused).
+ * @param client Identification of the client.
+ * @param message The actual message.
+ */
+static void
+handle_local_ack (void *cls, struct GNUNET_SERVER_Client *client,
+                  const struct GNUNET_MessageHeader *message)
+{
+  return;
+}
+
+
+/**
  * Functions to handle messages from clients
  */
 static struct GNUNET_SERVER_MessageHandler client_handlers[] = {
@@ -6487,6 +6502,9 @@ static struct GNUNET_SERVER_MessageHandler client_handlers[] = {
    GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN, 0},
   {&handle_local_multicast, NULL,
    GNUNET_MESSAGE_TYPE_MESH_MULTICAST, 0},
+  {&handle_local_ack, NULL,
+   GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK,
+   sizeof (struct GNUNET_MESH_LocalAck)},
   {NULL, NULL, 0, 0}
 };
 
