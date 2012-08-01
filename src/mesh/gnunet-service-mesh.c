@@ -78,6 +78,7 @@
 
 /** FWD declaration */
 struct MeshPeerInfo;
+struct MeshClient;
 
 
 /**
@@ -259,7 +260,28 @@ struct MESH_TunnelID
 };
 
 
-struct MeshClient;              /* FWD declaration */
+/**
+ * Info collected during iteration of child nodes in order to get the ACK value
+ * for a tunnel.
+ */
+struct MeshTunnelChildIteratorContext
+{
+    /**
+     * Tunnel whose info is being collected.
+     */
+  struct MeshTunnel *t;
+
+    /**
+     * Maximum child ACK so far.
+     */
+  uint32_t max_child_ack;
+
+    /**
+     * Number of children nodes
+     */
+  unsigned int nchildren;
+};
+
 
 /**
  * Struct containing all information regarding a tunnel
@@ -306,11 +328,6 @@ struct MeshTunnel
      * Last ACK sent towards the origin.
      */
   uint32_t last_ack;
-
-    /**
-     * Maximum child ACK.
-     */
-  uint32_t max_child_ack;
 
     /**
      * How many messages are in the queue.
@@ -1622,6 +1639,17 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /******************      GENERAL HELPER FUNCTIONS      ************************/
 /******************************************************************************/
 
+static uint32_t
+max_ack (uint32_t a, uint32_t b)
+{
+}
+
+static uint32_t
+min_ack (uint32_t a, uint32_t b)
+{
+  return (max_ack (a, b) == a) ? b : a;
+}
+
 
 /**
  * Decrements the reference counter and frees all resources if needed
@@ -1827,7 +1855,6 @@ client_delete_tunnel (struct MeshClient *c, struct MeshTunnel *t)
                                                          &hash,
                                                          t));
   }
-    
 }
 
 
@@ -3253,7 +3280,8 @@ tunnel_get_child_ack (void *cls,
 {
   struct GNUNET_PeerIdentity peer_id;
   struct MeshTunnelChildInfo *cinfo;
-  struct MeshTunnel *t = cls;
+  struct MeshTunnelChildIteratorContext *ctx = cls;
+  struct MeshTunnel *t = ctx->t;
   uint32_t ack;
 
   GNUNET_PEER_resolve (id, &peer_id);
@@ -3277,16 +3305,16 @@ tunnel_get_child_ack (void *cls,
     ack = cinfo->max_pid;
   }
 
-  if (0 == t->max_child_ack)
-    t->max_child_ack = ack;
+  if (0 == ctx->max_child_ack)
+    ctx->max_child_ack = ack;
 
   if (GNUNET_YES == t->speed_min)
   {
-    t->max_child_ack = t->max_child_ack > ack ? ack : t->max_child_ack;
+    ctx->max_child_ack = ctx->max_child_ack > ack ? ack : ctx->max_child_ack;
   }
   else
   {
-    t->max_child_ack = t->max_child_ack > ack ? t->max_child_ack : ack;
+    ctx->max_child_ack = ctx->max_child_ack > ack ? ctx->max_child_ack : ack;
   }
 
 }
@@ -3299,14 +3327,21 @@ tunnel_get_child_ack (void *cls,
  *
  * @param t Tunnel.
  *
- * @return Maximum PID allowed, 0 if node has no children.
+ * @return Maximum PID allowed (uint32 MAX), -1 if node has no children.
  */
-static uint32_t
+static int64_t
 tunnel_get_children_ack (struct MeshTunnel *t)
 {
-  t->max_child_ack = 0;
-  tree_iterate_children (t->tree, tunnel_get_child_ack, t);
-  return t->max_child_ack;
+  struct MeshTunnelChildIteratorContext ctx;
+  ctx.t = t;
+  ctx.max_child_ack = 0;
+  ctx.nchildren = 0;
+  tree_iterate_children (t->tree, tunnel_get_child_ack, &ctx);
+
+  if (0 == ctx.nchildren)
+    return -1LL;
+
+  return (int64_t) ctx.max_child_ack;
 }
 
 

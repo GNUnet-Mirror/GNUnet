@@ -21,7 +21,6 @@
  * @author Bartlomiej Polot
  *
  * STRUCTURE:
- * - CONSTANTS
  * - DATA STRUCTURES
  * - DECLARATIONS
  * - AUXILIARY FUNCTIONS
@@ -42,15 +41,6 @@
 
 #define LOG(kind,...) GNUNET_log_from (kind, "mesh-api",__VA_ARGS__)
 
-
-/******************************************************************************/
-/************************        CONSTANTS         ****************************/
-/******************************************************************************/
-
-#define HIGH_PID 0xFFFF0000
-#define LOW_PID 0x0000FFFF
-
-#define PID_OVERFLOW(pid, max) (pid > HIGH_PID && max < LOW_PID)
 
 /******************************************************************************/
 /************************      DATA STRUCTURES     ****************************/
