@@ -1,5 +1,5 @@
 #!/bin/bash
-# $1 - sudo binary
-# $2 - bindir
-$1 chown root:root $2/gnunet-helper-exit || true
-$1 chmod u+s $2/gnunet-helper-exit || true
+# $1 - bindir
+# $2 - sudo binary (optional)
+$2 chown root:root $1/gnunet-helper-exit || true
+$2 chmod u+s $1/gnunet-helper-exit || true

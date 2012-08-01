@@ -12,18 +12,12 @@ pkgcfgdir= $(pkgdatadir)/config.d/
 dist_pkgcfg_DATA = \
   nat.conf
 
-
-if ENABLE_TEST_RUN
- nattest = $(bindir)/gnunet-nat-server
-endif
-
-
 if LINUX
 NATBIN = gnunet-helper-nat-server gnunet-helper-nat-client
 NATSERVER = gnunet-helper-nat-server.c
 NATCLIENT = gnunet-helper-nat-client.c
 install-exec-hook:
-	$(top_srcdir)/src/nat/install-nat-helper.sh $(SUDO_BINARY) $(bindir) $(nattest) || true
+	$(top_srcdir)/src/nat/install-nat-helper.sh $(bindir) $(SUDO_BINARY) || true
 else
 install-exec-hook:
 endif

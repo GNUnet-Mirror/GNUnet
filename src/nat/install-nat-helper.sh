@@ -1,6 +1,5 @@
 #!/bin/bash
-# $1 - sudo binary
-# $2 - bindir
-# $3 - nattest
-$1 chown root:root $2/gnunet-helper-nat-server $2/gnunet-helper-nat-client $3 || true
-$1 chmod u+s $2/gnunet-helper-nat-server $2/gnunet-helper-nat-client $3 || true
+# $1 - bindir
+# $2 - sudo binary (optional)
+$2 chown root:root $1/gnunet-helper-nat-server $1/gnunet-helper-nat-client || true
+$2 chmod u+s $1/gnunet-helper-nat-server $1/gnunet-helper-nat-client || true

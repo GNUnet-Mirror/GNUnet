@@ -47,7 +47,7 @@ endif
 
 if LINUX
 install-exec-hook:
-	$(top_srcdir)/src/transport/install-wlan-helper.sh $(SUDO_BINARY) $(bindir) || true
+	$(top_srcdir)/src/transport/install-wlan-helper.sh $(bindir) $(SUDO_BINARY) || true
 else
 install-exec-hook:
 endif
