@@ -981,15 +981,26 @@ tunnel_notify_connection_broken (struct MeshTunnel *t, GNUNET_PEER_Id p1,
 
 
 /**
- * Get the current ack value for a tunnel, taking in account the tunnel
- * mode and the status of all children nodes.
+ * Get the current ack value for a tunnel, for data going from root to leaves,
+ * taking in account the tunnel mode and the status of all children and clients.
  *
  * @param t Tunnel.
  *
  * @return Maximum PID allowed.
  */
 static uint32_t
-tunnel_get_ack (struct MeshTunnel *t);
+tunnel_get_fwd_ack (struct MeshTunnel *t);
+
+/**
+ * Get the current ack value for a tunnel, for data going from leaves to root,
+ * taking in account the tunnel mode and the status of all children and clients.
+ *
+ * @param t Tunnel.
+ *
+ * @return Maximum PID allowed.
+ */
+static uint32_t
+tunnel_get_bck_ack (struct MeshTunnel *t);
 
 /**
  * Add a client to a tunnel, initializing all needed data structures.
@@ -1968,7 +1979,7 @@ send_client_tunnel_ack (struct MeshClient *c, struct MeshTunnel *t)
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " to client %u\n", c->id);
 
-  ack = tunnel_get_ack (t);
+  ack = tunnel_get_fwd_ack (t);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " ack %u\n", ack);
   if (t->last_ack == ack)
@@ -3288,7 +3299,7 @@ tunnel_get_child_ack (void *cls,
  *
  * @param t Tunnel.
  *
- * @return Maximum PID allowed.
+ * @return Maximum PID allowed, 0 if node has no children.
  */
 static uint32_t
 tunnel_get_children_ack (struct MeshTunnel *t)
@@ -3407,7 +3418,7 @@ tunnel_get_clients_ack (struct MeshTunnel *t)
  * @return Maximum PID allowed.
  */
 static uint32_t
-tunnel_get_ack (struct MeshTunnel *t)
+tunnel_get_fwd_ack (struct MeshTunnel *t)
 {
   uint32_t count;
   uint32_t buffer_free;
@@ -3419,7 +3430,8 @@ tunnel_get_ack (struct MeshTunnel *t)
   buffer_free = t->queue_max - t->queue_n;
   ack = count + buffer_free;
   child_ack = tunnel_get_children_ack (t);
-  client_ack = tunnel_get_clients_ack (t);
+  if (0 == child_ack)
+    ack = client_ack = tunnel_get_clients_ack (t);
 
   if (GNUNET_YES == t->speed_min)
   {
@@ -3433,6 +3445,24 @@ tunnel_get_ack (struct MeshTunnel *t)
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "c %u, bf %u, ch %u, cl %u\n",
               count, buffer_free, child_ack, client_ack);
+  return ack;
+}
+
+/**
+ * Get the current ack value for a tunnel, taking in account the tunnel
+ * mode and the status of all children nodes.
+ *
+ * @param t Tunnel.
+ *
+ * @return Maximum PID allowed.
+ */
+static uint32_t
+tunnel_get_bck_ack (struct MeshTunnel *t)
+{
+  uint32_t ack;
+
+  ack = 0;
+
   return ack;
 }
 
@@ -3475,7 +3505,7 @@ tunnel_send_ack (struct MeshTunnel *t, uint16_t type)
   }
 
   /* Ok, ACK might be necessary, what PID to ACK? */
-  ack = tunnel_get_ack (t);
+  ack = tunnel_get_fwd_ack (t);
 
   /* If speed_min and not all children have ack'd, dont send yet */
   if (ack == t->last_ack)
@@ -6596,7 +6626,7 @@ handle_local_ack (void *cls, struct GNUNET_SERVER_Client *client,
   }
 
   /* Does client own tunnel? */
-  if (NULL != t->owner && t->owner->handle != client)
+  if (NULL != t->owner && t->owner->handle == client)
   {
     GNUNET_break (0);
     // FIXME TODO
