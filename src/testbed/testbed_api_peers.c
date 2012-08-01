@@ -54,6 +54,7 @@ opstart_peer_create (void *cls)
   data = opc->data;
   GNUNET_assert (NULL != data);
   GNUNET_assert (NULL != data->peer);
+  opc->state = OPC_STATE_STARTED;
   config = GNUNET_CONFIGURATION_serialize (data->cfg, &c_size);
   xc_size = GNUNET_TESTBED_compress_config_ (config, c_size, &xconfig);
   GNUNET_free (config);
@@ -83,9 +84,12 @@ oprelease_peer_create (void *cls)
 {
   struct OperationContext *opc = cls;  
 
-  GNUNET_assert (NULL != opc->data);
-  GNUNET_free (opc->data);  
-  GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
+  if (OPC_STATE_FINISHED != opc->state)
+  {
+    GNUNET_free (((struct PeerCreateData *) opc->data)->peer);
+    GNUNET_free (opc->data);
+    GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
+  }
   GNUNET_free (opc);
 }
 
@@ -105,6 +109,7 @@ opstart_peer_destroy (void *cls)
   GNUNET_assert (OP_PEER_DESTROY == opc->type);
   peer = opc->data;
   GNUNET_assert (NULL != peer);
+  opc->state = OPC_STATE_STARTED;
   msg = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_PeerDestroyMessage));
   msg->header.size = htons (sizeof (struct GNUNET_TESTBED_PeerDestroyMessage));
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_DESTROYPEER);
@@ -126,7 +131,8 @@ oprelease_peer_destroy (void *cls)
 {
   struct OperationContext *opc = cls;
   
-  GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
+  if (OPC_STATE_FINISHED != opc->state)
+    GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
   GNUNET_free (opc);
 }
 
@@ -147,6 +153,7 @@ opstart_peer_start (void *cls)
   GNUNET_assert (NULL != opc->data);
   peer = opc->data;
   GNUNET_assert ((PS_CREATED == peer->state) || (PS_STOPPED == peer->state));
+  opc->state = OPC_STATE_STARTED;
   msg = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_PeerStartMessage));
   msg->header.size = htons (sizeof (struct GNUNET_TESTBED_PeerStartMessage));
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_STARTPEER);
@@ -167,7 +174,8 @@ oprelease_peer_start (void *cls)
 {
   struct OperationContext *opc = cls;
   
-  GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
+  if (OPC_STATE_FINISHED != opc->state)
+    GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
   GNUNET_free (opc);
 }
 
@@ -187,6 +195,7 @@ opstart_peer_stop (void *cls)
   GNUNET_assert (NULL != opc->data);
   peer = opc->data;
   GNUNET_assert (PS_STARTED == peer->state); 
+  opc->state = OPC_STATE_STARTED;  
   msg = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_PeerStopMessage));
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_STOPPEER);
   msg->header.size = htons (sizeof (struct GNUNET_TESTBED_PeerStopMessage));
@@ -207,7 +216,8 @@ oprelease_peer_stop (void *cls)
 {
   struct OperationContext *opc = cls;
   
-  GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
+  if (OPC_STATE_FINISHED != opc->state)
+    GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
   GNUNET_free (opc);
 }
 
@@ -225,7 +235,8 @@ opstart_peer_getinfo (void *cls)
   struct GNUNET_TESTBED_PeerGetConfigurationMessage *msg;
 
   data = opc->data;
-  GNUNET_assert (NULL != data);  
+  GNUNET_assert (NULL != data);
+  opc->state = OPC_STATE_STARTED;
   msg = GNUNET_malloc (sizeof (struct
                                GNUNET_TESTBED_PeerGetConfigurationMessage));
   msg->header.size = htons
@@ -249,8 +260,11 @@ oprelease_peer_getinfo (void *cls)
   struct OperationContext *opc = cls;
   struct PeerInfoData2 *data;
   
-  if (GNUNET_YES != opc->completed)
+  if (OPC_STATE_FINISHED != opc->state)
+  {
     GNUNET_free_non_null (opc->data);
+    GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);  
+  }
   else
   {
     data = opc->data;
@@ -268,7 +282,6 @@ oprelease_peer_getinfo (void *cls)
     }
     GNUNET_free (data);
   }
-  GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
   GNUNET_free (opc);
 }
 

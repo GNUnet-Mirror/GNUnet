@@ -113,6 +113,32 @@ struct MessageQueue;
  */
 struct ControllerLink;
 
+
+/**
+ * Enumeration of states of OperationContext
+ */
+enum OperationContextState
+  {
+    /**
+     * The initial state where the associated operation has just been created
+     * and is waiting in the operation queues to be started
+     */
+    OPC_STATE_INIT = 0,
+    
+    /**
+     * The operation has been started. It may occupy some resources which are to
+     * be freed if cancelled.
+     */
+    OPC_STATE_STARTED,
+
+    /**
+     * The operation has finished. The end results of this operation may occupy
+     * some resources which are to be freed by operation_done
+     */
+    OPC_STATE_FINISHED
+  };
+
+
 /**
  * Context information for GNUNET_TESTBED_Operation
  */
@@ -154,10 +180,9 @@ struct OperationContext
   enum OperationType type;
 
   /**
-   * Is this operation completed? (has there been a reply from the service)
+   * The state of the operation
    */
-  int completed;
-
+  enum OperationContextState state;
 };
 
 

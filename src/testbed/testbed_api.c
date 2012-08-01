@@ -261,7 +261,7 @@ handle_opsuccess (struct GNUNET_TESTBED_Controller *c,
   if (0 != (c->event_mask & (1L << GNUNET_TESTBED_ET_OPERATION_FINISHED)))
     event = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_EventInformation));
   if (NULL != event)
-    event->type = GNUNET_TESTBED_ET_OPERATION_FINISHED; 
+    event->type = GNUNET_TESTBED_ET_OPERATION_FINISHED;
   switch (opc->type)
   {
   case OP_PEER_DESTROY:
@@ -284,13 +284,15 @@ handle_opsuccess (struct GNUNET_TESTBED_Controller *c,
     break;
   default:
     GNUNET_assert (0);
-  }  
+  }
+  GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
+  opc->state = OPC_STATE_FINISHED;
   if (NULL != event)
   {
     if (NULL != c->cc)
       c->cc (c->cc_cls, event);
     GNUNET_free (event);
-  }
+  }  
   return GNUNET_YES;  
 }
 
@@ -332,7 +334,10 @@ handle_peer_create_success (struct GNUNET_TESTBED_Controller *c,
   GNUNET_assert (peer->unique_id == ntohl (msg->peer_id));
   peer->state = PS_CREATED;
   cb = data->cb;
-  cls = data->cls;  
+  cls = data->cls;
+  GNUNET_free (opc->data);  
+  GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
+  opc->state = OPC_STATE_FINISHED;
   if (NULL != cb)
     cb (cls, peer, NULL);
   return GNUNET_YES;
@@ -383,12 +388,14 @@ handle_peer_event (struct GNUNET_TESTBED_Controller *c,
   default:
     GNUNET_assert (0);		/* We should never reach this state */
   }
+  GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
+  opc->state = OPC_STATE_FINISHED;
   if (0 != ((GNUNET_TESTBED_ET_PEER_START | GNUNET_TESTBED_ET_PEER_STOP)
 	    & c->event_mask))
   {
     if (NULL != c->cc)
       c->cc (c->cc_cls, &event);
-  }
+  }    
   return GNUNET_YES;
 }
 
@@ -424,7 +431,6 @@ handle_peer_config (struct GNUNET_TESTBED_Controller *c,
   peer = data->peer;
   GNUNET_assert (NULL != peer);
   GNUNET_assert (ntohl (msg->peer_id) == peer->unique_id);
-  opc->completed = GNUNET_YES;
   if (0 == (c->event_mask & (1L << GNUNET_TESTBED_ET_OPERATION_FINISHED)))
   {
     LOG_DEBUG ("Skipping operation callback as flag not set\n");
@@ -482,7 +488,9 @@ handle_peer_config (struct GNUNET_TESTBED_Controller *c,
     break;
   }
   opc->data = response_data;
-  c->cc (c->cc_cls, &info);
+  GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
+  opc->state = OPC_STATE_FINISHED;
+  c->cc (c->cc_cls, &info);  
   return GNUNET_YES;
 }
 
