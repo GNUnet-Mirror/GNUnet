@@ -6596,7 +6596,7 @@ handle_local_ack (void *cls, struct GNUNET_SERVER_Client *client,
   }
 
   /* Does client own tunnel? */
-  if (t->owner->handle != client)
+  if (NULL != t->owner && t->owner->handle != client)
   {
     GNUNET_break (0);
     // FIXME TODO
