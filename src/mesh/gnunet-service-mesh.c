@@ -3528,12 +3528,14 @@ tunnel_get_bck_ack (struct MeshTunnel *t)
  * In case there is no predecessor, inform the owning client.
  * If buffering is off, send only on behalf of children or self if endpoint.
  * If buffering is on, send when sent to children and buffer space is free.
+ * Note that although the name is fwd_ack, the FWD mean forward *traffic*,
+ * the ACK itself goes "back" (towards root).
  * 
  * @param t Tunnel on which to send the ACK.
  * @param type Type of message that triggered the ACK transmission.
  */
 static void
-tunnel_send_ack (struct MeshTunnel *t, uint16_t type)
+tunnel_send_fwd_ack (struct MeshTunnel *t, uint16_t type)
 {
   struct GNUNET_MESH_ACK msg;
   struct GNUNET_PeerIdentity id;
@@ -3562,6 +3564,68 @@ tunnel_send_ack (struct MeshTunnel *t, uint16_t type)
 
   /* Ok, ACK might be necessary, what PID to ACK? */
   ack = tunnel_get_fwd_ack (t);
+
+  /* If speed_min and not all children have ack'd, dont send yet */
+  if (ack == t->last_ack)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Not sending ACK, not ready\n");
+    return;
+  }
+
+  t->last_ack = ack;
+  msg.pid = htonl (ack);
+
+  GNUNET_PEER_resolve (tree_get_predecessor (t->tree), &id);
+
+  msg.header.size = htons (sizeof (msg));
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_ACK);
+  msg.tid = htonl (t->id.tid);
+  GNUNET_PEER_resolve(t->id.oid, &msg.oid);
+  send_message (&msg.header, &id, t);
+}
+
+
+/**
+ * Send an ACK informing the children nodes about the available buffer space.
+ * In case there is no child node, inform the destination clients.
+ * If buffering is off, send only on behalf of root (can be self).
+ * If buffering is on, send when sent to predecessor and buffer space is free.
+ * Note that although the name is bck_ack, the BCK mean backwards *traffic*,
+ * the ACK itself goes "forward" (towards children/clients).
+ * 
+ * @param t Tunnel on which to send the ACK.
+ * @param type Type of message that triggered the ACK transmission.
+ */
+static void
+tunnel_send_bck_ack (struct MeshTunnel *t, uint16_t type)
+{
+  struct GNUNET_MESH_ACK msg;
+  struct GNUNET_PeerIdentity id;
+  uint32_t ack;
+
+  if (NULL != t->owner)
+  {
+    send_client_tunnel_ack (t->owner, t);
+    return;
+  }
+  /* Is it after unicast / multicast retransmission? */
+  if (GNUNET_MESSAGE_TYPE_MESH_ACK != type)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ACK via DATA retransmission\n");
+    if (GNUNET_YES == t->nobuffer)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Not sending ACK, nobuffer\n");
+      return;
+    }
+    if (t->queue_max > t->queue_n * 2)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Not sending ACK, buffer free\n");
+      return;
+    }
+  }
+
+  /* Ok, ACK might be necessary, what PID to ACK? */
+  ack = tunnel_get_bck_ack (t);
 
   /* If speed_min and not all children have ack'd, dont send yet */
   if (ack == t->last_ack)
@@ -4137,17 +4201,26 @@ queue_send (void *cls, size_t size, void *buf)
     /* Fill buf */
     switch (queue->type)
     {
-        case 0:
+        case 0: // RAW data (preconstructed message, retransmission, etc)
             GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********   raw\n");
             data_size = send_core_data_raw (queue->cls, size, buf);
             msg = (struct GNUNET_MessageHeader *) buf;
-            if (ntohs (msg->type) == GNUNET_MESSAGE_TYPE_MESH_UNICAST)
-              tunnel_send_ack (t, GNUNET_MESSAGE_TYPE_MESH_UNICAST);
+            switch (ntohs (msg->type)) // Type of payload
+            {
+              case GNUNET_MESSAGE_TYPE_MESH_UNICAST:
+                tunnel_send_fwd_ack (t, GNUNET_MESSAGE_TYPE_MESH_UNICAST);
+                break;
+              case GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN:
+                tunnel_send_bck_ack(t, GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN);
+                break;
+              default:
+                  break;
+            }
             break;
         case GNUNET_MESSAGE_TYPE_MESH_MULTICAST:
             GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********   multicast\n");
             data_size = send_core_data_multicast(queue->cls, size, buf);
-            tunnel_send_ack (t, GNUNET_MESSAGE_TYPE_MESH_MULTICAST);
+            tunnel_send_fwd_ack (t, GNUNET_MESSAGE_TYPE_MESH_MULTICAST);
             break;
         case GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE:
             GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********   path create\n");
@@ -4684,7 +4757,7 @@ handle_mesh_data_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_STATISTICS_update (stats, "# unicast received", 1, GNUNET_NO);
     send_subscribed_clients (message, (struct GNUNET_MessageHeader *) &msg[1]);
     // FIXME send after client processes the packet
-    tunnel_send_ack (t, GNUNET_MESSAGE_TYPE_MESH_ACK);
+    tunnel_send_fwd_ack (t, GNUNET_MESSAGE_TYPE_MESH_ACK);
     return GNUNET_OK;
   }
   ttl = ntohl (msg->ttl);
@@ -4940,7 +5013,7 @@ handle_mesh_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
     return GNUNET_OK;
   }
   cinfo->max_pid = ack;
-  tunnel_send_ack (t, GNUNET_MESSAGE_TYPE_MESH_ACK);
+  tunnel_send_fwd_ack (t, GNUNET_MESSAGE_TYPE_MESH_ACK);
   return GNUNET_OK;
 }
 
