@@ -1639,11 +1639,32 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /******************      GENERAL HELPER FUNCTIONS      ************************/
 /******************************************************************************/
 
+
+/**
+ * Get the higher ACK value out of two values, taking in account overflow.
+ *
+ * @param a First ACK value.
+ * @param b Second ACK value.
+ *
+ * @return Highest ACK value from the two.
+ */
 static uint32_t
 max_ack (uint32_t a, uint32_t b)
 {
+  if (PID_OVERFLOW(b, a) || (a > b && !PID_OVERFLOW(a, b)))
+    return a;
+  return b;
 }
 
+
+/**
+ * Get the lower ACK value out of two values, taking in account overflow.
+ *
+ * @param a First ACK value.
+ * @param b Second ACK value.
+ *
+ * @return Lowest ACK value from the two.
+ */
 static uint32_t
 min_ack (uint32_t a, uint32_t b)
 {
@@ -3457,26 +3478,26 @@ tunnel_get_fwd_ack (struct MeshTunnel *t)
 {
   uint32_t count;
   uint32_t buffer_free;
-  uint32_t child_ack;
+  int64_t child_ack;
   uint32_t client_ack;
   uint32_t ack;
 
   count = t->pid - t->skip;
   buffer_free = t->queue_max - t->queue_n;
-  ack = count + buffer_free;
+  ack = count + buffer_free; // Might overflow 32bits, it's ok!
   child_ack = tunnel_get_children_ack (t);
-  if (0 == child_ack)
+  if (-1 == child_ack)
     ack = client_ack = tunnel_get_clients_ack (t);
 
   if (GNUNET_YES == t->speed_min)
   {
-    ack = child_ack > ack ? ack : child_ack;
-    ack = client_ack > ack ? ack : client_ack;
+    ack = min_ack (child_ack, ack);
+    ack = min_ack (client_ack, ack);
   }
   else
   {
-    ack = child_ack > ack ? child_ack : ack;
-    ack = client_ack > ack ? client_ack : ack;
+    ack = max_ack (child_ack, ack);
+    ack = max_ack (client_ack, ack);
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "c %u, bf %u, ch %u, cl %u\n",
               count, buffer_free, child_ack, client_ack);
