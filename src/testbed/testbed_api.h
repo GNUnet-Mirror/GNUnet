@@ -153,6 +153,11 @@ struct OperationContext
    */
   enum OperationType type;
 
+  /**
+   * Is this operation completed? (has there been a reply from the service)
+   */
+  int completed;
+
 };
 
 
