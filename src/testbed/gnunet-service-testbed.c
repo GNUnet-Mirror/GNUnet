@@ -296,49 +296,81 @@ struct Peer
 
 
 /**
+ * State information for overlay connect context
+ */
+enum OCCState
+  {
+    /**
+     * Initial state
+     */
+    OCC_STATE_INIT,
+
+    /**
+     * Peer 1 has connected to peer0
+     */
+    OCC_STATE_PEER0_SUCCESS,
+
+    /**
+     * Peer 2 has connected to peer1
+     */
+    OCC_STATE_PEER1_SUCCESS,
+
+  };
+
+
+/**
  * Context information for connecting 2 peers in overlay
  */
 struct OverlayConnectContext
 {
   /**
-   * peer 1
+   * peer 1 and peer2
    */
-  struct Peer *peer1;
+  struct Peer * peers[2];
   
   /**
-   * peer 2
+   * Transport handle of peers
    */
-  struct Peer *peer2;
+  struct GNUNET_TRANSPORT_Handle *peers_transport[2];
+  
+  /**
+   * HELLO of peers
+   */
+  struct GNUNET_MessageHeader *peers_hello[2];
+  
+  /**
+   * Get hello handle for peers
+   */
+  struct GNUNET_TRANSPORT_GetHelloHandle *peers_ghh[2];
+  
+  /**
+   * The peer identity of peers
+   */
+  struct GNUNET_PeerIdentity peers_identity[2];
 
   /**
-   * Transport handle of peer1
+   * State information for determining whose HELLOs have been successfully
+   * exchanged
    */
-  struct GNUNET_TRANSPORT_Handle *peer1_transport;
-  
-  /**
-   * Transport handle of peer2
-   */
-  struct GNUNET_TRANSPORT_Handle *peer2_transport;
-  
-  /**
-   * HELLO of peer1
-   */
-  struct GNUNET_MessageHeader *peer1_hello;
-  
-  /**
-   * HELLO of peer2
-   */
-  struct GNUNET_MessageHeader *peer2_hello;
+  enum OCCState state;
 
+};
+
+
+/**
+ * Wrapper around OverlayConnectContext
+ */
+struct OverlayConnectContextWrapper
+{
   /**
-   * Get hello handle for peer1
+   * The overlay connect context
    */
-  struct GNUNET_TRANSPORT_GetHelloHandle *peer1_ghh;
+  struct OverlayConnectContext *occ;
   
   /**
-   * Get hello handle for peer2
+   * The peer number in reference; should be 0 or 1
    */
-  struct GNUNET_TRANSPORT_GetHelloHandle *peer2_ghh;
+  unsigned int peer;
 };
 
 
@@ -1495,19 +1527,97 @@ handle_peer_get_config (void *cls,
 }
 
 
+/**
+ * Task to be executed when HELLO has been sent
+ *
+ * @param cls overlay connect context wrapper
+ * @param tc the task context from scheduler
+ */
+static void
+overlay_connect_finalize (void *cls, 
+			  const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct OverlayConnectContextWrapper *occw = cls;
+  struct OverlayConnectContext *occ;
+  unsigned int peer;
+  
+  peer = occw->peer;
+  occ = occw->occ;
+  GNUNET_free (occw);
+  GNUNET_free (occ->peers_hello[peer ^ 1]);
+}
+
+
+/**
+ * Exchanges HELLO of peers among them
+ *
+ * @param occ the OverlayConnectContext to look into for HELLO messages
+ */
+static void
+exchange_hellos (struct OverlayConnectContext *occ)
+{
+  struct OverlayConnectContextWrapper *occw;
+  unsigned int peer;
+
+  GNUNET_assert (NULL != occ->peers_hello[0]);
+  GNUNET_assert (NULL != occ->peers_hello[1]);
+  LOG_DEBUG ("Exchanging hellos\n");
+  for (peer = 0; peer < 2; peer++)
+  {
+    occw = GNUNET_malloc (sizeof (struct OverlayConnectContextWrapper));
+    occw->occ = occ;
+    occw->peer = peer;
+    GNUNET_TRANSPORT_offer_hello (occ->peers_transport[peer], 
+				  occ->peers_hello[peer ^ 1],
+				  &overlay_connect_finalize, occw);
+  }
+}
+
 
 /**
  * Function called whenever there is an update to the
- * HELLO of this peer.
+ * HELLO of peers in the OverlayConnectClosure
  *
  * @param cls closure
  * @param hello our updated HELLO
  */
 static void 
-hello_update_cb (void *cls,
-		 const struct GNUNET_MessageHeader *hello)
+hello_update_cb (void *cls, const struct GNUNET_MessageHeader *hello)
 {
-  GNUNET_break(0);  
+  struct OverlayConnectContextWrapper *occw = cls;
+  struct OverlayConnectContext *occ;
+  unsigned int peer;
+  uint16_t msize;
+    
+  msize = ntohs (hello->size);
+  peer = occw->peer;
+  GNUNET_assert (peer <= 1);
+  occ = occw->occ;
+  occ->peers_hello[peer] = GNUNET_malloc (msize);
+  memcpy (occ->peers_hello[peer], hello, msize);
+  GNUNET_TRANSPORT_get_hello_cancel (occ->peers_ghh[peer]);
+  occ->peers_ghh[peer] = NULL;
+  if (NULL != occ->peers_hello[peer ^ 1])
+    exchange_hellos (occ);
+}
+
+
+/**
+ * Function called to notify transport users that another
+ * peer connected to us.
+ *
+ * @param cls closure
+ * @param peer the peer that connected
+ * @param ats performance data
+ * @param ats_count number of entries in ats (excluding 0-termination)
+ */
+static void 
+overlay_connect_notify (void *cls,
+			const struct GNUNET_PeerIdentity * peer,
+			const struct GNUNET_ATS_Information * ats,
+			uint32_t ats_count)
+{
+  GNUNET_break (0);		/* To be implemented */
 }
 
 
@@ -1525,6 +1635,8 @@ handle_overlay_connect (void *cls,
 {
   const struct GNUNET_TESTBED_OverlayConnectMessage *msg;
   struct OverlayConnectContext *occ;
+  struct OverlayConnectContextWrapper *occw;
+  unsigned int peer;
   uint32_t p1;
   uint32_t p2;
 
@@ -1536,14 +1648,24 @@ handle_overlay_connect (void *cls,
   GNUNET_assert (p2 < peer_list_size);
   GNUNET_assert (NULL != peer_list[p2]);
   occ = GNUNET_malloc (sizeof (struct OverlayConnectContext));
-  occ->peer1 = peer_list[p1];
-  occ->peer2 = peer_list[p2];
-  occ->peer1_transport = GNUNET_TRANSPORT_connect (occ->peer1->cfg, NULL, occ,
-						   NULL, NULL, NULL);
-  occ->peer2_transport = GNUNET_TRANSPORT_connect (occ->peer2->cfg, NULL, occ,
-						   NULL, NULL, NULL);
-  occ->peer1_ghh = GNUNET_TRANSPORT_get_hello (occ->peer1_transport, &hello_update_cb, occ);
-  occ->peer2_ghh = GNUNET_TRANSPORT_get_hello (occ->peer2_transport, &hello_update_cb, occ);
+  occ->state = OCC_STATE_INIT;
+  occ->peers[0] = peer_list[p1];
+  occ->peers[1] = peer_list[p2];  
+  for (peer = 0; peer < 2; peer++)
+  {
+    occw = GNUNET_malloc (sizeof (struct OverlayConnectContextWrapper));
+    occw->occ = occ;
+    occw->peer = peer;
+    GNUNET_TESTING_peer_get_identity (occ->peers[peer]->peer, 
+				      &occ->peers_identity[peer]);
+    occ->peers_transport[peer] = 
+      GNUNET_TRANSPORT_connect (occ->peers[peer]->cfg,
+				&occ->peers_identity[peer], occw, NULL,
+				&overlay_connect_notify, NULL);
+    occ->peers_ghh[peer] =
+      GNUNET_TRANSPORT_get_hello (occ->peers_transport[peer], 
+				  &hello_update_cb, occw);
+  }
 }
 
 

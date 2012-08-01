@@ -95,7 +95,7 @@ oprelease_peer_create (void *cls)
 
 
 /**
- * Function to called when a peer destroy operation is ready
+ * Function called when a peer destroy operation is ready
  *
  * @param cls the closure from GNUNET_TESTBED_operation_create_()
  */
@@ -138,7 +138,7 @@ oprelease_peer_destroy (void *cls)
 
 
 /**
- * Function to called when a peer start operation is ready
+ * Function called when a peer start operation is ready
  *
  * @param cls the closure from GNUNET_TESTBED_operation_create_()
  */
@@ -181,7 +181,7 @@ oprelease_peer_start (void *cls)
 
 
 /**
- * Function to called when a peer stop operation is ready
+ * Function called when a peer stop operation is ready
  *
  * @param cls the closure from GNUNET_TESTBED_operation_create_()
  */
@@ -223,7 +223,7 @@ oprelease_peer_stop (void *cls)
 
 
 /**
- * Function to called when a peer get information operation is ready
+ * Function called when a peer get information operation is ready
  *
  * @param cls the closure from GNUNET_TESTBED_operation_create_()
  */
@@ -285,6 +285,44 @@ oprelease_peer_getinfo (void *cls)
   GNUNET_free (opc);
 }
 
+
+/**
+ * Function called when a overlay connect operation is ready
+ *
+ * @param cls the closure from GNUNET_TESTBED_operation_create_()
+ */
+static void 
+opstart_overlay_connect (void *cls)
+{
+  struct OperationContext *opc = cls;
+  struct GNUNET_TESTBED_OverlayConnectMessage *msg;
+  struct OverlayConnectData *data;
+    
+  opc->state = OPC_STATE_STARTED;
+  data = opc->data;
+  GNUNET_assert (NULL != data);
+  msg = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_OverlayConnectMessage));
+  msg->header.size = htons (sizeof 
+			    (struct GNUNET_TESTBED_OverlayConnectMessage));
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_OLCONNECT);
+  msg->peer1 = htonl (data->p1->unique_id);
+  msg->peer2 = htonl (data->p2->unique_id);
+  msg->operation_id = GNUNET_htonll (opc->id);
+  GNUNET_CONTAINER_DLL_insert_tail (opc->c->ocq_head, opc->c->ocq_tail, opc);
+  GNUNET_TESTBED_queue_message_ (opc->c, &msg->header);
+}
+
+
+/**
+ * Callback which will be called when overlay connect operation is released
+ *
+ * @param cls the closure from GNUNET_TESTBED_operation_create_()
+ */
+static void 
+oprelease_overlay_connect (void *cls)
+{
+  GNUNET_break (0);
+}
 
 
 /**
@@ -578,32 +616,22 @@ GNUNET_TESTBED_overlay_connect (void *op_cls,
 				struct GNUNET_TESTBED_Peer *p1,
 				struct GNUNET_TESTBED_Peer *p2)
 {
-  struct GNUNET_TESTBED_Operation *op;
+  struct OperationContext *opc;
   struct OverlayConnectData *data;
-  struct GNUNET_TESTBED_OverlayConnectMessage *msg;
-  
+
   GNUNET_assert ((PS_STARTED == p1->state) && (PS_STARTED == p2->state));
   GNUNET_assert (p1->controller == p2->controller);
   data = GNUNET_malloc (sizeof (struct OverlayConnectData));
   data->p1 = p1;
-  data->p2 = p2;  
-  op = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Operation)); 
-  op->controller = p1->controller;
-  op->operation_id = op->controller->operation_counter++;
-  op->type = OP_OVERLAY_CONNECT;
-  op->data = data;
-  msg = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_OverlayConnectMessage));
-  msg->header.size = htons (sizeof (struct
-				    GNUNET_TESTBED_OverlayConnectMessage));
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_OLCONNECT);
-  msg->peer1 = htonl (p1->unique_id);
-  msg->peer2 = htonl (p2->unique_id);
-  msg->operation_id = GNUNET_htonll (op->operation_id);
-  GNUNET_CONTAINER_DLL_insert_tail (op->controller->op_head,
-                                    op->controller->op_tail, op);
-  GNUNET_TESTBED_queue_message_ (op->controller, 
-				 (struct GNUNET_MessageHeader *) msg);
-  return NULL;
+  data->p2 = p2;
+  opc = GNUNET_malloc (sizeof (struct OperationContext));
+  opc->data = data;
+  opc->c = p1->controller;
+  opc->id = opc->c->operation_counter++;
+  opc->type = OP_OVERLAY_CONNECT;
+  opc->op = GNUNET_TESTBED_operation_create_ (opc, &opstart_overlay_connect,
+                                              &oprelease_overlay_connect);
+  return opc->op;
 }
 
 
