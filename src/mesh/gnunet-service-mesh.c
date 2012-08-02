@@ -1650,16 +1650,16 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * Check if one pid is bigger than other, accounting for overflow.
  *
- * @param big Argument that should be bigger.
- * @param small Argument that should be smaller.
+ * @param biger Argument that should be bigger.
+ * @param smaller Argument that should be smaller.
  *
  * @return True if big is bigger than small
  */
 static int
-is_pid_bigger (uint32_t big, uint32_t small)
+is_pid_bigger (uint32_t bigger, uint32_t smaller)
 {
-    return (PID_OVERFLOW(small, big) ||
-            (big > small && !PID_OVERFLOW(big, small)));
+    return (GNUNET_YES == PID_OVERFLOW(smaller, bigger) ||
+            (bigger > smaller && GNUNET_NO == PID_OVERFLOW(bigger, smaller)));
 }
 
 /**
