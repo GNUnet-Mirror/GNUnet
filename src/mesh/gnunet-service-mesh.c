@@ -1639,6 +1639,20 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /******************      GENERAL HELPER FUNCTIONS      ************************/
 /******************************************************************************/
 
+/**
+ * Check if one pid is bigger than other, accounting for overflow.
+ *
+ * @param big Argument that should be bigger.
+ * @param small Argument that should be smaller.
+ *
+ * @return True if big is bigger than small
+ */
+static int
+is_pid_bigger (uint32_t big, uint32_t small)
+{
+    return (PID_OVERFLOW(small, big) ||
+            (big > small && !PID_OVERFLOW(big, small)));
+}
 
 /**
  * Get the higher ACK value out of two values, taking in account overflow.
@@ -1649,9 +1663,9 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @return Highest ACK value from the two.
  */
 static uint32_t
-max_ack (uint32_t a, uint32_t b)
+max_pid (uint32_t a, uint32_t b)
 {
-  if (PID_OVERFLOW(b, a) || (a > b && !PID_OVERFLOW(a, b)))
+  if (is_pid_bigger(a, b))
     return a;
   return b;
 }
@@ -1666,9 +1680,11 @@ max_ack (uint32_t a, uint32_t b)
  * @return Lowest ACK value from the two.
  */
 static uint32_t
-min_ack (uint32_t a, uint32_t b)
+min_pid (uint32_t a, uint32_t b)
 {
-  return (max_ack (a, b) == a) ? b : a;
+  if (is_pid_bigger(a, b))
+    return b;
+  return a;
 }
 
 
@@ -3440,17 +3456,18 @@ tunnel_get_client_ack (struct MeshTunnel *t,
  * 
  * @param t Tunnel on which to look.
  * 
- * @return Corresponding ACK value.
+ * @return Corresponding ACK value (max uint32_t).
+ *         If no clients are suscribed, -1.
  */
-static uint32_t
+static int64_t
 tunnel_get_clients_ack (struct MeshTunnel *t)
 {
   unsigned int i;
-  uint32_t ack;
+  int64_t ack;
 
-  for (ack = 0, i = 0; i < t->nclients; i++)
+  for (ack = -1, i = 0; i < t->nclients; i++)
   {
-    if (0 == ack ||
+    if (-1 == ack ||
         (GNUNET_YES == t->speed_min && t->clients_acks[i] < ack) ||
         (GNUNET_NO == t->speed_min && t->clients_acks[i] > ack))
     {
@@ -3461,7 +3478,7 @@ tunnel_get_clients_ack (struct MeshTunnel *t)
   if (GNUNET_YES == t->nobuffer && ack > t->pid)
     ack = t->pid + 1;
 
-  return ack;
+  return (uint32_t) ack;
 }
 
 
@@ -3479,25 +3496,30 @@ tunnel_get_fwd_ack (struct MeshTunnel *t)
   uint32_t count;
   uint32_t buffer_free;
   int64_t child_ack;
-  uint32_t client_ack;
+  int64_t client_ack;
   uint32_t ack;
 
   count = t->pid - t->skip;
   buffer_free = t->queue_max - t->queue_n;
   ack = count + buffer_free; // Might overflow 32bits, it's ok!
   child_ack = tunnel_get_children_ack (t);
+  client_ack = tunnel_get_clients_ack (t);
   if (-1 == child_ack)
-    ack = client_ack = tunnel_get_clients_ack (t);
+  {
+    // Node has no children, child_ack AND core buffer are irrelevant.
+    GNUNET_break (-1 != client_ack); // No children and no clients? Not good!
+    return (uint32_t) client_ack;
+  }
 
   if (GNUNET_YES == t->speed_min)
   {
-    ack = min_ack (child_ack, ack);
-    ack = min_ack (client_ack, ack);
+    ack = min_pid (child_ack, ack);
+    ack = min_pid (client_ack, ack);
   }
   else
   {
-    ack = max_ack (child_ack, ack);
-    ack = max_ack (client_ack, ack);
+    ack = max_pid (child_ack, ack);
+    ack = max_pid (client_ack, ack);
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "c %u, bf %u, ch %u, cl %u\n",
               count, buffer_free, child_ack, client_ack);

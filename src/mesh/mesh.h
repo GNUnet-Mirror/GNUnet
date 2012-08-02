@@ -75,11 +75,11 @@
 /**************************       CONSTANTS      ******************************/
 /******************************************************************************/
 
-#define GNUNET_MESH_LOCAL_TUNNEL_ID_CLI 0x80000000
-#define GNUNET_MESH_LOCAL_TUNNEL_ID_SERV 0xB0000000
+#define GNUNET_MESH_LOCAL_TUNNEL_ID_CLI         0x80000000
+#define GNUNET_MESH_LOCAL_TUNNEL_ID_SERV        0xB0000000
 
-#define HIGH_PID 0xFFFF0000
-#define LOW_PID 0x0000FFFF
+#define HIGH_PID                                0xFFFF0000
+#define LOW_PID                                 0x0000FFFF
 
 #define PID_OVERFLOW(pid, max) (pid > HIGH_PID && max < LOW_PID)
 
