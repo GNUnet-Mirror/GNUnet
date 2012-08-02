@@ -576,21 +576,6 @@ con_post_data_iter (void *cls,
 }
 
 
-static int
-get_uri_val_iter (void *cls,
-                  enum MHD_ValueKind kind,
-                  const char *key,
-                  const char *value)
-{
-  char* buf = cls;
-  
-  if (strlen (buf) + strlen (value) + 3 > MAX_HTTP_URI_LENGTH)
-    return MHD_NO;
-  sprintf (buf+strlen (buf), "?%s=%s", key, value);
-
-  return MHD_YES;
-}
-
 /**
  * Read HTTP request header field 'Host'
  *
@@ -1816,9 +1801,7 @@ create_response (void *cls,
 
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "Got %s request for %s\n", meth, url);
-    //ctask = GNUNET_malloc (sizeof (struct ProxyCurlTask));
     ctask->mhd = hd;
-    
     ctask->curl = curl_easy_init();
     if (NULL == ctask->curl)
     {
@@ -1833,6 +1816,9 @@ create_response (void *cls,
       return ret;
     }
     
+    /* Add GNS header */
+    ctask->headers = curl_slist_append (ctask->headers,
+                                          "GNS: YES");
     ctask->accepted = GNUNET_YES;
     ctask->download_in_progress = GNUNET_YES;
     ctask->buf_status = BUF_WAIT_FOR_CURL;
