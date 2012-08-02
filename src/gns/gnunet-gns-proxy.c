@@ -528,6 +528,9 @@ con_post_data_iter (void *cls,
   {
     return MHD_NO;
   }
+  
+  if (NULL != ctask->curl)
+    curl_easy_pause (ctask->curl, CURLPAUSE_SEND);
 
   if (0 == off)
   {
@@ -1096,7 +1099,7 @@ mhd_content_cb (void *cls,
   ctask->buf_status = BUF_WAIT_FOR_CURL;
   
   if (NULL != ctask->curl)
-    curl_easy_pause (ctask->curl, CURLPAUSE_CONT);
+    curl_easy_pause (ctask->curl, CURLPAUSE_RECV);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "MHD: copied %d bytes\n", copied);
@@ -1293,7 +1296,7 @@ read_callback (void *buf, size_t size, size_t nmemb, void *cls)
               "CURL: read callback\n");
 
   if (NULL == pdata)
-    return 0;
+    return CURL_READFUNC_PAUSE;
   
   //fin
   if (NULL == pdata->value)
