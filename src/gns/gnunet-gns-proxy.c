@@ -1002,6 +1002,7 @@ mhd_content_free (void *cls,
                   const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct ProxyCurlTask *ctask = cls;
+  struct ProxyUploadData *pdata = ctask->upload_data_head;
   GNUNET_assert (NULL == ctask->pp_match_head);
 
   if (NULL != ctask->headers)
@@ -1015,6 +1016,18 @@ mhd_content_free (void *cls,
 
   if (NULL != ctask->post_handler)
     MHD_destroy_post_processor (ctask->post_handler);
+
+  for (; pdata != NULL; pdata = ctask->upload_data_head)
+  {
+    GNUNET_CONTAINER_DLL_remove (ctask->upload_data_head,
+                                 ctask->upload_data_tail,
+                                 pdata);
+    GNUNET_free_non_null (pdata->filename);
+    GNUNET_free_non_null (pdata->content_type);
+    GNUNET_free_non_null (pdata->key);
+    GNUNET_free_non_null (pdata->value);
+    GNUNET_free (pdata);
+  }
 
 
   GNUNET_free (ctask);
@@ -3071,6 +3084,7 @@ do_shutdown (void *cls,
   struct NetworkHandleList *tmp_nh;
   struct ProxyCurlTask *ctask;
   struct ProxyCurlTask *ctask_tmp;
+  struct ProxyUploadData *pdata;
   
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Shutting down...\n");
@@ -3149,8 +3163,20 @@ do_shutdown (void *cls,
     if (NULL != ctask->response)
       MHD_destroy_response (ctask->response);
 
-    //FIXME free pdata here
+    pdata = ctask->upload_data_head;
 
+    //FIXME free pdata here
+    for (; pdata != NULL; pdata = ctask->upload_data_head)
+    {
+      GNUNET_CONTAINER_DLL_remove (ctask->upload_data_head,
+                                   ctask->upload_data_tail,
+                                   pdata);
+      GNUNET_free_non_null (pdata->filename);
+      GNUNET_free_non_null (pdata->content_type);
+      GNUNET_free_non_null (pdata->key);
+      GNUNET_free_non_null (pdata->value);
+      GNUNET_free (pdata);
+    }
 
     GNUNET_free (ctask);
   }
