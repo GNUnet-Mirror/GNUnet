@@ -54,10 +54,11 @@ libnss_gns6_la_LDFLAGS=$(libnss_gns_la_LDFLAGS)
 if !MINGW
 if HAVE_SUDO
 install-data-hook:
-	$(top_srcdir)/src/gns/nss/install-nss-plugin.sh $(SUDO_BINARY) $(SHELL) $(top_builddir) $(nssdir)
+	$(top_srcdir)/src/gns/nss/install-nss-plugin.sh $(SHELL) $(top_builddir) $(nssdir) $(SUDO_BINARY)
 
 uninstall-hook:
 	$(top_srcdir)/src/gns/nss/uninstall-nss-plugin.sh $(SUDO_BINARY) $(nssdir)
+
 endif	
 else
 install-data-hook:
