@@ -197,6 +197,9 @@ struct ProxyCurlTask
   /* Handle to cURL */
   CURL *curl;
 
+  /* is curl running? */
+  int curl_running;
+
   /* Optional header replacements for curl (LEHO) */
   struct curl_slist *headers;
 
@@ -292,13 +295,19 @@ struct ProxyCurlTask
   struct MHD_PostProcessor *post_handler;
 
   /* post data */
-  struct ProxyPostData *post_data_head;
-  struct ProxyPostData *post_data_tail;
+  struct ProxyUploadData *upload_data_head;
+  struct ProxyUploadData *upload_data_tail;
 
   int post_done;
 
   /* the type of POST encoding */
   char* post_type;
+
+  struct curl_httppost *httppost;
+
+  struct curl_httppost *httppost_last;
+
+  int is_httppost;
   
 };
 
@@ -353,13 +362,21 @@ struct ProxySetCookieHeader
 /**
  * Post data structure
  */
-struct ProxyPostData
+struct ProxyUploadData
 {
   /* DLL */
-  struct ProxyPostData *next;
+  struct ProxyUploadData *next;
 
   /* DLL */
-  struct ProxyPostData *prev;
+  struct ProxyUploadData *prev;
+
+  char *key;
+
+  char *filename;
+
+  char *content_type;
+
+  size_t content_length;
   
   /* value */
   char *value;
@@ -516,29 +533,84 @@ con_post_data_iter (void *cls,
                   size_t size)
 {
   struct ProxyCurlTask* ctask = cls;
-  struct ProxyPostData* pdata;
+  struct ProxyUploadData* pdata;
   char* enc;
+  char* new_value;
   
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Got POST data: '%s : %s' at offset %llu size %lld\n",
               key, data, off, size);
+
+  GNUNET_assert (NULL != ctask->post_type);
+
+  if (0 == strcasecmp (MHD_HTTP_POST_ENCODING_MULTIPART_FORMDATA,
+                       ctask->post_type))
+  {
+    ctask->is_httppost = GNUNET_YES;
+    /* new part */
+    if (0 == off)
+    {
+      pdata = GNUNET_malloc (sizeof (struct ProxyUploadData));
+      pdata->key = strdup (key);
+
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Copied %lld\n");
+
+      if (NULL != filename)
+      {
+        pdata->filename = strdup (filename);
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    "Filename %s\n", filename);
+      }
+
+      if (NULL != content_type)
+      {
+        pdata->content_type = strdup (content_type);
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    "Content-Type %s\n", content_type);
+      }
+
+      pdata->value = GNUNET_malloc (size);
+      pdata->total_bytes = size;
+      memcpy (pdata->value, data, size);
+      GNUNET_CONTAINER_DLL_insert_tail (ctask->upload_data_head,
+                                        ctask->upload_data_tail,
+                                        pdata);
+
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Copied %lld bytes of POST Data\n", size);
+      return MHD_YES;
+    }
+    
+    pdata = ctask->upload_data_tail;
+    new_value = GNUNET_malloc (size + pdata->total_bytes);
+    memcpy (new_value, pdata->value, pdata->total_bytes);
+    memcpy (new_value+off, data, size);
+    GNUNET_free (pdata->value);
+    pdata->total_bytes += size;
+
+    return MHD_YES;
+
+  }
 
   if (0 != strcasecmp (MHD_HTTP_POST_ENCODING_FORM_URLENCODED,
                        ctask->post_type))
   {
     return MHD_NO;
   }
+
+  ctask->is_httppost = GNUNET_NO;
   
   if (NULL != ctask->curl)
-    curl_easy_pause (ctask->curl, CURLPAUSE_SEND);
+    curl_easy_pause (ctask->curl, CURLPAUSE_CONT);
 
   if (0 == off)
   {
     /* a key */
-    pdata = GNUNET_malloc (sizeof (struct ProxyPostData));
+    pdata = GNUNET_malloc (sizeof (struct ProxyUploadData));
     enc = escape_to_urlenc (key);
     pdata->value = GNUNET_malloc (strlen (enc) + 3);
-    if (NULL != ctask->post_data_head)
+    if (NULL != ctask->upload_data_head)
     {
       pdata->value[0] = '&';
       memcpy (pdata->value+1, enc, strlen (enc));
@@ -554,13 +626,13 @@ con_post_data_iter (void *cls,
                 "Escaped POST key: '%s'\n",
                 pdata->value);
 
-    GNUNET_CONTAINER_DLL_insert_tail (ctask->post_data_head,
-                                      ctask->post_data_tail,
+    GNUNET_CONTAINER_DLL_insert_tail (ctask->upload_data_head,
+                                      ctask->upload_data_tail,
                                       pdata);
   }
 
   /* a value */
-  pdata = GNUNET_malloc (sizeof (struct ProxyPostData));
+  pdata = GNUNET_malloc (sizeof (struct ProxyUploadData));
   enc = escape_to_urlenc (data);
   pdata->value = GNUNET_malloc (strlen (enc) + 1);
   memcpy (pdata->value, enc, strlen (enc));
@@ -572,8 +644,8 @@ con_post_data_iter (void *cls,
               "Escaped POST value: '%s'\n",
               pdata->value);
 
-  GNUNET_CONTAINER_DLL_insert_tail (ctask->post_data_head,
-                                    ctask->post_data_tail,
+  GNUNET_CONTAINER_DLL_insert_tail (ctask->upload_data_head,
+                                    ctask->upload_data_tail,
                                     pdata);
   return MHD_YES;
 }
@@ -626,14 +698,16 @@ con_val_iter (void *cls,
   else
     hdr_val = value;
 
-  if (0 == strcmp (MHD_HTTP_HEADER_CONTENT_TYPE,
+  if (0 == strcasecmp (MHD_HTTP_HEADER_CONTENT_TYPE,
                    key))
   {
-    if (0 == strcmp (value,
-                     MHD_HTTP_POST_ENCODING_FORM_URLENCODED))
+    if (0 == strncasecmp (value,
+                     MHD_HTTP_POST_ENCODING_FORM_URLENCODED,
+                     strlen (MHD_HTTP_POST_ENCODING_FORM_URLENCODED)))
       ctask->post_type = MHD_HTTP_POST_ENCODING_FORM_URLENCODED;
-    else if (0 == strcmp (value,
-                          MHD_HTTP_POST_ENCODING_MULTIPART_FORMDATA))
+    else if (0 == strncasecmp (value,
+                          MHD_HTTP_POST_ENCODING_MULTIPART_FORMDATA,
+                          strlen (MHD_HTTP_POST_ENCODING_MULTIPART_FORMDATA)))
       ctask->post_type = MHD_HTTP_POST_ENCODING_MULTIPART_FORMDATA;
     else
       ctask->post_type = NULL;
@@ -1099,7 +1173,7 @@ mhd_content_cb (void *cls,
   ctask->buf_status = BUF_WAIT_FOR_CURL;
   
   if (NULL != ctask->curl)
-    curl_easy_pause (ctask->curl, CURLPAUSE_RECV);
+    curl_easy_pause (ctask->curl, CURLPAUSE_CONT);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "MHD: copied %d bytes\n", copied);
@@ -1280,20 +1354,21 @@ curl_download_cb (void *ptr, size_t size, size_t nmemb, void* ctx)
   return total;
 }
 
+
 /**
- * cURL callback for post data
+ * cURL callback for put data
  */
 static size_t
-read_callback (void *buf, size_t size, size_t nmemb, void *cls)
+put_read_callback (void *buf, size_t size, size_t nmemb, void *cls)
 {
   struct ProxyCurlTask *ctask = cls;
-  struct ProxyPostData *pdata = ctask->post_data_head;
+  struct ProxyUploadData *pdata = ctask->upload_data_head;
   size_t len = size * nmemb;
   size_t to_copy;
   char* pos;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "CURL: read callback\n");
+              "CURL: put read callback\n");
 
   if (NULL == pdata)
     return CURL_READFUNC_PAUSE;
@@ -1302,10 +1377,10 @@ read_callback (void *buf, size_t size, size_t nmemb, void *cls)
   if (NULL == pdata->value)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "CURL: Terminating POST data\n");
+                "CURL: Terminating PUT\n");
 
-    GNUNET_CONTAINER_DLL_remove (ctask->post_data_head,
-                                 ctask->post_data_tail,
+    GNUNET_CONTAINER_DLL_remove (ctask->upload_data_head,
+                                 ctask->upload_data_tail,
                                  pdata);
     GNUNET_free (pdata);
     return 0;
@@ -1324,8 +1399,61 @@ read_callback (void *buf, size_t size, size_t nmemb, void *cls)
   if (pdata->bytes_left <= 0)
   {
     GNUNET_free (pdata->value);
-    GNUNET_CONTAINER_DLL_remove (ctask->post_data_head,
-                                 ctask->post_data_tail,
+    GNUNET_CONTAINER_DLL_remove (ctask->upload_data_head,
+                                 ctask->upload_data_tail,
+                                 pdata);
+    GNUNET_free (pdata);
+  }
+  return to_copy;
+}
+
+
+/**
+ * cURL callback for post data
+ */
+static size_t
+post_read_callback (void *buf, size_t size, size_t nmemb, void *cls)
+{
+  struct ProxyCurlTask *ctask = cls;
+  struct ProxyUploadData *pdata = ctask->upload_data_head;
+  size_t len = size * nmemb;
+  size_t to_copy;
+  char* pos;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "CURL: read callback\n");
+
+  if (NULL == pdata)
+    return CURL_READFUNC_PAUSE;
+  
+  //fin
+  if (NULL == pdata->value)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "CURL: Terminating POST data\n");
+
+    GNUNET_CONTAINER_DLL_remove (ctask->upload_data_head,
+                                 ctask->upload_data_tail,
+                                 pdata);
+    GNUNET_free (pdata);
+    return 0;
+  }
+ 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "CURL: read callback value %s\n", pdata->value); 
+  
+  to_copy = pdata->bytes_left;
+  if (to_copy > len)
+    to_copy = len;
+  
+  pos = pdata->value + (pdata->total_bytes - pdata->bytes_left);
+  memcpy (buf, pos, to_copy);
+  pdata->bytes_left -= to_copy;
+  if (pdata->bytes_left <= 0)
+  {
+    GNUNET_free (pdata->value);
+    GNUNET_CONTAINER_DLL_remove (ctask->upload_data_head,
+                                 ctask->upload_data_tail,
                                  pdata);
     GNUNET_free (pdata);
   }
@@ -1783,9 +1911,12 @@ create_response (void *cls,
   
   char curlurl[MAX_HTTP_URI_LENGTH]; // buffer overflow!
   int ret = MHD_YES;
+  int i;
 
   struct ProxyCurlTask *ctask = *con_cls;
-  struct ProxyPostData *fin_post;
+  struct ProxyUploadData *fin_post;
+  struct curl_forms forms[5];
+  struct ProxyUploadData *upload_data_iter;
   
   //FIXME handle
   if ((0 != strcasecmp (meth, MHD_HTTP_METHOD_GET)) &&
@@ -1806,6 +1937,7 @@ create_response (void *cls,
                 "Got %s request for %s\n", meth, url);
     ctask->mhd = hd;
     ctask->curl = curl_easy_init();
+    ctask->curl_running = GNUNET_NO;
     if (NULL == ctask->curl)
     {
       ctask->response = MHD_create_response_from_buffer (strlen (page),
@@ -1819,17 +1951,6 @@ create_response (void *cls,
       return ret;
     }
     
-    /* Add GNS header */
-    ctask->headers = curl_slist_append (ctask->headers,
-                                          "GNS: YES");
-    ctask->accepted = GNUNET_YES;
-    ctask->download_in_progress = GNUNET_YES;
-    ctask->buf_status = BUF_WAIT_FOR_CURL;
-    ctask->connection = con;
-    ctask->curl_response_code = MHD_HTTP_OK;
-    ctask->buffer_read_ptr = ctask->buffer;
-    ctask->buffer_write_ptr = ctask->buffer;
-    ctask->pp_task = GNUNET_SCHEDULER_NO_TASK;
     if (ctask->mhd->is_ssl)
       ctask->port = HTTPS_PORT;
     else
@@ -1838,53 +1959,7 @@ create_response (void *cls,
     MHD_get_connection_values (con,
                                MHD_HEADER_KIND,
                                &con_val_iter, ctask);
-
-    if (0 == strcasecmp (meth, MHD_HTTP_METHOD_PUT))
-    {
-      //FIXME: this prolly works like POST?
-      if (0 == *upload_data_size)
-      {
-        curl_easy_cleanup (ctask->curl);
-        GNUNET_free (ctask);
-        return MHD_NO;
-      }
-      ctask->put_read_offset = 0;
-      ctask->put_read_size = *upload_data_size;
-      curl_easy_setopt (ctask->curl, CURLOPT_UPLOAD, 1);
-      curl_easy_setopt (ctask->curl, CURLOPT_READDATA, upload_data);
-      //curl_easy_setopt (ctask->curl, CURLOPT_READFUNCTION, &curl_read_cb);
-      
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  "Got PUT data: %s\n", upload_data);
-      curl_easy_cleanup (ctask->curl);
-      GNUNET_free (ctask);
-      return MHD_NO;
-    }
-
-    if (0 == strcasecmp (meth, MHD_HTTP_METHOD_POST))
-    {
-      //FIXME handle multipart
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  "Setting up POST processor\n");
-      ctask->post_handler = MHD_create_post_processor (con,
-                                 POSTBUFFERSIZE,
-                                 &con_post_data_iter,
-                                 ctask);
-      curl_easy_setopt (ctask->curl, CURLOPT_POST, 1);
-      curl_easy_setopt (ctask->curl, CURLOPT_READFUNCTION,
-                        &read_callback);
-      curl_easy_setopt (ctask->curl, CURLOPT_READDATA, ctask);
-      ctask->headers = curl_slist_append (ctask->headers,
-                                          "Transfer-Encoding: chunked");
-    }
-
-    if (0 == strcasecmp (meth, MHD_HTTP_METHOD_HEAD))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Setting NOBODY\n");
-      curl_easy_setopt (ctask->curl, CURLOPT_NOBODY, 1);
-    }
-
+    
     curl_easy_setopt (ctask->curl, CURLOPT_HEADERFUNCTION, &curl_check_hdr);
     curl_easy_setopt (ctask->curl, CURLOPT_HEADERDATA, ctask);
     curl_easy_setopt (ctask->curl, CURLOPT_WRITEFUNCTION, &curl_download_cb);
@@ -1895,21 +1970,63 @@ create_response (void *cls,
     if (GNUNET_NO == ctask->mhd->is_ssl)
     {
       sprintf (curlurl, "http://%s:%d%s", ctask->host, ctask->port, ctask->url);
-      //MHD_get_connection_values (con,
-      //                           MHD_GET_ARGUMENT_KIND,
-      //                           &get_uri_val_iter, curlurl);
       curl_easy_setopt (ctask->curl, CURLOPT_URL, curlurl);
     }
     
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "MHD: Adding new curl task for %s\n", ctask->host);
-    //MHD_get_connection_values (con,
-    //                           MHD_GET_ARGUMENT_KIND,
-    //                           &get_uri_val_iter, ctask->url);
 
     curl_easy_setopt (ctask->curl, CURLOPT_FAILONERROR, 1);
     curl_easy_setopt (ctask->curl, CURLOPT_CONNECTTIMEOUT, 600L);
     curl_easy_setopt (ctask->curl, CURLOPT_TIMEOUT, 600L);
+    
+    /* Add GNS header */
+    //ctask->headers = curl_slist_append (ctask->headers,
+    //                                      "GNS: YES");
+    ctask->accepted = GNUNET_YES;
+    ctask->download_in_progress = GNUNET_YES;
+    ctask->buf_status = BUF_WAIT_FOR_CURL;
+    ctask->connection = con;
+    ctask->curl_response_code = MHD_HTTP_OK;
+    ctask->buffer_read_ptr = ctask->buffer;
+    ctask->buffer_write_ptr = ctask->buffer;
+    ctask->pp_task = GNUNET_SCHEDULER_NO_TASK;
+    
+
+    if (0 == strcasecmp (meth, MHD_HTTP_METHOD_PUT))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Setting up PUT\n");
+      
+      curl_easy_setopt (ctask->curl, CURLOPT_UPLOAD, 1);
+      curl_easy_setopt (ctask->curl, CURLOPT_READDATA, ctask);
+      curl_easy_setopt (ctask->curl, CURLOPT_READFUNCTION, &put_read_callback);
+      ctask->headers = curl_slist_append (ctask->headers,
+                                          "Transfer-Encoding: chunked");
+    }
+
+    if (0 == strcasecmp (meth, MHD_HTTP_METHOD_POST))
+    {
+      //FIXME handle multipart
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Setting up POST processor\n");
+      ctask->post_handler = MHD_create_post_processor (con,
+                                 POSTBUFFERSIZE,
+                                 &con_post_data_iter,
+                                 ctask);
+      ctask->headers = curl_slist_append (ctask->headers,
+                                         "Transfer-Encoding: chunked");
+      return MHD_YES;
+    }
+
+    if (0 == strcasecmp (meth, MHD_HTTP_METHOD_HEAD))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Setting NOBODY\n");
+      curl_easy_setopt (ctask->curl, CURLOPT_NOBODY, 1);
+    }
+
+    
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "MHD: Adding new curl task for %s\n", ctask->host);
 
     GNUNET_GNS_get_authority (gns_handle,
                               ctask->host,
@@ -1917,6 +2034,7 @@ create_response (void *cls,
                               ctask);
     ctask->ready_to_queue = GNUNET_NO;
     ctask->fin = GNUNET_NO;
+    ctask->curl_running = GNUNET_YES;
     return MHD_YES;
   }
 
@@ -1925,18 +2043,95 @@ create_response (void *cls,
   {
     if (0 != *upload_data_size)
     {
+      
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                   "Invoking POST processor\n");
       MHD_post_process (ctask->post_handler,
                         upload_data, *upload_data_size);
       *upload_data_size = 0;
+      if ((GNUNET_NO == ctask->is_httppost) &&
+          (GNUNET_NO == ctask->curl_running))
+      {
+        curl_easy_setopt (ctask->curl, CURLOPT_POST, 1);
+        curl_easy_setopt (ctask->curl, CURLOPT_READFUNCTION,
+                          &post_read_callback);
+        curl_easy_setopt (ctask->curl, CURLOPT_READDATA, ctask);
+        
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "MHD: Adding new curl task for %s\n", ctask->host);
+
+        GNUNET_GNS_get_authority (gns_handle,
+                                  ctask->host,
+                                  &process_get_authority,
+                                  ctask);
+        ctask->ready_to_queue = GNUNET_NO;
+        ctask->fin = GNUNET_NO;
+        ctask->curl_running = GNUNET_YES;
+      }
       return MHD_YES;
     }
     else if (GNUNET_NO == ctask->post_done)
     {
-      fin_post = GNUNET_malloc (sizeof (struct ProxyPostData));
-      GNUNET_CONTAINER_DLL_insert_tail (ctask->post_data_head,
-                                        ctask->post_data_tail,
+      if (GNUNET_YES == ctask->is_httppost)
+      {
+        i = 0;
+        for (upload_data_iter = ctask->upload_data_head;
+             NULL != upload_data_iter;
+             upload_data_iter = upload_data_iter->next)
+        {
+          if (NULL != upload_data_iter->filename)
+          {
+            forms[i].option = CURLFORM_FILENAME;
+            forms[i].value = upload_data_iter->filename;
+            GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                        "Adding filename %s\n",
+                        forms[i].value);
+            i++;
+          }
+          if (NULL != upload_data_iter->content_type)
+          {
+            forms[i].option = CURLFORM_CONTENTTYPE;
+            forms[i].value = upload_data_iter->content_type;
+            GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                        "Adding content type %s\n",
+                        forms[i].value);
+            i++;
+          }
+          forms[i].option = CURLFORM_PTRCONTENTS;
+          forms[i].value = upload_data_iter->value;
+          forms[i+1].option = CURLFORM_END;
+
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      "Adding formdata for %s (len=%lld)\n",
+                      upload_data_iter->key,
+                      upload_data_iter->total_bytes);
+
+          curl_formadd(&ctask->httppost, &ctask->httppost_last,
+                       CURLFORM_COPYNAME, upload_data_iter->key,
+                       CURLFORM_CONTENTSLENGTH, upload_data_iter->total_bytes,
+                       CURLFORM_ARRAY, forms,
+                       CURLFORM_END);
+        }
+        curl_easy_setopt (ctask->curl, CURLOPT_HTTPPOST,
+                          ctask->httppost);
+
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "MHD: Adding new curl task for %s\n", ctask->host);
+
+        GNUNET_GNS_get_authority (gns_handle,
+                                  ctask->host,
+                                  &process_get_authority,
+                                  ctask);
+        ctask->ready_to_queue = GNUNET_YES;
+        ctask->fin = GNUNET_NO;
+        ctask->curl_running = GNUNET_YES;
+        ctask->post_done = GNUNET_YES;
+        return MHD_YES;
+      }
+
+      fin_post = GNUNET_malloc (sizeof (struct ProxyUploadData));
+      GNUNET_CONTAINER_DLL_insert_tail (ctask->upload_data_head,
+                                        ctask->upload_data_tail,
                                         fin_post);
       ctask->post_done = GNUNET_YES;
       return MHD_YES;
@@ -2953,6 +3148,8 @@ do_shutdown (void *cls,
 
     if (NULL != ctask->response)
       MHD_destroy_response (ctask->response);
+
+    //FIXME free pdata here
 
 
     GNUNET_free (ctask);
