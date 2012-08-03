@@ -2014,8 +2014,8 @@ create_response (void *cls,
     curl_easy_setopt (ctask->curl, CURLOPT_TIMEOUT, 600L);
     
     /* Add GNS header */
-    //ctask->headers = curl_slist_append (ctask->headers,
-    //                                      "GNS: YES");
+    ctask->headers = curl_slist_append (ctask->headers,
+                                          "GNS: YES");
     ctask->accepted = GNUNET_YES;
     ctask->download_in_progress = GNUNET_YES;
     ctask->buf_status = BUF_WAIT_FOR_CURL;
