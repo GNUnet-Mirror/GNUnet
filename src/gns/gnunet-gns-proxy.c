@@ -1002,9 +1002,9 @@ mhd_content_free (void *cls,
                   const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct ProxyCurlTask *ctask = cls;
-  struct ProxyUploadData *pdata = ctask->upload_data_head;
-  GNUNET_assert (NULL == ctask->pp_match_head);
+  struct ProxyUploadData *pdata;
 
+  GNUNET_assert (NULL == ctask->pp_match_head);
   if (NULL != ctask->headers)
     curl_slist_free_all (ctask->headers);
 
@@ -1017,7 +1017,7 @@ mhd_content_free (void *cls,
   if (NULL != ctask->post_handler)
     MHD_destroy_post_processor (ctask->post_handler);
 
-  for (; pdata != NULL; pdata = ctask->upload_data_head)
+  for (pdata = ctask->upload_data_head;; NULL != pdata; pdata = ctask->upload_data_head)
   {
     GNUNET_CONTAINER_DLL_remove (ctask->upload_data_head,
                                  ctask->upload_data_tail,
@@ -1028,8 +1028,6 @@ mhd_content_free (void *cls,
     GNUNET_free_non_null (pdata->value);
     GNUNET_free (pdata);
   }
-
-
   GNUNET_free (ctask);
 }
 
@@ -1050,7 +1048,7 @@ mhd_content_cb (void *cls,
                 size_t max)
 {
   struct ProxyCurlTask *ctask = cls;
-  struct ProxyREMatch *re_match = ctask->pp_match_head;
+  struct ProxyREMatch *re_match;
   ssize_t copied = 0;
   long long int bytes_to_copy = ctask->buffer_write_ptr - ctask->buffer_read_ptr;
 
@@ -1091,7 +1089,7 @@ mhd_content_cb (void *cls,
     return 0;
   
   copied = 0;
-  for (; NULL != re_match; re_match = ctask->pp_match_head)
+  for (re_match = ctask->pp_match_head; NULL != re_match; re_match = ctask->pp_match_head)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "MHD: Processing PP %s\n",
@@ -1193,6 +1191,7 @@ mhd_content_cb (void *cls,
   run_mhd_now (ctask->mhd);
   return copied;
 }
+
 
 /**
  * Shorten result callback
@@ -1594,8 +1593,7 @@ curl_task_download (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Running curl tasks: %d\n", running);
 
-    ctask = ctasks_head;
-    for (; ctask != NULL; ctask = ctask->next)
+    for (ctask = ctasks_head; NULL != ctask; ctask = ctask->next)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "CTask: %s\n", ctask->url);
@@ -1610,7 +1608,7 @@ curl_task_download (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     
     do
     {
-      ctask = ctasks_head;
+      
       msg = curl_multi_info_read (curl_multi, &msgnum);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Messages left: %d\n", msgnum);
@@ -1626,7 +1624,7 @@ curl_task_download (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
            GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                        "Download curl failed");
             
-           for (; ctask != NULL; ctask = ctask->next)
+           for (ctask = ctasks_head; NULL != ctask; ctask = ctask->next)
            {
              if (NULL == ctask->curl)
                continue;
@@ -1660,7 +1658,7 @@ curl_task_download (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
            GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                        "CURL: download completed.\n");
 
-           for (; ctask != NULL; ctask = ctask->next)
+           for (ctask = ctasks_head; NULL != ctask; ctask = ctask->next)
            {
              if (NULL == ctask->curl)
                continue;
@@ -1706,7 +1704,7 @@ curl_task_download (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       }
     } while (msgnum > 0);
 
-    for (ctask=clean_head; ctask != NULL; ctask = ctask->next)
+    for (ctask=clean_head; NULL != ctask; ctask = ctask->next)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "CURL: Removing task %s.\n", ctask->url);
@@ -1716,7 +1714,7 @@ curl_task_download (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     }
     
     num_ctasks=0;
-    for (ctask=ctasks_head; ctask != NULL; ctask = ctask->next)
+    for (ctask=ctasks_head; NULL != ctask; ctask = ctask->next)
     {
       num_ctasks++;
     }
@@ -1739,6 +1737,7 @@ curl_task_download (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   curl_download_prepare();
 }
+
 
 /**
  * Process LEHO lookup
