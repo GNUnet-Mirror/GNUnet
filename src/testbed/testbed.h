@@ -441,7 +441,7 @@ struct GNUNET_TESTBED_ConnectionEventMessage
 
   /**
    * 'enum GNUNET_TESTBED_EventType' (in NBO);
-   * either GNUNET_TESTBED_ET_PEER_CONNECT or GNUNET_TESTBED_ET_PEER_DISCONNECT.
+   * either GNUNET_TESTBED_ET_CONNECT or GNUNET_TESTBED_ET_DISCONNECT.
    */
   int32_t event_type GNUNET_PACKED;
   

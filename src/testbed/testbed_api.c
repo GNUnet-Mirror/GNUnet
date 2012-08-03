@@ -401,6 +401,61 @@ handle_peer_event (struct GNUNET_TESTBED_Controller *c,
 
 
 /**
+ * Handler for GNUNET_MESSAGE_TYPE_TESTBED_PEERCONEVENT message from
+ * controller (testbed service)
+ *
+ * @param c the controller handler
+ * @param msg message received
+ * @return GNUNET_YES if we can continue receiving from service; GNUNET_NO if
+ *           not
+ */
+static int
+handle_peer_conevent (struct GNUNET_TESTBED_Controller *c,
+                      const struct GNUNET_TESTBED_ConnectionEventMessage *msg)
+{
+  struct OperationContext *opc;
+  struct OverlayConnectData *data;
+  struct GNUNET_TESTBED_EventInformation event;
+  uint64_t op_id;
+
+  op_id = GNUNET_ntohll (msg->operation_id);
+  if (NULL == (opc = find_opc (c, op_id)))
+  {
+    LOG_DEBUG ("Operation not found\n");
+    return GNUNET_YES;
+  }
+  data = opc->data;
+  GNUNET_assert (NULL != data);
+  GNUNET_assert ((ntohl (msg->peer1) == data->p1->unique_id)
+                  && (ntohl (msg->peer2) == data->p2->unique_id));               
+  event.type = (enum GNUNET_TESTBED_EventType) ntohl (msg->event_type);
+  switch (event.type)
+  {
+  case GNUNET_TESTBED_ET_CONNECT:
+    event.details.peer_connect.peer1 = data->p1;
+    event.details.peer_connect.peer2 = data->p2;
+    break;
+  case GNUNET_TESTBED_ET_DISCONNECT:
+    GNUNET_assert (0);          /* FIXME: implement */
+    break;
+  default:
+    GNUNET_assert (0);          /* Should never reach here */
+    break;
+  }
+  GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
+  opc->state = OPC_STATE_FINISHED;
+  GNUNET_free (data);
+  if (0 != ((GNUNET_TESTBED_ET_CONNECT | GNUNET_TESTBED_ET_DISCONNECT)
+            & c->event_mask))
+  {
+    if (NULL != c->cc)
+      c->cc (c->cc_cls, &event);
+  }
+  return GNUNET_YES;
+}
+
+
+/**
  * Handler for GNUNET_MESSAGE_TYPE_TESTBED_PEERCONFIG message from
  * controller (testbed service)
  *
@@ -554,6 +609,12 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
       (c, (const struct GNUNET_TESTBED_PeerConfigurationInformationMessage *)
   msg);
     break;
+  case GNUNET_MESSAGE_TYPE_TESTBED_PEERCONEVENT:
+    GNUNET_assert (msize ==
+                   sizeof (struct GNUNET_TESTBED_ConnectionEventMessage));
+    status = 
+      handle_peer_conevent (c, (const struct
+                                GNUNET_TESTBED_ConnectionEventMessage *) msg);
   default:
     GNUNET_break (0);
   }
@@ -1356,13 +1417,13 @@ GNUNET_TESTBED_operation_done (struct GNUNET_TESTBED_Operation *operation)
   case OP_PEER_START:
   case OP_PEER_STOP:
   case OP_PEER_INFO:
+  case OP_OVERLAY_CONNECT:
     GNUNET_TESTBED_operation_release_ (operation);
     return;
-  case OP_OVERLAY_CONNECT:
-    GNUNET_free_non_null (operation->data);
+  default:
+    GNUNET_assert (0);
     break;
   }
-  GNUNET_free (operation);
 }
 
 

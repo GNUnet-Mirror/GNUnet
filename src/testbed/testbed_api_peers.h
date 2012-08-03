@@ -22,7 +22,9 @@
  * @file testbed/testbed_api_peers.h
  * @brief internal API to access the 'peers' subsystem
  * @author Christian Grothoff
+ * @author Sree Harsha Totakura
  */
+
 #ifndef NEW_TESTING_API_PEERS_H
 #define NEW_TESTING_API_PEERS_H
 

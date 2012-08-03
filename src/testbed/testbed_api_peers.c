@@ -23,7 +23,9 @@
  * @brief management of the knowledge about peers in this library
  *        (we know the peer ID, its host, pending operations, etc.)
  * @author Christian Grothoff
+ * @author Sree Harsha Totakura
  */
+
 #include "platform.h"
 #include "testbed_api_peers.h"
 #include "testbed_api.h"
@@ -321,7 +323,14 @@ opstart_overlay_connect (void *cls)
 static void 
 oprelease_overlay_connect (void *cls)
 {
-  GNUNET_break (0);
+  struct OperationContext *opc = cls;
+  
+  if (OPC_STATE_FINISHED != opc->state)
+  {
+    GNUNET_free (opc->data);
+    GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
+  }
+  GNUNET_free (opc);  
 }
 
 
@@ -631,6 +640,8 @@ GNUNET_TESTBED_overlay_connect (void *op_cls,
   opc->type = OP_OVERLAY_CONNECT;
   opc->op = GNUNET_TESTBED_operation_create_ (opc, &opstart_overlay_connect,
                                               &oprelease_overlay_connect);
+  GNUNET_TESTBED_operation_queue_insert_ (opc->c->opq_peer_create,
+                                          opc->op);
   return opc->op;
 }
 
