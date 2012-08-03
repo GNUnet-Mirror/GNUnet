@@ -772,6 +772,7 @@ curl_check_hdr (void *buffer, size_t size, size_t nmemb, void *cls)
   char* hdr_val;
   int delta_cdomain;
   size_t offset = 0;
+  char cors_hdr[strlen (ctask->leho) + strlen ("https://")];
   
   if (NULL == ctask->response)
   {
@@ -783,8 +784,30 @@ curl_check_hdr (void *buffer, size_t size, size_t nmemb, void *cls)
 							 &mhd_content_cb,
 							 ctask,
 							 NULL);
+
+    /* if we have a leho add a CORS header */
+    if (0 != strcmp ("", ctask->leho))
+    {
+      /* We could also allow ssl and http here */
+      if (ctask->mhd->is_ssl)
+        sprintf (cors_hdr, "https://%s", ctask->leho);
+      else
+        sprintf (cors_hdr, "http://%s", ctask->leho);
+
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "MHD: Adding CORS header field %s\n",
+                  cors_hdr);
+
+      if (GNUNET_NO == MHD_add_response_header (ctask->response,
+                                              "Access-Control-Allow-Origin",
+                                              cors_hdr))
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "MHD: Error adding CORS header field %s\n",
+                  cors_hdr);
+      }
+    }
     ctask->ready_to_queue = GNUNET_YES;
-    
   }
   
   if (html_mime_len <= bytes)
