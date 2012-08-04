@@ -1040,7 +1040,7 @@ mhd_content_free (void *cls,
   if (NULL != ctask->post_handler)
     MHD_destroy_post_processor (ctask->post_handler);
 
-  for (pdata = ctask->upload_data_head;; NULL != pdata; pdata = ctask->upload_data_head)
+  for (pdata = ctask->upload_data_head; NULL != pdata; pdata = ctask->upload_data_head)
   {
     GNUNET_CONTAINER_DLL_remove (ctask->upload_data_head,
                                  ctask->upload_data_tail,
