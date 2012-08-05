@@ -245,7 +245,16 @@ result_processor (void *cls,
 			       rec);
 	  break;
 	case GNUNET_DNSPARSER_TYPE_CNAME:
-	  GNUNET_break (0); // FIXME: CNAME is handled by the GNS resolver! We never return this unless explicitly requested!
+	  rec.name = GNUNET_strdup (packet->queries[0].name);
+	  rec.data.hostname = strdup (rd[i].data);
+	  rec.class = GNUNET_DNSPARSER_CLASS_INTERNET;
+	  rec.type = GNUNET_DNSPARSER_TYPE_CNAME;
+	  memcpy (rec.data.hostname,
+		  rd[i].data,
+		  rd[i].data_size);
+	  GNUNET_array_append (packet->answers,
+			       packet->num_answers,
+			       rec);
 	  break;
 	default:
 	  /* skip */
@@ -277,6 +286,7 @@ handle_request (struct GNUNET_NETWORK_Handle *lsock,
   char *name;
   size_t name_len;
   enum GNUNET_GNS_RecordType type;
+  int use_gns;
 
   packet = GNUNET_DNSPARSER_parse (udp_msg, udp_msg_size);
   if (NULL == packet)
@@ -316,21 +326,33 @@ handle_request (struct GNUNET_NETWORK_Handle *lsock,
 							request);
   name = GNUNET_strdup (packet->queries[0].name);
   name_len = strlen (name);
+  use_gns = GNUNET_NO;
   if ( (name_len > strlen (".zkey.eu")) &&
        (0 == strcasecmp (".zkey.eu",
 			 &name[name_len - strlen (".zkey.eu")])) )
     {
-      //FIXME here check if the top label after zkey.eu is a hash and append
-      //correct TLD appropriately
-      name[name_len - strlen (".zkey.eu")] = '\0';
-      strcat (name, ".gnunet"); /* little hack, only works because
-				   ".zkey.eu" is longer than ".gnunet" */
+      if (0 == strcasecmp ("fcfs.zkey.eu",
+                           &name[name_len - strlen ("fcfs.zkey.eu")]))
+      {
+        name[name_len - strlen ("zkey.eu")] = '\0';
+        strcat (name, ".gnunet");
+      }
+      else
+        name[name_len - strlen (".eu")] = '\0';
       name_len = strlen (name);
     }
   if ( (name_len > strlen (".gnunet")) &&
        (0 == strcasecmp (".gnunet",
-			 &name[name_len - strlen (".gnunet")])) )
-    {
+                         &name[name_len - strlen (".gnunet")])) )
+    use_gns = GNUNET_YES;
+
+  if ( (name_len > strlen (".zkey")) &&
+       (0 == strcasecmp (".zkey",
+                         &name[name_len - strlen (".zkey")])) )
+    use_gns = GNUNET_YES;
+
+  if (GNUNET_YES == use_gns)
+  {
       type = packet->queries[0].type;
       request->lookup = GNUNET_GNS_lookup (gns,
 					   name,
