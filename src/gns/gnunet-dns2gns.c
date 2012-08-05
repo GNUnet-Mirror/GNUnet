@@ -210,8 +210,9 @@ result_processor (void *cls,
   packet->flags.zero = 0;
   packet->flags.recursion_available = 1;
   packet->flags.message_truncated = 0;
-  packet->flags.authoritative_answer = 0;
-  packet->flags.opcode = GNUNET_DNSPARSER_OPCODE_STATUS; // ???
+  packet->flags.authoritative_answer = 1;
+  packet->flags.opcode = GNUNET_DNSPARSER_OPCODE_QUERY;
+  packet->num_additional_records = 0;
   for (i=0;i<rd_count;i++)
     {
       switch (rd[i].record_type)
@@ -292,14 +293,19 @@ handle_request (struct GNUNET_NETWORK_Handle *lsock,
   if (NULL == packet)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		  _("Received malformed DNS request from %s\n"),
+		  _("Cannot parse DNS request from %s\n"),
 		  GNUNET_a2s (addr, addr_len));
       return;
     }
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  "%d, %d, %d, %d\n",
+		  packet->flags.query_or_response,
+		  packet->num_answers,
+		  packet->num_authority_records,
+		  packet->num_additional_records);
   if ( (0 != packet->flags.query_or_response) || 
        (0 != packet->num_answers) ||
-       (0 != packet->num_authority_records) ||
-       (0 != packet->num_additional_records) )
+       (0 != packet->num_authority_records))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		  _("Received malformed DNS request from %s\n"),
