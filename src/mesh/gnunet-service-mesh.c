@@ -462,9 +462,14 @@ struct MeshTunnelChildInfo
   uint32_t pid;
 
     /**
-     * Maximum PID allowed.
+     * Maximum PID allowed (FWD ACK received).
      */
   uint32_t max_pid;
+
+    /**
+     * Last ACK sent to that child (BCK ACK).
+     */
+  uint32_t last_ack;
 };
 
 
@@ -1650,7 +1655,7 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * Check if one pid is bigger than other, accounting for overflow.
  *
- * @param biger Argument that should be bigger.
+ * @param bigger Argument that should be bigger.
  * @param smaller Argument that should be smaller.
  *
  * @return True if big is bigger than small

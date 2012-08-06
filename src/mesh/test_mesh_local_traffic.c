@@ -44,7 +44,6 @@ struct test_traffic_message
 
 GNUNET_NETWORK_STRUCT_END
 
-
 static struct GNUNET_MESH_Handle *mesh_peer_1;
 
 static struct GNUNET_MESH_Handle *mesh_peer_2;
