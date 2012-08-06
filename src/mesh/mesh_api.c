@@ -443,6 +443,7 @@ create_tunnel (struct GNUNET_MESH_Handle *h, MESH_TunnelNumber tid)
   {
     t->tid = tid;
   }
+  t->max_pid = 1;
   return t;
 }
 
@@ -1995,6 +1996,9 @@ GNUNET_MESH_notify_transmit_ready (struct GNUNET_MESH_Tunnel *tunnel, int cork,
   th->notify_cls = notify_cls;
   add_to_queue (tunnel->mesh, th);
   if (NULL != tunnel->mesh->th)
+    return th;
+  if (GNUNET_NO == PID_OVERFLOW(tunnel->pid, tunnel->max_pid) &&
+      tunnel->max_pid <= tunnel->pid)
     return th;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "    call notify tmt rdy\n");
   tunnel->mesh->th =
