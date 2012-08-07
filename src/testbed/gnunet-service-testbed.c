@@ -28,6 +28,7 @@
 #include "gnunet_service_lib.h"
 #include "gnunet_server_lib.h"
 #include "gnunet_transport_service.h"
+#include "gnunet_core_service.h"
 #include <zlib.h>
 
 #include "gnunet_testbed_service.h"
@@ -337,7 +338,12 @@ struct OverlayConnectContext
    * Transport handle of peers
    */
   struct GNUNET_TRANSPORT_Handle *peers_transport[2];
-  
+
+  /**
+   * Core handles of peers
+   */
+  struct GNUNET_CORE_Handle *peers_core[2];
+
   /**
    * HELLO of peers
    */
@@ -1537,6 +1543,93 @@ handle_peer_get_config (void *cls,
 }
 
 
+
+
+
+/**
+ * Function called to notify transport users that another
+ * peer connected to us.
+ *
+ * @param cls closure
+ * @param new_peer the peer that connected
+ * @param ats performance data
+ * @param ats_count number of entries in ats (excluding 0-termination)
+ */
+static void 
+overlay_connect_notify (void *cls,
+			const struct GNUNET_PeerIdentity * new_peer,
+			const struct GNUNET_ATS_Information * ats,
+			unsigned int ats_count)
+{
+  struct OverlayConnectContextWrapper *occw = cls;
+  struct OverlayConnectContext *occ;
+  struct GNUNET_TESTBED_ConnectionEventMessage *msg;
+  char *new_peer_str;
+  char *other_peer_str;
+  unsigned int peer;
+
+  LOG_DEBUG ("Overlay connect notify\n");
+  peer = occw->peer;
+  occ = occw->occ;
+  if (0 == memcmp (new_peer, &occ->peers_identity[peer],
+		   sizeof (struct GNUNET_PeerIdentity)))
+    return;
+  new_peer_str = GNUNET_strdup (GNUNET_i2s (new_peer));
+  other_peer_str = GNUNET_strdup (GNUNET_i2s (&occ->peers_identity[peer ^ 1]));
+  if (0 != memcmp (new_peer, &occ->peers_identity[peer ^ 1],
+                   sizeof (struct GNUNET_PeerIdentity)))
+  {
+    LOG_DEBUG ("Unexpected peer %4s connected to peer %4s\n",
+               new_peer_str, other_peer_str);
+    GNUNET_free (new_peer_str);
+    GNUNET_free (other_peer_str);
+    return;
+  }
+  GNUNET_free (occw);
+  LOG_DEBUG ("Peer %4s connected to peer %4s\n", new_peer_str, other_peer_str);
+  GNUNET_free (new_peer_str);
+  GNUNET_free (other_peer_str);
+  GNUNET_TRANSPORT_disconnect (occ->peers_transport[peer]);
+  occ->peers_transport[peer] = NULL;
+  if (NULL != occ->peers_transport[peer ^ 1])
+    return;
+  /* Peers are connected - now send overlay connect success message */
+  LOG_DEBUG ("Peers connected - Sending overlay connect success\n");
+  msg = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_ConnectionEventMessage));
+  msg->header.size = htons (sizeof (struct
+                                    GNUNET_TESTBED_ConnectionEventMessage));
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_PEERCONEVENT);
+  msg->event_type = htonl (GNUNET_TESTBED_ET_CONNECT);
+  msg->peer1 = occ->peers[0]->id;
+  msg->peer2 = occ->peers[1]->id;
+  msg->operation_id = GNUNET_htonll (occ->op_id);
+  queue_message (occ->client, &msg->header);  
+  GNUNET_SERVER_client_drop (occ->client);
+  GNUNET_free (occ);  
+}
+
+
+/**
+ * For peers that haven't yet connected, send
+ * CORE connect requests.
+ *
+ * @param cls the 'struct SendHelloContext *'
+ * @param tc scheduler context
+ */
+static void
+send_core_connect_requests (void *cls,
+                            const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct OverlayConnectContext *occ = cls;
+  unsigned int peer;
+
+  LOG_DEBUG ("Sending connect requests to transport\n");
+  for (peer = 0; peer < 2; peer++)
+    GNUNET_TRANSPORT_try_connect (occ->peers_transport[peer],
+  				  &occ->peers_identity[peer ^ 1]);
+}
+
+
 /**
  * Exchanges HELLO of peers among them
  *
@@ -1545,6 +1638,10 @@ handle_peer_get_config (void *cls,
 static void
 exchange_hellos (struct OverlayConnectContext *occ)
 {
+  struct GNUNET_CORE_MessageHandler no_handlers[] = {
+    {NULL, 0, 0}
+  };
+  struct OverlayConnectContextWrapper *occw;
   unsigned int peer;
 
   GNUNET_assert (NULL != occ->peers_hello[0]);
@@ -1555,10 +1652,18 @@ exchange_hellos (struct OverlayConnectContext *occ)
     GNUNET_TRANSPORT_offer_hello (occ->peers_transport[peer], 
 				  occ->peers_hello[peer ^ 1],
 				  NULL, NULL);
-    GNUNET_TRANSPORT_try_connect (occ->peers_transport[peer],
-                                  &occ->peers_identity[peer ^ 1]);
     GNUNET_free (occ->peers_hello[peer ^ 1]);
+    occ->peers_hello[peer ^ 1] = NULL;
+    occw = GNUNET_malloc (sizeof (struct OverlayConnectContextWrapper));
+    occw->occ = occ;
+    occw->peer = peer;
+    occ->peers_core[peer] = 
+      GNUNET_CORE_connect (occ->peers[peer]->cfg,
+			   occw, NULL, &overlay_connect_notify, NULL,
+			   NULL, GNUNET_NO, NULL, GNUNET_NO, no_handlers);
   }
+  if ((NULL == occ->peers_hello[peer]) && (NULL == occ->peers_hello[peer ^ 1]))
+    GNUNET_SCHEDULER_add_now (&send_core_connect_requests, occ);
 }
 
 
@@ -1581,65 +1686,13 @@ hello_update_cb (void *cls, const struct GNUNET_MessageHeader *hello)
   peer = occw->peer;
   GNUNET_assert (peer <= 1);
   occ = occw->occ;
+  GNUNET_free (occw);
   occ->peers_hello[peer] = GNUNET_malloc (msize);
   memcpy (occ->peers_hello[peer], hello, msize);
   GNUNET_TRANSPORT_get_hello_cancel (occ->peers_ghh[peer]);
   occ->peers_ghh[peer] = NULL;
   if (NULL != occ->peers_hello[peer ^ 1])
     exchange_hellos (occ);
-}
-
-
-/**
- * Function called to notify transport users that another
- * peer connected to us.
- *
- * @param cls closure
- * @param new_peer the peer that connected
- * @param ats performance data
- * @param ats_count number of entries in ats (excluding 0-termination)
- */
-static void 
-overlay_connect_notify (void *cls,
-			const struct GNUNET_PeerIdentity * new_peer,
-			const struct GNUNET_ATS_Information * ats,
-			uint32_t ats_count)
-{
-  struct OverlayConnectContextWrapper *occw = cls;
-  struct OverlayConnectContext *occ;
-  struct GNUNET_TESTBED_ConnectionEventMessage *msg;
-  unsigned int peer;
-
-  peer = occw->peer;
-  occ = occw->occ;
-  if (0 != memcmp (new_peer, &occ->peers_identity[peer ^ 1],
-                   sizeof (struct GNUNET_PeerIdentity)))
-  {
-    LOG_DEBUG ("Unexpected peer %4s connected to peer %4s\n",
-               GNUNET_i2s (new_peer), 
-               GNUNET_i2s (&occ->peers_identity[peer ^ 1]));
-    return;
-  }
-  GNUNET_free (occw);
-  LOG_DEBUG ("Peer %4s connected to peer %4s\n", GNUNET_i2s (new_peer),
-             GNUNET_i2s (&occ->peers_identity[peer ^ 1]));
-  GNUNET_TRANSPORT_disconnect (occ->peers_transport[peer]);
-  occ->peers_transport[peer] = NULL;
-  if (NULL != occ->peers_transport[peer ^ 1])
-    return;
-  /* Peers are connected - now send overlay connect success message */
-  LOG_DEBUG ("Peers connected - Sending overlay connect success\n");
-  msg = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_ConnectionEventMessage));
-  msg->header.size = htons (sizeof (struct
-                                    GNUNET_TESTBED_ConnectionEventMessage));
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_PEERCONEVENT);
-  msg->event_type = htonl (GNUNET_TESTBED_ET_CONNECT);
-  msg->peer1 = occ->peers[0]->id;
-  msg->peer2 = occ->peers[1]->id;
-  msg->operation_id = GNUNET_htonll (occ->op_id);
-  queue_message (occ->client, &msg->header);  
-  GNUNET_SERVER_client_drop (occ->client);
-  GNUNET_free (occ);  
 }
 
 
@@ -1678,15 +1731,15 @@ handle_overlay_connect (void *cls,
   occ->op_id = GNUNET_ntohll (msg->operation_id);
   for (peer = 0; peer < 2; peer++)
   {
-    occw = GNUNET_malloc (sizeof (struct OverlayConnectContextWrapper));
-    occw->occ = occ;
-    occw->peer = peer;
     GNUNET_TESTING_peer_get_identity (occ->peers[peer]->peer, 
 				      &occ->peers_identity[peer]);
     occ->peers_transport[peer] = 
       GNUNET_TRANSPORT_connect (occ->peers[peer]->cfg,
-				&occ->peers_identity[peer], occw, NULL,
-				&overlay_connect_notify, NULL);
+				&occ->peers_identity[peer],
+				NULL, NULL, NULL, NULL);
+    occw = GNUNET_malloc (sizeof (struct OverlayConnectContextWrapper));
+    occw->occ = occ;
+    occw->peer = peer;
     occ->peers_ghh[peer] =
       GNUNET_TRANSPORT_get_hello (occ->peers_transport[peer], 
 				  &hello_update_cb, occw);
@@ -1873,6 +1926,7 @@ testbed_run (void *cls,
  */
 int main (int argc, char *const *argv)
 {
+  //sleep (60);			/* Debugging */
   return
     (GNUNET_OK ==
      GNUNET_SERVICE_run (argc,

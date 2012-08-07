@@ -163,7 +163,9 @@ static void
 check_readiness (struct GNUNET_TESTBED_Operation *op)
 {   
   unsigned int i;
-  
+
+  if (GNUNET_SCHEDULER_NO_TASK != op->start_task_id)
+    return;  
   for (i = 0; i < op->nqueues; i++)
   {
     if (0 == op->queues[i]->active)
@@ -173,8 +175,7 @@ check_readiness (struct GNUNET_TESTBED_Operation *op)
   {
     op->queues[i]->active--;
   }
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == op->start_task_id);
-  op->start_task_id = GNUNET_SCHEDULER_add_now (&call_start, op);  
+  op->start_task_id = GNUNET_SCHEDULER_add_now (&call_start, op);
 }
 
 
@@ -197,7 +198,8 @@ GNUNET_TESTBED_operation_create_ (void *cls,
   op->start = start;
   op->release = release;
   op->cb_cls = cls;
-  return op;  
+  op->start_task_id = GNUNET_SCHEDULER_NO_TASK;
+  return op;
 }
 
 

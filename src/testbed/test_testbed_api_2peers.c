@@ -389,7 +389,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   cfg = GNUNET_CONFIGURATION_dup (config);
   cp = GNUNET_TESTBED_controller_start ("127.0.0.1", host, cfg, status_cb, NULL);
   abort_task = GNUNET_SCHEDULER_add_delayed 
-    (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5), &do_abort, NULL);
+    (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 30), &do_abort, NULL);
 }
 
 
@@ -409,7 +409,7 @@ int main (int argc, char **argv)
   };
   result = INIT;
   ret = GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
-			    "test_testbed_api", "nohelp", options, &run,
+			    "test_testbed_api_2peers", "nohelp", options, &run,
 			    NULL);
   if ((GNUNET_OK != ret) || (SUCCESS != result))
     return 1;
