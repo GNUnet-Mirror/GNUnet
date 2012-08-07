@@ -29,6 +29,7 @@
 #include "gnunet_server_lib.h"
 #include "gnunet_transport_service.h"
 #include "gnunet_core_service.h"
+#include "gnunet_hello_lib.h"
 #include <zlib.h>
 
 #include "gnunet_testbed_service.h"
@@ -330,34 +331,49 @@ struct OverlayConnectContext
   struct GNUNET_SERVER_Client *client;
 
   /**
-   * peer 1 and peer2
+   * the peer which has to connect to the other peer
    */
-  struct Peer * peers[2];
-  
-  /**
-   * Transport handle of peers
-   */
-  struct GNUNET_TRANSPORT_Handle *peers_transport[2];
+  struct Peer *peer;
 
   /**
-   * Core handles of peers
+   * The other peer
    */
-  struct GNUNET_CORE_Handle *peers_core[2];
+  struct Peer *other_peer;
+  
+  /**
+   * Transport handle of the first peer to offer second peer's HELLO
+   */
+  struct GNUNET_TRANSPORT_Handle *p1th;
 
   /**
-   * HELLO of peers
+   * Transport handle of other peer to get its HELLO
    */
-  struct GNUNET_MessageHeader *peers_hello[2];
+  struct GNUNET_TRANSPORT_Handle *p2th;
+
+  /**
+   * Core handles of the peer which has to connect to other peer
+   */
+  struct GNUNET_CORE_Handle *ch;
+
+  /**
+   * HELLO of the other peer
+   */
+  struct GNUNET_MessageHeader *hello;
   
   /**
-   * Get hello handle for peers
+   * Get hello handle for the other peer
    */
-  struct GNUNET_TRANSPORT_GetHelloHandle *peers_ghh[2];
+  struct GNUNET_TRANSPORT_GetHelloHandle *ghh;
   
   /**
-   * The peer identity of peers
+   * The peer identity of the first peer
    */
-  struct GNUNET_PeerIdentity peers_identity[2];
+  struct GNUNET_PeerIdentity peer_identity;
+
+  /**
+   * The peer identity of the other peer
+   */
+  struct GNUNET_PeerIdentity other_peer_identity;
 
   /**
    * The id of the operation responsible for creating this context
@@ -365,28 +381,17 @@ struct OverlayConnectContext
   uint64_t op_id;
 
   /**
+   * The id of the task for sending HELLO of peer 2 to peer 1 and ask peer 1 to
+   * connect to peer 2
+   */
+  GNUNET_SCHEDULER_TaskIdentifier send_hello_task;
+
+  /**
    * State information for determining whose HELLOs have been successfully
    * exchanged
    */
   enum OCCState state;
 
-};
-
-
-/**
- * Wrapper around OverlayConnectContext
- */
-struct OverlayConnectContextWrapper
-{
-  /**
-   * The overlay connect context
-   */
-  struct OverlayConnectContext *occ;
-  
-  /**
-   * The peer number in reference; should be 0 or 1
-   */
-  unsigned int peer;
 };
 
 
@@ -1543,7 +1548,27 @@ handle_peer_get_config (void *cls,
 }
 
 
+/**
+ * Task for cleaing up overlay connect context structure
+ *
+ * @param cls the overlay connect context
+ * @param tc the task context
+ */
+static void
+occ_cleanup (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct OverlayConnectContext *occ = cls;
 
+  if (NULL != occ->ch)
+    GNUNET_CORE_disconnect (occ->ch);
+  if (NULL != occ->ghh)
+    GNUNET_TRANSPORT_get_hello_cancel (occ->ghh);
+  if (NULL != occ->p1th)
+    GNUNET_TRANSPORT_disconnect (occ->p1th);
+  if (NULL != occ->p2th)
+    GNUNET_TRANSPORT_disconnect (occ->p2th);
+  GNUNET_free (occ);
+}
 
 
 /**
@@ -1561,22 +1586,18 @@ overlay_connect_notify (void *cls,
 			const struct GNUNET_ATS_Information * ats,
 			unsigned int ats_count)
 {
-  struct OverlayConnectContextWrapper *occw = cls;
-  struct OverlayConnectContext *occ;
+  struct OverlayConnectContext *occ = cls;
   struct GNUNET_TESTBED_ConnectionEventMessage *msg;
   char *new_peer_str;
   char *other_peer_str;
-  unsigned int peer;
 
   LOG_DEBUG ("Overlay connect notify\n");
-  peer = occw->peer;
-  occ = occw->occ;
-  if (0 == memcmp (new_peer, &occ->peers_identity[peer],
+  if (0 == memcmp (new_peer, &occ->peer_identity, 
 		   sizeof (struct GNUNET_PeerIdentity)))
     return;
   new_peer_str = GNUNET_strdup (GNUNET_i2s (new_peer));
-  other_peer_str = GNUNET_strdup (GNUNET_i2s (&occ->peers_identity[peer ^ 1]));
-  if (0 != memcmp (new_peer, &occ->peers_identity[peer ^ 1],
+  other_peer_str = GNUNET_strdup (GNUNET_i2s (&occ->other_peer_identity));
+  if (0 != memcmp (new_peer, &occ->other_peer_identity,
                    sizeof (struct GNUNET_PeerIdentity)))
   {
     LOG_DEBUG ("Unexpected peer %4s connected to peer %4s\n",
@@ -1585,85 +1606,67 @@ overlay_connect_notify (void *cls,
     GNUNET_free (other_peer_str);
     return;
   }
-  GNUNET_free (occw);
   LOG_DEBUG ("Peer %4s connected to peer %4s\n", new_peer_str, other_peer_str);
   GNUNET_free (new_peer_str);
   GNUNET_free (other_peer_str);
-  GNUNET_TRANSPORT_disconnect (occ->peers_transport[peer]);
-  occ->peers_transport[peer] = NULL;
-  if (NULL != occ->peers_transport[peer ^ 1])
-    return;
-  /* Peers are connected - now send overlay connect success message */
+  if (GNUNET_SCHEDULER_NO_TASK != occ->send_hello_task)
+  {
+    GNUNET_SCHEDULER_cancel (occ->send_hello_task);
+    occ->send_hello_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  GNUNET_TRANSPORT_disconnect (occ->p1th);
+  occ->p1th = NULL;
+  /* Peer 1 has connected connect to peer2 - now send overlay connect success message */
   LOG_DEBUG ("Peers connected - Sending overlay connect success\n");
   msg = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_ConnectionEventMessage));
   msg->header.size = htons (sizeof (struct
                                     GNUNET_TESTBED_ConnectionEventMessage));
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_PEERCONEVENT);
   msg->event_type = htonl (GNUNET_TESTBED_ET_CONNECT);
-  msg->peer1 = occ->peers[0]->id;
-  msg->peer2 = occ->peers[1]->id;
+  msg->peer1 = htonl (occ->peer->id);
+  msg->peer2 = htonl (occ->other_peer->id);
   msg->operation_id = GNUNET_htonll (occ->op_id);
-  queue_message (occ->client, &msg->header);  
+  queue_message (occ->client, &msg->header);
   GNUNET_SERVER_client_drop (occ->client);
-  GNUNET_free (occ);  
+  GNUNET_SCHEDULER_add_now (&occ_cleanup, occ);
 }
 
 
-/**
- * For peers that haven't yet connected, send
- * CORE connect requests.
- *
- * @param cls the 'struct SendHelloContext *'
- * @param tc scheduler context
- */
 static void
-send_core_connect_requests (void *cls,
-                            const struct GNUNET_SCHEDULER_TaskContext *tc)
+send_hello (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct OverlayConnectContext *occ = cls;
-  unsigned int peer;
+  char *other_peer_str;
 
-  LOG_DEBUG ("Sending connect requests to transport\n");
-  for (peer = 0; peer < 2; peer++)
-    GNUNET_TRANSPORT_try_connect (occ->peers_transport[peer],
-  				  &occ->peers_identity[peer ^ 1]);
+  occ->send_hello_task = GNUNET_SCHEDULER_NO_TASK;
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    return;
+  GNUNET_assert (NULL != occ->hello);
+  other_peer_str = GNUNET_strdup (GNUNET_i2s (&occ->other_peer_identity));
+  LOG_DEBUG ("Offering HELLO of %s to %s\n", other_peer_str, GNUNET_i2s (&occ->peer_identity));
+  GNUNET_free (other_peer_str);
+  GNUNET_TRANSPORT_offer_hello (occ->p1th, occ->hello, NULL, NULL);
+  GNUNET_TRANSPORT_try_connect (occ->p1th, &occ->other_peer_identity);
+  occ->send_hello_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+						       &send_hello, occ);
 }
 
-
 /**
- * Exchanges HELLO of peers among them
+ * Test for checking whether HELLO message is empty
  *
- * @param occ the OverlayConnectContext to look into for HELLO messages
+ * @param cls empty flag to set
+ * @param address the HELLO
+ * @param expiration expiration of the HELLO
+ * @return 
  */
-static void
-exchange_hellos (struct OverlayConnectContext *occ)
+static int
+test_address (void *cls, const struct GNUNET_HELLO_Address *address,
+              struct GNUNET_TIME_Absolute expiration)
 {
-  struct GNUNET_CORE_MessageHandler no_handlers[] = {
-    {NULL, 0, 0}
-  };
-  struct OverlayConnectContextWrapper *occw;
-  unsigned int peer;
+  int *empty = cls;
 
-  GNUNET_assert (NULL != occ->peers_hello[0]);
-  GNUNET_assert (NULL != occ->peers_hello[1]);
-  LOG_DEBUG ("Exchanging hellos\n");
-  for (peer = 0; peer < 2; peer++)
-  {
-    GNUNET_TRANSPORT_offer_hello (occ->peers_transport[peer], 
-				  occ->peers_hello[peer ^ 1],
-				  NULL, NULL);
-    GNUNET_free (occ->peers_hello[peer ^ 1]);
-    occ->peers_hello[peer ^ 1] = NULL;
-    occw = GNUNET_malloc (sizeof (struct OverlayConnectContextWrapper));
-    occw->occ = occ;
-    occw->peer = peer;
-    occ->peers_core[peer] = 
-      GNUNET_CORE_connect (occ->peers[peer]->cfg,
-			   occw, NULL, &overlay_connect_notify, NULL,
-			   NULL, GNUNET_NO, NULL, GNUNET_NO, no_handlers);
-  }
-  if ((NULL == occ->peers_hello[peer]) && (NULL == occ->peers_hello[peer ^ 1]))
-    GNUNET_SCHEDULER_add_now (&send_core_connect_requests, occ);
+  *empty = GNUNET_NO;
+  return GNUNET_OK;
 }
 
 
@@ -1677,22 +1680,67 @@ exchange_hellos (struct OverlayConnectContext *occ)
 static void 
 hello_update_cb (void *cls, const struct GNUNET_MessageHeader *hello)
 {
-  struct OverlayConnectContextWrapper *occw = cls;
-  struct OverlayConnectContext *occ;
-  unsigned int peer;
+  struct OverlayConnectContext *occ = cls;
+  int empty;
   uint16_t msize;
-    
+  
   msize = ntohs (hello->size);
-  peer = occw->peer;
-  GNUNET_assert (peer <= 1);
-  occ = occw->occ;
-  GNUNET_free (occw);
-  occ->peers_hello[peer] = GNUNET_malloc (msize);
-  memcpy (occ->peers_hello[peer], hello, msize);
-  GNUNET_TRANSPORT_get_hello_cancel (occ->peers_ghh[peer]);
-  occ->peers_ghh[peer] = NULL;
-  if (NULL != occ->peers_hello[peer ^ 1])
-    exchange_hellos (occ);
+  if (msize < 0)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		"HELLO message of peer %s is of size 0\n",
+		&occ->other_peer_identity);
+    return;
+  }
+  empty = GNUNET_YES;
+  (void) 
+    GNUNET_HELLO_iterate_addresses ((const struct GNUNET_HELLO_Message *) hello,
+				    GNUNET_NO, &test_address, &empty);
+  if (GNUNET_YES == empty)
+  {
+    LOG_DEBUG ("HELLO of %s is empty\n", GNUNET_i2s (&occ->other_peer_identity));
+    return;
+  }
+  LOG_DEBUG ("Received HELLO of %s\n", GNUNET_i2s (&occ->other_peer_identity));
+  occ->hello = GNUNET_malloc (msize);
+  memcpy (occ->hello, hello, msize);
+  GNUNET_TRANSPORT_get_hello_cancel (occ->ghh);
+  occ->ghh = NULL;
+  GNUNET_TRANSPORT_disconnect (occ->p2th);
+  occ->p2th = NULL;
+  occ->send_hello_task = GNUNET_SCHEDULER_add_now (&send_hello, occ);
+}
+
+
+/**
+ * Function called after GNUNET_CORE_connect has succeeded (or failed
+ * for good).  Note that the private key of the peer is intentionally
+ * not exposed here; if you need it, your process should try to read
+ * the private key file directly (which should work if you are
+ * authorized...).
+ *
+ * @param cls closure
+ * @param server handle to the server, NULL if we failed
+ * @param my_identity ID of this peer, NULL if we failed
+ */
+static void 
+core_startup_cb (void *cls, struct GNUNET_CORE_Handle * server,
+		 const struct GNUNET_PeerIdentity *my_identity)
+{
+  struct OverlayConnectContext *occ = cls;
+
+  memcpy (&occ->peer_identity, my_identity, sizeof (struct GNUNET_PeerIdentity));
+  occ->p1th =
+    GNUNET_TRANSPORT_connect (occ->peer->cfg, &occ->peer_identity, NULL, NULL,
+			      NULL, NULL);
+  /* Connect to the transport of 2nd peer and get its HELLO message */
+  GNUNET_TESTING_peer_get_identity (occ->other_peer->peer,
+				    &occ->other_peer_identity);
+  occ->p2th = 
+    GNUNET_TRANSPORT_connect (occ->other_peer->cfg, &occ->other_peer_identity,
+			      NULL, NULL, NULL, NULL);
+  LOG_DEBUG ("Acquiring HELLO of peer %s\n", GNUNET_i2s (&occ->other_peer_identity));
+  occ->ghh = GNUNET_TRANSPORT_get_hello (occ->p2th, &hello_update_cb, occ);
 }
 
 
@@ -1710,8 +1758,9 @@ handle_overlay_connect (void *cls,
 {
   const struct GNUNET_TESTBED_OverlayConnectMessage *msg;
   struct OverlayConnectContext *occ;
-  struct OverlayConnectContextWrapper *occw;
-  unsigned int peer;
+  struct GNUNET_CORE_MessageHandler no_handlers[] = {
+    {NULL, 0, 0}
+  };
   uint32_t p1;
   uint32_t p2;
 
@@ -1726,24 +1775,14 @@ handle_overlay_connect (void *cls,
   GNUNET_SERVER_client_keep (client);
   occ->client = client;
   occ->state = OCC_STATE_INIT;
-  occ->peers[0] = peer_list[p1];
-  occ->peers[1] = peer_list[p2];
+  occ->peer = peer_list[p1];
+  occ->other_peer = peer_list[p2];
   occ->op_id = GNUNET_ntohll (msg->operation_id);
-  for (peer = 0; peer < 2; peer++)
-  {
-    GNUNET_TESTING_peer_get_identity (occ->peers[peer]->peer, 
-				      &occ->peers_identity[peer]);
-    occ->peers_transport[peer] = 
-      GNUNET_TRANSPORT_connect (occ->peers[peer]->cfg,
-				&occ->peers_identity[peer],
-				NULL, NULL, NULL, NULL);
-    occw = GNUNET_malloc (sizeof (struct OverlayConnectContextWrapper));
-    occw->occ = occ;
-    occw->peer = peer;
-    occ->peers_ghh[peer] =
-      GNUNET_TRANSPORT_get_hello (occ->peers_transport[peer], 
-				  &hello_update_cb, occw);
-  }
+  /* Connect to the core of 1st peer and wait for the 2nd peer to connect */
+  occ->ch = 
+    GNUNET_CORE_connect (occ->peer->cfg, occ, &core_startup_cb,
+			 &overlay_connect_notify, NULL, NULL, GNUNET_NO, NULL,
+			 GNUNET_NO, no_handlers);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
@@ -1926,7 +1965,7 @@ testbed_run (void *cls,
  */
 int main (int argc, char *const *argv)
 {
-  //sleep (60);			/* Debugging */
+  //sleep (30);			/* Debugging */
   return
     (GNUNET_OK ==
      GNUNET_SERVICE_run (argc,

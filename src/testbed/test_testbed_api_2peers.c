@@ -207,7 +207,7 @@ controller_cb(void *cls, const struct GNUNET_TESTBED_EventInformation *event)
 {
  switch (event->type)
  {
- case GNUNET_TESTBED_ET_OPERATION_FINISHED:
+ case GNUNET_TESTBED_ET_OPERATION_FINISHED: /* Will be reached when we destroy peers */
    GNUNET_assert (PEERS_STOPPED == result);
    GNUNET_assert (NULL == event->details.operation_finished.op_cls);
    GNUNET_assert (NULL == event->details.operation_finished.emsg);
@@ -229,8 +229,11 @@ controller_cb(void *cls, const struct GNUNET_TESTBED_EventInformation *event)
    }
    else
      GNUNET_assert (0);
-   result = GNUNET_YES;  
-   GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+   if ((NULL == peer1.peer) && (NULL == peer2.peer))
+   {
+     result = SUCCESS;
+     GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+   }
    break;
  case GNUNET_TESTBED_ET_PEER_START:
    GNUNET_assert (INIT == result);
@@ -285,6 +288,7 @@ controller_cb(void *cls, const struct GNUNET_TESTBED_EventInformation *event)
    GNUNET_TESTBED_operation_done (common_operation);
    common_operation = NULL;
    result = PEERS_CONNECTED;
+   LOG (GNUNET_ERROR_TYPE_DEBUG, "Peers connected\n");
    peer1.operation = GNUNET_TESTBED_peer_stop (peer1.peer);
    peer2.operation = GNUNET_TESTBED_peer_stop (peer2.peer);  
    break;

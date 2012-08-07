@@ -427,7 +427,7 @@ handle_peer_conevent (struct GNUNET_TESTBED_Controller *c,
   data = opc->data;
   GNUNET_assert (NULL != data);
   GNUNET_assert ((ntohl (msg->peer1) == data->p1->unique_id)
-                  && (ntohl (msg->peer2) == data->p2->unique_id));               
+                  && (ntohl (msg->peer2) == data->p2->unique_id));
   event.type = (enum GNUNET_TESTBED_EventType) ntohl (msg->event_type);
   switch (event.type)
   {
