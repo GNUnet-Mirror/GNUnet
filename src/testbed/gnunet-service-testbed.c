@@ -1558,7 +1558,9 @@ static void
 occ_cleanup (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct OverlayConnectContext *occ = cls;
-
+  
+  if (NULL != occ->hello)
+    GNUNET_free (occ->hello);
   if (NULL != occ->ch)
     GNUNET_CORE_disconnect (occ->ch);
   if (NULL != occ->ghh)

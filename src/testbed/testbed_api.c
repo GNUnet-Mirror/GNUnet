@@ -615,6 +615,7 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     status = 
       handle_peer_conevent (c, (const struct
                                 GNUNET_TESTBED_ConnectionEventMessage *) msg);
+    break;
   default:
     GNUNET_break (0);
   }
