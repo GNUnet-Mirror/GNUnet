@@ -4010,6 +4010,8 @@ tunnel_new (GNUNET_PEER_Id owner,
   t->tree = tree_new (owner);
   t->owner = client;
   t->bck_ack = 1;
+  t->last_bck_ack = 1;
+  t->last_fwd_ack = 1;
   t->local_tid = local;
   t->children_fc = GNUNET_CONTAINER_multihashmap_create (8);
   n_tunnels++;
