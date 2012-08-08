@@ -999,6 +999,15 @@ GNUNET_TRANSPORT_try_connect (struct GNUNET_TRANSPORT_Handle *handle,
 }
 
 
+struct SendHelloContext
+{
+	GNUNET_SCHEDULER_Task cont;
+
+	void *cls;
+
+	struct GNUNET_MessageHeader *msg;
+};
+
 /**
  * Send HELLO message to the service.
  *
@@ -1010,14 +1019,21 @@ GNUNET_TRANSPORT_try_connect (struct GNUNET_TRANSPORT_Handle *handle,
 static size_t
 send_hello (void *cls, size_t size, void *buf)
 {
-  struct GNUNET_MessageHeader *msg = cls;
+  struct SendHelloContext *shc = cls;
+  struct GNUNET_MessageHeader *msg = shc->msg;
   uint16_t ssize;
+  struct GNUNET_SCHEDULER_TaskContext tc;
 
   if (buf == NULL)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Timeout while trying to transmit `%s' request.\n", "HELLO");
+	tc.read_ready = NULL;
+	tc.write_ready = NULL;
+	tc.reason = GNUNET_SCHEDULER_REASON_TIMEOUT;
+	shc->cont (shc->cls, &tc);
     GNUNET_free (msg);
+    GNUNET_free (shc);
     return 0;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Transmitting `%s' request.\n", "HELLO");
@@ -1025,6 +1041,11 @@ send_hello (void *cls, size_t size, void *buf)
   GNUNET_assert (size >= ssize);
   memcpy (buf, msg, ssize);
   GNUNET_free (msg);
+  tc.read_ready = NULL;
+  tc.write_ready = NULL;
+  tc.reason = GNUNET_SCHEDULER_REASON_READ_READY;
+  shc->cont (shc->cls, &tc);
+  GNUNET_free (shc);
   return ssize;
 }
 
@@ -1036,7 +1057,9 @@ send_hello (void *cls, size_t size, void *buf)
  *
  * @param handle connection to transport service
  * @param hello the hello message
- * @param cont continuation to call when HELLO has been sent
+ * @param cont continuation to call when HELLO has been sent,
+ * 	tc reason GNUNET_SCHEDULER_REASON_TIMEOUT for fail
+ * 	tc reasong GNUNET_SCHEDULER_REASON_READY for success
  * @param cls closure for continuation
  *
  */
@@ -1048,9 +1071,17 @@ GNUNET_TRANSPORT_offer_hello (struct GNUNET_TRANSPORT_Handle *handle,
   uint16_t size;
   struct GNUNET_PeerIdentity peer;
   struct GNUNET_MessageHeader *msg;
+  struct SendHelloContext * shc;
+  struct GNUNET_SCHEDULER_TaskContext tc;
 
   if (NULL == handle->client)
+  {
+	tc.read_ready = NULL;
+	tc.write_ready = NULL;
+	tc.reason = GNUNET_SCHEDULER_REASON_TIMEOUT;
+	cont (cls, &tc);
     return;
+  }
   GNUNET_break (ntohs (hello->type) == GNUNET_MESSAGE_TYPE_HELLO);
   size = ntohs (hello->size);
   GNUNET_break (size >= sizeof (struct GNUNET_MessageHeader));
@@ -1058,6 +1089,10 @@ GNUNET_TRANSPORT_offer_hello (struct GNUNET_TRANSPORT_Handle *handle,
       GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *) hello, &peer))
   {
     GNUNET_break (0);
+	tc.read_ready = NULL;
+	tc.write_ready = NULL;
+	tc.reason = GNUNET_SCHEDULER_REASON_TIMEOUT;
+	cont (cls, &tc);
     return;
   }
   msg = GNUNET_malloc (size);
@@ -1065,7 +1100,11 @@ GNUNET_TRANSPORT_offer_hello (struct GNUNET_TRANSPORT_Handle *handle,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Offering `%s' message of `%4s' to transport for validation.\n", "HELLO",
        GNUNET_i2s (&peer));
-  schedule_control_transmit (handle, size, &send_hello, msg);
+  shc = GNUNET_malloc (sizeof (struct SendHelloContext));
+  shc->msg = msg;
+  shc->cont = cont;
+  shc->cls = cls;
+  schedule_control_transmit (handle, size, &send_hello, shc);
 }
 
 
