@@ -885,7 +885,7 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
     sig_cache_exp = &no_address_signature_expiration;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "I am `%s', sending PONG to peer `%s'\n",
 	      GNUNET_h2s (&GST_my_identity.hashPubKey),
               GNUNET_i2s (sender));
