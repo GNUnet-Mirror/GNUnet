@@ -1023,15 +1023,16 @@ send_hello (void *cls, size_t size, void *buf)
   struct GNUNET_MessageHeader *msg = shc->msg;
   uint16_t ssize;
   struct GNUNET_SCHEDULER_TaskContext tc;
+  tc.read_ready = NULL;
+  tc.write_ready = NULL;
+  tc.reason = GNUNET_SCHEDULER_REASON_TIMEOUT;
 
   if (buf == NULL)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Timeout while trying to transmit `%s' request.\n", "HELLO");
-	tc.read_ready = NULL;
-	tc.write_ready = NULL;
-	tc.reason = GNUNET_SCHEDULER_REASON_TIMEOUT;
-	shc->cont (shc->cls, &tc);
+    if (NULL != shc->cont)
+      shc->cont (shc->cls, &tc);
     GNUNET_free (msg);
     GNUNET_free (shc);
     return 0;
@@ -1041,10 +1042,9 @@ send_hello (void *cls, size_t size, void *buf)
   GNUNET_assert (size >= ssize);
   memcpy (buf, msg, ssize);
   GNUNET_free (msg);
-  tc.read_ready = NULL;
-  tc.write_ready = NULL;
   tc.reason = GNUNET_SCHEDULER_REASON_READ_READY;
-  shc->cont (shc->cls, &tc);
+  if (NULL != shc->cont)
+    shc->cont (shc->cls, &tc);
   GNUNET_free (shc);
   return ssize;
 }
@@ -1074,12 +1074,14 @@ GNUNET_TRANSPORT_offer_hello (struct GNUNET_TRANSPORT_Handle *handle,
   struct SendHelloContext * shc;
   struct GNUNET_SCHEDULER_TaskContext tc;
 
+  tc.read_ready = NULL;
+  tc.write_ready = NULL;
+  tc.reason = GNUNET_SCHEDULER_REASON_TIMEOUT;
+
   if (NULL == handle->client)
   {
-	tc.read_ready = NULL;
-	tc.write_ready = NULL;
-	tc.reason = GNUNET_SCHEDULER_REASON_TIMEOUT;
-	cont (cls, &tc);
+    if (NULL != cont)
+      cont (cls, &tc);
     return;
   }
   GNUNET_break (ntohs (hello->type) == GNUNET_MESSAGE_TYPE_HELLO);
@@ -1089,10 +1091,9 @@ GNUNET_TRANSPORT_offer_hello (struct GNUNET_TRANSPORT_Handle *handle,
       GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *) hello, &peer))
   {
     GNUNET_break (0);
-	tc.read_ready = NULL;
-	tc.write_ready = NULL;
-	tc.reason = GNUNET_SCHEDULER_REASON_TIMEOUT;
-	cont (cls, &tc);
+    if (NULL != cont)
+      if (NULL != cont)
+        cont (cls, &tc);
     return;
   }
   msg = GNUNET_malloc (size);
