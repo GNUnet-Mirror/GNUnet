@@ -190,7 +190,7 @@ struct GNUNET_MESH_ToOrigin
 
 
 /**
- * Message to acknowledte mesh data traffic.
+ * Message to acknowledge mesh data traffic.
  */
 struct GNUNET_MESH_ACK
 {
