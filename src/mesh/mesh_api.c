@@ -1275,7 +1275,8 @@ send_callback (void *cls, size_t size, void *buf)
     if (GNUNET_YES == th_is_payload (th))
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG, " payload\n");
-      if (t->max_pid < t->pid && ! PID_OVERFLOW (t->pid, t->max_pid)) {
+      if (t->max_pid < t->pid && GNUNET_NO == PID_OVERFLOW (t->pid, t->max_pid))
+      {
         /* This tunnel is not ready to transmit yet, try next message */
         next = th->next;
         continue;
@@ -2020,6 +2021,7 @@ GNUNET_MESH_notify_transmit_ready_cancel (struct GNUNET_MESH_TransmitHandle *th)
 {
   struct GNUNET_MESH_Handle *mesh;
 
+  th->tunnel->packet_size = 0;
   mesh = th->tunnel->mesh;
   if (th->timeout_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (th->timeout_task);
