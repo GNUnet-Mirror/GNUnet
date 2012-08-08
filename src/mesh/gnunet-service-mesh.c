@@ -498,9 +498,14 @@ struct MeshTunnelChildInfo
 struct MeshTunnelClientInfo
 {
   /**
-   * Last sent PID.
+   * PID of the last packet sent to the client (FWD).
    */
-  uint32_t pid;
+  uint32_t fwd_pid;
+
+  /**
+   * PID of the last packet received from the client (BCK).
+   */
+  uint32_t bck_pid;
 
   /**
    * Maximum PID allowed (FWD ACK received).
@@ -3213,10 +3218,10 @@ tunnel_add_client (struct MeshTunnel *t, struct MeshClient *c)
   struct MeshTunnelClientInfo clinfo;
 
   GNUNET_array_append (t->clients, t->nclients, c);
-  t->nclients--;
   clinfo.fwd_ack = t->fwd_pid + 1;
-  clinfo.bck_ack = t->bck_ack + 1; // FIXME fc review
-  clinfo.pid = t->fwd_pid;
+  clinfo.bck_ack = t->nobuffer ? 1 : INITIAL_WINDOW_SIZE;
+  clinfo.fwd_pid = t->fwd_pid;
+  t->nclients--;
   GNUNET_array_append (t->clients_fc, t->nclients, clinfo);
 }
 
@@ -3533,7 +3538,7 @@ tunnel_set_client_fwd_ack (struct MeshTunnel *t,
  * 
  * @return ACK value.
  */
-static uint32_t
+uint32_t // FIXME fc Is this funcion needed anymore?
 tunnel_get_client_fwd_ack (struct MeshTunnel *t,
                        struct MeshClient *c)
 {
@@ -3789,7 +3794,7 @@ tunnel_send_child_bck_ack (void *cls,
 /**
  * @brief Send BCK ACKs to clients to allow them more to_origin traffic
  * 
- * Iterates over all clients and sends BCK ACKs to the ones that need 
+ * Iterates over all clients and sends BCK ACKs to the ones that need it.
  * 
  * @param t Tunnel on which to send the BCK ACKs.
  */
@@ -3805,14 +3810,14 @@ tunnel_send_clients_bck_ack (struct MeshTunnel *t)
     unsigned int delta;
 
     clinfo = &t->clients_fc[i];
-    delta = clinfo->bck_ack - clinfo->pid;
+    delta = clinfo->bck_ack - clinfo->bck_pid;
 
     if ((GNUNET_NO == t->nobuffer && ACK_THRESHOLD > delta) ||
         (GNUNET_YES == t->nobuffer && 0 == delta))
     {
       uint32_t ack;
 
-      ack = clinfo->pid;
+      ack = clinfo->bck_pid;
       ack += t->nobuffer ? 1 : INITIAL_WINDOW_SIZE;
       send_local_ack(t->clients[i],  t, ack);
       clinfo->bck_ack = ack;
@@ -6875,7 +6880,7 @@ handle_local_to_origin (void *cls, struct GNUNET_SERVER_Client *client,
   }
 
   /*  It should be sent by someone who has this as incoming tunnel. */
-  if (-1 == client_knows_tunnel (c, t))
+  if (GNUNET_NO == client_knows_tunnel (c, t))
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
