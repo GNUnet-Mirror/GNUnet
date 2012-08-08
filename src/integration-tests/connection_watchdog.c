@@ -572,6 +572,8 @@ map_connect (const struct GNUNET_PeerIdentity *peer, void * source)
   }
 
   pc = GNUNET_CONTAINER_multihashmap_get(peers, &peer->hashPubKey);
+  GNUNET_assert (NULL != pc);
+
   if (source == th)
   {
     if (GNUNET_NO == pc->transport_connected)
@@ -658,6 +660,8 @@ map_disconnect (const struct GNUNET_PeerIdentity * peer, void * source)
   }
 
   pc = GNUNET_CONTAINER_multihashmap_get(peers, &peer->hashPubKey);
+  GNUNET_assert (NULL != pc);
+
   if (source == th)
   {
     if (NULL != pc->th_ping)
