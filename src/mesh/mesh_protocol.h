@@ -174,6 +174,16 @@ struct GNUNET_MESH_ToOrigin
   uint32_t tid GNUNET_PACKED;
 
     /**
+     * Number of hops to live
+     */
+  uint32_t ttl GNUNET_PACKED;
+
+    /**
+     * Unique ID of the packet
+     */
+  uint32_t pid GNUNET_PACKED;
+
+    /**
      * OID of the tunnel
      */
   struct GNUNET_PeerIdentity oid;
