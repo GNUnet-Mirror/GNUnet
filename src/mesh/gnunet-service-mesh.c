@@ -4100,8 +4100,10 @@ tunnel_new (GNUNET_PEER_Id owner,
   t->bck_queue_max = t->fwd_queue_max;
   t->tree = tree_new (owner);
   t->owner = client;
-  t->bck_ack = INITIAL_WINDOW_SIZE;
-  t->last_fwd_ack = INITIAL_WINDOW_SIZE;
+  t->fwd_pid = (uint32_t) -1; // Next (expected) = 0
+  t->bck_pid = (uint32_t) -1; // Next (expected) = 0
+  t->bck_ack = INITIAL_WINDOW_SIZE - 1;
+  t->last_fwd_ack = INITIAL_WINDOW_SIZE - 1;
   t->local_tid = local;
   t->children_fc = GNUNET_CONTAINER_multihashmap_create (8);
   n_tunnels++;
@@ -6870,7 +6872,13 @@ handle_local_unicast (void *cls, struct GNUNET_SERVER_Client *client,
     copy->oid = my_full_id;
     copy->tid = htonl (t->id.tid);
     copy->ttl = htonl (default_ttl);
-    GNUNET_assert (ntohl (copy->pid) == (t->fwd_pid + 1));
+    if (ntohl (copy->pid) != t->fwd_pid + 1)
+    {
+      GNUNET_break (0);
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Unicast PID, expected %u, got %u\n",
+                t->fwd_pid + 1, ntohl (copy->pid));
+    }
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "  calling generic handler...\n");
     handle_mesh_data_unicast (NULL, &my_full_id, &copy->header, NULL, 0);
