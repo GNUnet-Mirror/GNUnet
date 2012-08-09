@@ -580,7 +580,6 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
       return GNUNET_SYSERR;
     }
     *data_size = sizeof (struct vpn_data) + strlen (s_serv) + 1;
-    
     *data = GNUNET_malloc (*data_size);
 
     vpn = (struct vpn_data*)*data;
@@ -595,9 +594,9 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
     strcpy ((char*)&vpn[1], s_serv);
     return GNUNET_OK;
   case GNUNET_DNSPARSER_TYPE_TLSA:
-    tlsa = (struct tlsa_data*)*data;
     *data_size = sizeof (struct tlsa_data) + strlen (s) - 6;
-    tlsa = GNUNET_malloc (*data_size);
+    *data = GNUNET_malloc (*data_size);
+    tlsa = (struct tlsa_data*)*data;
     ret = SSCANF (s, "%c %c %c %s",
                   &tlsa->usage,
                   &tlsa->selector,
@@ -612,7 +611,6 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
       GNUNET_free (tlsa);
       return GNUNET_SYSERR;
     }
-
     return GNUNET_OK;
   default:
     GNUNET_break (0);
