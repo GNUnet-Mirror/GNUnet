@@ -1705,55 +1705,6 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /******************************************************************************/
 
 /**
- * Check if one pid is bigger than other, accounting for overflow.
- *
- * @param bigger Argument that should be bigger.
- * @param smaller Argument that should be smaller.
- *
- * @return True if bigger (arg1) has a higher value than smaller (arg 2).
- */
-static int
-is_pid_bigger (uint32_t bigger, uint32_t smaller)
-{
-    return (GNUNET_YES == PID_OVERFLOW(smaller, bigger) ||
-            (bigger > smaller && GNUNET_NO == PID_OVERFLOW(bigger, smaller)));
-}
-
-/**
- * Get the higher ACK value out of two values, taking in account overflow.
- *
- * @param a First ACK value.
- * @param b Second ACK value.
- *
- * @return Highest ACK value from the two.
- */
-static uint32_t
-max_pid (uint32_t a, uint32_t b)
-{
-  if (is_pid_bigger(a, b))
-    return a;
-  return b;
-}
-
-
-/**
- * Get the lower ACK value out of two values, taking in account overflow.
- *
- * @param a First ACK value.
- * @param b Second ACK value.
- *
- * @return Lowest ACK value from the two.
- */
-static uint32_t
-min_pid (uint32_t a, uint32_t b)
-{
-  if (is_pid_bigger(a, b))
-    return b;
-  return a;
-}
-
-
-/**
  * Decrements the reference counter and frees all resources if needed
  *
  * @param mesh_data Data Descriptor used in a multicast message.
@@ -3567,7 +3518,7 @@ tunnel_get_children_fwd_ack (struct MeshTunnel *t)
   if (0 == ctx.nchildren)
     return -1LL;
 
-  if (GNUNET_YES == t->nobuffer && is_pid_bigger(ctx.max_child_ack, t->fwd_pid))
+  if (GNUNET_YES == t->nobuffer && GMC_is_pid_bigger(ctx.max_child_ack, t->fwd_pid))
     ctx.max_child_ack = t->fwd_pid + 1; // Might overflow, it's ok.
 
   return (int64_t) ctx.max_child_ack;
@@ -3621,15 +3572,15 @@ tunnel_get_clients_fwd_ack (struct MeshTunnel *t)
   {
     if (-1 == ack ||
         (GNUNET_YES == t->speed_min &&
-         GNUNET_YES == is_pid_bigger (ack, t->clients_fc[i].fwd_ack)) ||
+         GNUNET_YES == GMC_is_pid_bigger (ack, t->clients_fc[i].fwd_ack)) ||
         (GNUNET_NO == t->speed_min &&
-         GNUNET_YES == is_pid_bigger (t->clients_fc[i].fwd_ack, ack)))
+         GNUNET_YES == GMC_is_pid_bigger (t->clients_fc[i].fwd_ack, ack)))
     {
       ack = t->clients_fc[i].fwd_ack;
     }
   }
 
-  if (GNUNET_YES == t->nobuffer && is_pid_bigger(ack, t->fwd_pid))
+  if (GNUNET_YES == t->nobuffer && GMC_is_pid_bigger(ack, t->fwd_pid))
     ack = (uint32_t) t->fwd_pid + 1; // Might overflow, it's ok.
 
   return (uint32_t) ack;
@@ -3667,15 +3618,15 @@ tunnel_get_fwd_ack (struct MeshTunnel *t)
 
   if (GNUNET_YES == t->speed_min)
   {
-    ack = min_pid ((uint32_t) child_ack, ack);
-    ack = min_pid ((uint32_t) client_ack, ack);
+    ack = GMC_min_pid ((uint32_t) child_ack, ack);
+    ack = GMC_min_pid ((uint32_t) client_ack, ack);
   }
   else
   {
-    ack = max_pid ((uint32_t) child_ack, ack);
-    ack = max_pid ((uint32_t) client_ack, ack);
+    ack = GMC_max_pid ((uint32_t) child_ack, ack);
+    ack = GMC_max_pid ((uint32_t) client_ack, ack);
   }
-  if (GNUNET_YES == t->nobuffer && is_pid_bigger(ack, t->fwd_pid))
+  if (GNUNET_YES == t->nobuffer && GMC_is_pid_bigger(ack, t->fwd_pid))
     ack = t->fwd_pid + 1; // Might overflow 32 bits, it's ok!
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "c %u, bf %u, ch %u, cl %u, ACK: %u\n",
               count, buffer_free, child_ack, client_ack, ack);
@@ -3827,7 +3778,7 @@ tunnel_send_child_bck_ack (void *cls,
   cinfo = tunnel_get_neighbor_fc (t, &peer);
 
   if (cinfo->bck_ack != cinfo->pid &&
-      GNUNET_NO == is_pid_bigger (cinfo->bck_ack, cinfo->pid))
+      GNUNET_NO == GMC_is_pid_bigger (cinfo->bck_ack, cinfo->pid))
     return;
 
   cinfo->bck_ack++;
@@ -5069,7 +5020,7 @@ handle_mesh_data_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
   t->skip += (pid - t->fwd_pid) - 1;
   t->fwd_pid = pid;
-  if (is_pid_bigger (pid, t->last_fwd_ack))
+  if (GMC_is_pid_bigger (pid, t->last_fwd_ack))
   {
     GNUNET_STATISTICS_update (stats, "# unsolicited unicast", 1, GNUNET_NO);
     GNUNET_break_op (0);
@@ -5104,7 +5055,7 @@ handle_mesh_data_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
   GNUNET_CONTAINER_multihashmap_iterate (t->children_fc,
                                          &tunnel_add_skip,
                                          &neighbor);
-  if (is_pid_bigger (pid, cinfo->fwd_ack))
+  if (GMC_is_pid_bigger (pid, cinfo->fwd_ack))
   {
     GNUNET_STATISTICS_update (stats, "# unsolicited unicast", 1, GNUNET_NO);
     GNUNET_break_op (0);
