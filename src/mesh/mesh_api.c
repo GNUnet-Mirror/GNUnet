@@ -908,6 +908,7 @@ process_tunnel_created (struct GNUNET_MESH_Handle *h,
   MESH_TunnelNumber tid;
 
   tid = ntohl (msg->tunnel_id);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Creating incoming tunnel %X\n", tid);
   if (tid < GNUNET_MESH_LOCAL_TUNNEL_ID_SERV)
   {
     GNUNET_break (0);
@@ -930,8 +931,9 @@ process_tunnel_created (struct GNUNET_MESH_Handle *h,
     t->tid = tid;
     atsi.type = 0;
     atsi.value = 0;
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  created tunnel %p\n", t);
     t->ctx = h->new_tunnel (h->cls, t, &msg->peer, &atsi);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "new incoming tunnel %X\n", t->tid);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "User notified\n");
   }
   else
   {
@@ -1187,7 +1189,7 @@ msg_received (void *cls, const struct GNUNET_MessageHeader *msg)
     reconnect (h);
     return;
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "received a message type %s from MESH\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "received a message: %s\n",
        GNUNET_MESH_DEBUG_M2S (ntohs (msg->type)));
   switch (ntohs (msg->type))
   {
@@ -1623,6 +1625,8 @@ GNUNET_MESH_tunnel_create (struct GNUNET_MESH_Handle *h, void *tunnel_ctx,
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Creating new tunnel\n");
   t = create_tunnel (h, 0);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  at %p\n", t);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  number %X\n", t->tid);
   t->connect_handler = connect_handler;
   t->disconnect_handler = disconnect_handler;
   t->cls = handler_cls;

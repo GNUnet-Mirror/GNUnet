@@ -186,11 +186,14 @@ tmt_rdy (void *cls, size_t size, void *buf)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending data packet # %u\n",
               *sent);
   GNUNET_assert (size >= msize);
-  (*sent)++;
-  if (target > *sent)
-    GNUNET_MESH_notify_transmit_ready (t, GNUNET_NO,
-                                       GNUNET_TIME_UNIT_FOREVER_REL,
-                                       &peer_id, msize, &tmt_rdy, cls);
+  if (GNUNET_YES == started)
+  {
+    (*sent)++;
+    if (target > *sent)
+      GNUNET_MESH_notify_transmit_ready (t, GNUNET_NO,
+                                        GNUNET_TIME_UNIT_FOREVER_REL,
+                                        &peer_id, msize, &tmt_rdy, cls);
+  }
   m->size = htons (msize);
   m->type = htons (1);
   msg->data = htonl (*sent - 1);
@@ -226,6 +229,19 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
     GNUNET_break (2 == *peer_number);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got initial data packet\n");
     started = GNUNET_YES;
+    start_time = GNUNET_TIME_absolute_get();
+    if (FWD != test) // Send leaf -> root
+      GNUNET_MESH_notify_transmit_ready (tunnel, GNUNET_NO,
+                                        GNUNET_TIME_UNIT_FOREVER_REL,
+                                        NULL,
+                                        sizeof (struct test_traffic_message),
+                                        &tmt_rdy, &two);
+    if (BCK != test) // Send root -> leaf
+      GNUNET_MESH_notify_transmit_ready (t, GNUNET_NO,
+                                        GNUNET_TIME_UNIT_FOREVER_REL,
+                                        &peer_id,
+                                        sizeof (struct test_traffic_message),
+                                        &tmt_rdy, &one);
     return GNUNET_OK;
   }
 
@@ -282,26 +298,13 @@ inbound_tunnel (void *cls, struct GNUNET_MESH_Tunnel *tunnel,
 {
   unsigned int id = *(unsigned int *) cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "received incoming tunnel\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "received incoming tunnel %p\n", tunnel);
   if (id != 2)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "received incoming tunnel on peer 1\n");
     result = GNUNET_SYSERR;
   }
-  start_time = GNUNET_TIME_absolute_get();
-  if (FWD != test) // Send leaf -> root
-    GNUNET_MESH_notify_transmit_ready (tunnel, GNUNET_NO,
-                                       GNUNET_TIME_UNIT_FOREVER_REL,
-                                       NULL,
-                                       sizeof (struct test_traffic_message),
-                                       &tmt_rdy, &two);
-  if (BCK != test) // Send root -> leaf
-    GNUNET_MESH_notify_transmit_ready (t, GNUNET_NO,
-                                       GNUNET_TIME_UNIT_FOREVER_REL,
-                                       &peer_id,
-                                       sizeof (struct test_traffic_message),
-                                       &tmt_rdy, &one);
   return NULL;
 }
 
