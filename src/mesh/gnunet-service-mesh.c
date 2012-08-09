@@ -3258,6 +3258,7 @@ tunnel_add_client (struct MeshTunnel *t, struct MeshClient *c)
   clinfo.fwd_ack = t->fwd_pid + 1;
   clinfo.bck_ack = t->nobuffer ? 1 : INITIAL_WINDOW_SIZE;
   clinfo.fwd_pid = t->fwd_pid;
+  clinfo.bck_pid = (uint32_t) -1; // Expected next: 0
   t->nclients--;
   GNUNET_array_append (t->clients_fc, t->nclients, clinfo);
 }
