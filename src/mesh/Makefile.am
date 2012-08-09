@@ -86,7 +86,9 @@ check_PROGRAMS = \
  test_mesh_tree_api \
  test_mesh_local_1 \
  test_mesh_local_2 \
- test_mesh_local_traffic \
+ test_mesh_local_traffic_fwd \
+ test_mesh_local_traffic_bck \
+ test_mesh_local_traffic_both \
  test_mesh_2dtorus \
  test_mesh_regex \
  test_mesh_small_unicast \
@@ -131,13 +133,31 @@ test_mesh_local_2_LDADD = \
 test_mesh_local_2_DEPENDENCIES = \
   libgnunetmesh.la
 
-test_mesh_local_traffic_SOURCES = \
+test_mesh_local_traffic_fwd_SOURCES = \
  test_mesh_local_traffic.c
-test_mesh_local_traffic_LDADD = \
+test_mesh_local_traffic_fwd_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/mesh/libgnunetmesh.la
-test_mesh_local_traffic_DEPENDENCIES = \
+test_mesh_local_traffic_fwd_DEPENDENCIES = \
+  libgnunetmesh.la
+
+test_mesh_local_traffic_bck_SOURCES = \
+ test_mesh_local_traffic.c
+test_mesh_local_traffic_bck_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/testing/libgnunettesting.la \
+ $(top_builddir)/src/mesh/libgnunetmesh.la
+test_mesh_local_traffic_bck_DEPENDENCIES = \
+  libgnunetmesh.la
+
+test_mesh_local_traffic_both_SOURCES = \
+ test_mesh_local_traffic.c
+test_mesh_local_traffic_both_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/testing/libgnunettesting.la \
+ $(top_builddir)/src/mesh/libgnunetmesh.la
+test_mesh_local_traffic_both_DEPENDENCIES = \
   libgnunetmesh.la
 
 
@@ -197,6 +217,9 @@ if ENABLE_TEST_RUN
 TESTS = test_mesh_api \
  test_mesh_tree_api \
  test_mesh_local_1 test_mesh_local_2 \
+ test_mesh_local_traffic_fwd \
+ test_mesh_local_traffic_bck \
+ test_mesh_local_traffic_both \
  test_mesh_2dtorus test_mesh_regex \
  test_mesh_small_unicast test_mesh_small_multicast
 endif
