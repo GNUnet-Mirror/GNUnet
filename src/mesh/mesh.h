@@ -310,5 +310,17 @@ enum MeshPeerState
 };
 
 
+/**
+ * Convert a message type into a string to help debug
+ * Generated with:
+ * FIND:        "#define ([^ ]+)[ ]*([0-9]+)"
+ * REPLACE:     "    case \2: return "\1"; break;"
+ * 
+ * @param m Message type.
+ * 
+ * @return Human readable string description.
+ */
+const char *
+GNUNET_MESH_DEBUG_M2S (uint16_t m);
 
 #endif

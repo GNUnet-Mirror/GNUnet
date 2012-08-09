@@ -42,7 +42,7 @@ libgnunet_plugin_block_mesh_la_DEPENDENCIES = \
  $(top_builddir)/src/util/libgnunetutil.la
 
 libgnunetmesh_la_SOURCES = \
-  mesh_api.c mesh.h mesh_protocol.h
+  mesh_api.c mesh_common.c
 libgnunetmesh_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(XLIB) \
@@ -63,7 +63,9 @@ libgnunetmeshblock_la_LDFLAGS = \
 
 gnunet_service_mesh_SOURCES = \
  gnunet-service-mesh.c \
- mesh_tunnel_tree.c mesh_tunnel_tree.h
+ mesh_tunnel_tree.c \
+ mesh_common.c
+gnunet_service_mesh_CFLAGS = $(AM_CFLAGS)
 gnunet_service_mesh_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/core/libgnunetcore.la \

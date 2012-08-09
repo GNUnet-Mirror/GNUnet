@@ -1981,7 +1981,8 @@ send_subscribed_clients (const struct GNUNET_MessageHeader *msg,
 
   type = ntohs (payload->type);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending to clients...\n");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "message of type %u\n", type);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "message of type %s\n",
+              GNUNET_MESH_DEBUG_M2S (type));
 
   memcpy (cbuf, msg, sizeof (cbuf));
   switch (htons (msg->type))
@@ -4327,14 +4328,15 @@ send_core_data_multicast (void *cls, size_t size, void *buf)
       mc = (struct GNUNET_MESH_Multicast *) mh;
       mh = (struct GNUNET_MessageHeader *) &mc[1];
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  " multicast, payload type %u\n", ntohs (mh->type));
+                  " multicast, payload type %s\n",
+                  GNUNET_MESH_DEBUG_M2S (ntohs (mh->type)));
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   " multicast, payload size %u\n", ntohs (mh->size));
     }
     else
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " type %u\n",
-                  ntohs (mh->type));
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " type %s\n",
+                  GNUNET_MESH_DEBUG_M2S (ntohs (mh->type)));
     }
   }
 #endif
@@ -5041,8 +5043,8 @@ handle_mesh_data_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
     return GNUNET_OK;
   }
   msg = (struct GNUNET_MESH_Unicast *) message;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " of type %u\n",
-              ntohs (msg[1].header.type));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " of type %s\n",
+              GNUNET_MESH_DEBUG_M2S (ntohs (msg[1].header.type)));
   /* Check tunnel */
   t = tunnel_get (&msg->oid, ntohl (msg->tid));
   if (NULL == t)
@@ -5233,8 +5235,8 @@ handle_mesh_data_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
     return GNUNET_OK;
   }
   msg = (struct GNUNET_MESH_ToOrigin *) message;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " of type %u\n",
-              ntohs (msg[1].header.type));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " of type %s\n",
+              GNUNET_MESH_DEBUG_M2S (ntohs (msg[1].header.type)));
   t = tunnel_get (&msg->oid, ntohl (msg->tid));
 
   if (NULL == t)
@@ -5305,8 +5307,8 @@ handle_mesh_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got an ACK packet from %s!\n",
               GNUNET_i2s (peer));
   msg = (struct GNUNET_MESH_ACK *) message;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " of type %u\n",
-              ntohs (msg[1].header.type));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " of type %s\n",
+              GNUNET_MESH_DEBUG_M2S (ntohs (msg[1].header.type)));
   t = tunnel_get (&msg->oid, ntohl (msg->tid));
 
   if (NULL == t)

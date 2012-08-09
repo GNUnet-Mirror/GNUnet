@@ -1291,8 +1291,8 @@ send_callback (void *cls, size_t size, void *buf)
         GNUNET_assert (size >= th->size);
         mh = (struct GNUNET_MessageHeader *) &cbuf[sizeof (to)];
         psize = th->notify (th->notify_cls, size - sizeof (to), mh);
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "  to origin, type %u\n",
-             ntohs (mh->type));
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "  to origin, type %s\n",
+             GNUNET_MESH_DEBUG_M2S (ntohs (mh->type)));
         if (psize > 0)
         {
           psize += sizeof (to);
@@ -1315,8 +1315,8 @@ send_callback (void *cls, size_t size, void *buf)
         GNUNET_assert (size >= th->size);
         mh = (struct GNUNET_MessageHeader *) &cbuf[sizeof (mc)];
         psize = th->notify (th->notify_cls, size - sizeof (mc), mh);
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "  multicast, type %u\n",
-             ntohs (mh->type));
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "  multicast, type %s\n",
+             GNUNET_MESH_DEBUG_M2S (ntohs (mh->type)));
         if (psize > 0)
         {
           psize += sizeof (mc);
@@ -1339,8 +1339,8 @@ send_callback (void *cls, size_t size, void *buf)
         GNUNET_assert (size >= th->size);
         mh = (struct GNUNET_MessageHeader *) &cbuf[sizeof (uc)];
         psize = th->notify (th->notify_cls, size - sizeof (uc), mh);
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "  unicast, type %u\n",
-             ntohs (mh->type));
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "  unicast, type %s\n",
+             GNUNET_MESH_DEBUG_M2S (ntohs (mh->type)));
         if (psize > 0)
         {
           psize += sizeof (uc);
@@ -1360,8 +1360,8 @@ send_callback (void *cls, size_t size, void *buf)
     {
       struct GNUNET_MessageHeader *mh = (struct GNUNET_MessageHeader *) &th[1];
 
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "  mesh traffic, type %u\n",
-             ntohs (mh->type));
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "  mesh traffic, type %s\n",
+             GNUNET_MESH_DEBUG_M2S (ntohs (mh->type)));
       memcpy (cbuf, &th[1], th->size);
       psize = th->size;
     }
