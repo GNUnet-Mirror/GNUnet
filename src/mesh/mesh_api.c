@@ -1187,8 +1187,8 @@ msg_received (void *cls, const struct GNUNET_MessageHeader *msg)
     reconnect (h);
     return;
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "received a message type %hu from MESH\n",
-       ntohs (msg->type));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "received a message type %s from MESH\n",
+       GNUNET_MESH_DEBUG_M2S (ntohs (msg->type)));
   switch (ntohs (msg->type))
   {
     /* Notify of a new incoming tunnel */
@@ -1217,7 +1217,7 @@ msg_received (void *cls, const struct GNUNET_MessageHeader *msg)
   default:
     /* We shouldn't get any other packages, log and ignore */
     LOG (GNUNET_ERROR_TYPE_WARNING,
-         "unsolicited message form service (type %d)\n",
+         "unsolicited message form service (type %hu)\n",
          ntohs (msg->type));
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "message processed\n");
