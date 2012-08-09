@@ -325,10 +325,10 @@ inbound_end (void *cls, const struct GNUNET_MESH_Tunnel *tunnel,
   unsigned int id = *(unsigned int *) cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "incoming tunnel closed\n");
-  if (id != 1)
+  if (id != 2)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "received closing tunnel on peer 2\n");
+                "received closing tunnel on peer 1\n");
     result = GNUNET_SYSERR;
   }
 }
