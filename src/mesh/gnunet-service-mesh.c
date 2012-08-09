@@ -3482,6 +3482,31 @@ tunnel_get_neighbor_fc (const struct MeshTunnel *t,
 
 
 /**
+ * Get the Flow Control info of a client.
+ * 
+ * @param t Tunnel on which to look.
+ * @param c Client whose ACK to get.
+ * 
+ * @return ACK value.
+ */
+static struct MeshTunnelClientInfo *
+tunnel_get_client_fc (struct MeshTunnel *t,
+                      struct MeshClient *c)
+{
+  unsigned int i;
+
+  for (i = 0; i < t->nclients; i++)
+  {
+    if (t->clients[i] != c)
+      continue;
+    return &t->clients_fc[i];
+  }
+  GNUNET_assert (0);
+  return NULL; // avoid compiler / coverity complaints
+}
+
+
+/**
  * Iterator to get the appropiate ACK value from all children nodes.
  *
  * @param cls Closue (tunnel).
@@ -3569,31 +3594,6 @@ tunnel_set_client_fwd_ack (struct MeshTunnel *t,
     return;
   }
   GNUNET_break (0);
-}
-
-
-/**
- * Get the ACK value of a client in a particular tunnel.
- * 
- * @param t Tunnel on which to look.
- * @param c Client whose ACK to get.
- * 
- * @return ACK value.
- */
-uint32_t // FIXME fc Is this funcion needed anymore?
-tunnel_get_client_fwd_ack (struct MeshTunnel *t,
-                       struct MeshClient *c)
-{
-  unsigned int i;
-
-  for (i = 0; i < t->nclients; i++)
-  {
-    if (t->clients[i] != c)
-      continue;
-    return t->clients_fc[i].fwd_ack;
-  }
-  GNUNET_break (0);
-  return UINT32_MAX;
 }
 
 
@@ -6858,6 +6858,16 @@ handle_local_unicast (void *cls, struct GNUNET_SERVER_Client *client,
     return;
   }
 
+  /* PID should be as expected */
+  if (ntohl (data_msg->pid) != t->fwd_pid + 1)
+  {
+    GNUNET_break (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "Unicast PID, expected %u, got %u\n",
+              t->fwd_pid + 1, ntohl (data_msg->pid));
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
 
   /* Ok, everything is correct, send the message
    * (pretend we got it from a mesh peer)
@@ -6872,13 +6882,6 @@ handle_local_unicast (void *cls, struct GNUNET_SERVER_Client *client,
     copy->oid = my_full_id;
     copy->tid = htonl (t->id.tid);
     copy->ttl = htonl (default_ttl);
-    if (ntohl (copy->pid) != t->fwd_pid + 1)
-    {
-      GNUNET_break (0);
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "Unicast PID, expected %u, got %u\n",
-                t->fwd_pid + 1, ntohl (copy->pid));
-    }
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "  calling generic handler...\n");
     handle_mesh_data_unicast (NULL, &my_full_id, &copy->header, NULL, 0);
@@ -6901,7 +6904,7 @@ handle_local_to_origin (void *cls, struct GNUNET_SERVER_Client *client,
                         const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_MESH_ToOrigin *data_msg;
-  struct GNUNET_PeerIdentity id;
+  struct MeshTunnelClientInfo *clinfo;
   struct MeshClient *c;
   struct MeshTunnel *t;
   MESH_TunnelNumber tid;
@@ -6950,7 +6953,18 @@ handle_local_to_origin (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  GNUNET_PEER_resolve (t->id.oid, &id);
+
+  /* PID should be as expected */
+  clinfo = tunnel_get_client_fc (t, c);
+  if (ntohl (data_msg->pid) != clinfo->bck_pid + 1)
+  {
+    GNUNET_break (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "To Origin PID, expected %u, got %u\n",
+                clinfo->bck_pid + 1, ntohl (data_msg->pid));
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
 
   /* Ok, everything is correct, send the message
    * (pretend we got it from a mesh peer)
@@ -6962,7 +6976,7 @@ handle_local_to_origin (void *cls, struct GNUNET_SERVER_Client *client,
     /* Work around const limitation */
     copy = (struct GNUNET_MESH_ToOrigin *) buf;
     memcpy (buf, data_msg, size);
-    copy->oid = id;
+    GNUNET_PEER_resolve (t->id.oid, &copy->oid);
     copy->tid = htonl (t->id.tid);
     copy->ttl = htonl (default_ttl);
     GNUNET_assert (ntohl (copy->pid) == (t->bck_pid + 1));
@@ -7026,6 +7040,17 @@ handle_local_multicast (void *cls, struct GNUNET_SERVER_Client *client,
   if (t->owner->handle != client)
   {
     GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+
+  /* PID should be as expected */
+  if (ntohl (data_msg->pid) != t->fwd_pid + 1)
+  {
+    GNUNET_break (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "Multicast PID, expected %u, got %u\n",
+              t->fwd_pid + 1, ntohl (data_msg->pid));
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
