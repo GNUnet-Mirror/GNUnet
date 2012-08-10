@@ -364,6 +364,11 @@ struct OverlayConnectContext
    * Get hello handle for the other peer
    */
   struct GNUNET_TRANSPORT_GetHelloHandle *ghh;
+
+  /**
+   * The error message we send if this overlay connect operation has timed out
+   */
+  char *emsg;
   
   /**
    * The peer identity of the first peer
@@ -385,6 +390,11 @@ struct OverlayConnectContext
    * connect to peer 2
    */
   GNUNET_SCHEDULER_TaskIdentifier send_hello_task;
+  
+  /**
+   * The id of the overlay connect timeout task
+   */
+  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
 
   /**
    * State information for determining whose HELLOs have been successfully
@@ -716,6 +726,36 @@ route_message (uint32_t host_id, const struct GNUNET_MessageHeader *msg)
 
 
 /**
+ * Send operation failure message to client
+ *
+ * @param client the client to which the failure message has to be sent to
+ * @param operation_id the id of the failed operation
+ * @param emsg the error message; can be NULL
+ */
+static void
+send_operation_fail_msg (struct GNUNET_SERVER_Client *client,
+                         uint64_t operation_id,
+                         const char *emsg)
+{
+  struct GNUNET_TESTBED_OperationFailureEventMessage *msg;
+  uint16_t msize;
+  uint16_t emsg_len;
+  
+  msize = sizeof (struct GNUNET_TESTBED_OperationFailureEventMessage);  
+  emsg_len = (NULL == emsg) ? 0 : strlen (emsg) + 1;
+  msize += emsg_len;
+  msg = GNUNET_malloc (msize);
+  msg->header.size = htons (msize);
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_OPERATIONEVENT);
+  msg->event_type = htonl (GNUNET_TESTBED_ET_OPERATION_FINISHED);
+  msg->operation_id = GNUNET_htonll (operation_id);
+  if (0 != emsg_len)
+    memcpy (&msg[1], emsg, emsg_len);
+  queue_message (client, &msg->header);
+}
+
+
+/**
  * The  Link Controller forwarding task
  *
  * @param cls the LCFContext
@@ -1005,7 +1045,7 @@ handle_add_host (void *cls,
   reply->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_ADDHOSTCONFIRM);
   reply->header.size = htons (reply_size);
   reply->host_id = htonl (host_id);  
-  queue_message (client, (struct GNUNET_MessageHeader *) reply);
+  queue_message (client, &reply->header);
 }
 
 
@@ -1574,9 +1614,11 @@ static void
 occ_cleanup (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct OverlayConnectContext *occ = cls;
-  
-  if (NULL != occ->hello)
-    GNUNET_free (occ->hello);
+
+  GNUNET_free_non_null (occ->emsg);
+  GNUNET_free_non_null (occ->hello);
+  if (GNUNET_SCHEDULER_NO_TASK != occ->send_hello_task)
+    GNUNET_SCHEDULER_cancel (occ->send_hello_task);
   if (NULL != occ->ch)
     GNUNET_CORE_disconnect (occ->ch);
   if (NULL != occ->ghh)
@@ -1587,6 +1629,26 @@ occ_cleanup (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_TRANSPORT_disconnect (occ->p2th);
   GNUNET_free (occ);
 }
+
+
+/**
+ * Task which will be run when overlay connect request has been timed out
+ *
+ * @param 
+ * @return 
+ */
+static void
+timeout_overlay_connect (void *cls,
+                         const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct OverlayConnectContext *occ = cls;
+
+  occ->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  send_operation_fail_msg (occ->client, occ->op_id, occ->emsg);
+  GNUNET_SERVER_client_drop (occ->client);
+  occ_cleanup (occ, tc);
+}
+
 
 
 /**
@@ -1632,6 +1694,11 @@ overlay_connect_notify (void *cls,
     GNUNET_SCHEDULER_cancel (occ->send_hello_task);
     occ->send_hello_task = GNUNET_SCHEDULER_NO_TASK;
   }
+  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != occ->timeout_task);
+  GNUNET_SCHEDULER_cancel (occ->timeout_task);
+  occ->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_free_non_null (occ->emsg);
+  occ->emsg = NULL;
   GNUNET_TRANSPORT_disconnect (occ->p1th);
   occ->p1th = NULL;
   /* Peer 1 has connected connect to peer2 - now send overlay connect success message */
@@ -1726,6 +1793,8 @@ hello_update_cb (void *cls, const struct GNUNET_MessageHeader *hello)
   occ->ghh = NULL;
   GNUNET_TRANSPORT_disconnect (occ->p2th);
   occ->p2th = NULL;
+  GNUNET_free_non_null (occ->emsg);  
+  occ->emsg = GNUNET_strdup ("Timeout while offering HELLO to other peer");
   occ->send_hello_task = GNUNET_SCHEDULER_add_now (&send_hello, occ);
 }
 
@@ -1747,6 +1816,8 @@ core_startup_cb (void *cls, struct GNUNET_CORE_Handle * server,
 {
   struct OverlayConnectContext *occ = cls;
 
+  GNUNET_free_non_null (occ->emsg);
+  occ->emsg = NULL;
   memcpy (&occ->peer_identity, my_identity, sizeof (struct GNUNET_PeerIdentity));
   occ->p1th =
     GNUNET_TRANSPORT_connect (occ->peer->cfg, &occ->peer_identity, NULL, NULL,
@@ -1757,8 +1828,20 @@ core_startup_cb (void *cls, struct GNUNET_CORE_Handle * server,
   occ->p2th = 
     GNUNET_TRANSPORT_connect (occ->other_peer->cfg, &occ->other_peer_identity,
 			      NULL, NULL, NULL, NULL);
-  LOG_DEBUG ("Acquiring HELLO of peer %s\n", GNUNET_i2s (&occ->other_peer_identity));
+  if ((NULL == occ->p1th) || (NULL == occ->p2th))
+  {
+    occ->emsg = GNUNET_strdup ("Cannot connect to TRANSPORTs of peers");
+    goto send_failure;
+  }
+  LOG_DEBUG ("Acquiring HELLO of peer %s\n", GNUNET_i2s
+             (&occ->other_peer_identity));
+  occ->emsg = GNUNET_strdup ("Timeout while acquiring HELLO message");
   occ->ghh = GNUNET_TRANSPORT_get_hello (occ->p2th, &hello_update_cb, occ);
+  return;
+
+ send_failure:
+  GNUNET_SCHEDULER_cancel (occ->timeout_task);
+  occ->timeout_task = GNUNET_SCHEDULER_add_now (&timeout_overlay_connect, occ);  
 }
 
 
@@ -1796,7 +1879,12 @@ handle_overlay_connect (void *cls,
   occ->peer = peer_list[p1];
   occ->other_peer = peer_list[p2];
   occ->op_id = GNUNET_ntohll (msg->operation_id);
+  occ->timeout_task =
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                  (GNUNET_TIME_UNIT_SECONDS, 30),
+                                  &timeout_overlay_connect, occ);   
   /* Connect to the core of 1st peer and wait for the 2nd peer to connect */
+  occ->emsg = GNUNET_strdup ("Timeout while connecting to CORE");
   occ->ch = 
     GNUNET_CORE_connect (occ->peer->cfg, occ, &core_startup_cb,
 			 &overlay_connect_notify, NULL, NULL, GNUNET_NO, NULL,
