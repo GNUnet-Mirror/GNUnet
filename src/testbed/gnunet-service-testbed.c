@@ -677,6 +677,32 @@ peer_list_add (struct Peer *peer)
 
 
 /**
+ * Removes a the give peer from the peer array
+ *
+ * @param peer the peer to be removed
+ */
+static void
+peer_list_remove (struct Peer *peer)
+{
+  uint32_t id;
+
+  peer_list[peer->id] = NULL;
+  while (peer_list_size >= LIST_GROW_STEP)
+  {
+    for (id = peer_list_size - 1;
+         id > peer_list_size - LIST_GROW_STEP; id--)
+      if (NULL != peer_list[id])
+        break;
+    if (id != peer_list_size - LIST_GROW_STEP)
+      break;
+    peer_list_size -= LIST_GROW_STEP;
+  }
+  peer_list = GNUNET_realloc (peer_list, sizeof (struct GNUNET_TESTBED_Peer*)
+                              * peer_list_size);
+}
+
+
+/**
  * Routes message to a host given its host_id
  *
  * @param host_id the id of the destination host
@@ -1369,36 +1395,26 @@ handle_peer_destroy (void *cls,
 {
   const struct GNUNET_TESTBED_PeerDestroyMessage *msg;
   struct GNUNET_TESTBED_GenericOperationSuccessEventMessage *reply;
+  struct Peer *peer;
   uint32_t peer_id;
-  uint32_t id;
   uint16_t reply_size;
   
   msg = (const struct GNUNET_TESTBED_PeerDestroyMessage *) message;
   peer_id = ntohl (msg->peer_id);
   LOG_DEBUG ("Received peer destory on peer: %u and operation id: %ul\n",
-             peer_id, GNUNET_ntohll (msg->operation_id));
+             peer_id, GNUNET_ntohll (msg->operation_id));  
   if ((peer_list_size <= peer_id) || (NULL == peer_list[peer_id]))
   {
     GNUNET_break (0);
     /* FIXME: Reply with failure event message or forward to slave controller */
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
-  }  
-  GNUNET_TESTING_peer_destroy (peer_list[peer_id]->peer);
-  GNUNET_CONFIGURATION_destroy (peer_list[peer_id]->cfg);
-  GNUNET_free (peer_list[peer_id]);
-  peer_list[peer_id] = NULL;
-  for (id = 0; id < LIST_GROW_STEP; id++)
-  {
-    if (((peer_id + id >= peer_list_size) ||
-         (NULL != peer_list[peer_id])))
-      break;
   }
-  if (LIST_GROW_STEP == id)
-  {
-    peer_list_size -= LIST_GROW_STEP;
-    peer_list = GNUNET_realloc (peer_list, peer_list_size);
-  }
+  peer = peer_list[peer_id];
+  GNUNET_TESTING_peer_destroy (peer->peer);
+  GNUNET_CONFIGURATION_destroy (peer->cfg);
+  peer_list_remove (peer);
+  GNUNET_free (peer);
   reply_size = 
     sizeof (struct GNUNET_TESTBED_GenericOperationSuccessEventMessage);
   reply = GNUNET_malloc (reply_size);
