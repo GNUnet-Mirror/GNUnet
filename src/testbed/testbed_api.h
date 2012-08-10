@@ -345,6 +345,8 @@ GNUNET_TESTBED_operation_add_ (struct GNUNET_TESTBED_Operation *op);
  */
 struct GNUNET_TESTBED_HelperInit *
 GNUNET_TESTBED_create_helper_init_msg_ (const char *cname,
-					const struct GNUNET_CONFIGURATION_Handle *cfg);
+					const struct
+                                        GNUNET_CONFIGURATION_Handle *cfg);
+
 
 #endif

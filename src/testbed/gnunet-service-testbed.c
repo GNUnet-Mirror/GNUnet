@@ -406,6 +406,29 @@ struct OverlayConnectContext
 
 
 /**
+ * Context data to be used when forwarding peer create messages
+ */
+struct PeerCreateContext
+{
+  /**
+   * The operation handle to peer create
+   */
+  struct GNUNET_TESTBED_operation *operation;
+
+  /**
+   * The ID of the operation which created this context
+   */
+  uint64_t operation_id;
+
+  /**
+   * The peer create timeout task id
+   */
+  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+
+};
+
+
+/**
  * The master context; generated with the first INIT message
  */
 static struct Context *master_context;
@@ -709,6 +732,29 @@ peer_list_remove (struct Peer *peer)
   }
   peer_list = GNUNET_realloc (peer_list, sizeof (struct GNUNET_TESTBED_Peer*)
                               * peer_list_size);
+}
+
+
+/**
+ * Finds the route with directly connected host as destination through which
+ * the destination host can be reached
+ *
+ * @param host_id the id of the destination host
+ * @return the route with directly connected destination host; NULL if no route
+ *           is found
+ */
+static struct Route *
+find_dest_route (uint32_t host_id)
+{
+  struct Route *route;
+  
+  while(NULL != (route = route_list[host_id]))
+  {
+    if (route->thru == master_context->host_id)
+      break;
+    host_id = route->thru;
+  }
+  return route;
 }
 
 
@@ -1287,12 +1333,7 @@ handle_link_controllers (void *cls,
   lcfq->lcf = GNUNET_malloc (sizeof (struct LCFContext));
   lcfq->lcf->delegated_host_id = delegated_host_id;
   lcfq->lcf->slave_host_id = slave_host_id;
-  while (NULL != (route = route_list[slave_host_id]))
-  {
-    if (route->thru == master_context->host_id)
-      break;
-    slave_host_id = route->thru;
-  }
+  route = find_dest_route (slave_host_id);
   GNUNET_assert (NULL != route); /* because we add routes carefully */
   GNUNET_assert (route->dest < slave_list_size);
   GNUNET_assert (NULL != slave_list[route->dest]);  
@@ -1335,10 +1376,13 @@ handle_peer_create (void *cls,
   const struct GNUNET_TESTBED_PeerCreateMessage *msg;
   struct GNUNET_TESTBED_PeerCreateSuccessEventMessage *reply;
   struct GNUNET_CONFIGURATION_Handle *cfg;
+  struct PeerCreateContext *pc_ctxt;
+  struct Route *route;
   char *config;
   size_t dest_size;
   int ret;
   uint32_t config_size;
+  uint32_t host_id;
   uint16_t msize;
   
 
@@ -1350,7 +1394,8 @@ handle_peer_create (void *cls,
     return;
   }
   msg = (const struct GNUNET_TESTBED_PeerCreateMessage *) message;
-  if (ntohl (msg->host_id) == master_context->host_id)
+  host_id = ntohl (msg->host_id);
+  if (host_id == master_context->host_id)
   {
     struct Peer *peer;
     char *emsg;
@@ -1411,10 +1456,18 @@ handle_peer_create (void *cls,
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
-
-  /* FIXME: Forward the peer to other host */
-  GNUNET_break (0);
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  
+  /* Forward peer create request */
+  route = find_dest_route (host_id);
+  if (NULL == route)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
+  pc_ctxt = GNUNET_malloc (sizeof (struct PeerCreateContext));
+  pc_ctxt->operation_id = GNUNET_ntohll (msg->operation_id);
+  /* To be continued .. :) */
 }
 
 
