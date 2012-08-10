@@ -997,6 +997,7 @@ GNUNET_TESTBED_controller_connect (const struct GNUNET_CONFIGURATION_Handle *cfg
 {
   struct GNUNET_TESTBED_Controller *controller;
   struct GNUNET_TESTBED_InitMessage *msg;
+  const char *controller_hostname;
   unsigned long long max_parallel_peer_create;
 
   if (GNUNET_OK !=
@@ -1021,7 +1022,7 @@ GNUNET_TESTBED_controller_connect (const struct GNUNET_CONFIGURATION_Handle *cfg
   if (NULL == host)
   {
     host = GNUNET_TESTBED_host_create_by_id_ (0);
-    if (NULL == host)
+    if (NULL == host)           /* If the above host create fails */
     {
       LOG (GNUNET_ERROR_TYPE_WARNING,
 	   "Treating NULL host as localhost. Multiple references to localhost "
@@ -1037,14 +1038,19 @@ GNUNET_TESTBED_controller_connect (const struct GNUNET_CONFIGURATION_Handle *cfg
   controller->opq_peer_create =
     GNUNET_TESTBED_operation_queue_create_ ((unsigned int)
                                             max_parallel_peer_create);
-  msg = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_InitMessage));
+  controller_hostname = GNUNET_TESTBED_host_get_hostname_ (host);
+  if (NULL == controller_hostname)
+    controller_hostname = "127.0.0.1";
+  msg = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_InitMessage)
+                       + strlen (controller_hostname) + 1);
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_INIT);
-  msg->header.size = htons (sizeof (struct GNUNET_TESTBED_InitMessage));
+  msg->header.size = htons (sizeof (struct GNUNET_TESTBED_InitMessage)
+                            + strlen (controller_hostname) + 1);
   msg->host_id = htonl (GNUNET_TESTBED_host_get_id_ (host));
   msg->event_mask = GNUNET_htonll (controller->event_mask);
+  strcpy ((char *) &msg[1], controller_hostname);
   GNUNET_TESTBED_queue_message_ (controller, (struct GNUNET_MessageHeader *)
-                                 msg);
-  
+                                 msg);  
   return controller;
 }
 
@@ -1342,7 +1348,8 @@ GNUNET_TESTBED_overlay_write_topology_to_file (struct GNUNET_TESTBED_Controller 
 
 
 /**
- * Creates a helper initialization message. Only for testing.
+ * Creates a helper initialization message. This function is here because we
+ * want to use this in testing
  *
  * @param cname the ip address of the controlling host
  * @param cfg the configuration that has to used to start the testbed service

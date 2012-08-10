@@ -935,8 +935,8 @@ handle_init (void *cls,
 {
   const struct GNUNET_TESTBED_InitMessage *msg;
   struct GNUNET_TESTBED_Host *host;
-  void *addr;
-  size_t addrlen;
+  const char *controller_hostname;
+  uint16_t msize;
 
   if (NULL != master_context)
   {
@@ -944,29 +944,26 @@ handle_init (void *cls,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  msg = (const struct GNUNET_TESTBED_InitMessage *) message;  
+  msg = (const struct GNUNET_TESTBED_InitMessage *) message;
+  msize = ntohs (message->size);
+  if (msize <= sizeof (struct GNUNET_TESTBED_InitMessage))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  msize -= sizeof (struct GNUNET_TESTBED_InitMessage);  
+  controller_hostname = (const char *) &msg[1];
+  if ('\0' != controller_hostname[msize - 1])
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }    
   master_context = GNUNET_malloc (sizeof (struct Context));
   master_context->client = client;
   master_context->host_id = ntohl (msg->host_id);
-  GNUNET_assert (GNUNET_OK == 
-		 GNUNET_SERVER_client_get_address (client, &addr, &addrlen));
-  master_context->master_ip = GNUNET_malloc (NI_MAXHOST);
-  if (0 != getnameinfo (addr, addrlen, master_context->master_ip, NI_MAXHOST,
-			NULL, 0, NI_NUMERICHOST))
-  {
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-	 "Cannot determine the ip of master controller: %s\n", STRERROR (errno));
-    GNUNET_free (addr);
-    GNUNET_free (master_context->master_ip);
-    GNUNET_assert (0);
-  }
-  GNUNET_free (addr);
-  if (0 == strcasecmp (master_context->master_ip, "localhost"))
-  {				/* Hack for connections via unix sockets */
-    LOG_DEBUG ("May be using local sockets - assuming loopback for master ip\n");
-    GNUNET_free (master_context->master_ip);
-    master_context->master_ip = strdup ("127.0.0.1");
-  }
+  master_context->master_ip = GNUNET_strdup (controller_hostname);  
   LOG_DEBUG ("Master Controller IP: %s\n", master_context->master_ip);
   master_context->system = 
     GNUNET_TESTING_system_create ("testbed", master_context->master_ip);
@@ -2031,8 +2028,7 @@ testbed_run (void *cls,
 {
   static const struct GNUNET_SERVER_MessageHandler message_handlers[] =
     {
-      {&handle_init, NULL, GNUNET_MESSAGE_TYPE_TESTBED_INIT,
-       sizeof (struct GNUNET_TESTBED_InitMessage)},
+      {&handle_init, NULL, GNUNET_MESSAGE_TYPE_TESTBED_INIT, 0},
       {&handle_add_host, NULL, GNUNET_MESSAGE_TYPE_TESTBED_ADDHOST, 0},
       {&handle_configure_shared_service, NULL,
        GNUNET_MESSAGE_TYPE_TESTBED_SERVICESHARE, 0},
