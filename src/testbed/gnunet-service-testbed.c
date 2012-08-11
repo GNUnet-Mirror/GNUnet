@@ -50,9 +50,19 @@
 #define LOG_DEBUG(...)                          \
   LOG (GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__)
 
-
+/**
+ * By how much should the arrays lists grow
+ */
 #define LIST_GROW_STEP 10
 
+/**
+ * Default timeout for operations which may take some time
+ */
+#define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30)
+
+/**
+ * The main context information associated with the client which started us
+ */
 struct Context
 {
   /**
@@ -433,14 +443,29 @@ struct OverlayConnectContext
 struct ForwardedOperationContext
 {
   /**
+   * The generated operation context
+   */
+  struct OperationContext *opc;
+
+  /**
+   * The client to which we have to reply
+   */
+  struct GNUNET_SERVER_Client *client;
+
+  /**
    * Task ID for the timeout task
    */
   GNUNET_SCHEDULER_TaskIdentifier timeout_task;
 
   /**
-   * The ID of the operation that is forwarded
+   * The id of the operation that has been forwarded
    */
-  uint64_t operation_id;
+  uint64_t operation_id;  
+
+  /**
+   * The ID of the peer we are going to create
+   */
+  uint32_t peer_id;
 };
 
 
@@ -1378,6 +1403,56 @@ handle_link_controllers (void *cls,
 
 
 /**
+ * The task to be executed if the forwarded peer create operation has been
+ * timed out
+ *
+ * @param cls the FowardedOperationContext
+ * @param tc the TaskContext from the scheduler
+ */
+static void
+peer_create_forward_timeout (void *cls,
+                             const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct ForwardedOperationContext *fo_ctxt = cls;
+  
+  /* send error msg to client */
+  send_operation_fail_msg (fo_ctxt->client, fo_ctxt->operation_id,
+                           "Timedout");  
+  GNUNET_SERVER_client_drop (fo_ctxt->client);
+  GNUNET_TESTBED_forward_operation_msg_cancel_ (fo_ctxt->opc);
+  GNUNET_free (fo_ctxt);  
+}
+
+
+/**
+ * Callback to be called when forwarded peer create operation is
+ * successfull. We have to relay the reply msg back to the client
+ *
+ * @param cls ForwardedOperationContext
+ * @param msg the peer create success message
+ */
+static void
+peer_create_success_cb (void *cls,
+                        const struct GNUNET_MessageHeader *msg)
+{
+  struct ForwardedOperationContext *fo_ctxt = cls;
+  struct GNUNET_MessageHeader *dup_msg;  
+  uint16_t msize;
+  
+  GNUNET_SCHEDULER_cancel (fo_ctxt->timeout_task);  
+  GNUNET_assert (ntohs (msg->type) == 
+                 GNUNET_MESSAGE_TYPE_TESTBED_PEERCREATESUCCESS);
+  msize = ntohs (msg->size);  
+  dup_msg = GNUNET_malloc (msize);
+  (void) memcpy (dup_msg, msg, msize);  
+  queue_message (fo_ctxt->client, dup_msg);
+  GNUNET_SERVER_client_drop (fo_ctxt->client);
+  GNUNET_free (fo_ctxt);  
+}
+
+
+
+/**
  * Handler for GNUNET_MESSAGE_TYPE_TESTBED_CREATEPEER messages
  *
  * @param cls NULL
@@ -1390,7 +1465,6 @@ handle_peer_create (void *cls,
                     const struct GNUNET_MessageHeader *message)
 {
   const struct GNUNET_TESTBED_PeerCreateMessage *msg;
-  struct GNUNET_TESTBED_PeerCreateMessage *dup_msg;
   struct GNUNET_TESTBED_PeerCreateSuccessEventMessage *reply;
   struct GNUNET_CONFIGURATION_Handle *cfg;
   struct ForwardedOperationContext *fo_ctxt;
@@ -1485,11 +1559,19 @@ handle_peer_create (void *cls,
     return;
   }
   fo_ctxt = GNUNET_malloc (sizeof (struct ForwardedOperationContext));
-  fo_ctxt->operation_id = GNUNET_ntohll (msg->operation_id);
-  dup_msg = GNUNET_malloc (msize);
-  (void) memcpy (dup_msg, msg, msize);
-  GNUNET_TESTBED_queue_message_ (slave_list[route->dest]->controller,
-                                 &dup_msg->header);
+  GNUNET_SERVER_client_keep (client);
+  fo_ctxt->client = client;
+  fo_ctxt->peer_id = ntohl (msg->peer_id);
+  fo_ctxt->operation_id = GNUNET_ntohll (msg->operation_id);  
+  fo_ctxt->opc = 
+    GNUNET_TESTBED_forward_operation_msg_ (slave_list[route->dest]->controller,
+                                           fo_ctxt->operation_id,
+                                           &msg->header,
+                                           peer_create_success_cb, fo_ctxt);
+  fo_ctxt->timeout_task = 
+    GNUNET_SCHEDULER_add_delayed (TIMEOUT,
+                                  &peer_create_forward_timeout, fo_ctxt);
+                                  
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
