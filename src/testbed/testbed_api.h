@@ -356,7 +356,9 @@ GNUNET_TESTBED_create_helper_init_msg_ (const char *cname,
 
 /**
  * Sends the given message as an operation. The given callback is called when a
- * reply for the operation is available
+ * reply for the operation is available.  Call
+ * GNUNET_TESTBED_forward_operation_msg_cancel_() to cleanup the returned
+ * operation context if the cc hasn't been called
  *
  * @param controller the controller to which the message has to be sent
  * @param operation_id the operation id of the message
@@ -373,6 +375,16 @@ GNUNET_TESTBED_forward_operation_msg_ (struct GNUNET_TESTBED_Controller
                                        const struct GNUNET_MessageHeader *msg,
                                        GNUNET_CLIENT_MessageHandler cc,
                                        void *cc_cls);
+
+/**
+ * Function to cancel an operation created by simply forwarding an operation
+ * message.
+ *
+ * @param opc the operation context from GNUNET_TESTBED_forward_operation_msg_()
+ */
+void
+GNUNET_TESTBED_forward_operation_msg_cancel_ (struct OperationContext *opc);
+
 
 #endif
 /* end of testbed_api.h */

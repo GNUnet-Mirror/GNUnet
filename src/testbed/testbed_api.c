@@ -751,7 +751,9 @@ GNUNET_TESTBED_queue_message_ (struct GNUNET_TESTBED_Controller *controller,
 
 /**
  * Sends the given message as an operation. The given callback is called when a
- * reply for the operation is available
+ * reply for the operation is available.  Call
+ * GNUNET_TESTBED_forward_operation_msg_cancel_() to cleanup the returned
+ * operation context if the cc hasn't been called
  *
  * @param controller the controller to which the message has to be sent
  * @param operation_id the operation id of the message
@@ -778,6 +780,7 @@ GNUNET_TESTBED_forward_operation_msg_ (struct GNUNET_TESTBED_Controller
   data->cc = cc;
   data->cc_cls = cc_cls;  
   opc = GNUNET_malloc (sizeof (struct OperationContext));
+  opc->c = controller;  
   opc->type = OP_FORWARDED;
   opc->data = data;
   opc->id = operation_id;
@@ -788,6 +791,21 @@ GNUNET_TESTBED_forward_operation_msg_ (struct GNUNET_TESTBED_Controller
   GNUNET_CONTAINER_DLL_insert_tail (controller->ocq_head,
                                     controller->ocq_tail, opc);
   return opc;  
+}
+
+
+/**
+ * Function to cancel an operation created by simply forwarding an operation
+ * message.
+ *
+ * @param opc the operation context from GNUNET_TESTBED_forward_operation_msg_()
+ */
+void
+GNUNET_TESTBED_forward_operation_msg_cancel_ (struct OperationContext *opc)
+{
+  GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
+  GNUNET_free (opc->data);
+  GNUNET_free (opc);  
 }
 
 
