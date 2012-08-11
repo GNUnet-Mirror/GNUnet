@@ -278,21 +278,43 @@ struct LCFContextQueue
  */
 struct Peer
 {
-  /**
-   * The peer handle from testing API
-   */
-  struct GNUNET_TESTING_Peer *peer;
+  union
+  {
+    struct 
+    {
+      /**
+       * The peer handle from testing API
+       */
+      struct GNUNET_TESTING_Peer *peer;
+      
+      /**
+       * The modified (by GNUNET_TESTING_peer_configure) configuration this
+       * peer is configured with
+       */
+      struct GNUNET_CONFIGURATION_Handle *cfg;
 
-  /**
-   * The modified (by GNUNET_TESTING_peer_configure) configuration this peer is
-   * configured with
-   */
-  struct GNUNET_CONFIGURATION_Handle *cfg;
+    } local;
+
+    struct
+    {
+      /**
+       * The controller this peer is started through
+       */
+      struct GNUNET_TESTBED_Controller *controller;
+
+    } remote;
+    
+  } details;
 
   /**
    * Our local reference id for this peer
    */
   uint32_t id;
+
+  /**
+   * Is this peer local created?
+   */
+  uint32_t is_remote;
 
 };
 
@@ -1430,14 +1452,16 @@ handle_peer_create (void *cls,
     }
     GNUNET_free (config);
     peer = GNUNET_malloc (sizeof (struct Peer));
-    peer->cfg = cfg;
+    peer->is_remote = GNUNET_NO;
+    peer->details.local.cfg = cfg;
     peer->id = ntohl (msg->peer_id);
     LOG_DEBUG ("Creating peer with id: %u\n", peer->id);
-    peer->peer = GNUNET_TESTING_peer_configure (master_context->system, peer->cfg,
-                                                peer->id,
-                                                NULL /* Peer id */,
-                                                &emsg);
-    if (NULL == peer->peer)
+    peer->details.local.peer = 
+      GNUNET_TESTING_peer_configure (master_context->system,
+                                     peer->details.local.cfg, peer->id,
+                                     NULL /* Peer id */,
+                                     &emsg);
+    if (NULL == peer->details.local.peer)
     {
       LOG (GNUNET_ERROR_TYPE_WARNING, "Configuring peer failed: %s\n", emsg);
       GNUNET_free (emsg);
@@ -1501,8 +1525,15 @@ handle_peer_destroy (void *cls,
     return;
   }
   peer = peer_list[peer_id];
-  GNUNET_TESTING_peer_destroy (peer->peer);
-  GNUNET_CONFIGURATION_destroy (peer->cfg);
+  if (GNUNET_YES == peer->is_remote)
+  {
+    /* Forward the destory message to sub controller */
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
+  GNUNET_TESTING_peer_destroy (peer->details.local.peer);
+  GNUNET_CONFIGURATION_destroy (peer->details.local.cfg);
   peer_list_remove (peer);
   GNUNET_free (peer);
   reply_size = 
@@ -1543,7 +1574,8 @@ handle_peer_start (void *cls,
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
-  if (GNUNET_OK != GNUNET_TESTING_peer_start (peer_list[peer_id]->peer))
+  if (GNUNET_OK != 
+      GNUNET_TESTING_peer_start (peer_list[peer_id]->details.local.peer))
   {
     /* FIXME: return FAILURE message */
     GNUNET_break (0);
@@ -1586,7 +1618,8 @@ handle_peer_stop (void *cls,
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
-  if (GNUNET_OK != GNUNET_TESTING_peer_stop (peer_list[peer_id]->peer))
+  if (GNUNET_OK != 
+      GNUNET_TESTING_peer_stop (peer_list[peer_id]->details.local.peer))
   {
     /* FIXME: return FAILURE message */
     GNUNET_break (0);
@@ -1619,6 +1652,7 @@ handle_peer_get_config (void *cls,
 {
   const struct GNUNET_TESTBED_PeerGetConfigurationMessage *msg;
   struct GNUNET_TESTBED_PeerConfigurationInformationMessage *reply;
+  struct Peer *peer;
   char *config;
   char *xconfig;
   size_t c_size;
@@ -1633,9 +1667,19 @@ handle_peer_get_config (void *cls,
     /* FIXME: return FAILURE message */
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
   }
-  config = GNUNET_CONFIGURATION_serialize (peer_list[peer_id]->cfg,
-                                           &c_size);
+  peer = peer_list[peer_id];
+  if (GNUNET_YES == peer->is_remote)
+  {
+    /* FIXME: forward to sub controller */
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
+  config =
+    GNUNET_CONFIGURATION_serialize (peer_list[peer_id]->details.local.cfg,
+                                    &c_size);
   xc_size = GNUNET_TESTBED_compress_config_ (config, c_size, &xconfig);
   GNUNET_free (config);
   msize = xc_size + sizeof (struct
@@ -1646,7 +1690,7 @@ handle_peer_get_config (void *cls,
   reply->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_PEERCONFIG);
   reply->peer_id = msg->peer_id;
   reply->operation_id = msg->operation_id;
-  GNUNET_TESTING_peer_get_identity (peer_list[peer_id]->peer,
+  GNUNET_TESTING_peer_get_identity (peer_list[peer_id]->details.local.peer,
                                     &reply->peer_identity);
   reply->config_size = htons ((uint16_t) c_size);
   queue_message (client, &reply->header);
@@ -1870,14 +1914,15 @@ core_startup_cb (void *cls, struct GNUNET_CORE_Handle * server,
   occ->emsg = NULL;
   memcpy (&occ->peer_identity, my_identity, sizeof (struct GNUNET_PeerIdentity));
   occ->p1th =
-    GNUNET_TRANSPORT_connect (occ->peer->cfg, &occ->peer_identity, NULL, NULL,
-			      NULL, NULL);
+    GNUNET_TRANSPORT_connect (occ->peer->details.local.cfg, 
+                              &occ->peer_identity, NULL, NULL, NULL, NULL);
   /* Connect to the transport of 2nd peer and get its HELLO message */
-  GNUNET_TESTING_peer_get_identity (occ->other_peer->peer,
+  GNUNET_TESTING_peer_get_identity (occ->other_peer->details.local.peer,
 				    &occ->other_peer_identity);
   occ->p2th = 
-    GNUNET_TRANSPORT_connect (occ->other_peer->cfg, &occ->other_peer_identity,
-			      NULL, NULL, NULL, NULL);
+    GNUNET_TRANSPORT_connect (occ->other_peer->details.local.cfg,
+                              &occ->other_peer_identity,
+                              NULL, NULL, NULL, NULL);
   if ((NULL == occ->p1th) || (NULL == occ->p2th))
   {
     occ->emsg = GNUNET_strdup ("Cannot connect to TRANSPORTs of peers");
@@ -1922,6 +1967,8 @@ handle_overlay_connect (void *cls,
   GNUNET_assert (NULL != peer_list[p1]);
   GNUNET_assert (p2 < peer_list_size);
   GNUNET_assert (NULL != peer_list[p2]);
+  /* FIXME: Add cases where we have to forward overlay connect message to sub
+     controllers */
   occ = GNUNET_malloc (sizeof (struct OverlayConnectContext));
   GNUNET_SERVER_client_keep (client);
   occ->client = client;
@@ -1936,7 +1983,7 @@ handle_overlay_connect (void *cls,
   /* Connect to the core of 1st peer and wait for the 2nd peer to connect */
   occ->emsg = GNUNET_strdup ("Timeout while connecting to CORE");
   occ->ch = 
-    GNUNET_CORE_connect (occ->peer->cfg, occ, &core_startup_cb,
+    GNUNET_CORE_connect (occ->peer->details.local.cfg, occ, &core_startup_cb,
 			 &overlay_connect_notify, NULL, NULL, GNUNET_NO, NULL,
 			 GNUNET_NO, no_handlers);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -2007,8 +2054,8 @@ shutdown_task (void *cls,
   for (id = 0; id < peer_list_size; id++)
     if (NULL != peer_list[id])
     {
-      GNUNET_TESTING_peer_destroy (peer_list[id]->peer);
-      GNUNET_CONFIGURATION_destroy (peer_list[id]->cfg);
+      GNUNET_TESTING_peer_destroy (peer_list[id]->details.local.peer);
+      GNUNET_CONFIGURATION_destroy (peer_list[id]->details.local.cfg);
       GNUNET_free (peer_list[id]);
     }
   GNUNET_free_non_null (peer_list);
