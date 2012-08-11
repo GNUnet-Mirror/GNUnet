@@ -428,25 +428,19 @@ struct OverlayConnectContext
 
 
 /**
- * Context data to be used when forwarding peer create messages
+ * Context information for operations forward to subcontrollers
  */
-struct PeerCreateContext
+struct ForwardedOperationContext
 {
   /**
-   * The operation handle to peer create
-   */
-  struct GNUNET_TESTBED_operation *operation;
-
-  /**
-   * The ID of the operation which created this context
-   */
-  uint64_t operation_id;
-
-  /**
-   * The peer create timeout task id
+   * Task ID for the timeout task
    */
   GNUNET_SCHEDULER_TaskIdentifier timeout_task;
 
+  /**
+   * The ID of the operation that is forwarded
+   */
+  uint64_t operation_id;
 };
 
 
@@ -1396,10 +1390,12 @@ handle_peer_create (void *cls,
                     const struct GNUNET_MessageHeader *message)
 {
   const struct GNUNET_TESTBED_PeerCreateMessage *msg;
+  struct GNUNET_TESTBED_PeerCreateMessage *dup_msg;
   struct GNUNET_TESTBED_PeerCreateSuccessEventMessage *reply;
   struct GNUNET_CONFIGURATION_Handle *cfg;
-  struct PeerCreateContext *pc_ctxt;
+  struct ForwardedOperationContext *fo_ctxt;
   struct Route *route;
+  struct Peer *peer;
   char *config;
   size_t dest_size;
   int ret;
@@ -1419,7 +1415,6 @@ handle_peer_create (void *cls,
   host_id = ntohl (msg->host_id);
   if (host_id == master_context->host_id)
   {
-    struct Peer *peer;
     char *emsg;
     
     /* We are responsible for this peer */
@@ -1489,9 +1484,13 @@ handle_peer_create (void *cls,
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
-  pc_ctxt = GNUNET_malloc (sizeof (struct PeerCreateContext));
-  pc_ctxt->operation_id = GNUNET_ntohll (msg->operation_id);
-  /* To be continued .. :) */
+  fo_ctxt = GNUNET_malloc (sizeof (struct ForwardedOperationContext));
+  fo_ctxt->operation_id = GNUNET_ntohll (msg->operation_id);
+  dup_msg = GNUNET_malloc (msize);
+  (void) memcpy (dup_msg, msg, msize);
+  GNUNET_TESTBED_queue_message_ (slave_list[route->dest]->controller,
+                                 &dup_msg->header);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 

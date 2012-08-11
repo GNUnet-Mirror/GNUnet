@@ -606,4 +606,5 @@ struct GNUNET_TESTBED_PeerConfigurationInformationMessage
 
 };
 
+
 #endif

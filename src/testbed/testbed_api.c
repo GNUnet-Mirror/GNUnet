@@ -156,6 +156,25 @@ struct GNUNET_TESTBED_HostRegistrationHandle
 
 
 /**
+ * Context data for forwarded Operation
+ */
+struct ForwardedOperationData
+{
+  
+  /**
+   * The callback to call when reply is available
+   */
+  GNUNET_CLIENT_MessageHandler cc;  
+
+  /**
+   * The closure for the above callback
+   */
+  void *cc_cls;
+  
+};
+
+
+/**
  * Returns the operation context with the given id if found in the Operation
  * context queues of the controller
  *
@@ -326,6 +345,18 @@ handle_peer_create_success (struct GNUNET_TESTBED_Controller *c,
     LOG_DEBUG ("Operation context for PeerCreateSuccessEvent not found\n");
     return GNUNET_YES;
   }
+  if (OP_FORWARDED == opc->type)
+  {
+    struct ForwardedOperationData *fo_data;
+    
+    fo_data = opc->data;
+    if (NULL != fo_data->cc)
+      fo_data->cc (fo_data->cc_cls, (const struct GNUNET_MessageHeader *) msg);
+    GNUNET_CONTAINER_DLL_remove (c->ocq_head, c->ocq_tail, opc);
+    GNUNET_free (fo_data);
+    GNUNET_free (opc);    
+    return GNUNET_YES;    
+  }  
   GNUNET_assert (OP_PEER_CREATE == opc->type);
   GNUNET_assert (NULL != opc->data);
   data = opc->data;
@@ -715,6 +746,48 @@ GNUNET_TESTBED_queue_message_ (struct GNUNET_TESTBED_Controller *controller,
                                            TIMEOUT_REL,
                                            GNUNET_YES, &transmit_ready_notify,
                                            controller);
+}
+
+
+/**
+ * Sends the given message as an operation. The given callback is called when a
+ * reply for the operation is available
+ *
+ * @param controller the controller to which the message has to be sent
+ * @param operation_id the operation id of the message
+ * @param msg the message to send
+ * @param cc the callback to call when reply is available
+ * @param cc_cls the closure for the above callback
+ * @return the operation context which can be used to cancel the forwarded
+ *           operation 
+ */
+struct OperationContext *
+GNUNET_TESTBED_forward_operation_msg_ (struct GNUNET_TESTBED_Controller
+                                       * controller,
+                                       uint64_t operation_id,
+                                       const struct GNUNET_MessageHeader *msg,
+                                       GNUNET_CLIENT_MessageHandler cc,
+                                       void *cc_cls)
+{
+  struct OperationContext *opc;
+  struct ForwardedOperationData *data;
+  struct GNUNET_MessageHeader *dup_msg;  
+  uint16_t msize;
+  
+  data = GNUNET_malloc (sizeof (struct ForwardedOperationData));
+  data->cc = cc;
+  data->cc_cls = cc_cls;  
+  opc = GNUNET_malloc (sizeof (struct OperationContext));
+  opc->type = OP_FORWARDED;
+  opc->data = data;
+  opc->id = operation_id;
+  msize = ntohs (msg->size);
+  dup_msg = GNUNET_malloc (msize);
+  (void) memcpy (dup_msg, msg, msize);  
+  GNUNET_TESTBED_queue_message_ (opc->c, dup_msg);
+  GNUNET_CONTAINER_DLL_insert_tail (controller->ocq_head,
+                                    controller->ocq_tail, opc);
+  return opc;  
 }
 
 
@@ -1433,6 +1506,5 @@ GNUNET_TESTBED_operation_done (struct GNUNET_TESTBED_Operation *operation)
     break;
   }
 }
-
 
 /* end of testbed_api.c */

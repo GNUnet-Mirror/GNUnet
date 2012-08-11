@@ -63,6 +63,11 @@ enum OperationType
      */
     OP_OVERLAY_CONNECT,
 
+    /**
+     * Forwarded operation
+     */
+    OP_FORWARDED
+
   };
 
 
@@ -349,4 +354,25 @@ GNUNET_TESTBED_create_helper_init_msg_ (const char *cname,
                                         GNUNET_CONFIGURATION_Handle *cfg);
 
 
+/**
+ * Sends the given message as an operation. The given callback is called when a
+ * reply for the operation is available
+ *
+ * @param controller the controller to which the message has to be sent
+ * @param operation_id the operation id of the message
+ * @param msg the message to send
+ * @param cc the callback to call when reply is available
+ * @param cc_cls the closure for the above callback
+ * @return the operation context which can be used to cancel the forwarded
+ *           operation 
+ */
+struct OperationContext *
+GNUNET_TESTBED_forward_operation_msg_ (struct GNUNET_TESTBED_Controller
+                                       * controller,
+                                       uint64_t operation_id,
+                                       const struct GNUNET_MessageHeader *msg,
+                                       GNUNET_CLIENT_MessageHandler cc,
+                                       void *cc_cls);
+
 #endif
+/* end of testbed_api.h */
