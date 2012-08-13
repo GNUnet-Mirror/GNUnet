@@ -1,20 +1,41 @@
-.TH GNUNET\-GNS 1 "Mar 5, 2012" "GNUnet"
+.TH GNUNET\-GNS 1 "Aug 8, 2012" "GNUnet"
 
 .SH NAME
-gnunet\-gns \- manipulate GNUnet GNS zones
+gnunet\-gns \- Access to GNUnet Name Service
 
 .SH SYNOPSIS
 .B gnunet\-gns
-.RI [ options ] -z ZONEFILE
+.RI [ options ]
 .br
 
 .SH DESCRIPTION
-\fBgnunet\-gns\fP can be used to create and manipulate a GNS zone.  
+\fBgnunet\-gns\fP can be used to lookup and process GNUnet Name Service names.
 
 .SH OPTIONS
 .B
+.IP "\-a NAME, \-\-authority=NAME"
+Get the authority of a particular name.
+For example the authority for "www.fcfs.gads" is "fcfs.gads".
+.B
 .IP "\-c FILENAME,  \-\-config=FILENAME"
 Use the configuration file FILENAME.
+.B
+.IP "\-r, \-\-raw"
+No unneeded output.
+This is a quiet mode where only important information is displayed.
+For example a lookup for an IP address will only yield the IP address, no
+descriptive text.
+.B
+.IP "\-s NAME, \-\-shorten NAME"
+Shorten GNUnet Name Service Name.
+The service will try to shorten the delegation chain of the name if a "closer"
+authority chain exists relative to your local root zone.
+.B
+.IP "\-t RRTYPE, \-\-type=RRTYPE"
+Resource Record Type (RRTYPE) to look for.
+Supported RRTYPE's are: A, AAAA, CNAME, NS, PKEY, PSEU, TLSA, SRV, SOA, MX, LEHO, VPN, REV, PTR, TXT
+
+Defaults to "A".
 .B
 .IP "\-h, \-\-help"
 Print short help on options.
@@ -22,11 +43,14 @@ Print short help on options.
 .IP "\-L LOGLEVEL, \-\-loglevel=LOGLEVEL"
 Use LOGLEVEL for logging.  Valid values are DEBUG, INFO, WARNING and ERROR.
 .B
-.IP "\-s NAME, \-\-shorten=NAME"
-GNS domain name to shorten
+.IP "\-u NAME, \-\-lookup=NAME"
+Name to lookup.
+Resolve the specified name using the GNUnet Name System.
 .B
 .IP "\-v, \-\-version"
 Print GNUnet version number.
+.B
+
 
 .SH BUGS
 Report bugs by using Mantis <https://gnunet.org/bugs/> or by sending electronic mail to <gnunet\-developers@gnu.org>
