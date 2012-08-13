@@ -335,6 +335,7 @@ run (void *cls, char *const *args, const char *cfgfile,
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                  "Please specify lookup, shorten or authority operation!\n");
     GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+    return;
   }
 
   shutdown_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,

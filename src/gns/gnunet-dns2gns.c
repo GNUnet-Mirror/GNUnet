@@ -210,9 +210,8 @@ result_processor (void *cls,
   packet->flags.zero = 0;
   packet->flags.recursion_available = 1;
   packet->flags.message_truncated = 0;
-  packet->flags.authoritative_answer = 1;
-  packet->flags.opcode = GNUNET_DNSPARSER_OPCODE_QUERY;
-  packet->num_additional_records = 0;
+  packet->flags.authoritative_answer = 0;
+  //packet->flags.opcode = GNUNET_DNSPARSER_OPCODE_STATUS; // ???
   for (i=0;i<rd_count;i++)
     {
       switch (rd[i].record_type)
