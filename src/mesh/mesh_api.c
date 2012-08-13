@@ -1302,7 +1302,7 @@ send_callback (void *cls, size_t size, void *buf)
           to.header.size = htons (psize);
           to.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN);
           to.tid = htonl (t->tid);
-          // FIXME pid?
+          to.pid = htonl (t->pid);
           memset (&to.oid, 0, sizeof (struct GNUNET_PeerIdentity));
           memset (&to.sender, 0, sizeof (struct GNUNET_PeerIdentity));
           memcpy (cbuf, &to, sizeof (to));
