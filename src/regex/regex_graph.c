@@ -188,7 +188,8 @@ GNUNET_REGEX_automaton_save_graph_step (void *cls, unsigned int count,
   }
   else if (GNUNET_YES == ctx->coloring)
   {
-    GNUNET_asprintf (&s_acc, "\"%s\" [shape=circle, color=\"0.%i 0.8 0.95\"];\n", name,
+    GNUNET_asprintf (&s_acc,
+                     "\"%s\" [shape=circle, color=\"0.%i 0.8 0.95\"];\n", name,
                      s->scc_id);
   }
   else
@@ -224,7 +225,7 @@ GNUNET_REGEX_automaton_save_graph_step (void *cls, unsigned int count,
     else
       GNUNET_asprintf (&to_name, "%i", ctran->to_state->proof_id);
 
-    if (ctran->label == 0)
+    if (NULL == ctran->label)
     {
       if (GNUNET_YES == ctx->coloring)
       {
@@ -234,8 +235,8 @@ GNUNET_REGEX_automaton_save_graph_step (void *cls, unsigned int count,
       }
       else
       {
-        GNUNET_asprintf (&s_tran, "\"%s\" -> \"%s\" [label = \"ε\"];\n",
-                         name, to_name, s->scc_id);
+        GNUNET_asprintf (&s_tran, "\"%s\" -> \"%s\" [label = \"ε\"];\n", name,
+                         to_name, s->scc_id);
       }
     }
     else
@@ -243,12 +244,12 @@ GNUNET_REGEX_automaton_save_graph_step (void *cls, unsigned int count,
       if (GNUNET_YES == ctx->coloring)
       {
         GNUNET_asprintf (&s_tran,
-                         "\"%s\" -> \"%s\" [label = \"%c\", color=\"0.%i 0.8 0.95\"];\n",
+                         "\"%s\" -> \"%s\" [label = \"%s\", color=\"0.%i 0.8 0.95\"];\n",
                          name, to_name, ctran->label, s->scc_id);
       }
       else
       {
-        GNUNET_asprintf (&s_tran, "\"%s\" -> \"%s\" [label = \"%c\"];\n", name,
+        GNUNET_asprintf (&s_tran, "\"%s\" -> \"%s\" [label = \"%s\"];\n", name,
                          to_name, ctran->label, s->scc_id);
       }
     }

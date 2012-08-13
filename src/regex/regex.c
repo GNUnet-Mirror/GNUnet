@@ -143,13 +143,13 @@ debug_print_transition (struct GNUNET_REGEX_Transition *t)
 {
   char *to_state;
   char *from_state;
-  char label;
+  char *label;
 
   if (NULL == t)
     return;
 
   if (0 == t->label)
-    label = '0';
+    label = "0";
   else
     label = t->label;
 
@@ -163,7 +163,7 @@ debug_print_transition (struct GNUNET_REGEX_Transition *t)
   else
     from_state = t->from_state->name;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Transition %i: From %s on %c to %s\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Transition %i: From %s on %s to %s\n",
               t->id, from_state, label, to_state);
 }
 
@@ -179,6 +179,26 @@ debug_print_transitions (struct GNUNET_REGEX_State *s)
 
 
 /**
+ * Compare two strings for equality. If either is NULL they are not equal.
+ *
+ * @param str1 first string for comparison.
+ * @param str2 second string for comparison.
+ *
+ * @return 0 if the strings are the same or both NULL, 1 or -1 if not.
+ */
+static int
+nullstrcmp (const char *str1, const char *str2)
+{
+  if ((NULL == str1) != (NULL == str2))
+    return -1;
+  if ((NULL == str1) && (NULL == str2))
+    return 0;
+
+  return strcmp (str1, str2);
+}
+
+
+/**
  * Adds a transition from one state to another on 'label'. Does not add
  * duplicate states.
  *
@@ -189,7 +209,7 @@ debug_print_transitions (struct GNUNET_REGEX_State *s)
  */
 static void
 state_add_transition (struct GNUNET_REGEX_Context *ctx,
-                      struct GNUNET_REGEX_State *from_state, const char label,
+                      struct GNUNET_REGEX_State *from_state, const char *label,
                       struct GNUNET_REGEX_State *to_state)
 {
   int is_dup;
@@ -206,7 +226,7 @@ state_add_transition (struct GNUNET_REGEX_Context *ctx,
   is_dup = GNUNET_NO;
   for (t = from_state->transitions_head; NULL != t; t = t->next)
   {
-    if (t->to_state == to_state && t->label == label &&
+    if (t->to_state == to_state && 0 == nullstrcmp (t->label, label) &&
         t->from_state == from_state)
     {
       is_dup = GNUNET_YES;
@@ -220,13 +240,16 @@ state_add_transition (struct GNUNET_REGEX_Context *ctx,
   // sort transitions by label
   for (oth = from_state->transitions_head; NULL != oth; oth = oth->next)
   {
-    if (oth->label > label)
+    if (0 < nullstrcmp (oth->label, label))
       break;
   }
 
   t = GNUNET_malloc (sizeof (struct GNUNET_REGEX_Transition));
   t->id = ctx->transition_id++;
-  t->label = label;
+  if (NULL != label)
+    t->label = GNUNET_strdup (label);
+  else
+    t->label = NULL;
   t->to_state = to_state;
   t->from_state = from_state;
 
@@ -256,6 +279,7 @@ state_remove_transition (struct GNUNET_REGEX_State *state,
   state->transition_count--;
   GNUNET_CONTAINER_DLL_remove (state->transitions_head, state->transitions_tail,
                                transition);
+  GNUNET_free_non_null (transition->label);
   GNUNET_free (transition);
 }
 
@@ -307,7 +331,7 @@ state_get_edges (struct GNUNET_REGEX_State *s, struct GNUNET_REGEX_Edge *edges)
   {
     if (NULL != t->to_state)
     {
-      edges[count].label = &t->label;
+      edges[count].label = t->label;
       edges[count].destination = t->to_state->hash;
       count++;
     }
@@ -408,6 +432,7 @@ automaton_destroy_state (struct GNUNET_REGEX_State *s)
   {
     next_t = t->next;
     GNUNET_CONTAINER_DLL_remove (s->transitions_head, s->transitions_tail, t);
+    GNUNET_free_non_null (t->label);
     GNUNET_free (t);
   }
 
@@ -500,7 +525,7 @@ automaton_merge_states (struct GNUNET_REGEX_Context *ctx,
         is_dup = GNUNET_NO;
         for (t = t_check->from_state->transitions_head; NULL != t; t = t->next)
         {
-          if (t->to_state == s1 && t_check->label == t->label)
+          if (t->to_state == s1 && 0 == strcmp (t_check->label, t->label))
             is_dup = GNUNET_YES;
         }
         if (GNUNET_NO == is_dup)
@@ -731,24 +756,6 @@ strkcmp (const char *str1, const char *str2, size_t k)
   if ((NULL == str1) || (NULL == str2) || (strlen (str1) < k))
     return -1;
   return strcmp (&str1[k], str2);
-}
-
-
-/**
- * Compare two strings for equality. If either is NULL (or if both are
- * NULL), they are not equal.
- *
- * @param str1 first string for comparison.
- * @param str2 second string for comparison.
- *
- * @return  0 if the strings are the same, 1 or -1 if not
- */
-static int
-nullstrcmp (const char *str1, const char *str2)
-{
-  if ((NULL == str1) || (NULL == str2))
-    return -1;
-  return strcmp (str1, str2);
 }
 
 
@@ -1180,11 +1187,11 @@ automaton_create_proofs (struct GNUNET_REGEX_Automaton *a)
     {
       j = t->to_state->proof_id;
       if (NULL == R_last[i][j])
-        GNUNET_asprintf (&R_last[i][j], "%c", t->label);
+        GNUNET_asprintf (&R_last[i][j], "%s", t->label);
       else
       {
         temp = R_last[i][j];
-        GNUNET_asprintf (&R_last[i][j], "%s|%c", R_last[i][j], t->label);
+        GNUNET_asprintf (&R_last[i][j], "%s|%s", R_last[i][j], t->label);
         GNUNET_free (temp);
       }
     }
@@ -1342,7 +1349,7 @@ dfa_state_create (struct GNUNET_REGEX_Context *ctx,
     // Add a transition for each distinct label to NULL state
     for (ctran = cstate->transitions_head; NULL != ctran; ctran = ctran->next)
     {
-      if (0 != ctran->label)
+      if (NULL != ctran->label)
         state_add_transition (ctx, s, ctran->label, NULL);
     }
 
@@ -1367,7 +1374,7 @@ dfa_state_create (struct GNUNET_REGEX_Context *ctx,
  * @return new state or NULL, if transition on label not possible
  */
 static struct GNUNET_REGEX_State *
-dfa_move (struct GNUNET_REGEX_State *s, const char label)
+dfa_move (struct GNUNET_REGEX_State *s, const char *label)
 {
   struct GNUNET_REGEX_Transition *t;
   struct GNUNET_REGEX_State *new_s;
@@ -1379,7 +1386,9 @@ dfa_move (struct GNUNET_REGEX_State *s, const char label)
 
   for (t = s->transitions_head; NULL != t; t = t->next)
   {
-    if (label == t->label)
+    // TODO: Use strstr to match substring and return number of char's that have
+    // been consumed'
+    if (0 == strcmp (label, t->label))
     {
       new_s = t->to_state;
       break;
@@ -1517,13 +1526,13 @@ dfa_merge_nondistinguishable_states (struct GNUNET_REGEX_Context *ctx,
         {
           for (t2 = s2->transitions_head; NULL != t2; t2 = t2->next)
           {
-            if (t1->label == t2->label)
+            if (0 == strcmp (t1->label, t2->label))
             {
               num_equal_edges++;
               if (0 != table[t1->to_state->marked][t2->to_state->marked] ||
                   0 != table[t2->to_state->marked][t1->to_state->marked])
               {
-                table[s1->marked][s2->marked] = t1->label != 0 ? t1->label : 1;
+                table[s1->marked][s2->marked] = 1;
                 change = 1;
               }
             }
@@ -1686,13 +1695,13 @@ nfa_state_create (struct GNUNET_REGEX_Context *ctx, int accepting)
  * @param nfa the NFA containing 's'
  * @param s starting point state
  * @param label transitioning label on which to base the closure on,
- *                pass 0 for epsilon transition
+ *                pass NULL for epsilon transition
  *
- * @return sorted nfa closure on 'label' (epsilon closure if 'label' is 0)
+ * @return sorted nfa closure on 'label' (epsilon closure if 'label' is NULL)
  */
 static struct GNUNET_REGEX_StateSet *
 nfa_closure_create (struct GNUNET_REGEX_Automaton *nfa,
-                    struct GNUNET_REGEX_State *s, const char label)
+                    struct GNUNET_REGEX_State *s, const char *label)
 {
   struct GNUNET_REGEX_StateSet *cls;
   struct GNUNET_REGEX_StateSet *cls_check;
@@ -1710,7 +1719,7 @@ nfa_closure_create (struct GNUNET_REGEX_Automaton *nfa,
     clsstate->contained = 0;
 
   // Add start state to closure only for epsilon closure
-  if (0 == label)
+  if (NULL == label)
     GNUNET_array_append (cls->states, cls->len, s);
 
   GNUNET_array_append (cls_check->states, cls_check->len, s);
@@ -1722,7 +1731,7 @@ nfa_closure_create (struct GNUNET_REGEX_Automaton *nfa,
     for (ctran = currentstate->transitions_head; NULL != ctran;
          ctran = ctran->next)
     {
-      if (NULL != ctran->to_state && label == ctran->label)
+      if (NULL != ctran->to_state && 0 == nullstrcmp (label, ctran->label))
       {
         clsstate = ctran->to_state;
 
@@ -1753,13 +1762,13 @@ nfa_closure_create (struct GNUNET_REGEX_Automaton *nfa,
  * @param nfa the NFA containing 's'
  * @param states list of states on which to base the closure on
  * @param label transitioning label for which to base the closure on,
- *                pass 0 for epsilon transition
+ *                pass NULL for epsilon transition
  *
- * @return sorted nfa closure on 'label' (epsilon closure if 'label' is 0)
+ * @return sorted nfa closure on 'label' (epsilon closure if 'label' is NULL)
  */
 static struct GNUNET_REGEX_StateSet *
 nfa_closure_set_create (struct GNUNET_REGEX_Automaton *nfa,
-                        struct GNUNET_REGEX_StateSet *states, const char label)
+                        struct GNUNET_REGEX_StateSet *states, const char *label)
 {
   struct GNUNET_REGEX_State *s;
   struct GNUNET_REGEX_StateSet *sset;
@@ -1823,7 +1832,7 @@ nfa_add_concatenation (struct GNUNET_REGEX_Context *ctx)
   GNUNET_assert (NULL != a);
   GNUNET_CONTAINER_DLL_remove (ctx->stack_head, ctx->stack_tail, a);
 
-  state_add_transition (ctx, a->end, 0, b->start);
+  state_add_transition (ctx, a->end, NULL, b->start);
   a->end->accepting = 0;
   b->end->accepting = 1;
 
@@ -1866,10 +1875,10 @@ nfa_add_star_op (struct GNUNET_REGEX_Context *ctx)
   start = nfa_state_create (ctx, 0);
   end = nfa_state_create (ctx, 1);
 
-  state_add_transition (ctx, start, 0, a->start);
-  state_add_transition (ctx, start, 0, end);
-  state_add_transition (ctx, a->end, 0, a->start);
-  state_add_transition (ctx, a->end, 0, end);
+  state_add_transition (ctx, start, NULL, a->start);
+  state_add_transition (ctx, start, NULL, end);
+  state_add_transition (ctx, a->end, NULL, a->start);
+  state_add_transition (ctx, a->end, NULL, end);
 
   a->end->accepting = 0;
   end->accepting = 1;
@@ -1895,7 +1904,7 @@ nfa_add_plus_op (struct GNUNET_REGEX_Context *ctx)
   a = ctx->stack_tail;
   GNUNET_CONTAINER_DLL_remove (ctx->stack_head, ctx->stack_tail, a);
 
-  state_add_transition (ctx, a->end, 0, a->start);
+  state_add_transition (ctx, a->end, NULL, a->start);
 
   GNUNET_CONTAINER_DLL_insert_tail (ctx->stack_head, ctx->stack_tail, a);
 }
@@ -1928,9 +1937,9 @@ nfa_add_question_op (struct GNUNET_REGEX_Context *ctx)
   start = nfa_state_create (ctx, 0);
   end = nfa_state_create (ctx, 1);
 
-  state_add_transition (ctx, start, 0, a->start);
-  state_add_transition (ctx, start, 0, end);
-  state_add_transition (ctx, a->end, 0, end);
+  state_add_transition (ctx, start, NULL, a->start);
+  state_add_transition (ctx, start, NULL, end);
+  state_add_transition (ctx, a->end, NULL, end);
 
   a->end->accepting = 0;
 
@@ -1966,11 +1975,11 @@ nfa_add_alternation (struct GNUNET_REGEX_Context *ctx)
 
   start = nfa_state_create (ctx, 0);
   end = nfa_state_create (ctx, 1);
-  state_add_transition (ctx, start, 0, a->start);
-  state_add_transition (ctx, start, 0, b->start);
+  state_add_transition (ctx, start, NULL, a->start);
+  state_add_transition (ctx, start, NULL, b->start);
 
-  state_add_transition (ctx, a->end, 0, end);
-  state_add_transition (ctx, b->end, 0, end);
+  state_add_transition (ctx, a->end, NULL, end);
+  state_add_transition (ctx, b->end, NULL, end);
 
   a->end->accepting = 0;
   b->end->accepting = 0;
@@ -1990,10 +1999,10 @@ nfa_add_alternation (struct GNUNET_REGEX_Context *ctx)
  * Adds a new nfa fragment to the stack
  *
  * @param ctx context
- * @param lit label for nfa transition
+ * @param label label for nfa transition
  */
 static void
-nfa_add_label (struct GNUNET_REGEX_Context *ctx, const char lit)
+nfa_add_label (struct GNUNET_REGEX_Context *ctx, const char *label)
 {
   struct GNUNET_REGEX_Automaton *n;
   struct GNUNET_REGEX_State *start;
@@ -2003,7 +2012,7 @@ nfa_add_label (struct GNUNET_REGEX_Context *ctx, const char lit)
 
   start = nfa_state_create (ctx, 0);
   end = nfa_state_create (ctx, 1);
-  state_add_transition (ctx, start, lit, end);
+  state_add_transition (ctx, start, label, end);
   n = nfa_fragment_create (start, end);
   GNUNET_assert (NULL != n);
   GNUNET_CONTAINER_DLL_insert_tail (ctx->stack_head, ctx->stack_tail, n);
@@ -2044,6 +2053,7 @@ GNUNET_REGEX_construct_nfa (const char *regex, const size_t len)
   struct GNUNET_REGEX_Context ctx;
   struct GNUNET_REGEX_Automaton *nfa;
   const char *regexp;
+  char curlabel[2];
   char *error_msg;
   unsigned int count;
   unsigned int altcount;
@@ -2058,6 +2068,7 @@ GNUNET_REGEX_construct_nfa (const char *regex, const size_t len)
   GNUNET_REGEX_context_init (&ctx);
 
   regexp = regex;
+  curlabel[1] = '\0';
   p = NULL;
   error_msg = NULL;
   altcount = 0;
@@ -2147,7 +2158,8 @@ GNUNET_REGEX_construct_nfa (const char *regex, const size_t len)
         --atomcount;
         nfa_add_concatenation (&ctx);
       }
-      nfa_add_label (&ctx, *regexp);
+      curlabel[0] = *regexp;
+      nfa_add_label (&ctx, curlabel);
       atomcount++;
       break;
     }
@@ -2221,7 +2233,7 @@ construct_dfa_states (struct GNUNET_REGEX_Context *ctx,
 
   for (ctran = dfa_state->transitions_head; NULL != ctran; ctran = ctran->next)
   {
-    if (0 == ctran->label || NULL != ctran->to_state)
+    if (NULL == ctran->label || NULL != ctran->to_state)
       continue;
 
     tmp = nfa_closure_set_create (nfa, dfa_state->nfa_set, ctran->label);
@@ -2343,6 +2355,7 @@ static int
 evaluate_dfa (struct GNUNET_REGEX_Automaton *a, const char *string)
 {
   const char *strp;
+  char str[2];
   struct GNUNET_REGEX_State *s;
 
   if (DFA != a->type)
@@ -2358,9 +2371,11 @@ evaluate_dfa (struct GNUNET_REGEX_Automaton *a, const char *string)
   if ((NULL == string || 0 == strlen (string)) && s->accepting)
     return 0;
 
+  str[1] = '\0';
   for (strp = string; NULL != strp && *strp; strp++)
   {
-    s = dfa_move (s, *strp);
+    str[0] = *strp;
+    s = dfa_move (s, str);
     if (NULL == s)
       break;
   }
@@ -2384,6 +2399,7 @@ static int
 evaluate_nfa (struct GNUNET_REGEX_Automaton *a, const char *string)
 {
   const char *strp;
+  char str[2];
   struct GNUNET_REGEX_State *s;
   struct GNUNET_REGEX_StateSet *sset;
   struct GNUNET_REGEX_StateSet *new_sset;
@@ -2404,9 +2420,11 @@ evaluate_nfa (struct GNUNET_REGEX_Automaton *a, const char *string)
   result = 1;
   sset = nfa_closure_create (a, a->start, 0);
 
+  str[1] = '\0';
   for (strp = string; NULL != strp && *strp; strp++)
   {
-    new_sset = nfa_closure_set_create (a, sset, *strp);
+    str[0] = *strp;
+    new_sset = nfa_closure_set_create (a, sset, str);
     state_set_clear (sset);
     sset = nfa_closure_set_create (a, new_sset, 0);
     state_set_clear (new_sset);
@@ -2549,7 +2567,6 @@ iterate_initial_edge (const unsigned int min_len, const unsigned int max_len,
                       GNUNET_REGEX_KeyIterator iterator, void *iterator_cls)
 {
   unsigned int i;
-  char label[state->transition_count][2];
   char *temp;
   struct GNUNET_REGEX_Transition *t;
   unsigned int num_edges = state->transition_count;
@@ -2560,9 +2577,7 @@ iterate_initial_edge (const unsigned int min_len, const unsigned int max_len,
   {
     for (i = 0, t = state->transitions_head; NULL != t; t = t->next, i++)
     {
-      label[i][0] = t->label;
-      label[i][1] = '\0';
-      edges[i].label = label[i];
+      edges[i].label = t->label;
       edges[i].destination = t->to_state->hash;
     }
 
@@ -2577,9 +2592,9 @@ iterate_initial_edge (const unsigned int min_len, const unsigned int max_len,
     for (t = state->transitions_head; NULL != t; t = t->next)
     {
       if (NULL != consumed_string)
-        GNUNET_asprintf (&temp, "%s%c", consumed_string, t->label);
+        GNUNET_asprintf (&temp, "%s%s", consumed_string, t->label);
       else
-        GNUNET_asprintf (&temp, "%c", t->label);
+        GNUNET_asprintf (&temp, "%s", t->label);
 
       iterate_initial_edge (min_len, max_len, cur_len, temp, t->to_state,
                             iterator, iterator_cls);
@@ -2626,12 +2641,12 @@ iterate_initial_edges (struct GNUNET_REGEX_Automaton *a,
       if (NULL != consumed_string)
       {
         temp = consumed_string;
-        GNUNET_asprintf (&consumed_string, "%s%c", consumed_string,
+        GNUNET_asprintf (&consumed_string, "%s%s", consumed_string,
                          s->transitions_head->label);
         GNUNET_free (temp);
       }
       else
-        GNUNET_asprintf (&consumed_string, "%c", s->transitions_head->label);
+        GNUNET_asprintf (&consumed_string, "%s", s->transitions_head->label);
 
       s = s->transitions_head->to_state;
       cur_len++;

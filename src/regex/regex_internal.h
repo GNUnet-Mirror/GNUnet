@@ -66,7 +66,7 @@ struct GNUNET_REGEX_Transition
   /**
    * Label for this transition. This is basically the edge label for the graph.
    */
-  char label;
+  char *label;
 
   /**
    * State to which this transition leads.
