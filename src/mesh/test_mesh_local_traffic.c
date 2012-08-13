@@ -76,7 +76,9 @@ static struct GNUNET_MESH_Handle *mesh_peer_1;
 
 static struct GNUNET_MESH_Handle *mesh_peer_2;
 
-static struct GNUNET_MESH_Tunnel *t;
+static struct GNUNET_MESH_Tunnel *t_fwd;
+
+static struct GNUNET_MESH_Tunnel *t_bck;
 
 static unsigned int one = 1;
 
@@ -106,9 +108,9 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     GNUNET_SCHEDULER_cancel (abort_task);
   }
-  if (NULL != t)
+  if (NULL != t_fwd)
   {
-    GNUNET_MESH_tunnel_destroy(t);
+    GNUNET_MESH_tunnel_destroy(t_fwd);
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "D1\n");
   if (NULL != mesh_peer_1)
@@ -162,10 +164,12 @@ tmt_rdy (void *cls, size_t size, void *buf)
 {
   unsigned int peer_number = *(unsigned int *) cls;
   struct GNUNET_MessageHeader *m = buf;
+  struct GNUNET_MESH_Tunnel *t;
   struct test_traffic_message *msg = buf;
   size_t msize = sizeof (struct test_traffic_message);
   unsigned int *sent;
   unsigned int target;
+  char *s;
 
   if (0 == size || NULL == buf)
     return 0;
@@ -174,25 +178,30 @@ tmt_rdy (void *cls, size_t size, void *buf)
   {
     sent = &sent_fwd;
     target = to_send_fwd;
+    t = t_fwd;
+    s = "FWD";
   }
   else if (2 == peer_number)
   {
     sent = &sent_bck;
     target = to_send_bck;
+    t = t_bck;
+    s = "BCK";
   }
   else
     GNUNET_abort();
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending data packet # %u\n",
-              *sent);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending %s data packet # %4u\n",
+              s, *sent);
   GNUNET_assert (size >= msize);
   if (GNUNET_YES == started)
   {
     (*sent)++;
-    if (target > *sent)
+    if (target > *sent) {
       GNUNET_MESH_notify_transmit_ready (t, GNUNET_NO,
                                          GNUNET_TIME_UNIT_FOREVER_REL,
                                          &peer_id, msize, &tmt_rdy, cls);
+    }
   }
   m->size = htons (msize);
   m->type = htons (1);
@@ -237,7 +246,7 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
                                         sizeof (struct test_traffic_message),
                                         &tmt_rdy, &two);
     if (BCK != test) // Send root -> leaf
-      GNUNET_MESH_notify_transmit_ready (t, GNUNET_NO,
+      GNUNET_MESH_notify_transmit_ready (t_fwd, GNUNET_NO,
                                         GNUNET_TIME_UNIT_FOREVER_REL,
                                         &peer_id,
                                         sizeof (struct test_traffic_message),
@@ -298,6 +307,7 @@ inbound_tunnel (void *cls, struct GNUNET_MESH_Tunnel *tunnel,
 {
   unsigned int id = *(unsigned int *) cls;
 
+  t_bck = tunnel;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "received incoming tunnel %p\n", tunnel);
   if (id != 2)
   {
@@ -347,7 +357,7 @@ peer_connected (void *cls, const struct GNUNET_PeerIdentity *peer,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "peer connected\n");
   peer_id = *peer;
   /* Force an inbound tunnel notification on peer 2 */
-  GNUNET_MESH_notify_transmit_ready (t, GNUNET_NO, GNUNET_TIME_UNIT_FOREVER_REL,
+  GNUNET_MESH_notify_transmit_ready (t_fwd, GNUNET_NO, GNUNET_TIME_UNIT_FOREVER_REL,
                                      peer, sizeof (struct test_traffic_message),
                                      &tmt_rdy, &one);
 }
@@ -421,9 +431,9 @@ run (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connected to mesh\n");
   }
-  t = GNUNET_MESH_tunnel_create (mesh_peer_1, NULL, &peer_connected,
-                                 &peer_disconnected, (void *) &two);
-  GNUNET_MESH_peer_request_connect_by_type (t, 1);
+  t_fwd = GNUNET_MESH_tunnel_create (mesh_peer_1, NULL, &peer_connected,
+                                     &peer_disconnected, (void *) &two);
+  GNUNET_MESH_peer_request_connect_by_type (t_fwd, 1);
 }
 
 
