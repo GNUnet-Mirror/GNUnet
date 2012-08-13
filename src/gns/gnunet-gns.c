@@ -22,8 +22,6 @@
  * @brief command line tool to access distributed GNS
  * @author Christian Grothoff
  *
- * TODO:
- * - everything
  */
 #include "platform.h"
 #include <gnunet_util_lib.h>
@@ -329,6 +327,16 @@ run (void *cls, char *const *args, const char *cfgfile,
   if (NULL != private_zone)
     GNUNET_free (private_zone);
   
+  if ((NULL == auth_name) &&
+      (NULL == shorten_name) &&
+      (NULL == lookup_name))
+  {
+    if (!raw)
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                 "Please specify lookup, shorten or authority operation!\n");
+    GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+  }
+
   shutdown_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                                 &do_shutdown, NULL);
 }
@@ -346,16 +354,16 @@ main (int argc, char *const *argv)
 {
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
     {'s', "shorten", NULL,
-     gettext_noop ("try to shorten a given GNS name"), 1,
+     gettext_noop ("try to shorten a given name"), 1,
      &GNUNET_GETOPT_set_string, &shorten_name},
     {'u', "lookup", NULL,
-      gettext_noop ("Lookup a record using GNS (NOT IMPLEMENTED)"), 1,
+      gettext_noop ("Lookup a record for the given name"), 1,
       &GNUNET_GETOPT_set_string, &lookup_name},
     {'a', "authority", NULL,
       gettext_noop ("Get the authority of a particular name"), 1,
       &GNUNET_GETOPT_set_string, &auth_name},
     {'t', "type", NULL,
-      gettext_noop ("Specify the type of the record lookup"), 1,
+      gettext_noop ("Specify the type of the record to lookup"), 1,
       &GNUNET_GETOPT_set_string, &lookup_type},
     {'r', "raw", NULL,
       gettext_noop ("No unneeded output"), 0,
