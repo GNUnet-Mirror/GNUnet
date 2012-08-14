@@ -1108,7 +1108,11 @@ handle_add_host (void *cls,
   LOG_DEBUG ("-------host id: %u\n", host_id);
   if (NULL != hostname) LOG_DEBUG ("-------hostname: %s\n", hostname);
   if (0 != username_length) LOG_DEBUG ("-------username: %s\n", username);
-  else LOG_DEBUG ("-------username: NULL\n");
+  else 
+  {
+    LOG_DEBUG ("-------username: NULL\n");
+    username = NULL;
+  }
   LOG_DEBUG ("-------ssh port: %u\n", ntohs (msg->ssh_port));
   host = GNUNET_TESTBED_host_create_with_id (host_id, hostname, username,
                                              ntohs (msg->ssh_port));

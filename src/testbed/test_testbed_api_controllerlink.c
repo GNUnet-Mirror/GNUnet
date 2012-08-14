@@ -126,16 +126,16 @@ do_shutdown (void *cls, const const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   if (GNUNET_SCHEDULER_NO_TASK != abort_task)
     GNUNET_SCHEDULER_cancel (abort_task);
-  if (NULL != mc)
-    GNUNET_TESTBED_controller_disconnect (mc);
-  if (NULL != cp)
-    GNUNET_TESTBED_controller_stop (cp);
-  if (NULL != slave)
+    if (NULL != slave)
     GNUNET_TESTBED_host_destroy (slave);
   if (NULL != host)
     GNUNET_TESTBED_host_destroy (host);
+  if (NULL != mc)
+    GNUNET_TESTBED_controller_disconnect (mc);
   if (NULL != cfg)
     GNUNET_CONFIGURATION_destroy (cfg);
+  if (NULL != cp)
+    GNUNET_TESTBED_controller_stop (cp);
   if (NULL != rh)
     GNUNET_TESTBED_cancel_registration (rh);
   
@@ -250,7 +250,7 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *config)
 {
-  host = GNUNET_TESTBED_host_create ("127.0.0.1", NULL, 0);
+  host = GNUNET_TESTBED_host_create (NULL, NULL, 0);
   GNUNET_assert (NULL != host);
   cfg = GNUNET_CONFIGURATION_dup (config);
   cp =
