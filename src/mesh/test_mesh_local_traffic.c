@@ -240,7 +240,7 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
     started = GNUNET_YES;
     start_time = GNUNET_TIME_absolute_get();
     if (FWD != test) // Send leaf -> root
-      GNUNET_MESH_notify_transmit_ready (tunnel, GNUNET_NO,
+      GNUNET_MESH_notify_transmit_ready (t_bck, GNUNET_NO,
                                         GNUNET_TIME_UNIT_FOREVER_REL,
                                         NULL,
                                         sizeof (struct test_traffic_message),
