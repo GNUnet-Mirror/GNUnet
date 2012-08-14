@@ -404,7 +404,7 @@ int main (int argc, char **argv)
 {
   int ret;
 
-  char *const argv2[] = { "test_testbed_api",
+  char *const argv2[] = { "test_testbed_api_2peers",
                           "-c", "test_testbed_api.conf",
                           NULL
   };

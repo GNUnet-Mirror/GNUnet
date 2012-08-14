@@ -1005,7 +1005,7 @@ GNUNET_TESTBED_controller_start (const char *controller_ip,
     if (NULL == username)
       GNUNET_asprintf (&cp->dst, "%s", hostname);
     else 
-      GNUNET_asprintf (&cp->dst, "%s@%s", hostname, username);
+      GNUNET_asprintf (&cp->dst, "%s@%s", username, hostname);
     argp = 0;
     remote_args[argp++] = "ssh";
     remote_args[argp++] = "-p";
@@ -1126,6 +1126,8 @@ GNUNET_TESTBED_controller_connect (const struct GNUNET_CONFIGURATION_Handle *cfg
     }
   }
   GNUNET_assert (NULL != host);
+  GNUNET_TESTBED_mark_host_registered_at_ (host, controller);
+  controller->host = host;
   controller->opq_peer_create =
     GNUNET_TESTBED_operation_queue_create_ ((unsigned int)
                                             max_parallel_peer_create);

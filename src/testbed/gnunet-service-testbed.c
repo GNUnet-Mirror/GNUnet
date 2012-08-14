@@ -1112,11 +1112,12 @@ handle_add_host (void *cls,
   LOG_DEBUG ("-------ssh port: %u\n", ntohs (msg->ssh_port));
   host = GNUNET_TESTBED_host_create_with_id (host_id, hostname, username,
                                              ntohs (msg->ssh_port));
+  GNUNET_assert (NULL != host);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
   reply_size = sizeof (struct GNUNET_TESTBED_HostConfirmedMessage);
   if (GNUNET_OK != host_list_add (host))
   {    
-    /* We are unable to add a host */  
+    /* We are unable to add a host */
     emsg = "A host exists with given host-id";
     LOG_DEBUG ("%s: %u", emsg, host_id);
     GNUNET_TESTBED_host_destroy (host);
@@ -1313,7 +1314,7 @@ handle_link_controllers (void *cls,
       GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
       return;
     }
-    if (config_size == dest_size)
+    if (config_size != dest_size)
     {
       LOG (GNUNET_ERROR_TYPE_WARNING, "Uncompressed config size mismatch\n");
       GNUNET_free (config);
