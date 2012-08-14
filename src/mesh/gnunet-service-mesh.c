@@ -7152,7 +7152,7 @@ static void
 core_init (void *cls, struct GNUNET_CORE_Handle *server,
            const struct GNUNET_PeerIdentity *identity)
 {
-  strict int i = 0;
+  static int i = 0;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Core init\n");
   core_handle = server;
   if (0 != memcmp (identity, &my_full_id, sizeof (my_full_id)) ||
