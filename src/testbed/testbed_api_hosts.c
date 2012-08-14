@@ -238,7 +238,7 @@ GNUNET_TESTBED_host_create_with_id (uint32_t id,
 
   if ((id < host_list_size) && (NULL != host_list[id]))
   {
-    LOG (GNUNET_ERROR_TYPE_WARNING, "Host with id: %u already created\n");
+    LOG (GNUNET_ERROR_TYPE_WARNING, "Host with id: %u already created\n", id);
     return NULL;
   }
   host = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Host));

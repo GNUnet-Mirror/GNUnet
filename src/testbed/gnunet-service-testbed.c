@@ -2155,8 +2155,8 @@ shutdown_task (void *cls,
   for (id = 0; id < slave_list_size; id++)
     if (NULL != slave_list[id])
     {
-      GNUNET_assert (NULL != slave_list[id]->controller);
-      GNUNET_TESTBED_controller_disconnect (slave_list[id]->controller);
+      if (NULL != slave_list[id]->controller)
+	GNUNET_TESTBED_controller_disconnect (slave_list[id]->controller);
       if (NULL != slave_list[id]->controller_proc)
         GNUNET_TESTBED_controller_stop (slave_list[id]->controller_proc);
     }

@@ -63,11 +63,6 @@ enum Stage
     SLAVE1_REGISTERED,
 
     /**
-     * The second slave has been registered at the master controller
-     */
-    SLAVE2_REGISTERED,
-
-    /**
      * Final stage
      */
     SUCCESS
@@ -93,11 +88,6 @@ static struct GNUNET_TESTBED_Controller *mc;
  * Slave host for running slave controller
  */
 static struct GNUNET_TESTBED_Host *slave;
-
-/**
- * Another slave host for running another slave controller
- */
-static struct GNUNET_TESTBED_Host *slave2;
 
 /**
  * Slave host registration handle
@@ -140,8 +130,6 @@ do_shutdown (void *cls, const const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_TESTBED_controller_disconnect (mc);
   if (NULL != cp)
     GNUNET_TESTBED_controller_stop (cp);
-  if (NULL != slave2)
-    GNUNET_TESTBED_host_destroy (slave2);
   if (NULL != slave)
     GNUNET_TESTBED_host_destroy (slave);
   if (NULL != host)
@@ -197,19 +185,10 @@ registration_cont (void *cls, const char *emsg)
   {
   case MASTER_STARTED:
     GNUNET_assert (NULL == emsg);
-    result = SLAVE1_REGISTERED;
-    slave2 = GNUNET_TESTBED_host_create_with_id (2, "127.0.0.1", NULL, 0);
-    GNUNET_assert (NULL != slave2);
-    rh = GNUNET_TESTBED_register_host (mc, slave2, &registration_cont, NULL);
-    GNUNET_assert (NULL != rh);
-    break;
-  case SLAVE1_REGISTERED:
-    GNUNET_assert (NULL == emsg);
     GNUNET_assert (NULL != mc);
-    result = SLAVE2_REGISTERED;
+    result = SLAVE1_REGISTERED;
     GNUNET_assert (NULL != cfg);
     GNUNET_TESTBED_controller_link (mc, slave, NULL, cfg, GNUNET_YES);
-    //GNUNET_TESTBED_controller_link (mc, host, slave
     result = SUCCESS;
     GNUNET_SCHEDULER_add_delayed 
       (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 3),
@@ -217,7 +196,7 @@ registration_cont (void *cls, const char *emsg)
     break;
   case INIT:
   case SUCCESS:
-  case SLAVE2_REGISTERED:
+  case SLAVE1_REGISTERED:
     GNUNET_assert (0);
   }
 }
@@ -248,7 +227,7 @@ status_cb (void *cls,
 					    &controller_cb, NULL);
     GNUNET_assert (NULL != mc);
     result = MASTER_STARTED;
-    slave = GNUNET_TESTBED_host_create_with_id (1, "127.0.0.1", NULL, 0);
+    slave = GNUNET_TESTBED_host_create_with_id (2, "127.0.0.1", NULL, 0);
     GNUNET_assert (NULL != slave);
     rh = GNUNET_TESTBED_register_host (mc, slave, &registration_cont, NULL);
     GNUNET_assert (NULL != rh);
@@ -271,7 +250,7 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *config)
 {
-  host = GNUNET_TESTBED_host_create (NULL, NULL, 0);
+  host = GNUNET_TESTBED_host_create ("127.0.0.1", NULL, 0);
   GNUNET_assert (NULL != host);
   cfg = GNUNET_CONFIGURATION_dup (config);
   cp =
