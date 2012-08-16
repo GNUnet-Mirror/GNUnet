@@ -684,6 +684,9 @@ send_ack (struct GNUNET_MESH_Handle *h, struct GNUNET_MESH_Tunnel *t)
 {
   struct GNUNET_MESH_LocalAck msg;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Sending ACK on tunnel %X: %u\n",
+       t->tid, t->pid + 1);
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK);
   msg.header.size = htons (sizeof (msg));
   msg.tunnel_id = htonl (t->tid);
@@ -1097,6 +1100,7 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
   if (NULL == t)
   {
     /* Tunnel was ignored, probably service didn't get it yet */
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  ignored!\n");
     return GNUNET_YES;
   }
   type = ntohs (payload->type);
