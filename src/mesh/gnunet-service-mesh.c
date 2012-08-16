@@ -3586,7 +3586,7 @@ send_local_ack (struct MeshTunnel *t, struct MeshClient *c, uint32_t ack)
 
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK);
-  msg.tunnel_id = htonl (t->local_tid_dest);
+  msg.tunnel_id = htonl (t->owner == c ? t->local_tid : t->local_tid_dest);
   msg.max_pid = htonl (ack); 
   GNUNET_SERVER_notification_context_unicast(nc,
                                               c->handle,
