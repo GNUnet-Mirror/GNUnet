@@ -1073,16 +1073,6 @@ tunnel_notify_connection_broken (struct MeshTunnel *t, GNUNET_PEER_Id p1,
 static uint32_t
 tunnel_get_fwd_ack (struct MeshTunnel *t);
 
-/**
- * Get the current ack value for a tunnel, for data going from leaves to root,
- * taking in account the tunnel mode and the status of all children and clients.
- *
- * @param t Tunnel.
- *
- * @return Maximum PID allowed.
- */
-static uint32_t
-tunnel_get_bck_ack (struct MeshTunnel *t);
 
 /**
  * Add a client to a tunnel, initializing all needed data structures.
@@ -2036,51 +2026,6 @@ send_client_peer_connected (const struct MeshTunnel *t, const GNUNET_PEER_Id id)
   GNUNET_PEER_resolve (id, &pc.peer);
   GNUNET_SERVER_notification_context_unicast (nc, t->owner->handle, &pc.header,
                                               GNUNET_NO);
-}
-
-
-/**
- * Notify a client of a tunnel about how many more
- * payload packages will we accept on a given tunnel,
- * distinguishing between root and leaf clients.
- *
- * @param c Client whom to send the ACK.
- * @param t Tunnel on which to send the ACK.
- */
-static void
-send_client_tunnel_ack (struct MeshClient *c, struct MeshTunnel *t)
-{
-  MESH_TunnelNumber tid;
-  uint32_t ack;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sending client ACK on tunnel %X\n",
-              t->local_tid);
-  if (NULL == c)
-    return;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " to client %u\n", c->id);
-
-  if (c == t->owner)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  (owner, FWD ACK)\n");
-    ack = tunnel_get_fwd_ack (t);
-    tid = t->local_tid;
-  }
-  else
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  (leaf, BCK ACK)\n");
-    ack = tunnel_get_bck_ack (t);
-    tid = t->local_tid_dest;
-  }
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " ack %u\n", ack);
-  if (t->last_fwd_ack == ack)
-    return;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " sending!\n");
-  t->last_fwd_ack = ack;
-  send_local_ack (t, c, ack);
 }
 
 
@@ -3626,36 +3571,6 @@ tunnel_get_fwd_ack (struct MeshTunnel *t)
   return ack;
 }
 
-/**
- * Get the current bck ack value for a tunnel, taking in account the tunnel
- * mode and the status of all children nodes.
- *
- * @param t Tunnel.
- *
- * @return Maximum PID allowed.
- */
-static uint32_t
-tunnel_get_bck_ack (struct MeshTunnel *t)
-{
-  uint32_t ack;
-
-  if (GNUNET_YES == t->nobuffer)
-  {
-    if (t->bck_ack > t->bck_pid)
-    {
-      return t->bck_pid + 1;
-    }
-    else
-    {
-      return t->bck_pid;
-    }
-  }
-  ack = t->bck_pid + t->bck_queue_max - t->bck_queue_n;
-
-  // FIXME fc
-  return ack;
-}
-
 
 /**
  * Build a local ACK message and send it to a local client.
@@ -3702,6 +3617,33 @@ send_ack (struct MeshTunnel *t, struct GNUNET_PeerIdentity *peer,  uint32_t ack)
 
 
 /**
+ * Notify a the owner of a tunnel about how many more
+ * payload packages will we accept on a given tunnel.
+ *
+ * @param t Tunnel on which to send the ACK.
+ */
+static void
+tunnel_send_client_fwd_ack (struct MeshTunnel *t)
+{
+  uint32_t ack;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Sending client FWD ACK on tunnel %X\n",
+              t->local_tid);
+
+  ack = tunnel_get_fwd_ack (t);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " ack %u\n", ack);
+  if (t->last_fwd_ack == ack)
+    return;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " sending!\n");
+  t->last_fwd_ack = ack;
+  send_local_ack (t, t->owner, ack);
+}
+
+
+/**
  * Send an ACK informing the predecessor about the available buffer space.
  * In case there is no predecessor, inform the owning client.
  * If buffering is off, send only on behalf of children or self if endpoint.
@@ -3720,7 +3662,7 @@ tunnel_send_fwd_ack (struct MeshTunnel *t, uint16_t type)
 
   if (NULL != t->owner)
   {
-    send_client_tunnel_ack (t->owner, t);
+    tunnel_send_client_fwd_ack (t);
     return;
   }
   /* Is it after unicast / multicast retransmission? */
