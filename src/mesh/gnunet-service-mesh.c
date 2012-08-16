@@ -2040,7 +2040,7 @@ send_client_peer_connected (const struct MeshTunnel *t, const GNUNET_PEER_Id id)
 
 
 /**
- * Notify a the client of a tunnel about how many more
+ * Notify a client of a tunnel about how many more
  * payload packages will we accept on a given tunnel,
  * distinguishing between root and leaf clients.
  *
@@ -3612,7 +3612,7 @@ tunnel_get_fwd_ack (struct MeshTunnel *t)
   if (-1 == child_ack)
   {
     // Node has no children, child_ack AND core buffer are irrelevant.
-    GNUNET_break (-1 != client_ack); // No children AND no clients? Not good!
+    GNUNET_break (-1 != client_ack); // No children AND no clients? Not good! // FIXME fc
     return (uint32_t) client_ack;
   }
 
@@ -3814,6 +3814,9 @@ tunnel_send_clients_bck_ack (struct MeshTunnel *t)
 
       ack = clinfo->bck_pid;
       ack += t->nobuffer ? 1 : INITIAL_WINDOW_SIZE;
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "  sending ack to client %u: %u\n",
+                  t->clients[i]->id, ack);
       send_local_ack(t->clients[i],  t, ack);
       clinfo->bck_ack = ack;
     }
@@ -3835,11 +3838,9 @@ tunnel_send_clients_bck_ack (struct MeshTunnel *t)
 static void
 tunnel_send_bck_ack (struct MeshTunnel *t, uint16_t type)
 {
-  if (NULL != t->owner)
-  {
-    send_client_tunnel_ack (t->owner, t);
-    return;
-  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Sending BCK ACK on tunnel %u [%u]\n",
+              t->id.oid, t->id.tid);
   /* Is it after data to_origin retransmission? */
   switch (type)
   {
@@ -3853,12 +3854,13 @@ tunnel_send_bck_ack (struct MeshTunnel *t, uint16_t type)
       }
       if (t->bck_queue_max > t->bck_queue_n * 2)
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Not sending ACK, buffer free\n");
-        return;
+//         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Not sending ACK, buffer free\n");
+//         return;
       }
       break;
     case GNUNET_MESSAGE_TYPE_MESH_ACK:
     case GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK:
+      // FIXME fc
       break;
     default:
       GNUNET_break (0);
@@ -7061,7 +7063,7 @@ handle_local_ack (void *cls, struct GNUNET_SERVER_Client *client,
   t = tunnel_get_by_local_id (c, tid);
   if (NULL == t)
   {
-    GNUNET_break (0);
+    GNUNET_break (0); // FIXME fc
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
