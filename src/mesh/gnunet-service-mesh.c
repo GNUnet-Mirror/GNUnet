@@ -2050,7 +2050,6 @@ send_client_peer_connected (const struct MeshTunnel *t, const GNUNET_PEER_Id id)
 static void
 send_client_tunnel_ack (struct MeshClient *c, struct MeshTunnel *t)
 {
-  struct GNUNET_MESH_LocalAck msg;
   MESH_TunnelNumber tid;
   uint32_t ack;
 
@@ -2081,13 +2080,7 @@ send_client_tunnel_ack (struct MeshClient *c, struct MeshTunnel *t)
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " sending!\n");
   t->last_fwd_ack = ack;
-  msg.header.size = htons (sizeof (msg));
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK);
-  msg.tunnel_id = htonl (tid);
-  msg.max_pid = htonl (ack);
-
-  GNUNET_SERVER_notification_context_unicast (nc, c->handle,
-                                              &msg.header, GNUNET_NO);
+  send_local_ack (t, c, ack);
 }
 
 
