@@ -1193,7 +1193,9 @@ msg_received (void *cls, const struct GNUNET_MessageHeader *msg)
     reconnect (h);
     return;
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "received a message: %s\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "\n",
+       GNUNET_MESH_DEBUG_M2S (ntohs (msg->type)));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Received a message: %s\n",
        GNUNET_MESH_DEBUG_M2S (ntohs (msg->type)));
   switch (ntohs (msg->type))
   {
