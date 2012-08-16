@@ -3663,8 +3663,16 @@ tunnel_get_bck_ack (struct MeshTunnel *t)
   return ack;
 }
 
+
+/**
+ * Build a local ACK message and send it to a local client.
+ * 
+ * @param t Tunnel on which to send the ACK.
+ * @param c Client to whom send the ACK.
+ * @param ack Value of the ACK.
+ */
 static void
-send_local_ack (struct MeshClient *c, struct MeshTunnel *t, uint32_t ack)
+send_local_ack (struct MeshTunnel *t, struct MeshClient *c, uint32_t ack)
 {
   struct GNUNET_MESH_LocalAck msg;
 
@@ -3679,7 +3687,11 @@ send_local_ack (struct MeshClient *c, struct MeshTunnel *t, uint32_t ack)
 }
 
 /**
- * Build an ACK message and send it to the given peer.
+ * Build an ACK message and queue it to send to the given peer.
+ * 
+ * @param t Tunnel on which to send the ACK.
+ * @param peer Peer to whom send the ACK.
+ * @param ack Value of the ACK.
  */
 static void
 send_ack (struct MeshTunnel *t, struct GNUNET_PeerIdentity *peer,  uint32_t ack)
@@ -3817,7 +3829,7 @@ tunnel_send_clients_bck_ack (struct MeshTunnel *t)
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "  sending ack to client %u: %u\n",
                   t->clients[i]->id, ack);
-      send_local_ack(t->clients[i],  t, ack);
+      send_local_ack (t, t->clients[i], ack);
       clinfo->bck_ack = ack;
     }
   }
