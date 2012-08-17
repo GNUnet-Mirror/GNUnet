@@ -77,11 +77,6 @@ struct GNUNET_REGEX_Transition
    * State from which this transition origins.
    */
   struct GNUNET_REGEX_State *from_state;
-
-  /**
-   * Mark this transition. For example when reversing the automaton.
-   */
-  int mark;
 };
 
 
@@ -104,6 +99,12 @@ struct GNUNET_REGEX_State
    * Unique state id.
    */
   unsigned int id;
+
+  /**
+   * Unique state id that is used for traversing the automaton. It is guaranteed
+   * to be > 0 and < state_count.
+   */
+  unsigned int traversal_id;
 
   /**
    * If this is an accepting state or not.
@@ -152,9 +153,12 @@ struct GNUNET_REGEX_State
   struct GNUNET_HashCode hash;
 
   /**
-   * State ID for proof creation.
+   * Linear state ID accquired by depth-first-search. This ID should be used for
+   * storing information about the state in an array, because the 'id' of the
+   * state is not guaranteed to be linear. The 'dfs_id' is guaranteed to be > 0
+   * and < 'state_count'.
    */
-  unsigned int proof_id;
+  unsigned int dfs_id;
 
   /**
    * Proof for this state.
@@ -259,20 +263,24 @@ struct GNUNET_REGEX_Automaton
  * @param count current count of the state, from 0 to a->state_count -1.
  * @param s state.
  */
-typedef void (*GNUNET_REGEX_traverse_action) (void *cls, unsigned int count,
+typedef void (*GNUNET_REGEX_traverse_action) (void *cls,
+                                              const unsigned int count,
                                               struct GNUNET_REGEX_State * s);
 
 
 /**
- * Traverses the given automaton from it's start state, visiting all reachable
- * states and calling 'action' on each one of them.
+ * Traverses the given automaton using depth-first-search (DFS) from it's start
+ * state, visiting all reachable states and calling 'action' on each one of
+ * them.
  *
- * @param a automaton.
+ * @param a automaton to be traversed.
+ * @param start start state, pass a->start or NULL to traverse the whole automaton.
  * @param action action to be performed on each state.
  * @param action_cls closure for action
  */
 void
-GNUNET_REGEX_automaton_traverse (struct GNUNET_REGEX_Automaton *a,
+GNUNET_REGEX_automaton_traverse (const struct GNUNET_REGEX_Automaton *a,
+                                 struct GNUNET_REGEX_State *start,
                                  GNUNET_REGEX_traverse_action action,
                                  void *action_cls);
 
@@ -320,6 +328,7 @@ GNUNET_REGEX_generate_random_regex (size_t rx_length, char *matching_str);
  */
 char *
 GNUNET_REGEX_generate_random_string (size_t max_len);
+
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

@@ -167,10 +167,10 @@ GNUNET_REGEX_automaton_save_graph_step (void *cls, unsigned int count,
   char *to_name;
 
   if (GNUNET_YES == ctx->verbose)
-    GNUNET_asprintf (&name, "%i (%s) (%s) (%s)", s->proof_id, s->name, s->proof,
+    GNUNET_asprintf (&name, "%i (%s) (%s) (%s)", s->dfs_id, s->name, s->proof,
                      GNUNET_h2s (&s->hash));
   else
-    GNUNET_asprintf (&name, "%i", s->proof_id);
+    GNUNET_asprintf (&name, "%i", s->dfs_id);
 
   if (s->accepting)
   {
@@ -218,12 +218,12 @@ GNUNET_REGEX_automaton_save_graph_step (void *cls, unsigned int count,
 
     if (GNUNET_YES == ctx->verbose)
     {
-      GNUNET_asprintf (&to_name, "%i (%s) (%s) (%s)", ctran->to_state->proof_id,
+      GNUNET_asprintf (&to_name, "%i (%s) (%s) (%s)", ctran->to_state->dfs_id,
                        ctran->to_state->name, ctran->to_state->proof,
                        GNUNET_h2s (&ctran->to_state->hash));
     }
     else
-      GNUNET_asprintf (&to_name, "%i", ctran->to_state->proof_id);
+      GNUNET_asprintf (&to_name, "%i", ctran->to_state->dfs_id);
 
     if (NULL == ctran->label)
     {
@@ -320,7 +320,8 @@ GNUNET_REGEX_automaton_save_graph (struct GNUNET_REGEX_Automaton *a,
   start = "digraph G {\nrankdir=LR\n";
   fwrite (start, strlen (start), 1, ctx.filep);
 
-  GNUNET_REGEX_automaton_traverse (a, &GNUNET_REGEX_automaton_save_graph_step,
+  GNUNET_REGEX_automaton_traverse (a, a->start,
+                                   &GNUNET_REGEX_automaton_save_graph_step,
                                    &ctx);
 
   end = "\n}\n";
