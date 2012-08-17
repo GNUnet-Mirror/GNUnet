@@ -630,7 +630,8 @@ GNUNET_REGEX_automaton_traverse (const struct GNUNET_REGEX_Automaton *a,
   if (NULL == a || 0 == a->state_count)
     return;
 
-  for (count = 0, s = a->states_head; NULL != s; s = s->next, count++)
+  for (count = 0, s = a->states_head; NULL != s && count < a->state_count;
+       s = s->next, count++)
   {
     s->traversal_id = count;
     marks[s->traversal_id] = GNUNET_NO;
@@ -750,7 +751,7 @@ GNUNET_REGEX_add_multi_strides_to_dfa (struct GNUNET_REGEX_Context *regex_ctx,
                                        struct GNUNET_REGEX_Automaton *dfa,
                                        const unsigned int stride_len)
 {
-  struct GNUNET_REGEX_Strided_Context ctx = { stride_len, NULL, NULL};
+  struct GNUNET_REGEX_Strided_Context ctx = { stride_len, NULL, NULL };
   struct GNUNET_REGEX_Transition *t;
   struct GNUNET_REGEX_Transition *t_next;
 

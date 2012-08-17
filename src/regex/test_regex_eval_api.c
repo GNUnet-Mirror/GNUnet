@@ -46,7 +46,8 @@ struct Regex_String_Pair
 /**
  * Random regex test. Generate a random regex as well as 'str_count' strings to
  * match it against. Will match using GNUNET_REGEX implementation and compare
- * the result to glibc regex result. 'rx_length' has to be smaller then 'max_str_len'.
+ * the result to glibc regex result. 'rx_length' has to be smaller then
+ * 'max_str_len'.
  *
  * @param rx_length length of the regular expression.
  * @param max_str_len maximum length of the random strings.
@@ -64,34 +65,33 @@ test_random (unsigned int rx_length, unsigned int max_str_len,
   int eval;
   int eval_check;
   int eval_canonical;
+  int eval_canonical_check;
   struct GNUNET_REGEX_Automaton *dfa;
   regex_t rx;
   regmatch_t matchptr[1];
   char error[200];
   int result;
-  size_t str_len;
   char *canonical_regex;
 
-  // At least one string is needed for matching
+  /* At least one string is needed for matching */
   GNUNET_assert (str_count > 0);
-  // The string should be at least as long as the regex itself
+  /* The string should be at least as long as the regex itself */
   GNUNET_assert (max_str_len >= rx_length);
 
-  // Generate random regex and a string that matches the regex
+  /* Generate random regex and a string that matches the regex */
   matching_str = GNUNET_malloc (rx_length + 1);
   rand_rx = GNUNET_REGEX_generate_random_regex (rx_length, matching_str);
 
-  // Now match
+  /* Now match */
   result = 0;
   for (i = 0; i < str_count; i++)
   {
     if (0 < i)
     {
       matching_str = GNUNET_REGEX_generate_random_string (max_str_len);
-      str_len = strlen (matching_str);
     }
 
-    // Match string using DFA
+    /* Match string using DFA */
     dfa = GNUNET_REGEX_construct_dfa (rand_rx, strlen (rand_rx));
     if (NULL == dfa)
     {
@@ -100,26 +100,39 @@ test_random (unsigned int rx_length, unsigned int max_str_len,
     }
 
     eval = GNUNET_REGEX_eval (dfa, matching_str);
+    /* save the canonical regex for later comparison */
     canonical_regex = GNUNET_strdup (GNUNET_REGEX_get_canonical_regex (dfa));
     GNUNET_REGEX_automaton_destroy (dfa);
 
-    // Match string using glibc regex
+    /* Match string using glibc regex */
     if (0 != regcomp (&rx, rand_rx, REG_EXTENDED))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Could not compile regex using regcomp\n");
+                  "Could not compile regex using regcomp: %s\n", rand_rx);
       return -1;
     }
 
     eval_check = regexec (&rx, matching_str, 1, matchptr, 0);
     regfree (&rx);
 
-    // We only want to match the whole string, because that's what our DFA does, too.
+    /* We only want to match the whole string, because that's what our DFA does,
+     * too. */
     if (eval_check == 0 &&
         (matchptr[0].rm_so != 0 || matchptr[0].rm_eo != strlen (matching_str)))
       eval_check = 1;
 
-    // Match canonical regex
+    /* Match canonical regex */
+    dfa =
+        GNUNET_REGEX_construct_dfa (canonical_regex, strlen (canonical_regex));
+    if (NULL == dfa)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Constructing DFA failed\n");
+      return -1;
+    }
+
+    eval_canonical = GNUNET_REGEX_eval (dfa, matching_str);
+    GNUNET_REGEX_automaton_destroy (dfa);
+
     if (0 != regcomp (&rx, canonical_regex, REG_EXTENDED))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -128,17 +141,24 @@ test_random (unsigned int rx_length, unsigned int max_str_len,
       return -1;
     }
 
-    eval_canonical = regexec (&rx, matching_str, 1, matchptr, 0);
+    eval_canonical_check = regexec (&rx, matching_str, 1, matchptr, 0);
     regfree (&rx);
-    GNUNET_free (canonical_regex);
 
-    // compare result
-    if (eval_check != eval)
+    /* We only want to match the whole string, because that's what our DFA does,
+     * too. */
+    if (eval_canonical_check == 0 &&
+        (matchptr[0].rm_so != 0 || matchptr[0].rm_eo != strlen (matching_str)))
+      eval_canonical_check = 1;
+
+    /* compare results */
+    if (eval_check != eval || eval_canonical != eval_canonical_check)
     {
       regerror (eval_check, &rx, error, sizeof error);
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Unexpected result:\nregex: %s\nstring: %s\ngnunet regex: %i\nglibc regex: %i\nglibc error: %s\n\n",
-                  rand_rx, matching_str, eval, eval_check, error);
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Unexpected result:\nregex: %s\ncanonical_regex: %s\n\
+                   string: %s\ngnunet regex: %i\nglibc regex: %i\n\
+                   canonical regex: %i\ncanonical regex glibc: %i\n\
+                   glibc error: %s\n\n", rand_rx, canonical_regex, matching_str,
+                  eval, eval_check, eval_canonical, eval_canonical_check, error);
       result += 1;
     }
 
@@ -146,6 +166,7 @@ test_random (unsigned int rx_length, unsigned int max_str_len,
   }
 
   GNUNET_free (rand_rx);
+  GNUNET_free (canonical_regex);
 
   return result;
 }
@@ -157,7 +178,8 @@ test_random (unsigned int rx_length, unsigned int max_str_len,
  *
  * @param a automaton.
  * @param rx compiled glibc regex.
- * @param rxstr regular expression and strings with expected results to match against.
+ * @param rxstr regular expression and strings with expected results to
+ *              match against.
  *
  * @return 0 on successfull, non 0 otherwise
  */
@@ -185,7 +207,8 @@ test_automaton (struct GNUNET_REGEX_Automaton *a, regex_t * rx,
     eval = GNUNET_REGEX_eval (a, rxstr->strings[i]);
     eval_check = regexec (rx, rxstr->strings[i], 1, matchptr, 0);
 
-    // We only want to match the whole string, because that's what our DFA does, too.
+    /* We only want to match the whole string, because that's what our DFA does,
+     * too. */
     if (eval_check == 0 &&
         (matchptr[0].rm_so != 0 ||
          matchptr[0].rm_eo != strlen (rxstr->strings[i])))
@@ -198,11 +221,13 @@ test_automaton (struct GNUNET_REGEX_Automaton *a, regex_t * rx,
       result = 1;
       regerror (eval_check, rx, error, sizeof error);
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Unexpected result:\nregex: %s\ncanonical_regex: %s\nstring: %s\nexpected result: %i\n"
-                  "gnunet regex: %i\nglibc regex: %i\nglibc error: %s\nrm_so: %i\nrm_eo: %i\n\n",
-                  rxstr->regex, GNUNET_REGEX_get_canonical_regex (a),
-                  rxstr->strings[i], rxstr->expected_results[i], eval,
-                  eval_check, error, matchptr[0].rm_so, matchptr[0].rm_eo);
+                  "Unexpected result:\nregex: %s\ncanonical_regex: %s\n"
+                  "string: %s\nexpected result: %i\n"
+                  "gnunet regex: %i\nglibc regex: %i\nglibc error: %s\n"
+                  "rm_so: %i\nrm_eo: %i\n\n", rxstr->regex,
+                  GNUNET_REGEX_get_canonical_regex (a), rxstr->strings[i],
+                  rxstr->expected_results[i], eval, eval_check, error,
+                  matchptr[0].rm_so, matchptr[0].rm_eo);
     }
   }
   return result;
@@ -227,16 +252,18 @@ main (int argc, char *argv[])
   int check_rand;
   char *check_proof;
 
-  struct Regex_String_Pair rxstr[16] = {
+  struct Regex_String_Pair rxstr[17] = {
     {"ab?(abcd)?", 5,
      {"ababcd", "abab", "aabcd", "a", "abb"},
      {match, nomatch, match, match, nomatch}},
     {"ab(c|d)+c*(a(b|c)d)+", 5,
-     {"abcdcdcdcdddddabd", "abcd", "abcddddddccccccccccccccccccccccccabdacdabd",
+     {"abcdcdcdcdddddabd", "abcd",
+      "abcddddddccccccccccccccccccccccccabdacdabd",
       "abccccca", "abcdcdcdccdabdabd"},
      {match, nomatch, match, nomatch, match}},
     {"ab+c*(a(bx|c)d)+", 5,
-     {"abcdcdcdcdddddabd", "abcd", "abcddddddccccccccccccccccccccccccabdacdabd",
+     {"abcdcdcdcdddddabd", "abcd",
+      "abcddddddccccccccccccccccccccccccabdacdabd",
       "abccccca", "abcdcdcdccdabdabd"},
      {nomatch, nomatch, nomatch, nomatch, nomatch}},
     {"a+X*y+c|p|R|Z*K*y*R+w|Y*6+n+h*k*w+V*F|W*B*e*", 1,
@@ -255,7 +282,8 @@ main (int argc, char *argv[])
      {"", "bla", "blabla", "bl", "la", "b", "l", "a"},
      {match, match, match, nomatch, nomatch, nomatch, nomatch, nomatch}},
     {"ab(c|d)+c*(a(b|c)+d)+(bla)(bla)*", 8,
-     {"ab", "abcabdbla", "abdcccccccccccabcbccdblablabla", "bl", "la", "b", "l",
+     {"ab", "abcabdbla", "abdcccccccccccabcbccdblablabla", "bl", "la", "b",
+      "l",
       "a"},
      {nomatch, match, match, nomatch, nomatch, nomatch, nomatch, nomatch}},
     {"a|aa*a", 6,
@@ -278,6 +306,9 @@ main (int argc, char *argv[])
      {nomatch, match, match}},
     {"ab(c|d)+c*(a(b|c)d)+", 1,
      {"abacd"},
+     {nomatch}},
+    {"d|5kl", 1,
+     {"d5kl"},
      {nomatch}}
   };
 
@@ -285,7 +316,7 @@ main (int argc, char *argv[])
   check_dfa = 0;
   check_rand = 0;
 
-  for (i = 0; i < 16; i++)
+  for (i = 0; i < 17; i++)
   {
     if (0 != regcomp (&rx, rxstr[i].regex, REG_EXTENDED))
     {
@@ -294,12 +325,12 @@ main (int argc, char *argv[])
       return 1;
     }
 
-    // NFA test
+    /* NFA test */
     a = GNUNET_REGEX_construct_nfa (rxstr[i].regex, strlen (rxstr[i].regex));
     check_nfa += test_automaton (a, &rx, &rxstr[i]);
     GNUNET_REGEX_automaton_destroy (a);
 
-    // DFA test
+    /* DFA test */
     a = GNUNET_REGEX_construct_dfa (rxstr[i].regex, strlen (rxstr[i].regex));
     check_dfa += test_automaton (a, &rx, &rxstr[i]);
     check_proof = GNUNET_strdup (GNUNET_REGEX_get_canonical_regex (a));
@@ -315,9 +346,10 @@ main (int argc, char *argv[])
     regfree (&rx);
   }
 
+  /* Random tests */
   srand (time (NULL));
   for (i = 0; i < 50; i++)
-    check_rand += test_random (100, 120, 20);
+    check_rand += test_random (50, 60, 30);
 
   return check_nfa + check_dfa + check_rand;
 }
