@@ -6040,6 +6040,8 @@ handle_local_tunnel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  by client %u\n", c->id);
+
   /* Message sanity check */
   if (sizeof (struct GNUNET_MESH_TunnelMessage) != ntohs (message->size))
   {
@@ -6120,6 +6122,7 @@ handle_local_tunnel_speed (void *cls, struct GNUNET_SERVER_Client *client,
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  by client %u\n", c->id);
+
   tunnel_msg = (struct GNUNET_MESH_TunnelMessage *) message;
 
   /* Retrieve tunnel */
@@ -6174,8 +6177,8 @@ handle_local_tunnel_buffer (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  by client %u\n", c->id);
+
   tunnel_msg = (struct GNUNET_MESH_TunnelMessage *) message;
 
   /* Retrieve tunnel */
@@ -6230,8 +6233,10 @@ handle_local_connect_add (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  by client %u\n", c->id);
 
   peer_msg = (struct GNUNET_MESH_PeerControl *) message;
+
   /* Sanity check for message size */
   if (sizeof (struct GNUNET_MESH_PeerControl) != ntohs (peer_msg->header.size))
   {
@@ -6294,7 +6299,10 @@ handle_local_connect_del (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  by client %u\n", c->id);
+
   peer_msg = (struct GNUNET_MESH_PeerControl *) message;
+
   /* Sanity check for message size */
   if (sizeof (struct GNUNET_MESH_PeerControl) != ntohs (peer_msg->header.size))
   {
@@ -6350,6 +6358,8 @@ handle_local_connect_del (void *cls, struct GNUNET_SERVER_Client *client,
  * @param cls closure
  * @param client identification of the client
  * @param message the actual message (PeerControl)
+ * 
+ * FIXME implement DHT block bloomfilter
  */
 static void
 handle_local_blacklist (void *cls, struct GNUNET_SERVER_Client *client,
@@ -6368,6 +6378,8 @@ handle_local_blacklist (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  by client %u\n", c->id);
+
   peer_msg = (struct GNUNET_MESH_PeerControl *) message;
 
   /* Sanity check for message size */
@@ -6420,6 +6432,8 @@ handle_local_unblacklist (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  by client %u\n", c->id);
+
   peer_msg = (struct GNUNET_MESH_PeerControl *) message;
 
   /* Sanity check for message size */
@@ -6490,8 +6504,10 @@ handle_local_connect_by_type (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  by client %u\n", c->id);
 
   connect_msg = (struct GNUNET_MESH_ConnectPeerByType *) message;
+
   /* Sanity check for message size */
   if (sizeof (struct GNUNET_MESH_ConnectPeerByType) !=
       ntohs (connect_msg->header.size))
@@ -6605,6 +6621,7 @@ handle_local_connect_by_string (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  by client %u\n", c->id);
 
   /* Message size sanity check */
   if (sizeof(struct GNUNET_MESH_ConnectPeerByString) >= size)
@@ -6722,7 +6739,10 @@ handle_local_unicast (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  by client %u\n", c->id);
+
   data_msg = (struct GNUNET_MESH_Unicast *) message;
+
   /* Sanity check for message size */
   size = ntohs (message->size);
   if (sizeof (struct GNUNET_MESH_Unicast) +
@@ -6813,6 +6833,8 @@ handle_local_to_origin (void *cls, struct GNUNET_SERVER_Client *client,
   MESH_TunnelNumber tid;
   size_t size;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Got a ToOrigin request from a client!\n");
   /* Sanity check for client registration */
   if (NULL == (c = client_get (client)))
   {
@@ -6820,7 +6842,10 @@ handle_local_to_origin (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  by client %u\n", c->id);
+
   data_msg = (struct GNUNET_MESH_ToOrigin *) message;
+
   /* Sanity check for message size */
   size = ntohs (message->size);
   if (sizeof (struct GNUNET_MESH_ToOrigin) +
@@ -6833,8 +6858,7 @@ handle_local_to_origin (void *cls, struct GNUNET_SERVER_Client *client,
 
   /* Tunnel exists? */
   tid = ntohl (data_msg->tid);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Got a ToOrigin request from a client! Tunnel %X\n", tid);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  on tunnel %X\n", tid);
   if (tid < GNUNET_MESH_LOCAL_TUNNEL_ID_SERV)
   {
     GNUNET_break (0);
@@ -6919,7 +6943,10 @@ handle_local_multicast (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  by client %u\n", c->id);
+
   data_msg = (struct GNUNET_MESH_Multicast *) message;
+
   /* Sanity check for message size */
   if (sizeof (struct GNUNET_MESH_Multicast) +
       sizeof (struct GNUNET_MessageHeader) > ntohs (data_msg->header.size))
@@ -7002,8 +7029,10 @@ handle_local_ack (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  by client %u\n", c->id);
 
   msg = (struct GNUNET_MESH_LocalAck *) message;
+
   /* Tunnel exists? */
   tid = ntohl (msg->tunnel_id);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  on tunnel %X\n", tid);
