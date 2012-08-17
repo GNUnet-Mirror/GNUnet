@@ -2253,7 +2253,7 @@ testbed_run (void *cls,
  */
 int main (int argc, char *const *argv)
 {
-  //sleep (30);			/* Debugging */
+  //sleep (15);			/* Debugging */
   return
     (GNUNET_OK ==
      GNUNET_SERVICE_run (argc,

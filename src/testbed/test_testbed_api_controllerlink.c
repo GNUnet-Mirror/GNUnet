@@ -191,7 +191,7 @@ registration_cont (void *cls, const char *emsg)
     GNUNET_TESTBED_controller_link (mc, slave, NULL, cfg, GNUNET_YES);
     result = SUCCESS;
     GNUNET_SCHEDULER_add_delayed 
-      (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 3),
+      (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10),
        &do_shutdown, NULL);
     break;
   case INIT:

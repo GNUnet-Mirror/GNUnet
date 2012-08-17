@@ -422,7 +422,6 @@ int main (int argc, char **argv)
 
   status = GNUNET_OK;
   in_shutdown = GNUNET_NO;
-  //sleep (60);
   shc_chld =
     GNUNET_SIGNAL_handler_install (GNUNET_SIGCHLD, &sighandler_child_death);
   ret = GNUNET_PROGRAM_run (argc, argv, "gnunet-testbed-helper",

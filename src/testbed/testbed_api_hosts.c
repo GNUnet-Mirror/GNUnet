@@ -242,8 +242,8 @@ GNUNET_TESTBED_host_create_with_id (uint32_t id,
     return NULL;
   }
   host = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Host));
-  host->hostname = hostname;
-  host->username = username;
+  host->hostname = (NULL != hostname) ? GNUNET_strdup (hostname) : NULL;
+  host->username = (NULL != username) ? GNUNET_strdup (username) : NULL;
   host->id = id;
   host->port = (0 == port) ? 22 : port;
   new_size = host_list_size;
@@ -326,6 +326,8 @@ GNUNET_TESTBED_host_destroy (struct GNUNET_TESTBED_Host *host)
     GNUNET_CONTAINER_DLL_remove (host->rc_head, host->rc_tail, rc);
     GNUNET_free (rc);
   }
+  GNUNET_free_non_null ((char *) host->username);
+  GNUNET_free_non_null ((char *) host->hostname);
   GNUNET_free (host);
   while (host_list_size >= HOST_LIST_GROW_STEP)
   {

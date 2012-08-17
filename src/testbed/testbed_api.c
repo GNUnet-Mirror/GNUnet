@@ -945,6 +945,7 @@ helper_exp_cb (void *cls)
 
   cb = cp->cb;
   cb_cls = cp->cls;
+  cp->helper = NULL;
   GNUNET_TESTBED_controller_stop (cp);
   if (NULL != cb)
     cb (cb_cls, NULL, GNUNET_SYSERR);
@@ -1006,6 +1007,7 @@ GNUNET_TESTBED_controller_start (const char *controller_ip,
       GNUNET_asprintf (&cp->dst, "%s", hostname);
     else 
       GNUNET_asprintf (&cp->dst, "%s@%s", username, hostname);
+    LOG_DEBUG ("Starting SSH to destination %s\n", cp->dst);
     argp = 0;
     remote_args[argp++] = "ssh";
     remote_args[argp++] = "-p";
@@ -1054,7 +1056,8 @@ GNUNET_TESTBED_controller_stop (struct GNUNET_TESTBED_ControllerProc *cproc)
 {
   if (NULL != cproc->shandle)
     GNUNET_HELPER_send_cancel (cproc->shandle);
-  GNUNET_HELPER_stop (cproc->helper);
+  if (NULL != cproc->helper)
+    GNUNET_HELPER_stop (cproc->helper);
   if (NULL != cproc->cfg)
     GNUNET_CONFIGURATION_destroy (cproc->cfg);
   GNUNET_free_non_null (cproc->port);
