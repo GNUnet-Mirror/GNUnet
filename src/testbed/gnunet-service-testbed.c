@@ -470,6 +470,29 @@ struct ForwardedOperationContext
 
 
 /**
+ * Context information used while linking controllers
+ */
+struct LinkControllersContext
+{
+  /**
+   * The client which initiated the link controller operation
+   */
+  struct GNUNET_SERVER_Client *client;
+
+  /**
+   * The ID of the operation
+   */
+  uint64_t operation_id;
+  
+  /**
+   * Pointer to the slave handle if we are directly starting/connecting to the controller
+   */
+  struct Slave *slave;
+};
+
+
+
+/**
  * The master context; generated with the first INIT message
  */
 static struct Context *master_context;
@@ -978,6 +1001,29 @@ slave_event_callback(void *cls,
 
 
 /**
+ * Function to send generic operation success message to given client
+ *
+ * @param client the client to send the message to
+ * @param operation_id the id of the operation which was successful
+ */
+static void
+send_operation_success_msg (struct GNUNET_SERVER_Client *client,
+			    uint64_t operation_id)
+{
+  struct GNUNET_TESTBED_GenericOperationSuccessEventMessage *msg;
+  uint16_t msize;
+  
+  msize = sizeof (struct GNUNET_TESTBED_GenericOperationSuccessEventMessage);  
+  msg = GNUNET_malloc (msize);
+  msg->header.size = htons (msize);
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_GENERICOPSUCCESS);
+  msg->operation_id = GNUNET_htonll (operation_id);
+  msg->event_type = htonl (GNUNET_TESTBED_ET_OPERATION_FINISHED);
+  queue_message (client, &msg->header);  
+}
+
+
+/**
  * Callback to signal successfull startup of the controller process
  *
  * @param cls the closure from GNUNET_TESTBED_controller_start()
@@ -991,20 +1037,27 @@ slave_status_callback (void *cls,
                        const struct GNUNET_CONFIGURATION_Handle *cfg,
                        int status)
 {
-  struct Slave *slave = cls;
+  struct LinkControllersContext *lcc = cls;
 
   if (GNUNET_SYSERR == status)
   {
-    slave->controller_proc = NULL;
+    lcc->slave->controller_proc = NULL;
     LOG (GNUNET_ERROR_TYPE_WARNING,
          "Unexpected slave shutdown\n");
     GNUNET_SCHEDULER_shutdown ();	/* We too shutdown */
     return;
   }
-  slave->controller =
-    GNUNET_TESTBED_controller_connect (cfg, host_list[slave->host_id],
+  lcc->slave->controller =
+    GNUNET_TESTBED_controller_connect (cfg, host_list[lcc->slave->host_id],
                                        master_context->event_mask,
-                                       &slave_event_callback, slave);
+                                       &slave_event_callback, lcc->slave);
+  if (NULL != lcc->slave->controller)
+    send_operation_success_msg (lcc->client, lcc->operation_id);
+  else
+    send_operation_fail_msg (lcc->client, lcc->operation_id,
+			     "Could not connect to delegated controller");
+  GNUNET_SERVER_client_drop (lcc->client);
+  GNUNET_free (lcc);
 }
 
 
@@ -1299,7 +1352,6 @@ handle_link_controllers (void *cls,
   if (slave_host_id == master_context->host_id) /* Link from us */
   {
     struct Slave *slave;
-
     if ((delegated_host_id < slave_list_size) && 
         (NULL != slave_list[delegated_host_id])) /* We have already added */
     {
@@ -1344,20 +1396,32 @@ handle_link_controllers (void *cls,
     }
     slave = GNUNET_malloc (sizeof (struct Slave));
     slave->host_id = delegated_host_id;    
-    slave_list_add (slave);    
+    slave_list_add (slave);
+
     if (1 == msg->is_subordinate)
     {
+      struct LinkControllersContext *lcc;
+      lcc = GNUNET_malloc (sizeof (struct LinkControllersContext));
+      lcc->operation_id = GNUNET_ntohll (msg->operation_id);
+      GNUNET_SERVER_client_keep (client);
+      lcc->client = client;
+      lcc->slave = slave;      
       slave->controller_proc =
         GNUNET_TESTBED_controller_start (master_context->master_ip,
 					 host_list[slave->host_id],
 					 cfg, &slave_status_callback,
-					 slave);
+					 lcc);
     }
     else {
       slave->controller = 
 	GNUNET_TESTBED_controller_connect (cfg, host_list[slave->host_id],
 					   master_context->event_mask,
 					   &slave_event_callback, slave);
+      if (NULL != slave->controller)
+	send_operation_success_msg (client, GNUNET_ntohll (msg->operation_id));
+      else
+	send_operation_fail_msg (client, GNUNET_ntohll (msg->operation_id),
+				 "Could not connect to delegated controller");
     }
     GNUNET_CONFIGURATION_destroy (cfg);
     new_route = GNUNET_malloc (sizeof (struct Route));
@@ -1594,10 +1658,8 @@ handle_peer_destroy (void *cls,
                      const struct GNUNET_MessageHeader *message)
 {
   const struct GNUNET_TESTBED_PeerDestroyMessage *msg;
-  struct GNUNET_TESTBED_GenericOperationSuccessEventMessage *reply;
   struct Peer *peer;
   uint32_t peer_id;
-  uint16_t reply_size;
   
   msg = (const struct GNUNET_TESTBED_PeerDestroyMessage *) message;
   peer_id = ntohl (msg->peer_id);
@@ -1622,14 +1684,7 @@ handle_peer_destroy (void *cls,
   GNUNET_CONFIGURATION_destroy (peer->details.local.cfg);
   peer_list_remove (peer);
   GNUNET_free (peer);
-  reply_size = 
-    sizeof (struct GNUNET_TESTBED_GenericOperationSuccessEventMessage);
-  reply = GNUNET_malloc (reply_size);
-  reply->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_GENERICOPSUCCESS);
-  reply->header.size = htons (reply_size);
-  reply->operation_id = msg->operation_id;
-  reply->event_type = htonl (GNUNET_TESTBED_ET_OPERATION_FINISHED);
-  queue_message (client, &reply->header);
+  send_operation_success_msg (client, GNUNET_ntohll (msg->operation_id));
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 

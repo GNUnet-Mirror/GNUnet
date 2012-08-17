@@ -69,10 +69,8 @@ opstart_peer_create (void *cls)
   msg->host_id = htonl (GNUNET_TESTBED_host_get_id_ (data->peer->host));
   msg->peer_id = htonl (data->peer->unique_id);
   msg->config_size = htonl (c_size);
-  GNUNET_CONTAINER_DLL_insert_tail (opc->c->ocq_head,
-                                    opc->c->ocq_tail, opc);
-  GNUNET_TESTBED_queue_message_ (opc->c,
-				 (struct GNUNET_MessageHeader *) msg);
+  GNUNET_CONTAINER_DLL_insert_tail (opc->c->ocq_head, opc->c->ocq_tail, opc);
+  GNUNET_TESTBED_queue_message_ (opc->c, &msg->header);
 };
 
 

@@ -105,6 +105,11 @@ static struct GNUNET_CONFIGURATION_Handle *cfg;
 static GNUNET_SCHEDULER_TaskIdentifier abort_task;
 
 /**
+ * Operation handle for linking controllers
+ */
+static struct GNUNET_TESTBED_Operation *op;
+
+/**
  * Event mask
  */
 uint64_t event_mask;
@@ -167,7 +172,25 @@ do_abort (void *cls, const const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void 
 controller_cb(void *cls, const struct GNUNET_TESTBED_EventInformation *event)
 {
-  GNUNET_assert (0);
+  switch (result)
+  {
+  case SLAVE1_REGISTERED:
+    GNUNET_assert (NULL != event);
+    GNUNET_assert (GNUNET_TESTBED_ET_OPERATION_FINISHED == event->type);
+    GNUNET_assert (event->details.operation_finished.operation == op);
+    GNUNET_assert (NULL == event->details.operation_finished.op_cls);
+    GNUNET_assert (NULL == event->details.operation_finished.emsg);
+    GNUNET_assert (GNUNET_TESTBED_PIT_GENERIC ==
+		   event->details.operation_finished.pit);
+    GNUNET_assert (NULL == event->details.operation_finished.op_result.generic);
+    GNUNET_TESTBED_operation_done (op);
+    op = NULL;
+    result = SUCCESS;
+    GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+    break;
+  default:
+    GNUNET_assert (0);
+  }
 }
 
 
@@ -188,11 +211,8 @@ registration_cont (void *cls, const char *emsg)
     GNUNET_assert (NULL != mc);
     result = SLAVE1_REGISTERED;
     GNUNET_assert (NULL != cfg);
-    GNUNET_TESTBED_controller_link (mc, slave, NULL, cfg, GNUNET_YES);
-    result = SUCCESS;
-    GNUNET_SCHEDULER_add_delayed 
-      (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10),
-       &do_shutdown, NULL);
+    op = GNUNET_TESTBED_controller_link (mc, slave, NULL, cfg, GNUNET_YES);
+    GNUNET_assert (NULL != op);
     break;
   case INIT:
   case SUCCESS:
@@ -256,7 +276,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   cp =
     GNUNET_TESTBED_controller_start ("127.0.0.1", host, cfg, status_cb, NULL);
   abort_task = GNUNET_SCHEDULER_add_delayed 
-    (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 30), 
+    (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5), 
      &do_abort, NULL);
 }
 

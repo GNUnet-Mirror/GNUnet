@@ -574,8 +574,9 @@ GNUNET_TESTBED_cancel_registration (struct GNUNET_TESTBED_HostRegistrationHandle
  * @param is_subordinate GNUNET_YES if the controller at delegated_host should
  *          be started by the master controller; GNUNET_NO if we are just
  *          allowed to use the slave via TCP/IP
+ * @return the operation handle
  */
-void
+struct GNUNET_TESTBED_Operation *
 GNUNET_TESTBED_controller_link (struct GNUNET_TESTBED_Controller *master,
 				struct GNUNET_TESTBED_Host *delegated_host,
 				struct GNUNET_TESTBED_Host *slave_host,
@@ -597,8 +598,9 @@ GNUNET_TESTBED_controller_link (struct GNUNET_TESTBED_Controller *master,
  * @param is_subordinate GNUNET_YES if the controller at delegated_host should
  *          be started by the master controller; GNUNET_NO if we are just
  *          allowed to use the slave via TCP/IP
+ * @return the operation handle
  */
-void
+struct GNUNET_TESTBED_Operation *
 GNUNET_TESTBED_controller_link_2 (struct GNUNET_TESTBED_Controller *master,
 				  struct GNUNET_TESTBED_Host *delegated_host,
 				  struct GNUNET_TESTBED_Host *slave_host,

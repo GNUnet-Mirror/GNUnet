@@ -166,6 +166,11 @@ struct GNUNET_TESTBED_ControllerLinkMessage
   uint32_t delegated_host_id GNUNET_PACKED;
 
   /**
+   * The id of the operation which created this message
+   */
+  uint64_t operation_id GNUNET_PACKED;
+
+  /**
    * Which host is responsible for managing the delegation? NBO
    */
   uint32_t slave_host_id GNUNET_PACKED;

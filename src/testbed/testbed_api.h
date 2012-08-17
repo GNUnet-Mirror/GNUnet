@@ -66,7 +66,12 @@ enum OperationType
     /**
      * Forwarded operation
      */
-    OP_FORWARDED
+    OP_FORWARDED,
+
+    /**
+     * Link controllers operation
+     */
+    OP_LINK_CONTROLLERS,
 
   };
 
@@ -258,16 +263,6 @@ struct GNUNET_TESTBED_Controller
    * present 
    */
   struct GNUNET_TESTBED_HostRegistrationHandle *rh;
-
-  /**
-   * The head of the operation queue (FIXME: Remove, use ocq)
-   */
-  struct GNUNET_TESTBED_Operation *op_head;
-  
-  /**
-   * The tail of the operation queue (FIXME: Remove, use ocq)
-   */
-  struct GNUNET_TESTBED_Operation *op_tail;
 
   /**
    * The head of the opeartion context queue

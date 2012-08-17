@@ -285,24 +285,25 @@ handle_opsuccess (struct GNUNET_TESTBED_Controller *c,
   {
   case OP_PEER_DESTROY:
     {
-      struct GNUNET_TESTBED_Peer *peer;
-      
-      if (NULL != event)
-      {
-        event->details.operation_finished.operation = opc->op;
-        event->details.operation_finished.op_cls = NULL;
-        event->details.operation_finished.emsg = NULL;
-        event->details.operation_finished.pit = GNUNET_TESTBED_PIT_GENERIC;
-        event->details.operation_finished.op_result.generic = NULL;
-      }
+      struct GNUNET_TESTBED_Peer *peer;     
       peer = opc->data;
       GNUNET_free (peer);
       opc->data = NULL;
       //PEERDESTROYDATA
     }
     break;
+  case OP_LINK_CONTROLLERS:    
+    break;
   default:
     GNUNET_assert (0);
+  }
+  if (NULL != event)
+  {
+    event->details.operation_finished.operation = opc->op;
+    event->details.operation_finished.op_cls = NULL;
+    event->details.operation_finished.emsg = NULL;
+    event->details.operation_finished.pit = GNUNET_TESTBED_PIT_GENERIC;
+    event->details.operation_finished.op_result.generic = NULL;
   }
   GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
   opc->state = OPC_STATE_FINISHED;
@@ -953,6 +954,45 @@ helper_exp_cb (void *cls)
 
 
 /**
+ * Function to call to start a link-controllers type operation once all queues
+ * the operation is part of declare that the operation can be activated.
+ *
+ * @param cls the closure from GNUNET_TESTBED_operation_create_()
+ */
+static void 
+opstart_link_controllers (void *cls)
+{
+  struct OperationContext *opc = cls;
+  struct GNUNET_TESTBED_ControllerLinkMessage *msg;
+
+  GNUNET_assert (NULL != opc->data);
+  msg = opc->data;
+  opc->data = NULL;
+  opc->state = OPC_STATE_STARTED;
+  GNUNET_CONTAINER_DLL_insert_tail (opc->c->ocq_head, opc->c->ocq_tail, opc);
+  GNUNET_TESTBED_queue_message_ (opc->c, &msg->header);
+}
+
+
+/**
+ * Callback which will be called when link-controllers type operation is released
+ *
+ * @param cls the closure from GNUNET_TESTBED_operation_create_()
+ */
+static void 
+oprelease_link_controllers (void *cls)
+{
+  struct OperationContext *opc = cls;
+
+  if (OPC_STATE_INIT == opc->state)
+    GNUNET_free (opc->data);
+  if (OPC_STATE_STARTED == opc->state)
+    GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
+  GNUNET_free (opc);
+}
+
+
+/**
  * Starts a controller process at the host. FIXME: add controller start callback
  * with the configuration with which the controller is started
  *
@@ -1320,7 +1360,7 @@ GNUNET_TESTBED_cancel_registration (struct GNUNET_TESTBED_HostRegistrationHandle
  *          be started by the master controller; GNUNET_NO if we are just
  *          allowed to use the slave via TCP/IP
  */
-void
+struct GNUNET_TESTBED_Operation *
 GNUNET_TESTBED_controller_link_2 (struct GNUNET_TESTBED_Controller *master,
 				  struct GNUNET_TESTBED_Host *delegated_host,
 				  struct GNUNET_TESTBED_Host *slave_host,
@@ -1329,6 +1369,7 @@ GNUNET_TESTBED_controller_link_2 (struct GNUNET_TESTBED_Controller *master,
 				  size_t scfg_size,
 				  int is_subordinate)
 {
+  struct OperationContext *opc;
   struct GNUNET_TESTBED_ControllerLinkMessage *msg;
   uint16_t msg_size;
 
@@ -1347,7 +1388,17 @@ GNUNET_TESTBED_controller_link_2 (struct GNUNET_TESTBED_Controller *master,
   msg->config_size = htons ((uint16_t) scfg_size);
   msg->is_subordinate = (GNUNET_YES == is_subordinate) ? 1 : 0;
   memcpy (&msg[1], sxcfg, sxcfg_size);
-  GNUNET_TESTBED_queue_message_ (master, (struct GNUNET_MessageHeader *) msg);
+  opc = GNUNET_malloc (sizeof (struct OperationContext));
+  opc->c = master;
+  opc->data = msg;
+  opc->type = OP_LINK_CONTROLLERS;
+  opc->id = master->operation_counter++;
+  opc->state = OPC_STATE_INIT;
+  msg->operation_id = GNUNET_htonll (opc->id);
+  opc->op = GNUNET_TESTBED_operation_create_ (opc, &opstart_link_controllers,
+                                              &oprelease_link_controllers);
+  GNUNET_TESTBED_operation_queue_insert_ (master->opq_peer_create, opc->op);
+  return opc->op;
 }
 
 
@@ -1395,23 +1446,25 @@ GNUNET_TESTBED_compress_config_ (const char *config, size_t size,
  * @param is_subordinate GNUNET_YES if the slave should be started (and stopped)
  *                       by the master controller; GNUNET_NO if we are just
  *                       allowed to use the slave via TCP/IP
+ * @return the operation handle
  */
-void
+struct GNUNET_TESTBED_Operation *
 GNUNET_TESTBED_controller_link (struct GNUNET_TESTBED_Controller *master,
 				struct GNUNET_TESTBED_Host *delegated_host,
 				struct GNUNET_TESTBED_Host *slave_host,
 				const struct GNUNET_CONFIGURATION_Handle *slave_cfg,
 				int is_subordinate)
 {
+  struct GNUNET_TESTBED_Operation *op;
   char *config;
   char *cconfig;
   size_t cc_size;
   size_t config_size;  
   
-  GNUNET_assert (GNUNET_YES == 
+  GNUNET_assert (GNUNET_YES ==
 		 GNUNET_TESTBED_is_host_registered_ (delegated_host, master));
   if ((NULL != slave_host) && (0 != GNUNET_TESTBED_host_get_id_ (slave_host)))
-    GNUNET_assert (GNUNET_YES == 
+    GNUNET_assert (GNUNET_YES ==
 		   GNUNET_TESTBED_is_host_registered_ (slave_host, master));
   config = GNUNET_CONFIGURATION_serialize (slave_cfg, &config_size);
   cc_size = GNUNET_TESTBED_compress_config_ (config, config_size, &cconfig);
@@ -1419,10 +1472,11 @@ GNUNET_TESTBED_controller_link (struct GNUNET_TESTBED_Controller *master,
   GNUNET_assert ((UINT16_MAX -
 		  sizeof (struct GNUNET_TESTBED_ControllerLinkMessage))
 		  >= cc_size); /* Configuration doesn't fit in 1 message */
-  GNUNET_TESTBED_controller_link_2 (master, delegated_host, slave_host,
+  op = GNUNET_TESTBED_controller_link_2 (master, delegated_host, slave_host,
 				    (const char *) cconfig,
 				    cc_size, config_size, is_subordinate);
   GNUNET_free (cconfig);
+  return op;
 }
 
 
@@ -1495,9 +1549,6 @@ GNUNET_TESTBED_create_helper_init_msg_ (const char *cname,
 void
 GNUNET_TESTBED_operation_cancel (struct GNUNET_TESTBED_Operation *operation)
 {
-  GNUNET_CONTAINER_DLL_remove (operation->controller->op_head,
-			       operation->controller->op_tail,
-			       operation);
   GNUNET_TESTBED_operation_done (operation);
 }
 
@@ -1522,6 +1573,7 @@ GNUNET_TESTBED_operation_done (struct GNUNET_TESTBED_Operation *operation)
   case OP_PEER_STOP:
   case OP_PEER_INFO:
   case OP_OVERLAY_CONNECT:
+  case OP_LINK_CONTROLLERS:
     GNUNET_TESTBED_operation_release_ (operation);
     return;
   default:
