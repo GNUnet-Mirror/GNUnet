@@ -6049,7 +6049,7 @@ handle_local_tunnel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  by client %u\n", c->id);
+
   tunnel_msg = (struct GNUNET_MESH_TunnelMessage *) message;
 
   /* Retrieve tunnel */

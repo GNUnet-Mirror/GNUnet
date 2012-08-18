@@ -240,17 +240,23 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
     started = GNUNET_YES;
     start_time = GNUNET_TIME_absolute_get();
     if (FWD != test) // Send leaf -> root
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " sending first BCK data\n");
       GNUNET_MESH_notify_transmit_ready (t_bck, GNUNET_NO,
                                         GNUNET_TIME_UNIT_FOREVER_REL,
                                         NULL,
                                         sizeof (struct test_traffic_message),
                                         &tmt_rdy, &two);
+    }
     if (BCK != test) // Send root -> leaf
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " sending first FWD data\n");
       GNUNET_MESH_notify_transmit_ready (t_fwd, GNUNET_NO,
                                         GNUNET_TIME_UNIT_FOREVER_REL,
                                         &peer_id,
                                         sizeof (struct test_traffic_message),
                                         &tmt_rdy, &one);
+    }
     return GNUNET_OK;
   }
 
@@ -270,7 +276,7 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
   }
   msg = (struct test_traffic_message *) message;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got data packet # %u [%u]\n",
-              ntohl (msg->data), got + 1);
+              ntohl (msg->data), *got + 1);
   (*got)++;
   if (target == *got)
   {
