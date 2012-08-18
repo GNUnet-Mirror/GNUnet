@@ -29,6 +29,8 @@
 
 #define MESH_DEBUG              GNUNET_YES
 
+#define INITIAL_WINDOW_SIZE     2
+#define ACK_THRESHOLD           INITIAL_WINDOW_SIZE / 2
 
 #include "platform.h"
 #include "gnunet_common.h"
