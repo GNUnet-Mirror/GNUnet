@@ -455,6 +455,7 @@ create_tunnel (struct GNUNET_MESH_Handle *h, MESH_TunnelNumber tid)
     t->tid = tid;
   }
   t->max_send_pid = 0;
+  t->last_recv_pid = (uint32_t) -1;
   return t;
 }
 
@@ -835,6 +836,9 @@ do_reconnect (struct GNUNET_MESH_Handle *h)
        */
       continue;
     }
+    t->next_send_pid = 0;
+    t->max_send_pid = 0;
+    t->last_recv_pid = (uint32_t) -1;
     tmsg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_CREATE);
     tmsg.header.size = htons (sizeof (struct GNUNET_MESH_TunnelMessage));
     tmsg.tunnel_id = htonl (t->tid);
