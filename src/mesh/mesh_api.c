@@ -454,7 +454,7 @@ create_tunnel (struct GNUNET_MESH_Handle *h, MESH_TunnelNumber tid)
   {
     t->tid = tid;
   }
-  t->max_send_pid = 1;
+  t->max_send_pid = 0;
   return t;
 }
 
@@ -2051,8 +2051,7 @@ GNUNET_MESH_notify_transmit_ready (struct GNUNET_MESH_Tunnel *tunnel, int cork,
   add_to_queue (tunnel->mesh, th);
   if (NULL != tunnel->mesh->th)
     return th;
-  if (GNUNET_NO == PID_OVERFLOW(tunnel->next_send_pid, tunnel->max_send_pid) &&
-      tunnel->max_send_pid <= tunnel->next_send_pid)
+  if (GMC_is_pid_bigger(tunnel->next_send_pid, tunnel->max_send_pid))
     return th;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "    call notify tmt rdy\n");
   tunnel->mesh->th =
