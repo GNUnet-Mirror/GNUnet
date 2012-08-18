@@ -35,25 +35,26 @@ GNUNET_NETWORK_STRUCT_BEGIN
  */
 struct GNSRecordBlock
 {
-  /**
-   * the record type
-   */
-  uint32_t type GNUNET_PACKED;
 
   /**
-   * expiration time of the record
+   * Expiration time for the DNS record; relative or absolute depends
+   * on 'flags', network byte order.
    */
-  struct GNUNET_TIME_AbsoluteNBO expiration;
+  uint64_t expiration_time GNUNET_PACKED;
 
   /**
    * length of the data
    */
-  uint32_t data_length GNUNET_PACKED;
+  uint32_t data_size GNUNET_PACKED;
+  
+  /**
+   * the record type
+   */
+  uint32_t record_type GNUNET_PACKED;
+
   
   /* record flags */
   uint32_t flags GNUNET_PACKED;
-
-  //Class of the record?
 
   /* followed by the record data */
 };
