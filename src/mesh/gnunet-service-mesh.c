@@ -3744,6 +3744,12 @@ static void
 tunnel_send_clients_bck_ack (struct MeshTunnel *t)
 {
   unsigned int i;
+  unsigned int tunnel_delta;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Sending BCK ACK to clients\n");
+
+  tunnel_delta = t->bck_ack - t->bck_pid;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   tunnel delta: %u\n", tunnel_delta);
 
   /* Find client whom to allow to send to origin (with lowest buffer space) */
   for (i = 0; i < t->nclients; i++)
@@ -3753,16 +3759,18 @@ tunnel_send_clients_bck_ack (struct MeshTunnel *t)
 
     clinfo = &t->clients_fc[i];
     delta = clinfo->bck_ack - clinfo->bck_pid;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "    client %u delta: %u\n",
+         t->clients[i]->id, delta);
 
-    if ((GNUNET_NO == t->nobuffer && ACK_THRESHOLD > delta) ||
+    if ((GNUNET_NO == t->nobuffer && tunnel_delta > delta) ||
         (GNUNET_YES == t->nobuffer && 0 == delta))
     {
       uint32_t ack;
 
       ack = clinfo->bck_pid;
-      ack += t->nobuffer ? 1 : INITIAL_WINDOW_SIZE;
+      ack += t->nobuffer ? 1 : tunnel_delta;
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "  sending ack to client %u: %u\n",
+                  "    sending ack to client %u: %u\n",
                   t->clients[i]->id, ack);
       send_local_ack (t, t->clients[i], ack);
       clinfo->bck_ack = ack;
@@ -3786,28 +3794,21 @@ static void
 tunnel_send_bck_ack (struct MeshTunnel *t, uint16_t type)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sending BCK ACK on tunnel %u [%u]\n",
-              t->id.oid, t->id.tid);
+              "Sending BCK ACK on tunnel %u [%u] due to %s\n",
+              t->id.oid, t->id.tid, GNUNET_MESH_DEBUG_M2S(type));
   /* Is it after data to_origin retransmission? */
   switch (type)
   {
     case GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN:
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "ACK due to BCK DATA retransmission\n");
       if (GNUNET_YES == t->nobuffer)
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Not sending ACK, nobuffer\n");
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    "    Not sending ACK, nobuffer\n");
         return;
-      }
-      if (t->bck_queue_max > t->bck_queue_n * 2)
-      {
-//         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Not sending ACK, buffer free\n");
-//         return;
       }
       break;
     case GNUNET_MESSAGE_TYPE_MESH_ACK:
     case GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK:
-      // FIXME fc
       break;
     default:
       GNUNET_break (0);
@@ -7020,6 +7021,7 @@ handle_local_ack (void *cls, struct GNUNET_SERVER_Client *client,
   struct MeshTunnel *t;
   struct MeshClient *c;
   MESH_TunnelNumber tid;
+  uint32_t ack;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got a local ACK\n");
   /* Sanity check for client registration */
@@ -7044,17 +7046,20 @@ handle_local_ack (void *cls, struct GNUNET_SERVER_Client *client,
     return;
   }
 
+  ack = ntohl (msg->max_pid);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  ack %u\n", ack);
+
   /* Does client own tunnel? I.E: Is this and ACK for BCK traffic? */
   if (NULL != t->owner && t->owner->handle == client)
   {
     /* The client owns the tunnel, ACK is for data to_origin, send BCK ACK. */
-    t->bck_ack = ntohl(msg->max_pid);
+    t->bck_ack = ack;
     tunnel_send_bck_ack(t, GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK);
   }
   else
   {
     /* The client doesn't own the tunnel, this ACK is for FWD traffic. */
-    tunnel_set_client_fwd_ack (t, c, ntohl (msg->max_pid));
+    tunnel_set_client_fwd_ack (t, c, ack);
     tunnel_send_fwd_ack (t, GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK);
   }
 
