@@ -702,7 +702,7 @@ send_ack (struct GNUNET_MESH_Handle *h, struct GNUNET_MESH_Tunnel *t)
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK);
   msg.header.size = htons (sizeof (msg));
   msg.tunnel_id = htonl (t->tid);
-  msg.max_pid = t->last_recv_pid + 1;
+  msg.max_pid = htonl (t->last_recv_pid + 1);
 
   send_packet (h, &msg.header, t);
   return;
