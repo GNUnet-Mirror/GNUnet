@@ -388,9 +388,17 @@ message_ready_size (struct GNUNET_MESH_Handle *h)
   for (th = h->th_head; NULL != th; th = th->next)
   {
     t = th->tunnel;
-    if (GNUNET_NO == th_is_payload (th) ||
-        GNUNET_NO == GMC_is_pid_bigger(t->next_send_pid, t->max_send_pid))
+    if (GNUNET_NO == th_is_payload (th))
+    {
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "  message internal\n");
       return th->size;
+    }
+    if (GNUNET_NO == GMC_is_pid_bigger(t->next_send_pid, t->max_send_pid))
+    {
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "  message payload ok (%u <= %u)\n",
+           t->next_send_pid, t->max_send_pid);
+      return th->size;
+    }
   }
   return 0;
 }
@@ -1307,7 +1315,7 @@ send_callback (void *cls, size_t size, void *buf)
     if (GNUNET_YES == th_is_payload (th))
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG, " payload\n");
-      if (t->max_send_pid < t->next_send_pid && GNUNET_NO == PID_OVERFLOW (t->next_send_pid, t->max_send_pid))
+      if (GNUNET_YES == GMC_is_pid_bigger(t->next_send_pid, t->max_send_pid))
       {
         /* This tunnel is not ready to transmit yet, try next message */
         next = th->next;
@@ -1454,6 +1462,8 @@ send_packet (struct GNUNET_MESH_Handle *h,
   struct GNUNET_MESH_TransmitHandle *th;
   size_t msize;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " Sending message to service: %s\n",
+       GNUNET_MESH_DEBUG_M2S(ntohs(msg->type)));
   msize = ntohs (msg->size);
   th = GNUNET_malloc (sizeof (struct GNUNET_MESH_TransmitHandle) + msize);
   th->timeout = GNUNET_TIME_UNIT_FOREVER_ABS;
@@ -1461,9 +1471,10 @@ send_packet (struct GNUNET_MESH_Handle *h,
   th->tunnel = tunnel;
   memcpy (&th[1], msg, msize);
   add_to_queue (h, th);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  queued\n");
   if (NULL != h->th)
     return;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, " calling ntfy tmt rdy for %u bytes\n", msize);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  calling ntfy tmt rdy for %u bytes\n", msize);
   h->th =
       GNUNET_CLIENT_notify_transmit_ready (h->client, msize,
                                            GNUNET_TIME_UNIT_FOREVER_REL,
