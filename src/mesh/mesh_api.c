@@ -742,11 +742,16 @@ send_connect (struct GNUNET_MESH_Handle *h)
     for (napps = 0; napps < h->n_applications; napps++)
     {
       apps[napps] = htonl (h->applications[napps]);
-      LOG (GNUNET_ERROR_TYPE_DEBUG, " app %u\n", h->applications[napps]);
+      LOG (GNUNET_ERROR_TYPE_DEBUG, " app %u\n",
+           h->applications[napps]);
     }
     types = (uint16_t *) & apps[napps];
     for (ntypes = 0; ntypes < h->n_handlers; ntypes++)
+    {
       types[ntypes] = htons (h->message_handlers[ntypes].type);
+      LOG (GNUNET_ERROR_TYPE_DEBUG, " type %u\n",
+           h->message_handlers[ntypes].type);
+    }
     msg->applications = htons (napps);
     msg->types = htons (ntypes);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -1282,6 +1287,7 @@ send_callback (void *cls, size_t size, void *buf)
   char *cbuf = buf;
   size_t tsize;
   size_t psize;
+  size_t nsize;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "\n");
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Send packet() Buffer %u\n", size);
@@ -1294,7 +1300,8 @@ send_callback (void *cls, size_t size, void *buf)
   }
   tsize = 0;
   next = h->th_head;
-  while ((NULL != (th = next)) && (size >= th->size))
+  nsize = message_ready_size (h);
+  while ((NULL != (th = next)) && (0 < nsize) && (size >= nsize))
   {
     t = th->tunnel;
     if (GNUNET_YES == th_is_payload (th))
@@ -1386,7 +1393,7 @@ send_callback (void *cls, size_t size, void *buf)
       struct GNUNET_MessageHeader *mh = (struct GNUNET_MessageHeader *) &th[1];
 
       LOG (GNUNET_ERROR_TYPE_DEBUG, "  mesh traffic, type %s\n",
-             GNUNET_MESH_DEBUG_M2S (ntohs (mh->type)));
+           GNUNET_MESH_DEBUG_M2S (ntohs (mh->type)));
       memcpy (cbuf, &th[1], th->size);
       psize = th->size;
     }
@@ -1395,6 +1402,7 @@ send_callback (void *cls, size_t size, void *buf)
     GNUNET_CONTAINER_DLL_remove (h->th_head, h->th_tail, th);
     GNUNET_free (th);
     next = h->th_head;
+    nsize = message_ready_size (h);
     cbuf += psize;
     size -= psize;
     tsize += psize;
@@ -1412,7 +1420,10 @@ send_callback (void *cls, size_t size, void *buf)
   }
   else
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  nothing left to transmit\n");
+    if (NULL != h->th_head)
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "  can't transmit any more\n");
+    else
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "  nothing left to transmit\n");
   }
   if (GNUNET_NO == h->in_receive)
   {
@@ -1452,6 +1463,7 @@ send_packet (struct GNUNET_MESH_Handle *h,
   add_to_queue (h, th);
   if (NULL != h->th)
     return;
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " calling ntfy tmt rdy for %u bytes\n", msize);
   h->th =
       GNUNET_CLIENT_notify_transmit_ready (h->client, msize,
                                            GNUNET_TIME_UNIT_FOREVER_REL,
