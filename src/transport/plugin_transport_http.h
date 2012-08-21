@@ -96,22 +96,13 @@ struct Plugin
   /**
    * IPv4 addresses DLL head
    */
-  struct IPv4HttpAddressWrapper *ipv4_addr_head;
+  struct HttpAddressWrapper *addr_head;
 
   /**
    * IPv4 addresses DLL tail
    */
-  struct IPv4HttpAddressWrapper *ipv4_addr_tail;
+  struct HttpAddressWrapper *addr_tail;
 
-  /**
-   * IPv6 addresses DLL head
-   */
-  struct IPv6HttpAddressWrapper *ipv6_addr_head;
-
-  /**
-   * IPv6 addresses DLL tail
-   */
-  struct IPv6HttpAddressWrapper *ipv6_addr_tail;
 
   /**
    * Plugin configuration
