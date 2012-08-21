@@ -119,6 +119,29 @@ struct Plugin
    */
 
   /**
+   * External hostname the plugin can be connected to, can be different to
+   * the host's FQDN, used e.g. for reverse proxying
+   */
+  char *external_hostname;
+
+  /**
+   * External hostname the plugin can be connected to, can be different to
+   * the host's FQDN, used e.g. for reverse proxying
+   */
+  struct HttpAddress *ext_addr;
+
+  /**
+   * External address length
+   */
+  size_t ext_addr_len;
+
+  /**
+   * Task calling transport service about external address
+   */
+  GNUNET_SCHEDULER_TaskIdentifier notify_ext_task;
+
+
+  /**
    * Plugin name
    * Equals configuration section: transport-http, transport-https
    */
@@ -282,6 +305,22 @@ struct Plugin
 };
 
 GNUNET_NETWORK_STRUCT_BEGIN
+
+/**
+ * HTTP addresses including a full URI
+ */
+struct HttpAddress
+{
+  /**
+   * Length of the address following in NBO
+   */
+  uint32_t addr_len GNUNET_PACKED;
+
+  /**
+   * Address following
+   */
+  void *addr GNUNET_PACKED;
+};
 
 /**
  * IPv4 addresses

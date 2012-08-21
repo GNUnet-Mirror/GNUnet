@@ -33,6 +33,25 @@
  */
 #define LEARNED_ADDRESS_EXPIRATION GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 6)
 
+
+/**
+ * Wrapper to manage addresses
+ */
+struct HttpAddressWrapper
+{
+  /**
+   * Linked list next
+   */
+  struct HttpAddressWrapper *next;
+
+  /**
+   * Linked list previous
+   */
+  struct HttpAddressWrapper *prev;
+
+  struct HttpAddress *addr;
+};
+
 /**
  * Wrapper to manage IPv4 addresses
  */
@@ -1372,6 +1391,37 @@ stop_report_addresses (struct Plugin *plugin)
   }
 }
 
+/**
+ * Function called when the service shuts down.  Unloads our plugins
+ * and cancels pending validations.
+ *
+ * @param cls closure, unused
+ * @param tc task context (unused)
+ */
+static void
+notify_external_hostname (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct Plugin *plugin = cls;
+  struct HttpAddress *eaddr;
+  size_t eaddr_len;
+  size_t uri_len;
+
+  plugin->notify_ext_task = GNUNET_SCHEDULER_NO_TASK;
+
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    return;
+
+  uri_len = strlen (plugin->external_hostname) + 1;
+  eaddr_len = sizeof (struct HttpAddress) + uri_len;
+  eaddr = GNUNET_malloc (eaddr_len);
+  eaddr->addr_len = htonl (strlen (plugin->external_hostname) + 1);
+  eaddr->addr = (void *) &eaddr[1];
+  memcpy (&eaddr->addr, plugin->external_hostname, uri_len);
+  plugin->env->notify_address (plugin->env->cls, GNUNET_YES, eaddr, eaddr_len);
+  plugin->ext_addr = eaddr;
+  plugin->ext_addr_len = eaddr_len;
+}
+
 
 static int
 configure_plugin (struct Plugin *plugin)
@@ -1461,7 +1511,6 @@ configure_plugin (struct Plugin *plugin)
     GNUNET_free (bind4_address);
   }
 
-
   char *bind6_address = NULL;
 
   if ((plugin->ipv6 == GNUNET_YES) &&
@@ -1490,6 +1539,17 @@ configure_plugin (struct Plugin *plugin)
     }
     GNUNET_free (bind6_address);
   }
+
+  if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_string (plugin->env->cfg, plugin->name,
+                                              "EXTERNAL_HOSTNAME", &plugin->external_hostname))
+  {
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                       _("Using external hostname `%s'\n"), plugin->external_hostname);
+      plugin->notify_ext_task = GNUNET_SCHEDULER_add_now (&notify_external_hostname, plugin);
+  }
+  else
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                     _("No external hostname configured\n"));
 
 
   /* Optional parameters */
@@ -1703,6 +1763,18 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
     return NULL;
   }
 
+  if (GNUNET_SCHEDULER_NO_TASK != plugin->notify_ext_task)
+  {
+      GNUNET_SCHEDULER_cancel (plugin->notify_ext_task);
+       plugin->notify_ext_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+
+  if (NULL != plugin->ext_addr)
+  {
+      plugin->env->notify_address (plugin->env->cls, GNUNET_NO, plugin->ext_addr, plugin->ext_addr_len);
+      GNUNET_free (plugin->ext_addr);
+  }
+
   /* Stop reporting addresses to transport service */
   stop_report_addresses (plugin);
 
@@ -1732,6 +1804,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
                    "Plugin `%s' unloaded\n", plugin->name);
   GNUNET_free_non_null (plugin->server_addr_v4);
   GNUNET_free_non_null (plugin->server_addr_v6);
+  GNUNET_free_non_null (plugin->external_hostname);
   GNUNET_free (plugin);
   GNUNET_free (api);
   return NULL;
