@@ -26,11 +26,23 @@
 #include <gnunet_util_lib.h>
 #include <gnunet_dnsparser_lib.h>
 #include <gnunet_gns_service.h>
+#include <gnunet_dnsstub_lib.h>
+#include "gns.h"
 
 /**
  * Timeout for DNS requests.
  */
 #define TIMEOUT GNUNET_TIME_UNIT_MINUTES
+
+/**
+ * Default suffix
+ */
+#define DNS_SUFFIX ".zkey.eu"
+
+/**
+ * FCFS suffix
+ */
+#define FCFS_SUFFIX "fcfs.zkey.eu"
 
 /**
  * Data kept per request.
@@ -59,6 +71,11 @@ struct Request
   struct GNUNET_GNS_LookupRequest *lookup;
 
   /**
+   * Our DNS request handle
+   */
+  struct GNUNET_DNSSTUB_RequestSocket *dns_lookup;
+
+  /**
    * Task run on timeout or shutdown to clean up without
    * response.
    */
@@ -76,6 +93,11 @@ struct Request
  * Handle to GNS resolver.
  */
 struct GNUNET_GNS_Handle *gns;
+
+/**
+ * Stub resolver
+ */
+struct GNUNET_DNSSTUB_Context *dns_stub;
 
 /**
  * Listen socket for IPv4.
@@ -97,6 +119,20 @@ static GNUNET_SCHEDULER_TaskIdentifier t4;
  */
 static GNUNET_SCHEDULER_TaskIdentifier t6;
 
+/**
+ * DNS suffix
+ */
+static char *dns_suffix;
+
+/**
+ * FCFS suffix
+ */
+static char *fcfs_suffix;
+
+/**
+ * IP of DNS server
+ */
+static char *dns_ip;
 
 /**
  * Task run on shutdown.  Cleans up everything.
@@ -123,6 +159,7 @@ do_shutdown (void *cls,
     listen_socket6 = NULL;
   }
   GNUNET_GNS_disconnect (gns);
+  GNUNET_DNSSTUB_stop (dns_stub);
   gns = NULL;
 }
 
@@ -182,6 +219,24 @@ do_timeout (void *cls,
   GNUNET_free (request);
 }
 
+/**
+ * Iterator called on obtained result for a DNS
+ * lookup
+ *
+ * @param cls closure
+ * @param rd_count number of records
+ * @param rd the records in reply
+ */
+static void
+dns_result_processor (void *cls,
+                  struct GNUNET_DNSSTUB_RequestSocket *rs,
+                  const struct GNUNET_TUN_DnsHeader *dns,
+                  size_t r)
+{
+  struct Request *request = cls;
+  request->packet = GNUNET_DNSPARSER_parse ((char*)dns, r);
+  send_response (request);
+}
 
 /**
  * Iterator called on obtained result for a GNS
@@ -332,32 +387,37 @@ handle_request (struct GNUNET_NETWORK_Handle *lsock,
   name = GNUNET_strdup (packet->queries[0].name);
   name_len = strlen (name);
   use_gns = GNUNET_NO;
-  if ( (name_len > strlen (".zkey.eu")) &&
-       (0 == strcasecmp (".zkey.eu",
-			 &name[name_len - strlen (".zkey.eu")])) )
+  if ( (name_len > strlen (dns_suffix)) &&
+       (0 == strcasecmp (dns_suffix,
+			 &name[name_len - strlen (dns_suffix)])) )
     {
-      if (0 == strcasecmp ("fcfs.zkey.eu",
-                           &name[name_len - strlen ("fcfs.zkey.eu")]))
+      if (0 == strcasecmp (fcfs_suffix,
+                           &name[name_len - strlen (fcfs_suffix)]))
       {
-        name[name_len - strlen ("zkey.eu")] = '\0';
-        strcat (name, ".gnunet");
+        name[name_len - strlen (dns_suffix) + 1] = '\0';
+        strcat (name, GNUNET_GNS_TLD);
       }
       else
-        name[name_len - strlen (".eu")] = '\0';
+      {
+        name[name_len - strlen (dns_suffix) + 1] = '\0';
+        strcat (name, GNUNET_GNS_TLD_ZKEY);
+      }
       name_len = strlen (name);
     }
-  if ( (name_len > strlen (".gnunet")) &&
-       (0 == strcasecmp (".gnunet",
-                         &name[name_len - strlen (".gnunet")])) )
+  if ( (name_len > strlen ((GNUNET_GNS_TLD) + 1)) &&
+       (0 == strcasecmp (GNUNET_GNS_TLD,
+                         &name[name_len - strlen (GNUNET_GNS_TLD)])) )
     use_gns = GNUNET_YES;
 
-  if ( (name_len > strlen (".zkey")) &&
-       (0 == strcasecmp (".zkey",
-                         &name[name_len - strlen (".zkey")])) )
+  if ( (name_len > strlen (GNUNET_GNS_TLD_ZKEY)) &&
+       (0 == strcasecmp (GNUNET_GNS_TLD_ZKEY,
+                         &name[name_len - strlen (GNUNET_GNS_TLD_ZKEY)])) )
     use_gns = GNUNET_YES;
 
   if (GNUNET_YES == use_gns)
   {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		   "Calling GNS\n");
       type = packet->queries[0].type;
       request->lookup = GNUNET_GNS_lookup (gns,
 					   name,
@@ -372,7 +432,17 @@ handle_request (struct GNUNET_NETWORK_Handle *lsock,
       /* FIXME: do traditional *DNS* lookup; note that
 	 gnunet-service-dns already has code to do this;
 	 factor into library to share! Why not use GNUNET_RESOLVER here?*/
-      GNUNET_break (0);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		   "Calling DNS at %s\n", dns_ip);
+      GNUNET_DNSPARSER_free_packet (request->packet);
+      request->dns_lookup = GNUNET_DNSSTUB_resolve2 (dns_stub,
+                                                     udp_msg,
+                                                     udp_msg_size,
+                                                     &dns_result_processor,
+                                                     request);
+
+
+
     }
   GNUNET_free (name);
 }
@@ -476,7 +546,26 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
+  if (NULL == dns_ip)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "No DNS server specified!\n");
+    return;
+  }
+
+  if (NULL == dns_suffix)
+    dns_suffix = DNS_SUFFIX;
+
+  if (NULL == fcfs_suffix)
+    fcfs_suffix = FCFS_SUFFIX;
+
   gns = GNUNET_GNS_connect (cfg);
+
+  dns_stub = GNUNET_DNSSTUB_start (dns_ip);
+
+  if (NULL == dns_stub)
+    return;
+
   if (NULL == gns)
     return;
   listen_socket4 = GNUNET_NETWORK_socket_create (PF_INET,
@@ -556,6 +645,15 @@ main (int argc,
       char *const *argv)
 {
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
+    {'d', "dns", NULL,
+      gettext_noop ("IP of recursive dns resolver to use (required)"), 1,
+      &GNUNET_GETOPT_set_string, &dns_ip},
+    {'s', "suffix", NULL,
+      gettext_noop ("Authoritative DNS suffix to use (optional); default: zkey.eu"), 1,
+      &GNUNET_GETOPT_set_string, &dns_suffix},
+    {'f', "fcfs", NULL,
+      gettext_noop ("Authoritative FCFS suffix to use (optional); default: fcfs.zkey.eu"), 1,
+      &GNUNET_GETOPT_set_string, &fcfs_suffix},
     GNUNET_GETOPT_OPTION_END
   };
   int ret;

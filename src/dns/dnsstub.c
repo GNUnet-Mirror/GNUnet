@@ -356,6 +356,8 @@ GNUNET_DNSSTUB_resolve2 (struct GNUNET_DNSSTUB_Context *ctx,
 	  so,
 	  salen);
   rs->addrlen = salen;
+  rs->rc = rc;
+  rs->rc_cls = rc_cls;
   GNUNET_NETWORK_socket_sendto (dnsout,
 				request,
 				request_len, so, salen); 
