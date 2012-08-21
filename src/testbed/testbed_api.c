@@ -283,6 +283,19 @@ handle_opsuccess (struct GNUNET_TESTBED_Controller *c,
     event->type = GNUNET_TESTBED_ET_OPERATION_FINISHED;
   switch (opc->type)
   {
+  case OP_FORWARDED:
+    {
+      struct ForwardedOperationData *fo_data;
+    
+      fo_data = opc->data;
+      if (NULL != fo_data->cc)
+	fo_data->cc (fo_data->cc_cls, (const struct GNUNET_MessageHeader *) msg);
+      GNUNET_CONTAINER_DLL_remove (c->ocq_head, c->ocq_tail, opc);
+      GNUNET_free (fo_data);
+      GNUNET_free (opc);    
+      return GNUNET_YES;    
+    }
+    break;
   case OP_PEER_DESTROY:
     {
       struct GNUNET_TESTBED_Peer *peer;     

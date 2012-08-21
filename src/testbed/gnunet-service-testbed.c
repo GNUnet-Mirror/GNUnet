@@ -214,14 +214,19 @@ enum LCFContextState
 struct LCFContext
 {
   /**
-   * The serialized and compressed configuration
-   */
-  char *sxcfg;
-
-  /**
    * The gateway which will pass the link message to delegated host
    */
   struct Slave *gateway;
+
+  /**
+   * The controller link message that has to be forwarded to
+   */
+  struct GNUNET_TESTBED_ControllerLinkMessage *msg;
+
+  /**
+   * The client which has asked to perform this operation
+   */
+  struct GNUNET_SERVER_Client *client;
 
   /**
    * The host registration handle while registered hosts in this context
@@ -229,19 +234,9 @@ struct LCFContext
   struct GNUNET_TESTBED_HostRegistrationHandle *rhandle;
 
   /**
-   * The size of the compressed serialized configuration
+   * The id of the operation which created this context
    */
-  size_t sxcfg_size;
-
-  /**
-   * The size of the uncompressed configuration
-   */
-  size_t scfg_size;
-
-  /**
-   * Should the delegated host be started by the slave host?
-   */
-  int is_subordinate;
+  uint64_t operation_id;
 
   /**
    * The state of this context
@@ -866,6 +861,29 @@ send_operation_fail_msg (struct GNUNET_SERVER_Client *client,
 
 
 /**
+ * Function to send generic operation success message to given client
+ *
+ * @param client the client to send the message to
+ * @param operation_id the id of the operation which was successful
+ */
+static void
+send_operation_success_msg (struct GNUNET_SERVER_Client *client,
+			    uint64_t operation_id)
+{
+  struct GNUNET_TESTBED_GenericOperationSuccessEventMessage *msg;
+  uint16_t msize;
+  
+  msize = sizeof (struct GNUNET_TESTBED_GenericOperationSuccessEventMessage);  
+  msg = GNUNET_malloc (msize);
+  msg->header.size = htons (msize);
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_GENERICOPSUCCESS);
+  msg->operation_id = GNUNET_htonll (operation_id);
+  msg->event_type = htonl (GNUNET_TESTBED_ET_OPERATION_FINISHED);
+  queue_message (client, &msg->header);  
+}
+
+
+/**
  * The  Link Controller forwarding task
  *
  * @param cls the LCFContext
@@ -916,6 +934,50 @@ lcf_proc_cc (void *cls, const char *emsg)
 
 
 /**
+ * Callback to be called when forwarded link controllers operation is
+ * successfull. We have to relay the reply msg back to the client
+ *
+ * @param cls ForwardedOperationContext
+ * @param msg the peer create success message
+ */
+static void
+forwarded_link_controllers_reply_relay (void *cls,
+					const struct GNUNET_MessageHeader *msg)
+{
+  struct ForwardedOperationContext *fopc = cls;
+  struct GNUNET_MessageHeader *dup_msg;  
+  uint16_t msize;
+  
+  msize = ntohs (msg->size);
+  dup_msg = GNUNET_malloc (msize);
+  (void) memcpy (dup_msg, msg, msize);  
+  queue_message (fopc->client, dup_msg);
+  GNUNET_SERVER_client_drop (fopc->client);
+  GNUNET_SCHEDULER_cancel (fopc->timeout_task);  
+  GNUNET_free (fopc);  
+}
+
+
+/**
+ * Task to free resources when forwarded link controllers has been timedout
+ *
+ * @param cls the ForwardedOperationContext
+ * @param tc the task context from scheduler
+ */
+static void
+forwarded_link_controllers_timeout (void *cls,
+				    const struct GNUNET_SCHEDULER_TaskContext
+				    *tc)
+{
+  struct ForwardedOperationContext *fopc = cls;
+  
+  GNUNET_TESTBED_forward_operation_msg_cancel_ (fopc->opc);
+  GNUNET_SERVER_client_drop (fopc->client);
+  GNUNET_free (fopc);  
+}
+
+
+/**
  * The  Link Controller forwarding task
  *
  * @param cls the LCFContext
@@ -926,7 +988,8 @@ lcf_proc_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct LCFContext *lcf = cls;
   struct LCFContextQueue *lcfq;
-
+  struct ForwardedOperationContext *fopc;
+  
   lcf_proc_task_id = GNUNET_SCHEDULER_NO_TASK;
   switch (lcf->state)
   {
@@ -963,19 +1026,25 @@ lcf_proc_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     }
     break;
   case SLAVE_HOST_REGISTERED:
-    GNUNET_TESTBED_controller_link_2 (lcf->gateway->controller,
-                                      host_list[lcf->delegated_host_id],
-                                      host_list[lcf->slave_host_id],
-                                      lcf->sxcfg, lcf->sxcfg_size,
-                                      lcf->scfg_size,
-                                      lcf->is_subordinate);
+    fopc = GNUNET_malloc (sizeof (struct ForwardedOperationContext));
+    fopc->client = lcf->client;
+    fopc->operation_id = lcf->operation_id;
+    fopc->opc = 
+      GNUNET_TESTBED_forward_operation_msg_ (lcf->gateway->controller,
+					     lcf->operation_id,
+					     &lcf->msg->header,
+					     &forwarded_link_controllers_reply_relay,
+					     fopc);
+    fopc->timeout_task = 
+      GNUNET_SCHEDULER_add_delayed (TIMEOUT,
+				    &forwarded_link_controllers_timeout, fopc);    
     lcf->state = FINISHED;
     lcf_proc_task_id = GNUNET_SCHEDULER_add_now (&lcf_proc_task, lcf);
     break;
   case FINISHED:
     lcfq = lcfq_head;
     GNUNET_assert (lcfq->lcf == lcf);
-    GNUNET_free (lcf->sxcfg);
+    GNUNET_free (lcf->msg);
     GNUNET_free (lcf);
     GNUNET_CONTAINER_DLL_remove (lcfq_head, lcfq_tail, lcfq);
     GNUNET_free (lcfq);
@@ -993,33 +1062,10 @@ lcf_proc_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param event information about the event
  */
 static void 
-slave_event_callback(void *cls,
-                     const struct GNUNET_TESTBED_EventInformation *event)
+slave_event_callback (void *cls,
+		      const struct GNUNET_TESTBED_EventInformation *event)
 {
   GNUNET_break (0);
-}
-
-
-/**
- * Function to send generic operation success message to given client
- *
- * @param client the client to send the message to
- * @param operation_id the id of the operation which was successful
- */
-static void
-send_operation_success_msg (struct GNUNET_SERVER_Client *client,
-			    uint64_t operation_id)
-{
-  struct GNUNET_TESTBED_GenericOperationSuccessEventMessage *msg;
-  uint16_t msize;
-  
-  msize = sizeof (struct GNUNET_TESTBED_GenericOperationSuccessEventMessage);  
-  msg = GNUNET_malloc (msize);
-  msg->header.size = htons (msize);
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_GENERICOPSUCCESS);
-  msg->operation_id = GNUNET_htonll (operation_id);
-  msg->event_type = htonl (GNUNET_TESTBED_ET_OPERATION_FINISHED);
-  queue_message (client, &msg->header);  
 }
 
 
@@ -1345,13 +1391,14 @@ handle_link_controllers (void *cls,
     LOG (GNUNET_ERROR_TYPE_WARNING, "Slave and delegated host are same\n");
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
-  }
-  msize -= sizeof (struct GNUNET_TESTBED_ControllerLinkMessage);
-  config_size = ntohs (msg->config_size);
+  } 
   
   if (slave_host_id == master_context->host_id) /* Link from us */
   {
     struct Slave *slave;
+    
+    msize -= sizeof (struct GNUNET_TESTBED_ControllerLinkMessage);
+    config_size = ntohs (msg->config_size);
     if ((delegated_host_id < slave_list_size) && 
         (NULL != slave_list[delegated_host_id])) /* We have already added */
     {
@@ -1397,7 +1444,6 @@ handle_link_controllers (void *cls,
     slave = GNUNET_malloc (sizeof (struct Slave));
     slave->host_id = delegated_host_id;    
     slave_list_add (slave);
-
     if (1 == msg->is_subordinate)
     {
       struct LinkControllersContext *lcc;
@@ -1447,22 +1493,23 @@ handle_link_controllers (void *cls,
   GNUNET_assert (NULL != route); /* because we add routes carefully */
   GNUNET_assert (route->dest < slave_list_size);
   GNUNET_assert (NULL != slave_list[route->dest]);  
-  lcfq->lcf->is_subordinate =
-    (1 == msg->is_subordinate) ? GNUNET_YES : GNUNET_NO;
   lcfq->lcf->state = INIT;
+  lcfq->lcf->operation_id = GNUNET_ntohll (msg->operation_id);
   lcfq->lcf->gateway = slave_list[route->dest];
-  lcfq->lcf->sxcfg_size = msize;
-  lcfq->lcf->sxcfg = GNUNET_malloc (msize);
-  lcfq->lcf->scfg_size = config_size;
-  (void) memcpy (lcfq->lcf->sxcfg, &msg[1], msize);
+  lcfq->lcf->msg = GNUNET_malloc (msize);
+  (void) memcpy (lcfq->lcf->msg, msg, msize);
+  GNUNET_SERVER_client_keep (client);
+  lcfq->lcf->client = client;
   if (NULL == lcfq_head)
   {
     GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == lcf_proc_task_id);
     GNUNET_CONTAINER_DLL_insert_tail (lcfq_head, lcfq_tail, lcfq);
-    lcf_proc_task_id = GNUNET_SCHEDULER_add_now (&lcf_proc_task, lcfq);
+    lcf_proc_task_id = GNUNET_SCHEDULER_add_now (&lcf_proc_task, lcfq->lcf);
   }
   else
     GNUNET_CONTAINER_DLL_insert_tail (lcfq_head, lcfq_tail, lcfq);
+  /* FIXME: Adding a new route should happen after the controllers are linked
+     successfully */
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
   new_route = GNUNET_malloc (sizeof (struct Route));
   new_route->dest = delegated_host_id;
@@ -2186,7 +2233,7 @@ shutdown_task (void *cls,
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == lcf_proc_task_id);
   for (lcfq = lcfq_head; NULL != lcfq; lcfq = lcfq_head)
   {
-    GNUNET_free (lcfq->lcf->sxcfg);
+    GNUNET_free (lcfq->lcf->msg);
     GNUNET_free (lcfq->lcf);
     GNUNET_CONTAINER_DLL_remove (lcfq_head, lcfq_tail, lcfq);
     GNUNET_free (lcfq);
