@@ -375,9 +375,16 @@ server_lookup_serverconnection (struct Plugin *plugin,
   void *a;
   size_t a_len;
   struct GNUNET_PeerIdentity target;
-  int check = GNUNET_NO;
   uint32_t tag = 0;
   int direction = GNUNET_SYSERR;
+
+  /* url parsing variables */
+  size_t url_len;
+  char *url_end;
+  char *hash_start;
+  char *hash_end;
+  char *tag_start;
+  char *tag_end;
 
   conn_info = MHD_get_connection_info (mhd_connection,
                                MHD_CONNECTION_INFO_CLIENT_ADDRESS);
@@ -385,21 +392,75 @@ server_lookup_serverconnection (struct Plugin *plugin,
       (conn_info->client_addr->sa_family != AF_INET6))
     return NULL;
 
-  if ((strlen (&url[1]) >= 105) && (url[104] == ';'))
-  {
-    char hash[104];
-    char *tagc = (char *) &url[105];
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                   "New %s connection from %s\n",
+                   method, url);
+  /* URL parsing
+   * URL is valid if it is in the form [peerid[103];tag]*/
+  url_len = strlen (url);
+  url_end = (char *) &url[url_len];
 
-    memcpy (&hash, &url[1], 103);
-    hash[103] = '\0';
-    if (GNUNET_OK ==
-        GNUNET_CRYPTO_hash_from_string ((const char *) &hash,
-                                        &(target.hashPubKey)))
-    {
-      tag = strtoul (tagc, NULL, 10);
-      if (tagc > 0)
-        check = GNUNET_YES;
-    }
+  if (url_len < 105)
+  {
+    goto error; /* too short */
+  }
+  hash_start = strrchr (url, '/');
+  if (NULL == hash_start)
+  {
+    goto error; /* '/' delimiter not found */
+  }
+  if (hash_start >= url_end)
+  {
+    goto error; /* mal formed */
+  }
+  hash_start++;
+
+  hash_end = strrchr (hash_start, ';');
+  if (NULL == hash_end)
+    goto error; /* ';' delimiter not found */
+  if (hash_end >= url_end)
+  {
+    goto error; /* mal formed */
+  }
+
+  if (hash_start >= hash_end)
+  {
+    goto error; /* mal formed */
+  }
+
+  if ((strlen(hash_start) - strlen(hash_end)) != 103)
+  {
+    goto error; /* invalid hash length */
+  }
+
+  char hash[104];
+  memcpy (hash, hash_start, 103);
+  hash[103] = '\0';
+  if (GNUNET_OK != GNUNET_CRYPTO_hash_from_string ((const char *) hash, &(target.hashPubKey)))
+  {
+    goto error; /* mal formed */
+  }
+
+  if (hash_end >= url_end)
+  {
+    goto error; /* mal formed */
+  }
+
+  tag_start = &hash_end[1];
+  /* Converting tag */
+  tag_end = NULL;
+  tag = strtoul (tag_start, &tag_end, 10);
+  if (tag == 0)
+  {
+    goto error; /* mal formed */
+  }
+  if (tag_end == NULL)
+  {
+    goto error; /* mal formed */
+  }
+  if (tag_end != url_end)
+  {
+    goto error; /* mal formed */
   }
 
   if (0 == strcmp (MHD_HTTP_METHOD_PUT, method))
@@ -408,13 +469,8 @@ server_lookup_serverconnection (struct Plugin *plugin,
     direction = _SEND;
   else
   {
-    GNUNET_break_op (0);
     goto error;
   }
-
-
-  if (check == GNUNET_NO)
-    goto error;
 
   plugin->cur_connections++;
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
