@@ -709,7 +709,7 @@ send_ack (struct GNUNET_MESH_Handle *h, struct GNUNET_MESH_Tunnel *t)
   uint32_t delta;
 
   delta = t->max_recv_pid - t->last_recv_pid;
-  if (0 && delta > ACK_THRESHOLD)
+  if (delta > ACK_THRESHOLD)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Not sending ACK on tunnel %X: ACK: %u, PID: %u, buffer %u\n",
