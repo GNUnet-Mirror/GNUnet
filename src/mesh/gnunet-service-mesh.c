@@ -57,8 +57,9 @@
 
 #define MESH_BLOOM_SIZE         128
 
-#define MESH_DEBUG_DHT          GNUNET_YES
+#define MESH_DEBUG_DHT          GNUNET_NO
 #define MESH_DEBUG_CONNECTION   GNUNET_NO
+#define MESH_DEBUG_TIMING       GNUNET_YES
 
 #if MESH_DEBUG_CONNECTION
 #define DEBUG_CONN(...) GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__)
@@ -70,6 +71,28 @@
 #define DEBUG_DHT(...) GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__)
 #else
 #define DEBUG_DHT(...)
+#endif
+
+#if MESH_DEBUG_TIMING
+#include <time.h>
+double __sum;
+uint64_t __count;
+struct timespec __mesh_start;
+struct timespec __mesh_end;
+#define INTERVAL_START clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &(__mesh_start))
+#define INTERVAL_END \
+do {\
+  clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &(__mesh_end));\
+  double __diff = __mesh_end.tv_nsec - __mesh_start.tv_nsec;\
+  if (__diff < 0) __diff += 1000000000;\
+  __sum += __diff;\
+  __count++;\
+} while (0)
+#define INTERVAL_SHOW GNUNET_log (GNUNET_ERROR_TYPE_INFO, "AVG process time: %f ns\n", __sum/__count)
+#else
+#define INTERVAL_START
+#define INTERVAL_END
+#define INTERVAL_SHOW
 #endif
 
 /******************************************************************************/
@@ -759,7 +782,6 @@ mesh_debug (void *cls, int success)
 /******************************************************************************/
 /***********************      GLOBAL VARIABLES     ****************************/
 /******************************************************************************/
-
 
 /**
  * Configuration parameters
@@ -1753,6 +1775,11 @@ client_get (struct GNUNET_SERVER_Client *client)
  * @param c Client to check
  *
  * @return GNUNET_YES or GNUNET_NO, depending on subscription status
+ * 
+ * FIXME: use of crypto_hash slows it down
+ *  The hash function alone takes 8-10us out of the ~55us for the whole
+ * process of retransmitting the message from one local client to another.
+ * Find faster implementation!
  */
 static int
 client_is_subscribed (uint16_t message_type, struct MeshClient *c)
@@ -1761,6 +1788,7 @@ client_is_subscribed (uint16_t message_type, struct MeshClient *c)
 
   if (NULL == c->types)
     return GNUNET_NO;
+
   GNUNET_CRYPTO_hash (&message_type, sizeof (uint16_t), &hc);
   return GNUNET_CONTAINER_multihashmap_contains (c->types, &hc);
 }
@@ -1903,15 +1931,16 @@ client_delete_tunnel (struct MeshClient *c, struct MeshTunnel *t)
  *
  * @param msg Pointer to the message itself
  * @param payload Pointer to the payload of the message.
+ * @param t The tunnel to whose clients this message goes.
+ * 
  * @return number of clients this message was sent to
  */
 static unsigned int
 send_subscribed_clients (const struct GNUNET_MessageHeader *msg,
-                         const struct GNUNET_MessageHeader *payload)
+                         const struct GNUNET_MessageHeader *payload,
+                         struct MeshTunnel *t)
 {
-  struct GNUNET_PeerIdentity *oid;
   struct MeshClient *c;
-  struct MeshTunnel *t;
   MESH_TunnelNumber *tid;
   unsigned int count;
   uint16_t type;
@@ -1929,30 +1958,21 @@ send_subscribed_clients (const struct GNUNET_MessageHeader *msg,
     struct GNUNET_MESH_Multicast *mc;
     struct GNUNET_MESH_ToOrigin *to;
 
-  case GNUNET_MESSAGE_TYPE_MESH_UNICAST:
-    uc = (struct GNUNET_MESH_Unicast *) cbuf;
-    tid = &uc->tid;
-    oid = &uc->oid;
-    break;
-  case GNUNET_MESSAGE_TYPE_MESH_MULTICAST:
-    mc = (struct GNUNET_MESH_Multicast *) cbuf;
-    tid = &mc->tid;
-    oid = &mc->oid;
-    break;
-  case GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN:
-    to = (struct GNUNET_MESH_ToOrigin *) cbuf;
-    tid = &to->tid;
-    oid = &to->oid;
-    break;
-  default:
-    GNUNET_break (0);
-    return 0;
-  }
-  t = tunnel_get (oid, ntohl (*tid));
-  if (NULL == t)
-  {
-    GNUNET_break (0);
-    return 0;
+    case GNUNET_MESSAGE_TYPE_MESH_UNICAST:
+      uc = (struct GNUNET_MESH_Unicast *) cbuf;
+      tid = &uc->tid;
+      break;
+    case GNUNET_MESSAGE_TYPE_MESH_MULTICAST:
+      mc = (struct GNUNET_MESH_Multicast *) cbuf;
+      tid = &mc->tid;
+      break;
+    case GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN:
+      to = (struct GNUNET_MESH_ToOrigin *) cbuf;
+      tid = &to->tid;
+      break;
+    default:
+      GNUNET_break (0);
+      return 0;
   }
 
   for (count = 0, c = clients; c != NULL; c = c->next)
@@ -2001,6 +2021,7 @@ send_subscribed_clients (const struct GNUNET_MessageHeader *msg,
                                                    *) cbuf, GNUNET_NO);
     }
   }
+
   return count;
 }
 
@@ -4965,14 +4986,17 @@ handle_mesh_data_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 " pid %u not seen yet, forwarding\n", pid);
   }
+
   t->skip += (pid - t->fwd_pid) - 1;
   t->fwd_pid = pid;
+
   if (GMC_is_pid_bigger (pid, t->last_fwd_ack))
   {
     GNUNET_STATISTICS_update (stats, "# unsolicited unicast", 1, GNUNET_NO);
     GNUNET_break_op (0);
     return GNUNET_OK;
   }
+
   tunnel_reset_timeout (t);
   dest_id = GNUNET_PEER_search (&msg->destination);
   if (dest_id == myid)
@@ -4980,7 +5004,7 @@ handle_mesh_data_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "  it's for us! sending to clients...\n");
     GNUNET_STATISTICS_update (stats, "# unicast received", 1, GNUNET_NO);
-    send_subscribed_clients (message, (struct GNUNET_MessageHeader *) &msg[1]);
+    send_subscribed_clients (message, &msg[1].header, t);
     tunnel_send_fwd_ack (t, GNUNET_MESSAGE_TYPE_MESH_UNICAST);
     return GNUNET_OK;
   }
@@ -5010,7 +5034,6 @@ handle_mesh_data_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
   send_message (message, neighbor, t);
   GNUNET_STATISTICS_update (stats, "# unicast forwarded", 1, GNUNET_NO);
-
   return GNUNET_OK;
 }
 
@@ -5082,7 +5105,7 @@ handle_mesh_data_multicast (void *cls, const struct GNUNET_PeerIdentity *peer,
       GNUNET_CONTAINER_multihashmap_contains (t->peers, &my_full_id.hashPubKey))
   {
     GNUNET_STATISTICS_update (stats, "# multicast received", 1, GNUNET_NO);
-    send_subscribed_clients (message, &msg[1].header);
+    send_subscribed_clients (message, &msg[1].header, t);
     tunnel_send_fwd_ack(t, GNUNET_MESSAGE_TYPE_MESH_MULTICAST);
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   ttl: %u\n", ntohl (msg->ttl));
@@ -5122,6 +5145,7 @@ handle_mesh_data_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct MeshPeerInfo *peer_info;
   struct MeshTunnel *t;
   size_t size;
+
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "got a ToOrigin packet from %s\n",
               GNUNET_i2s (peer));
@@ -6809,6 +6833,7 @@ handle_local_unicast (void *cls, struct GNUNET_SERVER_Client *client,
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "receive done OK\n");
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
+
   return;
 }
 
@@ -6922,6 +6947,7 @@ handle_local_to_origin (void *cls, struct GNUNET_SERVER_Client *client,
     handle_mesh_data_to_orig (NULL, &my_full_id, &copy->header, NULL, 0);
   }
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
+
   return;
 }
 
@@ -7564,6 +7590,8 @@ main (int argc, char *const *argv)
        GNUNET_SERVICE_run (argc, argv, "mesh", GNUNET_SERVICE_OPTION_NONE, &run,
                            NULL)) ? 0 : 1;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "main() END\n");
+
+  INTERVAL_SHOW;
 
   return ret;
 }

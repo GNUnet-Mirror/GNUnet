@@ -82,6 +82,7 @@ gnunet_service_mesh_DEPENDENCIES = \
   $(top_builddir)/src/block/libgnunetblock.la \
   libgnunetmeshblock.la \
   $(top_builddir)/src/regex/libgnunetregex.la
+gnunet_service_mesh_LDFLAGS = -lrt
 
 check_PROGRAMS = \
  test_mesh_api \
