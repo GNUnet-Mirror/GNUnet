@@ -88,7 +88,9 @@ do {\
   __sum += __diff;\
   __count++;\
 } while (0)
-#define INTERVAL_SHOW GNUNET_log (GNUNET_ERROR_TYPE_INFO, "AVG process time: %f ns\n", __sum/__count)
+#define INTERVAL_SHOW \
+if (0 < __count)\
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "AVG process time: %f ns\n", __sum/__count)
 #else
 #define INTERVAL_START
 #define INTERVAL_END
