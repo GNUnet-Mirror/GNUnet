@@ -40,6 +40,7 @@ gnunetinclude_HEADERS = \
   gnunet_dht_service.h \
   gnunet_disk_lib.h \
   gnunet_dnsparser_lib.h \
+  gnunet_dnsstub_lib.h \
   gnunet_dns_service.h \
   gnunet_dv_service.h \
   gnunet_fragmentation_lib.h \

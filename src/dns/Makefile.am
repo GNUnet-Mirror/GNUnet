@@ -25,6 +25,7 @@ endif
 
 lib_LTLIBRARIES = \
   libgnunetdnsparser.la \
+  libgnunetdnsstub.la \
   libgnunetdns.la
 
 bin_PROGRAMS = \
@@ -70,6 +71,7 @@ gnunet_dns_redirector_DEPENDENCIES = \
 gnunet_service_dns_SOURCES = \
  gnunet-service-dns.c 
 gnunet_service_dns_LDADD = \
+  $(top_builddir)/src/dns/libgnunetdnsstub.la \
   $(top_builddir)/src/tun/libgnunettun.la \
   $(top_builddir)/src/mesh/libgnunetmesh.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
@@ -81,6 +83,14 @@ libgnunetdnsparser_la_SOURCES = \
 libgnunetdnsparser_la_LIBADD = \
  $(top_builddir)/src/util/libgnunetutil.la $(XLIB)
 libgnunetdnsparser_la_LDFLAGS = \
+  $(GN_LIB_LDFLAGS) \
+  -version-info 0:0:0
+
+libgnunetdnsstub_la_SOURCES = \
+ dnsstub.c 
+libgnunetdnsstub_la_LIBADD = \
+ $(top_builddir)/src/util/libgnunetutil.la $(XLIB)
+libgnunetdnsstub_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) \
   -version-info 0:0:0
 

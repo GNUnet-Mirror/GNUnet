@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gnunet-0.8.1\n"
 "Report-Msgid-Bugs-To: gnunet-developers@mail.gnu.org\n"
-"POT-Creation-Date: 2012-07-20 19:29+0200\n"
+"POT-Creation-Date: 2012-08-17 00:17+0200\n"
 "PO-Revision-Date: 2011-07-09 12:12+0800\n"
 "Last-Translator: Wylmer Wang <wantinghard@gmail.com>\n"
 "Language-Team: Chinese (simplified) <i18n-zh@googlegroups.com>\n"
@@ -691,7 +691,7 @@ msgid "# keepalive messages sent"
 msgstr ""
 
 #: src/core/gnunet-service-core_kx.c:1236
-#: src/transport/gnunet-service-transport_validation.c:1096
+#: src/transport/gnunet-service-transport_validation.c:1108
 msgid "# PONG messages received"
 msgstr ""
 
@@ -782,11 +782,11 @@ msgstr ""
 #: src/fs/gnunet-service-fs_cp.c:622 src/fs/gnunet-service-fs_cp.c:1530
 #: src/topology/gnunet-daemon-topology.c:709
 #: src/topology/gnunet-daemon-topology.c:810
-#: src/transport/gnunet-service-transport_neighbours.c:890
-#: src/transport/gnunet-service-transport_neighbours.c:1106
-#: src/transport/gnunet-service-transport_neighbours.c:1115
-#: src/transport/gnunet-service-transport_neighbours.c:2637
-#: src/transport/gnunet-service-transport_neighbours.c:2899
+#: src/transport/gnunet-service-transport_neighbours.c:873
+#: src/transport/gnunet-service-transport_neighbours.c:1089
+#: src/transport/gnunet-service-transport_neighbours.c:1098
+#: src/transport/gnunet-service-transport_neighbours.c:2620
+#: src/transport/gnunet-service-transport_neighbours.c:2882
 msgid "# peers connected"
 msgstr ""
 
@@ -848,8 +848,8 @@ msgstr ""
 #: src/mysql/mysql.c:591 src/mysql/mysql.c:607
 #: src/namestore/plugin_namestore_postgres.c:52
 #: src/namestore/plugin_namestore_sqlite.c:51 src/util/crypto_ksk.c:49
-#: src/util/crypto_rsa.c:66 src/include/gnunet_common.h:535
-#: src/include/gnunet_common.h:542
+#: src/util/crypto_rsa.c:66 src/include/gnunet_common.h:543
+#: src/include/gnunet_common.h:550
 #, fuzzy, c-format
 msgid "`%s' failed at %s:%d with error: %s\n"
 msgstr "“%s”于 %s:%d 处失败，错误为：%s\n"
@@ -1573,11 +1573,11 @@ msgstr ""
 msgid "Configured DNS exit `%s' is not working / valid.\n"
 msgstr ""
 
-#: src/dns/gnunet-service-dns.c:1497 src/exit/gnunet-daemon-exit.c:2674
+#: src/dns/gnunet-service-dns.c:1497 src/exit/gnunet-daemon-exit.c:2673
 msgid "# Inbound MESH tunnels created"
 msgstr ""
 
-#: src/dns/gnunet-service-dns.c:1561 src/exit/gnunet-daemon-exit.c:3033
+#: src/dns/gnunet-service-dns.c:1561 src/exit/gnunet-daemon-exit.c:3032
 #, c-format
 msgid "`%s' must be installed SUID, refusing to run\n"
 msgstr ""
@@ -1601,183 +1601,183 @@ msgstr ""
 msgid "Got duplicate service records for `%s:%u'\n"
 msgstr ""
 
-#: src/exit/gnunet-daemon-exit.c:563
+#: src/exit/gnunet-daemon-exit.c:561
 msgid "# Bytes transmitted via mesh tunnels"
 msgstr ""
 
-#: src/exit/gnunet-daemon-exit.c:679 src/exit/gnunet-daemon-exit.c:2069
-#: src/exit/gnunet-daemon-exit.c:2319 src/vpn/gnunet-service-vpn.c:1394
-#: src/vpn/gnunet-service-vpn.c:1795 src/vpn/gnunet-service-vpn.c:1958
+#: src/exit/gnunet-daemon-exit.c:678 src/exit/gnunet-daemon-exit.c:2068
+#: src/exit/gnunet-daemon-exit.c:2318 src/vpn/gnunet-service-vpn.c:1392
+#: src/vpn/gnunet-service-vpn.c:1793 src/vpn/gnunet-service-vpn.c:1956
 msgid "# ICMPv4 packets dropped (type not allowed)"
 msgstr ""
 
-#: src/exit/gnunet-daemon-exit.c:716 src/exit/gnunet-daemon-exit.c:2128
-#: src/exit/gnunet-daemon-exit.c:2378 src/vpn/gnunet-service-vpn.c:1450
-#: src/vpn/gnunet-service-vpn.c:1854 src/vpn/gnunet-service-vpn.c:1991
+#: src/exit/gnunet-daemon-exit.c:715 src/exit/gnunet-daemon-exit.c:2127
+#: src/exit/gnunet-daemon-exit.c:2377 src/vpn/gnunet-service-vpn.c:1448
+#: src/vpn/gnunet-service-vpn.c:1852 src/vpn/gnunet-service-vpn.c:1989
 msgid "# ICMPv6 packets dropped (type not allowed)"
 msgstr ""
 
-#: src/exit/gnunet-daemon-exit.c:756
+#: src/exit/gnunet-daemon-exit.c:755
 msgid "# ICMP packets dropped (not allowed)"
 msgstr ""
 
-#: src/exit/gnunet-daemon-exit.c:763
+#: src/exit/gnunet-daemon-exit.c:762
 msgid "ICMP Packet dropped, have no matching connection information\n"
 msgstr ""
 
-#: src/exit/gnunet-daemon-exit.c:840
+#: src/exit/gnunet-daemon-exit.c:839
 msgid "UDP Packet dropped, have no matching connection information\n"
 msgstr ""
 
-#: src/exit/gnunet-daemon-exit.c:915
+#: src/exit/gnunet-daemon-exit.c:914
 msgid "TCP Packet dropped, have no matching connection information\n"
 msgstr ""
 
-#: src/exit/gnunet-daemon-exit.c:968
+#: src/exit/gnunet-daemon-exit.c:967
 msgid "# Packets received from TUN"
 msgstr ""
 
-#: src/exit/gnunet-daemon-exit.c:982
+#: src/exit/gnunet-daemon-exit.c:981
 msgid "# Bytes received from TUN"
 msgstr ""
 
-#: src/exit/gnunet-daemon-exit.c:1008
+#: src/exit/gnunet-daemon-exit.c:1007
 msgid "IPv4 packet options received.  Ignored.\n"
 msgstr ""
 
-#: src/exit/gnunet-daemon-exit.c:1035
+#: src/exit/gnunet-daemon-exit.c:1034
 #, c-format
 msgid "IPv4 packet with unsupported next header %u received.  Ignored.\n"
 msgstr ""
 
-#: src/exit/gnunet-daemon-exit.c:1081
+#: src/exit/gnunet-daemon-exit.c:1080
 #, c-format
 msgid "IPv6 packet with unsupported next header %d received.  Ignored.\n"
 msgstr ""
 
-#: src/exit/gnunet-daemon-exit.c:1089
+#: src/exit/gnunet-daemon-exit.c:1088
 #, c-format
 msgid "Packet from unknown protocol %u received.  Ignored.\n"
 msgstr ""
 
-#: src/exit/gnunet-daemon-exit.c:1471
+#: src/exit/gnunet-daemon-exit.c:1470
 msgid "# TCP packets sent via TUN"
 msgstr ""
 
-#: src/exit/gnunet-daemon-exit.c:1571
+#: src/exit/gnunet-daemon-exit.c:1570
 msgid "# TCP service creation requests received via mesh"
 msgstr ""
 
-#: src/exit/gnunet-daemon-exit.c:1574 src/exit/gnunet-daemon-exit.c:1653
-#: src/exit/gnunet-daemon-exit.c:1763 src/exit/gnunet-daemon-exit.c:1993
-#: src/exit/gnunet-daemon-exit.c:2235 src/exit/gnunet-daemon-exit.c:2516
-#: src/exit/gnunet-daemon-exit.c:2616
+#: src/exit/gnunet-daemon-exit.c:1573 src/exit/gnunet-daemon-exit.c:1652
+#: src/exit/gnunet-daemon-exit.c:1762 src/exit/gnunet-daemon-exit.c:1992
+#: src/exit/gnunet-daemon-exit.c:2234 src/exit/gnunet-daemon-exit.c:2515
+#: src/exit/gnunet-daemon-exit.c:2615
 msgid "# Bytes received from MESH"
 msgstr ""
 
-#: src/exit/gnunet-daemon-exit.c:1607 src/exit/gnunet-daemon-exit.c:2638
+#: src/exit/gnunet-daemon-exit.c:1606 src/exit/gnunet-daemon-exit.c:2637
 #, c-format
 msgid "No service found for %s on port %d!\n"
 msgstr ""
 
-#: src/exit/gnunet-daemon-exit.c:1611
+#: src/exit/gnunet-daemon-exit.c:1610
 msgid "# TCP requests dropped (no such service)"
 msgstr ""
 
-#: src/exit/gnunet-daemon-exit.c:1656
+#: src/exit/gnunet-daemon-exit.c:1655
 msgid "# TCP IP-exit creation requests received via mesh"
 msgstr ""
 
-#: src/exit/gnunet-daemon-exit.c:1766
+#: src/exit/gnunet-daemon-exit.c:1765
 msgid "# TCP data requests received via mesh"
 msgstr ""
 
-#: src/exit/gnunet-daemon-exit.c:1780
+#: src/exit/gnunet-daemon-exit.c:1779
 msgid "# TCP DATA requests dropped (no session)"
 msgstr ""
 
-#: src/exit/gnunet-daemon-exit.c:1830
+#: src/exit/gnunet-daemon-exit.c:1829
 msgid "# ICMP packets sent via TUN"
 msgstr ""
 
-#: src/exit/gnunet-daemon-exit.c:1996
+#: src/exit/gnunet-daemon-exit.c:1995
 msgid "# ICMP IP-exit requests received via mesh"
 msgstr ""
 
-#: src/exit/gnunet-daemon-exit.c:2238
+#: src/exit/gnunet-daemon-exit.c:2237
 msgid "# ICMP service requests received via mesh"
 msgstr ""
 
-#: src/exit/gnunet-daemon-exit.c:2304 src/vpn/gnunet-service-vpn.c:1384
-#: src/vpn/gnunet-service-vpn.c:1952
+#: src/exit/gnunet-daemon-exit.c:2303 src/vpn/gnunet-service-vpn.c:1382
+#: src/vpn/gnunet-service-vpn.c:1950
 msgid "# ICMPv4 packets dropped (impossible PT to v6)"
 msgstr ""
 
-#: src/exit/gnunet-daemon-exit.c:2363 src/vpn/gnunet-service-vpn.c:1420
-#: src/vpn/gnunet-service-vpn.c:1432 src/vpn/gnunet-service-vpn.c:1842
+#: src/exit/gnunet-daemon-exit.c:2362 src/vpn/gnunet-service-vpn.c:1418
+#: src/vpn/gnunet-service-vpn.c:1430 src/vpn/gnunet-service-vpn.c:1840
 msgid "# ICMPv6 packets dropped (impossible PT to v4)"
 msgstr ""
 
-#: src/exit/gnunet-daemon-exit.c:2413
+#: src/exit/gnunet-daemon-exit.c:2412
 msgid "# UDP packets sent via TUN"
 msgstr ""
 
-#: src/exit/gnunet-daemon-exit.c:2519
+#: src/exit/gnunet-daemon-exit.c:2518
 msgid "# UDP IP-exit requests received via mesh"
 msgstr ""
 
-#: src/exit/gnunet-daemon-exit.c:2619
+#: src/exit/gnunet-daemon-exit.c:2618
 msgid "# UDP service requests received via mesh"
 msgstr ""
 
-#: src/exit/gnunet-daemon-exit.c:2642
+#: src/exit/gnunet-daemon-exit.c:2641
 msgid "# UDP requests dropped (no such service)"
 msgstr ""
 
-#: src/exit/gnunet-daemon-exit.c:2883
+#: src/exit/gnunet-daemon-exit.c:2882
 #, c-format
 msgid "No addresses found for hostname `%s' of service `%s'!\n"
 msgstr ""
 
-#: src/exit/gnunet-daemon-exit.c:2897 src/exit/gnunet-daemon-exit.c:2909
+#: src/exit/gnunet-daemon-exit.c:2896 src/exit/gnunet-daemon-exit.c:2908
 #, c-format
 msgid "Service `%s' configured for IPv4, but IPv4 is disabled!\n"
 msgstr ""
 
-#: src/exit/gnunet-daemon-exit.c:2920
+#: src/exit/gnunet-daemon-exit.c:2919
 #, c-format
 msgid "No IP addresses found for hostname `%s' of service `%s'!\n"
 msgstr ""
 
-#: src/exit/gnunet-daemon-exit.c:3049
+#: src/exit/gnunet-daemon-exit.c:3048
 msgid ""
 "This system does not support IPv4, will disable IPv4 functions despite them "
 "being enabled in the configuration\n"
 msgstr ""
 
-#: src/exit/gnunet-daemon-exit.c:3057
+#: src/exit/gnunet-daemon-exit.c:3056
 msgid ""
 "This system does not support IPv6, will disable IPv6 functions despite them "
 "being enabled in the configuration\n"
 msgstr ""
 
-#: src/exit/gnunet-daemon-exit.c:3064
+#: src/exit/gnunet-daemon-exit.c:3063
 msgid ""
 "Cannot enable IPv4 exit but disable IPv4 on TUN interface, will use "
 "ENABLE_IPv4=YES\n"
 msgstr ""
 
-#: src/exit/gnunet-daemon-exit.c:3070
+#: src/exit/gnunet-daemon-exit.c:3069
 msgid ""
 "Cannot enable IPv6 exit but disable IPv6 on TUN interface, will use "
 "ENABLE_IPv6=YES\n"
 msgstr ""
 
-#: src/exit/gnunet-daemon-exit.c:3076 src/pt/gnunet-daemon-pt.c:884
+#: src/exit/gnunet-daemon-exit.c:3075 src/pt/gnunet-daemon-pt.c:884
 msgid "No useful service enabled.  Exiting.\n"
 msgstr ""
 
-#: src/exit/gnunet-daemon-exit.c:3241
+#: src/exit/gnunet-daemon-exit.c:3240
 msgid "Daemon to run to provide an IP exit node for the VPN"
 msgstr ""
 
@@ -3039,27 +3039,28 @@ msgstr ""
 msgid "Failed to connect to GNS\n"
 msgstr "初始化“%s”服务失败。\n"
 
-#: src/gns/gnunet-gns.c:341
-msgid "try to shorten a given GNS name"
+#: src/gns/gnunet-gns.c:358
+#, fuzzy
+msgid "try to shorten a given name"
+msgstr "初始化“%s”服务失败。\n"
+
+#: src/gns/gnunet-gns.c:361
+msgid "Lookup a record for the given name"
 msgstr ""
 
-#: src/gns/gnunet-gns.c:344
-msgid "Lookup a record using GNS (NOT IMPLEMENTED)"
-msgstr ""
-
-#: src/gns/gnunet-gns.c:347
+#: src/gns/gnunet-gns.c:364
 msgid "Get the authority of a particular name"
 msgstr ""
 
-#: src/gns/gnunet-gns.c:350
-msgid "Specify the type of the record lookup"
+#: src/gns/gnunet-gns.c:367
+msgid "Specify the type of the record to lookup"
 msgstr ""
 
-#: src/gns/gnunet-gns.c:353
+#: src/gns/gnunet-gns.c:370
 msgid "No unneeded output"
 msgstr ""
 
-#: src/gns/gnunet-gns.c:367
+#: src/gns/gnunet-gns.c:384
 msgid "GNUnet GNS access tool"
 msgstr ""
 
@@ -3116,7 +3117,7 @@ msgstr "无法为守护程序创建用户账户。"
 msgid "Failed to connect to namestore\n"
 msgstr "初始化“%s”服务失败。\n"
 
-#: src/gns/gnunet-gns-fcfsd.c:789 src/gns/gnunet-gns-proxy.c:2667
+#: src/gns/gnunet-gns-fcfsd.c:789 src/gns/gnunet-gns-proxy.c:2901
 #, fuzzy
 msgid "Failed to start HTTP server\n"
 msgstr "初始化“%s”服务失败。\n"
@@ -3125,25 +3126,25 @@ msgstr "初始化“%s”服务失败。\n"
 msgid "GNUnet GNS first come first serve registration service"
 msgstr ""
 
-#: src/gns/gnunet-gns-proxy.c:2300
+#: src/gns/gnunet-gns-proxy.c:2532
 #, fuzzy, c-format
 msgid "Unable to import private key from file `%s'\n"
 msgstr "无法创建用户账户："
 
-#: src/gns/gnunet-gns-proxy.c:2329
+#: src/gns/gnunet-gns-proxy.c:2561
 #, fuzzy, c-format
 msgid "Unable to import certificate %s\n"
 msgstr "无法保存配置文件“%s”："
 
-#: src/gns/gnunet-gns-proxy.c:3328
+#: src/gns/gnunet-gns-proxy.c:3578
 msgid "listen on specified port"
 msgstr ""
 
-#: src/gns/gnunet-gns-proxy.c:3331
+#: src/gns/gnunet-gns-proxy.c:3581
 msgid "pem file to use as CA"
 msgstr ""
 
-#: src/gns/gnunet-gns-proxy.c:3346
+#: src/gns/gnunet-gns-proxy.c:3596
 msgid "GNUnet GNS proxy"
 msgstr ""
 
@@ -3492,35 +3493,45 @@ msgstr "“%s”不可用。\n"
 msgid "Could not start hostlist HTTP server on port %u\n"
 msgstr ""
 
-#: src/integration-tests/connection_watchdog.c:997
+#: src/integration-tests/connection_watchdog.c:1001
 #, c-format
 msgid "Transport plugin: `%s' port %llu\n"
 msgstr ""
 
-#: src/integration-tests/connection_watchdog.c:1030
+#: src/integration-tests/connection_watchdog.c:1034
 #, fuzzy, c-format
 msgid "Found %u transport plugins: `%s'\n"
 msgstr "解析配置文件“%s”失败\n"
 
-#: src/integration-tests/connection_watchdog.c:1089
+#: src/integration-tests/connection_watchdog.c:1093
 msgid "Send ping messages to test connectivity (default == NO)"
 msgstr ""
 
-#: src/integration-tests/connection_watchdog.c:1099
+#: src/integration-tests/connection_watchdog.c:1103
 #: src/template/gnunet-template.c:71
 msgid "help text"
 msgstr ""
 
-#: src/mesh/gnunet-service-mesh.c:5904
+#: src/mesh/gnunet-service-mesh.c:7110
 msgid "Wrong CORE service\n"
 msgstr ""
 
-#: src/mesh/gnunet-service-mesh.c:6116
-#, fuzzy
-msgid "Mesh service is lacking key configuration settings.  Exiting.\n"
+#: src/mesh/gnunet-service-mesh.c:7328 src/mesh/gnunet-service-mesh.c:7340
+#: src/mesh/gnunet-service-mesh.c:7352 src/mesh/gnunet-service-mesh.c:7364
+#: src/mesh/gnunet-service-mesh.c:7376 src/mesh/gnunet-service-mesh.c:7388
+#: src/mesh/gnunet-service-mesh.c:7400 src/mesh/gnunet-service-mesh.c:7412
+#, fuzzy, c-format
+msgid "Mesh service is lacking key configuration settings (%s).  Exiting.\n"
 msgstr "立即保存配置？"
 
-#: src/mesh/gnunet-service-mesh.c:6125
+#: src/mesh/gnunet-service-mesh.c:7424 src/mesh/gnunet-service-mesh.c:7435
+#, fuzzy, c-format
+msgid ""
+"Mesh service is lacking key configuration settings (%s). Using default "
+"(%u).\n"
+msgstr "立即保存配置？"
+
+#: src/mesh/gnunet-service-mesh.c:7446
 #, fuzzy
 msgid "Mesh service could not access hostkey.  Exiting.\n"
 msgstr "找不到接口“%s”的一个 IP 地址。\n"
@@ -4118,7 +4129,7 @@ msgid ""
 "might have been lost!\n"
 msgstr ""
 
-#: src/testbed/testbed_api.c:204
+#: src/testbed/testbed_api.c:246
 #, fuzzy, c-format
 msgid "Adding host %u failed with error: %s\n"
 msgstr "“%s”以错误码 %d 失败：%s\n"
@@ -4272,7 +4283,7 @@ msgstr ""
 msgid "Starting service %s for peer `%4s'\n"
 msgstr "卸载 GNUnet 服务"
 
-#: src/testing_old/testing.c:1207 src/testing_old/testing_group.c:6155
+#: src/testing_old/testing.c:1207 src/testing_old/testing_group.c:6172
 #, fuzzy, c-format
 msgid "Could not start `%s' process to copy configuration directory.\n"
 msgstr "找不到主机“%s”的 IP：%s\n"
@@ -4353,12 +4364,12 @@ msgstr ""
 msgid "Unknown topology specification, can't connect peers!\n"
 msgstr ""
 
-#: src/testing_old/testing_group.c:5945
-#, fuzzy
-msgid "Could not read hostkeys file!\n"
+#: src/testing_old/testing_group.c:5962
+#, fuzzy, c-format
+msgid "Could not read hostkeys file `%s'!\n"
 msgstr "找不到接口“%s”的一个 IP 地址。\n"
 
-#: src/testing_old/testing_group.c:6012
+#: src/testing_old/testing_group.c:6029
 #, fuzzy, c-format
 msgid "Could not create configuration for peer number %u on `%s'!\n"
 msgstr "解析配置文件“%s”失败\n"
@@ -4604,101 +4615,101 @@ msgstr ""
 msgid "# refreshed my HELLO"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1057
+#: src/transport/gnunet-service-transport_neighbours.c:1040
 msgid "# DISCONNECT messages sent"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1174
-#: src/transport/gnunet-service-transport_neighbours.c:1511
+#: src/transport/gnunet-service-transport_neighbours.c:1157
+#: src/transport/gnunet-service-transport_neighbours.c:1494
 msgid "# bytes in message queue for other peers"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1179
+#: src/transport/gnunet-service-transport_neighbours.c:1162
 msgid "# messages transmitted to other peers"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1184
+#: src/transport/gnunet-service-transport_neighbours.c:1167
 msgid "# transmission failures for messages to other peers"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1241
+#: src/transport/gnunet-service-transport_neighbours.c:1224
 msgid "# messages timed out while in transport queue"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1283
+#: src/transport/gnunet-service-transport_neighbours.c:1266
 msgid "# keepalives sent"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1307
+#: src/transport/gnunet-service-transport_neighbours.c:1290
 msgid "# KEEPALIVE messages discarded (peer unknown)"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1315
+#: src/transport/gnunet-service-transport_neighbours.c:1298
 msgid "# KEEPALIVE messages discarded (no session)"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1352
+#: src/transport/gnunet-service-transport_neighbours.c:1335
 msgid "# KEEPALIVE_RESPONSE messages discarded (not connected)"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1361
+#: src/transport/gnunet-service-transport_neighbours.c:1344
 msgid "# KEEPALIVE_RESPONSE messages discarded (not expected)"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1417
+#: src/transport/gnunet-service-transport_neighbours.c:1400
 msgid "# messages discarded due to lack of neighbour record"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1451
+#: src/transport/gnunet-service-transport_neighbours.c:1434
 msgid "# bandwidth quota violations by other peers"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1467
+#: src/transport/gnunet-service-transport_neighbours.c:1450
 msgid "# ms throttling suggested"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:2613
+#: src/transport/gnunet-service-transport_neighbours.c:2596
 msgid "# unexpected CONNECT_ACK messages (no peer)"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:2628
-#: src/transport/gnunet-service-transport_neighbours.c:2662
+#: src/transport/gnunet-service-transport_neighbours.c:2611
+#: src/transport/gnunet-service-transport_neighbours.c:2645
 msgid "# unexpected CONNECT_ACK messages (not ready)"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:2675
+#: src/transport/gnunet-service-transport_neighbours.c:2658
 msgid "# unexpected CONNECT_ACK messages (waiting on ATS)"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:2708
+#: src/transport/gnunet-service-transport_neighbours.c:2691
 msgid "# unexpected CONNECT_ACK messages (disconnecting)"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:2892
+#: src/transport/gnunet-service-transport_neighbours.c:2875
 msgid "# unexpected SESSION ACK messages"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:2947
+#: src/transport/gnunet-service-transport_neighbours.c:2930
 msgid "# SET QUOTA messages ignored (no such peer)"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:2961
+#: src/transport/gnunet-service-transport_neighbours.c:2944
 msgid "# disconnects due to quota of 0"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:2992
+#: src/transport/gnunet-service-transport_neighbours.c:2975
 msgid "# disconnect messages ignored (old format)"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:3003
+#: src/transport/gnunet-service-transport_neighbours.c:2986
 msgid "# disconnect messages ignored (timestamp)"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:3034
+#: src/transport/gnunet-service-transport_neighbours.c:3017
 msgid "# other peer asked to disconnect from us"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:3129
+#: src/transport/gnunet-service-transport_neighbours.c:3112
 msgid "# disconnected from peer upon explicit request"
 msgstr ""
 
@@ -4734,23 +4745,23 @@ msgstr ""
 msgid "Received a PING message with validation bug from `%s'\n"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_validation.c:989
+#: src/transport/gnunet-service-transport_validation.c:1001
 msgid "# PONGs unicast via reliable transport"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_validation.c:998
+#: src/transport/gnunet-service-transport_validation.c:1010
 msgid "# PONGs multicast to all available addresses"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_validation.c:1120
+#: src/transport/gnunet-service-transport_validation.c:1135
 msgid "# PONGs dropped, no matching pending validation"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_validation.c:1145
+#: src/transport/gnunet-service-transport_validation.c:1164
 msgid "# PONGs dropped, signature expired"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_validation.c:1199
+#: src/transport/gnunet-service-transport_validation.c:1218
 #, c-format
 msgid "Adding `%s' without addresses for peer `%s'\n"
 msgstr ""
@@ -4956,86 +4967,86 @@ msgstr ""
 msgid "# bytes dropped by SMTP (outgoing)"
 msgstr ""
 
-#: src/transport/plugin_transport_tcp.c:590
+#: src/transport/plugin_transport_tcp.c:591
 #, c-format
 msgid "Unexpected address length: %u bytes\n"
 msgstr ""
 
-#: src/transport/plugin_transport_tcp.c:766
-#: src/transport/plugin_transport_tcp.c:855
-#: src/transport/plugin_transport_tcp.c:905
-#: src/transport/plugin_transport_tcp.c:991
-#: src/transport/plugin_transport_tcp.c:1129
-#: src/transport/plugin_transport_tcp.c:1146
+#: src/transport/plugin_transport_tcp.c:767
+#: src/transport/plugin_transport_tcp.c:856
+#: src/transport/plugin_transport_tcp.c:906
+#: src/transport/plugin_transport_tcp.c:992
+#: src/transport/plugin_transport_tcp.c:1130
+#: src/transport/plugin_transport_tcp.c:1147
 msgid "# bytes currently in TCP buffers"
 msgstr ""
 
-#: src/transport/plugin_transport_tcp.c:773
-#: src/transport/plugin_transport_tcp.c:962
-#: src/transport/plugin_transport_tcp.c:1806
-#: src/transport/plugin_transport_tcp.c:2423
+#: src/transport/plugin_transport_tcp.c:774
+#: src/transport/plugin_transport_tcp.c:963
+#: src/transport/plugin_transport_tcp.c:1807
+#: src/transport/plugin_transport_tcp.c:2424
 msgid "# TCP sessions active"
 msgstr ""
 
-#: src/transport/plugin_transport_tcp.c:859
+#: src/transport/plugin_transport_tcp.c:860
 msgid "# bytes discarded by TCP (timeout)"
 msgstr ""
 
-#: src/transport/plugin_transport_tcp.c:908
+#: src/transport/plugin_transport_tcp.c:909
 msgid "# bytes transmitted via TCP"
 msgstr ""
 
-#: src/transport/plugin_transport_tcp.c:995
+#: src/transport/plugin_transport_tcp.c:996
 msgid "# bytes discarded by TCP (disconnect)"
 msgstr ""
 
-#: src/transport/plugin_transport_tcp.c:1335
+#: src/transport/plugin_transport_tcp.c:1336
 #, c-format
 msgid "Address of unexpected length: %u\n"
 msgstr ""
 
-#: src/transport/plugin_transport_tcp.c:1446
+#: src/transport/plugin_transport_tcp.c:1447
 msgid "# transport-service disconnect requests for TCP"
 msgstr ""
 
-#: src/transport/plugin_transport_tcp.c:1847
+#: src/transport/plugin_transport_tcp.c:1848
 msgid "# TCP WELCOME messages received"
 msgstr ""
 
-#: src/transport/plugin_transport_tcp.c:2018
+#: src/transport/plugin_transport_tcp.c:2019
 msgid "# bytes received via TCP"
 msgstr ""
 
-#: src/transport/plugin_transport_tcp.c:2088
+#: src/transport/plugin_transport_tcp.c:2089
 msgid "# network-level TCP disconnect events"
 msgstr ""
 
-#: src/transport/plugin_transport_tcp.c:2312 src/util/service.c:946
+#: src/transport/plugin_transport_tcp.c:2313 src/util/service.c:946
 #: src/util/service.c:952
 #, c-format
 msgid "Require valid port number for service `%s' in configuration!\n"
 msgstr ""
 
-#: src/transport/plugin_transport_tcp.c:2326
+#: src/transport/plugin_transport_tcp.c:2327
 #, fuzzy
 msgid "Failed to start service.\n"
 msgstr "初始化“%s”服务失败。\n"
 
-#: src/transport/plugin_transport_tcp.c:2388
+#: src/transport/plugin_transport_tcp.c:2389
 #, c-format
 msgid "Failed to find option %s in section %s!\n"
 msgstr ""
 
-#: src/transport/plugin_transport_tcp.c:2411
+#: src/transport/plugin_transport_tcp.c:2412
 #, c-format
 msgid "TCP transport listening on port %llu\n"
 msgstr ""
 
-#: src/transport/plugin_transport_tcp.c:2415
+#: src/transport/plugin_transport_tcp.c:2416
 msgid "TCP transport not listening on any port (client only)\n"
 msgstr ""
 
-#: src/transport/plugin_transport_tcp.c:2419
+#: src/transport/plugin_transport_tcp.c:2420
 #, c-format
 msgid "TCP transport advertises itself as being on port %llu\n"
 msgstr ""
@@ -5083,7 +5094,7 @@ msgstr ""
 msgid "Invalid IPv6 address: `%s'\n"
 msgstr "无效的进程优先级“%s”\n"
 
-#: src/transport/plugin_transport_unix.c:1351
+#: src/transport/plugin_transport_unix.c:1346
 #, fuzzy
 msgid "Failed to open UNIX sockets\n"
 msgstr "打开日志文件“%s”失败：%s\n"
@@ -5327,7 +5338,7 @@ msgstr "无法连接到 %s:%u：%s\n"
 msgid "Attempt to connect to `%s' failed\n"
 msgstr ""
 
-#: src/util/container_bloomfilter.c:510
+#: src/util/container_bloomfilter.c:518
 #, c-format
 msgid ""
 "Size of file on disk is incorrect for this Bloom filter (want %llu, have "
@@ -5404,17 +5415,17 @@ msgstr ""
 msgid "`%s' failed for drive `%S': %u\n"
 msgstr "对驱动器“%2$s”的“%1$s”操作失败：%3$u\n"
 
-#: src/util/disk.c:1135
+#: src/util/disk.c:1140
 #, c-format
 msgid "Expected `%s' to be a directory!\n"
 msgstr "“%s”应为目录！\n"
 
-#: src/util/disk.c:1489 src/util/service.c:1665
+#: src/util/disk.c:1494 src/util/service.c:1665
 #, c-format
 msgid "Cannot obtain information about user `%s': %s\n"
 msgstr "无法获取有关用户“%s”的信息：%s\n"
 
-#: src/util/disk.c:1861
+#: src/util/disk.c:1866
 #, c-format
 msgid "No `%s' specified for service `%s' in configuration.\n"
 msgstr ""
@@ -5571,14 +5582,14 @@ msgid ""
 "Fatal internal logic error, process hangs in `%s' (abort with CTRL-C)!\n"
 msgstr ""
 
-#: src/util/os_installation.c:329
+#: src/util/os_installation.c:325
 #, fuzzy, c-format
 msgid ""
 "Could not determine installation path for %s.  Set `%s' environment "
 "variable.\n"
 msgstr "无法确定安装路径。请尝试设置“%s”\n"
 
-#: src/util/os_installation.c:526
+#: src/util/os_installation.c:522
 #, fuzzy, c-format
 msgid "Could not find binary `%s' in PATH!\n"
 msgstr "找不到主机“%s”的 IP：%s\n"
@@ -5870,7 +5881,7 @@ msgstr ""
 msgid "Invalid IPv6 address `%s': %s\n"
 msgstr "无效的进程优先级“%s”\n"
 
-#: src/vpn/gnunet-service-vpn.c:511 src/vpn/gnunet-service-vpn.c:1071
+#: src/vpn/gnunet-service-vpn.c:511 src/vpn/gnunet-service-vpn.c:1069
 msgid "# Active tunnels"
 msgstr ""
 
@@ -5881,87 +5892,87 @@ msgstr ""
 "\n"
 "按任意键继续\n"
 
-#: src/vpn/gnunet-service-vpn.c:699
+#: src/vpn/gnunet-service-vpn.c:698
 msgid "# Bytes given to mesh for transmission"
 msgstr ""
 
-#: src/vpn/gnunet-service-vpn.c:737
+#: src/vpn/gnunet-service-vpn.c:736
 msgid "# Bytes dropped in mesh queue (overflow)"
 msgstr ""
 
-#: src/vpn/gnunet-service-vpn.c:772
+#: src/vpn/gnunet-service-vpn.c:770
 msgid "# Mesh tunnels created"
 msgstr ""
 
-#: src/vpn/gnunet-service-vpn.c:795
+#: src/vpn/gnunet-service-vpn.c:793
 #, fuzzy
 msgid "Failed to setup mesh tunnel!\n"
 msgstr "发送消息失败。\n"
 
-#: src/vpn/gnunet-service-vpn.c:973
+#: src/vpn/gnunet-service-vpn.c:971
 #, c-format
 msgid "Protocol %u not supported, dropping\n"
 msgstr ""
 
-#: src/vpn/gnunet-service-vpn.c:1291
+#: src/vpn/gnunet-service-vpn.c:1289
 msgid "# ICMPv4 packets dropped (not allowed)"
 msgstr ""
 
-#: src/vpn/gnunet-service-vpn.c:1312
+#: src/vpn/gnunet-service-vpn.c:1310
 msgid "# ICMPv6 packets dropped (not allowed)"
 msgstr ""
 
-#: src/vpn/gnunet-service-vpn.c:1517
+#: src/vpn/gnunet-service-vpn.c:1515
 msgid "# Packets received from TUN interface"
 msgstr ""
 
-#: src/vpn/gnunet-service-vpn.c:1555 src/vpn/gnunet-service-vpn.c:1596
+#: src/vpn/gnunet-service-vpn.c:1553 src/vpn/gnunet-service-vpn.c:1594
 #, c-format
 msgid "Packet received for unmapped destination `%s' (dropping it)\n"
 msgstr ""
 
-#: src/vpn/gnunet-service-vpn.c:1606
+#: src/vpn/gnunet-service-vpn.c:1604
 msgid "Received IPv4 packet with options (dropping it)\n"
 msgstr ""
 
-#: src/vpn/gnunet-service-vpn.c:1620
+#: src/vpn/gnunet-service-vpn.c:1618
 #, c-format
 msgid "Received packet of unknown protocol %d from TUN (dropping it)\n"
 msgstr ""
 
-#: src/vpn/gnunet-service-vpn.c:1704
+#: src/vpn/gnunet-service-vpn.c:1702
 msgid "# ICMP packets received from mesh"
 msgstr ""
 
-#: src/vpn/gnunet-service-vpn.c:2045
+#: src/vpn/gnunet-service-vpn.c:2043
 msgid "# UDP packets received from mesh"
 msgstr ""
 
-#: src/vpn/gnunet-service-vpn.c:2203
+#: src/vpn/gnunet-service-vpn.c:2201
 msgid "# TCP packets received from mesh"
 msgstr ""
 
-#: src/vpn/gnunet-service-vpn.c:2354
+#: src/vpn/gnunet-service-vpn.c:2352
 msgid "Failed to find unallocated IPv4 address in VPN's range\n"
 msgstr ""
 
-#: src/vpn/gnunet-service-vpn.c:2409
+#: src/vpn/gnunet-service-vpn.c:2407
 msgid "Failed to find unallocated IPv6 address in VPN's range\n"
 msgstr ""
 
-#: src/vpn/gnunet-service-vpn.c:2448 src/vpn/gnunet-service-vpn.c:2661
+#: src/vpn/gnunet-service-vpn.c:2446 src/vpn/gnunet-service-vpn.c:2659
 msgid "# Active destinations"
 msgstr ""
 
-#: src/vpn/gnunet-service-vpn.c:2734
+#: src/vpn/gnunet-service-vpn.c:2732
 msgid "Failed to allocate IP address for new destination\n"
 msgstr ""
 
-#: src/vpn/gnunet-service-vpn.c:3141
+#: src/vpn/gnunet-service-vpn.c:3139
 msgid "IPv6 support disabled as this system does not support IPv6\n"
 msgstr ""
 
-#: src/vpn/gnunet-service-vpn.c:3173
+#: src/vpn/gnunet-service-vpn.c:3171
 msgid "IPv4 support disabled as this system does not support IPv4\n"
 msgstr ""
 
@@ -6035,18 +6046,18 @@ msgstr ""
 msgid "Setup tunnels via VPN."
 msgstr ""
 
-#: src/include/gnunet_common.h:507 src/include/gnunet_common.h:512
-#: src/include/gnunet_common.h:518
+#: src/include/gnunet_common.h:515 src/include/gnunet_common.h:520
+#: src/include/gnunet_common.h:526
 #, c-format
 msgid "Assertion failed at %s:%d.\n"
 msgstr ""
 
-#: src/include/gnunet_common.h:528
+#: src/include/gnunet_common.h:536
 #, c-format
 msgid "External protocol violation detected at %s:%d.\n"
 msgstr ""
 
-#: src/include/gnunet_common.h:549 src/include/gnunet_common.h:556
+#: src/include/gnunet_common.h:557 src/include/gnunet_common.h:564
 #, c-format
 msgid "`%s' failed on file `%s' at %s:%d with error: %s\n"
 msgstr ""

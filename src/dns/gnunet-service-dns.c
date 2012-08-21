@@ -45,21 +45,11 @@
 #include "dns.h"
 #include "gnunet_dns_service.h"
 #include "gnunet_dnsparser_lib.h"
+#include "gnunet_dnsstub_lib.h"
 #include "gnunet_mesh_service.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_tun_lib.h"
 
-
-/**
- * Timeout for an external (Internet-DNS) DNS resolution
- */
-#define REQUEST_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
-
-/**
- * How many DNS sockets do we open at most at the same time?
- * (technical socket maximum is this number x2 for IPv4+IPv6)
- */
-#define DNS_SOCKET_MAX 128
 
 /**
  * Phases each request goes through.
@@ -137,34 +127,6 @@ struct ClientRecord
 
 
 /**
- * UDP socket we are using for sending DNS requests to the Internet.
- */
-struct RequestSocket
-{
-  
-  /**
-   * UDP socket we use for this request for IPv4
-   */
-  struct GNUNET_NETWORK_Handle *dnsout4;
-
-  /**
-   * UDP socket we use for this request for IPv6
-   */
-  struct GNUNET_NETWORK_Handle *dnsout6;
-
-  /**
-   * Task for reading from dnsout4 and dnsout6.
-   */
-  GNUNET_SCHEDULER_TaskIdentifier read_task;
-
-  /**
-   * When should this socket be closed?
-   */
-  struct GNUNET_TIME_Absolute timeout;
-};
-
-
-/**
  * Entry we keep for each active request.
  */ 
 struct RequestRecord
@@ -184,10 +146,9 @@ struct RequestRecord
 
   /**
    * Socket we are using to transmit this request (must match if we receive
-   * a response).  Must NOT be freed as part of this request record (as it
-   * might be shared with other requests).
+   * a response).
    */
-  struct GNUNET_NETWORK_Handle *dnsout;
+  struct GNUNET_DNSSTUB_RequestSocket *rs;
 
   /**
    * Source address of the original request (for sending response).
@@ -198,11 +159,6 @@ struct RequestRecord
    * Destination address of the original request (for potential use as exit).
    */
   struct sockaddr_storage dst_addr;
-
-  /**
-   * When should this request time out?
-   */
-  struct GNUNET_TIME_Absolute timeout;
 
   /**
    * ID of this request, also basis for hashing.  Lowest 16 bit will
@@ -252,25 +208,9 @@ struct TunnelState
 
   /**
    * Socket we are using to transmit this request (must match if we receive
-   * a response).  Must NOT be freed as part of this request record (as it
-   * might be shared with other requests).
+   * a response).
    */
-  struct GNUNET_NETWORK_Handle *dnsout;
-
-  /**
-   * Address we sent the DNS request to.
-   */
-  struct sockaddr_storage addr;
-
-  /**
-   * When should this request time out?
-   */
-  struct GNUNET_TIME_Absolute timeout;
-
-  /**
-   * Number of bytes in 'addr'.
-   */
-  socklen_t addrlen;
+  struct GNUNET_DNSSTUB_RequestSocket *rs;
 
   /**
    * Number of bytes in 'reply'.
@@ -330,19 +270,14 @@ static struct ClientRecord *clients_tail;
 static struct GNUNET_SERVER_NotificationContext *nc;
 
 /**
- * Array of all open requests.
- */
-static struct RequestRecord requests[UINT16_MAX + 1];
-
-/**
  * Array of all open requests from tunnels.
  */
 static struct TunnelState *tunnels[UINT16_MAX + 1];
 
 /**
- * Array of all open sockets for DNS requests. 
+ * Array of all open requests.
  */
-static struct RequestSocket sockets[DNS_SOCKET_MAX];
+static struct RequestRecord requests[UINT16_MAX + 1];
 
 /**
  * Generator for unique request IDs.
@@ -350,42 +285,15 @@ static struct RequestSocket sockets[DNS_SOCKET_MAX];
 static uint64_t request_id_gen;
 
 /**
- * IP address to use for the DNS server if we are a DNS exit service
- * (for VPN via mesh); otherwise NULL.
- */
-static char *dns_exit;
-
-/**
  * Handle to the MESH service (for receiving DNS queries), or NULL 
  * if we are not a DNS exit.
  */
 static struct GNUNET_MESH_Handle *mesh;
 
-
 /**
- * We're done with a RequestSocket, close it for now.
- *
- * @param rs request socket to clean up
+ * Handle to the DNS Stub resolver.
  */
-static void
-cleanup_rs (struct RequestSocket *rs)
-{
-  if (NULL != rs->dnsout4)
-  {
-    GNUNET_NETWORK_socket_close (rs->dnsout4);
-    rs->dnsout4 = NULL;
-  }
-  if (NULL != rs->dnsout6)
-  {
-    GNUNET_NETWORK_socket_close (rs->dnsout6);
-    rs->dnsout6 = NULL;
-  }
-  if (GNUNET_SCHEDULER_NO_TASK != rs->read_task)
-  {
-    GNUNET_SCHEDULER_cancel (rs->read_task);
-    rs->read_task = GNUNET_SCHEDULER_NO_TASK;
-  }
-}
+static struct GNUNET_DNSSTUB_Context *dnsstub;
 
 
 /**
@@ -430,64 +338,16 @@ cleanup_task (void *cls GNUNET_UNUSED,
     GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
     stats = NULL;
   }
-  if (NULL != dns_exit)
+  if (NULL != dnsstub)
   {
-    GNUNET_free (dns_exit);
-    dns_exit = NULL;
+    GNUNET_DNSSTUB_stop (dnsstub);
+    dnsstub = NULL;
   }
   if (NULL != mesh)
   {
     GNUNET_MESH_disconnect(mesh);
     mesh = NULL;
   }
-}
-
-
-/**
- * Open source port for sending DNS requests
- *
- * @param af AF_INET or AF_INET6
- * @return GNUNET_OK on success
- */ 
-static struct GNUNET_NETWORK_Handle *
-open_socket (int af)
-{
-  struct sockaddr_in a4;
-  struct sockaddr_in6 a6;
-  struct sockaddr *sa;
-  socklen_t alen;
-  struct GNUNET_NETWORK_Handle *ret;
-
-  ret = GNUNET_NETWORK_socket_create (af, SOCK_DGRAM, 0);
-  if (NULL == ret)
-    return NULL;
-  switch (af)
-  {
-  case AF_INET:
-    memset (&a4, 0, alen = sizeof (struct sockaddr_in));
-    sa = (struct sockaddr *) &a4;
-    break;
-  case AF_INET6:
-    memset (&a6, 0, alen = sizeof (struct sockaddr_in6));
-    sa = (struct sockaddr *) &a6;
-    break;
-  default:
-    GNUNET_break (0);
-    GNUNET_NETWORK_socket_close (ret);
-    return NULL;
-  }
-  sa->sa_family = af;
-  if (GNUNET_OK != GNUNET_NETWORK_socket_bind (ret,
-					       sa, 
-					       alen))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
-		_("Could not bind to any port: %s\n"),
-		STRERROR (errno));
-    GNUNET_NETWORK_socket_close (ret);
-    return NULL;
-  }
-  return ret;
 }
 
 
@@ -677,70 +537,21 @@ send_request_to_client (struct RequestRecord *rr,
 }
 
 
+
 /**
- * Read a DNS response from the (unhindered) UDP-Socket
+ * Callback called from DNSSTUB resolver when a resolution
+ * succeeded.
  *
- * @param cls socket to read from
- * @param tc scheduler context (must be shutdown or read ready)
+ * @param cls NULL
+ * @param rs the socket that received the response
+ * @param dns the response itself
+ * @param r number of bytes in dns
  */
 static void
-read_response (void *cls,
-	       const struct GNUNET_SCHEDULER_TaskContext *tc);
-
-
-/**
- * Get a socket of the specified address family to send out a
- * UDP DNS request to the Internet.  
- *
- * @param af desired address family
- * @return NULL on error (given AF not "supported")
- */
-static struct GNUNET_NETWORK_Handle *
-get_request_socket (int af)
-{
-  struct RequestSocket *rs;
-  struct GNUNET_NETWORK_FDSet *rset;
-  static struct GNUNET_NETWORK_Handle *ret;
-
-  rs = &sockets[GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, 
-					  DNS_SOCKET_MAX)];
-  rs->timeout = GNUNET_TIME_relative_to_absolute (REQUEST_TIMEOUT);
-  switch (af)
-  {
-  case AF_INET:
-    if (NULL == rs->dnsout4)
-      rs->dnsout4 = open_socket (AF_INET);
-    ret = rs->dnsout4;
-    break;
-  case AF_INET6:
-    if (NULL == rs->dnsout6)
-      rs->dnsout6 = open_socket (AF_INET6);
-    ret = rs->dnsout6;
-    break;
-  default:
-    return NULL;
-  }  
-  if (GNUNET_SCHEDULER_NO_TASK != rs->read_task)
-  {
-    GNUNET_SCHEDULER_cancel (rs->read_task);
-    rs->read_task = GNUNET_SCHEDULER_NO_TASK;
-  }
-  if ( (NULL == rs->dnsout4) &&
-       (NULL == rs->dnsout6) )
-    return NULL;
-  rset = GNUNET_NETWORK_fdset_create ();
-  if (NULL != rs->dnsout4)
-    GNUNET_NETWORK_fdset_set (rset, rs->dnsout4);
-  if (NULL != rs->dnsout6)
-    GNUNET_NETWORK_fdset_set (rset, rs->dnsout6);
-  rs->read_task = GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-					       REQUEST_TIMEOUT,
-					       rset,
-					       NULL,
-					       &read_response, rs);
-  GNUNET_NETWORK_fdset_destroy (rset);
-  return ret;
-}
+process_dns_result (void *cls,
+		    struct GNUNET_DNSSTUB_RequestSocket *rs,
+		    const struct GNUNET_TUN_DnsHeader *dns,
+		    size_t r);
 
 
 /**
@@ -815,8 +626,14 @@ next_phase (struct RequestRecord *rr)
     }
 
     rr->phase = RP_INTERNET_DNS;
-    rr->dnsout = get_request_socket (rr->dst_addr.ss_family);
-    if (NULL == rr->dnsout)
+    rr->rs = GNUNET_DNSSTUB_resolve (dnsstub,
+				     (struct sockaddr*) &rr->dst_addr,
+				     salen,
+				     rr->payload,
+				     rr->payload_length,
+				     &process_dns_result,
+				     NULL);
+    if (NULL == rr->rs)
     {
       GNUNET_STATISTICS_update (stats,
 				gettext_noop ("# DNS exit failed (failed to open socket)"),
@@ -824,12 +641,6 @@ next_phase (struct RequestRecord *rr)
       cleanup_rr (rr);
       return;
     }
-    GNUNET_NETWORK_socket_sendto (rr->dnsout,
-				  rr->payload,
-				  rr->payload_length,
-				  (struct sockaddr*) &rr->dst_addr,
-				  salen);
-    rr->timeout = GNUNET_TIME_relative_to_absolute (REQUEST_TIMEOUT);
     return;
   case RP_INTERNET_DNS:
     rr->phase = RP_MODIFY;
@@ -956,68 +767,32 @@ transmit_reply_to_mesh (void *cls,
 }
 
 
+
 /**
- * Actually do the reading of a DNS packet from our UDP socket and see
- * if we have a valid, matching, pending request.
+ * Callback called from DNSSTUB resolver when a resolution
+ * succeeded.
  *
- * @param dnsout socket to read from
- * @return GNUNET_OK on success, GNUNET_NO on drop, GNUNET_SYSERR on IO-errors (closed socket)
+ * @param cls NULL
+ * @param rs the socket that received the response
+ * @param dns the response itself
+ * @param r number of bytes in dns
  */
-static int
-do_dns_read (struct GNUNET_NETWORK_Handle *dnsout)
+static void
+process_dns_result (void *cls,
+		    struct GNUNET_DNSSTUB_RequestSocket *rs,
+		    const struct GNUNET_TUN_DnsHeader *dns,
+		    size_t r)
 {
-  struct sockaddr_storage addr;
-  socklen_t addrlen;
-  struct GNUNET_TUN_DnsHeader *dns;
   struct RequestRecord *rr;
   struct TunnelState *ts;
-  ssize_t r;
-  int len;
-
-#ifndef MINGW
-  if (0 != ioctl (GNUNET_NETWORK_get_fd (dnsout), FIONREAD, &len))
-  {
-    /* conservative choice: */
-    len = UINT16_MAX;
-  }
-#else
-  /* port the code above? */
-  len = UINT16_MAX;
-#endif
-
-  {
-    unsigned char buf[len] GNUNET_ALIGN;
-
-    addrlen = sizeof (addr);
-    memset (&addr, 0, sizeof (addr));  
-    r = GNUNET_NETWORK_socket_recvfrom (dnsout, 
-					buf, sizeof (buf),
-					(struct sockaddr*) &addr, &addrlen);
-    if (-1 == r)
-    {
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "recvfrom");
-      GNUNET_NETWORK_socket_close (dnsout);
-      return GNUNET_SYSERR;
-    }
-    if (sizeof (struct GNUNET_TUN_DnsHeader) > r)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
-		  _("Received DNS response that is too small (%u bytes)"),
-		  r);
-      return GNUNET_NO;
-    }
-    dns = (struct GNUNET_TUN_DnsHeader *) buf;
-    /* Handle case that this is a reply to a request from a MESH DNS tunnel */
-    ts = tunnels[dns->id];
-    if ( (NULL == ts) ||
-	 (ts->dnsout != dnsout) ||
-	 (addrlen != ts->addrlen) ||
-	 (0 != memcmp (&ts->addr,
-		       &addr,
-		       addrlen)) ||	 
-	 (0 == GNUNET_TIME_absolute_get_remaining (ts->timeout).rel_value) )
-      ts = NULL; /* DNS responder address missmatch */
-    if (NULL != ts)
+    
+  GNUNET_assert (NULL == cls);
+  /* Handle case that this is a reply to a request from a MESH DNS tunnel */
+  ts = tunnels[dns->id];
+  if ( (NULL == ts) ||
+       (ts->rs != rs) )
+    ts = NULL; /* DNS responder address missmatch */
+  if (NULL != ts)
     {
       tunnels[dns->id] = NULL;
       GNUNET_free_non_null (ts->reply);
@@ -1034,76 +809,25 @@ do_dns_read (struct GNUNET_NETWORK_Handle *dnsout)
 						  &transmit_reply_to_mesh,
 						  ts);
     }
-    /* Handle case that this is a reply to a local request (intercepted from TUN interface) */
-    rr = &requests[dns->id];
-    if ( (rr->phase != RP_INTERNET_DNS) ||
-	 (rr->dnsout != dnsout) ||
-	 (0 != memcmp (&rr->dst_addr,
-		       &addr,
-		       addrlen)) ||
-	 (0 == GNUNET_TIME_absolute_get_remaining (rr->timeout).rel_value) )
+  /* Handle case that this is a reply to a local request (intercepted from TUN interface) */
+  rr = &requests[dns->id];
+  if ( (rr->phase != RP_INTERNET_DNS) ||
+       (rr->rs != rs) )
     {
       if (NULL == ts)
-      {
-	/* unexpected / bogus reply */
-	GNUNET_STATISTICS_update (stats,
-				  gettext_noop ("# External DNS response discarded (no matching request)"),
-				  1, GNUNET_NO);
-      }
-      return GNUNET_NO; 
+	{
+	  /* unexpected / bogus reply */
+	  GNUNET_STATISTICS_update (stats,
+				    gettext_noop ("# External DNS response discarded (no matching request)"),
+				    1, GNUNET_NO);
+	}
+      return; 
     }
-    GNUNET_free_non_null (rr->payload);
-    rr->payload = GNUNET_malloc (r);
-    memcpy (rr->payload, buf, r);
-    rr->payload_length = r;
-    next_phase (rr);
-  }  
-  return GNUNET_OK;
-}
-
-
-/**
- * Read a DNS response from the (unhindered) UDP-Socket
- *
- * @param cls socket to read from
- * @param tc scheduler context (must be shutdown or read ready)
- */
-static void
-read_response (void *cls,
-	       const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct RequestSocket *rs = cls;
-  struct GNUNET_NETWORK_FDSet *rset;
-
-  rs->read_task = GNUNET_SCHEDULER_NO_TASK;
-  if (0 == (tc->reason & GNUNET_SCHEDULER_REASON_READ_READY))
-  {
-    /* timeout or shutdown */
-    cleanup_rs (rs);
-    return;
-  }
-  /* read and process ready sockets */
-  if ((NULL != rs->dnsout4) &&
-      (GNUNET_NETWORK_fdset_isset (tc->read_ready, rs->dnsout4)) &&
-      (GNUNET_SYSERR == do_dns_read (rs->dnsout4)))
-    rs->dnsout4 = NULL;
-  if ((NULL != rs->dnsout6) &&
-      (GNUNET_NETWORK_fdset_isset (tc->read_ready, rs->dnsout6)) &&
-      (GNUNET_SYSERR == do_dns_read (rs->dnsout6)))
-    rs->dnsout6 = NULL;
-
-  /* re-schedule read task */
-  rset = GNUNET_NETWORK_fdset_create ();
-  if (NULL != rs->dnsout4)
-    GNUNET_NETWORK_fdset_set (rset, rs->dnsout4);
-  if (NULL != rs->dnsout6)
-    GNUNET_NETWORK_fdset_set (rset, rs->dnsout6);
-  rs->read_task = GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-					       GNUNET_TIME_absolute_get_remaining (rs->timeout),
-					       rset,
-					       NULL,
-					       &read_response, rs);
-  GNUNET_NETWORK_fdset_destroy (rset);
+  GNUNET_free_non_null (rr->payload);
+  rr->payload = GNUNET_malloc (r);
+  memcpy (rr->payload, dns, r);
+  rr->payload_length = r;
+  next_phase (rr);
 }
 
 
@@ -1410,11 +1134,7 @@ receive_dns_request (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
   size_t dlen = mlen - sizeof (struct GNUNET_MessageHeader);
   char buf[dlen] GNUNET_ALIGN;
   struct GNUNET_TUN_DnsHeader *dout;
-  struct sockaddr_in v4;
-  struct sockaddr_in6 v6;
-  struct sockaddr *so;
-  socklen_t salen;
-  
+ 
   if (dlen < sizeof (struct GNUNET_TUN_DnsHeader))
   {
     GNUNET_break_op (0);
@@ -1428,51 +1148,14 @@ receive_dns_request (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
 						   UINT16_MAX + 1);
   tunnels[ts->my_id] = ts;
   memcpy (buf, dns, dlen);
-  dout = (struct GNUNET_TUN_DnsHeader*) buf;
+  dout = (struct GNUNET_TUN_DnsHeader *) buf;
   dout->id = ts->my_id;
-  memset (&v4, 0, sizeof (v4));
-  memset (&v6, 0, sizeof (v6));
-  if (1 == inet_pton (AF_INET, dns_exit, &v4.sin_addr))
-  {
-    salen = sizeof (v4);
-    v4.sin_family = AF_INET;
-    v4.sin_port = htons (53);
-#if HAVE_SOCKADDR_IN_SIN_LEN
-    v4.sin_len = (u_char) salen;
-#endif
-    so = (struct sockaddr *) &v4;
-    ts->dnsout = get_request_socket (AF_INET);
-  }
-  else if (1 == inet_pton (AF_INET6, dns_exit, &v6.sin6_addr))
-  {
-    salen = sizeof (v6);
-    v6.sin6_family = AF_INET6;
-    v6.sin6_port = htons (53);
-#if HAVE_SOCKADDR_IN_SIN_LEN
-    v6.sin6_len = (u_char) salen;
-#endif
-    so = (struct sockaddr *) &v6;
-    ts->dnsout = get_request_socket (AF_INET6);
-  }  
-  else
-  {
-    GNUNET_break (0);
+  ts->rs = GNUNET_DNSSTUB_resolve2 (dnsstub,
+				    buf, dlen,
+				    &process_dns_result,
+				    NULL);
+  if (NULL == ts->rs)
     return GNUNET_SYSERR;
-  }
-  if (NULL == ts->dnsout)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		_("Configured DNS exit `%s' is not working / valid.\n"),
-		dns_exit);
-    return GNUNET_SYSERR;
-  }
-  memcpy (&ts->addr,
-	  so,
-	  salen);
-  ts->addrlen = salen;
-  GNUNET_NETWORK_socket_sendto (ts->dnsout,
-				buf, dlen, so, salen); 
-  ts->timeout = GNUNET_TIME_relative_to_absolute (REQUEST_TIMEOUT);
   return GNUNET_OK;
 }
 
@@ -1552,6 +1235,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   char *ipv6prefix;
   struct in_addr dns_exit4;
   struct in6_addr dns_exit6;
+  char *dns_exit;
 
   cfg = cfg_;
   if (GNUNET_YES !=
@@ -1582,7 +1266,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     GNUNET_free_non_null (dns_exit);
     dns_exit = NULL;
   }
-
+  dnsstub = GNUNET_DNSSTUB_start (dns_exit);
   helper_argv[0] = GNUNET_strdup ("gnunet-dns");
   if (GNUNET_SYSERR ==
       GNUNET_CONFIGURATION_get_value_string (cfg, "dns", "IFNAME", &ifc_name))
