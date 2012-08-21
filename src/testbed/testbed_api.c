@@ -888,8 +888,9 @@ struct GNUNET_TESTBED_ControllerProc
  *
  * @return GNUNET_OK on success, GNUNET_SYSERR to stop further processing
  */
-static int helper_mst (void *cls, void *client,
-                       const struct GNUNET_MessageHeader *message)
+static int 
+helper_mst (void *cls, void *client,
+	    const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_TESTBED_ControllerProc *cp = cls;
   const struct GNUNET_TESTBED_HelperReply *msg;
