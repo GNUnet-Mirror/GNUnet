@@ -32,7 +32,7 @@
 
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
-#define TARGET 1000
+#define TARGET 100000
 
 /**
  * DIFFERENT TESTS TO RUN
@@ -512,7 +512,7 @@ main (int argc, char *argv[])
     FPRINTF (stderr, "\nTest time %llu ms\n",
              (unsigned long long) total_time.rel_value);
     FPRINTF (stderr, "Test payload bandwidth: %f kb/s\n",
-             4 * 1000.0 / total_time.rel_value); // 4bytes * ms
+             total_traffic * 4.0 / total_time.rel_value); // 4bytes * kb/ms
     FPRINTF (stderr, "Test throughput: %f packets/s\n\n",
              total_traffic * 1000.0 / total_time.rel_value); // 1000 packets * ms
     GAUGER ("MESH",

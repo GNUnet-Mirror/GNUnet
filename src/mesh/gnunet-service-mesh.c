@@ -6893,6 +6893,12 @@ handle_local_to_origin (void *cls, struct GNUNET_SERVER_Client *client,
   t = tunnel_get_by_local_id (c, tid);
   if (NULL == t)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Tunnel %X unknown.\n", tid);
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "  for client %u.\n", c->id);
+    if (t->owner == c)
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "  (client is owner)\n");
+    else
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "  (client is leaf)\n");
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
@@ -6999,6 +7005,12 @@ handle_local_multicast (void *cls, struct GNUNET_SERVER_Client *client,
   if (NULL == t)
   {
     GNUNET_break (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Tunnel %X unknown.\n", tid);
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "  for client %u.\n", c->id);
+    if (t->owner == c)
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "  (client is owner)\n");
+    else
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "  (client is leaf)\n");    GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
@@ -7078,6 +7090,12 @@ handle_local_ack (void *cls, struct GNUNET_SERVER_Client *client,
   if (NULL == t)
   {
     GNUNET_break (0); // FIXME fc
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Tunnel %X unknown.\n", tid);
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "  for client %u.\n", c->id);
+    if (t->owner == c)
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "  (client is owner)\n");
+    else
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "  (client is leaf)\n");
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
@@ -7099,7 +7117,8 @@ handle_local_ack (void *cls, struct GNUNET_SERVER_Client *client,
     tunnel_send_fwd_ack (t, GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK);
   }
 
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);  
+
   return;
 }
 
