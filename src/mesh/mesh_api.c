@@ -41,6 +41,7 @@
 
 #define LOG(kind,...) GNUNET_log_from (kind, "mesh-api",__VA_ARGS__)
 
+#define DEBUG_ACK GNUNET_YES
 
 /******************************************************************************/
 /************************      DATA STRUCTURES     ****************************/
@@ -205,6 +206,11 @@ struct GNUNET_MESH_Handle
    * Task for trying to reconnect.
    */
   GNUNET_SCHEDULER_TaskIdentifier reconnect_task;
+
+#if DEBUG_ACK
+  unsigned int acks_sent;
+  unsigned int acks_recv;
+#endif
 };
 
 
@@ -331,6 +337,11 @@ struct GNUNET_MESH_Tunnel
      * Last pid received from the service.
      */
   uint32_t last_recv_pid;
+
+  /**
+   * Which ACK value have we last sent to the service?
+   */
+  uint32_t max_recv_pid;
 };
 
 
@@ -695,14 +706,28 @@ static void
 send_ack (struct GNUNET_MESH_Handle *h, struct GNUNET_MESH_Tunnel *t)
 {
   struct GNUNET_MESH_LocalAck msg;
+  uint32_t delta;
 
+  delta = t->max_recv_pid - t->last_recv_pid;
+  if (0 && delta > ACK_THRESHOLD)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Not sending ACK on tunnel %X: ACK: %u, PID: %u, buffer %u\n",
+         t->tid, t->max_recv_pid, t->last_recv_pid, delta);
+    return;
+  }
+  t->max_recv_pid = t->last_recv_pid + INITIAL_WINDOW_SIZE;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Sending ACK on tunnel %X: %u\n",
-       t->tid, t->last_recv_pid + INITIAL_WINDOW_SIZE);
+       t->tid, t->max_recv_pid);
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK);
   msg.header.size = htons (sizeof (msg));
   msg.tunnel_id = htonl (t->tid);
-  msg.max_pid = htonl (t->last_recv_pid + INITIAL_WINDOW_SIZE);
+  msg.max_pid = htonl (t->max_recv_pid);
+
+#if DEBUG_ACK
+  t->mesh->acks_sent++;
+#endif
 
   send_packet (h, &msg.header, t);
   return;
@@ -1129,7 +1154,7 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
     return GNUNET_YES;
   }
     if (GNUNET_YES ==
-        GMC_is_pid_bigger(pid, t->last_recv_pid + INITIAL_WINDOW_SIZE))
+        GMC_is_pid_bigger(pid, t->max_recv_pid))
   {
     GNUNET_break (0);
     LOG (GNUNET_ERROR_TYPE_WARNING, "  unauthorized message!\n");
@@ -1182,6 +1207,7 @@ process_ack (struct GNUNET_MESH_Handle *h,
   uint32_t ack;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Got an ACK!\n");
+  h->acks_recv++;
   msg = (struct GNUNET_MESH_LocalAck *) message;
 
   t = retrieve_tunnel (h, ntohl (msg->tunnel_id));
@@ -1564,6 +1590,11 @@ GNUNET_MESH_disconnect (struct GNUNET_MESH_Handle *handle)
   struct GNUNET_MESH_TransmitHandle *th;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "MESH DISCONNECT\n");
+
+#if DEBUG_ACK
+  LOG (GNUNET_ERROR_TYPE_INFO, "Sent %d ACKs\n", handle->acks_sent);
+  LOG (GNUNET_ERROR_TYPE_INFO, "Recv %d ACKs\n\n", handle->acks_recv);
+#endif
 
   t = handle->tunnels_head;
   while (NULL != t)
