@@ -63,7 +63,17 @@ enum Stage
     SLAVE1_REGISTERED,
 
     /**
-     * Final stage
+     * The second slave has been registered at the master controller
+     */
+    SLAVE2_REGISTERED,
+    
+    /**
+     * Link from master to slave 1 has been successfully created
+     */
+    SLAVE1_LINK_SUCCESS,
+
+    /**
+     * Link from slave 1 to slave 2 has been successfully created.
      */
     SUCCESS
 
@@ -88,6 +98,11 @@ static struct GNUNET_TESTBED_Controller *mc;
  * Slave host for running slave controller
  */
 static struct GNUNET_TESTBED_Host *slave;
+
+/**
+ * Another slave host for running another slave controller
+ */
+static struct GNUNET_TESTBED_Host *slave2;
 
 /**
  * Slave host registration handle
@@ -131,6 +146,8 @@ do_shutdown (void *cls, const const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   if (GNUNET_SCHEDULER_NO_TASK != abort_task)
     GNUNET_SCHEDULER_cancel (abort_task);
+  if (NULL != slave2)
+    GNUNET_TESTBED_host_destroy (slave2);
     if (NULL != slave)
     GNUNET_TESTBED_host_destroy (slave);
   if (NULL != host)
@@ -174,8 +191,24 @@ controller_cb(void *cls, const struct GNUNET_TESTBED_EventInformation *event)
 {
   switch (result)
   {
-  case SLAVE1_REGISTERED:
+  case SLAVE2_REGISTERED:
     GNUNET_assert (NULL != event);
+    GNUNET_assert (GNUNET_TESTBED_ET_OPERATION_FINISHED == event->type);
+    GNUNET_assert (event->details.operation_finished.operation == op);
+    GNUNET_assert (NULL == event->details.operation_finished.op_cls);
+    GNUNET_assert (NULL == event->details.operation_finished.emsg);
+    GNUNET_assert (GNUNET_TESTBED_PIT_GENERIC ==
+		   event->details.operation_finished.pit);
+    GNUNET_assert (NULL == event->details.operation_finished.op_result.generic);
+    GNUNET_TESTBED_operation_done (op);
+    op = NULL;
+    result = SLAVE1_LINK_SUCCESS;
+    GNUNET_assert (NULL != slave2);
+    GNUNET_assert (NULL != slave);
+    op = GNUNET_TESTBED_controller_link (mc, slave2, slave, cfg, GNUNET_YES);
+    GNUNET_assert (NULL != op);
+    break;
+  case SLAVE1_LINK_SUCCESS:
     GNUNET_assert (GNUNET_TESTBED_ET_OPERATION_FINISHED == event->type);
     GNUNET_assert (event->details.operation_finished.operation == op);
     GNUNET_assert (NULL == event->details.operation_finished.op_cls);
@@ -210,13 +243,23 @@ registration_cont (void *cls, const char *emsg)
     GNUNET_assert (NULL == emsg);
     GNUNET_assert (NULL != mc);
     result = SLAVE1_REGISTERED;
+    slave2 = GNUNET_TESTBED_host_create_with_id (2, "127.0.0.1", NULL, 0);
+    GNUNET_assert (NULL != slave2);
+    rh = GNUNET_TESTBED_register_host (mc, slave2, &registration_cont, NULL);
+    GNUNET_assert (NULL != rh);
+    break;
+  case SLAVE1_REGISTERED:
+    GNUNET_assert (NULL == emsg);
+    GNUNET_assert (NULL != mc);
+    result = SLAVE2_REGISTERED;
     GNUNET_assert (NULL != cfg);
     op = GNUNET_TESTBED_controller_link (mc, slave, NULL, cfg, GNUNET_YES);
     GNUNET_assert (NULL != op);
     break;
   case INIT:
   case SUCCESS:
-  case SLAVE1_REGISTERED:
+  case SLAVE2_REGISTERED:
+  case SLAVE1_LINK_SUCCESS:
     GNUNET_assert (0);
   }
 }
@@ -247,7 +290,7 @@ status_cb (void *cls,
 					    &controller_cb, NULL);
     GNUNET_assert (NULL != mc);
     result = MASTER_STARTED;
-    slave = GNUNET_TESTBED_host_create_with_id (2, "127.0.0.1", NULL, 0);
+    slave = GNUNET_TESTBED_host_create_with_id (1, "127.0.0.1", NULL, 0);
     GNUNET_assert (NULL != slave);
     rh = GNUNET_TESTBED_register_host (mc, slave, &registration_cont, NULL);
     GNUNET_assert (NULL != rh);
