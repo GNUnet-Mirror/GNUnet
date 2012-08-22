@@ -5039,7 +5039,8 @@ handle_mesh_data_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
   GNUNET_CONTAINER_multihashmap_iterate (t->children_fc,
                                          &tunnel_add_skip,
                                          &neighbor);
-  if (GNUNET_YES == GMC_is_pid_bigger (pid, cinfo->fwd_ack))
+  if (GNUNET_YES == t->nobuffer &&
+      GNUNET_YES == GMC_is_pid_bigger (pid, cinfo->fwd_ack))
   {
     GNUNET_STATISTICS_update (stats, "# unsolicited unicast", 1, GNUNET_NO);
     GNUNET_break_op (0);
