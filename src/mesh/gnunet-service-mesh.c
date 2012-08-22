@@ -5007,6 +5007,9 @@ handle_mesh_data_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
   {
     GNUNET_STATISTICS_update (stats, "# unsolicited unicast", 1, GNUNET_NO);
     GNUNET_break_op (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Received PID %u, ACK %u\n",
+                pid, t->last_fwd_ack);
     return GNUNET_OK;
   }
 
