@@ -385,6 +385,79 @@ http_server_plugin_address_to_string (void *cls, const void *addr, size_t addrle
   return NULL;
 }
 
+
+static void *
+server_find_address (struct HTTP_Server_Plugin *plugin, const struct sockaddr *addr, socklen_t addrlen)
+{
+  struct HttpAddressWrapper *w = NULL;
+  char *saddr;
+
+  GNUNET_asprintf(&saddr, "%s://%s", plugin->protocol, GNUNET_a2s (addr, addrlen));
+  w = plugin->addr_head;
+  while (NULL != w)
+  {
+      if (0 == strcmp (saddr, w->addr->addr))
+        break;
+      w = w->next;
+  }
+
+  GNUNET_free (saddr);
+  return w;
+}
+
+static void
+server_add_address (void *cls, int add_remove, const struct sockaddr *addr,
+                 socklen_t addrlen)
+{
+  struct HTTP_Server_Plugin *plugin = cls;
+  struct HttpAddressWrapper *w = NULL;
+  char *saddr;
+  size_t haddrlen;
+
+  GNUNET_asprintf(&saddr, "%s://%s", plugin->protocol, GNUNET_a2s (addr, addrlen));
+
+  haddrlen = sizeof (struct HttpAddress) + strlen(saddr) + 1;
+  w = GNUNET_malloc (sizeof (struct HttpAddressWrapper));
+  w->addr = GNUNET_malloc (haddrlen);
+  w->addr->addr = &w->addr[1];
+  w->addr->addr_len = htonl (strlen(saddr) + 1);
+  memcpy (w->addr->addr, saddr, strlen(saddr) + 1);
+  GNUNET_free (saddr);
+
+  GNUNET_CONTAINER_DLL_insert(plugin->addr_head, plugin->addr_tail, w);
+  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+                   "Notifying transport to add address `%s'\n", w->addr->addr);
+
+  plugin->env->notify_address (plugin->env->cls, add_remove, w->addr, haddrlen);
+}
+
+
+static void
+server_remove_address (void *cls, int add_remove, const struct sockaddr *addr,
+                    socklen_t addrlen)
+{
+  struct HTTP_Server_Plugin *plugin = cls;
+  struct HttpAddressWrapper *w = NULL;
+  size_t haddrlen;
+
+  w = server_find_address (plugin, addr, addrlen);
+  if (NULL == w)
+    return;
+
+  haddrlen = sizeof (struct HttpAddress) + ntohl (w->addr->addr_len);
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                   "Notifying transport to remove address `%s'\n", http_server_plugin_address_to_string (NULL, w->addr, haddrlen));
+
+
+  GNUNET_CONTAINER_DLL_remove (plugin->addr_head, plugin->addr_tail, w);
+  plugin->env->notify_address (plugin->env->cls, add_remove, w->addr,
+       sizeof (struct HttpAddress) + ntohl (w->addr->addr_len));
+  GNUNET_free (w->addr);
+  GNUNET_free (w);
+}
+
+
+
 /**
  * Our external IP address/port mapping has changed.
  *
@@ -409,10 +482,10 @@ server_nat_port_map_callback (void *cls, int add_remove, const struct sockaddr *
   switch (add_remove)
   {
   case GNUNET_YES:
-    //nat_add_address (cls, add_remove, addr, addrlen);
+    server_add_address (cls, add_remove, addr, addrlen);
     break;
   case GNUNET_NO:
-    //nat_remove_address (cls, add_remove, addr, addrlen);
+    server_remove_address (cls, add_remove, addr, addrlen);
     break;
   }
 }
@@ -867,7 +940,7 @@ server_configure_plugin (struct HTTP_Server_Plugin *plugin)
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                    _("Maximum number of connections is %u\n"),
                    plugin->max_connections);
-
+GNUNET_break(0);
   return GNUNET_OK;
 }
 
@@ -887,11 +960,25 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
       plugin->notify_ext_task = GNUNET_SCHEDULER_NO_TASK;
   }
 
+  if (NULL != plugin->ext_addr)
+  {
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                       "Notifying transport to remove address `%s'\n",
+                       http_server_plugin_address_to_string (NULL,
+                           plugin->ext_addr,
+                           plugin->ext_addr_len));
+      plugin->env->notify_address (plugin->env->cls,
+                                   GNUNET_NO,
+                                   plugin->ext_addr,
+                                   plugin->ext_addr_len);
+  }
+
   /* Stop to report addresses to transport service */
   server_stop_report_addresses (plugin);
 
   /* Clean up */
   GNUNET_free_non_null (plugin->external_hostname);
+  GNUNET_free_non_null (plugin->ext_addr);
   GNUNET_free_non_null (plugin->server_addr_v4);
   GNUNET_free_non_null (plugin->server_addr_v6);
 
@@ -931,13 +1018,11 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
 #endif
 
   /* Configure plugin */
-  if (GNUNET_SYSERR == server_configure_plugin (plugin));
+  if (GNUNET_SYSERR == server_configure_plugin (plugin))
   {
-      GNUNET_break (0);
       LIBGNUNET_PLUGIN_TRANSPORT_DONE (api);
       return NULL;
   }
-  GNUNET_break (0);
 
   /* Check IPv6 support */
   if (GNUNET_YES == plugin->use_ipv6)
