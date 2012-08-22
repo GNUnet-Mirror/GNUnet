@@ -35,6 +35,7 @@
 
 #include "gnunet_container_lib.h"
 #include "gnunet_nat_lib.h"
+#include "plugin_transport_http_common.h"
 #include "microhttpd.h"
 
 #if BUILD_HTTPS
@@ -59,12 +60,6 @@ struct Plugin;
 struct Session
 {
   /**
-   * To whom are we talking to (set to our identity
-   * if we are still waiting for the welcome message)
-   */
-  struct GNUNET_PeerIdentity target;
-
-  /**
    * Stored in a linked list.
    */
   struct Session *next;
@@ -75,43 +70,15 @@ struct Session
   struct Session *prev;
 
   /**
+   * To whom are we talking to (set to our identity
+   * if we are still waiting for the welcome message)
+   */
+  struct GNUNET_PeerIdentity target;
+
+  /**
    * Pointer to the global plugin struct.
    */
   struct HTTP_Server_Plugin *plugin;
-
-  /**
-   * The client (used to identify this connection)
-   */
-  /* void *client; */
-
-  /**
-   * Continuation function to call once the transmission buffer
-   * has again space available.  NULL if there is no
-   * continuation to call.
-   */
-  GNUNET_TRANSPORT_TransmitContinuation transmit_cont;
-
-  /**
-   * Closure for transmit_cont.
-   */
-  void *transmit_cont_cls;
-
-  /**
-   * At what time did we reset last_received last?
-   */
-  struct GNUNET_TIME_Absolute last_quota_update;
-
-  /**
-   * How many bytes have we received since the "last_quota_update"
-   * timestamp?
-   */
-  uint64_t last_received;
-
-  /**
-   * Number of bytes per ms that this peer is allowed
-   * to send to us.
-   */
-  uint32_t quota;
 
   /**
    * next pointer for double linked list
@@ -129,10 +96,6 @@ struct Session
   struct GNUNET_SERVER_MessageStreamTokenizer *msg_tk;
 
   /**
-   * Server handles
-   */
-
-  /**
    * Client send handle
    */
   struct ServerConnection *server_recv;
@@ -146,12 +109,6 @@ struct Session
    * Address
    */
   void *addr;
-
-  /**
-   * Address length
-   */
-  size_t addrlen;
-
 };
 
 /**
@@ -165,39 +122,30 @@ struct HTTP_Server_Plugin
   struct GNUNET_TRANSPORT_PluginEnvironment *env;
 
   /**
-   * Linked list of open sessions.
+   * Linked list head of open sessions.
    */
 
   struct Session *head;
 
+  /**
+   * Linked list tail of open sessions.
+   */
   struct Session *tail;
 
-
+  /**
+   * Plugin name
+   */
   char *name;
+
+  /**
+   * Protocol
+   */
   char *protocol;
+
+  /**
+   * External address
+   */
   char *external_hostname;
-
-  /**
-   * libCurl TLS crypto init string, can be set to enhance performance
-   *
-   * Example:
-   *
-   * Use RC4-128 instead of AES:
-   * NONE:+VERS-TLS1.0:+ARCFOUR-128:+SHA1:+RSA:+COMP-NULL
-   *
-   */
-  char *crypto_init;
-
-  /**
-   * TLS key
-   */
-  char *key;
-
-  /**
-   * TLS certificate
-   */
-  char *cert;
-
 
   /**
    * Maximum number of sockets the plugin can use
@@ -248,6 +196,15 @@ struct HTTP_Server_Plugin
   struct GNUNET_NAT_Handle *nat;
 
   /**
+   * Server semi connections
+   * A full session consists of 2 semi-connections: send and receive
+   * If not both directions are established the server keeps this sessions here
+   */
+  struct Session *server_semi_head;
+
+  struct Session *server_semi_tail;
+
+  /**
    * List of own addresses
    */
 
@@ -291,17 +248,6 @@ struct HTTP_Server_Plugin
    */
   int server_v6_immediately;
 
-
-  /**
-   * Server semi connections
-   * A full session consists of 2 semi-connections: send and receive
-   * If not both directions are established the server keeps this sessions here
-   */
-  struct Session *server_semi_head;
-
-  struct Session *server_semi_tail;
-
-
   /**
    * MHD IPv4 daemon
    */
@@ -311,6 +257,30 @@ struct HTTP_Server_Plugin
    * MHD IPv4 daemon
    */
   struct MHD_Daemon *server_v6;
+
+#if BUILD_HTTPS
+  /**
+   * Crypto related
+   *
+   * Example:
+   *
+   * Use RC4-128 instead of AES:
+   * NONE:+VERS-TLS1.0:+ARCFOUR-128:+SHA1:+RSA:+COMP-NULL
+   *
+   */
+  char *crypto_init;
+
+  /**
+   * TLS key
+   */
+  char *key;
+
+  /**
+   * TLS certificate
+   */
+  char *cert;
+#endif
+
 };
 
 GNUNET_NETWORK_STRUCT_BEGIN
@@ -461,33 +431,6 @@ http_server_plugin_disconnect (void *cls, const struct GNUNET_PeerIdentity *targ
 
 
 /**
- * Convert the transports address to a nice, human-readable
- * format.
- *
- * @param cls closure
- * @param type name of the transport that generated the address
- * @param addr one of the addresses of the host, NULL for the last address
- *        the specific address format depends on the transport
- * @param addrlen length of the address
- * @param numeric should (IP) addresses be displayed in numeric form?
- * @param timeout after how long should we give up?
- * @param asc function to call on each string
- * @param asc_cls closure for asc
- */
-static void
-http_server_plugin_address_pretty_printer (void *cls, const char *type,
-                                        const void *addr, size_t addrlen,
-                                        int numeric,
-                                        struct GNUNET_TIME_Relative timeout,
-                                        GNUNET_TRANSPORT_AddressStringCallback
-                                        asc, void *asc_cls)
-{
-  asc (asc_cls, NULL);
-}
-
-
-
-/**
  * Another peer has suggested an address for this
  * peer and transport plugin.  Check that this could be a valid
  * address.  If so, consider adding it to the list
@@ -507,25 +450,6 @@ http_server_plugin_address_suggested (void *cls, const void *addr, size_t addrle
   /* check if the address is plausible; if so,
    * add it to our list! */
   return GNUNET_OK;
-}
-
-
-/**
- * Function called for a quick conversion of the binary address to
- * a numeric address.  Note that the caller must not free the
- * address and that the next call to this function is allowed
- * to override the address again.
- *
- * @param cls closure
- * @param addr binary address
- * @param addrlen length of the address
- * @return string representing the same address
- */
-static const char *
-http_server_plugin_address_to_string (void *cls, const void *addr, size_t addrlen)
-{
-  GNUNET_break (0);
-  return NULL;
 }
 
 
@@ -594,7 +518,7 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
                   const char *upload_data, size_t * upload_data_size,
                   void **httpSessionCache)
 {
-  GNUNET_break (0);
+  /* FIXME SPLIT */
   return MHD_NO;
 }
 
@@ -602,6 +526,7 @@ static void
 server_disconnect_cb (void *cls, struct MHD_Connection *connection,
                       void **httpSessionCache)
 {
+  /* FIXME SPLIT */
   GNUNET_break (0);
 }
 
@@ -1787,9 +1712,10 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   api->cls = plugin;
   api->send = &http_server_plugin_send;
   api->disconnect = &http_server_plugin_disconnect;
-  api->address_pretty_printer = &http_server_plugin_address_pretty_printer;
   api->check_address = &http_server_plugin_address_suggested;
-  api->address_to_string = &http_server_plugin_address_to_string;
+  api->address_to_string = &http_common_plugin_address_to_string;
+  api->string_to_address = &http_common_plugin_string_to_address;
+  api->address_pretty_printer = &http_common_plugin_address_pretty_printer;
 
 #if BUILD_HTTPS
   plugin->name = "transport-https_server";

@@ -41,6 +41,9 @@
 #include "gnunet_statistics_service.h"
 #include "gnunet_transport_service.h"
 #include "gnunet_transport_plugin.h"
+#include "plugin_transport_http_common.h"
+#include <curl/curl.h>
+
 
 #define DEBUG_TEMPLATE GNUNET_EXTRA_LOGGING
 
@@ -126,10 +129,39 @@ struct HTTP_Client_Plugin
   struct GNUNET_TRANSPORT_PluginEnvironment *env;
 
   /**
-   * List of open sessions.
+   * Linked list head of open sessions.
    */
-  struct Session *sessions;
+  struct Session *head;
 
+  /**
+   * Linked list tail of open sessions.
+   */
+  struct Session *tail;
+
+  /**
+   * Plugin name
+   */
+  char *name;
+
+  /**
+   * Protocol
+   */
+  char *protocol;
+
+  /**
+   * use IPv6
+   */
+  uint16_t use_ipv6;
+
+  /**
+   * use IPv4
+   */
+  uint16_t use_ipv4;
+
+  /**
+   * cURL Multihandle
+   */
+  CURLM *curl_multi_handle;
 };
 
 
@@ -195,33 +227,32 @@ http_client_plugin_disconnect (void *cls, const struct GNUNET_PeerIdentity *targ
   // FIXME
 }
 
-
-/**
- * Convert the transports address to a nice, human-readable
- * format.
- *
- * @param cls closure
- * @param type name of the transport that generated the address
- * @param addr one of the addresses of the host, NULL for the last address
- *        the specific address format depends on the transport
- * @param addrlen length of the address
- * @param numeric should (IP) addresses be displayed in numeric form?
- * @param timeout after how long should we give up?
- * @param asc function to call on each string
- * @param asc_cls closure for asc
- */
 static void
-http_client_plugin_address_pretty_printer (void *cls, const char *type,
-                                        const void *addr, size_t addrlen,
-                                        int numeric,
-                                        struct GNUNET_TIME_Relative timeout,
-                                        GNUNET_TRANSPORT_AddressStringCallback
-                                        asc, void *asc_cls)
+client_stop (struct HTTP_Client_Plugin *plugin)
 {
-  asc (asc_cls, NULL);
+  if (NULL != plugin->curl_multi_handle)
+  {
+    curl_multi_cleanup (plugin->curl_multi_handle);
+    plugin->curl_multi_handle = NULL;
+  }
+  curl_global_cleanup ();
 }
 
+static int
+client_start (struct HTTP_Client_Plugin *plugin)
+{
+  curl_global_init (CURL_GLOBAL_ALL);
+  plugin->curl_multi_handle = curl_multi_init ();
 
+  if (NULL == plugin->curl_multi_handle)
+  {
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+                     _("Could not initialize curl multi handle, failed to start %s plugin!\n"),
+                     plugin->name);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
+}
 
 /**
  * Another peer has suggested an address for this
@@ -240,31 +271,25 @@ http_client_plugin_address_suggested (void *cls, const void *addr, size_t addrle
 {
   /* struct Plugin *plugin = cls; */
 
-  /* check if the address is plausible; if so,
-   * add it to our list! */
-  return GNUNET_OK;
+  /* A HTTP/S client does not have any valid address so:*/
+  return GNUNET_NO;
 }
-
 
 /**
- * Function called for a quick conversion of the binary address to
- * a numeric address.  Note that the caller must not free the
- * address and that the next call to this function is allowed
- * to override the address again.
- *
- * @param cls closure
- * @param addr binary address
- * @param addrlen length of the address
- * @return string representing the same address
+ * Exit point from the plugin.
  */
-static const char *
-http_client_plugin_address_to_string (void *cls, const void *addr, size_t addrlen)
+void *
+LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
 {
-  GNUNET_break (0);
+  struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
+  struct HTTP_Client_Plugin *plugin = api->cls;
+
+  client_stop (plugin);
+
+  GNUNET_free (plugin);
+  GNUNET_free (api);
   return NULL;
 }
-
-
 
 
 /**
@@ -283,25 +308,27 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   api->cls = plugin;
   api->send = &http_client_plugin_send;
   api->disconnect = &http_client_plugin_disconnect;
-  api->address_pretty_printer = &http_client_plugin_address_pretty_printer;
   api->check_address = &http_client_plugin_address_suggested;
-  api->address_to_string = &http_client_plugin_address_to_string;
+
+  api->address_to_string = &http_common_plugin_address_to_string;
+  api->string_to_address = &http_common_plugin_string_to_address;
+  api->address_pretty_printer = &http_common_plugin_address_pretty_printer;
+
+#if BUILD_HTTPS
+  plugin->name = "transport-https_client";
+  plugin->protocol = "https";
+#else
+  plugin->name = "transport-http_client";
+  plugin->protocol = "http";
+#endif
+
+  /* Start client */
+  if (GNUNET_SYSERR == client_start (plugin))
+  {
+      LIBGNUNET_PLUGIN_TRANSPORT_DONE (api);
+      return NULL;
+  }
   return api;
-}
-
-
-/**
- * Exit point from the plugin.
- */
-void *
-LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
-{
-  struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
-  struct HTTP_Client_Plugin *plugin = api->cls;
-
-  GNUNET_free (plugin);
-  GNUNET_free (api);
-  return NULL;
 }
 
 /* end of plugin_transport_http_client.c */
