@@ -55,7 +55,7 @@
 /**
  * Encapsulation of all of the state of the plugin.
  */
-struct Plugin;
+struct HTTP_Client_Plugin;
 
 
 /**
@@ -77,7 +77,7 @@ struct Session
   /**
    * Pointer to the global plugin struct.
    */
-  struct Plugin *plugin;
+  struct HTTP_Client_Plugin *plugin;
 
   /**
    * The client (used to identify this connection)
@@ -118,7 +118,7 @@ struct Session
 /**
  * Encapsulation of all of the state of the plugin.
  */
-struct Plugin
+struct HTTP_Client_Plugin
 {
   /**
    * Our environment.
@@ -168,7 +168,7 @@ http_client_plugin_send (void *cls,
                   struct GNUNET_TIME_Relative to,
                   GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls)
 {
-  struct Plugin *plugin = cls;
+  struct HTTP_Client_Plugin *plugin = cls;
   int bytes_sent = 0;
 
   GNUNET_assert (plugin != NULL);
@@ -275,9 +275,9 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
 {
   struct GNUNET_TRANSPORT_PluginEnvironment *env = cls;
   struct GNUNET_TRANSPORT_PluginFunctions *api;
-  struct Plugin *plugin;
+  struct HTTP_Client_Plugin *plugin;
 
-  plugin = GNUNET_malloc (sizeof (struct Plugin));
+  plugin = GNUNET_malloc (sizeof (struct HTTP_Client_Plugin));
   plugin->env = env;
   api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
   api->cls = plugin;
@@ -297,7 +297,7 @@ void *
 LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
 {
   struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
-  struct Plugin *plugin = api->cls;
+  struct HTTP_Client_Plugin *plugin = api->cls;
 
   GNUNET_free (plugin);
   GNUNET_free (api);
