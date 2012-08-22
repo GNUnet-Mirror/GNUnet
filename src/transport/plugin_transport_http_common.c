@@ -50,8 +50,11 @@ http_common_plugin_address_pretty_printer (void *cls, const char *type,
                                         GNUNET_TRANSPORT_AddressStringCallback
                                         asc, void *asc_cls)
 {
-  GNUNET_break (0);
-  asc (asc_cls, NULL);
+  const char *saddr = (const char *) addr;
+  GNUNET_assert (NULL != saddr);
+  GNUNET_assert (0 < addrlen);
+  GNUNET_assert (saddr[addrlen-1] == '\0');
+  asc (asc_cls, saddr);
 }
 
 
@@ -69,8 +72,11 @@ http_common_plugin_address_pretty_printer (void *cls, const char *type,
 const char *
 http_common_plugin_address_to_string (void *cls, const void *addr, size_t addrlen)
 {
-  GNUNET_break (0);
-  return NULL;
+  const char *saddr = (const char *) addr;
+  GNUNET_assert (NULL != saddr);
+  GNUNET_assert (0 < addrlen);
+  GNUNET_assert (saddr[addrlen-1] == '\0');
+  return saddr;
 }
 
 /**
@@ -92,8 +98,60 @@ http_common_plugin_string_to_address (void *cls,
                         void **buf,
                         size_t *added)
 {
-  GNUNET_break (0);
-  return GNUNET_SYSERR;
+  GNUNET_assert (NULL != addr);
+  GNUNET_assert (0 < addrlen);
+  GNUNET_assert (addr[addrlen-1] == '\0');
+
+  (*buf) = strdup (addr);
+  (*added) = strlen (addr) + 1;
+  return GNUNET_OK;
 }
+
+/**
+ * Create a HTTP address from a socketaddr
+ *
+ * @param protocol protocol
+ * @param addr sockaddr * address
+ * @param addrlen length of the address
+ * @return the string
+ */
+char *
+http_common_address_from_socket (const char *protocol, const struct sockaddr *addr, socklen_t addrlen)
+{
+  char *res;
+  GNUNET_asprintf(&res, "%s://%s", protocol, GNUNET_a2s (addr, addrlen));
+  return res;
+}
+
+/**
+ * Get the length of an address
+ *
+ * @param addr address
+ * @return the size
+ */
+size_t
+http_common_address_get_size (const void *addr)
+{
+ return strlen (addr) + 1;
+}
+
+/**
+ * Compare addr1 to addr2
+ *
+ * @param addr1 address1
+ * @param addrlen1 address 1 length
+ * @param addr2 address2
+ * @param addrlen2 address 2 length
+ * @return GNUNET_YES if equal, GNUNET_NO else
+ */
+size_t
+http_common_cmp_addresses (const void *addr1, size_t addrlen1, const void *addr2, size_t addrlen2)
+{
+  if (0 == strcmp (addr1, addr2))
+    return GNUNET_YES;
+  return GNUNET_NO;
+}
+
+
 
 /* end of plugin_transport_http_common.c */

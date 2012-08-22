@@ -27,6 +27,21 @@
 #include "platform.h"
 #include "gnunet_common.h"
 
+#if 0
+GNUNET_NETWORK_STRUCT_BEGIN
+/**
+ * HTTP addresses including a full URI
+ */
+struct HttpAddress
+{
+  /**
+   * Address following
+   */
+  char *address GNUNET_PACKED;
+};
+GNUNET_NETWORK_STRUCT_END
+#endif
+
 /**
  * Convert the transports address to a nice, human-readable
  * format.
@@ -61,7 +76,9 @@ http_common_plugin_address_pretty_printer (void *cls, const char *type,
  * @return string representing the same address
  */
 const char *
-http_common_plugin_address_to_string (void *cls, const void *addr, size_t addrlen);
+http_common_plugin_address_to_string (void *cls,
+                                      const void *addr,
+                                      size_t addrlen);
 
 /**
  * Function called to convert a string address to
@@ -82,4 +99,39 @@ http_common_plugin_string_to_address (void *cls,
                                       void **buf,
                                       size_t *added);
 
+
+/**
+ * Create a HTTP address from a socketaddr
+ *
+ * @param protocol protocol
+ * @param addr sockaddr * address
+ * @param addrlen length of the address
+ * @return the string
+ */
+char *
+http_common_address_from_socket (const char *protocol,
+                                 const struct sockaddr *addr,
+                                 socklen_t addrlen);
+
+/**
+ * Get the length of an address
+ *
+ * @param addr address
+ * @return the size
+ */
+size_t
+http_common_address_get_size (void *addr);
+
+
+/**
+ * Compare addr1 to addr2
+ *
+ * @param addr1 address1
+ * @param addrlen1 address 1 length
+ * @param addr2 address2
+ * @param addrlen2 address 2 length
+ * @return GNUNET_YES if equal, GNUNET_NO else
+ */
+size_t
+http_common_cmp_addresses (void *addr1, size_t addrlen1, void *addr2, size_t addrlen2);
 /* end of plugin_transport_http_common.c */
