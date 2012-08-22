@@ -1049,7 +1049,7 @@ GNUNET_TESTBED_controller_start (const char *controller_ip,
   }
   else
   {
-    char *remote_args[6 + 1];
+    char *remote_args[8];
     unsigned int argp;
     const char *username;
     const char *hostname;
@@ -1066,11 +1066,12 @@ GNUNET_TESTBED_controller_start (const char *controller_ip,
     remote_args[argp++] = "ssh";
     remote_args[argp++] = "-p";
     remote_args[argp++] = cp->port;
-    remote_args[argp++] = "-q";
+    remote_args[argp++] = "-o";
+    remote_args[argp++] = "BatchMode=yes";
     remote_args[argp++] = cp->dst;
     remote_args[argp++] = "gnunet-testbed-helper";
     remote_args[argp++] = NULL;
-    GNUNET_assert (argp == 6 + 1);
+    GNUNET_assert (argp == 8);
     cp->helper = GNUNET_HELPER_start ("ssh", remote_args,
                                       &helper_mst, &helper_exp_cb, cp);
   }
