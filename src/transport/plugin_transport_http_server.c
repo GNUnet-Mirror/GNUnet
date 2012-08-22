@@ -299,6 +299,8 @@ struct HttpAddressWrapper
   struct HttpAddressWrapper *prev;
 
   void *addr;
+
+  size_t addrlen;
 };
 
 /**
@@ -389,6 +391,8 @@ http_server_plugin_send (void *cls,
   GNUNET_assert (plugin != NULL);
   GNUNET_assert (session != NULL);
 
+  GNUNET_break (0);
+
   /*  struct Plugin *plugin = cls; */
   return bytes_sent;
 }
@@ -407,7 +411,7 @@ static void
 http_server_plugin_disconnect (void *cls, const struct GNUNET_PeerIdentity *target)
 {
   // struct Plugin *plugin = cls;
-  // FIXME
+  GNUNET_break (0);
 }
 
 
@@ -426,11 +430,22 @@ http_server_plugin_disconnect (void *cls, const struct GNUNET_PeerIdentity *targ
 static int
 http_server_plugin_address_suggested (void *cls, const void *addr, size_t addrlen)
 {
-  /* struct Plugin *plugin = cls; */
+  struct HTTP_Server_Plugin *plugin = cls;
+  struct HttpAddressWrapper *w = plugin->addr_head;
 
-  /* check if the address is plausible; if so,
-   * add it to our list! */
-  return GNUNET_OK;
+  if (GNUNET_YES == (http_common_cmp_addresses (addr, addrlen, plugin->ext_addr, plugin->ext_addr_len)))
+    return GNUNET_OK;
+
+  while (NULL != w)
+  {
+    if (GNUNET_YES == (http_common_cmp_addresses(addr,
+                                                 addrlen,
+                                                 w->addr,
+                                                 w->addrlen)))
+      return GNUNET_OK;
+  }
+
+  return GNUNET_NO;
 }
 
 /**
@@ -490,33 +505,6 @@ server_delete_session (struct Session *s)
   GNUNET_free (s);
 }
 
-
-static void *
-server_find_address (struct HTTP_Server_Plugin *plugin, const struct sockaddr *addr, socklen_t addrlen)
-{
-  struct HttpAddressWrapper *w = NULL;
-  char *saddr;
-  size_t salen;
-
-  saddr = http_common_address_from_socket (plugin->protocol, addr, addrlen);
-  if (NULL == saddr)
-    return NULL;
-  salen = http_common_address_get_size (saddr);
-
-  w = plugin->addr_head;
-  while (NULL != w)
-  {
-      if (GNUNET_YES == http_common_cmp_addresses(saddr,
-                                                  salen,
-                                                  w->addr,
-                                                  http_common_address_get_size (w->addr)))
-        break;
-      w = w->next;
-  }
-
-  GNUNET_free (saddr);
-  return w;
-}
 
 static int
 server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
@@ -1124,7 +1112,12 @@ server_add_address (void *cls, int add_remove, const struct sockaddr *addr,
 {
   struct HTTP_Server_Plugin *plugin = cls;
   struct HttpAddressWrapper *w = NULL;
-  size_t alen;
+
+  if ((AF_INET == addr->sa_family) && (GNUNET_NO == plugin->use_ipv4))
+    return;
+
+  if ((AF_INET6 == addr->sa_family) && (GNUNET_NO == plugin->use_ipv6))
+    return;
 
   w = GNUNET_malloc (sizeof (struct HttpAddressWrapper));
   w->addr = http_common_address_from_socket (plugin->protocol, addr, addrlen);
@@ -1133,14 +1126,14 @@ server_add_address (void *cls, int add_remove, const struct sockaddr *addr,
     GNUNET_free (w);
     return;
   }
-  alen = http_common_address_get_size (w->addr);
+  w->addrlen = http_common_address_get_size (w->addr);
 
   GNUNET_CONTAINER_DLL_insert(plugin->addr_head, plugin->addr_tail, w);
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                    "Notifying transport to add address `%s'\n",
-                   http_common_plugin_address_to_string(NULL, w->addr, alen));
+                   http_common_plugin_address_to_string(NULL, w->addr, w->addrlen));
 
-  plugin->env->notify_address (plugin->env->cls, add_remove, w->addr, alen);
+  plugin->env->notify_address (plugin->env->cls, add_remove, w->addr, w->addrlen);
 }
 
 
@@ -1149,19 +1142,29 @@ server_remove_address (void *cls, int add_remove, const struct sockaddr *addr,
                     socklen_t addrlen)
 {
   struct HTTP_Server_Plugin *plugin = cls;
-  struct HttpAddressWrapper *w = NULL;
-  size_t alen;
+  struct HttpAddressWrapper *w = plugin->addr_head;
+  size_t saddr_len;
+  void * saddr = http_common_address_from_socket (plugin->protocol, addr, addrlen);
+  if (NULL == saddr)
+    return;
+  saddr_len =  http_common_address_get_size (saddr);
 
-  w = server_find_address (plugin, addr, addrlen);
+  while (NULL != w)
+  {
+      if (GNUNET_YES == http_common_cmp_addresses(w->addr, w->addrlen, saddr, saddr_len))
+        break;
+      w = w->next;
+  }
+  GNUNET_free (saddr);
+
   if (NULL == w)
     return;
 
-  alen = http_common_address_get_size (w->addr);
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                    "Notifying transport to remove address `%s'\n",
-                   http_common_plugin_address_to_string (NULL, w->addr, alen));
+                   http_common_plugin_address_to_string (NULL, w->addr, w->addrlen));
   GNUNET_CONTAINER_DLL_remove (plugin->addr_head, plugin->addr_tail, w);
-  plugin->env->notify_address (plugin->env->cls, add_remove, w->addr, alen);
+  plugin->env->notify_address (plugin->env->cls, add_remove, w->addr, w->addrlen);
   GNUNET_free (w->addr);
   GNUNET_free (w);
 }

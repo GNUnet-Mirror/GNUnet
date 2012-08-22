@@ -133,5 +133,5 @@ http_common_address_get_size (void *addr);
  * @return GNUNET_YES if equal, GNUNET_NO else
  */
 size_t
-http_common_cmp_addresses (void *addr1, size_t addrlen1, void *addr2, size_t addrlen2);
+http_common_cmp_addresses (const void *addr1, size_t addrlen1, const void *addr2, size_t addrlen2);
 /* end of plugin_transport_http_common.c */
