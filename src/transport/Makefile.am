@@ -271,7 +271,7 @@ libgnunet_plugin_transport_https_client_la_LIBADD = \
 libgnunet_plugin_transport_https_client_laLDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 libgnunet_plugin_transport_https_client_la_CFLAGS = \
- $(CFLAGS) 
+ $(CFLAGS) -DBUILD_HTTPS 
 libgnunet_plugin_transport_https_client_la_CPPFLAGS = \
  @LIBCURL_CPPFLAGS@
  
@@ -288,7 +288,7 @@ libgnunet_plugin_transport_https_server_la_LDFLAGS = \
  $(GN_LIBMHD) \
  $(GN_PLUGIN_LDFLAGS)
 libgnunet_plugin_transport_https_server_la_CFLAGS = \
- $(CFLAGS) 
+ $(CFLAGS) -DBUILD_HTTPS 
 
 check_PROGRAMS = \
  test_transport_testing_startstop \
