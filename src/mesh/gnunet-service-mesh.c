@@ -3437,6 +3437,7 @@ tunnel_get_child_fwd_ack (void *cls,
   cinfo = tunnel_get_neighbor_fc (t, &peer_id);
   ack = cinfo->fwd_ack;
 
+  ctx->nchildren++;
   if (GNUNET_NO == ctx->init)
   {
     ctx->max_child_ack = ack;
@@ -3474,7 +3475,11 @@ tunnel_get_children_fwd_ack (struct MeshTunnel *t)
   tree_iterate_children (t->tree, tunnel_get_child_fwd_ack, &ctx);
 
   if (0 == ctx.nchildren)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+            "  tunnel has no children, no FWD ACK\n");
     return -1LL;
+  }
 
   if (GNUNET_YES == t->nobuffer && GMC_is_pid_bigger(ctx.max_child_ack, t->fwd_pid))
     ctx.max_child_ack = t->fwd_pid + 1; // Might overflow, it's ok.
@@ -3524,7 +3529,11 @@ tunnel_get_clients_fwd_ack (struct MeshTunnel *t)
   int64_t ack;
 
   if (0 == t->nclients)
-    return -1;
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "  tunnel has no clients, no FWD ACK\n");
+    return -1LL;
+  }
 
   for (ack = -1, i = 0; i < t->nclients; i++)
   {
@@ -4399,7 +4408,9 @@ queue_send (void *cls, size_t size, void *buf)
     if (GNUNET_MESSAGE_TYPE_MESH_UNICAST == queue->type)
     {
       t->fwd_queue_n--;
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********   unicast: %u\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "*********   unicast: %u\n",
+                  t->fwd_queue_n);
     }
     else if (GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN == queue->type)
     {
