@@ -14,9 +14,10 @@ if HAVE_MHD
  HTTPS_SERVER_PLUGIN_LA = libgnunet_plugin_transport_https_server.la
 endif
 
-HTTP_CLIENT_PLUGIN_LA = libgnunet_plugin_transport_http_client.la
-HTTPS_CLIENT_PLUGIN_LA = libgnunet_plugin_transport_https_client.la
-
+if HAVE_LIBCURL
+ HTTP_CLIENT_PLUGIN_LA = libgnunet_plugin_transport_http_client.la
+ HTTPS_CLIENT_PLUGIN_LA = libgnunet_plugin_transport_https_client.la
+endif
 
 if FALSE 
  HTTP_API_TEST = test_transport_api_http

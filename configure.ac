@@ -326,7 +326,14 @@ AC_LANG_POP(C)
 fi	# $build = $target
 
 # libcurl
-LIBCURL_CHECK_CONFIG(,7.21.3,,AC_MSG_ERROR([GNUnet requires libcurl >= 7.21.3]))
+LIBCURL_CHECK_CONFIG(,7.21.3,curl=1,curl=0)
+if test "$curl" = 1
+then
+	AM_CONDITIONAL(HAVE_LIBCURL, true)
+	AC_DEFINE([HAVE_LIBCURL],[1],[Have libcurl])
+else
+	AM_CONDITIONAL(HAVE_LIBCURL, false)
+fi
 # restore LIBS
 LIBS=$SAVE_LIBS
 
@@ -1121,6 +1128,12 @@ fi
 if test "x$sqlite" = "x0"
 then
   AC_MSG_NOTICE([NOTICE: sqlite not found.  sqLite support will not be compiled.])
+fi
+
+# libcurl
+if test "x$curl" = "x0"
+then
+  AC_MSG_NOTICE([NOTICE: libcurl not found.  http client support will not be compiled.])
 fi
 
 #gnutls
