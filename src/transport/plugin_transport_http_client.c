@@ -238,6 +238,66 @@ client_stop (struct HTTP_Client_Plugin *plugin)
   curl_global_cleanup ();
 }
 
+/**
+ * Creates a new outbound session the transport service will use to send data to the
+ * peer
+ *
+ * @param cls the plugin
+ * @param address the address
+ * @return the session or NULL of max connections exceeded
+ */
+static struct Session *
+http_client_plugin_get_session (void *cls,
+                  const struct GNUNET_HELLO_Address *address)
+{
+  struct HTTP_Client_Plugin *plugin = cls;
+  struct Session * s = NULL;
+//  size_t addrlen;
+
+  GNUNET_assert (plugin != NULL);
+  GNUNET_assert (address != NULL);
+  GNUNET_assert (address->address != NULL);
+
+  GNUNET_break (0);
+
+  /* find existing session */
+#if 0
+  s = lookup_session (plugin, address);
+  if (s != NULL)
+    return s;
+
+  if (plugin->max_connections <= plugin->cur_connections)
+  {
+    GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, plugin->name,
+                     "Maximum number of connections reached, "
+                     "cannot connect to peer `%s'\n", GNUNET_i2s (&address->peer));
+    return NULL;
+  }
+
+  /* create new session */
+  addrlen = address->address_length;
+
+  GNUNET_assert (addrlen > sizeof (struct HttpAddress));
+
+  s = create_session (plugin, &address->peer, address->address, address->address_length);
+
+  /* add new session */
+  GNUNET_CONTAINER_DLL_insert (plugin->head, plugin->tail, s);
+  /* initiate new connection */
+  if (GNUNET_SYSERR == client_connect (s))
+  {
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+                     "Cannot connect to peer `%s' address `%s''\n",
+                     http_plugin_address_to_string(NULL, s->addr, s->addrlen),
+                     GNUNET_i2s (&s->target));
+    GNUNET_CONTAINER_DLL_remove (plugin->head, plugin->tail, s);
+    delete_session (s);
+    return NULL;
+  }
+#endif
+  return s;
+}
+
 static int
 client_start (struct HTTP_Client_Plugin *plugin)
 {
@@ -309,6 +369,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   api->send = &http_client_plugin_send;
   api->disconnect = &http_client_plugin_disconnect;
   api->check_address = &http_client_plugin_address_suggested;
+  api->get_session = &http_client_plugin_get_session;
 
   api->address_to_string = &http_common_plugin_address_to_string;
   api->string_to_address = &http_common_plugin_string_to_address;
