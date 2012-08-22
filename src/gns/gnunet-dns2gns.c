@@ -224,8 +224,9 @@ do_timeout (void *cls,
  * lookup
  *
  * @param cls closure
- * @param rd_count number of records
- * @param rd the records in reply
+ * @param rs the request socket
+ * @param dns the DNS udp payload
+ * @param r size of the DNS payload
  */
 static void
 dns_result_processor (void *cls,

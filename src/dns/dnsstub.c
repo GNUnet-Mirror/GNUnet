@@ -193,6 +193,7 @@ read_response (void *cls,
  * Get a socket of the specified address family to send out a
  * UDP DNS request to the Internet.  
  *
+ * @param ctx the DNSSTUB context
  * @param af desired address family
  * @return NULL on error (given AF not "supported")
  */
