@@ -30,15 +30,17 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_hello_lib.h"
 #include "gnunet_peerinfo_service.h"
+#include "gnunet_statistics_service.h"
 #include "gnunet_protocols.h"
 #include "gnunet_signatures.h"
 #include "gnunet_transport_plugin.h"
+
 #include "transport.h"
 
 /**
  * How long until we give up on transmitting the message?
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 
 /**
  * Our public key.
@@ -61,6 +63,11 @@ static struct GNUNET_CRYPTO_RsaPrivateKey *my_private_key;
 const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 /**
+ * Our configuration.
+ */
+struct GNUNET_STATISTICS_Handle *stats;
+
+/**
  * Number of neighbours we'd like to have.
  */
 static uint32_t max_connect_per_transport;
@@ -76,24 +83,230 @@ struct GNUNET_TRANSPORT_PluginEnvironment env;
 struct GNUNET_TRANSPORT_PluginFunctions *api;
 
 /**
+ * Timeout task
+ */
+static GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+
+/**
+ * Library name
+ */
+static char *libname;
+
+struct AddressWrapper *head;
+struct AddressWrapper *tail;
+
+/**
  * Did the test pass or fail?
  */
 static int ok;
 
-/**
- */
-static void
-env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
-         const struct GNUNET_MessageHeader *message, uint32_t distance,
-         const char *sender_address, size_t sender_address_len)
+
+struct AddressWrapper
 {
-  /* do nothing */
+  struct AddressWrapper *next;
+
+  struct AddressWrapper *prev;
+
+  void *addr;
+
+  size_t addrlen;
+};
+
+static void
+end ()
+{
+  if (NULL != head)
+  {
+
+  }
+
+  if (GNUNET_SCHEDULER_NO_TASK != timeout_task)
+  {
+      GNUNET_SCHEDULER_cancel (timeout_task);
+      timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+
+  if (NULL != api)
+  {
+      GNUNET_PLUGIN_unload (libname, api);
+  }
+  GNUNET_free (libname);
+  libname = NULL;
+  GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
+  stats = NULL;
+
+  ok = 0;
 }
 
-void
-env_notify_address (void *cls, const char *name, const void *addr, size_t addrlen,
-                struct GNUNET_TIME_Relative expires)
+static void
+
+end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  struct AddressWrapper *w;
+  int c = 0;
+
+  timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  if (NULL != libname)
+  {
+    if (NULL != api)
+      GNUNET_PLUGIN_unload (libname, api);
+    GNUNET_free (libname);
+    libname = NULL;
+  }
+
+  w = head;
+  while (NULL != head)
+  {
+      GNUNET_CONTAINER_DLL_remove (head, tail, w);
+      c ++;
+      GNUNET_free (w->addr);
+      GNUNET_free (w);
+  }
+  if (c > 0)
+  {
+    GNUNET_break (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              _("Plugin did not remove %u addresses \n"), c);
+  }
+
+  if (NULL != stats)
+  {
+    GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
+    stats = NULL;
+  }
+
+  ok = 1;
+}
+
+
+static void
+end_badly_now ()
+{
+  if (GNUNET_SCHEDULER_NO_TASK != timeout_task)
+  {
+      GNUNET_SCHEDULER_cancel (timeout_task);
+      timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  timeout_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
+}
+
+
+static struct GNUNET_TIME_Relative
+env_receive (void *cls,
+            const struct GNUNET_PeerIdentity *peer,
+            const struct GNUNET_MessageHeader *message,
+            const struct GNUNET_ATS_Information *ats,
+            uint32_t ats_count,
+            struct Session * session,
+            const char *sender_address,
+            uint16_t sender_address_len)
+{
+  /* do nothing */
+  GNUNET_break (0);
+  return GNUNET_TIME_relative_get_zero_();
+}
+
+
+static void
+env_notify_address (void *cls,
+                    int add_remove,
+                    const void *addr,
+                    size_t addrlen)
+{
+  struct AddressWrapper *w;
+  char *a2s;
+  void *s2a;
+  size_t s2a_len;
+
+  if (GNUNET_YES == add_remove)
+  {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("Adding address of length %u\n"), addrlen);
+
+      w = GNUNET_malloc (sizeof (struct AddressWrapper));
+      w->addr = GNUNET_malloc (addrlen);
+      w->addrlen = addrlen;
+      memcpy (w->addr, addr, addrlen);
+      GNUNET_CONTAINER_DLL_insert(head, tail, w);
+
+      a2s = strdup (api->address_to_string (api, w->addr, w->addrlen));
+      if (NULL == a2s)
+      {
+          GNUNET_break (0);
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                      _("Plugin cannot convert address to string!\n"));
+          end_badly_now();
+          return;
+      }
+
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  _("Plugin added address `%s'\n"), a2s);
+
+      if (GNUNET_OK != api->string_to_address (api, a2s, strlen (a2s)+1, &s2a, &s2a_len))
+      {
+          GNUNET_break (0);
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                      _("Plugin cannot convert string to address!\n"));
+          end_badly_now();
+          return;
+      }
+
+      if (s2a_len != w->addrlen)
+      {
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                      _("Plugin creates different address length when converting address->string->address: %u != %u\n"), w->addrlen, s2a_len);
+      }
+      else
+      {
+          if (0 != memcmp (s2a, w->addr, s2a_len))
+            GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                        _("Plugin creates different address length when connecting back and forth!\n"));
+      }
+
+      if (GNUNET_OK != api->check_address (api->cls, w->addr, w->addrlen))
+      {
+          GNUNET_break (0);
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                      _("Plugin refuses added address!\n"));
+          end_badly_now();
+          return;
+      }
+  }
+  else if (GNUNET_NO == add_remove)
+  {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("Removing address of length %u\n"), addrlen);
+
+      w = head;
+      while (NULL != w)
+      {
+          if ((addrlen == w->addrlen) && (0 == memcmp (w->addr, addr, addrlen)))
+          {
+            break;
+          }
+          w = w->next;
+      }
+
+      if (w == NULL)
+      {
+          GNUNET_break (0);
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                      _("Plugin removes address never added!\n"));
+          end_badly_now();
+          return;
+      }
+
+      GNUNET_CONTAINER_DLL_remove (head, tail, w);
+      GNUNET_free (w->addr);
+      GNUNET_free (w);
+  }
+  else
+  {
+      GNUNET_break (0);
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("Invalid operation\n"));
+      end_badly_now ();
+  }
 }
 
 struct GNUNET_ATS_Information
@@ -122,69 +335,6 @@ void env_session_end (void *cls,
 
 }
 
-
-/**
- * Function called when the service shuts
- * down.  Unloads our plugins.
- *
- * @param cls closure
- * @param cfg configuration to use
- */
-static void
-unload_plugins (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
-{
-  GNUNET_assert (NULL ==
-                 GNUNET_PLUGIN_unload ("libgnunet_plugin_transport_tcp", api));
-  if (my_private_key != NULL)
-    GNUNET_CRYPTO_rsa_key_free (my_private_key);
-
-}
-
-
-static void
-unload_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct GNUNET_CONFIGURATION_Handle *cfg = cls;
-
-  unload_plugins (NULL, cfg);
-}
-
-
-/**
- * Simple example test that invokes
- * the "validate" function of the plugin
- * and tries to see if the plugin would
- * succeed to validate its own address.
- * (This test is not well-written since
- *  we hand-compile the address which
- *  kind-of works for TCP but would not
- *  work for other plugins; we should ask
- *  the plugin about its address instead...).
- */
-/* FIXME: this is TCP/UDP-specific and won't work
-   for HTTP/SMTP/DV; we should instead use an
-   address that we get from the plugin itself
-   (if it is willing/able to give us one...) */
-static void
-test_validation ()
-{
-  struct sockaddr_in soaddr;
-
-  memset (&soaddr, 0, sizeof (soaddr));
-#if HAVE_SOCKADDR_IN_SIN_LEN
-  soaddr.sin_len = sizeof (soaddr);
-#endif
-  soaddr.sin_family = AF_INET;
-  soaddr.sin_port = htons (2368 /* FIXME: get from config! */ );
-  soaddr.sin_addr.s_addr = htonl (INADDR_LOOPBACK);
-  GNUNET_assert (GNUNET_OK ==
-                 api->check_address (api->cls, &soaddr, sizeof (soaddr)));
-  ok = 0;
-  GNUNET_SCHEDULER_add_continuation (&unload_task, (void *) cfg,
-                                     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
-}
-
-
 static void
 setup_plugin_environment ()
 {
@@ -192,7 +342,7 @@ setup_plugin_environment ()
   env.cls = &env;
   env.my_identity = &my_identity;
   env.max_connections = max_connect_per_transport;
-  env.stats = NULL;
+  env.stats = stats;
 
   env.receive = &env_receive;
   env.notify_address = &env_notify_address;
@@ -212,10 +362,13 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
-#if 0
+  char *const *argv = cls;
   unsigned long long tneigh;
   char *keyfile;
-  char *libname;
+  char *plugin;
+  char *sep;
+
+  timeout_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, end_badly, NULL);
 
   cfg = c;
   /* parse configuration */
@@ -229,9 +382,19 @@ run (void *cls, char *const *args, const char *cfgfile,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Transport service is lacking key configuration settings.  Exiting.\n"));
-    GNUNET_SCHEDULER_shutdown ();
+
     return;
   }
+
+  stats = GNUNET_STATISTICS_create ("transport", cfg);
+  if (NULL == stats)
+  {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("Could not create statistics.  Exiting.\n"));
+      end_badly_now ();
+      return;
+  }
+
   max_connect_per_transport = (uint32_t) tneigh;
   my_private_key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
   GNUNET_free (keyfile);
@@ -239,7 +402,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Transport service could not access hostkey.  Exiting.\n"));
-    GNUNET_SCHEDULER_shutdown ();
+    end_badly_now ();
     return;
   }
   GNUNET_CRYPTO_rsa_key_get_public (my_private_key, &my_public_key);
@@ -248,20 +411,77 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   /* load plugins... */
   setup_plugin_environment ();
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Loading tcp transport plugin\n"));
-  GNUNET_asprintf (&libname, "libgnunet_plugin_transport_tcp");
 
+  plugin = strrchr(argv[0],'_');
+  sep = strrchr(argv[0],'.');
+  if (NULL == plugin)
+  {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Not a valid test name\n"));
+      end_badly_now ();
+      return;
+  }
+  plugin++;
+  if (NULL != sep)
+      sep[0] = '\0';
+
+  /* Loading plugin */
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Loading transport plugin %s\n"), plugin);
+  GNUNET_asprintf (&libname, "libgnunet_plugin_transport_%s", plugin);
   api = GNUNET_PLUGIN_load (libname, &env);
-  GNUNET_free (libname);
   if (api == NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Failed to load transport plugin for tcp\n"));
-    /* FIXME: set some error code for main */
+    end_badly_now ();
     return;
   }
-  test_validation ();
-#endif
+
+  /* Check if all functions are implemented */
+  if (NULL == api->address_pretty_printer)
+  {
+      GNUNET_break (0);
+      end_badly_now ();
+      return;
+  }
+  if (NULL == api->address_to_string)
+  {
+      GNUNET_break (0);
+      end_badly_now ();
+      return;
+  }
+  GNUNET_assert (NULL != api->check_address);
+  if (NULL == api->check_address)
+  {
+      GNUNET_break (0);
+      end_badly_now ();
+      return;
+  }
+  GNUNET_assert (NULL != api->disconnect);
+  if (NULL == api->disconnect)
+  {
+      GNUNET_break (0);
+      end_badly_now ();
+      return;
+  }
+  GNUNET_assert (NULL != api->get_session);
+  if (NULL == api->get_session)
+  {
+      GNUNET_break (0);
+      end_badly_now ();
+      return;
+  }
+  if (NULL == api->address_pretty_printer)
+  {
+      GNUNET_break (0);
+      end_badly_now ();
+      return;
+  }
+  if (NULL == api->string_to_address)
+  {
+      GNUNET_break (0);
+      end_badly_now ();
+      return;
+  }
 }
 
 
@@ -291,10 +511,13 @@ main (int argc, char *const *argv)
                     "WARNING",
                     NULL);
   ok = 1;                       /* set to fail */
-  ret =
-      (GNUNET_OK ==
-       GNUNET_PROGRAM_run (5, argv_prog, "test-plugin-transport", "testcase",
-                           options, &run, NULL)) ? ok : 1;
+  ret = (GNUNET_OK == GNUNET_PROGRAM_run (5,
+                           argv_prog,
+                           "test-plugin-transport",
+                           "testcase",
+                           options,
+                           &run,
+                           (void *) argv)) ? ok : 1;
   GNUNET_DISK_directory_remove ("/tmp/test-gnunetd-plugin-transport");
   return ret;
 }
