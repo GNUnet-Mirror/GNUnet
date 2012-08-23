@@ -433,7 +433,7 @@ http_server_plugin_address_suggested (void *cls, const void *addr, size_t addrle
   struct HTTP_Server_Plugin *plugin = cls;
   struct HttpAddressWrapper *w = plugin->addr_head;
 
-  if (GNUNET_YES == (http_common_cmp_addresses (addr, addrlen, plugin->ext_addr, plugin->ext_addr_len)))
+  if ((NULL != plugin->ext_addr) && GNUNET_YES == (http_common_cmp_addresses (addr, addrlen, plugin->ext_addr, plugin->ext_addr_len)))
     return GNUNET_OK;
 
   while (NULL != w)
