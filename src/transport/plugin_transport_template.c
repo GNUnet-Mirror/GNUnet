@@ -256,7 +256,43 @@ template_plugin_address_to_string (void *cls, const void *addr, size_t addrlen)
 }
 
 
+/**
+ * Function called to convert a string address to
+ * a binary address.
+ *
+ * @param cls closure ('struct Plugin*')
+ * @param addr string address
+ * @param addrlen length of the address
+ * @param buf location to store the buffer
+ * @param added location to store the number of bytes in the buffer.
+ *        If the function returns GNUNET_SYSERR, its contents are undefined.
+ * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+ */
+static int
+template_plugin_string_to_address (void *cls, const char *addr, uint16_t addrlen,
+    void **buf, size_t *added)
+{
+  GNUNET_break (0);
+  return GNUNET_SYSERR;
+}
 
+
+/**
+ * Create a new session to transmit data to the target
+ * This session will used to send data to this peer and the plugin will
+ * notify us by calling the env->session_end function
+ *
+ * @param cls closure
+ * @param address pointer to the GNUNET_HELLO_Address
+ * @return the session if the address is valid, NULL otherwise
+ */
+static struct Session *
+template_plugin_get_session (void *cls,
+                        const struct GNUNET_HELLO_Address *address)
+{
+  GNUNET_break (0);
+  return NULL;
+}
 
 /**
  * Entry point for the plugin.
@@ -277,6 +313,9 @@ gnunet_plugin_transport_template_init (void *cls)
   api->address_pretty_printer = &template_plugin_address_pretty_printer;
   api->check_address = &template_plugin_address_suggested;
   api->address_to_string = &template_plugin_address_to_string;
+  api->string_to_address = &template_plugin_string_to_address;
+  api->get_session = &template_plugin_get_session;
+
   return api;
 }
 
