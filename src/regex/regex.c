@@ -580,12 +580,16 @@ automaton_add_state (struct GNUNET_REGEX_Automaton *a,
  * @param marks an array of size a->state_count to remember which state was
  *        already visited.
  * @param count current count of the state.
+ * @param check function that is checked before advancing on each transition
+ *              in the DFS.
+ * @param check_cls closure for check.
  * @param action action to be performed on each state.
  * @param action_cls closure for action.
  */
 static void
 automaton_state_traverse (struct GNUNET_REGEX_State *s, int *marks,
                           unsigned int *count,
+                          GNUNET_REGEX_traverse_check check, void *check_cls,
                           GNUNET_REGEX_traverse_action action, void *action_cls)
 {
   struct GNUNET_REGEX_Transition *t;
@@ -602,7 +606,12 @@ automaton_state_traverse (struct GNUNET_REGEX_State *s, int *marks,
 
   for (t = s->transitions_head; NULL != t; t = t->next)
   {
-    automaton_state_traverse (t->to_state, marks, count, action, action_cls);
+    if (NULL == check ||
+        (NULL != check && GNUNET_YES == check (check_cls, s, t)))
+    {
+      automaton_state_traverse (t->to_state, marks, count, check, check_cls,
+                                action, action_cls);
+    }
   }
 }
 
@@ -614,12 +623,17 @@ automaton_state_traverse (struct GNUNET_REGEX_State *s, int *marks,
  *
  * @param a automaton to be traversed.
  * @param start start state, pass a->start or NULL to traverse the whole automaton.
+ * @param check function that is checked before advancing on each transition
+ *              in the DFS.
+ * @param check_cls closure for check.
  * @param action action to be performed on each state.
  * @param action_cls closure for action
  */
 void
 GNUNET_REGEX_automaton_traverse (const struct GNUNET_REGEX_Automaton *a,
                                  struct GNUNET_REGEX_State *start,
+                                 GNUNET_REGEX_traverse_check check,
+                                 void *check_cls,
                                  GNUNET_REGEX_traverse_action action,
                                  void *action_cls)
 {
@@ -644,7 +658,8 @@ GNUNET_REGEX_automaton_traverse (const struct GNUNET_REGEX_Automaton *a,
   else
     s = start;
 
-  automaton_state_traverse (s, marks, &count, action, action_cls);
+  automaton_state_traverse (s, marks, &count, check, check_cls, action,
+                            action_cls);
 }
 
 
@@ -755,8 +770,8 @@ GNUNET_REGEX_add_multi_strides_to_dfa (struct GNUNET_REGEX_Context *regex_ctx,
   struct GNUNET_REGEX_Transition *t;
   struct GNUNET_REGEX_Transition *t_next;
 
-  GNUNET_REGEX_automaton_traverse (dfa, dfa->start, &add_multi_strides_to_dfa,
-                                   &ctx);
+  GNUNET_REGEX_automaton_traverse (dfa, dfa->start, NULL, NULL,
+                                   &add_multi_strides_to_dfa, &ctx);
 
   for (t = ctx.transitions_head; NULL != t; t = t_next)
   {
@@ -1329,7 +1344,8 @@ automaton_create_proofs (struct GNUNET_REGEX_Automaton *a)
   }
 
   /* create depth-first numbering of the states, initializes 'state' */
-  GNUNET_REGEX_automaton_traverse (a, a->start, &number_states, states);
+  GNUNET_REGEX_automaton_traverse (a, a->start, NULL, NULL, &number_states,
+                                   states);
 
   for (i = 0; i < n; i++)
     GNUNET_assert (NULL != states[i]);
@@ -1591,7 +1607,7 @@ dfa_remove_unreachable_states (struct GNUNET_REGEX_Automaton *a)
     s->marked = GNUNET_NO;
 
   // 2. traverse dfa from start state and mark all visited states
-  GNUNET_REGEX_automaton_traverse (a, a->start, &mark_states, NULL);
+  GNUNET_REGEX_automaton_traverse (a, a->start, NULL, NULL, &mark_states, NULL);
 
   // 3. delete all states that were not visited
   for (s = a->states_head; NULL != s; s = s_next)
@@ -1784,12 +1800,15 @@ nfa_fragment_create (struct GNUNET_REGEX_State *start,
   n->type = NFA;
   n->start = NULL;
   n->end = NULL;
+  n->state_count = 0;
 
   if (NULL == start || NULL == end)
     return n;
 
   automaton_add_state (n, end);
   automaton_add_state (n, start);
+
+  n->state_count = 2;
 
   n->start = start;
   n->end = end;
@@ -2016,6 +2035,7 @@ nfa_add_concatenation (struct GNUNET_REGEX_Context *ctx)
   nfa_add_states (new_nfa, b->states_head, b->states_tail);
   new_nfa->start = a->start;
   new_nfa->end = b->end;
+  new_nfa->state_count += a->state_count + b->state_count;
   automaton_fragment_clear (a);
   automaton_fragment_clear (b);
 
@@ -2363,7 +2383,7 @@ GNUNET_REGEX_construct_nfa (const char *regex, const size_t len)
   nfa->regex = GNUNET_strdup (regex);
 
   /* create depth-first numbering of the states for pretty printing */
-  GNUNET_REGEX_automaton_traverse (nfa, NULL, &number_states, NULL);
+  GNUNET_REGEX_automaton_traverse (nfa, NULL, NULL, NULL, &number_states, NULL);
 
   return nfa;
 

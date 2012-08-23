@@ -257,6 +257,23 @@ struct GNUNET_REGEX_Automaton
 
 
 /**
+ * Function that get's passed to automaton traversal and is called before each
+ * next traversal from state 's' using transition 't' to check if traversal
+ * should proceed. Return GNUNET_NO to stop traversal or GNUNET_YES to continue.
+ *
+ * @param cls closure for the check.
+ * @param s current state in the traversal.
+ * @param t current transition from state 's' that will be used for the next
+ *          step.
+ *
+ * @return GNUNET_YES to proceed traversal, GNUNET_NO to stop.
+ */
+typedef int (*GNUNET_REGEX_traverse_check) (void *cls,
+                                            struct GNUNET_REGEX_State * s,
+                                            struct GNUNET_REGEX_Transition * t);
+
+
+/**
  * Function that is called with each state, when traversing an automaton.
  *
  * @param cls closure.
@@ -275,15 +292,19 @@ typedef void (*GNUNET_REGEX_traverse_action) (void *cls,
  *
  * @param a automaton to be traversed.
  * @param start start state, pass a->start or NULL to traverse the whole automaton.
+ * @param check function that is checked before advancing on each transition
+ *              in the DFS.
+ * @param check_cls closure for check.
  * @param action action to be performed on each state.
  * @param action_cls closure for action
  */
 void
 GNUNET_REGEX_automaton_traverse (const struct GNUNET_REGEX_Automaton *a,
                                  struct GNUNET_REGEX_State *start,
+                                 GNUNET_REGEX_traverse_check check,
+                                 void *check_cls,
                                  GNUNET_REGEX_traverse_action action,
                                  void *action_cls);
-
 
 /**
  * Get the canonical regex of the given automaton.

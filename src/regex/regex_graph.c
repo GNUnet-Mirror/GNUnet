@@ -315,12 +315,13 @@ GNUNET_REGEX_automaton_save_graph (struct GNUNET_REGEX_Automaton *a,
   }
 
   /* First add the SCCs to the automaton, so we can color them nicely */
-  scc_tarjan (a);
+  if (GNUNET_YES == ctx.coloring)
+    scc_tarjan (a);
 
   start = "digraph G {\nrankdir=LR\n";
   fwrite (start, strlen (start), 1, ctx.filep);
 
-  GNUNET_REGEX_automaton_traverse (a, a->start,
+  GNUNET_REGEX_automaton_traverse (a, a->start, NULL, NULL,
                                    &GNUNET_REGEX_automaton_save_graph_step,
                                    &ctx);
 
