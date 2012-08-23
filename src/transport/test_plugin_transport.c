@@ -450,7 +450,8 @@ run (void *cls, char *const *args, const char *cfgfile,
   /* load plugins... */
   setup_plugin_environment ();
 
-  plugin = strrchr(argv[0],'_');
+  GNUNET_assert (strlen (argv[0]) > strlen ("test_plugin_"));
+  plugin = strstr(argv[0],"test_plugin_");
   sep = strrchr(argv[0],'.');
   if (NULL == plugin)
   {
@@ -458,7 +459,7 @@ run (void *cls, char *const *args, const char *cfgfile,
       end_badly_now ();
       return;
   }
-  plugin++;
+  plugin += strlen ("test_plugin_");
   if (NULL != sep)
       sep[0] = '\0';
 
