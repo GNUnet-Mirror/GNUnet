@@ -71,7 +71,7 @@ gnunet_dns_redirector_DEPENDENCIES = \
 gnunet_service_dns_SOURCES = \
  gnunet-service-dns.c 
 gnunet_service_dns_LDADD = \
-  $(top_builddir)/src/dns/libgnunetdnsstub.la \
+  libgnunetdnsstub.la \
   $(top_builddir)/src/tun/libgnunettun.la \
   $(top_builddir)/src/mesh/libgnunetmesh.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
