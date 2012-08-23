@@ -25,6 +25,7 @@
  */
 
 #include "platform.h"
+#include "gnunet_common.h"
 #include "gnunet_constants.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_hello_lib.h"
@@ -82,7 +83,7 @@ static int ok;
 /**
  */
 static void
-receive (void *cls, const struct GNUNET_PeerIdentity *peer,
+env_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
          const struct GNUNET_MessageHeader *message, uint32_t distance,
          const char *sender_address, size_t sender_address_len)
 {
@@ -90,10 +91,37 @@ receive (void *cls, const struct GNUNET_PeerIdentity *peer,
 }
 
 void
-notify_address (void *cls, const char *name, const void *addr, size_t addrlen,
+env_notify_address (void *cls, const char *name, const void *addr, size_t addrlen,
                 struct GNUNET_TIME_Relative expires)
 {
 }
+
+struct GNUNET_ATS_Information
+env_get_address_type (void *cls,
+                     const struct sockaddr *addr,
+                     size_t addrlen)
+{
+  struct GNUNET_ATS_Information ats;
+  ats.type = htonl (0);
+  ats.value = htonl (0);
+  return ats;
+}
+
+
+const struct GNUNET_MessageHeader *
+env_get_our_hello (void)
+{
+  GNUNET_break (0);
+  return NULL;
+}
+
+void env_session_end (void *cls,
+                      const struct GNUNET_PeerIdentity *peer,
+                      struct Session * session)
+{
+
+}
+
 
 /**
  * Function called when the service shuts
@@ -161,11 +189,16 @@ static void
 setup_plugin_environment ()
 {
   env.cfg = cfg;
-  env.my_identity = &my_identity;
   env.cls = &env;
-  env.receive = &receive;
-  env.notify_address = &notify_address;
+  env.my_identity = &my_identity;
   env.max_connections = max_connect_per_transport;
+  env.stats = NULL;
+
+  env.receive = &env_receive;
+  env.notify_address = &env_notify_address;
+  env.get_address_type = &env_get_address_type;
+  env.get_our_hello = &env_get_our_hello;
+  env.session_end = &env_session_end;
 }
 
 
@@ -179,23 +212,24 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
+#if 0
   unsigned long long tneigh;
   char *keyfile;
   char *libname;
 
   cfg = c;
   /* parse configuration */
-  if ((GNUNET_OK !=
-       GNUNET_CONFIGURATION_get_value_number (c, "TRANSPORT", "NEIGHBOUR_LIMIT",
-                                              &tneigh)) ||
-      (GNUNET_OK !=
-       GNUNET_CONFIGURATION_get_value_filename (c, "GNUNETD", "HOSTKEY",
-                                                &keyfile)))
+  if ((GNUNET_OK != GNUNET_CONFIGURATION_get_value_number (c,
+                          "TRANSPORT",
+                          "NEIGHBOUR_LIMIT",
+                          &tneigh)) ||
+      (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (c,
+                          "GNUNETD", "HOSTKEY",
+                          &keyfile)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _
-                ("Transport service is lacking key configuration settings.  Exiting.\n"));
-    GNUNET_SCHEDULER_shutdown (s);
+                _("Transport service is lacking key configuration settings.  Exiting.\n"));
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
   max_connect_per_transport = (uint32_t) tneigh;
@@ -205,14 +239,12 @@ run (void *cls, char *const *args, const char *cfgfile,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Transport service could not access hostkey.  Exiting.\n"));
-    GNUNET_SCHEDULER_shutdown (s);
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
   GNUNET_CRYPTO_rsa_key_get_public (my_private_key, &my_public_key);
   GNUNET_CRYPTO_hash (&my_public_key, sizeof (my_public_key),
                       &my_identity.hashPubKey);
-
-
 
   /* load plugins... */
   setup_plugin_environment ();
@@ -229,6 +261,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     return;
   }
   test_validation ();
+#endif
 }
 
 
