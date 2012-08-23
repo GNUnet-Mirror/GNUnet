@@ -272,7 +272,7 @@ env_notify_address (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                   _("Plugin added address `%s'\n"), a2s);
 
-      if (GNUNET_OK != api->string_to_address (api, a2s, strlen (a2s)+1, &s2a, &s2a_len))
+      if ((GNUNET_OK != api->string_to_address (api, a2s, strlen (a2s)+1, &s2a, &s2a_len)) || (NULL == s2a))
       {
           GNUNET_break (0);
           GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -292,7 +292,8 @@ env_notify_address (void *cls,
             GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                         _("Plugin creates different address length when connecting back and forth!\n"));
       }
-
+      GNUNET_free (s2a);
+      GNUNET_free (a2s);
       if (GNUNET_OK != api->check_address (api->cls, w->addr, w->addrlen))
       {
           GNUNET_break (0);
