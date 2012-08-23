@@ -12,6 +12,9 @@ if HAVE_MHD
  GN_LIBMHD = -lmicrohttpd
  HTTP_SERVER_PLUGIN_LA = libgnunet_plugin_transport_http_server.la
  HTTPS_SERVER_PLUGIN_LA = libgnunet_plugin_transport_https_server.la
+ 
+ HTTP_SERVER_PLUGIN_TEST = test_plugin_http_server
+ HTTPS_SERVER_PLUGIN_TEST = test_plugin_https_server
 endif
 
 if HAVE_LIBCURL
@@ -300,6 +303,8 @@ check_PROGRAMS = \
  test_plugin_udp \
  test_plugin_unix \
  $(WLAN_PLUGIN_TEST) \
+ $(HTTP_SERVER_PLUGIN_TEST) \
+ $(HTTPS_SERVER_PLUGIN_TEST) \
  test_transport_api_blacklisting \
  test_transport_api_disconnect_tcp \
  test_transport_api_bidirectional_connect \
@@ -470,10 +475,28 @@ test_plugin_unix_LDADD = \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la  \
  $(top_builddir)/src/transport/libgnunettransporttesting.la
- 
+
 test_plugin_wlan_SOURCES = \
  test_plugin_transport.c
 test_plugin_wlan_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/statistics/libgnunetstatistics.la \
+ $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/util/libgnunetutil.la  \
+ $(top_builddir)/src/transport/libgnunettransporttesting.la 
+
+test_plugin_http_server_SOURCES = \
+ test_plugin_transport.c
+test_plugin_http_server_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/statistics/libgnunetstatistics.la \
+ $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/util/libgnunetutil.la  \
+ $(top_builddir)/src/transport/libgnunettransporttesting.la 
+ 
+test_plugin_https_server_SOURCES = \
+ test_plugin_transport.c
+test_plugin_https_server_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/hello/libgnunethello.la \
