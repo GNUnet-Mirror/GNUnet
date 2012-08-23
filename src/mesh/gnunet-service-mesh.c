@@ -42,6 +42,7 @@
  * - relay corking down to core
  * - set ttl relative to tree depth
  * - Add data ACK count in path ACK
+ * - Make common GNUNET_MESH_Data header for unicast, to_orig, multicast
  * TODO END
  */
 
@@ -3255,7 +3256,7 @@ tunnel_send_multicast_iterator (void *cls, GNUNET_PEER_Id neighbor_id)
 
 
 /**
- * Send a message in a tunnel in multicast, sending a copy to each child node
+ * Queue a message in a tunnel in multicast, sending a copy to each child node
  * down the local one in the tunnel tree.
  *
  * @param t Tunnel in which to send the data.
@@ -3271,6 +3272,7 @@ tunnel_send_multicast (struct MeshTunnel *t,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               " sending a multicast packet...\n");
+
   mdata = GNUNET_malloc (sizeof (struct MeshData));
   mdata->data_len = ntohs (msg->size);
   mdata->reference_counter = GNUNET_malloc (sizeof (unsigned int));
@@ -3281,6 +3283,16 @@ tunnel_send_multicast (struct MeshTunnel *t,
   {
     struct GNUNET_MESH_Multicast *mcast;
 
+    if (t->fwd_queue_n >= t->fwd_queue_max)
+    {
+      GNUNET_break (0);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  queue full!\n");
+      GNUNET_free (mdata->data);
+      GNUNET_free (mdata->reference_counter);
+      GNUNET_free (mdata);
+      return;
+    }
+    t->fwd_queue_n++;
     mcast = (struct GNUNET_MESH_Multicast *) mdata->data;
     mcast->ttl = htonl (ntohl (mcast->ttl) - 1);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  data packet, ttl: %u\n",
@@ -3290,8 +3302,9 @@ tunnel_send_multicast (struct MeshTunnel *t,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  not a data packet, no ttl\n");
   }
-  if (NULL != t->owner && GNUNET_YES != t->owner->shutting_down
-      && GNUNET_NO == internal)
+  if (NULL != t->owner &&
+      GNUNET_YES != t->owner->shutting_down &&
+      GNUNET_NO == internal)
   {
     mdata->task = GNUNET_malloc (sizeof (GNUNET_SCHEDULER_TaskIdentifier));
     (*(mdata->task)) =
@@ -3304,6 +3317,9 @@ tunnel_send_multicast (struct MeshTunnel *t,
   tree_iterate_children (t->tree, &tunnel_send_multicast_iterator, mdata);
   if (*(mdata->reference_counter) == 0)
   {
+    GNUNET_break (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "  no one to send data to\n");
     GNUNET_free (mdata->data);
     GNUNET_free (mdata->reference_counter);
     if (NULL != mdata->task)
@@ -3312,8 +3328,8 @@ tunnel_send_multicast (struct MeshTunnel *t,
       GNUNET_free (mdata->task);
       GNUNET_SERVER_receive_done (t->owner->handle, GNUNET_OK);
     }
-    // FIXME change order?
     GNUNET_free (mdata);
+    t->fwd_queue_n--;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               " sending a multicast packet done\n");
@@ -4366,29 +4382,50 @@ queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
  *         NULL when there are no transmittable messages.
  */
 struct MeshPeerQueue *
-queue_get_next (static struct MeshPeerInfo *peer)
+queue_get_next (const struct MeshPeerInfo *peer)
 {
   struct MeshPeerQueue *q;
   struct MeshTunnel *t;
   struct MeshTransmissionDescriptor *info;
+  struct MeshTunnelChildInfo *cinfo;
+  struct GNUNET_MESH_Unicast *ucast;
+  struct GNUNET_MESH_ToOrigin *to_orig;
+  struct GNUNET_MESH_Multicast *mcast;
+  struct GNUNET_PeerIdentity id;
+  uint32_t pid;
+  uint32_t ack;
 
   for (q = peer->queue_head; NULL != q; q = q->next)
   {
     t = q->tunnel;
+    info = q->cls;
     switch (q->type)
     {
       case GNUNET_MESSAGE_TYPE_MESH_UNICAST:
-        info = q->cls;
+        ucast = (struct GNUNET_MESH_Unicast *) info->mesh_data->data;
+        pid = ntohl (ucast->pid);
+        GNUNET_PEER_resolve (info->peer->id, &id);
+        cinfo = tunnel_get_neighbor_fc(t, &id);
+        ack = cinfo->fwd_ack;
         break;
       case GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN:
+        to_orig = (struct GNUNET_MESH_ToOrigin *) info->mesh_data->data;
+        pid = ntohl (to_orig->pid);
+        ack = t->bck_ack;
         break;
       case GNUNET_MESSAGE_TYPE_MESH_MULTICAST:
+        mcast = (struct GNUNET_MESH_Multicast *) info->mesh_data->data;
+        pid = ntohl (mcast->pid);
+        GNUNET_PEER_resolve (info->peer->id, &id);
+        cinfo = tunnel_get_neighbor_fc(t, &id);
+        ack = cinfo->fwd_ack;
         break;
       default:
         return q;
     }
+    if (GNUNET_NO == GMC_is_pid_bigger(pid, ack))
+      return q;
   }
-  // FIXME fc WIP
   return NULL;
 }
 
@@ -4412,15 +4449,16 @@ queue_send (void *cls, size_t size, void *buf)
     size_t data_size;
 
     peer->core_transmit = NULL;
-    queue = peer->queue_head;
+    queue = queue_get_next(peer);
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "********* Queue send\n");
 
-    /* If queue is empty, send should have been cancelled */
+    /* Queue has no internal mesh traffic not sendable payload */
     if (NULL == queue)
     {
-        GNUNET_break(0);
-        return 0;
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********   not ready, return\n");
+      GNUNET_break(0);
+      return 0;
     }
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********   not empty\n");
 
@@ -4429,6 +4467,8 @@ queue_send (void *cls, size_t size, void *buf)
     {
         struct GNUNET_PeerIdentity id;
 
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    "*********   not enough room, reissue\n");
         GNUNET_PEER_resolve (peer->id, &id);
         peer->core_transmit =
             GNUNET_CORE_notify_transmit_ready(core_handle,
@@ -4487,6 +4527,7 @@ queue_send (void *cls, size_t size, void *buf)
       case GNUNET_MESSAGE_TYPE_MESH_MULTICAST:
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********   multicast\n");
         data_size = send_core_data_multicast(queue->cls, size, buf);
+        // t->fwd_queue_n--; FIXME fc
         tunnel_send_fwd_ack (t, GNUNET_MESSAGE_TYPE_MESH_MULTICAST);
         break;
       case GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE:
