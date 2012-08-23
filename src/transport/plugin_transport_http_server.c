@@ -58,6 +58,9 @@
 #define TIMEOUT GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT
 #endif
 
+#define HTTP_ERROR_RESPONSE "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\"><HTML><HEAD><TITLE>404 Not Found</TITLE></HEAD><BODY><H1>Not Found</H1>The requested URL was not found on this server.<P><HR><ADDRESS></ADDRESS></BODY></HTML>"
+#define _RECEIVE 0
+#define _SEND 1
 
 /**
  * Encapsulation of all of the state of the plugin.
@@ -121,6 +124,31 @@ struct HttpServerSession
    */
   void *addr;
 
+  size_t addrlen;
+
+  /**
+   * Inbound or outbound connection
+   * Outbound: GNUNET_NO (client is used to send and receive)
+   * Inbound : GNUNET_YES (server is used to send and receive)
+   */
+  int inbound;
+
+  /**
+   * Unique HTTP/S connection tag for this connection
+   */
+  uint32_t tag;
+
+  /**
+   * ATS network type in NBO
+   */
+  uint32_t ats_address_network_type;
+
+  /**
+   * Absolute time when to receive data again
+   * Used for receive throttling
+   */
+  struct GNUNET_TIME_Absolute next_receive;
+
   /**
    * Session timeout task
    */
@@ -136,7 +164,7 @@ struct ServerConnection
   int disconnect;
 
   /* The session this server connection belongs to */
-  struct Session *session;
+  struct HttpServerSession *session;
 
   /* The MHD connection */
   struct MHD_Connection *mhd_conn;
@@ -380,13 +408,13 @@ struct HTTP_Message
 
 static struct Plugin * p;
 
-#if 0
 /**
  * Start session timeout
  */
 static void
 server_start_session_timeout (struct HttpServerSession *s);
 
+#if 0
 /**
  * Increment session timeout due to activity
  */
@@ -620,58 +648,6 @@ server_stop_session_timeout (struct HttpServerSession *s)
  }
 }
 
-static int
-server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
-                  const char *url, const char *method, const char *version,
-                  const char *upload_data, size_t * upload_data_size,
-                  void **httpSessionCache)
-{
-  /* FIXME SPLIT */
-  return MHD_NO;
-}
-
-static void
-server_disconnect_cb (void *cls, struct MHD_Connection *connection,
-                      void **httpSessionCache)
-{
-  /* FIXME SPLIT */
-  GNUNET_break (0);
-}
-
-/**
- * Check if incoming connection is accepted.
- * NOTE: Here every connection is accepted
- * @param cls plugin as closure
- * @param addr address of incoming connection
- * @param addr_len address length of incoming connection
- * @return MHD_YES if connection is accepted, MHD_NO if connection is rejected
- *
- */
-static int
-server_accept_cb (void *cls, const struct sockaddr *addr, socklen_t addr_len)
-{
-  struct HTTP_Server_Plugin *plugin = cls;
-  GNUNET_break (0);
-  if (plugin->cur_connections <= plugin->max_connections)
-    return MHD_YES;
-  else
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Server: Cannot accept new connections\n");
-    return MHD_NO;
-  }
-}
-
-static void
-server_log (void *arg, const char *fmt, va_list ap)
-{
-  char text[1024];
-
-  vsnprintf (text, sizeof (text), fmt, ap);
-  va_end (ap);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Server: %s\n", text);
-}
-
 /**
  * Function that queries MHD's select sets and
  * starts the task waiting for them.
@@ -725,6 +701,498 @@ server_reschedule (struct HTTP_Server_Plugin *plugin, struct MHD_Daemon *server,
     plugin->server_v6_task = server_schedule (plugin, plugin->server_v6, now);
   }
 }
+
+
+static struct ServerConnection *
+server_lookup_connection (struct HTTP_Server_Plugin *plugin,
+                       struct MHD_Connection *mhd_connection, const char *url,
+                       const char *method)
+{
+  struct HttpServerSession *s = NULL;
+  struct HttpServerSession *t;
+  struct ServerConnection *sc = NULL;
+  const union MHD_ConnectionInfo *conn_info;
+  struct GNUNET_ATS_Information ats;
+
+  char *addr;
+  size_t addr_len;
+
+  struct GNUNET_PeerIdentity target;
+  uint32_t tag = 0;
+  int direction = GNUNET_SYSERR;
+
+  /* url parsing variables */
+  size_t url_len;
+  char *url_end;
+  char *hash_start;
+  char *hash_end;
+  char *tag_start;
+  char *tag_end;
+
+  conn_info = MHD_get_connection_info (mhd_connection,
+                                       MHD_CONNECTION_INFO_CLIENT_ADDRESS);
+  if ((conn_info->client_addr->sa_family != AF_INET) &&
+      (conn_info->client_addr->sa_family != AF_INET6))
+    return NULL;
+
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                   "New %s connection from %s\n", method, url);
+  /* URL parsing
+   * URL is valid if it is in the form [peerid[103];tag]*/
+  url_len = strlen (url);
+  url_end = (char *) &url[url_len];
+
+  if (url_len < 105)
+  {
+    goto error; /* too short */
+  }
+  hash_start = strrchr (url, '/');
+  if (NULL == hash_start)
+  {
+    goto error; /* '/' delimiter not found */
+  }
+  if (hash_start >= url_end)
+  {
+    goto error; /* mal formed */
+  }
+  hash_start++;
+
+  hash_end = strrchr (hash_start, ';');
+  if (NULL == hash_end)
+    goto error; /* ';' delimiter not found */
+  if (hash_end >= url_end)
+  {
+    goto error; /* mal formed */
+  }
+
+  if (hash_start >= hash_end)
+  {
+    goto error; /* mal formed */
+  }
+
+  if ((strlen(hash_start) - strlen(hash_end)) != 103)
+  {
+    goto error; /* invalid hash length */
+  }
+
+  char hash[104];
+  memcpy (hash, hash_start, 103);
+  hash[103] = '\0';
+  if (GNUNET_OK != GNUNET_CRYPTO_hash_from_string ((const char *) hash, &(target.hashPubKey)))
+  {
+    goto error; /* mal formed */
+  }
+
+  if (hash_end >= url_end)
+  {
+    goto error; /* mal formed */
+  }
+
+  tag_start = &hash_end[1];
+  /* Converting tag */
+  tag_end = NULL;
+  tag = strtoul (tag_start, &tag_end, 10);
+  if (tag == 0)
+  {
+    goto error; /* mal formed */
+  }
+  if (tag_end == NULL)
+  {
+    goto error; /* mal formed */
+  }
+  if (tag_end != url_end)
+  {
+    goto error; /* mal formed */
+  }
+
+  if (0 == strcmp (MHD_HTTP_METHOD_PUT, method))
+    direction = _RECEIVE;
+  else if (0 == strcmp (MHD_HTTP_METHOD_GET, method))
+    direction = _SEND;
+  else
+  {
+    goto error;
+  }
+
+  plugin->cur_connections++;
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                   "New %s connection from %s with tag %u (%u of %u)\n",
+                   method,
+                   GNUNET_i2s (&target), tag,
+                   plugin->cur_connections, plugin->max_connections);
+
+  /* find duplicate session */
+  t = plugin->head;
+  while (t != NULL)
+  {
+    if ((t->inbound) &&
+        (0 == memcmp (&t->target, &target, sizeof (struct GNUNET_PeerIdentity)))
+        &&
+        /* FIXME add source address comparison */
+        (t->tag == tag))
+      break;
+    t = t->next;
+  }
+  if (t != NULL)
+  {
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                     "Duplicate session, dismissing new connection from peer `%s'\n",
+                     GNUNET_i2s (&target));
+    goto error;
+  }
+
+  /* find semi-session */
+  t = plugin->server_semi_head;
+
+  while (t != NULL)
+  {
+    /* FIXME add source address comparison */
+    if ((0 == memcmp (&t->target, &target, sizeof (struct GNUNET_PeerIdentity)))
+        && (t->tag == tag))
+    {
+      break;
+    }
+    t = t->next;
+  }
+
+  if (t == NULL)
+    goto create;
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                   "Found existing semi-session for `%s'\n",
+                   GNUNET_i2s (&target));
+
+  if ((direction == _SEND) && (t->server_send != NULL))
+  {
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                     "Duplicate GET session, dismissing new connection from peer `%s'\n",
+                     GNUNET_i2s (&target));
+    goto error;
+  }
+  else
+  {
+    s = t;
+    GNUNET_CONTAINER_DLL_remove (plugin->server_semi_head,
+                                 plugin->server_semi_tail, s);
+    GNUNET_CONTAINER_DLL_insert (plugin->head, plugin->tail, s);
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                     "Found matching semi-session, merging session for peer `%s'\n",
+                     GNUNET_i2s (&target));
+    GNUNET_assert (NULL != s);
+    goto found;
+  }
+  if ((direction == _RECEIVE) && (t->server_recv != NULL))
+  {
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                     "Duplicate PUT session, dismissing new connection from peer `%s'\n",
+                     GNUNET_i2s (&target));
+    goto error;
+  }
+  else
+  {
+    s = t;
+    GNUNET_CONTAINER_DLL_remove (plugin->server_semi_head,
+                                 plugin->server_semi_tail, s);
+    GNUNET_CONTAINER_DLL_insert (plugin->head, plugin->tail, s);
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                     "Found matching semi-session, merging session for peer `%s'\n",
+                     GNUNET_i2s (&target));
+    GNUNET_assert (NULL != s);
+    goto found;
+  }
+
+create:
+/* create new session */
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                   "Creating new session for peer `%s' \n",
+                   GNUNET_i2s (&target));
+  switch (conn_info->client_addr->sa_family)
+  {
+  case (AF_INET):
+    addr = http_common_address_from_socket (plugin->protocol, conn_info->client_addr, sizeof (struct sockaddr_in));
+    addr_len = http_common_address_get_size (addr);
+    ats = plugin->env->get_address_type (plugin->env->cls, conn_info->client_addr, sizeof (struct sockaddr_in));
+    break;
+  case (AF_INET6):
+    addr = http_common_address_from_socket (plugin->protocol, conn_info->client_addr, sizeof (struct sockaddr_in6));
+    addr_len = http_common_address_get_size (addr);
+    ats = plugin->env->get_address_type (plugin->env->cls, conn_info->client_addr, sizeof (struct sockaddr_in6));
+    break;
+  default:
+    GNUNET_break (0);
+    goto error;
+  }
+
+  s = GNUNET_malloc (sizeof (struct HttpServerSession));
+  memcpy (&s->target, &target, sizeof (struct GNUNET_PeerIdentity));
+  s->plugin = plugin;
+  s->addr = addr;
+  s->addrlen = addr_len;
+  s->ats_address_network_type = ats.value;
+  s->inbound = GNUNET_YES;
+  s->next_receive = GNUNET_TIME_UNIT_ZERO_ABS;
+  s->tag = tag;
+  s->server_recv = NULL;
+  s->server_send = NULL;
+
+  server_start_session_timeout(s);
+
+  GNUNET_CONTAINER_DLL_insert (plugin->server_semi_head,
+                               plugin->server_semi_tail, s);
+  goto found;
+error:
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                   "Invalid connection request\n");
+  return NULL;
+
+found:
+  sc = GNUNET_malloc (sizeof (struct ServerConnection));
+  sc->mhd_conn = mhd_connection;
+  sc->direction = direction;
+  sc->session = s;
+  if (direction == _SEND)
+    s->server_send = sc;
+  if (direction == _RECEIVE)
+    s->server_recv = sc;
+
+#if MHD_VERSION >= 0x00090E00
+  int to = (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value / 1000);
+
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                   "Setting timeout for %p to %u sec.\n", sc, to);
+  MHD_set_connection_option (mhd_connection, MHD_CONNECTION_OPTION_TIMEOUT, to);
+
+  struct MHD_Daemon *d = NULL;
+#if 0
+  if (s->addrlen == sizeof (struct IPv6HttpAddress))
+    d = plugin->server_v6;
+  if (s->addrlen == sizeof (struct IPv4HttpAddress))
+    d = plugin->server_v4;
+#endif
+  server_reschedule (plugin, d, GNUNET_NO);
+#endif
+  return sc;
+
+}
+
+static struct HttpServerSession *
+server_lookup_session (struct HTTP_Server_Plugin *plugin,
+                       struct ServerConnection * sc)
+{
+  struct HttpServerSession *s;
+
+  for (s = plugin->head; NULL != s; s = s->next)
+    if ((s->server_recv == sc) || (s->server_send == sc))
+      return s;
+  for (s = plugin->server_semi_head; NULL != s; s = s->next)
+    if ((s->server_recv == sc) || (s->server_send == sc))
+      return s;
+  return NULL;
+}
+
+
+static int
+server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
+                  const char *url, const char *method, const char *version,
+                  const char *upload_data, size_t * upload_data_size,
+                  void **httpSessionCache)
+{
+  struct HTTP_Server_Plugin *plugin = cls;
+  int res = MHD_YES;
+
+  struct ServerConnection *sc = *httpSessionCache;
+  struct HttpServerSession *s;
+  struct MHD_Response *response;
+
+  GNUNET_assert (cls != NULL);
+  if (sc == NULL)
+  {
+    /* new connection */
+    sc = server_lookup_connection (plugin, mhd_connection, url, method);
+    if (sc != NULL)
+      (*httpSessionCache) = sc;
+    else
+    {
+      response = MHD_create_response_from_data (strlen (HTTP_ERROR_RESPONSE), HTTP_ERROR_RESPONSE, MHD_NO, MHD_NO);
+      res = MHD_queue_response (mhd_connection, MHD_HTTP_NOT_FOUND, response);
+      MHD_destroy_response (response);
+      return res;
+    }
+  }
+  else
+  {
+    /* 'old' connection */
+    if (NULL == server_lookup_session (plugin, sc))
+    {
+      /* Session was already disconnected */
+      return MHD_NO;
+    }
+  }
+
+  /* existing connection */
+  sc = (*httpSessionCache);
+  s = sc->session;
+
+  GNUNET_assert (NULL != s);
+#if 0
+  /* connection is to be disconnected */
+  if (sc->disconnect == GNUNET_YES)
+  {
+    /* Sent HTTP/1.1: 200 OK as PUT Response\ */
+    response =
+        MHD_create_response_from_data (strlen ("Thank you!"), "Thank you!",
+                                       MHD_NO, MHD_NO);
+    res = MHD_queue_response (mhd_connection, MHD_HTTP_OK, response);
+    MHD_destroy_response (response);
+    return MHD_YES;
+  }
+
+  GNUNET_assert (s != NULL);
+  /* Check if both directions are connected */
+  if ((sc->session->server_recv == NULL) || (sc->session->server_send == NULL))
+  {
+    /* Delayed read from since not both semi-connections are connected */
+    return MHD_YES;
+  }
+
+  if (sc->direction == _SEND)
+  {
+    response =
+        MHD_create_response_from_callback (MHD_SIZE_UNKNOWN,
+                                           32 * 1024,
+                                           &server_send_callback, s,
+                                           NULL);
+    MHD_queue_response (mhd_connection, MHD_HTTP_OK, response);
+    MHD_destroy_response (response);
+    return MHD_YES;
+  }
+  if (sc->direction == _RECEIVE)
+  {
+    if (*upload_data_size == 0)
+    {
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                       "Server: Peer `%s' PUT on address `%s' connected\n",
+                       GNUNET_i2s (&s->target),
+                       http_plugin_address_to_string (NULL, s->addr,
+                                                      s->addrlen));
+      return MHD_YES;
+    }
+
+    /* Receiving data */
+    if ((*upload_data_size > 0))
+    {
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                       "Server: peer `%s' PUT on address `%s' received %u bytes\n",
+                       GNUNET_i2s (&s->target),
+                       http_plugin_address_to_string (NULL, s->addr,
+                                                      s->addrlen),
+                       *upload_data_size);
+      struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get ();
+
+      if ((s->next_receive.abs_value <= now.abs_value))
+      {
+        GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                         "Server: %p: PUT with %u bytes forwarded to MST\n", s,
+                         *upload_data_size);
+        if (s->msg_tk == NULL)
+        {
+          s->msg_tk = GNUNET_SERVER_mst_create (&server_receive_mst_cb, s);
+        }
+            GNUNET_SERVER_mst_receive (s->msg_tk, s, upload_data,
+                                       *upload_data_size, GNUNET_NO, GNUNET_NO);
+
+#if MHD_VERSION >= 0x00090E00
+        int to = (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value / 1000);
+        struct ServerConnection *t = NULL;
+
+        GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                         "Server: Received %u bytes\n", *upload_data_size);
+        /* Setting timeouts for other connections */
+        if (s->server_recv != NULL)
+        {
+          t = s->server_recv;
+          GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                           "Server: Setting timeout for %p to %u sec.\n", t,
+                           to);
+          MHD_set_connection_option (t->mhd_conn, MHD_CONNECTION_OPTION_TIMEOUT,
+                                     to);
+        }
+        if (s->server_send != NULL)
+        {
+          t = s->server_send;
+          GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                           "Server: Setting timeout for %p to %u sec.\n", t,
+                           to);
+          MHD_set_connection_option (t->mhd_conn, MHD_CONNECTION_OPTION_TIMEOUT,
+                                     to);
+        }
+        struct MHD_Daemon *d = NULL;
+
+        if (s->addrlen == sizeof (struct IPv6HttpAddress))
+          d = plugin->server_v6;
+        if (s->addrlen == sizeof (struct IPv4HttpAddress))
+          d = plugin->server_v4;
+        server_reschedule (plugin, d, GNUNET_NO);
+#endif
+        (*upload_data_size) = 0;
+      }
+      else
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    "Server: %p no inbound bandwidth available! Next read was delayed by %llu ms\n",
+                    s, now.abs_value - s->next_receive.abs_value);
+      }
+      return MHD_YES;
+    }
+    else
+      return MHD_NO;
+  }
+#endif
+  return res;
+}
+
+static void
+server_disconnect_cb (void *cls, struct MHD_Connection *connection,
+                      void **httpSessionCache)
+{
+  /* FIXME SPLIT */
+  GNUNET_break (0);
+}
+
+/**
+ * Check if incoming connection is accepted.
+ * NOTE: Here every connection is accepted
+ * @param cls plugin as closure
+ * @param addr address of incoming connection
+ * @param addr_len address length of incoming connection
+ * @return MHD_YES if connection is accepted, MHD_NO if connection is rejected
+ *
+ */
+static int
+server_accept_cb (void *cls, const struct sockaddr *addr, socklen_t addr_len)
+{
+  struct HTTP_Server_Plugin *plugin = cls;
+
+  if (plugin->cur_connections <= plugin->max_connections)
+    return MHD_YES;
+  else
+  {
+    GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, plugin->name,
+                     _("Server reached maximum number connections (%u), rejecting new connection\n"),
+                     plugin->max_connections);
+    return MHD_NO;
+  }
+}
+
+static void
+server_log (void *arg, const char *fmt, va_list ap)
+{
+  char text[1024];
+
+  vsnprintf (text, sizeof (text), fmt, ap);
+  va_end (ap);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Server: %s\n", text);
+}
+
 
 /**
  * Call MHD IPv4 to process pending requests and then go back
@@ -1757,10 +2225,7 @@ server_configure_plugin (struct HTTP_Server_Plugin *plugin)
   return GNUNET_OK;
 }
 
-#if 0
-/**
- * Session was idle, so disconnect it
- */
+
 static void
 server_session_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -1776,7 +2241,6 @@ server_session_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
  GNUNET_assert (GNUNET_OK == server_disconnect (s));
 }
 
-
 /**
 * Start session timeout
 */
@@ -1786,12 +2250,17 @@ server_start_session_timeout (struct HttpServerSession *s)
  GNUNET_assert (NULL != s);
  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == s->timeout_task);
  s->timeout_task =  GNUNET_SCHEDULER_add_delayed (TIMEOUT,
-                                                  &session_timeout,
+                                                  &server_session_timeout,
                                                   s);
  GNUNET_log (TIMEOUT_LOG,
              "Timeout for session %p set to %llu ms\n",
              s,  (unsigned long long) TIMEOUT.rel_value);
 }
+
+#if 0
+/**
+ * Session was idle, so disconnect it
+ */
 
 
 /**
