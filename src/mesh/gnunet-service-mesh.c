@@ -3844,7 +3844,7 @@ tunnel_send_bck_ack (struct MeshTunnel *t, uint16_t type)
   }
 
   tunnel_send_clients_bck_ack (t);
-  tree_iterate_children (t->tree, &tunnel_send_child_bck_ack, NULL);
+  tree_iterate_children (t->tree, &tunnel_send_child_bck_ack, t);
 }
 
 
