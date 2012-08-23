@@ -4355,6 +4355,45 @@ queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
 
 
 /**
+ * @brief Get the next transmittable message from the queue.
+ *
+ * This will be the head, expect in the case of being a data packet
+ * not allowed by the destination peer.
+ *
+ * @param peer Destination peer.
+ *
+ * @return The next viable MeshPeerQueue element to send to that peer.
+ *         NULL when there are no transmittable messages.
+ */
+struct MeshPeerQueue *
+queue_get_next (static struct MeshPeerInfo *peer)
+{
+  struct MeshPeerQueue *q;
+  struct MeshTunnel *t;
+  struct MeshTransmissionDescriptor *info;
+
+  for (q = peer->queue_head; NULL != q; q = q->next)
+  {
+    t = q->tunnel;
+    switch (q->type)
+    {
+      case GNUNET_MESSAGE_TYPE_MESH_UNICAST:
+        info = q->cls;
+        break;
+      case GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN:
+        break;
+      case GNUNET_MESSAGE_TYPE_MESH_MULTICAST:
+        break;
+      default:
+        return q;
+    }
+  }
+  // FIXME fc WIP
+  return NULL;
+}
+
+
+/**
   * Core callback to write a queued packet to core buffer
   *
   * @param cls Closure (peer info).
