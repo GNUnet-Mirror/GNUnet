@@ -51,9 +51,23 @@ http_common_plugin_address_pretty_printer (void *cls, const char *type,
                                         asc, void *asc_cls)
 {
   const char *saddr = (const char *) addr;
-  GNUNET_assert (NULL != saddr);
-  GNUNET_assert (0 < addrlen);
-  GNUNET_assert (saddr[addrlen-1] == '\0');
+  if (NULL == saddr)
+  {
+      asc (asc_cls, NULL);
+      return;
+  }
+  if (0 >= addrlen)
+  if (NULL == saddr)
+  {
+      asc (asc_cls, NULL);
+      return;
+  }
+  if (saddr[addrlen-1] != '\0')
+  if (NULL == saddr)
+  {
+      asc (asc_cls, NULL);
+      return;
+  }
   asc (asc_cls, saddr);
 }
 
@@ -73,9 +87,12 @@ const char *
 http_common_plugin_address_to_string (void *cls, const void *addr, size_t addrlen)
 {
   const char *saddr = (const char *) addr;
-  GNUNET_assert (NULL != saddr);
-  GNUNET_assert (0 < addrlen);
-  GNUNET_assert (saddr[addrlen-1] == '\0');
+  if (NULL == saddr)
+      return NULL;
+  if (0 >= addrlen)
+    return NULL;
+  if (saddr[addrlen-1] != '\0')
+    return NULL;
   return saddr;
 }
 
@@ -98,9 +115,12 @@ http_common_plugin_string_to_address (void *cls,
                         void **buf,
                         size_t *added)
 {
-  GNUNET_assert (NULL != addr);
-  GNUNET_assert (0 < addrlen);
-  GNUNET_assert (addr[addrlen-1] == '\0');
+  if (NULL == addr)
+      return GNUNET_SYSERR;
+  if (0 >= addrlen)
+    return GNUNET_SYSERR;
+  if (addr[addrlen-1] != '\0')
+    return GNUNET_SYSERR;
 
   (*buf) = strdup (addr);
   (*added) = strlen (addr) + 1;
@@ -142,11 +162,31 @@ http_common_address_get_size (const void *addr)
  * @param addrlen1 address 1 length
  * @param addr2 address2
  * @param addrlen2 address 2 length
- * @return GNUNET_YES if equal, GNUNET_NO else
+ * @return GNUNET_YES if equal, GNUNET_NO if not, GNUNET_SYSERR on error
  */
-size_t
+int
 http_common_cmp_addresses (const void *addr1, size_t addrlen1, const void *addr2, size_t addrlen2)
 {
+  const char *a1 = (const char *) addr1;
+  const char *a2 = (const char *) addr2;
+
+  if (NULL == a1)
+      return GNUNET_SYSERR;
+  if (0 >= addrlen1)
+    return GNUNET_SYSERR;
+  if (a1[addrlen1-1] != '\0')
+    return GNUNET_SYSERR;
+
+  if (NULL == a2)
+      return GNUNET_SYSERR;
+  if (0 >= addrlen2)
+    return GNUNET_SYSERR;
+  if (a2[addrlen2-1] != '\0')
+    return GNUNET_SYSERR;
+
+  if (addrlen1 != addrlen2)
+    return GNUNET_NO;
+
   if (0 == strcmp (addr1, addr2))
     return GNUNET_YES;
   return GNUNET_NO;
