@@ -69,6 +69,7 @@ endif
 if !MINGW
 UNIX_PLUGIN_LA = libgnunet_plugin_transport_unix.la
 UNIX_PLUGIN_TEST = test_transport_api_unix 
+UNIX_TEST = test_plugin_unix
 UNIX_PLUGIN_TIMEOUT_TEST = test_transport_api_timeout_unix
 UNIX_REL_TEST = test_transport_api_unreliability_unix
 UNIX_QUOTA_TEST = test_quota_compliance_unix \
@@ -301,7 +302,7 @@ check_PROGRAMS = \
  test_transport_startonly \
  test_plugin_tcp \
  test_plugin_udp \
- test_plugin_unix \
+ $(UNIX_TEST) \
  $(WLAN_PLUGIN_TEST) \
  $(HTTP_SERVER_PLUGIN_TEST) \
  $(HTTPS_SERVER_PLUGIN_TEST) \
@@ -354,7 +355,7 @@ TESTS = \
  test_transport_startonly \
  test_plugin_tcp \
  test_plugin_udp \
- test_plugin_unix \
+ $(UNIX_TEST) \
  $(WLAN_PLUGIN_TEST) \
  test_transport_api_blacklisting \
  test_transport_api_disconnect_tcp \
