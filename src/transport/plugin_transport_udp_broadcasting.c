@@ -228,6 +228,8 @@ prepare_beacon (struct Plugin *plugin, struct UDP_Beacon_Message *msg)
 
   const struct GNUNET_MessageHeader *hello;
   hello = plugin->env->get_our_hello ();
+  if (NULL == hello)
+    return 0;
   hello_size = GNUNET_HELLO_size ((struct GNUNET_HELLO_Message *) hello);
   msg_size = hello_size + sizeof (struct UDP_Beacon_Message);
 
@@ -258,7 +260,7 @@ udp_ipv4_broadcast_send (void *cls,
   sent = 0;
   baddr = plugin->ipv4_broadcast_head;
   /* just IPv4 */
-  while ((baddr != NULL) && (baddr->addrlen == sizeof (struct sockaddr_in)))
+  while ((msg_size > 0) && (baddr != NULL) && (baddr->addrlen == sizeof (struct sockaddr_in)))
   {
     struct sockaddr_in *addr = (struct sockaddr_in *) baddr->addr;
 

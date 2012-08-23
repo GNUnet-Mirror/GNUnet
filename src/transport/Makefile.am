@@ -47,6 +47,7 @@ if LINUX
  WLAN_BIN_DUMMY = gnunet-helper-transport-wlan-dummy
  WLAN_BIN_SENDER = gnunet-transport-wlan-sender
  WLAN_PLUGIN_LA = libgnunet_plugin_transport_wlan.la
+ WLAN_PLUGIN_TEST = test_plugin_wlan
  WLAN_API_TEST = test_transport_api_wlan
  WLAN_REL_TEST = test_transport_api_reliability_wlan
  WLAN_UREL_TEST = test_transport_api_unreliability_wlan
@@ -295,6 +296,10 @@ check_PROGRAMS = \
  test_transport_testing_restart \
  test_transport_testing \
  test_transport_startonly \
+ test_plugin_tcp \
+ test_plugin_udp \
+ test_plugin_unix \
+ $(WLAN_PLUGIN_TEST) \
  test_transport_api_blacklisting \
  test_transport_api_disconnect_tcp \
  test_transport_api_bidirectional_connect \
@@ -342,6 +347,10 @@ TESTS = \
  test_transport_testing_restart \
  test_transport_testing \
  test_transport_startonly \
+ test_plugin_tcp \
+ test_plugin_udp \
+ test_plugin_unix \
+ $(WLAN_PLUGIN_TEST) \
  test_transport_api_blacklisting \
  test_transport_api_disconnect_tcp \
  test_transport_api_bidirectional_connect \
@@ -433,6 +442,42 @@ test_transport_startonly_LDADD = \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/transport/libgnunettransporttesting.la 
+
+test_plugin_tcp_SOURCES = \
+ test_plugin_transport.c
+test_plugin_tcp_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/statistics/libgnunetstatistics.la \
+ $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/util/libgnunetutil.la  \
+ $(top_builddir)/src/transport/libgnunettransporttesting.la
+ 
+test_plugin_udp_SOURCES = \
+ test_plugin_transport.c
+test_plugin_udp_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/statistics/libgnunetstatistics.la \
+ $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/util/libgnunetutil.la  \
+ $(top_builddir)/src/transport/libgnunettransporttesting.la
+
+test_plugin_unix_SOURCES = \
+ test_plugin_transport.c
+test_plugin_unix_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/statistics/libgnunetstatistics.la \
+ $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/util/libgnunetutil.la  \
+ $(top_builddir)/src/transport/libgnunettransporttesting.la
+ 
+test_plugin_wlan_SOURCES = \
+ test_plugin_transport.c
+test_plugin_wlan_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/statistics/libgnunetstatistics.la \
+ $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/util/libgnunetutil.la  \
  $(top_builddir)/src/transport/libgnunettransporttesting.la 
 
 test_transport_api_tcp_SOURCES = \

@@ -40,7 +40,8 @@
 /**
  * How long until we give up on transmitting the message?
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
+#define WAIT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+#define TIMEOUT GNUNET_TIME_relative_multiply (WAIT, 3)
 
 /**
  * Our public key.
@@ -68,6 +69,11 @@ const struct GNUNET_CONFIGURATION_Handle *cfg;
 struct GNUNET_STATISTICS_Handle *stats;
 
 /**
+ * Our HELLO
+ */
+struct GNUNET_HELLO_Message *hello;
+
+/**
  * Number of neighbours we'd like to have.
  */
 static uint32_t max_connect_per_transport;
@@ -88,12 +94,26 @@ struct GNUNET_TRANSPORT_PluginFunctions *api;
 static GNUNET_SCHEDULER_TaskIdentifier timeout_task;
 
 /**
+ * Timeout task
+ */
+static GNUNET_SCHEDULER_TaskIdentifier timeout_wait;
+
+/**
  * Library name
  */
 static char *libname;
 
+/**
+ * Plugin addresses head
+ */
 struct AddressWrapper *head;
+
+/**
+ * Plugin addresses tail
+ */
 struct AddressWrapper *tail;
+
+unsigned int addresses_reported;
 
 /**
  * Did the test pass or fail?
@@ -115,21 +135,13 @@ struct AddressWrapper
 static void
 end ()
 {
-  if (NULL != head)
-  {
-
-  }
-
   if (GNUNET_SCHEDULER_NO_TASK != timeout_task)
   {
       GNUNET_SCHEDULER_cancel (timeout_task);
       timeout_task = GNUNET_SCHEDULER_NO_TASK;
   }
-
   if (NULL != api)
-  {
       GNUNET_PLUGIN_unload (libname, api);
-  }
   GNUNET_free (libname);
   libname = NULL;
   GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
@@ -139,13 +151,16 @@ end ()
 }
 
 static void
-
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct AddressWrapper *w;
   int c = 0;
-
   timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  if (GNUNET_SCHEDULER_NO_TASK != timeout_wait)
+  {
+      GNUNET_SCHEDULER_cancel (timeout_wait);
+      timeout_wait = GNUNET_SCHEDULER_NO_TASK;
+  }
   if (NULL != libname)
   {
     if (NULL != api)
@@ -178,10 +193,25 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   ok = 1;
 }
 
+static void
+wait_end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  timeout_wait = GNUNET_SCHEDULER_NO_TASK;
+  if (0 == addresses_reported)
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              _("Plugin did not report any addresses, could not check plugin \n"));
+  end ();
+}
+
 
 static void
 end_badly_now ()
 {
+  if (GNUNET_SCHEDULER_NO_TASK != timeout_wait)
+  {
+      GNUNET_SCHEDULER_cancel (timeout_wait);
+      timeout_wait = GNUNET_SCHEDULER_NO_TASK;
+  }
   if (GNUNET_SCHEDULER_NO_TASK != timeout_task)
   {
       GNUNET_SCHEDULER_cancel (timeout_task);
@@ -202,7 +232,6 @@ env_receive (void *cls,
             uint16_t sender_address_len)
 {
   /* do nothing */
-  GNUNET_break (0);
   return GNUNET_TIME_relative_get_zero_();
 }
 
@@ -220,7 +249,8 @@ env_notify_address (void *cls,
 
   if (GNUNET_YES == add_remove)
   {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+      addresses_reported ++;
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   _("Adding address of length %u\n"), addrlen);
 
       w = GNUNET_malloc (sizeof (struct AddressWrapper));
@@ -271,10 +301,16 @@ env_notify_address (void *cls,
           end_badly_now();
           return;
       }
+      if (GNUNET_SCHEDULER_NO_TASK != timeout_wait)
+      {
+          GNUNET_SCHEDULER_cancel (timeout_wait);
+          timeout_wait = GNUNET_SCHEDULER_NO_TASK;
+      }
+      timeout_wait = GNUNET_SCHEDULER_add_delayed (WAIT, &wait_end, NULL);
   }
   else if (GNUNET_NO == add_remove)
   {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   _("Removing address of length %u\n"), addrlen);
 
       w = head;
@@ -304,8 +340,9 @@ env_notify_address (void *cls,
   {
       GNUNET_break (0);
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _("Invalid operation\n"));
+                  _("Invalid operation: %u \n"), add_remove);
       end_badly_now ();
+      return;
   }
 }
 
@@ -315,17 +352,15 @@ env_get_address_type (void *cls,
                      size_t addrlen)
 {
   struct GNUNET_ATS_Information ats;
-  ats.type = htonl (0);
-  ats.value = htonl (0);
+  ats.type = htonl (GNUNET_ATS_NETWORK_TYPE);
+  ats.value = htonl (GNUNET_ATS_NET_LOOPBACK);
   return ats;
 }
-
 
 const struct GNUNET_MessageHeader *
 env_get_our_hello (void)
 {
-  GNUNET_break (0);
-  return NULL;
+  return (const struct GNUNET_MessageHeader *) hello;
 }
 
 void env_session_end (void *cls,
@@ -409,6 +444,9 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_CRYPTO_hash (&my_public_key, sizeof (my_public_key),
                       &my_identity.hashPubKey);
 
+
+  hello = GNUNET_HELLO_create(&my_public_key, NULL, NULL);
+
   /* load plugins... */
   setup_plugin_environment ();
 
@@ -431,10 +469,12 @@ run (void *cls, char *const *args, const char *cfgfile,
   if (api == NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Failed to load transport plugin for tcp\n"));
+                _("Failed to load transport plugin for %s\n"), plugin);
     end_badly_now ();
     return;
   }
+
+  timeout_wait = GNUNET_SCHEDULER_add_delayed (WAIT, &wait_end, NULL);
 
   /* Check if all functions are implemented */
   if (NULL == api->address_pretty_printer)
