@@ -189,8 +189,8 @@ typedef struct GNUNET_TIME_Relative (*GNUNET_TRANSPORT_TrafficReport) (void
 /**
  * Function that returns a HELLO message.
  */
-typedef const struct GNUNET_MessageHeader
-    *(*GNUNET_TRANSPORT_GetHelloCallback) (void);
+typedef const struct GNUNET_MessageHeader *
+    (*GNUNET_TRANSPORT_GetHelloCallback) (void);
 
 
 /**
@@ -438,7 +438,7 @@ typedef const char *(*GNUNET_TRANSPORT_AddressToString) (void *cls,
  *
  * @param cls closure ('struct Plugin*')
  * @param addr string address
- * @param addrlen length of the address
+ * @param addrlen length of the address including \0 termination
  * @param buf location to store the buffer
  *        If the function returns GNUNET_SYSERR, its contents are undefined.
  * @param added length of created address
