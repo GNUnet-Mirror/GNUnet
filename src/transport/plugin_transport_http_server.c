@@ -48,6 +48,17 @@
 
 #define HTTP_NOT_VALIDATED_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15)
 
+#define TESTING GNUNET_NO
+
+#if TESTING
+#define TIMEOUT_LOG GNUNET_ERROR_TYPE_ERROR
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+#else
+#define TIMEOUT_LOG GNUNET_ERROR_TYPE_DEBUG
+#define TIMEOUT GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT
+#endif
+
+
 /**
  * Encapsulation of all of the state of the plugin.
  */
@@ -57,17 +68,17 @@ struct Plugin;
 /**
  * Session handle for connections.
  */
-struct Session
+struct HttpServerSession
 {
   /**
    * Stored in a linked list.
    */
-  struct Session *next;
+  struct HttpServerSession *next;
 
   /**
    * Stored in a linked list.
    */
-  struct Session *prev;
+  struct HttpServerSession *prev;
 
   /**
    * To whom are we talking to (set to our identity
@@ -109,6 +120,26 @@ struct Session
    * Address
    */
   void *addr;
+
+  /**
+   * Session timeout task
+   */
+  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+};
+
+struct ServerConnection
+{
+  /* _RECV or _SEND */
+  int direction;
+
+  /* Should this connection get disconnected? GNUNET_YES/NO  */
+  int disconnect;
+
+  /* The session this server connection belongs to */
+  struct Session *session;
+
+  /* The MHD connection */
+  struct MHD_Connection *mhd_conn;
 };
 
 /**
@@ -125,12 +156,12 @@ struct HTTP_Server_Plugin
    * Linked list head of open sessions.
    */
 
-  struct Session *head;
+  struct HttpServerSession *head;
 
   /**
    * Linked list tail of open sessions.
    */
-  struct Session *tail;
+  struct HttpServerSession *tail;
 
   /**
    * Plugin name
@@ -200,9 +231,9 @@ struct HTTP_Server_Plugin
    * A full session consists of 2 semi-connections: send and receive
    * If not both directions are established the server keeps this sessions here
    */
-  struct Session *server_semi_head;
+  struct HttpServerSession *server_semi_head;
 
-  struct Session *server_semi_tail;
+  struct HttpServerSession *server_semi_tail;
 
   /**
    * List of own addresses
@@ -349,6 +380,24 @@ struct HTTP_Message
 
 static struct Plugin * p;
 
+#if 0
+/**
+ * Start session timeout
+ */
+static void
+server_start_session_timeout (struct HttpServerSession *s);
+
+/**
+ * Increment session timeout due to activity
+ */
+static void
+server_reschedule_session_timeout (struct HttpServerSession *s);
+#endif
+/**
+ * Cancel timeout
+ */
+static void
+server_stop_session_timeout (struct HttpServerSession *s);
 
 /**
  * Function that can be used by the transport service to transmit
@@ -472,10 +521,10 @@ http_server_plugin_get_session (void *cls,
  */
 
 void
-server_delete_session (struct Session *s)
+server_delete_session (struct HttpServerSession *s)
 {
   struct HTTP_Server_Plugin *plugin = s->plugin;
-  stop_session_timeout(s);
+  server_stop_session_timeout(s);
 
   GNUNET_CONTAINER_DLL_remove (plugin->head, plugin->tail, s);
   struct HTTP_Message *msg = s->msg_head;
@@ -505,6 +554,71 @@ server_delete_session (struct Session *s)
   GNUNET_free (s);
 }
 
+int
+server_disconnect (struct HttpServerSession *s)
+{
+  struct ServerConnection * send;
+  struct ServerConnection * recv;
+
+  send = (struct ServerConnection *) s->server_send;
+  if (s->server_send != NULL)
+  {
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, s->plugin->name,
+                     "Server: %p / %p Terminating inbound PUT session to peer `%s'\n",
+                     s, s->server_send, GNUNET_i2s (&s->target));
+
+    send->disconnect = GNUNET_YES;
+#if MHD_VERSION >= 0x00090E00
+      MHD_set_connection_option (send->mhd_conn, MHD_CONNECTION_OPTION_TIMEOUT,
+                                 1);
+#endif
+  }
+
+  recv = (struct ServerConnection *) s->server_recv;
+  if (recv != NULL)
+  {
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, s->plugin->name,
+                     "Server: %p / %p Terminating inbound GET session to peer `%s'\n",
+                     s, s->server_recv, GNUNET_i2s (&s->target));
+
+    recv->disconnect = GNUNET_YES;
+#if MHD_VERSION >= 0x00090E00
+      MHD_set_connection_option (recv->mhd_conn, MHD_CONNECTION_OPTION_TIMEOUT,
+                                 1);
+#endif
+  }
+
+  /* Schedule connection immediately */
+#if 0
+  if (s->addrlen == sizeof (struct IPv4HttpAddress))
+  {
+    server_reschedule (s->plugin, s->plugin->server_v4, GNUNET_YES);
+  }
+  else if (s->addrlen == sizeof (struct IPv6HttpAddress))
+  {
+    server_reschedule (s->plugin, s->plugin->server_v6, GNUNET_YES);
+  }
+#endif
+  return GNUNET_OK;
+
+}
+
+
+/**
+* Cancel timeout
+*/
+static void
+server_stop_session_timeout (struct HttpServerSession *s)
+{
+ GNUNET_assert (NULL != s);
+
+ if (GNUNET_SCHEDULER_NO_TASK != s->timeout_task)
+ {
+   GNUNET_SCHEDULER_cancel (s->timeout_task);
+   s->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+   GNUNET_log (TIMEOUT_LOG, "Timeout stopped for session %p\n", s);
+ }
+}
 
 static int
 server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
@@ -1035,8 +1149,8 @@ server_start (struct HTTP_Server_Plugin *plugin)
 void
 server_stop (struct HTTP_Server_Plugin *plugin)
 {
-  struct Session *s = NULL;
-  struct Session *t = NULL;
+  struct HttpServerSession *s = NULL;
+  struct HttpServerSession *t = NULL;
 
   struct MHD_Daemon *server_v4_tmp = plugin->server_v4;
   plugin->server_v4 = NULL;
@@ -1643,6 +1757,61 @@ server_configure_plugin (struct HTTP_Server_Plugin *plugin)
   return GNUNET_OK;
 }
 
+#if 0
+/**
+ * Session was idle, so disconnect it
+ */
+static void
+server_session_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_assert (NULL != cls);
+  struct HttpServerSession *s = cls;
+
+  s->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_log (TIMEOUT_LOG,
+              "Session %p was idle for %llu ms, disconnecting\n",
+              s, (unsigned long long) TIMEOUT.rel_value);
+
+  /* call session destroy function */
+ GNUNET_assert (GNUNET_OK == server_disconnect (s));
+}
+
+
+/**
+* Start session timeout
+*/
+static void
+server_start_session_timeout (struct HttpServerSession *s)
+{
+ GNUNET_assert (NULL != s);
+ GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == s->timeout_task);
+ s->timeout_task =  GNUNET_SCHEDULER_add_delayed (TIMEOUT,
+                                                  &session_timeout,
+                                                  s);
+ GNUNET_log (TIMEOUT_LOG,
+             "Timeout for session %p set to %llu ms\n",
+             s,  (unsigned long long) TIMEOUT.rel_value);
+}
+
+
+/**
+* Increment session timeout due to activity
+*/
+static void
+server_reschedule_session_timeout (struct HttpServerSession *s)
+{
+ GNUNET_assert (NULL != s);
+ GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != s->timeout_task);
+
+ GNUNET_SCHEDULER_cancel (s->timeout_task);
+ s->timeout_task =  GNUNET_SCHEDULER_add_delayed (TIMEOUT,
+                                                  &session_timeout,
+                                                  s);
+ GNUNET_log (TIMEOUT_LOG,
+             "Timeout rescheduled for session %p set to %llu ms\n",
+             s, (unsigned long long) TIMEOUT.rel_value);
+}
+#endif
 
 /**
  * Exit point from the plugin.
