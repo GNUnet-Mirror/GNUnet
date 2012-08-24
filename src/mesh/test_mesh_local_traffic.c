@@ -32,7 +32,7 @@
 
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
-#define TARGET 100000
+#define TARGET 1000
 
 /**
  * DIFFERENT TESTS TO RUN
