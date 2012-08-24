@@ -1853,7 +1853,7 @@ server_add_address (void *cls, int add_remove, const struct sockaddr *addr,
                    "Notifying transport to add address `%s'\n",
                    http_common_plugin_address_to_string(NULL, w->addr, w->addrlen));
 
-  plugin->env->notify_address (plugin->env->cls, add_remove, w->addr, w->addrlen);
+  plugin->env->notify_address (plugin->env->cls, add_remove, w->addr, w->addrlen, "http_client");
 }
 
 
@@ -1884,7 +1884,7 @@ server_remove_address (void *cls, int add_remove, const struct sockaddr *addr,
                    "Notifying transport to remove address `%s'\n",
                    http_common_plugin_address_to_string (NULL, w->addr, w->addrlen));
   GNUNET_CONTAINER_DLL_remove (plugin->addr_head, plugin->addr_tail, w);
-  plugin->env->notify_address (plugin->env->cls, add_remove, w->addr, w->addrlen);
+  plugin->env->notify_address (plugin->env->cls, add_remove, w->addr, w->addrlen, "http_client");
   GNUNET_free (w->addr);
   GNUNET_free (w);
 }
@@ -2213,7 +2213,9 @@ server_notify_external_hostname (void *cls, const struct GNUNET_SCHEDULER_TaskCo
   plugin->ext_addr_len = strlen (plugin->ext_addr) + 1;
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                    "Notifying transport about external hostname address `%s'\n", plugin->ext_addr);
-  plugin->env->notify_address (plugin->env->cls, GNUNET_YES, plugin->ext_addr, plugin->ext_addr_len );
+  plugin->env->notify_address (plugin->env->cls, GNUNET_YES,
+                               plugin->ext_addr, plugin->ext_addr_len,
+                               "http_client");
 }
 
 
@@ -2428,6 +2430,12 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
   struct Session *pos;
   struct Session *next;
 
+  if (NULL == api->cls)
+  {
+    GNUNET_free (api);
+    return NULL;
+  }
+
   if (GNUNET_SCHEDULER_NO_TASK != plugin->notify_ext_task)
   {
       GNUNET_SCHEDULER_cancel (plugin->notify_ext_task);
@@ -2444,7 +2452,8 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
       plugin->env->notify_address (plugin->env->cls,
                                    GNUNET_NO,
                                    plugin->ext_addr,
-                                   plugin->ext_addr_len);
+                                   plugin->ext_addr_len,
+                                   "http_client");
   }
 
   /* Stop to report addresses to transport service */
@@ -2485,6 +2494,19 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   plugin = GNUNET_malloc (sizeof (struct HTTP_Server_Plugin));
   plugin->env = env;
   p = plugin;
+
+  if (NULL == env->receive)
+  {
+    /* run in 'stub' mode (i.e. as part of gnunet-peerinfo), don't fully
+       initialze the plugin or the API */
+    api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
+    api->cls = NULL;
+    api->address_to_string = &http_common_plugin_address_to_string;
+    api->string_to_address = &http_common_plugin_string_to_address;
+    api->address_pretty_printer = &http_common_plugin_address_pretty_printer;
+    return api;
+  }
+
   api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
   api->cls = plugin;
   api->send = &http_server_plugin_send;

@@ -1277,7 +1277,7 @@ udp_nat_port_map_callback (void *cls, int add_remove,
     return;
   }
   /* modify our published address list */
-  plugin->env->notify_address (plugin->env->cls, add_remove, arg, args);
+  plugin->env->notify_address (plugin->env->cls, add_remove, arg, args, "udp");
 }
 
 

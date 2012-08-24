@@ -309,16 +309,17 @@ end:
  * @param addr one of the addresses of the host
  *        the specific address format depends on the transport
  * @param addrlen length of the address
+ * @param dest_plugin destination plugin to use this address with
  */
 static void
 plugin_env_address_change_notification (void *cls, int add_remove,
-                                        const void *addr, size_t addrlen)
+                                        const void *addr, size_t addrlen,
+                                        const char *dest_plugin)
 {
-  const char *plugin_name = cls;
   struct GNUNET_HELLO_Address address;
 
   address.peer = GST_my_identity;
-  address.transport_name = plugin_name;
+  address.transport_name = dest_plugin;
   address.address = addr;
   address.address_length = addrlen;
   GST_hello_modify_addresses (add_remove, &address);

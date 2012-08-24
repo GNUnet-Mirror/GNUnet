@@ -1219,7 +1219,8 @@ address_notification (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   plugin->env->notify_address (plugin->env->cls, GNUNET_YES,
                                plugin->unix_socket_path,
-                               strlen (plugin->unix_socket_path) + 1);
+                               strlen (plugin->unix_socket_path) + 1,
+                               "unix");
 }
 
 

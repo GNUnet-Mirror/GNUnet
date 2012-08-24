@@ -1285,7 +1285,8 @@ handle_helper_message (void *cls, void *client,
       /* remove old address */
       plugin->env->notify_address (plugin->env->cls, GNUNET_NO,
 				   &plugin->mac_address,
-				   sizeof (struct GNUNET_TRANSPORT_WLAN_MacAddress));      
+				   sizeof (struct GNUNET_TRANSPORT_WLAN_MacAddress),
+				   "wlan");
     }
     plugin->mac_address = cm->mac;
     plugin->have_mac = GNUNET_YES;
@@ -1295,7 +1296,8 @@ handle_helper_message (void *cls, void *client,
 	 GNUNET_i2s (plugin->env->my_identity));
     plugin->env->notify_address (plugin->env->cls, GNUNET_YES,
                                  &plugin->mac_address,
-                                 sizeof (struct GNUNET_TRANSPORT_WLAN_MacAddress));
+                                 sizeof (struct GNUNET_TRANSPORT_WLAN_MacAddress),
+                                 "wlan");
     break;
   case GNUNET_MESSAGE_TYPE_WLAN_DATA_FROM_HELPER:
     LOG (GNUNET_ERROR_TYPE_DEBUG, 
