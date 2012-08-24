@@ -1163,6 +1163,7 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
   }
   t->last_recv_pid = pid;
   type = ntohs (payload->type);
+  send_ack (h, t);
   for (i = 0; i < h->n_handlers; i++)
   {
     handler = &h->message_handlers[i];
@@ -1183,7 +1184,6 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
       {
         LOG (GNUNET_ERROR_TYPE_DEBUG,
              "callback completed successfully\n");
-        send_ack (h, t);
       }
     }
   }
