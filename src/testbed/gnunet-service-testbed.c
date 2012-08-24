@@ -1776,6 +1776,8 @@ handle_peer_start (void *cls,
 {
   const struct GNUNET_TESTBED_PeerStartMessage *msg;
   struct GNUNET_TESTBED_PeerEventMessage *reply;
+  struct ForwardedOperationContext *fopc;
+  struct Peer *peer;
   uint32_t peer_id;
 
   msg = (const struct GNUNET_TESTBED_PeerStartMessage *) message;
@@ -1784,15 +1786,35 @@ handle_peer_start (void *cls,
       || (NULL == peer_list[peer_id]))
   {
     GNUNET_break (0);
-    /* FIXME: reply with failure message or forward to slave controller */
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         "Asked to start a non existent peer with id: %u\n", peer_id);    
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
+  peer = peer_list[peer_id];
+  if (GNUNET_YES == peer->is_remote)
+  {
+    fopc = GNUNET_malloc (sizeof (struct ForwardedOperationContext));
+    GNUNET_SERVER_client_keep (client);    
+    fopc->client = client;
+    fopc->operation_id = GNUNET_ntohll (msg->operation_id);
+    fopc->opc = 
+      GNUNET_TESTBED_forward_operation_msg_ (peer->details.remote.controller,
+                                             fopc->operation_id,
+                                             &msg->header,
+                                             &forwarded_operation_reply_relay,
+                                             fopc);
+    fopc->timeout_task =
+      GNUNET_SCHEDULER_add_delayed (TIMEOUT,
+                                    &forwarded_operation_timeout, fopc);    
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
   if (GNUNET_OK != 
-      GNUNET_TESTING_peer_start (peer_list[peer_id]->details.local.peer))
+      GNUNET_TESTING_peer_start (peer->details.local.peer))
   {
-    /* FIXME: return FAILURE message */
-    GNUNET_break (0);
+    send_operation_fail_msg (client, GNUNET_ntohll (msg->operation_id),
+                             "Failed to start");    
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
@@ -1822,6 +1844,8 @@ handle_peer_stop (void *cls,
 {
   const struct GNUNET_TESTBED_PeerStopMessage *msg;
   struct GNUNET_TESTBED_PeerEventMessage *reply;
+  struct ForwardedOperationContext *fopc;
+  struct Peer *peer;
   uint32_t peer_id;
 
   msg = (const struct GNUNET_TESTBED_PeerStopMessage *) message;
@@ -1832,8 +1856,27 @@ handle_peer_stop (void *cls,
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
+  peer = peer_list[peer_id];
+  if (GNUNET_YES == peer->is_remote)
+  {
+    fopc = GNUNET_malloc (sizeof (struct ForwardedOperationContext));
+    GNUNET_SERVER_client_keep (client);    
+    fopc->client = client;
+    fopc->operation_id = GNUNET_ntohll (msg->operation_id);
+    fopc->opc = 
+      GNUNET_TESTBED_forward_operation_msg_ (peer->details.remote.controller,
+                                             fopc->operation_id,
+                                             &msg->header,
+                                             &forwarded_operation_reply_relay,
+                                             fopc);
+    fopc->timeout_task =
+      GNUNET_SCHEDULER_add_delayed (TIMEOUT,
+                                    &forwarded_operation_timeout, fopc);    
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
   if (GNUNET_OK != 
-      GNUNET_TESTING_peer_stop (peer_list[peer_id]->details.local.peer))
+      GNUNET_TESTING_peer_stop (peer->details.local.peer))
   {
     /* FIXME: return FAILURE message */
     GNUNET_break (0);

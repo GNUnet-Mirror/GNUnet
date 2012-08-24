@@ -88,6 +88,26 @@ enum Stage
     SLAVE2_PEER_CREATE_SUCCESS,
 
     /**
+     * Peer startup on slave 1 successful
+     */
+    SLAVE1_PEER_START_SUCCESS,
+
+    /**
+     * Peer on slave 1 successfully stopped
+     */
+    SLAVE1_PEER_STOP_SUCCESS,
+    
+    /**
+     * Peer startup on slave 2 successful
+     */
+    SLAVE2_PEER_START_SUCCESS,
+
+    /**
+     * Peer on slave 2 successfully stopped
+     */
+    SLAVE2_PEER_STOP_SUCCESS,
+
+    /**
      * Peer destroy on slave 1 successful
      */
     SLAVE1_PEER_DESTROY_SUCCESS,
@@ -200,11 +220,36 @@ do_shutdown (void *cls, const const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param tc the task context
  */
 static void
-do_abort (void *cls, const const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   LOG (GNUNET_ERROR_TYPE_WARNING, "Test timedout -- Aborting\n");
   abort_task = GNUNET_SCHEDULER_NO_TASK;
   do_shutdown (cls, tc);
+}
+
+
+/**
+ * Task for inserting delay between tests
+ *
+ * @param 
+ * @return 
+ */
+static void
+delay_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  switch (result)
+  {
+  case SLAVE1_PEER_START_SUCCESS:
+    op = GNUNET_TESTBED_peer_stop (slave1_peer);
+    GNUNET_assert (NULL != op);    
+    break;
+  case SLAVE2_PEER_START_SUCCESS:
+    op = GNUNET_TESTBED_peer_stop (slave2_peer);
+    GNUNET_assert (NULL != op);    
+    break;
+  default:
+    GNUNET_assert (0);    
+  }  
 }
 
 
@@ -237,7 +282,7 @@ peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
     result = SLAVE2_PEER_CREATE_SUCCESS;
     slave2_peer = peer;    
     GNUNET_TESTBED_operation_done (op);
-    op = GNUNET_TESTBED_peer_destroy (slave1_peer);
+    op = GNUNET_TESTBED_peer_start (slave1_peer);    
     GNUNET_assert (NULL != op);    
     break;
   default:
@@ -297,11 +342,47 @@ controller_cb(void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     GNUNET_assert (NULL != op);
     break;
   case SLAVE2_PEER_CREATE_SUCCESS:
+    GNUNET_assert (GNUNET_TESTBED_ET_PEER_START == event->type);
+    GNUNET_assert (event->details.peer_start.host == slave);
+    GNUNET_assert (event->details.peer_start.peer == slave1_peer);
+    GNUNET_TESTBED_operation_done (op);
+    result = SLAVE1_PEER_START_SUCCESS;
+    GNUNET_SCHEDULER_add_delayed 
+      (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1),
+       &delay_task, NULL);
+    break;
+  case SLAVE1_PEER_START_SUCCESS:
+    GNUNET_assert (GNUNET_TESTBED_ET_PEER_STOP == event->type);
+    GNUNET_assert (event->details.peer_stop.peer == slave1_peer);
+    GNUNET_TESTBED_operation_done (op);
+    result = SLAVE1_PEER_STOP_SUCCESS;
+    op = GNUNET_TESTBED_peer_start (slave2_peer);
+    GNUNET_assert (NULL != op);    
+    break;
+  case SLAVE1_PEER_STOP_SUCCESS:
+    GNUNET_assert (GNUNET_TESTBED_ET_PEER_START == event->type);
+    GNUNET_assert (event->details.peer_start.host == slave2);
+    GNUNET_assert (event->details.peer_start.peer == slave2_peer);
+    GNUNET_TESTBED_operation_done (op);
+    result = SLAVE2_PEER_START_SUCCESS;
+    GNUNET_SCHEDULER_add_delayed 
+      (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1),
+       &delay_task, NULL);
+    break;
+  case SLAVE2_PEER_START_SUCCESS:
+    GNUNET_assert (GNUNET_TESTBED_ET_PEER_STOP == event->type);
+    GNUNET_assert (event->details.peer_stop.peer == slave2_peer);
+    GNUNET_TESTBED_operation_done (op);
+    result = SLAVE2_PEER_STOP_SUCCESS;
+    op = GNUNET_TESTBED_peer_destroy (slave1_peer);
+    GNUNET_assert (NULL != op);
+    break;
+  case SLAVE2_PEER_STOP_SUCCESS:
     check_operation_success (event);
     GNUNET_TESTBED_operation_done (op);
     result = SLAVE1_PEER_DESTROY_SUCCESS;
     op = GNUNET_TESTBED_peer_destroy (slave2_peer);
-    GNUNET_assert (NULL != slave2_peer);
+    GNUNET_assert (NULL != op);
     break;
   case SLAVE1_PEER_DESTROY_SUCCESS:
     check_operation_success (event);
@@ -438,13 +519,14 @@ int main (int argc, char **argv)
     GNUNET_assert (GNUNET_SYSERR != ret);
     (void) usleep (300);    
   } while (GNUNET_NO == ret);
+  GNUNET_OS_process_destroy (auxp);  
   if (0 != code)
   {    
     (void) printf ("Unable to run the test as this system is not configured "
 		   "to use password less SSH logins to localhost.\n"
 		   "Marking test as successful\n");
-    return 0;    
-  }  
+    return 0; 
+  }
   result = INIT;
   ret = GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
 			    "test_testbed_api_controllerlink", "nohelp", options, &run,

@@ -370,7 +370,7 @@ handle_peer_create_success (struct GNUNET_TESTBED_Controller *c,
     GNUNET_free (fo_data);
     GNUNET_free (opc);    
     return GNUNET_YES;    
-  }  
+  }
   GNUNET_assert (OP_PEER_CREATE == opc->type);
   GNUNET_assert (NULL != opc->data);
   data = opc->data;
@@ -414,6 +414,18 @@ handle_peer_event (struct GNUNET_TESTBED_Controller *c,
   {
     LOG_DEBUG ("Operation not found\n");
     return GNUNET_YES;
+  }
+  if (OP_FORWARDED == opc->type)
+  {
+    struct ForwardedOperationData *fo_data;
+    
+    fo_data = opc->data;
+    if (NULL != fo_data->cc)
+      fo_data->cc (fo_data->cc_cls, (const struct GNUNET_MessageHeader *) msg);
+    GNUNET_CONTAINER_DLL_remove (c->ocq_head, c->ocq_tail, opc);
+    GNUNET_free (fo_data);
+    GNUNET_free (opc);    
+    return GNUNET_YES;    
   }
   GNUNET_assert ((OP_PEER_START == opc->type) || (OP_PEER_STOP == opc->type));
   peer = opc->data;
