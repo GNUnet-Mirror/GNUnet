@@ -4537,6 +4537,11 @@ queue_get_next (const struct MeshPeerInfo *peer)
         break;
       case GNUNET_MESSAGE_TYPE_MESH_MULTICAST:
         mcast = (struct GNUNET_MESH_Multicast *) info->mesh_data->data;
+        if (GNUNET_MESSAGE_TYPE_MESH_MULTICAST != ntohs(mcast->header.type)) 
+        {
+          // Not a multicast payload: multicast control traffic (destroy, etc)
+          return q;
+        }
         pid = ntohl (mcast->pid);
         GNUNET_PEER_resolve (info->peer->id, &id);
         cinfo = tunnel_get_neighbor_fc(t, &id);
