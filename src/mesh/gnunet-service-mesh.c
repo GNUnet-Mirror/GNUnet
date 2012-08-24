@@ -1148,6 +1148,7 @@ static void
 queue_add (void *cls, uint16_t type, size_t size,
            struct MeshPeerInfo *dst, struct MeshTunnel *t);
 
+
 /**
  * Free a transmission that was already queued with all resources
  * associated to the request.
@@ -1157,6 +1158,34 @@ queue_add (void *cls, uint16_t type, size_t size,
  */
 static void
 queue_destroy (struct MeshPeerQueue *queue, int clear_cls);
+
+
+/**
+ * @brief Get the next transmittable message from the queue.
+ *
+ * This will be the head, except in the case of being a data packet
+ * not allowed by the destination peer.
+ *
+ * @param peer Destination peer.
+ *
+ * @return The next viable MeshPeerQueue element to send to that peer.
+ *         NULL when there are no transmittable messages.
+ */
+struct MeshPeerQueue *
+queue_get_next (const struct MeshPeerInfo *peer);
+
+
+/**
+ * Core callback to write a queued packet to core buffer
+ *
+ * @param cls Closure (peer info).
+ * @param size Number of bytes available in buf.
+ * @param buf Where the to write the message.
+ *
+ * @return number of bytes written to buf
+ */
+static size_t
+queue_send (void *cls, size_t size, void *buf);
 
 /******************************************************************************/
 /************************         ITERATORS        ****************************/
@@ -3872,6 +3901,89 @@ tunnel_send_bck_ack (struct MeshTunnel *t, uint16_t type)
 
 
 /**
+ * @brief Re-initiate traffic to this peer if necessary.
+ *
+ * Check if there is traffic queued towards this peer
+ * and the core transmit handle is NULL (traffic was stalled).
+ * If so, call core tmt rdy.
+ *
+ * @param cls Closure (unused)
+ * @param peer_id Short ID of peer to which initiate traffic.
+ */
+static void
+peer_unlock_queue(void *cls, GNUNET_PEER_Id peer_id)
+{
+  struct MeshPeerInfo *peer;
+  struct GNUNET_PeerIdentity id;
+  struct MeshPeerQueue *q;
+  size_t size;
+
+  peer = peer_info_get_short(peer_id);
+  if (NULL != peer->core_transmit)
+    return;
+
+  q = queue_get_next(peer);
+  if (NULL == q)
+  {
+    /* Might br multicast traffic already sent to this particular peer but
+     * not to other children in this tunnel.
+     * This way t->queue_n would be > 0 but the queue of this particular peer
+     * would be empty.
+     */
+    return;
+  }
+  size = q->size;
+  GNUNET_PEER_resolve (peer->id, &id);
+  peer->core_transmit =
+        GNUNET_CORE_notify_transmit_ready(core_handle,
+                                          0,
+                                          0,
+                                          GNUNET_TIME_UNIT_FOREVER_REL,
+                                          &id,
+                                          size,
+                                          &queue_send,
+                                          peer);
+        return;
+}
+
+
+/**
+ * @brief Allow transmission of FWD traffic on this tunnel
+ *
+ * Check if there is traffic queued towards any children
+ * and the core transmit handle is NULL, and if so, call core tmt rdy.
+ *
+ * @param t Tunnel on which to unlock FWD traffic.
+ */
+static void
+tunnel_unlock_fwd_queues (struct MeshTunnel *t)
+{
+  if (0 == t->fwd_queue_n)
+    return;
+
+  tree_iterate_children (t->tree, &peer_unlock_queue, NULL);
+}
+
+
+/**
+ * @brief Allow transmission of BCK traffic on this tunnel
+ *
+ * Check if there is traffic queued towards the root of the tree
+ * and the core transmit handle is NULL, and if so, call core tmt rdy.
+ *
+ * @param t Tunnel on which to unlock BCK traffic.
+ */
+static void
+tunnel_unlock_bck_queue (struct MeshTunnel *t)
+{
+  if (0 == t->bck_queue_n)
+    return;
+
+  peer_unlock_queue(NULL, tree_get_predecessor(t->tree));
+}
+
+
+/**
  * Send a message to all peers in this tunnel that the tunnel is no longer
  * valid.
  *
@@ -4380,7 +4492,7 @@ queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
 /**
  * @brief Get the next transmittable message from the queue.
  *
- * This will be the head, expect in the case of being a data packet
+ * This will be the head, except in the case of being a data packet
  * not allowed by the destination peer.
  *
  * @param peer Destination peer.
@@ -4555,7 +4667,8 @@ queue_send (void *cls, size_t size, void *buf)
       case GNUNET_MESSAGE_TYPE_MESH_MULTICAST:
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********   multicast\n");
         data_size = send_core_data_multicast(queue->cls, size, buf);
-        // t->fwd_queue_n--; FIXME fc
+        // FIXME fc substract when? depending on the tunnel conf.
+        // t->fwd_queue_n--;
         tunnel_send_fwd_ack (t, GNUNET_MESSAGE_TYPE_MESH_MULTICAST);
         break;
       case GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE:
@@ -5354,8 +5467,7 @@ handle_mesh_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got an ACK packet from %s!\n",
               GNUNET_i2s (peer));
   msg = (struct GNUNET_MESH_ACK *) message;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " of type %s\n",
-              GNUNET_MESH_DEBUG_M2S (ntohs (msg[1].header.type)));
+
   t = tunnel_get (&msg->oid, ntohl (msg->tid));
 
   if (NULL == t)
@@ -5368,7 +5480,7 @@ handle_mesh_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
   ack = ntohl (msg->pid);
 
   /* Is this a forward or backward ACK? */
-  if (tree_get_predecessor(t->tree) == GNUNET_PEER_search(peer))
+  if (tree_get_predecessor(t->tree) != GNUNET_PEER_search(peer))
   {
     struct MeshTunnelChildInfo *cinfo;
 
@@ -5376,14 +5488,15 @@ handle_mesh_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
     cinfo = tunnel_get_neighbor_fc (t, peer);
     cinfo->fwd_ack = ack;
     tunnel_send_fwd_ack (t, GNUNET_MESSAGE_TYPE_MESH_ACK);
+    tunnel_unlock_fwd_queues (t);
   }
   else
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  BCK ACK\n");
     t->bck_ack = ack;
     tunnel_send_bck_ack (t, GNUNET_MESSAGE_TYPE_MESH_ACK);
+    tunnel_unlock_bck_queue (t);
   }
-  // FIXME fc Unlock queues?
   return GNUNET_OK;
 }
 
