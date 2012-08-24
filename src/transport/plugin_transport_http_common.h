@@ -27,19 +27,16 @@
 #include "platform.h"
 #include "gnunet_common.h"
 
-#if 0
-GNUNET_NETWORK_STRUCT_BEGIN
-/**
- * HTTP addresses including a full URI
- */
-struct HttpAddress
-{
-  /**
-   * Address following
-   */
-  char *address GNUNET_PACKED;
-};
-GNUNET_NETWORK_STRUCT_END
+#define TESTING GNUNET_NO
+
+#if TESTING
+#define TIMEOUT_LOG GNUNET_ERROR_TYPE_ERROR
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15)
+#define HTTP_NOT_VALIDATED_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+#else
+#define HTTP_NOT_VALIDATED_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15)
+#define TIMEOUT_LOG GNUNET_ERROR_TYPE_DEBUG
+#define TIMEOUT GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT
 #endif
 
 /**

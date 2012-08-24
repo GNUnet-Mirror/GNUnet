@@ -46,18 +46,6 @@
 #define LIBGNUNET_PLUGIN_TRANSPORT_DONE libgnunet_plugin_transport_http_server_done
 #endif
 
-#define TESTING GNUNET_NO
-
-#if TESTING
-#define TIMEOUT_LOG GNUNET_ERROR_TYPE_ERROR
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15)
-#define HTTP_NOT_VALIDATED_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
-#else
-#define HTTP_NOT_VALIDATED_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15)
-#define TIMEOUT_LOG GNUNET_ERROR_TYPE_DEBUG
-#define TIMEOUT GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT
-#endif
-
 #define HTTP_ERROR_RESPONSE "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\"><HTML><HEAD><TITLE>404 Not Found</TITLE></HEAD><BODY><H1>Not Found</H1>The requested URL was not found on this server.<P><HR><ADDRESS></ADDRESS></BODY></HTML>"
 #define _RECEIVE 0
 #define _SEND 1
@@ -122,7 +110,6 @@ struct Session
    * Address
    */
   void *addr;
-
 
   /**
    * Address length
@@ -257,15 +244,6 @@ struct HTTP_Server_Plugin
    * NAT handle & address management
    */
   struct GNUNET_NAT_Handle *nat;
-
-  /**
-   * Server semi connections
-   * A full session consists of 2 semi-connections: send and receive
-   * If not both directions are established the server keeps this sessions here
-   */
-  //struct Session *server_semi_head;
-
-  //struct Session *server_semi_tail;
 
   /**
    * List of own addresses
