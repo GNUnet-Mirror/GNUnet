@@ -498,6 +498,9 @@ http_server_plugin_send (void *cls,
   }
   GNUNET_assert (NULL != session->server_send);
 
+  if (GNUNET_YES == session->server_send->disconnect)
+    return GNUNET_SYSERR;
+
   /* create new message and schedule */
   bytes_sent = sizeof (struct HTTP_Message) + msgbuf_size;
   msg = GNUNET_malloc (bytes_sent);
@@ -622,6 +625,9 @@ server_delete_session (struct Session *s)
   struct HTTP_Server_Plugin *plugin = s->plugin;
   server_stop_session_timeout(s);
 
+  if (GNUNET_YES == s->session_passed)
+    plugin->env->session_end (plugin->env->cls, &s->target, s);
+
   GNUNET_CONTAINER_DLL_remove (plugin->head, plugin->tail, s);
   struct HTTP_Message *msg = s->msg_head;
   struct HTTP_Message *tmp = NULL;
@@ -648,6 +654,9 @@ server_delete_session (struct Session *s)
   GNUNET_free_non_null (s->server_recv);
   GNUNET_free_non_null (s->server_send);
   GNUNET_free (s);
+
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                   "Session %p destroyed\n", s);
 }
 
 
@@ -827,18 +836,15 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
 
   if (url_len < 105)
   {
-    GNUNET_break (0);
     goto error; /* too short */
   }
   hash_start = strrchr (url, '/');
   if (NULL == hash_start)
   {
-      GNUNET_break (0);
     goto error; /* '/' delimiter not found */
   }
   if (hash_start >= url_end)
   {
-      GNUNET_break (0);
     goto error; /* mal formed */
   }
   hash_start++;
@@ -848,19 +854,16 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
     goto error; /* ';' delimiter not found */
   if (hash_end >= url_end)
   {
-      GNUNET_break (0);
     goto error; /* mal formed */
   }
 
   if (hash_start >= hash_end)
   {
-      GNUNET_break (0);
     goto error; /* mal formed */
   }
 
   if ((strlen(hash_start) - strlen(hash_end)) != 103)
   {
-      GNUNET_break (0);
     goto error; /* invalid hash length */
   }
 
@@ -869,13 +872,11 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
   hash[103] = '\0';
   if (GNUNET_OK != GNUNET_CRYPTO_hash_from_string ((const char *) hash, &(target.hashPubKey)))
   {
-      GNUNET_break (0);
     goto error; /* mal formed */
   }
 
   if (hash_end >= url_end)
   {
-      GNUNET_break (0);
     goto error; /* mal formed */
   }
 
@@ -1343,20 +1344,8 @@ server_disconnect_cb (void *cls, struct MHD_Connection *connection,
                      "Peer `%s' on address `%s' disconnected\n",
                      GNUNET_i2s (&s->target),
                      http_common_plugin_address_to_string (NULL, s->addr, s->addrlen));
-    if (s->msg_tk != NULL)
-    {
-      GNUNET_SERVER_mst_destroy (s->msg_tk);
-      s->msg_tk = NULL;
-    }
 
-    GNUNET_CONTAINER_DLL_remove(plugin->head, plugin->tail, s);
-    server_stop_session_timeout (s);
-    if (GNUNET_YES == s->session_passed)
-      plugin->env->session_end (plugin->env->cls, &s->target, s);
-    GNUNET_free (s->addr);
-    GNUNET_free (s);
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                     "Session %p destroyed\n", s);
+    server_delete_session (s);
   }
 }
 
@@ -2458,6 +2447,8 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
 {
   struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
   struct HTTP_Server_Plugin *plugin = api->cls;
+  struct Session *pos;
+  struct Session *next;
 
   if (GNUNET_SCHEDULER_NO_TASK != plugin->notify_ext_task)
   {
@@ -2482,6 +2473,14 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
   server_stop_report_addresses (plugin);
 
   server_stop (plugin);
+
+  next = plugin->head;
+  while (NULL != (pos = next))
+  {
+      next = pos->next;
+      GNUNET_CONTAINER_DLL_remove( plugin->head, plugin->tail, pos);
+      server_delete_session (pos);
+  }
 
   /* Clean up */
   GNUNET_free_non_null (plugin->external_hostname);
