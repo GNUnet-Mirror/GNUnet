@@ -304,6 +304,18 @@ gnunet_plugin_transport_template_init (void *cls)
   struct GNUNET_TRANSPORT_PluginFunctions *api;
   struct Plugin *plugin;
 
+  if (NULL == env->receive)
+  {
+    /* run in 'stub' mode (i.e. as part of gnunet-peerinfo), don't fully
+       initialze the plugin or the API */
+    api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
+    api->cls = NULL;
+    api->address_to_string = &template_plugin_address_to_string;
+    api->string_to_address = &template_plugin_string_to_address;
+    api->address_pretty_printer = &template_plugin_address_pretty_printer;
+    return api;
+  }
+
   plugin = GNUNET_malloc (sizeof (struct Plugin));
   plugin->env = env;
   api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
