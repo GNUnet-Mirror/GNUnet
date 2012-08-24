@@ -75,8 +75,17 @@ enum Stage
     /**
      * Link from slave 1 to slave 2 has been successfully created.
      */
-    SUCCESS
+    SLAVE2_LINK_SUCCESS,
 
+    /**
+     * Peer create on slave 1 successful
+     */
+    SLAVE1_PEER_CREATE_SUCCESS,
+
+    /**
+     * Test is successful
+     */
+    SUCCESS
   };
 
 /**
@@ -123,6 +132,16 @@ static GNUNET_SCHEDULER_TaskIdentifier abort_task;
  * Operation handle for linking controllers
  */
 static struct GNUNET_TESTBED_Operation *op;
+
+/**
+ * Handle to peer started at slave 1
+ */
+static struct GNUNET_TESTBED_Peer *slave1_peer;
+
+/**
+ * Handle to peer started at slave 2
+ */
+static struct GNUNET_TESTBED_Peer *slave2_peer;
 
 /**
  * Event mask
@@ -180,6 +199,43 @@ do_abort (void *cls, const const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
+ * Functions of this signature are called when a peer has been successfully
+ * created
+ *
+ * @param cls the closure from GNUNET_TESTBED_peer_create()
+ * @param peer the handle for the created peer; NULL on any error during
+ *          creation
+ * @param emsg NULL if peer is not NULL; else MAY contain the error description
+ */
+static void 
+peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
+{
+  switch (result)
+  {
+  case SLAVE2_LINK_SUCCESS:
+    GNUNET_assert (NULL != peer);
+    GNUNET_assert (NULL == emsg);
+    result = SLAVE1_PEER_CREATE_SUCCESS;    
+    slave1_peer = peer;
+    GNUNET_TESTBED_operation_done (op);    
+    op = GNUNET_TESTBED_peer_create (mc, slave2, cfg, peer_create_cb, NULL);
+    GNUNET_assert (NULL != op);
+    break;
+  case SLAVE1_PEER_CREATE_SUCCESS:
+    GNUNET_assert (NULL != peer);
+    GNUNET_assert (NULL == emsg);
+    result = SUCCESS;
+    slave2_peer = peer;    
+    GNUNET_TESTBED_operation_done (op);
+    GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+    break;
+  default:
+    GNUNET_assert (0);    
+  }
+}
+
+
+/**
  * Signature of the event handler function called by the
  * respective event controller.
  *
@@ -218,9 +274,10 @@ controller_cb(void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     GNUNET_assert (NULL == event->details.operation_finished.op_result.generic);
     GNUNET_TESTBED_operation_done (op);
     op = NULL;
-    result = SUCCESS;
-    GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
-    break;
+    result = SLAVE2_LINK_SUCCESS;
+    op = GNUNET_TESTBED_peer_create (mc, slave, cfg, peer_create_cb, NULL);
+    GNUNET_assert (NULL != op);
+    break;    
   default:
     GNUNET_assert (0);
   }
@@ -256,10 +313,7 @@ registration_cont (void *cls, const char *emsg)
     op = GNUNET_TESTBED_controller_link (mc, slave, NULL, cfg, GNUNET_YES);
     GNUNET_assert (NULL != op);
     break;
-  case INIT:
-  case SUCCESS:
-  case SLAVE2_REGISTERED:
-  case SLAVE1_LINK_SUCCESS:
+  default:
     GNUNET_assert (0);
   }
 }

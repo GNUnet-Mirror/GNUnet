@@ -433,7 +433,7 @@ struct OverlayConnectContext
 
 
 /**
- * Context information for operations forward to subcontrollers
+ * Context information for operations forwarded to subcontrollers
  */
 struct ForwardedOperationContext
 {
@@ -448,6 +448,11 @@ struct ForwardedOperationContext
   struct GNUNET_SERVER_Client *client;
 
   /**
+   * Closure pointer
+   */
+  void *cls;  
+
+  /**
    * Task ID for the timeout task
    */
   GNUNET_SCHEDULER_TaskIdentifier timeout_task;
@@ -457,10 +462,6 @@ struct ForwardedOperationContext
    */
   uint64_t operation_id;  
 
-  /**
-   * The ID of the peer we are going to create
-   */
-  uint32_t peer_id;
 };
 
 
@@ -1533,7 +1534,7 @@ peer_create_forward_timeout (void *cls,
   
   /* send error msg to client */
   send_operation_fail_msg (fo_ctxt->client, fo_ctxt->operation_id,
-                           "Timedout");  
+                           "Timedout");
   GNUNET_SERVER_client_drop (fo_ctxt->client);
   GNUNET_TESTBED_forward_operation_msg_cancel_ (fo_ctxt->opc);
   GNUNET_free (fo_ctxt);  
@@ -1552,13 +1553,24 @@ peer_create_success_cb (void *cls,
                         const struct GNUNET_MessageHeader *msg)
 {
   struct ForwardedOperationContext *fo_ctxt = cls;
-  struct GNUNET_MessageHeader *dup_msg;  
+  const struct GNUNET_TESTBED_PeerCreateSuccessEventMessage *success_msg;
+  struct GNUNET_MessageHeader *dup_msg;
+  struct Peer *peer;
   uint16_t msize;
   
-  GNUNET_SCHEDULER_cancel (fo_ctxt->timeout_task);  
-  GNUNET_assert (ntohs (msg->type) == 
-                 GNUNET_MESSAGE_TYPE_TESTBED_PEERCREATESUCCESS);
-  msize = ntohs (msg->size);  
+  GNUNET_SCHEDULER_cancel (fo_ctxt->timeout_task);
+  if (ntohs (msg->type) == GNUNET_MESSAGE_TYPE_TESTBED_PEERCREATESUCCESS)
+  {
+    success_msg 
+      = (const struct GNUNET_TESTBED_PeerCreateSuccessEventMessage *) msg;
+    peer = GNUNET_malloc (sizeof (struct Peer));
+    peer->is_remote = GNUNET_YES;
+    peer->id = ntohl (success_msg->peer_id);
+    GNUNET_assert (NULL != fo_ctxt->cls);
+    peer->details.remote.controller = fo_ctxt->cls;
+    peer_list_add (peer);    
+  }
+  msize = ntohs (msg->size);
   dup_msg = GNUNET_malloc (msize);
   (void) memcpy (dup_msg, msg, msize);  
   queue_message (fo_ctxt->client, dup_msg);
@@ -1677,8 +1689,8 @@ handle_peer_create (void *cls,
   fo_ctxt = GNUNET_malloc (sizeof (struct ForwardedOperationContext));
   GNUNET_SERVER_client_keep (client);
   fo_ctxt->client = client;
-  fo_ctxt->peer_id = ntohl (msg->peer_id);
-  fo_ctxt->operation_id = GNUNET_ntohll (msg->operation_id);  
+  fo_ctxt->operation_id = GNUNET_ntohll (msg->operation_id); 
+  fo_ctxt->cls = slave_list[route->dest]->controller;  
   fo_ctxt->opc = 
     GNUNET_TESTBED_forward_operation_msg_ (slave_list[route->dest]->controller,
                                            fo_ctxt->operation_id,
@@ -1714,8 +1726,8 @@ handle_peer_destroy (void *cls,
              peer_id, GNUNET_ntohll (msg->operation_id));  
   if ((peer_list_size <= peer_id) || (NULL == peer_list[peer_id]))
   {
-    GNUNET_break (0);
-    /* FIXME: Reply with failure event message or forward to slave controller */
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         "Asked for destroy when peer not created at us\n");
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
@@ -2242,8 +2254,11 @@ shutdown_task (void *cls,
   for (id = 0; id < peer_list_size; id++)
     if (NULL != peer_list[id])
     {
-      GNUNET_TESTING_peer_destroy (peer_list[id]->details.local.peer);
-      GNUNET_CONFIGURATION_destroy (peer_list[id]->details.local.cfg);
+      if (GNUNET_NO == peer_list[id]->is_remote)
+      {        
+        GNUNET_TESTING_peer_destroy (peer_list[id]->details.local.peer);
+        GNUNET_CONFIGURATION_destroy (peer_list[id]->details.local.cfg);
+      }      
       GNUNET_free (peer_list[id]);
     }
   GNUNET_free_non_null (peer_list);
