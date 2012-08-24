@@ -942,8 +942,8 @@ lcf_proc_cc (void *cls, const char *emsg)
  * @param msg the peer create success message
  */
 static void
-forwarded_link_controllers_reply_relay (void *cls,
-					const struct GNUNET_MessageHeader *msg)
+forwarded_operation_reply_relay (void *cls,
+                                 const struct GNUNET_MessageHeader *msg)
 {
   struct ForwardedOperationContext *fopc = cls;
   struct GNUNET_MessageHeader *dup_msg;  
@@ -955,7 +955,7 @@ forwarded_link_controllers_reply_relay (void *cls,
   queue_message (fopc->client, dup_msg);
   GNUNET_SERVER_client_drop (fopc->client);
   GNUNET_SCHEDULER_cancel (fopc->timeout_task);  
-  GNUNET_free (fopc);  
+  GNUNET_free (fopc);
 }
 
 
@@ -966,13 +966,14 @@ forwarded_link_controllers_reply_relay (void *cls,
  * @param tc the task context from scheduler
  */
 static void
-forwarded_link_controllers_timeout (void *cls,
+forwarded_operation_timeout (void *cls,
 				    const struct GNUNET_SCHEDULER_TaskContext
 				    *tc)
 {
   struct ForwardedOperationContext *fopc = cls;
   
   GNUNET_TESTBED_forward_operation_msg_cancel_ (fopc->opc);
+  send_operation_fail_msg (fopc->client, fopc->operation_id, "Timeout");
   GNUNET_SERVER_client_drop (fopc->client);
   GNUNET_free (fopc);  
 }
@@ -1034,11 +1035,11 @@ lcf_proc_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_TESTBED_forward_operation_msg_ (lcf->gateway->controller,
 					     lcf->operation_id,
 					     &lcf->msg->header,
-					     &forwarded_link_controllers_reply_relay,
+					     &forwarded_operation_reply_relay,
 					     fopc);
     fopc->timeout_task = 
       GNUNET_SCHEDULER_add_delayed (TIMEOUT,
-				    &forwarded_link_controllers_timeout, fopc);    
+				    &forwarded_operation_timeout, fopc);    
     lcf->state = FINISHED;
     lcf_proc_task_id = GNUNET_SCHEDULER_add_now (&lcf_proc_task, lcf);
     break;
@@ -1717,6 +1718,7 @@ handle_peer_destroy (void *cls,
                      const struct GNUNET_MessageHeader *message)
 {
   const struct GNUNET_TESTBED_PeerDestroyMessage *msg;
+  struct ForwardedOperationContext *fopc;
   struct Peer *peer;
   uint32_t peer_id;
   
@@ -1727,7 +1729,7 @@ handle_peer_destroy (void *cls,
   if ((peer_list_size <= peer_id) || (NULL == peer_list[peer_id]))
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
-         "Asked for destroy when peer not created at us\n");
+         "Asked to destroy a non existent peer with id: %u\n", peer_id);
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
@@ -1735,7 +1737,19 @@ handle_peer_destroy (void *cls,
   if (GNUNET_YES == peer->is_remote)
   {
     /* Forward the destory message to sub controller */
-    GNUNET_break (0);
+    fopc = GNUNET_malloc (sizeof (struct ForwardedOperationContext));
+    GNUNET_SERVER_client_keep (client);    
+    fopc->client = client;
+    fopc->operation_id = GNUNET_ntohll (msg->operation_id);
+    fopc->opc = 
+      GNUNET_TESTBED_forward_operation_msg_ (peer->details.remote.controller,
+                                             fopc->operation_id,
+                                             &msg->header,
+                                             &forwarded_operation_reply_relay,
+                                             fopc);
+    fopc->timeout_task =
+      GNUNET_SCHEDULER_add_delayed (TIMEOUT,
+                                    &forwarded_operation_timeout, fopc);    
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }

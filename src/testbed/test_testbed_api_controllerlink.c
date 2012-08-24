@@ -83,7 +83,17 @@ enum Stage
     SLAVE1_PEER_CREATE_SUCCESS,
 
     /**
-     * Test is successful
+     * Peer create on slave 2 successful
+     */
+    SLAVE2_PEER_CREATE_SUCCESS,
+
+    /**
+     * Peer destroy on slave 1 successful
+     */
+    SLAVE1_PEER_DESTROY_SUCCESS,
+
+    /**
+     * Peer destory on slave 2 successful; Marks test as successful
      */
     SUCCESS
   };
@@ -224,14 +234,35 @@ peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
   case SLAVE1_PEER_CREATE_SUCCESS:
     GNUNET_assert (NULL != peer);
     GNUNET_assert (NULL == emsg);
-    result = SUCCESS;
+    result = SLAVE2_PEER_CREATE_SUCCESS;
     slave2_peer = peer;    
     GNUNET_TESTBED_operation_done (op);
-    GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+    op = GNUNET_TESTBED_peer_destroy (slave1_peer);
+    GNUNET_assert (NULL != op);    
     break;
   default:
     GNUNET_assert (0);    
   }
+}
+
+
+/**
+ * Checks the event if it is an operation finished event and if indicates a
+ * successfull completion of operation
+ *
+ * @param event the event information to check
+ */
+static void
+check_operation_success (const struct GNUNET_TESTBED_EventInformation *event)
+{
+  GNUNET_assert (NULL != event);
+  GNUNET_assert (GNUNET_TESTBED_ET_OPERATION_FINISHED == event->type);
+  GNUNET_assert (event->details.operation_finished.operation == op);
+  GNUNET_assert (NULL == event->details.operation_finished.op_cls);
+  GNUNET_assert (NULL == event->details.operation_finished.emsg);
+  GNUNET_assert (GNUNET_TESTBED_PIT_GENERIC ==
+                 event->details.operation_finished.pit);
+  GNUNET_assert (NULL == event->details.operation_finished.op_result.generic);
 }
 
 
@@ -248,14 +279,7 @@ controller_cb(void *cls, const struct GNUNET_TESTBED_EventInformation *event)
   switch (result)
   {
   case SLAVE2_REGISTERED:
-    GNUNET_assert (NULL != event);
-    GNUNET_assert (GNUNET_TESTBED_ET_OPERATION_FINISHED == event->type);
-    GNUNET_assert (event->details.operation_finished.operation == op);
-    GNUNET_assert (NULL == event->details.operation_finished.op_cls);
-    GNUNET_assert (NULL == event->details.operation_finished.emsg);
-    GNUNET_assert (GNUNET_TESTBED_PIT_GENERIC ==
-		   event->details.operation_finished.pit);
-    GNUNET_assert (NULL == event->details.operation_finished.op_result.generic);
+    check_operation_success (event);    
     GNUNET_TESTBED_operation_done (op);
     op = NULL;
     result = SLAVE1_LINK_SUCCESS;
@@ -265,18 +289,25 @@ controller_cb(void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     GNUNET_assert (NULL != op);
     break;
   case SLAVE1_LINK_SUCCESS:
-    GNUNET_assert (GNUNET_TESTBED_ET_OPERATION_FINISHED == event->type);
-    GNUNET_assert (event->details.operation_finished.operation == op);
-    GNUNET_assert (NULL == event->details.operation_finished.op_cls);
-    GNUNET_assert (NULL == event->details.operation_finished.emsg);
-    GNUNET_assert (GNUNET_TESTBED_PIT_GENERIC ==
-		   event->details.operation_finished.pit);
-    GNUNET_assert (NULL == event->details.operation_finished.op_result.generic);
+    check_operation_success (event);
     GNUNET_TESTBED_operation_done (op);
     op = NULL;
     result = SLAVE2_LINK_SUCCESS;
     op = GNUNET_TESTBED_peer_create (mc, slave, cfg, peer_create_cb, NULL);
     GNUNET_assert (NULL != op);
+    break;
+  case SLAVE2_PEER_CREATE_SUCCESS:
+    check_operation_success (event);
+    GNUNET_TESTBED_operation_done (op);
+    result = SLAVE1_PEER_DESTROY_SUCCESS;
+    op = GNUNET_TESTBED_peer_destroy (slave2_peer);
+    GNUNET_assert (NULL != slave2_peer);
+    break;
+  case SLAVE1_PEER_DESTROY_SUCCESS:
+    check_operation_success (event);
+    GNUNET_TESTBED_operation_done (op);
+    result = SUCCESS;
+    GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
     break;    
   default:
     GNUNET_assert (0);
