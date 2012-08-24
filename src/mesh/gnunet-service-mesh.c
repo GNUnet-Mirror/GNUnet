@@ -3346,7 +3346,6 @@ tunnel_send_multicast (struct MeshTunnel *t,
   tree_iterate_children (t->tree, &tunnel_send_multicast_iterator, mdata);
   if (*(mdata->reference_counter) == 0)
   {
-    GNUNET_break (0);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "  no one to send data to\n");
     GNUNET_free (mdata->data);
