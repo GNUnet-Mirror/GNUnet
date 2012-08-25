@@ -1160,11 +1160,20 @@ GNUNET_TESTBED_controller_connect (const struct GNUNET_CONFIGURATION_Handle *cfg
   struct GNUNET_TESTBED_InitMessage *msg;
   const char *controller_hostname;
   unsigned long long max_parallel_operations;
+  unsigned long long max_parallel_service_connections;
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (cfg, "testbed",
                                              "MAX_PARALLEL_OPERATIONS",
                                              &max_parallel_operations))
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_number (cfg, "testbed",
+                                             "MAX_PARALLEL_SERVICE_CONNECTIONS",
+                                             &max_parallel_service_connections))
   {
     GNUNET_break (0);
     return NULL;
@@ -1201,6 +1210,9 @@ GNUNET_TESTBED_controller_connect (const struct GNUNET_CONFIGURATION_Handle *cfg
   controller->opq_parallel_operations =
     GNUNET_TESTBED_operation_queue_create_ ((unsigned int)
                                             max_parallel_operations);
+  controller->opq_parallel_service_connections =
+    GNUNET_TESTBED_operation_queue_create_ ((unsigned int)
+                                            max_parallel_service_connections);
   controller_hostname = GNUNET_TESTBED_host_get_hostname_ (host);
   if (NULL == controller_hostname)
     controller_hostname = "127.0.0.1";

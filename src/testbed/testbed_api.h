@@ -27,6 +27,7 @@
 #ifndef TESTBED_API_H
 #define TESTBED_API_H
 
+#include "gnunet_testbed_service.h"
 
 /**
  * Enumeration of operations
@@ -72,6 +73,11 @@ enum OperationType
      * Link controllers operation
      */
     OP_LINK_CONTROLLERS,
+
+    /**
+     * Service connect operation
+     */
+    OP_SERVICE_CONNECT
 
   };
 
@@ -278,6 +284,11 @@ struct GNUNET_TESTBED_Controller
    * Operation queue for simultaneous operations
    */
   struct OperationQueue *opq_parallel_operations;
+
+  /**
+   * Operation queue for simultaneous service connections
+   */
+  struct OperationQueue *opq_parallel_service_connections;
 
   /**
    * The operation id counter. use current value and increment

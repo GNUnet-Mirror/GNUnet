@@ -223,6 +223,32 @@ oprelease_peer_stop (void *cls)
 
 
 /**
+ * Generate PeerGetConfigurationMessage
+ *
+ * @param peer_id the id of the peer whose information we have to get
+ * @param operation_id the ip of the operation that should be represented in
+ *          the message
+ * @param 
+ * @return the PeerGetConfigurationMessage
+ */
+struct GNUNET_TESTBED_PeerGetConfigurationMessage *
+GNUNET_TESTBED_generate_peergetconfig_msg_ (uint32_t peer_id,
+                                            uint64_t operation_id)
+{
+  struct GNUNET_TESTBED_PeerGetConfigurationMessage *msg;
+
+  msg = GNUNET_malloc (sizeof (struct
+                               GNUNET_TESTBED_PeerGetConfigurationMessage));
+  msg->header.size = htons
+    (sizeof (struct GNUNET_TESTBED_PeerGetConfigurationMessage));
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_GETPEERCONFIG);
+  msg->peer_id = htonl (peer_id);
+  msg->operation_id = GNUNET_htonll (operation_id);
+  return msg;
+}
+
+
+/**
  * Function called when a peer get information operation is ready
  *
  * @param cls the closure from GNUNET_TESTBED_operation_create_()
@@ -237,13 +263,8 @@ opstart_peer_getinfo (void *cls)
   data = opc->data;
   GNUNET_assert (NULL != data);
   opc->state = OPC_STATE_STARTED;
-  msg = GNUNET_malloc (sizeof (struct
-                               GNUNET_TESTBED_PeerGetConfigurationMessage));
-  msg->header.size = htons
-    (sizeof (struct GNUNET_TESTBED_PeerGetConfigurationMessage));
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_GETPEERCONFIG);
-  msg->peer_id = htonl (data->peer->unique_id);
-  msg->operation_id = GNUNET_htonll (opc->id);
+  msg = GNUNET_TESTBED_generate_peergetconfig_msg_ (data->peer->unique_id,
+                                                    opc->id);  
   GNUNET_CONTAINER_DLL_insert_tail (opc->c->ocq_head, opc->c->ocq_tail, opc);
   GNUNET_TESTBED_queue_message_ (opc->c, &msg->header);
 }
@@ -534,7 +555,7 @@ GNUNET_TESTBED_peer_get_information (struct GNUNET_TESTBED_Peer *peer,
   opc->type = OP_PEER_INFO;
   opc->id = opc->c->operation_counter++;
   opc->op = GNUNET_TESTBED_operation_create_ (opc, &opstart_peer_getinfo,
-                                             &oprelease_peer_getinfo);
+                                              &oprelease_peer_getinfo);
   GNUNET_TESTBED_operation_queue_insert_ (opc->c->opq_parallel_operations,
                                           opc->op);
   return opc->op;

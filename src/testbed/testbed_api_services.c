@@ -24,7 +24,73 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
+#include "testbed_api.h"
 #include "testbed_api_peers.h"
+#include "testbed_api_operations.h"
+
+struct ServiceConnectData
+{
+  /**
+   * helper function callback to establish the connection
+   */
+  GNUNET_TESTBED_ConnectAdapter ca;
+
+  /**
+   * helper function callback to close the connection
+   */
+  GNUNET_TESTBED_DisconnectAdapter da;
+
+  /**
+   * Closure to the above callbacks
+   */
+  void *cada_cls;
+
+  /**
+   * Service name
+   */
+  char *service_name;
+  
+  /**
+   * Closure for operation event
+   */
+  void *op_cls;
+
+};
+
+
+/**
+ * Context information for forwarded operation used in service connect
+ */
+struct SCFOContext
+{
+  
+};
+
+
+
+/**
+ * Function called when a service connect operation is ready
+ *
+ * @param cls the closure from GNUNET_TESTBED_operation_create_()
+ */
+static void 
+opstart_service_connect (void *cls)
+{
+  GNUNET_break (0);
+}
+
+
+/**
+ * Callback which will be called when service connect type operation is
+ * released
+ *
+ * @param cls the closure from GNUNET_TESTBED_operation_create_()
+ */
+static void 
+oprelease_service_connect (void *cls)
+{
+  GNUNET_break (0); 
+}
 
 
 /**
@@ -54,8 +120,26 @@ GNUNET_TESTBED_service_connect (void *op_cls,
 				GNUNET_TESTBED_DisconnectAdapter da,
 				void *cada_cls)
 {
-  GNUNET_break (0);
-  return NULL;
+  struct OperationContext *opc;
+  struct ServiceConnectData *data;
+
+  data = GNUNET_malloc (sizeof (struct ServiceConnectData));
+  data->ca = ca;
+  data->da = da;
+  data->cada_cls = cada_cls;
+  data->op_cls = op_cls;  
+  opc = GNUNET_malloc (sizeof (struct OperationContext));
+  opc->data = data;
+  opc->c = peer->controller;
+  opc->id = peer->controller->operation_counter++;
+  opc->type = OP_SERVICE_CONNECT;
+  opc->op = GNUNET_TESTBED_operation_create_ (opc, &opstart_service_connect,
+                                              &oprelease_service_connect);
+  GNUNET_TESTBED_operation_queue_insert_
+    (opc->c->opq_parallel_service_connections, opc->op);
+  GNUNET_TESTBED_operation_queue_insert_ (opc->c->opq_parallel_operations,
+                                          opc->op);
+  return opc->op;
 }
 
 /* end of testbed_api_services.c */

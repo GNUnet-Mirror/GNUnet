@@ -239,6 +239,18 @@ GNUNET_TESTBED_peer_create_with_id_ (uint32_t unique_id,
 				     void *cls);
 
 
+/**
+ * Generate PeerGetConfigurationMessage
+ *
+ * @param peer_id the id of the peer whose information we have to get
+ * @param operation_id the ip of the operation that should be represented in
+ *          the message
+ * @param 
+ * @return the PeerGetConfigurationMessage
+ */
+struct GNUNET_TESTBED_PeerGetConfigurationMessage *
+GNUNET_TESTBED_generate_peergetconfig_msg_ (uint32_t peer_id,
+                                            uint64_t operation_id);
 
 #endif
 /* end of testbed_api_peers.h */
