@@ -734,7 +734,7 @@ nat_add_address (void *cls, int add_remove, const struct sockaddr *addr,
   GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
                    "Notifying transport to add address `%s'\n", w->addr->addr);
 
-  plugin->env->notify_address (plugin->env->cls, add_remove, w->addr, haddrlen);
+  plugin->env->notify_address (plugin->env->cls, add_remove, w->addr, haddrlen, "http");
 }
 
 
@@ -757,7 +757,7 @@ nat_remove_address (void *cls, int add_remove, const struct sockaddr *addr,
 
   GNUNET_CONTAINER_DLL_remove (plugin->addr_head, plugin->addr_tail, w);
   plugin->env->notify_address (plugin->env->cls, add_remove, w->addr,
-       sizeof (struct HttpAddress) + ntohl (w->addr->addr_len));
+       sizeof (struct HttpAddress) + ntohl (w->addr->addr_len), "http");
   GNUNET_free (w->addr);
   GNUNET_free (w);
 }
@@ -1093,7 +1093,7 @@ notify_external_hostname (void *cls, const struct GNUNET_SCHEDULER_TaskContext *
                    "Notifying transport about external hostname address `%s'\n", addr);
 
   GNUNET_free (addr);
-  plugin->env->notify_address (plugin->env->cls, GNUNET_YES, eaddr, eaddr_len);
+  plugin->env->notify_address (plugin->env->cls, GNUNET_YES, eaddr, eaddr_len, "http");
   plugin->ext_addr = eaddr;
   plugin->ext_addr_len = eaddr_len;
 }
@@ -1447,7 +1447,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
 
   if (NULL != plugin->ext_addr)
   {
-      plugin->env->notify_address (plugin->env->cls, GNUNET_NO, plugin->ext_addr, plugin->ext_addr_len);
+      plugin->env->notify_address (plugin->env->cls, GNUNET_NO, plugin->ext_addr, plugin->ext_addr_len, "http");
       GNUNET_free (plugin->ext_addr);
   }
 
