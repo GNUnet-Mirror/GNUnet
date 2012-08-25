@@ -275,9 +275,9 @@ struct GNUNET_TESTBED_Controller
   struct OperationContext *ocq_tail;
 
   /**
-   * Operation queue for simultaneous peer creations
+   * Operation queue for simultaneous operations
    */
-  struct OperationQueue *opq_peer_create;
+  struct OperationQueue *opq_parallel_operations;
 
   /**
    * The operation id counter. use current value and increment

@@ -1159,16 +1159,16 @@ GNUNET_TESTBED_controller_connect (const struct GNUNET_CONFIGURATION_Handle *cfg
   struct GNUNET_TESTBED_Controller *controller;
   struct GNUNET_TESTBED_InitMessage *msg;
   const char *controller_hostname;
-  unsigned long long max_parallel_peer_create;
+  unsigned long long max_parallel_operations;
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (cfg, "testbed",
-                                             "MAX_PARALLEL_PEER_CREATE",
-                                             &max_parallel_peer_create))
+                                             "MAX_PARALLEL_OPERATIONS",
+                                             &max_parallel_operations))
   {
     GNUNET_break (0);
     return NULL;
-  }                                                          
+  }
   controller = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Controller));
   controller->cc = cc;
   controller->cc_cls = cc_cls;
@@ -1198,9 +1198,9 @@ GNUNET_TESTBED_controller_connect (const struct GNUNET_CONFIGURATION_Handle *cfg
   GNUNET_assert (NULL != host);
   GNUNET_TESTBED_mark_host_registered_at_ (host, controller);
   controller->host = host;
-  controller->opq_peer_create =
+  controller->opq_parallel_operations =
     GNUNET_TESTBED_operation_queue_create_ ((unsigned int)
-                                            max_parallel_peer_create);
+                                            max_parallel_operations);
   controller_hostname = GNUNET_TESTBED_host_get_hostname_ (host);
   if (NULL == controller_hostname)
     controller_hostname = "127.0.0.1";
@@ -1279,7 +1279,7 @@ GNUNET_TESTBED_controller_disconnect (struct GNUNET_TESTBED_Controller *controll
   GNUNET_CONFIGURATION_destroy (controller->cfg);
   if (GNUNET_YES == controller->aux_host)
     GNUNET_TESTBED_host_destroy (controller->host);
-  GNUNET_TESTBED_operation_queue_destroy_ (controller->opq_peer_create);
+  GNUNET_TESTBED_operation_queue_destroy_ (controller->opq_parallel_operations);
   GNUNET_free (controller);
 }
 
@@ -1424,7 +1424,8 @@ GNUNET_TESTBED_controller_link_2 (struct GNUNET_TESTBED_Controller *master,
   msg->operation_id = GNUNET_htonll (opc->id);
   opc->op = GNUNET_TESTBED_operation_create_ (opc, &opstart_link_controllers,
                                               &oprelease_link_controllers);
-  GNUNET_TESTBED_operation_queue_insert_ (master->opq_peer_create, opc->op);
+  GNUNET_TESTBED_operation_queue_insert_ (master->opq_parallel_operations,
+                                          opc->op);
   return opc->op;
 }
 
@@ -1535,7 +1536,7 @@ GNUNET_TESTBED_overlay_write_topology_to_file (struct GNUNET_TESTBED_Controller 
  */
 struct GNUNET_TESTBED_HelperInit *
 GNUNET_TESTBED_create_helper_init_msg_ (const char *cname,
-					 const struct GNUNET_CONFIGURATION_Handle *cfg)
+                                        const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_TESTBED_HelperInit *msg;
   char *config;

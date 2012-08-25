@@ -408,7 +408,8 @@ GNUNET_TESTBED_peer_create_with_id_ (uint32_t unique_id,
   opc->type = OP_PEER_CREATE;
   opc->op = GNUNET_TESTBED_operation_create_ (opc, &opstart_peer_create,
                                               &oprelease_peer_create);
-  GNUNET_TESTBED_operation_queue_insert_ (controller->opq_peer_create, opc->op);
+  GNUNET_TESTBED_operation_queue_insert_ (controller->opq_parallel_operations,
+                                          opc->op);
   return opc->op;
 }
 
@@ -477,7 +478,8 @@ GNUNET_TESTBED_peer_start (struct GNUNET_TESTBED_Peer *peer)
   opc->type = OP_PEER_START;
   opc->op = GNUNET_TESTBED_operation_create_ (opc, &opstart_peer_start,
                                              &oprelease_peer_start);
-  GNUNET_TESTBED_operation_queue_insert_ (opc->c->opq_peer_create, opc->op);
+  GNUNET_TESTBED_operation_queue_insert_ (opc->c->opq_parallel_operations,
+                                          opc->op);
   return opc->op;  
 }
 
@@ -502,7 +504,8 @@ GNUNET_TESTBED_peer_stop (struct GNUNET_TESTBED_Peer *peer)
   opc->type = OP_PEER_STOP;
   opc->op = GNUNET_TESTBED_operation_create_ (opc, &opstart_peer_stop,
                                               &oprelease_peer_stop);
-  GNUNET_TESTBED_operation_queue_insert_ (opc->c->opq_peer_create, opc->op);
+  GNUNET_TESTBED_operation_queue_insert_ (opc->c->opq_parallel_operations,
+                                          opc->op);
   return opc->op;
 }
 
@@ -532,7 +535,8 @@ GNUNET_TESTBED_peer_get_information (struct GNUNET_TESTBED_Peer *peer,
   opc->id = opc->c->operation_counter++;
   opc->op = GNUNET_TESTBED_operation_create_ (opc, &opstart_peer_getinfo,
                                              &oprelease_peer_getinfo);
-  GNUNET_TESTBED_operation_queue_insert_ (opc->c->opq_peer_create, opc->op);
+  GNUNET_TESTBED_operation_queue_insert_ (opc->c->opq_parallel_operations,
+                                          opc->op);
   return opc->op;
 }
 
@@ -576,7 +580,7 @@ GNUNET_TESTBED_peer_destroy (struct GNUNET_TESTBED_Peer *peer)
   opc->type = OP_PEER_DESTROY;
   opc->op = GNUNET_TESTBED_operation_create_ (opc, &opstart_peer_destroy,
                                               &oprelease_peer_destroy);
-  GNUNET_TESTBED_operation_queue_insert_ (opc->c->opq_peer_create,
+  GNUNET_TESTBED_operation_queue_insert_ (opc->c->opq_parallel_operations,
                                           opc->op);
   return opc->op;
 }
@@ -638,7 +642,7 @@ GNUNET_TESTBED_overlay_connect (void *op_cls,
   opc->type = OP_OVERLAY_CONNECT;
   opc->op = GNUNET_TESTBED_operation_create_ (opc, &opstart_overlay_connect,
                                               &oprelease_overlay_connect);
-  GNUNET_TESTBED_operation_queue_insert_ (opc->c->opq_peer_create,
+  GNUNET_TESTBED_operation_queue_insert_ (opc->c->opq_parallel_operations,
                                           opc->op);
   return opc->op;
 }
