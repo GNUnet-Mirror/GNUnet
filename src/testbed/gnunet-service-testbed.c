@@ -1985,8 +1985,8 @@ occ_cleanup (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * Task which will be run when overlay connect request has been timed out
  *
- * @param 
- * @return 
+ * @param cls the OverlayConnectContext
+ * @param tc the TaskContext
  */
 static void
 timeout_overlay_connect (void *cls,
