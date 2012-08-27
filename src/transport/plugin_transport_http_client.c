@@ -720,7 +720,6 @@ client_disconnect (struct Session *s)
 static void
 client_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_break (0);
   struct HTTP_Client_Plugin *plugin = cls;
   int running;
   CURLMcode mret;
@@ -804,11 +803,11 @@ client_connect (struct Session *s)
     return GNUNET_SYSERR;
   }
 
-  GNUNET_asprintf (&url, "%s%s;%u",
+  GNUNET_asprintf (&url, "%s/%s;%u",
       http_common_plugin_address_to_string (plugin, s->addr, s->addrlen),
                    GNUNET_h2s_full (&plugin->env->my_identity->hashPubKey),
                    plugin->last_tag);
-
+  plugin->last_tag++;
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                    "Initiating outbound session peer `%s' using address `%s'\n",
                    GNUNET_i2s (&s->target), url);
@@ -1051,7 +1050,6 @@ client_start_session_timeout (struct Session *s)
  GNUNET_log (TIMEOUT_LOG,
              "Timeout for session %p set to %llu ms\n",
              s,  (unsigned long long) TIMEOUT.rel_value);
- GNUNET_break (0);
 }
 
 /**
@@ -1071,7 +1069,6 @@ client_reschedule_session_timeout (struct Session *s)
  GNUNET_log (TIMEOUT_LOG,
              "Timeout rescheduled for session %p set to %llu ms\n",
              s, (unsigned long long) TIMEOUT.rel_value);
- GNUNET_break (0);
 }
 
 /**
@@ -1201,6 +1198,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   plugin->name = "transport-http_client";
   plugin->protocol = "http";
 #endif
+  plugin->last_tag = 1;
 
   if (GNUNET_SYSERR == client_configure_plugin (plugin))
   {
