@@ -3089,6 +3089,7 @@ tunnel_destroy_child (void *cls,
       queue_destroy(cinfo->send_buffer[i], GNUNET_YES);
     else
       GNUNET_break (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "%u %u\n", c, cinfo->send_buffer_n);
   }
   GNUNET_free_non_null (cinfo->send_buffer);
   GNUNET_free (cinfo);
@@ -4727,7 +4728,15 @@ queue_send (void *cls, size_t size, void *buf)
     }
 
     cinfo = tunnel_get_neighbor_fc(t, &dst_id);
-    GNUNET_break(cinfo->send_buffer[cinfo->send_buffer_start] == queue);
+    if (cinfo->send_buffer[cinfo->send_buffer_start] != queue)
+    {
+      GNUNET_break(0);
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "at pos %u (%p) != %p\n",
+                  cinfo->send_buffer_start,
+                  cinfo->send_buffer[cinfo->send_buffer_start],
+                  queue);
+    }
     GNUNET_break(cinfo->send_buffer_n > 0);
     cinfo->send_buffer[cinfo->send_buffer_start] = NULL;
     cinfo->send_buffer_n--;
