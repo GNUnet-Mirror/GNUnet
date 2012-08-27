@@ -89,6 +89,11 @@ struct GNUNET_TRANSPORT_PluginEnvironment env;
 struct GNUNET_TRANSPORT_PluginFunctions *api;
 
 /**
+ * Helper handler
+ */
+struct GNUNET_HELPER_Handle *suid_helper;
+
+/**
  * Timeout task
  */
 static GNUNET_SCHEDULER_TaskIdentifier timeout_task;
@@ -147,6 +152,12 @@ end ()
   GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
   stats = NULL;
 
+  if (NULL != suid_helper)
+  {
+    GNUNET_HELPER_stop (suid_helper);
+    suid_helper = NULL;
+  }
+
   ok = 0;
 }
 
@@ -188,6 +199,12 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
     stats = NULL;
+  }
+
+  if (NULL != suid_helper)
+  {
+    GNUNET_HELPER_stop (suid_helper);
+    suid_helper = NULL;
   }
 
   ok = 1;
@@ -240,7 +257,8 @@ static void
 env_notify_address (void *cls,
                     int add_remove,
                     const void *addr,
-                    size_t addrlen)
+                    size_t addrlen,
+                    const char *plugin)
 {
   struct AddressWrapper *w;
   char *a2s;
@@ -387,6 +405,12 @@ setup_plugin_environment ()
   env.session_end = &env_session_end;
 }
 
+static int
+handle_helper_message (void *cls, void *client,
+                       const struct GNUNET_MessageHeader *hdr)
+{
+  return GNUNET_OK;
+}
 
 /**
  * Runs the test.
@@ -463,6 +487,21 @@ run (void *cls, char *const *args, const char *cfgfile,
   plugin += strlen ("test_plugin_");
   if (NULL != sep)
       sep[0] = '\0';
+
+  /* Hack for WLAN: start a second helper */
+  if (0 == strcmp (plugin, "wlan"))
+  {
+    char * helper_argv[3];
+    helper_argv[0] = (char *) "gnunet-helper-transport-wlan-dummy";
+    helper_argv[1] = (char *) "2";
+    helper_argv[2] = NULL;
+    suid_helper = GNUNET_HELPER_start ("gnunet-helper-transport-wlan-dummy",
+                                       helper_argv,
+                                       &handle_helper_message,
+                                       NULL,
+                                       NULL);
+  }
+
 
   /* Loading plugin */
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Loading transport plugin %s\n"), plugin);
