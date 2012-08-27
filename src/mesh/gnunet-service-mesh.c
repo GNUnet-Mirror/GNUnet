@@ -512,6 +512,22 @@ struct MeshTunnelChildInfo
      * Last ACK sent to that child (BCK ACK).
      */
   uint32_t bck_ack;
+
+    /**
+     * Circular buffer pointing to MeshPeerQueue elements.
+     * Size determined by the tunnel queue size.
+     */
+  struct MeshPeerQueue **send_buffer;
+
+    /**
+     * Index of the oldest element in the send_buffer.
+     */
+  unsigned int send_buffer_start;
+
+    /**
+     * How many elements are already in the buffer.
+     */
+  unsigned int send_buffer_n;
 };
 
 
@@ -3426,6 +3442,9 @@ tunnel_get_neighbor_fc (const struct MeshTunnel *t,
     cinfo->fwd_ack = t->fwd_pid + delta;
     cinfo->bck_ack = delta;
 
+    cinfo->send_buffer =
+        GNUNET_malloc (sizeof(struct MeshPeerQueue *) * t->fwd_queue_max);
+
     GNUNET_assert (GNUNET_OK ==
       GNUNET_CONTAINER_multihashmap_put (t->children_fc,
                                          &peer->hashPubKey,
@@ -3623,7 +3642,7 @@ tunnel_get_fwd_ack (struct MeshTunnel *t)
   if (-1 == child_ack)
   {
     // Node has no children, child_ack AND core buffer are irrelevant.
-    GNUNET_break (-1 != client_ack); // No children AND no clients? Not good! // FIXME fc
+    GNUNET_break (-1 != client_ack); // No children AND no clients? Not good!
     return (uint32_t) client_ack;
   }
 
@@ -4736,8 +4755,11 @@ queue_add (void *cls, uint16_t type, size_t size,
            struct MeshPeerInfo *dst, struct MeshTunnel *t)
 {
   struct MeshPeerQueue *queue;
+  struct MeshTunnelChildInfo *cinfo;
+  struct GNUNET_PeerIdentity id;
   unsigned int *max;
   unsigned int *n;
+  unsigned int i;
 
   n = NULL;
   if (GNUNET_MESSAGE_TYPE_MESH_UNICAST == type ||
@@ -4758,6 +4780,8 @@ queue_add (void *cls, uint16_t type, size_t size,
         GNUNET_break_op(0);       // TODO: kill connection?
       else
         GNUNET_break(0);
+      GNUNET_STATISTICS_update(stats, "# messages dropped (buffer full)",
+                               1, GNUNET_NO);
       return;                       // Drop message
     }
     (*n)++;
@@ -4769,11 +4793,9 @@ queue_add (void *cls, uint16_t type, size_t size,
   queue->peer = dst;
   queue->tunnel = t;
   GNUNET_CONTAINER_DLL_insert_tail (dst->queue_head, dst->queue_tail, queue);
+  GNUNET_PEER_resolve (dst->id, &id);
   if (NULL == dst->core_transmit)
   {
-      struct GNUNET_PeerIdentity id;
-
-      GNUNET_PEER_resolve (dst->id, &id);
       dst->core_transmit =
           GNUNET_CORE_notify_transmit_ready(core_handle,
                                             0,
@@ -4783,6 +4805,25 @@ queue_add (void *cls, uint16_t type, size_t size,
                                             size,
                                             &queue_send,
                                             dst);
+  }
+  if (NULL == n) // Is this internal mesh traffic?
+    return;
+
+  // It's payload, keep track of buffer per peer.
+  cinfo = tunnel_get_neighbor_fc(t, &id);
+  i = (cinfo->send_buffer_start + cinfo->send_buffer_n) % t->fwd_queue_max;
+  if (NULL != cinfo->send_buffer[i])
+  {
+    queue_destroy(cinfo->send_buffer[i], GNUNET_YES);
+    GNUNET_break (cinfo->send_buffer_n > 0);
+    cinfo->send_buffer_n--;
+  }
+  cinfo->send_buffer[i] = queue;
+  cinfo->send_buffer_n++;
+  if (cinfo->send_buffer_n > t->fwd_queue_max)
+  {
+    GNUNET_break (0);
+    cinfo->send_buffer_n = t->fwd_queue_max;
   }
 }
 
@@ -7323,7 +7364,7 @@ handle_local_ack (void *cls, struct GNUNET_SERVER_Client *client,
   t = tunnel_get_by_local_id (c, tid);
   if (NULL == t)
   {
-    GNUNET_break (0); // FIXME fc
+    GNUNET_break (0);
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Tunnel %X unknown.\n", tid);
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "  for client %u.\n", c->id);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
