@@ -383,7 +383,6 @@ http_client_plugin_send (void *cls,
 {
   struct HTTP_Client_Plugin *plugin = cls;
   struct HTTP_Message *msg;
-  size_t res = -1;
 
   GNUNET_assert (plugin != NULL);
   GNUNET_assert (session != NULL);
@@ -421,8 +420,7 @@ http_client_plugin_send (void *cls,
   }
   client_schedule (session->plugin, GNUNET_YES);
   client_reschedule_session_timeout (session);
-
-  return res;
+  return msgbuf_size;
 }
 
 
