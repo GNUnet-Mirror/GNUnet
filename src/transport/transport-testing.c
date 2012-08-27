@@ -456,9 +456,9 @@ GNUNET_TRANSPORT_TESTING_stop_peer (struct GNUNET_TRANSPORT_TESTING_handle *tth,
 
 
 /**
- * Connect the given peers and call the callback when both peers report the
- * inbound connection. Remarks: start_peer's notify_connect callback can be called
- * before.
+ * Initiate a connection from p1 to p2 by offering p1 p2's HELLO message
+ *
+ * Remarks: start_peer's notify_connect callback can be called before.
  *
  * @param tth transport testing handle
  * @param p1 peer 1
