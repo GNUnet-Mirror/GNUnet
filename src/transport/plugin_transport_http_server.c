@@ -814,34 +814,44 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
 
   if (url_len < 105)
   {
+    GNUNET_break (0);
     goto error; /* too short */
   }
   hash_start = strrchr (url, '/');
   if (NULL == hash_start)
   {
+      GNUNET_break (0);
     goto error; /* '/' delimiter not found */
   }
   if (hash_start >= url_end)
   {
+      GNUNET_break (0);
     goto error; /* mal formed */
   }
   hash_start++;
 
   hash_end = strrchr (hash_start, ';');
   if (NULL == hash_end)
+  {
+    GNUNET_break (0);
     goto error; /* ';' delimiter not found */
+  }
+
   if (hash_end >= url_end)
   {
+      GNUNET_break (0);
     goto error; /* mal formed */
   }
 
   if (hash_start >= hash_end)
   {
+      GNUNET_break (0);
     goto error; /* mal formed */
   }
 
   if ((strlen(hash_start) - strlen(hash_end)) != 103)
   {
+      GNUNET_break (0);
     goto error; /* invalid hash length */
   }
 
@@ -850,11 +860,13 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
   hash[103] = '\0';
   if (GNUNET_OK != GNUNET_CRYPTO_hash_from_string ((const char *) hash, &(target.hashPubKey)))
   {
+      GNUNET_break (0);
     goto error; /* mal formed */
   }
 
   if (hash_end >= url_end)
   {
+      GNUNET_break (0);
     goto error; /* mal formed */
   }
 
@@ -864,14 +876,17 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
   tag = strtoul (tag_start, &tag_end, 10);
   if (tag == 0)
   {
+      GNUNET_break (0);
     goto error; /* mal formed */
   }
   if (tag_end == NULL)
   {
+      GNUNET_break (0);
     goto error; /* mal formed */
   }
   if (tag_end != url_end)
   {
+      GNUNET_break (0);
     goto error; /* mal formed */
   }
 
@@ -1066,7 +1081,7 @@ server_send_callback (void *cls, uint64_t pos, char *buf, size_t max)
     }
   }
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, s->plugin->name,
-                   "Sent %u bytes\n", s, bytes_read);
+                   "Sent %u bytes to peer `%s' with session %p \n", bytes_read, GNUNET_i2s (&s->target), s);
 
 
 
@@ -1219,7 +1234,7 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
       if ((s->next_receive.abs_value <= now.abs_value))
       {
         GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                         "PUT with %u bytes forwarded to MST\n", s,
+                         "PUT with %u bytes forwarded to MST\n",
                          *upload_data_size);
         if (s->msg_tk == NULL)
         {
@@ -1833,12 +1848,6 @@ server_add_address (void *cls, int add_remove, const struct sockaddr *addr,
   struct HTTP_Server_Plugin *plugin = cls;
   struct HttpAddressWrapper *w = NULL;
 
-  if ((AF_INET == addr->sa_family) && (GNUNET_NO == plugin->use_ipv4))
-    return;
-
-  if ((AF_INET6 == addr->sa_family) && (GNUNET_NO == plugin->use_ipv6))
-    return;
-
   w = GNUNET_malloc (sizeof (struct HttpAddressWrapper));
   w->addr = http_common_address_from_socket (plugin->protocol, addr, addrlen);
   if (NULL == w->addr)
@@ -1908,9 +1917,44 @@ server_nat_port_map_callback (void *cls, int add_remove, const struct sockaddr *
   struct HTTP_Server_Plugin *plugin = cls;
 
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                   "NPMC called %s to address `%s'\n",
+                   "NAT called to %s address `%s'\n",
                    (add_remove == GNUNET_NO) ? "remove" : "add",
                    GNUNET_a2s (addr, addrlen));
+
+  if (AF_INET == addr->sa_family)
+  {
+    struct sockaddr_in *s4 = (struct sockaddr_in *) addr;
+
+    if (GNUNET_NO == plugin->use_ipv4)
+      return;
+
+    if ((NULL != plugin->server_addr_v4) &&
+        (0 != memcmp (&plugin->server_addr_v4->sin_addr,
+                      &s4->sin_addr, sizeof (struct in_addr))))
+    {
+        GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                         "Skipping address `%s' (not bindto address)\n",
+                         GNUNET_a2s (addr, addrlen));
+      return;
+    }
+  }
+
+  if (AF_INET6 == addr->sa_family)
+  {
+    struct sockaddr_in6 *s6 = (struct sockaddr_in6 *) addr;
+    if (GNUNET_NO == plugin->use_ipv6)
+      return;
+
+    if ((NULL != plugin->server_addr_v6) &&
+        (0 != memcmp (&plugin->server_addr_v6->sin6_addr,
+                      &s6->sin6_addr, sizeof (struct in6_addr))))
+    {
+        GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                         "Skipping address `%s' (not bindto address)\n",
+                         GNUNET_a2s (addr, addrlen));
+        return;
+    }
+  }
 
   switch (add_remove)
   {
