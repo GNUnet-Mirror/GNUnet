@@ -215,8 +215,8 @@ wait_end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   timeout_wait = GNUNET_SCHEDULER_NO_TASK;
   if (0 == addresses_reported)
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-              _("Plugin did not report any addresses, could not check plugin \n"));
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              _("Plugin did not report any addresses, could not check address conversion functions\n"));
   end ();
 }
 
