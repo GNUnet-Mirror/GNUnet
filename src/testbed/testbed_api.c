@@ -538,6 +538,18 @@ handle_peer_config (struct GNUNET_TESTBED_Controller *c,
     LOG_DEBUG ("Operation not found\n");
     return GNUNET_YES;
   }
+  if (OP_FORWARDED == opc->type)
+  {
+    struct ForwardedOperationData *fo_data;
+    
+    fo_data = opc->data;
+    if (NULL != fo_data->cc)
+      fo_data->cc (fo_data->cc_cls, (const struct GNUNET_MessageHeader *) msg);
+    GNUNET_CONTAINER_DLL_remove (c->ocq_head, c->ocq_tail, opc);
+    GNUNET_free (fo_data);
+    GNUNET_free (opc);    
+    return GNUNET_YES;    
+  }
   data = opc->data;
   GNUNET_assert (NULL != data);
   peer = data->peer;
@@ -571,29 +583,9 @@ handle_peer_config (struct GNUNET_TESTBED_Controller *c,
     }
     break;
   case GNUNET_TESTBED_PIT_CONFIGURATION:
-    {
-      struct GNUNET_CONFIGURATION_Handle *cfg;
-      char *config;
-      uLong config_size;
-      int ret;
-      uint16_t msize;
-      
-      config_size = (uLong) ntohs (msg->config_size);
-      config = GNUNET_malloc (config_size);
-      msize = ntohs (msg->header.size);
-      msize -= sizeof (struct GNUNET_TESTBED_PeerConfigurationInformationMessage);
-      if (Z_OK != (ret = uncompress ((Bytef *) config, &config_size,
-				     (const Bytef *) &msg[1], (uLong) msize)))
-	GNUNET_assert (0);
-      cfg = GNUNET_CONFIGURATION_create (); /* Freed in oprelease_peer_getinfo */
-      GNUNET_assert (GNUNET_OK == 
-		     GNUNET_CONFIGURATION_deserialize (cfg, config,
-						       (size_t) config_size,
-						       GNUNET_NO));
-      GNUNET_free (config);
-      response_data->details.cfg = cfg;
-      info.details.operation_finished.op_result.cfg = cfg;
-    }
+    response_data->details.cfg = /* Freed in oprelease_peer_getinfo */
+      GNUNET_TESTBED_get_config_from_peerinfo_msg_ (msg);
+    info.details.operation_finished.op_result.cfg = response_data->details.cfg;
     break;
   case GNUNET_TESTBED_PIT_GENERIC:
     GNUNET_assert (0);		/* never reach here */
@@ -602,7 +594,13 @@ handle_peer_config (struct GNUNET_TESTBED_Controller *c,
   opc->data = response_data;
   GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
   opc->state = OPC_STATE_FINISHED;
-  c->cc (c->cc_cls, &info);  
+  if (0 != ((GNUNET_TESTBED_ET_CONNECT | GNUNET_TESTBED_ET_DISCONNECT)
+            & c->event_mask))
+  {
+    if (NULL != c->cc)
+      c->cc (c->cc_cls, &info);
+  }
+  
   return GNUNET_YES;
 }
 
@@ -1292,6 +1290,8 @@ GNUNET_TESTBED_controller_disconnect (struct GNUNET_TESTBED_Controller *controll
   if (GNUNET_YES == controller->aux_host)
     GNUNET_TESTBED_host_destroy (controller->host);
   GNUNET_TESTBED_operation_queue_destroy_ (controller->opq_parallel_operations);
+  GNUNET_TESTBED_operation_queue_destroy_
+    (controller->opq_parallel_service_connections);
   GNUNET_free (controller);
 }
 
@@ -1620,6 +1620,40 @@ GNUNET_TESTBED_operation_done (struct GNUNET_TESTBED_Operation *operation)
     GNUNET_assert (0);
     break;
   }
+}
+
+
+/**
+ * Generates configuration by parsing Peer configuration information reply message
+ *
+ * @param msg the peer configuration information message
+ * @return handle to the parsed configuration
+ */
+struct GNUNET_CONFIGURATION_Handle *
+GNUNET_TESTBED_get_config_from_peerinfo_msg_ (const struct
+                                              GNUNET_TESTBED_PeerConfigurationInformationMessage
+                                              *msg)
+{
+  struct GNUNET_CONFIGURATION_Handle *cfg;
+  char *config;
+  uLong config_size;
+  int ret;
+  uint16_t msize;
+  
+  config_size = (uLong) ntohs (msg->config_size);
+  config = GNUNET_malloc (config_size);
+  msize = ntohs (msg->header.size);
+  msize -= sizeof (struct GNUNET_TESTBED_PeerConfigurationInformationMessage);
+  if (Z_OK != (ret = uncompress ((Bytef *) config, &config_size,
+                                 (const Bytef *) &msg[1], (uLong) msize)))
+    GNUNET_assert (0);
+  cfg = GNUNET_CONFIGURATION_create ();
+  GNUNET_assert (GNUNET_OK == 
+                 GNUNET_CONFIGURATION_deserialize (cfg, config,
+						       (size_t) config_size,
+                                                   GNUNET_NO));
+  GNUNET_free (config);
+  return cfg;
 }
 
 /* end of testbed_api.c */

@@ -55,6 +55,31 @@ struct ServiceConnectData
    */
   void *op_cls;
 
+  /**
+   * The operation which created this structure
+   */
+  struct GNUNET_TESTBED_Operation *operation;
+
+  /**
+   * The operation context from GNUNET_TESTBED_forward_operation_msg_()
+   */
+  struct OperationContext *opc;
+
+  /**
+   * The peer handle
+   */
+  struct GNUNET_TESTBED_Peer *peer;
+
+  /**
+   * The acquired configuration of the peer
+   */
+  struct GNUNET_CONFIGURATION_Handle *cfg;
+
+  /**
+   * The op_result pointer from ConnectAdapter
+   */
+  void *op_result;
+  
 };
 
 
@@ -67,6 +92,38 @@ struct SCFOContext
 };
 
 
+/**
+ * Type of a function to call when we receive a message
+ * from the service.
+ *
+ * @param cls ServiceConnectData
+ * @param msg message received, NULL on timeout or fatal error
+ */
+static void 
+configuration_receiver (void *cls,
+                        const struct GNUNET_MessageHeader *msg)
+{
+  struct ServiceConnectData *data = cls;
+  const struct GNUNET_TESTBED_PeerConfigurationInformationMessage *imsg;
+  struct GNUNET_TESTBED_Controller *c;  
+  struct GNUNET_TESTBED_EventInformation info;  
+  
+  imsg = (const struct GNUNET_TESTBED_PeerConfigurationInformationMessage *)
+    msg;
+  data->cfg = GNUNET_TESTBED_get_config_from_peerinfo_msg_ (imsg);
+  data->op_result = data->ca (data->cada_cls, data->cfg);
+  info.type = GNUNET_TESTBED_ET_OPERATION_FINISHED;
+  info.details.operation_finished.operation = data->operation;
+  info.details.operation_finished.op_cls = data->op_cls;
+  info.details.operation_finished.emsg = NULL;
+  info.details.operation_finished.pit = GNUNET_TESTBED_PIT_GENERIC;
+  info.details.operation_finished.op_result.generic = data->op_result;
+  c = data->peer->controller;    
+  if ((0 != (GNUNET_TESTBED_ET_OPERATION_FINISHED & c->event_mask))
+      && (NULL != c->cc))
+      c->cc (c->cc_cls, &info);  
+}
+
 
 /**
  * Function called when a service connect operation is ready
@@ -76,7 +133,21 @@ struct SCFOContext
 static void 
 opstart_service_connect (void *cls)
 {
-  GNUNET_break (0);
+  struct ServiceConnectData *data = cls;
+  struct GNUNET_TESTBED_PeerGetConfigurationMessage *msg;
+  struct GNUNET_TESTBED_Controller *c;  
+  uint64_t op_id;  
+  
+  GNUNET_assert (NULL != data);
+  GNUNET_assert (NULL != data->peer);
+  c = data->peer->controller;  
+  op_id = c->operation_counter++;  
+  msg = GNUNET_TESTBED_generate_peergetconfig_msg_ (data->peer->unique_id,
+                                                    op_id);
+  data->opc =
+    GNUNET_TESTBED_forward_operation_msg_ (c, op_id, &msg->header,
+                                           &configuration_receiver, data);
+  
 }
 
 
@@ -120,26 +191,22 @@ GNUNET_TESTBED_service_connect (void *op_cls,
 				GNUNET_TESTBED_DisconnectAdapter da,
 				void *cada_cls)
 {
-  struct OperationContext *opc;
   struct ServiceConnectData *data;
 
   data = GNUNET_malloc (sizeof (struct ServiceConnectData));
   data->ca = ca;
   data->da = da;
   data->cada_cls = cada_cls;
-  data->op_cls = op_cls;  
-  opc = GNUNET_malloc (sizeof (struct OperationContext));
-  opc->data = data;
-  opc->c = peer->controller;
-  opc->id = peer->controller->operation_counter++;
-  opc->type = OP_SERVICE_CONNECT;
-  opc->op = GNUNET_TESTBED_operation_create_ (opc, &opstart_service_connect,
-                                              &oprelease_service_connect);
+  data->op_cls = op_cls;
+  data->peer = peer;  
+  data->operation = 
+    GNUNET_TESTBED_operation_create_ (data, &opstart_service_connect,
+                                      &oprelease_service_connect);
   GNUNET_TESTBED_operation_queue_insert_
-    (opc->c->opq_parallel_service_connections, opc->op);
-  GNUNET_TESTBED_operation_queue_insert_ (opc->c->opq_parallel_operations,
-                                          opc->op);
-  return opc->op;
+    (peer->controller->opq_parallel_service_connections, data->operation);
+  GNUNET_TESTBED_operation_queue_insert_
+    (peer->controller->opq_parallel_operations, data->operation);
+  return data->operation;  
 }
 
 /* end of testbed_api_services.c */

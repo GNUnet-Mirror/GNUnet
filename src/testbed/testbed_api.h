@@ -28,6 +28,7 @@
 #define TESTBED_API_H
 
 #include "gnunet_testbed_service.h"
+#include "testbed.h"
 
 /**
  * Enumeration of operations
@@ -73,11 +74,6 @@ enum OperationType
      * Link controllers operation
      */
     OP_LINK_CONTROLLERS,
-
-    /**
-     * Service connect operation
-     */
-    OP_SERVICE_CONNECT
 
   };
 
@@ -391,6 +387,17 @@ GNUNET_TESTBED_forward_operation_msg_ (struct GNUNET_TESTBED_Controller
 void
 GNUNET_TESTBED_forward_operation_msg_cancel_ (struct OperationContext *opc);
 
+
+/**
+ * Generates configuration by parsing Peer configuration information reply message
+ *
+ * @param msg the peer configuration information message
+ * @return handle to the parsed configuration
+ */
+struct GNUNET_CONFIGURATION_Handle *
+GNUNET_TESTBED_get_config_from_peerinfo_msg_ (const struct
+                                              GNUNET_TESTBED_PeerConfigurationInformationMessage
+                                              *msg);
 
 #endif
 /* end of testbed_api.h */
