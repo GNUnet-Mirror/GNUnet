@@ -278,6 +278,32 @@ client_reschedule_session_timeout (struct Session *s);
 static void
 client_stop_session_timeout (struct Session *s);
 
+/**
+ * Function setting up file descriptors and scheduling task to run
+ *
+ * @param  plugin plugin as closure
+ * @param now schedule task in 1ms, regardless of what curl may say
+ * @return GNUNET_SYSERR for hard failure, GNUNET_OK for ok
+ */
+static int
+client_schedule (struct HTTP_Client_Plugin *plugin, int now);
+
+
+int
+client_exist_session (struct HTTP_Client_Plugin *plugin, struct Session *s)
+{
+  struct Session * head;
+
+  GNUNET_assert (NULL != plugin);
+  GNUNET_assert (NULL != s);
+
+  for (head = plugin->head; head != NULL; head = head->next)
+  {
+    if (head == s)
+      return GNUNET_YES;
+  }
+  return GNUNET_NO;
+}
 
 /**
  * Function that can be used by the transport service to transmit
@@ -315,15 +341,45 @@ http_client_plugin_send (void *cls,
                   GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls)
 {
   struct HTTP_Client_Plugin *plugin = cls;
-  int bytes_sent = 0;
+  struct HTTP_Message *msg;
+  size_t res = -1;
 
   GNUNET_assert (plugin != NULL);
   GNUNET_assert (session != NULL);
 
-  GNUNET_break (0);
+  /* lookup if session is really existing */
+  if (GNUNET_YES != client_exist_session (plugin, session))
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
 
-  /*  struct Plugin *plugin = cls; */
-  return bytes_sent;
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, session->plugin->name,
+                   "Sending message with %u to peer `%s' with session %p\n",
+                   msgbuf_size, GNUNET_i2s (&session->target), session);
+
+  /* create new message and schedule */
+  msg = GNUNET_malloc (sizeof (struct HTTP_Message) + msgbuf_size);
+  msg->next = NULL;
+  msg->size = msgbuf_size;
+  msg->pos = 0;
+  msg->buf = (char *) &msg[1];
+  msg->transmit_cont = cont;
+  msg->transmit_cont_cls = cont_cls;
+  memcpy (msg->buf, msgbuf, msgbuf_size);
+  GNUNET_CONTAINER_DLL_insert_tail (session->msg_head, session->msg_tail, msg);
+
+  if (session->client_put_paused == GNUNET_YES)
+  {
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, session->plugin->name,
+                     "Session %p was suspended, unpausing\n", session->client_put);
+    session->client_put_paused = GNUNET_NO;
+    curl_easy_pause (session->client_put, CURLPAUSE_CONT);
+  }
+  client_schedule (session->plugin, GNUNET_YES);
+  client_reschedule_session_timeout (session);
+
+  return res;
 }
 
 
@@ -356,22 +412,6 @@ client_lookup_session (struct HTTP_Client_Plugin *plugin,
         (0 == memcmp (address->address, pos->addr, pos->addrlen)))
       return pos;
   return NULL;
-}
-
-static int
-client_exist_session (struct HTTP_Client_Plugin *plugin, struct Session *s)
-{
-  struct Session * head;
-
-  GNUNET_assert (NULL != plugin);
-  GNUNET_assert (NULL != s);
-
-  for (head = plugin->head; head != NULL; head = head->next)
-  {
-    if (head == s)
-      return GNUNET_YES;
-  }
-  return GNUNET_NO;
 }
 
 /**
@@ -637,8 +677,8 @@ client_disconnect (struct Session *s)
   if (s->client_put != NULL)
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                     "Client: %p / %p Deleting outbound PUT session to peer `%s'\n",
-                     s, s->client_put, GNUNET_i2s (&s->target));
+                     "Disconnecting PUT session %p to peer `%s'\n",
+                     s, GNUNET_i2s (&s->target));
 
     /* remove curl handle from multi handle */
     mret = curl_multi_remove_handle (plugin->curl_multi_handle, s->client_put);
@@ -661,10 +701,9 @@ client_disconnect (struct Session *s)
 
   if (s->client_get != NULL)
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                     "Client: %p / %p Deleting outbound GET session to peer `%s'\n",
-                     s,
-                     s->client_get, GNUNET_i2s (&s->target));
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                       "Disconnecting GET session %p to peer `%s'\n",
+                       s, GNUNET_i2s (&s->target));
 
     /* remove curl handle from multi handle */
     mret = curl_multi_remove_handle (plugin->curl_multi_handle, s->client_get);
@@ -692,7 +731,7 @@ client_disconnect (struct Session *s)
   plugin->cur_connections -= 2;
   plugin->env->session_end (plugin->env->cls, &s->target, s);
 
-  GNUNET_assert (plugin->cur_connections > 0);
+  GNUNET_assert (plugin->cur_connections >= 0);
   plugin->cur_connections --;
   GNUNET_STATISTICS_set (plugin->env->stats,
       "# HTTP client connections",
