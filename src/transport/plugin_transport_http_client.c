@@ -1140,6 +1140,24 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
 }
 
 
+static int
+client_configure_plugin (struct HTTP_Client_Plugin *plugin)
+{
+  unsigned long long max_connections;
+
+  /* Optional parameters */
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_number (plugin->env->cfg,
+                      plugin->name,
+                      "MAX_CONNECTIONS", &max_connections))
+    max_connections = 128;
+  plugin->max_connections = max_connections;
+
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                   _("Maximum number of connections is %u\n"),
+                   plugin->max_connections);
+  return GNUNET_OK;
+}
+
 /**
  * Entry point for the plugin.
  */
@@ -1183,6 +1201,12 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   plugin->name = "transport-http_client";
   plugin->protocol = "http";
 #endif
+
+  if (GNUNET_SYSERR == client_configure_plugin (plugin))
+  {
+      LIBGNUNET_PLUGIN_TRANSPORT_DONE (api);
+      return NULL;
+  }
 
   /* Start client */
   if (GNUNET_SYSERR == client_start (plugin))
