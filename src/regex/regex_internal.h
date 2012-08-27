@@ -315,10 +315,62 @@ GNUNET_REGEX_automaton_traverse (const struct GNUNET_REGEX_Automaton *a,
  *
  * @param a automaton for which the canonical regex should be returned.
  *
- * @return
+ * @return canonical regex string.
  */
 const char *
 GNUNET_REGEX_get_canonical_regex (struct GNUNET_REGEX_Automaton *a);
+
+
+/**
+ * Get the number of transitions that are contained in the given automaton.
+ *
+ * @param a automaton for which the number of transitions should be returned.
+ *
+ * @return number of transitions in the given automaton.
+ */
+unsigned int
+GNUNET_REGEX_get_transition_count (struct GNUNET_REGEX_Automaton *a);
+
+
+/**
+ * Context that contains an id counter for states and transitions as well as a
+ * DLL of automatons used as a stack for NFA construction.
+ */
+struct GNUNET_REGEX_Context
+{
+  /**
+   * Unique state id.
+   */
+  unsigned int state_id;
+
+  /**
+   * Unique transition id.
+   */
+  unsigned int transition_id;
+
+  /**
+   * DLL of GNUNET_REGEX_Automaton's used as a stack.
+   */
+  struct GNUNET_REGEX_Automaton *stack_head;
+
+  /**
+   * DLL of GNUNET_REGEX_Automaton's used as a stack.
+   */
+  struct GNUNET_REGEX_Automaton *stack_tail;
+};
+
+
+/**
+ * Adds multi-strided transitions to the given 'dfa'.
+ *
+ * @param regex_ctx regex context needed to add transitions to the automaton.
+ * @param dfa DFA to which the multi strided transitions should be added.
+ * @param stride_len length of the strides.
+ */
+void
+GNUNET_REGEX_add_multi_strides_to_dfa (struct GNUNET_REGEX_Context *regex_ctx,
+                                       struct GNUNET_REGEX_Automaton *dfa,
+                                       const unsigned int stride_len);
 
 
 /**

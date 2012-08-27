@@ -36,34 +36,6 @@
 
 
 /**
- * Context that contains an id counter for states and transitions as well as a
- * DLL of automatons used as a stack for NFA construction.
- */
-struct GNUNET_REGEX_Context
-{
-  /**
-   * Unique state id.
-   */
-  unsigned int state_id;
-
-  /**
-   * Unique transition id.
-   */
-  unsigned int transition_id;
-
-  /**
-   * DLL of GNUNET_REGEX_Automaton's used as a stack.
-   */
-  struct GNUNET_REGEX_Automaton *stack_head;
-
-  /**
-   * DLL of GNUNET_REGEX_Automaton's used as a stack.
-   */
-  struct GNUNET_REGEX_Automaton *stack_tail;
-};
-
-
-/**
  * Set of states.
  */
 struct GNUNET_REGEX_StateSet
@@ -770,9 +742,14 @@ GNUNET_REGEX_add_multi_strides_to_dfa (struct GNUNET_REGEX_Context *regex_ctx,
   struct GNUNET_REGEX_Transition *t;
   struct GNUNET_REGEX_Transition *t_next;
 
+  if (1 > stride_len)
+    return;
+
+  // Compute the new transitions.
   GNUNET_REGEX_automaton_traverse (dfa, dfa->start, NULL, NULL,
                                    &add_multi_strides_to_dfa, &ctx);
 
+  // Add all the new transitions to the automaton.
   for (t = ctx.transitions_head; NULL != t; t = t_next)
   {
     t_next = t->next;
@@ -2696,6 +2673,31 @@ GNUNET_REGEX_get_canonical_regex (struct GNUNET_REGEX_Automaton *a)
     return NULL;
 
   return a->canonical_regex;
+}
+
+
+/**
+ * Get the number of transitions that are contained in the given automaton.
+ *
+ * @param a automaton for which the number of transitions should be returned.
+ *
+ * @return number of transitions in the given automaton.
+ */
+unsigned int
+GNUNET_REGEX_get_transition_count (struct GNUNET_REGEX_Automaton *a)
+{
+  unsigned int t_count;
+  struct GNUNET_REGEX_State *s;
+
+  if (NULL == a)
+    return 0;
+
+  for (t_count = 0, s = a->states_head; NULL != s; s = s->next)
+  {
+    t_count += s->transition_count;
+  }
+
+  return t_count;
 }
 
 
