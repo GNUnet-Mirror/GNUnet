@@ -976,7 +976,9 @@ GNUNET_TESTBED_overlay_write_topology_to_file (struct GNUNET_TESTBED_Controller 
  * a service.
  * 
  * @param cls closure
- * @param cfg configuration of the peer to connect to
+ * @param cfg configuration of the peer to connect to; will be available until
+ *          GNUNET_TESTBED_operation_done() is called on the operation returned
+ *          from GNUNET_TESTBED_service_connect()
  * @return service handle to return in 'op_result', NULL on error
  */
 typedef void * (*GNUNET_TESTBED_ConnectAdapter)(void *cls,
