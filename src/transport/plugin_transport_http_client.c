@@ -964,8 +964,8 @@ client_connect (struct Session *s)
   curl_easy_setopt (s->client_get, CURLOPT_READDATA, s);
   curl_easy_setopt (s->client_get, CURLOPT_WRITEFUNCTION, client_receive);
   curl_easy_setopt (s->client_get, CURLOPT_WRITEDATA, s);
-  curl_easy_setopt (s->client_get, CURLOPT_TIMEOUT_MS,
-                    (long) CLIENT_SESSION_TIMEOUT.rel_value);
+  /* No timeout by default, timeout done with session timeout */
+  curl_easy_setopt (s->client_get, CURLOPT_TIMEOUT, 0);
   curl_easy_setopt (s->client_get, CURLOPT_PRIVATE, s);
   curl_easy_setopt (s->client_get, CURLOPT_CONNECTTIMEOUT_MS,
                     (long) HTTP_CLIENT_NOT_VALIDATED_TIMEOUT.rel_value);
@@ -995,8 +995,8 @@ client_connect (struct Session *s)
   curl_easy_setopt (s->client_put, CURLOPT_READDATA, s);
   curl_easy_setopt (s->client_put, CURLOPT_WRITEFUNCTION, client_receive);
   curl_easy_setopt (s->client_put, CURLOPT_WRITEDATA, s);
-  curl_easy_setopt (s->client_put, CURLOPT_TIMEOUT_MS,
-                    (long) CLIENT_SESSION_TIMEOUT.rel_value);
+  /* No timeout by default, timeout done with session timeout */
+  curl_easy_setopt (s->client_put, CURLOPT_TIMEOUT, 0);
   curl_easy_setopt (s->client_put, CURLOPT_PRIVATE, s);
   curl_easy_setopt (s->client_put, CURLOPT_CONNECTTIMEOUT_MS,
                     (long) HTTP_CLIENT_NOT_VALIDATED_TIMEOUT.rel_value);
