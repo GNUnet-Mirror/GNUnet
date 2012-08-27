@@ -4818,8 +4818,10 @@ queue_add (void *cls, uint16_t type, size_t size,
   i = (cinfo->send_buffer_start + cinfo->send_buffer_n) % t->fwd_queue_max;
   if (NULL != cinfo->send_buffer[i])
   {
-    queue_destroy(cinfo->send_buffer[i], GNUNET_YES);
-    GNUNET_break (cinfo->send_buffer_n > 0);
+    GNUNET_break (cinfo->send_buffer_n == t->fwd_queue_max); // aka i == start
+    queue_destroy(cinfo->send_buffer[cinfo->send_buffer_start], GNUNET_YES);
+    cinfo->send_buffer_start++;
+    cinfo->send_buffer_start %= t->fwd_queue_max;
     cinfo->send_buffer_n--;
   }
   cinfo->send_buffer[i] = queue;
