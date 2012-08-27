@@ -3077,7 +3077,21 @@ tunnel_destroy_child (void *cls,
                       const struct GNUNET_HashCode * key,
                       void *value)
 {
-  GNUNET_free (value);
+  struct MeshTunnelChildInfo *cinfo = value;
+  struct MeshTunnel *t = cls;
+  unsigned int c;
+  unsigned int i;
+
+  for (c = 0; c < cinfo->send_buffer_n; c++)
+  {
+    i = (cinfo->send_buffer_start + c) % t->fwd_queue_max;
+    if (NULL != cinfo->send_buffer[i])
+      queue_destroy(cinfo->send_buffer[i], GNUNET_YES);
+    else
+      GNUNET_break (0);
+  }
+  GNUNET_free_non_null (cinfo->send_buffer);
+  GNUNET_free (cinfo);
   return GNUNET_YES;
 }
 
