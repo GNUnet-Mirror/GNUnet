@@ -144,6 +144,10 @@ struct Session
    */
   int client_put_paused;
 
+  /**
+   * Was session given to transport service?
+   */
+  int session_passed;
 
   /**
    * Client send handle
@@ -355,8 +359,9 @@ http_client_plugin_send (void *cls,
   }
 
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, session->plugin->name,
-                   "Sending message with %u to peer `%s' with session %p\n",
-                   msgbuf_size, GNUNET_i2s (&session->target), session);
+                   "Session %p/connection %p: Sending message with %u to peer `%s' with \n",
+                   session, session->client_put,
+                   msgbuf_size, GNUNET_i2s (&session->target));
 
   /* create new message and schedule */
   msg = GNUNET_malloc (sizeof (struct HTTP_Message) + msgbuf_size);
@@ -372,7 +377,8 @@ http_client_plugin_send (void *cls,
   if (session->client_put_paused == GNUNET_YES)
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, session->plugin->name,
-                     "Session %p was suspended, unpausing\n", session->client_put);
+                     "Session %p/connection %p: unpausing connection\n",
+                     session, session->client_put);
     session->client_put_paused = GNUNET_NO;
     curl_easy_pause (session->client_put, CURLPAUSE_CONT);
   }
@@ -382,6 +388,136 @@ http_client_plugin_send (void *cls,
   return res;
 }
 
+
+void
+client_delete_session (struct Session *s)
+{
+  struct HTTP_Client_Plugin *plugin = s->plugin;
+  struct HTTP_Message *pos = s->msg_head;
+  struct HTTP_Message *next = NULL;
+
+  client_stop_session_timeout (s);
+
+  GNUNET_CONTAINER_DLL_remove (plugin->head, plugin->tail, s);
+
+  while (NULL != (pos = next))
+  {
+    next = pos->next;
+    GNUNET_CONTAINER_DLL_remove (s->msg_head, s->msg_tail, pos);
+    if (pos->transmit_cont != NULL)
+      pos->transmit_cont (pos->transmit_cont_cls, &s->target, GNUNET_SYSERR);
+    GNUNET_free (pos);
+  }
+
+  if (s->msg_tk != NULL)
+  {
+    GNUNET_SERVER_mst_destroy (s->msg_tk);
+    s->msg_tk = NULL;
+  }
+  GNUNET_free (s->addr);
+  GNUNET_free (s);
+}
+
+
+
+/**
+ * Disconnect a session
+ *
+ * @param s session
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ */
+static int
+client_disconnect (struct Session *s)
+{
+  struct HTTP_Client_Plugin *plugin = s->plugin;
+  struct HTTP_Message *msg;
+  struct HTTP_Message *t;
+  int res = GNUNET_OK;
+  CURLMcode mret;
+
+  if (GNUNET_YES != client_exist_session(plugin, s))
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+
+  if (s->client_put != NULL)
+  {
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                     "Session %p/connection %p: disconnecting PUT connectionto peer `%s'\n",
+                     s, s->client_put, GNUNET_i2s (&s->target));
+
+    /* remove curl handle from multi handle */
+    mret = curl_multi_remove_handle (plugin->curl_multi_handle, s->client_put);
+    if (mret != CURLM_OK)
+    {
+      /* clean up easy handle, handle is now invalid and free'd */
+      res = GNUNET_SYSERR;
+      GNUNET_break (0);
+    }
+    curl_easy_cleanup (s->client_put);
+    s->client_put = NULL;
+  }
+
+
+  if (s->recv_wakeup_task != GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel (s->recv_wakeup_task);
+    s->recv_wakeup_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+
+  if (s->client_get != NULL)
+  {
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                       "Session %p/connection %p: disconnecting GET connection to peer `%s'\n",
+                       s, s->client_get, GNUNET_i2s (&s->target));
+
+    /* remove curl handle from multi handle */
+    mret = curl_multi_remove_handle (plugin->curl_multi_handle, s->client_get);
+    if (mret != CURLM_OK)
+    {
+      /* clean up easy handle, handle is now invalid and free'd */
+      res = GNUNET_SYSERR;
+      GNUNET_break (0);
+    }
+    curl_easy_cleanup (s->client_get);
+    s->client_get = NULL;
+  }
+
+  msg = s->msg_head;
+  while (msg != NULL)
+  {
+    t = msg->next;
+    if (NULL != msg->transmit_cont)
+      msg->transmit_cont (msg->transmit_cont_cls, &s->target, GNUNET_SYSERR);
+    GNUNET_CONTAINER_DLL_remove (s->msg_head, s->msg_tail, msg);
+    GNUNET_free (msg);
+    msg = t;
+  }
+
+  GNUNET_assert (plugin->cur_connections >= 2);
+  plugin->cur_connections -= 2;
+  GNUNET_STATISTICS_set (plugin->env->stats,
+      "# HTTP client sessions",
+      plugin->cur_connections,
+      GNUNET_NO);
+
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                   "Session %p: notifying transport about ending session\n",s);
+
+  plugin->env->session_end (plugin->env->cls, &s->target, s);
+  client_delete_session (s);
+
+  /* Re-schedule since handles have changed */
+  if (plugin->client_perform_task != GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel (plugin->client_perform_task);
+    plugin->client_perform_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  client_schedule (plugin, GNUNET_YES);
+
+  return res;
+}
 
 
 /**
@@ -395,9 +531,27 @@ http_client_plugin_send (void *cls,
 static void
 http_client_plugin_disconnect (void *cls, const struct GNUNET_PeerIdentity *target)
 {
-  // struct Plugin *plugin = cls;
-  // FIXME
-  GNUNET_break (0);
+  struct HTTP_Client_Plugin *plugin = cls;
+  struct Session *next = NULL;
+  struct Session *pos = NULL;
+
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                   "Transport tells me to disconnect `%s'\n",
+                   GNUNET_i2s (target));
+
+  next = plugin->head;
+  while (NULL != (pos = next))
+  {
+    next = pos->next;
+    if (0 == memcmp (target, &pos->target, sizeof (struct GNUNET_PeerIdentity)))
+    {
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                       "Disconnecting session %p to `%pos'\n",
+                       pos, GNUNET_i2s (target));
+      GNUNET_assert (GNUNET_OK == client_disconnect (pos));
+    }
+  }
+
 }
 
 static struct Session *
@@ -440,7 +594,8 @@ client_send_cb (void *stream, size_t size, size_t nmemb, void *cls)
   if (NULL == msg)
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                     "Nothing to for session %p send! Suspending PUT handle!\n", s);
+                     "Session %p/connection %p: nothing to send, suspending\n",
+                     s, s->client_put);
     s->client_put_paused = GNUNET_YES;
     return CURL_READFUNC_PAUSE;
   }
@@ -454,8 +609,8 @@ client_send_cb (void *stream, size_t size, size_t nmemb, void *cls)
   if (msg->pos == msg->size)
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                     "Session %p message with %u bytes sent, removing message from queue\n",
-                     s, msg->size, msg->pos);
+                     "Session %p/connection %p: sent message with %u bytes sent, removing message from queue\n",
+                     s, s->client_put, msg->size, msg->pos);
     /* Calling transmit continuation  */
     GNUNET_CONTAINER_DLL_remove (s->msg_head, s->msg_tail, msg);
     if (NULL != msg->transmit_cont)
@@ -481,7 +636,7 @@ client_wake_up (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, s->plugin->name,
-                   "Client: %p Waking up receive handle\n", s->client_get);
+                   "Session %p/connection %p: Waking up GET handle\n", s, s->client_get);
   if (s->client_get != NULL)
     curl_easy_pause (s->client_get, CURLPAUSE_CONT);
 }
@@ -658,98 +813,6 @@ client_schedule (struct HTTP_Client_Plugin *plugin, int now)
 
 
 
-static int
-client_disconnect (struct Session *s)
-{
-
-  int res = GNUNET_OK;
-  CURLMcode mret;
-  struct HTTP_Client_Plugin *plugin = s->plugin;
-  struct HTTP_Message *msg;
-  struct HTTP_Message *t;
-
-  if (GNUNET_YES != client_exist_session (plugin, s))
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-
-  if (s->client_put != NULL)
-  {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                     "Disconnecting PUT session %p to peer `%s'\n",
-                     s, GNUNET_i2s (&s->target));
-
-    /* remove curl handle from multi handle */
-    mret = curl_multi_remove_handle (plugin->curl_multi_handle, s->client_put);
-    if (mret != CURLM_OK)
-    {
-      /* clean up easy handle, handle is now invalid and free'd */
-      res = GNUNET_SYSERR;
-      GNUNET_break (0);
-    }
-    curl_easy_cleanup (s->client_put);
-    s->client_put = NULL;
-  }
-
-
-  if (s->recv_wakeup_task != GNUNET_SCHEDULER_NO_TASK)
-  {
-    GNUNET_SCHEDULER_cancel (s->recv_wakeup_task);
-    s->recv_wakeup_task = GNUNET_SCHEDULER_NO_TASK;
-  }
-
-  if (s->client_get != NULL)
-  {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                       "Disconnecting GET session %p to peer `%s'\n",
-                       s, GNUNET_i2s (&s->target));
-
-    /* remove curl handle from multi handle */
-    mret = curl_multi_remove_handle (plugin->curl_multi_handle, s->client_get);
-    if (mret != CURLM_OK)
-    {
-      /* clean up easy handle, handle is now invalid and free'd */
-      res = GNUNET_SYSERR;
-      GNUNET_break (0);
-    }
-    curl_easy_cleanup (s->client_get);
-    s->client_get = NULL;
-  }
-
-  msg = s->msg_head;
-  while (msg != NULL)
-  {
-    t = msg->next;
-    if (NULL != msg->transmit_cont)
-      msg->transmit_cont (msg->transmit_cont_cls, &s->target, GNUNET_SYSERR);
-    GNUNET_CONTAINER_DLL_remove (s->msg_head, s->msg_tail, msg);
-    GNUNET_free (msg);
-    msg = t;
-  }
-
-  plugin->cur_connections -= 2;
-  plugin->env->session_end (plugin->env->cls, &s->target, s);
-
-  GNUNET_assert (plugin->cur_connections >= 0);
-  plugin->cur_connections --;
-  GNUNET_STATISTICS_set (plugin->env->stats,
-      "# HTTP client connections",
-      plugin->cur_connections,
-      GNUNET_NO);
-
-  /* Re-schedule since handles have changed */
-  if (plugin->client_perform_task != GNUNET_SCHEDULER_NO_TASK)
-  {
-    GNUNET_SCHEDULER_cancel (plugin->client_perform_task);
-    plugin->client_perform_task = GNUNET_SCHEDULER_NO_TASK;
-  }
-  client_schedule (plugin, GNUNET_YES);
-
-  return res;
-}
-
-
 /**
  * Task performing curl operations
  *
@@ -807,10 +870,8 @@ client_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       if (msg->msg == CURLMSG_DONE)
       {
         GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                         "Client: %p connection to '%s'  %s ended with reason %i: `%s'\n",
-                         msg->easy_handle, GNUNET_i2s (&s->target),
-                         http_common_plugin_address_to_string (NULL, s->addr,
-                                                        s->addrlen),
+                         "Session %p/connection %p: connection to `%s' ended with reason %i: `%s'\n",
+                         s, msg->easy_handle, GNUNET_i2s (&s->target),
                          msg->data.result,
                          curl_easy_strerror (msg->data.result));
 
@@ -931,6 +992,10 @@ client_connect (struct Session *s)
     return GNUNET_SYSERR;
   }
 
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                   "Session %p: connected with connections GET %p and PUT %p\n",
+                   s, s->client_get, s->client_put);
+
   /* Perform connect */
   plugin->cur_connections += 2;
   GNUNET_STATISTICS_set (plugin->env->stats,
@@ -946,35 +1011,6 @@ client_connect (struct Session *s)
   }
   plugin->client_perform_task = GNUNET_SCHEDULER_add_now (client_run, plugin);
   return res;
-}
-
-void
-client_delete_session (struct Session *s)
-{
-  struct HTTP_Client_Plugin *plugin = s->plugin;
-  struct HTTP_Message *pos = s->msg_head;
-  struct HTTP_Message *next = NULL;
-
-  client_stop_session_timeout (s);
-
-  GNUNET_CONTAINER_DLL_remove (plugin->head, plugin->tail, s);
-
-  while (NULL != (pos = next))
-  {
-    next = pos->next;
-    GNUNET_CONTAINER_DLL_remove (s->msg_head, s->msg_tail, pos);
-    if (pos->transmit_cont != NULL)
-      pos->transmit_cont (pos->transmit_cont_cls, &s->target, GNUNET_SYSERR);
-    GNUNET_free (pos);
-  }
-
-  if (s->msg_tk != NULL)
-  {
-    GNUNET_SERVER_mst_destroy (s->msg_tk);
-    s->msg_tk = NULL;
-  }
-  GNUNET_free (s->addr);
-  GNUNET_free (s);
 }
 
 
@@ -1156,6 +1192,20 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
 {
   struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
   struct HTTP_Client_Plugin *plugin = api->cls;
+  struct Session *pos;
+  struct Session *next;
+
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                   _("Shutting down plugin `%s'\n"),
+                   plugin->name);
+
+  next = plugin->head;
+  while (NULL != (pos = next))
+  {
+      next = pos->next;
+      GNUNET_CONTAINER_DLL_remove( plugin->head, plugin->tail, pos);
+      client_disconnect (pos);
+  }
 
   if (NULL == api->cls)
   {
@@ -1169,6 +1219,10 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
     plugin->curl_multi_handle = NULL;
   }
   curl_global_cleanup ();
+
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                   _("Shutdown for plugin `%s' complete\n"),
+                   plugin->name);
 
   GNUNET_free (plugin);
   GNUNET_free (api);
