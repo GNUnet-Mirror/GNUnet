@@ -4608,6 +4608,8 @@ queue_send (void *cls, size_t size, void *buf)
     struct GNUNET_MessageHeader *msg;
     struct MeshPeerQueue *queue;
     struct MeshTunnel *t;
+    struct MeshTunnelChildInfo *cinfo;
+    struct GNUNET_PeerIdentity dst_id;
     size_t data_size;
 
     peer->core_transmit = NULL;
@@ -4625,20 +4627,20 @@ queue_send (void *cls, size_t size, void *buf)
     }
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********   not empty\n");
 
+    GNUNET_PEER_resolve (peer->id, &dst_id);
     /* Check if buffer size is enough for the message */
     if (queue->size > size)
     {
-        struct GNUNET_PeerIdentity id;
+
 
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                     "*********   not enough room, reissue\n");
-        GNUNET_PEER_resolve (peer->id, &id);
         peer->core_transmit =
             GNUNET_CORE_notify_transmit_ready(core_handle,
                                               0,
                                               0,
                                               GNUNET_TIME_UNIT_FOREVER_REL,
-                                              &id,
+                                              &dst_id,
                                               queue->size,
                                               &queue_send,
                                               peer);
@@ -4709,6 +4711,8 @@ queue_send (void *cls, size_t size, void *buf)
                     queue->type);
         data_size = 0;
     }
+
+    cinfo = tunnel_get_neighbor_fc(t, &dst_id);
 
     /* Free queue, but cls was freed by send_core_* */
     queue_destroy (queue, GNUNET_NO);
