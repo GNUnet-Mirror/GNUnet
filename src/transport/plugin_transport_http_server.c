@@ -990,7 +990,7 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
 #if MHD_VERSION >= 0x00090E00
   if ((NULL == s->server_recv) || (NULL == s->server_send))
   {
-    to = (HTTP_NOT_VALIDATED_TIMEOUT.rel_value / 1000);
+    to = (HTTP_SERVER_NOT_VALIDATED_TIMEOUT.rel_value / 1000);
     MHD_set_connection_option (mhd_connection, MHD_CONNECTION_OPTION_TIMEOUT, to);
     server_reschedule (plugin, sc->mhd_daemon, GNUNET_NO);
   }
@@ -999,7 +999,7 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                      "Session %p for peer `%s' fully connected\n",
                      s, GNUNET_i2s (&target));
-    to = (TIMEOUT.rel_value / 1000);
+    to = (SERVER_SESSION_TIMEOUT.rel_value / 1000);
     server_mhd_connection_timeout (plugin, s, to);
   }
 
@@ -1689,12 +1689,12 @@ server_start (struct HTTP_Server_Plugin *plugin)
 
 
 #if MHD_VERSION >= 0x00090E00
-  timeout = HTTP_NOT_VALIDATED_TIMEOUT.rel_value / 1000;
+  timeout = HTTP_SERVER_NOT_VALIDATED_TIMEOUT.rel_value / 1000;
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                    "MHD can set timeout per connection! Default time out %u sec.\n",
                    timeout);
 #else
-  timeout = GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value / 1000;
+  timeout = SERVER_SESSION_TIMEOUT.rel_value / 1000;
   GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, plugin->name,
                    "MHD cannot set timeout per connection! Default time out %u sec.\n",
                    timeout);
@@ -2418,7 +2418,7 @@ server_session_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
   s->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_log (TIMEOUT_LOG,
               "Session %p was idle for %llu ms, disconnecting\n",
-              s, (unsigned long long) TIMEOUT.rel_value);
+              s, (unsigned long long) SERVER_SESSION_TIMEOUT.rel_value);
 
   /* call session destroy function */
  GNUNET_assert (GNUNET_OK == server_disconnect (s));
@@ -2432,12 +2432,12 @@ server_start_session_timeout (struct Session *s)
 {
  GNUNET_assert (NULL != s);
  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == s->timeout_task);
- s->timeout_task =  GNUNET_SCHEDULER_add_delayed (TIMEOUT,
+ s->timeout_task =  GNUNET_SCHEDULER_add_delayed (SERVER_SESSION_TIMEOUT,
                                                   &server_session_timeout,
                                                   s);
  GNUNET_log (TIMEOUT_LOG,
              "Timeout for session %p set to %llu ms\n",
-             s,  (unsigned long long) TIMEOUT.rel_value);
+             s,  (unsigned long long) SERVER_SESSION_TIMEOUT.rel_value);
 }
 
 
@@ -2451,12 +2451,12 @@ server_reschedule_session_timeout (struct Session *s)
  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != s->timeout_task);
 
  GNUNET_SCHEDULER_cancel (s->timeout_task);
- s->timeout_task =  GNUNET_SCHEDULER_add_delayed (TIMEOUT,
+ s->timeout_task =  GNUNET_SCHEDULER_add_delayed (SERVER_SESSION_TIMEOUT,
                                                   &server_session_timeout,
                                                   s);
  GNUNET_log (TIMEOUT_LOG,
              "Timeout rescheduled for session %p set to %llu ms\n",
-             s, (unsigned long long) TIMEOUT.rel_value);
+             s, (unsigned long long) SERVER_SESSION_TIMEOUT.rel_value);
 }
 
 /**
@@ -2472,9 +2472,14 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
 
   if (NULL == api->cls)
   {
+    /* Free for stub mode */
     GNUNET_free (api);
     return NULL;
   }
+
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                   _("Shutting down plugin `%s'\n"),
+                   plugin->name);
 
   if (GNUNET_SCHEDULER_NO_TASK != plugin->notify_ext_task)
   {
@@ -2514,6 +2519,10 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
   GNUNET_free_non_null (plugin->ext_addr);
   GNUNET_free_non_null (plugin->server_addr_v4);
   GNUNET_free_non_null (plugin->server_addr_v6);
+
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                   _("Shutdown for plugin `%s' complete\n"),
+                   plugin->name);
 
   GNUNET_free (plugin);
   GNUNET_free (api);

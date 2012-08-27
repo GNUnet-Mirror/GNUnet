@@ -33,7 +33,7 @@
 #endif
 
 
-#define HTTP_NOT_VALIDATED_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15)
+#define VERBOSE_CURL GNUNET_YES
 
 #include "platform.h"
 #include "gnunet_protocols.h"
@@ -309,6 +309,43 @@ client_exist_session (struct HTTP_Client_Plugin *plugin, struct Session *s)
   return GNUNET_NO;
 }
 
+#if VERBOSE_CURL
+/**
+ * Function to log curl debug messages with GNUNET_log
+ * @param curl handle
+ * @param type curl_infotype
+ * @param data data
+ * @param size size
+ * @param cls  closure
+ * @return 0
+ */
+static int
+client_log (CURL * curl, curl_infotype type, char *data, size_t size, void *cls)
+{
+  if (type == CURLINFO_TEXT)
+  {
+    char text[size + 2];
+
+    memcpy (text, data, size);
+    if (text[size - 1] == '\n')
+      text[size] = '\0';
+    else
+    {
+      text[size] = '\n';
+      text[size + 1] = '\0';
+    }
+#if BUILD_HTTPS
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-https_client",
+                     "Connection: %p - %s", cls, text);
+#else
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-http_client",
+                     "Connection %p: - %s", cls, text);
+#endif
+  }
+  return 0;
+}
+#endif
+
 /**
  * Function that can be used by the transport service to transmit
  * a message using the plugin.   Note that in the case of a
@@ -435,7 +472,7 @@ client_disconnect (struct Session *s)
   int res = GNUNET_OK;
   CURLMcode mret;
 
-  if (GNUNET_YES != client_exist_session(plugin, s))
+  if (GNUNET_YES != client_exist_session (plugin, s))
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
@@ -699,8 +736,6 @@ client_receive_mst_cb (void *cls, void *client,
 static size_t
 client_receive (void *stream, size_t size, size_t nmemb, void *cls)
 {
-  return 0;
-
   struct Session *s = cls;
   struct GNUNET_TIME_Absolute now;
   size_t len = size * nmemb;
@@ -932,10 +967,10 @@ client_connect (struct Session *s)
   curl_easy_setopt (s->client_get, CURLOPT_WRITEFUNCTION, client_receive);
   curl_easy_setopt (s->client_get, CURLOPT_WRITEDATA, s);
   curl_easy_setopt (s->client_get, CURLOPT_TIMEOUT_MS,
-                    (long) GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value);
+                    (long) CLIENT_SESSION_TIMEOUT.rel_value);
   curl_easy_setopt (s->client_get, CURLOPT_PRIVATE, s);
   curl_easy_setopt (s->client_get, CURLOPT_CONNECTTIMEOUT_MS,
-                    (long) HTTP_NOT_VALIDATED_TIMEOUT.rel_value);
+                    (long) HTTP_CLIENT_NOT_VALIDATED_TIMEOUT.rel_value);
   curl_easy_setopt (s->client_get, CURLOPT_BUFFERSIZE,
                     2 * GNUNET_SERVER_MAX_MESSAGE_SIZE);
 #if CURL_TCP_NODELAY
@@ -963,10 +998,10 @@ client_connect (struct Session *s)
   curl_easy_setopt (s->client_put, CURLOPT_WRITEFUNCTION, client_receive);
   curl_easy_setopt (s->client_put, CURLOPT_WRITEDATA, s);
   curl_easy_setopt (s->client_put, CURLOPT_TIMEOUT_MS,
-                    (long) GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value);
+                    (long) CLIENT_SESSION_TIMEOUT.rel_value);
   curl_easy_setopt (s->client_put, CURLOPT_PRIVATE, s);
   curl_easy_setopt (s->client_put, CURLOPT_CONNECTTIMEOUT_MS,
-                    (long) HTTP_NOT_VALIDATED_TIMEOUT.rel_value);
+                    (long) HTTP_CLIENT_NOT_VALIDATED_TIMEOUT.rel_value);
   curl_easy_setopt (s->client_put, CURLOPT_BUFFERSIZE,
                     2 * GNUNET_SERVER_MAX_MESSAGE_SIZE);
 #if CURL_TCP_NODELAY
@@ -1104,7 +1139,7 @@ client_session_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
   s->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_log (TIMEOUT_LOG,
               "Session %p was idle for %llu ms, disconnecting\n",
-              s, (unsigned long long) TIMEOUT.rel_value);
+              s, (unsigned long long) CLIENT_SESSION_TIMEOUT.rel_value);
 
   /* call session destroy function */
   GNUNET_assert (GNUNET_OK == client_disconnect (s));
@@ -1119,12 +1154,12 @@ client_start_session_timeout (struct Session *s)
 
  GNUNET_assert (NULL != s);
  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == s->timeout_task);
- s->timeout_task =  GNUNET_SCHEDULER_add_delayed (TIMEOUT,
+ s->timeout_task =  GNUNET_SCHEDULER_add_delayed (CLIENT_SESSION_TIMEOUT,
                                                   &client_session_timeout,
                                                   s);
  GNUNET_log (TIMEOUT_LOG,
              "Timeout for session %p set to %llu ms\n",
-             s,  (unsigned long long) TIMEOUT.rel_value);
+             s,  (unsigned long long) CLIENT_SESSION_TIMEOUT.rel_value);
 }
 
 /**
@@ -1138,12 +1173,12 @@ client_reschedule_session_timeout (struct Session *s)
  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != s->timeout_task);
 
  GNUNET_SCHEDULER_cancel (s->timeout_task);
- s->timeout_task =  GNUNET_SCHEDULER_add_delayed (TIMEOUT,
+ s->timeout_task =  GNUNET_SCHEDULER_add_delayed (CLIENT_SESSION_TIMEOUT,
                                                   &client_session_timeout,
                                                   s);
  GNUNET_log (TIMEOUT_LOG,
              "Timeout rescheduled for session %p set to %llu ms\n",
-             s, (unsigned long long) TIMEOUT.rel_value);
+             s, (unsigned long long) CLIENT_SESSION_TIMEOUT.rel_value);
 }
 
 /**
@@ -1199,19 +1234,25 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
                    _("Shutting down plugin `%s'\n"),
                    plugin->name);
 
+  if (NULL == api->cls)
+  {
+    /* Stub shutdown */
+    GNUNET_free (api);
+    return NULL;
+  }
+
   next = plugin->head;
   while (NULL != (pos = next))
   {
       next = pos->next;
-      GNUNET_CONTAINER_DLL_remove( plugin->head, plugin->tail, pos);
       client_disconnect (pos);
   }
-
-  if (NULL == api->cls)
+  if (GNUNET_SCHEDULER_NO_TASK != plugin->client_perform_task)
   {
-    GNUNET_free (api);
-    return NULL;
+      GNUNET_SCHEDULER_cancel (plugin->client_perform_task);
+      plugin->client_perform_task = GNUNET_SCHEDULER_NO_TASK;
   }
+
 
   if (NULL != plugin->curl_multi_handle)
   {
