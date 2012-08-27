@@ -1171,6 +1171,10 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   api->disconnect = &http_client_plugin_disconnect;
   api->check_address = &http_client_plugin_address_suggested;
   api->get_session = &http_client_plugin_get_session;
+  api->address_to_string = &http_common_plugin_address_to_string;
+  api->string_to_address = &http_common_plugin_string_to_address;
+  api->address_pretty_printer = &http_common_plugin_address_pretty_printer;
+
 
 #if BUILD_HTTPS
   plugin->name = "transport-https_client";
