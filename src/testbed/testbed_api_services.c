@@ -28,6 +28,36 @@
 #include "testbed_api_peers.h"
 #include "testbed_api_operations.h"
 
+
+/**
+ * States for Service connect operations
+ */
+enum State
+  {
+    /**
+     * Initial state
+     */
+    INIT,
+
+    /**
+     * The configuration request has been sent
+     */
+    CFG_REQUEST_QUEUED,
+
+    /**
+     * connected to service
+     */
+    SERVICE_CONNECTED,
+
+    /**
+     * 
+     */
+  };
+
+
+/**
+ * Data accessed during service connections
+ */
 struct ServiceConnectData
 {
   /**
@@ -79,15 +109,11 @@ struct ServiceConnectData
    * The op_result pointer from ConnectAdapter
    */
   void *op_result;
-  
-};
 
-
-/**
- * Context information for forwarded operation used in service connect
- */
-struct SCFOContext
-{
+  /**
+   * State information
+   */
+  enum State state;
   
 };
 
@@ -118,10 +144,11 @@ configuration_receiver (void *cls,
   info.details.operation_finished.emsg = NULL;
   info.details.operation_finished.pit = GNUNET_TESTBED_PIT_GENERIC;
   info.details.operation_finished.op_result.generic = data->op_result;
-  c = data->peer->controller;    
+  c = data->peer->controller;
+  data->state = SERVICE_CONNECTED;
   if ((0 != (GNUNET_TESTBED_ET_OPERATION_FINISHED & c->event_mask))
       && (NULL != c->cc))
-      c->cc (c->cc_cls, &info);  
+      c->cc (c->cc_cls, &info);
 }
 
 
@@ -147,7 +174,8 @@ opstart_service_connect (void *cls)
   data->opc =
     GNUNET_TESTBED_forward_operation_msg_ (c, op_id, &msg->header,
                                            &configuration_receiver, data);
-  
+  GNUNET_free (msg);
+  data->state = CFG_REQUEST_QUEUED;
 }
 
 
@@ -160,7 +188,24 @@ opstart_service_connect (void *cls)
 static void 
 oprelease_service_connect (void *cls)
 {
-  GNUNET_break (0); 
+  struct ServiceConnectData *data = cls;
+
+  switch (data->state)
+  {
+  case INIT:
+    break;
+  case CFG_REQUEST_QUEUED:
+    GNUNET_assert (NULL != data->opc);
+    GNUNET_TESTBED_forward_operation_msg_cancel_ (data->opc);
+    break;
+  case SERVICE_CONNECTED:
+    GNUNET_assert (NULL != data->cfg);
+    GNUNET_CONFIGURATION_destroy (data->cfg);
+    if (NULL != data->da)
+      data->da (data->cada_cls, data->op_result);
+    break;
+  }
+  GNUNET_free (data);
 }
 
 
@@ -198,7 +243,8 @@ GNUNET_TESTBED_service_connect (void *op_cls,
   data->da = da;
   data->cada_cls = cada_cls;
   data->op_cls = op_cls;
-  data->peer = peer;  
+  data->peer = peer;
+  data->state = INIT;
   data->operation = 
     GNUNET_TESTBED_operation_create_ (data, &opstart_service_connect,
                                       &oprelease_service_connect);

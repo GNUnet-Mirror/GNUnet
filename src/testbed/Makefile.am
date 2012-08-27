@@ -96,6 +96,7 @@ test_testbed_api_SOURCES = \
 test_testbed_api_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/testing/libgnunettesting.la \
+ $(top_builddir)/src/dht/libgnunetdht.la \
  libgnunettestbed.la
 
 test_testbed_api_2peers_SOURCES = \

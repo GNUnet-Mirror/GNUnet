@@ -26,9 +26,9 @@
 
 #include "platform.h"
 #include "gnunet_util_lib.h"
+#include "gnunet_dht_service.h"
 #include "gnunet_testing_lib-new.h"
 #include "gnunet_testbed_service.h"
-
 
 /**
  * Generic logging shortcut
@@ -83,6 +83,11 @@ static struct GNUNET_CONFIGURATION_Handle *cfg;
 static struct GNUNET_TESTBED_Operation *operation;
 
 /**
+ * Handle to peer's DHT service
+ */
+static struct GNUNET_DHT_Handle *dht_handle;
+
+/**
  * Abort task identifier
  */
 static GNUNET_SCHEDULER_TaskIdentifier abort_task;
@@ -107,6 +112,11 @@ enum Test
      * Test where we get a peer config from controller
      */
     PEER_GETCONFIG,
+
+    /**
+     * Test where we connect to a service running on the peer
+     */
+    PEER_SERVICE_CONNECT,
 
     /**
      * Test where we get a peer's identity from controller
@@ -158,6 +168,49 @@ do_abort (void *cls, const const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
+ * Adapter function called to establish a connection to
+ * a service.
+ * 
+ * @param cls closure
+ * @param cfg configuration of the peer to connect to; will be available until
+ *          GNUNET_TESTBED_operation_done() is called on the operation returned
+ *          from GNUNET_TESTBED_service_connect()
+ * @return service handle to return in 'op_result', NULL on error
+ */
+static void *
+dht_connect_adapter (void *cls,
+                     const struct GNUNET_CONFIGURATION_Handle *cfg)
+{
+  GNUNET_assert (NULL == cls);
+  GNUNET_assert (OTHER == sub_test);
+  sub_test = PEER_SERVICE_CONNECT;
+  dht_handle = GNUNET_DHT_connect (cfg, 10);
+  return dht_handle;
+}
+
+
+/**
+ * Adapter function called to destroy a connection to
+ * a service.
+ * 
+ * @param cls closure
+ * @param op_result service handle returned from the connect adapter
+ */
+static void 
+dht_disconnect_adapter (void *cls,
+                        void *op_result)
+{
+  if (NULL != op_result)
+    GNUNET_DHT_disconnect (op_result);
+  GNUNET_assert (PEER_SERVICE_CONNECT == sub_test);
+  GNUNET_assert (NULL != operation);
+  operation = GNUNET_TESTBED_peer_stop (peer);
+  GNUNET_assert (NULL != operation);
+}
+
+
+
+/**
  * Signature of the event handler function called by the
  * respective event controller.
  *
@@ -194,6 +247,18 @@ controller_cb(void *cls, const struct GNUNET_TESTBED_EventInformation *event)
       GNUNET_TESTBED_operation_done (operation);
       GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
       break;
+    case PEER_SERVICE_CONNECT:
+      GNUNET_assert (event->details.operation_finished.operation == operation);
+      GNUNET_assert (NULL == event->details.operation_finished.op_cls);
+      GNUNET_assert (NULL == event->details.operation_finished.emsg);
+      GNUNET_assert (GNUNET_TESTBED_PIT_GENERIC ==
+		     event->details.operation_finished.pit);
+      GNUNET_assert (NULL != dht_handle);
+      GNUNET_assert (event->details.operation_finished.op_result.generic
+                     == dht_handle);
+      GNUNET_TESTBED_operation_done (operation); /* This results in call to
+                                                  * disconnect adapter */
+      break;
     case OTHER:
       GNUNET_assert (0);
       break;
@@ -202,11 +267,17 @@ controller_cb(void *cls, const struct GNUNET_TESTBED_EventInformation *event)
   case GNUNET_TESTBED_ET_PEER_START:
     GNUNET_assert (event->details.peer_start.host == host);
     GNUNET_assert (event->details.peer_start.peer == peer);
+    GNUNET_assert (OTHER == sub_test);
     GNUNET_TESTBED_operation_done (operation);
-    operation = GNUNET_TESTBED_peer_stop (peer);
+    operation = GNUNET_TESTBED_service_connect (NULL, peer, "dht",
+                                                &dht_connect_adapter,
+                                                &dht_disconnect_adapter,
+                                                NULL);
+    GNUNET_assert (NULL != operation);
     break;
   case GNUNET_TESTBED_ET_PEER_STOP:
-    GNUNET_assert (event->details.peer_stop.peer == peer);    
+    GNUNET_assert (event->details.peer_stop.peer == peer);
+    GNUNET_assert (PEER_SERVICE_CONNECT == sub_test);
     result = GNUNET_YES;
     sub_test = PEER_GETCONFIG;
     GNUNET_TESTBED_operation_done (operation);
