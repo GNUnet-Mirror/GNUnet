@@ -4726,22 +4726,30 @@ queue_send (void *cls, size_t size, void *buf)
                     queue->type);
         data_size = 0;
     }
-
-    cinfo = tunnel_get_neighbor_fc(t, &dst_id);
-    if (cinfo->send_buffer[cinfo->send_buffer_start] != queue)
+    switch (queue->type)
     {
-      GNUNET_break(0);
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "at pos %u (%p) != %p\n",
-                  cinfo->send_buffer_start,
-                  cinfo->send_buffer[cinfo->send_buffer_start],
-                  queue);
+      case GNUNET_MESSAGE_TYPE_MESH_UNICAST:
+      case GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN:
+      case GNUNET_MESSAGE_TYPE_MESH_MULTICAST:
+        cinfo = tunnel_get_neighbor_fc(t, &dst_id);
+        if (cinfo->send_buffer[cinfo->send_buffer_start] != queue)
+        {
+          GNUNET_break(0);
+          GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                      "at pos %u (%p) != %p\n",
+                      cinfo->send_buffer_start,
+                      cinfo->send_buffer[cinfo->send_buffer_start],
+                      queue);
+        }
+        GNUNET_break(cinfo->send_buffer_n > 0);
+        cinfo->send_buffer[cinfo->send_buffer_start] = NULL;
+        cinfo->send_buffer_n--;
+        cinfo->send_buffer_start++;
+        cinfo->send_buffer_start %= t->fwd_queue_max;
+        break;
+      default:
+        break;
     }
-    GNUNET_break(cinfo->send_buffer_n > 0);
-    cinfo->send_buffer[cinfo->send_buffer_start] = NULL;
-    cinfo->send_buffer_n--;
-    cinfo->send_buffer_start++;
-    cinfo->send_buffer_start %= t->fwd_queue_max;
 
     /* Free queue, but cls was freed by send_core_* */
     queue_destroy (queue, GNUNET_NO);
