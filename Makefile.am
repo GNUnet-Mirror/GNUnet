@@ -11,7 +11,7 @@ gnunetincludedir = $(includedir)/gnunet
 gnunetinclude_HEADERS = gnunet_config.h
 
 docdir = $(datadir)/doc/gnunet/
-doc_DATA = COPYING
+doc_DATA = COPYING README
 
 ACLOCAL_AMFLAGS = -I m4
 

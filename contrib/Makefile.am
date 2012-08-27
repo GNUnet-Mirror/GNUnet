@@ -27,8 +27,6 @@ dist_pkgdata_DATA = \
 
 EXTRA_DIST = \
  coverage.sh \
- hostlist.cgi \
- hostlist.php \
  report.sh \
  terminate.py.in \
  gnunet_pyexpect.py.in \

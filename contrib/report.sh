@@ -156,6 +156,26 @@ else
   fi
 fi
 
+TEST=`$WHICH dpkg 2> /dev/null`
+if test -n "$TEST"; then
+  LINES=`dpkg -s libunistring-dev | grep Version | wc -l`
+  if test "$LINES" = "1"
+  then
+    VERSION=`dpkg -s libunistring-dev | grep Version | awk '{print $2}'`
+    echo "libunistring   : libunistring3-dev-$VERSION.deb"
+  else
+    echo "libunistring   : dpkg: libunistring3-dev not installed"
+  fi
+else
+  TEST=`$WHICH rpm 2> /dev/null`
+  if test -n "$TEST"; then
+    rpm -q unistring | sed -e "s/unistring-//" 2> /dev/null | \
+      awk '{print "libunistring   : "$1.rpm}'
+  else
+    echo "libunistring   : Test not available"
+  fi
+fi
+
 TEST=`$WHICH gettext 2> /dev/null`
 if test -n "$TEST"; then
   gettext --version | head -n1 2> /dev/null | \
@@ -173,15 +193,7 @@ else
   echo "libcurl        : Not found"
 fi
 
-
-TEST=`which qmake 2> /dev/null`
-if test -x "$TEST"; then
-  qmake --version | tail -n 1 | awk '{print "Qt             : "$4}'
-else
-  echo "Qt             : Not found"
-fi
-
-echo -n "MHD            : "
+echo -n "libmicrohttpd  : "
 TMPFILE=`mktemp /tmp/mhd-version-testXXXXXX`
 cat - >$TMPFILE.c <<EOF
 #include <microhttpd.h>
@@ -189,6 +201,38 @@ cat - >$TMPFILE.c <<EOF
 int main()
 {
   fprintf (stdout, "%X\n", MHD_VERSION);
+  return 0;
+}
+EOF
+
+gcc -o $TMPFILE $TMPFILE.c 2> /dev/null && $TMPFILE || echo "Not found"
+rm -f $TMPFILE $TMPFILE.bin
+
+
+echo -n "GNU GLPK       : "
+TMPFILE=`mktemp /tmp/glpk-version-testXXXXXX`
+cat - >$TMPFILE.c <<EOF
+#include <glpk.h>
+#include <stdio.h>
+int main()
+{
+  fprintf (stdout, "%u.%u\n", GLP_MAJOR_VERSION, GLP_MINOR_VERSION);
+  return 0;
+}
+EOF
+
+gcc -o $TMPFILE $TMPFILE.c 2> /dev/null && $TMPFILE || echo "Not found"
+rm -f $TMPFILE $TMPFILE.bin
+
+
+echo -n "GNUtls         : "
+TMPFILE=`mktemp /tmp/gnutls-version-testXXXXXX`
+cat - >$TMPFILE.c <<EOF
+#include <gnutls/gnutls.h>
+#include <stdio.h>
+int main()
+{
+  fprintf (stdout, "%s\n", GNUTLS_VERSION);
   return 0;
 }
 EOF
