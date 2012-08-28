@@ -250,7 +250,7 @@ libgnunet_plugin_transport_http_client_la_LIBADD = \
   @LIBCURL@ \
   $(top_builddir)/src/nat/libgnunetnat.la \
   $(top_builddir)/src/util/libgnunetutil.la 
-libgnunet_plugin_transport_http_client_laLDFLAGS = \
+libgnunet_plugin_transport_http_client_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 libgnunet_plugin_transport_http_client_la_CFLAGS = \
  $(CFLAGS) 
