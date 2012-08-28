@@ -155,12 +155,12 @@ typedef struct GNUNET_ATS_Information
  * @param addr one of the addresses of the host
  *        the specific address format depends on the transport
  * @param addrlen length of the address
- * @pararm pluginname name of the plugin
+ * @param dest_plugin plugin to use this address with
  */
 typedef void (*GNUNET_TRANSPORT_AddressNotification) (void *cls, int add_remove,
                                                       const void *addr,
                                                       size_t addrlen,
-                                                      const char *pluginname);
+                                                      const char *dest_plugin);
 
 
 /**

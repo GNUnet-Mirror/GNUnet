@@ -353,7 +353,7 @@ find_session (struct GNUNET_ATS_SchedulingHandle *sh, uint32_t session_id,
       memcmp (peer, sh->session_array[session_id].session,
               sizeof (struct GNUNET_PeerIdentity)))
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "ats-scheduling-api",
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "ats-scheduling-api",
               "Session %p belongs to peer `%s'\n",
               sh->session_array[session_id].session, GNUNET_i2s_full ((struct GNUNET_PeerIdentity *)sh->session_array[session_id].session));
 /*
