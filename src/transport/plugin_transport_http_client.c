@@ -935,6 +935,11 @@ client_connect (struct Session *s)
                      GNUNET_i2s (&s->target));
     return GNUNET_SYSERR;
   }
+  else
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+                     "address peer `%s'\n",
+                     http_common_plugin_address_to_string (plugin, s->addr, s->addrlen));
+
 
   GNUNET_asprintf (&url, "%s/%s;%u",
       http_common_plugin_address_to_string (plugin, s->addr, s->addrlen),
@@ -1061,6 +1066,10 @@ http_client_plugin_get_session (void *cls,
 {
   struct HTTP_Client_Plugin *plugin = cls;
   struct Session * s = NULL;
+  struct sockaddr *sa;
+  struct GNUNET_ATS_Information ats;
+  size_t salen = 0;
+  int res;
 
   GNUNET_assert (plugin != NULL);
   GNUNET_assert (address != NULL);
@@ -1082,14 +1091,48 @@ http_client_plugin_get_session (void *cls,
     return NULL;
   }
 
+  ats.type = htonl (GNUNET_ATS_NETWORK_TYPE);
+  ats.value = htonl (GNUNET_ATS_NET_UNSPECIFIED);
+  sa = http_common_socket_from_address (address->address, address->address_length, &res);
+
+
+
+  if (GNUNET_SYSERR == res)
+  {
+      return NULL;
+  }
+  else if (GNUNET_YES == res)
+  {
+      GNUNET_assert (NULL != sa);
+      if (AF_INET == sa->sa_family)
+      {
+          salen = sizeof (struct sockaddr_in);
+      }
+      else if (AF_INET == sa->sa_family)
+      {
+          salen = sizeof (struct sockaddr_in6);
+      }
+      ats = plugin->env->get_address_type (plugin->env->cls, sa, salen);
+      GNUNET_free (sa);
+  }
+  else if (GNUNET_NO == res)
+  {
+      ats.value = htonl (GNUNET_ATS_COST_WAN);
+  }
+
+  if (GNUNET_ATS_NET_UNSPECIFIED == ntohl(ats.value))
+  {
+      GNUNET_break (0);
+      return NULL;
+  }
+
   s = GNUNET_malloc (sizeof (struct Session));
   memcpy (&s->target, &address->peer, sizeof (struct GNUNET_PeerIdentity));
   s->plugin = plugin;
   s->addr = GNUNET_malloc (address->address_length);
   memcpy (s->addr, address->address, address->address_length);
   s->addrlen = address->address_length;
-  //s->ats_address_network_type = ats.value;
-  GNUNET_break (0);
+  s->ats_address_network_type = ats.value;
 
   client_start_session_timeout (s);
 
