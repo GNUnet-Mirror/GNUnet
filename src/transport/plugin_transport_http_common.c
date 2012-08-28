@@ -144,6 +144,90 @@ http_common_address_from_socket (const char *protocol, const struct sockaddr *ad
 }
 
 /**
+ * Create a socketaddr from a HTTP address
+ *
+ * @param protocol protocol
+ * @param addr sockaddr * address
+ * @param addrlen length of the address
+ * @param res the result:
+ * GNUNET_SYSERR, invalid input,
+ * GNUNET_YES: could convert to ip,
+ * GNUNET_NO: valid input but could not convert to ip (hostname?)
+ * @return the string
+ */
+struct sockaddr *
+http_common_socket_from_address (const void *addr, size_t addrlen, int *res)
+{
+  struct sockaddr_storage *s;
+  char *addrs;
+  char *addrs_org;
+  char *addrs_end;
+  (*res) = GNUNET_SYSERR;
+
+  if (NULL == addr)
+    {
+      GNUNET_break (0);
+      return NULL;
+    }
+  if (0 >= addrlen)
+    {
+      GNUNET_break (0);
+      return NULL;
+    }
+  if (((char *) addr)[addrlen-1] != '\0')
+    {
+      GNUNET_break (0);
+      return NULL;
+    }
+
+  addrs_org = strdup ((char *) addr);
+  addrs = strstr (addrs_org , "://");
+  if (NULL == addrs)
+  {
+    GNUNET_break (0);
+    GNUNET_free (addrs_org);
+    return NULL;
+  }
+
+  if (strlen (addrs) < 3)
+  {
+    GNUNET_break (0);
+    GNUNET_free (addrs_org);
+    return NULL;
+  }
+
+  addrs += 3;
+
+  addrs_end = strchr (addrs, '/');
+  if (NULL != addrs_end)
+    addrs[strlen (addrs) - strlen(addrs_end)] = '\0';
+
+  s = GNUNET_malloc (sizeof (struct sockaddr_storage));
+  if (GNUNET_SYSERR == GNUNET_STRINGS_to_address_ip (addrs, strlen(addrs), s))
+  {
+    /* could be a hostname */
+    GNUNET_free (s);
+    GNUNET_free (addrs_org);
+    (*res) = GNUNET_NO;
+    return NULL;
+  }
+  else
+  {
+    if ((AF_INET != s->ss_family) && (AF_INET6 != s->ss_family))
+    {
+      GNUNET_break (0);
+      GNUNET_free (s);
+      GNUNET_free (addrs_org);
+      (*res) = GNUNET_SYSERR;
+      return NULL;
+    }
+  }
+  (*res) = GNUNET_YES;
+  GNUNET_free (addrs_org);
+  return (struct sockaddr *) s;
+}
+
+/**
  * Get the length of an address
  *
  * @param addr address
