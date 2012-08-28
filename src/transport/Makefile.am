@@ -41,6 +41,10 @@ if HAVE_LIBCURL
 endif
 endif 
 
+#if FALSE
+
+#endif
+
 if USE_COVERAGE
   AM_CFLAGS = --coverage -O0
 endif
@@ -323,10 +327,9 @@ check_PROGRAMS = \
  $(UNIX_PLUGIN_TIMEOUT_TEST) \
  test_transport_api_udp_nat \
  $(HTTP_API_TEST) \
- $(HTTP_NAT_API_TEST) \
+ $(HTTP_REVERSE_API_TEST) \
  $(HTTP_API_TIMEOUT_TEST) \
  $(HTTPS_API_TEST) \
- $(HTTPS_NAT_API_TEST) \
  $(HTTPS_API_TIMEOUT_TEST) \
  $(WLAN_API_TEST) \
  test_transport_api_multi \
@@ -336,9 +339,7 @@ check_PROGRAMS = \
  test_transport_api_unreliability_constant_udp \
  $(UNIX_REL_TEST) \
  $(HTTP_REL_TEST) \
- $(HTTP_NAT_REL_TEST) \
  $(HTTPS_REL_TEST) \
- $(HTTPS_NAT_REL_TEST) \
  $(WLAN_REL_TEST) \
  $(WLAN_UREL_TEST) \
  test_quota_compliance_tcp \
@@ -374,10 +375,9 @@ TESTS = \
  $(UNIX_PLUGIN_TIMEOUT_TEST) \
  test_transport_api_udp_nat \
  $(HTTP_API_TEST) \
- $(HTTP_NAT_API_TEST) \
+ $(HTTP_REVERSE_API_TEST) \
  $(HTTP_API_TIMEOUT_TEST) \
  $(HTTPS_API_TEST) \
- $(HTTPS_NAT_API_TEST) \
  $(HTTPS_API_TIMEOUT_TEST) \
  $(WLAN_API_TEST) \
  test_transport_api_multi \
@@ -387,9 +387,7 @@ TESTS = \
  test_transport_api_unreliability_constant_udp \
  $(UNIX_REL_TEST) \
  $(HTTP_REL_TEST) \
- $(HTTP_NAT_REL_TEST) \
  $(HTTPS_REL_TEST) \
- $(HTTPS_NAT_REL_TEST) \
  $(WLAN_REL_TEST) \
  $(WLAN_UREL_TEST) \
  test_quota_compliance_tcp \
@@ -663,6 +661,14 @@ test_transport_api_http_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la
  
+test_transport_api_http_reverse_SOURCES = \
+ test_transport_api.c
+test_transport_api_http_reverse_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/transport/libgnunettransporttesting.la
+ 
 test_transport_api_timeout_http_SOURCES = \
  test_transport_api_timeout.c
 test_transport_api_timeout_http_LDADD = \
@@ -910,14 +916,6 @@ test_transport_defaults.conf\
 test_transport_startonly.conf\
 test_transport_api_disconnect_tcp_peer1.conf\
 test_transport_api_disconnect_tcp_peer2.conf\
-test_transport_api_http_nat_peer1.conf\
-test_transport_api_http_nat_peer2.conf\
-test_transport_api_https_nat_peer1.conf\
-test_transport_api_https_nat_peer2.conf\
-test_transport_api_reliability_http_nat_peer1.conf\
-test_transport_api_reliability_http_nat_peer2.conf\
-test_transport_api_reliability_https_nat_peer1.conf\
-test_transport_api_reliability_https_nat_peer2.conf\
 test_transport_api_timeout_http_peer1.conf\
 test_transport_api_timeout_http_peer2.conf\
 test_transport_api_timeout_https_peer1.conf\

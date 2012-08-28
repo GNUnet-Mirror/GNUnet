@@ -664,6 +664,7 @@ server_stop_session_timeout (struct Session *s)
  * starts the task waiting for them.
  * @param plugin plugin
  * @param daemon_handle the MHD daemon handle
+ * @param now schedule immediately
  * @return gnunet task identifier
  */
 static GNUNET_SCHEDULER_TaskIdentifier

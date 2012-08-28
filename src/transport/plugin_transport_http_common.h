@@ -124,7 +124,6 @@ http_common_address_from_socket (const char *protocol,
 /**
  * Create a socketaddr from a HTTP address
  *
- * @param protocol protocol
  * @param addr sockaddr * address
  * @param addrlen length of the address
  * @param res the result:
