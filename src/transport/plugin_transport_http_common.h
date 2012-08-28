@@ -122,6 +122,21 @@ http_common_address_from_socket (const char *protocol,
                                  socklen_t addrlen);
 
 /**
+ * Create a socketaddr from a HTTP address
+ *
+ * @param protocol protocol
+ * @param addr sockaddr * address
+ * @param addrlen length of the address
+ * @param res the result:
+ * GNUNET_SYSERR, invalid input,
+ * GNUNET_YES: could convert to ip,
+ * GNUNET_NO: valid input but could not convert to ip (hostname?)
+ * @return the string
+ */
+struct sockaddr *
+http_common_socket_from_address (const void *addr, size_t addrlen, int *res);
+
+/**
  * Get the length of an address
  *
  * @param addr address
