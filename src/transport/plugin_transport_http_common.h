@@ -30,7 +30,7 @@
 /**
  * Timeout values for testing
  */
-#define TESTING GNUNET_YES
+#define TESTING GNUNET_NO
 
 #if TESTING
 
