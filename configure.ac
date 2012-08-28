@@ -256,6 +256,26 @@ AC_ARG_ENABLE([logging],
    ], [])
 AC_DEFINE_UNQUOTED([GNUNET_EXTRA_LOGGING],[$extra_logging],[1 if extra logging is enabled, 2 for very verbose extra logging, 0 otherwise])
 
+# should memory poisoning be enabled?
+AC_MSG_CHECKING(whether to poison freed memory)
+AC_ARG_ENABLE([poisoning],
+   [AS_HELP_STRING([--enable-poisoning], [enable poisoning of freed memory (good for debugging)])],
+   [enable_poisoning=${enableval}],
+   [
+     if test "x$extra_logging" != "xGNUNET_NO"; then
+       enable_poisoning="defaults to yes (extra logging is enabled)"
+     else
+       enable_poisoning=no
+     fi
+   ])
+AC_MSG_RESULT($enable_poisoning)
+if test ! "x$enable_poisoning" = "xno"; then
+  enable_poisoning=1
+else
+  enable_poisoning=0
+fi
+AC_DEFINE_UNQUOTED([ENABLE_POISONING],[$enable_poisoning],[1 if freed memory should be poisoned, 0 otherwise])
+
 if test $build = $target
 then
 AC_MSG_CHECKING([for working HMAC])
