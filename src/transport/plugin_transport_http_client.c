@@ -33,7 +33,7 @@
 #endif
 
 
-#define VERBOSE_CURL GNUNET_YES
+#define VERBOSE_CURL GNUNET_NO
 
 #include "platform.h"
 #include "gnunet_protocols.h"

@@ -34,22 +34,12 @@ if HAVE_LIBCURL
  
  
  HTTPS_API_TEST = test_transport_api_https
-endif
-endif 
-
-if FALSE
-
- HTTP_REL_TEST = test_transport_api_reliability_http
- HTTP_NAT_REL_TEST = test_transport_api_reliability_http_nat
-
- HTTPS_NAT_API_TEST = test_transport_api_https_nat
  HTTPS_API_TIMEOUT_TEST = test_transport_api_timeout_https
  HTTPS_REL_TEST = test_transport_api_reliability_https
- HTTPS_NAT_REL_TEST = test_transport_api_reliability_https_nat
  HTTPS_QUOTA_TEST = test_quota_compliance_https \
-		test_quota_compliance_https_asymmetric
+		test_quota_compliance_https_asymmetric 
 endif
-
+endif 
 
 if USE_COVERAGE
   AM_CFLAGS = --coverage -O0
@@ -705,75 +695,6 @@ test_quota_compliance_http_asymmetric_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la
 
-
-# HTTPS tests
-test_transport_api_https_SOURCES = \
- test_transport_api.c
-test_transport_api_https_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
- $(top_builddir)/src/hello/libgnunethello.la \
- $(top_builddir)/src/util/libgnunetutil.la  \
- $(top_builddir)/src/transport/libgnunettransporttesting.la 
-
-if FALSE
-
-test_transport_api_timeout_https_SOURCES = \
- test_transport_api_timeout.c
-test_transport_api_timeout_https_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
- $(top_builddir)/src/hello/libgnunethello.la \
- $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la 
-
-test_transport_api_http_nat_SOURCES = \
- test_transport_api.c
-test_transport_api_http_nat_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
- $(top_builddir)/src/hello/libgnunethello.la \
- $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la 
-
-test_transport_api_reliability_http_nat_SOURCES = \
- test_transport_api_reliability.c
-test_transport_api_reliability_http_nat_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
- $(top_builddir)/src/hello/libgnunethello.la \
- $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la 
-
-test_transport_api_https_nat_SOURCES = \
- test_transport_api.c
-test_transport_api_https_nat_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
- $(top_builddir)/src/hello/libgnunethello.la \
- $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la 
-
-test_transport_api_reliability_https_SOURCES = \
- test_transport_api_reliability.c
-test_transport_api_reliability_https_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
- $(top_builddir)/src/hello/libgnunethello.la \
- $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la 
-
-test_transport_api_reliability_https_nat_SOURCES = \
- test_transport_api_reliability.c
-test_transport_api_reliability_https_nat_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
- $(top_builddir)/src/hello/libgnunethello.la \
- $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la 
-
-test_quota_compliance_http_SOURCES = \
- test_quota_compliance.c
-test_quota_compliance_http_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
- $(top_builddir)/src/hello/libgnunethello.la \
- $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la 
-
-
 test_quota_compliance_https_SOURCES = \
  test_quota_compliance.c
 test_quota_compliance_https_LDADD = \
@@ -790,8 +711,31 @@ test_quota_compliance_https_asymmetric_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la
 
+# HTTPS tests
+test_transport_api_https_SOURCES = \
+ test_transport_api.c
+test_transport_api_https_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/util/libgnunetutil.la  \
+ $(top_builddir)/src/transport/libgnunettransporttesting.la 
+ 
+test_transport_api_timeout_https_SOURCES = \
+ test_transport_api_timeout.c
+test_transport_api_timeout_https_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/transport/libgnunettransporttesting.la  
+ 
 
-endif
+test_transport_api_reliability_https_SOURCES = \
+ test_transport_api_reliability.c
+test_transport_api_reliability_https_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/transport/libgnunettransporttesting.la 
 
 test_transport_api_unreliability_unix_SOURCES = \
  test_transport_api_unreliability.c

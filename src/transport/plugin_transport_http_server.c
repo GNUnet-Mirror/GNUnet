@@ -1857,8 +1857,11 @@ server_add_address (void *cls, int add_remove, const struct sockaddr *addr,
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                    "Notifying transport to add address `%s'\n",
                    http_common_plugin_address_to_string(NULL, w->addr, w->addrlen));
-
+#if BUILD_HTTPS
+  plugin->env->notify_address (plugin->env->cls, add_remove, w->addr, w->addrlen, "https_client");
+#else
   plugin->env->notify_address (plugin->env->cls, add_remove, w->addr, w->addrlen, "http_client");
+#endif
 }
 
 
@@ -1889,7 +1892,11 @@ server_remove_address (void *cls, int add_remove, const struct sockaddr *addr,
                    "Notifying transport to remove address `%s'\n",
                    http_common_plugin_address_to_string (NULL, w->addr, w->addrlen));
   GNUNET_CONTAINER_DLL_remove (plugin->addr_head, plugin->addr_tail, w);
+#if BUILD_HTTPS
+  plugin->env->notify_address (plugin->env->cls, add_remove, w->addr, w->addrlen, "https_client");
+#else
   plugin->env->notify_address (plugin->env->cls, add_remove, w->addr, w->addrlen, "http_client");
+#endif
   GNUNET_free (w->addr);
   GNUNET_free (w);
 }
@@ -2253,9 +2260,16 @@ server_notify_external_hostname (void *cls, const struct GNUNET_SCHEDULER_TaskCo
   plugin->ext_addr_len = strlen (plugin->ext_addr) + 1;
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                    "Notifying transport about external hostname address `%s'\n", plugin->ext_addr);
+
+#if BUILD_HTTPS
+  plugin->env->notify_address (plugin->env->cls, GNUNET_YES,
+                               plugin->ext_addr, plugin->ext_addr_len,
+                               "https_client");
+#else
   plugin->env->notify_address (plugin->env->cls, GNUNET_YES,
                                plugin->ext_addr, plugin->ext_addr_len,
                                "http_client");
+#endif
 }
 
 
@@ -2494,11 +2508,20 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
                        http_common_plugin_address_to_string (NULL,
                            plugin->ext_addr,
                            plugin->ext_addr_len));
+#if BUILD_HTTPS
       plugin->env->notify_address (plugin->env->cls,
                                    GNUNET_NO,
                                    plugin->ext_addr,
                                    plugin->ext_addr_len,
-                                   "http_client");
+                                   "https_client");
+#else
+  plugin->env->notify_address (plugin->env->cls,
+                               GNUNET_NO,
+                               plugin->ext_addr,
+                               plugin->ext_addr_len,
+                               "http_client");
+#endif
+
   }
 
   /* Stop to report addresses to transport service */
