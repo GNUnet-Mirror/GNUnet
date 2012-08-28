@@ -29,6 +29,9 @@ if HAVE_LIBCURL
  HTTP_API_TEST = test_transport_api_http
  HTTP_API_TIMEOUT_TEST = test_transport_api_timeout_http
  HTTP_REL_TEST = test_transport_api_reliability_http
+ HTTP_QUOTA_TEST = test_quota_compliance_http \
+		   test_quota_compliance_http_asymmetric
+ 
  
  HTTPS_API_TEST = test_transport_api_https
 endif
@@ -38,8 +41,6 @@ if FALSE
 
  HTTP_REL_TEST = test_transport_api_reliability_http
  HTTP_NAT_REL_TEST = test_transport_api_reliability_http_nat
- HTTP_QUOTA_TEST = test_quota_compliance_http \
-		   test_quota_compliance_http_asymmetric
 
  HTTPS_NAT_API_TEST = test_transport_api_https_nat
  HTTPS_API_TIMEOUT_TEST = test_transport_api_timeout_https
@@ -688,6 +689,23 @@ test_transport_api_reliability_http_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la 
 
+test_quota_compliance_http_SOURCES = \
+ test_quota_compliance.c
+test_quota_compliance_http_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/transport/libgnunettransporttesting.la 
+
+test_quota_compliance_http_asymmetric_SOURCES = \
+ test_quota_compliance.c
+test_quota_compliance_http_asymmetric_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/transport/libgnunettransporttesting.la
+
+
 # HTTPS tests
 test_transport_api_https_SOURCES = \
  test_transport_api.c
@@ -755,13 +773,6 @@ test_quota_compliance_http_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la 
 
-test_quota_compliance_http_asymmetric_SOURCES = \
- test_quota_compliance.c
-test_quota_compliance_http_asymmetric_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
- $(top_builddir)/src/hello/libgnunethello.la \
- $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
 
 test_quota_compliance_https_SOURCES = \
  test_quota_compliance.c
