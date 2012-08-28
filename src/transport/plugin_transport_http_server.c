@@ -216,6 +216,11 @@ struct HTTP_Server_Plugin
   char *ext_addr;
 
   /**
+   * Notify transport only about external address
+   */
+  unsigned int external_only;
+
+  /**
    * External address length
    */
   size_t ext_addr_len;
@@ -2400,11 +2405,25 @@ server_configure_plugin (struct HTTP_Server_Plugin *plugin)
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                        _("Using external hostname `%s'\n"), plugin->external_hostname);
       plugin->notify_ext_task = GNUNET_SCHEDULER_add_now (&server_notify_external_hostname, plugin);
+
+      /* Use only configured external hostname */
+      if (GNUNET_CONFIGURATION_have_value
+          (plugin->env->cfg, plugin->name, "EXTERNAL_HOSTNAME_ONLY"))
+      {
+        plugin->external_only =
+            GNUNET_CONFIGURATION_get_value_yesno (plugin->env->cfg, plugin->name,
+                                                  "EXTERNAL_HOSTNAME_ONLY");
+      }
+      else
+        plugin->external_only = GNUNET_NO;
+
+      if (GNUNET_YES == plugin->external_only)
+        GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                         _("Notifying transport only about hostname `%s'\n"), plugin->external_hostname);
   }
   else
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                      "No external hostname configured\n");
-
 
   /* Optional parameters */
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_number (plugin->env->cfg,
@@ -2610,7 +2629,8 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
     plugin->use_ipv6 = server_check_ipv6_support (plugin);
 
   /* Report addresses to transport service */
-  server_start_report_addresses (plugin);
+  if (GNUNET_NO == plugin->external_only)
+    server_start_report_addresses (plugin);
 
   if (GNUNET_SYSERR == server_start (plugin))
   {
