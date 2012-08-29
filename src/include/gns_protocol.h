@@ -144,14 +144,14 @@ struct tlsa_data
 struct vpn_data
 {
   /**
-   * The protocol to use
-   */
-  uint16_t proto;
-
-  /**
    * The peer to contact
    */
   struct GNUNET_HashCode peer;
+
+  /**
+   * The protocol to use
+   */
+  uint16_t proto;
 
   /* followed by the servicename */
 };
