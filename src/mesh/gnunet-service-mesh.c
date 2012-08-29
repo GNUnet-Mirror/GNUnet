@@ -4055,6 +4055,13 @@ tunnel_cancel_queues (void *cls, GNUNET_PEER_Id neighbor_id)
     next = pq->next;
     if (pq->tunnel == t)
     {
+      if (GNUNET_MESSAGE_TYPE_MESH_MULTICAST == pq->type ||
+          GNUNET_MESSAGE_TYPE_MESH_UNICAST == pq->type ||
+          GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN == pq->type)
+      {
+        // Should have been removed on destroy children
+        GNUNET_break (0);
+      }
       queue_destroy (pq, GNUNET_YES);
     }
   }
@@ -4082,8 +4089,6 @@ tunnel_destroy (struct MeshTunnel *t)
 
   if (NULL == t)
     return GNUNET_OK;
-
-  tree_iterate_children (t->tree, &tunnel_cancel_queues, t);
 
   r = GNUNET_OK;
   c = t->owner;
@@ -4151,6 +4156,8 @@ tunnel_destroy (struct MeshTunnel *t)
                                          &tunnel_destroy_child,
                                          t);
   GNUNET_CONTAINER_multihashmap_destroy (t->children_fc);
+
+  tree_iterate_children (t->tree, &tunnel_cancel_queues, t);
 
   tree_destroy (t->tree);
 
