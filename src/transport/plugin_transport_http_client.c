@@ -480,7 +480,7 @@ client_disconnect (struct Session *s)
   if (s->client_put != NULL)
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                     "Session %p/connection %p: disconnecting PUT connectionto peer `%s'\n",
+                     "Session %p/connection %p: disconnecting PUT connection to peer `%s'\n",
                      s, s->client_put, GNUNET_i2s (&s->target));
 
     /* remove curl handle from multi handle */

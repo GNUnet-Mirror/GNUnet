@@ -41,7 +41,7 @@
  * How long until we give up on transmitting the message?
  */
 #define WAIT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
-#define TIMEOUT GNUNET_TIME_relative_multiply (WAIT, 3)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
 /**
  * Our public key.
@@ -197,6 +197,13 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_SCHEDULER_cancel (timeout_wait);
       timeout_wait = GNUNET_SCHEDULER_NO_TASK;
   }
+
+  if (NULL != cls)
+  {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Test took too long to execute, timeout .... \n"));
+  }
+
   if (NULL != libname)
   {
     if (NULL != api)
@@ -457,7 +464,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   char *plugin;
   char *sep;
 
-  timeout_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, end_badly, NULL);
+  timeout_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, end_badly, &ok);
 
   cfg = c;
   /* parse configuration */
