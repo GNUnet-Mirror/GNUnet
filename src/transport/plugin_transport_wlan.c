@@ -1539,6 +1539,16 @@ libgnunet_plugin_transport_wlan_done (void *cls)
     GNUNET_free (api);
     return NULL;
   }
+
+  if (GNUNET_YES == plugin->have_mac)
+  {
+      plugin->env->notify_address (plugin->env->cls, GNUNET_NO,
+                               &plugin->mac_address,
+                               sizeof (struct GNUNET_TRANSPORT_WLAN_MacAddress),
+                               "wlan");
+      plugin->have_mac = GNUNET_NO;
+  }
+
   if (GNUNET_SCHEDULER_NO_TASK != plugin->beacon_task)
   {
     GNUNET_SCHEDULER_cancel (plugin->beacon_task);
