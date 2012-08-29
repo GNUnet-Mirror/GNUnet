@@ -1372,6 +1372,7 @@ send_callback (void *cls, size_t size, void *buf)
           to.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN);
           to.tid = htonl (t->tid);
           to.pid = htonl (t->next_send_pid);
+          to.ttl = 0;
           memset (&to.oid, 0, sizeof (struct GNUNET_PeerIdentity));
           memset (&to.sender, 0, sizeof (struct GNUNET_PeerIdentity));
           memcpy (cbuf, &to, sizeof (to));
