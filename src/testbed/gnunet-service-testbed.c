@@ -756,13 +756,16 @@ slave_list_add (struct Slave *slave)
 static void
 peer_list_add (struct Peer *peer)
 {
+  uint32_t orig_size;
+  
+  orig_size = peer_list_size;
   if (peer->id  >= peer_list_size)
   {
+    while (peer->id >= peer_list_size)
+      peer_list_size += LIST_GROW_STEP;
     peer_list = TESTBED_realloc (peer_list, 
-                                 sizeof (struct Peer *) * peer_list_size,
-                                 sizeof (struct Peer *) *
-                                 (peer_list_size + LIST_GROW_STEP));
-    peer_list_size += LIST_GROW_STEP;
+                                 sizeof (struct Peer *) * orig_size,
+                                 sizeof (struct Peer *) * peer_list_size);
   }
   GNUNET_assert (NULL == peer_list[peer->id]);
   peer_list[peer->id] = peer;
@@ -1730,6 +1733,8 @@ handle_peer_destroy (void *cls,
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
          "Asked to destroy a non existent peer with id: %u\n", peer_id);
+    send_operation_fail_msg (client, GNUNET_ntohll (msg->operation_id),
+                             "Peer doesn't exist");
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
