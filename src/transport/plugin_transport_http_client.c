@@ -428,13 +428,14 @@ void
 client_delete_session (struct Session *s)
 {
   struct HTTP_Client_Plugin *plugin = s->plugin;
-  struct HTTP_Message *pos = s->msg_head;
-  struct HTTP_Message *next = NULL;
+  struct HTTP_Message *pos;
+  struct HTTP_Message *next;
 
   client_stop_session_timeout (s);
 
   GNUNET_CONTAINER_DLL_remove (plugin->head, plugin->tail, s);
 
+  next = s->msg_head;
   while (NULL != (pos = next))
   {
     next = pos->next;
