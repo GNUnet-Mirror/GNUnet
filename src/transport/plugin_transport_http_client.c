@@ -33,7 +33,7 @@
 #endif
 
 
-#define VERBOSE_CURL GNUNET_NO
+#define VERBOSE_CURL GNUNET_YES
 
 #include "platform.h"
 #include "gnunet_protocols.h"
@@ -322,9 +322,24 @@ client_exist_session (struct HTTP_Client_Plugin *plugin, struct Session *s)
 static int
 client_log (CURL * curl, curl_infotype type, char *data, size_t size, void *cls)
 {
-  if (type == CURLINFO_TEXT)
+  char *ttype;
+  if ((type == CURLINFO_TEXT) || (type == CURLINFO_HEADER_IN) || (type == CURLINFO_HEADER_OUT))
   {
     char text[size + 2];
+
+    switch (type) {
+      case CURLINFO_TEXT:
+        ttype = "TEXT";
+        break;
+      case CURLINFO_HEADER_IN:
+        ttype = "HEADER_IN";
+        break;
+      case CURLINFO_HEADER_OUT:
+        ttype = "HEADER_OUT";
+        break;
+      default:
+        break;
+    }
 
     memcpy (text, data, size);
     if (text[size - 1] == '\n')
@@ -336,10 +351,10 @@ client_log (CURL * curl, curl_infotype type, char *data, size_t size, void *cls)
     }
 #if BUILD_HTTPS
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-https_client",
-                     "Connection: %p - %s", cls, text);
+                     "Connection %p %s: %s", cls, ttype, text);
 #else
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-http_client",
-                     "Connection %p: - %s", cls, text);
+                     "Connection %p %s: %s", cls, ttype, text);
 #endif
   }
   return 0;
@@ -918,7 +933,6 @@ client_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   client_schedule (plugin, GNUNET_NO);
 }
 
-
 static int
 client_connect (struct Session *s)
 {
@@ -989,8 +1003,13 @@ client_connect (struct Session *s)
   curl_easy_setopt (s->client_put, CURLOPT_SSL_VERIFYHOST, 0);
 #endif
   curl_easy_setopt (s->client_put, CURLOPT_URL, url);
-  curl_easy_setopt (s->client_put, CURLOPT_PUT, 1L);
-  //curl_easy_setopt (s->client_put, CURLOPT_HEADERFUNCTION, &curl_put_header_cb);
+  curl_easy_setopt (s->client_put, CURLOPT_UPLOAD, 1L);
+  /*
+  struct curl_slist *m_headerlist;
+  m_headerlist = NULL;
+  m_headerlist = curl_slist_append(m_headerlist, "Transfer-Encoding: chunked");
+  curl_easy_setopt(s->client_put, CURLOPT_HTTPHEADER, m_headerlist);*/
+  //curl_easy_setopt (s->client_put, CURLOPT_HEADERFUNCTION, &client_curl_header);
   //curl_easy_setopt (s->client_put, CURLOPT_WRITEHEADER, ps);
   curl_easy_setopt (s->client_put, CURLOPT_READFUNCTION, client_send_cb);
   curl_easy_setopt (s->client_put, CURLOPT_READDATA, s);

@@ -1152,6 +1152,12 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
   struct Session *s;
   struct MHD_Response *response;
 
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                   _("Access from connection %p (%u of %u) for %s %s url `%s' \n"),
+                   sc,
+                   plugin->cur_connections, plugin->max_connections,
+                   method, version, url);
+
   GNUNET_assert (cls != NULL);
   if (sc == NULL)
   {
@@ -1363,7 +1369,13 @@ server_accept_cb (void *cls, const struct sockaddr *addr, socklen_t addr_len)
   struct HTTP_Server_Plugin *plugin = cls;
 
   if (plugin->cur_connections <= plugin->max_connections)
+  {
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                     _("Accepting connection (%u of %u) from `%s'\n"),
+                     plugin->cur_connections, plugin->max_connections,
+                     GNUNET_a2s (addr, addr_len));
     return MHD_YES;
+  }
   else
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, plugin->name,

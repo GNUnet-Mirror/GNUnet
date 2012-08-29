@@ -144,6 +144,7 @@ end ()
 {
   struct AddressWrapper *w;
   int c = 0;
+  ok = 0;
 
   if (GNUNET_SCHEDULER_NO_TASK != timeout_task)
   {
@@ -169,6 +170,7 @@ end ()
     GNUNET_break (0);
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               _("Plugin did not remove %u addresses \n"), c);
+    ok = 1;
   }
 
 
@@ -182,8 +184,6 @@ end ()
     GNUNET_HELPER_stop (suid_helper);
     suid_helper = NULL;
   }
-
-  ok = 0;
 }
 
 static void
