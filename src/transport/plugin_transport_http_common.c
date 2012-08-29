@@ -63,7 +63,6 @@ http_common_plugin_address_pretty_printer (void *cls, const char *type,
       return;
   }
   if (saddr[addrlen-1] != '\0')
-  if (NULL == saddr)
   {
       asc (asc_cls, NULL);
       return;
