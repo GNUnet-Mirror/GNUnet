@@ -653,7 +653,7 @@ timeout_transmission (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
- * Add a transmit handle to the transmission queue by priority and set the
+ * Add a transmit handle to the transmission queue and set the
  * timeout if needed.
  *
  * @param h mesh handle with the queue head and tail
@@ -663,16 +663,7 @@ static void
 add_to_queue (struct GNUNET_MESH_Handle *h,
               struct GNUNET_MESH_TransmitHandle *th)
 {
-  struct GNUNET_MESH_TransmitHandle *p;
-
-  p = h->th_head;
-  while ((NULL != p))
-    p = p->next;
-  if (NULL == p)
-    p = h->th_tail;
-  else
-    p = p->prev;
-  GNUNET_CONTAINER_DLL_insert_after (h->th_head, h->th_tail, p, th);
+  GNUNET_CONTAINER_DLL_insert_tail (h->th_head, h->th_tail, th);
   if (GNUNET_TIME_UNIT_FOREVER_ABS.abs_value == th->timeout.abs_value)
     return;
   th->timeout_task =
