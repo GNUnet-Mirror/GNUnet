@@ -73,6 +73,7 @@ check_PROGRAMS = \
  test_testbed_api_2peers \
  test_testbed_api \
  test_testbed_api_operations \
+ test_testbed_api_testbed_run \
  test_gnunet_testbed_helper
 
 if ENABLE_TEST_RUN
@@ -115,6 +116,12 @@ test_testbed_api_operations_LDADD = \
 test_testbed_api_controllerlink_SOURCES = \
  test_testbed_api_controllerlink.c
 test_testbed_api_controllerlink_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ libgnunettestbed.la
+
+test_testbed_api_testbed_run_SOURCES = \
+ test_testbed_api_testbed_run.c
+test_testbed_api_testbed_run_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  libgnunettestbed.la
 

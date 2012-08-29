@@ -1814,7 +1814,7 @@ handle_peer_start (void *cls,
       GNUNET_TESTING_peer_start (peer->details.local.peer))
   {
     send_operation_fail_msg (client, GNUNET_ntohll (msg->operation_id),
-                             "Failed to start");    
+                             "Failed to start");
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
@@ -1851,8 +1851,9 @@ handle_peer_stop (void *cls,
   msg = (const struct GNUNET_TESTBED_PeerStopMessage *) message;
   peer_id = ntohl (msg->peer_id);
   if ((peer_id >= peer_list_size) || (NULL == peer_list[peer_id]))
-  {
-    GNUNET_break (0);		/* FIXME: route to slave? */
+  {    
+    send_operation_fail_msg (client, GNUNET_ntohll (msg->operation_id),
+                             "Peer not found");
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
@@ -1878,8 +1879,8 @@ handle_peer_stop (void *cls,
   if (GNUNET_OK != 
       GNUNET_TESTING_peer_stop (peer->details.local.peer))
   {
-    /* FIXME: return FAILURE message */
-    GNUNET_break (0);
+    send_operation_fail_msg (client, GNUNET_ntohll (msg->operation_id),
+                             "Failed to stop peer");
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
@@ -1921,8 +1922,8 @@ handle_peer_get_config (void *cls,
   peer_id = ntohl (msg->peer_id);
   if ((peer_id >= peer_list_size) || (NULL == peer_list[peer_id]))
   {
-    /* FIXME: return FAILURE message */
-    GNUNET_break (0);
+    send_operation_fail_msg (client, GNUNET_ntohll (msg->operation_id),
+                             "Peer not found");
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
