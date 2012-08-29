@@ -180,9 +180,9 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     libname = NULL;
   }
 
-  w = head;
   while (NULL != head)
   {
+      w = head;
       GNUNET_CONTAINER_DLL_remove (head, tail, w);
       c ++;
       GNUNET_free (w->addr);
