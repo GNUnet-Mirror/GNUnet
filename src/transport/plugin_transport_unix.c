@@ -1363,10 +1363,18 @@ libgnunet_plugin_transport_unix_done (void *cls)
     GNUNET_free (api);
     return NULL;
   }
+
+  plugin->env->notify_address (plugin->env->cls, GNUNET_NO,
+                               plugin->unix_socket_path,
+                               strlen (plugin->unix_socket_path) + 1,
+                               "unix");
+
   unix_transport_server_stop (plugin);
+
 
   GNUNET_CONTAINER_multihashmap_iterate (plugin->session_map, &get_session_delete_it, plugin);
   GNUNET_CONTAINER_multihashmap_destroy (plugin->session_map);
+
 
   if (NULL != plugin->rs)
     GNUNET_NETWORK_fdset_destroy (plugin->rs);

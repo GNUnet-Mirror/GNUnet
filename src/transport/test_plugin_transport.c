@@ -142,6 +142,9 @@ struct AddressWrapper
 static void
 end ()
 {
+  struct AddressWrapper *w;
+  int c = 0;
+
   if (GNUNET_SCHEDULER_NO_TASK != timeout_task)
   {
       GNUNET_SCHEDULER_cancel (timeout_task);
@@ -149,6 +152,26 @@ end ()
   }
   if (NULL != api)
       GNUNET_PLUGIN_unload (libname, api);
+
+  while (NULL != head)
+  {
+      w = head;
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Plugin did not remove address `%s' \n"), w->addrstring);
+      GNUNET_CONTAINER_DLL_remove (head, tail, w);
+      c ++;
+      GNUNET_free (w->addr);
+      GNUNET_free (w->addrstring);
+      GNUNET_free (w);
+  }
+  if (c > 0)
+  {
+    GNUNET_break (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              _("Plugin did not remove %u addresses \n"), c);
+  }
+
+
   GNUNET_free (libname);
   libname = NULL;
   GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
