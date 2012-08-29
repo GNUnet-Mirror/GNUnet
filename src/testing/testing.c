@@ -124,6 +124,16 @@ struct GNUNET_TESTING_System
    * The number of hostkeys
    */
   uint32_t total_hostkeys;
+
+  /**
+   * Lowest port we are allowed to use.
+   */
+  uint16_t lowport;
+
+  /**
+   * Highest port we are allowed to use.
+   */
+  uint16_t highport;
 };
 
 
@@ -249,21 +259,26 @@ hostkeys_unload (struct GNUNET_TESTING_System *system)
  * @param testdir only the directory name without any path. This is used for
  *          all service homes; the directory will be created in a temporary
  *          location depending on the underlying OS
- *
  * @param controller hostname of the controlling host, 
  *        service configurations are modified to allow 
  *        control connections from this host; can be NULL
+ * @param lowport lowest port number this system is allowed to allocate (inclusive)
+ * @param highport highest port number this system is allowed to allocate (exclusive)
  * @return handle to this system, NULL on error
  */
 struct GNUNET_TESTING_System *
-GNUNET_TESTING_system_create (const char *testdir,
-			      const char *controller)
+GNUNET_TESTING_system_create_with_portrange (const char *testdir,
+					     const char *controller,
+					     uint16_t lowport,
+					     uint16_t highport)
 {
   struct GNUNET_TESTING_System *system;
 
   GNUNET_assert (NULL != testdir);
   system = GNUNET_malloc (sizeof (struct GNUNET_TESTING_System));
   system->tmppath = GNUNET_DISK_mkdtemp (testdir);
+  system->lowport = lowport;
+  system->highport = highport;
   if (NULL == system->tmppath)
   {
     GNUNET_free (system);
@@ -277,6 +292,30 @@ GNUNET_TESTING_system_create (const char *testdir,
     return NULL;
   }
   return system;
+}
+
+
+/**
+ * Create a system handle.  There must only be one system
+ * handle per operating system.
+ *
+ * @param testdir only the directory name without any path. This is used for
+ *          all service homes; the directory will be created in a temporary
+ *          location depending on the underlying OS
+ *
+ * @param controller hostname of the controlling host, 
+ *        service configurations are modified to allow 
+ *        control connections from this host; can be NULL
+ * @return handle to this system, NULL on error
+ */
+struct GNUNET_TESTING_System *
+GNUNET_TESTING_system_create (const char *testdir,
+			      const char *controller)
+{
+  return GNUNET_TESTING_system_create_with_portrange (testdir,
+						      controller,
+						      LOW_PORT,
+						      HIGH_PORT);
 }
 
 
@@ -342,12 +381,12 @@ GNUNET_TESTING_reserve_port (struct GNUNET_TESTING_System *system,
   hint.ai_flags = AI_PASSIVE | AI_NUMERICSERV;	/* Wild card address */
   port_buckets = (GNUNET_YES == is_tcp) ?
     system->reserved_tcp_ports : system->reserved_udp_ports;
-  for (index = (LOW_PORT / 32) + 1; index < (HIGH_PORT / 32); index++)
+  for (index = (system->lowport / 32) + 1; index < (system->highport / 32); index++)
   {
     xor_image = (UINT32_MAX ^ port_buckets[index]);
     if (0 == xor_image)        /* Ports in the bucket are full */
       continue;
-    pos = 0;
+    pos = system->lowport % 32;
     while (pos < 32)
     {
       if (0 == ((xor_image >> pos) & 1U))
@@ -356,6 +395,8 @@ GNUNET_TESTING_reserve_port (struct GNUNET_TESTING_System *system,
         continue;
       }
       open_port = (index * 32) + pos;
+      if (open_port >= system->highport)
+	return 0;
       GNUNET_asprintf (&open_port_str, "%u", (unsigned int) open_port);
       ret = NULL;
       GNUNET_assert (0 == getaddrinfo (NULL, open_port_str, &hint, &ret));
