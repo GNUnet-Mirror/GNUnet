@@ -28,6 +28,9 @@
 #if HAVE_MALLOC_H
 #include <malloc.h>
 #endif
+#if HAVE_MALLOC_MALLOC_H
+#include <malloc/malloc.h>
+#endif
 
 #define LOG(kind,...) GNUNET_log_from (kind, "util",__VA_ARGS__)
 
@@ -192,10 +195,12 @@ GNUNET_xrealloc_ (void *ptr, size_t n, const char *filename, int linenumber)
 #endif
 
 #if WINDOWS
-#define MSIZE(p) _msize (p)
+#define M_SIZE(p) _msize (p)
 #endif
 #if HAVE_MALLOC_USABLE_SIZE
-#define MSIZE(p) malloc_usable_size (p)
+#define M_SIZE(p) malloc_usable_size (p)
+#elif HAVE_MALLOC_SIZE
+#define M_SIZE(p) malloc_size (p)
 #endif
 
 /**
@@ -214,12 +219,12 @@ GNUNET_xfree_ (void *ptr, const char *filename, int linenumber)
   ptr = &((size_t *) ptr)[-1];
   mem_used -= *((size_t *) ptr);
 #endif
-#if defined(MSIZE)
+#if defined(M_SIZE)
 #if ENABLE_POISONING
   {
     size_t i;
     char baadfood[5] = BAADFOOD_STR;
-    size_t s = MSIZE (ptr);
+    size_t s = M_SIZE (ptr);
     for (i = 0; i < s; i++)
       ((char *) ptr)[i] = baadfood[i % 4];
   }
