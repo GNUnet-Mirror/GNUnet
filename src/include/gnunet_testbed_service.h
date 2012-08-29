@@ -1114,6 +1114,12 @@ GNUNET_TESTBED_destroy (struct GNUNET_TESTBED_Testbed *testbed);
 
 
 /**
+ * Opaque handle to testbed run
+ */
+struct GNUNET_TESTBED_RunHandle;
+
+
+/**
  * Convenience method for running a testbed with
  * a single call.  Underlay and overlay topology
  * are configured using the "UNDERLAY" and "OVERLAY"
@@ -1121,8 +1127,7 @@ GNUNET_TESTBED_destroy (struct GNUNET_TESTBED_Testbed *testbed);
  * (with possible options given in "UNDERLAY_XXX" and/or
  * "OVERLAY_XXX").
  *
- * The testbed is to be terminated using a call to
- * "GNUNET_SCHEDULER_shutdown".
+ * The testbed is to be terminated using a calling GNUNET_TESTBED_shutdown_run()
  *
  * @param host_filename name of the file with the 'hosts', NULL
  *        to run everything on 'localhost'
@@ -1132,12 +1137,16 @@ GNUNET_TESTBED_destroy (struct GNUNET_TESTBED_Testbed *testbed);
  *                   or-ed values of "1LL" shifted by the
  *                   respective 'enum GNUNET_TESTBED_EventType'
  *                   (i.e.  "(1LL << GNUNET_TESTBED_ET_CONNECT) || ...")
- * @param cc controller callback to invoke on events
+ * @param cc controller callback to invoke on events; This callback is called
+ *        for all peer start events even if GNUNET_TESTBED_ET_PEER_START isn't
+ *        set in the event_mask as this is the only way get access to the
+ *        handle of each peer
  * @param cc_cls closure for cc
  * @param master task to run once the testbed is ready
  * @param master_cls closure for 'task'.
+ * @return the handle for this testbed run
  */
-void
+struct GNUNET_TESTBED_RunHandle *
 GNUNET_TESTBED_run (const char *host_filename,
 		    const struct GNUNET_CONFIGURATION_Handle *cfg,
 		    unsigned int num_peers,
@@ -1146,6 +1155,15 @@ GNUNET_TESTBED_run (const char *host_filename,
 		    void *cc_cls,
 		    GNUNET_SCHEDULER_Task master,
 		    void *master_cls);
+
+
+/**
+ * Stops the testbed run and releases any used resources
+ *
+ * @param rh the tesbed run handle
+ */
+void
+GNUNET_TESTBED_shutdown_run (struct GNUNET_TESTBED_RunHandle *rh);
 
 
 /**
@@ -1167,9 +1185,9 @@ typedef void (*GNUNET_TESTBED_TestMaster)(void *cls,
  * "[testbed]" section of the configuration (with possible options
  * given in "UNDERLAY_XXX" and/or "OVERLAY_XXX").
  *
- * The test is to be terminated using a call to
- * "GNUNET_SCHEDULER_shutdown".  If starting the test fails,
- * the program is stopped without 'master' ever being run.
+ * The test is to be terminated by calling GNUNET_TESTBED_shutdown_run()
+ * If starting the test fails, the program is stopped without 'master' ever
+ * being run
  *
  * NOTE: this function should be called from 'main', NOT from
  * within a GNUNET_SCHEDULER-loop.  This function will initialze
