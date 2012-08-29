@@ -42,7 +42,7 @@
 /**
  * Front page. (/)
  */
-#define MAIN_PAGE "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\"><html lang=\"en\" xmlns=\"http://www.w3.org/1999/xhtml\"><html><head><title>GNUnet FCFS Authority Name Registration Service</title></head><body><form action=\"S\" method=\"post\">What is your desired domain name? (63 characters, no dots allowed.) <input type=\"text\" name=\"domain\" /> <p> What is your public key? (Copy from gnunet-setup.) <input type=\"text\" name=\"pkey\" /> <input type=\"submit\" value=\"Next\" /><br/><a href=/fcfs/Zoneinfo> List of all registered names </a></body></html>"
+#define MAIN_PAGE "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\"><html lang=\"en\" xmlns=\"http://www.w3.org/1999/xhtml\"><html><head><title>GNUnet FCFS Authority Name Registration Service</title></head><body><form action=\"S\" method=\"post\">What is your desired domain name? (63 characters, no dots allowed.) <input type=\"text\" name=\"domain\" /> <p> What is your public key? (Copy from gnunet-setup.) <input type=\"text\" name=\"pkey\" /> <input type=\"submit\" value=\"Next\" /><br/><a href=./Zoneinfo> List of all registered names </a></body></html>"
 
 /**
  * Second page (/S)
