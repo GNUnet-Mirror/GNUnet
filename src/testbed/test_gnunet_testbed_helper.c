@@ -204,7 +204,8 @@ run (void *cls, char *const *args, const char *cfgfile,
     };
   const char *controller_name = "127.0.0.1";
 
-  helper = GNUNET_HELPER_start ("gnunet-testbed-helper", 
+  helper = GNUNET_HELPER_start (GNUNET_YES,
+				"gnunet-testbed-helper", 
 				binary_argv,
                                 &mst_cb, &exp_cb, NULL);
   GNUNET_assert (NULL != helper);

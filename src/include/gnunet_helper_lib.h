@@ -51,6 +51,7 @@ typedef void (*GNUNET_HELPER_ExceptionCallback) (void *cls);
  * restarted when it dies except when it is stopped using GNUNET_HELPER_stop()
  * or when the exp_cb callback is not NULL.
  *
+ * @param with_control_pipe does the helper support the use of a control pipe for signalling?
  * @param binary_name name of the binary to run
  * @param binary_argv NULL-terminated list of arguments to give when starting the binary (this
  *                    argument must not be modified by the client for
@@ -62,7 +63,8 @@ typedef void (*GNUNET_HELPER_ExceptionCallback) (void *cls);
  * @return the new Handle, NULL on error
  */
 struct GNUNET_HELPER_Handle *
-GNUNET_HELPER_start (const char *binary_name,
+GNUNET_HELPER_start (int with_control_pipe,
+		     const char *binary_name,
 		     char *const binary_argv[],
 		     GNUNET_SERVER_MessageTokenizerCallback cb,
 		     GNUNET_HELPER_ExceptionCallback exp_cb,

@@ -1337,7 +1337,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 				mesh_handlers,
 				mesh_types);
   }
-  hijacker = GNUNET_HELPER_start ("gnunet-helper-dns",
+  hijacker = GNUNET_HELPER_start (GNUNET_NO,
+				  "gnunet-helper-dns",
 				  helper_argv,
 				  &process_helper_messages,
 				  NULL, NULL);

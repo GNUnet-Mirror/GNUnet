@@ -23,9 +23,11 @@
  * @brief wrapper around malloc/free
  * @author Christian Grothoff
  */
-
 #include "platform.h"
 #include "gnunet_common.h"
+#if HAVE_MALLOC_H
+#include <malloc.h>
+#endif
 
 #define LOG(kind,...) GNUNET_log_from (kind, "util",__VA_ARGS__)
 
@@ -192,11 +194,7 @@ GNUNET_xrealloc_ (void *ptr, size_t n, const char *filename, int linenumber)
 #if WINDOWS
 #define MSIZE(p) _msize (p)
 #endif
-#if LINUX
-/* FIXME: manpage claims that this function is a GNU extension,
- * but googling shows that it is available on many platforms via
- * inclusion of various headers. For now let's make it Linux-only.
- */
+#if HAVE_MALLOC_USABLE_SIZE
 #define MSIZE(p) malloc_usable_size (p)
 #endif
 

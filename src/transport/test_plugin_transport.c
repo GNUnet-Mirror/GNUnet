@@ -531,7 +531,8 @@ run (void *cls, char *const *args, const char *cfgfile,
     helper_argv[0] = (char *) "gnunet-helper-transport-wlan-dummy";
     helper_argv[1] = (char *) "2";
     helper_argv[2] = NULL;
-    suid_helper = GNUNET_HELPER_start ("gnunet-helper-transport-wlan-dummy",
+    suid_helper = GNUNET_HELPER_start (GNUNET_NO,
+				       "gnunet-helper-transport-wlan-dummy",
                                        helper_argv,
                                        &handle_helper_message,
                                        NULL,

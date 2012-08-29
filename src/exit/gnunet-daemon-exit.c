@@ -3210,7 +3210,8 @@ run (void *cls, char *const *args GNUNET_UNUSED,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  helper_handle = GNUNET_HELPER_start ("gnunet-helper-exit", 
+  helper_handle = GNUNET_HELPER_start (GNUNET_NO,
+				       "gnunet-helper-exit", 
 				       exit_argv,
 				       &message_token,
 				       NULL, NULL);

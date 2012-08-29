@@ -152,6 +152,12 @@ struct GNUNET_HELPER_Handle
    * Restart task.
    */
   GNUNET_SCHEDULER_TaskIdentifier restart_task;
+
+  /**
+   * Does the helper support the use of a control pipe for signalling?
+   */
+  int with_control_pipe;
+
 };
 
 
@@ -341,10 +347,10 @@ start_helper (struct GNUNET_HELPER_Handle *h)
   h->fh_to_helper =
       GNUNET_DISK_pipe_handle (h->helper_in, GNUNET_DISK_PIPE_END_WRITE);
   h->helper_proc =
-      GNUNET_OS_start_process_vap (GNUNET_YES, GNUNET_OS_INHERIT_STD_ERR, 
-				   h->helper_in, h->helper_out,
-				   h->binary_name,
-				   h->binary_argv);
+    GNUNET_OS_start_process_vap (h->with_control_pipe, GNUNET_OS_INHERIT_STD_ERR, 
+				 h->helper_in, h->helper_out,
+				 h->binary_name,
+				 h->binary_argv);
   if (NULL == h->helper_proc)
   {
     /* failed to start process? try again later... */
@@ -385,6 +391,7 @@ restart_task (void *cls,
  * restarted when it dies except when it is stopped using GNUNET_HELPER_stop()
  * or when the exp_cb callback is not NULL.
  *
+ * @param with_control_pipe does the helper support the use of a control pipe for signalling?
  * @param binary_name name of the binary to run
  * @param binary_argv NULL-terminated list of arguments to give when starting the binary (this
  *                    argument must not be modified by the client for
@@ -396,7 +403,8 @@ restart_task (void *cls,
  * @return the new Handle, NULL on error
  */
 struct GNUNET_HELPER_Handle *
-GNUNET_HELPER_start (const char *binary_name,
+GNUNET_HELPER_start (int with_control_pipe,
+		     const char *binary_name,
 		     char *const binary_argv[],
 		     GNUNET_SERVER_MessageTokenizerCallback cb,
 		     GNUNET_HELPER_ExceptionCallback exp_cb,
@@ -405,6 +413,7 @@ GNUNET_HELPER_start (const char *binary_name,
   struct GNUNET_HELPER_Handle*h;
 
   h =  GNUNET_malloc (sizeof (struct GNUNET_HELPER_Handle));
+  h->with_control_pipe = with_control_pipe;
   h->binary_name = binary_name;
   h->binary_argv = binary_argv;
   h->cb_cls = cb_cls;

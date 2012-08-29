@@ -1054,7 +1054,8 @@ GNUNET_TESTBED_controller_start (const char *controller_ip,
       "gnunet-testbed-helper", NULL
     };
 
-    cp->helper = GNUNET_HELPER_start ("gnunet-testbed-helper", binary_argv, 
+    cp->helper = GNUNET_HELPER_start (GNUNET_YES,
+				      "gnunet-testbed-helper", binary_argv, 
                                       &helper_mst, &helper_exp_cb, cp);
   }
   else
@@ -1082,7 +1083,8 @@ GNUNET_TESTBED_controller_start (const char *controller_ip,
     remote_args[argp++] = "gnunet-testbed-helper";
     remote_args[argp++] = NULL;
     GNUNET_assert (argp == 8);
-    cp->helper = GNUNET_HELPER_start ("ssh", remote_args,
+    cp->helper = GNUNET_HELPER_start (GNUNET_NO,
+				      "ssh", remote_args,
                                       &helper_mst, &helper_exp_cb, cp);
   }
   if (NULL == cp->helper)

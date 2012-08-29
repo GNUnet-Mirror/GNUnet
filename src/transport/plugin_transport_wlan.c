@@ -1722,7 +1722,8 @@ libgnunet_plugin_transport_wlan_init (void *cls)
     plugin->helper_argv[0] = (char *) "gnunet-helper-transport-wlan";
     plugin->helper_argv[1] = interface;
     plugin->helper_argv[2] = NULL;
-    plugin->suid_helper = GNUNET_HELPER_start ("gnunet-helper-transport-wlan",
+    plugin->suid_helper = GNUNET_HELPER_start (GNUNET_NO,
+					       "gnunet-helper-transport-wlan",
 					       plugin->helper_argv,
 					       &handle_helper_message,
 					       NULL,
@@ -1732,7 +1733,8 @@ libgnunet_plugin_transport_wlan_init (void *cls)
     plugin->helper_argv[0] = (char *) "gnunet-helper-transport-wlan-dummy";
     plugin->helper_argv[1] = (char *) "1";
     plugin->helper_argv[2] = NULL;
-    plugin->suid_helper = GNUNET_HELPER_start ("gnunet-helper-transport-wlan-dummy",
+    plugin->suid_helper = GNUNET_HELPER_start (GNUNET_NO,
+					       "gnunet-helper-transport-wlan-dummy",
 					       plugin->helper_argv,
 					       &handle_helper_message,
 					       NULL,
@@ -1742,7 +1744,8 @@ libgnunet_plugin_transport_wlan_init (void *cls)
     plugin->helper_argv[0] = (char *) "gnunet-helper-transport-wlan-dummy";
     plugin->helper_argv[1] = (char *) "2";
     plugin->helper_argv[2] = NULL;
-    plugin->suid_helper = GNUNET_HELPER_start ("gnunet-helper-transport-wlan-dummy",
+    plugin->suid_helper = GNUNET_HELPER_start (GNUNET_NO,
+					       "gnunet-helper-transport-wlan-dummy",
 					       plugin->helper_argv,
 					       &handle_helper_message,
 					       NULL,

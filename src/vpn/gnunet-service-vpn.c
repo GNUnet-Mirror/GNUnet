@@ -3180,7 +3180,8 @@ run (void *cls,
 			 &tunnel_cleaner, 
 			 mesh_handlers,
 			 types);
-  helper_handle = GNUNET_HELPER_start ("gnunet-helper-vpn", vpn_argv,
+  helper_handle = GNUNET_HELPER_start (GNUNET_NO,
+				       "gnunet-helper-vpn", vpn_argv,
 				       &message_token, NULL, NULL);
   nc = GNUNET_SERVER_notification_context_create (server, 1);
   GNUNET_SERVER_add_handlers (server, service_handlers);
