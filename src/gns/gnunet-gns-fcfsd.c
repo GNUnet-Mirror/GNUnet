@@ -54,7 +54,7 @@
  */
 #define ZONEINFO_PAGE "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\"><html lang=\"en\" xmlns=\"http://www.w3.org/1999/xhtml\"><html><head><title>%s</title></head><body><h1> FCFS Zoneinfo </h1><table border=\"1\"><th>name</th><th>PKEY</th>%s</table></body></html>"
 
-#define FCFS_ZONEINFO_URL "/Zoneinfo"
+#define FCFS_ZONEINFO_URL "/fcfs/Zoneinfo"
 
 /**
  * Mime type for HTML pages.
