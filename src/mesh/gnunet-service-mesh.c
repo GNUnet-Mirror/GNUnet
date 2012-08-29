@@ -4518,7 +4518,9 @@ queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
         break;
     default:
         GNUNET_break (0);
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   type unknown!\n");
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    "   type %u unknown!\n",
+                    queue->type);
     }
     GNUNET_free_non_null (queue->cls);
   }
