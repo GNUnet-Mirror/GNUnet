@@ -135,6 +135,8 @@ struct AddressWrapper
   void *addr;
 
   size_t addrlen;
+
+  char *addrstring;
 };
 
 static void
@@ -183,9 +185,12 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   while (NULL != head)
   {
       w = head;
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Plugin did not remove address `%s' \n"), w->addrstring);
       GNUNET_CONTAINER_DLL_remove (head, tail, w);
       c ++;
       GNUNET_free (w->addr);
+      GNUNET_free (w->addrstring);
       GNUNET_free (w);
   }
   if (c > 0)
@@ -286,7 +291,7 @@ env_notify_address (void *cls,
           end_badly_now();
           return;
       }
-
+      w->addrstring = strdup (api->address_to_string (api, w->addr, w->addrlen));
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                   _("Plugin added address `%s'\n"), a2s);
 
@@ -353,6 +358,7 @@ env_notify_address (void *cls,
 
       GNUNET_CONTAINER_DLL_remove (head, tail, w);
       GNUNET_free (w->addr);
+      GNUNET_free (w->addrstring);
       GNUNET_free (w);
   }
   else

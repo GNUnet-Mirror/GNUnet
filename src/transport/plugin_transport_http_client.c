@@ -936,11 +936,6 @@ client_connect (struct Session *s)
                      GNUNET_i2s (&s->target));
     return GNUNET_SYSERR;
   }
-  else
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
-                     "address peer `%s'\n",
-                     http_common_plugin_address_to_string (plugin, s->addr, s->addrlen));
-
 
   GNUNET_asprintf (&url, "%s/%s;%u",
       http_common_plugin_address_to_string (plugin, s->addr, s->addrlen),
@@ -1095,8 +1090,6 @@ http_client_plugin_get_session (void *cls,
   ats.type = htonl (GNUNET_ATS_NETWORK_TYPE);
   ats.value = htonl (GNUNET_ATS_NET_UNSPECIFIED);
   sa = http_common_socket_from_address (address->address, address->address_length, &res);
-
-
 
   if (GNUNET_SYSERR == res)
   {
