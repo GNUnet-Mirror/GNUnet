@@ -1652,7 +1652,7 @@ GNUNET_TESTBED_get_config_from_peerinfo_msg_ (const struct
   cfg = GNUNET_CONFIGURATION_create ();
   GNUNET_assert (GNUNET_OK == 
                  GNUNET_CONFIGURATION_deserialize (cfg, config,
-						       (size_t) config_size,
+						   (size_t) config_size,
                                                    GNUNET_NO));
   GNUNET_free (config);
   return cfg;
