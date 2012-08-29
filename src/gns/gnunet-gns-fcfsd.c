@@ -42,12 +42,19 @@
 /**
  * Front page. (/)
  */
-#define MAIN_PAGE "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\"><html lang=\"en\" xmlns=\"http://www.w3.org/1999/xhtml\"><html><head><title>GNUnet FCFS Authority Name Registration Service</title></head><body><form action=\"S\" method=\"post\">What is your desired domain name? (63 characters, no dots allowed.) <input type=\"text\" name=\"domain\" /> <p> What is your public key? (Copy from gnunet-setup.) <input type=\"text\" name=\"pkey\" /> <input type=\"submit\" value=\"Next\" /></body></html>"
+#define MAIN_PAGE "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\"><html lang=\"en\" xmlns=\"http://www.w3.org/1999/xhtml\"><html><head><title>GNUnet FCFS Authority Name Registration Service</title></head><body><form action=\"S\" method=\"post\">What is your desired domain name? (63 characters, no dots allowed.) <input type=\"text\" name=\"domain\" /> <p> What is your public key? (Copy from gnunet-setup.) <input type=\"text\" name=\"pkey\" /> <input type=\"submit\" value=\"Next\" /><br/><a href=/Zoneinfo> List of all registered names </a></body></html>"
 
 /**
  * Second page (/S)
  */
 #define SUBMIT_PAGE "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\"><html lang=\"en\" xmlns=\"http://www.w3.org/1999/xhtml\"><html><head><title>%s</title></head><body>%s</body></html>"
+
+/**
+ * Fcfs zoneinfo page (/Zoneinfo)
+ */
+#define ZONEINFO_PAGE "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\"><html lang=\"en\" xmlns=\"http://www.w3.org/1999/xhtml\"><html><head><title>%s</title></head><body><h1> FCFS Zoneinfo </h1><table border=\"1\"><th>name</th><th>PKEY</th>%s</table></body></html>"
+
+#define FCFS_ZONEINFO_URL "/Zoneinfo"
 
 /**
  * Mime type for HTML pages.
@@ -59,6 +66,7 @@
  */
 #define COOKIE_NAME "gns-fcfs"
 
+#define DEFAULT_ZONEINFO_BUFSIZE 2048
 
 /**
  * Phases a request goes through.
@@ -137,6 +145,36 @@ struct Request
 
 };
 
+/**
+ * Zoneinfo request
+ */
+struct ZoneinfoRequest
+{
+  /**
+   * Connection
+   */
+  struct MHD_Connection *connection;
+
+  /**
+   * List iterator
+   */
+  struct GNUNET_NAMESTORE_ZoneIterator *list_it;
+
+  /**
+   * Buffer
+   */
+  char* zoneinfo;
+
+  /**
+   * Buffer length
+   */
+  size_t buf_len;
+  
+  /**
+   * Buffer write offset
+   */
+  size_t write_offset;
+};
 
 /**
  * MHD deamon reference.
@@ -163,6 +201,137 @@ static struct GNUNET_CRYPTO_ShortHashCode fcfsd_zone;
  */
 static struct GNUNET_CRYPTO_RsaPrivateKey *fcfs_zone_pkey;
 			
+
+/**
+ * Task run whenever HTTP server operations are pending.
+ *
+ * @param cls unused
+ * @param tc scheduler context
+ */
+static void
+do_httpd (void *cls,
+	  const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+
+/**
+ * Schedule task to run MHD server now.
+ */
+static void
+run_httpd_now ()
+{
+  if (GNUNET_SCHEDULER_NO_TASK != httpd_task)
+  {
+    GNUNET_SCHEDULER_cancel (httpd_task);
+    httpd_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  httpd_task = GNUNET_SCHEDULER_add_now (&do_httpd, NULL);
+}
+
+static void
+iterate_cb (void *cls,
+                const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded *zone_key,
+                struct GNUNET_TIME_Absolute expire,
+                const char *name,
+                unsigned int rd_len,
+                const struct GNUNET_NAMESTORE_RecordData *rd,
+                const struct GNUNET_CRYPTO_RsaSignature *signature)
+{
+  struct ZoneinfoRequest *zr = cls;
+  struct MHD_Response *response;
+  char* full_page;
+  size_t bytes_free;
+  char* pkey;
+  char* new_buf;
+
+
+  if (NULL == name)
+  {
+    zr->list_it = NULL;
+
+    /* return static form */
+    GNUNET_asprintf (&full_page,
+                     ZONEINFO_PAGE,
+                     zr->zoneinfo,
+                     zr->zoneinfo);
+    response = MHD_create_response_from_buffer (strlen (full_page),
+					      (void *) full_page,
+					      MHD_RESPMEM_MUST_FREE);
+    MHD_add_response_header (response,
+			   MHD_HTTP_HEADER_CONTENT_TYPE,
+			   MIME_HTML);
+    MHD_queue_response (zr->connection, 
+			    MHD_HTTP_OK, 
+			    response);
+    MHD_destroy_response (response);
+    GNUNET_free (zr->zoneinfo);
+    GNUNET_free (zr);
+    run_httpd_now ();
+    return;
+  }
+
+  if (1 != rd_len)
+  {
+    GNUNET_NAMESTORE_zone_iterator_next (zr->list_it);
+    return;
+  }
+
+  if (GNUNET_NAMESTORE_TYPE_PKEY != rd->record_type)
+  {
+    GNUNET_NAMESTORE_zone_iterator_next (zr->list_it);
+    return;
+  }
+
+  bytes_free = zr->buf_len - zr->write_offset;
+  pkey = GNUNET_NAMESTORE_value_to_string (rd->record_type,
+                                           rd->data,
+                                           rd->data_size);
+
+  if (bytes_free < (strlen (name) + strlen (pkey) + 10))
+  {
+    new_buf = GNUNET_malloc (zr->buf_len * 2);
+    memcpy (new_buf, zr->zoneinfo, zr->write_offset);
+    GNUNET_free (zr->zoneinfo);
+    zr->zoneinfo = new_buf;
+  }
+
+  sprintf (zr->zoneinfo+zr->write_offset, "<tr><td>%s</td><td>%s</td></tr>", name, pkey);
+
+  zr->write_offset = strlen (zr->zoneinfo);
+  GNUNET_NAMESTORE_zone_iterator_next (zr->list_it);
+  GNUNET_free (pkey);
+}
+
+
+
+/**
+ * Handler that returns FCFS zoneinfo page.
+ *
+ * @param connection connection to use
+ * @return MHD_YES on success
+ */
+static int
+serve_zoneinfo_page (struct MHD_Connection *connection)
+{
+  struct ZoneinfoRequest *zr;
+
+  zr = GNUNET_malloc (sizeof (struct ZoneinfoRequest));
+
+  zr->zoneinfo = GNUNET_malloc (DEFAULT_ZONEINFO_BUFSIZE);
+  zr->buf_len = DEFAULT_ZONEINFO_BUFSIZE;
+  zr->connection = connection;
+  zr->write_offset = 0;
+
+  printf ("adsadad1!\n");
+  zr->list_it = GNUNET_NAMESTORE_zone_iteration_start (ns,
+                                                   &fcfsd_zone,
+                                                   GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION,
+                                                   GNUNET_NAMESTORE_RF_PRIVATE,
+                                                   &iterate_cb,
+                                                   zr);
+
+  return MHD_YES;
+}
+
 
 /**
  * Handler that returns a simple static HTTP page.
@@ -283,30 +452,6 @@ post_iterator (void *cls,
 }
 
 
-/**
- * Task run whenever HTTP server operations are pending.
- *
- * @param cls unused
- * @param tc scheduler context
- */
-static void
-do_httpd (void *cls,
-	  const struct GNUNET_SCHEDULER_TaskContext *tc);
-
-
-/**
- * Schedule task to run MHD server now.
- */
-static void
-run_httpd_now ()
-{
-  if (GNUNET_SCHEDULER_NO_TASK != httpd_task)
-  {
-    GNUNET_SCHEDULER_cancel (httpd_task);
-    httpd_task = GNUNET_SCHEDULER_NO_TASK;
-  }
-  httpd_task = GNUNET_SCHEDULER_add_now (&do_httpd, NULL);
-}
 
 
 /**
@@ -492,7 +637,10 @@ create_response (void *cls,
   if ( (0 == strcmp (method, MHD_HTTP_METHOD_GET)) ||
        (0 == strcmp (method, MHD_HTTP_METHOD_HEAD)) )
     {
-      ret = serve_main_page (connection);
+      if (0 == strcmp (url, FCFS_ZONEINFO_URL))
+        ret = serve_zoneinfo_page (connection);
+      else
+        ret = serve_main_page (connection);
       if (ret != MHD_YES)
 	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		    _("Failed to create page for `%s'\n"),
