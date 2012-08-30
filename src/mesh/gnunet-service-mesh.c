@@ -3343,17 +3343,23 @@ tunnel_send_multicast (struct MeshTunnel *t,
   {
     struct GNUNET_MESH_Multicast *mcast;
 
+    mcast = (struct GNUNET_MESH_Multicast *) mdata->data;
     if (t->fwd_queue_n >= t->fwd_queue_max)
     {
       GNUNET_break (0);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  queue full!\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "  queue full!\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "  message from %s!\n",
+                  GNUNET_i2s(&mcast->oid));
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "  message at %s!\n",
+                  GNUNET_i2s(&my_full_id));
       GNUNET_free (mdata->data);
       GNUNET_free (mdata->reference_counter);
       GNUNET_free (mdata);
       return;
     }
     t->fwd_queue_n++;
-    mcast = (struct GNUNET_MESH_Multicast *) mdata->data;
     mcast->ttl = htonl (ntohl (mcast->ttl) - 1);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  data packet, ttl: %u\n",
                 ntohl (mcast->ttl));
