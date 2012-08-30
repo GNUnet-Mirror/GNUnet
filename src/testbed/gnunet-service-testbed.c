@@ -781,19 +781,23 @@ static void
 peer_list_remove (struct Peer *peer)
 {
   uint32_t id;
+  uint32_t orig_size;
 
   peer_list[peer->id] = NULL;
+  orig_size = peer_list_size;
   while (peer_list_size >= LIST_GROW_STEP)
   {
     for (id = peer_list_size - 1;
-         id > peer_list_size - LIST_GROW_STEP; id--)
+         (id >= peer_list_size - LIST_GROW_STEP) && (id != UINT32_MAX); id--)
       if (NULL != peer_list[id])
         break;
-    if (id != peer_list_size - LIST_GROW_STEP)
+    if (id != ((peer_list_size - LIST_GROW_STEP) - 1))
       break;
     peer_list_size -= LIST_GROW_STEP;
   }
-  peer_list = GNUNET_realloc (peer_list, sizeof (struct GNUNET_TESTBED_Peer*)
+  if (orig_size == peer_list_size)
+    return;
+  peer_list = GNUNET_realloc (peer_list, sizeof (struct Peer *) 
                               * peer_list_size);
 }
 
@@ -1607,6 +1611,7 @@ handle_peer_create (void *cls,
   int ret;
   uint32_t config_size;
   uint32_t host_id;
+  uint32_t peer_id;
   uint16_t msize;
   
 
@@ -1619,6 +1624,14 @@ handle_peer_create (void *cls,
   }
   msg = (const struct GNUNET_TESTBED_PeerCreateMessage *) message;
   host_id = ntohl (msg->host_id);
+  peer_id = ntohl (msg->peer_id);
+  if (UINT32_MAX == peer_id)
+  {
+    send_operation_fail_msg (client, GNUNET_ntohll (msg->operation_id),
+                             "Cannot create peer with given ID");
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
   if (host_id == master_context->host_id)
   {
     char *emsg;
@@ -1655,7 +1668,7 @@ handle_peer_create (void *cls,
     peer = GNUNET_malloc (sizeof (struct Peer));
     peer->is_remote = GNUNET_NO;
     peer->details.local.cfg = cfg;
-    peer->id = ntohl (msg->peer_id);
+    peer->id = peer_id;
     LOG_DEBUG ("Creating peer with id: %u\n", peer->id);
     peer->details.local.peer = 
       GNUNET_TESTING_peer_configure (master_context->system,
