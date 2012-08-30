@@ -599,8 +599,76 @@ handle_peer_config (struct GNUNET_TESTBED_Controller *c,
   {
     if (NULL != c->cc)
       c->cc (c->cc_cls, &info);
-  }
+  }  
+  return GNUNET_YES;
+}
+
+
+/**
+ * Handler for GNUNET_MESSAGE_TYPE_TESTBED_OPERATIONEVENT message from
+ * controller (testbed service)
+ *
+ * @param c the controller handler
+ * @param msg message received
+ * @return GNUNET_YES if we can continue receiving from service; GNUNET_NO if
+ *           not
+ */
+static int
+handle_op_fail_event (struct GNUNET_TESTBED_Controller *c,
+                      const struct 
+                      GNUNET_TESTBED_OperationFailureEventMessage *msg)
+{
+  struct OperationContext *opc;
+  char *emsg;
+  uint64_t op_id;
+  struct GNUNET_TESTBED_EventInformation event;  
+  uint16_t msize;
   
+  op_id = GNUNET_ntohll (msg->operation_id);
+  if (NULL == (opc = find_opc (c, op_id)))
+  {
+    LOG_DEBUG ("Operation not found\n");
+    return GNUNET_YES;
+  }
+  if (OP_FORWARDED == opc->type)
+  {
+    struct ForwardedOperationData *fo_data;
+    
+    fo_data = opc->data;
+    if (NULL != fo_data->cc)
+      fo_data->cc (fo_data->cc_cls, (const struct GNUNET_MessageHeader *) msg);
+    GNUNET_CONTAINER_DLL_remove (c->ocq_head, c->ocq_tail, opc);
+    GNUNET_free (fo_data);
+    GNUNET_free (opc);    
+    return GNUNET_YES;    
+  }
+  GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
+  opc->state = OPC_STATE_FINISHED;
+  switch (opc->type)
+  {
+    /* FIXME: Cleanup the data pointer depending on the type of opc */
+  default:
+    GNUNET_break (0);
+  }
+  msize = ntohs (msg->header.size);
+  emsg = NULL;
+  if (msize > sizeof (struct GNUNET_TESTBED_OperationFailureEventMessage))
+  {
+    msize -= sizeof (struct GNUNET_TESTBED_OperationFailureEventMessage);
+    emsg = (char *) &msg[1];
+    GNUNET_assert ('\0' == emsg[msize - 1]);
+  }
+  if ((0 != (GNUNET_TESTBED_ET_OPERATION_FINISHED & c->event_mask)) 
+      && (NULL != c->cc))
+  {
+    event.type = GNUNET_TESTBED_ET_OPERATION_FINISHED;
+    event.details.operation_finished.operation = opc->op;
+    event.details.operation_finished.op_cls = NULL;
+    event.details.operation_finished.emsg = emsg;
+    event.details.operation_finished.pit = GNUNET_TESTBED_PIT_GENERIC;
+    event.details.operation_finished.op_result.generic = NULL;
+    c->cc (c->cc_cls, &event);
+  }    
   return GNUNET_YES;
 }
 
@@ -671,8 +739,16 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
       handle_peer_conevent (c, (const struct
                                 GNUNET_TESTBED_ConnectionEventMessage *) msg);
     break;
+  case GNUNET_MESSAGE_TYPE_TESTBED_OPERATIONEVENT:
+    GNUNET_assert (msize >= 
+                   sizeof (struct GNUNET_TESTBED_OperationFailureEventMessage));
+    status = 
+      handle_op_fail_event (c, (const struct
+                                GNUNET_TESTBED_OperationFailureEventMessage *)
+                            msg);
+    break;
   default:
-    GNUNET_break (0);
+    GNUNET_assert (0);
   }
   if ((GNUNET_OK == status) && (GNUNET_NO == c->in_receive))
   {
