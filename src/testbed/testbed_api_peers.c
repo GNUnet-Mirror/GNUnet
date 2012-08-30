@@ -472,7 +472,7 @@ GNUNET_TESTBED_peer_create (struct GNUNET_TESTBED_Controller *controller,
 {
   static uint32_t id_gen;
 
-  return GNUNET_TESTBED_peer_create_with_id_ (++id_gen,
+  return GNUNET_TESTBED_peer_create_with_id_ (id_gen++,
 					      controller,
 					      host,
 					      cfg,
