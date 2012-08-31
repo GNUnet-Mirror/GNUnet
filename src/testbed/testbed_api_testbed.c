@@ -182,82 +182,6 @@ struct RunContext
 };
 
 
-
-
-/**
- * Configure and run a testbed using the given
- * master controller on 'num_hosts' starting
- * 'num_peers' using the given peer configuration.
- *
- * @param controller master controller for the testbed
- *                   (must not be destroyed until after the
- *                    testbed is destroyed).
- * @param num_hosts number of hosts in 'hosts', 0 to only
- *        use 'localhost'
- * @param hosts list of hosts to use for the testbed
- * @param num_peers number of peers to start
- * @param peer_cfg peer configuration template to use
- * @param underlay_topology underlay topology to create
- * @param va topology-specific options
- * @return handle to the testbed
- */
-struct GNUNET_TESTBED_Testbed *
-GNUNET_TESTBED_create_va (struct GNUNET_TESTBED_Controller *controller,
-                          unsigned int num_hosts,
-                          struct GNUNET_TESTBED_Host **hosts,
-                          unsigned int num_peers,
-                          const struct GNUNET_CONFIGURATION_Handle *peer_cfg,
-                          enum GNUNET_TESTBED_TopologyOption underlay_topology,
-                          va_list va)
-{
-  GNUNET_break (0);
-  return NULL;
-}
-
-
-/**
- * Configure and run a testbed using the given
- * master controller on 'num_hosts' starting
- * 'num_peers' using the given peer configuration.
- *
- * @param controller master controller for the testbed
- *                   (must not be destroyed until after the
- *                    testbed is destroyed).
- * @param num_hosts number of hosts in 'hosts', 0 to only
- *        use 'localhost'
- * @param hosts list of hosts to use for the testbed
- * @param num_peers number of peers to start
- * @param peer_cfg peer configuration template to use
- * @param underlay_topology underlay topology to create
- * @param ... topology-specific options
- */
-struct GNUNET_TESTBED_Testbed *
-GNUNET_TESTBED_create (struct GNUNET_TESTBED_Controller *controller,
-                       unsigned int num_hosts,
-                       struct GNUNET_TESTBED_Host **hosts,
-                       unsigned int num_peers,
-                       const struct GNUNET_CONFIGURATION_Handle *peer_cfg,
-                       enum GNUNET_TESTBED_TopologyOption underlay_topology,
-                       ...)
-{
-  GNUNET_break (0);
-  return NULL;
-}
-
-
-/**
- * Destroy a testbed.  Stops all running peers and then
- * destroys all peers.  Does NOT destroy the master controller.
- *
- * @param testbed testbed to destroy
- */
-void
-GNUNET_TESTBED_destroy (struct GNUNET_TESTBED_Testbed *testbed)
-{
-  GNUNET_break (0);
-}
-
-
 /**
  * Task for starting peers
  *
@@ -419,7 +343,8 @@ event_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
   }
 
 call_cc:
-  rc->cc (rc->cc_cls, event);
+  if (NULL != rc->cc)
+    rc->cc (rc->cc_cls, event);
   if (GNUNET_TESTBED_ET_PEER_START != event->type)
     return;
   for (dll_op = rc->dll_op_head; NULL != dll_op; dll_op = dll_op->next)
@@ -435,8 +360,9 @@ call_cc:
     return;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Peers started successfully\n");
   rc->state = RC_PEERS_STARTED;
-  GNUNET_SCHEDULER_add_continuation (rc->master, rc->master_cls,
-                                     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+  if (NULL != rc->master)
+    GNUNET_SCHEDULER_add_continuation (rc->master, rc->master_cls,
+                                       GNUNET_SCHEDULER_REASON_PREREQ_DONE);
 }
 
 
@@ -558,6 +484,7 @@ GNUNET_TESTBED_run (const char *host_filename,
   rc = GNUNET_malloc (sizeof (struct RunContext));
   GNUNET_break (NULL == host_filename); /* Currently we do not support host
                                          * files */
+  GNUNET_assert (NULL != cc);
   host_filename = NULL;
   rc->h = GNUNET_TESTBED_host_create (NULL, NULL, 0);
   GNUNET_assert (NULL != rc->h);
@@ -575,5 +502,80 @@ GNUNET_TESTBED_run (const char *host_filename,
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                 &shutdown_run_task, rc);
 }
+
+
+/**
+ * Configure and run a testbed using the given
+ * master controller on 'num_hosts' starting
+ * 'num_peers' using the given peer configuration.
+ *
+ * @param controller master controller for the testbed
+ *                   (must not be destroyed until after the
+ *                    testbed is destroyed).
+ * @param num_hosts number of hosts in 'hosts', 0 to only
+ *        use 'localhost'
+ * @param hosts list of hosts to use for the testbed
+ * @param num_peers number of peers to start
+ * @param peer_cfg peer configuration template to use
+ * @param underlay_topology underlay topology to create
+ * @param va topology-specific options
+ * @return handle to the testbed
+ */
+struct GNUNET_TESTBED_Testbed *
+GNUNET_TESTBED_create_va (struct GNUNET_TESTBED_Controller *controller,
+                          unsigned int num_hosts,
+                          struct GNUNET_TESTBED_Host **hosts,
+                          unsigned int num_peers,
+                          const struct GNUNET_CONFIGURATION_Handle *peer_cfg,
+                          enum GNUNET_TESTBED_TopologyOption underlay_topology,
+                          va_list va)
+{
+  GNUNET_break (0);
+  return NULL;
+}
+
+
+/**
+ * Configure and run a testbed using the given
+ * master controller on 'num_hosts' starting
+ * 'num_peers' using the given peer configuration.
+ *
+ * @param controller master controller for the testbed
+ *                   (must not be destroyed until after the
+ *                    testbed is destroyed).
+ * @param num_hosts number of hosts in 'hosts', 0 to only
+ *        use 'localhost'
+ * @param hosts list of hosts to use for the testbed
+ * @param num_peers number of peers to start
+ * @param peer_cfg peer configuration template to use
+ * @param underlay_topology underlay topology to create
+ * @param ... topology-specific options
+ */
+struct GNUNET_TESTBED_Testbed *
+GNUNET_TESTBED_create (struct GNUNET_TESTBED_Controller *controller,
+                       unsigned int num_hosts,
+                       struct GNUNET_TESTBED_Host **hosts,
+                       unsigned int num_peers,
+                       const struct GNUNET_CONFIGURATION_Handle *peer_cfg,
+                       enum GNUNET_TESTBED_TopologyOption underlay_topology,
+                       ...)
+{
+  GNUNET_break (0);
+  return NULL;
+}
+
+
+/**
+ * Destroy a testbed.  Stops all running peers and then
+ * destroys all peers.  Does NOT destroy the master controller.
+ *
+ * @param testbed testbed to destroy
+ */
+void
+GNUNET_TESTBED_destroy (struct GNUNET_TESTBED_Testbed *testbed)
+{
+  GNUNET_break (0);
+}
+
 
 /* end of testbed_api_testbed.c */
