@@ -31,7 +31,7 @@
 /**
  * Number of peers we want to start
  */
-#define NUM_PEERS 2
+#define NUM_PEERS 50
 
 /**
  * The array of peers; we fill this as the peers are given to us by the testbed
@@ -119,7 +119,7 @@ controller_event_cb (void *cls,
     peers[peer_id++] = event->details.peer_start.peer;
     break;
   default:
-    GNUNET_break (0);
+    GNUNET_assert (0);
   }
 }
 
@@ -144,8 +144,8 @@ run (void *cls, char *const *args, const char *cfgfile,
   event_mask |= (1LL << GNUNET_TESTBED_ET_CONNECT);
   event_mask |= (1LL << GNUNET_TESTBED_ET_DISCONNECT);
   event_mask |= (1LL << GNUNET_TESTBED_ET_OPERATION_FINISHED);
-  GNUNET_TESTBED_run (NULL, config, 2, event_mask, &controller_event_cb,
-                           NULL, &master_task, NULL);
+  GNUNET_TESTBED_run (NULL, config, NUM_PEERS, event_mask, &controller_event_cb,
+                      NULL, &master_task, NULL);
   abort_task = GNUNET_SCHEDULER_add_delayed 
     (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5), &do_abort, NULL);
 }
