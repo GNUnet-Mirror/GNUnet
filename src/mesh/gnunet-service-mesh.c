@@ -796,6 +796,9 @@ mesh_debug (void *cls, int success)
 }
 #endif
 
+unsigned int debug_fwd_ack;
+unsigned int debug_bck_ack;
+
 #endif
 
 /******************************************************************************/
@@ -3790,24 +3793,26 @@ tunnel_send_fwd_ack (struct MeshTunnel *t, uint16_t type)
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Not sending ACK, nobuffer\n");
         return;
       }
-      if (t->fwd_queue_max > t->fwd_queue_n * 2 &&
-          GMC_is_pid_bigger(t->last_fwd_ack, t->fwd_pid))
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Not sending ACK, buffer free\n");
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "  t->qmax: %u, t->qn: %u\n",
-                    t->fwd_queue_max, t->fwd_queue_n);
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "  t->pid: %u, t->ack: %u\n",
-                    t->fwd_pid, t->last_fwd_ack);
-        return;
-      }
       break;
     case GNUNET_MESSAGE_TYPE_MESH_ACK:
     case GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK:
       break;
     default:
       GNUNET_break (0);
+  }
+
+  /* Check if we need no retransmit the ACK */
+  if (t->fwd_queue_max > t->fwd_queue_n * 2 &&
+      GMC_is_pid_bigger(t->last_fwd_ack, t->fwd_pid))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Not sending ACK, buffer free\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "  t->qmax: %u, t->qn: %u\n",
+                t->fwd_queue_max, t->fwd_queue_n);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "  t->pid: %u, t->ack: %u\n",
+                t->fwd_pid, t->last_fwd_ack);
+    return;
   }
 
   /* Ok, ACK might be necessary, what PID to ACK? */
@@ -3823,6 +3828,7 @@ tunnel_send_fwd_ack (struct MeshTunnel *t, uint16_t type)
   t->last_fwd_ack = ack;
   GNUNET_PEER_resolve (tree_get_predecessor (t->tree), &id);
   send_ack (t, &id, ack);
+  debug_fwd_ack++;
 }
 
 
@@ -4721,9 +4727,13 @@ queue_send (void *cls, size_t size, void *buf)
         break;
       case GNUNET_MESSAGE_TYPE_MESH_MULTICAST:
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********   multicast\n");
+        {
+          struct MeshTransmissionDescriptor *info = queue->cls;
+          if (*(info->mesh_data->reference_counter) == 1)
+            t->fwd_queue_n--;
+          // FIXME fc (t->fwd_queue_n--)
+        }
         data_size = send_core_data_multicast(queue->cls, size, buf);
-        // FIXME fc substract when? depending on the tunnel conf.
-        // t->fwd_queue_n--;
         tunnel_send_fwd_ack (t, GNUNET_MESSAGE_TYPE_MESH_MULTICAST);
         break;
       case GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE:
@@ -5587,6 +5597,7 @@ handle_mesh_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
   {
     struct MeshTunnelChildInfo *cinfo;
 
+    debug_bck_ack++;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  FWD ACK\n");
     cinfo = tunnel_get_neighbor_fc (t, peer);
     cinfo->fwd_ack = ack;
@@ -7945,6 +7956,11 @@ main (int argc, char *const *argv)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "main() END\n");
 
   INTERVAL_SHOW;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Mesh for peer [%s] FWD ACKs %u, BCK ACKs %u\n",
+              GNUNET_i2s(&my_full_id), debug_fwd_ack, debug_bck_ack);
+  
 
   return ret;
 }
