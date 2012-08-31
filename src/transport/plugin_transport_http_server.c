@@ -1212,7 +1212,7 @@ server_receive_mst_cb (void *cls, void *client,
  * @param version HTTP version
  * @param upload_data upload data
  * @param upload_data_size sizeof upload data
- * @param httpSessionCace the session cache to remember the connection
+ * @param httpSessionCache the session cache to remember the connection
  * @return MHD_YES if connection is accepted, MHD_NO on reject
  */
 static int
@@ -2117,7 +2117,7 @@ server_nat_port_map_callback (void *cls, int add_remove, const struct sockaddr *
  * @param serviceName the servicename
  * @param cfg configuration handle
  * @param addrs addresses
- * @param addr_len address length
+ * @param addr_lens address length
  * @return number of addresses
  */
 static int
