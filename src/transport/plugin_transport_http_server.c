@@ -25,15 +25,10 @@
  */
 
 #include "platform.h"
-#include "gnunet_protocols.h"
-#include "gnunet_connection_lib.h"
+#include "gnunet_common.h"
 #include "gnunet_server_lib.h"
-#include "gnunet_service_lib.h"
 #include "gnunet_statistics_service.h"
-#include "gnunet_transport_service.h"
 #include "gnunet_transport_plugin.h"
-
-#include "gnunet_container_lib.h"
 #include "gnunet_nat_lib.h"
 #include "plugin_transport_http_common.h"
 #include "microhttpd.h"
@@ -54,6 +49,7 @@
  * Encapsulation of all of the state of the plugin.
  */
 struct Plugin;
+
 
 /**
  * Session handle for connections.
@@ -143,6 +139,7 @@ struct Session
   GNUNET_SCHEDULER_TaskIdentifier timeout_task;
 };
 
+
 struct ServerConnection
 {
   /* _RECV or _SEND */
@@ -160,6 +157,7 @@ struct ServerConnection
   /* The MHD daemon */
   struct MHD_Daemon *mhd_daemon;
 };
+
 
 /**
  * Encapsulation of all of the state of the plugin.
@@ -329,6 +327,7 @@ struct HTTP_Server_Plugin
 
 };
 
+
 /**
  * Wrapper to manage addresses
  */
@@ -348,6 +347,7 @@ struct HttpAddressWrapper
 
   size_t addrlen;
 };
+
 
 /**
  *  Message to send using http
@@ -393,34 +393,54 @@ struct HTTP_Message
 };
 
 
+/**
+ * The http_server plugin handle
+ */
 static struct HTTP_Server_Plugin * p;
 
+
 /**
- * Start session timeout
+ * Start session timeout for session s
+ * @param s the session
  */
 static void
 server_start_session_timeout (struct Session *s);
 
+
 /**
- * Increment session timeout due to activity
+ * Increment session timeout due to activity for session s
+ * @param s the session
  */
 static void
 server_reschedule_session_timeout (struct Session *s);
 
+
 /**
- * Cancel timeout
+ * Cancel timeout for session s
+ * @param s the session
  */
 static void
 server_stop_session_timeout (struct Session *s);
 
+
 /**
- * Disconnect a session
+ * Disconnect a session  s
+ * @param s the session
  */
-int
+static int
 server_disconnect (struct Session *s);
 
-int
+
+/**
+ * Does session s exist?
+ *
+ * @param plugin the plugin handle
+ * @param s the session
+ * @return GNUNET_YES on success, GNUNET_NO on error
+ */
+static int
 server_exist_session (struct HTTP_Server_Plugin *plugin, struct Session *s);
+
 
 /**
  * Reschedule the execution of both IPv4 and IPv6 server
@@ -430,7 +450,9 @@ server_exist_session (struct HTTP_Server_Plugin *plugin, struct Session *s);
  * until timeout
  */
 static void
-server_reschedule (struct HTTP_Server_Plugin *plugin, struct MHD_Daemon *server, int now);
+server_reschedule (struct HTTP_Server_Plugin *plugin, struct MHD_Daemon *server,
+				   int now);
+
 
 /**
  * Function that can be used by the transport service to transmit
@@ -554,14 +576,17 @@ http_server_plugin_disconnect (void *cls, const struct GNUNET_PeerIdentity *targ
  *         and transport
  */
 static int
-http_server_plugin_address_suggested (void *cls, const void *addr, size_t addrlen)
+http_server_plugin_address_suggested (void *cls, const void *addr,
+		size_t addrlen)
 {
   struct HTTP_Server_Plugin *plugin = cls;
   struct HttpAddressWrapper *next;
   struct HttpAddressWrapper *pos;
 
 
-  if ((NULL != plugin->ext_addr) && GNUNET_YES == (http_common_cmp_addresses (addr, addrlen, plugin->ext_addr, plugin->ext_addr_len)))
+  if ((NULL != plugin->ext_addr) &&
+	   GNUNET_YES == (http_common_cmp_addresses (addr, addrlen,
+			   	   	   plugin->ext_addr, plugin->ext_addr_len)))
     return GNUNET_OK;
 
   next  = plugin->addr_head;
@@ -578,6 +603,7 @@ http_server_plugin_address_suggested (void *cls, const void *addr, size_t addrle
 
   return GNUNET_NO;
 }
+
 
 /**
  * Creates a new outbound session the transport
@@ -600,9 +626,11 @@ http_server_plugin_get_session (void *cls,
 /**
  * Deleting the session
  * Must not be used afterwards
+ *
+ * @param s the session to delete
  */
 
-void
+static void
 server_delete_session (struct Session *s)
 {
   struct HTTP_Server_Plugin *plugin = s->plugin;
@@ -644,7 +672,9 @@ server_delete_session (struct Session *s)
 
 
 /**
-* Cancel timeout
+* Cancel timeout for session s
+*
+* @param s the session
 */
 static void
 server_stop_session_timeout (struct Session *s)
@@ -659,6 +689,7 @@ server_stop_session_timeout (struct Session *s)
  }
 }
 
+
 /**
  * Function that queries MHD's select sets and
  * starts the task waiting for them.
@@ -668,8 +699,10 @@ server_stop_session_timeout (struct Session *s)
  * @return gnunet task identifier
  */
 static GNUNET_SCHEDULER_TaskIdentifier
-server_schedule (struct HTTP_Server_Plugin *plugin, struct MHD_Daemon *daemon_handle,
+server_schedule (struct HTTP_Server_Plugin *plugin,
+				 struct MHD_Daemon *daemon_handle,
                  int now);
+
 
 /**
  * Reschedule the execution of both IPv4 and IPv6 server
@@ -679,7 +712,8 @@ server_schedule (struct HTTP_Server_Plugin *plugin, struct MHD_Daemon *daemon_ha
  * until timeout
  */
 static void
-server_reschedule (struct HTTP_Server_Plugin *plugin, struct MHD_Daemon *server, int now)
+server_reschedule (struct HTTP_Server_Plugin *plugin, struct MHD_Daemon *server,
+				   int now)
 {
   if ((server == plugin->server_v4) && (plugin->server_v4 != NULL))
   {
@@ -714,7 +748,14 @@ server_reschedule (struct HTTP_Server_Plugin *plugin, struct MHD_Daemon *server,
   }
 }
 
-int
+
+/**
+ * Disconnect session s
+ *
+ * @param s the session
+ * @return GNUNET_OK on success
+ */
+static int
 server_disconnect (struct Session *s)
 {
   struct ServerConnection * send;
@@ -779,6 +820,15 @@ server_mhd_connection_timeout (struct HTTP_Server_Plugin *plugin, struct Session
 }
 
 
+/**
+ * Lookup a mhd connection and create one if none is found
+ *
+ * @param plugin the plugin handle
+ * @param mhd_connection the incoming mhd_connection
+ * @param url incoming requested URL
+ * @param method PUT or GET
+ * @return the server connecetion
+ */
 static struct ServerConnection *
 server_lookup_connection (struct HTTP_Server_Plugin *plugin,
                        struct MHD_Connection *mhd_connection, const char *url,
@@ -1021,6 +1071,14 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
     return NULL;
 }
 
+
+/**
+ * Lookup a session for a server connection
+ *
+ * @param plugin the plugin
+ * @param sc the server connection
+ * @return the session found or NULL
+ */
 static struct Session *
 server_lookup_session (struct HTTP_Server_Plugin *plugin,
                        struct ServerConnection * sc)
@@ -1052,6 +1110,7 @@ server_exist_session (struct HTTP_Server_Plugin *plugin, struct Session *s)
 
 /**
  * Callback called by MHD when it needs data to send
+ *
  * @param cls current session
  * @param pos position in buffer
  * @param buf the buffer to write data to
@@ -1094,11 +1153,14 @@ server_send_callback (void *cls, uint64_t pos, char *buf, size_t max)
   return bytes_read;
 }
 
+
 /**
  * Callback called by MessageStreamTokenizer when a message has arrived
+ *
  * @param cls current session as closure
- * @param client clien
+ * @param client client
  * @param message the message to be forwarded to transport service
+ * @return GNUNET_OK
  */
 static int
 server_receive_mst_cb (void *cls, void *client,
@@ -1139,6 +1201,20 @@ server_receive_mst_cb (void *cls, void *client,
   return GNUNET_OK;
 }
 
+
+/**
+ * MHD callback for a new incoming connection
+ *
+ * @param cls the plugin handle
+ * @param mhd_connection the mhd connection
+ * @param url the requested URL
+ * @param method GET or PUT
+ * @param version HTTP version
+ * @param upload_data upload data
+ * @param upload_data_size sizeof upload data
+ * @param httpSessionCace the session cache to remember the connection
+ * @return MHD_YES if connection is accepted, MHD_NO on reject
+ */
 static int
 server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
                   const char *url, const char *method, const char *version,
@@ -1273,6 +1349,14 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
   return res;
 }
 
+
+/**
+ * Callback from MHD when a connection disconnects
+ *
+ * @param cls closure
+ * @param connection the disconnected MHD connection
+ * @param httpSessionCache the pointer to distinguish
+ */
 static void
 server_disconnect_cb (void *cls, struct MHD_Connection *connection,
                       void **httpSessionCache)
@@ -1354,9 +1438,10 @@ server_disconnect_cb (void *cls, struct MHD_Connection *connection,
   }
 }
 
+
 /**
  * Check if incoming connection is accepted.
- * NOTE: Here every connection is accepted
+
  * @param cls plugin as closure
  * @param addr address of incoming connection
  * @param addr_len address length of incoming connection
@@ -1450,6 +1535,7 @@ server_v6_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * Function that queries MHD's select sets and
  * starts the task waiting for them.
+ *
  * @param plugin plugin
  * @param daemon_handle the MHD daemon handle
  * @return gnunet task identifier
@@ -1545,6 +1631,12 @@ server_schedule (struct HTTP_Server_Plugin *plugin,
 
 
 #if BUILD_HTTPS
+/**
+ * Load ssl certificate from file
+ *
+ * @param file filename
+ * @return content of the file
+ */
 static char *
 server_load_file (const char *file)
 {
@@ -1578,7 +1670,12 @@ server_load_file (const char *file)
 
 
 #if BUILD_HTTPS
-
+/**
+ * Load ssl certificate
+ *
+ * @param plugin the plugin
+ * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+ */
 static int
 server_load_certificate (struct HTTP_Server_Plugin *plugin)
 {
@@ -1690,7 +1787,14 @@ server_load_certificate (struct HTTP_Server_Plugin *plugin)
 }
 #endif
 
-int
+
+/**
+ * Start the HTTP server
+ *
+ * @param plugin the plugin handle
+ * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+ */
+static int
 server_start (struct HTTP_Server_Plugin *plugin)
 {
   unsigned int timeout;
@@ -1855,6 +1959,15 @@ server_stop (struct HTTP_Server_Plugin *plugin)
                    "%s server component stopped\n", plugin->name);
 }
 
+
+/**
+ * Add an address to the server's set of addresses and notify transport
+ *
+ * @param cls the plugin handle
+ * @param add_remove GNUNET_YES on add, GNUNET_NO on remove
+ * @param addr the address
+ * @param addrlen address length
+ */
 static void
 server_add_address (void *cls, int add_remove, const struct sockaddr *addr,
                  socklen_t addrlen)
@@ -1883,6 +1996,14 @@ server_add_address (void *cls, int add_remove, const struct sockaddr *addr,
 }
 
 
+/**
+ * Remove an address from the server's set of addresses and notify transport
+ *
+ * @param cls the plugin handle
+ * @param add_remove GNUNET_YES on add, GNUNET_NO on remove
+ * @param addr the address
+ * @param addrlen address length
+ */
 static void
 server_remove_address (void *cls, int add_remove, const struct sockaddr *addr,
                     socklen_t addrlen)
@@ -1989,6 +2110,16 @@ server_nat_port_map_callback (void *cls, int add_remove, const struct sockaddr *
 }
 
 
+/**
+ * Get valid server addresses
+ *
+ * @param plugin the plugin handle
+ * @param serviceName the servicename
+ * @param cfg configuration handle
+ * @param addrs addresses
+ * @param addr_len address length
+ * @return number of addresses
+ */
 static int
 server_get_addresses (struct HTTP_Server_Plugin *plugin,
                       const char *serviceName,
@@ -2166,6 +2297,12 @@ server_get_addresses (struct HTTP_Server_Plugin *plugin,
   return resi;
 }
 
+
+/**
+ * Ask NAT for addresses
+ *
+ * @param plugin the plugin handle
+ */
 static void
 server_start_report_addresses (struct HTTP_Server_Plugin *plugin)
 {
@@ -2201,6 +2338,11 @@ server_start_report_addresses (struct HTTP_Server_Plugin *plugin)
 }
 
 
+/**
+ * Stop NAT for addresses
+ *
+ * @param plugin the plugin handle
+ */
 static void
 server_stop_report_addresses (struct HTTP_Server_Plugin *plugin)
 {
@@ -2223,6 +2365,9 @@ server_stop_report_addresses (struct HTTP_Server_Plugin *plugin)
 
 /**
  * Check if IPv6 supported on this system
+ *
+ * @param plugin the plugin handle
+ * @return GNUNET_YES on success, else GNUNET_NO
  */
 static int
 server_check_ipv6_support (struct HTTP_Server_Plugin *plugin)
@@ -2291,6 +2436,12 @@ server_notify_external_hostname (void *cls, const struct GNUNET_SCHEDULER_TaskCo
 }
 
 
+/**
+ * Configure the plugin
+ *
+ * @param plugin plugin handle
+ * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+ */
 static int
 server_configure_plugin (struct HTTP_Server_Plugin *plugin)
 {
@@ -2451,10 +2602,13 @@ server_configure_plugin (struct HTTP_Server_Plugin *plugin)
   return GNUNET_OK;
 }
 
+
 /**
  * Session was idle, so disconnect it
+ *
+ * @param cls the session
+ * @param tc task context
  */
-
 static void
 server_session_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -2470,8 +2624,11 @@ server_session_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
  GNUNET_assert (GNUNET_OK == server_disconnect (s));
 }
 
+
 /**
-* Start session timeout
+* Start session timeout for session s
+*
+* @param s the session
 */
 static void
 server_start_session_timeout (struct Session *s)
@@ -2488,7 +2645,9 @@ server_start_session_timeout (struct Session *s)
 
 
 /**
-* Increment session timeout due to activity
+* Increment session timeout due to activity session s
+*
+* @param s the session
 */
 static void
 server_reschedule_session_timeout (struct Session *s)
@@ -2505,8 +2664,12 @@ server_reschedule_session_timeout (struct Session *s)
              s, (unsigned long long) SERVER_SESSION_TIMEOUT.rel_value);
 }
 
+
 /**
  * Exit point from the plugin.
+ *
+ * @param cls api
+ * @return NULL
  */
 void *
 LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
@@ -2587,6 +2750,9 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
 
 /**
  * Entry point for the plugin.
+ *
+ * @param cls env
+ * @return api
  */
 void *
 LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
@@ -2653,8 +2819,5 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
 
   return api;
 }
-
-
-
 
 /* end of plugin_transport_http_server.c */
