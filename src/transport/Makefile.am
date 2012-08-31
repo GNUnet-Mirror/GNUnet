@@ -924,4 +924,5 @@ test_transport_api_timeout_https_peer1.conf\
 test_transport_api_timeout_https_peer2.conf\
 test_transport_api_unreliability_constant_udp_peer1.conf\
 test_transport_api_unreliability_constant_udp_peer2.conf\
-test_transport_api_http_reverse_proxy.conf
+test_transport_api_http_reverse_peer1.conf \
+test_transport_api_http_reverse_peer2.conf
