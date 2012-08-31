@@ -56,7 +56,7 @@ struct DLLOperation
   /**
    * Context information for GNUNET_TESTBED_run()
    */
-  struct GNUNET_TESTBED_RunHandle *rh;
+  struct RunContext *rc;
 
   /**
    * Closure
@@ -78,7 +78,7 @@ struct DLLOperation
 /**
  * Testbed Run Handle
  */
-struct GNUNET_TESTBED_RunHandle
+struct RunContext
 {
   /**
    * The controller handle
@@ -239,19 +239,19 @@ GNUNET_TESTBED_destroy (struct GNUNET_TESTBED_Testbed *testbed)
 static void
 start_peers_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct GNUNET_TESTBED_RunHandle *rh = cls;
+  struct RunContext *rc = cls;
   struct DLLOperation *dll_op;  
   unsigned int peer;
   
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Starting Peers\n");  
-  for (peer = 0; peer < rh->num_peers; peer++)
+  for (peer = 0; peer < rc->num_peers; peer++)
   {
     dll_op = GNUNET_malloc (sizeof (struct DLLOperation));
-    dll_op->op = GNUNET_TESTBED_peer_start (rh->peers[peer]);
-    dll_op->cls = rh->peers[peer];    
-    GNUNET_CONTAINER_DLL_insert_tail (rh->dll_op_head, rh->dll_op_tail, dll_op);
+    dll_op->op = GNUNET_TESTBED_peer_start (rc->peers[peer]);
+    dll_op->cls = rc->peers[peer];    
+    GNUNET_CONTAINER_DLL_insert_tail (rc->dll_op_head, rc->dll_op_tail, dll_op);
   }
-  rh->peer_count = 0;  
+  rc->peer_count = 0;  
 }
 
 
@@ -268,12 +268,12 @@ static void
 peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
 { 
   struct DLLOperation *dll_op = cls;
-  struct GNUNET_TESTBED_RunHandle *rh;
+  struct RunContext *rc;
   
   GNUNET_assert (NULL != dll_op);  
-  rh = dll_op->rh;
-  GNUNET_assert (NULL != rh);
-  GNUNET_CONTAINER_DLL_remove (rh->dll_op_head, rh->dll_op_tail, dll_op);
+  rc = dll_op->rc;
+  GNUNET_assert (NULL != rc);
+  GNUNET_CONTAINER_DLL_remove (rc->dll_op_head, rc->dll_op_tail, dll_op);
   GNUNET_TESTBED_operation_done (dll_op->op); 
   GNUNET_free (dll_op);
   if (NULL == peer)
@@ -284,12 +284,12 @@ peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
     /* FIXME: GNUNET_TESTBED_shutdown_run()? */
     return;
   }
-  rh->peers[rh->peer_count] = peer;
-  rh->peer_count++;
-  if (rh->peer_count < rh->num_peers)
+  rc->peers[rc->peer_count] = peer;
+  rc->peer_count++;
+  if (rc->peer_count < rc->num_peers)
     return;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Required peers created successfully\n");  
-  GNUNET_SCHEDULER_add_now (&start_peers_task, rh);
+  GNUNET_SCHEDULER_add_now (&start_peers_task, rc);
 }
 
 
@@ -300,30 +300,30 @@ peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
  * @param tc the task context from scheduler
  */
 static void
-shutdown_run_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct GNUNET_TESTBED_RunHandle *rh = cls;
+  struct RunContext *rc = cls;
   struct DLLOperation *dll_op;  
   
-  GNUNET_assert (NULL == rh->peers);
-  if (NULL != rh->c)
-    GNUNET_TESTBED_controller_disconnect (rh->c);
-  if (NULL != rh->cproc)
-    GNUNET_TESTBED_controller_stop (rh->cproc);
-  if (NULL != rh->h)
-    GNUNET_TESTBED_host_destroy (rh->h);
-  if (NULL != rh->dll_op_head)
+  GNUNET_assert (NULL == rc->peers);
+  if (NULL != rc->c)
+    GNUNET_TESTBED_controller_disconnect (rc->c);
+  if (NULL != rc->cproc)
+    GNUNET_TESTBED_controller_stop (rc->cproc);
+  if (NULL != rc->h)
+    GNUNET_TESTBED_host_destroy (rc->h);
+  if (NULL != rc->dll_op_head)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
          _("Some operations are still pending. Cancelling them\n"));
-    while (NULL != (dll_op = rh->dll_op_head))
+    while (NULL != (dll_op = rc->dll_op_head))
     {
       GNUNET_TESTBED_operation_cancel (dll_op->op);
-      GNUNET_CONTAINER_DLL_remove (rh->dll_op_head, rh->dll_op_tail, dll_op);
+      GNUNET_CONTAINER_DLL_remove (rc->dll_op_head, rc->dll_op_tail, dll_op);
       GNUNET_free (dll_op);
     }
   }
-  GNUNET_free (rh);
+  GNUNET_free (rc);
 }
 
 
@@ -337,49 +337,49 @@ shutdown_run_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void 
 event_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
 {
-  struct GNUNET_TESTBED_RunHandle *rh = cls;
+  struct RunContext *rc = cls;
   struct DLLOperation *dll_op;
   
-  if ((GNUNET_YES == rh->in_shutdown) && 
+  if ((GNUNET_YES == rc->in_shutdown) && 
       (GNUNET_TESTBED_ET_OPERATION_FINISHED == event->type))
   {
-    for (dll_op = rh->dll_op_head; NULL != dll_op; dll_op = dll_op->next)
+    for (dll_op = rc->dll_op_head; NULL != dll_op; dll_op = dll_op->next)
     {
       if (event->details.operation_finished.operation == dll_op->op)
         break;
     }
     if (NULL == dll_op)
       goto call_cc;
-    GNUNET_CONTAINER_DLL_remove (rh->dll_op_head, rh->dll_op_tail, dll_op);
+    GNUNET_CONTAINER_DLL_remove (rc->dll_op_head, rc->dll_op_tail, dll_op);
     GNUNET_TESTBED_operation_done (dll_op->op);
     GNUNET_free (dll_op);
-    rh->peer_count++;
-    if (rh->peer_count < rh->num_peers)
+    rc->peer_count++;
+    if (rc->peer_count < rc->num_peers)
       return;
-    GNUNET_free (rh->peers);
-    rh->peers = NULL;    
+    GNUNET_free (rc->peers);
+    rc->peers = NULL;    
     LOG (GNUNET_ERROR_TYPE_DEBUG, "All peers successfully destroyed\n");
-    GNUNET_SCHEDULER_add_now (&shutdown_run_task, rh);
+    GNUNET_SCHEDULER_add_now (&cleanup_task, rc);
     return;    
   }
 
  call_cc:
-  rh->cc (rh->cc_cls, event);
+  rc->cc (rc->cc_cls, event);
   if (GNUNET_TESTBED_ET_PEER_START != event->type)
     return;
-  for (dll_op = rh->dll_op_head; NULL != dll_op; dll_op = dll_op->next)
+  for (dll_op = rc->dll_op_head; NULL != dll_op; dll_op = dll_op->next)
     if ((NULL != dll_op->cls) && 
         (event->details.peer_start.peer == dll_op->cls))
       break;
   GNUNET_assert (NULL != dll_op);
-  GNUNET_CONTAINER_DLL_remove (rh->dll_op_head, rh->dll_op_tail, dll_op);
+  GNUNET_CONTAINER_DLL_remove (rc->dll_op_head, rc->dll_op_tail, dll_op);
   GNUNET_TESTBED_operation_done (dll_op->op);
   GNUNET_free (dll_op);
-  rh->peer_count++;
-  if (rh->peer_count < rh->num_peers)
+  rc->peer_count++;
+  if (rc->peer_count < rc->num_peers)
     return;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Peers started successfully\n");  
-  GNUNET_SCHEDULER_add_continuation (rh->master, rh->master_cls,
+  GNUNET_SCHEDULER_add_continuation (rc->master, rc->master_cls,
                                      GNUNET_SCHEDULER_REASON_PREREQ_DONE);  
 }
 
@@ -398,7 +398,7 @@ static void
 controller_status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
 		      int status)
 {  
-  struct GNUNET_TESTBED_RunHandle *rh = cls;
+  struct RunContext *rc = cls;
   struct DLLOperation *dll_op;
   unsigned int peer;
   
@@ -407,20 +407,53 @@ controller_status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Testbed startup failed\n");
     return;
   }
-  rh->c = GNUNET_TESTBED_controller_connect (cfg, rh->h, rh->event_mask,
-                                             &event_cb, rh);
-  rh->peers = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Peer *)
-                             * rh->num_peers);
-  GNUNET_assert (NULL != rh->c);
-  rh->peer_count = 0; 
-  for (peer = 0; peer < rh->num_peers; peer++)
+  rc->c = GNUNET_TESTBED_controller_connect (cfg, rc->h, rc->event_mask,
+                                             &event_cb, rc);
+  rc->peers = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Peer *)
+                             * rc->num_peers);
+  GNUNET_assert (NULL != rc->c);
+  rc->peer_count = 0; 
+  for (peer = 0; peer < rc->num_peers; peer++)
   {
     dll_op = GNUNET_malloc (sizeof (struct DLLOperation));
-    dll_op->rh = rh;    
-    dll_op->op = GNUNET_TESTBED_peer_create (rh->c, rh->h, cfg, peer_create_cb,
+    dll_op->rc = rc;    
+    dll_op->op = GNUNET_TESTBED_peer_create (rc->c, rc->h, cfg, peer_create_cb,
 					     dll_op);
-    GNUNET_CONTAINER_DLL_insert_tail (rh->dll_op_head, rh->dll_op_tail, dll_op);    
+    GNUNET_CONTAINER_DLL_insert_tail (rc->dll_op_head, rc->dll_op_tail, dll_op);    
   }
+}
+
+
+/**
+ * Stops the testbed run and releases any used resources
+ *
+ * @param rc the tesbed run handle
+ * @param tc the task context from scheduler
+ */
+void
+shutdown_run_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{  
+  struct RunContext *rc = cls;
+  struct DLLOperation *dll_op;  
+  unsigned int peer;
+  
+  rc->in_shutdown = GNUNET_YES;
+  if (NULL != rc->c)
+  {
+    if (NULL != rc->peers)
+    {
+      rc->peer_count = 0;
+      for (peer = 0; peer < rc->num_peers; peer++)
+      {
+        dll_op = GNUNET_malloc (sizeof (struct DLLOperation));
+        dll_op->op = GNUNET_TESTBED_peer_destroy (rc->peers[peer]);
+        GNUNET_CONTAINER_DLL_insert_tail (rc->dll_op_head, rc->dll_op_tail,
+                                          dll_op);        
+      }      
+      return;
+    }
+  }
+  GNUNET_SCHEDULER_add_now (&cleanup_task, rc);
 }
 
 
@@ -446,9 +479,8 @@ controller_status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param cc controller callback to invoke on events
  * @param cc_cls closure for cc
  * @param master task to run once the testbed is ready
- * @return the handle for this testbed run
  */
-struct GNUNET_TESTBED_RunHandle *
+void
 GNUNET_TESTBED_run (const char *host_filename,
 		    const struct GNUNET_CONFIGURATION_Handle *cfg,
 		    unsigned int num_peers,
@@ -458,57 +490,27 @@ GNUNET_TESTBED_run (const char *host_filename,
 		    GNUNET_SCHEDULER_Task master,
 		    void *master_cls)
 {
-  struct GNUNET_TESTBED_RunHandle *rh;
+  struct RunContext *rc;
 
   event_mask |= (1LL << GNUNET_TESTBED_ET_PEER_START);  
-  rh = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_RunHandle));
+  rc = GNUNET_malloc (sizeof (struct RunContext));
   GNUNET_break (NULL == host_filename); /* Currently we do not support host
 					   files */
   host_filename = NULL;
-  rh->h = GNUNET_TESTBED_host_create (NULL, NULL, 0);
-  GNUNET_assert (NULL != rh->h);
-  rh->cproc = GNUNET_TESTBED_controller_start ("127.0.0.1", rh->h, cfg,
-					       &controller_status_cb, rh);
-  GNUNET_assert (NULL != rh->cproc);  
-  rh->num_peers = num_peers;
-  rh->event_mask = event_mask;
-  rh->cc = cc;
-  rh->cc_cls = cc_cls;
-  rh->master = master;
-  rh->master_cls = master_cls;
-  rh->in_shutdown = GNUNET_NO;  
-  return rh;  
-}
-
-
-/**
- * Stops the testbed run and releases any used resources
- *
- * @param rh the tesbed run handle
- */
-void
-GNUNET_TESTBED_shutdown_run (struct GNUNET_TESTBED_RunHandle *rh)
-{  
-  struct DLLOperation *dll_op;  
-  unsigned int peer;
-  
-  rh->in_shutdown = GNUNET_YES;
-  if (NULL != rh->c)
-  {
-    if (NULL != rh->peers)
-    {
-      rh->peer_count = 0;      
-      for (peer = 0; peer < rh->num_peers; peer++)
-      {
-        dll_op = GNUNET_malloc (sizeof (struct DLLOperation));
-        dll_op->op = GNUNET_TESTBED_peer_destroy (rh->peers[peer]);
-        GNUNET_CONTAINER_DLL_insert_tail (rh->dll_op_head, rh->dll_op_tail,
-                                          dll_op);        
-      }      
-      return;
-    }
-  }
-  GNUNET_SCHEDULER_add_now (&shutdown_run_task, rh);  
+  rc->h = GNUNET_TESTBED_host_create (NULL, NULL, 0);
+  GNUNET_assert (NULL != rc->h);
+  rc->cproc = GNUNET_TESTBED_controller_start ("127.0.0.1", rc->h, cfg,
+					       &controller_status_cb, rc);
+  GNUNET_assert (NULL != rc->cproc);
+  rc->num_peers = num_peers;
+  rc->event_mask = event_mask;
+  rc->cc = cc;
+  rc->cc_cls = cc_cls;
+  rc->master = master;
+  rc->master_cls = master_cls;
+  rc->in_shutdown = GNUNET_NO;
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
+                                &shutdown_run_task, rc);
 }
 
 /* end of testbed_api_testbed.c */

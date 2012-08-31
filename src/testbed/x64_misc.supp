@@ -1,0 +1,24 @@
+{
+   <unknown invalid free>
+   Memcheck:Free
+   fun:free
+   fun:free_mem
+   fun:__libc_freeres
+   fun:_vgnU_freeres
+   fun:__run_exit_handlers
+   fun:exit
+   fun:(below main)
+}
+{
+   <gnunet_crypto_init>
+   Memcheck:Leak
+   fun:malloc
+   obj:/usr/lib/libgcrypt.so.11.5.3
+   ...
+   obj:/usr/lib/libgcrypt.so.11.5.3
+   fun:gcry_control
+   fun:GNUNET_CRYPTO_random_init
+   obj:/home/harsha/repos/gnunet/src/util/.libs/libgnunetutil.so.8.0.0
+   obj:/home/harsha/repos/gnunet/src/util/.libs/libgnunetutil.so.8.0.0
+}
+

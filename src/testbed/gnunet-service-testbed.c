@@ -1898,7 +1898,7 @@ handle_peer_stop (void *cls,
       GNUNET_TESTING_peer_stop (peer->details.local.peer))
   {
     send_operation_fail_msg (client, GNUNET_ntohll (msg->operation_id),
-                             "Failed to stop peer");
+                             "Peer not running");
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }

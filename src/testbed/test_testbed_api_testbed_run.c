@@ -29,14 +29,24 @@
 #include "gnunet_testbed_service.h"
 
 /**
- * Testbed run handle
+ * Number of peers we want to start
  */
-static struct GNUNET_TESTBED_RunHandle *rh;
+#define NUM_PEERS 2
+
+/**
+ * The array of peers; we fill this as the peers are given to us by the testbed
+ */
+static struct GNUNET_TESTBED_Peer *peers[NUM_PEERS];
 
 /**
  * Abort task identifier
  */
 static GNUNET_SCHEDULER_TaskIdentifier abort_task;
+
+/**
+ * Current peer id
+ */
+unsigned int peer_id;
 
 /**
  * Testing result
@@ -55,8 +65,7 @@ do_shutdown (void *cls, const const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   if (GNUNET_SCHEDULER_NO_TASK != abort_task)
     GNUNET_SCHEDULER_cancel (abort_task);
-  if (NULL != rh)
-    GNUNET_TESTBED_shutdown_run (rh);
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 
@@ -67,7 +76,7 @@ do_shutdown (void *cls, const const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param tc the task context
  */
 static void
-do_abort (void *cls, const const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Test timedout -- Aborting\n");
   abort_task = GNUNET_SCHEDULER_NO_TASK;
@@ -101,9 +110,17 @@ static void
 controller_event_cb (void *cls,
                      const struct GNUNET_TESTBED_EventInformation *event)
 {
-  if (GNUNET_TESTBED_ET_PEER_START == event->type)
-    return;
-  GNUNET_break (0);
+  
+  switch (event->type)
+  {
+  case GNUNET_TESTBED_ET_PEER_START:
+    GNUNET_assert (NULL == peers[peer_id]);
+    GNUNET_assert (NULL != event->details.peer_start.peer);
+    peers[peer_id++] = event->details.peer_start.peer;
+    break;
+  default:
+    GNUNET_break (0);
+  }
 }
 
 
@@ -127,7 +144,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   event_mask |= (1LL << GNUNET_TESTBED_ET_CONNECT);
   event_mask |= (1LL << GNUNET_TESTBED_ET_DISCONNECT);
   event_mask |= (1LL << GNUNET_TESTBED_ET_OPERATION_FINISHED);
-  rh = GNUNET_TESTBED_run (NULL, config, 2, event_mask, &controller_event_cb,
+  GNUNET_TESTBED_run (NULL, config, 2, event_mask, &controller_event_cb,
                            NULL, &master_task, NULL);
   abort_task = GNUNET_SCHEDULER_add_delayed 
     (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5), &do_abort, NULL);
