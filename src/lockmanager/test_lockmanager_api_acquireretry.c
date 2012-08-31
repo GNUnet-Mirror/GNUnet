@@ -46,32 +46,32 @@
  * Various stages in test
  */
 enum Test
-  {
+{
     /**
      * Signal test failure
      */
-    TEST_FAIL,
-    
+  TEST_FAIL,
+
     /**
      * Testing just began
      */
-    TEST_INIT,
-    
+  TEST_INIT,
+
     /**
      * Client has successfully acquired the lock
      */
-    TEST_CLIENT_LOCK_SUCCESS,
+  TEST_CLIENT_LOCK_SUCCESS,
 
     /**
      * Client has lost the lock
      */
-    TEST_CLIENT_LOCK_RELEASE,
+  TEST_CLIENT_LOCK_RELEASE,
 
     /**
      * Client has again acquired the lock
      */
-    TEST_CLIENT_LOCK_AGAIN_SUCCESS
-  };
+  TEST_CLIENT_LOCK_AGAIN_SUCCESS
+};
 
 /**
  * Configuration Handle
@@ -143,22 +143,20 @@ do_abort (void *cls, const const struct GNUNET_SCHEDULER_TaskContext *tc)
  *
  * @param cls the handle
  *
- * @param domain_name the locking domain of the lock 
+ * @param domain_name the locking domain of the lock
  *
  * @param lock the lock for which this status is relevant
  *
  * @param status GNUNET_LOCKMANAGER_SUCCESS if the lock has been successfully
  *          acquired; GNUNET_LOCKMANAGER_RELEASE when the acquired lock is lost
  */
-static void 
-status_cb (void *cls,
-           const char *domain_name,
-           uint32_t lock,
+static void
+status_cb (void *cls, const char *domain_name, uint32_t lock,
            enum GNUNET_LOCKMANAGER_Status status)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Status change callback called on lock: %d of domain: %s\n",
-       lock, domain_name);
+       "Status change callback called on lock: %d of domain: %s\n", lock,
+       domain_name);
   switch (result)
   {
   case TEST_INIT:
@@ -181,7 +179,7 @@ status_cb (void *cls,
     result = TEST_CLIENT_LOCK_AGAIN_SUCCESS;
     GNUNET_LOCKMANAGER_cancel_request (request);
     request = NULL;
-    GNUNET_SCHEDULER_add_delayed (TIME_REL_SECS(1), &do_shutdown, NULL);
+    GNUNET_SCHEDULER_add_delayed (TIME_REL_SECS (1), &do_shutdown, NULL);
     break;
   default:
     GNUNET_assert (0);          /* We should never reach here */
@@ -193,8 +191,7 @@ status_cb (void *cls,
  * Main point of test execution
  */
 static void
-run (void *cls,
-     const struct GNUNET_CONFIGURATION_Handle *cfg,
+run (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
      struct GNUNET_TESTING_Peer *peer)
 {
   config = cfg;
@@ -202,26 +199,24 @@ run (void *cls,
   result = TEST_INIT;
   handle = GNUNET_LOCKMANAGER_connect (config);
   GNUNET_assert (NULL != handle);
-  request = GNUNET_LOCKMANAGER_acquire_lock (handle,
-                                             "GNUNET_LOCKMANAGER_TESTING",
-                                             99,
-                                             &status_cb,
-                                             handle);
+  request =
+      GNUNET_LOCKMANAGER_acquire_lock (handle, "GNUNET_LOCKMANAGER_TESTING", 99,
+                                       &status_cb, handle);
   GNUNET_assert (NULL != request);
-  abort_task_id = GNUNET_SCHEDULER_add_delayed (TIME_REL_SECS (30),
-                                                &do_abort,
-                                                NULL);
+  abort_task_id =
+      GNUNET_SCHEDULER_add_delayed (TIME_REL_SECS (30), &do_abort, NULL);
 }
 
 
 /**
  * Main function
  */
-int main (int argc, char **argv)
+int
+main (int argc, char **argv)
 {
-  if (0 != GNUNET_TESTING_peer_run ("test_lockmanager_api_acquireretry",
-				    "test_lockmanager_api.conf",
-				    &run, NULL))
+  if (0 !=
+      GNUNET_TESTING_peer_run ("test_lockmanager_api_acquireretry",
+                               "test_lockmanager_api.conf", &run, NULL))
     return 1;
   return (TEST_CLIENT_LOCK_AGAIN_SUCCESS != result) ? 1 : 0;
 }
