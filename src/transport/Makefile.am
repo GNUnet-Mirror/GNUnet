@@ -661,6 +661,7 @@ test_transport_api_http_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la
  
+#if FALSE
 test_transport_api_http_reverse_SOURCES = \
  test_transport_api.c
 test_transport_api_http_reverse_LDADD = \
@@ -668,6 +669,7 @@ test_transport_api_http_reverse_LDADD = \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la
+ #endif
  
 test_transport_api_timeout_http_SOURCES = \
  test_transport_api_timeout.c
