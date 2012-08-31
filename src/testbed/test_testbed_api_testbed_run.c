@@ -39,6 +39,11 @@
 static struct GNUNET_TESTBED_Peer *peers[NUM_PEERS];
 
 /**
+ * Operation handle
+ */
+static struct GNUNET_TESTBED_Operation *op;
+
+/**
  * Abort task identifier
  */
 static GNUNET_SCHEDULER_TaskIdentifier abort_task;
@@ -95,8 +100,9 @@ static void
 master_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   result = GNUNET_OK;
-  /* Artificial delay */
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &do_shutdown, NULL);
+  GNUNET_assert (NULL != peers[0]);
+  op = GNUNET_TESTBED_peer_stop (peers[0]);
+  GNUNET_assert (NULL != op);
 }
 
 
@@ -117,6 +123,12 @@ controller_event_cb (void *cls,
     GNUNET_assert (NULL == peers[peer_id]);
     GNUNET_assert (NULL != event->details.peer_start.peer);
     peers[peer_id++] = event->details.peer_start.peer;
+    break;
+  case GNUNET_TESTBED_ET_PEER_STOP:
+    GNUNET_assert (NULL != op);
+    GNUNET_TESTBED_operation_done (op);
+    GNUNET_assert (peers[0] == event->details.peer_stop.peer);
+    GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
     break;
   default:
     GNUNET_assert (0);

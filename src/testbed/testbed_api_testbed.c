@@ -27,6 +27,7 @@
 
 #include "platform.h"
 #include "gnunet_testbed_service.h"
+#include "testbed_api_peers.h"
 
 /**
  * Generic loggins shorthand
@@ -500,13 +501,19 @@ shutdown_run_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       rc->peer_count = 0;
       for (peer = 0; peer < rc->num_peers; peer++)
       {
+        if (PS_STARTED != rc->peers[peer]->state)
+        {
+          rc->peer_count++;
+          continue;
+        }
         dll_op = GNUNET_malloc (sizeof (struct DLLOperation));
         dll_op->op = GNUNET_TESTBED_peer_stop (rc->peers[peer]);
         dll_op->cls = rc->peers[peer];
         GNUNET_CONTAINER_DLL_insert_tail (rc->dll_op_head, rc->dll_op_tail,
                                           dll_op);
       }
-      return;
+      if (rc->peer_count != rc->num_peers)
+        return;
     }
   }
   rc->state = RC_PEERS_DESTROYED;       /* No peers are present so we consider the
