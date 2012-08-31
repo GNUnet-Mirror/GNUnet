@@ -32,16 +32,12 @@
 #define LIBGNUNET_PLUGIN_TRANSPORT_DONE libgnunet_plugin_transport_http_client_done
 #endif
 
-
-#define VERBOSE_CURL GNUNET_YES
+#define VERBOSE_CURL GNUNET_NO
 
 #include "platform.h"
 #include "gnunet_protocols.h"
-#include "gnunet_connection_lib.h"
+#include "gnunet_common.h"
 #include "gnunet_server_lib.h"
-#include "gnunet_service_lib.h"
-#include "gnunet_statistics_service.h"
-#include "gnunet_transport_service.h"
 #include "gnunet_transport_plugin.h"
 #include "plugin_transport_http_common.h"
 #include <curl/curl.h>
@@ -147,7 +143,7 @@ struct Session
   /**
    * Was session given to transport service?
    */
-  int session_passed;
+ // int session_passed;
 
   /**
    * Client send handle
@@ -190,6 +186,7 @@ struct Session
   */
  struct GNUNET_TIME_Absolute next_receive;
 };
+
 
 /**
  * Encapsulation of all of the state of the plugin.
@@ -259,28 +256,36 @@ struct HTTP_Client_Plugin
   GNUNET_SCHEDULER_TaskIdentifier client_perform_task;
 };
 
+
 /**
  * Encapsulation of all of the state of the plugin.
  */
 struct HTTP_Client_Plugin *p;
 
+
 /**
- * Start session timeout
+ * Start session timeout for a session
+ * @param s the session
  */
 static void
 client_start_session_timeout (struct Session *s);
 
+
 /**
- * Increment session timeout due to activity
+ * Increment session timeout due to activity for a session
+ * @param s the session
  */
 static void
 client_reschedule_session_timeout (struct Session *s);
 
+
 /**
- * Cancel timeout
+ * Cancel timeout for a session
+ * @param s the session
  */
 static void
 client_stop_session_timeout (struct Session *s);
+
 
 /**
  * Function setting up file descriptors and scheduling task to run
@@ -293,7 +298,14 @@ static int
 client_schedule (struct HTTP_Client_Plugin *plugin, int now);
 
 
-int
+/**
+ * Does a session s exists?
+ *
+ * @param plugin the plugin
+ * @param s desired session
+ * @return GNUNET_YES or GNUNET_NO
+ */
+static int
 client_exist_session (struct HTTP_Client_Plugin *plugin, struct Session *s)
 {
   struct Session * head;
@@ -312,6 +324,7 @@ client_exist_session (struct HTTP_Client_Plugin *plugin, struct Session *s)
 #if VERBOSE_CURL
 /**
  * Function to log curl debug messages with GNUNET_log
+ *
  * @param curl handle
  * @param type curl_infotype
  * @param data data
@@ -360,6 +373,7 @@ client_log (CURL * curl, curl_infotype type, char *data, size_t size, void *cls)
   return 0;
 }
 #endif
+
 
 /**
  * Function that can be used by the transport service to transmit
@@ -439,7 +453,12 @@ http_client_plugin_send (void *cls,
 }
 
 
-void
+/**
+ * Delete session s
+ *
+ * @param s the session to delete
+ */
+static void
 client_delete_session (struct Session *s)
 {
   struct HTTP_Client_Plugin *plugin = s->plugin;
@@ -605,6 +624,7 @@ http_client_plugin_disconnect (void *cls, const struct GNUNET_PeerIdentity *targ
 
 }
 
+
 static struct Session *
 client_lookup_session (struct HTTP_Client_Plugin *plugin,
                        const struct GNUNET_HELLO_Address *address)
@@ -618,6 +638,7 @@ client_lookup_session (struct HTTP_Client_Plugin *plugin,
       return pos;
   return NULL;
 }
+
 
 /**
  * Callback method used with libcurl
@@ -673,6 +694,12 @@ client_send_cb (void *stream, size_t size, size_t nmemb, void *cls)
 }
 
 
+/**
+ * Wake up a curl handle which was suspended
+ *
+ * @param cls the session
+ * @param tc task context
+ */
 static void
 client_wake_up (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -693,7 +720,14 @@ client_wake_up (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
-
+/**
+ * Callback for message stream tokenixer
+ *
+ * @param cls the session
+ * @param client not used
+ * @param message the message received
+ * @return always GNUNET_OK
+ */
 static int
 client_receive_mst_cb (void *cls, void *client,
                        const struct GNUNET_MessageHeader *message)
@@ -783,6 +817,7 @@ client_receive (void *stream, size_t size, size_t nmemb, void *cls)
 
 }
 
+
 /**
  * Task performing curl operations
  *
@@ -791,6 +826,7 @@ client_receive (void *stream, size_t size, size_t nmemb, void *cls)
  */
 static void
 client_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+
 
 /**
  * Function setting up file descriptors and scheduling task to run
@@ -859,7 +895,6 @@ client_schedule (struct HTTP_Client_Plugin *plugin, int now)
   GNUNET_NETWORK_fdset_destroy (grs);
   return GNUNET_OK;
 }
-
 
 
 /**
@@ -1090,7 +1125,6 @@ http_client_plugin_get_session (void *cls,
   GNUNET_assert (address != NULL);
   GNUNET_assert (address->address != NULL);
 
-
   /* find existing session */
   s = client_lookup_session (plugin, address);
   if (s != NULL)
@@ -1165,6 +1199,13 @@ http_client_plugin_get_session (void *cls,
   return s;
 }
 
+
+/**
+ * Setup http_client plugin
+ *
+ * @param plugin the plugin handle
+ * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ */
 static int
 client_start (struct HTTP_Client_Plugin *plugin)
 {
@@ -1199,9 +1240,12 @@ client_session_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
   GNUNET_assert (GNUNET_OK == client_disconnect (s));
 }
 
+
 /**
-* Start session timeout
-*/
+ * Start session timeout for session s
+ *
+ * @param s the session
+ */
 static void
 client_start_session_timeout (struct Session *s)
 {
@@ -1216,9 +1260,12 @@ client_start_session_timeout (struct Session *s)
              s,  (unsigned long long) CLIENT_SESSION_TIMEOUT.rel_value);
 }
 
+
 /**
-* Increment session timeout due to activity
-*/
+ * Increment session timeout due to activity for session s
+ *
+ * param s the session
+ */
 static void
 client_reschedule_session_timeout (struct Session *s)
 {
@@ -1235,9 +1282,12 @@ client_reschedule_session_timeout (struct Session *s)
              s, (unsigned long long) CLIENT_SESSION_TIMEOUT.rel_value);
 }
 
+
 /**
-* Cancel timeout
-*/
+ * Cancel timeout due to activity for session s
+ *
+ * param s the session
+ */
 static void
 client_stop_session_timeout (struct Session *s)
 {
@@ -1273,8 +1323,12 @@ http_client_plugin_address_suggested (void *cls, const void *addr, size_t addrle
   return GNUNET_NO;
 }
 
+
 /**
  * Exit point from the plugin.
+ *
+ * @param cls api as closure
+ * @return NULL
  */
 void *
 LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
@@ -1325,6 +1379,12 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
 }
 
 
+/**
+ * Configure plugin
+ *
+ * @param plugin the plugin handle
+ * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+ */
 static int
 client_configure_plugin (struct HTTP_Client_Plugin *plugin)
 {
