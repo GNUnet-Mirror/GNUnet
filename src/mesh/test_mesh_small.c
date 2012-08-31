@@ -1009,7 +1009,7 @@ main (int argc, char *argv[])
 #endif
   if (ok_goal > ok)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "FAILED! (%d/%d)\n", ok, ok_goal);
     return 1;
   }
