@@ -19,8 +19,8 @@
  */
 
 /**
- * @file testbed/test_gnunet_testbed_helper.c
- * @brief Testcase for testing gnunet-testbed-helper.c
+ * @file testbed/test_gnunet_helper_testbed.c
+ * @brief Testcase for testing gnunet-helper-testbed.c
  * @author Sree Harsha Totakura <sreeharsha@totakura.in>
  */
 
@@ -202,13 +202,13 @@ run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg2)
 {
   static char *const binary_argv[] = {
-    "gnunet-testbed-helper",
+    "gnunet-helper-testbed",
     NULL
   };
   const char *controller_name = "127.0.0.1";
 
   helper =
-      GNUNET_HELPER_start (GNUNET_YES, "gnunet-testbed-helper", binary_argv,
+      GNUNET_HELPER_start (GNUNET_YES, "gnunet-helper-testbed", binary_argv,
                            &mst_cb, &exp_cb, NULL);
   GNUNET_assert (NULL != helper);
   cfg = GNUNET_CONFIGURATION_dup (cfg2);
@@ -239,11 +239,11 @@ main (int argc, char **argv)
 
   result = GNUNET_OK;
   if (GNUNET_OK !=
-      GNUNET_PROGRAM_run (argc, argv, "test_gnunet_testbed_helper",
-                          "Testcase for testing gnunet-testbed-helper.c",
+      GNUNET_PROGRAM_run (argc, argv, "test_gnunet_helper_testbed",
+                          "Testcase for testing gnunet-helper-testbed.c",
                           options, &run, NULL))
     return 1;
   return (GNUNET_OK == result) ? 0 : 1;
 }
 
-/* end of test_gnunet_testbed_helper.c */
+/* end of test_gnunet_helper_testbed.c */

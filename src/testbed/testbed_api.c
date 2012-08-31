@@ -68,6 +68,12 @@
 
 
 /**
+ * Testbed Helper binary name
+ */
+#define HELPER_TESTBED_BINARY "gnunet-helper-testbed"
+
+
+/**
  * The message queue for sending messages to the controller service
  */
 struct MessageQueue
@@ -1143,11 +1149,11 @@ GNUNET_TESTBED_controller_start (const char *controller_ip,
   if ((NULL == host) || (0 == GNUNET_TESTBED_host_get_id_ (host)))
   {
     char *const binary_argv[] = {
-      "gnunet-testbed-helper", NULL
+      HELPER_TESTBED_BINARY, NULL
     };
 
     cp->helper =
-        GNUNET_HELPER_start (GNUNET_YES, "gnunet-testbed-helper", binary_argv,
+        GNUNET_HELPER_start (GNUNET_YES, HELPER_TESTBED_BINARY, binary_argv,
                              &helper_mst, &helper_exp_cb, cp);
   }
   else
@@ -1172,7 +1178,7 @@ GNUNET_TESTBED_controller_start (const char *controller_ip,
     remote_args[argp++] = "-o";
     remote_args[argp++] = "BatchMode=yes";
     remote_args[argp++] = cp->dst;
-    remote_args[argp++] = "gnunet-testbed-helper";
+    remote_args[argp++] = HELPER_TESTBED_BINARY;
     remote_args[argp++] = NULL;
     GNUNET_assert (argp == 8);
     cp->helper =

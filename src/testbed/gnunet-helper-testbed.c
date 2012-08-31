@@ -19,7 +19,7 @@
  */
 
 /**
- * @file testbed/gnunet-testbed-helper.c
+ * @file testbed/gnunet-helper-testbed.c
  * @brief Helper binary that is started from a remote controller to start
  *          gnunet-service-testbed. This binary also receives configuration
  *          from the remove controller which is put in a temporary location
@@ -435,7 +435,7 @@ main (int argc, char **argv)
   shc_chld =
       GNUNET_SIGNAL_handler_install (GNUNET_SIGCHLD, &sighandler_child_death);
   ret =
-      GNUNET_PROGRAM_run (argc, argv, "gnunet-testbed-helper",
+      GNUNET_PROGRAM_run (argc, argv, "gnunet-helper-testbed",
                           "Helper for starting gnunet-service-testbed", options,
                           &run, NULL);
   GNUNET_SIGNAL_handler_uninstall (shc_chld);
@@ -445,4 +445,4 @@ main (int argc, char **argv)
   return (GNUNET_OK == status) ? 0 : 1;
 }
 
-/* end of gnunet-testbed-helper.c */
+/* end of gnunet-helper-testbed.c */

@@ -21,7 +21,7 @@
 /**
  * @file testbed/testbed_helper.h
  * @brief Message formats for communication between testbed api and
- *          gnunet-testbed-helper process
+ *          gnunet-helper-testbed process
  * @author Sree Harsha Totakura <sreeharsha@totakura.in>
  */
 
@@ -29,7 +29,7 @@
 #define TESTBED_HELPER_H
 
 /**
- * Initialization message for gnunet-testbed-helper to start testbed service
+ * Initialization message for gnunet-helper-testbed to start testbed service
  */
 struct GNUNET_TESTBED_HelperInit
 {
