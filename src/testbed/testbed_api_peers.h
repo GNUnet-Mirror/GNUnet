@@ -35,34 +35,34 @@
 /**
  * Enumeration of possible states a peer could be in
  */
-enum PeerState 
-  {
+enum PeerState
+{
     /**
      * State to signify that this peer is invalid
      */
-    PS_INVALID,
+  PS_INVALID,
 
     /**
      * The peer has been created
      */
-    PS_CREATED,
-    
+  PS_CREATED,
+
     /**
      * The peer is running
      */
-    PS_STARTED,
+  PS_STARTED,
 
     /**
      * The peer is stopped
      */
-    PS_STOPPED,    
-  };
+  PS_STOPPED,
+};
 
 
 /**
  * A peer controlled by the testing framework.  A peer runs
  * at a particular host.
- */ 
+ */
 struct GNUNET_TESTBED_Peer
 {
   /**
@@ -70,7 +70,7 @@ struct GNUNET_TESTBED_Peer
    * that is responsible for starting/running the peer!).
    */
   struct GNUNET_TESTBED_Controller *controller;
-			   
+
   /**
    * Which host does this peer run on?
    */
@@ -102,12 +102,12 @@ struct PeerCreateData
    * The template configuration of the peer
    */
   const struct GNUNET_CONFIGURATION_Handle *cfg;
-    
+
   /**
    * The call back to call when we receive peer create success message
    */
   GNUNET_TESTBED_PeerCreateCallback cb;
-  
+
   /**
    * The closure for the above callback
    */
@@ -144,7 +144,7 @@ struct PeerInfoData
    * The peer whose information has been requested
    */
   struct GNUNET_TESTBED_Peer *peer;
-  
+
   /**
    * The type of peer information requested
    */
@@ -232,11 +232,12 @@ struct OverlayConnectData
  */
 struct GNUNET_TESTBED_Operation *
 GNUNET_TESTBED_peer_create_with_id_ (uint32_t unique_id,
-				     struct GNUNET_TESTBED_Controller *controller,
-				     struct GNUNET_TESTBED_Host *host,
-				     const struct GNUNET_CONFIGURATION_Handle *cfg,
-				     GNUNET_TESTBED_PeerCreateCallback cb,
-				     void *cls);
+                                     struct GNUNET_TESTBED_Controller
+                                     *controller,
+                                     struct GNUNET_TESTBED_Host *host,
+                                     const struct GNUNET_CONFIGURATION_Handle
+                                     *cfg, GNUNET_TESTBED_PeerCreateCallback cb,
+                                     void *cls);
 
 
 /**
@@ -245,7 +246,7 @@ GNUNET_TESTBED_peer_create_with_id_ (uint32_t unique_id,
  * @param peer_id the id of the peer whose information we have to get
  * @param operation_id the ip of the operation that should be represented in
  *          the message
- * @param 
+ * @param
  * @return the PeerGetConfigurationMessage
  */
 struct GNUNET_TESTBED_PeerGetConfigurationMessage *

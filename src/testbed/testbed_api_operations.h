@@ -62,9 +62,9 @@ GNUNET_TESTBED_operation_queue_destroy_ (struct OperationQueue *queue);
  * Add an operation to a queue.  An operation can be in multiple
  * queues at once.  Once all queues permit the operation to become
  * active, the operation will be activated.  The actual activation
- * will occur in a separate task (thus allowing multiple queue 
+ * will occur in a separate task (thus allowing multiple queue
  * insertions to be made without having the first one instantly
- * trigger the operation if the first queue has sufficient 
+ * trigger the operation if the first queue has sufficient
  * resources).
  *
  * @param queue queue to add the operation to
@@ -72,7 +72,8 @@ GNUNET_TESTBED_operation_queue_destroy_ (struct OperationQueue *queue);
  */
 void
 GNUNET_TESTBED_operation_queue_insert_ (struct OperationQueue *queue,
-					struct GNUNET_TESTBED_Operation *operation);
+                                        struct GNUNET_TESTBED_Operation
+                                        *operation);
 
 
 /**
@@ -86,7 +87,8 @@ GNUNET_TESTBED_operation_queue_insert_ (struct OperationQueue *queue,
  */
 void
 GNUNET_TESTBED_operation_queue_remove_ (struct OperationQueue *queue,
-					struct GNUNET_TESTBED_Operation *operation);
+                                        struct GNUNET_TESTBED_Operation
+                                        *operation);
 
 
 
@@ -97,7 +99,7 @@ GNUNET_TESTBED_operation_queue_remove_ (struct OperationQueue *queue,
  *
  * @param cls the closure from GNUNET_TESTBED_operation_create_()
  */
-typedef void (*OperationStart)(void *cls);
+typedef void (*OperationStart) (void *cls);
 
 
 /**
@@ -113,7 +115,7 @@ typedef void (*OperationStart)(void *cls);
  *
  * @param cls the closure from GNUNET_TESTBED_operation_create_()
  */
-typedef void (*OperationRelease)(void *cls);
+typedef void (*OperationRelease) (void *cls);
 
 
 /**
@@ -125,9 +127,8 @@ typedef void (*OperationRelease)(void *cls);
  * @return handle to the operation
  */
 struct GNUNET_TESTBED_Operation *
-GNUNET_TESTBED_operation_create_ (void *cls,
-				  OperationStart start,
-				  OperationRelease release);
+GNUNET_TESTBED_operation_create_ (void *cls, OperationStart start,
+                                  OperationRelease release);
 
 
 /**

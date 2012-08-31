@@ -44,7 +44,7 @@ struct GNUNET_TESTBED_InitMessage
   /**
    * Host ID that the controller is either given (if this is the
    * dominating client) or assumed to have (for peer-connections
-   * between controllers).  A controller must check that all 
+   * between controllers).  A controller must check that all
    * connections make consistent claims...
    */
   uint32_t host_id GNUNET_PACKED;
@@ -112,9 +112,9 @@ struct GNUNET_TESTBED_HostConfirmedMessage
    */
   uint32_t host_id GNUNET_PACKED;
 
-  /* followed by the 0-terminated error message (on failure) 
-   (typical errors include failure to login and 
-   host-id already in use) */
+  /* followed by the 0-terminated error message (on failure)
+   * (typical errors include failure to login and
+   * host-id already in use) */
 
 };
 
@@ -187,13 +187,13 @@ struct GNUNET_TESTBED_ControllerLinkMessage
   uint8_t is_subordinate;
 
   /* followed by serialized slave configuration;
-     gzip'ed configuration file in INI format */
+   * gzip'ed configuration file in INI format */
 
 };
 
 
 /**
- * Message sent from client to testing service to 
+ * Message sent from client to testing service to
  * create (configure, but not start) a peer.
  */
 struct GNUNET_TESTBED_PeerCreateMessage
@@ -225,13 +225,13 @@ struct GNUNET_TESTBED_PeerCreateMessage
   uint32_t config_size GNUNET_PACKED;
 
   /* followed by serialized peer configuration;
-     gzip'ed configuration file in INI format */
-  
+   * gzip'ed configuration file in INI format */
+
 };
 
 
 /**
- * Message sent from client to testing service to 
+ * Message sent from client to testing service to
  * reconfigure a (stopped) a peer.
  */
 struct GNUNET_TESTBED_PeerReconfigureMessage
@@ -253,8 +253,8 @@ struct GNUNET_TESTBED_PeerReconfigureMessage
   uint64_t operation_id GNUNET_PACKED;
 
   /* followed by serialized peer configuration;
-     gzip'ed configuration file in INI format */
-  
+   * gzip'ed configuration file in INI format */
+
 };
 
 
@@ -416,7 +416,7 @@ struct GNUNET_TESTBED_PeerEventMessage
    * either GNUNET_TESTBED_ET_PEER_START or GNUNET_TESTBED_ET_PEER_STOP.
    */
   int32_t event_type GNUNET_PACKED;
-  
+
   /**
    * Host where the peer is running.
    */
@@ -451,7 +451,7 @@ struct GNUNET_TESTBED_ConnectionEventMessage
    * either GNUNET_TESTBED_ET_CONNECT or GNUNET_TESTBED_ET_DISCONNECT.
    */
   int32_t event_type GNUNET_PACKED;
-  
+
   /**
    * First peer.
    */
@@ -486,7 +486,7 @@ struct GNUNET_TESTBED_OperationFailureEventMessage
    * GNUNET_TESTBED_ET_OPERATION_FINISHED.
    */
   int32_t event_type GNUNET_PACKED;
-  
+
   /**
    * Operation ID of the operation that created this event.
    */
@@ -512,7 +512,7 @@ struct GNUNET_TESTBED_PeerCreateSuccessEventMessage
    * Peer identity of the peer that was created.
    */
   uint32_t peer_id GNUNET_PACKED;
-  
+
   /**
    * Operation ID of the operation that created this event.
    */
@@ -539,7 +539,7 @@ struct GNUNET_TESTBED_GenericOperationSuccessEventMessage
    * GNUNET_TESTBED_ET_OPERATION_FINISHED.
    */
   int32_t event_type GNUNET_PACKED;
-  
+
   /**
    * Operation ID of the operation that created this event.
    */
@@ -551,7 +551,7 @@ struct GNUNET_TESTBED_GenericOperationSuccessEventMessage
 
 
 /**
- * Message sent from client to testing service to 
+ * Message sent from client to testing service to
  * obtain the configuration of a peer.
  */
 struct GNUNET_TESTBED_PeerGetConfigurationMessage
@@ -591,7 +591,7 @@ struct GNUNET_TESTBED_PeerConfigurationInformationMessage
    * The id of the peer relevant to this information
    */
   uint32_t peer_id GNUNET_PACKED;
-  
+
   /**
    * Operation ID of the operation that created this event.
    */

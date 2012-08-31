@@ -62,7 +62,7 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
- * Main run function. 
+ * Main run function.
  *
  * @param cls NULL
  * @param args arguments passed to GNUNET_PROGRAM_run
@@ -81,26 +81,27 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_assert (NULL != host);
   GNUNET_assert (0 == GNUNET_TESTBED_host_get_id_ (host));
   GNUNET_assert (host == GNUNET_TESTBED_host_lookup_by_id_ (0));
-  shutdown_id = 
-    GNUNET_SCHEDULER_add_delayed (TIME_REL_SECS (2), &do_shutdown, NULL);
+  shutdown_id =
+      GNUNET_SCHEDULER_add_delayed (TIME_REL_SECS (2), &do_shutdown, NULL);
 }
 
 
-int main (int argc, char **argv)
+int
+main (int argc, char **argv)
 {
   char *const argv2[] = { "test_testbed_api_hosts",
-                          "-c", "test_testbed_api.conf",
-                          NULL
+    "-c", "test_testbed_api.conf",
+    NULL
   };
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
 
   status = GNUNET_YES;
-  if (GNUNET_OK != 
+  if (GNUNET_OK !=
       GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
-			  "test_testbed_api_hosts", "nohelp", 
-			  options, &run, NULL))
+                          "test_testbed_api_hosts", "nohelp", options, &run,
+                          NULL))
     return 1;
   return (GNUNET_OK == status) ? 0 : 1;
 }

@@ -57,7 +57,7 @@ struct RegisteredController
    * The controller at which this host is registered
    */
   const struct GNUNET_TESTBED_Controller *controller;
-  
+
   /**
    * The next ptr for DLL
    */
@@ -134,7 +134,7 @@ static uint32_t host_list_size;
 
 /**
  * Lookup a host by ID.
- * 
+ *
  * @param id global host ID assigned to the host; 0 is
  *        reserved to always mean 'localhost'
  * @return handle to the host, NULL if host not found
@@ -152,7 +152,7 @@ GNUNET_TESTBED_host_lookup_by_id_ (uint32_t id)
  * Create a host by ID; given this host handle, we could not
  * run peers at the host, but we can talk about the host
  * internally.
- * 
+ *
  * @param id global host ID assigned to the host; 0 is
  *        reserved to always mean 'localhost'
  * @return handle to the host, NULL on error
@@ -166,13 +166,13 @@ GNUNET_TESTBED_host_create_by_id_ (uint32_t id)
 
 /**
  * Obtain the host's unique global ID.
- * 
+ *
  * @param host handle to the host, NULL means 'localhost'
  * @return id global host ID assigned to the host (0 is
  *         'localhost', but then obviously not globally unique)
  */
 uint32_t
-GNUNET_TESTBED_host_get_id_ (const struct GNUNET_TESTBED_Host *host)
+GNUNET_TESTBED_host_get_id_ (const struct GNUNET_TESTBED_Host * host)
 {
   return host->id;
 }
@@ -180,7 +180,7 @@ GNUNET_TESTBED_host_get_id_ (const struct GNUNET_TESTBED_Host *host)
 
 /**
  * Obtain the host's hostname.
- * 
+ *
  * @param host handle to the host, NULL means 'localhost'
  * @return hostname of the host
  */
@@ -193,7 +193,7 @@ GNUNET_TESTBED_host_get_hostname_ (const struct GNUNET_TESTBED_Host *host)
 
 /**
  * Obtain the host's username
- * 
+ *
  * @param host handle to the host, NULL means 'localhost'
  * @return username to login to the host
  */
@@ -206,12 +206,12 @@ GNUNET_TESTBED_host_get_username_ (const struct GNUNET_TESTBED_Host *host)
 
 /**
  * Obtain the host's ssh port
- * 
+ *
  * @param host handle to the host, NULL means 'localhost'
  * @return username to login to the host
  */
 uint16_t
-GNUNET_TESTBED_host_get_ssh_port_ (const struct GNUNET_TESTBED_Host *host)
+GNUNET_TESTBED_host_get_ssh_port_ (const struct GNUNET_TESTBED_Host * host)
 {
   return host->port;
 }
@@ -219,7 +219,7 @@ GNUNET_TESTBED_host_get_ssh_port_ (const struct GNUNET_TESTBED_Host *host)
 
 /**
  * Create a host to run peers and controllers on.
- * 
+ *
  * @param id global host ID assigned to the host; 0 is
  *        reserved to always mean 'localhost'
  * @param hostname name of the host, use "NULL" for localhost
@@ -228,10 +228,8 @@ GNUNET_TESTBED_host_get_ssh_port_ (const struct GNUNET_TESTBED_Host *host)
  * @return handle to the host, NULL on error
  */
 struct GNUNET_TESTBED_Host *
-GNUNET_TESTBED_host_create_with_id (uint32_t id,
-				    const char *hostname,
-				    const char *username,
-				    uint16_t port)
+GNUNET_TESTBED_host_create_with_id (uint32_t id, const char *hostname,
+                                    const char *username, uint16_t port)
 {
   struct GNUNET_TESTBED_Host *host;
   uint32_t new_size;
@@ -251,15 +249,15 @@ GNUNET_TESTBED_host_create_with_id (uint32_t id,
     new_size += HOST_LIST_GROW_STEP;
   if (new_size != host_list_size)
   {
-    host_list = GNUNET_realloc (host_list, sizeof (struct GNUNET_TESTBED_Host *)
-				* new_size);
-    (void) memset(&host_list[host_list_size], 0, 
-		  sizeof (struct GNUNET_TESTBED_Host *) *
-		  (new_size - host_list_size));
+    host_list =
+        GNUNET_realloc (host_list,
+                        sizeof (struct GNUNET_TESTBED_Host *) * new_size);
+    (void) memset (&host_list[host_list_size], 0,
+                   sizeof (struct GNUNET_TESTBED_Host *) * (new_size -
+                                                            host_list_size));
     host_list_size = new_size;
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Adding host with id: %u\n", host->id);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Adding host with id: %u\n", host->id);
   host_list[id] = host;
   return host;
 }
@@ -267,24 +265,22 @@ GNUNET_TESTBED_host_create_with_id (uint32_t id,
 
 /**
  * Create a host to run peers and controllers on.
- * 
+ *
  * @param hostname name of the host, use "NULL" for localhost
  * @param username username to use for the login; may be NULL
  * @param port port number to use for ssh; use 0 to let ssh decide
  * @return handle to the host, NULL on error
  */
 struct GNUNET_TESTBED_Host *
-GNUNET_TESTBED_host_create (const char *hostname,
-			    const char *username,
-			    uint16_t port)
+GNUNET_TESTBED_host_create (const char *hostname, const char *username,
+                            uint16_t port)
 {
   static uint32_t uid_generator;
 
   if (NULL == hostname)
     return GNUNET_TESTBED_host_create_with_id (0, hostname, username, port);
-  return GNUNET_TESTBED_host_create_with_id (++uid_generator, 
-					     hostname, username,
-					     port);
+  return GNUNET_TESTBED_host_create_with_id (++uid_generator, hostname,
+                                             username, port);
 }
 
 
@@ -297,7 +293,7 @@ GNUNET_TESTBED_host_create (const char *hostname,
  */
 unsigned int
 GNUNET_TESTBED_hosts_load_from_file (const char *filename,
-				     struct GNUNET_TESTBED_Host **hosts)
+                                     struct GNUNET_TESTBED_Host **hosts)
 {
   // see testing_group.c, GNUNET_TESTING_hosts_load
   GNUNET_break (0);
@@ -313,7 +309,7 @@ GNUNET_TESTBED_hosts_load_from_file (const char *filename,
  */
 void
 GNUNET_TESTBED_host_destroy (struct GNUNET_TESTBED_Host *host)
-{  
+{
   struct RegisteredController *rc;
   uint32_t id;
 
@@ -321,7 +317,7 @@ GNUNET_TESTBED_host_destroy (struct GNUNET_TESTBED_Host *host)
   GNUNET_assert (host_list[host->id] == host);
   host_list[host->id] = NULL;
   /* clear registered controllers list */
-  for (rc=host->rc_head; NULL != rc; rc=host->rc_head)
+  for (rc = host->rc_head; NULL != rc; rc = host->rc_head)
   {
     GNUNET_CONTAINER_DLL_remove (host->rc_head, host->rc_tail, rc);
     GNUNET_free (rc);
@@ -331,18 +327,19 @@ GNUNET_TESTBED_host_destroy (struct GNUNET_TESTBED_Host *host)
   GNUNET_free (host);
   while (host_list_size >= HOST_LIST_GROW_STEP)
   {
-    for (id = host_list_size - 1;
-	 id > host_list_size - HOST_LIST_GROW_STEP; id--)
+    for (id = host_list_size - 1; id > host_list_size - HOST_LIST_GROW_STEP;
+         id--)
       if (NULL != host_list[id])
-	break;
+        break;
     if (id != host_list_size - HOST_LIST_GROW_STEP)
       break;
     if (NULL != host_list[id])
       break;
     host_list_size -= HOST_LIST_GROW_STEP;
   }
-  host_list = GNUNET_realloc (host_list, sizeof (struct GNUNET_TESTBED_Host) *
-			      host_list_size);  
+  host_list =
+      GNUNET_realloc (host_list,
+                      sizeof (struct GNUNET_TESTBED_Host) * host_list_size);
 }
 
 
@@ -354,14 +351,14 @@ GNUNET_TESTBED_host_destroy (struct GNUNET_TESTBED_Host *host)
  */
 void
 GNUNET_TESTBED_mark_host_registered_at_ (struct GNUNET_TESTBED_Host *host,
-					 const struct GNUNET_TESTBED_Controller
-					 * const controller)
+                                         const struct GNUNET_TESTBED_Controller
+                                         *const controller)
 {
   struct RegisteredController *rc;
-  
-  for (rc=host->rc_head; NULL != rc; rc=rc->next)
+
+  for (rc = host->rc_head; NULL != rc; rc = rc->next)
   {
-    if (controller == rc->controller) /* already registered at controller */
+    if (controller == rc->controller)   /* already registered at controller */
     {
       GNUNET_break (0);
       return;
@@ -383,14 +380,14 @@ GNUNET_TESTBED_mark_host_registered_at_ (struct GNUNET_TESTBED_Host *host,
  */
 int
 GNUNET_TESTBED_is_host_registered_ (const struct GNUNET_TESTBED_Host *host,
-				    const struct GNUNET_TESTBED_Controller
-				    *const controller)
+                                    const struct GNUNET_TESTBED_Controller
+                                    *const controller)
 {
   struct RegisteredController *rc;
-  
-  for (rc=host->rc_head; NULL != rc; rc=rc->next)
+
+  for (rc = host->rc_head; NULL != rc; rc = rc->next)
   {
-    if (controller == rc->controller) /* already registered at controller */
+    if (controller == rc->controller)   /* already registered at controller */
     {
       return GNUNET_YES;
     }

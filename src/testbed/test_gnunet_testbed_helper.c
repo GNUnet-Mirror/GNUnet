@@ -21,7 +21,7 @@
 /**
  * @file testbed/test_gnunet_testbed_helper.c
  * @brief Testcase for testing gnunet-testbed-helper.c
- * @author Sree Harsha Totakura <sreeharsha@totakura.in> 
+ * @author Sree Harsha Totakura <sreeharsha@totakura.in>
  */
 
 #include "platform.h"
@@ -84,7 +84,7 @@ static int result;
  */
 static void
 do_shutdown (void *cls, const const struct GNUNET_SCHEDULER_TaskContext *tc)
-{  
+{
   if (GNUNET_SCHEDULER_NO_TASK != abort_task)
     GNUNET_SCHEDULER_cancel (abort_task);
   GNUNET_HELPER_stop (helper);
@@ -115,13 +115,13 @@ do_abort (void *cls, const const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 /**
  * Continuation function.
- * 
+ *
  * @param cls closure
  * @param result GNUNET_OK on success,
  *               GNUNET_NO if helper process died
  *               GNUNET_SYSERR during GNUNET_HELPER_stop
  */
-static void 
+static void
 cont_cb (void *cls, int result)
 {
   shandle = NULL;
@@ -142,32 +142,35 @@ cont_cb (void *cls, int result)
  *
  * @return GNUNET_OK on success, GNUNET_SYSERR to stop further processing
  */
-static int 
+static int
 mst_cb (void *cls, void *client, const struct GNUNET_MessageHeader *message)
 {
   const struct GNUNET_TESTBED_HelperReply *msg;
   char *config;
   uLongf config_size;
   uLongf xconfig_size;
-    
+
   msg = (const struct GNUNET_TESTBED_HelperReply *) message;
   config_size = 0;
   xconfig_size = 0;
-  GNUNET_assert (sizeof (struct GNUNET_TESTBED_HelperReply) 
-                 < ntohs (msg->header.size));
-  GNUNET_assert (GNUNET_MESSAGE_TYPE_TESTBED_HELPER_REPLY 
-                 == ntohs (msg->header.type));
+  GNUNET_assert (sizeof (struct GNUNET_TESTBED_HelperReply) <
+                 ntohs (msg->header.size));
+  GNUNET_assert (GNUNET_MESSAGE_TYPE_TESTBED_HELPER_REPLY ==
+                 ntohs (msg->header.type));
   config_size = (uLongf) ntohs (msg->config_size);
-  xconfig_size = (uLongf) (ntohs (msg->header.size)
-                           - sizeof (struct GNUNET_TESTBED_HelperReply));
+  xconfig_size =
+      (uLongf) (ntohs (msg->header.size) -
+                sizeof (struct GNUNET_TESTBED_HelperReply));
   config = GNUNET_malloc (config_size);
-  GNUNET_assert (Z_OK == uncompress ((Bytef *) config, &config_size,
-                                     (const Bytef *) &msg[1], xconfig_size));
+  GNUNET_assert (Z_OK ==
+                 uncompress ((Bytef *) config, &config_size,
+                             (const Bytef *) &msg[1], xconfig_size));
   GNUNET_free (config);
   if (GNUNET_SCHEDULER_NO_TASK == shutdown_task)
-    shutdown_task = GNUNET_SCHEDULER_add_delayed 
-      (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1),
-       &do_shutdown, NULL);
+    shutdown_task =
+        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                      (GNUNET_TIME_UNIT_SECONDS, 1),
+                                      &do_shutdown, NULL);
   return GNUNET_OK;
 }
 
@@ -178,7 +181,7 @@ mst_cb (void *cls, void *client, const struct GNUNET_MessageHeader *message)
  *
  * @param cls the closure from GNUNET_HELPER_start()
  */
-static void 
+static void
 exp_cb (void *cls)
 {
   helper = NULL;
@@ -194,29 +197,29 @@ exp_cb (void *cls)
  * @param cfgfile name of the configuration file used (for saving, can be NULL!)
  * @param cfg configuration
  */
-static void 
+static void
 run (void *cls, char *const *args, const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle * cfg2)
+     const struct GNUNET_CONFIGURATION_Handle *cfg2)
 {
-  static char * const binary_argv[] = {
+  static char *const binary_argv[] = {
     "gnunet-testbed-helper",
     NULL
-    };
+  };
   const char *controller_name = "127.0.0.1";
 
-  helper = GNUNET_HELPER_start (GNUNET_YES,
-				"gnunet-testbed-helper", 
-				binary_argv,
-                                &mst_cb, &exp_cb, NULL);
+  helper =
+      GNUNET_HELPER_start (GNUNET_YES, "gnunet-testbed-helper", binary_argv,
+                           &mst_cb, &exp_cb, NULL);
   GNUNET_assert (NULL != helper);
-  cfg = GNUNET_CONFIGURATION_dup (cfg2);  
+  cfg = GNUNET_CONFIGURATION_dup (cfg2);
   msg = GNUNET_TESTBED_create_helper_init_msg_ (controller_name, cfg);
-  shandle = GNUNET_HELPER_send (helper,
-                                &msg->header,
-                                GNUNET_NO, &cont_cb, NULL);
+  shandle =
+      GNUNET_HELPER_send (helper, &msg->header, GNUNET_NO, &cont_cb, NULL);
   GNUNET_assert (NULL != shandle);
-  abort_task = GNUNET_SCHEDULER_add_delayed 
-    (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 1), &do_abort, NULL);
+  abort_task =
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                    (GNUNET_TIME_UNIT_MINUTES, 1), &do_abort,
+                                    NULL);
 }
 
 
@@ -227,17 +230,18 @@ run (void *cls, char *const *args, const char *cfgfile,
  * @param argv command line arg array
  * @return return code
  */
-int main (int argc, char **argv)
+int
+main (int argc, char **argv)
 {
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
-  
+
   result = GNUNET_OK;
-  if (GNUNET_OK != 
+  if (GNUNET_OK !=
       GNUNET_PROGRAM_run (argc, argv, "test_gnunet_testbed_helper",
-			  "Testcase for testing gnunet-testbed-helper.c",
-			  options, &run, NULL))
+                          "Testcase for testing gnunet-testbed-helper.c",
+                          options, &run, NULL))
     return 1;
   return (GNUNET_OK == result) ? 0 : 1;
 }

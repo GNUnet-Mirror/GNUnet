@@ -81,7 +81,7 @@ struct MessageQueue
    * next pointer for DLL
    */
   struct MessageQueue *next;
-  
+
   /**
    * prev pointer for DLL
    */
@@ -160,17 +160,17 @@ struct GNUNET_TESTBED_HostRegistrationHandle
  */
 struct ForwardedOperationData
 {
-  
+
   /**
    * The callback to call when reply is available
    */
-  GNUNET_CLIENT_MessageHandler cc;  
+  GNUNET_CLIENT_MessageHandler cc;
 
   /**
    * The closure for the above callback
    */
   void *cc_cls;
-  
+
 };
 
 
@@ -215,8 +215,8 @@ handle_addhostconfirm (struct GNUNET_TESTBED_Controller *c,
 
   rh = c->rh;
   if (NULL == rh)
-  {  
-    return GNUNET_OK;    
+  {
+    return GNUNET_OK;
   }
   if (GNUNET_TESTBED_host_get_id_ (rh->host) != ntohl (msg->host_id))
   {
@@ -229,20 +229,20 @@ handle_addhostconfirm (struct GNUNET_TESTBED_Controller *c,
   if (sizeof (struct GNUNET_TESTBED_HostConfirmedMessage) == msg_size)
   {
     LOG_DEBUG ("Host %u successfully registered\n", ntohl (msg->host_id));
-    GNUNET_TESTBED_mark_host_registered_at_  (rh->host, c);
+    GNUNET_TESTBED_mark_host_registered_at_ (rh->host, c);
     rh->cc (rh->cc_cls, NULL);
     GNUNET_free (rh);
     return GNUNET_OK;
-  } 
+  }
   /* We have an error message */
   emsg = (char *) &msg[1];
-  if ('\0' != emsg[msg_size - 
-                   sizeof (struct GNUNET_TESTBED_HostConfirmedMessage)])
+  if ('\0' !=
+      emsg[msg_size - sizeof (struct GNUNET_TESTBED_HostConfirmedMessage)])
   {
     GNUNET_break (0);
     GNUNET_free (rh);
     return GNUNET_NO;
-  }  
+  }
   LOG (GNUNET_ERROR_TYPE_ERROR, _("Adding host %u failed with error: %s\n"),
        ntohl (msg->host_id), emsg);
   rh->cc (rh->cc_cls, emsg);
@@ -268,7 +268,7 @@ handle_opsuccess (struct GNUNET_TESTBED_Controller *c,
   struct OperationContext *opc;
   struct GNUNET_TESTBED_EventInformation *event;
   uint64_t op_id;
-  
+
   op_id = GNUNET_ntohll (msg->operation_id);
   LOG_DEBUG ("Operation %ul successful\n", op_id);
   if (NULL == (opc = find_opc (c, op_id)))
@@ -284,28 +284,29 @@ handle_opsuccess (struct GNUNET_TESTBED_Controller *c,
   switch (opc->type)
   {
   case OP_FORWARDED:
-    {
-      struct ForwardedOperationData *fo_data;
-    
-      fo_data = opc->data;
-      if (NULL != fo_data->cc)
-	fo_data->cc (fo_data->cc_cls, (const struct GNUNET_MessageHeader *) msg);
-      GNUNET_CONTAINER_DLL_remove (c->ocq_head, c->ocq_tail, opc);
-      GNUNET_free (fo_data);
-      GNUNET_free (opc);    
-      return GNUNET_YES;    
-    }
+  {
+    struct ForwardedOperationData *fo_data;
+
+    fo_data = opc->data;
+    if (NULL != fo_data->cc)
+      fo_data->cc (fo_data->cc_cls, (const struct GNUNET_MessageHeader *) msg);
+    GNUNET_CONTAINER_DLL_remove (c->ocq_head, c->ocq_tail, opc);
+    GNUNET_free (fo_data);
+    GNUNET_free (opc);
+    return GNUNET_YES;
+  }
     break;
   case OP_PEER_DESTROY:
-    {
-      struct GNUNET_TESTBED_Peer *peer;     
-      peer = opc->data;
-      GNUNET_free (peer);
-      opc->data = NULL;
-      //PEERDESTROYDATA
-    }
+  {
+    struct GNUNET_TESTBED_Peer *peer;
+
+    peer = opc->data;
+    GNUNET_free (peer);
+    opc->data = NULL;
+    //PEERDESTROYDATA
+  }
     break;
-  case OP_LINK_CONTROLLERS:    
+  case OP_LINK_CONTROLLERS:
     break;
   default:
     GNUNET_assert (0);
@@ -325,8 +326,8 @@ handle_opsuccess (struct GNUNET_TESTBED_Controller *c,
     if (NULL != c->cc)
       c->cc (c->cc_cls, event);
     GNUNET_free (event);
-  }  
-  return GNUNET_YES;  
+  }
+  return GNUNET_YES;
 }
 
 
@@ -341,8 +342,8 @@ handle_opsuccess (struct GNUNET_TESTBED_Controller *c,
  */
 static int
 handle_peer_create_success (struct GNUNET_TESTBED_Controller *c,
-			    const struct
-			    GNUNET_TESTBED_PeerCreateSuccessEventMessage *msg)
+                            const struct
+                            GNUNET_TESTBED_PeerCreateSuccessEventMessage *msg)
 {
   struct OperationContext *opc;
   struct PeerCreateData *data;
@@ -351,8 +352,8 @@ handle_peer_create_success (struct GNUNET_TESTBED_Controller *c,
   void *cls;
   uint64_t op_id;
 
-  GNUNET_assert (sizeof (struct GNUNET_TESTBED_PeerCreateSuccessEventMessage)
-		 == ntohs (msg->header.size));
+  GNUNET_assert (sizeof (struct GNUNET_TESTBED_PeerCreateSuccessEventMessage) ==
+                 ntohs (msg->header.size));
   op_id = GNUNET_ntohll (msg->operation_id);
   if (NULL == (opc = find_opc (c, op_id)))
   {
@@ -362,14 +363,14 @@ handle_peer_create_success (struct GNUNET_TESTBED_Controller *c,
   if (OP_FORWARDED == opc->type)
   {
     struct ForwardedOperationData *fo_data;
-    
+
     fo_data = opc->data;
     if (NULL != fo_data->cc)
       fo_data->cc (fo_data->cc_cls, (const struct GNUNET_MessageHeader *) msg);
     GNUNET_CONTAINER_DLL_remove (c->ocq_head, c->ocq_tail, opc);
     GNUNET_free (fo_data);
-    GNUNET_free (opc);    
-    return GNUNET_YES;    
+    GNUNET_free (opc);
+    return GNUNET_YES;
   }
   GNUNET_assert (OP_PEER_CREATE == opc->type);
   GNUNET_assert (NULL != opc->data);
@@ -380,7 +381,7 @@ handle_peer_create_success (struct GNUNET_TESTBED_Controller *c,
   peer->state = PS_CREATED;
   cb = data->cb;
   cls = data->cls;
-  GNUNET_free (opc->data);  
+  GNUNET_free (opc->data);
   GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
   opc->state = OPC_STATE_FINISHED;
   if (NULL != cb)
@@ -400,15 +401,15 @@ handle_peer_create_success (struct GNUNET_TESTBED_Controller *c,
  */
 static int
 handle_peer_event (struct GNUNET_TESTBED_Controller *c,
-		   const struct GNUNET_TESTBED_PeerEventMessage *msg)
+                   const struct GNUNET_TESTBED_PeerEventMessage *msg)
 {
   struct OperationContext *opc;
   struct GNUNET_TESTBED_Peer *peer;
   struct GNUNET_TESTBED_EventInformation event;
   uint64_t op_id;
 
-  GNUNET_assert (sizeof (struct GNUNET_TESTBED_PeerEventMessage)
-		 == ntohs (msg->header.size));
+  GNUNET_assert (sizeof (struct GNUNET_TESTBED_PeerEventMessage) ==
+                 ntohs (msg->header.size));
   op_id = GNUNET_ntohll (msg->operation_id);
   if (NULL == (opc = find_opc (c, op_id)))
   {
@@ -418,14 +419,14 @@ handle_peer_event (struct GNUNET_TESTBED_Controller *c,
   if (OP_FORWARDED == opc->type)
   {
     struct ForwardedOperationData *fo_data;
-    
+
     fo_data = opc->data;
     if (NULL != fo_data->cc)
       fo_data->cc (fo_data->cc_cls, (const struct GNUNET_MessageHeader *) msg);
     GNUNET_CONTAINER_DLL_remove (c->ocq_head, c->ocq_tail, opc);
     GNUNET_free (fo_data);
-    GNUNET_free (opc);    
-    return GNUNET_YES;    
+    GNUNET_free (opc);
+    return GNUNET_YES;
   }
   GNUNET_assert ((OP_PEER_START == opc->type) || (OP_PEER_STOP == opc->type));
   peer = opc->data;
@@ -439,20 +440,21 @@ handle_peer_event (struct GNUNET_TESTBED_Controller *c,
     event.details.peer_start.peer = peer;
     break;
   case GNUNET_TESTBED_ET_PEER_STOP:
-    peer->state = PS_STOPPED;    
-    event.details.peer_stop.peer = peer;  
+    peer->state = PS_STOPPED;
+    event.details.peer_stop.peer = peer;
     break;
   default:
-    GNUNET_assert (0);		/* We should never reach this state */
+    GNUNET_assert (0);          /* We should never reach this state */
   }
   GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
   opc->state = OPC_STATE_FINISHED;
-  if (0 != ((GNUNET_TESTBED_ET_PEER_START | GNUNET_TESTBED_ET_PEER_STOP)
-	    & c->event_mask))
+  if (0 !=
+      ((GNUNET_TESTBED_ET_PEER_START | GNUNET_TESTBED_ET_PEER_STOP) &
+       c->event_mask))
   {
     if (NULL != c->cc)
       c->cc (c->cc_cls, &event);
-  }    
+  }
   return GNUNET_YES;
 }
 
@@ -483,8 +485,8 @@ handle_peer_conevent (struct GNUNET_TESTBED_Controller *c,
   }
   data = opc->data;
   GNUNET_assert (NULL != data);
-  GNUNET_assert ((ntohl (msg->peer1) == data->p1->unique_id)
-                  && (ntohl (msg->peer2) == data->p2->unique_id));
+  GNUNET_assert ((ntohl (msg->peer1) == data->p1->unique_id) &&
+                 (ntohl (msg->peer2) == data->p2->unique_id));
   event.type = (enum GNUNET_TESTBED_EventType) ntohl (msg->event_type);
   switch (event.type)
   {
@@ -502,8 +504,9 @@ handle_peer_conevent (struct GNUNET_TESTBED_Controller *c,
   GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
   opc->state = OPC_STATE_FINISHED;
   GNUNET_free (data);
-  if (0 != ((GNUNET_TESTBED_ET_CONNECT | GNUNET_TESTBED_ET_DISCONNECT)
-            & c->event_mask))
+  if (0 !=
+      ((GNUNET_TESTBED_ET_CONNECT | GNUNET_TESTBED_ET_DISCONNECT) &
+       c->event_mask))
   {
     if (NULL != c->cc)
       c->cc (c->cc_cls, &event);
@@ -523,7 +526,8 @@ handle_peer_conevent (struct GNUNET_TESTBED_Controller *c,
  */
 static int
 handle_peer_config (struct GNUNET_TESTBED_Controller *c,
-		    const struct GNUNET_TESTBED_PeerConfigurationInformationMessage *msg)
+                    const struct
+                    GNUNET_TESTBED_PeerConfigurationInformationMessage *msg)
 {
   struct OperationContext *opc;
   struct GNUNET_TESTBED_Peer *peer;
@@ -531,7 +535,7 @@ handle_peer_config (struct GNUNET_TESTBED_Controller *c,
   struct PeerInfoData2 *response_data;
   struct GNUNET_TESTBED_EventInformation info;
   uint64_t op_id;
-  
+
   op_id = GNUNET_ntohll (msg->operation_id);
   if (NULL == (opc = find_opc (c, op_id)))
   {
@@ -541,14 +545,14 @@ handle_peer_config (struct GNUNET_TESTBED_Controller *c,
   if (OP_FORWARDED == opc->type)
   {
     struct ForwardedOperationData *fo_data;
-    
+
     fo_data = opc->data;
     if (NULL != fo_data->cc)
       fo_data->cc (fo_data->cc_cls, (const struct GNUNET_MessageHeader *) msg);
     GNUNET_CONTAINER_DLL_remove (c->ocq_head, c->ocq_tail, opc);
     GNUNET_free (fo_data);
-    GNUNET_free (opc);    
-    return GNUNET_YES;    
+    GNUNET_free (opc);
+    return GNUNET_YES;
   }
   data = opc->data;
   GNUNET_assert (NULL != data);
@@ -572,34 +576,35 @@ handle_peer_config (struct GNUNET_TESTBED_Controller *c,
   switch (response_data->pit)
   {
   case GNUNET_TESTBED_PIT_IDENTITY:
-    {
-      struct GNUNET_PeerIdentity *peer_identity;
+  {
+    struct GNUNET_PeerIdentity *peer_identity;
 
-      peer_identity = GNUNET_malloc (sizeof (struct GNUNET_PeerIdentity));
-      (void) memcpy (peer_identity, &msg->peer_identity, 
-		     sizeof (struct GNUNET_PeerIdentity));
-      response_data->details.peer_identity = peer_identity;      
-      info.details.operation_finished.op_result.pid = peer_identity;
-    }
+    peer_identity = GNUNET_malloc (sizeof (struct GNUNET_PeerIdentity));
+    (void) memcpy (peer_identity, &msg->peer_identity,
+                   sizeof (struct GNUNET_PeerIdentity));
+    response_data->details.peer_identity = peer_identity;
+    info.details.operation_finished.op_result.pid = peer_identity;
+  }
     break;
   case GNUNET_TESTBED_PIT_CONFIGURATION:
-    response_data->details.cfg = /* Freed in oprelease_peer_getinfo */
-      GNUNET_TESTBED_get_config_from_peerinfo_msg_ (msg);
+    response_data->details.cfg =        /* Freed in oprelease_peer_getinfo */
+        GNUNET_TESTBED_get_config_from_peerinfo_msg_ (msg);
     info.details.operation_finished.op_result.cfg = response_data->details.cfg;
     break;
   case GNUNET_TESTBED_PIT_GENERIC:
-    GNUNET_assert (0);		/* never reach here */
+    GNUNET_assert (0);          /* never reach here */
     break;
   }
   opc->data = response_data;
   GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
   opc->state = OPC_STATE_FINISHED;
-  if (0 != ((GNUNET_TESTBED_ET_CONNECT | GNUNET_TESTBED_ET_DISCONNECT)
-            & c->event_mask))
+  if (0 !=
+      ((GNUNET_TESTBED_ET_CONNECT | GNUNET_TESTBED_ET_DISCONNECT) &
+       c->event_mask))
   {
     if (NULL != c->cc)
       c->cc (c->cc_cls, &info);
-  }  
+  }
   return GNUNET_YES;
 }
 
@@ -615,15 +620,15 @@ handle_peer_config (struct GNUNET_TESTBED_Controller *c,
  */
 static int
 handle_op_fail_event (struct GNUNET_TESTBED_Controller *c,
-                      const struct 
-                      GNUNET_TESTBED_OperationFailureEventMessage *msg)
+                      const struct GNUNET_TESTBED_OperationFailureEventMessage
+                      *msg)
 {
   struct OperationContext *opc;
   char *emsg;
   uint64_t op_id;
-  struct GNUNET_TESTBED_EventInformation event;  
+  struct GNUNET_TESTBED_EventInformation event;
   uint16_t msize;
-  
+
   op_id = GNUNET_ntohll (msg->operation_id);
   if (NULL == (opc = find_opc (c, op_id)))
   {
@@ -633,14 +638,14 @@ handle_op_fail_event (struct GNUNET_TESTBED_Controller *c,
   if (OP_FORWARDED == opc->type)
   {
     struct ForwardedOperationData *fo_data;
-    
+
     fo_data = opc->data;
     if (NULL != fo_data->cc)
       fo_data->cc (fo_data->cc_cls, (const struct GNUNET_MessageHeader *) msg);
     GNUNET_CONTAINER_DLL_remove (c->ocq_head, c->ocq_tail, opc);
     GNUNET_free (fo_data);
-    GNUNET_free (opc);    
-    return GNUNET_YES;    
+    GNUNET_free (opc);
+    return GNUNET_YES;
   }
   GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
   opc->state = OPC_STATE_FINISHED;
@@ -658,8 +663,8 @@ handle_op_fail_event (struct GNUNET_TESTBED_Controller *c,
     emsg = (char *) &msg[1];
     GNUNET_assert ('\0' == emsg[msize - 1]);
   }
-  if ((0 != (GNUNET_TESTBED_ET_OPERATION_FINISHED & c->event_mask)) 
-      && (NULL != c->cc))
+  if ((0 != (GNUNET_TESTBED_ET_OPERATION_FINISHED & c->event_mask)) &&
+      (NULL != c->cc))
   {
     event.type = GNUNET_TESTBED_ET_OPERATION_FINISHED;
     event.details.operation_finished.operation = opc->op;
@@ -668,7 +673,7 @@ handle_op_fail_event (struct GNUNET_TESTBED_Controller *c,
     event.details.operation_finished.pit = GNUNET_TESTBED_PIT_GENERIC;
     event.details.operation_finished.op_result.generic = NULL;
     c->cc (c->cc_cls, &event);
-  }    
+  }
   return GNUNET_YES;
 }
 
@@ -679,7 +684,7 @@ handle_op_fail_event (struct GNUNET_TESTBED_Controller *c,
  * @param cls the controller handler
  * @param msg message received, NULL on timeout or fatal error
  */
-static void 
+static void
 message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_TESTBED_Controller *c = cls;
@@ -698,54 +703,67 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
   switch (ntohs (msg->type))
   {
   case GNUNET_MESSAGE_TYPE_TESTBED_ADDHOSTCONFIRM:
-    GNUNET_assert (msize >= sizeof (struct
-				    GNUNET_TESTBED_HostConfirmedMessage));
+    GNUNET_assert (msize >=
+                   sizeof (struct GNUNET_TESTBED_HostConfirmedMessage));
     status =
-      handle_addhostconfirm (c, (const struct GNUNET_TESTBED_HostConfirmedMessage *) msg);
+        handle_addhostconfirm (c,
+                               (const struct GNUNET_TESTBED_HostConfirmedMessage
+                                *) msg);
     break;
   case GNUNET_MESSAGE_TYPE_TESTBED_GENERICOPSUCCESS:
-    GNUNET_assert 
-      (msize == sizeof (struct GNUNET_TESTBED_GenericOperationSuccessEventMessage));
+    GNUNET_assert (msize ==
+                   sizeof (struct
+                           GNUNET_TESTBED_GenericOperationSuccessEventMessage));
     status =
-      handle_opsuccess (c, (const struct
-                            GNUNET_TESTBED_GenericOperationSuccessEventMessage
-                            *) msg);
+        handle_opsuccess (c,
+                          (const struct
+                           GNUNET_TESTBED_GenericOperationSuccessEventMessage *)
+                          msg);
     break;
   case GNUNET_MESSAGE_TYPE_TESTBED_PEERCREATESUCCESS:
-    GNUNET_assert (msize == 
-		   sizeof (struct GNUNET_TESTBED_PeerCreateSuccessEventMessage));
+    GNUNET_assert (msize ==
+                   sizeof (struct
+                           GNUNET_TESTBED_PeerCreateSuccessEventMessage));
     status =
-      handle_peer_create_success 
-      (c, (const struct GNUNET_TESTBED_PeerCreateSuccessEventMessage *)msg);
+        handle_peer_create_success (c,
+                                    (const struct
+                                     GNUNET_TESTBED_PeerCreateSuccessEventMessage
+                                     *) msg);
     break;
   case GNUNET_MESSAGE_TYPE_TESTBED_PEEREVENT:
     GNUNET_assert (msize == sizeof (struct GNUNET_TESTBED_PeerEventMessage));
     status =
-      handle_peer_event (c, (const struct GNUNET_TESTBED_PeerEventMessage *) msg);
-    
+        handle_peer_event (c,
+                           (const struct GNUNET_TESTBED_PeerEventMessage *)
+                           msg);
+
     break;
   case GNUNET_MESSAGE_TYPE_TESTBED_PEERCONFIG:
-    GNUNET_assert (msize >= 
-		   sizeof (struct GNUNET_TESTBED_PeerConfigurationInformationMessage));
-    status = 
-      handle_peer_config 
-      (c, (const struct GNUNET_TESTBED_PeerConfigurationInformationMessage *)
-  msg);
+    GNUNET_assert (msize >=
+                   sizeof (struct
+                           GNUNET_TESTBED_PeerConfigurationInformationMessage));
+    status =
+        handle_peer_config (c,
+                            (const struct
+                             GNUNET_TESTBED_PeerConfigurationInformationMessage
+                             *) msg);
     break;
   case GNUNET_MESSAGE_TYPE_TESTBED_PEERCONEVENT:
     GNUNET_assert (msize ==
                    sizeof (struct GNUNET_TESTBED_ConnectionEventMessage));
-    status = 
-      handle_peer_conevent (c, (const struct
-                                GNUNET_TESTBED_ConnectionEventMessage *) msg);
+    status =
+        handle_peer_conevent (c,
+                              (const struct
+                               GNUNET_TESTBED_ConnectionEventMessage *) msg);
     break;
   case GNUNET_MESSAGE_TYPE_TESTBED_OPERATIONEVENT:
-    GNUNET_assert (msize >= 
+    GNUNET_assert (msize >=
                    sizeof (struct GNUNET_TESTBED_OperationFailureEventMessage));
-    status = 
-      handle_op_fail_event (c, (const struct
-                                GNUNET_TESTBED_OperationFailureEventMessage *)
-                            msg);
+    status =
+        handle_op_fail_event (c,
+                              (const struct
+                               GNUNET_TESTBED_OperationFailureEventMessage *)
+                              msg);
     break;
   default:
     GNUNET_assert (0);
@@ -754,7 +772,7 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
   {
     c->in_receive = GNUNET_YES;
     GNUNET_CLIENT_receive (c->client, &message_handler, c,
-                           GNUNET_TIME_UNIT_FOREVER_REL);    
+                           GNUNET_TIME_UNIT_FOREVER_REL);
   }
 }
 
@@ -778,38 +796,36 @@ transmit_ready_notify (void *cls, size_t size, void *buf)
   c->th = NULL;
   mq_entry = c->mq_head;
   GNUNET_assert (NULL != mq_entry);
-  if ((0 == size) && (NULL == buf)) /* Timeout */
+  if ((0 == size) && (NULL == buf))     /* Timeout */
   {
     LOG_DEBUG ("Message sending timed out -- retrying\n");
     c->th =
-      GNUNET_CLIENT_notify_transmit_ready (c->client,
-                                           ntohs (mq_entry->msg->size),
-                                           TIMEOUT_REL,
-                                           GNUNET_YES, &transmit_ready_notify,
-                                           c);
+        GNUNET_CLIENT_notify_transmit_ready (c->client,
+                                             ntohs (mq_entry->msg->size),
+                                             TIMEOUT_REL, GNUNET_YES,
+                                             &transmit_ready_notify, c);
     return 0;
   }
   GNUNET_assert (ntohs (mq_entry->msg->size) <= size);
-  size = ntohs (mq_entry->msg->size);  
+  size = ntohs (mq_entry->msg->size);
   memcpy (buf, mq_entry->msg, size);
   LOG_DEBUG ("Message of type: %u and size: %u sent\n",
-	     ntohs (mq_entry->msg->type), size);
+             ntohs (mq_entry->msg->type), size);
   GNUNET_free (mq_entry->msg);
   GNUNET_CONTAINER_DLL_remove (c->mq_head, c->mq_tail, mq_entry);
   GNUNET_free (mq_entry);
   mq_entry = c->mq_head;
   if (NULL != mq_entry)
-    c->th = 
-      GNUNET_CLIENT_notify_transmit_ready (c->client,
-                                           ntohs (mq_entry->msg->size),
-                                           TIMEOUT_REL,
-                                           GNUNET_YES, &transmit_ready_notify,
-                                           c);
+    c->th =
+        GNUNET_CLIENT_notify_transmit_ready (c->client,
+                                             ntohs (mq_entry->msg->size),
+                                             TIMEOUT_REL, GNUNET_YES,
+                                             &transmit_ready_notify, c);
   if (GNUNET_NO == c->in_receive)
   {
     c->in_receive = GNUNET_YES;
     GNUNET_CLIENT_receive (c->client, &message_handler, c,
-			   GNUNET_TIME_UNIT_FOREVER_REL);
+                           GNUNET_TIME_UNIT_FOREVER_REL);
   }
   return size;
 }
@@ -823,7 +839,7 @@ transmit_ready_notify (void *cls, size_t size, void *buf)
  */
 void
 GNUNET_TESTBED_queue_message_ (struct GNUNET_TESTBED_Controller *controller,
-			       struct GNUNET_MessageHeader *msg)
+                               struct GNUNET_MessageHeader *msg)
 {
   struct MessageQueue *mq_entry;
   uint16_t type;
@@ -832,7 +848,7 @@ GNUNET_TESTBED_queue_message_ (struct GNUNET_TESTBED_Controller *controller,
   type = ntohs (msg->type);
   size = ntohs (msg->size);
   GNUNET_assert ((GNUNET_MESSAGE_TYPE_TESTBED_INIT <= type) &&
-                 (GNUNET_MESSAGE_TYPE_TESTBED_MAX > type));                 
+                 (GNUNET_MESSAGE_TYPE_TESTBED_MAX > type));
   mq_entry = GNUNET_malloc (sizeof (struct MessageQueue));
   mq_entry->msg = msg;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -841,11 +857,11 @@ GNUNET_TESTBED_queue_message_ (struct GNUNET_TESTBED_Controller *controller,
   GNUNET_CONTAINER_DLL_insert_tail (controller->mq_head, controller->mq_tail,
                                     mq_entry);
   if (NULL == controller->th)
-    controller->th = 
-      GNUNET_CLIENT_notify_transmit_ready (controller->client, size,
-                                           TIMEOUT_REL,
-                                           GNUNET_YES, &transmit_ready_notify,
-                                           controller);
+    controller->th =
+        GNUNET_CLIENT_notify_transmit_ready (controller->client, size,
+                                             TIMEOUT_REL, GNUNET_YES,
+                                             &transmit_ready_notify,
+                                             controller);
 }
 
 
@@ -861,36 +877,35 @@ GNUNET_TESTBED_queue_message_ (struct GNUNET_TESTBED_Controller *controller,
  * @param cc the callback to call when reply is available
  * @param cc_cls the closure for the above callback
  * @return the operation context which can be used to cancel the forwarded
- *           operation 
+ *           operation
  */
 struct OperationContext *
 GNUNET_TESTBED_forward_operation_msg_ (struct GNUNET_TESTBED_Controller
-                                       * controller,
-                                       uint64_t operation_id,
+                                       *controller, uint64_t operation_id,
                                        const struct GNUNET_MessageHeader *msg,
                                        GNUNET_CLIENT_MessageHandler cc,
                                        void *cc_cls)
 {
   struct OperationContext *opc;
   struct ForwardedOperationData *data;
-  struct GNUNET_MessageHeader *dup_msg;  
+  struct GNUNET_MessageHeader *dup_msg;
   uint16_t msize;
-  
+
   data = GNUNET_malloc (sizeof (struct ForwardedOperationData));
   data->cc = cc;
-  data->cc_cls = cc_cls;  
+  data->cc_cls = cc_cls;
   opc = GNUNET_malloc (sizeof (struct OperationContext));
-  opc->c = controller;  
+  opc->c = controller;
   opc->type = OP_FORWARDED;
   opc->data = data;
   opc->id = operation_id;
   msize = ntohs (msg->size);
   dup_msg = GNUNET_malloc (msize);
-  (void) memcpy (dup_msg, msg, msize);  
+  (void) memcpy (dup_msg, msg, msize);
   GNUNET_TESTBED_queue_message_ (opc->c, dup_msg);
-  GNUNET_CONTAINER_DLL_insert_tail (controller->ocq_head,
-                                    controller->ocq_tail, opc);
-  return opc;  
+  GNUNET_CONTAINER_DLL_insert_tail (controller->ocq_head, controller->ocq_tail,
+                                    opc);
+  return opc;
 }
 
 
@@ -905,7 +920,7 @@ GNUNET_TESTBED_forward_operation_msg_cancel_ (struct OperationContext *opc)
 {
   GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
   GNUNET_free (opc->data);
-  GNUNET_free (opc);  
+  GNUNET_free (opc);
 }
 
 
@@ -974,9 +989,8 @@ struct GNUNET_TESTBED_ControllerProc
  *
  * @return GNUNET_OK on success, GNUNET_SYSERR to stop further processing
  */
-static int 
-helper_mst (void *cls, void *client,
-	    const struct GNUNET_MessageHeader *message)
+static int
+helper_mst (void *cls, void *client, const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_TESTBED_ControllerProc *cp = cls;
   const struct GNUNET_TESTBED_HelperReply *msg;
@@ -984,29 +998,31 @@ helper_mst (void *cls, void *client,
   char *config;
   uLongf config_size;
   uLongf xconfig_size;
-    
+
   msg = (const struct GNUNET_TESTBED_HelperReply *) message;
-  GNUNET_assert (sizeof (struct GNUNET_TESTBED_HelperReply) 
-		 < ntohs (msg->header.size));
-  GNUNET_assert (GNUNET_MESSAGE_TYPE_TESTBED_HELPER_REPLY 
-                 == ntohs (msg->header.type));
+  GNUNET_assert (sizeof (struct GNUNET_TESTBED_HelperReply) <
+                 ntohs (msg->header.size));
+  GNUNET_assert (GNUNET_MESSAGE_TYPE_TESTBED_HELPER_REPLY ==
+                 ntohs (msg->header.type));
   config_size = (uLongf) ntohs (msg->config_size);
-  xconfig_size = (uLongf) (ntohs (msg->header.size)
-                           - sizeof (struct GNUNET_TESTBED_HelperReply));
+  xconfig_size =
+      (uLongf) (ntohs (msg->header.size) -
+                sizeof (struct GNUNET_TESTBED_HelperReply));
   config = GNUNET_malloc (config_size);
-  GNUNET_assert (Z_OK == uncompress ((Bytef *) config, &config_size,
-                                     (const Bytef *) &msg[1], xconfig_size));
+  GNUNET_assert (Z_OK ==
+                 uncompress ((Bytef *) config, &config_size,
+                             (const Bytef *) &msg[1], xconfig_size));
   GNUNET_assert (NULL == cp->cfg);
   cp->cfg = GNUNET_CONFIGURATION_create ();
-  GNUNET_assert (GNUNET_CONFIGURATION_deserialize (cp->cfg, config, 
-						   config_size, GNUNET_NO));
+  GNUNET_assert (GNUNET_CONFIGURATION_deserialize
+                 (cp->cfg, config, config_size, GNUNET_NO));
   GNUNET_free (config);
-  if ((NULL == cp->host) || 
+  if ((NULL == cp->host) ||
       (NULL == (hostname = GNUNET_TESTBED_host_get_hostname_ (cp->host))))
     hostname = "localhost";
   /* Change the hostname so that we can connect to it */
-  GNUNET_CONFIGURATION_set_value_string (cp->cfg, "testbed", "hostname", 
-					 hostname);
+  GNUNET_CONFIGURATION_set_value_string (cp->cfg, "testbed", "hostname",
+                                         hostname);
   cp->cb (cp->cls, cp->cfg, GNUNET_OK);
   return GNUNET_OK;
 }
@@ -1014,17 +1030,17 @@ helper_mst (void *cls, void *client,
 
 /**
  * Continuation function from GNUNET_HELPER_send()
- * 
+ *
  * @param cls closure
  * @param result GNUNET_OK on success,
  *               GNUNET_NO if helper process died
  *               GNUNET_SYSERR during GNUNET_HELPER_stop
  */
-static void 
+static void
 clear_msg (void *cls, int result)
 {
   struct GNUNET_TESTBED_ControllerProc *cp = cls;
-  
+
   GNUNET_assert (NULL != cp->shandle);
   cp->shandle = NULL;
   GNUNET_free (cp->msg);
@@ -1037,7 +1053,7 @@ clear_msg (void *cls, int result)
  *
  * @param cls the closure from GNUNET_HELPER_start()
  */
-static void 
+static void
 helper_exp_cb (void *cls)
 {
   struct GNUNET_TESTBED_ControllerProc *cp = cls;
@@ -1059,7 +1075,7 @@ helper_exp_cb (void *cls)
  *
  * @param cls the closure from GNUNET_TESTBED_operation_create_()
  */
-static void 
+static void
 opstart_link_controllers (void *cls)
 {
   struct OperationContext *opc = cls;
@@ -1079,7 +1095,7 @@ opstart_link_controllers (void *cls)
  *
  * @param cls the closure from GNUNET_TESTBED_operation_create_()
  */
-static void 
+static void
 oprelease_link_controllers (void *cls)
 {
   struct OperationContext *opc = cls;
@@ -1115,24 +1131,24 @@ oprelease_link_controllers (void *cls)
  */
 struct GNUNET_TESTBED_ControllerProc *
 GNUNET_TESTBED_controller_start (const char *controller_ip,
-				 struct GNUNET_TESTBED_Host *host,
-				 const struct GNUNET_CONFIGURATION_Handle *cfg,
+                                 struct GNUNET_TESTBED_Host *host,
+                                 const struct GNUNET_CONFIGURATION_Handle *cfg,
                                  GNUNET_TESTBED_ControllerStatusCallback cb,
-				 void *cls)
+                                 void *cls)
 {
   struct GNUNET_TESTBED_ControllerProc *cp;
   struct GNUNET_TESTBED_HelperInit *msg;
-  
+
   cp = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_ControllerProc));
   if ((NULL == host) || (0 == GNUNET_TESTBED_host_get_id_ (host)))
   {
-    char * const binary_argv[] = {
+    char *const binary_argv[] = {
       "gnunet-testbed-helper", NULL
     };
 
-    cp->helper = GNUNET_HELPER_start (GNUNET_YES,
-				      "gnunet-testbed-helper", binary_argv, 
-                                      &helper_mst, &helper_exp_cb, cp);
+    cp->helper =
+        GNUNET_HELPER_start (GNUNET_YES, "gnunet-testbed-helper", binary_argv,
+                             &helper_mst, &helper_exp_cb, cp);
   }
   else
   {
@@ -1146,7 +1162,7 @@ GNUNET_TESTBED_controller_start (const char *controller_ip,
     GNUNET_asprintf (&cp->port, "%u", GNUNET_TESTBED_host_get_ssh_port_ (host));
     if (NULL == username)
       GNUNET_asprintf (&cp->dst, "%s", hostname);
-    else 
+    else
       GNUNET_asprintf (&cp->dst, "%s@%s", username, hostname);
     LOG_DEBUG ("Starting SSH to destination %s\n", cp->dst);
     argp = 0;
@@ -1159,9 +1175,9 @@ GNUNET_TESTBED_controller_start (const char *controller_ip,
     remote_args[argp++] = "gnunet-testbed-helper";
     remote_args[argp++] = NULL;
     GNUNET_assert (argp == 8);
-    cp->helper = GNUNET_HELPER_start (GNUNET_NO,
-				      "ssh", remote_args,
-                                      &helper_mst, &helper_exp_cb, cp);
+    cp->helper =
+        GNUNET_HELPER_start (GNUNET_NO, "ssh", remote_args, &helper_mst,
+                             &helper_exp_cb, cp);
   }
   if (NULL == cp->helper)
   {
@@ -1175,8 +1191,8 @@ GNUNET_TESTBED_controller_start (const char *controller_ip,
   cp->cls = cls;
   msg = GNUNET_TESTBED_create_helper_init_msg_ (controller_ip, cfg);
   cp->msg = &msg->header;
-  cp->shandle = GNUNET_HELPER_send (cp->helper, &msg->header, GNUNET_NO,
-                                    &clear_msg, cp);
+  cp->shandle =
+      GNUNET_HELPER_send (cp->helper, &msg->header, GNUNET_NO, &clear_msg, cp);
   if (NULL == cp->shandle)
   {
     GNUNET_free (msg);
@@ -1226,11 +1242,11 @@ GNUNET_TESTBED_controller_stop (struct GNUNET_TESTBED_ControllerProc *cproc)
  * @return handle to the controller
  */
 struct GNUNET_TESTBED_Controller *
-GNUNET_TESTBED_controller_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
-				   struct GNUNET_TESTBED_Host *host,
-				   uint64_t event_mask,
-				   GNUNET_TESTBED_ControllerCallback cc,
-				   void *cc_cls)
+GNUNET_TESTBED_controller_connect (const struct GNUNET_CONFIGURATION_Handle
+                                   *cfg, struct GNUNET_TESTBED_Host *host,
+                                   uint64_t event_mask,
+                                   GNUNET_TESTBED_ControllerCallback cc,
+                                   void *cc_cls)
 {
   struct GNUNET_TESTBED_Controller *controller;
   struct GNUNET_TESTBED_InitMessage *msg;
@@ -1259,7 +1275,7 @@ GNUNET_TESTBED_controller_connect (const struct GNUNET_CONFIGURATION_Handle *cfg
   controller->cc_cls = cc_cls;
   controller->event_mask = event_mask;
   controller->cfg = GNUNET_CONFIGURATION_dup (cfg);
-  controller->client = GNUNET_CLIENT_connect ("testbed", controller->cfg);  
+  controller->client = GNUNET_CLIENT_connect ("testbed", controller->cfg);
   if (NULL == controller->client)
   {
     GNUNET_TESTBED_controller_disconnect (controller);
@@ -1271,8 +1287,8 @@ GNUNET_TESTBED_controller_connect (const struct GNUNET_CONFIGURATION_Handle *cfg
     if (NULL == host)           /* If the above host create fails */
     {
       LOG (GNUNET_ERROR_TYPE_WARNING,
-	   "Treating NULL host as localhost. Multiple references to localhost "
-	   "may break when localhost freed before calling disconnect \n");
+           "Treating NULL host as localhost. Multiple references to localhost "
+           "may break when localhost freed before calling disconnect \n");
       host = GNUNET_TESTBED_host_lookup_by_id_ (0);
     }
     else
@@ -1284,24 +1300,26 @@ GNUNET_TESTBED_controller_connect (const struct GNUNET_CONFIGURATION_Handle *cfg
   GNUNET_TESTBED_mark_host_registered_at_ (host, controller);
   controller->host = host;
   controller->opq_parallel_operations =
-    GNUNET_TESTBED_operation_queue_create_ ((unsigned int)
-                                            max_parallel_operations);
+      GNUNET_TESTBED_operation_queue_create_ ((unsigned int)
+                                              max_parallel_operations);
   controller->opq_parallel_service_connections =
-    GNUNET_TESTBED_operation_queue_create_ ((unsigned int)
-                                            max_parallel_service_connections);
+      GNUNET_TESTBED_operation_queue_create_ ((unsigned int)
+                                              max_parallel_service_connections);
   controller_hostname = GNUNET_TESTBED_host_get_hostname_ (host);
   if (NULL == controller_hostname)
     controller_hostname = "127.0.0.1";
-  msg = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_InitMessage)
-                       + strlen (controller_hostname) + 1);
+  msg =
+      GNUNET_malloc (sizeof (struct GNUNET_TESTBED_InitMessage) +
+                     strlen (controller_hostname) + 1);
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_INIT);
-  msg->header.size = htons (sizeof (struct GNUNET_TESTBED_InitMessage)
-                            + strlen (controller_hostname) + 1);
+  msg->header.size =
+      htons (sizeof (struct GNUNET_TESTBED_InitMessage) +
+             strlen (controller_hostname) + 1);
   msg->host_id = htonl (GNUNET_TESTBED_host_get_id_ (host));
   msg->event_mask = GNUNET_htonll (controller->event_mask);
   strcpy ((char *) &msg[1], controller_hostname);
-  GNUNET_TESTBED_queue_message_ (controller, (struct GNUNET_MessageHeader *)
-                                 msg);  
+  GNUNET_TESTBED_queue_message_ (controller,
+                                 (struct GNUNET_MessageHeader *) msg);
   return controller;
 }
 
@@ -1312,7 +1330,7 @@ GNUNET_TESTBED_controller_connect (const struct GNUNET_CONFIGURATION_Handle *cfg
  * should not be run for each peer but instead be shared
  * across N peers on the specified host.  This function
  * must be called before any peers are created at the host.
- * 
+ *
  * @param controller controller to configure
  * @param service_name name of the service to share
  * @param num_peers number of peers that should share one instance
@@ -1320,24 +1338,27 @@ GNUNET_TESTBED_controller_connect (const struct GNUNET_CONFIGURATION_Handle *cfg
  *        use 0 to disable the service
  */
 void
-GNUNET_TESTBED_controller_configure_sharing (struct GNUNET_TESTBED_Controller *controller,
-					     const char *service_name,
-					     uint32_t num_peers)
+GNUNET_TESTBED_controller_configure_sharing (struct GNUNET_TESTBED_Controller
+                                             *controller,
+                                             const char *service_name,
+                                             uint32_t num_peers)
 {
   struct GNUNET_TESTBED_ConfigureSharedServiceMessage *msg;
   uint16_t service_name_size;
   uint16_t msg_size;
-  
+
   service_name_size = strlen (service_name) + 1;
-  msg_size = sizeof (struct GNUNET_TESTBED_ConfigureSharedServiceMessage)
-    + service_name_size;
+  msg_size =
+      sizeof (struct GNUNET_TESTBED_ConfigureSharedServiceMessage) +
+      service_name_size;
   msg = GNUNET_malloc (msg_size);
   msg->header.size = htons (msg_size);
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_SERVICESHARE);
   msg->host_id = htonl (GNUNET_TESTBED_host_get_id_ (controller->host));
   msg->num_peers = htonl (num_peers);
   memcpy (&msg[1], service_name, service_name_size);
-  GNUNET_TESTBED_queue_message_ (controller, (struct GNUNET_MessageHeader *) msg);
+  GNUNET_TESTBED_queue_message_ (controller,
+                                 (struct GNUNET_MessageHeader *) msg);
 }
 
 
@@ -1347,18 +1368,18 @@ GNUNET_TESTBED_controller_configure_sharing (struct GNUNET_TESTBED_Controller *c
  * @param controller handle to controller to stop
  */
 void
-GNUNET_TESTBED_controller_disconnect (struct GNUNET_TESTBED_Controller *controller)
+GNUNET_TESTBED_controller_disconnect (struct GNUNET_TESTBED_Controller
+                                      *controller)
 {
   struct MessageQueue *mq_entry;
 
   if (NULL != controller->th)
     GNUNET_CLIENT_notify_transmit_ready_cancel (controller->th);
- /* Clear the message queue */
+  /* Clear the message queue */
   while (NULL != (mq_entry = controller->mq_head))
   {
-    GNUNET_CONTAINER_DLL_remove (controller->mq_head,
-				 controller->mq_tail,
-				 mq_entry);
+    GNUNET_CONTAINER_DLL_remove (controller->mq_head, controller->mq_tail,
+                                 mq_entry);
     GNUNET_free (mq_entry->msg);
     GNUNET_free (mq_entry);
   }
@@ -1369,7 +1390,7 @@ GNUNET_TESTBED_controller_disconnect (struct GNUNET_TESTBED_Controller *controll
     GNUNET_TESTBED_host_destroy (controller->host);
   GNUNET_TESTBED_operation_queue_destroy_ (controller->opq_parallel_operations);
   GNUNET_TESTBED_operation_queue_destroy_
-    (controller->opq_parallel_service_connections);
+      (controller->opq_parallel_service_connections);
   GNUNET_free (controller);
 }
 
@@ -1384,7 +1405,7 @@ GNUNET_TESTBED_controller_disconnect (struct GNUNET_TESTBED_Controller *controll
  *          will be invalid. Cannot be NULL.
  * @param cc_cls the closure for the cc
  * @return handle to the host registration which can be used to cancel the
- *           registration 
+ *           registration
  */
 struct GNUNET_TESTBED_HostRegistrationHandle *
 GNUNET_TESTBED_register_host (struct GNUNET_TESTBED_Controller *controller,
@@ -1404,11 +1425,10 @@ GNUNET_TESTBED_register_host (struct GNUNET_TESTBED_Controller *controller,
   hostname = GNUNET_TESTBED_host_get_hostname_ (host);
   if (GNUNET_YES == GNUNET_TESTBED_is_host_registered_ (host, controller))
   {
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-         "Host hostname: %s already registered\n",
+    LOG (GNUNET_ERROR_TYPE_WARNING, "Host hostname: %s already registered\n",
          (NULL == hostname) ? "localhost" : hostname);
     return NULL;
-  }  
+  }
   rh = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_HostRegistrationHandle));
   rh->host = host;
   rh->c = controller;
@@ -1436,7 +1456,8 @@ GNUNET_TESTBED_register_host (struct GNUNET_TESTBED_Controller *controller,
   if (NULL != username)
     memcpy (&msg[1], username, user_name_length);
   strcpy (((void *) &msg[1]) + user_name_length, hostname);
-  GNUNET_TESTBED_queue_message_ (controller, (struct GNUNET_MessageHeader *) msg);
+  GNUNET_TESTBED_queue_message_ (controller,
+                                 (struct GNUNET_MessageHeader *) msg);
   return rh;
 }
 
@@ -1458,7 +1479,7 @@ GNUNET_TESTBED_cancel_registration (struct GNUNET_TESTBED_HostRegistrationHandle
     return;
   }
   handle->c->rh = NULL;
-  GNUNET_free (handle);  
+  GNUNET_free (handle);
 }
 
 
@@ -1479,29 +1500,28 @@ GNUNET_TESTBED_cancel_registration (struct GNUNET_TESTBED_HostRegistrationHandle
  */
 struct GNUNET_TESTBED_Operation *
 GNUNET_TESTBED_controller_link_2 (struct GNUNET_TESTBED_Controller *master,
-				  struct GNUNET_TESTBED_Host *delegated_host,
-				  struct GNUNET_TESTBED_Host *slave_host,
-				  const char *sxcfg,
-				  size_t sxcfg_size,
-				  size_t scfg_size,
-				  int is_subordinate)
+                                  struct GNUNET_TESTBED_Host *delegated_host,
+                                  struct GNUNET_TESTBED_Host *slave_host,
+                                  const char *sxcfg, size_t sxcfg_size,
+                                  size_t scfg_size, int is_subordinate)
 {
   struct OperationContext *opc;
   struct GNUNET_TESTBED_ControllerLinkMessage *msg;
   uint16_t msg_size;
 
-  GNUNET_assert (GNUNET_YES == 
-		 GNUNET_TESTBED_is_host_registered_ (delegated_host, master));
+  GNUNET_assert (GNUNET_YES ==
+                 GNUNET_TESTBED_is_host_registered_ (delegated_host, master));
   if ((NULL != slave_host) && (0 != GNUNET_TESTBED_host_get_id_ (slave_host)))
-    GNUNET_assert (GNUNET_YES == 
-		   GNUNET_TESTBED_is_host_registered_ (slave_host, master));
+    GNUNET_assert (GNUNET_YES ==
+                   GNUNET_TESTBED_is_host_registered_ (slave_host, master));
   msg_size = sxcfg_size + sizeof (struct GNUNET_TESTBED_ControllerLinkMessage);
   msg = GNUNET_malloc (msg_size);
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_LCONTROLLERS);  
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_LCONTROLLERS);
   msg->header.size = htons (msg_size);
   msg->delegated_host_id = htonl (GNUNET_TESTBED_host_get_id_ (delegated_host));
-  msg->slave_host_id = htonl (GNUNET_TESTBED_host_get_id_ 
-			      ((NULL != slave_host) ? slave_host : master->host));
+  msg->slave_host_id =
+      htonl (GNUNET_TESTBED_host_get_id_
+             ((NULL != slave_host) ? slave_host : master->host));
   msg->config_size = htons ((uint16_t) scfg_size);
   msg->is_subordinate = (GNUNET_YES == is_subordinate) ? 1 : 0;
   memcpy (&msg[1], sxcfg, sxcfg_size);
@@ -1512,8 +1532,9 @@ GNUNET_TESTBED_controller_link_2 (struct GNUNET_TESTBED_Controller *master,
   opc->id = master->operation_counter++;
   opc->state = OPC_STATE_INIT;
   msg->operation_id = GNUNET_htonll (opc->id);
-  opc->op = GNUNET_TESTBED_operation_create_ (opc, &opstart_link_controllers,
-                                              &oprelease_link_controllers);
+  opc->op =
+      GNUNET_TESTBED_operation_create_ (opc, &opstart_link_controllers,
+                                        &oprelease_link_controllers);
   GNUNET_TESTBED_operation_queue_insert_ (master->opq_parallel_operations,
                                           opc->op);
   return opc->op;
@@ -1526,24 +1547,24 @@ GNUNET_TESTBED_controller_link_2 (struct GNUNET_TESTBED_Controller *master,
  * @param config the serialized configuration
  * @param size the size of config
  * @param xconfig will be set to the compressed configuration (memory is fresly
- *          allocated) 
+ *          allocated)
  * @return the size of the xconfig
  */
 size_t
 GNUNET_TESTBED_compress_config_ (const char *config, size_t size,
-				 char **xconfig)
+                                 char **xconfig)
 {
   size_t xsize;
-  
+
   xsize = compressBound ((uLong) size);
   *xconfig = GNUNET_malloc (xsize);
   GNUNET_assert (Z_OK ==
-		 compress2 ((Bytef *)* xconfig, (uLongf *) &xsize,
-                            (const Bytef *) config, (uLongf) size, 
+                 compress2 ((Bytef *) * xconfig, (uLongf *) & xsize,
+                            (const Bytef *) config, (uLongf) size,
                             Z_BEST_SPEED));
   return xsize;
 }
-                                
+
 
 /**
  * Create a link from slave controller to delegated controller. Whenever the
@@ -1559,7 +1580,7 @@ GNUNET_TESTBED_compress_config_ (const char *config, size_t size,
  *
  * @param master handle to the master controller who creates the association
  * @param delegated_host requests to which host should be delegated
- * @param slave_host which host is used to run the slave controller 
+ * @param slave_host which host is used to run the slave controller
  * @param slave_cfg configuration to use for the slave controller
  * @param is_subordinate GNUNET_YES if the slave should be started (and stopped)
  *                       by the master controller; GNUNET_NO if we are just
@@ -1568,31 +1589,29 @@ GNUNET_TESTBED_compress_config_ (const char *config, size_t size,
  */
 struct GNUNET_TESTBED_Operation *
 GNUNET_TESTBED_controller_link (struct GNUNET_TESTBED_Controller *master,
-				struct GNUNET_TESTBED_Host *delegated_host,
-				struct GNUNET_TESTBED_Host *slave_host,
-				const struct GNUNET_CONFIGURATION_Handle *slave_cfg,
-				int is_subordinate)
+                                struct GNUNET_TESTBED_Host *delegated_host,
+                                struct GNUNET_TESTBED_Host *slave_host,
+                                const struct GNUNET_CONFIGURATION_Handle
+                                *slave_cfg, int is_subordinate)
 {
   struct GNUNET_TESTBED_Operation *op;
   char *config;
   char *cconfig;
   size_t cc_size;
-  size_t config_size;  
-  
+  size_t config_size;
+
   GNUNET_assert (GNUNET_YES ==
-		 GNUNET_TESTBED_is_host_registered_ (delegated_host, master));
+                 GNUNET_TESTBED_is_host_registered_ (delegated_host, master));
   if ((NULL != slave_host) && (0 != GNUNET_TESTBED_host_get_id_ (slave_host)))
     GNUNET_assert (GNUNET_YES ==
-		   GNUNET_TESTBED_is_host_registered_ (slave_host, master));
+                   GNUNET_TESTBED_is_host_registered_ (slave_host, master));
   config = GNUNET_CONFIGURATION_serialize (slave_cfg, &config_size);
   cc_size = GNUNET_TESTBED_compress_config_ (config, config_size, &cconfig);
   GNUNET_free (config);
-  GNUNET_assert ((UINT16_MAX -
-		  sizeof (struct GNUNET_TESTBED_ControllerLinkMessage))
-		  >= cc_size); /* Configuration doesn't fit in 1 message */
+  GNUNET_assert ((UINT16_MAX - sizeof (struct GNUNET_TESTBED_ControllerLinkMessage)) >= cc_size);       /* Configuration doesn't fit in 1 message */
   op = GNUNET_TESTBED_controller_link_2 (master, delegated_host, slave_host,
-				    (const char *) cconfig,
-				    cc_size, config_size, is_subordinate);
+                                         (const char *) cconfig, cc_size,
+                                         config_size, is_subordinate);
   GNUNET_free (cconfig);
   return op;
 }
@@ -1608,8 +1627,9 @@ GNUNET_TESTBED_controller_link (struct GNUNET_TESTBED_Controller *master,
  *        be written to.
  */
 void
-GNUNET_TESTBED_overlay_write_topology_to_file (struct GNUNET_TESTBED_Controller *controller,
-					       const char *filename)
+GNUNET_TESTBED_overlay_write_topology_to_file (struct GNUNET_TESTBED_Controller
+                                               *controller,
+                                               const char *filename)
 {
   GNUNET_break (0);
 }
@@ -1626,7 +1646,8 @@ GNUNET_TESTBED_overlay_write_topology_to_file (struct GNUNET_TESTBED_Controller 
  */
 struct GNUNET_TESTBED_HelperInit *
 GNUNET_TESTBED_create_helper_init_msg_ (const char *cname,
-                                        const struct GNUNET_CONFIGURATION_Handle *cfg)
+                                        const struct GNUNET_CONFIGURATION_Handle
+                                        *cfg)
 {
   struct GNUNET_TESTBED_HelperInit *msg;
   char *config;
@@ -1639,13 +1660,13 @@ GNUNET_TESTBED_create_helper_init_msg_ (const char *cname,
   config = GNUNET_CONFIGURATION_serialize (cfg, &config_size);
   GNUNET_assert (NULL != config);
   xconfig_size =
-    GNUNET_TESTBED_compress_config_ (config, config_size, &xconfig);
+      GNUNET_TESTBED_compress_config_ (config, config_size, &xconfig);
   GNUNET_free (config);
   cname_len = strlen (cname);
-  msg_size = xconfig_size + cname_len + 1 + 
-    sizeof (struct GNUNET_TESTBED_HelperInit);
+  msg_size =
+      xconfig_size + cname_len + 1 + sizeof (struct GNUNET_TESTBED_HelperInit);
   msg = GNUNET_realloc (xconfig, msg_size);
-  (void) memmove ( ((void *) &msg[1]) + cname_len + 1, msg, xconfig_size);
+  (void) memmove (((void *) &msg[1]) + cname_len + 1, msg, xconfig_size);
   msg->header.size = htons (msg_size);
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_HELPER_INIT);
   msg->cname_size = htons (cname_len);
@@ -1660,8 +1681,8 @@ GNUNET_TESTBED_create_helper_init_msg_ (const char *cname,
  * of the operation and will ensure that no event
  * is generated for the operation.  Does NOT guarantee
  * that the operation will be fully undone (or that
- * nothing ever happened).  
- * 
+ * nothing ever happened).
+ *
  * @param operation operation to cancel
  */
 void
@@ -1677,7 +1698,7 @@ GNUNET_TESTBED_operation_cancel (struct GNUNET_TESTBED_Operation *operation)
  * of type 'operation_finished' to fully remove the operation
  * from the operation queue.  After calling this function, the
  * 'op_result' becomes invalid (!).
- * 
+ *
  * @param operation operation to signal completion for
  */
 void
@@ -1717,18 +1738,20 @@ GNUNET_TESTBED_get_config_from_peerinfo_msg_ (const struct
   uLong config_size;
   int ret;
   uint16_t msize;
-  
+
   config_size = (uLong) ntohs (msg->config_size);
   config = GNUNET_malloc (config_size);
   msize = ntohs (msg->header.size);
   msize -= sizeof (struct GNUNET_TESTBED_PeerConfigurationInformationMessage);
-  if (Z_OK != (ret = uncompress ((Bytef *) config, &config_size,
-                                 (const Bytef *) &msg[1], (uLong) msize)))
+  if (Z_OK !=
+      (ret =
+       uncompress ((Bytef *) config, &config_size, (const Bytef *) &msg[1],
+                   (uLong) msize)))
     GNUNET_assert (0);
   cfg = GNUNET_CONFIGURATION_create ();
-  GNUNET_assert (GNUNET_OK == 
+  GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONFIGURATION_deserialize (cfg, config,
-						   (size_t) config_size,
+                                                   (size_t) config_size,
                                                    GNUNET_NO));
   GNUNET_free (config);
   return cfg;

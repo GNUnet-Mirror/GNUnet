@@ -40,10 +40,12 @@
  */
 struct GNUNET_TESTBED_Operation *
 GNUNET_TESTBED_underlay_configure_topology_va (void *op_cls,
-					       unsigned int num_peers,
-					       struct GNUNET_TESTBED_Peer **peers,
-					       enum GNUNET_TESTBED_TopologyOption topo,
-					       va_list ap)
+                                               unsigned int num_peers,
+                                               struct GNUNET_TESTBED_Peer
+                                               **peers,
+                                               enum
+                                               GNUNET_TESTBED_TopologyOption
+                                               topo, va_list ap)
 {
   GNUNET_break (0);
   return NULL;
@@ -63,10 +65,10 @@ GNUNET_TESTBED_underlay_configure_topology_va (void *op_cls,
  */
 struct GNUNET_TESTBED_Operation *
 GNUNET_TESTBED_underlay_configure_topology (void *op_cls,
-					    unsigned int num_peers,
-					    struct GNUNET_TESTBED_Peer **peers,
-					    enum GNUNET_TESTBED_TopologyOption topo,
-					    ...)
+                                            unsigned int num_peers,
+                                            struct GNUNET_TESTBED_Peer **peers,
+                                            enum GNUNET_TESTBED_TopologyOption
+                                            topo, ...)
 {
   GNUNET_break (0);
   return NULL;
@@ -83,16 +85,16 @@ GNUNET_TESTBED_underlay_configure_topology (void *op_cls,
  * @param peers array of 'num_peers' with the peers to configure
  * @param topo desired underlay topology to use
  * @param va topology-specific options
- * @return handle to the operation, NULL if connecting these 
+ * @return handle to the operation, NULL if connecting these
  *         peers is fundamentally not possible at this time (peers
  *         not running or underlay disallows)
  */
 struct GNUNET_TESTBED_Operation *
 GNUNET_TESTBED_overlay_configure_topology_va (void *op_cls,
-					      unsigned int num_peers,
-					      struct GNUNET_TESTBED_Peer *peers,
-					      enum GNUNET_TESTBED_TopologyOption topo,
-					      va_list va)
+                                              unsigned int num_peers,
+                                              struct GNUNET_TESTBED_Peer *peers,
+                                              enum GNUNET_TESTBED_TopologyOption
+                                              topo, va_list va)
 {
   GNUNET_break (0);
   return NULL;
@@ -109,16 +111,15 @@ GNUNET_TESTBED_overlay_configure_topology_va (void *op_cls,
  * @param peers array of 'num_peers' with the peers to configure
  * @param topo desired underlay topology to use
  * @param ... topology-specific options
- * @return handle to the operation, NULL if connecting these 
+ * @return handle to the operation, NULL if connecting these
  *         peers is fundamentally not possible at this time (peers
  *         not running or underlay disallows)
  */
 struct GNUNET_TESTBED_Operation *
-GNUNET_TESTBED_overlay_configure_topology (void *op_cls,
-					   unsigned int num_peers,
-					   struct GNUNET_TESTBED_Peer *peers,
-					   enum GNUNET_TESTBED_TopologyOption topo,
-					   ...)
+GNUNET_TESTBED_overlay_configure_topology (void *op_cls, unsigned int num_peers,
+                                           struct GNUNET_TESTBED_Peer *peers,
+                                           enum GNUNET_TESTBED_TopologyOption
+                                           topo, ...)
 {
   GNUNET_break (0);
   return NULL;

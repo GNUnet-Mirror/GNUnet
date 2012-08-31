@@ -69,7 +69,7 @@ struct OperationQueue
    * Number of operations that can be concurrently
    * active in this queue.
    */
-  unsigned int active;  
+  unsigned int active;
 };
 
 
@@ -77,17 +77,17 @@ struct OperationQueue
  * Operation state
  */
 enum OperationState
-  {
+{
     /**
      * The operation is currently waiting for resources
      */
-    OP_STATE_WAITING,
+  OP_STATE_WAITING,
 
     /**
      * The operation has started
      */
-    OP_STATE_STARTED,
-  };
+  OP_STATE_STARTED,
+};
 
 
 /**
@@ -105,7 +105,7 @@ struct GNUNET_TESTBED_Operation
    * not have been started yet).
    */
   OperationRelease release;
-				 
+
   /**
    * Closure for callbacks.
    */
@@ -129,8 +129,8 @@ struct GNUNET_TESTBED_Operation
   /**
    * The state of the operation
    */
-  enum OperationState state;  
-  
+  enum OperationState state;
+
 };
 
 
@@ -142,15 +142,15 @@ struct GNUNET_TESTBED_Operation
  */
 static void
 call_start (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{  
+{
   struct GNUNET_TESTBED_Operation *op = cls;
-  
+
   op->start_task_id = GNUNET_SCHEDULER_NO_TASK;
   op->state = OP_STATE_STARTED;
   if (NULL != op->start)
   {
     op->start (op->cb_cls);
-  }  
+  }
 }
 
 
@@ -161,11 +161,11 @@ call_start (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  */
 static void
 check_readiness (struct GNUNET_TESTBED_Operation *op)
-{   
+{
   unsigned int i;
 
   if (GNUNET_SCHEDULER_NO_TASK != op->start_task_id)
-    return;  
+    return;
   for (i = 0; i < op->nqueues; i++)
   {
     if (0 == op->queues[i]->active)
@@ -188,9 +188,8 @@ check_readiness (struct GNUNET_TESTBED_Operation *op)
  * @return handle to the operation
  */
 struct GNUNET_TESTBED_Operation *
-GNUNET_TESTBED_operation_create_ (void *cls,
-				  OperationStart start,
-				  OperationRelease release)
+GNUNET_TESTBED_operation_create_ (void *cls, OperationStart start,
+                                  OperationRelease release)
 {
   struct GNUNET_TESTBED_Operation *op;
 
@@ -240,9 +239,9 @@ GNUNET_TESTBED_operation_queue_destroy_ (struct OperationQueue *queue)
  * Add an operation to a queue.  An operation can be in multiple
  * queues at once.  Once all queues permit the operation to become
  * active, the operation will be activated.  The actual activation
- * will occur in a separate task (thus allowing multiple queue 
+ * will occur in a separate task (thus allowing multiple queue
  * insertions to be made without having the first one instantly
- * trigger the operation if the first queue has sufficient 
+ * trigger the operation if the first queue has sufficient
  * resources).
  *
  * @param queue queue to add the operation to
@@ -250,7 +249,8 @@ GNUNET_TESTBED_operation_queue_destroy_ (struct OperationQueue *queue)
  */
 void
 GNUNET_TESTBED_operation_queue_insert_ (struct OperationQueue *queue,
-					struct GNUNET_TESTBED_Operation *operation)
+                                        struct GNUNET_TESTBED_Operation
+                                        *operation)
 {
   struct QueueEntry *entry;
 
@@ -258,8 +258,9 @@ GNUNET_TESTBED_operation_queue_insert_ (struct OperationQueue *queue,
   entry->op = operation;
   GNUNET_CONTAINER_DLL_insert_tail (queue->head, queue->tail, entry);
   operation->queues =
-    GNUNET_realloc (operation->queues,
-                    sizeof (struct OperationQueue *) * (++operation->nqueues));
+      GNUNET_realloc (operation->queues,
+                      sizeof (struct OperationQueue *) *
+                      (++operation->nqueues));
   operation->queues[operation->nqueues - 1] = queue;
   check_readiness (operation);
 }
@@ -276,11 +277,12 @@ GNUNET_TESTBED_operation_queue_insert_ (struct OperationQueue *queue,
  */
 void
 GNUNET_TESTBED_operation_queue_remove_ (struct OperationQueue *queue,
-					struct GNUNET_TESTBED_Operation *operation)
+                                        struct GNUNET_TESTBED_Operation
+                                        *operation)
 {
   struct QueueEntry *entry;
   struct QueueEntry *entry2;
-  
+
   for (entry = queue->head; NULL != entry; entry = entry->next)
     if (entry->op == operation)
       break;
@@ -309,7 +311,7 @@ void
 GNUNET_TESTBED_operation_release_ (struct GNUNET_TESTBED_Operation *operation)
 {
   unsigned int i;
-    
+
   if (GNUNET_SCHEDULER_NO_TASK != operation->start_task_id)
   {
     GNUNET_SCHEDULER_cancel (operation->start_task_id);

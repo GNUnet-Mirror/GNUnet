@@ -22,7 +22,7 @@
  * @file testbed/testbed_helper.h
  * @brief Message formats for communication between testbed api and
  *          gnunet-testbed-helper process
- * @author Sree Harsha Totakura <sreeharsha@totakura.in> 
+ * @author Sree Harsha Totakura <sreeharsha@totakura.in>
  */
 
 #ifndef TESTBED_HELPER_H
@@ -40,7 +40,7 @@ struct GNUNET_TESTBED_HelperInit
 
   /**
    * The controller hostname size excluding the NULL termination character -
-   * strlen (hostname); cannot be zero 
+   * strlen (hostname); cannot be zero
    */
   uint16_t cname_size GNUNET_PACKED;
 
@@ -50,9 +50,9 @@ struct GNUNET_TESTBED_HelperInit
   uint16_t config_size GNUNET_PACKED;
 
   /* Followed by NULL terminated controller hostname */
-  
+
   /* Followed by serialized and compressed configuration which should be
-     config_size long when un-compressed */
+   * config_size long when un-compressed */
 };
 
 /**
@@ -71,7 +71,7 @@ struct GNUNET_TESTBED_HelperReply
   uint16_t config_size GNUNET_PACKED;
 
   /* Followed by compressed configuration which should be config_size long when
-     un-compressed */
+   * un-compressed */
 };
 
 #endif

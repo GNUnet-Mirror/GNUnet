@@ -21,7 +21,7 @@
 /**
  * @file testbed/test_testbed_api_testbed_run.c
  * @brief Test cases for testing high-level testbed management
- * @author Sree Harsha Totakura <sreeharsha@totakura.in> 
+ * @author Sree Harsha Totakura <sreeharsha@totakura.in>
  */
 
 #include "platform.h"
@@ -110,7 +110,7 @@ static void
 controller_event_cb (void *cls,
                      const struct GNUNET_TESTBED_EventInformation *event)
 {
-  
+
   switch (event->type)
   {
   case GNUNET_TESTBED_ET_PEER_START:
@@ -125,7 +125,7 @@ controller_event_cb (void *cls,
 
 
 /**
- * Main run function. 
+ * Main run function.
  *
  * @param cls NULL
  * @param args arguments passed to GNUNET_PROGRAM_run
@@ -137,7 +137,7 @@ run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *config)
 {
   uint64_t event_mask;
-  
+
   event_mask = 0;
   event_mask |= (1LL << GNUNET_TESTBED_ET_PEER_START);
   event_mask |= (1LL << GNUNET_TESTBED_ET_PEER_STOP);
@@ -146,18 +146,22 @@ run (void *cls, char *const *args, const char *cfgfile,
   event_mask |= (1LL << GNUNET_TESTBED_ET_OPERATION_FINISHED);
   GNUNET_TESTBED_run (NULL, config, NUM_PEERS, event_mask, &controller_event_cb,
                       NULL, &master_task, NULL);
-  abort_task = GNUNET_SCHEDULER_add_delayed 
-    (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5), &do_abort, NULL);
+  abort_task =
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                    (GNUNET_TIME_UNIT_SECONDS, 5), &do_abort,
+                                    NULL);
 }
 
 
 /**
  * Main function
  */
-int main (int argc, char **argv)
+int
+main (int argc, char **argv)
 {
   int ret;
-  char *const argv2[] = { 
+
+  char *const argv2[] = {
     "test_testbed_api_testbed_run",
     "-c", "test_testbed_api.conf",
     NULL
@@ -167,9 +171,10 @@ int main (int argc, char **argv)
   };
 
   result = GNUNET_SYSERR;
-  ret = GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
-			    "test_testbed_api_testbed_run", "nohelp", options,
-                            &run, NULL);
+  ret =
+      GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
+                          "test_testbed_api_testbed_run", "nohelp", options,
+                          &run, NULL);
   if ((GNUNET_OK != ret) || (GNUNET_OK != result))
     return 1;
   return 0;

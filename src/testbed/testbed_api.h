@@ -34,48 +34,48 @@
  * Enumeration of operations
  */
 enum OperationType
-  {
+{
     /**
      * Peer create operation
      */
-    OP_PEER_CREATE,
-    
+  OP_PEER_CREATE,
+
     /**
      * Peer start operation
      */
-    OP_PEER_START,
+  OP_PEER_START,
 
     /**
      * Peer stop operation
      */
-    OP_PEER_STOP,
+  OP_PEER_STOP,
 
     /**
      * Peer destroy operation
      */
-    OP_PEER_DESTROY,
+  OP_PEER_DESTROY,
 
     /**
      * Get peer information operation
      */
-    OP_PEER_INFO,
+  OP_PEER_INFO,
 
     /**
      * Overlay connection operation
      */
-    OP_OVERLAY_CONNECT,
+  OP_OVERLAY_CONNECT,
 
     /**
      * Forwarded operation
      */
-    OP_FORWARDED,
+  OP_FORWARDED,
 
     /**
      * Link controllers operation
      */
-    OP_LINK_CONTROLLERS,
+  OP_LINK_CONTROLLERS,
 
-  };
+};
 
 
 /**
@@ -130,25 +130,25 @@ struct ControllerLink;
  * Enumeration of states of OperationContext
  */
 enum OperationContextState
-  {
+{
     /**
      * The initial state where the associated operation has just been created
      * and is waiting in the operation queues to be started
      */
-    OPC_STATE_INIT = 0,
-    
+  OPC_STATE_INIT = 0,
+
     /**
      * The operation has been started. It may occupy some resources which are to
      * be freed if cancelled.
      */
-    OPC_STATE_STARTED,
+  OPC_STATE_STARTED,
 
     /**
      * The operation has finished. The end results of this operation may occupy
      * some resources which are to be freed by operation_done
      */
-    OPC_STATE_FINISHED
-  };
+  OPC_STATE_FINISHED
+};
 
 
 /**
@@ -234,7 +234,7 @@ struct GNUNET_TESTBED_Controller
    * The client connection handle to the controller service
    */
   struct GNUNET_CLIENT_Connection *client;
-  
+
   /**
    * The head of the message queue
    */
@@ -262,7 +262,7 @@ struct GNUNET_TESTBED_Controller
 
   /**
    * The host registration handle; NULL if no current registration requests are
-   * present 
+   * present
    */
   struct GNUNET_TESTBED_HostRegistrationHandle *rh;
 
@@ -290,7 +290,7 @@ struct GNUNET_TESTBED_Controller
    * The operation id counter. use current value and increment
    */
   uint64_t operation_counter;
-  
+
   /**
    * The controller event mask
    */
@@ -316,7 +316,7 @@ struct GNUNET_TESTBED_Controller
  */
 void
 GNUNET_TESTBED_queue_message_ (struct GNUNET_TESTBED_Controller *controller,
-			       struct GNUNET_MessageHeader *msg);
+                               struct GNUNET_MessageHeader *msg);
 
 
 /**
@@ -325,12 +325,12 @@ GNUNET_TESTBED_queue_message_ (struct GNUNET_TESTBED_Controller *controller,
  * @param config the serialized configuration
  * @param size the size of config
  * @param xconfig will be set to the compressed configuration (memory is fresly
- *          allocated) 
+ *          allocated)
  * @return the size of the xconfig
  */
 size_t
 GNUNET_TESTBED_compress_config_ (const char *config, size_t size,
-				 char **xconfig);
+                                 char **xconfig);
 
 
 /**
@@ -352,8 +352,8 @@ GNUNET_TESTBED_operation_add_ (struct GNUNET_TESTBED_Operation *op);
  */
 struct GNUNET_TESTBED_HelperInit *
 GNUNET_TESTBED_create_helper_init_msg_ (const char *cname,
-					const struct
-                                        GNUNET_CONFIGURATION_Handle *cfg);
+                                        const struct GNUNET_CONFIGURATION_Handle
+                                        *cfg);
 
 
 /**
@@ -368,12 +368,11 @@ GNUNET_TESTBED_create_helper_init_msg_ (const char *cname,
  * @param cc the callback to call when reply is available
  * @param cc_cls the closure for the above callback
  * @return the operation context which can be used to cancel the forwarded
- *           operation 
+ *           operation
  */
 struct OperationContext *
 GNUNET_TESTBED_forward_operation_msg_ (struct GNUNET_TESTBED_Controller
-                                       * controller,
-                                       uint64_t operation_id,
+                                       *controller, uint64_t operation_id,
                                        const struct GNUNET_MessageHeader *msg,
                                        GNUNET_CLIENT_MessageHandler cc,
                                        void *cc_cls);

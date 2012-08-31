@@ -59,33 +59,32 @@ struct GNUNET_TESTBED_Operation *op2;
  * Enumeration of test stages
  */
 enum Test
-  {
+{
     /**
      * Initial stage
      */
-    TEST_INIT,
+  TEST_INIT,
 
     /**
      * op1 has been started
      */
-    TEST_OP1_STARTED,
+  TEST_OP1_STARTED,
 
     /**
      * op1 has been released
      */
-    TEST_OP1_RELEASED,
+  TEST_OP1_RELEASED,
 
     /**
      * op2 has started
      */
-    TEST_OP2_STARTED,
+  TEST_OP2_STARTED,
 
     /**
      * op2 released
      */
-    TEST_OP2_RELEASED
-
-  };
+  TEST_OP2_RELEASED
+};
 
 /**
  * The test result
@@ -151,7 +150,7 @@ start_cb (void *cls)
  * a callback to the 'OperationStart' preceeds the call to
  * 'OperationRelease'.  Implementations of this function are expected
  * to clean up whatever state is in 'cls' and release all resources
- * associated with the operation. 
+ * associated with the operation.
  */
 static void
 release_cb (void *cls)
@@ -175,7 +174,7 @@ release_cb (void *cls)
 
 
 /**
- * Main run function. 
+ * Main run function.
  *
  * @param cls NULL
  * @param args arguments passed to GNUNET_PROGRAM_run
@@ -190,7 +189,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_assert (NULL != q1);
   q2 = GNUNET_TESTBED_operation_queue_create_ (2);
   GNUNET_assert (NULL != q2);
-  op1 = GNUNET_TESTBED_operation_create_ (&op1, start_cb, release_cb);  
+  op1 = GNUNET_TESTBED_operation_create_ (&op1, start_cb, release_cb);
   GNUNET_assert (NULL != op1);
   op2 = GNUNET_TESTBED_operation_create_ (&op2, start_cb, release_cb);
   GNUNET_TESTBED_operation_queue_insert_ (q1, op1);
@@ -203,17 +202,19 @@ run (void *cls, char *const *args, const char *cfgfile,
 /**
  * Main function
  */
-int main (int argc, char **argv)
+int
+main (int argc, char **argv)
 {
   int ret;
-  char *const argv2[] = 
-    {"test_testbed_api_operations", "-c", "test_testbed_api.conf", NULL};
-  struct GNUNET_GETOPT_CommandLineOption options[] = 
-    {GNUNET_GETOPT_OPTION_END};
+  char *const argv2[] =
+      { "test_testbed_api_operations", "-c", "test_testbed_api.conf", NULL };
+  struct GNUNET_GETOPT_CommandLineOption options[] =
+      { GNUNET_GETOPT_OPTION_END };
 
-  ret = GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
-			    "test_testbed_api_operations", "nohelp", options,
-                            &run, NULL);
+  ret =
+      GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
+                          "test_testbed_api_operations", "nohelp", options,
+                          &run, NULL);
   if ((GNUNET_OK != ret) || (TEST_OP2_RELEASED != result))
     return 1;
   op1 = NULL;

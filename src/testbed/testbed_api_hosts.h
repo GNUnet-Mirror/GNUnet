@@ -33,7 +33,7 @@
 
 /**
  * Lookup a host by ID.
- * 
+ *
  * @param id global host ID assigned to the host; 0 is
  *        reserved to always mean 'localhost'
  * @return handle to the host, NULL on error
@@ -46,7 +46,7 @@ GNUNET_TESTBED_host_lookup_by_id_ (uint32_t id);
  * Create a host by ID; given this host handle, we could not
  * run peers at the host, but we can talk about the host
  * internally.
- * 
+ *
  * @param id global host ID assigned to the host; 0 is
  *        reserved to always mean 'localhost'
  * @return handle to the host, NULL on error
@@ -57,7 +57,7 @@ GNUNET_TESTBED_host_create_by_id_ (uint32_t id);
 
 /**
  * Obtain a host's unique global ID.
- * 
+ *
  * @param host handle to the host, NULL means 'localhost'
  * @return id global host ID assigned to the host (0 is
  *         'localhost', but then obviously not globally unique)
@@ -68,7 +68,7 @@ GNUNET_TESTBED_host_get_id_ (const struct GNUNET_TESTBED_Host *host);
 
 /**
  * Obtain the host's hostname.
- * 
+ *
  * @param host handle to the host, NULL means 'localhost'
  * @return hostname of the host
  */
@@ -78,7 +78,7 @@ GNUNET_TESTBED_host_get_hostname_ (const struct GNUNET_TESTBED_Host *host);
 
 /**
  * Obtain the host's username
- * 
+ *
  * @param host handle to the host, NULL means 'localhost'
  * @return username to login to the host
  */
@@ -88,7 +88,7 @@ GNUNET_TESTBED_host_get_username_ (const struct GNUNET_TESTBED_Host *host);
 
 /**
  * Obtain the host's ssh port
- * 
+ *
  * @param host handle to the host, NULL means 'localhost'
  * @return username to login to the host
  */
@@ -147,8 +147,8 @@ struct GNUNET_TESTBED_HelperHandle;
  */
 void
 GNUNET_TESTBED_mark_host_registered_at_ (struct GNUNET_TESTBED_Host *host,
-					 const struct GNUNET_TESTBED_Controller
-					 *controller);
+                                         const struct GNUNET_TESTBED_Controller
+                                         *controller);
 
 
 /**
@@ -160,8 +160,8 @@ GNUNET_TESTBED_mark_host_registered_at_ (struct GNUNET_TESTBED_Host *host,
  */
 int
 GNUNET_TESTBED_is_host_registered_ (const struct GNUNET_TESTBED_Host *host,
-				    const struct GNUNET_TESTBED_Controller
-					 *controller);
+                                    const struct GNUNET_TESTBED_Controller
+                                    *controller);
 
 
 

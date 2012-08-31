@@ -26,7 +26,7 @@
  *          with ports and paths fixed so that gnunet-service-testbed runs
  *          without any hurdles. This binary also kills the testbed service
  *          should the connection from the remote controller is dropped
- * @author Sree Harsha Totakura <sreeharsha@totakura.in> 
+ * @author Sree Harsha Totakura <sreeharsha@totakura.in>
  */
 
 
@@ -150,7 +150,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     (void) GNUNET_DISK_file_close (stdin_fd);
   if (NULL != stdout_fd)
     (void) GNUNET_DISK_file_close (stdout_fd);
-  GNUNET_SERVER_mst_destroy (tokenizer);  
+  GNUNET_SERVER_mst_destroy (tokenizer);
   tokenizer = NULL;
   if (NULL != testbed)
   {
@@ -188,8 +188,9 @@ write_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_free (wc);
     return;
   }
-  bytes_wrote = GNUNET_DISK_file_write (stdout_fd, wc->data + wc->pos,
-                                        wc->length - wc->pos);
+  bytes_wrote =
+      GNUNET_DISK_file_write (stdout_fd, wc->data + wc->pos,
+                              wc->length - wc->pos);
   GNUNET_assert (GNUNET_SYSERR != bytes_wrote);
   wc->pos += bytes_wrote;
   if (wc->pos == wc->length)
@@ -198,8 +199,9 @@ write_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_free (wc);
     return;
   }
-  write_task_id = GNUNET_SCHEDULER_add_write_file
-    (GNUNET_TIME_UNIT_FOREVER_REL, stdout_fd, &write_task, wc);
+  write_task_id =
+      GNUNET_SCHEDULER_add_write_file (GNUNET_TIME_UNIT_FOREVER_REL, stdout_fd,
+                                       &write_task, wc);
 }
 
 
@@ -215,7 +217,7 @@ write_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  *
  * @return GNUNET_OK on success, GNUNET_SYSERR to stop further processing
  */
-static int 
+static int
 tokenizer_cb (void *cls, void *client,
               const struct GNUNET_MessageHeader *message)
 {
@@ -234,8 +236,7 @@ tokenizer_cb (void *cls, void *client,
   if ((sizeof (struct GNUNET_TESTBED_HelperInit) >= ntohs (message->size)) ||
       (GNUNET_MESSAGE_TYPE_TESTBED_HELPER_INIT != ntohs (message->type)))
   {
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-         "Received unexpected message -- exiting\n");
+    LOG (GNUNET_ERROR_TYPE_WARNING, "Received unexpected message -- exiting\n");
     goto error;
   }
   msg = (const struct GNUNET_TESTBED_HelperInit *) message;
@@ -243,28 +244,30 @@ tokenizer_cb (void *cls, void *client,
   controller = (char *) &msg[1];
   if ('\0' != controller[cname_size])
   {
-    LOG (GNUNET_ERROR_TYPE_WARNING, 
+    LOG (GNUNET_ERROR_TYPE_WARNING,
          "Controller name cannot be empty -- exiting\n");
     goto error;
   }
   ul_config_size = (uLongf) ntohs (msg->config_size);
   config = GNUNET_malloc (ul_config_size);
-  xconfig_size = ntohs (message->size) - 
-    (cname_size + 1 + sizeof (struct GNUNET_TESTBED_HelperInit));
-  if (Z_OK != uncompress ((Bytef *) config, &ul_config_size,
-                          (const Bytef *) (controller + cname_size + 1),
-                          (uLongf) xconfig_size))
+  xconfig_size =
+      ntohs (message->size) - (cname_size + 1 +
+                               sizeof (struct GNUNET_TESTBED_HelperInit));
+  if (Z_OK !=
+      uncompress ((Bytef *) config, &ul_config_size,
+                  (const Bytef *) (controller + cname_size + 1),
+                  (uLongf) xconfig_size))
   {
-    LOG (GNUNET_ERROR_TYPE_WARNING, 
+    LOG (GNUNET_ERROR_TYPE_WARNING,
          "Error while uncompressing config -- exiting\n");
     GNUNET_free (config);
     goto error;
   }
-  cfg = GNUNET_CONFIGURATION_create ();  
-  if (GNUNET_OK != GNUNET_CONFIGURATION_deserialize (cfg, config, 
-                                                     ul_config_size, GNUNET_NO))
+  cfg = GNUNET_CONFIGURATION_create ();
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_deserialize (cfg, config, ul_config_size, GNUNET_NO))
   {
-    LOG (GNUNET_ERROR_TYPE_WARNING, 
+    LOG (GNUNET_ERROR_TYPE_WARNING,
          "Unable to deserialize config -- exiting\n");
     GNUNET_free (config);
     goto error;
@@ -272,26 +275,30 @@ tokenizer_cb (void *cls, void *client,
   GNUNET_free (config);
   test_system = GNUNET_TESTING_system_create ("testbed-helper", controller);
   GNUNET_assert (NULL != test_system);
-  GNUNET_assert (GNUNET_OK ==  GNUNET_TESTING_configuration_create
-                 (test_system, cfg));
-  GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string 
-                 (cfg, "PATHS", "DEFAULTCONFIG", &config));
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_TESTING_configuration_create (test_system, cfg));
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CONFIGURATION_get_value_string (cfg, "PATHS",
+                                                        "DEFAULTCONFIG",
+                                                        &config));
   if (GNUNET_OK != GNUNET_CONFIGURATION_write (cfg, config))
   {
-    LOG (GNUNET_ERROR_TYPE_WARNING, 
+    LOG (GNUNET_ERROR_TYPE_WARNING,
          "Unable to write config file: %s -- exiting\n", config);
     GNUNET_CONFIGURATION_destroy (cfg);
     GNUNET_free (config);
     goto error;
   }
   LOG_DEBUG ("Staring testbed with config: %s\n", config);
-  testbed = GNUNET_OS_start_process 
-    (GNUNET_YES, GNUNET_OS_INHERIT_STD_ERR /*verbose? */, NULL, NULL,
-     "gnunet-service-testbed", "gnunet-service-testbed", "-c", config, NULL);
+  testbed =
+      GNUNET_OS_start_process (GNUNET_YES,
+                               GNUNET_OS_INHERIT_STD_ERR /*verbose? */ , NULL,
+                               NULL, "gnunet-service-testbed",
+                               "gnunet-service-testbed", "-c", config, NULL);
   GNUNET_free (config);
   if (NULL == testbed)
   {
-    LOG (GNUNET_ERROR_TYPE_WARNING, 
+    LOG (GNUNET_ERROR_TYPE_WARNING,
          "Error staring gnunet-service-testbed -- exiting\n");
     GNUNET_CONFIGURATION_destroy (cfg);
     goto error;
@@ -300,8 +307,8 @@ tokenizer_cb (void *cls, void *client,
   config = GNUNET_CONFIGURATION_serialize (cfg, &config_size);
   GNUNET_CONFIGURATION_destroy (cfg);
   cfg = NULL;
-  xconfig_size = GNUNET_TESTBED_compress_config_ (config, config_size,
-						  &xconfig);
+  xconfig_size =
+      GNUNET_TESTBED_compress_config_ (config, config_size, &xconfig);
   GNUNET_free (config);
   wc = GNUNET_malloc (sizeof (struct WriteContext));
   wc->length = xconfig_size + sizeof (struct GNUNET_TESTBED_HelperReply);
@@ -311,11 +318,12 @@ tokenizer_cb (void *cls, void *client,
   reply->header.size = htons ((uint16_t) wc->length);
   reply->config_size = htons ((uint16_t) config_size);
   wc->data = reply;
-  write_task_id = GNUNET_SCHEDULER_add_write_file
-    (GNUNET_TIME_UNIT_FOREVER_REL, stdout_fd, &write_task, wc);       
+  write_task_id =
+      GNUNET_SCHEDULER_add_write_file (GNUNET_TIME_UNIT_FOREVER_REL, stdout_fd,
+                                       &write_task, wc);
   return GNUNET_OK;
-  
- error:
+
+error:
   status = GNUNET_SYSERR;
   GNUNET_SCHEDULER_shutdown ();
   return GNUNET_SYSERR;
@@ -336,7 +344,7 @@ read_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   read_task_id = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
-    return;  
+    return;
   sread = GNUNET_DISK_file_read (stdin_fd, buf, sizeof (buf));
   if ((GNUNET_SYSERR == sread) || (0 == sread))
   {
@@ -351,16 +359,16 @@ read_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   LOG_DEBUG ("Read %u bytes\n", sread);
   if (GNUNET_OK !=
-      GNUNET_SERVER_mst_receive (tokenizer, NULL, buf, sread,
-				 GNUNET_NO, GNUNET_NO))
+      GNUNET_SERVER_mst_receive (tokenizer, NULL, buf, sread, GNUNET_NO,
+                                 GNUNET_NO))
   {
     GNUNET_break (0);
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
   read_task_id =                /* No timeout while reading */
-    GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
-                                    stdin_fd, &read_task, NULL);
+      GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL, stdin_fd,
+                                      &read_task, NULL);
 }
 
 
@@ -372,19 +380,19 @@ read_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param cfgfile name of the configuration file used (for saving, can be NULL!)
  * @param cfg configuration
  */
-static void 
+static void
 run (void *cls, char *const *args, const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle * cfg)
+     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   LOG_DEBUG ("Starting testbed helper...\n");
   tokenizer = GNUNET_SERVER_mst_create (&tokenizer_cb, NULL);
   stdin_fd = GNUNET_DISK_get_handle_from_native (stdin);
   stdout_fd = GNUNET_DISK_get_handle_from_native (stdout);
   read_task_id =
-    GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
-                                    stdin_fd, &read_task, NULL);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-				&shutdown_task, NULL);
+      GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL, stdin_fd,
+                                      &read_task, NULL);
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
+                                NULL);
 }
 
 
@@ -400,8 +408,8 @@ sighandler_child_death ()
     GNUNET_assert (GNUNET_OK == GNUNET_OS_process_wait (testbed));
     GNUNET_OS_process_destroy (testbed);
     testbed = NULL;
-    GNUNET_SCHEDULER_shutdown ();	/* We are done too! */
-  }  
+    GNUNET_SCHEDULER_shutdown ();       /* We are done too! */
+  }
 }
 
 
@@ -412,9 +420,11 @@ sighandler_child_death ()
  * @param argv command line arg array
  * @return return code
  */
-int main (int argc, char **argv)
+int
+main (int argc, char **argv)
 {
   struct GNUNET_SIGNAL_Context *shc_chld;
+
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
@@ -423,10 +433,11 @@ int main (int argc, char **argv)
   status = GNUNET_OK;
   in_shutdown = GNUNET_NO;
   shc_chld =
-    GNUNET_SIGNAL_handler_install (GNUNET_SIGCHLD, &sighandler_child_death);
-  ret = GNUNET_PROGRAM_run (argc, argv, "gnunet-testbed-helper",
-				 "Helper for starting gnunet-service-testbed",
-			    options, &run, NULL);
+      GNUNET_SIGNAL_handler_install (GNUNET_SIGCHLD, &sighandler_child_death);
+  ret =
+      GNUNET_PROGRAM_run (argc, argv, "gnunet-testbed-helper",
+                          "Helper for starting gnunet-service-testbed", options,
+                          &run, NULL);
   GNUNET_SIGNAL_handler_uninstall (shc_chld);
   shc_chld = NULL;
   if (GNUNET_OK != ret)
