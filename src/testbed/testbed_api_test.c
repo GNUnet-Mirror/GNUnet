@@ -22,11 +22,98 @@
  * @file testbed/testbed_api_test.c
  * @brief high-level test function
  * @author Christian Grothoff
+ * @author Sree Harsha Totakura
  */
 #include "platform.h"
 #include "gnunet_testbed_service.h"
 
 
+/**
+ * Context information for test run
+ */
+struct TestRunContext
+{
+  /**
+   * Test master callback
+   */
+  GNUNET_TESTBED_TestMaster test_master;
+
+  /**
+   * Closure for test master
+   */
+  void *test_master_cls;
+  
+  /**
+   * Number of peers to start
+   */
+  unsigned int num_peers;
+
+  /**
+   * counter for loading peers
+   */
+  unsigned int peer_cnt;
+
+  /**
+   * Followed by peers list
+   */
+  struct GNUNET_TESTBED_Peer *peers[0];
+};
+
+
+/**
+ * Controller event callback
+ *
+ * @param cls NULL
+ * @param event the controller event
+ */
+static void
+controller_event_cb (void *cls,
+                     const struct GNUNET_TESTBED_EventInformation *event)
+{
+  struct TestRunContext *rc = cls;
+
+  if (rc->peer_cnt == rc->num_peers)
+    return;
+  GNUNET_assert (GNUNET_TESTBED_ET_PEER_START == event->type);
+  GNUNET_assert (NULL == rc->peers[rc->peer_cnt]);
+  GNUNET_assert (NULL != event->details.peer_start.peer);  
+  rc->peers[rc->peer_cnt++] = event->details.peer_start.peer;
+}
+
+
+/**
+ * Task to be executed when peers are ready
+ *
+ * @param cls NULL
+ * @param tc the task context
+ */
+static void
+master_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct TestRunContext *rc = cls;
+  
+  GNUNET_assert (rc->peer_cnt == rc->num_peers);
+  rc->test_master (rc->test_master_cls, rc->num_peers, rc->peers);
+}
+
+
+/**
+ * Main run function.
+ *
+ * @param cls NULL
+ * @param args arguments passed to GNUNET_PROGRAM_run
+ * @param cfgfile the path to configuration file
+ * @param cfg the configuration file handle
+ */
+static void
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *config)
+{
+  struct TestRunContext *rc = cls;
+
+  GNUNET_TESTBED_run (NULL, config, rc->num_peers, 0, &controller_event_cb,
+                      rc, &master_task, rc);
+}
 
 
 /**
@@ -58,7 +145,30 @@ GNUNET_TESTBED_test_run (const char *testname, const char *cfg_filename,
                          GNUNET_TESTBED_TestMaster test_master,
                          void *test_master_cls)
 {
-  GNUNET_break (0);
+  char *argv2[] = {
+    NULL,
+    "-c",
+    NULL,
+    NULL
+  };
+  struct GNUNET_GETOPT_CommandLineOption options[] = {
+    GNUNET_GETOPT_OPTION_END
+  };
+  struct TestRunContext *rc;
+  
+  argv2[0] = GNUNET_strdup (testname);
+  argv2[2] = GNUNET_strdup (cfg_filename);
+  GNUNET_assert (NULL != test_master);
+  rc = GNUNET_malloc (sizeof (struct TestRunContext) +
+                      (num_peers * sizeof (struct GNUNET_TESTBED_Peer *)));
+  rc->test_master = test_master;
+  rc->test_master_cls = test_master_cls;
+  rc->num_peers = rc->num_peers;
+  (void) GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
+                             "testname", "nohelp", options, &run, rc);
+  GNUNET_free (rc);
+  GNUNET_free (argv2[0]);
+  GNUNET_free (argv2[2]);
 }
 
 
