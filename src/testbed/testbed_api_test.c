@@ -42,7 +42,7 @@ struct TestRunContext
    * Closure for test master
    */
   void *test_master_cls;
-  
+
   /**
    * Number of peers to start
    */
@@ -76,7 +76,7 @@ controller_event_cb (void *cls,
     return;
   GNUNET_assert (GNUNET_TESTBED_ET_PEER_START == event->type);
   GNUNET_assert (NULL == rc->peers[rc->peer_cnt]);
-  GNUNET_assert (NULL != event->details.peer_start.peer);  
+  GNUNET_assert (NULL != event->details.peer_start.peer);
   rc->peers[rc->peer_cnt++] = event->details.peer_start.peer;
 }
 
@@ -91,7 +91,7 @@ static void
 master_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct TestRunContext *rc = cls;
-  
+
   GNUNET_assert (rc->peer_cnt == rc->num_peers);
   rc->test_master (rc->test_master_cls, rc->num_peers, rc->peers);
 }
@@ -111,8 +111,8 @@ run (void *cls, char *const *args, const char *cfgfile,
 {
   struct TestRunContext *rc = cls;
 
-  GNUNET_TESTBED_run (NULL, config, rc->num_peers, 0, &controller_event_cb,
-                      rc, &master_task, rc);
+  GNUNET_TESTBED_run (NULL, config, rc->num_peers, 0, &controller_event_cb, rc,
+                      &master_task, rc);
 }
 
 
@@ -155,7 +155,7 @@ GNUNET_TESTBED_test_run (const char *testname, const char *cfg_filename,
     GNUNET_GETOPT_OPTION_END
   };
   struct TestRunContext *rc;
-  
+
   argv2[0] = GNUNET_strdup (testname);
   argv2[2] = GNUNET_strdup (cfg_filename);
   GNUNET_assert (NULL != test_master);
@@ -163,14 +163,12 @@ GNUNET_TESTBED_test_run (const char *testname, const char *cfg_filename,
                       (num_peers * sizeof (struct GNUNET_TESTBED_Peer *)));
   rc->test_master = test_master;
   rc->test_master_cls = test_master_cls;
-  rc->num_peers = rc->num_peers;
+  rc->num_peers = num_peers;
   (void) GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
-                             "testname", "nohelp", options, &run, rc);
+                             testname, "nohelp", options, &run, rc);
   GNUNET_free (rc);
   GNUNET_free (argv2[0]);
   GNUNET_free (argv2[2]);
 }
-
-
 
 /* end of testbed_api_test.c */

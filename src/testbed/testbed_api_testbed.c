@@ -481,6 +481,8 @@ GNUNET_TESTBED_run (const char *host_filename,
   struct RunContext *rc;
 
   event_mask |= (1LL << GNUNET_TESTBED_ET_PEER_START);
+  event_mask |= (1LL << GNUNET_TESTBED_ET_PEER_STOP);
+  event_mask |= (1LL << GNUNET_TESTBED_ET_OPERATION_FINISHED);
   rc = GNUNET_malloc (sizeof (struct RunContext));
   GNUNET_break (NULL == host_filename); /* Currently we do not support host
                                          * files */
