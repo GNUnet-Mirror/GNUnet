@@ -31,7 +31,7 @@
 /**
  * Number of peers we want to start
  */
-#define NUM_PEERS 50
+#define NUM_PEERS 13
 
 /**
  * The array of peers; we fill this as the peers are given to us by the testbed
@@ -155,7 +155,6 @@ run (void *cls, char *const *args, const char *cfgfile,
   event_mask |= (1LL << GNUNET_TESTBED_ET_PEER_STOP);
   event_mask |= (1LL << GNUNET_TESTBED_ET_CONNECT);
   event_mask |= (1LL << GNUNET_TESTBED_ET_DISCONNECT);
-  event_mask |= (1LL << GNUNET_TESTBED_ET_OPERATION_FINISHED);
   GNUNET_TESTBED_run (NULL, config, NUM_PEERS, event_mask, &controller_event_cb,
                       NULL, &master_task, NULL);
   abort_task =

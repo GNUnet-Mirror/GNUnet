@@ -1,22 +1,22 @@
 /*
-      This file is part of GNUnet
-      (C) 2008--2012 Christian Grothoff (and other contributing authors)
+  This file is part of GNUnet
+  (C) 2008--2012 Christian Grothoff (and other contributing authors)
 
-      GNUnet is free software; you can redistribute it and/or modify
-      it under the terms of the GNU General Public License as published
-      by the Free Software Foundation; either version 3, or (at your
-      option) any later version.
+  GNUnet is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published
+  by the Free Software Foundation; either version 3, or (at your
+  option) any later version.
 
-      GNUnet is distributed in the hope that it will be useful, but
-      WITHOUT ANY WARRANTY; without even the implied warranty of
-      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-      General Public License for more details.
+  GNUnet is distributed in the hope that it will be useful, but
+  WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+  General Public License for more details.
 
-      You should have received a copy of the GNU General Public License
-      along with GNUnet; see the file COPYING.  If not, write to the
-      Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-      Boston, MA 02111-1307, USA.
- */
+  You should have received a copy of the GNU General Public License
+  along with GNUnet; see the file COPYING.  If not, write to the
+  Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+  Boston, MA 02111-1307, USA.
+*/
 
 /**
  * @file testbed/testbed_api_testbed.c
@@ -32,7 +32,7 @@
 /**
  * Generic loggins shorthand
  */
-#define LOG(kind,...)					\
+#define LOG(kind,...)                                           \
   GNUNET_log_from (kind, "testbed-api-testbed", __VA_ARGS__)
 
 /**
@@ -343,7 +343,7 @@ event_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
   }
 
 call_cc:
-  if (NULL != rc->cc)
+  if ((0 != (rc->event_mask && (1LL << event->type))) && (NULL != rc->cc))
     rc->cc (rc->cc_cls, event);
   if (GNUNET_TESTBED_ET_PEER_START != event->type)
     return;
@@ -382,6 +382,7 @@ controller_status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
 {
   struct RunContext *rc = cls;
   struct DLLOperation *dll_op;
+  uint64_t event_mask;
   unsigned int peer;
 
   if (status != GNUNET_OK)
@@ -389,9 +390,11 @@ controller_status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Testbed startup failed\n");
     return;
   }
+  event_mask = rc->event_mask;
+  event_mask |= (1LL << GNUNET_TESTBED_ET_PEER_STOP);
+  event_mask |= (1LL << GNUNET_TESTBED_ET_OPERATION_FINISHED);
   rc->c =
-      GNUNET_TESTBED_controller_connect (cfg, rc->h, rc->event_mask, &event_cb,
-                                         rc);
+      GNUNET_TESTBED_controller_connect (cfg, rc->h, event_mask, &event_cb, rc);
   rc->peers =
       GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Peer *) * rc->num_peers);
   GNUNET_assert (NULL != rc->c);
@@ -480,9 +483,6 @@ GNUNET_TESTBED_run (const char *host_filename,
 {
   struct RunContext *rc;
 
-  event_mask |= (1LL << GNUNET_TESTBED_ET_PEER_START);
-  event_mask |= (1LL << GNUNET_TESTBED_ET_PEER_STOP);
-  event_mask |= (1LL << GNUNET_TESTBED_ET_OPERATION_FINISHED);
   rc = GNUNET_malloc (sizeof (struct RunContext));
   GNUNET_break (NULL == host_filename); /* Currently we do not support host
                                          * files */
@@ -496,6 +496,7 @@ GNUNET_TESTBED_run (const char *host_filename,
   GNUNET_assert (NULL != rc->cproc);
   rc->num_peers = num_peers;
   rc->event_mask = event_mask;
+  rc->event_mask |= (1LL << GNUNET_TESTBED_ET_PEER_START);
   rc->cc = cc;
   rc->cc_cls = cc_cls;
   rc->master = master;
