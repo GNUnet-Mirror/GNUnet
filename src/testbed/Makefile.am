@@ -85,7 +85,8 @@ if ENABLE_TEST_RUN
   test_testbed_api_operations \
   test_gnunet_helper_testbed \
   test_testbed_api_controllerlink \
-  test_testbed_api_testbed_run
+  test_testbed_api_testbed_run \
+  test_testbed_api_test
 endif
 
 test_testbed_api_hosts_SOURCES = \
