@@ -384,6 +384,11 @@ static unsigned int closest_bucket;
 static unsigned int newly_found_peers;
 
 /**
+ * Option for testing that disables the 'connect' function of the DHT.
+ */
+static int disable_try_connect;
+
+/**
  * The buckets.  Array of size MAX_BUCKET_SIZE.  Offset 0 means 0 bits matching.
  */
 static struct PeerBucket k_buckets[MAX_BUCKETS];
@@ -1941,7 +1946,9 @@ handle_dht_p2p_result (void *cls, const struct GNUNET_PeerIdentity *peer,
         if (NULL != GDS_transport_handle)
         {
           GNUNET_TRANSPORT_offer_hello (GDS_transport_handle, h, NULL, NULL);
-          GNUNET_TRANSPORT_try_connect (GDS_transport_handle, &pid);
+	  if (GNUNET_YES !=
+	      disable_try_connect)
+	    GNUNET_TRANSPORT_try_connect (GDS_transport_handle, &pid);
         }
       }
     }
@@ -1998,6 +2005,8 @@ GDS_NEIGHBOURS_init ()
   };
   unsigned long long temp_config_num;
 
+  disable_try_connect
+    = GNUNET_CONFIGURATION_get_value_yesno (GDS_cfg, "DHT", "DISABLE_TRY_CONNECT");
   if (GNUNET_OK ==
       GNUNET_CONFIGURATION_get_value_number (GDS_cfg, "DHT", "bucket_size",
                                              &temp_config_num))
