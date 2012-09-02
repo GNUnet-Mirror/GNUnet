@@ -1014,24 +1014,26 @@ transmit_search_request (void *cls, size_t size, void *buf)
     msize = sizeof (struct SearchMessage);
     GNUNET_assert (size >= msize);
     mbc.keyword_offset = sc->keyword_offset;
+    /* calculate total number of known results (in put_cnt => sqms) */
     mbc.put_cnt = 0;
     GNUNET_CONTAINER_multihashmap_iterate (sc->master_result_map,
                                            &find_result_set, &mbc);
     sqms = mbc.put_cnt;
+    /* calculate how many results we can send in this message */
     mbc.put_cnt = (size - msize) / sizeof (struct GNUNET_HashCode);
     mbc.put_cnt = GNUNET_MIN (mbc.put_cnt, sqms - mbc.skip_cnt);
     if (sc->search_request_map_offset < sqms)
       GNUNET_assert (mbc.put_cnt > 0);
 
+    /* now build message */
+    msize += sizeof (struct GNUNET_HashCode) * mbc.put_cnt;
     sm->header.size = htons (msize);
     sm->type = htonl (GNUNET_BLOCK_TYPE_ANY);
     sm->anonymity_level = htonl (sc->anonymity);
     memset (&sm->target, 0, sizeof (struct GNUNET_HashCode));
     sm->query = sc->requests[sc->keyword_offset].query;
-    msize += sizeof (struct GNUNET_HashCode) * mbc.put_cnt;
     GNUNET_CONTAINER_multihashmap_iterate (sc->master_result_map,
                                            &build_result_set, &mbc);
-    sm->header.size = htons (msize);
     GNUNET_assert (sqms >= sc->search_request_map_offset);
     if (sqms != sc->search_request_map_offset)
     {
