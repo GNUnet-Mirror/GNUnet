@@ -483,11 +483,12 @@ GNUNET_TESTBED_run (const char *host_filename,
 {
   struct RunContext *rc;
 
-  rc = GNUNET_malloc (sizeof (struct RunContext));
   GNUNET_break (NULL == host_filename); /* Currently we do not support host
                                          * files */
   GNUNET_assert (NULL != cc);
+  GNUNET_assert (num_peers > 0);
   host_filename = NULL;
+  rc = GNUNET_malloc (sizeof (struct RunContext));
   rc->h = GNUNET_TESTBED_host_create (NULL, NULL, 0);
   GNUNET_assert (NULL != rc->h);
   rc->cproc =

@@ -159,6 +159,7 @@ GNUNET_TESTBED_test_run (const char *testname, const char *cfg_filename,
   argv2[0] = GNUNET_strdup (testname);
   argv2[2] = GNUNET_strdup (cfg_filename);
   GNUNET_assert (NULL != test_master);
+  GNUNET_assert (num_peers > 0);
   rc = GNUNET_malloc (sizeof (struct TestRunContext) +
                       (num_peers * sizeof (struct GNUNET_TESTBED_Peer *)));
   rc->test_master = test_master;

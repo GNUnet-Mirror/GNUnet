@@ -1127,7 +1127,8 @@ GNUNET_TESTBED_destroy (struct GNUNET_TESTBED_Testbed *testbed);
  * @param host_filename name of the file with the 'hosts', NULL
  *        to run everything on 'localhost'
  * @param cfg configuration to use (for testbed, controller and peers)
- * @param num_peers number of peers to start; FIXME: maybe put that ALSO into cfg?
+ * @param num_peers number of peers to start; FIXME: maybe put that ALSO into
+ *        cfg?; should be greater than 0
  * @param event_mask bit mask with set of events to call 'cc' for;
  *                   or-ed values of "1LL" shifted by the
  *                   respective 'enum GNUNET_TESTBED_EventType'
@@ -1182,7 +1183,7 @@ typedef void (*GNUNET_TESTBED_TestMaster)(void *cls,
  * @param testname name of the testcase (to configure logging, etc.)
  * @param cfg_filename configuration filename to use
  *              (for testbed, controller and peers)
- * @param num_peers number of peers to start
+ * @param num_peers number of peers to start; should be greter than 0
  * @param test_master task to run once the test is ready
  * @param test_master_cls closure for 'task'.
  */
