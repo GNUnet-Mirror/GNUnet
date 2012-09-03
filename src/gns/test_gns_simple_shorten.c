@@ -344,4 +344,4 @@ main (int argc, char *argv[])
   return ok;
 }
 
-/* end of test_gns_twopeer.c */
+/* end of test_gns_simple_shorten.c */
