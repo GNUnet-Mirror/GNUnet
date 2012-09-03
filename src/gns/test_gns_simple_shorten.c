@@ -75,6 +75,26 @@ struct GNUNET_CRYPTO_RsaPrivateKey *short_key;
 struct GNUNET_CRYPTO_ShortHashCode priv_zone;
 struct GNUNET_CRYPTO_ShortHashCode short_zone;
 
+
+/**
+ * Check if the get_handle is being used, if so stop the request.  Either
+ * way, schedule the end_badly_cont function which actually shuts down the
+ * test.
+ */
+static void
+end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_SCHEDULER_shutdown ();
+  ok = 1;
+}
+
+void end_badly_now ()
+{
+  GNUNET_SCHEDULER_cancel (die_task);
+  die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
+}
+
+
 /**
  * Called when gns shorten finishes
  */
@@ -83,11 +103,15 @@ process_shorten_result(void* cls, const char* sname)
 {
   GNUNET_GNS_disconnect(gns_handle);
 
+  if (GNUNET_SCHEDULER_NO_TASK != die_task)
+  {
+      GNUNET_SCHEDULER_cancel (die_task);
+      die_task = GNUNET_SCHEDULER_NO_TASK;
+  }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Disconnecting from namestore\n");
   GNUNET_NAMESTORE_disconnect (namestore_handle);
-  ok = 0;
 
   if (sname == NULL)
   {
@@ -141,17 +165,6 @@ commence_testing (void *cls, int32_t success, const char *emsg)
 }
 
 
-/**
- * Check if the get_handle is being used, if so stop the request.  Either
- * way, schedule the end_badly_cont function which actually shuts down the
- * test.
- */
-static void
-end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  ok = 1;
-}
-
 
 void do_check (void *cls,
               const struct GNUNET_CONFIGURATION_Handle *ccfg,
@@ -180,7 +193,7 @@ void do_check (void *cls,
   if (NULL == namestore_handle)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to connect to namestore\n");
-    ok = -1;
+    end_badly_now ();
     return;
   }
 
@@ -189,7 +202,7 @@ void do_check (void *cls,
                                                           &our_keyfile))
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to get key from cfg\n");
-    ok = -1;
+    end_badly_now ();
     return;
   }
   
@@ -199,7 +212,7 @@ void do_check (void *cls,
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
                "Failed to get shorten zone key from cfg\n");
-    ok = -1;
+    end_badly_now ();
     return;
   }
   
@@ -209,7 +222,7 @@ void do_check (void *cls,
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
                "Failed to get private zone key from cfg\n");
-    ok = -1;
+    end_badly_now ();
     return;
   }
 
