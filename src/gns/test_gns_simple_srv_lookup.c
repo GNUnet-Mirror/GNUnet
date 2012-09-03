@@ -259,6 +259,7 @@ do_check (void *cls,
                                sig,
                                NULL,
                                NULL);
+  GNUNET_free (sig);
   
   rd.data_size = sizeof (struct srv_data)+strlen(TEST_SRV_NAME)+1;
   srv_data->port = srv_port;
@@ -281,11 +282,12 @@ do_check (void *cls,
                                sig,
                                &commence_testing,
                                NULL);
-  GNUNET_free(srv_data);
-  GNUNET_free(sipserver);
-  GNUNET_free(sig);
-  GNUNET_CRYPTO_rsa_key_free(bob_key);
-  GNUNET_CRYPTO_rsa_key_free(alice_key);
+  GNUNET_free (alice_keyfile);
+  GNUNET_free (srv_data);
+  GNUNET_free (sipserver);
+  GNUNET_free (sig);
+  GNUNET_CRYPTO_rsa_key_free (bob_key);
+  GNUNET_CRYPTO_rsa_key_free (alice_key);
 }
 
 
