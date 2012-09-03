@@ -4786,7 +4786,8 @@ queue_send (void *cls, size_t size, void *buf)
     }
 
     /* If more data in queue, send next */
-    if (NULL != peer->queue_head)
+    queue = queue_get_next(peer);
+    if (NULL != queue)
     {
         struct GNUNET_PeerIdentity id;
 
@@ -4798,7 +4799,7 @@ queue_send (void *cls, size_t size, void *buf)
                                               0,
                                               GNUNET_TIME_UNIT_FOREVER_REL,
                                               &id,
-                                              peer->queue_head->size,
+                                              queue->size,
                                               &queue_send,
                                               peer);
     }
