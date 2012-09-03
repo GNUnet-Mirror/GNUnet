@@ -255,6 +255,7 @@ put_dht(void *cls, int32_t success, const char *emsg)
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Record serialization failed!\n");
     ok = 3;
     GNUNET_free (nrb);
+    GNUNET_free (web);
     end_badly_now ();
     return;
   }
@@ -278,7 +279,9 @@ put_dht(void *cls, int32_t success, const char *emsg)
                   DHT_OPERATION_TIMEOUT,
                   NULL,
                   NULL);
+  GNUNET_free (web);
   GNUNET_free (nrb);
+  GNUNET_free (sig);
   if (GNUNET_SCHEDULER_NO_TASK != die_task)
   {
       GNUNET_SCHEDULER_cancel (die_task);
