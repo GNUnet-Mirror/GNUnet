@@ -157,6 +157,7 @@ commence_testing (void *cls, int32_t success, const char *emsg)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Failed to connect to GNS!\n");
     end_badly_now();
+    return;
   }
 
   GNUNET_GNS_lookup(gns_handle, TEST_DOMAIN, GNUNET_GNS_RECORD_A,

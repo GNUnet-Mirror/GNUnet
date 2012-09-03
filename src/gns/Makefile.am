@@ -132,12 +132,12 @@ test_gns_simple_mx_lookup_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la \
   $(top_builddir)/src/gns/libgnunetgns.la \
-  $(top_builddir)/src/testing_old/libgnunettesting_old.la
+  $(top_builddir)/src/testing/libgnunettesting.la
 test_gns_simple_mx_lookup_DEPENDENCIES = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la \
   $(top_builddir)/src/gns/libgnunetgns.la \
-  $(top_builddir)/src/testing_old/libgnunettesting_old.la
+  $(top_builddir)/src/testing/libgnunettesting.la
 
 test_gns_simple_srv_lookup_SOURCES = \
   test_gns_simple_srv_lookup.c

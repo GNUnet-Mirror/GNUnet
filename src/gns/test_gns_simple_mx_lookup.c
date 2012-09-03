@@ -23,7 +23,7 @@
  *
  */
 #include "platform.h"
-#include "gnunet_testing_lib.h"
+#include "gnunet_testing_lib-new.h"
 #include "gnunet_core_service.h"
 #include "block_dns.h"
 #include "gnunet_signatures.h"
@@ -54,12 +54,6 @@
 
 /* Globals */
 
-/**
- * Directory to store temp data in, defined in config file
- */
-static char *test_directory;
-
-static struct GNUNET_TESTING_PeerGroup *pg;
 
 /* Task handle to use to schedule test failure */
 GNUNET_SCHEDULER_TaskIdentifier die_task;
@@ -73,20 +67,36 @@ static struct GNUNET_GNS_Handle *gns_handle;
 
 const struct GNUNET_CONFIGURATION_Handle *cfg;
 
+
 /**
- * Check whether peers successfully shut down.
+ * Check if the get_handle is being used, if so stop the request.  Either
+ * way, schedule the end_badly_cont function which actually shuts down the
+ * test.
  */
-void
-shutdown_callback (void *cls, const char *emsg)
+static void
+end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  if (emsg != NULL)
+  if (NULL != gns_handle)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Error on shutdown! ret=%d\n", ok);
-    if (ok == 0)
-      ok = 2;
+    GNUNET_GNS_disconnect(gns_handle);
+    gns_handle = NULL;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "done(ret=%d)!\n", ok);
+  if (NULL != namestore_handle)
+  {
+    GNUNET_NAMESTORE_disconnect (namestore_handle);
+    namestore_handle = NULL;
+  }
+  GNUNET_break (0);
+  GNUNET_SCHEDULER_shutdown ();
+  ok = 1;
+}
+
+static void
+end_badly_now ()
+{
+  GNUNET_SCHEDULER_cancel (die_task);
+  die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
 }
 
 static void
@@ -97,6 +107,12 @@ on_lookup_result(void *cls, uint32_t rd_count,
   uint16_t mx_preference;
   char* mx;
   
+  if (GNUNET_SCHEDULER_NO_TASK != die_task)
+  {
+      GNUNET_SCHEDULER_cancel (die_task);
+      die_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+
   GNUNET_NAMESTORE_disconnect (namestore_handle);
   if (rd_count == 0)
   {
@@ -129,8 +145,9 @@ on_lookup_result(void *cls, uint32_t rd_count,
   }
 
   GNUNET_GNS_disconnect(gns_handle);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Shutting down peer1!\n");
-  GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Shutting down peer!\n");
+  GNUNET_SCHEDULER_shutdown ();
+
 }
 
 
@@ -141,52 +158,25 @@ on_lookup_result(void *cls, uint32_t rd_count,
 static void
 commence_testing (void *cls, int32_t success, const char *emsg)
 {
-
   gns_handle = GNUNET_GNS_connect(cfg);
-
   if (NULL == gns_handle)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Failed to connect to GNS!\n");
+    end_badly_now();
+    return;
   }
-
   GNUNET_GNS_lookup(gns_handle, TEST_DOMAIN, GNUNET_GNS_RECORD_MX,
                     GNUNET_NO,
                     NULL,
                     &on_lookup_result, TEST_DOMAIN);
 }
 
-/**
- * Continuation for the GNUNET_DHT_get_stop call, so that we don't shut
- * down the peers without freeing memory associated with GET request.
- */
-static void
-end_badly_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-
-  if (pg != NULL)
-    GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
-  GNUNET_SCHEDULER_cancel (die_task);
-}
-
-/**
- * Check if the get_handle is being used, if so stop the request.  Either
- * way, schedule the end_badly_cont function which actually shuts down the
- * test.
- */
-static void
-end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failing test with error: `%s'!\n",
-              (char *) cls);
-  GNUNET_SCHEDULER_add_now (&end_badly_cont, NULL);
-  ok = 1;
-}
 
 static void
-do_lookup(void *cls, const struct GNUNET_PeerIdentity *id,
-          const struct GNUNET_CONFIGURATION_Handle *_cfg,
-          struct GNUNET_TESTING_Daemon *d, const char *emsg)
+do_check (void *cls,
+          const struct GNUNET_CONFIGURATION_Handle *ccfg,
+          struct GNUNET_TESTING_Peer *peer)
 {
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded alice_pkey;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded bob_pkey;
@@ -197,16 +187,15 @@ do_lookup(void *cls, const struct GNUNET_PeerIdentity *id,
   char* alice_keyfile;
   struct GNUNET_TIME_Absolute et;
 
-  cfg = _cfg;
-
-  GNUNET_SCHEDULER_cancel (die_task);
+  cfg = ccfg;
+  die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
 
   /* put records into namestore */
   namestore_handle = GNUNET_NAMESTORE_connect(cfg);
   if (NULL == namestore_handle)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to connect to namestore\n");
-    ok = -1;
+    end_badly_now();
     return;
   }
 
@@ -215,7 +204,7 @@ do_lookup(void *cls, const struct GNUNET_PeerIdentity *id,
                                                           &alice_keyfile))
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to get key from cfg\n");
-    ok = -1;
+    end_badly_now();
     return;
   }
 
@@ -264,9 +253,10 @@ do_lookup(void *cls, const struct GNUNET_PeerIdentity *id,
                                sig,
                                NULL,
                                NULL);
+  GNUNET_free (sig);
   
   rd.data_size = sizeof(struct GNUNET_DNSPARSER_MxRecord)+strlen(TEST_MX_NAME)+1;
-  mx_record = GNUNET_malloc(sizeof(uint16_t)+strlen(TEST_MX_NAME)+1);
+  mx_record = GNUNET_malloc(sizeof(struct GNUNET_DNSPARSER_MxRecord)+strlen(TEST_MX_NAME)+1);
   memcpy(mx_record, &mx_preference, sizeof(uint16_t));
   strcpy(mx_record+sizeof(uint16_t), TEST_MX_NAME);
   rd.data = mx_record;
@@ -285,73 +275,20 @@ do_lookup(void *cls, const struct GNUNET_PeerIdentity *id,
                                sig,
                                &commence_testing,
                                NULL);
-  GNUNET_free(mx_record);
-  GNUNET_free(mail);
-  GNUNET_free(sig);
-  GNUNET_CRYPTO_rsa_key_free(bob_key);
-  GNUNET_CRYPTO_rsa_key_free(alice_key);
+
+  GNUNET_free (alice_keyfile);
+  GNUNET_free (mx_record);
+  GNUNET_free (mail);
+  GNUNET_free (sig);
+  GNUNET_CRYPTO_rsa_key_free (bob_key);
+  GNUNET_CRYPTO_rsa_key_free (alice_key);
 }
 
-static void
-run (void *cls, char *const *args, const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *c)
-{
-  cfg = c;
-   /* Get path from configuration file */
-  if (GNUNET_YES !=
-      GNUNET_CONFIGURATION_get_value_string (cfg, "paths", "servicehome",
-                                             &test_directory))
-  {
-    ok = 404;
-    return;
-  }
-
-    
-  /* Set up a task to end testing if peer start fails */
-  die_task =
-      GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly,
-                                    "didn't start all daemons in reasonable amount of time!!!");
-  
-  /* Start alice */
-  pg = GNUNET_TESTING_daemons_start(cfg, 1, 1, 1, TIMEOUT,
-                                    NULL, NULL, &do_lookup, NULL,
-                                    NULL, NULL, NULL);
-}
-
-static int
-check ()
-{
-  int ret;
-
-  /* Arguments for GNUNET_PROGRAM_run */
-  char *const argv[] = { "test-gns-simple-mx-lookup", /* Name to give running binary */
-    "-c",
-    "test_gns_simple_lookup.conf",       /* Config file to use */
-#if VERBOSE
-    "-L", "DEBUG",
-#endif
-    NULL
-  };
-  struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_OPTION_END
-  };
-  /* Run the run function as a new program */
-  ret =
-      GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv,
-                          "test-gns-simple-mx-lookup", "nohelp", options, &run,
-                          &ok);
-  if (ret != GNUNET_OK)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "`test-gns-simple-mx-lookup': Failed with error code %d\n", ret);
-  }
-  return ok;
-}
 
 int
 main (int argc, char *argv[])
 {
-  int ret;
+  ok = 1;
 
   GNUNET_log_setup ("test-gns-simple-mx-lookup",
 #if VERBOSE
@@ -360,12 +297,8 @@ main (int argc, char *argv[])
                     "WARNING",
 #endif
                     NULL);
-  ret = check ();
-  /**
-   * Need to remove base directory, subdirectories taken care
-   * of by the testing framework.
-   */
-  return ret;
+  GNUNET_TESTING_peer_run ("test-gns-simple-mx-lookup", "test_gns_simple_lookup.conf", &do_check, NULL);
+  return ok;
 }
 
 /* end of test_gns_simple_mx_lookup.c */
