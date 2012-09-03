@@ -1184,6 +1184,15 @@ typedef void (*GNUNET_TESTBED_TestMaster)(void *cls,
  * @param cfg_filename configuration filename to use
  *              (for testbed, controller and peers)
  * @param num_peers number of peers to start; should be greter than 0
+ * @param event_mask bit mask with set of events to call 'cc' for;
+ *                   or-ed values of "1LL" shifted by the
+ *                   respective 'enum GNUNET_TESTBED_EventType'
+ *                   (i.e.  "(1LL << GNUNET_TESTBED_ET_CONNECT) || ...")
+ * @param cc controller callback to invoke on events; This callback is called
+ *        for all peer start events even if GNUNET_TESTBED_ET_PEER_START isn't
+ *        set in the event_mask as this is the only way get access to the
+ *        handle of each peer
+ * @param cc_cls closure for cc
  * @param test_master task to run once the test is ready
  * @param test_master_cls closure for 'task'.
  */
@@ -1191,6 +1200,9 @@ void
 GNUNET_TESTBED_test_run (const char *testname,
 			 const char *cfg_filename,
 			 unsigned int num_peers,
+                         uint64_t event_mask,
+                         GNUNET_TESTBED_ControllerCallback cc,
+                         void *cc_cls,
 			 GNUNET_TESTBED_TestMaster test_master,
 			 void *test_master_cls);
 
