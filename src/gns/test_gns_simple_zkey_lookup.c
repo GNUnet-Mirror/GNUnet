@@ -163,7 +163,6 @@ commence_testing (void *cls, int32_t success, const char *emsg)
   char* pos;
   struct GNUNET_CRYPTO_ShortHashAsciiEncoded hash_str;
   
-
   gns_handle = GNUNET_GNS_connect(cfg);
 
   if (NULL == gns_handle)
