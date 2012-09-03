@@ -23,7 +23,7 @@
  *
  */
 #include "platform.h"
-#include "gnunet_testing_lib.h"
+#include "gnunet_testing_lib-new.h"
 #include "gnunet_core_service.h"
 #include "block_dns.h"
 #include "gnunet_signatures.h"
@@ -54,14 +54,6 @@
 #define KEYFILE_BOB "../namestore/zonefiles/HGU0A0VCU334DN7F2I9UIUMVQMM7JMSD142LIMNUGTTV9R0CF4EG.zkey"
 #define KEYFILE_ALICE "../namestore/zonefiles/N0UJMP015AFUNR2BTNM3FKPBLG38913BL8IDMCO2H0A1LIB81960.zkey"
 
-/* Globals */
-
-/**
- * Directory to store temp data in, defined in config file
- */
-static char *test_directory;
-
-static struct GNUNET_TESTING_PeerGroup *pg;
 
 /* Task handle to use to schedule test failure */
 GNUNET_SCHEDULER_TaskIdentifier die_task;
@@ -84,22 +76,6 @@ struct GNUNET_CRYPTO_ShortHashCode priv_zone;
 struct GNUNET_CRYPTO_ShortHashCode short_zone;
 
 /**
- * Check whether peers successfully shut down.
- */
-static void
-shutdown_callback (void *cls, const char *emsg)
-{
-  if (emsg != NULL)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Error on shutdown! ret=%d\n", ok);
-    if (ok == 0)
-      ok = 2;
-  }
-
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "done(ret=%d)!\n", ok);
-}
-
-/**
  * Called when gns shorten finishes
  */
 static void
@@ -109,14 +85,14 @@ process_shorten_result(void* cls, const char* sname)
 
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "disconnecting from namestore\n");
+              "Disconnecting from namestore\n");
   GNUNET_NAMESTORE_disconnect (namestore_handle);
   ok = 0;
 
   if (sname == NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "shorten test failed!\n");
+                "Shorten test failed!\n");
     ok = 1;
   }
   else
@@ -126,17 +102,17 @@ process_shorten_result(void* cls, const char* sname)
     if (0 != strcmp(sname, TEST_EXPECTED_RESULT))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "shorten test failed! (wanted: %s got: %s\n",
+                  "Shorten test failed! (wanted: %s got: %s\n",
                   (char*)cls, sname);
       ok = 1;
     }
 
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "shorten test succeeded!\n");
-
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shorten test succeeded!\n");
+    ok = 0;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Shutting down peer1!\n");
-  GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutting down peer!\n");
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 /**
@@ -146,41 +122,24 @@ process_shorten_result(void* cls, const char* sname)
 static void
 commence_testing (void *cls, int32_t success, const char *emsg)
 {
-  
-  
-  
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "connecting to gns\n");
+              "Connecting to gns\n");
   gns_handle = GNUNET_GNS_connect(cfg);
-
   if (NULL == gns_handle)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "failed to connect to gns\n");
+                "Failed to connect to gns\n");
     ok = 1;
     return;
   }
 
-  GNUNET_GNS_shorten(gns_handle, TEST_DOMAIN,
-                     &priv_zone,
-                     &short_zone,
-                     &process_shorten_result,
-                     TEST_DOMAIN);
-  
+  GNUNET_assert (NULL != GNUNET_GNS_shorten (gns_handle, TEST_DOMAIN,
+                      &priv_zone,
+                      &short_zone,
+                      &process_shorten_result,
+                      TEST_DOMAIN));
 }
 
-/**
- * Continuation for the GNUNET_DHT_get_stop call, so that we don't shut
- * down the peers without freeing memory associated with GET request.
- */
-static void
-end_badly_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-
-  if (pg != NULL)
-    GNUNET_TESTING_daemons_stop (pg, TIMEOUT, &shutdown_callback, NULL);
-  GNUNET_SCHEDULER_cancel (die_task);
-}
 
 /**
  * Check if the get_handle is being used, if so stop the request.  Either
@@ -190,16 +149,13 @@ end_badly_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failing test with error: `%s'!\n",
-              (char *) cls);
-  GNUNET_SCHEDULER_add_now (&end_badly_cont, NULL);
   ok = 1;
 }
 
-static void
-do_shorten(void *cls, const struct GNUNET_PeerIdentity *id,
-          const struct GNUNET_CONFIGURATION_Handle *_cfg,
-          struct GNUNET_TESTING_Daemon *d, const char *emsg)
+
+void do_check (void *cls,
+              const struct GNUNET_CONFIGURATION_Handle *ccfg,
+              struct GNUNET_TESTING_Peer *peer)
 {
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded our_pkey;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded alice_pkey;
@@ -214,9 +170,10 @@ do_shorten(void *cls, const struct GNUNET_PeerIdentity *id,
   char* private_keyfile;
   char* shorten_keyfile;
 
-  cfg = _cfg;
+  cfg = ccfg;
+  die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Running test\n");
 
-  GNUNET_SCHEDULER_cancel (die_task);
 
   /* put records into namestore */
   namestore_handle = GNUNET_NAMESTORE_connect(cfg);
@@ -353,68 +310,13 @@ do_shorten(void *cls, const struct GNUNET_PeerIdentity *id,
   GNUNET_CRYPTO_rsa_key_free(alice_key);
   GNUNET_CRYPTO_rsa_key_free(priv_key);
   GNUNET_CRYPTO_rsa_key_free(short_key);
-}
 
-static void
-run (void *cls, char *const *args, const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *c)
-{
-  cfg = c;
-   /* Get path from configuration file */
-  if (GNUNET_YES !=
-      GNUNET_CONFIGURATION_get_value_string (cfg, "paths", "servicehome",
-                                             &test_directory))
-  {
-    ok = 404;
-    return;
-  }
-
-    
-  /* Set up a task to end testing if peer start fails */
-  die_task =
-      GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly,
-                                    "didn't start all daemons in reasonable amount of time!!!");
-  
-  /* Start alice */
-  pg = GNUNET_TESTING_daemons_start(cfg, 1, 1, 1, TIMEOUT,
-                                    NULL, NULL, &do_shorten, NULL,
-                                    NULL, NULL, NULL);
-}
-
-static int
-check ()
-{
-  int ret;
-
-  /* Arguments for GNUNET_PROGRAM_run */
-  char *const argv[] = { "test-gns-simple-shorten", /* Name to give running binary */
-    "-c",
-    "test_gns_simple_lookup.conf",       /* Config file to use */
-#if VERBOSE
-    "-L", "DEBUG",
-#endif
-    NULL
-  };
-  struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_OPTION_END
-  };
-  /* Run the run function as a new program */
-  ret =
-      GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv,
-                          "test-gns-simple-shorten", "nohelp", options, &run,
-                          &ok);
-  if (ret != GNUNET_OK)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "`test-gns-simple-shorten': Failed with error code %d\n", ret);
-  }
-  return ok;
 }
 
 int
 main (int argc, char *argv[])
 {
-  int ret;
+  ok = 1;
 
   GNUNET_log_setup ("test-gns-simple-shorten",
 #if VERBOSE
@@ -423,12 +325,10 @@ main (int argc, char *argv[])
                     "WARNING",
 #endif
                     NULL);
-  ret = check ();
-  /**
-   * Need to remove base directory, subdirectories taken care
-   * of by the testing framework.
-   */
-  return ret;
+
+  GNUNET_TESTING_peer_run ("test-gns-simple-shorten", "test_gns_simple_lookup.conf", &do_check, NULL);
+
+  return ok;
 }
 
 /* end of test_gns_twopeer.c */

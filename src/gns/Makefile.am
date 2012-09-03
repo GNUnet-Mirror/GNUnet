@@ -186,12 +186,12 @@ test_gns_simple_shorten_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la \
   $(top_builddir)/src/gns/libgnunetgns.la \
-  $(top_builddir)/src/testing_old/libgnunettesting_old.la
+  $(top_builddir)/src/testing/libgnunettesting.la
 test_gns_simple_shorten_DEPENDENCIES = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la \
   $(top_builddir)/src/gns/libgnunetgns.la \
-  $(top_builddir)/src/testing_old/libgnunettesting_old.la
+  $(top_builddir)/src/testing/libgnunettesting.la
 
 test_gns_simple_get_authority_SOURCES = \
   test_gns_simple_get_authority.c
