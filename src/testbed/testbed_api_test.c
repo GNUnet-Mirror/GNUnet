@@ -44,6 +44,21 @@ struct TestRunContext
   void *test_master_cls;
 
   /**
+   * The controller event callback
+   */
+  GNUNET_TESTBED_ControllerCallback cc;
+
+  /**
+   * Closure for the above callback
+   */
+  void *cc_cls;
+  
+  /**
+   * event mask for the controller callback
+   */
+  uint64_t event_mask;
+
+  /**
    * Number of peers to start
    */
   unsigned int num_peers;
@@ -72,6 +87,8 @@ controller_event_cb (void *cls,
 {
   struct TestRunContext *rc = cls;
 
+  if ((NULL != rc->cc) && (0 != (rc->event_mask & (1LL << event->type))))
+    rc->cc (rc->cc_cls, event);
   if (rc->peer_cnt == rc->num_peers)
     return;
   GNUNET_assert (GNUNET_TESTBED_ET_PEER_START == event->type);
@@ -110,9 +127,12 @@ run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *config)
 {
   struct TestRunContext *rc = cls;
-
-  GNUNET_TESTBED_run (NULL, config, rc->num_peers, 0, &controller_event_cb, rc,
-                      &master_task, rc);
+  uint64_t event_mask;
+  
+  event_mask = rc->event_mask;
+  event_mask |= (1LL << GNUNET_TESTBED_ET_PEER_START);
+  GNUNET_TESTBED_run (NULL, config, rc->num_peers, event_mask,
+                      &controller_event_cb, rc, &master_task, rc);
 }
 
 
@@ -136,12 +156,24 @@ run (void *cls, char *const *args, const char *cfgfile,
  * @param cfg_filename configuration filename to use
  *              (for testbed, controller and peers)
  * @param num_peers number of peers to start
+ * @param event_mask bit mask with set of events to call 'cc' for;
+ *                   or-ed values of "1LL" shifted by the
+ *                   respective 'enum GNUNET_TESTBED_EventType'
+ *                   (i.e.  "(1LL << GNUNET_TESTBED_ET_CONNECT) || ...")
+ * @param cc controller callback to invoke on events; This callback is called
+ *        for all peer start events even if GNUNET_TESTBED_ET_PEER_START isn't
+ *        set in the event_mask as this is the only way get access to the
+ *        handle of each peer
+ * @param cc_cls closure for cc
  * @param test_master task to run once the test is ready
  * @param test_master_cls closure for 'task'.
  */
 void
 GNUNET_TESTBED_test_run (const char *testname, const char *cfg_filename,
                          unsigned int num_peers,
+                         uint64_t event_mask,
+                         GNUNET_TESTBED_ControllerCallback cc,
+                         void *cc_cls,
                          GNUNET_TESTBED_TestMaster test_master,
                          void *test_master_cls)
 {
@@ -165,6 +197,9 @@ GNUNET_TESTBED_test_run (const char *testname, const char *cfg_filename,
   rc->test_master = test_master;
   rc->test_master_cls = test_master_cls;
   rc->num_peers = num_peers;
+  rc->event_mask = event_mask;
+  rc->cc = cc;
+  rc->cc_cls = cc_cls;
   (void) GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
                              testname, "nohelp", options, &run, rc);
   GNUNET_free (rc);

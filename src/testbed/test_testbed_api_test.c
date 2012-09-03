@@ -34,6 +34,16 @@
 #define NUM_PEERS 25
 
 /**
+ * Array of peers
+ */
+static struct GNUNET_TESTBED_Peer **peers;
+
+/**
+ * Operation handle
+ */
+static struct GNUNET_TESTBED_Operation *op;
+
+/**
  * Testing result
  */
 static int result;
@@ -53,6 +63,42 @@ do_shutdown (void *cls, const const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
+ * Controller event callback
+ *
+ * @param cls NULL
+ * @param event the controller event
+ */
+static void
+controller_event_cb (void *cls,
+                     const struct GNUNET_TESTBED_EventInformation *event)
+{
+  switch (event->type)
+  {
+  case GNUNET_TESTBED_ET_CONNECT:
+    GNUNET_assert (event->details.peer_connect.peer1 == peers[0]);
+    GNUNET_assert (event->details.peer_connect.peer2 == peers[1]);
+    GNUNET_TESTBED_operation_done (op);
+    op = GNUNET_TESTBED_peer_get_information (peers[0],
+                                              GNUNET_TESTBED_PIT_IDENTITY);
+    break;
+  case GNUNET_TESTBED_ET_OPERATION_FINISHED:
+    GNUNET_assert (event->details.operation_finished.operation == op);
+    GNUNET_assert (NULL == event->details.operation_finished.op_cls);
+    GNUNET_assert (NULL == event->details.operation_finished.emsg);
+    GNUNET_assert (GNUNET_TESTBED_PIT_IDENTITY ==
+                   event->details.operation_finished.pit);
+    GNUNET_assert (NULL != event->details.operation_finished.op_result.pid);
+    GNUNET_TESTBED_operation_done (op);
+    result = GNUNET_OK;
+    GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+    break;
+  default:
+    GNUNET_assert (0);
+  }  
+}
+
+
+/**
  * Signature of a main function for a testcase.
  *
  * @param cls closure
@@ -61,18 +107,17 @@ do_shutdown (void *cls, const const struct GNUNET_SCHEDULER_TaskContext *tc)
  */
 static void
 test_master (void *cls, unsigned int num_peers,
-             struct GNUNET_TESTBED_Peer **peers)
+             struct GNUNET_TESTBED_Peer **peers_)
 {
   unsigned int peer;
 
   GNUNET_assert (NULL == cls);
   GNUNET_assert (NUM_PEERS == num_peers);
-  GNUNET_assert (NULL != peers);
+  GNUNET_assert (NULL != peers_);
   for (peer = 0; peer < num_peers; peer++)
-    GNUNET_assert (NULL != peers[peer]);
-  result = GNUNET_OK;
-  /* Artificial delay for shutdown */
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &do_shutdown, NULL);
+    GNUNET_assert (NULL != peers_[peer]);
+  peers = peers_;
+  op = GNUNET_TESTBED_overlay_connect (NULL, peers[0], peers[1]);  
 }
 
 
@@ -82,9 +127,15 @@ test_master (void *cls, unsigned int num_peers,
 int
 main (int argc, char **argv)
 {
+  uint64_t event_mask;
+
   result = GNUNET_SYSERR;
+  event_mask = 0;
+  event_mask |= (1LL << GNUNET_TESTBED_ET_CONNECT);
+  event_mask |= (1LL << GNUNET_TESTBED_ET_OPERATION_FINISHED);
   GNUNET_TESTBED_test_run ("test_testbed_api_test", "test_testbed_api.conf",
-                           NUM_PEERS, &test_master, NULL);
+                           NUM_PEERS, event_mask, &controller_event_cb, NULL,
+                           &test_master, NULL);
   if (GNUNET_OK != result)
     return 1;
   return 0;
