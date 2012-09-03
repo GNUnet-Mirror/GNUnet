@@ -548,8 +548,6 @@ struct GNUNET_TESTBED_GenericOperationSuccessEventMessage
 };
 
 
-
-
 /**
  * Message sent from client to testing service to
  * obtain the configuration of a peer.
@@ -575,9 +573,8 @@ struct GNUNET_TESTBED_PeerGetConfigurationMessage
 };
 
 
-
 /**
- * Event notification from a controller to a client.
+ * Peer configuration and identity reply from controller to a client.
  */
 struct GNUNET_TESTBED_PeerConfigurationInformationMessage
 {
