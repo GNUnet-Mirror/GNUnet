@@ -159,8 +159,9 @@ do_shutdown (void *cls,
     listen_socket6 = NULL;
   }
   GNUNET_GNS_disconnect (gns);
-  GNUNET_DNSSTUB_stop (dns_stub);
   gns = NULL;
+  GNUNET_DNSSTUB_stop (dns_stub);
+  dns_stub = NULL;
 }
 
 
@@ -392,10 +393,11 @@ handle_request (struct GNUNET_NETWORK_Handle *lsock,
        (0 == strcasecmp (dns_suffix,
 			 &name[name_len - strlen (dns_suffix)])) )
     {
-      if (0 == strcasecmp (fcfs_suffix,
-                           &name[name_len - strlen (fcfs_suffix)]))
+      if ( (name_len > strlen (fcfs_suffix)) &&
+	   (0 == strcasecmp (fcfs_suffix,
+			     &name[name_len - strlen (fcfs_suffix)])) )
       {
-        name[name_len - strlen (dns_suffix) + 1] = '\0';
+        name[name_len - strlen (fcfs_suffix) + 1] = '\0';
         strcat (name, GNUNET_GNS_TLD);
       }
       else
@@ -556,19 +558,16 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   if (NULL == dns_suffix)
     dns_suffix = DNS_SUFFIX;
-
   if (NULL == fcfs_suffix)
     fcfs_suffix = FCFS_SUFFIX;
-
-  gns = GNUNET_GNS_connect (cfg);
-
-  dns_stub = GNUNET_DNSSTUB_start (dns_ip);
-
-  if (NULL == dns_stub)
+  if (NULL == (gns = GNUNET_GNS_connect (cfg)))
     return;
-
-  if (NULL == gns)
-    return;
+  if (NULL == (dns_stub = GNUNET_DNSSTUB_start (dns_ip)))
+    {
+      GNUNET_GNS_disconnect (gns);
+      gns = NULL;
+      return;
+    }
   listen_socket4 = GNUNET_NETWORK_socket_create (PF_INET,
 						 SOCK_DGRAM, 
 						 IPPROTO_UDP);
@@ -617,7 +616,13 @@ run (void *cls, char *const *args, const char *cfgfile,
     }
   if ( (NULL == listen_socket4) &&
        (NULL == listen_socket6) )
-    return;
+    {
+      GNUNET_GNS_disconnect (gns);
+      gns = NULL;
+      GNUNET_DNSSTUB_stop (dns_stub);
+      dns_stub = NULL;
+      return;
+    }
   if (NULL != listen_socket4)
     t4 = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
 					listen_socket4,

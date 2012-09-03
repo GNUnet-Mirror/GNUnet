@@ -87,6 +87,9 @@ struct GNUNET_DNSSTUB_RequestSocket
 };
 
 
+/**
+ * Handle to the stub resolver.
+ */ 
 struct GNUNET_DNSSTUB_Context
 {
 
@@ -509,7 +512,7 @@ GNUNET_DNSSTUB_stop (struct GNUNET_DNSSTUB_Context *ctx)
 {
   unsigned int i;
 
-  for (i=0;i<=UINT16_MAX;i++)
+  for (i=0;i<DNS_SOCKET_MAX;i++)
     cleanup_rs (&ctx->sockets[i]);
   if (NULL != ctx->dns_exit)
   {
