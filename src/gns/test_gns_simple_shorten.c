@@ -153,7 +153,7 @@ commence_testing (void *cls, int32_t success, const char *emsg)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Failed to connect to gns\n");
-    ok = 1;
+    end_badly_now ();
     return;
   }
 
@@ -344,4 +344,4 @@ main (int argc, char *argv[])
   return ok;
 }
 
-/* end of test_gns_simple_shorten.c */
+/* end of test_gns_twopeer.c */
