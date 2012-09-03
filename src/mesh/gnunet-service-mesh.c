@@ -3565,7 +3565,7 @@ tunnel_get_children_fwd_ack (struct MeshTunnel *t)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
             "  tunnel has no children, no FWD ACK\n");
-    return -1LL;
+    return -1L;
   }
 
   if (GNUNET_YES == t->nobuffer && GMC_is_pid_bigger(ctx.max_child_ack, t->fwd_pid))
@@ -3619,7 +3619,7 @@ tunnel_get_clients_fwd_ack (struct MeshTunnel *t)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "  tunnel has no clients, no FWD ACK\n");
-    return -1LL;
+    return -1L;
   }
 
   for (ack = -1, i = 0; i < t->nclients; i++)
@@ -3652,11 +3652,11 @@ tunnel_get_clients_fwd_ack (struct MeshTunnel *t)
 static uint32_t
 tunnel_get_fwd_ack (struct MeshTunnel *t)
 {
+  uint32_t ack;
   uint32_t count;
   uint32_t buffer_free;
   int64_t child_ack;
   int64_t client_ack;
-  uint32_t ack;
 
   count = t->fwd_pid - t->skip;
   buffer_free = t->fwd_queue_max - t->fwd_queue_n;
@@ -3669,7 +3669,10 @@ tunnel_get_fwd_ack (struct MeshTunnel *t)
     GNUNET_break (-1 != client_ack); // No children AND no clients? Not good!
     return (uint32_t) client_ack;
   }
-
+  if (-1 == client_ack)
+  {
+    client_ack = ack;
+  }
   if (GNUNET_YES == t->speed_min)
   {
     ack = GMC_min_pid ((uint32_t) child_ack, ack);
@@ -3682,7 +3685,8 @@ tunnel_get_fwd_ack (struct MeshTunnel *t)
   }
   if (GNUNET_YES == t->nobuffer && GMC_is_pid_bigger(ack, t->fwd_pid))
     ack = t->fwd_pid + 1; // Might overflow 32 bits, it's ok!
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "c %u, bf %u, ch %u, cl %u, ACK: %u\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "c %u, bf %u, ch %lld, cl %lld, ACK: %u\n",
               count, buffer_free, child_ack, client_ack, ack);
   return ack;
 }
@@ -4802,6 +4806,13 @@ queue_send (void *cls, size_t size, void *buf)
                                               queue->size,
                                               &queue_send,
                                               peer);
+    }
+    else
+    {
+      if (NULL != peer->queue_head)
+        GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                    "*********   %s stalled\n",
+                    GNUNET_i2s(&my_full_id));
     }
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********   return %d\n", data_size);
     return data_size;
