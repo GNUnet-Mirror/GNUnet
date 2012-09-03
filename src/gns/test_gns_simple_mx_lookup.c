@@ -76,6 +76,7 @@ const struct GNUNET_CONFIGURATION_Handle *cfg;
 static void
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  die_task = GNUNET_SCHEDULER_NO_TASK;
   if (NULL != gns_handle)
   {
     GNUNET_GNS_disconnect(gns_handle);

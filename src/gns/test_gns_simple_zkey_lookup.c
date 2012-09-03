@@ -75,6 +75,7 @@ struct GNUNET_CRYPTO_ShortHashCode bob_hash;
 static void
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  die_task = GNUNET_SCHEDULER_NO_TASK;
   if (NULL != gns_handle)
   {
     GNUNET_GNS_disconnect(gns_handle);
@@ -112,8 +113,8 @@ on_lookup_result(void *cls, uint32_t rd_count,
       die_task = GNUNET_SCHEDULER_NO_TASK;
   }
 
-
   GNUNET_NAMESTORE_disconnect (namestore_handle);
+  namestore_handle = NULL;
   if (rd_count == 0)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -147,6 +148,7 @@ on_lookup_result(void *cls, uint32_t rd_count,
   }
 
   GNUNET_GNS_disconnect(gns_handle);
+  gns_handle = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Shutting down peer!\n");
   GNUNET_SCHEDULER_shutdown ();
 }

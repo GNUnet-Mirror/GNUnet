@@ -84,6 +84,7 @@ struct GNUNET_CRYPTO_ShortHashCode short_zone;
 static void
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  die_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_SCHEDULER_shutdown ();
   ok = 1;
 }
