@@ -270,12 +270,12 @@ test_gns_revocation_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la \
   $(top_builddir)/src/gns/libgnunetgns.la \
-  $(top_builddir)/src/testing_old/libgnunettesting.la
+  $(top_builddir)/src/testing/libgnunettesting.la
 test_gns_revocation_DEPENDENCIES = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la \
   $(top_builddir)/src/gns/libgnunetgns.la \
-  $(top_builddir)/src/testing_old/libgnunettesting.la
+  $(top_builddir)/src/testing/libgnunettesting.la
 
 
 gnunet_gns_SOURCES = \
