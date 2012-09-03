@@ -78,7 +78,7 @@ test_integration_disconnect.py: test_integration_disconnect.py.in Makefile
 	$(do_subst) < $(srcdir)/test_integration_disconnect.py.in > test_integration_disconnect.py
 	chmod +x test_integration_disconnect.py
 
-#test_integration_disconnect_nat.py: test_integration_disconnect_nat.py.in Matest_connection_stabilitykefile
+#test_integration_disconnect_nat.py: test_integration_disconnect_nat.py.in Makefile
 #	$(do_subst) < $(srcdir)/test_integration_disconnect_nat.py.in > test_integration_disconnect_nat.py
 #	chmod +x test_integration_disconnect_nat.py
 
