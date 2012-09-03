@@ -920,14 +920,17 @@ on_namestore_record_put_result (void *cls,
              "GNS_NS: Error putting records into namestore: %s\n", emsg);
 }
 
+
 static void
 handle_lookup_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct ResolverHandle *rh = cls;
 
-  if (rh->timeout_cont)
+  if (NULL != rh->timeout_cont)
     rh->timeout_cont (rh->timeout_cont_cls, tc);
+  /* FIXME: does this leak memory? */
 }
+
 
 /**
  * Processor for background lookups in the DHT
@@ -3473,8 +3476,10 @@ gns_resolver_lookup_record (struct GNUNET_CRYPTO_ShortHashCode zone,
                                                       &rh->authority))
       {
         GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                    "Cannot convert ZKEY %s to hash!\n", string_hash);
+                    "Cannot convert ZKEY `%s' to hash!\n", string_hash);
         
+	if (GNUNET_SCHEDULER_NO_TASK != rh->timeout_task)
+	  GNUNET_SCHEDULER_cancel (rh->timeout_task);
         GNUNET_CONTAINER_DLL_remove (rlh_head, rlh_tail, rh);
         GNUNET_free (rh);
         GNUNET_free (rlh);

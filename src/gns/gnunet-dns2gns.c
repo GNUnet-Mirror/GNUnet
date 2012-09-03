@@ -353,12 +353,12 @@ handle_request (struct GNUNET_NETWORK_Handle *lsock,
 		  GNUNET_a2s (addr, addr_len));
       return;
     }
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		  "%d, %d, %d, %d\n",
-		  packet->flags.query_or_response,
-		  packet->num_answers,
-		  packet->num_authority_records,
-		  packet->num_additional_records);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Received request with flags %u, #answers %d, #auth %d, #additional %d\n",
+	      (unsigned int) packet->flags.query_or_response,
+	      (int) packet->num_answers,
+	      (int) packet->num_authority_records,
+	      (int) packet->num_additional_records);
   if ( (0 != packet->flags.query_or_response) || 
        (0 != packet->num_answers) ||
        (0 != packet->num_authority_records))
