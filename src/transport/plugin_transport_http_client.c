@@ -1338,16 +1338,17 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
   struct Session *pos;
   struct Session *next;
 
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                   _("Shutting down plugin `%s'\n"),
-                   plugin->name);
-
   if (NULL == api->cls)
   {
     /* Stub shutdown */
     GNUNET_free (api);
     return NULL;
   }
+
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                   _("Shutting down plugin `%s'\n"),
+                   plugin->name);
+
 
   next = plugin->head;
   while (NULL != (pos = next))
