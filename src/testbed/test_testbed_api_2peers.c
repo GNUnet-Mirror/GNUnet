@@ -395,7 +395,7 @@ run (void *cls, char *const *args, const char *cfgfile,
                                         NULL);
   abort_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                    (GNUNET_TIME_UNIT_MINUTES, 30), &do_abort,
+                                    (GNUNET_TIME_UNIT_MINUTES, 3), &do_abort,
                                     NULL);
 }
 
