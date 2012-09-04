@@ -149,6 +149,7 @@ do_shutdown ()
       proxy_proc = NULL;
     }
   url = NULL;
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 
