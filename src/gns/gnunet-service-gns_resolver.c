@@ -1706,11 +1706,16 @@ send_dns_packet (struct ResolverHandle *rh)
               "Sending %dbyte DNS query\n",
               rh->dns_raw_packet_size);
   
-  GNUNET_NETWORK_socket_sendto (rh->dns_sock,
-                                rh->dns_raw_packet,
-                                rh->dns_raw_packet_size,
-                                (struct sockaddr*)&rh->dns_addr,
-                                sizeof (struct sockaddr_in));
+  if (GNUNET_SYSERR ==
+      GNUNET_NETWORK_socket_sendto (rh->dns_sock,
+				    rh->dns_raw_packet,
+				    rh->dns_raw_packet_size,
+				    (struct sockaddr*)&rh->dns_addr,
+				    sizeof (struct sockaddr_in)))
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		_("Failed to send DNS request to %s\n"),
+		GNUNET_a2s ((const struct sockaddr *)&rh->dns_addr, 
+			    sizeof (struct sockaddr_in)));
 
   rh->dns_read_task = GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
                                                     rh->timeout, //FIXME less?
