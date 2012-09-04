@@ -115,10 +115,6 @@ struct MeshData
   /** Tunnel it belongs to. */
   struct MeshTunnel *t;
 
-  /** In case of a multicast, task to allow a client to send more data if
-   * some neighbor is too slow. */
-  GNUNET_SCHEDULER_TaskIdentifier *task;
-
   /** How many remaining neighbors we need to send this to. */
   unsigned int reference_counter;
 
@@ -1777,16 +1773,6 @@ data_descriptor_decrement_rc (struct MeshData *mesh_data)
   if (0 == --(mesh_data->reference_counter))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Last copy!\n");
-    if (NULL != mesh_data->task)
-    {
-      if (GNUNET_SCHEDULER_NO_TASK != *(mesh_data->task))
-      {
-        GNUNET_SCHEDULER_cancel (*(mesh_data->task));
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " notifying client...\n");
-        GNUNET_SERVER_receive_done (mesh_data->t->owner->handle, GNUNET_OK);
-      }
-      GNUNET_free (mesh_data->task);
-    }
     GNUNET_free (mesh_data->data);
     GNUNET_free (mesh_data);
   }
@@ -1839,31 +1825,6 @@ client_is_subscribed (uint16_t message_type, struct MeshClient *c)
 
   GNUNET_CRYPTO_hash (&message_type, sizeof (uint16_t), &hc);
   return GNUNET_CONTAINER_multihashmap_contains (c->types, &hc);
-}
-
-
-/**
- * Allow a client to send more data after transmitting a multicast message
- * which some neighbor has not yet accepted altough a reasonable time has
- * passed.
- *
- * @param cls Closure (DataDescriptor containing the task identifier)
- * @param tc Task Context
- * 
- * FIXME fc replace with proper ack
- */
-static void
-client_allow_send (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct MeshData *mdata = cls;
-
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "CLIENT ALLOW SEND DESPITE %u COPIES PENDING\n",
-              mdata->reference_counter);
-  *(mdata->task) = GNUNET_SCHEDULER_NO_TASK;
-  GNUNET_SERVER_receive_done (mdata->t->owner->handle, GNUNET_OK);
 }
 
 
@@ -3319,7 +3280,9 @@ tunnel_send_multicast_iterator (void *cls, GNUNET_PEER_Id neighbor_id)
  *
  * @param t Tunnel in which to send the data.
  * @param msg Message to be sent.
- * @param internal Has the service generated this message?
+ * @param internal DEPRECATED Has the service generated this message?
+ * 
+ * FIXME remove internal if no use comes up
  */
 static void
 tunnel_send_multicast (struct MeshTunnel *t,
@@ -3364,17 +3327,6 @@ tunnel_send_multicast (struct MeshTunnel *t,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  not a data packet, no ttl\n");
   }
-  if (NULL != t->owner &&
-      GNUNET_YES != t->owner->shutting_down &&
-      GNUNET_NO == internal)
-  {
-    mdata->task = GNUNET_malloc (sizeof (GNUNET_SCHEDULER_TaskIdentifier));
-    (*(mdata->task)) =
-        GNUNET_SCHEDULER_add_delayed (unacknowledged_wait_time, &client_allow_send,
-                                      mdata);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "timeout task %u\n",
-                *(mdata->task));
-  }
 
   tree_iterate_children (t->tree, &tunnel_send_multicast_iterator, mdata);
   if (mdata->reference_counter == 0)
@@ -3382,12 +3334,6 @@ tunnel_send_multicast (struct MeshTunnel *t,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "  no one to send data to\n");
     GNUNET_free (mdata->data);
-    if (NULL != mdata->task)
-    {
-      GNUNET_SCHEDULER_cancel(*(mdata->task));
-      GNUNET_free (mdata->task);
-      GNUNET_SERVER_receive_done (t->owner->handle, GNUNET_OK);
-    }
     GNUNET_free (mdata);
     t->fwd_queue_n--;
   }
@@ -7401,7 +7347,7 @@ handle_local_multicast (void *cls, struct GNUNET_SERVER_Client *client,
     handle_mesh_data_multicast (client, &my_full_id, &copy->header, NULL, 0);
   }
 
-  /* receive done gets called when last copy is sent to a neighbor */
+  GNUNET_SERVER_receive_done (t->owner->handle, GNUNET_OK);
   return;
 }
 
