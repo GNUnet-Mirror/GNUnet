@@ -1777,7 +1777,8 @@ resolve_record_dns (struct ResolverHandle *rh,
     }
     /* The glue */
     if (GNUNET_GNS_RECORD_A == rd[i].record_type)
-      dnsip = *((struct in_addr*)rd[i].data);
+         /* need to use memcpy as .data may be unaligned */
+        memcpy (&dnsip, rd[i].data, sizeof (dnsip));
   }
   
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
