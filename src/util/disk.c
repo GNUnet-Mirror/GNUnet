@@ -1062,10 +1062,10 @@ GNUNET_DISK_file_write_blocking (const struct GNUNET_DISK_FileHandle * h,
   /* set to blocking, write, then set back */
   flags = fcntl (h->fd, F_GETFL);
   if (0 != (flags & O_NONBLOCK))
-    fcntl (h->fd, F_SETFL, flags - O_NONBLOCK);
+    (void) fcntl (h->fd, F_SETFL, flags - O_NONBLOCK);
   ret = write (h->fd, buffer, n);
   if (0 == (flags & O_NONBLOCK))
-    fcntl (h->fd, F_SETFL, flags);
+    (void) fcntl (h->fd, F_SETFL, flags);
   return ret;
 #endif
 }
