@@ -1635,6 +1635,7 @@ announce_application (void *cls, const struct GNUNET_HashCode * key, void *value
 
   block.id = my_full_id;
   c =  GNUNET_CONTAINER_multihashmap_get (applications, key);
+  GNUNET_assert(NULL != c);
   block.type = (long) GNUNET_CONTAINER_multihashmap_get (c->apps, key);
   if (0 == block.type)
   {
