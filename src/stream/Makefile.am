@@ -36,7 +36,8 @@ TESTS = \
  test_stream_2peers_halfclose \
  test_stream_local \
  test_stream_big \
- test_stream_sequence_wraparound
+ test_stream_sequence_wraparound \
+ test_stream_2peers_new
 endif
 
 test_stream_2peers_SOURCES = \
