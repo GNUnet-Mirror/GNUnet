@@ -4991,6 +4991,9 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
                    GNUNET_YES : GNUNET_NO;
     t->nobuffer = (0 != (opt & MESH_TUNNEL_OPT_NOBUFFER)) ?
                   GNUNET_YES : GNUNET_NO;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "  speed_min: %d, nobuffer:%d\n",
+                t->speed_min, t->nobuffer);
 
     if (GNUNET_YES == t->nobuffer)
     {
