@@ -4390,8 +4390,9 @@ send_core_path_create (void *cls, size_t size, void *buf)
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE);
   msg->tid = ntohl (t->id.tid);
 
+  opt = 0;
   if (GNUNET_YES == t->speed_min)
-    opt = MESH_TUNNEL_OPT_SPEED_MIN;
+    opt |= MESH_TUNNEL_OPT_SPEED_MIN;
   if (GNUNET_YES == t->nobuffer)
     opt |= MESH_TUNNEL_OPT_NOBUFFER;
   msg->opt = htonl(opt);
