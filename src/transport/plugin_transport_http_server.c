@@ -1924,18 +1924,6 @@ server_start (struct HTTP_Server_Plugin *plugin)
 void
 server_stop (struct HTTP_Server_Plugin *plugin)
 {
-  if (plugin->server_v4_task != GNUNET_SCHEDULER_NO_TASK)
-  {
-    GNUNET_SCHEDULER_cancel (plugin->server_v4_task);
-    plugin->server_v4_task = GNUNET_SCHEDULER_NO_TASK;
-  }
-
-  if (plugin->server_v6_task != GNUNET_SCHEDULER_NO_TASK)
-  {
-    GNUNET_SCHEDULER_cancel (plugin->server_v6_task);
-    plugin->server_v6_task = GNUNET_SCHEDULER_NO_TASK;
-  }
-
   if (plugin->server_v4 != NULL)
   {
     MHD_stop_daemon (plugin->server_v4);
@@ -1947,6 +1935,18 @@ server_stop (struct HTTP_Server_Plugin *plugin)
     plugin->server_v6 = NULL;
   }
 
+
+  if (plugin->server_v4_task != GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel (plugin->server_v4_task);
+    plugin->server_v4_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+
+  if (plugin->server_v6_task != GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel (plugin->server_v6_task);
+    plugin->server_v6_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   p = NULL;
 
 #if BUILD_HTTPS

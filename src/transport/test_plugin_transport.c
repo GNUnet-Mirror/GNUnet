@@ -287,6 +287,28 @@ env_receive (void *cls,
   return GNUNET_TIME_relative_get_zero_();
 }
 
+/**
+ * Take the given address and append it to the set of results sent back to
+ * the client.
+ *
+ * @param cls the transmission context used ('struct GNUNET_SERVER_TransmitContext*')
+ * @param buf text to transmit
+ */
+static void
+address_pretty_printer_cb (void *cls, const char *buf)
+{
+  if (NULL != buf)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Pretty address : `%s'\n", buf);
+  }
+  else
+  {
+      GNUNET_break (0);
+      end_badly_now ();
+  }
+}
+
 
 static void
 env_notify_address (void *cls,
@@ -311,6 +333,11 @@ env_notify_address (void *cls,
       w->addrlen = addrlen;
       memcpy (w->addr, addr, addrlen);
       GNUNET_CONTAINER_DLL_insert(head, tail, w);
+
+      api->address_pretty_printer (api->cls, plugin, addr, addrlen,
+                                    GNUNET_YES, GNUNET_TIME_UNIT_MINUTES,
+                                    &address_pretty_printer_cb,
+                                    w);
 
       a2s = strdup (api->address_to_string (api, w->addr, w->addrlen));
       if (NULL == a2s)
