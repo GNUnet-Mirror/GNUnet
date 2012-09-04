@@ -2044,8 +2044,9 @@ overlay_connect_notify (void *cls, const struct GNUNET_PeerIdentity *new_peer,
     GNUNET_free (other_peer_str);
     return;
   }
-  LOG_DEBUG ("Peer %4s connected to peer %4s\n", new_peer_str, other_peer_str);
   GNUNET_free (new_peer_str);
+  LOG_DEBUG ("Peer %4s connected to peer %4s\n", other_peer_str, 
+             GNUNET_i2s (&occ->peer_identity));
   GNUNET_free (other_peer_str);
   if (GNUNET_SCHEDULER_NO_TASK != occ->send_hello_task)
   {
@@ -2193,17 +2194,15 @@ core_startup_cb (void *cls, struct GNUNET_CORE_Handle *server,
   if ((NULL == occ->p1th) || (NULL == occ->p2th))
   {
     occ->emsg = GNUNET_strdup ("Cannot connect to TRANSPORTs of peers");
-    goto send_failure;
+    GNUNET_SCHEDULER_cancel (occ->timeout_task);
+    occ->timeout_task = GNUNET_SCHEDULER_add_now (&timeout_overlay_connect,
+                                                  occ);
+    return;
   }
   LOG_DEBUG ("Acquiring HELLO of peer %s\n",
              GNUNET_i2s (&occ->other_peer_identity));
   occ->emsg = GNUNET_strdup ("Timeout while acquiring HELLO message");
   occ->ghh = GNUNET_TRANSPORT_get_hello (occ->p2th, &hello_update_cb, occ);
-  return;
-
-send_failure:
-  GNUNET_SCHEDULER_cancel (occ->timeout_task);
-  occ->timeout_task = GNUNET_SCHEDULER_add_now (&timeout_overlay_connect, occ);
 }
 
 
