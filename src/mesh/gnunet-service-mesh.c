@@ -120,7 +120,7 @@ struct MeshData
   GNUNET_SCHEDULER_TaskIdentifier *task;
 
   /** How many remaining neighbors we need to send this to. */
-  unsigned int *reference_counter;
+  unsigned int reference_counter;
 
   /** Size of the data. */
   size_t data_len;
@@ -1774,10 +1774,7 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 data_descriptor_decrement_rc (struct MeshData *mesh_data)
 {
-  /* Make sure it's a multicast packet */
-  GNUNET_assert (NULL != mesh_data->reference_counter);
-
-  if (0 == --(*(mesh_data->reference_counter)))
+  if (0 == --(mesh_data->reference_counter))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Last copy!\n");
     if (NULL != mesh_data->task)
@@ -1790,7 +1787,6 @@ data_descriptor_decrement_rc (struct MeshData *mesh_data)
       }
       GNUNET_free (mesh_data->task);
     }
-    GNUNET_free (mesh_data->reference_counter);
     GNUNET_free (mesh_data->data);
     GNUNET_free (mesh_data);
   }
@@ -1854,7 +1850,7 @@ client_is_subscribed (uint16_t message_type, struct MeshClient *c)
  * @param cls Closure (DataDescriptor containing the task identifier)
  * @param tc Task Context
  * 
- * FIXME reference counter cshould be just int
+ * FIXME fc replace with proper ack
  */
 static void
 client_allow_send (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -1863,10 +1859,9 @@ client_allow_send (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
-  GNUNET_assert (NULL != mdata->reference_counter);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "CLIENT ALLOW SEND DESPITE %u COPIES PENDING\n",
-              *(mdata->reference_counter));
+              mdata->reference_counter);
   *(mdata->task) = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_SERVER_receive_done (mdata->t->owner->handle, GNUNET_OK);
 }
@@ -2304,8 +2299,7 @@ send_message (const struct GNUNET_MessageHeader *message,
     m->ttl = htonl (ntohl (m->ttl) - 1);
   }
   info->mesh_data->data_len = size;
-  info->mesh_data->reference_counter = GNUNET_malloc (sizeof (unsigned int));
-  *info->mesh_data->reference_counter = 1;
+  info->mesh_data->reference_counter = 1;
   neighbor = peer_info_get (peer);
   for (p = neighbor->path_head; NULL != p; p = p->next)
   {
@@ -3304,7 +3298,7 @@ tunnel_send_multicast_iterator (void *cls, GNUNET_PEER_Id neighbor_id)
   info = GNUNET_malloc (sizeof (struct MeshTransmissionDescriptor));
 
   info->mesh_data = mdata;
-  (*(mdata->reference_counter)) ++;
+  (mdata->reference_counter) ++;
   info->destination = neighbor_id;
   GNUNET_PEER_resolve (neighbor_id, &neighbor);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   sending to %s...\n",
@@ -3339,7 +3333,6 @@ tunnel_send_multicast (struct MeshTunnel *t,
 
   mdata = GNUNET_malloc (sizeof (struct MeshData));
   mdata->data_len = ntohs (msg->size);
-  mdata->reference_counter = GNUNET_malloc (sizeof (unsigned int));
   mdata->t = t;
   mdata->data = GNUNET_malloc (mdata->data_len);
   memcpy (mdata->data, msg, mdata->data_len);
@@ -3359,7 +3352,6 @@ tunnel_send_multicast (struct MeshTunnel *t,
                   "  message at %s!\n",
                   GNUNET_i2s(&my_full_id));
       GNUNET_free (mdata->data);
-      GNUNET_free (mdata->reference_counter);
       GNUNET_free (mdata);
       return;
     }
@@ -3385,12 +3377,11 @@ tunnel_send_multicast (struct MeshTunnel *t,
   }
 
   tree_iterate_children (t->tree, &tunnel_send_multicast_iterator, mdata);
-  if (*(mdata->reference_counter) == 0)
+  if (mdata->reference_counter == 0)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "  no one to send data to\n");
     GNUNET_free (mdata->data);
-    GNUNET_free (mdata->reference_counter);
     if (NULL != mdata->task)
     {
       GNUNET_SCHEDULER_cancel(*(mdata->task));
@@ -4735,7 +4726,7 @@ queue_send (void *cls, size_t size, void *buf)
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********   multicast\n");
         {
           struct MeshTransmissionDescriptor *info = queue->cls;
-          if (*(info->mesh_data->reference_counter) == 1)
+          if (info->mesh_data->reference_counter == 1)
             t->fwd_queue_n--;
           // FIXME fc (t->fwd_queue_n--)
         }
