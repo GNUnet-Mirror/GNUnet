@@ -50,12 +50,6 @@ struct GNUNET_STREAM_MessageHeader
    * The GNUNET message header, types are from GNUNET_MESSAGE_TYPE_STREAM_*-range.
    */
   struct GNUNET_MessageHeader header;
-
-  /**
-   * A number which identifies a session between the two peers. FIXME: not needed
-   */
-  uint32_t session_id GNUNET_PACKED;
-
 };
 
 

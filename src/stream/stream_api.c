@@ -1466,7 +1466,7 @@ control_retransmission_task (void *cls,
   socket->control_retransmission_task_id = GNUNET_SCHEDULER_NO_TASK;
   LOG_DEBUG ("%s: Retransmitting a control message\n",
                  GNUNET_i2s (&socket->other_peer));
-  switch (socket->status)
+  switch (socket->state)
   {
   case STATE_INIT:    
     GNUNET_break (0);
