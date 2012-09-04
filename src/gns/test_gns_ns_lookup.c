@@ -77,7 +77,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   die_task = GNUNET_SCHEDULER_NO_TASK;
 
-  if (resolver_handle != NULL)
+  if (NULL != resolver_handle)
   {
     GNUNET_RESOLVER_request_cancel (resolver_handle);
     resolver_handle = NULL;
@@ -279,6 +279,7 @@ handle_dns_test (void *cls,
 {
   struct sockaddr_in* sai;
 
+  resolver_handle = NULL;
   if (NULL == addr)
   {
     /* end of results */

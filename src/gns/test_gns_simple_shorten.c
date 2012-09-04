@@ -341,7 +341,6 @@ main (int argc, char *argv[])
                     NULL);
 
   GNUNET_TESTING_peer_run ("test-gns-simple-shorten", "test_gns_simple_lookup.conf", &do_check, NULL);
-
   return ok;
 }
 

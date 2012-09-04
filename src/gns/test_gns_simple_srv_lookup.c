@@ -306,6 +306,7 @@ main (int argc, char *argv[])
 #endif
                     NULL);
   GNUNET_TESTING_peer_run ("test-gns-simple-srv-lookup", "test_gns_simple_lookup.conf", &do_check, NULL);
+  GNUNET_DISK_directory_remove ("test-gns-simple-srv-lookup");
   return ok;
 }
 

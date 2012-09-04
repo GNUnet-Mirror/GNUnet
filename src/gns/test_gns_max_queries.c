@@ -136,6 +136,7 @@ on_lookup_result(void *cls, uint32_t rd_count,
 
   GNUNET_NAMESTORE_disconnect (namestore_handle);
   namestore_handle = NULL;
+  fprintf (stderr, "\n");
   if (rd_count == 0)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
