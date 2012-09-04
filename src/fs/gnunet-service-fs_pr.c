@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009, 2010, 2011 Christian Grothoff (and other contributing authors)
+     (C) 2009, 2010, 2011, 2012 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -1511,10 +1511,7 @@ GSF_handle_p2p_content_ (struct GSF_ConnectedPeer *cp,
                             GNUNET_NO);
   /* now, lookup 'query' */
   prq.data = (const void *) &put[1];
-  if (NULL != cp)
-    prq.sender = cp;
-  else
-    prq.sender = NULL;
+  prq.sender = cp;
   prq.size = dsize;
   prq.type = type;
   prq.expiration = expiration;
@@ -1531,6 +1528,7 @@ GSF_handle_p2p_content_ (struct GSF_ConnectedPeer *cp,
     GSF_get_peer_performance_data_ (cp)->respect += prq.priority;
   }
   if ((GNUNET_YES == active_to_migration) &&
+      (NULL != cp) &&
       (GNUNET_NO == test_put_load_too_high (prq.priority)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1553,7 +1551,7 @@ GSF_handle_p2p_content_ (struct GSF_ConnectedPeer *cp,
       put_migration_continuation (pmc, GNUNET_SYSERR, GNUNET_TIME_UNIT_ZERO_ABS, NULL);
     }
   }
-  else
+  else if (NULL != cp)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Choosing not to keep content `%s' (%d/%d)\n",
@@ -1561,9 +1559,10 @@ GSF_handle_p2p_content_ (struct GSF_ConnectedPeer *cp,
                 test_put_load_too_high (prq.priority));
   }
   putl = GNUNET_LOAD_get_load (datastore_put_load);
-  if ((NULL != (cp = prq.sender)) && (GNUNET_NO == prq.request_found) &&
-      ((GNUNET_YES != active_to_migration) ||
-       (putl > 2.5 * (1 + prq.priority))))
+  if ( (NULL != cp) && 
+       (GNUNET_NO == prq.request_found) &&
+       ( (GNUNET_YES != active_to_migration) ||
+	 (putl > 2.5 * (1 + prq.priority)) ) )
   {
     if (GNUNET_YES != active_to_migration)
       putl = 1.0 + GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 5);
