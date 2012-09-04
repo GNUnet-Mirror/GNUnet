@@ -3550,7 +3550,7 @@ tunnel_get_child_fwd_ack (void *cls,
  *
  * @param t Tunnel.
  *
- * @return Maximum PID allowed (uint32 MAX), -1 if node has no children.
+ * @return Maximum PID allowed (uint32 MAX), -1LL if node has no children.
  */
 static int64_t
 tunnel_get_children_fwd_ack (struct MeshTunnel *t)
@@ -3607,7 +3607,7 @@ tunnel_set_client_fwd_ack (struct MeshTunnel *t,
  * @param t Tunnel on which to look.
  * 
  * @return Corresponding ACK value (max uint32_t).
- *         If no clients are suscribed, -1.
+ *         If no clients are suscribed, -1LL.
  */
 static int64_t
 tunnel_get_clients_fwd_ack (struct MeshTunnel *t)
@@ -3622,9 +3622,9 @@ tunnel_get_clients_fwd_ack (struct MeshTunnel *t)
     return -1LL;
   }
 
-  for (ack = -1, i = 0; i < t->nclients; i++)
+  for (ack = -1LL, i = 0; i < t->nclients; i++)
   {
-    if (-1 == ack ||
+    if (-1LL == ack ||
         (GNUNET_YES == t->speed_min &&
          GNUNET_YES == GMC_is_pid_bigger (ack, t->clients_fc[i].fwd_ack)) ||
         (GNUNET_NO == t->speed_min &&
@@ -3666,7 +3666,7 @@ tunnel_get_fwd_ack (struct MeshTunnel *t)
   if (-1LL == child_ack)
   {
     // Node has no children, child_ack AND core buffer are irrelevant.
-    GNUNET_break (-1 != client_ack); // No children AND no clients? Not good!
+    GNUNET_break (-1LL != client_ack); // No children AND no clients? Not good!
     return (uint32_t) client_ack;
   }
   if (-1LL == client_ack)
