@@ -1412,6 +1412,7 @@ send_callback (void *cls, size_t size, void *buf)
           uc.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_UNICAST);
           uc.tid = htonl (t->tid);
           uc.pid = htonl (t->next_send_pid);
+          uc.ttl = 0;
           memset (&uc.oid, 0, sizeof (struct GNUNET_PeerIdentity));
           GNUNET_PEER_resolve (th->target, &uc.destination);
           memcpy (cbuf, &uc, sizeof (uc));
