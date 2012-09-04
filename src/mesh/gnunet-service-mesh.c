@@ -115,8 +115,11 @@ struct MeshData
   /** Tunnel it belongs to. */
   struct MeshTunnel *t;
 
-  /** How many remaining neighbors we need to send this to. */
+  /** How many remaining neighbors still hav't got it. */
   unsigned int reference_counter;
+
+  /** How many remaining neighbors we need to send this to. */
+  unsigned int total_out;
 
   /** Size of the data. */
   size_t data_len;
@@ -2261,6 +2264,7 @@ send_message (const struct GNUNET_MessageHeader *message,
   }
   info->mesh_data->data_len = size;
   info->mesh_data->reference_counter = 1;
+  info->mesh_data->total_out = 1;
   neighbor = peer_info_get (peer);
   for (p = neighbor->path_head; NULL != p; p = p->next)
   {
@@ -3336,6 +3340,10 @@ tunnel_send_multicast (struct MeshTunnel *t,
     GNUNET_free (mdata->data);
     GNUNET_free (mdata);
     t->fwd_queue_n--;
+  }
+  else
+  {
+    mdata->total_out = mdata->reference_counter;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               " sending a multicast packet done\n");
@@ -4672,9 +4680,17 @@ queue_send (void *cls, size_t size, void *buf)
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*********   multicast\n");
         {
           struct MeshTransmissionDescriptor *info = queue->cls;
-          if (info->mesh_data->reference_counter == 1)
+
+          if ((1 == info->mesh_data->reference_counter
+              && GNUNET_YES == t->speed_min)
+              ||
+              (info->mesh_data->total_out == info->mesh_data->reference_counter
+              && GNUNET_NO == t->speed_min))
+          {
+            GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                        "*********   considered sent\n");
             t->fwd_queue_n--;
-          // FIXME fc (t->fwd_queue_n--)
+          }
         }
         data_size = send_core_data_multicast(queue->cls, size, buf);
         tunnel_send_fwd_ack (t, GNUNET_MESSAGE_TYPE_MESH_MULTICAST);
