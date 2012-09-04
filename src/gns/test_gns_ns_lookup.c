@@ -76,7 +76,7 @@ static void
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   die_task = GNUNET_SCHEDULER_NO_TASK;
-
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Test failed, shutting down...\n");
   if (NULL != resolver_handle)
   {
     GNUNET_RESOLVER_request_cancel (resolver_handle);
@@ -107,19 +107,43 @@ end_badly_now ()
 }
 
 static void
+end_now ()
+{
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Test successful, shutting down...\n");
+  if (GNUNET_SCHEDULER_NO_TASK != die_task)
+  {
+      GNUNET_SCHEDULER_cancel (die_task);
+      die_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  if (NULL != resolver_handle)
+  {
+    GNUNET_RESOLVER_request_cancel (resolver_handle);
+    resolver_handle = NULL;
+  }
+
+  if (NULL != gns_handle)
+  {
+    GNUNET_GNS_disconnect(gns_handle);
+    gns_handle = NULL;
+  }
+
+  if (NULL != namestore_handle)
+  {
+    GNUNET_NAMESTORE_disconnect (namestore_handle);
+    namestore_handle = NULL;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Shutting down peer!\n");
+  GNUNET_SCHEDULER_shutdown ();
+}
+
+static void
 on_lookup_result_alt2 (void *cls, uint32_t rd_count,
                  const struct GNUNET_NAMESTORE_RecordData *rd)
 {
   struct in_addr a;
   int i;
   char* addr;
-  
-  if (GNUNET_SCHEDULER_NO_TASK != die_task)
-  {
-      GNUNET_SCHEDULER_cancel (die_task);
-      die_task = GNUNET_SCHEDULER_NO_TASK;
-  }
-
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Received alternative results 2\n");
   if (rd_count == 0)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -151,10 +175,7 @@ on_lookup_result_alt2 (void *cls, uint32_t rd_count,
       }
     }
   }
-  GNUNET_GNS_disconnect(gns_handle);
-  gns_handle = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Shutting down peer!\n");
-  GNUNET_SCHEDULER_shutdown ();
+  end_now ();
 }
 
 static void
@@ -164,7 +185,7 @@ on_lookup_result_alt (void *cls, uint32_t rd_count,
   struct in_addr a;
   int i;
   char* addr;
-  
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Received alternative results\n");
   if (rd_count == 0)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -210,7 +231,7 @@ on_lookup_result(void *cls, uint32_t rd_count,
   struct in_addr a;
   int i;
   char* addr;
-  
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Received results\n");
   if (rd_count == 0)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -278,7 +299,7 @@ handle_dns_test (void *cls,
                  socklen_t addrlen)
 {
   struct sockaddr_in* sai;
-
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Received DNS response\n");
   resolver_handle = NULL;
   if (NULL == addr)
   {
@@ -289,9 +310,10 @@ handle_dns_test (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   "System resolver not working. Test inconclusive!\n");
       GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Shutting down peer1!\n");
-      GNUNET_SCHEDULER_shutdown();
+      end_now ();
       return;
     }
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Starting lookup \n");
     start_lookup ();
     return;
   }
@@ -300,7 +322,11 @@ handle_dns_test (void *cls,
   {
     sai = (struct sockaddr_in*) addr;
     if (0 == strcmp (TEST_IP, inet_ntoa (sai->sin_addr)))
+    {
       resolver_working = GNUNET_YES;
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Resolver is working\n");
+    }
+
   }
 }
 
@@ -315,7 +341,7 @@ static void
 commence_testing (void *cls, int32_t success, const char *emsg)
 {
   resolver_working = GNUNET_NO;
-
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Resolving NS record\n");
   GNUNET_RESOLVER_connect (cfg);
   resolver_handle = GNUNET_RESOLVER_ip_get (TEST_RECORD_NS,
                                             AF_INET,
@@ -337,6 +363,7 @@ do_check (void *cls,
   die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
 
   /* put records into namestore */
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Connecting to namestore\n");
   namestore_handle = GNUNET_NAMESTORE_connect(cfg);
   if (NULL == namestore_handle)
   {
@@ -370,7 +397,7 @@ do_check (void *cls,
   rd.record_type = GNUNET_DNSPARSER_TYPE_A;
   rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
 
-
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Creating records\n");
   GNUNET_NAMESTORE_record_create (namestore_handle,
                                   alice_key,
                                   TEST_RECORD_NAME,
