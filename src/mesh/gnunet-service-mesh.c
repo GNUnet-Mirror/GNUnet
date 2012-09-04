@@ -3565,7 +3565,7 @@ tunnel_get_children_fwd_ack (struct MeshTunnel *t)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
             "  tunnel has no children, no FWD ACK\n");
-    return -1L;
+    return -1LL;
   }
 
   if (GNUNET_YES == t->nobuffer && GMC_is_pid_bigger(ctx.max_child_ack, t->fwd_pid))
@@ -3619,7 +3619,7 @@ tunnel_get_clients_fwd_ack (struct MeshTunnel *t)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "  tunnel has no clients, no FWD ACK\n");
-    return -1L;
+    return -1LL;
   }
 
   for (ack = -1, i = 0; i < t->nclients; i++)
@@ -3663,13 +3663,13 @@ tunnel_get_fwd_ack (struct MeshTunnel *t)
   ack = count + buffer_free; // Might overflow 32 bits, it's ok!
   child_ack = tunnel_get_children_fwd_ack (t);
   client_ack = tunnel_get_clients_fwd_ack (t);
-  if (-1 == child_ack)
+  if (-1LL == child_ack)
   {
     // Node has no children, child_ack AND core buffer are irrelevant.
     GNUNET_break (-1 != client_ack); // No children AND no clients? Not good!
     return (uint32_t) client_ack;
   }
-  if (-1 == client_ack)
+  if (-1LL == client_ack)
   {
     client_ack = ack;
   }
