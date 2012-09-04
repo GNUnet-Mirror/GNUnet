@@ -59,7 +59,7 @@ check_PROGRAMS = \
   test_gns_dht_delegated_lookup \
   test_gns_pseu_shorten \
   test_gns_max_queries \
-  test_gns_dht_threepeer \
+  test_gns_dht_three_peers \
 	test_gns_cname_lookup \
 	test_gns_ns_lookup \
 	test_gns_revocation \
@@ -85,20 +85,22 @@ test_gns_proxy_DEPENDENCIES = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la \
   $(top_builddir)/src/gns/libgnunetgns.la \
-  $(top_builddir)/src/testing/libgnunettesting.la
+  $(top_builddir)/src/testbed/libgnunettesting.la
 
-test_gns_dht_threepeer_SOURCES = \
-  test_gns_dht_threepeer.c
-test_gns_dht_threepeer_LDADD = \
+test_gns_dht_three_peers_SOURCES = \
+  test_gns_dht_three_peers.c
+test_gns_dht_three_peers_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la \
   $(top_builddir)/src/gns/libgnunetgns.la \
-  $(top_builddir)/src/testing_old/libgnunettesting_old.la
-test_gns_dht_threepeer_DEPENDENCIES = \
+  $(top_builddir)/src/testing/libgnunettesting.la \
+  $(top_builddir)/src/testbed/libgnunettestbed.la
+test_gns_dht_three_peers_DEPENDENCIES = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la \
   $(top_builddir)/src/gns/libgnunetgns.la \
-  $(top_builddir)/src/testing_old/libgnunettesting_old.la
+  $(top_builddir)/src/testing/libgnunettesting.la \
+  $(top_builddir)/src/testbed/libgnunettestbed.la
 
 test_gns_simple_lookup_SOURCES = \
   test_gns_simple_lookup.c

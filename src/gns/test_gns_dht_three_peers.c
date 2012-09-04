@@ -1,0 +1,530 @@
+/*
+     This file is part of GNUnet.
+     (C) 2009 Christian Grothoff (and other contributing authors)
+
+     GNUnet is free software; you can redistribute it and/or modify
+     it under the terms of the GNU General Public License as published
+     by the Free Software Foundation; either version 3, or (at your
+     option) any later version.
+
+     GNUnet is distributed in the hope that it will be useful, but
+     WITHOUT ANY WARRANTY; without even the implied warranty of
+     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+     General Public License for more details.
+
+     You should have received a copy of the GNU General Public License
+     along with GNUnet; see the file COPYING.  If not, write to the
+     Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+     Boston, MA 02111-1307, USA.
+*/
+/**
+ * @file gns/test_gns_dht_threepeer.c
+ * @brief tests dht lookup over 3 peers
+ *
+ * topology:
+ * alice <----> bob <-----> dave
+ *
+ * alice queries for www.buddy.bob.gnunet
+ *
+ */
+#include "platform.h"
+#include "gnunet_common.h"
+#include "gnunet_disk_lib.h"
+#include "gnunet_testing_lib-new.h"
+#include "gnunet_testbed_service.h"
+#include "gnunet_core_service.h"
+#include "gnunet_dht_service.h"
+#include "block_dns.h"
+#include "gnunet_signatures.h"
+#include "gnunet_namestore_service.h"
+#include "gnunet_dnsparser_lib.h"
+#include "gnunet_gns_service.h"
+
+#define ZONE_PUT_WAIT_TIME GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30)
+
+/* If number of peers not in config file, use this number */
+#define DEFAULT_NUM_PEERS 2
+
+#define TEST_DOMAIN "www.buddy.bob.gnunet"
+#define TEST_IP "1.1.1.1"
+#define TEST_DAVE_PSEU "hagbard"
+#define TEST_NUM_PEERS 3
+#define TEST_NUM_CON 3
+
+
+/* Timeout for entire testcase */
+#define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 5)
+
+/* Global return value (0 for success, anything else for failure) */
+static int ok;
+
+/* Task handle to use to schedule test failure */
+GNUNET_SCHEDULER_TaskIdentifier die_task;
+GNUNET_SCHEDULER_TaskIdentifier wait_task;
+
+struct GNUNET_CRYPTO_ShortHashCode dave_hash;
+
+struct GNUNET_CRYPTO_ShortHashCode bob_hash;
+
+const struct GNUNET_CONFIGURATION_Handle *alice_cfg;
+
+struct GNUNET_TESTBED_Peer **cpeers;
+
+struct GNUNET_GNS_Handle *gh;
+
+struct GNUNET_TESTBED_Operation *get_cfg_ops[3];
+struct GNUNET_TESTBED_Operation *connect_ops[3];
+
+/**
+ * Check if the get_handle is being used, if so stop the request.  Either
+ * way, schedule the end_badly_cont function which actually shuts down the
+ * test.
+ */
+static void
+end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  die_task = GNUNET_SCHEDULER_NO_TASK;
+  int c;
+
+  if (GNUNET_SCHEDULER_NO_TASK != wait_task)
+  {
+      GNUNET_SCHEDULER_cancel (wait_task);
+      wait_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+
+  for (c = 0; c < 3; c++)
+  {
+    if (NULL != get_cfg_ops[c])
+    {
+        GNUNET_TESTBED_operation_cancel(get_cfg_ops[c]);
+        get_cfg_ops[c] = NULL;
+    }
+    if (NULL != connect_ops[c])
+    {
+        GNUNET_TESTBED_operation_cancel(connect_ops[c]);
+        connect_ops[c] = NULL;
+    }
+  }
+
+  if (NULL != gh)
+  {
+     GNUNET_GNS_disconnect (gh);
+     gh = NULL;
+  }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Test failed \n");
+  GNUNET_break (0);
+  GNUNET_SCHEDULER_shutdown ();
+  ok = 1;
+}
+
+static void
+end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  if (GNUNET_SCHEDULER_NO_TASK != die_task)
+  {
+      GNUNET_SCHEDULER_cancel (die_task);
+      die_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Test successful \n");
+  GNUNET_break (0);
+  GNUNET_SCHEDULER_shutdown ();
+  ok = 0;
+}
+
+static void
+end_now ()
+{
+  GNUNET_SCHEDULER_add_now (&end, NULL);
+}
+
+
+static void
+disconnect_ns (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_NAMESTORE_disconnect (cls);
+}
+
+
+static void
+cont_ns (void* cls, int32_t s, const char* emsg)
+{
+  GNUNET_SCHEDULER_add_now (&disconnect_ns, cls);
+}
+
+static void
+on_lookup_result(void *cls, uint32_t rd_count,
+                 const struct GNUNET_NAMESTORE_RecordData *rd)
+{
+  int i;
+  char* string_val;
+
+  if (rd_count == 0)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Lookup failed!\n");
+    ok = 2;
+  }
+  else
+  {
+    ok = 1;
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "name: %s\n", (char*)cls);
+    for (i=0; i<rd_count; i++)
+    {
+      string_val = GNUNET_NAMESTORE_value_to_string(rd[i].record_type,
+                                                    rd[i].data,
+                                                    rd[i].data_size);
+      if (0 == strcmp(string_val, TEST_IP))
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                    "%s correctly resolved to %s!\n", TEST_DOMAIN, string_val);
+        ok = 0;
+      }
+    }
+  }
+  GNUNET_GNS_disconnect(gh);
+  gh = NULL;
+  end_now ();
+}
+
+static void
+commence_testing(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  static int wait = 0;
+  wait++;
+  if ((ZONE_PUT_WAIT_TIME.rel_value / 1000) == wait)
+  {
+    fprintf (stderr, "\n");
+    wait_task = GNUNET_SCHEDULER_NO_TASK;
+    gh = GNUNET_GNS_connect(alice_cfg);
+
+    GNUNET_GNS_lookup(gh, TEST_DOMAIN, GNUNET_GNS_RECORD_A,
+                      GNUNET_NO,
+                      NULL,
+                      &on_lookup_result, TEST_DOMAIN);
+    if (GNUNET_SCHEDULER_NO_TASK != die_task)
+      GNUNET_SCHEDULER_cancel(die_task);
+    die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, "from lookup");
+  }
+  else
+  {
+      fprintf (stderr, ".");
+      wait_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &commence_testing, NULL);
+  }
+}
+
+void
+all_connected ()
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Created all connections! Waiting for PUTs\n");
+  wait_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &commence_testing, NULL);
+}
+
+
+static void connect_peers ()
+{
+  static int started;
+  started ++;
+
+  if (3 == started)
+  {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "All peers started\n");
+
+      connect_ops[0] = GNUNET_TESTBED_overlay_connect (NULL,
+          cpeers[0],
+          cpeers[1]);
+
+      connect_ops[1] = GNUNET_TESTBED_overlay_connect (NULL,
+          cpeers[1],
+          cpeers[2]);
+
+      connect_ops[2] = GNUNET_TESTBED_overlay_connect (NULL,
+          cpeers[0],
+          cpeers[2]);
+  }
+}
+
+static int
+setup_dave (const struct GNUNET_CONFIGURATION_Handle * cfg)
+{
+  struct GNUNET_NAMESTORE_Handle *ns;
+  char* keyfile;
+  struct GNUNET_CRYPTO_RsaPrivateKey *key;
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pkey;
+  struct in_addr *web;
+  struct GNUNET_NAMESTORE_RecordData rd;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Setting up dave\n");
+  GNUNET_assert (NULL != cfg);
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
+                                                            "ZONEKEY",
+                                                            &keyfile))
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to get key from cfg\n");
+    return GNUNET_SYSERR;
+  }
+
+  key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
+  if (NULL == key)
+  {
+
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to get key from cfg\n");
+    GNUNET_free (keyfile);
+    return GNUNET_SYSERR;
+  }
+
+  ns = GNUNET_NAMESTORE_connect (cfg);
+  if (NULL == ns)
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to connect to namestore\n");
+    GNUNET_CRYPTO_rsa_key_free (key);
+    GNUNET_free (keyfile);
+    return GNUNET_SYSERR;
+  }
+
+  GNUNET_CRYPTO_rsa_key_get_public (key, &pkey);
+  GNUNET_CRYPTO_short_hash(&pkey, sizeof(pkey), &dave_hash);
+
+  web = GNUNET_malloc(sizeof(struct in_addr));
+  GNUNET_assert(1 == inet_pton (AF_INET, TEST_IP, web));
+  rd.data_size = sizeof(struct in_addr);
+  rd.data = web;
+  rd.record_type = GNUNET_GNS_RECORD_A;
+  rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
+
+  GNUNET_NAMESTORE_record_create (ns, key, "www", &rd, NULL, NULL);
+
+  rd.data_size = strlen(TEST_DAVE_PSEU);
+  rd.data = TEST_DAVE_PSEU;
+  rd.record_type = GNUNET_GNS_RECORD_PSEU;
+
+  GNUNET_NAMESTORE_record_create (ns, key, "+", &rd, &cont_ns, ns);
+
+  GNUNET_CRYPTO_rsa_key_free(key);
+  GNUNET_free(keyfile);
+  GNUNET_free(web);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Setting up dave done\n");
+  return GNUNET_OK;
+}
+
+static int
+setup_bob (const struct GNUNET_CONFIGURATION_Handle * cfg)
+{
+  struct GNUNET_NAMESTORE_Handle *ns;
+  char* keyfile;
+  struct GNUNET_CRYPTO_RsaPrivateKey *key;
+  struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pkey;
+  struct GNUNET_NAMESTORE_RecordData rd;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Setting up bob\n");
+  GNUNET_assert (NULL != cfg);
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
+                                                            "ZONEKEY",
+                                                            &keyfile))
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to get key from cfg\n");
+    return GNUNET_SYSERR;
+  }
+
+  key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
+  if (NULL == key)
+  {
+
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to get key from cfg\n");
+    GNUNET_free (keyfile);
+    return GNUNET_SYSERR;
+  }
+
+  ns = GNUNET_NAMESTORE_connect (cfg);
+  if (NULL == ns)
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to connect to namestore\n");
+    GNUNET_CRYPTO_rsa_key_free (key);
+    GNUNET_free (keyfile);
+    return GNUNET_SYSERR;
+  }
+
+  GNUNET_CRYPTO_rsa_key_get_public (key, &pkey);
+  GNUNET_CRYPTO_short_hash(&pkey, sizeof(pkey), &bob_hash);
+
+  rd.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
+  rd.data = &dave_hash;
+  rd.record_type = GNUNET_GNS_RECORD_PKEY;
+  rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
+
+  GNUNET_NAMESTORE_record_create (ns, key, "buddy", &rd, &cont_ns, ns);
+
+  GNUNET_CRYPTO_rsa_key_free(key);
+  GNUNET_free(keyfile);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Setting up bob done\n");
+  return GNUNET_OK;
+}
+
+static int
+setup_alice (const struct GNUNET_CONFIGURATION_Handle * cfg)
+{
+  struct GNUNET_NAMESTORE_Handle *ns;
+  char* keyfile;
+  struct GNUNET_CRYPTO_RsaPrivateKey *key;
+  struct GNUNET_NAMESTORE_RecordData rd;
+
+
+  GNUNET_assert (NULL != cfg);
+  alice_cfg = cfg;
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
+                                                            "ZONEKEY",
+                                                            &keyfile))
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to get key from cfg\n");
+    return GNUNET_SYSERR;
+  }
+
+  key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
+  if (NULL == key)
+  {
+
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to get key from cfg\n");
+    GNUNET_free (keyfile);
+    return GNUNET_SYSERR;
+  }
+
+  ns = GNUNET_NAMESTORE_connect (cfg);
+  if (NULL == ns)
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to connect to namestore\n");
+    GNUNET_CRYPTO_rsa_key_free (key);
+    GNUNET_free (keyfile);
+    return GNUNET_SYSERR;
+  }
+
+  rd.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
+  rd.data = &bob_hash;
+  rd.record_type = GNUNET_GNS_RECORD_PKEY;
+  rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
+
+  GNUNET_NAMESTORE_record_create (ns, key, "bob", &rd, &cont_ns, ns);
+
+  GNUNET_CRYPTO_rsa_key_free(key);
+  GNUNET_free(keyfile);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Setting up alice  done\n");
+  return GNUNET_OK;
+}
+
+static void
+end_badly_now ()
+{
+  if (GNUNET_SCHEDULER_NO_TASK != die_task)
+    GNUNET_SCHEDULER_cancel (die_task);
+  die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
+}
+
+void testbed_master (void *cls,
+                     unsigned int num_peers,
+                     struct GNUNET_TESTBED_Peer **peers)
+{
+  GNUNET_assert (NULL != peers);
+  cpeers = peers;
+
+  /* peer 0: dave */
+  GNUNET_assert (NULL != peers[0]);
+  get_cfg_ops[0] = GNUNET_TESTBED_peer_get_information (peers[0], GNUNET_TESTBED_PIT_CONFIGURATION);
+
+  /* peer 1: bob */
+  GNUNET_assert (NULL != peers[1]);
+  get_cfg_ops[1] = GNUNET_TESTBED_peer_get_information (peers[1], GNUNET_TESTBED_PIT_CONFIGURATION);
+
+  /* peer 2: alice */
+  GNUNET_assert (NULL != peers[2]);
+  get_cfg_ops[2] = GNUNET_TESTBED_peer_get_information (peers[2], GNUNET_TESTBED_PIT_CONFIGURATION);
+
+}
+
+void testbed_controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
+{
+  static int connections = 0;
+  int res;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Callback of type: %u %p \n", event->type, cls);
+  switch (event->type)
+  {
+    case GNUNET_TESTBED_ET_OPERATION_FINISHED:
+      if (get_cfg_ops[0] == event->details.operation_finished.operation)
+      {
+          res = setup_dave (event->details.operation_finished.op_result.cfg);
+          get_cfg_ops[0] = NULL;
+          if (GNUNET_SYSERR == res)
+          {
+              GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to setup dave \n");
+              end_badly_now();
+          }
+          else
+          {
+              connect_peers ();
+          }
+      }
+      else if (get_cfg_ops[1] ==  event->details.operation_finished.operation)
+      {
+         res = setup_bob (event->details.operation_finished.op_result.cfg);
+         get_cfg_ops[1] = NULL;
+         if (GNUNET_SYSERR == res)
+         {
+             GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to setup dave \n");
+             end_badly_now();
+         }
+         else
+         {
+             connect_peers ();
+         }
+      }
+      else if (get_cfg_ops[2] ==  event->details.operation_finished.operation)
+      {
+         res = setup_alice (event->details.operation_finished.op_result.cfg);
+         get_cfg_ops[2] = NULL;
+         if (GNUNET_SYSERR == res)
+         {
+             GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to setup dave \n");
+             end_badly_now();
+         }
+         else
+         {
+             connect_peers ();
+         }
+      }
+      break;
+    case GNUNET_TESTBED_ET_CONNECT:
+      connections ++;
+      if (connections == 3)
+      {
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "All peers connected\n");
+          connect_ops[0] = NULL;
+          connect_ops[1] = NULL;
+          connect_ops[2] = NULL;
+          all_connected ();
+      }
+      break;
+    default:
+      /* whatever ... */
+      break;
+  }
+}
+
+int
+main (int argc, char *argv[])
+{
+  uint64_t event_mask;
+
+  ok = 0;
+  event_mask = 0;
+  event_mask |= (1LL << GNUNET_TESTBED_ET_CONNECT);
+  event_mask |= (1LL << GNUNET_TESTBED_ET_OPERATION_FINISHED);
+  GNUNET_TESTBED_test_run ("test_gns_dht_three_peers", "test_gns_dht_default.conf",
+                           3, event_mask,
+                           &testbed_controller_cb, NULL,
+                           &testbed_master, NULL);
+  if (GNUNET_SYSERR == ok)
+    return 1;
+  return 0;
+}
+
+/* end of test_gns_dht_three_peers.c */
