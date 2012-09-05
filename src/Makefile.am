@@ -32,6 +32,7 @@ SUBDIRS = \
   statistics \
   arm \
   testing \
+  testbed \
   peerinfo \
   $(MYSQL_DIR) \
   $(POSTGRES_DIR) \
