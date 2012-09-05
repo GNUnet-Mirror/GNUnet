@@ -287,6 +287,9 @@ env_receive (void *cls,
   return GNUNET_TIME_relative_get_zero_();
 }
 
+
+static int got_reply;
+
 /**
  * Take the given address and append it to the set of results sent back to
  * the client.
@@ -299,13 +302,17 @@ address_pretty_printer_cb (void *cls, const char *buf)
 {
   if (NULL != buf)
   {
+    got_reply = GNUNET_YES;
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "Pretty address : `%s'\n", buf);
   }
   else
   {
-      GNUNET_break (0);
-      end_badly_now ();
+      if (GNUNET_NO == got_reply)
+      {
+          GNUNET_break (0);
+          end_badly_now ();
+      }
   }
 }
 
@@ -333,7 +340,7 @@ env_notify_address (void *cls,
       w->addrlen = addrlen;
       memcpy (w->addr, addr, addrlen);
       GNUNET_CONTAINER_DLL_insert(head, tail, w);
-
+      got_reply = GNUNET_NO;
       api->address_pretty_printer (api->cls, plugin, addr, addrlen,
                                     GNUNET_YES, GNUNET_TIME_UNIT_MINUTES,
                                     &address_pretty_printer_cb,
