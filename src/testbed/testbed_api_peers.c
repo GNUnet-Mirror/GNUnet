@@ -279,7 +279,7 @@ static void
 oprelease_peer_getinfo (void *cls)
 {
   struct OperationContext *opc = cls;
-  struct PeerInfoData2 *data;
+  struct GNUNET_TESTBED_PeerInformation *data;
 
   if (OPC_STATE_FINISHED != opc->state)
   {
@@ -293,10 +293,10 @@ oprelease_peer_getinfo (void *cls)
     switch (data->pit)
     {
     case GNUNET_TESTBED_PIT_CONFIGURATION:
-      GNUNET_CONFIGURATION_destroy (data->details.cfg);
+      GNUNET_CONFIGURATION_destroy (data->result.cfg);
       break;
     case GNUNET_TESTBED_PIT_IDENTITY:
-      GNUNET_free (data->details.peer_identity);
+      GNUNET_free (data->result.id);
       break;
     default:
       GNUNET_assert (0);        /* We should never reach here */
@@ -532,16 +532,23 @@ GNUNET_TESTBED_peer_stop (struct GNUNET_TESTBED_Peer *peer)
 
 
 /**
- * Request information about a peer.
+ * Request information about a peer. The controller callback will be called with
+ * event type GNUNET_TESTBED_ET_OPERATION_FINISHED when result for this
+ * operation is available
  *
  * @param peer peer to request information about
  * @param pit desired information
+ * @param cb the convenience callback to be called when results for this
+ *          operation are available
+ * @param cb_cls the closure for the above callback
  * @return handle to the operation
  */
 struct GNUNET_TESTBED_Operation *
 GNUNET_TESTBED_peer_get_information (struct GNUNET_TESTBED_Peer *peer,
-                                     enum GNUNET_TESTBED_PeerInformationType
-                                     pit)
+				     enum GNUNET_TESTBED_PeerInformationType
+				     pit,
+				     GNUNET_TESTBED_PeerInfoCallback cb,
+				     void *cb_cls)
 {
   struct OperationContext *opc;
   struct PeerInfoData *data;
@@ -550,6 +557,8 @@ GNUNET_TESTBED_peer_get_information (struct GNUNET_TESTBED_Peer *peer,
   data = GNUNET_malloc (sizeof (struct PeerInfoData));
   data->peer = peer;
   data->pit = pit;
+  data->cb = cb;
+  data->cb_cls = cb_cls;
   opc = GNUNET_malloc (sizeof (struct OperationContext));
   opc->c = peer->controller;
   opc->data = data;
@@ -635,13 +644,14 @@ GNUNET_TESTBED_underlay_configure_link (void *op_cls,
 }
 
 
-
 /**
  * Both peers must have been started before calling this function.
  * This function then obtains a HELLO from 'p1', gives it to 'p2'
  * and asks 'p2' to connect to 'p1'.
  *
  * @param op_cls closure argument to give with the operation event
+ * @param cb the callback to call when this operation has finished
+ * @param cb_cls the closure for the above callback
  * @param p1 first peer
  * @param p2 second peer
  * @return handle to the operation, NULL if connecting these two
@@ -649,8 +659,11 @@ GNUNET_TESTBED_underlay_configure_link (void *op_cls,
  *         not running or underlay disallows)
  */
 struct GNUNET_TESTBED_Operation *
-GNUNET_TESTBED_overlay_connect (void *op_cls, struct GNUNET_TESTBED_Peer *p1,
-                                struct GNUNET_TESTBED_Peer *p2)
+GNUNET_TESTBED_overlay_connect (void *op_cls,
+                                GNUNET_TESTBED_OperationCompletionCallback cb,
+                                void *cb_cls,
+				struct GNUNET_TESTBED_Peer *p1,
+				struct GNUNET_TESTBED_Peer *p2)
 {
   struct OperationContext *opc;
   struct OverlayConnectData *data;
@@ -660,6 +673,8 @@ GNUNET_TESTBED_overlay_connect (void *op_cls, struct GNUNET_TESTBED_Peer *p1,
   data = GNUNET_malloc (sizeof (struct OverlayConnectData));
   data->p1 = p1;
   data->p2 = p2;
+  data->cb = cb;
+  data->cb_cls = cb_cls;
   opc = GNUNET_malloc (sizeof (struct OperationContext));
   opc->data = data;
   opc->c = p1->controller;

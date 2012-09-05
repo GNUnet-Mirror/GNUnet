@@ -146,37 +146,19 @@ struct PeerInfoData
   struct GNUNET_TESTBED_Peer *peer;
 
   /**
-   * The type of peer information requested
+   * The Peer info callback to call when this operation has completed
    */
-  enum GNUNET_TESTBED_PeerInformationType pit;
-};
+  GNUNET_TESTBED_PeerInfoCallback cb;
+    
+  /**
+   * The closure for peer info callback
+   */
+  void *cb_cls;
 
-
-/**
- * Data for the OperationType OP_PEER_INFO
- */
-struct PeerInfoData2
-{
   /**
    * The type of peer information requested
    */
   enum GNUNET_TESTBED_PeerInformationType pit;
-
-  /**
-   * The data from reply
-   */
-  union
-  {
-    /**
-     * Configuration handle
-     */
-    struct GNUNET_CONFIGURATION_Handle *cfg;
-
-    /**
-     * Peer Identity
-     */
-    struct GNUNET_PeerIdentity *peer_identity;
-  } details;
 };
 
 
@@ -194,6 +176,16 @@ struct OverlayConnectData
    * Peer B
    */
   struct GNUNET_TESTBED_Peer *p2;
+
+  /**
+   * The operation completion callback to call once this operation is done
+   */
+  GNUNET_TESTBED_OperationCompletionCallback cb;
+  
+  /**
+   * The closure for the above callback
+   */
+  void *cb_cls;
 
 };
 

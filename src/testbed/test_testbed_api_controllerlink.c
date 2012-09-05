@@ -305,9 +305,7 @@ check_operation_success (const struct GNUNET_TESTBED_EventInformation *event)
   GNUNET_assert (event->details.operation_finished.operation == op);
   GNUNET_assert (NULL == event->details.operation_finished.op_cls);
   GNUNET_assert (NULL == event->details.operation_finished.emsg);
-  GNUNET_assert (GNUNET_TESTBED_PIT_GENERIC ==
-                 event->details.operation_finished.pit);
-  GNUNET_assert (NULL == event->details.operation_finished.op_result.generic);
+  GNUNET_assert (NULL == event->details.operation_finished.generic);
 }
 
 

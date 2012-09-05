@@ -49,9 +49,6 @@ enum State
      */
   SERVICE_CONNECTED,
 
-    /**
-     *
-     */
 };
 
 
@@ -111,6 +108,16 @@ struct ServiceConnectData
   void *op_result;
 
   /**
+   * The operation completion callback
+   */
+  GNUNET_TESTBED_OperationCompletionCallback cb;
+
+  /**
+   * The closure for operation completion callback
+   */
+  void *cb_cls;
+
+  /**
    * State information
    */
   enum State state;
@@ -132,7 +139,13 @@ configuration_receiver (void *cls, const struct GNUNET_MessageHeader *msg)
   const struct GNUNET_TESTBED_PeerConfigurationInformationMessage *imsg;
   struct GNUNET_TESTBED_Controller *c;
   struct GNUNET_TESTBED_EventInformation info;
+  uint16_t mtype;
 
+  mtype = ntohs (msg->type);
+  if (GNUNET_MESSAGE_TYPE_TESTBED_OPERATIONEVENT == mtype)
+  {
+    GNUNET_assert (0); 		/* FIXME: Add notification for failure */
+  }
   imsg =
       (const struct GNUNET_TESTBED_PeerConfigurationInformationMessage *) msg;
   data->cfg = GNUNET_TESTBED_get_config_from_peerinfo_msg_ (imsg);
@@ -141,13 +154,14 @@ configuration_receiver (void *cls, const struct GNUNET_MessageHeader *msg)
   info.details.operation_finished.operation = data->operation;
   info.details.operation_finished.op_cls = data->op_cls;
   info.details.operation_finished.emsg = NULL;
-  info.details.operation_finished.pit = GNUNET_TESTBED_PIT_GENERIC;
-  info.details.operation_finished.op_result.generic = data->op_result;
+  info.details.operation_finished.generic = data->op_result;
   c = data->peer->controller;
   data->state = SERVICE_CONNECTED;
   if ((0 != (GNUNET_TESTBED_ET_OPERATION_FINISHED & c->event_mask)) &&
       (NULL != c->cc))
     c->cc (c->cc_cls, &info);
+  if (NULL != data->cb)
+    data->cb (data->cb_cls, data->operation, NULL);
 }
 
 
@@ -214,7 +228,7 @@ oprelease_service_connect (void *cls)
  * maintain connections with other systems.  The actual service
  * handle is then returned via the 'op_result' member in the event
  * callback.  The 'ca' callback is used to create the connection
- * when the time is right; the 'da' callback will be used to
+ * when the time is right; the 'da' callback will be used to 
  * destroy the connection (upon 'GNUNET_TESTBED_operation_done').
  * 'GNUNET_TESTBED_operation_cancel' can be used to abort this
  * operation until the event callback has been called.
@@ -222,17 +236,22 @@ oprelease_service_connect (void *cls)
  * @param op_cls closure to pass in operation event
  * @param peer peer that runs the service
  * @param service_name name of the service to connect to
+ * @param cb the callback to call when this operation finishes
+ * @param cb_cls closure for the above callback
  * @param ca helper function to establish the connection
  * @param da helper function to close the connection
  * @param cada_cls closure for ca and da
  * @return handle for the operation
  */
 struct GNUNET_TESTBED_Operation *
-GNUNET_TESTBED_service_connect (void *op_cls, struct GNUNET_TESTBED_Peer *peer,
-                                const char *service_name,
-                                GNUNET_TESTBED_ConnectAdapter ca,
-                                GNUNET_TESTBED_DisconnectAdapter da,
-                                void *cada_cls)
+GNUNET_TESTBED_service_connect (void *op_cls,
+				struct GNUNET_TESTBED_Peer *peer,
+				const char *service_name,
+                                GNUNET_TESTBED_OperationCompletionCallback cb,
+                                void *cb_cls,
+				GNUNET_TESTBED_ConnectAdapter ca,
+				GNUNET_TESTBED_DisconnectAdapter da,
+				void *cada_cls)
 {
   struct ServiceConnectData *data;
 
@@ -243,6 +262,8 @@ GNUNET_TESTBED_service_connect (void *op_cls, struct GNUNET_TESTBED_Peer *peer,
   data->op_cls = op_cls;
   data->peer = peer;
   data->state = INIT;
+  data->cb = cb;
+  data->cb_cls = cb_cls;
   data->operation =
       GNUNET_TESTBED_operation_create_ (data, &opstart_service_connect,
                                         &oprelease_service_connect);

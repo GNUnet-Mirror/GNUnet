@@ -207,6 +207,64 @@ dht_disconnect_adapter (void *cls, void *op_result)
 }
 
 
+/**
+ * Callback to be called when an operation is completed
+ *
+ * @param cls the callback closure from functions generating an operation
+ * @param op the operation that has been finished
+ * @param emsg error message in case the operation has failed; will be NULL if
+ *          operation has executed successfully.
+ */
+static void 
+op_comp_cb (void *cls, struct GNUNET_TESTBED_Operation *op, const char *emsg)
+{
+  switch (sub_test)
+  {
+  case PEER_SERVICE_CONNECT:
+    GNUNET_assert (operation == op);
+    GNUNET_assert (NULL == emsg);
+    GNUNET_assert (NULL == cls);
+    GNUNET_TESTBED_operation_done (operation);        /* This results in call to
+                                                         * disconnect adapter */
+    break;
+  default:
+    GNUNET_assert (0);
+  }
+}
+
+
+/**
+ * Callback to be called when the requested peer information is available
+ *
+ * @param cb_cls the closure from GNUNET_TETSBED_peer_get_information()
+ * @param op the operation this callback corresponds to
+ * @param pinfo the result; will be NULL if the operation has failed
+ * @param emsg error message if the operation has failed; will be NULL if the
+ *          operation is successfull
+ */
+static void 
+peerinfo_cb (void *cb_cls, struct GNUNET_TESTBED_Operation *op,
+	     const struct GNUNET_TESTBED_PeerInformation *pinfo,
+	     const char *emsg)
+{
+  switch (sub_test)
+  {
+  case PEER_GETCONFIG:
+    GNUNET_assert (NULL != pinfo);
+    GNUNET_assert (NULL == emsg);
+    GNUNET_assert (NULL == cb_cls);
+    GNUNET_assert (operation == op);
+    GNUNET_assert (GNUNET_TESTBED_PIT_CONFIGURATION == pinfo->pit);
+    GNUNET_assert (NULL != pinfo->result.cfg);
+    sub_test = PEER_DESTROY;
+    GNUNET_TESTBED_operation_done (operation);
+    operation = GNUNET_TESTBED_peer_destroy (peer);
+    break;
+  default:
+    GNUNET_assert (0);
+  }
+}
+
 
 /**
  * Signature of the event handler function called by the
@@ -223,25 +281,11 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
   case GNUNET_TESTBED_ET_OPERATION_FINISHED:
     switch (sub_test)
     {
-    case PEER_GETCONFIG:
-      GNUNET_assert (event->details.operation_finished.operation == operation);
-      GNUNET_assert (NULL == event->details.operation_finished.op_cls);
-      GNUNET_assert (NULL == event->details.operation_finished.emsg);
-      GNUNET_assert (GNUNET_TESTBED_PIT_CONFIGURATION ==
-                     event->details.operation_finished.pit);
-      GNUNET_assert (NULL != event->details.operation_finished.op_result.cfg);
-      sub_test = PEER_DESTROY;
-      GNUNET_TESTBED_operation_done (operation);
-      operation = GNUNET_TESTBED_peer_destroy (peer);
-      break;
     case PEER_DESTROY:
       GNUNET_assert (event->details.operation_finished.operation == operation);
       GNUNET_assert (NULL == event->details.operation_finished.op_cls);
       GNUNET_assert (NULL == event->details.operation_finished.emsg);
-      GNUNET_assert (GNUNET_TESTBED_PIT_GENERIC ==
-                     event->details.operation_finished.pit);
-      GNUNET_assert (NULL ==
-                     event->details.operation_finished.op_result.generic);
+      GNUNET_assert (NULL == event->details.operation_finished.generic);
       GNUNET_TESTBED_operation_done (operation);
       GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
       break;
@@ -249,15 +293,10 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
       GNUNET_assert (event->details.operation_finished.operation == operation);
       GNUNET_assert (NULL == event->details.operation_finished.op_cls);
       GNUNET_assert (NULL == event->details.operation_finished.emsg);
-      GNUNET_assert (GNUNET_TESTBED_PIT_GENERIC ==
-                     event->details.operation_finished.pit);
       GNUNET_assert (NULL != dht_handle);
-      GNUNET_assert (event->details.operation_finished.op_result.generic ==
-                     dht_handle);
-      GNUNET_TESTBED_operation_done (operation);        /* This results in call to
-                                                         * disconnect adapter */
+      GNUNET_assert (event->details.operation_finished.generic == dht_handle);     
       break;
-    case OTHER:
+    default:
       GNUNET_assert (0);
       break;
     }
@@ -268,8 +307,9 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     GNUNET_assert (OTHER == sub_test);
     GNUNET_TESTBED_operation_done (operation);
     operation =
-        GNUNET_TESTBED_service_connect (NULL, peer, "dht", &dht_connect_adapter,
-                                        &dht_disconnect_adapter, NULL);
+        GNUNET_TESTBED_service_connect (NULL, peer, "dht", &op_comp_cb, NULL,
+					&dht_connect_adapter,
+					&dht_disconnect_adapter, NULL);
     GNUNET_assert (NULL != operation);
     break;
   case GNUNET_TESTBED_ET_PEER_STOP:
@@ -278,9 +318,10 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     result = GNUNET_YES;
     sub_test = PEER_GETCONFIG;
     GNUNET_TESTBED_operation_done (operation);
-    operation =
-        GNUNET_TESTBED_peer_get_information (peer,
-                                             GNUNET_TESTBED_PIT_CONFIGURATION);
+    operation = 
+	GNUNET_TESTBED_peer_get_information (peer,
+					     GNUNET_TESTBED_PIT_CONFIGURATION,
+					     &peerinfo_cb, NULL);
     break;
   default:
     GNUNET_assert (0);          /* We should never reach this state */

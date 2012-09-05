@@ -322,8 +322,7 @@ handle_opsuccess (struct GNUNET_TESTBED_Controller *c,
     event->details.operation_finished.operation = opc->op;
     event->details.operation_finished.op_cls = NULL;
     event->details.operation_finished.emsg = NULL;
-    event->details.operation_finished.pit = GNUNET_TESTBED_PIT_GENERIC;
-    event->details.operation_finished.op_result.generic = NULL;
+    event->details.operation_finished.generic = NULL;
   }
   GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
   opc->state = OPC_STATE_FINISHED;
@@ -480,6 +479,8 @@ handle_peer_conevent (struct GNUNET_TESTBED_Controller *c,
 {
   struct OperationContext *opc;
   struct OverlayConnectData *data;
+  GNUNET_TESTBED_OperationCompletionCallback cb;
+  void *cb_cls;
   struct GNUNET_TESTBED_EventInformation event;
   uint64_t op_id;
 
@@ -507,6 +508,8 @@ handle_peer_conevent (struct GNUNET_TESTBED_Controller *c,
     GNUNET_assert (0);          /* Should never reach here */
     break;
   }
+  cb = data->cb;
+  cb_cls = data->cb_cls;
   GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
   opc->state = OPC_STATE_FINISHED;
   GNUNET_free (data);
@@ -517,6 +520,8 @@ handle_peer_conevent (struct GNUNET_TESTBED_Controller *c,
     if (NULL != c->cc)
       c->cc (c->cc_cls, &event);
   }
+  if (NULL != cb)
+    cb (cb_cls, opc->op, NULL);
   return GNUNET_YES;
 }
 
@@ -538,8 +543,9 @@ handle_peer_config (struct GNUNET_TESTBED_Controller *c,
   struct OperationContext *opc;
   struct GNUNET_TESTBED_Peer *peer;
   struct PeerInfoData *data;
-  struct PeerInfoData2 *response_data;
-  struct GNUNET_TESTBED_EventInformation info;
+  struct GNUNET_TESTBED_PeerInformation *pinfo;
+  GNUNET_TESTBED_PeerInfoCallback cb;
+  void *cb_cls;
   uint64_t op_id;
 
   op_id = GNUNET_ntohll (msg->operation_id);
@@ -565,52 +571,32 @@ handle_peer_config (struct GNUNET_TESTBED_Controller *c,
   peer = data->peer;
   GNUNET_assert (NULL != peer);
   GNUNET_assert (ntohl (msg->peer_id) == peer->unique_id);
-  if (0 == (c->event_mask & (1L << GNUNET_TESTBED_ET_OPERATION_FINISHED)))
-  {
-    LOG_DEBUG ("Skipping operation callback as flag not set\n");
-    return GNUNET_YES;
-  }
-  response_data = GNUNET_malloc (sizeof (struct PeerInfoData2));
-  response_data->pit = data->pit;
+  pinfo = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_PeerInformation));
+  pinfo->pit = data->pit;
+  cb = data->cb;
+  cb_cls = data->cb_cls;
   GNUNET_free (data);
   opc->data = NULL;
-  info.type = GNUNET_TESTBED_ET_OPERATION_FINISHED;
-  info.details.operation_finished.operation = opc->op;
-  info.details.operation_finished.op_cls = NULL;
-  info.details.operation_finished.emsg = NULL;
-  info.details.operation_finished.pit = response_data->pit;
-  switch (response_data->pit)
+  switch (pinfo->pit)
   {
   case GNUNET_TESTBED_PIT_IDENTITY:
-  {
-    struct GNUNET_PeerIdentity *peer_identity;
-
-    peer_identity = GNUNET_malloc (sizeof (struct GNUNET_PeerIdentity));
-    (void) memcpy (peer_identity, &msg->peer_identity,
-                   sizeof (struct GNUNET_PeerIdentity));
-    response_data->details.peer_identity = peer_identity;
-    info.details.operation_finished.op_result.pid = peer_identity;
-  }
+    pinfo->result.id = GNUNET_malloc (sizeof (struct GNUNET_PeerIdentity));
+    (void) memcpy (pinfo->result.id, &msg->peer_identity,
+		   sizeof (struct GNUNET_PeerIdentity));
     break;
   case GNUNET_TESTBED_PIT_CONFIGURATION:
-    response_data->details.cfg =        /* Freed in oprelease_peer_getinfo */
-        GNUNET_TESTBED_get_config_from_peerinfo_msg_ (msg);
-    info.details.operation_finished.op_result.cfg = response_data->details.cfg;
+    pinfo->result.cfg =        /* Freed in oprelease_peer_getinfo */
+	GNUNET_TESTBED_get_config_from_peerinfo_msg_ (msg);    
     break;
   case GNUNET_TESTBED_PIT_GENERIC:
     GNUNET_assert (0);          /* never reach here */
     break;
   }
-  opc->data = response_data;
+  opc->data = pinfo;
   GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
   opc->state = OPC_STATE_FINISHED;
-  if (0 !=
-      ((GNUNET_TESTBED_ET_CONNECT | GNUNET_TESTBED_ET_DISCONNECT) &
-       c->event_mask))
-  {
-    if (NULL != c->cc)
-      c->cc (c->cc_cls, &info);
-  }
+  if (NULL != cb)
+    cb (cb_cls, opc->op, pinfo, NULL);
   return GNUNET_YES;
 }
 
@@ -676,8 +662,7 @@ handle_op_fail_event (struct GNUNET_TESTBED_Controller *c,
     event.details.operation_finished.operation = opc->op;
     event.details.operation_finished.op_cls = NULL;
     event.details.operation_finished.emsg = emsg;
-    event.details.operation_finished.pit = GNUNET_TESTBED_PIT_GENERIC;
-    event.details.operation_finished.op_result.generic = NULL;
+    event.details.operation_finished.generic = NULL;
     c->cc (c->cc_cls, &event);
   }
   return GNUNET_YES;

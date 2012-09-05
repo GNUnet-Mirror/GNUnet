@@ -196,6 +196,30 @@ do_abort (void *cls, const const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
+ * Callback to be called when an operation is completed
+ *
+ * @param cls the callback closure from functions generating an operation
+ * @param op the operation that has been finished
+ * @param emsg error message in case the operation has failed; will be NULL if
+ *          operation has executed successfully.
+ */
+static void 
+op_comp_cb (void *cls, struct GNUNET_TESTBED_Operation *op, const char *emsg)
+{
+  GNUNET_assert (PEERS_STARTED == result);
+  GNUNET_assert (NULL == peer1.operation);
+  GNUNET_assert (NULL == peer2.operation);
+  GNUNET_assert (NULL != common_operation);
+  GNUNET_TESTBED_operation_done (common_operation);
+  common_operation = NULL;
+  result = PEERS_CONNECTED;
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Peers connected\n");
+  peer1.operation = GNUNET_TESTBED_peer_stop (peer1.peer);
+  peer2.operation = GNUNET_TESTBED_peer_stop (peer2.peer);
+}
+
+
+/**
  * Signature of the event handler function called by the
  * respective event controller.
  *
@@ -211,9 +235,7 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     GNUNET_assert (PEERS_STOPPED == result);
     GNUNET_assert (NULL == event->details.operation_finished.op_cls);
     GNUNET_assert (NULL == event->details.operation_finished.emsg);
-    GNUNET_assert (GNUNET_TESTBED_PIT_GENERIC ==
-                   event->details.operation_finished.pit);
-    GNUNET_assert (NULL == event->details.operation_finished.op_result.generic);
+    GNUNET_assert (NULL == event->details.operation_finished.generic);
     if (event->details.operation_finished.operation == peer1.operation)
     {
       GNUNET_TESTBED_operation_done (peer1.operation);
@@ -255,7 +277,8 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     {
       result = PEERS_STARTED;
       common_operation =
-          GNUNET_TESTBED_overlay_connect (NULL, peer1.peer, peer2.peer);
+          GNUNET_TESTBED_overlay_connect (NULL, &op_comp_cb, NULL, peer1.peer,
+					  peer2.peer);
     }
     break;
   case GNUNET_TESTBED_ET_PEER_STOP:
@@ -284,12 +307,6 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     GNUNET_assert (NULL != common_operation);
     GNUNET_assert ((event->details.peer_connect.peer1 == peer1.peer) &&
                    (event->details.peer_connect.peer2 == peer2.peer));
-    GNUNET_TESTBED_operation_done (common_operation);
-    common_operation = NULL;
-    result = PEERS_CONNECTED;
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Peers connected\n");
-    peer1.operation = GNUNET_TESTBED_peer_stop (peer1.peer);
-    peer2.operation = GNUNET_TESTBED_peer_stop (peer2.peer);
     break;
   default:
     GNUNET_assert (0);

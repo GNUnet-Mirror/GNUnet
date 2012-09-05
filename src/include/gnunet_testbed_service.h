@@ -309,41 +309,11 @@ struct GNUNET_TESTBED_EventInformation
       const char *emsg;
 
       /**
-       * Peer information type; captures which of the types
-       * in the 'op_result' is actually in use.
+       * No result (NULL pointer) or generic result
+       * (whatever the GNUNET_TESTBED_ConnectAdapter returned).
        */
-      enum GNUNET_TESTBED_PeerInformationType pit;
-
-      /**
-       * Pointer to an operation-specific return value; NULL on error;
-       * can be NULL for certain operations.  Valid until
-       * 'GNUNET_TESTBED_operation_done' is called.
-       */
-      union
-      {
-	/**
-	 * No result (NULL pointer) or generic result
-	 * (whatever the GNUNET_TESTBED_ConnectAdapter returned).
-	 */
-	void *generic;
-
-	/**
-	 * Identity of host running the peer.
-	 */
-	struct GNUNET_TESTBED_Host *host;
-
-	/**
-	 * Identity of the peer.
-	 */
-	const struct GNUNET_PeerIdentity *pid;
-
-	/**
-	 * Configuration of the peer.
-	 */
-	const struct GNUNET_CONFIGURATION_Handle *cfg;
-
-      } op_result;
-
+      void *generic;
+      
     } operation_finished;   
 
 
@@ -555,6 +525,21 @@ GNUNET_TESTBED_cancel_registration (struct GNUNET_TESTBED_HostRegistrationHandle
 
 
 /**
+ * Callback to be called when an operation is completed
+ *
+ * @param cls the callback closure from functions generating an operation
+ * @param op the operation that has been finished
+ * @param emsg error message in case the operation has failed; will be NULL if
+ *          operation has executed successfully.
+ */
+typedef void (*GNUNET_TESTBED_OperationCompletionCallback) (void *cls,
+                                                            struct
+                                                            GNUNET_TESTBED_Operation
+                                                            *op,
+                                                            const char *emsg);
+
+
+/**
  * Create a link from slave controller to delegated controller. Whenever the
  * master controller is asked to start a peer at the delegated controller the
  * request will be routed towards slave controller (if a route exists). The
@@ -684,15 +669,70 @@ GNUNET_TESTBED_peer_stop (struct GNUNET_TESTBED_Peer *peer);
 
 
 /**
- * Request information about a peer.
+ * Data returned from GNUNET_TESTBED_peer_get_information
+ */
+struct GNUNET_TESTBED_PeerInformation
+{
+  /**
+   * Peer information type; captures which of the types
+   * in the 'op_result' is actually in use.
+   */
+  enum GNUNET_TESTBED_PeerInformationType pit;
+  
+  /**
+   * The result of the get information operation; Choose according to the pit
+   */
+  union
+  { 
+    /**
+     * The configuration of the peer
+     */
+    struct GNUNET_CONFIGURATION_Handle *cfg;
+  
+    /**
+     * The identity of the peer
+     */
+    struct GNUNET_PeerIdentity *id;
+  } result;
+};
+
+
+/**
+ * Callback to be called when the requested peer information is available
+ *
+ * @param cb_cls the closure from GNUNET_TETSBED_peer_get_information()
+ * @param op the operation this callback corresponds to
+ * @param pinfo the result; will be NULL if the operation has failed
+ * @param emsg error message if the operation has failed; will be NULL if the
+ *          operation is successfull
+ */
+typedef void (*GNUNET_TESTBED_PeerInfoCallback) (void *cb_cls,
+						 struct GNUNET_TESTBED_Operation
+						 *op,
+						 const struct
+						 GNUNET_TESTBED_PeerInformation
+						 *pinfo,
+						 const char *emsg);
+
+
+/**
+ * Request information about a peer. The controller callback will be called with
+ * event type GNUNET_TESTBED_ET_OPERATION_FINISHED when result for this
+ * operation is available
  *
  * @param peer peer to request information about
  * @param pit desired information
+ * @param cb the convenience callback to be called when results for this
+ *          operation are available
+ * @param cb_cls the closure for the above callback
  * @return handle to the operation
  */
 struct GNUNET_TESTBED_Operation *
 GNUNET_TESTBED_peer_get_information (struct GNUNET_TESTBED_Peer *peer,
-				     enum GNUNET_TESTBED_PeerInformationType pit);
+				     enum GNUNET_TESTBED_PeerInformationType
+				     pit,
+				     GNUNET_TESTBED_PeerInfoCallback cb,
+				     void *cb_cls);
 
 
 /**
@@ -901,6 +941,8 @@ GNUNET_TESTBED_underlay_configure_topology (void *op_cls,
  * and asks 'p2' to connect to 'p1'.
  *
  * @param op_cls closure argument to give with the operation event
+ * @param cb the callback to call when this operation has finished
+ * @param cb_cls the closure for the above callback
  * @param p1 first peer
  * @param p2 second peer
  * @return handle to the operation, NULL if connecting these two
@@ -909,6 +951,8 @@ GNUNET_TESTBED_underlay_configure_topology (void *op_cls,
  */
 struct GNUNET_TESTBED_Operation *
 GNUNET_TESTBED_overlay_connect (void *op_cls,
+                                GNUNET_TESTBED_OperationCompletionCallback cb,
+                                void *cb_cls,
 				struct GNUNET_TESTBED_Peer *p1,
 				struct GNUNET_TESTBED_Peer *p2);
 
@@ -1010,6 +1054,8 @@ typedef void (*GNUNET_TESTBED_DisconnectAdapter)(void *cls,
  * @param op_cls closure to pass in operation event
  * @param peer peer that runs the service
  * @param service_name name of the service to connect to
+ * @param cb the callback to call when this operation finishes
+ * @param cb_cls closure for the above callback
  * @param ca helper function to establish the connection
  * @param da helper function to close the connection
  * @param cada_cls closure for ca and da
@@ -1019,6 +1065,8 @@ struct GNUNET_TESTBED_Operation *
 GNUNET_TESTBED_service_connect (void *op_cls,
 				struct GNUNET_TESTBED_Peer *peer,
 				const char *service_name,
+                                GNUNET_TESTBED_OperationCompletionCallback cb,
+                                void *cb_cls,
 				GNUNET_TESTBED_ConnectAdapter ca,
 				GNUNET_TESTBED_DisconnectAdapter da,
 				void *cada_cls);

@@ -63,6 +63,52 @@ do_shutdown (void *cls, const const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
+ * Callback to be called when the requested peer information is available
+ *
+ * @param cb_cls the closure from GNUNET_TETSBED_peer_get_information()
+ * @param op the operation this callback corresponds to
+ * @param pinfo the result; will be NULL if the operation has failed
+ * @param emsg error message if the operation has failed; will be NULL if the
+ *          operation is successfull
+ */
+static void 
+peerinfo_cb (void *cb_cls, struct GNUNET_TESTBED_Operation *op_,
+	     const struct GNUNET_TESTBED_PeerInformation *pinfo,
+	     const char *emsg)
+{
+  GNUNET_assert (op == op_);
+  GNUNET_assert (NULL == cb_cls);
+  GNUNET_assert (NULL == emsg);
+  GNUNET_assert (GNUNET_TESTBED_PIT_IDENTITY == pinfo->pit);
+  GNUNET_assert (NULL != pinfo->result.id);
+  GNUNET_TESTBED_operation_done (op);
+  result = GNUNET_OK;
+  GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+}
+
+
+/**
+ * Callback to be called when an operation is completed
+ *
+ * @param cls the callback closure from functions generating an operation
+ * @param op the operation that has been finished
+ * @param emsg error message in case the operation has failed; will be NULL if
+ *          operation has executed successfully.
+ */
+static void 
+op_comp_cb (void *cls, struct GNUNET_TESTBED_Operation *op_, const char *emsg)
+{
+  GNUNET_assert (NULL == cls);
+  GNUNET_assert (op == op_);
+  GNUNET_assert (NULL == emsg);
+  GNUNET_TESTBED_operation_done (op);
+  op = GNUNET_TESTBED_peer_get_information (peers[0],
+					    GNUNET_TESTBED_PIT_IDENTITY,
+					    &peerinfo_cb, NULL);
+}
+
+
+/**
  * Controller event callback
  *
  * @param cls NULL
@@ -76,21 +122,7 @@ controller_event_cb (void *cls,
   {
   case GNUNET_TESTBED_ET_CONNECT:
     GNUNET_assert (event->details.peer_connect.peer1 == peers[0]);
-    GNUNET_assert (event->details.peer_connect.peer2 == peers[1]);
-    GNUNET_TESTBED_operation_done (op);
-    op = GNUNET_TESTBED_peer_get_information (peers[0],
-                                              GNUNET_TESTBED_PIT_IDENTITY);
-    break;
-  case GNUNET_TESTBED_ET_OPERATION_FINISHED:
-    GNUNET_assert (event->details.operation_finished.operation == op);
-    GNUNET_assert (NULL == event->details.operation_finished.op_cls);
-    GNUNET_assert (NULL == event->details.operation_finished.emsg);
-    GNUNET_assert (GNUNET_TESTBED_PIT_IDENTITY ==
-                   event->details.operation_finished.pit);
-    GNUNET_assert (NULL != event->details.operation_finished.op_result.pid);
-    GNUNET_TESTBED_operation_done (op);
-    result = GNUNET_OK;
-    GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+    GNUNET_assert (event->details.peer_connect.peer2 == peers[1]);    
     break;
   default:
     GNUNET_assert (0);
@@ -117,7 +149,7 @@ test_master (void *cls, unsigned int num_peers,
   for (peer = 0; peer < num_peers; peer++)
     GNUNET_assert (NULL != peers_[peer]);
   peers = peers_;
-  op = GNUNET_TESTBED_overlay_connect (NULL, peers[0], peers[1]);  
+  op = GNUNET_TESTBED_overlay_connect (NULL, &op_comp_cb, NULL, peers[0], peers[1]);
 }
 
 
