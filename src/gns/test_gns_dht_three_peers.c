@@ -262,17 +262,17 @@ static void connect_peers ()
   {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "All peers started\n");
 
-      connect_ops[0] = GNUNET_TESTBED_overlay_connect (NULL,
-          cpeers[0],
-          cpeers[1]);
+      connect_ops[0] = GNUNET_TESTBED_overlay_connect (NULL, NULL, NULL,
+						       cpeers[0],
+						       cpeers[1]);
 
-      connect_ops[1] = GNUNET_TESTBED_overlay_connect (NULL,
-          cpeers[1],
-          cpeers[2]);
+      connect_ops[1] = GNUNET_TESTBED_overlay_connect (NULL, NULL, NULL,
+						       cpeers[1],
+						       cpeers[2]);
 
-      connect_ops[2] = GNUNET_TESTBED_overlay_connect (NULL,
-          cpeers[0],
-          cpeers[2]);
+      connect_ops[2] = GNUNET_TESTBED_overlay_connect (NULL, NULL, NULL,
+						       cpeers[0],
+						       cpeers[2]);
   }
 }
 
@@ -492,6 +492,74 @@ end_badly_now ()
   die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
 }
 
+
+/**
+ * Callback to be called when the requested peer information is available
+ *
+ * @param cb_cls the closure from GNUNET_TETSBED_peer_get_information()
+ * @param op the operation this callback corresponds to
+ * @param pinfo the result; will be NULL if the operation has failed
+ * @param emsg error message if the operation has failed; will be NULL if the
+ *          operation is successfull
+ */
+static void 
+peerinfo_cb (void *cb_cls, struct GNUNET_TESTBED_Operation *op,
+	     const struct GNUNET_TESTBED_PeerInformation *pinfo,
+	     const char *emsg)
+{
+  int res;
+
+  if (get_cfg_ops[0] == op)
+  {
+    GNUNET_assert (GNUNET_TESTBED_PIT_CONFIGURATION == pinfo->pit);
+    res = setup_dave (pinfo->result.cfg);
+    GNUNET_TESTBED_operation_done (get_cfg_ops[0]);
+    get_cfg_ops[0] = NULL;
+    if (GNUNET_SYSERR == res)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to setup dave \n");
+      end_badly_now();
+    }
+    else
+    {
+      connect_peers ();
+    }
+  }
+  else if (get_cfg_ops[1] == op)
+  {
+    GNUNET_assert (GNUNET_TESTBED_PIT_CONFIGURATION == pinfo->pit);
+    res = setup_bob (pinfo->result.cfg);
+    GNUNET_TESTBED_operation_done (get_cfg_ops[1]);
+    get_cfg_ops[1] = NULL;
+    if (GNUNET_SYSERR == res)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to setup dave \n");
+      end_badly_now();
+    }
+    else
+    {
+      connect_peers ();
+    }
+  }
+  else if (get_cfg_ops[2] == op)
+  {
+    GNUNET_assert (GNUNET_TESTBED_PIT_CONFIGURATION == pinfo->pit);
+    res = setup_alice (pinfo->result.cfg);
+    GNUNET_TESTBED_operation_done (get_cfg_ops[2]);
+    get_cfg_ops[2] = NULL;
+    if (GNUNET_SYSERR == res)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to setup dave \n");
+      end_badly_now();
+    }
+    else
+    {
+      connect_peers ();
+    }
+  }
+}
+
+
 void testbed_master (void *cls,
                      unsigned int num_peers,
                      struct GNUNET_TESTBED_Peer **peers)
@@ -501,71 +569,34 @@ void testbed_master (void *cls,
 
   /* peer 0: dave */
   GNUNET_assert (NULL != peers[0]);
-  get_cfg_ops[0] = GNUNET_TESTBED_peer_get_information (peers[0], GNUNET_TESTBED_PIT_CONFIGURATION);
+  get_cfg_ops[0] = GNUNET_TESTBED_peer_get_information (peers[0],
+							GNUNET_TESTBED_PIT_CONFIGURATION,
+							&peerinfo_cb, NULL);
 
   /* peer 1: bob */
   GNUNET_assert (NULL != peers[1]);
-  get_cfg_ops[1] = GNUNET_TESTBED_peer_get_information (peers[1], GNUNET_TESTBED_PIT_CONFIGURATION);
+  get_cfg_ops[1] = GNUNET_TESTBED_peer_get_information (peers[1],
+							GNUNET_TESTBED_PIT_CONFIGURATION,
+							&peerinfo_cb, NULL );
 
   /* peer 2: alice */
   GNUNET_assert (NULL != peers[2]);
-  get_cfg_ops[2] = GNUNET_TESTBED_peer_get_information (peers[2], GNUNET_TESTBED_PIT_CONFIGURATION);
+  get_cfg_ops[2] = GNUNET_TESTBED_peer_get_information (peers[2],
+							GNUNET_TESTBED_PIT_CONFIGURATION,
+							&peerinfo_cb, NULL);
 
 }
 
 void testbed_controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
 {
   static int connections = 0;
-  int res;
 
   switch (event->type)
   {
     case GNUNET_TESTBED_ET_OPERATION_FINISHED:
-      if (get_cfg_ops[0] == event->details.operation_finished.operation)
-      {
-          res = setup_dave (event->details.operation_finished.op_result.cfg);
-          GNUNET_TESTBED_operation_done (get_cfg_ops[0]);
-          get_cfg_ops[0] = NULL;
-          if (GNUNET_SYSERR == res)
-          {
-              GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to setup dave \n");
-              end_badly_now();
-          }
-          else
-          {
-              connect_peers ();
-          }
-      }
-      else if (get_cfg_ops[1] ==  event->details.operation_finished.operation)
-      {
-         res = setup_bob (event->details.operation_finished.op_result.cfg);
-         GNUNET_TESTBED_operation_done (get_cfg_ops[1]);
-         get_cfg_ops[1] = NULL;
-         if (GNUNET_SYSERR == res)
-         {
-             GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to setup dave \n");
-             end_badly_now();
-         }
-         else
-         {
-             connect_peers ();
-         }
-      }
-      else if (get_cfg_ops[2] ==  event->details.operation_finished.operation)
-      {
-         res = setup_alice (event->details.operation_finished.op_result.cfg);
-         GNUNET_TESTBED_operation_done (get_cfg_ops[2]);
-         get_cfg_ops[2] = NULL;
-         if (GNUNET_SYSERR == res)
-         {
-             GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to setup dave \n");
-             end_badly_now();
-         }
-         else
-         {
-             connect_peers ();
-         }
-      }
+      /* This part will still be called when
+	 GNUNET_TESTBED_peer_get_information() succeeds. However, the code is
+	 now more relevant in operation completion callback */
       break;
     case GNUNET_TESTBED_ET_CONNECT:
       connections ++;
