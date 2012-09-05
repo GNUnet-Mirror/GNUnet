@@ -66,14 +66,14 @@ struct GNUNET_CRYPTO_ShortHashCode dave_hash;
 
 struct GNUNET_CRYPTO_ShortHashCode bob_hash;
 
-const struct GNUNET_CONFIGURATION_Handle *alice_cfg;
-
 struct GNUNET_TESTBED_Peer **cpeers;
 
 struct GNUNET_GNS_Handle *gh;
 
 struct GNUNET_TESTBED_Operation *get_cfg_ops[3];
 struct GNUNET_TESTBED_Operation *connect_ops[3];
+struct GNUNET_CONFIGURATION_Handle *cfg_handles[3];
+struct GNUNET_NAMESTORE_Handle *nh[3];
 
 /**
  * Check if the get_handle is being used, if so stop the request.  Either
@@ -94,6 +94,11 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   for (c = 0; c < 3; c++)
   {
+    if (NULL != nh[c])
+    {
+      GNUNET_NAMESTORE_disconnect(nh[c]);
+      nh[c] = NULL;
+    }
     if (NULL != get_cfg_ops[c])
     {
         GNUNET_TESTBED_operation_cancel(get_cfg_ops[c]);
@@ -103,6 +108,11 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     {
         GNUNET_TESTBED_operation_cancel(connect_ops[c]);
         connect_ops[c] = NULL;
+    }
+    if (NULL != cfg_handles[c])
+    {
+      GNUNET_CONFIGURATION_destroy (cfg_handles[c]);
+      cfg_handles[c] = NULL;
     }
   }
 
@@ -121,10 +131,25 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  int c;
   if (GNUNET_SCHEDULER_NO_TASK != die_task)
   {
       GNUNET_SCHEDULER_cancel (die_task);
       die_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+
+  for (c = 0; c < 3; c++)
+  {
+    if (NULL != nh[c])
+    {
+      GNUNET_NAMESTORE_disconnect(nh[c]);
+      nh[c] = NULL;
+    }
+    if (NULL != cfg_handles[c])
+    {
+      GNUNET_CONFIGURATION_destroy (cfg_handles[c]);
+      cfg_handles[c] = NULL;
+    }
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Test successful \n");
@@ -143,7 +168,14 @@ end_now ()
 static void
 disconnect_ns (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+
   GNUNET_NAMESTORE_disconnect (cls);
+  if (cls == nh[0])
+    nh[0] = NULL;
+  if (cls == nh[1])
+    nh[1] = NULL;
+  if (cls == nh[2])
+    nh[2] = NULL;
 }
 
 
@@ -197,8 +229,6 @@ commence_testing(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     fprintf (stderr, "\n");
     wait_task = GNUNET_SCHEDULER_NO_TASK;
-    gh = GNUNET_GNS_connect(alice_cfg);
-
     GNUNET_GNS_lookup(gh, TEST_DOMAIN, GNUNET_GNS_RECORD_A,
                       GNUNET_NO,
                       NULL,
@@ -248,7 +278,6 @@ static void connect_peers ()
 static int
 setup_dave (const struct GNUNET_CONFIGURATION_Handle * cfg)
 {
-  struct GNUNET_NAMESTORE_Handle *ns;
   char* keyfile;
   char* source;
   struct GNUNET_CRYPTO_RsaPrivateKey *key;
@@ -257,8 +286,9 @@ setup_dave (const struct GNUNET_CONFIGURATION_Handle * cfg)
   struct GNUNET_NAMESTORE_RecordData rd;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Setting up dave\n");
-  GNUNET_assert (NULL != cfg);
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
+  cfg_handles[0] = GNUNET_CONFIGURATION_dup (cfg);
+  GNUNET_assert (NULL != cfg_handles[0]);
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg_handles[0], "gns",
                                                             "ZONEKEY",
                                                             &keyfile))
   {
@@ -267,6 +297,8 @@ setup_dave (const struct GNUNET_CONFIGURATION_Handle * cfg)
   }
 
   GNUNET_asprintf (&source, "zonefiles%s%s", DIR_SEPARATOR_STR, "test_zonekey");
+  GNUNET_break (GNUNET_OK == GNUNET_DISK_file_test (source));
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Copy `%s' to `%s'\n", source, keyfile);
   GNUNET_break (GNUNET_OK == GNUNET_DISK_file_copy (source, keyfile));
   GNUNET_free (source);
 
@@ -279,8 +311,8 @@ setup_dave (const struct GNUNET_CONFIGURATION_Handle * cfg)
     return GNUNET_SYSERR;
   }
 
-  ns = GNUNET_NAMESTORE_connect (cfg);
-  if (NULL == ns)
+  nh[0] = GNUNET_NAMESTORE_connect (cfg_handles[0]);
+  if (NULL == nh[0])
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to connect to namestore\n");
     GNUNET_CRYPTO_rsa_key_free (key);
@@ -298,25 +330,25 @@ setup_dave (const struct GNUNET_CONFIGURATION_Handle * cfg)
   rd.record_type = GNUNET_GNS_RECORD_A;
   rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
 
-  GNUNET_NAMESTORE_record_create (ns, key, "www", &rd, NULL, NULL);
+  GNUNET_NAMESTORE_record_create (nh[0], key, "www", &rd, NULL, NULL);
 
   rd.data_size = strlen(TEST_DAVE_PSEU);
   rd.data = TEST_DAVE_PSEU;
   rd.record_type = GNUNET_GNS_RECORD_PSEU;
 
-  GNUNET_NAMESTORE_record_create (ns, key, "+", &rd, &cont_ns, ns);
+  GNUNET_NAMESTORE_record_create (nh[0], key, "+", &rd, &cont_ns, nh[0]);
 
   GNUNET_CRYPTO_rsa_key_free(key);
   GNUNET_free(keyfile);
   GNUNET_free(web);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Setting up dave done\n");
+  //GNUNET_TESTBED_operation_done (get_cfg_ops[0]);
   return GNUNET_OK;
 }
 
 static int
 setup_bob (const struct GNUNET_CONFIGURATION_Handle * cfg)
 {
-  struct GNUNET_NAMESTORE_Handle *ns;
   char* keyfile;
   char* source;
   struct GNUNET_CRYPTO_RsaPrivateKey *key;
@@ -325,7 +357,8 @@ setup_bob (const struct GNUNET_CONFIGURATION_Handle * cfg)
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Setting up bob\n");
   GNUNET_assert (NULL != cfg);
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
+  cfg_handles[1] = GNUNET_CONFIGURATION_dup (cfg);
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg_handles[1], "gns",
                                                             "ZONEKEY",
                                                             &keyfile))
   {
@@ -334,6 +367,8 @@ setup_bob (const struct GNUNET_CONFIGURATION_Handle * cfg)
   }
 
   GNUNET_asprintf (&source, "zonefiles%s%s", DIR_SEPARATOR_STR, "OEFL7A4VEF1B40QLEMTG5D8G1CN6EN16QUSG5R2DT71GRJN34LSG.zkey");
+  GNUNET_break (GNUNET_OK == GNUNET_DISK_file_test (source));
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Copy `%s' to `%s'\n", source, keyfile);
   GNUNET_break (GNUNET_OK == GNUNET_DISK_file_copy (source, keyfile));
   GNUNET_free (source);
 
@@ -346,8 +381,8 @@ setup_bob (const struct GNUNET_CONFIGURATION_Handle * cfg)
     return GNUNET_SYSERR;
   }
 
-  ns = GNUNET_NAMESTORE_connect (cfg);
-  if (NULL == ns)
+  nh[1] = GNUNET_NAMESTORE_connect (cfg_handles[1]);
+  if (NULL == nh[1])
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to connect to namestore\n");
     GNUNET_CRYPTO_rsa_key_free (key);
@@ -363,18 +398,18 @@ setup_bob (const struct GNUNET_CONFIGURATION_Handle * cfg)
   rd.record_type = GNUNET_GNS_RECORD_PKEY;
   rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
 
-  GNUNET_NAMESTORE_record_create (ns, key, "buddy", &rd, &cont_ns, ns);
+  GNUNET_NAMESTORE_record_create (nh[1], key, "buddy", &rd, &cont_ns, nh[1]);
 
   GNUNET_CRYPTO_rsa_key_free(key);
   GNUNET_free(keyfile);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Setting up bob done\n");
+  //GNUNET_TESTBED_operation_done (get_cfg_ops[1]);
   return GNUNET_OK;
 }
 
 static int
 setup_alice (const struct GNUNET_CONFIGURATION_Handle * cfg)
 {
-  struct GNUNET_NAMESTORE_Handle *ns;
   char* keyfile;
   char* source;
   struct GNUNET_CRYPTO_RsaPrivateKey *key;
@@ -382,8 +417,8 @@ setup_alice (const struct GNUNET_CONFIGURATION_Handle * cfg)
 
 
   GNUNET_assert (NULL != cfg);
-  alice_cfg = cfg;
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
+  cfg_handles[2] = GNUNET_CONFIGURATION_dup (cfg);
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg_handles[2], "gns",
                                                             "ZONEKEY",
                                                             &keyfile))
   {
@@ -392,6 +427,8 @@ setup_alice (const struct GNUNET_CONFIGURATION_Handle * cfg)
   }
 
   GNUNET_asprintf (&source, "zonefiles%s%s", DIR_SEPARATOR_STR, "188JSUMKEF25GVU8TTV0PBNNN8JVCPUEDFV1UHJJU884JD25V0T0.zkey");
+  GNUNET_break (GNUNET_OK == GNUNET_DISK_file_test (source));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Copy `%s' to `%s'\n", source, keyfile);
   GNUNET_break (GNUNET_OK == GNUNET_DISK_file_copy (source, keyfile));
   GNUNET_free (source);
 
@@ -404,8 +441,8 @@ setup_alice (const struct GNUNET_CONFIGURATION_Handle * cfg)
     return GNUNET_SYSERR;
   }
 
-  ns = GNUNET_NAMESTORE_connect (cfg);
-  if (NULL == ns)
+  nh[2] = GNUNET_NAMESTORE_connect (cfg_handles[2]);
+  if (NULL == nh[2])
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to connect to namestore\n");
     GNUNET_CRYPTO_rsa_key_free (key);
@@ -418,11 +455,21 @@ setup_alice (const struct GNUNET_CONFIGURATION_Handle * cfg)
   rd.record_type = GNUNET_GNS_RECORD_PKEY;
   rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
 
-  GNUNET_NAMESTORE_record_create (ns, key, "bob", &rd, &cont_ns, ns);
+  GNUNET_NAMESTORE_record_create (nh[2], key, "bob", &rd, &cont_ns, nh[2]);
+
+  gh = GNUNET_GNS_connect(cfg_handles[2]);
+  if (NULL == gh)
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to connect to namestore\n");
+    GNUNET_CRYPTO_rsa_key_free (key);
+    GNUNET_free (keyfile);
+    return GNUNET_SYSERR;
+  }
 
   GNUNET_CRYPTO_rsa_key_free (key);
   GNUNET_free (keyfile);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Setting up alice  done\n");
+  //GNUNET_TESTBED_operation_done (get_cfg_ops[2]);
   return GNUNET_OK;
 }
 
@@ -512,8 +559,11 @@ void testbed_controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformat
       if (connections == 3)
       {
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "All peers connected\n");
+          GNUNET_TESTBED_operation_done (connect_ops[0]);
           connect_ops[0] = NULL;
+          GNUNET_TESTBED_operation_done (connect_ops[1]);
           connect_ops[1] = NULL;
+          GNUNET_TESTBED_operation_done (connect_ops[2]);
           connect_ops[2] = NULL;
           all_connected ();
       }
