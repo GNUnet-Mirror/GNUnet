@@ -54,16 +54,16 @@ check_PROGRAMS = \
   test_gns_simple_lookup \
   test_gns_simple_delegated_lookup \
   test_gns_simple_mx_lookup \
-	test_gns_simple_srv_lookup \
+  test_gns_simple_srv_lookup \
   test_gns_simple_zkey_lookup \
   test_gns_dht_delegated_lookup \
   test_gns_pseu_shorten \
   test_gns_max_queries \
+  test_gns_cname_lookup \
+  test_gns_ns_lookup \
+  test_gns_revocation \
   test_gns_dht_three_peers \
-	test_gns_cname_lookup \
-	test_gns_ns_lookup \
-	test_gns_revocation \
-	test_gns_proxy
+  test_gns_proxy
 
 
 #  test_gns_simple_lookup

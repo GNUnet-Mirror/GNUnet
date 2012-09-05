@@ -250,6 +250,7 @@ setup_dave (const struct GNUNET_CONFIGURATION_Handle * cfg)
 {
   struct GNUNET_NAMESTORE_Handle *ns;
   char* keyfile;
+  char* source;
   struct GNUNET_CRYPTO_RsaPrivateKey *key;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pkey;
   struct in_addr *web;
@@ -264,6 +265,10 @@ setup_dave (const struct GNUNET_CONFIGURATION_Handle * cfg)
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to get key from cfg\n");
     return GNUNET_SYSERR;
   }
+
+  GNUNET_asprintf (&source, "zonefiles%s%s", DIR_SEPARATOR_STR, "test_zonekey");
+  GNUNET_break (GNUNET_OK == GNUNET_DISK_file_copy (source, keyfile));
+  GNUNET_free (source);
 
   key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
   if (NULL == key)
@@ -313,6 +318,7 @@ setup_bob (const struct GNUNET_CONFIGURATION_Handle * cfg)
 {
   struct GNUNET_NAMESTORE_Handle *ns;
   char* keyfile;
+  char* source;
   struct GNUNET_CRYPTO_RsaPrivateKey *key;
   struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded pkey;
   struct GNUNET_NAMESTORE_RecordData rd;
@@ -326,6 +332,10 @@ setup_bob (const struct GNUNET_CONFIGURATION_Handle * cfg)
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to get key from cfg\n");
     return GNUNET_SYSERR;
   }
+
+  GNUNET_asprintf (&source, "zonefiles%s%s", DIR_SEPARATOR_STR, "OEFL7A4VEF1B40QLEMTG5D8G1CN6EN16QUSG5R2DT71GRJN34LSG.zkey");
+  GNUNET_break (GNUNET_OK == GNUNET_DISK_file_copy (source, keyfile));
+  GNUNET_free (source);
 
   key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
   if (NULL == key)
@@ -366,6 +376,7 @@ setup_alice (const struct GNUNET_CONFIGURATION_Handle * cfg)
 {
   struct GNUNET_NAMESTORE_Handle *ns;
   char* keyfile;
+  char* source;
   struct GNUNET_CRYPTO_RsaPrivateKey *key;
   struct GNUNET_NAMESTORE_RecordData rd;
 
@@ -379,6 +390,10 @@ setup_alice (const struct GNUNET_CONFIGURATION_Handle * cfg)
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to get key from cfg\n");
     return GNUNET_SYSERR;
   }
+
+  GNUNET_asprintf (&source, "zonefiles%s%s", DIR_SEPARATOR_STR, "188JSUMKEF25GVU8TTV0PBNNN8JVCPUEDFV1UHJJU884JD25V0T0.zkey");
+  GNUNET_break (GNUNET_OK == GNUNET_DISK_file_copy (source, keyfile));
+  GNUNET_free (source);
 
   key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
   if (NULL == key)
@@ -405,8 +420,8 @@ setup_alice (const struct GNUNET_CONFIGURATION_Handle * cfg)
 
   GNUNET_NAMESTORE_record_create (ns, key, "bob", &rd, &cont_ns, ns);
 
-  GNUNET_CRYPTO_rsa_key_free(key);
-  GNUNET_free(keyfile);
+  GNUNET_CRYPTO_rsa_key_free (key);
+  GNUNET_free (keyfile);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Setting up alice  done\n");
   return GNUNET_OK;
 }
