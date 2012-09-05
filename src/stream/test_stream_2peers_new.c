@@ -515,8 +515,55 @@ stream_connect (void)
 { 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stream listen open successful\n");
   peer2.op = GNUNET_TESTBED_service_connect (&peer2, peer2.peer, "stream",
+					     NULL, NULL,
                                              stream_ca, stream_da, &peer2);
   setup_state = PEER2_STREAM_CONNECT;
+}
+
+
+/**
+ * Callback to be called when the requested peer information is available
+ *
+ * @param cb_cls the closure from GNUNET_TETSBED_peer_get_information()
+ * @param op the operation this callback corresponds to
+ * @param pinfo the result; will be NULL if the operation has failed
+ * @param emsg error message if the operation has failed; will be NULL if the
+ *          operation is successfull
+ */
+static void 
+peerinfo_cb (void *cb_cls, struct GNUNET_TESTBED_Operation *op_,
+	     const struct GNUNET_TESTBED_PeerInformation *pinfo,
+	     const char *emsg)
+{
+  GNUNET_assert (NULL == emsg);
+  GNUNET_assert (op == op_);
+  switch (setup_state)
+    {
+    case PEER1_GET_IDENTITY:
+      memcpy (&peer1.our_id, pinfo->result.id, 
+	      sizeof (struct GNUNET_PeerIdentity));
+      GNUNET_TESTBED_operation_done (op);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer 1 id: %s\n", GNUNET_i2s
+                  (&peer1.our_id));
+      op = GNUNET_TESTBED_peer_get_information (peer2.peer,
+                                                GNUNET_TESTBED_PIT_IDENTITY,
+						&peerinfo_cb, NULL);
+      setup_state = PEER2_GET_IDENTITY;
+      break;
+    case PEER2_GET_IDENTITY:
+      memcpy (&peer2.our_id, pinfo->result.id,
+              sizeof (struct GNUNET_PeerIdentity));
+      GNUNET_TESTBED_operation_done (op);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer 2 id: %s\n", GNUNET_i2s
+                  (&peer2.our_id));
+      peer1.op = GNUNET_TESTBED_service_connect (&peer1, peer1.peer, "stream",
+						 NULL, NULL, stream_ca,
+						 stream_da, &peer1);
+      setup_state = PEER1_STREAM_CONNECT;
+      break;
+    default:
+      GNUNET_assert (0);
+    }
 }
 
 
@@ -537,32 +584,13 @@ controller_event_cb (void *cls,
     GNUNET_TESTBED_operation_done (op);
     /* Get the peer identity and configuration of peers */
     op = GNUNET_TESTBED_peer_get_information (peer1.peer,
-                                              GNUNET_TESTBED_PIT_IDENTITY);
+                                              GNUNET_TESTBED_PIT_IDENTITY,
+					      &peerinfo_cb, NULL);
     setup_state = PEER1_GET_IDENTITY;
     break;
   case GNUNET_TESTBED_ET_OPERATION_FINISHED:
     switch (setup_state)
-    {
-    case PEER1_GET_IDENTITY:
-      memcpy (&peer1.our_id, event->details.operation_finished.op_result.pid,
-              sizeof (struct GNUNET_PeerIdentity));
-      GNUNET_TESTBED_operation_done (op);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer 1 id: %s\n", GNUNET_i2s
-                  (&peer1.our_id));
-      op = GNUNET_TESTBED_peer_get_information (peer2.peer,
-                                                GNUNET_TESTBED_PIT_IDENTITY);
-      setup_state = PEER2_GET_IDENTITY;
-      break;
-    case PEER2_GET_IDENTITY:
-      memcpy (&peer2.our_id, event->details.operation_finished.op_result.pid,
-              sizeof (struct GNUNET_PeerIdentity));
-      GNUNET_TESTBED_operation_done (op);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer 2 id: %s\n", GNUNET_i2s
-                  (&peer2.our_id));
-      peer1.op = GNUNET_TESTBED_service_connect (&peer1, peer1.peer, "stream",
-                                                 stream_ca, stream_da, &peer1);
-      setup_state = PEER1_STREAM_CONNECT;
-      break;
+    {    
     case PEER1_STREAM_CONNECT:
     case PEER2_STREAM_CONNECT:
       GNUNET_assert (NULL == event->details.operation_finished.emsg);
@@ -593,7 +621,7 @@ test_master (void *cls, unsigned int num_peers,
   GNUNET_assert (NULL != peers[1]);
   peer1.peer = peers[0];
   peer2.peer = peers[1];
-  op = GNUNET_TESTBED_overlay_connect (NULL, peer2.peer, peer1.peer);
+  op = GNUNET_TESTBED_overlay_connect (NULL, NULL, NULL, peer2.peer, peer1.peer);
   setup_state = INIT;
   abort_task =
     GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
