@@ -152,7 +152,10 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     }
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Test successful \n");
+  if (0 == ok)
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Test ended successful\n");
+  else
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Test failed\n");
   GNUNET_SCHEDULER_shutdown ();
 }
 
@@ -295,9 +298,13 @@ setup_dave (const struct GNUNET_CONFIGURATION_Handle * cfg)
   }
 
   GNUNET_asprintf (&source, "zonefiles%s%s", DIR_SEPARATOR_STR, "test_zonekey");
-  GNUNET_break (GNUNET_OK == GNUNET_DISK_file_test (source));
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Copy `%s' to `%s'\n", source, keyfile);
-  GNUNET_break (GNUNET_OK == GNUNET_DISK_file_copy (source, keyfile));
+  if (GNUNET_OK == GNUNET_DISK_file_test (source))
+  {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Copy `%s' to `%s'\n", source, keyfile);
+      GNUNET_DISK_file_copy (source, keyfile);
+  }
+  else
+    GNUNET_break (0);
   GNUNET_free (source);
 
   key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
@@ -364,10 +371,15 @@ setup_bob (const struct GNUNET_CONFIGURATION_Handle * cfg)
   }
 
   GNUNET_asprintf (&source, "zonefiles%s%s", DIR_SEPARATOR_STR, "OEFL7A4VEF1B40QLEMTG5D8G1CN6EN16QUSG5R2DT71GRJN34LSG.zkey");
-  GNUNET_break (GNUNET_OK == GNUNET_DISK_file_test (source));
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Copy `%s' to `%s'\n", source, keyfile);
-  GNUNET_break (GNUNET_OK == GNUNET_DISK_file_copy (source, keyfile));
+  if (GNUNET_OK == GNUNET_DISK_file_test (source))
+  {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Copy `%s' to `%s'\n", source, keyfile);
+      GNUNET_DISK_file_copy (source, keyfile);
+  }
+  else
+    GNUNET_break (0);
   GNUNET_free (source);
+
 
   key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
   if (NULL == key)
@@ -423,9 +435,13 @@ setup_alice (const struct GNUNET_CONFIGURATION_Handle * cfg)
   }
 
   GNUNET_asprintf (&source, "zonefiles%s%s", DIR_SEPARATOR_STR, "188JSUMKEF25GVU8TTV0PBNNN8JVCPUEDFV1UHJJU884JD25V0T0.zkey");
-  GNUNET_break (GNUNET_OK == GNUNET_DISK_file_test (source));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Copy `%s' to `%s'\n", source, keyfile);
-  GNUNET_break (GNUNET_OK == GNUNET_DISK_file_copy (source, keyfile));
+  if (GNUNET_OK == GNUNET_DISK_file_test (source))
+  {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Copy `%s' to `%s'\n", source, keyfile);
+      GNUNET_DISK_file_copy (source, keyfile);
+  }
+  else
+    GNUNET_break (0);
   GNUNET_free (source);
 
   key = GNUNET_CRYPTO_rsa_key_create_from_file (keyfile);
@@ -453,7 +469,7 @@ setup_alice (const struct GNUNET_CONFIGURATION_Handle * cfg)
 
   GNUNET_NAMESTORE_record_create (nh[2], key, "bob", &rd, &cont_ns, nh[2]);
 
-  gh = GNUNET_GNS_connect(cfg_handles[2]);
+  gh = GNUNET_GNS_connect (cfg_handles[2]);
   if (NULL == gh)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to connect to namestore\n");
@@ -575,7 +591,6 @@ int
 main (int argc, char *argv[])
 {
   uint64_t event_mask;
-
   ok = 0;
   event_mask = 0;
   event_mask |= (1LL << GNUNET_TESTBED_ET_CONNECT);
@@ -590,3 +605,4 @@ main (int argc, char *argv[])
 }
 
 /* end of test_gns_dht_three_peers.c */
+
