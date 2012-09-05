@@ -153,9 +153,7 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Test successful \n");
-  GNUNET_break (0);
   GNUNET_SCHEDULER_shutdown ();
-  ok = 0;
 }
 
 static void
@@ -342,7 +340,6 @@ setup_dave (const struct GNUNET_CONFIGURATION_Handle * cfg)
   GNUNET_free(keyfile);
   GNUNET_free(web);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Setting up dave done\n");
-  //GNUNET_TESTBED_operation_done (get_cfg_ops[0]);
   return GNUNET_OK;
 }
 
@@ -403,7 +400,6 @@ setup_bob (const struct GNUNET_CONFIGURATION_Handle * cfg)
   GNUNET_CRYPTO_rsa_key_free(key);
   GNUNET_free(keyfile);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Setting up bob done\n");
-  //GNUNET_TESTBED_operation_done (get_cfg_ops[1]);
   return GNUNET_OK;
 }
 
@@ -469,7 +465,6 @@ setup_alice (const struct GNUNET_CONFIGURATION_Handle * cfg)
   GNUNET_CRYPTO_rsa_key_free (key);
   GNUNET_free (keyfile);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Setting up alice  done\n");
-  //GNUNET_TESTBED_operation_done (get_cfg_ops[2]);
   return GNUNET_OK;
 }
 
@@ -507,13 +502,13 @@ void testbed_controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformat
   static int connections = 0;
   int res;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Callback of type: %u %p \n", event->type, cls);
   switch (event->type)
   {
     case GNUNET_TESTBED_ET_OPERATION_FINISHED:
       if (get_cfg_ops[0] == event->details.operation_finished.operation)
       {
           res = setup_dave (event->details.operation_finished.op_result.cfg);
+          GNUNET_TESTBED_operation_done (get_cfg_ops[0]);
           get_cfg_ops[0] = NULL;
           if (GNUNET_SYSERR == res)
           {
@@ -528,6 +523,7 @@ void testbed_controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformat
       else if (get_cfg_ops[1] ==  event->details.operation_finished.operation)
       {
          res = setup_bob (event->details.operation_finished.op_result.cfg);
+         GNUNET_TESTBED_operation_done (get_cfg_ops[1]);
          get_cfg_ops[1] = NULL;
          if (GNUNET_SYSERR == res)
          {
@@ -542,6 +538,7 @@ void testbed_controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformat
       else if (get_cfg_ops[2] ==  event->details.operation_finished.operation)
       {
          res = setup_alice (event->details.operation_finished.op_result.cfg);
+         GNUNET_TESTBED_operation_done (get_cfg_ops[2]);
          get_cfg_ops[2] = NULL;
          if (GNUNET_SYSERR == res)
          {
