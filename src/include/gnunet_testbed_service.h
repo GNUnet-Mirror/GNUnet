@@ -1041,6 +1041,25 @@ typedef void (*GNUNET_TESTBED_DisconnectAdapter)(void *cls,
 
 
 /**
+ * Callback to be called when a service connect operation is completed
+ *
+ * @param cls the callback closure from functions generating an operation
+ * @param op the operation that has been finished
+ * @param ca_result the service handle returned from GNUNET_TESTBED_ConnectAdapter()
+ * @param emsg error message in case the operation has failed; will be NULL if
+ *          operation has executed successfully.
+ */
+typedef void (*GNUNET_TESTBED_ServiceConnectCompletionCallback) (void *cls,
+								 struct
+								 GNUNET_TESTBED_Operation
+								 *op,
+								 void
+								 *ca_result, 
+								 const char
+								 *emsg );
+
+
+/**
  * Connect to a service offered by the given peer.  Will ensure that
  * the request is queued to not overwhelm our ability to create and
  * maintain connections with other systems.  The actual service
@@ -1065,7 +1084,7 @@ struct GNUNET_TESTBED_Operation *
 GNUNET_TESTBED_service_connect (void *op_cls,
 				struct GNUNET_TESTBED_Peer *peer,
 				const char *service_name,
-                                GNUNET_TESTBED_OperationCompletionCallback cb,
+                                GNUNET_TESTBED_ServiceConnectCompletionCallback cb,
                                 void *cb_cls,
 				GNUNET_TESTBED_ConnectAdapter ca,
 				GNUNET_TESTBED_DisconnectAdapter da,

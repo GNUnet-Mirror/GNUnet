@@ -198,8 +198,10 @@ dht_connect_adapter (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
 static void
 dht_disconnect_adapter (void *cls, void *op_result)
 {
-  if (NULL != op_result)
-    GNUNET_DHT_disconnect (op_result);
+  GNUNET_assert (NULL != op_result);
+  GNUNET_assert (op_result == dht_handle);
+  GNUNET_DHT_disconnect (dht_handle);
+  dht_handle = NULL;
   GNUNET_assert (PEER_SERVICE_CONNECT == sub_test);
   GNUNET_assert (NULL != operation);
   operation = GNUNET_TESTBED_peer_stop (peer);
@@ -208,15 +210,17 @@ dht_disconnect_adapter (void *cls, void *op_result)
 
 
 /**
- * Callback to be called when an operation is completed
+ * Callback to be called when a service connect operation is completed
  *
  * @param cls the callback closure from functions generating an operation
  * @param op the operation that has been finished
+ * @param ca_result the service handle returned from GNUNET_TESTBED_ConnectAdapter()
  * @param emsg error message in case the operation has failed; will be NULL if
  *          operation has executed successfully.
  */
 static void 
-op_comp_cb (void *cls, struct GNUNET_TESTBED_Operation *op, const char *emsg)
+service_connect_comp_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
+			 void *ca_result, const char *emsg)
 {
   switch (sub_test)
   {
@@ -224,13 +228,15 @@ op_comp_cb (void *cls, struct GNUNET_TESTBED_Operation *op, const char *emsg)
     GNUNET_assert (operation == op);
     GNUNET_assert (NULL == emsg);
     GNUNET_assert (NULL == cls);
+    GNUNET_assert (ca_result == dht_handle);
     GNUNET_TESTBED_operation_done (operation);        /* This results in call to
-                                                         * disconnect adapter */
+						       * disconnect adapter */
     break;
   default:
     GNUNET_assert (0);
   }
 }
+
 
 
 /**
@@ -307,7 +313,8 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     GNUNET_assert (OTHER == sub_test);
     GNUNET_TESTBED_operation_done (operation);
     operation =
-        GNUNET_TESTBED_service_connect (NULL, peer, "dht", &op_comp_cb, NULL,
+        GNUNET_TESTBED_service_connect (NULL, peer, "dht", 
+					&service_connect_comp_cb, NULL,
 					&dht_connect_adapter,
 					&dht_disconnect_adapter, NULL);
     GNUNET_assert (NULL != operation);

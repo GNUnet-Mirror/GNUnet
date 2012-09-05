@@ -110,7 +110,7 @@ struct ServiceConnectData
   /**
    * The operation completion callback
    */
-  GNUNET_TESTBED_OperationCompletionCallback cb;
+  GNUNET_TESTBED_ServiceConnectCompletionCallback cb;
 
   /**
    * The closure for operation completion callback
@@ -161,7 +161,7 @@ configuration_receiver (void *cls, const struct GNUNET_MessageHeader *msg)
       (NULL != c->cc))
     c->cc (c->cc_cls, &info);
   if (NULL != data->cb)
-    data->cb (data->cb_cls, data->operation, NULL);
+    data->cb (data->cb_cls, data->operation, data->op_result, NULL);
 }
 
 
@@ -247,7 +247,7 @@ struct GNUNET_TESTBED_Operation *
 GNUNET_TESTBED_service_connect (void *op_cls,
 				struct GNUNET_TESTBED_Peer *peer,
 				const char *service_name,
-                                GNUNET_TESTBED_OperationCompletionCallback cb,
+                                GNUNET_TESTBED_ServiceConnectCompletionCallback cb,
                                 void *cb_cls,
 				GNUNET_TESTBED_ConnectAdapter ca,
 				GNUNET_TESTBED_DisconnectAdapter da,
