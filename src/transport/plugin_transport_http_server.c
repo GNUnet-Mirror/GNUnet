@@ -2728,8 +2728,6 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
       next = pos->next;
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                        "Removing left over session %p\n", pos);
-
-      GNUNET_CONTAINER_DLL_remove( plugin->head, plugin->tail, pos);
       server_delete_session (pos);
   }
 
