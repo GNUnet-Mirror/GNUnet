@@ -261,6 +261,7 @@ reconnect (struct GNUNET_GNS_Handle *h)
              "Trying to connect to GNS...\n");
   h->client = GNUNET_CLIENT_connect ("gns", h->cfg);
   GNUNET_assert (NULL != h->client);
+  process_pending_messages (h);
 }
 
 /**

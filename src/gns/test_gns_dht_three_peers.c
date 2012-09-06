@@ -40,7 +40,7 @@
 #include "gnunet_dnsparser_lib.h"
 #include "gnunet_gns_service.h"
 
-#define ZONE_PUT_WAIT_TIME GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30)
+#define ZONE_PUT_WAIT_TIME GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 10)
 
 /* If number of peers not in config file, use this number */
 #define DEFAULT_NUM_PEERS 2
@@ -134,7 +134,6 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Test failed \n");
-  GNUNET_break (0);
   GNUNET_SCHEDULER_shutdown ();
   ok = 1;
 }
@@ -502,6 +501,12 @@ GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "X \n");
   else
     res = setup_alice (pinfo->result.cfg);
   
+  if (get_cfg_ops[0] == op)
+    get_cfg_ops[0] = NULL;
+  else if (get_cfg_ops[1] == op)
+    get_cfg_ops[1] = NULL;
+  else
+    get_cfg_ops[2] = NULL;
   GNUNET_TESTBED_operation_done (op);
   op = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "A \n");
