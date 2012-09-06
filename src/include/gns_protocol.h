@@ -19,7 +19,7 @@
  */
 
 /**
- * @file gns/gns_protocol.h
+ * @file include/gns_protocol.h
  * @brief Resource Record definitions
  * @author Martin Schanzenbach
  */

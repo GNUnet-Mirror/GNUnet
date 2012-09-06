@@ -250,7 +250,8 @@ get_request_socket (struct GNUNET_DNSSTUB_Context *ctx,
  * Perform DNS resolution.
  *
  * @param ctx stub resolver to use
- * @param af address family to use
+ * @param sa the socket address
+ * @param sa_len the socket length
  * @param request DNS request to transmit
  * @param request_len number of bytes in msg
  * @param rc function to call with result
