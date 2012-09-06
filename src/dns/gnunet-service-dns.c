@@ -1252,6 +1252,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   nc = GNUNET_SERVER_notification_context_create (server, 1);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleanup_task,
                                 cls);
+  dns_exit = NULL;
   if ( (GNUNET_YES ==
 	GNUNET_CONFIGURATION_get_value_yesno (cfg_, "dns", "PROVIDE_EXIT")) &&
        ( (GNUNET_OK !=

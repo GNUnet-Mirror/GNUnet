@@ -280,11 +280,15 @@ GNUNET_DNSSTUB_resolve (struct GNUNET_DNSSTUB_Context *ctx,
   GNUNET_assert (NULL != ret);
   rs->rc = rc;
   rs->rc_cls = rc_cls;
-  GNUNET_NETWORK_socket_sendto (ret,
-				request,
-				request_len,
-				sa,
-				sa_len);
+  if (GNUNET_SYSERR == 
+      GNUNET_NETWORK_socket_sendto (ret,
+				    request,
+				    request_len,
+				    sa,
+				    sa_len))
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		_("Failed to send DNS request to %s\n"),
+		GNUNET_a2s (sa, sa_len));
   return rs;
 }
 
@@ -309,7 +313,7 @@ GNUNET_DNSSTUB_resolve2 (struct GNUNET_DNSSTUB_Context *ctx,
   int af;
   struct sockaddr_in v4;
   struct sockaddr_in6 v6;
-  struct sockaddr *so;
+  struct sockaddr *sa;
   socklen_t salen;
   struct GNUNET_NETWORK_Handle *dnsout;
   struct GNUNET_DNSSTUB_RequestSocket *rs;
@@ -324,7 +328,7 @@ GNUNET_DNSSTUB_resolve2 (struct GNUNET_DNSSTUB_Context *ctx,
 #if HAVE_SOCKADDR_IN_SIN_LEN
     v4.sin_len = (u_char) salen;
 #endif
-    so = (struct sockaddr *) &v4;
+    sa = (struct sockaddr *) &v4;
     af = AF_INET;
   }
   else if (1 == inet_pton (AF_INET6, ctx->dns_exit, &v6.sin6_addr))
@@ -335,7 +339,7 @@ GNUNET_DNSSTUB_resolve2 (struct GNUNET_DNSSTUB_Context *ctx,
 #if HAVE_SOCKADDR_IN_SIN_LEN
     v6.sin6_len = (u_char) salen;
 #endif
-    so = (struct sockaddr *) &v6;
+    sa = (struct sockaddr *) &v6;
     af = AF_INET6;
   }  
   else
@@ -357,14 +361,18 @@ GNUNET_DNSSTUB_resolve2 (struct GNUNET_DNSSTUB_Context *ctx,
     return NULL;
   }
   memcpy (&rs->addr,
-	  so,
+	  sa,
 	  salen);
   rs->addrlen = salen;
   rs->rc = rc;
   rs->rc_cls = rc_cls;
-  GNUNET_NETWORK_socket_sendto (dnsout,
-				request,
-				request_len, so, salen); 
+  if (GNUNET_SYSERR ==
+      GNUNET_NETWORK_socket_sendto (dnsout,
+				    request,
+				    request_len, sa, salen))
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		_("Failed to send DNS request to %s\n"),
+		GNUNET_a2s (sa, salen));
   rs->timeout = GNUNET_TIME_relative_to_absolute (REQUEST_TIMEOUT);
   
   return rs;
