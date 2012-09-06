@@ -242,7 +242,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     if (!raw)
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                   "No private zone key file name specified in configuration!\n");
-    shorten_key = NULL;
+    private_key = NULL;
   }
   else
   {
@@ -290,7 +290,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     return;
   }
   
-  if (NULL != shorten_name)
+  if ((NULL != shorten_name) && (NULL != shorten_zone) && (NULL != private_zone))
   {
     shorten_request = GNUNET_GNS_shorten_zone (gns, shorten_name,
                              private_zone,

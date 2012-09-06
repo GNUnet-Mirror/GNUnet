@@ -186,6 +186,7 @@ do_check (void *cls,
   if (NULL == namestore_handle)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to connect to namestore\n");
+    GNUNET_free (web);
     end_badly_now () ;
     return;
   }
@@ -195,6 +196,7 @@ do_check (void *cls,
                                                           &alice_keyfile))
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to get key from cfg\n");
+    GNUNET_free (web);
     end_badly_now () ;
     return;
   }

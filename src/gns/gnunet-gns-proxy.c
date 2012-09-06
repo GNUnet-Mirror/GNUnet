@@ -587,6 +587,7 @@ con_post_data_iter (void *cls,
     memcpy (new_value, pdata->value, pdata->total_bytes);
     memcpy (new_value+off, data, size);
     GNUNET_free (pdata->value);
+    pdata->value = new_value;
     pdata->total_bytes += size;
 
     return MHD_YES;
@@ -2109,11 +2110,11 @@ create_response (void *cls,
     {
       if (GNUNET_YES == ctask->is_httppost)
       {
-        i = 0;
         for (upload_data_iter = ctask->upload_data_head;
              NULL != upload_data_iter;
              upload_data_iter = upload_data_iter->next)
         {
+          i = 0;
           if (NULL != upload_data_iter->filename)
           {
             forms[i].option = CURLFORM_FILENAME;
