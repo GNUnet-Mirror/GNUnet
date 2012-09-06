@@ -40,7 +40,7 @@
 #include "gnunet_dnsparser_lib.h"
 #include "gnunet_gns_service.h"
 
-#define ZONE_PUT_WAIT_TIME GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 10)
+#define ZONE_PUT_WAIT_TIME GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30)
 
 /* If number of peers not in config file, use this number */
 #define DEFAULT_NUM_PEERS 2
@@ -53,7 +53,7 @@
 
 
 /* Timeout for entire testcase */
-#define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30)
+#define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 60)
 
 /* Global return value (0 for success, anything else for failure) */
 static int ok;
@@ -142,6 +142,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Finished\n");
   int c;
   if (GNUNET_SCHEDULER_NO_TASK != die_task)
   {
@@ -231,6 +232,7 @@ on_lookup_result(void *cls, uint32_t rd_count,
                     "%s correctly resolved to %s!\n", TEST_DOMAIN, string_val);
         ok = 0;
       }
+      GNUNET_free (string_val);
     }
   }
   end_now ();
@@ -272,7 +274,7 @@ static void connect_peers ()
 {
   static int started;
   started ++;
-
+GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "C \n");
   if (3 == started)
   {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "All peers started\n");
@@ -301,7 +303,8 @@ setup_dave (const struct GNUNET_CONFIGURATION_Handle * cfg)
   struct GNUNET_NAMESTORE_RecordData rd;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Setting up dave\n");
-  GNUNET_assert (NULL != cfg);
+  cfg_handles[0] = GNUNET_CONFIGURATION_dup (cfg);
+  GNUNET_assert (NULL != cfg_handles[0]);
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
                                                             "ZONEKEY",
                                                             &keyfile))
@@ -318,7 +321,6 @@ setup_dave (const struct GNUNET_CONFIGURATION_Handle * cfg)
     GNUNET_free (keyfile);
     return GNUNET_SYSERR;
   }
-
   nh[0] = GNUNET_NAMESTORE_connect (cfg_handles[0]);
   if (NULL == nh[0])
   {
@@ -363,7 +365,8 @@ setup_bob (const struct GNUNET_CONFIGURATION_Handle * cfg)
   struct GNUNET_NAMESTORE_RecordData rd;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Setting up bob\n");
-  GNUNET_assert (NULL != cfg);
+  cfg_handles[1] = GNUNET_CONFIGURATION_dup (cfg);
+  GNUNET_assert (NULL != cfg_handles[1]);
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
                                                             "ZONEKEY",
                                                             &keyfile))
@@ -381,7 +384,7 @@ setup_bob (const struct GNUNET_CONFIGURATION_Handle * cfg)
     return GNUNET_SYSERR;
   }
 
-  nh[1] = GNUNET_NAMESTORE_connect (cfg);
+  nh[1] = GNUNET_NAMESTORE_connect (cfg_handles[1]);
   if (NULL == nh[1])
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to connect to namestore\n");
@@ -414,7 +417,7 @@ setup_alice (const struct GNUNET_CONFIGURATION_Handle * cfg)
   struct GNUNET_CRYPTO_RsaPrivateKey *key;
   struct GNUNET_NAMESTORE_RecordData rd;
 
-
+  cfg_handles[2] = GNUNET_CONFIGURATION_dup (cfg);
   GNUNET_assert (NULL != cfg);
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
                                                             "ZONEKEY",
@@ -490,7 +493,7 @@ peerinfo_cb (void *cb_cls, struct GNUNET_TESTBED_Operation *op,
 	     const char *emsg)
 {
   int res;
-
+GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "X \n");
   GNUNET_assert (GNUNET_TESTBED_PIT_CONFIGURATION == pinfo->pit);
   if (GNUNET_NO == dave_is_setup)
     res = setup_dave (pinfo->result.cfg);
@@ -501,7 +504,7 @@ peerinfo_cb (void *cb_cls, struct GNUNET_TESTBED_Operation *op,
   
   GNUNET_TESTBED_operation_done (op);
   op = NULL;
-
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "A \n");
   if (GNUNET_SYSERR == res)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to setup peer \n");
@@ -509,7 +512,7 @@ peerinfo_cb (void *cb_cls, struct GNUNET_TESTBED_Operation *op,
   }
   else
     connect_peers ();
-
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "B \n");
   /*if (get_cfg_ops[0] == op)
   {
     GNUNET_assert (GNUNET_TESTBED_PIT_CONFIGURATION == pinfo->pit);
