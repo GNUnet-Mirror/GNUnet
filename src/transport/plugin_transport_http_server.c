@@ -501,7 +501,12 @@ http_server_plugin_send (void *cls,
       GNUNET_break (0);
       return GNUNET_SYSERR;
   }
-  GNUNET_assert (NULL != session->server_send);
+  if ((NULL == session->server_send) || (NULL == session->server_recv))
+  {
+      GNUNET_break (0);
+      return GNUNET_SYSERR;
+  }
+
 
   if (GNUNET_YES == session->server_send->disconnect)
     return GNUNET_SYSERR;
