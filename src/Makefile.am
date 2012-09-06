@@ -32,7 +32,6 @@ SUBDIRS = \
   statistics \
   arm \
   testing \
-  testbed \
   peerinfo \
   $(MYSQL_DIR) \
   $(POSTGRES_DIR) \
@@ -46,6 +45,7 @@ SUBDIRS = \
   transport \
   peerinfo-tool \
   core \
+  testbed \   
   testing_old \
   nse \
   dht \
