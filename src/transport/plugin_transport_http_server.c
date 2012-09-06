@@ -2721,13 +2721,14 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
 
   /* Stop to report addresses to transport service */
   server_stop_report_addresses (plugin);
-
   server_stop (plugin);
-
   next = plugin->head;
   while (NULL != (pos = next))
   {
       next = pos->next;
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                       "Removing left over session %p\n", pos);
+
       GNUNET_CONTAINER_DLL_remove( plugin->head, plugin->tail, pos);
       server_delete_session (pos);
   }
