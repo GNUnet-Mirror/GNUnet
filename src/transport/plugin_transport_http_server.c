@@ -646,9 +646,6 @@ server_delete_session (struct Session *s)
   struct HTTP_Server_Plugin *plugin = s->plugin;
   server_stop_session_timeout(s);
 
-  if ((GNUNET_YES == s->session_passed) && (GNUNET_NO == s->session_ended))
-    plugin->env->session_end (plugin->env->cls, &s->target, s);
-
   GNUNET_CONTAINER_DLL_remove (plugin->head, plugin->tail, s);
   struct HTTP_Message *msg = s->msg_head;
   struct HTTP_Message *tmp = NULL;
@@ -1439,21 +1436,23 @@ server_disconnect_cb (void *cls, struct MHD_Connection *connection,
   GNUNET_free (sc);
   plugin->cur_connections--;
 
+  if (((s->server_send == NULL) || (s->server_recv == NULL)) &&
+      ((GNUNET_YES == s->session_passed) && (GNUNET_NO == s->session_ended)))
+  {
+    /* Notify transport immediately that this session is invalid */
+    s->session_ended = GNUNET_YES;
+    plugin->env->session_end (plugin->env->cls, &s->target, s);
+  }
+
   if ((s->server_send == NULL) && (s->server_recv == NULL))
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                      "Peer `%s' on address `%s' disconnected\n",
                      GNUNET_i2s (&s->target),
                      http_common_plugin_address_to_string (NULL, s->addr, s->addrlen));
-
     server_delete_session (s);
   }
-  else if ((GNUNET_YES == s->session_passed) && (GNUNET_NO == s->session_ended))
-  {
-    /* Notify transport immediately that this session is invalid */
-    s->session_ended = GNUNET_YES;
-    plugin->env->session_end (plugin->env->cls, &s->target, s);
-  }
+
 }
 
 
@@ -2746,6 +2745,14 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
       next = pos->next;
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                        "Removing left over session %p\n", pos);
+
+      if ((GNUNET_YES == pos->session_passed) && (GNUNET_NO == pos->session_ended))
+      {
+        /* Notify transport immediately that this session is invalid */
+          pos->session_ended = GNUNET_YES;
+        plugin->env->session_end (plugin->env->cls, &pos->target, pos);
+      }
+
       server_delete_session (pos);
   }
 

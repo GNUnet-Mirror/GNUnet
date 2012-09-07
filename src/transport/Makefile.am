@@ -168,6 +168,9 @@ gnunet_service_transport_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_GLPK) \
   $(GN_LIBINTL)
+gnunet_service_transport_CFLAGS = \
+  $(CFLAGS)
+# -DANALYZE
 
 plugin_LTLIBRARIES = \
   libgnunet_plugin_transport_tcp.la \
