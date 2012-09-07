@@ -273,7 +273,6 @@ static void connect_peers ()
 {
   static int started;
   started ++;
-GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "C \n");
   if (3 == started)
   {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "All peers started\n");
@@ -492,7 +491,6 @@ peerinfo_cb (void *cb_cls, struct GNUNET_TESTBED_Operation *op,
 	     const char *emsg)
 {
   int res;
-GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "X \n");
   GNUNET_assert (GNUNET_TESTBED_PIT_CONFIGURATION == pinfo->pit);
   if (GNUNET_NO == dave_is_setup)
     res = setup_dave (pinfo->result.cfg);
@@ -509,7 +507,6 @@ GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "X \n");
     get_cfg_ops[2] = NULL;
   GNUNET_TESTBED_operation_done (op);
   op = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "A \n");
   if (GNUNET_SYSERR == res)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to setup peer \n");
@@ -517,7 +514,6 @@ GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "X \n");
   }
   else
     connect_peers ();
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "B \n");
   /*if (get_cfg_ops[0] == op)
   {
     GNUNET_assert (GNUNET_TESTBED_PIT_CONFIGURATION == pinfo->pit);
