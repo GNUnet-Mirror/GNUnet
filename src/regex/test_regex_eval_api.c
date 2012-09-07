@@ -252,7 +252,7 @@ main (int argc, char *argv[])
   int check_rand;
   char *check_proof;
 
-  struct Regex_String_Pair rxstr[17] = {
+  struct Regex_String_Pair rxstr[18] = {
     {"ab?(abcd)?", 5,
      {"ababcd", "abab", "aabcd", "a", "abb"},
      {match, nomatch, match, match, nomatch}},
@@ -309,14 +309,17 @@ main (int argc, char *argv[])
      {nomatch}},
     {"d|5kl", 1,
      {"d5kl"},
-     {nomatch}}
+     {nomatch}},
+    {"a()b", 1,
+     {"ab"},
+     {match}}
   };
 
   check_nfa = 0;
   check_dfa = 0;
   check_rand = 0;
 
-  for (i = 0; i < 17; i++)
+  for (i = 0; i < 18; i++)
   {
     if (0 != regcomp (&rx, rxstr[i].regex, REG_EXTENDED))
     {

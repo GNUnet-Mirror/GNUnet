@@ -52,104 +52,6 @@ struct GNUNET_REGEX_StateSet
 };
 
 
-/*
- * Debug helper functions
- */
-
-/**
- * Print all the transitions of state 's'.
- *
- * @param s state for which to print it's transitions.
- */
-void
-debug_print_transitions (struct GNUNET_REGEX_State *s);
-
-
-/**
- * Print information of the given state 's'.
- *
- * @param s state for which debug information should be printed.
- */
-void
-debug_print_state (struct GNUNET_REGEX_State *s)
-{
-  char *proof;
-
-  if (NULL == s->proof)
-    proof = "NULL";
-  else
-    proof = s->proof;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "State %i: %s marked: %i accepting: %i scc_id: %i transitions: %i proof: %s\n",
-              s->id, s->name, s->marked, s->accepting, s->scc_id,
-              s->transition_count, proof);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Transitions:\n");
-  debug_print_transitions (s);
-}
-
-
-/**
- * Print debug information for all states contained in the automaton 'a'.
- *
- * @param a automaton for which debug information of it's states should be printed.
- */
-void
-debug_print_states (struct GNUNET_REGEX_Automaton *a)
-{
-  struct GNUNET_REGEX_State *s;
-
-  for (s = a->states_head; NULL != s; s = s->next)
-    debug_print_state (s);
-}
-
-
-/**
- * Print debug information for given transition 't'.
- *
- * @param t transition for which to print debug info.
- */
-void
-debug_print_transition (struct GNUNET_REGEX_Transition *t)
-{
-  char *to_state;
-  char *from_state;
-  char *label;
-
-  if (NULL == t)
-    return;
-
-  if (0 == t->label)
-    label = "0";
-  else
-    label = t->label;
-
-  if (NULL == t->to_state)
-    to_state = "NULL";
-  else
-    to_state = t->to_state->name;
-
-  if (NULL == t->from_state)
-    from_state = "NULL";
-  else
-    from_state = t->from_state->name;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Transition %i: From %s on %s to %s\n",
-              t->id, from_state, label, to_state);
-}
-
-
-void
-debug_print_transitions (struct GNUNET_REGEX_State *s)
-{
-  struct GNUNET_REGEX_Transition *t;
-
-  for (t = s->transitions_head; NULL != t; t = t->next)
-    debug_print_transition (t);
-}
-
-
 /**
  * Compare two strings for equality. If either is NULL they are not equal.
  *
@@ -2320,10 +2222,6 @@ GNUNET_REGEX_construct_nfa (const char *regex, const size_t len)
       }
       nfa_add_question_op (&ctx);
       break;
-    case 92:                   /* escape: \ */
-      regexp++;
-      count++;
-      /* fall through! */
     default:
       if (atomcount > 1)
       {

@@ -22,7 +22,8 @@ libgnunetregex_la_LDFLAGS = \
 check_PROGRAMS = \
  test_regex_eval_api \
  test_regex_iterate_api \
- test_regex_proofs	
+ test_regex_proofs \
+ test_regex_graph_api
 
 if ENABLE_TEST_RUN
 TESTS = $(check_PROGRAMS)
@@ -46,5 +47,12 @@ test_regex_proofs_LDADD = \
  $(top_builddir)/src/regex/libgnunetregex.la \
  $(top_builddir)/src/util/libgnunetutil.la
 
-EXTRA_DIST = 
+test_regex_graph_api_SOURCES = \
+test_regex_graph_api.c
+test_regex_graph_api_LDADD = \
+$(top_builddir)/src/regex/libgnunetregex.la \
+$(top_builddir)/src/util/libgnunetutil.la
+
+
+EXTRA_DIST =
 # test_regex_data.conf

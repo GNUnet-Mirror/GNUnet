@@ -197,11 +197,8 @@ GNUNET_REGEX_automaton_save_graph_step (void *cls, unsigned int count,
     GNUNET_asprintf (&s_acc, "\"%s\" [shape=circle];\n", name, s->scc_id);
   }
 
-  if (NULL == s_acc)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not print state %s\n", s->name);
-    return;
-  }
+  GNUNET_assert (NULL != s_acc);
+
   fwrite (s_acc, strlen (s_acc), 1, ctx->filep);
   GNUNET_free (s_acc);
   s_acc = NULL;
@@ -256,12 +253,7 @@ GNUNET_REGEX_automaton_save_graph_step (void *cls, unsigned int count,
 
     GNUNET_free (to_name);
 
-    if (NULL == s_tran)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not print state %s\n",
-                  s->name);
-      return;
-    }
+    GNUNET_assert (NULL != s_tran);
 
     fwrite (s_tran, strlen (s_tran), 1, ctx->filep);
     GNUNET_free (s_tran);
