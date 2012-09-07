@@ -37,7 +37,6 @@
  * TODO:
  * - error reporting (CREATE/CHANGE/ADD/DEL?) -- new message!
  * - partial disconnect reporting -- same as error reporting?
- * - add vs create? change vs. keep-alive? same msg or different ones? -- thinking...
  * - add ping message
  * - relay corking down to core
  * - set ttl relative to tree depth
@@ -5688,6 +5687,51 @@ handle_mesh_path_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
 
 
 /**
+ * Core handler for mesh keepalives.
+ *
+ * @param cls closure
+ * @param message message
+ * @param peer peer identity this notification is about
+ * @param atsi performance data
+ * @param atsi_count number of records in 'atsi'
+ * @return GNUNET_OK to keep the connection open,
+ *         GNUNET_SYSERR to close it (signal serious error)
+ *
+ * TODO: Check who we got this from, to validate route.
+ */
+static int
+handle_mesh_keepalive (void *cls, const struct GNUNET_PeerIdentity *peer,
+                       const struct GNUNET_MessageHeader *message,
+                       const struct GNUNET_ATS_Information *atsi,
+                       unsigned int atsi_count)
+{
+  struct GNUNET_MESH_TunnelKeepAlive *msg;
+  struct MeshTunnel *t;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "got a keepalive packet from %s\n",
+              GNUNET_i2s (peer));
+
+  msg = (struct GNUNET_MESH_TunnelKeepAlive *) message;
+  t = tunnel_get (&msg->oid, ntohl (msg->tid));
+
+  if (NULL == t)
+  {
+    /* TODO notify that we dont know that tunnel */
+    GNUNET_STATISTICS_update (stats, "# keepalive on unknown tunnel", 1, GNUNET_NO);
+    GNUNET_break_op (0);
+    return GNUNET_OK;
+  }
+
+  tunnel_reset_timeout (t);
+
+  GNUNET_STATISTICS_update (stats, "# keepalives forwarded", 1, GNUNET_NO);
+  tunnel_send_multicast (t, message, GNUNET_NO);
+  return GNUNET_OK;
+  }
+
+
+
+/**
  * Functions to handle messages from core
  */
 static struct GNUNET_CORE_MessageHandler core_handlers[] = {
@@ -5699,6 +5743,8 @@ static struct GNUNET_CORE_MessageHandler core_handlers[] = {
    sizeof (struct GNUNET_MESH_TunnelDestroy)},
   {&handle_mesh_data_unicast, GNUNET_MESSAGE_TYPE_MESH_UNICAST, 0},
   {&handle_mesh_data_multicast, GNUNET_MESSAGE_TYPE_MESH_MULTICAST, 0},
+  {&handle_mesh_keepalive, GNUNET_MESSAGE_TYPE_MESH_PATH_KEEPALIVE,
+    sizeof (struct GNUNET_MESH_TunnelKeepAlive)},
   {&handle_mesh_data_to_orig, GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN, 0},
   {&handle_mesh_ack, GNUNET_MESSAGE_TYPE_MESH_ACK,
     sizeof (struct GNUNET_MESH_ACK)},
@@ -5776,41 +5822,29 @@ notify_client_connection_failure (void *cls, size_t size, void *buf)
  *
  * @param cls Closure (tunnel for which to send the keepalive).
  * @param tc Notification context.
- *
- * TODO: implement explicit multicast keepalive?
  */
 static void
 path_refresh (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct MeshTunnel *t = cls;
-  struct GNUNET_MessageHeader *payload;
-  struct GNUNET_MESH_Multicast *msg;
-  size_t size =
-      sizeof (struct GNUNET_MESH_Multicast) +
-      sizeof (struct GNUNET_MessageHeader);
+  struct GNUNET_MESH_TunnelKeepAlive *msg;
+  size_t size = sizeof (struct GNUNET_MESH_TunnelKeepAlive);
   char cbuf[size];
 
+  t->path_refresh_task = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
     return;
   }
-  t->path_refresh_task = GNUNET_SCHEDULER_NO_TASK;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "sending keepalive for tunnel %d\n", t->id.tid);
 
-  msg = (struct GNUNET_MESH_Multicast *) cbuf;
+  msg = (struct GNUNET_MESH_TunnelKeepAlive *) cbuf;
   msg->header.size = htons (size);
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_MULTICAST);
-  // FIXME: change type to != MULTICAST
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_PATH_KEEPALIVE);
   msg->oid = my_full_id;
   msg->tid = htonl (t->id.tid);
-  msg->ttl = htonl (default_ttl);
-  msg->pid = htonl (t->fwd_pid + 1);
-  t->fwd_pid++;
-  payload = (struct GNUNET_MessageHeader *) &msg[1];
-  payload->size = htons (sizeof (struct GNUNET_MessageHeader));
-  payload->type = htons (GNUNET_MESSAGE_TYPE_MESH_PATH_KEEPALIVE);
   tunnel_send_multicast (t, &msg->header, GNUNET_YES);
 
   t->path_refresh_task =

@@ -313,6 +313,29 @@ struct GNUNET_MESH_TunnelDestroy
 };
 
 
+/**
+ * Message to destroy a tunnel
+ */
+struct GNUNET_MESH_TunnelKeepAlive
+{
+  /**
+   * Type: GNUNET_MESSAGE_TYPE_MESH_PATH_KEEPALIVE
+   */
+  struct GNUNET_MessageHeader header;
+  
+  /**
+   * TID of the tunnel
+   */
+  uint32_t tid GNUNET_PACKED;
+  
+  /**
+   * OID of the tunnel
+   */
+  struct GNUNET_PeerIdentity oid;
+};
+
+
+
 GNUNET_NETWORK_STRUCT_END
 
 #if 0                           /* keep Emacsens' auto-indent happy */
