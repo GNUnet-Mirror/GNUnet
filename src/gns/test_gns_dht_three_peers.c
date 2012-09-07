@@ -331,6 +331,8 @@ setup_dave (const struct GNUNET_CONFIGURATION_Handle * cfg)
   GNUNET_CRYPTO_rsa_key_get_public (key, &pkey);
   GNUNET_CRYPTO_short_hash(&pkey, sizeof(pkey), &dave_hash);
 
+  rd.expiration_time = UINT64_MAX;
+
   web = GNUNET_malloc(sizeof(struct in_addr));
   GNUNET_assert(1 == inet_pton (AF_INET, TEST_IP, web));
   rd.data_size = sizeof(struct in_addr);
@@ -343,6 +345,7 @@ setup_dave (const struct GNUNET_CONFIGURATION_Handle * cfg)
   rd.data_size = strlen(TEST_DAVE_PSEU);
   rd.data = TEST_DAVE_PSEU;
   rd.record_type = GNUNET_GNS_RECORD_PSEU;
+
 
   GNUNET_NAMESTORE_record_create (nh[0], key, "+", &rd, &cont_ns, nh[0]);
 
@@ -394,6 +397,7 @@ setup_bob (const struct GNUNET_CONFIGURATION_Handle * cfg)
   GNUNET_CRYPTO_rsa_key_get_public (key, &pkey);
   GNUNET_CRYPTO_short_hash(&pkey, sizeof(pkey), &bob_hash);
 
+  rd.expiration_time = UINT64_MAX;
   rd.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
   rd.data = &dave_hash;
   rd.record_type = GNUNET_GNS_RECORD_PKEY;
@@ -443,6 +447,7 @@ setup_alice (const struct GNUNET_CONFIGURATION_Handle * cfg)
     return GNUNET_SYSERR;
   }
 
+  rd.expiration_time = UINT64_MAX;
   rd.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
   rd.data = &bob_hash;
   rd.record_type = GNUNET_GNS_RECORD_PKEY;
