@@ -767,7 +767,7 @@ server_disconnect (struct Session *s)
   struct ServerConnection * send = NULL;
   struct ServerConnection * recv = NULL;
 
-  if (GNUNET_NO == server_exist_session (s))
+  if (GNUNET_NO == server_exist_session (p, s))
   {
       GNUNET_break (0);
       return GNUNET_SYSERR;
