@@ -105,7 +105,7 @@ def run ():
     global client
     global client2	
     restarts = 0
-    iterations = 4
+    iterations = 10000
     success = False
     
     test = Test ('test_memory_consumption', verbose)
@@ -115,7 +115,8 @@ def run ():
     client.start();
     
     while (restarts < iterations):
-       print 'Iteration #' + str (restarts) + ' of ' + str (restarts)
+       print 'Iteration #' + str (restarts) + ' of ' + str (iterations)
+       print '---------------------'
        restarts += 1
        client2 = Peer(test, './confs/c_no_nat_client_2.conf');
        client2.start();	
@@ -125,7 +126,7 @@ def run ():
            test.p ('All peers connected, stopping client2')   
            client2.stop ()
            check_disconnect ()
-           test.p ('Peer disconnected')
+           test.p ('Peer disconnected\n')
 
     print str (iterations) + " Iteration executed" 
     server.stop ()    
