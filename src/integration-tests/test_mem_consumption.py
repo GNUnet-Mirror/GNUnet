@@ -109,7 +109,7 @@ def run ():
     success = False
     
     test = Test ('test_memory_consumption', verbose)
-    server = Peer(test, './confs/c_bootstrap_server.conf');
+    server = Peer(test, './confs/c_bootstrap_server_w_massif.conf');
     server.start();
     client = Peer(test, './confs/c_no_nat_client.conf');
     client.start();

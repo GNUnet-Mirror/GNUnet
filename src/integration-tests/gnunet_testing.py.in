@@ -53,11 +53,13 @@ class Check:
         if ((False == res) and (execs >= timeout)):
            print ('Check had timeout after ' +str(timeout)+ ' seconds')
            neg_cont (self)
-        elif ((False == res) and (execs >= timeout)):
-			neg_cont (self)
+        elif ((False == res) and (execs < timeout)):
+            if (None != neg_cont):
+                neg_cont (self)
         else:
-            pos_cont (self)
-        return res            
+            if (None != pos_cont):
+                pos_cont (self)
+        return res     
     def run_once (self, pos_cont, neg_cont):
         execs = 0;
         res = False
