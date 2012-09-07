@@ -128,6 +128,11 @@ struct Session
   int session_passed;
 
   /**
+   * Did we immediately end the session in disconnect_cb
+   */
+  int session_ended;
+
+  /**
    * Absolute time when to receive data again
    * Used for receive throttling
    */
@@ -641,7 +646,7 @@ server_delete_session (struct Session *s)
   struct HTTP_Server_Plugin *plugin = s->plugin;
   server_stop_session_timeout(s);
 
-  if (GNUNET_YES == s->session_passed)
+  if ((GNUNET_YES == s->session_passed) && (GNUNET_NO == s->session_ended))
     plugin->env->session_end (plugin->env->cls, &s->target, s);
 
   GNUNET_CONTAINER_DLL_remove (plugin->head, plugin->tail, s);
@@ -763,8 +768,8 @@ server_reschedule (struct HTTP_Server_Plugin *plugin, struct MHD_Daemon *server,
 static int
 server_disconnect (struct Session *s)
 {
-  struct ServerConnection * send;
-  struct ServerConnection * recv;
+  struct ServerConnection * send = NULL;
+  struct ServerConnection * recv = NULL;
 
   send = (struct ServerConnection *) s->server_send;
   if (s->server_send != NULL)
@@ -1031,6 +1036,7 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
     s->server_recv = NULL;
     s->server_send = NULL;
     s->session_passed = GNUNET_NO;
+    s->session_ended = GNUNET_NO;
     server_start_session_timeout(s);
     GNUNET_CONTAINER_DLL_insert (plugin->head, plugin->tail, s);
   }
@@ -1432,6 +1438,7 @@ server_disconnect_cb (void *cls, struct MHD_Connection *connection,
 
   GNUNET_free (sc);
   plugin->cur_connections--;
+
   if ((s->server_send == NULL) && (s->server_recv == NULL))
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
@@ -1440,6 +1447,12 @@ server_disconnect_cb (void *cls, struct MHD_Connection *connection,
                      http_common_plugin_address_to_string (NULL, s->addr, s->addrlen));
 
     server_delete_session (s);
+  }
+  else if ((GNUNET_YES == s->session_passed) && (GNUNET_NO == s->session_ended))
+  {
+    /* Notify transport immediately that this session is invalid */
+    s->session_ended = GNUNET_YES;
+    plugin->env->session_end (plugin->env->cls, &s->target, s);
   }
 }
 
