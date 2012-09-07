@@ -566,7 +566,7 @@ http_server_plugin_disconnect (void *cls, const struct GNUNET_PeerIdentity *targ
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                        "Disconnecting session %p to `%s'\n",
                        pos, GNUNET_i2s (target));
-      GNUNET_assert (GNUNET_OK == server_disconnect (pos));
+      server_disconnect (pos);
     }
   }
 
@@ -639,7 +639,6 @@ http_server_plugin_get_session (void *cls,
  *
  * @param s the session to delete
  */
-
 static void
 server_delete_session (struct Session *s)
 {
@@ -767,6 +766,12 @@ server_disconnect (struct Session *s)
 {
   struct ServerConnection * send = NULL;
   struct ServerConnection * recv = NULL;
+
+  if (GNUNET_NO == server_exist_session (s))
+  {
+      GNUNET_break (0);
+      return GNUNET_SYSERR;
+  }
 
   send = (struct ServerConnection *) s->server_send;
   if (s->server_send != NULL)
