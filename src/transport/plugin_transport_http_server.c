@@ -1379,6 +1379,9 @@ server_disconnect_cb (void *cls, struct MHD_Connection *connection,
   struct Session *t = NULL;
   struct HTTP_Server_Plugin *plugin = NULL;
 
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                   "Disconnect for connection %p \n", sc);
+
   if (sc == NULL)
     return;
 
