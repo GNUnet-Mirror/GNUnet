@@ -30,15 +30,16 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_mesh_service.h"
 #include "gnunet_stream_lib.h"
-#include "gnunet_testing_lib.h"
-
-#define VERBOSE 1
+#include "gnunet_testbed_service.h"
 
 /**
- * Number of peers
+ * Number of peers; Do NOT change this
  */
 #define NUM_PEERS 2
 
+/**
+ * Shorthand for Relative time in seconds
+ */
 #define TIME_REL_SECS(sec) \
   GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, sec)
 
@@ -47,6 +48,11 @@
  */
 struct PeerData
 {
+  /**
+   * Handle to testbed peer
+   */
+  struct GNUNET_TESTBED_Peer *peer;
+
   /**
    * Peer's stream socket
    */
@@ -68,6 +74,11 @@ struct PeerData
   struct GNUNET_STREAM_ShutdownHandle *shutdown_handle;
 
   /**
+   * The service connect operation to stream
+   */
+  struct GNUNET_TESTBED_Operation *op;
+
+  /**
    * Our Peer id
    */
   struct GNUNET_PeerIdentity our_id;
@@ -83,25 +94,58 @@ struct PeerData
   unsigned int bytes_read;
 };
 
-/**
- * The current peer group
- */
-static struct GNUNET_TESTING_PeerGroup *pg;
 
 /**
- * Peer 1 daemon
+ * Different states in test setup
  */
-static struct GNUNET_TESTING_Daemon *d1;
+enum SetupState
+{
+  /**
+   * The initial state
+   */
+  INIT,
+
+  /**
+   * Get the identity of peer 1
+   */
+  PEER1_GET_IDENTITY,
+
+  /**
+   * Get the identity of peer 2
+   */
+  PEER2_GET_IDENTITY,
+  
+  /**
+   * Connect to stream service of peer 1
+   */
+  PEER1_STREAM_CONNECT,
+
+  /**
+   * Connect to stream service of peer 2
+   */
+  PEER2_STREAM_CONNECT
+
+};
 
 /**
- * Peer 2 daemon
+ * Various states during test setup
  */
-static struct GNUNET_TESTING_Daemon *d2;
+static enum SetupState setup_state;
 
+/**
+ * Data context for peer 1
+ */
 static struct PeerData peer1;
+
+/**
+ * Data context for peer 2
+ */
 static struct PeerData peer2;
-static struct GNUNET_STREAM_ListenSocket *peer2_listen_socket;
-static struct GNUNET_CONFIGURATION_Handle *config;
+
+/**
+ * Testbed operation handle
+ */
+static struct GNUNET_TESTBED_Operation *op;
 
 static GNUNET_SCHEDULER_TaskIdentifier abort_task;
 
@@ -188,51 +232,16 @@ stream_write_task (void *cls,
 
 
 /**
- * Check whether peers successfully shut down.
- */
-static void
-peergroup_shutdown_callback (void *cls, const char *emsg)
-{
-  if (emsg != NULL)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "Shutdown of peers failed!\n");
-  }
-  else
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "All peers successfully shut down!\n");
-  }
-  GNUNET_CONFIGURATION_destroy (config);
-}
-
-
-/**
  * Close sockets and stop testing deamons nicely
  */
 static void
 do_close (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  if (GNUNET_SCHEDULER_NO_TASK != abort_task)
+    GNUNET_SCHEDULER_cancel (abort_task);
   if (NULL != peer1.socket)
     GNUNET_STREAM_close (peer1.socket);
-  if (NULL != peer2.socket)
-    GNUNET_STREAM_close (peer2.socket);
-  if (NULL != peer2_listen_socket)
-    GNUNET_STREAM_listen_close (peer2_listen_socket);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: shutdown\n");
-  if (0 != abort_task)
-  {
-    GNUNET_SCHEDULER_cancel (abort_task);
-  }
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: Wait\n");
-
-  GNUNET_TESTING_daemons_stop (pg,
-                               GNUNET_TIME_relative_multiply
-                               (GNUNET_TIME_UNIT_SECONDS, 5),
-                               &peergroup_shutdown_callback,
-                               NULL);
+  GNUNET_TESTBED_operation_done (peer1.op);
 }
 
 
@@ -247,10 +256,8 @@ static void
 shutdown_completion (void *cls,
                      int operation)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "STREAM shutdown successful\n");
-  GNUNET_SCHEDULER_add_now (&do_close,
-                            cls);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "STREAM shutdown successful\n");
+  GNUNET_SCHEDULER_add_now (&do_close, cls);
 }
 
 
@@ -261,10 +268,9 @@ shutdown_completion (void *cls,
 static void
 do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  peer1.shutdown_handle = GNUNET_STREAM_shutdown (peer1.socket, 
-                                                  SHUT_RDWR,
-                                                  &shutdown_completion,
-                                                  cls);
+  result = GNUNET_OK;
+  peer1.shutdown_handle = GNUNET_STREAM_shutdown (peer1.socket, SHUT_RDWR,
+                                                  &shutdown_completion, cls);
 }
 
 
@@ -309,7 +315,7 @@ write_completion (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Writing completed\n");
 
-      if (&peer1 == peer)   /* Peer1 has finished writing; should read now */
+      if (&peer2 == peer)   /* Peer1 has finished writing; should read now */
         {
           peer->bytes_read = 0;
           GNUNET_SCHEDULER_add_now (&stream_read_task, peer);
@@ -336,10 +342,9 @@ stream_open_cb (void *cls,
 {
   struct PeerData *peer=cls;
   
-  GNUNET_assert (&peer1 == peer);
-  GNUNET_assert (socket == peer1.socket);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%s: Stream established from peer1\n",
+  GNUNET_assert (&peer2 == peer);
+  GNUNET_assert (socket == peer2.socket);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%s: Stream established from peer2\n",
               GNUNET_i2s (&peer1.our_id));
   peer->bytes_wrote = 0;
   GNUNET_SCHEDULER_add_now (&stream_write_task, peer);
@@ -388,7 +393,7 @@ input_processor (void *cls,
     }
   else 
     {
-      if (&peer2 == peer)    /* Peer2 has completed reading; should write */
+      if (&peer1 == peer)    /* Peer2 has completed reading; should write */
         {
           peer->bytes_wrote = 0;
           GNUNET_SCHEDULER_add_now (&stream_write_task, peer);
@@ -421,17 +426,84 @@ stream_listen_cb (void *cls,
 {
   GNUNET_assert (NULL != socket);
   GNUNET_assert (NULL != initiator);
-  GNUNET_assert (socket != peer1.socket);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%s: Peer connected: %s\n",
-              GNUNET_i2s (&peer2.our_id),
-              GNUNET_i2s(initiator));
-
-  peer2.socket = socket;
-  peer2.bytes_read = 0;
-  GNUNET_SCHEDULER_add_now (&stream_read_task, &peer2);
+  GNUNET_assert (socket != peer2.socket);
+  GNUNET_assert (0 == memcmp (initiator, &peer2.our_id, 
+                              sizeof (struct GNUNET_PeerIdentity)));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%s: Peer connected: %s\n",
+              GNUNET_i2s (&peer1.our_id), GNUNET_i2s (initiator));  
+  peer1.socket = socket;
+  peer1.bytes_read = 0;
+  GNUNET_SCHEDULER_add_now (&stream_read_task, &peer1);
   return GNUNET_OK;
+}
+
+
+/**
+ * Listen success callback; connects a peer to stream as client
+ */
+static void stream_connect (void);
+
+
+/**
+ * Adapter function called to destroy a connection to
+ * a service.
+ * 
+ * @param cls closure
+ * @param op_result service handle returned from the connect adapter
+ */
+static void
+stream_da (void *cls, void *op_result)
+{
+  struct GNUNET_STREAM_ListenSocket *lsocket;
+  struct GNUNET_STREAM_Socket *socket;
+
+  if (&peer1 == cls)
+  {
+    lsocket = op_result;
+    GNUNET_STREAM_listen_close (lsocket);
+    GNUNET_TESTBED_operation_done (peer2.op);
+    return;
+  }
+  if (&peer2 == cls)
+  {
+    socket = op_result;
+    GNUNET_STREAM_close (socket);
+    GNUNET_SCHEDULER_shutdown (); /* Exit point of the test */
+    return;
+  }
+  GNUNET_assert (0);
+}
+
+
+/**
+ * Adapter function called to establish a connection to
+ * a service.
+ * 
+ * @param cls closure
+ * @param cfg configuration of the peer to connect to; will be available until
+ *          GNUNET_TESTBED_operation_done() is called on the operation returned
+ *          from GNUNET_TESTBED_service_connect()
+ * @return service handle to return in 'op_result', NULL on error
+ */
+static void * 
+stream_ca (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
+{  
+  struct GNUNET_STREAM_ListenSocket *lsocket;
+  
+  switch (setup_state)
+  {
+  case PEER1_STREAM_CONNECT:
+    lsocket = GNUNET_STREAM_listen (cfg, 10, &stream_listen_cb, NULL,
+                                    GNUNET_STREAM_OPTION_SIGNAL_LISTEN_SUCCESS,
+                                    &stream_connect, GNUNET_STREAM_OPTION_END);
+    return lsocket;
+  case PEER2_STREAM_CONNECT:
+    peer2.socket = GNUNET_STREAM_open (cfg, &peer1.our_id, 10, &stream_open_cb,
+                                       &peer2, GNUNET_STREAM_OPTION_END);
+    return peer2.socket;
+  default:
+    GNUNET_assert (0);
+  }
 }
 
 
@@ -440,135 +512,139 @@ stream_listen_cb (void *cls,
  */
 static void
 stream_connect (void)
-{
-  peer1.socket = GNUNET_STREAM_open (d1->cfg,
-                                     &d2->id,         /* Null for local peer? */
-                                     10,           /* App port */
-                                     &stream_open_cb,
-                                     &peer1,
-				     GNUNET_STREAM_OPTION_END);
-  GNUNET_assert (NULL != peer1.socket);
+{ 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stream listen open successful\n");
+  peer2.op = GNUNET_TESTBED_service_connect (&peer2, peer2.peer, "stream",
+					     NULL, NULL,
+                                             stream_ca, stream_da, &peer2);
+  setup_state = PEER2_STREAM_CONNECT;
 }
 
 
 /**
- * Callback to be called when testing peer group is ready
+ * Callback to be called when the requested peer information is available
+ *
+ * @param cb_cls the closure from GNUNET_TETSBED_peer_get_information()
+ * @param op the operation this callback corresponds to
+ * @param pinfo the result; will be NULL if the operation has failed
+ * @param emsg error message if the operation has failed; will be NULL if the
+ *          operation is successfull
+ */
+static void 
+peerinfo_cb (void *cb_cls, struct GNUNET_TESTBED_Operation *op_,
+	     const struct GNUNET_TESTBED_PeerInformation *pinfo,
+	     const char *emsg)
+{
+  GNUNET_assert (NULL == emsg);
+  GNUNET_assert (op == op_);
+  switch (setup_state)
+    {
+    case PEER1_GET_IDENTITY:
+      memcpy (&peer1.our_id, pinfo->result.id, 
+	      sizeof (struct GNUNET_PeerIdentity));
+      GNUNET_TESTBED_operation_done (op);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer 1 id: %s\n", GNUNET_i2s
+                  (&peer1.our_id));
+      op = GNUNET_TESTBED_peer_get_information (peer2.peer,
+                                                GNUNET_TESTBED_PIT_IDENTITY,
+						&peerinfo_cb, NULL);
+      setup_state = PEER2_GET_IDENTITY;
+      break;
+    case PEER2_GET_IDENTITY:
+      memcpy (&peer2.our_id, pinfo->result.id,
+              sizeof (struct GNUNET_PeerIdentity));
+      GNUNET_TESTBED_operation_done (op);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer 2 id: %s\n", GNUNET_i2s
+                  (&peer2.our_id));
+      peer1.op = GNUNET_TESTBED_service_connect (&peer1, peer1.peer, "stream",
+						 NULL, NULL, stream_ca,
+						 stream_da, &peer1);
+      setup_state = PEER1_STREAM_CONNECT;
+      break;
+    default:
+      GNUNET_assert (0);
+    }
+}
+
+
+/**
+ * Controller event callback
  *
  * @param cls NULL
- * @param emsg NULL on success
+ * @param event the controller event
  */
-void
-peergroup_ready (void *cls, const char *emsg)
+static void
+controller_event_cb (void *cls,
+                     const struct GNUNET_TESTBED_EventInformation *event)
 {
-  if (NULL != emsg)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Starting peer group failed: %s\n", emsg);
-      return;
+  switch (event->type)
+  {
+  case GNUNET_TESTBED_ET_CONNECT:
+    GNUNET_assert (INIT == setup_state);
+    GNUNET_TESTBED_operation_done (op);
+    /* Get the peer identity and configuration of peers */
+    op = GNUNET_TESTBED_peer_get_information (peer1.peer,
+                                              GNUNET_TESTBED_PIT_IDENTITY,
+					      &peerinfo_cb, NULL);
+    setup_state = PEER1_GET_IDENTITY;
+    break;
+  case GNUNET_TESTBED_ET_OPERATION_FINISHED:
+    switch (setup_state)
+    {    
+    case PEER1_STREAM_CONNECT:
+    case PEER2_STREAM_CONNECT:
+      GNUNET_assert (NULL == event->details.operation_finished.emsg);
+      break;
+    default:
+      GNUNET_assert (0);
     }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Peer group is now ready\n");
-  
-  GNUNET_assert (2 == GNUNET_TESTING_daemons_running (pg));
-  
-  d1 = GNUNET_TESTING_daemon_get (pg, 0);
-  GNUNET_assert (NULL != d1);
-  
-  d2 = GNUNET_TESTING_daemon_get (pg, 1);
-  GNUNET_assert (NULL != d2);
-
-  GNUNET_TESTING_get_peer_identity (d1->cfg,
-                                    &peer1.our_id);
-  GNUNET_TESTING_get_peer_identity (d2->cfg,
-                                    &peer2.our_id);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%s : %s\n",
-              GNUNET_i2s (&peer1.our_id),
-              GNUNET_i2s (&d1->id));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%s : %s\n",
-              GNUNET_i2s (&peer2.our_id),
-              GNUNET_i2s (&d2->id));
-
-  peer2_listen_socket = 
-    GNUNET_STREAM_listen (d2->cfg,
-                          10, /* App port */
-                          &stream_listen_cb,
-                          NULL,
-                          GNUNET_STREAM_OPTION_SIGNAL_LISTEN_SUCCESS,
-                          &stream_connect,
-                          GNUNET_STREAM_OPTION_END);
-  GNUNET_assert (NULL != peer2_listen_socket);
+    break;
+  default:
+    GNUNET_assert (0);
+  }
 }
 
 
 /**
- * Initialize framework and start test
+ * Signature of a main function for a testcase.
+ *
+ * @param cls closure
+ * @param num_peers number of peers in 'peers'
+ * @param peers handle to peers run in the testbed
  */
 static void
-run (void *cls, char *const *args, const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
+test_master (void *cls, unsigned int num_peers,
+             struct GNUNET_TESTBED_Peer **peers)
 {
-  struct GNUNET_TESTING_Host *hosts; /* FIXME: free hosts (DLL) */
-
-  GNUNET_log_setup ("test_stream_2peers",
-                    "DEBUG",
-                    NULL);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Starting test\n");
-  /* Duplicate the configuration */
-  config = GNUNET_CONFIGURATION_dup (cfg);
-
-  hosts = GNUNET_TESTING_hosts_load (config);
-  
-  pg = GNUNET_TESTING_peergroup_start (config,
-                                       2,
-                                       GNUNET_TIME_relative_multiply
-                                       (GNUNET_TIME_UNIT_SECONDS, 3),
-                                       NULL,
-                                       &peergroup_ready,
-                                       NULL,
-                                       hosts);
-  GNUNET_assert (NULL != pg);
-                                       
+  GNUNET_assert (NULL != peers);
+  GNUNET_assert (NULL != peers[0]);
+  GNUNET_assert (NULL != peers[1]);
+  peer1.peer = peers[0];
+  peer2.peer = peers[1];
+  op = GNUNET_TESTBED_overlay_connect (NULL, NULL, NULL, peer2.peer, peer1.peer);
+  setup_state = INIT;
   abort_task =
     GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                   (GNUNET_TIME_UNIT_SECONDS, 40), &do_abort,
                                   NULL);
 }
 
+
 /**
  * Main function
  */
 int main (int argc, char **argv)
 {
-  int ret;
+  uint64_t event_mask;  
 
-  char *argv2[] = { "test-stream-2peers",
-                    "-L", "DEBUG",
-                    "-c", "test_stream_local.conf",
-                    NULL};
-  
-  struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_OPTION_END
-  };
-
-  ret =
-      GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
-                          "test-stream-2peers", "nohelp", options, &run, NULL);
-
-  if (GNUNET_OK != ret)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "run failed with error code %d\n",
-                ret);
-    return 1;
-  }
+  result = GNUNET_NO;
+  event_mask = 0;
+  event_mask |= (1LL << GNUNET_TESTBED_ET_CONNECT);
+  event_mask |= (1LL << GNUNET_TESTBED_ET_OPERATION_FINISHED);
+  GNUNET_TESTBED_test_run ("test_stream_2peers", "test_stream_local.conf",
+                           NUM_PEERS, event_mask, &controller_event_cb, NULL,
+                           &test_master, NULL);
   if (GNUNET_SYSERR == result)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "test failed\n");
     return 1;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "test ok\n");
   return 0;
 }
