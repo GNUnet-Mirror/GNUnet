@@ -84,7 +84,7 @@ case "$host_os" in
      UNIXONLY="#"
      ;;
 linux*)
-     AC_DEFINE_UNQUOTED(LINUX,1,[This is a Linux system])
+     AC_DEFINE_UNQUOTED(LINUX,1,[This is a Linux kernel])
      build_target="linux"
      LIBPREFIX=
      DLLDIR=lib
@@ -127,7 +127,7 @@ netbsd*)
      UNIXONLY="#"
      ;;
 *arm-linux*)
-     AC_DEFINE_UNQUOTED(LINUX,1,[This is a Linux system])
+     AC_DEFINE_UNQUOTED(LINUX,1,[This is a Linux kernel])
      CFLAGS="-D_REENTRANT -fPIC -pipe $CFLAGS"
      build_target="linux"
      LIBPREFIX=
