@@ -51,7 +51,7 @@ test_stream_2peers_halfclose_SOURCES = \
 test_stream_2peers_halfclose_LDADD = \
  $(top_builddir)/src/stream/libgnunetstream.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/testing_old/libgnunettesting_old.la
+ $(top_builddir)/src/testbed/libgnunettestbed.la
 
 test_stream_local_SOURCES = \
  test_stream_local.c
