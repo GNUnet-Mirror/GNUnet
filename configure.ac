@@ -1187,26 +1187,21 @@ fi
 
 
 AC_MSG_NOTICE([********************************************
-You can compile GNUnet with
+Please make sure that you have created a user and group 'gnunet'
+and additionally a group 'gnunetdns'.  Then, you can compile GNUnet 
+with
 	make
-now. After that, run (if necessary as 'root')
+After that, run (if necessary as 'root')
         make install
-to install everything. You may want to create a new user account
-to run the GNUnet service:
-	adduser gnunet
-You also need to create an configuration file that should
-specify the path where GNUnet should store data.  For example,
-you could store in "/etc/gnunet.conf" the following lines:
-
-[[PATHS]]
-SERVICEHOME = /var/lib/gnunet
-DEFAULTCONFIG = /etc/gnunet.conf
-
-Now, in order to start your peer, run as the 'gnunet' user
+to install everything. 
+Then, in order to start your peer, run as the 'gnunet' user
+	mkdir $HOME/.gnunet/
+	touch $HOME/.gnunet/gnunet.conf
 	gnunet-arm -s
 
-Each GNUnet user should also create an (at least initially) empty
-configuration file:
+Each GNUnet user should also be added to the 'gnunet' group (may
+require fresh login to come into effect) and create an (at least 
+initially) empty configuration file:
 	mkdir $HOME/.gnunet/
 	touch $HOME/.gnunet/gnunet.conf
 	
