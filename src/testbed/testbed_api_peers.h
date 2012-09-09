@@ -238,7 +238,6 @@ GNUNET_TESTBED_peer_create_with_id_ (uint32_t unique_id,
  * @param peer_id the id of the peer whose information we have to get
  * @param operation_id the ip of the operation that should be represented in
  *          the message
- * @param
  * @return the PeerGetConfigurationMessage
  */
 struct GNUNET_TESTBED_PeerGetConfigurationMessage *
