@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2010 Christian Grothoff (and other contributing authors)
+     (C) 2010, 2012 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -42,13 +42,12 @@
 
 #define SEED 42
 
-static struct GNUNET_FS_TestDaemon *daemons[NUM_DAEMONS];
+static struct GNUNET_TESTBED_Peer *daemons[NUM_DAEMONS];
 
 static int ok;
 
 static struct GNUNET_TIME_Absolute start_time;
 
-static struct GNUNET_FS_TEST_ConnectContext *cc;
 
 static void
 do_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -56,12 +55,7 @@ do_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_TIME_Relative del;
   char *fancy;
 
-  if (NULL != cc)
-  {
-    GNUNET_FS_TEST_daemons_connect_cancel (cc);
-    cc = NULL;
-  }
-  GNUNET_FS_TEST_daemons_stop (NUM_DAEMONS, daemons);
+  GNUNET_SCHEDULER_shutdown ();
   if (0 == (tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT))
   {
     del = GNUNET_TIME_absolute_get_duration (start_time);
@@ -89,7 +83,7 @@ do_download (void *cls, const struct GNUNET_FS_Uri *uri)
 {
   if (NULL == uri)
   {
-    GNUNET_FS_TEST_daemons_stop (NUM_DAEMONS, daemons);
+    GNUNET_SCHEDULER_shutdown ();
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Timeout during upload attempt, shutting down with error\n");
     ok = 1;
@@ -104,14 +98,16 @@ do_download (void *cls, const struct GNUNET_FS_Uri *uri)
 
 
 static void
-do_publish (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_publish (void *cls,
+	    struct GNUNET_TESTBED_Operation *op,
+	    const char *emsg)
 {
-  cc = NULL;
-  if (0 == (tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE))
+  if (NULL != emsg)
   {
-    GNUNET_FS_TEST_daemons_stop (NUM_DAEMONS, daemons);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Timeout during connect attempt, shutting down with error\n");
+    GNUNET_SCHEDULER_shutdown ();
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Timeout during connect attempt, shutting down with error: %s\n",
+		emsg);
     ok = 1;
     return;
   }
@@ -123,52 +119,31 @@ do_publish (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-do_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_connect (void *cls,
+	    unsigned int num_peers,
+	    struct GNUNET_TESTBED_Peer **peers)
 {
-  GNUNET_assert (0 != (tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE));
+  unsigned int i;
+ 
+  GNUNET_assert (NUM_DAEMONS == num_peers);
+  for (i=0;i<num_peers;i++)
+    daemons[i] = peers[i];
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Daemons started, will now try to connect them\n");
-  cc = GNUNET_FS_TEST_daemons_connect (daemons[0], daemons[1], TIMEOUT,
-                                       &do_publish, NULL);
-}
-
-
-static void
-run (void *cls, char *const *args, const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
-{
-  GNUNET_FS_TEST_daemons_start ("fs_test_lib_data.conf", TIMEOUT, NUM_DAEMONS,
-                                daemons, &do_connect, NULL);
+  GNUNET_TESTBED_overlay_connect (NULL,
+				  &do_publish, NULL,
+				  daemons[0], daemons[1]);
 }
 
 
 int
 main (int argc, char *argv[])
 {
-  char *const argvx[] = {
-    "test-gnunet-service-fs-p2p",
-    "-c",
-    "fs_test_lib_data.conf",
-#if VERBOSE
-    "-L", "DEBUG",
-#endif
-    NULL
-  };
-  struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_OPTION_END
-  };
-
-  GNUNET_DISK_directory_remove ("/tmp/gnunet-test-fs-lib/");
-  GNUNET_log_setup ("test_gnunet_service_fs_p2p",
-#if VERBOSE
-                    "DEBUG",
-#else
-                    "WARNING",
-#endif
-                    NULL);
-  GNUNET_PROGRAM_run ((sizeof (argvx) / sizeof (char *)) - 1, argvx,
-                      "test-gnunet-service-fs-p2p", "nohelp", options, &run,
-                      NULL);
+  GNUNET_TESTBED_test_run ("test-gnunet-service-fs-p2p",
+			   "fs_test_lib_data.conf",
+			   NUM_DAEMONS,
+			   0, NULL, NULL,
+			   &do_connect, NULL);
   GNUNET_DISK_directory_remove ("/tmp/gnunet-test-fs-lib/");
   return ok;
 }
