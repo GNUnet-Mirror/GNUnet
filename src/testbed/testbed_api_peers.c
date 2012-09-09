@@ -225,8 +225,8 @@ oprelease_peer_stop (void *cls)
  * Generate PeerGetConfigurationMessage
  *
  * @param peer_id the id of the peer whose information we have to get
- * @param operation_id the ip of the operation that should be represented in
- *          the message
+ * @param operation_id the ip of the operation that should be represented in the
+ *          message
  * @return the PeerGetConfigurationMessage
  */
 struct GNUNET_TESTBED_PeerGetConfigurationMessage *
