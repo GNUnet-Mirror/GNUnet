@@ -856,7 +856,7 @@ send_operation_fail_msg (struct GNUNET_SERVER_Client *client,
   msize += emsg_len;
   msg = GNUNET_malloc (msize);
   msg->header.size = htons (msize);
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_OPERATIONEVENT);
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_OPERATIONFAILEVENT);
   msg->event_type = htonl (GNUNET_TESTBED_ET_OPERATION_FINISHED);
   msg->operation_id = GNUNET_htonll (operation_id);
   if (0 != emsg_len)

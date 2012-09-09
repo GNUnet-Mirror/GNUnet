@@ -477,7 +477,7 @@ struct GNUNET_TESTBED_OperationFailureEventMessage
 {
 
   /**
-   * Type is GNUNET_MESSAGE_TYPE_TESTBED_OPERATIONEVENT
+   * Type is GNUNET_MESSAGE_TYPE_TESTBED_OPERATIONFAILEVENT
    */
   struct GNUNET_MessageHeader header;
 

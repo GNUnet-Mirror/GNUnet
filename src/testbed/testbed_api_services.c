@@ -142,7 +142,7 @@ configuration_receiver (void *cls, const struct GNUNET_MessageHeader *msg)
   uint16_t mtype;
 
   mtype = ntohs (msg->type);
-  if (GNUNET_MESSAGE_TYPE_TESTBED_OPERATIONEVENT == mtype)
+  if (GNUNET_MESSAGE_TYPE_TESTBED_OPERATIONFAILEVENT == mtype)
   {
     GNUNET_assert (0); 		/* FIXME: Add notification for failure */
   }

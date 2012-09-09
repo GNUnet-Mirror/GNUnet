@@ -612,7 +612,7 @@ handle_peer_config (struct GNUNET_TESTBED_Controller *c,
 
 
 /**
- * Handler for GNUNET_MESSAGE_TYPE_TESTBED_OPERATIONEVENT message from
+ * Handler for GNUNET_MESSAGE_TYPE_TESTBED_OPERATIONFAILEVENT message from
  * controller (testbed service)
  *
  * @param c the controller handler
@@ -757,7 +757,7 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
                               (const struct
                                GNUNET_TESTBED_ConnectionEventMessage *) msg);
     break;
-  case GNUNET_MESSAGE_TYPE_TESTBED_OPERATIONEVENT:
+  case GNUNET_MESSAGE_TYPE_TESTBED_OPERATIONFAILEVENT:
     GNUNET_assert (msize >=
                    sizeof (struct GNUNET_TESTBED_OperationFailureEventMessage));
     status =

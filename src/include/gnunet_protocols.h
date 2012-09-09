@@ -1503,7 +1503,7 @@ extern "C"
 /**
  * Message for operation events
  */
-#define GNUNET_MESSAGE_TYPE_TESTBED_OPERATIONEVENT 474
+#define GNUNET_MESSAGE_TYPE_TESTBED_OPERATIONFAILEVENT 474
 
 /**
  * Message to signal successful peer creation
