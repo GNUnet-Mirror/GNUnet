@@ -114,6 +114,7 @@ GNUNET_TESTBED_host_create_with_id (uint32_t id,
  *
  * @param filename file with the host specification
  * @param hosts set to the hosts found in the file
+ *        FIXME: we need "***" here!
  * @return number of hosts returned in 'hosts', 0 on error
  */
 unsigned int
@@ -1024,6 +1025,7 @@ GNUNET_TESTBED_overlay_configure_topology (void *op_cls,
  * Ask the testbed controller to write the current overlay topology to
  * a file.  Naturally, the file will only contain a snapshot as the
  * topology may evolve all the time.
+ * FIXME: needs continuation!?
  *
  * @param controller overlay controller to inspect
  * @param filename name of the file the topology should
