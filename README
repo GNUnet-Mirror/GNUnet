@@ -76,8 +76,8 @@ $ adduser gnunet gnunet
 $ ./configure --prefix=$GNUNET_PREFIX --with-extractor=$LE_PREFIX
 $ make
 # make install
-# sudo -u gnunet mkdir ~/.gnunet/ 
-# sudo -u gnunet touch ~/.gnunet/gnunet.conf
+# sudo -u gnunet mkdir ~gnunet/.gnunet/ 
+# sudo -u gnunet touch ~gnunet/.gnunet/gnunet.conf
 # sudo -u gnunet gnunet-arm -s
 
 This will create the users and groups needed for running GNUnet
