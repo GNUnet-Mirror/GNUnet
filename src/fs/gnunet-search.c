@@ -42,11 +42,14 @@ static struct GNUNET_FS_DirectoryBuilder *db;
 
 static unsigned int anonymity = 1;
 
-static unsigned long long timeout;
+/**
+ * Timeout for the search, 0 means to wait for CTRL-C.
+ */
+static struct GNUNET_TIME_Relative timeout;
 
 static unsigned int results_limit;
 
-static unsigned int results = 0;
+static unsigned int results;
 
 static int verbose;
 
@@ -220,7 +223,6 @@ run (void *cls, char *const *args, const char *cfgfile,
   struct GNUNET_FS_Uri *uri;
   unsigned int argc;
   enum GNUNET_FS_SearchOptions options;
-  struct GNUNET_TIME_Relative delay;
 
   argc = 0;
   while (NULL != args[argc])
@@ -257,16 +259,11 @@ run (void *cls, char *const *args, const char *cfgfile,
     ret = 1;
     return;
   }
-  if (timeout != 0)
-  {
-    delay.rel_value = timeout;
-    GNUNET_SCHEDULER_add_delayed (delay, &shutdown_task, NULL);
-  }
+  if (0 != timeout.rel_value)
+    GNUNET_SCHEDULER_add_delayed (timeout, &shutdown_task, NULL);
   else
-  {
     GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
                                   NULL);
-  }
 }
 
 
@@ -290,9 +287,9 @@ main (int argc, char *const *argv)
     {'o', "output", "PREFIX",
      gettext_noop ("write search results to file starting with PREFIX"),
      1, &GNUNET_GETOPT_set_string, &output_filename},
-    {'t', "timeout", "VALUE",
-     gettext_noop ("automatically terminate search after VALUE ms"),
-     1, &GNUNET_GETOPT_set_ulong, &timeout},
+    {'t', "timeout", "DELAY",
+     gettext_noop ("automatically terminate search after DELAY"),
+     1, &GNUNET_GETOPT_set_relative_time, &timeout},
     {'V', "verbose", NULL,
      gettext_noop ("be verbose (print progress information)"),
      0, &GNUNET_GETOPT_set_one, &verbose},

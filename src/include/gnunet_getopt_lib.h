@@ -232,6 +232,24 @@ GNUNET_GETOPT_set_ulong (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
 
 
 /**
+ * Set an option of type 'struct GNUNET_TIME_Relative' from the command line.
+ * A pointer to this function should be passed as part of the
+ * 'struct GNUNET_GETOPT_CommandLineOption' array to initialize options
+ * of this type.  It should be followed by a pointer to a value of
+ * type 'struct GNUNET_TIME_Relative'.
+ *
+ * @param ctx command line processing context
+ * @param scls additional closure (will point to the 'struct GNUNET_TIME_Relative')
+ * @param option name of the option
+ * @param value actual value of the option as a string.
+ * @return GNUNET_OK if parsing the value worked
+ */
+int
+GNUNET_GETOPT_set_relative_time (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
+				 void *scls, const char *option, const char *value);
+
+
+/**
  * Set an option of type 'unsigned int' from the command line.
  * A pointer to this function should be passed as part of the
  * 'struct GNUNET_GETOPT_CommandLineOption' array to initialize options
