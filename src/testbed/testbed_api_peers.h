@@ -122,6 +122,29 @@ struct PeerCreateData
 
 
 /**
+ * Data for OperationType OP_PEER_START and OP_PEER_STOP
+ */
+struct PeerEventData
+{
+  /**
+   * The handle of the peer to start
+   */
+  struct GNUNET_TESTBED_Peer *peer;
+  
+  /**
+   * The Peer churn callback to call when this operation is completed
+   */
+  GNUNET_TESTBED_PeerChurnCallback pcc;
+   
+  /**
+   * Closure for the above callback
+   */
+  void *pcc_cls;
+    
+};
+
+
+/**
  * Data for the OperationType OP_PEER_DESTROY;
  */
 struct PeerDestroyData

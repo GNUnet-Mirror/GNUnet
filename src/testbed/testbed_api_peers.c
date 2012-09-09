@@ -146,11 +146,14 @@ opstart_peer_start (void *cls)
 {
   struct OperationContext *opc = cls;
   struct GNUNET_TESTBED_PeerStartMessage *msg;
+  struct PeerEventData *data;
   struct GNUNET_TESTBED_Peer *peer;
 
   GNUNET_assert (OP_PEER_START == opc->type);
   GNUNET_assert (NULL != opc->data);
-  peer = opc->data;
+  data = opc->data;
+  GNUNET_assert (NULL != data->peer);
+  peer = data->peer;
   GNUNET_assert ((PS_CREATED == peer->state) || (PS_STOPPED == peer->state));
   opc->state = OPC_STATE_STARTED;
   msg = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_PeerStartMessage));
@@ -174,7 +177,10 @@ oprelease_peer_start (void *cls)
   struct OperationContext *opc = cls;
 
   if (OPC_STATE_FINISHED != opc->state)
+  {
+    GNUNET_free (opc->data);
     GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
+  }
   GNUNET_free (opc);
 }
 
@@ -189,10 +195,13 @@ opstart_peer_stop (void *cls)
 {
   struct OperationContext *opc = cls;
   struct GNUNET_TESTBED_PeerStopMessage *msg;
+  struct PeerEventData *data;
   struct GNUNET_TESTBED_Peer *peer;
 
   GNUNET_assert (NULL != opc->data);
-  peer = opc->data;
+  data = opc->data;
+  GNUNET_assert (NULL != data->peer);
+  peer = data->peer;
   GNUNET_assert (PS_STARTED == peer->state);
   opc->state = OPC_STATE_STARTED;
   msg = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_PeerStopMessage));
@@ -216,7 +225,10 @@ oprelease_peer_stop (void *cls)
   struct OperationContext *opc = cls;
 
   if (OPC_STATE_FINISHED != opc->state)
+  {
+    GNUNET_free (opc->data);
     GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
+  }
   GNUNET_free (opc);
 }
 
@@ -493,11 +505,15 @@ GNUNET_TESTBED_peer_start (struct GNUNET_TESTBED_Peer *peer,
 			   void *pcc_cls)
 {
   struct OperationContext *opc;
+  struct PeerEventData *data;
   
-  // FIXME: keep and call pcc!
+  data = GNUNET_malloc (sizeof (struct PeerEventData));
+  data->peer = peer;
+  data->pcc = pcc;
+  data->pcc_cls = pcc_cls;
   opc = GNUNET_malloc (sizeof (struct OperationContext));
   opc->c = peer->controller;
-  opc->data = peer;
+  opc->data = data;
   opc->id = opc->c->operation_counter++;
   opc->type = OP_PEER_START;
   opc->op =
@@ -525,11 +541,15 @@ GNUNET_TESTBED_peer_stop (struct GNUNET_TESTBED_Peer *peer,
 			  void *pcc_cls)
 {
   struct OperationContext *opc;
-
-  // FIXME: keep and call pcc!
+  struct PeerEventData *data;
+ 
+  data = GNUNET_malloc (sizeof (struct PeerEventData));
+  data->peer = peer;
+  data->pcc = pcc;
+  data->pcc_cls = pcc_cls;
   opc = GNUNET_malloc (sizeof (struct OperationContext));
   opc->c = peer->controller;
-  opc->data = peer;
+  opc->data = data;
   opc->id = opc->c->operation_counter++;
   opc->type = OP_PEER_STOP;
   opc->op =

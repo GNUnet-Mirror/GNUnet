@@ -410,6 +410,9 @@ handle_peer_event (struct GNUNET_TESTBED_Controller *c,
 {
   struct OperationContext *opc;
   struct GNUNET_TESTBED_Peer *peer;
+  struct PeerEventData *data;
+  GNUNET_TESTBED_PeerChurnCallback pcc;
+  void *pcc_cls;
   struct GNUNET_TESTBED_EventInformation event;
   uint64_t op_id;
 
@@ -434,7 +437,9 @@ handle_peer_event (struct GNUNET_TESTBED_Controller *c,
     return GNUNET_YES;
   }
   GNUNET_assert ((OP_PEER_START == opc->type) || (OP_PEER_STOP == opc->type));
-  peer = opc->data;
+  data = opc->data;
+  GNUNET_assert (NULL != data);
+  peer = data->peer;
   GNUNET_assert (NULL != peer);
   event.type = (enum GNUNET_TESTBED_EventType) ntohl (msg->event_type);
   switch (event.type)
@@ -451,6 +456,9 @@ handle_peer_event (struct GNUNET_TESTBED_Controller *c,
   default:
     GNUNET_assert (0);          /* We should never reach this state */
   }
+  pcc = data->pcc;
+  pcc_cls = data->pcc_cls;
+  GNUNET_free (data);
   GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
   opc->state = OPC_STATE_FINISHED;
   if (0 !=
@@ -460,6 +468,8 @@ handle_peer_event (struct GNUNET_TESTBED_Controller *c,
     if (NULL != c->cc)
       c->cc (c->cc_cls, &event);
   }
+  if (NULL != pcc)
+    pcc (pcc_cls, NULL);
   return GNUNET_YES;
 }
 
