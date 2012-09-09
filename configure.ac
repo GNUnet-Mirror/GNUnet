@@ -1188,7 +1188,8 @@ fi
 
 AC_MSG_NOTICE([********************************************
 Please make sure that you have created a user and group 'gnunet'
-and additionally a group 'gnunetdns'.  Then, you can compile GNUnet 
+and additionally a group 'gnunetdns'.  Make sure that '/var/lib/gnunet'
+is owned (and writable) by user 'gnunet'.  Then, you can compile GNUnet 
 with
 	make
 After that, run (if necessary as 'root')
