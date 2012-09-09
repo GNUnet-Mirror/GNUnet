@@ -59,21 +59,19 @@ libgnunet_plugin_transport_dv_la_LDFLAGS = \
 libgnunet_plugin_transport_dv_la_DEPENDENCIES = \
   libgnunetdv.la						
 
-check_PROGRAMS = \
- test_transport_api_dv
+#check_PROGRAMS = \
+# test_transport_api_dv
 # test_dv_topology
 
 if ENABLE_TEST_RUN
 TESTS = $(check_PROGRAMS) $(check_SCRIPTS)
 endif
 
-test_transport_api_dv_SOURCES = \
- test_transport_api_dv.c
-test_transport_api_dv_LDADD = \
- $(top_builddir)/src/core/libgnunetcore.la \
- $(top_builddir)/src/transport/libgnunettransport.la \
- $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/testing_old/libgnunettesting_old.la
-
-EXTRA_DIST = \
-  test_transport_dv_data.conf
+#test_transport_api_dv_SOURCES = \
+# test_transport_api_dv.c
+#test_transport_api_dv_LDADD = \
+# $(top_builddir)/src/core/libgnunetcore.la \
+# $(top_builddir)/src/transport/libgnunettransport.la \
+# $(top_builddir)/src/util/libgnunetutil.la 
+#EXTRA_DIST = \
+#  test_transport_dv_data.conf
