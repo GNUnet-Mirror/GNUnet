@@ -36,7 +36,7 @@ endif
 test_gnunet_daemon_topology_SOURCES = \
  test_gnunet_daemon_topology.c
 test_gnunet_daemon_topology_LDADD = \
- $(top_builddir)/src/testing_old/libgnunettesting_old.la \
+ $(top_builddir)/src/testbed/libgnunettestbed.la \
  $(top_builddir)/src/util/libgnunetutil.la  
 
 EXTRA_DIST = \
