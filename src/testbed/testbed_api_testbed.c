@@ -199,7 +199,7 @@ start_peers_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   for (peer = 0; peer < rc->num_peers; peer++)
   {
     dll_op = GNUNET_malloc (sizeof (struct DLLOperation));
-    dll_op->op = GNUNET_TESTBED_peer_start (rc->peers[peer]);
+    dll_op->op = GNUNET_TESTBED_peer_start (rc->peers[peer], NULL, NULL);
     dll_op->cls = rc->peers[peer];
     GNUNET_CONTAINER_DLL_insert_tail (rc->dll_op_head, rc->dll_op_tail, dll_op);
   }
@@ -436,7 +436,7 @@ shutdown_run_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
           continue;
         }
         dll_op = GNUNET_malloc (sizeof (struct DLLOperation));
-        dll_op->op = GNUNET_TESTBED_peer_stop (rc->peers[peer]);
+        dll_op->op = GNUNET_TESTBED_peer_stop (rc->peers[peer], NULL, NULL);
         dll_op->cls = rc->peers[peer];
         GNUNET_CONTAINER_DLL_insert_tail (rc->dll_op_head, rc->dll_op_tail,
                                           dll_op);

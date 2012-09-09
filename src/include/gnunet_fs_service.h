@@ -1542,8 +1542,7 @@ struct GNUNET_FS_ProgressInfo
  *         field in the GNUNET_FS_ProgressInfo struct.
  */
 typedef void *(*GNUNET_FS_ProgressCallback) (void *cls,
-                                             const struct GNUNET_FS_ProgressInfo
-                                             * info);
+                                             const struct GNUNET_FS_ProgressInfo *info);
 
 
 /**
@@ -1570,30 +1569,31 @@ enum GNUNET_FS_Flags
   GNUNET_FS_FLAGS_DO_PROBES = 2
 };
 
+
 /**
  * Options specified in the VARARGs portion of GNUNET_FS_start.
  */
 enum GNUNET_FS_OPTIONS
 {
 
-    /**
-     * Last option in the VARARG list.
-     */
+  /**
+   * Last option in the VARARG list.
+   */
   GNUNET_FS_OPTIONS_END = 0,
 
-    /**
-     * Select the desired amount of parallelism (this option should be
-     * followed by an "unsigned int" giving the desired maximum number
-     * of parallel downloads).
-     */
+  /**
+   * Select the desired amount of parallelism (this option should be
+   * followed by an "unsigned int" giving the desired maximum number
+   * of parallel downloads).
+   */
   GNUNET_FS_OPTIONS_DOWNLOAD_PARALLELISM = 1,
 
-    /**
-     * Maximum number of requests that should be pending at a given
-     * point in time (invidivual downloads may go above this, but
-     * if we are above this threshold, we should not activate any
-     * additional downloads.
-     */
+  /**
+   * Maximum number of requests that should be pending at a given
+   * point in time (invidivual downloads may go above this, but
+   * if we are above this threshold, we should not activate any
+   * additional downloads.
+   */
   GNUNET_FS_OPTIONS_REQUEST_PARALLELISM = 2
 };
 

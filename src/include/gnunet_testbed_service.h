@@ -647,13 +647,28 @@ GNUNET_TESTBED_peer_create (struct GNUNET_TESTBED_Controller *controller,
 
 
 /**
+ * Functions of this signature are called when a peer has been successfully
+ * started or stopped.
+ *
+ * @param cls the closure from GNUNET_TESTBED_peer_start/stop()
+ * @param emsg NULL on success; otherwise an error description
+ */
+typedef void (*GNUNET_TESTBED_PeerChurnCallback) (void *cls,
+						  const char *emsg);
+
+
+/**
  * Start the given peer.
  *
  * @param peer peer to start
+ * @param pcc function to call upon completion
+ * @param pcc_cls closure for 'pcc'
  * @return handle to the operation
  */
 struct GNUNET_TESTBED_Operation *
-GNUNET_TESTBED_peer_start (struct GNUNET_TESTBED_Peer *peer);
+GNUNET_TESTBED_peer_start (struct GNUNET_TESTBED_Peer *peer,
+			   GNUNET_TESTBED_PeerChurnCallback pcc,
+			   void *pcc_cls);
 
 
 /**
@@ -662,10 +677,14 @@ GNUNET_TESTBED_peer_start (struct GNUNET_TESTBED_Peer *peer);
  * state of the peer).
  *
  * @param peer peer to stop
+ * @param pcc function to call upon completion
+ * @param pcc_cls closure for 'pcc'
  * @return handle to the operation
  */
 struct GNUNET_TESTBED_Operation *
-GNUNET_TESTBED_peer_stop (struct GNUNET_TESTBED_Peer *peer);
+GNUNET_TESTBED_peer_stop (struct GNUNET_TESTBED_Peer *peer,
+			  GNUNET_TESTBED_PeerChurnCallback pcc,
+			  void *pcc_cls);
 
 
 /**

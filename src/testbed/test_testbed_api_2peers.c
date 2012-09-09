@@ -214,8 +214,8 @@ op_comp_cb (void *cls, struct GNUNET_TESTBED_Operation *op, const char *emsg)
   common_operation = NULL;
   result = PEERS_CONNECTED;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Peers connected\n");
-  peer1.operation = GNUNET_TESTBED_peer_stop (peer1.peer);
-  peer2.operation = GNUNET_TESTBED_peer_stop (peer2.peer);
+  peer1.operation = GNUNET_TESTBED_peer_stop (peer1.peer, NULL, NULL);
+  peer2.operation = GNUNET_TESTBED_peer_stop (peer2.peer, NULL, NULL);
 }
 
 
@@ -333,7 +333,7 @@ peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
   GNUNET_assert (NULL == pc->peer);
   pc->peer = peer;
   GNUNET_TESTBED_operation_done (pc->operation);
-  pc->operation = GNUNET_TESTBED_peer_start (pc->peer);
+  pc->operation = GNUNET_TESTBED_peer_start (pc->peer, NULL, NULL);
 }
 
 

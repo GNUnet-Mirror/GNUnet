@@ -240,11 +240,11 @@ delay_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   switch (result)
   {
   case SLAVE1_PEER_START_SUCCESS:
-    op = GNUNET_TESTBED_peer_stop (slave1_peer);
+    op = GNUNET_TESTBED_peer_stop (slave1_peer, NULL, NULL);
     GNUNET_assert (NULL != op);
     break;
   case SLAVE2_PEER_START_SUCCESS:
-    op = GNUNET_TESTBED_peer_stop (slave2_peer);
+    op = GNUNET_TESTBED_peer_stop (slave2_peer, NULL, NULL);
     GNUNET_assert (NULL != op);
     break;
   default:
@@ -282,7 +282,7 @@ peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
     result = SLAVE2_PEER_CREATE_SUCCESS;
     slave2_peer = peer;
     GNUNET_TESTBED_operation_done (op);
-    op = GNUNET_TESTBED_peer_start (slave1_peer);
+    op = GNUNET_TESTBED_peer_start (slave1_peer, NULL, NULL);
     GNUNET_assert (NULL != op);
     break;
   default:
@@ -354,7 +354,7 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     GNUNET_assert (event->details.peer_stop.peer == slave1_peer);
     GNUNET_TESTBED_operation_done (op);
     result = SLAVE1_PEER_STOP_SUCCESS;
-    op = GNUNET_TESTBED_peer_start (slave2_peer);
+    op = GNUNET_TESTBED_peer_start (slave2_peer, NULL, NULL);
     GNUNET_assert (NULL != op);
     break;
   case SLAVE1_PEER_STOP_SUCCESS:

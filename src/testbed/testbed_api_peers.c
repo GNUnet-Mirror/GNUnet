@@ -483,13 +483,18 @@ GNUNET_TESTBED_peer_create (struct GNUNET_TESTBED_Controller *controller,
  * Start the given peer.
  *
  * @param peer peer to start
+ * @param pcc function to call upon completion
+ * @param pcc_cls closure for 'pcc'
  * @return handle to the operation
  */
 struct GNUNET_TESTBED_Operation *
-GNUNET_TESTBED_peer_start (struct GNUNET_TESTBED_Peer *peer)
+GNUNET_TESTBED_peer_start (struct GNUNET_TESTBED_Peer *peer,
+			   GNUNET_TESTBED_PeerChurnCallback pcc,
+			   void *pcc_cls)
 {
   struct OperationContext *opc;
-
+  
+  // FIXME: keep and call pcc!
   opc = GNUNET_malloc (sizeof (struct OperationContext));
   opc->c = peer->controller;
   opc->data = peer;
@@ -510,13 +515,18 @@ GNUNET_TESTBED_peer_start (struct GNUNET_TESTBED_Peer *peer)
  * state of the peer).
  *
  * @param peer peer to stop
+ * @param pcc function to call upon completion
+ * @param pcc_cls closure for 'pcc'
  * @return handle to the operation
  */
 struct GNUNET_TESTBED_Operation *
-GNUNET_TESTBED_peer_stop (struct GNUNET_TESTBED_Peer *peer)
+GNUNET_TESTBED_peer_stop (struct GNUNET_TESTBED_Peer *peer,
+			  GNUNET_TESTBED_PeerChurnCallback pcc,
+			  void *pcc_cls)
 {
   struct OperationContext *opc;
 
+  // FIXME: keep and call pcc!
   opc = GNUNET_malloc (sizeof (struct OperationContext));
   opc->c = peer->controller;
   opc->data = peer;

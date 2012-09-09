@@ -101,7 +101,7 @@ master_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   result = GNUNET_OK;
   GNUNET_assert (NULL != peers[0]);
-  op = GNUNET_TESTBED_peer_stop (peers[0]);
+  op = GNUNET_TESTBED_peer_stop (peers[0], NULL, NULL);
   GNUNET_assert (NULL != op);
 }
 
