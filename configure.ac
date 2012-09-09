@@ -1196,8 +1196,8 @@ After that, run (if necessary as 'root')
         make install
 to install everything. 
 Then, in order to start your peer, run as the 'gnunet' user
-	mkdir $HOME/.gnunet/
-	touch $HOME/.gnunet/gnunet.conf
+	mkdir ~gnunet/.gnunet/
+	touch ~gnunet/.gnunet/gnunet.conf
 	gnunet-arm -s
 
 Each GNUnet user should also be added to the 'gnunet' group (may
