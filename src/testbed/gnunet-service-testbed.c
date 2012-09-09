@@ -930,7 +930,7 @@ lcf_proc_cc (void *cls, const char *emsg)
   }
   return;
 
-registration_error:
+ registration_error:
   LOG (GNUNET_ERROR_TYPE_WARNING, "Host registration failed with message: %s\n",
        emsg);
   lcf->state = FINISHED;

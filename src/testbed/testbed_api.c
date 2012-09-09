@@ -1758,4 +1758,33 @@ GNUNET_TESTBED_get_config_from_peerinfo_msg_ (const struct
   return cfg;
 }
 
+
+/**
+ * Checks the integrity of the OpeationFailureEventMessage and if good returns
+ * the error message it contains.
+ *
+ * @param msg the OperationFailureEventMessage
+ * @return the error message
+ */
+const char *
+GNUNET_TESTBED_parse_error_string_ (const struct
+                                    GNUNET_TESTBED_OperationFailureEventMessage
+                                    *msg)
+{
+  uint16_t msize;
+  const char *emsg;
+  
+  msize = ntohs (msg->header.size);
+  if (sizeof (struct GNUNET_TESTBED_OperationFailureEventMessage) == msize)
+    return NULL;
+  msize -= sizeof (struct GNUNET_TESTBED_OperationFailureEventMessage);
+  emsg = (const char *) &msg[1];
+  if ('\0' != emsg[msize])
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
+  return emsg;
+}
+
 /* end of testbed_api.c */

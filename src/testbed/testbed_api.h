@@ -398,5 +398,18 @@ GNUNET_TESTBED_get_config_from_peerinfo_msg_ (const struct
                                               GNUNET_TESTBED_PeerConfigurationInformationMessage
                                               *msg);
 
+
+/**
+ * Checks the integrity of the OpeationFailureEventMessage and if good returns
+ * the error message it contains.
+ *
+ * @param msg the OperationFailureEventMessage
+ * @return the error message
+ */
+const char *
+GNUNET_TESTBED_parse_error_string_ (const struct
+                                    GNUNET_TESTBED_OperationFailureEventMessage
+                                    *msg);
+
 #endif
 /* end of testbed_api.h */

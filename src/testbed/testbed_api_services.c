@@ -138,30 +138,42 @@ configuration_receiver (void *cls, const struct GNUNET_MessageHeader *msg)
   struct ServiceConnectData *data = cls;
   const struct GNUNET_TESTBED_PeerConfigurationInformationMessage *imsg;
   struct GNUNET_TESTBED_Controller *c;
+  const char *emsg;
   struct GNUNET_TESTBED_EventInformation info;
   uint16_t mtype;
 
   mtype = ntohs (msg->type);
-  if (GNUNET_MESSAGE_TYPE_TESTBED_OPERATIONFAILEVENT == mtype)
-  {
-    GNUNET_assert (0); 		/* FIXME: Add notification for failure */
-  }
-  imsg =
-      (const struct GNUNET_TESTBED_PeerConfigurationInformationMessage *) msg;
-  data->cfg = GNUNET_TESTBED_get_config_from_peerinfo_msg_ (imsg);
-  data->op_result = data->ca (data->cada_cls, data->cfg);
+  emsg = NULL;
   info.type = GNUNET_TESTBED_ET_OPERATION_FINISHED;
   info.details.operation_finished.operation = data->operation;
   info.details.operation_finished.op_cls = data->op_cls;
+  if (GNUNET_MESSAGE_TYPE_TESTBED_OPERATIONFAILEVENT == mtype)
+  {
+    emsg = GNUNET_TESTBED_parse_error_string_ ((const struct
+                                                GNUNET_TESTBED_OperationFailureEventMessage
+                                                *) msg);
+    if (NULL == emsg)
+      emsg = "Unknown error";
+    info.details.operation_finished.emsg = emsg;
+    info.details.operation_finished.generic = NULL;
+    goto call_cb;
+  }  
+  imsg =
+      (const struct GNUNET_TESTBED_PeerConfigurationInformationMessage *) msg;
+  data->cfg = GNUNET_TESTBED_get_config_from_peerinfo_msg_ (imsg);
+  GNUNET_assert (NULL == data->op_result);
+  data->op_result = data->ca (data->cada_cls, data->cfg);  
   info.details.operation_finished.emsg = NULL;
   info.details.operation_finished.generic = data->op_result;
   c = data->peer->controller;
   data->state = SERVICE_CONNECTED;
+  
+ call_cb:
   if ((0 != (GNUNET_TESTBED_ET_OPERATION_FINISHED & c->event_mask)) &&
       (NULL != c->cc))
     c->cc (c->cc_cls, &info);
   if (NULL != data->cb)
-    data->cb (data->cb_cls, data->operation, data->op_result, NULL);
+    data->cb (data->cb_cls, data->operation, data->op_result, emsg);
 }
 
 
