@@ -1202,6 +1202,44 @@ GNUNET_TESTBED_destroy (struct GNUNET_TESTBED_Testbed *testbed);
 
 
 /**
+ * Callback function to process statistic values from all peers.
+ *
+ * @param cls closure
+ * @param peer the peer the statistic belong to
+ * @param subsystem name of subsystem that created the statistic
+ * @param name the name of the datum
+ * @param value the current value
+ * @param is_persistent GNUNET_YES if the value is persistent, GNUNET_NO if not
+ * @return GNUNET_OK to continue, GNUNET_SYSERR to abort iteration
+ */
+typedef int (*GNUNET_TESTBED_StatisticsIterator) (void *cls,
+						  const struct GNUNET_TESTBED_Peer *peer,
+						  const char *subsystem,
+						  const char *name,
+						  uint64_t value,
+						  int is_persistent);
+
+
+/**
+ * Convenience method that iterates over all (running) peers 
+ * and retrieves all statistics from each peer.
+ *
+ * @param num_peers number of peers to iterate over
+ * @param peers array of peers to iterate over
+ * @param proc processing function for each statistic retrieved
+ * @param cont continuation to call once call is completed(?)
+ * @param cls closure to pass to proc and cont
+ * @return operation handle to cancel the operation
+ */
+struct GNUNET_TESTBED_Operation *
+GNUNET_TESTBED_get_statistics (unsigned int num_peers,
+			       struct GNUNET_TESTBED_Peer **peers,
+                               GNUNET_TESTBED_StatisticsIterator proc,
+                               GNUNET_TESTBED_OperationCompletionCallback cont,
+                               void *cls);
+
+
+/**
  * Convenience method for running a testbed with
  * a single call.  Underlay and overlay topology
  * are configured using the "UNDERLAY" and "OVERLAY"

@@ -51,6 +51,7 @@ libgnunettestbed_la_SOURCES = \
   testbed_api_operations.c testbed_api_operations.h \
   testbed_api_peers.c testbed_api_peers.h \
   testbed_api_services.c \
+  testbed_api_statistics.c \
   testbed_api_testbed.c \
   testbed_api_test.c \
   testbed_api_topology.c
