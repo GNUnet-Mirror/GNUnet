@@ -562,9 +562,10 @@ GNUNET_TESTBED_peer_stop (struct GNUNET_TESTBED_Peer *peer,
 
 
 /**
- * Request information about a peer. The controller callback will be called with
- * event type GNUNET_TESTBED_ET_OPERATION_FINISHED when result for this
- * operation is available
+ * Request information about a peer. The controller callback will not be called
+ * with event type GNUNET_TESTBED_ET_OPERATION_FINISHED when result for this
+ * operation is available. Instead, the GNUNET_TESTBED_PeerInfoCallback() will
+ * be called.
  *
  * @param peer peer to request information about
  * @param pit desired information

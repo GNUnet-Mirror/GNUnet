@@ -626,10 +626,9 @@ handle_op_fail_event (struct GNUNET_TESTBED_Controller *c,
                       *msg)
 {
   struct OperationContext *opc;
-  char *emsg;
+  const char *emsg;
   uint64_t op_id;
   struct GNUNET_TESTBED_EventInformation event;
-  uint16_t msize;
 
   op_id = GNUNET_ntohll (msg->operation_id);
   if (NULL == (opc = find_opc (c, op_id)))
@@ -637,6 +636,7 @@ handle_op_fail_event (struct GNUNET_TESTBED_Controller *c,
     LOG_DEBUG ("Operation not found\n");
     return GNUNET_YES;
   }
+  GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
   if (OP_FORWARDED == opc->type)
   {
     struct ForwardedOperationData *fo_data;
@@ -644,26 +644,22 @@ handle_op_fail_event (struct GNUNET_TESTBED_Controller *c,
     fo_data = opc->data;
     if (NULL != fo_data->cc)
       fo_data->cc (fo_data->cc_cls, (const struct GNUNET_MessageHeader *) msg);
-    GNUNET_CONTAINER_DLL_remove (c->ocq_head, c->ocq_tail, opc);
     GNUNET_free (fo_data);
     GNUNET_free (opc);
     return GNUNET_YES;
   }
-  GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
   opc->state = OPC_STATE_FINISHED;
-  switch (opc->type)
+  emsg = GNUNET_TESTBED_parse_error_string_ (msg);
+  if (NULL == emsg)
+    emsg = "Unknown error";
+  if (OP_PEER_INFO == opc->type)
   {
-    /* FIXME: Cleanup the data pointer depending on the type of opc */
-  default:
-    GNUNET_break (0);
-  }
-  msize = ntohs (msg->header.size);
-  emsg = NULL;
-  if (msize > sizeof (struct GNUNET_TESTBED_OperationFailureEventMessage))
-  {
-    msize -= sizeof (struct GNUNET_TESTBED_OperationFailureEventMessage);
-    emsg = (char *) &msg[1];
-    GNUNET_assert ('\0' == emsg[msize - 1]);
+    struct PeerInfoData *data;
+    data = opc->data;
+    if (NULL != data->cb)
+      data->cb (data->cb_cls, opc->op, NULL, emsg);
+    GNUNET_free (data);
+    return GNUNET_YES;  /* We do not call controller callback for peer info */
   }
   if ((0 != (GNUNET_TESTBED_ET_OPERATION_FINISHED & c->event_mask)) &&
       (NULL != c->cc))
@@ -675,6 +671,48 @@ handle_op_fail_event (struct GNUNET_TESTBED_Controller *c,
     event.details.operation_finished.generic = NULL;
     c->cc (c->cc_cls, &event);
   }
+  switch (opc->type)
+  {
+  case OP_PEER_CREATE:
+    {
+      struct PeerCreateData *data;      
+      data = opc->data;
+      GNUNET_free (data->peer);
+      if (NULL != data->cb)
+        data->cb (data->cls, NULL, emsg);
+      GNUNET_free (data);      
+    }
+    break;
+  case OP_PEER_START:
+  case OP_PEER_STOP:
+    {
+      struct PeerEventData *data;
+      data = opc->data;
+      if (NULL != data->pcc)
+        data->pcc (data->pcc_cls, emsg);
+      GNUNET_free (data);
+    }
+    break;
+  case OP_PEER_DESTROY:
+    break;
+  case OP_PEER_INFO:
+    GNUNET_assert (0);
+  case OP_OVERLAY_CONNECT:
+    {
+      struct OverlayConnectData *data;
+      data = opc->data;
+      if (NULL != data->cb)
+        data->cb (data->cb_cls, opc->op, emsg);
+      GNUNET_free (data);
+    }
+    break;
+  case OP_FORWARDED:
+    GNUNET_assert (0);
+  case OP_LINK_CONTROLLERS:     /* No secondary callback */
+    break;
+  default:
+    GNUNET_break (0);
+  }  
   return GNUNET_YES;
 }
 
@@ -1760,7 +1798,7 @@ GNUNET_TESTBED_get_config_from_peerinfo_msg_ (const struct
 
 
 /**
- * Checks the integrity of the OpeationFailureEventMessage and if good returns
+ * Checks the integrity of the OperationFailureEventMessage and if good returns
  * the error message it contains.
  *
  * @param msg the OperationFailureEventMessage
@@ -1775,7 +1813,7 @@ GNUNET_TESTBED_parse_error_string_ (const struct
   const char *emsg;
   
   msize = ntohs (msg->header.size);
-  if (sizeof (struct GNUNET_TESTBED_OperationFailureEventMessage) == msize)
+  if (sizeof (struct GNUNET_TESTBED_OperationFailureEventMessage) >= msize)
     return NULL;
   msize -= sizeof (struct GNUNET_TESTBED_OperationFailureEventMessage);
   emsg = (const char *) &msg[1];
