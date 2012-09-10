@@ -205,7 +205,7 @@ struct GNUNET_FS_Uri
       /**
        * Hash of the public key for the namespace.
        */
-      struct GNUNET_HashCode namespace;
+      struct GNUNET_HashCode ns;
 
       /**
        * Human-readable identifier chosen for this
@@ -1159,7 +1159,7 @@ struct GNUNET_FS_PublishContext
   /**
    * Namespace that we are publishing in, NULL if we have no namespace.
    */
-  struct GNUNET_FS_Namespace *namespace;
+  struct GNUNET_FS_Namespace *ns;
 
   /**
    * ID of the content in the namespace, NULL if we have no namespace.

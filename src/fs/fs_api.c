@@ -1538,8 +1538,8 @@ deserialize_publish_file (void *cls, const char *filename)
   }
   if (NULL != ns)
   {
-    pc->namespace = GNUNET_FS_namespace_create (h, ns);
-    if (NULL == pc->namespace)
+    pc->ns = GNUNET_FS_namespace_create (h, ns);
+    if (NULL == pc->ns)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   _
@@ -1658,7 +1658,7 @@ GNUNET_FS_publish_sync_ (struct GNUNET_FS_PublishContext *pc)
                                 (NULL == pc->fi_pos) ? NULL : pc->fi_pos->serialization)) ||
       (GNUNET_OK !=
        GNUNET_BIO_write_string (wh,
-                                (NULL == pc->namespace) ? NULL : pc->namespace->name)))
+                                (NULL == pc->ns) ? NULL : pc->ns->name)))
   {
     GNUNET_break (0);
     goto cleanup;

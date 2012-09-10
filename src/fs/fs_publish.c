@@ -83,10 +83,10 @@ publish_cleanup (struct GNUNET_FS_PublishContext *pc)
     pc->fhc = NULL;
   }
   GNUNET_FS_file_information_destroy (pc->fi, NULL, NULL);
-  if (pc->namespace != NULL)
+  if (pc->ns != NULL)
   {
-    GNUNET_FS_namespace_delete (pc->namespace, GNUNET_NO);
-    pc->namespace = NULL;
+    GNUNET_FS_namespace_delete (pc->ns, GNUNET_NO);
+    pc->ns = NULL;
   }
   GNUNET_free_non_null (pc->nid);
   GNUNET_free_non_null (pc->nuid);
@@ -269,8 +269,8 @@ publish_sblocks_cont (void *cls, const struct GNUNET_FS_Uri *uri,
 static void
 publish_sblock (struct GNUNET_FS_PublishContext *pc)
 {
-  if (NULL != pc->namespace)
-    pc->sks_pc = GNUNET_FS_publish_sks (pc->h, pc->namespace, pc->nid, pc->nuid,
+  if (NULL != pc->ns)
+    pc->sks_pc = GNUNET_FS_publish_sks (pc->h, pc->ns, pc->nid, pc->nuid,
 					pc->fi->meta, pc->fi->chk_uri, &pc->fi->bo,
 					pc->options, &publish_sblocks_cont, pc);
   else
@@ -1105,7 +1105,7 @@ finish_reserve (void *cls, int success,
  *
  * @param h handle to the file sharing subsystem
  * @param fi information about the file or directory structure to publish
- * @param namespace namespace to publish the file in, NULL for no namespace
+ * @param ns namespace to publish the file in, NULL for no namespace
  * @param nid identifier to use for the publishd content in the namespace
  *        (can be NULL, must be NULL if namespace is NULL)
  * @param nuid update-identifier that will be used for future updates
@@ -1116,7 +1116,7 @@ finish_reserve (void *cls, int success,
 struct GNUNET_FS_PublishContext *
 GNUNET_FS_publish_start (struct GNUNET_FS_Handle *h,
                          struct GNUNET_FS_FileInformation *fi,
-                         struct GNUNET_FS_Namespace *namespace, const char *nid,
+                         struct GNUNET_FS_Namespace *ns, const char *nid,
                          const char *nuid,
                          enum GNUNET_FS_PublishOptions options)
 {
@@ -1138,11 +1138,11 @@ GNUNET_FS_publish_start (struct GNUNET_FS_Handle *h,
   ret->dsh = dsh;
   ret->h = h;
   ret->fi = fi;
-  ret->namespace = namespace;
+  ret->ns = ns;
   ret->options = options;
-  if (namespace != NULL)
+  if (ns != NULL)
   {
-    namespace->rc++;
+    ns->rc++;
     GNUNET_assert (NULL != nid);
     ret->nid = GNUNET_strdup (nid);
     if (NULL != nuid)

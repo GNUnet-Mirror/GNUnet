@@ -505,7 +505,7 @@ process_sks_result (struct GNUNET_FS_SearchContext *sc, const char *id_update,
   if (0 == strlen (id_update))
     return;                     /* no updates */
   uu.type = sks;
-  uu.data.sks.namespace = sc->uri->data.sks.namespace;
+  uu.data.sks.ns = sc->uri->data.sks.ns;
   uu.data.sks.identifier = GNUNET_strdup (id_update);
   (void) search_start (sc->h, &uu, sc->anonymity, sc->options, NULL, sr);
   GNUNET_free (uu.data.sks.identifier);
@@ -671,13 +671,13 @@ process_nblock (struct GNUNET_FS_SearchContext *sc, const struct NBlock *nb,
   uri->data.sks.identifier = GNUNET_strdup (pt);
   GNUNET_CRYPTO_hash (&nb->subspace,
                       sizeof (struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded),
-                      &uri->data.sks.namespace);
+                      &uri->data.sks.ns);
   uris = GNUNET_FS_uri_to_string (uri);
   GNUNET_CONTAINER_meta_data_insert (meta, "<gnunet>", EXTRACTOR_METATYPE_URI,
                                      EXTRACTOR_METAFORMAT_UTF8, "text/plain",
                                      uris, strlen (uris) + 1);
   GNUNET_free (uris);
-  GNUNET_PSEUDONYM_add (sc->h->cfg, &uri->data.sks.namespace, meta);
+  GNUNET_PSEUDONYM_add (sc->h->cfg, &uri->data.sks.ns, meta);
   /* process */
   process_ksk_result (sc, &sc->requests[i], uri, meta);
 
@@ -1058,7 +1058,7 @@ transmit_search_request (void *cls, size_t size, void *buf)
     GNUNET_assert (size >= msize);
     sm->type = htonl (GNUNET_BLOCK_TYPE_FS_SBLOCK);
     sm->anonymity_level = htonl (sc->anonymity);
-    sm->target = sc->uri->data.sks.namespace;
+    sm->target = sc->uri->data.sks.ns;
     identifier = sc->uri->data.sks.identifier;
     GNUNET_CRYPTO_hash (identifier, strlen (identifier), &key);
     GNUNET_CRYPTO_hash (&key, sizeof (struct GNUNET_HashCode), &idh);
