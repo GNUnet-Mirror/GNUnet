@@ -27,6 +27,8 @@
 #include "platform.h"
 #include "gnunet_regex_lib.h"
 
+#define KEEP_FILES 0
+
 /**
  * Check if 'filename' exists and is not empty.
  *
@@ -56,6 +58,11 @@ filecheck (const char *filename)
                 "Graph writing failed, got empty file (%s)!\n", filename);
     error++;
   }
+
+  error += fclose (fp);
+
+  if (!KEEP_FILES)
+    unlink (filename);
 
   return error;
 }
