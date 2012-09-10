@@ -39,7 +39,7 @@ gnunet_nse_profiler_LDADD = -lm \
   $(top_builddir)/src/nse/libgnunetnse.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
-  $(top_builddir)/src/testing_old/libgnunettesting_old.la \
+  $(top_builddir)/src/testbed/libgnunettestbed.la \
   $(GN_LIBINTL)
 gnunet_nse_profiler_DEPENDENCIES = \
   libgnunetnse.la				 
