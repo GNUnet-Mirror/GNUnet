@@ -6,11 +6,7 @@
    fun:GNUNET_PEER_intern
    fun:GNUNET_MESH_peer_request_connect_add
    fun:GNUNET_STREAM_open
-   fun:stream_ca
-   fun:configuration_receiver
-   fun:handle_peer_config
-   fun:message_handler
-   fun:receive_task
+   ...
 }
 {
    <unknown_from_mesh>

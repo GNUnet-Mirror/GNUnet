@@ -132,11 +132,11 @@ enum GNUNET_STREAM_Option
     GNUNET_STREAM_OPTION_SIGNAL_LISTEN_SUCCESS,
 
     /**
-     * Option to set the maximum packet size in bytes of a stream data
+     * Option to set the maximum payload size in bytes of a stream data
      * packets. Takes an uint16_t as argument. Note that this should be less
-     * than 64000 bytes and greater than 64 bytes. Default is 64000 bytes.
+     * than 64000 and cannot be zero. Default is 64000 bytes.
      */
-    GNUNET_STREAM_OPTION_MAX_PACKET_SIZE
+    GNUNET_STREAM_OPTION_MAX_PAYLOAD_SIZE
   };
 
 

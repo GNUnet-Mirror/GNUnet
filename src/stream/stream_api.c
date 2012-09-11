@@ -63,7 +63,7 @@
 /**
  * The maximum packet size of a stream packet
  */
-#define MAX_PACKET_SIZE 64000
+#define DEFAULT_MAX_PAYLOAD_SIZE 64000
 
 /**
  * Receive buffer
@@ -363,11 +363,6 @@ struct GNUNET_STREAM_Socket
   uint32_t copy_offset;
 
   /**
-   * The maximum packet size this stream handle will give to mesh
-   */
-  uint16_t max_packet_size;
-
-  /**
    * The maximum size of the data message payload this stream handle can send
    */
   uint16_t max_payload_size;
@@ -445,9 +440,9 @@ struct GNUNET_STREAM_ListenSocket
   uint32_t testing_set_write_sequence_number_value;
 
   /**
-   * The maximum packet size this stream handle will give to mesh
+   * The maximum size of the data message payload this stream handle can send
    */
-  uint16_t max_packet_size;
+  uint16_t max_payload_size;
 
 };
 
@@ -2788,9 +2783,7 @@ new_tunnel_notify (void *cls,
   socket->testing_active = lsocket->testing_active;
   socket->testing_set_write_sequence_number_value =
       lsocket->testing_set_write_sequence_number_value;
-  socket->max_packet_size = lsocket->max_packet_size;
-  socket->max_payload_size =
-      socket->max_packet_size - sizeof (struct GNUNET_STREAM_DataMessage);
+  socket->max_payload_size = lsocket->max_payload_size;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "%s: Peer %s initiated tunnel to us\n", 
        GNUNET_i2s (&socket->other_peer),
@@ -2951,6 +2944,7 @@ GNUNET_STREAM_open (const struct GNUNET_CONFIGURATION_Handle *cfg,
   enum GNUNET_STREAM_Option option;
   GNUNET_MESH_ApplicationType ports[] = {app_port, 0};
   va_list vargs;
+  uint16_t payload_size;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "%s\n", __func__);
@@ -2962,7 +2956,7 @@ GNUNET_STREAM_open (const struct GNUNET_CONFIGURATION_Handle *cfg,
   /* Set defaults */
   socket->retransmit_timeout = TIME_REL_SECS (default_timeout);
   socket->testing_active = GNUNET_NO;
-  socket->max_packet_size = MAX_PACKET_SIZE; 
+  socket->max_payload_size = DEFAULT_MAX_PAYLOAD_SIZE;
   va_start (vargs, open_cb_cls); /* Parse variable args */
   do {
     option = va_arg (vargs, enum GNUNET_STREAM_Option);
@@ -2984,18 +2978,17 @@ GNUNET_STREAM_open (const struct GNUNET_CONFIGURATION_Handle *cfg,
     case GNUNET_STREAM_OPTION_SIGNAL_LISTEN_SUCCESS:
       GNUNET_break (0);          /* Option irrelevant in STREAM_open */
       break;
-    case GNUNET_STREAM_OPTION_MAX_PACKET_SIZE:
-      socket->max_packet_size = (uint16_t) va_arg (vargs, unsigned int);
-      if (socket->max_packet_size > MAX_PACKET_SIZE)
-	socket->max_packet_size = MAX_PACKET_SIZE;
+    case GNUNET_STREAM_OPTION_MAX_PAYLOAD_SIZE:
+      payload_size = (uint16_t) va_arg (vargs, unsigned int);
+      GNUNET_assert (0 != payload_size);
+      if (payload_size < socket->max_payload_size)
+	socket->max_payload_size = payload_size;
       break;
     case GNUNET_STREAM_OPTION_END:
       break;
     }
   } while (GNUNET_STREAM_OPTION_END != option);
   va_end (vargs);               /* End of variable args parsing */
-  socket->max_payload_size = 
-      socket->max_packet_size - sizeof (struct GNUNET_STREAM_DataMessage);
   socket->mesh = GNUNET_MESH_connect (cfg, /* the configuration handle */
                                       socket, /* cls */
                                       NULL, /* No inbound tunnel handler */
@@ -3219,6 +3212,7 @@ GNUNET_STREAM_listen (const struct GNUNET_CONFIGURATION_Handle *cfg,
   struct GNUNET_TIME_Relative listen_timeout;
   enum GNUNET_STREAM_Option option;
   va_list vargs;
+  uint16_t payload_size;
 
   GNUNET_assert (NULL != listen_cb);
   lsocket = GNUNET_malloc (sizeof (struct GNUNET_STREAM_ListenSocket));
@@ -3235,7 +3229,7 @@ GNUNET_STREAM_listen (const struct GNUNET_CONFIGURATION_Handle *cfg,
   lsocket->retransmit_timeout = TIME_REL_SECS (default_timeout);
   lsocket->testing_active = GNUNET_NO;
   lsocket->listen_ok_cb = NULL;
-  lsocket->max_packet_size = MAX_PACKET_SIZE;
+  lsocket->max_payload_size = DEFAULT_MAX_PAYLOAD_SIZE;
   listen_timeout = TIME_REL_SECS (60); /* A minute for listen timeout */  
   va_start (vargs, listen_cb_cls);
   do {
@@ -3259,10 +3253,11 @@ GNUNET_STREAM_listen (const struct GNUNET_CONFIGURATION_Handle *cfg,
       lsocket->listen_ok_cb = va_arg (vargs,
                                       GNUNET_STREAM_ListenSuccessCallback);
       break;
-    case GNUNET_STREAM_OPTION_MAX_PACKET_SIZE:
-      lsocket->max_packet_size = (uint16_t) va_arg (vargs, unsigned int);
-      if (lsocket->max_packet_size > MAX_PACKET_SIZE)
-	lsocket->max_packet_size = MAX_PACKET_SIZE;
+    case GNUNET_STREAM_OPTION_MAX_PAYLOAD_SIZE:
+      payload_size = (uint16_t) va_arg (vargs, unsigned int);
+      GNUNET_assert (0 != payload_size);
+      if (payload_size < lsocket->max_payload_size)
+	lsocket->max_payload_size = payload_size;
       break;
     case GNUNET_STREAM_OPTION_END:
       break;
@@ -3331,14 +3326,15 @@ GNUNET_STREAM_write (struct GNUNET_STREAM_Socket *socket,
                      GNUNET_STREAM_CompletionContinuation write_cont,
                      void *write_cont_cls)
 {
-  unsigned int num_needed_packets;
-  unsigned int packet;
   struct GNUNET_STREAM_IOWriteHandle *io_handle;
-  uint32_t packet_size;
-  uint32_t payload_size;
   struct GNUNET_STREAM_DataMessage *data_msg;
   const void *sweep;
   struct GNUNET_TIME_Relative ack_deadline;
+  unsigned int num_needed_packets;
+  unsigned int packet;
+  uint32_t packet_size;
+  uint32_t payload_size;
+  uint16_t max_data_packet_size;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "%s\n", __func__);
@@ -3390,12 +3386,14 @@ GNUNET_STREAM_write (struct GNUNET_STREAM_Socket *socket,
      determined from RTT */
   ack_deadline = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5);
   /* Divide the given buffer into packets for sending */
+  max_data_packet_size =
+      socket->max_payload_size + sizeof (struct GNUNET_STREAM_DataMessage);
   for (packet=0; packet < num_needed_packets; packet++)
   {
     if ((packet + 1) * socket->max_payload_size < size) 
     {
       payload_size = socket->max_payload_size;
-      packet_size = socket->max_packet_size;
+      packet_size = max_data_packet_size;
     }
     else 
     {
