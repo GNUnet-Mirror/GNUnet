@@ -63,18 +63,12 @@
 /**
  * The maximum packet size of a stream packet
  */
-#define MAX_PACKET_SIZE 512//64000
+#define MAX_PACKET_SIZE 64000
 
 /**
  * Receive buffer
  */
 #define RECEIVE_BUFFER_SIZE 4096000
-
-/**
- * The maximum payload a data message packet can carry
- */
-static const size_t max_payload_size = 
-  MAX_PACKET_SIZE - sizeof (struct GNUNET_STREAM_DataMessage);
 
 /**
  * states in the Protocol
@@ -367,6 +361,16 @@ struct GNUNET_STREAM_Socket
    * The offset upto which user has read from the received buffer
    */
   uint32_t copy_offset;
+
+  /**
+   * The maximum packet size this stream handle will give to mesh
+   */
+  uint16_t max_packet_size;
+
+  /**
+   * The maximum size of the data message payload this stream handle can send
+   */
+  uint16_t max_payload_size;
 };
 
 
@@ -439,6 +443,12 @@ struct GNUNET_STREAM_ListenSocket
    * The write sequence number to be set incase of testing
    */
   uint32_t testing_set_write_sequence_number_value;
+
+  /**
+   * The maximum packet size this stream handle will give to mesh
+   */
+  uint16_t max_packet_size;
+
 };
 
 
@@ -2765,12 +2775,6 @@ new_tunnel_notify (void *cls,
 
   if (GNUNET_NO == lsocket->listening)
   {
-//     FIXME: socket uninitalized
-//     FIXME: cannot use GNUNET_i2s twice in same call (static buffer)
-//     LOG (GNUNET_ERROR_TYPE_DEBUG,
-//          "%s: Destroying tunnel from peer %s as we don't have the lock\n",
-//          GNUNET_i2s (&socket->other_peer),
-//          GNUNET_i2s (&socket->other_peer));
     GNUNET_MESH_tunnel_destroy (tunnel);
     return NULL;
   }
@@ -2783,7 +2787,10 @@ new_tunnel_notify (void *cls,
   socket->retransmit_timeout = lsocket->retransmit_timeout;
   socket->testing_active = lsocket->testing_active;
   socket->testing_set_write_sequence_number_value =
-    lsocket->testing_set_write_sequence_number_value;    
+      lsocket->testing_set_write_sequence_number_value;
+  socket->max_packet_size = lsocket->max_packet_size;
+  socket->max_payload_size =
+      socket->max_packet_size - sizeof (struct GNUNET_STREAM_DataMessage);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "%s: Peer %s initiated tunnel to us\n", 
        GNUNET_i2s (&socket->other_peer),
@@ -2955,6 +2962,7 @@ GNUNET_STREAM_open (const struct GNUNET_CONFIGURATION_Handle *cfg,
   /* Set defaults */
   socket->retransmit_timeout = TIME_REL_SECS (default_timeout);
   socket->testing_active = GNUNET_NO;
+  socket->max_packet_size = MAX_PACKET_SIZE; 
   va_start (vargs, open_cb_cls); /* Parse variable args */
   do {
     option = va_arg (vargs, enum GNUNET_STREAM_Option);
@@ -2976,11 +2984,18 @@ GNUNET_STREAM_open (const struct GNUNET_CONFIGURATION_Handle *cfg,
     case GNUNET_STREAM_OPTION_SIGNAL_LISTEN_SUCCESS:
       GNUNET_break (0);          /* Option irrelevant in STREAM_open */
       break;
+    case GNUNET_STREAM_OPTION_MAX_PACKET_SIZE:
+      socket->max_packet_size = (uint16_t) va_arg (vargs, unsigned int);
+      if (socket->max_packet_size > MAX_PACKET_SIZE)
+	socket->max_packet_size = MAX_PACKET_SIZE;
+      break;
     case GNUNET_STREAM_OPTION_END:
       break;
     }
   } while (GNUNET_STREAM_OPTION_END != option);
   va_end (vargs);               /* End of variable args parsing */
+  socket->max_payload_size = 
+      socket->max_packet_size - sizeof (struct GNUNET_STREAM_DataMessage);
   socket->mesh = GNUNET_MESH_connect (cfg, /* the configuration handle */
                                       socket, /* cls */
                                       NULL, /* No inbound tunnel handler */
@@ -3220,6 +3235,7 @@ GNUNET_STREAM_listen (const struct GNUNET_CONFIGURATION_Handle *cfg,
   lsocket->retransmit_timeout = TIME_REL_SECS (default_timeout);
   lsocket->testing_active = GNUNET_NO;
   lsocket->listen_ok_cb = NULL;
+  lsocket->max_packet_size = MAX_PACKET_SIZE;
   listen_timeout = TIME_REL_SECS (60); /* A minute for listen timeout */  
   va_start (vargs, listen_cb_cls);
   do {
@@ -3242,6 +3258,11 @@ GNUNET_STREAM_listen (const struct GNUNET_CONFIGURATION_Handle *cfg,
     case GNUNET_STREAM_OPTION_SIGNAL_LISTEN_SUCCESS:
       lsocket->listen_ok_cb = va_arg (vargs,
                                       GNUNET_STREAM_ListenSuccessCallback);
+      break;
+    case GNUNET_STREAM_OPTION_MAX_PACKET_SIZE:
+      lsocket->max_packet_size = (uint16_t) va_arg (vargs, unsigned int);
+      if (lsocket->max_packet_size > MAX_PACKET_SIZE)
+	lsocket->max_packet_size = MAX_PACKET_SIZE;
       break;
     case GNUNET_STREAM_OPTION_END:
       break;
@@ -3355,9 +3376,10 @@ GNUNET_STREAM_write (struct GNUNET_STREAM_Socket *socket,
     break;
   }
 
-  if (GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH * max_payload_size < size)
-    size = GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH  * max_payload_size;
-  num_needed_packets = (size + (max_payload_size - 1)) / max_payload_size;
+  if (GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH * socket->max_payload_size < size)
+    size = GNUNET_STREAM_ACK_BITMAP_BIT_LENGTH  * socket->max_payload_size;
+  num_needed_packets =
+      (size + (socket->max_payload_size - 1)) / socket->max_payload_size;
   io_handle = GNUNET_malloc (sizeof (struct GNUNET_STREAM_IOWriteHandle));
   io_handle->socket = socket;
   io_handle->write_cont = write_cont;
@@ -3370,16 +3392,16 @@ GNUNET_STREAM_write (struct GNUNET_STREAM_Socket *socket,
   /* Divide the given buffer into packets for sending */
   for (packet=0; packet < num_needed_packets; packet++)
   {
-    if ((packet + 1) * max_payload_size < size) 
+    if ((packet + 1) * socket->max_payload_size < size) 
     {
-      payload_size = max_payload_size;
-      packet_size = MAX_PACKET_SIZE;
+      payload_size = socket->max_payload_size;
+      packet_size = socket->max_packet_size;
     }
     else 
     {
-      payload_size = size - packet * max_payload_size;
-      packet_size =  payload_size + sizeof (struct
-                                            GNUNET_STREAM_DataMessage); 
+      payload_size = size - packet * socket->max_payload_size;
+      packet_size = 
+	  payload_size + sizeof (struct GNUNET_STREAM_DataMessage);
     }
     io_handle->messages[packet] = GNUNET_malloc (packet_size);
     io_handle->messages[packet]->header.header.size = htons (packet_size);

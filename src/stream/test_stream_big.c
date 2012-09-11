@@ -144,7 +144,7 @@ write_completion (void *cls,
 
   peer = (struct PeerData *) cls;
   GNUNET_assert (GNUNET_STREAM_OK == status);
-  GNUNET_assert (size < DATA_SIZE);
+  GNUNET_assert (size <= DATA_SIZE);
   peer->bytes_wrote += size;
 
   if (peer->bytes_wrote < DATA_SIZE) /* Have more data to send */
@@ -152,7 +152,7 @@ write_completion (void *cls,
       peer->io_write_handle =
         GNUNET_STREAM_write (peer->socket,
                              ((void *) data) + peer->bytes_wrote,
-                             DATA_SIZE - peer->bytes_wrote,
+			     sizeof (data) - peer->bytes_wrote,
                              GNUNET_TIME_relative_multiply
                              (GNUNET_TIME_UNIT_SECONDS, 5),
                              &write_completion,
@@ -190,7 +190,7 @@ stream_write_task (void *cls,
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Generation of random data complete\n");
   peer->io_write_handle = GNUNET_STREAM_write (peer->socket,
                                                data,
-                                               DATA_SIZE,
+                                               sizeof (data),
                                                GNUNET_TIME_relative_multiply
                                                (GNUNET_TIME_UNIT_SECONDS, 10),
                                                &write_completion,
