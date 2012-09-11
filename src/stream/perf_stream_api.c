@@ -63,13 +63,58 @@ struct ProgressMeter
   char *startup_string;
 };
 
+
+/**
+ * Steps in testing
+ */
+enum TestStep
+{
+  /**
+   * Single hop loopback testing
+   */
+  TEST_STEP_1_HOP,
+
+  /**
+   * Testing with 2 peers
+   */
+  TEST_STEP_2_HOP,
+
+  /**
+   * Testing with 3 peers
+   */
+  TEST_STEP_3_HOP
+};
+
+/**
+ * Maximum size of the data which we will transfer during tests
+ */
 #define DATA_SIZE 65536      /* 64KB */
 
+/**
+ * Random data block. Should generate data first
+ */
 static uint32_t data[DATA_SIZE / 4];     /* 64KB array */
 
+/**
+ * Payload sizes to test each major test with
+ */
 static uint16_t payload_size[] = 
 { 20, 500, 2000, 7000, 13000, 25000, 56000, 64000 };
 
+/**
+ * Handle for the progress meter
+ */
+static struct ProgressMeter *meter;
+
+/**
+ * Current step of testing
+ */
+static enum TestStep test_step;
+
+/**
+ * Index for choosing payload size
+ */
+unsigned int payload_size_index;
 
 /**
  * Create a meter to keep track of the progress of some task.
@@ -175,10 +220,61 @@ free_meter (struct ProgressMeter *meter)
 
 
 /**
+ * Initialize framework and start test
+ *
+ * @param cls closure
+ * @param cfg configuration of the peer that was started
+ * @param peer identity of the peer that was created
+ */
+static void
+run (void *cls, 
+     const struct GNUNET_CONFIGURATION_Handle *cfg,
+     struct GNUNET_TESTING_Peer *peer)
+{
+  GNUNET_break (0);
+}
+
+
+/**
  * Main function
  */
 int main (int argc, char **argv)
 {
-  PRINTF ("Performance measurements for STREAM\n");
-  return 0;
+  unsigned int count;
+  int ret;
+
+  meter = create_meter ((sizeof (data) / 4), "Generating random data\n", GNUNET_YES);
+  for (count=0; count < (sizeof (data) / 4); count++)
+  {
+    data[count] = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                            UINT32_MAX);
+    update_meter (meter);
+  }
+  reset_meter (meter);
+  free_meter (meter);
+  test_step = TEST_STEP_1_HOP;
+  for (payload_size_index = 0; 
+       payload_size_index < (sizeof (payload_size) / sizeof (uint16_t));
+       payload_size_index++)
+  {
+    ret = GNUNET_TESTING_peer_run ("test_stream_big", "test_stream_local.conf",
+                                   &run, NULL);
+    if (0 != ret)
+      break;
+  }
+  test_step = TEST_STEP_2_HOP;
+  for (payload_size_index = 0; 
+       payload_size_index < (sizeof (payload_size) / sizeof (uint16_t));
+       payload_size_index++)
+  {
+    /* Initialize testbed here */
+  }
+  test_step = TEST_STEP_3_HOP;
+  for (payload_size_index = 0; 
+       payload_size_index < (sizeof (payload_size) / sizeof (uint16_t));
+       payload_size_index++)
+  {
+    /* Initialize testbed here */
+  }
+  return ret;
 }
