@@ -41,7 +41,10 @@
 #include "platform.h"
 #include "gnunet_common.h"
 #include "gnunet_util_lib.h"
+#include "gnunet_testing_lib.h"
 #include "gnunet_testbed_service.h"
+#include "gnunet_stream_lib.h"
+
 
   
 /**
@@ -86,9 +89,63 @@ enum TestStep
 };
 
 /**
+ * Structure for holding peer's sockets and IO Handles
+ */
+struct PeerData
+{
+  /**
+   * Peer's stream socket
+   */
+  struct GNUNET_STREAM_Socket *socket;
+
+  struct GNUNET_PeerIdentity self;
+
+  /**
+   * Peer's io write handle
+   */
+  struct GNUNET_STREAM_IOWriteHandle *io_write_handle;
+
+  /**
+   * Peer's io read handle
+   */
+  struct GNUNET_STREAM_IOReadHandle *io_read_handle;
+
+  /**
+   * Bytes the peer has written
+   */
+  unsigned int bytes_wrote;
+
+  /**
+   * Byte the peer has read
+   */
+  unsigned int bytes_read;
+};
+
+
+/**
  * Maximum size of the data which we will transfer during tests
  */
 #define DATA_SIZE 65536      /* 64KB */
+
+/**
+ * Listen socket of peer2
+ */
+struct GNUNET_STREAM_ListenSocket *peer2_listen_socket;
+
+/**
+ * Handle to configuration during TEST_STEP_1_HOP
+ */
+const struct GNUNET_CONFIGURATION_Handle *config;
+
+/**
+ * Placeholder for peer data
+ */
+static struct PeerData peer_data[3];
+
+/**
+ * Task ID for abort task
+ */
+static GNUNET_SCHEDULER_TaskIdentifier abort_task;
 
 /**
  * Random data block. Should generate data first
@@ -220,6 +277,45 @@ free_meter (struct ProgressMeter *meter)
 
 
 /**
+ * Something went wrong and timed out. Kill everything and set error flag
+ */
+static void
+do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_break (0);
+}
+
+
+/**
+ * Functions of this type are called upon new stream connection from other peers
+ *
+ * @param cls the closure from GNUNET_STREAM_listen
+ * @param socket the socket representing the stream
+ * @param initiator the identity of the peer who wants to establish a stream
+ *            with us
+ * @return GNUNET_OK to keep the socket open, GNUNET_SYSERR to close the
+ *             stream (the socket will be invalid after the call)
+ */
+static int
+stream_listen_cb (void *cls, struct GNUNET_STREAM_Socket *socket,
+		  const struct GNUNET_PeerIdentity *initiator)
+{
+  GNUNET_break (0);
+  return GNUNET_OK;
+}
+
+
+/**
+ * Listen success callback; connects a peer to stream as client
+ */
+static void
+stream_connect (void)
+{
+  GNUNET_break (0);
+}
+
+
+/**
  * Initialize framework and start test
  *
  * @param cls closure
@@ -231,7 +327,21 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg,
      struct GNUNET_TESTING_Peer *peer)
 {
-  GNUNET_break (0);
+  struct GNUNET_PeerIdentity self;
+
+  GNUNET_TESTING_peer_get_identity (peer, &self);
+  config = cfg;
+  peer2_listen_socket = 
+      GNUNET_STREAM_listen (config, 10, /* App port */ &stream_listen_cb, NULL,
+                            GNUNET_STREAM_OPTION_SIGNAL_LISTEN_SUCCESS,
+                            &stream_connect, GNUNET_STREAM_OPTION_END);
+  GNUNET_assert (NULL != peer2_listen_socket);
+  peer_data[1].self = self;
+  peer_data[2].self = self;
+  abort_task =
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                  (GNUNET_TIME_UNIT_SECONDS, 60), &do_abort,
+                                  NULL);
 }
 
 
@@ -240,6 +350,7 @@ run (void *cls,
  */
 int main (int argc, char **argv)
 {
+  char *pmsg;
   unsigned int count;
   int ret;
 
@@ -257,8 +368,13 @@ int main (int argc, char **argv)
        payload_size_index < (sizeof (payload_size) / sizeof (uint16_t));
        payload_size_index++)
   {
+    GNUNET_asprintf (&pmsg, "Testing over loopback with payload size %hu\n",
+                     payload_size[payload_size_index]);
+    meter = create_meter ((sizeof (data) / 4), pmsg, GNUNET_YES);
+    GNUNET_free (pmsg);
     ret = GNUNET_TESTING_peer_run ("test_stream_big", "test_stream_local.conf",
                                    &run, NULL);
+    free_meter (meter);
     if (0 != ret)
       break;
   }
