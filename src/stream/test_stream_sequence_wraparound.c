@@ -327,6 +327,7 @@ stream_connect (void)
                         GNUNET_STREAM_OPTION_TESTING_SET_WRITE_SEQUENCE_NUMBER,
                         UINT32_MAX - GNUNET_CRYPTO_random_u32
                         (GNUNET_CRYPTO_QUALITY_WEAK, 64),
+			GNUNET_STREAM_OPTION_MAX_PAYLOAD_SIZE, 500,
                         GNUNET_STREAM_OPTION_END);
   GNUNET_assert (NULL != peer1.socket);
 }

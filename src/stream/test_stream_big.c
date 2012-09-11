@@ -335,8 +335,8 @@ stream_connect (void)
   peer->socket = GNUNET_STREAM_open (config,
                                      &peer2.self,         /* Null for local peer? */
                                      10,           /* App port */
-                                     &stream_open_cb,
-                                     &peer1,
+                                     &stream_open_cb, &peer1,
+				     GNUNET_STREAM_OPTION_MAX_PAYLOAD_SIZE, 500,
 				     GNUNET_STREAM_OPTION_END);
   GNUNET_assert (NULL != peer->socket);
 }
