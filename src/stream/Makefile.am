@@ -20,12 +20,18 @@ libgnunetstream_la_LIBADD = \
 libgnunetstream_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)
 
+if HAVE_BENCHMARKS
+ STREAM_BENCHMARKS = \
+ perf_stream_api
+endif
+
 check_PROGRAMS = \
  test_stream_2peers \
  test_stream_2peers_halfclose \
  test_stream_local \
  test_stream_big \
- test_stream_sequence_wraparound
+ test_stream_sequence_wraparound \
+ $(STREAM_BENCHMARKS)
 
 EXTRA_DIST = test_stream_local.conf
 
@@ -35,7 +41,8 @@ TESTS = \
  test_stream_2peers_halfclose \
  test_stream_local \
  test_stream_big \
- test_stream_sequence_wraparound
+ test_stream_sequence_wraparound \
+ $(STREAM_BENCHMARKS)
 endif
 
 test_stream_2peers_SOURCES = \
@@ -73,3 +80,11 @@ test_stream_sequence_wraparound_LDADD = \
  $(top_builddir)/src/stream/libgnunetstream.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/testing/libgnunettesting.la
+
+perf_stream_api_SOURCES = \
+ perf_stream_api.c
+perf_stream_api_LDADD = \
+ $(top_builddir)/src/stream/libgnunetstream.la \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/testing/libgnunettesting.la \
+ $(top_builddir)/src/testbed/libgnunettestbed.la
