@@ -2130,13 +2130,6 @@ hello_update_cb (void *cls, const struct GNUNET_MessageHeader *hello)
   uint16_t msize;
 
   msize = ntohs (hello->size);
-  if (msize < 0)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "HELLO message of peer %s is of size 0\n",
-                &occ->other_peer_identity);
-    return;
-  }
   empty = GNUNET_YES;
   (void) GNUNET_HELLO_iterate_addresses ((const struct GNUNET_HELLO_Message *)
                                          hello, GNUNET_NO, &test_address,
