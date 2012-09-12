@@ -3101,6 +3101,7 @@ GNUNET_STREAM_close (struct GNUNET_STREAM_Socket *socket)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
 	 "Closing STREAM socket when a read handle is pending\n");
+    GNUNET_STREAM_io_read_cancel (socket->read_handle);
   }
   if (NULL != socket->write_handle)
   {
@@ -3141,27 +3142,23 @@ GNUNET_STREAM_close (struct GNUNET_STREAM_Socket *socket)
     GNUNET_free (head->message);
     GNUNET_free (head);
   }
-
   /* Close associated tunnel */
   if (NULL != socket->tunnel)
   {
     GNUNET_MESH_tunnel_destroy (socket->tunnel);
     socket->tunnel = NULL;
   }
-
   /* Close mesh connection */
   if (NULL != socket->mesh && NULL == socket->lsocket)
   {
     GNUNET_MESH_disconnect (socket->mesh);
     socket->mesh = NULL;
-  }
-  
+  }  
   /* Release receive buffer */
   if (NULL != socket->receive_buffer)
   {
     GNUNET_free (socket->receive_buffer);
   }
-
   GNUNET_free (socket);
 }
 

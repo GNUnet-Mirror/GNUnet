@@ -185,7 +185,7 @@ static uint32_t data[DATA_SIZE / 4];
  * Payload sizes to test each major test with
  */
 static uint16_t payload_size[] = 
-{ 20, 500, 2000, 7000, 13000, 25000, 56000, 60000 };
+{ 20, 500, 2000, 7000, 13000, 25000, 50000, 60000 };
 
 /**
  * Handle for the progress meter
@@ -335,11 +335,11 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  abort_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test: ABORT\n");
   if (GNUNET_SCHEDULER_NO_TASK != read_task)
     GNUNET_SCHEDULER_cancel (read_task);
   result = GNUNET_SYSERR;
-  abort_task = GNUNET_SCHEDULER_NO_TASK;
   do_shutdown (cls, tc);
 }
 
@@ -550,7 +550,7 @@ run (void *cls,
   peer_data[2].self = self;
   abort_task =
     GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                  (GNUNET_TIME_UNIT_SECONDS, 60), &do_abort,
+                                  (GNUNET_TIME_UNIT_SECONDS, 300), &do_abort,
                                   NULL);
 }
 
