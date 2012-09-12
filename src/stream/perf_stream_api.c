@@ -129,7 +129,7 @@ struct PeerData
 /**
  * Maximum size of the data which we will transfer during tests
  */
-#define DATA_SIZE 65536      /* 64KB */
+#define DATA_SIZE 5000000      /* 5mB */
 
 /**
  * Listen socket of peer2
@@ -179,7 +179,7 @@ static struct GNUNET_TIME_Relative prof_time;
 /**
  * Random data block. Should generate data first
  */
-static uint32_t data[DATA_SIZE / 4];     /* 64KB array */
+static uint32_t data[DATA_SIZE / 4];
 
 /**
  * Payload sizes to test each major test with
