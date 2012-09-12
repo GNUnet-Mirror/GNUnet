@@ -2427,3 +2427,5 @@ main (int argc, char *const *argv)
           GNUNET_SERVICE_run (argc, argv, "testbed", GNUNET_SERVICE_OPTION_NONE,
                               &testbed_run, NULL)) ? 0 : 1;
 }
+
+/* end of gnunet-service-testbed.c */

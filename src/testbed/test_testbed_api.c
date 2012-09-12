@@ -460,3 +460,5 @@ main (int argc, char **argv)
     return 1;
   return 0;
 }
+
+/* end of test_testbed_api.c */

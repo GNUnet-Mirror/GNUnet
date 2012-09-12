@@ -105,3 +105,5 @@ main (int argc, char **argv)
     return 1;
   return (GNUNET_OK == status) ? 0 : 1;
 }
+
+/* end of test_testbed_api_hosts.c */

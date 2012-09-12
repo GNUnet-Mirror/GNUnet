@@ -610,3 +610,4 @@ struct GNUNET_TESTBED_PeerConfigurationInformationMessage
 
 
 #endif
+/* end of testbed.h */

@@ -75,3 +75,5 @@ struct GNUNET_TESTBED_HelperReply
 };
 
 #endif
+
+/* end of testbed_helper.h */
