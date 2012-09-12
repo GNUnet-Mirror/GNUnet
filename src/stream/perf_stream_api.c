@@ -616,3 +616,5 @@ int main (int argc, char **argv)
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Test failed\n");
   return 1;
 }
+
+/* end of perf_stream_api.c */
