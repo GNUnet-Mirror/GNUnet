@@ -114,12 +114,11 @@ GNUNET_TESTBED_host_create_with_id (uint32_t id,
  *
  * @param filename file with the host specification
  * @param hosts set to the hosts found in the file
- *        FIXME: we need "***" here!
  * @return number of hosts returned in 'hosts', 0 on error
  */
 unsigned int
 GNUNET_TESTBED_hosts_load_from_file (const char *filename,
-				     struct GNUNET_TESTBED_Host **hosts);
+				     struct GNUNET_TESTBED_Host ***hosts);
 
 
 /**

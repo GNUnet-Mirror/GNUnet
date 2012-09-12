@@ -293,8 +293,17 @@ GNUNET_TESTBED_host_create (const char *hostname, const char *username,
  */
 unsigned int
 GNUNET_TESTBED_hosts_load_from_file (const char *filename,
-                                     struct GNUNET_TESTBED_Host **hosts)
+                                     struct GNUNET_TESTBED_Host ***hosts)
 {
+#if 0
+  struct GNUNET_TESTBED_Host **host_array;
+
+  host_array = GNUNET_malloc (num_hosts * sizeof (struct GNUNET_TESTBED_Host *));
+  host_array[foo] = GNUNET_TESTBED_host_create (...);
+  *hosts = host_array;
+
+  return num_hosts;
+#endif  
   // see testing_group.c, GNUNET_TESTING_hosts_load
   GNUNET_break (0);
   return 0;

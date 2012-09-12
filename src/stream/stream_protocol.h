@@ -115,16 +115,16 @@ struct GNUNET_STREAM_AckMessage
   struct GNUNET_STREAM_MessageHeader header;
 
   /**
-   * The Selective Acknowledgement Bitmap. Computed relative to the base_seq
-   * (bit n corresponds to the Data message with sequence number base_seq+n)
-   */
-  GNUNET_STREAM_AckBitmap bitmap GNUNET_PACKED;
-
-  /**
    * The sequence number of the next Data Message receiver is
    * anticipating. Data messages less than this number are received by receiver
    */
   uint32_t base_sequence_number GNUNET_PACKED;
+
+  /**
+   * The Selective Acknowledgement Bitmap. Computed relative to the base_seq
+   * (bit n corresponds to the Data message with sequence number base_seq+n)
+   */
+  GNUNET_STREAM_AckBitmap bitmap GNUNET_PACKED;
 
   /**
    * Available buffer space past the last acknowledged buffer (for flow control),
@@ -161,6 +161,7 @@ struct GNUNET_STREAM_HelloAckMessage
 
 /**
  * The Transmit close message(used to signal transmission is closed)
+ * FIXME: dead struct?
  */
 struct GNUNET_STREAM_TransmitCloseMessage
 {

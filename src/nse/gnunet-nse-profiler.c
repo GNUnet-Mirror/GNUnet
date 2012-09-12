@@ -232,7 +232,7 @@ static char *topology_file;
 /**
  * List of hosts we use for the testbed.
  */
-static struct GNUNET_TESTBED_Host **hosts;
+static struct GNUNET_TESTBED_Host *hosts;
 
 /**
  * Size of the 'hosts' array.
@@ -893,7 +893,7 @@ controller_start_cb (void *cls,
       return;
     }
   num_hosts = GNUNET_TESTBED_hosts_load_from_file (hosts_file,
-						   /* FIXME: & */ hosts);
+						   &hosts);
   if (0 == num_hosts)
     {
       fprintf (stderr,
