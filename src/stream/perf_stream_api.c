@@ -185,7 +185,7 @@ static uint32_t data[DATA_SIZE / 4];
  * Payload sizes to test each major test with
  */
 static uint16_t payload_size[] = 
-{ 20, 500, 2000, 7000, 13000, 25000, 56000, 64000 };
+{ 20, 500, 2000, 7000, 13000, 25000, 56000, 60000 };
 
 /**
  * Handle for the progress meter
@@ -518,7 +518,8 @@ stream_connect (void)
   peer_data[1].socket = 
       GNUNET_STREAM_open (config, &peer_data[2].self, 10, &stream_open_cb,
 			  &peer_data[1],
-			  GNUNET_STREAM_OPTION_MAX_PAYLOAD_SIZE, 500,
+			  GNUNET_STREAM_OPTION_MAX_PAYLOAD_SIZE,
+			  payload_size[payload_size_index],
 			  GNUNET_STREAM_OPTION_END);
   GNUNET_assert (NULL != peer_data[1].socket);
 }
