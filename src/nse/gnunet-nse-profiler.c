@@ -27,7 +27,6 @@
  *
  * TODO:
  * - need to enable user to specify topology options
- * - need minor fix with "***"-host argument change in TESTBED (TBD there)
  * - need to check for leaks (especially FD leaks)
  * - need to TEST
  */
@@ -232,7 +231,7 @@ static char *topology_file;
 /**
  * List of hosts we use for the testbed.
  */
-static struct GNUNET_TESTBED_Host *hosts;
+static struct GNUNET_TESTBED_Host **hosts;
 
 /**
  * Size of the 'hosts' array.
@@ -905,6 +904,7 @@ controller_start_cb (void *cls,
 					       NULL, 
 					       0 /* mask */,
 					       &master_controller_cb, NULL);
+
   testbed = GNUNET_TESTBED_create (controller,
 				   num_hosts, hosts, 
 				   num_peers,

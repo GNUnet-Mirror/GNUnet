@@ -380,8 +380,7 @@ typedef void (*GNUNET_TESTBED_ControllerStatusCallback) (void *cls,
 
 
 /**
- * Starts a controller process at the host. FIXME: add controller start callback
- * with the configuration with which the controller is started
+ * Starts a controller process at the host. 
  *
  * @param controller_ip the ip address of the controller. Will be set as TRUSTED
  *          host when starting testbed controller at host
