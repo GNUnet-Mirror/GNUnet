@@ -902,7 +902,7 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
              sizeof (uint32_t) + sizeof (struct GNUNET_TIME_AbsoluteNBO) +
              alen + slen);
   pong->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_OWN);
-  pong->challenge = ping->challenge;
+  memcpy (&pong->challenge, &ping->challenge, sizeof (ping->challenge));
   pong->addrlen = htonl (alen + slen);
   memcpy (&pong[1], addr, slen);   /* Copy transport plugin */
 #if KEEP_093_COMPATIBILITY
