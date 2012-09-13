@@ -761,10 +761,10 @@ unix_plugin_send (void *cls,
 
     return GNUNET_SYSERR;
   }
-      LOG (GNUNET_ERROR_TYPE_ERROR, "Sending %u bytes with session for peer `%s' `%s'\n",
-				msgbuf_size,
-                GNUNET_i2s (&session->target),
-                (char *) session->addr);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Sending %u bytes with session for peer `%s' `%s'\n",
+		msgbuf_size,
+        GNUNET_i2s (&session->target),
+        (char *) session->addr);
 
   ssize = sizeof (struct UNIXMessage) + msgbuf_size;
   message = GNUNET_malloc (sizeof (struct UNIXMessage) + msgbuf_size);
@@ -1077,8 +1077,7 @@ unix_transport_server_start (void *cls)
     plugin->unix_sock.desc = NULL;
     return GNUNET_SYSERR;
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Bound to `%s'\n",
-                   &un.sun_path[0]);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Bound to `%s'\n", plugin->unix_socket_path);
   plugin->rs = GNUNET_NETWORK_fdset_create ();
   plugin->ws = GNUNET_NETWORK_fdset_create ();
   GNUNET_NETWORK_fdset_zero (plugin->rs);
