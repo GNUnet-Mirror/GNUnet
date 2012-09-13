@@ -1403,7 +1403,7 @@ tcp_plugin_get_session (void *cls,
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, 
 	 "Failed to create connection to `%4s' at `%s'\n",
-	 GNUNET_i2s (&session->target), GNUNET_a2s (sb, sbs));
+	 GNUNET_i2s (&address->peer), GNUNET_a2s (sb, sbs));
     return NULL;
   }
   plugin->max_connections--;
