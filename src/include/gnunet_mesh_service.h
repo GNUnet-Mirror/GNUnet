@@ -107,6 +107,10 @@ struct GNUNET_MESH_MessageHandler
 /**
  * Method called whenever another peer has added us to a tunnel
  * the other peer initiated.
+ * Only called (once) upon reception of data with a message type which was
+ * subscribed to in GNUNET_MESH_connect. A call to GNUNET_MESH_tunnel_destroy
+ * causes te tunnel to be ignored and no further notifications are sent about
+ * the same tunnel.
  *
  * @param cls closure
  * @param tunnel new handle to the tunnel
