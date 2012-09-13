@@ -54,20 +54,29 @@
  *
  * tunnel_create                        GNUNET_MESH_TunnelMessage
  * tunnel_destroy                       GNUNET_MESH_TunnelMessage
+ * tunnel_speed_max                     GNUNET_MESH_TunnelMessage
+ * tunnel_speed_min                     GNUNET_MESH_TunnelMessage
+ * tunnel_buffer                        GNUNET_MESH_TunnelMessage
  *
  * peer_request_connect_add             GNUNET_MESH_PeerControl
  * peer_request_connect_del             GNUNET_MESH_PeerControl
  * peer_request_connect_by_type         GNUNET_MESH_ConnectPeerByType
+ * peer_request_connect_by_string       GNUNET_MESH_ConnectPeerByString
+ * 
+ * peer_blacklist                       GNUNET_MESH_PeerControl
+ * peer_unblacklist                     GNUNET_MESH_PeerControl
  *
- * notify_transmit_ready                *GNUNET_MESH_TransmitReady?*
+ * notify_transmit_ready                None (queue / GNUNET_CLIENT_ntf_tmt_rdy)
  * notify_transmit_ready_cancel         None (clear of internal data structures)
  *
- *
- *
+ * 
  * EVENT                                MESSAGE USED
  * -----                                ------------
- * data                                 GNUNET_MESH_Data OR
- *                                      GNUNET_MESH_DataBroadcast
+ * data                                 GNUNET_MESH_Unicast OR
+ *                                      GNUNET_MESH_Multicast OR
+ *                                      GNUNET_MESH_ToOrigin
+ * data ack                             GNUNET_MESH_LocalAck
+ * 
  * new incoming tunnel                  GNUNET_MESH_PeerControl
  * peer connects to a tunnel            GNUNET_MESH_PeerControl
  * peer disconnects from a tunnel       GNUNET_MESH_PeerControl
@@ -106,7 +115,7 @@ struct GNUNET_MESH_ClientConnect
   struct GNUNET_MessageHeader header;
   uint16_t applications GNUNET_PACKED;
   uint16_t types GNUNET_PACKED;
-  /* uint16_t                 list_apps[applications]     */
+  /* uint32_t                 list_apps[applications]     */
   /* uint16_t                 list_types[types]           */
 };
 
