@@ -644,7 +644,7 @@ GNUNET_REGEX_add_multi_strides_to_dfa (struct GNUNET_REGEX_Context *regex_ctx,
   struct GNUNET_REGEX_Transition *t;
   struct GNUNET_REGEX_Transition *t_next;
 
-  if (1 > stride_len)
+  if (1 > stride_len || GNUNET_YES == dfa->is_multistrided)
     return;
 
   // Compute the new transitions.
@@ -660,6 +660,8 @@ GNUNET_REGEX_add_multi_strides_to_dfa (struct GNUNET_REGEX_Context *regex_ctx,
     GNUNET_free_non_null (t->label);
     GNUNET_free (t);
   }
+
+  dfa->is_multistrided = GNUNET_YES;
 }
 
 
@@ -1383,7 +1385,7 @@ dfa_state_create (struct GNUNET_REGEX_Context *ctx,
   if (nfa_states->len < 1)
     return s;
 
-  // Create a name based on 'sset'
+  // Create a name based on 'nfa_states'
   s->name = GNUNET_malloc (sizeof (char) * 2);
   strcat (s->name, "{");
   name = NULL;
@@ -2255,10 +2257,14 @@ GNUNET_REGEX_construct_nfa (const char *regex, const size_t len)
     goto error;
   }
 
+  /* Remember the regex that was used to generate this NFA */
   nfa->regex = GNUNET_strdup (regex);
 
   /* create depth-first numbering of the states for pretty printing */
   GNUNET_REGEX_automaton_traverse (nfa, NULL, NULL, NULL, &number_states, NULL);
+
+  /* No multistriding added so far */
+  nfa->is_multistrided = GNUNET_NO;
 
   return nfa;
 
@@ -2367,6 +2373,7 @@ GNUNET_REGEX_construct_dfa (const char *regex, const size_t len)
   dfa->states_head = NULL;
   dfa->states_tail = NULL;
   dfa->regex = GNUNET_strdup (regex);
+  dfa->is_multistrided = GNUNET_NO;
 
   // Create DFA start state from epsilon closure
   nfa_start_eps_cls = nfa_closure_create (nfa, nfa->start, 0);

@@ -253,6 +253,11 @@ struct GNUNET_REGEX_Automaton
    * Canonical regex (result of RX->NFA->DFA->RX)
    */
   char *canonical_regex;
+
+  /**
+   * GNUNET_YES, if multi strides have been added to the Automaton.
+   */
+  int is_multistrided;
 };
 
 
