@@ -401,6 +401,35 @@ struct GNUNET_TESTBED_OverlayConnectMessage
 
 
 /**
+ * Message sent from host controller of a peer(A) to the host controller of
+ * another peer(B) to request B to connect to A
+ */
+struct GNUNET_TESTBED_RequestConnectMessage
+{
+  /**
+   * Type is GNUNET_MESSAGE_TYPE_TESTBED_REQUESTCONNECT
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * The Unique ID of B
+   */
+  uint32_t peer GNUNET_PACKED;
+
+  /**
+   * The Operation ID that is used to identify this operation
+   */
+  uint64_t operation_id GNUNET_PACKED;  
+  
+  /**
+   * To be followed by the HELLO message of A
+   */
+  struct GNUNET_MessageHeader hello[0];
+  
+};
+
+
+/**
  * Event notification from a controller to a client.
  */
 struct GNUNET_TESTBED_PeerEventMessage
