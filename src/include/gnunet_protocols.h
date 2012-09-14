@@ -1227,7 +1227,7 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_BROADCAST_BEACON 384
 
 /*******************************************************************************
- * STREAM LIRBRARY MESSAGES
+ * STREAM messages types
  ******************************************************************************/
 
 /**
@@ -1526,10 +1526,21 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_TESTBED_PEERCONFIG 478
 
 /**
+ * Message to request a controller to make one of its peer to connect to another
+ * peer using the contained HELLO
+ */
+#define GNUNET_MESSAGE_TYPE_TESTBED_REQUESTCONNECT 479
+
+/**
+ * Message to cancel a REQUESTCONNECT request
+ */
+#define GNUNET_MESSAGE_TYPE_TESTBED_REQUESTCONNECTCANCEL 480
+
+/**
  * Not really a message, but for careful checks on the testbed messages; Should
  * always be the maximum and never be used to send messages with this type
  */
-#define GNUNET_MESSAGE_TYPE_TESTBED_MAX 479
+#define GNUNET_MESSAGE_TYPE_TESTBED_MAX 481
 
 /**
  * The initialization message towards gnunet-testbed-helper
