@@ -224,7 +224,9 @@ stat_run (void *cls,
 {
   struct StatMaster *sm = cls;
 
-  if (stats[sm->value].name != NULL)
+  sm->stat = ca_result;
+  GNUNET_assert (NULL != sm->stat);
+  if (NULL != stats[sm->value].name)
   {
     GNUNET_STATISTICS_get (sm->stat,
 #if 0
@@ -285,8 +287,7 @@ do_report (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (NUM_DAEMONS != ++download_counter)
     return;                   /* more downloads to come */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Finished all downloads, shutting down\n",
-	      (unsigned long long) FILESIZE);
+	      "Finished all downloads, getting statistics\n");
   sm = GNUNET_malloc (sizeof (struct StatMaster));
   sm->op =
     GNUNET_TESTBED_service_connect (NULL,
