@@ -271,7 +271,7 @@ put_dht(void *cls, int32_t success, const char *emsg)
     strlen(TEST_RECORD_NAME) + 1;
   GNUNET_DHT_put (dht_handle, &xor_hash,
                   0,
-                  GNUNET_DHT_RO_NONE,
+                  GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
                   GNUNET_BLOCK_TYPE_GNS_NAMERECORD,
                   rd_payload_length,
                   (char*)nrb,
