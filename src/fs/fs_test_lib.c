@@ -595,6 +595,8 @@ download_fs_connect_complete_cb (void *cls,
 {
   struct TestDownloadOperation *dop = cls;
 
+  dop->fs = ca_result;
+  GNUNET_assert (NULL != dop->fs);
   dop->download_context =
     GNUNET_FS_download_start (dop->fs, dop->uri, NULL, NULL, NULL, 0, dop->size,
 			      dop->anonymity, GNUNET_FS_DOWNLOAD_OPTION_NONE,
