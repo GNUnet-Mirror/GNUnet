@@ -39,7 +39,7 @@ static char *query_key;
 /**
  * User supplied timeout value (in seconds)
  */
-static unsigned long long timeout_request = 5;
+static struct GNUNET_TIME_Relative timeout_request = { 60000 };
 
 /**
  * Be verbose
@@ -227,7 +227,6 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
-  struct GNUNET_TIME_Relative timeout;
   struct GNUNET_HashCode *key;
 
   cfg = c;
@@ -254,21 +253,15 @@ run (void *cls, char *const *args, const char *cfgfile,
   else
     key = NULL;
 
-  if (0 != timeout_request)
+  if (verbose)
   {
-    timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
-                                             timeout_request);
-    if (verbose)
-      FPRINTF (stderr, "Monitoring for %llus\n", timeout_request);
-  }
-  else
-  {
-    timeout = GNUNET_TIME_UNIT_FOREVER_REL;
-    if (verbose)
-      FPRINTF (stderr, "%s", "Monitoring indefinitely (close with Ctrl+C)\n");
+      if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value != timeout_request.rel_value)
+        FPRINTF (stderr, "Monitoring for %lus\n", timeout_request.rel_value / 1000);
+      else
+        FPRINTF (stderr, "%s", "Monitoring indefinitely (close with Ctrl+C)\n");
   }
 
-  GNUNET_SCHEDULER_add_delayed (timeout, &cleanup_task, NULL);
+  GNUNET_SCHEDULER_add_delayed (timeout_request, &cleanup_task, NULL);
   if (verbose)
     FPRINTF (stderr, "Issuing MONITOR request for %s!\n", query_key);
   monitor_handle = GNUNET_DHT_monitor_start (dht_handle,
@@ -296,8 +289,8 @@ static struct GNUNET_GETOPT_CommandLineOption options[] = {
    gettext_noop ("the type of data to look for"),
    1, &GNUNET_GETOPT_set_uint, &block_type},
   {'T', "timeout", "TIMEOUT",
-   gettext_noop ("how long to execute? 0 = forever"),
-   1, &GNUNET_GETOPT_set_ulong, &timeout_request},
+   gettext_noop ("how long to execute? default 60s, use \"forever\" to monitor forever"),
+   1, &GNUNET_GETOPT_set_relative_time, &timeout_request},
   {'V', "verbose", NULL,
    gettext_noop ("be verbose (print progress information)"),
    0, &GNUNET_GETOPT_set_one, &verbose},
