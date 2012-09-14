@@ -503,11 +503,11 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
     return GNUNET_OK;
   case GNUNET_DNSPARSER_TYPE_NS:
     *data = GNUNET_strdup (s);
-    *data_size = strlen (s);
+    *data_size = strlen (s) + 1;
     return GNUNET_OK;
   case GNUNET_DNSPARSER_TYPE_CNAME:
     *data = GNUNET_strdup (s);
-    *data_size = strlen (s);
+    *data_size = strlen (s) + 1;
     return GNUNET_OK;
   case GNUNET_DNSPARSER_TYPE_SOA:
     
