@@ -433,6 +433,7 @@ do_connect (void *cls,
 int
 main (int argc, char *argv[])
 {
+  progname = argv[0];
   GNUNET_TESTBED_test_run ("perf-gnunet-service-fs-p2p-respect",
 			   "perf_gnunet_service_fs_p2p.conf",
 			   NUM_DAEMONS,
