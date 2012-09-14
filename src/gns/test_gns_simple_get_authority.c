@@ -42,14 +42,14 @@
 #define DEFAULT_NUM_PEERS 2
 
 /* test records to resolve */
-#define TEST_DOMAIN "www.alice.bob.gnunet"
+#define TEST_DOMAIN "www.alice.bob.gads"
 #define TEST_IP "127.0.0.1"
 #define TEST_RECORD_NAME "www"
 
 #define TEST_AUTHORITY_BOB "bob"
 #define TEST_AUTHORITY_ALICE "alice"
 #define TEST_ALICE_PSEU "carol"
-#define TEST_EXPECTED_RESULT "alice.bob.gnunet"
+#define TEST_EXPECTED_RESULT "alice.bob.gads"
 
 #define KEYFILE_BOB "../namestore/zonefiles/HGU0A0VCU334DN7F2I9UIUMVQMM7JMSD142LIMNUGTTV9R0CF4EG.zkey"
 #define KEYFILE_ALICE "../namestore/zonefiles/N0UJMP015AFUNR2BTNM3FKPBLG38913BL8IDMCO2H0A1LIB81960.zkey"

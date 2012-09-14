@@ -41,7 +41,7 @@
 #define DEFAULT_NUM_PEERS 2
 
 /* test records to resolve */
-#define TEST_DOMAIN "www.gnunet"
+#define TEST_DOMAIN "www.gads"
 #define TEST_IP "127.0.0.1"
 #define TEST_RECORD_NAME "www"
 

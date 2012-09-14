@@ -178,7 +178,7 @@ is_srv (char* name)
 /**
  * Determine if this name is canonical.
  * i.e.
- * a.b.gnunet  = not canonical
+ * a.b.gads  = not canonical
  * a           = canonical
  *
  * @param name the name to test
@@ -2121,7 +2121,7 @@ process_pkey_revocation_result_ns (void *cls,
     {
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
         "GNS_PHASE_DELEGATE_REV-%llu: Starting background lookup for %s type %d\n",
-        rh->id, "+.gnunet", GNUNET_GNS_RECORD_REV);
+        rh->id, "+.gads", GNUNET_GNS_RECORD_REV);
 
       gns_resolver_lookup_record(rh->authority,
                                  rh->private_local_zone,
@@ -3645,7 +3645,7 @@ process_zone_to_name_shorten_shorten (void *cls,
                                         nsh->shorten_zone) == 0)
   {
     /**
-     * This is our zone append .gnunet unless name is empty
+     * This is our zone append .gads unless name is empty
      * (it shouldn't be, usually FIXME what happens if we
      * shorten to our zone to a "" record??)
      */
@@ -3752,7 +3752,7 @@ process_zone_to_name_shorten_private (void *cls,
                                         nsh->private_zone) == 0)
   {
     /**
-     * This is our zone append .gnunet unless name is empty
+     * This is our zone append .gads unless name is empty
      * (it shouldn't be, usually FIXME what happens if we
      * shorten to our zone to a "" record??)
      */
@@ -3863,7 +3863,7 @@ process_zone_to_name_shorten_root (void *cls,
                                         nsh->root_zone) == 0)
   {
     /**
-     * This is our zone append .gnunet unless name is empty
+     * This is our zone append .gads unless name is empty
      * (it shouldn't be, usually FIXME what happens if we
      * shorten to our zone to a "" record??)
      */
@@ -3964,7 +3964,7 @@ handle_delegation_ns_shorten (void* cls,
                                    nsh->root_zone) == 0)
   {
     /**
-     * This is our zone append .gnunet unless name is empty
+     * This is our zone append .gads unless name is empty
      * (it shouldn't be, usually FIXME what happens if we
      * shorten to our zone to a "" record??)
      */
@@ -3980,7 +3980,7 @@ handle_delegation_ns_shorten (void* cls,
   else if (NULL != nsh->private_zone)
   {
     /**
-     * This is our zone append .gnunet unless name is empty
+     * This is our zone append .gads unless name is empty
      * (it shouldn't be, usually FIXME what happens if we
      * shorten to our zone to a "" record??)
      */
@@ -4001,7 +4001,7 @@ handle_delegation_ns_shorten (void* cls,
   else if (NULL != nsh->shorten_zone)
   {
     /**
-     * This is our zone append .gnunet unless name is empty
+     * This is our zone append .gads unless name is empty
      * (it shouldn't be, usually FIXME what happens if we
      * shorten to our zone to a "" record??)
      */

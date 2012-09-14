@@ -42,11 +42,11 @@
 #define DEFAULT_NUM_PEERS 2
 
 /* test records to resolve */
-#define TEST_DOMAIN "bob.gnunet"
+#define TEST_DOMAIN "bob.gads"
 #define TEST_IP "127.0.0.1"
 #define TEST_RECORD_NAME "mail"
 #define TEST_MX_NAME "mail.+"
-#define TEST_EXPECTED_MX "mail.bob.gnunet"
+#define TEST_EXPECTED_MX "mail.bob.gads"
 
 #define TEST_AUTHORITY_NAME "bob"
 

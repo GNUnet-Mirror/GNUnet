@@ -42,8 +42,8 @@
 #define DEFAULT_NUM_PEERS 2
 
 /* test records to resolve */
-#define TEST_DOMAIN "www.gnunet"
-#define TEST_DOMAIN_NACK "doesnotexist.bob.gnunet"
+#define TEST_DOMAIN "www.gads"
+#define TEST_DOMAIN_NACK "doesnotexist.bob.gads"
 #define TEST_IP "127.0.0.1"
 #define TEST_RECORD_NAME "www"
 #define TEST_ADDITIONAL_LOOKUPS 5
@@ -201,7 +201,7 @@ commence_testing (void *cls, int32_t success, const char *emsg)
   {
     GNUNET_snprintf(lookup_name,
                     MAX_DNS_NAME_LENGTH,
-                    "www.doesnotexist-%d.bob.gnunet", i);
+                    "www.doesnotexist-%d.bob.gads", i);
     GNUNET_GNS_lookup(gns_handle, lookup_name, GNUNET_GNS_RECORD_A,
                       GNUNET_NO,
                       NULL,

@@ -43,12 +43,12 @@
 #define DEFAULT_NUM_PEERS 2
 
 /* test records to resolve */
-#define TEST_DOMAIN "_sip._tcp.bob.gnunet"
+#define TEST_DOMAIN "_sip._tcp.bob.gads"
 #define TEST_IP "127.0.0.1"
 #define TEST_RECORD_NAME "sipserver"
 #define TEST_RECORD_NAME_SRV "_sip._tcp"
 #define TEST_SRV_NAME "sipserver.+"
-#define TEST_EXPECTED_SRV "sipserver.bob.gnunet"
+#define TEST_EXPECTED_SRV "sipserver.bob.gads"
 
 #define TEST_AUTHORITY_NAME "bob"
 

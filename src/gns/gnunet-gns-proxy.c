@@ -2610,7 +2610,7 @@ generate_gns_certificate (const char *name)
                                  0, "DE", 2);
 
   gnutls_x509_crt_set_dn_by_oid (request, GNUTLS_OID_X520_ORGANIZATION_NAME,
-                                 0, "GNUnet", 6);
+                                 0, "GNS", 6);
 
   gnutls_x509_crt_set_dn_by_oid (request, GNUTLS_OID_X520_COMMON_NAME,
                                  0, name, strlen (name));

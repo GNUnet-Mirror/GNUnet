@@ -24,7 +24,7 @@
  * topology:
  * alice <----> bob <-----> dave
  *
- * alice queries for www.buddy.bob.gnunet
+ * alice queries for www.buddy.bob.gads
  *
  */
 #include "platform.h"
@@ -45,7 +45,7 @@
 /* If number of peers not in config file, use this number */
 #define DEFAULT_NUM_PEERS 2
 
-#define TEST_DOMAIN "www.buddy.bob.gnunet"
+#define TEST_DOMAIN "www.buddy.bob.gads"
 #define TEST_IP "1.1.1.1"
 #define TEST_DAVE_PSEU "hagbard"
 #define TEST_NUM_PEERS 3

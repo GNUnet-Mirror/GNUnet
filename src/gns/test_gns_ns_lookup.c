@@ -39,9 +39,9 @@
 #define DEFAULT_NUM_PEERS 2
 
 /* test records to resolve */
-#define TEST_DOMAIN "www.homepage.gnunet"
-#define TEST_DOMAIN_ALT "homepage.gnunet"
-#define TEST_DOMAIN_ALT2 "uk.homepage.gnunet"
+#define TEST_DOMAIN "www.homepage.gads"
+#define TEST_DOMAIN_ALT "homepage.gads"
+#define TEST_DOMAIN_ALT2 "uk.homepage.gads"
 #define TEST_IP_ALT2 "81.187.252.184"
 #define TEST_IP "131.159.74.67"
 #define TEST_IP_NS "216.69.185.1" //ns01.domaincontrol.com

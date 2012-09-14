@@ -41,13 +41,13 @@
 #define DEFAULT_NUM_PEERS 2
 
 /* test records to resolve */
-#define TEST_DOMAIN_PLUS "www.gnunet"
-#define TEST_DOMAIN_ZKEY "www2.gnunet"
-#define TEST_DOMAIN_DNS  "www3.gnunet"
+#define TEST_DOMAIN_PLUS "www.gads"
+#define TEST_DOMAIN_ZKEY "www2.gads"
+#define TEST_DOMAIN_DNS  "www3.gads"
 #define TEST_IP_PLUS "127.0.0.1"
 #define TEST_IP_ZKEY "127.0.0.2"
 #define TEST_IP_DNS  "131.159.74.67"
-#define TEST_RECORD_CNAME_SERVER "server.gnunet"
+#define TEST_RECORD_CNAME_SERVER "server.gads"
 #define TEST_RECORD_CNAME_PLUS "server.+"
 #define TEST_RECORD_CNAME_ZKEY "www.188JSUMKEF25GVU8TTV0PBNNN8JVCPUEDFV1UHJJU884JD25V0T0.zkey"
 #define TEST_RECORD_CNAME_DNS "gnunet.org"

@@ -43,7 +43,7 @@
 #define DEFAULT_NUM_PEERS 2
 
 /* test records to resolve */
-#define TEST_DOMAIN "www.alicewonderland.bobbuilder.gnunet"
+#define TEST_DOMAIN "www.alicewonderland.bobbuilder.gads"
 #define TEST_IP "127.0.0.1"
 #define TEST_RECORD_NAME "www"
 
@@ -52,7 +52,7 @@
 #define TEST_AUTHORITY_BOB "bobbuilder"
 #define TEST_AUTHORITY_ALICE "alicewonderland"
 #define TEST_PSEU_ALICE "carol"
-#define TEST_EXPECTED_RESULT "www.carol.short.private.gnunet"
+#define TEST_EXPECTED_RESULT "www.carol.short.private.gads"
 
 #define DHT_OPERATION_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 

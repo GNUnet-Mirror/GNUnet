@@ -28,7 +28,7 @@
 #ifndef GNS_H
 #define GNS_H
 
-#define GNUNET_GNS_TLD "gnunet"
+#define GNUNET_GNS_TLD "gads"
 #define GNUNET_GNS_TLD_ZKEY "zkey"
 #define GNUNET_GNS_TLD_PLUS "+"
 #define GNUNET_GNS_DHT_MAX_UPDATE_INTERVAL 3600

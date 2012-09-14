@@ -313,14 +313,14 @@ handle_dns_request(void *cls,
 
   if (p->num_queries > 1)
   {
-    /* Note: We could also look for .gnunet */
+    /* Note: We could also look for .gads */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 ">1 queriy in DNS packet... odd. We only process #1\n");
   }
 
   
   /**
-   * Check for .gnunet/.zkey
+   * Check for .gads/.zkey
    */
   
   if ((is_gnunet_tld(p->queries[0].name) == GNUNET_YES) ||
