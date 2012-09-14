@@ -2331,10 +2331,10 @@ process_delegation_result_dht(void* cls,
     GNUNET_CRYPTO_hash_xor(key, &name_hash_double, &zone_hash_double);
     GNUNET_CRYPTO_short_hash_from_truncation (&zone_hash_double, &zone);
 
-    /* Save to namestore */
+    /* Save to namestore
     if (0 != GNUNET_CRYPTO_short_hash_cmp(&rh->authority_chain_head->zone,
                                           &zone))
-    {
+    {*/
       if (max_allowed_ns_tasks <=
           GNUNET_CONTAINER_heap_get_size (ns_task_heap))
       {
@@ -2342,11 +2342,11 @@ process_delegation_result_dht(void* cls,
         GNUNET_NAMESTORE_cancel (ns_heap_root->qe);
 
         GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-                   "GNS_PHASE_REC-%llu: Replacing oldest background ns task\n",
+                   "GNS_PHASE_DELEGATE_DHT-%llu: Replacing oldest background ns task\n",
                    rh->id);
       }
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "GNS_PHASE_REC-%llu: Caching record for %s\n",
+                  "GNS_PHASE_DELEGATE_DHT-%llu: Caching record for %s\n",
                   rh->id, name);
       namestore_bg_task = GNUNET_malloc (sizeof (struct NamestoreBGTask));
 
@@ -2363,7 +2363,7 @@ process_delegation_result_dht(void* cls,
                                  &on_namestore_delegation_put_result, //cont
                                  namestore_bg_task); //cls
     }
-  }
+  //}
 
   if (0 != rh->answered)
   {
