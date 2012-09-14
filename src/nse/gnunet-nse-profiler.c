@@ -869,8 +869,10 @@ master_controller_cb (void *cls,
       break;
     case GNUNET_TESTBED_ET_CONNECT:
       total_connections++;
+      break;
     case GNUNET_TESTBED_ET_DISCONNECT:
       total_connections--;
+      break;
     default:
       break;
     }
