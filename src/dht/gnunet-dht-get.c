@@ -52,6 +52,11 @@ static struct GNUNET_TIME_Relative timeout_request = { 60000 };
 static int verbose;
 
 /**
+ * Use DHT demultixplex_everywhere
+ */
+static int demultixplex_everywhere;
+
+/**
  * Handle to the DHT
  */
 static struct GNUNET_DHT_Handle *dht_handle;
@@ -161,12 +166,14 @@ run (void *cls, char *const *args, const char *cfgfile,
   if (query_type == GNUNET_BLOCK_TYPE_ANY)      /* Type of data not set */
     query_type = GNUNET_BLOCK_TYPE_TEST;
   GNUNET_CRYPTO_hash (query_key, strlen (query_key), &key);
+  if (verbose)
+    FPRINTF (stderr, "%s `%s' \n",  _("Issueing DHT GET with key"), GNUNET_h2s_full (&key));
   GNUNET_SCHEDULER_add_delayed (timeout_request,
 				&cleanup_task, NULL);
   get_handle =
       GNUNET_DHT_get_start (dht_handle, query_type, &key, replication,
-                            GNUNET_DHT_RO_NONE, NULL, 0, &get_result_iterator,
-                            NULL);
+                            (demultixplex_everywhere) ? GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE : GNUNET_DHT_RO_NONE,
+                            NULL, 0, &get_result_iterator, NULL);
 
 }
 
@@ -187,6 +194,9 @@ static struct GNUNET_GETOPT_CommandLineOption options[] = {
   {'T', "timeout", "TIMEOUT",
    gettext_noop ("how long to execute this query before giving up?"),
    1, &GNUNET_GETOPT_set_relative_time, &timeout_request},
+  {'x', "demultiplex", NULL,
+    gettext_noop ("use DHT's demultiplex everywhere option"),
+    0, &GNUNET_GETOPT_set_one, &demultixplex_everywhere},
   {'V', "verbose", NULL,
    gettext_noop ("be verbose (print progress information)"),
    0, &GNUNET_GETOPT_set_one, &verbose},

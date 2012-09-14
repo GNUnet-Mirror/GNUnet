@@ -62,6 +62,11 @@ static unsigned int replication = 5;
 static int verbose;
 
 /**
+ * Use DHT demultixplex_everywhere
+ */
+static int demultixplex_everywhere;
+
+/**
  * Handle to the DHT
  */
 static struct GNUNET_DHT_Handle *dht_handle;
@@ -175,7 +180,9 @@ run (void *cls, char *const *args, const char *cfgfile,
   if (verbose)
     FPRINTF (stderr, _("Issuing put request for `%s' with data `%s'!\n"),
              query_key, data);
-  GNUNET_DHT_put (dht_handle, &key, replication, GNUNET_DHT_RO_NONE, query_type,
+  GNUNET_DHT_put (dht_handle, &key, replication,
+                  (demultixplex_everywhere) ? GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE : GNUNET_DHT_RO_NONE,
+                  query_type,
                   strlen (data), data, expiration, timeout, &message_sent_cont,
                   NULL);
 
@@ -195,6 +202,9 @@ static struct GNUNET_GETOPT_CommandLineOption options[] = {
   {'k', "key", "KEY",
    gettext_noop ("the query key"),
    1, &GNUNET_GETOPT_set_string, &query_key},
+  {'x', "demultiplex", NULL,
+   gettext_noop ("use DHT's demultiplex everywhere option"),
+   0, &GNUNET_GETOPT_set_one, &demultixplex_everywhere},
   {'r', "replication", "LEVEL",
    gettext_noop ("how many replicas to create"),
    1, &GNUNET_GETOPT_set_uint, &replication},
