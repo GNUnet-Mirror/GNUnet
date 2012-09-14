@@ -320,6 +320,7 @@ publish_connect_adapter (void *cls,
   return GNUNET_FS_start (cfg,
 			  "fs-test-publish",
 			  &publish_progress_cb, po,
+			  GNUNET_FS_FLAGS_NONE,
 			  GNUNET_FS_OPTIONS_END);
 }
 
