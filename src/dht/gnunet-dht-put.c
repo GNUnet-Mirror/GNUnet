@@ -32,6 +32,11 @@
 static unsigned int query_type;
 
 /**
+ * The key used in the DHT
+ */
+struct GNUNET_HashCode key;
+
+/**
  * The key for the query
  */
 static char *query_key;
@@ -105,7 +110,7 @@ message_sent_cont (void *cls, int success)
     switch (success)
     {
     case GNUNET_OK:
-      FPRINTF (stderr, "%s",  _("PUT request sent!\n"));
+      FPRINTF (stderr, "%s `%s'!\n",  _("PUT request sent with key"), GNUNET_h2s_full(&key));
       break;
     case GNUNET_NO:
       FPRINTF (stderr, "%s",  _("Timeout sending PUT request!\n"));
@@ -135,7 +140,6 @@ run (void *cls, char *const *args, const char *cfgfile,
 {
   struct GNUNET_TIME_Relative timeout;
   struct GNUNET_TIME_Absolute expiration;
-  struct GNUNET_HashCode key;
 
   cfg = c;
 
