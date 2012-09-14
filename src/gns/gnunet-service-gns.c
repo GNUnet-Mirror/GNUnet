@@ -842,12 +842,13 @@ static void handle_shorten (void *cls,
   GNUNET_CONTAINER_DLL_insert (csh_head, csh_tail, csh);
   
   GNUNET_STRINGS_utf8_tolower((char*)&sh_msg[1], &nameptr);
-
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "SHORTEN: Converted %s to %s\n", (char*)&sh_msg[1], nameptr);
   GNUNET_SERVER_notification_context_add (nc, client);
   
   if (strlen (name) < strlen(GNUNET_GNS_TLD)) {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "SHORTEN: %s is too short", name);
+               "SHORTEN: %s is too short\n", name);
     GNUNET_CONTAINER_DLL_remove (csh_head, csh_tail, csh);
     send_shorten_response(csh, name);
     return;
@@ -855,7 +856,7 @@ static void handle_shorten (void *cls,
 
   if (strlen (name) > MAX_DNS_NAME_LENGTH) {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "SHORTEN: %s is too long", name);
+               "SHORTEN: %s is too long\n", name);
     GNUNET_CONTAINER_DLL_remove (csh_head, csh_tail, csh);
     send_shorten_response(csh, name);
     return;

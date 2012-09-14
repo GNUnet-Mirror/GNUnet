@@ -3690,8 +3690,11 @@ process_zone_to_name_shorten_shorten (void *cls,
   }
   next_authority = rh->authority_chain_head;
   
-  GNUNET_snprintf(tmp_name, MAX_DNS_NAME_LENGTH,
-                  "%s.%s", rh->name, next_authority->name);
+  if (0 == strcmp (rh->name, ""))
+    strcpy (tmp_name, next_authority->name);
+  else
+    GNUNET_snprintf(tmp_name, MAX_DNS_NAME_LENGTH,
+                    "%s.%s", rh->name, next_authority->name);
   
   strcpy(rh->name, tmp_name);
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
@@ -3800,8 +3803,11 @@ process_zone_to_name_shorten_private (void *cls,
     }
     next_authority = rh->authority_chain_head;
     
-    GNUNET_snprintf(tmp_name, MAX_DNS_NAME_LENGTH,
-                    "%s.%s", rh->name, next_authority->name);
+    if (0 == strcmp (rh->name, ""))
+      strcpy (tmp_name, next_authority->name);
+    else
+      GNUNET_snprintf(tmp_name, MAX_DNS_NAME_LENGTH,
+                      "%s.%s", rh->name, next_authority->name);
     
     strcpy(rh->name, tmp_name);
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
@@ -3919,8 +3925,11 @@ process_zone_to_name_shorten_root (void *cls,
     }
     next_authority = rh->authority_chain_head;
     
-    GNUNET_snprintf(tmp_name, MAX_DNS_NAME_LENGTH,
-                    "%s.%s", rh->name, next_authority->name);
+    if (0 == strcmp (rh->name, ""))
+      strcpy (tmp_name, next_authority->name);
+    else
+      GNUNET_snprintf(tmp_name, MAX_DNS_NAME_LENGTH,
+                      "%s.%s", rh->name, next_authority->name);
     
     strcpy(rh->name, tmp_name);
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
