@@ -497,7 +497,7 @@ run (int fd_tun)
      * We are supposed to read and the buffer is not empty
      * -> select on write to stdout
      */
-    if (0 != buftun_size)
+    if (0 < buftun_size)
       FD_SET (1, &fds_w);
 
     /*
@@ -541,7 +541,10 @@ run (int fd_tun)
         {
 	  if ( (errno == EINTR) ||
 	       (errno == EAGAIN) )
-	    continue;
+	    {
+	      buftun_size = 0;
+	      continue;
+	    }
           fprintf (stderr, "read-error: %s\n", strerror (errno));
 	  return;
         }
