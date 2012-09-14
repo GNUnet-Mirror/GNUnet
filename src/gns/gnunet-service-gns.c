@@ -484,7 +484,7 @@ put_gns_record(void *cls,
   /* FIXME: keep return value to possibly cancel? */
   GNUNET_DHT_put (dht_handle, &xor_hash,
                   DHT_GNS_REPLICATION_LEVEL,
-                  GNUNET_DHT_RO_NONE,
+                  GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
                   GNUNET_BLOCK_TYPE_GNS_NAMERECORD,
                   rd_payload_length,
                   (char*)nrb,

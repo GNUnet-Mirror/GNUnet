@@ -490,14 +490,14 @@ process_auth_discovery_ns_result (void* cls,
     GNUNET_assert (gph->get_handle == NULL);
 
     gph->get_handle = GNUNET_DHT_get_start (dht_handle,
-                                            GNUNET_BLOCK_TYPE_GNS_NAMERECORD,
-                                            &lookup_key,
-                                            DHT_GNS_REPLICATION_LEVEL,
-                                            GNUNET_DHT_RO_NONE,
-                                            &xquery,
-                                            sizeof(xquery),
-                                            &process_auth_discovery_dht_result,
-                                            gph);
+                                           GNUNET_BLOCK_TYPE_GNS_NAMERECORD,
+                                           &lookup_key,
+                                           DHT_GNS_REPLICATION_LEVEL,
+                                           GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
+                                           &xquery,
+                                           sizeof(xquery),
+                                           &process_auth_discovery_dht_result,
+                                           gph);
     return;
   }
 
@@ -1218,7 +1218,7 @@ resolve_record_dht (struct ResolverHandle *rh)
                                          GNUNET_BLOCK_TYPE_GNS_NAMERECORD,
                                          &lookup_key,
                                          DHT_GNS_REPLICATION_LEVEL,
-                                         GNUNET_DHT_RO_NONE,
+                                         GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
                                          &xquery,
                                          sizeof (xquery),
                                          &process_record_result_dht,
@@ -2862,7 +2862,7 @@ resolve_delegation_dht(struct ResolverHandle *rh)
                        GNUNET_BLOCK_TYPE_GNS_NAMERECORD,
                        &lookup_key,
                        DHT_GNS_REPLICATION_LEVEL,
-                       GNUNET_DHT_RO_NONE,
+                       GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
                        &xquery,
                        sizeof(xquery),
                        &process_delegation_result_dht,
