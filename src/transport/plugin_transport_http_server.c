@@ -213,6 +213,11 @@ struct HTTP_Server_Plugin
   unsigned int cur_connections;
 
   /**
+   * Did we immediately end the session in disconnect_cb
+   */
+  int in_shutdown;
+
+  /**
    * External hostname the plugin can be connected to, can be different to
    * the host's FQDN, used e.g. for reverse proxying
    */
@@ -1584,6 +1589,9 @@ server_schedule (struct HTTP_Server_Plugin *plugin,
 
   struct GNUNET_TIME_Relative tv;
 
+  if (GNUNET_YES == plugin->in_shutdown)
+    return GNUNET_SCHEDULER_NO_TASK;
+
   ret = GNUNET_SCHEDULER_NO_TASK;
   FD_ZERO (&rs);
   FD_ZERO (&ws);
@@ -1598,11 +1606,10 @@ server_schedule (struct HTTP_Server_Plugin *plugin,
   {
     if (timeout != last_timeout)
     {
-#if VERBOSE_SERVER
+
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                        "SELECT Timeout changed from %llu to %llu\n",
                        last_timeout, timeout);
-#endif
       last_timeout = timeout;
     }
     tv.rel_value = (uint64_t) timeout;
@@ -2710,7 +2717,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
     GNUNET_free (api);
     return NULL;
   }
-
+  plugin->in_shutdown = GNUNET_YES;
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                    _("Shutting down plugin `%s'\n"),
                    plugin->name);
@@ -2757,7 +2764,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
       if ((GNUNET_YES == pos->session_passed) && (GNUNET_NO == pos->session_ended))
       {
         /* Notify transport immediately that this session is invalid */
-          pos->session_ended = GNUNET_YES;
+        pos->session_ended = GNUNET_YES;
         plugin->env->session_end (plugin->env->cls, &pos->target, pos);
       }
 
