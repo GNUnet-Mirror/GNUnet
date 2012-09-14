@@ -42,14 +42,9 @@ static unsigned int replication = 5;
 static char *query_key;
 
 /**
- * User supplied timeout value (in seconds)
+ * User supplied timeout value
  */
-static unsigned long long timeout_request = 5;
-
-/**
- * When this request should really die
- */
-struct GNUNET_TIME_Absolute absolute_timeout;
+static struct GNUNET_TIME_Relative timeout_request = { 60000 };
 
 /**
  * Be verbose
@@ -82,26 +77,25 @@ static unsigned int result_count;
 static int ret;
 
 
-static void
-shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  if (dht_handle != NULL)
-  {
-    GNUNET_DHT_disconnect (dht_handle);
-    dht_handle = NULL;
-  }
-}
-
-
+/**
+ * Task run to clean up on timeout.
+ *
+ * @param cls unused
+ * @param tc unused
+ */
 static void
 cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  if (get_handle != NULL)
+  if (NULL != get_handle)
   {
     GNUNET_DHT_get_stop (get_handle);
     get_handle = NULL;
   }
-  GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
+  if (NULL != dht_handle)
+  {
+    GNUNET_DHT_disconnect (dht_handle);
+    dht_handle = NULL;
+  }
 }
 
 
@@ -129,7 +123,9 @@ get_result_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
                      unsigned int put_path_length, enum GNUNET_BLOCK_Type type,
                      size_t size, const void *data)
 {
-  FPRINTF (stdout, "Result %d, type %d:\n%.*s\n", result_count, type,
+  FPRINTF (stdout, 
+	   _("Result %d, type %d:\n%.*s\n"), 
+	   result_count, type,
            (unsigned int) size, (char *) data);
   result_count++;
 }
@@ -147,44 +143,26 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
-  struct GNUNET_TIME_Relative timeout;
   struct GNUNET_HashCode key;
 
   cfg = c;
-
-  if (query_key == NULL)
+  if (NULL == query_key)
   {
-    if (verbose)
-      FPRINTF (stderr, "%s",  "Must provide key for DHT GET!\n");
+    FPRINTF (stderr, "%s",  _("Must provide key for DHT GET!\n"));
     ret = 1;
     return;
   }
-
-  dht_handle = GNUNET_DHT_connect (cfg, 1);
-
-  if (dht_handle == NULL)
+  if (NULL == (dht_handle = GNUNET_DHT_connect (cfg, 1)))
   {
-    if (verbose)
-      FPRINTF (stderr, "%s",  "Couldn't connect to DHT service!\n");
+    FPRINTF (stderr, "%s",  _("Failed to connect to DHT service!\n"));
     ret = 1;
     return;
   }
-  else if (verbose)
-    FPRINTF (stderr, "%s",  "Connected to DHT service!\n");
-
   if (query_type == GNUNET_BLOCK_TYPE_ANY)      /* Type of data not set */
     query_type = GNUNET_BLOCK_TYPE_TEST;
-
   GNUNET_CRYPTO_hash (query_key, strlen (query_key), &key);
-
-  timeout =
-      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, timeout_request);
-  absolute_timeout = GNUNET_TIME_relative_to_absolute (timeout);
-
-  if (verbose)
-    FPRINTF (stderr, "Issuing GET request for %s!\n", query_key);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining
-                                (absolute_timeout), &cleanup_task, NULL);
+  GNUNET_SCHEDULER_add_delayed (timeout_request,
+				&cleanup_task, NULL);
   get_handle =
       GNUNET_DHT_get_start (dht_handle, query_type, &key, replication,
                             GNUNET_DHT_RO_NONE, NULL, 0, &get_result_iterator,
@@ -208,7 +186,7 @@ static struct GNUNET_GETOPT_CommandLineOption options[] = {
    1, &GNUNET_GETOPT_set_uint, &query_type},
   {'T', "timeout", "TIMEOUT",
    gettext_noop ("how long to execute this query before giving up?"),
-   1, &GNUNET_GETOPT_set_ulong, &timeout_request},
+   1, &GNUNET_GETOPT_set_relative_time, &timeout_request},
   {'V', "verbose", NULL,
    gettext_noop ("be verbose (print progress information)"),
    0, &GNUNET_GETOPT_set_one, &verbose},
@@ -226,10 +204,8 @@ static struct GNUNET_GETOPT_CommandLineOption options[] = {
 int
 main (int argc, char *const *argv)
 {
-
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
-
   return (GNUNET_OK ==
           GNUNET_PROGRAM_run (argc, argv, "gnunet-dht-get",
                               gettext_noop
