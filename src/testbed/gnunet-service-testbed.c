@@ -185,24 +185,24 @@ struct Slave
  */
 enum LCFContextState
 {
-    /**
-     * The Context has been initialized; Nothing has been done on it
-     */
+  /**
+   * The Context has been initialized; Nothing has been done on it
+   */
   INIT,
 
-    /**
-     * Delegated host has been registered at the forwarding controller
-     */
+  /**
+   * Delegated host has been registered at the forwarding controller
+   */
   DELEGATED_HOST_REGISTERED,
-
-    /**
-     * The slave host has been registred at the forwarding controller
-     */
+  
+  /**
+   * The slave host has been registred at the forwarding controller
+   */
   SLAVE_HOST_REGISTERED,
-
-    /**
-     * The context has been finished (may have error)
-     */
+  
+  /**
+   * The context has been finished (may have error)
+   */
   FINISHED
 };
 
@@ -296,6 +296,11 @@ struct Peer
        * peer is configured with
        */
       struct GNUNET_CONFIGURATION_Handle *cfg;
+      
+      /**
+       * Is the peer running
+       */
+      int is_running;
 
     } local;
 
@@ -311,14 +316,14 @@ struct Peer
   } details;
 
   /**
+   * Is this peer local created?
+   */
+  int is_remote;
+
+  /**
    * Our local reference id for this peer
    */
   uint32_t id;
-
-  /**
-   * Is this peer local created?
-   */
-  uint32_t is_remote;
 
 };
 
@@ -1646,6 +1651,7 @@ handle_peer_create (void *cls, struct GNUNET_SERVER_Client *client,
       GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
       return;
     }
+    peer->details.local.is_running = GNUNET_NO;
     peer_list_add (peer);
     reply =
         GNUNET_malloc (sizeof
@@ -1796,6 +1802,7 @@ handle_peer_start (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
+  peer->details.local.is_running = GNUNET_YES;
   reply = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_PeerEventMessage));
   reply->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_PEEREVENT);
   reply->header.size = htons (sizeof (struct GNUNET_TESTBED_PeerEventMessage));
@@ -1859,6 +1866,7 @@ handle_peer_stop (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
+  peer->details.local.is_running = GNUNET_NO;
   reply = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_PeerEventMessage));
   reply->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_PEEREVENT);
   reply->header.size = htons (sizeof (struct GNUNET_TESTBED_PeerEventMessage));
@@ -2207,12 +2215,13 @@ handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
   GNUNET_assert (NULL != peer_list[p2]);
   /* FIXME: Add cases where we have to forward overlay connect message to sub
    * controllers */
+  GNUNET_assert (GNUNET_NO == peer_list[p1]->is_remote);
   occ = GNUNET_malloc (sizeof (struct OverlayConnectContext));
   GNUNET_SERVER_client_keep (client);
   occ->client = client;
   occ->peer = peer_list[p1];
   occ->other_peer = peer_list[p2];
-  occ->op_id = GNUNET_ntohll (msg->operation_id);  
+  occ->op_id = GNUNET_ntohll (msg->operation_id);
   /* Connect to the core of 1st peer and wait for the 2nd peer to connect */
   occ->emsg = GNUNET_strdup ("Timeout while connecting to CORE");
   occ->ch =
@@ -2295,6 +2304,8 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     {
       if (GNUNET_NO == peer_list[id]->is_remote)
       {
+	if (GNUNET_YES == peer_list[id]->details.local.is_running)
+	  GNUNET_TESTING_peer_stop (peer_list[id]->details.local.peer);
         GNUNET_TESTING_peer_destroy (peer_list[id]->details.local.peer);
         GNUNET_CONFIGURATION_destroy (peer_list[id]->details.local.cfg);
       }
