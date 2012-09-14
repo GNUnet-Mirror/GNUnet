@@ -1377,8 +1377,11 @@ regex_free_result (void *cls,
  * @param edges edges leaving current state.
  */
 void
-regex_iterator (void *cls, const struct GNUNET_HashCode *key, const char *proof,
-                int accepting, unsigned int num_edges,
+regex_iterator (void *cls,
+                const struct GNUNET_HashCode *key,
+                const char *proof,
+                int accepting,
+                unsigned int num_edges,
                 const struct GNUNET_REGEX_Edge *edges)
 {
     struct MeshRegexBlock *block;
