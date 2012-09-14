@@ -1755,6 +1755,7 @@ resolve_record_dns (struct ResolverHandle *rh,
   struct RecordLookupHandle *rlh = rh->proc_cls;
 
   memset (&packet, 0, sizeof (struct GNUNET_DNSPARSER_Packet));
+  memset (rh->dns_name, 0, sizeof (rh->dns_name));
   
   /* We cancel here as to not include the ns lookup in the timeout */
   if (GNUNET_SCHEDULER_NO_TASK != rh->timeout_task)

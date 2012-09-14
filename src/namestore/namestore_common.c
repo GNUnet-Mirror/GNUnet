@@ -374,9 +374,9 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
       return NULL;
     return GNUNET_strdup (tmp);
   case GNUNET_DNSPARSER_TYPE_NS:
-    return GNUNET_strndup (data, data_size);
+    return GNUNET_strndup (data);
   case GNUNET_DNSPARSER_TYPE_CNAME:
-    return GNUNET_strndup (data, data_size);
+    return GNUNET_strndup (data);
   case GNUNET_DNSPARSER_TYPE_SOA:
     soa = (struct soa_data*)data;
     soa_rname = (char*)&soa[1];
