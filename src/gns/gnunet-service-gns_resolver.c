@@ -1112,6 +1112,9 @@ process_record_result_dht (void* cls,
     }
     
     /* Save to namestore */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "GNS_PHASE_REC-%llu: Caching record for %s\n",
+                rh->id, name);
     namestore_bg_task = GNUNET_malloc (sizeof (struct NamestoreBGTask));
     namestore_bg_task->qe = GNUNET_NAMESTORE_record_put (namestore_handle,
                                  &nrb->public_key,
