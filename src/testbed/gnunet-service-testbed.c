@@ -324,29 +324,6 @@ struct Peer
 
 
 /**
- * State information for overlay connect context
- */
-enum OCCState
-{
-    /**
-     * Initial state
-     */
-  OCC_STATE_INIT,
-
-    /**
-     * Peer 1 has connected to peer0
-     */
-  OCC_STATE_PEER0_SUCCESS,
-
-    /**
-     * Peer 2 has connected to peer1
-     */
-  OCC_STATE_PEER1_SUCCESS,
-
-};
-
-
-/**
  * Context information for connecting 2 peers in overlay
  */
 struct OverlayConnectContext
@@ -421,12 +398,6 @@ struct OverlayConnectContext
    * The id of the overlay connect timeout task
    */
   GNUNET_SCHEDULER_TaskIdentifier timeout_task;
-
-  /**
-   * State information for determining whose HELLOs have been successfully
-   * exchanged
-   */
-  enum OCCState state;
 
 };
 
@@ -2235,7 +2206,6 @@ handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
   occ = GNUNET_malloc (sizeof (struct OverlayConnectContext));
   GNUNET_SERVER_client_keep (client);
   occ->client = client;
-  occ->state = OCC_STATE_INIT;
   occ->peer = peer_list[p1];
   occ->other_peer = peer_list[p2];
   occ->op_id = GNUNET_ntohll (msg->operation_id);
