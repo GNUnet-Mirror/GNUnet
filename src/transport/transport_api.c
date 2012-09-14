@@ -988,9 +988,8 @@ GNUNET_TRANSPORT_try_connect (struct GNUNET_TRANSPORT_Handle *handle,
                               const struct GNUNET_PeerIdentity *target)
 {
   struct GNUNET_PeerIdentity *pid;
+  GNUNET_assert (NULL != handle->client);
 
-  if (NULL == handle->client)
-    return;
   pid = GNUNET_malloc (sizeof (struct GNUNET_PeerIdentity));
   *pid = *target;
   schedule_control_transmit (handle,
@@ -1190,7 +1189,14 @@ GNUNET_TRANSPORT_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
       GNUNET_CONTAINER_multihashmap_create (STARTING_NEIGHBOURS_SIZE);
   ret->ready_heap =
       GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
-  ret->reconnect_task = GNUNET_SCHEDULER_add_now (&reconnect, ret);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Connecting to transport service.\n");
+  ret->client = GNUNET_CLIENT_connect ("transport", cfg);
+  if (ret->client == NULL)
+  {
+    GNUNET_free (ret);
+    return NULL;
+  }
+  schedule_control_transmit (ret, sizeof (struct StartMessage), &send_start, ret);
   return ret;
 }
 
