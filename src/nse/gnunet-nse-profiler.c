@@ -557,9 +557,6 @@ nse_disconnect_adapter (void *cls,
 /**
  * Task run to connect to the NSE and statistics services to a subset of
  * all of the running peers.
- *
- * @param cls handle the peer
- * @param tc ignored
  */
 static void
 connect_nse_service ()
@@ -617,8 +614,8 @@ next_round (void *cls,
  * last round, terminates the run.
  *
  * @param cls struct StatsContext
- * @param success GNUNET_OK if statistics were
- *        successfully obtained, GNUNET_SYSERR if not.
+ * @param op operation handle
+ * @param emsg error message, NULL on success
  */
 static void
 stats_finished_callback (void *cls,

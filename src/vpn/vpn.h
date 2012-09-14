@@ -82,7 +82,7 @@ struct RedirectToIpRequestMessage
 struct RedirectToServiceRequestMessage
 {
   /**
-   * Type is  GNUNET_MESSAGE_TYPE_VPN_CLIENT_REDIRECT_TO_IP
+   * Type is  GNUNET_MESSAGE_TYPE_VPN_CLIENT_REDIRECT_TO_SERVICE
    */
   struct GNUNET_MessageHeader header;
 

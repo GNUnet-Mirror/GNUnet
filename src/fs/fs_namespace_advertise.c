@@ -204,7 +204,7 @@ advertisement_cont (void *cls, int success,
  *
  * @param h handle to the file sharing subsystem
  * @param ksk_uri keywords to use for advertisment
- * @param namespace handle for the namespace that should be advertised
+ * @param ns handle for the namespace that should be advertised
  * @param meta meta-data for the namespace advertisement
  * @param bo block options
  * @param rootEntry name of the root of the namespace
@@ -215,7 +215,7 @@ advertisement_cont (void *cls, int success,
 struct GNUNET_FS_AdvertisementContext *
 GNUNET_FS_namespace_advertise (struct GNUNET_FS_Handle *h,
                                struct GNUNET_FS_Uri *ksk_uri,
-                               struct GNUNET_FS_Namespace *namespace,
+                               struct GNUNET_FS_Namespace *ns,
                                const struct GNUNET_CONTAINER_MetaData *meta,
                                const struct GNUNET_FS_BlockOptions *bo,
                                const char *rootEntry,
@@ -261,7 +261,7 @@ GNUNET_FS_namespace_advertise (struct GNUNET_FS_Handle *h,
   }
   size = mdsize + sizeof (struct NBlock) + reslen;
   nb = GNUNET_malloc (size);
-  GNUNET_CRYPTO_rsa_key_get_public (namespace->key, &nb->subspace);
+  GNUNET_CRYPTO_rsa_key_get_public (ns->key, &nb->subspace);
   nb->ns_purpose.size =
       htonl (mdsize + reslen +
              sizeof (struct GNUNET_CRYPTO_RsaSignaturePurpose) +
@@ -286,7 +286,7 @@ GNUNET_FS_namespace_advertise (struct GNUNET_FS_Handle *h,
   ctx->nb = nb;
   ctx->pt = pt;
   ctx->pt_size = mdsize + reslen;
-  ctx->ns = namespace;
+  ctx->ns = ns;
   ctx->ns->rc++;
   ctx->bo = *bo;
   advertisement_cont (ctx, GNUNET_OK, GNUNET_TIME_UNIT_ZERO_ABS, NULL);
