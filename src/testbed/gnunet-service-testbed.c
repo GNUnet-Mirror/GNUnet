@@ -1187,8 +1187,7 @@ handle_add_host (void *cls, struct GNUNET_SERVER_Client *client,
   host_id = ntohl (msg->host_id);
   LOG_DEBUG ("Received ADDHOST message\n");
   LOG_DEBUG ("-------host id: %u\n", host_id);
-  if (NULL != hostname)
-    LOG_DEBUG ("-------hostname: %s\n", hostname);
+  LOG_DEBUG ("-------hostname: %s\n", hostname);
   if (0 != username_length)
     LOG_DEBUG ("-------username: %s\n", username);
   else

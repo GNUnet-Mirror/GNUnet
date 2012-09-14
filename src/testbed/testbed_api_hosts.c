@@ -348,7 +348,7 @@ GNUNET_TESTBED_host_destroy (struct GNUNET_TESTBED_Host *host)
   }
   host_list =
       GNUNET_realloc (host_list,
-                      sizeof (struct GNUNET_TESTBED_Host) * host_list_size);
+                      sizeof (struct GNUNET_TESTBED_Host *) * host_list_size);
 }
 
 

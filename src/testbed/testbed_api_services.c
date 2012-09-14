@@ -142,6 +142,7 @@ configuration_receiver (void *cls, const struct GNUNET_MessageHeader *msg)
   struct GNUNET_TESTBED_EventInformation info;
   uint16_t mtype;
 
+  c = data->peer->controller;
   mtype = ntohs (msg->type);
   emsg = NULL;
   info.type = GNUNET_TESTBED_ET_OPERATION_FINISHED;
@@ -165,7 +166,6 @@ configuration_receiver (void *cls, const struct GNUNET_MessageHeader *msg)
   data->op_result = data->ca (data->cada_cls, data->cfg);  
   info.details.operation_finished.emsg = NULL;
   info.details.operation_finished.generic = data->op_result;
-  c = data->peer->controller;
   data->state = SERVICE_CONNECTED;
   
  call_cb:

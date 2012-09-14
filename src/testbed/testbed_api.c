@@ -272,7 +272,7 @@ handle_opsuccess (struct GNUNET_TESTBED_Controller *c,
                   GNUNET_TESTBED_GenericOperationSuccessEventMessage *msg)
 {
   struct OperationContext *opc;
-  struct GNUNET_TESTBED_EventInformation *event;
+  struct GNUNET_TESTBED_EventInformation event;
   uint64_t op_id;
 
   op_id = GNUNET_ntohll (msg->operation_id);
@@ -282,55 +282,47 @@ handle_opsuccess (struct GNUNET_TESTBED_Controller *c,
     LOG_DEBUG ("Operation not found\n");
     return GNUNET_YES;
   }
-  event = NULL;
-  if (0 != (c->event_mask & (1L << GNUNET_TESTBED_ET_OPERATION_FINISHED)))
-    event = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_EventInformation));
-  if (NULL != event)
-    event->type = GNUNET_TESTBED_ET_OPERATION_FINISHED;
   switch (opc->type)
   {
   case OP_FORWARDED:
-  {
-    struct ForwardedOperationData *fo_data;
-
-    fo_data = opc->data;
-    if (NULL != fo_data->cc)
-      fo_data->cc (fo_data->cc_cls, (const struct GNUNET_MessageHeader *) msg);
-    GNUNET_CONTAINER_DLL_remove (c->ocq_head, c->ocq_tail, opc);
-    GNUNET_free (fo_data);
-    GNUNET_free (opc);
-    return GNUNET_YES;
-  }
+    {
+      struct ForwardedOperationData *fo_data;
+      
+      fo_data = opc->data;
+      if (NULL != fo_data->cc)
+        fo_data->cc (fo_data->cc_cls, (const struct GNUNET_MessageHeader *) msg);
+      GNUNET_CONTAINER_DLL_remove (c->ocq_head, c->ocq_tail, opc);
+      GNUNET_free (fo_data);
+      GNUNET_free (opc);
+      return GNUNET_YES;
+    }
     break;
   case OP_PEER_DESTROY:
-  {
-    struct GNUNET_TESTBED_Peer *peer;
-
-    peer = opc->data;
-    GNUNET_free (peer);
-    opc->data = NULL;
-    //PEERDESTROYDATA
-  }
+    {
+      struct GNUNET_TESTBED_Peer *peer;
+      
+      peer = opc->data;
+      GNUNET_free (peer);
+      opc->data = NULL;
+      //PEERDESTROYDATA
+    }
     break;
   case OP_LINK_CONTROLLERS:
     break;
   default:
     GNUNET_assert (0);
   }
-  if (NULL != event)
-  {
-    event->details.operation_finished.operation = opc->op;
-    event->details.operation_finished.op_cls = NULL;
-    event->details.operation_finished.emsg = NULL;
-    event->details.operation_finished.generic = NULL;
-  }
+  event.type = GNUNET_TESTBED_ET_OPERATION_FINISHED;
+  event.details.operation_finished.operation = opc->op;
+  event.details.operation_finished.op_cls = NULL;
+  event.details.operation_finished.emsg = NULL;
+  event.details.operation_finished.generic = NULL;
   GNUNET_CONTAINER_DLL_remove (opc->c->ocq_head, opc->c->ocq_tail, opc);
   opc->state = OPC_STATE_FINISHED;
-  if (NULL != event)
+  if (0 != (c->event_mask & (1L << GNUNET_TESTBED_ET_OPERATION_FINISHED)))
   {
     if (NULL != c->cc)
-      c->cc (c->cc_cls, event);
-    GNUNET_free (event);
+      c->cc (c->cc_cls, &event);
   }
   return GNUNET_YES;
 }
