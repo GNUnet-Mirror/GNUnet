@@ -2352,6 +2352,64 @@ handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
 
 
 /**
+ * Handler for GNUNET_MESSAGE_TYPE_TESTBED_REQUESTCONNECT messages
+ *
+ * @param cls NULL
+ * @param client identification of the client
+ * @param message the actual message
+ */
+static void
+handle_overlay_request_connect (void *cls, struct GNUNET_SERVER_Client *client,
+				const struct GNUNET_MessageHeader *message)
+{
+  const struct GNUNET_TESTBED_RequestConnectMessage *msg;
+  struct GNUNET_TRANSPORT_Handle *th;
+  struct Peer *peer;
+  uint32_t peer_id;
+  
+  if (sizeof (struct GNUNET_TESTBED_RequestConnectMessage) >= ntohs
+      (message->size))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  msg = (const struct GNUNET_TESTBED_RequestConnectMessage *) message;
+  if ((NULL == msg->hello) || 
+      (GNUNET_MESSAGE_TYPE_HELLO != ntohs (msg->hello->type)))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  peer_id = ntohl (msg->peer);
+  if ((peer_id >= peer_list_size) || (NULL == (peer = peer_list[peer_id])))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  if (GNUNET_NO != peer->is_remote)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  th = GNUNET_TRANSPORT_connect (peer->details.local.cfg, NULL, NULL, NULL,
+				 NULL, NULL);
+  if (NULL == th)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  GNUNET_TRANSPORT_offer_hello (th, msg->hello, NULL, NULL);
+  GNUNET_TRANSPORT_try_connect (th, &msg->peer_identity);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
+
+
+/**
  * Iterator over hash map entries.
  *
  * @param cls closure
@@ -2506,6 +2564,8 @@ testbed_run (void *cls, struct GNUNET_SERVER_Handle *server,
     {&handle_peer_get_config, NULL, GNUNET_MESSAGE_TYPE_TESTBED_GETPEERCONFIG,
      sizeof (struct GNUNET_TESTBED_PeerGetConfigurationMessage)},
     {&handle_overlay_connect, NULL, GNUNET_MESSAGE_TYPE_TESTBED_OLCONNECT,
+     sizeof (struct GNUNET_TESTBED_OverlayConnectMessage)},
+    {&handle_overlay_request_connect, NULL, GNUNET_MESSAGE_TYPE_TESTBED_REQUESTCONNECT,
      sizeof (struct GNUNET_TESTBED_OverlayConnectMessage)},
     {NULL}
   };
