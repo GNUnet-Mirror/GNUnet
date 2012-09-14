@@ -1,7 +1,6 @@
 echo "Generating CA"
 
-openssl req -new -x509 -days 3650 -extensions v3_ca -keyout gnscakey.pem -out
-gnscacert.pem -subj "/C=DE/ST=Bavaria/L=Munich/O=GADS/OU=GNUnet/CN=GADS Proxy CA/emailAddress=bounce@gnunet.org" -passout pass:"GNUnet Naming System"
+openssl req -new -x509 -days 3650 -extensions v3_ca -keyout gnscakey.pem -out gnscacert.pem -subj "/C=DE/ST=Bavaria/L=Munich/O=GADS/OU=GNUnet/CN=GADS Proxy CA/emailAddress=bounce@gnunet.org" -passout pass:"GNUnet Naming System"
 
 echo "Removing passphrase from key"
 openssl rsa -passin pass:"GNUnet Naming System" -in gnscakey.pem -out gnscakeynoenc.pem
